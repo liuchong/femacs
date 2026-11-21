@@ -147,7 +147,7 @@ def record_exports(imports, existing):
             args.append(f'a{i}: {ty}')
         rt=scalar.get(decl['return'],'*mut c_void')
         if rt not in ('()','bool','Lisp_Object'):expression=f'({expression}) as {rt}'
-        code += [f'#[unsafe(export_name="{name}")]', f'pub unsafe extern "C" fn view_{name}({", ".join(args)}) -> {rt} {{ {expression} }}']
+        code += [f'#[unsafe(export_name="{name}")]', f'pub unsafe extern "C-unwind" fn view_{name}({", ".join(args)}) -> {rt} {{ {expression} }}']
         mapping.append({'name':name,'kind':'record-view','provider':'actual target header fields'})
     return code,mapping
 
@@ -157,7 +157,7 @@ def main():
     paths=list((ROOT/'src/include').glob('*.rs'))+list((ROOT/'lib/include').glob('*.rs'))+[ROOT/'lib/timespec.rs']
     for p in paths:
         text=p.read_text()
-        for m in re.finditer(r'pub\s+(?:(?:unsafe|const)\s+)*(?:extern\s+"C"\s+)?fn\s+(\w+)\s*\(',text):
+        for m in re.finditer(r'pub\s+(?:(?:unsafe|const)\s+)*(?:extern\s+"C(?:-unwind)?"\s+)?fn\s+(\w+)\s*\(',text):
             end=balanced(text,m.end()-1);tail=text[end+1:];stop=re.search(r'[;{]',tail)
             if stop is None:continue
             rt=tail[:stop.start()].strip();rt=rt.removeprefix('->').strip() or '()'
@@ -169,7 +169,7 @@ def main():
     for p in [p for tree in ('src','lib','lib-src','nt','lwlib','oldXMenu','exec','msdos') for p in (ROOT/tree).rglob('*.rs')]:
         if not (p.parts[-2]=='include' or p.parent.name=='src'):continue
         text=p.read_text()
-        existing.update(re.findall(r'#\[unsafe\(no_mangle\)\]\s*(?:pub\s+)?(?:unsafe\s+)?extern\s+"C"\s+fn\s+(\w+)',text))
+        existing.update(re.findall(r'#\[unsafe\(no_mangle\)\]\s*(?:pub\s+)?(?:unsafe\s+)?extern\s+"C(?:-unwind)?"\s+fn\s+(\w+)',text))
     code=['// Generated real header providers; do not edit.','mod cocoa_header_exports {','use super::*;', 'use super::dispextern_unit_names::*;', 'use super::frame_face_accessors::*;', 'use super::frame_image_accessors::*;']
     mapping=[];unresolved=[]
     scalar={'Int':'isize','UInt':'usize','Int8':'i8','UInt8':'u8','Int16':'i16','UInt16':'u16','Int32':'i32','UInt32':'u32','Int64':'i64','UInt64':'u64','Bool':'bool','Double':'f64','Float':'f32','CGFloat':'f64'}
@@ -187,12 +187,12 @@ def main():
             if any(not re.fullmatch(r'\w+',n) for n in names):unresolved.append(name);continue
             # Use the provider's actual signature and implementation, including its actual
             # pointer/record types. Do not infer layout from the Swift facade.
-            code += [f'#[unsafe(export_name="{name}")]',f'pub unsafe extern "C" fn cocoa_{name}({args}) -> {rt} {{ {name}({", ".join(names)}) }}']
+            code += [f'#[unsafe(export_name="{name}")]',f'pub unsafe extern "C-unwind" fn cocoa_{name}({args}) -> {rt} {{ {name}({", ".join(names)}) }}']
             mapping.append({'name':name,'provider':source,'kind':'inline'})
         elif name in constants and not decl['args'].strip() and decl['return'] in scalar:
             rt=scalar[decl['return']]
             expression=f'{name}' if rt=='bool' else f'{name} as {rt}'
-            code += [f'#[unsafe(export_name="{name}")]',f'pub unsafe extern "C" fn cocoa_{name}() -> {rt} {{ {expression} }}']
+            code += [f'#[unsafe(export_name="{name}")]',f'pub unsafe extern "C-unwind" fn cocoa_{name}() -> {rt} {{ {expression} }}']
             mapping.append({'name':name,'provider':constants[name],'kind':'constant'})
         elif name in macros and name.startswith(('FRAME_','FONT_','SET_FRAME_','NS_FACE_','MOUSE_HL_INFO','WINDOW_')):
             parsed=split_args(decl['args']);arguments=[];calls=[];good=True
@@ -214,7 +214,7 @@ def main():
             if not good or rt is None:unresolved.append(name);continue
             expression=f'{name}!({", ".join(calls)})'
             if rt not in ('()','Lisp_Object','bool'):expression=f'({expression}) as {rt}'
-            code += [f'#[unsafe(export_name="{name}")]',f'pub unsafe extern "C" fn cocoa_{name}({", ".join(arguments)}) -> {rt} {{ {expression} }}']
+            code += [f'#[unsafe(export_name="{name}")]',f'pub unsafe extern "C-unwind" fn cocoa_{name}({", ".join(arguments)}) -> {rt} {{ {expression} }}']
             mapping.append({'name':name,'provider':macros[name],'kind':'macro'})
         else:unresolved.append(name)
     code.append('}')

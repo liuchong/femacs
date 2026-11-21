@@ -140,7 +140,7 @@ const _: () = ();
    The five declaration sites, cited one per line below.  */
 /// C: lisp.h 5335: `extern ptrdiff_t emacs_write_sig (int, void const *, ptrdiff_t);`
 #[cfg (feature = "have_sound")]
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   pub fn emacs_write_sig (fd: c_int, buf: *const c_void, nbyte: ptrdiff_t) -> ptrdiff_t;
 }
 /// C: lisp.h 5144: `extern char *emacs_strerror (int) ATTRIBUTE_RETURNS_NONNULL;`
@@ -162,8 +162,8 @@ unsafe extern "C" {
 }
 /// C: lisp.h 4825: `extern void record_unwind_protect_void (void (*) (void));`
 #[cfg (feature = "have_sound")]
-unsafe extern "C" {
-  pub fn record_unwind_protect_void (function: Option<unsafe extern "C" fn ()>);
+unsafe extern "C-unwind" {
+  pub fn record_unwind_protect_void (function: Option<unsafe extern "C-unwind" fn ()>);
 }
 
 /* C 53: `/* BEGIN: Non Windows Includes */` */
@@ -294,7 +294,7 @@ pub type snd_pcm_uframes_t = c_ulong;
 ///                                                                  int, const char *, ...);`
 /// **UNVERIFIED**.
 #[cfg (all (feature = "have_sound", not (feature = "windowsnt"), feature = "have_alsa"))]
-pub type snd_lib_error_handler_t = Option<unsafe extern "C" fn (*const c_char, c_int, *const c_char,
+pub type snd_lib_error_handler_t = Option<unsafe extern "C-unwind" fn (*const c_char, c_int, *const c_char,
                                                                c_int, *const c_char, ...)>;
 /// C: <alsa/asoundlib.h>: `#define SND_PCM_STREAM_PLAYBACK 0`, `#define SND_PCM_ACCESS_RW_INTERLEAVED 3`,
 /// `#define SND_MIXER_SCHN_LAST 0`.
@@ -590,7 +590,7 @@ const _: () = core::assert! (core::mem::size_of::<au_header> () == 24);
 pub const MAX_SOUND_HEADER_BYTES: usize = 44;
 
 /* C 180-231: `struct sound_device`, the device interface.  C's `void (*f) (T *)` is Rust's
-   `Option<unsafe extern "C" fn (…)>` (PORTING.md 1.4); `period_size` is the one field C tests for
+   `Option<unsafe extern "C-unwind" fn (…)>` (PORTING.md 1.4); `period_size` is the one field C tests for
    NULL (C 562) and assigns NULL (C 854), which is what `Option` spells.  */
 #[cfg (all (feature = "have_sound", not (feature = "windowsnt")))]
 #[repr(C)]
@@ -613,18 +613,18 @@ pub struct sound_device
   /* C 205-206: `/* 1 = mono, 2 = stereo, 0 = don't set.  */`  */
   pub channels: c_int,                  // C 206
   /* C 208-209: `/* Open device SD.  */`  */
-  pub open: Option<unsafe extern "C" fn (*mut sound_device)>,           // C 209
+  pub open: Option<unsafe extern "C-unwind" fn (*mut sound_device)>,           // C 209
   /* C 211-212: `/* Close device SD.  */`  */
-  pub close: Option<unsafe extern "C" fn (*mut sound_device)>,          // C 212
+  pub close: Option<unsafe extern "C-unwind" fn (*mut sound_device)>,          // C 212
   /* C 214-215: `/* Configure SD according to device-dependent parameters.  */`  */
-  pub configure: Option<unsafe extern "C" fn (*mut sound_device)>,      // C 215
+  pub configure: Option<unsafe extern "C-unwind" fn (*mut sound_device)>,      // C 215
   /* C 217-219: `/* Choose a device-dependent format for outputting sound S.  */`  */
-  pub choose_format: Option<unsafe extern "C" fn (*mut sound_device, *mut sound)>, // C 218-219
+  pub choose_format: Option<unsafe extern "C-unwind" fn (*mut sound_device, *mut sound)>, // C 218-219
   /* C 221-223: `/* Return a preferred data size in bytes to be sent to write (below)
      each time.  2048 is used if this is NULL.  */`  */
-  pub period_size: Option<unsafe extern "C" fn (*mut sound_device) -> ptrdiff_t>,  // C 223
+  pub period_size: Option<unsafe extern "C-unwind" fn (*mut sound_device) -> ptrdiff_t>,  // C 223
   /* C 225-227: `/* Write NYBTES bytes from BUFFER to device SD.  */`  */
-  pub write: Option<unsafe extern "C" fn (*mut sound_device, *const c_char, ptrdiff_t)>, // C 226-227
+  pub write: Option<unsafe extern "C-unwind" fn (*mut sound_device, *const c_char, ptrdiff_t)>, // C 226-227
   /* C 229-230: `/* A place for devices to store additional data.  */`  */
   pub data: *mut c_void,                // C 230
 }
@@ -660,7 +660,7 @@ pub struct sound
   /* C 259-260: `/* Sound data, if a string.  */`  */
   pub data: Lisp_Object,                // C 260
   /* C 262-263: `/* Play sound file S on device SD.  */`  */
-  pub play: Option<unsafe extern "C" fn (*mut sound, *mut sound_device)>, // C 263
+  pub play: Option<unsafe extern "C-unwind" fn (*mut sound, *mut sound_device)>, // C 263
 }
 /* Measured on this host: `sizeof (struct sound) == 40`, `_Alignof == 8`, `header` at 8, `data` at
    24, `play` at 32.  */
@@ -843,7 +843,7 @@ unsafe fn find_sound_type (s: *mut sound)
 /* C 436-447: `/* Function installed by play-sound-internal with record_unwind_protect_void.  */`  */
 // C 438-439: `static void sound_cleanup (void)`
 #[cfg (all (feature = "have_sound", not (feature = "windowsnt")))]
-unsafe extern "C" fn sound_cleanup ()
+unsafe extern "C-unwind" fn sound_cleanup ()
 {
   if (*current_sound_device).close.is_some ()                              // C 441
     { ((*current_sound_device).close.unwrap ()) (current_sound_device); }  // C 442
@@ -939,7 +939,7 @@ unsafe fn wav_init (s: *mut sound) -> bool
    RIFF-WAVE scheme.  */
 // C 536-537: `static void wav_play (struct sound *s, struct sound_device *sd)`
 #[cfg (all (feature = "have_sound", not (feature = "windowsnt")))]
-unsafe extern "C" fn wav_play (s: *mut sound, sd: *mut sound_device)
+unsafe extern "C-unwind" fn wav_play (s: *mut sound, sd: *mut sound_device)
 {
   let header = (*s).header as *mut wav_header;         // C 539
 
@@ -1038,7 +1038,7 @@ unsafe fn au_init (s: *mut sound) -> bool
 /* C 633-668: `/* Play Sun audio file S on sound device SD.  */`  */
 // C 635-636: `static void au_play (struct sound *s, struct sound_device *sd)`
 #[cfg (all (feature = "have_sound", not (feature = "windowsnt")))]
-unsafe extern "C" fn au_play (s: *mut sound, sd: *mut sound_device)
+unsafe extern "C-unwind" fn au_play (s: *mut sound, sd: *mut sound_device)
 {
   let header = (*s).header as *mut au_header;          // C 638
 
@@ -1093,7 +1093,7 @@ unsafe extern "C" fn au_play (s: *mut sound, sd: *mut sound_device)
 pub const DEFAULT_SOUND_DEVICE: *const c_char = c"/dev/dsp".as_ptr ();
 // C 682-683: `static void vox_open (struct sound_device *sd)`
 #[cfg (all (feature = "have_sound", not (feature = "windowsnt")))]
-unsafe extern "C" fn vox_open (sd: *mut sound_device)
+unsafe extern "C-unwind" fn vox_open (sd: *mut sound_device)
 {
   /* C 685: `/* Open the sound device (eg /dev/dsp).  */`  */
   let file = string_default ((*sd).file, DEFAULT_SOUND_DEVICE);          // C 686
@@ -1105,7 +1105,7 @@ unsafe extern "C" fn vox_open (sd: *mut sound_device)
 /* C 693-694: `/* Configure device SD from parameters in it.  */`  */
 // C 695-696: `static void vox_configure (struct sound_device *sd)`
 #[cfg (all (feature = "have_sound", not (feature = "windowsnt")))]
-unsafe extern "C" fn vox_configure (sd: *mut sound_device)
+unsafe extern "C-unwind" fn vox_configure (sd: *mut sound_device)
 {
   let mut val: c_int;                                  // C 698
   /* C 699-701: `#if defined (USABLE_SIGIO) || defined (USABLE_SIGPOLL)` / `sigset_t oldset,
@@ -1170,7 +1170,7 @@ unsafe extern "C" fn vox_configure (sd: *mut sound_device)
 /* C 755-756: `/* Close device SD if it is open.  */`  */
 // C 757-758: `static void vox_close (struct sound_device *sd)`
 #[cfg (all (feature = "have_sound", not (feature = "windowsnt")))]
-unsafe extern "C" fn vox_close (sd: *mut sound_device)
+unsafe extern "C-unwind" fn vox_close (sd: *mut sound_device)
 {
   if (*sd).fd >= 0                                     // C 760
     {
@@ -1213,7 +1213,7 @@ unsafe extern "C" fn vox_close (sd: *mut sound_device)
 /* C 792: `/* Choose device-dependent format for device SD from sound file S.  */`  */
 // C 794-795: `static void vox_choose_format (struct sound_device *sd, struct sound *s)`
 #[cfg (all (feature = "have_sound", not (feature = "windowsnt")))]
-unsafe extern "C" fn vox_choose_format (sd: *mut sound_device, s: *mut sound)
+unsafe extern "C-unwind" fn vox_choose_format (sd: *mut sound_device, s: *mut sound)
 {
   if (*s).type_ == RIFF                                // C 797
     {
@@ -1270,7 +1270,7 @@ unsafe fn vox_init (sd: *mut sound_device) -> bool
 /* C 859: `/* Write NBYTES bytes from BUFFER to device SD.  */`  */
 // C 861-862: `static void vox_write (struct sound_device *sd, const char *buffer, ptrdiff_t nbytes)`
 #[cfg (all (feature = "have_sound", not (feature = "windowsnt")))]
-unsafe extern "C" fn vox_write (sd: *mut sound_device, buffer: *const c_char, nbytes: ptrdiff_t)
+unsafe extern "C-unwind" fn vox_write (sd: *mut sound_device, buffer: *const c_char, nbytes: ptrdiff_t)
 {
   if emacs_write_sig ((*sd).fd, buffer as *const c_void, nbytes) != nbytes   // C 864
     { sound_perror (c"Error writing to sound device".as_ptr ()); }           // C 865
@@ -1313,7 +1313,7 @@ pub struct alsa_params
    otherwise use a default device name.  */`  */
 // C 896-897: `static void alsa_open (struct sound_device *sd)`
 #[cfg (all (feature = "have_sound", not (feature = "windowsnt"), feature = "have_alsa"))]
-unsafe extern "C" fn alsa_open (sd: *mut sound_device)
+unsafe extern "C-unwind" fn alsa_open (sd: *mut sound_device)
 {
   /* C 899: `/* Open the sound device.  Default is "default".  */`  */
   let p = xmalloc (core::mem::size_of::<alsa_params> ()) as *mut alsa_params;   // C 900
@@ -1334,7 +1334,7 @@ unsafe extern "C" fn alsa_open (sd: *mut sound_device)
 
 // C 917-918: `static ptrdiff_t alsa_period_size (struct sound_device *sd)`
 #[cfg (all (feature = "have_sound", not (feature = "windowsnt"), feature = "have_alsa"))]
-unsafe extern "C" fn alsa_period_size (sd: *mut sound_device) -> ptrdiff_t
+unsafe extern "C-unwind" fn alsa_period_size (sd: *mut sound_device) -> ptrdiff_t
 {
   let p = (*sd).data as *mut alsa_params;                                       // C 920
   let fact: c_int = (snd_pcm_format_size ((*sd).format, 1)
@@ -1344,7 +1344,7 @@ unsafe extern "C" fn alsa_period_size (sd: *mut sound_device) -> ptrdiff_t
 
 // C 925-926: `static void alsa_configure (struct sound_device *sd)`
 #[cfg (all (feature = "have_sound", not (feature = "windowsnt"), feature = "have_alsa"))]
-unsafe extern "C" fn alsa_configure (sd: *mut sound_device)
+unsafe extern "C-unwind" fn alsa_configure (sd: *mut sound_device)
 {
   let mut val: c_int;                                                           // C 928
   let mut err: c_int;
@@ -1472,7 +1472,7 @@ unsafe extern "C" fn alsa_configure (sd: *mut sound_device)
 /* C 1042-1043: `/* Close device SD if it is open.  */`  */
 // C 1044-1045: `static void alsa_close (struct sound_device *sd)`
 #[cfg (all (feature = "have_sound", not (feature = "windowsnt"), feature = "have_alsa"))]
-unsafe extern "C" fn alsa_close (sd: *mut sound_device)
+unsafe extern "C-unwind" fn alsa_close (sd: *mut sound_device)
 {
   let p = (*sd).data as *mut alsa_params;                                       // C 1047
   if !p.is_null ()                                                              // C 1048
@@ -1493,7 +1493,7 @@ unsafe extern "C" fn alsa_close (sd: *mut sound_device)
 /* C 1063: `/* Choose device-dependent format for device SD from sound file S.  */`  */
 // C 1065-1066: `static void alsa_choose_format (struct sound_device *sd, struct sound *s)`
 #[cfg (all (feature = "have_sound", not (feature = "windowsnt"), feature = "have_alsa"))]
-unsafe extern "C" fn alsa_choose_format (sd: *mut sound_device, s: *mut sound)
+unsafe extern "C-unwind" fn alsa_choose_format (sd: *mut sound_device, s: *mut sound)
 {
   if (*s).type_ == RIFF                                // C 1068
     {
@@ -1528,7 +1528,7 @@ unsafe extern "C" fn alsa_choose_format (sd: *mut sound_device, s: *mut sound)
 /* C 1117: `/* Write NBYTES bytes from BUFFER to device SD.  */`  */
 // C 1119-1120: `static void alsa_write (struct sound_device *sd, const char *buffer, ptrdiff_t nbytes)`
 #[cfg (all (feature = "have_sound", not (feature = "windowsnt"), feature = "have_alsa"))]
-unsafe extern "C" fn alsa_write (sd: *mut sound_device, buffer: *const c_char, nbytes: ptrdiff_t)
+unsafe extern "C-unwind" fn alsa_write (sd: *mut sound_device, buffer: *const c_char, nbytes: ptrdiff_t)
 {
   let p = (*sd).data as *mut alsa_params;                                      // C 1122
 
@@ -1589,7 +1589,7 @@ unsafe extern "C" fn alsa_write (sd: *mut sound_device, buffer: *const c_char, n
 /* C 1168-1172: `static void snd_error_quiet (const char *file, int line, const char *function,
    int err, const char *fmt) { }` - C's silent ALSA error handler.  */
 #[cfg (all (feature = "have_sound", not (feature = "windowsnt"), feature = "have_alsa"))]
-unsafe extern "C" fn snd_error_quiet (_file: *const c_char, _line: c_int, _function: *const c_char,
+unsafe extern "C-unwind" fn snd_error_quiet (_file: *const c_char, _line: c_int, _function: *const c_char,
                            _err: c_int, _fmt: *const c_char)
 {
 }
@@ -1608,7 +1608,7 @@ unsafe fn alsa_init (sd: *mut sound_device) -> bool
   /* C 1185's `(snd_lib_error_handler_t) snd_error_quiet` is the one C cast in the driver; the two
      function-pointer types differ only in the handler's trailing varargs, so the port transmutes
      (both are 8-byte pointers).  */
-  snd_lib_error_set_handler (std::mem::transmute::<unsafe extern "C" fn (*const c_char, c_int,
+  snd_lib_error_set_handler (std::mem::transmute::<unsafe extern "C-unwind" fn (*const c_char, c_int,
       *const c_char, c_int, *const c_char), snd_lib_error_handler_t> (snd_error_quiet));
   err = snd_pcm_open (&raw mut handle, file, SND_PCM_STREAM_PLAYBACK, 0);      // C 1186
   snd_lib_error_set_handler (None);                                            // C 1187
@@ -1640,9 +1640,12 @@ unsafe fn alsa_init (sd: *mut sound_device) -> bool
    CRT entries `wcscpy`/`wcscat`, plus the mingw `_snprintf`.  Declared here (P-88 ①), **UNVERIFIED**
    for the CRT pair (no mingw toolchain - Owed 2).  */
 #[cfg (all (feature = "have_sound", feature = "windowsnt"))]
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   /// C: lisp.h 5227: `extern void message_with_string (const char *, Lisp_Object, bool);`
   pub fn message_with_string (m: *const c_char, string: Lisp_Object, log: bool);
+}
+#[cfg (all (feature = "have_sound", feature = "windowsnt"))]
+unsafe extern "C" {
   /// C: <string.h>: `char *strcat (char *, const char *);`
   pub fn strcat (dest: *mut c_char, src: *const c_char) -> *mut c_char;
   /// C: <wchar.h>: `wchar_t *wcscpy (wchar_t *, const wchar_t *);` (MinGW's 16-bit `wchar_t`)
@@ -2008,7 +2011,7 @@ DEFUN! ("play-sound-internal", Fplay_sound_internal, Splay_sound_internal, 1, 1,
 // C 1540-1541: `void syms_of_sound (void)`
 #[cfg (feature = "have_sound")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_sound ()
+pub unsafe extern "C-unwind" fn syms_of_sound ()
 {
   DEFSYM! (QCdevice, ":device");                                        // C 1543
   DEFSYM! (QCvolume, ":volume");                                        // C 1544

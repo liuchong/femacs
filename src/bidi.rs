@@ -223,7 +223,7 @@ macro_rules! SET_TEXT_POS {
 }
 
 
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   /// C: lisp.h 5031-5032: `extern ptrdiff_t fast_looking_at (Lisp_Object, ptrdiff_t,
   /// ptrdiff_t, ptrdiff_t, ptrdiff_t, Lisp_Object);`
   pub fn fast_looking_at (regexp: Lisp_Object, pos: ptrdiff_t, pos_byte: ptrdiff_t,
@@ -335,7 +335,7 @@ unsafe fn bidi_isolate_fmt_char (ch_type: bidi_type_t) -> bool
    Note: The conditions in UAX#9 clause L4 regarding the surrounding
    context must be tested by the caller.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn bidi_mirror_char (c: c_int) -> c_int
+pub unsafe extern "C-unwind" fn bidi_mirror_char (c: c_int) -> c_int
 {
   let mut val: Lisp_Object;
 
@@ -731,7 +731,7 @@ unsafe fn bidi_cache_find_level_change (level: c_int, mut dir: c_int, before: bo
    one.  Return -1 if not found (which really shouldn't happen if this
    function is called on a backward scan).  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn bidi_level_start (level: c_int) -> ptrdiff_t
+pub unsafe extern "C-unwind" fn bidi_level_start (level: c_int) -> ptrdiff_t
 {
   let slot: ptrdiff_t = bidi_cache_find_level_change (level, -1, true);
 
@@ -903,7 +903,7 @@ unsafe fn bidi_peek_at_next_level (bidi_it: *mut bidi_it) -> c_int
    entire state on the cache and starting a new cache "stacked" on top
    of the current cache.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn bidi_push_it (bidi_it: *mut bidi_it)
+pub unsafe extern "C-unwind" fn bidi_push_it (bidi_it: *mut bidi_it)
 {
   /* Give this stack slot its cache room.  */
   bidi_cache_max_elts += BIDI_CACHE_MAX_ELTS_PER_SLOT;
@@ -926,7 +926,7 @@ pub unsafe extern "C" fn bidi_push_it (bidi_it: *mut bidi_it)
 /* Restore the iterator state saved by bidi_push_it and return the
    cache to the corresponding state.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn bidi_pop_it (bidi_it: *mut bidi_it)
+pub unsafe extern "C-unwind" fn bidi_pop_it (bidi_it: *mut bidi_it)
 {
   if bidi_cache_start <= 0
     { emacs_abort (); }
@@ -955,7 +955,7 @@ static mut bidi_cache_total_alloc: ptrdiff_t = 0;
 
 /* Stash away a copy of the cache and its control variables.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn bidi_shelve_cache () -> *mut c_void
+pub unsafe extern "C-unwind" fn bidi_shelve_cache () -> *mut c_void
 {
   let mut databuf: *mut u8;
   let mut alloc: ptrdiff_t;
@@ -1017,7 +1017,7 @@ pub unsafe extern "C" fn bidi_shelve_cache () -> *mut c_void
    cache; used when the corresponding iterator is discarded instead of
    being restored.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn bidi_unshelve_cache (databuf: *mut c_void, just_free: bool)
+pub unsafe extern "C-unwind" fn bidi_unshelve_cache (databuf: *mut c_void, just_free: bool)
 {
   let mut p: *mut u8 = databuf as *mut u8;
 
@@ -1141,7 +1141,7 @@ unsafe fn bidi_set_paragraph_end (bidi_it: *mut bidi_it)
 
 /* Initialize the bidi iterator from buffer/string position CHARPOS.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn bidi_init_it (charpos: ptrdiff_t, bytepos: ptrdiff_t,
+pub unsafe extern "C-unwind" fn bidi_init_it (charpos: ptrdiff_t, bytepos: ptrdiff_t,
 				       frame_window_p: bool, bidi_it: *mut bidi_it)
 {
   if !bidi_initialized
@@ -1710,7 +1710,7 @@ unsafe fn find_first_strong_char (pos: ptrdiff_t, bytepos: ptrdiff_t,
 /* Determine the base direction, a.k.a. base embedding level, of the
    paragraph we are about to iterate through. ...  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn bidi_paragraph_init (dir: bidi_dir_t, bidi_it: *mut bidi_it,
+pub unsafe extern "C-unwind" fn bidi_paragraph_init (dir: bidi_dir_t, bidi_it: *mut bidi_it,
 					      no_default_p: bool)
 {
   let mut bytepos: ptrdiff_t = (*bidi_it).bytepos;
@@ -3533,7 +3533,7 @@ unsafe fn bidi_find_other_level_edge (bidi_it: *mut bidi_it, level: c_int,
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn bidi_move_to_visually_next (bidi_it: *mut bidi_it)
+pub unsafe extern "C-unwind" fn bidi_move_to_visually_next (bidi_it: *mut bidi_it)
 {
   let old_level: c_int;
   let mut new_level: c_int;
@@ -3681,7 +3681,7 @@ pub unsafe extern "C" fn bidi_move_to_visually_next (bidi_it: *mut bidi_it)
    whose bidi type was overridden by directional override or embedding
    or isolate control characters.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn bidi_find_first_overridden (bidi_it: *mut bidi_it) -> ptrdiff_t
+pub unsafe extern "C-unwind" fn bidi_find_first_overridden (bidi_it: *mut bidi_it) -> ptrdiff_t
 {
   let eob: ptrdiff_t
     = if STRINGP ((*bidi_it).string.lstring) { (*bidi_it).string.schars } else { ZV! () };
@@ -3737,7 +3737,7 @@ pub unsafe extern "C" fn bidi_find_first_overridden (bidi_it: *mut bidi_it) -> p
 /* This is meant to be called from within the debugger, whenever you
    wish to examine the cache contents.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn bidi_dump_cached_states ()
+pub unsafe extern "C-unwind" fn bidi_dump_cached_states ()
 {
   let mut i: ptrdiff_t;
   let mut ndigits: c_int = 1;

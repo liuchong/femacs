@@ -1,3 +1,12 @@
+## 2026-11-22: U3 explicit non-local exits & AU3 four-tier acceptance; CLN279
+
+Completed Phase 0 Stage `U3` (`显式退出`, `P-482`) and formal acceptance `AU3` (`非局部退出等价`):
+- Replaced Lisp-level `sys_setjmp` / `sys_longjmp` across `eval.rs`, `bytecode.rs`, `comp.rs`, `emacs-module.rs`, `editfns.rs`, `treesit.rs`, `keyboard.rs`, and `thread.rs` with typed `VmResult<T>` (`Result<T, NonLocalExit>`) and deterministic `extern "C-unwind"` unwinding (`[profile.release] panic = "unwind"`), backed by `crates/femacs-vm/src/nonlocal.rs` (`ScopedLispRoot`, `HostDropGuard`, `catch_vm_nonlocal`, and `.eln` pending-exit propagation).
+- Upgraded `src/comp.rs` to `ABI_VERSION` `"14"` (`comp-abi-hash = 1f71b1b1`), replacing `emit_setjmp` with 28 non-unwinding `comp_*` C-ABI status helpers and explicit JIT status/handler dispatch blocks; isolated C dynamic modules (`module_with_nonlocal_catch`, `module_signal_or_throw` `extern "C-unwind"`) and `pthread_create` (`run_thread` `catch_vm_nonlocal`); hardened `flush_stack_call_func` register-spill frame lifetime and `src/print.rs` `prstack` reallocation / RAII unwind guards.
+- `AU3` (`tools/test-u3-nonlocal-exit.py`) passed `4/4` groups in `15.891s` (`codesign --verify --deep --strict` `exit 0`): mismatched-ABI `.eln` rejected with `native-lisp-file-inconsistent` on both `normal` and `ENABLE_CHECKING` native builds, newly compiled `.eln` verified with zero `setjmp`/`longjmp` imports, `882`-byte event trace matched identically across Interpreter, Bytecode, `.eln` (`normal` + `checking`), Cocoa, Terminal, and nested C dynamic module frames, and `HostDropGuard`/`ScopedLispRoot`/`c_frames` balanced exact-once (`9/9` drops, `12/12` C frames) across all modes.
+- Protective unit tests passed: `tools/test-u3-unit.py` (`3/3` groups, `5/5` isolated `nonlocal.rs` Rust unit tests), `femacs-pure` (`7/7`), `check-mirror-dupes.py` (`6` ratchet rows, `0` failures), `check-unsafe-boundary.py` (`0` errors, `safety_documented_blocks` `92 -> 104`).
+- `CLN279` reclaimed `18,666` files, `921` directories, and `18` symlinks (`1,948,903,162` logical bytes); retained `build/terminal` (`44M`), `dist/macos/Femacs.app` (`235M`), and `build/cargo` (`962M`, retire at `AU5`). Next: `U4` (`根与状态收口`) and `AU4`. [CLN279](../maintenance/cleanup/reports/2026-11-22-279-u3-nonlocal-exit-and-au3-retirement.md).
+
 ## 2026-11-22: U2 pure algorithms & companion tools Safe Rust migration; AU2 acceptance; CLN278
 
 Completed Phase 0 Stage `U2` (`工具与叶子`, `P-481`) and formal acceptance `AU2` (`纯代码可验证`):

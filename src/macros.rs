@@ -150,7 +150,7 @@ DEFUN! ("start-kbd-macro", Fstart_kbd_macro, Sstart_kbd_macro, 1, 2, "P",
 /* Finish defining the current keyboard macro.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn end_kbd_macro ()
+pub unsafe extern "C-unwind" fn end_kbd_macro ()
 {
   kset_defining_kbd_macro (current_kboard, Qnil ());
   update_mode_lines = 20;
@@ -193,7 +193,7 @@ DEFUN! ("end-kbd-macro", Fend_kbd_macro, Send_kbd_macro, 0, 2, "p",
 /* Store character c into kbd macro being defined.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn store_kbd_macro_char (c: Lisp_Object)
+pub unsafe extern "C-unwind" fn store_kbd_macro_char (c: Lisp_Object)
 {
   let kb: *mut kboard = current_kboard;
 
@@ -222,7 +222,7 @@ pub unsafe extern "C" fn store_kbd_macro_char (c: Lisp_Object)
  really belong to it.  This is done in between editor commands.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn finalize_kbd_macro_chars ()
+pub unsafe extern "C-unwind" fn finalize_kbd_macro_chars ()
 {
   (*current_kboard).kbd_macro_end = (*current_kboard).kbd_macro_ptr;
 }
@@ -274,7 +274,7 @@ DEFUN! ("call-last-kbd-macro", Fcall_last_kbd_macro, Scall_last_kbd_macro,
 /* Restore Vexecuting_kbd_macro and executing_kbd_macro_index.
    Called when the unwind-protect in Fexecute_kbd_macro gets invoked.  */
 
-unsafe extern "C" fn pop_kbd_macro (info: Lisp_Object)
+unsafe extern "C-unwind" fn pop_kbd_macro (info: Lisp_Object)
 {
   let mut tem: Lisp_Object;
   Vexecuting_kbd_macro = XCAR (info);
@@ -392,7 +392,7 @@ DEFUN! ("execute-kbd-macro", Fexecute_kbd_macro, Sexecute_kbd_macro, 1, 3, 0,
 });
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn init_macros ()
+pub unsafe extern "C-unwind" fn init_macros ()
 {
   Vexecuting_kbd_macro = Qnil ();
   executing_kbd_macro = Qnil ();
@@ -402,7 +402,7 @@ pub unsafe extern "C" fn init_macros ()
    This should be called only while executing a macro.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn at_end_of_macro_p () -> bool
+pub unsafe extern "C-unwind" fn at_end_of_macro_p () -> bool
 {
   eassume! (! NILP (Vexecuting_kbd_macro));
   /* Some things replace the macro with t to force an early exit.  */
@@ -411,7 +411,7 @@ pub unsafe extern "C" fn at_end_of_macro_p () -> bool
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_macros ()
+pub unsafe extern "C-unwind" fn syms_of_macros ()
 {
   DEFVAR_LISP! (c"kbd-macro-termination-hook", Vkbd_macro_termination_hook,
                 "Normal hook run whenever a keyboard macro terminates.\nThis is run whether the macro ends normally or prematurely due to an error.");

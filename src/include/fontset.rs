@@ -55,7 +55,7 @@ pub const EMACS_FONTSET_H: bool = true;
 pub mod fontset_decls {
   use super::*;
 
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     /// C: void free_face_fontset (struct frame *, struct face *);
     pub fn free_face_fontset (arg0: *mut c_void, arg1: *mut c_void);
     /// C: int face_for_char (struct frame *, struct face *, int, ptrdiff_t, Lisp_Object);

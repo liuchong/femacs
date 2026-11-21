@@ -163,10 +163,10 @@ pub struct coding_system
   pub carryover: [u8; 64],                             // 493
   pub carryover_bytes: c_int,                          // 494
   pub default_char: c_int,                             // 496
-  pub detector: Option<unsafe extern "C" fn (*mut coding_system,
+  pub detector: Option<unsafe extern "C-unwind" fn (*mut coding_system,
                                               *mut coding_detection_info) -> bool>,  // 498
-  pub decoder: Option<unsafe extern "C" fn (*mut coding_system)>,                    // 499
-  pub encoder: Option<unsafe extern "C" fn (*mut coding_system) -> bool>,            // 500
+  pub decoder: Option<unsafe extern "C-unwind" fn (*mut coding_system)>,                    // 499
+  pub encoder: Option<unsafe extern "C-unwind" fn (*mut coding_system) -> bool>,            // 500
 }
 
 // coding.h 384-392: the detection bookkeeping `detector` fills in.
@@ -311,7 +311,7 @@ pub fn UTF_16_LOW_SURROGATE_P (val: c_int) -> c_int
 { ((val & 0xFC00) == 0xDC00) as c_int }
 
 // coding.h 704: the prototype `build_string_from_utf8` calls (coding.c defines it, batch C).
-unsafe extern "C" { pub fn make_string_from_utf8 (str: *const c_char, len: ptrdiff_t) -> Lisp_Object; }
+unsafe extern "C-unwind" { pub fn make_string_from_utf8 (str: *const c_char, len: ptrdiff_t) -> Lisp_Object; }
 
 /* Return the Unicode code point for the given UTF-16 surrogates.  */
 // coding.h 756-767.
@@ -335,9 +335,9 @@ pub fn build_string_from_utf8 (str: *const c_char) -> Lisp_Object
 }
 
 // coding.h 98/784/786: the file-scope objects (coding.c defines them).
-unsafe extern "C" { pub static mut Vcoding_system_hash_table: Lisp_Object; }
-unsafe extern "C" { pub static mut safe_terminal_coding: coding_system; }
-unsafe extern "C" { pub static mut emacs_mule_bytes: [c_char; 256]; }
+unsafe extern "C-unwind" { pub static mut Vcoding_system_hash_table: Lisp_Object; }
+unsafe extern "C-unwind" { pub static mut safe_terminal_coding: coding_system; }
+unsafe extern "C-unwind" { pub static mut emacs_mule_bytes: [c_char; 256]; }
 
 // coding.h 35-83: the six `enum define_coding_*_arg_index` sets (the argument indices of
 // `define-coding-system` and its per-type extensions).  C gives them no initialisers except
@@ -506,16 +506,16 @@ pub fn CHECK_CODING_SYSTEM_GET_ID (x: Lisp_Object) -> ptrdiff_t
 }
 
 // coding.h 691-713: the prototypes these wrappers call (coding.c defines them, batch C).
-unsafe extern "C" { pub fn code_convert_string_norecord (string: Lisp_Object,
+unsafe extern "C-unwind" { pub fn code_convert_string_norecord (string: Lisp_Object,
                                                          coding_system: Lisp_Object,
                                                          nocopy: bool) -> Lisp_Object; }
-unsafe extern "C" { pub fn encode_file_name (name: Lisp_Object) -> Lisp_Object; }   // coding.h 698
-unsafe extern "C" { pub fn decode_file_name (name: Lisp_Object) -> Lisp_Object; }   // coding.h 699
-unsafe extern "C" { pub fn decode_coding_gap (coding: *mut coding_system, nbytes: ptrdiff_t); }
-unsafe extern "C" { pub fn decode_coding_object (coding: *mut coding_system, src_object: Lisp_Object,
+unsafe extern "C-unwind" { pub fn encode_file_name (name: Lisp_Object) -> Lisp_Object; }   // coding.h 698
+unsafe extern "C-unwind" { pub fn decode_file_name (name: Lisp_Object) -> Lisp_Object; }   // coding.h 699
+unsafe extern "C-unwind" { pub fn decode_coding_gap (coding: *mut coding_system, nbytes: ptrdiff_t); }
+unsafe extern "C-unwind" { pub fn decode_coding_object (coding: *mut coding_system, src_object: Lisp_Object,
                                                  from: ptrdiff_t, from_byte: ptrdiff_t, to: ptrdiff_t,
                                                  to_byte: ptrdiff_t, dst_object: Lisp_Object); }
-unsafe extern "C" { pub fn encode_coding_object (coding: *mut coding_system, src_object: Lisp_Object,
+unsafe extern "C-unwind" { pub fn encode_coding_object (coding: *mut coding_system, src_object: Lisp_Object,
                                                  from: ptrdiff_t, from_byte: ptrdiff_t, to: ptrdiff_t,
                                                  to_byte: ptrdiff_t, dst_object: Lisp_Object); }
 
@@ -697,7 +697,7 @@ pub fn WCSDATA (x: Lisp_Object) -> *mut c_int
 pub mod coding_fn_decls {
   use super::*;
 
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     /// C: coding.h 684: `extern Lisp_Object code_conversion_save (bool, bool);`
     pub fn code_conversion_save (buffer: bool, multibyte: bool) -> Lisp_Object;
     /// C: coding.h 686: `extern void setup_coding_system (Lisp_Object, struct coding_system *);`

@@ -242,7 +242,7 @@ pub struct charset_table
   pub attributes_table: Lisp_Object,
 }
 
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   /// C: charset.h 265: `extern struct charset_table charset_table;` (charset.c defines it).
   pub static mut charset_table: charset_table;
   /// C: charset.h 546: `extern int charset_unicode;` (charset.c defines it).
@@ -1072,7 +1072,7 @@ pub static mut ccl_backtrace_idx: c_int = 0;
    it carries `#[unsafe(no_mangle)]` (PORTING.md 0.2).  */
 #[cfg (feature = "ccl_debug")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ccl_debug_hook (ic: c_int) -> c_int
+pub unsafe extern "C-unwind" fn ccl_debug_hook (ic: c_int) -> c_int
 {
   return ic;
 }
@@ -1123,7 +1123,7 @@ enum ccl_goto
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ccl_driver (ccl: *mut ccl_program, source: *mut c_int,
+pub unsafe extern "C-unwind" fn ccl_driver (ccl: *mut ccl_program, source: *mut c_int,
 				     destination: *mut c_int, src_size: c_int,
 				     dst_size: c_int, charset_list: Lisp_Object)
 {
@@ -2746,7 +2746,7 @@ unsafe fn ccl_get_compiled_code (ccl_prog: Lisp_Object, idx: *mut ptrdiff_t) -> 
 
    If CCL_PROG is nil, just reset the structure pointed by CCL.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn setup_ccl_program (ccl: *mut ccl_program,
+pub unsafe extern "C-unwind" fn setup_ccl_program (ccl: *mut ccl_program,
 					    mut ccl_prog: Lisp_Object) -> bool
 {
   if ! NILP (ccl_prog)
@@ -3161,7 +3161,7 @@ pub static mut Vtranslation_hash_table_vector: Lisp_Object = lisp_h_Qnil ();
 
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_ccl ()
+pub unsafe extern "C-unwind" fn syms_of_ccl ()
 {
   staticpro (&raw const Vccl_program_table);
   Vccl_program_table = make_nil_vector (32);

@@ -53,7 +53,7 @@ const _: () = core::assert! (std::mem::offset_of! (position, contin) == 40);
 pub mod indent_decls {
   use super::*;
 
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     /// C: indent.h 34-38: `struct position *compute_motion (ptrdiff_t from, ptrdiff_t
     /// frombyte, EMACS_INT fromvpos, EMACS_INT fromhpos, bool did_motion, ptrdiff_t to,
     /// EMACS_INT tovpos, EMACS_INT tohpos, EMACS_INT width, ptrdiff_t hscroll, int
@@ -90,7 +90,7 @@ pub use self::indent_decls::*;
 pub mod indent_objs {
   use super::*;
 
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     /// C: indent.h 46: `extern ptrdiff_t last_known_column_point;`
     pub static mut last_known_column_point: ptrdiff_t;
   }

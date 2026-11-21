@@ -256,7 +256,7 @@ pub const XG_XWIDGET_VIEW: &core::ffi::CStr = c"emacs_xwidget_view";
 pub mod xwidget_decls {
   use super::*;
 
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     /// C 185: `void syms_of_xwidget (void);`
     pub fn syms_of_xwidget ();
     /// C 186: `bool valid_xwidget_spec_p (Lisp_Object);`

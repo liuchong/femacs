@@ -18,7 +18,7 @@ pub const EMACS_MACROS_H: bool = true;
 pub mod macros_externs {
   use super::*;
 
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     /* macros.h 30: `extern EMACS_INT executing_kbd_macro_iterations;` */
     pub static mut executing_kbd_macro_iterations: EMACS_INT;
     /* macros.h 32: `extern Lisp_Object executing_kbd_macro;` */

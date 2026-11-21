@@ -133,13 +133,10 @@ macro_rules! IS_ANY_SEP { ($c:expr) => { IS_DIRECTORY_SEP! ($c) }; }
 /* The names C gets from headers without a mirror and from lisp.h entries the mirror does not
    carry yet, declared at the use site (the terminal.rs/filelock.rs shape).  `getpwuid`'s and
    `getgrgid`'s parameters are the frozen target's `uid_t`/`gid_t`.  */
-unsafe extern "C" {
-  /// C: `<pwd.h>`: `void endpwent (void)`
-  pub fn endpwent ();
-  /// C: `<grp.h>`: `struct group *getgrent (void)`
-  pub fn getgrent () -> *mut group;
-  /// C: `<grp.h>`: `void endgrent (void)`
-  pub fn endgrent ();
+unsafe extern "C-unwind" {
+
+  /// C: regex-emacs.h 50: `extern Lisp_Object re_match_object;`
+  pub static mut re_match_object: Lisp_Object;
 
   /// C: lisp.h 5303: `int emacs_fstatat (int, char const *, void *, int)`
   pub fn emacs_fstatat (fd: c_int, name: *const c_char, buf: *mut c_void, flag: c_int) -> c_int;
@@ -150,12 +147,17 @@ unsafe extern "C" {
                                  name: *const c_char) -> Lisp_Object;
 
   /// C: lisp.h 4807: `Lisp_Object internal_condition_case_2 (Lisp_Object (*) (Lisp_Object, Lisp_Object), Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object (*) (Lisp_Object))`
-  pub fn internal_condition_case_2 (bfun: Option<unsafe extern "C" fn (Lisp_Object, Lisp_Object) -> Lisp_Object>,
+  pub fn internal_condition_case_2 (bfun: Option<unsafe extern "C-unwind" fn (Lisp_Object, Lisp_Object) -> Lisp_Object>,
                                     arg1: Lisp_Object, arg2: Lisp_Object, handlers: Lisp_Object,
-                                    hfun: Option<unsafe extern "C" fn (Lisp_Object) -> Lisp_Object>) -> Lisp_Object;
-
-  /// C: regex-emacs.h 50: `extern Lisp_Object re_match_object;`
-  pub static mut re_match_object: Lisp_Object;
+                                    hfun: Option<unsafe extern "C-unwind" fn (Lisp_Object) -> Lisp_Object>) -> Lisp_Object;
+}
+unsafe extern "C" {
+  /// C: `<pwd.h>`: `void endpwent (void)`
+  pub fn endpwent ();
+  /// C: `<grp.h>`: `struct group *getgrent (void)`
+  pub fn getgrent () -> *mut group;
+  /// C: `<grp.h>`: `void endgrent (void)`
+  pub fn endgrent ();
 }
 
 /* C 47-50's live arm of the `emacs_dir` typedef and the two directory calls.  The two macros
@@ -217,7 +219,7 @@ unsafe fn open_directory (dirname: Lisp_Object, encoded_dirname: Lisp_Object,
 
 /* C 169-175's `#ifdef WINDOWSNT` `directory_files_internal_w32_unwind` is dead.  */
 
-unsafe extern "C" fn directory_files_internal_unwind (d: *mut c_void)
+unsafe extern "C-unwind" fn directory_files_internal_unwind (d: *mut c_void)
 {
   emacs_closedir! (d);
 }
@@ -253,7 +255,7 @@ unsafe fn read_dirent (dir: *mut emacs_dir, dirname: Lisp_Object) -> *mut dirent
    In the latter case, pass ID_FORMAT to file_attributes.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn directory_files_internal (directory: Lisp_Object, full: Lisp_Object,
+pub unsafe extern "C-unwind" fn directory_files_internal (directory: Lisp_Object, full: Lisp_Object,
 			  r#match: Lisp_Object, nosort: Lisp_Object, attrs: bool,
 			  id_format: Lisp_Object, return_count: Lisp_Object) -> Lisp_Object
 {
@@ -1101,7 +1103,7 @@ DEFUN! ("system-groups", Fsystem_groups, Ssystem_groups, 0, 0, 0,
 });
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_dired ()
+pub unsafe extern "C-unwind" fn syms_of_dired ()
 {
   DEFSYM! (Qdirectory_files, c"directory-files");
   DEFSYM! (Qdirectory_files_and_attributes, c"directory-files-and-attributes");

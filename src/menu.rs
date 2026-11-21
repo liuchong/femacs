@@ -80,26 +80,26 @@ const _: () = ();
 /// C: extern Lisp_Object larger_vector (Lisp_Object, ptrdiff_t, ptrdiff_t)  lisp.h 4245
 unsafe extern "C" { }
 /// C: extern void record_unwind_protect_void (void (*) (void))  lisp.h 4825
-unsafe extern "C" { pub fn record_unwind_protect_void
-  (function: Option<unsafe extern "C" fn ()>); }
+unsafe extern "C-unwind" { pub fn record_unwind_protect_void
+  (function: Option<unsafe extern "C-unwind" fn ()>); }
 /// C: extern bool parse_menu_item (Lisp_Object, int)  keyboard.h 474
 unsafe extern "C" { }
 /// C: extern void init_raw_keybuf_count (void)  keyboard.h 476
 unsafe extern "C" { }
 /// C: void pixel_to_glyph_coords (struct frame *, int, int, int *, int *,
 ///                                NativeRectangle *, bool)  dispextern.h 3584
-unsafe extern "C" { pub fn pixel_to_glyph_coords (f: *mut frame, x: c_int, y: c_int,
+unsafe extern "C-unwind" { pub fn pixel_to_glyph_coords (f: *mut frame, x: c_int, y: c_int,
 						  px: *mut c_int, py: *mut c_int,
 						  bounds: *mut c_void, native_p: bool); }
 /// C: int window_box_left (struct window *, enum glyph_row_area)  dispextern.h 3579
-unsafe extern "C" { pub fn window_box_left (w: *mut window,
+unsafe extern "C-unwind" { pub fn window_box_left (w: *mut window,
 					    area: glyph_row_area) -> c_int; }
 /// C: bool is_tty_frame (struct frame *f)  dispextern.h 4012
-unsafe extern "C" { pub fn is_tty_frame (f: *mut frame) -> bool; }
+unsafe extern "C-unwind" { pub fn is_tty_frame (f: *mut frame) -> bool; }
 /// C: extern struct frame *decode_any_frame (Lisp_Object)  frame.h 1477
 unsafe extern "C" { }
 /// C: int estimate_mode_line_height (struct frame *, enum face_id)  dispextern.h 3582
-unsafe extern "C" { pub fn estimate_mode_line_height (f: *mut frame,
+unsafe extern "C-unwind" { pub fn estimate_mode_line_height (f: *mut frame,
 						      face_id: face_id) -> c_int; }
 // `selected_window` (window.h 1100) comes from the window.rs mirror this unit includes.
 
@@ -139,7 +139,7 @@ pub static mut menu_items_n_panes: c_int = 0;
 static mut menu_items_submenu_depth: c_int = 0;
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn init_menu_items ()
+pub unsafe extern "C-unwind" fn init_menu_items ()
 {
   if menu_items_inuse
     { error (c"Trying to use a menu from within a menu-entry".as_ptr ()); }
@@ -159,12 +159,12 @@ pub unsafe extern "C" fn init_menu_items ()
 /* Call at the end of generating the data in menu_items.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn finish_menu_items ()
+pub unsafe extern "C-unwind" fn finish_menu_items ()
 {
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn unuse_menu_items ()
+pub unsafe extern "C-unwind" fn unuse_menu_items ()
 {
   menu_items_inuse = false;
 }
@@ -173,7 +173,7 @@ pub unsafe extern "C" fn unuse_menu_items ()
    in menu_items.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn discard_menu_items ()
+pub unsafe extern "C-unwind" fn discard_menu_items ()
 {
   /* Free the structure if it is especially large.
      Otherwise, hold on to it, to save time.  */
@@ -188,7 +188,7 @@ pub unsafe extern "C" fn discard_menu_items ()
 /* This undoes save_menu_items, and it is called by the specpdl unwind
    mechanism.  */
 
-unsafe extern "C" fn restore_menu_items (mut saved: Lisp_Object)
+unsafe extern "C-unwind" fn restore_menu_items (mut saved: Lisp_Object)
 {
   menu_items = XCAR (saved);
   menu_items_inuse = ! NILP (menu_items);
@@ -205,7 +205,7 @@ unsafe extern "C" fn restore_menu_items (mut saved: Lisp_Object)
    It will be restored when the specpdl is unwound.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn save_menu_items ()
+pub unsafe extern "C-unwind" fn save_menu_items ()
 {
   let saved: Lisp_Object = list4 (if menu_items_inuse { menu_items } else { Qnil () },
 				  make_fixnum (menu_items_used as EMACS_INT),
@@ -353,7 +353,7 @@ unsafe fn single_keymap_panes (keymap: Lisp_Object, pane_name: Lisp_Object,
    separate panes.
    If we encounter submenus deeper than SKP->MAXDEPTH levels, ignore them.  */
 
-unsafe extern "C" fn single_menu_item (key: Lisp_Object, item: Lisp_Object,
+unsafe extern "C-unwind" fn single_menu_item (key: Lisp_Object, item: Lisp_Object,
 				       dummy: Lisp_Object, skp_v: *mut c_void)
 {
   let map: Lisp_Object;
@@ -537,7 +537,7 @@ unsafe fn list_of_items (pane: Lisp_Object)
    alist-of-alists MENU.
    This handles old-fashioned calls to x-popup-menu.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn list_of_panes (menu: Lisp_Object)
+pub unsafe extern "C-unwind" fn list_of_panes (menu: Lisp_Object)
 {
   let mut tail: Lisp_Object;
 
@@ -566,7 +566,7 @@ pub unsafe extern "C" fn list_of_panes (menu: Lisp_Object)
    whose event type is ITEM_KEY (with string ITEM_NAME)
    and whose contents come from the list of keymaps MAPS.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn parse_single_submenu (item_key: Lisp_Object,
+pub unsafe extern "C-unwind" fn parse_single_submenu (item_key: Lisp_Object,
 					       item_name: Lisp_Object,
 					       mut maps: Lisp_Object) -> bool
 {
@@ -634,7 +634,7 @@ unsafe fn push_submenu_end() {
 // C menu.c 566-873: the native widget-value tree, including its GC ordering.
 #[cfg(feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn make_widget_value(name: *const c_char, value: *mut c_char,
+pub unsafe extern "C-unwind" fn make_widget_value(name: *const c_char, value: *mut c_char,
                                            enabled: bool, help: Lisp_Object) -> *mut widget_value {
   block_input();
   let wv = xzalloc(core::mem::size_of::<widget_value>()).cast::<widget_value>();
@@ -648,7 +648,7 @@ pub unsafe extern "C" fn make_widget_value(name: *const c_char, value: *mut c_ch
 
 #[cfg(feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn free_menubar_widget_value_tree(wv: *mut widget_value) {
+pub unsafe extern "C-unwind" fn free_menubar_widget_value_tree(wv: *mut widget_value) {
   if wv.is_null() { return; }
   (*wv).key = 0xDEADBEEFusize as *mut c_char;
   (*wv).value = (*wv).key;
@@ -668,7 +668,7 @@ pub unsafe extern "C" fn free_menubar_widget_value_tree(wv: *mut widget_value) {
 
 #[cfg(feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn digest_single_submenu(start: c_int, end: c_int, top_level_items: bool) -> *mut widget_value {
+pub unsafe extern "C-unwind" fn digest_single_submenu(start: c_int, end: c_int, top_level_items: bool) -> *mut widget_value {
   let mut submenu_depth: c_int = 0;
   let mut submenu_stack: *mut *mut widget_value = core::ptr::null_mut();
   let mut panes_seen = false;
@@ -761,7 +761,7 @@ pub unsafe extern "C" fn digest_single_submenu(start: c_int, end: c_int, top_lev
 
 #[cfg(feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn update_submenu_strings(first_wv: *mut widget_value) {
+pub unsafe extern "C-unwind" fn update_submenu_strings(first_wv: *mut widget_value) {
   let mut wv = first_wv;
   while !wv.is_null() {
     if STRINGP((*wv).lname) {
@@ -780,7 +780,7 @@ pub unsafe extern "C" fn update_submenu_strings(first_wv: *mut widget_value) {
 // C menu.c 875-964: enqueue every selected prefix in original order.
 #[cfg(feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn find_and_call_menu_selection(f: *mut frame, menu_bar_items_used: c_int,
+pub unsafe extern "C-unwind" fn find_and_call_menu_selection(f: *mut frame, menu_bar_items_used: c_int,
                                                        vector: Lisp_Object, client_data: *mut c_void) {
   let mut entry = Qnil();
   let mut subprefix_stack: *mut Lisp_Object = core::ptr::null_mut();
@@ -835,7 +835,7 @@ pub unsafe extern "C" fn find_and_call_menu_selection(f: *mut frame, menu_bar_it
 // C menu.c 967-1031: return the selection and its keymap prefixes.
 #[cfg(feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn find_and_return_menu_selection(_f: *mut frame, keymaps: bool, client_data: *mut c_void) -> Lisp_Object {
+pub unsafe extern "C-unwind" fn find_and_return_menu_selection(_f: *mut frame, keymaps: bool, client_data: *mut c_void) -> Lisp_Object {
   let mut prefix = Qnil(); let mut entry = Qnil(); let mut i = 0;
   let mut subprefix_stack: *mut Lisp_Object = core::ptr::null_mut();
   let mut submenu_depth: c_int = 0;
@@ -873,7 +873,7 @@ pub unsafe extern "C" fn find_and_return_menu_selection(_f: *mut frame, keymaps:
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn menu_item_width (str: *const u8) -> ptrdiff_t
+pub unsafe extern "C-unwind" fn menu_item_width (str: *const u8) -> ptrdiff_t
 {
   let mut len: ptrdiff_t;
   let mut p: *const u8;
@@ -941,7 +941,7 @@ DEFUN! ("menu-bar-menu-at-x-y", Fmenu_bar_menu_at_x_y, Smenu_bar_menu_at_x_y,
 });
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn x_popup_menu_1 (position: Lisp_Object, mut menu: Lisp_Object)
+pub unsafe extern "C-unwind" fn x_popup_menu_1 (position: Lisp_Object, mut menu: Lisp_Object)
   -> Lisp_Object
 {
   let mut keymap: Lisp_Object;
@@ -1035,7 +1035,7 @@ pub unsafe extern "C" fn x_popup_menu_1 (position: Lisp_Object, mut menu: Lisp_O
 	    let mut bar_window: Lisp_Object = lisp_h_Qnil ();
 	    let mut part: scroll_bar_part = 0;
 	    let mut time: Time = 0;
-	    let mouse_position_hook: Option<unsafe extern "C" fn (*mut *mut c_void, c_int,
+	    let mouse_position_hook: Option<unsafe extern "C-unwind" fn (*mut *mut c_void, c_int,
 								   *mut Lisp_Object,
 								   *mut scroll_bar_part,
 								   *mut Lisp_Object,
@@ -1348,7 +1348,7 @@ pub static mut Vx_pre_popup_menu_hook: Lisp_Object = lisp_h_Qnil ();
 pub static mut Vx_popup_menu_function: Lisp_Object = lisp_h_Qnil ();
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_menu ()
+pub unsafe extern "C-unwind" fn syms_of_menu ()
 {
   menu_items = Qnil ();
   staticpro (&raw const menu_items);

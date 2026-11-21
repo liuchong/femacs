@@ -80,7 +80,7 @@ const _: () = ();
 
 /* The names C gets from headers whose mirrors do not carry them yet (the terminal.rs shape),
    each with C's own prototype in a `/// C:` line.  */
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   /// C: lisp.h 4226: `extern ptrdiff_t chars_in_text (const unsigned char *, ptrdiff_t);`
   fn chars_in_text (string: *const u8, nbytes: ptrdiff_t) -> ptrdiff_t;
   /// C: lisp.h 4954: `extern void clear_charpos_cache (struct buffer *);`
@@ -88,9 +88,9 @@ unsafe extern "C" {
 
   /// C: lisp.h 4811: `extern Lisp_Object internal_catch_all (Lisp_Object (*) (void *), void *,
   /// Lisp_Object (*) (enum nonlocal_exit, Lisp_Object));`
-  fn internal_catch_all (func: Option<unsafe extern "C" fn (*mut c_void) -> Lisp_Object>,
+  fn internal_catch_all (func: Option<unsafe extern "C-unwind" fn (*mut c_void) -> Lisp_Object>,
                          arg: *mut c_void,
-                         handler: Option<unsafe extern "C" fn (nonlocal_exit, Lisp_Object)
+                         handler: Option<unsafe extern "C-unwind" fn (nonlocal_exit, Lisp_Object)
                                           -> Lisp_Object>) -> Lisp_Object;
 
 
@@ -139,7 +139,7 @@ macro_rules! check_markers { () => { {} } }
    Note that this can quit!  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn move_gap_both (charpos: ptrdiff_t, bytepos: ptrdiff_t)
+pub unsafe extern "C-unwind" fn move_gap_both (charpos: ptrdiff_t, bytepos: ptrdiff_t)
 {
   eassert! (charpos == BYTE_TO_CHAR (bytepos)
 	    && bytepos == CHAR_TO_BYTE (charpos));
@@ -297,7 +297,7 @@ unsafe fn adjust_suspend_auto_hscroll (from: ptrdiff_t, to: ptrdiff_t)
    or inside of the range being deleted.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn adjust_markers_for_delete (from: ptrdiff_t, from_byte: ptrdiff_t,
+pub unsafe extern "C-unwind" fn adjust_markers_for_delete (from: ptrdiff_t, from_byte: ptrdiff_t,
 						    to: ptrdiff_t, to_byte: ptrdiff_t)
 {
   let mut m: *mut Lisp_Marker;
@@ -466,7 +466,7 @@ unsafe fn count_bytes (pos: ptrdiff_t, bytepos: ptrdiff_t, endpos: ptrdiff_t) ->
    changes have been done.  TO_Z, if non-zero, means all the markers
    whose positions are after TO should also be adjusted.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn adjust_markers_bytepos (from: ptrdiff_t, from_byte: ptrdiff_t,
+pub unsafe extern "C-unwind" fn adjust_markers_bytepos (from: ptrdiff_t, from_byte: ptrdiff_t,
 						 to: ptrdiff_t, to_byte: ptrdiff_t,
 						 to_z: c_int)
 {
@@ -517,7 +517,7 @@ pub unsafe extern "C" fn adjust_markers_bytepos (from: ptrdiff_t, from_byte: ptr
 
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn buffer_overflow ()
+pub unsafe extern "C-unwind" fn buffer_overflow ()
 {
   error (c"Maximum buffer size exceeded".as_ptr ());
 }
@@ -579,7 +579,7 @@ unsafe fn make_gap_larger (nbytes_added: ptrdiff_t)
    transcribed (P-08).  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn make_gap (nbytes_added: ptrdiff_t)
+pub unsafe extern "C-unwind" fn make_gap (nbytes_added: ptrdiff_t)
 {
   if nbytes_added >= 0
     /* With set-buffer-multibyte on a large buffer, we can end up growing the
@@ -607,7 +607,7 @@ pub unsafe extern "C" fn make_gap (nbytes_added: ptrdiff_t)
    fake current_buffer and avoid real switch to B.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn make_gap_1 (b: *mut buffer, nbytes: ptrdiff_t)
+pub unsafe extern "C-unwind" fn make_gap_1 (b: *mut buffer, nbytes: ptrdiff_t)
 {
   let oldb: *mut buffer = (current_buffer! ());
 
@@ -624,7 +624,7 @@ pub unsafe extern "C" fn make_gap_1 (b: *mut buffer, nbytes: ptrdiff_t)
    Return the number of bytes stored at TO_ADDR.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn copy_text (from_addr: *const u8, to_addr: *mut u8,
+pub unsafe extern "C-unwind" fn copy_text (from_addr: *const u8, to_addr: *mut u8,
 				    nbytes: ptrdiff_t, from_multibyte: bool,
 				    to_multibyte: bool) -> ptrdiff_t
 {
@@ -690,7 +690,7 @@ pub unsafe extern "C" fn copy_text (from_addr: *const u8, to_addr: *mut u8,
    prepare_to_modify_buffer could relocate the text.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn insert (string: *const c_char, nbytes: ptrdiff_t)
+pub unsafe extern "C-unwind" fn insert (string: *const c_char, nbytes: ptrdiff_t)
 {
   if nbytes > 0
     {
@@ -706,7 +706,7 @@ pub unsafe extern "C" fn insert (string: *const c_char, nbytes: ptrdiff_t)
 /* Likewise, but inherit text properties from neighboring characters.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn insert_and_inherit (string: *const c_char, nbytes: ptrdiff_t)
+pub unsafe extern "C-unwind" fn insert_and_inherit (string: *const c_char, nbytes: ptrdiff_t)
 {
   if nbytes > 0
     {
@@ -722,7 +722,7 @@ pub unsafe extern "C" fn insert_and_inherit (string: *const c_char, nbytes: ptrd
 /* Insert the character C before point.  Do not inherit text properties.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn insert_char (c: c_int)
+pub unsafe extern "C-unwind" fn insert_char (c: c_int)
 {
   let mut str_: [u8; MAX_MULTIBYTE_LENGTH as usize] = [0; MAX_MULTIBYTE_LENGTH as usize];
   let mut len: c_int;
@@ -741,7 +741,7 @@ pub unsafe extern "C" fn insert_char (c: c_int)
 /* Insert the null-terminated string S before point.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn insert_string (s: *const c_char)
+pub unsafe extern "C-unwind" fn insert_string (s: *const c_char)
 {
   insert (s, strlen (s) as ptrdiff_t);
 }
@@ -752,7 +752,7 @@ pub unsafe extern "C" fn insert_string (s: *const c_char)
    since gc could happen and relocate it.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn insert_before_markers (string: *const c_char, nbytes: ptrdiff_t)
+pub unsafe extern "C-unwind" fn insert_before_markers (string: *const c_char, nbytes: ptrdiff_t)
 {
   if nbytes > 0
     {
@@ -768,7 +768,7 @@ pub unsafe extern "C" fn insert_before_markers (string: *const c_char, nbytes: p
 /* Likewise, but inherit text properties from neighboring characters.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn insert_before_markers_and_inherit (string: *const c_char,
+pub unsafe extern "C-unwind" fn insert_before_markers_and_inherit (string: *const c_char,
 							    nbytes: ptrdiff_t)
 {
   if nbytes > 0
@@ -797,7 +797,7 @@ pub unsafe extern "C" fn insert_before_markers_and_inherit (string: *const c_cha
    all markers that point at the insertion place to point after it.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn insert_1_both (string: *const c_char,
+pub unsafe extern "C-unwind" fn insert_1_both (string: *const c_char,
 				        nchars: ptrdiff_t, nbytes: ptrdiff_t,
 				        inherit: bool, prepare: bool,
 				        before_markers: bool)
@@ -881,7 +881,7 @@ pub unsafe extern "C" fn insert_1_both (string: *const c_char,
    without insert noticing.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn insert_from_string (string: Lisp_Object, pos: ptrdiff_t,
+pub unsafe extern "C-unwind" fn insert_from_string (string: Lisp_Object, pos: ptrdiff_t,
 					     pos_byte: ptrdiff_t, length: ptrdiff_t,
 					     length_byte: ptrdiff_t, inherit: bool)
 {
@@ -900,7 +900,7 @@ pub unsafe extern "C" fn insert_from_string (string: Lisp_Object, pos: ptrdiff_t
    at the place where the insertion happens are adjusted to point after it.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn insert_from_string_before_markers (string: Lisp_Object,
+pub unsafe extern "C-unwind" fn insert_from_string_before_markers (string: Lisp_Object,
 							    pos: ptrdiff_t, pos_byte: ptrdiff_t,
 							    length: ptrdiff_t,
 							    length_byte: ptrdiff_t,
@@ -1008,7 +1008,7 @@ unsafe fn insert_from_string_1 (string: Lisp_Object, pos: ptrdiff_t, pos_byte: p
    of any sort, with the single exception of notifying tree-sitter and
    updating tree-sitter linecol cache.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn insert_from_gap_1 (nchars: ptrdiff_t, nbytes: ptrdiff_t,
+pub unsafe extern "C-unwind" fn insert_from_gap_1 (nchars: ptrdiff_t, nbytes: ptrdiff_t,
 					    text_at_gap_tail: bool)
 {
   eassert! (if NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
@@ -1047,7 +1047,7 @@ pub unsafe extern "C" fn insert_from_gap_1 (nchars: ptrdiff_t, nbytes: ptrdiff_t
   read_and_insert_process_output in process.c sets this to true.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn insert_from_gap (nchars: ptrdiff_t, nbytes: ptrdiff_t,
+pub unsafe extern "C-unwind" fn insert_from_gap (nchars: ptrdiff_t, nbytes: ptrdiff_t,
 					  text_at_gap_tail: bool, before_markers: bool)
 {
   let mut nchars = nchars;
@@ -1093,7 +1093,7 @@ pub unsafe extern "C" fn insert_from_gap (nchars: ptrdiff_t, nbytes: ptrdiff_t,
    and relocate BUF's text before the copy happens.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn insert_from_buffer (buf: *mut buffer,
+pub unsafe extern "C-unwind" fn insert_from_buffer (buf: *mut buffer,
 					     charpos: ptrdiff_t, nchars: ptrdiff_t,
 					     inherit: bool)
 {
@@ -1298,7 +1298,7 @@ unsafe fn adjust_after_replace (from: ptrdiff_t, from_byte: ptrdiff_t,
    - FROM) may be incorrect, the correct length is NEWLEN.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn adjust_after_insert (from: ptrdiff_t, from_byte: ptrdiff_t,
+pub unsafe extern "C-unwind" fn adjust_after_insert (from: ptrdiff_t, from_byte: ptrdiff_t,
 					      to: ptrdiff_t, to_byte: ptrdiff_t,
 					      newlen: ptrdiff_t)
 {
@@ -1331,7 +1331,7 @@ pub unsafe extern "C" fn adjust_after_insert (from: ptrdiff_t, from_byte: ptrdif
    That way, undo will also handle markers properly.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn replace_range (from: ptrdiff_t, to: ptrdiff_t, new: Lisp_Object,
+pub unsafe extern "C-unwind" fn replace_range (from: ptrdiff_t, to: ptrdiff_t, new: Lisp_Object,
 					run_mod_hooks: bool, inherit: bool,
 					adjust_match_data: bool)
 {
@@ -1569,7 +1569,7 @@ pub unsafe extern "C" fn replace_range (from: ptrdiff_t, to: ptrdiff_t, new: Lis
    function should also call treesit_record_change.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn replace_range_2 (from: ptrdiff_t, from_byte: ptrdiff_t,
+pub unsafe extern "C-unwind" fn replace_range_2 (from: ptrdiff_t, from_byte: ptrdiff_t,
 					  to: ptrdiff_t, to_byte: ptrdiff_t,
 					  ins: *const c_char, inschars: ptrdiff_t,
 					  insbytes: ptrdiff_t, markers: bool)
@@ -1668,7 +1668,7 @@ pub unsafe extern "C" fn replace_range_2 (from: ptrdiff_t, from_byte: ptrdiff_t,
    If TO comes before FROM, we delete nothing.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn del_range (from: ptrdiff_t, to: ptrdiff_t)
+pub unsafe extern "C-unwind" fn del_range (from: ptrdiff_t, to: ptrdiff_t)
 {
   del_range_1 (from, to, true, false);
 }
@@ -1681,7 +1681,7 @@ pub struct safe_del_range_context
   pub to: ptrdiff_t,
 }
 
-unsafe extern "C" fn safe_del_range_1 (ptr: *mut c_void) -> Lisp_Object
+unsafe extern "C-unwind" fn safe_del_range_1 (ptr: *mut c_void) -> Lisp_Object
 {
   let mut context: *mut safe_del_range_context;
 
@@ -1690,7 +1690,7 @@ unsafe extern "C" fn safe_del_range_1 (ptr: *mut c_void) -> Lisp_Object
   return Qnil ();
 }
 
-unsafe extern "C" fn safe_del_range_2 (type_: nonlocal_exit, value: Lisp_Object) -> Lisp_Object
+unsafe extern "C-unwind" fn safe_del_range_2 (type_: nonlocal_exit, value: Lisp_Object) -> Lisp_Object
 {
   return Qt ();
 }
@@ -1699,7 +1699,7 @@ unsafe extern "C" fn safe_del_range_2 (type_: nonlocal_exit, value: Lisp_Object)
    the buffer contents were really deleted.  Otherwise, it is 1.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn safe_del_range (from: ptrdiff_t, to: ptrdiff_t) -> c_int
+pub unsafe extern "C-unwind" fn safe_del_range (from: ptrdiff_t, to: ptrdiff_t) -> c_int
 {
   let mut context: safe_del_range_context
     = safe_del_range_context { from: 0, to: 0 };
@@ -1716,7 +1716,7 @@ pub unsafe extern "C" fn safe_del_range (from: ptrdiff_t, to: ptrdiff_t) -> c_in
    RET_STRING says to return the deleted text. */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn del_range_1 (from: ptrdiff_t, to: ptrdiff_t, prepare: bool,
+pub unsafe extern "C-unwind" fn del_range_1 (from: ptrdiff_t, to: ptrdiff_t, prepare: bool,
 				      ret_string: bool) -> Lisp_Object
 {
   let mut from = from;
@@ -1752,7 +1752,7 @@ pub unsafe extern "C" fn del_range_1 (from: ptrdiff_t, to: ptrdiff_t, prepare: b
 /* Like del_range_1 but args are byte positions, not char positions.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn del_range_byte (from_byte: ptrdiff_t, to_byte: ptrdiff_t)
+pub unsafe extern "C-unwind" fn del_range_byte (from_byte: ptrdiff_t, to_byte: ptrdiff_t)
 {
   let mut from_byte = from_byte;
   let mut to_byte = to_byte;
@@ -1796,7 +1796,7 @@ pub unsafe extern "C" fn del_range_byte (from_byte: ptrdiff_t, to_byte: ptrdiff_
    and bytepos.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn del_range_both (from: ptrdiff_t, from_byte: ptrdiff_t,
+pub unsafe extern "C-unwind" fn del_range_both (from: ptrdiff_t, from_byte: ptrdiff_t,
 					 to: ptrdiff_t, to_byte: ptrdiff_t,
 					 prepare: bool)
 {
@@ -1846,7 +1846,7 @@ pub unsafe extern "C" fn del_range_both (from: ptrdiff_t, from_byte: ptrdiff_t,
    If RET_STRING, the deleted area is returned as a string.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn del_range_2 (from: ptrdiff_t, from_byte: ptrdiff_t,
+pub unsafe extern "C-unwind" fn del_range_2 (from: ptrdiff_t, from_byte: ptrdiff_t,
 				      to: ptrdiff_t, to_byte: ptrdiff_t,
 				      ret_string: bool) -> Lisp_Object
 {
@@ -1931,7 +1931,7 @@ pub unsafe extern "C" fn del_range_2 (from: ptrdiff_t, from_byte: ptrdiff_t,
    area.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn modify_text (start: ptrdiff_t, end: ptrdiff_t)
+pub unsafe extern "C-unwind" fn modify_text (start: ptrdiff_t, end: ptrdiff_t)
 {
   prepare_to_modify_buffer (start, end, std::ptr::null_mut ());
 
@@ -1971,7 +1971,7 @@ unsafe fn run_undoable_change ()
    or during some other similar "critical section".  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn prepare_to_modify_buffer_1 (start: ptrdiff_t, end: ptrdiff_t,
+pub unsafe extern "C-unwind" fn prepare_to_modify_buffer_1 (start: ptrdiff_t, end: ptrdiff_t,
 						     preserve_ptr: *mut ptrdiff_t)
 {
   let mut base_buffer: *mut buffer;
@@ -2043,7 +2043,7 @@ pub unsafe extern "C" fn prepare_to_modify_buffer_1 (start: ptrdiff_t, end: ptrd
    will be modified and region caches should be invalidated.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn prepare_to_modify_buffer (start: ptrdiff_t, end: ptrdiff_t,
+pub unsafe extern "C-unwind" fn prepare_to_modify_buffer (start: ptrdiff_t, end: ptrdiff_t,
 						   preserve_ptr: *mut ptrdiff_t)
 {
   prepare_to_modify_buffer_1 (start, end, preserve_ptr);
@@ -2053,7 +2053,7 @@ pub unsafe extern "C" fn prepare_to_modify_buffer (start: ptrdiff_t, end: ptrdif
 /* Invalidate the caches maintained by the buffer BUF, if any, for the
    region between buffer positions START and END.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn invalidate_buffer_caches (buf: *mut buffer, start: ptrdiff_t,
+pub unsafe extern "C-unwind" fn invalidate_buffer_caches (buf: *mut buffer, start: ptrdiff_t,
 						   end: ptrdiff_t)
 {
   let mut buf = buf;
@@ -2178,7 +2178,7 @@ pub struct rvoe_arg
   pub errorp: bool,
 }
 
-unsafe extern "C" fn reset_var_on_error (ptr: *mut c_void)
+unsafe extern "C-unwind" fn reset_var_on_error (ptr: *mut c_void)
 {
   let p: *mut rvoe_arg = ptr as *mut rvoe_arg;
   if (*p).errorp
@@ -2265,7 +2265,7 @@ unsafe fn signal_before_change (start_int: ptrdiff_t, end_int: ptrdiff_t,
    after the change.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn signal_after_change (charpos: ptrdiff_t, lendel: ptrdiff_t,
+pub unsafe extern "C-unwind" fn signal_after_change (charpos: ptrdiff_t, lendel: ptrdiff_t,
 					      lenins: ptrdiff_t)
 {
   let count: specpdl_ref = SPECPDL_INDEX ();
@@ -2359,7 +2359,7 @@ pub unsafe extern "C" fn signal_after_change (charpos: ptrdiff_t, lendel: ptrdif
   unbind_to (count, Qnil ());
 }
 
-unsafe extern "C" fn Fcombine_after_change_execute_1 (val: Lisp_Object)
+unsafe extern "C-unwind" fn Fcombine_after_change_execute_1 (val: Lisp_Object)
 {
   Vcombine_after_change_calls = val;
 }
@@ -2453,7 +2453,7 @@ DEFUN! ("combine-after-change-execute", Fcombine_after_change_execute,
 
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_insdel ()
+pub unsafe extern "C-unwind" fn syms_of_insdel ()
 {
   staticpro (&raw const combine_after_change_list);
   staticpro (&raw const combine_after_change_buffer);

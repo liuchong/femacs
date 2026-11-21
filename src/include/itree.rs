@@ -111,7 +111,7 @@ pub enum itree_order
 pub mod itree_externs {
   use super::*;
 
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     // Parameter names come from the definitions in itree.c (C's prototypes have none).
     pub fn itree_node_init (node: *mut itree_node, front_advance: bool, rear_advance: bool,
                             data: Lisp_Object);

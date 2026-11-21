@@ -104,7 +104,38 @@ use core::ffi::VaList;
 pub mod pdumper_use_site_decls {
   use super::*;
 
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
+
+    /* ptrdiff_t emacs_write (int, void const *, ptrdiff_t);  (lisp.h 5131)  */
+    pub fn emacs_write (fd: c_int, buf: *const c_void, nbyte: ptrdiff_t) -> ptrdiff_t;
+    /* int emacs_open_noquit (const char *, int, int);  (lisp.h 5312)  */
+    pub fn emacs_open_noquit (file: *const c_char, oflags: c_int, mode: c_int) -> c_int;
+
+    /* void hexbuf_digest (char *, void const *, int);  (lisp.h 4247, fns.c defines it)  */
+    pub fn hexbuf_digest (hexbuf: *mut c_char, digest: *const c_void, digest_size: c_int);
+
+    /* void visit_static_gc_roots (struct gc_root_visitor);  (lisp.h 4509)  */
+    pub fn visit_static_gc_roots (visitor: gc_root_visitor);
+
+    /* Lisp_Object *hash_table_alloc_bytes (ptrdiff_t);  (lisp.h 2527, fns.c defines it)  */
+    pub fn hash_table_alloc_bytes (nbytes: ptrdiff_t) -> *mut Lisp_Object;
+
+    /* AVOID fatal (const char *msgid, ...);  (lisp.h 5371)  */
+    pub fn fatal (msgid: *const c_char, ...) -> !;
+    /* void garbage_collect (void);  (lisp.h 4477)  */
+    pub fn garbage_collect ();
+    /* extern int staticidx;  (lisp.h 3923)  */
+    /* int sys_fstat (int, struct stat *);  (lisp.h 5305; sysdep.c defines it)  */
+    pub fn sys_fstat (fd: c_int, statb: *mut stat) -> c_int;
+    /* char *splice_dir_file (char *, char const *, char const *);  (lisp.h 4968)  */
+    pub fn splice_dir_file (buffer: *mut c_char, dirname: *const c_char,
+                            filename: *const c_char) -> *mut c_char;
+    /* bool file_name_absolute_p (const char *);  (lisp.h 4970, fileio.c)  */
+    pub fn file_name_absolute_p (filename: *const c_char) -> bool;
+    /* void hash_table_thaw (Lisp_Object);  (fns.c's `hash_table_thaw')  */
+    pub fn hash_table_thaw (h: Lisp_Object);
+}
+unsafe extern "C" {
     /* void *mmap (void *, size_t, int, int, int, off_t);  */
     pub fn mmap (addr: *mut c_void, len: size_t, prot: c_int, flags: c_int, fd: c_int,
                  offset: off_t) -> *mut c_void;
@@ -135,35 +166,6 @@ pub mod pdumper_use_site_decls {
 
     /* char *strcat (char *, char const *);  */
     pub fn strcat (dest: *mut c_char, src: *const c_char) -> *mut c_char;
-
-    /* ptrdiff_t emacs_write (int, void const *, ptrdiff_t);  (lisp.h 5131)  */
-    pub fn emacs_write (fd: c_int, buf: *const c_void, nbyte: ptrdiff_t) -> ptrdiff_t;
-    /* int emacs_open_noquit (const char *, int, int);  (lisp.h 5312)  */
-    pub fn emacs_open_noquit (file: *const c_char, oflags: c_int, mode: c_int) -> c_int;
-
-    /* void hexbuf_digest (char *, void const *, int);  (lisp.h 4247, fns.c defines it)  */
-    pub fn hexbuf_digest (hexbuf: *mut c_char, digest: *const c_void, digest_size: c_int);
-
-    /* void visit_static_gc_roots (struct gc_root_visitor);  (lisp.h 4509)  */
-    pub fn visit_static_gc_roots (visitor: gc_root_visitor);
-
-    /* Lisp_Object *hash_table_alloc_bytes (ptrdiff_t);  (lisp.h 2527, fns.c defines it)  */
-    pub fn hash_table_alloc_bytes (nbytes: ptrdiff_t) -> *mut Lisp_Object;
-
-    /* AVOID fatal (const char *msgid, ...);  (lisp.h 5371)  */
-    pub fn fatal (msgid: *const c_char, ...) -> !;
-    /* void garbage_collect (void);  (lisp.h 4477)  */
-    pub fn garbage_collect ();
-    /* extern int staticidx;  (lisp.h 3923)  */
-    /* int sys_fstat (int, struct stat *);  (lisp.h 5305; sysdep.c defines it)  */
-    pub fn sys_fstat (fd: c_int, statb: *mut stat) -> c_int;
-    /* char *splice_dir_file (char *, char const *, char const *);  (lisp.h 4968)  */
-    pub fn splice_dir_file (buffer: *mut c_char, dirname: *const c_char,
-                            filename: *const c_char) -> *mut c_char;
-    /* bool file_name_absolute_p (const char *);  (lisp.h 4970, fileio.c)  */
-    pub fn file_name_absolute_p (filename: *const c_char) -> bool;
-    /* void hash_table_thaw (Lisp_Object);  (fns.c's `hash_table_thaw')  */
-    pub fn hash_table_thaw (h: Lisp_Object);
   }
 }
 
@@ -271,7 +273,7 @@ pub const MAP_POPULATE: c_int = 0;
    Also require Lisp_Object to be at least as wide as pointers.  */
 static_assert! (core::mem::size_of::<ptrdiff_t> () == core::mem::size_of::<*mut c_void> ());
 static_assert! (core::mem::size_of::<intptr_t> () == core::mem::size_of::<ptrdiff_t> ());
-static_assert! (core::mem::size_of::<Option<unsafe extern "C" fn ()>> () ==
+static_assert! (core::mem::size_of::<Option<unsafe extern "C-unwind" fn ()>> () ==
                 core::mem::size_of::<*mut c_void> ());
 static_assert! (core::mem::size_of::<ptrdiff_t> () <= core::mem::size_of::<Lisp_Object> ());
 static_assert! (core::mem::size_of::<ptrdiff_t> () <= core::mem::size_of::<EMACS_INT> ());
@@ -327,7 +329,7 @@ pub const EMACS_INT_XDIGITS: c_int = (EMACS_INT_WIDTH as c_int + 3) / 4;
 /* C 144 has `ATTRIBUTE_FORMAT_PRINTF (1, 2)`, which PORTING.md 8 records as a no-op (it
    only affects diagnostics), and its `...` is Rust's `mut args: ...` (PORTING.md P-04,
    the sysdep.rs `snprintf` shape); `va_start`/`va_end` have no counterpart.  */
-unsafe extern "C" fn dump_trace (fmt: *const c_char, mut args: ...)
+unsafe extern "C-unwind" fn dump_trace (fmt: *const c_char, mut args: ...)
 {
   if 0 != 0
     {
@@ -592,7 +594,7 @@ fn dump_reloc_set_offset (reloc: *mut dump_reloc, offset: dump_off)
 /* C 322-331's `dump_fingerprint` is not `static` (pdumper.h 49-50 declares it and
    emacs.c calls it), so the port exports it (PORTING.md 0.2).  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn dump_fingerprint (output: *mut FILE, label: *const c_char,
+pub unsafe extern "C-unwind" fn dump_fingerprint (output: *mut FILE, label: *const c_char,
                                            xfingerprint: *const c_uchar)
 {
   const hexbuf_size: c_int = 2 * (unsafe { core::mem::size_of_val (&fingerprint) }) as c_int;
@@ -1991,7 +1993,7 @@ fn dump_remember_fixup_ptr_raw (ctx: *mut dump_context, dump_offset: dump_off,
   }
 }
 
-unsafe extern "C" fn dump_root_visitor (root_ptr: *const Lisp_Object, type_: gc_root_type,
+unsafe extern "C-unwind" fn dump_root_visitor (root_ptr: *const Lisp_Object, type_: gc_root_type,
                                         data: *mut c_void)
 {
   unsafe {
@@ -3978,7 +3980,7 @@ fn dump_drain_cold_data (ctx: *mut dump_context)
   }
 }
 
-unsafe extern "C" fn read_ptr_raw_and_lv (mem: *const c_void, type_: Lisp_Type,
+unsafe extern "C-unwind" fn read_ptr_raw_and_lv (mem: *const c_void, type_: Lisp_Type,
                                           out_ptr: *mut *mut c_void,
                                           out_lv: *mut Lisp_Object)
 {
@@ -4105,7 +4107,7 @@ fn dump_drain_user_remembered_data_cold (ctx: *mut dump_context)
     }
 }
 
-unsafe extern "C" fn dump_unwind_cleanup (data: *mut c_void)
+unsafe extern "C-unwind" fn dump_unwind_cleanup (data: *mut c_void)
 {
   unsafe {
     let ctx: *mut dump_context = data as *mut dump_context;
@@ -4912,7 +4914,7 @@ DEFUN! ("dump-emacs-portable--sort-predicate-copied",
        });
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn pdumper_do_now_and_after_load_impl (hook: pdumper_hook)
+pub unsafe extern "C-unwind" fn pdumper_do_now_and_after_load_impl (hook: pdumper_hook)
 {
   if unsafe { nr_dump_hooks } == 24 /* countof (dump_hooks) */
     { unsafe { fatal (c"out of dump hooks: make dump_hooks[] bigger".as_ptr ()); } }
@@ -4924,7 +4926,7 @@ pub unsafe extern "C" fn pdumper_do_now_and_after_load_impl (hook: pdumper_hook)
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn pdumper_do_now_and_after_late_load_impl (hook: pdumper_hook)
+pub unsafe extern "C-unwind" fn pdumper_do_now_and_after_late_load_impl (hook: pdumper_hook)
 {
   if unsafe { nr_dump_late_hooks } == 24 /* countof (dump_late_hooks) */
     { unsafe { fatal (c"out of dump hooks: make dump_late_hooks[] bigger".as_ptr ()); } }
@@ -4947,7 +4949,7 @@ fn pdumper_remember_user_data_1 (mem: *mut c_void, nbytes: c_int)
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn pdumper_remember_scalar_impl (mem: *mut c_void, nbytes: ptrdiff_t)
+pub unsafe extern "C-unwind" fn pdumper_remember_scalar_impl (mem: *mut c_void, nbytes: ptrdiff_t)
 {
   eassert! (0 <= nbytes && nbytes <= INT_MAX as ptrdiff_t);
   if nbytes > 0
@@ -4955,7 +4957,7 @@ pub unsafe extern "C" fn pdumper_remember_scalar_impl (mem: *mut c_void, nbytes:
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn pdumper_remember_lv_ptr_raw_impl (ptr: *mut c_void, type_: Lisp_Type)
+pub unsafe extern "C-unwind" fn pdumper_remember_lv_ptr_raw_impl (ptr: *mut c_void, type_: Lisp_Type)
 {
   pdumper_remember_user_data_1 (ptr, -(type_ as c_int));
 }
@@ -5260,7 +5262,7 @@ pub struct dump_memory_map
 {
   pub spec: dump_memory_map_spec,
   pub mapping: *mut c_void,  /* Actual mapped memory.  */
-  pub release: Option<unsafe extern "C" fn (*mut dump_memory_map)>,
+  pub release: Option<unsafe extern "C-unwind" fn (*mut dump_memory_map)>,
   pub private: *mut c_void,
 }
 
@@ -5269,7 +5271,7 @@ pub struct dump_memory_map
 /// `mmap_release_fn!` is C's other spelling, C-compatible because C never crosses the
 /// boundary here.
 macro_rules! mmap_release_fn {
-    ($f:expr) => { Some ($f as unsafe extern "C" fn (*mut dump_memory_map)) };
+    ($f:expr) => { Some ($f as unsafe extern "C-unwind" fn (*mut dump_memory_map)) };
 }
 
 /* Mark the pages as unneeded, potentially zeroing them, without
@@ -5361,7 +5363,7 @@ fn dump_mm_heap_cb_release (cb: *mut dump_memory_map_heap_control_block)
     }
 }
 
-unsafe extern "C" fn dump_mmap_release_heap (map: *mut dump_memory_map)
+unsafe extern "C-unwind" fn dump_mmap_release_heap (map: *mut dump_memory_map)
 {
   unsafe { dump_mm_heap_cb_release ((*map).private as *mut dump_memory_map_heap_control_block); }
 }
@@ -5468,7 +5470,7 @@ fn dump_mmap_contiguous_heap (maps: *mut dump_memory_map, nr_maps: c_int,
   return ret;
 }
 
-unsafe extern "C" fn dump_mmap_release_vm (map: *mut dump_memory_map)
+unsafe extern "C-unwind" fn dump_mmap_release_vm (map: *mut dump_memory_map)
 {
   unsafe {
     let map = &mut *map;
@@ -5885,7 +5887,7 @@ fn dump_loaded_p () -> bool
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn pdumper_cold_object_p_impl (obj: *const c_void) -> bool
+pub unsafe extern "C-unwind" fn pdumper_cold_object_p_impl (obj: *const c_void) -> bool
 {
   eassert! (pdumper_object_p (obj));
   eassert! (pdumper_object_p_precise (obj));
@@ -5895,7 +5897,7 @@ pub unsafe extern "C" fn pdumper_cold_object_p_impl (obj: *const c_void) -> bool
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn pdumper_find_object_type_impl (obj: *const c_void) -> c_int
+pub unsafe extern "C-unwind" fn pdumper_find_object_type_impl (obj: *const c_void) -> c_int
 {
   eassert! (pdumper_object_p (obj));
   let offset: dump_off = ptrdiff_t_to_dump_off ((obj as uintptr_t
@@ -5925,7 +5927,7 @@ pub unsafe extern "C" fn pdumper_find_object_type_impl (obj: *const c_void) -> c
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn pdumper_marked_p_impl (obj: *const c_void) -> bool
+pub unsafe extern "C-unwind" fn pdumper_marked_p_impl (obj: *const c_void) -> bool
 {
   eassert! (pdumper_object_p (obj));
   let offset: ptrdiff_t = (obj as uintptr_t - unsafe { dump_public.start }) as ptrdiff_t;
@@ -5937,7 +5939,7 @@ pub unsafe extern "C" fn pdumper_marked_p_impl (obj: *const c_void) -> bool
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn pdumper_set_marked_impl (obj: *const c_void)
+pub unsafe extern "C-unwind" fn pdumper_set_marked_impl (obj: *const c_void)
 {
   eassert! (pdumper_object_p (obj));
   let offset: ptrdiff_t = (obj as uintptr_t - unsafe { dump_public.start }) as ptrdiff_t;
@@ -5951,7 +5953,7 @@ pub unsafe extern "C" fn pdumper_set_marked_impl (obj: *const c_void)
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn pdumper_clear_marks_impl ()
+pub unsafe extern "C-unwind" fn pdumper_clear_marks_impl ()
 {
   unsafe {
     let swap: *mut dump_bitset_word = dump_private.last_mark_bits.bits;
@@ -6074,7 +6076,7 @@ pub enum native_installation_state { UNKNOWN, LOCAL_BUILD, INSTALLED }
    `check-mirror-dupes` found them).  The three below are `comp.c`'s and `fileio.c`'s, which no
    mirror carries yet.  */
 #[cfg (feature = "have_native_comp")]
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   pub fn load_comp_unit (comp_u: *mut Lisp_Native_Comp_Unit, loading_dump: bool,
                          late_load: bool) -> Lisp_Object;
   pub fn fixup_eln_load_path (directory: Lisp_Object);
@@ -6419,7 +6421,7 @@ static mut pdumper_hashes: *mut Lisp_Object = (&raw mut zero_vector) as *mut Lis
    N.B. We run very early in initialization, so we can't use lisp,
    unwinding, xmalloc, and so on.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn pdumper_load (dump_filename: *const c_char, argv0: *mut c_char) -> c_int
+pub unsafe extern "C-unwind" fn pdumper_load (dump_filename: *const c_char, argv0: *mut c_char) -> c_int
 {
   let mut dump_size: intptr_t = 0;
   let mut stat: stat = unsafe { core::mem::zeroed () };
@@ -6684,7 +6686,7 @@ pub unsafe extern "C" fn pdumper_load (dump_filename: *const c_char, argv0: *mut
 /* Prepend the Emacs startup directory to dump_filename, if that is
    relative, so that we could later make it absolute correctly.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn pdumper_record_wd (wd: *const c_char)
+pub unsafe extern "C-unwind" fn pdumper_record_wd (wd: *const c_char)
 {
   unsafe {
     if !wd.is_null () && !file_name_absolute_p (dump_private.dump_filename)
@@ -6728,7 +6730,7 @@ DEFUN! ("pdumper-stats", Fpdumper_stats, Spdumper_stats, 0, 0, 0,
 		       Fcons (Qdump_file_name (), dump_fn));
        });
 
-unsafe extern "C" fn thaw_hash_tables ()
+unsafe extern "C-unwind" fn thaw_hash_tables ()
 {
   let hash_tables: Lisp_Object = unsafe { *pdumper_hashes };
   let mut i: ptrdiff_t = 0;
@@ -6744,7 +6746,7 @@ unsafe extern "C" fn thaw_hash_tables ()
 /* C 5880's `#ifdef HAVE_PDUMPER` inside `init_pdumper_once` is live (`HAVE_PDUMPER` is 1);
    its `#else` arm is empty.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn init_pdumper_once ()
+pub unsafe extern "C-unwind" fn init_pdumper_once ()
 {
   pdumper_do_now_and_after_load (Some (thaw_hash_tables));
 }
@@ -6756,7 +6758,7 @@ pub unsafe extern "C" fn init_pdumper_once ()
 pub static mut Vpdumper_fingerprint: Lisp_Object = lisp_h_Qnil ();
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_pdumper ()
+pub unsafe extern "C-unwind" fn syms_of_pdumper ()
 {
   /* C 5883-5919's `#ifdef HAVE_PDUMPER` is live; its `#else` arm is empty.  */
   let mut desired: [c_uchar; 32 /* sizeof fingerprint */] = [0; 32];

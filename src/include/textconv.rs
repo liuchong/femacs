@@ -41,24 +41,24 @@ pub struct textconv_interface
      happen if the window is deleted or switches buffers, or an
      unexpected buffer change occurs.) */
   /// C 36: `void (*reset) (struct frame *);`
-  pub reset: Option<unsafe extern "C" fn (*mut frame)>,
+  pub reset: Option<unsafe extern "C-unwind" fn (*mut frame)>,
 
   /* Notice that point or mark has moved in the specified frame's
      selected window's selected buffer.  The second argument is the
      window whose point changed, and the third argument is the
      buffer.  */
   /// C 42-43: `void (*point_changed) (struct frame *, struct window *, struct buffer *);`
-  pub point_changed: Option<unsafe extern "C" fn (*mut frame, *mut c_void, *mut c_void)>,
+  pub point_changed: Option<unsafe extern "C-unwind" fn (*mut frame, *mut c_void, *mut c_void)>,
 
   /* Notice that the preconversion region has changed without point
      being moved.  */
   /// C 47: `void (*compose_region_changed) (struct frame *);`
-  pub compose_region_changed: Option<unsafe extern "C" fn (*mut frame)>,
+  pub compose_region_changed: Option<unsafe extern "C-unwind" fn (*mut frame)>,
 
   /* Notice that an asynch conversion identified by COUNTER has
      completed.  */
   /// C 51: `void (*notify_conversion) (unsigned long);` - `unsigned long` is `c_ulong`.
-  pub notify_conversion: Option<unsafe extern "C" fn (c_ulong)>,
+  pub notify_conversion: Option<unsafe extern "C-unwind" fn (c_ulong)>,
 }
 
 const _: () = core::assert! (std::mem::size_of::<textconv_interface> () == 32);
@@ -162,7 +162,7 @@ pub const TEXTCONV_SKIP_CONVERSION_REGION: c_int = 1 << 0;
 pub mod textconv_decls {
   use super::*;
 
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     /// C 125-126: `extern int textconv_query (struct frame *, struct textconv_callback_struct *,
     /// int);`
     pub fn textconv_query (f: *mut frame, query: *mut textconv_callback_struct,
@@ -248,6 +248,6 @@ pub mod textconv_decls {
 /// beside the mod's block, because a GUI backend's unit (not `src/textconv.c`) is one of its
 /// callers and the port keeps one declaration per name (PORTING.md P-26).
 /// C: extern void register_textconv_interface (struct textconv_interface *);
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   pub fn register_textconv_interface (interface: *mut textconv_interface);
 }

@@ -17,11 +17,26 @@ use std::ffi::{c_char, c_double, c_int, c_long, c_ulong, c_void};
    unrenamed, which is what lets the three initializers below be the system functions.  */
 pub const _GL_USE_STDLIB_ALLOC: c_int = 1;
 
+unsafe extern "C-unwind" fn stdlib_allocate (size: usize) -> *mut c_void
+{
+  unsafe { malloc (size) }
+}
+
+unsafe extern "C-unwind" fn stdlib_reallocate (ptr: *mut c_void, size: usize) -> *mut c_void
+{
+  unsafe { realloc (ptr, size) }
+}
+
+unsafe extern "C-unwind" fn stdlib_free (ptr: *mut c_void)
+{
+  unsafe { free (ptr) }
+}
+
 /* C 22's `struct allocator const stdlib_allocator = { malloc, realloc, free, NULL };`.  */
 #[unsafe(no_mangle)]
 pub static stdlib_allocator: allocator = allocator {
-  allocate: Some (malloc),
-  reallocate: Some (realloc),
-  free: Some (free),
+  allocate: Some (stdlib_allocate),
+  reallocate: Some (stdlib_reallocate),
+  free: Some (stdlib_free),
   die: None,
 };

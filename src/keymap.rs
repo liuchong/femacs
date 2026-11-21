@@ -86,7 +86,7 @@ const _: () = ();
 /* Names C's headers give this unit that no mirror carries.  Each carries C's own
    prototype on the `pub fn` line (the minibuf.rs/ccl.rs shape), and moves to its owner's
    mirror when that lands (reported in docs/ports/keymap.md).  */
-unsafe extern "C" {
+unsafe extern "C-unwind" {
 
 
 
@@ -99,13 +99,15 @@ unsafe extern "C" {
   /// ptrdiff_t, bool);` (the lisp.rs mirror does not carry it yet - the ccl.rs shape).
   pub fn make_specified_string (contents: *const c_char, nchars: ptrdiff_t,
                                 nbytes: ptrdiff_t, multibyte: bool) -> Lisp_Object;
-  /// C: <string.h>: `extern char *strstr (const char *, const char *);` (absent from the
-  /// string.rs mirror, which carries memcpy/memset/strchr/strlen).
-  pub fn strstr (haystack: *const c_char, needle: *const c_char) -> *mut c_char;
 
   /// C: lisp.h 4717: `extern ptrdiff_t esprintf (char *, char const *, ...)
   /// ATTRIBUTE_FORMAT_PRINTF (2, 3);` (doprnt.c; not declared by any included mirror).
   pub fn esprintf (buf: *mut c_char, format: *const c_char, ...) -> ptrdiff_t;
+}
+unsafe extern "C" {
+  /// C: <string.h>: `extern char *strstr (const char *, const char *);` (absent from the
+  /// string.rs mirror, which carries memcpy/memset/strchr/strlen).
+  pub fn strstr (haystack: *const c_char, needle: *const c_char) -> *mut c_char;
 }
 
 /* Actually allocate storage for these variables.  */
@@ -129,7 +131,7 @@ static mut where_is_cache_keymaps: Lisp_Object = lisp_h_Qnil ();
 
 // C 75-84's forward declarations are dropped (PORTING.md 0.1-12).
 
-unsafe extern "C" fn CHECK_VECTOR_OR_CHAR_TABLE (x: Lisp_Object)
+unsafe extern "C-unwind" fn CHECK_VECTOR_OR_CHAR_TABLE (x: Lisp_Object)
 {
   CHECK_TYPE (VECTORP (x) || CHAR_TABLE_P (x), Qvector_or_char_table_p (), x);
 }
@@ -157,7 +159,7 @@ DEFUN! ("make-sparse-keymap", Fmake_sparse_keymap, Smake_sparse_keymap, 0, 1, 0,
 });
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn initial_define_lispy_key (keymap: Lisp_Object,
+pub unsafe extern "C-unwind" fn initial_define_lispy_key (keymap: Lisp_Object,
                                                    keyname: *const c_char,
                                                    defname: *const c_char)
 {
@@ -215,7 +217,7 @@ DEFUN! ("keymap-prompt", Fkeymap_prompt, Skeymap_prompt, 1, 1, 0,
    Fautoload_do_load which can GC.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn get_keymap (mut object: Lisp_Object,
+pub unsafe extern "C-unwind" fn get_keymap (mut object: Lisp_Object,
                                      error_if_not_keymap: bool,
                                      autoload: bool) -> Lisp_Object
 {
@@ -524,14 +526,14 @@ unsafe fn access_keymap_1 (map: Lisp_Object, idx: Lisp_Object,
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn access_keymap (map: Lisp_Object, idx: Lisp_Object,
+pub unsafe extern "C-unwind" fn access_keymap (map: Lisp_Object, idx: Lisp_Object,
 				        t_ok: bool, noinherit: bool) -> Lisp_Object
 {
   let val = access_keymap_1 (map, idx, t_ok, noinherit);
   return if BASE_EQ (val, Qunbound ()) { Qnil () } else { val };
 }
 
-unsafe extern "C" fn map_keymap_item (fun: map_keymap_function_t, args: Lisp_Object, key: Lisp_Object, val: Lisp_Object, data: *mut c_void)
+unsafe extern "C-unwind" fn map_keymap_item (fun: map_keymap_function_t, args: Lisp_Object, key: Lisp_Object, val: Lisp_Object, data: *mut c_void)
 {
   let mut val = val;
   if EQ (val, Qt ())
@@ -569,7 +571,7 @@ const _: () = core::assert! (std::mem::offset_of! (map_keymap_s, data) == 16);
 const _: () = core::assert! (std::mem::size_of::<map_keymap> () == 24);
 const _: () = core::assert! (std::mem::align_of::<map_keymap> () == 8);
 
-unsafe extern "C" fn map_keymap_char_table_item (args: Lisp_Object, key: Lisp_Object, val: Lisp_Object)
+unsafe extern "C-unwind" fn map_keymap_char_table_item (args: Lisp_Object, key: Lisp_Object, val: Lisp_Object)
 {
   let mut key = key;
   if !NILP (val)
@@ -627,7 +629,7 @@ unsafe fn map_keymap_internal (map: Lisp_Object,
   return tail;
 }
 
-unsafe extern "C" fn map_keymap_call (key: Lisp_Object, val: Lisp_Object, fun: Lisp_Object, dummy: *mut c_void)
+unsafe extern "C-unwind" fn map_keymap_call (key: Lisp_Object, val: Lisp_Object, fun: Lisp_Object, dummy: *mut c_void)
 {
   calln! (fun, key, val);
 }
@@ -635,7 +637,7 @@ unsafe extern "C" fn map_keymap_call (key: Lisp_Object, val: Lisp_Object, fun: L
 /* Same as map_keymap_internal, but traverses parent keymaps as well.
    AUTOLOAD indicates that autoloaded keymaps should be loaded.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn map_keymap (map: Lisp_Object, fun: map_keymap_function_t, args: Lisp_Object,
+pub unsafe extern "C-unwind" fn map_keymap (map: Lisp_Object, fun: map_keymap_function_t, args: Lisp_Object,
 				     data: *mut c_void, autoload: bool)
 {
   let mut map = map;
@@ -657,7 +659,7 @@ pub unsafe extern "C" fn map_keymap (map: Lisp_Object, fun: map_keymap_function_
 /* Same as map_keymap, but does it right, properly eliminating duplicate
    bindings due to inheritance.   */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn map_keymap_canonical (map: Lisp_Object, fun: map_keymap_function_t, args: Lisp_Object, data: *mut c_void)
+pub unsafe extern "C-unwind" fn map_keymap_canonical (map: Lisp_Object, fun: map_keymap_function_t, args: Lisp_Object, data: *mut c_void)
 {
   let mut map = map;
   /* map_keymap_canonical may be used from redisplay (e.g. when building menus)
@@ -1014,7 +1016,7 @@ unsafe fn copy_keymap_item (elt: Lisp_Object, depth: c_int) -> Lisp_Object
   return res;
 }
 
-unsafe extern "C" fn copy_keymap_set_char_table (chartable_and_depth: Lisp_Object, idx: Lisp_Object,
+unsafe extern "C-unwind" fn copy_keymap_set_char_table (chartable_and_depth: Lisp_Object, idx: Lisp_Object,
 			    elt: Lisp_Object)
 {
   Fset_char_table_range
@@ -1431,7 +1433,7 @@ unsafe fn append_key (key_sequence: Lisp_Object, key: Lisp_Object) -> Lisp_Objec
 /* Given an event type C which is a symbol,
    signal an error if is a mistake such as RET or M-RET or C-DEL, etc.  */
 
-unsafe extern "C" fn silly_event_symbol_error (c: Lisp_Object)
+unsafe extern "C-unwind" fn silly_event_symbol_error (c: Lisp_Object)
 {
   let mut c = c;
   let parsed = parse_modifiers (c);
@@ -1499,7 +1501,7 @@ static mut cmm_size: ptrdiff_t = 0;
    list, let the key sequence be read, and hope some other piece of
    code signals the error.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn current_minor_maps (modeptr: *mut *mut Lisp_Object, mapptr: *mut *mut Lisp_Object) -> ptrdiff_t
+pub unsafe extern "C-unwind" fn current_minor_maps (modeptr: *mut *mut Lisp_Object, mapptr: *mut *mut Lisp_Object) -> ptrdiff_t
 {
   let mut i: ptrdiff_t = 0;
   let mut alist: Lisp_Object;
@@ -1917,7 +1919,7 @@ const _: () = core::assert! (std::mem::offset_of! (accessible_keymaps_data, tail
 const _: () = core::assert! (std::mem::offset_of! (accessible_keymaps_data, thisseq) == 16);
 const _: () = core::assert! (std::mem::offset_of! (accessible_keymaps_data, is_metized) == 24);
 
-unsafe extern "C" fn accessible_keymaps_1 (key: Lisp_Object, cmd: Lisp_Object, args: Lisp_Object, data: *mut c_void)
+unsafe extern "C-unwind" fn accessible_keymaps_1 (key: Lisp_Object, cmd: Lisp_Object, args: Lisp_Object, data: *mut c_void)
 /* Use void * data to be compatible with map_keymap_function_t.  */
 {
   let d = data as *mut accessible_keymaps_data; /* Cast! */
@@ -2168,7 +2170,7 @@ DEFUN! ("key-description", Fkey_description, Skey_description, 1, 2, 0,
 });
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn push_key_description (ch: EMACS_INT, p: *mut c_char) -> *mut c_char
+pub unsafe extern "C-unwind" fn push_key_description (ch: EMACS_INT, p: *mut c_char) -> *mut c_char
 {
   let mut p = p;
   let mut c: c_int;
@@ -2750,7 +2752,7 @@ DEFUN! ("where-is-internal", Fwhere_is_internal, Swhere_is_internal, 1, 5, 0,
 
 /* This function can GC because get_keyelt can.  */
 
-unsafe extern "C" fn where_is_internal_1 (key: Lisp_Object, binding: Lisp_Object, args: Lisp_Object, data: *mut c_void)
+unsafe extern "C-unwind" fn where_is_internal_1 (key: Lisp_Object, binding: Lisp_Object, args: Lisp_Object, data: *mut c_void)
 {
   let d = data as *mut where_is_internal_data; /* Cast! */
   let definition = (*d).definition;
@@ -3001,14 +3003,14 @@ You type        Translation\n\
   return Qnil ();
 });
 
-unsafe extern "C" fn describe_vector_princ (elt: Lisp_Object, fun: Lisp_Object)
+unsafe extern "C-unwind" fn describe_vector_princ (elt: Lisp_Object, fun: Lisp_Object)
 {
   Findent_to (make_fixnum (16), make_fixnum (1));
   calln! (fun, elt);
   Fterpri (Qnil (), Qnil ());
 }
 
-unsafe extern "C" fn describe_vector_basic (elt: Lisp_Object, fun: Lisp_Object)
+unsafe extern "C-unwind" fn describe_vector_basic (elt: Lisp_Object, fun: Lisp_Object)
 {
   calln! (fun, elt);
 }
@@ -3094,7 +3096,7 @@ DEFUN! ("help--describe-vector", Fhelp__describe_vector, Shelp__describe_vector,
    ARGS is simply passed as the second argument to ELT_DESCRIBER.  */
 
 unsafe fn describe_vector (vector: Lisp_Object, prefix: Lisp_Object, args: Lisp_Object,
-		 elt_describer: Option<unsafe extern "C" fn (Lisp_Object, Lisp_Object)>,
+		 elt_describer: Option<unsafe extern "C-unwind" fn (Lisp_Object, Lisp_Object)>,
 		 partial: bool, shadow: Lisp_Object, entire_map: Lisp_Object,
 		 keymap_p: bool, mention_shadow: bool)
 {
@@ -3321,7 +3323,7 @@ pub static mut Vwhere_is_preferred_modifier: Lisp_Object = lisp_h_Qnil ();
 pub static mut Vdescribe_bindings_check_shadowing_in_ranges: Lisp_Object = lisp_h_Qnil ();
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_keymap ()
+pub unsafe extern "C-unwind" fn syms_of_keymap ()
 {
   DEFSYM! (Qkeymap, "keymap");
   DEFSYM! (Qhelp__describe_map_tree, "help--describe-map-tree");

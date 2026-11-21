@@ -48,7 +48,7 @@ def load(name: str = "cinventory"):
 
 ci = load()
 
-R_FN = re.compile(r"^\s*(?:pub\s+)?(?:const\s+)?(?:unsafe\s+)?(?:extern\s+\"C\"\s+)?fn\s+"
+R_FN = re.compile(r"^\s*(?:pub\s+)?(?:const\s+)?(?:unsafe\s+)?(?:extern\s+\"C(?:-unwind)?\"\s+)?fn\s+"
                   r"(?P<name>[A-Za-z_]\w*)", re.M)
 R_FN_BODY = re.compile(r"\bfn\s+(?P<name>[A-Za-z_]\w*)[^{;]*\{(?P<body>[^{}]*)\}",
                        re.S)

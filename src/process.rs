@@ -148,7 +148,7 @@ const _: () = ();
 
 /* process.h 277: `typedef void (*fd_callback) (int fd, void *data);`  (nullable in C: the
    table is zero-initialised and C compares an entry with NULL; P-27's `Option` shape).  */
-pub type fd_callback = Option<unsafe extern "C" fn (fd: c_int, data: *mut c_void)>;
+pub type fd_callback = Option<unsafe extern "C-unwind" fn (fd: c_int, data: *mut c_void)>;
 
 /* <sys/socket.h>: `struct sockaddr`, measured 16/1; `sa_len`@0, `sa_family`@1, `sa_data`@2.  */
 #[repr(C)]
@@ -924,7 +924,7 @@ unsafe fn unlink_active_process_waiter (node: *mut ActiveProcessWaiter)
   (*node).linked = false;
 }
 
-unsafe extern "C" fn mark_active_process_waiter (ptr: *mut c_void)
+unsafe extern "C-unwind" fn mark_active_process_waiter (ptr: *mut c_void)
 {
   let node: *mut ActiveProcessWaiter = ptr as *mut ActiveProcessWaiter;
   if !node.is_null () && !(*node).proc.is_null ()
@@ -1430,6 +1430,19 @@ unsafe fn allocate_pty (pty_name: *mut c_char) -> c_int
 /// C: `#define WCOREDUMP(status) ((status) & 0x80)`   (<sys/wait.h>)
 #[inline(always)] fn WCOREDUMP (status: c_int) -> bool { (status & 0x80) != 0 }
 
+unsafe extern "C-unwind" {
+  /// C: int sys_faccessat (int, const char *, int, int)   (sysdep.h 30)
+  fn sys_faccessat (dirfd: c_int, file: *const c_char, mode: c_int, flags: c_int) -> c_int;
+
+  /* `pthread_sigmask` needs no declaration here: `lib/include/signal.rs` carries it and is in
+     this unit's include graph (the mirror-dupes gate flags a repeat, and it did).  */
+  /// C: syswait.h 60: `extern pid_t child_status_changed (pid_t, int *, int);` - the return
+  /// type is the child's pid (sysdep.c 516), and the port's definition returns it too.  It was
+  /// declared `bool` here, which made the caller test only the low bit of the pid: an even pid
+  /// (the common case on this target) then read as "no status changed", the reap was skipped,
+  /// and the process stayed `run` (PORTING.md P-124).
+  fn child_status_changed (child: pid_t, status: *mut c_int, options: c_int) -> pid_t;
+}
 unsafe extern "C" {
   /// C: int posix_openpt (int)   (<stdlib.h>, HAVE_POSIX_OPENPT)
   fn posix_openpt (oflag: c_int) -> c_int;
@@ -1445,17 +1458,6 @@ unsafe extern "C" {
   fn sigemptyset (set: *mut sigset_t) -> c_int;
   /// C: void sigaddset (sigset_t *, int)   (<signal.h>)
   fn sigaddset (set: *mut sigset_t, signo: c_int) -> c_int;
-  /// C: int sys_faccessat (int, const char *, int, int)   (sysdep.h 30)
-  fn sys_faccessat (dirfd: c_int, file: *const c_char, mode: c_int, flags: c_int) -> c_int;
-
-  /* `pthread_sigmask` needs no declaration here: `lib/include/signal.rs` carries it and is in
-     this unit's include graph (the mirror-dupes gate flags a repeat, and it did).  */
-  /// C: syswait.h 60: `extern pid_t child_status_changed (pid_t, int *, int);` - the return
-  /// type is the child's pid (sysdep.c 516), and the port's definition returns it too.  It was
-  /// declared `bool` here, which made the caller test only the low bit of the pid: an even pid
-  /// (the common case on this target) then read as "no status changed", the reap was skipped,
-  /// and the process stayed `run` (PORTING.md P-124).
-  fn child_status_changed (child: pid_t, status: *mut c_int, options: c_int) -> pid_t;
 
   /// C: char *strsignal (int)   (syssignal.h 83's `#ifndef HAVE_STRSIGNAL` is dead:
   /// HAVE_STRSIGNAL is 1, so this is the libc entry, the callproc.rs shape)
@@ -1529,8 +1531,8 @@ unsafe fn make_process (name: Lisp_Object) -> Lisp_Object
 }
 
 /* C 995-1002: `remove_process` — its address is taken by `record_unwind_protect` in
-   `Fmake_pipe_process`, so it is `unsafe extern "C" fn` (PORTING.md 1.4).  */
-unsafe extern "C" fn remove_process (proc: Lisp_Object)
+   `Fmake_pipe_process`, so it is `unsafe extern "C-unwind" fn` (PORTING.md 1.4).  */
+unsafe extern "C-unwind" fn remove_process (proc: Lisp_Object)
 {
   let pair: Lisp_Object;
 
@@ -1762,11 +1764,13 @@ DEFUN! ("process-status", Fprocess_status, Sprocess_status, 1, 1, 0,
 /* ------------------------------------------------------------------------------------------
    Use-site declarations, group 3 (C 914-1250).  */
 
-unsafe extern "C" {
+unsafe extern "C-unwind" {
 
 
   /// C: void message (const char *, ...)   (lisp.h 4517, xdisp.c)
   fn message (format: *const c_char, ...) -> Lisp_Object;
+}
+unsafe extern "C" {
   /// C: void freeaddrinfo (struct addrinfo *)   (<netdb.h>)
   fn freeaddrinfo (ai: *mut addrinfo);
 }
@@ -2033,7 +2037,7 @@ DEFUN! ("set-process-window-size", Fset_process_window_size, Sset_process_window
     { return Qt (); }
 });
 
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   /// C: Lisp_Object plist_put (Lisp_Object, Lisp_Object, Lisp_Object)   (lisp.h 4281)
   fn plist_put (plist: Lisp_Object, prop: Lisp_Object, val: Lisp_Object) -> Lisp_Object;
   /// C: uintmax_t check_uinteger_max (Lisp_Object, uintmax_t)   (lisp.h 612)
@@ -2537,8 +2541,8 @@ DEFUN! ("make-process", Fmake_process, Smake_process, 0, MANY, 0,
 /* If PROC doesn't have its pid set, then an error was signaled and the process wasn't
    started successfully, so remove it.  */
 /* C 2147-2153: `start_process_unwind` — its address is taken by `record_unwind_protect`
-   above, so it is `unsafe extern "C" fn` (PORTING.md 1.4).  */
-unsafe extern "C" fn start_process_unwind (proc_: Lisp_Object)
+   above, so it is `unsafe extern "C-unwind" fn` (PORTING.md 1.4).  */
+unsafe extern "C-unwind" fn start_process_unwind (proc_: Lisp_Object)
 {
   if ((*XPROCESS (proc_)).pid <= 0 && (*XPROCESS (proc_)).pid != -2)
     { remove_process (proc_); }
@@ -2833,7 +2837,7 @@ unsafe fn create_pty (process: Lisp_Object)
 /* ------------------------------------------------------------------------------------------
    Use-site declarations, group 4 (C 1813-2440, make-process/create_process).  */
 
-unsafe extern "C" {
+unsafe extern "C-unwind" {
 
   /// C: int emacs_spawn (pid_t *, int, int, int, char **, char **, const char *,
   ///                     const char *, bool, bool, const sigset_t *)   (callproc.c 1441)
@@ -2841,6 +2845,8 @@ unsafe extern "C" {
                   argv: *mut *mut c_char, envp: *mut *mut c_char, cwd: *mut c_char,
                   ptyname: *mut c_char, pty_in: bool, pty_out: bool,
                   oldset: *mut sigset_t) -> c_int;
+}
+unsafe extern "C" {
 
 
   /// C: pid_t setsid (void)   (<unistd.h>)
@@ -3636,7 +3642,7 @@ DEFUN! ("make-serial-process", Fmake_serial_process, Smake_serial_process, 0, MA
   return proc;
 });
 
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   /// C: void serial_configure (struct Lisp_Process *, Lisp_Object)   (process.h 302)
   fn serial_configure (p: *mut Lisp_Process, contact: Lisp_Object);
   /// C: int serial_open (Lisp_Object)   (process.h 303)
@@ -4133,14 +4139,16 @@ unsafe fn connect_network_socket (proc_: Lisp_Object, addrinfos: Lisp_Object,
   unbind_to (count, Qnil ());
 }
 
-unsafe extern "C" {
+unsafe extern "C-unwind" {
 
   /// C: void set_unwind_protect_ptr (specpdl_ref, void (*) (void *), void *)   (lisp.h 4832)
   fn set_unwind_protect_ptr (count: specpdl_ref,
-			     function: Option<unsafe extern "C" fn (arg: *mut c_void)>,
+			     function: Option<unsafe extern "C-unwind" fn (arg: *mut c_void)>,
 			     arg: *mut c_void);
   /// C: Lisp_Object get_file_errno_data (const char *, Lisp_Object, int)   (lisp.h 4980)
   fn get_file_errno_data (string: *const c_char, err: Lisp_Object, errnum: c_int) -> Lisp_Object;
+}
+unsafe extern "C" {
   /// C: int bind (int, const struct sockaddr *, socklen_t)   (<sys/socket.h>)
   fn bind (socket: c_int, address: *const sockaddr, address_len: socklen_t) -> c_int;
   /// C: int connect (int, const struct sockaddr *, socklen_t)   (<sys/socket.h>)
@@ -4544,11 +4552,13 @@ DEFUN! ("make-network-process", Fmake_network_process, Smake_network_process, 0,
 /// (EMACS_INT))` under the frozen configuration).
 const INT_BUFSIZE_BOUND: usize = 21;
 
+unsafe extern "C-unwind" {
+  /// C: void record_unwind_protect_void (void (*) (void))   (lisp.h 4825, eval.c)
+  fn record_unwind_protect_void (function: Option<unsafe extern "C-unwind" fn ()>);
+}
 unsafe extern "C" {
   /// C: struct servent *getservbyname (const char *, const char *)   (<netdb.h>)
   fn getservbyname (name: *const c_char, proto: *const c_char) -> *mut servent;
-  /// C: void record_unwind_protect_void (void (*) (void))   (lisp.h 4825, eval.c)
-  fn record_unwind_protect_void (function: Option<unsafe extern "C" fn ()>);
 
   /// C: int getaddrinfo_a (int, struct gaicb *[], int, struct sigevent *)
   ///    (<netdb.h>, glibc only — the `HAVE_GETADDRINFO_A` arm)
@@ -5137,6 +5147,10 @@ unsafe fn deactivate_process (proc_: Lisp_Object)
     }
 }
 
+unsafe extern "C-unwind" {
+  /// C: void emacs_gnutls_deinit (Lisp_Object)   (gnutls.c, the `HAVE_GNUTLS` arm)
+  fn emacs_gnutls_deinit (proc_: Lisp_Object);
+}
 unsafe extern "C" {
   /// C: int getaddrinfo (const char *, const char *, const struct addrinfo *,
   ///                     struct addrinfo **)   (<netdb.h>)
@@ -5144,8 +5158,6 @@ unsafe extern "C" {
 		  res: *mut *mut addrinfo) -> c_int;
   /// C: const char *gai_strerror (int)   (<netdb.h>)
   fn gai_strerror (errcode: c_int) -> *const c_char;
-  /// C: void emacs_gnutls_deinit (Lisp_Object)   (gnutls.c, the `HAVE_GNUTLS` arm)
-  fn emacs_gnutls_deinit (proc_: Lisp_Object);
 }
 
 /// C: `#define AI_NUMERICHOST 4` (`<netdb.h>`)
@@ -5547,15 +5559,15 @@ unsafe fn wait_for_tls_negotiation (process: Lisp_Object)
 }
 
 /* C 5287-5292: `wait_reading_process_output_unwind` — its address is taken by
-   `record_unwind_protect_int`, so it is `unsafe extern "C" fn` (PORTING.md 1.4).  */
-unsafe extern "C" fn wait_reading_process_output_unwind (data: c_int)
+   `record_unwind_protect_int`, so it is `unsafe extern "C-unwind" fn` (PORTING.md 1.4).  */
+unsafe extern "C-unwind" fn wait_reading_process_output_unwind (data: c_int)
 {
   clear_waiting_thread_info ();
   restore_thread_active_wait_procs (current_thread);
   waiting_for_user_input_p! () = data;
 }
 
-unsafe extern "C" fn active_process_waiter_unwind (ptr: *mut c_void)
+unsafe extern "C-unwind" fn active_process_waiter_unwind (ptr: *mut c_void)
 {
   unlink_active_process_waiter (ptr as *mut ActiveProcessWaiter);
 }
@@ -5570,8 +5582,8 @@ unsafe fn wait_reading_process_output_1 ()
    THREADS_ENABLED` arm (dead on this target).  */
 #[cfg (feature = "have_android")]
 /* C's own function has C linkage and `thread_select`'s parameter is `select_func`, i.e. a
-   C function pointer (`unsafe extern "C" fn` here) - a Rust-ABI `fn` does not coerce.  */
-unsafe extern "C" fn android_select_wrapper (nfds: c_int, readfds: *mut fd_set, writefds: *mut fd_set,
+   C function pointer (`unsafe extern "C-unwind" fn` here) - a Rust-ABI `fn` does not coerce.  */
+unsafe extern "C-unwind" fn android_select_wrapper (nfds: c_int, readfds: *mut fd_set, writefds: *mut fd_set,
 				  exceptfds: *mut fd_set, timeout: *const timespec,
 				  sigmask: *const sigset_t) -> c_int
 {
@@ -5583,9 +5595,11 @@ unsafe extern "C" fn android_select_wrapper (nfds: c_int, readfds: *mut fd_set, 
 			 timeout as *mut timespec);
 }
 
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   /// C: void add_to_log (char const *, ...)   (lisp.h 4378)
   fn add_to_log (format: *const c_char, ...);
+}
+unsafe extern "C" {
   /// C: int gai_error (struct gaicb *)   (<netdb.h>, glibc only — the `HAVE_GETADDRINFO_A` arm)
   fn gai_error (req: *mut gaicb) -> c_int;
   /// C: int android_select (int, fd_set *, fd_set *, fd_set *, struct timespec *)
@@ -6592,10 +6606,12 @@ pub unsafe fn wait_reading_process_output (time_limit: i64, nsecs: c_int, read_k
 const TYPE_MAXIMUM_TIME_T: time_t = i64::MAX;
 
 
-unsafe extern "C" {
+unsafe extern "C-unwind" {
 
   /// C: struct timespec timer_check (void)   (atimer.c, lisp.h 5397)
   fn timer_check () -> timespec;
+}
+unsafe extern "C" {
 
 
 
@@ -6620,15 +6636,15 @@ unsafe extern "C" {
 
 /* Given a list (FUNCTION ARGS...), apply FUNCTION to the ARGS.  */
 /* C 6222-6226: `read_process_output_call` — its address is taken by
-   `internal_condition_case_1`, so it is `unsafe extern "C" fn` (PORTING.md 1.4).  */
-unsafe extern "C" fn read_process_output_call (fun_and_args: Lisp_Object) -> Lisp_Object
+   `internal_condition_case_1`, so it is `unsafe extern "C-unwind" fn` (PORTING.md 1.4).  */
+unsafe extern "C-unwind" fn read_process_output_call (fun_and_args: Lisp_Object) -> Lisp_Object
 {
   return apply1 (XCAR (fun_and_args), XCDR (fun_and_args));
 }
 
 /* C 6228-6237: `read_process_output_error_handler` — its address is taken by
    `internal_condition_case_1` (PORTING.md 1.4).  */
-unsafe extern "C" fn read_process_output_error_handler (error_val: Lisp_Object) -> Lisp_Object
+unsafe extern "C-unwind" fn read_process_output_error_handler (error_val: Lisp_Object) -> Lisp_Object
 {
   cmd_error_internal (error_val, c"error in process filter: ".as_ptr ());
   Vinhibit_quit = Qt ();
@@ -6821,10 +6837,12 @@ unsafe fn read_process_output (proc_: Lisp_Object, channel: c_int) -> c_int
   return nbytes as c_int;
 }
 
-unsafe extern "C" {
+unsafe extern "C-unwind" {
 
   /// C: void cmd_error_internal (Lisp_Object, const char *)   (keyboard.c)
   fn cmd_error_internal (data: Lisp_Object, context: *const c_char);
+}
+unsafe extern "C" {
 
   /// C: ssize_t recvfrom (int, void *restrict, size_t, int, struct sockaddr *restrict,
   ///                      socklen_t *restrict)   (<sys/socket.h>)
@@ -7005,7 +7023,7 @@ unsafe fn read_and_insert_process_output (p: *mut Lisp_Process, buf: *mut c_char
 				    before, before_byte, opoint, opoint_byte);
 }
 
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   /// C: void insert_1_both (const char *, ptrdiff_t, ptrdiff_t, bool, bool, bool)
   ///    (lisp.h 5785, insdel.c)
   fn insert_1_both (str_: *const c_char, nchars: ptrdiff_t, nbytes: ptrdiff_t,
@@ -7120,7 +7138,7 @@ DEFUN! ("internal-default-process-filter", Finternal_default_process_filter,
 #[unsafe(no_mangle)]
 pub static mut fast_read_process_output: bool = false;
 
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   /// C: bool running_asynch_code   (search.c, lisp.h 5146)
   static mut running_asynch_code: bool;
 
@@ -7128,9 +7146,9 @@ unsafe extern "C" {
   /// C: Lisp_Object internal_condition_case_1 (Lisp_Object (*) (Lisp_Object), Lisp_Object,
   ///                                          Lisp_Object, Lisp_Object (*) (Lisp_Object))
   ///    (lisp.h 4595, eval.c)
-  fn internal_condition_case_1 (bfun: Option<unsafe extern "C" fn (Lisp_Object) -> Lisp_Object>,
+  fn internal_condition_case_1 (bfun: Option<unsafe extern "C-unwind" fn (Lisp_Object) -> Lisp_Object>,
 				arg: Lisp_Object, handlers: Lisp_Object,
-				hfun: Option<unsafe extern "C" fn (Lisp_Object) -> Lisp_Object>)
+				hfun: Option<unsafe extern "C-unwind" fn (Lisp_Object) -> Lisp_Object>)
     -> Lisp_Object;
 
 }
@@ -7455,13 +7473,15 @@ DEFUN! ("process-send-string", Fprocess_send_string, Sprocess_send_string, 2, 2,
   return Qnil ();
 });
 
+unsafe extern "C-unwind" {
+  /// C: ptrdiff_t emacs_write_sig (int, const void *, ptrdiff_t)   (lisp.h 5324, sysdep.c)
+  fn emacs_write_sig (fd: c_int, buf: *const c_void, nbyte: ptrdiff_t) -> ptrdiff_t;
+}
 unsafe extern "C" {
 
   /// C: ssize_t sendto (int, const void *, size_t, int, const struct sockaddr *, socklen_t)
   fn sendto (socket: c_int, buffer: *const c_void, length: usize, flags: c_int,
 	     address: *const sockaddr, address_len: socklen_t) -> ssize_t;
-  /// C: ptrdiff_t emacs_write_sig (int, const void *, ptrdiff_t)   (lisp.h 5324, sysdep.c)
-  fn emacs_write_sig (fd: c_int, buf: *const c_void, nbyte: ptrdiff_t) -> ptrdiff_t;
 
 }
 
@@ -8019,7 +8039,7 @@ pub unsafe fn child_signal_init ()
 /* `#ifndef WINDOWSNT` is live.  */
 /* Consume a process status change.  */
 /* C 7614-7626: `child_signal_read` — an `fd_callback` (PORTING.md 1.4).  */
-unsafe extern "C" fn child_signal_read (fd: c_int, data: *mut c_void)
+unsafe extern "C-unwind" fn child_signal_read (fd: c_int, data: *mut c_void)
 {
   let _ = data;
   eassert! (0 <= fd);
@@ -8161,7 +8181,7 @@ unsafe extern "C" fn handle_child_signal (sig: c_int)
   }
 }
 
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   /// C: ptrdiff_t emacs_write (int, const void *, ptrdiff_t)   (lisp.h 5321, sysdep.c)
   fn emacs_write (fd: c_int, buf: *const c_void, nbyte: ptrdiff_t) -> ptrdiff_t;
   /// C: void emacs_perror (char const *)   (lisp.h 5337)
@@ -8183,7 +8203,7 @@ unsafe extern "C" fn deliver_child_signal (sig: c_int)
 
 /* C 7796-7808: `exec_sentinel_error_handler` — its address is taken by
    `internal_condition_case_1` (PORTING.md 1.4).  */
-unsafe extern "C" fn exec_sentinel_error_handler (error_val: Lisp_Object) -> Lisp_Object
+unsafe extern "C-unwind" fn exec_sentinel_error_handler (error_val: Lisp_Object) -> Lisp_Object
 {
   let mut error_val: Lisp_Object = error_val;
   /* Make sure error_val is a cons cell, as all the rest of error handling expects that,
@@ -8838,7 +8858,7 @@ DEFUN! ("get-buffer-process", Fget_buffer_process, Sget_buffer_process, 1, 1, 0,
   return Qnil ();
 });
 
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   /// C: Lisp_Object make_specified_string (const char *, ptrdiff_t, ptrdiff_t, bool)
   ///    (lisp.h 4115) — the lisp.rs mirror still lacks it (reported to the integrator)
   fn make_specified_string (contents: *const c_char, nchars: ptrdiff_t, nbytes: ptrdiff_t,

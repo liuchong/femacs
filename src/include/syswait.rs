@@ -19,7 +19,7 @@ pub const EMACS_SYSWAIT_H: bool = true;
 pub mod syswait_decls {
   use super::*;
 
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     /* C 59: `extern bool wait_for_termination (pid_t, int *, bool);`  */
     pub fn wait_for_termination (pid: pid_t, status: *mut c_int, flush: bool) -> bool;
     /* C 60: `extern pid_t child_status_changed (pid_t, int *, int);`  */

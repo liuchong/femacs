@@ -147,10 +147,10 @@ macro_rules! hook {
 
 /* The names below are declared by headers whose mirrors do not reach them (P-66/P-72), so
    each is declared at its use site, where C's translation unit gets it.  */
-unsafe extern "C" {
-  fn internal_condition_case (bfun: Option<unsafe extern "C" fn () -> Lisp_Object>,
+unsafe extern "C-unwind" {
+  fn internal_condition_case (bfun: Option<unsafe extern "C-unwind" fn () -> Lisp_Object>,
                              handlers: Lisp_Object,
-                             hfun: Option<unsafe extern "C" fn (Lisp_Object) -> Lisp_Object>)
+                             hfun: Option<unsafe extern "C-unwind" fn (Lisp_Object) -> Lisp_Object>)
                              -> Lisp_Object;
 
 
@@ -198,6 +198,8 @@ unsafe extern "C" {
   fn tty_defined_color (f: *mut frame, color_name: *const c_char, color_def: *mut Emacs_Color,
                         alloc_p: bool, _default: bool) -> bool;
   fn tty_read_avail_input (terminal: *mut terminal, buf: *mut input_event) -> c_int;
+}
+unsafe extern "C" {
   fn term_mouse_position (fp: *mut *mut c_void, insist: c_int, bar_window: *mut Lisp_Object,
                           part: *mut scroll_bar_part, x: *mut Lisp_Object, y: *mut Lisp_Object,
                           timeptr: *mut Time);
@@ -266,7 +268,7 @@ static mut max_frame_cols: c_int = 0;
 // gets it, or reached through a clang-measured local record.
 
 /* C 3905-3954: dispextern.h's redisplay entry points.  */
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   fn cursor_to (f: *mut frame, vpos: c_int, hpos: c_int);
   fn raw_cursor_to (f: *mut frame, row: c_int, col: c_int);
   fn clear_to_end (f: *mut frame);
@@ -377,10 +379,10 @@ pub fn FACE_FROM_ID_OR_NULL (f: *mut frame, id: c_int) -> *mut face
 
 /* lisp.h 5315-5322: `emacs_fdopen` (the mirror carries `emacs_open`/`emacs_close` and the
    `emacs_fclose!` macro but not this one).  */
-unsafe extern "C" { fn emacs_fdopen (fd: c_int, mode: *const c_char) -> *mut FILE; }
+unsafe extern "C-unwind" { fn emacs_fdopen (fd: c_int, mode: *const c_char) -> *mut FILE; }
 
 /* lisp.h 5555: `dupstring` (alloc.c).  */
-unsafe extern "C" { fn dupstring (ptr: *mut *mut c_char, string: *const c_char); }
+unsafe extern "C-unwind" { fn dupstring (ptr: *mut *mut c_char, string: *const c_char); }
 
 /* <stdio.h> 350-420: the six stdio entries this unit calls that the stdio mirror does not
    carry (`fwrite`/`fputs`/`sprintf` are there).  */
@@ -462,7 +464,7 @@ macro_rules! tty_bits {
 /* Ring the bell on a tty.  */
 
 #[cfg (not (feature = "have_android"))]
-unsafe extern "C" fn tty_ring_bell (f: *mut frame)
+unsafe extern "C-unwind" fn tty_ring_bell (f: *mut frame)
 {
   let tty: *mut tty_display_info = FRAME_TTY! (f);
 
@@ -506,7 +508,7 @@ unsafe fn tty_send_additional_strings (terminal: *mut terminal, sym: Lisp_Object
 }
 
 #[cfg (not (feature = "have_android"))]
-unsafe extern "C" fn tty_set_terminal_modes (terminal: *mut terminal)
+unsafe extern "C-unwind" fn tty_set_terminal_modes (terminal: *mut terminal)
 {
   let tty: *mut tty_display_info = (*terminal).display_info.tty.cast::<tty_display_info> ();
 
@@ -535,7 +537,7 @@ unsafe extern "C" fn tty_set_terminal_modes (terminal: *mut terminal)
 /* Reset termcap modes before exiting Emacs.  */
 
 #[cfg (not (feature = "have_android"))]
-unsafe extern "C" fn tty_reset_terminal_modes (terminal: *mut terminal)
+unsafe extern "C-unwind" fn tty_reset_terminal_modes (terminal: *mut terminal)
 {
   let tty: *mut tty_display_info = (*terminal).display_info.tty.cast::<tty_display_info> ();
 
@@ -558,7 +560,7 @@ unsafe extern "C" fn tty_reset_terminal_modes (terminal: *mut terminal)
 /* Flag the end of a display update on a termcap terminal.  */
 
 #[cfg (not (feature = "have_android"))]
-unsafe extern "C" fn tty_update_end (f: *mut frame)
+unsafe extern "C-unwind" fn tty_update_end (f: *mut frame)
 {
   let tty: *mut tty_display_info = FRAME_TTY! (f);
 
@@ -572,7 +574,7 @@ unsafe extern "C" fn tty_update_end (f: *mut frame)
 /* The implementation of set_terminal_window for termcap frames.  */
 
 #[cfg (not (feature = "have_android"))]
-unsafe extern "C" fn tty_set_terminal_window (f: *mut frame, size: c_int)
+unsafe extern "C-unwind" fn tty_set_terminal_window (f: *mut frame, size: c_int)
 {
   let tty: *mut tty_display_info = FRAME_TTY! (f);
 
@@ -650,7 +652,7 @@ unsafe fn tty_toggle_highlight (tty: *mut tty_display_info)
 
 #[unsafe(no_mangle)]
 #[cfg (not (feature = "have_android"))]
-pub unsafe extern "C" fn tty_hide_cursor (tty: *mut tty_display_info)
+pub unsafe extern "C-unwind" fn tty_hide_cursor (tty: *mut tty_display_info)
 {
   if (tty_bits! (cursor_hidden, tty) as c_int) == 0
     {
@@ -668,7 +670,7 @@ pub unsafe extern "C" fn tty_hide_cursor (tty: *mut tty_display_info)
 
 #[unsafe(no_mangle)]
 #[cfg (not (feature = "have_android"))]
-pub unsafe extern "C" fn tty_show_cursor (tty: *mut tty_display_info)
+pub unsafe extern "C-unwind" fn tty_show_cursor (tty: *mut tty_display_info)
 {
   if tty_bits! (cursor_hidden, tty)
     {
@@ -710,7 +712,7 @@ unsafe fn tty_highlight_if_desired (tty: *mut tty_display_info)
    frame-relative coordinates.  */
 
 #[cfg (not (feature = "have_android"))]
-unsafe extern "C" fn tty_cursor_to (f: *mut frame, vpos: c_int, hpos: c_int)
+unsafe extern "C-unwind" fn tty_cursor_to (f: *mut frame, vpos: c_int, hpos: c_int)
 {
   let tty: *mut tty_display_info = FRAME_TTY! (f);
 
@@ -729,7 +731,7 @@ unsafe extern "C" fn tty_cursor_to (f: *mut frame, vpos: c_int, hpos: c_int)
 /* Similar but don't take any account of the wasted characters.  */
 
 #[cfg (not (feature = "have_android"))]
-unsafe extern "C" fn tty_raw_cursor_to (f: *mut frame, row: c_int, col: c_int)
+unsafe extern "C-unwind" fn tty_raw_cursor_to (f: *mut frame, row: c_int, col: c_int)
 {
   let tty: *mut tty_display_info = FRAME_TTY! (f);
 
@@ -746,7 +748,7 @@ unsafe extern "C" fn tty_raw_cursor_to (f: *mut frame, row: c_int, col: c_int)
 /* Clear from cursor to end of frame on a termcap device. */
 
 #[cfg (not (feature = "have_android"))]
-unsafe extern "C" fn tty_clear_to_end (f: *mut frame)
+unsafe extern "C-unwind" fn tty_clear_to_end (f: *mut frame)
 {
   let mut i: c_int = 0;
   let tty: *mut tty_display_info = FRAME_TTY! (f);
@@ -771,7 +773,7 @@ unsafe extern "C" fn tty_clear_to_end (f: *mut frame)
 /* Clear an entire termcap frame. */
 
 #[cfg (not (feature = "have_android"))]
-unsafe extern "C" fn tty_clear_frame (f: *mut frame)
+unsafe extern "C-unwind" fn tty_clear_frame (f: *mut frame)
 {
   let tty: *mut tty_display_info = FRAME_TTY! (f);
 
@@ -793,7 +795,7 @@ unsafe extern "C" fn tty_clear_frame (f: *mut frame)
    Note that the cursor may be moved, on terminals lacking a `ce' string.  */
 
 #[cfg (not (feature = "have_android"))]
-unsafe extern "C" fn tty_clear_end_of_line (f: *mut frame, first_unused_hpos: c_int)
+unsafe extern "C-unwind" fn tty_clear_end_of_line (f: *mut frame, first_unused_hpos: c_int)
 {
   let mut i: c_int = 0;
   let tty: *mut tty_display_info = FRAME_TTY! (f);
@@ -878,7 +880,7 @@ static mut encode_terminal_dst_size: ptrdiff_t = 0;
 
 #[unsafe(no_mangle)]
 #[cfg (not (feature = "have_android"))]
-pub unsafe extern "C" fn encode_terminal_code (src: *mut glyph, src_len: c_int,
+pub unsafe extern "C-unwind" fn encode_terminal_code (src: *mut glyph, src_len: c_int,
 					       coding: *mut coding_system) -> *mut u8
 {
   let mut src = src;
@@ -1099,7 +1101,7 @@ pub unsafe extern "C" fn encode_terminal_code (src: *mut glyph, src_len: c_int,
 /* C 742-753: the `#else /* !HAVE_ANDROID */` arm, dead on this target (HAVE_ANDROID is undef
    in the frozen configuration) — carried as text for the blind token check.  */
 #[cfg (feature = "have_android")]
-unsafe extern "C" fn encode_terminal_code_android (src: *mut glyph, src_len: c_int,
+unsafe extern "C-unwind" fn encode_terminal_code_android (src: *mut glyph, src_len: c_int,
 						  coding: *mut coding_system) -> *mut u8
 {
   /* Text terminals are simply not supported on Android.  */
@@ -1240,7 +1242,7 @@ unsafe fn tty_write_glyphs_with_face (f: *mut frame, string: *mut glyph,
 /* An implementation of insert_glyphs for termcap frames. */
 
 #[cfg (not (feature = "have_android"))]
-unsafe extern "C" fn tty_insert_glyphs (f: *mut frame, mut start: *mut glyph, mut len: c_int)
+unsafe extern "C-unwind" fn tty_insert_glyphs (f: *mut frame, mut start: *mut glyph, mut len: c_int)
 {
   let mut buf: *mut c_char = std::ptr::null_mut ();
   let mut glyph: *mut glyph = std::ptr::null_mut ();
@@ -1333,7 +1335,7 @@ unsafe extern "C" fn tty_insert_glyphs (f: *mut frame, mut start: *mut glyph, mu
 }
 
 #[cfg (not (feature = "have_android"))]
-unsafe extern "C" fn tty_write_glyphs (f: *mut frame, string: *mut glyph, len: c_int)
+unsafe extern "C-unwind" fn tty_write_glyphs (f: *mut frame, string: *mut glyph, len: c_int)
 {
   let mut string = string;
   let mut len = len;
@@ -1372,7 +1374,7 @@ unsafe extern "C" fn tty_write_glyphs (f: *mut frame, string: *mut glyph, len: c
 /* An implementation of delete_glyphs for termcap frames. */
 
 #[cfg (not (feature = "have_android"))]
-unsafe extern "C" fn tty_delete_glyphs (f: *mut frame, n: c_int)
+unsafe extern "C-unwind" fn tty_delete_glyphs (f: *mut frame, n: c_int)
 {
   let mut buf: *mut c_char = std::ptr::null_mut ();
   let mut i: c_int = 0;
@@ -1408,7 +1410,7 @@ unsafe extern "C" fn tty_delete_glyphs (f: *mut frame, n: c_int)
 /* An implementation of ins_del_lines for termcap frames. */
 
 #[cfg (not (feature = "have_android"))]
-unsafe extern "C" fn tty_ins_del_lines (f: *mut frame, vpos: c_int, n: c_int)
+unsafe extern "C-unwind" fn tty_ins_del_lines (f: *mut frame, vpos: c_int, n: c_int)
 {
   let tty: *mut tty_display_info = FRAME_TTY! (f);
   let multi: *const c_char =
@@ -1480,7 +1482,7 @@ unsafe extern "C" fn tty_ins_del_lines (f: *mut frame, vpos: c_int, n: c_int)
 
 #[unsafe(no_mangle)]
 #[cfg (not (feature = "have_android"))]
-pub unsafe extern "C" fn string_cost (str_: *const c_char) -> c_int
+pub unsafe extern "C-unwind" fn string_cost (str_: *const c_char) -> c_int
 {
   cost = 0;
   if ! str_.is_null ()
@@ -1505,7 +1507,7 @@ unsafe fn string_cost_one_line (str_: *const c_char) -> c_int
 
 #[unsafe(no_mangle)]
 #[cfg (not (feature = "have_android"))]
-pub unsafe extern "C" fn per_line_cost (str_: *const c_char) -> c_int
+pub unsafe extern "C-unwind" fn per_line_cost (str_: *const c_char) -> c_int
 {
   cost = 0;
   if ! str_.is_null ()
@@ -1604,7 +1606,7 @@ unsafe fn calculate_ins_del_char_costs (f: *mut frame)
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn calculate_costs (frame: *mut frame)
+pub unsafe extern "C-unwind" fn calculate_costs (frame: *mut frame)
 {
   /* C's `FRAME_COST_BAUD_RATE (frame) = baud_rate;` writes the field; the frame mirror's
      accessor is a reader, so the assignment names the field C's macro expands to.  */
@@ -1923,7 +1925,7 @@ const _: () = core::assert! (std::mem::offset_of! (bidi_it, resolved_level) == 5
 macro_rules! CHARPOS { ($pos:expr) => { ($pos).charpos }; }
 
 /* keyboard.h: `KVAR`/`kset_input_decode_map` come from the keyboard mirror; `KBOARD` too.  */
-unsafe extern "C" { fn terminal_glyph_code (terminal: *mut terminal, c: c_int) -> Lisp_Object; }
+unsafe extern "C-unwind" { fn terminal_glyph_code (terminal: *mut terminal, c: c_int) -> Lisp_Object; }
 
 macro_rules! CONDITIONAL_REASSIGN {
   ($cap1:expr, $cap2:expr, $sym:expr, $address:expr, $kboard:expr) => {{
@@ -1961,7 +1963,7 @@ static mut term_get_fkeys_address: *mut *mut c_char = std::ptr::null_mut ();
 static mut term_get_fkeys_kboard: *mut KBOARD = std::ptr::null_mut ();
 
 #[cfg (not (feature = "have_android"))]
-unsafe extern "C" fn term_get_fkeys_1 () -> Lisp_Object
+unsafe extern "C-unwind" fn term_get_fkeys_1 () -> Lisp_Object
 {
   let mut i: c_int = 0;
 
@@ -2138,7 +2140,7 @@ unsafe fn append_glyph (it: *mut it)
 
 /* For external use.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn tty_append_glyph (it: *mut it) { append_glyph (it); }
+pub unsafe extern "C-unwind" fn tty_append_glyph (it: *mut it) { append_glyph (it); }
 
 /* Produce glyphs for the display element described by IT.  *IT
    specifies what we want to produce a glyph for (character, image, ...),
@@ -2160,7 +2162,7 @@ pub unsafe extern "C" fn tty_append_glyph (it: *mut it) { append_glyph (it); }
    instead they use the macro PRODUCE_GLYPHS.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn produce_glyphs (it: *mut it)
+pub unsafe extern "C-unwind" fn produce_glyphs (it: *mut it)
 {
   /* C's `goto done` becomes a break out of the one labelled block; the tail after it is
      C's `done:` label's code, kept in place.  */
@@ -2795,7 +2797,7 @@ unsafe fn turn_off_face (f: *mut frame, face: *mut face)
    capabilities in CAPS simultaneously.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn tty_capable_p (tty: *mut tty_display_info, caps: c_uint) -> bool
+pub unsafe extern "C-unwind" fn tty_capable_p (tty: *mut tty_display_info, caps: c_uint) -> bool
 {
   macro_rules! TTY_CAPABLE_P_TRY {
     ($tty:expr, $cap:expr, $TS:expr, $NC_bit:expr) => {
@@ -2898,7 +2900,7 @@ unsafe fn tty_default_color_capabilities (tty: *mut tty_display_info, save: bool
 #[cfg (not (feature = "have_android"))]
 
 #[unsafe(no_mangle)]
-    pub unsafe extern "C" fn tty_setup_colors (tty: *mut tty_display_info, mut mode: c_int)
+    pub unsafe extern "C-unwind" fn tty_setup_colors (tty: *mut tty_display_info, mut mode: c_int)
   {
     /* Canonicalize all negative values of MODE.  */
     if mode < -1
@@ -2957,7 +2959,7 @@ unsafe fn tty_setup_colors_windowsnt (tty: *mut tty_display_info, mode: c_int)
 
 #[unsafe(no_mangle)]
 #[cfg (not (feature = "have_android"))]
-pub unsafe extern "C" fn set_tty_color_mode (tty: *mut tty_display_info, f: *mut frame)
+pub unsafe extern "C-unwind" fn set_tty_color_mode (tty: *mut tty_display_info, f: *mut frame)
 {
   let mut tem: Lisp_Object;
   let val: Lisp_Object;
@@ -2992,7 +2994,7 @@ pub unsafe extern "C" fn set_tty_color_mode (tty: *mut tty_display_info, f: *mut
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn tty_type_name (terminal: Lisp_Object) -> *mut c_char
+pub unsafe extern "C-unwind" fn tty_type_name (terminal: Lisp_Object) -> *mut c_char
 {
   let t: *mut terminal = decode_tty_terminal (terminal);
 
@@ -3231,7 +3233,7 @@ DEFUN! ("tty--output-buffer-size", Ftty__output_buffer_size,
 
 #[unsafe(no_mangle)]
 #[cfg (not (feature = "have_android"))]
-pub unsafe extern "C" fn tty_draw_row_with_mouse_face (w: *mut window, window_row: *mut glyph_row,
+pub unsafe extern "C-unwind" fn tty_draw_row_with_mouse_face (w: *mut window, window_row: *mut glyph_row,
 						      mut window_start_x: c_int,
 						      mut window_end_x: c_int,
 						      draw: draw_glyphs_face)
@@ -3895,7 +3897,7 @@ unsafe fn read_menu_input (sf: *mut frame, x: *mut c_int, y: *mut c_int, min_y: 
 #[cfg (not (feature = "have_android"))]
 unsafe fn tty_menu_activate (menu: *mut tty_menu, pane: *mut c_int, selidx: *mut c_int,
 			     mut x0: c_int, mut y0: c_int, txt: *mut *mut c_char,
-			     help_callback: Option<unsafe extern "C" fn (*const c_char, c_int, c_int)>,
+			     help_callback: Option<unsafe extern "C-unwind" fn (*const c_char, c_int, c_int)>,
 			     kbd_navigation: bool) -> c_int
 {
   let mut state: *mut tty_menu_state = std::ptr::null_mut ();
@@ -4210,7 +4212,7 @@ unsafe fn tty_menu_destroy (menu: *mut tty_menu)
    the menu (currently not used).  */
 
 #[cfg (not (feature = "have_android"))]
-unsafe extern "C" fn tty_menu_help_callback (help_string: *const c_char, pane: c_int, item: c_int)
+unsafe extern "C-unwind" fn tty_menu_help_callback (help_string: *const c_char, pane: c_int, item: c_int)
 {
   let mut first_item: *mut Lisp_Object;
   let mut pane_name: Lisp_Object;
@@ -4239,7 +4241,7 @@ pub struct tty_pop_down_menu
 }
 
 #[cfg (not (feature = "have_android"))]
-unsafe extern "C" fn tty_pop_down_menu (arg: *mut c_void)
+unsafe extern "C-unwind" fn tty_pop_down_menu (arg: *mut c_void)
 {
   let data: *mut tty_pop_down_menu = arg.cast::<tty_pop_down_menu> ();
 
@@ -4337,7 +4339,7 @@ unsafe fn tty_menu_new_item_coords (f: *mut frame, which: c_int, x: *mut c_int, 
 /* WINDOWSNT uses this as menu_show_hook, see w32console.c.  */
 #[unsafe(no_mangle)]
 #[cfg (not (feature = "have_android"))]
-pub unsafe extern "C" fn tty_menu_show (f: *mut frame, x: c_int, y: c_int, menuflags: c_int,
+pub unsafe extern "C-unwind" fn tty_menu_show (f: *mut frame, x: c_int, y: c_int, menuflags: c_int,
 					title: Lisp_Object, error_name: *mut *const c_char) -> Lisp_Object
 {
   let mut menu: *mut tty_menu;
@@ -4635,7 +4637,7 @@ pub unsafe extern "C" fn tty_menu_show (f: *mut frame, x: c_int, y: c_int, menuf
 
 #[unsafe(no_mangle)]
 #[cfg (not (feature = "have_android"))]
-pub unsafe extern "C" fn create_tty_output (f: *mut frame)
+pub unsafe extern "C-unwind" fn create_tty_output (f: *mut frame)
 {
   let t: *mut tty_output = xzalloc (std::mem::size_of::<tty_output> ()).cast::<tty_output> ();
 
@@ -4650,7 +4652,7 @@ pub unsafe extern "C" fn create_tty_output (f: *mut frame)
    installed as a delete_frame_hook.  */
 
 #[cfg (not (feature = "have_android"))]
-unsafe extern "C" fn tty_free_frame_resources (f: *mut frame)
+unsafe extern "C-unwind" fn tty_free_frame_resources (f: *mut frame)
 {
   eassert! (FRAME_TERMCAP_P (f));
   free_frame_faces (f);
@@ -4701,7 +4703,7 @@ unsafe fn clear_tty_hooks (terminal: *mut terminal)
 
   /* Leave these two set, or suspended frames are not deleted
      correctly.  */
-  (*terminal).delete_frame_hook = hook! (unsafe extern "C" fn (*mut c_void), tty_free_frame_resources);
+  (*terminal).delete_frame_hook = hook! (unsafe extern "C-unwind" fn (*mut c_void), tty_free_frame_resources);
   (*terminal).delete_terminal_hook = Some (delete_tty);
 }
 
@@ -4710,27 +4712,27 @@ unsafe fn clear_tty_hooks (terminal: *mut terminal)
 #[cfg (not (feature = "have_android"))]
 unsafe fn set_tty_hooks (terminal: *mut terminal)
 {
-  (*terminal).cursor_to_hook = hook! (unsafe extern "C" fn (*mut c_void, c_int, c_int), tty_cursor_to);
-  (*terminal).raw_cursor_to_hook = hook! (unsafe extern "C" fn (*mut c_void, c_int, c_int), tty_raw_cursor_to);
-  (*terminal).clear_to_end_hook = hook! (unsafe extern "C" fn (*mut c_void), tty_clear_to_end);
-  (*terminal).clear_frame_hook = hook! (unsafe extern "C" fn (*mut c_void), tty_clear_frame);
-  (*terminal).clear_end_of_line_hook = hook! (unsafe extern "C" fn (*mut c_void, c_int), tty_clear_end_of_line);
-  (*terminal).ins_del_lines_hook = hook! (unsafe extern "C" fn (*mut c_void, c_int, c_int), tty_ins_del_lines);
-  (*terminal).insert_glyphs_hook = hook! (unsafe extern "C" fn (*mut c_void, *mut c_void, c_int), tty_insert_glyphs);
-  (*terminal).write_glyphs_hook = hook! (unsafe extern "C" fn (*mut c_void, *mut c_void, c_int), tty_write_glyphs);
-  (*terminal).delete_glyphs_hook = hook! (unsafe extern "C" fn (*mut c_void, c_int), tty_delete_glyphs);
-  (*terminal).ring_bell_hook = hook! (unsafe extern "C" fn (*mut c_void), tty_ring_bell);
+  (*terminal).cursor_to_hook = hook! (unsafe extern "C-unwind" fn (*mut c_void, c_int, c_int), tty_cursor_to);
+  (*terminal).raw_cursor_to_hook = hook! (unsafe extern "C-unwind" fn (*mut c_void, c_int, c_int), tty_raw_cursor_to);
+  (*terminal).clear_to_end_hook = hook! (unsafe extern "C-unwind" fn (*mut c_void), tty_clear_to_end);
+  (*terminal).clear_frame_hook = hook! (unsafe extern "C-unwind" fn (*mut c_void), tty_clear_frame);
+  (*terminal).clear_end_of_line_hook = hook! (unsafe extern "C-unwind" fn (*mut c_void, c_int), tty_clear_end_of_line);
+  (*terminal).ins_del_lines_hook = hook! (unsafe extern "C-unwind" fn (*mut c_void, c_int, c_int), tty_ins_del_lines);
+  (*terminal).insert_glyphs_hook = hook! (unsafe extern "C-unwind" fn (*mut c_void, *mut c_void, c_int), tty_insert_glyphs);
+  (*terminal).write_glyphs_hook = hook! (unsafe extern "C-unwind" fn (*mut c_void, *mut c_void, c_int), tty_write_glyphs);
+  (*terminal).delete_glyphs_hook = hook! (unsafe extern "C-unwind" fn (*mut c_void, c_int), tty_delete_glyphs);
+  (*terminal).ring_bell_hook = hook! (unsafe extern "C-unwind" fn (*mut c_void), tty_ring_bell);
   (*terminal).reset_terminal_modes_hook = Some (tty_reset_terminal_modes);
   (*terminal).set_terminal_modes_hook = Some (tty_set_terminal_modes);
-  (*terminal).update_end_hook = hook! (unsafe extern "C" fn (*mut c_void), tty_update_end);
-  (*terminal).menu_show_hook = hook! (unsafe extern "C" fn (*mut c_void, c_int, c_int, c_int, Lisp_Object, *mut *const c_char) -> Lisp_Object, tty_menu_show);
-  (*terminal).set_terminal_window_hook = hook! (unsafe extern "C" fn (*mut c_void, c_int), tty_set_terminal_window);
-  (*terminal).defined_color_hook = hook! (unsafe extern "C" fn (*mut c_void, *const c_char, *mut Emacs_Color, bool, bool) -> bool, tty_defined_color); /* xfaces.c */
+  (*terminal).update_end_hook = hook! (unsafe extern "C-unwind" fn (*mut c_void), tty_update_end);
+  (*terminal).menu_show_hook = hook! (unsafe extern "C-unwind" fn (*mut c_void, c_int, c_int, c_int, Lisp_Object, *mut *const c_char) -> Lisp_Object, tty_menu_show);
+  (*terminal).set_terminal_window_hook = hook! (unsafe extern "C-unwind" fn (*mut c_void, c_int), tty_set_terminal_window);
+  (*terminal).defined_color_hook = hook! (unsafe extern "C-unwind" fn (*mut c_void, *const c_char, *mut Emacs_Color, bool, bool) -> bool, tty_defined_color); /* xfaces.c */
   (*terminal).read_socket_hook = Some (tty_read_avail_input); /* keyboard.c */
-  (*terminal).delete_frame_hook = hook! (unsafe extern "C" fn (*mut c_void), tty_free_frame_resources);
+  (*terminal).delete_frame_hook = hook! (unsafe extern "C-unwind" fn (*mut c_void), tty_free_frame_resources);
   (*terminal).delete_terminal_hook = Some (delete_tty);
 
-  (*terminal).frame_raise_lower_hook = hook! (unsafe extern "C" fn (*mut c_void, bool), tty_raise_lower_frame);
+  (*terminal).frame_raise_lower_hook = hook! (unsafe extern "C-unwind" fn (*mut c_void, bool), tty_raise_lower_frame);
   /* Other hooks are NULL by default.  */
 }
 
@@ -4784,7 +4786,7 @@ unsafe fn dissociate_if_controlling_tty (fd: c_int)
    (`init_tty_android`, `init_tty_msdos`).  */
 #[cfg (feature = "have_android")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn init_tty (_name: *const c_char, _terminal_type: *const c_char,
+pub unsafe extern "C-unwind" fn init_tty (_name: *const c_char, _terminal_type: *const c_char,
 				   must_succeed: bool) -> *mut terminal
 {
   init_tty_android (must_succeed);
@@ -4795,7 +4797,7 @@ pub unsafe extern "C" fn init_tty (_name: *const c_char, _terminal_type: *const 
 
 #[cfg (not (feature = "have_android"))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn init_tty (mut name: *const c_char, terminal_type: *const c_char,
+pub unsafe extern "C-unwind" fn init_tty (mut name: *const c_char, terminal_type: *const c_char,
 				   must_succeed: bool) -> *mut terminal
 {
   let mut tty: *mut tty_display_info = std::ptr::null_mut ();
@@ -5277,7 +5279,7 @@ unsafe fn vfatal (str_: *const c_char, args: core::ffi::VaList<'_>) -> !
    Delete TERMINAL, then call error or fatal with str1 or str2,
    respectively, according to whether MUST_SUCCEED is true.  */
 
-unsafe extern "C" fn maybe_fatal (must_succeed: bool, terminal: *mut terminal,
+unsafe extern "C-unwind" fn maybe_fatal (must_succeed: bool, terminal: *mut terminal,
 				  str1: *const c_char, str2: *const c_char, mut args: ...)
 {
   #[cfg (not (feature = "have_android"))]
@@ -5294,7 +5296,7 @@ unsafe extern "C" fn maybe_fatal (must_succeed: bool, terminal: *mut terminal,
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn fatal (str_: *const c_char, mut args: ...)
+pub unsafe extern "C-unwind" fn fatal (str_: *const c_char, mut args: ...)
 {
   vfatal (str_, args);
 }
@@ -5316,7 +5318,7 @@ unsafe fn unlink_tty (tty: *mut tty_display_info)
 }
 
 #[cfg (not (feature = "have_android"))]
-unsafe extern "C" fn delete_tty (terminal: *mut terminal)
+unsafe extern "C-unwind" fn delete_tty (terminal: *mut terminal)
 {
   let mut tty: *mut tty_display_info;
 
@@ -5528,7 +5530,7 @@ DEFUN! ("tty-display-pixel-height", Ftty_display_pixel_height,
 });
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_term ()
+pub unsafe extern "C-unwind" fn syms_of_term ()
 {
   DEFVAR_BOOL! (c"system-uses-terminfo", system_uses_terminfo,
     "Non-nil means the system uses terminfo rather than termcap.\nThis variable can be used by terminal emulator packages.");

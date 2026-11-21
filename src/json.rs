@@ -282,7 +282,7 @@ unsafe fn json_out_grow_buf (jo: *mut json_out_t, incr_min: ptrdiff_t)
   (*jo).capacity = new_size;
 }
 
-pub unsafe extern "C" fn cleanup_json_out (arg: *mut c_void)
+pub unsafe extern "C-unwind" fn cleanup_json_out (arg: *mut c_void)
 {
   let jo: *mut json_out_t = arg as *mut json_out_t;
   xfree ((*jo).buf as *mut c_void);
@@ -722,8 +722,8 @@ pub struct json_parser
   pub byte_workspace_current: *mut u8,
 
   pub obj: Lisp_Object,
-  pub byte_to_pos: Option<unsafe extern "C" fn (Lisp_Object, ptrdiff_t) -> ptrdiff_t>,
-  pub byte_to_line: Option<unsafe extern "C" fn (Lisp_Object, ptrdiff_t) -> ptrdiff_t>,
+  pub byte_to_pos: Option<unsafe extern "C-unwind" fn (Lisp_Object, ptrdiff_t) -> ptrdiff_t>,
+  pub byte_to_line: Option<unsafe extern "C-unwind" fn (Lisp_Object, ptrdiff_t) -> ptrdiff_t>,
 }
 
 unsafe fn json_signal_error (p: *mut json_parser, error: Lisp_Object) -> !
@@ -743,9 +743,9 @@ unsafe fn json_parser_init (parser: *mut json_parser,
 			    input_end: *const u8,
 			    secondary_input: *const u8,
 			    secondary_input_end: *const u8,
-			    byte_to_pos: unsafe extern "C" fn (Lisp_Object, ptrdiff_t)
+			    byte_to_pos: unsafe extern "C-unwind" fn (Lisp_Object, ptrdiff_t)
 			      -> ptrdiff_t,
-			    byte_to_line: unsafe extern "C" fn (Lisp_Object, ptrdiff_t)
+			    byte_to_line: unsafe extern "C-unwind" fn (Lisp_Object, ptrdiff_t)
 			      -> ptrdiff_t,
 			    obj: Lisp_Object)
 {
@@ -794,7 +794,7 @@ unsafe fn json_parser_init (parser: *mut json_parser,
   (*parser).obj = obj;
 }
 
-pub unsafe extern "C" fn json_parser_done (parser: *mut c_void)
+pub unsafe extern "C-unwind" fn json_parser_done (parser: *mut c_void)
 {
   let p: *mut json_parser = parser as *mut json_parser;
   if (*p).object_workspace != (*p).internal_object_workspace.as_mut_ptr ()
@@ -1666,14 +1666,14 @@ unsafe fn count_newlines (s: *const u8, nbytes: ptrdiff_t) -> ptrdiff_t
   return nls;
 }
 
-pub unsafe extern "C" fn string_byte_to_pos (obj: Lisp_Object, byte: ptrdiff_t) -> ptrdiff_t
+pub unsafe extern "C-unwind" fn string_byte_to_pos (obj: Lisp_Object, byte: ptrdiff_t) -> ptrdiff_t
 {
   eassert! (STRINGP (obj));
   eassert! (byte <= SBYTES (obj));
   return if STRING_MULTIBYTE (obj) { count_chars (SDATA (obj), byte) } else { byte };
 }
 
-pub unsafe extern "C" fn string_byte_to_line (obj: Lisp_Object, byte: ptrdiff_t) -> ptrdiff_t
+pub unsafe extern "C-unwind" fn string_byte_to_line (obj: Lisp_Object, byte: ptrdiff_t) -> ptrdiff_t
 {
   eassert! (STRINGP (obj));
   eassert! (byte <= SBYTES (obj));
@@ -1709,13 +1709,13 @@ DEFUN! ("json-parse-string", Fjson_parse_string, Sjson_parse_string, 1, MANY,
   return unbind_to (count, result);
 });
 
-pub unsafe extern "C" fn buffer_byte_to_pos (obj: Lisp_Object, byte: ptrdiff_t) -> ptrdiff_t
+pub unsafe extern "C-unwind" fn buffer_byte_to_pos (obj: Lisp_Object, byte: ptrdiff_t) -> ptrdiff_t
 {
   /* The position from the start of the parse (for compatibility).  */
   return BYTE_TO_CHAR (PT_BYTE! () + byte) - PT! ();
 }
 
-pub unsafe extern "C" fn buffer_byte_to_line (obj: Lisp_Object, byte: ptrdiff_t) -> ptrdiff_t
+pub unsafe extern "C-unwind" fn buffer_byte_to_line (obj: Lisp_Object, byte: ptrdiff_t) -> ptrdiff_t
 {
   /* Line from start of the parse (for compatibility). */
   let to_gap: ptrdiff_t = GPT_BYTE! () - PT_BYTE! ();
@@ -1773,7 +1773,7 @@ DEFUN! ("json-parse-buffer", Fjson_parse_buffer, Sjson_parse_buffer,
 });
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_json ()
+pub unsafe extern "C-unwind" fn syms_of_json ()
 {
   DEFSYM! (QCnull, ":null");
   DEFSYM! (QCfalse, ":false");

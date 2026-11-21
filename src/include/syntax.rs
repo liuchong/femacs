@@ -89,7 +89,7 @@ pub struct gl_state_s
 /// defining unit shadows it through the glob import (PORTING.md P-39/P-21).
 pub mod syntax_h_own_definitions {
   use super::*;
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     pub static mut gl_state: gl_state_s;
     /// C: void update_syntax_table (ptrdiff_t, EMACS_INT, Lisp_Object)
     pub fn update_syntax_table (charpos: ptrdiff_t, count: EMACS_INT, init: Lisp_Object);

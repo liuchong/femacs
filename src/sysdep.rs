@@ -697,7 +697,7 @@ unsafe extern "C" {
 use cm_globals::current_tty;
 
 /// `src/emacs.c`'s `emacs_strerror` (its mirror lands with that unit).
-unsafe extern "C" { pub fn emacs_strerror (error_num: c_int) -> *const c_char; }
+unsafe extern "C-unwind" { pub fn emacs_strerror (error_num: c_int) -> *const c_char; }
 
 /// `<unistd.h>`: `int gethostname (char *, size_t);` (`unistd.in.rs` does not carry it).
 unsafe extern "C" { pub fn gethostname (name: *mut c_char, len: usize) -> c_int; }
@@ -705,11 +705,13 @@ unsafe extern "C" { pub fn gethostname (name: *mut c_char, len: usize) -> c_int;
 /// `src/xfaces.c`/`src/dispnew.c` and `src/terminal.c`'s entries the live arms reach
 /// (`init_frame_faces`, `is_tty_frame`, `tty_turn_off_insert`); their mirrors land with those
 /// units, so the port declares them at their use site with C's own prototype.
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   /* void init_frame_faces (struct frame *);  */
   pub fn init_frame_faces (f: *mut frame);
   /* bool is_tty_frame (struct frame *);  */
   pub fn is_tty_frame (f: *mut frame) -> bool;
+}
+unsafe extern "C" {
   /* void tty_turn_off_insert (struct tty_display_info *);  */
   pub fn tty_turn_off_insert (tty: *mut tty_display_info);
 }
@@ -722,17 +724,19 @@ unsafe extern "C" {
 /// `src/keyboard.c`/`src/emacs.c`/`src/alloc.c` and `src/sfntfont.c`'s entries the signal
 /// arms reach; their mirrors land with those units, so the port declares them at their use
 /// site with C's own prototype.
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   /* void add_user_signal (int, const char *);  */
   pub fn add_user_signal (sig: c_int, name: *const c_char);
-  /* _Noreturn void terminate_due_to_signal (int, int);  */
-  pub fn terminate_due_to_signal (sig: c_int, backtrace_limit: c_int) -> !;
   /* void malloc_warning (const char *);  */
   pub fn malloc_warning (message: *const c_char);
   /* void force_auto_save_soon (void);  */
 
   /* bool sfntfont_detect_sigbus (void *);  */
   pub fn sfntfont_detect_sigbus (addr: *mut c_void) -> bool;
+}
+unsafe extern "C" {
+  /* _Noreturn void terminate_due_to_signal (int, int);  */
+  pub fn terminate_due_to_signal (sig: c_int, backtrace_limit: c_int) -> !;
   /* void internal_terminal_init (void);  */
   pub fn internal_terminal_init ();
   /* void dos_ttraw (struct tty_display_info *);  */
@@ -1054,16 +1058,18 @@ pub const FASYNC: c_int = 0x0040;
 /// their use site with C's own prototype (C 3010/1257's `cfmakeraw`/`cfsetspeed` are the
 /// *system* entries here — `HAVE_CFMAKERAW`/`HAVE_CFSETSPEED` are 1, so the port's own
 /// wrappers for them are the dead arms further down).
-unsafe extern "C" {
-  /* void cfmakeraw (struct termios *);  */
-  pub fn cfmakeraw (termios_p: *mut termios);
-  /* int cfsetspeed (struct termios *, speed_t);  */
-  pub fn cfsetspeed (termios_p: *mut termios, vitesse: speed_t) -> c_int;
+unsafe extern "C-unwind" {
   /* Lisp_Object plist_get (Lisp_Object, Lisp_Object);  */
   /* Lisp_Object plist_member (Lisp_Object, Lisp_Object);  */
 
   /* Lisp_Object plist_put (Lisp_Object, Lisp_Object, Lisp_Object);  */
   pub fn plist_put (plist: Lisp_Object, prop: Lisp_Object, val: Lisp_Object) -> Lisp_Object;
+}
+unsafe extern "C" {
+  /* void cfmakeraw (struct termios *);  */
+  pub fn cfmakeraw (termios_p: *mut termios);
+  /* int cfsetspeed (struct termios *, speed_t);  */
+  pub fn cfsetspeed (termios_p: *mut termios, vitesse: speed_t) -> c_int;
   /* void process_pending_signals (void);  */
 
 }
@@ -1175,7 +1181,7 @@ static mut exec_personality: c_int = 0;
 /// nowhere on this target (see the file header).
 #[cfg (feature = "have_personality_addr_no_randomize")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn maybe_disable_address_randomization (argc: c_int,
+pub unsafe extern "C-unwind" fn maybe_disable_address_randomization (argc: c_int,
                                                               argv: *mut *mut c_char) -> c_int {
   /* Undocumented Emacs option used only by this function.  */
   static aslr_disabled_option: [c_char; 19] = *b"--__aslr-disabled\0\0";
@@ -1231,7 +1237,7 @@ pub unsafe extern "C" fn maybe_disable_address_randomization (argc: c_int,
    except it reenables ASLR in the executed program if necessary, and
    on error it returns an error number rather than -1.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn emacs_exec_file (file: *const c_char, argv: *const *mut c_char,
+pub unsafe extern "C-unwind" fn emacs_exec_file (file: *const c_char, argv: *const *mut c_char,
                                           envp: *const *mut c_char) -> c_int {
   #[cfg (feature = "have_personality_addr_no_randomize")]
   if exec_personality != -1
@@ -1261,7 +1267,7 @@ static mut buferr: *mut FILE = std::ptr::null_mut ();
 /* Make sure stdin, stdout, and stderr are open to something, so that
    their file descriptors are not hijacked by later system calls.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn init_standard_fds () {
+pub unsafe extern "C-unwind" fn init_standard_fds () {
   /* Open stdin for *writing*, and stdout and stderr for *reading*.
      That way, any attempt to do normal I/O will result in an error,
      just as if the files were closed, and the file descriptors will
@@ -1365,7 +1371,7 @@ unsafe fn get_current_dir_name_or_unreachable () -> *mut c_char {
    directory (e.g., its name starts with '(') counts as an error.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn emacs_get_current_dir_name () -> *mut c_char {
+pub unsafe extern "C-unwind" fn emacs_get_current_dir_name () -> *mut c_char {
   let dir: *mut c_char = get_current_dir_name_or_unreachable ();
   if !dir.is_null () && *dir == b'(' as c_char
     {
@@ -1379,7 +1385,7 @@ pub unsafe extern "C" fn emacs_get_current_dir_name () -> *mut c_char {
 /* Discard pending input on all input descriptors.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn discard_tty_input () {
+pub unsafe extern "C-unwind" fn discard_tty_input () {
   // C 364-386: `#ifndef WINDOWSNT` is live; its `MSDOS` arm (C 370-372) is dead and carried.
   {
     let mut buf: emacs_tty = std::mem::zeroed ();
@@ -1424,7 +1430,7 @@ pub unsafe extern "C" fn discard_tty_input () {
 */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn stuff_char (mut c: c_char) -> c_int {
+pub unsafe extern "C-unwind" fn stuff_char (mut c: c_char) -> c_int {
 /* Should perhaps error if in batch mode */
   /* C 402-407's `#ifdef TIOCSTI` is live.  */
   {
@@ -1438,7 +1444,7 @@ pub unsafe extern "C" fn stuff_char (mut c: c_char) -> c_int {
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn init_baud_rate (fd: c_int) {
+pub unsafe extern "C-unwind" fn init_baud_rate (fd: c_int) {
   let mut emacs_ospeed: c_int;
 
   if noninteractive
@@ -1556,7 +1562,7 @@ unsafe fn get_child_status (child: pid_t, status: *mut c_int, options: c_int,
    Return true if successful, false (setting errno) if CHILD cannot be
    waited for because waitpid is buggy.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn wait_for_termination (child: pid_t, status: *mut c_int,
+pub unsafe extern "C-unwind" fn wait_for_termination (child: pid_t, status: *mut c_int,
                                                interruptible: bool) -> bool {
   return 0 <= get_child_status (child, status, 0, interruptible);
 }
@@ -1571,7 +1577,7 @@ pub unsafe extern "C" fn wait_for_termination (child: pid_t, status: *mut c_int,
    Return CHILD if successful, 0 if no status is available because
    the process's state has not changed.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn child_status_changed (child: pid_t, status: *mut c_int,
+pub unsafe extern "C-unwind" fn child_status_changed (child: pid_t, status: *mut c_int,
                                                options: c_int) -> pid_t {
   return get_child_status (child, status, WNOHANG | options, false);
 }
@@ -1582,7 +1588,7 @@ pub unsafe extern "C" fn child_status_changed (child: pid_t, status: *mut c_int,
     in Emacs.  No padding needed for insertion into an Emacs buffer.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn child_setup_tty (out: c_int) {
+pub unsafe extern "C-unwind" fn child_setup_tty (out: c_int) {
   // C 530: `#ifndef WINDOWSNT` is live.
   {
     let mut s: emacs_tty = std::mem::zeroed ();
@@ -1675,7 +1681,7 @@ pub unsafe extern "C" fn child_setup_tty (out: c_int) {
 
 /// C 630-644's `sys_suspend`, whose `#ifndef DOS_NT` arm is live.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn sys_suspend () {
+pub unsafe extern "C-unwind" fn sys_suspend () {
   /* C 632-640: `#ifndef DOS_NT` is live; the `#else` arm is carried.  */
   #[cfg (not (feature = "dos_nt"))]
   {
@@ -1693,7 +1699,7 @@ pub unsafe extern "C" fn sys_suspend () {
 /* Fork a subshell.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn sys_subshell () {
+pub unsafe extern "C-unwind" fn sys_subshell () {
   #[cfg (feature = "dos_nt")]
   let mut st: c_int = 0;
   #[cfg (feature = "msdos")]
@@ -1812,7 +1818,7 @@ pub unsafe extern "C" fn sys_subshell () {
   restore_signal_handlers (saved_handlers.as_mut_ptr ());
 }
 
-unsafe extern "C" fn save_signal_handlers (saved_handlers: *mut save_signal) {
+unsafe extern "C-unwind" fn save_signal_handlers (saved_handlers: *mut save_signal) {
   let mut saved_handlers = saved_handlers;
   while (*saved_handlers).code != 0
     {
@@ -1823,7 +1829,7 @@ unsafe extern "C" fn save_signal_handlers (saved_handlers: *mut save_signal) {
     }
 }
 
-unsafe extern "C" fn restore_signal_handlers (saved_handlers: *mut save_signal) {
+unsafe extern "C-unwind" fn restore_signal_handlers (saved_handlers: *mut save_signal) {
   let mut saved_handlers = saved_handlers;
   while (*saved_handlers).code != 0
     {
@@ -1836,7 +1842,7 @@ unsafe extern "C" fn restore_signal_handlers (saved_handlers: *mut save_signal) 
 static mut old_fcntl_flags: [c_int; FD_SETSIZE as usize] = [0; FD_SETSIZE as usize];
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn init_sigio (fd: c_int) {
+pub unsafe extern "C-unwind" fn init_sigio (fd: c_int) {
   /* C 786-790: `#ifdef USABLE_SIGIO` is live.  */
   {
     old_fcntl_flags[fd as usize] = fcntl (fd, F_GETFL, 0) & !FASYNC;
@@ -1854,7 +1860,7 @@ unsafe fn reset_sigio (fd: c_int) {
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn request_sigio () {
+pub unsafe extern "C-unwind" fn request_sigio () {
   /* C 810-828: `#if defined (USABLE_SIGIO) || defined (USABLE_SIGPOLL)` is live.  */
   {
     let mut unblocked: sigset_t = std::mem::zeroed ();
@@ -1884,7 +1890,7 @@ pub unsafe extern "C" fn request_sigio () {
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn unrequest_sigio () {
+pub unsafe extern "C-unwind" fn unrequest_sigio () {
   /* C 834-851: `#if defined (USABLE_SIGIO) || defined (USABLE_SIGPOLL)` is live.  */
   {
     let mut blocked: sigset_t = std::mem::zeroed ();
@@ -1916,7 +1922,7 @@ pub unsafe extern "C" fn unrequest_sigio () {
 /* Block SIGCHLD.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn block_child_signal (oldset: *mut sigset_t) {
+pub unsafe extern "C-unwind" fn block_child_signal (oldset: *mut sigset_t) {
   let mut blocked: sigset_t = std::mem::zeroed ();
   sigemptyset (&mut blocked);
   sigaddset (&mut blocked, SIGCHLD);
@@ -1927,13 +1933,13 @@ pub unsafe extern "C" fn block_child_signal (oldset: *mut sigset_t) {
 /* Unblock SIGCHLD.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn unblock_child_signal (oldset: *const sigset_t) {
+pub unsafe extern "C-unwind" fn unblock_child_signal (oldset: *const sigset_t) {
   pthread_sigmask (SIG_SETMASK, oldset, std::ptr::null_mut ());
 }
 
 /* Block SIGINT.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn block_interrupt_signal (oldset: *mut sigset_t) {
+pub unsafe extern "C-unwind" fn block_interrupt_signal (oldset: *mut sigset_t) {
   let mut blocked: sigset_t = std::mem::zeroed ();
   sigemptyset (&mut blocked);
   sigaddset (&mut blocked, SIGINT);
@@ -1942,7 +1948,7 @@ pub unsafe extern "C" fn block_interrupt_signal (oldset: *mut sigset_t) {
 
 /* Restore previously saved signal mask.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn restore_signal_mask (oldset: *const sigset_t) {
+pub unsafe extern "C-unwind" fn restore_signal_mask (oldset: *const sigset_t) {
   pthread_sigmask (SIG_SETMASK, oldset, std::ptr::null_mut ());
 }
 
@@ -1970,7 +1976,7 @@ pub unsafe extern "C" fn restore_signal_mask (oldset: *const sigset_t) {
 static mut inherited_pgroup: pid_t = 0;
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn init_foreground_group () {
+pub unsafe extern "C-unwind" fn init_foreground_group () {
   let pgrp: pid_t = getpgrp ();
   inherited_pgroup = if getpid () == pgrp { 0 } else { pgrp };
 }
@@ -1978,7 +1984,7 @@ pub unsafe extern "C" fn init_foreground_group () {
 /* Block and unblock SIGTTOU.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn block_tty_out_signal (oldset: *mut sigset_t) {
+pub unsafe extern "C-unwind" fn block_tty_out_signal (oldset: *mut sigset_t) {
   /* C 930-935: `#ifdef SIGTTOU` is live.  */
   {
     let mut blocked: sigset_t = std::mem::zeroed ();
@@ -1989,7 +1995,7 @@ pub unsafe extern "C" fn block_tty_out_signal (oldset: *mut sigset_t) {
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn unblock_tty_out_signal (oldset: *const sigset_t) {
+pub unsafe extern "C-unwind" fn unblock_tty_out_signal (oldset: *const sigset_t) {
   /* C 941-943: `#ifdef SIGTTOU` is live.  */
   {
     pthread_sigmask (SIG_SETMASK, oldset, std::ptr::null_mut ());
@@ -2038,7 +2044,7 @@ unsafe fn widen_foreground_group (fd: c_int) {
    or clear it if the parameters are not available.
    Return 0 on success, -1 on failure.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn emacs_get_tty (fd: c_int, settings: *mut emacs_tty) -> c_int {
+pub unsafe extern "C-unwind" fn emacs_get_tty (fd: c_int, settings: *mut emacs_tty) -> c_int {
   /* Retrieve the primary parameters - baud rate, character size, etcetera.  */
   memset (&mut (*settings).main as *mut termios as *mut c_void, 0,
 	  std::mem::size_of::<termios> ());
@@ -2070,7 +2076,7 @@ pub unsafe extern "C" fn emacs_get_tty (fd: c_int, settings: *mut emacs_tty) -> 
    Return 0 if all went well, and -1 (setting errno) if anything failed.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn emacs_set_tty (fd: c_int, settings: *mut emacs_tty, flushp: bool)
+pub unsafe extern "C-unwind" fn emacs_set_tty (fd: c_int, settings: *mut emacs_tty, flushp: bool)
   -> c_int {
   /* Set the primary parameters - baud rate, character size, etcetera.  */
   #[cfg (feature = "dos_nt")]
@@ -2165,7 +2171,7 @@ macro_rules! tty_bits {
    open. */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn init_all_sys_modes () {
+pub unsafe extern "C-unwind" fn init_all_sys_modes () {
   let mut tty: *mut tty_display_info;
   {
     let mut tty_: *mut tty_display_info = tty_list;
@@ -2184,7 +2190,7 @@ pub unsafe extern "C" fn init_all_sys_modes () {
 /* Initialize the terminal mode on the given tty device. */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn init_sys_modes (tty_out: *mut tty_display_info) {
+pub unsafe extern "C-unwind" fn init_sys_modes (tty_out: *mut tty_display_info) {
   let mut tty: emacs_tty = std::mem::zeroed ();
   // C 1109-1111: `#ifndef DOS_NT` — live.
   let mut terminal: Lisp_Object = Qnil ();
@@ -2461,7 +2467,7 @@ pub unsafe extern "C" fn init_sys_modes (tty_out: *mut tty_display_info) {
    At the time this is called, init_sys_modes has not been done yet.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn tabs_safe_p (fd: c_int) -> bool {
+pub unsafe extern "C-unwind" fn tabs_safe_p (fd: c_int) -> bool {
   let mut etty: emacs_tty = std::mem::zeroed ();
 
   emacs_get_tty (fd, &mut etty);
@@ -2488,7 +2494,7 @@ pub unsafe extern "C" fn tabs_safe_p (fd: c_int) -> bool {
 /* Discard echoing.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn suppress_echo_on_tty (fd: c_int) {
+pub unsafe extern "C-unwind" fn suppress_echo_on_tty (fd: c_int) {
   let mut etty: emacs_tty = std::mem::zeroed ();
 
   emacs_get_tty (fd, &mut etty);
@@ -2511,7 +2517,7 @@ pub unsafe extern "C" fn suppress_echo_on_tty (fd: c_int) {
    We store 0 if there's no valid information.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn get_tty_size (fd: c_int, widthp: *mut c_int, heightp: *mut c_int) {
+pub unsafe extern "C-unwind" fn get_tty_size (fd: c_int, widthp: *mut c_int, heightp: *mut c_int) {
   /* C 1399: `#if defined TIOCGWINSZ` is live.  */
   {
     /* BSD-style.  */
@@ -2568,7 +2574,7 @@ pub unsafe extern "C" fn get_tty_size (fd: c_int, widthp: *mut c_int, heightp: *
    Return a negative value on failure.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn set_window_size (fd: c_int, height: c_int, width: c_int) -> c_int {
+pub unsafe extern "C-unwind" fn set_window_size (fd: c_int, height: c_int, width: c_int) -> c_int {
   /* C 1456: `#ifdef TIOCSWINSZ` is live.  */
   {
     /* BSD-style.  */
@@ -2601,7 +2607,7 @@ pub unsafe extern "C" fn set_window_size (fd: c_int, height: c_int, width: c_int
 /* Prepare all terminal devices for exiting Emacs. */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn reset_all_sys_modes () {
+pub unsafe extern "C-unwind" fn reset_all_sys_modes () {
   let mut tty: *mut tty_display_info;
   {
     let mut tty_: *mut tty_display_info = tty_list;
@@ -2621,7 +2627,7 @@ pub unsafe extern "C" fn reset_all_sys_modes () {
    bottom of the frame, turn off interrupt-driven I/O, etc.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn reset_sys_modes (tty_out: *mut tty_display_info) {
+pub unsafe extern "C-unwind" fn reset_sys_modes (tty_out: *mut tty_display_info) {
   if noninteractive
     {
       fflush (stdout);
@@ -2702,7 +2708,7 @@ pub unsafe extern "C" fn reset_sys_modes (tty_out: *mut tty_display_info) {
 /* Set up the proper status flags for use of a pty.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn setup_pty (fd: c_int) {
+pub unsafe extern "C-unwind" fn setup_pty (fd: c_int) {
   /* I'm told that TOICREMOTE does not mean control chars
      "can't be sent" but rather that they don't have
      input-editing or signaling effects.
@@ -2736,7 +2742,7 @@ pub unsafe extern "C" fn setup_pty (fd: c_int) {
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn init_system_name () {
+pub unsafe extern "C-unwind" fn init_system_name () {
   if !build_details
     {
       /* Set system-name to nil so that the build is deterministic.  */
@@ -2830,7 +2836,7 @@ unsafe fn emacs_sigaction_flags () -> c_int {
 /* Store into *ACTION a signal action suitable for Emacs, with handler
    HANDLER.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn emacs_sigaction_init (action: *mut sigaction,
+pub unsafe extern "C-unwind" fn emacs_sigaction_init (action: *mut sigaction,
                                                handler: signal_handler_t) {
   sigemptyset (&mut (*action).sa_mask);
 
@@ -2896,7 +2902,7 @@ static mut main_thread_id: pthread_t = 0 as pthread_t;
    it's blocked, but other systems (FreeBSD at least) can deliver the
    signal to other threads.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn deliver_process_signal (sig: c_int, handler: signal_handler_t) {
+pub unsafe extern "C-unwind" fn deliver_process_signal (sig: c_int, handler: signal_handler_t) {
   /* Preserve errno, to avoid race conditions with signal handlers that
      might change errno.  Races can occur even in single-threaded hosts.  */
   let old_errno: c_int = *errno ();
@@ -2932,7 +2938,7 @@ static mut thread_backtrace_npointers: c_int = 0;
 /* SIG has arrived at the current thread.
    If we are on the main thread, handle the signal SIG with HANDLER.
    Otherwise, this is a fatal error in the handling thread.  */
-unsafe extern "C" fn deliver_thread_signal (sig: c_int, handler: signal_handler_t) {
+unsafe extern "C-unwind" fn deliver_thread_signal (sig: c_int, handler: signal_handler_t) {
   let old_errno: c_int = *errno ();
 
   /* C 1770-1782: `#ifdef FORWARD_SIGNAL_TO_MAIN_THREAD` - live for the frozen configuration,
@@ -2979,7 +2985,7 @@ unsafe extern "C" fn handle_arith_signal (sig: c_int) -> ! {
 // C 1814-1846: `#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY && defined HAVE_MMAP`
 // is dead; carried.
 #[cfg (feature = "have_android_mmap")]
-unsafe extern "C" fn handle_sigbus (sig: c_int, siginfo: *mut siginfo_t, arg: *mut c_void) {
+unsafe extern "C-unwind" fn handle_sigbus (sig: c_int, siginfo: *mut siginfo_t, arg: *mut c_void) {
   /* If this arrives during sfntfont_open, then Emacs may be
      screwed.  */
 
@@ -2994,7 +3000,7 @@ unsafe extern "C" fn handle_sigbus (sig: c_int, siginfo: *mut siginfo_t, arg: *m
    Value is 1 upon failure, 0 otherwise.  */
 
 #[cfg (feature = "have_android_mmap")]
-unsafe extern "C" fn init_sigbus () -> c_int {
+unsafe extern "C-unwind" fn init_sigbus () -> c_int {
   let mut sa: sigaction = std::mem::zeroed ();
 
   sigfillset (&mut sa.sa_mask);
@@ -3029,7 +3035,7 @@ static mut sigsegv_stack: [max_align_t; (64 * 1024
 
 /* Return true if SIGINFO indicates a stack overflow.  */
 
-unsafe extern "C" fn stack_overflow (siginfo: *mut siginfo_t) -> bool {
+unsafe extern "C-unwind" fn stack_overflow (siginfo: *mut siginfo_t) -> bool {
   if !attempt_stack_overflow_recovery
     { return false; }
 
@@ -3115,7 +3121,7 @@ unsafe extern "C" fn handle_sigsegv (sig: c_int, siginfo: *mut siginfo_t, arg: *
 /* Return true if we have successfully set up SIGSEGV handler on alternate
    stack.  Otherwise we just treat SIGSEGV among the rest of fatal signals.  */
 
-unsafe extern "C" fn init_sigsegv () -> bool {
+unsafe extern "C-unwind" fn init_sigsegv () -> bool {
   let mut sa: sigaction = std::mem::zeroed ();
   let mut ss: stack_t = std::mem::zeroed ();
 
@@ -3143,7 +3149,7 @@ unsafe extern "C" fn init_sigsegv () -> bool {
 // C 1969-1977's `#else /* not HAVE_STACK_OVERFLOW_HANDLING or WINDOWSNT */` arm is dead
 // (clang takes the live arm above); carried.
 #[cfg (feature = "no_stack_overflow_handling")]
-unsafe extern "C" fn init_sigsegv () -> bool {
+unsafe extern "C-unwind" fn init_sigsegv () -> bool {
   return false;
 }
 
@@ -3167,13 +3173,13 @@ unsafe extern "C" fn handle_danger_signal (sig: c_int) {
 }
 
 #[cfg (feature = "sigdanger")]
-unsafe extern "C" fn deliver_danger_signal (sig: c_int) {
+unsafe extern "C-unwind" fn deliver_danger_signal (sig: c_int) {
   deliver_process_signal (sig, Some (handle_danger_signal));
 }
 
 /* Treat SIG as a terminating signal, unless it is already ignored and
    we are in --batch mode.  Among other things, this makes nohup work.  */
-unsafe extern "C" fn maybe_fatal_sig (sig: c_int) {
+unsafe extern "C-unwind" fn maybe_fatal_sig (sig: c_int) {
   let mut catch_sig: bool = !noninteractive;
   if !catch_sig
     {
@@ -3187,7 +3193,7 @@ unsafe extern "C" fn maybe_fatal_sig (sig: c_int) {
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn init_signals () {
+pub unsafe extern "C-unwind" fn init_signals () {
   let mut thread_fatal_action: sigaction = std::mem::zeroed ();
   let mut action: sigaction = std::mem::zeroed ();
 
@@ -3387,7 +3393,7 @@ pub type random_seed_rand = c_uint;
 pub unsafe fn set_random_seed (arg: random_seed_rand) { srand (arg); }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn seed_random (seed: *mut c_void, seed_size: ptrdiff_t) {
+pub unsafe extern "C-unwind" fn seed_random (seed: *mut c_void, seed_size: ptrdiff_t) {
   let mut arg: random_seed = 0;
   let argp: *mut c_uchar = &mut arg as *mut random_seed as *mut c_uchar;
   let seedp: *mut c_uchar = seed as *mut c_uchar;
@@ -3402,7 +3408,7 @@ pub unsafe extern "C" fn seed_random (seed: *mut c_void, seed_size: ptrdiff_t) {
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn init_random () {
+pub unsafe extern "C-unwind" fn init_random () {
   let mut v: random_seed = 0;
   let mut success: bool = false;
 
@@ -3440,7 +3446,7 @@ pub unsafe extern "C" fn init_random () {
  * This suffices even for a 64-bit architecture with a 15-bit rand.
  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn get_random () -> EMACS_INT {
+pub unsafe extern "C-unwind" fn get_random () -> EMACS_INT {
   let mut val: EMACS_UINT = 0;
   let mut i: c_int;
   i = 0;
@@ -3456,7 +3462,7 @@ pub unsafe extern "C" fn get_random () -> EMACS_INT {
 
 /* Return a random unsigned long.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn get_random_ulong () -> c_ulong {
+pub unsafe extern "C-unwind" fn get_random_ulong () -> c_ulong {
   let mut r: c_ulong = 0;
   let mut i: c_int = 0;
   while i < (ULONG_WIDTH + RAND_BITS as c_int - 1) / RAND_BITS as c_int
@@ -3472,7 +3478,7 @@ pub unsafe extern "C" fn get_random_ulong () -> c_ulong {
 /* Approximate snprintf as best we can on ancient hosts that lack it.  */
 #[cfg (feature = "no_have_snprintf")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn snprintf (buf: *mut c_char, bufsize: usize, format: *const c_char,
+pub unsafe extern "C-unwind" fn snprintf (buf: *mut c_char, bufsize: usize, format: *const c_char,
                                    mut args: ...) -> c_int {
   let size: ptrdiff_t = min (bufsize as ptrdiff_t, PTRDIFF_MAX);
   let mut nbytes: ptrdiff_t = size - 1;
@@ -3529,7 +3535,7 @@ pub unsafe extern "C" fn snprintf (buf: *mut c_char, bufsize: usize, format: *co
    fatal error has occurred in some other thread; generate a thread
    backtrace instead, ignoring BACKTRACE_LIMIT.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn emacs_backtrace (backtrace_limit: c_int) {
+pub unsafe extern "C-unwind" fn emacs_backtrace (backtrace_limit: c_int) {
   let mut main_backtrace_buffer: [*mut c_void; BACKTRACE_LIMIT_MAX + 1] =
     [std::ptr::null_mut (); BACKTRACE_LIMIT_MAX + 1];
   let bounded_limit: c_int =
@@ -3654,7 +3660,7 @@ pub const RENAME_EXCL: c_uint = 0x00000004;
 // C 2399-2406: `#if !defined HAVE_NTGUI && !(defined HAVE_ANDROID && !defined
 // ANDROID_STUBIFY)` is live.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn emacs_abort () {
+pub unsafe extern "C-unwind" fn emacs_abort () {
   terminate_due_to_signal (SIGABRT, 40);
 }
 
@@ -3669,7 +3675,7 @@ pub unsafe extern "C" fn emacs_abort () {
    does not include <sys/stat.h>.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn emacs_fstatat (dirfd: c_int, filename: *const c_char, st: *mut c_void,
+pub unsafe extern "C-unwind" fn emacs_fstatat (dirfd: c_int, filename: *const c_char, st: *mut c_void,
                                         flags: c_int) -> c_int {
   let mut r: c_int;
   // C 2422-2430: `#if !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)` is live.
@@ -3715,7 +3721,7 @@ unsafe fn sys_openat (dirfd: c_int, file: *const c_char, oflags: c_int, mode: c_
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn sys_fstat (fd: c_int, statb: *mut stat) -> c_int {
+pub unsafe extern "C-unwind" fn sys_fstat (fd: c_int, statb: *mut stat) -> c_int {
   // C 2455-2461: `#if !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)` is live.
   #[cfg (not (feature = "have_android"))]
   {
@@ -3728,7 +3734,7 @@ pub unsafe extern "C" fn sys_fstat (fd: c_int, statb: *mut stat) -> c_int {
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn sys_faccessat (fd: c_int, pathname: *const c_char, mode: c_int,
+pub unsafe extern "C-unwind" fn sys_faccessat (fd: c_int, pathname: *const c_char, mode: c_int,
                                         flags: c_int) -> c_int {
   // C 2465-2471: `#if !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)` is live.
   #[cfg (not (feature = "have_android"))]
@@ -3752,7 +3758,7 @@ pub unsafe extern "C" fn sys_faccessat (fd: c_int, pathname: *const c_char, mode
 // C 2480-2494: `#if !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)` is live.
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn emacs_openat (dirfd: c_int, file: *const c_char, mut oflags: c_int,
+pub unsafe extern "C-unwind" fn emacs_openat (dirfd: c_int, file: *const c_char, mut oflags: c_int,
                                        mode: c_int) -> c_int {
   let mut fd: c_int;
   if (oflags & O_TEXT) == 0
@@ -3769,7 +3775,7 @@ pub unsafe extern "C" fn emacs_openat (dirfd: c_int, file: *const c_char, mut of
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn emacs_open (file: *const c_char, oflags: c_int, mode: c_int) -> c_int {
+pub unsafe extern "C-unwind" fn emacs_open (file: *const c_char, oflags: c_int, mode: c_int) -> c_int {
   // C 2499-2510: `#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY` is dead; carried.
   #[cfg (feature = "have_android")]
   let mut fd: c_int = 0;
@@ -3795,7 +3801,7 @@ pub unsafe extern "C" fn emacs_open (file: *const c_char, oflags: c_int, mode: c
 /* Same as above, but doesn't allow the user to quit.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn emacs_open_noquit (file: *const c_char, mut oflags: c_int, mode: c_int)
+pub unsafe extern "C-unwind" fn emacs_open_noquit (file: *const c_char, mut oflags: c_int, mode: c_int)
   -> c_int {
   let mut fd: c_int;
   if (oflags & O_TEXT) == 0
@@ -3819,7 +3825,7 @@ pub unsafe extern "C" fn emacs_open_noquit (file: *const c_char, mut oflags: c_i
    Act like emacs_open with respect to threads, signals, and quits.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn emacs_fopen (file: *const c_char, mode: *const c_char) -> *mut FILE {
+pub unsafe extern "C-unwind" fn emacs_fopen (file: *const c_char, mode: *const c_char) -> *mut FILE {
   let mut fd: c_int = 0;
   let mut omode: c_int = 0;
   let mut oflags: c_int = 0;
@@ -3854,7 +3860,7 @@ pub unsafe extern "C" fn emacs_fopen (file: *const c_char, mode: *const c_char) 
 /* Create a pipe for Emacs use.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn emacs_pipe (fd: *mut c_int) -> c_int {
+pub unsafe extern "C-unwind" fn emacs_pipe (fd: *mut c_int) -> c_int {
   // C 2569-2573: `#ifdef MSDOS` is dead; carried.
   #[cfg (feature = "msdos")]
   {
@@ -3908,7 +3914,7 @@ unsafe fn posix_close (fd: c_int, flag: c_int) -> c_int {
    as that might close an innocent victim opened by some other thread.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn emacs_close (fd: c_int) -> c_int {
+pub unsafe extern "C-unwind" fn emacs_close (fd: c_int) -> c_int {
   let mut r: c_int;
 
   loop
@@ -3940,7 +3946,7 @@ pub unsafe extern "C" fn emacs_close (fd: c_int) -> c_int {
    clear information associated with FD if necessary.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn emacs_fdopen (fd: c_int, mode: *const c_char) -> *mut FILE {
+pub unsafe extern "C-unwind" fn emacs_fdopen (fd: c_int, mode: *const c_char) -> *mut FILE {
   // C 2649-2653: `#if !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)` is live.
   #[cfg (not (feature = "have_android"))]
   {
@@ -3959,7 +3965,7 @@ pub unsafe extern "C" fn emacs_fdopen (fd: c_int, mode: *const c_char) -> *mut F
 // C 2660-2666: `#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY` is dead; carried.
 #[cfg (feature = "have_android")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn emacs_fclose (stream: *mut FILE) -> c_int {
+pub unsafe extern "C-unwind" fn emacs_fclose (stream: *mut FILE) -> c_int {
   return android_fclose (stream);
 }
 
@@ -3968,7 +3974,7 @@ pub unsafe extern "C" fn emacs_fclose (stream: *mut FILE) -> c_int {
    Android, and may return EINTR.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn emacs_unlink (name: *const c_char) -> c_int {
+pub unsafe extern "C-unwind" fn emacs_unlink (name: *const c_char) -> c_int {
   // C 2675-2679: the non-Android arm is live; the Android arm is carried.
   #[cfg (not (feature = "have_android"))]
   {
@@ -3981,7 +3987,7 @@ pub unsafe extern "C" fn emacs_unlink (name: *const c_char) -> c_int {
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn emacs_symlink (target: *const c_char, linkname: *const c_char)
+pub unsafe extern "C-unwind" fn emacs_symlink (target: *const c_char, linkname: *const c_char)
   -> c_int {
   // C 2685-2689: the non-Android arm is live; the Android arm is carried.
   #[cfg (not (feature = "have_android"))]
@@ -3995,7 +4001,7 @@ pub unsafe extern "C" fn emacs_symlink (target: *const c_char, linkname: *const 
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn emacs_rmdir (dirname: *const c_char) -> c_int {
+pub unsafe extern "C-unwind" fn emacs_rmdir (dirname: *const c_char) -> c_int {
   // C 2695-2699: the non-Android arm is live; the Android arm is carried.
   #[cfg (not (feature = "have_android"))]
   {
@@ -4008,7 +4014,7 @@ pub unsafe extern "C" fn emacs_rmdir (dirname: *const c_char) -> c_int {
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn emacs_mkdir (dirname: *const c_char, mode: mode_t) -> c_int {
+pub unsafe extern "C-unwind" fn emacs_mkdir (dirname: *const c_char, mode: mode_t) -> c_int {
   // C 2705-2709: the non-Android arm is live; the Android arm is carried.
   #[cfg (not (feature = "have_android"))]
   {
@@ -4021,7 +4027,7 @@ pub unsafe extern "C" fn emacs_mkdir (dirname: *const c_char, mode: mode_t) -> c
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn emacs_renameat_noreplace (srcfd: c_int, src: *const c_char,
+pub unsafe extern "C-unwind" fn emacs_renameat_noreplace (srcfd: c_int, src: *const c_char,
                                                    dstfd: c_int, dst: *const c_char)
   -> c_int {
   // C 2716-2720: the non-Android arm is live; the Android arm is carried.
@@ -4036,7 +4042,7 @@ pub unsafe extern "C" fn emacs_renameat_noreplace (srcfd: c_int, src: *const c_c
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn emacs_rename (src: *const c_char, dst: *const c_char) -> c_int {
+pub unsafe extern "C-unwind" fn emacs_rename (src: *const c_char, dst: *const c_char) -> c_int {
   // C 2726-2730: the non-Android arm is live; the Android arm is carried.
   #[cfg (not (feature = "have_android"))]
   {
@@ -4049,7 +4055,7 @@ pub unsafe extern "C" fn emacs_rename (src: *const c_char, dst: *const c_char) -
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn emacs_fchmodat (fd: c_int, path: *const c_char, mode: mode_t,
+pub unsafe extern "C-unwind" fn emacs_fchmodat (fd: c_int, path: *const c_char, mode: mode_t,
                                          flags: c_int) -> c_int {
   // C 2736-2740: the non-Android arm is live; the Android arm is carried.
   #[cfg (not (feature = "have_android"))]
@@ -4118,14 +4124,14 @@ unsafe fn emacs_intr_read (fd: c_int, buf: *mut c_void, nbyte: ptrdiff_t,
    which might be less than NBYTE.  On error, set errno to a value
    other than EINTR, and return -1.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn emacs_read (fd: c_int, buf: *mut c_void, nbyte: ptrdiff_t)
+pub unsafe extern "C-unwind" fn emacs_read (fd: c_int, buf: *mut c_void, nbyte: ptrdiff_t)
   -> ptrdiff_t {
   return emacs_intr_read (fd, buf, nbyte, false);
 }
 
 /* Like emacs_read, but also process quits and pending signals.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn emacs_read_quit (fd: c_int, buf: *mut c_void, nbyte: ptrdiff_t)
+pub unsafe extern "C-unwind" fn emacs_read_quit (fd: c_int, buf: *mut c_void, nbyte: ptrdiff_t)
   -> ptrdiff_t {
   return emacs_intr_read (fd, buf, nbyte, true);
 }
@@ -4175,21 +4181,21 @@ unsafe fn emacs_full_write (fd: c_int, buf: *const c_char, mut nbyte: ptrdiff_t,
    pending signals.  Return the number of bytes written, setting errno
    if this is less than NBYTE.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn emacs_write (fd: c_int, buf: *const c_void, nbyte: ptrdiff_t)
+pub unsafe extern "C-unwind" fn emacs_write (fd: c_int, buf: *const c_void, nbyte: ptrdiff_t)
   -> ptrdiff_t {
   return emacs_full_write (fd, buf as *const c_char, nbyte, 0);
 }
 
 /* Like emacs_write, but also process pending signals.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn emacs_write_sig (fd: c_int, buf: *const c_void, nbyte: ptrdiff_t)
+pub unsafe extern "C-unwind" fn emacs_write_sig (fd: c_int, buf: *const c_void, nbyte: ptrdiff_t)
   -> ptrdiff_t {
   return emacs_full_write (fd, buf as *const c_char, nbyte, -1);
 }
 
 /* Like emacs_write, but also process quits and pending signals.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn emacs_write_quit (fd: c_int, buf: *const c_void, nbyte: ptrdiff_t)
+pub unsafe extern "C-unwind" fn emacs_write_quit (fd: c_int, buf: *const c_void, nbyte: ptrdiff_t)
   -> ptrdiff_t {
   return emacs_full_write (fd, buf as *const c_char, nbyte, 1);
 }
@@ -4198,7 +4204,7 @@ pub unsafe extern "C" fn emacs_write_quit (fd: c_int, buf: *const c_void, nbyte:
    string derived from errno.  Preserve errno.  Do not buffer stderr.
    Do not process quits or pending signals if interrupted.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn emacs_perror (message: *const c_char) {
+pub unsafe extern "C-unwind" fn emacs_perror (message: *const c_char) {
   let err: c_int = *errno ();
   let error_string: *const c_char = emacs_strerror (err);
   let command: *const c_char = if !initial_argv0.is_null () { initial_argv0 }
@@ -4230,7 +4236,7 @@ pub unsafe extern "C" fn emacs_perror (message: *const c_char) {
 /* Like strsignal, except async-signal-safe, and this function
    returns a string in the C locale rather than the current locale.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn safe_strsignal (code: c_int) -> *const c_char {
+pub unsafe extern "C-unwind" fn safe_strsignal (code: c_int) -> *const c_char {
   let mut signame: *const c_char = sigdescr_np (code);
 
   if signame.is_null ()
@@ -4260,7 +4266,7 @@ unsafe fn errstream () -> *mut FILE {
    function to output a newline at the end.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn errputc (c: c_int) {
+pub unsafe extern "C-unwind" fn errputc (c: c_int) {
   fputc_unlocked! (c, errstream ());
 
   /* C 2932-2937: `#ifdef WINDOWSNT` is dead; carried.  */
@@ -4274,7 +4280,7 @@ pub unsafe extern "C" fn errputc (c: c_int) {
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn errwrite (buf: *const c_void, nbuf: ptrdiff_t) {
+pub unsafe extern "C-unwind" fn errwrite (buf: *const c_void, nbuf: ptrdiff_t) {
   fwrite_unlocked! (buf, 1, nbuf as usize, errstream ());
 }
 
@@ -4320,7 +4326,7 @@ pub unsafe extern "C" fn close_output_streams () {
 // C 2978: `#ifndef DOS_NT` — live.
 /* For make-serial-process  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn serial_open (port: Lisp_Object) -> c_int {
+pub unsafe extern "C-unwind" fn serial_open (port: Lisp_Object) -> c_int {
   let fd: c_int = emacs_open (SSDATA (port), O_RDWR | O_NOCTTY | O_NONBLOCK, 0);
   /* C 2984-2987: `#ifdef TIOCEXCL` is live.  */
   {
@@ -4449,7 +4455,7 @@ unsafe fn convert_speed (speed: speed_t) -> speed_t {
 
 /* For serial-process-configure  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn serial_configure (p: *mut Lisp_Process, contact: Lisp_Object) {
+pub unsafe extern "C-unwind" fn serial_configure (p: *mut Lisp_Process, contact: Lisp_Object) {
   let mut childp2: Lisp_Object = Qnil ();
   let mut tem: Lisp_Object = Qnil ();
   let mut attr: termios = std::mem::zeroed ();
@@ -4609,7 +4615,7 @@ pub unsafe extern "C" fn serial_configure (p: *mut Lisp_Process, contact: Lisp_O
 
 #[cfg (feature = "have_procfs")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn list_system_processes () -> Lisp_Object {
+pub unsafe extern "C-unwind" fn list_system_processes () -> Lisp_Object {
   let mut procdir: Lisp_Object = Qnil ();
   let mut match_: Lisp_Object = Qnil ();
   let mut proclist: Lisp_Object = Qnil ();
@@ -4652,7 +4658,7 @@ pub unsafe extern "C" fn list_system_processes () -> Lisp_Object {
 #[cfg (all (not (feature = "have_procfs"),
             any (target_os = "macos", target_os = "freebsd", target_os = "openbsd")))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn list_system_processes () -> Lisp_Object {
+pub unsafe extern "C-unwind" fn list_system_processes () -> Lisp_Object {
   /* C 3351-3358's three arrays, each with its own length: Darwin's is **three** entries
      (`{CTL_KERN, KERN_PROC, KERN_PROC_ALL}`), OpenBSD's six (`KERN_PROC_ALL, 0,
      sizeof (struct kinfo_proc), 4096`) and FreeBSD's three with `KERN_PROC_PROC`.  The port had
@@ -4713,7 +4719,7 @@ pub unsafe extern "C" fn list_system_processes () -> Lisp_Object {
             not (target_os = "macos"), not (target_os = "freebsd"), not (target_os = "openbsd"),
             not (feature = "windowsnt"), not (feature = "msdos"), not (feature = "haiku")))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn list_system_processes () -> Lisp_Object {
+pub unsafe extern "C-unwind" fn list_system_processes () -> Lisp_Object {
   return Qnil ();
 }
 
@@ -4870,7 +4876,7 @@ unsafe fn procfs_get_total_memory () -> uintmax_t {
 
 #[cfg (feature = "gnu_linux")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn system_process_attributes (pid: Lisp_Object) -> Lisp_Object {
+pub unsafe extern "C-unwind" fn system_process_attributes (pid: Lisp_Object) -> Lisp_Object {
   let mut procfn: [c_char; PATH_MAX as usize] = [0; PATH_MAX as usize];
   let mut fn_: [c_char; PATH_MAX as usize] = [0; PATH_MAX as usize];
   let mut st: stat = std::mem::zeroed ();
@@ -5147,7 +5153,7 @@ pub const PROCFS_FILE_OFFSET_BITS_HACK: c_int = 0;
 
 #[cfg (feature = "solaris2")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn system_process_attributes (pid: Lisp_Object) -> Lisp_Object {
+pub unsafe extern "C-unwind" fn system_process_attributes (pid: Lisp_Object) -> Lisp_Object {
   let mut procfn: [c_char; PATH_MAX as usize] = [0; PATH_MAX as usize];
   let mut fn_: [c_char; PATH_MAX as usize] = [0; PATH_MAX as usize];
   let mut st: stat = std::mem::zeroed ();
@@ -5379,7 +5385,7 @@ pub const ARG_MAX_OPENBSD: usize = ARG_MAX;
 
 #[cfg (feature = "freebsd")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn system_process_attributes (pid: Lisp_Object) -> Lisp_Object {
+pub unsafe extern "C-unwind" fn system_process_attributes (pid: Lisp_Object) -> Lisp_Object {
   let mut proc_id: c_int = 0;
   let pagesize: c_int = getpagesize ();
   let mut npages: c_ulong = 0;
@@ -5578,7 +5584,7 @@ pub struct uvmexp {
 
 #[cfg (feature = "openbsd")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn system_process_attributes (pid: Lisp_Object) -> Lisp_Object {
+pub unsafe extern "C-unwind" fn system_process_attributes (pid: Lisp_Object) -> Lisp_Object {
   let mut proc_id: c_int = 0;
   let mut fscale: c_int = 0;
   let mut i: c_int = 0;
@@ -5770,7 +5776,7 @@ pub const HAVE_PROC_PIDINFO: bool = __MAC_OS_X_VERSION_MIN_REQUIRED >= 1050;
             not (all (feature = "solaris2", feature = "have_procfs")),
             not (feature = "freebsd"), not (feature = "openbsd"), any (target_os = "macos")))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn system_process_attributes (pid: Lisp_Object) -> Lisp_Object {
+pub unsafe extern "C-unwind" fn system_process_attributes (pid: Lisp_Object) -> Lisp_Object {
   let mut proc_id: c_int = 0;
   let mut i: c_int;
   let mut pw: *mut passwd;
@@ -6042,7 +6048,7 @@ pub const SIDL: c_int = 1;
             not (target_os = "macos"),
             not (feature = "windowsnt"), not (feature = "msdos"), not (feature = "have_haiku")))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn system_process_attributes (pid: Lisp_Object) -> Lisp_Object {
+pub unsafe extern "C-unwind" fn system_process_attributes (pid: Lisp_Object) -> Lisp_Object {
   return Qnil ();
 }
 
@@ -6106,21 +6112,21 @@ pub const locale_t: () = emacs_locale_t;
 pub type locale_t = *const c_char;
 /// C 4585's `# define newlocale emacs_newlocale`.
 #[cfg (feature = "stdc_iso_10646_no_newlocale")]
-pub const newlocale: unsafe extern "C" fn (c_int, *const c_char, locale_t) -> locale_t =
+pub const newlocale: unsafe extern "C-unwind" fn (c_int, *const c_char, locale_t) -> locale_t =
   emacs_newlocale;
 /// C 4583's `# define freelocale emacs_freelocale`.
 #[cfg (feature = "stdc_iso_10646_no_newlocale")]
-pub const freelocale: unsafe extern "C" fn (locale_t) = emacs_freelocale;
+pub const freelocale: unsafe extern "C-unwind" fn (locale_t) = emacs_freelocale;
 /// C 4586's `# define wcscoll_l emacs_wcscoll_l`.
 #[cfg (feature = "stdc_iso_10646_no_newlocale")]
-pub const wcscoll_l: unsafe extern "C" fn (*const wchar_t, *const wchar_t, locale_t) -> c_int =
+pub const wcscoll_l: unsafe extern "C-unwind" fn (*const wchar_t, *const wchar_t, locale_t) -> c_int =
   emacs_wcscoll_l;
 /// C 4587's `# define towlower_l emacs_towlower_l`.
 #[cfg (feature = "stdc_iso_10646_no_newlocale")]
-pub const towlower_l: unsafe extern "C" fn (wint_t, locale_t) -> wint_t = emacs_towlower_l;
+pub const towlower_l: unsafe extern "C-unwind" fn (wint_t, locale_t) -> wint_t = emacs_towlower_l;
 
 #[cfg (feature = "stdc_iso_10646_no_newlocale")]
-unsafe extern "C" fn emacs_newlocale (category_mask: c_int, locale: *const c_char,
+unsafe extern "C-unwind" fn emacs_newlocale (category_mask: c_int, locale: *const c_char,
 				     loc: locale_t) -> locale_t {
   let _ = category_mask;
   let _ = loc;
@@ -6128,12 +6134,12 @@ unsafe extern "C" fn emacs_newlocale (category_mask: c_int, locale: *const c_cha
 }
 
 #[cfg (feature = "stdc_iso_10646_no_newlocale")]
-unsafe extern "C" fn emacs_freelocale (loc: locale_t) {
+unsafe extern "C-unwind" fn emacs_freelocale (loc: locale_t) {
   let _ = loc;
 }
 
 #[cfg (feature = "stdc_iso_10646_no_newlocale")]
-unsafe extern "C" fn emacs_setlocale (category: c_int, locale: *const c_char)
+unsafe extern "C-unwind" fn emacs_setlocale (category: c_int, locale: *const c_char)
   -> *mut c_char {
   *errno () = 0;
   let loc: *mut c_char = setlocale (category, locale);
@@ -6144,7 +6150,7 @@ unsafe extern "C" fn emacs_setlocale (category: c_int, locale: *const c_char)
 }
 
 #[cfg (feature = "stdc_iso_10646_no_newlocale")]
-unsafe extern "C" fn emacs_wcscoll_l (a: *const wchar_t, b: *const wchar_t, loc: locale_t)
+unsafe extern "C-unwind" fn emacs_wcscoll_l (a: *const wchar_t, b: *const wchar_t, loc: locale_t)
   -> c_int {
   let mut result: c_int = 0;
   let oldloc: *mut c_char = emacs_setlocale (LC_COLLATE, std::ptr::null ());
@@ -6175,7 +6181,7 @@ unsafe extern "C" fn emacs_wcscoll_l (a: *const wchar_t, b: *const wchar_t, loc:
 }
 
 #[cfg (feature = "stdc_iso_10646_no_newlocale")]
-unsafe extern "C" fn emacs_towlower_l (wc: wint_t, loc: locale_t) -> wint_t {
+unsafe extern "C-unwind" fn emacs_towlower_l (wc: wint_t, loc: locale_t) -> wint_t {
   let mut result: wint_t = wc;
   let oldloc: *mut c_char = emacs_setlocale (LC_CTYPE, std::ptr::null ());
 
@@ -6197,7 +6203,7 @@ unsafe extern "C" fn emacs_towlower_l (wc: wint_t, loc: locale_t) -> wint_t {
 
 #[cfg(feature = "stdc_iso_10646")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn str_collate (s1: Lisp_Object, s2: Lisp_Object, locale: Lisp_Object,
+pub unsafe extern "C-unwind" fn str_collate (s1: Lisp_Object, s2: Lisp_Object, locale: Lisp_Object,
 				      ignore_case: Lisp_Object) -> c_int {
   let mut res: c_int = 0;
   let mut err: c_int;
@@ -6295,7 +6301,7 @@ pub unsafe extern "C" fn str_collate (s1: Lisp_Object, s2: Lisp_Object, locale: 
 // C 4743-4760: `#ifdef WINDOWSNT` — dead; carried.
 #[cfg (feature = "windowsnt")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn str_collate (s1: Lisp_Object, s2: Lisp_Object, locale: Lisp_Object,
+pub unsafe extern "C-unwind" fn str_collate (s1: Lisp_Object, s2: Lisp_Object, locale: Lisp_Object,
 				      ignore_case: Lisp_Object) -> c_int {
 
   let loc: *mut c_char = if STRINGP (locale) { SSDATA (locale) } else { std::ptr::null_mut () };
@@ -6312,7 +6318,7 @@ pub unsafe extern "C" fn str_collate (s1: Lisp_Object, s2: Lisp_Object, locale: 
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_sysdep () {
+pub unsafe extern "C-unwind" fn syms_of_sysdep () {
   /* PORTING.md P-126: sample the diagnostic switch here, where no handler can be running yet.  */
   FEMACS_CHILD_TRACE.store (! getenv (c"FEMACS_CHILD_TRACE".as_ptr ()).is_null (),
                             core::sync::atomic::Ordering::Relaxed);

@@ -106,13 +106,20 @@ const _: () = ();
 
 /* Use-site declarations (PORTING.md P-72 ③): names C declares in headers whose mirrors do
    not carry them.  Each keeps C's own prototype in a `/// C:` line.  */
-unsafe extern "C" {
-  /// C: lisp.h 4671: `extern void *aligned_alloc (size_t, size_t) ATTRIBUTE_MALLOC_SIZE ((2));`
-  fn aligned_alloc (alignment: size_t, size: size_t) -> *mut c_void;
+unsafe extern "C-unwind" {
   /// C: lisp.h 4799: `extern bool FUNCTIONP (Lisp_Object);` (eval.c; the mirror does not carry
   ///   it — P-132: this unit used to redefine it as a symbol-only macro, which rejected
   ///   closures that the real `FUNCTIONP` accepts).
   fn FUNCTIONP (o: Lisp_Object) -> bool;
+
+  /// C: lisp.h 4426-4427: `extern void parse_str_as_multibyte (const unsigned char *,
+  /// ptrdiff_t, ptrdiff_t *, ptrdiff_t *);`
+  fn parse_str_as_multibyte (str: *const c_uchar, len: ptrdiff_t, nchars: *mut ptrdiff_t,
+			     nbytes: *mut ptrdiff_t);
+}
+unsafe extern "C" {
+  /// C: lisp.h 4671: `extern void *aligned_alloc (size_t, size_t) ATTRIBUTE_MALLOC_SIZE ((2));`
+  fn aligned_alloc (alignment: size_t, size: size_t) -> *mut c_void;
   /// C: <stdlib.h> `extern int putenv (char *);`
   fn putenv (string: *mut c_char) -> c_int;
   /// C: <stdlib.h> `extern void free (void *);` — under the frozen configuration gnulib's
@@ -121,11 +128,6 @@ unsafe extern "C" {
   /// *is* C's `free` (its body also restores errno, which libc's `free` does not).  The
   /// mirror `lib/include/stdlib.rs` carries `free`; `rpl_free` is declared here.
   fn rpl_free (ptr: *mut c_void);
-
-  /// C: lisp.h 4426-4427: `extern void parse_str_as_multibyte (const unsigned char *,
-  /// ptrdiff_t, ptrdiff_t *, ptrdiff_t *);`
-  fn parse_str_as_multibyte (str: *const c_uchar, len: ptrdiff_t, nchars: *mut ptrdiff_t,
-			     nbytes: *mut ptrdiff_t);
 }
 
 /// C: `ADDRESS_SANITIZER` now comes from the `include/conf_post.rs` mirror (conf_post.h C 89-94,
@@ -288,7 +290,7 @@ unsafe fn malloc_initialize_hook ()
 
 /* Declare the malloc initialization hook, which runs before 'main' starts.
    EXTERNALLY_VISIBLE works around Bug#22522.  */
-pub type voidfuncptr = unsafe extern "C" fn ();
+pub type voidfuncptr = unsafe extern "C-unwind" fn ();
 /* `__MALLOC_HOOK_VOLATILE` is `#define`d empty by C 253-256; the port keeps the name as a
    token-only macro (its body is empty in C, so no body token can be missing).  */
 macro_rules! __MALLOC_HOOK_VOLATILE {
@@ -688,7 +690,7 @@ pub static mut doomed_finalizers: Lisp_Finalizer =
 
 #[cfg (feature = "sigdanger")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn malloc_warning (str: *const c_char)
+pub unsafe extern "C-unwind" fn malloc_warning (str: *const c_char)
 {
   pending_malloc_warning = str;
 }
@@ -696,7 +698,7 @@ pub unsafe extern "C" fn malloc_warning (str: *const c_char)
 /* Display an already-pending malloc warning.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn display_malloc_warning ()
+pub unsafe extern "C-unwind" fn display_malloc_warning ()
 {
   calln! (Qdisplay_warning (), Qalloc (),
 	  build_string (pending_malloc_warning), QCemergency ());
@@ -706,7 +708,7 @@ pub unsafe extern "C" fn display_malloc_warning ()
 /* Called if we can't allocate relocatable space for a buffer.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn buffer_memory_full (nbytes: ptrdiff_t)
+pub unsafe extern "C-unwind" fn buffer_memory_full (nbytes: ptrdiff_t)
 {
   /* If buffers use the relocating allocator, no need to free
      spare_memory, because we may have plenty of malloc space left
@@ -780,7 +782,7 @@ macro_rules! MALLOC_PROBE {
 /* Like malloc but check for no memory, and profile allocations.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn xmalloc (size: size_t) -> *mut c_void
+pub unsafe extern "C-unwind" fn xmalloc (size: size_t) -> *mut c_void
 {
   let mut val = malloc (size);
   if val.is_null ()
@@ -795,7 +797,7 @@ pub unsafe extern "C" fn xmalloc (size: size_t) -> *mut c_void
    when obtaining memory directly from the operating system.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn xzalloc (size: size_t) -> *mut c_void
+pub unsafe extern "C-unwind" fn xzalloc (size: size_t) -> *mut c_void
 {
   let mut val = calloc (1, size);
   if val.is_null ()
@@ -807,7 +809,7 @@ pub unsafe extern "C" fn xzalloc (size: size_t) -> *mut c_void
 /* Like xzalloc, but for an array of N objects each of size S.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn xcalloc (n: size_t, s: size_t) -> *mut c_void
+pub unsafe extern "C-unwind" fn xcalloc (n: size_t, s: size_t) -> *mut c_void
 {
   let mut val = calloc (n, s);
   if val.is_null ()
@@ -824,7 +826,7 @@ pub unsafe extern "C" fn xcalloc (n: size_t, s: size_t) -> *mut c_void
 /* Like realloc but check for no memory, and profile allocations.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn xrealloc (block: *mut c_void, size: size_t) -> *mut c_void
+pub unsafe extern "C-unwind" fn xrealloc (block: *mut c_void, size: size_t) -> *mut c_void
 {
   #[cfg(feature = "femacs_gc_generational")]
   { gc_collector::before_pointer_change(block); }
@@ -839,7 +841,7 @@ pub unsafe extern "C" fn xrealloc (block: *mut c_void, size: size_t) -> *mut c_v
 /* Like free but do not free pdumper objects.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn xfree (block: *mut c_void)
+pub unsafe extern "C-unwind" fn xfree (block: *mut c_void)
 {
   if block.is_null ()
     { return; }
@@ -863,7 +865,7 @@ const _: () = core::assert! (INT_MAX as i64 <= PTRDIFF_MAX as i64);
    Signal an error on memory exhaustion, and profile allocations.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn xnmalloc (nitems: ptrdiff_t, item_size: ptrdiff_t) -> *mut c_void
+pub unsafe extern "C-unwind" fn xnmalloc (nitems: ptrdiff_t, item_size: ptrdiff_t) -> *mut c_void
 {
   eassert! (0 <= nitems && 0 < item_size);
   let mut nbytes: ptrdiff_t = 0;
@@ -879,7 +881,7 @@ pub unsafe extern "C" fn xnmalloc (nitems: ptrdiff_t, item_size: ptrdiff_t) -> *
    Signal an error on memory exhaustion, and profile allocations.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn xnrealloc (pa: *mut c_void, nitems: ptrdiff_t, item_size: ptrdiff_t)
+pub unsafe extern "C-unwind" fn xnrealloc (pa: *mut c_void, nitems: ptrdiff_t, item_size: ptrdiff_t)
                                     -> *mut c_void
 {
   eassert! (0 <= nitems && 0 < item_size);
@@ -916,7 +918,7 @@ pub unsafe extern "C" fn xnrealloc (pa: *mut c_void, nitems: ptrdiff_t, item_siz
    attempts to free A.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn xpalloc (mut pa: *mut c_void, nitems: *mut ptrdiff_t,
+pub unsafe extern "C-unwind" fn xpalloc (mut pa: *mut c_void, nitems: *mut ptrdiff_t,
                                   nitems_incr_min: ptrdiff_t, nitems_max: ptrdiff_t,
                                   item_size: ptrdiff_t) -> *mut c_void
 {
@@ -978,7 +980,7 @@ pub unsafe extern "C" fn xpalloc (mut pa: *mut c_void, nitems: *mut ptrdiff_t,
 /* Like strdup, but uses xmalloc.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn xstrdup (s: *const c_char) -> *mut c_char
+pub unsafe extern "C-unwind" fn xstrdup (s: *const c_char) -> *mut c_char
 {
   let mut size: ptrdiff_t;
   eassert! (!s.is_null ());
@@ -989,7 +991,7 @@ pub unsafe extern "C" fn xstrdup (s: *const c_char) -> *mut c_char
 /* Like above, but duplicates Lisp string to C string.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn xlispstrdup (string: Lisp_Object) -> *mut c_char
+pub unsafe extern "C-unwind" fn xlispstrdup (string: Lisp_Object) -> *mut c_char
 {
   let size: ptrdiff_t = SBYTES (string) + 1;
   return memcpy (xmalloc (size as size_t), SSDATA (string) as *const c_void,
@@ -1002,7 +1004,7 @@ pub unsafe extern "C" fn xlispstrdup (string: Lisp_Object) -> *mut c_char
    fails.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn dupstring (ptr: *mut *mut c_char, string: *const c_char)
+pub unsafe extern "C-unwind" fn dupstring (ptr: *mut *mut c_char, string: *const c_char)
 {
   let old = *ptr;
   *ptr = if !string.is_null () { xstrdup (string) } else { 0 as *mut c_char };
@@ -1014,7 +1016,7 @@ pub unsafe extern "C" fn dupstring (ptr: *mut *mut c_char, string: *const c_char
    argument is a const pointer.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn xputenv (string: *const c_char)
+pub unsafe extern "C-unwind" fn xputenv (string: *const c_char)
 {
   if putenv (string as *mut c_char) != 0
     { memory_full (0); }
@@ -1023,7 +1025,7 @@ pub unsafe extern "C" fn xputenv (string: *const c_char)
 /* Return a newly allocated memory block of SIZE bytes, remembering
    to free it when unwinding.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn record_xmalloc (size: size_t) -> *mut c_void
+pub unsafe extern "C-unwind" fn record_xmalloc (size: size_t) -> *mut c_void
 {
   let p = xmalloc (size);
   record_unwind_protect_ptr (Some (xfree), p);
@@ -1079,7 +1081,7 @@ static mut sa_stack_count: usize = 0;
 /// C: `alloca`'s port - the allocator behind `AVAIL_ALLOCA!`, called with the byte count the
 /// macro has already charged to `sa_avail`.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn sa_stack_alloc (size: usize) -> *mut c_void
+pub unsafe extern "C-unwind" fn sa_stack_alloc (size: usize) -> *mut c_void
 {
   let bytes = (size + SA_STACK_ALIGN - 1) & !(SA_STACK_ALIGN - 1);
   /* Recycle a big-enough block of this thread, as C's stack reuses earlier frames' space.  */
@@ -1117,7 +1119,7 @@ pub unsafe extern "C" fn sa_stack_alloc (size: usize) -> *mut c_void
 /// The chain's height now: `USE_SAFE_ALLOCA!` stores it in the frame (`sa_mark`), and
 /// `SAFE_FREE!`/`SAFE_FREE_UNBIND_TO!` hand it to `sa_stack_release_to`.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn sa_stack_mark () -> usize
+pub unsafe extern "C-unwind" fn sa_stack_mark () -> usize
 {
   return sa_stack_count;
 }
@@ -1129,7 +1131,7 @@ pub unsafe extern "C" fn sa_stack_mark () -> usize
 /// covers what C itself pushed (P-117 ⑦).  A block belonging to another Lisp thread stops the
 /// release: that thread is suspended, not dead, and its request is still in use.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn sa_stack_release_to (mark: usize)
+pub unsafe extern "C-unwind" fn sa_stack_release_to (mark: usize)
 {
   while sa_stack_count > mark && !sa_stack_top.is_null ()
     && (*sa_stack_top).owner == current_thread as *mut c_void
@@ -1583,7 +1585,7 @@ macro_rules! ASAN_UNPOISON_INTERVAL {
 /* Return a new interval.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn make_interval () -> INTERVAL
+pub unsafe extern "C-unwind" fn make_interval () -> INTERVAL
 {
   let mut val: INTERVAL;
 
@@ -1627,7 +1629,7 @@ static mut gc_mark_trace_enabled: bool = false;
 static mut gc_mark_trace_interval: INTERVAL = std::ptr::null_mut ();
 static mut gc_mark_trace_plist: uintptr_t = 0;
 
-unsafe extern "C" fn mark_interval_tree_1 (i: INTERVAL, dummy: *mut c_void)
+unsafe extern "C-unwind" fn mark_interval_tree_1 (i: INTERVAL, dummy: *mut c_void)
 {
   /* Intervals should never be shared.  So, if extra internal checking is
      enabled, GC aborts if it seems to have visited an interval twice.  */
@@ -1940,7 +1942,7 @@ static mut check_string_bytes_count: c_int = 0;
 
 #[cfg (feature = "gc_check_string_bytes")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn string_bytes (s: *mut Lisp_String) -> ptrdiff_t
+pub unsafe extern "C-unwind" fn string_bytes (s: *mut Lisp_String) -> ptrdiff_t
 {
   let nbytes: ptrdiff_t =
     if (*s).u.s.size_byte < 0 { (*s).u.s.size & !ARRAY_MARK_FLAG } else { (*s).u.s.size_byte };
@@ -2450,7 +2452,7 @@ unsafe fn compact_small_strings ()
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn string_overflow ()
+pub unsafe extern "C-unwind" fn string_overflow ()
 {
   error (c"Maximum string size exceeded".as_ptr ());
 }
@@ -2519,7 +2521,7 @@ DEFUN! ("make-string", Fmake_string, Smake_string, 2, 3, 0,
    Return A.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn bool_vector_fill (a: Lisp_Object, init: Lisp_Object) -> Lisp_Object
+pub unsafe extern "C-unwind" fn bool_vector_fill (a: Lisp_Object, init: Lisp_Object) -> Lisp_Object
 {
   let nbits: EMACS_INT = bool_vector_size (a);
   if 0 < nbits
@@ -2541,7 +2543,7 @@ pub unsafe extern "C" fn bool_vector_fill (a: Lisp_Object, init: Lisp_Object) ->
    clear its slots; otherwise the vector's slots are uninitialized.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn make_clear_bool_vector (nbits: EMACS_INT, clearit: bool) -> Lisp_Object
+pub unsafe extern "C-unwind" fn make_clear_bool_vector (nbits: EMACS_INT, clearit: bool) -> Lisp_Object
 {
   eassert! (0 <= nbits && nbits <= BOOL_VECTOR_LENGTH_MAX);
   let mut val: Lisp_Object;
@@ -2565,7 +2567,7 @@ pub unsafe extern "C" fn make_clear_bool_vector (nbits: EMACS_INT, clearit: bool
 /* Return a newly allocated, uninitialized bool vector of size NBITS.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn make_uninit_bool_vector (nbits: EMACS_INT) -> Lisp_Object
+pub unsafe extern "C-unwind" fn make_uninit_bool_vector (nbits: EMACS_INT) -> Lisp_Object
 {
   return make_clear_bool_vector (nbits, false);
 }
@@ -2604,7 +2606,7 @@ DEFUN! ("bool-vector", Fbool_vector, Sbool_vector, 0, MANY, 0,
    multibyte, depending on the contents.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn make_string (contents: *const c_char, nbytes: ptrdiff_t) -> Lisp_Object
+pub unsafe extern "C-unwind" fn make_string (contents: *const c_char, nbytes: ptrdiff_t) -> Lisp_Object
 {
   let mut val: Lisp_Object;
   let mut nchars: ptrdiff_t = 0; let mut multibyte_nbytes: ptrdiff_t = 0;
@@ -2623,7 +2625,7 @@ pub unsafe extern "C" fn make_string (contents: *const c_char, nbytes: ptrdiff_t
 /* Make a unibyte string from LENGTH bytes at CONTENTS.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn make_unibyte_string (contents: *const c_char, length: ptrdiff_t)
+pub unsafe extern "C-unwind" fn make_unibyte_string (contents: *const c_char, length: ptrdiff_t)
 					      -> Lisp_Object
 {
   let mut val: Lisp_Object;
@@ -2637,7 +2639,7 @@ pub unsafe extern "C" fn make_unibyte_string (contents: *const c_char, length: p
    bytes at CONTENTS.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn make_multibyte_string (contents: *const c_char,
+pub unsafe extern "C-unwind" fn make_multibyte_string (contents: *const c_char,
 						nchars: ptrdiff_t, nbytes: ptrdiff_t)
 						-> Lisp_Object
 {
@@ -2652,7 +2654,7 @@ pub unsafe extern "C" fn make_multibyte_string (contents: *const c_char,
    CONTENTS.  It is a multibyte string if NBYTES != NCHARS.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn make_string_from_bytes (contents: *const c_char,
+pub unsafe extern "C-unwind" fn make_string_from_bytes (contents: *const c_char,
 						 nchars: ptrdiff_t, nbytes: ptrdiff_t)
 						 -> Lisp_Object
 {
@@ -2671,7 +2673,7 @@ pub unsafe extern "C" fn make_string_from_bytes (contents: *const c_char,
    characters by itself.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn make_specified_string (contents: *const c_char,
+pub unsafe extern "C-unwind" fn make_specified_string (contents: *const c_char,
 						mut nchars: ptrdiff_t, nbytes: ptrdiff_t,
 						multibyte: bool) -> Lisp_Object
 {
@@ -2711,7 +2713,7 @@ unsafe fn make_clear_string (length: EMACS_INT, clearit: bool) -> Lisp_Object
    occupying LENGTH bytes.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn make_uninit_string (length: EMACS_INT) -> Lisp_Object
+pub unsafe extern "C-unwind" fn make_uninit_string (length: EMACS_INT) -> Lisp_Object
 {
   return make_clear_string (length, false);
 }
@@ -2744,7 +2746,7 @@ unsafe fn make_clear_multibyte_string (nchars: EMACS_INT, nbytes: EMACS_INT, cle
    which occupy NBYTES bytes.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn make_uninit_multibyte_string (nchars: EMACS_INT, nbytes: EMACS_INT)
+pub unsafe extern "C-unwind" fn make_uninit_multibyte_string (nchars: EMACS_INT, nbytes: EMACS_INT)
 						       -> Lisp_Object
 {
   return make_clear_multibyte_string (nchars, nbytes, false);
@@ -2753,7 +2755,7 @@ pub unsafe extern "C" fn make_uninit_multibyte_string (nchars: EMACS_INT, nbytes
 /* Return a Lisp_String according to a doprnt-style FORMAT and args.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn make_formatted_string (format: *const c_char, mut ap: ...)
+pub unsafe extern "C-unwind" fn make_formatted_string (format: *const c_char, mut ap: ...)
 						-> Lisp_Object
 {
   let mut buf: [c_char; MAX_ALLOCA as usize] = [0; MAX_ALLOCA as usize];
@@ -2772,7 +2774,7 @@ pub unsafe extern "C" fn make_formatted_string (format: *const c_char, mut ap: .
 
 /* Pin a unibyte string in place so that it won't move during GC.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn pin_string (string: Lisp_Object)
+pub unsafe extern "C-unwind" fn pin_string (string: Lisp_Object)
 {
   eassert! (STRINGP (string) && !STRING_MULTIBYTE (string));
   let s: *mut Lisp_String = XSTRING (string);
@@ -2899,7 +2901,7 @@ static mut float_free_list: *mut Lisp_Float = std::ptr::null_mut ();
 /* Return a new float object with value FLOAT_VALUE.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn make_float (float_value: f64) -> Lisp_Object
+pub unsafe extern "C-unwind" fn make_float (float_value: f64) -> Lisp_Object
 {
   let mut val: Lisp_Object;
 
@@ -3057,7 +3059,7 @@ enum GcRequest { Full, Automatic }
 
 #[cfg(any(feature = "femacs_gc_observer", feature = "femacs_gc_generational"))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn femacs_gc_runtime_ready() {
+pub unsafe extern "C-unwind" fn femacs_gc_runtime_ready() {
   #[cfg(feature = "femacs_gc_observer")]
   { gc_observation::activate_owner(); }
   #[cfg(feature = "femacs_gc_generational")]
@@ -3084,7 +3086,7 @@ macro_rules! gc_observe_end {
 /* Explicitly free a cons cell by putting it on the free-list.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn free_cons (ptr: *mut Lisp_Cons)
+pub unsafe extern "C-unwind" fn free_cons (ptr: *mut Lisp_Cons)
 {
   #[cfg(feature = "femacs_gc_generational")]
   { gc_collector::clear_cell(ptr); }
@@ -3151,34 +3153,34 @@ DEFUN! ("cons", Fcons, Scons, 2, 2, 0,
 /* Make a list of 1, 2, 3, 4 or 5 specified objects.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn list1 (arg1: Lisp_Object) -> Lisp_Object
+pub unsafe extern "C-unwind" fn list1 (arg1: Lisp_Object) -> Lisp_Object
 {
   return Fcons (arg1, Qnil ());
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn list2 (arg1: Lisp_Object, arg2: Lisp_Object) -> Lisp_Object
+pub unsafe extern "C-unwind" fn list2 (arg1: Lisp_Object, arg2: Lisp_Object) -> Lisp_Object
 {
   return Fcons (arg1, Fcons (arg2, Qnil ()));
 }
 
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn list3 (arg1: Lisp_Object, arg2: Lisp_Object, arg3: Lisp_Object)
+pub unsafe extern "C-unwind" fn list3 (arg1: Lisp_Object, arg2: Lisp_Object, arg3: Lisp_Object)
 				 -> Lisp_Object
 {
   return Fcons (arg1, Fcons (arg2, Fcons (arg3, Qnil ())));
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn list4 (arg1: Lisp_Object, arg2: Lisp_Object, arg3: Lisp_Object,
+pub unsafe extern "C-unwind" fn list4 (arg1: Lisp_Object, arg2: Lisp_Object, arg3: Lisp_Object,
 				arg4: Lisp_Object) -> Lisp_Object
 {
   return Fcons (arg1, Fcons (arg2, Fcons (arg3, Fcons (arg4, Qnil ()))));
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn list5 (arg1: Lisp_Object, arg2: Lisp_Object, arg3: Lisp_Object,
+pub unsafe extern "C-unwind" fn list5 (arg1: Lisp_Object, arg2: Lisp_Object, arg3: Lisp_Object,
 				arg4: Lisp_Object, arg5: Lisp_Object) -> Lisp_Object
 {
   return Fcons (arg1, Fcons (arg2, Fcons (arg3, Fcons (arg4,
@@ -3206,7 +3208,7 @@ unsafe fn cons_listn (count: ptrdiff_t, arg: Lisp_Object, mut ap: core::ffi::VaL
 
 /* Make a list of COUNT Lisp_Objects, where ARG1 is the first one.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn listn (count: ptrdiff_t, arg1: Lisp_Object, mut ap: ...)
+pub unsafe extern "C-unwind" fn listn (count: ptrdiff_t, arg1: Lisp_Object, mut ap: ...)
 				-> Lisp_Object
 {
   /* C's `va_start (ap, arg1)` / `va_end (ap)` have no port counterpart (PORTING.md P-04).  */
@@ -3574,7 +3576,7 @@ macro_rules! VECTOR_IN_BLOCK {
 /* Return the memory footprint of V in bytes.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn vectorlike_nbytes (hdr: *const vectorlike_header) -> ptrdiff_t
+pub unsafe extern "C-unwind" fn vectorlike_nbytes (hdr: *const vectorlike_header) -> ptrdiff_t
 {
   let size: ptrdiff_t = (*hdr).size & !ARRAY_MARK_FLAG;
   let mut nwords: ptrdiff_t;
@@ -3653,20 +3655,20 @@ macro_rules! FRAME_FACE_CACHE {
   ($f:expr) => { (*$f).face_cache as *mut face_cache };
 }
 
-unsafe extern "C" {
+unsafe extern "C-unwind" {
 
   /// C: lisp.h 5334: `extern ptrdiff_t emacs_write (int, void const *, ptrdiff_t);`
   fn emacs_write (fd: c_int, buf: *const c_void, nbyte: ptrdiff_t) -> ptrdiff_t;
   /// C: lisp.h 5638: `extern void record_unwind_protect_intmax (void (*) (intmax_t),
   /// intmax_t);`
-  fn record_unwind_protect_intmax (function: Option<unsafe extern "C" fn (intmax_t)>,
+  fn record_unwind_protect_intmax (function: Option<unsafe extern "C-unwind" fn (intmax_t)>,
 				   arg: intmax_t);
 }
 
 /// C: lisp.h 3462-3471: `call0 (function)` is an inline function in the port's `lisp.rs` and
 /// therefore Rust-ABI; `internal_condition_case_1` takes a C-ABI pointer, so this thunk is
 /// what the two `run_finalizer_*` call sites pass (reported in the ledger).
-unsafe extern "C" fn call0_thunk (fn_: Lisp_Object) -> Lisp_Object { call0 (fn_) }
+unsafe extern "C-unwind" fn call0_thunk (fn_: Lisp_Object) -> Lisp_Object { call0 (fn_) }
 
 /* Release extra resources still in use by VECTOR, which may be any
    small vector-like object.  */
@@ -3676,7 +3678,7 @@ unsafe extern "C" fn call0_thunk (fn_: Lisp_Object) -> Lisp_Object { call0 (fn_)
    under the same cfg and Rust would report `E0428` - so this unit declares it at its one call
    site, with the untyped parameter the mirror would have used (P-72 rule \u2462).  */
 #[cfg (enable_checking)]
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   pub fn valid_font_driver (d: *const c_void) -> bool;
 }
 
@@ -4005,7 +4007,7 @@ unsafe fn allocate_clear_vector (len: ptrdiff_t, clearit: bool) -> *mut Lisp_Vec
 /* Allocate a vector with LEN uninitialized slots.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn allocate_vector (len: ptrdiff_t) -> *mut Lisp_Vector
+pub unsafe extern "C-unwind" fn allocate_vector (len: ptrdiff_t) -> *mut Lisp_Vector
 {
   return allocate_clear_vector (len, false);
 }
@@ -4013,7 +4015,7 @@ pub unsafe extern "C" fn allocate_vector (len: ptrdiff_t) -> *mut Lisp_Vector
 /* Allocate a vector with LEN nil slots.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn allocate_nil_vector (len: ptrdiff_t) -> *mut Lisp_Vector
+pub unsafe extern "C-unwind" fn allocate_nil_vector (len: ptrdiff_t) -> *mut Lisp_Vector
 {
   return allocate_clear_vector (len, true);
 }
@@ -4021,7 +4023,7 @@ pub unsafe extern "C" fn allocate_nil_vector (len: ptrdiff_t) -> *mut Lisp_Vecto
 /* Allocate other vector-like structures.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn allocate_pseudovector (memlen: c_int, lisplen: c_int,
+pub unsafe extern "C-unwind" fn allocate_pseudovector (memlen: c_int, lisplen: c_int,
 						zerolen: c_int, tag: pvec_type)
 						-> *mut Lisp_Vector
 {
@@ -4044,7 +4046,7 @@ pub unsafe extern "C" fn allocate_pseudovector (memlen: c_int, lisplen: c_int,
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn allocate_buffer () -> *mut buffer
+pub unsafe extern "C-unwind" fn allocate_buffer () -> *mut buffer
 {
   let b = ALLOCATE_PSEUDOVECTOR! (buffer, cursor_in_non_selected_windows_,
 				  pvec_type::PVEC_BUFFER) as *mut buffer;
@@ -4109,7 +4111,7 @@ DEFUN! ("make-vector", Fmake_vector, Smake_vector, 2, 2, 0,
 /* Return a new vector of length LENGTH with each element being INIT.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn make_vector (length: ptrdiff_t, init: Lisp_Object) -> Lisp_Object
+pub unsafe extern "C-unwind" fn make_vector (length: ptrdiff_t, init: Lisp_Object) -> Lisp_Object
 {
   let clearit: bool = NIL_IS_ZERO && NILP (init);
   let mut p: *mut Lisp_Vector = allocate_clear_vector (length, clearit);
@@ -4277,7 +4279,7 @@ unsafe fn set_symbol_name (sym: Lisp_Object, name: Lisp_Object)
    (lisp.rs's `SYMBOL_*_MASK`/`_SHIFT`, PORTING.md 1.3); `set_symbol_bits!` is lread.rs's
    private macro, so each write below spells the mask.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn init_symbol (val: Lisp_Object, name: Lisp_Object)
+pub unsafe extern "C-unwind" fn init_symbol (val: Lisp_Object, name: Lisp_Object)
 {
   let p: *mut Lisp_Symbol = XBARE_SYMBOL (val);
   set_symbol_name (val, name);
@@ -4335,7 +4337,7 @@ DEFUN! ("make-symbol", Fmake_symbol, Smake_symbol, 1, 1, 0,
 
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn make_misc_ptr (a: *mut c_void) -> Lisp_Object
+pub unsafe extern "C-unwind" fn make_misc_ptr (a: *mut c_void) -> Lisp_Object
 {
   let p = ALLOCATE_PLAIN_PSEUDOVECTOR! (Lisp_Misc_Ptr, pvec_type::PVEC_MISC_PTR)
 	  as *mut Lisp_Misc_Ptr;
@@ -4345,7 +4347,7 @@ pub unsafe extern "C" fn make_misc_ptr (a: *mut c_void) -> Lisp_Object
 
 /* Return a new symbol with position with the specified SYMBOL and POSITION. */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn build_symbol_with_pos (symbol: Lisp_Object, position: Lisp_Object)
+pub unsafe extern "C-unwind" fn build_symbol_with_pos (symbol: Lisp_Object, position: Lisp_Object)
 						-> Lisp_Object
 {
   let mut val: Lisp_Object;
@@ -4361,7 +4363,7 @@ pub unsafe extern "C" fn build_symbol_with_pos (symbol: Lisp_Object, position: L
 /* Return a new (deleted) overlay with PLIST.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn build_overlay (front_advance: bool, rear_advance: bool,
+pub unsafe extern "C-unwind" fn build_overlay (front_advance: bool, rear_advance: bool,
 					plist: Lisp_Object) -> Lisp_Object
 {
   let p = ALLOCATE_PSEUDOVECTOR! (Lisp_Overlay, plist, pvec_type::PVEC_OVERLAY)
@@ -4395,7 +4397,7 @@ DEFUN! ("make-marker", Fmake_marker, Smake_marker, 0, 0, 0,
    at character position CHARPOS and byte position BYTEPOS.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn build_marker (buf: *mut buffer, charpos: ptrdiff_t, bytepos: ptrdiff_t)
+pub unsafe extern "C-unwind" fn build_marker (buf: *mut buffer, charpos: ptrdiff_t, bytepos: ptrdiff_t)
 				       -> Lisp_Object
 {
   /* No dead buffers here.  */
@@ -4424,7 +4426,7 @@ pub unsafe extern "C" fn build_marker (buf: *mut buffer, charpos: ptrdiff_t, byt
    Allows any number of arguments, including zero.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn make_event_array (nargs: ptrdiff_t, args: *mut Lisp_Object)
+pub unsafe extern "C-unwind" fn make_event_array (nargs: ptrdiff_t, args: *mut Lisp_Object)
 					   -> Lisp_Object
 {
   let mut i: ptrdiff_t;
@@ -4464,7 +4466,7 @@ pub unsafe extern "C" fn make_event_array (nargs: ptrdiff_t, args: *mut Lisp_Obj
 /* C 3859-3870 (`#ifdef HAVE_MODULES`) is dead on this target.  */
 #[cfg (feature = "have_modules")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn make_user_ptr (finalizer: Option<unsafe extern "C" fn (*mut c_void)>,
+pub unsafe extern "C-unwind" fn make_user_ptr (finalizer: Option<unsafe extern "C" fn (*mut c_void)>,
 					p: *mut c_void) -> Lisp_Object
 {
   let uptr = ALLOCATE_PLAIN_PSEUDOVECTOR! (Lisp_User_Ptr, pvec_type::PVEC_USER_PTR)
@@ -4540,7 +4542,7 @@ unsafe fn queue_doomed_finalizers (dest: *mut Lisp_Finalizer,
     }
 }
 
-unsafe extern "C" fn run_finalizer_handler (args: Lisp_Object) -> Lisp_Object
+unsafe extern "C-unwind" fn run_finalizer_handler (args: Lisp_Object) -> Lisp_Object
 {
   add_to_log (c"finalizer failed: %S".as_ptr (), args);
   return Qnil ();
@@ -4733,7 +4735,7 @@ unsafe fn set_interval_marked (i: INTERVAL)
    not fail.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn memory_full (nbytes: size_t)
+pub unsafe extern "C-unwind" fn memory_full (nbytes: size_t)
 {
   if !initialized
     { fatal (c"memory exhausted".as_ptr ()); }
@@ -4783,7 +4785,7 @@ pub unsafe extern "C" fn memory_full (nbytes: size_t)
    resulting pointer had problems fitting into a tagged EMACS_INT.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn memory_full_up () -> !
+pub unsafe extern "C-unwind" fn memory_full_up () -> !
 {
   memory_full (SIZE_MAX);
   /* C's `memory_full` never returns (its last statement is `xsignal`, a longjmp), which is
@@ -5276,7 +5278,7 @@ unsafe fn live_string_holding (m: *mut mem_node, p: *mut c_void) -> *mut Lisp_St
   return std::ptr::null_mut ();
 }
 
-unsafe extern "C" fn live_string_p (m: *mut mem_node, p: *mut c_void) -> bool
+unsafe extern "C-unwind" fn live_string_p (m: *mut mem_node, p: *mut c_void) -> bool
 {
   return live_string_holding (m, p) as *mut c_void == p;
 }
@@ -5327,7 +5329,7 @@ unsafe fn live_cons_holding (m: *mut mem_node, p: *mut c_void) -> *mut Lisp_Cons
   return std::ptr::null_mut ();
 }
 
-unsafe extern "C" fn live_cons_p (m: *mut mem_node, p: *mut c_void) -> bool
+unsafe extern "C-unwind" fn live_cons_p (m: *mut mem_node, p: *mut c_void) -> bool
 {
   return live_cons_holding (m, p) as *mut c_void == p;
 }
@@ -5386,7 +5388,7 @@ unsafe fn live_symbol_holding (m: *mut mem_node, p: *mut c_void) -> *mut Lisp_Sy
   return std::ptr::null_mut ();
 }
 
-unsafe extern "C" fn live_symbol_p (m: *mut mem_node, p: *mut c_void) -> bool
+unsafe extern "C-unwind" fn live_symbol_p (m: *mut mem_node, p: *mut c_void) -> bool
 {
   return live_symbol_holding (m, p) as *mut c_void == p;
 }
@@ -5434,7 +5436,7 @@ unsafe fn live_float_holding (m: *mut mem_node, p: *mut c_void) -> *mut Lisp_Flo
   return std::ptr::null_mut ();
 }
 
-unsafe extern "C" fn live_float_p (m: *mut mem_node, p: *mut c_void) -> bool
+unsafe extern "C-unwind" fn live_float_p (m: *mut mem_node, p: *mut c_void) -> bool
 {
   return live_float_holding (m, p) as *mut c_void == p;
 }
@@ -5479,7 +5481,7 @@ unsafe fn live_large_vector_holding (m: *mut mem_node, p: *mut c_void)
   return live_vector_pointer (large_vector_vec ((*m).start as *mut large_vector), p);
 }
 
-unsafe extern "C" fn live_large_vector_p (m: *mut mem_node, p: *mut c_void) -> bool
+unsafe extern "C-unwind" fn live_large_vector_p (m: *mut mem_node, p: *mut c_void) -> bool
 {
   return live_large_vector_holding (m, p) as *mut c_void == p;
 }
@@ -5511,7 +5513,7 @@ unsafe fn live_small_vector_holding (m: *mut mem_node, p: *mut c_void)
   return std::ptr::null_mut ();
 }
 
-unsafe extern "C" fn live_small_vector_p (m: *mut mem_node, p: *mut c_void) -> bool
+unsafe extern "C-unwind" fn live_small_vector_p (m: *mut mem_node, p: *mut c_void) -> bool
 {
   return live_small_vector_holding (m, p) as *mut c_void == p;
 }
@@ -5650,7 +5652,7 @@ pub const GC_POINTER_ALIGNMENT: usize = alignof! (*mut c_void);
 
 /* `ATTRIBUTE_NO_SANITIZE_ADDRESS` has no Rust counterpart (PORTING.md P-13).  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mark_memory (start: *const c_void, end: *const c_void)
+pub unsafe extern "C-unwind" fn mark_memory (start: *const c_void, end: *const c_void)
 {
   let mut start = start; let mut end = end;
   let mut pp: *const c_char;
@@ -5881,7 +5883,7 @@ macro_rules! SET_STACK_TOP_ADDRESS {
    from the stack start.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mark_c_stack (bottom: *const c_char, end: *const c_char)
+pub unsafe extern "C-unwind" fn mark_c_stack (bottom: *const c_char, end: *const c_char)
 {
   /* An *instrument*, not a behaviour: with the variable set, nothing on the C stack is marked.
      It answers one question - whether the retention `spikes/gc-retention-probe.el` shows comes
@@ -5936,8 +5938,9 @@ pub unsafe extern "C" fn mark_c_stack (bottom: *const c_char, end: *const c_char
    [1] <https://gcc.gnu.org/onlinedocs/gcc/Return-Address.html>.  */
 
 /* `NO_INLINE` has no Rust counterpart (PORTING.md P-13).  */
+#[inline(never)]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn flush_stack_call_func1 (func: Option<unsafe extern "C" fn (*mut c_void)>,
+pub unsafe extern "C-unwind" fn flush_stack_call_func1 (func: Option<unsafe extern "C-unwind" fn (*mut c_void)>,
 						 arg: *mut c_void)
 {
   /* C leaves `end` for `SET_STACK_TOP_ADDRESS` to fill through its address; Rust has to
@@ -5992,7 +5995,7 @@ unsafe fn valid_pointer_p (p: *mut c_void) -> c_int
    only in debugging.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn valid_lisp_object_p (obj: Lisp_Object) -> c_int
+pub unsafe extern "C-unwind" fn valid_lisp_object_p (obj: Lisp_Object) -> c_int
 {
   if FIXNUMP (obj)
     { return 1; }
@@ -6060,7 +6063,7 @@ pub unsafe extern "C" fn valid_lisp_object_p (obj: Lisp_Object) -> c_int
    and hash table or obarray usage.
    Return NULL for a zero-sized allocation.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn hash_table_alloc_bytes (nbytes: ptrdiff_t) -> *mut c_void
+pub unsafe extern "C-unwind" fn hash_table_alloc_bytes (nbytes: ptrdiff_t) -> *mut c_void
 {
   if nbytes == 0
     { return std::ptr::null_mut (); }
@@ -6072,7 +6075,7 @@ pub unsafe extern "C" fn hash_table_alloc_bytes (nbytes: ptrdiff_t) -> *mut c_vo
 
 /* Like xfree, but makes allocation count toward the total consing.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn hash_table_free_bytes (p: *mut c_void, nbytes: ptrdiff_t)
+pub unsafe extern "C-unwind" fn hash_table_free_bytes (p: *mut c_void, nbytes: ptrdiff_t)
 {
   tally_consing (- nbytes);
   /* C 5420: `hash_table_allocated_bytes -= nbytes;` (signed, wraps in C).  */
@@ -6088,7 +6091,7 @@ pub unsafe extern "C" fn hash_table_free_bytes (p: *mut c_void, nbytes: ptrdiff_
    VARADDRESS.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn staticpro (varaddress: *const Lisp_Object)
+pub unsafe extern "C-unwind" fn staticpro (varaddress: *const Lisp_Object)
 {
   let mut i: c_int = 0;
   while i < staticidx
@@ -6109,14 +6112,14 @@ pub unsafe extern "C" fn staticpro (varaddress: *const Lisp_Object)
 /* Temporarily prevent garbage collection.  Temporarily bump
    consing_until_gc to speed up maybe_gc when GC is inhibited.  */
 
-unsafe extern "C" fn allow_garbage_collection (consing: intmax_t)
+unsafe extern "C-unwind" fn allow_garbage_collection (consing: intmax_t)
 {
   consing_until_gc = consing as EMACS_INT - (HI_THRESHOLD! () - consing_until_gc);
   garbage_collection_inhibited -= 1;
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn inhibit_garbage_collection () -> specpdl_ref
+pub unsafe extern "C-unwind" fn inhibit_garbage_collection () -> specpdl_ref
 {
   let count: specpdl_ref = SPECPDL_INDEX ();
   record_unwind_protect_intmax (Some (allow_garbage_collection), consing_until_gc as intmax_t);
@@ -6365,7 +6368,7 @@ unsafe fn visit_buffer_root (visitor: gc_root_visitor,
    runtime data structures that pdump doesn't care about and so we can
    continue to mark those directly in garbage_collect.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn visit_static_gc_roots (visitor: gc_root_visitor)
+pub unsafe extern "C-unwind" fn visit_static_gc_roots (visitor: gc_root_visitor)
 {
   visit_buffer_root (visitor,
 		     &raw mut buffer_defaults,
@@ -6408,7 +6411,7 @@ pub unsafe extern "C" fn visit_static_gc_roots (visitor: gc_root_visitor)
     }
 }
 
-unsafe extern "C" fn mark_object_root_visitor (root_ptr: *const Lisp_Object,
+unsafe extern "C-unwind" fn mark_object_root_visitor (root_ptr: *const Lisp_Object,
 						      r#type: gc_root_type,
 						      data: *mut c_void)
 {
@@ -6498,7 +6501,7 @@ unsafe fn bump_consing_until_gc (threshold: intmax_t, percentage: Lisp_Object)
 }
 
 /* Watch changes to gc-cons-threshold.  */
-unsafe extern "C" fn watch_gc_cons_threshold (symbol: Lisp_Object, newval: Lisp_Object,
+unsafe extern "C-unwind" fn watch_gc_cons_threshold (symbol: Lisp_Object, newval: Lisp_Object,
 						     operation: Lisp_Object, where_: Lisp_Object)
 						     -> Lisp_Object
 {
@@ -6510,7 +6513,7 @@ unsafe extern "C" fn watch_gc_cons_threshold (symbol: Lisp_Object, newval: Lisp_
 }
 
 /* Watch changes to gc-cons-percentage.  */
-unsafe extern "C" fn watch_gc_cons_percentage (symbol: Lisp_Object, newval: Lisp_Object,
+unsafe extern "C-unwind" fn watch_gc_cons_percentage (symbol: Lisp_Object, newval: Lisp_Object,
 						      operation: Lisp_Object, where_: Lisp_Object)
 						      -> Lisp_Object
 {
@@ -6522,7 +6525,7 @@ unsafe extern "C" fn watch_gc_cons_percentage (symbol: Lisp_Object, newval: Lisp
    since it might depend on current usage, and do the garbage
    collection if the recalculation says so.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn maybe_garbage_collect ()
+pub unsafe extern "C-unwind" fn maybe_garbage_collect ()
 {
   /* Young cadence is an Automatic request at this safepoint only.  It must
      not run inside Fcons/tally_consing, must not rewrite consing_until_gc to
@@ -6550,23 +6553,23 @@ pub unsafe extern "C" fn maybe_garbage_collect ()
 unsafe extern "C" { }
 
 /* C: emacs.c 124: `extern AVOID fatal (const char *, ...);` */
-unsafe extern "C" { fn fatal (msg: *const c_char, ...) -> !; }
+unsafe extern "C-unwind" { fn fatal (msg: *const c_char, ...) -> !; }
 
 /* C: print.c 190: `extern void add_to_log (char const *, ...);` */
-unsafe extern "C" { fn add_to_log (format: *const c_char, ...); }
+unsafe extern "C-unwind" { fn add_to_log (format: *const c_char, ...); }
 
 /* C: eval.c 2255: `extern Lisp_Object internal_condition_case_1 (Lisp_Object (*) (Lisp_Object),
    Lisp_Object, Lisp_Object, Lisp_Object (*) (Lisp_Object));` */
-unsafe extern "C" {
-  fn internal_condition_case_1 (bfun: Option<unsafe extern "C" fn (Lisp_Object) -> Lisp_Object>,
+unsafe extern "C-unwind" {
+  fn internal_condition_case_1 (bfun: Option<unsafe extern "C-unwind" fn (Lisp_Object) -> Lisp_Object>,
 				arg: Lisp_Object, handlers: Lisp_Object,
-				hfun: Option<unsafe extern "C" fn (Lisp_Object) -> Lisp_Object>)
+				hfun: Option<unsafe extern "C-unwind" fn (Lisp_Object) -> Lisp_Object>)
 				-> Lisp_Object;
 }
 
 /* C: lisp.h 4722: `extern ptrdiff_t evxprintf (char **, ptrdiff_t *, char *, ptrdiff_t,
    char const *, va_list);` */
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   fn evxprintf (buf: *mut *mut c_char, bufsize: *mut ptrdiff_t, nonheapbuf: *mut c_char,
 		bufsize_max: ptrdiff_t, format: *const c_char, ap: core::ffi::VaList<'_>)
 		-> ptrdiff_t;
@@ -6583,9 +6586,9 @@ unsafe fn FACE_FROM_ID_OR_NULL (f: *mut frame, id: c_int) -> *mut face
     else { std::ptr::null_mut () };
 }
 
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   /// C: lisp.h 4825: `extern void record_unwind_protect_void (void (*) (void));`
-  fn record_unwind_protect_void (function: Option<unsafe extern "C" fn ()>);
+  fn record_unwind_protect_void (function: Option<unsafe extern "C-unwind" fn ()>);
 
 
 
@@ -6601,7 +6604,7 @@ unsafe extern "C" {
 
 /* Subroutine of Fgarbage_collect that does most of the work.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn garbage_collect ()
+pub unsafe extern "C-unwind" fn garbage_collect ()
 {
   garbage_collect_impl(GcRequest::Full);
 }
@@ -7495,7 +7498,7 @@ unsafe fn mark_stack_push_values (values: *mut Lisp_Object, n: ptrdiff_t)
 
 /* Check that the object pointed to by PO is alive, using predicate
    function LIVEP.  */
-unsafe fn check_live (livep: Option<unsafe extern "C" fn (*mut mem_node, *mut c_void)
+unsafe fn check_live (livep: Option<unsafe extern "C-unwind" fn (*mut mem_node, *mut c_void)
 										 -> bool>,
 			     mtype: mem_type,
 			     po: *mut c_void, m: *mut mem_node)
@@ -7520,7 +7523,7 @@ unsafe fn check_live (livep: Option<unsafe extern "C" fn (*mut mem_node, *mut c_
 
 /* Check that the object pointed to by PO is known to be a Lisp
    structure allocated from the heap, and that it is alive.  */
-unsafe fn check_allocated_and_live (livep: Option<unsafe extern "C" fn (*mut mem_node,
+unsafe fn check_allocated_and_live (livep: Option<unsafe extern "C-unwind" fn (*mut mem_node,
 									       *mut c_void)
 									       -> bool>,
 					   mtype: mem_type,
@@ -7934,7 +7937,7 @@ unsafe fn process_mark_stack (base_sp: ptrdiff_t)
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mark_object (obj: Lisp_Object)
+pub unsafe extern "C-unwind" fn mark_object (obj: Lisp_Object)
 {
   let sp: ptrdiff_t = mark_stk.sp;
   mark_stack_push_value (obj);
@@ -7942,7 +7945,7 @@ pub unsafe extern "C" fn mark_object (obj: Lisp_Object)
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mark_objects (objs: *mut Lisp_Object, n: ptrdiff_t)
+pub unsafe extern "C-unwind" fn mark_objects (objs: *mut Lisp_Object, n: ptrdiff_t)
 {
   let sp: ptrdiff_t = mark_stk.sp;
   mark_stack_push_values (objs, n);
@@ -7969,7 +7972,7 @@ unsafe fn mark_terminals ()
    either marked or does not need to be marked to survive.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn survives_gc_p (obj: Lisp_Object) -> bool
+pub unsafe extern "C-unwind" fn survives_gc_p (obj: Lisp_Object) -> bool
 {
   let survives_p: bool;
 
@@ -8538,7 +8541,7 @@ unsafe fn symbol_uses_obj (symbol: Lisp_Object, obj: Lisp_Object) -> bool
    function.  This is used in gdbinit's `xwhichsymbols' command.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn which_symbols (obj: Lisp_Object, mut find_max: EMACS_INT)
+pub unsafe extern "C-unwind" fn which_symbols (obj: Lisp_Object, mut find_max: EMACS_INT)
 					 -> Lisp_Object
 {
    let mut sblk: *mut symbol_block;
@@ -8620,7 +8623,7 @@ unsafe extern "C" {
 
 #[cfg (enable_checking)]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn die (msg: *const c_char, file: *const c_char, line: c_int)
+pub unsafe extern "C-unwind" fn die (msg: *const c_char, file: *const c_char, line: c_int)
 {
   fprintf (stderr, c"\r\n%s:%d: Emacs fatal error: assertion failed: %s\r\n".as_ptr (),
 	   file, line, msg);
@@ -8668,7 +8671,7 @@ macro_rules! verify_alloca {
    (PORTING.md 0.1-12 item 10).  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn init_alloc_once ()
+pub unsafe extern "C-unwind" fn init_alloc_once ()
 {
   gc_cons_threshold = GC_DEFAULT_THRESHOLD! () as EMACS_INT;
   /* Even though Qt's contents are not set up, its address is known.  */
@@ -8688,7 +8691,7 @@ pub unsafe extern "C" fn init_alloc_once ()
   init_vectors ();
 }
 
-unsafe extern "C" fn init_alloc_once_for_pdumper ()
+unsafe extern "C-unwind" fn init_alloc_once_for_pdumper ()
 {
   mem_init ();
 
@@ -8707,13 +8710,13 @@ unsafe extern "C" fn init_alloc_once_for_pdumper ()
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn init_alloc ()
+pub unsafe extern "C-unwind" fn init_alloc ()
 {
   #[cfg(feature = "femacs_gc_generational")]
   { gc_collector::reset_process(); }
   #[cfg(feature = "have_native_comp")]
   {
-    unsafe extern "C" { fn femacs_native_reset_process(); }
+    unsafe extern "C-unwind" { fn femacs_native_reset_process(); }
     femacs_native_reset_process();
   }
   #[cfg(feature = "femacs_gc_observer")]
@@ -8765,7 +8768,7 @@ pub static mut gcs_done: EMACS_INT = 0;
 pub static mut integer_width: EMACS_INT = 0;
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_alloc ()
+pub unsafe extern "C-unwind" fn syms_of_alloc ()
 {
   DEFVAR_INT! (c"gc-cons-threshold", gc_cons_threshold,
 	      " Number of bytes of consing between garbage collections.\nGarbage collection can happen automatically once this many bytes have been\nallocated since the last garbage collection.  All data types count.\n\nGarbage collection happens automatically only when `eval' is called.\n\nBy binding this temporarily to a large number, you can effectively\nprevent garbage collection during a part of the program.  But be\nsure to get back to the normal value soon enough, to avoid system-wide\nmemory pressure, and never use a too-high value for prolonged periods\nof time.\nSee also `gc-cons-percentage'.  ");

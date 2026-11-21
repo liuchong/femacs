@@ -25,7 +25,7 @@ REPO = pathlib.Path(__file__).resolve().parent.parent
 PORT = REPO
 
 DECL = re.compile(r"^\s*pub fn ([A-Za-z_][A-Za-z0-9_]*) *\(", re.MULTILINE)
-DEF = re.compile(r"^(?:pub )?(?:unsafe )?(?:extern \"C\" )?fn ([A-Za-z_][A-Za-z0-9_]*) *[(<]", re.MULTILINE)
+DEF = re.compile(r"^(?:pub )?(?:unsafe )?(?:extern \"C(?:-unwind)?\" )?fn ([A-Za-z_][A-Za-z0-9_]*) *[(<]", re.MULTILINE)
 
 
 def sources() -> list[pathlib.Path]:
@@ -43,10 +43,10 @@ def main() -> int:
     definitions: dict[str, list[pathlib.Path]] = {}
     for path in files:
         text = path.read_text(encoding="utf-8", errors="surrogateescape")
-        if 'extern "C"' in text:
-            # declarations live inside `unsafe extern "C" { ... }` blocks
+        if 'extern "C' in text:
+            # declarations live inside `unsafe extern "C" / "C-unwind" { ... }` blocks
             decls = []
-            for block in re.findall(r'unsafe extern "C" \{(.*?)\n\}', text, re.S):
+            for block in re.findall(r'unsafe extern "C(?:-unwind)?" \{(.*?)\n\}', text, re.S):
                 decls.extend(DECL.findall(block))
             if decls:
                 mirrors[path] = decls

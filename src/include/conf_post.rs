@@ -358,7 +358,7 @@ macro_rules! vprintf { ($($args:tt)*) => { _gl_consolesafe_vprintf ($($args)*) }
 // whose import the definition shadows (PORTING.md 0.1-10/P-21).  `lib/time_rz.rs` 69-72
 // declares its own copy, which goes when that unit includes this mirror.
 pub mod conf_post_decls {
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     /* C 182: `extern char *emacs_getenv_TZ (void);`  */
     pub fn emacs_getenv_TZ () -> *mut core::ffi::c_char;
     /* C 183: `extern int emacs_setenv_TZ (char const *);`  */

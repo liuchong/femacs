@@ -66,7 +66,7 @@ pub const BOX_DOUBLE_UP_LEFT: r#box = 17;
 // its value is `BOX_DOUBLE_UP_LEFT + 1`.
 pub const DISP_TABLE_EXTRA_SLOTS: isize = BOX_DOUBLE_UP_LEFT as isize + 1;
 
-unsafe extern "C" { pub fn disp_char_vector (dp: *mut Lisp_Char_Table, c: c_int)
+unsafe extern "C-unwind" { pub fn disp_char_vector (dp: *mut Lisp_Char_Table, c: c_int)
                                               -> Lisp_Object; }                     // disptab.h 55
 
 // disptab.h 57-64.
@@ -87,7 +87,7 @@ pub fn DISP_CHAR_VECTOR (dp: *mut Lisp_Char_Table, c: c_int) -> Lisp_Object
 }
 
 /* Defined in window.c.  */
-unsafe extern "C" { pub fn window_display_table (w: *mut window)
+unsafe extern "C-unwind" { pub fn window_display_table (w: *mut window)
                                                  -> *mut Lisp_Char_Table; }         // disptab.h 67
 
 /* Defined in indent.c.  `buffer_display_table` is that unit's own definition, so the
@@ -97,7 +97,7 @@ unsafe extern "C" { pub fn window_display_table (w: *mut window)
 pub mod disptab_decls {
   use super::*;
 
-  unsafe extern "C" { pub fn buffer_display_table () -> *mut Lisp_Char_Table; }   // disptab.h 70
+  unsafe extern "C-unwind" { pub fn buffer_display_table () -> *mut Lisp_Char_Table; }   // disptab.h 70
 }
 pub use self::disptab_decls::*;
 

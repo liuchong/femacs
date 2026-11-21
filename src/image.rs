@@ -228,7 +228,7 @@ pub type Emacs_Pix_Context = *mut c_void;
    and this unit drops its copies in the commit that makes it.  */
 // C: lisp.h 4432: `extern AVOID memory_full (size_t);`
 #[cfg (feature = "have_window_system")]
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   pub fn memory_full (size: size_t) -> !;
 }
 // C: lisp.h 5553: `extern char *xlispstrdup (Lisp_Object);`
@@ -940,7 +940,7 @@ unsafe fn x_bitmap_width (f: *mut frame, id: ptrdiff_t) -> c_int
 /// name, which is the collision `docs/ports/image.md` owes the mirror (`w32fns.md`'s item 5 shape).
 #[cfg (all (feature = "have_window_system", all (feature = "have_x_windows", feature = "use_cairo")))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn x_bitmap_stipple (f: *mut frame, pixmap: Pixmap) -> *mut cairo_pattern_t
+pub unsafe extern "C-unwind" fn x_bitmap_stipple (f: *mut frame, pixmap: Pixmap) -> *mut cairo_pattern_t
 {
   let dpyinfo: *mut Display_Info = FRAME_DISPLAY_INFO! (f);
 
@@ -976,7 +976,7 @@ pub unsafe extern "C" fn x_bitmap_stipple (f: *mut frame, pixmap: Pixmap) -> *mu
 /// C: C 452-453: `ptrdiff_t image_bitmap_pixmap (struct frame *f, ptrdiff_t id)` - non-static.
 #[cfg (all (feature = "have_window_system", any (feature = "have_x_windows", feature = "have_ntgui", feature = "have_android")))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn image_bitmap_pixmap (f: *mut frame, id: ptrdiff_t) -> ptrdiff_t
+pub unsafe extern "C-unwind" fn image_bitmap_pixmap (f: *mut frame, id: ptrdiff_t) -> ptrdiff_t
 {
   /* HAVE_NTGUI needs the explicit cast here because .pixmap is a handle,
      i.e., a pointer to a struct (see w32gui.h), not an integer.  */
@@ -986,7 +986,7 @@ pub unsafe extern "C" fn image_bitmap_pixmap (f: *mut frame, id: ptrdiff_t) -> p
 /// C: C 462-463: `int x_bitmap_mask (struct frame *f, ptrdiff_t id)` - non-static.
 #[cfg (all (feature = "have_window_system", feature = "have_x_windows"))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn x_bitmap_mask (f: *mut frame, id: ptrdiff_t) -> c_int
+pub unsafe extern "C-unwind" fn x_bitmap_mask (f: *mut frame, id: ptrdiff_t) -> c_int
 {
   return (*((*FRAME_DISPLAY_INFO! (f)).bitmaps.offset (id - 1))).mask as c_int;
 }
@@ -1027,7 +1027,7 @@ unsafe fn image_allocate_bitmap_record (f: *mut frame) -> ptrdiff_t
 /// C: C 492-493: `void image_reference_bitmap (struct frame *f, ptrdiff_t id)` - non-static.
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn image_reference_bitmap (f: *mut frame, id: ptrdiff_t)
+pub unsafe extern "C-unwind" fn image_reference_bitmap (f: *mut frame, id: ptrdiff_t)
 {
   (*((*FRAME_DISPLAY_INFO! (f)).bitmaps.offset (id - 1))).refcount += 1;
 }
@@ -1142,7 +1142,7 @@ unsafe fn image_bitmap_to_cr_pattern (bits: *mut c_char, width: c_int, height: c
 /// C: C 597-599: `ptrdiff_t image_create_bitmap_from_data (struct frame *f, char *bits, unsigned int width, unsigned int height)` - non-static.
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn image_create_bitmap_from_data (f: *mut frame, bits: *mut c_char,
+pub unsafe extern "C-unwind" fn image_create_bitmap_from_data (f: *mut frame, bits: *mut c_char,
                                                         width: c_uint, height: c_uint)
   -> ptrdiff_t
 {
@@ -1476,7 +1476,7 @@ pub type image_fd = c_int;
 /// C: C 757-758: `ptrdiff_t image_create_bitmap_from_file (struct frame *f, Lisp_Object file)` - non-static.
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn image_create_bitmap_from_file (f: *mut frame, file: Lisp_Object)
+pub unsafe extern "C-unwind" fn image_create_bitmap_from_file (f: *mut frame, file: Lisp_Object)
   -> ptrdiff_t
 {
   let dpyinfo: *mut Display_Info = FRAME_DISPLAY_INFO! (f);
@@ -1962,7 +1962,7 @@ unsafe fn free_bitmap_record (dpyinfo: *mut Display_Info, bm: *mut Bitmap_Record
 /// C: C 1157-1158: `void image_destroy_bitmap (struct frame *f, ptrdiff_t id)` - non-static.
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn image_destroy_bitmap (f: *mut frame, id: ptrdiff_t)
+pub unsafe extern "C-unwind" fn image_destroy_bitmap (f: *mut frame, id: ptrdiff_t)
 {
   let dpyinfo: *mut Display_Info = FRAME_DISPLAY_INFO! (f);
 
@@ -1985,7 +1985,7 @@ pub unsafe extern "C" fn image_destroy_bitmap (f: *mut frame, id: ptrdiff_t)
 /// C: C 1177-1178: `void image_destroy_all_bitmaps (Display_Info *dpyinfo)` - non-static.
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn image_destroy_all_bitmaps (dpyinfo: *mut Display_Info)
+pub unsafe extern "C-unwind" fn image_destroy_all_bitmaps (dpyinfo: *mut Display_Info)
 {
   let mut i: ptrdiff_t;
   let mut bm: *mut Bitmap_Record = (*dpyinfo).bitmaps;
@@ -2068,7 +2068,7 @@ macro_rules! image_unget_x_image_or_dc {
 /// C: C 1234-1235: `void x_create_bitmap_mask (struct frame *f, ptrdiff_t id)` - non-static.
 #[cfg (all (feature = "have_window_system", feature = "have_x_windows"))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn x_create_bitmap_mask (f: *mut frame, id: ptrdiff_t)
+pub unsafe extern "C-unwind" fn x_create_bitmap_mask (f: *mut frame, id: ptrdiff_t)
 {
   let (mut pixmap, mut mask): (Pixmap, Pixmap);
   let (mut ximg, mut mask_img): (*mut XImage, *mut XImage);
@@ -2190,18 +2190,18 @@ pub struct image_type
 
   /* Check that SPEC is a valid image specification for the given
      image type.  Value is true if SPEC is valid.  */
-  pub valid_p: Option<unsafe extern "C" fn (spec: Lisp_Object) -> bool>,
+  pub valid_p: Option<unsafe extern "C-unwind" fn (spec: Lisp_Object) -> bool>,
 
   /* Load IMG which is to be used on frame F from information contained
      in IMG->spec.  Value is true if successful.  */
-  pub load_img: Option<unsafe extern "C" fn (f: *mut frame, img: *mut image) -> bool>,
+  pub load_img: Option<unsafe extern "C-unwind" fn (f: *mut frame, img: *mut image) -> bool>,
 
   /* Free such resources of image IMG as are used on frame F.  */
-  pub free_img: Option<unsafe extern "C" fn (f: *mut frame, img: *mut image)>,
+  pub free_img: Option<unsafe extern "C-unwind" fn (f: *mut frame, img: *mut image)>,
 
   /* C 1345-1347: the nested `#ifdef WINDOWSNT` member.  */
   #[cfg (feature = "windowsnt")]
-  pub init: Option<unsafe extern "C" fn () -> bool>,
+  pub init: Option<unsafe extern "C-unwind" fn () -> bool>,
 }
 
 /* C 1352-1361: `#if defined HAVE_RSVG || … || defined HAVE_ANDROID`'s `IMAGE_TYPE_INIT` pair - the
@@ -2244,7 +2244,7 @@ unsafe fn add_image_type (r#type: Lisp_Object)
 /// C: C 1394-1395: `bool valid_image_p (Lisp_Object object)` - non-static.
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn valid_image_p (object: Lisp_Object) -> bool
+pub unsafe extern "C-unwind" fn valid_image_p (object: Lisp_Object) -> bool
 {
   if IMAGEP (object)
     {
@@ -2286,7 +2286,7 @@ pub unsafe extern "C" fn valid_image_p (object: Lisp_Object) -> bool
 // (`WINDOW_SYSTEM_RETURN` is `_Noreturn ATTRIBUTE_COLD`, which is not part of the type - the
 // `DEFUN!` `noreturn` note in PORTING.md 5.1).
 #[cfg (feature = "have_window_system")]
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   pub fn decode_window_system_frame (frame: Lisp_Object) -> *mut frame;
 }
 // C: frame.h 1476: `extern struct frame *decode_live_frame (Lisp_Object);` - C 13346's
@@ -2300,7 +2300,7 @@ unsafe extern "C" {
 // C 13796's `x-bitmap-file-path` initialiser is this file's first reader (the `callproc.rs` 110
 // shape).
 #[cfg (feature = "have_window_system")]
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   pub fn decode_env_path (envvar: *const c_char, deflt: *const c_char,
 			  empty_is_default: bool) -> Lisp_Object;
 }
@@ -2328,19 +2328,19 @@ macro_rules! IMAGE_FROM_ID {
 }
 // C: lisp.h 4379: `extern void vadd_to_log (char const *, va_list);` - the definition is xdisp.c's.
 #[cfg (feature = "have_window_system")]
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   pub fn vadd_to_log (format: *const c_char, ap: core::ffi::VaList<'_>);
 }
 // C: lisp.h 3290: `INLINE bool FUNCTIONP (Lisp_Object a) { return SUBRP (a) || COMPILEDP (a) || CONSP (a); }`
 // (the `lisp.h` name `parse_image_spec` calls; `include/lisp.rs` does not carry it - the
 // `memory_full`/`openp` shape of the first slice, and the ledger's mirror-gap list).
 #[cfg (feature = "have_window_system")]
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   pub fn FUNCTIONP (a: Lisp_Object) -> bool;
 }
 // C: lisp.h 4542: `extern Lisp_Object make_formatted_string (const char *, ...);`
 #[cfg (feature = "have_window_system")]
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   pub fn make_formatted_string (format: *const c_char, ...) -> Lisp_Object;
 }
 // C: dispextern.h 3791: `void x_free_colors (struct frame *, unsigned long *, int);` - the
@@ -2424,7 +2424,7 @@ macro_rules! CLEAR_IMAGE_COLORS { () => { (1 << 2) }; }
 
 /// C: C 1429-1430: `static void image_error (const char *format, ...)`
 #[cfg (feature = "have_window_system")]
-unsafe extern "C" fn image_error (format: *const c_char, mut ap: ...)
+unsafe extern "C-unwind" fn image_error (format: *const c_char, mut ap: ...)
 {
   /* C's `va_list ap; va_start (ap, format);` and `va_end (ap);` have no port counterpart
      (PORTING.md P-04): the variadic argument is the port's `VaList`.  */
@@ -2435,7 +2435,7 @@ unsafe extern "C" fn image_error (format: *const c_char, mut ap: ...)
 // Lisp_Object arguments to the C variadic logger.
 #[cfg (all (feature = "have_window_system", feature = "have_ns"))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn femacs_ns_log_image_error (spec: Lisp_Object, index: Lisp_Object)
+pub unsafe extern "C-unwind" fn femacs_ns_log_image_error (spec: Lisp_Object, index: Lisp_Object)
 {
   if NILP (index)
     { image_error (c"Unable to load image %s".as_ptr (), spec); }
@@ -2711,7 +2711,7 @@ unsafe fn parse_image_spec (spec: Lisp_Object, keywords: *mut image_keyword, nke
 /// C: C 1646-1647: `Lisp_Object image_spec_value (Lisp_Object spec, Lisp_Object key, bool *found)` - non-static.
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn image_spec_value (spec: Lisp_Object, key: Lisp_Object,
+pub unsafe extern "C-unwind" fn image_spec_value (spec: Lisp_Object, key: Lisp_Object,
 					   found: *mut bool) -> Lisp_Object
 {
   let mut tail: Lisp_Object;
@@ -2949,7 +2949,7 @@ unsafe fn check_image_size (f: *mut frame, width: c_int, height: c_int) -> bool
 /// C: C 1859-1860: `void prepare_image_for_display (struct frame *f, struct image *img)` - non-static.
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn prepare_image_for_display (f: *mut frame, img: *mut image)
+pub unsafe extern "C-unwind" fn prepare_image_for_display (f: *mut frame, img: *mut image)
 {
   /* We're about to display IMG, so set its timestamp to `now'.  */
   (*img).timestamp = current_timespec ();
@@ -3005,7 +3005,7 @@ pub unsafe extern "C" fn prepare_image_for_display (f: *mut frame, img: *mut ima
 /// C: C 1911-1912: `int image_ascent (struct image *img, struct face *face, struct glyph_slice *slice)` - non-static.
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn image_ascent (img: *mut image, face: *mut face, slice: *mut glyph_slice)
+pub unsafe extern "C-unwind" fn image_ascent (img: *mut image, face: *mut face, slice: *mut glyph_slice)
   -> c_int
 {
   let mut height: c_int;
@@ -3133,7 +3133,7 @@ unsafe fn make_color_name (red: c_uint, green: c_uint, blue: c_uint) -> Lisp_Obj
 /// C: C 2017-2018: `RGB_PIXEL_COLOR image_background (struct image *img, struct frame *f, Emacs_Pix_Context pimg)` - non-static.
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn image_background (img: *mut image, f: *mut frame,
+pub unsafe extern "C-unwind" fn image_background (img: *mut image, f: *mut frame,
 					   mut pimg: Emacs_Pix_Context) -> RGB_PIXEL_COLOR
 {
   if (*img).bits & IMAGE_BACKGROUND_VALID_MASK == 0
@@ -3182,7 +3182,7 @@ pub unsafe extern "C" fn image_background (img: *mut image, f: *mut frame,
 /// C: C 2055-2057: `int image_background_transparent (struct image *img, struct frame *f, Emacs_Pix_Context mask)` - non-static.
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn image_background_transparent (img: *mut image, f: *mut frame,
+pub unsafe extern "C-unwind" fn image_background_transparent (img: *mut image, f: *mut frame,
 						       mut mask: Emacs_Pix_Context) -> c_int
 {
   if (*img).bits & IMAGE_BACKGROUND_TRANSPARENT_VALID_MASK == 0
@@ -3302,7 +3302,7 @@ unsafe fn image_clear_image_1 (f: *mut frame, img: *mut image, flags: c_int)
 
 /// C: C 2164-2165: `static void image_clear_image (struct frame *f, struct image *img)`
 #[cfg (feature = "have_window_system")]
-unsafe extern "C" fn image_clear_image (f: *mut frame, img: *mut image)
+unsafe extern "C-unwind" fn image_clear_image (f: *mut frame, img: *mut image)
 {
   (*img).lisp_data = Qnil ();
   block_input ();
@@ -3391,7 +3391,7 @@ unsafe fn image_alloc_image_color (f: *mut frame, img: *mut image, color_name: L
 /// C: C 2223-2225: `struct image_cache * make_image_cache (void)` - non-`static`.
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn make_image_cache () -> *mut image_cache
+pub unsafe extern "C-unwind" fn make_image_cache () -> *mut image_cache
 {
   let c: *mut image_cache = xmalloc (core::mem::size_of::<image_cache> ()) as *mut image_cache;
 
@@ -3541,7 +3541,7 @@ unsafe fn uncache_image (f: *mut frame, spec: Lisp_Object)
 /// C: C 2345-2347: `void free_image_cache (struct frame *f)` - non-`static`.
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn free_image_cache (f: *mut frame)
+pub unsafe extern "C-unwind" fn free_image_cache (f: *mut frame)
 {
   let c: *mut image_cache = FRAME_IMAGE_CACHE! (f) as *mut image_cache;
   let mut i: ptrdiff_t;
@@ -3574,7 +3574,7 @@ pub unsafe extern "C" fn free_image_cache (f: *mut frame)
 /// C: C 2372-2374: `void clear_image_cache (struct frame *f, Lisp_Object filter)` - non-`static`.
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn clear_image_cache (f: *mut frame, filter: Lisp_Object)
+pub unsafe extern "C-unwind" fn clear_image_cache (f: *mut frame, filter: Lisp_Object)
 {
   let c: *mut image_cache = FRAME_IMAGE_CACHE! (f) as *mut image_cache;
 
@@ -3670,7 +3670,7 @@ pub unsafe extern "C" fn clear_image_cache (f: *mut frame, filter: Lisp_Object)
 /// C: C 2455-2456: `void clear_image_caches (Lisp_Object filter)` - non-`static`.
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn clear_image_caches (filter: Lisp_Object)
+pub unsafe extern "C-unwind" fn clear_image_caches (filter: Lisp_Object)
 {
   /* FIXME: We want to do
    * struct terminal *t;
@@ -3944,7 +3944,7 @@ unsafe extern "C" {
 // C: dispextern.h 3907: `void clear_current_matrices (struct frame *f);` - the definition is
 // `xdisp.c`'s.
 #[cfg (feature = "have_window_system")]
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   pub fn clear_current_matrices (f: *mut frame);
 }
 /// C: math.h 1172-1173: `extern float sinf (float __x) __THROW;` / `extern float cosf (float __x) __THROW;`
@@ -5090,19 +5090,19 @@ fn FACE_FROM_ID (f: *mut frame, id: c_int) -> *mut face
 }
 // C: dispextern.h 3821: `void init_frame_faces (struct frame *);` - the definition is `xfaces.c`'s.
 #[cfg (feature = "have_window_system")]
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   pub fn init_frame_faces (f: *mut frame);
 }
 // C: dispextern.h 3823: `void recompute_basic_faces (struct frame *);` - the definition is
 // `dispnew.c`'s.
 #[cfg (feature = "have_window_system")]
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   pub fn recompute_basic_faces (f: *mut frame);
 }
 // C: dispextern.h 3819: `extern struct image_cache *share_image_cache (struct frame *f);` - the
 // definition is `xfaces.c`'s; `src/frame.rs` 4783-4784 declares the same name in its own block.
 #[cfg (feature = "have_window_system")]
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   pub fn share_image_cache (f: *mut frame) -> *mut image_cache;
 }
 // C: lisp.h 4436: `extern void mark_object (Lisp_Object);` - the definition is `alloc.c`'s.
@@ -5124,7 +5124,7 @@ pub const DEFAULT_IMAGE_HEIGHT: c_int = 30;
 /// C: C 3555-3556: `ptrdiff_t lookup_image (struct frame *f, Lisp_Object spec, int face_id)` - non-static.
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn lookup_image (f: *mut frame, spec: Lisp_Object, mut face_id: c_int)
+pub unsafe extern "C-unwind" fn lookup_image (f: *mut frame, spec: Lisp_Object, mut face_id: c_int)
   -> ptrdiff_t
 {
   let mut img: *mut image;
@@ -5367,7 +5367,7 @@ pub struct anim_cache
   pub handle: anim_handle,                     // C 3764-3772
   /* A function to call to free the handle.  */
   /// C 3774: `void (*destructor) (union anim_handle *);`
-  pub destructor: Option<unsafe extern "C" fn (handle: *mut anim_handle)>,
+  pub destructor: Option<unsafe extern "C-unwind" fn (handle: *mut anim_handle)>,
   /* Current frame index, and total number of frames.  Note that
      different image formats may start at different indices.  */
   pub index: c_int,                            // C 3777: `int index, frames;`
@@ -5497,7 +5497,7 @@ unsafe fn mark_image (img: *mut image)
 /// C: C 3876-3877: `void mark_image_cache (struct image_cache *c)` - non-static.
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mark_image_cache (c: *mut image_cache)
+pub unsafe extern "C-unwind" fn mark_image_cache (c: *mut image_cache)
 {
   if !c.is_null ()
     {
@@ -6207,7 +6207,7 @@ unsafe fn image_unget_x_image (img: *mut image, mask_p: bool, ximg: Emacs_Pix_Co
 // C: lisp.h 5320: `extern FILE *emacs_fdopen (int, const char *)`
 // C: lisp.h 5305: `extern int sys_fstat (int, struct stat *);`
 #[cfg (feature = "have_window_system")]
-unsafe extern "C" {
+unsafe extern "C-unwind" {
 
   pub fn emacs_fdopen (fd: c_int, mode: *const c_char) -> *mut FILE;
   pub fn sys_fstat (fd: c_int, buf: *mut stat) -> c_int;
@@ -6270,7 +6270,7 @@ unsafe fn image_find_image_fd (file: Lisp_Object, pfd: *mut image_fd) -> Lisp_Ob
 /// C: C 4507-4508: `Lisp_Object image_find_image_file (Lisp_Object file)` - non-static.
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn image_find_image_file (file: Lisp_Object) -> Lisp_Object
+pub unsafe extern "C-unwind" fn image_find_image_file (file: Lisp_Object) -> Lisp_Object
 {
   return image_find_image_fd (file, core::ptr::null_mut ());
 }
@@ -6283,7 +6283,7 @@ pub unsafe extern "C" fn image_find_image_file (file: Lisp_Object) -> Lisp_Objec
 /* C 4516 declares `close_android_fd (void *ptr)` as an ordinary C function, and
    `record_unwind_protect_ptr`'s parameter is a C function pointer - a Rust-ABI `fn` does not
    coerce (measured `E0308` on `aarch64-linux-android`).  */
-unsafe extern "C" fn close_android_fd (ptr: *mut c_void)
+unsafe extern "C-unwind" fn close_android_fd (ptr: *mut c_void)
 {
   android_close_asset (*(ptr as *mut android_fd_or_asset));
 }
@@ -6565,7 +6565,7 @@ pub const XBM_TK_OVERFLOW: c_int = 258;
 
 /// C: C 4710-4711: `static bool xbm_image_p (Lisp_Object object)`
 #[cfg (feature = "have_window_system")]
-unsafe extern "C" fn xbm_image_p (object: Lisp_Object) -> bool
+unsafe extern "C-unwind" fn xbm_image_p (object: Lisp_Object) -> bool
 {
   /* C's `struct image_keyword kw[XBM_LAST];` filled by the `memcpy` below - zeroed first
      (PORTING.md 1.5/0.1-13).  */
@@ -6691,7 +6691,7 @@ unsafe extern "C" {
 // `fns.c` 5349's; `include/lisp.rs` does not carry the declaration.
 #[cfg (all (feature = "have_window_system", feature = "have_x_windows", not (feature = "use_cairo"),
 	    feature = "alloc_xpm_colors"))]
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   pub fn hash_char_array (ptr: *const c_char, len: ptrdiff_t) -> EMACS_UINT;
 }
 // C: dispextern.h 3635: `extern void redraw_image_glyphs (Lisp_Object);` - the definition is
@@ -7374,7 +7374,7 @@ unsafe fn xbm_file_p (data: Lisp_Object) -> bool
 
 /// C: C 5313-5314: `static bool xbm_load (struct frame *f, struct image *img)`
 #[cfg (feature = "have_window_system")]
-unsafe extern "C" fn xbm_load (f: *mut frame, img: *mut image) -> bool
+unsafe extern "C-unwind" fn xbm_load (f: *mut frame, img: *mut image) -> bool
 {
   let mut success_p: bool = false;
   let file_name: Lisp_Object;
@@ -7620,7 +7620,7 @@ unsafe fn canvas_parse (object: Lisp_Object, fmt: *mut image_keyword) -> bool
 
 /// C: C 5525-5526: `static bool canvas_image_p (Lisp_Object object)`
 #[cfg (feature = "have_window_system")]
-unsafe extern "C" fn canvas_image_p (object: Lisp_Object) -> bool
+unsafe extern "C-unwind" fn canvas_image_p (object: Lisp_Object) -> bool
 {
   let mut fmt: [image_keyword; CANVAS_LAST as usize] = core::mem::zeroed ();
   return canvas_parse (object, fmt.as_mut_ptr ());
@@ -7860,7 +7860,7 @@ unsafe fn canvas_get (image: Lisp_Object, fmt: *mut image_keyword) -> *mut canva
 
 /// C: C 5713-5714: `static bool canvas_load (struct frame *f, struct image *img)`
 #[cfg (feature = "have_window_system")]
-unsafe extern "C" fn canvas_load (f: *mut frame, img: *mut image) -> bool
+unsafe extern "C-unwind" fn canvas_load (f: *mut frame, img: *mut image) -> bool
 {
   let mut fmt: [image_keyword; CANVAS_LAST as usize] = core::mem::zeroed ();
   let c: *mut canvas = canvas_get ((*img).spec, fmt.as_mut_ptr ());
@@ -8073,7 +8073,7 @@ unsafe fn canvas_prepare_for_display (f: *mut frame, img: *mut image)
 /// C: C 5853-5854: `uint32_t * canvas_data (Lisp_Object image)` - non-static.
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn canvas_data (image: Lisp_Object) -> *mut uint32_t
+pub unsafe extern "C-unwind" fn canvas_data (image: Lisp_Object) -> *mut uint32_t
 {
   let mut fmt: [image_keyword; CANVAS_LAST as usize] = core::mem::zeroed ();
   let c: *mut canvas = canvas_get (image, fmt.as_mut_ptr ());
@@ -8852,7 +8852,7 @@ unsafe fn xpm_valid_color_symbols_p (mut color_symbols: Lisp_Object) -> bool
 #[cfg (all (feature = "have_window_system", any (feature = "have_xpm", feature = "have_ns",
 						  feature = "have_haiku", feature = "have_pgtk",
 						  feature = "have_android")))]
-unsafe extern "C" fn xpm_image_p (object: Lisp_Object) -> bool
+unsafe extern "C-unwind" fn xpm_image_p (object: Lisp_Object) -> bool
 {
   /* C's `struct image_keyword fmt[XPM_LAST];` filled by the `memcpy` below - zeroed first
      (PORTING.md 1.5/0.1-13).  */
@@ -8881,7 +8881,7 @@ unsafe extern "C" fn xpm_image_p (object: Lisp_Object) -> bool
 #[cfg (all (feature = "have_window_system", feature = "have_xpm", feature = "have_x_windows",
 	    not (feature = "use_gtk")))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn x_create_bitmap_from_xpm_data (f: *mut frame,
+pub unsafe extern "C-unwind" fn x_create_bitmap_from_xpm_data (f: *mut frame,
 							bits: *mut *const c_char) -> ptrdiff_t
 {
   let dpyinfo: *mut Display_Info = FRAME_DISPLAY_INFO! (f);
@@ -8945,7 +8945,7 @@ pub unsafe extern "C" fn x_create_bitmap_from_xpm_data (f: *mut frame,
    true if successful.  */
 /// C: C 6306-6307: `static bool xpm_load (struct frame *f, struct image *img)`
 #[cfg (all (feature = "have_window_system", feature = "have_xpm", not (feature = "use_cairo")))]
-unsafe extern "C" fn xpm_load (f: *mut frame, img: *mut image) -> bool
+unsafe extern "C-unwind" fn xpm_load (f: *mut frame, img: *mut image) -> bool
 {
   let mut rc: c_int;
   /* C's `XpmAttributes attrs;` (zeroed, PORTING.md 1.5) - the `memset` below is C's own.  */
@@ -9444,10 +9444,10 @@ unsafe fn xpm_scan (s: *mut *const c_char, end: *const c_char, beg: *mut *const 
 		 all (feature = "have_haiku", not (feature = "have_xpm")),
 		 all (feature = "have_pgtk", not (feature = "have_xpm")),
 		 all (feature = "have_android", not (feature = "have_xpm")))))]
-unsafe fn xpm_make_color_table_v (put_func: *mut Option<unsafe extern "C" fn (Lisp_Object,
+unsafe fn xpm_make_color_table_v (put_func: *mut Option<unsafe extern "C-unwind" fn (Lisp_Object,
 									     *const c_char, c_int,
 									     Lisp_Object)>,
-				  get_func: *mut Option<unsafe extern "C" fn (Lisp_Object,
+				  get_func: *mut Option<unsafe extern "C-unwind" fn (Lisp_Object,
 									      *const c_char,
 									      c_int) -> Lisp_Object>)
   -> Lisp_Object
@@ -9464,7 +9464,7 @@ unsafe fn xpm_make_color_table_v (put_func: *mut Option<unsafe extern "C" fn (Li
 		 all (feature = "have_haiku", not (feature = "have_xpm")),
 		 all (feature = "have_pgtk", not (feature = "have_xpm")),
 		 all (feature = "have_android", not (feature = "have_xpm")))))]
-unsafe extern "C" fn xpm_put_color_table_v (color_table: Lisp_Object,
+unsafe extern "C-unwind" fn xpm_put_color_table_v (color_table: Lisp_Object,
 					   chars_start: *const c_char, chars_len: c_int,
 					   color: Lisp_Object)
 {
@@ -9479,7 +9479,7 @@ unsafe extern "C" fn xpm_put_color_table_v (color_table: Lisp_Object,
 		 all (feature = "have_haiku", not (feature = "have_xpm")),
 		 all (feature = "have_pgtk", not (feature = "have_xpm")),
 		 all (feature = "have_android", not (feature = "have_xpm")))))]
-unsafe extern "C" fn xpm_get_color_table_v (color_table: Lisp_Object,
+unsafe extern "C-unwind" fn xpm_get_color_table_v (color_table: Lisp_Object,
 					   chars_start: *const c_char, chars_len: c_int)
   -> Lisp_Object
 {
@@ -9494,10 +9494,10 @@ unsafe extern "C" fn xpm_get_color_table_v (color_table: Lisp_Object,
 		 all (feature = "have_haiku", not (feature = "have_xpm")),
 		 all (feature = "have_pgtk", not (feature = "have_xpm")),
 		 all (feature = "have_android", not (feature = "have_xpm")))))]
-unsafe fn xpm_make_color_table_h (put_func: *mut Option<unsafe extern "C" fn (Lisp_Object,
+unsafe fn xpm_make_color_table_h (put_func: *mut Option<unsafe extern "C-unwind" fn (Lisp_Object,
 									     *const c_char, c_int,
 									     Lisp_Object)>,
-				  get_func: *mut Option<unsafe extern "C" fn (Lisp_Object,
+				  get_func: *mut Option<unsafe extern "C-unwind" fn (Lisp_Object,
 									      *const c_char,
 									      c_int) -> Lisp_Object>)
   -> Lisp_Object
@@ -9514,7 +9514,7 @@ unsafe fn xpm_make_color_table_h (put_func: *mut Option<unsafe extern "C" fn (Li
 		 all (feature = "have_haiku", not (feature = "have_xpm")),
 		 all (feature = "have_pgtk", not (feature = "have_xpm")),
 		 all (feature = "have_android", not (feature = "have_xpm")))))]
-unsafe extern "C" fn xpm_put_color_table_h (color_table: Lisp_Object,
+unsafe extern "C-unwind" fn xpm_put_color_table_h (color_table: Lisp_Object,
 					   chars_start: *const c_char, chars_len: c_int,
 					   color: Lisp_Object)
 {
@@ -9534,7 +9534,7 @@ unsafe extern "C" fn xpm_put_color_table_h (color_table: Lisp_Object,
 		 all (feature = "have_haiku", not (feature = "have_xpm")),
 		 all (feature = "have_pgtk", not (feature = "have_xpm")),
 		 all (feature = "have_android", not (feature = "have_xpm")))))]
-unsafe extern "C" fn xpm_get_color_table_h (color_table: Lisp_Object,
+unsafe extern "C-unwind" fn xpm_get_color_table_h (color_table: Lisp_Object,
 					   chars_start: *const c_char, chars_len: c_int)
   -> Lisp_Object
 {
@@ -9675,9 +9675,9 @@ unsafe fn xpm_load_image (f: *mut frame, img: *mut image, contents: *const c_cha
   let mut len: ptrdiff_t = 0;
   /* C's `int LA1;` - written by every `match` expansion before it is read (1.5).  */
   let mut LA1: c_int = 0;
-  let mut put_color_table: Option<unsafe extern "C" fn (Lisp_Object, *const c_char, c_int,
+  let mut put_color_table: Option<unsafe extern "C-unwind" fn (Lisp_Object, *const c_char, c_int,
 							Lisp_Object)> = None;
-  let mut get_color_table: Option<unsafe extern "C" fn (Lisp_Object, *const c_char, c_int)
+  let mut get_color_table: Option<unsafe extern "C-unwind" fn (Lisp_Object, *const c_char, c_int)
 						   -> Lisp_Object> = None;
   let mut frame: Lisp_Object;
   let mut color_symbols: Lisp_Object;
@@ -10029,7 +10029,7 @@ unsafe fn xpm_load_image (f: *mut frame, img: *mut image, contents: *const c_cha
 		 all (feature = "have_haiku", not (feature = "have_xpm")),
 		 all (feature = "have_pgtk", not (feature = "have_xpm")),
 		 all (feature = "have_android", not (feature = "have_xpm")))))]
-unsafe extern "C" fn xpm_load (f: *mut frame, img: *mut image) -> bool
+unsafe extern "C-unwind" fn xpm_load (f: *mut frame, img: *mut image) -> bool
 {
   let mut success_p: bool = false;
   let mut file_name: Lisp_Object;
@@ -11228,7 +11228,7 @@ static pbm_format: [image_keyword; PBM_LAST as usize] =
 
 /// C: C 8012-8028: `static bool pbm_image_p (Lisp_Object object)`
 #[cfg (feature = "have_window_system")]
-unsafe extern "C" fn pbm_image_p (object: Lisp_Object) -> bool
+unsafe extern "C-unwind" fn pbm_image_p (object: Lisp_Object) -> bool
 {
   /* C's `struct image_keyword fmt[PBM_LAST];` filled by the `memcpy` below - zeroed first
      (PORTING.md 1.5/0.1-13).  */
@@ -11334,7 +11334,7 @@ unsafe fn pbm_scan_index (s: *mut *mut c_char, two_byte: bool) -> c_int
 
 /// C: C 8097-8351: `static bool pbm_load (struct frame *f, struct image *img)`
 #[cfg (feature = "have_window_system")]
-unsafe extern "C" fn pbm_load (f: *mut frame, img: *mut image) -> bool
+unsafe extern "C-unwind" fn pbm_load (f: *mut frame, img: *mut image) -> bool
 {
   let mut raw_p: bool = false;
   let mut x: c_int;
@@ -11745,7 +11745,7 @@ static png_format: [image_keyword; PNG_LAST as usize] =
 
 /// C: C 8492-8503: `static bool png_image_p (Lisp_Object object)`
 #[cfg (all (feature = "have_window_system", feature = "have_png"))]
-unsafe extern "C" fn png_image_p (object: Lisp_Object) -> bool
+unsafe extern "C-unwind" fn png_image_p (object: Lisp_Object) -> bool
 {
   /* C's `struct image_keyword fmt[PNG_LAST];` filled by the `memcpy` below - zeroed first
      (PORTING.md 1.5/0.1-13).  */
@@ -12120,6 +12120,9 @@ unsafe fn png_load_body (f: *mut frame, img: *mut image, c: *mut png_load_contex
 
   /* Set error jump-back.  We come back here when the PNG library
      detects an error.  */
+  // SAFETY (U3 boundary audit): `libpng` invokes `fast_longjmp` strictly across C `libpng` frames
+  // and `png_read_from_memory`/`png_read_from_file` (`Copy`-only locals, zero Rust `Drop` guards,
+  // zero Lisp signals or active Rust references across the jump).
   if sys_setjmp (png_set_longjmp_fn (png_ptr, Some (fast_longjmp),
 				     core::mem::size_of::<jmp_buf> ()) as *mut jmp_buf) == 0
     {
@@ -12427,7 +12430,7 @@ unsafe fn png_load_body (f: *mut frame, img: *mut image, c: *mut png_load_contex
 /// C: C 9105-9109: `static bool png_load (struct frame *f, struct image *img)`
 #[cfg (all (feature = "have_window_system", feature = "have_png",
 	    not (feature = "windowsnt")))]
-unsafe extern "C" fn png_load (f: *mut frame, img: *mut image) -> bool
+unsafe extern "C-unwind" fn png_load (f: *mut frame, img: *mut image) -> bool
 {
   /* C's `struct png_load_context c;` - the decode writes it (PORTING.md 1.5).  */
   let mut c: png_load_context = core::mem::zeroed ();
@@ -12498,7 +12501,7 @@ static jpeg_format: [image_keyword; JPEG_LAST as usize] =
 
 /// C: C 9156-9168: `static bool jpeg_image_p (Lisp_Object object)`
 #[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
-unsafe extern "C" fn jpeg_image_p (object: Lisp_Object) -> bool
+unsafe extern "C-unwind" fn jpeg_image_p (object: Lisp_Object) -> bool
 {
   /* C's `struct image_keyword fmt[JPEG_LAST];` filled by the `memcpy` below - zeroed first
      (PORTING.md 1.5/0.1-13).  */
@@ -13211,6 +13214,9 @@ unsafe fn jpeg_load_body (f: *mut frame, img: *mut image, mgr: *mut my_jpeg_erro
      error is detected.  This function will perform a longjmp.  */
   (*mgr).cinfo.err = jpeg_std_error (&raw mut (*mgr).r#pub);
   (*mgr).r#pub.error_exit = Some (my_error_exit);
+  // SAFETY (U3 boundary audit): `my_error_exit` jumps strictly across C `libjpeg` frames and
+  // `Copy`-only decode callbacks; zero Rust `Drop` values or active Rust borrows live between
+  // `sys_setjmp` and `my_error_exit`.
   if sys_setjmp (&raw mut (*mgr).setjmp_buffer as *mut jmp_buf) != 0
     {
       'switch_failure:
@@ -13351,7 +13357,7 @@ unsafe fn jpeg_load_body (f: *mut frame, img: *mut image, mgr: *mut my_jpeg_erro
 /// C: C 9671-9675: `static bool jpeg_load (struct frame *f, struct image *img)`
 #[cfg (all (feature = "have_window_system", feature = "have_jpeg",
 	    not (feature = "windowsnt")))]
-unsafe extern "C" fn jpeg_load (f: *mut frame, img: *mut image) -> bool
+unsafe extern "C-unwind" fn jpeg_load (f: *mut frame, img: *mut image) -> bool
 {
   /* C's `struct my_jpeg_error_mgr mgr;` - zeroed so the record starts from the same state C's
      first writes leave (PORTING.md 1.5).  */
@@ -13430,7 +13436,7 @@ static webp_format: [image_keyword; WEBP_LAST as usize] =
 
 /// C: C 10904-10916: `static bool webp_image_p (Lisp_Object object)`
 #[cfg (all (feature = "have_window_system", feature = "have_webp"))]
-unsafe extern "C" fn webp_image_p (object: Lisp_Object) -> bool
+unsafe extern "C-unwind" fn webp_image_p (object: Lisp_Object) -> bool
 {
   /* C's `struct image_keyword fmt[WEBP_LAST];` filled by the `memcpy` below - zeroed first
      (PORTING.md 1.5/0.1-13).  */
@@ -13538,7 +13544,7 @@ unsafe extern "C" {
 /// C: C 10988-10997: `static void webp_destroy (union anim_handle *handle)`
 #[cfg (all (feature = "have_window_system", feature = "have_webp",
 	    not (feature = "windowsnt")))]
-unsafe extern "C" fn webp_destroy (handle: *mut anim_handle)
+unsafe extern "C-unwind" fn webp_destroy (handle: *mut anim_handle)
 {
   let h: *mut webp_anim_handle = &raw mut (*handle).webp;
   WebPAnimDecoderDelete ((*h).dec as *mut WebPAnimDecoder);
@@ -13554,7 +13560,7 @@ unsafe extern "C" fn webp_destroy (handle: *mut anim_handle)
 /// C: C 11002-11003: `static bool webp_load (struct frame *f, struct image *img)`
 #[cfg (all (feature = "have_window_system", feature = "have_webp",
 	    not (feature = "windowsnt")))]
-unsafe extern "C" fn webp_load (f: *mut frame, img: *mut image) -> bool
+unsafe extern "C-unwind" fn webp_load (f: *mut frame, img: *mut image) -> bool
 {
   /* Return value.  */
   let mut success: bool = false;
@@ -14045,7 +14051,7 @@ unsafe fn initialize_image_type (r#type: *const image_type) -> bool
       { return !NILP (XCDR (tested)); }
 
     /* C's `bool (*init) (void) = type->init;`.  */
-    let init: Option<unsafe extern "C" fn () -> bool> = (*r#type).init;
+    let init: Option<unsafe extern "C-unwind" fn () -> bool> = (*r#type).init;
     if init.is_some ()
       {
 	let type_valid: bool = init.unwrap () ();
@@ -14061,7 +14067,7 @@ unsafe fn initialize_image_type (r#type: *const image_type) -> bool
 
 // The Cocoa GIF reader uses the native image specification (C 8358-8449).
 #[cfg (all (feature = "have_window_system", feature = "ns_impl_cocoa", not (feature = "have_gif")))]
-unsafe extern "C" fn cocoa_gif_image_p (object: Lisp_Object) -> bool
+unsafe extern "C-unwind" fn cocoa_gif_image_p (object: Lisp_Object) -> bool
 {
   let mut format = [
     (c":type", IMAGE_SYMBOL_VALUE, true),
@@ -14086,7 +14092,7 @@ unsafe extern "C" fn cocoa_gif_image_p (object: Lisp_Object) -> bool
 }
 
 #[cfg (all (feature = "have_window_system", feature = "ns_impl_cocoa", not (feature = "have_gif")))]
-unsafe extern "C" fn cocoa_gif_load (f: *mut frame, img: *mut image) -> bool
+unsafe extern "C-unwind" fn cocoa_gif_load (f: *mut frame, img: *mut image) -> bool
 {
   let mut file = image_spec_value ((*img).spec, QCfile (), core::ptr::null_mut ());
   if STRINGP (file)
@@ -14223,7 +14229,7 @@ unsafe fn lookup_image_type (r#type: Lisp_Object) -> *const image_type
 /// C: C 13504-13515: `void image_prune_animation_caches (bool clear)`
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn image_prune_animation_caches (clear: bool)
+pub unsafe extern "C-unwind" fn image_prune_animation_caches (clear: bool)
 {
   /* FIXME: Consolidate these animation cache implementations.  */
   /* C 13508-13510: `#if defined (HAVE_WEBP) || defined (HAVE_GIF)`.  */
@@ -14271,7 +14277,7 @@ pub static mut imagemagick_render_type: EMACS_INT = 0;                  // C 137
 /// C: C 13516-13805: `void syms_of_image (void)`
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_image ()
+pub unsafe extern "C-unwind" fn syms_of_image ()
 {
   /* Must be defined now because we're going to update it below, while
      defining the supported image types.  */

@@ -1016,18 +1016,18 @@ const _: () = core::assert! (core::mem::size_of::<draw_fringe_bitmap_params> () 
 pub struct redisplay_interface
 {
   pub frame_parm_handlers: *mut c_void,                  // offset 0
-  pub produce_glyphs: Option<unsafe extern "C" fn (*mut c_void)>,            // offset 8; C's `struct it *` untyped (P-72 rule 3, the mirror's own choice)
-  pub write_glyphs: Option<unsafe extern "C" fn (w: *mut c_void, row: *mut glyph_row, string: *mut glyph, area: c_int, len: c_int)>,                  // offset 16
-  pub insert_glyphs: Option<unsafe extern "C" fn (w: *mut c_void, row: *mut glyph_row, start: *mut glyph, area: c_int, len: c_int)>,                  // offset 24
-  pub clear_end_of_line: Option<unsafe extern "C" fn (w: *mut c_void, row: *mut glyph_row, area: c_int, x: c_int)>,                  // offset 32
-  pub scroll_run_hook: Option<unsafe extern "C" fn (w: *mut c_void, run: *mut run)>,                  // offset 40
-  pub after_update_window_line_hook: Option<unsafe extern "C" fn (w: *mut c_void, desired_row: *mut glyph_row)>,                  // offset 48
-  pub update_window_begin_hook: Option<unsafe extern "C" fn (w: *mut c_void)>,                  // offset 56
-  pub update_window_end_hook: Option<unsafe extern "C" fn (w: *mut c_void, cursor_on_p: bool, mouse_face_overwritten_p: bool)>,                  // offset 64
-  pub flush_display: Option<unsafe extern "C" fn (w: *mut c_void)>,                  // offset 72
-  pub clear_window_mouse_face: Option<unsafe extern "C" fn (w: *mut c_void)>,                  // offset 80
-  pub get_glyph_overhangs: Option<unsafe extern "C" fn (glyph: *mut glyph, f: *mut c_void, left: *mut c_int, right: *mut c_int)>,                  // offset 88
-  pub fix_overlapping_area: Option<unsafe extern "C" fn (w: *mut c_void, row: *mut glyph_row, area: c_int, overlaps: c_int)>,                  // offset 96
+  pub produce_glyphs: Option<unsafe extern "C-unwind" fn (*mut c_void)>,            // offset 8; C's `struct it *` untyped (P-72 rule 3, the mirror's own choice)
+  pub write_glyphs: Option<unsafe extern "C-unwind" fn (w: *mut c_void, row: *mut glyph_row, string: *mut glyph, area: c_int, len: c_int)>,                  // offset 16
+  pub insert_glyphs: Option<unsafe extern "C-unwind" fn (w: *mut c_void, row: *mut glyph_row, start: *mut glyph, area: c_int, len: c_int)>,                  // offset 24
+  pub clear_end_of_line: Option<unsafe extern "C-unwind" fn (w: *mut c_void, row: *mut glyph_row, area: c_int, x: c_int)>,                  // offset 32
+  pub scroll_run_hook: Option<unsafe extern "C-unwind" fn (w: *mut c_void, run: *mut run)>,                  // offset 40
+  pub after_update_window_line_hook: Option<unsafe extern "C-unwind" fn (w: *mut c_void, desired_row: *mut glyph_row)>,                  // offset 48
+  pub update_window_begin_hook: Option<unsafe extern "C-unwind" fn (w: *mut c_void)>,                  // offset 56
+  pub update_window_end_hook: Option<unsafe extern "C-unwind" fn (w: *mut c_void, cursor_on_p: bool, mouse_face_overwritten_p: bool)>,                  // offset 64
+  pub flush_display: Option<unsafe extern "C-unwind" fn (w: *mut c_void)>,                  // offset 72
+  pub clear_window_mouse_face: Option<unsafe extern "C-unwind" fn (w: *mut c_void)>,                  // offset 80
+  pub get_glyph_overhangs: Option<unsafe extern "C-unwind" fn (glyph: *mut glyph, f: *mut c_void, left: *mut c_int, right: *mut c_int)>,                  // offset 88
+  pub fix_overlapping_area: Option<unsafe extern "C-unwind" fn (w: *mut c_void, row: *mut glyph_row, area: c_int, overlaps: c_int)>,                  // offset 96
 
   /* C 3131-3195: the `#ifdef HAVE_WINDOW_SYSTEM` arm of the interface - the fifteen display
      hooks a window system installs.  Dead text on the frozen target (`HAVE_WINDOW_SYSTEM` is
@@ -1036,38 +1036,38 @@ pub struct redisplay_interface
      assertions above are unchanged.  They are what `spikes/mirror-struct-coverage.py --arm
      ns_cocoa` names when it reports this struct's window-system gap (status 3.283).  */
   #[cfg (feature = "have_window_system")]
-  pub draw_fringe_bitmap: Option<unsafe extern "C" fn (*mut c_void, *mut glyph_row, *mut draw_fringe_bitmap_params)>,   // C 3134
+  pub draw_fringe_bitmap: Option<unsafe extern "C-unwind" fn (*mut c_void, *mut glyph_row, *mut draw_fringe_bitmap_params)>,   // C 3134
   #[cfg (feature = "have_window_system")]
-  pub define_fringe_bitmap: Option<unsafe extern "C" fn (which: c_int, bits: *mut c_ushort, h: c_int, wd: c_int)>,      // C 3138
+  pub define_fringe_bitmap: Option<unsafe extern "C-unwind" fn (which: c_int, bits: *mut c_ushort, h: c_int, wd: c_int)>,      // C 3138
   #[cfg (feature = "have_window_system")]
-  pub destroy_fringe_bitmap: Option<unsafe extern "C" fn (which: c_int)>,                                               // C 3140
+  pub destroy_fringe_bitmap: Option<unsafe extern "C-unwind" fn (which: c_int)>,                                               // C 3140
   #[cfg (feature = "have_window_system")]
-  pub compute_glyph_string_overhangs: Option<unsafe extern "C" fn (s: *mut glyph_string)>,                              // C 3144
+  pub compute_glyph_string_overhangs: Option<unsafe extern "C-unwind" fn (s: *mut glyph_string)>,                              // C 3144
   #[cfg (feature = "have_window_system")]
-  pub draw_glyph_string: Option<unsafe extern "C" fn (s: *mut glyph_string)>,                                           // C 3147
+  pub draw_glyph_string: Option<unsafe extern "C-unwind" fn (s: *mut glyph_string)>,                                           // C 3147
   #[cfg (feature = "have_window_system")]
-  pub define_frame_cursor: Option<unsafe extern "C" fn (f: *mut c_void, cursor: Emacs_Cursor)>,                        // C 3150
+  pub define_frame_cursor: Option<unsafe extern "C-unwind" fn (f: *mut c_void, cursor: Emacs_Cursor)>,                        // C 3150
   #[cfg (feature = "have_window_system")]
-  pub clear_frame_area: Option<unsafe extern "C" fn (f: *mut c_void, x: c_int, y: c_int, width: c_int, height: c_int)>, // C 3153
+  pub clear_frame_area: Option<unsafe extern "C-unwind" fn (f: *mut c_void, x: c_int, y: c_int, width: c_int, height: c_int)>, // C 3153
   #[cfg (feature = "have_window_system")]
-  pub clear_under_internal_border: Option<unsafe extern "C" fn (f: *mut c_void)>,                                       // C 3159
+  pub clear_under_internal_border: Option<unsafe extern "C-unwind" fn (f: *mut c_void)>,                                       // C 3159
   #[cfg (feature = "have_window_system")]
-  pub draw_window_cursor: Option<unsafe extern "C" fn (w: *mut c_void, glyph_row: *mut glyph_row, x: c_int, y: c_int,
+  pub draw_window_cursor: Option<unsafe extern "C-unwind" fn (w: *mut c_void, glyph_row: *mut glyph_row, x: c_int, y: c_int,
                                                        cursor_type: text_cursor_kinds, cursor_width: c_int,
                                                        on_p: bool, active_p: bool)>,                                  // C 3165
   #[cfg (feature = "have_window_system")]
-  pub draw_vertical_window_border: Option<unsafe extern "C" fn (w: *mut c_void, x: c_int, y_0: c_int, y_1: c_int)>,   // C 3172
+  pub draw_vertical_window_border: Option<unsafe extern "C-unwind" fn (w: *mut c_void, x: c_int, y_0: c_int, y_1: c_int)>,   // C 3172
   #[cfg (feature = "have_window_system")]
-  pub draw_window_divider: Option<unsafe extern "C" fn (w: *mut c_void, x_0: c_int, x_1: c_int, y_0: c_int, y_1: c_int)>, // C 3176
+  pub draw_window_divider: Option<unsafe extern "C-unwind" fn (w: *mut c_void, x_0: c_int, x_1: c_int, y_0: c_int, y_1: c_int)>, // C 3176
   #[cfg (feature = "have_window_system")]
-  pub shift_glyphs_for_insert: Option<unsafe extern "C" fn (f: *mut c_void, x: c_int, y: c_int, width: c_int,
+  pub shift_glyphs_for_insert: Option<unsafe extern "C-unwind" fn (f: *mut c_void, x: c_int, y: c_int, width: c_int,
                                                             height: c_int, shift_by: c_int)>,                         // C 3182
   #[cfg (feature = "have_window_system")]
-  pub show_hourglass: Option<unsafe extern "C" fn (f: *mut c_void)>,                                                    // C 3187
+  pub show_hourglass: Option<unsafe extern "C-unwind" fn (f: *mut c_void)>,                                                    // C 3187
   #[cfg (feature = "have_window_system")]
-  pub hide_hourglass: Option<unsafe extern "C" fn (f: *mut c_void)>,                                                    // C 3190
+  pub hide_hourglass: Option<unsafe extern "C-unwind" fn (f: *mut c_void)>,                                                    // C 3190
   #[cfg (feature = "have_window_system")]
-  pub default_font_parameter: Option<unsafe extern "C" fn (f: *mut c_void, parms: Lisp_Object)>,                        // C 3194
+  pub default_font_parameter: Option<unsafe extern "C-unwind" fn (f: *mut c_void, parms: Lisp_Object)>,                        // C 3194
 }
 /* C 3131-3195's `HAVE_WINDOW_SYSTEM` members - the fifteen display hooks this record already
    carries behind that feature - are appended after `fix_overlapping_area`, so they add 120 bytes
@@ -1127,7 +1127,7 @@ use dispextern_unit_names::*;
    `#ifdef HAVE_WINDOW_SYSTEM` region or is declared by it unconditionally, so the declarations are
    on the file gate like everything else.  */
 #[cfg (feature = "have_window_system")]
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   /// C: dispextern.h 3582: `int estimate_mode_line_height (struct frame *, enum face_id);` (the
   /// definition is `src/xdisp.rs` 3740).  It belongs in this block rather than in the mirror: the
   /// mirror cannot reach `struct frame` (P-72 rule 3), so its copy would take an untyped pointer
@@ -1195,7 +1195,7 @@ unsafe fn FACE_FROM_ID_OR_NULL (f: *mut frame, id: c_int) -> *mut face
 /// (PORTING.md 0.2).
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn lookup_fringe_bitmap (mut bitmap: Lisp_Object) -> c_int
+pub unsafe extern "C-unwind" fn lookup_fringe_bitmap (mut bitmap: Lisp_Object) -> c_int
 {
   let bn: EMACS_INT;
 
@@ -1570,7 +1570,7 @@ unsafe fn get_logical_fringe_bitmap (w: *mut window, bitmap: Lisp_Object, right_
 /// has no way to spell inside one `match`: the two arms below carry it twice (Deviation 4).
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn draw_fringe_bitmap (w: *mut window, row: *mut glyph_row, left_p: c_int)
+pub unsafe extern "C-unwind" fn draw_fringe_bitmap (w: *mut window, row: *mut glyph_row, left_p: c_int)
 {
   let mut overlay: c_int = 0;
 
@@ -1624,7 +1624,7 @@ pub unsafe extern "C" fn draw_fringe_bitmap (w: *mut window, row: *mut glyph_row
 /// non-`static`, so exported.
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn draw_row_fringe_bitmaps (w: *mut window, row: *mut glyph_row)
+pub unsafe extern "C-unwind" fn draw_row_fringe_bitmaps (w: *mut window, row: *mut glyph_row)
 {
   eassert! (input_blocked_p ());
 
@@ -1657,7 +1657,7 @@ pub unsafe extern "C" fn draw_row_fringe_bitmaps (w: *mut window, row: *mut glyp
 /// increment written at both sites spells (the `ftfont.rs` shape, Deviation 6).
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn draw_window_fringes (w: *mut window, no_fringe_p: bool) -> bool
+pub unsafe extern "C-unwind" fn draw_window_fringes (w: *mut window, no_fringe_p: bool) -> bool
 {
   let mut row: *mut glyph_row;
   let yb: c_int = window_text_bottom_y (w);
@@ -1715,7 +1715,7 @@ pub unsafe extern "C" fn draw_window_fringes (w: *mut window, no_fringe_p: bool)
 /// the port (Deviation 13).
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn update_window_fringes (w: *mut window, keep_current_p: bool) -> bool
+pub unsafe extern "C-unwind" fn update_window_fringes (w: *mut window, keep_current_p: bool) -> bool
 {
   let mut row: *mut glyph_row;
   let mut cur: *mut glyph_row = core::ptr::null_mut ();
@@ -2664,7 +2664,7 @@ pub static mut Vfringe_bitmaps: Lisp_Object = lisp_h_Qnil ();                // 
 /// C: 1755-1756: `void` / `syms_of_fringe (void)` - non-`static`, so exported.
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_fringe ()
+pub unsafe extern "C-unwind" fn syms_of_fringe ()
 {
   DEFSYM! (Qtruncation, c"truncation");
   DEFSYM! (Qcontinuation, c"continuation");
@@ -2692,7 +2692,7 @@ pub unsafe extern "C" fn syms_of_fringe ()
 /// C: 1786-1787: `void` / `mark_fringe_data (void)`.
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mark_fringe_data ()
+pub unsafe extern "C-unwind" fn mark_fringe_data ()
 {
   mark_objects (fringe_faces, max_fringe_bitmaps as ptrdiff_t);
 }
@@ -2703,20 +2703,20 @@ pub unsafe extern "C" fn mark_fringe_data ()
    Rust has no function prototype: the port drops it and keeps the definition below at the
    position C defines it (PORTING.md 0.1-12's "delete C's forward declarations"; P-91).  The
    definition is `extern "C"` because `pdumper_do_now_and_after_load` takes an
-   `unsafe extern "C" fn ()` - C's `static void (void)` has that type, and the same
+   `unsafe extern "C-unwind" fn ()` - C's `static void (void)` has that type, and the same
    correction is what `init_alloc_once_for_pdumper` (src/alloc.rs 7994) carries.  */
 
 /// C: 1796-1797: `void` / `init_fringe_once (void)`.
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn init_fringe_once ()
+pub unsafe extern "C-unwind" fn init_fringe_once ()
 {
   pdumper_do_now_and_after_load (Some (init_fringe_once_for_pdumper));
 }
 
 /// C: 1802-1803: `static void` / `init_fringe_once_for_pdumper (void)`.
 #[cfg (feature = "have_window_system")]
-unsafe extern "C" fn init_fringe_once_for_pdumper ()
+unsafe extern "C-unwind" fn init_fringe_once_for_pdumper ()
 {
   let mut bt: c_int = NO_FRINGE_BITMAP + 1;
   while bt < MAX_STANDARD_FRINGE_BITMAPS
@@ -2729,7 +2729,7 @@ unsafe extern "C" fn init_fringe_once_for_pdumper ()
 /// C: 1809-1810: `void` / `init_fringe (void)`.
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn init_fringe ()
+pub unsafe extern "C-unwind" fn init_fringe ()
 {
   max_fringe_bitmaps = MAX_STANDARD_FRINGE_BITMAPS + 20;
 
@@ -2745,7 +2745,7 @@ pub unsafe extern "C" fn init_fringe ()
 /// C: 1820-1821: `void` / `gui_init_fringe (struct redisplay_interface *rif)`.
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn gui_init_fringe (rif: *mut redisplay_interface)
+pub unsafe extern "C-unwind" fn gui_init_fringe (rif: *mut redisplay_interface)
 {
   let mut bt: c_int;
 
@@ -2788,7 +2788,7 @@ pub unsafe extern "C" fn gui_init_fringe (rif: *mut redisplay_interface)
 /// C: 1852-1853: `void` / `gui_define_fringe_bitmap (struct frame *f, int n)`.
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn gui_define_fringe_bitmap (f: *mut frame, n: c_int)
+pub unsafe extern "C-unwind" fn gui_define_fringe_bitmap (f: *mut frame, n: c_int)
 {
   let rif: *mut redisplay_interface = FRAME_RIF! (f) as *mut redisplay_interface;
 
@@ -2805,7 +2805,7 @@ pub unsafe extern "C" fn gui_define_fringe_bitmap (f: *mut frame, n: c_int)
 /// C: 1866-1867: `void` / `w32_reset_fringes (void)` - C 1865's `#ifdef HAVE_NTGUI`.
 #[cfg (all (feature = "have_window_system", feature = "have_ntgui"))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn w32_reset_fringes ()
+pub unsafe extern "C-unwind" fn w32_reset_fringes ()
 {
   /* Destroy row bitmaps.  */
   let mut bt: c_int;

@@ -201,7 +201,7 @@ DEFUN! ("standard-category-table", Fstandard_category_table,
   return BVAR! (&raw mut buffer_defaults, category_table_);
 });
 
-unsafe extern "C" fn copy_category_entry (table: Lisp_Object, c: Lisp_Object, mut val: Lisp_Object)
+unsafe extern "C-unwind" fn copy_category_entry (table: Lisp_Object, c: Lisp_Object, mut val: Lisp_Object)
 {
   val = Fcopy_sequence (val);
   if CONSP (c)
@@ -280,7 +280,7 @@ DEFUN! ("set-category-table", Fset_category_table, Sset_category_table, 1, 1, 0,
 });
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn char_category_set (c: c_int) -> Lisp_Object
+pub unsafe extern "C-unwind" fn char_category_set (c: c_int) -> Lisp_Object
 {
   return CHAR_TABLE_REF (BVAR! ((current_buffer! ()), category_table_), c as isize);
 }
@@ -381,7 +381,7 @@ DEFUN! ("modify-category-entry", Fmodify_category_entry,
    directly.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn word_boundary_p (c1: c_int, c2: c_int) -> bool
+pub unsafe extern "C-unwind" fn word_boundary_p (c1: c_int, c2: c_int) -> bool
 {
   let mut category_set1: Lisp_Object;
   let mut category_set2: Lisp_Object;
@@ -427,7 +427,7 @@ pub unsafe extern "C" fn word_boundary_p (c1: c_int, c2: c_int) -> bool
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn init_category_once ()
+pub unsafe extern "C-unwind" fn init_category_once ()
 {
   /* This has to be done here, before we call Fmake_char_table.  */
   DEFSYM! (Qcategory_table, "category-table");
@@ -443,7 +443,7 @@ pub unsafe extern "C" fn init_category_once ()
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_category ()
+pub unsafe extern "C-unwind" fn syms_of_category ()
 {
   DEFSYM! (Qcategoryp, "categoryp");
   DEFSYM! (Qcategorysetp, "categorysetp");

@@ -139,7 +139,7 @@ pub const XtCInitialGeometry: &core::ffi::CStr = c"InitialGeometry";
 /// own (C 92 forward-declares it through the pointer), so the object keeps C's pointer depth
 /// with the pointee untyped (P-55).
 /// C: extern struct _DisplayContext *display_context;
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   pub static mut display_context: *mut c_void;
 }
 
@@ -168,7 +168,7 @@ pub type EmacsFrameClass = *mut c_void;
 pub mod widget_decls {
   use super::*;
 
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     pub fn emacsFrameClass () -> WidgetClass;
     pub fn EmacsFrameSetCharSize (w: Widget, columns: c_int, rows: c_int);
     pub fn widget_store_internal_border (widget: Widget);

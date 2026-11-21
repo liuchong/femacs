@@ -427,18 +427,18 @@ unsafe extern "C" {
 pub struct redisplay_interface
 {
   pub frame_parm_handlers: *mut c_void,                  // offset 0
-  pub produce_glyphs: Option<unsafe extern "C" fn (*mut c_void)>   /* C's `struct it *` untyped (P-72 3) */,                  // offset 8
-  pub write_glyphs: Option<unsafe extern "C" fn (w: *mut c_void, row: *mut glyph_row, string: *mut glyph, area: c_int, len: c_int)>,                  // offset 16
-  pub insert_glyphs: Option<unsafe extern "C" fn (w: *mut c_void, row: *mut glyph_row, start: *mut glyph, area: c_int, len: c_int)>,                  // offset 24
-  pub clear_end_of_line: Option<unsafe extern "C" fn (w: *mut c_void, row: *mut glyph_row, area: c_int, x: c_int)>,                  // offset 32
-  pub scroll_run_hook: Option<unsafe extern "C" fn (w: *mut c_void, run: *mut run)>,                  // offset 40
-  pub after_update_window_line_hook: Option<unsafe extern "C" fn (w: *mut c_void, desired_row: *mut glyph_row)>,                  // offset 48
-  pub update_window_begin_hook: Option<unsafe extern "C" fn (w: *mut c_void)>,                  // offset 56
-  pub update_window_end_hook: Option<unsafe extern "C" fn (w: *mut c_void, cursor_on_p: bool, mouse_face_overwritten_p: bool)>,                  // offset 64
-  pub flush_display: Option<unsafe extern "C" fn (w: *mut c_void)>,                  // offset 72
-  pub clear_window_mouse_face: Option<unsafe extern "C" fn (w: *mut c_void)>,                  // offset 80
-  pub get_glyph_overhangs: Option<unsafe extern "C" fn (glyph: *mut glyph, f: *mut c_void, left: *mut c_int, right: *mut c_int)>,                  // offset 88
-  pub fix_overlapping_area: Option<unsafe extern "C" fn (w: *mut c_void, row: *mut glyph_row, area: c_int, overlaps: c_int)>,                  // offset 96
+  pub produce_glyphs: Option<unsafe extern "C-unwind" fn (*mut c_void)>   /* C's `struct it *` untyped (P-72 3) */,                  // offset 8
+  pub write_glyphs: Option<unsafe extern "C-unwind" fn (w: *mut c_void, row: *mut glyph_row, string: *mut glyph, area: c_int, len: c_int)>,                  // offset 16
+  pub insert_glyphs: Option<unsafe extern "C-unwind" fn (w: *mut c_void, row: *mut glyph_row, start: *mut glyph, area: c_int, len: c_int)>,                  // offset 24
+  pub clear_end_of_line: Option<unsafe extern "C-unwind" fn (w: *mut c_void, row: *mut glyph_row, area: c_int, x: c_int)>,                  // offset 32
+  pub scroll_run_hook: Option<unsafe extern "C-unwind" fn (w: *mut c_void, run: *mut run)>,                  // offset 40
+  pub after_update_window_line_hook: Option<unsafe extern "C-unwind" fn (w: *mut c_void, desired_row: *mut glyph_row)>,                  // offset 48
+  pub update_window_begin_hook: Option<unsafe extern "C-unwind" fn (w: *mut c_void)>,                  // offset 56
+  pub update_window_end_hook: Option<unsafe extern "C-unwind" fn (w: *mut c_void, cursor_on_p: bool, mouse_face_overwritten_p: bool)>,                  // offset 64
+  pub flush_display: Option<unsafe extern "C-unwind" fn (w: *mut c_void)>,                  // offset 72
+  pub clear_window_mouse_face: Option<unsafe extern "C-unwind" fn (w: *mut c_void)>,                  // offset 80
+  pub get_glyph_overhangs: Option<unsafe extern "C-unwind" fn (glyph: *mut glyph, f: *mut c_void, left: *mut c_int, right: *mut c_int)>,                  // offset 88
+  pub fix_overlapping_area: Option<unsafe extern "C-unwind" fn (w: *mut c_void, row: *mut glyph_row, area: c_int, overlaps: c_int)>,                  // offset 96
 
   /* C 3131-3195: the `#ifdef HAVE_WINDOW_SYSTEM` arm of the interface - the fifteen display
      hooks a window system installs.  Dead text on the frozen target (`HAVE_WINDOW_SYSTEM` is
@@ -447,38 +447,38 @@ pub struct redisplay_interface
      assertions above are unchanged.  They are what `spikes/mirror-struct-coverage.py --arm
      ns_cocoa` names when it reports this struct's window-system gap (status 3.283).  */
   #[cfg (feature = "have_window_system")]
-  pub draw_fringe_bitmap: Option<unsafe extern "C" fn (*mut c_void, *mut glyph_row, *mut c_void   /* C's `struct draw_fringe_bitmap_params *` untyped (P-72 3) */)>,   // C 3134
+  pub draw_fringe_bitmap: Option<unsafe extern "C-unwind" fn (*mut c_void, *mut glyph_row, *mut c_void   /* C's `struct draw_fringe_bitmap_params *` untyped (P-72 3) */)>,   // C 3134
   #[cfg (feature = "have_window_system")]
-  pub define_fringe_bitmap: Option<unsafe extern "C" fn (which: c_int, bits: *mut c_ushort, h: c_int, wd: c_int)>,      // C 3138
+  pub define_fringe_bitmap: Option<unsafe extern "C-unwind" fn (which: c_int, bits: *mut c_ushort, h: c_int, wd: c_int)>,      // C 3138
   #[cfg (feature = "have_window_system")]
-  pub destroy_fringe_bitmap: Option<unsafe extern "C" fn (which: c_int)>,                                               // C 3140
+  pub destroy_fringe_bitmap: Option<unsafe extern "C-unwind" fn (which: c_int)>,                                               // C 3140
   #[cfg (feature = "have_window_system")]
-  pub compute_glyph_string_overhangs: Option<unsafe extern "C" fn (s: *mut glyph_string)>,                              // C 3144
+  pub compute_glyph_string_overhangs: Option<unsafe extern "C-unwind" fn (s: *mut glyph_string)>,                              // C 3144
   #[cfg (feature = "have_window_system")]
-  pub draw_glyph_string: Option<unsafe extern "C" fn (s: *mut glyph_string)>,                                           // C 3147
+  pub draw_glyph_string: Option<unsafe extern "C-unwind" fn (s: *mut glyph_string)>,                                           // C 3147
   #[cfg (feature = "have_window_system")]
-  pub define_frame_cursor: Option<unsafe extern "C" fn (f: *mut c_void, cursor: Emacs_Cursor)>,                        // C 3150
+  pub define_frame_cursor: Option<unsafe extern "C-unwind" fn (f: *mut c_void, cursor: Emacs_Cursor)>,                        // C 3150
   #[cfg (feature = "have_window_system")]
-  pub clear_frame_area: Option<unsafe extern "C" fn (f: *mut c_void, x: c_int, y: c_int, width: c_int, height: c_int)>, // C 3153
+  pub clear_frame_area: Option<unsafe extern "C-unwind" fn (f: *mut c_void, x: c_int, y: c_int, width: c_int, height: c_int)>, // C 3153
   #[cfg (feature = "have_window_system")]
-  pub clear_under_internal_border: Option<unsafe extern "C" fn (f: *mut c_void)>,                                       // C 3159
+  pub clear_under_internal_border: Option<unsafe extern "C-unwind" fn (f: *mut c_void)>,                                       // C 3159
   #[cfg (feature = "have_window_system")]
-  pub draw_window_cursor: Option<unsafe extern "C" fn (w: *mut c_void, glyph_row: *mut glyph_row, x: c_int, y: c_int,
+  pub draw_window_cursor: Option<unsafe extern "C-unwind" fn (w: *mut c_void, glyph_row: *mut glyph_row, x: c_int, y: c_int,
                                                        cursor_type: text_cursor_kinds, cursor_width: c_int,
                                                        on_p: bool, active_p: bool)>,                                  // C 3165
   #[cfg (feature = "have_window_system")]
-  pub draw_vertical_window_border: Option<unsafe extern "C" fn (w: *mut c_void, x: c_int, y_0: c_int, y_1: c_int)>,   // C 3172
+  pub draw_vertical_window_border: Option<unsafe extern "C-unwind" fn (w: *mut c_void, x: c_int, y_0: c_int, y_1: c_int)>,   // C 3172
   #[cfg (feature = "have_window_system")]
-  pub draw_window_divider: Option<unsafe extern "C" fn (w: *mut c_void, x_0: c_int, x_1: c_int, y_0: c_int, y_1: c_int)>, // C 3176
+  pub draw_window_divider: Option<unsafe extern "C-unwind" fn (w: *mut c_void, x_0: c_int, x_1: c_int, y_0: c_int, y_1: c_int)>, // C 3176
   #[cfg (feature = "have_window_system")]
-  pub shift_glyphs_for_insert: Option<unsafe extern "C" fn (f: *mut c_void, x: c_int, y: c_int, width: c_int,
+  pub shift_glyphs_for_insert: Option<unsafe extern "C-unwind" fn (f: *mut c_void, x: c_int, y: c_int, width: c_int,
                                                             height: c_int, shift_by: c_int)>,                         // C 3182
   #[cfg (feature = "have_window_system")]
-  pub show_hourglass: Option<unsafe extern "C" fn (f: *mut c_void)>,                                                    // C 3187
+  pub show_hourglass: Option<unsafe extern "C-unwind" fn (f: *mut c_void)>,                                                    // C 3187
   #[cfg (feature = "have_window_system")]
-  pub hide_hourglass: Option<unsafe extern "C" fn (f: *mut c_void)>,                                                    // C 3190
+  pub hide_hourglass: Option<unsafe extern "C-unwind" fn (f: *mut c_void)>,                                                    // C 3190
   #[cfg (feature = "have_window_system")]
-  pub default_font_parameter: Option<unsafe extern "C" fn (f: *mut c_void, parms: Lisp_Object)>,                        // C 3194
+  pub default_font_parameter: Option<unsafe extern "C-unwind" fn (f: *mut c_void, parms: Lisp_Object)>,                        // C 3194
 }
 /* C 3131-3195's `HAVE_WINDOW_SYSTEM` members - the fifteen display hooks this record already
    carries behind that feature - are appended after `fix_overlapping_area`, so they add 120 bytes
@@ -539,7 +539,7 @@ macro_rules! set_frame_flag2 {
 
 /* `src/dispnew.c` and `src/dispextern.h`: the tty predicates and `change_frame_size`; the
    mirror carries neither (PORTING.md P-72 rule 3).  */
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   /// C: dispextern.h 4012: `bool is_tty_frame (struct frame *f);`
   pub fn is_tty_frame (f: *mut frame) -> bool;
   /// C: dispextern.h 4013: `bool is_tty_child_frame (struct frame *f);`
@@ -554,7 +554,7 @@ unsafe extern "C" {
 /* `src/window.c`, `src/dispnew.c`, `src/term.c`, `src/alloc.c` and `src/buffer.c` define
    these; the headers declare them and their mirrors do not carry them (PORTING.md P-72
    rule 3).  */
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   /// C: window.h 1139-1140: `void set_window_buffer (Lisp_Object window, Lisp_Object buffer,
   /// bool run_hooks, bool keep_margins);`
   pub fn set_window_buffer (window: Lisp_Object, buffer: Lisp_Object,
@@ -621,7 +621,7 @@ unsafe extern "C" {
 }
 
 #[cfg(feature = "ns_impl_cocoa")]
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   pub fn ns_make_frame_key_window (f: *mut frame);
 }
 
@@ -682,7 +682,7 @@ unsafe fn fset_minibuffer_window (f: *mut frame, val: Lisp_Object)
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn decode_live_frame (frame: Lisp_Object) -> *mut frame
+pub unsafe extern "C-unwind" fn decode_live_frame (frame: Lisp_Object) -> *mut frame
 {
   let mut frame = frame;
   if NILP (frame)
@@ -692,7 +692,7 @@ pub unsafe extern "C" fn decode_live_frame (frame: Lisp_Object) -> *mut frame
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn decode_any_frame (frame: Lisp_Object) -> *mut frame
+pub unsafe extern "C-unwind" fn decode_any_frame (frame: Lisp_Object) -> *mut frame
 {
   let mut frame = frame;
   if NILP (frame)
@@ -707,7 +707,7 @@ pub unsafe extern "C" fn decode_any_frame (frame: Lisp_Object) -> *mut frame
    The port had only the null-frame fallback (`false`) instead of this function (status 4.867).  */
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn display_available () -> bool
+pub unsafe extern "C-unwind" fn display_available () -> bool
 {
   return ! x_display_list.is_null ();
 }
@@ -718,7 +718,7 @@ pub unsafe extern "C" fn display_available () -> bool
    frame errored with "Window system frame should be used" (device run, status 4.856).  */
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn check_window_system (f: *mut frame)
+pub unsafe extern "C-unwind" fn check_window_system (f: *mut frame)
 {
   if window_system_available (f)
     { return; }
@@ -729,7 +729,7 @@ pub unsafe extern "C" fn check_window_system (f: *mut frame)
 
 #[cfg (not (feature = "have_window_system"))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn check_window_system (f: *mut frame) -> !
+pub unsafe extern "C-unwind" fn check_window_system (f: *mut frame) -> !
 {
   error (if !f.is_null ()
          { c"Window system frame should be used".as_ptr () }
@@ -737,7 +737,7 @@ pub unsafe extern "C" fn check_window_system (f: *mut frame) -> !
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn decode_window_system_frame (frame: Lisp_Object) -> *mut frame
+pub unsafe extern "C-unwind" fn decode_window_system_frame (frame: Lisp_Object) -> *mut frame
 {
   let f = decode_live_frame (frame);
   check_window_system (f);
@@ -761,7 +761,7 @@ unsafe fn check_tty (f: *mut frame)
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn decode_tty_frame (frame: Lisp_Object) -> *mut frame
+pub unsafe extern "C-unwind" fn decode_tty_frame (frame: Lisp_Object) -> *mut frame
 {
   let f = decode_live_frame (frame);
   check_tty (f);
@@ -786,7 +786,7 @@ unsafe fn frame_get (name: Lisp_Object) -> Lisp_Object
 /* Return the value of frame parameter PROP in frame FRAME.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn get_frame_param (frame: *mut frame, prop: Lisp_Object)
+pub unsafe extern "C-unwind" fn get_frame_param (frame: *mut frame, prop: Lisp_Object)
   -> Lisp_Object
 {
   return Fcdr (Fassq (prop, (*frame).param_alist));
@@ -803,7 +803,7 @@ pub unsafe extern "C" fn get_frame_param (frame: *mut frame, prop: Lisp_Object)
    once.  Together these should ensure that F always gets its requested
    initial size.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_inhibit_resize (f: *mut frame, horizontal: bool,
+pub unsafe extern "C-unwind" fn frame_inhibit_resize (f: *mut frame, horizontal: bool,
                                                parameter: Lisp_Object) -> bool
 {
   let fullscreen: Lisp_Object = get_frame_param (f, Qfullscreen ());
@@ -944,7 +944,7 @@ DEFUN! ("frame-id", Fframe_id, Sframe_id, 0, 1, 0,
 
     Return ID if it was used, 0 otherwise.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_set_id (f: *mut frame, id: EMACS_UINT) -> EMACS_UINT
+pub unsafe extern "C-unwind" fn frame_set_id (f: *mut frame, id: EMACS_UINT) -> EMACS_UINT
 {
   let mut id = id;
   if id >= frame_next_id
@@ -979,7 +979,7 @@ pub unsafe extern "C" fn frame_set_id (f: *mut frame, id: EMACS_UINT) -> EMACS_U
 
     Return frame_set_id's return value.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_set_id_from_params (f: *mut frame, params: Lisp_Object)
+pub unsafe extern "C-unwind" fn frame_set_id_from_params (f: *mut frame, params: Lisp_Object)
   -> EMACS_UINT
 {
   let mut id: EMACS_UINT = 0;
@@ -1016,7 +1016,7 @@ DEFUN! ("window-system", Fwindow_system, Swindow_system, 0, 1, 0,
 /** Return true if F can be redisplayed, that is if F is visible and, if
     F is a tty frame, all its ancestors are visible too.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_redisplay_p (f: *mut frame) -> bool
+pub unsafe extern "C-unwind" fn frame_redisplay_p (f: *mut frame) -> bool
 {
   if is_tty_frame (f)
     {
@@ -1289,7 +1289,7 @@ unsafe fn frame_size_history_adjust (f: *mut frame, inhibit: c_int, parameter: L
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_size_history_plain (f: *mut frame, parameter: Lisp_Object)
+pub unsafe extern "C-unwind" fn frame_size_history_plain (f: *mut frame, parameter: Lisp_Object)
 {
   let mut frame: Lisp_Object = Qnil ();
 
@@ -1306,7 +1306,7 @@ pub unsafe extern "C" fn frame_size_history_plain (f: *mut frame, parameter: Lis
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_size_history_extra (f: *mut frame, parameter: Lisp_Object,
+pub unsafe extern "C-unwind" fn frame_size_history_extra (f: *mut frame, parameter: Lisp_Object,
 			  pixel_width: c_int, pixel_height: c_int,
 			  extra_width: c_int, extra_height: c_int,
 			  delayed_width: c_int, delayed_height: c_int)
@@ -1380,7 +1380,7 @@ pub unsafe extern "C" fn frame_size_history_extra (f: *mut frame, parameter: Lis
  * a case-by-case basis whether set_window_size_hook should be called.
  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn adjust_frame_size (f: *mut frame, new_text_width: c_int,
+pub unsafe extern "C-unwind" fn adjust_frame_size (f: *mut frame, new_text_width: c_int,
 					   new_text_height: c_int,
 		   inhibit: c_int, pretend: bool, parameter: Lisp_Object)
 {
@@ -1694,7 +1694,7 @@ unsafe fn allocate_frame () -> *mut frame
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn make_frame (mini_p: bool) -> *mut frame
+pub unsafe extern "C-unwind" fn make_frame (mini_p: bool) -> *mut frame
 {
   let mut frame: Lisp_Object = Qnil ();
   let f: *mut frame;
@@ -1880,7 +1880,7 @@ pub unsafe extern "C" fn make_frame (mini_p: bool) -> *mut frame
    default (the global minibuffer).  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn make_frame_without_minibuffer (mini_window: Lisp_Object, kb: *mut KBOARD,
+pub unsafe extern "C-unwind" fn make_frame_without_minibuffer (mini_window: Lisp_Object, kb: *mut KBOARD,
 			       display: Lisp_Object) -> *mut frame
 {
   let f: *mut frame;
@@ -1931,7 +1931,7 @@ pub unsafe extern "C" fn make_frame_without_minibuffer (mini_window: Lisp_Object
 /* Make a frame containing only a minibuffer window.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn make_minibuffer_frame () -> *mut frame
+pub unsafe extern "C-unwind" fn make_minibuffer_frame () -> *mut frame
 {
   /* First make a frame containing just a root window, no minibuffer.  */
 
@@ -1999,7 +1999,7 @@ pub const FACE_TTY_DEFAULT_FG_COLOR: c_ulong = -2i64 as c_ulong;
 pub const FACE_TTY_DEFAULT_BG_COLOR: c_ulong = -3i64 as c_ulong;
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn make_initial_frame () -> *mut frame
+pub unsafe extern "C-unwind" fn make_initial_frame () -> *mut frame
 {
   let f: *mut frame;
   let terminal: *mut terminal;
@@ -2217,7 +2217,7 @@ unsafe fn get_future_frame_param (parameter: Lisp_Object,
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn tty_child_pos_param (f: *mut frame, key: Lisp_Object,
+pub unsafe extern "C-unwind" fn tty_child_pos_param (f: *mut frame, key: Lisp_Object,
 		     params: Lisp_Object, pos: c_int, size: c_int) -> c_int
 {
   let p: *mut frame = XFRAME ((*f).parent_frame);
@@ -2260,7 +2260,7 @@ pub unsafe extern "C" fn tty_child_pos_param (f: *mut frame, key: Lisp_Object,
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn tty_child_size_param (child: *mut frame, key: Lisp_Object,
+pub unsafe extern "C-unwind" fn tty_child_size_param (child: *mut frame, key: Lisp_Object,
 		      params: Lisp_Object, dflt: c_int) -> c_int
 {
   let mut val: Lisp_Object = Fassq (key, params);
@@ -2476,7 +2476,7 @@ DEFUN! ("make-terminal-frame", Fmake_terminal_frame, Smake_terminal_frame,
    The value of NORECORD is passed as argument to Fselect_window.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn do_switch_frame (frame: Lisp_Object, track: c_int,
+pub unsafe extern "C-unwind" fn do_switch_frame (frame: Lisp_Object, track: c_int,
                                           for_deletion: c_int,
                                           norecord: Lisp_Object) -> Lisp_Object
 {
@@ -2727,7 +2727,7 @@ DEFUN! ("frame-parent", Fframe_parent, Sframe_parent,
 
 /* Return true if frame AF is an ancestor of frame DF.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_ancestor_p (af: *mut frame, df: *mut frame) -> bool
+pub unsafe extern "C-unwind" fn frame_ancestor_p (af: *mut frame, df: *mut frame) -> bool
 {
   let mut pf: *mut frame = FRAME_PARENT_FRAME (df);
 
@@ -2773,7 +2773,7 @@ DEFUN! ("frame-ancestor-p", Fframe_ancestor_p, Sframe_ancestor_p,
    Note that the root of a root frame is itself. */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn root_frame (f: *mut frame) -> *mut frame
+pub unsafe extern "C-unwind" fn root_frame (f: *mut frame) -> *mut frame
 {
   let mut f = f;
   while !FRAME_PARENT_FRAME (f).is_null ()
@@ -3056,7 +3056,7 @@ unsafe fn other_frames (f: *mut frame, invisible: bool, force: bool) -> bool
  * Any other value of FORCE implements the semantics described for
  * Fdelete_frame.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn delete_frame (frame: Lisp_Object, force: Lisp_Object) -> Lisp_Object
+pub unsafe extern "C-unwind" fn delete_frame (frame: Lisp_Object, force: Lisp_Object) -> Lisp_Object
 {
   let mut frame = frame;
   let f: *mut frame = decode_any_frame (frame);
@@ -3568,7 +3568,7 @@ DEFUN! ("delete-frame", Fdelete_frame, Sdelete_frame, 0, 2, "",
  * frames an `edge' return value is preferred.
  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_internal_border_part (f: *mut frame, x: c_int, y: c_int)
+pub unsafe extern "C-unwind" fn frame_internal_border_part (f: *mut frame, x: c_int, y: c_int)
   -> internal_border_part
 {
   let border: c_int = if FRAME_INTERNAL_BORDER_WIDTH (f) != 0
@@ -3655,7 +3655,7 @@ DEFUN! ("mouse-position", Fmouse_position, Smouse_position, 0, 0, 0,
 });
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mouse_position (call_mouse_position_function: bool) -> Lisp_Object
+pub unsafe extern "C-unwind" fn mouse_position (call_mouse_position_function: bool) -> Lisp_Object
 {
   let mut f: *mut frame;
   let mut lispy_dummy: Lisp_Object = Qnil ();
@@ -4087,7 +4087,7 @@ DEFUN! ("frame-after-make-frame",
 /* Discard BUFFER from the buffer-list and buried-buffer-list of each frame.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frames_discard_buffer (buffer: Lisp_Object)
+pub unsafe extern "C-unwind" fn frames_discard_buffer (buffer: Lisp_Object)
 {
   let mut frame: Lisp_Object = Qnil ();
   let mut tail: Lisp_Object = Qnil ();
@@ -4104,7 +4104,7 @@ pub unsafe extern "C" fn frames_discard_buffer (buffer: Lisp_Object)
    If the alist already has an element for PROP, we change it.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn store_in_alist (alistptr: *mut Lisp_Object, prop: Lisp_Object,
+pub unsafe extern "C-unwind" fn store_in_alist (alistptr: *mut Lisp_Object, prop: Lisp_Object,
                                          val: Lisp_Object)
 {
   let tem: Lisp_Object = Fassq (prop, *alistptr);
@@ -4165,7 +4165,7 @@ unsafe fn set_term_frame_name (f: *mut frame, name: Lisp_Object)
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn store_frame_param (f: *mut frame, prop: Lisp_Object, val: Lisp_Object)
+pub unsafe extern "C-unwind" fn store_frame_param (f: *mut frame, prop: Lisp_Object, val: Lisp_Object)
 {
   let old_alist_elt: Lisp_Object;
   let mut val = val;
@@ -5168,7 +5168,7 @@ macro_rules! PRIuMAX { () => { "ju" } }
 /* The mirror-gap functions this half calls; each `/// C:` is the header's own prototype
    (PORTING.md P-72 rule 3, the `frame.rs` use-site shape above).  */
 #[cfg (feature = "have_window_system")]
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   /// C: lisp.h 4542: extern Lisp_Object make_formatted_string (const char *, ...);
   pub fn make_formatted_string (format: *const c_char, ...) -> Lisp_Object;
 
@@ -5414,7 +5414,7 @@ unsafe fn frame_float (f: *mut frame, val: Lisp_Object, what: frame_float_type,
    `*mut c_void` (P-80's untyped-pointer rule; `dispextern.rs` 3511), so the port reads the slot
    as `*mut c_void` and casts it to the typedef spelled here.  */
 #[cfg (feature = "have_window_system")]
-type frame_parm_handler = Option<unsafe extern "C" fn (f: *mut frame, val: Lisp_Object,
+type frame_parm_handler = Option<unsafe extern "C-unwind" fn (f: *mut frame, val: Lisp_Object,
                                                         oldval: Lisp_Object)>;
 
 #[cfg (feature = "have_window_system")]
@@ -5452,7 +5452,7 @@ unsafe fn handle_frame_param (f: *mut frame, prop: Lisp_Object, val: Lisp_Object
    (PORTING.md 0.2).  */
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn gui_set_frame_parameters_1 (f: *mut frame, mut alist: Lisp_Object,
+pub unsafe extern "C-unwind" fn gui_set_frame_parameters_1 (f: *mut frame, mut alist: Lisp_Object,
                                                       default_parameter: bool)
 {
   let mut tail: Lisp_Object;
@@ -5777,7 +5777,7 @@ pub unsafe extern "C" fn gui_set_frame_parameters_1 (f: *mut frame, mut alist: L
 /* C 5396-5400.  */
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn gui_set_frame_parameters (f: *mut frame, alist: Lisp_Object)
+pub unsafe extern "C-unwind" fn gui_set_frame_parameters (f: *mut frame, alist: Lisp_Object)
 {
   gui_set_frame_parameters_1 (f, alist, false);
 }
@@ -5790,7 +5790,7 @@ pub unsafe extern "C" fn gui_set_frame_parameters (f: *mut frame, alist: Lisp_Ob
 /* C 5408-5488: `gui_report_frame_params`.  */
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn gui_report_frame_params (f: *mut frame, alistptr: *mut Lisp_Object)
+pub unsafe extern "C-unwind" fn gui_report_frame_params (f: *mut frame, alistptr: *mut Lisp_Object)
 {
   let mut tem: Lisp_Object = Qnil ();
   let mut w: uintmax_t = 0;
@@ -5899,7 +5899,7 @@ pub unsafe extern "C" fn gui_report_frame_params (f: *mut frame, alistptr: *mut 
 /* C 5494-5510: `gui_set_fullscreen`.  */
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn gui_set_fullscreen (f: *mut frame, new_value: Lisp_Object,
+pub unsafe extern "C-unwind" fn gui_set_fullscreen (f: *mut frame, new_value: Lisp_Object,
 					     old_value: Lisp_Object)
 {
   if NILP (new_value)
@@ -5922,7 +5922,7 @@ pub unsafe extern "C" fn gui_set_fullscreen (f: *mut frame, new_value: Lisp_Obje
 /* C 5516-5578: `gui_set_line_spacing`.  */
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn gui_set_line_spacing (f: *mut frame, new_value: Lisp_Object,
+pub unsafe extern "C-unwind" fn gui_set_line_spacing (f: *mut frame, new_value: Lisp_Object,
 					       old_value: Lisp_Object)
 {
   if NILP (new_value)
@@ -5997,7 +5997,7 @@ pub unsafe extern "C" fn gui_set_line_spacing (f: *mut frame, new_value: Lisp_Ob
 /* C 5584-5604: `gui_set_screen_gamma`.  */
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn gui_set_screen_gamma (f: *mut frame, new_value: Lisp_Object,
+pub unsafe extern "C-unwind" fn gui_set_screen_gamma (f: *mut frame, new_value: Lisp_Object,
 					       old_value: Lisp_Object)
 {
   let mut bgcolor: Lisp_Object;
@@ -6022,7 +6022,7 @@ pub unsafe extern "C" fn gui_set_screen_gamma (f: *mut frame, new_value: Lisp_Ob
 /* C 5607-5740: `gui_set_font`.  */
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn gui_set_font (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object)
+pub unsafe extern "C-unwind" fn gui_set_font (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object)
 {
   let mut arg = arg;
   let mut font_object: Lisp_Object = Qnil ();
@@ -6160,7 +6160,7 @@ pub unsafe extern "C" fn gui_set_font (f: *mut frame, arg: Lisp_Object, oldval: 
 /* C 5742-5797: `gui_set_font_backend`.  */
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn gui_set_font_backend (f: *mut frame, new_value: Lisp_Object,
+pub unsafe extern "C-unwind" fn gui_set_font_backend (f: *mut frame, new_value: Lisp_Object,
 					       old_value: Lisp_Object)
 {
   let mut new_value = new_value;
@@ -6229,7 +6229,7 @@ pub unsafe extern "C" fn gui_set_font_backend (f: *mut frame, new_value: Lisp_Ob
 /* C 5799-5821: `gui_set_left_fringe`.  */
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn gui_set_left_fringe (f: *mut frame, new_value: Lisp_Object,
+pub unsafe extern "C-unwind" fn gui_set_left_fringe (f: *mut frame, new_value: Lisp_Object,
 					      old_value: Lisp_Object)
 {
   let unit: c_int = FRAME_COLUMN_WIDTH (f);
@@ -6255,7 +6255,7 @@ pub unsafe extern "C" fn gui_set_left_fringe (f: *mut frame, new_value: Lisp_Obj
 /* C 5823-5845: `gui_set_right_fringe`.  */
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn gui_set_right_fringe (f: *mut frame, new_value: Lisp_Object,
+pub unsafe extern "C-unwind" fn gui_set_right_fringe (f: *mut frame, new_value: Lisp_Object,
 					       old_value: Lisp_Object)
 {
   let unit: c_int = FRAME_COLUMN_WIDTH (f);
@@ -6281,7 +6281,7 @@ pub unsafe extern "C" fn gui_set_right_fringe (f: *mut frame, new_value: Lisp_Ob
 /* C 5847-5859: `gui_set_border_width`.  */
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn gui_set_border_width (f: *mut frame, arg: Lisp_Object,
+pub unsafe extern "C-unwind" fn gui_set_border_width (f: *mut frame, arg: Lisp_Object,
 					       oldval: Lisp_Object)
 {
   let border_width: c_int = check_integer_range (arg, INT_MIN as intmax_t,
@@ -6299,7 +6299,7 @@ pub unsafe extern "C" fn gui_set_border_width (f: *mut frame, arg: Lisp_Object,
 /* C 5861-5873: `gui_set_right_divider_width`.  */
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn gui_set_right_divider_width (f: *mut frame, arg: Lisp_Object,
+pub unsafe extern "C-unwind" fn gui_set_right_divider_width (f: *mut frame, arg: Lisp_Object,
 						      oldval: Lisp_Object)
 {
   let old: c_int = FRAME_RIGHT_DIVIDER_WIDTH (f);
@@ -6316,7 +6316,7 @@ pub unsafe extern "C" fn gui_set_right_divider_width (f: *mut frame, arg: Lisp_O
 /* C 5875-5887: `gui_set_bottom_divider_width`.  */
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn gui_set_bottom_divider_width (f: *mut frame, arg: Lisp_Object,
+pub unsafe extern "C-unwind" fn gui_set_bottom_divider_width (f: *mut frame, arg: Lisp_Object,
 						       oldval: Lisp_Object)
 {
   let old: c_int = FRAME_BOTTOM_DIVIDER_WIDTH (f);
@@ -6333,7 +6333,7 @@ pub unsafe extern "C" fn gui_set_bottom_divider_width (f: *mut frame, arg: Lisp_
 /* C 5889-5901: `gui_set_visibility`.  */
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn gui_set_visibility (f: *mut frame, value: Lisp_Object,
+pub unsafe extern "C-unwind" fn gui_set_visibility (f: *mut frame, value: Lisp_Object,
 					     oldval: Lisp_Object)
 {
   let mut frame: Lisp_Object = Qnil ();
@@ -6350,7 +6350,7 @@ pub unsafe extern "C" fn gui_set_visibility (f: *mut frame, value: Lisp_Object,
 /* C 5903-5907: `gui_set_autoraise`.  */
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn gui_set_autoraise (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object)
+pub unsafe extern "C-unwind" fn gui_set_autoraise (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object)
 {
   auto_raise! (f, !NILP (arg));
 }
@@ -6358,7 +6358,7 @@ pub unsafe extern "C" fn gui_set_autoraise (f: *mut frame, arg: Lisp_Object, old
 /* C 5909-5913: `gui_set_autolower`.  */
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn gui_set_autolower (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object)
+pub unsafe extern "C-unwind" fn gui_set_autolower (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object)
 {
   auto_lower! (f, !NILP (arg));
 }
@@ -6366,7 +6366,7 @@ pub unsafe extern "C" fn gui_set_autolower (f: *mut frame, arg: Lisp_Object, old
 /* C 5915-5919: `gui_set_unsplittable`.  */
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn gui_set_unsplittable (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object)
+pub unsafe extern "C-unwind" fn gui_set_unsplittable (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object)
 {
   no_split! (f, !NILP (arg));
 }
@@ -6492,22 +6492,25 @@ const HeightValue: c_int = 0x0008;
 /* The mirror-gap functions this half calls; each `/// C:` is the header's own prototype
    (PORTING.md P-72 rule 3).  */
 #[cfg (feature = "have_window_system")]
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   /// C: dispextern.h 3993: extern Display_Info *check_x_display_info (Lisp_Object);
   pub fn check_x_display_info (frame: Lisp_Object) -> *mut Display_Info;
   /// C: dispextern.h 3688: extern void note_mouse_highlight (struct frame *, int, int);
   pub fn note_mouse_highlight (f: *mut frame, x: c_int, y: c_int);
+  /// C: lisp.h 4717: extern ptrdiff_t esprintf (char *, char const *, ...)
+  pub fn esprintf (buf: *mut c_char, format: *const c_char, ...) -> ptrdiff_t;
+}
+#[cfg (feature = "have_window_system")]
+unsafe extern "C" {
   /// C: xterm.h 1744: extern const char *x_get_string_resource (void *, const char *, const char *);
   pub fn x_get_string_resource (rdb: *mut c_void, name: *const c_char,
                                 class: *const c_char) -> *const c_char;
-  /// C: lisp.h 4717: extern ptrdiff_t esprintf (char *, char const *, ...)
-  pub fn esprintf (buf: *mut c_char, format: *const c_char, ...) -> ptrdiff_t;
 }
 
 /* C 5921-5951: `gui_set_vertical_scroll_bars`.  */
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn gui_set_vertical_scroll_bars (f: *mut frame, arg: Lisp_Object,
+pub unsafe extern "C-unwind" fn gui_set_vertical_scroll_bars (f: *mut frame, arg: Lisp_Object,
 						       oldval: Lisp_Object)
 {
   if (EQ (arg, Qleft ()) && FRAME_HAS_VERTICAL_SCROLL_BARS_ON_RIGHT (f) != 0)
@@ -6538,7 +6541,7 @@ pub unsafe extern "C" fn gui_set_vertical_scroll_bars (f: *mut frame, arg: Lisp_
 /* C 5953-5972: `gui_set_horizontal_scroll_bars`.  */
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn gui_set_horizontal_scroll_bars (f: *mut frame, arg: Lisp_Object,
+pub unsafe extern "C-unwind" fn gui_set_horizontal_scroll_bars (f: *mut frame, arg: Lisp_Object,
 							  oldval: Lisp_Object)
 {
   /* C 5956-5971's `#if USE_HORIZONTAL_SCROLL_BARS` (window.h 898-904; the mirror's
@@ -6565,7 +6568,7 @@ pub unsafe extern "C" fn gui_set_horizontal_scroll_bars (f: *mut frame, arg: Lis
 /* C 5974-6006: `gui_set_scroll_bar_width`.  */
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn gui_set_scroll_bar_width (f: *mut frame, arg: Lisp_Object,
+pub unsafe extern "C-unwind" fn gui_set_scroll_bar_width (f: *mut frame, arg: Lisp_Object,
 						   oldval: Lisp_Object)
 {
   let unit: c_int = FRAME_COLUMN_WIDTH (f);
@@ -6605,7 +6608,7 @@ pub unsafe extern "C" fn gui_set_scroll_bar_width (f: *mut frame, arg: Lisp_Obje
 /* C 6008-6042: `gui_set_scroll_bar_height`.  */
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn gui_set_scroll_bar_height (f: *mut frame, arg: Lisp_Object,
+pub unsafe extern "C-unwind" fn gui_set_scroll_bar_height (f: *mut frame, arg: Lisp_Object,
 						    oldval: Lisp_Object)
 {
   /* C 6011-6041's `#if USE_HORIZONTAL_SCROLL_BARS`.  */
@@ -6652,7 +6655,7 @@ pub unsafe extern "C" fn gui_set_scroll_bar_height (f: *mut frame, arg: Lisp_Obj
 #[cfg (any (feature = "have_pgtk", feature = "have_ntgui", feature = "have_haiku",
 	    feature = "have_ns"))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn gui_set_alpha (f: *mut frame, mut arg: Lisp_Object,
+pub unsafe extern "C-unwind" fn gui_set_alpha (f: *mut frame, mut arg: Lisp_Object,
 					 oldval: Lisp_Object)
 {
   let mut alpha: c_double = 1.0;
@@ -6712,7 +6715,7 @@ pub unsafe extern "C" fn gui_set_alpha (f: *mut frame, mut arg: Lisp_Object,
 /* C 6097-6124: `gui_set_alpha_background`.  */
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn gui_set_alpha_background (f: *mut frame, arg: Lisp_Object,
+pub unsafe extern "C-unwind" fn gui_set_alpha_background (f: *mut frame, arg: Lisp_Object,
 						   oldval: Lisp_Object)
 {
   let mut alpha: c_double = 1.0;
@@ -6744,7 +6747,7 @@ pub unsafe extern "C" fn gui_set_alpha_background (f: *mut frame, arg: Lisp_Obje
 /* C 6126-6131: `gui_set_borders_respect_alpha_background`.  */
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn gui_set_borders_respect_alpha_background (f: *mut frame,
+pub unsafe extern "C-unwind" fn gui_set_borders_respect_alpha_background (f: *mut frame,
 								   arg: Lisp_Object,
 								   oldval: Lisp_Object)
 {
@@ -6761,7 +6764,7 @@ pub unsafe extern "C" fn gui_set_borders_respect_alpha_background (f: *mut frame
  */
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn gui_set_no_special_glyphs (f: *mut frame, new_value: Lisp_Object,
+pub unsafe extern "C-unwind" fn gui_set_no_special_glyphs (f: *mut frame, new_value: Lisp_Object,
 						    old_value: Lisp_Object)
 {
   if !EQ (new_value, old_value)
@@ -6773,7 +6776,7 @@ pub unsafe extern "C" fn gui_set_no_special_glyphs (f: *mut frame, new_value: Li
 /* C 6151-6159: `gui_mouse_grabbed`.  */
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn gui_mouse_grabbed (dpyinfo: *mut Display_Info) -> bool
+pub unsafe extern "C-unwind" fn gui_mouse_grabbed (dpyinfo: *mut Display_Info) -> bool
 {
   return (*dpyinfo).grabbed != 0
     || ((*(*dpyinfo).terminal).any_grab_hook.is_some ()
@@ -6788,7 +6791,7 @@ pub unsafe extern "C" fn gui_mouse_grabbed (dpyinfo: *mut Display_Info) -> bool
 /* C 6164-6172: `gui_redo_mouse_highlight`.  */
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn gui_redo_mouse_highlight (dpyinfo: *mut Display_Info)
+pub unsafe extern "C-unwind" fn gui_redo_mouse_highlight (dpyinfo: *mut Display_Info)
 {
   if !(*dpyinfo).last_mouse_motion_frame.is_null ()
     && FRAME_LIVE_P ((*dpyinfo).last_mouse_motion_frame)
@@ -6816,7 +6819,7 @@ pub unsafe extern "C" fn gui_redo_mouse_highlight (dpyinfo: *mut Display_Info)
 /* C 6179-6243: `validate_x_resource_name`.  */
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn validate_x_resource_name ()
+pub unsafe extern "C-unwind" fn validate_x_resource_name ()
 {
   let mut len: ptrdiff_t = 0;
   /* Number of valid characters in the resource name.  */
@@ -6891,7 +6894,7 @@ pub unsafe extern "C" fn validate_x_resource_name ()
 /* C 6248-6319: `gui_display_get_resource`.  */
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn gui_display_get_resource (dpyinfo: *mut Display_Info,
+pub unsafe extern "C-unwind" fn gui_display_get_resource (dpyinfo: *mut Display_Info,
 						   attribute: Lisp_Object,
 						   class: Lisp_Object,
 						   component: Lisp_Object,
@@ -6996,7 +6999,7 @@ DEFUN! ("x-get-resource", Fx_get_resource, Sx_get_resource, 2, 4, 0,
 #[cfg (all (feature = "have_x_windows", not (feature = "use_x_toolkit"),
 	    not (feature = "use_gtk")))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn x_get_resource_string (attribute: *const c_char,
+pub unsafe extern "C-unwind" fn x_get_resource_string (attribute: *const c_char,
 						class: *const c_char) -> *const c_char
 {
   let result: *const c_char;
@@ -7034,7 +7037,7 @@ pub unsafe extern "C" fn x_get_resource_string (attribute: *const c_char,
 /* C 6381-6478: `gui_display_get_arg`.  */
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn gui_display_get_arg (dpyinfo: *mut Display_Info, alist: Lisp_Object,
+pub unsafe extern "C-unwind" fn gui_display_get_arg (dpyinfo: *mut Display_Info, alist: Lisp_Object,
 					      param: Lisp_Object, attribute: *const c_char,
 					      class: *const c_char, r#type: resource_types)
   -> Lisp_Object
@@ -7160,7 +7163,7 @@ unsafe fn gui_frame_get_arg (f: *mut frame, alist: Lisp_Object, param: Lisp_Obje
 /* C 6491-6505: `gui_frame_get_and_record_arg`.  */
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn gui_frame_get_and_record_arg (f: *mut frame, alist: Lisp_Object,
+pub unsafe extern "C-unwind" fn gui_frame_get_and_record_arg (f: *mut frame, alist: Lisp_Object,
 						       param: Lisp_Object,
 						       attribute: *const c_char,
 						       class: *const c_char,
@@ -7185,7 +7188,7 @@ pub unsafe extern "C" fn gui_frame_get_and_record_arg (f: *mut frame, alist: Lis
 /* C 6514-6535: `gui_default_parameter`.  */
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn gui_default_parameter (f: *mut frame, alist: Lisp_Object,
+pub unsafe extern "C-unwind" fn gui_default_parameter (f: *mut frame, alist: Lisp_Object,
 						prop: Lisp_Object, deflt: Lisp_Object,
 						xprop: *const c_char, xclass: *const c_char,
 						r#type: resource_types) -> Lisp_Object
@@ -7378,7 +7381,7 @@ DEFUN! ("x-parse-geometry", Fx_parse_geometry, Sx_parse_geometry, 1, 1, 0,
 /* C 6708-6967: `gui_figure_window_size`.  */
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn gui_figure_window_size (f: *mut frame, parms: Lisp_Object,
+pub unsafe extern "C-unwind" fn gui_figure_window_size (f: *mut frame, parms: Lisp_Object,
 						 tabbar_p: bool, toolbar_p: bool) -> c_long
 {
   let mut height: Lisp_Object;
@@ -7668,7 +7671,7 @@ pub mod frame_pointer_fns {
   use super::*;
 
   #[unsafe(no_mangle)]
-  pub unsafe extern "C" fn frame_make_pointer_invisible (f: *mut frame)
+  pub unsafe extern "C-unwind" fn frame_make_pointer_invisible (f: *mut frame)
   {
     if !NILP (Vmake_pointer_invisible)
       {
@@ -7685,7 +7688,7 @@ pub mod frame_pointer_fns {
   }
 
   #[unsafe(no_mangle)]
-  pub unsafe extern "C" fn frame_make_pointer_visible (f: *mut frame)
+  pub unsafe extern "C-unwind" fn frame_make_pointer_visible (f: *mut frame)
   {
     /* We don't check Vmake_pointer_invisible here in case the
        pointer was invisible when Vmake_pointer_invisible was set to nil.  */
@@ -7816,7 +7819,7 @@ DEFUN! ("reconsider-frame-fonts", Freconsider_frame_fonts, Sreconsider_frame_fon
 /// C 7124-7135: release each monitor name and then its array.
 #[cfg(feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn free_monitors(monitors: *mut MonitorInfo, n_monitors: c_int) {
+pub unsafe extern "C-unwind" fn free_monitors(monitors: *mut MonitorInfo, n_monitors: c_int) {
   for i in 0..n_monitors { xfree((*monitors.offset(i as isize)).name.cast()); }
   xfree(monitors.cast());
 }
@@ -7828,7 +7831,7 @@ pub unsafe extern "C" fn free_monitors(monitors: *mut MonitorInfo, n_monitors: c
 /// this configuration does not take it.
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn make_monitor_attribute_list (monitors: *mut MonitorInfo,
+pub unsafe extern "C-unwind" fn make_monitor_attribute_list (monitors: *mut MonitorInfo,
                                                       n_monitors: c_int,
                                                       primary_monitor: c_int,
                                                       monitor_frames: Lisp_Object,
@@ -7895,7 +7898,7 @@ pub unsafe extern "C" fn make_monitor_attribute_list (monitors: *mut MonitorInfo
    definition follows, so the port drops the declaration line (PORTING.md 0.1-12).  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn init_frame_once ()
+pub unsafe extern "C-unwind" fn init_frame_once ()
 {
   staticpro (&raw mut Vframe_list);
   staticpro (&raw mut selected_frame);
@@ -7905,7 +7908,7 @@ pub unsafe extern "C" fn init_frame_once ()
   pdumper_do_now_and_after_load (Some (init_frame_once_for_pdumper));
 }
 
-unsafe extern "C" fn init_frame_once_for_pdumper ()
+unsafe extern "C-unwind" fn init_frame_once_for_pdumper ()
 {
   PDUMPER_RESET_LV! (Vframe_list, Qnil ());
   PDUMPER_RESET_LV! (selected_frame, Qnil ());
@@ -7968,7 +7971,7 @@ pub static mut delete_frame_choose_selected: Lisp_Object = lisp_h_Qnil ();
 pub static mut Vtoolkit_theme: Lisp_Object = lisp_h_Qnil ();
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_frame ()
+pub unsafe extern "C-unwind" fn syms_of_frame ()
 {
   DEFSYM! (Qframep, c"framep");
   DEFSYM! (Qframe_live_p, c"frame-live-p");

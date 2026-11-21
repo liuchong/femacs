@@ -137,7 +137,7 @@ macro_rules! CODING_SPEC_CCL_PROGRAM {
 pub mod ccl_decls {
   use super::*;
 
-    unsafe extern "C" {
+    unsafe extern "C-unwind" {
     pub fn setup_ccl_program (ccl: *mut ccl_program, ccl_prog: Lisp_Object) -> bool;
     pub fn ccl_driver (ccl: *mut ccl_program, source: *mut c_int, destination: *mut c_int,
 		       src_size: c_int, dst_size: c_int, charset_list: Lisp_Object);

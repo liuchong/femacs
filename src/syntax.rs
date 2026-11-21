@@ -239,7 +239,7 @@ fn bset_syntax_table (b: *mut buffer, val: Lisp_Object)
 
 /* Whether the syntax of the character C has the prefix flag set.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn syntax_prefix_flag_p (c: c_int) -> bool
+pub unsafe extern "C-unwind" fn syntax_prefix_flag_p (c: c_int) -> bool
 {
   return SYNTAX_FLAGS_PREFIX (SYNTAX_WITH_FLAGS (c));
 }
@@ -320,7 +320,7 @@ unsafe fn SETUP_SYNTAX_TABLE (from: ptrdiff_t, count: ptrdiff_t)
    FROMBYTE is an regexp-byteoffset.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn RE_SETUP_SYNTAX_TABLE_FOR_OBJECT (object: Lisp_Object,
+pub unsafe extern "C-unwind" fn RE_SETUP_SYNTAX_TABLE_FOR_OBJECT (object: Lisp_Object,
 							    frombyte: ptrdiff_t)
 {
   SETUP_BUFFER_SYNTAX_TABLE ();
@@ -372,7 +372,7 @@ pub unsafe extern "C" fn RE_SETUP_SYNTAX_TABLE_FOR_OBJECT (object: Lisp_Object,
    start/end of OBJECT.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn update_syntax_table (charpos: ptrdiff_t, count: EMACS_INT,
+pub unsafe extern "C-unwind" fn update_syntax_table (charpos: ptrdiff_t, count: EMACS_INT,
 					      object: Lisp_Object)
 {
   let mut tmp_table: Lisp_Object;
@@ -557,7 +557,7 @@ unsafe fn parse_sexp_propertize (charpos: ptrdiff_t)
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn update_syntax_table_forward (charpos: ptrdiff_t, object: Lisp_Object)
+pub unsafe extern "C-unwind" fn update_syntax_table_forward (charpos: ptrdiff_t, object: Lisp_Object)
 {
   if unsafe { gl_state.e_property_truncated }
     {
@@ -1372,7 +1372,7 @@ DEFUN! ("modify-syntax-entry", Fmodify_syntax_entry, Smodify_syntax_entry, 2, 3,
    COUNT negative means scan backward and stop at word beginning.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn scan_words (from: ptrdiff_t, count: EMACS_INT) -> ptrdiff_t
+pub unsafe extern "C-unwind" fn scan_words (from: ptrdiff_t, count: EMACS_INT) -> ptrdiff_t
 {
   let beg: ptrdiff_t = BEGV! ();
   let end: ptrdiff_t = ZV! ();
@@ -2872,7 +2872,7 @@ unsafe fn in_2char_comment_start (state: *mut lisp_parse_state, prev_from_syntax
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn init_syntax_once ()
+pub unsafe extern "C-unwind" fn init_syntax_once ()
 {
   let mut i: c_int;
   let mut c: c_int;
@@ -4198,7 +4198,7 @@ DEFUN! ("parse-partial-sexp", Fparse_partial_sexp, Sparse_partial_sexp, 2, 6, 0,
 });
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_syntax ()
+pub unsafe extern "C-unwind" fn syms_of_syntax ()
 {
   DEFSYM! (Qsyntax_table_p, "syntax-table-p");
   DEFSYM! (Qsyntax_ppss, "syntax-ppss");

@@ -23,7 +23,7 @@ pub const EMACS_GNUTLS_DEFINED: bool = true;
 pub mod gnutls_decls {
   use super::*;
 
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     pub fn syms_of_gnutls ();
     #[cfg(feature = "have_gnutls")]
     pub fn emacs_gnutls_write(p: *mut Lisp_Process, buf: *const c_char,

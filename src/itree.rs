@@ -435,7 +435,7 @@ unsafe fn itree_validate (tree: *mut itree_tree, node: *mut itree_node)
 /* Initialize an allocated node. */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn itree_node_init (node: *mut itree_node,
+pub unsafe extern "C-unwind" fn itree_node_init (node: *mut itree_node,
 					  front_advance: bool, rear_advance: bool,
 					  data: Lisp_Object)
 {
@@ -454,7 +454,7 @@ pub unsafe extern "C" fn itree_node_init (node: *mut itree_node,
 /* Return NODE's begin value, computing it if necessary. */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn itree_node_begin (tree: *mut itree_tree,
+pub unsafe extern "C-unwind" fn itree_node_begin (tree: *mut itree_tree,
 					   node: *mut itree_node) -> ptrdiff_t
 {
   itree_validate (tree, node);
@@ -464,7 +464,7 @@ pub unsafe extern "C" fn itree_node_begin (tree: *mut itree_tree,
 /* Return NODE's end value, computing it if necessary. */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn itree_node_end (tree: *mut itree_tree,
+pub unsafe extern "C-unwind" fn itree_node_end (tree: *mut itree_tree,
 					 node: *mut itree_node) -> ptrdiff_t
 {
   itree_validate (tree, node);
@@ -474,7 +474,7 @@ pub unsafe extern "C" fn itree_node_end (tree: *mut itree_tree,
 /* Allocate an itree_tree.  Free with itree_destroy.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn itree_create () -> *mut itree_tree
+pub unsafe extern "C-unwind" fn itree_create () -> *mut itree_tree
 {
   let tree: *mut itree_tree = xmalloc (size_of::<itree_tree> ()) as *mut itree_tree;
   itree_clear (tree);
@@ -484,7 +484,7 @@ pub unsafe extern "C" fn itree_create () -> *mut itree_tree
 /* Reset the tree TREE to its empty state.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn itree_clear (tree: *mut itree_tree)
+pub unsafe extern "C-unwind" fn itree_clear (tree: *mut itree_tree)
 {
   (*tree).root = std::ptr::null_mut ();
   (*tree).otick = 1;
@@ -501,7 +501,7 @@ unsafe fn itree_init (tree: *mut itree_tree)
 
 /* Release a tree, freeing its allocated memory.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn itree_destroy (tree: *mut itree_tree)
+pub unsafe extern "C-unwind" fn itree_destroy (tree: *mut itree_tree)
 {
   eassert! ((*tree).root.is_null ());
   xfree (tree as *mut c_void);
@@ -510,7 +510,7 @@ pub unsafe extern "C" fn itree_destroy (tree: *mut itree_tree)
 /* Return the number of nodes in TREE.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn itree_size (tree: *mut itree_tree) -> intmax_t
+pub unsafe extern "C-unwind" fn itree_size (tree: *mut itree_tree) -> intmax_t
 {
   return (*tree).size;
 }
@@ -732,7 +732,7 @@ unsafe fn itree_insert_node (tree: *mut itree_tree, node: *mut itree_node)
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn itree_insert (tree: *mut itree_tree, node: *mut itree_node,
+pub unsafe extern "C-unwind" fn itree_insert (tree: *mut itree_tree, node: *mut itree_node,
 				       begin: ptrdiff_t, end: ptrdiff_t)
 {
   (*node).begin = begin;
@@ -744,7 +744,7 @@ pub unsafe extern "C" fn itree_insert (tree: *mut itree_tree, node: *mut itree_n
 /* Safely modify a node's interval. */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn itree_node_set_region (tree: *mut itree_tree,
+pub unsafe extern "C-unwind" fn itree_node_set_region (tree: *mut itree_tree,
 						node: *mut itree_node,
 						begin: ptrdiff_t, end: ptrdiff_t)
 {
@@ -967,7 +967,7 @@ unsafe fn itree_transplant (tree: *mut itree_tree,
 /* Remove NODE from TREE and return it.  NODE must exist in TREE.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn itree_remove (tree: *mut itree_tree, node: *mut itree_node)
+pub unsafe extern "C-unwind" fn itree_remove (tree: *mut itree_tree, node: *mut itree_node)
   -> *mut itree_node
 {
   eassert! (itree_contains (tree, node));
@@ -1059,7 +1059,7 @@ pub unsafe extern "C" fn itree_remove (tree: *mut itree_tree, node: *mut itree_n
    are treated as if their front_advance/rear_advance was true. */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn itree_insert_gap (tree: *mut itree_tree,
+pub unsafe extern "C-unwind" fn itree_insert_gap (tree: *mut itree_tree,
 					   pos: ptrdiff_t, length: ptrdiff_t,
 					   before_markers: bool)
 {
@@ -1176,7 +1176,7 @@ pub unsafe extern "C" fn itree_insert_gap (tree: *mut itree_tree,
    intersecting it.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn itree_delete_gap (tree: *mut itree_tree,
+pub unsafe extern "C-unwind" fn itree_delete_gap (tree: *mut itree_tree,
 					   pos: ptrdiff_t, length: ptrdiff_t)
 {
   if tree.is_null () || length <= 0 || (*tree).root.is_null ()
@@ -1468,7 +1468,7 @@ unsafe fn itree_iterator_first_node (tree: *mut itree_tree,
    given ORDER.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn itree_iterator_start (iter: *mut itree_iterator,
+pub unsafe extern "C-unwind" fn itree_iterator_start (iter: *mut itree_iterator,
 					       tree: *mut itree_tree,
 					       begin: ptrdiff_t, end: ptrdiff_t,
 					       order: itree_order) -> *mut itree_iterator
@@ -1489,7 +1489,7 @@ pub unsafe extern "C" fn itree_iterator_start (iter: *mut itree_iterator,
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn itree_iterator_next (iter: *mut itree_iterator) -> *mut itree_node
+pub unsafe extern "C-unwind" fn itree_iterator_next (iter: *mut itree_iterator) -> *mut itree_node
 {
   let mut node: *mut itree_node = (*iter).node;
   while !node.is_null ()
@@ -1507,7 +1507,7 @@ pub unsafe extern "C" fn itree_iterator_next (iter: *mut itree_iterator) -> *mut
    the current one.  I.E. it can't grow on either side. */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn itree_iterator_narrow (g: *mut itree_iterator,
+pub unsafe extern "C-unwind" fn itree_iterator_narrow (g: *mut itree_iterator,
 						begin: ptrdiff_t, end: ptrdiff_t)
 {
   eassert! (!g.is_null ());

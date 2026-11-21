@@ -301,17 +301,17 @@ pub struct Lisp_Symbol {
 #[repr(C, align(8))]
 #[derive(Clone, Copy)]
 pub union Lisp_Subr_function {
-    pub a0: Option<unsafe extern "C" fn() -> Lisp_Object>,
-    pub a1: Option<unsafe extern "C" fn(Lisp_Object) -> Lisp_Object>,
-    pub a2: Option<unsafe extern "C" fn(Lisp_Object, Lisp_Object) -> Lisp_Object>,
-    pub a3: Option<unsafe extern "C" fn(Lisp_Object, Lisp_Object, Lisp_Object) -> Lisp_Object>,
-    pub a4: Option<unsafe extern "C" fn(Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object) -> Lisp_Object>,
-    pub a5: Option<unsafe extern "C" fn(Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object) -> Lisp_Object>,
-    pub a6: Option<unsafe extern "C" fn(Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object) -> Lisp_Object>,
-    pub a7: Option<unsafe extern "C" fn(Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object) -> Lisp_Object>,
-    pub a8: Option<unsafe extern "C" fn(Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object) -> Lisp_Object>,
-    pub aMANY: Option<unsafe extern "C" fn(isize, *mut Lisp_Object) -> Lisp_Object>,
-    pub aUNEVALLED: Option<unsafe extern "C" fn(Lisp_Object) -> Lisp_Object>,
+    pub a0: Option<unsafe extern "C-unwind" fn() -> Lisp_Object>,
+    pub a1: Option<unsafe extern "C-unwind" fn(Lisp_Object) -> Lisp_Object>,
+    pub a2: Option<unsafe extern "C-unwind" fn(Lisp_Object, Lisp_Object) -> Lisp_Object>,
+    pub a3: Option<unsafe extern "C-unwind" fn(Lisp_Object, Lisp_Object, Lisp_Object) -> Lisp_Object>,
+    pub a4: Option<unsafe extern "C-unwind" fn(Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object) -> Lisp_Object>,
+    pub a5: Option<unsafe extern "C-unwind" fn(Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object) -> Lisp_Object>,
+    pub a6: Option<unsafe extern "C-unwind" fn(Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object) -> Lisp_Object>,
+    pub a7: Option<unsafe extern "C-unwind" fn(Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object) -> Lisp_Object>,
+    pub a8: Option<unsafe extern "C-unwind" fn(Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object) -> Lisp_Object>,
+    pub aMANY: Option<unsafe extern "C-unwind" fn(isize, *mut Lisp_Object) -> Lisp_Object>,
+    pub aUNEVALLED: Option<unsafe extern "C-unwind" fn(Lisp_Object) -> Lisp_Object>,
 }
 
 #[repr(C)]
@@ -886,7 +886,7 @@ pub fn lisp_h_XCONS_untracked (a: Lisp_Object) -> *mut Lisp_Cons {
 #[cfg(feature = "femacs_gc_generational")]
 pub mod cons_generation_decls {
     use super::*;
-    unsafe extern "C" {
+    unsafe extern "C-unwind" {
         pub fn femacs_gc_cons_written(cell: Lisp_Object);
         pub fn femacs_gc_cons_escaped(cell: Lisp_Object);
         pub fn femacs_gc_young_cadence_pending() -> bool;
@@ -1947,14 +1947,14 @@ pub const GC_ROOT_BUFFER_LOCAL_NAME: gc_root_type = 2;
 
 /* C 4504-4508: the visitor `visit_static_gc_roots` is handed (C 4509).  Its first member is
    `void (*visit) (Lisp_Object const *, enum gc_root_type, void *)`, spelled the way this file
-   spells every function pointer (`Option<unsafe extern "C" fn …>`, PORTING.md 1.4); the record was
+   spells every function pointer (`Option<unsafe extern "C-unwind" fn …>`, PORTING.md 1.4); the record was
    missing from this mirror until the missing-type check asked for it (status 3.153) - the port had
    recorded it in a comment in `pdumper.rs` instead.  */
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct gc_root_visitor
 {
-  pub visit: Option<unsafe extern "C" fn (*const Lisp_Object, gc_root_type, *mut c_void)>,
+  pub visit: Option<unsafe extern "C-unwind" fn (*const Lisp_Object, gc_root_type, *mut c_void)>,
   pub data: *mut c_void,
 }
 pub const GC_ROOT_C_SYMBOL: gc_root_type = 3;
@@ -1971,7 +1971,7 @@ pub struct specpdl_ref {
 #[derive(Clone, Copy)]
 pub struct specbinding_unwind {
     pub kind: u8, pub _pad: [u8; 7],
-    pub func: Option<unsafe extern "C" fn(Lisp_Object)>,
+    pub func: Option<unsafe extern "C-unwind" fn(Lisp_Object)>,
     pub arg: Lisp_Object,
     pub eval_depth: EMACS_INT,
 }
@@ -1988,16 +1988,16 @@ pub struct specbinding_unwind_array {
 #[derive(Clone, Copy)]
 pub struct specbinding_unwind_ptr {
     pub kind: u8, pub _pad: [u8; 7],
-    pub func: Option<unsafe extern "C" fn(*mut c_void)>,
+    pub func: Option<unsafe extern "C-unwind" fn(*mut c_void)>,
     pub arg: *mut c_void,
-    pub mark: Option<unsafe extern "C" fn(*mut c_void)>,
+    pub mark: Option<unsafe extern "C-unwind" fn(*mut c_void)>,
 }
 
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct specbinding_unwind_int {
     pub kind: u8, pub _pad: [u8; 7],
-    pub func: Option<unsafe extern "C" fn(c_int)>,
+    pub func: Option<unsafe extern "C-unwind" fn(c_int)>,
     pub arg: c_int,
 }
 
@@ -2005,7 +2005,7 @@ pub struct specbinding_unwind_int {
 #[derive(Clone, Copy)]
 pub struct specbinding_unwind_intmax {
     pub kind: u8, pub _pad: [u8; 7],
-    pub func: Option<unsafe extern "C" fn(i64)>,
+    pub func: Option<unsafe extern "C-unwind" fn(i64)>,
     pub arg: i64,
 }
 
@@ -2021,7 +2021,7 @@ pub struct specbinding_unwind_excursion {
 #[derive(Clone, Copy)]
 pub struct specbinding_unwind_void {
     pub kind: u8, pub _pad: [u8; 7],
-    pub func: Option<unsafe extern "C" fn()>,
+    pub func: Option<unsafe extern "C-unwind" fn()>,
 }
 
 #[repr(C)]
@@ -2244,17 +2244,22 @@ pub fn modiff_to_integer (a: i64) -> Lisp_Object {
     make_int (a as intmax_t)
 }
 
-#[inline(always)]
-pub fn flush_stack_call_func (func: Option<unsafe extern "C" fn(*mut c_void)>, arg: *mut c_void) {
-    // C calls __builtin_unwind_init() here so the GC can see the registers; the
-    // port uses a setjmp-based barrier (PORTING.md 4.3) and forbids tail calls
-    // in this path (the C adds an empty asm for the same reason, bug#65727).
-    flush_stack_barrier ();
-    unsafe { flush_stack_call_func1 (func, arg) };
-    flush_stack_barrier ();
+#[inline(never)]
+pub fn flush_stack_call_func (func: Option<unsafe extern "C-unwind" fn(*mut c_void)>, arg: *mut c_void) {
+    // SAFETY: `buf` resides in `flush_stack_call_func`'s own active stack frame (strictly
+    // between `m_stack_bottom` and `flush_stack_call_func1`'s `stack_top`) for the entire
+    // duration of `func(arg)`. `_setjmp` spills all callee-saved registers into `buf`, and
+    // `black_box` after `flush_stack_call_func1` prevents tail-call optimization or slot reuse.
+    unsafe {
+        let mut buf = std::mem::MaybeUninit::<[usize; 64]>::zeroed ();
+        setjmp_for_barrier (buf.as_mut_ptr () as *mut c_void);
+        std::hint::black_box (buf.as_mut_ptr ());
+        flush_stack_call_func1 (func, arg);
+        std::hint::black_box (&mut buf);
+    }
 }
 
-// The setjmp used as the register barrier of `flush_stack_barrier` (P-18).  This is the
+// The setjmp used as the register barrier of `flush_stack_call_func` (P-18).  This is the
 // port's own alias for `_setjmp`, not a name from lisp.h, so it stays at the crate root.
 unsafe extern "C" {
     #[link_name = "_setjmp"]
@@ -2263,10 +2268,9 @@ unsafe extern "C" {
 
 #[inline(never)]
 pub fn flush_stack_barrier () {
-    // SAFETY: a setjmp writes the callee-saved registers to this frame, which is
-    // the mechanism alloc.c relies on before it scans the stack.
+    // SAFETY: kept for any direct caller; `flush_stack_call_func` spills into its own live frame.
     unsafe {
-        let mut buf = std::mem::MaybeUninit::<[u8; 256]>::uninit ();
+        let mut buf = std::mem::MaybeUninit::<[usize; 64]>::zeroed ();
         setjmp_for_barrier (buf.as_mut_ptr () as *mut c_void);
         std::hint::black_box (&mut buf);
     }
@@ -2374,7 +2378,7 @@ pub type hash_idx_t = i32;
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct hash_table_test {
-    pub hashfn: Option<unsafe extern "C" fn(Lisp_Object, *mut Lisp_Hash_Table) -> hash_hash_t>,
+    pub hashfn: Option<unsafe extern "C-unwind" fn(Lisp_Object, *mut Lisp_Hash_Table) -> hash_hash_t>,
     pub cmpfn: Lisp_Object,
     pub user_hash_function: Lisp_Object,
     pub user_cmp_function: Lisp_Object,
@@ -2576,10 +2580,10 @@ pub fn HASH_TABLE_SIZE (h: *mut Lisp_Hash_Table) -> hash_idx_t { unsafe { (*h).t
 pub mod lisp_hash_decls {
   use super::*;
 
-  unsafe extern "C" { pub fn hash_find (h: *mut Lisp_Hash_Table, key: Lisp_Object) -> ptrdiff_t; }
-  unsafe extern "C" { pub fn hash_put (h: *mut Lisp_Hash_Table, key: Lisp_Object,
+  unsafe extern "C-unwind" { pub fn hash_find (h: *mut Lisp_Hash_Table, key: Lisp_Object) -> ptrdiff_t; }
+  unsafe extern "C-unwind" { pub fn hash_put (h: *mut Lisp_Hash_Table, key: Lisp_Object,
                                         value: Lisp_Object, hash: hash_hash_t) -> ptrdiff_t; }
-  unsafe extern "C" { pub fn string_make_unibyte (string: Lisp_Object) -> Lisp_Object; }
+  unsafe extern "C-unwind" { pub fn string_make_unibyte (string: Lisp_Object) -> Lisp_Object; }
 }
 pub use self::lisp_hash_decls::*;
 
@@ -3137,12 +3141,24 @@ macro_rules! ALLOCATE_PLAIN_PSEUDOVECTOR {
 /// which Rust cannot name, so the *scope* carries the pool's height and `SAFE_FREE!` releases
 /// back to it (PORTING.md P-05, P-117 ⑧).  The declaration order matters at the call site:
 /// the height is read before anything is allocated in the scope.
+pub struct SaStackUnwindGuard(pub usize);
+
+impl Drop for SaStackUnwindGuard {
+    #[inline]
+    fn drop(&mut self) {
+        // SAFETY: `sa_stack_release_to` is idempotent and releases only blocks owned by
+        // `current_thread` pushed after `self.0`.
+        unsafe { sa_stack_release_to(self.0) };
+    }
+}
+
 #[macro_export]
 macro_rules! USE_SAFE_ALLOCA {
     ($sa_avail:ident, $sa_count:ident, $sa_mark:ident) => {
         let mut $sa_avail: isize = MAX_ALLOCA;
         let $sa_count: specpdl_ref = SPECPDL_INDEX ();
         let $sa_mark: usize = unsafe { sa_stack_mark () };
+        let _sa_unwind_guard = $crate::common::SaStackUnwindGuard ($sa_mark);
     };
 }
 
@@ -3208,7 +3224,7 @@ macro_rules! SAFE_NALLOCA {
     }};
 }
 
-pub unsafe extern "C" fn xfree_wrapper (p: *mut c_void) { unsafe { xfree (p) } }
+pub unsafe extern "C-unwind" fn xfree_wrapper (p: *mut c_void) { unsafe { xfree (p) } }
 
 #[macro_export]
 macro_rules! SAFE_ALLOCA_STRING {
@@ -3409,7 +3425,7 @@ pub fn call0 (fn_: Lisp_Object) -> Lisp_Object { calln! (fn_) }
 pub mod lisp_safe_decls {
   use super::*;
 
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     pub fn safe_funcall (nargs: ptrdiff_t, args: *mut Lisp_Object) -> Lisp_Object;
   }
 }
@@ -3502,9 +3518,9 @@ macro_rules! subr_function_pointer {
     (Lisp_Object, $cname:ident, ($($ty:ty),*)) => { Some ($cname) };
     (!, $cname:ident, ($($ty:ty),*)) => {
         Some (unsafe {
-            core::mem::transmute::<unsafe extern "C" fn($($ty),*) -> !,
-                                   unsafe extern "C" fn($($ty),*) -> Lisp_Object> (
-                $cname as unsafe extern "C" fn($($ty),*) -> !)
+            core::mem::transmute::<unsafe extern "C-unwind" fn($($ty),*) -> !,
+                                   unsafe extern "C-unwind" fn($($ty),*) -> Lisp_Object> (
+                $cname as unsafe extern "C-unwind" fn($($ty),*) -> !)
         })
     };
 }
@@ -3623,7 +3639,7 @@ macro_rules! DEFUN {
         // C: `Lisp_Object fnname` (external linkage, declared here, not among the
         // dump-only statics), plus the port's `#[unsafe(no_mangle)]` (PORTING.md 0.2).
         #[unsafe(no_mangle)]
-        pub unsafe extern "C" fn $cname ($($arg : $ty),*) -> $ret $body
+        pub unsafe extern "C-unwind" fn $cname ($($arg : $ty),*) -> $ret $body
     };
 }
 
@@ -3945,10 +3961,10 @@ pub mod other_units {
 
     /* C lisp.h 4307: `extern void mark_fringe_data (void);`  */
     #[cfg (feature = "have_window_system")]
-    unsafe extern "C" { pub fn mark_fringe_data (); }
+    unsafe extern "C-unwind" { pub fn mark_fringe_data (); }
     /* C lisp.h 4906: `extern void module_finalize_function (const struct Lisp_Module_Function *);`  */
     #[cfg (feature = "have_modules")]
-    unsafe extern "C" { pub fn module_finalize_function (function: *const c_void); }
+    unsafe extern "C-unwind" { pub fn module_finalize_function (function: *const c_void); }
 
     /* C 4889-4906 (`#ifdef HAVE_MODULES`): the opaque module-function pointer type and the six
        entry points `emacs-module.c` defines.  Android sets `HAVE_MODULES`, so `src/print.c`
@@ -3956,7 +3972,7 @@ pub mod other_units {
     #[cfg (feature = "have_modules")]
     pub type module_funcptr = unsafe extern "C" fn ();   // C 4889: a plain function pointer
     #[cfg (feature = "have_modules")]
-    unsafe extern "C" {
+    unsafe extern "C-unwind" {
       /* C 4895-4906.  */
       pub fn funcall_module (function: Lisp_Object, nargs: ptrdiff_t,
                              args: *mut Lisp_Object) -> Lisp_Object;
@@ -3970,7 +3986,7 @@ pub mod other_units {
     /* C 4280: `extern Lisp_Object plist_get (Lisp_Object, Lisp_Object);` - a definition in
        another unit (`src/fns.c`) that `src/keyboard.c` reads and whose header does not name it
        on this target.  */
-    unsafe extern "C" {
+    unsafe extern "C-unwind" {
       /// C: Lisp_Object plist_get (Lisp_Object, Lisp_Object)
       pub fn plist_get (plist: Lisp_Object, prop: Lisp_Object) -> Lisp_Object;
     }
@@ -3982,14 +3998,14 @@ pub mod other_units {
        declaration is one the `lisp-abi-probe` C leg cannot compare against - it rejected the
        whole harness with `use of undeclared identifier 'get_keysym_name'` (status 4.682).  */
     #[cfg (feature = "have_window_system")]
-    unsafe extern "C" {
+    unsafe extern "C-unwind" {
       /// C: char *get_keysym_name (int)
       pub fn get_keysym_name (keysym: c_int) -> *mut c_char;
     }
     /* C 5485-5486 (`#ifdef HAVE_TEXT_CONVERSION`): two entry points `src/textconv.c` defines and
        `src/keyboard.c` calls; `textconv.h` does not declare them, `lisp.h` does.  */
     #[cfg (feature = "have_text_conversion")]
-    unsafe extern "C" {
+    unsafe extern "C-unwind" {
       pub fn disable_text_conversion ();
       pub fn resume_text_conversion ();
     }
@@ -3999,14 +4015,14 @@ pub mod other_units {
     /// (P-39); without it, `src/emacs.c` 1510 read `cannot find function` on Android (measured,
     /// after the inline was gated with C's own condition).
     #[cfg (feature = "have_personality_addr_no_randomize")]
-    unsafe extern "C" {
+    unsafe extern "C-unwind" {
       pub fn maybe_disable_address_randomization (argc: c_int, argv: *mut *mut c_char) -> c_int;
     }
 
     // src/lisp.h 4268, 4330, 4345, 4363, 5039, 5110: cmds.c's callees — the definitions live in
     // editfns.c (concat2, replace_range), insdel.c (del_range, insert_and_inherit), search.c
     // (scan_newline_from_point) and indent.c (current_column); lisp.h declares them here.
-    unsafe extern "C" {
+    unsafe extern "C-unwind" {
         /* src/lisp.h 4268.  */
         /// C: Lisp_Object concat2 (Lisp_Object, Lisp_Object)
         pub fn concat2 (s1: Lisp_Object, s2: Lisp_Object) -> Lisp_Object;
@@ -4048,7 +4064,7 @@ pub mod other_units {
     }
 
     // src/lisp.h 619, 5298, 5541: bignum.c's three remaining callees.
-    unsafe extern "C" {
+    unsafe extern "C-unwind" {
         pub fn args_out_of_range_3 (a: Lisp_Object, b: Lisp_Object, c: Lisp_Object) -> !;
         pub fn get_random_ulong () -> c_ulong;
         pub fn xrealloc (block: *mut c_void, size: usize) -> *mut c_void;
@@ -4058,7 +4074,7 @@ pub mod other_units {
     // is eval.c's keymap helper, `validate_subarray` editfns.c's, and the three allocation
     // entries (`string_overflow`, `make_uninit_string`, `make_uninit_multibyte_string`)
     // alloc.c's; `AVOID` is `-> !` (PORTING.md 5.2).
-    unsafe extern "C" {
+    unsafe extern "C-unwind" {
         pub fn args_out_of_range (a: Lisp_Object, b: Lisp_Object) -> !;
         pub fn validate_subarray (array: Lisp_Object, from: Lisp_Object, to: Lisp_Object,
                                   size: ptrdiff_t, ifrom: *mut ptrdiff_t,
@@ -4077,13 +4093,13 @@ pub mod other_units {
     // declares them here, as lisp.h does, and the defining unit shadows the import
     // (P-39's shape).  `AVOID` is `-> !`.
     // src/lisp.h 690, 4296, 4300: floatfns.c's three non-static definitions.
-    unsafe extern "C" {
+    unsafe extern "C-unwind" {
         pub fn extract_float (num: Lisp_Object) -> c_double;              // floatfns.c
         pub fn double_integer_scale (d: c_double) -> c_int;               // floatfns.c
         pub fn fmod_float (x: Lisp_Object, y: Lisp_Object) -> Lisp_Object;  // floatfns.c
     }
 
-    unsafe extern "C" {
+    unsafe extern "C-unwind" {
         pub fn double_to_integer (d: c_double) -> Lisp_Object;            // bignum.c
         pub fn expt_integer (a: Lisp_Object, b: Lisp_Object) -> Lisp_Object;  // data.c
         pub fn make_float (d: c_double) -> Lisp_Object;                    // alloc.c
@@ -4094,44 +4110,44 @@ pub mod other_units {
     // definitions, C's prototypes have none.
     // src/lisp.h 4835-4836: AVOID is `-> !` (PORTING.md 5.2); `error` is C-variadic, so
     // the declaration is variadic too (the port's first variadic *call*).
-    unsafe extern "C" {
+    unsafe extern "C-unwind" {
         pub fn error (format: *const c_char, ...) -> !;
         pub fn verror (format: *const c_char, ap: core::ffi::VaList<'_>) -> !;
         pub fn vformat_string (format: *const c_char, ap: core::ffi::VaList<'_>) -> Lisp_Object;
     }
 
-    unsafe extern "C" {
+    unsafe extern "C-unwind" {
         pub fn staticpro (var: *const Lisp_Object);
-        pub fn map_char_table (c_function: Option<unsafe extern "C" fn (Lisp_Object, Lisp_Object, Lisp_Object)>,
+        pub fn map_char_table (c_function: Option<unsafe extern "C-unwind" fn (Lisp_Object, Lisp_Object, Lisp_Object)>,
                                function: Lisp_Object, table: Lisp_Object, arg: Lisp_Object);
     }
 
-    unsafe extern "C" {
+    unsafe extern "C-unwind" {
         pub fn die (msg: *const c_char, file: *const c_char, line: c_int) -> !;
         pub static mut suppress_checking: bool;
 // [U1] pub fn strlen (s: *const c_char) -> usize; provided by lib/include/string.rs
         // lisp.h 5302: `extern AVOID emacs_abort (void) NO_INLINE;` (the port keeps `-> !`).
         pub fn emacs_abort () -> !;
     }
-    unsafe extern "C" {
+    unsafe extern "C-unwind" {
         /// Set after Emacs has started up the first time (emacs.c).
         pub static mut initialized: bool;
         pub static mut gflags: gflags;
         }
-    unsafe extern "C" {
+    unsafe extern "C-unwind" {
         pub fn wrong_type_argument (predicate: Lisp_Object, value: Lisp_Object) -> !;
     }
-    unsafe extern "C" {
+    unsafe extern "C-unwind" {
         pub fn slow_eq (x: Lisp_Object, y: Lisp_Object) -> bool;
 // [U1] pub fn memchr (s: *const c_void, c: c_int, n: usize) -> *mut c_void; provided by lib/include/string.rs
     }
-    unsafe extern "C" {
+    unsafe extern "C-unwind" {
         pub fn char_table_ref (table: Lisp_Object, idx: c_int) -> Lisp_Object;
         pub fn char_table_set (table: Lisp_Object, idx: c_int, val: Lisp_Object);
     }
-    unsafe extern "C" {
+    unsafe extern "C-unwind" {
     }
-    unsafe extern "C" {
+    unsafe extern "C-unwind" {
         pub fn make_misc_ptr (a: *mut c_void) -> Lisp_Object;
         pub fn bignum_to_double (n: Lisp_Object) -> f64;
         pub fn make_bigint (n: i64) -> Lisp_Object;
@@ -4140,7 +4156,7 @@ pub mod other_units {
     // The specpdl is per-thread state in C (`#define specpdl (current_thread->m_specpdl)`,
     // thread.h 131-139): `include/thread.rs` defines all three as the macros C has, so no storage
     // is declared here (the stopgap that did so is retired).
-    unsafe extern "C" {
+    unsafe extern "C-unwind" {
         pub fn list1 (a: Lisp_Object) -> Lisp_Object;
         pub fn list2 (a: Lisp_Object, b: Lisp_Object) -> Lisp_Object;
         pub fn list3 (a: Lisp_Object, b: Lisp_Object, c: Lisp_Object) -> Lisp_Object;
@@ -4149,13 +4165,13 @@ pub mod other_units {
         pub fn vectorlike_nbytes (h: *const vectorlike_header) -> isize;
         pub fn bignum_to_intmax (num: Lisp_Object) -> i64;
         pub fn bignum_to_uintmax (num: Lisp_Object) -> u64;
-        pub fn flush_stack_call_func1 (func: Option<unsafe extern "C" fn(*mut c_void)>, arg: *mut c_void);
+        pub fn flush_stack_call_func1 (func: Option<unsafe extern "C-unwind" fn(*mut c_void)>, arg: *mut c_void);
         // lisp.h 4537-4538: alloc.c's two bool-vector constructors (data.c's
         // bool-vector drivers call the second).
         pub fn make_clear_bool_vector (size: EMACS_INT, init: bool) -> Lisp_Object;
         pub fn make_uninit_bool_vector (size: EMACS_INT) -> Lisp_Object;
     }
-    unsafe extern "C" {
+    unsafe extern "C-unwind" {
         // lisp.h 4541/4544 spell the length `ptrdiff_t`, not size_t.
         pub fn make_unibyte_string (s: *const c_char, len: ptrdiff_t) -> Lisp_Object;
         // lisp.h 4710 and 4747: print.c's and lread.c's exporters data.c calls.
@@ -4206,7 +4222,7 @@ pub mod other_units {
         pub fn swap_in_global_binding (symbol: *mut Lisp_Symbol);
         // lisp.h 4748, 4800, 4864: data.c's watcher machinery calls these.
         pub fn map_obarray (obarray: Lisp_Object,
-                            fn_: Option<unsafe extern "C" fn (Lisp_Object, Lisp_Object)>,
+                            fn_: Option<unsafe extern "C-unwind" fn (Lisp_Object, Lisp_Object)>,
                             arg: Lisp_Object);
         pub fn funcall_subr (subr: *mut Lisp_Subr, numargs: ptrdiff_t,
                              arg_vector: *mut Lisp_Object) -> Lisp_Object;
@@ -4239,76 +4255,76 @@ pub mod other_units {
         pub static mut consing_until_gc: EMACS_INT;
         pub static mut chartab_size: [c_int; 4];
     }
-    unsafe extern "C" {
+    unsafe extern "C-unwind" {
         /// Mark every object of an array (src/lisp.h 4437, alloc.c).
         pub fn mark_objects (p: *mut Lisp_Object, n: ptrdiff_t);
     }
-    unsafe extern "C" { pub static mut finalizers: Lisp_Finalizer; }
-    unsafe extern "C" { pub static mut doomed_finalizers: Lisp_Finalizer; }
-    unsafe extern "C" { pub static mut memory_signal_data: Lisp_Object; }
-    unsafe extern "C" { pub static mut Vascii_downcase_table: Lisp_Object; }
-    unsafe extern "C" { pub static mut staticvec: [*const Lisp_Object; NSTATICS as usize]; }
-    unsafe extern "C" { pub static mut staticidx: c_int; }
-    unsafe extern "C" { pub static mut hashtest_eq: hash_table_test; }
-    unsafe extern "C" { pub static mut hashtest_eql: hash_table_test; }
-    unsafe extern "C" { pub static mut hashtest_equal: hash_table_test; }
-    unsafe extern "C" { pub static mut noninteractive_need_newline: bool; }
-    unsafe extern "C" { pub static mut echo_area_buffer: [Lisp_Object; 2]; }
-    unsafe extern "C" { pub static mut garbage_collection_inhibited: intptr_t; }
-    unsafe extern "C" { pub static mut pending_malloc_warning: *mut c_char; }
-    unsafe extern "C" { pub static mut zero_vector: Lisp_Object; }
-    unsafe extern "C" { pub static mut number_finalizers_run: c_int; }
-    unsafe extern "C" { pub static mut gc_in_progress: bool; }
-    unsafe extern "C" { pub static mut __malloc_extra_blocks: usize; }
-    unsafe extern "C" { pub static mut Vprin1_to_string_buffer: Lisp_Object; }
-    unsafe extern "C" { pub static mut print_level: c_int; }
-    unsafe extern "C" { pub static mut Vautoload_queue: Lisp_Object; }
-    unsafe extern "C" { pub static mut Vrun_hooks: Lisp_Object; }
-    unsafe extern "C" { pub static mut Vsignaling_function: Lisp_Object; }
-    unsafe extern "C" { pub static mut Vminibuffer_list: Lisp_Object; }
-    unsafe extern "C" { pub static mut last_minibuf_string: Lisp_Object; }
-    unsafe extern "C" { pub static mut minibuf_level: EMACS_INT; }
-    unsafe extern "C" { pub static mut command_loop_level: EMACS_INT; }
-    unsafe extern "C" { pub static mut echo_message_buffer: Lisp_Object; }
+    unsafe extern "C-unwind" { pub static mut finalizers: Lisp_Finalizer; }
+    unsafe extern "C-unwind" { pub static mut doomed_finalizers: Lisp_Finalizer; }
+    unsafe extern "C-unwind" { pub static mut memory_signal_data: Lisp_Object; }
+    unsafe extern "C-unwind" { pub static mut Vascii_downcase_table: Lisp_Object; }
+    unsafe extern "C-unwind" { pub static mut staticvec: [*const Lisp_Object; NSTATICS as usize]; }
+    unsafe extern "C-unwind" { pub static mut staticidx: c_int; }
+    unsafe extern "C-unwind" { pub static mut hashtest_eq: hash_table_test; }
+    unsafe extern "C-unwind" { pub static mut hashtest_eql: hash_table_test; }
+    unsafe extern "C-unwind" { pub static mut hashtest_equal: hash_table_test; }
+    unsafe extern "C-unwind" { pub static mut noninteractive_need_newline: bool; }
+    unsafe extern "C-unwind" { pub static mut echo_area_buffer: [Lisp_Object; 2]; }
+    unsafe extern "C-unwind" { pub static mut garbage_collection_inhibited: intptr_t; }
+    unsafe extern "C-unwind" { pub static mut pending_malloc_warning: *mut c_char; }
+    unsafe extern "C-unwind" { pub static mut zero_vector: Lisp_Object; }
+    unsafe extern "C-unwind" { pub static mut number_finalizers_run: c_int; }
+    unsafe extern "C-unwind" { pub static mut gc_in_progress: bool; }
+    unsafe extern "C-unwind" { pub static mut __malloc_extra_blocks: usize; }
+    unsafe extern "C-unwind" { pub static mut Vprin1_to_string_buffer: Lisp_Object; }
+    unsafe extern "C-unwind" { pub static mut print_level: c_int; }
+    unsafe extern "C-unwind" { pub static mut Vautoload_queue: Lisp_Object; }
+    unsafe extern "C-unwind" { pub static mut Vrun_hooks: Lisp_Object; }
+    unsafe extern "C-unwind" { pub static mut Vsignaling_function: Lisp_Object; }
+    unsafe extern "C-unwind" { pub static mut Vminibuffer_list: Lisp_Object; }
+    unsafe extern "C-unwind" { pub static mut last_minibuf_string: Lisp_Object; }
+    unsafe extern "C-unwind" { pub static mut minibuf_level: EMACS_INT; }
+    unsafe extern "C-unwind" { pub static mut command_loop_level: EMACS_INT; }
+    unsafe extern "C-unwind" { pub static mut echo_message_buffer: Lisp_Object; }
     /// C: `extern struct kboard *echo_kboard;` (lisp.h 5081).  `struct kboard`'s definition is
     /// keyboard.h's and this mirror cannot name it (a unit that includes lisp.h need not include
     /// keyboard.h, exactly as in C, where the tag is incomplete here); the pointer is therefore
     /// the untyped one the port uses for incomplete targets, and `keyboard.rs` says where the
     /// definition is (PORTING.md P-72).
-    unsafe extern "C" { pub static mut echo_kboard: *mut c_void; }
-    unsafe extern "C" { pub static mut input_pending: bool; }
-    unsafe extern "C" { pub static mut return_to_command_loop: sigjmp_buf; }
-    unsafe extern "C" { pub static mut pending_funcalls: Lisp_Object; }
-    unsafe extern "C" { pub static mut initial_argv: *mut *mut c_char; }
-    unsafe extern "C" { pub static mut initial_argc: c_int; }
-    unsafe extern "C" { pub static mut initial_argv0: *mut c_char; }
-    unsafe extern "C" { pub static mut display_arg: bool; }
-    unsafe extern "C" { pub static mut empty_unibyte_string: Lisp_Object; }
-    unsafe extern "C" { pub static mut empty_multibyte_string: Lisp_Object; }
-    unsafe extern "C" { pub static mut Vlibrary_cache: Lisp_Object; }
-    unsafe extern "C" { pub static mut noninteractive: bool; }
-    unsafe extern "C" { pub static mut no_site_lisp: bool; }
-    unsafe extern "C" { pub static mut build_details: bool; }
-    unsafe extern "C" { pub static mut daemon_type: c_int; }
-    unsafe extern "C" { pub static mut w32_daemon_event: *mut c_void; }
-    unsafe extern "C" { pub static mut fatal_error_in_progress: bool; }
-    unsafe extern "C" { pub static mut inhibit_window_system: bool; }
-    unsafe extern "C" { pub static mut emacs_wd: *const c_char; }
-    unsafe extern "C" { pub static mut running_asynch_code: bool; }
-    unsafe extern "C" { pub static mut char_ins_del_vector: *mut c_int; }
-    unsafe extern "C" { pub static mut Vface_alternative_font_family_alist: Lisp_Object; }
-    unsafe extern "C" { pub static mut Vface_alternative_font_registry_alist: Lisp_Object; }
-    unsafe extern "C" { pub static mut profiler_memory_running: bool; }
-    unsafe extern "C" { pub static mut my_edata: [c_char; 0]; }
-    unsafe extern "C" { pub static mut my_endbss: [c_char; 0]; }
-    unsafe extern "C" { pub static mut my_endbss_static: *mut c_char; }
-    unsafe extern "C" {
+    unsafe extern "C-unwind" { pub static mut echo_kboard: *mut c_void; }
+    unsafe extern "C-unwind" { pub static mut input_pending: bool; }
+    unsafe extern "C-unwind" { pub static mut return_to_command_loop: sigjmp_buf; }
+    unsafe extern "C-unwind" { pub static mut pending_funcalls: Lisp_Object; }
+    unsafe extern "C-unwind" { pub static mut initial_argv: *mut *mut c_char; }
+    unsafe extern "C-unwind" { pub static mut initial_argc: c_int; }
+    unsafe extern "C-unwind" { pub static mut initial_argv0: *mut c_char; }
+    unsafe extern "C-unwind" { pub static mut display_arg: bool; }
+    unsafe extern "C-unwind" { pub static mut empty_unibyte_string: Lisp_Object; }
+    unsafe extern "C-unwind" { pub static mut empty_multibyte_string: Lisp_Object; }
+    unsafe extern "C-unwind" { pub static mut Vlibrary_cache: Lisp_Object; }
+    unsafe extern "C-unwind" { pub static mut noninteractive: bool; }
+    unsafe extern "C-unwind" { pub static mut no_site_lisp: bool; }
+    unsafe extern "C-unwind" { pub static mut build_details: bool; }
+    unsafe extern "C-unwind" { pub static mut daemon_type: c_int; }
+    unsafe extern "C-unwind" { pub static mut w32_daemon_event: *mut c_void; }
+    unsafe extern "C-unwind" { pub static mut fatal_error_in_progress: bool; }
+    unsafe extern "C-unwind" { pub static mut inhibit_window_system: bool; }
+    unsafe extern "C-unwind" { pub static mut emacs_wd: *const c_char; }
+    unsafe extern "C-unwind" { pub static mut running_asynch_code: bool; }
+    unsafe extern "C-unwind" { pub static mut char_ins_del_vector: *mut c_int; }
+    unsafe extern "C-unwind" { pub static mut Vface_alternative_font_family_alist: Lisp_Object; }
+    unsafe extern "C-unwind" { pub static mut Vface_alternative_font_registry_alist: Lisp_Object; }
+    unsafe extern "C-unwind" { pub static mut profiler_memory_running: bool; }
+    unsafe extern "C-unwind" { pub static mut my_edata: [c_char; 0]; }
+    unsafe extern "C-unwind" { pub static mut my_endbss: [c_char; 0]; }
+    unsafe extern "C-unwind" { pub static mut my_endbss_static: *mut c_char; }
+    unsafe extern "C-unwind" {
         // src/lisp.h 4626-4627: `(int, int, int, enum pvec_type)`, returning
         // `struct Lisp_Vector *` (the port's `*mut Lisp_Vector`).
         pub fn allocate_pseudovector (lispsize: c_int, restsize: c_int, pvecsize: c_int,
                                      tag: pvec_type) -> *mut Lisp_Vector;
     }
-    unsafe extern "C" {
+    unsafe extern "C-unwind" {
         /* PORTING.md P-05/P-117 ⑧: `alloca`'s port and the pair that gives it the scope's
            lifetime.  `USE_SAFE_ALLOCA!` reads the chain's height with `sa_stack_mark`, and
            `SAFE_FREE!`/`SAFE_FREE_UNBIND_TO!` hand it back to `sa_stack_release_to` - the
@@ -4370,24 +4386,24 @@ pub mod other_units {
         pub fn xpalloc (block: *mut c_void, n: *mut ptrdiff_t, incr: ptrdiff_t,
                         min_size: ptrdiff_t, size: ptrdiff_t) -> *mut c_void;
         pub fn record_unwind_protect_array (array: *mut Lisp_Object, nelts: isize);
-        pub fn record_unwind_protect_ptr (func: Option<unsafe extern "C" fn(*mut c_void)>, arg: *mut c_void);
-        pub fn record_unwind_protect_ptr_mark (function: Option<unsafe extern "C" fn(*mut c_void)>,
+        pub fn record_unwind_protect_ptr (func: Option<unsafe extern "C-unwind" fn(*mut c_void)>, arg: *mut c_void);
+        pub fn record_unwind_protect_ptr_mark (function: Option<unsafe extern "C-unwind" fn(*mut c_void)>,
                                                arg: *mut c_void,
-                                               mark: Option<unsafe extern "C" fn(*mut c_void)>);
+                                               mark: Option<unsafe extern "C-unwind" fn(*mut c_void)>);
         pub fn memory_full_up () -> !;
     }
-    unsafe extern "C" {
+    unsafe extern "C-unwind" {
         pub fn cons_to_signed (cons: Lisp_Object, lo: i64, hi: i64) -> i64;
         pub fn cons_to_unsigned (cons: Lisp_Object, hi: u64) -> u64;
     }
-    unsafe extern "C" {
+    unsafe extern "C-unwind" {
         // src/lisp.h 4492: `Lisp_Object listn (ptrdiff_t, Lisp_Object, ...)`; the
         // second parameter is fixed, only the rest are variadic.
         pub fn listn (nargs: isize, first: Lisp_Object, ...) -> Lisp_Object;
     }
     // defsubr / defvar take the subr and fwd records the DEFUN and DEFVAR_* forms
     // build; the records themselves live in the ported units.
-    unsafe extern "C" {
+    unsafe extern "C-unwind" {
         pub fn defsubr (sname: *mut Aligned_Lisp_Subr);
         pub fn defvar_lisp (fwd: *const Lisp_Fwd, lname: *const c_char);
         pub fn defvar_lisp_nopro (fwd: *const Lisp_Fwd, lname: *const c_char);
@@ -4395,15 +4411,15 @@ pub mod other_units {
         pub fn defvar_bool (fwd: *const Lisp_Fwd, lname: *const c_char);
         pub fn defvar_kboard (fwd: *const Lisp_Fwd, lname: *const c_char);
     }
-    unsafe extern "C" {
+    unsafe extern "C-unwind" {
         #[link_name = "_setjmp"]
         pub fn _setjmp (buf: *mut c_void) -> c_int;
         #[link_name = "_longjmp"]
         pub fn _longjmp (buf: *mut c_void, val: c_int) -> !;
     }
     // src/lisp.h 4818 (the alloc.c group).
-    unsafe extern "C" {
-      pub fn record_unwind_protect (function: Option<unsafe extern "C" fn (Lisp_Object)>,
+    unsafe extern "C-unwind" {
+      pub fn record_unwind_protect (function: Option<unsafe extern "C-unwind" fn (Lisp_Object)>,
                                     arg: Lisp_Object);
       /* src/lisp.h 5856-5857: `extern AVOID circular_list (Lisp_Object);` - the cycle
          handler the FOR_EACH_TAIL macro passes for a list that loops.  */
@@ -4412,7 +4428,7 @@ pub mod other_units {
     }
 
     // src/lisp.h 4088-4089, 4321-4357, 4561-4817 (the json.c group).
-    unsafe extern "C" {
+    unsafe extern "C-unwind" {
       /* src/lisp.h 4088.  */
       /// C: ptrdiff_t bignum_bufsize (Lisp_Object, int)
       pub fn bignum_bufsize (num: Lisp_Object, base: c_int) -> ptrdiff_t;
@@ -4472,7 +4488,7 @@ pub mod other_units {
     // passes `struct buffer *`, and `sizeof` never sees the pointee.  The `/// C:` line
     // carries the reference prototype, which spikes/lisp-abi-probe.sh type-checks
     // against lisp.h (PORTING.md 0.1-2).
-    unsafe extern "C" {
+    unsafe extern "C-unwind" {
       pub fn marker_position (marker: Lisp_Object) -> ptrdiff_t;
       pub fn marker_byte_position (marker: Lisp_Object) -> ptrdiff_t;
       /// C: ptrdiff_t buf_charpos_to_bytepos (struct buffer *, ptrdiff_t)
@@ -4527,7 +4543,7 @@ pub mod other_units {
     // src/lisp.h 4227, 4277, 4352, 4364, 4540, 4565, 4696, 4733, 4741, 4823, 4976, 4981 (the
     // casefiddle.c / doc.c group).  `struct buffer` is an incomplete type in lisp.h here
     // too, but none of these takes one.
-    unsafe extern "C" {
+    unsafe extern "C-unwind" {
       /* src/lisp.h 4227: doc.c's get_doc_string counts the characters of a DOC-file
          chunk with it.  */
       /// C: ptrdiff_t multibyte_chars_in_text (const unsigned char *, ptrdiff_t)
@@ -4565,7 +4581,7 @@ pub mod other_units {
       /* src/lisp.h 4823: doc.c's get_doc_string/`Snarf-documentation` guard the DOC
          file descriptor with it.  */
       /// C: void record_unwind_protect_int (void (*) (int), int)
-      pub fn record_unwind_protect_int (function: Option<unsafe extern "C" fn (c_int)>,
+      pub fn record_unwind_protect_int (function: Option<unsafe extern "C-unwind" fn (c_int)>,
                                         arg: c_int);
       /* src/lisp.h 5251-5252: casefiddle.c's two undo records.  undo.c defines both
          (`#[unsafe(no_mangle)]`), which shadows this declaration the way a DEFUN
@@ -4823,7 +4839,7 @@ macro_rules! DOHASH {
 pub mod lisp_fn_decls {
   use super::*;
 
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     /// C: int check_int_nonnegative (Lisp_Object)
     pub fn check_int_nonnegative (x: Lisp_Object) -> c_int;
     /// C: uintmax_t check_uinteger_max (Lisp_Object, uintmax_t)

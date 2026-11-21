@@ -7212,7 +7212,7 @@ pub use self::variables::*;
 // so the prototype is visible in every translation unit.
 pub mod subrs {
     use super::*;
-    unsafe extern "C" {
+    unsafe extern "C-unwind" {
         pub fn Fabort_minibuffers () -> Lisp_Object;
         pub fn Fabort_recursive_edit () -> !;
         pub fn Fabs (a0: Lisp_Object) -> Lisp_Object;

@@ -77,7 +77,7 @@ pub const LO_TIME_BITS: c_int = 16;
 pub mod systime_decls {
   use super::*;
 
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     pub fn set_waiting_for_input (time_to_clear: *mut timespec);      // keyboard.c
     pub fn make_timeval (t: timespec) -> timeval;                     // timefns.c
     pub fn monotonic_coarse_timespec () -> timespec;                  // timefns.c

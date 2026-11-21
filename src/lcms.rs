@@ -873,7 +873,7 @@ DEFUN! ("lcms2-available-p", Flcms2_available_p, Slcms2_available_p, 0, 0, 0,
 /// C 589-602: the file's one non-`static` definition.
 #[cfg (feature = "have_lcms2")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_lcms2 ()
+pub unsafe extern "C-unwind" fn syms_of_lcms2 ()
 {
   defsubr (&raw mut Slcms_cie_de2000);
   defsubr (&raw mut Slcms_xyz_to_jch);

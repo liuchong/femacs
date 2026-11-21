@@ -79,7 +79,7 @@ const _: () = ();
    C 68-71 (`HAVE_LINUX_FS_H`), C 73-87 (`WINDOWSNT`/`MSDOS`), C 89-105 (`DOS_NT`),
    C 118-120 (`HPUX`): dead `#include`s, recorded in `docs/ports/fileio.md`.  */
 
-unsafe extern "C" {
+unsafe extern "C-unwind" {
 
   /// C: `lisp.h` 5305: `extern int sys_fstat (int, struct stat *);`
   pub fn sys_fstat (fd: c_int, buf: *mut stat) -> c_int;
@@ -203,7 +203,7 @@ unsafe fn check_vfs_filename (encoded: Lisp_Object, reason: *const c_char)
    Return true if successful, false (setting errno) otherwise.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn file_access_p (file: *const c_char, amode: c_int) -> bool
+pub unsafe extern "C-unwind" fn file_access_p (file: *const c_char, amode: c_int) -> bool
 {
   if sys_faccessat (AT_FDCWD, file, amode, AT_EACCESS) == 0
     { return true; }
@@ -219,7 +219,7 @@ pub unsafe extern "C" fn file_access_p (file: *const c_char, amode: c_int) -> bo
    trouble of preserving errno before calling list1.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn get_file_errno_data (string: *const c_char, name: Lisp_Object,
+pub unsafe extern "C-unwind" fn get_file_errno_data (string: *const c_char, name: Lisp_Object,
 					      errorno: c_int) -> Lisp_Object
 {
   let mut data: Lisp_Object = if CONSP (name) || NILP (name) { name } else { list1 (name) };
@@ -241,7 +241,7 @@ pub unsafe extern "C" fn get_file_errno_data (string: *const c_char, name: Lisp_
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn report_file_errno (string: *const c_char, name: Lisp_Object,
+pub unsafe extern "C-unwind" fn report_file_errno (string: *const c_char, name: Lisp_Object,
 					    errorno: c_int) -> !
 {
   let mut data: Lisp_Object = get_file_errno_data (string, name, errorno);
@@ -254,7 +254,7 @@ pub unsafe extern "C" fn report_file_errno (string: *const c_char, name: Lisp_Ob
    side effects that may set errno.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn report_file_error (string: *const c_char, name: Lisp_Object) -> !
+pub unsafe extern "C-unwind" fn report_file_error (string: *const c_char, name: Lisp_Object) -> !
 {
   report_file_errno (string, name, *errno ());
 }
@@ -267,7 +267,7 @@ pub unsafe extern "C" fn report_file_error (string: *const c_char, name: Lisp_Ob
 /* Like `report_file_error`, but reports a file-notify-error instead.  */
 #[cfg (feature = "use_file_notify")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn report_file_notify_error (string: *const c_char, name: Lisp_Object) -> !
+pub unsafe extern "C-unwind" fn report_file_notify_error (string: *const c_char, name: Lisp_Object) -> !
 {
   let mut str_: *mut c_char = emacs_strerror (*errno ());
   AUTO_STRING! (unibyte_str, str_);
@@ -292,18 +292,18 @@ unsafe fn file_metadata_errno (action: *const c_char, file: Lisp_Object,
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn file_attribute_errno (file: Lisp_Object, err: c_int) -> Lisp_Object
+pub unsafe extern "C-unwind" fn file_attribute_errno (file: Lisp_Object, err: c_int) -> Lisp_Object
 {
   return file_metadata_errno (c"Getting attributes".as_ptr (), file, err);
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn close_file_unwind (fd: c_int)
+pub unsafe extern "C-unwind" fn close_file_unwind (fd: c_int)
 {
   emacs_close (fd);
 }
 
-unsafe extern "C" fn close_file_unwind_emacs_fd (ptr: *mut c_void)
+unsafe extern "C-unwind" fn close_file_unwind_emacs_fd (ptr: *mut c_void)
 {
   let mut fd: *mut emacs_fd;
 
@@ -312,7 +312,7 @@ unsafe extern "C" fn close_file_unwind_emacs_fd (ptr: *mut c_void)
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn fclose_unwind (arg: *mut c_void)
+pub unsafe extern "C-unwind" fn fclose_unwind (arg: *mut c_void)
 {
   let mut stream: *mut FILE = arg as *mut FILE;
   emacs_fclose! (stream);
@@ -321,7 +321,7 @@ pub unsafe extern "C" fn fclose_unwind (arg: *mut c_void)
 /* Restore point, having saved it as a marker.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn restore_point_unwind (location: Lisp_Object)
+pub unsafe extern "C-unwind" fn restore_point_unwind (location: Lisp_Object)
 {
   Fgoto_char (location);
   unchain_marker (XMARKER (location) as *mut c_void);
@@ -343,7 +343,7 @@ fn IS_DEVICE_SEP (_c_: c_int) -> bool { _c_ == b':' as c_int }
 /// `<config.h>` 2091: `#define IS_ANY_SEP(_c_) (IS_DIRECTORY_SEP (_c_))`.
 macro_rules! IS_ANY_SEP { ($c:expr) => { IS_DIRECTORY_SEP ($c) }; }
 
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   /// C: lisp.h 4566-4567: `extern Lisp_Object make_specified_string (const char *,
   /// ptrdiff_t, ptrdiff_t, bool);` - `lisp.rs` does not carry it (the ccl.rs note).
   pub fn make_specified_string (contents: *const c_char, nchars: ptrdiff_t,
@@ -1284,7 +1284,7 @@ const fn c_str_32 (s: &[u8]) -> [c_char; 32] {
   out
 }
 
-unsafe extern "C" {
+unsafe extern "C-unwind" {
 
 
   /// C: lisp.h 5303: `extern int emacs_fstatat (int, char const *, void *, int);`
@@ -1300,7 +1300,7 @@ unsafe extern "C" {
    directory separator if needed.  Return a pointer to the null byte
    at the end of the concatenated string.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn splice_dir_file (buf: *mut c_char, dir: *const c_char,
+pub unsafe extern "C-unwind" fn splice_dir_file (buf: *mut c_char, dir: *const c_char,
 					  file: *const c_char) -> *mut c_char
 {
   let mut e: *mut c_char = stpcpy (buf, dir);
@@ -1314,7 +1314,7 @@ pub unsafe extern "C" fn splice_dir_file (buf: *mut c_char, dir: *const c_char,
    collection, calls to this function, or calls to the getpwnam class
    of functions.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn get_homedir () -> *const c_char
+pub unsafe extern "C-unwind" fn get_homedir () -> *const c_char
 {
   let mut home: *const c_char = egetenv (c"HOME".as_ptr ());
 
@@ -1477,7 +1477,7 @@ DEFUN! ("substitute-in-file-name", Fsubstitute_in_file_name,
    (directory-file-name (expand-file-name FOO)).  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn expand_and_dir_to_file (filename: Lisp_Object) -> Lisp_Object
+pub unsafe extern "C-unwind" fn expand_and_dir_to_file (filename: Lisp_Object) -> Lisp_Object
 {
   let mut absname: Lisp_Object = Fexpand_file_name (filename, Qnil ());
 
@@ -1919,9 +1919,9 @@ DEFUN! ("file-name-case-insensitive-p", Ffile_name_case_insensitive_p,
 /// `memory_full` as `-> !` (the reference marks it AVOID); a `-> !` fn does not coerce to a
 /// `fn (…)` field (measured), so the port passes this same-signature wrapper - the lisp.rs
 /// `xfree_wrapper` shape, and the only name here with no C counterpart.
-unsafe extern "C" fn memory_full_wrapper (size: usize) { memory_full (size) }
+unsafe extern "C-unwind" fn memory_full_wrapper (size: usize) { memory_full (size) }
 
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   /// C: lisp.h 5328: `extern int emacs_renameat_noreplace (int, const char *, int, const char *);`
   pub fn emacs_renameat_noreplace (fd1: c_int, from: *const c_char, fd2: c_int,
 				   to: *const c_char) -> c_int;
@@ -1937,6 +1937,8 @@ unsafe extern "C" {
   pub fn emacs_unlink (file: *const c_char) -> c_int;
   /// C: lisp.h 5336: `extern ptrdiff_t emacs_write_quit (int, void const *, ptrdiff_t);`
   pub fn emacs_write_quit (fd: c_int, buf: *const c_void, nbyte: ptrdiff_t) -> ptrdiff_t;
+}
+unsafe extern "C" {
   /// C: `<unistd.h>`: `ssize_t copy_file_range (int, off_t *, int, off_t *, size_t, unsigned int);`
   pub fn copy_file_range (infd: c_int, off_in: *mut off_t, outfd: c_int, off_out: *mut off_t,
 			  len: usize, flags: c_uint) -> ssize_t;
@@ -2173,7 +2175,7 @@ DEFUN! ("file-name-absolute-p", Ffile_name_absolute_p, Sfile_name_absolute_p,
 });
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn file_name_absolute_p (filename: *const c_char) -> bool
+pub unsafe extern "C-unwind" fn file_name_absolute_p (filename: *const c_char) -> bool
 {
   return IS_ABSOLUTE_FILE_NAME! (filename)
     || (*filename.offset (0) == b'~' as c_char
@@ -2321,7 +2323,7 @@ unsafe fn emacs_readlinkat (fd: c_int, filename: *const c_char) -> Lisp_Object
    If FILE is not a symbolic link, return nil (setting errno).
    Signal an error if the result cannot be determined.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn check_emacs_readlinkat (fd: c_int, file: Lisp_Object,
+pub unsafe extern "C-unwind" fn check_emacs_readlinkat (fd: c_int, file: Lisp_Object,
 						 encoded_file: *const c_char)
   -> Lisp_Object
 {
@@ -2373,7 +2375,7 @@ DEFUN! ("file-directory-p", Ffile_directory_p, Sfile_directory_p, 1, 1, 0,
 /* Return true if FILE is a directory or a symlink to a directory.
    Otherwise return false and set errno.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn file_directory_p (file: Lisp_Object) -> bool
+pub unsafe extern "C-unwind" fn file_directory_p (file: Lisp_Object) -> bool
 {
   /* C 3194-3203: `#ifdef DOS_NT` (undefined): recorded in `docs/ports/fileio.md`.  */
   /* C 3204-3219: `# if defined O_PATH && !(defined HAVE_ANDROID && !defined
@@ -2402,14 +2404,16 @@ pub unsafe extern "C" fn file_directory_p (file: Lisp_Object) -> bool
 /// largest value (the editfns.rs/syntax.rs shape).
 macro_rules! TYPE_MAXIMUM { ($t:ty) => { <$t>::MAX }; }
 
+unsafe extern "C-unwind" {
+  /// C: lisp.h 5331: `extern int emacs_fchmodat (int, const char *, mode_t, int);`
+  pub fn emacs_fchmodat (dirfd: c_int, file: *const c_char, mode: mode_t, flag: c_int)
+    -> c_int;
+}
 unsafe extern "C" {
 
 
   /// C: `<unistd.h>`: `extern void sync (void);`
   pub fn sync ();
-  /// C: lisp.h 5331: `extern int emacs_fchmodat (int, const char *, mode_t, int);`
-  pub fn emacs_fchmodat (dirfd: c_int, file: *const c_char, mode: mode_t, flag: c_int)
-    -> c_int;
 }
 
 DEFUN! ("file-accessible-directory-p", Ffile_accessible_directory_p,
@@ -2451,7 +2455,7 @@ DEFUN! ("file-accessible-directory-p", Ffile_accessible_directory_p,
    searchable directory, return true.  Otherwise return
    false and set errno to an error number.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn file_accessible_directory_p (file: Lisp_Object) -> bool
+pub unsafe extern "C-unwind" fn file_accessible_directory_p (file: Lisp_Object) -> bool
 {
   /* C 3304-3317: `#ifdef DOS_NT` (undefined): recorded in `docs/ports/fileio.md`.  */
   /* On POSIXish platforms, use just one system call; this avoids a
@@ -2766,7 +2770,7 @@ DEFUN! ("file-newer-than-file-p", Ffile_newer_than_file_p, Sfile_newer_than_file
 	o remove all text properties.
 	o set back the buffer multibyteness.  */
 
-unsafe extern "C" fn decide_coding_unwind (unwind_data: Lisp_Object)
+unsafe extern "C-unwind" fn decide_coding_unwind (unwind_data: Lisp_Object)
 {
   let mut multibyte: Lisp_Object = XCAR (unwind_data);
   let mut tmp: Lisp_Object = XCDR (unwind_data);
@@ -2854,7 +2858,7 @@ const _: () = core::assert! (std::mem::offset_of! (read_non_regular_s, inserted)
 const _: () = core::assert! (std::mem::offset_of! (read_non_regular_s, bufsize) == 24);
 const _: () = core::assert! (std::mem::size_of::<read_non_regular> () == 32);
 
-unsafe extern "C" fn read_non_regular (state: Lisp_Object) -> Lisp_Object
+unsafe extern "C-unwind" fn read_non_regular (state: Lisp_Object) -> Lisp_Object
 {
   let mut data: *mut read_non_regular = XFIXNUMPTR (state) as *mut read_non_regular;
   let mut nbytes: intmax_t
@@ -2869,7 +2873,7 @@ unsafe extern "C" fn read_non_regular (state: Lisp_Object) -> Lisp_Object
 /* Condition-case handler used when reading from non-regular files
    in insert-file-contents.  */
 
-unsafe extern "C" fn read_non_regular_quit (ignore: Lisp_Object) -> Lisp_Object
+unsafe extern "C-unwind" fn read_non_regular_quit (ignore: Lisp_Object) -> Lisp_Object
 {
   return Qnil ();
 }
@@ -2992,7 +2996,7 @@ unsafe fn xlseek (fd: emacs_fd, pos: off_t, whence: c_int, filename: Lisp_Object
 /// `_PC_*` name, so it is declared here (the frozen target's measured value).
 pub const _PC_CASE_SENSITIVE: c_int = 11;
 
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   /// C: lisp.h 4320: `extern AVOID buffer_overflow (void);` - insdel.rs defines it, so the
   /// declaration copies that definition's signature (no `-> !`).
   pub fn buffer_overflow ();
@@ -3017,9 +3021,9 @@ unsafe extern "C" {
 
   /// C: lisp.h 4806: `extern Lisp_Object internal_condition_case_1 (Lisp_Object (*)
   /// (Lisp_Object), Lisp_Object, Lisp_Object, Lisp_Object (*) (Lisp_Object));`
-  pub fn internal_condition_case_1 (bfun: Option<unsafe extern "C" fn (Lisp_Object) -> Lisp_Object>,
+  pub fn internal_condition_case_1 (bfun: Option<unsafe extern "C-unwind" fn (Lisp_Object) -> Lisp_Object>,
 				    arg: Lisp_Object, handlers: Lisp_Object,
-				    hfun: Option<unsafe extern "C" fn (Lisp_Object) -> Lisp_Object>)
+				    hfun: Option<unsafe extern "C-unwind" fn (Lisp_Object) -> Lisp_Object>)
     -> Lisp_Object;
 
 }
@@ -4465,7 +4469,7 @@ DEFUN! ("write-region", Fwrite_region, Swrite_region, 3, 7,
 
 /* ---- further use-site declarations (PORTING.md 0.1-2/P-72 rule 3) ---------------------- */
 
-unsafe extern "C" {
+unsafe extern "C-unwind" {
 
 
   /// C: lisp.h 4799: `extern bool FUNCTIONP (Lisp_Object);`
@@ -4482,7 +4486,7 @@ unsafe extern "C" {
    descriptor for FILENAME, so do not open or close FILENAME.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn write_region (start: Lisp_Object, end: Lisp_Object,
+pub unsafe extern "C-unwind" fn write_region (start: Lisp_Object, end: Lisp_Object,
 				       filename: Lisp_Object, append: Lisp_Object,
 				       visit: Lisp_Object, lockname: Lisp_Object,
 				       mustbenew: Lisp_Object, mut desc: c_int) -> Lisp_Object
@@ -4850,7 +4854,7 @@ DEFUN! ("car-less-than-car", Fcar_less_than_car, Scar_less_than_car, 2, 2, 0,
   return if (arithcompare (ca, cb) & Cmp_LT as cmp_bits_t) != 0 { Qt () } else { Qnil () };
 });
 
-unsafe extern "C" fn build_annotations_unwind (arg: Lisp_Object)
+unsafe extern "C-unwind" fn build_annotations_unwind (arg: Lisp_Object)
 {
   Vwrite_region_annotation_buffers = arg;
 }
@@ -4964,7 +4968,7 @@ unsafe fn build_annotations (start: Lisp_Object, end: Lisp_Object) -> Lisp_Objec
 
 /* ---- further use-site declarations (PORTING.md 0.1-2/P-72 rule 3) ---------------------- */
 
-unsafe extern "C" {
+unsafe extern "C-unwind" {
 
 
 
@@ -4973,9 +4977,9 @@ unsafe extern "C" {
 
   /// C: lisp.h 4805: `extern Lisp_Object internal_condition_case (Lisp_Object (*) (void),
   /// Lisp_Object, Lisp_Object (*) (Lisp_Object));`
-  pub fn internal_condition_case (bfun: Option<unsafe extern "C" fn () -> Lisp_Object>,
+  pub fn internal_condition_case (bfun: Option<unsafe extern "C-unwind" fn () -> Lisp_Object>,
 				  handlers: Lisp_Object,
-				  hfun: Option<unsafe extern "C" fn (Lisp_Object) -> Lisp_Object>)
+				  hfun: Option<unsafe extern "C-unwind" fn (Lisp_Object) -> Lisp_Object>)
     -> Lisp_Object;
   /// C: lisp.h 5322: `extern FILE *emacs_fopen (char const *, char const *);`
   pub fn emacs_fopen (file: *const c_char, mode: *const c_char) -> *mut FILE;
@@ -5172,7 +5176,7 @@ DEFUN! ("verify-visited-file-modtime", Fverify_visited_file_modtime,
 });
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn buffer_visited_file_modtime (buf: *mut buffer) -> Lisp_Object
+pub unsafe extern "C-unwind" fn buffer_visited_file_modtime (buf: *mut buffer) -> Lisp_Object
 {
   let mut ns: c_int = (*buf).modtime.tv_nsec as c_int;
   if ns < 0
@@ -5240,7 +5244,7 @@ DEFUN! ("set-visited-file-modtime", Fset_visited_file_modtime,
   return Qnil ();
 });
 
-unsafe extern "C" fn auto_save_error (error_val: Lisp_Object) -> Lisp_Object
+unsafe extern "C-unwind" fn auto_save_error (error_val: Lisp_Object) -> Lisp_Object
 {
   auto_save_error_occurred = true;
 
@@ -5254,7 +5258,7 @@ unsafe extern "C" fn auto_save_error (error_val: Lisp_Object) -> Lisp_Object
   return Qnil ();
 }
 
-unsafe extern "C" fn auto_save_1 () -> Lisp_Object
+unsafe extern "C-unwind" fn auto_save_1 () -> Lisp_Object
 {
   let mut st: stat = std::mem::zeroed ();
   let mut modes: Lisp_Object;
@@ -5294,7 +5298,7 @@ const _: () = core::assert! (std::mem::align_of::<auto_save_unwind> () == 8);
 const _: () = core::assert! (std::mem::offset_of! (auto_save_unwind, stream) == 0);
 const _: () = core::assert! (std::mem::offset_of! (auto_save_unwind, auto_raise) == 8);
 
-unsafe extern "C" fn do_auto_save_unwind (arg: *mut c_void)
+unsafe extern "C-unwind" fn do_auto_save_unwind (arg: *mut c_void)
 {
   let mut p: *mut auto_save_unwind = arg as *mut auto_save_unwind;
   let mut stream: *mut FILE = (*p).stream;
@@ -5308,7 +5312,7 @@ unsafe extern "C" fn do_auto_save_unwind (arg: *mut c_void)
     }
 }
 
-unsafe extern "C" fn do_auto_save_make_dir (dir: Lisp_Object) -> Lisp_Object
+unsafe extern "C-unwind" fn do_auto_save_make_dir (dir: Lisp_Object) -> Lisp_Object
 {
   let mut result: Lisp_Object;
 
@@ -5318,7 +5322,7 @@ unsafe extern "C" fn do_auto_save_make_dir (dir: Lisp_Object) -> Lisp_Object
   return result;
 }
 
-unsafe extern "C" fn do_auto_save_eh (ignore: Lisp_Object) -> Lisp_Object
+unsafe extern "C-unwind" fn do_auto_save_eh (ignore: Lisp_Object) -> Lisp_Object
 {
   auto_saving_dir_umask = 0;
   return Qnil ();
@@ -5677,7 +5681,7 @@ DEFUN! ("file-system-info", Ffile_system_info, Sfile_system_info, 1, 1, 0,
 /* C 6725: the `#endif` that closes `#ifndef DOS_NT`.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn init_fileio ()
+pub unsafe extern "C-unwind" fn init_fileio ()
 {
   realmask = umask (0);
   umask (realmask);
@@ -5686,7 +5690,7 @@ pub unsafe extern "C" fn init_fileio ()
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_fileio ()
+pub unsafe extern "C-unwind" fn syms_of_fileio ()
 {
   /* Property name of a file name handler,
      which gives a list of operations it handles.  */
@@ -5940,9 +5944,9 @@ pub unsafe extern "C" fn syms_of_fileio ()
   DEFSYM! (Qauto_save_hook, c"auto-save-hook");
 }
 
-unsafe extern "C" {
+unsafe extern "C-unwind" {
 
   /// C: lisp.h 4825: `extern void record_unwind_protect_void (void (*) (void));` - eval.rs
   /// defines it and `lisp.rs` carries no declaration.
-  pub fn record_unwind_protect_void (function: Option<unsafe extern "C" fn ()>);
+  pub fn record_unwind_protect_void (function: Option<unsafe extern "C-unwind" fn ()>);
 }

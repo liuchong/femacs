@@ -626,7 +626,7 @@ pub const EMACS_MULE_LEADING_CODE_PRIVATE_22: c_int = 0x9D; /* 2/2 */
 pub mod charset_objs {
   use super::*;
 
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     /// C: charset.h 244: `extern Lisp_Object Vcharset_hash_table;`
     pub static mut Vcharset_hash_table: Lisp_Object;
     /// C: charset.h 265: `extern struct charset_table charset_table;`
@@ -677,7 +677,7 @@ pub use self::charset_objs::*;
 pub mod charset_decls {
   use super::*;
 
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     /// C: charset.h 554: `extern struct charset *char_charset (int, Lisp_Object, unsigned *);`
     pub fn char_charset (c: c_int, charset_list: Lisp_Object, code: *mut c_uint)
 			 -> *mut charset;
@@ -689,7 +689,7 @@ pub mod charset_decls {
     pub fn string_xstring_p (string: Lisp_Object) -> c_int;
     /// C: charset.h 561-563: `extern void map_charset_chars (void (*) (Lisp_Object,
     /// Lisp_Object), Lisp_Object, Lisp_Object, struct charset *, unsigned, unsigned);`
-    pub fn map_charset_chars (c_function: Option<unsafe extern "C" fn (Lisp_Object, Lisp_Object)>,
+    pub fn map_charset_chars (c_function: Option<unsafe extern "C-unwind" fn (Lisp_Object, Lisp_Object)>,
 			      function: Lisp_Object, arg: Lisp_Object,
 			      charset: *mut charset, from: c_uint, to: c_uint);
   }
@@ -698,6 +698,6 @@ pub use self::charset_decls::*;
 
 /// C: charset.h 555: `extern Lisp_Object charset_attributes (int);`  The header declares
 /// it and the reference tree defines it nowhere, so it stays outside `charset_decls`.
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   pub fn charset_attributes (id: c_int) -> Lisp_Object;
 }

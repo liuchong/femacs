@@ -366,13 +366,13 @@ pub mod intervals_decls {
      wrap its definition in a module instead of shadowing the declaration (status 3.82).  It
      belongs with its siblings here: the glob import is what lets the owner's definition win
      (PORTING.md 0.1-10/P-21).  */
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     /// C: intervals.h 247: `extern INTERVAL make_interval (void) ATTRIBUTE_RETURNS_NONNULL;`
     pub fn make_interval () -> INTERVAL;
   }
 
 
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     /// C: intervals.h 251: `extern INTERVAL create_root_interval (Lisp_Object);`
     pub fn create_root_interval (object: Lisp_Object) -> INTERVAL;
     /// C: intervals.h 252: `extern void copy_properties (INTERVAL, INTERVAL);`
@@ -382,12 +382,12 @@ pub mod intervals_decls {
     /// C: intervals.h 248-250: `extern void traverse_intervals (INTERVAL, ptrdiff_t,
     /// void (*) (INTERVAL, void *), void *);`
     pub fn traverse_intervals (tree: INTERVAL, position: ptrdiff_t,
-  			     function: Option<unsafe extern "C" fn (INTERVAL, *mut c_void)>,
+  			     function: Option<unsafe extern "C-unwind" fn (INTERVAL, *mut c_void)>,
   			     arg: *mut c_void);
     /// C: intervals.h 251-252: `extern void traverse_intervals_noorder (INTERVAL,
     /// void (*) (INTERVAL, void *), void *);`
     pub fn traverse_intervals_noorder (tree: INTERVAL,
-  				     function: Option<unsafe extern "C" fn (INTERVAL, *mut c_void)>,
+  				     function: Option<unsafe extern "C-unwind" fn (INTERVAL, *mut c_void)>,
   				     arg: *mut c_void);
     /// C: intervals.h 253-254: `extern INTERVAL split_interval_right (INTERVAL, ptrdiff_t)
     /// ATTRIBUTE_RETURNS_NONNULL;`
@@ -452,7 +452,7 @@ pub mod intervals_decls {
 pub use self::intervals_decls::*;
 
 /* Defined in xdisp.c.  */
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   /// C: intervals.h 289: `extern int invisible_prop (Lisp_Object, Lisp_Object);`
   pub fn invisible_prop (prop: Lisp_Object, lookup_vector: Lisp_Object) -> c_int;
 }
@@ -466,7 +466,7 @@ pub mod textprop_decls {
   use super::*;
 
   /* Defined in textprop.c.  */
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     /// C: intervals.h 292-294: `extern Lisp_Object copy_text_properties (Lisp_Object,
     /// Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object);`
     pub fn copy_text_properties (start: Lisp_Object, end: Lisp_Object, src: Lisp_Object,

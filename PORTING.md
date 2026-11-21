@@ -18,6 +18,14 @@
 
 ## 0. 总则
 
+### P-482：U3 显式非局部退出、原生状态分支与 FFI 边界隔离（2026-11-22）
+
+按去 `unsafe` 先行计划 U3/AU3，移除求值器、字节码、原生编译 `.eln`、动态模块与辅助子系统中的 Lisp 级 `sys_setjmp` / `sys_longjmp`，统一收敛至显式 `VmResult<T>`（`Result<T, NonLocalExit>`）与受控 `extern "C-unwind"` 栈展开，并保持外部 C ABI 与第三方库局部跳转隔离：
+
+1. **VM 显式退出与每线程作用域根（`crates/femacs-vm/src/nonlocal.rs`）**：`Cargo.toml` 正式切换 `[profile.release] panic = "unwind"`；新增 `#![deny(unsafe_op_in_unsafe_fn)]` 的 `nonlocal` 模块，定义 `NonLocalExitKind`（`Signal`/`Throw`）、`NonLocalExit`、`ScopedLispRoot`（LIFO 每线程作用域根，`Drop` 确定性弹出并接入 `mark_one_thread` / `finalize_one_thread`）、`HostDropGuard` 及 `catch_vm_nonlocal`（仅拦截 `VmNonLocalUnwind`，真实 Rust `panic!` 原样继续传播）。`src/eval.rs`（`internal_catch`、`internal_lisp_condition_case`、`internal_condition_case*`、`unwind_to_catch`）、`src/bytecode.rs`（`'vm_run: loop` 恢复 `bc_handlers` 帧与栈顶）、`src/editfns.rs`（`compareseq` 改为纯 `Result<(), ()>`）、`src/treesit.rs`（分配器守卫）与 `src/keyboard.rs` 全部完成切换；VM 内部跨模块符号统一声明为 `extern "C-unwind"`（`xtask gen-globals`、`gen-macos-exports.py`、`gen-macos-runtime.py` 同步更新），系统调用、信号处理、`qsort`/`tputs` 回调与 `libpng`/`libjpeg` 内部错误恢复保持 `extern "C"` 隔离边界。
+2. **原生 `.eln` 状态分支与 ABI 门禁（`src/comp.rs`）**：移除 `emit_setjmp` 及生成产物的 `_setjmp` 外部导入，`ABI_VERSION` 升至 `"14"`（更新 `Vcomp_abi_hash`）。新增 28 个 `extern "C"` 非展开状态辅助函数（`comp_invoke_subr0..8`、`comp_invoke_subr_many`、`comp_invoke_subr_unevalled`、`comp_push_handler`、`comp_exit_pending`、`comp_consume_exit_for_handler` 等）与 `emit_u3_status_branch` / `emit_u3_unwind_dispatch_blocks`，使 `.eln` C 帧通过状态码与每线程挂起退出槽平滑分发 handler 或交回 VM 重新展开，绝不跨 `.eln` C 帧展开。外部动态模块（`src/emacs-module.rs`）所有 `emacs_env` vtable 入口以 `module_with_nonlocal_catch` 拦截并写入既定环境挂起状态，`module_signal_or_throw` 修正为 `extern "C-unwind"` 以安全回传 VM，后台线程入口 `run_thread`（`src/thread.rs`）补齐 `catch_vm_nonlocal` 边界保护。
+3. **展开期栈扫描与打印栈生命周期加固**：`flush_stack_call_func`（`src/include/lisp.rs`）与 `flush_stack_call_func1`（`src/alloc.rs`）双双固定 `#[inline(never)]`，并将 `_setjmp` 寄存器溢出缓冲移入 `flush_stack_call_func` 自身存活栈帧，消除单 crate 编译与展开帧扩大下被弹出子帧遭覆写的 GC 漏扫隐患；`src/print.rs` 修复 `prstack.stack` 在递归打印触发 `realloc` 后的悬垂偏移，并为 `print_depth`、`being_printed`、`ppstack`、`prstack` 与 `USE_SAFE_ALLOCA!`（`SaStackUnwindGuard`）补齐确定性 `Drop` 守卫。`tools/test-u3-nonlocal-exit.py`（4/4）与 `tools/test-u3-unit.py`（3/3 组，含 5 项 `nonlocal.rs` 隔离组件单测）全部通过（AU3）。
+
 ### P-481：U2 纯算法叶子、安全工具重写与零读者脚手架退役（2026-11-22）
 
 按去 `unsafe` 先行计划 U2/AU2，将纯算法叶子与全部受交付辅助工具收敛至 `#![forbid(unsafe_code)]` 安全 Rust，并退役 8 个经全仓验证零消费者的遗留 `lib-src`/`lib` 源：

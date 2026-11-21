@@ -68,7 +68,7 @@ const PRIdMAX: &str = "jd";
 
 /* The names C gets from lisp.h 5303-5334 and from the system headers above, declared at the
    use site (the terminal.rs shape).  `emacs_fstatat`'s third parameter is lisp.h's `void *`.  */
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   /// C: int emacs_fstatat (int, char const *, void *, int)
   pub fn emacs_fstatat (fd: c_int, name: *const c_char, buf: *mut c_void, flag: c_int) -> c_int;
   /// C: int emacs_unlink (const char *)
@@ -82,6 +82,13 @@ unsafe extern "C" {
   pub fn emacs_rename (old: *const c_char, new: *const c_char) -> c_int;
   /// C: ptrdiff_t emacs_write (int, void const *, ptrdiff_t)
   pub fn emacs_write (fd: c_int, buf: *const c_void, nbyte: ptrdiff_t) -> ptrdiff_t;
+  /// C: Lisp_Object internal_condition_case_1 (Lisp_Object (*) (Lisp_Object), Lisp_Object, Lisp_Object, Lisp_Object (*) (Lisp_Object))
+  pub fn internal_condition_case_1 (bfun: Option<unsafe extern "C-unwind" fn (Lisp_Object) -> Lisp_Object>,
+                                    arg: Lisp_Object, handlers: Lisp_Object,
+                                    hfun: Option<unsafe extern "C-unwind" fn (Lisp_Object) -> Lisp_Object>)
+    -> Lisp_Object;
+}
+unsafe extern "C" {
   /// C: int kill (pid_t, int)   -- <signal.h>
   pub fn kill (pid: pid_t, sig: c_int) -> c_int;
   /// C: int mkostemp (char *, int)   -- <stdlib.h>
@@ -93,11 +100,6 @@ unsafe extern "C" {
   pub fn strtoimax (nptr: *const c_char, endptr: *mut *mut c_char, base: c_int) -> intmax_t;
   /// C: void *memrchr (const void *, int, size_t)   -- gnulib <string.h> (HAVE_MEMRCHR undef)
   pub fn memrchr (s: *const c_void, c: c_int, n: usize) -> *mut c_void;
-  /// C: Lisp_Object internal_condition_case_1 (Lisp_Object (*) (Lisp_Object), Lisp_Object, Lisp_Object, Lisp_Object (*) (Lisp_Object))
-  pub fn internal_condition_case_1 (bfun: Option<unsafe extern "C" fn (Lisp_Object) -> Lisp_Object>,
-                                    arg: Lisp_Object, handlers: Lisp_Object,
-                                    hfun: Option<unsafe extern "C" fn (Lisp_Object) -> Lisp_Object>)
-    -> Lisp_Object;
 }
 
 /* Normally use a symbolic link to represent a lock.
@@ -683,7 +685,7 @@ unsafe fn lock_file (r#fn: Lisp_Object) -> Lisp_Object
   return Qnil ();
 }
 
-unsafe extern "C" fn unlock_file (r#fn: Lisp_Object) -> Lisp_Object
+unsafe extern "C-unwind" fn unlock_file (r#fn: Lisp_Object) -> Lisp_Object
 {
   let lfname: Lisp_Object = make_lock_file_name (r#fn);
   if NILP (lfname)
@@ -699,7 +701,7 @@ unsafe extern "C" fn unlock_file (r#fn: Lisp_Object) -> Lisp_Object
   return Qnil ();
 }
 
-unsafe extern "C" fn unlock_file_handle_error (err: Lisp_Object) -> Lisp_Object
+unsafe extern "C-unwind" fn unlock_file_handle_error (err: Lisp_Object) -> Lisp_Object
 {
   calln! (Quserlock__handle_unlock_error (), err);
   return Qnil ();
@@ -715,7 +717,7 @@ pub static mut Vtemporary_file_directory: Lisp_Object = lisp_h_Qnil ();
 pub static mut create_lockfiles: bool = false;
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn unlock_all_files ()
+pub unsafe extern "C-unwind" fn unlock_all_files ()
 {
   let mut tail: Lisp_Object;
   let mut buf: Lisp_Object;
@@ -809,7 +811,7 @@ DEFUN! ("unlock-buffer", Funlock_buffer, Sunlock_buffer,
 /* Unlock the file visited in buffer BUFFER.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn unlock_buffer (buffer: *mut buffer)
+pub unsafe extern "C-unwind" fn unlock_buffer (buffer: *mut buffer)
 {
   if BUF_SAVE_MODIFF! (buffer) < BUF_MODIFF! (buffer)
       && STRINGP (BVAR! (buffer, file_truename_))
@@ -859,7 +861,7 @@ DEFUN! ("file-locked-p", Ffile_locked_p, Sfile_locked_p, 1, 1, 0,
 });
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_filelock ()
+pub unsafe extern "C-unwind" fn syms_of_filelock ()
 {
   DEFVAR_LISP! (c"temporary-file-directory", Vtemporary_file_directory,
 		"The directory for writing temporary files.");

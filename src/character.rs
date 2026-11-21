@@ -84,7 +84,7 @@ pub static mut Vchar_unify_table: Lisp_Object = lisp_h_Qnil ();
    character code if possible.  Return the resulting code.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn char_resolve_modifier_mask (mut c: EMACS_INT) -> EMACS_INT
+pub unsafe extern "C-unwind" fn char_resolve_modifier_mask (mut c: EMACS_INT) -> EMACS_INT
 {
   /* A non-ASCII character can't reflect modifier bits to the code.  */
   if ! ASCII_CHAR_P ((c & !(CHAR_MODIFIER_MASK as EMACS_INT)) as isize)
@@ -128,7 +128,7 @@ pub unsafe extern "C" fn char_resolve_modifier_mask (mut c: EMACS_INT) -> EMACS_
    handle them appropriately.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn char_string (mut c: c_uint, p: *mut u8) -> c_int
+pub unsafe extern "C-unwind" fn char_string (mut c: c_uint, p: *mut u8) -> c_int
 {
   let mut bytes: c_int;
 
@@ -178,7 +178,7 @@ pub unsafe extern "C" fn char_string (mut c: c_uint, p: *mut u8) -> c_int
    tables in the list.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn translate_char (mut table: Lisp_Object, mut c: c_int) -> c_int
+pub unsafe extern "C-unwind" fn translate_char (mut table: Lisp_Object, mut c: c_int) -> c_int
 {
   if CHAR_TABLE_P (table)
     {
@@ -312,7 +312,7 @@ DEFUN! ("char-width", Fchar_width, Schar_width, 1, 1, 0,
    respectively.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn c_string_width (str: *const u8, len: ptrdiff_t, precision: c_int,
+pub unsafe extern "C-unwind" fn c_string_width (str: *const u8, len: ptrdiff_t, precision: c_int,
 					 nchars: *mut ptrdiff_t, nbytes: *mut ptrdiff_t)
   -> ptrdiff_t
 {
@@ -355,7 +355,7 @@ pub unsafe extern "C" fn c_string_width (str: *const u8, len: ptrdiff_t, precisi
    occupies on the screen.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn strwidth (str: *const c_char, len: ptrdiff_t) -> ptrdiff_t
+pub unsafe extern "C-unwind" fn strwidth (str: *const c_char, len: ptrdiff_t) -> ptrdiff_t
 {
   return c_string_width (str as *const u8, len, -1, std::ptr::null_mut (),
 			 std::ptr::null_mut ());
@@ -372,7 +372,7 @@ pub unsafe extern "C" fn strwidth (str: *const c_char, len: ptrdiff_t) -> ptrdif
    non-zero, account for automatic compositions in STRING.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn lisp_string_width (string: Lisp_Object, from: ptrdiff_t,
+pub unsafe extern "C-unwind" fn lisp_string_width (string: Lisp_Object, from: ptrdiff_t,
 					    to: ptrdiff_t, precision: ptrdiff_t,
 					    nchars: *mut ptrdiff_t, nbytes: *mut ptrdiff_t,
 					    auto_comp: bool) -> ptrdiff_t
@@ -535,7 +535,7 @@ DEFUN! ("string-width", Fstring_width, Sstring_width, 1, 3, 0,
    nil, we treat each byte as a character.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn chars_in_text (ptr: *const u8, nbytes: ptrdiff_t) -> ptrdiff_t
+pub unsafe extern "C-unwind" fn chars_in_text (ptr: *const u8, nbytes: ptrdiff_t) -> ptrdiff_t
 {
   /* current_buffer is null at early stages of Emacs initialization.  */
   if (current_buffer! ()).is_null ()
@@ -551,7 +551,7 @@ pub unsafe extern "C" fn chars_in_text (ptr: *const u8, nbytes: ptrdiff_t) -> pt
    ignores enable-multibyte-characters.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn multibyte_chars_in_text (mut ptr: *const u8, nbytes: ptrdiff_t)
+pub unsafe extern "C-unwind" fn multibyte_chars_in_text (mut ptr: *const u8, nbytes: ptrdiff_t)
   -> ptrdiff_t
 {
   let endp: *const u8 = ptr.add (nbytes as usize);
@@ -577,7 +577,7 @@ pub unsafe extern "C" fn multibyte_chars_in_text (mut ptr: *const u8, nbytes: pt
    represented by 2-byte in a multibyte text.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn parse_str_as_multibyte (mut str: *const u8, len: ptrdiff_t,
+pub unsafe extern "C-unwind" fn parse_str_as_multibyte (mut str: *const u8, len: ptrdiff_t,
 						 nchars: *mut ptrdiff_t,
 						 nbytes: *mut ptrdiff_t)
 {
@@ -622,7 +622,7 @@ pub unsafe extern "C" fn parse_str_as_multibyte (mut str: *const u8, len: ptrdif
    resulting text.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn str_as_multibyte (str: *mut u8, len: ptrdiff_t,
+pub unsafe extern "C-unwind" fn str_as_multibyte (str: *mut u8, len: ptrdiff_t,
 					   mut nbytes: ptrdiff_t,
 					   nchars: *mut ptrdiff_t) -> ptrdiff_t
 {
@@ -710,7 +710,7 @@ pub unsafe extern "C" fn str_as_multibyte (str: *mut u8, len: ptrdiff_t,
    `str_to_multibyte'.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn count_size_as_multibyte (str: *const u8, len: ptrdiff_t)
+pub unsafe extern "C-unwind" fn count_size_as_multibyte (str: *const u8, len: ptrdiff_t)
   -> ptrdiff_t
 {
   /* Count the number of non-ASCII (raw) bytes, since they will occupy
@@ -746,7 +746,7 @@ pub unsafe extern "C" fn count_size_as_multibyte (str: *const u8, len: ptrdiff_t
    at DST, that contains the same single-byte characters.
    Return the number of bytes written at DST.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn str_to_multibyte (dst: *mut u8, src: *const u8,
+pub unsafe extern "C-unwind" fn str_to_multibyte (dst: *mut u8, src: *const u8,
 					   nchars: ptrdiff_t) -> ptrdiff_t
 {
   let mut d: *mut u8 = dst;
@@ -771,7 +771,7 @@ pub unsafe extern "C" fn str_to_multibyte (dst: *mut u8, src: *const u8,
    unibyte.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn str_as_unibyte (str: *mut u8, bytes: ptrdiff_t) -> ptrdiff_t
+pub unsafe extern "C-unwind" fn str_as_unibyte (str: *mut u8, bytes: ptrdiff_t) -> ptrdiff_t
 {
   let mut p: *const u8 = str;
   let endp: *const u8 = str.add (bytes as usize);
@@ -843,7 +843,7 @@ unsafe fn string_count_byte8 (string: Lisp_Object) -> ptrdiff_t
 
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn string_escape_byte8 (string: Lisp_Object) -> Lisp_Object
+pub unsafe extern "C-unwind" fn string_escape_byte8 (string: Lisp_Object) -> Lisp_Object
 {
   let nchars: ptrdiff_t = SCHARS (string);
   let nbytes: ptrdiff_t = SBYTES (string);
@@ -1045,7 +1045,7 @@ DEFUN! ("get-byte", Fget_byte, Sget_byte, 0, 2, 0,
 
 /* Return true if C is an alphabetic character.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn alphabeticp (c: c_int) -> bool
+pub unsafe extern "C-unwind" fn alphabeticp (c: c_int) -> bool
 {
   let category: Lisp_Object = CHAR_TABLE_REF (Vunicode_category_table, c as isize);
   if ! FIXNUMP (category)
@@ -1068,7 +1068,7 @@ pub unsafe extern "C" fn alphabeticp (c: c_int) -> bool
 
 /* Return true if C is an alphabetic or decimal-number character.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn alphanumericp (c: c_int) -> bool
+pub unsafe extern "C-unwind" fn alphanumericp (c: c_int) -> bool
 {
   let category: Lisp_Object = CHAR_TABLE_REF (Vunicode_category_table, c as isize);
   if ! FIXNUMP (category)
@@ -1090,7 +1090,7 @@ pub unsafe extern "C" fn alphanumericp (c: c_int) -> bool
 
 /* Return true if C is a graphic character.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn graphicp (c: c_int) -> bool
+pub unsafe extern "C-unwind" fn graphicp (c: c_int) -> bool
 {
   let category: Lisp_Object = CHAR_TABLE_REF (Vunicode_category_table, c as isize);
   if ! FIXNUMP (category)
@@ -1108,7 +1108,7 @@ pub unsafe extern "C" fn graphicp (c: c_int) -> bool
 
 /* Return true if C is a printable character.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn printablep (c: c_int) -> bool
+pub unsafe extern "C-unwind" fn printablep (c: c_int) -> bool
 {
   let category: Lisp_Object = CHAR_TABLE_REF (Vunicode_category_table, c as isize);
   if ! FIXNUMP (category)
@@ -1123,7 +1123,7 @@ pub unsafe extern "C" fn printablep (c: c_int) -> bool
 
 /* Return true if C is graphic character that can be printed independently.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn graphic_base_p (c: c_int) -> bool
+pub unsafe extern "C-unwind" fn graphic_base_p (c: c_int) -> bool
 {
   let category: Lisp_Object = CHAR_TABLE_REF (Vunicode_category_table, c as isize);
   if ! FIXNUMP (category)
@@ -1145,7 +1145,7 @@ pub unsafe extern "C" fn graphic_base_p (c: c_int) -> bool
 /* Return true if C is a horizontal whitespace character, as defined
    by https://www.unicode.org/reports/tr18/tr18-19.html#blank.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn blankp (c: c_int) -> bool
+pub unsafe extern "C-unwind" fn blankp (c: c_int) -> bool
 {
   let category: Lisp_Object = CHAR_TABLE_REF (Vunicode_category_table, c as isize);
   if ! FIXNUMP (category)
@@ -1188,7 +1188,7 @@ pub static hexdigit: [c_char; 256] =
   };
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_character ()
+pub unsafe extern "C-unwind" fn syms_of_character ()
 {
   DEFSYM! (Qcharacterp, "characterp");
   DEFSYM! (Qauto_fill_chars, "auto-fill-chars");

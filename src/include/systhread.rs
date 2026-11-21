@@ -239,7 +239,7 @@ pub type thread_creation_function
 pub mod systhread_decls {
   use super::*;
 
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     pub fn sys_mutex_init (sys_mutex: *mut sys_mutex_t);                        // C 141
     pub fn sys_mutex_lock (sys_mutex: *mut sys_mutex_t);                        // C 142
     pub fn sys_mutex_unlock (sys_mutex: *mut sys_mutex_t);                      // C 143

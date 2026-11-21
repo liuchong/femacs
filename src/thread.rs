@@ -62,7 +62,7 @@ const _: () = ();
 
 /* Names C declares in headers whose mirrors do not carry them yet (the terminal.rs shape);
    each keeps C's prototype in a `/// C:` line (PORTING.md P-55 for the pointer-only types).  */
-unsafe extern "C" {
+unsafe extern "C-unwind" {
 
 
   /// C: lisp.h 4441: `extern void mark_c_stack (char const *, char const *);`
@@ -73,12 +73,12 @@ unsafe extern "C" {
   pub fn push_handler (tag: Lisp_Object, type_: handlertype) -> *mut handler;
   /// C: lisp.h 4805: `extern Lisp_Object internal_condition_case (Lisp_Object (*) (void),
   /// Lisp_Object, Lisp_Object (*) (Lisp_Object));`
-  pub fn internal_condition_case (bfun: Option<unsafe extern "C" fn () -> Lisp_Object>,
+  pub fn internal_condition_case (bfun: Option<unsafe extern "C-unwind" fn () -> Lisp_Object>,
                                   handlers: Lisp_Object,
-                                  hfun: Option<unsafe extern "C" fn (Lisp_Object) -> Lisp_Object>)
+                                  hfun: Option<unsafe extern "C-unwind" fn (Lisp_Object) -> Lisp_Object>)
     -> Lisp_Object;
   /// C: lisp.h 4825: `extern void record_unwind_protect_void (void (*) (void));`
-  pub fn record_unwind_protect_void (func: Option<unsafe extern "C" fn ()>);
+  pub fn record_unwind_protect_void (func: Option<unsafe extern "C-unwind" fn ()>);
   /// C: lisp.h 5229-5230: `extern void init_bc_thread (struct bc_thread_state *bc);` /
   /// `extern void free_bc_thread (struct bc_thread_state *bc);`
   pub fn init_bc_thread (bc: *mut bc_thread_state);
@@ -90,7 +90,7 @@ unsafe extern "C" {
 #[cfg (feature = "have_ns")]
 mod thread_ns_api {
   use super::*;
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     pub fn ns_alloc_autorelease_pool () -> *mut c_void;
     pub fn ns_release_autorelease_pool (pool: *mut c_void);
   }
@@ -269,7 +269,7 @@ unsafe fn acquire_global_lock (self_: *mut thread_state)
    the main thread could acquire the lock.  */
 // thread.c 161-179.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn maybe_reacquire_global_lock ()
+pub unsafe extern "C-unwind" fn maybe_reacquire_global_lock ()
 {
   /* SIGINT handler is always run on the main thread.  */
   current_thread = std::ptr::addr_of_mut! (main_thread.s);
@@ -401,7 +401,7 @@ DEFUN! ("make-mutex", Fmake_mutex, Smake_mutex, 0, 1, 0,
 });
 
 // thread.c 322-332.
-unsafe extern "C" fn mutex_lock_callback (arg: *mut c_void)
+unsafe extern "C-unwind" fn mutex_lock_callback (arg: *mut c_void)
 {
   let mutex: *mut Lisp_Mutex = arg as *mut Lisp_Mutex;
   let self_: *mut thread_state = current_thread;
@@ -413,7 +413,7 @@ unsafe extern "C" fn mutex_lock_callback (arg: *mut c_void)
 }
 
 // thread.c 334-337.
-unsafe extern "C" fn do_unwind_mutex_lock ()
+unsafe extern "C-unwind" fn do_unwind_mutex_lock ()
 {
   (*current_thread).event_object = Qnil ();
 }
@@ -436,7 +436,7 @@ DEFUN! ("mutex-lock", Fmutex_lock, Smutex_lock, 1, 1, 0,
 });
 
 // thread.c 372-379.
-unsafe extern "C" fn mutex_unlock_callback (arg: *mut c_void)
+unsafe extern "C-unwind" fn mutex_unlock_callback (arg: *mut c_void)
 {
   let mutex: *mut Lisp_Mutex = arg as *mut Lisp_Mutex;
   let self_: *mut thread_state = current_thread;
@@ -474,7 +474,7 @@ DEFUN! ("mutex-name", Fmutex_name, Smutex_name, 1, 1, 0,
 
 // thread.c 411-414.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn finalize_one_mutex (mutex: *mut Lisp_Mutex)
+pub unsafe extern "C-unwind" fn finalize_one_mutex (mutex: *mut Lisp_Mutex)
 {
   lisp_mutex_destroy (&raw mut (*mutex).mutex);
 }
@@ -502,7 +502,7 @@ DEFUN! ("make-condition-variable",
 });
 
 // thread.c 443-475.
-unsafe extern "C" fn condition_wait_callback (arg: *mut c_void)
+unsafe extern "C-unwind" fn condition_wait_callback (arg: *mut c_void)
 {
   let cvar: *mut Lisp_CondVar = arg as *mut Lisp_CondVar;
   let mutex: *mut Lisp_Mutex = XMUTEX ((*cvar).mutex);
@@ -559,7 +559,7 @@ pub struct notify_args
 }
 
 // thread.c 520-541.
-unsafe extern "C" fn condition_notify_callback (arg: *mut c_void)
+unsafe extern "C-unwind" fn condition_notify_callback (arg: *mut c_void)
 {
   let na: *mut notify_args = arg as *mut notify_args;
   let mutex: *mut Lisp_Mutex = XMUTEX ((*(*na).cvar).mutex);
@@ -630,7 +630,7 @@ DEFUN! ("condition-name", Fcondition_name, Scondition_name, 1, 1, 0,
 
 // thread.c 593-596.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn finalize_one_condvar (condvar: *mut Lisp_CondVar)
+pub unsafe extern "C-unwind" fn finalize_one_condvar (condvar: *mut Lisp_CondVar)
 {
   sys_cond_destroy (&raw mut (*condvar).cond);
 }
@@ -650,7 +650,7 @@ pub struct select_args
 }
 
 // thread.c 613-641.
-unsafe extern "C" fn really_call_select (arg: *mut c_void)
+unsafe extern "C-unwind" fn really_call_select (arg: *mut c_void)
 {
   let sa: *mut select_args = arg as *mut select_args;
   let self_: *mut thread_state = current_thread;
@@ -680,7 +680,7 @@ unsafe extern "C" fn really_call_select (arg: *mut c_void)
 
 // thread.c 643-663.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn thread_select (func: Option<select_func>, max_fds: c_int,
+pub unsafe extern "C-unwind" fn thread_select (func: Option<select_func>, max_fds: c_int,
 					rfds: *mut fd_set, wfds: *mut fd_set,
 					efds: *mut fd_set, timeout: *mut timespec,
 					sigmask: *mut sigset_t) -> c_int
@@ -726,13 +726,14 @@ unsafe fn mark_one_thread (thread: *mut thread_state)
     }
 
   mark_bytecode (&raw mut (*thread).bc);
+  crate::nonlocal::mark_thread_explicit_roots (thread as *mut c_void, |obj| mark_object (obj));
 
   /* No need to mark Lisp_Object members like m_last_thing_searched,
      as mark_threads_callback does that by calling mark_object.  */
 }
 
 // thread.c 696-709.
-unsafe extern "C" fn mark_threads_callback (ignore: *mut c_void)
+unsafe extern "C-unwind" fn mark_threads_callback (ignore: *mut c_void)
 {
   let mut iter: *mut thread_state;
 
@@ -750,20 +751,20 @@ unsafe extern "C" fn mark_threads_callback (ignore: *mut c_void)
 
 // thread.c 711-715.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mark_threads ()
+pub unsafe extern "C-unwind" fn mark_threads ()
 {
   flush_stack_call_func (Some (mark_threads_callback), std::ptr::null_mut ());
 }
 
 // thread.c 717-721.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn unmark_main_thread ()
+pub unsafe extern "C-unwind" fn unmark_main_thread ()
 {
   main_thread.s.header.size &= !ARRAY_MARK_FLAG;
 }
 
 // thread.c 725-732.
-unsafe extern "C" fn yield_callback (ignore: *mut c_void)
+unsafe extern "C-unwind" fn yield_callback (ignore: *mut c_void)
 {
   let self_: *mut thread_state = current_thread;
 
@@ -782,7 +783,7 @@ DEFUN! ("thread-yield", Fthread_yield, Sthread_yield, 0, 0, 0,
 });
 
 // thread.c 743-749.
-unsafe extern "C" fn invoke_thread_function () -> Lisp_Object
+unsafe extern "C-unwind" fn invoke_thread_function () -> Lisp_Object
 {
   let count: specpdl_ref = SPECPDL_INDEX ();
 
@@ -794,7 +795,7 @@ unsafe extern "C" fn invoke_thread_function () -> Lisp_Object
 static mut last_thread_error: Lisp_Object = lisp_h_Qnil ();
 
 // thread.c 753-758.
-unsafe extern "C" fn record_thread_error (error_form: Lisp_Object) -> Lisp_Object
+unsafe extern "C-unwind" fn record_thread_error (error_form: Lisp_Object) -> Lisp_Object
 {
   last_thread_error = error_form;
   return error_form;
@@ -845,9 +846,10 @@ unsafe extern "C" fn run_thread (state: *mut c_void) -> *mut c_void
   (*handlerlist_sentinel! ()).next = std::ptr::null_mut ();
 
   /* It might be nice to do something with errors here.  */
-  internal_condition_case (Some (invoke_thread_function), Qt (), Some (record_thread_error));
-
-  update_processes_for_thread_death (Fcurrent_thread ());
+  let _ = crate::nonlocal::catch_vm_nonlocal (|| unsafe {
+    internal_condition_case (Some (invoke_thread_function), Qt (), Some (record_thread_error));
+    update_processes_for_thread_death (Fcurrent_thread ());
+  });
 
   xfree ((*self_).m_specpdl.offset (-1) as *mut c_void);
   (*self_).m_specpdl = std::ptr::null_mut ();
@@ -904,12 +906,13 @@ unsafe fn free_search_regs (regs: *mut re_registers)
 
 // thread.c 877-886.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn finalize_one_thread (state: *mut thread_state)
+pub unsafe extern "C-unwind" fn finalize_one_thread (state: *mut thread_state)
 {
   free_search_regs (&raw mut (*state).m_search_regs);
   free_search_regs (&raw mut (*state).m_saved_search_regs);
   sys_cond_destroy (&raw mut (*state).thread_condvar);
   free_bc_thread (&raw mut (*state).bc);
+  crate::nonlocal::cleanup_thread_state (state as *mut c_void);
 }
 
 // thread.c 888-947.
@@ -995,7 +998,7 @@ DEFUN! ("thread-name", Fthread_name, Sthread_name, 1, 1, 0,
 });
 
 // thread.c 975-983.
-unsafe extern "C" fn thread_signal_callback (arg: *mut c_void)
+unsafe extern "C-unwind" fn thread_signal_callback (arg: *mut c_void)
 {
   let tstate: *mut thread_state = arg as *mut thread_state;
   let self_: *mut thread_state = current_thread;
@@ -1109,7 +1112,7 @@ DEFUN! ("thread--blocker", Fthread_blocker, Sthread_blocker, 1, 1, 0,
 });
 
 // thread.c 1101-1116.
-unsafe extern "C" fn thread_join_callback (arg: *mut c_void)
+unsafe extern "C-unwind" fn thread_join_callback (arg: *mut c_void)
 {
   let tstate: *mut thread_state = arg as *mut thread_state;
   let self_: *mut thread_state = current_thread;
@@ -1193,7 +1196,7 @@ DEFUN! ("thread-last-error", Fthread_last_error, Sthread_last_error, 0, 1, 0,
 // thread.c 1183-1198.  The parameter is C's `struct buffer *`; the mirror declares it
 // untyped (P-55), so the use sites need no cast.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn thread_check_current_buffer (buffer: *mut c_void) -> bool
+pub unsafe extern "C-unwind" fn thread_check_current_buffer (buffer: *mut c_void) -> bool
 {
   let mut iter: *mut thread_state;
 
@@ -1214,7 +1217,7 @@ pub unsafe extern "C" fn thread_check_current_buffer (buffer: *mut c_void) -> bo
 
 // thread.c 1200-1230.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn thread_all_before_buffer_killed (current: Lisp_Object)
+pub unsafe extern "C-unwind" fn thread_all_before_buffer_killed (current: Lisp_Object)
 {
   let mut iter: *mut thread_state;
   let mut other: *mut buffer = std::ptr::null_mut ();
@@ -1248,14 +1251,14 @@ pub unsafe extern "C" fn thread_all_before_buffer_killed (current: Lisp_Object)
 
 // thread.c 1232-1236.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn main_thread_p (ptr: *const c_void) -> bool
+pub unsafe extern "C-unwind" fn main_thread_p (ptr: *const c_void) -> bool
 {
   return ptr == std::ptr::addr_of! (main_thread.s) as *const c_void;
 }
 
 // thread.c 1238-1244.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn in_current_thread () -> bool
+pub unsafe extern "C-unwind" fn in_current_thread () -> bool
 {
   if current_thread.is_null ()
     { return false; }
@@ -1264,7 +1267,7 @@ pub unsafe extern "C" fn in_current_thread () -> bool
 
 // thread.c 1246-1260.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn init_threads ()
+pub unsafe extern "C-unwind" fn init_threads ()
 {
   sys_cond_init (&raw mut main_thread.s.thread_condvar);
   sys_mutex_init (&raw mut global_lock);
@@ -1280,7 +1283,7 @@ pub unsafe extern "C" fn init_threads ()
 
 // thread.c 1262-1314.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_threads ()
+pub unsafe extern "C-unwind" fn syms_of_threads ()
 {
   #[cfg (feature = "threads_enabled")]
     {

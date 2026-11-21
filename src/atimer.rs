@@ -108,7 +108,7 @@ unsafe fn unblock_atimers (oldset: *const sigset_t)
    to cancel_atimer; don't free it yourself.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn start_atimer (r#type: atimer_type, mut timestamp: timespec,
+pub unsafe extern "C-unwind" fn start_atimer (r#type: atimer_type, mut timestamp: timespec,
                                        r#fn: atimer_callback,
                                        client_data: *mut c_void) -> *mut atimer
 {
@@ -177,7 +177,7 @@ pub unsafe extern "C" fn start_atimer (r#type: atimer_type, mut timestamp: times
 /* Cancel and free atimer TIMER.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn cancel_atimer (timer: *mut atimer)
+pub unsafe extern "C-unwind" fn cancel_atimer (timer: *mut atimer)
 {
   let mut i: c_int = 0;
   let mut oldset: sigset_t = std::mem::zeroed ();
@@ -246,7 +246,7 @@ unsafe fn append_atimer_lists (list_1: *mut atimer, list_2: *mut atimer) -> *mut
 /* Stop all timers except timer T.  T null means stop all timers.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn stop_other_atimers (mut t: *mut atimer)
+pub unsafe extern "C-unwind" fn stop_other_atimers (mut t: *mut atimer)
 {
   let mut oldset: sigset_t = std::mem::zeroed ();
   block_atimers (&mut oldset);
@@ -285,7 +285,7 @@ pub unsafe extern "C" fn stop_other_atimers (mut t: *mut atimer)
    stop_other_atimers.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn run_all_atimers ()
+pub unsafe extern "C-unwind" fn run_all_atimers ()
 {
   if !stopped_atimers.is_null ()
     {
@@ -413,7 +413,7 @@ static mut timerfd: c_int = 0;
 /// TIMERFD, is available for reading."
 #[cfg (feature = "have_timerfd")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn timerfd_callback (fd: c_int, _arg: *mut c_void)
+pub unsafe extern "C-unwind" fn timerfd_callback (fd: c_int, _arg: *mut c_void)
 {
   /* C 423-424: "Timer should expire just once."  */
   eassert! (fd == timerfd);
@@ -438,7 +438,7 @@ pub unsafe extern "C" fn timerfd_callback (fd: c_int, _arg: *mut c_void)
 /* Do pending timers.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn do_pending_atimers ()
+pub unsafe extern "C-unwind" fn do_pending_atimers ()
 {
   if !atimers.is_null ()
     {
@@ -454,7 +454,7 @@ pub unsafe extern "C" fn do_pending_atimers ()
    some systems like HPUX (see process.c).  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn turn_on_atimers (on: bool)
+pub unsafe extern "C-unwind" fn turn_on_atimers (on: bool)
 {
   if on
     { set_alarm (); }
@@ -475,7 +475,7 @@ pub unsafe extern "C" fn turn_on_atimers (on: bool)
 // and the C line ranges are recorded in docs/ports/atimer.md.
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn init_atimer ()
+pub unsafe extern "C-unwind" fn init_atimer ()
 {
   // C 596-613's `#ifdef HAVE_ITIMERSPEC` block (the `timerfd_create` call guarded by
   // `EMACS_IGNORE_TIMERFD`, the `struct sigevent sigev` and the `timer_create` that arms the

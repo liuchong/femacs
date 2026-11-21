@@ -133,7 +133,7 @@ unsafe fn readlink_stk (fd: c_int, filename: *const c_char,
 
 /* C 161-173's `char *careadlinkat (…)`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn careadlinkat (fd: c_int, filename: *const c_char,
+pub unsafe extern "C-unwind" fn careadlinkat (fd: c_int, filename: *const c_char,
                                        buffer: *mut c_char, buffer_size: usize,
                                        alloc: *const allocator,
                                        preadlinkat: Option<unsafe extern "C" fn (c_int,

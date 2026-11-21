@@ -31,11 +31,13 @@ pub const EMACS_SYSSTDIO_H: bool = true;
 pub mod sysstdio_decls {
   use super::*;
 
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     /* C 32: `extern void errputc (int);`  */
     pub fn errputc (c: c_int);
     /* C 33: `extern void errwrite (void const *, ptrdiff_t);`  */
     pub fn errwrite (buf: *const c_void, nbuf: ptrdiff_t);
+  }
+  unsafe extern "C" {
     /* C 34: `extern void close_output_streams (void);`  */
     pub fn close_output_streams ();
   }

@@ -30,19 +30,19 @@ const _: () = ();
 pub static mut mpz: [mpz_t; 5] =
   [[__mpz_struct { _mp_alloc: 0, _mp_size: 0, _mp_d: std::ptr::null_mut () }; 1]; 5];
 
-unsafe extern "C" fn xrealloc_for_gmp (ptr: *mut c_void, _ignore: usize, size: usize)
+unsafe extern "C-unwind" fn xrealloc_for_gmp (ptr: *mut c_void, _ignore: usize, size: usize)
 				      -> *mut c_void
 {
   return xrealloc (ptr, size);
 }
 
-unsafe extern "C" fn xfree_for_gmp (ptr: *mut c_void, _ignore: usize)
+unsafe extern "C-unwind" fn xfree_for_gmp (ptr: *mut c_void, _ignore: usize)
 {
   xfree (ptr);
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn init_bignum ()
+pub unsafe extern "C-unwind" fn init_bignum ()
 {
   eassert! (mp_bits_per_limb == GMP_NUMB_BITS);
   integer_width = 1 << 16;
@@ -67,7 +67,7 @@ pub unsafe extern "C" fn init_bignum ()
 
 /* Return the value of the Lisp bignum N, as a double.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn bignum_to_double (n: Lisp_Object) -> c_double
+pub unsafe extern "C-unwind" fn bignum_to_double (n: Lisp_Object) -> c_double
 {
   return mpz_get_d_rounded (xbignum_val (n));
 }
@@ -75,7 +75,7 @@ pub unsafe extern "C" fn bignum_to_double (n: Lisp_Object) -> c_double
 /* Return D, converted to a Lisp integer.  Discard any fraction.
    Signal an error if D cannot be converted.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn double_to_integer (d: c_double) -> Lisp_Object
+pub unsafe extern "C-unwind" fn double_to_integer (d: c_double) -> Lisp_Object
 {
   if !isfinite! (d)
     { overflow_error (); }
@@ -110,7 +110,7 @@ unsafe fn make_bignum () -> Lisp_Object
 
 /* Return a Lisp integer equal to N, which must not be in fixnum range.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn make_bigint (n: intmax_t) -> Lisp_Object
+pub unsafe extern "C-unwind" fn make_bigint (n: intmax_t) -> Lisp_Object
 {
   eassert! (FIXNUM_OVERFLOW_P (n as EMACS_INT));
   mpz_set_intmax (mpz[0].as_mut_ptr (), n);
@@ -118,7 +118,7 @@ pub unsafe extern "C" fn make_bigint (n: intmax_t) -> Lisp_Object
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn make_biguint (n: uintmax_t) -> Lisp_Object
+pub unsafe extern "C-unwind" fn make_biguint (n: uintmax_t) -> Lisp_Object
 {
   eassert! (FIXNUM_OVERFLOW_P (n as EMACS_INT) || (MOST_POSITIVE_FIXNUM as uintmax_t) < n);
   mpz_set_uintmax (mpz[0].as_mut_ptr (), n);
@@ -127,7 +127,7 @@ pub unsafe extern "C" fn make_biguint (n: uintmax_t) -> Lisp_Object
 
 /* Return a Lisp integer equal to -N, which must not be in fixnum range.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn make_neg_biguint (n: uintmax_t) -> Lisp_Object
+pub unsafe extern "C-unwind" fn make_neg_biguint (n: uintmax_t) -> Lisp_Object
 {
   eassert! (((-MOST_NEGATIVE_FIXNUM) as uintmax_t) < n);
   mpz_set_uintmax (mpz[0].as_mut_ptr (), n);
@@ -138,7 +138,7 @@ pub unsafe extern "C" fn make_neg_biguint (n: uintmax_t) -> Lisp_Object
 /* Return a Lisp integer with value taken from mpz[0].
    Set mpz[0] to a junk value.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn make_integer_mpz () -> Lisp_Object
+pub unsafe extern "C-unwind" fn make_integer_mpz () -> Lisp_Object
 {
   if FASTER_BIGNUM != 0 && mpz_fits_slong_p (mpz[0].as_ptr ()) != 0
     {
@@ -176,7 +176,7 @@ pub unsafe extern "C" fn make_integer_mpz () -> Lisp_Object
 
 /* Set RESULT to V.  This code is for when intmax_t is wider than long.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_set_intmax_slow (result: *mut __mpz_struct, v: intmax_t)
+pub unsafe extern "C-unwind" fn mpz_set_intmax_slow (result: *mut __mpz_struct, v: intmax_t)
 {
   let maxlimbs: c_int = (INTMAX_WIDTH + GMP_NUMB_BITS - 1) / GMP_NUMB_BITS;
   let limb: *mut mp_limb_t = mpz_limbs_write (result, maxlimbs as mp_size_t);
@@ -202,7 +202,7 @@ pub unsafe extern "C" fn mpz_set_intmax_slow (result: *mut __mpz_struct, v: intm
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_set_uintmax_slow (result: *mut __mpz_struct, mut v: uintmax_t)
+pub unsafe extern "C-unwind" fn mpz_set_uintmax_slow (result: *mut __mpz_struct, mut v: uintmax_t)
 {
   let maxlimbs: c_int = (UINTMAX_WIDTH + GMP_NUMB_BITS - 1) / GMP_NUMB_BITS;
   let limb: *mut mp_limb_t = mpz_limbs_write (result, maxlimbs as mp_size_t);
@@ -222,7 +222,7 @@ pub unsafe extern "C" fn mpz_set_uintmax_slow (result: *mut __mpz_struct, mut v:
 /* If Z fits into *PI, store its value there and return true.
    Return false otherwise.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_to_intmax (z: *const __mpz_struct, pi: *mut intmax_t) -> bool
+pub unsafe extern "C-unwind" fn mpz_to_intmax (z: *const __mpz_struct, pi: *mut intmax_t) -> bool
 {
   if FASTER_BIGNUM != 0
     {
@@ -262,7 +262,7 @@ pub unsafe extern "C" fn mpz_to_intmax (z: *const __mpz_struct, pi: *mut intmax_
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_to_uintmax (z: *const __mpz_struct, pi: *mut uintmax_t) -> bool
+pub unsafe extern "C-unwind" fn mpz_to_uintmax (z: *const __mpz_struct, pi: *mut uintmax_t) -> bool
 {
   if FASTER_BIGNUM != 0
     {
@@ -298,14 +298,14 @@ pub unsafe extern "C" fn mpz_to_uintmax (z: *const __mpz_struct, pi: *mut uintma
 /* Return the value of the bignum X if it fits, 0 otherwise.
    A bignum cannot be zero, so 0 indicates failure reliably.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn bignum_to_intmax (x: Lisp_Object) -> intmax_t
+pub unsafe extern "C-unwind" fn bignum_to_intmax (x: Lisp_Object) -> intmax_t
 {
   let mut i: intmax_t = 0;
   return if mpz_to_intmax (xbignum_val (x), &mut i) { i } else { 0 };
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn bignum_to_uintmax (x: Lisp_Object) -> uintmax_t
+pub unsafe extern "C-unwind" fn bignum_to_uintmax (x: Lisp_Object) -> uintmax_t
 {
   let mut i: uintmax_t = 0;
   return if mpz_to_uintmax (xbignum_val (x), &mut i) { i } else { 0 };
@@ -357,7 +357,7 @@ unsafe fn emacs_mpz_size (op: *const __mpz_struct) -> c_int
    width checks in bignum.c should suffice.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn emacs_mpz_mul (rop: *mut __mpz_struct, op1: *const __mpz_struct,
+pub unsafe extern "C-unwind" fn emacs_mpz_mul (rop: *mut __mpz_struct, op1: *const __mpz_struct,
 					op2: *const __mpz_struct)
 {
   if NLIMBS_LIMIT - emacs_mpz_size (op1) < emacs_mpz_size (op2)
@@ -366,7 +366,7 @@ pub unsafe extern "C" fn emacs_mpz_mul (rop: *mut __mpz_struct, op1: *const __mp
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn emacs_mpz_mul_2exp (rop: *mut __mpz_struct, op1: *const __mpz_struct,
+pub unsafe extern "C-unwind" fn emacs_mpz_mul_2exp (rop: *mut __mpz_struct, op1: *const __mpz_struct,
 					     op2: EMACS_INT)
 {
   /* Fudge factor derived from GMP 6.1.2, to avoid an abort in
@@ -382,7 +382,7 @@ pub unsafe extern "C" fn emacs_mpz_mul_2exp (rop: *mut __mpz_struct, op1: *const
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn emacs_mpz_pow_ui (rop: *mut __mpz_struct, base: *const __mpz_struct,
+pub unsafe extern "C-unwind" fn emacs_mpz_pow_ui (rop: *mut __mpz_struct, base: *const __mpz_struct,
 					   exp: c_ulong)
 {
   /* This fudge factor is derived from GMP 6.1.2, to avoid an abort in
@@ -407,7 +407,7 @@ unsafe fn mpz_bufsize (num: *const __mpz_struct, base: c_int) -> ptrdiff_t
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn bignum_bufsize (num: Lisp_Object, base: c_int) -> ptrdiff_t
+pub unsafe extern "C-unwind" fn bignum_bufsize (num: Lisp_Object, base: c_int) -> ptrdiff_t
 {
   return mpz_bufsize (xbignum_val (num), base);
 }
@@ -415,7 +415,7 @@ pub unsafe extern "C" fn bignum_bufsize (num: Lisp_Object, base: c_int) -> ptrdi
 /* Convert NUM to a nearest double, as opposed to mpz_get_d which
    truncates toward zero.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_get_d_rounded (num: *const __mpz_struct) -> c_double
+pub unsafe extern "C-unwind" fn mpz_get_d_rounded (num: *const __mpz_struct) -> c_double
 {
   let size: ptrdiff_t = mpz_bufsize (num, 10);
 
@@ -440,7 +440,7 @@ pub unsafe extern "C" fn mpz_get_d_rounded (num: *const __mpz_struct) -> c_doubl
    Return the string's length.
    SIZE must equal bignum_bufsize (NUM, abs (BASE)).  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn bignum_to_c_string (buf: *mut c_char, size: ptrdiff_t,
+pub unsafe extern "C-unwind" fn bignum_to_c_string (buf: *mut c_char, size: ptrdiff_t,
 					     num: Lisp_Object, base: c_int) -> ptrdiff_t
 {
   eassert! (bignum_bufsize (num, base.abs ()) == size);
@@ -454,7 +454,7 @@ pub unsafe extern "C" fn bignum_to_c_string (buf: *mut c_char, size: ptrdiff_t,
    If BASE is negative, use upper-case digits in base -BASE.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn bignum_to_string (num: Lisp_Object, base: c_int) -> Lisp_Object
+pub unsafe extern "C-unwind" fn bignum_to_string (num: Lisp_Object, base: c_int) -> Lisp_Object
 {
   let size: ptrdiff_t = bignum_bufsize (num, base.abs ());
   USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
@@ -471,7 +471,7 @@ pub unsafe extern "C" fn bignum_to_string (num: Lisp_Object, base: c_int) -> Lis
    the represented number must not be in fixnum range.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn make_bignum_str (num: *const c_char, base: c_int) -> Lisp_Object
+pub unsafe extern "C-unwind" fn make_bignum_str (num: *const c_char, base: c_int) -> Lisp_Object
 {
   let b: *mut Lisp_Bignum = ALLOCATE_PLAIN_PSEUDOVECTOR! (Lisp_Bignum, pvec_type::PVEC_BIGNUM);
   mpz_init ((*b).value.as_mut_ptr ());
@@ -484,7 +484,7 @@ pub unsafe extern "C" fn make_bignum_str (num: *const c_char, base: c_int) -> Li
    Return X's value as an intmax_t.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn check_integer_range (x: Lisp_Object, lo: intmax_t,
+pub unsafe extern "C-unwind" fn check_integer_range (x: Lisp_Object, lo: intmax_t,
 					      hi: intmax_t) -> intmax_t
 {
   CHECK_INTEGER (x);
@@ -498,7 +498,7 @@ pub unsafe extern "C" fn check_integer_range (x: Lisp_Object, lo: intmax_t,
    Return X's value as an uintmax_t.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn check_uinteger_max (x: Lisp_Object, hi: uintmax_t) -> uintmax_t
+pub unsafe extern "C-unwind" fn check_uinteger_max (x: Lisp_Object, hi: uintmax_t) -> uintmax_t
 {
   CHECK_INTEGER (x);
   let mut i: uintmax_t = 0;
@@ -511,7 +511,7 @@ pub unsafe extern "C" fn check_uinteger_max (x: Lisp_Object, hi: uintmax_t) -> u
    and return its value or zero, whichever is greater.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn check_int_nonnegative (x: Lisp_Object) -> c_int
+pub unsafe extern "C-unwind" fn check_int_nonnegative (x: Lisp_Object) -> c_int
 {
   CHECK_INTEGER (x);
   return if NILP (Fnatnump (x)) { 0 } else { check_integer_range (x, 0, INT_MAX as intmax_t) as c_int };
@@ -566,7 +566,7 @@ unsafe fn get_random_limb_lim (lim: mp_limb_t) -> mp_limb_t
    where LIMIT is a positive bignum.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn get_random_bignum (limit: *const Lisp_Bignum) -> Lisp_Object
+pub unsafe extern "C-unwind" fn get_random_bignum (limit: *const Lisp_Bignum) -> Lisp_Object
 {
   let lim: *const __mpz_struct = bignum_val (limit);
   let nlimbs: mp_size_t = mpz_size (lim) as mp_size_t;

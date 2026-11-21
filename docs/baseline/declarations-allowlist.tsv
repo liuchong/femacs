@@ -7,10 +7,6 @@
 # <path>\t<class>\t<count>\t<line>\t<reason>.  A count that no longer matches,
 # a row nothing matches, and a finding with no row are all failures.
 path	class	count	line	reason
-lib-src/ebrowse.rs	literal	1	c"Copyright (C) 2026 Free Software Foundation, Inc.";	TODO
-lib-src/ebrowse.rs	literal	1	fputs (c"ebrowse 32.0.50\nCopyright (C) 2026 Free Software Foundation, Inc.\nThis program is distributed under the terms of the GNU General Public License, version 3 or later.\n".as_ptr (),	TODO
-lib-src/etags.rs	literal	1	fputs (c"etags (femacs 32.0.50)\nCopyright (C) 2026 Free Software Foundation, Inc.\nThis program is distributed under the terms in ETAGS.README\n".as_ptr (),	TODO
-lib-src/etags.rs	literal	1	pub const COPYRIGHT: &CStr = c"Copyright (C) 2026 Free Software Foundation, Inc.";	TODO
 nt/addpm.rs	literal	1	DdeCommand! (c"[CreateGroup (\"Gnu Emacs\")]".as_ptr (), conversation); /* C 333 */	TODO
 nt/addpm.rs	literal	1	pub const REG_ROOT: &std::ffi::CStr = c"SOFTWARE\\GNU\\Emacs";	TODO
 nt/addpm.rs	literal	1	strcat (start_folder.as_mut_ptr (), c"\\Emacs.lnk".as_ptr ()); /* C 263 */	TODO

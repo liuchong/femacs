@@ -30,7 +30,7 @@ pub const EMACS_REGION_CACHE_H: c_int = 1;
 pub mod region_cache_decls {
   use super::*;
 
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     /* Allocate, initialize and return a new, empty region cache.  */
     /// C: region-cache.h 68: `struct region_cache *new_region_cache (void);`
     pub fn new_region_cache () -> *mut c_void;

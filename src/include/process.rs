@@ -209,9 +209,9 @@ pub mod process_objs {
   use super::*;
 
   /* True means don't run process sentinels.  This is used when exiting.  */
-  unsafe extern "C" { pub static mut inhibit_sentinels: bool; }              // process.h 265
+  unsafe extern "C-unwind" { pub static mut inhibit_sentinels: bool; }              // process.h 265
   /* True means that Glib clobbers Emacs SIGCHLD handler.  */
-  unsafe extern "C" { pub static mut glib_installs_sigchld_handler: bool; }  // process.h 267
+  unsafe extern "C-unwind" { pub static mut glib_installs_sigchld_handler: bool; }  // process.h 267
 }
 pub use self::process_objs::*;
 
@@ -235,18 +235,18 @@ pub const EXIT_ENOENT: c_int = 127;        // could not find program to exec
 pub mod process_fd_decls {
   use super::*;
 
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     /// C: process.h 298: `extern void add_read_fd (int fd, fd_callback func, void *data);`
-    pub fn add_read_fd (fd: c_int, func: Option<unsafe extern "C" fn (c_int, *mut c_void)>,
+    pub fn add_read_fd (fd: c_int, func: Option<unsafe extern "C-unwind" fn (c_int, *mut c_void)>,
                         data: *mut c_void);
     /// C: process.h 299: `extern void add_non_keyboard_read_fd (int fd, fd_callback func, void *data);`
     pub fn add_non_keyboard_read_fd (fd: c_int,
-                                     func: Option<unsafe extern "C" fn (c_int, *mut c_void)>,
+                                     func: Option<unsafe extern "C-unwind" fn (c_int, *mut c_void)>,
                                      data: *mut c_void);
     /// C: process.h 300: `extern void delete_read_fd (int fd);`
     pub fn delete_read_fd (fd: c_int);
     /// C: process.h 301: `extern void add_write_fd (int fd, fd_callback func, void *data);`
-    pub fn add_write_fd (fd: c_int, func: Option<unsafe extern "C" fn (c_int, *mut c_void)>,
+    pub fn add_write_fd (fd: c_int, func: Option<unsafe extern "C-unwind" fn (c_int, *mut c_void)>,
                          data: *mut c_void);
     /// C: process.h 302: `extern void delete_write_fd (int fd);`
     pub fn delete_write_fd (fd: c_int);
@@ -264,7 +264,7 @@ pub use self::process_fd_decls::*;
 pub mod process_fn_decls {
   use super::*;
 
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     /// C: process.h 279: `extern Lisp_Object get_current_directory (bool);`
     pub fn get_current_directory (encode: bool) -> Lisp_Object;
     /// C: process.h 280: `extern void record_kill_process (struct Lisp_Process *, Lisp_Object);`

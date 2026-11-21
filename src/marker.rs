@@ -67,7 +67,7 @@ static mut cached_modiff: modiff_count = 0;
    multibyte_chars_in_text, which this target's mirrors have not got.  */
 #[cfg (feature = "marker_debug")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn count_markers (buf: *mut buffer) -> c_int
+pub unsafe extern "C-unwind" fn count_markers (buf: *mut buffer) -> c_int
 {
   let mut total: c_int = 0;
   let mut tail: *mut Lisp_Marker;
@@ -86,7 +86,7 @@ pub unsafe extern "C" fn count_markers (buf: *mut buffer) -> c_int
    to CHARPOS in the simplest, most reliable way.  */
 #[cfg (feature = "marker_debug")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn verify_bytepos (charpos: ptrdiff_t) -> ptrdiff_t
+pub unsafe extern "C-unwind" fn verify_bytepos (charpos: ptrdiff_t) -> ptrdiff_t
 {
   let mut below: ptrdiff_t = BEG as ptrdiff_t;
   let mut below_byte: ptrdiff_t = BEG_BYTE as ptrdiff_t;
@@ -132,7 +132,7 @@ macro_rules! byte_char_debug_check {
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn clear_charpos_cache (b: *mut buffer)
+pub unsafe extern "C-unwind" fn clear_charpos_cache (b: *mut buffer)
 {
   if cached_buffer == b
     { cached_buffer = 0 as *mut buffer; }
@@ -235,7 +235,7 @@ unsafe extern "C" {
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn buf_charpos_to_bytepos (b: *mut c_void, charpos: ptrdiff_t)
+pub unsafe extern "C-unwind" fn buf_charpos_to_bytepos (b: *mut c_void, charpos: ptrdiff_t)
   -> ptrdiff_t
 {
   /* C's prototype is `ptrdiff_t buf_charpos_to_bytepos (struct buffer *, ptrdiff_t)`; the
@@ -429,7 +429,7 @@ unsafe fn consider_bytepos (b: *mut buffer, bytepos: ptrdiff_t,
 /* Return the character position corresponding to BYTEPOS in B.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn buf_bytepos_to_charpos (b: *mut c_void, bytepos: ptrdiff_t)
+pub unsafe extern "C-unwind" fn buf_bytepos_to_charpos (b: *mut c_void, bytepos: ptrdiff_t)
   -> ptrdiff_t
 {
   /* As in buf_charpos_to_bytepos: C's parameter is `struct buffer *`, and the `*mut c_void`
@@ -728,7 +728,7 @@ DEFUN! ("set-marker", Fset_marker, Sset_marker, 2, 3, 0,
 /* Like the above, but won't let the position be outside the visible part.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn set_marker_restricted (marker: Lisp_Object, position: Lisp_Object,
+pub unsafe extern "C-unwind" fn set_marker_restricted (marker: Lisp_Object, position: Lisp_Object,
 						buffer: Lisp_Object) -> Lisp_Object
 {
   return set_marker_internal (marker, position, buffer, true);
@@ -738,7 +738,7 @@ pub unsafe extern "C" fn set_marker_restricted (marker: Lisp_Object, position: L
    character position and the corresponding byte position.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn set_marker_both (marker: Lisp_Object, buffer: Lisp_Object,
+pub unsafe extern "C-unwind" fn set_marker_both (marker: Lisp_Object, buffer: Lisp_Object,
 					  charpos: ptrdiff_t, bytepos: ptrdiff_t)
   -> Lisp_Object
 {
@@ -758,7 +758,7 @@ pub unsafe extern "C" fn set_marker_both (marker: Lisp_Object, buffer: Lisp_Obje
 /* Like the above, but won't let the position be outside the visible part.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn set_marker_restricted_both (marker: Lisp_Object,
+pub unsafe extern "C-unwind" fn set_marker_restricted_both (marker: Lisp_Object,
 						     buffer: Lisp_Object,
 						     charpos: ptrdiff_t,
 						     bytepos: ptrdiff_t) -> Lisp_Object
@@ -786,7 +786,7 @@ pub unsafe extern "C" fn set_marker_restricted_both (marker: Lisp_Object,
    function could have inserted it into an undo list (Bug#30931).  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn detach_marker (marker: Lisp_Object)
+pub unsafe extern "C-unwind" fn detach_marker (marker: Lisp_Object)
 {
   Fset_marker (marker, Qnil (), Qnil ());
 }
@@ -795,7 +795,7 @@ pub unsafe extern "C" fn detach_marker (marker: Lisp_Object)
    buffer NULL.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn unchain_marker (marker: *mut Lisp_Marker)
+pub unsafe extern "C-unwind" fn unchain_marker (marker: *mut Lisp_Marker)
 {
   let b: *mut buffer = (*marker).buffer as *mut buffer;
 
@@ -848,7 +848,7 @@ pub unsafe extern "C" fn unchain_marker (marker: *mut Lisp_Marker)
 /* Return the char position of marker MARKER, as a C integer.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn marker_position (marker: Lisp_Object) -> ptrdiff_t
+pub unsafe extern "C-unwind" fn marker_position (marker: Lisp_Object) -> ptrdiff_t
 {
   let m: *mut Lisp_Marker = XMARKER (marker);
   let buf: *mut buffer = (*m).buffer as *mut buffer;
@@ -864,7 +864,7 @@ pub unsafe extern "C" fn marker_position (marker: Lisp_Object) -> ptrdiff_t
 /* Return the byte position of marker MARKER, as a C integer.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn marker_byte_position (marker: Lisp_Object) -> ptrdiff_t
+pub unsafe extern "C-unwind" fn marker_byte_position (marker: Lisp_Object) -> ptrdiff_t
 {
   let m: *mut Lisp_Marker = XMARKER (marker);
   let buf: *mut buffer = (*m).buffer as *mut buffer;
@@ -956,7 +956,7 @@ DEFUN! ("markers-in", Fmarkers_in, Smarkers_in, 0, 2, 0,
 });
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_marker ()
+pub unsafe extern "C-unwind" fn syms_of_marker ()
 {
   defsubr (&raw mut Smarker_position);
   defsubr (&raw mut Smarker_last_position);

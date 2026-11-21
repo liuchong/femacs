@@ -1266,7 +1266,7 @@ DEFUN! ("sqlite-available-p", Fsqlite_available_p, Ssqlite_available_p, 0, 0, 0,
 /* C 888: `void syms_of_sqlite (void)` - `lisp.h` 4417 declares it and it is the one symbol this
    unit exports in every configuration.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_sqlite ()
+pub unsafe extern "C-unwind" fn syms_of_sqlite ()
 {
   /* C 891-911: `#ifdef HAVE_SQLITE3` - the fifteen `defsubr`s (C 892-908, with C 901-903's
      `#if HAVE_LOAD_EXTENSION` around `sqlite-load-extension`) and C 909-910's two `DEFSYM`s.  */

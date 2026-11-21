@@ -34,7 +34,7 @@ pub const MENU_KBD_NAVIGATION: c_int = 0x4;
 
 pub mod menu_decls {
   use super::*;
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     /// C: extern void init_menu_items (void);
     pub fn init_menu_items ();
     /// C: extern void finish_menu_items (void);

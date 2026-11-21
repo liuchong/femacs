@@ -47,7 +47,7 @@ unsafe extern "C" {
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn tparam (string: *const c_char, outstring: *mut c_char, len: c_int,
+pub unsafe extern "C-unwind" fn tparam (string: *const c_char, outstring: *mut c_char, len: c_int,
 				 arg1: c_int, arg2: c_int, arg3: c_int, arg4: c_int)
   -> *mut c_char
 {

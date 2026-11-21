@@ -779,7 +779,7 @@ unsafe fn print_partial_compiled_pattern (dest: *mut FILE, start: *const re_char
 
 #[cfg (any (regex_emacs_debug, enable_checking))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn print_compiled_pattern (dest: *mut FILE,
+pub unsafe extern "C-unwind" fn print_compiled_pattern (dest: *mut FILE,
 						 bufp: *mut re_pattern_buffer)
 {
   let mut dest = dest;
@@ -1288,7 +1288,7 @@ pub const BIT_BLANK: c_int = 0x400;
    The function can be used on ASCII and multibyte (UTF-8-encoded) strings.
  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn re_wctype_parse (strp: *mut *const u8, mut limit: ptrdiff_t) -> re_wctype_t
+pub unsafe extern "C-unwind" fn re_wctype_parse (strp: *mut *const u8, mut limit: ptrdiff_t) -> re_wctype_t
 {
   let beg = *strp as *const c_char;
   let mut it: *const c_char;
@@ -1387,7 +1387,7 @@ pub unsafe extern "C" fn re_wctype_parse (strp: *mut *const u8, mut limit: ptrdi
 
 /* True if CH is in the char class CC.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn re_iswctype (ch: c_int, cc: re_wctype_t) -> bool
+pub unsafe extern "C-unwind" fn re_iswctype (ch: c_int, cc: re_wctype_t) -> bool
 {
   match cc
     {
@@ -2954,7 +2954,7 @@ unsafe fn group_in_compile_stack (compile_stack: compile_stack_type, regnum: reg
    get bigger, or it should stay the same and P should get bigger.  */
 unsafe fn forall_firstchar_1 (p: *const re_char, pend: *const re_char,
 			      loop_beg: *const re_char, loop_end: *const re_char,
-			      f: unsafe extern "C" fn (*const re_char, *mut c_void) -> bool,
+			      f: unsafe extern "C-unwind" fn (*const re_char, *mut c_void) -> bool,
 			      arg: *mut c_void) -> bool
 {
   let mut p = p;
@@ -3210,7 +3210,7 @@ unsafe fn forall_firstchar_1 (p: *const re_char, pend: *const re_char,
    of [P...PEND].  */
 unsafe fn forall_firstchar (bufp: *mut re_pattern_buffer, p: *const re_char,
 			    pend: *const re_char,
-			    f: unsafe extern "C" fn (*const re_char, *mut c_void) -> bool,
+			    f: unsafe extern "C-unwind" fn (*const re_char, *mut c_void) -> bool,
 			    arg: *mut c_void) -> bool
 {
   eassert! (if !bufp.is_null () { (*bufp).used != 0 } else { !pend.is_null () });
@@ -3234,7 +3234,7 @@ const _: () = core::assert! (std::mem::offset_of! (anafirst_data, multibyte) == 
 const _: () = core::assert! (std::mem::offset_of! (anafirst_data, fastmap) == 8);
 const _: () = core::assert! (std::mem::offset_of! (anafirst_data, match_any_multibyte_characters) == 16);
 
-unsafe extern "C" fn analyze_first_fastmap (mut p: *const re_char, arg: *mut c_void) -> bool
+unsafe extern "C-unwind" fn analyze_first_fastmap (mut p: *const re_char, arg: *mut c_void) -> bool
 {
   let data: *mut anafirst_data = arg as *mut anafirst_data;
 
@@ -3450,7 +3450,7 @@ unsafe extern "C" fn analyze_first_fastmap (mut p: *const re_char, arg: *mut c_v
     }
 }
 
-unsafe extern "C" fn analyze_first_null (p: *const re_char, _arg: *mut c_void) -> bool
+unsafe extern "C-unwind" fn analyze_first_null (p: *const re_char, _arg: *mut c_void) -> bool
 {
   match *p as re_opcode_t
     {
@@ -3576,7 +3576,7 @@ unsafe fn re_compile_fastmap (bufp: *mut re_pattern_buffer)
 /// replacement scheme), so the reference object exports `_rpl_re_set_registers` and this
 /// definition must carry C's own symbol name (the `emacs_fclose` shape, status 3.68).
 #[unsafe(export_name = "rpl_re_set_registers")]
-pub unsafe extern "C" fn re_set_registers (bufp: *mut re_pattern_buffer,
+pub unsafe extern "C-unwind" fn re_set_registers (bufp: *mut re_pattern_buffer,
 					   regs: *mut re_registers,
 					   num_regs: ptrdiff_t,
 					   starts: *mut ptrdiff_t, ends: *mut ptrdiff_t)
@@ -3606,7 +3606,7 @@ pub unsafe extern "C" fn re_set_registers (bufp: *mut re_pattern_buffer,
 /// replacement scheme), so the reference object exports `_rpl_re_search` and this
 /// definition must carry C's own symbol name (the `emacs_fclose` shape, status 3.68).
 #[unsafe(export_name = "rpl_re_search")]
-pub unsafe extern "C" fn re_search (bufp: *mut re_pattern_buffer, string: *const c_char,
+pub unsafe extern "C-unwind" fn re_search (bufp: *mut re_pattern_buffer, string: *const c_char,
 				    size: ptrdiff_t, startpos: ptrdiff_t,
 				    range: ptrdiff_t, regs: *mut re_registers) -> ptrdiff_t
 {
@@ -3642,7 +3642,7 @@ pub unsafe extern "C" fn re_search (bufp: *mut re_pattern_buffer, string: *const
 /// replacement scheme), so the reference object exports `_rpl_re_search_2` and this
 /// definition must carry C's own symbol name (the `emacs_fclose` shape, status 3.68).
 #[unsafe(export_name = "rpl_re_search_2")]
-pub unsafe extern "C" fn re_search_2 (bufp: *mut re_pattern_buffer, str1: *const c_char,
+pub unsafe extern "C-unwind" fn re_search_2 (bufp: *mut re_pattern_buffer, str1: *const c_char,
 				      size1: ptrdiff_t, str2: *const c_char,
 				      size2: ptrdiff_t,
 				      mut startpos: ptrdiff_t, mut range: ptrdiff_t,
@@ -4165,7 +4165,7 @@ const _: () = core::assert! (std::mem::offset_of! (mutexcl_data, bufp) == 0);
 const _: () = core::assert! (std::mem::offset_of! (mutexcl_data, p1) == 8);
 const _: () = core::assert! (std::mem::offset_of! (mutexcl_data, unconstrained) == 16);
 
-unsafe extern "C" fn mutually_exclusive_one (p2: *const re_char, arg: *mut c_void) -> bool
+unsafe extern "C-unwind" fn mutually_exclusive_one (p2: *const re_char, arg: *mut c_void) -> bool
 {
   let data: *mut mutexcl_data = arg as *mut mutexcl_data;
 
@@ -4328,7 +4328,7 @@ unsafe fn mutually_exclusive_p (bufp: *mut re_pattern_buffer, p1: *const re_char
 /// replacement scheme), so the reference object exports `_rpl_re_match_2` and this
 /// definition must carry C's own symbol name (the `emacs_fclose` shape, status 3.68).
 #[unsafe(export_name = "rpl_re_match_2")]
-pub unsafe extern "C" fn re_match_2 (bufp: *mut re_pattern_buffer,
+pub unsafe extern "C-unwind" fn re_match_2 (bufp: *mut re_pattern_buffer,
 				     string1: *const c_char, size1: ptrdiff_t,
 				     string2: *const c_char, size2: ptrdiff_t,
 				     pos: ptrdiff_t, regs: *mut re_registers,
@@ -4345,7 +4345,7 @@ pub unsafe extern "C" fn re_match_2 (bufp: *mut re_pattern_buffer,
 }
 
 
-unsafe extern "C" fn unwind_re_match (ptr: *mut c_void)
+unsafe extern "C-unwind" fn unwind_re_match (ptr: *mut c_void)
 {
   let b: *mut buffer = ptr as *mut buffer;
   (*(*b).text).bits &= ! BUFFER_TEXT_INHIBIT_SHRINKING;
@@ -6313,7 +6313,7 @@ unsafe fn bcmp_translate (s1: *const re_char, s2: *const re_char, len: ptrdiff_t
 /// replacement scheme), so the reference object exports `_rpl_re_compile_pattern` and this
 /// definition must carry C's own symbol name (the `emacs_fclose` shape, status 3.68).
 #[unsafe(export_name = "rpl_re_compile_pattern")]
-pub unsafe extern "C" fn re_compile_pattern (pattern: *const c_char, length: ptrdiff_t,
+pub unsafe extern "C-unwind" fn re_compile_pattern (pattern: *const c_char, length: ptrdiff_t,
 					     posix_backtracking: bool,
 					     whitespace_regexp: *const c_char,
 					     bufp: *mut re_pattern_buffer)

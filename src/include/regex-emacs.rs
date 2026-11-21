@@ -206,7 +206,7 @@ pub const RECC_NUM_CLASSES: re_wctype_t = RECC_UNIBYTE;
 pub mod regex_emacs_decls {
   use super::*;
 
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     pub static mut re_match_object: Lisp_Object;        // regex-emacs.h 50
     pub static mut emacs_re_max_failures: ptrdiff_t;    // regex-emacs.h 53
     pub static mut emacs_re_safe_alloca: ptrdiff_t;     // regex-emacs.h 56

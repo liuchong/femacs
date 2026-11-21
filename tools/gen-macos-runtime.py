@@ -38,7 +38,7 @@ def main():
   if name not in variables:raise ValueError('forward has no Cocoa DEFVAR metadata: '+name)
   ty,kind,member,_=variables[name];pointer=f'core::ptr::addr_of_mut!({name})'+(' as *mut i64' if ty=='EMACS_INT' else '')
   code += ['#[unsafe(no_mangle)]',f'pub static mut femacs_fwd_{name}: Lisp_Fwd = Lisp_Fwd {{ r#type: {kind}, u: Lisp_Fwd_u {{ {member}: {pointer} }} }};']
- for q in sorted(extra):code += [f'#[unsafe(export_name="{q}")]', f'pub unsafe extern "C" fn export_{q}() -> Lisp_Object {{ {q}() }}']
+ for q in sorted(extra):code += [f'#[unsafe(export_name="{q}")]', f'pub unsafe extern "C-unwind" fn export_{q}() -> Lisp_Object {{ {q}() }}']
  code += ['#[unsafe(no_mangle)]', 'pub static mut svcsMenu: *mut c_void = core::ptr::null_mut();']
  for name in ['ns_app_name','ns_send_types','ns_return_types','x_display_list']:
   code += ['#[unsafe(no_mangle)]',f'pub static mut {name}: *mut c_void = core::ptr::null_mut();']
@@ -50,7 +50,7 @@ def main():
   line=line.strip()
   if line.startswith('nil,'):entries.append(None)
   elif line.startswith('{'):entries.append(re.search(r'in (\w+)\(',line)[1])
- code += ['type CocoaFrameParm = Option<unsafe extern "C" fn(*mut c_void, Lisp_Object, Lisp_Object)>;', 'unsafe extern "C" {']
+ code += ['type CocoaFrameParm = Option<unsafe extern "C-unwind" fn(*mut c_void, Lisp_Object, Lisp_Object)>;', 'unsafe extern "C-unwind" {']
  for name in sorted(set(entries)-{None}):code += [f'#[link_name="{name}"] fn handler_{name}(f: *mut c_void, value: Lisp_Object, old: Lisp_Object);']
  code += ['}', '#[unsafe(no_mangle)]', f'pub static mut ns_frame_parm_handlers: [CocoaFrameParm; {len(entries)}] = [']
  code += ['None,' if name is None else f'Some(handler_{name}),' for name in entries]

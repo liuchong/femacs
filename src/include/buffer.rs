@@ -241,7 +241,7 @@ macro_rules! END_UNCHANGED { () => { BUF_END_UNCHANGED! ((current_buffer! ())) }
 pub mod buffer_point_decls {
   use super::*;
 
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
   pub fn set_point (charpos: ptrdiff_t);
   pub fn temp_set_point (buffer: *mut buffer, charpos: ptrdiff_t);
   pub fn set_point_both (charpos: ptrdiff_t, bytepos: ptrdiff_t);
@@ -1313,8 +1313,8 @@ pub fn SET_BUF_TS_LINECOL_ZV (buf: *mut buffer, linecol: ts_linecol)
 pub mod textprop_objs {
   use super::*;
 
-  unsafe extern "C" { pub static mut interval_insert_behind_hooks: Lisp_Object; }
-  unsafe extern "C" { pub static mut interval_insert_in_front_hooks: Lisp_Object; }
+  unsafe extern "C-unwind" { pub static mut interval_insert_behind_hooks: Lisp_Object; }
+  unsafe extern "C-unwind" { pub static mut interval_insert_in_front_hooks: Lisp_Object; }
 }
 pub use self::textprop_objs::*;
 
@@ -1330,7 +1330,7 @@ pub use self::textprop_objs::*;
 pub mod buffer_decls {
   use super::*;
 
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
   // Parameter names come from the definitions in buffer.c (C's prototypes have
   // none): 992, 1089, 1857, 3161, 3170, 3334, 3469, 2492, 2327, 2343, 2399,
   // 1361, 2206, 2439, 2447, and alloc.c 3768.
@@ -1361,7 +1361,7 @@ pub mod buffer_decls {
   pub fn make_sortvec_item (item: *mut sortvec, overlay: Lisp_Object);
   }
 
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
   pub static mut buffer_defaults: buffer;
   pub static mut buffer_local_flags: buffer;
   pub static mut buffer_local_symbols: buffer;
@@ -1391,7 +1391,7 @@ macro_rules! CHECK_FIXNUM_COERCE_MARKER {
 pub mod buffer_other_decls {
   use super::*;
 
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     pub fn recenter_overlay_lists (buf: *mut buffer, pos: ptrdiff_t);
     pub fn fix_overlays_before (bp: *mut buffer, prev: ptrdiff_t, pos: ptrdiff_t);
     pub fn mmap_set_vars (on: bool);

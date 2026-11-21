@@ -43,7 +43,7 @@ use crate::common::*;
 /// or depending on the interpreter's temporarily selected current_buffer.
 #[cfg(feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_accessibility_buffer_string(buf: *mut buffer) -> Lisp_Object {
+pub unsafe extern "C-unwind" fn ns_accessibility_buffer_string(buf: *mut buffer) -> Lisp_Object {
   let begin = BUF_BEGV_BYTE(buf);
   let end = BUF_ZV_BYTE(buf);
   let bytes = end - begin;
@@ -84,70 +84,70 @@ const _: () = ();
 /// Swift unit `nsmenu.swift` imports it.
 /// C: int left_pos, top_pos;   (frame.h 604)
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_left_pos (f: *mut c_void) -> c_int
+pub unsafe extern "C-unwind" fn frame_left_pos (f: *mut c_void) -> c_int
 {
   unsafe { (*f.cast::<frame> ()).left_pos }
 }
 
 /// C: int left_pos, top_pos;   (frame.h 604)
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_top_pos (f: *mut c_void) -> c_int
+pub unsafe extern "C-unwind" fn frame_top_pos (f: *mut c_void) -> c_int
 {
   unsafe { (*f.cast::<frame> ()).top_pos }
 }
 
 /// C: Lisp_Object title;   (frame.h 162)
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_title (f: *mut c_void) -> Lisp_Object
+pub unsafe extern "C-unwind" fn frame_title (f: *mut c_void) -> Lisp_Object
 {
   unsafe { (*f.cast::<frame> ()).title }
 }
 
 /// C: Lisp_Object icon_name;   (frame.h 158)
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_icon_name (f: *mut c_void) -> Lisp_Object
+pub unsafe extern "C-unwind" fn frame_icon_name (f: *mut c_void) -> Lisp_Object
 {
   unsafe { (*f.cast::<frame> ()).icon_name }
 }
 
 /// C: Lisp_Object param_alist;   (frame.h 209)
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_param_alist (f: *mut c_void) -> Lisp_Object
+pub unsafe extern "C-unwind" fn frame_param_alist (f: *mut c_void) -> Lisp_Object
 {
   unsafe { (*f.cast::<frame> ()).param_alist }
 }
 
 /// C: #define FRAME_SELECTED_WINDOW(f) f->selected_window   (frame.h 1204)
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_selected_window (f: *mut c_void) -> Lisp_Object
+pub unsafe extern "C-unwind" fn frame_selected_window (f: *mut c_void) -> Lisp_Object
 {
   unsafe { (*f.cast::<frame> ()).selected_window }
 }
 
 /// C: Lisp_Object menu_bar_vector;   (frame.h 234)
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_menu_bar_vector (f: *mut c_void) -> Lisp_Object
+pub unsafe extern "C-unwind" fn frame_menu_bar_vector (f: *mut c_void) -> Lisp_Object
 {
   unsafe { (*f.cast::<frame> ()).menu_bar_vector }
 }
 
 /// C: Lisp_Object tool_bar_items;   (frame.h 283)
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_tool_bar_items (f: *mut c_void) -> Lisp_Object
+pub unsafe extern "C-unwind" fn frame_tool_bar_items (f: *mut c_void) -> Lisp_Object
 {
   unsafe { (*f.cast::<frame> ()).tool_bar_items }
 }
 
 /// C: int menu_bar_items_used;   (frame.h 307)
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_menu_bar_items_used (f: *mut c_void) -> c_int
+pub unsafe extern "C-unwind" fn frame_menu_bar_items_used (f: *mut c_void) -> c_int
 {
   unsafe { (*f.cast::<frame> ()).menu_bar_items_used }
 }
 
 /// C: int n_tool_bar_items;   (frame.h 573)
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_n_tool_bar_items (f: *mut c_void) -> c_int
+pub unsafe extern "C-unwind" fn frame_n_tool_bar_items (f: *mut c_void) -> c_int
 {
   unsafe { (*f.cast::<frame> ()).n_tool_bar_items }
 }
@@ -159,21 +159,21 @@ pub unsafe extern "C" fn frame_n_tool_bar_items (f: *mut c_void) -> c_int
 
 /// C: int border_width;   (frame.h 613)
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_set_border_width (f: *mut c_void, v: c_int)
+pub unsafe extern "C-unwind" fn frame_set_border_width (f: *mut c_void, v: c_int)
 {
   unsafe { (*f.cast::<frame> ()).border_width = v; }
 }
 
 /// C: int child_frame_border_width;   (frame.h 617)
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_set_child_frame_border_width (f: *mut c_void, v: c_int)
+pub unsafe extern "C-unwind" fn frame_set_child_frame_border_width (f: *mut c_void, v: c_int)
 {
   unsafe { (*f.cast::<frame> ()).child_frame_border_width = v; }
 }
 
 /// C: int internal_border_width;   (frame.h 622)
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_set_internal_border_width (f: *mut c_void, v: c_int)
+pub unsafe extern "C-unwind" fn frame_set_internal_border_width (f: *mut c_void, v: c_int)
 {
   unsafe { (*f.cast::<frame> ()).internal_border_width = v; }
 }
@@ -181,7 +181,7 @@ pub unsafe extern "C" fn frame_set_internal_border_width (f: *mut c_void, v: c_i
 /// C: `int menu_bar_lines;` (frame.h 635, `menu_bar_lines`); the reader is
 /// `FRAME_MENU_BAR_LINES` (frame.h 1086)
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_set_menu_bar_lines (f: *mut c_void, v: c_int)
+pub unsafe extern "C-unwind" fn frame_set_menu_bar_lines (f: *mut c_void, v: c_int)
 {
   unsafe { (*f.cast::<frame> ()).menu_bar_lines = v; }
 }
@@ -189,7 +189,7 @@ pub unsafe extern "C" fn frame_set_menu_bar_lines (f: *mut c_void, v: c_int)
 /// C: `int tab_bar_lines;` (frame.h 558, `tab_bar_lines`); the reader is
 /// `FRAME_TAB_BAR_LINES` (frame.h 1090)
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_set_tab_bar_lines (f: *mut c_void, v: c_int)
+pub unsafe extern "C-unwind" fn frame_set_tab_bar_lines (f: *mut c_void, v: c_int)
 {
   unsafe { (*f.cast::<frame> ()).tab_bar_lines = v; }
 }
@@ -197,7 +197,7 @@ pub unsafe extern "C" fn frame_set_tab_bar_lines (f: *mut c_void, v: c_int)
 /// C: `int tab_bar_height;` (frame.h 561, `tab_bar_height`); the reader is
 /// `FRAME_TAB_BAR_HEIGHT` (frame.h 1091)
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_set_tab_bar_height (f: *mut c_void, v: c_int)
+pub unsafe extern "C-unwind" fn frame_set_tab_bar_height (f: *mut c_void, v: c_int)
 {
   unsafe { (*f.cast::<frame> ()).tab_bar_height = v; }
 }
@@ -205,7 +205,7 @@ pub unsafe extern "C" fn frame_set_tab_bar_height (f: *mut c_void, v: c_int)
 /// C: `unsigned long background_pixel;` (frame.h 732, `background_pixel`); the reader is
 /// `FRAME_BACKGROUND_PIXEL` (frame.h 1376)
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_set_background_pixel (f: *mut c_void, v: c_ulong)
+pub unsafe extern "C-unwind" fn frame_set_background_pixel (f: *mut c_void, v: c_ulong)
 {
   unsafe { (*f.cast::<frame> ()).background_pixel = v; }
 }
@@ -213,7 +213,7 @@ pub unsafe extern "C" fn frame_set_background_pixel (f: *mut c_void, v: c_ulong)
 /// C: `unsigned long foreground_pixel;` (frame.h 733, `foreground_pixel`); the reader is
 /// `FRAME_FOREGROUND_PIXEL` (frame.h 1375)
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_set_foreground_pixel (f: *mut c_void, v: c_ulong)
+pub unsafe extern "C-unwind" fn frame_set_foreground_pixel (f: *mut c_void, v: c_ulong)
 {
   unsafe { (*f.cast::<frame> ()).foreground_pixel = v; }
 }
@@ -227,14 +227,14 @@ pub unsafe extern "C" fn frame_set_foreground_pixel (f: *mut c_void, v: c_ulong)
 
 /// C: bool_bf explicit_name : 1;   (frame.h 417)
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_explicit_name (f: *mut c_void) -> bool
+pub unsafe extern "C-unwind" fn frame_explicit_name (f: *mut c_void) -> bool
 {
   unsafe { ((*f.cast::<frame> ()).bits1 >> FRAME_EXPLICIT_NAME_SHIFT) & 1 != 0 }
 }
 
 /// C: bool_bf explicit_name : 1;   (frame.h 417)
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_set_explicit_name (f: *mut c_void, v: bool)
+pub unsafe extern "C-unwind" fn frame_set_explicit_name (f: *mut c_void, v: bool)
 {
   unsafe {
     let bits = &mut (*f.cast::<frame> ()).bits1;
@@ -245,7 +245,7 @@ pub unsafe extern "C" fn frame_set_explicit_name (f: *mut c_void, v: bool)
 /// C: `bool_bf wants_modeline : 1;` (frame.h 402, `wants_modeline`); the reader is
 /// `FRAME_WANTS_MODELINE_P` (frame.h 1183)
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_set_wants_modeline (f: *mut c_void, v: bool)
+pub unsafe extern "C-unwind" fn frame_set_wants_modeline (f: *mut c_void, v: bool)
 {
   unsafe {
     let bits = &mut (*f.cast::<frame> ()).bits1;
@@ -256,7 +256,7 @@ pub unsafe extern "C" fn frame_set_wants_modeline (f: *mut c_void, v: bool)
 /// C: ENUM_BF (output_method) output_method : 4;   (frame.h 446; `ENUM_BF` is three bits of
 /// padding plus the four-bit field, which is why the port's mask is 0x0F at shift 21)
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_set_output_method (f: *mut c_void, v: c_int)
+pub unsafe extern "C-unwind" fn frame_set_output_method (f: *mut c_void, v: c_int)
 {
   unsafe {
     let bits = &mut (*f.cast::<frame> ()).bits1;
@@ -267,21 +267,21 @@ pub unsafe extern "C" fn frame_set_output_method (f: *mut c_void, v: c_int)
 
 /// C: bool_bf tab_bar_redisplayed : 1;   (frame.h 503)
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_tab_bar_redisplayed (f: *mut c_void) -> bool
+pub unsafe extern "C-unwind" fn frame_tab_bar_redisplayed (f: *mut c_void) -> bool
 {
   frame_flag (f.cast (), FRAME_TAB_BAR_REDISPLAYED_UNIT, FRAME_TAB_BAR_REDISPLAYED_SHIFT)
 }
 
 /// C: bool_bf tab_bar_resized : 1;   (frame.h 504)
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_tab_bar_resized (f: *mut c_void) -> bool
+pub unsafe extern "C-unwind" fn frame_tab_bar_resized (f: *mut c_void) -> bool
 {
   frame_flag (f.cast (), FRAME_TAB_BAR_RESIZED_UNIT, FRAME_TAB_BAR_RESIZED_SHIFT)
 }
 
 /// C: bool_bf tab_bar_resized : 1;   (frame.h 504)
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_set_tab_bar_resized (f: *mut c_void, v: bool)
+pub unsafe extern "C-unwind" fn frame_set_tab_bar_resized (f: *mut c_void, v: bool)
 {
   frame_set_flag (f.cast (), FRAME_TAB_BAR_RESIZED_UNIT, FRAME_TAB_BAR_RESIZED_SHIFT, v as u32);
 }
@@ -290,7 +290,7 @@ pub unsafe extern "C" fn frame_set_tab_bar_resized (f: *mut c_void, v: bool)
 ///
 /// The member exists only on window-system targets.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_tab_bar_window (f: *mut c_void) -> Lisp_Object
+pub unsafe extern "C-unwind" fn frame_tab_bar_window (f: *mut c_void) -> Lisp_Object
 {
   #[cfg(feature = "have_window_system")]
   { (*f.cast::<frame>()).tab_bar_window }
@@ -303,7 +303,7 @@ pub unsafe extern "C" fn frame_tab_bar_window (f: *mut c_void) -> Lisp_Object
 ///
 /// Native targets write the measured bitfield; terminal targets have no such member.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_set_external_menu_bar (f: *mut c_void, v: c_int)
+pub unsafe extern "C-unwind" fn frame_set_external_menu_bar (f: *mut c_void, v: c_int)
 {
   #[cfg(feature = "have_ext_menu_bar")]
   { frame_set_flag(f.cast(), FRAME_EXTERNAL_MENU_BAR_FLAG_UNIT,
@@ -315,7 +315,7 @@ pub unsafe extern "C" fn frame_set_external_menu_bar (f: *mut c_void, v: c_int)
 /// C: #ifdef HAVE_WINDOW_SYSTEM / #define FRAME_EXTERNAL_TOOL_BAR(f) (f)->external_tool_bar /
 /// C: #else / #define FRAME_EXTERNAL_TOOL_BAR(f) false / #endif   (frame.h 1095-1097)
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_set_external_tool_bar (f: *mut c_void, v: c_int)
+pub unsafe extern "C-unwind" fn frame_set_external_tool_bar (f: *mut c_void, v: c_int)
 {
   #[cfg(feature = "have_ext_tool_bar")]
   { frame_set_flag(f.cast(), FRAME_EXTERNAL_TOOL_BAR_FLAG_UNIT,
@@ -335,7 +335,7 @@ pub unsafe extern "C" fn frame_set_external_tool_bar (f: *mut c_void, v: c_int)
 /// `nsfns.swift` imports it (`nsfns.swift` 252) and its `nsfns.m` port reads it in six places.
 /// C: Lisp_Object name;   (frame.h 154)
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_name (f: *mut c_void) -> Lisp_Object
+pub unsafe extern "C-unwind" fn frame_name (f: *mut c_void) -> Lisp_Object
 {
   unsafe { (*f.cast::<frame> ()).name }
 }
@@ -343,7 +343,7 @@ pub unsafe extern "C" fn frame_name (f: *mut c_void) -> Lisp_Object
 /// C: struct terminal *terminal;   (frame.h 648; C's writes are src/nsfns.m 1267 and 2988,
 /// `f->terminal = dpyinfo->terminal;`)
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_set_terminal (f: *mut c_void, t: *mut c_void)
+pub unsafe extern "C-unwind" fn frame_set_terminal (f: *mut c_void, t: *mut c_void)
 {
   unsafe { (*f.cast::<frame> ()).terminal = t.cast::<terminal> (); }
 }
@@ -351,7 +351,7 @@ pub unsafe extern "C" fn frame_set_terminal (f: *mut c_void, t: *mut c_void)
 /// C: bool_bf no_split : 1;   (frame.h 411; C's writes are src/nsfns.m 1474 `f->no_split = …`
 /// and 3139 `f->no_split = true;`)
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_set_no_split (f: *mut c_void, v: bool)
+pub unsafe extern "C-unwind" fn frame_set_no_split (f: *mut c_void, v: bool)
 {
   unsafe {
     let bits = &mut (*f.cast::<frame> ()).bits1;
@@ -362,7 +362,7 @@ pub unsafe extern "C" fn frame_set_no_split (f: *mut c_void, v: bool)
 /// C: bool_bf undecorated : 1;   (frame.h 449; C's write is src/nsfns.m 1404
 /// `FRAME_UNDECORATED (f) = !NILP (tem) && !EQ (tem, Qunbound);`)
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_set_undecorated (f: *mut c_void, v: bool)
+pub unsafe extern "C-unwind" fn frame_set_undecorated (f: *mut c_void, v: bool)
 {
   unsafe {
     let bits = &mut (*f.cast::<frame> ()).bits1;
@@ -373,7 +373,7 @@ pub unsafe extern "C" fn frame_set_undecorated (f: *mut c_void, v: bool)
 /// C: bool_bf can_set_window_size : 1;   (frame.h 491; C's writes are src/nsfns.m 1545 and 3149,
 /// `f->can_set_window_size = true;`)
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_set_can_set_window_size (f: *mut c_void, v: bool)
+pub unsafe extern "C-unwind" fn frame_set_can_set_window_size (f: *mut c_void, v: bool)
 {
   frame_set_flag (f.cast (), FRAME_CAN_SET_WINDOW_SIZE_UNIT,
                   FRAME_CAN_SET_WINDOW_SIZE_SHIFT, v as u32);
@@ -383,7 +383,7 @@ pub unsafe extern "C" fn frame_set_can_set_window_size (f: *mut c_void, v: bool)
 /// `was_invisible!` macro of `frame.rs` 276-278 address the same bit; C's write is src/nsfns.m
 /// 1569 `f->was_invisible = true;`)
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_set_was_invisible (f: *mut c_void, v: bool)
+pub unsafe extern "C-unwind" fn frame_set_was_invisible (f: *mut c_void, v: bool)
 {
   unsafe {
     let bits = &mut (*f.cast::<frame> ()).bits2;
@@ -400,14 +400,14 @@ pub unsafe extern "C" fn frame_set_was_invisible (f: *mut c_void, v: bool)
 
 /// C: Lisp_Object contents;   (window.h 143)
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn window_contents (w: *mut c_void) -> Lisp_Object
+pub unsafe extern "C-unwind" fn window_contents (w: *mut c_void) -> Lisp_Object
 {
   unsafe { (*w.cast::<window> ()).contents }
 }
 
 /// C: struct glyph_matrix *current_matrix;   (window.h 224)
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn window_current_matrix (w: *mut c_void) -> *mut c_void
+pub unsafe extern "C-unwind" fn window_current_matrix (w: *mut c_void) -> *mut c_void
 {
   unsafe { (*w.cast::<window> ()).current_matrix }
 }
@@ -415,14 +415,14 @@ pub unsafe extern "C" fn window_current_matrix (w: *mut c_void) -> *mut c_void
 /// C: BVAR (XBUFFER (buf), filename)   (buffer.h 308; the member `BVAR` concatenates is
 /// `Lisp_Object filename_;`, buffer.h 330)
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn buffer_filename (b: *mut c_void) -> Lisp_Object
+pub unsafe extern "C-unwind" fn buffer_filename (b: *mut c_void) -> Lisp_Object
 {
   unsafe { (*b.cast::<buffer> ()).filename_ }
 }
 
 /// C: int id;   (termhooks.h 516)
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn terminal_id (t: *mut c_void) -> c_int
+pub unsafe extern "C-unwind" fn terminal_id (t: *mut c_void) -> c_int
 {
   unsafe { (*t.cast::<terminal> ()).id }
 }
@@ -431,7 +431,7 @@ pub unsafe extern "C" fn terminal_id (t: *mut c_void) -> c_int
 /// 538 - "nsterm.h").  The port keeps the untyped pointer the union holds (P-72 rule 3), so the
 /// read is a plain pointer even though the Swift declaration names `ns_display_info`.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn terminal_display_info_ns (t: *mut c_void) -> *mut c_void
+pub unsafe extern "C-unwind" fn terminal_display_info_ns (t: *mut c_void) -> *mut c_void
 {
   unsafe { (*t.cast::<terminal> ()).display_info.ns }
 }
@@ -450,12 +450,12 @@ pub unsafe extern "C" fn terminal_display_info_ns (t: *mut c_void) -> *mut c_voi
 /// `src/alloc.rs` 775-783 (`#[unsafe(no_mangle)] pub unsafe extern "C" fn xzalloc`), which
 /// is the symbol the frozen build's `_xzalloc` resolves to.
 #[cfg (feature = "have_ns")]
-unsafe extern "C" { fn xzalloc (size: size_t) -> *mut c_void; }
+unsafe extern "C-unwind" { fn xzalloc (size: size_t) -> *mut c_void; }
 
 /// C: f->output_data.ns = xzalloc (sizeof *f->output_data.ns);   (src/nsfns.m 1270 and 2991)
 #[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_alloc_ns_output (f: *mut c_void)
+pub unsafe extern "C-unwind" fn frame_alloc_ns_output (f: *mut c_void)
 {
   unsafe {
     (*f.cast::<frame> ()).output_data.ns = xzalloc (std::mem::size_of::<ns_output> ());
@@ -466,7 +466,7 @@ pub unsafe extern "C" fn frame_alloc_ns_output (f: *mut c_void)
 /// `#define FRAME_FONTSET(f) ((f)->output_data.ns->fontset)`)
 #[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_set_fontset (f: *mut c_void, v: c_int)
+pub unsafe extern "C-unwind" fn frame_set_fontset (f: *mut c_void, v: c_int)
 {
   unsafe {
     let ns = (*f.cast::<frame> ()).output_data.ns as *mut ns_output;
@@ -478,7 +478,7 @@ pub unsafe extern "C" fn frame_set_fontset (f: *mut c_void, v: c_int)
 /// `#define FRAME_DISPLAY_INFO(f) ((f)->output_data.ns->display_info)`)
 #[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_set_display_info (f: *mut c_void, dpyinfo: *mut c_void)
+pub unsafe extern "C-unwind" fn frame_set_display_info (f: *mut c_void, dpyinfo: *mut c_void)
 {
   unsafe {
     let ns = (*f.cast::<frame> ()).output_data.ns as *mut ns_output;
@@ -499,7 +499,7 @@ pub unsafe extern "C" fn frame_set_display_info (f: *mut c_void, dpyinfo: *mut c
 #[cfg (feature = "have_ns")]
 #[cfg (feature = "ns_impl_cocoa")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_set_double_buffered (f: *mut c_void, v: bool)
+pub unsafe extern "C-unwind" fn frame_set_double_buffered (f: *mut c_void, v: bool)
 {
   unsafe {
     let ns = (*f.cast::<frame> ()).output_data.ns as *mut ns_output;
@@ -536,7 +536,7 @@ pub unsafe extern "C" fn frame_set_double_buffered (f: *mut c_void, v: bool)
 /// `ns_output_set_view` below.
 #[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_output_view (f: *mut c_void) -> *mut c_void
+pub unsafe extern "C-unwind" fn ns_output_view (f: *mut c_void) -> *mut c_void
 {
   unsafe { FRAME_NS_VIEW! (f.cast::<frame> ()) }
 }
@@ -548,7 +548,7 @@ pub unsafe extern "C" fn ns_output_view (f: *mut c_void) -> *mut c_void
 /// C-ABI entry, two declarations; both spellings are one pointer.
 #[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_output_miniimage (f: *mut c_void) -> *mut c_void
+pub unsafe extern "C-unwind" fn ns_output_miniimage (f: *mut c_void) -> *mut c_void
 {
   unsafe {
     (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).miniimage
@@ -561,7 +561,7 @@ pub unsafe extern "C" fn ns_output_miniimage (f: *mut c_void) -> *mut c_void
 /// Swift `nsfns.swift` 282 (`-> NSColor?`).
 #[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_output_cursor_color (f: *mut c_void) -> *mut c_void
+pub unsafe extern "C-unwind" fn ns_output_cursor_color (f: *mut c_void) -> *mut c_void
 {
   unsafe { FRAME_CURSOR_COLOR! (f.cast::<frame> ()) }
 }
@@ -573,7 +573,7 @@ pub unsafe extern "C" fn ns_output_cursor_color (f: *mut c_void) -> *mut c_void
 /// Swift `nsfns.swift` 286 (`-> NSColor?`); the write's entry is below.
 #[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_output_foreground_color (f: *mut c_void) -> *mut c_void
+pub unsafe extern "C-unwind" fn ns_output_foreground_color (f: *mut c_void) -> *mut c_void
 {
   unsafe { FRAME_FOREGROUND_COLOR! (f.cast::<frame> ()) }
 }
@@ -584,7 +584,7 @@ pub unsafe extern "C" fn ns_output_foreground_color (f: *mut c_void) -> *mut c_v
 /// Swift `nsfns.swift` 290 (`-> NSColor?`); the write's entry is below.
 #[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_output_background_color (f: *mut c_void) -> *mut c_void
+pub unsafe extern "C-unwind" fn ns_output_background_color (f: *mut c_void) -> *mut c_void
 {
   unsafe { FRAME_BACKGROUND_COLOR! (f.cast::<frame> ()) }
 }
@@ -594,7 +594,7 @@ pub unsafe extern "C" fn ns_output_background_color (f: *mut c_void) -> *mut c_v
 /// Swift `nsfns.swift` 294 (`-> Int32`).
 #[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_output_icon_top (f: *mut c_void) -> c_int
+pub unsafe extern "C-unwind" fn ns_output_icon_top (f: *mut c_void) -> c_int
 {
   unsafe {
     (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).icon_top
@@ -606,7 +606,7 @@ pub unsafe extern "C" fn ns_output_icon_top (f: *mut c_void) -> c_int
 /// Swift `nsfns.swift` 297 (`-> Int32`).
 #[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_output_icon_left (f: *mut c_void) -> c_int
+pub unsafe extern "C-unwind" fn ns_output_icon_left (f: *mut c_void) -> c_int
 {
   unsafe {
     (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).icon_left
@@ -621,7 +621,7 @@ pub unsafe extern "C" fn ns_output_icon_left (f: *mut c_void) -> c_int
 /// Swift `nsfns.swift` 300 (`-> UInt`).
 #[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_output_window_desc (f: *mut c_void) -> c_ulong
+pub unsafe extern "C-unwind" fn ns_output_window_desc (f: *mut c_void) -> c_ulong
 {
   unsafe { FRAME_NS_WINDOW! (f.cast::<frame> ()) as c_ulong }
 }
@@ -633,7 +633,7 @@ pub unsafe extern "C" fn ns_output_window_desc (f: *mut c_void) -> c_ulong
 /// Swift `nsfns.swift` 303 (`-> UInt`).
 #[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_output_parent_desc (f: *mut c_void) -> Window
+pub unsafe extern "C-unwind" fn ns_output_parent_desc (f: *mut c_void) -> Window
 {
   unsafe {
     (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).parent_desc
@@ -646,7 +646,7 @@ pub unsafe extern "C" fn ns_output_parent_desc (f: *mut c_void) -> Window
 /// Swift `nsfns.swift` 306 (`-> Bool`).
 #[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_output_explicit_parent (f: *mut c_void) -> bool
+pub unsafe extern "C-unwind" fn ns_output_explicit_parent (f: *mut c_void) -> bool
 {
   unsafe {
     (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).explicit_parent != 0
@@ -660,7 +660,7 @@ pub unsafe extern "C" fn ns_output_explicit_parent (f: *mut c_void) -> bool
 /// Swift `nsfns.swift` 310 (`-> NSObject?`); the write's entry is `ns_output_set_text_cursor`.
 #[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_output_text_cursor (f: *mut c_void) -> *mut c_void
+pub unsafe extern "C-unwind" fn ns_output_text_cursor (f: *mut c_void) -> *mut c_void
 {
   unsafe {
     (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).text_cursor
@@ -672,7 +672,7 @@ pub unsafe extern "C" fn ns_output_text_cursor (f: *mut c_void) -> *mut c_void
 /// Swift `nsfns.swift` 314 and `nsmenu.swift` 326 (`-> Int32`) - one entry, two units.
 #[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_output_in_animation (f: *mut c_void) -> c_int
+pub unsafe extern "C-unwind" fn ns_output_in_animation (f: *mut c_void) -> c_int
 {
   unsafe {
     (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).in_animation
@@ -688,7 +688,7 @@ pub unsafe extern "C" fn ns_output_in_animation (f: *mut c_void) -> c_int
 /// prefix declaration); the ABI is one pointer.
 #[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_output_display_info (f: *mut c_void) -> *mut ns_display_info
+pub unsafe extern "C-unwind" fn ns_output_display_info (f: *mut c_void) -> *mut ns_display_info
 {
   unsafe { FRAME_DISPLAY_INFO! (f.cast::<frame> ()) }
 }
@@ -699,7 +699,7 @@ pub unsafe extern "C" fn ns_output_display_info (f: *mut c_void) -> *mut ns_disp
 /// Swift `nsterm.swift` 2011 (`-> Bool`); the write's entry is below.
 #[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_output_zooming (f: *mut c_void) -> bool
+pub unsafe extern "C-unwind" fn ns_output_zooming (f: *mut c_void) -> bool
 {
   unsafe {
     (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).zooming != 0
@@ -711,7 +711,7 @@ pub unsafe extern "C" fn ns_output_zooming (f: *mut c_void) -> bool
 /// Swift `nsfns.swift` 276 (`_ v: NSView?`); the read's entry is `ns_output_view`.
 #[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_output_set_view (f: *mut c_void, v: *mut c_void)
+pub unsafe extern "C-unwind" fn ns_output_set_view (f: *mut c_void, v: *mut c_void)
 {
   unsafe {
     replace_native_object(&raw mut (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).view, v);
@@ -723,7 +723,7 @@ pub unsafe extern "C" fn ns_output_set_view (f: *mut c_void, v: *mut c_void)
 /// Swift `nsfns.swift` 280 (`_ v: AnyObject?`).
 #[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_output_set_miniimage (f: *mut c_void, v: *mut c_void)
+pub unsafe extern "C-unwind" fn ns_output_set_miniimage (f: *mut c_void, v: *mut c_void)
 {
   unsafe {
     replace_native_object(&raw mut (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).miniimage, v);
@@ -736,7 +736,7 @@ pub unsafe extern "C" fn ns_output_set_miniimage (f: *mut c_void, v: *mut c_void
 /// Swift `nsfns.swift` 284 (`_ v: NSColor?`).
 #[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_output_set_cursor_color (f: *mut c_void, v: *mut c_void)
+pub unsafe extern "C-unwind" fn ns_output_set_cursor_color (f: *mut c_void, v: *mut c_void)
 {
   unsafe {
     replace_native_object(&raw mut (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).cursor_color, v);
@@ -749,7 +749,7 @@ pub unsafe extern "C" fn ns_output_set_cursor_color (f: *mut c_void, v: *mut c_v
 /// Swift `nsfns.swift` 288 (`_ v: NSColor?`).
 #[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_output_set_foreground_color (f: *mut c_void, v: *mut c_void)
+pub unsafe extern "C-unwind" fn ns_output_set_foreground_color (f: *mut c_void, v: *mut c_void)
 {
   unsafe {
     replace_native_object(&raw mut (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).foreground_color, v);
@@ -762,7 +762,7 @@ pub unsafe extern "C" fn ns_output_set_foreground_color (f: *mut c_void, v: *mut
 /// Swift `nsfns.swift` 292 (`_ v: NSColor?`).
 #[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_output_set_background_color (f: *mut c_void, v: *mut c_void)
+pub unsafe extern "C-unwind" fn ns_output_set_background_color (f: *mut c_void, v: *mut c_void)
 {
   unsafe {
     replace_native_object(&raw mut (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).background_color, v);
@@ -774,7 +774,7 @@ pub unsafe extern "C" fn ns_output_set_background_color (f: *mut c_void, v: *mut
 /// Swift `nsfns.swift` 295 (`_ v: Int32`).
 #[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_output_set_icon_top (f: *mut c_void, v: c_int)
+pub unsafe extern "C-unwind" fn ns_output_set_icon_top (f: *mut c_void, v: c_int)
 {
   unsafe {
     (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).icon_top = v;
@@ -786,7 +786,7 @@ pub unsafe extern "C" fn ns_output_set_icon_top (f: *mut c_void, v: c_int)
 /// Swift `nsfns.swift` 298 (`_ v: Int32`).
 #[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_output_set_icon_left (f: *mut c_void, v: c_int)
+pub unsafe extern "C-unwind" fn ns_output_set_icon_left (f: *mut c_void, v: c_int)
 {
   unsafe {
     (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).icon_left = v;
@@ -800,7 +800,7 @@ pub unsafe extern "C" fn ns_output_set_icon_left (f: *mut c_void, v: c_int)
 /// Swift `nsfns.swift` 301 (`_ v: UInt`).
 #[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_output_set_window_desc (f: *mut c_void, v: c_ulong)
+pub unsafe extern "C-unwind" fn ns_output_set_window_desc (f: *mut c_void, v: c_ulong)
 {
   unsafe {
     (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).window_desc = v as c_int;
@@ -814,7 +814,7 @@ pub unsafe extern "C" fn ns_output_set_window_desc (f: *mut c_void, v: c_ulong)
 /// Swift `nsfns.swift` 304 (`_ v: UInt`).
 #[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_output_set_parent_desc (f: *mut c_void, v: Window)
+pub unsafe extern "C-unwind" fn ns_output_set_parent_desc (f: *mut c_void, v: Window)
 {
   unsafe {
     (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).parent_desc = v as c_int;
@@ -827,7 +827,7 @@ pub unsafe extern "C" fn ns_output_set_parent_desc (f: *mut c_void, v: Window)
 /// Swift `nsfns.swift` 308 (`_ v: Bool`).
 #[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_output_set_explicit_parent (f: *mut c_void, v: bool)
+pub unsafe extern "C-unwind" fn ns_output_set_explicit_parent (f: *mut c_void, v: bool)
 {
   unsafe {
     (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).explicit_parent = v as c_char;
@@ -841,7 +841,7 @@ pub unsafe extern "C" fn ns_output_set_explicit_parent (f: *mut c_void, v: bool)
 /// Swift `nsfns.swift` 312 (`_ v: NSObject?`).
 #[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_output_set_current_pointer (f: *mut c_void, v: *mut c_void)
+pub unsafe extern "C-unwind" fn ns_output_set_current_pointer (f: *mut c_void, v: *mut c_void)
 {
   unsafe {
     replace_native_object(&raw mut (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).current_pointer, v);
@@ -854,7 +854,7 @@ pub unsafe extern "C" fn ns_output_set_current_pointer (f: *mut c_void, v: *mut 
 /// Swift `nsfns.swift` 651 (`_ v: NSObject?`).
 #[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_output_set_text_cursor (f: *mut c_void, v: *mut c_void)
+pub unsafe extern "C-unwind" fn ns_output_set_text_cursor (f: *mut c_void, v: *mut c_void)
 {
   unsafe {
     replace_native_object(&raw mut (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).text_cursor, v);
@@ -867,7 +867,7 @@ pub unsafe extern "C" fn ns_output_set_text_cursor (f: *mut c_void, v: *mut c_vo
 /// Swift `nsfns.swift` 653 (`_ v: NSObject?`).
 #[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_output_set_nontext_cursor (f: *mut c_void, v: *mut c_void)
+pub unsafe extern "C-unwind" fn ns_output_set_nontext_cursor (f: *mut c_void, v: *mut c_void)
 {
   unsafe {
     (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).nontext_cursor = v;
@@ -880,7 +880,7 @@ pub unsafe extern "C" fn ns_output_set_nontext_cursor (f: *mut c_void, v: *mut c
 /// Swift `nsfns.swift` 655 (`_ v: NSObject?`).
 #[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_output_set_modeline_cursor (f: *mut c_void, v: *mut c_void)
+pub unsafe extern "C-unwind" fn ns_output_set_modeline_cursor (f: *mut c_void, v: *mut c_void)
 {
   unsafe {
     (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).modeline_cursor = v;
@@ -893,7 +893,7 @@ pub unsafe extern "C" fn ns_output_set_modeline_cursor (f: *mut c_void, v: *mut 
 /// Swift `nsfns.swift` 657 (`_ v: NSObject?`).
 #[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_output_set_hand_cursor (f: *mut c_void, v: *mut c_void)
+pub unsafe extern "C-unwind" fn ns_output_set_hand_cursor (f: *mut c_void, v: *mut c_void)
 {
   unsafe {
     (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).hand_cursor = v;
@@ -906,7 +906,7 @@ pub unsafe extern "C" fn ns_output_set_hand_cursor (f: *mut c_void, v: *mut c_vo
 /// Swift `nsfns.swift` 659 (`_ v: NSObject?`).
 #[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_output_set_hourglass_cursor (f: *mut c_void, v: *mut c_void)
+pub unsafe extern "C-unwind" fn ns_output_set_hourglass_cursor (f: *mut c_void, v: *mut c_void)
 {
   unsafe {
     (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).hourglass_cursor = v;
@@ -919,7 +919,7 @@ pub unsafe extern "C" fn ns_output_set_hourglass_cursor (f: *mut c_void, v: *mut
 /// Swift `nsfns.swift` 661 (`_ v: NSObject?`).
 #[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_output_set_horizontal_drag_cursor (f: *mut c_void, v: *mut c_void)
+pub unsafe extern "C-unwind" fn ns_output_set_horizontal_drag_cursor (f: *mut c_void, v: *mut c_void)
 {
   unsafe {
     (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).horizontal_drag_cursor = v;
@@ -932,7 +932,7 @@ pub unsafe extern "C" fn ns_output_set_horizontal_drag_cursor (f: *mut c_void, v
 /// Swift `nsfns.swift` 663 (`_ v: NSObject?`).
 #[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_output_set_vertical_drag_cursor (f: *mut c_void, v: *mut c_void)
+pub unsafe extern "C-unwind" fn ns_output_set_vertical_drag_cursor (f: *mut c_void, v: *mut c_void)
 {
   unsafe {
     (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).vertical_drag_cursor = v;
@@ -945,7 +945,7 @@ pub unsafe extern "C" fn ns_output_set_vertical_drag_cursor (f: *mut c_void, v: 
 /// Swift `nsfns.swift` 665 (`_ v: NSObject?`).
 #[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_output_set_left_edge_cursor (f: *mut c_void, v: *mut c_void)
+pub unsafe extern "C-unwind" fn ns_output_set_left_edge_cursor (f: *mut c_void, v: *mut c_void)
 {
   unsafe {
     (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).left_edge_cursor = v;
@@ -958,7 +958,7 @@ pub unsafe extern "C" fn ns_output_set_left_edge_cursor (f: *mut c_void, v: *mut
 /// Swift `nsfns.swift` 667 (`_ v: NSObject?`).
 #[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_output_set_top_left_corner_cursor (f: *mut c_void, v: *mut c_void)
+pub unsafe extern "C-unwind" fn ns_output_set_top_left_corner_cursor (f: *mut c_void, v: *mut c_void)
 {
   unsafe {
     (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).top_left_corner_cursor = v;
@@ -971,7 +971,7 @@ pub unsafe extern "C" fn ns_output_set_top_left_corner_cursor (f: *mut c_void, v
 /// Swift `nsfns.swift` 669 (`_ v: NSObject?`).
 #[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_output_set_top_edge_cursor (f: *mut c_void, v: *mut c_void)
+pub unsafe extern "C-unwind" fn ns_output_set_top_edge_cursor (f: *mut c_void, v: *mut c_void)
 {
   unsafe {
     (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).top_edge_cursor = v;
@@ -984,7 +984,7 @@ pub unsafe extern "C" fn ns_output_set_top_edge_cursor (f: *mut c_void, v: *mut 
 /// Swift `nsfns.swift` 671 (`_ v: NSObject?`).
 #[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_output_set_top_right_corner_cursor (f: *mut c_void, v: *mut c_void)
+pub unsafe extern "C-unwind" fn ns_output_set_top_right_corner_cursor (f: *mut c_void, v: *mut c_void)
 {
   unsafe {
     (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).top_right_corner_cursor = v;
@@ -997,7 +997,7 @@ pub unsafe extern "C" fn ns_output_set_top_right_corner_cursor (f: *mut c_void, 
 /// Swift `nsfns.swift` 673 (`_ v: NSObject?`).
 #[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_output_set_right_edge_cursor (f: *mut c_void, v: *mut c_void)
+pub unsafe extern "C-unwind" fn ns_output_set_right_edge_cursor (f: *mut c_void, v: *mut c_void)
 {
   unsafe {
     (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).right_edge_cursor = v;
@@ -1010,7 +1010,7 @@ pub unsafe extern "C" fn ns_output_set_right_edge_cursor (f: *mut c_void, v: *mu
 /// Swift `nsfns.swift` 675 (`_ v: NSObject?`).
 #[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_output_set_bottom_right_corner_cursor (f: *mut c_void, v: *mut c_void)
+pub unsafe extern "C-unwind" fn ns_output_set_bottom_right_corner_cursor (f: *mut c_void, v: *mut c_void)
 {
   unsafe {
     (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).bottom_right_corner_cursor = v;
@@ -1023,7 +1023,7 @@ pub unsafe extern "C" fn ns_output_set_bottom_right_corner_cursor (f: *mut c_voi
 /// Swift `nsfns.swift` 677 (`_ v: NSObject?`).
 #[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_output_set_bottom_edge_cursor (f: *mut c_void, v: *mut c_void)
+pub unsafe extern "C-unwind" fn ns_output_set_bottom_edge_cursor (f: *mut c_void, v: *mut c_void)
 {
   unsafe {
     (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).bottom_edge_cursor = v;
@@ -1036,7 +1036,7 @@ pub unsafe extern "C" fn ns_output_set_bottom_edge_cursor (f: *mut c_void, v: *m
 /// Swift `nsfns.swift` 679 (`_ v: NSObject?`).
 #[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_output_set_bottom_left_corner_cursor (f: *mut c_void, v: *mut c_void)
+pub unsafe extern "C-unwind" fn ns_output_set_bottom_left_corner_cursor (f: *mut c_void, v: *mut c_void)
 {
   unsafe {
     (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).bottom_left_corner_cursor = v;
@@ -1048,7 +1048,7 @@ pub unsafe extern "C" fn ns_output_set_bottom_left_corner_cursor (f: *mut c_void
 /// Swift `nsfns.swift` 316 and `nsmenu.swift` 328 (`_ v: Int32`).
 #[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_output_set_in_animation (f: *mut c_void, v: c_int)
+pub unsafe extern "C-unwind" fn ns_output_set_in_animation (f: *mut c_void, v: c_int)
 {
   unsafe {
     (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).in_animation = v;
@@ -1061,7 +1061,7 @@ pub unsafe extern "C" fn ns_output_set_in_animation (f: *mut c_void, v: c_int)
 /// Swift `nsterm.swift` 2012 (`_ v: Bool`).
 #[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_output_set_zooming (f: *mut c_void, v: c_int)
+pub unsafe extern "C-unwind" fn ns_output_set_zooming (f: *mut c_void, v: c_int)
 {
   unsafe {
     (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).zooming = v as c_int;
@@ -1081,7 +1081,7 @@ pub unsafe extern "C" fn ns_output_set_zooming (f: *mut c_void, v: c_int)
 /// *row, enum glyph_row_area area)` 807-824).
 /// Swift `nsterm.swift` 834 (`(UnsafeMutableRawPointer?) -> Int32`), used at `nsterm.swift` 980.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn glyph_row_y (row: *mut c_void) -> c_int
+pub unsafe extern "C-unwind" fn glyph_row_y (row: *mut c_void) -> c_int
 {
   unsafe { (*row.cast::<glyph_row> ()).y }
 }
@@ -1091,7 +1091,7 @@ pub unsafe extern "C" fn glyph_row_y (row: *mut c_void) -> c_int
 /// Swift `nsterm.swift` 835-836 (`(UnsafeMutableRawPointer?) -> Int32`), used at
 /// `nsterm.swift` 983.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn glyph_row_visible_height (row: *mut c_void) -> c_int
+pub unsafe extern "C-unwind" fn glyph_row_visible_height (row: *mut c_void) -> c_int
 {
   unsafe { (*row.cast::<glyph_row> ()).visible_height }
 }
@@ -1110,7 +1110,7 @@ pub unsafe extern "C" fn glyph_row_visible_height (row: *mut c_void) -> c_int
 /// Swift `nsmenu.swift` 407 (`func waiting_for_input_set(_ v: Bool)`); the read's entry
 /// (`waiting_for_input`, `nsmenu.swift` 406) is still owed and is *not* part of this batch.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn set_waiting_for_input_flag (v: bool)
+pub unsafe extern "C-unwind" fn set_waiting_for_input_flag (v: bool)
 {
   unsafe { waiting_for_input! () = v; }
 }
@@ -1132,7 +1132,7 @@ pub unsafe extern "C" fn set_waiting_for_input_flag (v: bool)
 /// _ v: UInt)`), used at `nsfns.swift` 1404.
 #[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn face_set_background (face: *mut c_void, v: c_ulong)
+pub unsafe extern "C-unwind" fn face_set_background (face: *mut c_void, v: c_ulong)
 {
   unsafe { (*face.cast::<face> ()).background = v; }
 }
@@ -1152,7 +1152,7 @@ pub unsafe extern "C" fn face_set_background (face: *mut c_void, v: c_ulong)
 /// `frame_set_no_split` shape).
 /// Swift `nsterm.swift` 2162-2163 (`_ v: Bool`).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_set_no_accept_focus (f: *mut c_void, v: bool)
+pub unsafe extern "C-unwind" fn frame_set_no_accept_focus (f: *mut c_void, v: bool)
 {
   unsafe {
     let bits = &mut (*f.cast::<frame> ()).bits1;
@@ -1166,7 +1166,7 @@ pub unsafe extern "C" fn frame_set_no_accept_focus (f: *mut c_void, v: bool)
 /// 69), so this closes the ruling's class-1 pair for the name.
 /// Swift `nsmenu.swift` 316-317 (`(UnsafeMutableRawPointer?, Int32)`).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_set_menu_bar_items_used (f: *mut c_void, v: c_int)
+pub unsafe extern "C-unwind" fn frame_set_menu_bar_items_used (f: *mut c_void, v: c_int)
 {
   unsafe { (*f.cast::<frame> ()).menu_bar_items_used = v; }
 }
@@ -1177,7 +1177,7 @@ pub unsafe extern "C" fn frame_set_menu_bar_items_used (f: *mut c_void, v: c_int
 /// entry's second argument (`nsterm.swift` 2235-2236).
 /// Swift `nsterm.swift` 2235-2236 (`(UnsafeMutableRawPointer?, Int32) -> Double`).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_alpha (f: *mut c_void, index: c_int) -> c_double
+pub unsafe extern "C-unwind" fn frame_alpha (f: *mut c_void, index: c_int) -> c_double
 {
   unsafe { (*f.cast::<frame> ()).alpha[index as usize] }
 }
@@ -1207,19 +1207,19 @@ pub mod c_abi_of_mirror_named_items
   /// The Swift import is `nsterm.swift` 2169 (`func z_group_none() -> Int32`), the lane's
   /// function-shaped spelling of a C enumerator (status 3.255 lists enumerators as A class).
   #[unsafe(no_mangle)]
-  pub unsafe extern "C" fn z_group_none () -> c_int { super::z_group_none as c_int }
+  pub unsafe extern "C-unwind" fn z_group_none () -> c_int { super::z_group_none as c_int }
 
   /// C: `z_group_above,` (frame.h 64), value 1 (`include/frame.rs` 754).
   #[unsafe(no_mangle)]
-  pub unsafe extern "C" fn z_group_above () -> c_int { super::z_group_above as c_int }
+  pub unsafe extern "C-unwind" fn z_group_above () -> c_int { super::z_group_above as c_int }
 
   /// C: `z_group_below,` (frame.h 65), value 2 (`include/frame.rs` 755).
   #[unsafe(no_mangle)]
-  pub unsafe extern "C" fn z_group_below () -> c_int { super::z_group_below as c_int }
+  pub unsafe extern "C-unwind" fn z_group_below () -> c_int { super::z_group_below as c_int }
 
   /// C: `z_group_above_suspended,` (frame.h 66), value 3 (`include/frame.rs` 756).
   #[unsafe(no_mangle)]
-  pub unsafe extern "C" fn z_group_above_suspended () -> c_int
+  pub unsafe extern "C-unwind" fn z_group_above_suspended () -> c_int
   { super::z_group_above_suspended as c_int }
 
   /// C: `#define FLOATP(x) lisp_h_FLOATP (x)` (src/lisp.h 448, over the INLINE at 445-447) - the
@@ -1227,13 +1227,13 @@ pub mod c_abi_of_mirror_named_items
   /// mirror's own `FLOATP` (`include/lisp.rs` 916, which is `lisp_h_FLOATP`), so the tag test has
   /// one spelling in this tree.
   #[unsafe(no_mangle)]
-  pub unsafe extern "C" fn FLOATP (x: Lisp_Object) -> bool { super::FLOATP (x) }
+  pub unsafe extern "C-unwind" fn FLOATP (x: Lisp_Object) -> bool { super::FLOATP (x) }
 
   /// C: `INLINE double XFLOAT_DATA (Lisp_Object f)` (src/lisp.h 3186-3189,
   /// `return XFLOAT (f)->u.data;`) - the lane's import is `nsterm.swift` 2229.  The body is the
   /// mirror's own `XFLOAT_DATA` (`include/lisp.rs` 1695).
   #[unsafe(no_mangle)]
-  pub unsafe extern "C" fn XFLOAT_DATA (f: Lisp_Object) -> f64 { super::XFLOAT_DATA (f) }
+  pub unsafe extern "C-unwind" fn XFLOAT_DATA (f: Lisp_Object) -> f64 { super::XFLOAT_DATA (f) }
 
   /* -------------------------------------------------------------------------------------------
      Batch 8: the head of the `Lisp_Object` accessor family - the two universal symbols
@@ -1256,14 +1256,14 @@ pub mod c_abi_of_mirror_named_items
   /// the seven units that spell it this way (`nsterm.swift` 157, `nsmenu.swift` 367,
   /// `nsselect.swift` 190, `nsimage.swift` 131, `nsfont.swift` 532, `macfont.swift` 868).
   #[unsafe(no_mangle)]
-  pub unsafe extern "C" fn Qnil () -> Lisp_Object { super::Qnil () }
+  pub unsafe extern "C-unwind" fn Qnil () -> Lisp_Object { super::Qnil () }
 
   /// C: `# define Qt builtin_lisp_symbol (1)` (build/emacs-ref/src/globals.h 7365, inside
   /// `#if DEFINE_NON_NIL_Q_SYMBOL_MACROS` - defined in the frozen configuration; `iQt` 1 at
   /// 1244) - the port's `include/globals.rs` 13.  Swift: `nsfns.swift` 324, `nsmenu.swift` 368,
   /// `nsselect.swift` 191.
   #[unsafe(no_mangle)]
-  pub unsafe extern "C" fn Qt () -> Lisp_Object { super::Qt () }
+  pub unsafe extern "C-unwind" fn Qt () -> Lisp_Object { super::Qt () }
 
   /// C: `# define Qabove builtin_lisp_symbol (218)` (build/emacs-ref/src/globals.h 7582;
   /// `iQabove` 218 at 1678, `DEFINE_LISP_SYMBOL (Qabove)` 1679) - C's `DEFSYM (Qabove,
@@ -1271,25 +1271,25 @@ pub mod c_abi_of_mirror_named_items
   /// `nsterm.swift` 2191, whose own comment reads `_Qdark` and friends as `S` in
   /// `build/emacs-ref/src/` (the data symbol 3.264 item 3 rules on).
   #[unsafe(no_mangle)]
-  pub unsafe extern "C" fn Qabove () -> Lisp_Object { super::Qabove () }
+  pub unsafe extern "C-unwind" fn Qabove () -> Lisp_Object { super::Qabove () }
 
   /// C: `#define iQabove_suspended 220` (build/emacs-ref/src/globals.h 1682) - C's
   /// `DEFSYM (Qabove_suspended, "above-suspended")` is src/frame.c 7368; the port's symbol is
   /// `include/globals.rs` 997.  Swift: `nsterm.swift` 2192.
   #[unsafe(no_mangle)]
-  pub unsafe extern "C" fn Qabove_suspended () -> Lisp_Object { super::Qabove_suspended () }
+  pub unsafe extern "C-unwind" fn Qabove_suspended () -> Lisp_Object { super::Qabove_suspended () }
 
   /// C: `#define iQbelow 278` (build/emacs-ref/src/globals.h 1798) - C's `DEFSYM (Qbelow,
   /// "below")` is src/frame.c 7367; the port's symbol is `include/globals.rs` 1249.  Swift:
   /// `nsterm.swift` 2193.
   #[unsafe(no_mangle)]
-  pub unsafe extern "C" fn Qbelow () -> Lisp_Object { super::Qbelow () }
+  pub unsafe extern "C-unwind" fn Qbelow () -> Lisp_Object { super::Qbelow () }
 
   /// C: `# define Qdark builtin_lisp_symbol (447)` (build/emacs-ref/src/globals.h 7811;
   /// `iQdark` 447 at 2136) - C's `DEFSYM (Qdark, "dark")` is src/nsfns.m 4207 (and src/frame.c
   /// 7905); the port's symbol is `include/globals.rs` 1906.  Swift: `nsterm.swift` 2194.
   #[unsafe(no_mangle)]
-  pub unsafe extern "C" fn Qdark () -> Lisp_Object { super::Qdark () }
+  pub unsafe extern "C-unwind" fn Qdark () -> Lisp_Object { super::Qdark () }
 
   /// C: `# define NILP(x) lisp_h_NILP (x)` (src/lisp.h 450, over `#define lisp_h_NILP(x)
   /// BASE_EQ (x, Qnil)` 397 and the `INLINE bool (NILP) (Lisp_Object)` 1447-1452) - the
@@ -1297,7 +1297,7 @@ pub mod c_abi_of_mirror_named_items
   /// `NILP` (`include/lisp.rs` 843).  Swift: `nsfns.swift` 180, plus `nsterm.swift` 818,
   /// `nsmenu.swift` 252, `nsselect.swift` 152, `nsfont.swift` 476, `macfont.swift` 741.
   #[unsafe(no_mangle)]
-  pub unsafe extern "C" fn NILP (x: Lisp_Object) -> bool { super::NILP (x) }
+  pub unsafe extern "C-unwind" fn NILP (x: Lisp_Object) -> bool { super::NILP (x) }
 
   /// C: `# define EQ(x, y)` -> `INLINE bool EQ (Lisp_Object, Lisp_Object)` (src/lisp.h
   /// 1314-1325, over `BASE_EQ` 390-460) - header-only.  The body is the mirror's own `EQ`
@@ -1306,7 +1306,7 @@ pub mod c_abi_of_mirror_named_items
   /// `nsselect.swift` 151, `nsfont.swift` 478, `macfont.swift` 649, `nsimage.swift` 117 - the
   /// most widely imported name of this batch.
   #[unsafe(no_mangle)]
-  pub unsafe extern "C" fn EQ (x: Lisp_Object, y: Lisp_Object) -> bool { super::EQ (x, y) }
+  pub unsafe extern "C-unwind" fn EQ (x: Lisp_Object, y: Lisp_Object) -> bool { super::EQ (x, y) }
 
   /// C: `# define CONSP(x) lisp_h_CONSP (x)` (src/lisp.h 446, over `#define lisp_h_CONSP(x)
   /// TAGGEDP (x, Lisp_Cons)` 392 and the `INLINE bool (CONSP)` 1455-1458) - the tag test is the
@@ -1314,21 +1314,21 @@ pub mod c_abi_of_mirror_named_items
   /// `nsterm.swift` 1142 (the `FOR_EACH_FRAME` list walker), `nsselect.swift` 153,
   /// `nsfont.swift` 480, `macfont.swift` 651.
   #[unsafe(no_mangle)]
-  pub unsafe extern "C" fn CONSP (x: Lisp_Object) -> bool { super::CONSP (x) }
+  pub unsafe extern "C-unwind" fn CONSP (x: Lisp_Object) -> bool { super::CONSP (x) }
 
   /// C: `INLINE bool SYMBOLP (Lisp_Object)` (src/lisp.h 1074-1079: `BARE_SYMBOL_P (x) ||
   /// (symbols_with_pos_enabled && SYMBOL_WITH_POS_P (x))`) - header-only.  Body: the mirror's
   /// `SYMBOLP` (`include/lisp.rs` 639).  Swift: `nsfns.swift` 185, `nsterm.swift` 135,
   /// `nsselect.swift` 156, `nsfont.swift` 484, `macfont.swift` 653.
   #[unsafe(no_mangle)]
-  pub unsafe extern "C" fn SYMBOLP (x: Lisp_Object) -> bool { super::SYMBOLP (x) }
+  pub unsafe extern "C-unwind" fn SYMBOLP (x: Lisp_Object) -> bool { super::SYMBOLP (x) }
 
   /// C: `INLINE bool STRINGP (Lisp_Object)` (src/lisp.h 1581-1584: `TAGGEDP (x, Lisp_String)`)
   /// - header-only.  Body: the mirror's `STRINGP` (`include/lisp.rs` 919).  Swift:
   /// `nsfns.swift` 184, `nsterm.swift` 2212 (`ns_lisp_to_color`), `nsmenu.swift` 253,
   /// `nsselect.swift` 155, `nsimage.swift` 118.
   #[unsafe(no_mangle)]
-  pub unsafe extern "C" fn STRINGP (x: Lisp_Object) -> bool { super::STRINGP (x) }
+  pub unsafe extern "C-unwind" fn STRINGP (x: Lisp_Object) -> bool { super::STRINGP (x) }
 
   /// C: `# define FIXNUMP(x) lisp_h_FIXNUMP (x)` (src/lisp.h 449, over `#define
   /// lisp_h_FIXNUMP(x) ((XTYPE (x) & (Lisp_Int0 | ~Lisp_Int1)) == Lisp_Int0)` 395 and the
@@ -1336,7 +1336,7 @@ pub mod c_abi_of_mirror_named_items
   /// (`include/lisp.rs` 721).  Swift: `nsfns.swift` 190, `nsterm.swift` 2230,
   /// `nsselect.swift` 154, `nsimage.swift` 119, `nsfont.swift` 482, `macfont.swift` 655.
   #[unsafe(no_mangle)]
-  pub unsafe extern "C" fn FIXNUMP (x: Lisp_Object) -> bool { super::FIXNUMP (x) }
+  pub unsafe extern "C-unwind" fn FIXNUMP (x: Lisp_Object) -> bool { super::FIXNUMP (x) }
 
   /// C: `# define XCAR(c) lisp_h_XCAR (c)` (src/lisp.h 455, over `#define lisp_h_XCAR(c)
   /// XCONS (c)->u.s.car` 405 and the `INLINE Lisp_Object (XCAR)` 1492-1497) - the read is
@@ -1344,14 +1344,14 @@ pub mod c_abi_of_mirror_named_items
   /// (`include/lisp.rs` 881).  Swift: `nsfns.swift` 195, `nsterm.swift` 1143, `nsselect.swift`
   /// 158, `nsfont.swift` 486, `macfont.swift` 784.
   #[unsafe(no_mangle)]
-  pub unsafe extern "C" fn XCAR (c: Lisp_Object) -> Lisp_Object { super::XCAR (c) }
+  pub unsafe extern "C-unwind" fn XCAR (c: Lisp_Object) -> Lisp_Object { super::XCAR (c) }
 
   /// C: `# define XCDR(c) lisp_h_XCDR (c)` (src/lisp.h 456, over `#define lisp_h_XCDR(c)
   /// XCONS (c)->u.s.u.cdr` 406 and the `INLINE Lisp_Object (XCDR)` 1499-1503).  Body: the
   /// mirror's `XCDR` (`include/lisp.rs` 884).  Swift: `nsfns.swift` 196, `nsterm.swift` 1144,
   /// `nsselect.swift` 159, `nsimage.swift` 121, `nsfont.swift` 488, `macfont.swift` 785.
   #[unsafe(no_mangle)]
-  pub unsafe extern "C" fn XCDR (c: Lisp_Object) -> Lisp_Object { super::XCDR (c) }
+  pub unsafe extern "C-unwind" fn XCDR (c: Lisp_Object) -> Lisp_Object { super::XCDR (c) }
 
   /// C: `INLINE void set_hash_value_slot (struct Lisp_Hash_Table *h, ptrdiff_t idx, Lisp_Object
   /// val)` (src/lisp.h 3982-3985, `h->key_and_value[2 * idx + 1] = val`) - header-only, and the
@@ -1363,7 +1363,7 @@ pub mod c_abi_of_mirror_named_items
   /// Swift `macfont.swift` 834-835 (`(UnsafeMutableRawPointer?, Int, Lisp_Object)`), used at
   /// `macfont.swift` 1703.
   #[unsafe(no_mangle)]
-  pub unsafe extern "C" fn set_hash_value_slot (h: *mut c_void, idx: c_long, val: Lisp_Object)
+  pub unsafe extern "C-unwind" fn set_hash_value_slot (h: *mut c_void, idx: c_long, val: Lisp_Object)
   {
     super::set_hash_value_slot (h.cast::<Lisp_Hash_Table> (), idx as hash_idx_t, val)
   }
@@ -1382,13 +1382,13 @@ pub mod c_abi_of_mirror_named_items
   /// `nsterm.swift` 3578 (`func CHAR_GLYPH() -> Int32`), the lane's function-shaped spelling of
   /// a C enumerator; its use is `s->first_glyph->type == CHAR_GLYPH` (nsterm.m 3054, 3059).
   #[unsafe(no_mangle)]
-  pub unsafe extern "C" fn CHAR_GLYPH () -> c_int { super::CHAR_GLYPH as c_int }
+  pub unsafe extern "C-unwind" fn CHAR_GLYPH () -> c_int { super::CHAR_GLYPH as c_int }
 
   /// C: `COMPOSITE_GLYPH,` (src/dispextern.h 437), value 1 (`include/dispextern.rs` 241); C's
   /// use is `s->first_glyph->type == COMPOSITE_GLYPH` (nsterm.m 3055).  Swift `nsterm.swift`
   /// 3579.
   #[unsafe(no_mangle)]
-  pub unsafe extern "C" fn COMPOSITE_GLYPH () -> c_int { super::COMPOSITE_GLYPH as c_int }
+  pub unsafe extern "C-unwind" fn COMPOSITE_GLYPH () -> c_int { super::COMPOSITE_GLYPH as c_int }
 
   /* -------------------------------------------------------------------------------------------
      Batch 12, group 1: the two names of this batch the mirrors already spell in Rust.  Both are
@@ -1406,7 +1406,7 @@ pub mod c_abi_of_mirror_named_items
   /// the name as a function (`include/frame.rs` 939, whose note records that the *macro*
   /// spelling stays in `window.rs`), so the C-ABI spelling stands here and the body calls it.
   #[unsafe(no_mangle)]
-  pub unsafe extern "C" fn WINDOW_FRAME (w: *mut c_void) -> Lisp_Object
+  pub unsafe extern "C-unwind" fn WINDOW_FRAME (w: *mut c_void) -> Lisp_Object
   { super::WINDOW_FRAME (w.cast::<window> ()) }
 
   /// C: `int max_used_fringe_bitmap = MAX_STANDARD_FRINGE_BITMAPS;` (src/fringe.c 497; C's own
@@ -1436,70 +1436,70 @@ pub mod c_abi_of_mirror_named_items
   /// cursor comparison of `ns_draw_window_cursor` (src/nsterm.m 3294-3426); the mirror's item is
   /// `include/frame.rs` 691.  Swift `nsterm.swift` 4029 (`(UnsafeMutableRawPointer?) -> Int32`).
   #[unsafe(no_mangle)]
-  pub unsafe extern "C" fn FRAME_CURSOR_WIDTH (f: *mut c_void) -> c_int
+  pub unsafe extern "C-unwind" fn FRAME_CURSOR_WIDTH (f: *mut c_void) -> c_int
   { super::FRAME_CURSOR_WIDTH (f.cast::<frame> ()) }
 
   /// C: `#define FRAME_FOREGROUND_PIXEL(f) ((f)->foreground_pixel)` (src/frame.h 1375) - the
   /// mirror's item is `include/frame.rs` 696 (`c_ulong`, which is the lane's `-> UInt`).
   /// Swift `nsterm.swift` 4030.
   #[unsafe(no_mangle)]
-  pub unsafe extern "C" fn FRAME_FOREGROUND_PIXEL (f: *mut c_void) -> c_ulong
+  pub unsafe extern "C-unwind" fn FRAME_FOREGROUND_PIXEL (f: *mut c_void) -> c_ulong
   { super::FRAME_FOREGROUND_PIXEL (f.cast::<frame> ()) }
 
   /// C: `DEFAULT_CURSOR,` (src/dispextern.h 216-225's `enum text_cursor_kinds`, the file's own
   /// count: `DEFAULT_CURSOR = -2`) - the port's enumerator is `include/dispextern.rs` 88.
   /// Swift `nsterm.swift` 4039 (`func DEFAULT_CURSOR() -> Int32`).
   #[unsafe(no_mangle)]
-  pub unsafe extern "C" fn DEFAULT_CURSOR () -> c_int { super::DEFAULT_CURSOR as c_int }
+  pub unsafe extern "C-unwind" fn DEFAULT_CURSOR () -> c_int { super::DEFAULT_CURSOR as c_int }
 
   /// C: `NO_CURSOR,` (src/dispextern.h 216-225) = -1; the port's `include/dispextern.rs` 89.
   /// Swift `nsterm.swift` 4040.
   #[unsafe(no_mangle)]
-  pub unsafe extern "C" fn NO_CURSOR () -> c_int { super::NO_CURSOR as c_int }
+  pub unsafe extern "C-unwind" fn NO_CURSOR () -> c_int { super::NO_CURSOR as c_int }
 
   /// C: `FILLED_BOX_CURSOR,` (src/dispextern.h 216-225) = 0; `include/dispextern.rs` 90.
   /// Swift `nsterm.swift` 4041.
   #[unsafe(no_mangle)]
-  pub unsafe extern "C" fn FILLED_BOX_CURSOR () -> c_int { super::FILLED_BOX_CURSOR as c_int }
+  pub unsafe extern "C-unwind" fn FILLED_BOX_CURSOR () -> c_int { super::FILLED_BOX_CURSOR as c_int }
 
   /// C: `HOLLOW_BOX_CURSOR,` (src/dispextern.h 216-225) = 1; `include/dispextern.rs` 91.
   /// Swift `nsterm.swift` 4042.
   #[unsafe(no_mangle)]
-  pub unsafe extern "C" fn HOLLOW_BOX_CURSOR () -> c_int { super::HOLLOW_BOX_CURSOR as c_int }
+  pub unsafe extern "C-unwind" fn HOLLOW_BOX_CURSOR () -> c_int { super::HOLLOW_BOX_CURSOR as c_int }
 
   /// C: `BAR_CURSOR,` (src/dispextern.h 216-225) = 2; `include/dispextern.rs` 92.
   /// Swift `nsterm.swift` 4043.
   #[unsafe(no_mangle)]
-  pub unsafe extern "C" fn BAR_CURSOR () -> c_int { super::BAR_CURSOR as c_int }
+  pub unsafe extern "C-unwind" fn BAR_CURSOR () -> c_int { super::BAR_CURSOR as c_int }
 
   /// C: `HBAR_CURSOR,` (src/dispextern.h 216-225) = 3; `include/dispextern.rs` 93.
   /// Swift `nsterm.swift` 4044.
   #[unsafe(no_mangle)]
-  pub unsafe extern "C" fn HBAR_CURSOR () -> c_int { super::HBAR_CURSOR as c_int }
+  pub unsafe extern "C-unwind" fn HBAR_CURSOR () -> c_int { super::HBAR_CURSOR as c_int }
 
   /// C: `VERTICAL_BORDER_FACE_ID,` (src/dispextern.h 1973, in the face-id enum 1962-1976) - C's
   /// reads are src/nsterm.m 3441/3459-3463; the port's enumerator is `include/dispextern.rs`
   /// 1731 (value 12).  Swift `nsterm.swift` 4045.
   #[unsafe(no_mangle)]
-  pub unsafe extern "C" fn VERTICAL_BORDER_FACE_ID () -> c_int
+  pub unsafe extern "C-unwind" fn VERTICAL_BORDER_FACE_ID () -> c_int
   { super::VERTICAL_BORDER_FACE_ID as c_int }
 
   /// C: `WINDOW_DIVIDER_FACE_ID,` (src/dispextern.h 1974), value 13
   /// (`include/dispextern.rs` 1732).  Swift `nsterm.swift` 4046.
   #[unsafe(no_mangle)]
-  pub unsafe extern "C" fn WINDOW_DIVIDER_FACE_ID () -> c_int
+  pub unsafe extern "C-unwind" fn WINDOW_DIVIDER_FACE_ID () -> c_int
   { super::WINDOW_DIVIDER_FACE_ID as c_int }
 
   /// C: `WINDOW_DIVIDER_FIRST_PIXEL_FACE_ID,` (src/dispextern.h 1975), value 14
   /// (`include/dispextern.rs` 1733).  Swift `nsterm.swift` 4047.
   #[unsafe(no_mangle)]
-  pub unsafe extern "C" fn WINDOW_DIVIDER_FIRST_PIXEL_FACE_ID () -> c_int
+  pub unsafe extern "C-unwind" fn WINDOW_DIVIDER_FIRST_PIXEL_FACE_ID () -> c_int
   { super::WINDOW_DIVIDER_FIRST_PIXEL_FACE_ID as c_int }
 
   /// C: `WINDOW_DIVIDER_LAST_PIXEL_FACE_ID,` (src/dispextern.h 1976), value 15
   /// (`include/dispextern.rs` 1734).  Swift `nsterm.swift` 4049.
   #[unsafe(no_mangle)]
-  pub unsafe extern "C" fn WINDOW_DIVIDER_LAST_PIXEL_FACE_ID () -> c_int
+  pub unsafe extern "C-unwind" fn WINDOW_DIVIDER_LAST_PIXEL_FACE_ID () -> c_int
   { super::WINDOW_DIVIDER_LAST_PIXEL_FACE_ID as c_int }
 }
 
@@ -1520,7 +1520,7 @@ pub mod c_abi_of_mirror_named_items
 /// `XSETPSEUDOVECTOR!` (`include/lisp.rs` 3090-3093) and `XSETVECTOR!`'s `make_lisp_ptr`
 /// (3073), i.e. the same write the core's `FOR_EACH_FRAME` users make.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn XSETFRAME (a: *mut Lisp_Object, b: *mut c_void)
+pub unsafe extern "C-unwind" fn XSETFRAME (a: *mut Lisp_Object, b: *mut c_void)
 {
   unsafe { XSETFRAME! (*a, b); }
 }
@@ -1541,7 +1541,7 @@ pub unsafe extern "C" fn XSETFRAME (a: *mut Lisp_Object, b: *mut c_void)
 /// ((f)->total_cols)`, frame.h 1068).
 /// Swift `nsfns.swift` 868-869 (`(UnsafeMutableRawPointer?, Int32)`), used at `nsfns.swift` 4361.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_set_total_cols (f: *mut c_void, v: c_int)
+pub unsafe extern "C-unwind" fn frame_set_total_cols (f: *mut c_void, v: c_int)
 {
   unsafe { (*f.cast::<frame> ()).total_cols = v; }
 }
@@ -1550,7 +1550,7 @@ pub unsafe extern "C" fn frame_set_total_cols (f: *mut c_void, v: c_int)
 /// new_native_width;` (src/frame.c 1098; the macro is frame.h 1066).
 /// Swift `nsfns.swift` 871-872 (`(…, Int32)`), used at `nsfns.swift` 4407.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_set_pixel_width (f: *mut c_void, v: c_int)
+pub unsafe extern "C-unwind" fn frame_set_pixel_width (f: *mut c_void, v: c_int)
 {
   unsafe { (*f.cast::<frame> ()).pixel_width = v; }
 }
@@ -1559,7 +1559,7 @@ pub unsafe extern "C" fn frame_set_pixel_width (f: *mut c_void, v: c_int)
 /// new_native_height;` (src/frame.c 1099; the macro is frame.h 1067).
 /// Swift `nsfns.swift` 874-875 (`(…, Int32)`), used at `nsfns.swift` 4408.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_set_pixel_height (f: *mut c_void, v: c_int)
+pub unsafe extern "C-unwind" fn frame_set_pixel_height (f: *mut c_void, v: c_int)
 {
   unsafe { (*f.cast::<frame> ()).pixel_height = v; }
 }
@@ -1570,7 +1570,7 @@ pub unsafe extern "C" fn frame_set_pixel_height (f: *mut c_void, v: c_int)
 /// Swift `nsfns.swift` 908 (`(UnsafeMutableRawPointer?) -> Int32`), used at
 /// `nsfns.swift` 4446.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_border_width (f: *mut c_void) -> c_int
+pub unsafe extern "C-unwind" fn frame_border_width (f: *mut c_void) -> c_int
 {
   unsafe { (*f.cast::<frame> ()).border_width }
 }
@@ -1579,7 +1579,7 @@ pub unsafe extern "C" fn frame_border_width (f: *mut c_void) -> c_int
 /// `if (f->size_hint_flags & XNegative)` / `& YNegative` (src/nsterm.m 1827/1834).
 /// Swift `nsterm.swift` 1884-1885 (`-> Int32`), used at `nsterm.swift` 1981/1989.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_size_hint_flags (f: *mut c_void) -> c_int
+pub unsafe extern "C-unwind" fn frame_size_hint_flags (f: *mut c_void) -> c_int
 {
   unsafe { (*f.cast::<frame> ()).size_hint_flags }
 }
@@ -1588,7 +1588,7 @@ pub unsafe extern "C" fn frame_size_hint_flags (f: *mut c_void) -> c_int
 /// `f->size_hint_flags &= ~(XNegative|YNegative);` (src/nsterm.m 1871, 1955).
 /// Swift `nsterm.swift` 1886-1887 (`(…, Int32)`), used at `nsterm.swift` 2017/2136.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_set_size_hint_flags (f: *mut c_void, v: c_int)
+pub unsafe extern "C-unwind" fn frame_set_size_hint_flags (f: *mut c_void, v: c_int)
 {
   unsafe { (*f.cast::<frame> ()).size_hint_flags = v; }
 }
@@ -1598,7 +1598,7 @@ pub unsafe extern "C" fn frame_set_size_hint_flags (f: *mut c_void, v: c_int)
 /// is frame.h 1286).
 /// Swift `nsfns.swift` 1155-1156 (`(…, Int32)`), used at `nsfns.swift` 3441.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_set_config_scroll_bar_width (f: *mut c_void, v: c_int)
+pub unsafe extern "C-unwind" fn frame_set_config_scroll_bar_width (f: *mut c_void, v: c_int)
 {
   unsafe { (*f.cast::<frame> ()).config_scroll_bar_width = v; }
 }
@@ -1608,7 +1608,7 @@ pub unsafe extern "C" fn frame_set_config_scroll_bar_width (f: *mut c_void, v: c
 /// (src/nsfns.m 2531; the macro is frame.h 1296).
 /// Swift `nsfns.swift` 1159-1160 (`(…, Int32)`), used at `nsfns.swift` 3442.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_set_config_scroll_bar_cols (f: *mut c_void, v: c_int)
+pub unsafe extern "C-unwind" fn frame_set_config_scroll_bar_cols (f: *mut c_void, v: c_int)
 {
   unsafe { (*f.cast::<frame> ()).config_scroll_bar_cols = v; }
 }
@@ -1618,7 +1618,7 @@ pub unsafe extern "C" fn frame_set_config_scroll_bar_cols (f: *mut c_void, v: c_
 /// macro is frame.h 1291).
 /// Swift `nsfns.swift` 1163-1164 (`(…, Int32)`), used at `nsfns.swift` 3449.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_set_config_scroll_bar_height (f: *mut c_void, v: c_int)
+pub unsafe extern "C-unwind" fn frame_set_config_scroll_bar_height (f: *mut c_void, v: c_int)
 {
   unsafe { (*f.cast::<frame> ()).config_scroll_bar_height = v; }
 }
@@ -1628,7 +1628,7 @@ pub unsafe extern "C" fn frame_set_config_scroll_bar_height (f: *mut c_void, v: 
 /// height;` (src/nsfns.m 2540; the macro is frame.h 1301).
 /// Swift `nsfns.swift` 1167-1168 (`(…, Int32)`), used at `nsfns.swift` 3450.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_set_config_scroll_bar_lines (f: *mut c_void, v: c_int)
+pub unsafe extern "C-unwind" fn frame_set_config_scroll_bar_lines (f: *mut c_void, v: c_int)
 {
   unsafe { (*f.cast::<frame> ()).config_scroll_bar_lines = v; }
 }
@@ -1647,7 +1647,7 @@ pub unsafe extern "C" fn frame_set_config_scroll_bar_lines (f: *mut c_void, v: c
 /// to upper left corner of frame = 0, 0") - C's write is `w->left_col = 0;` (src/nsfns.m 3442).
 /// Swift `nsfns.swift` 917-918 (`(UnsafeMutableRawPointer?, Int32)`), used at `nsfns.swift` 4344.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn window_set_left_col (w: *mut c_void, v: c_int)
+pub unsafe extern "C-unwind" fn window_set_left_col (w: *mut c_void, v: c_int)
 {
   unsafe { (*w.cast::<window> ()).left_col = v; }
 }
@@ -1655,7 +1655,7 @@ pub unsafe extern "C" fn window_set_left_col (w: *mut c_void, v: c_int)
 /// C: `int top_line;` (window.h 249) - C's write is `w->top_line = 0;` (src/nsfns.m 3443).
 /// Swift `nsfns.swift` 919-920, used at `nsfns.swift` 4345.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn window_set_top_line (w: *mut c_void, v: c_int)
+pub unsafe extern "C-unwind" fn window_set_top_line (w: *mut c_void, v: c_int)
 {
   unsafe { (*w.cast::<window> ()).top_line = v; }
 }
@@ -1663,7 +1663,7 @@ pub unsafe extern "C" fn window_set_top_line (w: *mut c_void, v: c_int)
 /// C: `int pixel_left;` (window.h 243) - C's write is `w->pixel_left = 0;` (src/nsfns.m 3444).
 /// Swift `nsfns.swift` 921-922, used at `nsfns.swift` 4346.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn window_set_pixel_left (w: *mut c_void, v: c_int)
+pub unsafe extern "C-unwind" fn window_set_pixel_left (w: *mut c_void, v: c_int)
 {
   unsafe { (*w.cast::<window> ()).pixel_left = v; }
 }
@@ -1671,7 +1671,7 @@ pub unsafe extern "C" fn window_set_pixel_left (w: *mut c_void, v: c_int)
 /// C: `int pixel_top;` (window.h 244) - C's write is `w->pixel_top = 0;` (src/nsfns.m 3445).
 /// Swift `nsfns.swift` 923-924, used at `nsfns.swift` 4347.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn window_set_pixel_top (w: *mut c_void, v: c_int)
+pub unsafe extern "C-unwind" fn window_set_pixel_top (w: *mut c_void, v: c_int)
 {
   unsafe { (*w.cast::<window> ()).pixel_top = v; }
 }
@@ -1680,7 +1680,7 @@ pub unsafe extern "C" fn window_set_pixel_top (w: *mut c_void, v: c_int)
 /// (Vx_max_tooltip_size));` (src/nsfns.m 3451) and `w->total_cols = 80;` (3456).
 /// Swift `nsfns.swift` 926-927, used at `nsfns.swift` 4352.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn window_set_total_cols (w: *mut c_void, v: c_int)
+pub unsafe extern "C-unwind" fn window_set_total_cols (w: *mut c_void, v: c_int)
 {
   unsafe { (*w.cast::<window> ()).total_cols = v; }
 }
@@ -1689,7 +1689,7 @@ pub unsafe extern "C" fn window_set_total_cols (w: *mut c_void, v: c_int)
 /// (Vx_max_tooltip_size));` (src/nsfns.m 3452) and `w->total_lines = 40;` (3457).
 /// Swift `nsfns.swift` 929-930, used at `nsfns.swift` 4353.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn window_set_total_lines (w: *mut c_void, v: c_int)
+pub unsafe extern "C-unwind" fn window_set_total_lines (w: *mut c_void, v: c_int)
 {
   unsafe { (*w.cast::<window> ()).total_lines = v; }
 }
@@ -1698,7 +1698,7 @@ pub unsafe extern "C" fn window_set_total_lines (w: *mut c_void, v: c_int)
 /// FRAME_COLUMN_WIDTH (tip_f);` (src/nsfns.m 3460).
 /// Swift `nsfns.swift` 932-933, used at `nsfns.swift` 4359.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn window_set_pixel_width (w: *mut c_void, v: c_int)
+pub unsafe extern "C-unwind" fn window_set_pixel_width (w: *mut c_void, v: c_int)
 {
   unsafe { (*w.cast::<window> ()).pixel_width = v; }
 }
@@ -1707,7 +1707,7 @@ pub unsafe extern "C" fn window_set_pixel_width (w: *mut c_void, v: c_int)
 /// FRAME_LINE_HEIGHT (tip_f);` (src/nsfns.m 3461).
 /// Swift `nsfns.swift` 935-936, used at `nsfns.swift` 4360.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn window_set_pixel_height (w: *mut c_void, v: c_int)
+pub unsafe extern "C-unwind" fn window_set_pixel_height (w: *mut c_void, v: c_int)
 {
   unsafe { (*w.cast::<window> ()).pixel_height = v; }
 }
@@ -1717,7 +1717,7 @@ pub unsafe extern "C" fn window_set_pixel_height (w: *mut c_void, v: c_int)
 /// Swift `nsfns.swift` 925 (`(UnsafeMutableRawPointer?) -> Int32`), used at `nsfns.swift`
 /// 4359/4361.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn window_total_cols (w: *mut c_void) -> c_int
+pub unsafe extern "C-unwind" fn window_total_cols (w: *mut c_void) -> c_int
 {
   unsafe { (*w.cast::<window> ()).total_cols }
 }
@@ -1726,7 +1726,7 @@ pub unsafe extern "C" fn window_total_cols (w: *mut c_void) -> c_int
 /// FRAME_LINE_HEIGHT (tip_f);` (src/nsfns.m 3461).
 /// Swift `nsfns.swift` 928, used at `nsfns.swift` 4360.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn window_total_lines (w: *mut c_void) -> c_int
+pub unsafe extern "C-unwind" fn window_total_lines (w: *mut c_void) -> c_int
 {
   unsafe { (*w.cast::<window> ()).total_lines }
 }
@@ -1737,7 +1737,7 @@ pub unsafe extern "C" fn window_total_lines (w: *mut c_void) -> c_int
 /// Swift `nsfns.swift` 931 (`-> Int32`); the lane has declared it but has no call site yet
 /// (measured: `grep -n "window_pixel_width"` over the Swift tree finds the declaration only).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn window_pixel_width (w: *mut c_void) -> c_int
+pub unsafe extern "C-unwind" fn window_pixel_width (w: *mut c_void) -> c_int
 {
   unsafe { (*w.cast::<window> ()).pixel_width }
 }
@@ -1746,7 +1746,7 @@ pub unsafe extern "C" fn window_pixel_width (w: *mut c_void) -> c_int
 /// (src/nsfns.m 3501).
 /// Swift `nsfns.swift` 934, used at `nsfns.swift` 4389.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn window_pixel_height (w: *mut c_void) -> c_int
+pub unsafe extern "C-unwind" fn window_pixel_height (w: *mut c_void) -> c_int
 {
   unsafe { (*w.cast::<window> ()).pixel_height }
 }
@@ -1759,7 +1759,7 @@ pub unsafe extern "C" fn window_pixel_height (w: *mut c_void) -> c_int
 /// precedent of batch 6).
 /// Swift `nsfns.swift` 770 (`(UnsafeMutableRawPointer?) -> Int`), used at `nsfns.swift` 4837.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn window_phys_cursor_x (w: *mut c_void) -> c_long
+pub unsafe extern "C-unwind" fn window_phys_cursor_x (w: *mut c_void) -> c_long
 {
   unsafe { (*w.cast::<window> ()).phys_cursor.x as c_long }
 }
@@ -1768,7 +1768,7 @@ pub unsafe extern "C" fn window_phys_cursor_x (w: *mut c_void) -> c_long
 /// `int y = text_area_y + window->phys_cursor.y;` (src/nsfns.m 4025).
 /// Swift `nsfns.swift` 771 (`-> Int`), used at `nsfns.swift` 4838.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn window_phys_cursor_y (w: *mut c_void) -> c_long
+pub unsafe extern "C-unwind" fn window_phys_cursor_y (w: *mut c_void) -> c_long
 {
   unsafe { (*w.cast::<window> ()).phys_cursor.y as c_long }
 }
@@ -1779,7 +1779,7 @@ pub unsafe extern "C" fn window_phys_cursor_y (w: *mut c_void) -> c_long
 /// `include/window.rs` 75), which is what the lane's `UnsafeMutableRawPointer?` asks for.
 /// Swift `nsfns.swift` 937-938, used at `nsfns.swift` 4376.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn window_desired_matrix (w: *mut c_void) -> *mut c_void
+pub unsafe extern "C-unwind" fn window_desired_matrix (w: *mut c_void) -> *mut c_void
 {
   unsafe { (*w.cast::<window> ()).desired_matrix }
 }
@@ -1810,7 +1810,7 @@ pub unsafe extern "C" fn window_desired_matrix (w: *mut c_void) -> *mut c_void
 /// `nsterm.swift` 4549/4553.
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn glyph_string_set_left_overhang (s: *mut c_void, v: c_int)
+pub unsafe extern "C-unwind" fn glyph_string_set_left_overhang (s: *mut c_void, v: c_int)
 {
   unsafe { (*s.cast::<glyph_string> ()).left_overhang = v; }
 }
@@ -1822,7 +1822,7 @@ pub unsafe extern "C" fn glyph_string_set_left_overhang (s: *mut c_void, v: c_in
 /// Swift `nsterm.swift` 3558-3559, used at `nsterm.swift` 4548/4552.
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn glyph_string_set_right_overhang (s: *mut c_void, v: c_int)
+pub unsafe extern "C-unwind" fn glyph_string_set_right_overhang (s: *mut c_void, v: c_int)
 {
   unsafe { (*s.cast::<glyph_string> ()).right_overhang = v; }
 }
@@ -1834,7 +1834,7 @@ pub unsafe extern "C" fn glyph_string_set_right_overhang (s: *mut c_void, v: c_i
 /// Swift `nsterm.swift` 3560-3561.
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn glyph_string_char2b (s: *mut c_void) -> *const c_uint
+pub unsafe extern "C-unwind" fn glyph_string_char2b (s: *mut c_void) -> *const c_uint
 {
   unsafe { (*s.cast::<glyph_string> ()).char2b }
 }
@@ -1845,7 +1845,7 @@ pub unsafe extern "C" fn glyph_string_char2b (s: *mut c_void) -> *const c_uint
 /// Swift `nsterm.swift` 3562.
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn glyph_string_nchars (s: *mut c_void) -> c_int
+pub unsafe extern "C-unwind" fn glyph_string_nchars (s: *mut c_void) -> c_int
 {
   unsafe { (*s.cast::<glyph_string> ()).nchars }
 }
@@ -1857,7 +1857,7 @@ pub unsafe extern "C" fn glyph_string_nchars (s: *mut c_void) -> c_int
 /// Swift `nsterm.swift` 3563-3564.
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn glyph_string_font (s: *mut c_void) -> *mut c_void
+pub unsafe extern "C-unwind" fn glyph_string_font (s: *mut c_void) -> *mut c_void
 {
   unsafe { (*s.cast::<glyph_string> ()).font as *mut c_void }
 }
@@ -1868,7 +1868,7 @@ pub unsafe extern "C" fn glyph_string_font (s: *mut c_void) -> *mut c_void
 /// Swift `nsterm.swift` 3565-3566.
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn glyph_string_cmp (s: *mut c_void) -> *mut c_void
+pub unsafe extern "C-unwind" fn glyph_string_cmp (s: *mut c_void) -> *mut c_void
 {
   unsafe { (*s.cast::<glyph_string> ()).cmp as *mut c_void }
 }
@@ -1880,7 +1880,7 @@ pub unsafe extern "C" fn glyph_string_cmp (s: *mut c_void) -> *mut c_void
 /// Swift `nsterm.swift` 3567-3568.
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn glyph_string_cmp_id (s: *mut c_void) -> ptrdiff_t
+pub unsafe extern "C-unwind" fn glyph_string_cmp_id (s: *mut c_void) -> ptrdiff_t
 {
   unsafe { (*s.cast::<glyph_string> ()).cmp_id }
 }
@@ -1891,7 +1891,7 @@ pub unsafe extern "C" fn glyph_string_cmp_id (s: *mut c_void) -> ptrdiff_t
 /// Swift `nsterm.swift` 3569-3570.
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn glyph_string_cmp_from (s: *mut c_void) -> c_int
+pub unsafe extern "C-unwind" fn glyph_string_cmp_from (s: *mut c_void) -> c_int
 {
   unsafe { (*s.cast::<glyph_string> ()).cmp_from }
 }
@@ -1900,7 +1900,7 @@ pub unsafe extern "C" fn glyph_string_cmp_from (s: *mut c_void) -> c_int
 /// Swift `nsterm.swift` 3571.
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn glyph_string_cmp_to (s: *mut c_void) -> c_int
+pub unsafe extern "C-unwind" fn glyph_string_cmp_to (s: *mut c_void) -> c_int
 {
   unsafe { (*s.cast::<glyph_string> ()).cmp_to }
 }
@@ -1912,7 +1912,7 @@ pub unsafe extern "C" fn glyph_string_cmp_to (s: *mut c_void) -> c_int
 /// Swift `nsterm.swift` 3572-3573.
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn glyph_string_first_glyph (s: *mut c_void) -> *mut c_void
+pub unsafe extern "C-unwind" fn glyph_string_first_glyph (s: *mut c_void) -> *mut c_void
 {
   unsafe { (*s.cast::<glyph_string> ()).first_glyph as *mut c_void }
 }
@@ -1934,7 +1934,7 @@ pub unsafe extern "C" fn glyph_string_first_glyph (s: *mut c_void) -> *mut c_voi
 /// `include/dispextern.rs` 511-514, over `GLYPH_TYPE_SHIFT` 0 and width 3 at 421-422).
 /// Swift `nsterm.swift` 3577 (`(UnsafeMutableRawPointer?) -> Int32`).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn glyph_type (g: *mut c_void) -> c_int
+pub unsafe extern "C-unwind" fn glyph_type (g: *mut c_void) -> c_int
 {
   unsafe { glyph_bits! (type, *g.cast::<glyph> ()) }
 }
@@ -1945,7 +1945,7 @@ pub unsafe extern "C" fn glyph_type (g: *mut c_void) -> c_int
 /// i.e. `bools [1]` bit 4).
 /// Swift `nsterm.swift` 3539-3540 (`(UnsafeMutableRawPointer?) -> Bool`).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn glyph_row_mode_line_p (row: *mut c_void) -> bool
+pub unsafe extern "C-unwind" fn glyph_row_mode_line_p (row: *mut c_void) -> bool
 {
   unsafe { glyph_row_bits! (mode_line_p, row.cast::<glyph_row> ()) }
 }
@@ -1955,7 +1955,7 @@ pub unsafe extern "C" fn glyph_row_mode_line_p (row: *mut c_void) -> bool
 /// (`include/dispextern.rs` 945-946, `bools [1]` bit 3).
 /// Swift `nsterm.swift` 3541-3542.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn glyph_row_full_width_p (row: *mut c_void) -> bool
+pub unsafe extern "C-unwind" fn glyph_row_full_width_p (row: *mut c_void) -> bool
 {
   unsafe { glyph_row_bits! (full_width_p, row.cast::<glyph_row> ()) }
 }
@@ -1966,7 +1966,7 @@ pub unsafe extern "C" fn glyph_row_full_width_p (row: *mut c_void) -> bool
 /// `bools [0]` bit 1) - the mirror's setter evaluates the value once, C's own shape.
 /// Swift `nsterm.swift` 3543-3544 (`(UnsafeMutableRawPointer?, Bool)`).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn glyph_row_set_redraw_fringe_bitmaps_p (row: *mut c_void, v: bool)
+pub unsafe extern "C-unwind" fn glyph_row_set_redraw_fringe_bitmaps_p (row: *mut c_void, v: bool)
 {
   unsafe { glyph_row_bits! (redraw_fringe_bitmaps_p, row.cast::<glyph_row> (), v) }
 }
@@ -1982,7 +1982,7 @@ pub unsafe extern "C" fn glyph_row_set_redraw_fringe_bitmaps_p (row: *mut c_void
 /// shift directly (measured: the macro is `cannot find macro` here, `## Evidence`).
 /// Swift `nsterm.swift` 3532-3533 (`(UnsafeMutableRawPointer?) -> Bool`).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn window_pseudo_window_p (w: *mut c_void) -> bool
+pub unsafe extern "C-unwind" fn window_pseudo_window_p (w: *mut c_void) -> bool
 {
   unsafe { window_bit (w.cast::<window> (), WINDOW_PSEUDO_WINDOW_P_SHIFT) }
 }
@@ -2001,7 +2001,7 @@ pub unsafe extern "C" fn window_pseudo_window_p (w: *mut c_void) -> bool
 /// (the batch-6 `ns_output_window_desc` rule).
 /// Swift `nsterm.swift` 3582-3583 (`(UnsafeMutableRawPointer?) -> Int32`).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn composition_pixel_width (cmp: *mut c_void) -> c_int
+pub unsafe extern "C-unwind" fn composition_pixel_width (cmp: *mut c_void) -> c_int
 {
   unsafe { (*cmp.cast::<composition> ()).pixel_width as c_int }
 }
@@ -2011,7 +2011,7 @@ pub unsafe extern "C" fn composition_pixel_width (cmp: *mut c_void) -> c_int
 /// test at 3071 is the other branch).
 /// Swift `nsterm.swift` 3584-3585.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn composition_lbearing (cmp: *mut c_void) -> c_int
+pub unsafe extern "C-unwind" fn composition_lbearing (cmp: *mut c_void) -> c_int
 {
   unsafe { (*cmp.cast::<composition> ()).lbearing as c_int }
 }
@@ -2020,7 +2020,7 @@ pub unsafe extern "C" fn composition_lbearing (cmp: *mut c_void) -> c_int
 /// `s->right_overhang = s->cmp->rbearing - s->cmp->pixel_width;` (src/nsterm.m 3076).
 /// Swift `nsterm.swift` 3586-3587.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn composition_rbearing (cmp: *mut c_void) -> c_int
+pub unsafe extern "C-unwind" fn composition_rbearing (cmp: *mut c_void) -> c_int
 {
   unsafe { (*cmp.cast::<composition> ()).rbearing as c_int }
 }
@@ -2034,7 +2034,7 @@ pub unsafe extern "C" fn composition_rbearing (cmp: *mut c_void) -> c_int
 /// to the lane's `UnsafeMutableRawPointer?`.
 /// Swift `nsterm.swift` 3596 (`(UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?`).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn font_driver (font: *mut c_void) -> *mut c_void
+pub unsafe extern "C-unwind" fn font_driver (font: *mut c_void) -> *mut c_void
 {
   unsafe { (*font.cast::<font> ()).driver as *mut c_void }
 }
@@ -2049,8 +2049,8 @@ pub unsafe extern "C" fn font_driver (font: *mut c_void) -> *mut c_void
 /// and an `Int32` in, `void` out; naming the mirror's type keeps one spelling of the slot.
 /// Swift `nsterm.swift` 3597-3598 (`(UnsafeMutableRawPointer?) -> font_text_extents_fn?`).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn font_driver_text_extents (driver: *mut c_void)
-  -> Option<unsafe extern "C" fn (*mut font, *const c_uint, c_int, *mut font_metrics)>
+pub unsafe extern "C-unwind" fn font_driver_text_extents (driver: *mut c_void)
+  -> Option<unsafe extern "C-unwind" fn (*mut font, *const c_uint, c_int, *mut font_metrics)>
 {
   unsafe { (*driver.cast::<font_driver> ()).text_extents }
 }
@@ -2080,7 +2080,7 @@ pub unsafe extern "C" fn font_driver_text_extents (driver: *mut c_void)
 /// Swift `nsterm.swift` 3751 (`(UnsafeMutableRawPointer?) -> UInt`).
 #[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn face_foreground (face: *mut c_void) -> c_ulong
+pub unsafe extern "C-unwind" fn face_foreground (face: *mut c_void) -> c_ulong
 {
   unsafe { (*face.cast::<face> ()).foreground }
 }
@@ -2092,7 +2092,7 @@ pub unsafe extern "C" fn face_foreground (face: *mut c_void) -> c_ulong
 /// Swift `nsterm.swift` 3752 (`-> UInt`).
 #[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn face_background (face: *mut c_void) -> c_ulong
+pub unsafe extern "C-unwind" fn face_background (face: *mut c_void) -> c_ulong
 {
   unsafe { (*face.cast::<face> ()).background }
 }
@@ -2104,7 +2104,7 @@ pub unsafe extern "C" fn face_background (face: *mut c_void) -> c_ulong
 /// Swift `nsterm.swift` 3757-3758.
 #[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn draw_fringe_bitmap_params_face (p: *mut c_void) -> *mut c_void
+pub unsafe extern "C-unwind" fn draw_fringe_bitmap_params_face (p: *mut c_void) -> *mut c_void
 {
   unsafe { (*p.cast::<draw_fringe_bitmap_params> ()).face as *mut c_void }
 }
@@ -2114,7 +2114,7 @@ pub unsafe extern "C" fn draw_fringe_bitmap_params_face (p: *mut c_void) -> *mut
 /// Swift `nsterm.swift` 3759-3760 (`(UnsafeMutableRawPointer?) -> Int32`).
 #[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn draw_fringe_bitmap_params_which (p: *mut c_void) -> c_int
+pub unsafe extern "C-unwind" fn draw_fringe_bitmap_params_which (p: *mut c_void) -> c_int
 {
   unsafe { (*p.cast::<draw_fringe_bitmap_params> ()).which }
 }
@@ -2124,7 +2124,7 @@ pub unsafe extern "C" fn draw_fringe_bitmap_params_which (p: *mut c_void) -> c_i
 /// Swift `nsterm.swift` 3761-3762.
 #[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn draw_fringe_bitmap_params_wd (p: *mut c_void) -> c_int
+pub unsafe extern "C-unwind" fn draw_fringe_bitmap_params_wd (p: *mut c_void) -> c_int
 {
   unsafe { (*p.cast::<draw_fringe_bitmap_params> ()).wd }
 }
@@ -2133,7 +2133,7 @@ pub unsafe extern "C" fn draw_fringe_bitmap_params_wd (p: *mut c_void) -> c_int
 /// Swift `nsterm.swift` 3763-3764.
 #[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn draw_fringe_bitmap_params_h (p: *mut c_void) -> c_int
+pub unsafe extern "C-unwind" fn draw_fringe_bitmap_params_h (p: *mut c_void) -> c_int
 {
   unsafe { (*p.cast::<draw_fringe_bitmap_params> ()).h }
 }
@@ -2142,7 +2142,7 @@ pub unsafe extern "C" fn draw_fringe_bitmap_params_h (p: *mut c_void) -> c_int
 /// Swift `nsterm.swift` 3765-3766.
 #[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn draw_fringe_bitmap_params_dh (p: *mut c_void) -> c_int
+pub unsafe extern "C-unwind" fn draw_fringe_bitmap_params_dh (p: *mut c_void) -> c_int
 {
   unsafe { (*p.cast::<draw_fringe_bitmap_params> ()).dh }
 }
@@ -2152,7 +2152,7 @@ pub unsafe extern "C" fn draw_fringe_bitmap_params_dh (p: *mut c_void) -> c_int
 /// Swift `nsterm.swift` 3767-3768.
 #[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn draw_fringe_bitmap_params_x (p: *mut c_void) -> c_int
+pub unsafe extern "C-unwind" fn draw_fringe_bitmap_params_x (p: *mut c_void) -> c_int
 {
   unsafe { (*p.cast::<draw_fringe_bitmap_params> ()).x }
 }
@@ -2161,7 +2161,7 @@ pub unsafe extern "C" fn draw_fringe_bitmap_params_x (p: *mut c_void) -> c_int
 /// Swift `nsterm.swift` 3769-3770.
 #[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn draw_fringe_bitmap_params_y (p: *mut c_void) -> c_int
+pub unsafe extern "C-unwind" fn draw_fringe_bitmap_params_y (p: *mut c_void) -> c_int
 {
   unsafe { (*p.cast::<draw_fringe_bitmap_params> ()).y }
 }
@@ -2171,7 +2171,7 @@ pub unsafe extern "C" fn draw_fringe_bitmap_params_y (p: *mut c_void) -> c_int
 /// Swift `nsterm.swift` 3771-3772.
 #[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn draw_fringe_bitmap_params_bx (p: *mut c_void) -> c_int
+pub unsafe extern "C-unwind" fn draw_fringe_bitmap_params_bx (p: *mut c_void) -> c_int
 {
   unsafe { (*p.cast::<draw_fringe_bitmap_params> ()).bx }
 }
@@ -2180,7 +2180,7 @@ pub unsafe extern "C" fn draw_fringe_bitmap_params_bx (p: *mut c_void) -> c_int
 /// Swift `nsterm.swift` 3773-3774.
 #[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn draw_fringe_bitmap_params_by (p: *mut c_void) -> c_int
+pub unsafe extern "C-unwind" fn draw_fringe_bitmap_params_by (p: *mut c_void) -> c_int
 {
   unsafe { (*p.cast::<draw_fringe_bitmap_params> ()).by }
 }
@@ -2189,7 +2189,7 @@ pub unsafe extern "C" fn draw_fringe_bitmap_params_by (p: *mut c_void) -> c_int
 /// Swift `nsterm.swift` 3775-3776.
 #[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn draw_fringe_bitmap_params_nx (p: *mut c_void) -> c_int
+pub unsafe extern "C-unwind" fn draw_fringe_bitmap_params_nx (p: *mut c_void) -> c_int
 {
   unsafe { (*p.cast::<draw_fringe_bitmap_params> ()).nx }
 }
@@ -2198,7 +2198,7 @@ pub unsafe extern "C" fn draw_fringe_bitmap_params_nx (p: *mut c_void) -> c_int
 /// Swift `nsterm.swift` 3777-3778.
 #[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn draw_fringe_bitmap_params_ny (p: *mut c_void) -> c_int
+pub unsafe extern "C-unwind" fn draw_fringe_bitmap_params_ny (p: *mut c_void) -> c_int
 {
   unsafe { (*p.cast::<draw_fringe_bitmap_params> ()).ny }
 }
@@ -2212,7 +2212,7 @@ pub unsafe extern "C" fn draw_fringe_bitmap_params_ny (p: *mut c_void) -> c_int
 /// Swift `nsterm.swift` 3779-3780 (`(UnsafeMutableRawPointer?) -> Bool`).
 #[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn draw_fringe_bitmap_params_cursor_p (p: *mut c_void) -> bool
+pub unsafe extern "C-unwind" fn draw_fringe_bitmap_params_cursor_p (p: *mut c_void) -> bool
 {
   unsafe { (*p.cast::<draw_fringe_bitmap_params> ()).flags & (1 << 0) != 0 }
 }
@@ -2222,7 +2222,7 @@ pub unsafe extern "C" fn draw_fringe_bitmap_params_cursor_p (p: *mut c_void) -> 
 /// Swift `nsterm.swift` 3781-3782.
 #[cfg (feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn draw_fringe_bitmap_params_overlay_p (p: *mut c_void) -> bool
+pub unsafe extern "C-unwind" fn draw_fringe_bitmap_params_overlay_p (p: *mut c_void) -> bool
 {
   unsafe { (*p.cast::<draw_fringe_bitmap_params> ()).flags & (1 << 1) != 0 }
 }
@@ -2240,7 +2240,7 @@ pub unsafe extern "C" fn draw_fringe_bitmap_params_overlay_p (p: *mut c_void) ->
    `draw_fringe_bitmap` (C's `void draw_fringe_bitmap (struct window *w, struct glyph_row
    *row, int left_p)`, src/fringe.c 838's function).  `src/fringe.rs` now carries
    both - the first landed with slice 2 (C 1365-1880), the second with slice 1 - each
-   `#[unsafe(no_mangle)] pub unsafe extern "C" fn` under the same `have_window_system` gate,
+   `#[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn` under the same `have_window_system` gate,
    so a second copy here is a duplicate definition in the configuration that compiles both
    (`E0428`, and two `_gui_define_fringe_bitmap` symbols at link time).  The Swift seam's two
    imports (`nsterm.swift` 3794 and 4115) are satisfied by the unit's own exports; the rows in
@@ -2268,7 +2268,7 @@ pub unsafe extern "C" fn draw_fringe_bitmap_params_overlay_p (p: *mut c_void) ->
 /// result untyped (`UnsafeMutableRawPointer?`), so the body casts.
 /// Swift `nsterm.swift` 3993.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn WINDOW_XFRAME (w: *mut c_void) -> *mut c_void
+pub unsafe extern "C-unwind" fn WINDOW_XFRAME (w: *mut c_void) -> *mut c_void
 {
   unsafe { WINDOW_XFRAME! (w.cast::<window> ()) as *mut c_void }
 }
@@ -2280,7 +2280,7 @@ pub unsafe extern "C" fn WINDOW_XFRAME (w: *mut c_void) -> *mut c_void
 /// Swift `nsterm.swift` 4001 (`(UnsafeMutableRawPointer?, Int32)`).
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn window_set_phys_cursor_type (w: *mut c_void, v: c_int)
+pub unsafe extern "C-unwind" fn window_set_phys_cursor_type (w: *mut c_void, v: c_int)
 {
   unsafe { (*w.cast::<window> ()).phys_cursor_type = v; }
 }
@@ -2294,7 +2294,7 @@ pub unsafe extern "C" fn window_set_phys_cursor_type (w: *mut c_void, v: c_int)
 /// reach).
 /// Swift `nsterm.swift` 4003 (`(UnsafeMutableRawPointer?, Bool)`).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn window_set_phys_cursor_on_p (w: *mut c_void, v: bool)
+pub unsafe extern "C-unwind" fn window_set_phys_cursor_on_p (w: *mut c_void, v: bool)
 {
   unsafe {
     let bits = &mut (*w.cast::<window> ()).bits;
@@ -2309,7 +2309,7 @@ pub unsafe extern "C" fn window_set_phys_cursor_on_p (w: *mut c_void, v: bool)
 /// Swift `nsterm.swift` 4005 (`(UnsafeMutableRawPointer?) -> Int32`).
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn window_phys_cursor_width (w: *mut c_void) -> c_int
+pub unsafe extern "C-unwind" fn window_phys_cursor_width (w: *mut c_void) -> c_int
 {
   unsafe { (*w.cast::<window> ()).phys_cursor_width }
 }
@@ -2319,7 +2319,7 @@ pub unsafe extern "C" fn window_phys_cursor_width (w: *mut c_void) -> c_int
 /// Swift `nsterm.swift` 4007 (`(…, Int32)`).
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn window_set_phys_cursor_width (w: *mut c_void, v: c_int)
+pub unsafe extern "C-unwind" fn window_set_phys_cursor_width (w: *mut c_void, v: c_int)
 {
   unsafe { (*w.cast::<window> ()).phys_cursor_width = v; }
 }
@@ -2332,7 +2332,7 @@ pub unsafe extern "C" fn window_set_phys_cursor_width (w: *mut c_void, v: c_int)
 /// carries it ungated (`include/window.rs` 115).
 /// Swift `nsterm.swift` 4009 (`(UnsafeMutableRawPointer?) -> Int32`).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn window_phys_cursor_hpos (w: *mut c_void) -> c_int
+pub unsafe extern "C-unwind" fn window_phys_cursor_hpos (w: *mut c_void) -> c_int
 {
   unsafe { (*w.cast::<window> ()).phys_cursor.hpos }
 }
@@ -2349,7 +2349,7 @@ pub unsafe extern "C" fn window_phys_cursor_hpos (w: *mut c_void) -> c_int
 /// (`include/dispextern.rs` 1010).
 /// Swift `nsterm.swift` 4015 (`(UnsafeMutableRawPointer?) -> Bool`).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn glyph_row_exact_window_width_line_p (row: *mut c_void) -> bool
+pub unsafe extern "C-unwind" fn glyph_row_exact_window_width_line_p (row: *mut c_void) -> bool
 {
   unsafe { glyph_row_bits! (exact_window_width_line_p, row.cast::<glyph_row> ()) }
 }
@@ -2360,7 +2360,7 @@ pub unsafe extern "C" fn glyph_row_exact_window_width_line_p (row: *mut c_void) 
 /// (`include/dispextern.rs` 822), sized `1 + LAST_AREA` exactly as C's declaration is.
 /// Swift `nsterm.swift` 4017 (`(UnsafeMutableRawPointer?, Int32) -> Int16`).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn glyph_row_used (row: *mut c_void, area: c_int) -> c_short
+pub unsafe extern "C-unwind" fn glyph_row_used (row: *mut c_void, area: c_int) -> c_short
 {
   unsafe { (*row.cast::<glyph_row> ()).used [area as usize] }
 }
@@ -2370,7 +2370,7 @@ pub unsafe extern "C" fn glyph_row_used (row: *mut c_void, area: c_int) -> c_sho
 /// `glyph_row_bits! (cursor_in_fringe_p, …, v)` (`include/dispextern.rs` 1013).
 /// Swift `nsterm.swift` 4019 (`(…, Bool)`).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn glyph_row_set_cursor_in_fringe_p (row: *mut c_void, v: bool)
+pub unsafe extern "C-unwind" fn glyph_row_set_cursor_in_fringe_p (row: *mut c_void, v: bool)
 {
   unsafe { glyph_row_bits! (cursor_in_fringe_p, row.cast::<glyph_row> (), v) }
 }
@@ -2378,7 +2378,7 @@ pub unsafe extern "C" fn glyph_row_set_cursor_in_fringe_p (row: *mut c_void, v: 
 /// C: `int ascent, height;` (src/dispextern.h 959) - C's reads are src/nsterm.m 3364-3365.
 /// Swift `nsterm.swift` 4021 (`-> Int32`).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn glyph_row_height (row: *mut c_void) -> c_int
+pub unsafe extern "C-unwind" fn glyph_row_height (row: *mut c_void) -> c_int
 {
   unsafe { (*row.cast::<glyph_row> ()).height }
 }
@@ -2388,7 +2388,7 @@ pub unsafe extern "C" fn glyph_row_height (row: *mut c_void) -> c_int
 /// (`include/dispextern.rs` 554-555, over `GLYPH_RESOLVED_LEVEL_SHIFT` 10 / width 7 at 473-474).
 /// Swift `nsterm.swift` 4024 (`(UnsafeMutableRawPointer?) -> Int32`).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn glyph_resolved_level (g: *mut c_void) -> c_int
+pub unsafe extern "C-unwind" fn glyph_resolved_level (g: *mut c_void) -> c_int
 {
   unsafe { glyph_bits! (resolved_level, *g.cast::<glyph> ()) }
 }
@@ -2397,7 +2397,7 @@ pub unsafe extern "C" fn glyph_resolved_level (g: *mut c_void) -> c_int
 /// is a `short` and the lane declares `-> Int16`, so the mirror's `c_short` is returned as is.
 /// Swift `nsterm.swift` 4025 (`(UnsafeMutableRawPointer?) -> Int16`).
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn glyph_pixel_width (g: *mut c_void) -> c_short
+pub unsafe extern "C-unwind" fn glyph_pixel_width (g: *mut c_void) -> c_short
 {
   unsafe { (*g.cast::<glyph> ()).pixel_width }
 }
@@ -2417,7 +2417,7 @@ pub unsafe extern "C" fn glyph_pixel_width (g: *mut c_void) -> c_short
    below uses it.  (Plain comments, not `///`: rustdoc warns that it generates no documentation
    for an `extern` block - measured in the flip arm.)  */
 #[cfg (feature = "have_window_system")]
-unsafe extern "C" { fn window_text_bottom_y (w: *mut window) -> c_int; }
+unsafe extern "C-unwind" { fn window_text_bottom_y (w: *mut window) -> c_int; }
 
 // Cursor geometry is exported by the actual xdisp translation unit.
 
@@ -2438,7 +2438,7 @@ use crate::xdisp::{bidi_it, it};
 #[cfg(feature = "have_ns")]
 const _: () = ();
 #[cfg(feature = "have_ns")]
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   fn estimate_mode_line_height(f: *mut frame, face: c_int) -> c_int;
   fn window_box_left(w: *mut window, area: c_int) -> c_int;
   fn font_style_to_value(prop: c_int, val: Lisp_Object, noerror: bool) -> c_int;
@@ -2496,112 +2496,112 @@ const _: () = core::assert!(core::mem::offset_of!(glyph_string, next) == 256);
 mod cocoa_record_views {
 use super::*;
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_display_info_set_ns_focus_frame_from_display(p: *mut ns_display_info, f: *mut frame) { (*p).ns_focus_frame = f; }
+pub unsafe extern "C-unwind" fn ns_display_info_set_ns_focus_frame_from_display(p: *mut ns_display_info, f: *mut frame) { (*p).ns_focus_frame = f; }
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_display_info_set_highlight_frame_from_display(p: *mut ns_display_info, f: *mut frame) { (*p).highlight_frame = f; }
+pub unsafe extern "C-unwind" fn ns_display_info_set_highlight_frame_from_display(p: *mut ns_display_info, f: *mut frame) { (*p).highlight_frame = f; }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_text_cols(f: *mut c_void) -> c_int { (*f.cast::<frame>()).text_cols }
+pub unsafe extern "C-unwind" fn frame_text_cols(f: *mut c_void) -> c_int { (*f.cast::<frame>()).text_cols }
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_text_lines(f: *mut c_void) -> c_int { (*f.cast::<frame>()).text_lines }
+pub unsafe extern "C-unwind" fn frame_text_lines(f: *mut c_void) -> c_int { (*f.cast::<frame>()).text_lines }
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_set_left_pos(f: *mut c_void, v: c_int) -> () { (*f.cast::<frame>()).left_pos = v; }
+pub unsafe extern "C-unwind" fn frame_set_left_pos(f: *mut c_void, v: c_int) -> () { (*f.cast::<frame>()).left_pos = v; }
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_set_top_pos(f: *mut c_void, v: c_int) -> () { (*f.cast::<frame>()).top_pos = v; }
+pub unsafe extern "C-unwind" fn frame_set_top_pos(f: *mut c_void, v: c_int) -> () { (*f.cast::<frame>()).top_pos = v; }
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_garbaged_p(f: *mut c_void) -> bool { frame_flag(f.cast::<frame>(), FRAME_GARBAGED_UNIT, FRAME_GARBAGED_SHIFT) }
+pub unsafe extern "C-unwind" fn frame_garbaged_p(f: *mut c_void) -> bool { frame_flag(f.cast::<frame>(), FRAME_GARBAGED_UNIT, FRAME_GARBAGED_SHIFT) }
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_mouse_moved(f: *mut c_void) -> bool { frame_flag(f.cast::<frame>(), FRAME_MOUSE_MOVED_UNIT, FRAME_MOUSE_MOVED_SHIFT) }
+pub unsafe extern "C-unwind" fn frame_mouse_moved(f: *mut c_void) -> bool { frame_flag(f.cast::<frame>(), FRAME_MOUSE_MOVED_UNIT, FRAME_MOUSE_MOVED_SHIFT) }
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_no_accept_focus(f: *mut c_void) -> bool { frame_flag(f.cast::<frame>(), FRAME_NO_ACCEPT_FOCUS_UNIT, FRAME_NO_ACCEPT_FOCUS_SHIFT) }
+pub unsafe extern "C-unwind" fn frame_no_accept_focus(f: *mut c_void) -> bool { frame_flag(f.cast::<frame>(), FRAME_NO_ACCEPT_FOCUS_UNIT, FRAME_NO_ACCEPT_FOCUS_SHIFT) }
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_set_mouse_moved(f: *mut c_void, v: bool) -> () { frame_set_flag(f.cast::<frame>(), FRAME_MOUSE_MOVED_UNIT, FRAME_MOUSE_MOVED_SHIFT, v as u32); }
+pub unsafe extern "C-unwind" fn frame_set_mouse_moved(f: *mut c_void, v: bool) -> () { frame_set_flag(f.cast::<frame>(), FRAME_MOUSE_MOVED_UNIT, FRAME_MOUSE_MOVED_SHIFT, v as u32); }
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_want_fullscreen(f: *mut c_void) -> c_int { frame_field(f.cast::<frame>(), FRAME_WANT_FULLSCREEN_UNIT, FRAME_WANT_FULLSCREEN_SHIFT, FRAME_WANT_FULLSCREEN_MASK) as c_int }
+pub unsafe extern "C-unwind" fn frame_want_fullscreen(f: *mut c_void) -> c_int { frame_field(f.cast::<frame>(), FRAME_WANT_FULLSCREEN_UNIT, FRAME_WANT_FULLSCREEN_SHIFT, FRAME_WANT_FULLSCREEN_MASK) as c_int }
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_set_want_fullscreen(f: *mut c_void, v: c_int) -> () { frame_set_field(f.cast::<frame>(), FRAME_WANT_FULLSCREEN_UNIT, FRAME_WANT_FULLSCREEN_SHIFT, FRAME_WANT_FULLSCREEN_MASK, v as u32); }
+pub unsafe extern "C-unwind" fn frame_set_want_fullscreen(f: *mut c_void, v: c_int) -> () { frame_set_field(f.cast::<frame>(), FRAME_WANT_FULLSCREEN_UNIT, FRAME_WANT_FULLSCREEN_SHIFT, FRAME_WANT_FULLSCREEN_MASK, v as u32); }
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn frame_output_data_ns(f: *mut c_void) -> *mut c_void { (*f.cast::<frame>()).output_data.ns }
+pub unsafe extern "C-unwind" fn frame_output_data_ns(f: *mut c_void) -> *mut c_void { (*f.cast::<frame>()).output_data.ns }
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn buffer_enable_multibyte_characters(p: *mut c_void) -> Lisp_Object { (*p.cast::<buffer>()).enable_multibyte_characters_ }
+pub unsafe extern "C-unwind" fn buffer_enable_multibyte_characters(p: *mut c_void) -> Lisp_Object { (*p.cast::<buffer>()).enable_multibyte_characters_ }
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn buffer_mark(p: *mut c_void) -> Lisp_Object { (*p.cast::<buffer>()).mark_ }
+pub unsafe extern "C-unwind" fn buffer_mark(p: *mut c_void) -> Lisp_Object { (*p.cast::<buffer>()).mark_ }
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn buffer_mark_active(p: *mut c_void) -> Lisp_Object { (*p.cast::<buffer>()).mark_active_ }
+pub unsafe extern "C-unwind" fn buffer_mark_active(p: *mut c_void) -> Lisp_Object { (*p.cast::<buffer>()).mark_active_ }
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn current_buffer() -> *mut c_void { current_buffer!().cast() }
+pub unsafe extern "C-unwind" fn current_buffer() -> *mut c_void { current_buffer!().cast() }
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn waiting_for_input() -> bool { waiting_for_input!() }
+pub unsafe extern "C-unwind" fn waiting_for_input() -> bool { waiting_for_input!() }
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn terminal_type(p: *mut c_void) -> c_int { (*p.cast::<terminal>()).r#type }
+pub unsafe extern "C-unwind" fn terminal_type(p: *mut c_void) -> c_int { (*p.cast::<terminal>()).r#type }
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn window_frame(p: *mut c_void) -> Lisp_Object { (*p.cast::<window>()).frame }
+pub unsafe extern "C-unwind" fn window_frame(p: *mut c_void) -> Lisp_Object { (*p.cast::<window>()).frame }
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn image_pixmap(p: *mut c_void) -> *mut c_void { (*p.cast::<image>()).pixmap }
+pub unsafe extern "C-unwind" fn image_pixmap(p: *mut c_void) -> *mut c_void { (*p.cast::<image>()).pixmap }
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn image_load_failed_p(p: *mut c_void) -> bool { (*p.cast::<image>()).load_failed_p }
+pub unsafe extern "C-unwind" fn image_load_failed_p(p: *mut c_void) -> bool { (*p.cast::<image>()).load_failed_p }
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn input_event_set_part(p: *mut input_event, v: c_int) -> () { (*p).bits = ((*p).bits & INPUT_EVENT_KIND_MASK) | (((v as u32) & INPUT_EVENT_KIND_MASK) << INPUT_EVENT_PART_SHIFT); }
+pub unsafe extern "C-unwind" fn input_event_set_part(p: *mut input_event, v: c_int) -> () { (*p).bits = ((*p).bits & INPUT_EVENT_KIND_MASK) | (((v as u32) & INPUT_EVENT_KIND_MASK) << INPUT_EVENT_PART_SHIFT); }
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mouse_highlight_mouse_face_window(p: *mut c_void) -> Lisp_Object { (*p.cast::<Mouse_HLInfo>()).mouse_face_window }
+pub unsafe extern "C-unwind" fn mouse_highlight_mouse_face_window(p: *mut c_void) -> Lisp_Object { (*p.cast::<Mouse_HLInfo>()).mouse_face_window }
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mouse_highlight_mouse_face_mouse_frame(p: *mut c_void) -> *mut c_void { (*p.cast::<Mouse_HLInfo>()).mouse_face_mouse_frame }
+pub unsafe extern "C-unwind" fn mouse_highlight_mouse_face_mouse_frame(p: *mut c_void) -> *mut c_void { (*p.cast::<Mouse_HLInfo>()).mouse_face_mouse_frame }
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mouse_highlight_mouse_face_hidden(p: *mut c_void) -> bool { (*p.cast::<Mouse_HLInfo>()).bits & MOUSE_FACE_HIDDEN != 0 }
+pub unsafe extern "C-unwind" fn mouse_highlight_mouse_face_hidden(p: *mut c_void) -> bool { (*p.cast::<Mouse_HLInfo>()).bits & MOUSE_FACE_HIDDEN != 0 }
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mouse_highlight_set_mouse_face_mouse_frame(p: *mut c_void, v: *mut c_void) -> () { (*p.cast::<Mouse_HLInfo>()).mouse_face_mouse_frame = v; }
+pub unsafe extern "C-unwind" fn mouse_highlight_set_mouse_face_mouse_frame(p: *mut c_void, v: *mut c_void) -> () { (*p.cast::<Mouse_HLInfo>()).mouse_face_mouse_frame = v; }
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mouse_highlight_set_mouse_face_hidden(p: *mut c_void, v: c_int) -> () { if v != 0 { (*p.cast::<Mouse_HLInfo>()).bits |= MOUSE_FACE_HIDDEN; } else { (*p.cast::<Mouse_HLInfo>()).bits &= !MOUSE_FACE_HIDDEN; } }
+pub unsafe extern "C-unwind" fn mouse_highlight_set_mouse_face_hidden(p: *mut c_void, v: c_int) -> () { if v != 0 { (*p.cast::<Mouse_HLInfo>()).bits |= MOUSE_FACE_HIDDEN; } else { (*p.cast::<Mouse_HLInfo>()).bits &= !MOUSE_FACE_HIDDEN; } }
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mouse_highlight_set_mouse_face_defer(p: *mut c_void, v: c_int) -> () { if v != 0 { (*p.cast::<Mouse_HLInfo>()).bits |= MOUSE_FACE_DEFER; } else { (*p.cast::<Mouse_HLInfo>()).bits &= !MOUSE_FACE_DEFER; } }
+pub unsafe extern "C-unwind" fn mouse_highlight_set_mouse_face_defer(p: *mut c_void, v: c_int) -> () { if v != 0 { (*p.cast::<Mouse_HLInfo>()).bits |= MOUSE_FACE_DEFER; } else { (*p.cast::<Mouse_HLInfo>()).bits &= !MOUSE_FACE_DEFER; } }
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_display_info_next(p: *mut c_void) -> *mut c_void { (*p.cast::<ns_display_info>()).next as *mut c_void }
+pub unsafe extern "C-unwind" fn ns_display_info_next(p: *mut c_void) -> *mut c_void { (*p.cast::<ns_display_info>()).next as *mut c_void }
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_display_info_grabbed(p: *mut c_void) -> c_int { (*p.cast::<ns_display_info>()).grabbed }
+pub unsafe extern "C-unwind" fn ns_display_info_grabbed(p: *mut c_void) -> c_int { (*p.cast::<ns_display_info>()).grabbed }
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_display_info_highlight_frame(f: *mut c_void) -> *mut c_void { (*FRAME_DISPLAY_INFO!(f.cast::<frame>())).highlight_frame.cast() }
+pub unsafe extern "C-unwind" fn ns_display_info_highlight_frame(f: *mut c_void) -> *mut c_void { (*FRAME_DISPLAY_INFO!(f.cast::<frame>())).highlight_frame.cast() }
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_display_info_ns_focus_frame(f: *mut c_void) -> *mut c_void { (*FRAME_DISPLAY_INFO!(f.cast::<frame>())).ns_focus_frame.cast() }
+pub unsafe extern "C-unwind" fn ns_display_info_ns_focus_frame(f: *mut c_void) -> *mut c_void { (*FRAME_DISPLAY_INFO!(f.cast::<frame>())).ns_focus_frame.cast() }
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_display_info_ns_focus_frame_from_display(p: *mut c_void) -> *mut c_void { (*p.cast::<ns_display_info>()).ns_focus_frame.cast() }
+pub unsafe extern "C-unwind" fn ns_display_info_ns_focus_frame_from_display(p: *mut c_void) -> *mut c_void { (*p.cast::<ns_display_info>()).ns_focus_frame.cast() }
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_display_info_set_highlight_frame(f: *mut c_void, v: *mut c_void) -> () { (*FRAME_DISPLAY_INFO!(f.cast::<frame>())).highlight_frame = v.cast::<frame>(); }
+pub unsafe extern "C-unwind" fn ns_display_info_set_highlight_frame(f: *mut c_void, v: *mut c_void) -> () { (*FRAME_DISPLAY_INFO!(f.cast::<frame>())).highlight_frame = v.cast::<frame>(); }
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_display_info_set_ns_focus_frame(f: *mut c_void, v: *mut c_void) -> () { (*FRAME_DISPLAY_INFO!(f.cast::<frame>())).ns_focus_frame = v.cast::<frame>(); }
+pub unsafe extern "C-unwind" fn ns_display_info_set_ns_focus_frame(f: *mut c_void, v: *mut c_void) -> () { (*FRAME_DISPLAY_INFO!(f.cast::<frame>())).ns_focus_frame = v.cast::<frame>(); }
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_display_info_set_last_mouse_motion_frame(f: *mut c_void, v: *mut c_void) -> () { (*FRAME_DISPLAY_INFO!(f.cast::<frame>())).last_mouse_motion_frame = v.cast::<frame>(); }
+pub unsafe extern "C-unwind" fn ns_display_info_set_last_mouse_motion_frame(f: *mut c_void, v: *mut c_void) -> () { (*FRAME_DISPLAY_INFO!(f.cast::<frame>())).last_mouse_motion_frame = v.cast::<frame>(); }
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_display_info_set_grabbed(p: *mut c_void, v: c_int) -> () { (*p.cast::<ns_display_info>()).grabbed = v; }
+pub unsafe extern "C-unwind" fn ns_display_info_set_grabbed(p: *mut c_void, v: c_int) -> () { (*p.cast::<ns_display_info>()).grabbed = v; }
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_display_info_set_last_mouse_motion_x(p: *mut c_void, v: c_int) -> () { (*p.cast::<ns_display_info>()).last_mouse_motion_x = v; }
+pub unsafe extern "C-unwind" fn ns_display_info_set_last_mouse_motion_x(p: *mut c_void, v: c_int) -> () { (*p.cast::<ns_display_info>()).last_mouse_motion_x = v; }
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_display_info_set_last_mouse_motion_y(p: *mut c_void, v: c_int) -> () { (*p.cast::<ns_display_info>()).last_mouse_motion_y = v; }
+pub unsafe extern "C-unwind" fn ns_display_info_set_last_mouse_motion_y(p: *mut c_void, v: c_int) -> () { (*p.cast::<ns_display_info>()).last_mouse_motion_y = v; }
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_display_info_set_last_mouse_frame(p: *mut c_void, v: *mut c_void) -> () { (*p.cast::<ns_display_info>()).last_mouse_frame = v.cast::<frame>(); }
+pub unsafe extern "C-unwind" fn ns_display_info_set_last_mouse_frame(p: *mut c_void, v: *mut c_void) -> () { (*p.cast::<ns_display_info>()).last_mouse_frame = v.cast::<frame>(); }
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_display_info_set_last_mouse_movement_time(p: *mut c_void, v: c_ulong) -> () { (*p.cast::<ns_display_info>()).last_mouse_movement_time = v; }
+pub unsafe extern "C-unwind" fn ns_display_info_set_last_mouse_movement_time(p: *mut c_void, v: c_ulong) -> () { (*p.cast::<ns_display_info>()).last_mouse_movement_time = v; }
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_display_info_last_mouse_glyph(f: *mut c_void) -> *mut NSRect { core::ptr::addr_of_mut!((*FRAME_DISPLAY_INFO!(f.cast::<frame>())).last_mouse_glyph) }
+pub unsafe extern "C-unwind" fn ns_display_info_last_mouse_glyph(f: *mut c_void) -> *mut NSRect { core::ptr::addr_of_mut!((*FRAME_DISPLAY_INFO!(f.cast::<frame>())).last_mouse_glyph) }
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_output_double_buffered(f: *mut c_void) -> bool { (*(*f.cast::<frame>()).output_data.ns.cast::<ns_output>()).double_buffered }
+pub unsafe extern "C-unwind" fn ns_output_double_buffered(f: *mut c_void) -> bool { (*(*f.cast::<frame>()).output_data.ns.cast::<ns_output>()).double_buffered }
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_output_current_pointer(f: *mut c_void) -> *mut c_void { (*(*f.cast::<frame>()).output_data.ns.cast::<ns_output>()).current_pointer }
+pub unsafe extern "C-unwind" fn ns_output_current_pointer(f: *mut c_void) -> *mut c_void { (*(*f.cast::<frame>()).output_data.ns.cast::<ns_output>()).current_pointer }
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn femacs_get_ns_antialias_text() -> Lisp_Object { cocoa_runtime_exports::ns_antialias_text }
+pub unsafe extern "C-unwind" fn femacs_get_ns_antialias_text() -> Lisp_Object { cocoa_runtime_exports::ns_antialias_text }
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn femacs_get_ns_use_thin_smoothing() -> Lisp_Object { cocoa_runtime_exports::ns_use_thin_smoothing }
+pub unsafe extern "C-unwind" fn femacs_get_ns_use_thin_smoothing() -> Lisp_Object { cocoa_runtime_exports::ns_use_thin_smoothing }
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn __darwin_fd_isset(fd: c_int, set: *const fd_set) -> c_int { FD_ISSET(fd, set) as c_int }
+pub unsafe extern "C-unwind" fn __darwin_fd_isset(fd: c_int, set: *const fd_set) -> c_int { FD_ISSET(fd, set) as c_int }
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn __darwin_fd_set(fd: c_int, set: *mut fd_set) -> () { FD_SET(fd, set); }
+pub unsafe extern "C-unwind" fn __darwin_fd_set(fd: c_int, set: *mut fd_set) -> () { FD_SET(fd, set); }
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn __darwin_fd_zero(set: *mut fd_set) -> () { FD_ZERO(set); }
+pub unsafe extern "C-unwind" fn __darwin_fd_zero(set: *mut fd_set) -> () { FD_ZERO(set); }
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn XSETINT(p: *mut Lisp_Object, n: EMACS_INT) -> () { XSETINT!(*p, n); }
+pub unsafe extern "C-unwind" fn XSETINT(p: *mut Lisp_Object, n: EMACS_INT) -> () { XSETINT!(*p, n); }
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn XSETWINDOW(p: *mut Lisp_Object, w: *mut window) -> () { XSETWINDOW!(*p, w); }
+pub unsafe extern "C-unwind" fn XSETWINDOW(p: *mut Lisp_Object, w: *mut window) -> () { XSETWINDOW!(*p, w); }
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn LGLYPH_SET_CODE(glyph: Lisp_Object, code: EMACS_INT) -> () { LGLYPH_SET_CODE!(glyph, code); }
+pub unsafe extern "C-unwind" fn LGLYPH_SET_CODE(glyph: Lisp_Object, code: EMACS_INT) -> () { LGLYPH_SET_CODE!(glyph, code); }
 }
 
 // Core fields hold one native reference; Swift getter wrappers borrow it.
@@ -2620,6 +2620,6 @@ unsafe fn replace_native_object(slot: *mut *mut c_void, value: *mut c_void) {
 
 #[cfg(feature = "have_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ns_frame_parm_handlers_address() -> *mut c_void {
+pub unsafe extern "C-unwind" fn ns_frame_parm_handlers_address() -> *mut c_void {
     core::ptr::addr_of_mut!(cocoa_runtime_exports::ns_frame_parm_handlers).cast()
 }

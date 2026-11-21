@@ -912,7 +912,7 @@ DEFUN! ("prefix-numeric-value", Fprefix_numeric_value, Sprefix_numeric_value,
 });
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_callint ()
+pub unsafe extern "C-unwind" fn syms_of_callint ()
 {
   point_marker = Fmake_marker ();
   staticpro (&raw const point_marker);

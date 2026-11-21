@@ -1416,3 +1416,8 @@ Retired per-unit `rustc --emit=obj` (`build-tu` / `build-units` / `LINK_DRIVER` 
 ## CLN278 — U2 pure leaf migration, Safe Rust companion tools, and consumed AU2 build trees (2026-11-22)
 
 Retired 8 verified zero-consumer `lib-src`/`lib` sources (`19,048` lines; recovery commit `4ad0d5f3`) in `docs/retired-scaffolding.md` and reclaimed 13 consumed AU2 build/manual/staging scopes totaling 2,908 files, 743 directories, and 8 symlinks (`599,876,910` logical bytes). Retained verified `build/terminal/port` (`44 MB`), `dist/macos/Femacs.app` (`234 MB`), and active `U3–U5` incremental/toolchain caches (`build/cargo`, pinned Tree-sitter 0.27.1 SDK, and `u1-baseline` metrics) until `AU5`. [Report](reports/2026-11-22-278-u2-pure-leaves-and-retired-lib-src.md).
+
+
+## CLN279 — U3 explicit non-local exits, native status protocol, and consumed AU3 runtime/build trees (2026-11-22)
+
+Completed U3/AU3 (`P-482`) across interpreter, bytecode, native `.eln` (`normal` + `ENABLE_CHECKING`), and C dynamic modules, then reclaimed 15 consumed build, `u3-native` runtime, manual, staging, acceptance, and `P-190` dump-alias scopes totaling 18,666 files, 921 directories, and 18 symlinks (`1,948,903,162` logical bytes). Retained verified `build/terminal/port` (`44 MB`), `dist/macos/Femacs.app` (`235 MB`), and active `U4–U5` incremental/toolchain caches (`build/cargo`, pinned Tree-sitter 0.27.1 SDK, and `u1-baseline` metrics) until `AU5`. [Report](reports/2026-11-22-279-u3-nonlocal-exit-and-au3-retirement.md).

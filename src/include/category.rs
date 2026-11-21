@@ -155,7 +155,7 @@ pub fn WORD_BOUNDARY_P (c1: c_int, c2: c_int) -> bool
 pub mod category_externs {
   use super::*;
 
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     /* category.h 120: `extern bool word_boundary_p (int, int);` */
     pub fn word_boundary_p (c1: c_int, c2: c_int) -> bool;
   }

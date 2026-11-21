@@ -52,7 +52,11 @@ const _: () = ();
 
 /* The names C gets from headers whose mirrors do not carry them yet (the
    terminal.rs/filelock.rs shape), each with C's own prototype in a `/// C:` line.  */
-unsafe extern "C" {
+unsafe extern "C-unwind" {
+  /// C: lisp.h 3525: `DEFVAR_BOOL ("inhibit-modification-hooks",
+  /// inhibit_modification_hooks, …)`.  The storage lives in `insdel.c`, its definition
+  /// unit (`src/insdel.rs`); no mirror declares the name (status §3.29).
+  pub static mut inhibit_modification_hooks: bool;
 
 
   /// C: lisp.h 5031-5032: `extern ptrdiff_t fast_looking_at (Lisp_Object, ptrdiff_t,
@@ -70,19 +74,17 @@ unsafe extern "C" {
   // (window.h 1233's `window_point` is the window.rs mirror's now; the use-site copy is gone, P-26.)
   /// C: dispextern.h 3592: `ptrdiff_t get_small_narrowing_begv (struct window *, ptrdiff_t);`
   fn get_small_narrowing_begv (w: *mut window, pos: ptrdiff_t) -> ptrdiff_t;
+
+  /// C: dispextern.h 3631: `extern void get_font_ascent_descent (struct font *, int *,
+  /// int *);`
+  fn get_font_ascent_descent (font: *mut font, ascent: *mut c_int, descent: *mut c_int);
+}
+unsafe extern "C" {
   /// C: <stdlib.h>: `void qsort (void *base, size_t nmemb, size_t size,
   /// int (*compar) (const void *, const void *));` (`lib/include/stdlib.rs` does not
   /// carry it yet; reported as a mirror gap in docs/ports/composite.md).
   fn qsort (base: *mut c_void, nmemb: usize, size: usize,
 	    compar: Option<unsafe extern "C" fn (*const c_void, *const c_void) -> c_int>);
-
-  /// C: dispextern.h 3631: `extern void get_font_ascent_descent (struct font *, int *,
-  /// int *);`
-  fn get_font_ascent_descent (font: *mut font, ascent: *mut c_int, descent: *mut c_int);
-  /// C: lisp.h 3525: `DEFVAR_BOOL ("inhibit-modification-hooks",
-  /// inhibit_modification_hooks, …)`.  The storage lives in `insdel.c`, its definition
-  /// unit (`src/insdel.rs`); no mirror declares the name (status §3.29).
-  pub static mut inhibit_modification_hooks: bool;
 }
 
 /* C: font.h 414-417's `struct font_metrics` is the font mirror's now
@@ -183,7 +185,7 @@ pub const MAX_AUTO_COMPOSITION_LOOKBACK: c_int = 3;
    If the composition is invalid, return -1.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn get_composition_id (mut charpos: ptrdiff_t, mut bytepos: ptrdiff_t,
+pub unsafe extern "C-unwind" fn get_composition_id (mut charpos: ptrdiff_t, mut bytepos: ptrdiff_t,
 					     nchars: ptrdiff_t, prop: Lisp_Object,
 					     string: Lisp_Object) -> ptrdiff_t
 {
@@ -468,7 +470,7 @@ pub unsafe extern "C" fn get_composition_id (mut charpos: ptrdiff_t, mut bytepos
    This doesn't check the validity of composition.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn find_composition (mut pos: ptrdiff_t, limit: ptrdiff_t,
+pub unsafe extern "C-unwind" fn find_composition (mut pos: ptrdiff_t, limit: ptrdiff_t,
 					   start: *mut ptrdiff_t, end: *mut ptrdiff_t,
 					   prop: *mut Lisp_Object, object: Lisp_Object)
 					   -> bool
@@ -541,7 +543,7 @@ unsafe fn run_composition_function (mut from: ptrdiff_t, mut to: ptrdiff_t,
    change is deletion, FROM == TO.  Otherwise, FROM < TO.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn update_compositions (mut from: ptrdiff_t, mut to: ptrdiff_t,
+pub unsafe extern "C-unwind" fn update_compositions (mut from: ptrdiff_t, mut to: ptrdiff_t,
 					      check_mask: c_int)
 {
   let mut prop: Lisp_Object = lisp_h_Qnil ();
@@ -654,7 +656,7 @@ pub unsafe extern "C" fn update_compositions (mut from: ptrdiff_t, mut to: ptrdi
    top-level copies of them so that none of them are `eq'.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn make_composition_value_copy (mut list: Lisp_Object)
+pub unsafe extern "C-unwind" fn make_composition_value_copy (mut list: Lisp_Object)
 {
   let mut plist: Lisp_Object = lisp_h_Qnil ();
   let mut val: Lisp_Object = lisp_h_Qnil ();
@@ -680,7 +682,7 @@ pub unsafe extern "C" fn make_composition_value_copy (mut list: Lisp_Object)
    indices START and END in STRING.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn compose_text (start: ptrdiff_t, end: ptrdiff_t,
+pub unsafe extern "C-unwind" fn compose_text (start: ptrdiff_t, end: ptrdiff_t,
 				       components: Lisp_Object,
 				       modification_func: Lisp_Object,
 				       string: Lisp_Object)
@@ -700,13 +702,13 @@ pub unsafe extern "C" fn compose_text (start: ptrdiff_t, end: ptrdiff_t,
 static mut gstring_hash_table: Lisp_Object = lisp_h_Qnil ();
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn composition_gstring_lookup_cache (header: Lisp_Object) -> Lisp_Object
+pub unsafe extern "C-unwind" fn composition_gstring_lookup_cache (header: Lisp_Object) -> Lisp_Object
 {
   return Fgethash (header, gstring_hash_table, Qnil ());
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn composition_gstring_put_cache (gstring: Lisp_Object,
+pub unsafe extern "C-unwind" fn composition_gstring_put_cache (gstring: Lisp_Object,
 							mut len: ptrdiff_t) -> Lisp_Object
 {
   let h: *mut Lisp_Hash_Table = XHASH_TABLE (gstring_hash_table);
@@ -738,7 +740,7 @@ pub unsafe extern "C" fn composition_gstring_put_cache (gstring: Lisp_Object,
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn composition_gstring_from_id (id: ptrdiff_t) -> Lisp_Object
+pub unsafe extern "C-unwind" fn composition_gstring_from_id (id: ptrdiff_t) -> Lisp_Object
 {
   let h: *mut Lisp_Hash_Table = XHASH_TABLE (gstring_hash_table);
   /* FIXME: The stability of this value depends on the hash table internals!  */
@@ -748,7 +750,7 @@ pub unsafe extern "C" fn composition_gstring_from_id (id: ptrdiff_t) -> Lisp_Obj
 /* Remove from the composition hash table every lgstring that
    references the given FONT_OBJECT.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn composition_gstring_cache_clear_font (font_object: Lisp_Object)
+pub unsafe extern "C-unwind" fn composition_gstring_cache_clear_font (font_object: Lisp_Object)
 {
   let h: *mut Lisp_Hash_Table = XHASH_TABLE (gstring_hash_table);
 
@@ -772,7 +774,7 @@ DEFUN! ("clear-composition-cache", Fclear_composition_cache,
 });
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn composition_gstring_p (gstring: Lisp_Object) -> bool
+pub unsafe extern "C-unwind" fn composition_gstring_p (gstring: Lisp_Object) -> bool
 {
   let mut header: Lisp_Object = lisp_h_Qnil ();
   let mut i: ptrdiff_t = 0;
@@ -809,7 +811,7 @@ pub unsafe extern "C" fn composition_gstring_p (gstring: Lisp_Object) -> bool
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn composition_gstring_width (gstring: Lisp_Object, mut from: ptrdiff_t,
+pub unsafe extern "C-unwind" fn composition_gstring_width (gstring: Lisp_Object, mut from: ptrdiff_t,
 						    to: ptrdiff_t,
 						    metrics: *mut font_metrics) -> c_int
 {
@@ -878,7 +880,7 @@ pub unsafe extern "C" fn composition_gstring_width (gstring: Lisp_Object, mut fr
    incremented.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn composition_gstring_adjust_zero_width (gstring: Lisp_Object)
+pub unsafe extern "C-unwind" fn composition_gstring_adjust_zero_width (gstring: Lisp_Object)
 {
   let mut from: ptrdiff_t = 0;
   let mut width: c_int = 0;
@@ -1047,7 +1049,7 @@ unsafe fn autocmp_chars (rule: Lisp_Object, charpos: ptrdiff_t, bytepos: ptrdiff
   font_object = (*win).frame;
   #[cfg(feature = "have_window_system")]
   {
-    unsafe extern "C" {
+    unsafe extern "C-unwind" {
       fn font_range(from: ptrdiff_t, from_byte: ptrdiff_t, limit: *mut ptrdiff_t,
                     win: *mut window, face: *mut c_void, string: Lisp_Object,
                     ch: c_int) -> Lisp_Object;
@@ -1132,7 +1134,7 @@ unsafe fn inhibit_auto_composition () -> bool
    composition.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn composition_compute_stop_pos (cmp_it: *mut composition_it,
+pub unsafe extern "C-unwind" fn composition_compute_stop_pos (cmp_it: *mut composition_it,
 						       mut charpos: ptrdiff_t,
 						       mut bytepos: ptrdiff_t,
 						       mut endpos: ptrdiff_t,
@@ -1389,7 +1391,7 @@ pub unsafe extern "C" fn composition_compute_stop_pos (cmp_it: *mut composition_
    CMP_IT->stop_pos, and return false.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn composition_reseat_it (cmp_it: *mut composition_it,
+pub unsafe extern "C-unwind" fn composition_reseat_it (cmp_it: *mut composition_it,
 						mut charpos: ptrdiff_t,
 						mut bytepos: ptrdiff_t,
 						mut endpos: ptrdiff_t, w: *mut window,
@@ -1564,7 +1566,7 @@ pub unsafe extern "C" fn composition_reseat_it (cmp_it: *mut composition_it,
    cluster.  ...  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn composition_update_it (cmp_it: *mut composition_it,
+pub unsafe extern "C-unwind" fn composition_update_it (cmp_it: *mut composition_it,
 						mut charpos: ptrdiff_t,
 						bytepos: ptrdiff_t,
 						string: Lisp_Object) -> c_int
@@ -1720,7 +1722,7 @@ pub struct position_record
    ...  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn find_automatic_composition (pos: ptrdiff_t, mut limit: ptrdiff_t,
+pub unsafe extern "C-unwind" fn find_automatic_composition (pos: ptrdiff_t, mut limit: ptrdiff_t,
 						     backlim: ptrdiff_t,
 						     start: *mut ptrdiff_t,
 						     end: *mut ptrdiff_t,
@@ -1928,7 +1930,7 @@ pub unsafe extern "C" fn find_automatic_composition (pos: ptrdiff_t, mut limit: 
    to NEW_PT.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn composition_adjust_point (last_pt: ptrdiff_t,
+pub unsafe extern "C-unwind" fn composition_adjust_point (last_pt: ptrdiff_t,
 						   new_pt: ptrdiff_t) -> ptrdiff_t
 {
   let mut i: ptrdiff_t = 0;
@@ -2233,7 +2235,7 @@ DEFUN! ("composition-sort-rules", Fcomposition_sort_rules,
 /* Not strictly necessary, because all those "keys" are also
    reachable from `composition_hash_table`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mark_composite ()
+pub unsafe extern "C-unwind" fn mark_composite ()
 {
   let mut i: c_int = 0;
   while (i as ptrdiff_t) < n_compositions
@@ -2260,7 +2262,7 @@ pub static mut Vauto_composition_emoji_eligible_codepoints: Lisp_Object = lisp_h
 
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_composite ()
+pub unsafe extern "C-unwind" fn syms_of_composite ()
 {
   let mut i: c_int = 0;
 

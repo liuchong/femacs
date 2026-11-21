@@ -136,7 +136,7 @@ fn doprnt_non_null_end (buffer: *mut c_char, bufsize: ptrdiff_t, format: *const 
 /* Format to BUFFER (of positive size BUFSIZE) data formatted by FORMAT, ... (see the C
    comment above `doprnt` in src/doprnt.c 165-186 for the full contract).  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn doprnt (buffer: *mut c_char, mut bufsize: ptrdiff_t,
+pub unsafe extern "C-unwind" fn doprnt (buffer: *mut c_char, mut bufsize: ptrdiff_t,
                                  format: *const c_char, format_end: *const c_char,
                                  mut ap: VaList<'_>) -> ptrdiff_t
 {
@@ -551,7 +551,7 @@ pub unsafe extern "C" fn doprnt (buffer: *mut c_char, mut bufsize: ptrdiff_t,
    Return the number of bytes put into BUF, excluding the terminating
    '\0'.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn esprintf (buf: *mut c_char, format: *const c_char,
+pub unsafe extern "C-unwind" fn esprintf (buf: *mut c_char, format: *const c_char,
                                    mut ap: ...) -> ptrdiff_t
 {
   // C's `va_start (ap, format)` / `va_end (ap)` have no port counterpart: the `...`
@@ -562,7 +562,7 @@ pub unsafe extern "C" fn esprintf (buf: *mut c_char, format: *const c_char,
 }
 
 #[cfg(feature = "have_x_windows")]
-pub unsafe extern "C" fn exprintf (buf: *mut *mut c_char, bufsize: *mut ptrdiff_t,
+pub unsafe extern "C-unwind" fn exprintf (buf: *mut *mut c_char, bufsize: *mut ptrdiff_t,
                                    nonheapbuf: *mut c_char, bufsize_max: ptrdiff_t,
                                    format: *const c_char, mut ap: ...) -> ptrdiff_t
 {
@@ -577,7 +577,7 @@ const _: () = core::assert! (!cfg! (feature = "have_x_windows") || (HAVE_X_WINDO
 
 /* Act like exprintf, except take a va_list.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn evxprintf (buf: *mut *mut c_char, bufsize: *mut ptrdiff_t,
+pub unsafe extern "C-unwind" fn evxprintf (buf: *mut *mut c_char, bufsize: *mut ptrdiff_t,
                                     nonheapbuf: *mut c_char, bufsize_max: ptrdiff_t,
                                     format: *const c_char, mut ap: VaList<'_>) -> ptrdiff_t
 {

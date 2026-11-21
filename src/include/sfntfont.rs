@@ -63,7 +63,7 @@ pub const _SFNTFONT_H_: bool = true;
 /// C: 					 int, int, bool, struct sfnt_raster **,
 /// C: 					 int *);
 pub type sfntfont_put_glyph_proc
-  = Option<unsafe extern "C" fn (s: *mut c_void, from: c_int, to: c_int, x: c_int, y: c_int,
+  = Option<unsafe extern "C-unwind" fn (s: *mut c_void, from: c_int, to: c_int, x: c_int, y: c_int,
                                  with_background: bool, raster: *mut *mut sfnt_raster,
                                  y_offset: *mut c_int)>;
 
@@ -75,7 +75,7 @@ pub type sfntfont_put_glyph_proc
 pub mod sfntfont_decls {
   use super::*;
 
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     pub fn sfnt_enum_font (file: *const c_char) -> c_int;
 
     /// C 33-35: the three `Lisp_Object`-valued callbacks.  `struct frame` comes from `frame.rs`.

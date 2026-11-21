@@ -110,7 +110,7 @@ unsafe fn record_point (beg: ptrdiff_t)
    because we don't need to record the contents.)  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn record_insert (beg: ptrdiff_t, length: ptrdiff_t)
+pub unsafe extern "C-unwind" fn record_insert (beg: ptrdiff_t, length: ptrdiff_t)
 {
   let mut lbeg: Lisp_Object = Qnil ();
   let mut lend: Lisp_Object = Qnil ();
@@ -188,7 +188,7 @@ unsafe fn record_marker_adjustments (from: ptrdiff_t, to: ptrdiff_t)
    STRING, at location BEG.  Optionally record adjustments for markers
    in the region STRING occupies in the current buffer.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn record_delete (beg: ptrdiff_t, string: Lisp_Object,
+pub unsafe extern "C-unwind" fn record_delete (beg: ptrdiff_t, string: Lisp_Object,
                                         record_markers: bool)
 {
   let mut sbeg: Lisp_Object = Qnil ();
@@ -221,7 +221,7 @@ pub unsafe extern "C" fn record_delete (beg: ptrdiff_t, string: Lisp_Object,
    The replacement must not change the number of characters.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn record_change (beg: ptrdiff_t, length: ptrdiff_t)
+pub unsafe extern "C-unwind" fn record_change (beg: ptrdiff_t, length: ptrdiff_t)
 {
   record_delete (beg, make_buffer_string (beg, beg + length, true), false);
   record_insert (beg, length);
@@ -232,7 +232,7 @@ pub unsafe extern "C" fn record_change (beg: ptrdiff_t, length: ptrdiff_t)
    we can tell whether it is obsolete because the file was saved again.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn record_first_change ()
+pub unsafe extern "C-unwind" fn record_first_change ()
 {
   let mut base_buffer: *mut buffer = (current_buffer! ());
 
@@ -251,7 +251,7 @@ pub unsafe extern "C" fn record_first_change ()
    for LENGTH characters starting at position BEG in BUFFER.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn record_property_change (beg: ptrdiff_t, length: ptrdiff_t,
+pub unsafe extern "C-unwind" fn record_property_change (beg: ptrdiff_t, length: ptrdiff_t,
                                                  prop: Lisp_Object, value: Lisp_Object,
                                                  buffer: Lisp_Object)
 {
@@ -312,7 +312,7 @@ DEFUN! ("undo-boundary", Fundo_boundary, Sundo_boundary, 0, 0, 0,
    In some cases this works by calling undo-outer-limit-function.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn truncate_undo_list (b: *mut buffer)
+pub unsafe extern "C-unwind" fn truncate_undo_list (b: *mut buffer)
 {
   let mut list: Lisp_Object;
   let mut prev: Lisp_Object;
@@ -452,7 +452,7 @@ pub unsafe extern "C" fn truncate_undo_list (b: *mut buffer)
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_undo ()
+pub unsafe extern "C-unwind" fn syms_of_undo ()
 {
   DEFSYM! (Qinhibit_read_only, "inhibit-read-only");
   DEFSYM! (Qundo_auto__last_boundary_cause, "undo-auto--last-boundary-cause");

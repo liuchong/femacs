@@ -28,7 +28,7 @@ pub const ATIMER_CONTINUOUS: atimer_type = 2;
 
 // atimer.h 44: `typedef void (* atimer_callback) (struct atimer *timer);` — the pointer is
 // nullable in C, so it is an `Option` of an `extern "C"` fn (P-27).
-pub type atimer_callback = Option<unsafe extern "C" fn (timer: *mut atimer)>;
+pub type atimer_callback = Option<unsafe extern "C-unwind" fn (timer: *mut atimer)>;
 
 /* Structure describing an asynchronous timer.  */
 
@@ -67,7 +67,7 @@ pub struct atimer
 pub mod atimer_decls {
   use super::*;
 
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     pub fn start_atimer (type_: atimer_type, expiration: timespec,
                          fn_: atimer_callback, client_data: *mut c_void) -> *mut atimer;
     pub fn cancel_atimer (timer: *mut atimer);

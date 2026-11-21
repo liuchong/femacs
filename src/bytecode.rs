@@ -74,11 +74,11 @@ const _: () = ();
 /* Names C declares in headers whose mirrors do not carry them yet (the terminal.rs shape);
    each keeps C's prototype in a `/// C:` line (PORTING.md P-55 for the pointer-only
    types).  */
-unsafe extern "C" {
+unsafe extern "C-unwind" {
 
 
   /// C: lisp.h 4803: `Lisp_Object internal_catch (Lisp_Object, Lisp_Object (*) (Lisp_Object), Lisp_Object);`
-  pub fn internal_catch (tag: Lisp_Object, func: Option<unsafe extern "C" fn (Lisp_Object) -> Lisp_Object>,
+  pub fn internal_catch (tag: Lisp_Object, func: Option<unsafe extern "C-unwind" fn (Lisp_Object) -> Lisp_Object>,
                          arg: Lisp_Object) -> Lisp_Object;
 
   /// C: lisp.h 4703: `void temp_output_buffer_setup (const char *);`
@@ -352,9 +352,9 @@ DEFUN! ("byte-code", Fbyte_code, Sbyte_code, 3, 3, 0,
 });
 
 /* C's `static void bcall0 (Lisp_Object f)`: its address goes into
-   `record_unwind_protect` below, so it is an `unsafe extern "C" fn` (PORTING.md 1.4); C's
+   `record_unwind_protect` below, so it is an `unsafe extern "C-unwind" fn` (PORTING.md 1.4); C's
    `calln (f)` is the port's `calln!` variadic macro.  */
-unsafe extern "C" fn bcall0 (f: Lisp_Object)
+unsafe extern "C-unwind" fn bcall0 (f: Lisp_Object)
 {
   if CLOSUREP (f) && ! debug_on_next_call && ! BYTE_CODE_SAFE! ()
     {
@@ -579,7 +579,7 @@ const _: () = core::assert! (std::mem::offset_of! (bc_frame, fun) == 24);
 const _: () = core::assert! (std::mem::offset_of! (bc_frame, next_stack) == 32);
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn init_bc_thread (bc: *mut bc_thread_state)
+pub unsafe extern "C-unwind" fn init_bc_thread (bc: *mut bc_thread_state)
 {
   (*bc).stack = xmalloc (BC_STACK_SIZE! ()) as *mut c_char;
   (*bc).stack_end = (*bc).stack.offset (BC_STACK_SIZE! () as isize);
@@ -589,13 +589,13 @@ pub unsafe extern "C" fn init_bc_thread (bc: *mut bc_thread_state)
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn free_bc_thread (bc: *mut bc_thread_state)
+pub unsafe extern "C-unwind" fn free_bc_thread (bc: *mut bc_thread_state)
 {
   xfree ((*bc).stack as *mut c_void);
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mark_bytecode (bc: *mut bc_thread_state)
+pub unsafe extern "C-unwind" fn mark_bytecode (bc: *mut bc_thread_state)
 {
   let mut fp: *mut bc_frame = (*bc).fp as *mut bc_frame;
   let mut top: *mut Lisp_Object = std::ptr::null_mut ();     /* stack pointer of topmost frame not known */
@@ -736,7 +736,7 @@ unsafe fn bc_funcall_general_slow (fun: Lisp_Object, nargs: ptrdiff_t, args: *mu
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn exec_byte_code (mut fun: Lisp_Object, mut args_template: ptrdiff_t,
+pub unsafe extern "C-unwind" fn exec_byte_code (mut fun: Lisp_Object, mut args_template: ptrdiff_t,
 					 mut nargs: ptrdiff_t, mut args: *mut Lisp_Object)
   -> Lisp_Object
 {
@@ -798,7 +798,15 @@ pub unsafe extern "C" fn exec_byte_code (mut fun: Lisp_Object, mut args_template
     fam_base (core::ptr::addr_of_mut! ((*XVECTOR (vector)).contents));
   let mut bytestr_data: *const c_uchar = SDATA (bytestr);
 
+  let mut bc_handlers: Vec<*mut handler> = Vec::new ();
+  let mut resume_from_catch: bool = false;
+
+  'vm_run: loop
+    {
+      let vm_outcome = crate::nonlocal::catch_vm_nonlocal (|| {
   'setup_frame: loop
+    {
+  if ! resume_from_catch
     {
   eassert! (! STRING_MULTIBYTE (bytestr));
   eassert! (string_immovable_p (bytestr));
@@ -859,6 +867,11 @@ pub unsafe extern "C" fn exec_byte_code (mut fun: Lisp_Object, mut args_template
   else
     {
       top = bc_setup_frame_args (frame_base, args_template, nargs, args);
+    }
+    }
+  else
+    {
+      resume_from_catch = false;
     }
 
   /* C 574-601's `#ifdef BYTE_CODE_THREADED` arm defines `CASE`/`NEXT`/`FIRST`/
@@ -1066,12 +1079,16 @@ pub unsafe extern "C" fn exec_byte_code (mut fun: Lisp_Object, mut args_template
 		      2 => ((*subr).function.a2.unwrap_unchecked ()) (*call_args, *call_args.offset (1)),
 		      _ => ((*subr).function.a3.unwrap_unchecked ()) (*call_args, *call_args.offset (1), *call_args.offset (2)),
 		    };
+		  #[cfg (feature = "have_native_comp")]
+		  crate::nonlocal::check_and_propagate_comp_native_exit ();
 		}
 	      else if max_args == (MANY as c_short)
 		{
 		  /* Indirect calls must retain the outer funcall/apply frame and
 		     enter their target through the standard subr implementation. */
 		  val = ((*subr).function.aMANY.unwrap_unchecked ()) (call_nargs, call_args);
+		  #[cfg (feature = "have_native_comp")]
+		  crate::nonlocal::check_and_propagate_comp_native_exit ();
 		}
 	      else if max_args <= 3 && call_nargs <= (max_args as ptrdiff_t)
 		{
@@ -1085,6 +1102,8 @@ pub unsafe extern "C" fn exec_byte_code (mut fun: Lisp_Object, mut args_template
 		      2 => ((*subr).function.a2.unwrap_unchecked ()) (a0, a1),
 		      _ => ((*subr).function.a3.unwrap_unchecked ()) (a0, a1, a2),
 		    };
+		  #[cfg (feature = "have_native_comp")]
+		  crate::nonlocal::check_and_propagate_comp_native_exit ();
 		}
 	      else
 		{ val = bc_funcall_subr_slow (subr, call_nargs, call_args); }
@@ -1113,39 +1132,7 @@ pub unsafe extern "C" fn exec_byte_code (mut fun: Lisp_Object, mut args_template
       let c: *mut handler = push_handler (POP! (), type_);
       (*c).bytecode_dest = FETCH2! () as c_int;
       (*c).bytecode_top = top;
-
-      if sys_setjmp (&raw mut (*c).jmp as *mut jmp_buf) != 0
-	{
-	  /* No need to restore old quitcounter; just check at the next
-	     backward branch.  */
-	  quitcounter = (-1 as c_int) as c_uchar;
-	  let c: *mut handler = handlerlist! ();
-	  handlerlist! () = (*c).next;
-	  top = (*c).bytecode_top;
-	  arg = (*c).bytecode_dest as ptrdiff_t;
-	  bc = &raw mut (*current_thread).bc;
-	  let fp: *mut bc_frame = (*bc).fp as *mut bc_frame;
-	  let next_fun: Lisp_Object = (*fp).fun;
-	  if ! BASE_EQ (next_fun, fun)
-	    {
-	      fun = next_fun;
-	      bytestr = AREF (fun, CLOSURE_CODE as isize);
-	      vector = AREF (fun, CLOSURE_CONSTANTS as isize);
-	      bytestr_data = SDATA (bytestr);
-	      vectorp = fam_base (core::ptr::addr_of_mut! ((*XVECTOR (vector)).contents));
-	      if BYTE_CODE_SAFE! ()
-		{
-		  /* Only required for checking, not for execution.  */
-		  const_length = ASIZE (vector);
-		  bytestr_length = SCHARS (bytestr);
-		}
-	    }
-	  pc = bytestr_data;
-	  PUSH! ((*c).val);
-	  /* C: `goto op_branch` */
-	  do_branch! (arg);
-	}
-
+      bc_handlers.push (c);
       NEXT! ();
     }};
   }
@@ -1840,7 +1827,10 @@ pub unsafe extern "C" fn exec_byte_code (mut fun: Lisp_Object, mut args_template
 	  }
 	CASE! (Bpophandler) =>	/* New in 24.4.  */
 	  {
-	    handlerlist! () = (*handlerlist! ()).next;
+	    let popped: *mut handler = handlerlist! ();
+	    handlerlist! () = (*popped).next;
+	    if bc_handlers.last ().copied () == Some (popped)
+	      { bc_handlers.pop (); }
 	    NEXT! ();
 	  }
 	CASE! (Bunwind_protect) =>	/* FIXME: avoid closure for lexbind.  */
@@ -3138,11 +3128,52 @@ pub unsafe extern "C" fn exec_byte_code (mut fun: Lisp_Object, mut args_template
       let result: Lisp_Object = TOP! ();
       return result;
     }
+      });
+
+      match vm_outcome
+	{
+	  Ok (result) => return result,
+	  Err (exit) =>
+	    {
+	      let Some (pos) = bc_handlers.iter ().rposition (|&h| h == exit.target) else {
+		crate::nonlocal::resume_vm_nonlocal (exit);
+	      };
+	      bc_handlers.truncate (pos);
+	      /* No need to restore old quitcounter; just check at the next
+		 backward branch.  */
+	      quitcounter = (-1 as c_int) as c_uchar;
+	      let c: *mut handler = exit.target;
+	      eassert! (handlerlist! () == c);
+	      handlerlist! () = (*c).next;
+	      top = (*c).bytecode_top;
+	      arg = (*c).bytecode_dest as ptrdiff_t;
+	      bc = &raw mut (*current_thread).bc;
+	      let fp: *mut bc_frame = (*bc).fp as *mut bc_frame;
+	      fun = (*fp).fun;
+	      bytestr = AREF (fun, CLOSURE_CODE as isize);
+	      vector = AREF (fun, CLOSURE_CONSTANTS as isize);
+	      bytestr_data = SDATA (bytestr);
+	      vectorp = fam_base (core::ptr::addr_of_mut! ((*XVECTOR (vector)).contents));
+	      if BYTE_CODE_SAFE! ()
+		{
+		  const_length = ASIZE (vector);
+		  bytestr_length = SCHARS (bytestr);
+		}
+	      pc = bytestr_data;
+	      PUSH! (exit.value);
+	      if BYTE_CODE_SAFE! () && ! (arg >= 0 && arg < bytestr_length)
+		{ emacs_abort (); }
+	      pc = bytestr_data.offset (arg);
+	      resume_from_catch = true;
+	      continue 'vm_run;
+	    }
+	}
+    }
 }
 
 /* `args_template' has the same meaning as in exec_byte_code() above.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn get_byte_code_arity (args_template: Lisp_Object) -> Lisp_Object
+pub unsafe extern "C-unwind" fn get_byte_code_arity (args_template: Lisp_Object) -> Lisp_Object
 {
   eassert! (FIXNATP (args_template));
   let at: EMACS_INT = XFIXNUM (args_template);
@@ -3155,7 +3186,7 @@ pub unsafe extern "C" fn get_byte_code_arity (args_template: Lisp_Object) -> Lis
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_bytecode ()
+pub unsafe extern "C-unwind" fn syms_of_bytecode ()
 {
   DEFSYM! (Qinteractive_p, c"interactive-p");
 

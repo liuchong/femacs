@@ -343,7 +343,7 @@ unsafe fn do_scrolling (frame: *mut frame, current_matrix: *mut glyph_matrix,
   // dispextern.h 3905/3936/3945: the three terminal entry points this function calls, none
   // of which the dispextern mirror carries yet; declaring them at the use site is the
   // doc.rs/casefiddle.rs shape (the mirror's own term.c section will carry them later).
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     /// C: void mirrored_line_dance (struct frame *f, int, int, int *, char *)
     pub fn mirrored_line_dance (f: *mut frame, unchanged_at_top: c_int, window_size: c_int,
 				copy_from: *mut c_int, retained_p: *mut c_char);
@@ -792,7 +792,7 @@ unsafe fn do_direct_scrolling (frame: *mut frame, current_matrix: *mut glyph_mat
   CHECK_MATRIX! (current_matrix);
 
   // dispextern.h 3905/3936/3945: the same terminal entry points as in do_scrolling.
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     /// C: void mirrored_line_dance (struct frame *f, int, int, int *, char *)
     pub fn mirrored_line_dance (f: *mut frame, unchanged_at_top: c_int, window_size: c_int,
 				copy_from: *mut c_int, retained_p: *mut c_char);
@@ -924,7 +924,7 @@ unsafe fn do_direct_scrolling (frame: *mut frame, current_matrix: *mut glyph_mat
 
 #[unsafe(no_mangle)]
 #[cfg (not (feature = "have_android"))]
-pub unsafe extern "C" fn scrolling_1 (frame: *mut frame, window_size: c_int,
+pub unsafe extern "C-unwind" fn scrolling_1 (frame: *mut frame, window_size: c_int,
 				      unchanged_at_top: c_int, unchanged_at_bottom: c_int,
 				      draw_cost: *mut c_int, old_draw_cost: *mut c_int,
 				      old_hash: *mut c_uint, new_hash: *mut c_uint,
@@ -967,7 +967,7 @@ pub unsafe extern "C" fn scrolling_1 (frame: *mut frame, window_size: c_int,
 
 #[unsafe(no_mangle)]
 #[cfg (not (feature = "have_android"))]
-pub unsafe extern "C" fn scrolling_max_lines_saved (start: c_int, end: c_int,
+pub unsafe extern "C-unwind" fn scrolling_max_lines_saved (start: c_int, end: c_int,
 						    oldhash: *mut c_uint, newhash: *mut c_uint,
 						    cost: *mut c_int) -> c_int
 {
@@ -1067,7 +1067,7 @@ unsafe fn ins_del_costs (frame: *mut frame,
 {
   // dispextern.h 3953-3954: `extern int string_cost (const char *);` and
   // `extern int per_line_cost (const char *);` (defined in term.c).
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     /// C: int string_cost (const char *)
     pub fn string_cost (s: *const c_char) -> c_int;
     /// C: int per_line_cost (const char *)
@@ -1124,7 +1124,7 @@ unsafe fn ins_del_costs (frame: *mut frame,
 
 #[unsafe(no_mangle)]
 #[cfg (not (feature = "have_android"))]
-pub unsafe extern "C" fn do_line_insertion_deletion_costs (frame: *mut frame,
+pub unsafe extern "C-unwind" fn do_line_insertion_deletion_costs (frame: *mut frame,
 							   ins_line_string: *const c_char,
 							   multi_ins_string: *const c_char,
 							   del_line_string: *const c_char,

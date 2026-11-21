@@ -18,7 +18,7 @@ pub const _GL_CAREADLINKAT_H: bool = true;
 pub mod careadlinkat_decls {
   use super::*;
 
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     pub fn careadlinkat (fd: c_int, filename: *const c_char, buffer: *mut c_char,
                          buffer_size: usize, alloc: *const allocator,
                          preadlinkat: Option<unsafe extern "C" fn (c_int, *const c_char,

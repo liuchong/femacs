@@ -30,7 +30,7 @@ macro_rules! KEYMAPP { ($m:expr) => { !NILP (get_keymap ($m, false, false)) }; }
 /// C: `typedef void (*map_keymap_function_t)
 ///      (Lisp_Object key, Lisp_Object val, Lisp_Object args, void *data);`
 /// (`Option<…>` is the port's NULL-able C function pointer, PORTING.md 5.2.)
-pub type map_keymap_function_t = Option<unsafe extern "C" fn (key: Lisp_Object,
+pub type map_keymap_function_t = Option<unsafe extern "C-unwind" fn (key: Lisp_Object,
                                                              val: Lisp_Object,
                                                              args: Lisp_Object,
                                                              data: *mut c_void)>;
@@ -43,7 +43,7 @@ pub type map_keymap_function_t = Option<unsafe extern "C" fn (key: Lisp_Object,
 pub mod keymap_decls {
   use super::*;
 
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
   pub static mut current_global_map: Lisp_Object;
 
   // Parameter names come from the definitions in keymap.c (keymap.h names no parameter

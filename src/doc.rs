@@ -139,10 +139,10 @@ static sibling_etc: [u8; 8] = *b"../etc/\0";
 
 /* C 78-90: `#ifdef USE_ANDROID_ASSETS` - like `close_file_unwind`, but PTR points at an
    Android file descriptor instead of a system one.  `record_unwind_protect_ptr` takes a C
-   function pointer, so this is an `unsafe extern "C" fn` (the same reason the other unwind
+   function pointer, so this is an `unsafe extern "C-unwind" fn` (the same reason the other unwind
    helpers are).  */
 #[cfg (feature = "use_android_assets")]
-unsafe extern "C" fn close_file_unwind_android_fd (ptr: *mut c_void)
+unsafe extern "C-unwind" fn close_file_unwind_android_fd (ptr: *mut c_void)
 {
   let mut fd: *mut android_fd_or_asset;
 
@@ -162,7 +162,7 @@ unsafe extern "C" fn close_file_unwind_android_fd (ptr: *mut c_void)
    If UNIBYTE, always make a unibyte string.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn get_doc_string (filepos: Lisp_Object, unibyte: bool) -> Lisp_Object
+pub unsafe extern "C-unwind" fn get_doc_string (filepos: Lisp_Object, unibyte: bool) -> Lisp_Object
 {
   // C declares these as uninitialized pointers and fills them below; the port gives the C
   // locals that are "written through a pointer or before their first read" the zero
@@ -462,7 +462,7 @@ DEFUN! ("internal-subr-documentation", Fsubr_documentation, Ssubr_documentation,
   // 78's declaration, which no mirror carries, so it is declared here (the vm-limit precedent).
   #[cfg (feature = "have_native_comp")]
   {
-    unsafe extern "C" {
+    unsafe extern "C-unwind" {
       /// C: Lisp_Object native_function_doc (Lisp_Object)
       pub fn native_function_doc (function: Lisp_Object) -> Lisp_Object;
     }
@@ -750,7 +750,7 @@ DEFUN! ("text-quoting-style", Ftext_quoting_style,
 
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_doc ()
+pub unsafe extern "C-unwind" fn syms_of_doc ()
 {
   DEFSYM! (Qlisp_directory, "lisp-directory");
   DEFSYM! (Qsubstitute_command_keys, "substitute-command-keys");

@@ -410,7 +410,7 @@ unsafe extern "C" {
    them at theirs.  Their single declaration point is owed back to the mirrors
    (docs/ports/gnutls.md's `## Owed`).  */
 #[cfg (feature = "have_gnutls")]
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   /// C: lisp.h 4389: `extern void message (const char *, ...) ATTRIBUTE_FORMAT_PRINTF (1, 2);`
   pub fn message (format: *const c_char, ...);
   /// C: lisp.h 4432: `extern AVOID memory_full (size_t);`
@@ -555,10 +555,13 @@ compile_error!("The enabled Windows TLS loader requires its own complete integra
 pub static mut global_gnutls_log_level: EMACS_INT = 0;
 
 #[cfg(all(feature = "have_gnutls3", not(feature = "windowsnt")))]
-unsafe extern "C" {
-  fn memset_explicit(data: *mut c_void, value: c_int, bytes: size_t) -> *mut c_void;
+unsafe extern "C-unwind" {
   fn extract_data_from_object(spec: Lisp_Object, start: *mut ptrdiff_t,
                               end: *mut ptrdiff_t) -> *mut c_char;
+}
+#[cfg(all(feature = "have_gnutls3", not(feature = "windowsnt")))]
+unsafe extern "C" {
+  fn memset_explicit(data: *mut c_void, value: c_int, bytes: size_t) -> *mut c_void;
 }
 
 /* The local logging macros use this unit's private callbacks. Process-facing
@@ -1279,7 +1282,7 @@ unsafe fn gnutls_log_function2 (level: c_int, string: *const c_char, extra: *con
 /// (PORTING.md 1.5).
 #[cfg (feature = "have_gnutls")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn gnutls_try_handshake (proc_: *mut Lisp_Process) -> c_int
+pub unsafe extern "C-unwind" fn gnutls_try_handshake (proc_: *mut Lisp_Process) -> c_int
 {
   let state: gnutls_session_t = (*proc_).gnutls_state;
   let mut ret: c_int = 0;
@@ -1402,7 +1405,7 @@ unsafe fn emacs_gnutls_handshake (proc_: *mut Lisp_Process) -> c_int
 /// C 728-732: `emacs_gnutls_record_check_pending`.
 #[cfg (feature = "have_gnutls")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn emacs_gnutls_record_check_pending (state: gnutls_session_t) -> ptrdiff_t
+pub unsafe extern "C-unwind" fn emacs_gnutls_record_check_pending (state: gnutls_session_t) -> ptrdiff_t
 {
   #[cfg (not (feature = "windowsnt"))]
   { return gnutls_record_check_pending (state) as ptrdiff_t; }
@@ -1414,7 +1417,7 @@ pub unsafe extern "C" fn emacs_gnutls_record_check_pending (state: gnutls_sessio
 /// C 735-740: `emacs_gnutls_transport_set_errno`.
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn emacs_gnutls_transport_set_errno (state: gnutls_session_t, err: c_int)
+pub unsafe extern "C-unwind" fn emacs_gnutls_transport_set_errno (state: gnutls_session_t, err: c_int)
 {
   (fn_gnutls_transport_set_errno.unwrap ()) (state, err);
 }
@@ -1422,7 +1425,7 @@ pub unsafe extern "C" fn emacs_gnutls_transport_set_errno (state: gnutls_session
 /// C 743-770: `emacs_gnutls_write`.
 #[cfg (feature = "have_gnutls")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn emacs_gnutls_write (proc_: *mut Lisp_Process, buf_: *const c_char,
+pub unsafe extern "C-unwind" fn emacs_gnutls_write (proc_: *mut Lisp_Process, buf_: *const c_char,
 					     nbyte: ptrdiff_t) -> ptrdiff_t
 {
   let state: gnutls_session_t = (*proc_).gnutls_state;
@@ -1468,7 +1471,7 @@ pub unsafe extern "C" fn emacs_gnutls_write (proc_: *mut Lisp_Process, buf_: *co
 /// C 772-796: `emacs_gnutls_read`.
 #[cfg (feature = "have_gnutls")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn emacs_gnutls_read (proc_: *mut Lisp_Process, buf_: *mut c_char,
+pub unsafe extern "C-unwind" fn emacs_gnutls_read (proc_: *mut Lisp_Process, buf_: *mut c_char,
 					    nbyte: ptrdiff_t) -> ptrdiff_t
 {
   let state: gnutls_session_t = (*proc_).gnutls_state;
@@ -1666,7 +1669,7 @@ unsafe fn gnutls_deinit_certificates (p: *mut Lisp_Process)
 /// C 938-977: `emacs_gnutls_deinit`.
 #[cfg (feature = "have_gnutls")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn emacs_gnutls_deinit (proc_: Lisp_Object) -> Lisp_Object
+pub unsafe extern "C-unwind" fn emacs_gnutls_deinit (proc_: Lisp_Object) -> Lisp_Object
 {
   let mut log_level: c_int;
 
@@ -2210,7 +2213,7 @@ unsafe fn gnutls_ip_address_p(mut string: *const c_char) -> bool {
 }
 
 #[cfg(all(feature = "have_gnutls", not(feature = "windowsnt")))]
-unsafe extern "C" fn boot_error(process: *mut Lisp_Process, message: *const c_char, mut args: ...) {
+unsafe extern "C-unwind" fn boot_error(process: *mut Lisp_Process, message: *const c_char, mut args: ...) {
   if (*process).is_non_blocking_client() {
     pset_status(process, list2(Qfailed(), vformat_string(message, args)));
   } else {
@@ -2263,7 +2266,7 @@ DEFUN! ("gnutls-format-certificate", Fgnutls_format_certificate,
 // P-401: original trust/hostname verification and boot control flow.
 #[cfg(all(feature = "have_gnutls", not(feature = "windowsnt")))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn gnutls_verify_boot(proc_: Lisp_Object, mut proplist: Lisp_Object) -> Lisp_Object {
+pub unsafe extern "C-unwind" fn gnutls_verify_boot(proc_: Lisp_Object, mut proplist: Lisp_Object) -> Lisp_Object {
   let p = XPROCESS(proc_);
   let state = (*p).gnutls_state;
   let mut peer_verification: c_uint = 0;
@@ -2935,7 +2938,7 @@ DEFUN! ("gnutls-available-p", Fgnutls_available_p, Sgnutls_available_p, 0, 0, 0,
 });
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_gnutls ()
+pub unsafe extern "C-unwind" fn syms_of_gnutls ()
 {
   DEFVAR_LISP! (c"libgnutls-version", Vlibgnutls_version,
 		"The version of libgnutls that Emacs was compiled with.\nThe version number is encoded as an integer with the major version in\nthe ten thousands place, minor version in the hundreds, and patch\nlevel in the ones.  For builds without libgnutls, the value is -1.");

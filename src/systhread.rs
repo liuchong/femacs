@@ -41,76 +41,76 @@ const _: () = ();
 
 #[cfg (not (feature = "threads_enabled"))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn sys_mutex_init (m: *mut sys_mutex_t)
+pub unsafe extern "C-unwind" fn sys_mutex_init (m: *mut sys_mutex_t)
 {
   *m = 0;
 }
 
 #[cfg (not (feature = "threads_enabled"))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn sys_mutex_lock (m: *mut sys_mutex_t)
+pub unsafe extern "C-unwind" fn sys_mutex_lock (m: *mut sys_mutex_t)
 {
 }
 
 #[cfg (not (feature = "threads_enabled"))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn sys_mutex_unlock (m: *mut sys_mutex_t)
+pub unsafe extern "C-unwind" fn sys_mutex_unlock (m: *mut sys_mutex_t)
 {
 }
 
 #[cfg (not (feature = "threads_enabled"))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn sys_cond_init (c: *mut sys_cond_t)
+pub unsafe extern "C-unwind" fn sys_cond_init (c: *mut sys_cond_t)
 {
   *c = 0;
 }
 
 #[cfg (not (feature = "threads_enabled"))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn sys_cond_wait (c: *mut sys_cond_t, m: *mut sys_mutex_t)
+pub unsafe extern "C-unwind" fn sys_cond_wait (c: *mut sys_cond_t, m: *mut sys_mutex_t)
 {
 }
 
 #[cfg (not (feature = "threads_enabled"))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn sys_cond_signal (c: *mut sys_cond_t)
+pub unsafe extern "C-unwind" fn sys_cond_signal (c: *mut sys_cond_t)
 {
 }
 
 #[cfg (not (feature = "threads_enabled"))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn sys_cond_broadcast (c: *mut sys_cond_t)
+pub unsafe extern "C-unwind" fn sys_cond_broadcast (c: *mut sys_cond_t)
 {
 }
 
 #[cfg (not (feature = "threads_enabled"))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn sys_cond_destroy (c: *mut sys_cond_t)
+pub unsafe extern "C-unwind" fn sys_cond_destroy (c: *mut sys_cond_t)
 {
 }
 
 #[cfg (not (feature = "threads_enabled"))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn sys_thread_self () -> sys_thread_t
+pub unsafe extern "C-unwind" fn sys_thread_self () -> sys_thread_t
 {
   return 0;
 }
 
 #[cfg (not (feature = "threads_enabled"))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn sys_thread_equal (t: sys_thread_t, u: sys_thread_t) -> bool
+pub unsafe extern "C-unwind" fn sys_thread_equal (t: sys_thread_t, u: sys_thread_t) -> bool
 {
   return t == u;
 }
 #[cfg (not (feature = "threads_enabled"))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn sys_thread_set_name (name: *const c_char)
+pub unsafe extern "C-unwind" fn sys_thread_set_name (name: *const c_char)
 {
 }
 
 #[cfg (not (feature = "threads_enabled"))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn sys_thread_create (t: *mut sys_thread_t,
+pub unsafe extern "C-unwind" fn sys_thread_create (t: *mut sys_thread_t,
                                             func: thread_creation_function,
                                             datum: *mut c_void) -> bool
 {
@@ -119,7 +119,7 @@ pub unsafe extern "C" fn sys_thread_create (t: *mut sys_thread_t,
 
 #[cfg (not (feature = "threads_enabled"))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn sys_thread_yield ()
+pub unsafe extern "C-unwind" fn sys_thread_yield ()
 {
 }
 
@@ -192,14 +192,14 @@ unsafe extern "C" {
 /// C: nsterm.h: `extern void ns_run_loop_break (void);` - used by C 191-197's `#ifdef HAVE_NS`
 /// block inside `sys_cond_broadcast` (the mirror carries it at `include/nsterm.rs` 877-882).
 #[cfg (all (feature = "threads_enabled", feature = "have_pthread", feature = "have_ns"))]
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   pub fn ns_run_loop_break ();
 }
 
 /* C 108-136: `sys_mutex_init`.  */
 #[cfg (all (feature = "threads_enabled", feature = "have_pthread"))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn sys_mutex_init (sys_mutex: *mut sys_mutex_t)
+pub unsafe extern "C-unwind" fn sys_mutex_init (sys_mutex: *mut sys_mutex_t)
 {
   let mutex: *mut pthread_mutex_t = SYSTHREAD_ALIGN_PTR! (pthread_mutex_t, sys_mutex);
   let mut attr_ptr: *mut pthread_mutexattr_t;
@@ -232,7 +232,7 @@ pub unsafe extern "C" fn sys_mutex_init (sys_mutex: *mut sys_mutex_t)
 /* C 138-145: `sys_mutex_lock`.  */
 #[cfg (all (feature = "threads_enabled", feature = "have_pthread"))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn sys_mutex_lock (sys_mutex: *mut sys_mutex_t)
+pub unsafe extern "C-unwind" fn sys_mutex_lock (sys_mutex: *mut sys_mutex_t)
 {
   let mutex: *mut pthread_mutex_t = SYSTHREAD_ALIGN_PTR! (pthread_mutex_t, sys_mutex);
   let error = pthread_mutex_lock (mutex);
@@ -242,7 +242,7 @@ pub unsafe extern "C" fn sys_mutex_lock (sys_mutex: *mut sys_mutex_t)
 /* C 147-152: `sys_mutex_unlock`.  */
 #[cfg (all (feature = "threads_enabled", feature = "have_pthread"))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn sys_mutex_unlock (sys_mutex: *mut sys_mutex_t)
+pub unsafe extern "C-unwind" fn sys_mutex_unlock (sys_mutex: *mut sys_mutex_t)
 {
   let mutex: *mut pthread_mutex_t = SYSTHREAD_ALIGN_PTR! (pthread_mutex_t, sys_mutex);
   let error = pthread_mutex_unlock (mutex);
@@ -252,7 +252,7 @@ pub unsafe extern "C" fn sys_mutex_unlock (sys_mutex: *mut sys_mutex_t)
 /* C 154-166: `sys_cond_init`.  */
 #[cfg (all (feature = "threads_enabled", feature = "have_pthread"))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn sys_cond_init (sys_cond: *mut sys_cond_t)
+pub unsafe extern "C-unwind" fn sys_cond_init (sys_cond: *mut sys_cond_t)
 {
   let cond: *mut pthread_cond_t = SYSTHREAD_ALIGN_PTR! (pthread_cond_t, sys_cond);
   let error = pthread_cond_init (cond, core::ptr::null ());
@@ -267,7 +267,7 @@ pub unsafe extern "C" fn sys_cond_init (sys_cond: *mut sys_cond_t)
 /* C 168-175: `sys_cond_wait`.  */
 #[cfg (all (feature = "threads_enabled", feature = "have_pthread"))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn sys_cond_wait (sys_cond: *mut sys_cond_t, sys_mutex: *mut sys_mutex_t)
+pub unsafe extern "C-unwind" fn sys_cond_wait (sys_cond: *mut sys_cond_t, sys_mutex: *mut sys_mutex_t)
 {
   let cond: *mut pthread_cond_t = SYSTHREAD_ALIGN_PTR! (pthread_cond_t, sys_cond);
   let mutex: *mut pthread_mutex_t = SYSTHREAD_ALIGN_PTR! (pthread_mutex_t, sys_mutex);
@@ -278,7 +278,7 @@ pub unsafe extern "C" fn sys_cond_wait (sys_cond: *mut sys_cond_t, sys_mutex: *m
 /* C 177-183: `sys_cond_signal`.  */
 #[cfg (all (feature = "threads_enabled", feature = "have_pthread"))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn sys_cond_signal (sys_cond: *mut sys_cond_t)
+pub unsafe extern "C-unwind" fn sys_cond_signal (sys_cond: *mut sys_cond_t)
 {
   let cond: *mut pthread_cond_t = SYSTHREAD_ALIGN_PTR! (pthread_cond_t, sys_cond);
   let error = pthread_cond_signal (cond);
@@ -288,7 +288,7 @@ pub unsafe extern "C" fn sys_cond_signal (sys_cond: *mut sys_cond_t)
 /* C 185-199: `sys_cond_broadcast`.  */
 #[cfg (all (feature = "threads_enabled", feature = "have_pthread"))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn sys_cond_broadcast (sys_cond: *mut sys_cond_t)
+pub unsafe extern "C-unwind" fn sys_cond_broadcast (sys_cond: *mut sys_cond_t)
 {
   let cond: *mut pthread_cond_t = SYSTHREAD_ALIGN_PTR! (pthread_cond_t, sys_cond);
   let error = pthread_cond_broadcast (cond);
@@ -305,7 +305,7 @@ pub unsafe extern "C" fn sys_cond_broadcast (sys_cond: *mut sys_cond_t)
 /* C 201-206: `sys_cond_destroy`.  */
 #[cfg (all (feature = "threads_enabled", feature = "have_pthread"))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn sys_cond_destroy (sys_cond: *mut sys_cond_t)
+pub unsafe extern "C-unwind" fn sys_cond_destroy (sys_cond: *mut sys_cond_t)
 {
   let cond: *mut pthread_cond_t = SYSTHREAD_ALIGN_PTR! (pthread_cond_t, sys_cond);
   let error = pthread_cond_destroy (cond);
@@ -315,7 +315,7 @@ pub unsafe extern "C" fn sys_cond_destroy (sys_cond: *mut sys_cond_t)
 /* C 208-212: `sys_thread_self`.  */
 #[cfg (all (feature = "threads_enabled", feature = "have_pthread"))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn sys_thread_self () -> sys_thread_t
+pub unsafe extern "C-unwind" fn sys_thread_self () -> sys_thread_t
 {
   return pthread_self ();
 }
@@ -323,7 +323,7 @@ pub unsafe extern "C" fn sys_thread_self () -> sys_thread_t
 /* C 214-218: `sys_thread_equal`.  */
 #[cfg (all (feature = "threads_enabled", feature = "have_pthread"))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn sys_thread_equal (t: sys_thread_t, u: sys_thread_t) -> bool
+pub unsafe extern "C-unwind" fn sys_thread_equal (t: sys_thread_t, u: sys_thread_t) -> bool
 {
   return pthread_equal (t, u) != 0;
 }
@@ -370,7 +370,7 @@ unsafe extern "C" {
 
 #[cfg (all (feature = "threads_enabled", feature = "have_pthread"))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn sys_thread_set_name (name: *const c_char)
+pub unsafe extern "C-unwind" fn sys_thread_set_name (name: *const c_char)
 {
   #[cfg (feature = "have_pthread_setname_np")]
   {
@@ -400,7 +400,7 @@ pub unsafe extern "C" fn sys_thread_set_name (name: *const c_char)
    (C 262) become one labelled block (PORTING.md 2.2).  */
 #[cfg (all (feature = "threads_enabled", feature = "have_pthread"))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn sys_thread_create (thread_ptr: *mut sys_thread_t,
+pub unsafe extern "C-unwind" fn sys_thread_create (thread_ptr: *mut sys_thread_t,
                                            func: thread_creation_function,
                                            arg: *mut c_void) -> bool
 {
@@ -439,7 +439,7 @@ pub unsafe extern "C" fn sys_thread_create (thread_ptr: *mut sys_thread_t,
 /* C 275-278: `sys_thread_yield`.  */
 #[cfg (all (feature = "threads_enabled", feature = "have_pthread"))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn sys_thread_yield ()
+pub unsafe extern "C-unwind" fn sys_thread_yield ()
 {
   sched_yield ();
 }
@@ -529,7 +529,7 @@ unsafe extern "C" {
 /* C 293-297: `sys_mutex_init` - mutexes are critical sections here.  */
 #[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn sys_mutex_init (r#mutex: *mut sys_mutex_t)
+pub unsafe extern "C-unwind" fn sys_mutex_init (r#mutex: *mut sys_mutex_t)
 {
   InitializeCriticalSection (r#mutex as LPCRITICAL_SECTION);
 }
@@ -537,7 +537,7 @@ pub unsafe extern "C" fn sys_mutex_init (r#mutex: *mut sys_mutex_t)
 /* C 299-305: `sys_mutex_lock`.  */
 #[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn sys_mutex_lock (r#mutex: *mut sys_mutex_t)
+pub unsafe extern "C-unwind" fn sys_mutex_lock (r#mutex: *mut sys_mutex_t)
 {
   /* FIXME: What happens if the owning thread exits without releasing the mutex?  According to
      MSDN, the result is undefined behavior.  */
@@ -547,7 +547,7 @@ pub unsafe extern "C" fn sys_mutex_lock (r#mutex: *mut sys_mutex_t)
 /* C 307-311: `sys_mutex_unlock`.  */
 #[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn sys_mutex_unlock (r#mutex: *mut sys_mutex_t)
+pub unsafe extern "C-unwind" fn sys_mutex_unlock (r#mutex: *mut sys_mutex_t)
 {
   LeaveCriticalSection (r#mutex as LPCRITICAL_SECTION);
 }
@@ -555,7 +555,7 @@ pub unsafe extern "C" fn sys_mutex_unlock (r#mutex: *mut sys_mutex_t)
 /* C 313-326: `sys_cond_init`.  */
 #[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn sys_cond_init (cond: *mut sys_cond_t)
+pub unsafe extern "C-unwind" fn sys_cond_init (cond: *mut sys_cond_t)
 {
   (*cond).initialized = false;
   (*cond).wait_count = 0;
@@ -575,7 +575,7 @@ pub unsafe extern "C" fn sys_cond_init (cond: *mut sys_cond_t)
 /* C 328-363: `sys_cond_wait`.  */
 #[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn sys_cond_wait (cond: *mut sys_cond_t, r#mutex: *mut sys_mutex_t)
+pub unsafe extern "C-unwind" fn sys_cond_wait (cond: *mut sys_cond_t, r#mutex: *mut sys_mutex_t)
 {
   let wait_result: DWORD;
   let mut last_thread_waiting: bool;
@@ -613,7 +613,7 @@ pub unsafe extern "C" fn sys_cond_wait (cond: *mut sys_cond_t, r#mutex: *mut sys
 /* C 365-379: `sys_cond_signal`.  */
 #[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn sys_cond_signal (cond: *mut sys_cond_t)
+pub unsafe extern "C-unwind" fn sys_cond_signal (cond: *mut sys_cond_t)
 {
   let mut threads_waiting: bool;
 
@@ -631,7 +631,7 @@ pub unsafe extern "C" fn sys_cond_signal (cond: *mut sys_cond_t)
 /* C 381-395: `sys_cond_broadcast`.  */
 #[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn sys_cond_broadcast (cond: *mut sys_cond_t)
+pub unsafe extern "C-unwind" fn sys_cond_broadcast (cond: *mut sys_cond_t)
 {
   let mut threads_waiting: bool;
 
@@ -649,7 +649,7 @@ pub unsafe extern "C" fn sys_cond_broadcast (cond: *mut sys_cond_t)
 /* C 397-411: `sys_cond_destroy`.  */
 #[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn sys_cond_destroy (cond: *mut sys_cond_t)
+pub unsafe extern "C-unwind" fn sys_cond_destroy (cond: *mut sys_cond_t)
 {
   if !(*cond).events[CONDV_SIGNAL as usize].is_null ()
     { CloseHandle ((*cond).events[CONDV_SIGNAL as usize]); }
@@ -667,7 +667,7 @@ pub unsafe extern "C" fn sys_cond_destroy (cond: *mut sys_cond_t)
 /* C 413-417: `sys_thread_self`.  */
 #[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn sys_thread_self () -> sys_thread_t
+pub unsafe extern "C-unwind" fn sys_thread_self () -> sys_thread_t
 {
   return GetCurrentThreadId () as sys_thread_t;
 }
@@ -675,7 +675,7 @@ pub unsafe extern "C" fn sys_thread_self () -> sys_thread_t
 /* C 419-423: `sys_thread_equal`.  */
 #[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn sys_thread_equal (t: sys_thread_t, u: sys_thread_t) -> bool
+pub unsafe extern "C-unwind" fn sys_thread_equal (t: sys_thread_t, u: sys_thread_t) -> bool
 {
   return t == u;
 }
@@ -764,7 +764,7 @@ pub static mut thread_start_address: thread_creation_function = None;
 /* C 486-490: `sys_thread_set_name`.  */
 #[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn sys_thread_set_name (name: *const c_char)
+pub unsafe extern "C-unwind" fn sys_thread_set_name (name: *const c_char)
 {
   w32_set_thread_name (GetCurrentThreadId (), name);
 }
@@ -784,7 +784,7 @@ unsafe extern "C" fn w32_beginthread_wrapper (arg: *mut c_void)
 /* C 501-541: `sys_thread_create`.  */
 #[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn sys_thread_create (thread_ptr: *mut sys_thread_t,
+pub unsafe extern "C-unwind" fn sys_thread_create (thread_ptr: *mut sys_thread_t,
                                            func: thread_creation_function,
                                            arg: *mut c_void) -> bool
 {
@@ -822,7 +822,7 @@ pub unsafe extern "C" fn sys_thread_create (thread_ptr: *mut sys_thread_t,
 /* C 543-547: `sys_thread_yield`.  */
 #[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn sys_thread_yield ()
+pub unsafe extern "C-unwind" fn sys_thread_yield ()
 {
   Sleep (0);
 }

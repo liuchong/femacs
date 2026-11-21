@@ -553,7 +553,7 @@ pub fn FACE_FOR_CHAR (f: *mut frame, face: *mut face, character: c_int, pos: ptr
 {
   #[cfg(feature = "have_window_system")]
   {
-    unsafe extern "C" {
+    unsafe extern "C-unwind" {
       fn face_for_char(f: *mut frame, face: *mut face, ch: c_int,
                        pos: ptrdiff_t, object: Lisp_Object) -> c_int;
     }
@@ -573,15 +573,17 @@ pub const FACE_TTY_DEFAULT_BG_COLOR: c_ulong = -3i64 as c_ulong;
 
 /* C 1932-1949 (dispextern.h): the three tty "default colour" sentinels are above; the
    declarations below are the headers' own prototypes the mirrors stop short of.  */
-unsafe extern "C" {
+unsafe extern "C-unwind" {
 
   /// C: lisp.h 2xxx: `bool FUNCTIONP (Lisp_Object)` is an INLINE in lisp.h that no mirror
   /// carries; the port declares the same predicate here.
   fn FUNCTIONP (a: Lisp_Object) -> bool;
-  fn lrint (x: c_double) -> c_long;
 
   /// C: dispextern.h 3661-3662: `extern void add_to_log (const char *, ...);`
   fn add_to_log (format: *const c_char, ...);
+}
+unsafe extern "C" {
+  fn lrint (x: c_double) -> c_long;
 }
 
 /* font.h 205-230: the six property accessors this unit expands are the mirror's now
@@ -594,7 +596,7 @@ unsafe extern "C" {
 macro_rules! FOPEN_TEXT { () => { "" }; }
 
 /// C: font.h 265-286: the three style helpers, defined in font.c.
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   fn font_style_symbolic (font: Lisp_Object, prop: font_property_index,
 			  for_face: bool) -> Lisp_Object;
   fn font_style_to_value (prop: font_property_index, val: Lisp_Object,
@@ -604,14 +606,16 @@ unsafe extern "C" {
 
   /// C: lisp.h 5322-5323: `extern FILE *emacs_fopen (char const *, char const *);`
   fn emacs_fopen (file: *const c_char, mode: *const c_char) -> *mut FILE;
-  /// C: <stdio.h>: the two stdio entries `Fx_load_color_file` reads.
-  fn fgets (s: *mut c_char, n: c_int, stream: *mut FILE) -> *mut c_char;
-  fn sscanf (s: *const c_char, format: *const c_char, ...) -> c_int;
   /// C: dispextern.h 3629: `forget_escape_and_glyphless_faces`, one of the two display
   /// entries `free_realized_faces` calls (the other is the next line's `clear_current_matrices`).
   fn forget_escape_and_glyphless_faces ();
   /// C: dispnew.h 88: `extern void clear_current_matrices (struct frame *f);`
   fn clear_current_matrices (f: *mut frame);
+}
+unsafe extern "C" {
+  /// C: <stdio.h>: the two stdio entries `Fx_load_color_file` reads.
+  fn fgets (s: *mut c_char, n: c_int, stream: *mut FILE) -> *mut c_char;
+  fn sscanf (s: *const c_char, format: *const c_char, ...) -> c_int;
 }
 
 /* C 294-309: the attribute predicates and the cache-size constant.  */
@@ -670,13 +674,13 @@ static mut menu_face_changed_default: bool = false;
 /// C: image.c 2223-2225: `struct image_cache * make_image_cache (void);` - C's xfaces.c has the
 /// prototype through its headers; this unit reads it from there.
 #[cfg (feature = "have_window_system")]
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   fn make_image_cache () -> *mut image_cache;
 }
 
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn share_image_cache (f: *mut frame) -> *mut image_cache
+pub unsafe extern "C-unwind" fn share_image_cache (f: *mut frame) -> *mut image_cache
 {
   let width: c_int = if 10 > FRAME_COLUMN_WIDTH (f) { 10 } else { FRAME_COLUMN_WIDTH (f) };
   let mut tail: Lisp_Object = Qnil ();                 // C 645: `Lisp_Object tail, frame;`
@@ -706,7 +710,7 @@ pub unsafe extern "C" fn share_image_cache (f: *mut frame) -> *mut image_cache
 /* C 670-689: initialize face cache and basic faces for frame F.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn init_frame_faces (f: *mut frame)
+pub unsafe extern "C-unwind" fn init_frame_faces (f: *mut frame)
 {
   /* Make a face cache, if F doesn't have one.  */
   if FRAME_FACE_CACHE (f) == std::ptr::null_mut ()
@@ -727,7 +731,7 @@ pub unsafe extern "C" fn init_frame_faces (f: *mut frame)
 /* C 695-722: free face cache of frame F.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn free_frame_faces (f: *mut frame)
+pub unsafe extern "C-unwind" fn free_frame_faces (f: *mut frame)
 {
   let face_cache: *mut face_cache = FRAME_FACE_CACHE (f);
   if ! face_cache.is_null ()
@@ -750,7 +754,7 @@ pub unsafe extern "C" fn free_frame_faces (f: *mut frame)
 /* C 730-748: clear face caches, and recompute basic faces for frame F.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn recompute_basic_faces (f: *mut frame)
+pub unsafe extern "C-unwind" fn recompute_basic_faces (f: *mut frame)
 {
   if ! FRAME_FACE_CACHE (f).is_null ()
     {
@@ -774,7 +778,7 @@ pub unsafe extern "C" fn recompute_basic_faces (f: *mut frame)
    block is dead, and C's frozen function is empty too.)  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn clear_face_cache (clear_fonts_p: bool)
+pub unsafe extern "C-unwind" fn clear_face_cache (clear_fonts_p: bool)
 {
   let _ = clear_fonts_p;
 }
@@ -879,7 +883,7 @@ unsafe fn load_pixmap (f: *mut frame, name: Lisp_Object) -> ptrdiff_t
 
 /* image.c's three bitmap entries; C declares them in dispextern.h 3729-3739, which this
    unit's mirror does not carry yet, so they are declared at the use site (PORTING.md P-55).  */
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   /// C: font.h 852: `extern Lisp_Object font_load_for_lface (struct frame *, Lisp_Object *,
   /// Lisp_Object);` - font.h's mirror does not carry it (the arm that calls it was dead).
   pub fn font_load_for_lface (f: *mut frame, attrs: *mut Lisp_Object,
@@ -955,7 +959,7 @@ unsafe fn parse_float_color_comp (s: *const c_char, e: *const c_char,
 /* C 986-1027: parse SPEC as a numeric color specification and set *R, *G and *B.
    Return true on success, false on failure.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn parse_color_spec (spec: *const c_char,
+pub unsafe extern "C-unwind" fn parse_color_spec (spec: *const c_char,
                                            r: *mut c_ushort, g: *mut c_ushort,
                                            b: *mut c_ushort) -> bool
 {
@@ -1126,7 +1130,7 @@ unsafe fn tty_lookup_color (f: *mut frame, color: Lisp_Object,
 /* C 1143-1174: an implementation of defined_color_hook for tty frames.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn tty_defined_color (f: *mut frame, color_name: *const c_char,
+pub unsafe extern "C-unwind" fn tty_defined_color (f: *mut frame, color_name: *const c_char,
 					    color_def: *mut Emacs_Color, alloc: bool,
 					    _makeIndex: bool) -> bool
 {
@@ -1164,7 +1168,7 @@ pub unsafe extern "C" fn tty_defined_color (f: *mut frame, color_name: *const c_
    Lisp string.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn tty_color_name (f: *mut frame, idx: c_int) -> Lisp_Object
+pub unsafe extern "C-unwind" fn tty_color_name (f: *mut frame, idx: c_int) -> Lisp_Object
 {
   if idx >= 0 && ! NILP (Ffboundp (Qtty_color_by_index ()))
     {
@@ -3316,7 +3320,7 @@ DEFUN! ("internal-set-lisp-face-attribute", Finternal_set_lisp_face_attribute,
    has been assigned the value NEW_VALUE.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn update_face_from_frame_parameter (f: *mut frame, param: Lisp_Object,
+pub unsafe extern "C-unwind" fn update_face_from_frame_parameter (f: *mut frame, param: Lisp_Object,
 							   new_value: Lisp_Object)
 {
   let mut face: Lisp_Object = Qnil ();
@@ -3874,7 +3878,7 @@ unsafe fn free_realized_face (f: *mut frame, face: *mut face)
 /// font.h 545's `void font_prepare_for_face (struct frame *, struct face *);` - the two calls
 /// `prepare_face_for_display` makes; C has both prototypes through its headers.
 #[cfg (feature = "have_window_system")]
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   fn image_bitmap_pixmap (f: *mut frame, id: ptrdiff_t) -> ptrdiff_t;
   fn font_prepare_for_face (f: *mut frame, face: *mut face);
 }
@@ -3912,7 +3916,7 @@ unsafe fn x_free_gc (_f: *mut frame, gc: *mut Emacs_GC) { xfree(gc.cast()); }
 
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn prepare_face_for_display (f: *mut frame, face: *mut face)
+pub unsafe extern "C-unwind" fn prepare_face_for_display (f: *mut frame, face: *mut face)
 {
   let mut egc: Emacs_GC = std::mem::zeroed ();            // C 4761
   let mut mask: c_ulong;                                  // C 4762
@@ -4069,7 +4073,7 @@ unsafe fn free_realized_faces (c: *mut face_cache)
 /* C 4977-4989: free all realized faces on FRAME or on all frames if FRAME is nil.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn free_all_realized_faces (frame: Lisp_Object)
+pub unsafe extern "C-unwind" fn free_all_realized_faces (frame: Lisp_Object)
 {
   if NILP (frame)
     {
@@ -4226,7 +4230,7 @@ unsafe fn lookup_face (f: *mut frame, attr: *mut Lisp_Object) -> c_int
 /// to be recorded as dead (P-08); the port transcribes it now.
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn face_for_font (f: *mut frame, font_object: Lisp_Object,
+pub unsafe extern "C-unwind" fn face_for_font (f: *mut frame, font_object: Lisp_Object,
 					mut base_face: *mut face) -> c_int
 {
   let cache: *mut face_cache = FRAME_FACE_CACHE (f);
@@ -4263,7 +4267,7 @@ pub unsafe extern "C" fn face_for_font (f: *mut frame, font_object: Lisp_Object,
 /* C 5189-5225: return the display face-id of the face whose name is SYMBOL.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn lookup_named_face (w: *mut window, f: *mut frame,
+pub unsafe extern "C-unwind" fn lookup_named_face (w: *mut window, f: *mut frame,
 					    symbol: Lisp_Object,
 					    signal_p: bool) -> c_int
 {
@@ -4305,7 +4309,7 @@ pub unsafe extern "C" fn lookup_named_face (w: *mut window, f: *mut frame,
    is FACE_ID.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn lookup_basic_face (w: *mut window, f: *mut frame,
+pub unsafe extern "C-unwind" fn lookup_basic_face (w: *mut window, f: *mut frame,
 					    face_id: c_int) -> c_int
 {
   let mut name: Lisp_Object;
@@ -4375,7 +4379,7 @@ pub unsafe extern "C" fn lookup_basic_face (w: *mut window, f: *mut frame,
    FACE_ID on frame F, but has a font that is STEPS steps smaller.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn smaller_face (f: *mut frame, face_id: c_int,
+pub unsafe extern "C-unwind" fn smaller_face (f: *mut frame, face_id: c_int,
 				       steps: c_int) -> c_int
 {
   let _ = (f, steps);
@@ -4387,7 +4391,7 @@ pub unsafe extern "C" fn smaller_face (f: *mut frame, face_id: c_int,
    FACE_ID on frame F, but has height HEIGHT.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn face_with_height (f: *mut frame, face_id: c_int,
+pub unsafe extern "C-unwind" fn face_with_height (f: *mut frame, face_id: c_int,
 					   height: c_int) -> c_int
 {
   let _ = (f, height);
@@ -4399,7 +4403,7 @@ pub unsafe extern "C" fn face_with_height (f: *mut frame, face_id: c_int,
    frame F suitable for displaying ASCII characters.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn lookup_derived_face (w: *mut window, f: *mut frame,
+pub unsafe extern "C-unwind" fn lookup_derived_face (w: *mut window, f: *mut frame,
 					      symbol: Lisp_Object, face_id: c_int,
 					      signal_p: bool) -> c_int
 {
@@ -4464,7 +4468,7 @@ pub const TTY_CAP_OVERLINE: c_uint = 1 << 8;
 /// C: dispextern.h 4012: `bool is_tty_frame (struct frame *f);` (dispnew.c), and
 /// dispextern.h 3997: `bool tty_capable_p (struct tty_display_info *, unsigned);`
 /// (term.c) — neither is in a mirror this unit can use.
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   fn is_tty_frame (f: *mut frame) -> bool;
   fn tty_capable_p (tty: *mut tty_display_info, caps: c_uint) -> bool;
 
@@ -5695,7 +5699,7 @@ DEFUN! ("tty-suppress-bold-inverse-default-colors",
    property PROP on frame F in current_buffer.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn compute_char_face (f: *mut frame, mut ch: c_int,
+pub unsafe extern "C-unwind" fn compute_char_face (f: *mut frame, mut ch: c_int,
 					    prop: Lisp_Object) -> c_int
 {
   let mut face_id: c_int;
@@ -5727,7 +5731,7 @@ pub unsafe extern "C" fn compute_char_face (f: *mut frame, mut ch: c_int,
    displaying ASCII characters.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn face_at_buffer_position (w: *mut window, pos: ptrdiff_t,
+pub unsafe extern "C-unwind" fn face_at_buffer_position (w: *mut window, pos: ptrdiff_t,
 						  endptr: *mut ptrdiff_t,
 						  limit: ptrdiff_t,
 						  mouse: bool, base_face_id: c_int,
@@ -5880,7 +5884,7 @@ pub unsafe extern "C" fn face_at_buffer_position (w: *mut window, pos: ptrdiff_t
 /* C 7096-7146: return the face ID at buffer position POS … for overlay OVERLAY.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn face_for_overlay_string (w: *mut window, pos: ptrdiff_t,
+pub unsafe extern "C-unwind" fn face_for_overlay_string (w: *mut window, pos: ptrdiff_t,
 						  endptr: *mut ptrdiff_t,
 						  limit: ptrdiff_t,
 						  mouse: bool, overlay: Lisp_Object,
@@ -5944,7 +5948,7 @@ pub unsafe extern "C" fn face_for_overlay_string (w: *mut window, pos: ptrdiff_t
    window W, for ASCII characters.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn face_at_string_position (w: *mut window, string: Lisp_Object,
+pub unsafe extern "C-unwind" fn face_at_string_position (w: *mut window, string: Lisp_Object,
 						  pos: ptrdiff_t, bufpos: ptrdiff_t,
 						  endptr: *mut ptrdiff_t,
 						  base_face_id: face_id,
@@ -6014,7 +6018,7 @@ pub unsafe extern "C" fn face_at_string_position (w: *mut window, string: Lisp_O
 /* C 7242-7302: merge a face into a realized face.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn merge_faces (w: *mut window, face_name: Lisp_Object,
+pub unsafe extern "C-unwind" fn merge_faces (w: *mut window, face_name: Lisp_Object,
 				      face_id: c_int, base_face_id: c_int) -> c_int
 {
   let f: *mut frame = WINDOW_XFRAME! (w);
@@ -6142,7 +6146,7 @@ DEFUN! ("x-load-color-file", Fx_load_color_file,
 /* C 7449-7500: set up the face ID table for the faces defined during loadup.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn init_xfaces ()
+pub unsafe extern "C-unwind" fn init_xfaces ()
 {
   /* `HAVE_PDUMPER` is defined in the frozen configuration, so C's arm is live.  */
   let mut nfaces: c_int;
@@ -6200,7 +6204,7 @@ pub unsafe extern "C" fn init_xfaces ()
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_xfaces ()
+pub unsafe extern "C-unwind" fn syms_of_xfaces ()
 {
   /* The symbols `face' and `mouse-face' used as text properties.  */
   DEFSYM! (Qface, "face");
@@ -6451,4 +6455,4 @@ const _: () = core::assert! (core::mem::offset_of! (face, ascii_face) == 288);
 const _: () = core::assert! (core::mem::size_of::<face> () == 296);
 
 #[cfg(feature = "have_window_system")]
-unsafe extern "C" { fn free_image_cache(f: *mut frame); }
+unsafe extern "C-unwind" { fn free_image_cache(f: *mut frame); }

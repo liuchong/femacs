@@ -356,7 +356,7 @@ pub unsafe fn xstrcasecmp (a: *const c_char, b: *const c_char) -> c_int
    (PORTING.md 0.1-2/P-72 rule 3).  */
 
 /// C: dispextern.h 3828-3830: `face_at_string_position`, xfaces.c's.
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   /// C: dispextern.h 3824-3825: `int face_at_buffer_position (struct window *,
   /// ptrdiff_t, ptrdiff_t *, ptrdiff_t, bool, int, enum lface_attribute_index);`
   pub fn face_at_buffer_position (w: *mut window, pos: ptrdiff_t, endptr: *mut ptrdiff_t,
@@ -393,7 +393,7 @@ pub fn FACE_FOR_CHAR (f: *mut frame, face: *mut face, character: c_int,
 /// ptrdiff_t, Lisp_Object);`, xfaces.c's — reached only through the `HAVE_WINDOW_SYSTEM`
 /// arm of `FACE_FOR_CHAR` above.
 #[cfg(feature = "have_window_system")]
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   /// C: dispextern.h 3811: `int face_for_char (struct frame *, struct face *, int,
   /// ptrdiff_t, Lisp_Object);`
   pub fn face_for_char (f: *mut frame, face: *mut face, character: c_int,
@@ -402,7 +402,7 @@ unsafe extern "C" {
 
 /// C: xfaces.c 3379: `enum face_id lookup_basic_face (struct window *, struct frame *,
 /// enum face_id);` and dispnew.c's `recompute_basic_faces`.
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   /// C: dispextern.h 3813: `int lookup_basic_face (struct window *, struct frame *, int);`
   pub fn lookup_basic_face (w: *mut window, f: *mut frame, face_id: c_int) -> c_int;
   /// C: dispextern.h 3823: `void recompute_basic_faces (struct frame *);`
@@ -412,19 +412,21 @@ unsafe extern "C" {
 /// `lisp.h`'s own declarations that the mirror does not carry (status 3.57 records
 /// `make_specified_string` as a known `lisp.rs` gap), plus `<stdlib.h>`'s `atoi`, which
 /// `lib/include/stdlib.rs` does not declare either.
-unsafe extern "C" {
+unsafe extern "C-unwind" {
 
   /// C: lisp.h 4077-4079: `extern Lisp_Object make_specified_string (const char *,
   /// ptrdiff_t, ptrdiff_t, bool);`
   pub fn make_specified_string (contents: *const c_char, nchars: ptrdiff_t,
                                 nbytes: ptrdiff_t, multibyte: bool) -> Lisp_Object;
+}
+unsafe extern "C" {
   /// C: `<stdlib.h>`: `int atoi (const char *);`
   pub fn atoi (nptr: *const c_char) -> c_int;
 }
 
 /// `frame.h`/`window.h`/`character.h`/`lisp.h`/`<stdio.h>` names this unit calls that no
 /// mirror carries.
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   // (window.h 1210's `decode_live_window` is the window.rs mirror's now; the use-site copy is gone, P-26.)
   /// C: character.h 149-150: `extern void parse_str_as_multibyte (const unsigned char *,
   /// ptrdiff_t, ptrdiff_t *, ptrdiff_t *);`
@@ -445,7 +447,7 @@ pub fn CHECK_FRAME (x: Lisp_Object) { CHECK_TYPE (FRAMEP (x), Qframe (), x); }
 /// C: frame.h 1214: `extern struct frame *decode_window_system_frame (Lisp_Object);`
 /// (frame.c), reached only through `Ffont_info`'s `HAVE_WINDOW_SYSTEM` arm.
 #[cfg(feature = "have_window_system")]
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   /// C: frame.h 1214: `extern struct frame *decode_window_system_frame (Lisp_Object);`
   pub fn decode_window_system_frame (frame: Lisp_Object) -> *mut frame;
 }
@@ -472,7 +474,7 @@ unsafe extern "C" {
 /// two are reached only through `Ffont_face_attributes`'s `HAVE_WINDOW_SYSTEM` arm, which is
 /// carried, so they are declared under the same feature.
 #[cfg(feature = "have_window_system")]
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   /// C: fontset.h 40: `extern int fs_query_fontset (Lisp_Object, int);`
   pub fn fs_query_fontset (name: Lisp_Object, name_byte: c_int) -> c_int;
   /// C: fontset.h 44: `extern Lisp_Object fontset_ascii (int);`
@@ -483,7 +485,7 @@ unsafe extern "C" {
 /// `dispextern.h` 3631's `extern void get_font_ascent_descent (struct font *, int *,
 /// int *);`, which `src/include/composite.rs` carries only inside the composite.c unit
 /// (that unit's own use-site block), not in the mirror this unit includes.
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   /// C: dispextern.h 3631: `extern void get_font_ascent_descent (struct font *, int *,
   /// int *);`
   pub fn get_font_ascent_descent (font: *mut font, ascent: *mut c_int,
@@ -517,7 +519,7 @@ unsafe extern "C" {
 
 /// C: termhooks.h 968: `extern Lisp_Object terminal_glyph_code (struct terminal *, int);`,
 /// term.c's.
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   /// C: termhooks.h 968: `extern Lisp_Object terminal_glyph_code (struct terminal *, int);`
   pub fn terminal_glyph_code (t: *mut terminal, codepoint: c_int) -> Lisp_Object;
 }
@@ -635,7 +637,7 @@ static mut font_driver_list: *mut font_driver_list = std::ptr::null_mut ();
    same Rust name in one crate is `E0428` (measured: `rustc --cfg enable_checking` on this unit's
    root).  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn valid_font_driver (drv: *const font_driver) -> bool
+pub unsafe extern "C-unwind" fn valid_font_driver (drv: *const font_driver) -> bool
 {
   let mut tail: Lisp_Object;
   let mut frame: Lisp_Object;
@@ -674,7 +676,7 @@ unsafe fn font_make_spec () -> Lisp_Object
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn font_make_entity () -> Lisp_Object
+pub unsafe extern "C-unwind" fn font_make_entity () -> Lisp_Object
 {
   let mut font_entity: Lisp_Object;
   let entity: *mut font_entity
@@ -695,7 +697,7 @@ pub unsafe extern "C" fn font_make_entity () -> Lisp_Object
 
 #[cfg(feature = "have_android")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn font_make_entity_android (size: c_int) -> Lisp_Object
+pub unsafe extern "C-unwind" fn font_make_entity_android (size: c_int) -> Lisp_Object
 {
   let mut font_entity: Lisp_Object;
   let entity: *mut font_entity
@@ -714,7 +716,7 @@ pub unsafe extern "C" fn font_make_entity_android (size: c_int) -> Lisp_Object
    not nil, copy properties from ENTITY to the font-object.  If
    PIXELSIZE is positive, set the `size' property to PIXELSIZE.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn font_make_object (size: c_int, entity: Lisp_Object,
+pub unsafe extern "C-unwind" fn font_make_object (size: c_int, entity: Lisp_Object,
 					   pixelsize: c_int) -> Lisp_Object
 {
   let mut font_object: Lisp_Object;
@@ -761,7 +763,7 @@ pub unsafe extern "C" fn font_make_object (size: c_int, entity: Lisp_Object,
 
 #[cfg(feature = "xft_or_freetype_or_ns")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn font_build_object (vectorsize: c_int, r#type: Lisp_Object,
+pub unsafe extern "C-unwind" fn font_build_object (vectorsize: c_int, r#type: Lisp_Object,
 					    entity: Lisp_Object,
 					    pixelsize: c_double) -> Lisp_Object
 {
@@ -805,7 +807,7 @@ static mut num_font_drivers: c_int = 0;
    from STR.  Otherwise, return an integer.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn font_intern_prop (str_: *const c_char, len: ptrdiff_t,
+pub unsafe extern "C-unwind" fn font_intern_prop (str_: *const c_char, len: ptrdiff_t,
 					   force_symbol: bool) -> Lisp_Object
 {
   let mut i: ptrdiff_t;
@@ -904,7 +906,7 @@ unsafe fn font_pixel_size (f: *mut frame, spec: Lisp_Object) -> c_int
    VAL is an integer.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn font_style_to_value (prop: font_property_index, val: Lisp_Object,
+pub unsafe extern "C-unwind" fn font_style_to_value (prop: font_property_index, val: Lisp_Object,
 					      noerror: bool) -> c_int
 {
   let table: Lisp_Object = AREF (font_style_table, (prop - FONT_WEIGHT_INDEX) as isize);
@@ -1009,7 +1011,7 @@ pub unsafe extern "C" fn font_style_to_value (prop: font_property_index, val: Li
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn font_style_symbolic (font: Lisp_Object, prop: font_property_index,
+pub unsafe extern "C-unwind" fn font_style_symbolic (font: Lisp_Object, prop: font_property_index,
 					      for_face: bool) -> Lisp_Object
 {
   let mut val: Lisp_Object = AREF (font, prop as isize);
@@ -1036,7 +1038,7 @@ pub unsafe extern "C" fn font_style_symbolic (font: Lisp_Object, prop: font_prop
    of the font.  REPERTORY is a charset symbol or nil.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn find_font_encoding (fontname: Lisp_Object) -> Lisp_Object
+pub unsafe extern "C-unwind" fn find_font_encoding (fontname: Lisp_Object) -> Lisp_Object
 {
   let mut tail: Lisp_Object;
   let mut elt: Lisp_Object;
@@ -1063,7 +1065,7 @@ pub unsafe extern "C" fn find_font_encoding (fontname: Lisp_Object) -> Lisp_Obje
    REGISTRY is available, return 0.  Otherwise return -1.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn font_registry_charsets (registry: Lisp_Object,
+pub unsafe extern "C-unwind" fn font_registry_charsets (registry: Lisp_Object,
 						 encoding: *mut *mut charset,
 						 repertory: *mut *mut charset) -> c_int
 {
@@ -1128,7 +1130,7 @@ pub unsafe extern "C" fn font_registry_charsets (registry: Lisp_Object,
 /* Font property value validators.  See the comment of
    font_property_table for the meaning of the arguments.  */
 
-unsafe extern "C" fn font_prop_validate_symbol (prop: Lisp_Object, val: Lisp_Object)
+unsafe extern "C-unwind" fn font_prop_validate_symbol (prop: Lisp_Object, val: Lisp_Object)
 						-> Lisp_Object
 {
   let mut val: Lisp_Object = val;
@@ -1141,7 +1143,7 @@ unsafe extern "C" fn font_prop_validate_symbol (prop: Lisp_Object, val: Lisp_Obj
   return val;
 }
 
-unsafe extern "C" fn font_prop_validate_style (style: Lisp_Object, val: Lisp_Object)
+unsafe extern "C-unwind" fn font_prop_validate_style (style: Lisp_Object, val: Lisp_Object)
 					       -> Lisp_Object
 {
   let prop: font_property_index = if EQ (style, QCweight ()) { FONT_WEIGHT_INDEX }
@@ -1183,7 +1185,7 @@ unsafe extern "C" fn font_prop_validate_style (style: Lisp_Object, val: Lisp_Obj
   return val;
 }
 
-unsafe extern "C" fn font_prop_validate_non_neg (prop: Lisp_Object, val: Lisp_Object)
+unsafe extern "C-unwind" fn font_prop_validate_non_neg (prop: Lisp_Object, val: Lisp_Object)
 						 -> Lisp_Object
 {
   let _ = prop;
@@ -1191,7 +1193,7 @@ unsafe extern "C" fn font_prop_validate_non_neg (prop: Lisp_Object, val: Lisp_Ob
 	 { val } else { Qerror () };
 }
 
-unsafe extern "C" fn font_prop_validate_spacing (prop: Lisp_Object, val: Lisp_Object)
+unsafe extern "C-unwind" fn font_prop_validate_spacing (prop: Lisp_Object, val: Lisp_Object)
 						 -> Lisp_Object
 {
   let _ = prop;
@@ -1213,7 +1215,7 @@ unsafe extern "C" fn font_prop_validate_spacing (prop: Lisp_Object, val: Lisp_Ob
   return Qerror ();
 }
 
-unsafe extern "C" fn font_prop_validate_otf (prop: Lisp_Object, val: Lisp_Object)
+unsafe extern "C-unwind" fn font_prop_validate_otf (prop: Lisp_Object, val: Lisp_Object)
 					     -> Lisp_Object
 {
   let mut tail: Lisp_Object;
@@ -1269,7 +1271,7 @@ pub struct font_property_table_entry
   /* Function to validate PROP's value VAL, or NULL if any value is
      ok.  The value is VAL or its regularized value if VAL is valid,
      and Qerror if not.  */
-  pub validator: unsafe extern "C" fn (Lisp_Object, Lisp_Object) -> Lisp_Object,
+  pub validator: unsafe extern "C-unwind" fn (Lisp_Object, Lisp_Object) -> Lisp_Object,
 }
 
 /* C's `SYMBOL_INDEX (QCtype)` is a compile-time integer constant; the port's `SYMBOL_INDEX`
@@ -1347,7 +1349,7 @@ unsafe fn font_prop_validate (idx: c_int, prop: Lisp_Object, val: Lisp_Object)
    properties.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn font_put_extra (font: Lisp_Object, prop: Lisp_Object,
+pub unsafe extern "C-unwind" fn font_put_extra (font: Lisp_Object, prop: Lisp_Object,
 					 val: Lisp_Object) -> Lisp_Object
 {
   let extra: Lisp_Object = AREF (font, FONT_EXTRA_INDEX as isize);
@@ -2021,7 +2023,7 @@ unsafe fn font_parse_xlfd_1 (name: *mut c_char, len: ptrdiff_t, font: Lisp_Objec
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn font_parse_xlfd (name: *mut c_char, len: ptrdiff_t,
+pub unsafe extern "C-unwind" fn font_parse_xlfd (name: *mut c_char, len: ptrdiff_t,
 					  font: Lisp_Object) -> c_int
 {
   let found: c_int = font_parse_xlfd_1 (name, len, font, -1);
@@ -2056,7 +2058,7 @@ pub unsafe extern "C" fn font_parse_xlfd (name: *mut c_char, len: ptrdiff_t,
 const PRIdMAX: &str = "jd";
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn font_dynamic_unparse_xlfd (font: Lisp_Object,
+pub unsafe extern "C-unwind" fn font_dynamic_unparse_xlfd (font: Lisp_Object,
 						    pixel_size: c_int) -> *mut c_char
 {
   let mut p: *mut c_char;
@@ -2247,7 +2249,7 @@ pub unsafe extern "C" fn font_dynamic_unparse_xlfd (font: Lisp_Object,
    0, use PIXEL_SIZE instead.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn font_unparse_xlfd (font: Lisp_Object, pixel_size: c_int,
+pub unsafe extern "C-unwind" fn font_unparse_xlfd (font: Lisp_Object, pixel_size: c_int,
 					    name: *mut c_char, nbytes: c_int) -> ptrdiff_t
 {
   let mut p: *mut c_char;
@@ -2874,7 +2876,7 @@ unsafe fn font_parse_name (name: *mut c_char, namelen: ptrdiff_t, font: Lisp_Obj
    part.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn font_parse_family_registry (family: Lisp_Object,
+pub unsafe extern "C-unwind" fn font_parse_family_registry (family: Lisp_Object,
 						     registry: Lisp_Object,
 						     font_spec: Lisp_Object)
 {
@@ -3232,7 +3234,7 @@ unsafe fn font_sort_entities (list: Lisp_Object, prefer: Lisp_Object, f: *mut fr
    function with font_sort_order after setting up it.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn font_update_sort_order (order: *mut c_int)
+pub unsafe extern "C-unwind" fn font_update_sort_order (order: *mut c_int)
 {
   let mut i: c_int;
   let mut shift_bits: c_int;
@@ -3339,7 +3341,7 @@ unsafe fn font_check_otf (spec: Lisp_Object, otf_capability: Lisp_Object) -> boo
    specification SPEC.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn font_match_p (spec: Lisp_Object, font: Lisp_Object) -> bool
+pub unsafe extern "C-unwind" fn font_match_p (spec: Lisp_Object, font: Lisp_Object) -> bool
 {
   let mut prop: [Lisp_Object; FONT_SPEC_MAX as usize]
     = [Qnil (); FONT_SPEC_MAX as usize];
@@ -3619,7 +3621,7 @@ unsafe fn font_clear_cache (f: *mut frame, cache: Lisp_Object, driver: *const fo
    GTK font chooser.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn font_is_ignored (name: *const c_char, namelen: ptrdiff_t) -> bool
+pub unsafe extern "C-unwind" fn font_is_ignored (name: *const c_char, namelen: ptrdiff_t) -> bool
 {
   let mut tail: Lisp_Object = Vface_ignored_fonts;
   let mut regexp: Lisp_Object;
@@ -3767,7 +3769,7 @@ unsafe fn font_delete_unmatched (vec: Lisp_Object, spec: Lisp_Object, size: c_in
    same font-driver.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn font_list_entities (f: *mut frame, spec: Lisp_Object) -> Lisp_Object
+pub unsafe extern "C-unwind" fn font_list_entities (f: *mut frame, spec: Lisp_Object) -> Lisp_Object
 {
   let mut driver_list: *mut font_driver_list = (*f).font_driver_list as *mut font_driver_list;
   let mut ftype: Lisp_Object;
@@ -4052,7 +4054,7 @@ unsafe fn font_close_object (f: *mut frame, font_object: Lisp_Object)
    FONT is a font-entity and it must be opened to check.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn font_has_char (f: *mut frame, font: Lisp_Object, c: c_int) -> c_int
+pub unsafe extern "C-unwind" fn font_has_char (f: *mut frame, font: Lisp_Object, c: c_int) -> c_int
 {
   let mut fontp: *mut font;
 
@@ -4101,7 +4103,7 @@ unsafe fn font_encode_char (font_object: Lisp_Object, c: c_int) -> c_uint
 /* Return the name of FONT_OBJECT.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn font_get_name (font_object: Lisp_Object) -> Lisp_Object
+pub unsafe extern "C-unwind" fn font_get_name (font_object: Lisp_Object) -> Lisp_Object
 {
   eassert! (FONT_OBJECT_P (font_object));
   return AREF (font_object, FONT_NAME_INDEX as isize);
@@ -4112,7 +4114,7 @@ pub unsafe extern "C" fn font_get_name (font_object: Lisp_Object) -> Lisp_Object
    could not be parsed by font_parse_name, return Qnil.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn font_spec_from_name (font_name: Lisp_Object) -> Lisp_Object
+pub unsafe extern "C-unwind" fn font_spec_from_name (font_name: Lisp_Object) -> Lisp_Object
 {
   let spec: Lisp_Object = Ffont_spec (0, std::ptr::null_mut ());
 
@@ -4126,7 +4128,7 @@ pub unsafe extern "C" fn font_spec_from_name (font_name: Lisp_Object) -> Lisp_Ob
 
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn font_clear_prop (attrs: *mut Lisp_Object, prop: font_property_index)
+pub unsafe extern "C-unwind" fn font_clear_prop (attrs: *mut Lisp_Object, prop: font_property_index)
 {
   let mut font: Lisp_Object = *attrs.offset (LFACE_FONT_INDEX as isize);
 
@@ -4237,7 +4239,7 @@ unsafe fn font_select_entity (f: *mut frame, entities: Lisp_Object,
    character that the entity must support.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn font_find_for_lface (f: *mut frame, attrs: *mut Lisp_Object,
+pub unsafe extern "C-unwind" fn font_find_for_lface (f: *mut frame, attrs: *mut Lisp_Object,
 					      spec: Lisp_Object, c: c_int) -> Lisp_Object
 {
   let work: Lisp_Object;
@@ -4443,7 +4445,7 @@ pub unsafe extern "C" fn font_find_for_lface (f: *mut frame, attrs: *mut Lisp_Ob
 
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn font_open_for_lface (f: *mut frame, entity: Lisp_Object,
+pub unsafe extern "C-unwind" fn font_open_for_lface (f: *mut frame, entity: Lisp_Object,
 					      attrs: *mut Lisp_Object,
 					      spec: Lisp_Object) -> Lisp_Object
 {
@@ -4500,7 +4502,7 @@ pub unsafe extern "C" fn font_open_for_lface (f: *mut frame, entity: Lisp_Object
    font-object.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn font_load_for_lface (f: *mut frame, attrs: *mut Lisp_Object,
+pub unsafe extern "C-unwind" fn font_load_for_lface (f: *mut frame, attrs: *mut Lisp_Object,
 					      spec: Lisp_Object) -> Lisp_Object
 {
   let mut entity: Lisp_Object;
@@ -4566,7 +4568,7 @@ pub unsafe extern "C" fn font_load_for_lface (f: *mut frame, attrs: *mut Lisp_Ob
 /* Make FACE on frame F ready to use the font opened for FACE.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn font_prepare_for_face (f: *mut frame, face: *mut face)
+pub unsafe extern "C-unwind" fn font_prepare_for_face (f: *mut frame, face: *mut face)
 {
   if (*((*(*face).font).driver as *const font_driver)).prepare_face.is_some ()
     {
@@ -4580,7 +4582,7 @@ pub unsafe extern "C" fn font_prepare_for_face (f: *mut frame, face: *mut face)
 /* Make FACE on frame F stop using the font opened for FACE.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn font_done_for_face (f: *mut frame, face: *mut face)
+pub unsafe extern "C-unwind" fn font_done_for_face (f: *mut frame, face: *mut face)
 {
   if (*((*(*face).font).driver as *const font_driver)).done_face.is_some ()
     {
@@ -4595,7 +4597,7 @@ pub unsafe extern "C" fn font_done_for_face (f: *mut frame, face: *mut face)
    font is found, return Qnil.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn font_open_by_spec (f: *mut frame, spec: Lisp_Object) -> Lisp_Object
+pub unsafe extern "C-unwind" fn font_open_by_spec (f: *mut frame, spec: Lisp_Object) -> Lisp_Object
 {
   let mut attrs: [Lisp_Object; LFACE_VECTOR_SIZE as usize] = [Qnil (); LFACE_VECTOR_SIZE as usize];
 
@@ -4622,7 +4624,7 @@ pub unsafe extern "C" fn font_open_by_spec (f: *mut frame, spec: Lisp_Object) ->
    found, return Qnil.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn font_open_by_name (f: *mut frame, name: Lisp_Object) -> Lisp_Object
+pub unsafe extern "C-unwind" fn font_open_by_name (f: *mut frame, name: Lisp_Object) -> Lisp_Object
 {
   let spec: Lisp_Object = CALLN! (Ffont_spec, QCname (), name);
   let ret: Lisp_Object = font_open_by_spec (f, spec);
@@ -4647,7 +4649,7 @@ pub unsafe extern "C" fn font_open_by_name (f: *mut frame, name: Lisp_Object) ->
    syms_of_XXXX_for_pdumper (e.g. syms_of_xfont_for_pdumper).  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn register_font_driver (driver: *const font_driver, f: *mut frame)
+pub unsafe extern "C-unwind" fn register_font_driver (driver: *const font_driver, f: *mut frame)
 {
   let root: *mut font_driver_list = if !f.is_null ()
 				    { (*f).font_driver_list as *mut font_driver_list }
@@ -4689,7 +4691,7 @@ pub unsafe extern "C" fn register_font_driver (driver: *const font_driver, f: *m
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn free_font_driver_list (f: *mut frame)
+pub unsafe extern "C-unwind" fn free_font_driver_list (f: *mut frame)
 {
   let mut list: *mut font_driver_list;
   let mut next: *mut font_driver_list;
@@ -4717,7 +4719,7 @@ pub unsafe extern "C" fn free_font_driver_list (f: *mut frame)
    F.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn font_update_drivers (f: *mut frame,
+pub unsafe extern "C-unwind" fn font_update_drivers (f: *mut frame,
 					      new_drivers: Lisp_Object) -> Lisp_Object
 {
   let mut active_drivers: Lisp_Object = Qnil ();
@@ -4881,7 +4883,7 @@ unsafe fn fset_font_data (f: *mut frame, val: Lisp_Object)
 
 #[cfg(feature = "xft_or_freetype")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn font_put_frame_data (f: *mut frame, driver: Lisp_Object,
+pub unsafe extern "C-unwind" fn font_put_frame_data (f: *mut frame, driver: Lisp_Object,
 					      data: *mut c_void)
 {
   let val: Lisp_Object = assq_no_quit (driver, (*f).font_data);
@@ -4900,7 +4902,7 @@ pub unsafe extern "C" fn font_put_frame_data (f: *mut frame, driver: Lisp_Object
 
 #[cfg(feature = "xft_or_freetype")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn font_get_frame_data (f: *mut frame, driver: Lisp_Object)
+pub unsafe extern "C-unwind" fn font_get_frame_data (f: *mut frame, driver: Lisp_Object)
 					       -> *mut c_void
 {
   let val: Lisp_Object = assq_no_quit (driver, (*f).font_data);
@@ -4914,7 +4916,7 @@ pub unsafe extern "C" fn font_get_frame_data (f: *mut frame, driver: Lisp_Object
    arrays of strings.  This function is intended for use by the font
    drivers to implement their specific font_filter_properties.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn font_filter_properties (font: Lisp_Object, alist: Lisp_Object,
+pub unsafe extern "C-unwind" fn font_filter_properties (font: Lisp_Object, alist: Lisp_Object,
 						 boolean_properties: *const *const c_char,
 						 non_boolean_properties: *const *const c_char)
 {
@@ -5057,7 +5059,7 @@ unsafe fn font_at (c: c_int, pos: ptrdiff_t, face: *mut face, w: *mut window,
 /// Lisp_Object);`, xfaces.c's — reached only through the `HAVE_WINDOW_SYSTEM` arm of
 /// `font_range`.
 #[cfg(feature = "have_window_system")]
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   /// C: dispextern.h 3820: `Lisp_Object font_for_char (struct face *, int, ptrdiff_t,
   /// Lisp_Object);`
   pub fn font_for_char (face: *mut face, ch: c_int, pos: ptrdiff_t,
@@ -5097,7 +5099,7 @@ unsafe fn codepoint_is_emoji_eligible (ch: c_int) -> bool
 
 #[cfg(feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn font_range (pos: ptrdiff_t, pos_byte: ptrdiff_t,
+pub unsafe extern "C-unwind" fn font_range (pos: ptrdiff_t, pos_byte: ptrdiff_t,
 				     limit: *mut ptrdiff_t, w: *mut window,
 				     face: *mut face, string: Lisp_Object,
 				     ch: c_int) -> Lisp_Object
@@ -5240,7 +5242,7 @@ DEFUN! ("font-spec", Ffont_spec, Sfont_spec, 0, MANY, 0,
    with care. */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn copy_font_spec (font: Lisp_Object) -> Lisp_Object
+pub unsafe extern "C-unwind" fn copy_font_spec (font: Lisp_Object) -> Lisp_Object
 {
   const font_spec_size: isize = VECSIZE (std::mem::size_of::<font_spec> ());
   let mut new_spec: Lisp_Object;
@@ -5287,7 +5289,7 @@ pub unsafe extern "C" fn copy_font_spec (font: Lisp_Object) -> Lisp_Object
    Every specified property in FROM overrides the corresponding
    property in TO.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn merge_font_spec (from: Lisp_Object, to: Lisp_Object) -> Lisp_Object
+pub unsafe extern "C-unwind" fn merge_font_spec (from: Lisp_Object, to: Lisp_Object) -> Lisp_Object
 {
   let mut extra: Lisp_Object;
   let mut tail: Lisp_Object;
@@ -5646,7 +5648,7 @@ DEFUN! ("font-xlfd-name", Ffont_xlfd_name, Sfont_xlfd_name, 1, 3, 0,
 });
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn clear_font_cache (f: *mut frame)
+pub unsafe extern "C-unwind" fn clear_font_cache (f: *mut frame)
 {
   let mut driver_list: *mut font_driver_list = (*f).font_driver_list as *mut font_driver_list;
 
@@ -5693,7 +5695,7 @@ DEFUN! ("clear-font-cache", Fclear_font_cache, Sclear_font_cache, 0, 0, 0,
 
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn font_fill_lglyph_metrics (glyph: Lisp_Object, font: *mut font,
+pub unsafe extern "C-unwind" fn font_fill_lglyph_metrics (glyph: Lisp_Object, font: *mut font,
 						   code: c_uint)
 {
   let mut metrics: font_metrics = font_metrics { lbearing: 0, rbearing: 0, width: 0,
@@ -6321,7 +6323,7 @@ static mut Vfont_log_deferred: Lisp_Object = lisp_h_Qnil ();
    opening), ARG is the argument for the action, and RESULT is the
    result of the action.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn font_add_log (action: *const c_char, arg: Lisp_Object,
+pub unsafe extern "C-unwind" fn font_add_log (action: *const c_char, arg: Lisp_Object,
 				       result: Lisp_Object)
 {
   let mut val: Lisp_Object;
@@ -6419,7 +6421,7 @@ pub unsafe extern "C" fn font_add_log (action: *const c_char, arg: Lisp_Object,
    as font_add_log.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn font_deferred_log (action: *const c_char, arg: Lisp_Object,
+pub unsafe extern "C-unwind" fn font_deferred_log (action: *const c_char, arg: Lisp_Object,
 					    result: Lisp_Object)
 {
   if EQ (Vfont_log, Qt ())
@@ -6430,7 +6432,7 @@ pub unsafe extern "C" fn font_deferred_log (action: *const c_char, arg: Lisp_Obj
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn font_drop_xrender_surfaces (f: *mut frame)
+pub unsafe extern "C-unwind" fn font_drop_xrender_surfaces (f: *mut frame)
 {
   let mut list: *mut font_driver_list;
 
@@ -6466,7 +6468,7 @@ pub static mut xft_ignore_color_fonts: bool = false;
 pub static mut query_all_font_backends: bool = false;
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_font ()
+pub unsafe extern "C-unwind" fn syms_of_font ()
 {
   sort_shift_bits[FONT_TYPE_INDEX as usize] = 0;
   sort_shift_bits[FONT_SLANT_INDEX as usize] = 2;
@@ -6666,10 +6668,10 @@ pub unsafe extern "C" fn syms_of_font ()
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn init_font ()
+pub unsafe extern "C-unwind" fn init_font ()
 {
   Vfont_log = if !egetenv (c"EMACS_FONT_LOG".as_ptr ()).is_null () { Qnil () } else { Qt () };
 }
 
 #[cfg(feature = "have_ns")]
-unsafe extern "C" { fn get_frame_param(f: *mut frame, prop: Lisp_Object) -> Lisp_Object; }
+unsafe extern "C-unwind" { fn get_frame_param(f: *mut frame, prop: Lisp_Object) -> Lisp_Object; }

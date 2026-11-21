@@ -692,7 +692,7 @@ DEFUN! ("capitalize-word", Fcapitalize_word, Scapitalize_word, 1, 1, "p",
 });
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_casefiddle ()
+pub unsafe extern "C-unwind" fn syms_of_casefiddle ()
 {
   DEFSYM! (Qbounds, "bounds");
   DEFSYM! (Qidentity, "identity");

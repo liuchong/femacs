@@ -86,7 +86,7 @@ use itree_order::*;
 
 /// `sysdep.c`, `eval.c` and `search.c` define these; lisp.h declares them (the last two
 /// are declared *inside* lisp.h's block for search.c, which the mirror does not carry).
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   /// C: lisp.h 5591: `extern void init_system_name (void);` (sysdep.c).
   pub fn init_system_name ();
   /// C: lisp.h 4826: `extern void record_unwind_protect_excursion (void);` (eval.c).
@@ -109,7 +109,7 @@ unsafe extern "C" {
 /// insdel.c's six insertion entries and its two signaling helpers: lisp.h 4320-4342 and
 /// 4938 declare them and the mirror carries none of them, so each is declared here with
 /// C's own prototype above it (PORTING.md P-72 rule 3, the insdel.rs shape).
-unsafe extern "C" {
+unsafe extern "C-unwind" {
 
 
   /// C: lisp.h 4340: `extern void insert_before_markers (const char *, ptrdiff_t);`
@@ -129,7 +129,7 @@ unsafe extern "C" {
 
 /// eval.c, coding.c and profiler.c define these; lisp.h 4799 and 5468 and coding.h 684
 /// declare them, and the mirror carries none of them.
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   /// C: lisp.h 4799: `extern bool FUNCTIONP (Lisp_Object);` (eval.c).
   pub fn FUNCTIONP (object: Lisp_Object) -> bool;
 
@@ -181,7 +181,7 @@ const LDBL_MANT_DIG: c_int = 53;
 
 /// insdel.c's `copy_text` and eval.c's `set_unwind_protect_ptr`: lisp.h 4323 and 4832
 /// declare them and the mirror carries neither.
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   /// C: lisp.h 4323-4324: `extern ptrdiff_t copy_text (const unsigned char *,
   /// unsigned char *, ptrdiff_t, bool, bool);`
   pub fn copy_text (from_addr: *const u8, to_addr: *mut u8, nbytes: ptrdiff_t,
@@ -189,7 +189,7 @@ unsafe extern "C" {
   /// C: lisp.h 4832: `extern void set_unwind_protect_ptr (specpdl_ref, void (*) (void *),
   /// void *);`
   pub fn set_unwind_protect_ptr (count: specpdl_ref,
-                                 function: Option<unsafe extern "C" fn (*mut c_void)>,
+                                 function: Option<unsafe extern "C-unwind" fn (*mut c_void)>,
                                  arg: *mut c_void);
   /// C: lisp.h 4566-4567: `extern Lisp_Object make_specified_string (const char *chars,
   /// ptrdiff_t nchars, ptrdiff_t nbytes, bool multibyte);` (alloc.c defines it; the mirror
@@ -226,7 +226,7 @@ unsafe fn init_and_cache_system_name ()
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn init_editfns ()
+pub unsafe extern "C-unwind" fn init_editfns ()
 {
   let mut user_name: *const c_char = std::ptr::null ();
   let mut p: *mut c_char = std::ptr::null_mut ();
@@ -502,7 +502,7 @@ DEFUN! ("get-pos-property", Fget_pos_property, Sget_pos_property, 2, 3, 0,
    is not stored.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn find_field (pos: Lisp_Object, merge_at_boundary: Lisp_Object,
+pub unsafe extern "C-unwind" fn find_field (pos: Lisp_Object, merge_at_boundary: Lisp_Object,
                                      beg_limit: Lisp_Object, beg: *mut ptrdiff_t,
                                      end_limit: Lisp_Object, end: *mut ptrdiff_t)
 {
@@ -833,7 +833,7 @@ DEFUN! ("line-end-position", Fline_end_position, Sline_end_position, 0, 1, 0,
 /* Save current buffer state for save-excursion special form.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn save_excursion_save (pdl: *mut specbinding)
+pub unsafe extern "C-unwind" fn save_excursion_save (pdl: *mut specbinding)
 {
   eassert! ((*pdl).unwind_excursion.kind == SPECPDL_UNWIND_EXCURSION as u8);
   (*pdl).unwind_excursion.marker = Fpoint_marker ();
@@ -846,7 +846,7 @@ pub unsafe extern "C" fn save_excursion_save (pdl: *mut specbinding)
 /* Restore saved buffer before leaving `save-excursion' special form.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn save_excursion_restore (marker: Lisp_Object, window: Lisp_Object)
+pub unsafe extern "C-unwind" fn save_excursion_restore (marker: Lisp_Object, window: Lisp_Object)
 {
   let buffer: Lisp_Object = Fmarker_buffer (marker);
   /* If we're unwinding to top level, saved buffer may be deleted.  This
@@ -1305,8 +1305,8 @@ DEFUN! ("emacs-pid", Femacs_pid, Semacs_pid, 0, 0, 0,
    type of object is Lisp_String).  INHERIT is passed to
    INSERT_FROM_STRING_FUNC as the last argument.  */
 
-unsafe fn general_insert_function (insert_func: unsafe extern "C" fn (*const c_char, ptrdiff_t),
-                                   insert_from_string_func: unsafe extern "C" fn (Lisp_Object, ptrdiff_t, ptrdiff_t, ptrdiff_t, ptrdiff_t, bool),
+unsafe fn general_insert_function (insert_func: unsafe extern "C-unwind" fn (*const c_char, ptrdiff_t),
+                                   insert_from_string_func: unsafe extern "C-unwind" fn (Lisp_Object, ptrdiff_t, ptrdiff_t, ptrdiff_t, ptrdiff_t, bool),
                                    inherit: bool, nargs: ptrdiff_t, args: *mut Lisp_Object)
 {
   let mut argnum: ptrdiff_t;
@@ -1345,7 +1345,7 @@ unsafe fn general_insert_function (insert_func: unsafe extern "C" fn (*const c_c
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn insert1 (arg: Lisp_Object)
+pub unsafe extern "C-unwind" fn insert1 (arg: Lisp_Object)
 {
   let mut arg: Lisp_Object = arg;
   Finsert (1, &mut arg);
@@ -1471,7 +1471,7 @@ DEFUN! ("insert-byte", Finsert_byte, Sinsert_byte, 2, 3, 0,
    buffer substrings.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn make_buffer_string (start: ptrdiff_t, end: ptrdiff_t,
+pub unsafe extern "C-unwind" fn make_buffer_string (start: ptrdiff_t, end: ptrdiff_t,
                                              props: bool) -> Lisp_Object
 {
   let start_byte: ptrdiff_t = CHAR_TO_BYTE (start);
@@ -1496,7 +1496,7 @@ pub unsafe extern "C" fn make_buffer_string (start: ptrdiff_t, end: ptrdiff_t,
    buffer substrings.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn make_buffer_string_both (start: ptrdiff_t, start_byte: ptrdiff_t,
+pub unsafe extern "C-unwind" fn make_buffer_string_both (start: ptrdiff_t, start_byte: ptrdiff_t,
                                                   end: ptrdiff_t, end_byte: ptrdiff_t,
                                                   props: bool) -> Lisp_Object
 {
@@ -1799,10 +1799,13 @@ DEFUN! ("compare-buffer-substrings", Fcompare_buffer_substrings, Scompare_buffer
 /// shape).
 pub const USE_HEURISTIC: () = ();
 
+#[derive(Clone, Copy)]
+struct CompareSeqEarlyAbort;
+
 /// C 1892-1893: `#define XVECREF_YVECREF_EQUAL(ctx, xoff, yoff) buffer_chars_equal (ctx,
 /// xoff, yoff)`.
 macro_rules! XVECREF_YVECREF_EQUAL {
-    ($ctx:expr, $xoff:expr, $yoff:expr) => { buffer_chars_equal ($ctx, $xoff, $yoff) };
+    ($ctx:expr, $xoff:expr, $yoff:expr) => { buffer_chars_equal ($ctx, $xoff, $yoff)? };
 }
 
 /// C 1895: `#define OFFSET ptrdiff_t` — diffseq.h uses the name in type position, which
@@ -1914,6 +1917,7 @@ pub struct partition
    of the two vectors.  (The reference's full explanation is diffseq.h 183-192.)  */
 unsafe fn diag (xoff: OFFSET! (), xlim: OFFSET! (), yoff: OFFSET! (), ylim: OFFSET! (),
                 find_minimal: bool, part: *mut partition, ctxt: *mut context)
+  -> Result<(), CompareSeqEarlyAbort>
 {
   let fd: *const OFFSET! () = (*ctxt).fdiag;       /* Give the compiler a chance. */
   let bd: *const OFFSET! () = (*ctxt).bdiag;       /* Additional help for the compiler. */
@@ -1979,7 +1983,7 @@ unsafe fn diag (xoff: OFFSET! (), xlim: OFFSET! (), yoff: OFFSET! (), ylim: OFFS
               (*part).ymid = y;
               (*part).lo_minimal = true;
               (*part).hi_minimal = true;
-              return;
+              return Ok(());
             }
           d -= 2;
         }
@@ -2025,7 +2029,7 @@ unsafe fn diag (xoff: OFFSET! (), xlim: OFFSET! (), yoff: OFFSET! (), ylim: OFFS
               (*part).ymid = y;
               (*part).lo_minimal = true;
               (*part).hi_minimal = true;
-              return;
+              return Ok(());
             }
           d -= 2;
         }
@@ -2084,7 +2088,7 @@ unsafe fn diag (xoff: OFFSET! (), xlim: OFFSET! (), yoff: OFFSET! (), ylim: OFFS
                   {
                     (*part).lo_minimal = true;
                     (*part).hi_minimal = false;
-                    return;
+                    return Ok(());
                   }
               }
 
@@ -2128,7 +2132,7 @@ unsafe fn diag (xoff: OFFSET! (), xlim: OFFSET! (), yoff: OFFSET! (), ylim: OFFS
                   {
                     (*part).lo_minimal = false;
                     (*part).hi_minimal = true;
-                    return;
+                    return Ok(());
                   }
               }
             }
@@ -2195,7 +2199,7 @@ unsafe fn diag (xoff: OFFSET! (), xlim: OFFSET! (), yoff: OFFSET! (), ylim: OFFS
                   (*part).lo_minimal = false;
                   (*part).hi_minimal = true;
                 }
-              return;
+              return Ok(());
             }
         }
       c += 1;
@@ -2214,7 +2218,7 @@ unsafe fn diag (xoff: OFFSET! (), xlim: OFFSET! (), yoff: OFFSET! (), ylim: OFFS
    abort.  */
 unsafe fn compareseq (mut xoff: OFFSET! (), mut xlim: OFFSET! (), mut yoff: OFFSET! (),
                       mut ylim: OFFSET! (), mut find_minimal: bool,
-                      ctxt: *mut context) -> bool
+                      ctxt: *mut context) -> Result<bool, CompareSeqEarlyAbort>
 {
   loop
     {
@@ -2239,7 +2243,7 @@ unsafe fn compareseq (mut xoff: OFFSET! (), mut xlim: OFFSET! (), mut yoff: OFFS
             {
               NOTE_INSERT! (ctxt, yoff);
               if EARLY_ABORT! (ctxt)
-                { return true; }
+                { return Ok(true); }
               yoff += 1;
             }
           break;
@@ -2250,7 +2254,7 @@ unsafe fn compareseq (mut xoff: OFFSET! (), mut xlim: OFFSET! (), mut yoff: OFFS
             {
               NOTE_DELETE! (ctxt, xoff);
               if EARLY_ABORT! (ctxt)
-                { return true; }
+                { return Ok(true); }
               xoff += 1;
             }
           break;
@@ -2259,7 +2263,7 @@ unsafe fn compareseq (mut xoff: OFFSET! (), mut xlim: OFFSET! (), mut yoff: OFFS
       let mut part: partition = std::mem::zeroed ();
 
       /* Find a point of correspondence in the middle of the vectors.  */
-      diag (xoff, xlim, yoff, ylim, find_minimal, &mut part, ctxt);
+      diag (xoff, xlim, yoff, ylim, find_minimal, &mut part, ctxt)?;
 
       /* Use the partitions to split this problem into subproblems.  */
       let mut xoff1: OFFSET! ();
@@ -2299,9 +2303,9 @@ unsafe fn compareseq (mut xoff: OFFSET! (), mut xlim: OFFSET! (), mut yoff: OFFS
         }
 
       /* Recurse to do one subproblem.  */
-      let early: bool = compareseq (xoff1, xlim1, yoff1, ylim1, find_minimal1, ctxt);
+      let early: bool = compareseq (xoff1, xlim1, yoff1, ylim1, find_minimal1, ctxt)?;
       if early
-        { return early; }
+        { return Ok(early); }
 
       /* Iterate to do the other subproblem.  */
       xoff = xoff2; xlim = xlim2;
@@ -2309,7 +2313,7 @@ unsafe fn compareseq (mut xoff: OFFSET! (), mut xlim: OFFSET! (), mut yoff: OFFS
       find_minimal = find_minimal2;
     }
 
-  return false;
+  return Ok(false);
 }
 
 DEFUN! ("replace-region-contents", Freplace_region_contents, Sreplace_region_contents,
@@ -2512,10 +2516,11 @@ DEFUN! ("replace-region-contents", Freplace_region_contents, Sreplace_region_con
           ..std::mem::zeroed () };
 
       /* compareseq wants zero-based indices.  We add BEGV back later.  */
-      if sys_setjmp (&raw mut ctx.jmp as *mut jmp_buf) == 0
-        { early_abort = compareseq (0, size_a, 0, size_b, false, &mut ctx); }
-      else
-        { early_abort = true; }
+      early_abort = match compareseq (0, size_a, 0, size_b, false, &mut ctx)
+        {
+          Ok (aborted) => aborted,
+          Err (CompareSeqEarlyAbort) => true,
+        };
     }
   else
     { early_abort = true; }
@@ -2622,17 +2627,17 @@ unsafe fn bit_is_set (a: *const c_uchar, i: ptrdiff_t) -> bool
    diffseq.h's comment at editfns.c 2246-2259.)  */
 
 unsafe fn buffer_chars_equal (ctx: *mut context, pos_a: ptrdiff_t,
-                              pos_b: ptrdiff_t) -> bool
+                              pos_b: ptrdiff_t) -> Result<bool, CompareSeqEarlyAbort>
 {
   (*ctx).quitcounter = (*ctx).quitcounter.wrapping_add (1);
   if (*ctx).quitcounter == 0
     {
       maybe_quit ();
       if compareseq_early_abort (ctx)
-        { sys_longjmp (&raw mut (*ctx).jmp as *mut jmp_buf, 1); }
+        { return Err (CompareSeqEarlyAbort); }
     }
 
-  return *(*ctx).chars_a.offset (pos_a as isize) == *(*ctx).chars_b.offset (pos_b as isize);
+  return Ok (*(*ctx).chars_a.offset (pos_a as isize) == *(*ctx).chars_b.offset (pos_b as isize));
 }
 
 unsafe fn compareseq_early_abort (ctx: *mut context) -> bool
@@ -2642,12 +2647,12 @@ unsafe fn compareseq_early_abort (ctx: *mut context) -> bool
   return timespec_cmp ((*ctx).time_limit, current_timespec ()) < 0;
 }
 
-unsafe extern "C" fn subst_char_in_region_unwind (arg: Lisp_Object)
+unsafe extern "C-unwind" fn subst_char_in_region_unwind (arg: Lisp_Object)
 {
   bset_undo_list ((current_buffer! ()), arg);
 }
 
-unsafe extern "C" fn subst_char_in_region_unwind_1 (arg: Lisp_Object)
+unsafe extern "C-unwind" fn subst_char_in_region_unwind_1 (arg: Lisp_Object)
 {
   bset_filename ((current_buffer! ()), arg);
 }
@@ -3175,12 +3180,12 @@ unsafe fn labeled_restrictions_pop (buf: Lisp_Object)
 
 /* Unconditionally remove all labeled restrictions in current_buffer.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn labeled_restrictions_remove_in_current_buffer ()
+pub unsafe extern "C-unwind" fn labeled_restrictions_remove_in_current_buffer ()
 {
   labeled_restrictions_remove (Fcurrent_buffer ());
 }
 
-unsafe extern "C" fn unwind_reset_outermost_restriction (buf: Lisp_Object)
+unsafe extern "C-unwind" fn unwind_reset_outermost_restriction (buf: Lisp_Object)
 {
   let begv: Lisp_Object = labeled_restrictions_get_bound (buf, true, false);
   let zv: Lisp_Object = labeled_restrictions_get_bound (buf, false, false);
@@ -3201,7 +3206,7 @@ unsafe extern "C" fn unwind_reset_outermost_restriction (buf: Lisp_Object)
    (The reference's explanation of why this is necessary is
    editfns.c 2820-2830.)  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn reset_outermost_restrictions ()
+pub unsafe extern "C-unwind" fn reset_outermost_restrictions ()
 {
   let mut val: Lisp_Object;
   let mut buf: Lisp_Object;
@@ -3237,7 +3242,7 @@ unsafe fn labeled_restrictions_save () -> Lisp_Object
   return Fcons (buf, Fcopy_sequence (restrictions));
 }
 
-unsafe extern "C" fn labeled_restrictions_restore (buf_and_restrictions: Lisp_Object)
+unsafe extern "C-unwind" fn labeled_restrictions_restore (buf_and_restrictions: Lisp_Object)
 {
   let buf: Lisp_Object = XCAR (buf_and_restrictions);
   let restrictions: Lisp_Object = XCDR (buf_and_restrictions);
@@ -3246,7 +3251,7 @@ unsafe extern "C" fn labeled_restrictions_restore (buf_and_restrictions: Lisp_Ob
     { labeled_restrictions_add (buf, restrictions); }
 }
 
-unsafe extern "C" fn unwind_labeled_narrow_to_region (label: Lisp_Object)
+unsafe extern "C-unwind" fn unwind_labeled_narrow_to_region (label: Lisp_Object)
 {
   Finternal__labeled_widen (label);
 }
@@ -3254,7 +3259,7 @@ unsafe extern "C" fn unwind_labeled_narrow_to_region (label: Lisp_Object)
 /* Narrow current_buffer to BEGV-ZV with a restriction labeled with
    LABEL.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn labeled_narrow_to_region (begv: Lisp_Object, zv: Lisp_Object,
+pub unsafe extern "C-unwind" fn labeled_narrow_to_region (begv: Lisp_Object, zv: Lisp_Object,
                                                    label: Lisp_Object)
 {
   record_unwind_protect (Some (restore_point_unwind), Fpoint_marker ());
@@ -3471,7 +3476,7 @@ unsafe fn save_restriction_restore_1 (data: Lisp_Object)
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn save_restriction_save () -> Lisp_Object
+pub unsafe extern "C-unwind" fn save_restriction_save () -> Lisp_Object
 {
   let restriction: Lisp_Object = save_restriction_save_1 ();
   /* C's local shadows the file-scope `labeled_restrictions`; Rust cannot shadow a static
@@ -3481,7 +3486,7 @@ pub unsafe extern "C" fn save_restriction_save () -> Lisp_Object
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn save_restriction_restore (data: Lisp_Object)
+pub unsafe extern "C-unwind" fn save_restriction_restore (data: Lisp_Object)
 {
   labeled_restrictions_restore (XCDR (data));
   save_restriction_restore_1 (XCAR (data));
@@ -5158,7 +5163,7 @@ pub static mut Vuser_real_login_name: Lisp_Object = lisp_h_Qnil ();
 pub static mut Voperating_system_release: Lisp_Object = lisp_h_Qnil ();
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_editfns ()
+pub unsafe extern "C-unwind" fn syms_of_editfns ()
 {
   DEFSYM! (Qbuffer_access_fontify_functions, c"buffer-access-fontify-functions");
   DEFSYM! (Qwall, c"wall");

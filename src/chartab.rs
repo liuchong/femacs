@@ -184,7 +184,7 @@ pub struct charset_table
   pub attributes_table: Lisp_Object,
 }
 
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   /// C: charset.h 265: `extern struct charset_table charset_table;` (charset.c defines it).
   pub static mut charset_table: charset_table;
   /// C: charset.h 446: `extern Lisp_Object charset_work;` (charset.c defines it).
@@ -280,9 +280,9 @@ macro_rules! CHARTAB_IDX {
 
 /* Types of decoder and encoder functions for uniprop values.  */
 pub type uniprop_decoder_t =
-  Option<unsafe extern "C" fn (Lisp_Object, Lisp_Object) -> Lisp_Object>;
+  Option<unsafe extern "C-unwind" fn (Lisp_Object, Lisp_Object) -> Lisp_Object>;
 pub type uniprop_encoder_t =
-  Option<unsafe extern "C" fn (Lisp_Object, Lisp_Object) -> Lisp_Object>;
+  Option<unsafe extern "C-unwind" fn (Lisp_Object, Lisp_Object) -> Lisp_Object>;
 
 // C's forward declarations (C 64-68) of `uniprop_table_uncompress`,
 // `uniprop_get_decoder` and `sub_char_table_ref_and_range` are deleted; the definitions keep
@@ -408,7 +408,7 @@ unsafe fn copy_sub_char_table (table: Lisp_Object) -> Lisp_Object
 
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn copy_char_table (table: Lisp_Object) -> Lisp_Object
+pub unsafe extern "C-unwind" fn copy_char_table (table: Lisp_Object) -> Lisp_Object
 {
   let mut size: c_int = PVSIZE (table) as c_int;
   let mut copy: Lisp_Object = make_nil_vector (size as isize);
@@ -455,7 +455,7 @@ unsafe fn sub_char_table_ref (table: Lisp_Object, c: c_int, is_uniprop: bool) ->
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn char_table_ref (table: Lisp_Object, c: c_int) -> Lisp_Object
+pub unsafe extern "C-unwind" fn char_table_ref (table: Lisp_Object, c: c_int) -> Lisp_Object
 {
   let tbl: *mut Lisp_Char_Table = XCHAR_TABLE (table);
   let mut val: Lisp_Object;
@@ -549,7 +549,7 @@ unsafe fn sub_char_table_ref_and_range (table: Lisp_Object, c: c_int, from: *mut
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn char_table_ref_and_range (table: Lisp_Object, c: c_int,
+pub unsafe extern "C-unwind" fn char_table_ref_and_range (table: Lisp_Object, c: c_int,
 						   from: *mut c_int, to: *mut c_int)
   -> Lisp_Object
 {
@@ -632,7 +632,7 @@ unsafe fn sub_char_table_set (table: Lisp_Object, c: c_int, val: Lisp_Object,
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn char_table_set (table: Lisp_Object, c: c_int, val: Lisp_Object)
+pub unsafe extern "C-unwind" fn char_table_set (table: Lisp_Object, c: c_int, val: Lisp_Object)
 {
   let tbl: *mut Lisp_Char_Table = XCHAR_TABLE (table);
 
@@ -700,7 +700,7 @@ unsafe fn sub_char_table_set_range (table: Lisp_Object, from: c_int, to: c_int,
 
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn char_table_set_range (table: Lisp_Object, from: c_int, to: c_int,
+pub unsafe extern "C-unwind" fn char_table_set_range (table: Lisp_Object, from: c_int, to: c_int,
 					       val: Lisp_Object)
 {
   let tbl: *mut Lisp_Char_Table = XCHAR_TABLE (table);
@@ -959,7 +959,7 @@ DEFUN! ("optimize-char-table", Foptimize_char_table, Soptimize_char_table,
    of RANGE is updated to the minimum character C where C and all the
    following characters in TABLE have the same value.  */
 
-unsafe fn map_sub_char_table (c_function: Option<unsafe extern "C" fn (Lisp_Object, Lisp_Object, Lisp_Object)>,
+unsafe fn map_sub_char_table (c_function: Option<unsafe extern "C-unwind" fn (Lisp_Object, Lisp_Object, Lisp_Object)>,
 			      function: Lisp_Object, table: Lisp_Object, arg: Lisp_Object,
 			      mut val: Lisp_Object, range: Lisp_Object, top: Lisp_Object)
   -> Lisp_Object
@@ -1092,7 +1092,7 @@ unsafe fn map_sub_char_table (c_function: Option<unsafe extern "C" fn (Lisp_Obje
    ARG is passed to C_FUNCTION when that is called.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn map_char_table (c_function: Option<unsafe extern "C" fn (Lisp_Object, Lisp_Object, Lisp_Object)>,
+pub unsafe extern "C-unwind" fn map_char_table (c_function: Option<unsafe extern "C-unwind" fn (Lisp_Object, Lisp_Object, Lisp_Object)>,
 					 function: Lisp_Object, mut table: Lisp_Object,
 					 arg: Lisp_Object)
 {
@@ -1168,7 +1168,7 @@ DEFUN! ("map-char-table", Fmap_char_table, Smap_char_table,
 });
 
 
-unsafe fn map_sub_char_table_for_charset (c_function: Option<unsafe extern "C" fn (Lisp_Object, Lisp_Object)>,
+unsafe fn map_sub_char_table_for_charset (c_function: Option<unsafe extern "C-unwind" fn (Lisp_Object, Lisp_Object)>,
 					   function: Lisp_Object, table: Lisp_Object,
 					   arg: Lisp_Object, range: Lisp_Object,
 					   charset: *mut charset,
@@ -1264,7 +1264,7 @@ unsafe fn map_sub_char_table_for_charset (c_function: Option<unsafe extern "C" f
    map_charset_chars.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn map_char_table_for_charset (c_function: Option<unsafe extern "C" fn (Lisp_Object, Lisp_Object)>,
+pub unsafe extern "C-unwind" fn map_char_table_for_charset (c_function: Option<unsafe extern "C-unwind" fn (Lisp_Object, Lisp_Object)>,
 						     function: Lisp_Object,
 						     table: Lisp_Object, arg: Lisp_Object,
 						     charset: *mut charset,
@@ -1421,7 +1421,7 @@ unsafe fn uniprop_table_uncompress (table: Lisp_Object, idx: c_int) -> Lisp_Obje
 
 /* Decode VALUE as an element of char-table TABLE.  */
 
-unsafe extern "C" fn uniprop_decode_value_run_length (table: Lisp_Object,
+unsafe extern "C-unwind" fn uniprop_decode_value_run_length (table: Lisp_Object,
 						      mut value: Lisp_Object)
   -> Lisp_Object
 {
@@ -1458,7 +1458,7 @@ unsafe fn uniprop_get_decoder (table: Lisp_Object) -> uniprop_decoder_t
 /* Encode VALUE as an element of char-table TABLE which contains
    characters as elements.  */
 
-unsafe extern "C" fn uniprop_encode_value_character (table: Lisp_Object, value: Lisp_Object)
+unsafe extern "C-unwind" fn uniprop_encode_value_character (table: Lisp_Object, value: Lisp_Object)
   -> Lisp_Object
 {
   if ! NILP (value) && ! CHARACTERP (value)
@@ -1470,7 +1470,7 @@ unsafe extern "C" fn uniprop_encode_value_character (table: Lisp_Object, value: 
 /* Encode VALUE as an element of char-table TABLE which adopts RUN-LENGTH
    compression.  */
 
-unsafe extern "C" fn uniprop_encode_value_run_length (table: Lisp_Object,
+unsafe extern "C-unwind" fn uniprop_encode_value_run_length (table: Lisp_Object,
 						      mut value: Lisp_Object)
   -> Lisp_Object
 {
@@ -1496,7 +1496,7 @@ unsafe extern "C" fn uniprop_encode_value_run_length (table: Lisp_Object,
 /* Encode VALUE as an element of char-table TABLE which adopts RUN-LENGTH
    compression and contains numbers as elements.  */
 
-unsafe extern "C" fn uniprop_encode_value_numeric (table: Lisp_Object,
+unsafe extern "C-unwind" fn uniprop_encode_value_numeric (table: Lisp_Object,
 						   mut value: Lisp_Object)
   -> Lisp_Object
 {
@@ -1549,7 +1549,7 @@ unsafe fn uniprop_get_encoder (table: Lisp_Object) -> uniprop_decoder_t
    garbage-collection.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn uniprop_table (prop: Lisp_Object) -> Lisp_Object
+pub unsafe extern "C-unwind" fn uniprop_table (prop: Lisp_Object) -> Lisp_Object
 {
   let mut val: Lisp_Object;
   let mut table: Lisp_Object;
@@ -1603,7 +1603,7 @@ DEFUN! ("unicode-property-table-internal", Funicode_property_table_internal,
 });
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn get_unicode_property (char_table: Lisp_Object, ch: c_int)
+pub unsafe extern "C-unwind" fn get_unicode_property (char_table: Lisp_Object, ch: c_int)
   -> Lisp_Object
 {
   let val: Lisp_Object = CHAR_TABLE_REF (char_table, ch as isize);
@@ -1650,7 +1650,7 @@ DEFUN! ("put-unicode-property-internal", Fput_unicode_property_internal,
 pub static mut Vchar_code_property_alist: Lisp_Object = lisp_h_Qnil ();
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_chartab ()
+pub unsafe extern "C-unwind" fn syms_of_chartab ()
 {
   /* Purpose of uniprop tables. */
   DEFSYM! (Qchar_code_property_table, c"char-code-property-table");

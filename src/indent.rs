@@ -78,7 +78,7 @@ const _: () = ();
 
 /* The names C gets from headers whose mirrors do not carry them yet (the terminal.rs
    shape), each with C's own prototype in a `/// C:` line.  */
-unsafe extern "C" {
+unsafe extern "C-unwind" {
 
 
 
@@ -86,7 +86,7 @@ unsafe extern "C" {
 
 
   /// C: lisp.h 4825: `extern void record_unwind_protect_void (void (*) (void));`
-  fn record_unwind_protect_void (function: Option<unsafe extern "C" fn ()>);
+  fn record_unwind_protect_void (function: Option<unsafe extern "C-unwind" fn ()>);
   // window.h 1210/1216 (`decode_live_window`, `window_internal_height`) are the window.rs
   // mirror's now; the use-site copies are gone (P-26).
   /// C: window.h 1223: `extern int window_body_width (struct window *w, enum
@@ -476,7 +476,7 @@ pub static mut indent_tabs_mode: bool = false;
 /* Get the display table to use for the current buffer.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn buffer_display_table () -> *mut Lisp_Char_Table
+pub unsafe extern "C-unwind" fn buffer_display_table () -> *mut Lisp_Char_Table
 {
   let mut thisbuf: Lisp_Object = Qnil ();
 
@@ -526,7 +526,7 @@ unsafe fn character_width (c: c_int, dp: *mut Lisp_Char_Table) -> c_int
    invalidate the buffer's width_run_cache.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn disptab_matches_widthtab (disptab: *mut Lisp_Char_Table,
+pub unsafe extern "C-unwind" fn disptab_matches_widthtab (disptab: *mut Lisp_Char_Table,
 						   widthtab: *mut Lisp_Vector) -> bool
 {
   eassert! ((*widthtab).header.size == 256);
@@ -544,7 +544,7 @@ pub unsafe extern "C" fn disptab_matches_widthtab (disptab: *mut Lisp_Char_Table
 /* Recompute BUF's width table, using the display table DISPTAB.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn recompute_width_table (buf: *mut buffer,
+pub unsafe extern "C-unwind" fn recompute_width_table (buf: *mut buffer,
 						disptab: *mut Lisp_Char_Table)
 {
   let mut widthtab: *mut Lisp_Vector = std::ptr::null_mut ();
@@ -638,7 +638,7 @@ unsafe fn width_run_cache_on_off () -> *mut c_void
    will equal the return value.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn skip_invisible (pos: ptrdiff_t, next_boundary_p: *mut ptrdiff_t,
+pub unsafe extern "C-unwind" fn skip_invisible (pos: ptrdiff_t, next_boundary_p: *mut ptrdiff_t,
 					 to: ptrdiff_t, window: Lisp_Object) -> ptrdiff_t
 {
   let mut prop: Lisp_Object = Qnil ();
@@ -732,13 +732,13 @@ DEFUN! ("current-column", Fcurrent_column, Scurrent_column, 0, 0, 0,
 /* Cancel any recorded value of the horizontal position.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn invalidate_current_column ()
+pub unsafe extern "C-unwind" fn invalidate_current_column ()
 {
   last_known_column_point = 0;
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn current_column () -> ptrdiff_t
+pub unsafe extern "C-unwind" fn current_column () -> ptrdiff_t
 {
   let mut col: ptrdiff_t = 0;
   let mut ptr: *mut u8 = std::ptr::null_mut ();
@@ -1467,7 +1467,7 @@ unsafe fn position_indentation (pos_byte: ptrdiff_t) -> ptrdiff_t
    preceding line.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn indented_beyond_p (pos: ptrdiff_t, pos_byte: ptrdiff_t,
+pub unsafe extern "C-unwind" fn indented_beyond_p (pos: ptrdiff_t, pos_byte: ptrdiff_t,
 					     column: EMACS_INT) -> bool
 {
   let mut pos: ptrdiff_t = pos;
@@ -1616,7 +1616,7 @@ static mut val_compute_motion: position = position {
    the scroll bars if they are turned on.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn compute_motion (from: ptrdiff_t, frombyte: ptrdiff_t,
+pub unsafe extern "C-unwind" fn compute_motion (from: ptrdiff_t, frombyte: ptrdiff_t,
 					 fromvpos: EMACS_INT, fromhpos: EMACS_INT,
 					 did_motion: bool, to: ptrdiff_t,
 					 tovpos: EMACS_INT, tohpos: EMACS_INT,
@@ -2321,7 +2321,7 @@ static mut val_vmotion: position = position {
 };
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn vmotion (from: ptrdiff_t, from_byte: ptrdiff_t,
+pub unsafe extern "C-unwind" fn vmotion (from: ptrdiff_t, from_byte: ptrdiff_t,
 				  vtarget: EMACS_INT, w: *mut window) -> *mut position
 {
   let mut from: ptrdiff_t = from;
@@ -2452,7 +2452,7 @@ pub unsafe extern "C" fn vmotion (from: ptrdiff_t, from_byte: ptrdiff_t,
 
 /* Return the width taken by line-number display in window W.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn line_number_display_width (w: *mut window, width: *mut c_int,
+pub unsafe extern "C-unwind" fn line_number_display_width (w: *mut window, width: *mut c_int,
 						    pixel_width: *mut c_int)
 {
   if NILP (Vdisplay_line_numbers)
@@ -2545,7 +2545,7 @@ unsafe fn window_column_x (w: *mut window, window: Lisp_Object,
 /// C's prototype is `static void restore_window_buffer (Lisp_Object);` and the address is
 /// taken at both `record_unwind_protect` call sites, so the port's helper is
 /// `unsafe extern "C" fn` (PORTING.md 1.4: one ABI, the `floatfns.c` precedent).
-unsafe extern "C" fn restore_window_buffer (list: Lisp_Object)
+unsafe extern "C-unwind" fn restore_window_buffer (list: Lisp_Object)
 {
   let mut list: Lisp_Object = list;
   let w: *mut window = decode_live_window (XCAR (list));
@@ -2893,7 +2893,7 @@ DEFUN! ("vertical-motion", Fvertical_motion, Svertical_motion, 1, 3, 0,
 /* File's initialization.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_indent ()
+pub unsafe extern "C-unwind" fn syms_of_indent ()
 {
   DEFVAR_BOOL! (c"indent-tabs-mode", indent_tabs_mode,
 	       "Indentation can insert tabs if this is non-nil.  ");

@@ -111,15 +111,17 @@ const CLOCK_MONOTONIC_COARSE: c_int = 4;
 /* Declared at their use site; the mirrors this unit includes do not carry them.  (The
    time.in.rs mirror does carry `tzalloc`/`tzfree` now, so those two are read from it -
    PORTING.md 0.1-3/P-26 one spelling per construct.)  */
+unsafe extern "C-unwind" {
+  /* void synchronize_system_time_locale (void);  (lisp.h 5143)  */
+
+  /* void xputenv (char const *);  (lisp.h 5579)  */
+  fn xputenv (envvar: *const c_char);
+}
 unsafe extern "C" {
   /* int clock_gettime (clockid_t, struct timespec *);  */
   fn clock_gettime (clockid: c_int, tp: *mut timespec) -> c_int;
   /* clock_t clock (void);  */
   fn clock () -> clock_t;
-  /* void synchronize_system_time_locale (void);  (lisp.h 5143)  */
-
-  /* void xputenv (char const *);  (lisp.h 5579)  */
-  fn xputenv (envvar: *const c_char);
 }
 
 /// C: gnulib intprops.h's `INT_STRLEN_BOUND (t)` - `((TYPE_WIDTH (t) - TYPE_SIGNED (t)) *
@@ -213,7 +215,7 @@ unsafe fn trillion_factor (hz: Lisp_Object) -> bool
    Use the least timeval not less than T.
    Return an extremal value if the result would overflow.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn make_timeval (t: timespec) -> timeval
+pub unsafe extern "C-unwind" fn make_timeval (t: timespec) -> timeval
 {
   let mut tv: timeval = timeval { tv_sec: 0, tv_usec: 0 };
   tv.tv_sec = t.tv_sec;
@@ -246,7 +248,7 @@ pub unsafe extern "C" fn make_timeval (t: timespec) -> timeval
    should be appropriate for human time scales, e.g., better than 10 ms.
    Make do with realtime if such a clock is not available.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn monotonic_coarse_timespec () -> timespec
+pub unsafe extern "C-unwind" fn monotonic_coarse_timespec () -> timespec
 {
   let mut ts: timespec = std::mem::zeroed ();
   /* C 148-154: `#ifdef CLOCK_MONOTONIC_COARSE` is the Linux arm (dead here); the frozen
@@ -451,7 +453,7 @@ unsafe fn tzlookup (mut zone: Lisp_Object, settz: bool) -> timezone_t
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn init_timefns ()
+pub unsafe extern "C-unwind" fn init_timefns ()
 {
   let mut tz: *mut c_char = getenv (c"TZ".as_ptr ());
 
@@ -977,7 +979,7 @@ unsafe fn ticks_hz_seconds (t: ticks_hz) -> Lisp_Object
 
 /* Convert T to a Lisp timestamp.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn make_lisp_time (t: timespec) -> Lisp_Object
+pub unsafe extern "C-unwind" fn make_lisp_time (t: timespec) -> Lisp_Object
 {
   if current_time_list
     {
@@ -993,7 +995,7 @@ pub unsafe extern "C" fn make_lisp_time (t: timespec) -> Lisp_Object
 
 /* Return (TICKS . HZ) for time T.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn timespec_to_lisp (t: timespec) -> Lisp_Object
+pub unsafe extern "C-unwind" fn timespec_to_lisp (t: timespec) -> Lisp_Object
 {
   return Fcons (timespec_ticks (t), timespec_hz! ());
 }
@@ -1225,7 +1227,7 @@ unsafe fn decode_lisp_time (specified_time: Lisp_Object, cform: cform) -> c_time
 /* Convert a non-float Lisp timestamp SPECIFIED_TIME to double.
    Signal an error if unsuccessful.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn float_time (specified_time: Lisp_Object) -> c_double
+pub unsafe extern "C-unwind" fn float_time (specified_time: Lisp_Object) -> c_double
 {
   return decode_lisp_time (specified_time, CFORM_DOUBLE).d;
 }
@@ -1233,7 +1235,7 @@ pub unsafe extern "C" fn float_time (specified_time: Lisp_Object) -> c_double
 /* Convert (HIGH LOW USEC PSEC) to struct timespec.
    Return a valid timestamp if successful, an invalid one otherwise.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn list4_to_timespec (high: Lisp_Object, low: Lisp_Object,
+pub unsafe extern "C-unwind" fn list4_to_timespec (high: Lisp_Object, low: Lisp_Object,
 					    usec: Lisp_Object, psec: Lisp_Object) -> timespec
 {
   let err_time: err_time
@@ -1246,7 +1248,7 @@ pub unsafe extern "C" fn list4_to_timespec (high: Lisp_Object, low: Lisp_Object,
    If SPECIFIED_TIME is nil, use the current time.
    Signal an error if SPECIFIED_TIME does not represent a timespec.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn lisp_time_argument (specified_time: Lisp_Object) -> timespec
+pub unsafe extern "C-unwind" fn lisp_time_argument (specified_time: Lisp_Object) -> timespec
 {
   let t: timespec = decode_lisp_time (specified_time, CFORM_TIMESPEC).ts;
   if ! timespec_valid_p (t)
@@ -1997,7 +1999,7 @@ static mut tzvalbuf: *mut c_char = std::ptr::null_mut ();
 
 /* Get the local time zone rule.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn emacs_getenv_TZ () -> *mut c_char
+pub unsafe extern "C-unwind" fn emacs_getenv_TZ () -> *mut c_char
 {
   /* C 1997-2001: the frozen build takes `#ifndef MSDOS`; the `#else` arm is carried.  */
   #[cfg (not (feature = "msdos"))]
@@ -2015,7 +2017,7 @@ pub unsafe extern "C" fn emacs_getenv_TZ () -> *mut c_char
    that invoke localtime etc. may be adversely affected while this
    function is executing.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn emacs_setenv_TZ (tzstring: *const c_char) -> c_int
+pub unsafe extern "C-unwind" fn emacs_setenv_TZ (tzstring: *const c_char) -> c_int
 {
   /* C 2015-2084: the frozen build takes the `#ifndef MSDOS` arm; the `#else` arm is
      carried.  */
@@ -2096,7 +2098,7 @@ pub unsafe extern "C" fn emacs_setenv_TZ (tzstring: *const c_char) -> c_int
 }
 
 #[cfg (feature = "ztrillion_mpz")]
-unsafe extern "C" fn syms_of_timefns_for_pdumper ()
+unsafe extern "C-unwind" fn syms_of_timefns_for_pdumper ()
 {
   mpz_init_set_ui (ztrillion.as_mut_ptr (), 1000000);
   mpz_mul_ui (ztrillion.as_mut_ptr (), ztrillion.as_ptr (), 1000000);
@@ -2108,7 +2110,7 @@ unsafe extern "C" fn syms_of_timefns_for_pdumper ()
 pub static mut current_time_list: bool = false;
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_timefns ()
+pub unsafe extern "C-unwind" fn syms_of_timefns ()
 {
   /* C 2099-2106: the frozen build compiles neither `#ifndef` (the object macros are the
      live arm); both are carried (P-51).  */

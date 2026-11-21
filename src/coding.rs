@@ -76,7 +76,7 @@ const _: () = ();
    which the port's chain now carries (`src/include/lisp.rs`, status 3.524), so keeping the
    copies here was `E0428` against the mirror's own declarations.  */
 
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   /// C: lisp.h 4322: `extern void make_gap_1 (struct buffer *, ptrdiff_t);`
   fn make_gap_1 (b: *mut buffer, delta: ptrdiff_t);
   /// C: lisp.h 4349-4351: `extern Lisp_Object del_range_2 (ptrdiff_t, ptrdiff_t, ptrdiff_t, ptrdiff_t, bool);`
@@ -189,7 +189,7 @@ pub mod coding_fwd
 {
   use super::*;
 
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
 
     /// C: coding.h 695-697: `extern Lisp_Object decode_string_utf_8 (Lisp_Object, const char *, ptrdiff_t, Lisp_Object, bool, Lisp_Object, Lisp_Object);`
     pub fn decode_string_utf_8 (arg0: Lisp_Object, text: *const c_char, nbytes: ptrdiff_t,
@@ -879,7 +879,7 @@ pub const UTF_8_BOM_3: c_int = 0xBF;
 /* Unlike the other detect_coding_XXX, this function counts the number
    of characters and checks the EOL format.  */
 
-unsafe extern "C" fn detect_coding_utf_8 (coding: *mut coding_system,
+unsafe extern "C-unwind" fn detect_coding_utf_8 (coding: *mut coding_system,
                                detect_info: *mut coding_detection_info) -> bool
 {
   let mut src: *const c_uchar = (*coding).source;
@@ -1017,7 +1017,7 @@ unsafe extern "C" fn detect_coding_utf_8 (coding: *mut coding_system,
 }
 
 
-unsafe extern "C" fn decode_coding_utf_8 (coding: *mut coding_system)
+unsafe extern "C-unwind" fn decode_coding_utf_8 (coding: *mut coding_system)
 {
   let mut src: *const c_uchar = (*coding).source.offset ((*coding).consumed);
   let src_end: *const c_uchar = (*coding).source.offset ((*coding).src_bytes);
@@ -1239,7 +1239,7 @@ unsafe extern "C" fn decode_coding_utf_8 (coding: *mut coding_system)
 
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn encode_coding_utf_8 (coding: *mut coding_system) -> bool
+pub unsafe extern "C-unwind" fn encode_coding_utf_8 (coding: *mut coding_system) -> bool
 {
   let multibytep = dst_multibyte_p (coding);
   let mut charbuf: *mut c_int = (*coding).charbuf;
@@ -1382,7 +1382,7 @@ pub unsafe extern "C" fn encode_coding_utf_8 (coding: *mut coding_system) -> boo
 /* See the above "GENERAL NOTES on `detect_coding_XXX ()' functions".
    Return true if a text is encoded in one of UTF-16 based coding systems.  */
 
-unsafe extern "C" fn detect_coding_utf_16 (coding: *mut coding_system,
+unsafe extern "C-unwind" fn detect_coding_utf_16 (coding: *mut coding_system,
                                 detect_info: *mut coding_detection_info) -> bool
 {
   let mut src: *const c_uchar = (*coding).source;
@@ -1507,7 +1507,7 @@ unsafe extern "C" fn detect_coding_utf_16 (coding: *mut coding_system,
 }
 
 
-unsafe extern "C" fn decode_coding_utf_16 (coding: *mut coding_system)
+unsafe extern "C-unwind" fn decode_coding_utf_16 (coding: *mut coding_system)
 {
   let mut src: *const c_uchar = (*coding).source.offset ((*coding).consumed);
   let src_end: *const c_uchar = (*coding).source.offset ((*coding).src_bytes);
@@ -1660,7 +1660,7 @@ unsafe extern "C" fn decode_coding_utf_16 (coding: *mut coding_system)
   (*coding).charbuf_used = charbuf.offset_from ((*coding).charbuf) as c_int;
 }
 
-unsafe extern "C" fn encode_coding_utf_16 (coding: *mut coding_system) -> bool
+unsafe extern "C-unwind" fn encode_coding_utf_16 (coding: *mut coding_system) -> bool
 {
   let multibytep = dst_multibyte_p (coding);
   let mut charbuf: *mut c_int = (*coding).charbuf;
@@ -1839,7 +1839,7 @@ unsafe extern "C" fn encode_coding_utf_16 (coding: *mut coding_system) -> bool
 /* See the above "GENERAL NOTES on `detect_coding_XXX ()' functions".
    Return true if a text is encoded in 'emacs-mule'.  */
 
-unsafe extern "C" fn detect_coding_emacs_mule (coding: *mut coding_system,
+unsafe extern "C-unwind" fn detect_coding_emacs_mule (coding: *mut coding_system,
                                     detect_info: *mut coding_detection_info) -> bool
 {
   let mut src: *const c_uchar = (*coding).source;
@@ -2200,7 +2200,7 @@ unsafe fn emacs_mule_finish_composition (charbuf: *mut c_int,
   return new_chars;
 }
 
-unsafe extern "C" fn decode_coding_emacs_mule (coding: *mut coding_system)
+unsafe extern "C-unwind" fn decode_coding_emacs_mule (coding: *mut coding_system)
 {
   let mut src: *const c_uchar = (*coding).source.offset ((*coding).consumed);
   let mut src_end: *const c_uchar = (*coding).source.offset ((*coding).src_bytes);
@@ -2654,7 +2654,7 @@ unsafe extern "C" fn decode_coding_emacs_mule (coding: *mut coding_system)
 }
 
 
-unsafe extern "C" fn encode_coding_emacs_mule (coding: *mut coding_system) -> bool
+unsafe extern "C-unwind" fn encode_coding_emacs_mule (coding: *mut coding_system) -> bool
 {
   let multibytep = dst_multibyte_p (coding);
   let mut charbuf: *mut c_int = (*coding).charbuf;
@@ -2941,7 +2941,7 @@ unsafe fn setup_iso_safe_charsets (attrs: Lisp_Object)
    Return true if a text is encoded in one of ISO-2022 based coding
    systems.  */
 
-unsafe extern "C" fn detect_coding_iso_2022 (coding: *mut coding_system,
+unsafe extern "C-unwind" fn detect_coding_iso_2022 (coding: *mut coding_system,
                                   detect_info: *mut coding_detection_info) -> bool
 {
   let mut src: *const c_uchar = (*coding).source;
@@ -3314,7 +3314,7 @@ unsafe fn finish_composition (charbuf: *mut c_int, cmp_status: *mut composition_
   return new_chars;
 }
 
-unsafe extern "C" fn decode_coding_iso_2022 (coding: *mut coding_system)
+unsafe extern "C-unwind" fn decode_coding_iso_2022 (coding: *mut coding_system)
 {
   let mut src: *const c_uchar = (*coding).source.offset ((*coding).consumed);
   let mut src_end: *const c_uchar = (*coding).source.offset ((*coding).src_bytes);
@@ -4487,7 +4487,7 @@ unsafe fn encode_designation_at_bol (coding: *mut coding_system,
   return dst.offset_from (orig);
 }
 
-unsafe extern "C" fn encode_coding_iso_2022 (coding: *mut coding_system) -> bool
+unsafe extern "C-unwind" fn encode_coding_iso_2022 (coding: *mut coding_system) -> bool
 {
   let multibytep = dst_multibyte_p (coding);
   let mut charbuf: *mut c_int = (*coding).charbuf;
@@ -5011,7 +5011,7 @@ unsafe extern "C" fn encode_coding_iso_2022 (coding: *mut coding_system) -> bool
 /* See the above "GENERAL NOTES on `detect_coding_XXX ()' functions".
    Return true if a text is encoded in SJIS.  */
 
-unsafe extern "C" fn detect_coding_sjis (coding: *mut coding_system,
+unsafe extern "C-unwind" fn detect_coding_sjis (coding: *mut coding_system,
 			      detect_info: *mut coding_detection_info) -> bool
 {
   let mut src: *const c_uchar = (*coding).source;
@@ -5095,7 +5095,7 @@ unsafe extern "C" fn detect_coding_sjis (coding: *mut coding_system,
 /* See the above "GENERAL NOTES on `detect_coding_XXX ()' functions".
    Return true if a text is encoded in BIG5.  */
 
-unsafe extern "C" fn detect_coding_big5 (coding: *mut coding_system,
+unsafe extern "C-unwind" fn detect_coding_big5 (coding: *mut coding_system,
 			      detect_info: *mut coding_detection_info) -> bool
 {
   let mut src: *const c_uchar = (*coding).source;
@@ -5169,7 +5169,7 @@ unsafe extern "C" fn detect_coding_big5 (coding: *mut coding_system,
 
 /* See the above "GENERAL NOTES on `decode_coding_XXX ()' functions".  */
 
-unsafe extern "C" fn decode_coding_sjis (coding: *mut coding_system)
+unsafe extern "C-unwind" fn decode_coding_sjis (coding: *mut coding_system)
 {
   let mut src: *const c_uchar = (*coding).source.offset ((*coding).consumed);
   let mut src_end: *const c_uchar = (*coding).source.offset ((*coding).src_bytes);
@@ -5359,7 +5359,7 @@ unsafe extern "C" fn decode_coding_sjis (coding: *mut coding_system)
   (*coding).charbuf_used = charbuf.offset_from ((*coding).charbuf) as c_int;
 }
 
-unsafe extern "C" fn decode_coding_big5 (coding: *mut coding_system)
+unsafe extern "C-unwind" fn decode_coding_big5 (coding: *mut coding_system)
 {
   let mut src: *const c_uchar = (*coding).source.offset ((*coding).consumed);
   let mut src_end: *const c_uchar = (*coding).source.offset ((*coding).src_bytes);
@@ -5529,7 +5529,7 @@ unsafe extern "C" fn decode_coding_big5 (coding: *mut coding_system)
    (i.e. do not have extended leading-codes).  Characters of other
    charsets are produced without any encoding.  */
 
-unsafe extern "C" fn encode_coding_sjis (coding: *mut coding_system) -> bool
+unsafe extern "C-unwind" fn encode_coding_sjis (coding: *mut coding_system) -> bool
 {
   let multibytep = dst_multibyte_p (coding);
   let mut charbuf: *mut c_int = (*coding).charbuf;
@@ -5704,7 +5704,7 @@ unsafe extern "C" fn encode_coding_sjis (coding: *mut coding_system) -> bool
   return false;
 }
 
-unsafe extern "C" fn encode_coding_big5 (coding: *mut coding_system) -> bool
+unsafe extern "C-unwind" fn encode_coding_big5 (coding: *mut coding_system) -> bool
 {
   let multibytep = dst_multibyte_p (coding);
   let mut charbuf: *mut c_int = (*coding).charbuf;
@@ -5861,7 +5861,7 @@ unsafe extern "C" fn encode_coding_big5 (coding: *mut coding_system) -> bool
    Return true if a text is encoded in a coding system of which
    encoder/decoder are written in CCL program.  */
 
-unsafe extern "C" fn detect_coding_ccl (mut coding: *mut coding_system,
+unsafe extern "C-unwind" fn detect_coding_ccl (mut coding: *mut coding_system,
 			     detect_info: *mut coding_detection_info) -> bool
 {
   let mut src: *const c_uchar = (*coding).source;
@@ -5928,7 +5928,7 @@ unsafe extern "C" fn detect_coding_ccl (mut coding: *mut coding_system,
   return true;
 }
 
-unsafe extern "C" fn decode_coding_ccl (coding: *mut coding_system)
+unsafe extern "C-unwind" fn decode_coding_ccl (coding: *mut coding_system)
 {
   let mut src: *const c_uchar = (*coding).source.offset ((*coding).consumed);
   let mut src_end: *const c_uchar = (*coding).source.offset ((*coding).src_bytes);
@@ -6014,7 +6014,7 @@ unsafe extern "C" fn decode_coding_ccl (coding: *mut coding_system)
   (*coding).charbuf_used = charbuf.offset_from ((*coding).charbuf) as c_int;
 }
 
-unsafe extern "C" fn encode_coding_ccl (coding: *mut coding_system) -> bool
+unsafe extern "C-unwind" fn encode_coding_ccl (coding: *mut coding_system) -> bool
 {
   let ccl: *mut ccl_program = &raw mut (*((*coding).spec.ccl as *mut ccl_spec)).ccl;
   let multibytep = dst_multibyte_p (coding);
@@ -6124,7 +6124,7 @@ unsafe extern "C" fn encode_coding_ccl (coding: *mut coding_system) -> bool
 
 /* See the above "GENERAL NOTES on `decode_coding_XXX ()' functions".  */
 
-unsafe extern "C" fn decode_coding_raw_text (coding: *mut coding_system)
+unsafe extern "C-unwind" fn decode_coding_raw_text (coding: *mut coding_system)
 {
   let eol_dos
     = !inhibit_eol_conversion && EQ (CODING_ID_EOL_TYPE ((*coding).id as hash_idx_t), Qdos ());
@@ -6145,7 +6145,7 @@ unsafe extern "C" fn decode_coding_raw_text (coding: *mut coding_system)
 }
 
 
-unsafe extern "C" fn encode_coding_raw_text (coding: *mut coding_system) -> bool
+unsafe extern "C-unwind" fn encode_coding_raw_text (coding: *mut coding_system) -> bool
 {
   let multibytep = dst_multibyte_p (coding);
   let mut charbuf: *mut c_int = (*coding).charbuf;
@@ -6272,7 +6272,7 @@ unsafe extern "C" fn encode_coding_raw_text (coding: *mut coding_system) -> bool
 /* See the above "GENERAL NOTES on `detect_coding_XXX ()' functions".
    Return true if a text is encoded in a charset-based coding system.  */
 
-unsafe extern "C" fn detect_coding_charset (mut coding: *mut coding_system,
+unsafe extern "C-unwind" fn detect_coding_charset (mut coding: *mut coding_system,
 				 detect_info: *mut coding_detection_info) -> bool
 {
   let mut src: *const c_uchar = (*coding).source;
@@ -6412,7 +6412,7 @@ unsafe extern "C" fn detect_coding_charset (mut coding: *mut coding_system,
   return true;
 }
 
-unsafe extern "C" fn decode_coding_charset (coding: *mut coding_system)
+unsafe extern "C-unwind" fn decode_coding_charset (coding: *mut coding_system)
 {
   let mut src: *const c_uchar = (*coding).source.offset ((*coding).consumed);
   let mut src_end: *const c_uchar = (*coding).source.offset ((*coding).src_bytes);
@@ -6608,7 +6608,7 @@ unsafe extern "C" fn decode_coding_charset (coding: *mut coding_system)
   (*coding).charbuf_used = charbuf.offset_from ((*coding).charbuf) as c_int;
 }
 
-unsafe extern "C" fn encode_coding_charset (coding: *mut coding_system) -> bool
+unsafe extern "C-unwind" fn encode_coding_charset (coding: *mut coding_system) -> bool
 {
   let multibytep = dst_multibyte_p (coding);
   let mut charbuf: *mut c_int = (*coding).charbuf;
@@ -6773,7 +6773,7 @@ unsafe extern "C" fn encode_coding_charset (coding: *mut coding_system) -> bool
    CODING_SYSTEM is invalid, signal an error.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn setup_coding_system (coding_system: Lisp_Object,
+pub unsafe extern "C-unwind" fn setup_coding_system (coding_system: Lisp_Object,
 					      coding: *mut coding_system)
 {
   let mut coding_system: Lisp_Object = coding_system;
@@ -6996,7 +6996,7 @@ pub unsafe extern "C" fn setup_coding_system (coding_system: Lisp_Object,
 /* Return a list of charsets supported by CODING.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn coding_charset_list (coding: *mut coding_system) -> Lisp_Object
+pub unsafe extern "C-unwind" fn coding_charset_list (coding: *mut coding_system) -> Lisp_Object
 {
   let mut attrs: Lisp_Object;
   let mut charset_list: Lisp_Object;
@@ -7020,7 +7020,7 @@ pub unsafe extern "C" fn coding_charset_list (coding: *mut coding_system) -> Lis
 /* Return a list of charsets supported by CODING-SYSTEM.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn coding_system_charset_list (coding_system: Lisp_Object) -> Lisp_Object
+pub unsafe extern "C-unwind" fn coding_system_charset_list (coding_system: Lisp_Object) -> Lisp_Object
 {
   let mut id: ptrdiff_t;
   let mut attrs: Lisp_Object;
@@ -7054,7 +7054,7 @@ pub unsafe extern "C" fn coding_system_charset_list (coding_system: Lisp_Object)
    eol_type as CODING-SYSTEM.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn raw_text_coding_system (coding_system: Lisp_Object) -> Lisp_Object
+pub unsafe extern "C-unwind" fn raw_text_coding_system (coding_system: Lisp_Object) -> Lisp_Object
 {
   let mut spec: Lisp_Object;
   let mut attrs: Lisp_Object;
@@ -7082,7 +7082,7 @@ pub unsafe extern "C" fn raw_text_coding_system (coding_system: Lisp_Object) -> 
 /* Return true if CODING corresponds to raw-text coding-system.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn raw_text_coding_system_p (coding: *mut coding_system) -> bool
+pub unsafe extern "C-unwind" fn raw_text_coding_system_p (coding: *mut coding_system) -> bool
 {
   return if (*coding).decoder == Some (decode_coding_raw_text)
 	   && (*coding).encoder == Some (encode_coding_raw_text) { true } else { false };
@@ -7094,7 +7094,7 @@ pub unsafe extern "C" fn raw_text_coding_system_p (coding: *mut coding_system) -
    nil and specifies end-of-line format) or the system's setting.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn coding_inherit_eol_type (coding_system: Lisp_Object,
+pub unsafe extern "C-unwind" fn coding_inherit_eol_type (coding_system: Lisp_Object,
 						  parent: Lisp_Object) -> Lisp_Object
 {
   let mut coding_system: Lisp_Object = coding_system;
@@ -7140,7 +7140,7 @@ pub unsafe extern "C" fn coding_inherit_eol_type (coding_system: Lisp_Object,
    return a new coding system.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn complement_process_encoding_system (coding_system: Lisp_Object) -> Lisp_Object
+pub unsafe extern "C-unwind" fn complement_process_encoding_system (coding_system: Lisp_Object) -> Lisp_Object
 {
   let mut coding_system: Lisp_Object = coding_system;
   let mut coding_base: Lisp_Object = Qnil ();
@@ -7361,7 +7361,7 @@ pub mod make_string_from_utf8_def {
   use super::*;
 
   #[unsafe(no_mangle)]
-  pub unsafe extern "C" fn make_string_from_utf8 (text: *const c_char, nbytes: ptrdiff_t) -> Lisp_Object
+  pub unsafe extern "C-unwind" fn make_string_from_utf8 (text: *const c_char, nbytes: ptrdiff_t) -> Lisp_Object
   {
     /* C 6338-6361 is `#if 0`/`#else`: the slow parse_str_as_multibyte implementation is dead
        in every configuration and the `#else` arm is live (docs/ports/coding.md).  */
@@ -9112,7 +9112,7 @@ static mut Vcode_conversion_reused_workbuf: Lisp_Object = lisp_h_Qnil ();
 /* True iff Vcode_conversion_reused_workbuf is already in use.  */
 static mut reused_workbuf_in_use: bool = false;
 
-unsafe extern "C" fn code_conversion_restore (arg: Lisp_Object)
+unsafe extern "C-unwind" fn code_conversion_restore (arg: Lisp_Object)
 {
   let current: Lisp_Object;
   let workbuf: Lisp_Object;
@@ -9130,7 +9130,7 @@ unsafe extern "C" fn code_conversion_restore (arg: Lisp_Object)
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn code_conversion_save (with_work_buf: bool, multibyte: bool) -> Lisp_Object
+pub unsafe extern "C-unwind" fn code_conversion_save (with_work_buf: bool, multibyte: bool) -> Lisp_Object
 {
   let mut workbuf: Lisp_Object = Qnil ();
 
@@ -9175,7 +9175,7 @@ pub unsafe extern "C" fn code_conversion_save (with_work_buf: bool, multibyte: b
   return workbuf;
 }
 
-unsafe extern "C" fn coding_restore_undo_list (arg: Lisp_Object)
+unsafe extern "C-unwind" fn coding_restore_undo_list (arg: Lisp_Object)
 {
   let undo_list: Lisp_Object = XCAR (arg);
   let buf: *mut buffer = XBUFFER (XCDR (arg));
@@ -9191,7 +9191,7 @@ pub mod decode_coding_gap_def {
   use super::*;
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn decode_coding_gap (coding: *mut coding_system, mut bytes: ptrdiff_t)
+pub unsafe extern "C-unwind" fn decode_coding_gap (coding: *mut coding_system, mut bytes: ptrdiff_t)
 {
   let mut count: specpdl_ref = SPECPDL_INDEX ();
   let mut attrs: Lisp_Object;
@@ -9361,7 +9361,7 @@ use decode_coding_gap_def::*;
    `decode_coding_gap_def` device; reported as a mirror gap in docs/ports/coding.md).  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn decode_coding_object (coding: *mut coding_system,
+pub unsafe extern "C-unwind" fn decode_coding_object (coding: *mut coding_system,
 					       src_object: Lisp_Object,
 					       from: ptrdiff_t, from_byte: ptrdiff_t,
 					       to: ptrdiff_t, to_byte: ptrdiff_t,
@@ -9614,7 +9614,7 @@ pub unsafe extern "C" fn decode_coding_object (coding: *mut coding_system,
    `decode_coding_gap_def` device; reported as a mirror gap in docs/ports/coding.md).  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn encode_coding_object (coding: *mut coding_system,
+pub unsafe extern "C-unwind" fn encode_coding_object (coding: *mut coding_system,
 					       src_object: Lisp_Object,
 					       mut from: ptrdiff_t, mut from_byte: ptrdiff_t,
 					       to: ptrdiff_t, to_byte: ptrdiff_t,
@@ -9857,7 +9857,7 @@ pub unsafe extern "C" fn encode_coding_object (coding: *mut coding_system,
 /* `src/coding.rs`'s `coding_fwd` module declares `preferred_coding_system` (coding.h
    780), and the definition shadows that glob import (PORTING.md 0.1-10).  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn preferred_coding_system () -> Lisp_Object
+pub unsafe extern "C-unwind" fn preferred_coding_system () -> Lisp_Object
 {
   let id: c_int = coding_categories[coding_priorities[0] as usize].id as c_int;
 
@@ -9871,7 +9871,7 @@ pub unsafe extern "C" fn preferred_coding_system () -> Lisp_Object
    The port writes the Android arm; `WINDOWSNT`/`CYGWIN` are not targets of this repository.  */
 #[cfg (feature = "have_android")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn from_unicode (mut str_: Lisp_Object) -> Lisp_Object
+pub unsafe extern "C-unwind" fn from_unicode (mut str_: Lisp_Object) -> Lisp_Object
 {
   CHECK_STRING (str_);
   if ! STRING_MULTIBYTE (str_) && (SBYTES (str_) & 1) != 0
@@ -9890,7 +9890,7 @@ unsafe extern "C" {
 
 #[cfg (feature = "have_android")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn from_unicode_buffer (wstr: *const wchar_t) -> Lisp_Object
+pub unsafe extern "C-unwind" fn from_unicode_buffer (wstr: *const wchar_t) -> Lisp_Object
 {
   let length: ptrdiff_t = wcslen (wstr) as ptrdiff_t;
 
@@ -9915,7 +9915,7 @@ pub unsafe extern "C" fn from_unicode_buffer (wstr: *const wchar_t) -> Lisp_Obje
 
 #[cfg (feature = "have_android")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn to_unicode (str_: Lisp_Object, buf: *mut Lisp_Object) -> *mut wchar_t
+pub unsafe extern "C-unwind" fn to_unicode (str_: Lisp_Object, buf: *mut Lisp_Object) -> *mut wchar_t
 {
   *buf = code_convert_string_norecord (str_, Qutf_16le (), true);
   /* C 8581-8588: "We need to make another copy ... to ensure that the final string is _doubly_
@@ -10014,7 +10014,7 @@ DEFUN! ("check-coding-system", Fcheck_coding_system, Scheck_coding_system,
    detect only text-format.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn detect_coding_system (mut src: *const c_uchar,
+pub unsafe extern "C-unwind" fn detect_coding_system (mut src: *const c_uchar,
 					       src_chars: ptrdiff_t, src_bytes: ptrdiff_t,
 					       highest: bool, multibytep: bool,
 					       mut coding_system: Lisp_Object) -> Lisp_Object
@@ -10853,7 +10853,7 @@ DEFUN! ("encode-coding-region", Fencode_coding_region, Sencode_coding_region,
 
 /* Whether STRING only contains chars in the 0..127 range.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn string_ascii_p (string: Lisp_Object) -> bool
+pub unsafe extern "C-unwind" fn string_ascii_p (string: Lisp_Object) -> bool
 {
   let nbytes: ptrdiff_t = SBYTES (string);
   let mut i: ptrdiff_t = 0;
@@ -10867,7 +10867,7 @@ pub unsafe extern "C" fn string_ascii_p (string: Lisp_Object) -> bool
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn code_convert_string (string: Lisp_Object,
+pub unsafe extern "C-unwind" fn code_convert_string (string: Lisp_Object,
 					      mut coding_system: Lisp_Object,
 					      mut dst_object: Lisp_Object,
 					      encodep: bool, nocopy: bool,
@@ -10953,7 +10953,7 @@ pub mod code_convert_string_norecord_def {
   use super::*;
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn code_convert_string_norecord (string: Lisp_Object,
+pub unsafe extern "C-unwind" fn code_convert_string_norecord (string: Lisp_Object,
 						      coding_system: Lisp_Object,
 						      encodep: bool) -> Lisp_Object
 {
@@ -11044,7 +11044,7 @@ pub mod decode_file_name_def {
   use super::*;
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn decode_file_name (fname: Lisp_Object) -> Lisp_Object
+pub unsafe extern "C-unwind" fn decode_file_name (fname: Lisp_Object) -> Lisp_Object
 {
   /* C 10432-10438 is `#ifdef WINDOWSNT`, dead in the frozen configuration; the `#else`
      arm below is live (docs/ports/coding.md).  */
@@ -11083,7 +11083,7 @@ pub mod encode_file_name_def {
   use super::*;
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn encode_file_name (fname: Lisp_Object) -> Lisp_Object
+pub unsafe extern "C-unwind" fn encode_file_name (fname: Lisp_Object) -> Lisp_Object
 {
   let encoded: Lisp_Object = encode_file_name_1 (fname);
   /* No system accepts NUL bytes in filenames.  Allowing them can
@@ -11626,7 +11626,7 @@ unsafe fn make_subsidiaries (base: Lisp_Object) -> Lisp_Object
    if such input strings are not allowed.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn encode_string_utf_8 (string: Lisp_Object, buffer: Lisp_Object,
+pub unsafe extern "C-unwind" fn encode_string_utf_8 (string: Lisp_Object, buffer: Lisp_Object,
 					       nocopy: bool, handle_8_bit: Lisp_Object,
 					       handle_over_uni: Lisp_Object) -> Lisp_Object
 {
@@ -11913,7 +11913,7 @@ pub unsafe extern "C" fn encode_string_utf_8 (string: Lisp_Object, buffer: Lisp_
 /* `src/coding.rs`'s `coding_fwd` module declares `decode_string_utf_8` (coding.h
    695-697), and the definition shadows that glob import (PORTING.md 0.1-10).  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn decode_string_utf_8 (string: Lisp_Object, str: *const c_char,
+pub unsafe extern "C-unwind" fn decode_string_utf_8 (string: Lisp_Object, str: *const c_char,
 					      str_len: ptrdiff_t, buffer: Lisp_Object,
 					      nocopy: bool, handle_8_bit: Lisp_Object,
 					      handle_over_uni: Lisp_Object) -> Lisp_Object
@@ -12930,7 +12930,7 @@ DEFUN! ("coding-system-eol-type", Fcoding_system_eol_type,
 /*** 9. Post-amble ***/
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn init_coding_once ()
+pub unsafe extern "C-unwind" fn init_coding_once ()
 {
   let mut i: c_int;
 
@@ -12997,7 +12997,7 @@ pub unsafe extern "C" fn init_coding_once ()
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_coding ()
+pub unsafe extern "C-unwind" fn syms_of_coding ()
 {
   staticpro (&raw const Vcoding_system_hash_table);
   Vcoding_system_hash_table = CALLN! (Fmake_hash_table, QCtest (), Qeq ());
@@ -13381,7 +13381,7 @@ pub unsafe extern "C" fn syms_of_coding ()
   DEFSYM! (Qdefine_coding_system_internal, c"define-coding-system-internal");
 }
 
-unsafe extern "C" fn reset_coding_after_pdumper_load ()
+unsafe extern "C-unwind" fn reset_coding_after_pdumper_load ()
 {
   if ! dumped_with_pdumper_p ()
     { return; }

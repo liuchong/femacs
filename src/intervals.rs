@@ -123,7 +123,7 @@ unsafe fn copy_interval_parent (d: INTERVAL, s: INTERVAL)
 /* Create the root interval of some object, a buffer or string.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn create_root_interval (parent: Lisp_Object) -> INTERVAL
+pub unsafe extern "C-unwind" fn create_root_interval (parent: Lisp_Object) -> INTERVAL
 {
   let mut new: INTERVAL = std::ptr::null_mut ();
 
@@ -154,7 +154,7 @@ pub unsafe extern "C" fn create_root_interval (parent: Lisp_Object) -> INTERVAL
 /* Make the interval TARGET have exactly the properties of SOURCE.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn copy_properties (source: INTERVAL, target: INTERVAL)
+pub unsafe extern "C-unwind" fn copy_properties (source: INTERVAL, target: INTERVAL)
 {
   if DEFAULT_INTERVAL_P! (source) && DEFAULT_INTERVAL_P! (target)
     { return; }
@@ -263,7 +263,7 @@ unsafe fn intervals_equal_1 (i0: INTERVAL, i1: INTERVAL, use_equal: bool) -> boo
 /* Return true if the two intervals have the same properties.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn intervals_equal (i0: INTERVAL, i1: INTERVAL) -> bool
+pub unsafe extern "C-unwind" fn intervals_equal (i0: INTERVAL, i1: INTERVAL) -> bool
 {
   return intervals_equal_1 (i0, i1, false);
 }
@@ -274,8 +274,8 @@ pub unsafe extern "C" fn intervals_equal (i0: INTERVAL, i1: INTERVAL) -> bool
    Pass FUNCTION two args: an interval, and ARG.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn traverse_intervals_noorder (mut tree: INTERVAL,
-    function: Option<unsafe extern "C" fn (INTERVAL, *mut c_void)>, arg: *mut c_void)
+pub unsafe extern "C-unwind" fn traverse_intervals_noorder (mut tree: INTERVAL,
+    function: Option<unsafe extern "C-unwind" fn (INTERVAL, *mut c_void)>, arg: *mut c_void)
 {
   /* Minimize stack usage.  */
   while ! tree.is_null ()
@@ -296,8 +296,8 @@ pub unsafe extern "C" fn traverse_intervals_noorder (mut tree: INTERVAL,
    Pass FUNCTION two args: an interval, and ARG.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn traverse_intervals (mut tree: INTERVAL, mut position: ptrdiff_t,
-    function: Option<unsafe extern "C" fn (INTERVAL, *mut c_void)>, arg: *mut c_void)
+pub unsafe extern "C-unwind" fn traverse_intervals (mut tree: INTERVAL, mut position: ptrdiff_t,
+    function: Option<unsafe extern "C-unwind" fn (INTERVAL, *mut c_void)>, arg: *mut c_void)
 {
   while ! tree.is_null ()
     {
@@ -501,7 +501,7 @@ unsafe fn balance_intervals_internal (tree: INTERVAL) -> INTERVAL
 /* Advertised interface to balance intervals.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn balance_intervals (tree: INTERVAL) -> INTERVAL
+pub unsafe extern "C-unwind" fn balance_intervals (tree: INTERVAL) -> INTERVAL
 {
   return if ! tree.is_null () { balance_intervals_internal (tree) }
 	 else { std::ptr::null_mut () };
@@ -533,7 +533,7 @@ unsafe fn buffer_balance_intervals (b: *mut buffer)
    it is still a root after this operation.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn split_interval_right (interval: INTERVAL, offset: ptrdiff_t) -> INTERVAL
+pub unsafe extern "C-unwind" fn split_interval_right (interval: INTERVAL, offset: ptrdiff_t) -> INTERVAL
 {
   let new: INTERVAL = make_interval ();
   let position: ptrdiff_t = (*((interval) as *mut interval)).position;
@@ -578,7 +578,7 @@ pub unsafe extern "C" fn split_interval_right (interval: INTERVAL, offset: ptrdi
    it is still a root after this operation.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn split_interval_left (interval: INTERVAL, offset: ptrdiff_t) -> INTERVAL
+pub unsafe extern "C-unwind" fn split_interval_left (interval: INTERVAL, offset: ptrdiff_t) -> INTERVAL
 {
   let new: INTERVAL = make_interval ();
   let new_length: ptrdiff_t = offset;
@@ -644,7 +644,7 @@ unsafe fn interval_start_pos (source: INTERVAL) -> c_int
    will update this cache based on the result of find_interval.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn find_interval (mut tree: INTERVAL, position: ptrdiff_t) -> INTERVAL
+pub unsafe extern "C-unwind" fn find_interval (mut tree: INTERVAL, position: ptrdiff_t) -> INTERVAL
 {
   /* The distance from the left edge of the subtree at TREE
                     to POSITION.  */
@@ -697,7 +697,7 @@ pub unsafe extern "C" fn find_interval (mut tree: INTERVAL, position: ptrdiff_t)
    find_interval).  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn next_interval (interval: INTERVAL) -> INTERVAL
+pub unsafe extern "C-unwind" fn next_interval (interval: INTERVAL) -> INTERVAL
 {
   let mut i: INTERVAL = interval;
   let mut next_position: ptrdiff_t = 0;
@@ -736,7 +736,7 @@ pub unsafe extern "C" fn next_interval (interval: INTERVAL) -> INTERVAL
    find_interval).  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn previous_interval (interval: INTERVAL) -> INTERVAL
+pub unsafe extern "C-unwind" fn previous_interval (interval: INTERVAL) -> INTERVAL
 {
   let mut i: INTERVAL = std::ptr::null_mut ();
 
@@ -788,7 +788,7 @@ macro_rules! SET_PARENT_POSITION {
    argument I.  We don't assume that any other interval already has a
    correctly set ->position.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn update_interval (mut i: INTERVAL, pos: ptrdiff_t) -> INTERVAL
+pub unsafe extern "C-unwind" fn update_interval (mut i: INTERVAL, pos: ptrdiff_t) -> INTERVAL
 {
   if i.is_null ()
     { return std::ptr::null_mut (); }
@@ -1448,7 +1448,7 @@ unsafe fn adjust_intervals_for_deletion (buffer: *mut buffer,
    of LENGTH.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn offset_intervals (buffer: *mut buffer, start: ptrdiff_t, length: ptrdiff_t)
+pub unsafe extern "C-unwind" fn offset_intervals (buffer: *mut buffer, start: ptrdiff_t, length: ptrdiff_t)
 {
   if buffer_intervals (buffer).is_null () || length == 0
     { return; }
@@ -1525,7 +1525,7 @@ unsafe fn merge_interval_right (i: INTERVAL) -> INTERVAL
    The caller must verify that this is not the first (leftmost) interval.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn merge_interval_left (i: INTERVAL) -> INTERVAL
+pub unsafe extern "C-unwind" fn merge_interval_left (i: INTERVAL) -> INTERVAL
 {
   let absorb: ptrdiff_t = LENGTH! (i);
   let mut predecessor: INTERVAL = std::ptr::null_mut ();
@@ -1654,7 +1654,7 @@ unsafe fn reproduce_tree_obj (source: INTERVAL, parent: Lisp_Object) -> INTERVAL
    text...  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn graft_intervals_into_buffer (source: INTERVAL, mut position: ptrdiff_t,
+pub unsafe extern "C-unwind" fn graft_intervals_into_buffer (source: INTERVAL, mut position: ptrdiff_t,
 						      length: ptrdiff_t, buffer: *mut buffer,
 						      inherit: bool)
 {
@@ -1799,13 +1799,13 @@ unsafe extern "C" {
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn textget (plist: Lisp_Object, prop: Lisp_Object) -> Lisp_Object
+pub unsafe extern "C-unwind" fn textget (plist: Lisp_Object, prop: Lisp_Object) -> Lisp_Object
 {
   return lookup_char_property (plist, prop, true);
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn lookup_char_property (plist: Lisp_Object, prop: Lisp_Object,
+pub unsafe extern "C-unwind" fn lookup_char_property (plist: Lisp_Object, prop: Lisp_Object,
 					       textprop: bool) -> Lisp_Object
 {
   let mut tail: Lisp_Object = Qnil ();
@@ -1851,7 +1851,7 @@ pub unsafe extern "C" fn lookup_char_property (plist: Lisp_Object, prop: Lisp_Ob
    byte position BYTEPOS.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn temp_set_point_both (buffer: *mut buffer,
+pub unsafe extern "C-unwind" fn temp_set_point_both (buffer: *mut buffer,
 					      charpos: ptrdiff_t, bytepos: ptrdiff_t)
 {
   /* In a single-byte buffer, the two positions must be equal.  */
@@ -1866,7 +1866,7 @@ pub unsafe extern "C" fn temp_set_point_both (buffer: *mut buffer,
 /* Set point "temporarily", without checking any text properties.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn temp_set_point (buffer: *mut buffer, charpos: ptrdiff_t)
+pub unsafe extern "C-unwind" fn temp_set_point (buffer: *mut buffer, charpos: ptrdiff_t)
 {
   temp_set_point_both (buffer, charpos,
 		       buf_charpos_to_bytepos (buffer as *mut c_void, charpos));
@@ -1876,7 +1876,7 @@ pub unsafe extern "C" fn temp_set_point (buffer: *mut buffer, charpos: ptrdiff_t
    before an intangible character, move to an ok place.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn set_point (charpos: ptrdiff_t)
+pub unsafe extern "C-unwind" fn set_point (charpos: ptrdiff_t)
 {
   set_point_both (charpos, buf_charpos_to_bytepos ((current_buffer! ()) as *mut c_void, charpos));
 }
@@ -1884,7 +1884,7 @@ pub unsafe extern "C" fn set_point (charpos: ptrdiff_t)
 /* Set PT from MARKER's clipped position.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn set_point_from_marker (marker: Lisp_Object)
+pub unsafe extern "C-unwind" fn set_point_from_marker (marker: Lisp_Object)
 {
   let charpos: ptrdiff_t = clip_to_bounds (BEGV! (), marker_position (marker), ZV! ());
   let mut bytepos: ptrdiff_t = marker_byte_position (marker);
@@ -1951,7 +1951,7 @@ unsafe fn adjust_for_invis_intang (mut pos: ptrdiff_t, test_offs: ptrdiff_t,
    before an intangible character, move to an ok place.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn set_point_both (mut charpos: ptrdiff_t, mut bytepos: ptrdiff_t)
+pub unsafe extern "C-unwind" fn set_point_both (mut charpos: ptrdiff_t, mut bytepos: ptrdiff_t)
 {
   let mut to: INTERVAL = std::ptr::null_mut ();
   let mut from: INTERVAL = std::ptr::null_mut ();
@@ -2177,7 +2177,7 @@ pub unsafe extern "C" fn set_point_both (mut charpos: ptrdiff_t, mut bytepos: pt
    segment that reaches all the way to point.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn move_if_not_intangible (mut position: ptrdiff_t)
+pub unsafe extern "C-unwind" fn move_if_not_intangible (mut position: ptrdiff_t)
 {
   let mut pos: Lisp_Object = Qnil ();
   let mut intangible_propval: Lisp_Object = Qnil ();
@@ -2245,7 +2245,7 @@ pub unsafe extern "C" fn move_if_not_intangible (mut position: ptrdiff_t)
    nil means the current buffer. */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn get_property_and_range (pos: ptrdiff_t, prop: Lisp_Object,
+pub unsafe extern "C-unwind" fn get_property_and_range (pos: ptrdiff_t, prop: Lisp_Object,
 						 val: *mut Lisp_Object,
 						 start: *mut ptrdiff_t, end: *mut ptrdiff_t,
 						 object: Lisp_Object) -> bool
@@ -2292,7 +2292,7 @@ pub unsafe extern "C" fn get_property_and_range (pos: ptrdiff_t, prop: Lisp_Obje
    `local-map', use BUFFER's local map.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn get_local_map (mut position: ptrdiff_t, buffer: *mut buffer,
+pub unsafe extern "C-unwind" fn get_local_map (mut position: ptrdiff_t, buffer: *mut buffer,
 					r#type: Lisp_Object) -> Lisp_Object
 {
   let mut prop: Lisp_Object = Qnil ();
@@ -2349,7 +2349,7 @@ pub unsafe extern "C" fn get_local_map (mut position: ptrdiff_t, buffer: *mut bu
    The new interval tree has no parent and has a starting-position of 0.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn copy_intervals (tree: INTERVAL, start: ptrdiff_t, length: ptrdiff_t)
+pub unsafe extern "C-unwind" fn copy_intervals (tree: INTERVAL, start: ptrdiff_t, length: ptrdiff_t)
   -> INTERVAL
 {
   let mut i: INTERVAL = std::ptr::null_mut ();
@@ -2393,7 +2393,7 @@ pub unsafe extern "C" fn copy_intervals (tree: INTERVAL, start: ptrdiff_t, lengt
 /* Give STRING the properties of BUFFER from POSITION to LENGTH.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn copy_intervals_to_string (string: Lisp_Object, buffer: *mut buffer,
+pub unsafe extern "C-unwind" fn copy_intervals_to_string (string: Lisp_Object, buffer: *mut buffer,
 						   position: ptrdiff_t, length: ptrdiff_t)
 {
   let interval_copy: INTERVAL = copy_intervals (buffer_intervals (buffer),
@@ -2410,7 +2410,7 @@ pub unsafe extern "C" fn copy_intervals_to_string (string: Lisp_Object, buffer: 
    Assume they have identical characters.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn compare_string_intervals (s1: Lisp_Object, s2: Lisp_Object) -> bool
+pub unsafe extern "C-unwind" fn compare_string_intervals (s1: Lisp_Object, s2: Lisp_Object) -> bool
 {
   let mut i1: INTERVAL = std::ptr::null_mut ();
   let mut i2: INTERVAL = std::ptr::null_mut ();
@@ -2540,7 +2540,7 @@ unsafe fn set_intervals_multibyte_1 (i: INTERVAL, multi_flag: bool,
    or to fit them as non-multibyte (if not MULTI_FLAG).  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn set_intervals_multibyte (multi_flag: bool)
+pub unsafe extern "C-unwind" fn set_intervals_multibyte (multi_flag: bool)
 {
   let i: INTERVAL = buffer_intervals ((current_buffer! ()));
 

@@ -48,7 +48,7 @@ const _: () = core::assert! (std::mem::size_of::<emacs_tty> () == 36);
 pub mod systty_decls {
   use super::*;
 
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     /* C 89: `extern int emacs_get_tty (int, struct emacs_tty *) EXTERNALLY_VISIBLE;`  */
     pub fn emacs_get_tty (fd: c_int, tty: *mut emacs_tty) -> c_int;
     /* C 90: `extern int emacs_set_tty (int, struct emacs_tty *, bool) EXTERNALLY_VISIBLE;`  */

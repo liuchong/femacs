@@ -456,7 +456,7 @@ unsafe fn kqueue_compare_dir_list (watch_object: Lisp_Object)
 
 /* C 276-336: `static void kqueue_callback (int fd, void *data)`.  */
 #[cfg (feature = "have_kqueue")]
-unsafe extern "C" fn kqueue_callback (fd: c_int, data: *mut c_void)
+unsafe extern "C-unwind" fn kqueue_callback (fd: c_int, data: *mut c_void)
 {
   let _ = fd;
   let _ = data;
@@ -684,7 +684,7 @@ DEFUN! ("kqueue-valid-p", Fkqueue_valid_p, Skqueue_valid_p, 1, 1, 0,
 /* C 520-523: `void globals_of_kqueue (void)`.  */
 #[cfg (feature = "have_kqueue")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn globals_of_kqueue ()
+pub unsafe extern "C-unwind" fn globals_of_kqueue ()
 {
   watch_list = Qnil ();
 }
@@ -692,7 +692,7 @@ pub unsafe extern "C" fn globals_of_kqueue ()
 /* C 526-546: `void syms_of_kqueue (void)`.  */
 #[cfg (feature = "have_kqueue")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_kqueue ()
+pub unsafe extern "C-unwind" fn syms_of_kqueue ()
 {
   defsubr (&raw mut Skqueue_add_watch);
   defsubr (&raw mut Skqueue_rm_watch);

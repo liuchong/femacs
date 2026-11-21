@@ -179,7 +179,7 @@ unsafe extern "C" {
   // window.h 1180's `redisplay_other_windows` (xdisp.c defines it) is the mirror's now.
 }
 
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   /// C: dispextern.h 3582: `int estimate_mode_line_height (struct frame *, enum face_id);`
   /// (xdisp.c defines it; the mirror does not carry it).
   pub fn estimate_mode_line_height (f: *mut frame, face_id: face_id) -> c_int;
@@ -220,7 +220,7 @@ macro_rules! face_change {
     ($f:expr, $v:expr) => { set_frame_flag2! ($f, FRAME_FACE_CHANGE_SHIFT, $v) };
 }
 
-unsafe extern "C" {
+unsafe extern "C-unwind" {
 
 
 
@@ -240,13 +240,13 @@ unsafe extern "C" {
 
 
 
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   /// C: lisp.h 4799: `extern bool FUNCTIONP (Lisp_Object);` (eval.c; the mirror does not carry
   ///   it — P-132: this unit used to redefine it as a symbol-only macro, which rejected
   ///   closures that the real `FUNCTIONP` accepts).
   fn FUNCTIONP (o: Lisp_Object) -> bool;
   /// C: lisp.h 4825: `extern void record_unwind_protect_void (void (*) (void));` (eval.c).
-  pub fn record_unwind_protect_void (function: Option<unsafe extern "C" fn ()>);
+  pub fn record_unwind_protect_void (function: Option<unsafe extern "C-unwind" fn ()>);
 
   /// C: lisp.h 5340: `extern Lisp_Object run_hook_with_args_2 (Lisp_Object, Lisp_Object,
   /// Lisp_Object);` (eval.c).
@@ -396,7 +396,7 @@ unsafe fn wset_combination (w: *mut window, horflag: bool, val: Lisp_Object)
    of displayed buffer due to its text or overlays change.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn window_outdated (w: *mut window) -> bool
+pub unsafe extern "C-unwind" fn window_outdated (w: *mut window) -> bool
 {
   let b: *mut buffer = XBUFFER ((*w).contents);
   return ((*w).last_modified < BUF_MODIFF! (b)
@@ -404,7 +404,7 @@ pub unsafe extern "C" fn window_outdated (w: *mut window) -> bool
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn decode_live_window (window: Lisp_Object) -> *mut window
+pub unsafe extern "C-unwind" fn decode_live_window (window: Lisp_Object) -> *mut window
 {
   let mut window = window;
   if NILP (window)
@@ -415,7 +415,7 @@ pub unsafe extern "C" fn decode_live_window (window: Lisp_Object) -> *mut window
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn decode_any_window (window: Lisp_Object) -> *mut window
+pub unsafe extern "C-unwind" fn decode_any_window (window: Lisp_Object) -> *mut window
 {
   let mut window = window;
   let w: *mut window;
@@ -465,7 +465,7 @@ unsafe fn adjust_window_count (w: *mut window, arg: c_int)
    of windows showing VAL if it is a buffer.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn wset_buffer (w: *mut window, val: Lisp_Object)
+pub unsafe extern "C-unwind" fn wset_buffer (w: *mut window, val: Lisp_Object)
 {
   adjust_window_count (w, -1);
   if BUFFERP (val)
@@ -949,7 +949,7 @@ macro_rules! CHARPOS { ($pos:expr) => { ($pos).charpos }; }
 macro_rules! SET_TEXT_POS_FROM_MARKER { ($pos:expr, $marker:expr) => {
   { CHARPOS! ($pos) = marker_position ($marker); BYTEPOS! ($pos) = marker_byte_position ($marker); } }; }
 
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   /// C: dispextern.h 3619-3621: `bool pos_visible_p (struct window *, ptrdiff_t, int *, int *,
   /// int *, int *, int *, int *);` (xdisp.c defines it).
   pub fn pos_visible_p (w: *mut window, charpos: ptrdiff_t, x: *mut c_int, y: *mut c_int,
@@ -960,7 +960,7 @@ unsafe extern "C" {
   // window.h 1176's `wset_update_mode_line` (xdisp.c defines it) is the mirror's `window_fn_decls`
   // now; the use-site copy is gone (P-26).
 }
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   /// C: dispextern.h 3578: `int window_box_width (struct window *, enum glyph_row_area);`
   /// (xdisp.c defines it; the mirror does not carry it.)
   pub fn window_box_width (w: *mut window, area: glyph_row_area) -> c_int;
@@ -974,10 +974,12 @@ unsafe extern "C" {
   pub fn window_box_height (w: *mut window) -> c_int;
   /// C: dispextern.h 3580: `int window_box_left_offset (struct window *, enum glyph_row_area);`
   pub fn window_box_left_offset (w: *mut window, area: glyph_row_area) -> c_int;
+}
+unsafe extern "C" {
   /// C: dispextern.h 3581: `int window_box_right_offset (struct window *, enum glyph_row_area);`
   pub fn window_box_right_offset (w: *mut window, area: glyph_row_area) -> c_int;
 }
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   /// C: dispextern.h 3812: `int lookup_named_face (struct window *, struct frame *,
   /// Lisp_Object, bool);` (xfaces.c defines it; the mirror does not carry it).
   pub fn lookup_named_face (w: *mut window, f: *mut frame, symbol: Lisp_Object, signal_p: bool)
@@ -1108,7 +1110,7 @@ unsafe fn window_body_unit_from_symbol (unit: Lisp_Object) -> window_body_unit
    or header line or horizontal divider of W.  Rounds down to nearest
    integer when not working pixelwise. */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn window_body_height (w: *mut window,
+pub unsafe extern "C-unwind" fn window_body_height (w: *mut window,
                                              pixelwise: window_body_unit) -> c_int
 {
   let mut pixelwise = pixelwise;
@@ -1150,7 +1152,7 @@ pub unsafe extern "C" fn window_body_height (w: *mut window,
    fringes either.  Round down to nearest integer when not working
    pixelwise.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn window_body_width (w: *mut window,
+pub unsafe extern "C-unwind" fn window_body_width (w: *mut window,
                                             pixelwise: window_body_unit) -> c_int
 {
   let mut pixelwise = pixelwise;
@@ -1501,7 +1503,7 @@ unsafe fn coordinates_in_window (w: *mut window, x: c_int, y: c_int) -> window_p
 /* Take X is the frame-relative pixel x-coordinate, and return the
    x-coordinate relative to part PART of window W. */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn window_relative_x_coord (w: *mut window, part: window_part,
+pub unsafe extern "C-unwind" fn window_relative_x_coord (w: *mut window, part: window_part,
                                                   x: c_int) -> c_int
 {
   let left_x: c_int = if window_bits! (w, pseudo_window_p)
@@ -1556,7 +1558,7 @@ macro_rules! CLIP_TEXT_POS_FROM_MARKER { ($pos:expr, $marker:expr) => { {
   BYTEPOS! ($pos) = clip_to_bounds (BEGV_BYTE! (), marker_byte_position ($marker), ZV_BYTE! ());
 } }; }
 
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   /// C: dispextern.h 3556-3557: `extern void *bidi_shelve_cache (void);`
   /// `extern void bidi_unshelve_cache (void *, bool);`
   
@@ -1839,7 +1841,7 @@ pub struct check_window_data
   pub part: *mut window_part,
 }
 
-unsafe extern "C" fn check_window_containing (w: *mut window, user_data: *mut c_void) -> bool
+unsafe extern "C-unwind" fn check_window_containing (w: *mut window, user_data: *mut c_void) -> bool
 {
   let cw: *mut check_window_data = user_data as *mut check_window_data;
   let found: window_part = coordinates_in_window (w, (*cw).x, (*cw).y);
@@ -1874,7 +1876,7 @@ unsafe extern "C" fn check_window_containing (w: *mut window, user_data: *mut c_
    case.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn window_from_coordinates (f: *mut frame, x: c_int, y: c_int,
+pub unsafe extern "C-unwind" fn window_from_coordinates (f: *mut frame, x: c_int, y: c_int,
 			 mut part: *mut window_part, menu_bar_p: bool,
 			 tab_bar_p: bool, tool_bar_p: bool) -> Lisp_Object
 {
@@ -1920,7 +1922,7 @@ DEFUN! ("window-at", Fwindow_at, Swindow_at, 2, 3, 0,
 });
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn window_point (w: *mut window) -> ptrdiff_t
+pub unsafe extern "C-unwind" fn window_point (w: *mut window) -> ptrdiff_t
 {
   return if w == XWINDOW (selected_window)
           { BUF_PT (XBUFFER ((*w).contents)) }
@@ -2370,7 +2372,7 @@ DEFUN! ("window-parameters", Fwindow_parameters, Swindow_parameters,
 });
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn window_parameter (w: *mut window, parameter: Lisp_Object) -> Lisp_Object
+pub unsafe extern "C-unwind" fn window_parameter (w: *mut window, parameter: Lisp_Object) -> Lisp_Object
 {
   let result: Lisp_Object = assq_no_quit (parameter, (*w).window_parameters);
 
@@ -2457,7 +2459,7 @@ pub mod window_defined_decls {
   use super::*;
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn window_display_table (w: *mut window) -> *mut Lisp_Char_Table
+pub unsafe extern "C-unwind" fn window_display_table (w: *mut window) -> *mut Lisp_Char_Table
 {
   let mut dp: *mut Lisp_Char_Table = std::ptr::null_mut ();
 
@@ -2680,7 +2682,7 @@ unsafe fn delete_deletable_window (window: Lisp_Object)
    pointer.  This is a callback function for foreach_window, used in
    the window_list function.  */
 
-unsafe extern "C" fn add_window_to_list (w: *mut window, user_data: *mut c_void) -> bool
+unsafe extern "C-unwind" fn add_window_to_list (w: *mut window, user_data: *mut c_void) -> bool
 {
   let list: *mut Lisp_Object = user_data as *mut Lisp_Object;
   let mut window: Lisp_Object = Qnil ();
@@ -2694,7 +2696,7 @@ unsafe extern "C" fn add_window_to_list (w: *mut window, user_data: *mut c_void)
    list, cache it in Vwindow_list, and return that.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn window_list () -> Lisp_Object
+pub unsafe extern "C-unwind" fn window_list () -> Lisp_Object
 {
   if !CONSP (Vwindow_list)
     {
@@ -3004,7 +3006,7 @@ DEFUN! ("window-list-1", Fwindow_list_1, Swindow_list_1, 0, 3, 0,
     given frame.  It's defined here because the static window_list_1 is
     here too but in fact it's only needed in the frame code.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mru_rooted_frame (f: *mut frame) -> Lisp_Object
+pub unsafe extern "C-unwind" fn mru_rooted_frame (f: *mut frame) -> Lisp_Object
 {
   let mut windows: Lisp_Object = window_list_1 (FRAME_SELECTED_WINDOW (f), Qnil (), Qt ());
   let r: *mut frame = root_frame (f);
@@ -3190,7 +3192,7 @@ unsafe fn window_loop (r#type: window_loop, obj: Lisp_Object, mini: bool,
 /* Used for debugging.  Abort if any window has a dead buffer.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn check_all_windows ()
+pub unsafe extern "C-unwind" fn check_all_windows ()
 {
   window_loop (window_loop::CHECK_ALL_WINDOWS, Qnil (), true, Qt ());
 }
@@ -3309,7 +3311,7 @@ unsafe fn window_discard_buffer_from_window (buffer: Lisp_Object, window: Lisp_O
     `quit-restore' and `quit-restore-prev' parameters of any dead
     WINDOW.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn window_discard_buffer_from_dead_windows (buffer: Lisp_Object)
+pub unsafe extern "C-unwind" fn window_discard_buffer_from_dead_windows (buffer: Lisp_Object)
 {
   let h: *mut Lisp_Hash_Table = XHASH_TABLE (window_dead_windows_table);
 
@@ -3584,7 +3586,7 @@ DEFUN! ("delete-other-windows-internal", Fdelete_other_windows_internal,
 });
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn replace_buffer_in_windows (buffer: Lisp_Object)
+pub unsafe extern "C-unwind" fn replace_buffer_in_windows (buffer: Lisp_Object)
 {
   /* When kill-buffer is called early during loadup, this function is
      undefined.  */
@@ -3604,7 +3606,7 @@ pub unsafe extern "C" fn replace_buffer_in_windows (buffer: Lisp_Object)
     parameters.
 */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn replace_buffer_in_windows_safely (buffer: Lisp_Object)
+pub unsafe extern "C-unwind" fn replace_buffer_in_windows_safely (buffer: Lisp_Object)
 {
   if buffer_window_count (XBUFFER (buffer)) != 0
     {
@@ -3631,13 +3633,13 @@ unsafe fn run_funs (funs: Lisp_Object)
       funs = XCDR (funs); }
 }
 
-unsafe extern "C" fn select_window_norecord (window: Lisp_Object)
+unsafe extern "C-unwind" fn select_window_norecord (window: Lisp_Object)
 {
   if WINDOW_LIVE_P (window)
     { Fselect_window (window, Qt ()); }
 }
 
-unsafe extern "C" fn select_frame_norecord (frame: Lisp_Object)
+unsafe extern "C-unwind" fn select_frame_norecord (frame: Lisp_Object)
 {
   if FRAME_LIVE_P (XFRAME (frame))
     { Fselect_frame (frame, Qt ()); }
@@ -3813,7 +3815,7 @@ unsafe fn window_change_record_windows (window: Lisp_Object, stamp: c_int,
  * Record selected window in old_selected_window and selected frame in
  * old_selected_frame.
  */
-unsafe extern "C" fn window_change_record ()
+unsafe extern "C-unwind" fn window_change_record ()
 {
   if window_change_record_frames
     {
@@ -3960,7 +3962,7 @@ unsafe fn run_window_change_functions_globally (symbol: Lisp_Object, frame: Lisp
  * input method in textconv.c.
  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn run_window_change_functions ()
+pub unsafe extern "C-unwind" fn run_window_change_functions ()
 {
   let mut tail: Lisp_Object = Qnil ();
   let mut frame: Lisp_Object = Qnil ();
@@ -4173,7 +4175,7 @@ pub unsafe extern "C" fn run_window_change_functions ()
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn set_window_buffer (window: Lisp_Object, buffer: Lisp_Object,
+pub unsafe extern "C-unwind" fn set_window_buffer (window: Lisp_Object, buffer: Lisp_Object,
 		   run_hooks_p: bool, keep_margins_p: bool)
 {
   let w: *mut window = XWINDOW (window);
@@ -4366,7 +4368,7 @@ DEFUN! ("force-window-update", Fforce_window_update, Sforce_window_update,
 
 /* Obsolete since 24.3.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn temp_output_buffer_show (buf: Lisp_Object)
+pub unsafe extern "C-unwind" fn temp_output_buffer_show (buf: Lisp_Object)
 {
   let old: *mut buffer = (current_buffer! ());
   let mut window: Lisp_Object = Qnil ();
@@ -4430,7 +4432,7 @@ unsafe fn allocate_window () -> *mut window
 
 /* Make new window from scratch.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn make_window () -> Lisp_Object
+pub unsafe extern "C-unwind" fn make_window () -> Lisp_Object
 {
   let mut window: Lisp_Object = Qnil ();
   let w: *mut window;
@@ -4817,7 +4819,7 @@ DEFUN! ("window-resize-apply-total", Fwindow_resize_apply_total, Swindow_resize_
    HORFLAG is true) has been set to SIZE pixels.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn resize_frame_windows (f: *mut frame, size: c_int, horflag: bool)
+pub unsafe extern "C-unwind" fn resize_frame_windows (f: *mut frame, size: c_int, horflag: bool)
 {
   let root: Lisp_Object = (*f).root_window;
   let r: *mut window = XWINDOW (root);
@@ -5675,7 +5677,7 @@ unsafe fn resize_mini_window_apply (w: *mut window, delta: c_int)
  * line of text.
  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn grow_mini_window (w: *mut window, delta: c_int, unit: c_int)
+pub unsafe extern "C-unwind" fn grow_mini_window (w: *mut window, delta: c_int, unit: c_int)
 {
   let f: *mut frame = XFRAME ((*w).frame);
   let old_height: c_int = window_body_height (w, window_body_unit::WINDOW_BODY_IN_PIXELS);
@@ -5718,7 +5720,7 @@ pub unsafe extern "C" fn grow_mini_window (w: *mut window, delta: c_int, unit: c
  * line of text.
  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn shrink_mini_window (w: *mut window, unit: c_int)
+pub unsafe extern "C-unwind" fn shrink_mini_window (w: *mut window, unit: c_int)
 {
   let f: *mut frame = XFRAME ((*w).frame);
   let delta: c_int = (window_body_height (w, window_body_unit::WINDOW_BODY_IN_PIXELS) - unit);
@@ -5786,7 +5788,7 @@ DEFUN! ("resize-mini-window-internal", Fresize_mini_window_internal,
    the frame are cleared.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mark_window_cursors_off (w: *mut window)
+pub unsafe extern "C-unwind" fn mark_window_cursors_off (w: *mut window)
 {
   let mut w = w;
   while !w.is_null ()
@@ -5814,7 +5816,7 @@ pub unsafe extern "C" fn mark_window_cursors_off (w: *mut window)
  * be higher than its frame's canonical character height.
  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn window_wants_mode_line (w: *mut window) -> bool
+pub unsafe extern "C-unwind" fn window_wants_mode_line (w: *mut window) -> bool
 {
   let window_mode_line_format: Lisp_Object =
     window_parameter (w, Qmode_line_format ());
@@ -5844,7 +5846,7 @@ pub unsafe extern "C" fn window_wants_mode_line (w: *mut window) -> bool
  * necessary (the mode line prevails).
  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn window_wants_header_line (w: *mut window) -> bool
+pub unsafe extern "C-unwind" fn window_wants_header_line (w: *mut window) -> bool
 {
   let window_header_line_format: Lisp_Object =
     window_parameter (w, Qheader_line_format ());
@@ -5878,7 +5880,7 @@ pub unsafe extern "C" fn window_wants_header_line (w: *mut window) -> bool
  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn window_wants_tab_line (w: *mut window) -> bool
+pub unsafe extern "C-unwind" fn window_wants_tab_line (w: *mut window) -> bool
 {
   let window_tab_line_format: Lisp_Object =
     window_parameter (w, Qtab_line_format ());
@@ -5901,7 +5903,7 @@ pub unsafe extern "C" fn window_wants_tab_line (w: *mut window) -> bool
    windows on TTY frames, where it is much more efficient.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn window_internal_height (w: *mut window) -> c_int
+pub unsafe extern "C-unwind" fn window_internal_height (w: *mut window) -> c_int
 {
   let mut ht: c_int = (*w).total_lines;
 
@@ -5984,7 +5986,7 @@ unsafe fn window_scroll (window: Lisp_Object, n: EMACS_INT, whole: bool, noerror
    of the window.  The result is measured in lines or in pixels
    depending on the second parameter.  */
 
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   /// C: dispextern.h 3567: `int default_line_pixel_height (struct window *);` (indent.c).
   pub fn default_line_pixel_height (w: *mut window) -> c_int;
   /// C: dispextern.h 3610: `extern bool display_working_on_window_p;` (xdisp.c).
@@ -5993,7 +5995,7 @@ unsafe extern "C" {
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn window_scroll_margin (window: *mut window, unit: margin_unit) -> c_int
+pub unsafe extern "C-unwind" fn window_scroll_margin (window: *mut window, unit: margin_unit) -> c_int
 {
   if scroll_margin > 0
     {
@@ -6122,7 +6124,7 @@ macro_rules! KVAR {
   ($kb:expr, Vlast_command) => { (*$kb).Vlast_command_ };
 }
 
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   /// C: dispextern.h 3566: `int line_bottom_y (struct it *);` (xdisp.c).
   pub fn line_bottom_y (it: *mut it) -> c_int;
   /// C: dispextern.h 3583: `int move_it_to (struct it *, ptrdiff_t, int, int, int, int);`
@@ -6634,7 +6636,7 @@ unsafe fn window_scroll_pixel_based (window: Lisp_Object, n: c_int, whole: bool,
    that eval.c defines (lisp.h 4799); this revision's lisp.h has no such macro.  lisp.h 4826's
    `extern void record_unwind_protect_excursion (void);` is declared below as C 4826 has it.  */
 
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   /// C: lisp.h 4826: `extern void record_unwind_protect_excursion (void);` (eval.c).
   pub fn record_unwind_protect_excursion ();
 }
@@ -7937,7 +7939,7 @@ DEFUN! ("set-window-configuration", Fset_window_configuration,
 });
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn restore_window_configuration (configuration: Lisp_Object)
+pub unsafe extern "C-unwind" fn restore_window_configuration (configuration: Lisp_Object)
 {
   if CONSP (configuration)
     { Fset_window_configuration (XCAR (configuration),
@@ -7958,7 +7960,7 @@ macro_rules! VECSIZE {
 
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn restore_focus_frame (frame_and_focus_frame: Lisp_Object)
+pub unsafe extern "C-unwind" fn restore_focus_frame (frame_and_focus_frame: Lisp_Object)
 {
   let frame: Lisp_Object = Fcar (frame_and_focus_frame);
   let focus_frame: Lisp_Object = Fcdr (frame_and_focus_frame);
@@ -7983,7 +7985,7 @@ pub unsafe extern "C" fn restore_focus_frame (frame_and_focus_frame: Lisp_Object
    WINDOW to not show any buffer.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn delete_all_child_windows (window: Lisp_Object)
+pub unsafe extern "C-unwind" fn delete_all_child_windows (window: Lisp_Object)
 {
   let w: *mut window;
 
@@ -8059,7 +8061,7 @@ unsafe fn get_leaf_windows (w: *mut window, flat: *mut *mut window,
    null if W's current matrix is invalid, so that no meaningful glyph
    can be returned.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn get_phys_cursor_glyph (w: *mut window) -> *mut glyph
+pub unsafe extern "C-unwind" fn get_phys_cursor_glyph (w: *mut window) -> *mut glyph
 {
   let row: *mut glyph_row;
   let glyph: *mut glyph;
@@ -8715,7 +8717,7 @@ DEFUN! ("set-window-vscroll", Fset_window_vscroll, Sset_window_vscroll,
    additional argument USER_DATA.  Stops when FN returns 0.  */
 
 unsafe fn foreach_window (f: *mut frame,
-			  r#fn: unsafe extern "C" fn(*mut window, *mut c_void) -> bool,
+			  r#fn: unsafe extern "C-unwind" fn(*mut window, *mut c_void) -> bool,
 			  user_data: *mut c_void)
 {
   /* delete_frame may set FRAME_ROOT_WINDOW (f) to Qnil.  */
@@ -8730,7 +8732,7 @@ unsafe fn foreach_window (f: *mut frame,
    Stop when FN returns false.  Value is false if stopped by FN.  */
 
 unsafe fn foreach_window_1 (w: *mut window,
-			    r#fn: unsafe extern "C" fn(*mut window, *mut c_void) -> bool,
+			    r#fn: unsafe extern "C-unwind" fn(*mut window, *mut c_void) -> bool,
 			    user_data: *mut c_void) -> bool
 {
   let mut cont: bool;
@@ -8908,7 +8910,7 @@ unsafe extern "C" {
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn init_window_once ()
+pub unsafe extern "C-unwind" fn init_window_once ()
 {
   minibuf_window = Qnil ();
   staticpro (&raw mut minibuf_window);
@@ -8929,7 +8931,7 @@ pub unsafe extern "C" fn init_window_once ()
   pdumper_do_now_and_after_late_load (Some (init_window_once_for_pdumper));
 }
 
-unsafe extern "C" fn init_window_once_for_pdumper ()
+unsafe extern "C-unwind" fn init_window_once_for_pdumper ()
 {
   window_scroll_pixel_based_preserve_x = -1;
   window_scroll_pixel_based_preserve_y = -1;
@@ -8969,13 +8971,13 @@ unsafe extern "C" fn init_window_once_for_pdumper ()
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn init_window ()
+pub unsafe extern "C-unwind" fn init_window ()
 {
   Vwindow_list = Qnil ();
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_window ()
+pub unsafe extern "C-unwind" fn syms_of_window ()
 {
 	DEFSYM! (Qscroll_up, "scroll-up");
 	DEFSYM! (Qscroll_down, "scroll-down");

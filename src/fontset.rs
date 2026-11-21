@@ -278,17 +278,14 @@ const _: () = core::assert! (std::mem::offset_of! (face, ascii_face) == 272 + FA
    the header and line it comes from; `docs/ports/fontset.md` reports the list to the
    integrator.  */
 #[cfg (feature = "have_window_system")]
-unsafe extern "C" {
-  pub fn qsort (base: *mut c_void, nmemb: usize, size: usize,
-                compar: Option<unsafe extern "C" fn (*const c_void, *const c_void) -> c_int>);
+unsafe extern "C-unwind" {
                                                           // stdlib.in.h 237
           // lisp.h 4271
   // lisp.h 4274
                   // lisp.h 4245
             // frame.h 1476
                              // frame.h 1504
-  pub fn recompute_basic_faces (f: *mut frame);                           // dispextern.h 3823
-  pub fn xstrcasecmp (a: *const c_char, b: *const c_char) -> c_int;       // dispextern.h 104
+  pub fn recompute_basic_faces (f: *mut frame);       // dispextern.h 104
            // font.h 851
   pub fn font_has_char (f: *mut frame, font: Lisp_Object, c: c_int) -> c_int;  // font.h 867
      // font.h 860
@@ -307,7 +304,13 @@ unsafe extern "C" {
          // font.h 894
                    // frame.h 1842
   pub fn face_for_font (f: *mut frame, font_object: Lisp_Object,
-                        face: *mut face) -> c_int;                       // fontset.h 46
+                        face: *mut face) -> c_int;
+}
+#[cfg (feature = "have_window_system")]
+unsafe extern "C" {
+  pub fn qsort (base: *mut c_void, nmemb: usize, size: usize,
+                compar: Option<unsafe extern "C" fn (*const c_void, *const c_void) -> c_int>);                           // dispextern.h 3823
+  pub fn xstrcasecmp (a: *const c_char, b: *const c_char) -> c_int;                       // fontset.h 46
 }
 
 /* The `DEFVAR_LISP`/`DEFVAR_BOOL` variables of this file.  C's storage lives in the generated
@@ -1829,7 +1832,7 @@ unsafe fn check_fontset_name (name: Lisp_Object, frame: *mut Lisp_Object) -> Lis
 }
 
 #[cfg (feature = "have_window_system")]
-unsafe extern "C" fn accumulate_script_ranges (arg: Lisp_Object, range: Lisp_Object,  // C 1394
+unsafe extern "C-unwind" fn accumulate_script_ranges (arg: Lisp_Object, range: Lisp_Object,  // C 1394
 					   val: Lisp_Object)
 {
   if EQ (XCAR (arg), val)
@@ -1855,7 +1858,7 @@ unsafe extern "C" fn accumulate_script_ranges (arg: Lisp_Object, range: Lisp_Obj
    case.  */
 
 #[cfg (feature = "have_window_system")]
-unsafe extern "C" fn set_fontset_font (arg: Lisp_Object, range: Lisp_Object)  // C 1419
+unsafe extern "C-unwind" fn set_fontset_font (arg: Lisp_Object, range: Lisp_Object)  // C 1419
 {
   let mut fontset: Lisp_Object;
   let mut font_def: Lisp_Object;

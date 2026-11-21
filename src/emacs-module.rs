@@ -245,7 +245,7 @@ static mut module_assertions: bool = false;
 /* C 210-233: the two small helpers.  */
 // C: coding.h 695-697: Lisp_Object decode_string_utf_8 (Lisp_Object, const char *, ptrdiff_t, Lisp_Object, bool, Lisp_Object, Lisp_Object)
 #[cfg (feature = "have_modules")]
-unsafe extern "C"
+unsafe extern "C-unwind"
 {
   pub fn decode_string_utf_8 (string: Lisp_Object, str_: *const c_char, len: ptrdiff_t,
                               handle_8_bit: Lisp_Object, handle_over_uni: bool,
@@ -278,73 +278,56 @@ unsafe fn module_memory_buffer_too_small (actual: ptrdiff_t, required: ptrdiff_t
 /* C 236-264: the comment on the non-local-exit policy (module frames cannot be skipped by a
    long jump, so every exit is caught and the handler is pushed without ever signaling).  */
 
-/* C 266-289: `MODULE_HANDLE_NONLOCAL_EXIT`.  C's macro declares three locals
-   (`internal_handler`, `env_volatile`, `internal_cleanup`) in the caller's block and reads the
-   caller's `env`; a Rust `macro_rules!` body cannot name a caller's local (locals introduced
-   outside a macro are invisible inside it), so the call sites pass `env` and
-   `internal_cleanup` - the shape `USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark)` already takes
-   (PORTING.md P-05; `## Deviations` 2).  C's `sys_setjmp (internal_handler->jmp)` passes a
-   `sys_jmp_buf` to the mirror's `*mut jmp_buf` (the `src/eval.rs` 1618 reading).  */
+/* U3 explicit non-local exit boundary for external C dynamic modules:
+   Every `emacs_env` vtable entry point remains `extern "C"` and intercepts VM `NonLocalExit`
+   unwinds via `catch_vm_nonlocal`, translating them into `pending_non_local_exit` on `env` so
+   zero stack unwinds ever cross C dynamic module frames.  */
 #[cfg (feature = "have_modules")]
-macro_rules! MODULE_HANDLE_NONLOCAL_EXIT {
-  ($env:ident, $retval:expr, $internal_cleanup:ident) => {
-    if module_non_local_exit_check ($env) != emacs_funcall_exit_return
-      { return $retval; }
-    let internal_handler: *mut handler =
-      push_handler_nosignal (Qt (), CATCHER_ALL_DEBUGGABLE);
-    if internal_handler.is_null ()
-      {
-        module_out_of_memory ($env);
-        return $retval;
-      }
-    let env_volatile: *mut emacs_env = $env;
-    let $internal_cleanup: *mut handler = internal_handler;
-    if sys_setjmp (&raw mut (*internal_handler).jmp as *mut jmp_buf) != 0
-      {
-        let env: *mut emacs_env = env_volatile;
-        let internal_handler: *mut handler = $internal_cleanup;
-        module_handle_nonlocal_exit (env, (*internal_handler).nonlocal_exit,
-                                     (*internal_handler).val);
-        module_reset_handlerlist (internal_handler);
-        return $retval;
-      }
-  };
-  /* C's `MODULE_FUNCTION_BEGIN ()` passes no value, so the macro's `return retval;` is the
-     `return ;` a void function needs.  */
-  ($env:ident, $internal_cleanup:ident) => {
-    if module_non_local_exit_check ($env) != emacs_funcall_exit_return
-      { return; }
-    let internal_handler: *mut handler =
-      push_handler_nosignal (Qt (), CATCHER_ALL_DEBUGGABLE);
-    if internal_handler.is_null ()
-      {
-        module_out_of_memory ($env);
-        return;
-      }
-    let env_volatile: *mut emacs_env = $env;
-    let $internal_cleanup: *mut handler = internal_handler;
-    if sys_setjmp (&raw mut (*internal_handler).jmp as *mut jmp_buf) != 0
-      {
-        let env: *mut emacs_env = env_volatile;
-        let internal_handler: *mut handler = $internal_cleanup;
-        module_handle_nonlocal_exit (env, (*internal_handler).nonlocal_exit,
-                                     (*internal_handler).val);
-        module_reset_handlerlist (internal_handler);
-        return;
-      }
-  };
+#[inline]
+unsafe fn module_with_nonlocal_catch<R> (
+  env: *mut emacs_env,
+  error_retval: R,
+  body: impl FnOnce () -> R,
+) -> R
+{
+  module_assert_thread ();
+  module_assert_env (env);
+  if module_non_local_exit_check (env) != emacs_funcall_exit_return
+    { return error_retval; }
+  let internal_handler: *mut handler =
+    push_handler_nosignal (Qt (), CATCHER_ALL_DEBUGGABLE);
+  if internal_handler.is_null ()
+    {
+      module_out_of_memory (env);
+      return error_retval;
+    }
+  match crate::nonlocal::catch_vm_nonlocal (body)
+    {
+      Ok (val) =>
+        {
+          module_reset_handlerlist (internal_handler);
+          val
+        }
+      Err (exit) =>
+        {
+          eassert! (exit.target == internal_handler);
+          let _root = crate::nonlocal::ScopedLispRoot::new (&[exit.value]);
+          module_handle_nonlocal_exit (env, exit.kind.to_raw (), exit.value);
+          module_reset_handlerlist (internal_handler);
+          error_retval
+        }
+    }
 }
 
-/* C 291-292: `MODULE_INTERNAL_CLEANUP` - the caller's `internal_cleanup` is passed for the
-   same reason as above.  */
 #[cfg (feature = "have_modules")]
-macro_rules! MODULE_INTERNAL_CLEANUP {
-  ($internal_cleanup:ident) => {
-    module_reset_handlerlist ($internal_cleanup)
-  };
+#[inline]
+unsafe fn module_with_nonlocal_catch_void (
+  env: *mut emacs_env,
+  body: impl FnOnce (),
+)
+{
+  module_with_nonlocal_catch (env, (), body);
 }
-
-/* C 294-329: the comment on the six rules runtime and environment functions obey.  */
 
 /* C 336-342: `MODULE_FUNCTION_BEGIN_NO_CATCH` (steps 2 and 3; `env` is passed, see above).  */
 #[cfg (feature = "have_modules")]
@@ -360,19 +343,6 @@ macro_rules! MODULE_FUNCTION_BEGIN_NO_CATCH {
     module_assert_env ($env);
     if module_non_local_exit_check ($env) != emacs_funcall_exit_return
       { return; }
-  };
-}
-
-/* C 348-350: `MODULE_FUNCTION_BEGIN` (steps 2 through 4).  */
-#[cfg (feature = "have_modules")]
-macro_rules! MODULE_FUNCTION_BEGIN {
-  ($env:ident, $error_retval:expr, $internal_cleanup:ident) => {
-    MODULE_FUNCTION_BEGIN_NO_CATCH! ($env, $error_retval);
-    MODULE_HANDLE_NONLOCAL_EXIT! ($env, $error_retval, $internal_cleanup)
-  };
-  ($env:ident, $internal_cleanup:ident) => {
-    MODULE_FUNCTION_BEGIN_NO_CATCH! ($env);
-    MODULE_HANDLE_NONLOCAL_EXIT! ($env, $internal_cleanup)
   };
 }
 
@@ -456,39 +426,38 @@ unsafe fn module_global_reference_p (v: emacs_value, n: *mut ptrdiff_t) -> bool
 #[cfg (feature = "have_modules")]
 unsafe extern "C" fn module_make_global_ref (env: *mut emacs_env, value: emacs_value) -> emacs_value
 {
-  MODULE_FUNCTION_BEGIN! (env, std::ptr::null_mut (), internal_cleanup);
-  let h: *mut Lisp_Hash_Table = XHASH_TABLE (Vmodule_refs_hash);
-  let new_obj: Lisp_Object = value_to_lisp (value);
-  let mut hashcode: hash_hash_t = 0;
-  let i: ptrdiff_t = hash_find_get_hash (h, new_obj, &mut hashcode);
+  module_with_nonlocal_catch (env, std::ptr::null_mut (), || unsafe {
+    let h: *mut Lisp_Hash_Table = XHASH_TABLE (Vmodule_refs_hash);
+    let new_obj: Lisp_Object = value_to_lisp (value);
+    let mut hashcode: hash_hash_t = 0;
+    let i: ptrdiff_t = hash_find_get_hash (h, new_obj, &mut hashcode);
 
-  /* Note: This approach requires the garbage collector to never move
-     objects.  */
+    /* Note: This approach requires the garbage collector to never move
+       objects.  */
 
-  if i >= 0
-    {
-      let value: Lisp_Object = HASH_VALUE (h, i as hash_idx_t);
-      let r#ref: *mut module_global_reference = XMODULE_GLOBAL_REFERENCE (value);
-      /* C 441: `bool overflow = ckd_add (&ref->refcount, ref->refcount, 1);` */
-      let (refcount_new, overflow) = (*r#ref).refcount.overflowing_add (1);
-      if overflow
-        { overflow_error (); }
-      (*r#ref).refcount = refcount_new;
-      MODULE_INTERNAL_CLEANUP! (internal_cleanup);
-      return &raw mut (*r#ref).value as emacs_value;
-    }
-  else
-    {
-      let r#ref: *mut module_global_reference
-        = ALLOCATE_PLAIN_PSEUDOVECTOR! (module_global_reference, pvec_type::PVEC_OTHER);
-      (*r#ref).value.v = new_obj;
-      (*r#ref).refcount = 1;
-      let mut value: Lisp_Object;
-      XSETPSEUDOVECTOR! (value, r#ref, pvec_type::PVEC_OTHER);
-      hash_put (h, new_obj, value, hashcode);
-      MODULE_INTERNAL_CLEANUP! (internal_cleanup);
-      return &raw mut (*r#ref).value as emacs_value;
-    }
+    if i >= 0
+      {
+        let value: Lisp_Object = HASH_VALUE (h, i as hash_idx_t);
+        let r#ref: *mut module_global_reference = XMODULE_GLOBAL_REFERENCE (value);
+        /* C 441: `bool overflow = ckd_add (&ref->refcount, ref->refcount, 1);` */
+        let (refcount_new, overflow) = (*r#ref).refcount.overflowing_add (1);
+        if overflow
+          { overflow_error (); }
+        (*r#ref).refcount = refcount_new;
+        return &raw mut (*r#ref).value as emacs_value;
+      }
+    else
+      {
+        let r#ref: *mut module_global_reference
+          = ALLOCATE_PLAIN_PSEUDOVECTOR! (module_global_reference, pvec_type::PVEC_OTHER);
+        (*r#ref).value.v = new_obj;
+        (*r#ref).refcount = 1;
+        let mut value: Lisp_Object;
+        XSETPSEUDOVECTOR! (value, r#ref, pvec_type::PVEC_OTHER);
+        hash_put (h, new_obj, value, hashcode);
+        return &raw mut (*r#ref).value as emacs_value;
+      }
+  })
 }
 
 /* C 462-491: `module_free_global_ref`.  */
@@ -498,30 +467,29 @@ unsafe extern "C" fn module_free_global_ref (env: *mut emacs_env, global_value: 
   /* TODO: This probably never signals.  */
   /* FIXME: Wait a minute.  Shouldn't this function report an error if
      the hash lookup fails?  */
-  MODULE_FUNCTION_BEGIN! (env, internal_cleanup);
-  let h: *mut Lisp_Hash_Table = XHASH_TABLE (Vmodule_refs_hash);
-  let obj: Lisp_Object = value_to_lisp (global_value);
-  let i: ptrdiff_t = hash_find (h, obj);
+  module_with_nonlocal_catch_void (env, || unsafe {
+    let h: *mut Lisp_Hash_Table = XHASH_TABLE (Vmodule_refs_hash);
+    let obj: Lisp_Object = value_to_lisp (global_value);
+    let i: ptrdiff_t = hash_find (h, obj);
 
-  if module_assertions
-    {
-      let mut n: ptrdiff_t = 0;
-      if ! module_global_reference_p (global_value, &mut n)
-        { module_abort (c"Global value was not found in list of %td globals".as_ptr (),
-                        n); }
-    }
+    if module_assertions
+      {
+        let mut n: ptrdiff_t = 0;
+        if ! module_global_reference_p (global_value, &mut n)
+          { module_abort (c"Global value was not found in list of %td globals".as_ptr (),
+                          n); }
+      }
 
-  if i >= 0
-    {
-      let value: Lisp_Object = HASH_VALUE (h, i as hash_idx_t);
-      let r#ref: *mut module_global_reference = XMODULE_GLOBAL_REFERENCE (value);
-      eassert! (0 < (*r#ref).refcount);
-      (*r#ref).refcount -= 1;
-      if (*r#ref).refcount == 0
-        { hash_remove_from_table (h, obj); }
-    }
-
-  MODULE_INTERNAL_CLEANUP! (internal_cleanup);
+    if i >= 0
+      {
+        let value: Lisp_Object = HASH_VALUE (h, i as hash_idx_t);
+        let r#ref: *mut module_global_reference = XMODULE_GLOBAL_REFERENCE (value);
+        eassert! (0 < (*r#ref).refcount);
+        (*r#ref).refcount -= 1;
+        if (*r#ref).refcount == 0
+          { hash_remove_from_table (h, obj); }
+      }
+  });
 }
 
 /* C 493-499: `module_non_local_exit_check`.  */
@@ -653,38 +621,34 @@ unsafe extern "C" fn module_make_function (env: *mut emacs_env, min_arity: ptrdi
                                 max_arity: ptrdiff_t, func: emacs_function,
                                 docstring: *const c_char, data: *mut c_void) -> emacs_value
 {
-  let mut value: emacs_value;
+  module_with_nonlocal_catch (env, std::ptr::null_mut (), || unsafe {
+    if ! (0 <= min_arity
+          && (if max_arity < 0
+                { min_arity <= MOST_POSITIVE_FIXNUM
+                  && max_arity == emacs_variadic_function as ptrdiff_t }
+              else
+                { min_arity <= max_arity
+                  && max_arity <= MOST_POSITIVE_FIXNUM }))
+      { xsignal2 (Qinvalid_arity (), make_fixnum (min_arity), make_fixnum (max_arity)); }
 
-  MODULE_FUNCTION_BEGIN! (env, std::ptr::null_mut (), internal_cleanup);
+    let function: *mut lisp_module_function_def::Lisp_Module_Function
+      = allocate_module_function ();
+    (*function).min_arity = min_arity;
+    (*function).max_arity = max_arity;
+    (*function).subr = func;
+    (*function).data = data;
+    (*function).finalizer = None;
 
-  if ! (0 <= min_arity
-        && (if max_arity < 0
-              { min_arity <= MOST_POSITIVE_FIXNUM
-                && max_arity == emacs_variadic_function as ptrdiff_t }
-            else
-              { min_arity <= max_arity
-                && max_arity <= MOST_POSITIVE_FIXNUM }))
-    { xsignal2 (Qinvalid_arity (), make_fixnum (min_arity), make_fixnum (max_arity)); }
+    if !docstring.is_null ()
+      { (*function).documentation
+          = module_decode_utf_8 (docstring, strlen (docstring) as ptrdiff_t); }
 
-  let function: *mut lisp_module_function_def::Lisp_Module_Function
-    = allocate_module_function ();
-  (*function).min_arity = min_arity;
-  (*function).max_arity = max_arity;
-  (*function).subr = func;
-  (*function).data = data;
-  (*function).finalizer = None;
+    let mut result: Lisp_Object = core::ptr::null_mut ();
+    XSET_MODULE_FUNCTION! (result, function);
+    eassert! (MODULE_FUNCTIONP (result));
 
-  if !docstring.is_null ()
-    { (*function).documentation
-        = module_decode_utf_8 (docstring, strlen (docstring) as ptrdiff_t); }
-
-  let mut result: Lisp_Object = core::ptr::null_mut ();
-  XSET_MODULE_FUNCTION! (result, function);
-  eassert! (MODULE_FUNCTIONP (result));
-
-  value = lisp_to_value (env, result);
-  MODULE_INTERNAL_CLEANUP! (internal_cleanup);
-  return value;
+    lisp_to_value (env, result)
+  })
 }
 
 /* C 629-637: `module_get_function_finalizer`.  `XMODULE_FUNCTION` (the mirror) returns the
@@ -693,11 +657,11 @@ unsafe extern "C" fn module_make_function (env: *mut emacs_env, min_arity: ptrdi
 unsafe extern "C" fn module_get_function_finalizer (env: *mut emacs_env,
                                          arg: emacs_value) -> emacs_finalizer
 {
-  MODULE_FUNCTION_BEGIN! (env, None, internal_cleanup);
-  let lisp: Lisp_Object = value_to_lisp (arg);
-  CHECK_MODULE_FUNCTION (lisp);
-  MODULE_INTERNAL_CLEANUP! (internal_cleanup);
-  return (*XMODULE_FUNCTION (lisp).cast::<lisp_module_function_def::Lisp_Module_Function> ()).finalizer;
+  module_with_nonlocal_catch (env, None, || unsafe {
+    let lisp: Lisp_Object = value_to_lisp (arg);
+    CHECK_MODULE_FUNCTION (lisp);
+    (*XMODULE_FUNCTION (lisp).cast::<lisp_module_function_def::Lisp_Module_Function> ()).finalizer
+  })
 }
 
 /* C 639-648: `module_set_function_finalizer`.  */
@@ -705,17 +669,17 @@ unsafe extern "C" fn module_get_function_finalizer (env: *mut emacs_env,
 unsafe extern "C" fn module_set_function_finalizer (env: *mut emacs_env, arg: emacs_value,
                                          fin: emacs_finalizer)
 {
-  MODULE_FUNCTION_BEGIN! (env, internal_cleanup);
-  let lisp: Lisp_Object = value_to_lisp (arg);
-  CHECK_MODULE_FUNCTION (lisp);
-  (*XMODULE_FUNCTION (lisp).cast::<lisp_module_function_def::Lisp_Module_Function> ()).finalizer = fin;
-  MODULE_INTERNAL_CLEANUP! (internal_cleanup);
+  module_with_nonlocal_catch_void (env, || unsafe {
+    let lisp: Lisp_Object = value_to_lisp (arg);
+    CHECK_MODULE_FUNCTION (lisp);
+    (*XMODULE_FUNCTION (lisp).cast::<lisp_module_function_def::Lisp_Module_Function> ()).finalizer = fin;
+  });
 }
 
 /* C 650-655: `module_finalize_function` (a non-`static` definition).  */
 #[cfg (feature = "have_modules")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn module_finalize_function
+pub unsafe extern "C-unwind" fn module_finalize_function
   (func: *const lisp_module_function_def::Lisp_Module_Function)
 {
   if (*func).finalizer.is_some ()
@@ -727,21 +691,21 @@ pub unsafe extern "C" fn module_finalize_function
 unsafe extern "C" fn module_make_interactive (env: *mut emacs_env, function: emacs_value,
                                    spec: emacs_value)
 {
-  MODULE_FUNCTION_BEGIN! (env, internal_cleanup);
-  let lisp_fun: Lisp_Object = value_to_lisp (function);
-  CHECK_MODULE_FUNCTION (lisp_fun);
-  let lisp_spec: Lisp_Object = value_to_lisp (spec);
-  /* Normalize (interactive nil) to (interactive). */
-  (*XMODULE_FUNCTION (lisp_fun).cast::<lisp_module_function_def::Lisp_Module_Function> ()).interactive_form
-    = if NILP (lisp_spec) { list1 (Qinteractive ()) }
-      else { list2 (Qinteractive (), lisp_spec) };
-  MODULE_INTERNAL_CLEANUP! (internal_cleanup);
+  module_with_nonlocal_catch_void (env, || unsafe {
+    let lisp_fun: Lisp_Object = value_to_lisp (function);
+    CHECK_MODULE_FUNCTION (lisp_fun);
+    let lisp_spec: Lisp_Object = value_to_lisp (spec);
+    /* Normalize (interactive nil) to (interactive). */
+    (*XMODULE_FUNCTION (lisp_fun).cast::<lisp_module_function_def::Lisp_Module_Function> ()).interactive_form
+      = if NILP (lisp_spec) { list1 (Qinteractive ()) }
+        else { list2 (Qinteractive (), lisp_spec) };
+  });
 }
 
 /* C 670-674: `module_function_interactive_form` (a non-`static` definition).  */
 #[cfg (feature = "have_modules")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn module_function_interactive_form
+pub unsafe extern "C-unwind" fn module_function_interactive_form
   (fun: *const lisp_module_function_def::Lisp_Module_Function) -> Lisp_Object
 {
   return (*fun).interactive_form;
@@ -750,7 +714,7 @@ pub unsafe extern "C" fn module_function_interactive_form
 /* C 676-680: `module_function_command_modes` (a non-`static` definition).  */
 #[cfg (feature = "have_modules")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn module_function_command_modes
+pub unsafe extern "C-unwind" fn module_function_command_modes
   (fun: *const lisp_module_function_def::Lisp_Module_Function) -> Lisp_Object
 {
   return (*fun).command_modes;
@@ -761,53 +725,73 @@ pub unsafe extern "C" fn module_function_command_modes
 unsafe extern "C" fn module_funcall (env: *mut emacs_env, func: emacs_value, nargs: ptrdiff_t,
                           args: *mut emacs_value) -> emacs_value
 {
-  MODULE_FUNCTION_BEGIN! (env, std::ptr::null_mut (), internal_cleanup);
+  module_with_nonlocal_catch (env, std::ptr::null_mut (), || unsafe {
+    /* Make a new Lisp_Object array starting with the function as the
+       first arg, because that's what Ffuncall takes.  */
+    let mut newargs: *mut Lisp_Object = core::ptr::null_mut ();
+    USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
+    /* C 693: `if (ckd_add (&nargs1, nargs, 1)) overflow_error ();` */
+    let (nargs1_new, nargs1_overflow) = nargs.overflowing_add (1);
+    if nargs1_overflow
+      { overflow_error (); }
+    let nargs1: ptrdiff_t = nargs1_new;
+    SAFE_ALLOCA_LISP! (sa_avail, newargs, nargs1);
+    *newargs.offset (0) = value_to_lisp (func);
+    let mut i: ptrdiff_t = 0;
+    while i < nargs
+      {
+        *newargs.offset ((1 + i) as isize) = value_to_lisp (*args.offset (i as isize));
+        i += 1;
+      }
+    let result: emacs_value = lisp_to_value (env, Ffuncall (nargs1, newargs));
+    SAFE_FREE! (sa_count, sa_mark);
+    result
+  })
+}
 
-  /* Make a new Lisp_Object array starting with the function as the
-     first arg, because that's what Ffuncall takes.  */
-  let mut newargs: *mut Lisp_Object = core::ptr::null_mut ();
-  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
-  /* C 693: `if (ckd_add (&nargs1, nargs, 1)) overflow_error ();` */
-  let (nargs1_new, nargs1_overflow) = nargs.overflowing_add (1);
-  if nargs1_overflow
-    { overflow_error (); }
-  let nargs1: ptrdiff_t = nargs1_new;
-  SAFE_ALLOCA_LISP! (sa_avail, newargs, nargs1);
-  *newargs.offset (0) = value_to_lisp (func);
-  let mut i: ptrdiff_t = 0;
-  while i < nargs
-    {
-      *newargs.offset ((1 + i) as isize) = value_to_lisp (*args.offset (i as isize));
-      i += 1;
-    }
-  let result: emacs_value = lisp_to_value (env, Ffuncall (nargs1, newargs));
-  SAFE_FREE! (sa_count, sa_mark);
-  MODULE_INTERNAL_CLEANUP! (internal_cleanup);
-  return result;
+#[cfg (feature = "have_modules")]
+#[inline(never)]
+unsafe extern "C-unwind" fn call0_with_host_drop_guard_inner (lisp_fun: Lisp_Object) -> Lisp_Object
+{
+  let _host_guard = crate::nonlocal::HostDropGuard::new ();
+  let _root_guard = crate::nonlocal::ScopedLispRoot::new (&[lisp_fun]);
+  let mut args = [lisp_fun];
+  Ffuncall (1, args.as_mut_ptr ())
+}
+
+/* Host C-ABI probe entry point for AU3 dynamic-module verification: invokes a zero-argument
+   Lisp callable across an `#[inline(never)]` Rust frame holding `HostDropGuard` + `ScopedLispRoot`,
+   catching any `NonLocalExit` inside `module_with_nonlocal_catch` so zero unwinds cross C FFI
+   and `obarray` remains completely untouched.  */
+#[cfg (feature = "have_modules")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn femacs_vm_module_call0_with_host_guard (
+  env: *mut emacs_env,
+  func: emacs_value,
+) -> emacs_value
+{
+  module_with_nonlocal_catch (env, std::ptr::null_mut (), || unsafe {
+    let res = call0_with_host_drop_guard_inner (value_to_lisp (func));
+    lisp_to_value (env, res)
+  })
 }
 
 /* C 705-714: `module_intern`.  */
 #[cfg (feature = "have_modules")]
 unsafe extern "C" fn module_intern (env: *mut emacs_env, name: *const c_char) -> emacs_value
 {
-  let mut tem: emacs_value;
-
-  MODULE_FUNCTION_BEGIN! (env, std::ptr::null_mut (), internal_cleanup);
-  tem = lisp_to_value (env, intern (name));
-  MODULE_INTERNAL_CLEANUP! (internal_cleanup);
-  return tem;
+  module_with_nonlocal_catch (env, std::ptr::null_mut (), || unsafe {
+    lisp_to_value (env, intern (name))
+  })
 }
 
 /* C 716-725: `module_type_of`.  */
 #[cfg (feature = "have_modules")]
 unsafe extern "C" fn module_type_of (env: *mut emacs_env, arg: emacs_value) -> emacs_value
 {
-  let mut tem: emacs_value;
-
-  MODULE_FUNCTION_BEGIN! (env, std::ptr::null_mut (), internal_cleanup);
-  tem = lisp_to_value (env, Ftype_of (value_to_lisp (arg)));
-  MODULE_INTERNAL_CLEANUP! (internal_cleanup);
-  return tem;
+  module_with_nonlocal_catch (env, std::ptr::null_mut (), || unsafe {
+    lisp_to_value (env, Ftype_of (value_to_lisp (arg)))
+  })
 }
 
 /* C 727-732: `module_is_not_nil`.  */
@@ -830,52 +814,43 @@ unsafe extern "C" fn module_eq (env: *mut emacs_env, a: emacs_value, b: emacs_va
 #[cfg (feature = "have_modules")]
 unsafe extern "C" fn module_extract_integer (env: *mut emacs_env, arg: emacs_value) -> intmax_t
 {
-  MODULE_FUNCTION_BEGIN! (env, 0, internal_cleanup);
-  let lisp: Lisp_Object = value_to_lisp (arg);
-  CHECK_INTEGER (lisp);
-  let mut i: intmax_t = 0;
-  if ! integer_to_intmax (lisp, &mut i)
-    { xsignal1 (Qoverflow_error (), lisp); }
-  MODULE_INTERNAL_CLEANUP! (internal_cleanup);
-  return i;
+  module_with_nonlocal_catch (env, 0, || unsafe {
+    let lisp: Lisp_Object = value_to_lisp (arg);
+    CHECK_INTEGER (lisp);
+    let mut i: intmax_t = 0;
+    if ! integer_to_intmax (lisp, &mut i)
+      { xsignal1 (Qoverflow_error (), lisp); }
+    i
+  })
 }
 
 /* C 754-764: `module_make_integer`.  */
 #[cfg (feature = "have_modules")]
 unsafe extern "C" fn module_make_integer (env: *mut emacs_env, n: intmax_t) -> emacs_value
 {
-  let mut value: emacs_value;
-
-  MODULE_FUNCTION_BEGIN! (env, std::ptr::null_mut (), internal_cleanup);
-  value = lisp_to_value (env, make_int (n));
-  MODULE_INTERNAL_CLEANUP! (internal_cleanup);
-
-  return value;
+  module_with_nonlocal_catch (env, std::ptr::null_mut (), || unsafe {
+    lisp_to_value (env, make_int (n))
+  })
 }
 
 /* C 766-775: `module_extract_float`.  */
 #[cfg (feature = "have_modules")]
 unsafe extern "C" fn module_extract_float (env: *mut emacs_env, arg: emacs_value) -> c_double
 {
-  MODULE_FUNCTION_BEGIN! (env, 0.0, internal_cleanup);
-  let lisp: Lisp_Object = value_to_lisp (arg);
-  CHECK_TYPE (FLOATP (lisp), Qfloatp (), lisp);
-  MODULE_INTERNAL_CLEANUP! (internal_cleanup);
-
-  return XFLOAT_DATA (lisp);
+  module_with_nonlocal_catch (env, 0.0, || unsafe {
+    let lisp: Lisp_Object = value_to_lisp (arg);
+    CHECK_TYPE (FLOATP (lisp), Qfloatp (), lisp);
+    XFLOAT_DATA (lisp)
+  })
 }
 
 /* C 777-787: `module_make_float`.  */
 #[cfg (feature = "have_modules")]
 unsafe extern "C" fn module_make_float (env: *mut emacs_env, d: c_double) -> emacs_value
 {
-  let mut value: emacs_value;
-
-  MODULE_FUNCTION_BEGIN! (env, std::ptr::null_mut (), internal_cleanup);
-  value = lisp_to_value (env, make_float (d));
-  MODULE_INTERNAL_CLEANUP! (internal_cleanup);
-
-  return value;
+  module_with_nonlocal_catch (env, std::ptr::null_mut (), || unsafe {
+    lisp_to_value (env, make_float (d))
+  })
 }
 
 /* C 789-834: `module_copy_string_contents`.  */
@@ -883,48 +858,47 @@ unsafe extern "C" fn module_make_float (env: *mut emacs_env, d: c_double) -> ema
 unsafe extern "C" fn module_copy_string_contents (env: *mut emacs_env, value: emacs_value,
                                        buf: *mut c_char, len: *mut ptrdiff_t) -> bool
 {
-  MODULE_FUNCTION_BEGIN! (env, false, internal_cleanup);
-  let lisp_str: Lisp_Object = value_to_lisp (value);
-  CHECK_STRING (lisp_str);
+  module_with_nonlocal_catch (env, false, || unsafe {
+    let lisp_str: Lisp_Object = value_to_lisp (value);
+    CHECK_STRING (lisp_str);
 
-  /* We can set NOCOPY to true here because we only use the byte
-     sequence starting at SDATA and don't modify the original string
-     before copying out the data.
+    /* We can set NOCOPY to true here because we only use the byte
+       sequence starting at SDATA and don't modify the original string
+       before copying out the data.
 
-     We set HANDLE-8-BIT and HANDLE-OVER-UNI to nil to signal an error
-     if the argument is not a valid Unicode string.  While it isn't
-     documented how copy_string_contents behaves in this case,
-     signaling an error is the most defensive and obvious reaction. */
-  let lisp_str_utf8: Lisp_Object
-    = encode_string_utf_8 (lisp_str, Qnil (), true, Qnil (), Qnil ());
+       We set HANDLE-8-BIT and HANDLE-OVER-UNI to nil to signal an error
+       if the argument is not a valid Unicode string.  While it isn't
+       documented how copy_string_contents behaves in this case,
+       signaling an error is the most defensive and obvious reaction. */
+    let lisp_str_utf8: Lisp_Object
+      = encode_string_utf_8 (lisp_str, Qnil (), true, Qnil (), Qnil ());
 
-  /* Since we set HANDLE-8-BIT and HANDLE-OVER-UNI to nil, the return
-     value can be nil, and we have to check for that. */
-  CHECK_TYPE (!NILP (lisp_str_utf8), Qunicode_string_p (), lisp_str);
+    /* Since we set HANDLE-8-BIT and HANDLE-OVER-UNI to nil, the return
+       value can be nil, and we have to check for that. */
+    CHECK_TYPE (!NILP (lisp_str_utf8), Qunicode_string_p (), lisp_str);
 
-  let raw_size: ptrdiff_t = SBYTES (lisp_str_utf8);
-  let required_buf_size: ptrdiff_t = raw_size + 1;
+    let raw_size: ptrdiff_t = SBYTES (lisp_str_utf8);
+    let required_buf_size: ptrdiff_t = raw_size + 1;
 
-  if buf.is_null ()
-    {
-      *len = required_buf_size;
-      MODULE_INTERNAL_CLEANUP! (internal_cleanup);
-      return true;
-    }
+    if buf.is_null ()
+      {
+        *len = required_buf_size;
+        return true;
+      }
 
-  if *len < required_buf_size
-    {
-      let actual: ptrdiff_t = *len;
-      *len = required_buf_size;
-      module_memory_buffer_too_small (actual, required_buf_size);
-    }
+    if *len < required_buf_size
+      {
+        let actual: ptrdiff_t = *len;
+        *len = required_buf_size;
+        module_memory_buffer_too_small (actual, required_buf_size);
+      }
 
-  *len = required_buf_size;
-  memcpy (buf as *mut c_void, SDATA (lisp_str_utf8) as *const c_void,
-          (raw_size + 1) as usize);
+    *len = required_buf_size;
+    memcpy (buf as *mut c_void, SDATA (lisp_str_utf8) as *const c_void,
+            (raw_size + 1) as usize);
 
-  MODULE_INTERNAL_CLEANUP! (internal_cleanup);
-  return true;
+    true
+  })
 }
 
 /* C 836-849: `module_make_string`.  */
@@ -932,16 +906,13 @@ unsafe extern "C" fn module_copy_string_contents (env: *mut emacs_env, value: em
 unsafe extern "C" fn module_make_string (env: *mut emacs_env, str_: *const c_char,
                               len: ptrdiff_t) -> emacs_value
 {
-  let mut value: emacs_value;
-
-  MODULE_FUNCTION_BEGIN! (env, std::ptr::null_mut (), internal_cleanup);
-  if ! (0 <= len && len <= STRING_BYTES_BOUND)
-    { overflow_error (); }
-  let lstr: Lisp_Object
-    = if len == 0 { empty_multibyte_string } else { module_decode_utf_8 (str_, len) };
-  value = lisp_to_value (env, lstr);
-  MODULE_INTERNAL_CLEANUP! (internal_cleanup);
-  return value;
+  module_with_nonlocal_catch (env, std::ptr::null_mut (), || unsafe {
+    if ! (0 <= len && len <= STRING_BYTES_BOUND)
+      { overflow_error (); }
+    let lstr: Lisp_Object
+      = if len == 0 { empty_multibyte_string } else { module_decode_utf_8 (str_, len) };
+    lisp_to_value (env, lstr)
+  })
 }
 
 /* C 851-865: `module_make_unibyte_string`.  */
@@ -949,18 +920,14 @@ unsafe extern "C" fn module_make_string (env: *mut emacs_env, str_: *const c_cha
 unsafe extern "C" fn module_make_unibyte_string (env: *mut emacs_env, str_: *const c_char,
                                       length: ptrdiff_t) -> emacs_value
 {
-  let mut value: emacs_value;
-
-  MODULE_FUNCTION_BEGIN! (env, std::ptr::null_mut (), internal_cleanup);
-  if ! (0 <= length && length <= STRING_BYTES_BOUND)
-    { overflow_error (); }
-  let lstr: Lisp_Object
-    = if length == 0 { empty_unibyte_string }
-      else { make_unibyte_string (str_, length) };
-  value = lisp_to_value (env, lstr);
-  MODULE_INTERNAL_CLEANUP! (internal_cleanup);
-
-  return value;
+  module_with_nonlocal_catch (env, std::ptr::null_mut (), || unsafe {
+    if ! (0 <= length && length <= STRING_BYTES_BOUND)
+      { overflow_error (); }
+    let lstr: Lisp_Object
+      = if length == 0 { empty_unibyte_string }
+        else { make_unibyte_string (str_, length) };
+    lisp_to_value (env, lstr)
+  })
 }
 
 /* C 867-877: `module_make_user_ptr`.  */
@@ -968,47 +935,42 @@ unsafe extern "C" fn module_make_unibyte_string (env: *mut emacs_env, str_: *con
 unsafe extern "C" fn module_make_user_ptr (env: *mut emacs_env, fin: emacs_finalizer,
                                 ptr: *mut c_void) -> emacs_value
 {
-  let mut value: emacs_value;
-
-  MODULE_FUNCTION_BEGIN! (env, std::ptr::null_mut (), internal_cleanup);
-  value = lisp_to_value (env, make_user_ptr (fin, ptr));
-  MODULE_INTERNAL_CLEANUP! (internal_cleanup);
-
-  return value;
+  module_with_nonlocal_catch (env, std::ptr::null_mut (), || unsafe {
+    lisp_to_value (env, make_user_ptr (fin, ptr))
+  })
 }
 
 /* C 879-888: `module_get_user_ptr`.  */
 #[cfg (feature = "have_modules")]
 unsafe extern "C" fn module_get_user_ptr (env: *mut emacs_env, arg: emacs_value) -> *mut c_void
 {
-  MODULE_FUNCTION_BEGIN! (env, std::ptr::null_mut (), internal_cleanup);
-  let lisp: Lisp_Object = value_to_lisp (arg);
-  CHECK_USER_PTR (lisp);
-  MODULE_INTERNAL_CLEANUP! (internal_cleanup);
-
-  return (*XUSER_PTR (lisp)).p;
+  module_with_nonlocal_catch (env, std::ptr::null_mut (), || unsafe {
+    let lisp: Lisp_Object = value_to_lisp (arg);
+    CHECK_USER_PTR (lisp);
+    (*XUSER_PTR (lisp)).p
+  })
 }
 
 /* C 890-898: `module_set_user_ptr`.  */
 #[cfg (feature = "have_modules")]
 unsafe extern "C" fn module_set_user_ptr (env: *mut emacs_env, arg: emacs_value, ptr: *mut c_void)
 {
-  MODULE_FUNCTION_BEGIN! (env, internal_cleanup);
-  let lisp: Lisp_Object = value_to_lisp (arg);
-  CHECK_USER_PTR (lisp);
-  (*XUSER_PTR (lisp)).p = ptr;
-  MODULE_INTERNAL_CLEANUP! (internal_cleanup);
+  module_with_nonlocal_catch_void (env, || unsafe {
+    let lisp: Lisp_Object = value_to_lisp (arg);
+    CHECK_USER_PTR (lisp);
+    (*XUSER_PTR (lisp)).p = ptr;
+  });
 }
 
 /* C 900-908: `module_get_user_finalizer`.  */
 #[cfg (feature = "have_modules")]
 unsafe extern "C" fn module_get_user_finalizer (env: *mut emacs_env, arg: emacs_value) -> emacs_finalizer
 {
-  MODULE_FUNCTION_BEGIN! (env, None, internal_cleanup);
-  let lisp: Lisp_Object = value_to_lisp (arg);
-  CHECK_USER_PTR (lisp);
-  MODULE_INTERNAL_CLEANUP! (internal_cleanup);
-  return (*XUSER_PTR (lisp)).finalizer;
+  module_with_nonlocal_catch (env, None, || unsafe {
+    let lisp: Lisp_Object = value_to_lisp (arg);
+    CHECK_USER_PTR (lisp);
+    (*XUSER_PTR (lisp)).finalizer
+  })
 }
 
 /* C 910-919: `module_set_user_finalizer`.  */
@@ -1016,11 +978,11 @@ unsafe extern "C" fn module_get_user_finalizer (env: *mut emacs_env, arg: emacs_
 unsafe extern "C" fn module_set_user_finalizer (env: *mut emacs_env, arg: emacs_value,
                                      fin: emacs_finalizer)
 {
-  MODULE_FUNCTION_BEGIN! (env, internal_cleanup);
-  let lisp: Lisp_Object = value_to_lisp (arg);
-  CHECK_USER_PTR (lisp);
-  (*XUSER_PTR (lisp)).finalizer = fin;
-  MODULE_INTERNAL_CLEANUP! (internal_cleanup);
+  module_with_nonlocal_catch_void (env, || unsafe {
+    let lisp: Lisp_Object = value_to_lisp (arg);
+    CHECK_USER_PTR (lisp);
+    (*XUSER_PTR (lisp)).finalizer = fin;
+  });
 }
 
 /* C 921-927: `check_vec_index`.  */
@@ -1037,11 +999,11 @@ unsafe fn check_vec_index (lvec: Lisp_Object, i: ptrdiff_t)
 unsafe extern "C" fn module_vec_set (env: *mut emacs_env, vector: emacs_value, index: ptrdiff_t,
                           value: emacs_value)
 {
-  MODULE_FUNCTION_BEGIN! (env, internal_cleanup);
-  let lisp: Lisp_Object = value_to_lisp (vector);
-  check_vec_index (lisp, index);
-  ASET (lisp, index, value_to_lisp (value));
-  MODULE_INTERNAL_CLEANUP! (internal_cleanup);
+  module_with_nonlocal_catch_void (env, || unsafe {
+    let lisp: Lisp_Object = value_to_lisp (vector);
+    check_vec_index (lisp, index);
+    ASET (lisp, index, value_to_lisp (value));
+  });
 }
 
 /* C 940-952: `module_vec_get`.  */
@@ -1049,33 +1011,28 @@ unsafe extern "C" fn module_vec_set (env: *mut emacs_env, vector: emacs_value, i
 unsafe extern "C" fn module_vec_get (env: *mut emacs_env, vector: emacs_value,
                           index: ptrdiff_t) -> emacs_value
 {
-  let mut value: emacs_value;
-
-  MODULE_FUNCTION_BEGIN! (env, std::ptr::null_mut (), internal_cleanup);
-  let lisp: Lisp_Object = value_to_lisp (vector);
-  check_vec_index (lisp, index);
-  value = lisp_to_value (env, AREF (lisp, index));
-  MODULE_INTERNAL_CLEANUP! (internal_cleanup);
-
-  return value;
+  module_with_nonlocal_catch (env, std::ptr::null_mut (), || unsafe {
+    let lisp: Lisp_Object = value_to_lisp (vector);
+    check_vec_index (lisp, index);
+    lisp_to_value (env, AREF (lisp, index))
+  })
 }
 
 /* C 954-963: `module_vec_size`.  */
 #[cfg (feature = "have_modules")]
 unsafe extern "C" fn module_vec_size (env: *mut emacs_env, vector: emacs_value) -> ptrdiff_t
 {
-  MODULE_FUNCTION_BEGIN! (env, 0, internal_cleanup);
-  let lisp: Lisp_Object = value_to_lisp (vector);
-  CHECK_VECTOR (lisp);
-  MODULE_INTERNAL_CLEANUP! (internal_cleanup);
-
-  return ASIZE (lisp);
+  module_with_nonlocal_catch (env, 0, || unsafe {
+    let lisp: Lisp_Object = value_to_lisp (vector);
+    CHECK_VECTOR (lisp);
+    ASIZE (lisp)
+  })
 }
 
 /* C 965-977: `module_canvas_data` - C's `#ifdef HAVE_WINDOW_SYSTEM` pair, both arms.  */
 // C: dispextern.h 3725: uint32_t *canvas_data (Lisp_Object)
 #[cfg (all (feature = "have_modules", feature = "have_window_system"))]
-unsafe extern "C"
+unsafe extern "C-unwind"
 {
   pub fn canvas_data (obj: Lisp_Object) -> *mut u32;
 }
@@ -1083,18 +1040,17 @@ unsafe extern "C"
 #[cfg (feature = "have_modules")]
 unsafe extern "C" fn module_canvas_data (env: *mut emacs_env, canvas: emacs_value) -> *mut u32
 {
-  let mut data: *mut u32 = core::ptr::null_mut ();
-  MODULE_FUNCTION_BEGIN! (env, std::ptr::null_mut (), internal_cleanup);
-  #[cfg (feature = "have_window_system")]
-  {
-    data = canvas_data (value_to_lisp (canvas));
-  }
-  #[cfg (not (feature = "have_window_system"))]
-  {
-    error (c"Canvas: No window system".as_ptr ());
-  }
-  MODULE_INTERNAL_CLEANUP! (internal_cleanup);
-  return data;
+  module_with_nonlocal_catch (env, std::ptr::null_mut (), || unsafe {
+    #[cfg (feature = "have_window_system")]
+    {
+      canvas_data (value_to_lisp (canvas))
+    }
+    #[cfg (not (feature = "have_window_system"))]
+    {
+      error (c"Canvas: No window system".as_ptr ());
+      core::ptr::null_mut ()
+    }
+  })
 }
 
 /* C 979-986: `module_should_quit`.  */
@@ -1109,39 +1065,28 @@ unsafe extern "C" fn module_should_quit (env: *mut emacs_env) -> bool
 #[cfg (feature = "have_modules")]
 unsafe extern "C" fn module_process_input (env: *mut emacs_env) -> emacs_process_input_result
 {
-  let mut rc: emacs_process_input_result;
-
-  MODULE_FUNCTION_BEGIN! (env, emacs_process_input_quit, internal_cleanup);
-  maybe_quit ();
-  rc = emacs_process_input_continue;
-  MODULE_INTERNAL_CLEANUP! (internal_cleanup);
-  return rc;
+  module_with_nonlocal_catch (env, emacs_process_input_quit, || unsafe {
+    maybe_quit ();
+    emacs_process_input_continue
+  })
 }
 
 /* C 1000-1010: `module_extract_time`.  */
 #[cfg (feature = "have_modules")]
 unsafe extern "C" fn module_extract_time (env: *mut emacs_env, arg: emacs_value) -> timespec
 {
-  let mut value: timespec;
-
-  MODULE_FUNCTION_BEGIN! (env, timespec { tv_sec: 0, tv_nsec: 0 }, internal_cleanup);
-  value = lisp_time_argument (value_to_lisp (arg));
-  MODULE_INTERNAL_CLEANUP! (internal_cleanup);
-
-  return value;
+  module_with_nonlocal_catch (env, timespec { tv_sec: 0, tv_nsec: 0 }, || unsafe {
+    lisp_time_argument (value_to_lisp (arg))
+  })
 }
 
 /* C 1012-1022: `module_make_time`.  */
 #[cfg (feature = "have_modules")]
 unsafe extern "C" fn module_make_time (env: *mut emacs_env, time: timespec) -> emacs_value
 {
-  let mut value: emacs_value;
-
-  MODULE_FUNCTION_BEGIN! (env, std::ptr::null_mut (), internal_cleanup);
-  value = lisp_to_value (env, timespec_to_lisp (time));
-  MODULE_INTERNAL_CLEANUP! (internal_cleanup);
-
-  return value;
+  module_with_nonlocal_catch (env, std::ptr::null_mut (), || unsafe {
+    lisp_to_value (env, timespec_to_lisp (time))
+  })
 }
 
 /* C 1024-1059: the comment on the two possible GMP strategies and the chosen sign-magnitude
@@ -1186,91 +1131,86 @@ unsafe extern "C" fn module_extract_big_integer (env: *mut emacs_env, arg: emacs
     sign = sign_volatile;
   }
 
-  MODULE_FUNCTION_BEGIN! (env, false, internal_cleanup);
-  let o: Lisp_Object = value_to_lisp (arg);
-  CHECK_INTEGER (o);
-  let mut dummy: c_int = 0;
-  if sign.is_null ()
-    { sign = &raw mut dummy; }
-  /* See
-     https://gmplib.org/manual/Integer-Import-and-Export.html#index-Export. */
-  const order: c_int = -1;
-  const size: usize = std::mem::size_of::<emacs_limb_t> ();
-  const bits: usize = size * CHAR_BIT as usize;
-  const endian: c_int = 0;
-  const nails: usize = 0;
-  const numb: usize = 8 * size - nails;
-  if FIXNUMP (o)
-    {
-      let x: EMACS_INT = XFIXNUM (o);
-      *sign = (0 < x) as c_int - (x < 0) as c_int;
-      if x == 0 || count.is_null ()
-        {
-          MODULE_INTERNAL_CLEANUP! (internal_cleanup);
-          return true;
-        }
-      /* As a simplification we don't check how many array elements
-         are exactly required, but use a reasonable static upper
-         bound.  For most architectures exactly one element should
-         suffice.  */
-      const required: isize
-        = (std::mem::size_of::<EMACS_UINT> () + size - 1) as isize / size as isize;
-      const _: () = core::assert! (0 < required && required <= module_bignum_count_max);
-      if magnitude.is_null ()
-        {
-          *count = required;
-          MODULE_INTERNAL_CLEANUP! (internal_cleanup);
-          return true;
-        }
-      if *count < required
-        {
-          let actual: ptrdiff_t = *count;
-          *count = required;
-          module_memory_buffer_too_small (actual, required);
-        }
-      /* Set u = abs(x).  See https://stackoverflow.com/a/17313717. */
-      let u: EMACS_UINT;
-      if 0 < x
-        { u = x as EMACS_UINT; }
-      else
-        { u = (x as EMACS_UINT).wrapping_neg (); }
-      const _: () = core::assert! (required as usize * bits < PTRDIFF_MAX as usize);
-      let mut i: ptrdiff_t = 0;
-      while i < required
-        {
-          *magnitude.offset (i as isize) = (u >> ((i * bits as isize) as usize)) as emacs_limb_t;
-          i += 1;
-        }
-      MODULE_INTERNAL_CLEANUP! (internal_cleanup);
-      return true;
-    }
-  let x: *const __mpz_struct = xbignum_val (o);
-  *sign = mpz_sgn (x);
-  if count.is_null ()
-    {
-      MODULE_INTERNAL_CLEANUP! (internal_cleanup);
-      return true;
-    }
-  let required_size: usize = (mpz_sizeinbase (x, 2) + numb - 1) / numb;
-  eassert! (required_size <= module_bignum_count_max as usize);
-  let required: ptrdiff_t = required_size as ptrdiff_t;
-  if magnitude.is_null ()
-    {
-      *count = required;
-      MODULE_INTERNAL_CLEANUP! (internal_cleanup);
-      return true;
-    }
-  if *count < required
-    {
-      let actual: ptrdiff_t = *count;
-      *count = required;
-      module_memory_buffer_too_small (actual, required);
-    }
-  let mut written: usize = 0;
-  mpz_export (magnitude as *mut c_void, &mut written, order, size, endian, nails, x);
-  eassert! (written == required_size);
-  MODULE_INTERNAL_CLEANUP! (internal_cleanup);
-  return true;
+  module_with_nonlocal_catch (env, false, || unsafe {
+    let o: Lisp_Object = value_to_lisp (arg);
+    CHECK_INTEGER (o);
+    let mut dummy: c_int = 0;
+    if sign.is_null ()
+      { sign = &raw mut dummy; }
+    /* See
+       https://gmplib.org/manual/Integer-Import-and-Export.html#index-Export. */
+    const order: c_int = -1;
+    const size: usize = std::mem::size_of::<emacs_limb_t> ();
+    const bits: usize = size * CHAR_BIT as usize;
+    const endian: c_int = 0;
+    const nails: usize = 0;
+    const numb: usize = 8 * size - nails;
+    if FIXNUMP (o)
+      {
+        let x: EMACS_INT = XFIXNUM (o);
+        *sign = (0 < x) as c_int - (x < 0) as c_int;
+        if x == 0 || count.is_null ()
+          {
+            return true;
+          }
+        /* As a simplification we don't check how many array elements
+           are exactly required, but use a reasonable static upper
+           bound.  For most architectures exactly one element should
+           suffice.  */
+        const required: isize
+          = (std::mem::size_of::<EMACS_UINT> () + size - 1) as isize / size as isize;
+        const _: () = core::assert! (0 < required && required <= module_bignum_count_max);
+        if magnitude.is_null ()
+          {
+            *count = required;
+            return true;
+          }
+        if *count < required
+          {
+            let actual: ptrdiff_t = *count;
+            *count = required;
+            module_memory_buffer_too_small (actual, required);
+          }
+        /* Set u = abs(x).  See https://stackoverflow.com/a/17313717. */
+        let u: EMACS_UINT;
+        if 0 < x
+          { u = x as EMACS_UINT; }
+        else
+          { u = (x as EMACS_UINT).wrapping_neg (); }
+        const _: () = core::assert! (required as usize * bits < PTRDIFF_MAX as usize);
+        let mut i: ptrdiff_t = 0;
+        while i < required
+          {
+            *magnitude.offset (i as isize) = (u >> ((i * bits as isize) as usize)) as emacs_limb_t;
+            i += 1;
+          }
+        return true;
+      }
+    let x: *const __mpz_struct = xbignum_val (o);
+    *sign = mpz_sgn (x);
+    if count.is_null ()
+      {
+        return true;
+      }
+    let required_size: usize = (mpz_sizeinbase (x, 2) + numb - 1) / numb;
+    eassert! (required_size <= module_bignum_count_max as usize);
+    let required: ptrdiff_t = required_size as ptrdiff_t;
+    if magnitude.is_null ()
+      {
+        *count = required;
+        return true;
+      }
+    if *count < required
+      {
+        let actual: ptrdiff_t = *count;
+        *count = required;
+        module_memory_buffer_too_small (actual, required);
+      }
+    let mut written: usize = 0;
+    mpz_export (magnitude as *mut c_void, &mut written, order, size, endian, nails, x);
+    eassert! (written == required_size);
+    true
+  })
 }
 
 /* C 1170-1190: `module_make_big_integer`.  */
@@ -1279,32 +1219,27 @@ unsafe extern "C" fn module_make_big_integer (env: *mut emacs_env, sign: c_int,
                                    count: ptrdiff_t,
                                    magnitude: *const emacs_limb_t) -> emacs_value
 {
-  let mut value: emacs_value;
-
-  MODULE_FUNCTION_BEGIN! (env, std::ptr::null_mut (), internal_cleanup);
-  if sign == 0
-    {
-      value = lisp_to_value (env, make_fixed_natnum (0));
-      MODULE_INTERNAL_CLEANUP! (internal_cleanup);
-      return value;
-    }
-  const order: c_int = -1;
-  const size: usize = std::mem::size_of::<emacs_limb_t> ();
-  const endian: c_int = 0;
-  const nails: usize = 0;
-  mpz_import (mpz[0].as_mut_ptr (), count as usize, order, size, endian, nails,
-              magnitude as *const c_void);
-  if sign < 0
-    { mpz_neg (mpz[0].as_mut_ptr (), mpz[0].as_mut_ptr ()); }
-  value = lisp_to_value (env, make_integer_mpz ());
-  MODULE_INTERNAL_CLEANUP! (internal_cleanup);
-  return value;
+  module_with_nonlocal_catch (env, std::ptr::null_mut (), || unsafe {
+    if sign == 0
+      {
+        return lisp_to_value (env, make_fixed_natnum (0));
+      }
+    const order: c_int = -1;
+    const size: usize = std::mem::size_of::<emacs_limb_t> ();
+    const endian: c_int = 0;
+    const nails: usize = 0;
+    mpz_import (mpz[0].as_mut_ptr (), count as usize, order, size, endian, nails,
+                magnitude as *const c_void);
+    if sign < 0
+      { mpz_neg (mpz[0].as_mut_ptr (), mpz[0].as_mut_ptr ()); }
+    lisp_to_value (env, make_integer_mpz ())
+  })
 }
 
 /* C 1192-1202: `module_open_channel`.  */
 // C: process.h 316: int open_channel_for_module (Lisp_Object)
 #[cfg (feature = "have_modules")]
-unsafe extern "C"
+unsafe extern "C-unwind"
 {
   pub fn open_channel_for_module (pipe_process: Lisp_Object) -> c_int;
 }
@@ -1312,13 +1247,9 @@ unsafe extern "C"
 #[cfg (feature = "have_modules")]
 unsafe extern "C" fn module_open_channel (env: *mut emacs_env, pipe_process: emacs_value) -> c_int
 {
-  let mut rc: c_int;
-
-  MODULE_FUNCTION_BEGIN! (env, -1, internal_cleanup);
-  rc = open_channel_for_module (value_to_lisp (pipe_process));
-  MODULE_INTERNAL_CLEANUP! (internal_cleanup);
-
-  return rc;
+  module_with_nonlocal_catch (env, -1, || unsafe {
+    open_channel_for_module (value_to_lisp (pipe_process))
+  })
 }
 
 /* ------------------------------------------------------------------------------------------
@@ -1331,37 +1262,37 @@ unsafe extern "C" fn module_open_channel (env: *mut emacs_env, pipe_process: ema
    ------------------------------------------------------------------------------------------ */
 // C: lisp.h 4816: extern struct handler *push_handler_nosignal (Lisp_Object, enum handlertype);
 #[cfg (feature = "have_modules")]
-unsafe extern "C"
+unsafe extern "C-unwind"
 {
   pub fn push_handler_nosignal (cond: Lisp_Object, r#type: handlertype) -> *mut handler;
 }
 // C: lisp.h 4259: void hash_remove_from_table (struct Lisp_Hash_Table *, Lisp_Object);
 #[cfg (feature = "have_modules")]
-unsafe extern "C"
+unsafe extern "C-unwind"
 {
   pub fn hash_remove_from_table (h: *mut Lisp_Hash_Table, key: Lisp_Object);
 }
 // C: lisp.h 4432: extern AVOID memory_full (size_t);
 #[cfg (feature = "have_modules")]
-unsafe extern "C"
+unsafe extern "C-unwind"
 {
   pub fn memory_full (size: size_t) -> !;
 }
 // C: lisp.h 4436: extern void mark_object (Lisp_Object);
 #[cfg (feature = "have_modules")]
-unsafe extern "C"
+unsafe extern "C-unwind"
 {
   pub fn mark_object (obj: Lisp_Object);
 }
 // C: lisp.h 4892: extern Lisp_Object make_user_ptr (void (*finalizer) (void *), void *p);
 #[cfg (feature = "have_modules")]
-unsafe extern "C"
+unsafe extern "C-unwind"
 {
   pub fn make_user_ptr (finalizer: emacs_finalizer, p: *mut c_void) -> Lisp_Object;
 }
 // C: coding.h 693-694: Lisp_Object encode_string_utf_8 (Lisp_Object, Lisp_Object, bool, Lisp_Object, Lisp_Object)
 #[cfg (feature = "have_modules")]
-unsafe extern "C"
+unsafe extern "C-unwind"
 {
   pub fn encode_string_utf_8 (string: Lisp_Object, coding_system: Lisp_Object,
                               nocopy: bool, handle_8_bit: Lisp_Object,
@@ -1375,7 +1306,7 @@ unsafe extern "C"
 }
 // C: lisp.h 4828: extern void record_unwind_protect_module (enum specbind_tag, void *);
 #[cfg (feature = "have_modules")]
-unsafe extern "C"
+unsafe extern "C-unwind"
 {
   pub fn record_unwind_protect_module (tag: specbind_tag, arg: *mut c_void);
 }
@@ -1396,7 +1327,7 @@ pub type specbind_tag = u32;
    (`xsignal`) never returns (AVOID), so there is no fall-through to spell (`## Deviations` 8).
    C's `default: eassume (false);` is the `_` arm (`switch` over an `int`-typed enum).  */
 #[cfg (feature = "have_modules")]
-unsafe extern "C" fn module_signal_or_throw (env: *mut emacs_env_private)
+unsafe extern "C-unwind" fn module_signal_or_throw (env: *mut emacs_env_private)
 {
   match (*env).pending_non_local_exit
     {
@@ -1481,7 +1412,7 @@ DEFUN! ("module-load", Fmodule_load, Smodule_load, 1, 1, 0,
    (PORTING.md 0.2's escape; `pub` is a Rust keyword).  */
 #[cfg (feature = "have_modules")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn funcall_module (function: Lisp_Object, nargs: ptrdiff_t,
+pub unsafe extern "C-unwind" fn funcall_module (function: Lisp_Object, nargs: ptrdiff_t,
                                          arglist: *mut Lisp_Object) -> Lisp_Object
 {
   let func: *const lisp_module_function_def::Lisp_Module_Function
@@ -1536,7 +1467,7 @@ pub unsafe extern "C" fn funcall_module (function: Lisp_Object, nargs: ptrdiff_t
 /* C 1335-1342: `module_function_arity` (a non-`static` definition).  */
 #[cfg (feature = "have_modules")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn module_function_arity
+pub unsafe extern "C-unwind" fn module_function_arity
   (function: *const lisp_module_function_def::Lisp_Module_Function) -> Lisp_Object
 {
   let minargs: ptrdiff_t = (*function).min_arity;
@@ -1548,7 +1479,7 @@ pub unsafe extern "C" fn module_function_arity
 /* C 1344-1348: `module_function_documentation` (a non-`static` definition).  */
 #[cfg (feature = "have_modules")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn module_function_documentation
+pub unsafe extern "C-unwind" fn module_function_documentation
   (function: *const lisp_module_function_def::Lisp_Module_Function) -> Lisp_Object
 {
   return (*function).documentation;
@@ -1564,7 +1495,7 @@ pub unsafe extern "C" fn module_function_documentation
 pub use crate::common::other_units::module_funcptr;
 #[cfg (feature = "have_modules")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn module_function_address
+pub unsafe extern "C-unwind" fn module_function_address
   (function: *const lisp_module_function_def::Lisp_Module_Function) -> module_funcptr
 {
   return std::mem::transmute::<emacs_function, module_funcptr> ((*function).subr);
@@ -1573,7 +1504,7 @@ pub unsafe extern "C" fn module_function_address
 /* C 1356-1360: `module_function_data` (a non-`static` definition).  */
 #[cfg (feature = "have_modules")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn module_function_data
+pub unsafe extern "C-unwind" fn module_function_data
   (function: *const lisp_module_function_def::Lisp_Module_Function) -> *mut c_void
 {
   return (*function).data;
@@ -1781,7 +1712,7 @@ unsafe fn allocate_emacs_value (env: *mut emacs_env, obj: Lisp_Object) -> emacs_
 /* C 1552-1565: `mark_module_environment` (a non-`static` definition).  */
 #[cfg (feature = "have_modules")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mark_module_environment (ptr: *mut c_void)
+pub unsafe extern "C-unwind" fn mark_module_environment (ptr: *mut c_void)
 {
   let env: *mut emacs_env = ptr as *mut emacs_env;
   let r#priv: *mut emacs_env_private = (*env).private_members.cast::<emacs_env_private> ();
@@ -1870,7 +1801,7 @@ unsafe fn finalize_environment (env: *mut emacs_env)
 /* C 1641-1645: `finalize_environment_unwind` (a non-`static` definition).  */
 #[cfg (feature = "have_modules")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn finalize_environment_unwind (env: *mut c_void)
+pub unsafe extern "C-unwind" fn finalize_environment_unwind (env: *mut c_void)
 {
   finalize_environment (env as *mut emacs_env);
 }
@@ -1878,7 +1809,7 @@ pub unsafe extern "C" fn finalize_environment_unwind (env: *mut c_void)
 /* C 1647-1652: `finalize_runtime_unwind` (a non-`static` definition).  */
 #[cfg (feature = "have_modules")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn finalize_runtime_unwind (raw_ert: *mut c_void)
+pub unsafe extern "C-unwind" fn finalize_runtime_unwind (raw_ert: *mut c_void)
 {
   /* No further cleanup is required, as the initial environment is
      unwound separately.  See the logic in Fmodule_load.  */
@@ -1910,7 +1841,7 @@ unsafe fn module_handle_nonlocal_exit (env: *mut emacs_env, r#type: nonlocal_exi
 /* C 1688-1694: `init_module_assertions` (a non-`static` definition).  */
 #[cfg (feature = "have_modules")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn init_module_assertions (enable: bool)
+pub unsafe extern "C-unwind" fn init_module_assertions (enable: bool)
 {
   module_assertions = enable;
 }
@@ -1954,7 +1885,7 @@ unsafe extern "C" fn module_abort (format: *const c_char, mut args: ...)
 /* C 1729-1798: `syms_of_module`.  */
 #[cfg (feature = "have_modules")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_module ()
+pub unsafe extern "C-unwind" fn syms_of_module ()
 {
   staticpro (&raw mut Vmodule_refs_hash);
   Vmodule_refs_hash
@@ -2016,6 +1947,9 @@ pub unsafe extern "C" fn syms_of_module ()
 
   DEFSYM! (Qmodule_function_p, "module-function-p");
   DEFSYM! (Qunicode_string_p, "unicode-string-p");
+
+  core::hint::black_box (crate::nonlocal::femacs_vm_host_drop_counts as *const ());
+  core::hint::black_box (femacs_vm_module_call0_with_host_guard as *const ());
 
   defsubr (&raw mut Smodule_load);
 }

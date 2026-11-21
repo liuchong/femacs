@@ -886,14 +886,14 @@ pub struct sfnt_point
 }
 
 /* The three callbacks a decomposed outline is reported through.  C's bare function-pointer
-   typedefs are the port's `Option<unsafe extern "C" fn (…)>` (PORTING.md P-27's shape for a
+   typedefs are the port's `Option<unsafe extern "C-unwind" fn (…)>` (PORTING.md P-27's shape for a
    C function pointer), and `struct sfnt_point` is passed by value exactly as C does.  */
 pub type sfnt_move_to_proc =                    // C 691
-  Option<unsafe extern "C" fn (sfnt_point, *mut c_void)>;
+  Option<unsafe extern "C-unwind" fn (sfnt_point, *mut c_void)>;
 pub type sfnt_line_to_proc =                    // C 692
-  Option<unsafe extern "C" fn (sfnt_point, *mut c_void)>;
+  Option<unsafe extern "C-unwind" fn (sfnt_point, *mut c_void)>;
 pub type sfnt_curve_to_proc =                   // C 693-695
-  Option<unsafe extern "C" fn (sfnt_point, sfnt_point, *mut c_void)>;
+  Option<unsafe extern "C-unwind" fn (sfnt_point, sfnt_point, *mut c_void)>;
 
 /* Forward declaration for use in sfnt_get_metrics_proc.  */
 // C 698: `struct sfnt_glyph_metrics;` - the record itself is defined below (C 822-836);
@@ -902,14 +902,14 @@ pub type sfnt_curve_to_proc =                   // C 693-695
 /// C 700-701: `typedef struct sfnt_glyph *(*sfnt_get_glyph_proc) (sfnt_glyph, void *,
 /// bool *);`
 pub type sfnt_get_glyph_proc =
-  Option<unsafe extern "C" fn (sfnt_glyph_index, *mut c_void, *mut bool) -> *mut sfnt_glyph>;
+  Option<unsafe extern "C-unwind" fn (sfnt_glyph_index, *mut c_void, *mut bool) -> *mut sfnt_glyph>;
 /// C 702: `typedef void (*sfnt_free_glyph_proc) (struct sfnt_glyph *, void *);`
 pub type sfnt_free_glyph_proc =
-  Option<unsafe extern "C" fn (*mut sfnt_glyph, *mut c_void)>;
+  Option<unsafe extern "C-unwind" fn (*mut sfnt_glyph, *mut c_void)>;
 /// C 703-705: `typedef int (*sfnt_get_metrics_proc) (sfnt_glyph, struct sfnt_glyph_metrics
 /// *, void *);`
 pub type sfnt_get_metrics_proc =
-  Option<unsafe extern "C" fn (sfnt_glyph_index, *mut sfnt_glyph_metrics, *mut c_void)
+  Option<unsafe extern "C-unwind" fn (sfnt_glyph_index, *mut sfnt_glyph_metrics, *mut c_void)
                             -> c_int>;
 
 /* Decomposed glyph outline.  */
@@ -1905,17 +1905,17 @@ pub struct sfnt_graphics_state
      Value is undefined unless sfnt_validate_gs has been called, and
      the second argument may be used to provide detailed rounding
      information (``super rounding state''.)  */
-  pub round: Option<unsafe extern "C" fn (sfnt_f26dot6, *mut sfnt_interpreter) -> sfnt_f26dot6>,   // C 1797
+  pub round: Option<unsafe extern "C-unwind" fn (sfnt_f26dot6, *mut sfnt_interpreter) -> sfnt_f26dot6>,   // C 1797
 
   /* Pointer to the function used to project euclidean vectors onto
      the projection vector.  Value is the magnitude of the projected
      vector.  */
-  pub project: Option<unsafe extern "C" fn (sfnt_f26dot6, sfnt_f26dot6, *mut sfnt_interpreter) -> sfnt_f26dot6>,   // C 1802-1803
+  pub project: Option<unsafe extern "C-unwind" fn (sfnt_f26dot6, sfnt_f26dot6, *mut sfnt_interpreter) -> sfnt_f26dot6>,   // C 1802-1803
 
   /* Pointer to the function used to project euclidean vectors onto
      the dual projection vector.  Value is the magnitude of the
      projected vector.  */
-  pub dual_project: Option<unsafe extern "C" fn (sfnt_f26dot6, sfnt_f26dot6, *mut sfnt_interpreter) -> sfnt_f26dot6>,   // C 1808-1809
+  pub dual_project: Option<unsafe extern "C-unwind" fn (sfnt_f26dot6, sfnt_f26dot6, *mut sfnt_interpreter) -> sfnt_f26dot6>,   // C 1808-1809
 
   /* Pointer to the function used to move specified points
      along the freedom vector by a distance specified in terms
@@ -1923,7 +1923,7 @@ pub struct sfnt_graphics_state
   /// C: `void (*move) (sfnt_f26dot6 *restrict, sfnt_f26dot6 *restrict, size_t,
   /// struct sfnt_interpreter *, sfnt_f26dot6, unsigned char *);` (sfnt.h 1814-1817) - `move`
   /// is a Rust keyword, so the field is `r#move` (the field-name comparison strips the `r#`).
-  pub r#move: Option<unsafe extern "C" fn (*mut sfnt_f26dot6, *mut sfnt_f26dot6, usize,
+  pub r#move: Option<unsafe extern "C-unwind" fn (*mut sfnt_f26dot6, *mut sfnt_f26dot6, usize,
                                            *mut sfnt_interpreter, sfnt_f26dot6, *mut u8)>,     // C 1814-1817
 
   /* Dot product between the freedom and the projection vectors.  */
@@ -2205,13 +2205,13 @@ pub mod sfnt_decls {
   use super::*;
 
   // C 1469: `extern struct sfnt_offset_subtable *sfnt_read_table_directory (int);`
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     pub fn sfnt_read_table_directory (arg0: c_int) -> *mut sfnt_offset_subtable;
   }
   // C 1471-1475: `#define PROTOTYPE int, struct sfnt_offset_subtable *,
   // struct sfnt_cmap_encoding_subtable **, struct sfnt_cmap_encoding_subtable_data ***`
   // C 1475: `extern struct sfnt_cmap_table *sfnt_read_cmap_table (PROTOTYPE);`
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     pub fn sfnt_read_cmap_table (arg0: c_int, arg1: *mut sfnt_offset_subtable,
                                  arg2: *mut *mut sfnt_cmap_encoding_subtable,
                                  arg3: *mut *mut *mut sfnt_cmap_encoding_subtable_data)
@@ -2219,7 +2219,7 @@ pub mod sfnt_decls {
   }
   // C 1478-1479: `extern sfnt_glyph sfnt_lookup_glyph (sfnt_char,
   // struct sfnt_cmap_encoding_subtable_data *);`
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     pub fn sfnt_lookup_glyph (arg0: sfnt_char, arg1: *mut sfnt_cmap_encoding_subtable_data)
       -> sfnt_glyph_index;
   }
@@ -2230,7 +2230,7 @@ pub mod sfnt_decls {
   // C 1485: `extern struct sfnt_loca_table_long *sfnt_read_loca_table_long (PROTOTYPE);`
   // C 1486: `extern struct sfnt_maxp_table *sfnt_read_maxp_table (PROTOTYPE);`
   // C 1487: `extern struct sfnt_glyf_table *sfnt_read_glyf_table (PROTOTYPE);`
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     pub fn sfnt_read_head_table (arg0: c_int, arg1: *mut sfnt_offset_subtable)
       -> *mut sfnt_head_table;
     pub fn sfnt_read_hhea_table (arg0: c_int, arg1: *mut sfnt_offset_subtable)
@@ -2247,7 +2247,7 @@ pub mod sfnt_decls {
   /* C 1489-1492: `#ifdef HAVE_MMAP` - live on this target (`HAVE_MMAP` is 1).  */
   // C 1490: `extern struct sfnt_glyf_table *sfnt_map_glyf_table (PROTOTYPE);`
   // C 1491: `extern int sfnt_unmap_glyf_table (struct sfnt_glyf_table *);`
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     pub fn sfnt_map_glyf_table (arg0: c_int, arg1: *mut sfnt_offset_subtable)
       -> *mut sfnt_glyf_table;
     pub fn sfnt_unmap_glyf_table (arg0: *mut sfnt_glyf_table) -> c_int;
@@ -2255,7 +2255,7 @@ pub mod sfnt_decls {
   // C 1495-1497: `extern struct sfnt_glyph *sfnt_read_glyph (sfnt_glyph, struct
   // sfnt_glyf_table *, struct sfnt_loca_table_short *, struct sfnt_loca_table_long *);`
   // C 1498: `extern void sfnt_free_glyph (struct sfnt_glyph *);`
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     pub fn sfnt_read_glyph (arg0: sfnt_glyph_index, arg1: *mut sfnt_glyf_table,
                             arg2: *mut sfnt_loca_table_short, arg3: *mut sfnt_loca_table_long)
       -> *mut sfnt_glyph;
@@ -2265,7 +2265,7 @@ pub mod sfnt_decls {
   // struct sfnt_glyph_metrics *, sfnt_get_glyph_proc, sfnt_free_glyph_proc,
   // sfnt_get_metrics_proc, void *`
   // C 1508: `extern struct sfnt_glyph_outline *sfnt_build_glyph_outline (PROTOTYPE);`
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     pub fn sfnt_build_glyph_outline (arg0: *mut sfnt_glyph, arg1: sfnt_fixed,
                                      arg2: *mut sfnt_glyph_metrics, arg3: sfnt_get_glyph_proc,
                                      arg4: sfnt_free_glyph_proc, arg5: sfnt_get_metrics_proc,
@@ -2273,20 +2273,20 @@ pub mod sfnt_decls {
   }
   // C 1511-1512: `extern void sfnt_prepare_raster (struct sfnt_raster *, struct
   // sfnt_glyph_outline *);`
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     pub fn sfnt_prepare_raster (arg0: *mut sfnt_raster, arg1: *mut sfnt_glyph_outline);
   }
   // C 1514: `#define PROTOTYPE struct sfnt_glyph_outline *`
   // C 1515: `extern struct sfnt_raster *sfnt_raster_glyph_outline (PROTOTYPE);`
   // C 1516: `extern struct sfnt_raster *sfnt_raster_glyph_outline_exact (PROTOTYPE);`
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     pub fn sfnt_raster_glyph_outline (arg0: *mut sfnt_glyph_outline) -> *mut sfnt_raster;
     pub fn sfnt_raster_glyph_outline_exact (arg0: *mut sfnt_glyph_outline) -> *mut sfnt_raster;
   }
   // C 1519-1523: `#define PROTOTYPE int, struct sfnt_offset_subtable *,
   // struct sfnt_hhea_table *, struct sfnt_maxp_table *`
   // C 1524: `extern struct sfnt_hmtx_table *sfnt_read_hmtx_table (PROTOTYPE);`
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     pub fn sfnt_read_hmtx_table (arg0: c_int, arg1: *mut sfnt_offset_subtable,
                                  arg2: *mut sfnt_hhea_table, arg3: *mut sfnt_maxp_table)
       -> *mut sfnt_hmtx_table;
@@ -2294,62 +2294,62 @@ pub mod sfnt_decls {
   // C 1527-1531: `extern int sfnt_lookup_glyph_metrics (sfnt_glyph, struct
   // sfnt_glyph_metrics *, struct sfnt_hmtx_table *, struct sfnt_hhea_table *, struct
   // sfnt_maxp_table *);`
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     pub fn sfnt_lookup_glyph_metrics (arg0: sfnt_glyph_index, arg1: *mut sfnt_glyph_metrics,
                                       arg2: *mut sfnt_hmtx_table, arg3: *mut sfnt_hhea_table,
                                       arg4: *mut sfnt_maxp_table) -> c_int;
   }
   // C 1533-1534: `extern void sfnt_scale_metrics (struct sfnt_glyph_metrics *, sfnt_fixed);`
   // C 1535: `extern sfnt_fixed sfnt_get_scale (struct sfnt_head_table *, int);`
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     pub fn sfnt_scale_metrics (arg0: *mut sfnt_glyph_metrics, arg1: sfnt_fixed);
     pub fn sfnt_get_scale (arg0: *mut sfnt_head_table, arg1: c_int) -> sfnt_fixed;
   }
   // C 1538: `extern struct sfnt_name_table *sfnt_read_name_table (PROTOTYPE);`
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     pub fn sfnt_read_name_table (arg0: c_int, arg1: *mut sfnt_offset_subtable)
       -> *mut sfnt_name_table;
   }
   // C 1541-1543: `extern unsigned char *sfnt_find_name (struct sfnt_name_table *,
   // enum sfnt_name_identifier_code, struct sfnt_name_record *);`
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     pub fn sfnt_find_name (arg0: *mut sfnt_name_table, arg1: sfnt_name_identifier_code,
                            arg2: *mut sfnt_name_record) -> *mut u8;
   }
   // C 1546: `extern struct sfnt_meta_table *sfnt_read_meta_table (PROTOTYPE);`
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     pub fn sfnt_read_meta_table (arg0: c_int, arg1: *mut sfnt_offset_subtable)
       -> *mut sfnt_meta_table;
   }
   // C 1549-1551: `extern char *sfnt_find_metadata (struct sfnt_meta_table *,
   // enum sfnt_meta_data_tag, struct sfnt_meta_data_map *);`
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     pub fn sfnt_find_metadata (arg0: *mut sfnt_meta_table, arg1: sfnt_meta_data_tag,
                                arg2: *mut sfnt_meta_data_map) -> *mut c_char;
   }
   // C 1553: `extern struct sfnt_ttc_header *sfnt_read_ttc_header (int);`
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     pub fn sfnt_read_ttc_header (arg0: c_int) -> *mut sfnt_ttc_header;
   }
   // C 1557: `#define PROTOTYPE struct sfnt_cmap_format_14 *, int`
   // C 1559: `extern struct sfnt_uvs_context *sfnt_create_uvs_context (PROTOTYPE);`
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     pub fn sfnt_create_uvs_context (arg0: *mut sfnt_cmap_format_14, arg1: c_int)
       -> *mut sfnt_uvs_context;
   }
   // C 1563: `extern void sfnt_free_uvs_context (struct sfnt_uvs_context *);`
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     pub fn sfnt_free_uvs_context (arg0: *mut sfnt_uvs_context);
   }
   // C 1565: `#define PROTOTYPE struct sfnt_nondefault_uvs_table *, sfnt_char`
   // C 1567: `extern sfnt_glyph sfnt_variation_glyph_for_char (PROTOTYPE);`
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     pub fn sfnt_variation_glyph_for_char (arg0: *mut sfnt_nondefault_uvs_table,
                                           arg1: sfnt_char) -> sfnt_glyph_index;
   }
   // C 1571: `#define PROTOTYPE struct sfnt_default_uvs_table *, sfnt_char`
   // C 1573: `extern bool sfnt_is_character_default (PROTOTYPE);`
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     pub fn sfnt_is_character_default (arg0: *mut sfnt_default_uvs_table, arg1: sfnt_char)
       -> bool;
   }
@@ -2357,21 +2357,21 @@ pub mod sfnt_decls {
   // C 1581-1582: `extern int sfnt_map_table (int, struct sfnt_offset_subtable *, uint32_t,
   // struct sfnt_mapped_table *);`
   // C 1583: `extern int sfnt_unmap_table (struct sfnt_mapped_table *);`
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     pub fn sfnt_map_table (arg0: c_int, arg1: *mut sfnt_offset_subtable, arg2: uint32_t,
                            arg3: *mut sfnt_mapped_table) -> c_int;
     pub fn sfnt_unmap_table (arg0: *mut sfnt_mapped_table) -> c_int;
   }
   // C 1589-1590: `extern void *sfnt_read_table (int, struct sfnt_offset_subtable *,
   // uint32_t, size_t *);`
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     pub fn sfnt_read_table (arg0: c_int, arg1: *mut sfnt_offset_subtable, arg2: uint32_t,
                             arg3: *mut usize) -> *mut c_void;
   }
   // C 1596-1598: `extern struct sfnt_fvar_table *sfnt_read_fvar_table (PROTOTYPE);`
   // `… sfnt_read_gvar_table (PROTOTYPE);` / `… sfnt_read_avar_table (PROTOTYPE);`
   // (`#define PROTOTYPE int, struct sfnt_offset_subtable *`, C 1594)
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     pub fn sfnt_read_fvar_table (arg0: c_int, arg1: *mut sfnt_offset_subtable)
       -> *mut sfnt_fvar_table;
     pub fn sfnt_read_gvar_table (arg0: c_int, arg1: *mut sfnt_offset_subtable)
@@ -2382,7 +2382,7 @@ pub mod sfnt_decls {
   // C 1602-1607: `#define PROTOTYPE int, struct sfnt_offset_subtable *,
   // struct sfnt_fvar_table *, struct sfnt_cvt_table *`
   // C 1608: `extern struct sfnt_cvar_table *sfnt_read_cvar_table (PROTOTYPE);`
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     pub fn sfnt_read_cvar_table (arg0: c_int, arg1: *mut sfnt_offset_subtable,
                                  arg2: *mut sfnt_fvar_table, arg3: *mut sfnt_cvt_table)
       -> *mut sfnt_cvar_table;
@@ -2391,7 +2391,7 @@ pub mod sfnt_decls {
   // struct sfnt_gvar_table *, struct sfnt_avar_table *, struct sfnt_cvar_table *);`
   // C 1619: `extern void sfnt_free_blend (struct sfnt_blend *);`
   // C 1620: `extern void sfnt_normalize_blend (struct sfnt_blend *);`
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     pub fn sfnt_init_blend (arg0: *mut sfnt_blend, arg1: *mut sfnt_fvar_table,
                             arg2: *mut sfnt_gvar_table, arg3: *mut sfnt_avar_table,
                             arg4: *mut sfnt_cvar_table);
@@ -2402,7 +2402,7 @@ pub mod sfnt_decls {
   // sfnt_glyph *, struct sfnt_metrics_distortion *);`
   // C 1627-1629: `extern int sfnt_vary_compound_glyph (struct sfnt_blend *, sfnt_glyph, struct
   // sfnt_glyph *, struct sfnt_metrics_distortion *);`
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     pub fn sfnt_vary_simple_glyph (arg0: *mut sfnt_blend, arg1: sfnt_glyph_index,
                                    arg2: *mut sfnt_glyph, arg3: *mut sfnt_metrics_distortion)
       -> c_int;
@@ -2411,12 +2411,12 @@ pub mod sfnt_decls {
       -> c_int;
   }
   // C 1635: `extern struct sfnt_OS_2_table *sfnt_read_OS_2_table (PROTOTYPE);`
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     pub fn sfnt_read_OS_2_table (arg0: c_int, arg1: *mut sfnt_offset_subtable)
       -> *mut sfnt_OS_2_table;
   }
   // C 1643: `extern struct sfnt_post_table *sfnt_read_post_table (PROTOTYPE);`
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     pub fn sfnt_read_post_table (arg0: c_int, arg1: *mut sfnt_offset_subtable)
       -> *mut sfnt_post_table;
   }
@@ -2425,7 +2425,7 @@ pub mod sfnt_decls {
   // C 2075-2077: `extern struct sfnt_cvt_table *sfnt_read_cvt_table (PROTOTYPE);`
   // `… sfnt_read_fpgm_table (PROTOTYPE);` / `… sfnt_read_prep_table (PROTOTYPE);`
   // (`#define PROTOTYPE int, struct sfnt_offset_subtable *`, C 2073)
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     pub fn sfnt_read_cvt_table (arg0: c_int, arg1: *mut sfnt_offset_subtable)
       -> *mut sfnt_cvt_table;
     pub fn sfnt_read_fpgm_table (arg0: c_int, arg1: *mut sfnt_offset_subtable)
@@ -2436,21 +2436,21 @@ pub mod sfnt_decls {
   // C 2081-2087: `#define PROTOTYPE struct sfnt_maxp_table *, struct sfnt_cvt_table *,
   // struct sfnt_head_table *, struct sfnt_fvar_table *, int, int`
   // C 2088: `extern struct sfnt_interpreter *sfnt_make_interpreter (PROTOTYPE);`
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     pub fn sfnt_make_interpreter (arg0: *mut sfnt_maxp_table, arg1: *mut sfnt_cvt_table,
                                   arg2: *mut sfnt_head_table, arg3: *mut sfnt_fvar_table,
                                   arg4: c_int, arg5: c_int) -> *mut sfnt_interpreter;
   }
   // C 2092-2094: `#define PROTOTYPE struct sfnt_interpreter *, struct sfnt_fpgm_table *`
   // C 2096: `extern const char *sfnt_interpret_font_program (PROTOTYPE);`
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     pub fn sfnt_interpret_font_program (arg0: *mut sfnt_interpreter, arg1: *mut sfnt_fpgm_table)
       -> *const c_char;
   }
   // C 2100-2104: `#define PROTOTYPE struct sfnt_interpreter *, struct sfnt_prep_table *,
   // struct sfnt_graphics_state *`
   // C 2105: `extern const char *sfnt_interpret_control_value_program (PROTOTYPE);`
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     pub fn sfnt_interpret_control_value_program (arg0: *mut sfnt_interpreter,
                                                  arg1: *mut sfnt_prep_table,
                                                  arg2: *mut sfnt_graphics_state)
@@ -2458,14 +2458,14 @@ pub mod sfnt_decls {
   }
   // C 2109: `#define PROTOTYPE struct sfnt_instructed_outline *, sfnt_fixed *`
   // C 2111: `extern struct sfnt_glyph_outline *sfnt_build_instructed_outline (PROTOTYPE);`
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     pub fn sfnt_build_instructed_outline (arg0: *mut sfnt_instructed_outline,
                                           arg1: *mut sfnt_fixed) -> *mut sfnt_glyph_outline;
   }
   // C 2115-2120: `#define PROTOTYPE struct sfnt_glyph *, struct sfnt_interpreter *,
   // struct sfnt_glyph_metrics *, struct sfnt_instructed_outline **`
   // C 2121: `extern const char *sfnt_interpret_simple_glyph (PROTOTYPE);`
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     pub fn sfnt_interpret_simple_glyph (arg0: *mut sfnt_glyph, arg1: *mut sfnt_interpreter,
                                         arg2: *mut sfnt_glyph_metrics,
                                         arg3: *mut *mut sfnt_instructed_outline)
@@ -2476,7 +2476,7 @@ pub mod sfnt_decls {
   // struct sfnt_hmtx_table *, struct sfnt_hhea_table *, struct sfnt_maxp_table *,
   // struct sfnt_glyph_metrics *, void *, struct sfnt_instructed_outline **`
   // C 2138: `extern const char *sfnt_interpret_compound_glyph (PROTOTYPE);`
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     pub fn sfnt_interpret_compound_glyph (arg0: *mut sfnt_glyph, arg1: *mut sfnt_interpreter,
                                           arg2: *mut sfnt_graphics_state,
                                           arg3: sfnt_get_glyph_proc, arg4: sfnt_free_glyph_proc,
@@ -2488,7 +2488,7 @@ pub mod sfnt_decls {
   }
   // C 2144-2145: `extern void sfnt_vary_interpreter (struct sfnt_interpreter *, struct
   // sfnt_blend *);`
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     pub fn sfnt_vary_interpreter (arg0: *mut sfnt_interpreter, arg1: *mut sfnt_blend);
   }
 }

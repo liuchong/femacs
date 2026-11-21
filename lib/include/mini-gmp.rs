@@ -90,7 +90,7 @@ macro_rules! MPZ_ROINIT_N {
 pub mod gmp {
     use super::*;
 
-    unsafe extern "C" {
+    unsafe extern "C-unwind" {
         /* extern const int mp_bits_per_limb;  */
         pub static mp_bits_per_limb: c_int;
   pub fn mpn_copyi (a: *mut mp_limb_t, b: *const mp_limb_t, c: mp_size_t);
@@ -250,8 +250,8 @@ pub mod gmp {
   pub fn mpz_out_str (a: *mut FILE, b: c_int, c: *const __mpz_struct) -> usize;
   pub fn mpz_import (a: *mut __mpz_struct, b: usize, c: c_int, d: usize, e: c_int, f: usize, g: *const c_void);
   pub fn mpz_export (a: *mut c_void, b: *mut usize, c: c_int, d: usize, e: c_int, f: usize, g: *const __mpz_struct) -> *mut c_void;
-  pub fn mp_set_memory_functions (a: unsafe extern "C" fn (usize) -> *mut c_void, b: unsafe extern "C" fn (*mut c_void, usize, usize) -> *mut c_void, c: unsafe extern "C" fn (*mut c_void, usize));
-  pub fn mp_get_memory_functions (a: *mut Option<unsafe extern "C" fn (usize) -> *mut c_void>, b: *mut Option<unsafe extern "C" fn (*mut c_void, usize, usize) -> *mut c_void>, c: *mut Option<unsafe extern "C" fn (*mut c_void, usize)>);
+  pub fn mp_set_memory_functions (a: unsafe extern "C-unwind" fn (usize) -> *mut c_void, b: unsafe extern "C-unwind" fn (*mut c_void, usize, usize) -> *mut c_void, c: unsafe extern "C-unwind" fn (*mut c_void, usize));
+  pub fn mp_get_memory_functions (a: *mut Option<unsafe extern "C-unwind" fn (usize) -> *mut c_void>, b: *mut Option<unsafe extern "C-unwind" fn (*mut c_void, usize, usize) -> *mut c_void>, c: *mut Option<unsafe extern "C-unwind" fn (*mut c_void, usize)>);
     }
 }
 

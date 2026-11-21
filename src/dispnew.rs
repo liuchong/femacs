@@ -241,7 +241,7 @@ DEFUN! ("dump-redisplay-history", Fdump_redisplay_history,
    the frozen target; carried as text (P-51).  */
 
 #[cfg (feature = "profiling")]
-#[unsafe(no_mangle)] pub unsafe extern "C" fn __executable_start () { emacs_abort (); }
+#[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn __executable_start () { emacs_abort (); }
 
 /* Names the mirrors this unit includes do not declare, declared here at their use site
    (PORTING.md P-72 rule 3; the C prototype is quoted per name).  */
@@ -266,7 +266,30 @@ macro_rules! SET_GLYPH_FROM_GLYPH_CODE {
 }
 
 
-unsafe extern "C" {
+unsafe extern "C-unwind" {
+  // (window.h 1211's `decode_any_window` is the window.rs mirror's now; the use-site copy is gone, P-26.)
+
+  /// C: dispextern.h 3614-3616: `extern Lisp_Object help_echo_string, help_echo_window;`
+  /// `extern Lisp_Object help_echo_object, previous_help_echo_string;`
+  /// `extern ptrdiff_t help_echo_pos;` (keyboard.c defines all five; the mirror does not
+  /// carry them).
+  static mut help_echo_string: Lisp_Object;
+  static mut help_echo_window: Lisp_Object;
+  static mut help_echo_object: Lisp_Object;
+  static mut previous_help_echo_string: Lisp_Object;
+  static mut help_echo_pos: ptrdiff_t;
+  // `putchar` now comes from the `stdio.rs` mirror (2026-10-04), which is its single
+  // declaration point; the use-site copy this block carried is gone.
+
+
+
+
+
+
+  /// C: keyboard.c/term.c: `extern bool redisplaying_p;` and
+  /// `extern bool dont_resize_frames;` (both are plain globals the mirrors do not carry).
+  static mut redisplaying_p: bool;
+  static mut dont_resize_frames: bool;
   /// C: dispextern.h 3717: `extern unsigned row_hash (struct glyph_row *);` (term.c defines it)
   fn row_hash (row: *mut glyph_row) -> c_uint;
   /// C: dispextern.h 3582: `int estimate_mode_line_height (struct frame *, enum face_id);`
@@ -289,17 +312,6 @@ unsafe extern "C" {
 
   /// C: dispextern.h 3688: `extern void note_mouse_highlight (struct frame *, int, int);`
   fn note_mouse_highlight (f: *mut frame, x: c_int, y: c_int);
-  // (window.h 1211's `decode_any_window` is the window.rs mirror's now; the use-site copy is gone, P-26.)
-
-  /// C: dispextern.h 3614-3616: `extern Lisp_Object help_echo_string, help_echo_window;`
-  /// `extern Lisp_Object help_echo_object, previous_help_echo_string;`
-  /// `extern ptrdiff_t help_echo_pos;` (keyboard.c defines all five; the mirror does not
-  /// carry them).
-  static mut help_echo_string: Lisp_Object;
-  static mut help_echo_window: Lisp_Object;
-  static mut help_echo_object: Lisp_Object;
-  static mut previous_help_echo_string: Lisp_Object;
-  static mut help_echo_pos: ptrdiff_t;
 
 
   /// C: dispextern.h 3955: `extern void calculate_costs (struct frame *);`
@@ -309,10 +321,6 @@ unsafe extern "C" {
 
   /// C: lisp.h 5371: `extern AVOID fatal (const char *msgid, ...) ATTRIBUTE_FORMAT_PRINTF (1, 2);`
   fn fatal (msgid: *const c_char, ...);
-  /// C: <stdlib.h> 3xx: `void exit (int);`
-  fn exit (status: c_int) -> !;
-  /// C: xterm.c: `extern bool x_display_ok (const char *);`
-  fn x_display_ok (display: *const c_char) -> bool;
   /// C: tparam.c: `extern struct terminal *init_tty (const char *, const char *, bool);`
   fn init_tty (name: *const c_char, terminal_type: *const c_char, must_succeed: bool)
     -> *mut terminal;
@@ -327,18 +335,6 @@ unsafe extern "C" {
 
   /// C: dispextern.h 3933: `extern void ring_bell (struct frame *);`
   fn ring_bell (f: *mut frame);
-  // `putchar` now comes from the `stdio.rs` mirror (2026-10-04), which is its single
-  // declaration point; the use-site copy this block carried is gone.
-
-
-
-
-
-
-  /// C: keyboard.c/term.c: `extern bool redisplaying_p;` and
-  /// `extern bool dont_resize_frames;` (both are plain globals the mirrors do not carry).
-  static mut redisplaying_p: bool;
-  static mut dont_resize_frames: bool;
   /// C: dispextern.h 3941-3944: `extern void write_glyphs (struct frame *, struct glyph *, int);`
   /// `extern void insert_glyphs (struct frame *, struct glyph *, int);`
   /// `extern void delete_glyphs (struct frame *, int);`
@@ -374,6 +370,12 @@ unsafe extern "C" {
   fn window_box_width (w: *mut window, area: glyph_row_area) -> c_int;
   /// C: dispextern.h 3576: `int window_box_height (struct window *);`
   fn window_box_height (w: *mut window) -> c_int;
+}
+unsafe extern "C" {
+  /// C: <stdlib.h> 3xx: `void exit (int);`
+  fn exit (status: c_int) -> !;
+  /// C: xterm.c: `extern bool x_display_ok (const char *);`
+  fn x_display_ok (display: *const c_char) -> bool;
 }
 
 /// P-80's member-name form for window.h 392-410's nineteen flags: the mirror stores them in
@@ -984,7 +986,7 @@ unsafe fn reverse_rows (matrix: *mut glyph_matrix, start: c_int, end: c_int)
    and reverse the result to get (ArBr)r which is BA.  Similar for
    rotating right.  */
 
-#[unsafe(no_mangle)] pub unsafe extern "C" fn rotate_matrix (matrix: *mut glyph_matrix,
+#[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn rotate_matrix (matrix: *mut glyph_matrix,
 							     first: c_int, last: c_int,
 							     mut by: c_int)
 {
@@ -1010,7 +1012,7 @@ unsafe fn reverse_rows (matrix: *mut glyph_matrix, start: c_int, end: c_int)
    with indices START <= index < END.  Increment positions by DELTA/
    DELTA_BYTES.  */
 
-#[unsafe(no_mangle)] pub unsafe extern "C" fn increment_matrix_positions
+#[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn increment_matrix_positions
   (matrix: *mut glyph_matrix, mut start: c_int, end: c_int, delta: ptrdiff_t,
    delta_bytes: ptrdiff_t)
 {
@@ -1030,7 +1032,7 @@ unsafe fn reverse_rows (matrix: *mut glyph_matrix, start: c_int, end: c_int)
 /* Clear the enable_p flags in a range of rows in glyph matrix MATRIX.
    START and END are the row indices of the first and last + 1 row to clear.  */
 
-#[unsafe(no_mangle)] pub unsafe extern "C" fn clear_glyph_matrix_rows
+#[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn clear_glyph_matrix_rows
   (matrix: *mut glyph_matrix, mut start: c_int, end: c_int)
 {
   eassert! (start <= end);
@@ -1056,7 +1058,7 @@ unsafe fn reverse_rows (matrix: *mut glyph_matrix, start: c_int, end: c_int)
    Reset update hints to default values.  The only update hint
    currently present is the flag MATRIX->no_scrolling_p.  */
 
-#[unsafe(no_mangle)] pub unsafe extern "C" fn clear_glyph_matrix (matrix: *mut glyph_matrix)
+#[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn clear_glyph_matrix (matrix: *mut glyph_matrix)
 {
   if !matrix.is_null ()
     {
@@ -1070,7 +1072,7 @@ unsafe fn reverse_rows (matrix: *mut glyph_matrix, start: c_int, end: c_int)
    Increment y-positions in glyph rows between START and END by DY,
    and recompute their visible height.  */
 
-#[unsafe(no_mangle)] pub unsafe extern "C" fn shift_glyph_matrix
+#[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn shift_glyph_matrix
   (w: *mut window, matrix: *mut glyph_matrix, mut start: c_int, end: c_int, dy: c_int)
 {
   let mut min_y: c_int;
@@ -1104,7 +1106,7 @@ unsafe fn reverse_rows (matrix: *mut glyph_matrix, start: c_int, end: c_int)
    invalid is done by setting enabled_p to zero for all rows in a
    current matrix.  */
 
-#[unsafe(no_mangle)] pub unsafe extern "C" fn clear_current_matrices (f: *mut frame)
+#[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn clear_current_matrices (f: *mut frame)
 {
   /* Clear frame current matrix, if we have one.  */
   if !(*f).current_matrix.is_null ()
@@ -1144,7 +1146,7 @@ unsafe fn reverse_rows (matrix: *mut glyph_matrix, start: c_int, end: c_int)
 
 /* Clear out all display lines of F for a coming redisplay.  */
 
-#[unsafe(no_mangle)] pub unsafe extern "C" fn clear_desired_matrices (f: *mut frame)
+#[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn clear_desired_matrices (f: *mut frame)
 {
   if !(*f).desired_matrix.is_null ()
     { clear_glyph_matrix ((*f).desired_matrix as *mut glyph_matrix); }
@@ -1212,7 +1214,7 @@ unsafe fn clear_window_matrices (w: *mut window, desired_p: bool)
 /* Clear glyph row ROW.  NOTE: this code relies on the current
    layout of `glyphs' and `used' fields of `struct glyph_row'.  */
 
-#[unsafe(no_mangle)] pub unsafe extern "C" fn clear_glyph_row (row: *mut glyph_row)
+#[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn clear_glyph_row (row: *mut glyph_row)
 {
   let off: usize = core::mem::offset_of! (glyph_row, used);
 
@@ -1225,7 +1227,7 @@ unsafe fn clear_window_matrices (w: *mut window, desired_p: bool)
 /* Make ROW an empty, enabled row of canonical character height,
    in window W starting at y-position Y.  */
 
-#[unsafe(no_mangle)] pub unsafe extern "C" fn blank_row (w: *mut window, row: *mut glyph_row,
+#[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn blank_row (w: *mut window, row: *mut glyph_row,
 							y: c_int)
 {
   let mut min_y: c_int;
@@ -1382,7 +1384,7 @@ unsafe fn glyph_row_slice_p (window_row: *mut glyph_row, frame_row: *mut glyph_r
    display margins.  MODE_LINE_P non-zero means we are preparing a
    glyph row for tab/header line or mode line.  */
 
-#[unsafe(no_mangle)] pub unsafe extern "C" fn prepare_desired_row
+#[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn prepare_desired_row
   (w: *mut window, row: *mut glyph_row, mode_line_p: bool)
 {
   if !glyph_row_bits! (enabled_p, row)
@@ -1726,7 +1728,7 @@ unsafe fn realloc_glyph_pool (pool: *mut glyph_pool, matrix_dim: dim) -> bool
    stdout.
 */
 
-#[unsafe(no_mangle)] pub unsafe extern "C" fn flush_stdout ()
+#[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn flush_stdout ()
 {
   fflush (stdout);
 }
@@ -1744,7 +1746,7 @@ unsafe fn realloc_glyph_pool (pool: *mut glyph_pool, matrix_dim: dim) -> bool
 pub mod check_matrix_pointer_lossage_def {
   use super::*;
 
-  #[unsafe(no_mangle)] pub unsafe extern "C" fn check_matrix_pointer_lossage
+  #[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn check_matrix_pointer_lossage
     (matrix: *mut glyph_matrix)
   {
     let mut i: c_int;
@@ -1772,7 +1774,7 @@ use check_matrix_pointer_lossage_def::*;
 /* Get a pointer to glyph row ROW in MATRIX, with bounds checks.  */
 
 #[cfg (feature = "glyph_debug")]
-#[unsafe(no_mangle)] pub unsafe extern "C" fn matrix_row (matrix: *mut glyph_matrix,
+#[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn matrix_row (matrix: *mut glyph_matrix,
 							  row: c_int) -> *mut glyph_row
 {
   eassert! (!matrix.is_null () && !(*matrix).rows.is_null ());
@@ -2082,7 +2084,7 @@ unsafe fn allocate_matrices_for_window_redisplay (w: *mut window)
    This function must be called when a new frame is created,
    its size changes, or its window configuration changes.  */
 
-#[unsafe(no_mangle)] pub unsafe extern "C" fn adjust_frame_glyphs (f: *mut frame)
+#[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn adjust_frame_glyphs (f: *mut frame)
 {
   /* Block input so that expose events and other events that access
      glyph matrices are not processed while we are changing them.  */
@@ -2595,7 +2597,7 @@ unsafe fn adjust_decode_mode_spec_buffer (f: *mut frame)
    F may be nil when this function is called.  This is the case when
    the function is called when F is destroyed.  */
 
-#[unsafe(no_mangle)] pub unsafe extern "C" fn free_glyphs (f: *mut frame)
+#[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn free_glyphs (f: *mut frame)
 {
   if !f.is_null () && glyphs_initialized_p! (f)
     {
@@ -2679,7 +2681,7 @@ unsafe fn adjust_decode_mode_spec_buffer (f: *mut frame)
    function may be called with a null pointer, and it may be called on
    the same tree more than once.  */
 
-#[unsafe(no_mangle)] pub unsafe extern "C" fn free_window_matrices (w: *mut window)
+#[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn free_window_matrices (w: *mut window)
 {
   let mut w: *mut window = w;
 
@@ -2709,7 +2711,7 @@ unsafe fn adjust_decode_mode_spec_buffer (f: *mut frame)
    exits.  We therefore free all glyph memory for all active frames
    explicitly and check that nothing is left allocated.  */
 
-#[unsafe(no_mangle)] pub unsafe extern "C" fn check_glyph_memory ()
+#[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn check_glyph_memory ()
 {
   let mut tail: Lisp_Object;
   let mut frame: Lisp_Object;
@@ -2994,7 +2996,7 @@ unsafe fn build_frame_matrix_from_leaf_window (frame_matrix: *mut glyph_matrix,
    This is used for glyphs displayed specially and not part of the text;
    for instance, vertical separators, truncation markers, etc.  */
 
-#[unsafe(no_mangle)] pub unsafe extern "C" fn spec_glyph_lookup_face
+#[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn spec_glyph_lookup_face
   (w: *mut window, glyph: *mut GLYPH)
 {
   let lface_id: c_int = GLYPH_FACE (*glyph);
@@ -3055,7 +3057,7 @@ unsafe fn fill_up_glyph_row_area_with_spaces (f: *mut frame, row: *mut glyph_row
 /* Add spaces to the end of ROW in a frame matrix until index UPTO is
    reached.  In frame matrices only one area, TEXT_AREA, is used.  */
 
-#[unsafe(no_mangle)] pub unsafe extern "C" fn fill_up_frame_row_with_spaces
+#[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn fill_up_frame_row_with_spaces
   (f: *mut frame, row: *mut glyph_row, upto: c_int)
 {
   let mut i: c_int = (*row).used [TEXT_AREA as usize] as c_int;
@@ -3184,7 +3186,7 @@ unsafe fn mirror_make_current (w: *mut window, frame_row: c_int)
 
    This function is called from do_scrolling and do_direct_scrolling.  */
 
-#[unsafe(no_mangle)] pub unsafe extern "C" fn mirrored_line_dance
+#[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn mirrored_line_dance
   (f: *mut frame, unchanged_at_top: c_int, nlines: c_int, copy_from: *mut c_int,
    retained_p: *mut c_char)
 {
@@ -3456,7 +3458,7 @@ unsafe fn window_to_frame_hpos (w: *mut window, hpos: c_int) -> c_int
 
 /* Redraw frame F.  */
 
-#[unsafe(no_mangle)] pub unsafe extern "C" fn redraw_frame (f: *mut frame)
+#[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn redraw_frame (f: *mut frame)
 {
   /* Error if F has no glyphs.  */
   eassert! (glyphs_initialized_p! (f));
@@ -3563,23 +3565,23 @@ const _: () = core::assert! (core::mem::offset_of! (rect, h) == 12);
 pub struct redisplay_interface
 {
   _prefix_parm_and_produce: [*mut c_void; 2],
-  pub write_glyphs: Option<unsafe extern "C" fn (w: *mut window, row: *mut glyph_row,
+  pub write_glyphs: Option<unsafe extern "C-unwind" fn (w: *mut window, row: *mut glyph_row,
                                                   string: *mut glyph, area: glyph_row_area,
                                                   len: c_int)>,
   _prefix_insert_glyphs: [*mut c_void; 1],
-  pub clear_end_of_line: Option<unsafe extern "C" fn (w: *mut window, row: *mut glyph_row,
+  pub clear_end_of_line: Option<unsafe extern "C-unwind" fn (w: *mut window, row: *mut glyph_row,
                                                       area: glyph_row_area, x: c_int)>,
-  pub scroll_run_hook: Option<unsafe extern "C" fn (w: *mut window, run: *mut run)>,
-  pub after_update_window_line_hook: Option<unsafe extern "C" fn (w: *mut window,
+  pub scroll_run_hook: Option<unsafe extern "C-unwind" fn (w: *mut window, run: *mut run)>,
+  pub after_update_window_line_hook: Option<unsafe extern "C-unwind" fn (w: *mut window,
                                                                   desired_row: *mut glyph_row)>,
-  pub update_window_begin_hook: Option<unsafe extern "C" fn (w: *mut window)>,
-  pub update_window_end_hook: Option<unsafe extern "C" fn (w: *mut window, cursor_on_p: bool,
+  pub update_window_begin_hook: Option<unsafe extern "C-unwind" fn (w: *mut window)>,
+  pub update_window_end_hook: Option<unsafe extern "C-unwind" fn (w: *mut window, cursor_on_p: bool,
                                                            mouse_face_overwritten_p: bool)>,
   _prefix_flush_display: [*mut c_void; 1],
-  pub clear_window_mouse_face: Option<unsafe extern "C" fn (w: *mut window)>,
-  pub get_glyph_overhangs: Option<unsafe extern "C" fn (glyph: *mut glyph, f: *mut frame,
+  pub clear_window_mouse_face: Option<unsafe extern "C-unwind" fn (w: *mut window)>,
+  pub get_glyph_overhangs: Option<unsafe extern "C-unwind" fn (glyph: *mut glyph, f: *mut frame,
                                                        left: *mut c_int, right: *mut c_int)>,
-  pub fix_overlapping_area: Option<unsafe extern "C" fn (w: *mut window, row: *mut glyph_row,
+  pub fix_overlapping_area: Option<unsafe extern "C-unwind" fn (w: *mut window, row: *mut glyph_row,
                                                         area: glyph_row_area,
                                                         overlaps: c_int)>,
 }
@@ -3668,7 +3670,7 @@ unsafe fn rect_intersect (r: *mut rect, r1: rect, r2: rect) -> bool
 /* Translate (X, Y) relative to frame F to absolute coordinates
    in (*X, *Y).  */
 
-#[unsafe(no_mangle)] pub unsafe extern "C" fn root_xy (f: *mut frame, x: c_int, y: c_int,
+#[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn root_xy (f: *mut frame, x: c_int, y: c_int,
 						      rx: *mut c_int, ry: *mut c_int)
 {
   let mut f = f;
@@ -3684,7 +3686,7 @@ unsafe fn rect_intersect (r: *mut rect, r1: rect, r2: rect) -> bool
 
 /* Translate absolute coordinates (X, Y) to coordinates relative to F's origin.  */
 
-#[unsafe(no_mangle)] pub unsafe extern "C" fn child_xy (f: *mut frame, x: c_int, y: c_int,
+#[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn child_xy (f: *mut frame, x: c_int, y: c_int,
 						       cx: *mut c_int, cy: *mut c_int)
 {
   let mut rx: c_int = 0; let mut ry: c_int = 0;
@@ -3706,7 +3708,7 @@ unsafe fn frame_rect_abs (f: *mut frame) -> rect
 /* C 3356-3357: `#endif /* !HAVE_ANDROID */` closes the `#ifndef HAVE_ANDROID` that C 3299
    opened; the text above is live on the frozen target.  */
 
-#[unsafe(no_mangle)] pub unsafe extern "C" fn max_child_z_order (parent: *mut frame) -> c_int
+#[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn max_child_z_order (parent: *mut frame) -> c_int
 {
   let mut tail: Lisp_Object;
   let mut frame: Lisp_Object;
@@ -3798,7 +3800,7 @@ DEFUN! ("frame--z-order-lessp", Fframe__z_order_lessp, Sframe__z_order_lessp,
    is ordered topmost frame last.  Note that this list contains
    the root frame of F itself as first element.  */
 
-#[unsafe(no_mangle)] pub unsafe extern "C" fn frames_in_reverse_z_order
+#[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn frames_in_reverse_z_order
   (f: *mut frame, visible_only: bool) -> Lisp_Object
 {
   let root: *mut frame = root_frame (f);
@@ -3812,7 +3814,7 @@ DEFUN! ("frame--z-order-lessp", Fframe__z_order_lessp, Sframe__z_order_lessp,
 /* Raise or lower frame F in z-order.  If RAISE is true, raise F, else
    lower f.  */
 
-#[unsafe(no_mangle)] pub unsafe extern "C" fn tty_raise_lower_frame (f: *mut frame, raise: bool)
+#[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn tty_raise_lower_frame (f: *mut frame, raise: bool)
 {
   let parent: *mut frame = FRAME_PARENT_FRAME (f);
   if parent.is_null ()
@@ -3835,21 +3837,21 @@ DEFUN! ("frame--z-order-lessp", Fframe__z_order_lessp, Sframe__z_order_lessp,
 
 /* Return true if frame F is a tty frame.  */
 
-#[unsafe(no_mangle)] pub unsafe extern "C" fn is_tty_frame (f: *mut frame) -> bool
+#[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn is_tty_frame (f: *mut frame) -> bool
 {
   return FRAME_TERMCAP_P (f) || FRAME_MSDOS_P (f);
 }
 
 /* Return true if frame F is a tty child frame.  */
 
-#[unsafe(no_mangle)] pub unsafe extern "C" fn is_tty_child_frame (f: *mut frame) -> bool
+#[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn is_tty_child_frame (f: *mut frame) -> bool
 {
   return !FRAME_PARENT_FRAME (f).is_null () && is_tty_frame (f);
 }
 
 /* Return true if frame F is a tty root frame.  */
 
-#[unsafe(no_mangle)] pub unsafe extern "C" fn is_tty_root_frame (f: *mut frame) -> bool
+#[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn is_tty_root_frame (f: *mut frame) -> bool
 {
   return FRAME_PARENT_FRAME (f).is_null () && is_tty_frame (f);
 }
@@ -3857,7 +3859,7 @@ DEFUN! ("frame--z-order-lessp", Fframe__z_order_lessp, Sframe__z_order_lessp,
 /* Return true if frame F is a tty root frame that has a visible child
    frame..  */
 
-#[unsafe(no_mangle)] pub unsafe extern "C" fn is_tty_root_frame_with_visible_child
+#[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn is_tty_root_frame_with_visible_child
   (f: *mut frame) -> bool
 {
   if !is_tty_root_frame (f)
@@ -4401,7 +4403,7 @@ unsafe fn terminal_cursor_magic (root: *mut frame, topmost_child: *mut frame)
    and gated the second with `have_android`, so on Android both were live and the unit read
    `E0428 combine_updates_for_frame`.  The gate below is C's own condition.  */
 #[cfg (not (feature = "have_android"))]
-#[unsafe(no_mangle)] pub unsafe extern "C" fn combine_updates_for_frame
+#[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn combine_updates_for_frame
   (f: *mut frame, inhibit_scrolling: bool)
 {
   let root: *mut frame = root_frame (f);
@@ -4471,7 +4473,7 @@ unsafe fn terminal_cursor_magic (root: *mut frame, topmost_child: *mut frame)
 }
 
 #[cfg (feature = "have_android")]
-#[unsafe(no_mangle)] pub unsafe extern "C" fn combine_updates_for_frame
+#[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn combine_updates_for_frame
   (f: *mut frame, inhibit_scrolling: bool)
 {
 }
@@ -4479,7 +4481,7 @@ unsafe fn terminal_cursor_magic (root: *mut frame, topmost_child: *mut frame)
 /* Update on the screen all root frames ROOTS.  Called from
    redisplay_internal as the last step of redisplaying.  */
 
-#[unsafe(no_mangle)] pub unsafe extern "C" fn combine_updates (roots: Lisp_Object)
+#[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn combine_updates (roots: Lisp_Object)
 {
   let mut roots: Lisp_Object = roots;
   while CONSP (roots)
@@ -4494,7 +4496,7 @@ unsafe fn terminal_cursor_magic (root: *mut frame, topmost_child: *mut frame)
 /* Update frame F based on the data in desired matrices.
    If INHIBIT_SCROLLING, don't try scrolling. */
 
-#[unsafe(no_mangle)] pub unsafe extern "C" fn update_frame (f: *mut frame,
+#[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn update_frame (f: *mut frame,
 							    inhibit_scrolling: bool)
 {
   if FRAME_WINDOW_P (f)
@@ -4515,7 +4517,7 @@ unsafe fn terminal_cursor_magic (root: *mut frame, topmost_child: *mut frame)
    frame where to position the cursor after the frame update is
    complete.  Negative values mean ask update_frame_1 to position the
    cursor "normally", i.e. at point in the selected window.  */
-#[unsafe(no_mangle)] pub unsafe extern "C" fn update_frame_with_menu
+#[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn update_frame_with_menu
   (f: *mut frame, row: c_int, col: c_int)
 {
   let root_window: *mut window = XWINDOW ((*f).root_window);
@@ -4553,7 +4555,7 @@ unsafe fn terminal_cursor_magic (root: *mut frame, topmost_child: *mut frame)
    help echo text.
 
    Returns the number of events generated.  */
-#[unsafe(no_mangle)] pub unsafe extern "C" fn update_mouse_position
+#[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn update_mouse_position
   (f: *mut frame, x: c_int, y: c_int) -> c_int
 {
   previous_help_echo_string = help_echo_string;
@@ -4616,7 +4618,7 @@ unsafe fn update_window_tree (w: *mut window)
 
 /* Update window W if its flag must_be_updated_p is set.  */
 
-#[unsafe(no_mangle)] pub unsafe extern "C" fn update_single_window (w: *mut window)
+#[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn update_single_window (w: *mut window)
 {
   if window_bits! (must_be_updated_p, w)
     {
@@ -5076,7 +5078,7 @@ unsafe fn update_window (w: *mut window)
 /* Start update of window W.  */
 
 #[cfg (feature = "have_window_system")]
-#[unsafe(no_mangle)] pub unsafe extern "C" fn gui_update_window_begin (w: *mut window)
+#[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn gui_update_window_begin (w: *mut window)
 {
   let f: *mut frame = XFRAME (WINDOW_FRAME! (w));
   let hlinfo: *mut Mouse_HLInfo = MOUSE_HL_INFO! (f);
@@ -5114,7 +5116,7 @@ unsafe fn update_window (w: *mut window)
    glyphs in mouse-face were overwritten.  In that case we have to
    make sure that the mouse-highlight is properly redrawn.  */
 #[cfg (feature = "have_window_system")]
-#[unsafe(no_mangle)] pub unsafe extern "C" fn gui_update_window_end
+#[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn gui_update_window_end
   (w: *mut window, cursor_on_p: bool, mouse_face_overwritten_p: bool)
 {
   let f: *mut frame = XFRAME (WINDOW_FRAME! (w));
@@ -6940,7 +6942,7 @@ macro_rules! CLIP_TEXT_POS_FROM_MARKER { ($pos:expr, $marker:expr) => { {
   BYTEPOS! ($pos) = clip_to_bounds (BEGV_BYTE! (), marker_byte_position ($marker), ZV_BYTE! ());
 } }; }
 
-unsafe extern "C" {
+unsafe extern "C-unwind" {
 
 
   /// C: dispextern.h 3597: `void start_display (struct it *, struct window *, struct text_pos);`
@@ -6973,7 +6975,7 @@ unsafe extern "C" {
    Return WIDTH and HEIGHT of the object at (*X, *Y), or zero
    if the coordinates point to an empty area of the display.  */
 
-#[unsafe(no_mangle)] pub unsafe extern "C" fn buffer_posn_from_coords
+#[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn buffer_posn_from_coords
   (w: *mut window, x: *mut c_int, y: *mut c_int, pos: *mut display_pos,
    object: *mut Lisp_Object, dx: *mut c_int, dy: *mut c_int, width: *mut c_int,
    height: *mut c_int) -> Lisp_Object
@@ -7175,7 +7177,7 @@ unsafe extern "C" {
    mode line or header line (PART says which) of window W, or nil if none.
    *CHARPOS is set to the position in the string returned.  */
 
-#[unsafe(no_mangle)] pub unsafe extern "C" fn mode_line_string
+#[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn mode_line_string
   (w: *mut window, part: window_part, x: *mut c_int, y: *mut c_int, charpos: *mut ptrdiff_t,
    object: *mut Lisp_Object, dx: *mut c_int, dy: *mut c_int, width: *mut c_int,
    height: *mut c_int) -> Lisp_Object
@@ -7257,7 +7259,7 @@ unsafe extern "C" {
    marginal area, or nil if none.  *CHARPOS is set to the position in
    the string returned.  */
 
-#[unsafe(no_mangle)] pub unsafe extern "C" fn marginal_area_string
+#[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn marginal_area_string
   (w: *mut window, part: window_part, x: *mut c_int, y: *mut c_int, charpos: *mut ptrdiff_t,
    object: *mut Lisp_Object, dx: *mut c_int, dy: *mut c_int, width: *mut c_int,
    height: *mut c_int) -> Lisp_Object
@@ -7443,7 +7445,7 @@ unsafe extern "C" fn deliver_window_change_signal (sig: c_int)
    SAFE means this function is called from a place where it is
    safe to change frame sizes while a redisplay is in progress.  */
 
-#[unsafe(no_mangle)] pub unsafe extern "C" fn do_pending_window_change (safe: bool)
+#[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn do_pending_window_change (safe: bool)
 {
   if (redisplaying_p || dont_resize_frames) && !safe
     { return; }
@@ -7521,7 +7523,7 @@ unsafe fn change_frame_size_1 (f: *mut frame, new_width: c_int, new_height: c_in
 
    SAFE means this function is called from a place where it's safe to
    change frame sizes while a redisplay is in progress.  */
-#[unsafe(no_mangle)] pub unsafe extern "C" fn change_frame_size
+#[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn change_frame_size
   (f: *mut frame, new_width: c_int, new_height: c_int, pretend: bool, delay: bool, safe: bool)
 {
   let mut tail: Lisp_Object;
@@ -7546,7 +7548,7 @@ unsafe fn change_frame_size_1 (f: *mut frame, new_width: c_int, new_height: c_in
 /* Return non-zero if we delayed size-changes of frame F and haven't
    handled them yet, which means we cannot be sure about the exact
    dimensions of our frames.  */
-#[unsafe(no_mangle)] pub unsafe extern "C" fn frame_size_change_delayed
+#[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn frame_size_change_delayed
   (f: *mut frame) -> bool
 {
   return delayed_size_change || new_size_p! (f);
@@ -7647,7 +7649,7 @@ DEFUN! ("ding", Fding, Sding, 0, 1, 0,
    definition lives in a glob-imported module: a second crate-root item of the same name
    would be `E0428` (the `space_glyph_def` device).  */
 
-#[unsafe(no_mangle)] pub unsafe extern "C" fn bitch_at_user ()
+#[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn bitch_at_user ()
   {
     if noninteractive
       { putchar (7); }
@@ -7712,7 +7714,7 @@ DEFUN! ("sleep-for", Fsleep_for, Ssleep_for, 1, 2, 0,
    more (i.e. until either there's pending input events or the timeout
    expired).  */
 
-#[unsafe(no_mangle)] pub unsafe extern "C" fn sit_for (timeout: Lisp_Object, reading: bool,
+#[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn sit_for (timeout: Lisp_Object, reading: bool,
 						       display_option: c_int) -> Lisp_Object
 {
   let mut sec: i64 = 0;   /* C writes it through an out parameter.  */
@@ -8198,7 +8200,7 @@ unsafe fn init_display_interactive ()
     { init_faces_initial (); }
 }
 
-#[unsafe(no_mangle)] pub unsafe extern "C" fn init_display ()
+#[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn init_display ()
 {
   if noninteractive
     {
@@ -8263,12 +8265,12 @@ pub static mut Vx_show_tooltip_timeout: Lisp_Object = lisp_h_Qnil ();
 #[unsafe(no_mangle)]
 pub static mut Vtab_bar_position: Lisp_Object = lisp_h_Qnil ();
 
-unsafe extern "C" fn syms_of_display_for_pdumper ()
+unsafe extern "C-unwind" fn syms_of_display_for_pdumper ()
 {
   Vinitial_window_system = Qnil ();
 }
 
-#[unsafe(no_mangle)] pub unsafe extern "C" fn syms_of_display ()
+#[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn syms_of_display ()
 {
   defsubr (&raw mut Sredraw_frame);
   defsubr (&raw mut Sredraw_display);

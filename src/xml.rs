@@ -130,7 +130,7 @@ unsafe fn parse_region(start: Lisp_Object, end: Lisp_Object, base_url: Lisp_Obje
 
 #[cfg(feature = "have_libxml2")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn xml_cleanup_parser() { xmlCleanupParser(); }
+pub unsafe extern "C-unwind" fn xml_cleanup_parser() { xmlCleanupParser(); }
 
 #[cfg(feature = "have_libxml2")]
 DEFUN! ("libxml-parse-html-region", Flibxml_parse_html_region, Slibxml_parse_html_region,
@@ -159,7 +159,7 @@ DEFUN! ("libxml-available-p", Flibxml_available_p, Slibxml_available_p, 0, 0, 0,
 });
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_xml() {
+pub unsafe extern "C-unwind" fn syms_of_xml() {
     #[cfg(feature = "have_libxml2")]
     {
         defsubr(&raw mut Slibxml_parse_html_region);

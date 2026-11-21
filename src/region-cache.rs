@@ -132,7 +132,7 @@ const PRESERVE_THRESHOLD: ptrdiff_t = (500);
 /* Interface: Allocating, initializing, and disposing of region caches.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn new_region_cache () -> *mut region_cache
+pub unsafe extern "C-unwind" fn new_region_cache () -> *mut region_cache
 {
   let c = xmalloc (size_of::<region_cache> ()) as *mut region_cache;
 
@@ -158,7 +158,7 @@ pub unsafe extern "C" fn new_region_cache () -> *mut region_cache
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn free_region_cache (c: *mut region_cache)
+pub unsafe extern "C-unwind" fn free_region_cache (c: *mut region_cache)
 {
   xfree ((*c).boundaries as *mut c_void);
   xfree (c as *mut c_void);
@@ -451,7 +451,7 @@ unsafe fn set_cache_region (c: *mut region_cache,
    buffer positions in the presence of insertions and deletions; the
    args to pass are the same before and after such an operation.)  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn invalidate_region_cache (buf: *mut buffer, c: *mut region_cache,
+pub unsafe extern "C-unwind" fn invalidate_region_cache (buf: *mut buffer, c: *mut region_cache,
 						  head: ptrdiff_t, tail: ptrdiff_t)
 {
   /* Let chead = c->beg_unchanged, and
@@ -655,7 +655,7 @@ unsafe fn revalidate_region_cache (buf: *mut buffer, c: *mut region_cache)
    buffer positions) is "known," for the purposes of CACHE (e.g. "has
    no newlines", in the case of the line cache).  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn know_region_cache (buf: *mut buffer, c: *mut region_cache,
+pub unsafe extern "C-unwind" fn know_region_cache (buf: *mut buffer, c: *mut region_cache,
 					    start: ptrdiff_t, end: ptrdiff_t)
 {
   revalidate_region_cache (buf, c);
@@ -670,7 +670,7 @@ pub unsafe extern "C" fn know_region_cache (buf: *mut buffer, c: *mut region_cac
    If NEXT is non-zero, set *NEXT to the nearest
    position after POS where the knowledge changes.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn region_cache_forward (buf: *mut buffer, c: *mut region_cache,
+pub unsafe extern "C-unwind" fn region_cache_forward (buf: *mut buffer, c: *mut region_cache,
 					       pos: ptrdiff_t, next: *mut ptrdiff_t) -> c_int
 {
   revalidate_region_cache (buf, c);
@@ -712,7 +712,7 @@ pub unsafe extern "C" fn region_cache_forward (buf: *mut buffer, c: *mut region_
    otherwise.  If NEXT is non-zero, set *NEXT to the nearest
    position before POS where the knowledge changes.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn region_cache_backward (buf: *mut buffer, c: *mut region_cache,
+pub unsafe extern "C-unwind" fn region_cache_backward (buf: *mut buffer, c: *mut region_cache,
 						pos: ptrdiff_t, next: *mut ptrdiff_t) -> c_int
 {
   revalidate_region_cache (buf, c);

@@ -618,7 +618,12 @@ macro_rules! window_bits_shift {
 /* Definitions in other units whose headers' mirrors do not carry the prototype
    (PORTING.md 0.1-2/P-72 rule 3); each keeps C's own prototype in a `/// C:` line.  These
    are *not* definitions of this unit, so they stay.  */
-unsafe extern "C" {
+unsafe extern "C-unwind" {
+  /// C: dispextern.h 3833: `void free_all_realized_faces (Lisp_Object);`
+  
+  /// C: dispextern.h 2068: `extern bool face_change;` (xfaces.c defines it; the mirror
+  /// chain does not carry the declaration).
+  pub static mut face_change: bool;
   /// C: dispextern.h 3703-3704: `void draw_fringe_bitmap (struct window *, struct glyph_row *,
   /// int);` (fringe.c defines it).
   /// C: dispextern.h 3756: `void prepare_image_for_display (struct frame *, struct image *);`
@@ -695,11 +700,6 @@ unsafe extern "C" {
   pub fn init_frame_faces (f: *mut frame);
   /// C: dispextern.h 3823: `void recompute_basic_faces (struct frame *);`
   pub fn recompute_basic_faces (f: *mut frame);
-  /// C: dispextern.h 3833: `void free_all_realized_faces (Lisp_Object);`
-  
-  /// C: dispextern.h 2068: `extern bool face_change;` (xfaces.c defines it; the mirror
-  /// chain does not carry the declaration).
-  pub static mut face_change: bool;
   /// C: window.h 1223-1224: `extern int window_body_width (struct window *w, enum
   /// window_body_unit);` `extern int window_body_height (struct window *w, enum
   /// window_body_unit);` (window.c defines both).
@@ -717,26 +717,13 @@ unsafe extern "C" {
   /// C: lisp.h 4808: `extern Lisp_Object internal_condition_case_n
   ///   (Lisp_Object (*) (ptrdiff_t, Lisp_Object *), ptrdiff_t, Lisp_Object *,
   ///    Lisp_Object, Lisp_Object (*) (Lisp_Object, ptrdiff_t, Lisp_Object *));`
-  pub fn internal_condition_case_n (bfun: unsafe extern "C" fn (ptrdiff_t, *mut Lisp_Object)
+  pub fn internal_condition_case_n (bfun: unsafe extern "C-unwind" fn (ptrdiff_t, *mut Lisp_Object)
                                                                    -> Lisp_Object,
                                     nargs: ptrdiff_t, args: *mut Lisp_Object,
                                     handlers: Lisp_Object,
-                                    hfun: unsafe extern "C" fn (Lisp_Object, ptrdiff_t,
+                                    hfun: unsafe extern "C-unwind" fn (Lisp_Object, ptrdiff_t,
                                                                 *mut Lisp_Object)
                                                                   -> Lisp_Object) -> Lisp_Object;
-
-
-  /// C: <stdio.h>: `int vfprintf (FILE *, const char *, va_list);` (`stdio.rs` keeps only
-  /// the non-variadic half, the pdumper.rs shape).
-  pub fn vfprintf (stream: *mut FILE, format: *const c_char, args: VaList<'_>) -> c_int;
-
-
-
-
-
-  /// C: <string.h>: `char *strcat (char *, const char *);` (`lib/include/string.rs` keeps
-  /// only the functions the earlier units reached).
-  pub fn strcat (dest: *mut c_char, src: *const c_char) -> *mut c_char;
   /// C: dispextern.h 3824-3825: `int face_at_buffer_position (struct window *, ptrdiff_t,
   /// ptrdiff_t *, ptrdiff_t, bool, int, enum lface_attribute_index);` (xfaces.c defines it).
   pub fn face_at_buffer_position (w: *mut window, pos: ptrdiff_t, endptr: *mut ptrdiff_t,
@@ -777,13 +764,6 @@ unsafe extern "C" {
   /// (xfaces.c defines it; the `dispnew.rs` spelling).
   pub fn merge_faces (w: *mut window, face_name: Lisp_Object, face_id: c_int,
 		      base_face_id: c_int) -> c_int;
-  /// window.h 1233's `window_point` is the window.rs mirror's now (P-72 rule 3: the mirror spells the pointee `*mut c_void`).
-  /// window.h 1210's `decode_live_window` is the window.rs mirror's now (P-72 rule 3: the mirror spells the pointee `*mut c_void`).
-  /// C: <stdlib.h> 489: `extern void qsort (void *__base, size_t __nmemb, size_t __size,
-  /// __compar_fn_t __compar) __nonnull ((1, 4));` (the port's stdlib.rs mirror does not
-  /// carry it; declared here, the `buffer.rs`/`font.rs` shape).
-  pub fn qsort (base: *mut c_void, nmemb: usize, size: usize,
-		compar: Option<unsafe extern "C" fn (*const c_void, *const c_void) -> c_int>);
   /// window.h 1231's `wset_buffer` is the window.rs mirror's now (P-72 rule 3: the mirror spells the pointee `*mut c_void`).
   /// C: lisp.h 4331-4332: `extern void insert_1_both (const char *, ptrdiff_t, ptrdiff_t,
   /// bool, bool, bool);` (insdel.c defines it).
@@ -802,9 +782,6 @@ unsafe extern "C" {
   pub fn errputc (c: c_int);
   /// C: sysstdio.h 33: `extern void errwrite (void const *, ptrdiff_t);`
   pub fn errwrite (buf: *const c_void, nbuf: ptrdiff_t);
-  /// C: <inttypes.h>: `extern intmax_t strtoimax (const char *, char **, int);` (libc; gnulib's
-  /// `inttypes.in.h` only renames it, the `qsort`/`strchr` shape).
-  pub fn strtoimax (s: *const c_char, endptr: *mut *mut c_char, base: c_int) -> intmax_t;
   /// C: lisp.h 4715-4716: `extern ptrdiff_t doprnt (char *, ptrdiff_t, const char *,
   /// const char *, va_list);` (doprnt.c defines it; the mirror chain does not carry it).
   pub fn doprnt (buffer: *mut c_char, size: ptrdiff_t, format: *const c_char,
@@ -845,7 +822,7 @@ unsafe extern "C" {
 
 
   /// C: lisp.h 4825: `extern void record_unwind_protect_void (void (*) (void));` (alloc.c).
-  pub fn record_unwind_protect_void (function: Option<unsafe extern "C" fn ()>);
+  pub fn record_unwind_protect_void (function: Option<unsafe extern "C-unwind" fn ()>);
 
   /// C: window.c's `void run_window_change_functions (void);` (window.h 484).
   pub fn run_window_change_functions ();
@@ -860,9 +837,9 @@ unsafe extern "C" {
   
   /// C: lisp.h 4806: `extern Lisp_Object internal_condition_case_1 (Lisp_Object (*)
   /// (Lisp_Object), Lisp_Object, Lisp_Object, Lisp_Object (*) (Lisp_Object));` (eval.c).
-  pub fn internal_condition_case_1 (bfun: Option<unsafe extern "C" fn (Lisp_Object) -> Lisp_Object>,
+  pub fn internal_condition_case_1 (bfun: Option<unsafe extern "C-unwind" fn (Lisp_Object) -> Lisp_Object>,
                                     arg: Lisp_Object, handlers: Lisp_Object,
-                                    hfun: Option<unsafe extern "C" fn (Lisp_Object) -> Lisp_Object>)
+                                    hfun: Option<unsafe extern "C-unwind" fn (Lisp_Object) -> Lisp_Object>)
                                     -> Lisp_Object;
   /// C: dispextern.h 4016: `void combine_updates (Lisp_Object root_frames);` (dispnew.c).
   
@@ -924,13 +901,6 @@ unsafe extern "C" {
   /// site, and `display_mode_element` at C 28722 is this unit's first use).
   pub fn parse_str_as_multibyte (str_: *const c_uchar, len: ptrdiff_t,
 				 nchars: *mut ptrdiff_t, nbytes: *mut ptrdiff_t);
-  /// C: <string.h>: `void *memrchr (void const *, int, size_t);` (`lib/include/string.rs`
-  /// keeps only the functions the earlier units reached; `display_count_lines` at C 29961
-  /// is this unit's first use).
-  pub fn memrchr (s: *const c_void, c: c_int, n: usize) -> *mut c_void;
-  /// C: <string.h>: `size_t strnlen (char const *__s, size_t __maxlen);` (same mirror gap
-  /// as `memrchr`; `store_mode_line_string` at C 28993 is this unit's first use).
-  pub fn strnlen (s: *const c_char, maxlen: usize) -> usize;
 
   /* The mouse-face family's four cross-unit entry points and the tab-bar click helper's
      neighbours.  `dispextern.h` is mirrored only to its batch-II prefix (P-66) and lisp.h's
@@ -967,6 +937,38 @@ unsafe extern "C" {
   /// C: dispextern.h 3961: `extern void tty_append_glyph (struct it *);` (term.c defines
   /// it; `produce_stretch_glyph` at C 33164 is this unit's first use).
   pub fn tty_append_glyph (it: *mut it);
+}
+unsafe extern "C" {
+
+
+  /// C: <stdio.h>: `int vfprintf (FILE *, const char *, va_list);` (`stdio.rs` keeps only
+  /// the non-variadic half, the pdumper.rs shape).
+  pub fn vfprintf (stream: *mut FILE, format: *const c_char, args: VaList<'_>) -> c_int;
+
+
+
+
+
+  /// C: <string.h>: `char *strcat (char *, const char *);` (`lib/include/string.rs` keeps
+  /// only the functions the earlier units reached).
+  pub fn strcat (dest: *mut c_char, src: *const c_char) -> *mut c_char;
+  /// window.h 1233's `window_point` is the window.rs mirror's now (P-72 rule 3: the mirror spells the pointee `*mut c_void`).
+  /// window.h 1210's `decode_live_window` is the window.rs mirror's now (P-72 rule 3: the mirror spells the pointee `*mut c_void`).
+  /// C: <stdlib.h> 489: `extern void qsort (void *__base, size_t __nmemb, size_t __size,
+  /// __compar_fn_t __compar) __nonnull ((1, 4));` (the port's stdlib.rs mirror does not
+  /// carry it; declared here, the `buffer.rs`/`font.rs` shape).
+  pub fn qsort (base: *mut c_void, nmemb: usize, size: usize,
+		compar: Option<unsafe extern "C" fn (*const c_void, *const c_void) -> c_int>);
+  /// C: <inttypes.h>: `extern intmax_t strtoimax (const char *, char **, int);` (libc; gnulib's
+  /// `inttypes.in.h` only renames it, the `qsort`/`strchr` shape).
+  pub fn strtoimax (s: *const c_char, endptr: *mut *mut c_char, base: c_int) -> intmax_t;
+  /// C: <string.h>: `void *memrchr (void const *, int, size_t);` (`lib/include/string.rs`
+  /// keeps only the functions the earlier units reached; `display_count_lines` at C 29961
+  /// is this unit's first use).
+  pub fn memrchr (s: *const c_void, c: c_int, n: usize) -> *mut c_void;
+  /// C: <string.h>: `size_t strnlen (char const *__s, size_t __maxlen);` (same mirror gap
+  /// as `memrchr`; `store_mode_line_string` at C 28993 is this unit's first use).
+  pub fn strnlen (s: *const c_char, maxlen: usize) -> usize;
 }
 
 /* C 348-351: `termopts.h`'s two objects (that header has a mirror, but no unit `include!`s
@@ -1121,7 +1123,7 @@ unsafe fn FACE_FOR_CHAR (f: *mut frame, face: *mut face, character: c_int, pos: 
 {
   #[cfg(feature = "have_window_system")]
   {
-    unsafe extern "C" {
+    unsafe extern "C-unwind" {
       fn face_for_char(f: *mut frame, face: *mut face, ch: c_int,
                        pos: ptrdiff_t, object: Lisp_Object) -> c_int;
     }
@@ -2086,11 +2088,11 @@ macro_rules! IT_STRING_CHARPOS { ($it:expr) => { CHARPOS! (($it).current.string_
 pub struct redisplay_interface
 {
   _prefix_frame_parm_handlers: [*mut c_void; 1],
-  pub produce_glyphs: Option<unsafe extern "C" fn (it: *mut it)>,
+  pub produce_glyphs: Option<unsafe extern "C-unwind" fn (it: *mut it)>,
   /// C 3080-3114: `write_glyphs` … `update_window_end_hook` (offset 16 … 72).
   _pad0: [u8; 56],
   /// C 3115: `void (*flush_display) (struct frame *f);` — clang measures 72, sizeof 104.
-  pub flush_display: Option<unsafe extern "C" fn (f: *mut frame)>,
+  pub flush_display: Option<unsafe extern "C-unwind" fn (f: *mut frame)>,
   /// C 3116-3131: the rest of the frozen record (offset 80 … 104).
   _pad1: [u8; 24],
   /* C 3131-3195: the fifteen `#ifdef HAVE_WINDOW_SYSTEM` hooks, appended *after* the frozen
@@ -2101,38 +2103,38 @@ pub struct redisplay_interface
   /* `struct draw_fringe_bitmap_params *` is not in this unit's scope (the record lives with the
      fringe mirrors), so the parameter keeps P-72 rule 3's `*mut c_void` - a pointer either way, so
      the interface's layout is unchanged.  */
-  pub draw_fringe_bitmap: Option<unsafe extern "C" fn (*mut c_void, *mut glyph_row, *mut c_void)>,   // C 3134
+  pub draw_fringe_bitmap: Option<unsafe extern "C-unwind" fn (*mut c_void, *mut glyph_row, *mut c_void)>,   // C 3134
   #[cfg (feature = "have_window_system")]
-  pub define_fringe_bitmap: Option<unsafe extern "C" fn (which: c_int, bits: *mut c_ushort, h: c_int, wd: c_int)>,      // C 3138
+  pub define_fringe_bitmap: Option<unsafe extern "C-unwind" fn (which: c_int, bits: *mut c_ushort, h: c_int, wd: c_int)>,      // C 3138
   #[cfg (feature = "have_window_system")]
-  pub destroy_fringe_bitmap: Option<unsafe extern "C" fn (which: c_int)>,                                               // C 3140
+  pub destroy_fringe_bitmap: Option<unsafe extern "C-unwind" fn (which: c_int)>,                                               // C 3140
   #[cfg (feature = "have_window_system")]
-  pub compute_glyph_string_overhangs: Option<unsafe extern "C" fn (s: *mut glyph_string)>,                              // C 3144
+  pub compute_glyph_string_overhangs: Option<unsafe extern "C-unwind" fn (s: *mut glyph_string)>,                              // C 3144
   #[cfg (feature = "have_window_system")]
-  pub draw_glyph_string: Option<unsafe extern "C" fn (s: *mut glyph_string)>,                                           // C 3147
+  pub draw_glyph_string: Option<unsafe extern "C-unwind" fn (s: *mut glyph_string)>,                                           // C 3147
   #[cfg (feature = "have_window_system")]
-  pub define_frame_cursor: Option<unsafe extern "C" fn (f: *mut c_void, cursor: Emacs_Cursor)>,                        // C 3150
+  pub define_frame_cursor: Option<unsafe extern "C-unwind" fn (f: *mut c_void, cursor: Emacs_Cursor)>,                        // C 3150
   #[cfg (feature = "have_window_system")]
-  pub clear_frame_area: Option<unsafe extern "C" fn (f: *mut c_void, x: c_int, y: c_int, width: c_int, height: c_int)>, // C 3153
+  pub clear_frame_area: Option<unsafe extern "C-unwind" fn (f: *mut c_void, x: c_int, y: c_int, width: c_int, height: c_int)>, // C 3153
   #[cfg (feature = "have_window_system")]
-  pub clear_under_internal_border: Option<unsafe extern "C" fn (f: *mut c_void)>,                                       // C 3159
+  pub clear_under_internal_border: Option<unsafe extern "C-unwind" fn (f: *mut c_void)>,                                       // C 3159
   #[cfg (feature = "have_window_system")]
-  pub draw_window_cursor: Option<unsafe extern "C" fn (w: *mut c_void, glyph_row: *mut glyph_row, x: c_int, y: c_int,
+  pub draw_window_cursor: Option<unsafe extern "C-unwind" fn (w: *mut c_void, glyph_row: *mut glyph_row, x: c_int, y: c_int,
                                                        cursor_type: text_cursor_kinds, cursor_width: c_int,
                                                        on_p: bool, active_p: bool)>,                                  // C 3165
   #[cfg (feature = "have_window_system")]
-  pub draw_vertical_window_border: Option<unsafe extern "C" fn (w: *mut c_void, x: c_int, y_0: c_int, y_1: c_int)>,   // C 3172
+  pub draw_vertical_window_border: Option<unsafe extern "C-unwind" fn (w: *mut c_void, x: c_int, y_0: c_int, y_1: c_int)>,   // C 3172
   #[cfg (feature = "have_window_system")]
-  pub draw_window_divider: Option<unsafe extern "C" fn (w: *mut c_void, x_0: c_int, x_1: c_int, y_0: c_int, y_1: c_int)>, // C 3176
+  pub draw_window_divider: Option<unsafe extern "C-unwind" fn (w: *mut c_void, x_0: c_int, x_1: c_int, y_0: c_int, y_1: c_int)>, // C 3176
   #[cfg (feature = "have_window_system")]
-  pub shift_glyphs_for_insert: Option<unsafe extern "C" fn (f: *mut c_void, x: c_int, y: c_int, width: c_int,
+  pub shift_glyphs_for_insert: Option<unsafe extern "C-unwind" fn (f: *mut c_void, x: c_int, y: c_int, width: c_int,
                                                             height: c_int, shift_by: c_int)>,                         // C 3182
   #[cfg (feature = "have_window_system")]
-  pub show_hourglass: Option<unsafe extern "C" fn (f: *mut c_void)>,                                                    // C 3187
+  pub show_hourglass: Option<unsafe extern "C-unwind" fn (f: *mut c_void)>,                                                    // C 3187
   #[cfg (feature = "have_window_system")]
-  pub hide_hourglass: Option<unsafe extern "C" fn (f: *mut c_void)>,                                                    // C 3190
+  pub hide_hourglass: Option<unsafe extern "C-unwind" fn (f: *mut c_void)>,                                                    // C 3190
   #[cfg (feature = "have_window_system")]
-  pub default_font_parameter: Option<unsafe extern "C" fn (f: *mut c_void, parms: Lisp_Object)>,                        // C 3194
+  pub default_font_parameter: Option<unsafe extern "C-unwind" fn (f: *mut c_void, parms: Lisp_Object)>,                        // C 3194
 }
 const _: () = core::assert! (core::mem::offset_of! (redisplay_interface, produce_glyphs) == 8);
 const _: () = core::assert! (core::mem::offset_of! (redisplay_interface, flush_display) == 72);
@@ -2624,14 +2626,14 @@ pub const REDISPLAY_SOME: c_int = 2;	/* Arbitrary choice.  */
    (PORTING.md 0.1-12).  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn redisplay_other_windows ()
+pub unsafe extern "C-unwind" fn redisplay_other_windows ()
 {
   if windows_or_buffers_changed == 0
     { windows_or_buffers_changed = REDISPLAY_SOME; }
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn wset_redisplay (w: *mut window)
+pub unsafe extern "C-unwind" fn wset_redisplay (w: *mut window)
 {
   /* Beware: selected_window can be nil during early stages.  */
   if !BASE_EQ (make_lisp_ptr (w as *mut c_void, Lisp_Type::Lisp_Vectorlike), selected_window)
@@ -2640,14 +2642,14 @@ pub unsafe extern "C" fn wset_redisplay (w: *mut window)
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn fset_redisplay (f: *mut frame)
+pub unsafe extern "C-unwind" fn fset_redisplay (f: *mut frame)
 {
   redisplay_other_windows ();
   frame_bits! (redisplay, f, true);
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn bset_redisplay (b: *mut buffer)
+pub unsafe extern "C-unwind" fn bset_redisplay (b: *mut buffer)
 {
   let count: c_int = buffer_window_count (b);
   if count > 0
@@ -2663,7 +2665,7 @@ pub unsafe extern "C" fn bset_redisplay (b: *mut buffer)
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn bset_update_mode_line (b: *mut buffer)
+pub unsafe extern "C-unwind" fn bset_update_mode_line (b: *mut buffer)
 {
   if update_mode_lines == 0
     { update_mode_lines = REDISPLAY_SOME; }
@@ -2671,7 +2673,7 @@ pub unsafe extern "C" fn bset_update_mode_line (b: *mut buffer)
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn wset_update_mode_line (w: *mut window)
+pub unsafe extern "C-unwind" fn wset_update_mode_line (w: *mut window)
 {
   window_bits! (w, update_mode_line, true);
   /* When a window's mode line needs to be updated, the window's frame's
@@ -2705,7 +2707,7 @@ DEFUN! ("set-buffer-redisplay", Fset_buffer_redisplay,
    docs/ports/xdisp.md (P-08).  */
 const trace_redisplay_p: bool = false;
 
-unsafe extern "C" fn redisplay_trace (fmt: *const c_char, mut args: ...)
+unsafe extern "C-unwind" fn redisplay_trace (fmt: *const c_char, mut args: ...)
 {
   if trace_redisplay_p
     {
@@ -2718,7 +2720,7 @@ unsafe extern "C" fn redisplay_trace (fmt: *const c_char, mut args: ...)
    `enum { trace_move = false };` — same shape as `trace_redisplay_p` above.  */
 const trace_move: bool = false;
 
-unsafe extern "C" fn move_trace (fmt: *const c_char, mut args: ...)
+unsafe extern "C-unwind" fn move_trace (fmt: *const c_char, mut args: ...)
 {
   if trace_move
     {
@@ -2763,7 +2765,7 @@ pub struct props
 
   /* A handler function called to set up iterator IT from the property
      at IT's current position.  Value is used to steer handle_stop.  */
-  pub handler: Option<unsafe extern "C" fn (it: *mut it) -> prop_handled>,
+  pub handler: Option<unsafe extern "C-unwind" fn (it: *mut it) -> prop_handled>,
 }
 
 /* C 1003-1008's six forward declarations (`handle_face_prop` … `handle_fontified_prop`) are
@@ -2893,7 +2895,7 @@ macro_rules! face_after_it_pos { ($IT:expr) => { face_before_or_after_it_pos (($
    This is the height of W minus the height of a mode line, if any.  (C 1246-1272)  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn window_text_bottom_y (w: *mut window) -> c_int
+pub unsafe extern "C-unwind" fn window_text_bottom_y (w: *mut window) -> c_int
 {
   let mut height: c_int = WINDOW_PIXEL_HEIGHT (w);
 
@@ -2912,7 +2914,7 @@ pub unsafe extern "C" fn window_text_bottom_y (w: *mut window) -> c_int
    fringes to the left and right of the window.  (C 1274-1299)  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn window_box_width (w: *mut window, area: glyph_row_area) -> c_int
+pub unsafe extern "C-unwind" fn window_box_width (w: *mut window, area: glyph_row_area) -> c_int
 {
   let mut width: c_int = (*w).pixel_width;
 
@@ -2938,7 +2940,7 @@ pub unsafe extern "C" fn window_box_width (w: *mut window, area: glyph_row_area)
    including mode lines of W, if any.  (C 1301-1375)  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn window_box_height (w: *mut window) -> c_int
+pub unsafe extern "C-unwind" fn window_box_height (w: *mut window) -> c_int
 {
   let f: *mut frame = XFRAME ((*w).frame);
   let mut height: c_int = WINDOW_PIXEL_HEIGHT (w);
@@ -3015,7 +3017,7 @@ pub unsafe extern "C" fn window_box_height (w: *mut window) -> c_int
    whole window, to the right of the left fringe of W.  (C 1377-1412)  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn window_box_left_offset (w: *mut window, area: glyph_row_area) -> c_int
+pub unsafe extern "C-unwind" fn window_box_left_offset (w: *mut window, area: glyph_row_area) -> c_int
 {
   let mut x: c_int;
 
@@ -3058,7 +3060,7 @@ unsafe fn window_box_right_offset (w: *mut window, area: glyph_row_area) -> c_in
    whole window, to the right of the left fringe of W.  (C 1428-1442)  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn window_box_left (w: *mut window, area: glyph_row_area) -> c_int
+pub unsafe extern "C-unwind" fn window_box_left (w: *mut window, area: glyph_row_area) -> c_int
 {
   let f: *mut frame = XFRAME ((*w).frame);
   let x: c_int;
@@ -3077,7 +3079,7 @@ pub unsafe extern "C" fn window_box_left (w: *mut window, area: glyph_row_area) 
    whole window, to the left of the right fringe of W.  (C 1444-1453)  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn window_box_right (w: *mut window, area: glyph_row_area) -> c_int
+pub unsafe extern "C-unwind" fn window_box_right (w: *mut window, area: glyph_row_area) -> c_int
 {
   return window_box_left (w, area) + window_box_width (w, area);
 }
@@ -3090,7 +3092,7 @@ pub unsafe extern "C" fn window_box_right (w: *mut window, area: glyph_row_area)
    *BOX_WIDTH, and *BOX_HEIGHT the pixel width and height of the box.  (C 1455-1478)  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn window_box (w: *mut window, area: glyph_row_area, box_x: *mut c_int,
+pub unsafe extern "C-unwind" fn window_box (w: *mut window, area: glyph_row_area, box_x: *mut c_int,
 				     box_y: *mut c_int, box_width: *mut c_int,
 				     box_height: *mut c_int)
 {
@@ -3133,7 +3135,7 @@ unsafe fn window_box_edges (w: *mut window, top_left_x: *mut c_int, top_left_y: 
    This can modify IT's settings.  (C 1504-1541)  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn line_bottom_y (it: *mut it) -> c_int
+pub unsafe extern "C-unwind" fn line_bottom_y (it: *mut it) -> c_int
 {
   let mut line_height: c_int = (*it).max_ascent + (*it).max_descent;
   let line_top_y: c_int = (*it).current_y;
@@ -3219,7 +3221,7 @@ DEFUN! ("line-pixel-height", Fline_pixel_height,
    properties.  (C 1560-1592)  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn default_line_pixel_height (w: *mut window) -> c_int
+pub unsafe extern "C-unwind" fn default_line_pixel_height (w: *mut window) -> c_int
 {
   let f: *mut frame = WINDOW_XFRAME! (w);
   let mut height: c_int = FRAME_LINE_HEIGHT (f);
@@ -3325,7 +3327,7 @@ unsafe fn reset_box_start_end_flags (it: *mut it)
    Set *ROWH and *VPOS to row's visible height and VPOS (row number).  (C 1686-2150)  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn pos_visible_p (w: *mut window, charpos: ptrdiff_t, x: *mut c_int,
+pub unsafe extern "C-unwind" fn pos_visible_p (w: *mut window, charpos: ptrdiff_t, x: *mut c_int,
 	       y: *mut c_int, rtop: *mut c_int, rbot: *mut c_int,
 	       rowh: *mut c_int, vpos: *mut c_int) -> bool
 {
@@ -3934,7 +3936,7 @@ unsafe fn compute_string_pos (newpos: *mut text_pos, pos: text_pos, string: Lisp
    frame F.  FACE_ID specifies what line's height to estimate.  (C 2287-2318)  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn estimate_mode_line_height (f: *mut frame, face_id: face_id) -> c_int
+pub unsafe extern "C-unwind" fn estimate_mode_line_height (f: *mut frame, face_id: face_id) -> c_int
 {
   #[cfg (feature = "have_window_system")]
   if FRAME_WINDOW_P (f)
@@ -3968,7 +3970,7 @@ pub unsafe extern "C" fn estimate_mode_line_height (f: *mut frame, face_id: face
    not force the value into range.  (C 2320-2370)  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn pixel_to_glyph_coords (f: *mut frame, mut pix_x: c_int, mut pix_y: c_int,
+pub unsafe extern "C-unwind" fn pixel_to_glyph_coords (f: *mut frame, mut pix_x: c_int, mut pix_y: c_int,
 					       x: *mut c_int, y: *mut c_int,
 					       bounds: *mut c_int, noclip: bool)
 {
@@ -4112,7 +4114,7 @@ unsafe fn x_y_to_hpos_vpos (w: *mut window, mut x: c_int, y: c_int, hpos: *mut c
    the derived feature `window_system_no_ext_menu_bar` (xtask) had never been emitted.  */
 #[cfg (all (feature = "have_window_system", not (feature = "have_ext_menu_bar")))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn x_y_to_column_row (w: *mut window, x: c_int, y: c_int,
+pub unsafe extern "C-unwind" fn x_y_to_column_row (w: *mut window, x: c_int, y: c_int,
 					    column: *mut c_int, row: *mut c_int)
 {
   let mut dummy: c_int = 0;
@@ -4177,10 +4179,10 @@ pub static mut redisplay_counter: c_uint = 0;
 /* Error handler for dsafe_eval and dsafe_call.  (C 3096-3104)  */
 
 /* C's `dsafe_eval_handler` is one of `internal_condition_case_n`'s two function arguments,
-   so its address is taken and the port declares it `unsafe extern "C" fn` rather than the
+   so its address is taken and the port declares it `unsafe extern "C-unwind" fn` rather than the
    plain `unsafe fn` a `static` helper otherwise gets (the `redisplay_trace`/`move_trace`
    rule; the previous window declared it before its caller, `dsafe__call`, existed).  */
-unsafe extern "C" fn dsafe_eval_handler (arg: Lisp_Object, nargs: ptrdiff_t,
+unsafe extern "C-unwind" fn dsafe_eval_handler (arg: Lisp_Object, nargs: ptrdiff_t,
 					 args: *mut Lisp_Object) -> Lisp_Object
 {
   add_to_log (c"Error during redisplay: %S signaled %S".as_ptr (),
@@ -4195,7 +4197,7 @@ unsafe extern "C" fn dsafe_eval_handler (arg: Lisp_Object, nargs: ptrdiff_t,
 /* FIXME: What's the guiding principle behind the choice
    of which calls should set 'inhibit_quit' and which don't.  (C 3110-3111)  */
 unsafe fn dsafe__call (inhibit_quit: bool,
-		       f: unsafe extern "C" fn (ptrdiff_t, *mut Lisp_Object) -> Lisp_Object,
+		       f: unsafe extern "C-unwind" fn (ptrdiff_t, *mut Lisp_Object) -> Lisp_Object,
 		       nargs: ptrdiff_t, args: *mut Lisp_Object) -> Lisp_Object
 {
   let mut val: Lisp_Object;
@@ -4227,8 +4229,8 @@ unsafe fn dsafe__call (inhibit_quit: bool,
 }
 
 /* C's `funcall_with_backtraces` is the other half of `dsafe_calln`'s ternary and is passed
-   as a function pointer there, so it is `unsafe extern "C" fn` too.  */
-unsafe extern "C" fn funcall_with_backtraces (nargs: ptrdiff_t, args: *mut Lisp_Object)
+   as a function pointer there, so it is `unsafe extern "C-unwind" fn` too.  */
+unsafe extern "C-unwind" fn funcall_with_backtraces (nargs: ptrdiff_t, args: *mut Lisp_Object)
   -> Lisp_Object
 {
   /* If an error is signaled during a Lisp hook in redisplay, write a
@@ -4259,10 +4261,10 @@ macro_rules! dsafe_calln {
     SAFE_CALLMANY! ($inhibit_quit,
 		    if backtrace_on_redisplay_error
 		      { funcall_with_backtraces
-			  as unsafe extern "C" fn (ptrdiff_t, *mut Lisp_Object) -> Lisp_Object }
+			  as unsafe extern "C-unwind" fn (ptrdiff_t, *mut Lisp_Object) -> Lisp_Object }
 		      else
 		      { Ffuncall
-			  as unsafe extern "C" fn (ptrdiff_t, *mut Lisp_Object) -> Lisp_Object },
+			  as unsafe extern "C-unwind" fn (ptrdiff_t, *mut Lisp_Object) -> Lisp_Object },
 		    arr)
   }};
 }
@@ -4330,7 +4332,7 @@ unsafe fn CHECK_WINDOW_END (w: *mut window)
    the corresponding mode line glyph row of the desired matrix of W.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn init_iterator (it: *mut it, w: *mut window,
+pub unsafe extern "C-unwind" fn init_iterator (it: *mut it, w: *mut window,
 					charpos: ptrdiff_t, bytepos: ptrdiff_t,
 					mut row: *mut glyph_row, base_face_id: face_id)
 {
@@ -4896,7 +4898,7 @@ unsafe fn get_nearby_bol_pos (mut pos: ptrdiff_t) -> ptrdiff_t
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn get_small_narrowing_begv (w: *mut window, pos: ptrdiff_t)
+pub unsafe extern "C-unwind" fn get_small_narrowing_begv (w: *mut window, pos: ptrdiff_t)
 						   -> ptrdiff_t
 {
   let len: c_int = get_narrowed_width (w);
@@ -4906,7 +4908,7 @@ pub unsafe extern "C" fn get_small_narrowing_begv (w: *mut window, pos: ptrdiff_
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn get_large_narrowing_begv (pos: ptrdiff_t) -> ptrdiff_t
+pub unsafe extern "C-unwind" fn get_large_narrowing_begv (pos: ptrdiff_t) -> ptrdiff_t
 {
   if long_line_optimizations_region_size <= 0
     { return BEGV! (); }
@@ -4924,7 +4926,7 @@ pub unsafe extern "C" fn get_large_narrowing_begv (pos: ptrdiff_t) -> ptrdiff_t
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn get_large_narrowing_zv (pos: ptrdiff_t) -> ptrdiff_t
+pub unsafe extern "C-unwind" fn get_large_narrowing_zv (pos: ptrdiff_t) -> ptrdiff_t
 {
   if long_line_optimizations_region_size <= 0
     { return ZV! (); }
@@ -4932,7 +4934,7 @@ pub unsafe extern "C" fn get_large_narrowing_zv (pos: ptrdiff_t) -> ptrdiff_t
   return min (pos + len, ZV! ());
 }
 
-unsafe extern "C" fn unwind_narrowed_begv (point_min: Lisp_Object)
+unsafe extern "C-unwind" fn unwind_narrowed_begv (point_min: Lisp_Object)
 {
   SET_BUF_BEGV (current_buffer! (), XFIXNUM (point_min));
 }
@@ -4960,7 +4962,7 @@ macro_rules! SET_WITH_NARROWED_BEGV {
 /* Initialize IT for the display of window W with window start POS.  (C 3844-3845)  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn start_display (it: *mut it, w: *mut window, pos: text_pos)
+pub unsafe extern "C-unwind" fn start_display (it: *mut it, w: *mut window, pos: text_pos)
 {
   let mut row: *mut glyph_row;
   let first_vpos: c_int = window_wants_tab_line (w) as c_int
@@ -5656,7 +5658,7 @@ pub const MAX_DISP_SCAN: c_int = 250;
    white space in the text area.  (C 4495-4582)  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn compute_display_string_pos (position: *mut text_pos,
+pub unsafe extern "C-unwind" fn compute_display_string_pos (position: *mut text_pos,
 						     string: *mut bidi_string_data,
 						     w: *mut window,
 						     frame_window_p: bool,
@@ -5772,7 +5774,7 @@ pub unsafe extern "C" fn compute_display_string_pos (position: *mut text_pos,
    value is a string.  (C 4594-4641)  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn compute_display_string_end (charpos: ptrdiff_t,
+pub unsafe extern "C-unwind" fn compute_display_string_end (charpos: ptrdiff_t,
 						     string: *mut bidi_string_data,
 						     w: *mut window)
      -> ptrdiff_t
@@ -5840,7 +5842,7 @@ pub unsafe extern "C" fn compute_display_string_end (charpos: ptrdiff_t,
    calling hook functions from Qfontification_functions to fontify
    regions of text.  */
 
-unsafe extern "C" fn handle_fontified_prop (it: *mut it) -> prop_handled
+unsafe extern "C-unwind" fn handle_fontified_prop (it: *mut it) -> prop_handled
 {
   let mut prop: Lisp_Object = Qnil ();
   let mut pos: Lisp_Object = Qnil ();
@@ -6093,7 +6095,7 @@ unsafe fn face_at_pos (it: *const it, attr_filter: lface_attribute_index) -> c_i
 
 /* Set up iterator IT from face properties at its current position.
    Called from handle_stop.  */
-unsafe extern "C" fn handle_face_prop (it: *mut it) -> prop_handled
+unsafe extern "C-unwind" fn handle_face_prop (it: *mut it) -> prop_handled
 {
   let count: specpdl_ref = SPECPDL_INDEX ();
   /* Don't allow the user to quit out of face-merging code, in case
@@ -6180,7 +6182,7 @@ unsafe fn underlying_face_id (it: *const it) -> c_int
    in front (to the left in L2R paragraphs, to the right in R2L
    paragraphs) of IT's screen position.  Value is the ID of the face.  */
 
-unsafe extern "C" fn face_before_or_after_it_pos (it: *mut it, before_p: bool) -> c_int
+unsafe extern "C-unwind" fn face_before_or_after_it_pos (it: *mut it, before_p: bool) -> c_int
 {
   let mut face_id: c_int;
   let mut limit: c_int;
@@ -6406,7 +6408,7 @@ unsafe extern "C" fn face_before_or_after_it_pos (it: *mut it, before_p: bool) -
 /* Set up iterator IT from invisible properties at its current
    position.  Called from handle_stop.  */
 
-unsafe extern "C" fn handle_invisible_prop (it: *mut it) -> prop_handled
+unsafe extern "C-unwind" fn handle_invisible_prop (it: *mut it) -> prop_handled
 {
   let mut handled: prop_handled = HANDLED_NORMALLY;
   let mut invis: c_int;
@@ -6872,7 +6874,7 @@ unsafe extern "C" fn handle_invisible_prop (it: *mut it) -> prop_handled
 /* Make iterator IT return `...' next.
    Replaces LEN characters from buffer.  */
 
-unsafe extern "C" fn setup_for_ellipsis (it: *mut it, len: c_int)
+unsafe extern "C-unwind" fn setup_for_ellipsis (it: *mut it, len: c_int)
 {
   /* Use the display table definition for `...'.  Invalid glyphs
      will be handled by the method returning elements from dpvec.  */
@@ -7116,7 +7118,7 @@ DEFUN! ("get-display-property", Fget_display_property,
    overrides the display of the buffer text itself.
    Otherwise we return HANDLED_NORMALLY.  */
 
-unsafe extern "C" fn handle_display_prop (it: *mut it) -> prop_handled
+unsafe extern "C-unwind" fn handle_display_prop (it: *mut it) -> prop_handled
 {
   let mut propval: Lisp_Object;
   let mut object: Lisp_Object;
@@ -7803,7 +7805,7 @@ unsafe fn handle_single_display_spec (it: *mut it, spec: Lisp_Object, mut object
    specify the buffer position covered by PROP.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn display_prop_intangible_p (prop: Lisp_Object, overlay: Lisp_Object,
+pub unsafe extern "C-unwind" fn display_prop_intangible_p (prop: Lisp_Object, overlay: Lisp_Object,
 						    charpos: ptrdiff_t,
 						    bytepos: ptrdiff_t) -> bool
 {
@@ -7993,7 +7995,7 @@ unsafe fn string_buffer_position (string: Lisp_Object, around_charpos: ptrdiff_t
 /* Set up iterator IT from `composition' property at its current
    position.  Called from handle_stop.  */
 
-unsafe extern "C" fn handle_composition_prop (it: *mut it) -> prop_handled
+unsafe extern "C-unwind" fn handle_composition_prop (it: *mut it) -> prop_handled
 {
   /* C leaves `prop`, `start` and `end` to `find_composition`; Rust cannot prove that the
      call has written them before the `&&` chain reads them, so the port gives them the
@@ -8088,7 +8090,7 @@ const _: () = core::assert! (core::mem::offset_of! (overlay_entry, after_string_
 /* Set up iterator IT from overlay strings at its current position.
    Called from handle_stop.  */
 
-unsafe extern "C" fn handle_overlay_change (it: *mut it) -> prop_handled
+unsafe extern "C-unwind" fn handle_overlay_change (it: *mut it) -> prop_handled
 {
   if !STRINGP ((*it).string) && get_overlay_strings (it, 0)
     { return HANDLED_RECOMPUTE_PROPS; }
@@ -9120,7 +9122,7 @@ unsafe fn back_to_previous_visible_line_start (it: *mut it)
    face information etc.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn reseat_at_previous_visible_line_start (it: *mut it)
+pub unsafe extern "C-unwind" fn reseat_at_previous_visible_line_start (it: *mut it)
 {
   back_to_previous_visible_line_start (it);
   reseat (it, (*it).current.pos, true);
@@ -9509,7 +9511,7 @@ unsafe fn reseat_to_string (it: *mut it, s: *const c_char, string: Lisp_Object,
 
 /* Map enum it_method value to corresponding next_element_from_* function.  */
 
-pub type next_element_function = Option<unsafe extern "C" fn (it: *mut it) -> bool>;
+pub type next_element_function = Option<unsafe extern "C-unwind" fn (it: *mut it) -> bool>;
 
 static get_next_element: [next_element_function; NUM_IT_METHODS as usize] =
 [
@@ -9564,7 +9566,7 @@ macro_rules! CHAR_COMPOSED_P {
    gui_produce_glyphs when no suitable font was found.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn lookup_glyphless_char_display (c: c_int, it: *mut it) -> Lisp_Object
+pub unsafe extern "C-unwind" fn lookup_glyphless_char_display (c: c_int, it: *mut it) -> Lisp_Object
 {
   let mut glyphless_method: Lisp_Object = Qnil ();
 
@@ -9652,7 +9654,7 @@ static mut last_glyphless_glyph_face_id: c_int = 1 << FACE_ID_BITS;
 static mut last_glyphless_glyph_merged_face_id: c_int = 0;
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn merge_glyphless_glyph_face (it: *mut it) -> c_int
+pub unsafe extern "C-unwind" fn merge_glyphless_glyph_face (it: *mut it) -> c_int
 {
   let mut face_id: c_int;
 
@@ -9674,7 +9676,7 @@ pub unsafe extern "C" fn merge_glyphless_glyph_face (it: *mut it) -> c_int
    be called before redisplaying windows, and when the frame's face
    cache is freed.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn forget_escape_and_glyphless_faces ()
+pub unsafe extern "C-unwind" fn forget_escape_and_glyphless_faces ()
 {
   last_escape_glyph_frame = core::ptr::null_mut ();
   last_escape_glyph_face_id = 1 << FACE_ID_BITS;
@@ -9963,7 +9965,7 @@ unsafe fn get_next_display_element (it: *mut it) -> bool
           (*it).what = IT_GLYPHLESS;
           (*it).glyphless_method = GLYPHLESS_DISPLAY_EMPTY_BOX;
         } else if (*it).what == IT_COMPOSITION && (*it).cmp_it.ch >= 0 {
-          unsafe extern "C" {
+          unsafe extern "C-unwind" {
             fn face_for_font(f: *mut frame, font: Lisp_Object, face: *mut face) -> c_int;
           }
           let gs = composition_gstring_from_id((*it).cmp_it.id as ptrdiff_t);
@@ -10544,7 +10546,7 @@ unsafe fn set_iterator_to_next (it: *mut it, reseat_p: bool)
    IT->saved_face_id holds the face id before the display vector--it
    is restored into IT->face_id in set_iterator_to_next.  */
 
-unsafe extern "C" fn next_element_from_display_vector (it: *mut it) -> bool
+unsafe extern "C-unwind" fn next_element_from_display_vector (it: *mut it) -> bool
 {
   let mut gc: Lisp_Object;
   let prev_face_id: c_int = (*it).face_id;
@@ -10768,7 +10770,7 @@ unsafe fn get_visually_first_element (it: *mut it)
    If IT->current.overlay_string_index >= 0, the Lisp string is an
    overlay string.  */
 
-unsafe extern "C" fn next_element_from_string (it: *mut it) -> bool
+unsafe extern "C-unwind" fn next_element_from_string (it: *mut it) -> bool
 {
   let mut position: text_pos;
 
@@ -10933,7 +10935,7 @@ unsafe extern "C" fn next_element_from_string (it: *mut it) -> bool
    may have to return padding spaces.  Value is false if end of string
    reached, including padding spaces.  */
 
-unsafe extern "C" fn next_element_from_c_string (it: *mut it) -> bool
+unsafe extern "C-unwind" fn next_element_from_c_string (it: *mut it) -> bool
 {
   let mut success_p: bool = true;
 
@@ -11012,13 +11014,13 @@ unsafe fn next_element_from_ellipsis (it: *mut it) -> bool
    is always true.  */
 
 
-unsafe extern "C" fn next_element_from_image (it: *mut it) -> bool
+unsafe extern "C-unwind" fn next_element_from_image (it: *mut it) -> bool
 {
   (*it).what = IT_IMAGE;
   return true;
 }
 
-unsafe extern "C" fn next_element_from_xwidget (it: *mut it) -> bool
+unsafe extern "C-unwind" fn next_element_from_xwidget (it: *mut it) -> bool
 {
   (*it).what = IT_XWIDGET;
   return true;
@@ -11029,7 +11031,7 @@ unsafe extern "C" fn next_element_from_xwidget (it: *mut it) -> bool
    property.  IT->object is the value of the text property.  Value is
    always true.  */
 
-unsafe extern "C" fn next_element_from_stretch (it: *mut it) -> bool
+unsafe extern "C-unwind" fn next_element_from_stretch (it: *mut it) -> bool
 {
   (*it).what = IT_STRETCH;
   return true;
@@ -11139,7 +11141,7 @@ unsafe fn handle_stop_backwards (it: *mut it, mut charpos: ptrdiff_t)
    position at which to stop and check for text properties or buffer
    end.  */
 
-unsafe extern "C" fn next_element_from_buffer (it: *mut it) -> bool
+unsafe extern "C-unwind" fn next_element_from_buffer (it: *mut it) -> bool
 {
   let mut success_p: bool = true;
 
@@ -12229,7 +12231,7 @@ unsafe fn move_it_in_display_line_to (it: *mut it,
 }
 /* For external use.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn move_it_in_display_line (it: *mut it,
+pub unsafe extern "C-unwind" fn move_it_in_display_line (it: *mut it,
 						   to_charpos: ptrdiff_t, to_x: c_int,
 						   op: move_operation_enum)
 {
@@ -12275,7 +12277,7 @@ pub unsafe extern "C" fn move_it_in_display_line (it: *mut it,
    than it.last_visible_x.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn move_it_to (it: *mut it, to_charpos: ptrdiff_t, to_x: c_int,
+pub unsafe extern "C-unwind" fn move_it_to (it: *mut it, to_charpos: ptrdiff_t, to_x: c_int,
 				     to_y: c_int, to_vpos: c_int, op: c_int) -> c_int
 {
   let mut skip: move_it_result;
@@ -12631,7 +12633,7 @@ pub unsafe extern "C" fn move_it_to (it: *mut it, to_charpos: ptrdiff_t, to_x: c
    after the exact pixel coordinate.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn move_it_vertically_backward (it: *mut it, mut dy: c_int)
+pub unsafe extern "C-unwind" fn move_it_vertically_backward (it: *mut it, mut dy: c_int)
 {
   let mut nlines: c_int;
   let mut h: c_int;
@@ -12848,7 +12850,7 @@ pub unsafe extern "C" fn move_it_vertically_backward (it: *mut it, mut dy: c_int
    end, IT will be on the start of a screen line.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn move_it_vertically (it: *mut it, dy: c_int)
+pub unsafe extern "C-unwind" fn move_it_vertically (it: *mut it, dy: c_int)
 {
   if dy <= 0
     { move_it_vertically_backward (it, -dy); }
@@ -12871,7 +12873,7 @@ pub unsafe extern "C" fn move_it_vertically (it: *mut it, dy: c_int)
 /* Move iterator IT past the end of the text line it is in.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn move_it_past_eol (it: *mut it)
+pub unsafe extern "C-unwind" fn move_it_past_eol (it: *mut it)
 {
   let mut rc: move_it_result;
 
@@ -12889,7 +12891,7 @@ pub unsafe extern "C" fn move_it_past_eol (it: *mut it)
    truncate-lines nil.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn move_it_by_lines (it: *mut it, mut dvpos: ptrdiff_t)
+pub unsafe extern "C-unwind" fn move_it_by_lines (it: *mut it, mut dvpos: ptrdiff_t)
 {
 
   /* The commented-out optimization uses vmotion on terminals.  This
@@ -13047,7 +13049,7 @@ pub unsafe extern "C" fn move_it_by_lines (it: *mut it, mut dvpos: ptrdiff_t)
     }
 }
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn partial_line_height (it_origin: *mut it) -> c_int
+pub unsafe extern "C-unwind" fn partial_line_height (it_origin: *mut it) -> c_int
 {
   /* In a buffer with very long and truncated lines, we ignore the
      possibly-partial height of the last line in the window: it is too
@@ -13128,7 +13130,7 @@ unsafe fn fast_move_it_horizontally (it: *mut it, nchars: ptrdiff_t) -> move_it_
 /* Return true if IT points into the middle of a display vector.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn in_display_vector_p (it: *mut it) -> bool
+pub unsafe extern "C-unwind" fn in_display_vector_p (it: *mut it) -> bool
 {
   return ((*it).method == GET_FROM_DISPLAY_VECTOR
 	  && (*it).current.dpvec_index > 0
@@ -13630,14 +13632,14 @@ unsafe fn format_nargs (format: *const c_char) -> ptrdiff_t
    to *Messages*.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn add_to_log (format: *const c_char, mut args: ...)
+pub unsafe extern "C-unwind" fn add_to_log (format: *const c_char, mut args: ...)
 {
   let mut ap: VaList<'_> = args;
   vadd_to_log (format, ap);
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn vadd_to_log (format: *const c_char, mut ap: VaList<'_>)
+pub unsafe extern "C-unwind" fn vadd_to_log (format: *const c_char, mut ap: VaList<'_>)
 {
   let form_nargs: ptrdiff_t = format_nargs (format);
   let nargs: ptrdiff_t = 1 + form_nargs;
@@ -13666,7 +13668,7 @@ pub unsafe extern "C" fn vadd_to_log (format: *const c_char, mut ap: VaList<'_>)
 /* Output a newline in the *Messages* buffer if "needs" one.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn message_log_maybe_newline ()
+pub unsafe extern "C-unwind" fn message_log_maybe_newline ()
 {
   if message_log_need_newline
     { message_dolog (c"".as_ptr (), 0, true, false); }
@@ -13677,7 +13679,7 @@ pub unsafe extern "C" fn message_log_maybe_newline ()
    them.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn reset_message_log_need_newline ()
+pub unsafe extern "C-unwind" fn reset_message_log_need_newline ()
 {
   message_log_need_newline = false;
 }
@@ -13692,7 +13694,7 @@ pub unsafe extern "C" fn reset_message_log_need_newline ()
    so the buffer M must NOT point to a Lisp string.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn message_dolog (m: *const c_char, nbytes: ptrdiff_t,
+pub unsafe extern "C-unwind" fn message_dolog (m: *const c_char, nbytes: ptrdiff_t,
 					nlflag: bool, multibyte: bool)
 {
   let msg: *const u8 = m as *const u8;
@@ -13966,7 +13968,7 @@ unsafe fn log_message (m: Lisp_Object)
    This function cancels echoing.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn message3 (m: Lisp_Object)
+pub unsafe extern "C-unwind" fn message3 (m: Lisp_Object)
 {
   log_message (m);
   if !inhibit_message
@@ -13977,7 +13979,7 @@ pub unsafe extern "C" fn message3 (m: Lisp_Object)
    selected frame.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn message3_frame (m: Lisp_Object, f: *mut frame)
+pub unsafe extern "C-unwind" fn message3_frame (m: Lisp_Object, f: *mut frame)
 {
   log_message (m);
   if !inhibit_message
@@ -14017,13 +14019,13 @@ unsafe fn message_to_stderr (m: Lisp_Object)
    and make this cancel echoing.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn message3_nolog (m: Lisp_Object)
+pub unsafe extern "C-unwind" fn message3_nolog (m: Lisp_Object)
 {
   message3_frame_nolog (m, core::ptr::null_mut ());
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn message3_frame_nolog (m: Lisp_Object, f: *mut frame)
+pub unsafe extern "C-unwind" fn message3_frame_nolog (m: Lisp_Object, f: *mut frame)
 {
   let sf: *mut frame = SELECTED_FRAME ();
   let mut f = f;
@@ -14099,7 +14101,7 @@ pub unsafe extern "C" fn message3_frame_nolog (m: Lisp_Object, f: *mut frame)
    that was alloca'd.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn message1 (m: *const c_char)
+pub unsafe extern "C-unwind" fn message1 (m: *const c_char)
 {
   message3 (if !m.is_null () { build_unibyte_string (m) } else { Qnil () });
 }
@@ -14107,7 +14109,7 @@ pub unsafe extern "C" fn message1 (m: *const c_char)
 /* The non-logging counterpart of message1.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn message1_nolog (m: *const c_char)
+pub unsafe extern "C-unwind" fn message1_nolog (m: *const c_char)
 {
   message3_nolog (if !m.is_null () { build_unibyte_string (m) } else { Qnil () });
 }
@@ -14116,7 +14118,7 @@ pub unsafe extern "C" fn message1_nolog (m: *const c_char)
    which gets replaced with STRING.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn message_with_string (m: *const c_char, string: Lisp_Object,
+pub unsafe extern "C-unwind" fn message_with_string (m: *const c_char, string: Lisp_Object,
 					      log: bool)
 {
   CHECK_STRING (string);
@@ -14249,7 +14251,7 @@ unsafe fn vmessage (m: *const c_char, mut ap: VaList<'_>)
 
 /* See vmessage for restrictions on the text of the message.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn message (m: *const c_char, mut args: ...)
+pub unsafe extern "C-unwind" fn message (m: *const c_char, mut args: ...)
 {
   let mut ap: VaList<'_> = args;
   vmessage (m, ap);
@@ -14260,7 +14262,7 @@ pub unsafe extern "C" fn message (m: *const c_char, mut args: ...)
    critical.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn update_echo_area ()
+pub unsafe extern "C-unwind" fn update_echo_area ()
 {
   if !NILP (echo_area_buffer[0])
     {
@@ -14325,7 +14327,7 @@ unsafe fn ensure_echo_area_buffers ()
    Value is what FN returns.  */
 
 unsafe fn with_echo_area_buffer (w: *mut window, which: c_int,
-				 fn_: Option<unsafe extern "C" fn (*mut c_void,
+				 fn_: Option<unsafe extern "C-unwind" fn (*mut c_void,
 								   Lisp_Object) -> bool>,
 				 a1: *mut c_void, a2: Lisp_Object) -> bool
 {
@@ -14463,8 +14465,8 @@ unsafe fn with_echo_area_buffer_unwind_data (w: *mut window) -> Lisp_Object
    with_echo_area_buffer_unwind_data.  */
 
 /* C's `static void` whose address goes to `record_unwind_protect` (deviation 18's rule):
-   `unsafe extern "C" fn`, no `#[unsafe(no_mangle)]`.  */
-unsafe extern "C" fn unwind_with_echo_area_buffer (vector: Lisp_Object)
+   `unsafe extern "C-unwind" fn`, no `#[unsafe(no_mangle)]`.  */
+unsafe extern "C-unwind" fn unwind_with_echo_area_buffer (vector: Lisp_Object)
 {
   set_buffer_internal_1 (XBUFFER (AREF (vector, 0)));
   Vdeactivate_mark = AREF (vector, 1);
@@ -14497,7 +14499,7 @@ unsafe extern "C" fn unwind_with_echo_area_buffer (vector: Lisp_Object)
    means we will print multibyte.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn setup_echo_area_for_printing (multibyte_p: bool)
+pub unsafe extern "C-unwind" fn setup_echo_area_for_printing (multibyte_p: bool)
 {
   /* If we can't find an echo area any more, exit.  */
   if ! FRAME_LIVE_P (XFRAME (selected_frame))
@@ -14617,8 +14619,8 @@ unsafe fn display_echo_area (w: *mut window) -> bool
    Value is true if height of W was changed.  */
 
 /* C's `static bool` definition whose address goes to `with_echo_area_buffer`
-   (deviation 18's rule): `unsafe extern "C" fn`, no `#[unsafe(no_mangle)]`.  */
-unsafe extern "C" fn display_echo_area_1 (a1: *mut c_void, a2: Lisp_Object) -> bool
+   (deviation 18's rule): `unsafe extern "C-unwind" fn`, no `#[unsafe(no_mangle)]`.  */
+unsafe extern "C-unwind" fn display_echo_area_1 (a1: *mut c_void, a2: Lisp_Object) -> bool
 {
   let w: *mut window = a1 as *mut window;
   let window: Lisp_Object;
@@ -14652,7 +14654,7 @@ unsafe extern "C" fn display_echo_area_1 (a1: *mut c_void, a2: Lisp_Object) -> b
    is active, don't shrink it.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn resize_echo_area_exactly ()
+pub unsafe extern "C-unwind" fn resize_echo_area_exactly ()
 {
   if BUFFERP (echo_area_buffer[0])
       && WINDOWP (echo_area_window)
@@ -14676,7 +14678,7 @@ pub unsafe extern "C" fn resize_echo_area_exactly ()
    size of the text displayed.  Value is what resize_mini_window
    returns.  */
 
-unsafe extern "C" fn resize_mini_window_1 (a1: *mut c_void, exactly: Lisp_Object) -> bool
+unsafe extern "C-unwind" fn resize_mini_window_1 (a1: *mut c_void, exactly: Lisp_Object) -> bool
 {
   return resize_mini_window (a1 as *mut window, !NILP (exactly));
 }
@@ -14693,7 +14695,7 @@ unsafe extern "C" fn resize_mini_window_1 (a1: *mut c_void, exactly: Lisp_Object
    Value is true if the window height has been changed.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn resize_mini_window (w: *mut window, exact_p: bool) -> bool
+pub unsafe extern "C-unwind" fn resize_mini_window (w: *mut window, exact_p: bool) -> bool
 {
   let f: *mut frame = XFRAME ((*w).frame);
   let old_height: c_int = WINDOW_BOX_TEXT_HEIGHT! (w);
@@ -14847,7 +14849,7 @@ pub unsafe extern "C" fn resize_mini_window (w: *mut window, exact_p: bool) -> b
    current message.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn current_message () -> Lisp_Object
+pub unsafe extern "C-unwind" fn current_message () -> Lisp_Object
 {
   /* C leaves MSG uninitialised here (the callback below is what stores it), which Rust has
      no equivalent for (PORTING.md 1.5).  */
@@ -14866,7 +14868,7 @@ pub unsafe extern "C" fn current_message () -> Lisp_Object
   return msg;
 }
 
-unsafe extern "C" fn current_message_1 (a1: *mut c_void, a2: Lisp_Object) -> bool
+unsafe extern "C-unwind" fn current_message_1 (a1: *mut c_void, a2: Lisp_Object) -> bool
 {
   let msg: *mut Lisp_Object = a1 as *mut Lisp_Object;
   let _ = a2;
@@ -14884,7 +14886,7 @@ unsafe extern "C" fn current_message_1 (a1: *mut c_void, a2: Lisp_Object) -> boo
    worth optimizing.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn push_message () -> bool
+pub unsafe extern "C-unwind" fn push_message () -> bool
 {
   let msg: Lisp_Object = current_message ();
   Vmessage_stack = Fcons (msg, Vmessage_stack);
@@ -14894,7 +14896,7 @@ pub unsafe extern "C" fn push_message () -> bool
 /* Restore message display from the top of Vmessage_stack.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn restore_message ()
+pub unsafe extern "C-unwind" fn restore_message ()
 {
   eassert! (CONSP (Vmessage_stack));
   message3_nolog (XCAR (Vmessage_stack));
@@ -14903,7 +14905,7 @@ pub unsafe extern "C" fn restore_message ()
 /* Handler for unwind-protect calling pop_message.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn pop_message_unwind ()
+pub unsafe extern "C-unwind" fn pop_message_unwind ()
 {
   /* Pop the top-most entry off Vmessage_stack.  */
   eassert! (CONSP (Vmessage_stack));
@@ -14915,14 +14917,14 @@ pub unsafe extern "C" fn pop_message_unwind ()
    pop_message_unwind somewhere.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn check_message_stack ()
+pub unsafe extern "C-unwind" fn check_message_stack ()
 {
   if !NILP (Vmessage_stack)
     { emacs_abort (); }
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn clear_message_stack ()
+pub unsafe extern "C-unwind" fn clear_message_stack ()
 {
   Vmessage_stack = Qnil ();
 }
@@ -14931,7 +14933,7 @@ pub unsafe extern "C" fn clear_message_stack ()
    time we display it---but don't redisplay it now.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn truncate_echo_area (nchars: ptrdiff_t)
+pub unsafe extern "C-unwind" fn truncate_echo_area (nchars: ptrdiff_t)
 {
   if nchars == 0
     { echo_area_buffer[0] = Qnil (); }
@@ -14954,7 +14956,7 @@ pub unsafe extern "C" fn truncate_echo_area (nchars: ptrdiff_t)
 /* Helper function for truncate_echo_area.  Truncate the current
    message to at most NCHARS characters.  */
 
-unsafe extern "C" fn truncate_message_1 (a1: *mut c_void, a2: Lisp_Object) -> bool
+unsafe extern "C-unwind" fn truncate_message_1 (a1: *mut c_void, a2: Lisp_Object) -> bool
 {
   let nchars: intptr_t = a1 as intptr_t;
   let _ = a2;
@@ -15012,7 +15014,7 @@ unsafe fn set_message (string: Lisp_Object)
    argument has the same meaning as for set_message.
    This function is called with the echo area buffer being current.  */
 
-unsafe extern "C" fn set_message_1 (a1: *mut c_void, string: Lisp_Object) -> bool
+unsafe extern "C-unwind" fn set_message_1 (a1: *mut c_void, string: Lisp_Object) -> bool
 {
   let _ = a1;
   eassert! (STRINGP (string));
@@ -15049,7 +15051,7 @@ unsafe extern "C" fn set_message_1 (a1: *mut c_void, string: Lisp_Object) -> boo
    LAST_DISPLAYED_P means clear the message last displayed.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn clear_message (current_p: bool, last_displayed_p: bool)
+pub unsafe extern "C-unwind" fn clear_message (current_p: bool, last_displayed_p: bool)
 {
   let mut preserve: Lisp_Object = Qnil ();
 
@@ -15408,7 +15410,7 @@ unsafe fn format_mode_line_unwind_data (target_frame: *mut frame,
 
   return vector;
 }
-unsafe extern "C" fn unwind_format_mode_line (vector: Lisp_Object)
+unsafe extern "C-unwind" fn unwind_format_mode_line (vector: Lisp_Object)
 {
   let old_window: Lisp_Object = AREF (vector, 7);
   let target_frame_window: Lisp_Object = AREF (vector, 8);
@@ -15758,7 +15760,7 @@ unsafe fn update_menu_bar (f: *mut frame, save_match_data: bool, mut hooks_run: 
 	  /* Redisplay the menu bar in case we changed it.  */
           #[cfg(feature = "have_ext_menu_bar")]
           if FRAME_WINDOW_P(f) {
-            unsafe extern "C" { fn set_frame_menubar(f: *mut frame, deep: bool); }
+            unsafe extern "C-unwind" { fn set_frame_menubar(f: *mut frame, deep: bool); }
             if !cfg!(feature = "have_ns") || f == SELECTED_FRAME() {
               set_frame_menubar(f, false);
             }
@@ -15780,7 +15782,7 @@ unsafe fn update_menu_bar (f: *mut frame, save_match_data: bool, mut hooks_run: 
    latter's selected window the selected window.  If both, WINDOW and
    the selected frame, are dead, assign selected frame and window from
    some arbitrary live frame.  Abort if no such frame can be found.  */
-unsafe extern "C" fn restore_selected_window (window: Lisp_Object)
+unsafe extern "C-unwind" fn restore_selected_window (window: Lisp_Object)
 {
   if WINDOW_LIVE_P (window)
     /* If WINDOW is live, make it the selected window and its frame's
@@ -15823,7 +15825,7 @@ unsafe extern "C" fn restore_selected_window (window: Lisp_Object)
 }
 
 /* Restore WINDOW, if live, as its frame's selected window.  */
-unsafe extern "C" fn restore_frame_selected_window (window: Lisp_Object)
+unsafe extern "C-unwind" fn restore_frame_selected_window (window: Lisp_Object)
 {
   if WINDOW_LIVE_P (window)
     /* If WINDOW is live, make it its frame's selected window.  If that
@@ -16058,7 +16060,7 @@ unsafe fn tty_get_tab_bar_item (f: *mut frame, x: c_int, prop_idx: *mut c_int,
 mod tty_handle_tab_bar_click_decl {
   use super::*;
 
-  #[unsafe(no_mangle)] pub unsafe extern "C" fn
+  #[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn
   tty_handle_tab_bar_click (f: *mut frame, x: c_int, y: c_int, down_p: bool,
 			    event: *mut input_event) -> Lisp_Object
   {
@@ -16516,7 +16518,7 @@ text_outside_line_unchanged_p (w: *mut window,
    is no longer requested, we clear the echo area or bring back the
    mini-buffer if that is in use.  */
 
-#[unsafe(no_mangle)] pub unsafe extern "C" fn
+#[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn
 redisplay ()
 {
   redisplay_internal ();
@@ -17726,7 +17728,7 @@ macro_rules! AINC {
   unbind_to (count, Qnil ());
   RESUME_POLLING! (polling_stopped_here);
 }
-unsafe extern "C" fn
+unsafe extern "C-unwind" fn
 unwind_redisplay_preserve_echo_area ()
 {
   unblock_buffer_flips ();
@@ -17743,7 +17745,7 @@ unwind_redisplay_preserve_echo_area ()
    FROM_WHERE is an integer saying from where this function was
    called.  This is useful for debugging.  */
 
-#[unsafe(no_mangle)] pub unsafe extern "C" fn
+#[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn
 redisplay_preserve_echo_area (from_where: c_int)
 {
   redisplay_trace (c"redisplay_preserve_echo_area (%d)\n".as_ptr (), from_where);
@@ -17772,7 +17774,7 @@ redisplay_preserve_echo_area (from_where: c_int)
 
 /* Function registered with record_unwind_protect in redisplay_internal.  */
 
-unsafe extern "C" fn
+unsafe extern "C-unwind" fn
 unwind_redisplay ()
 {
   redisplaying_p = false;
@@ -17781,7 +17783,7 @@ unwind_redisplay ()
 
 /* Function registered with record_unwind_protect before calling
    start_display outside of redisplay_internal.  */
-#[unsafe(no_mangle)] pub unsafe extern "C" fn
+#[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn
 unwind_display_working_on_window ()
 {
   display_working_on_window_p = false;
@@ -17869,7 +17871,7 @@ mark_window_display_accurate_1 (w: *mut window, accurate_p: bool)
    windows as accurate.  If !ACCURATE_P, arrange for windows to
    be redisplayed the next time redisplay_internal is called.  */
 
-#[unsafe(no_mangle)] pub unsafe extern "C" fn
+#[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn
 mark_window_display_accurate (mut window: Lisp_Object, accurate_p: bool)
 {
   let mut w: *mut window;
@@ -17906,7 +17908,7 @@ mark_window_display_accurate (mut window: Lisp_Object, accurate_p: bool)
 mod disp_char_vector_decl {
   use super::*;
 
-  #[unsafe(no_mangle)] pub unsafe extern "C" fn
+  #[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn
   disp_char_vector (dp: *mut Lisp_Char_Table, c: c_int) -> Lisp_Object
   {
     let mut val: Lisp_Object;
@@ -17961,7 +17963,7 @@ unblock_buffer_flips ()
     }
 }
 
-#[unsafe(no_mangle)] pub unsafe extern "C" fn
+#[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn
 buffer_flipping_blocked_p () -> bool
 {
   return buffer_flip_blocked_depth > 0;
@@ -17998,7 +18000,7 @@ redisplay_windows (mut window: Lisp_Object)
     }
 }
 
-unsafe extern "C" fn
+unsafe extern "C-unwind" fn
 redisplay_window_error (error_data: Lisp_Object) -> Lisp_Object
 {
   (*displayed_buffer).display_error_modiff = BUF_MODIFF! (displayed_buffer);
@@ -18016,7 +18018,7 @@ redisplay_window_error (error_data: Lisp_Object) -> Lisp_Object
   return Qnil ();
 }
 
-unsafe extern "C" fn
+unsafe extern "C-unwind" fn
 redisplay_window_0 (window: Lisp_Object) -> Lisp_Object
 {
   if (*displayed_buffer).display_error_modiff < BUF_MODIFF! (displayed_buffer)
@@ -18024,7 +18026,7 @@ redisplay_window_0 (window: Lisp_Object) -> Lisp_Object
   return Qnil ();
 }
 
-unsafe extern "C" fn
+unsafe extern "C-unwind" fn
 redisplay_window_1 (window: Lisp_Object) -> Lisp_Object
 {
   if (*displayed_buffer).display_error_modiff < BUF_MODIFF! (displayed_buffer)
@@ -18051,7 +18053,7 @@ redisplay_window_1 (window: Lisp_Object) -> Lisp_Object
    W can also be NULL if the caller doesn't know which window is being
    processed by the display code.  In that case, if TICKS is non-zero,
    we assume it's the last window that shows the current buffer.  */
-#[unsafe(no_mangle)] pub unsafe extern "C" fn
+#[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn
 update_redisplay_ticks (ticks: c_int, mut w: *mut window)
 {
   /* This keeps track of the window on which redisplay is working.  */
@@ -19798,7 +19800,7 @@ try_cursor_movement (window: Lisp_Object, startp: text_pos,
 
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn
+pub unsafe extern "C-unwind" fn
 set_vertical_scroll_bar (w: *mut window)
 {
   let mut start: ptrdiff_t;
@@ -19860,7 +19862,7 @@ set_vertical_scroll_bar (w: *mut window)
 
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn
+pub unsafe extern "C-unwind" fn
 set_horizontal_scroll_bar (w: *mut window)
 {
   let mut start: c_int;
@@ -21254,7 +21256,7 @@ redisplay_window (window: Lisp_Object, just_this_one_p: bool)
    while producing empty glyph rows beyond ZV.  (C 21684-21779)  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn try_window (window: Lisp_Object, pos: text_pos, flags: c_int) -> c_int
+pub unsafe extern "C-unwind" fn try_window (window: Lisp_Object, pos: text_pos, flags: c_int) -> c_int
 {
   let w: *mut window = XWINDOW (window);
   let mut it: it = core::mem::zeroed ();
@@ -22068,7 +22070,7 @@ sync_frame_with_window_matrix_rows (w: *mut window)
    containing CHARPOS or null.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn
+pub unsafe extern "C-unwind" fn
 row_containing_pos (w: *mut window, charpos: ptrdiff_t,
 		    start: *mut glyph_row, end: *mut glyph_row, dy: c_int) -> *mut glyph_row
 {
@@ -23270,7 +23272,7 @@ insert_left_trunc_glyphs (it: *mut it)
 /* Compute the hash code for ROW.  (C 24046-24062)  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn row_hash (row: *mut glyph_row) -> c_uint
+pub unsafe extern "C-unwind" fn row_hash (row: *mut glyph_row) -> c_uint
 {
   let mut k: c_int;
   let mut hashval: c_uint = 0;
@@ -27070,7 +27072,7 @@ display_tty_menu_separator (it: *mut it, label: *const c_char, width: c_int)
    item text.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn
+pub unsafe extern "C-unwind" fn
 display_tty_menu_item (item_text: *const c_char, mut width: c_int, face_id: c_int,
 		       x: c_int, y: c_int, submenu: bool)
 {
@@ -27507,7 +27509,7 @@ move_elt_to_front (elt: Lisp_Object, list: Lisp_Object) -> Lisp_Object
    internal_condition_case_n.  ARGS are the arguments of
    Fset_text_properties, in order.  */
 
-unsafe extern "C" fn
+unsafe extern "C-unwind" fn
 safe_set_text_properties (nargs: ptrdiff_t, args: *mut Lisp_Object) -> Lisp_Object
 {
   eassert! (nargs == 4);
@@ -29123,7 +29125,7 @@ decode_mode_spec (w: *mut window, c: c_int, field_width: c_int,
    current buffer. (C 29894-29896)  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn count_lines (start_byte: ptrdiff_t, end_byte: ptrdiff_t) -> ptrdiff_t
+pub unsafe extern "C-unwind" fn count_lines (start_byte: ptrdiff_t, end_byte: ptrdiff_t) -> ptrdiff_t
 {
   let mut ignored: ptrdiff_t = 0;
   return display_count_lines (start_byte, end_byte, ZV! (), &raw mut ignored);
@@ -29140,7 +29142,7 @@ pub unsafe extern "C" fn count_lines (start_byte: ptrdiff_t, end_byte: ptrdiff_t
    COUNT lines.  (C 29898-29913)  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn
+pub unsafe extern "C-unwind" fn
 display_count_lines (start_byte: ptrdiff_t,
 		     limit_byte: ptrdiff_t, count: ptrdiff_t,
 		     byte_pos_ptr: *mut ptrdiff_t) -> ptrdiff_t
@@ -29580,7 +29582,7 @@ display_string (string: *const c_char, lisp_string: Lisp_Object, face_string: Li
    deviation 285).  The symbol is the one C defines.  */
 
 #[unsafe(no_mangle)]
-  pub unsafe extern "C" fn invisible_prop (propval: Lisp_Object, list: Lisp_Object) -> c_int
+  pub unsafe extern "C-unwind" fn invisible_prop (propval: Lisp_Object, list: Lisp_Object) -> c_int
   {
     let mut tail: Lisp_Object;
     let mut proptail: Lisp_Object;
@@ -29967,7 +29969,7 @@ calc_pixel_width_or_height (res: *mut c_double, it: *mut it,
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn get_font_ascent_descent (font: *mut font, ascent: *mut c_int,
+pub unsafe extern "C-unwind" fn get_font_ascent_descent (font: *mut font, ascent: *mut c_int,
 						  descent: *mut c_int)
 {
   /* C 30704-30709: the `HAVE_WINDOW_SYSTEM` arm is **live** on this target (Android defines it);
@@ -30029,7 +30031,7 @@ pub unsafe extern "C" fn get_font_ascent_descent (font: *mut font, ascent: *mut 
    ASCENT must be in the range 0 <= ASCENT <= 100.  (C 32940-32971)  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn produce_stretch_glyph (it: *mut it)
+pub unsafe extern "C-unwind" fn produce_stretch_glyph (it: *mut it)
 {
   /* (space :width WIDTH :height HEIGHT ...)  */
   let mut prop: Lisp_Object;
@@ -30490,7 +30492,7 @@ macro_rules! FRAME_BLINK_OFF_CURSOR_WIDTH {
 /* Set the default cursor types for specified frame.  (C 34777-34778)  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn set_frame_cursor_types (f: *mut frame, arg: Lisp_Object)
+pub unsafe extern "C-unwind" fn set_frame_cursor_types (f: *mut frame, arg: Lisp_Object)
 {
   let mut width: c_int = 1;
   let mut tem: Lisp_Object;
@@ -30698,7 +30700,7 @@ unsafe fn show_mouse_face (hlinfo: *mut Mouse_HLInfo, draw: draw_glyphs_face,
    face was actually drawn unhighlighted.  (C 35656-35660)  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn clear_mouse_face (hlinfo: *mut Mouse_HLInfo) -> bool
+pub unsafe extern "C-unwind" fn clear_mouse_face (hlinfo: *mut Mouse_HLInfo) -> bool
 {
   let cleared: bool
     = !mouse_face_hidden! (hlinfo) && !NILP ((*hlinfo).mouse_face_window);
@@ -30764,7 +30766,7 @@ unsafe fn coords_in_mouse_face_p (w: *mut window, hpos: c_int, vpos: c_int) -> b
    True if physical cursor of window W is within mouse face.  (C 35723-35726)  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn cursor_in_mouse_face_p (w: *mut window) -> bool
+pub unsafe extern "C-unwind" fn cursor_in_mouse_face_p (w: *mut window) -> bool
 {
   let vpos: c_int = (*w).phys_cursor.vpos;
 
@@ -31768,7 +31770,7 @@ unsafe fn note_line_or_margin_highlight (window: Lisp_Object, mut x: c_int, mut 
    X and Y can be negative or out of range.  (C 37047-37055)  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn note_mouse_highlight (f: *mut frame, mut x: c_int, mut y: c_int)
+pub unsafe extern "C-unwind" fn note_mouse_highlight (f: *mut frame, mut x: c_int, mut y: c_int)
 {
   let hlinfo: *mut Mouse_HLInfo = MOUSE_HL_INFO! (f);
   let mut part: window_part = ON_NOTHING;
@@ -32241,7 +32243,7 @@ pub unsafe extern "C" fn note_mouse_highlight (f: *mut frame, mut x: c_int, mut 
    functions to ensure the mouse-highlight is off.  (C 37700-37705)  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn gui_clear_window_mouse_face (w: *mut window)
+pub unsafe extern "C-unwind" fn gui_clear_window_mouse_face (w: *mut window)
 {
   let hlinfo: *mut Mouse_HLInfo = MOUSE_HL_INFO! (XFRAME ((*w).frame));
   let mut window: Lisp_Object;
@@ -32258,7 +32260,7 @@ pub unsafe extern "C" fn gui_clear_window_mouse_face (w: *mut window)
    This is used when the size of F is changed.  (C 37719-37723)  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn cancel_mouse_face (f: *mut frame)
+pub unsafe extern "C-unwind" fn cancel_mouse_face (f: *mut frame)
 {
   let mut window: Lisp_Object;
   let hlinfo: *mut Mouse_HLInfo = MOUSE_HL_INFO! (f);
@@ -32483,7 +32485,7 @@ pub static mut max_redisplay_ticks: EMACS_INT = 0;
 /// intersection in *RESULT.  Value is true if RESULT is not empty."
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn gui_intersect_rectangles (r1: *const Emacs_Rectangle,
+pub unsafe extern "C-unwind" fn gui_intersect_rectangles (r1: *const Emacs_Rectangle,
                                                    r2: *const Emacs_Rectangle,
                                                    result: *mut Emacs_Rectangle) -> bool
 {
@@ -32543,7 +32545,7 @@ pub unsafe extern "C" fn gui_intersect_rectangles (r1: *const Emacs_Rectangle,
 /// point to each other."  Inside C 38351's `# if HAVE_ANDROID`.
 #[cfg (all (feature = "have_window_system", feature = "have_android"))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn gui_union_rectangles (a: *const Emacs_Rectangle, b: *const Emacs_Rectangle,
+pub unsafe extern "C-unwind" fn gui_union_rectangles (a: *const Emacs_Rectangle, b: *const Emacs_Rectangle,
                                                result: *mut Emacs_Rectangle)
 {
   let mut a_box: gui_box = unsafe { std::mem::zeroed () };
@@ -32593,7 +32595,7 @@ pub unsafe extern "C" fn gui_union_rectangles (a: *const Emacs_Rectangle, b: *co
 /// C's Windows-only branch and stays recorded, not written.
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn cancel_hourglass ()
+pub unsafe extern "C-unwind" fn cancel_hourglass ()
 {
   if !hourglass_atimer.is_null ()
     {
@@ -32632,7 +32634,7 @@ pub unsafe extern "C" fn cancel_hourglass ()
 /// the callback `start_hourglass` hands to `start_atimer`; the frame loop mirrors `cancel_hourglass`'s
 /// with `show_hourglass` in place of `hide_hourglass`.
 #[cfg (feature = "have_window_system")]
-unsafe extern "C" fn show_hourglass (_timer: *mut atimer)
+unsafe extern "C-unwind" fn show_hourglass (_timer: *mut atimer)
 {
   /* The timer implementation will cancel this timer automatically
      after this function has run.  Set hourglass_atimer to null
@@ -32667,7 +32669,7 @@ unsafe extern "C" fn show_hourglass (_timer: *mut atimer)
 /// C 39626-39646: "Cancel a currently active hourglass timer, and start a new one."
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn start_hourglass ()
+pub unsafe extern "C-unwind" fn start_hourglass ()
 {
   let delay: timespec;                        // C 39628
 
@@ -32771,7 +32773,7 @@ unsafe fn adjust_glyph_width_for_mouse_face (g: *mut glyph, row: *mut glyph_row,
 /// whose library imported the name (status 4.757).
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn get_phys_cursor_geometry (w: *mut window, row: *mut glyph_row,
+pub unsafe extern "C-unwind" fn get_phys_cursor_geometry (w: *mut window, row: *mut glyph_row,
                                                    glyph: *mut glyph, xp: *mut c_int,
                                                    yp: *mut c_int, heightp: *mut c_int)
 {
@@ -32858,7 +32860,7 @@ pub unsafe extern "C" fn get_phys_cursor_geometry (w: *mut window, row: *mut gly
 /// the aliased type directly - a `macro_rules!` cannot name a type in a signature.
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn get_glyph_string_clip_rects (s: *mut glyph_string,
+pub unsafe extern "C-unwind" fn get_glyph_string_clip_rects (s: *mut glyph_string,
                                                       rects: *mut NativeRectangle!(),
                                                       mut n: c_int) -> c_int
 {
@@ -33081,7 +33083,7 @@ pub unsafe extern "C" fn get_glyph_string_clip_rects (s: *mut glyph_string,
 /// C 2695-2698: "Return in *NR the clipping rectangle for glyph string S."
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn get_glyph_string_clip_rect (s: *mut glyph_string,
+pub unsafe extern "C-unwind" fn get_glyph_string_clip_rect (s: *mut glyph_string,
                                                      nr: *mut NativeRectangle!())
 {
   get_glyph_string_clip_rects (s, nr, 1);
@@ -33098,7 +33100,7 @@ pub unsafe extern "C" fn get_glyph_string_clip_rect (s: *mut glyph_string,
 /// fall-through is the same assignment the C code reaches by running on.
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn remember_mouse_glyph (f: *mut frame, gx: c_int, gy: c_int,
+pub unsafe extern "C-unwind" fn remember_mouse_glyph (f: *mut frame, gx: c_int, gy: c_int,
                                                rect: *mut NativeRectangle!())
 {
   const STAGE_PART: u8 = 0;          // the `switch (part)`
@@ -33703,7 +33705,7 @@ macro_rules! BUILD_GLYPH_STRINGS {
 /// the name (status 4.768).
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn gui_write_glyphs (w: *mut window, updated_row: *mut glyph_row,
+pub unsafe extern "C-unwind" fn gui_write_glyphs (w: *mut window, updated_row: *mut glyph_row,
 					   start: *mut glyph, updated_area: glyph_row_area,
 					   len: c_int)
 {
@@ -33750,7 +33752,7 @@ pub unsafe extern "C" fn gui_write_glyphs (w: *mut window, updated_row: *mut gly
 /// Same region and gate as `gui_write_glyphs`.
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn gui_insert_glyphs (w: *mut window, updated_row: *mut glyph_row,
+pub unsafe extern "C-unwind" fn gui_insert_glyphs (w: *mut window, updated_row: *mut glyph_row,
 					    start: *mut glyph, updated_area: glyph_row_area,
 					    len: c_int)
 {
@@ -33816,7 +33818,7 @@ pub unsafe extern "C" fn gui_insert_glyphs (w: *mut window, updated_row: *mut gl
 /// `gui_write_glyphs`.
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn gui_clear_end_of_line (w: *mut window, updated_row: *mut glyph_row,
+pub unsafe extern "C-unwind" fn gui_clear_end_of_line (w: *mut window, updated_row: *mut glyph_row,
 						updated_area: glyph_row_area, mut to_x: c_int)
 {
   let f: *mut frame;
@@ -34060,7 +34062,7 @@ unsafe fn get_window_cursor_type (w: *mut window, glyph: *mut glyph, width: *mut
 /// with respect to the overlapping part OVERLAPS."  Same region and gate as `gui_write_glyphs`.
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn gui_fix_overlapping_area (w: *mut window, row: *mut glyph_row,
+pub unsafe extern "C-unwind" fn gui_fix_overlapping_area (w: *mut window, row: *mut glyph_row,
 						   area: glyph_row_area, overlaps: c_int)
 {
   let mut i: c_int;
@@ -34110,7 +34112,7 @@ pub unsafe extern "C" fn gui_fix_overlapping_area (w: *mut window, row: *mut gly
 /// draw_glyphs for the meaning of HL."
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn draw_phys_cursor_glyph (w: *mut window, row: *mut glyph_row,
+pub unsafe extern "C-unwind" fn draw_phys_cursor_glyph (w: *mut window, row: *mut glyph_row,
 						 hl: draw_glyphs_face)
 {
   /* If cursor hpos is out of bounds, don't draw garbage.  This can
@@ -34312,7 +34314,7 @@ unsafe fn erase_phys_cursor (w: *mut window)
 /// the cursor; where to put the cursor is specified by HPOS, VPOS, X and Y."
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn display_and_set_cursor (w: *mut window, on: bool, hpos: c_int,
+pub unsafe extern "C-unwind" fn display_and_set_cursor (w: *mut window, on: bool, hpos: c_int,
 						 vpos: c_int, x: c_int, y: c_int)
 {
   let f: *mut frame = XFRAME ((*w).frame);
@@ -34479,7 +34481,7 @@ unsafe fn update_cursor_in_window_tree (mut w: *mut window, on_p: bool)
 /// change the cursor's position."
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn gui_update_cursor (f: *mut frame, on_p: bool)
+pub unsafe extern "C-unwind" fn gui_update_cursor (f: *mut frame, on_p: bool)
 {
   update_cursor_in_window_tree (XWINDOW ((*f).root_window), on_p);
 }
@@ -34488,7 +34490,7 @@ pub unsafe extern "C" fn gui_update_cursor (f: *mut frame, on_p: bool)
 /// not shown.  This is used when the text where the cursor is about to be rewritten."
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn gui_clear_cursor (w: *mut window)
+pub unsafe extern "C-unwind" fn gui_clear_cursor (w: *mut window)
 {
   if frame_redisplay_p (XFRAME ((*w).frame)) && window_bits! (w, phys_cursor_on_p)
     { update_window_cursor (w, false); }
@@ -34617,7 +34619,7 @@ unsafe fn on_hot_spot_p (hot_spot: Lisp_Object, x: c_int, y: c_int) -> bool
 /// library imports the name (status 4.770).
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn find_hot_spot (mut map: Lisp_Object, x: c_int, y: c_int) -> Lisp_Object
+pub unsafe extern "C-unwind" fn find_hot_spot (mut map: Lisp_Object, x: c_int, y: c_int) -> Lisp_Object
 {
   while CONSP (map)
     {
@@ -34707,7 +34709,7 @@ unsafe fn redraw_image_glyphs_window_tree (mut w: *mut window, spec: Lisp_Object
 /// status 4.770).
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn redraw_image_glyphs (spec: Lisp_Object)
+pub unsafe extern "C-unwind" fn redraw_image_glyphs (spec: Lisp_Object)
 {
   let mut tail: Lisp_Object;
   let mut frame: Lisp_Object;
@@ -34725,7 +34727,7 @@ pub unsafe extern "C" fn redraw_image_glyphs (spec: Lisp_Object)
 /// vertical scroll bars."
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn gui_draw_vertical_border (w: *mut window)
+pub unsafe extern "C-unwind" fn gui_draw_vertical_border (w: *mut window)
 {
   let f: *mut frame = XFRAME (WINDOW_FRAME! (w));
 
@@ -34848,7 +34850,7 @@ unsafe fn get_tab_bar_item (f: *mut frame, x: c_int, y: c_int, glyph: *mut *mut 
 /// `term.c` calls it through `termchar.h`'s declaration.
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn get_tab_bar_item_kbd (f: *mut frame, mut x: c_int, mut y: c_int,
+pub unsafe extern "C-unwind" fn get_tab_bar_item_kbd (f: *mut frame, mut x: c_int, mut y: c_int,
 					       prop_idx: *mut c_int, close_p: *mut bool) -> c_int
 {
   let w: *mut window;
@@ -34881,7 +34883,7 @@ pub unsafe extern "C" fn get_tab_bar_item_kbd (f: *mut frame, mut x: c_int, mut 
 /// event modifiers for button release."
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn handle_tab_bar_click (f: *mut frame, mut x: c_int, mut y: c_int,
+pub unsafe extern "C-unwind" fn handle_tab_bar_click (f: *mut frame, mut x: c_int, mut y: c_int,
 					       down_p: bool, modifiers: c_int) -> Lisp_Object
 {
   let hlinfo: *mut Mouse_HLInfo = MOUSE_HL_INFO! (f);
@@ -35015,7 +35017,7 @@ unsafe fn get_tool_bar_item (f: *mut frame, x: c_int, y: c_int, glyph: *mut *mut
 /// event modifiers for button release.  DEVICE is the device the click came from, or Qt."
 #[cfg (all(feature = "have_window_system", not(feature = "have_ext_tool_bar")))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn handle_tool_bar_click_with_device (f: *mut frame, mut x: c_int,
+pub unsafe extern "C-unwind" fn handle_tool_bar_click_with_device (f: *mut frame, mut x: c_int,
 							    mut y: c_int, down_p: bool,
 							    modifiers: c_int,
 							    device: Lisp_Object)
@@ -35096,7 +35098,7 @@ pub unsafe extern "C" fn handle_tool_bar_click_with_device (f: *mut frame, mut x
 /// device-less wrapper `term.c`/the terminal front ends call).
 #[cfg (all(feature = "have_window_system", not(feature = "have_ext_tool_bar")))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn handle_tool_bar_click (f: *mut frame, x: c_int, y: c_int, down_p: bool,
+pub unsafe extern "C-unwind" fn handle_tool_bar_click (f: *mut frame, x: c_int, y: c_int, down_p: bool,
 						modifiers: c_int)
 {
   handle_tool_bar_click_with_device (f, x, y, down_p, modifiers, Qt ());
@@ -35105,7 +35107,7 @@ pub unsafe extern "C" fn handle_tool_bar_click (f: *mut frame, x: c_int, y: c_in
 /// C 37960-37986: "Draw window dividers for window W."
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn gui_draw_right_divider (w: *mut window)
+pub unsafe extern "C-unwind" fn gui_draw_right_divider (w: *mut window)
 {
   let f: *mut frame = WINDOW_XFRAME! (w);
 
@@ -35529,7 +35531,7 @@ unsafe fn expose_window_tree (mut w: *mut window, r: *const Emacs_Rectangle) -> 
 /// values.  W or H zero means redraw the entire frame."
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn expose_frame (f: *mut frame, x: c_int, y: c_int, w: c_int, h: c_int)
+pub unsafe extern "C-unwind" fn expose_frame (f: *mut frame, x: c_int, y: c_int, w: c_int, h: c_int)
 {
   let mut r: Emacs_Rectangle = core::mem::zeroed ();
   let mut mouse_face_overwritten_p: bool = false;
@@ -36053,7 +36055,7 @@ macro_rules! IT_APPLY_FACE_BOX {
 /// `goto` into the shared tail); everything after the block is C's tail verbatim.
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn gui_produce_glyphs (it: *mut it)
+pub unsafe extern "C-unwind" fn gui_produce_glyphs (it: *mut it)
 {
   let mut extra_line_spacing: c_int = (*it).extra_line_spacing;
   let extra_line_spacing_above: c_int = (*it).extra_line_spacing_above;
@@ -37743,7 +37745,7 @@ unsafe fn draw_glyphs (w: *mut window, mut x: c_int, row: *mut glyph_row,
 /// whose library imported the name (status 4.761).
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn font_for_underline_metrics (s: *mut glyph_string) -> *mut font
+pub unsafe extern "C-unwind" fn font_for_underline_metrics (s: *mut glyph_string) -> *mut font
 {
   let g0: *mut glyph = (*(*s).row).glyphs[(*s).area as usize];   // C 32300
   let mut g: *mut glyph = (*s).first_glyph.offset (-1);
@@ -37774,7 +37776,7 @@ pub unsafe extern "C" fn font_for_underline_metrics (s: *mut glyph_string) -> *m
 /// C: dispextern.h 3838: `void prepare_face_for_display (struct frame *, struct face *);` -
 /// xfaces.c's definition, which C's xdisp.c reaches through the header (status 4.762).
 #[cfg (feature = "have_window_system")]
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   fn prepare_face_for_display (f: *mut frame, face: *mut face);
 }
 
@@ -37918,7 +37920,7 @@ unsafe fn normal_char_height (font: *mut font, c: c_int) -> c_int
 /// Overhangs of glyphs other than type CHAR_GLYPH are assumed to be zero."  EXPORT for RIF.
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn gui_get_glyph_overhangs (glyph: *mut glyph, f: *mut frame,
+pub unsafe extern "C-unwind" fn gui_get_glyph_overhangs (glyph: *mut glyph, f: *mut frame,
                                                   left: *mut c_int, right: *mut c_int)
 {
   let mut char2b: c_uint = 0;
@@ -38703,7 +38705,7 @@ unsafe fn compute_overhangs_and_x (mut s: *mut glyph_string, mut x: c_int, backw
 /* Initialize this module when Emacs starts.  (C 38409-38410)  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_xdisp ()
+pub unsafe extern "C-unwind" fn syms_of_xdisp ()
 {
   Vwith_echo_area_save_vector = Qnil ();
   
@@ -39869,7 +39871,7 @@ pub unsafe extern "C" fn syms_of_xdisp ()
 /* Initialize this module when Emacs starts.  (C 39540-39542)  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn init_xdisp ()
+pub unsafe extern "C-unwind" fn init_xdisp ()
 {
   CHARPOS! (this_line_start_pos) = 0;
 
@@ -40177,4 +40179,4 @@ DEFUN!("tab-bar-height", Ftab_bar_height, Stab_bar_height, 0, 2, 0,
 });
 
 #[cfg(feature = "have_ns")]
-unsafe extern "C" { fn decode_window_system_frame(frame: Lisp_Object) -> *mut frame; }
+unsafe extern "C-unwind" { fn decode_window_system_frame(frame: Lisp_Object) -> *mut frame; }

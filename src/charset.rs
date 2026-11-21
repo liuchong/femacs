@@ -85,10 +85,10 @@ const _: () = ();
 /* The four system entries charset.c names that no mirror carries yet, each with C's own
    prototype (PORTING.md 0.1-2/P-72, the ccl.rs shape; the mirror gaps are reported in
    docs/ports/charset.md).  */
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   /// C: lisp.h 4832: `extern void set_unwind_protect_ptr (specpdl_ref, void (*) (void *), void *);`
   fn set_unwind_protect_ptr (count: specpdl_ref,
-			     func: Option<unsafe extern "C" fn (*mut c_void)>,
+			     func: Option<unsafe extern "C-unwind" fn (*mut c_void)>,
 			     arg: *mut c_void);
 
   /// C: lisp.h 5320: `extern FILE *emacs_fdopen (int, const char *)`
@@ -97,7 +97,7 @@ unsafe extern "C" {
   fn add_to_log (format: *const c_char, ...);
   /// C: lisp.h 4692: `extern void map_char_table_for_charset (void (*c_function) (Lisp_Object,
   /// Lisp_Object), Lisp_Object, Lisp_Object, Lisp_Object, struct charset *, unsigned, unsigned);`
-  fn map_char_table_for_charset (c_function: Option<unsafe extern "C" fn (Lisp_Object, Lisp_Object)>,
+  fn map_char_table_for_charset (c_function: Option<unsafe extern "C-unwind" fn (Lisp_Object, Lisp_Object)>,
 				 function: Lisp_Object, table: Lisp_Object, arg: Lisp_Object,
 				 charset: *mut charset, from: c_uint, to: c_uint);
 
@@ -109,6 +109,8 @@ unsafe extern "C" {
   /// pthread_sigmask.rs `#[link_name]` shape).
   #[link_name = "fclose"]
   fn emacs_fclose (stream: *mut FILE) -> c_int;
+}
+unsafe extern "C" {
 
 
   /// C: <stdlib.h>: `void exit (int);`
@@ -891,7 +893,7 @@ DEFUN! ("charsetp", Fcharsetp, Scharsetp, 1, 1, 0,
 	 return if CHARSETP! (object) { Qt () } else { Qnil () };
        });
 
-unsafe fn map_charset_for_dump (c_function: Option<unsafe extern "C" fn (Lisp_Object, Lisp_Object)>,
+unsafe fn map_charset_for_dump (c_function: Option<unsafe extern "C-unwind" fn (Lisp_Object, Lisp_Object)>,
 				function: Lisp_Object, arg: Lisp_Object,
 				from: c_uint, to: c_uint)
 {
@@ -945,7 +947,7 @@ unsafe fn map_charset_for_dump (c_function: Option<unsafe extern "C" fn (Lisp_Ob
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn map_charset_chars (c_function: Option<unsafe extern "C" fn (Lisp_Object, Lisp_Object)>,
+pub unsafe extern "C-unwind" fn map_charset_chars (c_function: Option<unsafe extern "C-unwind" fn (Lisp_Object, Lisp_Object)>,
 			   function: Lisp_Object, arg: Lisp_Object, mut charset: *mut charset,
 			   mut from: c_uint, mut to: c_uint)
 {
@@ -1695,7 +1697,7 @@ DEFUN! ("declare-equiv-charset", Fdeclare_equiv_charset, Sdeclare_equiv_charset,
 */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn string_xstring_p (string: Lisp_Object) -> c_int
+pub unsafe extern "C-unwind" fn string_xstring_p (string: Lisp_Object) -> c_int
 {
   let p: *const u8 = SDATA (string) as *const u8;
   let endp: *const u8 = p.offset (SBYTES (string));
@@ -1883,7 +1885,7 @@ unsafe fn maybe_unify_char (c: c_int, val: Lisp_Object) -> c_int
    CHARSET.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn decode_char (charset_: *mut charset, code: c_uint) -> c_int
+pub unsafe extern "C-unwind" fn decode_char (charset_: *mut charset, code: c_uint) -> c_int
 {
   let mut charset: *mut charset = charset_;
   let mut c: c_int = 0;
@@ -1971,7 +1973,7 @@ pub static mut charset_work: Lisp_Object = lisp_h_Qnil ();
    use CHARSET's strict_max_char instead of max_char.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn encode_char (charset_: *mut charset, c: c_int) -> c_uint
+pub unsafe extern "C-unwind" fn encode_char (charset_: *mut charset, c: c_int) -> c_uint
 {
   let mut charset: *mut charset = charset_;
   let mut c: c_int = c;
@@ -2201,7 +2203,7 @@ DEFUN! ("make-char", Fmake_char, Smake_char, 1, 5, 0,
    Vcharset_ordered_list.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn char_charset (c: c_int, charset_list_: Lisp_Object,
+pub unsafe extern "C-unwind" fn char_charset (c: c_int, charset_list_: Lisp_Object,
 				code_return: *mut c_uint) -> *mut charset
 {
   let mut charset_list: Lisp_Object = charset_list_;
@@ -2545,7 +2547,7 @@ DEFUN! ("sort-charsets", Fsort_charsets, Ssort_charsets, 1, 1, 0,
        });
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn init_charset ()
+pub unsafe extern "C-unwind" fn init_charset ()
 {
   let mut tempdir: Lisp_Object = Qnil ();
   tempdir = Fexpand_file_name (build_string (c"charsets".as_ptr ()), Vdata_directory);
@@ -2567,7 +2569,7 @@ pub unsafe extern "C" fn init_charset ()
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn init_charset_once ()
+pub unsafe extern "C-unwind" fn init_charset_once ()
 {
   let mut i: c_int = 0;
   let mut j: c_int = 0;
@@ -2611,7 +2613,7 @@ pub unsafe extern "C" fn init_charset_once ()
 pub const CHARSET_TABLE_INIT_SIZE: c_int = 190;
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_charset ()
+pub unsafe extern "C-unwind" fn syms_of_charset ()
 {
   DEFSYM! (Qcharsetp, c"charsetp");
   DEFSYM! (Qdefine_charset_internal, c"define-charset-internal");

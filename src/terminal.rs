@@ -105,7 +105,7 @@ unsafe fn tset_param_alist (t: *mut terminal, val: Lisp_Object)
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ring_bell (f: *mut frame)
+pub unsafe extern "C-unwind" fn ring_bell (f: *mut frame)
 {
   if ! NILP (Vring_bell_function)
     {
@@ -131,14 +131,14 @@ pub unsafe extern "C" fn ring_bell (f: *mut frame)
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn update_begin (f: *mut frame)
+pub unsafe extern "C-unwind" fn update_begin (f: *mut frame)
 {
   if let Some (hook) = (*FRAME_TERMINAL! (f)).update_begin_hook
     { hook (f as *mut c_void); }
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn update_end (f: *mut frame)
+pub unsafe extern "C-unwind" fn update_end (f: *mut frame)
 {
   if let Some (hook) = (*FRAME_TERMINAL! (f)).update_end_hook
     { hook (f as *mut c_void); }
@@ -150,7 +150,7 @@ pub unsafe extern "C" fn update_end (f: *mut frame)
    that is bounded by calls to update_begin and update_end.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn set_terminal_window (f: *mut frame, size: c_int)
+pub unsafe extern "C-unwind" fn set_terminal_window (f: *mut frame, size: c_int)
 {
   if let Some (hook) = (*FRAME_TERMINAL! (f)).set_terminal_window_hook
     { hook (f as *mut c_void, size); }
@@ -160,7 +160,7 @@ pub unsafe extern "C" fn set_terminal_window (f: *mut frame, size: c_int)
    frame-relative coordinates.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn cursor_to (f: *mut frame, vpos: c_int, hpos: c_int)
+pub unsafe extern "C-unwind" fn cursor_to (f: *mut frame, vpos: c_int, hpos: c_int)
 {
   let term: *mut terminal = FRAME_TERMINAL! (f);
   if let Some (hook) = (*term).cursor_to_hook
@@ -172,7 +172,7 @@ pub unsafe extern "C" fn cursor_to (f: *mut frame, vpos: c_int, hpos: c_int)
       // (`x = hpos, y = vpos;`) is dead text on this target and stays behind the feature
       // that names the non-frozen side (P-51).  HAVE_ANDROID has no entry in
       // docs/baseline/config, so there is no assert to bind here.
-      unsafe extern "C" {
+      unsafe extern "C-unwind" {
 	/// C: void root_xy (struct frame *f, int x, int y, int *rx, int *ry)  (dispnew.c)
 	pub fn root_xy (f: *mut frame, x: c_int, y: c_int,
 			rx: *mut c_int, ry: *mut c_int);
@@ -187,7 +187,7 @@ pub unsafe extern "C" fn cursor_to (f: *mut frame, vpos: c_int, hpos: c_int)
 /* Similar but don't take any account of the wasted characters.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn raw_cursor_to (f: *mut frame, row: c_int, col: c_int)
+pub unsafe extern "C-unwind" fn raw_cursor_to (f: *mut frame, row: c_int, col: c_int)
 {
   let term: *mut terminal = FRAME_TERMINAL! (f);
   if let Some (hook) = (*term).raw_cursor_to_hook
@@ -196,7 +196,7 @@ pub unsafe extern "C" fn raw_cursor_to (f: *mut frame, row: c_int, col: c_int)
       let mut y: c_int = 0;
       // C 135-139: the `#ifndef HAVE_ANDROID` arm is live, the `#else` arm is dead text
       // (see cursor_to).
-      unsafe extern "C" {
+      unsafe extern "C-unwind" {
 	/// C: void root_xy (struct frame *f, int x, int y, int *rx, int *ry)  (dispnew.c)
 	pub fn root_xy (f: *mut frame, x: c_int, y: c_int,
 			rx: *mut c_int, ry: *mut c_int);
@@ -212,7 +212,7 @@ pub unsafe extern "C" fn raw_cursor_to (f: *mut frame, row: c_int, col: c_int)
 
 /* Clear from cursor to end of frame.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn clear_to_end (f: *mut frame)
+pub unsafe extern "C-unwind" fn clear_to_end (f: *mut frame)
 {
   if let Some (hook) = (*FRAME_TERMINAL! (f)).clear_to_end_hook
     { hook (f as *mut c_void); }
@@ -221,7 +221,7 @@ pub unsafe extern "C" fn clear_to_end (f: *mut frame)
 /* Clear entire frame.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn clear_frame (f: *mut frame)
+pub unsafe extern "C-unwind" fn clear_frame (f: *mut frame)
 {
   if let Some (hook) = (*FRAME_TERMINAL! (f)).clear_frame_hook
     { hook (f as *mut c_void); }
@@ -233,7 +233,7 @@ pub unsafe extern "C" fn clear_frame (f: *mut frame)
    Note that the cursor may be moved, on terminals lacking a `ce' string.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn clear_end_of_line (f: *mut frame, first_unused_hpos: c_int)
+pub unsafe extern "C-unwind" fn clear_end_of_line (f: *mut frame, first_unused_hpos: c_int)
 {
   if let Some (hook) = (*FRAME_TERMINAL! (f)).clear_end_of_line_hook
     { hook (f as *mut c_void, first_unused_hpos); }
@@ -243,7 +243,7 @@ pub unsafe extern "C" fn clear_end_of_line (f: *mut frame, first_unused_hpos: c_
    Advance the nominal cursor over the text.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn write_glyphs (f: *mut frame, string: *mut glyph, len: c_int)
+pub unsafe extern "C-unwind" fn write_glyphs (f: *mut frame, string: *mut glyph, len: c_int)
 {
   if let Some (hook) = (*FRAME_TERMINAL! (f)).write_glyphs_hook
     { hook (f as *mut c_void, string as *mut c_void, len); }
@@ -254,7 +254,7 @@ pub unsafe extern "C" fn write_glyphs (f: *mut frame, string: *mut glyph, len: c
    If start is zero, insert blanks instead of a string at start */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn insert_glyphs (f: *mut frame, start: *mut glyph, len: c_int)
+pub unsafe extern "C-unwind" fn insert_glyphs (f: *mut frame, start: *mut glyph, len: c_int)
 {
   if len <= 0
     { return; }
@@ -266,7 +266,7 @@ pub unsafe extern "C" fn insert_glyphs (f: *mut frame, start: *mut glyph, len: c
 /* Delete N glyphs at the nominal cursor position. */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn delete_glyphs (f: *mut frame, n: c_int)
+pub unsafe extern "C-unwind" fn delete_glyphs (f: *mut frame, n: c_int)
 {
   if let Some (hook) = (*FRAME_TERMINAL! (f)).delete_glyphs_hook
     { hook (f as *mut c_void, n); }
@@ -275,7 +275,7 @@ pub unsafe extern "C" fn delete_glyphs (f: *mut frame, n: c_int)
 /* Insert N lines at vpos VPOS.  If N is negative, delete -N lines.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn ins_del_lines (f: *mut frame, vpos: c_int, n: c_int)
+pub unsafe extern "C-unwind" fn ins_del_lines (f: *mut frame, vpos: c_int, n: c_int)
 {
   if let Some (hook) = (*FRAME_TERMINAL! (f)).ins_del_lines_hook
     { hook (f as *mut c_void, vpos, n); }
@@ -303,7 +303,7 @@ unsafe fn decode_terminal (mut terminal: Lisp_Object) -> *mut terminal
 /* Like above, but throw an error if TERMINAL is not valid or deleted.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn decode_live_terminal (terminal: Lisp_Object) -> *mut terminal
+pub unsafe extern "C-unwind" fn decode_live_terminal (terminal: Lisp_Object) -> *mut terminal
 {
   let t: *mut terminal = decode_terminal (terminal);
 
@@ -316,7 +316,7 @@ pub unsafe extern "C" fn decode_live_terminal (terminal: Lisp_Object) -> *mut te
    object refers to a text-based terminal device.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn decode_tty_terminal (terminal: Lisp_Object) -> *mut terminal
+pub unsafe extern "C-unwind" fn decode_tty_terminal (terminal: Lisp_Object) -> *mut terminal
 {
   let t: *mut terminal = decode_live_terminal (terminal);
 
@@ -329,7 +329,7 @@ pub unsafe extern "C" fn decode_tty_terminal (terminal: Lisp_Object) -> *mut ter
    is not opened.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn get_named_terminal (name: *const c_char) -> *mut terminal
+pub unsafe extern "C-unwind" fn get_named_terminal (name: *const c_char) -> *mut terminal
 {
   let mut t: *mut terminal;
 
@@ -361,7 +361,7 @@ unsafe fn allocate_terminal () -> *mut terminal
    may be NULL if this terminal type doesn't support window-based redisplay.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn create_terminal (r#type: output_method, rif: *mut c_void)
+pub unsafe extern "C-unwind" fn create_terminal (r#type: output_method, rif: *mut c_void)
      -> *mut terminal
 {
   let terminal: *mut terminal = allocate_terminal ();
@@ -408,7 +408,7 @@ pub unsafe extern "C" fn create_terminal (r#type: output_method, rif: *mut c_voi
    from the terminal list and free its memory.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn delete_terminal (terminal: *mut terminal)
+pub unsafe extern "C-unwind" fn delete_terminal (terminal: *mut terminal)
 {
   // PORTING.md 1.5: C declares `Lisp_Object tail, frame;` uninitialized; the port starts
   // them at Qnil (the loop assigns both before either is read).
@@ -446,7 +446,7 @@ pub unsafe extern "C" fn delete_terminal (terminal: *mut terminal)
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn delete_terminal_internal (terminal: *mut terminal)
+pub unsafe extern "C-unwind" fn delete_terminal_internal (terminal: *mut terminal)
 {
   let mut tp: *mut *mut terminal;
 
@@ -680,7 +680,7 @@ DEFUN! ("set-terminal-parameter", Fset_terminal_parameter,
    have a font position in T, or nil if T does not report glyph codes.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn terminal_glyph_code (t: *mut terminal, ch: c_int) -> Lisp_Object
+pub unsafe extern "C-unwind" fn terminal_glyph_code (t: *mut terminal, ch: c_int) -> Lisp_Object
 {
   #[cfg (feature = "unipair_unicode")]
   {
@@ -708,10 +708,10 @@ pub unsafe extern "C" fn terminal_glyph_code (t: *mut terminal, ch: c_int) -> Li
 // C: `static void initial_free_frame_resources (struct frame *f)` — its address goes into
 // the mirror's `delete_frame_hook`, which is spelled `*mut c_void` (P-72 rule ③), so the one
 // cast lives here.
-unsafe extern "C" fn initial_free_frame_resources (f: *mut c_void)
+unsafe extern "C-unwind" fn initial_free_frame_resources (f: *mut c_void)
 {
   eassert! (FRAME_INITIAL_P (f as *mut frame));
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     /// C: void free_frame_faces (struct frame *)  (xfaces.c)
     pub fn free_frame_faces (f: *mut frame);
   }
@@ -722,7 +722,7 @@ unsafe extern "C" fn initial_free_frame_resources (f: *mut c_void)
    Returns a terminal of type output_initial.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn init_initial_terminal () -> *mut terminal
+pub unsafe extern "C-unwind" fn init_initial_terminal () -> *mut terminal
 {
   if initialized || ! terminal_list.is_null () || ! tty_list.is_null ()
     { emacs_abort (); }
@@ -732,7 +732,7 @@ pub unsafe extern "C" fn init_initial_terminal () -> *mut terminal
   (*initial_terminal).kboard = initial_kboard as *mut c_void;
   (*initial_terminal).delete_terminal_hook = Some (delete_initial_terminal);
   (*initial_terminal).delete_frame_hook = Some (initial_free_frame_resources);
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     /// C: bool tty_defined_color (struct frame *f, const char *color_name,
     ///                            Emacs_Color *color_def, bool alloc, bool makeIndex)
     ///    (xfaces.c 1141-1144, the `defined_color_hook` at termhooks.h 593-596)
@@ -751,7 +751,7 @@ pub unsafe extern "C" fn init_initial_terminal () -> *mut terminal
 
 // C: `static void delete_initial_terminal (struct terminal *terminal)` — its address goes
 // into `delete_terminal_hook`, whose parameter is the mirror's `*mut terminal`.
-unsafe extern "C" fn delete_initial_terminal (terminal: *mut terminal)
+unsafe extern "C-unwind" fn delete_initial_terminal (terminal: *mut terminal)
 {
   if terminal != initial_terminal
     { emacs_abort (); }
@@ -761,7 +761,7 @@ unsafe extern "C" fn delete_initial_terminal (terminal: *mut terminal)
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_terminal ()
+pub unsafe extern "C-unwind" fn syms_of_terminal ()
 {
   DEFVAR_LISP! (c"ring-bell-function", Vring_bell_function,
     "Non-nil means call this function to ring the bell.\nThe function should accept no arguments.  ");

@@ -149,7 +149,7 @@ pub fn kset_window_system (kb: *mut kboard, val: Lisp_Object)
 { unsafe { (*kb).Vwindow_system_ = val; } }
 
 // keyboard.h 495-500: the prototype the inline calls.
-unsafe extern "C" { pub fn kbd_buffer_store_buffered_event (e: *mut buffered_input_event,
+unsafe extern "C-unwind" { pub fn kbd_buffer_store_buffered_event (e: *mut buffered_input_event,
                                                             hold_quit: *mut input_event); }
 
 // keyboard.h 501-509.
@@ -264,27 +264,27 @@ pub fn POSN_BUFFER_POSN (posn: Lisp_Object) -> Lisp_Object
 { unsafe { Fnth (make_fixnum (5), posn) } }
 
 // keyboard.h 238-470: the file-scope objects (the C files define them).
-unsafe extern "C" { pub static mut initial_kboard: *mut KBOARD; }                        // 238
+unsafe extern "C-unwind" { pub static mut initial_kboard: *mut KBOARD; }                        // 238
 // lisp.h 5081's `extern struct kboard *echo_kboard;` is declared in lisp.rs as `*mut c_void`
 // (the tag is incomplete in a unit that includes only lisp.h — PORTING.md P-72); this comment
 // records where the definition it points at lives.
-unsafe extern "C" { pub static mut current_kboard: *mut KBOARD; }                        // 246
-unsafe extern "C" { pub static mut num_input_events: uintmax_t; }                        // 257
-unsafe extern "C" { pub static mut point_before_last_command_or_undo: ptrdiff_t; }       // 262
-unsafe extern "C" { pub static mut buffer_before_last_command_or_undo: *mut buffer; }    // 267
-unsafe extern "C" { pub static mut prev_buffer: *mut buffer; }                           // 269
-unsafe extern "C" { pub static mut poll_suppress_count: c_int; }                         // 272
-unsafe extern "C" { pub static mut this_command_keys: Lisp_Object; }                     // 278
-unsafe extern "C" { pub static mut this_command_key_count: ptrdiff_t; }                  // 279
-unsafe extern "C" { pub static mut internal_last_event_frame: Lisp_Object; }             // 286
-unsafe extern "C" { pub static mut item_properties: Lisp_Object; }                       // 292
+unsafe extern "C-unwind" { pub static mut current_kboard: *mut KBOARD; }                        // 246
+unsafe extern "C-unwind" { pub static mut num_input_events: uintmax_t; }                        // 257
+unsafe extern "C-unwind" { pub static mut point_before_last_command_or_undo: ptrdiff_t; }       // 262
+unsafe extern "C-unwind" { pub static mut buffer_before_last_command_or_undo: *mut buffer; }    // 267
+unsafe extern "C-unwind" { pub static mut prev_buffer: *mut buffer; }                           // 269
+unsafe extern "C-unwind" { pub static mut poll_suppress_count: c_int; }                         // 272
+unsafe extern "C-unwind" { pub static mut this_command_keys: Lisp_Object; }                     // 278
+unsafe extern "C-unwind" { pub static mut this_command_key_count: ptrdiff_t; }                  // 279
+unsafe extern "C-unwind" { pub static mut internal_last_event_frame: Lisp_Object; }             // 286
+unsafe extern "C-unwind" { pub static mut item_properties: Lisp_Object; }                       // 292
 // keyboard.h 344-358's five menu objects are `src/menu.c`'s own definitions (its ledger's
 // file-scope objects), so they sit in `pub mod keyboard_objs` + glob import: the owning
 // unit's `#[unsafe(no_mangle)] pub static mut` shadows the glob (PORTING.md 0.1-10/P-21,
 // the globals.rs `variables` shape) instead of colliding with it (E0428).
 pub mod keyboard_objs {
   use super::*;
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     pub static mut menu_items: Lisp_Object;                            // 344
     pub static mut menu_items_inuse: bool;                             // 348
     pub static mut menu_items_allocated: c_int;                        // 351
@@ -296,21 +296,21 @@ pub mod keyboard_objs {
   }
 }
 pub use self::keyboard_objs::*;
-unsafe extern "C" { pub static mut input_available_clear_time: *mut timespec; }           // 453
-unsafe extern "C" { pub static mut kbd_buffer: [buffered_input_event; KBD_BUFFER_SIZE as usize]; }  // 455
-unsafe extern "C" { pub static mut kbd_fetch_ptr: *mut buffered_input_event; }            // 456
-unsafe extern "C" { pub static mut kbd_store_ptr: *mut buffered_input_event; }            // 457
-unsafe extern "C" { pub static mut ignore_mouse_drag_p: bool; }                           // 459
-unsafe extern "C" { pub static mut real_this_command: Lisp_Object; }                      // 467
-unsafe extern "C" { pub static mut quit_char: c_int; }                                    // 469
-unsafe extern "C" { pub static mut input_was_pending: bool; }                             // 470
-unsafe extern "C" { pub static mut dev_tty: *mut c_char; }                                // 529
+unsafe extern "C-unwind" { pub static mut input_available_clear_time: *mut timespec; }           // 453
+unsafe extern "C-unwind" { pub static mut kbd_buffer: [buffered_input_event; KBD_BUFFER_SIZE as usize]; }  // 455
+unsafe extern "C-unwind" { pub static mut kbd_fetch_ptr: *mut buffered_input_event; }            // 456
+unsafe extern "C-unwind" { pub static mut kbd_store_ptr: *mut buffered_input_event; }            // 457
+unsafe extern "C-unwind" { pub static mut ignore_mouse_drag_p: bool; }                           // 459
+unsafe extern "C-unwind" { pub static mut real_this_command: Lisp_Object; }                      // 467
+unsafe extern "C-unwind" { pub static mut quit_char: c_int; }                                    // 469
+unsafe extern "C-unwind" { pub static mut input_was_pending: bool; }                             // 470
+unsafe extern "C-unwind" { pub static mut dev_tty: *mut c_char; }                                // 529
 
 // C: keyboard.h 511-529's prototypes — (not mirrored yet; they land with keyboard.c, batch E).
 
 /* keyboard.h 483: `extern void temporarily_switch_to_single_kboard (struct frame *);` -
    callint.c's funcall-interactively calls it for a single-kboard configuration.  */
-unsafe extern "C" { pub fn temporarily_switch_to_single_kboard (f: *mut c_void); }
+unsafe extern "C-unwind" { pub fn temporarily_switch_to_single_kboard (f: *mut c_void); }
 
 /* keyboard.h 498: the event-queue entry kqueue.c uses.  The event pointer stays `*mut c_void`
    (the mirror cannot name `struct input_event` here, which termhooks.h owns).
@@ -319,7 +319,7 @@ unsafe extern "C" { pub fn temporarily_switch_to_single_kboard (f: *mut c_void);
    298-305's, not this header's: they moved to `include/process.rs` with the rest of that
    header's prototype block (status 3.78, the mirror's own heading was wrong too).  */
 
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   pub fn kbd_buffer_store_event (event: *mut c_void);
 }
 
@@ -344,7 +344,7 @@ unsafe extern "C" {
 pub mod keyboard_fn_decls {
   use super::*;
 
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     /// C: keyboard.h 387: `extern void unuse_menu_items (void);`
     pub fn unuse_menu_items ();
     /// C: keyboard.h 463: `extern Lisp_Object parse_modifiers (Lisp_Object);`

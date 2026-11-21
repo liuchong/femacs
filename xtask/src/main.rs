@@ -747,7 +747,7 @@ fn gen_globals() -> i32 {
             "\n// --- EXFUN prototypes for every DEFUN (generated from subrs.tsv) ---\n\
              // C: globals.h writes `EXFUN (Ffoo, maxargs)`; lisp.h includes <globals.h>,\n\
              // so the prototype is visible in every translation unit.\n\
-             pub mod subrs {\n    use super::*;\n    unsafe extern \"C\" {\n",
+             pub mod subrs {\n    use super::*;\n    unsafe extern \"C-unwind\" {\n",
         );
         for (name, (args, noreturn, _)) in &protos {
             // C's globals.h writes `_Noreturn` before the EXFUN; Rust spells that

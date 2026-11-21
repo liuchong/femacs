@@ -88,14 +88,7 @@ const _: () = ();
 /* Names this unit uses whose prototype C gets from a header with no mirror yet, or from a
    mirrored header that is missing the line (P-72 rule 3 / PORTING.md 0.1-2): each carries C's
    own prototype in a `/// C:` line and is reported in docs/ports/fns.md's gaps list.  */
-unsafe extern "C" {
-
-
-
-
-  /// C: <stdlib.h>: `extern int getloadavg (double [], int);` (macOS libc provides it; the
-  /// stdlib mirror is missing the line).
-  fn getloadavg (loadavg: *mut f64, nelem: c_int) -> c_int;
+unsafe extern "C-unwind" {
   /// C: lisp.h 4331-4332: `extern void insert_1_both (const char *, ptrdiff_t, ptrdiff_t,
   /// bool, bool, bool);` — insdel.c defines it (the mirror is missing the line).
   fn insert_1_both (str: *const c_char, nchars: ptrdiff_t, nbytes: ptrdiff_t, inherit: bool,
@@ -134,6 +127,15 @@ unsafe extern "C" {
   /// ptrdiff_t, bool, bool);` (buffer.rs declares it too; the mirror is missing the line).
   fn copy_text (from: *const u8, to: *mut u8, nbytes: ptrdiff_t, from_multibyte: bool,
                 to_multibyte: bool) -> ptrdiff_t;
+}
+unsafe extern "C" {
+
+
+
+
+  /// C: <stdlib.h>: `extern int getloadavg (double [], int);` (macOS libc provides it; the
+  /// stdlib mirror is missing the line).
+  fn getloadavg (loadavg: *mut f64, nelem: c_int) -> c_int;
 
 }
 
@@ -205,7 +207,7 @@ DEFUN! ("random", Frandom, Srandom, 0, 1, 0,
 /* Return LIST's length.  Signal an error if LIST is not a proper list.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn list_length (mut list: Lisp_Object) -> ptrdiff_t
+pub unsafe extern "C-unwind" fn list_length (mut list: Lisp_Object) -> ptrdiff_t
 {
   let mut i: ptrdiff_t = 0;
   let orig: Lisp_Object = list;
@@ -767,7 +769,7 @@ DEFUN! ("string-collate-equalp", Fstring_collate_equalp, Sstring_collate_equalp,
 
 /* C 705-709: `concat2`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn concat2 (s1: Lisp_Object, s2: Lisp_Object) -> Lisp_Object
+pub unsafe extern "C-unwind" fn concat2 (s1: Lisp_Object, s2: Lisp_Object) -> Lisp_Object
 {
   let mut args: [Lisp_Object; 2] = [s1, s2];
   return concat_to_string (2, args.as_mut_ptr ());
@@ -775,7 +777,7 @@ pub unsafe extern "C" fn concat2 (s1: Lisp_Object, s2: Lisp_Object) -> Lisp_Obje
 
 /* C 711-715: `concat3`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn concat3 (s1: Lisp_Object, s2: Lisp_Object, s3: Lisp_Object) -> Lisp_Object
+pub unsafe extern "C-unwind" fn concat3 (s1: Lisp_Object, s2: Lisp_Object, s3: Lisp_Object) -> Lisp_Object
 {
   let mut args: [Lisp_Object; 3] = [s1, s2, s3];
   return concat_to_string (3, args.as_mut_ptr ());
@@ -1356,7 +1358,7 @@ static mut string_char_byte_cache_bytepos: ptrdiff_t = 0;
 
 /* C 1196-1254: `string_char_to_byte`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn string_char_to_byte (string: Lisp_Object, char_index: ptrdiff_t) -> ptrdiff_t
+pub unsafe extern "C-unwind" fn string_char_to_byte (string: Lisp_Object, char_index: ptrdiff_t) -> ptrdiff_t
 {
   let mut i_byte: ptrdiff_t;
   let mut best_below: ptrdiff_t;
@@ -1420,7 +1422,7 @@ pub unsafe extern "C" fn string_char_to_byte (string: Lisp_Object, char_index: p
 
 /* C 1256-1320: `string_byte_to_char`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn string_byte_to_char (string: Lisp_Object, byte_index: ptrdiff_t) -> ptrdiff_t
+pub unsafe extern "C-unwind" fn string_byte_to_char (string: Lisp_Object, byte_index: ptrdiff_t) -> ptrdiff_t
 {
   let mut i: ptrdiff_t;
   let mut i_byte: ptrdiff_t;
@@ -1491,7 +1493,7 @@ pub unsafe extern "C" fn string_byte_to_char (string: Lisp_Object, byte_index: p
 
 /* C 1322-1341: `string_to_multibyte`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn string_to_multibyte (string: Lisp_Object) -> Lisp_Object
+pub unsafe extern "C-unwind" fn string_to_multibyte (string: Lisp_Object) -> Lisp_Object
 {
   if STRING_MULTIBYTE (string)
     { return string; }
@@ -1513,7 +1515,7 @@ pub unsafe extern "C" fn string_to_multibyte (string: Lisp_Object) -> Lisp_Objec
 
 /* C 1343-1362: `string_make_unibyte`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn string_make_unibyte (string: Lisp_Object) -> Lisp_Object
+pub unsafe extern "C-unwind" fn string_make_unibyte (string: Lisp_Object) -> Lisp_Object
 {
   let nchars: ptrdiff_t;
   let mut buf: *mut u8;
@@ -1713,7 +1715,7 @@ DEFUN! ("copy-alist", Fcopy_alist, Scopy_alist, 1, 1, 0,
 
 /* C 1545-1577: `validate_subarray`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn validate_subarray (array: Lisp_Object, from: Lisp_Object, to: Lisp_Object,
+pub unsafe extern "C-unwind" fn validate_subarray (array: Lisp_Object, from: Lisp_Object, to: Lisp_Object,
 				 size: ptrdiff_t, ifrom: *mut ptrdiff_t, ito: *mut ptrdiff_t)
 {
   let mut f: EMACS_INT;
@@ -1811,7 +1813,7 @@ DEFUN! ("substring-no-properties", Fsubstring_no_properties, Ssubstring_no_prope
 
 /* C 1648-1669: `substring_both`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn substring_both (string: Lisp_Object, from: ptrdiff_t, from_byte: ptrdiff_t,
+pub unsafe extern "C-unwind" fn substring_both (string: Lisp_Object, from: ptrdiff_t, from_byte: ptrdiff_t,
 			      to: ptrdiff_t, to_byte: ptrdiff_t) -> Lisp_Object
 {
   let res: Lisp_Object;
@@ -2154,7 +2156,7 @@ DEFUN! ("memq", Fmemq, Smemq, 2, 2, 0,
 
 /* C 1925-1931: `memq_no_quit`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn memq_no_quit (elt: Lisp_Object, list: Lisp_Object) -> Lisp_Object
+pub unsafe extern "C-unwind" fn memq_no_quit (elt: Lisp_Object, list: Lisp_Object) -> Lisp_Object
 {
   let mut list: Lisp_Object = list;
   while CONSP (list)
@@ -2240,7 +2242,7 @@ DEFUN! ("assq", Fassq, Sassq, 2, 2, 0,
 
 /* C 1984-1995: `assq_no_quit`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn assq_no_quit (key: Lisp_Object, alist: Lisp_Object) -> Lisp_Object
+pub unsafe extern "C-unwind" fn assq_no_quit (key: Lisp_Object, alist: Lisp_Object) -> Lisp_Object
 {
   let mut alist: Lisp_Object = alist;
   while ! NILP (alist)
@@ -2258,7 +2260,7 @@ pub unsafe extern "C" fn assq_no_quit (key: Lisp_Object, alist: Lisp_Object) -> 
    Qnil.  */
 /* C 1997-2011: `assq_no_signal`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn assq_no_signal (key: Lisp_Object, alist: Lisp_Object) -> Lisp_Object
+pub unsafe extern "C-unwind" fn assq_no_signal (key: Lisp_Object, alist: Lisp_Object) -> Lisp_Object
 {
   let mut tail: Lisp_Object = alist;
   let mut found: Lisp_Object = Qnil ();
@@ -2299,7 +2301,7 @@ DEFUN! ("assoc", Fassoc, Sassoc, 2, 3, 0,
 
 /* C 2037-2047: `assoc_no_quit`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn assoc_no_quit (key: Lisp_Object, alist: Lisp_Object) -> Lisp_Object
+pub unsafe extern "C-unwind" fn assoc_no_quit (key: Lisp_Object, alist: Lisp_Object) -> Lisp_Object
 {
   let mut alist: Lisp_Object = alist;
   while ! NILP (alist)
@@ -2415,7 +2417,7 @@ DEFUN! ("delq", Fdelq, Sdelq, 2, 2, 0,
    signals.  Use only on objects known to be non-circular lists.  */
 /* C 2115-2135: `delq_no_quit`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn delq_no_quit (elt: Lisp_Object, list: Lisp_Object) -> Lisp_Object
+pub unsafe extern "C-unwind" fn delq_no_quit (elt: Lisp_Object, list: Lisp_Object) -> Lisp_Object
 {
   let mut prev: Lisp_Object = Qnil ();
   let mut list: Lisp_Object = list;
@@ -2909,7 +2911,7 @@ DEFUN! ("sort", Fsort, Ssort, 1, MANY, 0,
 
 /* C 2515-2558: `merge`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn merge (org_l1: Lisp_Object, org_l2: Lisp_Object,
+pub unsafe extern "C-unwind" fn merge (org_l1: Lisp_Object, org_l2: Lisp_Object,
 				pred: Lisp_Object) -> Lisp_Object
 {
   let mut org_l1: Lisp_Object = org_l1;
@@ -2959,8 +2961,8 @@ pub unsafe extern "C" fn merge (org_l1: Lisp_Object, org_l2: Lisp_Object,
 
 /* C 2561-2603: `merge_c`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn merge_c (org_l1: Lisp_Object, org_l2: Lisp_Object,
-				  less: Option<unsafe extern "C" fn (Lisp_Object, Lisp_Object)
+pub unsafe extern "C-unwind" fn merge_c (org_l1: Lisp_Object, org_l2: Lisp_Object,
+				  less: Option<unsafe extern "C-unwind" fn (Lisp_Object, Lisp_Object)
 					      -> bool>)
   -> Lisp_Object
 {
@@ -3081,7 +3083,7 @@ unsafe fn plist_get_inline (plist: Lisp_Object, prop: Lisp_Object) -> Lisp_Objec
 /* Faster version of Fplist_get that works with EQ only.  */
 /* C 2639-2651: `plist_get`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn plist_get (plist: Lisp_Object, prop: Lisp_Object) -> Lisp_Object
+pub unsafe extern "C-unwind" fn plist_get (plist: Lisp_Object, prop: Lisp_Object) -> Lisp_Object
 {
   return plist_get_inline (plist, prop);
 }
@@ -3141,7 +3143,7 @@ DEFUN! ("plist-put", Fplist_put, Splist_put, 3, 4, 0,
 /* Faster version of Fplist_put that works with EQ only.  */
 /* C 2708-2732: `plist_put`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn plist_put (plist: Lisp_Object, prop: Lisp_Object,
+pub unsafe extern "C-unwind" fn plist_put (plist: Lisp_Object, prop: Lisp_Object,
 				    val: Lisp_Object) -> Lisp_Object
 {
   let mut prev: Lisp_Object = Qnil ();
@@ -3228,7 +3230,7 @@ DEFUN! ("plist-member", Fplist_member, Splist_member, 2, 3, 0,
 /* Faster version of Fplist_member that works with EQ only.  */
 /* C 2775-2788: `plist_member`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn plist_member (plist: Lisp_Object, prop: Lisp_Object) -> Lisp_Object
+pub unsafe extern "C-unwind" fn plist_member (plist: Lisp_Object, prop: Lisp_Object) -> Lisp_Object
 {
   let mut tail: Lisp_Object = plist;
   FOR_EACH_TAIL! (tail, {
@@ -3283,7 +3285,7 @@ DEFUN! ("equal-including-properties", Fequal_including_properties, Sequal_includ
 
 /* C 2837-2841: `equal_no_quit`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn equal_no_quit (o1: Lisp_Object, o2: Lisp_Object) -> bool
+pub unsafe extern "C-unwind" fn equal_no_quit (o1: Lisp_Object, o2: Lisp_Object) -> bool
 {
   return internal_equal (o1, o2, EQUAL_NO_QUIT, 0, Qnil ());
 }
@@ -3946,7 +3948,7 @@ DEFUN! ("clear-string", Fclear_string, Sclear_string, 1, 1, 0,
 
 /* C 3384-3387: `nconc2`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn nconc2 (s1: Lisp_Object, s2: Lisp_Object) -> Lisp_Object
+pub unsafe extern "C-unwind" fn nconc2 (s1: Lisp_Object, s2: Lisp_Object) -> Lisp_Object
 {
   return CALLN! (Fnconc, s1, s2);
 }
@@ -4225,7 +4227,7 @@ DEFUN! ("mapcan", Fmapcan, Smapcan, 2, 2, 0,
 
 /* C 3607-3610: `do_yes_or_no_p`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn do_yes_or_no_p (prompt: Lisp_Object) -> Lisp_Object
+pub unsafe extern "C-unwind" fn do_yes_or_no_p (prompt: Lisp_Object) -> Lisp_Object
 {
   return calln! (Qyes_or_no_p (), prompt);
 }
@@ -4365,7 +4367,7 @@ DEFUN! ("provide", Fprovide, Sprovide, 1, 2, 0,
 static mut require_nesting_list: Lisp_Object = lisp_h_Qnil ();
 
 /* C 3776-3779: `require_unwind`.  */
-unsafe extern "C" fn require_unwind (old_value: Lisp_Object)
+unsafe extern "C-unwind" fn require_unwind (old_value: Lisp_Object)
 {
   require_nesting_list = old_value;
 }
@@ -5182,7 +5184,7 @@ unsafe fn check_hash_table (obj: Lisp_Object) -> *mut Lisp_Hash_Table
 
 /* C 4653-4660: `next_almost_prime`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn next_almost_prime (n: EMACS_INT) -> EMACS_INT
+pub unsafe extern "C-unwind" fn next_almost_prime (n: EMACS_INT) -> EMACS_INT
 {
   let mut n: EMACS_INT = n;
   static_assert! (NEXT_ALMOST_PRIME_LIMIT == 11);
@@ -5202,7 +5204,7 @@ pub unsafe extern "C" fn next_almost_prime (n: EMACS_INT) -> EMACS_INT
 
 /* C 4667-4686: `larger_vector`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn larger_vector (vec: Lisp_Object, incr_min: ptrdiff_t,
+pub unsafe extern "C-unwind" fn larger_vector (vec: Lisp_Object, incr_min: ptrdiff_t,
 					nitems_max: ptrdiff_t) -> Lisp_Object
 {
   let mut vec: Lisp_Object = vec;
@@ -5264,7 +5266,7 @@ unsafe fn HASH_INDEX (h: *mut Lisp_Hash_Table, idx: ptrdiff_t) -> ptrdiff_t
 /* Restore a hash table's mutability after the critical section exits.  */
 
 /* C 4717-4721: `restore_mutability`.  */
-unsafe extern "C" fn restore_mutability (ptr: *mut c_void)
+unsafe extern "C-unwind" fn restore_mutability (ptr: *mut c_void)
 {
   let h: *mut Lisp_Hash_Table = ptr as *mut Lisp_Hash_Table;
   (*h).bits |= HASH_MUTABLE_MASK;
@@ -5291,7 +5293,7 @@ unsafe fn hash_table_user_defined_call (nargs: ptrdiff_t, args: *mut Lisp_Object
    Value is true if KEY1 and KEY2 are the same.  */
 
 /* C 4744-4748: `cmpfn_eql`.  */
-unsafe extern "C" fn cmpfn_eql (key1: Lisp_Object, key2: Lisp_Object,
+unsafe extern "C-unwind" fn cmpfn_eql (key1: Lisp_Object, key2: Lisp_Object,
 				h: *mut Lisp_Hash_Table) -> Lisp_Object
 {
   let _ = h;
@@ -5302,7 +5304,7 @@ unsafe extern "C" fn cmpfn_eql (key1: Lisp_Object, key2: Lisp_Object,
    Value is true if KEY1 and KEY2 are the same.  */
 
 /* C 4753-4757: `cmpfn_equal`.  */
-unsafe extern "C" fn cmpfn_equal (key1: Lisp_Object, key2: Lisp_Object,
+unsafe extern "C-unwind" fn cmpfn_equal (key1: Lisp_Object, key2: Lisp_Object,
 				  h: *mut Lisp_Hash_Table) -> Lisp_Object
 {
   let _ = h;
@@ -5314,7 +5316,7 @@ unsafe extern "C" fn cmpfn_equal (key1: Lisp_Object, key2: Lisp_Object,
    Value is true if KEY1 and KEY2 are the same.  */
 
 /* C 4763-4769: `cmpfn_user_defined`.  */
-unsafe extern "C" fn cmpfn_user_defined (key1: Lisp_Object, key2: Lisp_Object,
+unsafe extern "C-unwind" fn cmpfn_user_defined (key1: Lisp_Object, key2: Lisp_Object,
 					 h: *mut Lisp_Hash_Table) -> Lisp_Object
 {
   let mut args: [Lisp_Object; 3] = [(*(*h).test).user_cmp_function, key1, key2];
@@ -5337,7 +5339,7 @@ unsafe fn sxhash_eql (key: Lisp_Object) -> EMACS_INT
 /* Ignore H and return a hash code for KEY which uses 'eq' to compare keys.  */
 
 /* C 4786-4790: `hashfn_eq`.  */
-unsafe extern "C" fn hashfn_eq (key: Lisp_Object, h: *mut Lisp_Hash_Table) -> hash_hash_t
+unsafe extern "C-unwind" fn hashfn_eq (key: Lisp_Object, h: *mut Lisp_Hash_Table) -> hash_hash_t
 {
   let _ = h;
   return reduce_emacs_uint_to_hash_hash (sxhash_eq (key) as EMACS_UINT);
@@ -5346,7 +5348,7 @@ unsafe extern "C" fn hashfn_eq (key: Lisp_Object, h: *mut Lisp_Hash_Table) -> ha
 /* Ignore H and return a hash code for KEY which uses 'equal' to
    compare keys.  */
 /* C 4794-4798: `hashfn_equal`.  */
-unsafe extern "C" fn hashfn_equal (key: Lisp_Object, h: *mut Lisp_Hash_Table) -> hash_hash_t
+unsafe extern "C-unwind" fn hashfn_equal (key: Lisp_Object, h: *mut Lisp_Hash_Table) -> hash_hash_t
 {
   let _ = h;
   return reduce_emacs_uint_to_hash_hash (sxhash (key) as EMACS_UINT);
@@ -5354,7 +5356,7 @@ unsafe extern "C" fn hashfn_equal (key: Lisp_Object, h: *mut Lisp_Hash_Table) ->
 
 /* Ignore H and return a hash code for KEY which uses 'eql' to compare keys.  */
 /* C 4801-4805: `hashfn_eql`.  */
-unsafe extern "C" fn hashfn_eql (key: Lisp_Object, h: *mut Lisp_Hash_Table) -> hash_hash_t
+unsafe extern "C-unwind" fn hashfn_eql (key: Lisp_Object, h: *mut Lisp_Hash_Table) -> hash_hash_t
 {
   let _ = h;
   return reduce_emacs_uint_to_hash_hash (sxhash_eql (key) as EMACS_UINT);
@@ -5364,7 +5366,7 @@ unsafe extern "C" fn hashfn_eql (key: Lisp_Object, h: *mut Lisp_Hash_Table) -> h
    function to compare keys.  */
 
 /* C 4810-4817: `hashfn_user_defined`.  */
-unsafe extern "C" fn hashfn_user_defined (key: Lisp_Object, h: *mut Lisp_Hash_Table)
+unsafe extern "C-unwind" fn hashfn_user_defined (key: Lisp_Object, h: *mut Lisp_Hash_Table)
   -> hash_hash_t
 {
   let mut args: [Lisp_Object; 2] = [(*(*h).test).user_hash_function, key];
@@ -5395,7 +5397,7 @@ pub static mut hashtest_eq: hash_table_test = hash_table_test {
 #[unsafe(no_mangle)]
 pub static mut hashtest_eql: hash_table_test = hash_table_test {
   hashfn: Some (hashfn_eql),
-  cmpfn: cmpfn_eql as unsafe extern "C" fn (Lisp_Object, Lisp_Object, *mut Lisp_Hash_Table)
+  cmpfn: cmpfn_eql as unsafe extern "C-unwind" fn (Lisp_Object, Lisp_Object, *mut Lisp_Hash_Table)
     -> Lisp_Object as *const () as Lisp_Object,
   user_hash_function: std::ptr::null_mut (),
   user_cmp_function: std::ptr::null_mut (),
@@ -5405,7 +5407,7 @@ pub static mut hashtest_eql: hash_table_test = hash_table_test {
 #[unsafe(no_mangle)]
 pub static mut hashtest_equal: hash_table_test = hash_table_test {
   hashfn: Some (hashfn_equal),
-  cmpfn: cmpfn_equal as unsafe extern "C" fn (Lisp_Object, Lisp_Object, *mut Lisp_Hash_Table)
+  cmpfn: cmpfn_equal as unsafe extern "C-unwind" fn (Lisp_Object, Lisp_Object, *mut Lisp_Hash_Table)
     -> Lisp_Object as *const () as Lisp_Object,
   user_hash_function: std::ptr::null_mut (),
   user_cmp_function: std::ptr::null_mut (),
@@ -5462,7 +5464,7 @@ static empty_hash_index_vector: [hash_idx_t; 1] = [-1];
 
 /* C 4865-4919: `make_hash_table`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn make_hash_table (test: *const hash_table_test, size: EMACS_INT,
+pub unsafe extern "C-unwind" fn make_hash_table (test: *const hash_table_test, size: EMACS_INT,
 					  weak: hash_table_weakness_t) -> Lisp_Object
 {
   eassert! (SYMBOLP ((*test).name));
@@ -5718,7 +5720,7 @@ unsafe fn hash_table_test_from_std (test: hash_table_std_test_t) -> *const hash_
 /* Rebuild a hash table from its frozen (dumped) form.  */
 /* C 5045-5089: `hash_table_thaw`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn hash_table_thaw (hash_table: Lisp_Object)
+pub unsafe extern "C-unwind" fn hash_table_thaw (hash_table: Lisp_Object)
 {
   let h: *mut Lisp_Hash_Table = XHASH_TABLE (hash_table);
 
@@ -5804,7 +5806,7 @@ unsafe fn hash_find_with_hash (h: *mut Lisp_Hash_Table, key: Lisp_Object,
 	  || (!cmpfn.is_null ()
 	      && hash == HASH_HASH (h, i as hash_idx_t)
 	      && !NILP (std::mem::transmute::<Lisp_Object,
-			 unsafe extern "C" fn (Lisp_Object, Lisp_Object,
+			 unsafe extern "C-unwind" fn (Lisp_Object, Lisp_Object,
 					       *mut Lisp_Hash_Table) -> Lisp_Object>
 			 (cmpfn) (key, HASH_KEY (h, i as hash_idx_t), h)))
 	{ return i; }
@@ -5819,7 +5821,7 @@ unsafe fn hash_find_with_hash (h: *mut Lisp_Hash_Table, key: Lisp_Object,
    Value is the index of the entry in H matching KEY, or -1 if not found.  */
 /* C 5119-5126: `hash_find_get_hash`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn hash_find_get_hash (h: *mut Lisp_Hash_Table, key: Lisp_Object,
+pub unsafe extern "C-unwind" fn hash_find_get_hash (h: *mut Lisp_Hash_Table, key: Lisp_Object,
 					     phash: *mut hash_hash_t) -> ptrdiff_t
 {
   let hash: EMACS_UINT = hash_from_key (h, key) as EMACS_UINT;
@@ -5841,7 +5843,7 @@ unsafe fn check_mutable_hash_table (obj: Lisp_Object, h: *mut Lisp_Hash_Table)
 
 /* C 5168-5204: `hash_remove_from_table`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn hash_remove_from_table (h: *mut Lisp_Hash_Table, key: Lisp_Object)
+pub unsafe extern "C-unwind" fn hash_remove_from_table (h: *mut Lisp_Hash_Table, key: Lisp_Object)
 {
   let hashval: hash_hash_t = hash_from_key (h, key);
   let start_of_bucket: ptrdiff_t = hash_index_index (h, hashval);
@@ -5854,7 +5856,7 @@ pub unsafe extern "C" fn hash_remove_from_table (h: *mut Lisp_Hash_Table, key: L
 	  || (!(*(*h).test).cmpfn.is_null ()
 	      && hashval == HASH_HASH (h, i as hash_idx_t)
 	      && !NILP (std::mem::transmute::<Lisp_Object,
-			 unsafe extern "C" fn (Lisp_Object, Lisp_Object,
+			 unsafe extern "C-unwind" fn (Lisp_Object, Lisp_Object,
 					       *mut Lisp_Hash_Table) -> Lisp_Object>
 			 ((*(*h).test).cmpfn) (key, HASH_KEY (h, i as hash_idx_t), h)))
 	{
@@ -5959,7 +5961,7 @@ unsafe fn hash_find_inline (h: *mut Lisp_Hash_Table, key: Lisp_Object) -> ptrdif
 
 /* C 5111-5115: `hash_find`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn hash_find (h: *mut Lisp_Hash_Table, key: Lisp_Object) -> ptrdiff_t
+pub unsafe extern "C-unwind" fn hash_find (h: *mut Lisp_Hash_Table, key: Lisp_Object) -> ptrdiff_t
 {
   return hash_find_inline (h, key);
 }
@@ -5972,7 +5974,7 @@ pub unsafe extern "C" fn hash_find (h: *mut Lisp_Hash_Table, key: Lisp_Object) -
 #[cold]
 #[inline(never)]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn hash_put (h: *mut Lisp_Hash_Table, key: Lisp_Object,
+pub unsafe extern "C-unwind" fn hash_put (h: *mut Lisp_Hash_Table, key: Lisp_Object,
 				   value: Lisp_Object, hash: hash_hash_t) -> ptrdiff_t
 {
   eassert! (!hash_unused_entry_key_p (key));
@@ -6027,7 +6029,7 @@ unsafe fn keep_entry_p (weakness: hash_table_weakness_t, strong_key: bool,
 
 /* C 5258-5345: `sweep_weak_table`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn sweep_weak_table (h: *mut Lisp_Hash_Table,
+pub unsafe extern "C-unwind" fn sweep_weak_table (h: *mut Lisp_Hash_Table,
 					   remove_entries_p: bool) -> bool
 {
   let n: ptrdiff_t = hash_table_index_size (h);
@@ -6125,7 +6127,7 @@ pub const SXHASH_MAX_LEN: c_int = 7;
 
 /* C 5349-5406: `hash_char_array`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn hash_char_array (ptr: *const c_char, len: ptrdiff_t) -> EMACS_UINT
+pub unsafe extern "C-unwind" fn hash_char_array (ptr: *const c_char, len: ptrdiff_t) -> EMACS_UINT
 {
   let mut p: *const c_char = ptr;
   let end: *const c_char = ptr.offset (len);
@@ -6303,7 +6305,7 @@ unsafe fn sxhash_bignum (bignum: Lisp_Object) -> EMACS_UINT
 
 /* C 5498-5501: `sxhash`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn sxhash (obj: Lisp_Object) -> EMACS_UINT
+pub unsafe extern "C-unwind" fn sxhash (obj: Lisp_Object) -> EMACS_UINT
 {
   return sxhash_obj (obj, 0);
 }
@@ -6390,7 +6392,7 @@ unsafe fn sxhash_obj (obj: Lisp_Object, depth: c_int) -> EMACS_UINT
 }
 
 /* C 5583-5591: `hash_interval`.  */
-unsafe extern "C" fn hash_interval (interval: INTERVAL, arg: *mut c_void)
+unsafe extern "C-unwind" fn hash_interval (interval: INTERVAL, arg: *mut c_void)
 {
   let interval: *mut interval = interval as *mut interval;   /* P-72 rule 4 */
   let phash: *mut EMACS_UINT = arg as *mut EMACS_UINT;
@@ -6402,7 +6404,7 @@ unsafe extern "C" fn hash_interval (interval: INTERVAL, arg: *mut c_void)
 }
 
 /* C 5594-5604: `collect_interval`.  */
-unsafe extern "C" fn collect_interval (interval: INTERVAL, arg: *mut c_void)
+unsafe extern "C-unwind" fn collect_interval (interval: INTERVAL, arg: *mut c_void)
 {
   let interval: *mut interval = interval as *mut interval;   /* P-72 rule 4 */
   let collector: *mut Lisp_Object = arg as *mut Lisp_Object;
@@ -6474,7 +6476,7 @@ static mut hash_table_user_tests: *mut hash_table_user_test = std::ptr::null_mut
 
 /* C 5679-5691: `mark_fns`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mark_fns ()
+pub unsafe extern "C-unwind" fn mark_fns ()
 {
   let mut ut: *mut hash_table_user_test = hash_table_user_tests;
   while !ut.is_null ()
@@ -6510,7 +6512,7 @@ unsafe fn get_hash_table_user_test (test: Lisp_Object) -> *mut hash_table_test
       (*ut).test.user_cmp_function = equal_fn;
       (*ut).test.user_hash_function = hash_fn;
       (*ut).test.hashfn = Some (hashfn_user_defined);
-      (*ut).test.cmpfn = cmpfn_user_defined as unsafe extern "C" fn (Lisp_Object, Lisp_Object,
+      (*ut).test.cmpfn = cmpfn_user_defined as unsafe extern "C-unwind" fn (Lisp_Object, Lisp_Object,
 								     *mut Lisp_Hash_Table)
 						     -> Lisp_Object as *const () as Lisp_Object;
       (*ut).next = hash_table_user_tests;
@@ -6640,7 +6642,7 @@ DEFUN! ("hash-table-test", Fhash_table_test, Shash_table_test, 1, 1, 0,
 
 /* C 5873-5884: `hash_table_weakness_symbol`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn hash_table_weakness_symbol (weak: hash_table_weakness_t) -> Lisp_Object
+pub unsafe extern "C-unwind" fn hash_table_weakness_symbol (weak: hash_table_weakness_t) -> Lisp_Object
 {
   match weak
     {
@@ -6895,7 +6897,7 @@ DEFUN! ("internal--hash-table-index-size",
    HEXBUF might equal DIGEST.  */
 /* C 6141-6153: `hexbuf_digest`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn hexbuf_digest (hexbuf: *mut c_char, digest: *const c_void,
+pub unsafe extern "C-unwind" fn hexbuf_digest (hexbuf: *mut c_char, digest: *const c_void,
 					digest_size: c_int)
 {
   let p: *const u8 = digest as *const u8;
@@ -6939,7 +6941,7 @@ specified with `secure-hash' and in Info node
 `(elisp)Format of GnuTLS Cryptography Inputs'.  */
 /* C 6106-6204: `extract_data_from_object`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn extract_data_from_object (spec: Lisp_Object,
+pub unsafe extern "C-unwind" fn extract_data_from_object (spec: Lisp_Object,
 						   start_byte: *mut ptrdiff_t,
 						   end_byte: *mut ptrdiff_t)
   -> *mut c_char
@@ -7514,7 +7516,7 @@ DEFUN! ("line-number-at-pos", Fline_number_at_pos,
 });
 /* C 6741-6973: `syms_of_fns`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_fns ()
+pub unsafe extern "C-unwind" fn syms_of_fns ()
 {
   /* Hash table stuff.  */
   DEFSYM! (Qhash_table_p, c"hash-table-p");

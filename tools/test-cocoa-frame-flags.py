@@ -17,7 +17,7 @@ def sha(p):
     return hashlib.sha256(p.read_bytes()).hexdigest()
 
 def function(text, name):
-    match = re.search(r'pub (?:unsafe )?(?:extern "C" )?fn '+re.escape(name)+r'\s*\(', text)
+    match = re.search(r'pub (?:unsafe )?(?:extern "C(?:-unwind)?" )?fn '+re.escape(name)+r'\s*\(', text)
     if not match:
         raise ValueError('missing production function: '+name)
     opening = text.index('{', match.start())
@@ -84,8 +84,8 @@ pub fn run() {
     assert_eq!(unsafe{frame_tab_bar_resized((&raw mut f).cast())},value);
     println!("{{\"case\":\"PROFILE:resized-write:{}\",\"passed\":true,\"seconds\":{}}}",value,start.elapsed().as_secs_f64());
     for (unit,shift,reader,name) in [
-      (FRAME_TAB_BAR_RESIZED_UNIT,FRAME_TAB_BAR_RESIZED_SHIFT,frame_tab_bar_resized as unsafe extern "C" fn(*mut c_void)->bool,"resized-read"),
-      (FRAME_TAB_BAR_REDISPLAYED_UNIT,FRAME_TAB_BAR_REDISPLAYED_SHIFT,frame_tab_bar_redisplayed as unsafe extern "C" fn(*mut c_void)->bool,"redisplayed-read")
+      (FRAME_TAB_BAR_RESIZED_UNIT,FRAME_TAB_BAR_RESIZED_SHIFT,frame_tab_bar_resized as unsafe extern "C-unwind" fn(*mut c_void)->bool,"resized-read"),
+      (FRAME_TAB_BAR_REDISPLAYED_UNIT,FRAME_TAB_BAR_REDISPLAYED_SHIFT,frame_tab_bar_redisplayed as unsafe extern "C-unwind" fn(*mut c_void)->bool,"redisplayed-read")
     ] {
       let start=std::time::Instant::now();
       let mut words=[if value{0}else{u32::MAX};2];

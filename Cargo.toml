@@ -16,7 +16,7 @@ edition = "2024"
 license = "GPL-3.0-or-later"
 
 [profile.release]
-panic = "abort"
+panic = "unwind"
 
 [profile.release.package.femacs-vm]
 opt-level = 2

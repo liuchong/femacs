@@ -149,13 +149,13 @@ addcol (tty, n) {
  * after we reach the last column; this takes us to a known state.
  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn cmcheckmagic (tty: *mut tty_display_info)
+pub unsafe extern "C-unwind" fn cmcheckmagic (tty: *mut tty_display_info)
 {
   /* dispextern.h 3925: `extern bool frame_size_change_delayed (struct frame *);`.  The
      dispextern mirror does not carry the dispnew.c/terminal.c block of prototypes yet, so
      the declaration is made at its use site (the scroll.rs shape) - nothing in this file
      needs it anywhere else.  */
-  unsafe extern "C" { fn frame_size_change_delayed (f: *mut frame) -> bool; }
+  unsafe extern "C-unwind" { fn frame_size_change_delayed (f: *mut frame) -> bool; }
 
   /* If we have an unhandled SIGWINCH, we don't really know what our
      up-to-date frame dimensions are.  */
@@ -183,7 +183,7 @@ pub unsafe extern "C" fn cmcheckmagic (tty: *mut tty_display_info)
  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn cmcostinit (tty: *mut tty_display_info)
+pub unsafe extern "C-unwind" fn cmcostinit (tty: *mut tty_display_info)
 {
   let mut p: *mut c_char = std::ptr::null_mut ();
 
@@ -453,7 +453,7 @@ const USECR: c_int = 3;
 /* Move the cursor to (ROW, COL), by computing the optimal way.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn cmgoto (tty: *mut tty_display_info, row: c_int, col: c_int)
+pub unsafe extern "C-unwind" fn cmgoto (tty: *mut tty_display_info, row: c_int, col: c_int)
 {
   let mut homecost: c_int = 0;
   let mut crcost: c_int = 0;
@@ -575,7 +575,7 @@ pub unsafe extern "C" fn cmgoto (tty: *mut tty_display_info, row: c_int, col: c_
  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn Wcm_clear (tty: *mut tty_display_info)
+pub unsafe extern "C-unwind" fn Wcm_clear (tty: *mut tty_display_info)
 {
   memset ((*tty).Wcm.cast (), 0, size_of::<cm> ());
   UP = std::ptr::null_mut ();
@@ -590,7 +590,7 @@ pub unsafe extern "C" fn Wcm_clear (tty: *mut tty_display_info)
  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn Wcm_init (tty: *mut tty_display_info) -> c_int
+pub unsafe extern "C-unwind" fn Wcm_init (tty: *mut tty_display_info) -> c_int
 {
   /* C 452-455 is `#if 0`: `if (tty->Wcm->cm_abs && !tty->Wcm->cm_ds) return 0;`.  */
   if ! (*(*tty).Wcm).cm_abs.is_null ()

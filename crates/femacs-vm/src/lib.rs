@@ -2,6 +2,7 @@
 pub use femacs_pure;
 pub use femacs_sys;
 #[macro_use] pub mod common;
+pub mod nonlocal;
 #[cfg(feature = "have_window_system")]
 pub use common::frame_image_accessors;
 #[path = "../../../src/dispnew.rs"] pub mod dispnew;

@@ -75,7 +75,7 @@ use itree_order::*;
 /* The names C gets from lisp.h whose mirrors do not carry them yet (the insdel.rs/
    terminal.rs shape), each with C's own prototype in a `/// C:` line; they are reported
    in docs/ports/buffer.md for the mirror owners.  */
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   /// C: lisp.h 4660: `extern struct buffer *allocate_buffer (void) ATTRIBUTE_RETURNS_NONNULL;`
   fn allocate_buffer () -> *mut buffer;
   /// C: lisp.h 4434: `extern AVOID buffer_memory_full (ptrdiff_t);`
@@ -119,12 +119,6 @@ unsafe extern "C" {
   /// bool);`
   fn del_range_2 (from: ptrdiff_t, from_byte: ptrdiff_t, to: ptrdiff_t, to_byte: ptrdiff_t,
                   prepare: bool);
-
-  /// C: <stdlib.h> 489: `extern void qsort (void *__base, size_t __nmemb, size_t __size,
-  /// __compar_fn_t __compar) __nonnull ((1, 4));` (the port's stdlib.rs mirror does not
-  /// carry it; declared here, the insdel.rs shape).
-  fn qsort (base: *mut c_void, nmemb: usize, size: usize,
-            compar: Option<unsafe extern "C" fn (*const c_void, *const c_void) -> c_int>);
   /// C: lisp.h 4323: `extern ptrdiff_t copy_text (const unsigned char *, unsigned char *,
   /// ptrdiff_t, bool, bool);`
   fn copy_text (from: *const u8, to: *mut u8, nbytes: ptrdiff_t, from_multibyte: bool,
@@ -134,6 +128,14 @@ unsafe extern "C" {
 
   /// C: lisp.h 5058: `extern Lisp_Object get_minibuffer (EMACS_INT);`
   fn get_minibuffer (depth: c_int) -> Lisp_Object;
+}
+unsafe extern "C" {
+
+  /// C: <stdlib.h> 489: `extern void qsort (void *__base, size_t __nmemb, size_t __size,
+  /// __compar_fn_t __compar) __nonnull ((1, 4));` (the port's stdlib.rs mirror does not
+  /// carry it; declared here, the insdel.rs shape).
+  fn qsort (base: *mut c_void, nmemb: usize, size: usize,
+            compar: Option<unsafe extern "C" fn (*const c_void, *const c_void) -> c_int>);
 
 }
 
@@ -244,7 +246,7 @@ unsafe fn CHECK_OVERLAY (x: Lisp_Object)
    Signal an error if POS is not of the proper form.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn fix_position (pos: Lisp_Object) -> EMACS_INT
+pub unsafe extern "C-unwind" fn fix_position (pos: Lisp_Object) -> EMACS_INT
 {
   if FIXNUMP (pos)
     { return XFIXNUM (pos); }
@@ -452,7 +454,7 @@ unsafe fn bset_zv_marker (b: *mut buffer, val: Lisp_Object)
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn nsberror (spec: Lisp_Object)
+pub unsafe extern "C-unwind" fn nsberror (spec: Lisp_Object)
 {
   if STRINGP (spec)
     { error (c"No buffer named %s".as_ptr (), SDATA (spec)); }
@@ -772,7 +774,7 @@ unsafe fn copy_overlays (from: *mut buffer, to: *mut buffer)
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn valid_per_buffer_idx (idx: c_int) -> bool
+pub unsafe extern "C-unwind" fn valid_per_buffer_idx (idx: c_int) -> bool
 {
   return 0 <= idx && idx < last_per_buffer_idx;
 }
@@ -1049,7 +1051,7 @@ unsafe fn drop_overlay (ov: *mut Lisp_Overlay)
 /* Delete all overlays of B and reset its overlay lists.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn delete_all_overlays (b: *mut buffer)
+pub unsafe extern "C-unwind" fn delete_all_overlays (b: *mut buffer)
 {
   let mut node: *mut itree_node;
 
@@ -1171,7 +1173,7 @@ unsafe fn set_overlays_multibyte (multibyte: bool)
    claims it doesn't belong to it.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn reset_buffer (b: *mut buffer)
+pub unsafe extern "C-unwind" fn reset_buffer (b: *mut buffer)
 {
   bset_filename (b, Qnil ());
   bset_file_truename (b, Qnil ());
@@ -1455,7 +1457,7 @@ DEFUN! ("buffer-local-value", Fbuffer_local_value,
    locally unbound.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn buffer_local_value (variable: Lisp_Object, buffer: Lisp_Object)
+pub unsafe extern "C-unwind" fn buffer_local_value (variable: Lisp_Object, buffer: Lisp_Object)
   -> Lisp_Object
 {
   let mut variable = variable;   /* C's `XSETSYMBOL (variable, sym)` rebinds it.  */
@@ -1870,7 +1872,7 @@ DEFUN! ("other-buffer", Fother_buffer, Sother_buffer, 0, 3, 0,
    visibility of buffers, and doesn't evaluate any frame predicates.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn other_buffer_safely (buffer: Lisp_Object) -> Lisp_Object
+pub unsafe extern "C-unwind" fn other_buffer_safely (buffer: Lisp_Object) -> Lisp_Object
 {
   let mut tail: Lisp_Object = Qnil ();
   let mut buf: Lisp_Object = Qnil ();
@@ -1925,7 +1927,7 @@ DEFUN! ("buffer-enable-undo", Fbuffer_enable_undo, Sbuffer_enable_undo,
 /* Truncate undo list and shrink the gap of BUFFER.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn compact_buffer (buffer: *mut buffer)
+pub unsafe extern "C-unwind" fn compact_buffer (buffer: *mut buffer)
 {
   BUFFER_CHECK_INDIRECTION (buffer);
 
@@ -2265,7 +2267,7 @@ DEFUN! ("kill-buffer", Fkill_buffer, Skill_buffer, 0, 1, "bKill buffer: ",
    window when calling us.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn record_buffer (buffer: Lisp_Object)
+pub unsafe extern "C-unwind" fn record_buffer (buffer: Lisp_Object)
 {
   let mut aelt: Lisp_Object = Qnil ();
   let mut aelt_cons: Lisp_Object = Qnil ();
@@ -2386,7 +2388,7 @@ DEFUN! ("current-buffer", Fcurrent_buffer, Scurrent_buffer, 0, 0, 0,
    This is used by redisplay.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn set_buffer_internal_1 (b: *mut buffer)
+pub unsafe extern "C-unwind" fn set_buffer_internal_1 (b: *mut buffer)
 {
   // C 2331-2334 is `#ifdef USE_MMAP_FOR_BUFFERS` (undef): `if (b->text->beg == NULL)
   // enlarge_buffer_text (b, 0);`.
@@ -2401,7 +2403,7 @@ pub unsafe extern "C" fn set_buffer_internal_1 (b: *mut buffer)
    the current buffer.  Called upon switch of the current thread, see
    post_acquire_global_lock.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn set_buffer_internal_2 (b: *mut buffer)
+pub unsafe extern "C-unwind" fn set_buffer_internal_2 (b: *mut buffer)
 {
   let mut old_buf: *mut buffer;
   let mut tail: Lisp_Object = Qnil ();
@@ -2467,7 +2469,7 @@ pub unsafe extern "C" fn set_buffer_internal_2 (b: *mut buffer)
    This avoids certain things that don't need to be done within redisplay.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn set_buffer_temp (b: *mut buffer)
+pub unsafe extern "C-unwind" fn set_buffer_temp (b: *mut buffer)
 {
   let mut old_buf: *mut buffer;
 
@@ -2501,7 +2503,7 @@ DEFUN! ("set-buffer", Fset_buffer, Sset_buffer, 1, 1, 0,
 });
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn restore_buffer (buffer_or_name: Lisp_Object)
+pub unsafe extern "C-unwind" fn restore_buffer (buffer_or_name: Lisp_Object)
 {
   Fset_buffer (buffer_or_name);
 }
@@ -2509,7 +2511,7 @@ pub unsafe extern "C" fn restore_buffer (buffer_or_name: Lisp_Object)
 /* Set the current buffer to BUFFER provided if it is alive.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn set_buffer_if_live (buffer: Lisp_Object)
+pub unsafe extern "C-unwind" fn set_buffer_if_live (buffer: Lisp_Object)
 {
   if BUFFER_LIVE_P (XBUFFER (buffer))
     { set_buffer_internal (XBUFFER (buffer)); }
@@ -2551,7 +2553,7 @@ DEFUN! ("erase-buffer", Ferase_buffer, Serase_buffer, 0, 0, "*",
 });
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn validate_region (b: *mut Lisp_Object, e: *mut Lisp_Object)
+pub unsafe extern "C-unwind" fn validate_region (b: *mut Lisp_Object, e: *mut Lisp_Object)
 {
   let mut beg: EMACS_INT = fix_position (*b);
   let mut end: EMACS_INT = fix_position (*e);
@@ -2574,7 +2576,7 @@ pub unsafe extern "C" fn validate_region (b: *mut Lisp_Object, e: *mut Lisp_Obje
    and return the adjusted position.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn advance_to_char_boundary (byte_pos: ptrdiff_t) -> ptrdiff_t
+pub unsafe extern "C-unwind" fn advance_to_char_boundary (byte_pos: ptrdiff_t) -> ptrdiff_t
 {
   let mut c: c_int;
   let mut byte_pos = byte_pos;
@@ -3272,7 +3274,7 @@ unsafe fn overlays_in (beg: ptrdiff_t, end: ptrdiff_t, extend: bool,
   */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn overlays_at (pos: ptrdiff_t, extend: bool,
+pub unsafe extern "C-unwind" fn overlays_at (pos: ptrdiff_t, extend: bool,
 				      vec_ptr: *mut *mut Lisp_Object, len_ptr: *mut ptrdiff_t,
 				      next_ptr: *mut ptrdiff_t) -> ptrdiff_t
 {
@@ -3281,7 +3283,7 @@ pub unsafe extern "C" fn overlays_at (pos: ptrdiff_t, extend: bool,
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn next_overlay_change (pos: ptrdiff_t) -> ptrdiff_t
+pub unsafe extern "C-unwind" fn next_overlay_change (pos: ptrdiff_t) -> ptrdiff_t
 {
   let mut next: ptrdiff_t = ZV! ();
   let mut node: *mut itree_node;
@@ -3347,7 +3349,7 @@ unsafe fn previous_overlay_change (pos: ptrdiff_t) -> ptrdiff_t
    `mouse-face' property overlapping OVERLAY.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mouse_face_overlay_overlaps (overlay: Lisp_Object) -> bool
+pub unsafe extern "C-unwind" fn mouse_face_overlay_overlaps (overlay: Lisp_Object) -> bool
 {
   let start: ptrdiff_t = OVERLAY_START (overlay);
   let end: ptrdiff_t = OVERLAY_END (overlay);
@@ -3379,7 +3381,7 @@ pub unsafe extern "C" fn mouse_face_overlay_overlaps (overlay: Lisp_Object) -> b
 /* Return the value of the 'display-line-numbers-disable' property at
    EOB, if there's an overlay at ZV with a non-nil value of that property.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn disable_line_numbers_overlay_at_eob () -> bool
+pub unsafe extern "C-unwind" fn disable_line_numbers_overlay_at_eob () -> bool
 {
   let mut tem: Lisp_Object = Qnil ();
   let mut node: *mut itree_node;
@@ -3408,7 +3410,7 @@ pub unsafe extern "C" fn disable_line_numbers_overlay_at_eob () -> bool
    Returns true if some overlay starts or ends (or both) at POS,
 */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn overlay_touches_p (pos: ptrdiff_t) -> bool
+pub unsafe extern "C-unwind" fn overlay_touches_p (pos: ptrdiff_t) -> bool
 {
   let mut node: *mut itree_node;
 
@@ -3463,7 +3465,7 @@ pub unsafe extern "C" fn compare_overlays (v1: *const c_void, v2: *const c_void)
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn make_sortvec_item (item: *mut sortvec, overlay: Lisp_Object)
+pub unsafe extern "C-unwind" fn make_sortvec_item (item: *mut sortvec, overlay: Lisp_Object)
 {
   let mut tem: Lisp_Object;
   /* This overlay is good and counts: put it into sortvec.  */
@@ -3493,7 +3495,7 @@ pub unsafe extern "C" fn make_sortvec_item (item: *mut sortvec, overlay: Lisp_Ob
    The return value is the new size; this may be smaller than the original
    size if some of the overlays were invalid or were window-specific.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn sort_overlays (overlay_vec: *mut Lisp_Object, noverlays: ptrdiff_t,
+pub unsafe extern "C-unwind" fn sort_overlays (overlay_vec: *mut Lisp_Object, noverlays: ptrdiff_t,
 					w: *mut c_void) -> ptrdiff_t
 {
   let mut i: ptrdiff_t;
@@ -3651,7 +3653,7 @@ unsafe fn record_overlay_string (ssl: *mut sortstrlist, str_: Lisp_Object,
    the concatenated strings may be overwritten by subsequent calls.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn overlay_strings (pos: ptrdiff_t, w: *mut c_void,
+pub unsafe extern "C-unwind" fn overlay_strings (pos: ptrdiff_t, w: *mut c_void,
 					  pstr: *mut *mut u8) -> ptrdiff_t
 {
   let multibyte: bool = ! NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_));
@@ -3765,7 +3767,7 @@ pub unsafe extern "C" fn overlay_strings (pos: ptrdiff_t, w: *mut c_void,
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn adjust_overlays_for_insert (pos: ptrdiff_t, length: ptrdiff_t,
+pub unsafe extern "C-unwind" fn adjust_overlays_for_insert (pos: ptrdiff_t, length: ptrdiff_t,
 						    before_markers: bool)
 {
   if (*(current_buffer! ())).indirections == 0
@@ -3829,7 +3831,7 @@ unsafe fn adjust_overlays_for_delete_in_buffer (buf: *mut buffer,
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn adjust_overlays_for_delete (pos: ptrdiff_t, length: ptrdiff_t)
+pub unsafe extern "C-unwind" fn adjust_overlays_for_delete (pos: ptrdiff_t, length: ptrdiff_t)
 {
   if (*(current_buffer! ())).indirections == 0
     { adjust_overlays_for_delete_in_buffer ((current_buffer! ()), pos, length); }
@@ -4354,7 +4356,7 @@ unsafe fn add_overlay_mod_hooklist (functionlist: Lisp_Object, overlay: Lisp_Obj
    and the length of deleted or replaced old text.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn report_overlay_modification (start: Lisp_Object, end: Lisp_Object,
+pub unsafe extern "C-unwind" fn report_overlay_modification (start: Lisp_Object, end: Lisp_Object,
 						     after: bool, arg1: Lisp_Object,
 						     arg2: Lisp_Object, arg3: Lisp_Object)
 {
@@ -4508,7 +4510,7 @@ unsafe fn alloc_buffer_text (b: *mut buffer, nbytes: ptrdiff_t)
    shrink it.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn enlarge_buffer_text (b: *mut buffer, delta: ptrdiff_t)
+pub unsafe extern "C-unwind" fn enlarge_buffer_text (b: *mut buffer, delta: ptrdiff_t)
 {
   block_input ();
   let mut p: *mut c_void;
@@ -4563,7 +4565,7 @@ unsafe fn free_buffer_text (b: *mut buffer)
 			    Initialization
  ***********************************************************************/
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn init_buffer_once ()
+pub unsafe extern "C-unwind" fn init_buffer_once ()
 {
   /* TODO: clean up the buffer-local machinery.  Right now,
      we have:
@@ -4805,7 +4807,7 @@ pub unsafe extern "C" fn init_buffer_once ()
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn init_buffer ()
+pub unsafe extern "C-unwind" fn init_buffer ()
 {
   let mut temp: Lisp_Object;
 
@@ -4979,7 +4981,7 @@ pub static mut large_hscroll_threshold: EMACS_INT = 0;
 
 /* Initialize the buffer routines.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_buffer ()
+pub unsafe extern "C-unwind" fn syms_of_buffer ()
 {
   staticpro (&raw const last_overlay_modification_hooks);
   last_overlay_modification_hooks = make_nil_vector (10);

@@ -151,7 +151,7 @@ fn set_case_table (table: Lisp_Object, standard: bool) -> Lisp_Object
    ELT is a character.  The char-tables CANON, UP, and DOWN are in
    CASE_TABLE.  */
 
-unsafe extern "C" fn set_canon (case_table: Lisp_Object, range: Lisp_Object, elt: Lisp_Object)
+unsafe extern "C-unwind" fn set_canon (case_table: Lisp_Object, range: Lisp_Object, elt: Lisp_Object)
 {
   let up = unsafe { FAM_ELEM! ((*XCHAR_TABLE (case_table)).extras, 0) };
   let canon = unsafe { FAM_ELEM! ((*XCHAR_TABLE (case_table)).extras, 1) };
@@ -165,7 +165,7 @@ unsafe extern "C" fn set_canon (case_table: Lisp_Object, range: Lisp_Object, elt
    that range to themselves.  This is done only when ELT is a
    character.  This is called in map_char_table.  */
 
-unsafe extern "C" fn set_identity (table: Lisp_Object, c: Lisp_Object, elt: Lisp_Object)
+unsafe extern "C-unwind" fn set_identity (table: Lisp_Object, c: Lisp_Object, elt: Lisp_Object)
 {
   if FIXNATP (elt)
     {
@@ -195,7 +195,7 @@ unsafe extern "C" fn set_identity (table: Lisp_Object, c: Lisp_Object, elt: Lisp
    induced by the translation table on which map_char_table is
    operated.  */
 
-unsafe extern "C" fn shuffle (table: Lisp_Object, c: Lisp_Object, elt: Lisp_Object)
+unsafe extern "C-unwind" fn shuffle (table: Lisp_Object, c: Lisp_Object, elt: Lisp_Object)
 {
   if FIXNATP (elt)
     {
@@ -223,7 +223,7 @@ unsafe extern "C" fn shuffle (table: Lisp_Object, c: Lisp_Object, elt: Lisp_Obje
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn init_casetab_once ()
+pub unsafe extern "C-unwind" fn init_casetab_once ()
 {
   let mut i: c_int;
   let mut down: Lisp_Object;
@@ -281,7 +281,7 @@ pub unsafe extern "C" fn init_casetab_once ()
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_casetab ()
+pub unsafe extern "C-unwind" fn syms_of_casetab ()
 {
   DEFSYM! (Qcase_table_p, "case-table-p");
 

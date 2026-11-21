@@ -297,7 +297,7 @@ macro_rules! PIXEL_TO_POINT { ($pixel:expr, $dpi:expr) => { (($pixel) * PT_PER_I
 pub mod font_log_decls {
   use super::*;
 
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     pub fn font_add_log (action: *const c_char, arg: Lisp_Object, result: Lisp_Object);
     /// C: font.h 1002: `extern void font_deferred_log (const char *, Lisp_Object, Lisp_Object);`
     pub fn font_deferred_log (action: *const c_char, arg: Lisp_Object, result: Lisp_Object);
@@ -559,61 +559,61 @@ pub struct font_driver
   /// C 600: `Lisp_Object (*get_cache) (struct frame *f);` - `struct frame` is frame.rs's and
   /// not every unit that includes this mirror has it (C needs only the incomplete tag), so the
   /// pointer is untyped per P-72 (3), the `face_cache.f` precedent.
-  pub get_cache: Option<unsafe extern "C" fn (*mut c_void) -> Lisp_Object>,
+  pub get_cache: Option<unsafe extern "C-unwind" fn (*mut c_void) -> Lisp_Object>,
   /// C 623: `Lisp_Object (*list) (struct frame *frame, Lisp_Object font_spec);` (untyped, see get_cache)
-  pub list: Option<unsafe extern "C" fn (*mut c_void, Lisp_Object) -> Lisp_Object>,
+  pub list: Option<unsafe extern "C-unwind" fn (*mut c_void, Lisp_Object) -> Lisp_Object>,
   /// C 632: `Lisp_Object (*match) (struct frame *f, Lisp_Object font_spec);` (untyped, see get_cache)
-  pub r#match: Option<unsafe extern "C" fn (*mut c_void, Lisp_Object) -> Lisp_Object>,
+  pub r#match: Option<unsafe extern "C-unwind" fn (*mut c_void, Lisp_Object) -> Lisp_Object>,
   /// C 638: `Lisp_Object (*list_family) (struct frame *f);` (untyped, see get_cache)
-  pub list_family: Option<unsafe extern "C" fn (*mut c_void) -> Lisp_Object>,
-  pub free_entity: Option<unsafe extern "C" fn (Lisp_Object)>,
+  pub list_family: Option<unsafe extern "C-unwind" fn (*mut c_void) -> Lisp_Object>,
+  pub free_entity: Option<unsafe extern "C-unwind" fn (Lisp_Object)>,
   /// C 645-646: `Lisp_Object (*open_font) (struct frame *f, Lisp_Object font_entity, int pixel_size);`
   /// (untyped, see get_cache)
-  pub open_font: Option<unsafe extern "C" fn (*mut c_void, Lisp_Object, c_int) -> Lisp_Object>,
-  pub close_font: Option<unsafe extern "C" fn (*mut font)>,
+  pub open_font: Option<unsafe extern "C-unwind" fn (*mut c_void, Lisp_Object, c_int) -> Lisp_Object>,
+  pub close_font: Option<unsafe extern "C-unwind" fn (*mut font)>,
   /// C: `void (*prepare_face) (struct frame *f, struct face *face);` - `struct face` is
   /// dispextern.rs's and is `#[cfg (feature = "dispextern_face_records")]`-gated there (status
   /// 3.220), so the layout probe has no `face` and this keeps P-72 (3)'s `*mut c_void`.
-  pub prepare_face: Option<unsafe extern "C" fn (*mut c_void, *mut c_void)>,
+  pub prepare_face: Option<unsafe extern "C-unwind" fn (*mut c_void, *mut c_void)>,
   /// C: `void (*done_face) (struct frame *f, struct face *face);`
-  pub done_face: Option<unsafe extern "C" fn (*mut c_void, *mut c_void)>,
-  pub has_char: Option<unsafe extern "C" fn (Lisp_Object, c_int) -> c_int>,
-  pub encode_char: Option<unsafe extern "C" fn (*mut font, c_int) -> c_uint>,
-  pub text_extents: Option<unsafe extern "C" fn (*mut font, *const c_uint, c_int,
+  pub done_face: Option<unsafe extern "C-unwind" fn (*mut c_void, *mut c_void)>,
+  pub has_char: Option<unsafe extern "C-unwind" fn (Lisp_Object, c_int) -> c_int>,
+  pub encode_char: Option<unsafe extern "C-unwind" fn (*mut font, c_int) -> c_uint>,
+  pub text_extents: Option<unsafe extern "C-unwind" fn (*mut font, *const c_uint, c_int,
                                                   *mut font_metrics)>,
   #[cfg(feature = "have_window_system")]
-  pub draw: Option<unsafe extern "C" fn (*mut glyph_string, c_int, c_int, c_int, c_int,
+  pub draw: Option<unsafe extern "C-unwind" fn (*mut glyph_string, c_int, c_int, c_int, c_int,
                                          bool) -> c_int>,
   #[cfg(feature = "have_window_system")]
-  pub get_bitmap: Option<unsafe extern "C" fn (*mut font, c_uint, *mut font_bitmap,
+  pub get_bitmap: Option<unsafe extern "C-unwind" fn (*mut font, c_uint, *mut font_bitmap,
                                                c_int) -> c_int>,
   #[cfg(feature = "have_window_system")]
-  pub free_bitmap: Option<unsafe extern "C" fn (*mut font, *mut font_bitmap)>,
-  pub anchor_point: Option<unsafe extern "C" fn (*mut font, c_uint, c_int, *mut c_int,
+  pub free_bitmap: Option<unsafe extern "C-unwind" fn (*mut font, *mut font_bitmap)>,
+  pub anchor_point: Option<unsafe extern "C-unwind" fn (*mut font, c_uint, c_int, *mut c_int,
                                                  *mut c_int) -> c_int>,
-  pub otf_capability: Option<unsafe extern "C" fn (*mut font) -> Lisp_Object>,
-  pub otf_drive: Option<unsafe extern "C" fn (*mut font, Lisp_Object, Lisp_Object, c_int,
+  pub otf_capability: Option<unsafe extern "C-unwind" fn (*mut font) -> Lisp_Object>,
+  pub otf_drive: Option<unsafe extern "C-unwind" fn (*mut font, Lisp_Object, Lisp_Object, c_int,
                                               c_int, Lisp_Object, c_int, bool) -> c_int>,
   /// C 742: `int (*start_for_frame) (struct frame *f);` (untyped, see get_cache)
-  pub start_for_frame: Option<unsafe extern "C" fn (*mut c_void) -> c_int>,
+  pub start_for_frame: Option<unsafe extern "C-unwind" fn (*mut c_void) -> c_int>,
   /// C 747: `int (*end_for_frame) (struct frame *f);` (untyped, see get_cache)
-  pub end_for_frame: Option<unsafe extern "C" fn (*mut c_void) -> c_int>,
-  pub shape: Option<unsafe extern "C" fn (Lisp_Object, Lisp_Object) -> Lisp_Object>,
+  pub end_for_frame: Option<unsafe extern "C-unwind" fn (*mut c_void) -> c_int>,
+  pub shape: Option<unsafe extern "C-unwind" fn (Lisp_Object, Lisp_Object) -> Lisp_Object>,
   /// C 771: `int (*check) (struct frame *f, struct font *font);` (the frame is untyped, see get_cache)
-  pub check: Option<unsafe extern "C" fn (*mut c_void, *mut font) -> c_int>,
-  pub get_variation_glyphs: Option<unsafe extern "C" fn (*mut font, c_int,
+  pub check: Option<unsafe extern "C-unwind" fn (*mut c_void, *mut font) -> c_int>,
+  pub get_variation_glyphs: Option<unsafe extern "C-unwind" fn (*mut font, c_int,
                                                          *mut c_uint) -> c_int>,
-  pub filter_properties: Option<unsafe extern "C" fn (Lisp_Object, Lisp_Object)>,
+  pub filter_properties: Option<unsafe extern "C-unwind" fn (Lisp_Object, Lisp_Object)>,
   /// C 792: `bool (*cached_font_ok) (struct frame *f, Lisp_Object, Lisp_Object);` (untyped, see get_cache)
-  pub cached_font_ok: Option<unsafe extern "C" fn (*mut c_void, Lisp_Object, Lisp_Object)
+  pub cached_font_ok: Option<unsafe extern "C-unwind" fn (*mut c_void, Lisp_Object, Lisp_Object)
                                                  -> bool>,
-  pub combining_capability: Option<unsafe extern "C" fn (*mut font) -> Lisp_Object>,
+  pub combining_capability: Option<unsafe extern "C-unwind" fn (*mut font) -> Lisp_Object>,
   /// C 805: `void (*drop_xrender_surfaces) (struct frame *f);` (untyped, see get_cache)
-  pub drop_xrender_surfaces: Option<unsafe extern "C" fn (*mut c_void)>,
+  pub drop_xrender_surfaces: Option<unsafe extern "C-unwind" fn (*mut c_void)>,
   #[cfg(feature = "harfbuzz")]
-  pub begin_hb_font: Option<unsafe extern "C" fn (*mut font, *mut c_double) -> *mut c_void>,
+  pub begin_hb_font: Option<unsafe extern "C-unwind" fn (*mut font, *mut c_double) -> *mut c_void>,
   #[cfg(feature = "harfbuzz")]
-  pub end_hb_font: Option<unsafe extern "C" fn (*mut font, *mut c_void)>,
+  pub end_hb_font: Option<unsafe extern "C-unwind" fn (*mut font, *mut c_void)>,
 }
 /// C: font.h 828-837: `struct font_driver_list`.  Measured: `sizeof` 24, `on`@0,
 /// `driver`@8, `next`@16.
@@ -676,7 +676,7 @@ const _: () = core::assert! (std::mem::offset_of! (font_driver_list, next) == 16
 pub mod font_fn_decls {
   use super::*;
 
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     /// C: font.h 839: `extern Lisp_Object copy_font_spec (Lisp_Object);`
     pub fn copy_font_spec (font: Lisp_Object) -> Lisp_Object;
     /// C: font.h 840: `extern Lisp_Object merge_font_spec (Lisp_Object, Lisp_Object);`

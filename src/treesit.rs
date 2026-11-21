@@ -244,10 +244,10 @@ DEF_DLL_FN! (*const c_char, ts_query_string_value_for_id,
    and `void (*)(void *)`).  */
 #[cfg (all (feature = "have_tree_sitter", feature = "windowsnt"))]
 DEF_DLL_FN! ((), ts_set_allocator, W32_PFN_ts_set_allocator, fn_ts_set_allocator,
-             (Option<unsafe extern "C" fn (size_t) -> *mut c_void>,
-              Option<unsafe extern "C" fn (size_t, size_t) -> *mut c_void>,
-              Option<unsafe extern "C" fn (*mut c_void, size_t) -> *mut c_void>,
-              Option<unsafe extern "C" fn (*mut c_void)>));
+             (Option<unsafe extern "C-unwind" fn (size_t) -> *mut c_void>,
+              Option<unsafe extern "C-unwind" fn (size_t, size_t) -> *mut c_void>,
+              Option<unsafe extern "C-unwind" fn (*mut c_void, size_t) -> *mut c_void>,
+              Option<unsafe extern "C-unwind" fn (*mut c_void)>));
 #[cfg (all (feature = "have_tree_sitter", feature = "windowsnt"))]
 DEF_DLL_FN! (TSNode, ts_tree_cursor_current_node, W32_PFN_ts_tree_cursor_current_node,
              fn_ts_tree_cursor_current_node, (*const TSTreeCursor));
@@ -723,10 +723,32 @@ unsafe fn load_tree_sitter_if_necessary (required: bool) -> bool
   }
 }
 
+#[cfg(feature = "have_tree_sitter")]
+unsafe extern "C" fn treesit_malloc_wrapper(size: usize) -> *mut c_void {
+  // SAFETY: `ts_set_allocator` callbacks are invoked from C (`libtree-sitter`); catch VM OOM
+  // `NonLocalExit` at the FFI boundary and return NULL so no Rust unwind crosses C frames.
+  crate::nonlocal::catch_vm_nonlocal(|| unsafe { xmalloc(size) }).unwrap_or(core::ptr::null_mut())
+}
+
 // Stable 31.1 allocator callback, before the development branch used xcalloc.
 #[cfg(feature = "have_tree_sitter")]
-unsafe extern "C" fn treesit_calloc_wrapper(n:usize,size:usize)->*mut c_void {
- return xzalloc(n.wrapping_mul(size));
+unsafe extern "C" fn treesit_calloc_wrapper(n: usize, size: usize) -> *mut c_void {
+  // SAFETY: Same C FFI boundary guard as `treesit_malloc_wrapper`.
+  crate::nonlocal::catch_vm_nonlocal(|| unsafe { xzalloc(n.wrapping_mul(size)) })
+    .unwrap_or(core::ptr::null_mut())
+}
+
+#[cfg(feature = "have_tree_sitter")]
+unsafe extern "C" fn treesit_realloc_wrapper(ptr: *mut c_void, size: usize) -> *mut c_void {
+  // SAFETY: Same C FFI boundary guard as `treesit_malloc_wrapper`.
+  crate::nonlocal::catch_vm_nonlocal(|| unsafe { xrealloc(ptr, size) })
+    .unwrap_or(core::ptr::null_mut())
+}
+
+#[cfg(feature = "have_tree_sitter")]
+unsafe extern "C" fn treesit_free_wrapper(ptr: *mut c_void) {
+  // SAFETY: `xfree` does not signal, wrapped in `extern "C"` for `ts_set_allocator`.
+  let _ = crate::nonlocal::catch_vm_nonlocal(|| unsafe { xfree(ptr) });
 }
 
 /* C 563-574: `treesit_initialize`.  `ts_set_allocator`'s four arguments are C's four allocator
@@ -738,9 +760,9 @@ unsafe fn treesit_initialize ()
     {
       load_tree_sitter_if_necessary (true);
       #[cfg (not (feature = "windowsnt"))]
-      { ts_set_allocator (Some (xmalloc), Some (treesit_calloc_wrapper), Some (xrealloc), Some (xfree)); }
+      { ts_set_allocator (Some (treesit_malloc_wrapper), Some (treesit_calloc_wrapper), Some (treesit_realloc_wrapper), Some (treesit_free_wrapper)); }
       #[cfg (feature = "windowsnt")]
-      { (fn_ts_set_allocator.unwrap ()) (Some (xmalloc), Some (treesit_calloc_wrapper), Some (xrealloc), Some (xfree)); }
+      { (fn_ts_set_allocator.unwrap ()) (Some (treesit_malloc_wrapper), Some (treesit_calloc_wrapper), Some (treesit_realloc_wrapper), Some (treesit_free_wrapper)); }
       treesit_initialized = true;
     }
 }
@@ -755,7 +777,7 @@ unsafe fn treesit_initialize ()
    `lisp.h`'s `<stdio.h>` (the `alloc.rs` 63 shape).  */
 #[cfg (feature = "have_tree_sitter")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn treesit_debug_print_parser_list (msg: *mut c_char, parser: Lisp_Object)
+pub unsafe extern "C-unwind" fn treesit_debug_print_parser_list (msg: *mut c_char, parser: Lisp_Object)
 {
   let buf: *mut buffer = XBUFFER ((*XTS_PARSER (parser)).buffer);
   let buf_name: *mut c_char = SSDATA (BVAR! (buf, name_));
@@ -1176,7 +1198,7 @@ return DECODE_FILE(make_unibyte_string(lang.filename,strlen(lang.filename) as pt
 
 #[cfg(feature = "have_tree_sitter")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn treesit_debug_print_linecol(linecol:ts_linecol) {
+pub unsafe extern "C-unwind" fn treesit_debug_print_linecol(linecol:ts_linecol) {
  printf(c"{ line=%td col=%td bytepos=%td }\n".as_ptr(),linecol.line,linecol.col,linecol.bytepos);
 }
 
@@ -1188,7 +1210,7 @@ unsafe fn treesit_buf_tracks_linecol_p(buf:*mut buffer)->bool {
 
 
 #[cfg(feature = "have_tree_sitter")]
-unsafe extern "C" fn restore_restriction_and_selective_display(record:Lisp_Object) {
+unsafe extern "C-unwind" fn restore_restriction_and_selective_display(record:Lisp_Object) {
  save_restriction_restore(Fcar(record));
  BVAR!(current_buffer!(),selective_display_)=Fcdr(record);
 }
@@ -1422,7 +1444,7 @@ unsafe fn treesit_record_change_1(start_byte: ptrdiff_t, old_end_byte: ptrdiff_t
 
 #[cfg(feature = "have_tree_sitter")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn treesit_linecol_maybe(_pos: ptrdiff_t, pos_byte: ptrdiff_t,
+pub unsafe extern "C-unwind" fn treesit_linecol_maybe(_pos: ptrdiff_t, pos_byte: ptrdiff_t,
     cache: ts_linecol) -> ts_linecol {
     if NILP(BVAR!(current_buffer!(), ts_parser_list_)) || !treesit_buf_tracks_linecol_p(current_buffer!()) {
         return TREESIT_EMPTY_LINECOL;
@@ -1432,7 +1454,7 @@ pub unsafe extern "C" fn treesit_linecol_maybe(_pos: ptrdiff_t, pos_byte: ptrdif
 
 #[cfg(feature = "have_tree_sitter")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn treesit_record_change(start_byte: ptrdiff_t, old_end_byte: ptrdiff_t,
+pub unsafe extern "C-unwind" fn treesit_record_change(start_byte: ptrdiff_t, old_end_byte: ptrdiff_t,
     new_end_byte: ptrdiff_t, start_linecol: ts_linecol,
     old_end_linecol: ts_linecol, new_end: ptrdiff_t) {
     let new_end_linecol = treesit_linecol_maybe(new_end, new_end_byte, start_linecol);
@@ -1713,7 +1735,7 @@ unsafe fn make_treesit_query(query: Lisp_Object, language: Lisp_Object) -> Lisp_
 
 #[cfg(feature = "have_tree_sitter")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn treesit_delete_parser(lisp_parser: *mut Lisp_TS_Parser) {
+pub unsafe extern "C-unwind" fn treesit_delete_parser(lisp_parser: *mut Lisp_TS_Parser) {
     if (*lisp_parser).need_to_gc_buffer { Fkill_buffer((*lisp_parser).buffer); }
     ts_tree_delete((*lisp_parser).tree);
     ts_parser_delete((*lisp_parser).parser);
@@ -1721,14 +1743,14 @@ pub unsafe extern "C" fn treesit_delete_parser(lisp_parser: *mut Lisp_TS_Parser)
 
 #[cfg(feature = "have_tree_sitter")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn treesit_delete_query(lisp_query: *mut Lisp_TS_Query) {
+pub unsafe extern "C-unwind" fn treesit_delete_query(lisp_query: *mut Lisp_TS_Query) {
     if !(*lisp_query).query.is_null() { ts_query_delete((*lisp_query).query); }
     if !(*lisp_query).cursor.is_null() { ts_query_cursor_delete((*lisp_query).cursor); }
 }
 
 #[cfg(feature = "have_tree_sitter")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn treesit_named_node_p(node: TSNode) -> bool { ts_node_is_named(node) }
+pub unsafe extern "C-unwind" fn treesit_named_node_p(node: TSNode) -> bool { ts_node_is_named(node) }
 
 #[cfg(feature = "have_tree_sitter")]
 unsafe fn treesit_query_error_to_string(error: TSQueryError) -> *const c_char {
@@ -2092,7 +2114,7 @@ unsafe fn treesit_check_position(obj:Lisp_Object,buf:*mut buffer) {
 
 #[cfg(feature = "have_tree_sitter")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn treesit_node_uptodate_p(obj:Lisp_Object)->bool {
+pub unsafe extern "C-unwind" fn treesit_node_uptodate_p(obj:Lisp_Object)->bool {
  let lisp_parser=(*XTS_NODE(obj)).parser;
  return (*XTS_NODE(obj)).timestamp==(*XTS_PARSER(lisp_parser)).timestamp;
 }
@@ -2100,14 +2122,14 @@ pub unsafe extern "C" fn treesit_node_uptodate_p(obj:Lisp_Object)->bool {
 
 #[cfg(feature = "have_tree_sitter")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn treesit_node_buffer_live_p(obj:Lisp_Object)->bool {
+pub unsafe extern "C-unwind" fn treesit_node_buffer_live_p(obj:Lisp_Object)->bool {
  let buffer=XBUFFER((*XTS_PARSER((*XTS_NODE(obj)).parser)).buffer);return BUFFER_LIVE_P(buffer);
 }
 
 
 #[cfg(feature = "have_tree_sitter")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn treesit_node_eq(node1:Lisp_Object,node2:Lisp_Object)->bool {
+pub unsafe extern "C-unwind" fn treesit_node_eq(node1:Lisp_Object,node2:Lisp_Object)->bool {
  treesit_initialize();let treesit_node_1=(*XTS_NODE(node1)).node;let treesit_node_2=(*XTS_NODE(node2)).node;
  return ts_node_eq(treesit_node_1,treesit_node_2);
 }
@@ -2505,7 +2527,7 @@ unsafe fn treesit_predicate_equal(args: Lisp_Object, captures: capture_range,
 }
 
 #[cfg(feature = "have_tree_sitter")]
-unsafe extern "C" {
+unsafe extern "C-unwind" {
     fn assq_no_signal(key: Lisp_Object, alist: Lisp_Object) -> Lisp_Object;
     fn FUNCTIONP(object: Lisp_Object) -> bool;
     fn display_count_lines(start_byte: ptrdiff_t, limit_byte: ptrdiff_t,
@@ -2878,7 +2900,7 @@ unsafe fn treesit_search_forward(cursor: *mut TSTreeCursor, pred: Lisp_Object,
 }
 
 #[cfg(feature = "have_tree_sitter")]
-unsafe extern "C" fn treesit_traverse_cleanup_cursor(cursor: *mut c_void) {
+unsafe extern "C-unwind" fn treesit_traverse_cleanup_cursor(cursor: *mut c_void) {
     ts_tree_cursor_delete(cursor.cast());
 }
 
@@ -3145,7 +3167,7 @@ DEFUN! ("treesit-available-p", Ftreesit_available_p,
 
 /* Initialize the tree-sitter routines.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_treesit ()
+pub unsafe extern "C-unwind" fn syms_of_treesit ()
 {
   #[cfg(feature = "have_tree_sitter")]
   {

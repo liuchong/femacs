@@ -494,7 +494,7 @@ unsafe fn internal_self_insert (mut c: c_int, mut n: EMACS_INT) -> c_int
 pub static mut Vpost_self_insert_hook: Lisp_Object = lisp_h_Qnil ();
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_cmds ()
+pub unsafe extern "C-unwind" fn syms_of_cmds ()
 {
   DEFSYM! (Qinternal_auto_fill, "internal-auto-fill");
 

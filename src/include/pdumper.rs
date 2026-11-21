@@ -67,7 +67,7 @@ macro_rules! PDUMPER_REMEMBER_SCALAR {
 pub mod pdumper_decls {
   use super::*;
 
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     pub fn dump_fingerprint (output: *mut FILE, label: *const c_char,
                              fingerp: *const c_uchar);              // pdumper.h 49-50
     pub fn pdumper_remember_scalar_impl (data: *mut c_void,
@@ -94,7 +94,7 @@ pub use self::pdumper_decls::*;
 
 // pdumper.h 81: `typedef void (*pdumper_hook)(void);`.  The pointer is nullable in C, so
 // the port spells it `Option<unsafe extern "C" fn ()>` (P-27, the atimer_callback shape).
-pub type pdumper_hook = Option<unsafe extern "C" fn ()>;
+pub type pdumper_hook = Option<unsafe extern "C-unwind" fn ()>;
 
 // pdumper.h 92: `INLINE void pdumper_remember_scalar (void *data, ptrdiff_t nbytes)`.
 #[inline(always)]
@@ -186,7 +186,7 @@ pub fn pdumper_cold_object_p (obj: *const c_void) -> bool {
   { unsafe { pdumper_cold_object_p_impl (obj) } }
   #[cfg(not(enable_checking))]
   {
-    unsafe extern "C" { static dump_private: [u8; 152]; }
+    unsafe extern "C-unwind" { static dump_private: [u8; 152]; }
     unsafe {
       let offset = (obj as uintptr_t).wrapping_sub (dump_public.start) as i32;
       let cold_start = *(&raw const dump_private as *const u8).add (92).cast::<i32> ();
@@ -228,7 +228,7 @@ pub fn pdumper_marked_p (obj: *const c_void) -> bool {
   { unsafe { pdumper_marked_p_impl (obj) } }
   #[cfg(not(enable_checking))]
   {
-    unsafe extern "C" { static dump_private: [u8; 152]; }
+    unsafe extern "C-unwind" { static dump_private: [u8; 152]; }
     unsafe {
       let bitno: usize = (obj as uintptr_t).wrapping_sub (dump_public.start) >> 3;
       let bits = *(&raw const dump_private as *const u8).add (104).cast::<*const u32> ();
@@ -246,7 +246,7 @@ pub fn pdumper_set_marked (obj: *const c_void) {
   { unsafe { pdumper_set_marked_impl (obj) } }
   #[cfg(not(enable_checking))]
   {
-    unsafe extern "C" { static mut dump_private: [u8; 152]; }
+    unsafe extern "C-unwind" { static mut dump_private: [u8; 152]; }
     unsafe {
       let bitno: usize = (obj as uintptr_t).wrapping_sub (dump_public.start) >> 3;
       let bits = *(&raw mut dump_private as *mut u8).add (104).cast::<*mut u32> ();
@@ -265,7 +265,7 @@ pub fn pdumper_test_and_set_marked (obj: *const c_void) -> bool {
   }
   #[cfg(not(enable_checking))]
   {
-    unsafe extern "C" { static mut dump_private: [u8; 152]; }
+    unsafe extern "C-unwind" { static mut dump_private: [u8; 152]; }
     unsafe {
       let bitno: usize = (obj as uintptr_t).wrapping_sub (dump_public.start) >> 3;
       let bits = *(&raw mut dump_private as *mut u8).add (104).cast::<*mut u32> ();

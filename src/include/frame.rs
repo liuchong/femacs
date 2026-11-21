@@ -1480,7 +1480,7 @@ pub fn window_system_available (f: *mut frame) -> bool {
            instead of at file scope: this mirror is textually included by `src/frame.rs` too,
            which *defines* the function (C 116-121), and a crate-level declaration plus a
            definition of one name is a duplicate item there.  */
-        unsafe extern "C" { fn display_available () -> bool; }
+        unsafe extern "C-unwind" { fn display_available () -> bool; }
         unsafe { display_available () }
       }
 }
@@ -1539,16 +1539,16 @@ pub fn frame_set_field (f: *mut frame, unit: u32, shift: u32, mask: u32, v: u32)
 }
 
 // frame.h 1428-1521: the file-scope objects (the .c files define them).
-unsafe extern "C" { pub static mut frame_next_id: EMACS_UINT; }              // 1428
-unsafe extern "C" { pub static mut frame_garbaged: bool; }                   // 1433
-unsafe extern "C" { pub static mut selected_frame: Lisp_Object; }            // 1459
-unsafe extern "C" { pub static mut old_selected_frame: Lisp_Object; }        // 1460
-unsafe extern "C" { pub static mut frame_default_tab_bar_height: c_int; }    // 1462
-unsafe extern "C" { pub static mut frame_default_tool_bar_height: c_int; }   // 1465
-unsafe extern "C" { pub static mut Vframe_list: Lisp_Object; }               // 1521
+unsafe extern "C-unwind" { pub static mut frame_next_id: EMACS_UINT; }              // 1428
+unsafe extern "C-unwind" { pub static mut frame_garbaged: bool; }                   // 1433
+unsafe extern "C-unwind" { pub static mut selected_frame: Lisp_Object; }            // 1459
+unsafe extern "C-unwind" { pub static mut old_selected_frame: Lisp_Object; }        // 1460
+unsafe extern "C-unwind" { pub static mut frame_default_tab_bar_height: c_int; }    // 1462
+unsafe extern "C-unwind" { pub static mut frame_default_tool_bar_height: c_int; }   // 1465
+unsafe extern "C-unwind" { pub static mut Vframe_list: Lisp_Object; }               // 1521
 
 // frame.h 1506: cmds.c's self-insert path hides the mouse pointer through this one.
-unsafe extern "C" { pub fn frame_make_pointer_invisible (f: *mut frame); }             // 1506
+unsafe extern "C-unwind" { pub fn frame_make_pointer_invisible (f: *mut frame); }             // 1506
 
 /* Most code should use these functions to set Lisp fields in struct frame.  */
 // frame.h 753-895: the frame's Lisp-Object setters, one assignment each (C's `fset_*`).
@@ -1900,7 +1900,7 @@ macro_rules! SET_FRAME_VISIBLE {
     ($f:expr, $v:expr) => {{
         let f = $f;
         let v: bool = $v;
-        unsafe extern "C" {
+        unsafe extern "C-unwind" {
             fn redisplay_other_windows();
             fn is_tty_child_frame(f: *mut c_void) -> bool;
             fn mru_rooted_frame(f: *mut c_void) -> Lisp_Object;
@@ -2133,7 +2133,7 @@ const _: () = core::assert! (core::mem::offset_of! (MonitorInfo, name) == 40);
 #[cfg (feature = "have_window_system")]
 pub mod frame_monitor_decls {
 use super::*;
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   /// C: extern void free_monitors (struct MonitorInfo *monitors, int n_monitors);
   pub fn free_monitors (monitors: *mut MonitorInfo, n_monitors: c_int);
   /* C's `make_monitor_attribute_list` is declared here and defined in frame.c; the port's
@@ -2151,7 +2151,7 @@ pub use frame_monitor_decls::*;
 pub mod frame_fn_decls {
   use super::*;
 
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     /// C: frame.h 1476: `extern struct frame *decode_live_frame (Lisp_Object);`
     pub fn decode_live_frame (frame: Lisp_Object) -> *mut frame;
     /// C: frame.h 1477: `extern struct frame *decode_any_frame (Lisp_Object);`

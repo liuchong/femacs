@@ -375,9 +375,9 @@ static mut unread_char: c_int = -1;                                    // C 255
 pub struct source
 {
   /// Read a character, -1 if at end of stream.
-  pub get: Option<unsafe extern "C" fn (src: *mut source) -> c_int>,
+  pub get: Option<unsafe extern "C-unwind" fn (src: *mut source) -> c_int>,
   /// Unread character C.  Only a single char can be unread at a given time.
-  pub unget: Option<unsafe extern "C" fn (src: *mut source, c: c_int)>,
+  pub unget: Option<unsafe extern "C-unwind" fn (src: *mut source, c: c_int)>,
   /// Object read from: buffer, marker, string, or function.
   pub object: Lisp_Object,
   pub multibyte: bool,           /* whether `get' returns multibyte chars */
@@ -436,7 +436,7 @@ unsafe fn init_source (src: *mut source, readcharfun: Lisp_Object)
     }
 }
 
-unsafe extern "C" fn source_buffer_get (src: *mut source) -> c_int
+unsafe extern "C-unwind" fn source_buffer_get (src: *mut source) -> c_int
 {
   let b: *mut buffer = XBUFFER ((*src).object);
   if !BUFFER_LIVE_P (b)
@@ -465,7 +465,7 @@ unsafe extern "C" fn source_buffer_get (src: *mut source) -> c_int
   c
 }
 
-unsafe extern "C" fn source_buffer_unget (src: *mut source, c: c_int)
+unsafe extern "C-unwind" fn source_buffer_unget (src: *mut source, c: c_int)
 {
   let b: *mut buffer = XBUFFER ((*src).object);
   let charpos: ptrdiff_t = BUF_PT (b);
@@ -474,7 +474,7 @@ unsafe extern "C" fn source_buffer_unget (src: *mut source, c: c_int)
   SET_BUF_PT_BOTH (b, charpos - 1, bytepos);
 }
 
-unsafe extern "C" fn source_marker_get (src: *mut source) -> c_int
+unsafe extern "C-unwind" fn source_marker_get (src: *mut source) -> c_int
 {
   let m: Lisp_Object = (*src).object;
   let b: *mut buffer = (*XMARKER (m)).buffer as *mut buffer;
@@ -502,7 +502,7 @@ unsafe extern "C" fn source_marker_get (src: *mut source) -> c_int
   c
 }
 
-unsafe extern "C" fn source_marker_unget (src: *mut source, c: c_int)
+unsafe extern "C-unwind" fn source_marker_unget (src: *mut source, c: c_int)
 {
   let m: Lisp_Object = (*src).object;
   let b: *mut buffer = (*XMARKER (m)).buffer as *mut buffer;
@@ -513,7 +513,7 @@ unsafe extern "C" fn source_marker_unget (src: *mut source, c: c_int)
 }
 
 #[inline(always)]
-unsafe extern "C" fn source_string_get (src: *mut source) -> c_int
+unsafe extern "C-unwind" fn source_string_get (src: *mut source) -> c_int
 {
   if read_from_string_index >= read_from_string_limit
     { return -1; }
@@ -536,7 +536,7 @@ unsafe extern "C" fn source_string_get (src: *mut source) -> c_int
 }
 
 #[inline(always)]
-unsafe extern "C" fn source_string_unget (src: *mut source, c: c_int)
+unsafe extern "C-unwind" fn source_string_unget (src: *mut source, c: c_int)
 {
   read_from_string_index -= 1;
   if ! (*src).multibyte
@@ -572,7 +572,7 @@ unsafe fn darwin_sgetc (stream: *mut FILE) -> c_int
 }
 
 #[inline(always)]
-unsafe extern "C" fn source_file_get (src: *mut source) -> c_int
+unsafe extern "C-unwind" fn source_file_get (src: *mut source) -> c_int
 {
   if unread_char >= 0
     {
@@ -610,18 +610,18 @@ unsafe extern "C" fn source_file_get (src: *mut source) -> c_int
 }
 
 #[inline(always)]
-unsafe extern "C" fn source_file_unget (src: *mut source, c: c_int)
+unsafe extern "C-unwind" fn source_file_unget (src: *mut source, c: c_int)
 {
   unread_char = c;
 }
 
-unsafe extern "C" fn source_function_get (src: *mut source) -> c_int
+unsafe extern "C-unwind" fn source_function_get (src: *mut source) -> c_int
 {
   let x: Lisp_Object = call0 ((*src).object);
   if CHARACTERP (x) { XFIXNUM (x) as c_int } else { -1 }
 }
 
-unsafe extern "C" fn source_function_unget (src: *mut source, c: c_int)
+unsafe extern "C-unwind" fn source_function_unget (src: *mut source, c: c_int)
 {
   calln! ((*src).object, make_fixnum (c as EMACS_INT));
 }
@@ -1104,18 +1104,18 @@ unsafe fn safe_to_load_version (file: Lisp_Object, fd: lread_fd) -> c_int
 
 /* Callback for record_unwind_protect.  Restore the old load list OLD,
    after loading a file successfully.  */
-unsafe extern "C" fn record_load_unwind (old: Lisp_Object)
+unsafe extern "C-unwind" fn record_load_unwind (old: Lisp_Object)
 {
   Vloads_in_progress = old;
 }
 
 /* This handler function is used via internal_condition_case_1.  */
-unsafe extern "C" fn load_error_handler (data: Lisp_Object) -> Lisp_Object
+unsafe extern "C-unwind" fn load_error_handler (data: Lisp_Object) -> Lisp_Object
 {
   Qnil ()
 }
 
-unsafe extern "C" fn load_warn_unescaped_character_literals (file: Lisp_Object)
+unsafe extern "C-unwind" fn load_warn_unescaped_character_literals (file: Lisp_Object)
 {
   let function: Lisp_Object
     = Fsymbol_function (Qbyte_run_unescaped_character_literals_warning ());
@@ -1163,7 +1163,7 @@ DEFUN! ("get-load-suffixes", Fget_load_suffixes, Sget_load_suffixes, 0, 0, 0,
 
 /* Return true if STRING ends with SUFFIX.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn suffix_p (string: Lisp_Object, suffix: *const c_char) -> bool
+pub unsafe extern "C-unwind" fn suffix_p (string: Lisp_Object, suffix: *const c_char) -> bool
 {
   let suffix_len: ptrdiff_t = strlen (suffix) as ptrdiff_t;
   let string_len: ptrdiff_t = SBYTES (string);
@@ -1172,7 +1172,7 @@ pub unsafe extern "C" fn suffix_p (string: Lisp_Object, suffix: *const c_char) -
    && strcmp (SSDATA (string).add ((string_len - suffix_len) as usize), suffix) == 0)
 }
 
-unsafe extern "C" fn close_infile_unwind (arg: *mut c_void)
+unsafe extern "C-unwind" fn close_infile_unwind (arg: *mut c_void)
 {
   let prev_infile: *mut infile = arg as *mut infile;
   eassert! (!infile.is_null () && infile != prev_infile);
@@ -1196,7 +1196,7 @@ unsafe fn compute_found_effective (found: Lisp_Object) -> Lisp_Object
   concat2 (src_name, build_string (c"c".as_ptr ()))
 }
 
-unsafe extern "C" fn loadhist_initialize (filename: Lisp_Object)
+unsafe extern "C-unwind" fn loadhist_initialize (filename: Lisp_Object)
 {
   eassert! (STRINGP (filename) || NILP (filename));
   specbind (Qcurrent_load_list (), Fcons (filename, Qnil ()));
@@ -1205,7 +1205,7 @@ unsafe extern "C" fn loadhist_initialize (filename: Lisp_Object)
 /* C 1037-1051: `#ifdef USE_ANDROID_ASSETS`'s `close_file_unwind_android_fd` is carried
    with the rest of the Android arm (the `use_android_assets` spelling).  */
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]   // C 69: `#define USE_ANDROID_ASSETS`
-unsafe extern "C" fn close_file_unwind_android_fd (ptr: *mut c_void)
+unsafe extern "C-unwind" fn close_file_unwind_android_fd (ptr: *mut c_void)
 {
   let fd: *mut android_fd_or_asset = ptr as *mut android_fd_or_asset;
 
@@ -1228,25 +1228,20 @@ unsafe fn get_lexical_binding (stream: Lisp_Object, from: Lisp_Object) -> Lisp_O
 
 /* ---- use-site declarations for names no included mirror carries ---------------- */
 
-unsafe extern "C" {
-  /// C: <stdio.h>: `int getc (FILE *);`  Darwin's `getc` is a macro that reads the FILE's
-  /// buffer inline and calls `__srget` only when it is empty; calling `__srget` directly is
-  /// *not* `getc` (measured: `getc`/`__srget`/`getc` on a buffered stream returns `A` then
-  /// garbage), so the port calls the libc entry point the macro stands for - the
-  /// `emacs_fclose` (`lisp.h` -> `fclose`) and print.rs `putc` class.  The reference object
-  /// C: <stdio.h>: `int fseek (FILE *, long, int);`
-  fn fseek (stream: *mut FILE, off: c_long, whence: c_int) -> c_int;
-  /// C: <stdio.h>: `off_t ftello (FILE *);` (`HAVE_FSEEKO` is 1 in the frozen table).
-  fn ftello (stream: *mut FILE) -> off_t;
+unsafe extern "C-unwind" {
+
+
+  /// C: fns.c: `extern struct hash_table_test hashtest_eq;` (lisp.rs carries the eql/equal pair).
+  static mut hashtest_eq: hash_table_test;
   /// C: lisp.h 4826: `extern void record_unwind_protect_excursion (void);` (eval.c).
   fn record_unwind_protect_excursion ();
 
 
   /// C: lisp.h 5392: `extern Lisp_Object internal_condition_case_1 (Lisp_Object (*) (Lisp_Object),
   /// Lisp_Object, Lisp_Object, Lisp_Object (*) (Lisp_Object));` (eval.c).
-  fn internal_condition_case_1 (bfun: Option<unsafe extern "C" fn (Lisp_Object) -> Lisp_Object>,
+  fn internal_condition_case_1 (bfun: Option<unsafe extern "C-unwind" fn (Lisp_Object) -> Lisp_Object>,
 				arg: Lisp_Object, handlers: Lisp_Object,
-				hfun: Option<unsafe extern "C" fn (Lisp_Object) -> Lisp_Object>)
+				hfun: Option<unsafe extern "C-unwind" fn (Lisp_Object) -> Lisp_Object>)
     -> Lisp_Object;
   /// C: lisp.h 4397: `extern void message_with_string (const char *, Lisp_Object, bool);` (keyboard.c).
   fn message_with_string (m: *const c_char, string: Lisp_Object, log: bool);
@@ -1259,7 +1254,7 @@ unsafe extern "C" {
   fn emacs_fstatat (fd: c_int, name: *const c_char, buf: *mut c_void, flag: c_int) -> c_int;
   /// C: lisp.h 4832: `extern void set_unwind_protect_ptr (specpdl_ref, void (*) (void *), void *);`
   fn set_unwind_protect_ptr (count: specpdl_ref,
-			     func: Option<unsafe extern "C" fn (*mut c_void)>,
+			     func: Option<unsafe extern "C-unwind" fn (*mut c_void)>,
 			     arg: *mut c_void);
   // lisp.h 4823's `record_unwind_protect_int` is the include/lisp.rs mirror's now (status 3.371).
   // lisp.h 4820's `record_unwind_protect_ptr` is the include/lisp.rs mirror's now
@@ -1271,10 +1266,6 @@ unsafe extern "C" {
   /// C: keyboard.c's `noninteractive` (globals.rs).
   /// C: sysdep.c: `extern int sys_fstat (int, struct stat *);`
   fn sys_fstat (fd: c_int, st: *mut stat) -> c_int;
-
-
-  /// C: fns.c: `extern struct hash_table_test hashtest_eq;` (lisp.rs carries the eql/equal pair).
-  static mut hashtest_eq: hash_table_test;
   /// C: lisp.h 5xxx: `extern int sys_faccessat (int, const char *, int, int);` (sysdep.c).
   fn sys_faccessat (fd: c_int, name: *const c_char, mode: c_int, flag: c_int) -> c_int;
 
@@ -1284,12 +1275,10 @@ unsafe extern "C" {
 			    multibyte: bool) -> Lisp_Object;
 
   /// C: lisp.h 4824: `extern void record_unwind_protect_intmax (void (*) (intmax_t), intmax_t);`
-  fn record_unwind_protect_intmax (func: Option<unsafe extern "C" fn (i64)>, int_: i64);
+  fn record_unwind_protect_intmax (func: Option<unsafe extern "C-unwind" fn (i64)>, int_: i64);
 
   /// C: bignum.c: `extern Lisp_Object make_bignum_str (const char *, int);`
   fn make_bignum_str (num: *const c_char, base: c_int) -> Lisp_Object;
-  /// C: <stdlib.h>: `double atof (const char *);`
-  fn atof (s: *const c_char) -> c_double;
   /// C: lisp.h 5221: `extern Lisp_Object get_doc_string (Lisp_Object, bool);` (doc.c).
   fn get_doc_string (filepos: Lisp_Object, unibyte: bool) -> Lisp_Object;
 
@@ -1312,6 +1301,19 @@ unsafe extern "C" {
   fn emacs_strerror (error_number: c_int) -> *const c_char;
   /// C: emacs.c: `extern void message_dolog (const char *, ptrdiff_t, bool, bool);`
   fn message_dolog (m: *const c_char, nbytes: ptrdiff_t, nlflag: bool, multibyte: bool);
+}
+unsafe extern "C" {
+  /// C: <stdio.h>: `int getc (FILE *);`  Darwin's `getc` is a macro that reads the FILE's
+  /// buffer inline and calls `__srget` only when it is empty; calling `__srget` directly is
+  /// *not* `getc` (measured: `getc`/`__srget`/`getc` on a buffered stream returns `A` then
+  /// garbage), so the port calls the libc entry point the macro stands for - the
+  /// `emacs_fclose` (`lisp.h` -> `fclose`) and print.rs `putc` class.  The reference object
+  /// C: <stdio.h>: `int fseek (FILE *, long, int);`
+  fn fseek (stream: *mut FILE, off: c_long, whence: c_int) -> c_int;
+  /// C: <stdio.h>: `off_t ftello (FILE *);` (`HAVE_FSEEKO` is 1 in the frozen table).
+  fn ftello (stream: *mut FILE) -> off_t;
+  /// C: <stdlib.h>: `double atof (const char *);`
+  fn atof (s: *const c_char) -> c_double;
 
 
 
@@ -1818,7 +1820,7 @@ DEFUN! ("load", Fload, Sload, 1, 5, 0,
        });
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn save_match_data_load (file: Lisp_Object, noerror: Lisp_Object,
+pub unsafe extern "C-unwind" fn save_match_data_load (file: Lisp_Object, noerror: Lisp_Object,
 				nomessage: Lisp_Object, nosuffix: Lisp_Object,
 				must_suffix: Lisp_Object) -> Lisp_Object
 {
@@ -1965,7 +1967,7 @@ unsafe fn maybe_swap_for_eln (no_native: bool, filename: *mut Lisp_Object,
 /* C 1756-2052.  Search for a file whose name is STR, looking in directories in the Lisp
    list PATH, and trying suffixes from SUFFIX.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn openp (path: Lisp_Object, str_: Lisp_Object, suffixes: Lisp_Object,
+pub unsafe extern "C-unwind" fn openp (path: Lisp_Object, str_: Lisp_Object, suffixes: Lisp_Object,
 		 storeptr: *mut Lisp_Object, predicate: Lisp_Object, newer: bool,
 		 no_native: bool, platform: *mut *mut c_void) -> c_int
 {
@@ -3965,7 +3967,7 @@ const _: () = core::assert! (std::mem::offset_of! (read_stack, sp) == 16);
 static mut rdstack: read_stack = read_stack { stack: std::ptr::null_mut (), size: 0, sp: 0 };
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mark_lread ()
+pub unsafe extern "C-unwind" fn mark_lread ()
 {
   /* Mark the read stack, which may contain data not otherwise traced */
   let mut i: ptrdiff_t = 0;
@@ -4040,7 +4042,7 @@ unsafe fn read_stack_push (e: read_stack_entry)
   rdstack.sp += 1;
 }
 
-unsafe extern "C" fn read_stack_reset (sp: i64)
+unsafe extern "C-unwind" fn read_stack_reset (sp: i64)
 {
   eassert! (sp as ptrdiff_t <= rdstack.sp);
   rdstack.sp = sp as ptrdiff_t;
@@ -4901,7 +4903,7 @@ unsafe fn substitute_object_recurse (subst: *mut subst, subtree: Lisp_Object) ->
 }
 
 /*  Helper function for substitute_object_recurse.  */
-unsafe extern "C" fn substitute_in_interval (interval: INTERVAL, arg: *mut c_void)
+unsafe extern "C-unwind" fn substitute_in_interval (interval: INTERVAL, arg: *mut c_void)
 {
   set_interval_plist (interval,
 		      substitute_object_recurse (arg as *mut subst,
@@ -4922,7 +4924,7 @@ static mut not_a_number: [Lisp_Object; 2] = [std::ptr::null_mut (); 2];	// C 448
 /* Convert the initial prefix of STRING to a number, assuming base BASE.
    ...  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn string_to_number (string: *const c_char, base: c_int,
+pub unsafe extern "C-unwind" fn string_to_number (string: *const c_char, base: c_int,
 					   plen: *mut ptrdiff_t) -> Lisp_Object
 {
   let mut cp: *const c_char = string;
@@ -5134,7 +5136,7 @@ macro_rules! DOOBARRAY {
 
 /* Slow path obarray check: return the obarray to use or signal an error.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn check_obarray_slow (obarray: Lisp_Object) -> Lisp_Object
+pub unsafe extern "C-unwind" fn check_obarray_slow (obarray: Lisp_Object) -> Lisp_Object
 {
   /* For compatibility, we accept vectors whose first element is 0,
      and store an obarray object there.  */
@@ -5191,7 +5193,7 @@ unsafe fn intern_sym (sym: Lisp_Object, obarray: Lisp_Object, index: Lisp_Object
 
 /* Intern a symbol with name STRING in OBARRAY using bucket INDEX.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn intern_driver (string: Lisp_Object, obarray: Lisp_Object,
+pub unsafe extern "C-unwind" fn intern_driver (string: Lisp_Object, obarray: Lisp_Object,
 					index: Lisp_Object) -> Lisp_Object
 {
   SET_SYMBOL_VAL (XBARE_SYMBOL (Qobarray_cache ()), Qnil ());
@@ -5201,7 +5203,7 @@ pub unsafe extern "C" fn intern_driver (string: Lisp_Object, obarray: Lisp_Objec
 /* Intern the C string STR: return a symbol with that name,
    interned in the current obarray.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn intern_1 (str_: *const c_char, len: ptrdiff_t) -> Lisp_Object
+pub unsafe extern "C-unwind" fn intern_1 (str_: *const c_char, len: ptrdiff_t) -> Lisp_Object
 {
   let obarray: Lisp_Object = check_obarray (Vobarray);
   let tem: Lisp_Object = oblookup (obarray, str_, len, len);
@@ -5213,7 +5215,7 @@ pub unsafe extern "C" fn intern_1 (str_: *const c_char, len: ptrdiff_t) -> Lisp_
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn intern_c_string_1 (str_: *const c_char, len: ptrdiff_t) -> Lisp_Object
+pub unsafe extern "C-unwind" fn intern_c_string_1 (str_: *const c_char, len: ptrdiff_t) -> Lisp_Object
 {
   let obarray: Lisp_Object = check_obarray (Vobarray);
   let mut tem: Lisp_Object = oblookup (obarray, str_, len, len);
@@ -5231,7 +5233,7 @@ pub unsafe extern "C" fn intern_c_string_1 (str_: *const c_char, len: ptrdiff_t)
 
 /* Intern STR of NBYTES bytes and NCHARS characters in the default obarray.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn intern_c_multibyte (str_: *const c_char, nchars: ptrdiff_t,
+pub unsafe extern "C-unwind" fn intern_c_multibyte (str_: *const c_char, nchars: ptrdiff_t,
 					     nbytes: ptrdiff_t) -> Lisp_Object
 {
   let obarray: Lisp_Object = check_obarray (Vobarray);
@@ -5371,7 +5373,7 @@ DEFUN! ("unintern", Funintern, Sunintern, 2, 2, 0,
    If there is no such symbol, return the integer bucket number of
    where the symbol would be if it were present.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn oblookup (obarray: Lisp_Object, ptr: *const c_char,
+pub unsafe extern "C-unwind" fn oblookup (obarray: Lisp_Object, ptr: *const c_char,
 				   size: ptrdiff_t, size_byte: ptrdiff_t) -> Lisp_Object
 {
   let o: *mut Lisp_Obarray = XOBARRAY (obarray);
@@ -5590,8 +5592,8 @@ DEFUN! ("obarray-clear", Fobarray_clear, Sobarray_clear, 1, 1, 0,
        });
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn map_obarray (obarray: Lisp_Object,
-				      fn_: Option<unsafe extern "C" fn (Lisp_Object, Lisp_Object)>,
+pub unsafe extern "C-unwind" fn map_obarray (obarray: Lisp_Object,
+				      fn_: Option<unsafe extern "C-unwind" fn (Lisp_Object, Lisp_Object)>,
 				      arg: Lisp_Object)
 {
   CHECK_OBARRAY (obarray);
@@ -5603,7 +5605,7 @@ pub unsafe extern "C" fn map_obarray (obarray: Lisp_Object,
   });
 }
 
-unsafe extern "C" fn mapatoms_1 (sym: Lisp_Object, function: Lisp_Object)
+unsafe extern "C-unwind" fn mapatoms_1 (sym: Lisp_Object, function: Lisp_Object)
 {
   calln! (function, sym);
 }
@@ -6201,7 +6203,7 @@ static mut defsym_name: [*const c_char; lispsym_count] = include!(env!("FEMACS_S
 
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn init_obarray_once ()
+pub unsafe extern "C-unwind" fn init_obarray_once ()
 {
   Vobarray = make_obarray (15);
   initial_obarray = Vobarray;
@@ -6255,7 +6257,7 @@ pub unsafe extern "C" fn init_obarray_once ()
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn defsubr (aname: *mut Aligned_Lisp_Subr)
+pub unsafe extern "C-unwind" fn defsubr (aname: *mut Aligned_Lisp_Subr)
 {
   let sname: *mut Lisp_Subr = &mut (*aname).s;
   let sym: Lisp_Object;
@@ -6275,7 +6277,7 @@ pub unsafe extern "C" fn defsubr (aname: *mut Aligned_Lisp_Subr)
    C variable of type intmax_t.  Sample call (with "xx" to fool make-docfile):
    DEFxxVAR_INT ("emacs-priority", &emacs_priority, "Documentation");  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn defvar_int (i_fwd: *const Lisp_Fwd, namestring: *const c_char)
+pub unsafe extern "C-unwind" fn defvar_int (i_fwd: *const Lisp_Fwd, namestring: *const c_char)
 {
   eassert! ((*i_fwd).r#type == Lisp_Fwd_Int);
   let sym: Lisp_Object = intern_c_string (namestring);
@@ -6286,7 +6288,7 @@ pub unsafe extern "C" fn defvar_int (i_fwd: *const Lisp_Fwd, namestring: *const 
 
 /* Similar but define a variable whose value is t if 1, nil if 0.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn defvar_bool (b_fwd: *const Lisp_Fwd, namestring: *const c_char)
+pub unsafe extern "C-unwind" fn defvar_bool (b_fwd: *const Lisp_Fwd, namestring: *const c_char)
 {
   eassert! ((*b_fwd).r#type == Lisp_Fwd_Bool);
   let sym: Lisp_Object = intern_c_string (namestring);
@@ -6302,7 +6304,7 @@ pub unsafe extern "C" fn defvar_bool (b_fwd: *const Lisp_Fwd, namestring: *const
    gc-marked for some other reason, since marking the same slot twice
    can cause trouble with strings.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn defvar_lisp_nopro (o_fwd: *const Lisp_Fwd, namestring: *const c_char)
+pub unsafe extern "C-unwind" fn defvar_lisp_nopro (o_fwd: *const Lisp_Fwd, namestring: *const c_char)
 {
   eassert! ((*o_fwd).r#type == Lisp_Fwd_Obj);
   let sym: Lisp_Object = intern_c_string (namestring);
@@ -6312,7 +6314,7 @@ pub unsafe extern "C" fn defvar_lisp_nopro (o_fwd: *const Lisp_Fwd, namestring: 
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn defvar_lisp (o_fwd: *const Lisp_Fwd, namestring: *const c_char)
+pub unsafe extern "C-unwind" fn defvar_lisp (o_fwd: *const Lisp_Fwd, namestring: *const c_char)
 {
   eassert! ((*o_fwd).r#type == Lisp_Fwd_Obj);
   defvar_lisp_nopro (o_fwd, namestring);
@@ -6322,7 +6324,7 @@ pub unsafe extern "C" fn defvar_lisp (o_fwd: *const Lisp_Fwd, namestring: *const
 /* Similar but define a variable whose value is the Lisp Object stored
    at a particular offset in the current kboard object.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn defvar_kboard (ko_fwd: *const Lisp_Fwd, namestring: *const c_char)
+pub unsafe extern "C-unwind" fn defvar_kboard (ko_fwd: *const Lisp_Fwd, namestring: *const c_char)
 {
   eassert! ((*ko_fwd).r#type == Lisp_Fwd_Kboard_Obj);
   let sym: Lisp_Object = intern_c_string (namestring);
@@ -6460,7 +6462,7 @@ unsafe fn load_path_default () -> Lisp_Object
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn init_lread ()
+pub unsafe extern "C-unwind" fn init_lread ()
 {
   /* First, set Vload_path.  */
 
@@ -6539,7 +6541,7 @@ pub unsafe extern "C" fn init_lread ()
    the access failure.  Print the warning on stderr and put it in
    *Messages*.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn dir_warning (r#use: *const c_char, dirname: Lisp_Object)
+pub unsafe extern "C-unwind" fn dir_warning (r#use: *const c_char, dirname: Lisp_Object)
 {
   let format: *const c_char = c"Warning: %s '%s': %s\n".as_ptr ();
   let diagnostic: *const c_char = emacs_strerror (*errno ());
@@ -6683,7 +6685,7 @@ pub static mut load_prefer_newer: bool = false;
 pub static mut load_no_native: bool = false;
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_lread ()
+pub unsafe extern "C-unwind" fn syms_of_lread ()
 {
 
   defsubr (&raw mut Sread);

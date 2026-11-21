@@ -1588,11 +1588,11 @@ macro_rules! MATRIX_ROW_OVERLAPS_SUCC_P {
 }
 
 /* A glyph for a space.  */
-unsafe extern "C" { pub static mut space_glyph: glyph; }     // dispextern.h 1338
+unsafe extern "C-unwind" { pub static mut space_glyph: glyph; }     // dispextern.h 1338
 
 /* Display a warning message.  Used by cmds.c's self-insert-command path (dispextern.h
    3900; the definition is in keyboard.c's mirror).  */
-unsafe extern "C" { pub fn bitch_at_user (); }          // dispextern.h 3900
+unsafe extern "C-unwind" { pub fn bitch_at_user (); }          // dispextern.h 3900
 
 /* Enumeration of the areas in a glyph row.  */
 pub type glyph_row_area = c_int;
@@ -2146,7 +2146,7 @@ pub struct bidi_string_data
 // lib/include/acl.rs); the dead arm's function keeps C's prototype now that
 // `struct glyph_matrix` is declared above (it is the same header's type).
 #[cfg(feature = "glyph_debug")]
-unsafe extern "C" { pub fn check_matrix_pointer_lossage (matrix: *mut glyph_matrix); }  // dispextern.h 864
+unsafe extern "C-unwind" { pub fn check_matrix_pointer_lossage (matrix: *mut glyph_matrix); }  // dispextern.h 864
 // dispextern.h 869.
 macro_rules! CHECK_MATRIX { ($matrix:expr) => { { let _ = ($matrix); 0 } }; }
 
@@ -2969,7 +2969,7 @@ pub mod dispextern_unit_names {
   }
 
   /* C 2068: the global the redisplay path reads.  */
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     /// C: extern bool face_change;
     pub static mut face_change: bool;
   }
@@ -2977,7 +2977,7 @@ pub mod dispextern_unit_names {
   /* C 3617-3710: the three globals this header declares.  They are here rather than at the
      mirror's top level for the reason in the module's own doc: the including unit defines them
      (`src/fringe.c` 497, `keyboard.c`), so a top-level copy collides (status 3.505).  */
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     /// C 3617: `extern int last_tab_bar_item;` (the unit that defines it is keyboard.c's).
     pub static mut last_tab_bar_item: c_int;
     /// C 3618: `extern int last_tool_bar_item;`
@@ -3838,7 +3838,7 @@ const _: () = core::assert! (core::mem::offset_of! (it, min_width_start) == 4960
   /* ---- C 3067-3200: the window-based redisplay interface ------------------------------------
      Same arm and same measurement as the two blocks above.  C's `frame_parm_handler *` is
      `frame.h`'s type and stays `*mut c_void` here (P-72 ③); the twelve members the interface calls
-     keep C's names and the port's `Option<unsafe extern "C" fn>` shape, and every one of them is
+     keep C's names and the port's `Option<unsafe extern "C-unwind" fn>` shape, and every one of them is
      an 8-byte pointer, so the offsets are the interface's own.  C's `#ifdef HAVE_WINDOW_SYSTEM`
      arm (C 3131-3195) is dead text on this target and is carried under that feature - the
      fifteen hooks below (status 3.283); the frozen arm's thirteen members and their offsets are
@@ -3849,18 +3849,18 @@ const _: () = core::assert! (core::mem::offset_of! (it, min_width_start) == 4960
 pub struct redisplay_interface
 {
   pub frame_parm_handlers: *mut c_void,                  // offset 0
-  pub produce_glyphs: Option<unsafe extern "C" fn (*mut it)>,                  // offset 8
-  pub write_glyphs: Option<unsafe extern "C" fn (w: *mut c_void, row: *mut glyph_row, string: *mut glyph, area: c_int, len: c_int)>,                  // offset 16
-  pub insert_glyphs: Option<unsafe extern "C" fn (w: *mut c_void, row: *mut glyph_row, start: *mut glyph, area: c_int, len: c_int)>,                  // offset 24
-  pub clear_end_of_line: Option<unsafe extern "C" fn (w: *mut c_void, row: *mut glyph_row, area: c_int, x: c_int)>,                  // offset 32
-  pub scroll_run_hook: Option<unsafe extern "C" fn (w: *mut c_void, run: *mut run)>,                  // offset 40
-  pub after_update_window_line_hook: Option<unsafe extern "C" fn (w: *mut c_void, desired_row: *mut glyph_row)>,                  // offset 48
-  pub update_window_begin_hook: Option<unsafe extern "C" fn (w: *mut c_void)>,                  // offset 56
-  pub update_window_end_hook: Option<unsafe extern "C" fn (w: *mut c_void, cursor_on_p: bool, mouse_face_overwritten_p: bool)>,                  // offset 64
-  pub flush_display: Option<unsafe extern "C" fn (w: *mut c_void)>,                  // offset 72
-  pub clear_window_mouse_face: Option<unsafe extern "C" fn (w: *mut c_void)>,                  // offset 80
-  pub get_glyph_overhangs: Option<unsafe extern "C" fn (glyph: *mut glyph, f: *mut c_void, left: *mut c_int, right: *mut c_int)>,                  // offset 88
-  pub fix_overlapping_area: Option<unsafe extern "C" fn (w: *mut c_void, row: *mut glyph_row, area: c_int, overlaps: c_int)>,                  // offset 96
+  pub produce_glyphs: Option<unsafe extern "C-unwind" fn (*mut it)>,                  // offset 8
+  pub write_glyphs: Option<unsafe extern "C-unwind" fn (w: *mut c_void, row: *mut glyph_row, string: *mut glyph, area: c_int, len: c_int)>,                  // offset 16
+  pub insert_glyphs: Option<unsafe extern "C-unwind" fn (w: *mut c_void, row: *mut glyph_row, start: *mut glyph, area: c_int, len: c_int)>,                  // offset 24
+  pub clear_end_of_line: Option<unsafe extern "C-unwind" fn (w: *mut c_void, row: *mut glyph_row, area: c_int, x: c_int)>,                  // offset 32
+  pub scroll_run_hook: Option<unsafe extern "C-unwind" fn (w: *mut c_void, run: *mut run)>,                  // offset 40
+  pub after_update_window_line_hook: Option<unsafe extern "C-unwind" fn (w: *mut c_void, desired_row: *mut glyph_row)>,                  // offset 48
+  pub update_window_begin_hook: Option<unsafe extern "C-unwind" fn (w: *mut c_void)>,                  // offset 56
+  pub update_window_end_hook: Option<unsafe extern "C-unwind" fn (w: *mut c_void, cursor_on_p: bool, mouse_face_overwritten_p: bool)>,                  // offset 64
+  pub flush_display: Option<unsafe extern "C-unwind" fn (w: *mut c_void)>,                  // offset 72
+  pub clear_window_mouse_face: Option<unsafe extern "C-unwind" fn (w: *mut c_void)>,                  // offset 80
+  pub get_glyph_overhangs: Option<unsafe extern "C-unwind" fn (glyph: *mut glyph, f: *mut c_void, left: *mut c_int, right: *mut c_int)>,                  // offset 88
+  pub fix_overlapping_area: Option<unsafe extern "C-unwind" fn (w: *mut c_void, row: *mut glyph_row, area: c_int, overlaps: c_int)>,                  // offset 96
 
   /* C 3131-3195: the `#ifdef HAVE_WINDOW_SYSTEM` arm of the interface - the fifteen display
      hooks a window system installs.  Dead text on the frozen target (`HAVE_WINDOW_SYSTEM` is
@@ -3869,38 +3869,38 @@ pub struct redisplay_interface
      assertions above are unchanged.  They are what `spikes/mirror-struct-coverage.py --arm
      ns_cocoa` names when it reports this struct's window-system gap (status 3.283).  */
   #[cfg (feature = "have_window_system")]
-  pub draw_fringe_bitmap: Option<unsafe extern "C" fn (*mut c_void, *mut glyph_row, *mut draw_fringe_bitmap_params)>,   // C 3134
+  pub draw_fringe_bitmap: Option<unsafe extern "C-unwind" fn (*mut c_void, *mut glyph_row, *mut draw_fringe_bitmap_params)>,   // C 3134
   #[cfg (feature = "have_window_system")]
-  pub define_fringe_bitmap: Option<unsafe extern "C" fn (which: c_int, bits: *mut c_ushort, h: c_int, wd: c_int)>,      // C 3138
+  pub define_fringe_bitmap: Option<unsafe extern "C-unwind" fn (which: c_int, bits: *mut c_ushort, h: c_int, wd: c_int)>,      // C 3138
   #[cfg (feature = "have_window_system")]
-  pub destroy_fringe_bitmap: Option<unsafe extern "C" fn (which: c_int)>,                                               // C 3140
+  pub destroy_fringe_bitmap: Option<unsafe extern "C-unwind" fn (which: c_int)>,                                               // C 3140
   #[cfg (feature = "have_window_system")]
-  pub compute_glyph_string_overhangs: Option<unsafe extern "C" fn (s: *mut glyph_string)>,                              // C 3144
+  pub compute_glyph_string_overhangs: Option<unsafe extern "C-unwind" fn (s: *mut glyph_string)>,                              // C 3144
   #[cfg (feature = "have_window_system")]
-  pub draw_glyph_string: Option<unsafe extern "C" fn (s: *mut glyph_string)>,                                           // C 3147
+  pub draw_glyph_string: Option<unsafe extern "C-unwind" fn (s: *mut glyph_string)>,                                           // C 3147
   #[cfg (feature = "have_window_system")]
-  pub define_frame_cursor: Option<unsafe extern "C" fn (f: *mut c_void, cursor: Emacs_Cursor)>,                        // C 3150
+  pub define_frame_cursor: Option<unsafe extern "C-unwind" fn (f: *mut c_void, cursor: Emacs_Cursor)>,                        // C 3150
   #[cfg (feature = "have_window_system")]
-  pub clear_frame_area: Option<unsafe extern "C" fn (f: *mut c_void, x: c_int, y: c_int, width: c_int, height: c_int)>, // C 3153
+  pub clear_frame_area: Option<unsafe extern "C-unwind" fn (f: *mut c_void, x: c_int, y: c_int, width: c_int, height: c_int)>, // C 3153
   #[cfg (feature = "have_window_system")]
-  pub clear_under_internal_border: Option<unsafe extern "C" fn (f: *mut c_void)>,                                       // C 3159
+  pub clear_under_internal_border: Option<unsafe extern "C-unwind" fn (f: *mut c_void)>,                                       // C 3159
   #[cfg (feature = "have_window_system")]
-  pub draw_window_cursor: Option<unsafe extern "C" fn (w: *mut c_void, glyph_row: *mut glyph_row, x: c_int, y: c_int,
+  pub draw_window_cursor: Option<unsafe extern "C-unwind" fn (w: *mut c_void, glyph_row: *mut glyph_row, x: c_int, y: c_int,
                                                        cursor_type: text_cursor_kinds, cursor_width: c_int,
                                                        on_p: bool, active_p: bool)>,                                  // C 3165
   #[cfg (feature = "have_window_system")]
-  pub draw_vertical_window_border: Option<unsafe extern "C" fn (w: *mut c_void, x: c_int, y_0: c_int, y_1: c_int)>,   // C 3172
+  pub draw_vertical_window_border: Option<unsafe extern "C-unwind" fn (w: *mut c_void, x: c_int, y_0: c_int, y_1: c_int)>,   // C 3172
   #[cfg (feature = "have_window_system")]
-  pub draw_window_divider: Option<unsafe extern "C" fn (w: *mut c_void, x_0: c_int, x_1: c_int, y_0: c_int, y_1: c_int)>, // C 3176
+  pub draw_window_divider: Option<unsafe extern "C-unwind" fn (w: *mut c_void, x_0: c_int, x_1: c_int, y_0: c_int, y_1: c_int)>, // C 3176
   #[cfg (feature = "have_window_system")]
-  pub shift_glyphs_for_insert: Option<unsafe extern "C" fn (f: *mut c_void, x: c_int, y: c_int, width: c_int,
+  pub shift_glyphs_for_insert: Option<unsafe extern "C-unwind" fn (f: *mut c_void, x: c_int, y: c_int, width: c_int,
                                                             height: c_int, shift_by: c_int)>,                         // C 3182
   #[cfg (feature = "have_window_system")]
-  pub show_hourglass: Option<unsafe extern "C" fn (f: *mut c_void)>,                                                    // C 3187
+  pub show_hourglass: Option<unsafe extern "C-unwind" fn (f: *mut c_void)>,                                                    // C 3187
   #[cfg (feature = "have_window_system")]
-  pub hide_hourglass: Option<unsafe extern "C" fn (f: *mut c_void)>,                                                    // C 3190
+  pub hide_hourglass: Option<unsafe extern "C-unwind" fn (f: *mut c_void)>,                                                    // C 3190
   #[cfg (feature = "have_window_system")]
-  pub default_font_parameter: Option<unsafe extern "C" fn (f: *mut c_void, parms: Lisp_Object)>,                        // C 3194
+  pub default_font_parameter: Option<unsafe extern "C-unwind" fn (f: *mut c_void, parms: Lisp_Object)>,                        // C 3194
 }
 /* C 3131-3195's `HAVE_WINDOW_SYSTEM` members - the fifteen display hooks this record already
    carries behind that feature - are appended after `fix_overlapping_area`, so they add 120 bytes
@@ -4039,7 +4039,7 @@ const _: () = core::assert! (core::mem::offset_of! (redisplay_interface, fix_ove
   pub const TTY_CAP_OVERLINE: c_uint = 1 << 8;
 
   /* C 3608-3616: the redisplay state the header exports.  */
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     /// C: extern bool redisplaying_p;
     pub static mut redisplaying_p: bool;
     /// C: extern unsigned int redisplay_counter;
@@ -4082,12 +4082,12 @@ pub mod dispextern_late_decls {
   /* C 2068/3923: a variable and a function this header declares **ungated** (the `#endif`s
      around them belong to their neighbours), so the mirror declares them ungated too and the
      units carry no copy - the textual declaration gate reads both arms.  */
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     pub static mut face_change: bool;
     pub fn do_pending_window_change (inhibit: bool);
   }
   #[cfg (feature = "have_window_system")]
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     /* C 3853-3854.  */
     pub fn start_hourglass ();
     pub fn cancel_hourglass ();
@@ -4106,11 +4106,11 @@ pub mod dispextern_late_decls {
 
   /* C 3753: the two image-family entry points, defined in `src/image.c`.  */
   #[cfg (feature = "have_window_system")]
-  unsafe extern "C" { pub fn mark_image_cache (cache: *mut c_void); }
+  unsafe extern "C-unwind" { pub fn mark_image_cache (cache: *mut c_void); }
   #[cfg (feature = "have_window_system")]
-  unsafe extern "C" { pub fn image_prune_animation_caches (inhibit: bool); }
+  unsafe extern "C-unwind" { pub fn image_prune_animation_caches (inhibit: bool); }
 
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     /// C: dispextern.h 3563-3565: `struct glyph_row *row_containing_pos (struct window *,
     /// ptrdiff_t, struct glyph_row *, struct glyph_row *, int);` (xdisp.c defines it).
     /// The window pointer is spelled `*mut c_void` (P-72 rule 3): six units include this
@@ -4165,7 +4165,7 @@ pub mod dispextern_late_decls {
 pub mod dispextern_fn_decls {
   use super::*;
 
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     #[cfg (feature = "dispextern_face_records")]
     /// C: dispextern.h 3566: `extern void bidi_init_it (ptrdiff_t, ptrdiff_t, bool, struct bidi_it *);`
     pub fn bidi_init_it (charpos: ptrdiff_t, bytepos: ptrdiff_t, frame_window_p: bool, bidi_it: *mut bidi_it);

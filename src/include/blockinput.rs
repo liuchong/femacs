@@ -17,7 +17,7 @@ pub const EMACS_BLOCKINPUT_H: bool = true;
 /* Emacs should avoid doing anything hairy in a signal handler, because
    so many system functions are non-reentrant. … */
 
-unsafe extern "C" { pub static mut interrupt_input_blocked: c_int; }        // blockinput.h 50
+unsafe extern "C-unwind" { pub static mut interrupt_input_blocked: c_int; }        // blockinput.h 50
 
 /* Begin critical section. */
 
@@ -28,7 +28,7 @@ pub unsafe fn block_input ()
   interrupt_input_blocked += 1;
 }
 
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   pub fn unblock_input ();                                                   // blockinput.h 57
   pub fn totally_unblock_input ();                                           // blockinput.h 58
   pub fn unblock_input_to (level: c_int);                                    // blockinput.h 59

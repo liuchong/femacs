@@ -37,7 +37,7 @@ MIRROR_DIRS = ("src/include", "lib/include")
 INCLUDE = re.compile(r'include!\(\s*"([^"]+)"\s*\)')
 MODULE = re.compile(r"^\s*(?:pub\s+)?mod\s+([A-Za-z_]\w*)\s*\{")
 GLOB_USE = re.compile(r"^\s*use\s+([A-Za-z_]\w*)\s*::\s*\*;")
-FN_DECL = re.compile(r"^(?:pub\s+)?(?:unsafe\s+)?(?:extern\s+\"C\"\s+)?fn\s+([A-Za-z_]\w*)\s*\(")
+FN_DECL = re.compile(r"^(?:pub\s+)?(?:unsafe\s+)?(?:extern\s+\"C(?:-unwind)?\"\s+)?fn\s+([A-Za-z_]\w*)\s*\(")
 # Constants and statics are the other half of the same question, and nothing else looks for
 # them: a `const NAME` a unit keeps while a mirrored header declares it is an `E0428` the
 # moment the mirror lands (status 3.80's sweep missed `EDOM` in two units, and the whole-tree
@@ -126,7 +126,7 @@ def declarations_in(text: str, scope: str, out: dict[str, list[str]]) -> None:
             out.setdefault(scope, []).append(m.group(1))
 
 
-EXTERN_OPEN = re.compile(r'(?:pub\s+)?unsafe\s+extern\s+"C"\s*\{')
+EXTERN_OPEN = re.compile(r'(?:pub\s+)?unsafe\s+extern\s+"C(?:-unwind)?"\s*\{')
 MODULE_OPEN = re.compile(r"(?:^|\s)(?:pub\s+)?mod\s+([A-Za-z_]\w*)\s*\{")
 
 

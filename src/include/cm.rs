@@ -283,8 +283,10 @@ pub mod cm_globals {
   use super::*;
 
   unsafe extern "C" {
-    pub static mut cost: c_int;
     pub fn evalcost (c: c_int) -> c_int;
+  }
+  unsafe extern "C-unwind" {
+    pub static mut cost: c_int;
 
     pub static mut current_tty: *mut tty_display_info;
   }
@@ -296,9 +298,13 @@ pub mod cm_globals {
 pub mod cm_externs {
   use super::*;
 
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     pub fn cmcheckmagic (tty: *mut tty_display_info);
+  }
+  unsafe extern "C" {
     pub fn cmputc (c: c_int) -> c_int;
+  }
+  unsafe extern "C-unwind" {
     pub fn cmcostinit (tty: *mut tty_display_info);
     pub fn cmgoto (tty: *mut tty_display_info, row: c_int, col: c_int);
     pub fn Wcm_clear (tty: *mut tty_display_info);

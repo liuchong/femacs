@@ -132,7 +132,7 @@ unsafe fn wrong_length_argument (a1: Lisp_Object, a2: Lisp_Object, a3: Lisp_Obje
 
 // data.c 131-136.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn wrong_type_argument (predicate: Lisp_Object, value: Lisp_Object) -> !
+pub unsafe extern "C-unwind" fn wrong_type_argument (predicate: Lisp_Object, value: Lisp_Object) -> !
 {
   eassert! (!TAGGEDP (value, Lisp_Type::Lisp_Type_Unused0));
   xsignal2 (Qwrong_type_argument (), predicate, value)
@@ -140,21 +140,21 @@ pub unsafe extern "C" fn wrong_type_argument (predicate: Lisp_Object, value: Lis
 
 // data.c 138-155.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn args_out_of_range (a1: Lisp_Object, a2: Lisp_Object)
+pub unsafe extern "C-unwind" fn args_out_of_range (a1: Lisp_Object, a2: Lisp_Object)
 { xsignal2 (Qargs_out_of_range (), a1, a2) }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn args_out_of_range_3 (a1: Lisp_Object, a2: Lisp_Object, a3: Lisp_Object)
+pub unsafe extern "C-unwind" fn args_out_of_range_3 (a1: Lisp_Object, a2: Lisp_Object, a3: Lisp_Object)
 { xsignal3 (Qargs_out_of_range (), a1, a2, a3) }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn circular_list (list: Lisp_Object) { xsignal1 (Qcircular_list (), list) }
+pub unsafe extern "C-unwind" fn circular_list (list: Lisp_Object) { xsignal1 (Qcircular_list (), list) }
 
 // data.c 157-165.  C marks it NO_INLINE to keep LTO from growing the code
 // (PORTING.md 552: NO_INLINE is `#[inline(never)]`).
 #[inline(never)]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn slow_eq (x: Lisp_Object, y: Lisp_Object) -> bool
+pub unsafe extern "C-unwind" fn slow_eq (x: Lisp_Object, y: Lisp_Object) -> bool
 {
   BASE_EQ (if symbols_with_pos_enabled && SYMBOL_WITH_POS_P (x) { XSYMBOL_WITH_POS_SYM (x) } else { x },
            if symbols_with_pos_enabled && SYMBOL_WITH_POS_P (y) { XSYMBOL_WITH_POS_SYM (y) } else { y })
@@ -1172,7 +1172,7 @@ DEFUN! ("indirect-variable", Findirect_variable, Sindirect_variable, 1, 1, 0,
    set should apply.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn kboard_for_bindings () -> *mut KBOARD
+pub unsafe extern "C-unwind" fn kboard_for_bindings () -> *mut KBOARD
 {
   /* We used to simply use current_kboard here, but from Lisp code, its
      value is often unexpected.  It seems nicer to allow constructions
@@ -1195,7 +1195,7 @@ pub unsafe extern "C" fn kboard_for_bindings () -> *mut KBOARD
    swap_in_symval_forwarding for that.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn do_symval_forwarding (valcontents: lispfwd) -> Lisp_Object
+pub unsafe extern "C-unwind" fn do_symval_forwarding (valcontents: lispfwd) -> Lisp_Object
 {
   match XFWDTYPE (valcontents)
     {
@@ -1222,7 +1222,7 @@ pub unsafe extern "C" fn do_symval_forwarding (valcontents: lispfwd) -> Lisp_Obj
    not a member of CHOICE, which should be a list of symbols.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn wrong_choice (choice: Lisp_Object, wrong: Lisp_Object) -> !
+pub unsafe extern "C-unwind" fn wrong_choice (choice: Lisp_Object, wrong: Lisp_Object) -> !
 {
   let mut i: ptrdiff_t = 0;
   let len: ptrdiff_t = list_length (choice);
@@ -1419,7 +1419,7 @@ unsafe fn store_symval_forwarding (valcontents: lispfwd, newval: Lisp_Object,
    of BLV are marked after this function has changed them.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn swap_in_global_binding (symbol: *mut Lisp_Symbol)
+pub unsafe extern "C-unwind" fn swap_in_global_binding (symbol: *mut Lisp_Symbol)
 {
   let blv = SYMBOL_BLV (symbol) as *mut Lisp_Buffer_Local_Value;
 
@@ -1497,7 +1497,7 @@ unsafe fn swap_in_symval_forwarding (symbol: *mut Lisp_Symbol, blv: *mut Lisp_Bu
    Great care is required for this.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn find_symbol_value (symbol: Lisp_Object) -> Lisp_Object
+pub unsafe extern "C-unwind" fn find_symbol_value (symbol: Lisp_Object) -> Lisp_Object
 {
   if BARE_SYMBOL_P (symbol)
     {
@@ -1563,7 +1563,7 @@ DEFUN! ("set", Fset, Sset, 2, 2, 0,
    don't do that.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn set_internal (symbol: Lisp_Object, newval: Lisp_Object,
+pub unsafe extern "C-unwind" fn set_internal (symbol: Lisp_Object, newval: Lisp_Object,
                                        r#where: Lisp_Object, bindflag: Set_Internal_Bind)
 {
   if BARE_SYMBOL_P (symbol) && ! BASE_EQ (newval, Qunbound ())
@@ -1744,7 +1744,7 @@ pub unsafe extern "C" fn set_internal (symbol: Lisp_Object, newval: Lisp_Object,
 
 // data.c 1833-1840.  C reads and writes the `trapped_write` bitfield; the mirror packs it
 // into `u.s.bits` (lisp.rs 224-225), so both sides go through the mask/shift.
-unsafe extern "C" fn set_symbol_trapped_write (symbol: Lisp_Object, trap: u32)
+unsafe extern "C-unwind" fn set_symbol_trapped_write (symbol: Lisp_Object, trap: u32)
 {
   let sym: *mut Lisp_Symbol = XSYMBOL (symbol);
   if ((*sym).u.s.bits & SYMBOL_TRAPPED_WRITE_MASK) >> SYMBOL_TRAPPED_WRITE_SHIFT
@@ -1756,7 +1756,7 @@ unsafe extern "C" fn set_symbol_trapped_write (symbol: Lisp_Object, trap: u32)
 }
 
 // data.c 1842-1846.
-unsafe extern "C" fn restore_symbol_trapped_write (symbol: Lisp_Object)
+unsafe extern "C-unwind" fn restore_symbol_trapped_write (symbol: Lisp_Object)
 {
   set_symbol_trapped_write (symbol, SYMBOL_TRAPPED_WRITE);
 }
@@ -1764,7 +1764,7 @@ unsafe extern "C" fn restore_symbol_trapped_write (symbol: Lisp_Object)
 /* Called after `defvaralias' to make sure all aliases have the same
    trap.  */
 
-unsafe extern "C" fn harmonize_variable_watchers (alias: Lisp_Object,
+unsafe extern "C-unwind" fn harmonize_variable_watchers (alias: Lisp_Object,
                                                   base_variable: Lisp_Object)
 {
   if ! EQ (base_variable, alias)
@@ -1821,7 +1821,7 @@ DEFUN! ("get-variable-watchers", Fget_variable_watchers, Sget_variable_watchers,
 });
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn notify_variable_watchers (symbol: Lisp_Object,
+pub unsafe extern "C-unwind" fn notify_variable_watchers (symbol: Lisp_Object,
                                                    newval: Lisp_Object,
                                                    operation: Lisp_Object,
                                                    r#where: Lisp_Object)
@@ -1871,7 +1871,7 @@ pub unsafe extern "C" fn notify_variable_watchers (symbol: Lisp_Object,
    Return Qunbound if it is void.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn default_value (symbol: Lisp_Object) -> Lisp_Object
+pub unsafe extern "C-unwind" fn default_value (symbol: Lisp_Object) -> Lisp_Object
 {
   let mut sym: *mut Lisp_Symbol;
 
@@ -1943,7 +1943,7 @@ DEFUN! ("default-value", Fdefault_value, Sdefault_value, 1, 1, 0,
 });
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn set_default_internal (symbol: Lisp_Object, value: Lisp_Object,
+pub unsafe extern "C-unwind" fn set_default_internal (symbol: Lisp_Object, value: Lisp_Object,
                                                bindflag: Set_Internal_Bind,
                                                r#where: *mut KBOARD)
 {
@@ -2489,7 +2489,7 @@ DEFUN! ("variable-binding-locus", Fvariable_binding_locus, Svariable_binding_loc
    return it.  */
 #[inline(always)]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn indirect_function (object: Lisp_Object) -> Lisp_Object
+pub unsafe extern "C-unwind" fn indirect_function (object: Lisp_Object) -> Lisp_Object
 {
   if BARE_SYMBOL_P (object)
     {
@@ -2677,7 +2677,7 @@ fn not_number_or_marker (x: Lisp_Object) -> !
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn arithcompare (mut num1: Lisp_Object, mut num2: Lisp_Object)
+pub unsafe extern "C-unwind" fn arithcompare (mut num1: Lisp_Object, mut num2: Lisp_Object)
   -> cmp_bits_t
 {
   num1 = coerce_marker (num1);
@@ -2918,7 +2918,7 @@ DEFUN! ("/=", Fneq, Sneq, 2, 2, 0,
 const INT_BUFSIZE_BOUND: usize = ((EMACS_INT_WIDTH - 1) * 146 + 484) / 485 + 1 + 1;
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn cons_to_unsigned (c: Lisp_Object, max: uintmax_t) -> uintmax_t
+pub unsafe extern "C-unwind" fn cons_to_unsigned (c: Lisp_Object, max: uintmax_t) -> uintmax_t
 {
   let mut valid: bool = false;
   /* C: `uintmax_t val UNINIT;` - `= {0,}` in this configuration (the round-7 decision).  */
@@ -2974,7 +2974,7 @@ pub unsafe extern "C" fn cons_to_unsigned (c: Lisp_Object, max: uintmax_t) -> ui
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn cons_to_signed (c: Lisp_Object, min: intmax_t, max: intmax_t)
+pub unsafe extern "C-unwind" fn cons_to_signed (c: Lisp_Object, min: intmax_t, max: intmax_t)
   -> intmax_t
 {
   let mut valid: bool = false;
@@ -3034,7 +3034,7 @@ pub unsafe extern "C" fn cons_to_signed (c: Lisp_Object, min: intmax_t, max: int
    Return the start of the string; the end is always at END.
    The string is not null-terminated.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn fixnum_to_string (number: EMACS_INT, buffer: *mut c_char,
+pub unsafe extern "C-unwind" fn fixnum_to_string (number: EMACS_INT, buffer: *mut c_char,
                                            end: *mut c_char) -> *mut c_char
 {
   let mut x: EMACS_INT = number;
@@ -3657,7 +3657,7 @@ DEFUN! ("ash", Fash, Sash, 2, 2, 0,
    be nonnegative.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn expt_integer (x: Lisp_Object, y: Lisp_Object) -> Lisp_Object
+pub unsafe extern "C-unwind" fn expt_integer (x: Lisp_Object, y: Lisp_Object) -> Lisp_Object
 {
   /* Special cases for -1 <= x <= 1, which never overflow.  */
   if BASE_EQ (x, make_fixnum (1))
@@ -4096,7 +4096,7 @@ DEFUN! ("bool-vector-count-consecutive", Fbool_vector_count_consecutive,
 });
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_data ()
+pub unsafe extern "C-unwind" fn syms_of_data ()
 {
   /* C's `Lisp_Object error_tail, arith_tail, recursion_tail;` are filled
      before every read; the port's zero value is Qnil, C's `= {0,}` (the
@@ -4475,7 +4475,7 @@ unsafe fn add_to_function_history (symbol: Lisp_Object, olddef: Lisp_Object)
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn defalias (symbol: Lisp_Object, definition: Lisp_Object)
+pub unsafe extern "C-unwind" fn defalias (symbol: Lisp_Object, definition: Lisp_Object)
 {
   {
     let autoload: bool = AUTOLOADP (definition);

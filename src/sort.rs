@@ -192,19 +192,19 @@ struct merge_state
   reloc: reloc,
 
   /* The C ordering (less-than) predicate.  */
-  pred_fun: Option<unsafe extern "C" fn (ms: *mut merge_state, a: Lisp_Object, b: Lisp_Object) -> bool>,
+  pred_fun: Option<unsafe extern "C-unwind" fn (ms: *mut merge_state, a: Lisp_Object, b: Lisp_Object) -> bool>,
 
   /* The Lisp ordering predicate; Qnil means value<.  */
   predicate: Lisp_Object,
 }
 
 
-unsafe extern "C" fn order_pred_lisp (ms: *mut merge_state, a: Lisp_Object, b: Lisp_Object) -> bool
+unsafe extern "C-unwind" fn order_pred_lisp (ms: *mut merge_state, a: Lisp_Object, b: Lisp_Object) -> bool
 {
   return !NILP (calln! ((*ms).predicate, a, b));
 }
 
-unsafe extern "C" fn order_pred_lss (ms: *mut merge_state, a: Lisp_Object, b: Lisp_Object) -> bool
+unsafe extern "C-unwind" fn order_pred_lss (ms: *mut merge_state, a: Lisp_Object, b: Lisp_Object) -> bool
 {
   if FIXNUMP (a) && FIXNUMP (b) && !debug_on_next_call
     {
@@ -214,7 +214,7 @@ unsafe extern "C" fn order_pred_lss (ms: *mut merge_state, a: Lisp_Object, b: Li
   return !NILP (calln! ((*ms).predicate, a, b));
 }
 
-unsafe extern "C" fn order_pred_gtr (ms: *mut merge_state, a: Lisp_Object, b: Lisp_Object) -> bool
+unsafe extern "C-unwind" fn order_pred_gtr (ms: *mut merge_state, a: Lisp_Object, b: Lisp_Object) -> bool
 {
   if FIXNUMP (a) && FIXNUMP (b) && !debug_on_next_call
     {
@@ -224,7 +224,7 @@ unsafe extern "C" fn order_pred_gtr (ms: *mut merge_state, a: Lisp_Object, b: Li
   return !NILP (calln! ((*ms).predicate, a, b));
 }
 
-unsafe extern "C" fn order_pred_valuelt (ms: *mut merge_state, a: Lisp_Object, b: Lisp_Object) -> bool
+unsafe extern "C-unwind" fn order_pred_valuelt (ms: *mut merge_state, a: Lisp_Object, b: Lisp_Object) -> bool
 {
   if FIXNUMP (a) && FIXNUMP (b)
     { return XFIXNUM (a) < XFIXNUM (b); }
@@ -565,7 +565,7 @@ unsafe fn merge_init (ms: *mut merge_state, list_size: ptrdiff_t,
    merging.  MERGE_MARKMEM marks them so they aren't reaped during
    GC.  */
 
-unsafe extern "C" fn merge_markmem (arg: *mut c_void)
+unsafe extern "C-unwind" fn merge_markmem (arg: *mut c_void)
 {
   let ms: *mut merge_state = arg as *mut merge_state;
   eassume! (!ms.is_null ());
@@ -587,7 +587,7 @@ unsafe extern "C" fn merge_markmem (arg: *mut c_void)
    relocate any lisp elements in temp storage back to the original
    array.  */
 
-unsafe extern "C" fn cleanup_mem (arg: *mut c_void)
+unsafe extern "C-unwind" fn cleanup_mem (arg: *mut c_void)
 {
   let ms: *mut merge_state = arg as *mut merge_state;
   eassume! (!ms.is_null ());
@@ -1131,7 +1131,7 @@ unsafe fn resolve_fun (mut fun: Lisp_Object) -> Lisp_Object
    PREDICATE (where Qnil means value<) and KEYFUNC (where Qnil means identity),
    optionally reversed.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn tim_sort (mut predicate: Lisp_Object, mut keyfunc: Lisp_Object,
+pub unsafe extern "C-unwind" fn tim_sort (mut predicate: Lisp_Object, mut keyfunc: Lisp_Object,
 				   seq: *mut Lisp_Object, length: ptrdiff_t, reverse: bool)
 {
   /* FIXME: hoist this to the caller? */

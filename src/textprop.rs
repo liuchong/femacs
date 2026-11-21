@@ -193,7 +193,7 @@ pub const soft: bool = false;
 pub const hard: bool = true;
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn validate_interval_range (object: Lisp_Object, begin: *mut Lisp_Object,
+pub unsafe extern "C-unwind" fn validate_interval_range (object: Lisp_Object, begin: *mut Lisp_Object,
 						  end: *mut Lisp_Object, force: bool)
      -> INTERVAL
 {
@@ -634,7 +634,7 @@ unsafe fn remove_properties (plist: Lisp_Object, list: Lisp_Object, i: INTERVAL,
    POSITION is BEG-based.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn interval_of (position: ptrdiff_t, mut object: Lisp_Object) -> INTERVAL
+pub unsafe extern "C-unwind" fn interval_of (position: ptrdiff_t, mut object: Lisp_Object) -> INTERVAL
 {
   let mut i: INTERVAL = std::ptr::null_mut ();
   let mut beg: ptrdiff_t = 0;
@@ -715,7 +715,7 @@ DEFUN! ("get-text-property", Fget_text_property, Sget_text_property, 2, 3, 0,
    window-specific overlays are considered only if they are associated
    with OBJECT. */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn get_char_property_and_overlay (position: Lisp_Object,
+pub unsafe extern "C-unwind" fn get_char_property_and_overlay (position: Lisp_Object,
 							prop: Lisp_Object,
 							object: Lisp_Object,
 							overlay: *mut Lisp_Object)
@@ -1404,7 +1404,7 @@ DEFUN! ("add-face-text-property", Fadd_face_text_property,
    otherwise.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn set_text_properties (start: Lisp_Object, end: Lisp_Object,
+pub unsafe extern "C-unwind" fn set_text_properties (start: Lisp_Object, end: Lisp_Object,
 					      properties: Lisp_Object,
 					      object: Lisp_Object,
 					      coherent_change_p: Lisp_Object) -> Lisp_Object
@@ -1494,7 +1494,7 @@ pub unsafe extern "C" fn set_text_properties (start: Lisp_Object, end: Lisp_Obje
    I is the interval that START is located in.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn set_text_properties_1 (start: Lisp_Object, end: Lisp_Object,
+pub unsafe extern "C-unwind" fn set_text_properties_1 (start: Lisp_Object, end: Lisp_Object,
 						properties: Lisp_Object, object: Lisp_Object,
 						i: INTERVAL)
 {
@@ -1943,7 +1943,7 @@ DEFUN! ("text-property-not-all", Ftext_property_not_all,
    BUFFER can be either a buffer or nil (meaning current buffer).  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn text_property_stickiness (prop: Lisp_Object, pos: Lisp_Object,
+pub unsafe extern "C-unwind" fn text_property_stickiness (prop: Lisp_Object, pos: Lisp_Object,
 						   buffer: Lisp_Object) -> c_int
 {
   let mut ignore_previous_character: bool;
@@ -2015,7 +2015,7 @@ pub unsafe extern "C" fn text_property_stickiness (prop: Lisp_Object, pos: Lisp_
 /* Note this can GC when DEST is a buffer.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn copy_text_properties (start: Lisp_Object, end: Lisp_Object,
+pub unsafe extern "C-unwind" fn copy_text_properties (start: Lisp_Object, end: Lisp_Object,
 					       src: Lisp_Object, pos: Lisp_Object,
 					       dest: Lisp_Object, prop: Lisp_Object)
      -> Lisp_Object
@@ -2099,7 +2099,7 @@ pub unsafe extern "C" fn copy_text_properties (start: Lisp_Object, end: Lisp_Obj
    doesn't contain text properties between START and END.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn text_property_list (object: Lisp_Object, start: Lisp_Object,
+pub unsafe extern "C-unwind" fn text_property_list (object: Lisp_Object, start: Lisp_Object,
 					     end: Lisp_Object, prop: Lisp_Object)
      -> Lisp_Object
 {
@@ -2164,7 +2164,7 @@ pub unsafe extern "C" fn text_property_list (object: Lisp_Object, start: Lisp_Ob
    and END positions by DELTA before adding properties.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn add_text_properties_from_list (object: Lisp_Object, list: Lisp_Object,
+pub unsafe extern "C-unwind" fn add_text_properties_from_list (object: Lisp_Object, list: Lisp_Object,
 							delta: Lisp_Object)
 {
   let mut list = list;
@@ -2193,7 +2193,7 @@ pub unsafe extern "C" fn add_text_properties_from_list (object: Lisp_Object, lis
    end-points to NEW_END.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn extend_property_ranges (list: Lisp_Object, old_end: Lisp_Object,
+pub unsafe extern "C-unwind" fn extend_property_ranges (list: Lisp_Object, old_end: Lisp_Object,
 						 new_end: Lisp_Object) -> Lisp_Object
 {
   let mut list = list;
@@ -2263,7 +2263,7 @@ unsafe fn call_mod_hooks (list: Lisp_Object, start: Lisp_Object, end: Lisp_Objec
    those hooks in order, with START and END - 1 as arguments.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn verify_interval_modification (buf: *mut buffer, mut start: ptrdiff_t,
+pub unsafe extern "C-unwind" fn verify_interval_modification (buf: *mut buffer, mut start: ptrdiff_t,
 						       mut end: ptrdiff_t)
 {
   let intervals: INTERVAL = buffer_intervals (buf);
@@ -2471,7 +2471,7 @@ pub unsafe extern "C" fn verify_interval_modification (buf: *mut buffer, mut sta
    so it can indicate the range of inserted text.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn report_interval_modification (start: Lisp_Object, end: Lisp_Object)
+pub unsafe extern "C-unwind" fn report_interval_modification (start: Lisp_Object, end: Lisp_Object)
 {
   if ! NILP (interval_insert_behind_hooks)
     { call_mod_hooks (interval_insert_behind_hooks, start, end); }
@@ -2483,7 +2483,7 @@ pub unsafe extern "C" fn report_interval_modification (start: Lisp_Object, end: 
 
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_textprop ()
+pub unsafe extern "C-unwind" fn syms_of_textprop ()
 {
   DEFVAR_LISP! (c"default-text-properties", Vdefault_text_properties,
 		"Property-list used as default values.\nThe value of a property in this list is seen as the value for every\ncharacter that does not have its own value for that property.  ");

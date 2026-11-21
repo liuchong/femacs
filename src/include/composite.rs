@@ -405,7 +405,7 @@ pub mod composite_objs {
   use super::*;
 
     // composite.h 180-184.
-    unsafe extern "C" {
+    unsafe extern "C-unwind" {
     pub static mut composition_table: *mut *mut composition;
     pub static mut n_compositions: ptrdiff_t;
     }
@@ -417,7 +417,7 @@ pub use self::composite_objs::*;
 pub mod composite_decls {
   use super::*;
 
-    unsafe extern "C" {
+    unsafe extern "C-unwind" {
     pub fn get_composition_id (charpos: ptrdiff_t, bytepos: ptrdiff_t, len: ptrdiff_t,
 			       prop: Lisp_Object, string: Lisp_Object) -> ptrdiff_t;
     pub fn find_composition (pos: ptrdiff_t, limit: ptrdiff_t, start: *mut ptrdiff_t,

@@ -31,7 +31,7 @@ pub const EMACS_SYSSIGNAL_H: bool = true;
 pub mod syssignal_decls {
   use super::*;
 
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     pub fn init_signals ();                                                 // syssignal.h 24
     pub fn block_child_signal (set: *mut sigset_t);                         // 25
     pub fn unblock_child_signal (set: *const sigset_t);                     // 26
@@ -41,11 +41,11 @@ pub mod syssignal_decls {
     pub fn unblock_tty_out_signal (set: *const sigset_t);                   // 30
   }
 
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     pub static mut empty_mask: sigset_t;                                           // 54
   }
 
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     pub fn emacs_sigaction_init (act: *mut sigaction, handler: signal_handler_t);  // 61
     pub fn safe_strsignal (sig: c_int) -> *const c_char;                           // 62
     pub fn deliver_process_signal (sig: c_int, handler: signal_handler_t);         // 86

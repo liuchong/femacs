@@ -248,7 +248,7 @@ pub const TTY_SCROLL_REGION_OK: u8 = 1 << 6;       // termchar.h 216
 pub const TTY_MEMORY_BELOW_FRAME: u8 = 1 << 7;     // termchar.h 219
 
 /* A chain of structures for all tty devices currently in use. */
-unsafe extern "C" { pub static mut tty_list: *mut tty_display_info; }     // termchar.h 227
+unsafe extern "C-unwind" { pub static mut tty_list: *mut tty_display_info; }     // termchar.h 227
 
 // termchar.h 230-233: `FRAME_TTY (f)`.  It is a macro in C and stays one here: it names
 // `frame`'s `output_method` and `struct terminal`'s `display_info.tty`, which the including
@@ -272,10 +272,10 @@ macro_rules! CURTTY {
 // termchar.h 237: the tag the declaration below names; C sees it as incomplete here.
 // `struct input_event` lives in termhooks.h, whose mirror declares it (PORTING.md P-70).
 // termchar.h 238-239.
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   pub fn tty_handle_tab_bar_click (f: *mut frame, x: c_int, y: c_int, down: bool,
                                    event: *mut input_event) -> Lisp_Object;
 }
 
 // termchar.h 241.
-unsafe extern "C" { pub fn tty_setup_colors (tty: *mut tty_display_info, mode: c_int); }
+unsafe extern "C-unwind" { pub fn tty_setup_colors (tty: *mut tty_display_info, mode: c_int); }

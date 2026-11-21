@@ -641,7 +641,7 @@ DEFUN! ("profiler-memory-log",
 
 /* Record that the current backtrace allocated SIZE bytes.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn malloc_probe (size: usize)
+pub unsafe extern "C-unwind" fn malloc_probe (size: usize)
 {
   add_sample (&raw mut memory, min (size as EMACS_INT, MOST_POSITIVE_FIXNUM));
 }
@@ -661,14 +661,14 @@ DEFUN! ("function-equal", Ffunction_equal, Sfunction_equal, 2, 2, 0,
 });
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mark_profiler ()
+pub unsafe extern "C-unwind" fn mark_profiler ()
 {
   mark_log (cpu.log);
   mark_log (memory.log);
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_profiler ()
+pub unsafe extern "C-unwind" fn syms_of_profiler ()
 {
   DEFVAR_INT! (c"profiler-max-stack-depth", profiler_max_stack_depth,
 	       "Number of elements from the call-stack recorded in the log.");

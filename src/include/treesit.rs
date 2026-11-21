@@ -110,7 +110,7 @@ pub unsafe fn CHECK_TS_COMPILED_QUERY(query: Lisp_Object) {
 // layouts/accessors while its local definitions shadow these foreign names.
 pub mod treesit_declarations {
     use super::*;
-    unsafe extern "C" {
+    unsafe extern "C-unwind" {
         pub fn syms_of_treesit();
         #[cfg(feature = "have_tree_sitter")]
         pub static TREESIT_EMPTY_LINECOL: ts_linecol;

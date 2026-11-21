@@ -411,13 +411,13 @@ macro_rules! MPZ_SRCPTR_SWAP {
 pub static mp_bits_per_limb: c_int = GMP_LIMB_BITS as c_int;
 
 /* Memory allocation and other helper functions. */
-unsafe extern "C" fn gmp_die (msg: *const c_char)
+unsafe extern "C-unwind" fn gmp_die (msg: *const c_char)
 {
   fprintf (stderr, c"%s\n".as_ptr (), msg);
   abort();
 }
 
-unsafe extern "C" fn gmp_default_alloc (size: usize) -> *mut c_void
+unsafe extern "C-unwind" fn gmp_default_alloc (size: usize) -> *mut c_void
 {
   let mut p: *mut c_void;
 
@@ -430,7 +430,7 @@ unsafe extern "C" fn gmp_default_alloc (size: usize) -> *mut c_void
   return p;
 }
 
-unsafe extern "C" fn gmp_default_realloc (old: *mut c_void, unused_old_size: usize,
+unsafe extern "C-unwind" fn gmp_default_realloc (old: *mut c_void, unused_old_size: usize,
                                           new_size: usize) -> *mut c_void
 {
   let mut p: *mut c_void;
@@ -443,23 +443,23 @@ unsafe extern "C" fn gmp_default_realloc (old: *mut c_void, unused_old_size: usi
   return p;
 }
 
-unsafe extern "C" fn gmp_default_free (p: *mut c_void, unused_size: usize)
+unsafe extern "C-unwind" fn gmp_default_free (p: *mut c_void, unused_size: usize)
 {
   free (p);
 }
 
-static mut gmp_allocate_func: unsafe extern "C" fn (usize) -> *mut c_void
+static mut gmp_allocate_func: unsafe extern "C-unwind" fn (usize) -> *mut c_void
   = gmp_default_alloc;
-static mut gmp_reallocate_func: unsafe extern "C" fn (*mut c_void, usize, usize)
+static mut gmp_reallocate_func: unsafe extern "C-unwind" fn (*mut c_void, usize, usize)
   -> *mut c_void = gmp_default_realloc;
-static mut gmp_free_func: unsafe extern "C" fn (*mut c_void, usize) = gmp_default_free;
+static mut gmp_free_func: unsafe extern "C-unwind" fn (*mut c_void, usize) = gmp_default_free;
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mp_get_memory_functions
-  (alloc_func: *mut Option<unsafe extern "C" fn (usize) -> *mut c_void>,
-   realloc_func: *mut Option<unsafe extern "C" fn (*mut c_void, usize, usize)
+pub unsafe extern "C-unwind" fn mp_get_memory_functions
+  (alloc_func: *mut Option<unsafe extern "C-unwind" fn (usize) -> *mut c_void>,
+   realloc_func: *mut Option<unsafe extern "C-unwind" fn (*mut c_void, usize, usize)
                                  -> *mut c_void>,
-   free_func: *mut Option<unsafe extern "C" fn (*mut c_void, usize)>)
+   free_func: *mut Option<unsafe extern "C-unwind" fn (*mut c_void, usize)>)
 {
   if !alloc_func.is_null ()
     { *alloc_func = Some (gmp_allocate_func); }
@@ -472,11 +472,11 @@ pub unsafe extern "C" fn mp_get_memory_functions
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mp_set_memory_functions
-  (mut alloc_func: Option<unsafe extern "C" fn (usize) -> *mut c_void>,
-   mut realloc_func: Option<unsafe extern "C" fn (*mut c_void, usize, usize)
+pub unsafe extern "C-unwind" fn mp_set_memory_functions
+  (mut alloc_func: Option<unsafe extern "C-unwind" fn (usize) -> *mut c_void>,
+   mut realloc_func: Option<unsafe extern "C-unwind" fn (*mut c_void, usize, usize)
                                      -> *mut c_void>,
-   mut free_func: Option<unsafe extern "C" fn (*mut c_void, usize)>)
+   mut free_func: Option<unsafe extern "C-unwind" fn (*mut c_void, usize)>)
 {
   if alloc_func.is_none ()
     { alloc_func = Some (gmp_default_alloc); }
@@ -505,13 +505,13 @@ macro_rules! gmp_realloc {
     };
 }
 
-unsafe extern "C" fn gmp_alloc_limbs (size: mp_size_t) -> mp_ptr
+unsafe extern "C-unwind" fn gmp_alloc_limbs (size: mp_size_t) -> mp_ptr
 {
   return gmp_alloc! (size as usize * std::mem::size_of::<mp_limb_t> ())
            as mp_ptr;
 }
 
-unsafe extern "C" fn gmp_realloc_limbs (old: mp_ptr, old_size: mp_size_t,
+unsafe extern "C-unwind" fn gmp_realloc_limbs (old: mp_ptr, old_size: mp_size_t,
                                         size: mp_size_t) -> mp_ptr
 {
   assert! (size > 0);
@@ -521,7 +521,7 @@ unsafe extern "C" fn gmp_realloc_limbs (old: mp_ptr, old_size: mp_size_t,
            as mp_ptr;
 }
 
-unsafe extern "C" fn gmp_free_limbs (old: mp_ptr, size: mp_size_t)
+unsafe extern "C-unwind" fn gmp_free_limbs (old: mp_ptr, size: mp_size_t)
 {
   gmp_free! (old as *mut c_void, size as usize * std::mem::size_of::<mp_limb_t> ());
 }
@@ -529,7 +529,7 @@ unsafe extern "C" fn gmp_free_limbs (old: mp_ptr, size: mp_size_t)
 /* MPN interface */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpn_copyi (d: mp_ptr, s: mp_srcptr, n: mp_size_t)
+pub unsafe extern "C-unwind" fn mpn_copyi (d: mp_ptr, s: mp_srcptr, n: mp_size_t)
 {
   let mut i: mp_size_t;
   i = 0;
@@ -538,14 +538,14 @@ pub unsafe extern "C" fn mpn_copyi (d: mp_ptr, s: mp_srcptr, n: mp_size_t)
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpn_copyd (d: mp_ptr, s: mp_srcptr, mut n: mp_size_t)
+pub unsafe extern "C-unwind" fn mpn_copyd (d: mp_ptr, s: mp_srcptr, mut n: mp_size_t)
 {
   while { n -= 1; n >= 0 }
     { *d.offset (n as isize) = *s.offset (n as isize); }
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpn_cmp (ap: mp_srcptr, bp: mp_srcptr, mut n: mp_size_t)
+pub unsafe extern "C-unwind" fn mpn_cmp (ap: mp_srcptr, bp: mp_srcptr, mut n: mp_size_t)
   -> c_int
 {
   while { n -= 1; n >= 0 }
@@ -556,7 +556,7 @@ pub unsafe extern "C" fn mpn_cmp (ap: mp_srcptr, bp: mp_srcptr, mut n: mp_size_t
   return 0;
 }
 
-unsafe extern "C" fn mpn_cmp4 (ap: mp_srcptr, an: mp_size_t, bp: mp_srcptr,
+unsafe extern "C-unwind" fn mpn_cmp4 (ap: mp_srcptr, an: mp_size_t, bp: mp_srcptr,
                                bn: mp_size_t) -> c_int
 {
   if an != bn
@@ -565,7 +565,7 @@ unsafe extern "C" fn mpn_cmp4 (ap: mp_srcptr, an: mp_size_t, bp: mp_srcptr,
     { return mpn_cmp (ap, bp, an); }
 }
 
-unsafe extern "C" fn mpn_normalized_size (xp: mp_srcptr, mut n: mp_size_t)
+unsafe extern "C-unwind" fn mpn_normalized_size (xp: mp_srcptr, mut n: mp_size_t)
   -> mp_size_t
 {
   while n > 0 && *xp.offset ((n-1) as isize) == 0
@@ -574,20 +574,20 @@ unsafe extern "C" fn mpn_normalized_size (xp: mp_srcptr, mut n: mp_size_t)
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpn_zero_p (rp: mp_srcptr, n: mp_size_t) -> c_int
+pub unsafe extern "C-unwind" fn mpn_zero_p (rp: mp_srcptr, n: mp_size_t) -> c_int
 {
   return (mpn_normalized_size (rp, n) == 0) as c_int;
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpn_zero (rp: mp_ptr, mut n: mp_size_t)
+pub unsafe extern "C-unwind" fn mpn_zero (rp: mp_ptr, mut n: mp_size_t)
 {
   while { n -= 1; n >= 0 }
     { *rp.offset (n as isize) = 0; }
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpn_add_1 (rp: mp_ptr, ap: mp_srcptr, n: mp_size_t,
+pub unsafe extern "C-unwind" fn mpn_add_1 (rp: mp_ptr, ap: mp_srcptr, n: mp_size_t,
                                     mut b: mp_limb_t) -> mp_limb_t
 {
   let mut i: mp_size_t;
@@ -608,7 +608,7 @@ pub unsafe extern "C" fn mpn_add_1 (rp: mp_ptr, ap: mp_srcptr, n: mp_size_t,
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpn_add_n (rp: mp_ptr, ap: mp_srcptr, bp: mp_srcptr,
+pub unsafe extern "C-unwind" fn mpn_add_n (rp: mp_ptr, ap: mp_srcptr, bp: mp_srcptr,
                                     n: mp_size_t) -> mp_limb_t
 {
   let mut i: mp_size_t;
@@ -633,7 +633,7 @@ pub unsafe extern "C" fn mpn_add_n (rp: mp_ptr, ap: mp_srcptr, bp: mp_srcptr,
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpn_add (rp: mp_ptr, ap: mp_srcptr, an: mp_size_t,
+pub unsafe extern "C-unwind" fn mpn_add (rp: mp_ptr, ap: mp_srcptr, an: mp_size_t,
                                   bp: mp_srcptr, bn: mp_size_t) -> mp_limb_t
 {
   let mut cy: mp_limb_t;
@@ -647,7 +647,7 @@ pub unsafe extern "C" fn mpn_add (rp: mp_ptr, ap: mp_srcptr, an: mp_size_t,
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpn_sub_1 (rp: mp_ptr, ap: mp_srcptr, n: mp_size_t,
+pub unsafe extern "C-unwind" fn mpn_sub_1 (rp: mp_ptr, ap: mp_srcptr, n: mp_size_t,
                                     mut b: mp_limb_t) -> mp_limb_t
 {
   let mut i: mp_size_t;
@@ -670,7 +670,7 @@ pub unsafe extern "C" fn mpn_sub_1 (rp: mp_ptr, ap: mp_srcptr, n: mp_size_t,
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpn_sub_n (rp: mp_ptr, ap: mp_srcptr, bp: mp_srcptr,
+pub unsafe extern "C-unwind" fn mpn_sub_n (rp: mp_ptr, ap: mp_srcptr, bp: mp_srcptr,
                                     n: mp_size_t) -> mp_limb_t
 {
   let mut i: mp_size_t;
@@ -693,7 +693,7 @@ pub unsafe extern "C" fn mpn_sub_n (rp: mp_ptr, ap: mp_srcptr, bp: mp_srcptr,
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpn_sub (rp: mp_ptr, ap: mp_srcptr, an: mp_size_t,
+pub unsafe extern "C-unwind" fn mpn_sub (rp: mp_ptr, ap: mp_srcptr, an: mp_size_t,
                                   bp: mp_srcptr, bn: mp_size_t) -> mp_limb_t
 {
   let mut cy: mp_limb_t;
@@ -707,7 +707,7 @@ pub unsafe extern "C" fn mpn_sub (rp: mp_ptr, ap: mp_srcptr, an: mp_size_t,
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpn_mul_1 (rp: mp_ptr, up: mp_srcptr, mut n: mp_size_t,
+pub unsafe extern "C-unwind" fn mpn_mul_1 (rp: mp_ptr, up: mp_srcptr, mut n: mp_size_t,
                                     vl: mp_limb_t) -> mp_limb_t
 {
   let mut ul: mp_limb_t;
@@ -739,7 +739,7 @@ pub unsafe extern "C" fn mpn_mul_1 (rp: mp_ptr, up: mp_srcptr, mut n: mp_size_t,
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpn_addmul_1 (rp: mp_ptr, up: mp_srcptr, mut n: mp_size_t,
+pub unsafe extern "C-unwind" fn mpn_addmul_1 (rp: mp_ptr, up: mp_srcptr, mut n: mp_size_t,
                                        vl: mp_limb_t) -> mp_limb_t
 {
   let mut ul: mp_limb_t;
@@ -775,7 +775,7 @@ pub unsafe extern "C" fn mpn_addmul_1 (rp: mp_ptr, up: mp_srcptr, mut n: mp_size
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpn_submul_1 (rp: mp_ptr, up: mp_srcptr, mut n: mp_size_t,
+pub unsafe extern "C-unwind" fn mpn_submul_1 (rp: mp_ptr, up: mp_srcptr, mut n: mp_size_t,
                                        vl: mp_limb_t) -> mp_limb_t
 {
   let mut ul: mp_limb_t;
@@ -811,7 +811,7 @@ pub unsafe extern "C" fn mpn_submul_1 (rp: mp_ptr, up: mp_srcptr, mut n: mp_size
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpn_mul (rp: mp_ptr, up: mp_srcptr, un: mp_size_t,
+pub unsafe extern "C-unwind" fn mpn_mul (rp: mp_ptr, up: mp_srcptr, un: mp_size_t,
                                   vp: mp_srcptr, mut vn: mp_size_t) -> mp_limb_t
 {
   assert! (un >= vn);
@@ -839,20 +839,20 @@ pub unsafe extern "C" fn mpn_mul (rp: mp_ptr, up: mp_srcptr, un: mp_size_t,
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpn_mul_n (rp: mp_ptr, ap: mp_srcptr, bp: mp_srcptr,
+pub unsafe extern "C-unwind" fn mpn_mul_n (rp: mp_ptr, ap: mp_srcptr, bp: mp_srcptr,
                                     n: mp_size_t)
 {
   mpn_mul (rp, ap, n, bp, n);
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpn_sqr (rp: mp_ptr, ap: mp_srcptr, n: mp_size_t)
+pub unsafe extern "C-unwind" fn mpn_sqr (rp: mp_ptr, ap: mp_srcptr, n: mp_size_t)
 {
   mpn_mul (rp, ap, n, ap, n);
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpn_lshift (rp: mp_ptr, up: mp_srcptr, mut n: mp_size_t,
+pub unsafe extern "C-unwind" fn mpn_lshift (rp: mp_ptr, up: mp_srcptr, mut n: mp_size_t,
                                      cnt: c_uint) -> mp_limb_t
 {
   let mut high_limb: mp_limb_t;
@@ -890,7 +890,7 @@ pub unsafe extern "C" fn mpn_lshift (rp: mp_ptr, up: mp_srcptr, mut n: mp_size_t
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpn_rshift (rp: mp_ptr, up: mp_srcptr, mut n: mp_size_t,
+pub unsafe extern "C-unwind" fn mpn_rshift (rp: mp_ptr, up: mp_srcptr, mut n: mp_size_t,
                                      cnt: c_uint) -> mp_limb_t
 {
   let mut high_limb: mp_limb_t;
@@ -923,7 +923,7 @@ pub unsafe extern "C" fn mpn_rshift (rp: mp_ptr, up: mp_srcptr, mut n: mp_size_t
   return retval;
 }
 
-unsafe extern "C" fn mpn_common_scan (mut limb: mp_limb_t, mut i: mp_size_t,
+unsafe extern "C-unwind" fn mpn_common_scan (mut limb: mp_limb_t, mut i: mp_size_t,
                                       up: mp_srcptr, un: mp_size_t, ux: mp_limb_t)
   -> mp_bitcnt_t
 {
@@ -944,7 +944,7 @@ unsafe extern "C" fn mpn_common_scan (mut limb: mp_limb_t, mut i: mp_size_t,
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpn_scan1 (ptr: mp_srcptr, bit: mp_bitcnt_t) -> mp_bitcnt_t
+pub unsafe extern "C-unwind" fn mpn_scan1 (ptr: mp_srcptr, bit: mp_bitcnt_t) -> mp_bitcnt_t
 {
   let mut i: mp_size_t;
   i = (bit / GMP_LIMB_BITS as mp_bitcnt_t) as mp_size_t;
@@ -955,7 +955,7 @@ pub unsafe extern "C" fn mpn_scan1 (ptr: mp_srcptr, bit: mp_bitcnt_t) -> mp_bitc
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpn_scan0 (ptr: mp_srcptr, bit: mp_bitcnt_t) -> mp_bitcnt_t
+pub unsafe extern "C-unwind" fn mpn_scan0 (ptr: mp_srcptr, bit: mp_bitcnt_t) -> mp_bitcnt_t
 {
   let mut i: mp_size_t;
   i = (bit / GMP_LIMB_BITS as mp_bitcnt_t) as mp_size_t;
@@ -966,7 +966,7 @@ pub unsafe extern "C" fn mpn_scan0 (ptr: mp_srcptr, bit: mp_bitcnt_t) -> mp_bitc
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpn_com (rp: mp_ptr, up: mp_srcptr, mut n: mp_size_t)
+pub unsafe extern "C-unwind" fn mpn_com (rp: mp_ptr, up: mp_srcptr, mut n: mp_size_t)
 {
   let mut rp = rp;
   let mut up = up;
@@ -975,7 +975,7 @@ pub unsafe extern "C" fn mpn_com (rp: mp_ptr, up: mp_srcptr, mut n: mp_size_t)
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpn_neg (rp: mp_ptr, up: mp_srcptr, mut n: mp_size_t)
+pub unsafe extern "C-unwind" fn mpn_neg (rp: mp_ptr, up: mp_srcptr, mut n: mp_size_t)
   -> mp_limb_t
 {
   let mut rp = rp;
@@ -1001,7 +1001,7 @@ pub unsafe extern "C" fn mpn_neg (rp: mp_ptr, up: mp_srcptr, mut n: mp_size_t)
      m = floor( (B^3-1) / (B u1 + u0)) - B
 */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpn_invert_3by2 (u1: mp_limb_t, u0: mp_limb_t) -> mp_limb_t
+pub unsafe extern "C-unwind" fn mpn_invert_3by2 (u1: mp_limb_t, u0: mp_limb_t) -> mp_limb_t
 {
   let mut r: mp_limb_t;
   let mut m: mp_limb_t;
@@ -1129,7 +1129,7 @@ pub struct gmp_div_inverse
   pub di: mp_limb_t,
 }
 
-unsafe extern "C" fn mpn_div_qr_1_invert (inv: *mut gmp_div_inverse, d: mp_limb_t)
+unsafe extern "C-unwind" fn mpn_div_qr_1_invert (inv: *mut gmp_div_inverse, d: mp_limb_t)
 {
   let mut shift: c_uint = 0;
 
@@ -1140,7 +1140,7 @@ unsafe extern "C" fn mpn_div_qr_1_invert (inv: *mut gmp_div_inverse, d: mp_limb_
   (*inv).di = mpn_invert_limb! ((*inv).d1);
 }
 
-unsafe extern "C" fn mpn_div_qr_2_invert (inv: *mut gmp_div_inverse,
+unsafe extern "C-unwind" fn mpn_div_qr_2_invert (inv: *mut gmp_div_inverse,
                                           mut d1: mp_limb_t, mut d0: mp_limb_t)
 {
   let mut shift: c_uint = 0;
@@ -1158,7 +1158,7 @@ unsafe extern "C" fn mpn_div_qr_2_invert (inv: *mut gmp_div_inverse,
   (*inv).di = mpn_invert_3by2 (d1, d0);
 }
 
-unsafe extern "C" fn mpn_div_qr_invert (inv: *mut gmp_div_inverse,
+unsafe extern "C-unwind" fn mpn_div_qr_invert (inv: *mut gmp_div_inverse,
                                         dp: mp_srcptr, dn: mp_size_t)
 {
   assert! (dn > 0);
@@ -1192,7 +1192,7 @@ unsafe extern "C" fn mpn_div_qr_invert (inv: *mut gmp_div_inverse,
 
 /* Not matching current public gmp interface, rather corresponding to
    the sbpi1_div_* functions. */
-unsafe extern "C" fn mpn_div_qr_1_preinv (qp: mp_ptr, np: mp_srcptr, mut nn: mp_size_t,
+unsafe extern "C-unwind" fn mpn_div_qr_1_preinv (qp: mp_ptr, np: mp_srcptr, mut nn: mp_size_t,
                                           inv: *const gmp_div_inverse) -> mp_limb_t
 {
   let mut d: mp_limb_t;
@@ -1233,7 +1233,7 @@ unsafe extern "C" fn mpn_div_qr_1_preinv (qp: mp_ptr, np: mp_srcptr, mut nn: mp_
   return r >> (*inv).shift;
 }
 
-unsafe extern "C" fn mpn_div_qr_2_preinv (qp: mp_ptr, np: mp_ptr, nn: mp_size_t,
+unsafe extern "C-unwind" fn mpn_div_qr_2_preinv (qp: mp_ptr, np: mp_ptr, nn: mp_size_t,
                                           inv: *const gmp_div_inverse)
 {
   let mut shift: c_uint = 0;
@@ -1282,7 +1282,7 @@ unsafe extern "C" fn mpn_div_qr_2_preinv (qp: mp_ptr, np: mp_ptr, nn: mp_size_t,
   *np = r0;
 }
 
-unsafe extern "C" fn mpn_div_qr_pi1 (qp: mp_ptr,
+unsafe extern "C-unwind" fn mpn_div_qr_pi1 (qp: mp_ptr,
                                      np: mp_ptr, nn: mp_size_t, mut n1: mp_limb_t,
                                      dp: mp_srcptr, dn: mp_size_t,
                                      dinv: mp_limb_t)
@@ -1350,7 +1350,7 @@ unsafe extern "C" fn mpn_div_qr_pi1 (qp: mp_ptr,
   *np.offset ((dn - 1) as isize) = n1;
 }
 
-unsafe extern "C" fn mpn_div_qr_preinv (qp: mp_ptr, np: mp_ptr, nn: mp_size_t,
+unsafe extern "C-unwind" fn mpn_div_qr_preinv (qp: mp_ptr, np: mp_ptr, nn: mp_size_t,
                                         dp: mp_srcptr, dn: mp_size_t,
                                         inv: *const gmp_div_inverse)
 {
@@ -1384,7 +1384,7 @@ unsafe extern "C" fn mpn_div_qr_preinv (qp: mp_ptr, np: mp_ptr, nn: mp_size_t,
     }
 }
 
-unsafe extern "C" fn mpn_div_qr (qp: mp_ptr, np: mp_ptr, nn: mp_size_t,
+unsafe extern "C-unwind" fn mpn_div_qr (qp: mp_ptr, np: mp_ptr, nn: mp_size_t,
                                  dp: mp_srcptr, dn: mp_size_t)
 {
   let mut inv: gmp_div_inverse
@@ -1408,7 +1408,7 @@ unsafe extern "C" fn mpn_div_qr (qp: mp_ptr, np: mp_ptr, nn: mp_size_t,
 }
 
 /* MPN base conversion. */
-unsafe extern "C" fn mpn_base_power_of_two_p (b: c_uint) -> c_uint
+unsafe extern "C-unwind" fn mpn_base_power_of_two_p (b: c_uint) -> c_uint
 {
   match b
     {
@@ -1434,7 +1434,7 @@ pub struct mpn_base_info
   pub bb: mp_limb_t,
 }
 
-unsafe extern "C" fn mpn_get_base_info (info: *mut mpn_base_info, b: mp_limb_t)
+unsafe extern "C-unwind" fn mpn_get_base_info (info: *mut mpn_base_info, b: mp_limb_t)
 {
   let mut m: mp_limb_t;
   let mut p: mp_limb_t;
@@ -1450,7 +1450,7 @@ unsafe extern "C" fn mpn_get_base_info (info: *mut mpn_base_info, b: mp_limb_t)
   (*info).bb = p;
 }
 
-unsafe extern "C" fn mpn_limb_size_in_base_2 (u: mp_limb_t) -> mp_bitcnt_t
+unsafe extern "C-unwind" fn mpn_limb_size_in_base_2 (u: mp_limb_t) -> mp_bitcnt_t
 {
   let mut shift: c_uint = 0;
 
@@ -1459,7 +1459,7 @@ unsafe extern "C" fn mpn_limb_size_in_base_2 (u: mp_limb_t) -> mp_bitcnt_t
   return (GMP_LIMB_BITS - shift as usize) as mp_bitcnt_t;
 }
 
-unsafe extern "C" fn mpn_get_str_bits (sp: *mut u8, bits: c_uint, up: mp_srcptr,
+unsafe extern "C-unwind" fn mpn_get_str_bits (sp: *mut u8, bits: c_uint, up: mp_srcptr,
                                       un: mp_size_t) -> usize
 {
   let mut mask: u8;
@@ -1500,7 +1500,7 @@ unsafe extern "C" fn mpn_get_str_bits (sp: *mut u8, bits: c_uint, up: mp_srcptr,
 
 /* We generate digits from the least significant end, and reverse at
    the end. */
-unsafe extern "C" fn mpn_limb_get_str (sp: *mut u8, mut w: mp_limb_t,
+unsafe extern "C-unwind" fn mpn_limb_get_str (sp: *mut u8, mut w: mp_limb_t,
                                        binv: *const gmp_div_inverse) -> usize
 {
   let mut i: mp_size_t;
@@ -1524,7 +1524,7 @@ unsafe extern "C" fn mpn_limb_get_str (sp: *mut u8, mut w: mp_limb_t,
   return i as usize;
 }
 
-unsafe extern "C" fn mpn_get_str_other (sp: *mut u8,
+unsafe extern "C-unwind" fn mpn_get_str_other (sp: *mut u8,
                                         base: c_int, info: *const mpn_base_info,
                                         up: mp_ptr, mut un: mp_size_t) -> usize
 {
@@ -1571,7 +1571,7 @@ unsafe extern "C" fn mpn_get_str_other (sp: *mut u8,
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpn_get_str (sp: *mut u8, base: c_int, up: mp_ptr,
+pub unsafe extern "C-unwind" fn mpn_get_str (sp: *mut u8, base: c_int, up: mp_ptr,
                                       un: mp_size_t) -> usize
 {
   let mut bits: c_uint;
@@ -1591,7 +1591,7 @@ pub unsafe extern "C" fn mpn_get_str (sp: *mut u8, base: c_int, up: mp_ptr,
     }
 }
 
-unsafe extern "C" fn mpn_set_str_bits (rp: mp_ptr, sp: *const u8, mut sn: usize,
+unsafe extern "C-unwind" fn mpn_set_str_bits (rp: mp_ptr, sp: *const u8, mut sn: usize,
                                        bits: c_uint) -> mp_size_t
 {
   let mut rn: mp_size_t;
@@ -1625,7 +1625,7 @@ unsafe extern "C" fn mpn_set_str_bits (rp: mp_ptr, sp: *const u8, mut sn: usize,
 
 /* Result is usually normalized, except for all-zero input, in which
    case a single zero limb is written at *RP, and 1 is returned. */
-unsafe extern "C" fn mpn_set_str_other (rp: mp_ptr, sp: *const u8, sn: usize,
+unsafe extern "C-unwind" fn mpn_set_str_other (rp: mp_ptr, sp: *const u8, sn: usize,
                                         b: mp_limb_t, info: *const mpn_base_info)
   -> mp_size_t
 {
@@ -1668,7 +1668,7 @@ unsafe extern "C" fn mpn_set_str_other (rp: mp_ptr, sp: *const u8, sn: usize,
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpn_set_str (rp: mp_ptr, sp: *const u8, sn: usize,
+pub unsafe extern "C-unwind" fn mpn_set_str (rp: mp_ptr, sp: *const u8, sn: usize,
                                       base: c_int) -> mp_size_t
 {
   let mut bits: c_uint;
@@ -1690,7 +1690,7 @@ pub unsafe extern "C" fn mpn_set_str (rp: mp_ptr, sp: *const u8, sn: usize,
 
 /* MPZ interface */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_init (r: *mut __mpz_struct)
+pub unsafe extern "C-unwind" fn mpz_init (r: *mut __mpz_struct)
 {
   static dummy_limb: mp_limb_t = GMP_LIMB_MAX & 0xc1a0;
 
@@ -1702,7 +1702,7 @@ pub unsafe extern "C" fn mpz_init (r: *mut __mpz_struct)
 /* The utility of this function is a bit limited, since many functions
    assigns the result variable using mpz_swap. */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_init2 (r: *mut __mpz_struct, mut bits: mp_bitcnt_t)
+pub unsafe extern "C-unwind" fn mpz_init2 (r: *mut __mpz_struct, mut bits: mp_bitcnt_t)
 {
   let rn: mp_size_t;
 
@@ -1715,13 +1715,13 @@ pub unsafe extern "C" fn mpz_init2 (r: *mut __mpz_struct, mut bits: mp_bitcnt_t)
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_clear (r: *mut __mpz_struct)
+pub unsafe extern "C-unwind" fn mpz_clear (r: *mut __mpz_struct)
 {
   if ((*r)._mp_alloc != 0)
     { gmp_free_limbs ((*r)._mp_d, (*r)._mp_alloc as mp_size_t); }
 }
 
-unsafe extern "C" fn mpz_realloc (r: *mut __mpz_struct, size: mp_size_t) -> mp_ptr
+unsafe extern "C-unwind" fn mpz_realloc (r: *mut __mpz_struct, size: mp_size_t) -> mp_ptr
 {
   let mut size = size;
   size = GMP_MAX! (size, 1);
@@ -1750,7 +1750,7 @@ macro_rules! MPZ_REALLOC {
 
 /* MPZ assignment and basic conversions. */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_set_si (r: *mut __mpz_struct, x: c_long)
+pub unsafe extern "C-unwind" fn mpz_set_si (r: *mut __mpz_struct, x: c_long)
 {
   if (x >= 0)
     { mpz_set_ui (r, x as c_ulong); }
@@ -1768,7 +1768,7 @@ pub unsafe extern "C" fn mpz_set_si (r: *mut __mpz_struct, x: c_long)
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_set_ui (r: *mut __mpz_struct, mut x: c_ulong)
+pub unsafe extern "C-unwind" fn mpz_set_ui (r: *mut __mpz_struct, mut x: c_ulong)
 {
   if (x > 0)
     {
@@ -1791,7 +1791,7 @@ pub unsafe extern "C" fn mpz_set_ui (r: *mut __mpz_struct, mut x: c_ulong)
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_set (r: *mut __mpz_struct, x: *const __mpz_struct)
+pub unsafe extern "C-unwind" fn mpz_set (r: *mut __mpz_struct, x: *const __mpz_struct)
 {
   /* Allow the NOP r == x */
   if (r as *const __mpz_struct != x)
@@ -1808,33 +1808,33 @@ pub unsafe extern "C" fn mpz_set (r: *mut __mpz_struct, x: *const __mpz_struct)
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_init_set_si (r: *mut __mpz_struct, x: c_long)
+pub unsafe extern "C-unwind" fn mpz_init_set_si (r: *mut __mpz_struct, x: c_long)
 {
   mpz_init (r);
   mpz_set_si (r, x);
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_init_set_ui (r: *mut __mpz_struct, x: c_ulong)
+pub unsafe extern "C-unwind" fn mpz_init_set_ui (r: *mut __mpz_struct, x: c_ulong)
 {
   mpz_init (r);
   mpz_set_ui (r, x);
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_init_set (r: *mut __mpz_struct, x: *const __mpz_struct)
+pub unsafe extern "C-unwind" fn mpz_init_set (r: *mut __mpz_struct, x: *const __mpz_struct)
 {
   mpz_init (r);
   mpz_set (r, x);
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_fits_slong_p (u: *const __mpz_struct) -> c_int
+pub unsafe extern "C-unwind" fn mpz_fits_slong_p (u: *const __mpz_struct) -> c_int
 {
   return (mpz_cmp_si (u, LONG_MAX) <= 0 && mpz_cmp_si (u, LONG_MIN) >= 0) as c_int;
 }
 
-unsafe extern "C" fn mpn_absfits_ulong_p (up: mp_srcptr, un: mp_size_t) -> c_int
+unsafe extern "C-unwind" fn mpn_absfits_ulong_p (up: mp_srcptr, un: mp_size_t) -> c_int
 {
   let ulongsize: c_int = (GMP_ULONG_BITS / GMP_LIMB_BITS) as c_int;
   let mut ulongrem: mp_limb_t = 0;
@@ -1848,7 +1848,7 @@ unsafe extern "C" fn mpn_absfits_ulong_p (up: mp_srcptr, un: mp_size_t) -> c_int
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_fits_ulong_p (u: *const __mpz_struct) -> c_int
+pub unsafe extern "C-unwind" fn mpz_fits_ulong_p (u: *const __mpz_struct) -> c_int
 {
   let us: mp_size_t = (*u)._mp_size as mp_size_t;
 
@@ -1856,35 +1856,35 @@ pub unsafe extern "C" fn mpz_fits_ulong_p (u: *const __mpz_struct) -> c_int
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_fits_sint_p (u: *const __mpz_struct) -> c_int
+pub unsafe extern "C-unwind" fn mpz_fits_sint_p (u: *const __mpz_struct) -> c_int
 {
   return (mpz_cmp_si (u, INT_MAX as c_long) <= 0
           && mpz_cmp_si (u, INT_MIN as c_long) >= 0) as c_int;
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_fits_uint_p (u: *const __mpz_struct) -> c_int
+pub unsafe extern "C-unwind" fn mpz_fits_uint_p (u: *const __mpz_struct) -> c_int
 {
   return ((*u)._mp_size >= 0
           && mpz_cmpabs_ui (u, UINT_MAX as c_ulong) <= 0) as c_int;
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_fits_sshort_p (u: *const __mpz_struct) -> c_int
+pub unsafe extern "C-unwind" fn mpz_fits_sshort_p (u: *const __mpz_struct) -> c_int
 {
   return (mpz_cmp_si (u, SHRT_MAX as c_long) <= 0
           && mpz_cmp_si (u, SHRT_MIN as c_long) >= 0) as c_int;
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_fits_ushort_p (u: *const __mpz_struct) -> c_int
+pub unsafe extern "C-unwind" fn mpz_fits_ushort_p (u: *const __mpz_struct) -> c_int
 {
   return ((*u)._mp_size >= 0
           && mpz_cmpabs_ui (u, USHRT_MAX as c_ulong) <= 0) as c_int;
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_get_si (u: *const __mpz_struct) -> c_long
+pub unsafe extern "C-unwind" fn mpz_get_si (u: *const __mpz_struct) -> c_long
 {
   let r: c_ulong = mpz_get_ui (u);
   let c: c_ulong = (-LONG_MAX - LONG_MIN) as c_ulong;
@@ -1898,7 +1898,7 @@ pub unsafe extern "C" fn mpz_get_si (u: *const __mpz_struct) -> c_long
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_get_ui (u: *const __mpz_struct) -> c_ulong
+pub unsafe extern "C-unwind" fn mpz_get_ui (u: *const __mpz_struct) -> c_ulong
 {
   if (GMP_LIMB_BITS < GMP_ULONG_BITS)
     {
@@ -1916,13 +1916,13 @@ pub unsafe extern "C" fn mpz_get_ui (u: *const __mpz_struct) -> c_ulong
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_size (u: *const __mpz_struct) -> usize
+pub unsafe extern "C-unwind" fn mpz_size (u: *const __mpz_struct) -> usize
 {
   return GMP_ABS! ((*u)._mp_size) as usize;
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_getlimbn (u: *const __mpz_struct, n: mp_size_t)
+pub unsafe extern "C-unwind" fn mpz_getlimbn (u: *const __mpz_struct, n: mp_size_t)
   -> mp_limb_t
 {
   if (n >= 0 && n < GMP_ABS! ((*u)._mp_size) as mp_size_t)
@@ -1932,20 +1932,20 @@ pub unsafe extern "C" fn mpz_getlimbn (u: *const __mpz_struct, n: mp_size_t)
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_realloc2 (x: *mut __mpz_struct, n: mp_bitcnt_t)
+pub unsafe extern "C-unwind" fn mpz_realloc2 (x: *mut __mpz_struct, n: mp_bitcnt_t)
 {
   mpz_realloc (x, (1 + (n - (n != 0) as mp_bitcnt_t) as usize / GMP_LIMB_BITS)
                   as mp_size_t);
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_limbs_read (x: *const __mpz_struct) -> mp_srcptr
+pub unsafe extern "C-unwind" fn mpz_limbs_read (x: *const __mpz_struct) -> mp_srcptr
 {
   return (*x)._mp_d as mp_srcptr;
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_limbs_modify (x: *mut __mpz_struct, n: mp_size_t)
+pub unsafe extern "C-unwind" fn mpz_limbs_modify (x: *mut __mpz_struct, n: mp_size_t)
   -> mp_ptr
 {
   assert! (n > 0);
@@ -1953,21 +1953,21 @@ pub unsafe extern "C" fn mpz_limbs_modify (x: *mut __mpz_struct, n: mp_size_t)
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_limbs_write (x: *mut __mpz_struct, n: mp_size_t)
+pub unsafe extern "C-unwind" fn mpz_limbs_write (x: *mut __mpz_struct, n: mp_size_t)
   -> mp_ptr
 {
   return mpz_limbs_modify (x, n);
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_limbs_finish (x: *mut __mpz_struct, xs: mp_size_t)
+pub unsafe extern "C-unwind" fn mpz_limbs_finish (x: *mut __mpz_struct, xs: mp_size_t)
 {
   let xn: mp_size_t;
   xn = mpn_normalized_size ((*x)._mp_d, GMP_ABS! (xs));
   (*x)._mp_size = (if xs < 0 { -xn } else { xn }) as c_int;
 }
 
-unsafe extern "C" fn mpz_roinit_normal_n (x: *mut __mpz_struct, xp: mp_srcptr,
+unsafe extern "C-unwind" fn mpz_roinit_normal_n (x: *mut __mpz_struct, xp: mp_srcptr,
                                          xs: mp_size_t) -> mpz_srcptr
 {
   (*x)._mp_alloc = 0;
@@ -1977,7 +1977,7 @@ unsafe extern "C" fn mpz_roinit_normal_n (x: *mut __mpz_struct, xp: mp_srcptr,
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_roinit_n (x: *mut __mpz_struct, xp: mp_srcptr,
+pub unsafe extern "C-unwind" fn mpz_roinit_n (x: *mut __mpz_struct, xp: mp_srcptr,
                                        xs: mp_size_t) -> mpz_srcptr
 {
   mpz_roinit_normal_n (x, xp, xs);
@@ -1988,7 +1988,7 @@ pub unsafe extern "C" fn mpz_roinit_n (x: *mut __mpz_struct, xp: mp_srcptr,
 /* `#if MINI_GMP_ENABLE_FLOAT` — the frozen build enables it, so the block is ported.  */
 /* Conversions and comparison to double. */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_set_d (r: *mut __mpz_struct, mut x: c_double)
+pub unsafe extern "C-unwind" fn mpz_set_d (r: *mut __mpz_struct, mut x: c_double)
 {
   let mut sign: c_int;
   let mut rp: mp_ptr;
@@ -2041,14 +2041,14 @@ pub unsafe extern "C" fn mpz_set_d (r: *mut __mpz_struct, mut x: c_double)
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_init_set_d (r: *mut __mpz_struct, x: c_double)
+pub unsafe extern "C-unwind" fn mpz_init_set_d (r: *mut __mpz_struct, x: c_double)
 {
   mpz_init (r);
   mpz_set_d (r, x);
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_get_d (u: *const __mpz_struct) -> c_double
+pub unsafe extern "C-unwind" fn mpz_get_d (u: *const __mpz_struct) -> c_double
 {
   let mut m: c_int;
   let mut l: mp_limb_t;
@@ -2092,7 +2092,7 @@ pub unsafe extern "C" fn mpz_get_d (u: *const __mpz_struct) -> c_double
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_cmpabs_d (x: *const __mpz_struct, d: c_double) -> c_int
+pub unsafe extern "C-unwind" fn mpz_cmpabs_d (x: *const __mpz_struct, d: c_double) -> c_int
 {
   let mut xn: mp_size_t;
   let mut B: c_double;
@@ -2138,7 +2138,7 @@ pub unsafe extern "C" fn mpz_cmpabs_d (x: *const __mpz_struct, d: c_double) -> c
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_cmp_d (x: *const __mpz_struct, d: c_double) -> c_int
+pub unsafe extern "C-unwind" fn mpz_cmp_d (x: *const __mpz_struct, d: c_double) -> c_int
 {
   if ((*x)._mp_size < 0)
     {
@@ -2165,13 +2165,13 @@ fn zero_mpz () -> mpz_t
 
 /* MPZ comparisons and the like. */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_sgn (u: *const __mpz_struct) -> c_int
+pub unsafe extern "C-unwind" fn mpz_sgn (u: *const __mpz_struct) -> c_int
 {
   return GMP_CMP! ((*u)._mp_size, 0);
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_cmp_si (u: *const __mpz_struct, v: c_long) -> c_int
+pub unsafe extern "C-unwind" fn mpz_cmp_si (u: *const __mpz_struct, v: c_long) -> c_int
 {
   let usize_: mp_size_t = (*u)._mp_size as mp_size_t;
 
@@ -2184,7 +2184,7 @@ pub unsafe extern "C" fn mpz_cmp_si (u: *const __mpz_struct, v: c_long) -> c_int
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_cmp_ui (u: *const __mpz_struct, v: c_ulong) -> c_int
+pub unsafe extern "C-unwind" fn mpz_cmp_ui (u: *const __mpz_struct, v: c_ulong) -> c_int
 {
   let usize_: mp_size_t = (*u)._mp_size as mp_size_t;
 
@@ -2195,7 +2195,7 @@ pub unsafe extern "C" fn mpz_cmp_ui (u: *const __mpz_struct, v: c_ulong) -> c_in
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_cmp (a: *const __mpz_struct, b: *const __mpz_struct)
+pub unsafe extern "C-unwind" fn mpz_cmp (a: *const __mpz_struct, b: *const __mpz_struct)
   -> c_int
 {
   let asize: mp_size_t = (*a)._mp_size as mp_size_t;
@@ -2210,7 +2210,7 @@ pub unsafe extern "C" fn mpz_cmp (a: *const __mpz_struct, b: *const __mpz_struct
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_cmpabs_ui (u: *const __mpz_struct, v: c_ulong) -> c_int
+pub unsafe extern "C-unwind" fn mpz_cmpabs_ui (u: *const __mpz_struct, v: c_ulong) -> c_int
 {
   let un: mp_size_t = GMP_ABS! ((*u)._mp_size) as mp_size_t;
 
@@ -2224,7 +2224,7 @@ pub unsafe extern "C" fn mpz_cmpabs_ui (u: *const __mpz_struct, v: c_ulong) -> c
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_cmpabs (u: *const __mpz_struct, v: *const __mpz_struct)
+pub unsafe extern "C-unwind" fn mpz_cmpabs (u: *const __mpz_struct, v: *const __mpz_struct)
   -> c_int
 {
   return mpn_cmp4 ((*u)._mp_d, GMP_ABS! ((*u)._mp_size) as mp_size_t,
@@ -2232,21 +2232,21 @@ pub unsafe extern "C" fn mpz_cmpabs (u: *const __mpz_struct, v: *const __mpz_str
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_abs (r: *mut __mpz_struct, u: *const __mpz_struct)
+pub unsafe extern "C-unwind" fn mpz_abs (r: *mut __mpz_struct, u: *const __mpz_struct)
 {
   mpz_set (r, u);
   (*r)._mp_size = GMP_ABS! ((*r)._mp_size);
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_neg (r: *mut __mpz_struct, u: *const __mpz_struct)
+pub unsafe extern "C-unwind" fn mpz_neg (r: *mut __mpz_struct, u: *const __mpz_struct)
 {
   mpz_set (r, u);
   (*r)._mp_size = -(*r)._mp_size;
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_swap (u: *mut __mpz_struct, v: *mut __mpz_struct)
+pub unsafe extern "C-unwind" fn mpz_swap (u: *mut __mpz_struct, v: *mut __mpz_struct)
 {
   MP_SIZE_T_SWAP! ((*u)._mp_alloc, (*v)._mp_alloc);
   MPN_PTR_SWAP! ((*u)._mp_d, (*u)._mp_size, (*v)._mp_d, (*v)._mp_size);
@@ -2255,7 +2255,7 @@ pub unsafe extern "C" fn mpz_swap (u: *mut __mpz_struct, v: *mut __mpz_struct)
 /* MPZ addition and subtraction */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_add_ui (r: *mut __mpz_struct, a: *const __mpz_struct,
+pub unsafe extern "C-unwind" fn mpz_add_ui (r: *mut __mpz_struct, a: *const __mpz_struct,
                                      b: c_ulong)
 {
   let mut bb: mpz_t = [__mpz_struct { _mp_alloc: 0, _mp_size: 0,
@@ -2266,7 +2266,7 @@ pub unsafe extern "C" fn mpz_add_ui (r: *mut __mpz_struct, a: *const __mpz_struc
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_sub_ui (r: *mut __mpz_struct, a: *const __mpz_struct,
+pub unsafe extern "C-unwind" fn mpz_sub_ui (r: *mut __mpz_struct, a: *const __mpz_struct,
                                      b: c_ulong)
 {
   mpz_ui_sub (r, b, a);
@@ -2274,14 +2274,14 @@ pub unsafe extern "C" fn mpz_sub_ui (r: *mut __mpz_struct, a: *const __mpz_struc
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_ui_sub (r: *mut __mpz_struct, a: c_ulong,
+pub unsafe extern "C-unwind" fn mpz_ui_sub (r: *mut __mpz_struct, a: c_ulong,
                                      b: *const __mpz_struct)
 {
   mpz_neg (r, b);
   mpz_add_ui (r, r, a);
 }
 
-unsafe extern "C" fn mpz_abs_add (r: *mut __mpz_struct, a: *const __mpz_struct,
+unsafe extern "C-unwind" fn mpz_abs_add (r: *mut __mpz_struct, a: *const __mpz_struct,
                                   b: *const __mpz_struct) -> mp_size_t
 {
   let mut an: mp_size_t = GMP_ABS! ((*a)._mp_size) as mp_size_t;
@@ -2305,7 +2305,7 @@ unsafe extern "C" fn mpz_abs_add (r: *mut __mpz_struct, a: *const __mpz_struct,
   return an + cy as mp_size_t;
 }
 
-unsafe extern "C" fn mpz_abs_sub (r: *mut __mpz_struct, a: *const __mpz_struct,
+unsafe extern "C-unwind" fn mpz_abs_sub (r: *mut __mpz_struct, a: *const __mpz_struct,
                                   b: *const __mpz_struct) -> mp_size_t
 {
   let an: mp_size_t = GMP_ABS! ((*a)._mp_size) as mp_size_t;
@@ -2331,7 +2331,7 @@ unsafe extern "C" fn mpz_abs_sub (r: *mut __mpz_struct, a: *const __mpz_struct,
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_add (r: *mut __mpz_struct, a: *const __mpz_struct,
+pub unsafe extern "C-unwind" fn mpz_add (r: *mut __mpz_struct, a: *const __mpz_struct,
                                   b: *const __mpz_struct)
 {
   let rn: mp_size_t;
@@ -2345,7 +2345,7 @@ pub unsafe extern "C" fn mpz_add (r: *mut __mpz_struct, a: *const __mpz_struct,
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_sub (r: *mut __mpz_struct, a: *const __mpz_struct,
+pub unsafe extern "C-unwind" fn mpz_sub (r: *mut __mpz_struct, a: *const __mpz_struct,
                                   b: *const __mpz_struct)
 {
   let rn: mp_size_t;
@@ -2360,7 +2360,7 @@ pub unsafe extern "C" fn mpz_sub (r: *mut __mpz_struct, a: *const __mpz_struct,
 
 /* MPZ multiplication */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_mul_si (r: *mut __mpz_struct, u: *const __mpz_struct,
+pub unsafe extern "C-unwind" fn mpz_mul_si (r: *mut __mpz_struct, u: *const __mpz_struct,
                                      v: c_long)
 {
   if (v < 0)
@@ -2373,7 +2373,7 @@ pub unsafe extern "C" fn mpz_mul_si (r: *mut __mpz_struct, u: *const __mpz_struc
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_mul_ui (r: *mut __mpz_struct, u: *const __mpz_struct,
+pub unsafe extern "C-unwind" fn mpz_mul_ui (r: *mut __mpz_struct, u: *const __mpz_struct,
                                      v: c_ulong)
 {
   let mut vv: mpz_t = [__mpz_struct { _mp_alloc: 0, _mp_size: 0,
@@ -2385,7 +2385,7 @@ pub unsafe extern "C" fn mpz_mul_ui (r: *mut __mpz_struct, u: *const __mpz_struc
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_mul (r: *mut __mpz_struct, u: *const __mpz_struct,
+pub unsafe extern "C-unwind" fn mpz_mul (r: *mut __mpz_struct, u: *const __mpz_struct,
                                   v: *const __mpz_struct)
 {
   let mut sign: c_int;
@@ -2427,7 +2427,7 @@ pub unsafe extern "C" fn mpz_mul (r: *mut __mpz_struct, u: *const __mpz_struct,
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_mul_2exp (r: *mut __mpz_struct, u: *const __mpz_struct,
+pub unsafe extern "C-unwind" fn mpz_mul_2exp (r: *mut __mpz_struct, u: *const __mpz_struct,
                                        bits: mp_bitcnt_t)
 {
   let un: mp_size_t;
@@ -2463,7 +2463,7 @@ pub unsafe extern "C" fn mpz_mul_2exp (r: *mut __mpz_struct, u: *const __mpz_str
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_addmul_ui (r: *mut __mpz_struct, u: *const __mpz_struct,
+pub unsafe extern "C-unwind" fn mpz_addmul_ui (r: *mut __mpz_struct, u: *const __mpz_struct,
                                         v: c_ulong)
 {
   let mut t: mpz_t = [__mpz_struct { _mp_alloc: 0, _mp_size: 0,
@@ -2475,7 +2475,7 @@ pub unsafe extern "C" fn mpz_addmul_ui (r: *mut __mpz_struct, u: *const __mpz_st
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_submul_ui (r: *mut __mpz_struct, u: *const __mpz_struct,
+pub unsafe extern "C-unwind" fn mpz_submul_ui (r: *mut __mpz_struct, u: *const __mpz_struct,
                                         v: c_ulong)
 {
   let mut t: mpz_t = [__mpz_struct { _mp_alloc: 0, _mp_size: 0,
@@ -2487,7 +2487,7 @@ pub unsafe extern "C" fn mpz_submul_ui (r: *mut __mpz_struct, u: *const __mpz_st
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_addmul (r: *mut __mpz_struct, u: *const __mpz_struct,
+pub unsafe extern "C-unwind" fn mpz_addmul (r: *mut __mpz_struct, u: *const __mpz_struct,
                                      v: *const __mpz_struct)
 {
   let mut t: mpz_t = [__mpz_struct { _mp_alloc: 0, _mp_size: 0,
@@ -2499,7 +2499,7 @@ pub unsafe extern "C" fn mpz_addmul (r: *mut __mpz_struct, u: *const __mpz_struc
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_submul (r: *mut __mpz_struct, u: *const __mpz_struct,
+pub unsafe extern "C-unwind" fn mpz_submul (r: *mut __mpz_struct, u: *const __mpz_struct,
                                      v: *const __mpz_struct)
 {
   let mut t: mpz_t = [__mpz_struct { _mp_alloc: 0, _mp_size: 0,
@@ -2516,7 +2516,7 @@ pub unsafe extern "C" fn mpz_submul (r: *mut __mpz_struct, u: *const __mpz_struc
 pub enum mpz_div_round_mode { GMP_DIV_FLOOR, GMP_DIV_CEIL, GMP_DIV_TRUNC }
 
 /* Allows q or r to be zero. Returns 1 iff remainder is non-zero. */
-unsafe extern "C" fn mpz_div_qr (q: *mut __mpz_struct, r: *mut __mpz_struct,
+unsafe extern "C-unwind" fn mpz_div_qr (q: *mut __mpz_struct, r: *mut __mpz_struct,
                                  n: *const __mpz_struct, d: *const __mpz_struct,
                                  mode: mpz_div_round_mode) -> c_int
 {
@@ -2638,70 +2638,70 @@ unsafe extern "C" fn mpz_div_qr (q: *mut __mpz_struct, r: *mut __mpz_struct,
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_cdiv_qr (q: *mut __mpz_struct, r: *mut __mpz_struct,
+pub unsafe extern "C-unwind" fn mpz_cdiv_qr (q: *mut __mpz_struct, r: *mut __mpz_struct,
                                       n: *const __mpz_struct, d: *const __mpz_struct)
 {
   mpz_div_qr (q, r, n, d, mpz_div_round_mode::GMP_DIV_CEIL);
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_fdiv_qr (q: *mut __mpz_struct, r: *mut __mpz_struct,
+pub unsafe extern "C-unwind" fn mpz_fdiv_qr (q: *mut __mpz_struct, r: *mut __mpz_struct,
                                       n: *const __mpz_struct, d: *const __mpz_struct)
 {
   mpz_div_qr (q, r, n, d, mpz_div_round_mode::GMP_DIV_FLOOR);
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_tdiv_qr (q: *mut __mpz_struct, r: *mut __mpz_struct,
+pub unsafe extern "C-unwind" fn mpz_tdiv_qr (q: *mut __mpz_struct, r: *mut __mpz_struct,
                                       n: *const __mpz_struct, d: *const __mpz_struct)
 {
   mpz_div_qr (q, r, n, d, mpz_div_round_mode::GMP_DIV_TRUNC);
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_cdiv_q (q: *mut __mpz_struct, n: *const __mpz_struct,
+pub unsafe extern "C-unwind" fn mpz_cdiv_q (q: *mut __mpz_struct, n: *const __mpz_struct,
                                      d: *const __mpz_struct)
 {
   mpz_div_qr (q, std::ptr::null_mut (), n, d, mpz_div_round_mode::GMP_DIV_CEIL);
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_fdiv_q (q: *mut __mpz_struct, n: *const __mpz_struct,
+pub unsafe extern "C-unwind" fn mpz_fdiv_q (q: *mut __mpz_struct, n: *const __mpz_struct,
                                      d: *const __mpz_struct)
 {
   mpz_div_qr (q, std::ptr::null_mut (), n, d, mpz_div_round_mode::GMP_DIV_FLOOR);
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_tdiv_q (q: *mut __mpz_struct, n: *const __mpz_struct,
+pub unsafe extern "C-unwind" fn mpz_tdiv_q (q: *mut __mpz_struct, n: *const __mpz_struct,
                                      d: *const __mpz_struct)
 {
   mpz_div_qr (q, std::ptr::null_mut (), n, d, mpz_div_round_mode::GMP_DIV_TRUNC);
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_cdiv_r (r: *mut __mpz_struct, n: *const __mpz_struct,
+pub unsafe extern "C-unwind" fn mpz_cdiv_r (r: *mut __mpz_struct, n: *const __mpz_struct,
                                      d: *const __mpz_struct)
 {
   mpz_div_qr (std::ptr::null_mut (), r, n, d, mpz_div_round_mode::GMP_DIV_CEIL);
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_fdiv_r (r: *mut __mpz_struct, n: *const __mpz_struct,
+pub unsafe extern "C-unwind" fn mpz_fdiv_r (r: *mut __mpz_struct, n: *const __mpz_struct,
                                      d: *const __mpz_struct)
 {
   mpz_div_qr (std::ptr::null_mut (), r, n, d, mpz_div_round_mode::GMP_DIV_FLOOR);
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_tdiv_r (r: *mut __mpz_struct, n: *const __mpz_struct,
+pub unsafe extern "C-unwind" fn mpz_tdiv_r (r: *mut __mpz_struct, n: *const __mpz_struct,
                                      d: *const __mpz_struct)
 {
   mpz_div_qr (std::ptr::null_mut (), r, n, d, mpz_div_round_mode::GMP_DIV_TRUNC);
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_mod (r: *mut __mpz_struct, n: *const __mpz_struct,
+pub unsafe extern "C-unwind" fn mpz_mod (r: *mut __mpz_struct, n: *const __mpz_struct,
                                   d: *const __mpz_struct)
 {
   mpz_div_qr (std::ptr::null_mut (), r, n, d,
@@ -2709,7 +2709,7 @@ pub unsafe extern "C" fn mpz_mod (r: *mut __mpz_struct, n: *const __mpz_struct,
               else { mpz_div_round_mode::GMP_DIV_CEIL });
 }
 
-unsafe extern "C" fn mpz_div_q_2exp (q: *mut __mpz_struct, u: *const __mpz_struct,
+unsafe extern "C-unwind" fn mpz_div_q_2exp (q: *mut __mpz_struct, u: *const __mpz_struct,
                                      mut bit_index: mp_bitcnt_t,
                                      mode: mpz_div_round_mode)
 {
@@ -2765,7 +2765,7 @@ unsafe extern "C" fn mpz_div_q_2exp (q: *mut __mpz_struct, u: *const __mpz_struc
     { mpz_neg (q, q); }
 }
 
-unsafe extern "C" fn mpz_div_r_2exp (r: *mut __mpz_struct, u: *const __mpz_struct,
+unsafe extern "C-unwind" fn mpz_div_r_2exp (r: *mut __mpz_struct, u: *const __mpz_struct,
                                      bit_index: mp_bitcnt_t,
                                      mode: mpz_div_round_mode)
 {
@@ -2843,49 +2843,49 @@ unsafe extern "C" fn mpz_div_r_2exp (r: *mut __mpz_struct, u: *const __mpz_struc
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_cdiv_q_2exp (r: *mut __mpz_struct, u: *const __mpz_struct,
+pub unsafe extern "C-unwind" fn mpz_cdiv_q_2exp (r: *mut __mpz_struct, u: *const __mpz_struct,
                                           cnt: mp_bitcnt_t)
 {
   mpz_div_q_2exp (r, u, cnt, mpz_div_round_mode::GMP_DIV_CEIL);
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_fdiv_q_2exp (r: *mut __mpz_struct, u: *const __mpz_struct,
+pub unsafe extern "C-unwind" fn mpz_fdiv_q_2exp (r: *mut __mpz_struct, u: *const __mpz_struct,
                                           cnt: mp_bitcnt_t)
 {
   mpz_div_q_2exp (r, u, cnt, mpz_div_round_mode::GMP_DIV_FLOOR);
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_tdiv_q_2exp (r: *mut __mpz_struct, u: *const __mpz_struct,
+pub unsafe extern "C-unwind" fn mpz_tdiv_q_2exp (r: *mut __mpz_struct, u: *const __mpz_struct,
                                           cnt: mp_bitcnt_t)
 {
   mpz_div_q_2exp (r, u, cnt, mpz_div_round_mode::GMP_DIV_TRUNC);
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_cdiv_r_2exp (r: *mut __mpz_struct, u: *const __mpz_struct,
+pub unsafe extern "C-unwind" fn mpz_cdiv_r_2exp (r: *mut __mpz_struct, u: *const __mpz_struct,
                                           cnt: mp_bitcnt_t)
 {
   mpz_div_r_2exp (r, u, cnt, mpz_div_round_mode::GMP_DIV_CEIL);
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_fdiv_r_2exp (r: *mut __mpz_struct, u: *const __mpz_struct,
+pub unsafe extern "C-unwind" fn mpz_fdiv_r_2exp (r: *mut __mpz_struct, u: *const __mpz_struct,
                                           cnt: mp_bitcnt_t)
 {
   mpz_div_r_2exp (r, u, cnt, mpz_div_round_mode::GMP_DIV_FLOOR);
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_tdiv_r_2exp (r: *mut __mpz_struct, u: *const __mpz_struct,
+pub unsafe extern "C-unwind" fn mpz_tdiv_r_2exp (r: *mut __mpz_struct, u: *const __mpz_struct,
                                           cnt: mp_bitcnt_t)
 {
   mpz_div_r_2exp (r, u, cnt, mpz_div_round_mode::GMP_DIV_TRUNC);
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_divexact (q: *mut __mpz_struct, n: *const __mpz_struct,
+pub unsafe extern "C-unwind" fn mpz_divexact (q: *mut __mpz_struct, n: *const __mpz_struct,
                                        d: *const __mpz_struct)
 {
   gmp_assert_nocarry! (mpz_div_qr (q, std::ptr::null_mut (), n, d,
@@ -2893,7 +2893,7 @@ pub unsafe extern "C" fn mpz_divexact (q: *mut __mpz_struct, n: *const __mpz_str
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_divisible_p (n: *const __mpz_struct, d: *const __mpz_struct)
+pub unsafe extern "C-unwind" fn mpz_divisible_p (n: *const __mpz_struct, d: *const __mpz_struct)
   -> c_int
 {
   return (mpz_div_qr (std::ptr::null_mut (), std::ptr::null_mut (), n, d,
@@ -2901,7 +2901,7 @@ pub unsafe extern "C" fn mpz_divisible_p (n: *const __mpz_struct, d: *const __mp
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_congruent_p (a: *const __mpz_struct, b: *const __mpz_struct,
+pub unsafe extern "C-unwind" fn mpz_congruent_p (a: *const __mpz_struct, b: *const __mpz_struct,
                                           m: *const __mpz_struct) -> c_int
 {
   let mut t: mpz_t = [__mpz_struct { _mp_alloc: 0, _mp_size: 0,
@@ -2920,7 +2920,7 @@ pub unsafe extern "C" fn mpz_congruent_p (a: *const __mpz_struct, b: *const __mp
   return res;
 }
 
-unsafe extern "C" fn mpz_div_qr_ui (q: *mut __mpz_struct, r: *mut __mpz_struct,
+unsafe extern "C-unwind" fn mpz_div_qr_ui (q: *mut __mpz_struct, r: *mut __mpz_struct,
                                     n: *const __mpz_struct, d: c_ulong,
                                     mode: mpz_div_round_mode) -> c_ulong
 {
@@ -2944,28 +2944,28 @@ unsafe extern "C" fn mpz_div_qr_ui (q: *mut __mpz_struct, r: *mut __mpz_struct,
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_cdiv_qr_ui (q: *mut __mpz_struct, r: *mut __mpz_struct,
+pub unsafe extern "C-unwind" fn mpz_cdiv_qr_ui (q: *mut __mpz_struct, r: *mut __mpz_struct,
                                          n: *const __mpz_struct, d: c_ulong) -> c_ulong
 {
   return mpz_div_qr_ui (q, r, n, d, mpz_div_round_mode::GMP_DIV_CEIL);
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_fdiv_qr_ui (q: *mut __mpz_struct, r: *mut __mpz_struct,
+pub unsafe extern "C-unwind" fn mpz_fdiv_qr_ui (q: *mut __mpz_struct, r: *mut __mpz_struct,
                                          n: *const __mpz_struct, d: c_ulong) -> c_ulong
 {
   return mpz_div_qr_ui (q, r, n, d, mpz_div_round_mode::GMP_DIV_FLOOR);
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_tdiv_qr_ui (q: *mut __mpz_struct, r: *mut __mpz_struct,
+pub unsafe extern "C-unwind" fn mpz_tdiv_qr_ui (q: *mut __mpz_struct, r: *mut __mpz_struct,
                                          n: *const __mpz_struct, d: c_ulong) -> c_ulong
 {
   return mpz_div_qr_ui (q, r, n, d, mpz_div_round_mode::GMP_DIV_TRUNC);
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_cdiv_q_ui (q: *mut __mpz_struct, n: *const __mpz_struct,
+pub unsafe extern "C-unwind" fn mpz_cdiv_q_ui (q: *mut __mpz_struct, n: *const __mpz_struct,
                                         d: c_ulong) -> c_ulong
 {
   return mpz_div_qr_ui (q, std::ptr::null_mut (), n, d,
@@ -2973,7 +2973,7 @@ pub unsafe extern "C" fn mpz_cdiv_q_ui (q: *mut __mpz_struct, n: *const __mpz_st
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_fdiv_q_ui (q: *mut __mpz_struct, n: *const __mpz_struct,
+pub unsafe extern "C-unwind" fn mpz_fdiv_q_ui (q: *mut __mpz_struct, n: *const __mpz_struct,
                                         d: c_ulong) -> c_ulong
 {
   return mpz_div_qr_ui (q, std::ptr::null_mut (), n, d,
@@ -2981,7 +2981,7 @@ pub unsafe extern "C" fn mpz_fdiv_q_ui (q: *mut __mpz_struct, n: *const __mpz_st
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_tdiv_q_ui (q: *mut __mpz_struct, n: *const __mpz_struct,
+pub unsafe extern "C-unwind" fn mpz_tdiv_q_ui (q: *mut __mpz_struct, n: *const __mpz_struct,
                                         d: c_ulong) -> c_ulong
 {
   return mpz_div_qr_ui (q, std::ptr::null_mut (), n, d,
@@ -2989,21 +2989,21 @@ pub unsafe extern "C" fn mpz_tdiv_q_ui (q: *mut __mpz_struct, n: *const __mpz_st
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_cdiv_r_ui (r: *mut __mpz_struct, n: *const __mpz_struct,
+pub unsafe extern "C-unwind" fn mpz_cdiv_r_ui (r: *mut __mpz_struct, n: *const __mpz_struct,
                                         d: c_ulong) -> c_ulong
 {
   return mpz_div_qr_ui (std::ptr::null_mut (), r, n, d,
                         mpz_div_round_mode::GMP_DIV_CEIL);
 }
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_fdiv_r_ui (r: *mut __mpz_struct, n: *const __mpz_struct,
+pub unsafe extern "C-unwind" fn mpz_fdiv_r_ui (r: *mut __mpz_struct, n: *const __mpz_struct,
                                         d: c_ulong) -> c_ulong
 {
   return mpz_div_qr_ui (std::ptr::null_mut (), r, n, d,
                         mpz_div_round_mode::GMP_DIV_FLOOR);
 }
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_tdiv_r_ui (r: *mut __mpz_struct, n: *const __mpz_struct,
+pub unsafe extern "C-unwind" fn mpz_tdiv_r_ui (r: *mut __mpz_struct, n: *const __mpz_struct,
                                         d: c_ulong) -> c_ulong
 {
   return mpz_div_qr_ui (std::ptr::null_mut (), r, n, d,
@@ -3011,28 +3011,28 @@ pub unsafe extern "C" fn mpz_tdiv_r_ui (r: *mut __mpz_struct, n: *const __mpz_st
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_cdiv_ui (n: *const __mpz_struct, d: c_ulong) -> c_ulong
+pub unsafe extern "C-unwind" fn mpz_cdiv_ui (n: *const __mpz_struct, d: c_ulong) -> c_ulong
 {
   return mpz_div_qr_ui (std::ptr::null_mut (), std::ptr::null_mut (), n, d,
                         mpz_div_round_mode::GMP_DIV_CEIL);
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_fdiv_ui (n: *const __mpz_struct, d: c_ulong) -> c_ulong
+pub unsafe extern "C-unwind" fn mpz_fdiv_ui (n: *const __mpz_struct, d: c_ulong) -> c_ulong
 {
   return mpz_div_qr_ui (std::ptr::null_mut (), std::ptr::null_mut (), n, d,
                         mpz_div_round_mode::GMP_DIV_FLOOR);
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_tdiv_ui (n: *const __mpz_struct, d: c_ulong) -> c_ulong
+pub unsafe extern "C-unwind" fn mpz_tdiv_ui (n: *const __mpz_struct, d: c_ulong) -> c_ulong
 {
   return mpz_div_qr_ui (std::ptr::null_mut (), std::ptr::null_mut (), n, d,
                         mpz_div_round_mode::GMP_DIV_TRUNC);
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_mod_ui (r: *mut __mpz_struct, n: *const __mpz_struct,
+pub unsafe extern "C-unwind" fn mpz_mod_ui (r: *mut __mpz_struct, n: *const __mpz_struct,
                                      d: c_ulong) -> c_ulong
 {
   return mpz_div_qr_ui (std::ptr::null_mut (), r, n, d,
@@ -3040,7 +3040,7 @@ pub unsafe extern "C" fn mpz_mod_ui (r: *mut __mpz_struct, n: *const __mpz_struc
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_divexact_ui (q: *mut __mpz_struct, n: *const __mpz_struct,
+pub unsafe extern "C-unwind" fn mpz_divexact_ui (q: *mut __mpz_struct, n: *const __mpz_struct,
                                           d: c_ulong)
 {
   gmp_assert_nocarry! (mpz_div_qr_ui (q, std::ptr::null_mut (), n, d,
@@ -3048,7 +3048,7 @@ pub unsafe extern "C" fn mpz_divexact_ui (q: *mut __mpz_struct, n: *const __mpz_
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_divisible_ui_p (n: *const __mpz_struct, d: c_ulong)
+pub unsafe extern "C-unwind" fn mpz_divisible_ui_p (n: *const __mpz_struct, d: c_ulong)
   -> c_int
 {
   return (mpz_div_qr_ui (std::ptr::null_mut (), std::ptr::null_mut (), n, d,
@@ -3056,7 +3056,7 @@ pub unsafe extern "C" fn mpz_divisible_ui_p (n: *const __mpz_struct, d: c_ulong)
 }
 
 /* GCD */
-unsafe extern "C" fn mpn_gcd_11 (mut u: mp_limb_t, mut v: mp_limb_t) -> mp_limb_t
+unsafe extern "C-unwind" fn mpn_gcd_11 (mut u: mp_limb_t, mut v: mp_limb_t) -> mp_limb_t
 {
   let mut shift: c_uint = 0;
 
@@ -3097,7 +3097,7 @@ unsafe extern "C" fn mpn_gcd_11 (mut u: mp_limb_t, mut v: mp_limb_t) -> mp_limb_
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpn_gcd (rp: mp_ptr, up: mp_ptr, mut un: mp_size_t,
+pub unsafe extern "C-unwind" fn mpn_gcd (rp: mp_ptr, up: mp_ptr, mut un: mp_size_t,
                                   vp: mp_ptr, mut vn: mp_size_t) -> mp_size_t
 {
   assert! (un >= vn);
@@ -3161,7 +3161,7 @@ pub unsafe extern "C" fn mpn_gcd (rp: mp_ptr, up: mp_ptr, mut un: mp_size_t,
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_gcd_ui (g: *mut __mpz_struct, u: *const __mpz_struct,
+pub unsafe extern "C-unwind" fn mpz_gcd_ui (g: *mut __mpz_struct, u: *const __mpz_struct,
                                      mut v: c_ulong) -> c_ulong
 {
   let mut t: mpz_t = [__mpz_struct { _mp_alloc: 0, _mp_size: 0,
@@ -3179,7 +3179,7 @@ pub unsafe extern "C" fn mpz_gcd_ui (g: *mut __mpz_struct, u: *const __mpz_struc
   return v;
 }
 
-unsafe extern "C" fn mpz_make_odd (r: *mut __mpz_struct) -> mp_bitcnt_t
+unsafe extern "C-unwind" fn mpz_make_odd (r: *mut __mpz_struct) -> mp_bitcnt_t
 {
   let shift: mp_bitcnt_t;
 
@@ -3192,7 +3192,7 @@ unsafe extern "C" fn mpz_make_odd (r: *mut __mpz_struct) -> mp_bitcnt_t
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_gcd (g: *mut __mpz_struct, u: *const __mpz_struct,
+pub unsafe extern "C-unwind" fn mpz_gcd (g: *mut __mpz_struct, u: *const __mpz_struct,
                                   v: *const __mpz_struct)
 {
   let mut tu: mpz_t = [__mpz_struct { _mp_alloc: 0, _mp_size: 0,
@@ -3235,7 +3235,7 @@ pub unsafe extern "C" fn mpz_gcd (g: *mut __mpz_struct, u: *const __mpz_struct,
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_gcdext (g: *mut __mpz_struct, s: *mut __mpz_struct,
+pub unsafe extern "C-unwind" fn mpz_gcdext (g: *mut __mpz_struct, s: *mut __mpz_struct,
                                      t: *mut __mpz_struct, u: *const __mpz_struct,
                                      v: *const __mpz_struct)
 {
@@ -3445,7 +3445,7 @@ pub unsafe extern "C" fn mpz_gcdext (g: *mut __mpz_struct, s: *mut __mpz_struct,
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_lcm (r: *mut __mpz_struct, u: *const __mpz_struct,
+pub unsafe extern "C-unwind" fn mpz_lcm (r: *mut __mpz_struct, u: *const __mpz_struct,
                                   v: *const __mpz_struct)
 {
   let mut g: mpz_t = zero_mpz ();
@@ -3467,7 +3467,7 @@ pub unsafe extern "C" fn mpz_lcm (r: *mut __mpz_struct, u: *const __mpz_struct,
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_lcm_ui (r: *mut __mpz_struct, u: *const __mpz_struct,
+pub unsafe extern "C-unwind" fn mpz_lcm_ui (r: *mut __mpz_struct, u: *const __mpz_struct,
                                      mut v: c_ulong)
 {
   if (v == 0 || (*u)._mp_size == 0)
@@ -3483,7 +3483,7 @@ pub unsafe extern "C" fn mpz_lcm_ui (r: *mut __mpz_struct, u: *const __mpz_struc
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_invert (r: *mut __mpz_struct, u: *const __mpz_struct,
+pub unsafe extern "C-unwind" fn mpz_invert (r: *mut __mpz_struct, u: *const __mpz_struct,
                                      m: *const __mpz_struct) -> c_int
 {
   let mut g: mpz_t = zero_mpz ();
@@ -3519,7 +3519,7 @@ pub unsafe extern "C" fn mpz_invert (r: *mut __mpz_struct, u: *const __mpz_struc
 /* Higher level operations (sqrt, pow and root) */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_pow_ui (r: *mut __mpz_struct, b: *const __mpz_struct,
+pub unsafe extern "C-unwind" fn mpz_pow_ui (r: *mut __mpz_struct, b: *const __mpz_struct,
                                      e: c_ulong)
 {
   let mut bit: c_ulong;
@@ -3541,7 +3541,7 @@ pub unsafe extern "C" fn mpz_pow_ui (r: *mut __mpz_struct, b: *const __mpz_struc
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_ui_pow_ui (r: *mut __mpz_struct, blimb: c_ulong, e: c_ulong)
+pub unsafe extern "C-unwind" fn mpz_ui_pow_ui (r: *mut __mpz_struct, blimb: c_ulong, e: c_ulong)
 {
   let mut b: mpz_t = zero_mpz ();
 
@@ -3551,7 +3551,7 @@ pub unsafe extern "C" fn mpz_ui_pow_ui (r: *mut __mpz_struct, blimb: c_ulong, e:
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_powm (r: *mut __mpz_struct, b: *const __mpz_struct,
+pub unsafe extern "C-unwind" fn mpz_powm (r: *mut __mpz_struct, b: *const __mpz_struct,
                                    e: *const __mpz_struct, m: *const __mpz_struct)
 {
   let mut tr: mpz_t = zero_mpz ();
@@ -3661,7 +3661,7 @@ pub unsafe extern "C" fn mpz_powm (r: *mut __mpz_struct, b: *const __mpz_struct,
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_powm_ui (r: *mut __mpz_struct, b: *const __mpz_struct,
+pub unsafe extern "C-unwind" fn mpz_powm_ui (r: *mut __mpz_struct, b: *const __mpz_struct,
                                       elimb: c_ulong, m: *const __mpz_struct)
 {
   let mut e: mpz_t = zero_mpz ();
@@ -3673,7 +3673,7 @@ pub unsafe extern "C" fn mpz_powm_ui (r: *mut __mpz_struct, b: *const __mpz_stru
 
 /* x=trunc(y^(1/z)), r=y-x^z */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_rootrem (x: *mut __mpz_struct, r: *mut __mpz_struct,
+pub unsafe extern "C-unwind" fn mpz_rootrem (x: *mut __mpz_struct, r: *mut __mpz_struct,
                                       y: *const __mpz_struct, z: c_ulong)
 {
   let mut sgn: c_int;
@@ -3738,7 +3738,7 @@ pub unsafe extern "C" fn mpz_rootrem (x: *mut __mpz_struct, r: *mut __mpz_struct
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_root (x: *mut __mpz_struct, y: *const __mpz_struct,
+pub unsafe extern "C-unwind" fn mpz_root (x: *mut __mpz_struct, y: *const __mpz_struct,
                                    z: c_ulong) -> c_int
 {
   let mut res: c_int;
@@ -3754,20 +3754,20 @@ pub unsafe extern "C" fn mpz_root (x: *mut __mpz_struct, y: *const __mpz_struct,
 
 /* Compute s = floor(sqrt(u)) and r = u - s^2. Allows r == NULL */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_sqrtrem (s: *mut __mpz_struct, r: *mut __mpz_struct,
+pub unsafe extern "C-unwind" fn mpz_sqrtrem (s: *mut __mpz_struct, r: *mut __mpz_struct,
                                       u: *const __mpz_struct)
 {
   mpz_rootrem (s, r, u, 2);
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_sqrt (s: *mut __mpz_struct, u: *const __mpz_struct)
+pub unsafe extern "C-unwind" fn mpz_sqrt (s: *mut __mpz_struct, u: *const __mpz_struct)
 {
   mpz_rootrem (s, std::ptr::null_mut (), u, 2);
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_perfect_square_root (r: *mut __mpz_struct,
+pub unsafe extern "C-unwind" fn mpz_perfect_square_root (r: *mut __mpz_struct,
                                                   u: *const __mpz_struct) -> c_int
 {
   if ((*u)._mp_size <= 0)
@@ -3782,13 +3782,13 @@ pub unsafe extern "C" fn mpz_perfect_square_root (r: *mut __mpz_struct,
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_perfect_square_p (u: *const __mpz_struct) -> c_int
+pub unsafe extern "C-unwind" fn mpz_perfect_square_p (u: *const __mpz_struct) -> c_int
 {
   return mpz_perfect_square_root (std::ptr::null_mut (), u);
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpn_perfect_square_p (p: mp_srcptr, n: mp_size_t) -> c_int
+pub unsafe extern "C-unwind" fn mpn_perfect_square_p (p: mp_srcptr, n: mp_size_t) -> c_int
 {
   let mut t: mpz_t = zero_mpz ();
 
@@ -3798,7 +3798,7 @@ pub unsafe extern "C" fn mpn_perfect_square_p (p: mp_srcptr, n: mp_size_t) -> c_
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpn_sqrtrem (sp: mp_ptr, rp: mp_ptr, p: mp_srcptr,
+pub unsafe extern "C-unwind" fn mpn_sqrtrem (sp: mp_ptr, rp: mp_ptr, p: mp_srcptr,
                                       n: mp_size_t) -> mp_size_t
 {
   let mut s: mpz_t = zero_mpz ();
@@ -3827,7 +3827,7 @@ pub unsafe extern "C" fn mpn_sqrtrem (sp: mp_ptr, rp: mp_ptr, p: mp_srcptr,
 /* Combinatorics */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_mfac_uiui (x: *mut __mpz_struct, mut n: c_ulong,
+pub unsafe extern "C-unwind" fn mpz_mfac_uiui (x: *mut __mpz_struct, mut n: c_ulong,
                                         m: c_ulong)
 {
   mpz_set_ui (x, n + (n == 0) as c_ulong);
@@ -3837,19 +3837,19 @@ pub unsafe extern "C" fn mpz_mfac_uiui (x: *mut __mpz_struct, mut n: c_ulong,
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_2fac_ui (x: *mut __mpz_struct, n: c_ulong)
+pub unsafe extern "C-unwind" fn mpz_2fac_ui (x: *mut __mpz_struct, n: c_ulong)
 {
   mpz_mfac_uiui (x, n, 2);
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_fac_ui (x: *mut __mpz_struct, n: c_ulong)
+pub unsafe extern "C-unwind" fn mpz_fac_ui (x: *mut __mpz_struct, n: c_ulong)
 {
   mpz_mfac_uiui (x, n, 1);
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_bin_uiui (r: *mut __mpz_struct, mut n: c_ulong,
+pub unsafe extern "C-unwind" fn mpz_bin_uiui (r: *mut __mpz_struct, mut n: c_ulong,
                                        mut k: c_ulong)
 {
   let mut t: mpz_t = zero_mpz ();
@@ -3871,7 +3871,7 @@ pub unsafe extern "C" fn mpz_bin_uiui (r: *mut __mpz_struct, mut n: c_ulong,
 
 /* Computes Kronecker (a/b) with odd b, a!=0 and GCD(a,b) = 1 */
 /* Adapted from JACOBI_BASE_METHOD==4 in mpn/generic/jacbase.c */
-unsafe extern "C" fn gmp_jacobi_coprime (mut a: mp_limb_t, mut b: mp_limb_t) -> c_int
+unsafe extern "C-unwind" fn gmp_jacobi_coprime (mut a: mp_limb_t, mut b: mp_limb_t) -> c_int
 {
   let mut c: c_uint = 0;
   let mut bit: c_int = 0;
@@ -3911,7 +3911,7 @@ unsafe extern "C" fn gmp_jacobi_coprime (mut a: mp_limb_t, mut b: mp_limb_t) -> 
     }
 }
 
-unsafe extern "C" fn gmp_lucas_step_k_2k (V: *mut __mpz_struct, Qk: *mut __mpz_struct,
+unsafe extern "C-unwind" fn gmp_lucas_step_k_2k (V: *mut __mpz_struct, Qk: *mut __mpz_struct,
                                           n: *const __mpz_struct)
 {
   mpz_mod (Qk, Qk, n);
@@ -3927,7 +3927,7 @@ unsafe extern "C" fn gmp_lucas_step_k_2k (V: *mut __mpz_struct, Qk: *mut __mpz_s
 /* with P=1, Q=Q; k = (n>>b0)|1. */
 /* Requires an odd n > 4; b0 > 0; -2*Q must not overflow a long */
 /* Returns (U_k == 0) and sets V=V_k and Qk=Q^k. */
-unsafe extern "C" fn gmp_lucas_mod (V: *mut __mpz_struct, Qk: *mut __mpz_struct,
+unsafe extern "C-unwind" fn gmp_lucas_mod (V: *mut __mpz_struct, Qk: *mut __mpz_struct,
                                     Q: c_long, b0: mp_bitcnt_t,
                                     n: *const __mpz_struct) -> c_int
 {
@@ -3986,7 +3986,7 @@ unsafe extern "C" fn gmp_lucas_mod (V: *mut __mpz_struct, Qk: *mut __mpz_struct,
 /* Performs strong Lucas' test on x, with parameters suggested */
 /* for the BPSW test. Qk is only passed to recycle a variable. */
 /* Requires GCD (x,6) = 1.*/
-unsafe extern "C" fn gmp_stronglucas (x: *const __mpz_struct, Qk: *mut __mpz_struct)
+unsafe extern "C-unwind" fn gmp_stronglucas (x: *const __mpz_struct, Qk: *mut __mpz_struct)
   -> c_int
 {
   let mut b0: mp_bitcnt_t;
@@ -4043,7 +4043,7 @@ unsafe extern "C" fn gmp_stronglucas (x: *const __mpz_struct, Qk: *mut __mpz_str
   return (b0 != 0) as c_int;
 }
 
-unsafe extern "C" fn gmp_millerrabin (n: *const __mpz_struct, nm1: *const __mpz_struct,
+unsafe extern "C-unwind" fn gmp_millerrabin (n: *const __mpz_struct, nm1: *const __mpz_struct,
                                       y: *mut __mpz_struct, q: *const __mpz_struct,
                                       mut k: mp_bitcnt_t) -> c_int
 {
@@ -4074,7 +4074,7 @@ pub const GMP_PRIME_PRODUCT: c_ulong
 pub const GMP_PRIME_MASK: c_ulong = 0xc96996dc;
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_probab_prime_p (n: *const __mpz_struct, mut reps: c_int)
+pub unsafe extern "C-unwind" fn mpz_probab_prime_p (n: *const __mpz_struct, mut reps: c_int)
   -> c_int
 {
   let mut nm1: mpz_t = zero_mpz ();
@@ -4169,7 +4169,7 @@ pub unsafe extern "C" fn mpz_probab_prime_p (n: *const __mpz_struct, mut reps: c
    get two's complement 110000, and -010000. */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_tstbit (d: *const __mpz_struct, bit_index: mp_bitcnt_t)
+pub unsafe extern "C-unwind" fn mpz_tstbit (d: *const __mpz_struct, bit_index: mp_bitcnt_t)
   -> c_int
 {
   let mut limb_index: mp_size_t;
@@ -4202,7 +4202,7 @@ pub unsafe extern "C" fn mpz_tstbit (d: *const __mpz_struct, bit_index: mp_bitcn
   return bit;
 }
 
-unsafe extern "C" fn mpz_abs_add_bit (d: *mut __mpz_struct, bit_index: mp_bitcnt_t)
+unsafe extern "C-unwind" fn mpz_abs_add_bit (d: *mut __mpz_struct, bit_index: mp_bitcnt_t)
 {
   let mut dn: mp_size_t;
   let mut limb_index: mp_size_t;
@@ -4245,7 +4245,7 @@ unsafe extern "C" fn mpz_abs_add_bit (d: *mut __mpz_struct, bit_index: mp_bitcnt
   (*d)._mp_size = (if (*d)._mp_size < 0 { - dn } else { dn }) as c_int;
 }
 
-unsafe extern "C" fn mpz_abs_sub_bit (d: *mut __mpz_struct, bit_index: mp_bitcnt_t)
+unsafe extern "C-unwind" fn mpz_abs_sub_bit (d: *mut __mpz_struct, bit_index: mp_bitcnt_t)
 {
   let mut dn: mp_size_t;
   let limb_index: mp_size_t;
@@ -4268,7 +4268,7 @@ unsafe extern "C" fn mpz_abs_sub_bit (d: *mut __mpz_struct, bit_index: mp_bitcnt
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_setbit (d: *mut __mpz_struct, bit_index: mp_bitcnt_t)
+pub unsafe extern "C-unwind" fn mpz_setbit (d: *mut __mpz_struct, bit_index: mp_bitcnt_t)
 {
   if (mpz_tstbit (d, bit_index) == 0)
     {
@@ -4280,7 +4280,7 @@ pub unsafe extern "C" fn mpz_setbit (d: *mut __mpz_struct, bit_index: mp_bitcnt_
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_clrbit (d: *mut __mpz_struct, bit_index: mp_bitcnt_t)
+pub unsafe extern "C-unwind" fn mpz_clrbit (d: *mut __mpz_struct, bit_index: mp_bitcnt_t)
 {
   if (mpz_tstbit (d, bit_index) != 0)
     {
@@ -4292,7 +4292,7 @@ pub unsafe extern "C" fn mpz_clrbit (d: *mut __mpz_struct, bit_index: mp_bitcnt_
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_combit (d: *mut __mpz_struct, bit_index: mp_bitcnt_t)
+pub unsafe extern "C-unwind" fn mpz_combit (d: *mut __mpz_struct, bit_index: mp_bitcnt_t)
 {
   if (mpz_tstbit (d, bit_index) ^ (((*d)._mp_size < 0) as c_int)) != 0
     { mpz_abs_sub_bit (d, bit_index); }
@@ -4301,7 +4301,7 @@ pub unsafe extern "C" fn mpz_combit (d: *mut __mpz_struct, bit_index: mp_bitcnt_
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_init_setbit (r: *mut __mpz_struct, b: mp_bitcnt_t)
+pub unsafe extern "C-unwind" fn mpz_init_setbit (r: *mut __mpz_struct, b: mp_bitcnt_t)
 {
   mpz_init (r);
   /* mpz_setbit (r, b); */
@@ -4309,14 +4309,14 @@ pub unsafe extern "C" fn mpz_init_setbit (r: *mut __mpz_struct, b: mp_bitcnt_t)
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_com (r: *mut __mpz_struct, u: *const __mpz_struct)
+pub unsafe extern "C-unwind" fn mpz_com (r: *mut __mpz_struct, u: *const __mpz_struct)
 {
   mpz_add_ui (r, u, 1);
   mpz_neg (r, r);
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_and (r: *mut __mpz_struct, u: *const __mpz_struct,
+pub unsafe extern "C-unwind" fn mpz_and (r: *mut __mpz_struct, u: *const __mpz_struct,
                                  v: *const __mpz_struct)
 {
   let mut un: mp_size_t;
@@ -4404,7 +4404,7 @@ pub unsafe extern "C" fn mpz_and (r: *mut __mpz_struct, u: *const __mpz_struct,
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_ior (r: *mut __mpz_struct, u: *const __mpz_struct,
+pub unsafe extern "C-unwind" fn mpz_ior (r: *mut __mpz_struct, u: *const __mpz_struct,
                                   v: *const __mpz_struct)
 {
   let mut un: mp_size_t;
@@ -4493,7 +4493,7 @@ pub unsafe extern "C" fn mpz_ior (r: *mut __mpz_struct, u: *const __mpz_struct,
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_xor (r: *mut __mpz_struct, u: *const __mpz_struct,
+pub unsafe extern "C-unwind" fn mpz_xor (r: *mut __mpz_struct, u: *const __mpz_struct,
                                   v: *const __mpz_struct)
 {
   let mut un: mp_size_t;
@@ -4576,7 +4576,7 @@ pub unsafe extern "C" fn mpz_xor (r: *mut __mpz_struct, u: *const __mpz_struct,
   (*r)._mp_size = (if rx != 0 { -un } else { un }) as c_int;
 }
 
-unsafe extern "C" fn gmp_popcount_limb (mut x: mp_limb_t) -> c_uint
+unsafe extern "C-unwind" fn gmp_popcount_limb (mut x: mp_limb_t) -> c_uint
 {
   let mut c: c_uint;
 
@@ -4599,7 +4599,7 @@ unsafe extern "C" fn gmp_popcount_limb (mut x: mp_limb_t) -> c_uint
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpn_popcount (p: mp_srcptr, n: mp_size_t) -> mp_bitcnt_t
+pub unsafe extern "C-unwind" fn mpn_popcount (p: mp_srcptr, n: mp_size_t) -> mp_bitcnt_t
 {
   let mut i: mp_size_t;
   let mut c: mp_bitcnt_t;
@@ -4613,7 +4613,7 @@ pub unsafe extern "C" fn mpn_popcount (p: mp_srcptr, n: mp_size_t) -> mp_bitcnt_
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_popcount (u: *const __mpz_struct) -> mp_bitcnt_t
+pub unsafe extern "C-unwind" fn mpz_popcount (u: *const __mpz_struct) -> mp_bitcnt_t
 {
   let un: mp_size_t;
 
@@ -4626,7 +4626,7 @@ pub unsafe extern "C" fn mpz_popcount (u: *const __mpz_struct) -> mp_bitcnt_t
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_hamdist (u: *const __mpz_struct, v: *const __mpz_struct)
+pub unsafe extern "C-unwind" fn mpz_hamdist (u: *const __mpz_struct, v: *const __mpz_struct)
   -> mp_bitcnt_t
 {
   let mut un: mp_size_t;
@@ -4689,7 +4689,7 @@ pub unsafe extern "C" fn mpz_hamdist (u: *const __mpz_struct, v: *const __mpz_st
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_scan1 (u: *const __mpz_struct, starting_bit: mp_bitcnt_t)
+pub unsafe extern "C-unwind" fn mpz_scan1 (u: *const __mpz_struct, starting_bit: mp_bitcnt_t)
   -> mp_bitcnt_t
 {
   let up: mp_ptr;
@@ -4729,7 +4729,7 @@ pub unsafe extern "C" fn mpz_scan1 (u: *const __mpz_struct, starting_bit: mp_bit
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_scan0 (u: *const __mpz_struct, starting_bit: mp_bitcnt_t)
+pub unsafe extern "C-unwind" fn mpz_scan0 (u: *const __mpz_struct, starting_bit: mp_bitcnt_t)
   -> mp_bitcnt_t
 {
   let up: mp_ptr;
@@ -4764,7 +4764,7 @@ pub unsafe extern "C" fn mpz_scan0 (u: *const __mpz_struct, starting_bit: mp_bit
 /* MPZ base conversion. */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_sizeinbase (u: *const __mpz_struct, base: c_int) -> usize
+pub unsafe extern "C-unwind" fn mpz_sizeinbase (u: *const __mpz_struct, base: c_int) -> usize
 {
   let mut un: mp_size_t;
   let mut tn: mp_size_t;
@@ -4816,7 +4816,7 @@ pub unsafe extern "C" fn mpz_sizeinbase (u: *const __mpz_struct, base: c_int) ->
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_get_str (sp: *mut c_char, mut base: c_int,
+pub unsafe extern "C-unwind" fn mpz_get_str (sp: *mut c_char, mut base: c_int,
                                       u: *const __mpz_struct) -> *mut c_char
 {
   let mut bits: c_uint;
@@ -4901,7 +4901,7 @@ pub unsafe extern "C" fn mpz_get_str (sp: *mut c_char, mut base: c_int,
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_set_str (r: *mut __mpz_struct, sp: *const c_char,
+pub unsafe extern "C-unwind" fn mpz_set_str (r: *mut __mpz_struct, sp: *const c_char,
                                       mut base: c_int) -> c_int
 {
   let mut bits: c_uint;
@@ -5015,7 +5015,7 @@ pub unsafe extern "C" fn mpz_set_str (r: *mut __mpz_struct, sp: *const c_char,
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_init_set_str (r: *mut __mpz_struct, sp: *const c_char,
+pub unsafe extern "C-unwind" fn mpz_init_set_str (r: *mut __mpz_struct, sp: *const c_char,
                                            base: c_int) -> c_int
 {
   mpz_init (r);
@@ -5023,7 +5023,7 @@ pub unsafe extern "C" fn mpz_init_set_str (r: *mut __mpz_struct, sp: *const c_ch
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_out_str (stream: *mut FILE, base: c_int,
+pub unsafe extern "C-unwind" fn mpz_out_str (stream: *mut FILE, base: c_int,
                                       x: *const __mpz_struct) -> usize
 {
   let mut str_: *mut c_char;
@@ -5039,7 +5039,7 @@ pub unsafe extern "C" fn mpz_out_str (stream: *mut FILE, base: c_int,
   return n;
 }
 
-unsafe extern "C" fn gmp_detect_endian () -> c_int
+unsafe extern "C-unwind" fn gmp_detect_endian () -> c_int
 {
   static i: c_int = 2;
   let p: *const u8 = &i as *const c_int as *const u8;
@@ -5048,7 +5048,7 @@ unsafe extern "C" fn gmp_detect_endian () -> c_int
 
 /* Import and export. Does not support nails. */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_import (r: *mut __mpz_struct, mut count: usize,
+pub unsafe extern "C-unwind" fn mpz_import (r: *mut __mpz_struct, mut count: usize,
                                      order: c_int, size: usize, mut endian: c_int,
                                      nails: usize, src: *const c_void)
 {
@@ -5131,7 +5131,7 @@ pub unsafe extern "C" fn mpz_import (r: *mut __mpz_struct, mut count: usize,
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpz_export (mut r: *mut c_void, countp: *mut usize,
+pub unsafe extern "C-unwind" fn mpz_export (mut r: *mut c_void, countp: *mut usize,
                                      order: c_int, size: usize, mut endian: c_int,
                                      nails: usize, u: *const __mpz_struct)
   -> *mut c_void

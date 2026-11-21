@@ -408,112 +408,112 @@ pub struct terminal
   pub rif: *mut c_void,                            /// C: `struct redisplay_interface *rif;`
 
   /* A table of hooks for terminal-specific display actions.  Every one may be NULL.  */
-  pub cursor_to_hook: Option<unsafe extern "C" fn (*mut c_void, c_int, c_int)>,          // 564
-  pub raw_cursor_to_hook: Option<unsafe extern "C" fn (*mut c_void, c_int, c_int)>,      // 565
-  pub clear_to_end_hook: Option<unsafe extern "C" fn (*mut c_void)>,                     // 567
-  pub clear_frame_hook: Option<unsafe extern "C" fn (*mut c_void)>,                      // 568
-  pub clear_end_of_line_hook: Option<unsafe extern "C" fn (*mut c_void, c_int)>,         // 569
-  pub ins_del_lines_hook: Option<unsafe extern "C" fn (*mut c_void, c_int, c_int)>,      // 571
-  pub insert_glyphs_hook: Option<unsafe extern "C" fn (*mut c_void, *mut c_void, c_int)>, // 573
-  pub write_glyphs_hook: Option<unsafe extern "C" fn (*mut c_void, *mut c_void, c_int)>,  // 574
-  pub delete_glyphs_hook: Option<unsafe extern "C" fn (*mut c_void, c_int)>,             // 575
-  pub ring_bell_hook: Option<unsafe extern "C" fn (*mut c_void)>,                        // 577
+  pub cursor_to_hook: Option<unsafe extern "C-unwind" fn (*mut c_void, c_int, c_int)>,          // 564
+  pub raw_cursor_to_hook: Option<unsafe extern "C-unwind" fn (*mut c_void, c_int, c_int)>,      // 565
+  pub clear_to_end_hook: Option<unsafe extern "C-unwind" fn (*mut c_void)>,                     // 567
+  pub clear_frame_hook: Option<unsafe extern "C-unwind" fn (*mut c_void)>,                      // 568
+  pub clear_end_of_line_hook: Option<unsafe extern "C-unwind" fn (*mut c_void, c_int)>,         // 569
+  pub ins_del_lines_hook: Option<unsafe extern "C-unwind" fn (*mut c_void, c_int, c_int)>,      // 571
+  pub insert_glyphs_hook: Option<unsafe extern "C-unwind" fn (*mut c_void, *mut c_void, c_int)>, // 573
+  pub write_glyphs_hook: Option<unsafe extern "C-unwind" fn (*mut c_void, *mut c_void, c_int)>,  // 574
+  pub delete_glyphs_hook: Option<unsafe extern "C-unwind" fn (*mut c_void, c_int)>,             // 575
+  pub ring_bell_hook: Option<unsafe extern "C-unwind" fn (*mut c_void)>,                        // 577
   pub toggle_invisible_pointer_hook:
-      Option<unsafe extern "C" fn (*mut c_void, bool)>,                                  // 578
-  pub reset_terminal_modes_hook: Option<unsafe extern "C" fn (*mut terminal)>,           // 580
-  pub set_terminal_modes_hook: Option<unsafe extern "C" fn (*mut terminal)>,             // 581
-  pub update_begin_hook: Option<unsafe extern "C" fn (*mut c_void)>,                     // 583
-  pub update_end_hook: Option<unsafe extern "C" fn (*mut c_void)>,                       // 584
-  pub set_terminal_window_hook: Option<unsafe extern "C" fn (*mut c_void, c_int)>,       // 585
+      Option<unsafe extern "C-unwind" fn (*mut c_void, bool)>,                                  // 578
+  pub reset_terminal_modes_hook: Option<unsafe extern "C-unwind" fn (*mut terminal)>,           // 580
+  pub set_terminal_modes_hook: Option<unsafe extern "C-unwind" fn (*mut terminal)>,             // 581
+  pub update_begin_hook: Option<unsafe extern "C-unwind" fn (*mut c_void)>,                     // 583
+  pub update_end_hook: Option<unsafe extern "C-unwind" fn (*mut c_void)>,                       // 584
+  pub set_terminal_window_hook: Option<unsafe extern "C-unwind" fn (*mut c_void, c_int)>,       // 585
 
   /* Hook to define a color, and to ask for a frame's background.  */
-  pub defined_color_hook: Option<unsafe extern "C" fn (*mut c_void, *const c_char,
+  pub defined_color_hook: Option<unsafe extern "C-unwind" fn (*mut c_void, *const c_char,
                                                         *mut Emacs_Color, bool, bool)
                                                        -> bool>,                         // 596
-  pub query_frame_background_color: Option<unsafe extern "C" fn (*mut c_void,
+  pub query_frame_background_color: Option<unsafe extern "C-unwind" fn (*mut c_void,
                                                                  *mut Emacs_Color)>,     // 613
 
   // termhooks.h 615-621: C's `#if defined (HAVE_X_WINDOWS) || defined (HAVE_NTGUI) ||
   // defined (HAVE_PGTK) || defined (HAVE_ANDROID)` arm.
   #[cfg (any (feature = "have_x_windows", feature = "have_ntgui", feature = "have_pgtk",
               feature = "have_android"))]
-  pub query_colors: Option<unsafe extern "C" fn (*mut c_void, *mut Emacs_Color,
+  pub query_colors: Option<unsafe extern "C-unwind" fn (*mut c_void, *mut Emacs_Color,
                                                   c_int)>,                               // 620
 
   /* Hook to get the position of the mouse.  */
-  pub mouse_position_hook: Option<unsafe extern "C" fn (*mut *mut c_void, c_int,
+  pub mouse_position_hook: Option<unsafe extern "C-unwind" fn (*mut *mut c_void, c_int,
                                                         *mut Lisp_Object,
                                                         *mut scroll_bar_part,
                                                         *mut Lisp_Object, *mut Lisp_Object,
                                                         *mut Time)>,                     // 642
 
   /* Hooks for focusing and raising frames.  */
-  pub get_focus_frame: Option<unsafe extern "C" fn (*mut c_void) -> Lisp_Object>,        // 645
-  pub focus_frame_hook: Option<unsafe extern "C" fn (*mut c_void, bool)>,                // 648
-  pub frame_rehighlight_hook: Option<unsafe extern "C" fn (*mut c_void)>,                // 653
-  pub frame_raise_lower_hook: Option<unsafe extern "C" fn (*mut c_void, bool)>,          // 665
-  pub frame_visible_invisible_hook: Option<unsafe extern "C" fn (*mut c_void, bool)>,    // 669
-  pub fullscreen_hook: Option<unsafe extern "C" fn (*mut c_void)>,                       // 674
-  pub iconify_frame_hook: Option<unsafe extern "C" fn (*mut c_void)>,                    // 677
+  pub get_focus_frame: Option<unsafe extern "C-unwind" fn (*mut c_void) -> Lisp_Object>,        // 645
+  pub focus_frame_hook: Option<unsafe extern "C-unwind" fn (*mut c_void, bool)>,                // 648
+  pub frame_rehighlight_hook: Option<unsafe extern "C-unwind" fn (*mut c_void)>,                // 653
+  pub frame_raise_lower_hook: Option<unsafe extern "C-unwind" fn (*mut c_void, bool)>,          // 665
+  pub frame_visible_invisible_hook: Option<unsafe extern "C-unwind" fn (*mut c_void, bool)>,    // 669
+  pub fullscreen_hook: Option<unsafe extern "C-unwind" fn (*mut c_void)>,                       // 674
+  pub iconify_frame_hook: Option<unsafe extern "C-unwind" fn (*mut c_void)>,                    // 677
 
   /* Hooks to resize and move a frame, and to set its alpha.  */
-  pub set_window_size_hook: Option<unsafe extern "C" fn (*mut c_void, bool, c_int, c_int)>, // 684
+  pub set_window_size_hook: Option<unsafe extern "C-unwind" fn (*mut c_void, bool, c_int, c_int)>, // 684
   pub set_window_size_and_position_hook:
-      Option<unsafe extern "C" fn (*mut c_void, c_int, c_int)>,                          // 689
-  pub set_frame_offset_hook: Option<unsafe extern "C" fn (*mut c_void, c_int, c_int, c_int)>, // 698
-  pub set_frame_alpha_hook: Option<unsafe extern "C" fn (*mut c_void)>,                  // 701
+      Option<unsafe extern "C-unwind" fn (*mut c_void, c_int, c_int)>,                          // 689
+  pub set_frame_offset_hook: Option<unsafe extern "C-unwind" fn (*mut c_void, c_int, c_int, c_int)>, // 698
+  pub set_frame_alpha_hook: Option<unsafe extern "C-unwind" fn (*mut c_void)>,                  // 701
 
   /* Hooks to set a new font, the icon, and the frame's name.  */
-  pub set_new_font_hook: Option<unsafe extern "C" fn (*mut c_void, Lisp_Object,
+  pub set_new_font_hook: Option<unsafe extern "C-unwind" fn (*mut c_void, Lisp_Object,
                                                       c_int) -> Lisp_Object>,            // 705
-  pub set_bitmap_icon_hook: Option<unsafe extern "C" fn (*mut c_void, Lisp_Object) -> bool>, // 708
-  pub implicit_set_name_hook: Option<unsafe extern "C" fn (*mut c_void, Lisp_Object,
+  pub set_bitmap_icon_hook: Option<unsafe extern "C-unwind" fn (*mut c_void, Lisp_Object) -> bool>, // 708
+  pub implicit_set_name_hook: Option<unsafe extern "C-unwind" fn (*mut c_void, Lisp_Object,
                                                            Lisp_Object)>,                // 713
 
   /* Hooks to show a menu or a dialog.  */
-  pub menu_show_hook: Option<unsafe extern "C" fn (*mut c_void, c_int, c_int, c_int,
+  pub menu_show_hook: Option<unsafe extern "C-unwind" fn (*mut c_void, c_int, c_int, c_int,
                                                    Lisp_Object,
                                                    *mut *const c_char) -> Lisp_Object>,  // 717
   #[cfg (feature = "have_ext_menu_bar")]
-  pub activate_menubar_hook: Option<unsafe extern "C" fn (*mut c_void)>,                 // 721
-  pub popup_dialog_hook: Option<unsafe extern "C" fn (*mut c_void, Lisp_Object,
+  pub activate_menubar_hook: Option<unsafe extern "C-unwind" fn (*mut c_void)>,                 // 721
+  pub popup_dialog_hook: Option<unsafe extern "C-unwind" fn (*mut c_void, Lisp_Object,
                                                       Lisp_Object) -> Lisp_Object>,      // 726
 
   /* Hooks to change the tab bar's and tool bar's height.  */
-  pub change_tab_bar_height_hook: Option<unsafe extern "C" fn (*mut c_void, c_int)>,     // 729
-  pub change_tool_bar_height_hook: Option<unsafe extern "C" fn (*mut c_void, c_int)>,    // 732
+  pub change_tab_bar_height_hook: Option<unsafe extern "C-unwind" fn (*mut c_void, c_int)>,     // 729
+  pub change_tool_bar_height_hook: Option<unsafe extern "C-unwind" fn (*mut c_void, c_int)>,    // 732
 
   /* Hooks for scroll bars.  */
-  pub set_vertical_scroll_bar_hook: Option<unsafe extern "C" fn (*mut c_void, c_int, c_int,
+  pub set_vertical_scroll_bar_hook: Option<unsafe extern "C-unwind" fn (*mut c_void, c_int, c_int,
                                                                  c_int)>,                // 763
-  pub set_horizontal_scroll_bar_hook: Option<unsafe extern "C" fn (*mut c_void, c_int, c_int,
+  pub set_horizontal_scroll_bar_hook: Option<unsafe extern "C-unwind" fn (*mut c_void, c_int, c_int,
                                                                    c_int)>,              // 773
-  pub set_scroll_bar_default_width_hook: Option<unsafe extern "C" fn (*mut c_void)>,     // 776
-  pub set_scroll_bar_default_height_hook: Option<unsafe extern "C" fn (*mut c_void)>,    // 779
-  pub condemn_scroll_bars_hook: Option<unsafe extern "C" fn (*mut c_void)>,              // 801
-  pub redeem_scroll_bar_hook: Option<unsafe extern "C" fn (*mut c_void)>,                // 805
-  pub judge_scroll_bars_hook: Option<unsafe extern "C" fn (*mut c_void)>,                // 818
+  pub set_scroll_bar_default_width_hook: Option<unsafe extern "C-unwind" fn (*mut c_void)>,     // 776
+  pub set_scroll_bar_default_height_hook: Option<unsafe extern "C-unwind" fn (*mut c_void)>,    // 779
+  pub condemn_scroll_bars_hook: Option<unsafe extern "C-unwind" fn (*mut c_void)>,              // 801
+  pub redeem_scroll_bar_hook: Option<unsafe extern "C-unwind" fn (*mut c_void)>,                // 805
+  pub judge_scroll_bars_hook: Option<unsafe extern "C-unwind" fn (*mut c_void)>,                // 818
 
   /* Hook to read input from the terminal's device.  */
-  pub read_socket_hook: Option<unsafe extern "C" fn (*mut terminal,
+  pub read_socket_hook: Option<unsafe extern "C-unwind" fn (*mut terminal,
                                                      *mut input_event) -> c_int>,        // 832
 
-  pub frame_up_to_date_hook: Option<unsafe extern "C" fn (*mut c_void)>,                 // 835
-  pub buffer_flipping_unblocked_hook: Option<unsafe extern "C" fn (*mut c_void)>,        // 840
-  pub get_string_resource_hook: Option<unsafe extern "C" fn (*mut c_void, *const c_char,
+  pub frame_up_to_date_hook: Option<unsafe extern "C-unwind" fn (*mut c_void)>,                 // 835
+  pub buffer_flipping_unblocked_hook: Option<unsafe extern "C-unwind" fn (*mut c_void)>,        // 840
+  pub get_string_resource_hook: Option<unsafe extern "C-unwind" fn (*mut c_void, *const c_char,
                                                              *const c_char)
                                                 -> *const c_char>,                       // 846
   // termhooks.h 849-853: the "Image hooks" pair.  C's parameter types have no mirror here
   // (`Emacs_Pixmap` is xterm.h's `typedef XImage *`, `Display_Info` xterm.h's display record),
   // so the parameters stay untyped pointers (P-72 rule 3).
   #[cfg (feature = "have_window_system")]
-  pub free_pixmap: Option<unsafe extern "C" fn (*mut c_void, *mut c_void)>,              // 851
-  pub delete_frame_hook: Option<unsafe extern "C" fn (*mut c_void)>,                     // 859
-  pub delete_terminal_hook: Option<unsafe extern "C" fn (*mut terminal)>,                // 871
-  pub toolkit_position_hook: Option<unsafe extern "C" fn (*mut c_void, c_int, c_int,
+  pub free_pixmap: Option<unsafe extern "C-unwind" fn (*mut c_void, *mut c_void)>,              // 851
+  pub delete_frame_hook: Option<unsafe extern "C-unwind" fn (*mut c_void)>,                     // 859
+  pub delete_terminal_hook: Option<unsafe extern "C-unwind" fn (*mut terminal)>,                // 871
+  pub toolkit_position_hook: Option<unsafe extern "C-unwind" fn (*mut c_void, c_int, c_int,
                                                           *mut bool, *mut bool)>,        // 878
   #[cfg (feature = "have_window_system")]
-  pub any_grab_hook: Option<unsafe extern "C" fn (*mut c_void) -> bool>,                 // 884
+  pub any_grab_hook: Option<unsafe extern "C-unwind" fn (*mut c_void) -> bool>,                 // 884
 }
 
 // termhooks.h 888-909.
@@ -547,10 +547,10 @@ pub fn TERMINAL_KEYBOARD_CODING (d: *mut terminal) -> *mut c_void
 { unsafe { (*d).keyboard_coding } }
 
 /* Chain of all terminal devices currently in use.  */
-unsafe extern "C" { pub static mut terminal_list: *mut terminal; }        // termhooks.h 915
+unsafe extern "C-unwind" { pub static mut terminal_list: *mut terminal; }        // termhooks.h 915
 
 /* The initial terminal device, created by initial_term_init.  */
-unsafe extern "C" { pub static mut initial_terminal: *mut terminal; }     // termhooks.h 971
+unsafe extern "C-unwind" { pub static mut initial_terminal: *mut terminal; }     // termhooks.h 971
 // termhooks.h 920-921: both read the `tty_display_info` that `FRAME_TTY` (termchar.h 243) hands
 // back, so they stay macros — `FRAME_TTY` is one, and a `fn` cannot call it (PORTING.md P-33).
 // `scroll_region_ok` is the `bool_bf` in `tty_display_info.bits_caps` (the TTY_* masks), which

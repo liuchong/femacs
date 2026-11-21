@@ -95,7 +95,7 @@ const _: () = ();
 
 /* The names C gets from lisp.h, process.h, syswait.h and the system headers above, declared
    at the use site (the terminal.rs/filelock.rs shape); none of them has a mirror.  */
-unsafe extern "C" {
+unsafe extern "C-unwind" {
 
 
 
@@ -112,8 +112,6 @@ unsafe extern "C" {
 
   /// C: bool wait_for_termination (pid_t, int *, bool)   (syswait.h 59)
   fn wait_for_termination (pid: pid_t, status: *mut c_int, hang: bool) -> bool;
-  /// C: void record_deleted_pid (pid_t, Lisp_Object)   (process.h 289)
-  fn record_deleted_pid (pid: pid_t, tempfile: Lisp_Object);
 
 
 
@@ -132,7 +130,7 @@ unsafe extern "C" {
   /// C: void set_unwind_protect (specpdl_ref, void (*) (Lisp_Object), Lisp_Object)
   ///    (lisp.h 4830)
   fn set_unwind_protect (count: specpdl_ref,
-                         func: Option<unsafe extern "C" fn (Lisp_Object)>,
+                         func: Option<unsafe extern "C-unwind" fn (Lisp_Object)>,
                          arg: Lisp_Object);
 
 
@@ -148,6 +146,10 @@ unsafe extern "C" {
 
   /// C: int emacs_unlink (const char *)   (the filelock.rs shape, lisp.h 5325)
   fn emacs_unlink (name: *const c_char) -> c_int;
+}
+unsafe extern "C" {
+  /// C: void record_deleted_pid (pid_t, Lisp_Object)   (process.h 289)
+  fn record_deleted_pid (pid: pid_t, tempfile: Lisp_Object);
   /// C: int kill (pid_t, int)   -- <signal.h>
   fn kill (pid: pid_t, sig: c_int) -> c_int;
   /// C: int mkostemp (char *, int)   -- <stdlib.h>
@@ -331,7 +333,7 @@ const _P_NOWAIT: c_int = 1;
    set, simply return the home directory.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn get_current_directory (encode: bool) -> Lisp_Object
+pub unsafe extern "C-unwind" fn get_current_directory (encode: bool) -> Lisp_Object
 {
   let curdir: Lisp_Object = BVAR! ((current_buffer! ()), directory_);
   let mut dir: Lisp_Object = Funhandled_file_name_directory (curdir);
@@ -367,7 +369,7 @@ pub unsafe extern "C" fn get_current_directory (encode: bool) -> Lisp_Object
    reaped on receipt of the first SIGCHLD after the critical section.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn record_kill_process (p: *mut Lisp_Process, tempfile: Lisp_Object)
+pub unsafe extern "C-unwind" fn record_kill_process (p: *mut Lisp_Process, tempfile: Lisp_Object)
 {
   let mut oldset: sigset_t = std::mem::zeroed ();
   block_child_signal (&raw mut oldset);
@@ -386,12 +388,12 @@ pub unsafe extern "C" fn record_kill_process (p: *mut Lisp_Process, tempfile: Li
 
 /* Clean up files, file descriptors and processes created by Fcall_process.  */
 
-unsafe extern "C" fn delete_temp_file (name: Lisp_Object)
+unsafe extern "C-unwind" fn delete_temp_file (name: Lisp_Object)
 {
   emacs_unlink (SSDATA (name));
 }
 
-unsafe extern "C" fn call_process_kill (ptr: *mut c_void)
+unsafe extern "C-unwind" fn call_process_kill (ptr: *mut c_void)
 {
   let callproc_fd: *mut c_int = ptr as *mut c_int;
   { let mut i: c_int = 0;
@@ -418,7 +420,7 @@ unsafe extern "C" fn call_process_kill (ptr: *mut c_void)
 /* Clean up when exiting Fcall_process: restore the buffer, and
    kill the subsidiary process group if the process still exists.  */
 
-unsafe extern "C" fn call_process_cleanup (buffer: Lisp_Object)
+unsafe extern "C-unwind" fn call_process_cleanup (buffer: Lisp_Object)
 {
   Fset_buffer (buffer);
 
@@ -1759,7 +1761,7 @@ unsafe fn child_diagnostic_group_setup (pid: pid_t, setpgid_result: c_int,
    in a list where `handle_child_signal' can find it!  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn emacs_spawn (mut newpid: *mut pid_t, mut std_in: c_int,
+pub unsafe extern "C-unwind" fn emacs_spawn (mut newpid: *mut pid_t, mut std_in: c_int,
 				      mut std_out: c_int, mut std_err: c_int,
 				      mut argv: *mut *mut c_char, mut envp: *mut *mut c_char,
 				      mut cwd: *const c_char, mut pty_name: *const c_char,
@@ -2166,7 +2168,7 @@ DEFUN! ("getenv-internal", Fgetenv_internal, Sgetenv_internal, 1, 2, 0,
    easily callable from C.  This is usually called from egetenv.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn egetenv_internal (var: *const c_char, len: ptrdiff_t) -> *mut c_char
+pub unsafe extern "C-unwind" fn egetenv_internal (var: *const c_char, len: ptrdiff_t) -> *mut c_char
 {
   let mut value: *mut c_char = std::ptr::null_mut ();
   let mut valuelen: ptrdiff_t = 0;
@@ -2183,7 +2185,7 @@ pub unsafe extern "C" fn egetenv_internal (var: *const c_char, len: ptrdiff_t) -
    the block is active.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn make_environment_block (current_dir: Lisp_Object) -> *mut *mut c_char
+pub unsafe extern "C-unwind" fn make_environment_block (current_dir: Lisp_Object) -> *mut *mut c_char
 {
   let env: *mut *mut c_char;
   let pwd_var: *mut c_char;
@@ -2324,7 +2326,7 @@ pub unsafe extern "C" fn make_environment_block (current_dir: Lisp_Object) -> *m
 /* This is run before init_cmdargs.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn init_callproc_1 ()
+pub unsafe extern "C-unwind" fn init_callproc_1 ()
 {
   Vdata_directory = decode_env_path (c"EMACSDATA".as_ptr (), PATH_DATA (), false);
   Vdata_directory = Ffile_name_as_directory (Fcar (Vdata_directory));
@@ -2344,7 +2346,7 @@ pub unsafe extern "C" fn init_callproc_1 ()
 /* This is run after init_cmdargs, when Vinstallation_directory is valid.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn init_callproc ()
+pub unsafe extern "C-unwind" fn init_callproc ()
 {
   let data_dir: bool = ! egetenv (c"EMACSDATA".as_ptr ()).is_null ();
 
@@ -2462,7 +2464,7 @@ pub unsafe extern "C" fn init_callproc ()
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn set_initial_environment ()
+pub unsafe extern "C-unwind" fn set_initial_environment ()
 {
   /* PORTING.md 1.5: C declares ENVP uninitialized; the loop assigns it first.  */
   let mut envp: *mut *mut c_char = std::ptr::null_mut ();
@@ -2519,7 +2521,7 @@ pub static mut Vrcs2log_program_name: Lisp_Object = lisp_h_Qnil ();
 pub static mut command_line_max_length: EMACS_INT = 0;
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_callproc ()
+pub unsafe extern "C-unwind" fn syms_of_callproc ()
 {
   /* C 2084-2088's `#ifndef DOS_NT` arm (live: DOS_NT is undefined).  */
   Vtemp_file_name_pattern = build_string (c"emacsXXXXXX".as_ptr ());

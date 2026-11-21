@@ -70,7 +70,7 @@ pub const CANCEL_TAG: c_int = 0xE007F;
 pub mod char_string_decl {
   use super::*;
 
-    unsafe extern "C" {
+    unsafe extern "C-unwind" {
     pub fn char_string (c: c_uint, p: *mut u8) -> c_int;
     }
 }
@@ -580,7 +580,7 @@ pub enum unicode_category_t
 pub mod character_decls {
   use super::*;
 
-    unsafe extern "C" {
+    unsafe extern "C-unwind" {
     // Parameter names come from the definitions in character.c (C's prototypes
     // often have none).
     pub fn char_resolve_modifier_mask (c: EMACS_INT) -> EMACS_INT;

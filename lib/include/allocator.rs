@@ -19,26 +19,26 @@ pub struct allocator
   /* Call ALLOCATE to allocate memory, like 'malloc'.  On failure ALLOCATE
      should return NULL, though not necessarily set errno.  When given
      a zero size it may return NULL even if successful.  */
-  pub allocate: Option<unsafe extern "C" fn (size: usize) -> *mut core::ffi::c_void>,
+  pub allocate: Option<unsafe extern "C-unwind" fn (size: usize) -> *mut core::ffi::c_void>,
 
   /* If nonnull, call REALLOCATE to reallocate memory, like 'realloc'.
      On failure REALLOCATE should return NULL, though not necessarily set
      errno.  */
-  pub reallocate: Option<unsafe extern "C" fn (ptr: *mut core::ffi::c_void, size: usize) -> *mut core::ffi::c_void>,
+  pub reallocate: Option<unsafe extern "C-unwind" fn (ptr: *mut core::ffi::c_void, size: usize) -> *mut core::ffi::c_void>,
 
   /* Call FREE to free memory, like 'free'.  */
-  pub free: Option<unsafe extern "C" fn (ptr: *mut core::ffi::c_void)>,
+  pub free: Option<unsafe extern "C-unwind" fn (ptr: *mut core::ffi::c_void)>,
 
   /* If nonnull, call DIE (SIZE) if MALLOC (SIZE) or REALLOC (…, SIZE) fails.  DIE should not
      return.  */
-  pub die: Option<unsafe extern "C" fn (size: usize)>,
+  pub die: Option<unsafe extern "C-unwind" fn (size: usize)>,
 }
 
 /// C: extern struct allocator const stdlib_allocator
 pub mod allocator_decls {
   use super::*;
 
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     pub static mut stdlib_allocator: allocator;
   }
 }

@@ -103,7 +103,7 @@ pub const NS_USE_NSPasteboardTypeFileURL: c_int = 0;
 /// C: extern volatile int nstrace_depth;
 /// C: extern volatile int nstrace_enabled_global;
 #[cfg (feature = "have_ns")]
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   pub static mut nstrace_num: c_int;
   pub static mut nstrace_depth: c_int;
   pub static mut nstrace_enabled_global: c_int;
@@ -221,7 +221,7 @@ pub const RETURN_FRAME_NOW: ns_return_frame_mode = 2;
 /// C: nsterm.h 775: `extern NSString *ns_app_name;`
 /// C: nsterm.h 776: `extern EmacsMenu *svcsMenu;`
 #[cfg (feature = "have_ns")]
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   pub static mut ns_send_types: *mut c_void;
   pub static mut ns_return_types: *mut c_void;
   pub static mut ns_app_name: *mut c_void;
@@ -403,7 +403,7 @@ pub struct ns_display_info
 /// C: extern struct ns_display_info *x_display_list;
 /// C: extern long context_menu_value;
 #[cfg (feature = "have_ns")]
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   pub static mut x_display_list: *mut ns_display_info;
   pub static mut context_menu_value: c_long;
 }
@@ -673,7 +673,7 @@ macro_rules! FIRST_CHAR_POSITION {
 /// C 1108: `extern struct ns_display_info *ns_term_init (Lisp_Object display_name);`
 /// C 1109: `extern void ns_term_shutdown (int sig);`
 #[cfg (feature = "have_ns")]
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   pub fn ns_term_init (display_name: Lisp_Object) -> *mut ns_display_info;
   pub fn ns_term_shutdown (sig: c_int);
 
@@ -789,7 +789,7 @@ pub const NSAPP_DATA2_RUNFILEDIALOG: c_int = 11;
 /// C 1190: `extern void ns_run_ascript (void);`
 /// C 1193: `extern void ns_run_file_dialog (void);`
 #[cfg (feature = "have_ns")]
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   pub fn ns_run_ascript ();
   pub fn ns_run_file_dialog ();
   /// C 1195: `extern const char *ns_relocate (const char *epath);`
@@ -957,7 +957,7 @@ macro_rules! SCREENMAXBOUND {
 /// C: extern float ns_antialias_threshold;
 /// C: extern frame_parm_handler ns_frame_parm_handlers[];
 #[cfg (feature = "have_ns")]
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   pub static mut ns_antialias_threshold: core::ffi::c_float;
   pub static mut ns_frame_parm_handlers: [*mut c_void; 0];
 }
@@ -1256,7 +1256,7 @@ pub const NSLevelIndicatorStyleContinuousCapacity: NSUInteger =
 #[cfg(feature = "have_ns")]
 pub mod ns_menu_decls {
   use super::*;
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     pub fn find_and_return_menu_selection(f: *mut frame, keymaps: bool, client_data: *mut c_void) -> Lisp_Object;
   }
 }

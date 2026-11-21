@@ -57,7 +57,7 @@ pub struct Lisp_Bignum
 pub mod bignum_externs {
   use super::*;
 
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     pub static mut mpz: [mpz_t; 5];
 
     /* extern void init_bignum (void);  */

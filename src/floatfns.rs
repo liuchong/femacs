@@ -66,7 +66,7 @@ unsafe fn CHECK_FLOAT (x: Lisp_Object)
 /* Extract a Lisp number as a `double', or signal an error.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn extract_float (num: Lisp_Object) -> c_double
+pub unsafe extern "C-unwind" fn extract_float (num: Lisp_Object) -> c_double
 {
   CHECK_NUMBER (num);
   return XFLOATINT (num);
@@ -336,7 +336,7 @@ DEFUN! ("logb", Flogb, Slogb, 1, 1, 0,
    D is infinite, and two greater than that if D is a NaN.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn double_integer_scale (d: c_double) -> c_int
+pub unsafe extern "C-unwind" fn double_integer_scale (d: c_double) -> c_int
 {
   let exponent = ilogb (d);
   // C gates this block on `#ifdef HAIKU`; HAIKU is undefined in the frozen
@@ -402,10 +402,10 @@ unsafe fn rescale_for_division (n: Lisp_Object, t: *mut mpz_t, nscale: c_int,
 
 unsafe fn rounding_driver (n: Lisp_Object, d: Lisp_Object,
 			   double_round: unsafe extern "C" fn (c_double) -> c_double,
-			   int_divide: unsafe extern "C" fn (*mut __mpz_struct,
+			   int_divide: unsafe extern "C-unwind" fn (*mut __mpz_struct,
 							     *const __mpz_struct,
 							     *const __mpz_struct),
-			   fixnum_divide: unsafe extern "C" fn (EMACS_INT, EMACS_INT) -> EMACS_INT)
+			   fixnum_divide: unsafe extern "C-unwind" fn (EMACS_INT, EMACS_INT) -> EMACS_INT)
      -> Lisp_Object
 {
   CHECK_NUMBER (n);
@@ -446,22 +446,22 @@ unsafe fn rounding_driver (n: Lisp_Object, d: Lisp_Object,
   return make_integer_mpz ();
 }
 
-unsafe extern "C" fn ceiling2 (n: EMACS_INT, d: EMACS_INT) -> EMACS_INT
+unsafe extern "C-unwind" fn ceiling2 (n: EMACS_INT, d: EMACS_INT) -> EMACS_INT
 {
   return n / d + ((n % d != 0) as EMACS_INT & ((n < 0) == (d < 0)) as EMACS_INT);
 }
 
-unsafe extern "C" fn floor2 (n: EMACS_INT, d: EMACS_INT) -> EMACS_INT
+unsafe extern "C-unwind" fn floor2 (n: EMACS_INT, d: EMACS_INT) -> EMACS_INT
 {
   return n / d - ((n % d != 0) as EMACS_INT & ((n < 0) != (d < 0)) as EMACS_INT);
 }
 
-unsafe extern "C" fn truncate2 (n: EMACS_INT, d: EMACS_INT) -> EMACS_INT
+unsafe extern "C-unwind" fn truncate2 (n: EMACS_INT, d: EMACS_INT) -> EMACS_INT
 {
   return n / d;
 }
 
-unsafe extern "C" fn round2 (n: EMACS_INT, d: EMACS_INT) -> EMACS_INT
+unsafe extern "C-unwind" fn round2 (n: EMACS_INT, d: EMACS_INT) -> EMACS_INT
 {
   /* The C language's division operator gives us the remainder R
      corresponding to truncated division, but we want the remainder R1
@@ -479,7 +479,7 @@ unsafe extern "C" fn round2 (n: EMACS_INT, d: EMACS_INT) -> EMACS_INT
   return q;
 }
 
-unsafe extern "C" fn rounddiv_q (q: *mut __mpz_struct, n: *const __mpz_struct,
+unsafe extern "C-unwind" fn rounddiv_q (q: *mut __mpz_struct, n: *const __mpz_struct,
 			      d: *const __mpz_struct)
 {
   /* Mimic the source code of round2, using mpz_t instead of EMACS_INT.  */
@@ -571,7 +571,7 @@ DEFUN! ("truncate", Ftruncate, Struncate, 1, 2, 0,
 });
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn fmod_float (x: Lisp_Object, y: Lisp_Object) -> Lisp_Object
+pub unsafe extern "C-unwind" fn fmod_float (x: Lisp_Object, y: Lisp_Object) -> Lisp_Object
 {
   let mut f1: c_double = XFLOATINT (x);
   let f2: c_double = XFLOATINT (y);
@@ -630,7 +630,7 @@ DEFUN! ("ftruncate", Fftruncate, Sftruncate, 1, 1, 0,
 });
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_floatfns ()
+pub unsafe extern "C-unwind" fn syms_of_floatfns ()
 {
   defsubr (&raw mut Sacos);
   defsubr (&raw mut Sasin);

@@ -344,7 +344,7 @@ pub const READABLE_EVENTS_FILTER_EVENTS: c_int = 1 << 1;
 pub const READABLE_EVENTS_IGNORE_SQUEEZABLES: c_int = 1 << 2;
 
 /* C 380: `static void (*keyboard_init_hook) (void);`  */
-static mut keyboard_init_hook: Option<unsafe extern "C" fn ()> = None;
+static mut keyboard_init_hook: Option<unsafe extern "C-unwind" fn ()> = None;
 
 /* C 321-323, 325-326, 379-410: the `static` prototypes are dropped (PORTING.md 0.1-12; they
    name `command_loop`, `echo_now`, `echo_length`, `read_char_x_menu_prompt`,
@@ -424,12 +424,12 @@ macro_rules! frame_bits {
    (live under `HAVE_WINDOW_SYSTEM && !HAVE_EXT_MENU_BAR`).  The menu-bar code below calls it
    twice, at C 6487 and C 6989.  */
 #[cfg (all (feature = "have_window_system", not (feature = "have_ext_menu_bar")))]
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   fn x_y_to_column_row (w: *mut window, x: c_int, y: c_int,
 			column: *mut c_int, row: *mut c_int);
 }
 
-unsafe extern "C" {
+unsafe extern "C-unwind" {
 
   /// C: lisp.h 4323: `extern ptrdiff_t copy_text (const unsigned char *, unsigned char *,
   ///					      ptrdiff_t, bool, bool);`
@@ -446,17 +446,15 @@ unsafe extern "C" {
   fn print_error_message (data: Lisp_Object, errname: Lisp_Object, errmsg: *const c_char,
                           severity: Lisp_Object);
   /// C: lisp.h 4803: `extern Lisp_Object internal_catch (Lisp_Object, Lisp_Object (*) (Lisp_Object), Lisp_Object);`
-  fn internal_catch (tag: Lisp_Object, func: unsafe extern "C" fn (Lisp_Object) -> Lisp_Object,
+  fn internal_catch (tag: Lisp_Object, func: unsafe extern "C-unwind" fn (Lisp_Object) -> Lisp_Object,
                      val: Lisp_Object) -> Lisp_Object;
   /// C: lisp.h 4805: `extern Lisp_Object internal_condition_case (Lisp_Object (*) (void), Lisp_Object, Lisp_Object (*) (Lisp_Object));`
-  fn internal_condition_case (bfun: unsafe extern "C" fn () -> Lisp_Object, handlers: Lisp_Object,
-                              hfun: unsafe extern "C" fn (Lisp_Object) -> Lisp_Object) -> Lisp_Object;
+  fn internal_condition_case (bfun: unsafe extern "C-unwind" fn () -> Lisp_Object, handlers: Lisp_Object,
+                              hfun: unsafe extern "C-unwind" fn (Lisp_Object) -> Lisp_Object) -> Lisp_Object;
 
 
   /// C: eval.c (lisp.h 5160's `extern void init_eval (void);`)
   fn init_eval ();
-  /// C: <setjmp.h>: `int sigsetjmp (sigjmp_buf, int);`
-  fn sigsetjmp (env: *mut c_void, savemask: c_int) -> c_int;
 
 
 
@@ -479,22 +477,15 @@ unsafe extern "C" {
                                   wait_proc: *mut Lisp_Process, just_wait_proc: c_int);
   /// C: lisp.h 4809: `extern Lisp_Object internal_condition_case_1
   ///   (Lisp_Object (*) (Lisp_Object), Lisp_Object, Lisp_Object, Lisp_Object (*) (Lisp_Object));`
-  fn internal_condition_case_1 (bfun: unsafe extern "C" fn (Lisp_Object) -> Lisp_Object,
+  fn internal_condition_case_1 (bfun: unsafe extern "C-unwind" fn (Lisp_Object) -> Lisp_Object,
                                 arg: Lisp_Object, handlers: Lisp_Object,
-                                hfun: unsafe extern "C" fn (Lisp_Object) -> Lisp_Object)
+                                hfun: unsafe extern "C-unwind" fn (Lisp_Object) -> Lisp_Object)
                                 -> Lisp_Object;
   /// C: coding.h 689: `extern Lisp_Object code_convert_string (Lisp_Object, Lisp_Object,
   ///   Lisp_Object, bool, bool, ptrdiff_t);`
   fn code_convert_string (string: Lisp_Object, coding_system: Lisp_Object,
                           nocopy: Lisp_Object, buffer: bool, gc: bool,
                           carryover: ptrdiff_t) -> Lisp_Object;
-  /// C: <string.h>: `size_t strnlen (const char *, size_t);` — C reaches `<string.h>` through
-  ///   lisp.h 30, and the mirror that edge pulls in (`lib/include/string.rs`, status 3.524)
-  ///   declares the rest of the family this block used to carry (`memcpy`, `memcmp`, `strcmp`,
-  ///   `memset`, `strcpy`, `stpcpy`, `memmove`; keeping them here was `E0428` against it).
-  ///   `strnlen` is not in the mirror yet, so it stays declared here (`menu_separator_name_p`
-  ///   is its first reader; `process.rs`/`sysdep.rs` declare their own).
-  fn strnlen (s: *const c_char, maxlen: size_t) -> size_t;
   /// C: lisp.h 4717: `extern ptrdiff_t esprintf (char *, char const *, ...)
   ///   ATTRIBUTE_FORMAT_PRINTF (2, 3);` (doprnt.c; the lisp.rs mirror does not carry it,
   ///   `keymap.rs` declares its own copy).
@@ -504,18 +495,12 @@ unsafe extern "C" {
   /// C: lisp.h 5111: `extern void line_number_display_width (struct window *, int *, int *);`
   /// (xdisp.c; the `lisp.rs` mirror does not carry it).
   fn line_number_display_width (w: *mut window, col_width: *mut c_int, pixel_width: *mut c_int);
-  /// C: <sys/ioctl.h>: `int ioctl (int, unsigned long, ...);` (the mirror does not carry it,
-  ///   `callproc.rs` declares its own copy).
-  fn ioctl (fd: c_int, request: c_ulong, ...) -> c_int;
 
 
   /// C: lisp.h 4799: `extern bool FUNCTIONP (Lisp_Object);` (eval.c defines it at 3103; the
   ///   mirror does not carry it, `bytecode.rs` declares its own copy — P-132: this declaration
   ///   is what the call sites below use; a symbol-only local macro had shadowed it).
   fn FUNCTIONP (o: Lisp_Object) -> bool;
-  /// C: lisp.h 5137: `extern AVOID terminate_due_to_signal (int, int);` (emacs.c; the mirror
-  /// does not carry it).
-  fn terminate_due_to_signal (sig: c_int, backtrace_limit: c_int) -> !;
 
   /// C: lisp.h 5120: `extern Lisp_Object get_frame_param (struct frame *, Lisp_Object);`
   /// (frame.c defines it; the mirror does not declare it for this unit, `font.rs` declares its
@@ -536,19 +521,19 @@ unsafe extern "C" {
   /// C: lisp.h 4397: `extern void message_with_string (const char *, Lisp_Object, bool);`
   fn message_with_string (m: *const c_char, string: Lisp_Object, log: bool);
   /// C: lisp.h 4825: `extern void record_unwind_protect_void (void (*) (void));`
-  fn record_unwind_protect_void (function: Option<unsafe extern "C" fn ()>);
+  fn record_unwind_protect_void (function: Option<unsafe extern "C-unwind" fn ()>);
 
   /// C: lisp.h 4783: `extern Lisp_Object run_hook_with_args (ptrdiff_t nargs, Lisp_Object *args,
   ///   Lisp_Object (*funcall) (ptrdiff_t nargs, Lisp_Object *args));`
   fn run_hook_with_args (nargs: ptrdiff_t, args: *mut Lisp_Object,
-                         funcall: unsafe extern "C" fn (ptrdiff_t, *mut Lisp_Object) -> Lisp_Object)
+                         funcall: unsafe extern "C-unwind" fn (ptrdiff_t, *mut Lisp_Object) -> Lisp_Object)
                          -> Lisp_Object;
   /// C: lisp.h 4808: `extern Lisp_Object internal_condition_case_n
   ///   (Lisp_Object (*) (ptrdiff_t, Lisp_Object *), ptrdiff_t, Lisp_Object *,
   ///    Lisp_Object, Lisp_Object (*) (Lisp_Object, ptrdiff_t, Lisp_Object *));`
-  fn internal_condition_case_n (bfun: unsafe extern "C" fn (ptrdiff_t, *mut Lisp_Object) -> Lisp_Object,
+  fn internal_condition_case_n (bfun: unsafe extern "C-unwind" fn (ptrdiff_t, *mut Lisp_Object) -> Lisp_Object,
                                 nargs: ptrdiff_t, args: *mut Lisp_Object, handlers: Lisp_Object,
-                                hfun: unsafe extern "C" fn (Lisp_Object, ptrdiff_t, *mut Lisp_Object)
+                                hfun: unsafe extern "C-unwind" fn (Lisp_Object, ptrdiff_t, *mut Lisp_Object)
                                                               -> Lisp_Object) -> Lisp_Object;
 
   // intervals.h 279's `get_property_and_range` is the include/intervals.rs mirror's now
@@ -632,6 +617,23 @@ unsafe extern "C" {
   /// C: dispextern.h 3580: `int window_box_left_offset (struct window *, enum
   ///   glyph_row_area);` (xdisp.c defines it; the mirror does not declare it).
   fn window_box_left_offset (w: *mut window, area: glyph_row_area) -> c_int;
+}
+unsafe extern "C" {
+  /// C: <setjmp.h>: `int sigsetjmp (sigjmp_buf, int);`
+  fn sigsetjmp (env: *mut c_void, savemask: c_int) -> c_int;
+  /// C: <string.h>: `size_t strnlen (const char *, size_t);` — C reaches `<string.h>` through
+  ///   lisp.h 30, and the mirror that edge pulls in (`lib/include/string.rs`, status 3.524)
+  ///   declares the rest of the family this block used to carry (`memcpy`, `memcmp`, `strcmp`,
+  ///   `memset`, `strcpy`, `stpcpy`, `memmove`; keeping them here was `E0428` against it).
+  ///   `strnlen` is not in the mirror yet, so it stays declared here (`menu_separator_name_p`
+  ///   is its first reader; `process.rs`/`sysdep.rs` declare their own).
+  fn strnlen (s: *const c_char, maxlen: size_t) -> size_t;
+  /// C: <sys/ioctl.h>: `int ioctl (int, unsigned long, ...);` (the mirror does not carry it,
+  ///   `callproc.rs` declares its own copy).
+  fn ioctl (fd: c_int, request: c_ulong, ...) -> c_int;
+  /// C: lisp.h 5137: `extern AVOID terminate_due_to_signal (int, int);` (emacs.c; the mirror
+  /// does not carry it).
+  fn terminate_due_to_signal (sig: c_int, backtrace_limit: c_int) -> !;
 
 }
 
@@ -643,7 +645,7 @@ unsafe extern "C" { pub static mut help_echo_showing_p: bool; }
 unsafe extern "C" { pub static mut composition_break_at_point: bool; }
 
 /// C: lisp.h 4402: `extern void redisplay (void);`
-unsafe extern "C" { fn redisplay (); }
+unsafe extern "C-unwind" { fn redisplay (); }
 /// C: dispnew.c's `bool redisplaying_p;` (dispextern.h 3508's `extern bool redisplaying_p;`)
 unsafe extern "C" { pub static mut redisplaying_p: bool; }
 /// C: lisp.h 5148's `extern bool noninteractive;` is lisp.rs's; this is keyboard.c's own
@@ -884,7 +886,7 @@ unsafe fn echo_now ()
 
 /* C 657-665.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn cancel_echoing ()
+pub unsafe extern "C-unwind" fn cancel_echoing ()
 {
   kboard_bits! (immediate_echo, current_kboard, false);
   kset_echo_prompt (current_kboard, Qnil ());
@@ -926,7 +928,7 @@ unsafe fn add_command_key (key: Lisp_Object)
 
 /* C 708-763.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn recursive_edit_1 () -> Lisp_Object
+pub unsafe extern "C-unwind" fn recursive_edit_1 () -> Lisp_Object
 {
   let count: specpdl_ref = SPECPDL_INDEX ();
   let mut val: Lisp_Object;
@@ -981,7 +983,7 @@ pub unsafe extern "C" fn recursive_edit_1 () -> Lisp_Object
 /* When an auto-save happens, record the "time", and don't do again soon.  */
 /* C 765-769.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn record_auto_save ()
+pub unsafe extern "C-unwind" fn record_auto_save ()
 {
   last_auto_save = num_nonmacro_input_events as intmax_t;
 }
@@ -991,7 +993,7 @@ pub unsafe extern "C" fn record_auto_save ()
    (carried per PORTING.md P-51).  */
 #[cfg (feature = "sigdanger")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn force_auto_save_soon ()
+pub unsafe extern "C-unwind" fn force_auto_save_soon ()
 {
   last_auto_save = - auto_save_interval - 1;
 }
@@ -1035,7 +1037,7 @@ DEFUN! ("recursive-edit", Frecursive_edit, Srecursive_edit, 0, 0, "",
 
 /* C 810-819.  `static void recursive_edit_unwind (Lisp_Object);` at C 321 gives the
    definition internal linkage (command_loop above says why).  */
-unsafe extern "C" fn recursive_edit_unwind (buffer: Lisp_Object)
+unsafe extern "C-unwind" fn recursive_edit_unwind (buffer: Lisp_Object)
 {
   if BUFFERP (buffer)
     { Fset_buffer (buffer); }
@@ -1046,7 +1048,7 @@ unsafe extern "C" fn recursive_edit_unwind (buffer: Lisp_Object)
 
 /* C 824-831: `not_single_kboard_state`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn not_single_kboard_state (kboard: *mut KBOARD)
+pub unsafe extern "C-unwind" fn not_single_kboard_state (kboard: *mut KBOARD)
 {
   if kboard == current_kboard
     { single_kboard = false; }
@@ -1066,7 +1068,7 @@ static mut kboard_stack: *mut kboard_stack = std::ptr::null_mut ();
 
 /* C 845-858.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn push_kboard (k: *mut kboard)
+pub unsafe extern "C-unwind" fn push_kboard (k: *mut kboard)
 {
   let p: *mut kboard_stack = xmalloc (std::mem::size_of::<kboard_stack> ()) as *mut kboard_stack;
 
@@ -1079,7 +1081,7 @@ pub unsafe extern "C" fn push_kboard (k: *mut kboard)
 
 /* C 860-887.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn pop_kboard ()
+pub unsafe extern "C-unwind" fn pop_kboard ()
 {
   let mut t: *mut terminal;
   let p: *mut kboard_stack = kboard_stack;
@@ -1122,7 +1124,7 @@ pub unsafe extern "C" fn pop_kboard ()
 
 /* C 889-925.  */
   #[unsafe(no_mangle)]
-  pub unsafe extern "C" fn temporarily_switch_to_single_kboard (f: *mut frame)
+  pub unsafe extern "C-unwind" fn temporarily_switch_to_single_kboard (f: *mut frame)
   {
     let was_locked: bool = single_kboard;
     if was_locked
@@ -1150,7 +1152,7 @@ pub unsafe extern "C" fn pop_kboard ()
   }
 
 /* C 927-938.  */
-unsafe extern "C" fn restore_kboard_configuration (was_locked: c_int)
+unsafe extern "C-unwind" fn restore_kboard_configuration (was_locked: c_int)
 {
   single_kboard = was_locked != 0;
   if single_kboard
@@ -1166,7 +1168,7 @@ unsafe extern "C" fn restore_kboard_configuration (was_locked: c_int)
 /* Handle errors that are not handled at inner levels
    by printing an error message and returning to the editor command loop.  */
 /* C 944-1001.  */
-unsafe extern "C" fn cmd_error (data: Lisp_Object) -> Lisp_Object
+unsafe extern "C-unwind" fn cmd_error (data: Lisp_Object) -> Lisp_Object
 {
   let mut old_level: Lisp_Object;
   let mut old_length: Lisp_Object;
@@ -1237,7 +1239,7 @@ unsafe extern "C" fn cmd_error (data: Lisp_Object) -> Lisp_Object
    string.  */
 /* C 1011-1032.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn cmd_error_internal (data: Lisp_Object, context: *const c_char)
+pub unsafe extern "C-unwind" fn cmd_error_internal (data: Lisp_Object, context: *const c_char)
 {
   /* The immediate context is not interesting for Quits,
      since they are asynchronous.  */
@@ -1319,10 +1321,13 @@ DEFUN! ("command-error-default-function", Fcommand_error_default_function, Scomm
    object exports no `command_loop` — `tools/check-symbols.py` reported one until this
    definition lost its `#[unsafe(no_mangle)]` (the fns.c `concat_to_list` shape; the
    `linkage` row to add to docs/ports/excluded-macros.txt is in this lane's report).  */
-unsafe extern "C" fn command_loop () -> Lisp_Object
+unsafe extern "C-unwind" fn command_loop () -> Lisp_Object
 {
   /* C 1093-1107: `#ifdef HAVE_STACK_OVERFLOW_HANDLING` is live (macro table 1).  */
   /* At least on GNU/Linux, saving signal mask is important here.  */
+  // SAFETY (U3 boundary audit): `return_to_command_loop` is solely the OS hardware `SIGSEGV`
+  // stack-overflow recovery target (`sysdep.rs::handle_sigsegv`), never used for Lisp `signal`,
+  // `throw`, or `quit`.
   if sigsetjmp (&raw mut return_to_command_loop as *mut c_void, 1) != 0
     {
       /* Comes here from handle_sigsegv (see sysdep.c) and
@@ -1366,7 +1371,7 @@ unsafe extern "C" fn command_loop () -> Lisp_Object
    list of condition names, passed to internal_condition_case.  */
 /* C 1155-1168.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn command_loop_2 (handlers: Lisp_Object) -> Lisp_Object
+pub unsafe extern "C-unwind" fn command_loop_2 (handlers: Lisp_Object) -> Lisp_Object
 {
   let mut val: Lisp_Object;
 
@@ -1380,7 +1385,7 @@ pub unsafe extern "C" fn command_loop_2 (handlers: Lisp_Object) -> Lisp_Object
 }
 
 /* C 1170-1185.  */
-unsafe extern "C" fn top_level_2 () -> Lisp_Object
+unsafe extern "C-unwind" fn top_level_2 () -> Lisp_Object
 {
   /* If we're in batch mode, print a backtrace unconditionally when
      encountering an error, to help with debugging.  */
@@ -1397,7 +1402,7 @@ unsafe extern "C" fn top_level_2 () -> Lisp_Object
 }
 
 /* C 1187-1197.  */
-unsafe extern "C" fn top_level_1 (ignore: Lisp_Object) -> Lisp_Object
+unsafe extern "C-unwind" fn top_level_1 (ignore: Lisp_Object) -> Lisp_Object
 {
   /* On entry to the outer level, run the startup file.  */
   if !NILP (Vtop_level)
@@ -1460,7 +1465,7 @@ DEFUN! ("abort-recursive-edit", Fabort_recursive_edit, Sabort_recursive_edit, 0,
 /* Restore mouse tracking enablement.  See Finternal_track_mouse for
    the only use of this function.  */
 /* C 1253-1265.  */
-unsafe extern "C" fn tracking_off (old_track_mouse: Lisp_Object)
+unsafe extern "C-unwind" fn tracking_off (old_track_mouse: Lisp_Object)
 {
   track_mouse = old_track_mouse;
   if NILP (old_track_mouse)
@@ -1523,7 +1528,7 @@ unsafe fn some_mouse_moved () -> *mut frame
 pub const READ_KEY_ELTS: c_int = 30;
 
 /* C 1328-1690.  */
-unsafe extern "C" fn command_loop_1 () -> Lisp_Object
+unsafe extern "C-unwind" fn command_loop_1 () -> Lisp_Object
 {
   let mut prev_modiff: modiff_count = 0;
   /* C 1324's local `prev_buffer` shadows the file-scope `prev_buffer` (C 269); Rust forbids a
@@ -1892,7 +1897,7 @@ unsafe extern "C" fn command_loop_1 () -> Lisp_Object
 
 /* C 1690-1712.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn read_menu_command () -> Lisp_Object
+pub unsafe extern "C-unwind" fn read_menu_command () -> Lisp_Object
 {
   let count: specpdl_ref = SPECPDL_INDEX ();
 
@@ -2094,7 +2099,7 @@ unsafe fn adjust_point_for_property (last_pt: ptrdiff_t, modified: bool)
    ARGS[0] holds the name of the hook, which we don't need here (we only use
    it in the failure case of the internal_condition_case_n).  */
 /* C 1903-1908.  */
-unsafe extern "C" fn safe_run_hooks_1 (nargs: ptrdiff_t, args: *mut Lisp_Object) -> Lisp_Object
+unsafe extern "C-unwind" fn safe_run_hooks_1 (nargs: ptrdiff_t, args: *mut Lisp_Object) -> Lisp_Object
 {
   eassert! (nargs >= 2);
   return Ffuncall (nargs - 1, args.offset (1));
@@ -2103,7 +2108,7 @@ unsafe extern "C" fn safe_run_hooks_1 (nargs: ptrdiff_t, args: *mut Lisp_Object)
 /* Subroutine for safe_run_hooks: handle an error by clearing out the function
    from the hook.  */
 /* C 1913-1945.  */
-unsafe extern "C" fn safe_run_hooks_error (error: Lisp_Object, nargs: ptrdiff_t,
+unsafe extern "C-unwind" fn safe_run_hooks_error (error: Lisp_Object, nargs: ptrdiff_t,
                                            args: *mut Lisp_Object) -> Lisp_Object
 {
   eassert! (nargs >= 2);
@@ -2142,7 +2147,7 @@ unsafe extern "C" fn safe_run_hooks_error (error: Lisp_Object, nargs: ptrdiff_t,
 }
 
 /* C 1947-1960.  */
-unsafe extern "C" fn safe_run_hook_funcall (nargs: ptrdiff_t, args: *mut Lisp_Object) -> Lisp_Object
+unsafe extern "C-unwind" fn safe_run_hook_funcall (nargs: ptrdiff_t, args: *mut Lisp_Object) -> Lisp_Object
 {
   /* We need to swap args[0] and args[1] here or in `safe_run_hooks_1`.
      It's more convenient to do it here.  */
@@ -2171,7 +2176,7 @@ unsafe extern "C" fn safe_run_hook_funcall (nargs: ptrdiff_t, args: *mut Lisp_Ob
    to mysteriously evaporate.  */
 /* C 1966-1974.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn safe_run_hooks (hook: Lisp_Object)
+pub unsafe extern "C-unwind" fn safe_run_hooks (hook: Lisp_Object)
 {
   let count: specpdl_ref = SPECPDL_INDEX ();
 
@@ -2205,7 +2210,7 @@ unsafe fn safe_run_hooks_maybe_narrowed (hook: Lisp_Object, w: *mut window)
 
 /* C 2008-2017.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn safe_run_hooks_2 (hook: Lisp_Object, arg1: Lisp_Object, arg2: Lisp_Object)
+pub unsafe extern "C-unwind" fn safe_run_hooks_2 (hook: Lisp_Object, arg1: Lisp_Object, arg2: Lisp_Object)
 {
   let count: specpdl_ref = SPECPDL_INDEX ();
 
@@ -2226,7 +2231,7 @@ static mut poll_timer_time: Lisp_Object = lisp_h_Qnil ();
    `#undef`; carried per P-51).  */
 #[cfg (feature = "cygwin_or_dos_nt")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn poll_for_input_1 ()
+pub unsafe extern "C-unwind" fn poll_for_input_1 ()
 {
   if !input_blocked_p ()
       && !waiting_for_input! ()
@@ -2237,7 +2242,7 @@ pub unsafe extern "C" fn poll_for_input_1 ()
    poll_timer.  */
 /* C 2042-2050: `#ifdef POLL_FOR_INPUT` (carried per P-51).  */
 #[cfg (feature = "poll_for_input")]
-unsafe extern "C" fn poll_for_input (timer: *mut atimer)
+unsafe extern "C-unwind" fn poll_for_input (timer: *mut atimer)
 {
   if poll_suppress_count == 0
     { pending_signals = true; }
@@ -2247,7 +2252,7 @@ unsafe extern "C" fn poll_for_input (timer: *mut atimer)
    This function is called unconditionally from various places.  */
 /* C 2052-2082.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn start_polling ()
+pub unsafe extern "C-unwind" fn start_polling ()
 {
   /* C 2054-2081: `#ifdef POLL_FOR_INPUT` (carried per P-51).  */
   #[cfg (feature = "poll_for_input")]
@@ -2287,7 +2292,7 @@ pub unsafe extern "C" fn start_polling ()
 /* C 2084-2096: `#if defined CYGWIN || defined DOS_NT`'s `input_polling_used` (carried).  */
 #[cfg (feature = "cygwin_or_dos_nt")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn input_polling_used () -> bool
+pub unsafe extern "C-unwind" fn input_polling_used () -> bool
 {
   /* XXX This condition was (read_socket_hook && !interrupt_input),
      but read_socket_hook is not global anymore.  Let's pretend that
@@ -2301,7 +2306,7 @@ pub unsafe extern "C" fn input_polling_used () -> bool
 /* Turn off polling.  */
 /* C 2098-2108.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn stop_polling ()
+pub unsafe extern "C-unwind" fn stop_polling ()
 {
   #[cfg (feature = "poll_for_input")]
   {
@@ -2317,7 +2322,7 @@ pub unsafe extern "C" fn stop_polling ()
    and start or stop polling accordingly.  */
 /* C 2110-2125.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn set_poll_suppress_count (count: c_int)
+pub unsafe extern "C-unwind" fn set_poll_suppress_count (count: c_int)
 {
   #[cfg (feature = "poll_for_input")]
   {
@@ -2338,7 +2343,7 @@ pub unsafe extern "C" fn set_poll_suppress_count (count: c_int)
    But don't decrease it.  */
 /* C 2127-2152.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn bind_polling_period (n: c_int)
+pub unsafe extern "C-unwind" fn bind_polling_period (n: c_int)
 {
   #[cfg (feature = "poll_for_input")]
   {
@@ -2374,7 +2379,7 @@ pub unsafe extern "C" fn bind_polling_period (n: c_int)
 /* Apply the control modifier to CHARACTER.  */
 /* C 2154-2192.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn make_ctrl_char (c: c_int) -> c_int
+pub unsafe extern "C-unwind" fn make_ctrl_char (c: c_int) -> c_int
 {
   /* Save the upper bits here.  */
   let upper: c_int = c & !0o177;
@@ -2454,7 +2459,7 @@ unsafe fn help_echo_substitute_command_keys (help: Lisp_Object) -> Lisp_Object
    from X code running asynchronously.  */
 /* C 2233-2263.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn show_help_echo (mut help: Lisp_Object, window: Lisp_Object,
+pub unsafe extern "C-unwind" fn show_help_echo (mut help: Lisp_Object, window: Lisp_Object,
                                          object: Lisp_Object, pos: Lisp_Object)
 {
   if !NILP (help) && !STRINGP (help)
@@ -2494,7 +2499,7 @@ pub unsafe extern "C" fn show_help_echo (mut help: Lisp_Object, window: Lisp_Obj
 
 /* C 2290-2303.  */
 static mut help_form_saved_window_configs: Lisp_Object = lisp_h_Qnil ();
-unsafe extern "C" fn read_char_help_form_unwind ()
+unsafe extern "C-unwind" fn read_char_help_form_unwind ()
 {
   let window_config: Lisp_Object = XCAR (help_form_saved_window_configs);
   help_form_saved_window_configs = XCDR (help_form_saved_window_configs);
@@ -3015,6 +3020,9 @@ unsafe fn read_char (commandflag: c_int, map: Lisp_Object, prev_event: Lisp_Obje
 
   let jmpcount: specpdl_ref = SPECPDL_INDEX ();
   c_volatile = c;
+  // SAFETY (U3 boundary audit): `local_getcjmp` is armed exclusively around raw C `pselect` /
+  // `kbd_buffer_get_event` signal-interruptable waits (disarmed before Lisp hooks/redisplay);
+  // zero Rust `Drop` guards or borrows exist across `set_waiting_for_input` regions.
   if (sys_setjmp (&raw mut local_getcjmp as *mut jmp_buf)) != 0
     {
       c = c_volatile;
@@ -3914,8 +3922,8 @@ unsafe fn save_getcjmp (temp: *mut sys_jmp_buf)
 }
 
 /* C 3632-3636: `restore_getcjmp` — C hands its address to `record_unwind_protect_ptr`, so
-   the port defines it `unsafe extern "C" fn` (PORTING.md 1.4).  */
-unsafe extern "C" fn restore_getcjmp (temp: *mut c_void)
+   the port defines it `unsafe extern "C-unwind" fn` (PORTING.md 1.4).  */
+unsafe extern "C-unwind" fn restore_getcjmp (temp: *mut c_void)
 {
   memcpy ((&raw mut getcjmp! ()) as *mut c_void, temp, std::mem::size_of_val (&getcjmp! ()));
 }
@@ -4075,7 +4083,7 @@ unsafe fn kbd_buffer_nr_stored () -> c_int
 
 /* C 3756-3761: `kbd_buffer_store_event`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn kbd_buffer_store_event (event: *mut input_event)
+pub unsafe extern "C-unwind" fn kbd_buffer_store_event (event: *mut input_event)
 {
   kbd_buffer_store_event_hold (event, std::ptr::null_mut ());
 }
@@ -4092,7 +4100,7 @@ pub unsafe extern "C" fn kbd_buffer_store_event (event: *mut input_event)
 
 /* C 3774-3878: `kbd_buffer_store_buffered_event`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn kbd_buffer_store_buffered_event (event: *mut buffered_input_event,
+pub unsafe extern "C-unwind" fn kbd_buffer_store_buffered_event (event: *mut buffered_input_event,
 							 hold_quit: *mut input_event)
 {
   if (*event).kind == NO_EVENT as u16
@@ -4252,7 +4260,7 @@ unsafe fn Time_to_position (encoded_pos: Time) -> ptrdiff_t
 
 /* C 3923-3940: `gen_help_event`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn gen_help_event (help: Lisp_Object, frame: Lisp_Object, window: Lisp_Object,
+pub unsafe extern "C-unwind" fn gen_help_event (help: Lisp_Object, frame: Lisp_Object, window: Lisp_Object,
 					 object: Lisp_Object, pos: ptrdiff_t)
 {
   let mut event: input_event = std::mem::zeroed ();
@@ -4272,7 +4280,7 @@ pub unsafe extern "C" fn gen_help_event (help: Lisp_Object, frame: Lisp_Object, 
 
 /* C 3942-3958: `kbd_buffer_store_help_event`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn kbd_buffer_store_help_event (frame: Lisp_Object, help: Lisp_Object)
+pub unsafe extern "C-unwind" fn kbd_buffer_store_help_event (frame: Lisp_Object, help: Lisp_Object)
 {
   let mut event: input_event = std::mem::zeroed ();
   EVENT_INIT (&raw mut event);
@@ -4290,7 +4298,7 @@ pub unsafe extern "C" fn kbd_buffer_store_help_event (frame: Lisp_Object, help: 
    NO_EVENT.  */
 /* C 3960-3982: `discard_mouse_events`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn discard_mouse_events ()
+pub unsafe extern "C-unwind" fn discard_mouse_events ()
 {
   let mut sp: *mut buffered_input_event = kbd_fetch_ptr;
   while sp != kbd_store_ptr
@@ -4316,7 +4324,7 @@ pub unsafe extern "C" fn discard_mouse_events ()
 
 /* C 3988-3998: `kbd_buffer_events_waiting`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn kbd_buffer_events_waiting () -> bool
+pub unsafe extern "C-unwind" fn kbd_buffer_events_waiting () -> bool
 {
   let mut sp: *mut buffered_input_event = kbd_fetch_ptr;
   loop
@@ -4355,8 +4363,8 @@ unsafe fn clear_event (event: *mut input_event)
 }
 
 /* C 4005-4018: `kbd_buffer_get_event_1` (C hands its address to
-   `internal_condition_case_1`, so the port defines it `unsafe extern "C" fn`).  */
-unsafe extern "C" fn kbd_buffer_get_event_1 (arg: Lisp_Object) -> Lisp_Object
+   `internal_condition_case_1`, so the port defines it `unsafe extern "C-unwind" fn`).  */
+unsafe extern "C-unwind" fn kbd_buffer_get_event_1 (arg: Lisp_Object) -> Lisp_Object
 {
   let coding_system: Lisp_Object = Fget_text_property (make_fixnum (0),
 						       Qcoding (), arg);
@@ -4371,7 +4379,7 @@ unsafe extern "C" fn kbd_buffer_get_event_1 (arg: Lisp_Object) -> Lisp_Object
 }
 
 /* C 4020-4023: `kbd_buffer_get_event_2`.  */
-unsafe extern "C" fn kbd_buffer_get_event_2 (val: Lisp_Object) -> Lisp_Object
+unsafe extern "C-unwind" fn kbd_buffer_get_event_2 (val: Lisp_Object) -> Lisp_Object
 {
   return Qnil ();
 }
@@ -5118,7 +5126,7 @@ unsafe fn process_special_events ()
 
 /* C 4678-4689: `swallow_events`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn swallow_events (do_display: bool)
+pub unsafe extern "C-unwind" fn swallow_events (do_display: bool)
 {
   let old_timers_run: c_uint;
 
@@ -5369,7 +5377,7 @@ unsafe fn timer_check_2 (timers: Lisp_Object, idle_timers: Lisp_Object) -> times
 
 /* C 4914-4945: `timer_check`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn timer_check () -> timespec
+pub unsafe extern "C-unwind" fn timer_check () -> timespec
 {
   let mut nexttime: timespec;
   let mut timers: Lisp_Object;
@@ -8262,7 +8270,7 @@ macro_rules! KEY_TO_CHAR { ($k:expr) => { XFIXNUM ($k) & ((1 << CHARACTERBITS) -
 
 /* C 7565-7607: `Lisp_Object parse_modifiers (Lisp_Object symbol);`  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn parse_modifiers (symbol: Lisp_Object) -> Lisp_Object
+pub unsafe extern "C-unwind" fn parse_modifiers (symbol: Lisp_Object) -> Lisp_Object
 {
   let mut elements: Lisp_Object;
 
@@ -8388,7 +8396,7 @@ unsafe fn apply_modifiers (mut modifiers: c_int, base: Lisp_Object) -> Lisp_Obje
 /* C 7682-7698: `reorder_modifiers`'s own comment, above its definition.  */
 /* C 7700-7705: `Lisp_Object reorder_modifiers (Lisp_Object symbol);`  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn reorder_modifiers (symbol: Lisp_Object) -> Lisp_Object
+pub unsafe extern "C-unwind" fn reorder_modifiers (symbol: Lisp_Object) -> Lisp_Object
 {
   /* It's hopefully okay to write the code this way, since everything
      will soon be in caches, and no consing will be done at all.  */
@@ -8625,7 +8633,7 @@ DEFUN! ("internal-handle-focus-in", Finternal_handle_focus_in,
 
 /* C 7920-8008: `int parse_solitary_modifier (Lisp_Object symbol);`  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn parse_solitary_modifier (symbol: Lisp_Object) -> c_int
+pub unsafe extern "C-unwind" fn parse_solitary_modifier (symbol: Lisp_Object) -> c_int
 {
   let mut name: Lisp_Object;
 
@@ -8705,7 +8713,7 @@ pub unsafe extern "C" fn parse_solitary_modifier (symbol: Lisp_Object) -> c_int
 
 /* C 8010-8040: `bool lucid_event_type_list_p (Lisp_Object object);`  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn lucid_event_type_list_p (mut object: Lisp_Object) -> bool
+pub unsafe extern "C-unwind" fn lucid_event_type_list_p (mut object: Lisp_Object) -> bool
 {
   if ! CONSP (object)
     { return false; }
@@ -8771,7 +8779,7 @@ unsafe fn get_input_pending (flags: c_int) -> bool
 
 /* C 8074-8161: `int gobble_input (void);`  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn gobble_input () -> c_int
+pub unsafe extern "C-unwind" fn gobble_input () -> c_int
 {
   /* C's uninitialised locals are zero-initialised (PORTING.md 1.5).  */
   let mut nread: c_int = 0;
@@ -8879,7 +8887,7 @@ macro_rules! term_initted { ($tty:expr) => { ((*($tty)).bits_initted & 1) != 0 }
 /* C 8169-8343: `int tty_read_avail_input (struct terminal *terminal,
    struct input_event *hold_quit);`  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn tty_read_avail_input (terminal: *mut terminal,
+pub unsafe extern "C-unwind" fn tty_read_avail_input (terminal: *mut terminal,
 					       hold_quit: *mut input_event) -> c_int
 {
   /* Using KBD_BUFFER_SIZE - 1 here avoids reading more than
@@ -9099,7 +9107,7 @@ unsafe fn handle_async_input ()
 
 /* C 8369-8375: `void process_pending_signals (void);`  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn process_pending_signals ()
+pub unsafe extern "C-unwind" fn process_pending_signals ()
 {
   pending_signals = false;
   handle_async_input ();
@@ -9117,7 +9125,7 @@ pub unsafe extern "C" fn process_pending_signals ()
 
 /* C 8381-8392: `unblock_input_to`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn unblock_input_to (level: c_int)
+pub unsafe extern "C-unwind" fn unblock_input_to (level: c_int)
 {
   interrupt_input_blocked = level;
   if level == 0
@@ -9141,7 +9149,7 @@ pub unsafe extern "C" fn unblock_input_to (level: c_int)
 
 /* C 8404-8408: `unblock_input`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn unblock_input ()
+pub unsafe extern "C-unwind" fn unblock_input ()
 {
   unblock_input_to (interrupt_input_blocked - 1);
 }
@@ -9151,7 +9159,7 @@ pub unsafe extern "C" fn unblock_input ()
 
 /* C 8413-8417: `totally_unblock_input`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn totally_unblock_input ()
+pub unsafe extern "C-unwind" fn totally_unblock_input ()
 {
   unblock_input_to (0);
 }
@@ -9226,7 +9234,7 @@ static mut user_signals: *mut user_signal_info = std::ptr::null_mut ();
 
 /* C 8467-8487: `void add_user_signal (int sig, const char *name);`  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn add_user_signal (sig: c_int, name: *const c_char)
+pub unsafe extern "C-unwind" fn add_user_signal (sig: c_int, name: *const c_char)
 {
   let mut action: sigaction = std::mem::zeroed ();
   let mut p: *mut user_signal_info;
@@ -9392,7 +9400,7 @@ static mut separator_names: [*const c_char; 15] = [
 
 /* C 8607-8631: `bool menu_separator_name_p (const char *label);`  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn menu_separator_name_p (mut label: *const c_char) -> bool
+pub unsafe extern "C-unwind" fn menu_separator_name_p (mut label: *const c_char) -> bool
 {
   if label.is_null ()
     { return false; }
@@ -9430,7 +9438,7 @@ pub unsafe extern "C" fn menu_separator_name_p (mut label: *const c_char) -> boo
 
 /* C 8640-8779: `Lisp_Object menu_bar_items (Lisp_Object old);`  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn menu_bar_items (old: Lisp_Object) -> Lisp_Object
+pub unsafe extern "C-unwind" fn menu_bar_items (old: Lisp_Object) -> Lisp_Object
 {
   /* The number of keymaps we're scanning right now, and the number of
      keymaps we have allocated space for.  */
@@ -9593,7 +9601,7 @@ pub unsafe extern "C" fn menu_bar_items (old: Lisp_Object) -> Lisp_Object
 
 /* C 8786-8856: `static void menu_bar_item (Lisp_Object key, Lisp_Object item,
    Lisp_Object dummy1, void *dummy2);`  */
-unsafe extern "C" fn menu_bar_item (key: Lisp_Object, mut item: Lisp_Object,
+unsafe extern "C-unwind" fn menu_bar_item (key: Lisp_Object, mut item: Lisp_Object,
 				    dummy1: Lisp_Object, dummy2: *mut c_void)
 {
   /* C's uninitialised locals are zero-initialised (PORTING.md 1.5).  */
@@ -9676,7 +9684,7 @@ unsafe extern "C" fn menu_bar_item (key: Lisp_Object, mut item: Lisp_Object,
 
  /* This is used as the handler when calling menu_item_eval_property.  */
 /* C 8859-8868: `static Lisp_Object menu_item_eval_property_1 (Lisp_Object arg);`  */
-unsafe extern "C" fn menu_item_eval_property_1 (arg: Lisp_Object) -> Lisp_Object
+unsafe extern "C-unwind" fn menu_item_eval_property_1 (arg: Lisp_Object) -> Lisp_Object
 {
   /* If we got a quit from within the menu computation,
      quit all the way out of it.  This takes care of C-] in the debugger.  */
@@ -9687,7 +9695,7 @@ unsafe extern "C" fn menu_item_eval_property_1 (arg: Lisp_Object) -> Lisp_Object
 }
 
 /* C 8870-8874: `static Lisp_Object eval_dyn (Lisp_Object form);`  */
-unsafe extern "C" fn eval_dyn (form: Lisp_Object) -> Lisp_Object
+unsafe extern "C-unwind" fn eval_dyn (form: Lisp_Object) -> Lisp_Object
 {
   return Feval (form, Qnil ());
 }
@@ -9696,7 +9704,7 @@ unsafe extern "C" fn eval_dyn (form: Lisp_Object) -> Lisp_Object
    went wrong).  Used to evaluate dynamic parts of menu items.  */
 /* C 8878-8887: `Lisp_Object menu_item_eval_property (Lisp_Object sexpr);`  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn menu_item_eval_property (sexpr: Lisp_Object) -> Lisp_Object
+pub unsafe extern "C-unwind" fn menu_item_eval_property (sexpr: Lisp_Object) -> Lisp_Object
 {
   let count: specpdl_ref = SPECPDL_INDEX ();
   let mut val: Lisp_Object;
@@ -9718,7 +9726,7 @@ pub unsafe extern "C" fn menu_item_eval_property (sexpr: Lisp_Object) -> Lisp_Ob
 
 /* C 8898-9174: `bool parse_menu_item (Lisp_Object item, int inmenubar);`  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn parse_menu_item (mut item: Lisp_Object, inmenubar: c_int) -> bool
+pub unsafe extern "C-unwind" fn parse_menu_item (mut item: Lisp_Object, inmenubar: c_int) -> bool
 {
   let mut def: Lisp_Object;
   let mut tem: Lisp_Object;
@@ -10035,7 +10043,7 @@ static mut ntab_bar_items: c_int = 0;
 
 /* C 9210-9291: `Lisp_Object tab_bar_items (Lisp_Object reuse, int *nitems);`  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn tab_bar_items (reuse: Lisp_Object, nitems: *mut c_int) -> Lisp_Object
+pub unsafe extern "C-unwind" fn tab_bar_items (reuse: Lisp_Object, nitems: *mut c_int) -> Lisp_Object
 {
   let mut maps: *mut Lisp_Object = std::ptr::null_mut ();
   let mut mapsbuf: [Lisp_Object; 3] = [Qnil (); 3];
@@ -10134,7 +10142,7 @@ pub unsafe extern "C" fn tab_bar_items (reuse: Lisp_Object, nitems: *mut c_int) 
 
 /* C 9296-9324: `static void process_tab_bar_item (Lisp_Object key, Lisp_Object def,
    Lisp_Object data, void *args);`  */
-unsafe extern "C" fn process_tab_bar_item (key: Lisp_Object, def: Lisp_Object,
+unsafe extern "C-unwind" fn process_tab_bar_item (key: Lisp_Object, def: Lisp_Object,
 					   data: Lisp_Object, args: *mut c_void)
 {
   let mut i: c_int;
@@ -10464,7 +10472,7 @@ pub const TOOL_BAR_ITEM_NSLOTS: tool_bar_item_idx = 12;
 
 /* C 9594-9675: `Lisp_Object tool_bar_items (Lisp_Object reuse, int *nitems);`  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn tool_bar_items (reuse: Lisp_Object, nitems: *mut c_int) -> Lisp_Object
+pub unsafe extern "C-unwind" fn tool_bar_items (reuse: Lisp_Object, nitems: *mut c_int) -> Lisp_Object
 {
   let mut maps: *mut Lisp_Object = std::ptr::null_mut ();
   let mut mapsbuf: [Lisp_Object; 3] = [Qnil (); 3];
@@ -10563,7 +10571,7 @@ pub unsafe extern "C" fn tool_bar_items (reuse: Lisp_Object, nitems: *mut c_int)
 
 /* C 9680-9708: `static void process_tool_bar_item (Lisp_Object key, Lisp_Object def,
    Lisp_Object data, void *args);`  */
-unsafe extern "C" fn process_tool_bar_item (key: Lisp_Object, def: Lisp_Object,
+unsafe extern "C-unwind" fn process_tool_bar_item (key: Lisp_Object, def: Lisp_Object,
 					    data: Lisp_Object, args: *mut c_void)
 {
   let mut i: c_int;
@@ -11510,7 +11518,7 @@ unsafe fn test_undefined (binding: Lisp_Object) -> bool
 
 /* C 10557-10560: `void init_raw_keybuf_count (void);`  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn init_raw_keybuf_count ()
+pub unsafe extern "C-unwind" fn init_raw_keybuf_count ()
 {
   raw_keybuf_count = 0;
 }
@@ -11726,7 +11734,7 @@ DEFUN! ("read-char-exclusive", Fread_char_exclusive, Sread_char_exclusive, 0, 3,
    (int old_reading_key_sequence);` (dead on this target; the whole function is carried per
    P-51, which is why the scaffold's entry for it can go: only the same cfg'd arms call it).  */
 #[cfg (feature = "have_text_conversion")]
-unsafe extern "C" fn restore_reading_key_sequence (old_reading_key_sequence: c_int)
+unsafe extern "C-unwind" fn restore_reading_key_sequence (old_reading_key_sequence: c_int)
 {
   reading_key_sequence = old_reading_key_sequence != 0;
 
@@ -12910,7 +12918,7 @@ DEFUN! ("read-key-sequence-vector", Fread_key_sequence_vector, Sread_key_sequenc
 /* C 12036-12040: `bool detect_input_pending (void);` — C's non-`static` definition is an
    exported symbol (PORTING.md 0.2).  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn detect_input_pending () -> bool
+pub unsafe extern "C-unwind" fn detect_input_pending () -> bool
 {
   return input_pending || get_input_pending (0);
 }
@@ -12919,7 +12927,7 @@ pub unsafe extern "C" fn detect_input_pending () -> bool
 
 /* C 12044-12056: `bool detect_input_pending_run_timers (bool do_display);`  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn detect_input_pending_run_timers (do_display: bool) -> bool
+pub unsafe extern "C-unwind" fn detect_input_pending_run_timers (do_display: bool) -> bool
 {
   let old_timers_run: c_uint = timers_run;
 
@@ -12938,7 +12946,7 @@ pub unsafe extern "C" fn detect_input_pending_run_timers (do_display: bool) -> b
 
 /* C 12062-12066: `void clear_input_pending (void);`  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn clear_input_pending ()
+pub unsafe extern "C-unwind" fn clear_input_pending ()
 {
   input_pending = false;
 }
@@ -12947,7 +12955,7 @@ pub unsafe extern "C" fn clear_input_pending ()
 
 /* C 12070-12074: `bool requeued_command_events_pending_p (void);`  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn requeued_command_events_pending_p () -> bool
+pub unsafe extern "C-unwind" fn requeued_command_events_pending_p () -> bool
 {
   return CONSP (Vunread_command_events);
 }
@@ -13340,7 +13348,7 @@ DEFUN! ("suspend-emacs", Fsuspend_emacs, Ssuspend_emacs, 0, 1, "",
 /* C 12474-12508: `void stuff_buffered_input (Lisp_Object stuffstring);` — the live
    `#ifdef SIGTSTP` arm (SIGTSTP is 18 in the frozen configuration).  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn stuff_buffered_input (stuffstring: Lisp_Object)
+pub unsafe extern "C-unwind" fn stuff_buffered_input (stuffstring: Lisp_Object)
 {
   let mut bad_stuff: c_int = 0;
 
@@ -13378,7 +13386,7 @@ pub unsafe extern "C" fn stuff_buffered_input (stuffstring: Lisp_Object)
 
 /* C 12510-12522: `void set_waiting_for_input (struct timespec *time_to_clear);`  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn set_waiting_for_input (time_to_clear: *mut timespec)
+pub unsafe extern "C-unwind" fn set_waiting_for_input (time_to_clear: *mut timespec)
 {
   input_available_clear_time = time_to_clear;
 
@@ -13393,7 +13401,7 @@ pub unsafe extern "C" fn set_waiting_for_input (time_to_clear: *mut timespec)
 
 /* C 12524-12530: `void clear_waiting_for_input (void);`  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn clear_waiting_for_input ()
+pub unsafe extern "C-unwind" fn clear_waiting_for_input ()
 {
   /* Tell handle_interrupt not to throw back to read_char,  */
   waiting_for_input! () = false;
@@ -13421,7 +13429,7 @@ pub unsafe extern "C" fn clear_waiting_for_input ()
    Otherwise, tell maybe_quit to kill Emacs.  */
 
 /* C 12538-12569: `static void handle_interrupt_signal (int sig);` — C hands its address to
-   `deliver_process_signal`, so the port defines it `unsafe extern "C" fn` (PORTING.md 1.4;
+   `deliver_process_signal`, so the port defines it `unsafe extern "C-unwind" fn` (PORTING.md 1.4;
    the `handle_user_signal` shape).  */
 unsafe extern "C" fn handle_interrupt_signal (sig: c_int)
 {
@@ -13457,7 +13465,7 @@ unsafe extern "C" fn handle_interrupt_signal (sig: c_int)
 }
 
 /* C 12571-12575: `static void deliver_interrupt_signal (int sig);` — C hands its address to
-   `emacs_sigaction_init` (C 13262), so the port defines it `unsafe extern "C" fn`.  */
+   `emacs_sigaction_init` (C 13262), so the port defines it `unsafe extern "C-unwind" fn`.  */
 unsafe extern "C" fn deliver_interrupt_signal (sig: c_int)
 {
   deliver_process_signal (sig, Some (handle_interrupt_signal));
@@ -13987,7 +13995,7 @@ unsafe fn init_kboard (kb: *mut KBOARD, r#type: Lisp_Object)
 /* C 13155-13166: `KBOARD *allocate_kboard (Lisp_Object type);` — C's non-`static` definition
    is an exported symbol (PORTING.md 0.2).  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn allocate_kboard (r#type: Lisp_Object) -> *mut KBOARD
+pub unsafe extern "C-unwind" fn allocate_kboard (r#type: Lisp_Object) -> *mut KBOARD
 {
   let mut kb: *mut KBOARD = xmalloc (std::mem::size_of::<KBOARD> ()) as *mut KBOARD;
 
@@ -14030,7 +14038,7 @@ unsafe fn wipe_kboard (kb: *mut KBOARD)
 /* C 13181-13220: `void delete_kboard (KBOARD *kb);` — C's non-`static` definition is an
    exported symbol (PORTING.md 0.2).  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn delete_kboard (kb: *mut KBOARD)
+pub unsafe extern "C-unwind" fn delete_kboard (kb: *mut KBOARD)
 {
   let mut kbp: *mut *mut KBOARD;
   let mut thread: *mut thread_state;
@@ -14082,7 +14090,7 @@ pub unsafe extern "C" fn delete_kboard (kb: *mut KBOARD)
 /* C 13222-13306: `void init_keyboard (void);` — C's non-`static` definition is an exported
    symbol (PORTING.md 0.2).  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn init_keyboard ()
+pub unsafe extern "C-unwind" fn init_keyboard ()
 {
   /* This is correct before outermost invocation of the editor loop.  */
   command_loop_level = -1;
@@ -14401,7 +14409,7 @@ unsafe fn is_ignored_event (event: *mut buffered_input_event) -> bool
    `syms_of_keyboard` / `doc` row to `docs/ports/macro-body-notes.tsv` — the `syms_of_data`
    precedent).  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_keyboard ()
+pub unsafe extern "C-unwind" fn syms_of_keyboard ()
 {
   pending_funcalls = Qnil ();
   staticpro (&raw const pending_funcalls);
@@ -15139,9 +15147,9 @@ pub unsafe extern "C" fn syms_of_keyboard ()
 }
 
 /* C 14516-14545: `static void syms_of_keyboard_for_pdumper (void);` — C hands its address to
-   `pdumper_do_now_and_after_load` (C 14500), so the port defines it `unsafe extern "C" fn`
+   `pdumper_do_now_and_after_load` (C 14500), so the port defines it `unsafe extern "C-unwind" fn`
    (PORTING.md 1.4).  The forward declaration at C 13411 is dropped (PORTING.md 0.1-12).  */
-unsafe extern "C" fn syms_of_keyboard_for_pdumper ()
+unsafe extern "C-unwind" fn syms_of_keyboard_for_pdumper ()
 {
   /* Make sure input state is pristine when restoring from a dump.
      init_keyboard() also resets some of these, but the duplication
@@ -15174,7 +15182,7 @@ unsafe extern "C" fn syms_of_keyboard_for_pdumper ()
 /* C 14547-14629: `void keys_of_keyboard (void);` — C's non-`static` definition is an exported
    symbol (PORTING.md 0.2).  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn keys_of_keyboard ()
+pub unsafe extern "C-unwind" fn keys_of_keyboard ()
 {
   initial_define_lispy_key (Vspecial_event_map, c"delete-frame".as_ptr (),
 			    c"handle-delete-frame".as_ptr ());
@@ -15266,7 +15274,7 @@ pub unsafe extern "C" fn keys_of_keyboard ()
 /* C 14632-14682: `void mark_kboards (void);` — C's non-`static` definition is an exported
    symbol (PORTING.md 0.2).  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mark_kboards ()
+pub unsafe extern "C-unwind" fn mark_kboards ()
 {
   let mut kb: *mut KBOARD = all_kboards;
   while !kb.is_null ()

@@ -295,15 +295,15 @@ pub fn overlay_matches_window (w: *const window, ov: Lisp_Object) -> bool
 }
 
 // window.h 1100-1206: the file-scope objects (the .c files define them).
-unsafe extern "C" { pub static mut selected_window: Lisp_Object; }             // 1100
-unsafe extern "C" { pub static mut window_select_count: EMACS_INT; }           // 1106
-unsafe extern "C" { pub static mut minibuf_window: Lisp_Object; }              // 1112
-unsafe extern "C" { pub static mut minibuf_selected_window: Lisp_Object; }     // 1117
-unsafe extern "C" { pub static mut last_mouse_window: Lisp_Object; }           // 1121
-unsafe extern "C" { pub static mut echo_area_window: Lisp_Object; }            // 1146
-unsafe extern "C" { pub static mut update_mode_lines: c_int; }                 // 1154
-unsafe extern "C" { pub static mut windows_or_buffers_changed: c_int; }        // 1161
-unsafe extern "C" { pub static mut Vwindow_list: Lisp_Object; }                // 1206
+unsafe extern "C-unwind" { pub static mut selected_window: Lisp_Object; }             // 1100
+unsafe extern "C-unwind" { pub static mut window_select_count: EMACS_INT; }           // 1106
+unsafe extern "C-unwind" { pub static mut minibuf_window: Lisp_Object; }              // 1112
+unsafe extern "C-unwind" { pub static mut minibuf_selected_window: Lisp_Object; }     // 1117
+unsafe extern "C-unwind" { pub static mut last_mouse_window: Lisp_Object; }           // 1121
+unsafe extern "C-unwind" { pub static mut echo_area_window: Lisp_Object; }            // 1146
+unsafe extern "C-unwind" { pub static mut update_mode_lines: c_int; }                 // 1154
+unsafe extern "C-unwind" { pub static mut windows_or_buffers_changed: c_int; }        // 1161
+unsafe extern "C-unwind" { pub static mut Vwindow_list: Lisp_Object; }                // 1206
 
 // window.h 1123-1238: the header's 29 function prototypes.  Declared in a module with a glob
 // import (the `window_redisplay_decls` shape below) because nine of them are *defined* in this
@@ -325,7 +325,7 @@ unsafe extern "C" { pub static mut Vwindow_list: Lisp_Object; }                /
 pub mod window_fn_decls {
   use super::*;
 
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     /// C: window.h 1123: `make_window` - `Lisp_Object make_window (void)`
     pub fn make_window () -> Lisp_Object;
     /// C: window.h 1124: `window_from_coordinates` - `Lisp_Object window_from_coordinates (struct frame *, int, int, enum window_part *, bool, bool, bool)`
@@ -878,7 +878,7 @@ macro_rules! WINDOW_TEXT_TO_FRAME_PIXEL_X {
 pub mod window_wants_decls {
   use super::*;
 
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     /// C: bool window_wants_mode_line (struct window *)
     pub fn window_wants_mode_line (w: *mut window) -> bool;
     /// C: bool window_wants_header_line (struct window *)
@@ -904,7 +904,7 @@ pub enum margin_unit
 pub mod window_redisplay_decls {
   use super::*;
 
-  unsafe extern "C" {
+  unsafe extern "C-unwind" {
     /// C: void wset_redisplay (struct window *w)
     pub fn wset_redisplay (w: *mut window);
     /// C: void fset_redisplay (struct frame *f)

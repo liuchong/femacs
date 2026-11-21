@@ -66,7 +66,7 @@ const _: () = ();
 /* Names C declares in headers whose mirrors do not carry them yet (the bytecode.rs shape);
    each keeps C's prototype in a `/// C:` line (PORTING.md P-55 for the pointer-only
    types).  None of these is defined by this unit.  */
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   /* src/dispextern.h 3608-3609: the two counters `call_debugger` reads and resets.  */
   /// C: dispextern.h 3608: `extern bool redisplaying_p;`
   pub static mut redisplaying_p: bool;
@@ -84,9 +84,6 @@ unsafe extern "C" {
   pub fn memory_full (size: usize) -> !;
   /// C: lisp.h 4378: `extern void add_to_log (char const *, ...);`
   pub fn add_to_log (format: *const c_char, ...);
-
-  /// C: stdlib.h: `void abort (void) __attribute__ ((__noreturn__));`
-  pub fn abort () -> !;
   /// C: lisp.h 4392: `extern void message3 (Lisp_Object);`
   pub fn message3 (m: Lisp_Object);
 
@@ -99,6 +96,11 @@ unsafe extern "C" {
     -> ptrdiff_t;
   /// C: lisp.h 5468: `void malloc_probe (size_t);`
   pub fn malloc_probe (size: usize);
+}
+unsafe extern "C" {
+
+  /// C: stdlib.h: `void abort (void) __attribute__ ((__noreturn__));`
+  pub fn abort () -> !;
 
 }
 
@@ -183,11 +185,11 @@ unsafe fn specpdl_arg (pdl: *mut specbinding) -> Lisp_Object
 macro_rules! GDB_FUNCPTR {
   ($func:ident, $resulttype:ty, ($($params:ty),*), $_body:ident) => {
     #[unsafe(no_mangle)]
-    pub static $func: Option<unsafe extern "C" fn ($($params),*) -> $resulttype> = Some ($_body);
+    pub static $func: Option<unsafe extern "C-unwind" fn ($($params),*) -> $resulttype> = Some ($_body);
   };
 }
 
-unsafe extern "C" fn backtrace_function_body (pdl: *mut specbinding) -> Lisp_Object
+unsafe extern "C-unwind" fn backtrace_function_body (pdl: *mut specbinding) -> Lisp_Object
 {
   eassert! ((*pdl).kind == SPECPDL_BACKTRACE as u8);
   return (*pdl).bt.function;
@@ -200,7 +202,7 @@ unsafe fn backtrace_nargs (pdl: *mut specbinding) -> ptrdiff_t
   return (*pdl).bt.nargs;
 }
 
-unsafe extern "C" fn backtrace_args_body (pdl: *mut specbinding) -> *mut Lisp_Object
+unsafe extern "C-unwind" fn backtrace_args_body (pdl: *mut specbinding) -> *mut Lisp_Object
 {
   eassert! ((*pdl).kind == SPECPDL_BACKTRACE as u8);
   return (*pdl).bt.args;
@@ -225,7 +227,7 @@ unsafe fn set_backtrace_debug_on_exit (pdl: *mut specbinding, doe: bool)
 /* Helper functions to scan the backtrace.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn backtrace_p (pdl: *mut specbinding) -> bool
+pub unsafe extern "C-unwind" fn backtrace_p (pdl: *mut specbinding) -> bool
 {
   if !current_thread.is_null () && !specpdl! ().is_null () && !pdl.is_null ()
     { return pdl >= specpdl! (); }
@@ -236,7 +238,7 @@ unsafe fn backtrace_thread_p (tstate: *mut thread_state, pdl: *mut specbinding) 
 { return pdl >= (*tstate).m_specpdl; }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn backtrace_top () -> *mut specbinding
+pub unsafe extern "C-unwind" fn backtrace_top () -> *mut specbinding
 {
   /* This is so "xbacktrace" doesn't crash in pdumped Emacs if they
      invoke the command before init_eval_once_for_pdumper initializes
@@ -259,7 +261,7 @@ unsafe fn backtrace_thread_top (tstate: *mut thread_state) -> *mut specbinding
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn backtrace_next (pdl: *mut specbinding) -> *mut specbinding
+pub unsafe extern "C-unwind" fn backtrace_next (pdl: *mut specbinding) -> *mut specbinding
 {
   let mut pdl: *mut specbinding = pdl.offset (-1);
   while backtrace_p (pdl) && (*pdl).kind != SPECPDL_BACKTRACE as u8
@@ -279,14 +281,14 @@ unsafe fn backtrace_thread_next (tstate: *mut thread_state, pdl: *mut specbindin
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn init_eval_once ()
+pub unsafe extern "C-unwind" fn init_eval_once ()
 {
   /* Don't forget to update docs (lispref node "Eval").  */
   Vrun_hooks = Qnil ();
   pdumper_do_now_and_after_load (Some (init_eval_once_for_pdumper));
 }
 
-unsafe extern "C" fn init_eval_once_for_pdumper ()
+unsafe extern "C-unwind" fn init_eval_once_for_pdumper ()
 {
   let size: usize = 50;
   let pdlvec: *mut specbinding =
@@ -297,7 +299,7 @@ unsafe extern "C" fn init_eval_once_for_pdumper ()
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn init_eval ()
+pub unsafe extern "C-unwind" fn init_eval ()
 {
   specpdl_ptr! () = specpdl! ();
   { /* Put a dummy catcher at top-level so that handlerlist is never NULL.
@@ -318,7 +320,7 @@ pub unsafe extern "C" fn init_eval ()
   when_entered_debugger = -1;
 }
 
-unsafe extern "C" fn restore_stack_limits (data: Lisp_Object)
+unsafe extern "C-unwind" fn restore_stack_limits (data: Lisp_Object)
 {
   let mut old_depth: intmax_t = 0;
   integer_to_intmax (data, &mut old_depth);
@@ -328,7 +330,7 @@ unsafe extern "C" fn restore_stack_limits (data: Lisp_Object)
 
 /* Try and ensure that we have at least B dpeth available.  */
 
-unsafe extern "C" fn max_ensure_room (b: intmax_t)
+unsafe extern "C-unwind" fn max_ensure_room (b: intmax_t)
 {
   let (ckd_add_value, ckd_add_overflow) =
     (lisp_eval_depth! () as intmax_t).overflowing_add (b);
@@ -349,7 +351,7 @@ unsafe extern "C" fn max_ensure_room (b: intmax_t)
 /* Call the Lisp debugger, giving it argument ARG.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn call_debugger (arg: Lisp_Object) -> Lisp_Object
+pub unsafe extern "C-unwind" fn call_debugger (arg: Lisp_Object) -> Lisp_Object
 {
   let mut debug_while_redisplaying: bool;
   let count: specpdl_ref = SPECPDL_INDEX ();
@@ -407,7 +409,7 @@ pub unsafe extern "C" fn call_debugger (arg: Lisp_Object) -> Lisp_Object
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn do_debug_on_call (code: Lisp_Object, count: specpdl_ref)
+pub unsafe extern "C-unwind" fn do_debug_on_call (code: Lisp_Object, count: specpdl_ref)
 {
   debug_on_next_call = false;
   set_backtrace_debug_on_exit (specpdl_ref_to_ptr (count), true);
@@ -508,7 +510,7 @@ DEFUN! ("progn", Fprogn, Sprogn, 0, UNEVALLED, 0,
 /* Evaluate BODY sequentially, discarding its value.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn prog_ignore (body: Lisp_Object)
+pub unsafe extern "C-unwind" fn prog_ignore (body: Lisp_Object)
 {
   Fprogn (body);
 }
@@ -1344,7 +1346,7 @@ const _: () = core::assert! (std::mem::size_of::<funcall_with_delayed_message_da
 const _: () = core::assert! (std::mem::offset_of! (funcall_with_delayed_message_data, message) == 0);
 const _: () = core::assert! (std::mem::offset_of! (funcall_with_delayed_message_data, timer) == 8);
 
-unsafe extern "C" fn with_delayed_message_display (timer: *mut atimer)
+unsafe extern "C-unwind" fn with_delayed_message_display (timer: *mut atimer)
 {
   let data: *mut funcall_with_delayed_message_data
     = (*timer).client_data as *mut funcall_with_delayed_message_data;
@@ -1355,7 +1357,7 @@ unsafe extern "C" fn with_delayed_message_display (timer: *mut atimer)
     }
 }
 
-unsafe extern "C" fn with_delayed_message_cancel (datap: *mut c_void)
+unsafe extern "C-unwind" fn with_delayed_message_cancel (datap: *mut c_void)
 {
   let data: *mut funcall_with_delayed_message_data
     = datap as *mut funcall_with_delayed_message_data;
@@ -1496,7 +1498,7 @@ macro_rules! clobbered_eassert {
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn pop_handler ()
+pub unsafe extern "C-unwind" fn pop_handler ()
 {
   handlerlist! () = (*handlerlist! ()).next;
 }
@@ -1506,32 +1508,37 @@ pub unsafe extern "C" fn pop_handler ()
    This is how catches are done from within C code.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn internal_catch (tag: Lisp_Object,
-                                         func: Option<unsafe extern "C" fn (Lisp_Object) -> Lisp_Object>,
+pub unsafe extern "C-unwind" fn internal_catch (tag: Lisp_Object,
+                                         func: Option<unsafe extern "C-unwind" fn (Lisp_Object) -> Lisp_Object>,
                                          arg: Lisp_Object) -> Lisp_Object
 {
   /* This structure is made part of the chain `catchlist'.  */
   let c: *mut handler = push_handler (tag, CATCHER);
+  let _arg_root = crate::nonlocal::ScopedLispRoot::new (&[tag, arg]);
 
   /* Call FUNC.  */
-  if sys_setjmp (&raw mut (*c).jmp as *mut jmp_buf) == 0
+  match crate::nonlocal::catch_vm_nonlocal (|| (func.unwrap ()) (arg))
     {
-      let val: Lisp_Object = (func.unwrap ()) (arg);
-      eassert! (handlerlist! () == c);
-      handlerlist! () = (*c).next;
-      return val;
-    }
-  else
-    { /* Throw works by a longjmp that comes right here.  */
-      let val: Lisp_Object = (*handlerlist! ()).val;
-      clobbered_eassert! (handlerlist! () == c);
-      handlerlist! () = (*handlerlist! ()).next;
-      return val;
+      Ok (val) =>
+        {
+          eassert! (handlerlist! () == c);
+          handlerlist! () = (*c).next;
+          return val;
+        }
+      Err (exit) =>
+        {
+          if exit.target != c
+            { crate::nonlocal::resume_vm_nonlocal (exit); }
+          let val: Lisp_Object = (*handlerlist! ()).val;
+          clobbered_eassert! (handlerlist! () == c);
+          handlerlist! () = (*handlerlist! ()).next;
+          return val;
+        }
     }
 }
 
 /* Unwind the specbind, catch, and handler stacks back to CATCH, and
-   jump to that CATCH, returning VALUE as the value of that catch.
+   return VALUE as the value of that catch via explicit VM unwinding.
 
    This is the guts of Fthrow and Fsignal; they differ only in the way
    they choose the catch tag to throw to.  A catch tag for a
@@ -1541,8 +1548,7 @@ pub unsafe extern "C" fn internal_catch (tag: Lisp_Object,
    execute all unwind-protect clauses made above that catch.  Unwind
    the handler stack as we go, so that the proper handlers are in
    effect for each unwind-protect clause we run.  At the end, restore
-   some static info saved in CATCH, and longjmp to the location
-   specified there.
+   some static info saved in CATCH, and unwind to CATCH.
 
    This is used for correct unwinding in Fthrow and Fsignal.  */
 
@@ -1550,6 +1556,7 @@ unsafe fn unwind_to_catch (catch: *mut handler, r#type: nonlocal_exit,
                            value: Lisp_Object) -> !
 {
   let mut last_time: bool;
+  let _value_root = crate::nonlocal::ScopedLispRoot::new (&[value]);
 
   eassert! (!(*catch).next.is_null ());
 
@@ -1593,7 +1600,11 @@ unsafe fn unwind_to_catch (catch: *mut handler, r#type: nonlocal_exit,
   lisp_eval_depth! () = (*catch).f_lisp_eval_depth;
   set_act_rec (current_thread, (*catch).act_rec);
 
-  sys_longjmp (&raw mut (*catch).jmp as *mut jmp_buf, 1);
+  crate::nonlocal::raise_vm_nonlocal (crate::nonlocal::NonLocalExit {
+    kind: crate::nonlocal::NonLocalExitKind::from_raw (r#type),
+    target: catch,
+    value: (*catch).val,
+  });
 }
 
 DEFUN! ("throw", Fthrow, Sthrow, 2, 2, 0,
@@ -1642,7 +1653,7 @@ DEFUN! ("condition-case", Fcondition_case, Scondition_case, 2, UNEVALLED, 0,
 });
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn push_handler_bind (conditions: Lisp_Object, handler: Lisp_Object,
+pub unsafe extern "C-unwind" fn push_handler_bind (conditions: Lisp_Object, handler: Lisp_Object,
                                             skip: c_int)
 {
   let mut conditions: Lisp_Object = conditions;   // C assigns to its parameter
@@ -1683,7 +1694,7 @@ DEFUN! ("handler-bind-1", Fhandler_bind_1, Shandler_bind_1, 1, MANY, 0,
    rather than passed in a list.  Used by Fbyte_code.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn internal_lisp_condition_case (var: Lisp_Object,
+pub unsafe extern "C-unwind" fn internal_lisp_condition_case (var: Lisp_Object,
                                                        bodyform: Lisp_Object,
                                                        handlers: Lisp_Object)
   -> Lisp_Object
@@ -1738,51 +1749,52 @@ pub unsafe extern "C" fn internal_lisp_condition_case (var: Lisp_Object,
 	{ clauses = clauses.offset (-1); *clauses = tem; }
       tail = XCDR (tail);
     }
+  let _cc_roots = crate::nonlocal::ScopedLispRoot::new (&[var, bodyform, handlers, success_handler]);
   let mut var_volatile: Lisp_Object = var;
   let mut val: Lisp_Object;
   let mut handler_body: Lisp_Object;
-  let mut pcl: *mut Lisp_Object = clauses;
-  loop
+  let mut pushed_handlers: Vec<*mut handler> = Vec::with_capacity ((clausenb - 1).max (0) as usize);
+  match crate::nonlocal::catch_vm_nonlocal (|| {
+    let mut pcl: *mut Lisp_Object = clauses;
+    while !BASE_EQ (*pcl, make_fixnum (0))
+      {
+        let clause: Lisp_Object = *pcl;
+        let mut condition: Lisp_Object = if CONSP (clause) { XCAR (clause) } else { Qnil () };
+        if !CONSP (condition)
+          { condition = list1 (condition); }
+        let c: *mut handler = push_handler (condition, CONDITION_CASE);
+        pushed_handlers.push (c);
+        pcl = pcl.offset (1);
+      }
+    eval_sub (bodyform)
+  })
     {
-      if BASE_EQ (*pcl, make_fixnum (0))
-	{
-	  val = eval_sub (bodyform);
-	  handlerlist! () = oldhandlerlist;
-	  if NILP (success_handler)
-	    { return val; }
-	  /* C 1643-1647's `#if GCC_LINT && __GNUC__ && !__clang__` arm (dead in the frozen
-	     configuration; P-51).  */
-	  #[cfg (feature = "gcc_lint_not_clang")]
-	  {
-	    /* This useless assignment pacifies GCC 14.2.1 x86-64
-	       <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=21161>.  */
-	    var = var_volatile;
-	  }
-	  handler_body = XCDR (success_handler);
-	  break;
-	}
-      let clause: Lisp_Object = *pcl;
-      let mut condition: Lisp_Object = if CONSP (clause) { XCAR (clause) } else { Qnil () };
-      if !CONSP (condition)
-	{ condition = list1 (condition); }
-      let c: *mut handler = push_handler (condition, CONDITION_CASE);
-      if sys_setjmp (&raw mut (*c).jmp as *mut jmp_buf) != 0
-	{
-	  var = var_volatile;
-	  val = (*handlerlist! ()).val;
-	  let mut chosen_clause: *mut Lisp_Object = clauses;
-	  let oldh: *mut handler = oldhandlerlist;
-	  let mut h: *mut handler = (*handlerlist! ()).next;
-	  while h != oldh
-	    { chosen_clause = chosen_clause.offset (1); h = (*h).next; }
-	  handler_body = XCDR (*chosen_clause);
-	  handlerlist! () = oldh;
-
-	  /* Whoever longjumped to us unwound the stack to C->pdlcount before
-	     throwing, so the unbind_to will undo just this binding.  */
-	  break;
-	}
-      pcl = pcl.offset (1);
+      Ok (body_val) =>
+        {
+          val = body_val;
+          handlerlist! () = oldhandlerlist;
+          if NILP (success_handler)
+            { return val; }
+          #[cfg (feature = "gcc_lint_not_clang")]
+          {
+            var = var_volatile;
+          }
+          handler_body = XCDR (success_handler);
+        }
+      Err (exit) =>
+        {
+          if !pushed_handlers.contains (&exit.target)
+            { crate::nonlocal::resume_vm_nonlocal (exit); }
+          var = var_volatile;
+          val = (*handlerlist! ()).val;
+          let mut chosen_clause: *mut Lisp_Object = clauses;
+          let oldh: *mut handler = oldhandlerlist;
+          let mut h: *mut handler = (*handlerlist! ()).next;
+          while h != oldh
+            { chosen_clause = chosen_clause.offset (1); h = (*h).next; }
+          handler_body = XCDR (*chosen_clause);
+          handlerlist! () = oldh;
+        }
     }
 
   if NILP (var)
@@ -1811,49 +1823,58 @@ pub unsafe extern "C" fn internal_lisp_condition_case (var: Lisp_Object,
    but allow the debugger to run if that is enabled.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn internal_condition_case (
-  bfun: Option<unsafe extern "C" fn () -> Lisp_Object>, handlers: Lisp_Object,
-  hfun: Option<unsafe extern "C" fn (Lisp_Object) -> Lisp_Object>) -> Lisp_Object
+pub unsafe extern "C-unwind" fn internal_condition_case (
+  bfun: Option<unsafe extern "C-unwind" fn () -> Lisp_Object>, handlers: Lisp_Object,
+  hfun: Option<unsafe extern "C-unwind" fn (Lisp_Object) -> Lisp_Object>) -> Lisp_Object
 {
   let c: *mut handler = push_handler (handlers, CONDITION_CASE);
-  if sys_setjmp (&raw mut (*c).jmp as *mut jmp_buf) != 0
+  match crate::nonlocal::catch_vm_nonlocal (|| (bfun.unwrap ()) ())
     {
-      let val: Lisp_Object = (*handlerlist! ()).val;
-      clobbered_eassert! (handlerlist! () == c);
-      handlerlist! () = (*handlerlist! ()).next;
-      return (hfun.unwrap ()) (val);
-    }
-  else
-    {
-      let val: Lisp_Object = (bfun.unwrap ()) ();
-      eassert! (handlerlist! () == c);
-      handlerlist! () = (*c).next;
-      return val;
+      Ok (val) =>
+        {
+          eassert! (handlerlist! () == c);
+          handlerlist! () = (*c).next;
+          return val;
+        }
+      Err (exit) =>
+        {
+          if exit.target != c
+            { crate::nonlocal::resume_vm_nonlocal (exit); }
+          let val: Lisp_Object = (*handlerlist! ()).val;
+          clobbered_eassert! (handlerlist! () == c);
+          handlerlist! () = (*handlerlist! ()).next;
+          return (hfun.unwrap ()) (val);
+        }
     }
 }
 
 /* Like internal_condition_case but call BFUN with ARG as its argument.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn internal_condition_case_1 (
-  bfun: Option<unsafe extern "C" fn (Lisp_Object) -> Lisp_Object>, arg: Lisp_Object,
+pub unsafe extern "C-unwind" fn internal_condition_case_1 (
+  bfun: Option<unsafe extern "C-unwind" fn (Lisp_Object) -> Lisp_Object>, arg: Lisp_Object,
   handlers: Lisp_Object,
-  hfun: Option<unsafe extern "C" fn (Lisp_Object) -> Lisp_Object>) -> Lisp_Object
+  hfun: Option<unsafe extern "C-unwind" fn (Lisp_Object) -> Lisp_Object>) -> Lisp_Object
 {
   let c: *mut handler = push_handler (handlers, CONDITION_CASE);
-  if sys_setjmp (&raw mut (*c).jmp as *mut jmp_buf) != 0
+  let _arg_root = crate::nonlocal::ScopedLispRoot::new (&[arg, handlers]);
+  match crate::nonlocal::catch_vm_nonlocal (|| (bfun.unwrap ()) (arg))
     {
-      let val: Lisp_Object = (*handlerlist! ()).val;
-      clobbered_eassert! (handlerlist! () == c);
-      handlerlist! () = (*handlerlist! ()).next;
-      return (hfun.unwrap ()) (val);
-    }
-  else
-    {
-      let val: Lisp_Object = (bfun.unwrap ()) (arg);
-      eassert! (handlerlist! () == c);
-      handlerlist! () = (*c).next;
-      return val;
+      Ok (val) =>
+        {
+          eassert! (handlerlist! () == c);
+          handlerlist! () = (*c).next;
+          return val;
+        }
+      Err (exit) =>
+        {
+          if exit.target != c
+            { crate::nonlocal::resume_vm_nonlocal (exit); }
+          let val: Lisp_Object = (*handlerlist! ()).val;
+          clobbered_eassert! (handlerlist! () == c);
+          handlerlist! () = (*handlerlist! ()).next;
+          return (hfun.unwrap ()) (val);
+        }
     }
 }
 
@@ -1861,25 +1882,30 @@ pub unsafe extern "C" fn internal_condition_case_1 (
    its arguments.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn internal_condition_case_2 (
-  bfun: Option<unsafe extern "C" fn (Lisp_Object, Lisp_Object) -> Lisp_Object>,
+pub unsafe extern "C-unwind" fn internal_condition_case_2 (
+  bfun: Option<unsafe extern "C-unwind" fn (Lisp_Object, Lisp_Object) -> Lisp_Object>,
   arg1: Lisp_Object, arg2: Lisp_Object, handlers: Lisp_Object,
-  hfun: Option<unsafe extern "C" fn (Lisp_Object) -> Lisp_Object>) -> Lisp_Object
+  hfun: Option<unsafe extern "C-unwind" fn (Lisp_Object) -> Lisp_Object>) -> Lisp_Object
 {
   let c: *mut handler = push_handler (handlers, CONDITION_CASE);
-  if sys_setjmp (&raw mut (*c).jmp as *mut jmp_buf) != 0
+  let _arg_root = crate::nonlocal::ScopedLispRoot::new (&[arg1, arg2, handlers]);
+  match crate::nonlocal::catch_vm_nonlocal (|| (bfun.unwrap ()) (arg1, arg2))
     {
-      let val: Lisp_Object = (*handlerlist! ()).val;
-      clobbered_eassert! (handlerlist! () == c);
-      handlerlist! () = (*handlerlist! ()).next;
-      return (hfun.unwrap ()) (val);
-    }
-  else
-    {
-      let val: Lisp_Object = (bfun.unwrap ()) (arg1, arg2);
-      eassert! (handlerlist! () == c);
-      handlerlist! () = (*c).next;
-      return val;
+      Ok (val) =>
+        {
+          eassert! (handlerlist! () == c);
+          handlerlist! () = (*c).next;
+          return val;
+        }
+      Err (exit) =>
+        {
+          if exit.target != c
+            { crate::nonlocal::resume_vm_nonlocal (exit); }
+          let val: Lisp_Object = (*handlerlist! ()).val;
+          clobbered_eassert! (handlerlist! () == c);
+          handlerlist! () = (*handlerlist! ()).next;
+          return (hfun.unwrap ()) (val);
+        }
     }
 }
 
@@ -1887,26 +1913,34 @@ pub unsafe extern "C" fn internal_condition_case_2 (
    and ARGS as second argument.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn internal_condition_case_n (
-  bfun: Option<unsafe extern "C" fn (isize, *mut Lisp_Object) -> Lisp_Object>,
+pub unsafe extern "C-unwind" fn internal_condition_case_n (
+  bfun: Option<unsafe extern "C-unwind" fn (isize, *mut Lisp_Object) -> Lisp_Object>,
   nargs: ptrdiff_t, args: *mut Lisp_Object, handlers: Lisp_Object,
-  hfun: Option<unsafe extern "C" fn (Lisp_Object, isize, *mut Lisp_Object) -> Lisp_Object>)
+  hfun: Option<unsafe extern "C-unwind" fn (Lisp_Object, isize, *mut Lisp_Object) -> Lisp_Object>)
   -> Lisp_Object
 {
   let c: *mut handler = push_handler (handlers, CONDITION_CASE);
-  if sys_setjmp (&raw mut (*c).jmp as *mut jmp_buf) != 0
+  let arg_slice: &[Lisp_Object] = if nargs > 0 && !args.is_null ()
+    { core::slice::from_raw_parts (args, nargs as usize) }
+    else { &[] };
+  let _arg_root = crate::nonlocal::ScopedLispRoot::new (arg_slice);
+  match crate::nonlocal::catch_vm_nonlocal (|| (bfun.unwrap ()) (nargs, args))
     {
-      let val: Lisp_Object = (*handlerlist! ()).val;
-      clobbered_eassert! (handlerlist! () == c);
-      handlerlist! () = (*handlerlist! ()).next;
-      return (hfun.unwrap ()) (val, nargs, args);
-    }
-  else
-    {
-      let val: Lisp_Object = (bfun.unwrap ()) (nargs, args);
-      eassert! (handlerlist! () == c);
-      handlerlist! () = (*c).next;
-      return val;
+      Ok (val) =>
+        {
+          eassert! (handlerlist! () == c);
+          handlerlist! () = (*c).next;
+          return val;
+        }
+      Err (exit) =>
+        {
+          if exit.target != c
+            { crate::nonlocal::resume_vm_nonlocal (exit); }
+          let val: Lisp_Object = (*handlerlist! ()).val;
+          clobbered_eassert! (handlerlist! () == c);
+          handlerlist! () = (*handlerlist! ()).next;
+          return (hfun.unwrap ()) (val, nargs, args);
+        }
     }
 }
 
@@ -1917,35 +1951,39 @@ static mut Qcatch_all_memory_full: Lisp_Object = lisp_h_Qnil ();
    Qcatch_all_memory_full if no handler could be allocated.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn internal_catch_all (
-  function: Option<unsafe extern "C" fn (*mut c_void) -> Lisp_Object>, argument: *mut c_void,
-  handler: Option<unsafe extern "C" fn (nonlocal_exit, Lisp_Object) -> Lisp_Object>)
+pub unsafe extern "C-unwind" fn internal_catch_all (
+  function: Option<unsafe extern "C-unwind" fn (*mut c_void) -> Lisp_Object>, argument: *mut c_void,
+  handler: Option<unsafe extern "C-unwind" fn (nonlocal_exit, Lisp_Object) -> Lisp_Object>)
   -> Lisp_Object
 {
   let c: *mut handler = push_handler_nosignal (Qt (), CATCHER_ALL);
   if c.is_null ()
     { return Qcatch_all_memory_full; }
 
-  if sys_setjmp (&raw mut (*c).jmp as *mut jmp_buf) == 0
+  match crate::nonlocal::catch_vm_nonlocal (|| (function.unwrap ()) (argument))
     {
-      let val: Lisp_Object = (function.unwrap ()) (argument);
-      eassert! (handlerlist! () == c);
-      handlerlist! () = (*c).next;
-      return val;
-    }
-  else
-    {
-      eassert! (handlerlist! () == c);
-      let r#type: nonlocal_exit = (*c).nonlocal_exit;
-      let val: Lisp_Object = (*c).val;
-      handlerlist! () = (*c).next;
-      return (handler.unwrap ()) (r#type, val);
+      Ok (val) =>
+        {
+          eassert! (handlerlist! () == c);
+          handlerlist! () = (*c).next;
+          return val;
+        }
+      Err (exit) =>
+        {
+          if exit.target != c
+            { crate::nonlocal::resume_vm_nonlocal (exit); }
+          eassert! (handlerlist! () == c);
+          let r#type: nonlocal_exit = (*c).nonlocal_exit;
+          let val: Lisp_Object = (*c).val;
+          handlerlist! () = (*c).next;
+          return (handler.unwrap ()) (r#type, val);
+        }
     }
 }
 
 #[inline(always)]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn push_handler (tag_ch_val: Lisp_Object, handlertype: handlertype)
+pub unsafe extern "C-unwind" fn push_handler (tag_ch_val: Lisp_Object, handlertype: handlertype)
   -> *mut handler
 {
   let c: *mut handler = push_handler_nosignal (tag_ch_val, handlertype);
@@ -1956,7 +1994,7 @@ pub unsafe extern "C" fn push_handler (tag_ch_val: Lisp_Object, handlertype: han
 
 #[inline(always)]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn push_handler_nosignal (tag_ch_val: Lisp_Object,
+pub unsafe extern "C-unwind" fn push_handler_nosignal (tag_ch_val: Lisp_Object,
                                                 handlertype: handlertype) -> *mut handler
 {
   let mut c: *mut handler = (*handlerlist! ()).nextfree;
@@ -2006,7 +2044,7 @@ unsafe fn process_quit_flag ()
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn probably_quit ()
+pub unsafe extern "C-unwind" fn probably_quit ()
 {
   let gc_count: specpdl_ref = inhibit_garbage_collection ();
   if !NILP (Vquit_flag) && NILP (Vinhibit_quit)
@@ -2035,7 +2073,7 @@ DEFUN! ("signal", Fsignal, Ssignal, 1, 2, 0,
 
 /* Quit, in response to a keyboard quit request.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn quit () -> Lisp_Object
+pub unsafe extern "C-unwind" fn quit () -> Lisp_Object
 {
   return signal_or_quit (Qquit (), Qnil (), true);
 }
@@ -2061,6 +2099,8 @@ unsafe fn signal_or_quit (error_symbol: Lisp_Object, data: Lisp_Object, continua
   let real_error_symbol: Lisp_Object
     = if CONSP (error) { XCAR (error) } else { error_symbol };
   let mut clause: Lisp_Object = Qnil ();
+  let mut signal_roots = crate::nonlocal::ScopedLispRoot::new (
+    &[error_symbol, data, error, real_error_symbol, Qnil (), Qnil ()]);
   let mut h: *mut handler;
   let mut skip: c_int;
 
@@ -2082,6 +2122,7 @@ unsafe fn signal_or_quit (error_symbol: Lisp_Object, data: Lisp_Object, continua
     }
 
   conditions = Fget (real_error_symbol, Qerror_conditions ());
+  signal_roots.set (4, conditions);
   if NILP (conditions)
     { signal_error (c"Invalid error symbol".as_ptr (), real_error_symbol); }
 
@@ -2153,7 +2194,10 @@ unsafe fn signal_or_quit (error_symbol: Lisp_Object, data: Lisp_Object, continua
       if do_continue
         { skip += 1; h = (*h).next; continue 'handler_scan; }
       if !NILP (clause)
-	{ break; }
+	{
+	  signal_roots.set (5, clause);
+	  break;
+	}
       skip += 1;
       h = (*h).next;
     }
@@ -2195,26 +2239,26 @@ unsafe fn signal_or_quit (error_symbol: Lisp_Object, data: Lisp_Object, continua
 /* Like xsignal, but takes 0, 1, 2, or 3 args instead of a list.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn xsignal0 (error_symbol: Lisp_Object) -> !
+pub unsafe extern "C-unwind" fn xsignal0 (error_symbol: Lisp_Object) -> !
 {
   xsignal (error_symbol, Qnil ());
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn xsignal1 (error_symbol: Lisp_Object, arg: Lisp_Object) -> !
+pub unsafe extern "C-unwind" fn xsignal1 (error_symbol: Lisp_Object, arg: Lisp_Object) -> !
 {
   xsignal (error_symbol, list1 (arg));
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn xsignal2 (error_symbol: Lisp_Object, arg1: Lisp_Object,
+pub unsafe extern "C-unwind" fn xsignal2 (error_symbol: Lisp_Object, arg1: Lisp_Object,
                                    arg2: Lisp_Object) -> !
 {
   xsignal (error_symbol, list2 (arg1, arg2));
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn xsignal3 (error_symbol: Lisp_Object, arg1: Lisp_Object,
+pub unsafe extern "C-unwind" fn xsignal3 (error_symbol: Lisp_Object, arg1: Lisp_Object,
                                    arg2: Lisp_Object, arg3: Lisp_Object) -> !
 {
   xsignal (error_symbol, list3 (arg1, arg2, arg3));
@@ -2224,7 +2268,7 @@ pub unsafe extern "C" fn xsignal3 (error_symbol: Lisp_Object, arg1: Lisp_Object,
    If ARG is not a proper list, make it a one-element list.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn signal_error (s: *const c_char, arg: Lisp_Object) -> !
+pub unsafe extern "C-unwind" fn signal_error (s: *const c_char, arg: Lisp_Object) -> !
 {
   let mut arg: Lisp_Object = arg;   // C assigns to its parameter
   if NILP (Fproper_list_p (arg))
@@ -2236,7 +2280,7 @@ pub unsafe extern "C" fn signal_error (s: *const c_char, arg: Lisp_Object) -> !
 /* Simplified version of 'define-error'.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn define_error (name: Lisp_Object, message: *const c_char,
+pub unsafe extern "C-unwind" fn define_error (name: Lisp_Object, message: *const c_char,
                                        parent: Lisp_Object)
 {
   eassert! (SYMBOLP (name));
@@ -2252,7 +2296,7 @@ pub unsafe extern "C" fn define_error (name: Lisp_Object, message: *const c_char
 /* Use this for arithmetic overflow, e.g., when an integer result is
    too large even for a bignum.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn overflow_error ()
+pub unsafe extern "C-unwind" fn overflow_error ()
 {
   xsignal0 (Qoverflow_error ());
 }
@@ -2331,7 +2375,7 @@ unsafe fn skip_debugger (conditions: Lisp_Object, data: Lisp_Object) -> bool
 
 /* Say whether SIGNAL is a `quit' error (or inherits from it).  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn signal_quit_p (error: Lisp_Object) -> bool
+pub unsafe extern "C-unwind" fn signal_quit_p (error: Lisp_Object) -> bool
 {
   let signal: Lisp_Object = if CONSP (error) { XCAR (error) } else { Qnil () };
   let list: Lisp_Object;
@@ -2399,7 +2443,7 @@ unsafe fn find_handler_clause (handlers: Lisp_Object, conditions: Lisp_Object)
 
 /* Format and return a string; called like vprintf.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn vformat_string (m: *const c_char, mut ap: core::ffi::VaList<'_>) -> Lisp_Object
+pub unsafe extern "C-unwind" fn vformat_string (m: *const c_char, mut ap: core::ffi::VaList<'_>) -> Lisp_Object
 {
   let mut buf: [c_char; 4000] = [0; 4000];
   let mut size: ptrdiff_t = std::mem::size_of_val (&buf) as ptrdiff_t;
@@ -2418,7 +2462,7 @@ pub unsafe extern "C" fn vformat_string (m: *const c_char, mut ap: core::ffi::Va
 
 /* Dump an error message; called like vprintf.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn verror (m: *const c_char, ap: core::ffi::VaList<'_>) -> !
+pub unsafe extern "C-unwind" fn verror (m: *const c_char, ap: core::ffi::VaList<'_>) -> !
 {
   xsignal1 (Qerror (), vformat_string (m, ap));
 }
@@ -2427,7 +2471,7 @@ pub unsafe extern "C" fn verror (m: *const c_char, ap: core::ffi::VaList<'_>) ->
 /* Dump an error message; called like printf.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn error (m: *const c_char, mut args: ...) -> !
+pub unsafe extern "C-unwind" fn error (m: *const c_char, mut args: ...) -> !
 {
   verror (m, args);
 }
@@ -2445,7 +2489,7 @@ DEFUN! ("eval", Feval, Seval, 1, 2, 0,
 });
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn grow_specpdl_allocation ()
+pub unsafe extern "C-unwind" fn grow_specpdl_allocation ()
 {
   eassert! (specpdl_ptr! () == specpdl_end! ());
 
@@ -2465,7 +2509,7 @@ pub unsafe extern "C" fn grow_specpdl_allocation ()
 /* Eval a sub-expression of the current expression (i.e. in the same
    lexical scope).  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn eval_sub (form: Lisp_Object) -> Lisp_Object
+pub unsafe extern "C-unwind" fn eval_sub (form: Lisp_Object) -> Lisp_Object
 {
   let mut form: Lisp_Object = form;   // C assigns to its parameter
   if SYMBOLP (form)
@@ -2594,6 +2638,8 @@ pub unsafe extern "C" fn eval_sub (form: Lisp_Object) -> Lisp_Object
 		  set_backtrace_args (specpdl_ref_to_ptr (count), vals, argnum);
 
 		  val = (((*XSUBR (fun)).function.aMANY).unwrap ()) (argnum, vals);
+		  #[cfg (feature = "have_native_comp")]
+		  crate::nonlocal::check_and_propagate_comp_native_exit ();
 
 		  lisp_eval_depth! () -= 1;
 		  /* Do the debug-on-exit now, while VALS still exists.  */
@@ -2693,6 +2739,8 @@ pub unsafe extern "C" fn eval_sub (form: Lisp_Object) -> Lisp_Object
 		  }
 		}
 	    }
+	  #[cfg (feature = "have_native_comp")]
+	  crate::nonlocal::check_and_propagate_comp_native_exit ();
 	}
       else if CLOSUREP (fun)
 	       || NATIVE_COMP_FUNCTION_DYNP (fun)
@@ -2874,7 +2922,7 @@ DEFUN! ("apply", Fapply, Sapply, 1, MANY, 0,
 
 /* Run hook variables in various ways.  */
 
-unsafe extern "C" fn funcall_nil (nargs: ptrdiff_t, args: *mut Lisp_Object) -> Lisp_Object
+unsafe extern "C-unwind" fn funcall_nil (nargs: ptrdiff_t, args: *mut Lisp_Object) -> Lisp_Object
 {
   Ffuncall (nargs, args);
   return Qnil ();
@@ -2915,7 +2963,7 @@ DEFUN! ("run-hook-with-args-until-success", Frun_hook_with_args_until_success,
   return run_hook_with_args (nargs, args, Some (Ffuncall));
 });
 
-unsafe extern "C" fn funcall_not (nargs: ptrdiff_t, args: *mut Lisp_Object) -> Lisp_Object
+unsafe extern "C-unwind" fn funcall_not (nargs: ptrdiff_t, args: *mut Lisp_Object) -> Lisp_Object
 {
   return if NILP (Ffuncall (nargs, args)) { Qt () } else { Qnil () };
 }
@@ -2929,7 +2977,7 @@ DEFUN! ("run-hook-with-args-until-failure", Frun_hook_with_args_until_failure,
            { Qt () } else { Qnil () };
 });
 
-unsafe extern "C" fn run_hook_wrapped_funcall (nargs: ptrdiff_t, args: *mut Lisp_Object) -> Lisp_Object
+unsafe extern "C-unwind" fn run_hook_wrapped_funcall (nargs: ptrdiff_t, args: *mut Lisp_Object) -> Lisp_Object
 {
   let tmp: Lisp_Object = *args.offset (0);
   let ret: Lisp_Object;
@@ -2954,9 +3002,9 @@ DEFUN! ("run-hook-wrapped", Frun_hook_wrapped, Srun_hook_wrapped, 2, MANY, 0,
    FUNCALL specifies how to call each function on the hook.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn run_hook_with_args (
+pub unsafe extern "C-unwind" fn run_hook_with_args (
   nargs: ptrdiff_t, args: *mut Lisp_Object,
-  funcall: Option<unsafe extern "C" fn (ptrdiff_t, *mut Lisp_Object) -> Lisp_Object>)
+  funcall: Option<unsafe extern "C-unwind" fn (ptrdiff_t, *mut Lisp_Object) -> Lisp_Object>)
   -> Lisp_Object
 {
   let sym: Lisp_Object;
@@ -3025,7 +3073,7 @@ pub unsafe extern "C" fn run_hook_with_args (
 /* Run the hook HOOK, giving each function no args.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn run_hook (hook: Lisp_Object)
+pub unsafe extern "C-unwind" fn run_hook (hook: Lisp_Object)
 {
   let mut hook: Lisp_Object = hook;   // C passes the parameter's address, which the callee writes
   Frun_hook_with_args (1, &raw mut hook);
@@ -3034,7 +3082,7 @@ pub unsafe extern "C" fn run_hook (hook: Lisp_Object)
 /* Run the hook HOOK, giving each function the two args ARG1 and ARG2.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn run_hook_with_args_2 (hook: Lisp_Object, arg1: Lisp_Object,
+pub unsafe extern "C-unwind" fn run_hook_with_args_2 (hook: Lisp_Object, arg1: Lisp_Object,
                                                arg2: Lisp_Object) -> Lisp_Object
 {
   return CALLN! (Frun_hook_with_args, hook, arg1, arg2);
@@ -3042,7 +3090,7 @@ pub unsafe extern "C" fn run_hook_with_args_2 (hook: Lisp_Object, arg1: Lisp_Obj
 
 /* Apply fn to arg.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn apply1 (fn_: Lisp_Object, arg: Lisp_Object) -> Lisp_Object
+pub unsafe extern "C-unwind" fn apply1 (fn_: Lisp_Object, arg: Lisp_Object) -> Lisp_Object
 {
   if NILP (arg)
     { return calln! (fn_); }
@@ -3085,7 +3133,7 @@ DEFUN! ("functionp", Ffunctionp, Sfunctionp, 1, 1, 0,
 });
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn FUNCTIONP (object: Lisp_Object) -> bool
+pub unsafe extern "C-unwind" fn FUNCTIONP (object: Lisp_Object) -> bool
 {
   let mut object: Lisp_Object = object;   // C assigns to its parameter
   if SYMBOLP (object) && !NILP (Ffboundp (object))
@@ -3128,7 +3176,7 @@ DEFUN! ("debugger-trap", Fdebugger_trap, Sdebugger_trap, 0, 0, "",
 });
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn funcall_general (fun: Lisp_Object, numargs: ptrdiff_t,
+pub unsafe extern "C-unwind" fn funcall_general (fun: Lisp_Object, numargs: ptrdiff_t,
                                           args: *mut Lisp_Object) -> Lisp_Object
 {
   let mut fun: Lisp_Object = fun;   // C's `fun = original_fun` below rebinds it
@@ -3148,9 +3196,19 @@ pub unsafe extern "C" fn funcall_general (fun: Lisp_Object, numargs: ptrdiff_t,
 	  if numargs == 1 && (*subr).min_args <= 1
 	    {
 	      if (*subr).max_args == 1
-		{ return (((*subr).function.a1).unwrap_unchecked ()) (*args); }
+		{
+		  let val = (((*subr).function.a1).unwrap_unchecked ()) (*args);
+		  #[cfg (feature = "have_native_comp")]
+		  crate::nonlocal::check_and_propagate_comp_native_exit ();
+		  return val;
+		}
 	      if (*subr).max_args == 2
-		{ return (((*subr).function.a2).unwrap_unchecked ()) (*args, Qnil ()); }
+		{
+		  let val = (((*subr).function.a2).unwrap_unchecked ()) (*args, Qnil ());
+		  #[cfg (feature = "have_native_comp")]
+		  crate::nonlocal::check_and_propagate_comp_native_exit ();
+		  return val;
+		}
 	    }
 	  return funcall_subr (subr, numargs, args);
 	}
@@ -3234,7 +3292,7 @@ DEFUN! ("funcall", Ffuncall, Sfuncall, 1, MANY, 0,
   return val;
 });
 
-unsafe extern "C" fn safe_eval_handler (arg: Lisp_Object, nargs: ptrdiff_t,
+unsafe extern "C-unwind" fn safe_eval_handler (arg: Lisp_Object, nargs: ptrdiff_t,
                                         args: *mut Lisp_Object) -> Lisp_Object
 {
   add_to_log (c"Error muted by safe_call: %S signaled %S".as_ptr (),
@@ -3243,7 +3301,7 @@ unsafe extern "C" fn safe_eval_handler (arg: Lisp_Object, nargs: ptrdiff_t,
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn safe_funcall (nargs: ptrdiff_t, args: *mut Lisp_Object)
+pub unsafe extern "C-unwind" fn safe_funcall (nargs: ptrdiff_t, args: *mut Lisp_Object)
   -> Lisp_Object
 {
   let count: specpdl_ref = SPECPDL_INDEX ();
@@ -3259,7 +3317,7 @@ pub unsafe extern "C" fn safe_funcall (nargs: ptrdiff_t, args: *mut Lisp_Object)
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn safe_eval (sexp: Lisp_Object) -> Lisp_Object
+pub unsafe extern "C-unwind" fn safe_eval (sexp: Lisp_Object) -> Lisp_Object
 {
   /* C 3245-3248 is `return safe_calln (Qeval, sexp, Qt);`, and `safe_calln` is
      `CALLMANY (safe_funcall, ((Lisp_Object []) {__VA_ARGS__}))` (lisp.h 4846-4847): the call
@@ -3277,7 +3335,7 @@ pub unsafe extern "C" fn safe_eval (sexp: Lisp_Object) -> Lisp_Object
    and return the result of evaluation.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn funcall_subr (subr: *mut Lisp_Subr, numargs: ptrdiff_t,
+pub unsafe extern "C-unwind" fn funcall_subr (subr: *mut Lisp_Subr, numargs: ptrdiff_t,
                                        args: *mut Lisp_Object) -> Lisp_Object
 {
   eassume! (numargs >= 0);
@@ -3287,108 +3345,77 @@ pub unsafe extern "C" fn funcall_subr (subr: *mut Lisp_Subr, numargs: ptrdiff_t,
       let maxargs: ptrdiff_t = (*subr).max_args as ptrdiff_t;
       if numargs <= maxargs && maxargs <= 8
 	{
-	  if numargs == maxargs
+	  let val: Lisp_Object = if numargs == maxargs
 	    {
 	      match maxargs
 		{
-		0 => { return (((*subr).function.a0).unwrap_unchecked ()) (); }
-		1 => { return (((*subr).function.a1).unwrap_unchecked ()) (*args.offset (0)); }
-		2 => { return (((*subr).function.a2).unwrap_unchecked ()) (*args.offset (0), *args.offset (1)); }
-		3 => { return (((*subr).function.a3).unwrap_unchecked ()) (*args.offset (0), *args.offset (1), *args.offset (2)); }
-		4 => { return (((*subr).function.a4).unwrap_unchecked ()) (*args.offset (0), *args.offset (1), *args.offset (2), *args.offset (3)); }
-		5 => { return (((*subr).function.a5).unwrap_unchecked ()) (*args.offset (0), *args.offset (1), *args.offset (2), *args.offset (3), *args.offset (4)); }
-		6 => { return (((*subr).function.a6).unwrap_unchecked ()) (*args.offset (0), *args.offset (1), *args.offset (2), *args.offset (3), *args.offset (4), *args.offset (5)); }
-		7 => { return (((*subr).function.a7).unwrap_unchecked ()) (*args.offset (0), *args.offset (1), *args.offset (2), *args.offset (3), *args.offset (4), *args.offset (5), *args.offset (6)); }
-		8 => { return (((*subr).function.a8).unwrap_unchecked ()) (*args.offset (0), *args.offset (1), *args.offset (2), *args.offset (3), *args.offset (4), *args.offset (5), *args.offset (6), *args.offset (7)); }
-		_ => { }
+		0 => (((*subr).function.a0).unwrap_unchecked ()) (),
+		1 => (((*subr).function.a1).unwrap_unchecked ()) (*args.offset (0)),
+		2 => (((*subr).function.a2).unwrap_unchecked ()) (*args.offset (0), *args.offset (1)),
+		3 => (((*subr).function.a3).unwrap_unchecked ()) (*args.offset (0), *args.offset (1), *args.offset (2)),
+		4 => (((*subr).function.a4).unwrap_unchecked ()) (*args.offset (0), *args.offset (1), *args.offset (2), *args.offset (3)),
+		5 => (((*subr).function.a5).unwrap_unchecked ()) (*args.offset (0), *args.offset (1), *args.offset (2), *args.offset (3), *args.offset (4)),
+		6 => (((*subr).function.a6).unwrap_unchecked ()) (*args.offset (0), *args.offset (1), *args.offset (2), *args.offset (3), *args.offset (4), *args.offset (5)),
+		7 => (((*subr).function.a7).unwrap_unchecked ()) (*args.offset (0), *args.offset (1), *args.offset (2), *args.offset (3), *args.offset (4), *args.offset (5), *args.offset (6)),
+		8 => (((*subr).function.a8).unwrap_unchecked ()) (*args.offset (0), *args.offset (1), *args.offset (2), *args.offset (3), *args.offset (4), *args.offset (5), *args.offset (6), *args.offset (7)),
+		_ => { eassume! (false); Qnil () }
 		}
 	    }
 	  else if maxargs == 2
 	    {
 	      let a0: Lisp_Object = if numargs >= 1 { *args.offset (0) } else { Qnil () };
-	      return (((*subr).function.a2).unwrap_unchecked ()) (a0, Qnil ());
+	      (((*subr).function.a2).unwrap_unchecked ()) (a0, Qnil ())
 	    }
 	  else if maxargs == 3
 	    {
 	      let a0: Lisp_Object = if numargs >= 1 { *args.offset (0) } else { Qnil () };
 	      let a1: Lisp_Object = if numargs >= 2 { *args.offset (1) } else { Qnil () };
-	      return (((*subr).function.a3).unwrap_unchecked ()) (a0, a1, Qnil ());
+	      (((*subr).function.a3).unwrap_unchecked ()) (a0, a1, Qnil ())
 	    }
-	  /* C leaves `argbuf` uninitialised and writes only the slots it uses; the port used
-	     to fill all eight with nil, which is eight stores on every short call (P-182).
-	     `MaybeUninit` gives C's shape back: the slots below `numargs` are copied in and
-	     the rest of the used range is cleared, so no slot is read before it is written.  */
-	  let mut argbuf: core::mem::MaybeUninit<[Lisp_Object; 8]> =
-	    core::mem::MaybeUninit::uninit ();
-	  let a: *mut Lisp_Object = argbuf.as_mut_ptr () as *mut Lisp_Object;
-	  eassume! (maxargs <= 8);
-	  let mut i: ptrdiff_t = 0;
-	  while i < numargs
+	  else
 	    {
-	      *a.offset (i) = *args.offset (i);
-	      i += 1;
-	    }
-	  while i < maxargs
-	    {
-	      *a.offset (i) = Qnil ();
-	      i += 1;
-	    }
-	  match maxargs
-	    {
-	    0 =>
-	      {
-		return (((*subr).function.a0).unwrap_unchecked ()) ();
-	      }
-	    1 =>
-	      {
-		return (((*subr).function.a1).unwrap_unchecked ()) (*a.offset (0));
-	      }
-	    2 =>
-	      {
-		return (((*subr).function.a2).unwrap_unchecked ()) (*a.offset (0), *a.offset (1));
-	      }
-	    3 =>
-	      {
-		return (((*subr).function.a3).unwrap_unchecked ())
-		       (*a.offset (0), *a.offset (1), *a.offset (2));
-	      }
-	    4 =>
-	      {
-		return (((*subr).function.a4).unwrap_unchecked ())
-		       (*a.offset (0), *a.offset (1), *a.offset (2), *a.offset (3));
-	      }
-	    5 =>
-	      {
-		return (((*subr).function.a5).unwrap_unchecked ())
-		       (*a.offset (0), *a.offset (1), *a.offset (2), *a.offset (3), *a.offset (4));
-	      }
-	    6 =>
-	      {
-		return (((*subr).function.a6).unwrap_unchecked ())
-		       (*a.offset (0), *a.offset (1), *a.offset (2), *a.offset (3), *a.offset (4),
-			*a.offset (5));
-	      }
-	    7 =>
-	      {
-		return (((*subr).function.a7).unwrap_unchecked ())
-		       (*a.offset (0), *a.offset (1), *a.offset (2), *a.offset (3), *a.offset (4),
-			*a.offset (5), *a.offset (6));
-	      }
-	    8 =>
-	      {
-		return (((*subr).function.a8).unwrap_unchecked ())
-		       (*a.offset (0), *a.offset (1), *a.offset (2), *a.offset (3), *a.offset (4),
-			*a.offset (5), *a.offset (6), *a.offset (7));
-	      }
-	    _ =>
-	      { }
-	    }
-	  eassume! (false);	/* In case the compiler is too stupid.  */
+	      let mut argbuf: core::mem::MaybeUninit<[Lisp_Object; 8]> =
+	        core::mem::MaybeUninit::uninit ();
+	      let a: *mut Lisp_Object = argbuf.as_mut_ptr () as *mut Lisp_Object;
+	      eassume! (maxargs <= 8);
+	      let mut i: ptrdiff_t = 0;
+	      while i < numargs
+	        {
+	          *a.offset (i) = *args.offset (i);
+	          i += 1;
+	        }
+	      while i < maxargs
+	        {
+	          *a.offset (i) = Qnil ();
+	          i += 1;
+	        }
+	      match maxargs
+	        {
+	        0 => (((*subr).function.a0).unwrap_unchecked ()) (),
+	        1 => (((*subr).function.a1).unwrap_unchecked ()) (*a.offset (0)),
+	        2 => (((*subr).function.a2).unwrap_unchecked ()) (*a.offset (0), *a.offset (1)),
+	        3 => (((*subr).function.a3).unwrap_unchecked ()) (*a.offset (0), *a.offset (1), *a.offset (2)),
+	        4 => (((*subr).function.a4).unwrap_unchecked ()) (*a.offset (0), *a.offset (1), *a.offset (2), *a.offset (3)),
+	        5 => (((*subr).function.a5).unwrap_unchecked ()) (*a.offset (0), *a.offset (1), *a.offset (2), *a.offset (3), *a.offset (4)),
+	        6 => (((*subr).function.a6).unwrap_unchecked ()) (*a.offset (0), *a.offset (1), *a.offset (2), *a.offset (3), *a.offset (4), *a.offset (5)),
+	        7 => (((*subr).function.a7).unwrap_unchecked ()) (*a.offset (0), *a.offset (1), *a.offset (2), *a.offset (3), *a.offset (4), *a.offset (5), *a.offset (6)),
+	        8 => (((*subr).function.a8).unwrap_unchecked ()) (*a.offset (0), *a.offset (1), *a.offset (2), *a.offset (3), *a.offset (4), *a.offset (5), *a.offset (6), *a.offset (7)),
+	        _ => { eassume! (false); Qnil () }
+	        }
+	    };
+	  #[cfg (feature = "have_native_comp")]
+	  crate::nonlocal::check_and_propagate_comp_native_exit ();
+	  return val;
 	}
 
       /* Call to n-adic subr.  */
       if maxargs == MANY || maxargs > 8
-	{ return (((*subr).function.aMANY).unwrap ()) (numargs, args); }
+	{
+	  let val = (((*subr).function.aMANY).unwrap ()) (numargs, args);
+	  #[cfg (feature = "have_native_comp")]
+	  crate::nonlocal::check_and_propagate_comp_native_exit ();
+	  return val;
+	}
     }
 
   /* Anything else is an error.  */
@@ -3610,6 +3637,8 @@ unsafe fn funcall_lambda (fun: Lisp_Object, nargs: ptrdiff_t, arg_vector: *mut L
       /* No need to use funcall_subr as we have zero arguments by
 	 construction.  */
       val = (((*XSUBR (fun)).function.a0).unwrap ()) ();
+      #[cfg (feature = "have_native_comp")]
+      crate::nonlocal::check_and_propagate_comp_native_exit ();
     }
   else
     {
@@ -3769,7 +3798,7 @@ unsafe fn lambda_arity (fun: Lisp_Object) -> Lisp_Object
    which was made in the buffer that is now current.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn let_shadows_buffer_binding_p (symbol: *mut Lisp_Symbol) -> bool
+pub unsafe extern "C-unwind" fn let_shadows_buffer_binding_p (symbol: *mut Lisp_Symbol) -> bool
 {
   let mut p: *mut specbinding;
   let buf: Lisp_Object = Fcurrent_buffer ();
@@ -3844,7 +3873,7 @@ unsafe fn do_specbind (sym: *mut Lisp_Symbol, bind: *mut specbinding, value: Lis
      buffer-local.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn specbind (symbol: Lisp_Object, value: Lisp_Object)
+pub unsafe extern "C-unwind" fn specbind (symbol: Lisp_Object, value: Lisp_Object)
 {
   /* The caller must ensure that the SYMBOL argument is a bare symbol.  */
   let mut sym: *mut Lisp_Symbol = XBARE_SYMBOL (symbol);
@@ -3928,8 +3957,8 @@ pub unsafe extern "C" fn specbind (symbol: Lisp_Object, value: Lisp_Object)
 /* Push unwind-protect entries of various types.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn record_unwind_protect (
-  function: Option<unsafe extern "C" fn (Lisp_Object)>, arg: Lisp_Object)
+pub unsafe extern "C-unwind" fn record_unwind_protect (
+  function: Option<unsafe extern "C-unwind" fn (Lisp_Object)>, arg: Lisp_Object)
 {
   (*specpdl_ptr! ()).unwind.kind = SPECPDL_UNWIND as u8;
   (*specpdl_ptr! ()).unwind.func = function;
@@ -3939,7 +3968,7 @@ pub unsafe extern "C" fn record_unwind_protect (
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn record_unwind_protect_array (array: *mut Lisp_Object, nelts: ptrdiff_t)
+pub unsafe extern "C-unwind" fn record_unwind_protect_array (array: *mut Lisp_Object, nelts: ptrdiff_t)
 {
   (*specpdl_ptr! ()).unwind_array.kind = SPECPDL_UNWIND_ARRAY as u8;
   (*specpdl_ptr! ()).unwind_array.array = array;
@@ -3948,8 +3977,8 @@ pub unsafe extern "C" fn record_unwind_protect_array (array: *mut Lisp_Object, n
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn record_unwind_protect_ptr (
-  function: Option<unsafe extern "C" fn (*mut c_void)>, arg: *mut c_void)
+pub unsafe extern "C-unwind" fn record_unwind_protect_ptr (
+  function: Option<unsafe extern "C-unwind" fn (*mut c_void)>, arg: *mut c_void)
 {
   (*specpdl_ptr! ()).unwind_ptr.kind = SPECPDL_UNWIND_PTR as u8;
   (*specpdl_ptr! ()).unwind_ptr.func = function;
@@ -3961,9 +3990,9 @@ pub unsafe extern "C" fn record_unwind_protect_ptr (
 /* Like `record_unwind_protect_ptr', but also specifies a function
    for GC-marking Lisp objects only reachable through ARG.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn record_unwind_protect_ptr_mark (
-  function: Option<unsafe extern "C" fn (*mut c_void)>, arg: *mut c_void,
-  mark: Option<unsafe extern "C" fn (*mut c_void)>)
+pub unsafe extern "C-unwind" fn record_unwind_protect_ptr_mark (
+  function: Option<unsafe extern "C-unwind" fn (*mut c_void)>, arg: *mut c_void,
+  mark: Option<unsafe extern "C-unwind" fn (*mut c_void)>)
 {
   (*specpdl_ptr! ()).unwind_ptr.kind = SPECPDL_UNWIND_PTR as u8;
   (*specpdl_ptr! ()).unwind_ptr.func = function;
@@ -3973,8 +4002,8 @@ pub unsafe extern "C" fn record_unwind_protect_ptr_mark (
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn record_unwind_protect_int (
-  function: Option<unsafe extern "C" fn (c_int)>, arg: c_int)
+pub unsafe extern "C-unwind" fn record_unwind_protect_int (
+  function: Option<unsafe extern "C-unwind" fn (c_int)>, arg: c_int)
 {
   (*specpdl_ptr! ()).unwind_int.kind = SPECPDL_UNWIND_INT as u8;
   (*specpdl_ptr! ()).unwind_int.func = function;
@@ -3983,8 +4012,8 @@ pub unsafe extern "C" fn record_unwind_protect_int (
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn record_unwind_protect_intmax (
-  function: Option<unsafe extern "C" fn (i64)>, arg: i64)
+pub unsafe extern "C-unwind" fn record_unwind_protect_intmax (
+  function: Option<unsafe extern "C-unwind" fn (i64)>, arg: i64)
 {
   (*specpdl_ptr! ()).unwind_intmax.kind = SPECPDL_UNWIND_INTMAX as u8;
   (*specpdl_ptr! ()).unwind_intmax.func = function;
@@ -3993,7 +4022,7 @@ pub unsafe extern "C" fn record_unwind_protect_intmax (
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn record_unwind_protect_excursion ()
+pub unsafe extern "C-unwind" fn record_unwind_protect_excursion ()
 {
   (*specpdl_ptr! ()).unwind_excursion.kind = SPECPDL_UNWIND_EXCURSION as u8;
   save_excursion_save (specpdl_ptr! ());
@@ -4001,8 +4030,8 @@ pub unsafe extern "C" fn record_unwind_protect_excursion ()
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn record_unwind_protect_void (
-  function: Option<unsafe extern "C" fn ()>)
+pub unsafe extern "C-unwind" fn record_unwind_protect_void (
+  function: Option<unsafe extern "C-unwind" fn ()>)
 {
   (*specpdl_ptr! ()).unwind_void.kind = SPECPDL_UNWIND_VOID as u8;
   (*specpdl_ptr! ()).unwind_void.func = function;
@@ -4010,7 +4039,7 @@ pub unsafe extern "C" fn record_unwind_protect_void (
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn record_unwind_protect_module (kind: u8, ptr: *mut c_void)
+pub unsafe extern "C-unwind" fn record_unwind_protect_module (kind: u8, ptr: *mut c_void)
 {
   (*specpdl_ptr! ()).kind = kind;
   (*specpdl_ptr! ()).unwind_ptr.func = None;
@@ -4105,7 +4134,7 @@ unsafe fn do_one_unbind (this_binding: *mut specbinding, unwinding: bool,
       /* C 3840-3847's `#ifdef HAVE_MODULES` arms (dead in the frozen configuration; P-51).  */
       #[cfg (feature = "have_modules")]
       {
-	unsafe extern "C" {
+	unsafe extern "C-unwind" {
 	  /// C: lisp.h 4908: `void finalize_runtime_unwind (void *);`
 	  pub fn finalize_runtime_unwind (ptr: *mut c_void);
 	  /// C: lisp.h 4909: `void finalize_environment_unwind (void *);`
@@ -4119,14 +4148,14 @@ unsafe fn do_one_unbind (this_binding: *mut specbinding, unwinding: bool,
     }
 }
 
-unsafe extern "C" fn do_nothing ()
+unsafe extern "C-unwind" fn do_nothing ()
 {}
 
 /* Push an unwind-protect entry that does nothing, so that
    set_unwind_protect_ptr can overwrite it later.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn record_unwind_protect_nothing ()
+pub unsafe extern "C-unwind" fn record_unwind_protect_nothing ()
 {
   record_unwind_protect_void (Some (do_nothing));
 }
@@ -4135,7 +4164,7 @@ pub unsafe extern "C" fn record_unwind_protect_nothing ()
    It need not be at the top of the stack.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn clear_unwind_protect (count: specpdl_ref)
+pub unsafe extern "C-unwind" fn clear_unwind_protect (count: specpdl_ref)
 {
   let p: *mut specbinding = specpdl_ref_to_ptr (count);
   (*p).unwind_void.kind = SPECPDL_UNWIND_VOID as u8;
@@ -4147,8 +4176,8 @@ pub unsafe extern "C" fn clear_unwind_protect (count: specpdl_ref)
    previous value without invoking it.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn set_unwind_protect (count: specpdl_ref,
-                                             func: Option<unsafe extern "C" fn (Lisp_Object)>,
+pub unsafe extern "C-unwind" fn set_unwind_protect (count: specpdl_ref,
+                                             func: Option<unsafe extern "C-unwind" fn (Lisp_Object)>,
                                              arg: Lisp_Object)
 {
   let p: *mut specbinding = specpdl_ref_to_ptr (count);
@@ -4159,8 +4188,8 @@ pub unsafe extern "C" fn set_unwind_protect (count: specpdl_ref,
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn set_unwind_protect_ptr (
-  count: specpdl_ref, func: Option<unsafe extern "C" fn (*mut c_void)>, arg: *mut c_void)
+pub unsafe extern "C-unwind" fn set_unwind_protect_ptr (
+  count: specpdl_ref, func: Option<unsafe extern "C-unwind" fn (*mut c_void)>, arg: *mut c_void)
 {
   let p: *mut specbinding = specpdl_ref_to_ptr (count);
   (*p).unwind_ptr.kind = SPECPDL_UNWIND_PTR as u8;
@@ -4173,7 +4202,7 @@ pub unsafe extern "C" fn set_unwind_protect_ptr (
    depth COUNT is reached.  Return VALUE.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn unbind_to (count: specpdl_ref, value: Lisp_Object) -> Lisp_Object
+pub unsafe extern "C-unwind" fn unbind_to (count: specpdl_ref, value: Lisp_Object) -> Lisp_Object
 {
   let mut ct: *mut thread_state = current_thread;
   let mut target_ptr: *mut specbinding = ((*ct).m_specpdl as *mut u8)
@@ -4182,6 +4211,7 @@ pub unsafe extern "C" fn unbind_to (count: specpdl_ref, value: Lisp_Object) -> L
     { return value; }
 
   let quitf: Lisp_Object = Vquit_flag;
+  let mut unbind_roots = crate::nonlocal::ScopedLispRoot::new (&[value, quitf, Qnil ()]);
 
   Vquit_flag = Qnil ();
 
@@ -4216,8 +4246,10 @@ pub unsafe extern "C" fn unbind_to (count: specpdl_ref, value: Lisp_Object) -> L
 	  let depth = (*p).unwind.eval_depth as intmax_t;
 	  let func = (*p).unwind.func.unwrap_unchecked ();
 	  let arg = (*p).unwind.arg;
+	  unbind_roots.set (2, arg);
 	  (*ct).m_lisp_eval_depth = depth;
 	  func (arg);
+	  unbind_roots.set (2, Qnil ());
 	  ct = current_thread;
 	  target_ptr = ((*ct).m_specpdl as *mut u8)
 	    .offset (unwrap_specpdl_ref (count)) as *mut specbinding;
@@ -4393,7 +4425,7 @@ DEFUN! ("backtrace--frames-from-thread", Fbacktrace_frames_from_thread,
    This same code is used when switching threads, except in that case
    we unwind/rewind the whole specpdl of the threads.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn specpdl_unrewind (pdl: *mut specbinding, mut distance: c_int,
+pub unsafe extern "C-unwind" fn specpdl_unrewind (pdl: *mut specbinding, mut distance: c_int,
                                            vars_only: bool)
 {
   let mut tmp: *mut specbinding = pdl;
@@ -4494,7 +4526,7 @@ pub unsafe extern "C" fn specpdl_unrewind (pdl: *mut specbinding, mut distance: 
     }
 }
 
-unsafe extern "C" fn backtrace_eval_unrewind (distance: c_int)
+unsafe extern "C-unwind" fn backtrace_eval_unrewind (distance: c_int)
 {
   specpdl_unrewind (specpdl_ptr! (), distance, false);
 }
@@ -4586,7 +4618,7 @@ DEFUN! ("backtrace--locals", Fbacktrace__locals, Sbacktrace__locals, 1, 2, NULL,
 
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mark_specpdl (first: *mut specbinding, ptr: *mut specbinding)
+pub unsafe extern "C-unwind" fn mark_specpdl (first: *mut specbinding, ptr: *mut specbinding)
 {
   let mut pdl: *mut specbinding = first;
   while pdl != ptr
@@ -4644,7 +4676,7 @@ pub unsafe extern "C" fn mark_specpdl (first: *mut specbinding, ptr: *mut specbi
 	     if we find an unexpected value, as a sanity check.  */
 	  #[cfg (feature = "have_modules")]
 	  {
-	    unsafe extern "C" {
+	    unsafe extern "C-unwind" {
 	      /// C: lisp.h 4907: `void mark_module_environment (void *);`
 	      pub fn mark_module_environment (ptr: *mut c_void);
 	    }
@@ -4663,7 +4695,7 @@ pub unsafe extern "C" fn mark_specpdl (first: *mut specbinding, ptr: *mut specbi
 /* Fill ARRAY of size SIZE with backtrace entries, most recent call first.
    Truncate the backtrace if longer than SIZE; pad with nil if shorter.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn get_backtrace (array: *mut Lisp_Object, size: ptrdiff_t)
+pub unsafe extern "C-unwind" fn get_backtrace (array: *mut Lisp_Object, size: ptrdiff_t)
 {
   /* Copy the backtrace contents into working memory.  */
   let mut pdl: *mut specbinding = backtrace_top ();
@@ -4682,7 +4714,7 @@ pub unsafe extern "C" fn get_backtrace (array: *mut Lisp_Object, size: ptrdiff_t
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn backtrace_top_function () -> Lisp_Object
+pub unsafe extern "C-unwind" fn backtrace_top_function () -> Lisp_Object
 {
   let pdl: *mut specbinding = backtrace_top ();
   return if backtrace_p (pdl) { (backtrace_function.unwrap ()) (pdl) } else { Qnil () };
@@ -4732,7 +4764,7 @@ pub static mut Vinternal_interpreter_environment: Lisp_Object = lisp_h_Qnil ();
 pub static mut Vinternal_make_interpreted_closure_function: Lisp_Object = lisp_h_Qnil ();
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_eval ()
+pub unsafe extern "C-unwind" fn syms_of_eval ()
 {
   DEFVAR_INT! (c"max-lisp-eval-depth", max_lisp_eval_depth,
 	      "Limit on depth in `eval', `apply' and `funcall' before error.\n\nThis limit serves to catch infinite recursions for you before they cause\nactual stack overflow in C, which would be fatal for Emacs.\nYou can safely make it considerably larger than its default value,\nif that proves inconveniently small.  However, if you increase it too far,\nEmacs could overflow the real C stack, and crash.");
@@ -5058,7 +5090,7 @@ DEFUN! ("autoload", Fautoload, Sautoload, 2, 5, 0,
 		    Qnil ());
 });
 
-unsafe extern "C" fn un_autoload (oldqueue: Lisp_Object)
+unsafe extern "C-unwind" fn un_autoload (oldqueue: Lisp_Object)
 {
   /* Queue to unwind is current value of Vautoload_queue.
      oldqueue is the shadowed value to leave in Vautoload_queue.  */
@@ -5076,7 +5108,7 @@ unsafe extern "C" fn un_autoload (oldqueue: Lisp_Object)
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn load_with_autoload_queue
+pub unsafe extern "C-unwind" fn load_with_autoload_queue
   (file: Lisp_Object, noerror: Lisp_Object, nomessage: Lisp_Object,
    nosuffix: Lisp_Object, must_suffix: Lisp_Object) -> Lisp_Object
 {

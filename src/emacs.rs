@@ -181,7 +181,7 @@ macro_rules! MAIN_PROGRAM { () => {} }
    this file uses, each with C's own prototype in a `/// C:` line (PORTING.md 0.1-2/P-55).
    The mirrors that own them (and should eventually carry them) are named per group.
    -------------------------------------------------------------------------------------- */
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   /* --- src/lisp.h ---------------------------------------------------------------- */
 
 
@@ -260,6 +260,8 @@ unsafe extern "C" {
   fn init_display ();
   /// C: dispextern.h 3927: `void syms_of_display (void);`
   fn syms_of_display ();
+}
+unsafe extern "C" {
   // window.h 1236/1237/1238 (`init_window_once`, `init_window`, `syms_of_window`) are the
   // window.rs mirror's now (`window_fn_decls`); the use-site copies are gone (P-26).
 
@@ -303,11 +305,37 @@ unsafe extern "C" {
 
 /* C's window-system and notification units' `syms_of_*` and platform `init_*`, declared for
    the sequence below.  */
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   /// C: `void syms_of_module (void);`
   fn syms_of_module ();
   #[cfg (feature = "have_modules")]
   fn init_module_assertions (enable: bool);
+  /// C: `void syms_of_lcms2 (void);`
+  fn syms_of_lcms2 ();
+  /// C: `void syms_of_decompress (void);`
+  fn syms_of_decompress ();
+  /// C: `void syms_of_nsterm (void);`
+  #[cfg(not(feature = "have_ns"))]
+  fn syms_of_nsterm ();
+  /// C: `void syms_of_nsfns (void);`
+  #[cfg(not(feature = "have_ns"))]
+  fn syms_of_nsfns ();
+  /// C: `void syms_of_nsmenu (void);`
+  #[cfg(not(feature = "have_ns"))]
+  fn syms_of_nsmenu ();
+  /// C: `void syms_of_nsselect (void);`
+  #[cfg(not(feature = "have_ns"))]
+  fn syms_of_nsselect ();
+  /// C: `void syms_of_sfntfont (void);`
+  fn syms_of_sfntfont ();
+  /// C: `void syms_of_kqueue (void);`
+  fn syms_of_kqueue ();
+  /// C: `void globals_of_kqueue (void);`
+  fn globals_of_kqueue ();
+  #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+  fn init_sfntfont ();
+}
+unsafe extern "C" {
 
   /// C: `void syms_of_ntproc (void);`
   fn syms_of_ntproc ();
@@ -329,10 +357,6 @@ unsafe extern "C" {
   fn syms_of_xsmfns ();
   /// C: `void syms_of_xselect (void);`
   fn syms_of_xselect ();
-  /// C: `void syms_of_lcms2 (void);`
-  fn syms_of_lcms2 ();
-  /// C: `void syms_of_decompress (void);`
-  fn syms_of_decompress ();
   /// C: `void syms_of_w32term (void);`
   fn syms_of_w32term ();
   /// C: `void syms_of_w32fns (void);`
@@ -349,18 +373,6 @@ unsafe extern "C" {
   fn syms_of_msdos ();
   /// C: `void syms_of_win16select (void);`
   fn syms_of_win16select ();
-  /// C: `void syms_of_nsterm (void);`
-  #[cfg(not(feature = "have_ns"))]
-  fn syms_of_nsterm ();
-  /// C: `void syms_of_nsfns (void);`
-  #[cfg(not(feature = "have_ns"))]
-  fn syms_of_nsfns ();
-  /// C: `void syms_of_nsmenu (void);`
-  #[cfg(not(feature = "have_ns"))]
-  fn syms_of_nsmenu ();
-  /// C: `void syms_of_nsselect (void);`
-  #[cfg(not(feature = "have_ns"))]
-  fn syms_of_nsselect ();
   /// C: `void syms_of_pgtkterm (void);`
   fn syms_of_pgtkterm ();
   /// C: `void syms_of_pgtkfns (void);`
@@ -395,16 +407,10 @@ unsafe extern "C" {
   fn syms_of_androidselect ();
   /// C: `void syms_of_androidvfs (void);`
   fn syms_of_androidvfs ();
-  /// C: `void syms_of_sfntfont (void);`
-  fn syms_of_sfntfont ();
   /// C: `void syms_of_sfntfont_android (void);`
   fn syms_of_sfntfont_android ();
   /// C: `void syms_of_inotify (void);`
   fn syms_of_inotify ();
-  /// C: `void syms_of_kqueue (void);`
-  fn syms_of_kqueue ();
-  /// C: `void globals_of_kqueue (void);`
-  fn globals_of_kqueue ();
   /// C: `void syms_of_gfilenotify (void);`
   fn syms_of_gfilenotify ();
   /// C: `void syms_of_dbusbind (void);`
@@ -430,8 +436,6 @@ unsafe extern "C" {
   fn init_androidfont ();
   #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
   fn init_androidselect ();
-  #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
-  fn init_sfntfont ();
   #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
   fn init_sfntfont_android ();
 }
@@ -796,7 +800,7 @@ pub static mut Vdynamic_library_alist: Lisp_Object = lisp_h_Qnil ();
    `syms_of_*`/`init_*` entry points and the four objects C declares in a header.  Each is
    defined by the unit its C file names (they carry `#[unsafe(no_mangle)]` there), and the
    `/// C:` line is the reference prototype.  */
-unsafe extern "C" {
+unsafe extern "C-unwind" {
 
 
 
@@ -1510,14 +1514,14 @@ unsafe fn load_pdump (argc: c_int, argv: *mut *mut c_char,
    `android_emacs_init` gets the JNI entry's argument (`android.rs`'s `initEmacs` calls it, C
    `android.c` 2087-2192).  */
 #[cfg (any (not (feature = "have_android"), feature = "android_stubify"))]
-pub unsafe extern "C" fn femacs_editor_main (argc: c_int, argv: *mut *mut c_char) -> c_int
+pub unsafe extern "C-unwind" fn femacs_editor_main (argc: c_int, argv: *mut *mut c_char) -> c_int
 {
   emacs_init_body (argc, argv, std::ptr::null_mut ())
 }
 
 #[cfg (all (feature = "have_android", not (feature = "android_stubify")))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn android_emacs_init (argc: c_int, argv: *mut *mut c_char,
+pub unsafe extern "C-unwind" fn android_emacs_init (argc: c_int, argv: *mut *mut c_char,
 					     dump_file: *mut c_char) -> c_int
 {
   emacs_init_body (argc, argv, dump_file)
@@ -1976,7 +1980,7 @@ unsafe fn emacs_init_body (mut argc: c_int, argv: *mut *mut c_char,
   init_threads ();
   #[cfg(any(feature = "femacs_gc_observer", feature = "femacs_gc_generational"))]
   {
-    unsafe extern "C" { fn femacs_gc_runtime_ready(); }
+    unsafe extern "C-unwind" { fn femacs_gc_runtime_ready(); }
     femacs_gc_runtime_ready();
   }
   init_eval ();
@@ -2019,7 +2023,7 @@ unsafe fn emacs_init_body (mut argc: c_int, argv: *mut *mut c_char,
 
   #[cfg(all(feature = "have_ns", feature = "ns_impl_cocoa"))]
   if !noninteractive {
-    unsafe extern "C" { fn get_homedir() -> *const c_char; }
+    unsafe extern "C-unwind" { fn get_homedir() -> *const c_char; }
     let mut go_home = ch_to_dir.is_null() && !inhibit_window_system && isatty(STDIN_FILENO) == 0;
     if skip_args < argc {
       if strncmp(*argv.offset(skip_args as isize), c"-psn".as_ptr(), 4) == 0 {
@@ -2852,7 +2856,7 @@ DEFUN! ("kill-emacs", Fkill_emacs, Skill_emacs, 0, 2, "P",
    becomes a const-sized array, see `buf_size`), and the shutdown sequence.
    -------------------------------------------------------------------------------------- */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn shut_down_emacs (sig: c_int, stuff: Lisp_Object)
+pub unsafe extern "C-unwind" fn shut_down_emacs (sig: c_int, stuff: Lisp_Object)
 {
   /* Prevent running of hooks from now on.  */
   Vrun_hooks = Qnil ();
@@ -2932,7 +2936,7 @@ pub unsafe extern "C" fn shut_down_emacs (sig: c_int, stuff: Lisp_Object)
     }
   #[cfg(feature = "have_libxml2")]
   {
-    unsafe extern "C" { fn xml_cleanup_parser(); }
+    unsafe extern "C-unwind" { fn xml_cleanup_parser(); }
     xml_cleanup_parser();
   }
 
@@ -2942,7 +2946,7 @@ pub unsafe extern "C" fn shut_down_emacs (sig: c_int, stuff: Lisp_Object)
    C 3191-3198.  `fixup_locale`.
    -------------------------------------------------------------------------------------- */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn fixup_locale ()
+pub unsafe extern "C-unwind" fn fixup_locale ()
 {
   /* The Emacs Lisp reader needs LC_NUMERIC to be "C",
      so that numbers are read and printed properly for Emacs Lisp.  */
@@ -2969,14 +2973,14 @@ unsafe fn synchronize_locale (category: c_int, plocale: *mut Lisp_Object,
    a system macro (`<locale.h>` defines it as 6), so this is text, not a `#[cfg]`.
    -------------------------------------------------------------------------------------- */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn synchronize_system_time_locale ()
+pub unsafe extern "C-unwind" fn synchronize_system_time_locale ()
 {
   synchronize_locale (LC_TIME, &raw mut Vprevious_system_time_locale,
 		      Vsystem_time_locale);
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn synchronize_system_messages_locale ()
+pub unsafe extern "C-unwind" fn synchronize_system_messages_locale ()
 {
   synchronize_locale (LC_MESSAGES, &raw mut Vprevious_system_messages_locale,
 		      Vsystem_messages_locale);
@@ -2986,7 +2990,7 @@ pub unsafe extern "C" fn synchronize_system_messages_locale ()
    C 3250-3257.  `emacs_strerror`.
    -------------------------------------------------------------------------------------- */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn emacs_strerror (error_number: c_int) -> *mut c_char
+pub unsafe extern "C-unwind" fn emacs_strerror (error_number: c_int) -> *mut c_char
 {
   synchronize_system_messages_locale ();
   return strerror (error_number);
@@ -2998,7 +3002,7 @@ pub unsafe extern "C" fn emacs_strerror (error_number: c_int) -> *mut c_char
    p + 1 : NULL)` keeps C's post-step inside the loop body.
    -------------------------------------------------------------------------------------- */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn decode_env_path (evarname: *const c_char, defalt: *const c_char,
+pub unsafe extern "C-unwind" fn decode_env_path (evarname: *const c_char, defalt: *const c_char,
 					  empty: bool) -> Lisp_Object
 {
   let mut path: *const c_char = std::ptr::null ();

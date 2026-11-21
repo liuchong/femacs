@@ -100,10 +100,7 @@ pub type region_cache = c_void;
    `E0428`; nothing in the bodies had to move, because the alias keeps `struct region_cache *`
    in their text.  */
 
-unsafe extern "C" {
-  /// C: <string.h>: `void *memrchr (const void *, int, size_t);` (gnulib's replacement;
-  /// the filelock.rs shape).
-  fn memrchr (s: *const c_void, c: c_int, n: usize) -> *mut c_void;
+unsafe extern "C-unwind" {
   /// C: lisp.h 4566-4567: `extern Lisp_Object make_specified_string (const char *chars,
   /// ptrdiff_t nchars, ptrdiff_t nbytes, bool multibyte);`
   fn make_specified_string (chars: *const c_char, nchars: ptrdiff_t, nbytes: ptrdiff_t,
@@ -114,6 +111,11 @@ unsafe extern "C" {
   /// (insdel.c's definition; the mirror does not carry it - the `Fcopy_sequence` shape).
   fn copy_text (from_addr: *const u8, to_addr: *mut u8, nbytes: ptrdiff_t,
 		from_multibyte: bool, to_multibyte: bool) -> ptrdiff_t;
+}
+unsafe extern "C" {
+  /// C: <string.h>: `void *memrchr (const void *, int, size_t);` (gnulib's replacement;
+  /// the filelock.rs shape).
+  fn memrchr (s: *const c_void, c: c_int, n: usize) -> *mut c_void;
   /// C: <stdio.h>: `FILE *open_memstream (char **, size_t *);` (the checking arm only).
   fn open_memstream (bufloc: *mut *mut c_char, sizeloc: *mut usize) -> *mut FILE;
 }
@@ -265,7 +267,7 @@ unsafe fn compile_pattern_1 (cp: *mut regexp_cache, pattern: Lisp_Object,   // C
    This is called from garbage collection.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn shrink_regexp_cache ()              // C 142-158
+pub unsafe extern "C-unwind" fn shrink_regexp_cache ()              // C 142-158
 {
   let mut cp: *mut regexp_cache;
 
@@ -289,7 +291,7 @@ pub unsafe extern "C" fn shrink_regexp_cache ()              // C 142-158
    based on its `allocated' and `buffer' values.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn clear_regexp_cache ()               // C 160-171
+pub unsafe extern "C-unwind" fn clear_regexp_cache ()               // C 160-171
 {
   let mut i: c_int;
 
@@ -305,7 +307,7 @@ pub unsafe extern "C" fn clear_regexp_cache ()               // C 160-171
     }
 }
 
-unsafe extern "C" fn unfreeze_pattern (arg: *mut c_void)     // C 173-178
+unsafe extern "C-unwind" fn unfreeze_pattern (arg: *mut c_void)     // C 173-178
 {
   let searchbuf = arg as *mut regexp_cache;
   (*searchbuf).busy = false;
@@ -661,7 +663,7 @@ DEFUN! ("posix-string-match", Fposix_string_match, Sposix_string_match, 2, 4, 0,
    or negative on failure.  This does not clobber the match data.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn fast_string_match_internal (regexp: Lisp_Object,   // C 483-500
+pub unsafe extern "C-unwind" fn fast_string_match_internal (regexp: Lisp_Object,   // C 483-500
 						    string: Lisp_Object,
 						    table: Lisp_Object)
   -> ptrdiff_t
@@ -686,7 +688,7 @@ pub unsafe extern "C" fn fast_string_match_internal (regexp: Lisp_Object,   // C
    We assume that STRING contains single-byte characters.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn fast_c_string_match_internal (regexp: Lisp_Object,   // C 508-533
+pub unsafe extern "C-unwind" fn fast_c_string_match_internal (regexp: Lisp_Object,   // C 508-533
 						      string: *const c_char,
 						      len: ptrdiff_t,
 						      table: Lisp_Object)
@@ -716,7 +718,7 @@ pub unsafe extern "C" fn fast_c_string_match_internal (regexp: Lisp_Object,   //
    data.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn fast_looking_at (regexp: Lisp_Object, pos: ptrdiff_t,   // C 535-600
+pub unsafe extern "C-unwind" fn fast_looking_at (regexp: Lisp_Object, pos: ptrdiff_t,   // C 535-600
 					  pos_byte: ptrdiff_t, limit: ptrdiff_t,
 					  limit_byte: ptrdiff_t, string: Lisp_Object)
   -> ptrdiff_t
@@ -860,7 +862,7 @@ unsafe fn newline_cache_on_off (buf: *mut buffer) -> *mut region_cache   // C 60
    except when inside redisplay.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn find_newline (start: ptrdiff_t, start_byte: ptrdiff_t,   // C 675-966
+pub unsafe extern "C-unwind" fn find_newline (start: ptrdiff_t, start_byte: ptrdiff_t,   // C 675-966
 				       end: ptrdiff_t, end_byte: ptrdiff_t,
 				       count: ptrdiff_t, counted: *mut ptrdiff_t,
 				       bytepos: *mut ptrdiff_t, allow_quit: bool)
@@ -1182,7 +1184,7 @@ pub unsafe extern "C" fn find_newline (start: ptrdiff_t, start_byte: ptrdiff_t, 
    except in special cases.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn scan_newline (start: ptrdiff_t, start_byte: ptrdiff_t,   // C 968-984
+pub unsafe extern "C-unwind" fn scan_newline (start: ptrdiff_t, start_byte: ptrdiff_t,   // C 968-984
 				       limit: ptrdiff_t, limit_byte: ptrdiff_t,
 				       count: ptrdiff_t, allow_quit: bool)
 {
@@ -1202,7 +1204,7 @@ pub unsafe extern "C" fn scan_newline (start: ptrdiff_t, start_byte: ptrdiff_t, 
    resulting position in *CHARPOS and *BYTEPOS.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn scan_newline_from_point (count: ptrdiff_t,   // C 986-1001
+pub unsafe extern "C-unwind" fn scan_newline_from_point (count: ptrdiff_t,   // C 986-1001
 						  charpos: *mut ptrdiff_t,
 						  bytepos: *mut ptrdiff_t)
   -> ptrdiff_t
@@ -1221,7 +1223,7 @@ pub unsafe extern "C" fn scan_newline_from_point (count: ptrdiff_t,   // C 986-1
 /* Like find_newline, but doesn't allow QUITting and doesn't return
    COUNTED.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn find_newline_no_quit (from: ptrdiff_t, frombyte: ptrdiff_t,   // C 1003-1012
+pub unsafe extern "C-unwind" fn find_newline_no_quit (from: ptrdiff_t, frombyte: ptrdiff_t,   // C 1003-1012
 					       cnt: ptrdiff_t, bytepos: *mut ptrdiff_t)
   -> ptrdiff_t
 {
@@ -1233,7 +1235,7 @@ pub unsafe extern "C" fn find_newline_no_quit (from: ptrdiff_t, frombyte: ptrdif
    This isn't just find_newline_no_quit (...)-1, because you might hit TO.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn find_before_next_newline (from: ptrdiff_t, to: ptrdiff_t,   // C 1014-1031
+pub unsafe extern "C-unwind" fn find_before_next_newline (from: ptrdiff_t, to: ptrdiff_t,   // C 1014-1031
 						   cnt: ptrdiff_t, bytepos: *mut ptrdiff_t)
   -> ptrdiff_t
 {
@@ -1759,7 +1761,7 @@ unsafe fn search_buffer_non_re (string: Lisp_Object, pos: ptrdiff_t,   // C 1298
    Use TRT and INVERSE_TRT as character translation tables.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn search_buffer (string: Lisp_Object, pos: ptrdiff_t,   // C 1518-1554
+pub unsafe extern "C-unwind" fn search_buffer (string: Lisp_Object, pos: ptrdiff_t,   // C 1518-1554
 					pos_byte: ptrdiff_t, lim: ptrdiff_t,
 					lim_byte: ptrdiff_t, n: EMACS_INT, RE: bool,
 					trt: Lisp_Object, inverse_trt: Lisp_Object,
@@ -3278,7 +3280,7 @@ unsafe fn save_search_regs ()                                 // C 3082-3095
 
 /* Called upon exit from filters and sentinels. */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn restore_search_regs ()               // C 3097-3113
+pub unsafe extern "C-unwind" fn restore_search_regs ()               // C 3097-3113
 {
   if saved_search_regs! ().num_regs != 0
     {
@@ -3296,7 +3298,7 @@ pub unsafe extern "C" fn restore_search_regs ()               // C 3097-3113
 
 /* Called from replace-match via replace_range.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn update_search_regs (oldstart: ptrdiff_t, oldend: ptrdiff_t,   // C 3115-3147
+pub unsafe extern "C-unwind" fn update_search_regs (oldstart: ptrdiff_t, oldend: ptrdiff_t,   // C 3115-3147
 					     newend: ptrdiff_t)
 {
   /* Adjust search data for this change.  */
@@ -3332,7 +3334,7 @@ pub unsafe extern "C" fn update_search_regs (oldstart: ptrdiff_t, oldend: ptrdif
     }
 }
 
-unsafe extern "C" fn unwind_set_match_data (list: Lisp_Object)   // C 3149-3154
+unsafe extern "C-unwind" fn unwind_set_match_data (list: Lisp_Object)   // C 3149-3154
 {
   /* It is NOT ALWAYS safe to free (evaporate) the markers immediately.  */
   Fset_match_data (list, Qt ());
@@ -3340,7 +3342,7 @@ unsafe extern "C" fn unwind_set_match_data (list: Lisp_Object)   // C 3149-3154
 
 /* Called to unwind protect the match data.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn record_unwind_save_match_data ()      // C 3157-3162
+pub unsafe extern "C-unwind" fn record_unwind_save_match_data ()      // C 3157-3162
 {
   record_unwind_protect (Some (unwind_set_match_data),
 			 Fmatch_data (Qnil (), Qnil (), Qnil ()));
@@ -3400,7 +3402,7 @@ DEFUN! ("regexp-quote", Fregexp_quote, Sregexp_quote, 1, 1, 0,   // C 3165-3205
 
 /* Like find_newline, but doesn't use the cache, and only searches forward.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn find_newline1 (start: ptrdiff_t, start_byte: ptrdiff_t,   // C 3207-3290
+pub unsafe extern "C-unwind" fn find_newline1 (start: ptrdiff_t, start_byte: ptrdiff_t,   // C 3207-3290
 					end: ptrdiff_t, end_byte: ptrdiff_t,
 					count: ptrdiff_t, counted: *mut ptrdiff_t,
 					bytepos: *mut ptrdiff_t, allow_quit: bool)
@@ -3651,7 +3653,7 @@ pub static mut Vsearch_spaces_regexp: Lisp_Object = lisp_h_Qnil ();
 pub static mut Vinhibit_changing_match_data: Lisp_Object = lisp_h_Qnil ();
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_search ()                 // C 3420-3498
+pub unsafe extern "C-unwind" fn syms_of_search ()                 // C 3420-3498
 {
   let mut i: c_int = 0;
   while i < REGEXP_CACHE_SIZE as c_int
@@ -3722,7 +3724,7 @@ pub unsafe extern "C" fn syms_of_search ()                 // C 3420-3498
   pdumper_do_now_and_after_load (Some (syms_of_search_for_pdumper));
 }
 
-unsafe extern "C" fn syms_of_search_for_pdumper ()         // C 3500-3515
+unsafe extern "C-unwind" fn syms_of_search_for_pdumper ()         // C 3500-3515
 {
   let mut i: c_int = 0;
   while i < REGEXP_CACHE_SIZE as c_int

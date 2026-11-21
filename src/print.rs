@@ -100,7 +100,7 @@ use std::ffi::CStr;                            // the `-1.0e+INF` literal in flo
 
 /* The names C gets from headers whose mirrors do not carry them yet (the terminal.rs shape),
    each with C's own prototype in a `/// C:` line.  */
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   /// C: lisp.h 4799: `extern bool FUNCTIONP (Lisp_Object);`
   fn FUNCTIONP (object: Lisp_Object) -> bool;
   /// C: lisp.h 4396: `extern void message_dolog (const char *, ptrdiff_t, bool, bool);`
@@ -117,11 +117,13 @@ unsafe extern "C" {
   fn copy_text (from: *const u8, to: *mut u8, nbytes: ptrdiff_t, from_multibyte: bool,
                 to_multibyte: bool) -> ptrdiff_t;
   /// C: lisp.h 4825: `extern void record_unwind_protect_void (void (*) (void));`
-  fn record_unwind_protect_void (function: Option<unsafe extern "C" fn ()>);
+  fn record_unwind_protect_void (function: Option<unsafe extern "C-unwind" fn ()>);
 
   /// C: font.h 780: `extern Lisp_Object font_style_symbolic (Lisp_Object,
   /// enum font_property_index, bool);`
   fn font_style_symbolic (font: Lisp_Object, prop: c_int, for_face: bool) -> Lisp_Object;
+}
+unsafe extern "C" {
   /// C: lib/ftoastr.h 54: `int dtoastr (char *buf, size_t bufsize, int flags, int width,
   /// double x);`
   fn dtoastr (buf: *mut c_char, bufsize: usize, flags: c_int, width: c_int, x: c_double)
@@ -268,7 +270,7 @@ pub static mut print_output_debug_flag: bool = true;
 
 /* This is used to free the print buffer; we don't simply record xfree
    since print_buffer can be reallocated during the printing.  */
-unsafe extern "C" fn print_free_buffer ()
+unsafe extern "C-unwind" fn print_free_buffer ()
 {
   xfree (print_buffer.buffer as *mut c_void);
   print_buffer.buffer = std::ptr::null_mut ();
@@ -276,7 +278,7 @@ unsafe extern "C" fn print_free_buffer ()
 
 /* This is used to restore the saved contents of print_buffer
    when there is a recursive call to print.  */
-unsafe extern "C" fn print_unwind (saved_text: Lisp_Object)
+unsafe extern "C-unwind" fn print_unwind (saved_text: Lisp_Object)
 {
   memcpy (print_buffer.buffer as *mut c_void, SDATA (saved_text) as *const c_void,
           SCHARS (saved_text) as usize);
@@ -819,7 +821,7 @@ unsafe fn write_string (data: *const c_char, printcharfun: Lisp_Object)
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn temp_output_buffer_setup (bufname: *const c_char)
+pub unsafe extern "C-unwind" fn temp_output_buffer_setup (bufname: *const c_char)
 {
   let count: specpdl_ref = SPECPDL_INDEX ();
   let old: *mut buffer = (current_buffer! ());
@@ -1096,7 +1098,7 @@ DEFUN! ("external-debugging-output", Fexternal_debugging_output, Sexternal_debug
 
 /* C 943: `extern void debug_output_compilation_hack (bool) EXTERNALLY_VISIBLE;` */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn debug_output_compilation_hack (x: bool)
+pub unsafe extern "C-unwind" fn debug_output_compilation_hack (x: bool)
 {
   print_output_debug_flag = x;
 }
@@ -1144,7 +1146,7 @@ DEFUN! ("redirect-debugging-output", Fredirect_debugging_output, Sredirect_debug
 /* This is the interface for debugging printing.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn debug_print (arg: Lisp_Object)
+pub unsafe extern "C-unwind" fn debug_print (arg: Lisp_Object)
 {
   Fprin1 (arg, Qexternal_debugging_output (), Qnil ());
   fputs (c"\r\n".as_ptr (), stderr);
@@ -1152,7 +1154,7 @@ pub unsafe extern "C" fn debug_print (arg: Lisp_Object)
 
 /* C 1002: `void safe_debug_print (Lisp_Object) EXTERNALLY_VISIBLE;` */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn safe_debug_print (arg: Lisp_Object)
+pub unsafe extern "C-unwind" fn safe_debug_print (arg: Lisp_Object)
 {
   let valid: c_int = valid_lisp_object_p (arg);
 
@@ -1173,13 +1175,13 @@ pub unsafe extern "C" fn safe_debug_print (arg: Lisp_Object)
    recordings.  */
 /* C 1023: `const char * debug_format (const char *, Lisp_Object) EXTERNALLY_VISIBLE;` */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn debug_format (fmt: *const c_char, arg: Lisp_Object) -> *const c_char
+pub unsafe extern "C-unwind" fn debug_format (fmt: *const c_char, arg: Lisp_Object) -> *const c_char
 {
   return SSDATA (CALLN! (Fformat, build_string (fmt), arg));
 }
 
 /* Erase the Vprin1_to_string_buffer, potentially switching to it.  */
-unsafe extern "C" fn erase_prin1_to_string_buffer ()
+unsafe extern "C-unwind" fn erase_prin1_to_string_buffer ()
 {
   set_buffer_internal (XBUFFER (Vprin1_to_string_buffer));
   Ferase_buffer ();
@@ -1216,7 +1218,7 @@ DEFUN! ("error-message-string", Ferror_message_string, Serror_message_string,
    CALLER is the Lisp function inside which the error was signaled.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn print_error_message (mut data: Lisp_Object, stream: Lisp_Object,
+pub unsafe extern "C-unwind" fn print_error_message (mut data: Lisp_Object, stream: Lisp_Object,
 					      context: *const c_char, caller: Lisp_Object)
 {
   let mut errname: Lisp_Object = Qnil ();
@@ -1333,7 +1335,7 @@ pub unsafe extern "C" fn print_error_message (mut data: Lisp_Object, stream: Lis
  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn float_to_string (buf: *mut c_char, data: c_double) -> c_int
+pub unsafe extern "C-unwind" fn float_to_string (buf: *mut c_char, data: c_double) -> c_int
 {
   let mut cp: *mut c_char = std::ptr::null_mut ();  /* C: `char *cp;` (PORTING.md 1.5) */
   let mut width: c_int = 0;
@@ -1485,6 +1487,29 @@ unsafe fn print (obj: Lisp_Object, printcharfun: Lisp_Object, escapeflag: bool)
 	}
     }
 
+  struct NestedPrintDepthGuard {
+    saved_depth: ptrdiff_t,
+    saved_being: Vec<Lisp_Object>,
+  }
+  impl Drop for NestedPrintDepthGuard {
+    fn drop (&mut self) {
+      unsafe {
+        for (i, &obj) in self.saved_being.iter ().enumerate () {
+          being_printed[i] = obj;
+        }
+        print_depth = self.saved_depth;
+      }
+    }
+  }
+  let _depth_guard = if print_depth > 0 {
+    let n = (print_depth as usize).min (PRINT_CIRCLE);
+    Some (NestedPrintDepthGuard {
+      saved_depth: print_depth,
+      saved_being: being_printed[..n].to_vec (),
+    })
+  } else {
+    None
+  };
   print_depth = 0;
   print_object (obj, printcharfun, escapeflag);
 }
@@ -1621,6 +1646,11 @@ unsafe fn print_preprocess (mut obj: Lisp_Object)
      Lisp value.  Make sure that our filter stops us from traversing it.  */
   eassert! (! print_circle_candidate_p (HASH_UNUSED_ENTRY_KEY ()));
   let base_sp: ptrdiff_t = ppstack.sp;
+  struct PpStackGuard { base_sp: ptrdiff_t }
+  impl Drop for PpStackGuard {
+    fn drop (&mut self) { unsafe { ppstack.sp = self.base_sp; } }
+  }
+  let _pp_guard = PpStackGuard { base_sp };
 
   loop
     {
@@ -1707,7 +1737,7 @@ DEFUN! ("print--preprocess", Fprint_preprocess, Sprint_preprocess, 1, 1, 0,
   return Qnil ();
 });
 
-unsafe extern "C" fn print_preprocess_string (interval: INTERVAL, arg: *mut c_void)
+unsafe extern "C-unwind" fn print_preprocess_string (interval: INTERVAL, arg: *mut c_void)
 {
   let _ = arg;
   let interval: *mut interval = interval as *mut interval;   /* P-72 rule 4 */
@@ -1721,7 +1751,7 @@ pub const PRINT_STRING_UNSAFE_CHARSET_FOUND: c_int = 2;
 /* Bitwise or of the above macros.  */
 static mut print_check_string_result: c_int = 0;
 
-unsafe extern "C" fn print_check_string_charset_prop (interval: INTERVAL, pstring: *mut c_void)
+unsafe extern "C-unwind" fn print_check_string_charset_prop (interval: INTERVAL, pstring: *mut c_void)
 {
   let interval: *mut interval = interval as *mut interval;   /* P-72 rule 4 */
   let mut val: Lisp_Object;
@@ -2532,6 +2562,16 @@ unsafe fn print_object (mut obj: Lisp_Object, printcharfun: Lisp_Object, escapef
 {
   let base_depth: ptrdiff_t = print_depth;
   let base_sp: ptrdiff_t = prstack.sp;
+  struct PrintStackGuard { base_sp: ptrdiff_t, base_depth: ptrdiff_t }
+  impl Drop for PrintStackGuard {
+    fn drop (&mut self) {
+      unsafe {
+        prstack.sp = self.base_sp;
+        print_depth = self.base_depth;
+      }
+    }
+  }
+  let _pr_guard = PrintStackGuard { base_sp, base_depth };
   /* C 2275-2281: `char buf[max (sizeof "from..to..in " + 2 * INT_STRLEN_BOUND (EMACS_INT),
      max (sizeof " . #" + INT_STRLEN_BOUND (intmax_t), max (sizeof " with data 0x"
      + (UINTMAX_WIDTH + 4 - 1) / 4, 40)))]`.  An array length must be const-evaluable and
@@ -3004,8 +3044,11 @@ unsafe fn print_object (mut obj: Lisp_Object, printcharfun: Lisp_Object, escapef
  'next_obj: loop {
   if prstack.sp > base_sp
     {
-      /* Handle a continuation on the print stack.  */
-      let e: *mut print_stack_entry = prstack.stack.offset (prstack.sp - 1);
+      /* Handle a continuation on the print stack. Re-derive `e` from `prstack.stack`
+         after any call (`printchar`, `print_c_string`, `strout`, `Fgethash`) that may
+         re-enter `print_object` and reallocate `prstack.stack`.  */
+      let entry_idx: isize = prstack.sp - 1;
+      let mut e: *mut print_stack_entry = prstack.stack.offset (entry_idx);
       match (*e).r#type
 	{
 	print_entry_type::PE_list => {
@@ -3029,6 +3072,7 @@ unsafe fn print_object (mut obj: Lisp_Object, printcharfun: Lisp_Object, escapef
 		    if ! (NILP (num) || EQ (num, Qt ()))
 		      {
 			print_c_string (c" . ".as_ptr (), printcharfun);
+			e = prstack.stack.offset (entry_idx);
 			obj = next;
 			(*e).r#type = print_entry_type::PE_rbrac;
 			continue 'print_obj;
@@ -3038,6 +3082,7 @@ unsafe fn print_object (mut obj: Lisp_Object, printcharfun: Lisp_Object, escapef
 		/* list continues: print " " ELEM ... */
 
 		printchar (b' ' as c_uint, printcharfun);
+		e = prstack.stack.offset (entry_idx);
 
 		(*e).u.list.maxlen -= 1;
 		if (*e).u.list.maxlen <= 0
@@ -3075,6 +3120,7 @@ unsafe fn print_object (mut obj: Lisp_Object, printcharfun: Lisp_Object, escapef
 	      {
 		/* non-nil ending: print " . " ELEM ")" */
 		print_c_string (c" . ".as_ptr (), printcharfun);
+		e = prstack.stack.offset (entry_idx);
 		obj = next;
 		(*e).r#type = print_entry_type::PE_rbrac;
 	      }
@@ -3090,19 +3136,23 @@ unsafe fn print_object (mut obj: Lisp_Object, printcharfun: Lisp_Object, escapef
 	print_entry_type::PE_vector => {
 	  if (*e).u.vector.idx >= (*e).u.vector.size
 	    {
+	      let end_cstr: *const c_char = (*e).u.vector.end;
 	      if (*e).u.vector.truncated
 		{
 		  if (*e).u.vector.idx > 0
 		    { printchar (b' ' as c_uint, printcharfun); }
 		  print_c_string (c"...".as_ptr (), printcharfun);
 		}
-	      print_c_string ((*e).u.vector.end, printcharfun);
+	      print_c_string (end_cstr, printcharfun);
 	      prstack.sp -= 1;
 	      print_depth -= 1;
 	      continue 'next_obj;
 	    }
 	  if (*e).u.vector.idx > 0
-	    { printchar (b' ' as c_uint, printcharfun); }
+	    {
+	      printchar (b' ' as c_uint, printcharfun);
+	      e = prstack.stack.offset (entry_idx);
+	    }
 	  obj = AREF ((*e).u.vector.obj, (*e).u.vector.idx);
 	  (*e).u.vector.idx += 1;
 	}
@@ -3123,7 +3173,10 @@ unsafe fn print_object (mut obj: Lisp_Object, printcharfun: Lisp_Object, escapef
 	    }
 
 	  if (*e).u.hash.printed != 0
-	    { printchar (b' ' as c_uint, printcharfun); }
+	    {
+	      printchar (b' ' as c_uint, printcharfun);
+	      e = prstack.stack.offset (entry_idx);
+	    }
 
 	  let h: *mut Lisp_Hash_Table = XHASH_TABLE ((*e).u.hash.obj);
 	  if ((*e).u.hash.printed & 1) == 0
@@ -3163,7 +3216,7 @@ unsafe fn print_object (mut obj: Lisp_Object, printcharfun: Lisp_Object, escapef
 /* Print a description of INTERVAL using PRINTCHARFUN.
    This is part of printing a string that has text properties.  */
 
-unsafe extern "C" fn print_interval (interval: INTERVAL, pprintcharfun: *mut c_void)
+unsafe extern "C-unwind" fn print_interval (interval: INTERVAL, pprintcharfun: *mut c_void)
 {
   let interval: *mut interval = interval as *mut interval;   /* P-72 rule 4 */
   if NILP ((*interval).plist)
@@ -3182,7 +3235,7 @@ unsafe extern "C" fn print_interval (interval: INTERVAL, pprintcharfun: *mut c_v
    beginning.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn init_print_once ()
+pub unsafe extern "C-unwind" fn init_print_once ()
 {
   /* The subroutine object for external-debugging-output is kept here
      for the convenience of the debugger.  */
@@ -3192,7 +3245,7 @@ pub unsafe extern "C" fn init_print_once ()
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_print ()
+pub unsafe extern "C-unwind" fn syms_of_print ()
 {
   DEFSYM! (Qtemp_buffer_setup_hook, "temp-buffer-setup-hook");
 

@@ -49,6 +49,7 @@ use super::*;
         comp.ctxt = std::ptr::null_mut();
         logfile = std::ptr::null_mut();
         comp.emitter_dispatcher = Qnil();
+        super::comp_u3 = None;
         NEXT_CONTEXT_EPOCH = 0;
         CURRENT_CONTEXT_EPOCH = 0;
         CONTEXT_SCOPE_TOKEN = 0;
@@ -63,6 +64,7 @@ use super::*;
         // Clear all published ownership BEFORE backend/stdio cleanup.
         comp.ctxt = std::ptr::null_mut();
         logfile = std::ptr::null_mut();
+        super::comp_u3 = None;
         CURRENT_CONTEXT_EPOCH = 0;
         CONTEXT_SCOPE_TOKEN = 0;
         if !context.is_null() {
@@ -78,7 +80,7 @@ use super::*;
     }
     pub(super) unsafe fn release_public() { release_matching(CURRENT_CONTEXT_EPOCH); }
 
-    unsafe extern "C" fn cleanup_init(pointer: *mut c_void) {
+    unsafe extern "C-unwind" fn cleanup_init(pointer: *mut c_void) {
         let guard = &mut *(pointer as *mut CompInitGuard);
         if !guard.armed { return; }
         if !guard.owned_ctxt.is_null() && guard.owned_ctxt == comp.ctxt {
@@ -118,12 +120,12 @@ use super::*;
         INIT_IN_PROGRESS = false;
         guard.armed = false;
     }
-    unsafe extern "C" fn mark_scope(pointer: *mut c_void) {
+    unsafe extern "C-unwind" fn mark_scope(pointer: *mut c_void) {
         let guard = &*(pointer as *const CompScopeGuard);
         mark_object(guard.callback);
         mark_object(guard.result);
     }
-    unsafe extern "C" fn cleanup_scope(pointer: *mut c_void) {
+    unsafe extern "C-unwind" fn cleanup_scope(pointer: *mut c_void) {
         let guard = &mut *(pointer as *mut CompScopeGuard);
         if !guard.armed { return; }
         if CONTEXT_SCOPE_TOKEN == guard.token { release_matching(CURRENT_CONTEXT_EPOCH); }

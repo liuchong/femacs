@@ -89,17 +89,17 @@ const _: () = ();
    its own `emacs_tty` and three use-site declarations; all three are gone - the mirror is the
    single definition point (PORTING.md 0.1-3, P-21/P-72 (3)).  */
 
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   /// C: lisp.h 4799: `extern bool FUNCTIONP (Lisp_Object);`
   fn FUNCTIONP (a: Lisp_Object) -> bool;
   /// C: lisp.h 4266: `extern Lisp_Object merge_c (Lisp_Object, Lisp_Object, bool (*)
   /// (Lisp_Object, Lisp_Object));`
   fn merge_c (org_l1: Lisp_Object, org_l2: Lisp_Object,
-              pred: Option<unsafe extern "C" fn (Lisp_Object, Lisp_Object) -> bool>)
+              pred: Option<unsafe extern "C-unwind" fn (Lisp_Object, Lisp_Object) -> bool>)
     -> Lisp_Object;
 
   /// C: lisp.h 4825: `extern void record_unwind_protect_void (void (*) (void));`
-  fn record_unwind_protect_void (function: Option<unsafe extern "C" fn ()>);
+  fn record_unwind_protect_void (function: Option<unsafe extern "C-unwind" fn ()>);
 
 
 
@@ -226,7 +226,7 @@ unsafe fn choose_minibuf_frame ()
 /* If ENT1 has a higher minibuffer index than ENT2, return true.  More
 precisely, compare the buffer components of each window->prev_buffers
 entry.  */
-unsafe extern "C" fn minibuffer_ent_greater (ent1: Lisp_Object, ent2: Lisp_Object) -> bool
+unsafe extern "C-unwind" fn minibuffer_ent_greater (ent1: Lisp_Object, ent2: Lisp_Object) -> bool
 {
   return this_minibuffer_depth (Fcar (ent1))
     > this_minibuffer_depth (Fcar (ent2)) ;
@@ -283,7 +283,7 @@ unsafe fn zip_minibuffer_stacks (dest_window: Lisp_Object, source_window: Lisp_O
    old frame, FRAME is the to-be-selected frame, and FOR_DELETION is true
    if OF is about to be deleted.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn move_minibuffers_onto_frame (of: *mut frame, frame: Lisp_Object,
+pub unsafe extern "C-unwind" fn move_minibuffers_onto_frame (of: *mut frame, frame: Lisp_Object,
                                                       for_deletion: bool)
 {
   let f: *mut frame = XFRAME (frame);
@@ -546,7 +546,7 @@ DEFUN! ("minibuffer-innermost-command-loop-p", Fminibuffer_innermost_command_loo
    BUFFER isn't such a thing.  If BUFFER is nil, this means use the current
    buffer.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn this_minibuffer_depth (buffer: Lisp_Object) -> EMACS_INT
+pub unsafe extern "C-unwind" fn this_minibuffer_depth (buffer: Lisp_Object) -> EMACS_INT
 {
   let mut buffer: Lisp_Object = buffer;
   let mut i: EMACS_INT;
@@ -660,14 +660,14 @@ unsafe fn flush_frame (f: *mut frame)
 pub struct redisplay_interface
 {
   _prefix: [*mut c_void; 9],
-  pub flush_display: Option<unsafe extern "C" fn (f: *mut frame)>,
+  pub flush_display: Option<unsafe extern "C-unwind" fn (f: *mut frame)>,
 }
 
 const _: () = {
   assert! (std::mem::offset_of! (redisplay_interface, flush_display) == 72);
 };
 
-unsafe extern "C" {
+unsafe extern "C-unwind" {
   /// C: dispextern.h 3897: `void update_frame (struct frame *, bool);`
   fn update_frame (f: *mut frame, force_p: bool);
   /// C: dispextern.h 4012: `bool is_tty_frame (struct frame *f);`
@@ -1137,7 +1137,7 @@ unsafe fn read_minibuf (map: Lisp_Object, initial: Lisp_Object, prompt: Lisp_Obj
 
 /* Return true if BUF is a particular existing minibuffer.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn is_minibuffer (depth: EMACS_INT, buf: Lisp_Object) -> bool
+pub unsafe extern "C-unwind" fn is_minibuffer (depth: EMACS_INT, buf: Lisp_Object) -> bool
 {
   let tail: Lisp_Object = Fnthcdr (make_fixnum (depth), Vminibuffer_list);
   return
@@ -1182,7 +1182,7 @@ unsafe fn set_minibuffer_mode (buf: Lisp_Object, depth: EMACS_INT)
    used for nonrecursive minibuffer invocations.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn get_minibuffer (depth: EMACS_INT) -> Lisp_Object
+pub unsafe extern "C-unwind" fn get_minibuffer (depth: EMACS_INT) -> Lisp_Object
 {
   let mut tail: Lisp_Object = Fnthcdr (make_fixnum (depth), Vminibuffer_list);
   let mut cll_tail: Lisp_Object = Fnthcdr (make_fixnum (depth),
@@ -1239,7 +1239,7 @@ unsafe fn minibuf_c_loop_level (depth: EMACS_INT) -> EMACS_INT
   return 0;
 }
 
-unsafe extern "C" fn run_exit_minibuf_hook (minibuf: Lisp_Object)
+unsafe extern "C-unwind" fn run_exit_minibuf_hook (minibuf: Lisp_Object)
 {
   let count: specpdl_ref = SPECPDL_INDEX ();
   record_unwind_current_buffer ();
@@ -1260,7 +1260,7 @@ static mut exp_MB_frame: Lisp_Object = lisp_h_Qnil ();
 /* This function is called on exiting minibuffer, whether normally or
    not, and it restores the current window, buffer, etc.  */
 
-unsafe extern "C" fn read_minibuf_unwind ()
+unsafe extern "C-unwind" fn read_minibuf_unwind ()
 {
   let mut old_deactivate_mark: Lisp_Object;
   let mut calling_frame: Lisp_Object;
@@ -1415,7 +1415,7 @@ unsafe extern "C" fn read_minibuf_unwind ()
 /* Replace the expired minibuffer in frame exp_MB_frame with the next less
    nested minibuffer in that frame, if any.  Otherwise, replace it
    with the null minibuffer.  MINIBUF_WINDOW is not changed.  */
-unsafe extern "C" fn minibuffer_unwind ()
+unsafe extern "C-unwind" fn minibuffer_unwind ()
 {
   let mut f: *mut frame;
 
@@ -1452,7 +1452,7 @@ unsafe extern "C" fn minibuffer_unwind ()
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn barf_if_interaction_inhibited ()
+pub unsafe extern "C-unwind" fn barf_if_interaction_inhibited ()
 {
   if inhibit_interaction
     { xsignal0 (Qinhibited_interaction ()); }
@@ -2209,14 +2209,14 @@ DEFUN! ("minibuffer-prompt", Fminibuffer_prompt, Sminibuffer_prompt, 0, 0, 0,
 });
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn set_initial_minibuffer_mode ()
+pub unsafe extern "C-unwind" fn set_initial_minibuffer_mode ()
 {
   let minibuf: Lisp_Object = get_minibuffer (0);
   set_minibuffer_mode (minibuf, 0);
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn init_minibuf_once ()
+pub unsafe extern "C-unwind" fn init_minibuf_once ()
 {
   staticpro (&raw const Vminibuffer_list);
   staticpro (&raw const Vcommand_loop_level_list);
@@ -2225,7 +2225,7 @@ pub unsafe extern "C" fn init_minibuf_once ()
   get_minibuffer (0);
 }
 
-unsafe extern "C" fn init_minibuf_once_for_pdumper ()
+unsafe extern "C-unwind" fn init_minibuf_once_for_pdumper ()
 {
   PDUMPER_IGNORE! (minibuf_level);
   PDUMPER_IGNORE! (minibuf_prompt_width);
@@ -2539,7 +2539,7 @@ pub static mut inhibit_interaction: bool = false;                            /* 
 pub static mut read_minibuffer_restore_windows: bool = false;                /* DEFVAR_BOOL */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_minibuf ()
+pub unsafe extern "C-unwind" fn syms_of_minibuf ()
 {
   staticpro (&raw const minibuf_prompt);
   staticpro (&raw const minibuf_save_list);

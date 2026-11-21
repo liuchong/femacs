@@ -334,7 +334,7 @@ unsafe fn final_process_md5 (ctxt: *mut md5_ctx)
 /// (PORTING.md 1.5/0.1-13; `docs/ports/decompress.md` names them).
 #[cfg (all (feature = "have_zlib", feature = "have_native_comp"))]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn md5_gz_stream (source: *mut FILE, resblock: *mut c_void) -> c_int
+pub unsafe extern "C-unwind" fn md5_gz_stream (source: *mut FILE, resblock: *mut c_void) -> c_int
 {
   let mut stream: z_stream = std::mem::zeroed ();
   let mut r#in: [c_uchar; MD5_BLOCKSIZE] = std::mem::zeroed ();
@@ -433,7 +433,7 @@ pub struct decompress_unwind_data
 /// C 177-200: `unwind_decompress` - C's `static void (void *)`, which is the shape
 /// `record_unwind_protect_ptr` takes (PORTING.md 0.3).
 #[cfg (feature = "have_zlib")]
-unsafe extern "C" fn unwind_decompress (ddata: *mut c_void)
+unsafe extern "C-unwind" fn unwind_decompress (ddata: *mut c_void)
 {
   let data: *mut decompress_unwind_data = ddata as *mut decompress_unwind_data;
   #[cfg (not (feature = "windowsnt"))]
@@ -607,7 +607,7 @@ DEFUN! ("zlib-decompress-region", Fzlib_decompress_region, Szlib_decompress_regi
    is where these same two functions are declared for other units.  `docs/ports/decompress.md`
    records the gap for the integrator.  */
 #[cfg (feature = "have_zlib")]
-unsafe extern "C" {
+unsafe extern "C-unwind" {
 
   /// C: lisp.h 5273: `extern void del_range_2 (ptrdiff_t, ptrdiff_t, ptrdiff_t, ptrdiff_t, bool);`
   pub fn del_range_2 (from: ptrdiff_t, from_byte: ptrdiff_t, to: ptrdiff_t, to_byte: ptrdiff_t,
@@ -620,7 +620,7 @@ unsafe extern "C" {
 /// C 342-347: the file's one remaining non-`static` definition.
 #[cfg (feature = "have_zlib")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_decompress ()
+pub unsafe extern "C-unwind" fn syms_of_decompress ()
 {
   defsubr (&raw mut Szlib_decompress_region);
   defsubr (&raw mut Szlib_available_p);
