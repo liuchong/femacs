@@ -104,19 +104,19 @@ build/terminal/port/src/emacs -Q -nw</code></pre>
     </section>
     <section class="section reading" id="command-line" aria-labelledby="command-line-title">
       <h2 id="command-line-title">Use the command-line launchers</h2>
-      <p>Install the launchers from the repository root after building or installing the Cocoa app. They use the app bundle in an Applications folder or the bundle selected by <code>FEMACS_APP</code>.</p>
+      <p>After building or installing the Cocoa app, install the launchers from <a href="https://crates.io/crates/femacs">crates.io</a>. They use the app bundle in an Applications folder or the bundle selected by <code>FEMACS_APP</code>.</p>
       <p><code>femacs</code> passes all arguments directly to Fe. <code>fe</code> starts with a clean terminal preset. Use <code>-1</code> for one file per session or <code>-R</code> to discard earlier arguments and the preset. <code>fe --help</code> lists these options before the macOS editor help, which shows the installed executable path.</p>
       <article class="command-panel">
         <div class="command-heading">
           <h3>Install and try</h3>
           <button type="button" class="copy-button" data-copy-target="#code-launchers" data-eli-control disabled>Copy</button>
         </div>
-        <pre tabindex="0"><code id="code-launchers">cargo install --locked --path cli
+        <pre tabindex="0"><code id="code-launchers">cargo install femacs --locked
 femacs notes.org
 fe -1 a.txt b.txt
 fe -R -nw notes.org</code></pre>
       </article>
-      <p><a href="https://github.com/liuchong/femacs/blob/master/cli/README.md">Command-line launcher guide</a></p>
+      <p>From a source checkout, use <code>cargo install --locked --path cli</code> instead. See the <a href="https://github.com/liuchong/femacs/blob/master/cli/README.md">command-line launcher guide</a>.</p>
     </section>
     <section class="section reading" id="tryout-heading" aria-labelledby="tryout-title">
       <h2 id="tryout-title">Bundle and test</h2>
@@ -127,6 +127,7 @@ fe -R -nw notes.org</code></pre>
     <div class="shell footer-inner">
       <a class="footer-brand" href="../index.html">FEmacs</a>
       <a href="https://github.com/liuchong/femacs/blob/master/LICENSE">GPL-3.0-or-later</a>
+      <a href="https://crates.io/crates/femacs">crates.io</a>
       <a href="https://github.com/liuchong/femacs/blob/master/docs/i18n/zh-CN/README.md" lang="zh-CN">中文 README</a>
       <span class="site-runtime" data-eli-status data-eli-ready="false" role="status" data-eli-status-text>Eliscript 0.1.3</span>
     </div>
