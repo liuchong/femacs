@@ -1,0 +1,21 @@
+[package]
+name = "femacs"
+version = "0.0.1"
+edition.workspace = true
+rust-version = "1.85"
+license.workspace = true
+description = "Command-line launcher for the Fe editor on macOS"
+repository = "https://github.com/liuchong/femacs"
+homepage = "https://femacs.com/"
+readme = "README.md"
+keywords = ["editor", "launcher", "macos"]
+categories = ["command-line-utilities"]
+include = ["/LICENSE", "/README.md", "/src/**"]
+
+[[bin]]
+name = "femacs"
+path = "src/bin/femacs.rs"
+
+[[bin]]
+name = "fe"
+path = "src/bin/fe.rs"

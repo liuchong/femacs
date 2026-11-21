@@ -33,6 +33,15 @@ dist/macos/Femacs.app/Contents/MacOS/Femacs -Q
 
 源码已经提升至根目录。构建从已提交的原始数据和生成器自举，不依赖被忽略的参照目录、旧缓存或已安装的编辑器。详情见[独立构建与验收](../../repository-bootstrap.md)。
 
+### macOS 命令行入口
+
+构建或安装 Cocoa 应用后，在仓库根目录运行 `cargo install --locked --path cli`，同一个包会安装两个命令。
+
+- `femacs notes.org` 将参数原样交给 Fe。用 `femacs -nw notes.org` 进入原生终端模式。
+- `fe notes.org` 使用快捷终端预设。`fe -1 a.txt b.txt` 逐个打开文件，`fe -R -nw notes.org` 清掉预设后按原生参数启动。
+
+两条命令都需要 Cocoa 应用。应用若在常用的 Applications 目录之外，用 `FEMACS_APP` 指定应用包路径。详见[命令行入口说明](../../../cli/README.md)。
+
 ## 文档
 
 - [docs/i18n](../../i18n/README.md)（语言索引）：其他语言的译文统一放在 `docs/i18n/<locale>/`

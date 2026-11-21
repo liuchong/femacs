@@ -9,6 +9,7 @@ import argparse
 import hashlib
 import json
 import subprocess
+import sys
 import time
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -66,6 +67,9 @@ def main():
             text = (ROOT/source).read_text()
             assert 'emacs/configure' not in text, source
     case('owned build descriptions', descriptions)
+
+    case('launcher and editor option names', lambda: subprocess.run(
+        [sys.executable, str(ROOT/'tools/check-cli-options.py')], cwd=ROOT, check=True))
 
     if args.before:
         def preservation():

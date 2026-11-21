@@ -102,6 +102,22 @@ build/terminal/port/src/emacs -Q -nw</code></pre>
 
       </div>
     </section>
+    <section class="section reading" id="command-line" aria-labelledby="command-line-title">
+      <h2 id="command-line-title">Use the command-line launchers</h2>
+      <p>Install the launchers from the repository root after building or installing the Cocoa app. They use the app bundle in an Applications folder or the bundle selected by <code>FEMACS_APP</code>.</p>
+      <p><code>femacs</code> passes all arguments directly to Fe. <code>fe</code> starts with a clean terminal preset. Use <code>-1</code> for one file per session or <code>-R</code> to discard earlier arguments and the preset. <code>fe --help</code> lists these options separately.</p>
+      <article class="command-panel">
+        <div class="command-heading">
+          <h3>Install and try</h3>
+          <button type="button" class="copy-button" data-copy-target="#code-launchers" data-eli-control disabled>Copy</button>
+        </div>
+        <pre tabindex="0"><code id="code-launchers">cargo install --locked --path cli
+femacs notes.org
+fe -1 a.txt b.txt
+fe -R -nw notes.org</code></pre>
+      </article>
+      <p><a href="https://github.com/liuchong/femacs/blob/master/cli/README.md">Command-line launcher guide</a></p>
+    </section>
     <section class="section reading" id="tryout-heading" aria-labelledby="tryout-title">
       <h2 id="tryout-title">Bundle and test</h2>
       <p>See the <a href="https://github.com/liuchong/femacs/blob/master/packaging/README.md">packaging guide</a> for a movable app and local disk image. Local trial packages are ad hoc signed. See the <a href="https://github.com/liuchong/femacs/blob/master/docs/testing-strategy.md">testing guide</a> for when to run Cocoa, input method and compatibility checks.</p>

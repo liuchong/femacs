@@ -55,6 +55,17 @@ python3 tools/bootstrap-resources.py --program build/terminal/port/src/emacs --f
 [bootstrap design and acceptance](docs/repository-bootstrap.md) for the generation stages,
 requirements, clean-export evidence and optional reference-audit boundary.
 
+### macOS command-line launchers
+
+After building or installing the Cocoa app, run `cargo install --locked --path cli`
+from the repository root. The `femacs` package installs two commands:
+
+- `femacs notes.org` forwards arguments directly to the editor. Use `femacs -nw notes.org` for native terminal startup.
+- `fe notes.org` uses the clean terminal preset. Use `fe -1 a.txt b.txt` to open files one at a time or `fe -R -nw notes.org` to discard the preset and use native terminal startup.
+
+Both launchers require the Cocoa app. Set `FEMACS_APP` to its bundle path if it
+is outside the standard Applications folders. See the [launcher guide](cli/README.md).
+
 ## Local acceptance
 
 Current construction and ordered modernization scope: [docs/modernization.md](docs/modernization.md).

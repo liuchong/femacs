@@ -3,7 +3,7 @@
 # once per .c file (see PORTING.md 0.1).
 [workspace]
 resolver = "3"
-members = ["xtask", "packaging"]
+members = ["xtask", "packaging", "cli"]
 
 [workspace.package]
 edition = "2024"
