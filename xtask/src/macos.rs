@@ -316,6 +316,7 @@ fn finish_configured(repo: &Path, root: &Path, destination: &Path) -> Result<(),
     // comes from the existing fixed host build, never its C object code in our link.
     invoke("link complete Cocoa program", &["link-owned"])?;
     invoke("link Cocoa companion client", &["link-program", "lib-src/emacsclient.c"])?;
+    invoke("link Cocoa companion hexl", &["link-program", "lib-src/hexl.c"])?;
     standalone::resources(repo, "doc", None)?;
     invoke("bootstrap Cocoa Lisp image", &["dump-bootstrap"])?;
     standalone::resources(repo, "all", Some(&root.join("port/src/emacs")))?;
@@ -362,7 +363,9 @@ fn package_configured(repo: &Path, root: &Path, destination: &Path) -> Result<()
             for required in [
                 "Contents/MacOS/Femacs",
                 "Contents/MacOS/bin/emacsclient",
+                "Contents/MacOS/bin/hexl",
                 "Contents/Resources/libexec/emacsclient",
+                "Contents/Resources/libexec/hexl",
                 "Contents/Resources/libexec/Femacs.pdmp",
                 "Contents/Resources/etc/DOC",
                 "Contents/Resources/lisp/loaddefs.el",
@@ -421,6 +424,17 @@ fn populate_app(repo: &Path, root: &Path, info: &Path, app: &Path) -> Result<(),
             .args(["--force", "--sign", "-"])
             .arg(&client),
         "sign Cocoa companion client",
+    )?;
+    let hexl_bin = macos.join("bin/hexl");
+    crate::owned_copy::copy_file(&root.join("port/lib-src/hexl"), &hexl_bin)?;
+    #[cfg(unix)]
+    std::os::unix::fs::symlink("../../MacOS/bin/hexl", libexec.join("hexl"))
+        .map_err(|e| e.to_string())?;
+    run(
+        Command::new("codesign")
+            .args(["--force", "--sign", "-"])
+            .arg(&hexl_bin),
+        "sign Cocoa companion hexl",
     )?;
     for tree in ["lisp", "etc"] {
         copy_tree(&repo.join(tree), &resources.join(tree))?;

@@ -1,3 +1,12 @@
+## 2026-11-22: U2 pure algorithms & companion tools Safe Rust migration; AU2 acceptance; CLN278
+
+Completed Phase 0 Stage `U2` (`工具与叶子`, `P-481`) and formal acceptance `AU2` (`纯代码可验证`):
+- Migrated pure cryptographic digests (`md5`, `sha1`, `sha256`, `sha512`, `sha3`), `filevercmp`, `filemode`, Two-Way `memmem`, `strcase`, and saturating `timespec` arithmetic into `crates/femacs-pure` (`#![forbid(unsafe_code)]`, `overflow-checks = true`). Converted corresponding `lib/` units to thin `#![deny(unsafe_op_in_unsafe_fn)]` C-ABI slice wrappers with `100%` `// SAFETY:` documentation, and pure `lib/include` + `lib` leaf modules to `#![forbid(unsafe_code)]` / zero-`unsafe` safe bridges.
+- Rewrote `lib-src/emacsclient.rs` to `#![forbid(unsafe_code)]` Safe Rust over `crates/femacs-sys/src/client_os.rs`; wired `hexl` into both `build-terminal` (`port/lib-src/hexl`) and `build-macos` (`Contents/MacOS/bin/hexl` + `libexec/hexl`); retired 8 verified zero-consumer `lib-src`/`lib` files (`19,048` lines; recovery commit `4ad0d5f3`).
+- `AU2` (`tools/test-u2-pure-and-tools.py`) passed `7/7` cases in `24.856s` (`codesign --verify --deep --strict` `exit 0`): active-product `#![forbid(unsafe_code)]` files increased `4 -> 23`, file-level `allow(unsafe_op_in_unsafe_fn)`/`allow(static_mut_refs)` decreased `145 -> 120` (`-25` each), `unsafe fn` definitions decreased `5,075 -> 4,940` (`-135`), and `// SAFETY:`-documented blocks increased `0 -> 92`.
+- Protective unit tests passed: `check-ledger-ticks.py --selftest` (`6/6`), `femacs-pure` (`7/7`), `femacs-tools --bin emacsclient` (`3/3`).
+- `CLN278` reclaimed `2,908` files, `743` directories, and `8` symlinks (`599,876,910` logical bytes); retained `build/terminal` (`44M`), `dist/macos/Femacs.app` (`234M`), and `build/cargo` (`961M`, retire at `AU5`). Next: `U3` (`显式退出`) and `AU3`. [CLN278](../maintenance/cleanup/reports/2026-11-22-278-u2-pure-leaves-and-retired-lib-src.md).
+
 ## 2026-11-22: U1 Cargo workspace graph & AU1 clean-export rebuild acceptance; CLN277
 
 Completed Phase 0 Stage `U1` (`P-480`) and formal acceptance `AU1` for the `unsafe`-reduction track:

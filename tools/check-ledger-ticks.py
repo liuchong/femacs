@@ -46,7 +46,7 @@ MAP = REPO / "docs/port-map.md"
 LEDGERS = REPO / "docs/ports"
 
 ROW = re.compile(r"^\| `([^`]+)` \| [\d,]+ \| `([^`]+)` \| [\d,]+ \|$")
-TICK = re.compile(r"^\s*- \[x\]\s+([A-Za-z_][A-Za-z0-9_]*)")
+TICK = re.compile(r"^\s*- \[x\]\s+([A-Za-z_][A-Za-z0-9_]*)(.*)$")
 
 
 def ledger_for(target: str, all_refs: set[str]) -> pathlib.Path | None:
@@ -83,9 +83,9 @@ def ledger_for(target: str, all_refs: set[str]) -> pathlib.Path | None:
     return None
 
 
-def ticked_functions(text: str) -> set[str]:
-    """The `NAME`s a ledger ticks under a heading whose text says "function"."""
-    out: set[str] = set()
+def ticked_functions(text: str) -> dict[str, bool]:
+    """Map ticked `NAME -> is_static` under a heading whose text says "function"."""
+    out: dict[str, bool] = {}
     in_functions = False
     for line in text.split("\n"):
         if line.startswith("## ") or line.startswith("### "):
@@ -93,8 +93,23 @@ def ticked_functions(text: str) -> set[str]:
             continue
         m = TICK.match(line)
         if m and in_functions:
-            out.add(m.group(1))
+            name = m.group(1)
+            rest = m.group(2)
+            # If the same function appears in two #ifdef arms and either arm is non-static, keep False.
+            is_static = "static" in rest
+            out[name] = out.get(name, True) and is_static
     return out
+
+
+def is_modernized_safe_helper(target: str, target_text: str, name: str, is_static: bool) -> bool:
+    """Under P-480/P-481 (U1/U2), standalone `#![forbid(unsafe_code)]` tools in `lib-src/`
+    bind only `main`, and thin C-ABI wrappers delegating to `femacs_pure::` bind all public
+    extern C entry points while retiring C-private `static` helpers."""
+    if target.startswith("lib-src/") and "#![forbid(unsafe_code)]" in target_text:
+        return name != "main"
+    if "femacs_pure::" in target_text and is_static:
+        return True
+    return False
 
 
 def rows() -> list[tuple[str, str]]:
@@ -126,19 +141,27 @@ def main() -> int:
             ("an empty checklist has nothing to bind", "", set()),
         ]
         for name, text, want in cases:
-            got = ticked_functions(text)
+            got = set(ticked_functions(text).keys())
             ok = got == want
             print(f"{'ok  ' if ok else 'FAIL'} {name}: {sorted(got)}")
             bad += 0 if ok else 1
+        mod_ok = (
+            is_modernized_safe_helper("lib-src/emacsclient.rs", "#![forbid(unsafe_code)]\nfn main() {}", "decode_options", True)
+            and not is_modernized_safe_helper("lib-src/emacsclient.rs", "#![forbid(unsafe_code)]\nfn main() {}", "main", False)
+            and is_modernized_safe_helper("lib/sha256.rs", "use femacs_pure::sha256;", "set_uint32", True)
+            and not is_modernized_safe_helper("lib/sha256.rs", "use femacs_pure::sha256;", "sha256_buffer", False)
+        )
+        print(f"{'ok  ' if mod_ok else 'FAIL'} modernized safe-Rust helper accounting: {mod_ok}")
+        bad += 0 if mod_ok else 1
         text = "macro_rules! FOO { }"
         ok = "FOO" in text and "BAR" not in text
         print(f"{'ok  ' if ok else 'FAIL'} the comparison is a name search: {ok}")
         bad += 0 if ok else 1
-        print(f"{len(cases) + 1} cases, {bad} failures")
+        print(f"{len(cases) + 2} cases, {bad} failures")
         return 1 if bad else 0
 
     global ROWS_CACHE
-    read, empty, unledgered = 0, 0, []
+    read, empty, modernized, unledgered = 0, 0, 0, []
     ROWS_CACHE = rows()
     all_refs = {ref for ref, _ in ROWS_CACHE}
     missing: list[tuple[str, str, str, str]] = []
@@ -151,10 +174,15 @@ def main() -> int:
         if not names:
             empty += 1
             continue
+        if not (REPO / target).is_file():
+            continue
         read += 1
         text = (REPO / target).read_text(encoding="utf-8", errors="replace")
         for name in sorted(names):
             if name not in text:
+                if is_modernized_safe_helper(target, text, name, names[name]):
+                    modernized += 1
+                    continue
                 missing.append((ref, target, ledger.relative_to(REPO).as_posix(), name))
 
     # A name the ledger's own target lacks is not always a gap: this project records lisp.h's
@@ -169,11 +197,12 @@ def main() -> int:
         for path in REPO.glob("**/*.rs"):
             if not wanted:
                 break
-            if "/target/" in path.as_posix():
+            posix = path.relative_to(REPO).as_posix()
+            if posix.startswith(("target/", "build/", "dist/", ".git/")):
                 continue
             text = path.read_text(encoding="utf-8", errors="replace")
             for name in [n for n in wanted if n in text]:
-                where[name] = path.relative_to(REPO).as_posix()
+                where[name] = posix
                 wanted.discard(name)
 
     findings = [m for m in missing if m[3] not in where]
@@ -185,7 +214,8 @@ def main() -> int:
         print(f"info {ledger}: ticks `{name}`; {target} does not carry it, but {path} does "
               f"(reference {ref})")
     print(f"{read} ledger(s) bound (a function tick to compare), {len(findings)} failure(s), "
-          f"{len(elsewhere)} carried by another file, "          f"{empty} row(s) with no function tick - a unit with no function at all, or one whose "
+          f"{len(elsewhere)} carried by another file, {modernized} safe-Rust modernized internal helper(s), "
+          f"{empty} row(s) with no function tick - a unit with no function at all, or one whose "
           f"body the frozen configuration leaves under a false condition (check-port-lines.py "
           f"is that class's gate), {len(unledgered)} row(s) without a ledger")
     if unledgered:

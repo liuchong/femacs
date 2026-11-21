@@ -1,37 +1,21 @@
 // femacs: port of lib/byteswap.in.h @ fd7afced403 (gnulib).
-//
-// gnulib template; the frozen target's generated header is build/emacs-ref/lib/byteswap.h,
-// and its substitutions are `_GL_BYTESWAP_H` for the guard and nothing else.  C's
-// `_GL_BYTESWAP_INLINE` is defined by the *unit* (lib/byteswap.rs 18), so the header's
-// `#ifndef` fallback is dead text (docs/ports/excluded-macros.txt, kind=syntax) and the
-// three wrappers below are the live `_GL_EXTERN_INLINE` definitions the object carries.
-//
-// `#include <stdbit.h>` is the stdbit mirror (the wrappers are `stdc_memreverse8u*`
-// calls) and `#include <stdint.h>` is the stdint mirror for `uint_leastN_t` and the
-// `#ifdef UINT_LEAST64_MAX` that guards bswap_64 (live on this target).
-//
-// Definitions are header-inline in C, so they are `#[inline(always)]` here (P-12) and
-// emit no symbol; lib/byteswap.rs re-exports them (P-81).
-// [U1-MODULE-MIRROR]
+#![forbid(unsafe_code)]
 use super::*;
-// [U1] gnulib_config.rs imported via super
-// [U1] stdint.in.rs imported via super
-// [U1] stdbit.in.rs imported via super
 
-/* C 22-24's `#if !_GL_CONFIG_H_INCLUDED / #error "Please include config.h first."`.  */
-const _: () = core::assert! (_GL_CONFIG_H_INCLUDED, "Please include config.h first.");
-
-/* C 18-19: `#ifndef _GL_BYTESWAP_H` / `#define _GL_BYTESWAP_H 1`.  */
+const _: () = core::assert!(_GL_CONFIG_H_INCLUDED, "Please include config.h first.");
 pub const _GL_BYTESWAP_H: c_int = 1;
 
-/* C 41-47: `bswap_16`, the 16-bit byte reversal (C's comment).  */
 #[inline(always)]
-pub fn bswap_16 (x: uint_least16_t) -> uint_least16_t { return stdc_memreverse8u16 (x); }
+pub const fn bswap_16(x: uint_least16_t) -> uint_least16_t {
+    femacs_pure::bitops::bswap_16(x)
+}
 
-/* C 49-55.  */
 #[inline(always)]
-pub fn bswap_32 (x: uint_least32_t) -> uint_least32_t { return stdc_memreverse8u32 (x); }
+pub const fn bswap_32(x: uint_least32_t) -> uint_least32_t {
+    femacs_pure::bitops::bswap_32(x)
+}
 
-/* C 57-65, inside `#ifdef UINT_LEAST64_MAX`.  */
 #[inline(always)]
-pub fn bswap_64 (x: uint_least64_t) -> uint_least64_t { return stdc_memreverse8u64 (x); }
+pub const fn bswap_64(x: uint_least64_t) -> uint_least64_t {
+    femacs_pure::bitops::bswap_64(x)
+}

@@ -39,7 +39,6 @@ GENERATED_INCLUDE_BASENAMES = frozenset({
     "buildobj.rs",
     "macuvs.rs",
     "charprop.rs",
-    "str-two-way.rs",
     "ftoastr.rs",
     "strftime.rs",
 })

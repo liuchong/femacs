@@ -139,6 +139,7 @@ pub(super) fn terminal_configured(repo: &Path, root: &Path, publish_info: bool, 
     invoke(&["gen-config"])?;
     invoke(&["link-owned"])?;
     invoke(&["link-program", "lib-src/emacsclient.c"])?;
+    invoke(&["link-program", "lib-src/hexl.c"])?;
     resources(&repo, "doc", None)?;
     invoke(&["dump-bootstrap"])?;
     resources(&repo, "all", Some(&root.join("port/src/emacs")))?;

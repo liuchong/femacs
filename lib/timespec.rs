@@ -1,46 +1,29 @@
 // femacs: port of lib/timespec.c @ fd7afced403.
-// [U1-MODULE-UNIT]
+#![deny(unsafe_op_in_unsafe_fn)]
 use crate::common::*;
-use std::ffi::{c_char, c_double, c_int, c_long, c_short, c_uint, c_ulong,
-                c_void};
 
-// [U1] config.rs provided by common
-// [U1] include/gnulib_config.rs imported via common
-// [U1] include/timespec.rs imported via common
-
-/* lib/timespec.c: the qualifier this translation unit uses (PORTING.md 10.12).  */
 pub const _GL_TIMESPEC_INLINE: () = _GL_EXTERN_INLINE;
 
-/* lib/timespec.c is a gnulib `_GL_*_INLINE` wrapper: its C text carries no code — only the
-   `#define <qualifier> _GL_EXTERN_INLINE` line and the includes, i.e. the C99 inline model's
-   "this translation unit emits the external definition" file.  The body lives in the header
-   (mirrored as `lib/include/timespec.rs`) and C's object exports the symbol below; Rust's
-   mirror keeps the body as an inline function, which emits nothing, so the unit re-exports it
-   under C's own name (PORTING.md P-81).  */
 mod timespec_unit {
-  use super::*;
+    use super::*;
 
-  #[unsafe(export_name = "make_timespec")]
-  pub unsafe extern "C" fn make_timespec (s: time_t, ns: c_long) -> timespec
-  {
-    return super::make_timespec (s, ns);
-  }
+    #[unsafe(export_name = "make_timespec")]
+    pub extern "C" fn make_timespec(s: time_t, ns: c_long) -> timespec {
+        super::make_timespec(s, ns)
+    }
 
-  #[unsafe(export_name = "timespec_cmp")]
-  pub unsafe extern "C" fn timespec_cmp (a: timespec, b: timespec) -> c_int
-  {
-    return super::timespec_cmp (a, b);
-  }
+    #[unsafe(export_name = "timespec_cmp")]
+    pub extern "C" fn timespec_cmp(a: timespec, b: timespec) -> c_int {
+        super::timespec_cmp(a, b)
+    }
 
-  #[unsafe(export_name = "timespec_sign")]
-  pub unsafe extern "C" fn timespec_sign (a: timespec) -> c_int
-  {
-    return super::timespec_sign (a);
-  }
+    #[unsafe(export_name = "timespec_sign")]
+    pub extern "C" fn timespec_sign(a: timespec) -> c_int {
+        super::timespec_sign(a)
+    }
 
-  #[unsafe(export_name = "timespectod")]
-  pub unsafe extern "C" fn timespectod (a: timespec) -> c_double
-  {
-    return super::timespectod (a);
-  }
+    #[unsafe(export_name = "timespectod")]
+    pub extern "C" fn timespectod(a: timespec) -> c_double {
+        super::timespectod(a)
+    }
 }

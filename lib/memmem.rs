@@ -1,83 +1,31 @@
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
-         static_mut_refs, unsafe_op_in_unsafe_fn)]
-// [U1-MODULE-UNIT]
+// femacs: port of lib/memmem.c @ fd7afced403.
+//! Thin C-ABI boundary wrapper delegating Two-Way substring search to `femacs_pure::memmem`.
+#![deny(unsafe_op_in_unsafe_fn)]
 use crate::common::*;
-use std::ffi::{c_char, c_double, c_int, c_long, c_uint, c_ulong, c_void};
-// femacs: port of lib/memmem.c @ fd7afced403.  `_LIBC` is undefined, so
-// C 20-22's `<config.h>` include is live; the file is in cond-eval-verified.txt, so its
-// conditions are the frozen configuration's.  C 27-29's three lines are the port's own shape:
-// `RETURN_TYPE` and `AVAILABLE` are `macro_rules!` *before* the `include!` of the header
-// mirror, because the header's functions are written in terms of them and Rust's macros are
-// text-scoped (PORTING.md 0.1-5/P-57) — exactly C's requirement that they be defined before
-// C 29.  The reference object confirms the symbol: `nm build/emacs-ref/lib/memmem.o` prints
-// `T _rpl_memmem` (gnulib's generated <string.h> renames `memmem` under REPLACE_MEMMEM), so the
-// port keeps C's name and emits the real symbol with `#[unsafe(export_name = "rpl_memmem")]`
-// (PORTING.md 10.13①, the mempcpy precedent).
-// [U1] config.rs provided by common
-// [U1] include/gnulib_config.rs imported via common
-// [U1] include/limits.in.rs imported via common
-// [U1] include/stdint.in.rs imported via common
-// [U1] include/string.rs imported via common
 
-/* C 27's `# define RETURN_TYPE void *`.  */
-macro_rules! RETURN_TYPE {
-    () => { *mut c_void };
-}
-
-/* C 28's `# define AVAILABLE(h, h_l, j, n_l) ((j) <= (h_l) - (n_l))`.  */
-macro_rules! AVAILABLE {
-    ($h:expr, $h_l:expr, $j:expr, $n_l:expr) => { $j <= $h_l - $n_l };
-}
-
-/* PORTING.md 2.6: `__builtin_expect (cond, expected)` is kept as the branch-hint helper the C
-   spells; the hint itself has no Rust counterpart (the deviation is in docs/ports/memmem.md),
-   and the expression's value is what C's macro yields.  */
-macro_rules! __builtin_expect {
-    ($cond:expr, $expected:expr) => { $cond };
-}
-
-include!("include/str-two-way.rs");
-
-/* Return the first occurrence of NEEDLE in HAYSTACK.  Return HAYSTACK
-   if NEEDLE_LEN is 0, otherwise NULL if NEEDLE is not found in
-   HAYSTACK.  */
 #[unsafe(export_name = "rpl_memmem")]
-pub unsafe extern "C" fn memmem (haystack_start: *const c_void, mut haystack_len: usize,
-                                 needle_start: *const c_void, needle_len: usize) -> *mut c_void
-{
-  /* Abstract memory is considered to be an array of 'unsigned char' values,
-     not an array of 'char' values.  See ISO C 99 section 6.2.6.1.  */
-  let mut haystack: *const u8 = haystack_start as *const u8;
-  let needle: *const u8 = needle_start as *const u8;
-
-  if needle_len == 0
-    /* The first occurrence of the empty string is deemed to occur at
-       the beginning of the string.  */
-    { return haystack as *mut c_void; }
-
-  /* Sanity check, otherwise the loop might search through the whole
-     memory.  */
-  if __builtin_expect! (haystack_len < needle_len, 0)
-    { return std::ptr::null_mut (); }
-
-  /* Use optimizations in memchr when possible, to reduce the search
-     size of haystack using a linear algorithm with a smaller
-     coefficient.  However, avoid memchr for long needles, since we
-     can often achieve sublinear performance.  */
-  if needle_len < LONG_NEEDLE_THRESHOLD as usize
-    {
-      haystack = memchr (haystack as *const c_void, *needle as c_int, haystack_len) as *const u8;
-      if haystack.is_null () || __builtin_expect! (needle_len == 1, 0)
-        { return haystack as *mut c_void; }
-      haystack_len -= (haystack as isize - haystack_start as isize) as usize;
-      if haystack_len < needle_len
-        { return std::ptr::null_mut (); }
-      return two_way_short_needle (haystack, haystack_len, needle, needle_len);
+pub unsafe extern "C" fn memmem(
+    haystack_start: *const c_void,
+    haystack_len: usize,
+    needle_start: *const c_void,
+    needle_len: usize,
+) -> *mut c_void {
+    if needle_len == 0 {
+        return haystack_start as *mut c_void;
     }
-  else
-    { return two_way_long_needle (haystack, haystack_len, needle, needle_len); }
+    if haystack_len < needle_len || haystack_start.is_null() || needle_start.is_null() {
+        return core::ptr::null_mut();
+    }
+    // SAFETY: `needle_len > 0` and `haystack_len >= needle_len`; caller guarantees both byte ranges are readable.
+    let (haystack, needle) = unsafe {
+        (
+            core::slice::from_raw_parts(haystack_start.cast::<u8>(), haystack_len),
+            core::slice::from_raw_parts(needle_start.cast::<u8>(), needle_len),
+        )
+    };
+    match femacs_pure::memmem::memmem_find(haystack, needle) {
+        // SAFETY: `offset <= haystack_len` stays within the caller's `haystack_start` object.
+        Some(offset) => unsafe { haystack_start.cast::<u8>().add(offset) as *mut c_void },
+        None => core::ptr::null_mut(),
+    }
 }
-
-/* C 71's `#undef LONG_NEEDLE_THRESHOLD`: the port's constant belongs to the header mirror and
-   has no textual scope to undo.  */

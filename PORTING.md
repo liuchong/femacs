@@ -18,6 +18,14 @@
 
 ## 0. 总则
 
+### P-481：U2 纯算法叶子、安全工具重写与零读者脚手架退役（2026-11-22）
+
+按去 `unsafe` 先行计划 U2/AU2，将纯算法叶子与全部受交付辅助工具收敛至 `#![forbid(unsafe_code)]` 安全 Rust，并退役 8 个经全仓验证零消费者的遗留 `lib-src`/`lib` 源：
+
+1. **纯算法集中入 `crates/femacs-pure`（`#![forbid(unsafe_code)]` + `overflow-checks = true`）**：新增 RFC 1321 `md5`、FIPS 180-4 `sha1`/`sha256`（含 SHA-224）/`sha512`（含 SHA-384）、FIPS 202 Keccak-f[1600] `sha3`（224/256/384/512）、Debian Policy §5.6.12 `filevercmp`、POSIX/BSD `filemode`、Two-Way `O(N+M)` `memmem`、C-locale `strcase` 及饱和 `timespec` 算术；上下文结构保持 `#[repr(C)]` 与编译期 `size_of`/`align_of` 断言。`lib/{md5,md5-stream,sha1,sha256,sha512,sha3,filevercmp,filemode,c-strcasecmp,c-strncasecmp,memmem}.rs` 及对应 `lib/include/*.rs` 收敛为带完整 `// SAFETY:` 说明并开启 `#![deny(unsafe_op_in_unsafe_fn)]` 的薄 C-ABI 切片桥；`lib/{c-ctype,byteswap,endian,u64,stdc_*,timespec*,dtotimespec,regex,stdlib,unistd,mini-gmp-gnulib}.rs` 移除文件级豁免，纯头文件启用 `#![forbid(unsafe_code)]`。
+2. **辅助工具全部 `#![forbid(unsafe_code)]` 与打包闭合**：新增 `crates/femacs-sys/src/client_os.rs`（`#![deny(unsafe_op_in_unsafe_fn)]`、逐块 `// SAFETY:`）封装 Unix/TCP 套接字、`O_NOFOLLOW | O_DIRECTORY` 父目录 UID/权限/ACL 核验、`pselect` 非阻塞连接超时及 `AtomicBool` 信号位；`lib-src/emacsclient.rs` 完整重写为 `#![forbid(unsafe_code)]` 安全 Rust。`xtask/src/{standalone,macos}.rs` 同步编译并签名打包 `hexl`（终端 `port/lib-src/hexl`，Cocoa `Contents/MacOS/bin/hexl` 及 `libexec/hexl` 软链），闭合 `lisp/hexl.el` 运行期消费链。
+3. **零读者脚手架退役与门禁更新**：核实无构建、运行或测试消费者后，退役 `lib-src/{make-docfile,ebrowse,etags,movemail,pop,include/pop,update-game-score}.rs` 与 `lib/include/str-two-way.rs`（共 `19,048` 行，精确 SHA-256 与 `4ad0d5f3` 恢复路径登记于 `docs/retired-scaffolding.md`）。活动产品 `#![forbid(unsafe_code)]` 文件由 `4` 增至 `23`，文件级 `allow(unsafe_op_in_unsafe_fn)`/`allow(static_mut_refs)` 各减 `25` 份，`unsafe fn` 减 `135` 个；`tools/test-u2-pure-and-tools.py`（7/7）与保护性单测（`femacs-pure` 7/7、`emacsclient` 3/3）全部通过（AU2）。
+
 ### P-480：U1 统一 Cargo 模块图、单 VM 所有者与危险代码边界门禁（2026-11-22）
 
 按去 `unsafe` 先行计划 U1/AU1，正式构建链路从历史逐翻译单元 `rustc --emit=obj`、`LINK_DRIVER` 和 `libgnu-port.a` 收敛为单一 Cargo workspace 模块图（`crates/femacs-pure`、`crates/femacs-sys`、`crates/femacs-vm`、`crates/femacs-host`、`crates/femacs-tools`），下方 §0.1 的逐 `.o` 描述仅保留作历史记录：
