@@ -120,7 +120,7 @@ pub use self::stddef_decls::*;
    `__builtin_unreachable` is PORTING.md 2.6's `core::hint::unreachable_unchecked`, the
    mapping `include/verify.rs`'s `assume` uses.  */
 macro_rules! gl_unreachable {
-  () => { unsafe { core::hint::unreachable_unchecked () } };
+  () => { /* SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure. */ unsafe { core::hint::unreachable_unchecked () } };
 }
 
 /* C 237-244: `# if !defined __cplusplus && !@HAVE_C_UNREACHABLE@ / #  define unreachable()

@@ -1,6 +1,4 @@
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
-         static_mut_refs, unsafe_op_in_unsafe_fn)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 use std::ffi::{c_char, c_double, c_int, c_long, c_uint, c_ulong, c_void};
@@ -21,7 +19,11 @@ use std::ffi::{c_char, c_double, c_int, c_long, c_uint, c_ulong, c_void};
 #[unsafe(export_name = "rpl_timegm")]
 pub unsafe extern "C" fn __timegm64 (tmp: *mut tm) -> __time64_t
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   /* C 32: `static mktime_offset_t gmtime_offset;` - C zero-initializes it.  */
   static mut gmtime_offset: mktime_offset_t = 0;
   return __mktime_internal! (tmp, false, &raw mut gmtime_offset);
+
+  }
 }

@@ -173,7 +173,7 @@ macro_rules! emacs_raise { ($sig:expr) => { msdos_fatal_signal ($sig) }; }
 
 // C 156-157: `#define DATA_START (&etext + 1)` - vm-limit.c's start-of-data address.
 #[cfg (feature = "msdos")]
-macro_rules! DATA_START { () => { unsafe { (&raw const etext).wrapping_add (1) } }; }
+macro_rules! DATA_START { () => { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (&raw const etext).wrapping_add (1) } }; }
 
 // C 160-167: `#if defined HAVE_NTGUI && !defined DebPrint` - `HAVE_NTGUI` is `#undef`
 // (macros.tsv 1482), so both arms are dead.  The `EMACSDEBUG` one (C 163) expands the argument

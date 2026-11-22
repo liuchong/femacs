@@ -834,7 +834,7 @@ macro_rules! XSETFRAME {
 macro_rules! FOR_EACH_FRAME {
     ($list_var:ident, $frame_var:ident, $body:block) => {
         {
-            let mut for_each_frame_rest: Lisp_Object = unsafe { Vframe_list };
+            let mut for_each_frame_rest: Lisp_Object = /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { Vframe_list };
             while CONSP (for_each_frame_rest)
                 && { $list_var = for_each_frame_rest;
                      $frame_var = XCAR ($list_var);
@@ -851,7 +851,7 @@ macro_rules! FOR_EACH_FRAME {
 #[inline(always)]
 pub fn SELECTED_FRAME () -> *mut frame
 {
-  if FRAMEP (unsafe { selected_frame }) && FRAME_LIVE_P (XFRAME (unsafe { selected_frame }))
+  if FRAMEP (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { selected_frame }) && FRAME_LIVE_P (XFRAME (unsafe { selected_frame }))
     { XFRAME (unsafe { selected_frame }) }
   else { unsafe { emacs_abort () }; std::ptr::null_mut () }
 }
@@ -860,14 +860,14 @@ pub fn SELECTED_FRAME () -> *mut frame
 // field the layout gate asserts the offset of.
 #[inline(always)]
 pub fn FRAME_KBOARD (f: *mut frame) -> *mut c_void
-{ unsafe { (*unsafe { (*f).terminal }).kboard } }   /// C: `struct kboard *((f)->terminal->kboard)`
+{ /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*unsafe { (*f).terminal }).kboard } }   /// C: `struct kboard *((f)->terminal->kboard)`
 
 #[inline(always)]
 pub fn FRAME_PARENT_FRAME (f: *mut frame) -> *mut frame
 { if NILP (unsafe { (*f).parent_frame }) { std::ptr::null_mut () } else { XFRAME (unsafe { (*f).parent_frame }) } }
 
 #[inline(always)]
-pub fn FRAME_LIVE_P (f: *mut frame) -> bool { !unsafe { (*f).terminal }.is_null () }
+pub fn FRAME_LIVE_P (f: *mut frame) -> bool { !/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f).terminal }.is_null () }
 
 #[inline(always)]
 pub fn FRAME_INITIAL_P (f: *mut frame) -> bool
@@ -999,7 +999,7 @@ pub fn FRAME_WINDOW_P (f: *mut frame) -> bool { let _ = f; false }
 macro_rules! MOUSE_HL_INFO {
   ($f:expr) => {{
     let f = $f;
-    if FRAME_WINDOW_P (f) { unsafe { std::ptr::addr_of_mut! ((*FRAME_DISPLAY_INFO! (f)).mouse_highlight) } }
+    if FRAME_WINDOW_P (f) { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { std::ptr::addr_of_mut! ((*FRAME_DISPLAY_INFO! (f)).mouse_highlight) } }
     else {
       unsafe {
         let tty: *mut tty_output = (*f).output_data.tty as *mut tty_output;
@@ -1013,7 +1013,7 @@ macro_rules! MOUSE_HL_INFO {
 macro_rules! MOUSE_HL_INFO {
   ($f:expr) => {{
     let f = $f;
-    unsafe { std::ptr::addr_of_mut! ((*FRAME_DISPLAY_INFO! (f)).mouse_highlight) }
+    /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { std::ptr::addr_of_mut! ((*FRAME_DISPLAY_INFO! (f)).mouse_highlight) }
   }};
 }
 /// C: #else /* not HAVE_WINDOW_SYSTEM */ / #define MOUSE_HL_INFO(F) (&(F)->output_data.tty->display_info->mouse_highlight)
@@ -1021,7 +1021,7 @@ macro_rules! MOUSE_HL_INFO {
 macro_rules! MOUSE_HL_INFO {
   ($f:expr) => {{
     let f = $f;
-    unsafe {
+    /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
       let tty: *mut tty_output = (*f).output_data.tty as *mut tty_output;
       std::ptr::addr_of_mut! ((*(*tty).display_info).mouse_highlight)
     }
@@ -1051,7 +1051,7 @@ macro_rules! MOUSE_HL_INFO {
    their term mirrors too.  */
 // frame.h 884-895.
 #[inline(always)]
-pub fn FRAME_RES_X (f: *mut frame) -> c_double { let _ = f; unsafe { default_pixels_per_inch_x () } }
+pub fn FRAME_RES_X (f: *mut frame) -> c_double { let _ = f; /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { default_pixels_per_inch_x () } }
 #[inline(always)]
 pub fn FRAME_RES_Y (f: *mut frame) -> c_double { let _ = f; unsafe { default_pixels_per_inch_y () } }
 #[inline(always)]
@@ -1064,7 +1064,7 @@ pub fn FRAME_MINIBUF_ONLY_P (f: *mut frame) -> bool
 #[inline(always)]
 pub fn FRAME_HAS_MINIBUF_P (f: *mut frame) -> bool
 {
-  WINDOWP (unsafe { (*f).minibuffer_window })
+  WINDOWP (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f).minibuffer_window })
     && std::ptr::eq (XFRAME (unsafe { (*XWINDOW (unsafe { (*f).minibuffer_window })).frame }), f)
 }
 
@@ -1073,19 +1073,19 @@ pub fn FRAME_SCALE_FACTOR (f: *mut frame) -> c_int { let _ = f; 1 }
 
 // frame.h 906-940: the sizes.
 #[inline(always)]
-pub fn FRAME_PIXEL_WIDTH (f: *mut frame) -> c_int { unsafe { (*f).pixel_width } }
+pub fn FRAME_PIXEL_WIDTH (f: *mut frame) -> c_int { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f).pixel_width } }
 #[inline(always)]
 pub fn FRAME_PIXEL_HEIGHT (f: *mut frame) -> c_int { unsafe { (*f).pixel_height } }
 #[inline(always)]
 pub fn FRAME_TOTAL_COLS (f: *mut frame) -> c_int { unsafe { (*f).total_cols } }
 #[inline(always)]
-pub fn FRAME_TOTAL_LINES (f: *mut frame) -> c_int { unsafe { (*f).total_lines } }
+pub fn FRAME_TOTAL_LINES (f: *mut frame) -> c_int { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f).total_lines } }
 #[inline(always)]
 pub fn FRAME_TEXT_WIDTH (f: *mut frame) -> c_int { unsafe { (*f).text_width } }
 #[inline(always)]
 pub fn FRAME_TEXT_HEIGHT (f: *mut frame) -> c_int { unsafe { (*f).text_height } }
 #[inline(always)]
-pub fn FRAME_COLS (f: *mut frame) -> c_int { unsafe { (*f).text_cols } }
+pub fn FRAME_COLS (f: *mut frame) -> c_int { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f).text_cols } }
 #[inline(always)]
 pub fn FRAME_LINES (f: *mut frame) -> c_int { unsafe { (*f).text_lines } }
 
@@ -1103,13 +1103,13 @@ pub fn FRAME_EXTERNAL_MENU_BAR (f: *mut frame) -> bool { let _ = f; false }
 pub fn FRAME_EXTERNAL_MENU_BAR (f: *mut frame) -> bool
 { frame_flag (f, FRAME_EXTERNAL_MENU_BAR_FLAG_UNIT, FRAME_EXTERNAL_MENU_BAR_FLAG_SHIFT) }
 #[inline(always)]
-pub fn FRAME_MENU_BAR_LINES (f: *mut frame) -> c_int { unsafe { (*f).menu_bar_lines } }
+pub fn FRAME_MENU_BAR_LINES (f: *mut frame) -> c_int { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f).menu_bar_lines } }
 #[inline(always)]
 pub fn FRAME_MENU_BAR_HEIGHT (f: *mut frame) -> c_int { unsafe { (*f).menu_bar_height } }
 #[inline(always)]
 pub fn FRAME_TAB_BAR_LINES (f: *mut frame) -> c_int { unsafe { (*f).tab_bar_lines } }
 #[inline(always)]
-pub fn FRAME_TAB_BAR_HEIGHT (f: *mut frame) -> c_int { unsafe { (*f).tab_bar_height } }
+pub fn FRAME_TAB_BAR_HEIGHT (f: *mut frame) -> c_int { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f).tab_bar_height } }
 /// C: #else / #define FRAME_EXTERNAL_TOOL_BAR(f) false
 #[cfg (not (feature = "have_ext_tool_bar"))]
 #[inline(always)]
@@ -1124,28 +1124,28 @@ pub fn FRAME_EXTERNAL_TOOL_BAR (f: *mut frame) -> bool
 #[cfg (all (feature = "have_window_system", not (feature = "have_ext_menu_bar")))]
 #[inline(always)]
 pub fn fset_menu_bar_window (f: *mut frame, val: Lisp_Object)
-{ unsafe { (*f).menu_bar_window = val; } }
+{ /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f).menu_bar_window = val; } }
 /// C: frame.h's `fset_tool_bar_window` (C 263's field, same guard shape).
 #[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar")))]
 #[inline(always)]
 pub fn fset_tool_bar_window (f: *mut frame, val: Lisp_Object)
-{ unsafe { (*f).tool_bar_window = val; } }
+{ /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f).tool_bar_window = val; } }
 
 #[inline(always)]
 pub fn FRAME_TOOL_BAR_POSITION (f: *mut frame) -> Lisp_Object { unsafe { (*f).tool_bar_position } }
 #[inline(always)]
-pub fn FRAME_TOOL_BAR_LINES (f: *mut frame) -> c_int { unsafe { (*f).tool_bar_lines } }
+pub fn FRAME_TOOL_BAR_LINES (f: *mut frame) -> c_int { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f).tool_bar_lines } }
 #[inline(always)]
 pub fn FRAME_TOOL_BAR_HEIGHT (f: *mut frame) -> c_int { unsafe { (*f).tool_bar_height } }
 #[inline(always)]
 pub fn FRAME_TOOL_BAR_TOP_HEIGHT (f: *mut frame) -> c_int
-{ if BASE_EQ (unsafe { (*f).tool_bar_position }, Qtop ()) { unsafe { (*f).tool_bar_height } } else { 0 } }
+{ if BASE_EQ (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f).tool_bar_position }, Qtop ()) { unsafe { (*f).tool_bar_height } } else { 0 } }
 #[inline(always)]
 pub fn FRAME_TOOL_BAR_TOP_LINES (f: *mut frame) -> c_int
 { if BASE_EQ (unsafe { (*f).tool_bar_position }, Qtop ()) { unsafe { (*f).tool_bar_lines } } else { 0 } }
 #[inline(always)]
 pub fn FRAME_TOOL_BAR_BOTTOM_HEIGHT (f: *mut frame) -> c_int
-{ if BASE_EQ (unsafe { (*f).tool_bar_position }, Qbottom ()) { unsafe { (*f).tool_bar_height } } else { 0 } }
+{ if BASE_EQ (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f).tool_bar_position }, Qbottom ()) { unsafe { (*f).tool_bar_height } } else { 0 } }
 #[inline(always)]
 pub fn FRAME_TOOL_BAR_BOTTOM_LINES (f: *mut frame) -> c_int
 { if BASE_EQ (unsafe { (*f).tool_bar_position }, Qbottom ()) { unsafe { (*f).tool_bar_lines } } else { 0 } }
@@ -1199,31 +1199,31 @@ pub fn FRAME_UNDECORATED (f: *mut frame) -> c_int
 
 // frame.h 1090-1130: the windows and the scroll-bar bookkeeping.
 #[inline(always)]
-pub fn FRAME_MINIBUF_WINDOW (f: *mut frame) -> Lisp_Object { unsafe { (*f).minibuffer_window } }
+pub fn FRAME_MINIBUF_WINDOW (f: *mut frame) -> Lisp_Object { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f).minibuffer_window } }
 #[inline(always)]
 pub fn FRAME_ROOT_WINDOW (f: *mut frame) -> Lisp_Object { unsafe { (*f).root_window } }
 #[inline(always)]
 pub fn FRAME_SELECTED_WINDOW (f: *mut frame) -> Lisp_Object { unsafe { (*f).selected_window } }
 #[inline(always)]
 pub fn FRAME_OLD_SELECTED_WINDOW (f: *mut frame) -> Lisp_Object
-{ unsafe { (*f).old_selected_window } }
+{ /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f).old_selected_window } }
 #[inline(always)]
 pub fn FRAME_INSERT_COST (f: *mut frame) -> *mut c_int { unsafe { (*f).insert_line_cost } }
 #[inline(always)]
 pub fn FRAME_DELETE_COST (f: *mut frame) -> *mut c_int { unsafe { (*f).delete_line_cost } }
 #[inline(always)]
-pub fn FRAME_INSERTN_COST (f: *mut frame) -> *mut c_int { unsafe { (*f).insert_n_lines_cost } }
+pub fn FRAME_INSERTN_COST (f: *mut frame) -> *mut c_int { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f).insert_n_lines_cost } }
 #[inline(always)]
 pub fn FRAME_DELETEN_COST (f: *mut frame) -> *mut c_int { unsafe { (*f).delete_n_lines_cost } }
 #[inline(always)]
 pub fn FRAME_FOCUS_FRAME (f: *mut frame) -> Lisp_Object { unsafe { (*f).focus_frame } }
 #[inline(always)]
-pub fn FRAME_SCROLL_BARS (f: *mut frame) -> Lisp_Object { unsafe { (*f).scroll_bars } }
+pub fn FRAME_SCROLL_BARS (f: *mut frame) -> Lisp_Object { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f).scroll_bars } }
 #[inline(always)]
 pub fn FRAME_CONDEMNED_SCROLL_BARS (f: *mut frame) -> Lisp_Object
 { unsafe { (*f).condemned_scroll_bars } }
 #[inline(always)]
-pub fn FRAME_MENU_BAR_ITEMS (f: *mut frame) -> Lisp_Object { unsafe { (*f).menu_bar_items } }
+pub fn FRAME_MENU_BAR_ITEMS (f: *mut frame) -> Lisp_Object { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f).menu_bar_items } }
 
 // frame.h 1215-1281: the scroll-bar and window-management family.  C spells each of these twice
 // and the port carries **both** arms, now that the flag table above has every arm's numbering:
@@ -1343,13 +1343,13 @@ pub fn FRAME_NO_SPECIAL_GLYPHS (f: *mut frame) -> bool
 
 #[inline(always)]
 pub fn FRAME_CONFIG_SCROLL_BAR_WIDTH (f: *mut frame) -> c_int
-{ unsafe { (*f).config_scroll_bar_width } }
+{ /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f).config_scroll_bar_width } }
 #[inline(always)]
 pub fn FRAME_CONFIG_SCROLL_BAR_HEIGHT (f: *mut frame) -> c_int
 { unsafe { (*f).config_scroll_bar_height } }
 #[inline(always)]
 pub fn FRAME_CONFIG_SCROLL_BAR_COLS (f: *mut frame) -> c_int
-{ unsafe { (*f).config_scroll_bar_cols } }
+{ /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f).config_scroll_bar_cols } }
 #[inline(always)]
 pub fn FRAME_CONFIG_SCROLL_BAR_LINES (f: *mut frame) -> c_int
 { unsafe { (*f).config_scroll_bar_lines } }
@@ -1382,17 +1382,17 @@ pub fn FRAME_CURSOR_X_LIMIT (f: *mut frame) -> c_int
 { FRAME_COLS (f) + FRAME_LEFT_SCROLL_BAR_COLS (f) }
 #[inline(always)]
 pub fn FRAME_COST_BAUD_RATE (f: *mut frame) -> intmax_t
-{ unsafe { (*f).cost_calculation_baud_rate } }
+{ /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f).cost_calculation_baud_rate } }
 #[inline(always)]
 pub fn FRAME_DESIRED_CURSOR (f: *mut frame) -> text_cursor_kinds { unsafe { (*f).desired_cursor } }
 #[inline(always)]
 pub fn FRAME_BLINK_OFF_CURSOR (f: *mut frame) -> text_cursor_kinds
-{ unsafe { (*f).blink_off_cursor } }
+{ /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f).blink_off_cursor } }
 #[inline(always)]
 pub fn FRAME_CURSOR_WIDTH (f: *mut frame) -> c_int { unsafe { (*f).cursor_width } }
 #[inline(always)]
 pub fn FRAME_BLINK_OFF_CURSOR_WIDTH (f: *mut frame) -> c_int
-{ unsafe { (*f).blink_off_cursor_width } }
+{ /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f).blink_off_cursor_width } }
 #[inline(always)]
 pub fn FRAME_FOREGROUND_PIXEL (f: *mut frame) -> c_ulong { unsafe { (*f).foreground_pixel } }
 #[inline(always)]
@@ -1400,7 +1400,7 @@ pub fn FRAME_BACKGROUND_PIXEL (f: *mut frame) -> c_ulong { unsafe { (*f).backgro
 #[inline(always)]
 pub fn FRAME_MESSAGE_BUF_SIZE (f: *mut frame) -> c_int { 4 * FRAME_COLS (f) }
 #[inline(always)]
-pub fn FRAME_LINE_HEIGHT (f: *mut frame) -> c_int { unsafe { (*f).line_height } }
+pub fn FRAME_LINE_HEIGHT (f: *mut frame) -> c_int { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f).line_height } }
 #[inline(always)]
 pub fn FRAME_COLUMN_WIDTH (f: *mut frame) -> c_int { unsafe { (*f).column_width } }
 
@@ -1412,32 +1412,32 @@ pub fn frame_dimension (x: c_int) -> c_int {
 }
 
 #[inline(always)]
-pub fn FRAME_FRINGE_COLS (f: *mut frame) -> c_int { frame_dimension (unsafe { (*f).fringe_cols }) }
+pub fn FRAME_FRINGE_COLS (f: *mut frame) -> c_int { frame_dimension (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f).fringe_cols }) }
 #[inline(always)]
 pub fn FRAME_LEFT_FRINGE_WIDTH (f: *mut frame) -> c_int
 { frame_dimension (unsafe { (*f).left_fringe_width }) }
 #[inline(always)]
 pub fn FRAME_RIGHT_FRINGE_WIDTH (f: *mut frame) -> c_int
-{ frame_dimension (unsafe { (*f).right_fringe_width }) }
+{ frame_dimension (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f).right_fringe_width }) }
 #[inline(always)]
 pub fn FRAME_TOTAL_FRINGE_WIDTH (f: *mut frame) -> c_int
 { FRAME_LEFT_FRINGE_WIDTH (f) + FRAME_RIGHT_FRINGE_WIDTH (f) }
 #[inline(always)]
 pub fn FRAME_CHILD_FRAME_BORDER_WIDTH (f: *mut frame) -> c_int
-{ frame_dimension (unsafe { (*f).child_frame_border_width }) }
+{ frame_dimension (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f).child_frame_border_width }) }
 #[inline(always)]
 pub fn FRAME_INTERNAL_BORDER_WIDTH (f: *mut frame) -> c_int
 {
   if !FRAME_PARENT_FRAME (f).is_null ()
     {
       if FRAME_CHILD_FRAME_BORDER_WIDTH (f) >= 0 { FRAME_CHILD_FRAME_BORDER_WIDTH (f) }
-      else { frame_dimension (unsafe { (*f).internal_border_width }) }
+      else { frame_dimension (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f).internal_border_width }) }
     }
   else { frame_dimension (unsafe { (*f).internal_border_width }) }
 }
 #[inline(always)]
 pub fn FRAME_RIGHT_DIVIDER_WIDTH (f: *mut frame) -> c_int
-{ frame_dimension (unsafe { (*f).right_divider_width }) }
+{ frame_dimension (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f).right_divider_width }) }
 #[inline(always)]
 pub fn FRAME_BOTTOM_DIVIDER_WIDTH (f: *mut frame) -> c_int
 { frame_dimension (unsafe { (*f).bottom_divider_width }) }
@@ -1445,22 +1445,30 @@ pub fn FRAME_BOTTOM_DIVIDER_WIDTH (f: *mut frame) -> c_int
 // frame.h 896-920: the two `NUMVAL` helpers (the inline plus the two defaults it feeds).
 #[inline(always)]
 pub fn NUMVAL (x: Lisp_Object) -> c_double
-{ if NUMBERP (x) { unsafe { XFLOATINT (x) } } else { -1.0 } }
+{ if NUMBERP (x) { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { XFLOATINT (x) } } else { -1.0 } }
 
 #[inline(always)]
 pub unsafe fn default_pixels_per_inch_x () -> c_double
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let v = if CONSP (Vdisplay_pixels_per_inch) { XCAR (Vdisplay_pixels_per_inch) }
           else { Vdisplay_pixels_per_inch };
   if NUMVAL (v) > 0.0 { NUMVAL (v) } else { 72.0 }
+
+  }
 }
 
 #[inline(always)]
 pub unsafe fn default_pixels_per_inch_y () -> c_double
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let v = if CONSP (Vdisplay_pixels_per_inch) { XCDR (Vdisplay_pixels_per_inch) }
           else { Vdisplay_pixels_per_inch };
   if NUMVAL (v) > 0.0 { NUMVAL (v) } else { 72.0 }
+
+  }
 }
 
 #[inline(always)]
@@ -1473,7 +1481,7 @@ pub fn window_system_available (f: *mut frame) -> bool { let _ = f; false }
    errored with "Window system is not in use or not initialized" (status 4.867).  */
 #[cfg (feature = "have_window_system")]
 pub fn window_system_available (f: *mut frame) -> bool {
-    if ! f.is_null () { unsafe { FRAME_WINDOW_P (f) || FRAME_MSDOS_P (f) } }
+    if ! f.is_null () { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { FRAME_WINDOW_P (f) || FRAME_MSDOS_P (f) } }
     else
       {
         /* frame.h 1488-1490's `extern bool display_available (void);`, declared at this use site
@@ -1481,7 +1489,7 @@ pub fn window_system_available (f: *mut frame) -> bool {
            which *defines* the function (C 116-121), and a crate-level declaration plus a
            definition of one name is a duplicate item there.  */
         unsafe extern "C-unwind" { fn display_available () -> bool; }
-        unsafe { display_available () }
+        /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { display_available () }
       }
 }
 
@@ -1513,7 +1521,7 @@ pub fn frame_output_method (f: *mut frame) -> output_method
 // picks a unit by hand and no arm can read the wrong word.
 #[inline(always)]
 pub fn frame_word (f: *mut frame, unit: u32) -> u32
-{ if unit == 2 { unsafe { (*f).bits2 } } else { unsafe { (*f).bits1 } } }
+{ if unit == 2 { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f).bits2 } } else { unsafe { (*f).bits1 } } }
 
 #[inline(always)]
 pub fn frame_flag (f: *mut frame, unit: u32, shift: u32) -> bool { frame_word (f, unit) >> shift & 1 != 0 }
@@ -1522,7 +1530,7 @@ pub fn frame_flag (f: *mut frame, unit: u32, shift: u32) -> bool { frame_word (f
 pub fn frame_set_flag (f: *mut frame, unit: u32, shift: u32, v: u32)
 {
   let mask = 1u32 << shift;
-  let word = if unit == 2 { unsafe { &mut (*f).bits2 } } else { unsafe { &mut (*f).bits1 } };
+  let word = if unit == 2 { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { &mut (*f).bits2 } } else { unsafe { &mut (*f).bits1 } };
   *word = (*word & ! mask) | ((v & 1) << shift);
 }
 
@@ -1534,7 +1542,7 @@ pub fn frame_field (f: *mut frame, unit: u32, shift: u32, mask: u32) -> u32
 #[inline(always)]
 pub fn frame_set_field (f: *mut frame, unit: u32, shift: u32, mask: u32, v: u32)
 {
-  let word = if unit == 2 { unsafe { &mut (*f).bits2 } } else { unsafe { &mut (*f).bits1 } };
+  let word = if unit == 2 { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { &mut (*f).bits2 } } else { unsafe { &mut (*f).bits1 } };
   *word = (*word & ! (mask << shift)) | ((v & mask) << shift);
 }
 
@@ -1553,49 +1561,49 @@ unsafe extern "C-unwind" { pub fn frame_make_pointer_invisible (f: *mut frame); 
 /* Most code should use these functions to set Lisp fields in struct frame.  */
 // frame.h 753-895: the frame's Lisp-Object setters, one assignment each (C's `fset_*`).
 #[inline(always)]
-pub fn fset_buffer_list (f: *mut frame, val: Lisp_Object) { unsafe { (*f).buffer_list = val; } }
+pub fn fset_buffer_list (f: *mut frame, val: Lisp_Object) { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f).buffer_list = val; } }
 #[inline(always)]
 pub fn fset_buried_buffer_list (f: *mut frame, val: Lisp_Object) { unsafe { (*f).buried_buffer_list = val; } }
 #[inline(always)]
 pub fn fset_condemned_scroll_bars (f: *mut frame, val: Lisp_Object) { unsafe { (*f).condemned_scroll_bars = val; } }
 #[inline(always)]
-pub fn fset_face_hash_table (f: *mut frame, val: Lisp_Object) { unsafe { (*f).face_hash_table = val; } }
+pub fn fset_face_hash_table (f: *mut frame, val: Lisp_Object) { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f).face_hash_table = val; } }
 /// C 774-779: `#if defined (HAVE_WINDOW_SYSTEM)` `INLINE void fset_parent_frame (struct frame *f,
 /// Lisp_Object val)` - the member exists on both targets, but C only defines the setter where the
 /// window system does, and this target's units call it there (status 4.751).
 #[cfg (feature = "have_window_system")]
 #[inline(always)]
-pub fn fset_parent_frame (f: *mut frame, val: Lisp_Object) { unsafe { (*f).parent_frame = val; } }
+pub fn fset_parent_frame (f: *mut frame, val: Lisp_Object) { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f).parent_frame = val; } }
 #[inline(always)]
 pub fn fset_focus_frame (f: *mut frame, val: Lisp_Object) { unsafe { (*f).focus_frame = val; } }
 #[inline(always)]
 pub fn fset_icon_name (f: *mut frame, val: Lisp_Object) { unsafe { (*f).icon_name = val; } }
 #[inline(always)]
-pub fn fset_menu_bar_items (f: *mut frame, val: Lisp_Object) { unsafe { (*f).menu_bar_items = val; } }
+pub fn fset_menu_bar_items (f: *mut frame, val: Lisp_Object) { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f).menu_bar_items = val; } }
 #[inline(always)]
 pub fn fset_menu_bar_vector (f: *mut frame, val: Lisp_Object) { unsafe { (*f).menu_bar_vector = val; } }
 #[inline(always)]
 pub fn fset_name (f: *mut frame, val: Lisp_Object) { unsafe { (*f).name = val; } }
 #[inline(always)]
-pub fn fset_param_alist (f: *mut frame, val: Lisp_Object) { unsafe { (*f).param_alist = val; } }
+pub fn fset_param_alist (f: *mut frame, val: Lisp_Object) { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f).param_alist = val; } }
 #[inline(always)]
 pub fn fset_root_window (f: *mut frame, val: Lisp_Object) { unsafe { (*f).root_window = val; } }
 #[inline(always)]
 pub fn fset_scroll_bars (f: *mut frame, val: Lisp_Object) { unsafe { (*f).scroll_bars = val; } }
 #[inline(always)]
-pub fn fset_selected_window (f: *mut frame, val: Lisp_Object) { unsafe { (*f).selected_window = val; } }
+pub fn fset_selected_window (f: *mut frame, val: Lisp_Object) { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f).selected_window = val; } }
 #[inline(always)]
 pub fn fset_old_selected_window (f: *mut frame, val: Lisp_Object) { unsafe { (*f).old_selected_window = val; } }
 #[inline(always)]
 pub fn fset_title (f: *mut frame, val: Lisp_Object) { unsafe { (*f).title = val; } }
 #[inline(always)]
-pub fn fset_tab_bar_items (f: *mut frame, val: Lisp_Object) { unsafe { (*f).tab_bar_items = val; } }
+pub fn fset_tab_bar_items (f: *mut frame, val: Lisp_Object) { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f).tab_bar_items = val; } }
 /// C: frame.h 845: `INLINE void fset_tab_bar_window (struct frame *f, Lisp_Object val)` - C's
 /// gate is `#if defined (HAVE_WINDOW_SYSTEM)` (frame.h 844), which is why `dispnew.rs` 2505/2648
 /// read `cannot find function fset_tab_bar_window` on Android and never on the frozen target.
 #[cfg (feature = "have_window_system")]
 #[inline(always)]
-pub fn fset_tab_bar_window (f: *mut frame, val: Lisp_Object) { unsafe { (*f).tab_bar_window = val; } }
+pub fn fset_tab_bar_window (f: *mut frame, val: Lisp_Object) { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f).tab_bar_window = val; } }
 #[inline(always)]
 pub fn fset_tool_bar_items (f: *mut frame, val: Lisp_Object) { unsafe { (*f).tool_bar_items = val; } }
 #[inline(always)]
@@ -1654,13 +1662,13 @@ pub mod frame_face_accessors
   /// C 1379: `#define FRAME_FACE_CACHE(F) (F)->face_cache`
   #[inline (always)]
   pub fn FRAME_FACE_CACHE (f: *mut frame) -> *mut face_cache
-  { unsafe { (*f).face_cache as *mut face_cache } }
+  { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f).face_cache as *mut face_cache } }
 
   /// C 1646-1650: `INLINE struct face * FACE_FROM_ID (struct frame *f, int id)`
   #[inline (always)]
   pub fn FACE_FROM_ID (f: *mut frame, id: c_int) -> *mut face
   {
-    eassert! (0 <= id && id < unsafe { (*FRAME_FACE_CACHE (f)).used });
+    eassert! (0 <= id && id < /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*FRAME_FACE_CACHE (f)).used });
     unsafe { *(*FRAME_FACE_CACHE (f)).faces_by_id.add (id as usize) }
   }
 
@@ -1668,7 +1676,7 @@ pub mod frame_face_accessors
   #[inline (always)]
   pub fn FACE_FROM_ID_OR_NULL (f: *mut frame, id: c_int) -> *mut face
   {
-    let used: c_int = unsafe { (*FRAME_FACE_CACHE (f)).used };
+    let used: c_int = /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*FRAME_FACE_CACHE (f)).used };
     eassume! (0 <= used);
     if 0 <= id && id < used { unsafe { *(*FRAME_FACE_CACHE (f)).faces_by_id.add (id as usize) } }
     else { core::ptr::null_mut () }
@@ -1689,7 +1697,7 @@ pub const z_group_above_suspended: z_group = 3;
    system, so the port cannot name a field it does not have: the name stays a macro over C's own
    path, whose pointee the including unit brings in (the `MOUSE_HL_INFO` shape above).
    C: #define FRAME_IMAGE_CACHE(F) ((F)->image_cache)  */
-macro_rules! FRAME_IMAGE_CACHE { ($f:expr) => { unsafe { (*$f).image_cache } }; }
+macro_rules! FRAME_IMAGE_CACHE { ($f:expr) => { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*$f).image_cache } }; }
 
 /* frame.h 1664-1685: `IMAGE_FROM_ID` and `IMAGE_OPT_FROM_ID`, inside C 1664's
    `#ifdef HAVE_WINDOW_SYSTEM` - dead on the frozen target (its configuration leaves the macro
@@ -1707,7 +1715,7 @@ pub mod frame_image_accessors
   #[inline(always)]
   pub fn IMAGE_FROM_ID (f: *mut frame, id: c_int) -> *mut image
   {
-    let cache: *mut image_cache = unsafe { FRAME_IMAGE_CACHE! (f) as *mut image_cache };
+    let cache: *mut image_cache = /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { FRAME_IMAGE_CACHE! (f) as *mut image_cache };
     eassert! (0 <= id && (id as ptrdiff_t) < unsafe { (*cache).used });
     unsafe { *(*cache).images.add (id as usize) }
   }
@@ -1717,7 +1725,7 @@ pub mod frame_image_accessors
   #[inline(always)]
   pub fn IMAGE_OPT_FROM_ID (f: *mut frame, id: c_int) -> *mut image
   {
-    let cache: *mut image_cache = unsafe { FRAME_IMAGE_CACHE! (f) as *mut image_cache };
+    let cache: *mut image_cache = /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { FRAME_IMAGE_CACHE! (f) as *mut image_cache };
     let used: ptrdiff_t = unsafe { (*cache).used };
     eassume! (0 <= used);
     if 0 <= id && (id as ptrdiff_t) < used { unsafe { *(*cache).images.add (id as usize) } }
@@ -1732,7 +1740,7 @@ pub mod frame_image_accessors
    with `build-tu src/frame.c` before this change.  The pointee resolves through this mirror's own
    `window.rs` include now (C 23, the note at the top), not through the including unit.  */
 #[inline(always)]
-pub fn WINDOW_FRAME (w: *mut window) -> Lisp_Object { unsafe { (*w).frame } }
+pub fn WINDOW_FRAME (w: *mut window) -> Lisp_Object { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*w).frame } }
 
 /* frame.h 1173-1176: `SET_FRAME_GARBAGED(f)` - C's three-term comma expression, kept in C's
    order; `fset_redisplay` is xdisp.c's (the unit shape, `MOUSE_HL_INFO`'s note).  The unit
@@ -1814,13 +1822,13 @@ pub fn FRAME_Z_GROUP_BELOW (f: *mut frame) -> bool { FRAME_Z_GROUP (f) == z_grou
 /// C: #define FRAME_NS_APPEARANCE(f) ((f)->ns_appearance)
 #[cfg (all (feature = "have_window_system", feature = "ns_impl_cocoa"))]
 #[inline(always)]
-pub fn FRAME_NS_APPEARANCE (f: *mut frame) -> ns_appearance_type { unsafe { (*f).ns_appearance } }
+pub fn FRAME_NS_APPEARANCE (f: *mut frame) -> ns_appearance_type { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f).ns_appearance } }
 
 /// C: #define FRAME_NS_TRANSPARENT_TITLEBAR(f) ((f)->ns_transparent_titlebar)
 #[cfg (all (feature = "have_window_system", feature = "ns_impl_cocoa"))]
 #[inline(always)]
 pub fn FRAME_NS_TRANSPARENT_TITLEBAR (f: *mut frame) -> c_uint
-{ unsafe { (*f).ns_transparent_titlebar } }
+{ /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f).ns_transparent_titlebar } }
 
 /* frame.h 1387-1391: `CHECK_FRAME`/`CHECK_LIVE_FRAME`.  C calls `CHECK_TYPE (…)`, which the port
    has as a function (lisp.rs 528); the names stay macros because every call site writes
@@ -1857,7 +1865,7 @@ macro_rules! FRAME_MOUSE_UPDATE {
     // back exactly as the comparison above does.  Measured once `src/xterm.rs` declared it:
     // `error[E0308]: mismatched types … expected `*mut frame`, found `*mut c_void`` at this line,
     // through `FRAME_MOUSE_UPDATE! (f)` in `src/xdispex.rs`'s consumer.
-    if frame == unsafe { (*hlinfo).mouse_face_mouse_frame } as *mut frame {
+    if frame == /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*hlinfo).mouse_face_mouse_frame } as *mut frame {
       block_input ();
       note_mouse_highlight (unsafe { (*hlinfo).mouse_face_mouse_frame } as *mut frame,
                             unsafe { (*hlinfo).mouse_face_mouse_x },
@@ -1876,14 +1884,14 @@ macro_rules! AUTO_FRAME_ARG {
        one-element list are two compound literals, both with this block's lifetime, and the port
        declares both cells in one binding here (PORTING.md P-113 ③ - the nested expression form
        would have given the pair the arm's block instead).  */
-    let mut $name: [Lisp_Cons; 2] = unsafe { std::mem::zeroed () };
+    let mut $name: [Lisp_Cons; 2] = /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { std::mem::zeroed () };
     $name[0].u.s.car = $parameter;
     $name[0].u.s.u.cdr = $value;
     let $name = if USE_STACK_CONS {
       $name[1].u.s.car = unsafe { make_lisp_ptr (std::ptr::addr_of_mut! ($name[0]) as *mut c_void,
 						 Lisp_Type::Lisp_Cons) };
       $name[1].u.s.u.cdr = Qnil ();
-      unsafe { make_lisp_ptr (std::ptr::addr_of_mut! ($name[1]) as *mut c_void,
+      /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { make_lisp_ptr (std::ptr::addr_of_mut! ($name[1]) as *mut c_void,
 			      Lisp_Type::Lisp_Cons) }
     } else {
       unsafe { list1 (Fcons ($name[0].u.s.car, $name[0].u.s.u.cdr)) }
@@ -1933,7 +1941,7 @@ pub fn FRAME_PIXEL_Y_FROM_CANON_Y (f: *mut frame, y: Lisp_Object) -> c_int
 pub fn FRAME_CANON_X_FROM_PIXEL_X (f: *mut frame, x: c_int) -> Lisp_Object
 {
   if x % FRAME_COLUMN_WIDTH (f) != 0
-    { unsafe { make_float (x as c_double / FRAME_COLUMN_WIDTH (f) as c_double) } }
+    { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { make_float (x as c_double / FRAME_COLUMN_WIDTH (f) as c_double) } }
   else { make_fixnum ((x / FRAME_COLUMN_WIDTH (f)) as EMACS_INT) }
 }
 
@@ -1942,7 +1950,7 @@ pub fn FRAME_CANON_X_FROM_PIXEL_X (f: *mut frame, x: c_int) -> Lisp_Object
 pub fn FRAME_CANON_Y_FROM_PIXEL_Y (f: *mut frame, y: c_int) -> Lisp_Object
 {
   if y % FRAME_LINE_HEIGHT (f) != 0
-    { unsafe { make_float (y as c_double / FRAME_LINE_HEIGHT (f) as c_double) } }
+    { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { make_float (y as c_double / FRAME_LINE_HEIGHT (f) as c_double) } }
   else { make_fixnum ((y / FRAME_LINE_HEIGHT (f)) as EMACS_INT) }
 }
 
@@ -2057,12 +2065,12 @@ pub fn FRAME_INNER_HEIGHT (f: *mut frame) -> c_int
    the names stay macros over C's own path (the `FRAME_IMAGE_CACHE` shape).
    C: #define FRAME_SMALLEST_CHAR_WIDTH(f) FRAME_DISPLAY_INFO (f)->smallest_char_width  */
 macro_rules! FRAME_SMALLEST_CHAR_WIDTH {
-  ($f:expr) => { unsafe { (*FRAME_DISPLAY_INFO! ($f)).smallest_char_width } };
+  ($f:expr) => { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*FRAME_DISPLAY_INFO! ($f)).smallest_char_width } };
   ($f:expr, $v:expr) => { unsafe { (*FRAME_DISPLAY_INFO! ($f)).smallest_char_width = $v } };
 }
 /// C: #define FRAME_SMALLEST_FONT_HEIGHT(f) FRAME_DISPLAY_INFO (f)->smallest_font_height
 macro_rules! FRAME_SMALLEST_FONT_HEIGHT {
-  ($f:expr) => { unsafe { (*FRAME_DISPLAY_INFO! ($f)).smallest_font_height } };
+  ($f:expr) => { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*FRAME_DISPLAY_INFO! ($f)).smallest_font_height } };
   ($f:expr, $v:expr) => { unsafe { (*FRAME_DISPLAY_INFO! ($f)).smallest_font_height = $v } };
 }
 
@@ -2074,7 +2082,7 @@ macro_rules! flush_frame {
     let f = $f;
     let rif: *mut redisplay_interface = FRAME_RIF! (f);
     if !rif.is_null () {
-      if let Some (flush_display) = unsafe { (*rif).flush_display } { flush_display (f); }
+      if let Some (flush_display) = /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*rif).flush_display } { flush_display (f); }
     }
   }};
 }

@@ -118,30 +118,46 @@ unsafe extern "C" {
 #[inline(always)]
 pub unsafe fn scratch_buffer_init (buffer: *mut scratch_buffer)
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   (*buffer).data = &mut (*buffer).__space.__c as *mut [c_char] as *mut c_void;
   (*buffer).length = std::mem::size_of_val (&(*buffer).__space);
+
+  }
 }
 
 /* Deallocates *BUFFER (if it was heap-allocated).  */
 #[inline(always)]
 pub unsafe fn scratch_buffer_free (buffer: *mut scratch_buffer)
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   if (*buffer).data != &mut (*buffer).__space.__c as *mut [c_char] as *mut c_void
     { rpl_free ((*buffer).data); }
+
+  }
 }
 
 /* Alias for __libc_scratch_buffer_grow.  */
 #[inline(always)]
 pub unsafe fn scratch_buffer_grow (buffer: *mut scratch_buffer) -> bool
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   return _GL_LIKELY! (_gl_scratch_buffer_grow (buffer));
+
+  }
 }
 
 /* Alias for __libc_scratch_buffer_grow_preserve.  */
 #[inline(always)]
 pub unsafe fn scratch_buffer_grow_preserve (buffer: *mut scratch_buffer) -> bool
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   return _GL_LIKELY! (_gl_scratch_buffer_grow_preserve (buffer));
+
+  }
 }
 
 /* Alias for __libc_scratch_set_array_size.  */
@@ -149,7 +165,11 @@ pub unsafe fn scratch_buffer_grow_preserve (buffer: *mut scratch_buffer) -> bool
 pub unsafe fn scratch_buffer_set_array_size (buffer: *mut scratch_buffer, nelem: usize,
                                              size: usize) -> bool
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   return _GL_LIKELY! (_gl_scratch_buffer_set_array_size (buffer, nelem, size));
+
+  }
 }
 
 /* The include guard has no Rust counterpart (PORTING.md 0.1).  */

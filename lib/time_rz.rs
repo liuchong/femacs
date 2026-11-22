@@ -34,9 +34,7 @@
 // `mktime_z` is zero-initialized (PORTING.md 1.5); the unit's definitions of `set_tz` and
 // `revert_tz` live in `mod tz_impl` because the time-internal mirror declares both names
 // (E0428, PORTING.md 0.1-10).
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
-         static_mut_refs, unsafe_op_in_unsafe_fn)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -117,8 +115,12 @@ mod tz_impl
   #[inline(always)]
   unsafe fn abbrs (tz: timezone_t) -> *mut c_char
   {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
     return std::ptr::addr_of_mut! ((*tz).abbrs) as *mut c_char;
+  
   }
+}
 
   /* C 84-92.  */
   /* Copy to ABBRS the abbreviation at ABBR with size ABBR_SIZE (this
@@ -126,9 +128,13 @@ mod tz_impl
      mark the end of ABBRS.  */
   unsafe fn extend_abbrs (abbrs: *mut c_char, abbr: *const c_char, abbr_size: usize)
   {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
     memcpy (abbrs as *mut c_void, abbr as *const c_void, abbr_size);
     *abbrs.add (abbr_size) = b'\0' as c_char;
+  
   }
+}
 
   /* C 94-111.  */
   /* Return a newly allocated time zone for NAME, or NULL on failure.
@@ -136,6 +142,8 @@ mod tz_impl
   #[unsafe(no_mangle)]
   pub unsafe extern "C" fn tzalloc (name: *const c_char) -> timezone_t
   {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
     let name_size: usize = if ! name.is_null () { strlen (name) + 1 } else { 0 };
     let abbr_size: usize = if name_size < ABBR_SIZE_MIN
                            { ABBR_SIZE_MIN } else { name_size + 1 };
@@ -149,7 +157,9 @@ mod tz_impl
           { extend_abbrs (abbrs (tz), name, name_size); }
       }
     return tz;
+  
   }
+}
 
   /* C 113-164.  */
   /* If HAVE_STRUCT_TM_TM_ZONE, save into TZ any nontrivial time zone
@@ -157,6 +167,8 @@ mod tz_impl
      Return true if successful, false (setting errno) otherwise.  */
   unsafe fn save_abbr (mut tz: timezone_t, tm: *mut tm) -> bool
   {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
     /* C 119's `#if HAVE_STRUCT_TM_TM_ZONE` is live (the frozen `struct tm` has `tm_zone`);
        the `#else` arm is dead.  */
     let zone: *const c_char = (*tm).tm_zone;
@@ -205,13 +217,17 @@ mod tz_impl
     /* Replace the zone name so that its lifetime matches that of TZ.  */
     (*tm).tm_zone = zone_copy;
     return true;
+  
   }
+}
 
   /* C 166-177.  */
   /* Free a time zone.  */
   #[unsafe(no_mangle)]
   pub unsafe extern "C" fn tzfree (mut tz: timezone_t)
   {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
     if tz != local_tz! ()
       {
         while ! tz.is_null ()
@@ -221,19 +237,25 @@ mod tz_impl
             tz = next;
           }
       }
+  
   }
+}
 
   /* C 198-207.  */
   /* Change the environment to match the specified timezone_t value.
      Return true if successful, false (setting errno) otherwise.  */
   unsafe fn change_env (tz: timezone_t) -> bool
   {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
     if setenv_TZ! (if (*tz).tz_is_set != 0
                    { abbrs (tz) as *const c_char } else { std::ptr::null () }) != 0
       { return false; }
     tzset ();
     return true;
+  
   }
+}
 
   /* C 209-233.  */
   /* Temporarily set the time zone to TZ, which must not be null.
@@ -243,6 +265,8 @@ mod tz_impl
   #[unsafe(no_mangle)]
   pub unsafe extern "C" fn set_tz (tz: timezone_t) -> timezone_t
   {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
     let env_tz: *mut c_char = getenv_TZ! ();
     if if ! env_tz.is_null ()
          { (*tz).tz_is_set != 0 && streq (abbrs (tz), env_tz) }
@@ -261,7 +285,9 @@ mod tz_impl
           }
         return old_tz;
       }
+  
   }
+}
 
   /* C 235-253.  */
   /* Restore an old setting returned by set_tz.  It must not be null.
@@ -270,6 +296,8 @@ mod tz_impl
   #[unsafe(no_mangle)]
   pub unsafe extern "C" fn revert_tz (tz: timezone_t) -> bool
   {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
     if tz == local_tz! ()
       { return true; }
     else
@@ -282,7 +310,9 @@ mod tz_impl
         *errno () = saved_errno;
         return ok;
       }
+  
   }
+}
 
   /* C 255-287.  */
   /* Use time zone TZ to compute localtime_r (T, TM).  */
@@ -290,6 +320,8 @@ mod tz_impl
   pub unsafe extern "C" fn localtime_rz (tz: timezone_t, t: *const time_t,
                                          tm: *mut tm) -> *mut tm
   {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
     /* C 259-272's `#ifdef HAVE_LOCALTIME_INFLOOP_BUG` arm is dead (the macro is undefined
        on this target).  */
 
@@ -306,13 +338,17 @@ mod tz_impl
           }
         return std::ptr::null_mut ();
       }
+  
   }
+}
 
   /* C 289-320.  */
   /* Use time zone TZ to compute mktime (TM).  */
   #[unsafe(no_mangle)]
   pub unsafe extern "C" fn mktime_z (tz: timezone_t, tm: *mut tm) -> time_t
   {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
     if tz.is_null ()
       { return timegm! (tm); }
     else
@@ -340,5 +376,7 @@ mod tz_impl
           }
         return -1;
       }
+  
   }
+}
 }

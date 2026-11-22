@@ -1,0 +1,2198 @@
+{
+  "conservative_scans": [
+    {
+      "anchor_pattern": "pub unsafe extern \"C-unwind\" fn mark_c_stack",
+      "file": "src/alloc.rs",
+      "justification": "Conservatively scans active native machine stack words [m_stack_top, stack_bottom) for libgccjit .eln native frames (gcc_jit_function_new_local) and unmigrated C-ported src/*.rs frames holding local Lisp_Object values across Feval/Ffuncall; bypassed under FEMACS_GC_SKIP_STACK_SCAN=1 to verify explicit-root closure on Interpreter, Bytecode, PersistentRoot, module global_ref, and safe_domain paths.",
+      "status": "retained_hybrid",
+      "symbol": "mark_c_stack"
+    },
+    {
+      "anchor_pattern": "pub fn flush_stack_call_func",
+      "file": "src/include/lisp.rs",
+      "justification": "Spills callee-saved CPU registers onto the active thread stack and captures m_stack_top prior to garbage_collect_impl or global-lock release so register-held Lisp_Object values in unmigrated C-ported frames are visible to mark_c_stack.",
+      "status": "retained_hybrid",
+      "symbol": "flush_stack_call_func"
+    },
+    {
+      "anchor_pattern": "let mut block: *mut sa_stack_block = sa_stack_top;",
+      "file": "src/alloc.rs",
+      "justification": "Conservatively marks only currently active USE_SAFE_ALLOCA! blocks [sa_stack_top, sa_stack_free), preserving intra-frame post-SAFE_FREE! reads required by P-172 (e.g. Fstring_distance).",
+      "status": "retained_hybrid",
+      "symbol": "sa_stack_top_active_frames"
+    },
+    {
+      "anchor_pattern": "pub unsafe extern \"C-unwind\" fn sa_stack_frame_exit",
+      "file": "src/alloc.rs",
+      "justification": "Retired in U4: SaStackUnwindGuard::drop calls sa_stack_frame_exit at actual Rust lexical frame exit (normal return and NonLocalExit unwind), scrubbing retired sa_stack bytes and resetting (*block).used = 0 so dead frames in sa_stack_free are never conservatively scanned.",
+      "status": "retired_in_u4",
+      "symbol": "sa_stack_free_dead_frames"
+    }
+  ],
+  "forbid_unsafe_modules": [
+    "crates/femacs-pure",
+    "crates/femacs-vm/src/safe_domain.rs",
+    "cli",
+    "packaging",
+    "lib/include/stdcountof.rs",
+    "src/include/macuvs.rs",
+    "lib-src/asset-directory-tool.rs",
+    "lib-src/emacsclient.rs",
+    "lib-src/hexl.rs",
+    "lib-src/make-fingerprint.rs",
+    "lib/include/byteswap.in.rs",
+    "lib/include/c-ctype.rs",
+    "lib/include/endian.in.rs",
+    "lib/include/u64.rs",
+    "lib/mini-gmp-gnulib.rs",
+    "lib/regex.rs",
+    "lib/stdlib.rs",
+    "lib/unistd.rs"
+  ],
+  "isolated_unsafe_boundaries": {
+    "crates/femacs-host/src/bin/temacs.rs": {
+      "boundary_class": "process_bootstrap_abi",
+      "caller": "OS C runtime main() -> femacs_host::run_editor_main -> femacs_editor_main",
+      "failure_path": "Terminates via controlled exit code or fatal() diagnostic",
+      "invariant": "Single-process initialization on main thread before Lisp threads or GUI loop start",
+      "ownership": "Process-global single VM instance and OS argc/argv vector"
+    },
+    "crates/femacs-host/src/lib.rs": {
+      "boundary_class": "process_bootstrap_abi",
+      "caller": "OS C runtime main() -> femacs_host::run_editor_main -> femacs_editor_main",
+      "failure_path": "Terminates via controlled exit code or fatal() diagnostic",
+      "invariant": "Single-process initialization on main thread before Lisp threads or GUI loop start",
+      "ownership": "Process-global single VM instance and OS argc/argv vector"
+    },
+    "crates/femacs-sys/src/client_os.rs": {
+      "boundary_class": "posix_socket_process_ffi",
+      "caller": "femacsclient safe CLI workflow in lib-src/emacsclient.rs",
+      "failure_path": "Converts negative libc return codes immediately into io::Error",
+      "invariant": "Validates sockaddr, signal masks, and termios pointers before libc syscalls",
+      "ownership": "Owned RawFd socket/tty descriptors closed via Drop/explicit close"
+    },
+    "crates/femacs-vm/src/nonlocal.rs": {
+      "boundary_class": "vm_eval_and_nonlocal_boundary",
+      "caller": "femacs-vm safe_domain, interpreter, bytecode VM, and C-unwind subr dispatch",
+      "failure_path": "Unwinds via NonLocalExit through catch_vm_nonlocal, running specpdl cleanups and Rust Drop guards exactly once",
+      "invariant": "All cross-safepoint temporaries rooted via Rooted/ScopedRawSpan/specpdl; catches NonLocalExit before FFI boundary",
+      "ownership": "Per-thread specpdl, handler stack, bytecode frame stack, and rooted NonLocalExit payloads"
+    },
+    "crates/femacs-vm/src/roots.rs": {
+      "boundary_class": "gc_heap_and_root_boundary",
+      "caller": "femacs-vm allocator, Rooted/PersistentRoot/ScopedRawSpan handles, and garbage_collect_impl",
+      "failure_path": "Truncates LIFO roots on NonLocalExit unwind, rejects stale root generations, signals memory-full on OOM",
+      "invariant": "Executed on owning Lisp thread under VM global lock; tagged Lisp_Object pointers valid or pdumper-backed",
+      "ownership": "Single VM heap, thread-local LIFO root stacks, and generation-checked PersistentRoot slab"
+    },
+    "crates/femacs-vm/src/state.rs": {
+      "boundary_class": "gc_heap_and_root_boundary",
+      "caller": "femacs-vm allocator, Rooted/PersistentRoot/ScopedRawSpan handles, and garbage_collect_impl",
+      "failure_path": "Truncates LIFO roots on NonLocalExit unwind, rejects stale root generations, signals memory-full on OOM",
+      "invariant": "Executed on owning Lisp thread under VM global lock; tagged Lisp_Object pointers valid or pdumper-backed",
+      "ownership": "Single VM heap, thread-local LIFO root stacks, and generation-checked PersistentRoot slab"
+    },
+    "crates/femacs-vm/src/vm_primitives.rs": {
+      "boundary_class": "vm_eval_and_nonlocal_boundary",
+      "caller": "femacs-vm safe_domain, interpreter, bytecode VM, and C-unwind subr dispatch",
+      "failure_path": "Unwinds via NonLocalExit through catch_vm_nonlocal, running specpdl cleanups and Rust Drop guards exactly once",
+      "invariant": "All cross-safepoint temporaries rooted via Rooted/ScopedRawSpan/specpdl; catches NonLocalExit before FFI boundary",
+      "ownership": "Per-thread specpdl, handler stack, bytecode frame stack, and rooted NonLocalExit payloads"
+    },
+    "lib/acl-internal.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/allocator.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/binary-io.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/boot-time.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/c-strcasecmp.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/c-strncasecmp.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/canonicalize-lgpl.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/careadlinkat.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/close-stream.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/copy-file-range.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/file-has-acl.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/filemode.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/filevercmp.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/fpending.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/free.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/fseterr.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/fstatat.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/fsusage.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/ftoastr.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/futimens.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/get-permissions.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/getopt.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/getopt1.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/getrandom.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/gettime.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/acl-internal.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/acl.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/allocator.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/binary-io.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/boot-time-aux.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/boot-time.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/c-strcase.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/careadlinkat.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/close-stream.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/ctype.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/dirent.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/errno.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/fcntl.in.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/filemode.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/filevercmp.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/fingerprint.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/fpending.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/fseterr.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/fsusage.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/ftoastr.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/getopt-core.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/getopt-ext.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/getopt_int.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/gettext.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/grp.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/issymlink.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/langinfo.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/math.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/md5.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/mini-gmp.rs": {
+      "boundary_class": "gmp_limb_arithmetic_ffi",
+      "caller": "femacs-vm bignum arithmetic and integer conversion primitives",
+      "failure_path": "Signals overflow-error / memory-full via NonLocalExit or aborts on allocator exhaustion",
+      "invariant": "Valid limb pointer and capacity >= |_mp_size| matching __mpz_struct layout",
+      "ownership": "mpz_t limb arrays owned by temporary wrapper or Lisp_Bignum finalizer"
+    },
+    "lib/include/mktime-internal.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/nproc.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/openat-priv.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/openat.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/pwd.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/readutmp.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/save-cwd.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/scratch_buffer.rs": {
+      "boundary_class": "gnulib_raw_buffer_ffi",
+      "caller": "femacs-sys / femacs-vm low-level C-ported buffer helpers",
+      "failure_path": "Marks dynarray failure sentinel or returns false/ENOMEM on overflow or OOM",
+      "invariant": "Element size multiplication checked before realloc/memcpy; non-overlapping ranges",
+      "ownership": "Single-owner inline stack buffer or malloc heap block freed by caller"
+    },
+    "lib/include/sha1.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/sha256.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/sha3.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/sha512.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/signal.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/stat-time.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/stdbit.in.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/stddef.in.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/stdio.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/stdlib.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/strftime.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/string.in.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/string.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/sys_acl.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/sys_mount.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/sys_random.in.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/sys_resource.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/sys_select.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/sys_stat.in.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/sys_sysctl.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/sys_sysinfo.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/sys_time.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/sys_utsname.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/sysinfo.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/tempname.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/time-internal.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/time.in.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/timespec.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/unistd.in.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/utimens.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/utmpx.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/verify.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/wchar.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/include/wctype.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/issymlink.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/lstat.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/malloc/dynarray_at_failure.rs": {
+      "boundary_class": "gnulib_raw_buffer_ffi",
+      "caller": "femacs-sys / femacs-vm low-level C-ported buffer helpers",
+      "failure_path": "Marks dynarray failure sentinel or returns false/ENOMEM on overflow or OOM",
+      "invariant": "Element size multiplication checked before realloc/memcpy; non-overlapping ranges",
+      "ownership": "Single-owner inline stack buffer or malloc heap block freed by caller"
+    },
+    "lib/malloc/dynarray_emplace_enlarge.rs": {
+      "boundary_class": "gnulib_raw_buffer_ffi",
+      "caller": "femacs-sys / femacs-vm low-level C-ported buffer helpers",
+      "failure_path": "Marks dynarray failure sentinel or returns false/ENOMEM on overflow or OOM",
+      "invariant": "Element size multiplication checked before realloc/memcpy; non-overlapping ranges",
+      "ownership": "Single-owner inline stack buffer or malloc heap block freed by caller"
+    },
+    "lib/malloc/dynarray_finalize.rs": {
+      "boundary_class": "gnulib_raw_buffer_ffi",
+      "caller": "femacs-sys / femacs-vm low-level C-ported buffer helpers",
+      "failure_path": "Marks dynarray failure sentinel or returns false/ENOMEM on overflow or OOM",
+      "invariant": "Element size multiplication checked before realloc/memcpy; non-overlapping ranges",
+      "ownership": "Single-owner inline stack buffer or malloc heap block freed by caller"
+    },
+    "lib/malloc/dynarray_resize.rs": {
+      "boundary_class": "gnulib_raw_buffer_ffi",
+      "caller": "femacs-sys / femacs-vm low-level C-ported buffer helpers",
+      "failure_path": "Marks dynarray failure sentinel or returns false/ENOMEM on overflow or OOM",
+      "invariant": "Element size multiplication checked before realloc/memcpy; non-overlapping ranges",
+      "ownership": "Single-owner inline stack buffer or malloc heap block freed by caller"
+    },
+    "lib/malloc/dynarray_resize_clear.rs": {
+      "boundary_class": "gnulib_raw_buffer_ffi",
+      "caller": "femacs-sys / femacs-vm low-level C-ported buffer helpers",
+      "failure_path": "Marks dynarray failure sentinel or returns false/ENOMEM on overflow or OOM",
+      "invariant": "Element size multiplication checked before realloc/memcpy; non-overlapping ranges",
+      "ownership": "Single-owner inline stack buffer or malloc heap block freed by caller"
+    },
+    "lib/malloc/include/dynarray.rs": {
+      "boundary_class": "gnulib_raw_buffer_ffi",
+      "caller": "femacs-sys / femacs-vm low-level C-ported buffer helpers",
+      "failure_path": "Marks dynarray failure sentinel or returns false/ENOMEM on overflow or OOM",
+      "invariant": "Element size multiplication checked before realloc/memcpy; non-overlapping ranges",
+      "ownership": "Single-owner inline stack buffer or malloc heap block freed by caller"
+    },
+    "lib/malloc/scratch_buffer_grow.rs": {
+      "boundary_class": "gnulib_raw_buffer_ffi",
+      "caller": "femacs-sys / femacs-vm low-level C-ported buffer helpers",
+      "failure_path": "Marks dynarray failure sentinel or returns false/ENOMEM on overflow or OOM",
+      "invariant": "Element size multiplication checked before realloc/memcpy; non-overlapping ranges",
+      "ownership": "Single-owner inline stack buffer or malloc heap block freed by caller"
+    },
+    "lib/malloc/scratch_buffer_grow_preserve.rs": {
+      "boundary_class": "gnulib_raw_buffer_ffi",
+      "caller": "femacs-sys / femacs-vm low-level C-ported buffer helpers",
+      "failure_path": "Marks dynarray failure sentinel or returns false/ENOMEM on overflow or OOM",
+      "invariant": "Element size multiplication checked before realloc/memcpy; non-overlapping ranges",
+      "ownership": "Single-owner inline stack buffer or malloc heap block freed by caller"
+    },
+    "lib/malloc/scratch_buffer_set_array_size.rs": {
+      "boundary_class": "gnulib_raw_buffer_ffi",
+      "caller": "femacs-sys / femacs-vm low-level C-ported buffer helpers",
+      "failure_path": "Marks dynarray failure sentinel or returns false/ENOMEM on overflow or OOM",
+      "invariant": "Element size multiplication checked before realloc/memcpy; non-overlapping ranges",
+      "ownership": "Single-owner inline stack buffer or malloc heap block freed by caller"
+    },
+    "lib/md5-stream.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/md5.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/memeq.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/memmem.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/mempcpy.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/memrchr.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/memset_explicit.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/mini-gmp.rs": {
+      "boundary_class": "gmp_limb_arithmetic_ffi",
+      "caller": "femacs-vm bignum arithmetic and integer conversion primitives",
+      "failure_path": "Signals overflow-error / memory-full via NonLocalExit or aborts on allocator exhaustion",
+      "invariant": "Valid limb pointer and capacity >= |_mp_size| matching __mpz_struct layout",
+      "ownership": "mpz_t limb arrays owned by temporary wrapper or Lisp_Bignum finalizer"
+    },
+    "lib/mktime.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/nanosleep.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/nproc.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/openat-die.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/openat-proc.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/pipe2.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/qcopy-acl.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/rawmemchr.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/save-cwd.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/set-permissions.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/sha1.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/sha256.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/sha3.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/sha512.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/sig2str.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/sigdescr_np.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/stat-time.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/streq.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/strftime.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/strnul.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/tempname.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/time_rz.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/timegm.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/utimens.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/utimensat.rs": {
+      "boundary_class": "posix_gnulib_sys_ffi",
+      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
+      "failure_path": "Propagates errno and negative/null C status codes to caller",
+      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
+      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "src/abi_shim.rs": {
+      "boundary_class": "display_cocoa_tty_bridge",
+      "caller": "Cocoa Swift @_silgen_name bridge, TTY redisplay engine, and window/frame primitives",
+      "failure_path": "Validates decode_live_frame/window_live_p and signals wrong-type-argument or error via NonLocalExit",
+      "invariant": "Live frame/window/terminal pointers accessed on owning VM/main UI thread",
+      "ownership": "VM-owned frame, window, glyph matrix, face cache, and Cocoa/terminfo resources"
+    },
+    "src/alloc.rs": {
+      "boundary_class": "gc_heap_and_root_boundary",
+      "caller": "femacs-vm allocator, Rooted/PersistentRoot/ScopedRawSpan handles, and garbage_collect_impl",
+      "failure_path": "Truncates LIFO roots on NonLocalExit unwind, rejects stale root generations, signals memory-full on OOM",
+      "invariant": "Executed on owning Lisp thread under VM global lock; tagged Lisp_Object pointers valid or pdumper-backed",
+      "ownership": "Single VM heap, thread-local LIFO root stacks, and generation-checked PersistentRoot slab"
+    },
+    "src/atimer.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/bidi.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/bignum.rs": {
+      "boundary_class": "gmp_limb_arithmetic_ffi",
+      "caller": "femacs-vm bignum arithmetic and integer conversion primitives",
+      "failure_path": "Signals overflow-error / memory-full via NonLocalExit or aborts on allocator exhaustion",
+      "invariant": "Valid limb pointer and capacity >= |_mp_size| matching __mpz_struct layout",
+      "ownership": "mpz_t limb arrays owned by temporary wrapper or Lisp_Bignum finalizer"
+    },
+    "src/buffer.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/bytecode.rs": {
+      "boundary_class": "vm_eval_and_nonlocal_boundary",
+      "caller": "femacs-vm safe_domain, interpreter, bytecode VM, and C-unwind subr dispatch",
+      "failure_path": "Unwinds via NonLocalExit through catch_vm_nonlocal, running specpdl cleanups and Rust Drop guards exactly once",
+      "invariant": "All cross-safepoint temporaries rooted via Rooted/ScopedRawSpan/specpdl; catches NonLocalExit before FFI boundary",
+      "ownership": "Per-thread specpdl, handler stack, bytecode frame stack, and rooted NonLocalExit payloads"
+    },
+    "src/callint.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/callproc.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/casefiddle.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/casetab.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/category.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/ccl.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/character.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/charset.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/chartab.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/cm.rs": {
+      "boundary_class": "display_cocoa_tty_bridge",
+      "caller": "Cocoa Swift @_silgen_name bridge, TTY redisplay engine, and window/frame primitives",
+      "failure_path": "Validates decode_live_frame/window_live_p and signals wrong-type-argument or error via NonLocalExit",
+      "invariant": "Live frame/window/terminal pointers accessed on owning VM/main UI thread",
+      "ownership": "VM-owned frame, window, glyph matrix, face cache, and Cocoa/terminfo resources"
+    },
+    "src/cmds.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/coding.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/comp.rs": {
+      "boundary_class": "native_eln_jit_abi",
+      "caller": "native Elisp compiler (libgccjit) and .eln dynamic loader (Fnative_elisp_load)",
+      "failure_path": "Signals native-lisp-file-inconsistent on ABI mismatch or returns error status code to .eln caller",
+      "invariant": "Verifies Vcomp_abi_hash before executing .eln; status helpers catch NonLocalExit without unwinding across C JIT frames",
+      "ownership": "dlopen comp_unit handles, relocation arrays, and status-returning ABI v14 helpers"
+    },
+    "src/composite.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/data.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/decompress.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/dired.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/dispnew.rs": {
+      "boundary_class": "display_cocoa_tty_bridge",
+      "caller": "Cocoa Swift @_silgen_name bridge, TTY redisplay engine, and window/frame primitives",
+      "failure_path": "Validates decode_live_frame/window_live_p and signals wrong-type-argument or error via NonLocalExit",
+      "invariant": "Live frame/window/terminal pointers accessed on owning VM/main UI thread",
+      "ownership": "VM-owned frame, window, glyph matrix, face cache, and Cocoa/terminfo resources"
+    },
+    "src/doc.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/doprnt.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/dynlib.rs": {
+      "boundary_class": "native_eln_jit_abi",
+      "caller": "native Elisp compiler (libgccjit) and .eln dynamic loader (Fnative_elisp_load)",
+      "failure_path": "Signals native-lisp-file-inconsistent on ABI mismatch or returns error status code to .eln caller",
+      "invariant": "Verifies Vcomp_abi_hash before executing .eln; status helpers catch NonLocalExit without unwinding across C JIT frames",
+      "ownership": "dlopen comp_unit handles, relocation arrays, and status-returning ABI v14 helpers"
+    },
+    "src/editfns.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/emacs-module.rs": {
+      "boundary_class": "dynamic_module_c_abi",
+      "caller": "Fmodule_load and external C module callbacks via emacs_env_31",
+      "failure_path": "Records non_local_exit_signal/throw in env and returns sentinel to C module without unwinding across C frames",
+      "invariant": "Validates live environment and owning thread; intercepts all NonLocalExit/panic into pending module exit state",
+      "ownership": "Scoped module emacs_env lifetimes and refcounted Vmodule_refs_hash global refs"
+    },
+    "src/emacs.rs": {
+      "boundary_class": "process_bootstrap_abi",
+      "caller": "OS C runtime main() -> femacs_host::run_editor_main -> femacs_editor_main",
+      "failure_path": "Terminates via controlled exit code or fatal() diagnostic",
+      "invariant": "Single-process initialization on main thread before Lisp threads or GUI loop start",
+      "ownership": "Process-global single VM instance and OS argc/argv vector"
+    },
+    "src/eval.rs": {
+      "boundary_class": "vm_eval_and_nonlocal_boundary",
+      "caller": "femacs-vm safe_domain, interpreter, bytecode VM, and C-unwind subr dispatch",
+      "failure_path": "Unwinds via NonLocalExit through catch_vm_nonlocal, running specpdl cleanups and Rust Drop guards exactly once",
+      "invariant": "All cross-safepoint temporaries rooted via Rooted/ScopedRawSpan/specpdl; catches NonLocalExit before FFI boundary",
+      "ownership": "Per-thread specpdl, handler stack, bytecode frame stack, and rooted NonLocalExit payloads"
+    },
+    "src/fileio.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/filelock.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/floatfns.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/fns.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/font.rs": {
+      "boundary_class": "display_cocoa_tty_bridge",
+      "caller": "Cocoa Swift @_silgen_name bridge, TTY redisplay engine, and window/frame primitives",
+      "failure_path": "Validates decode_live_frame/window_live_p and signals wrong-type-argument or error via NonLocalExit",
+      "invariant": "Live frame/window/terminal pointers accessed on owning VM/main UI thread",
+      "ownership": "VM-owned frame, window, glyph matrix, face cache, and Cocoa/terminfo resources"
+    },
+    "src/fontset.rs": {
+      "boundary_class": "display_cocoa_tty_bridge",
+      "caller": "Cocoa Swift @_silgen_name bridge, TTY redisplay engine, and window/frame primitives",
+      "failure_path": "Validates decode_live_frame/window_live_p and signals wrong-type-argument or error via NonLocalExit",
+      "invariant": "Live frame/window/terminal pointers accessed on owning VM/main UI thread",
+      "ownership": "VM-owned frame, window, glyph matrix, face cache, and Cocoa/terminfo resources"
+    },
+    "src/frame.rs": {
+      "boundary_class": "display_cocoa_tty_bridge",
+      "caller": "Cocoa Swift @_silgen_name bridge, TTY redisplay engine, and window/frame primitives",
+      "failure_path": "Validates decode_live_frame/window_live_p and signals wrong-type-argument or error via NonLocalExit",
+      "invariant": "Live frame/window/terminal pointers accessed on owning VM/main UI thread",
+      "ownership": "VM-owned frame, window, glyph matrix, face cache, and Cocoa/terminfo resources"
+    },
+    "src/fringe.rs": {
+      "boundary_class": "display_cocoa_tty_bridge",
+      "caller": "Cocoa Swift @_silgen_name bridge, TTY redisplay engine, and window/frame primitives",
+      "failure_path": "Validates decode_live_frame/window_live_p and signals wrong-type-argument or error via NonLocalExit",
+      "invariant": "Live frame/window/terminal pointers accessed on owning VM/main UI thread",
+      "ownership": "VM-owned frame, window, glyph matrix, face cache, and Cocoa/terminfo resources"
+    },
+    "src/gnutls.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/image.rs": {
+      "boundary_class": "display_cocoa_tty_bridge",
+      "caller": "Cocoa Swift @_silgen_name bridge, TTY redisplay engine, and window/frame primitives",
+      "failure_path": "Validates decode_live_frame/window_live_p and signals wrong-type-argument or error via NonLocalExit",
+      "invariant": "Live frame/window/terminal pointers accessed on owning VM/main UI thread",
+      "ownership": "VM-owned frame, window, glyph matrix, face cache, and Cocoa/terminfo resources"
+    },
+    "src/include/atimer.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/include/bignum.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/include/blockinput.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/include/buffer.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/include/category.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/include/ccl.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/include/character.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/include/charset.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/include/cm.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/include/coding.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/include/commands.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/include/comp.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/include/composite.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/include/conf_post.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/include/dispextern.rs": {
+      "boundary_class": "display_cocoa_tty_bridge",
+      "caller": "Cocoa Swift @_silgen_name bridge, TTY redisplay engine, and window/frame primitives",
+      "failure_path": "Validates decode_live_frame/window_live_p and signals wrong-type-argument or error via NonLocalExit",
+      "invariant": "Live frame/window/terminal pointers accessed on owning VM/main UI thread",
+      "ownership": "VM-owned frame, window, glyph matrix, face cache, and Cocoa/terminfo resources"
+    },
+    "src/include/disptab.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/include/dynlib.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/include/emacs-module.in.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/include/font.rs": {
+      "boundary_class": "display_cocoa_tty_bridge",
+      "caller": "Cocoa Swift @_silgen_name bridge, TTY redisplay engine, and window/frame primitives",
+      "failure_path": "Validates decode_live_frame/window_live_p and signals wrong-type-argument or error via NonLocalExit",
+      "invariant": "Live frame/window/terminal pointers accessed on owning VM/main UI thread",
+      "ownership": "VM-owned frame, window, glyph matrix, face cache, and Cocoa/terminfo resources"
+    },
+    "src/include/fontset.rs": {
+      "boundary_class": "display_cocoa_tty_bridge",
+      "caller": "Cocoa Swift @_silgen_name bridge, TTY redisplay engine, and window/frame primitives",
+      "failure_path": "Validates decode_live_frame/window_live_p and signals wrong-type-argument or error via NonLocalExit",
+      "invariant": "Live frame/window/terminal pointers accessed on owning VM/main UI thread",
+      "ownership": "VM-owned frame, window, glyph matrix, face cache, and Cocoa/terminfo resources"
+    },
+    "src/include/frame.rs": {
+      "boundary_class": "display_cocoa_tty_bridge",
+      "caller": "Cocoa Swift @_silgen_name bridge, TTY redisplay engine, and window/frame primitives",
+      "failure_path": "Validates decode_live_frame/window_live_p and signals wrong-type-argument or error via NonLocalExit",
+      "invariant": "Live frame/window/terminal pointers accessed on owning VM/main UI thread",
+      "ownership": "VM-owned frame, window, glyph matrix, face cache, and Cocoa/terminfo resources"
+    },
+    "src/include/globals.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/include/gnutls.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/include/indent.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/include/intervals.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/include/itree.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/include/keyboard.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/include/keymap.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/include/libxml2.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/include/lisp.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/include/macros.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/include/menu.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/include/nsterm.rs": {
+      "boundary_class": "display_cocoa_tty_bridge",
+      "caller": "Cocoa Swift @_silgen_name bridge, TTY redisplay engine, and window/frame primitives",
+      "failure_path": "Validates decode_live_frame/window_live_p and signals wrong-type-argument or error via NonLocalExit",
+      "invariant": "Live frame/window/terminal pointers accessed on owning VM/main UI thread",
+      "ownership": "VM-owned frame, window, glyph matrix, face cache, and Cocoa/terminfo resources"
+    },
+    "src/include/pdumper.rs": {
+      "boundary_class": "pdumper_relocation_boundary",
+      "caller": "dump-emacs-portable and startup pdumper_load",
+      "failure_path": "Rejects incompatible/corrupt dump with structured load status or Lisp error",
+      "invariant": "Validated dump header magic/fingerprint; runs while single-threaded or holding VM lock",
+      "ownership": "Mapped .pdmp sections, registered static/warm relocation tables, and dump hooks"
+    },
+    "src/include/process.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/include/regex-emacs.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/include/region-cache.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/include/sfnt.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/include/sfntfont.rs": {
+      "boundary_class": "display_cocoa_tty_bridge",
+      "caller": "Cocoa Swift @_silgen_name bridge, TTY redisplay engine, and window/frame primitives",
+      "failure_path": "Validates decode_live_frame/window_live_p and signals wrong-type-argument or error via NonLocalExit",
+      "invariant": "Live frame/window/terminal pointers accessed on owning VM/main UI thread",
+      "ownership": "VM-owned frame, window, glyph matrix, face cache, and Cocoa/terminfo resources"
+    },
+    "src/include/syntax.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/include/sysselect.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/include/syssignal.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/include/sysstdio.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/include/systhread.rs": {
+      "boundary_class": "vm_thread_sync_boundary",
+      "caller": "Lisp thread scheduler, pthread entry run_thread, and global lock handoff",
+      "failure_path": "Finalizes thread slab hooks, releases locks, and records thread error outcome on NonLocalExit",
+      "invariant": "Only one Lisp thread holds global lock at a time; stack top flushed before lock release or GC; run_thread catches NonLocalExit",
+      "ownership": "Linked thread_state list, OS pthread/mutex/condvar handles, and per-thread stack/specpdl state"
+    },
+    "src/include/systime.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/include/systty.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/include/syswait.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/include/termchar.rs": {
+      "boundary_class": "display_cocoa_tty_bridge",
+      "caller": "Cocoa Swift @_silgen_name bridge, TTY redisplay engine, and window/frame primitives",
+      "failure_path": "Validates decode_live_frame/window_live_p and signals wrong-type-argument or error via NonLocalExit",
+      "invariant": "Live frame/window/terminal pointers accessed on owning VM/main UI thread",
+      "ownership": "VM-owned frame, window, glyph matrix, face cache, and Cocoa/terminfo resources"
+    },
+    "src/include/termhooks.rs": {
+      "boundary_class": "display_cocoa_tty_bridge",
+      "caller": "Cocoa Swift @_silgen_name bridge, TTY redisplay engine, and window/frame primitives",
+      "failure_path": "Validates decode_live_frame/window_live_p and signals wrong-type-argument or error via NonLocalExit",
+      "invariant": "Live frame/window/terminal pointers accessed on owning VM/main UI thread",
+      "ownership": "VM-owned frame, window, glyph matrix, face cache, and Cocoa/terminfo resources"
+    },
+    "src/include/textconv.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/include/thread.rs": {
+      "boundary_class": "vm_thread_sync_boundary",
+      "caller": "Lisp thread scheduler, pthread entry run_thread, and global lock handoff",
+      "failure_path": "Finalizes thread slab hooks, releases locks, and records thread error outcome on NonLocalExit",
+      "invariant": "Only one Lisp thread holds global lock at a time; stack top flushed before lock release or GC; run_thread catches NonLocalExit",
+      "ownership": "Linked thread_state list, OS pthread/mutex/condvar handles, and per-thread stack/specpdl state"
+    },
+    "src/include/tparam.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/include/tree_sitter_api.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/include/treesit.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/include/widget.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/include/window.rs": {
+      "boundary_class": "display_cocoa_tty_bridge",
+      "caller": "Cocoa Swift @_silgen_name bridge, TTY redisplay engine, and window/frame primitives",
+      "failure_path": "Validates decode_live_frame/window_live_p and signals wrong-type-argument or error via NonLocalExit",
+      "invariant": "Live frame/window/terminal pointers accessed on owning VM/main UI thread",
+      "ownership": "VM-owned frame, window, glyph matrix, face cache, and Cocoa/terminfo resources"
+    },
+    "src/include/xwidget.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/indent.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/insdel.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/intervals.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/itree.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/json.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/keyboard.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/keymap.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/kqueue.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/lcms.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/lread.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/macros.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/marker.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/menu.rs": {
+      "boundary_class": "display_cocoa_tty_bridge",
+      "caller": "Cocoa Swift @_silgen_name bridge, TTY redisplay engine, and window/frame primitives",
+      "failure_path": "Validates decode_live_frame/window_live_p and signals wrong-type-argument or error via NonLocalExit",
+      "invariant": "Live frame/window/terminal pointers accessed on owning VM/main UI thread",
+      "ownership": "VM-owned frame, window, glyph matrix, face cache, and Cocoa/terminfo resources"
+    },
+    "src/minibuf.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/pdumper.rs": {
+      "boundary_class": "pdumper_relocation_boundary",
+      "caller": "dump-emacs-portable and startup pdumper_load",
+      "failure_path": "Rejects incompatible/corrupt dump with structured load status or Lisp error",
+      "invariant": "Validated dump header magic/fingerprint; runs while single-threaded or holding VM lock",
+      "ownership": "Mapped .pdmp sections, registered static/warm relocation tables, and dump hooks"
+    },
+    "src/print.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/process.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/profiler.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/regex-emacs.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/region-cache.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/runtime_gc_collector.rs": {
+      "boundary_class": "gc_heap_and_root_boundary",
+      "caller": "femacs-vm allocator, Rooted/PersistentRoot/ScopedRawSpan handles, and garbage_collect_impl",
+      "failure_path": "Truncates LIFO roots on NonLocalExit unwind, rejects stale root generations, signals memory-full on OOM",
+      "invariant": "Executed on owning Lisp thread under VM global lock; tagged Lisp_Object pointers valid or pdumper-backed",
+      "ownership": "Single VM heap, thread-local LIFO root stacks, and generation-checked PersistentRoot slab"
+    },
+    "src/runtime_gc_observation.rs": {
+      "boundary_class": "gc_heap_and_root_boundary",
+      "caller": "femacs-vm allocator, Rooted/PersistentRoot/ScopedRawSpan handles, and garbage_collect_impl",
+      "failure_path": "Truncates LIFO roots on NonLocalExit unwind, rejects stale root generations, signals memory-full on OOM",
+      "invariant": "Executed on owning Lisp thread under VM global lock; tagged Lisp_Object pointers valid or pdumper-backed",
+      "ownership": "Single VM heap, thread-local LIFO root stacks, and generation-checked PersistentRoot slab"
+    },
+    "src/runtime_native_context.rs": {
+      "boundary_class": "native_eln_jit_abi",
+      "caller": "native Elisp compiler (libgccjit) and .eln dynamic loader (Fnative_elisp_load)",
+      "failure_path": "Signals native-lisp-file-inconsistent on ABI mismatch or returns error status code to .eln caller",
+      "invariant": "Verifies Vcomp_abi_hash before executing .eln; status helpers catch NonLocalExit without unwinding across C JIT frames",
+      "ownership": "dlopen comp_unit handles, relocation arrays, and status-returning ABI v14 helpers"
+    },
+    "src/scroll.rs": {
+      "boundary_class": "display_cocoa_tty_bridge",
+      "caller": "Cocoa Swift @_silgen_name bridge, TTY redisplay engine, and window/frame primitives",
+      "failure_path": "Validates decode_live_frame/window_live_p and signals wrong-type-argument or error via NonLocalExit",
+      "invariant": "Live frame/window/terminal pointers accessed on owning VM/main UI thread",
+      "ownership": "VM-owned frame, window, glyph matrix, face cache, and Cocoa/terminfo resources"
+    },
+    "src/search.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/sort.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/sound.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/sqlite.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/syntax.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/sysdep.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/systhread.rs": {
+      "boundary_class": "vm_thread_sync_boundary",
+      "caller": "Lisp thread scheduler, pthread entry run_thread, and global lock handoff",
+      "failure_path": "Finalizes thread slab hooks, releases locks, and records thread error outcome on NonLocalExit",
+      "invariant": "Only one Lisp thread holds global lock at a time; stack top flushed before lock release or GC; run_thread catches NonLocalExit",
+      "ownership": "Linked thread_state list, OS pthread/mutex/condvar handles, and per-thread stack/specpdl state"
+    },
+    "src/term.rs": {
+      "boundary_class": "display_cocoa_tty_bridge",
+      "caller": "Cocoa Swift @_silgen_name bridge, TTY redisplay engine, and window/frame primitives",
+      "failure_path": "Validates decode_live_frame/window_live_p and signals wrong-type-argument or error via NonLocalExit",
+      "invariant": "Live frame/window/terminal pointers accessed on owning VM/main UI thread",
+      "ownership": "VM-owned frame, window, glyph matrix, face cache, and Cocoa/terminfo resources"
+    },
+    "src/terminal.rs": {
+      "boundary_class": "display_cocoa_tty_bridge",
+      "caller": "Cocoa Swift @_silgen_name bridge, TTY redisplay engine, and window/frame primitives",
+      "failure_path": "Validates decode_live_frame/window_live_p and signals wrong-type-argument or error via NonLocalExit",
+      "invariant": "Live frame/window/terminal pointers accessed on owning VM/main UI thread",
+      "ownership": "VM-owned frame, window, glyph matrix, face cache, and Cocoa/terminfo resources"
+    },
+    "src/terminfo.rs": {
+      "boundary_class": "display_cocoa_tty_bridge",
+      "caller": "Cocoa Swift @_silgen_name bridge, TTY redisplay engine, and window/frame primitives",
+      "failure_path": "Validates decode_live_frame/window_live_p and signals wrong-type-argument or error via NonLocalExit",
+      "invariant": "Live frame/window/terminal pointers accessed on owning VM/main UI thread",
+      "ownership": "VM-owned frame, window, glyph matrix, face cache, and Cocoa/terminfo resources"
+    },
+    "src/textprop.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/thread.rs": {
+      "boundary_class": "vm_thread_sync_boundary",
+      "caller": "Lisp thread scheduler, pthread entry run_thread, and global lock handoff",
+      "failure_path": "Finalizes thread slab hooks, releases locks, and records thread error outcome on NonLocalExit",
+      "invariant": "Only one Lisp thread holds global lock at a time; stack top flushed before lock release or GC; run_thread catches NonLocalExit",
+      "ownership": "Linked thread_state list, OS pthread/mutex/condvar handles, and per-thread stack/specpdl state"
+    },
+    "src/timefns.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/treesit.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/undo.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "src/window.rs": {
+      "boundary_class": "display_cocoa_tty_bridge",
+      "caller": "Cocoa Swift @_silgen_name bridge, TTY redisplay engine, and window/frame primitives",
+      "failure_path": "Validates decode_live_frame/window_live_p and signals wrong-type-argument or error via NonLocalExit",
+      "invariant": "Live frame/window/terminal pointers accessed on owning VM/main UI thread",
+      "ownership": "VM-owned frame, window, glyph matrix, face cache, and Cocoa/terminfo resources"
+    },
+    "src/xdisp.rs": {
+      "boundary_class": "display_cocoa_tty_bridge",
+      "caller": "Cocoa Swift @_silgen_name bridge, TTY redisplay engine, and window/frame primitives",
+      "failure_path": "Validates decode_live_frame/window_live_p and signals wrong-type-argument or error via NonLocalExit",
+      "invariant": "Live frame/window/terminal pointers accessed on owning VM/main UI thread",
+      "ownership": "VM-owned frame, window, glyph matrix, face cache, and Cocoa/terminfo resources"
+    },
+    "src/xfaces.rs": {
+      "boundary_class": "display_cocoa_tty_bridge",
+      "caller": "Cocoa Swift @_silgen_name bridge, TTY redisplay engine, and window/frame primitives",
+      "failure_path": "Validates decode_live_frame/window_live_p and signals wrong-type-argument or error via NonLocalExit",
+      "invariant": "Live frame/window/terminal pointers accessed on owning VM/main UI thread",
+      "ownership": "VM-owned frame, window, glyph matrix, face cache, and Cocoa/terminfo resources"
+    },
+    "src/xml.rs": {
+      "boundary_class": "vm_core_primitive_boundary",
+      "caller": "femacs-vm Lisp subr dispatch and internal C-ported runtime modules",
+      "failure_path": "Signals structured Lisp condition or quit via NonLocalExit",
+      "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
+      "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
+    },
+    "xtask/src/android/tests.rs": {
+      "boundary_class": "serialized_test_env_ffi",
+      "caller": "xtask #[cfg(test)] single-threaded environment guards",
+      "failure_path": "Drop restores prior OsString or removes key even on test panic",
+      "invariant": "Serialized test scope holds exclusive mutation rights over guarded env keys",
+      "ownership": "Process environment variables restored by Drop guard before test exit"
+    },
+    "xtask/src/bundle.rs": {
+      "boundary_class": "os_packaging_ffi",
+      "caller": "xtask macOS app bundle staging swap",
+      "failure_path": "Returns Err with last_os_error() without modifying existing app bundle",
+      "invariant": "Both staging and destination paths are validated NUL-terminated UTF-8/Unix paths on macOS >= 10.12",
+      "ownership": "Temporary CString buffers borrowed for single syscall duration"
+    },
+    "xtask/src/runtime.rs": {
+      "boundary_class": "serialized_test_env_ffi",
+      "caller": "xtask #[cfg(test)] single-threaded environment guards",
+      "failure_path": "Drop restores prior OsString or removes key even on test panic",
+      "invariant": "Serialized test scope holds exclusive mutation rights over guarded env keys",
+      "ownership": "Process environment variables restored by Drop guard before test exit"
+    }
+  },
+  "root_categories": [
+    {
+      "anchor_file": "src/alloc.rs",
+      "anchor_pattern": "static mut staticvec:",
+      "id": "staticvec",
+      "liveness": "Entire VM process lifetime including post-pdmp restore",
+      "origin": "Process-global C-compatible Lisp_Object statics registered via staticpro",
+      "registration": "staticpro(&raw mut var) into staticvec during syms_of_* initialization",
+      "release": "Process exit only (fixed static slots)",
+      "thread_callback_boundary": "Shared across Lisp threads under VM global lock; traced once per GC in garbage_collect_impl"
+    },
+    {
+      "anchor_file": "src/thread.rs",
+      "anchor_pattern": "mark_specpdl",
+      "id": "specpdl",
+      "liveness": "Lexical/dynamic scope from registration until unbind_to(count, val)",
+      "origin": "Dynamic let-bindings, unwind-protect cleanups, and save-excursion entries",
+      "registration": "specbind / record_unwind_protect_* advancing per-thread specpdl_ptr",
+      "release": "LIFO pop in unbind_to on normal return or NonLocalExit unwind",
+      "thread_callback_boundary": "Owned per thread_state (m_specpdl..m_specpdl_ptr), swapped across thread yield and preserved across FFI callbacks"
+    },
+    {
+      "anchor_file": "src/bytecode.rs",
+      "anchor_pattern": "pub unsafe extern \"C-unwind\" fn mark_bytecode",
+      "id": "bytecode_frames",
+      "liveness": "Duration of exec_byte_code frame activation",
+      "origin": "Active bytecode interpreter operand stacks and frame pointers",
+      "registration": "exec_byte_code frame push on current_thread.m_bc",
+      "release": "Frame pop on return or BytecodeFrameGuard Drop during NonLocalExit unwind",
+      "thread_callback_boundary": "Owned per thread_state (m_bc), traced per live thread in mark_bytecode"
+    },
+    {
+      "anchor_file": "crates/femacs-vm/src/roots.rs",
+      "anchor_pattern": "pub struct ScopedRawSpan",
+      "id": "eval_scoped_spans",
+      "liveness": "Enclosing Rust call frame across nested Lisp evaluations and GC safepoints",
+      "origin": "Progressive raw Lisp_Object arrays in Flet, eval_sub, and apply_lambda",
+      "registration": "ScopedRawSpan::new + progressive set_len as each binding/arg is evaluated",
+      "release": "LIFO truncation in ScopedRawSpan::drop on normal exit or NonLocalExit unwind",
+      "thread_callback_boundary": "Thread-local RAW_ROOT_SPANS stack per OS/Lisp thread; traced via mark_explicit_roots"
+    },
+    {
+      "anchor_file": "crates/femacs-vm/src/roots.rs",
+      "anchor_pattern": "pub struct Rooted",
+      "id": "rooted_lifo_handles",
+      "liveness": "Lexical lifetime of Rooted guard; borrowed safely via Handle / MutableHandle across GC",
+      "origin": "SpiderMonkey-style Rooted / Handle / MutableHandle locals in Rust VM and host primitives",
+      "registration": "GcContext::root pushing slot onto thread-local LIFO_ROOTS",
+      "release": "LIFO truncation in Rooted::drop on normal scope exit or NonLocalExit unwind",
+      "thread_callback_boundary": "Thread-local LIFO_ROOTS per Lisp thread; safe across nested Lisp/module callbacks on same thread"
+    },
+    {
+      "anchor_file": "crates/femacs-vm/src/roots.rs",
+      "anchor_pattern": "pub struct PersistentRoot",
+      "id": "persistent_roots",
+      "liveness": "Until explicit PersistentRoot::release, Drop, or femacs_vm_persistent_root_release",
+      "origin": "Cross-call / cross-stack heap roots (PersistentRoot and C-ABI femacs_vm_persistent_root_*)",
+      "registration": "PersistentRoot::new allocating generation-tagged slot in PERSISTENT_SLAB",
+      "release": "Marks slot occupied=false, clears LispVal to Qnil, increments generation to reject stale handles",
+      "thread_callback_boundary": "Mutex-synchronized global slab safe across threads and FFI callbacks; traced in mark_persistent_roots"
+    },
+    {
+      "anchor_file": "crates/femacs-vm/src/nonlocal.rs",
+      "anchor_pattern": "pub fn mark_thread_explicit_roots(",
+      "id": "nonlocal_exit_payloads",
+      "liveness": "Throughout stack unwinding and Lisp unwind-protect cleanup execution",
+      "origin": "In-flight signal/throw/quit payloads and ScopedLispRoot unwind temporaries",
+      "registration": "ScopedLispRoot::new and unwind_NonLocalExit payload capture",
+      "release": "ScopedLispRoot::drop and catch_vm_nonlocal handler consumption",
+      "thread_callback_boundary": "Thread-local root chain + catch_vm_nonlocal barrier at thread entry and module/JIT FFI boundaries"
+    },
+    {
+      "anchor_file": "src/emacs-module.rs",
+      "anchor_pattern": "unsafe extern \"C\" fn module_make_global_ref",
+      "id": "module_global_refs",
+      "liveness": "Across arbitrary module calls until matching free_global_ref decrements refcount to zero",
+      "origin": "External C dynamic module global references created via make_global_ref",
+      "registration": "module_make_global_ref inserting/incrementing refcount in Vmodule_refs_hash",
+      "release": "module_free_global_ref Fremhash removal allowing immediate GC reclamation on next cycle",
+      "thread_callback_boundary": "Backed by staticpro Vmodule_refs_hash; module_env_roots local array traced for active callback environments"
+    },
+    {
+      "anchor_file": "src/pdumper.rs",
+      "anchor_pattern": "pub unsafe extern \"C-unwind\" fn pdumper_load",
+      "id": "pdumper_relocations",
+      "liveness": "Mapped dump image lifetime after pdumper_load",
+      "origin": "Portable dump (.pdmp) serialized heap objects, symbol table relocations, and warm-start hooks",
+      "registration": "pdumper_remember_* / dump_do_dump_relocation and dump_hooks registration",
+      "release": "Process exit; pdumper_object_p objects excluded from heap free lists",
+      "thread_callback_boundary": "Loaded single-threaded prior to Lisp thread creation; tracked via u4_note_pdumper_load in VmState"
+    }
+  ],
+  "schema": "femacs-unsafe-boundary-manifest-v1"
+}

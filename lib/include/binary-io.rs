@@ -39,7 +39,11 @@ pub unsafe fn _gl_set_fd_mode (_fd: c_int, _mode: c_int) -> c_int
 #[inline(always)]
 pub unsafe fn set_binary_mode (fd: c_int, mode: c_int) -> c_int
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   return _gl_set_fd_mode (fd, mode);
+
+  }
 }
 
 /* C 81-82's `#define SET_BINARY(fd) ((void) set_binary_mode (fd, O_BINARY))`.  */

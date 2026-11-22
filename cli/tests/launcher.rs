@@ -1,3 +1,5 @@
+#![forbid(unsafe_code)]
+
 #[cfg(target_os = "macos")]
 mod macos {
     use std::{

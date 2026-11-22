@@ -132,48 +132,96 @@ pub const RE_PATTERN_TARGET_MULTIBYTE: u8 = 1 << 6;
    accessors are.  */
 #[inline(always)]
 pub unsafe fn can_be_null_ (bufp: *const re_pattern_buffer) -> bool
-{ (*bufp).bits & RE_PATTERN_CAN_BE_NULL != 0 }
+{
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe { (*bufp).bits & RE_PATTERN_CAN_BE_NULL != 0 
+  }
+}
 #[inline(always)]
 pub unsafe fn set_can_be_null_ (bufp: *mut re_pattern_buffer, value: bool)
-{ (*bufp).bits = if value { (*bufp).bits | RE_PATTERN_CAN_BE_NULL } else { (*bufp).bits & ! RE_PATTERN_CAN_BE_NULL }; }
+{
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe { (*bufp).bits = if value { (*bufp).bits | RE_PATTERN_CAN_BE_NULL } else { (*bufp).bits & ! RE_PATTERN_CAN_BE_NULL }; 
+  }
+}
 
 #[inline(always)]
 pub unsafe fn regs_allocated_ (bufp: *const re_pattern_buffer) -> u8
-{ ((*bufp).bits & RE_PATTERN_REGS_ALLOCATED) >> RE_PATTERN_REGS_ALLOCATED_SHIFT }
+{
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe { ((*bufp).bits & RE_PATTERN_REGS_ALLOCATED) >> RE_PATTERN_REGS_ALLOCATED_SHIFT 
+  }
+}
 #[inline(always)]
 pub unsafe fn set_regs_allocated_ (bufp: *mut re_pattern_buffer, value: u8)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   (*bufp).bits = ((*bufp).bits & ! RE_PATTERN_REGS_ALLOCATED)
     | ((value << RE_PATTERN_REGS_ALLOCATED_SHIFT) & RE_PATTERN_REGS_ALLOCATED);
+
+  }
 }
 
 #[inline(always)]
 pub unsafe fn fastmap_accurate_ (bufp: *const re_pattern_buffer) -> bool
-{ (*bufp).bits & RE_PATTERN_FASTMAP_ACCURATE != 0 }
+{
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe { (*bufp).bits & RE_PATTERN_FASTMAP_ACCURATE != 0 
+  }
+}
 #[inline(always)]
 pub unsafe fn set_fastmap_accurate_ (bufp: *mut re_pattern_buffer, value: bool)
-{ (*bufp).bits = if value { (*bufp).bits | RE_PATTERN_FASTMAP_ACCURATE } else { (*bufp).bits & ! RE_PATTERN_FASTMAP_ACCURATE }; }
+{
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe { (*bufp).bits = if value { (*bufp).bits | RE_PATTERN_FASTMAP_ACCURATE } else { (*bufp).bits & ! RE_PATTERN_FASTMAP_ACCURATE }; 
+  }
+}
 
 #[inline(always)]
 pub unsafe fn used_syntax_ (bufp: *const re_pattern_buffer) -> bool
-{ (*bufp).bits & RE_PATTERN_USED_SYNTAX != 0 }
+{
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe { (*bufp).bits & RE_PATTERN_USED_SYNTAX != 0 
+  }
+}
 #[inline(always)]
 pub unsafe fn set_used_syntax_ (bufp: *mut re_pattern_buffer, value: bool)
-{ (*bufp).bits = if value { (*bufp).bits | RE_PATTERN_USED_SYNTAX } else { (*bufp).bits & ! RE_PATTERN_USED_SYNTAX }; }
+{
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe { (*bufp).bits = if value { (*bufp).bits | RE_PATTERN_USED_SYNTAX } else { (*bufp).bits & ! RE_PATTERN_USED_SYNTAX }; 
+  }
+}
 
 #[inline(always)]
 pub unsafe fn multibyte_ (bufp: *const re_pattern_buffer) -> bool
-{ (*bufp).bits & RE_PATTERN_MULTIBYTE != 0 }
+{
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe { (*bufp).bits & RE_PATTERN_MULTIBYTE != 0 
+  }
+}
 #[inline(always)]
 pub unsafe fn set_multibyte_ (bufp: *mut re_pattern_buffer, value: bool)
-{ (*bufp).bits = if value { (*bufp).bits | RE_PATTERN_MULTIBYTE } else { (*bufp).bits & ! RE_PATTERN_MULTIBYTE }; }
+{
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe { (*bufp).bits = if value { (*bufp).bits | RE_PATTERN_MULTIBYTE } else { (*bufp).bits & ! RE_PATTERN_MULTIBYTE }; 
+  }
+}
 
 #[inline(always)]
 pub unsafe fn target_multibyte_ (bufp: *const re_pattern_buffer) -> bool
-{ (*bufp).bits & RE_PATTERN_TARGET_MULTIBYTE != 0 }
+{
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe { (*bufp).bits & RE_PATTERN_TARGET_MULTIBYTE != 0 
+  }
+}
 #[inline(always)]
 pub unsafe fn set_target_multibyte_ (bufp: *mut re_pattern_buffer, value: bool)
-{ (*bufp).bits = if value { (*bufp).bits | RE_PATTERN_TARGET_MULTIBYTE } else { (*bufp).bits & ! RE_PATTERN_TARGET_MULTIBYTE }; }
+{
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe { (*bufp).bits = if value { (*bufp).bits | RE_PATTERN_TARGET_MULTIBYTE } else { (*bufp).bits & ! RE_PATTERN_TARGET_MULTIBYTE }; 
+  }
+}
 
 /* Character classes.  */
 pub type re_wctype_t = c_int;

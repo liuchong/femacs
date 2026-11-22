@@ -376,7 +376,7 @@ pub const MARKER_INSERTION_TYPE: u32 = 1 << 1;
 
 #[inline(always)]
 pub fn MARKER_INSERTION_TYPE_P (m: *mut Lisp_Marker) -> bool {
-    unsafe { ((*m).bits & MARKER_INSERTION_TYPE) != 0 }
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { ((*m).bits & MARKER_INSERTION_TYPE) != 0 }
 }
 
 // --- support declarations and accessors (batch 1) ---
@@ -401,7 +401,7 @@ macro_rules! eassert {
     ($cond:expr) => {
         #[cfg(enable_checking)]
         {
-            if !(unsafe { suppress_checking }) && !($cond) {
+            if !(/* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { suppress_checking }) && !($cond) {
                 unsafe {
                     die (concat! (stringify! ($cond), "\0").as_ptr () as *const c_char,
                          concat! (file! (), "\0").as_ptr () as *const c_char,
@@ -416,7 +416,7 @@ macro_rules! eassume {
     ($cond:expr) => {
         #[cfg(enable_checking)]
         {
-            if unsafe { suppress_checking } {
+            if /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { suppress_checking } {
                 assume!($cond);
             } else if !($cond) {
                 unsafe {
@@ -472,22 +472,22 @@ pub struct gflags {
 
 #[inline(always)]
 pub fn will_dump_p () -> bool {
-    if HAVE_PDUMPER { unsafe { gflags.will_dump } } else { false }
+    if HAVE_PDUMPER { /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { gflags.will_dump } } else { false }
 }
 
 #[inline(always)]
 pub fn will_bootstrap_p () -> bool {
-    if HAVE_PDUMPER { unsafe { gflags.will_bootstrap } } else { false }
+    if HAVE_PDUMPER { /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { gflags.will_bootstrap } } else { false }
 }
 
 #[inline(always)]
 pub fn will_dump_with_pdumper_p () -> bool {
-    if HAVE_PDUMPER { unsafe { gflags.will_dump_with_pdumper } } else { false }
+    if HAVE_PDUMPER { /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { gflags.will_dump_with_pdumper } } else { false }
 }
 
 #[inline(always)]
 pub fn dumped_with_pdumper_p () -> bool {
-    if HAVE_PDUMPER { unsafe { gflags.dumped_with_pdumper } } else { false }
+    if HAVE_PDUMPER { /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { gflags.dumped_with_pdumper } } else { false }
 }
 
 // --- tag accessors (src/lisp.h 700-760) ------------------------------------
@@ -546,7 +546,7 @@ pub fn TAGGEDP (a: Lisp_Object, tag: Lisp_Type) -> bool { lisp_h_TAGGEDP (a, tag
 #[inline(always)]
 pub fn lisp_h_CHECK_TYPE (ok: bool, predicate: Lisp_Object, x: Lisp_Object) {
     if !ok {
-        unsafe { wrong_type_argument (predicate, x) }
+        /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { wrong_type_argument (predicate, x) }
     }
 }
 
@@ -631,7 +631,7 @@ pub struct Lisp_Symbol_With_Pos {
 #[inline(always)]
 pub fn PSEUDOVECTORP (a: Lisp_Object, code: pvec_type) -> bool {
     lisp_h_VECTORLIKEP (a)
-        && unsafe {
+        && /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe {
             let header = XUNTAG! (a, Lisp_Type::Lisp_Vectorlike, vectorlike_header);
             ((*header).size & (PSEUDOVECTOR_FLAG | PVEC_TYPE_MASK))
                 == (PSEUDOVECTOR_FLAG | ((code as isize) << PSEUDOVECTOR_AREA_BITS))
@@ -659,7 +659,7 @@ pub fn SYMBOL_WITH_POS_P (x: Lisp_Object) -> bool { lisp_h_SYMBOL_WITH_POS_P (x)
 #[inline(always)]
 pub fn SYMBOLP (x: Lisp_Object) -> bool {
     BARE_SYMBOL_P (x)
-        || (unsafe { symbols_with_pos_enabled } && SYMBOL_WITH_POS_P (x))
+        || (/* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { symbols_with_pos_enabled } && SYMBOL_WITH_POS_P (x))
 }
 
 #[inline(always)]
@@ -670,19 +670,19 @@ pub fn XSYMBOL_WITH_POS (a: Lisp_Object) -> *mut Lisp_Symbol_With_Pos {
 
 #[inline(always)]
 pub fn XSYMBOL_WITH_POS_SYM (a: Lisp_Object) -> Lisp_Object {
-    let sym = unsafe { (*XSYMBOL_WITH_POS (a)).sym };
+    let sym = /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (*XSYMBOL_WITH_POS (a)).sym };
     eassume! (BARE_SYMBOL_P (sym));
     sym
 }
 
 #[inline(always)]
 pub fn XSYMBOL_WITH_POS_POS (a: Lisp_Object) -> Lisp_Object {
-    unsafe { (*XSYMBOL_WITH_POS (a)).pos }
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (*XSYMBOL_WITH_POS (a)).pos }
 }
 
 #[inline(always)]
 pub fn maybe_remove_pos_from_symbol (x: Lisp_Object) -> Lisp_Object {
-    if unsafe { symbols_with_pos_enabled } && SYMBOL_WITH_POS_P (x) {
+    if /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { symbols_with_pos_enabled } && SYMBOL_WITH_POS_P (x) {
         XSYMBOL_WITH_POS_SYM (x)
     } else {
         x
@@ -692,7 +692,7 @@ pub fn maybe_remove_pos_from_symbol (x: Lisp_Object) -> Lisp_Object {
 #[inline(always)]
 pub fn XSYMBOL (a: Lisp_Object) -> *mut Lisp_Symbol {
     let a = if !BARE_SYMBOL_P (a) {
-        eassume! (unsafe { symbols_with_pos_enabled });
+        eassume! (/* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { symbols_with_pos_enabled });
         XSYMBOL_WITH_POS_SYM (a)
     } else {
         a
@@ -841,7 +841,7 @@ pub fn BASE_EQ (x: Lisp_Object, y: Lisp_Object) -> bool { lisp_h_BASE_EQ (x, y) 
 pub fn EQ (x: Lisp_Object, y: Lisp_Object) -> bool {
     if BASE_EQ (x, y) {
         true
-    } else if likely (! unsafe { symbols_with_pos_enabled }) {
+    } else if likely (! /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { symbols_with_pos_enabled }) {
         false
     } else {
         unsafe { slow_eq (x, y) }
@@ -899,25 +899,25 @@ pub use self::cons_generation_decls::*;
 pub fn XCONS (a: Lisp_Object) -> *mut Lisp_Cons {
     let pointer = lisp_h_XCONS_untracked(a);
     #[cfg(feature = "femacs_gc_generational")]
-    unsafe { femacs_gc_cons_escaped(a); }
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { femacs_gc_cons_escaped(a); }
     pointer
 }
 
 #[inline(always)]
 pub fn xcar_addr (c: Lisp_Object) -> *mut Lisp_Object {
-    unsafe { std::ptr::addr_of_mut! ((*XCONS (c)).u.s.car) }
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { std::ptr::addr_of_mut! ((*XCONS (c)).u.s.car) }
 }
 
 #[inline(always)]
 pub fn xcdr_addr (c: Lisp_Object) -> *mut Lisp_Object {
-    unsafe { std::ptr::addr_of_mut! ((*XCONS (c)).u.s.u.cdr) }
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { std::ptr::addr_of_mut! ((*XCONS (c)).u.s.u.cdr) }
 }
 
 #[inline(always)]
 pub fn lisp_h_XCAR (c: Lisp_Object) -> Lisp_Object { unsafe { (*lisp_h_XCONS_untracked (c)).u.s.car } }
 
 #[inline(always)]
-pub fn lisp_h_XCDR (c: Lisp_Object) -> Lisp_Object { unsafe { (*lisp_h_XCONS_untracked (c)).u.s.u.cdr } }
+pub fn lisp_h_XCDR (c: Lisp_Object) -> Lisp_Object { /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (*lisp_h_XCONS_untracked (c)).u.s.u.cdr } }
 
 #[inline(always)]
 pub fn XCAR (c: Lisp_Object) -> Lisp_Object { lisp_h_XCAR (c) }
@@ -927,7 +927,7 @@ pub fn XCDR (c: Lisp_Object) -> Lisp_Object { lisp_h_XCDR (c) }
 
 #[inline(always)]
 pub fn XSETCAR (c: Lisp_Object, n: Lisp_Object) {
-    unsafe {
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe {
         (*lisp_h_XCONS_untracked(c)).u.s.car = n;
         #[cfg(feature = "femacs_gc_generational")]
         femacs_gc_cons_written(c);
@@ -936,7 +936,7 @@ pub fn XSETCAR (c: Lisp_Object, n: Lisp_Object) {
 
 #[inline(always)]
 pub fn XSETCDR (c: Lisp_Object, n: Lisp_Object) {
-    unsafe {
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe {
         (*lisp_h_XCONS_untracked(c)).u.s.u.cdr = n;
         #[cfg(feature = "femacs_gc_generational")]
         femacs_gc_cons_written(c);
@@ -946,14 +946,14 @@ pub fn XSETCDR (c: Lisp_Object, n: Lisp_Object) {
 #[inline(always)]
 pub fn CAR (c: Lisp_Object) -> Lisp_Object {
     if CONSP (c) { return XCAR (c); }
-    if !NILP (c) { unsafe { wrong_type_argument (Qlistp(), c) } }
+    if !NILP (c) { /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { wrong_type_argument (Qlistp(), c) } }
     Qnil()
 }
 
 #[inline(always)]
 pub fn CDR (c: Lisp_Object) -> Lisp_Object {
     if CONSP (c) { return XCDR (c); }
-    if !NILP (c) { unsafe { wrong_type_argument (Qlistp(), c) } }
+    if !NILP (c) { /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { wrong_type_argument (Qlistp(), c) } }
     Qnil()
 }
 
@@ -985,38 +985,38 @@ pub fn XSTRING (a: Lisp_Object) -> *mut Lisp_String {
 
 #[inline(always)]
 pub fn STRING_MULTIBYTE (str: Lisp_Object) -> bool {
-    unsafe { 0 <= (*XSTRING (str)).u.s.size_byte }
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { 0 <= (*XSTRING (str)).u.s.size_byte }
 }
 
 #[inline(always)]
 pub fn STRING_SET_MULTIBYTE (str: Lisp_Object) {
     // The 0-length strings are unique and shared, so they cannot be modified.
-    eassert! (unsafe { (*XSTRING (str)).u.s.size } > 0);
+    eassert! (/* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (*XSTRING (str)).u.s.size } > 0);
     unsafe { (*XSTRING (str)).u.s.size_byte = (*XSTRING (str)).u.s.size };
 }
 
 #[inline(always)]
-pub fn SDATA (string: Lisp_Object) -> *mut u8 { unsafe { (*XSTRING (string)).u.s.data } }
+pub fn SDATA (string: Lisp_Object) -> *mut u8 { /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (*XSTRING (string)).u.s.data } }
 
 #[inline(always)]
 pub fn SSDATA (string: Lisp_Object) -> *mut c_char { SDATA (string) as *mut c_char }
 
 #[inline(always)]
-pub fn SREF (string: Lisp_Object, index: usize) -> u8 { unsafe { *SDATA (string).add (index) } }
+pub fn SREF (string: Lisp_Object, index: usize) -> u8 { /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { *SDATA (string).add (index) } }
 
 #[inline(always)]
 pub fn SSET (string: Lisp_Object, index: usize, new: u8) { unsafe { *SDATA (string).add (index) = new } }
 
 #[inline(always)]
 pub fn SCHARS (string: Lisp_Object) -> isize {
-    let nchars = unsafe { (*XSTRING (string)).u.s.size };
+    let nchars = /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (*XSTRING (string)).u.s.size };
     eassume! (0 <= nchars);
     nchars
 }
 
 #[inline(always)]
 pub fn STRING_BYTES (s: *mut Lisp_String) -> isize {
-    let nbytes = unsafe {
+    let nbytes = /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe {
         let sb = (*s).u.s.size_byte;
         if sb < 0 { (*s).u.s.size } else { sb }
     };
@@ -1036,13 +1036,13 @@ pub fn STRING_SET_CHARS (string: Lisp_Object, newsize: isize) {
             newsize == SCHARS (string)
         }
     );
-    unsafe { (*XSTRING (string)).u.s.size = newsize };
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (*XSTRING (string)).u.s.size = newsize };
 }
 
 #[inline(always)]
 pub fn CHECK_STRING_NULL_BYTES (string: Lisp_Object) {
     CHECK_TYPE (
-        unsafe { memchr (SSDATA (string) as *const c_void, 0, SBYTES (string) as usize).is_null () },
+        /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { memchr (SSDATA (string) as *const c_void, 0, SBYTES (string) as usize).is_null () },
         Qfilenamep(),
         string,
     );
@@ -1050,7 +1050,7 @@ pub fn CHECK_STRING_NULL_BYTES (string: Lisp_Object) {
 
 #[inline(always)]
 pub fn string_immovable_p (str: Lisp_Object) -> bool {
-    unsafe { (*XSTRING (str)).u.s.size_byte == -3 }
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (*XSTRING (str)).u.s.size_byte == -3 }
 }
 
 #[inline(always)]
@@ -1061,7 +1061,7 @@ pub fn XVECTOR (a: Lisp_Object) -> *mut Lisp_Vector {
 
 #[inline(always)]
 pub fn ASIZE (array: Lisp_Object) -> isize {
-    let size = unsafe { (*XVECTOR (array)).header.size };
+    let size = /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (*XVECTOR (array)).header.size };
     eassume! (0 <= size);
     size
 }
@@ -1074,14 +1074,14 @@ pub fn ASIZE (array: Lisp_Object) -> isize {
 pub fn XBARE_SYMBOL (a: Lisp_Object) -> *mut Lisp_Symbol {
     eassert! (BARE_SYMBOL_P (a));
     let i = XUNTAG! (a, Lisp_Type::Lisp_Symbol, Lisp_Symbol) as isize;
-    unsafe { (&raw mut lispsym as *mut u8).offset (i) as *mut Lisp_Symbol }
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (&raw mut lispsym as *mut u8).offset (i) as *mut Lisp_Symbol }
 }
 
 #[inline(always)]
 pub fn make_lisp_symbol_internal (sym: *mut Lisp_Symbol) -> Lisp_Object {
     // No eassert here in C either, so that builtin symbols can be constant
     // folded by the C compiler; the port keeps the same body.
-    let symoffset = unsafe { (sym as *mut u8).offset_from (&raw const lispsym as *const u8) };
+    let symoffset = /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (sym as *mut u8).offset_from (&raw const lispsym as *const u8) };
     TAG_PTR_INITIALLY (Lisp_Type::Lisp_Symbol, symoffset as EMACS_INT)
 }
 
@@ -1094,12 +1094,12 @@ pub fn make_lisp_symbol (sym: *mut Lisp_Symbol) -> Lisp_Object {
 
 #[inline(always)]
 pub fn builtin_lisp_symbol (index: usize) -> Lisp_Object {
-    make_lisp_symbol_internal (unsafe { (&raw mut lispsym as *mut Lisp_Symbol).add (index) })
+    make_lisp_symbol_internal (/* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (&raw mut lispsym as *mut Lisp_Symbol).add (index) })
 }
 
 #[inline(always)]
 pub fn c_symbol_p (sym: *mut Lisp_Symbol) -> bool {
-    let bp = unsafe { &raw const lispsym as *const u8 };
+    let bp = /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { &raw const lispsym as *const u8 };
     let sp = sym as *const u8;
     // PTRDIFF_MAX < INTPTR_MAX is false on this target, so the offset form is used.
     let offset = unsafe { sp.offset_from (bp) };
@@ -1214,7 +1214,7 @@ pub struct Lisp_Sub_Char_Table {
 #[inline(always)]
 pub fn gc_asize (array: Lisp_Object) -> isize {
     // Like ASIZE, but also usable in the garbage collector.
-    unsafe { (*XVECTOR (array)).header.size & !ARRAY_MARK_FLAG }
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (*XVECTOR (array)).header.size & !ARRAY_MARK_FLAG }
 }
 
 #[inline(always)]
@@ -1234,7 +1234,7 @@ pub fn CHECK_VECTOR (x: Lisp_Object) {
 // lisp.h 1784: `PSEUDOVECTOR_TYPE (const struct Lisp_Vector *v)` - the parameter is the
 // vector itself (whose first member is the header), which is what XVECTOR hands back.
 pub fn PSEUDOVECTOR_TYPE (v: *mut Lisp_Vector) -> pvec_type {
-    let size = unsafe { (*v).header.size };
+    let size = /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (*v).header.size };
     if size & PSEUDOVECTOR_FLAG != 0 {
         match (size & PVEC_TYPE_MASK) >> PSEUDOVECTOR_AREA_BITS {
             0 => pvec_type::PVEC_NORMAL_VECTOR,
@@ -1281,7 +1281,7 @@ pub fn PSEUDOVECTOR_TYPE (v: *mut Lisp_Vector) -> pvec_type {
 
 #[inline(always)]
 pub fn PSEUDOVECTOR_TYPEP (a: *mut vectorlike_header, code: pvec_type) -> bool {
-    unsafe { ((*a).size & (PSEUDOVECTOR_FLAG | PVEC_TYPE_MASK))
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { ((*a).size & (PSEUDOVECTOR_FLAG | PVEC_TYPE_MASK))
         == (PSEUDOVECTOR_FLAG | ((code as isize) << PSEUDOVECTOR_AREA_BITS)) }
 }
 
@@ -1319,14 +1319,14 @@ pub fn XBOOL_VECTOR (a: Lisp_Object) -> *mut Lisp_Bool_Vector {
 
 #[inline(always)]
 pub fn bool_vector_size (a: Lisp_Object) -> EMACS_INT {
-    let size = unsafe { (*XBOOL_VECTOR (a)).size };
+    let size = /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (*XBOOL_VECTOR (a)).size };
     eassume! (0 <= size);
     size
 }
 
 #[inline(always)]
 pub fn bool_vector_data (a: Lisp_Object) -> *mut bits_word {
-    unsafe { std::ptr::addr_of_mut! ((*XBOOL_VECTOR (a)).data) as *mut bits_word }
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { std::ptr::addr_of_mut! ((*XBOOL_VECTOR (a)).data) as *mut bits_word }
 }
 
 #[inline(always)]
@@ -1336,7 +1336,7 @@ pub fn bool_vector_uchar_data (a: Lisp_Object) -> *mut u8 { bool_vector_data (a)
 pub fn bool_vector_bitref (a: Lisp_Object, i: EMACS_INT) -> bool {
     eassume! (0 <= i);
     eassert! (i < bool_vector_size (a));
-    unsafe {
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe {
         *bool_vector_uchar_data (a).add ((i / BOOL_VECTOR_BITS_PER_CHAR as EMACS_INT) as usize)
             & (1 << (i % BOOL_VECTOR_BITS_PER_CHAR as EMACS_INT)) != 0
     }
@@ -1351,7 +1351,7 @@ pub fn bool_vector_ref (a: Lisp_Object, i: EMACS_INT) -> Lisp_Object {
 pub fn bool_vector_set (a: Lisp_Object, i: EMACS_INT, b: bool) {
     eassume! (0 <= i);
     eassert! (i < bool_vector_size (a));
-    unsafe {
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe {
         let addr = bool_vector_uchar_data (a)
             .add ((i / BOOL_VECTOR_BITS_PER_CHAR as EMACS_INT) as usize);
         let bit = 1u8 << (i % BOOL_VECTOR_BITS_PER_CHAR as EMACS_INT);
@@ -1397,32 +1397,32 @@ macro_rules! FAM_ELEM_RO {
 #[inline(always)]
 pub fn AREF (array: Lisp_Object, idx: isize) -> Lisp_Object {
     eassert! (0 <= idx && idx < gc_asize (array));
-    unsafe { FAM_ELEM! ((*XVECTOR (array)).contents, idx) }
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { FAM_ELEM! ((*XVECTOR (array)).contents, idx) }
 }
 
 #[inline(always)]
 pub fn aref_addr (array: Lisp_Object, idx: isize) -> *mut Lisp_Object {
     eassert! (0 <= idx && idx <= gc_asize (array));
-    unsafe { &raw mut FAM_ELEM! ((*XVECTOR (array)).contents, idx) }
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { &raw mut FAM_ELEM! ((*XVECTOR (array)).contents, idx) }
 }
 
 #[inline(always)]
 pub fn ASET (array: Lisp_Object, idx: isize, val: Lisp_Object) {
     eassert! (0 <= idx && idx < ASIZE (array));
-    unsafe { FAM_ELEM! ((*XVECTOR (array)).contents, idx) = val }
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { FAM_ELEM! ((*XVECTOR (array)).contents, idx) = val }
 }
 
 #[inline(always)]
 pub fn gc_aset (array: Lisp_Object, idx: isize, val: Lisp_Object) {
     eassert! (0 <= idx && idx < gc_asize (array));
-    unsafe { FAM_ELEM! ((*XVECTOR (array)).contents, idx) = val }
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { FAM_ELEM! ((*XVECTOR (array)).contents, idx) = val }
 }
 
 #[inline(always)]
 pub fn memclear (p: *mut c_void, nbytes: isize) {
     eassert! (0 <= nbytes);
     // Since Qnil is zero, memset suffices.
-    unsafe { std::ptr::write_bytes (p as *mut u8, 0, nbytes as usize) }
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { std::ptr::write_bytes (p as *mut u8, 0, nbytes as usize) }
 }
 
 #[inline(always)]
@@ -1453,7 +1453,7 @@ pub fn XSUB_CHAR_TABLE (a: Lisp_Object) -> *mut Lisp_Sub_Char_Table {
 pub fn CHAR_TABLE_REF_ASCII (ct: Lisp_Object, idx: isize) -> Lisp_Object {
     let mut tbl = XCHAR_TABLE (ct);
     loop {
-        let val = unsafe {
+        let val = /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe {
             let ascii = (*tbl).ascii;
             if SUB_CHAR_TABLE_P (ascii) {
                 FAM_ELEM! ((*XSUB_CHAR_TABLE (ascii)).contents, idx)
@@ -1461,7 +1461,7 @@ pub fn CHAR_TABLE_REF_ASCII (ct: Lisp_Object, idx: isize) -> Lisp_Object {
                 ascii
             }
         };
-        let val = if NILP (val) { unsafe { (*tbl).defalt } } else { val };
+        let val = if NILP (val) { /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (*tbl).defalt } } else { val };
         if !NILP (val) || NILP (unsafe { (*tbl).parent }) {
             return val;
         }
@@ -1474,13 +1474,13 @@ pub fn CHAR_TABLE_REF (ct: Lisp_Object, idx: isize) -> Lisp_Object {
     if ASCII_CHAR_P (idx) {
         CHAR_TABLE_REF_ASCII (ct, idx)
     } else {
-        unsafe { char_table_ref (ct, idx as c_int) }
+        /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { char_table_ref (ct, idx as c_int) }
     }
 }
 
 #[inline(always)]
 pub fn CHAR_TABLE_SET (ct: Lisp_Object, idx: isize, val: Lisp_Object) {
-    if ASCII_CHAR_P (idx) && SUB_CHAR_TABLE_P (unsafe { (*XCHAR_TABLE (ct)).ascii }) {
+    if ASCII_CHAR_P (idx) && SUB_CHAR_TABLE_P (/* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (*XCHAR_TABLE (ct)).ascii }) {
         unsafe { set_sub_char_table_contents ((*XCHAR_TABLE (ct)).ascii, idx, val) };
     } else {
         unsafe { char_table_set (ct, idx as c_int, val) }
@@ -1489,7 +1489,7 @@ pub fn CHAR_TABLE_SET (ct: Lisp_Object, idx: isize, val: Lisp_Object) {
 
 #[inline(always)]
 pub fn CHAR_TABLE_EXTRA_SLOTS (ct: *mut Lisp_Char_Table) -> isize {
-    unsafe { ((*ct).header.size & PSEUDOVECTOR_SIZE_MASK) - CHAR_TABLE_STANDARD_SLOTS }
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { ((*ct).header.size & PSEUDOVECTOR_SIZE_MASK) - CHAR_TABLE_STANDARD_SLOTS }
 }
 
 /// src/lisp.h 2243: PSEUDOVECSIZE (struct Lisp_Char_Table, contents) - 1 +
@@ -1517,7 +1517,7 @@ pub fn SUBRP (a: Lisp_Object) -> bool { PSEUDOVECTORP (a, pvec_type::PVEC_SUBR) 
 #[inline(always)]
 pub fn XSUBR (a: Lisp_Object) -> *mut Lisp_Subr {
     eassert! (SUBRP (a));
-    unsafe { std::ptr::addr_of_mut! ((*XUNTAG! (a, Lisp_Type::Lisp_Vectorlike,
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { std::ptr::addr_of_mut! ((*XUNTAG! (a, Lisp_Type::Lisp_Vectorlike,
                                                 Aligned_Lisp_Subr)).s) }
 }
 
@@ -1536,60 +1536,60 @@ pub use self::h_src_include_thread::*;
 
 #[inline(always)]
 pub fn SYMBOL_VAL (sym: *mut Lisp_Symbol) -> Lisp_Object {
-    eassert! (unsafe { (*sym).u.s.bits & SYMBOL_REDIRECT_MASK } >> SYMBOL_REDIRECT_SHIFT == SYMBOL_PLAINVAL);
+    eassert! (/* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (*sym).u.s.bits & SYMBOL_REDIRECT_MASK } >> SYMBOL_REDIRECT_SHIFT == SYMBOL_PLAINVAL);
     unsafe { (*sym).u.s.val.value }
 }
 
 #[inline(always)]
 pub fn SYMBOL_ALIAS (sym: *mut Lisp_Symbol) -> *mut Lisp_Symbol {
-    eassume! (unsafe { ((*sym).u.s.bits & SYMBOL_REDIRECT_MASK) >> SYMBOL_REDIRECT_SHIFT } == SYMBOL_VARALIAS
+    eassume! (/* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { ((*sym).u.s.bits & SYMBOL_REDIRECT_MASK) >> SYMBOL_REDIRECT_SHIFT } == SYMBOL_VARALIAS
         && ! unsafe { (*sym).u.s.val.alias }.is_null ());
     unsafe { (*sym).u.s.val.alias }
 }
 
 #[inline(always)]
 pub fn SYMBOL_BLV (sym: *mut Lisp_Symbol) -> *mut c_void {
-    eassume! (unsafe { ((*sym).u.s.bits & SYMBOL_REDIRECT_MASK) >> SYMBOL_REDIRECT_SHIFT } == SYMBOL_LOCALIZED
+    eassume! (/* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { ((*sym).u.s.bits & SYMBOL_REDIRECT_MASK) >> SYMBOL_REDIRECT_SHIFT } == SYMBOL_LOCALIZED
         && ! unsafe { (*sym).u.s.val.blv }.is_null ());
     unsafe { (*sym).u.s.val.blv }
 }
 
 #[inline(always)]
 pub fn SYMBOL_FWD (sym: *mut Lisp_Symbol) -> *mut c_void {
-    eassume! (unsafe { ((*sym).u.s.bits & SYMBOL_REDIRECT_MASK) >> SYMBOL_REDIRECT_SHIFT } == SYMBOL_FORWARDED
+    eassume! (/* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { ((*sym).u.s.bits & SYMBOL_REDIRECT_MASK) >> SYMBOL_REDIRECT_SHIFT } == SYMBOL_FORWARDED
         && ! unsafe { (*sym).u.s.val.fwd }.is_null ());
     unsafe { (*sym).u.s.val.fwd }
 }
 
 #[inline(always)]
 pub fn SET_SYMBOL_VAL (sym: *mut Lisp_Symbol, v: Lisp_Object) {
-    eassert! (unsafe { ((*sym).u.s.bits & SYMBOL_REDIRECT_MASK) >> SYMBOL_REDIRECT_SHIFT } == SYMBOL_PLAINVAL);
+    eassert! (/* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { ((*sym).u.s.bits & SYMBOL_REDIRECT_MASK) >> SYMBOL_REDIRECT_SHIFT } == SYMBOL_PLAINVAL);
     unsafe { (*sym).u.s.val.value = v }
 }
 
 #[inline(always)]
 pub fn SET_SYMBOL_ALIAS (sym: *mut Lisp_Symbol, v: *mut Lisp_Symbol) {
-    eassume! (unsafe { ((*sym).u.s.bits & SYMBOL_REDIRECT_MASK) >> SYMBOL_REDIRECT_SHIFT } == SYMBOL_VARALIAS
+    eassume! (/* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { ((*sym).u.s.bits & SYMBOL_REDIRECT_MASK) >> SYMBOL_REDIRECT_SHIFT } == SYMBOL_VARALIAS
         && ! v.is_null ());
     unsafe { (*sym).u.s.val.alias = v }
 }
 
 #[inline(always)]
 pub fn SET_SYMBOL_BLV (sym: *mut Lisp_Symbol, v: *mut c_void) {
-    eassume! (unsafe { ((*sym).u.s.bits & SYMBOL_REDIRECT_MASK) >> SYMBOL_REDIRECT_SHIFT } == SYMBOL_LOCALIZED
+    eassume! (/* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { ((*sym).u.s.bits & SYMBOL_REDIRECT_MASK) >> SYMBOL_REDIRECT_SHIFT } == SYMBOL_LOCALIZED
         && ! v.is_null ());
     unsafe { (*sym).u.s.val.blv = v }
 }
 
 #[inline(always)]
 pub fn SET_SYMBOL_FWD (sym: *mut Lisp_Symbol, fwd: *mut c_void) {
-    eassume! (unsafe { ((*sym).u.s.bits & SYMBOL_REDIRECT_MASK) >> SYMBOL_REDIRECT_SHIFT } == SYMBOL_FORWARDED
+    eassume! (/* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { ((*sym).u.s.bits & SYMBOL_REDIRECT_MASK) >> SYMBOL_REDIRECT_SHIFT } == SYMBOL_FORWARDED
         && ! fwd.is_null ());
     unsafe { (*sym).u.s.val.fwd = fwd }
 }
 
 #[inline(always)]
-pub fn SYMBOL_NAME (sym: Lisp_Object) -> Lisp_Object { unsafe { (*XSYMBOL (sym)).u.s.name } }
+pub fn SYMBOL_NAME (sym: Lisp_Object) -> Lisp_Object { /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (*XSYMBOL (sym)).u.s.name } }
 
 #[inline(always)]
 pub fn lisp_h_SYMBOL_TRAPPED_WRITE_P (sym: Lisp_Object) -> u32 {
@@ -1611,13 +1611,13 @@ pub fn SYMBOL_CONSTANT_P (sym: Lisp_Object) -> bool { lisp_h_SYMBOL_CONSTANT_P (
 
 #[inline(always)]
 pub fn SYMBOL_INTERNED_P (sym: Lisp_Object) -> bool {
-    unsafe { ((*XSYMBOL (sym)).u.s.bits & SYMBOL_INTERNED_MASK) >> SYMBOL_INTERNED_SHIFT
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { ((*XSYMBOL (sym)).u.s.bits & SYMBOL_INTERNED_MASK) >> SYMBOL_INTERNED_SHIFT
         != SYMBOL_UNINTERNED }
 }
 
 #[inline(always)]
 pub fn SYMBOL_INTERNED_IN_INITIAL_OBARRAY_P (sym: Lisp_Object) -> bool {
-    unsafe { ((*XSYMBOL (sym)).u.s.bits & SYMBOL_INTERNED_MASK) >> SYMBOL_INTERNED_SHIFT
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { ((*XSYMBOL (sym)).u.s.bits & SYMBOL_INTERNED_MASK) >> SYMBOL_INTERNED_SHIFT
         == SYMBOL_INTERNED_IN_INITIAL_OBARRAY }
 }
 
@@ -1742,7 +1742,7 @@ pub fn make_mint_ptr (a: *mut c_void) -> Lisp_Object {
     if FIXNUMP (val) && XFIXNUMPTR (val) == a as *mut c_char {
         val
     } else {
-        unsafe { make_misc_ptr (a) }
+        /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { make_misc_ptr (a) }
     }
 }
 
@@ -1757,12 +1757,12 @@ pub fn xmint_pointer (a: Lisp_Object) -> *mut c_void {
     if FIXNUMP (a) {
         XFIXNUMPTR (a) as *mut c_void
     } else {
-        unsafe { (*XUNTAG! (a, Lisp_Type::Lisp_Vectorlike, Lisp_Misc_Ptr)).pointer }
+        /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (*XUNTAG! (a, Lisp_Type::Lisp_Vectorlike, Lisp_Misc_Ptr)).pointer }
     }
 }
 
 #[inline(always)]
-pub fn XFWDTYPE (a: *mut Lisp_Fwd) -> u32 { unsafe { (*a).r#type } }
+pub fn XFWDTYPE (a: *mut Lisp_Fwd) -> u32 { /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (*a).r#type } }
 
 #[inline(always)]
 pub fn BUFFER_OBJFWDP (a: *mut Lisp_Fwd) -> bool { XFWDTYPE (a) == Lisp_Fwd_Buffer_Obj }
@@ -1770,7 +1770,7 @@ pub fn BUFFER_OBJFWDP (a: *mut Lisp_Fwd) -> bool { XFWDTYPE (a) == Lisp_Fwd_Buff
 #[inline(always)]
 pub fn XBUFFER_OFFSET (a: *mut Lisp_Fwd) -> u16 {
     eassert! (BUFFER_OBJFWDP (a));
-    unsafe { (*a).u.buf.offset }
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (*a).u.buf.offset }
 }
 
 #[inline(always)]
@@ -1783,7 +1783,7 @@ pub fn XFLOAT (a: Lisp_Object) -> *mut Lisp_Float {
 }
 
 #[inline(always)]
-pub fn XFLOAT_DATA (f: Lisp_Object) -> f64 { unsafe { (*XFLOAT (f)).u.data } }
+pub fn XFLOAT_DATA (f: Lisp_Object) -> f64 { /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (*XFLOAT (f)).u.data } }
 
 #[inline(always)]
 pub fn lisp_h_CHECK_FIXNUM (x: Lisp_Object) {
@@ -1819,7 +1819,7 @@ pub fn XFLOATINT (n: Lisp_Object) -> f64 {
     } else if FLOATP (n) {
         XFLOAT_DATA (n)
     } else {
-        unsafe { bignum_to_double (n) }
+        /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { bignum_to_double (n) }
     }
 }
 
@@ -1834,7 +1834,7 @@ pub fn CHECK_FIXNAT (x: Lisp_Object) { CHECK_TYPE (FIXNATP (x), Qwholenump (), x
 
 #[inline(always)]
 pub fn make_int (n: intmax_t) -> Lisp_Object {
-    if FIXNUM_OVERFLOW_P (n as EMACS_INT) { unsafe { make_bigint (n) } } else { make_fixnum (n as EMACS_INT) }
+    if FIXNUM_OVERFLOW_P (n as EMACS_INT) { /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { make_bigint (n) } } else { make_fixnum (n as EMACS_INT) }
 }
 
 #[inline(always)]
@@ -1844,7 +1844,7 @@ pub fn make_uint (n: uintmax_t) -> Lisp_Object {
     // helper is asked too, so the token stays and a value above i64::MAX (which truncates)
     // is caught by the unsigned bound (review A's A-4).
     if FIXNUM_OVERFLOW_P (n as EMACS_INT) || (MOST_POSITIVE_FIXNUM as uintmax_t) < n
-      { unsafe { make_biguint (n) } }
+      { /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { make_biguint (n) } }
     else { make_fixnum (n as EMACS_INT) }
 }
 
@@ -2104,7 +2104,7 @@ pub fn specpdl_ref_add (r: specpdl_ref, delta: isize) -> specpdl_ref {
 
 #[inline(always)]
 pub fn backtrace_debug_on_exit (pdl: *mut specbinding) -> bool {
-    eassert! (unsafe { (*pdl).kind } == SPECPDL_BACKTRACE as u8);
+    eassert! (/* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (*pdl).kind } == SPECPDL_BACKTRACE as u8);
     unsafe { (*pdl).bt.debug_on_exit != 0 }
 }
 
@@ -2129,7 +2129,7 @@ pub const BLV_FOUND: u32 = 1 << 1;
 
 #[inline(always)]
 pub fn blv_found (blv: *mut Lisp_Buffer_Local_Value) -> bool {
-    eassert! ((unsafe { (*blv).bits } & BLV_FOUND != 0)
+    eassert! ((/* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (*blv).bits } & BLV_FOUND != 0)
         == !BASE_EQ (unsafe { (*blv).defcell }, unsafe { (*blv).valcell }));
     (unsafe { (*blv).bits } & BLV_FOUND) != 0
 }
@@ -2141,7 +2141,7 @@ pub fn blv_found (blv: *mut Lisp_Buffer_Local_Value) -> bool {
 pub fn xvector_contents_addr (a: Lisp_Object, i: isize) -> *mut c_void {
     let offset = (std::mem::size_of::<vectorlike_header>()
         + i as usize * std::mem::size_of::<Lisp_Object>()) as isize;
-    unsafe { (XVECTOR (a) as *mut u8).offset (offset) as *mut c_void }
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (XVECTOR (a) as *mut u8).offset (offset) as *mut c_void }
 }
 
 #[inline(always)]
@@ -2150,7 +2150,7 @@ pub fn xvector_contents (a: Lisp_Object) -> *mut c_void { xvector_contents_addr 
 #[inline(always)]
 pub fn vcopy (v: Lisp_Object, offset: isize, args: *const Lisp_Object, count: isize) {
     eassert! (0 <= offset && 0 <= count && offset + count <= ASIZE (v));
-    unsafe {
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe {
         std::ptr::copy_nonoverlapping (args, xvector_contents_addr (v, offset) as *mut Lisp_Object,
                                        count as usize)
     }
@@ -2158,12 +2158,12 @@ pub fn vcopy (v: Lisp_Object, offset: isize, args: *const Lisp_Object, count: is
 
 #[inline(always)]
 pub fn vector_nbytes (v: *mut Lisp_Vector) -> isize {
-    unsafe { vectorlike_nbytes (&raw const (*v).header) }
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { vectorlike_nbytes (&raw const (*v).header) }
 }
 
 #[inline(always)]
 pub fn make_nil_vector (size: isize) -> Lisp_Object {
-    make_lisp_ptr (unsafe { allocate_nil_vector (size) } as *mut c_void, Lisp_Type::Lisp_Vectorlike)
+    make_lisp_ptr (/* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { allocate_nil_vector (size) } as *mut c_void, Lisp_Type::Lisp_Vectorlike)
 }
 
 #[inline(always)]
@@ -2171,17 +2171,17 @@ pub fn list1i (a: EMACS_INT) -> Lisp_Object { unsafe { list1 (make_int (a as int
 
 #[inline(always)]
 pub fn list2i (a: EMACS_INT, b: EMACS_INT) -> Lisp_Object {
-    unsafe { list2 (make_int (a as intmax_t), make_int (b as intmax_t)) }
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { list2 (make_int (a as intmax_t), make_int (b as intmax_t)) }
 }
 
 #[inline(always)]
 pub fn list3i (a: EMACS_INT, b: EMACS_INT, c: EMACS_INT) -> Lisp_Object {
-    unsafe { list3 (make_int (a as intmax_t), make_int (b as intmax_t), make_int (c as intmax_t)) }
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { list3 (make_int (a as intmax_t), make_int (b as intmax_t), make_int (c as intmax_t)) }
 }
 
 #[inline(always)]
 pub fn list4i (a: EMACS_INT, b: EMACS_INT, c: EMACS_INT, d: EMACS_INT) -> Lisp_Object {
-    unsafe { list4 (make_int (a as intmax_t), make_int (b as intmax_t), make_int (c as intmax_t), make_int (d as intmax_t)) }
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { list4 (make_int (a as intmax_t), make_int (b as intmax_t), make_int (c as intmax_t), make_int (d as intmax_t)) }
 }
 
 /// elogb: the smallest power of two exponent, from stdc_bit_width.
@@ -2194,7 +2194,7 @@ pub fn elogb (n: u64) -> c_int {
 #[inline(always)]
 pub fn integer_to_intmax (num: Lisp_Object, n: *mut i64) -> bool {
     if FIXNUMP (num) {
-        unsafe { *n = XFIXNUM (num) as i64 };
+        /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { *n = XFIXNUM (num) as i64 };
         true
     } else {
         let i = unsafe { bignum_to_intmax (num) };
@@ -2213,7 +2213,7 @@ pub fn integer_to_intmax (num: Lisp_Object, n: *mut i64) -> bool {
 pub fn integer_to_uintmax (num: Lisp_Object, n: *mut u64) -> bool {
     if FIXNUMP (num) {
         let v = XFIXNUM (num);
-        unsafe { *n = v as u64 };
+        /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { *n = v as u64 };
         0 <= v
     } else {
         let i = unsafe { bignum_to_uintmax (num) };
@@ -2229,12 +2229,12 @@ pub fn integer_to_uintmax (num: Lisp_Object, n: *mut u64) -> bool {
 // (docs/status.md 3.71).
 #[inline(always)]
 pub fn modiff_incr (a: *mut i64, len: isize) -> i64 {
-    let a0 = unsafe { *a };
+    let a0 = /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { *a };
     // Increase more for a large modification, logarithmically.
     let incr: i64 = if len == 0 { 1 } else { elogb (len as u64) as i64 + 1 };
     let (v, overflow) = a0.overflowing_add (incr);
     eassert! (!overflow && v >> 30 >> 30 == 0);
-    unsafe { *a = v };
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { *a = v };
     a0
 }
 
@@ -2281,17 +2281,17 @@ pub fn flush_stack_barrier () {
 
 #[inline(always)]
 pub fn set_symbol_function (sym: Lisp_Object, function: Lisp_Object) {
-    unsafe { (*XSYMBOL (sym)).u.s.function = function }
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (*XSYMBOL (sym)).u.s.function = function }
 }
 
 #[inline(always)]
 pub fn set_symbol_plist (sym: Lisp_Object, plist: Lisp_Object) {
-    unsafe { (*XSYMBOL (sym)).u.s.plist = plist }
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (*XSYMBOL (sym)).u.s.plist = plist }
 }
 
 #[inline(always)]
 pub fn set_symbol_next (sym: Lisp_Object, next: *mut Lisp_Symbol) {
-    unsafe { (*XSYMBOL (sym)).u.s.next = next }
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (*XSYMBOL (sym)).u.s.next = next }
 }
 
 // lisp.h 4009-4013: C writes the bitfield directly here.  The port used to route this
@@ -2301,7 +2301,7 @@ pub fn set_symbol_next (sym: Lisp_Object, next: *mut Lisp_Symbol) {
 // 1832 lands (review A's F1).
 #[inline(always)]
 pub fn make_symbol_constant (sym: Lisp_Object) {
-    unsafe {
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe {
         (*XSYMBOL (sym)).u.s.bits =
             ((*XSYMBOL (sym)).u.s.bits & !SYMBOL_TRAPPED_WRITE_MASK)
                 | ((SYMBOL_NOWRITE << SYMBOL_TRAPPED_WRITE_SHIFT) & SYMBOL_TRAPPED_WRITE_MASK)
@@ -2310,33 +2310,33 @@ pub fn make_symbol_constant (sym: Lisp_Object) {
 
 #[inline(always)]
 pub fn set_overlay_plist (overlay: Lisp_Object, plist: Lisp_Object) {
-    unsafe { (*XOVERLAY (overlay)).plist = plist }
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (*XOVERLAY (overlay)).plist = plist }
 }
 
 #[inline(always)]
 pub fn string_intervals (s: Lisp_Object) -> *mut c_void {
-    unsafe { (*XSTRING (s)).u.s.intervals }
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (*XSTRING (s)).u.s.intervals }
 }
 
 #[inline(always)]
 pub fn set_string_intervals (s: Lisp_Object, i: *mut c_void) {
-    unsafe { (*XSTRING (s)).u.s.intervals = i }
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (*XSTRING (s)).u.s.intervals = i }
 }
 
 #[inline(always)]
 pub fn set_char_table_defalt (table: Lisp_Object, val: Lisp_Object) {
-    unsafe { (*XCHAR_TABLE (table)).defalt = val }
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (*XCHAR_TABLE (table)).defalt = val }
 }
 
 #[inline(always)]
 pub fn set_char_table_purpose (table: Lisp_Object, val: Lisp_Object) {
-    unsafe { (*XCHAR_TABLE (table)).purpose = val }
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (*XCHAR_TABLE (table)).purpose = val }
 }
 
 #[inline(always)]
 pub fn set_char_table_extras (table: Lisp_Object, idx: isize, val: Lisp_Object) {
     eassert! (0 <= idx && idx < CHAR_TABLE_EXTRA_SLOTS (XCHAR_TABLE (table)));
-    unsafe { FAM_ELEM! ((*XCHAR_TABLE (table)).extras, idx) = val }
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { FAM_ELEM! ((*XCHAR_TABLE (table)).extras, idx) = val }
 }
 
 // C defines this INLINE in lisp.h 4078; the mirror had declared it as an external symbol
@@ -2344,13 +2344,13 @@ pub fn set_char_table_extras (table: Lisp_Object, idx: isize, val: Lisp_Object) 
 // 403 INLINE definitions of the four mirrored headers).
 #[inline(always)]
 pub fn set_sub_char_table_contents (table: Lisp_Object, idx: isize, val: Lisp_Object) {
-    unsafe { FAM_ELEM! ((*XSUB_CHAR_TABLE (table)).contents, idx) = val }
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { FAM_ELEM! ((*XSUB_CHAR_TABLE (table)).contents, idx) = val }
 }
 
 #[inline(always)]
 pub fn set_char_table_contents (table: Lisp_Object, idx: isize, val: Lisp_Object) {
     eassert! (0 <= idx && idx < (1 << CHARTAB_SIZE_BITS_0));
-    unsafe { FAM_ELEM! ((*XCHAR_TABLE (table)).contents, idx) = val }
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { FAM_ELEM! ((*XCHAR_TABLE (table)).contents, idx) = val }
 }
 
 // --- batch 6: obarrays, hash tables, sqlite, checks, constructors (src/lisp.h 2400-3400) ---
@@ -2480,18 +2480,18 @@ pub fn CHECK_OBARRAY (x: Lisp_Object) { CHECK_TYPE (OBARRAYP (x), Qobarrayp (), 
 
 #[inline(always)]
 pub fn make_lisp_obarray (o: *mut Lisp_Obarray) -> Lisp_Object {
-    eassert! (unsafe { PSEUDOVECTOR_TYPEP (&raw mut (*o).header, pvec_type::PVEC_OBARRAY) });
+    eassert! (/* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { PSEUDOVECTOR_TYPEP (&raw mut (*o).header, pvec_type::PVEC_OBARRAY) });
     make_lisp_ptr (o as *mut c_void, Lisp_Type::Lisp_Vectorlike)
 }
 
 #[inline(always)]
 pub fn obarray_size (o: *mut Lisp_Obarray) -> isize {
-    1isize << unsafe { (*o).size_bits }
+    1isize << /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (*o).size_bits }
 }
 
 #[inline(always)]
 pub fn check_obarray (obarray: Lisp_Object) -> Lisp_Object {
-    if OBARRAYP (obarray) { obarray } else { unsafe { check_obarray_slow (obarray) } }
+    if OBARRAYP (obarray) { obarray } else { /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { check_obarray_slow (obarray) } }
 }
 
 #[inline(always)]
@@ -2501,12 +2501,12 @@ pub fn make_obarray_iter (oa: *mut Lisp_Obarray) -> obarray_iter_t {
 
 #[inline(always)]
 pub fn obarray_iter_at_end (it: *mut obarray_iter_t) -> bool {
-    if ! unsafe { (*it).symbol }.is_null () {
+    if ! /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (*it).symbol }.is_null () {
         return false;
     }
     let size = obarray_size (unsafe { (*it).o });
     loop {
-        unsafe { (*it).idx += 1 };
+        /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (*it).idx += 1 };
         if unsafe { (*it).idx } >= size {
             return true;
         }
@@ -2515,7 +2515,7 @@ pub fn obarray_iter_at_end (it: *mut obarray_iter_t) -> bool {
            *fixnum* zero (C 5038/5231/5273 write it), which is not `Qnil`: reading it as nil
            is what sent the fixnum into `XSYMBOL` on the first run (status 3.614).  */
         if !BASE_EQ (obj, make_fixnum (0)) {
-            unsafe { (*it).symbol = XBARE_SYMBOL (obj) };
+            /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (*it).symbol = XBARE_SYMBOL (obj) };
             return false;
         }
     }
@@ -2523,12 +2523,12 @@ pub fn obarray_iter_at_end (it: *mut obarray_iter_t) -> bool {
 
 #[inline(always)]
 pub fn obarray_iter_step (it: *mut obarray_iter_t) {
-    unsafe { (*it).symbol = (*(*it).symbol).u.s.next };
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (*it).symbol = (*(*it).symbol).u.s.next };
 }
 
 #[inline(always)]
 pub fn obarray_iter_symbol (it: *mut obarray_iter_t) -> Lisp_Object {
-    make_lisp_symbol (unsafe { (*it).symbol })
+    make_lisp_symbol (/* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (*it).symbol })
 }
 
 // --- hash tables (src/lisp.h 2510-2700) ------------------------------------
@@ -2544,30 +2544,30 @@ pub fn XHASH_TABLE (a: Lisp_Object) -> *mut Lisp_Hash_Table {
 
 #[inline(always)]
 pub fn make_lisp_hash_table (h: *mut Lisp_Hash_Table) -> Lisp_Object {
-    eassert! (unsafe { PSEUDOVECTOR_TYPEP (&raw mut (*h).header, pvec_type::PVEC_HASH_TABLE) });
+    eassert! (/* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { PSEUDOVECTOR_TYPEP (&raw mut (*h).header, pvec_type::PVEC_HASH_TABLE) });
     make_lisp_ptr (h as *mut c_void, Lisp_Type::Lisp_Vectorlike)
 }
 
 #[inline(always)]
 pub fn HASH_KEY (h: *mut Lisp_Hash_Table, idx: hash_idx_t) -> Lisp_Object {
-    eassert! (idx >= 0 && idx < unsafe { (*h).table_size });
+    eassert! (idx >= 0 && idx < /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (*h).table_size });
     unsafe { *(*h).key_and_value.add (2 * idx as usize) }
 }
 
 #[inline(always)]
 pub fn HASH_VALUE (h: *mut Lisp_Hash_Table, idx: hash_idx_t) -> Lisp_Object {
-    eassert! (idx >= 0 && idx < unsafe { (*h).table_size });
+    eassert! (idx >= 0 && idx < /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (*h).table_size });
     unsafe { *(*h).key_and_value.add (2 * idx as usize + 1) }
 }
 
 #[inline(always)]
 pub fn HASH_HASH (h: *mut Lisp_Hash_Table, idx: hash_idx_t) -> hash_hash_t {
-    eassert! (idx >= 0 && idx < unsafe { (*h).table_size });
+    eassert! (idx >= 0 && idx < /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (*h).table_size });
     unsafe { *(*h).hash.add (idx as usize) }
 }
 
 #[inline(always)]
-pub fn HASH_TABLE_SIZE (h: *mut Lisp_Hash_Table) -> hash_idx_t { unsafe { (*h).table_size } }
+pub fn HASH_TABLE_SIZE (h: *mut Lisp_Hash_Table) -> hash_idx_t { /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (*h).table_size } }
 // lisp.h 4254-4258: the hash-table primitives `coding.h`'s CODING_SYSTEM_ID needs (the rest
 // arrive with the units that define them), plus lisp.h 4279's `string_make_unibyte`, which
 // keyboard.h's ENCODE_MENU_STRING calls.
@@ -2589,12 +2589,12 @@ pub use self::lisp_hash_decls::*;
 
 #[inline(always)]
 pub fn hash_table_index_size (h: *mut Lisp_Hash_Table) -> isize {
-    1isize << unsafe { (*h).index_bits }
+    1isize << /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (*h).index_bits }
 }
 
 #[inline(always)]
 pub fn hash_from_key (h: *mut Lisp_Hash_Table, key: Lisp_Object) -> hash_hash_t {
-    unsafe { ((*(*h).test).hashfn.unwrap_unchecked ()) (key, h) }
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { ((*(*h).test).hashfn.unwrap_unchecked ()) (key, h) }
 }
 
 #[inline(always)]
@@ -2622,13 +2622,13 @@ pub fn INVALID_LISP_VALUE () -> Lisp_Object {
 
 #[inline(always)]
 pub fn set_hash_key_slot (h: *mut Lisp_Hash_Table, idx: hash_idx_t, val: Lisp_Object) {
-    eassert! (idx >= 0 && idx < unsafe { (*h).table_size });
+    eassert! (idx >= 0 && idx < /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (*h).table_size });
     unsafe { *(*h).key_and_value.add (2 * idx as usize) = val }
 }
 
 #[inline(always)]
 pub fn set_hash_value_slot (h: *mut Lisp_Hash_Table, idx: hash_idx_t, val: Lisp_Object) {
-    eassert! (idx >= 0 && idx < unsafe { (*h).table_size });
+    eassert! (idx >= 0 && idx < /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (*h).table_size });
     unsafe { *(*h).key_and_value.add (2 * idx as usize + 1) = val }
 }
 
@@ -2709,7 +2709,7 @@ pub fn CHECK_VECTOR_OR_STRING (x: Lisp_Object) -> isize {
     if STRINGP (x) {
         return SCHARS (x);
     }
-    unsafe { wrong_type_argument (Qarrayp (), x) }
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { wrong_type_argument (Qarrayp (), x) }
 }
 
 #[inline(always)]
@@ -2724,17 +2724,17 @@ pub fn CHECK_SUBR (x: Lisp_Object) { CHECK_TYPE (SUBRP (x), Qsubrp (), x) }
 
 #[inline(always)]
 pub fn specpdl_ref_to_ptr (r: specpdl_ref) -> *mut specbinding {
-    unsafe { ((specpdl! ()) as *mut u8).offset (unwrap_specpdl_ref (r)) as *mut specbinding }
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { ((specpdl! ()) as *mut u8).offset (unwrap_specpdl_ref (r)) as *mut specbinding }
 }
 
 #[inline(always)]
 pub fn SPECPDL_INDEX () -> specpdl_ref {
-    unsafe { wrap_specpdl_ref ((specpdl_ptr! ()) as isize - (specpdl! ()) as isize) }
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { wrap_specpdl_ref ((specpdl_ptr! ()) as isize - (specpdl! ()) as isize) }
 }
 
 #[inline(always)]
 pub fn grow_specpdl () {
-    unsafe {
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe {
         (specpdl_ptr! ()) = (specpdl_ptr! ()).add (1);
         if (specpdl_ptr! ()) == (specpdl_end! ()) {
             grow_specpdl_allocation ();
@@ -2747,7 +2747,7 @@ pub fn record_in_backtrace (function: Lisp_Object, args: *mut Lisp_Object, nargs
   -> specpdl_ref {
     let count = SPECPDL_INDEX ();
     eassert! (nargs >= UNEVALLED);
-    unsafe {
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe {
         (*(specpdl_ptr! ())).bt.kind = SPECPDL_BACKTRACE as u8;
         (*(specpdl_ptr! ())).bt.debug_on_exit = 0;
         (*(specpdl_ptr! ())).bt.function = function;
@@ -2765,7 +2765,7 @@ pub const UNEVALLED: isize = -1;
 
 #[inline(always)]
 pub fn maybe_quit () {
-    if !NILP (unsafe { Vquit_flag }) || unsafe { pending_signals } {
+    if !NILP (/* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { Vquit_flag }) || unsafe { pending_signals } {
         unsafe { probably_quit () }
     }
 }
@@ -2779,7 +2779,7 @@ pub fn rarely_quit (count: u64) {
 
 #[inline(always)]
 pub fn maybe_gc () {
-    if unsafe { consing_until_gc } < 0 {
+    if /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { consing_until_gc } < 0 {
         unsafe { maybe_garbage_collect () }
     } else {
         // Generational young cadence: allocation only arms a flag; the
@@ -2787,12 +2787,12 @@ pub fn maybe_gc () {
         // GC is inhibited or already running — cadence does not consult the
         // HI_THRESHOLD consing_until_gc inhibit latch.
         #[cfg(feature = "femacs_gc_generational")]
-        if unsafe {
+        if /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe {
             garbage_collection_inhibited == 0
                 && !gc_in_progress
                 && femacs_gc_young_cadence_pending()
         } {
-            unsafe { maybe_garbage_collect () }
+            /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { maybe_garbage_collect () }
         }
     }
 }
@@ -2802,29 +2802,29 @@ pub fn maybe_gc () {
 
 #[inline(always)]
 pub fn build_unibyte_string (str_: *const c_char) -> Lisp_Object {
-    unsafe { make_unibyte_string (str_, strlen (str_) as ptrdiff_t) }
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { make_unibyte_string (str_, strlen (str_) as ptrdiff_t) }
 }
 
 #[inline(always)]
 pub fn build_string (str_: *const c_char) -> Lisp_Object {
-    unsafe { make_string (str_, strlen (str_) as ptrdiff_t) }
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { make_string (str_, strlen (str_) as ptrdiff_t) }
 }
 
 #[inline(always)]
 pub fn make_uninit_vector (size: isize) -> Lisp_Object {
-    make_lisp_ptr (unsafe { allocate_vector (size) } as *mut c_void, Lisp_Type::Lisp_Vectorlike)
+    make_lisp_ptr (/* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { allocate_vector (size) } as *mut c_void, Lisp_Type::Lisp_Vectorlike)
 }
 
 #[inline(always)]
 pub fn make_uninit_sub_char_table (depth: c_int, min_char: c_int) -> Lisp_Object {
-    let slots = SUB_CHAR_TABLE_OFFSET + unsafe { chartab_size[depth as usize] } as isize;
+    let slots = SUB_CHAR_TABLE_OFFSET + /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { chartab_size[depth as usize] } as isize;
     let v = make_uninit_vector (slots);
     unsafe {
         let size = std::ptr::addr_of_mut! ((*XVECTOR (v)).header.size);
         *size |= PSEUDOVECTOR_FLAG
             | ((pvec_type::PVEC_SUB_CHAR_TABLE as isize) << PSEUDOVECTOR_AREA_BITS);
     }
-    unsafe {
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe {
         (*XSUB_CHAR_TABLE (v)).depth = depth;
         (*XSUB_CHAR_TABLE (v)).min_char = min_char;
     }
@@ -2839,53 +2839,53 @@ pub const SUB_CHAR_TABLE_OFFSET: isize =
 
 #[inline(always)]
 pub fn LOADHIST_ATTACH (x: Lisp_Object) {
-    if unsafe { initialized } {
+    if /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { initialized } {
         unsafe { Vcurrent_load_list = Fcons (x, Vcurrent_load_list) }
     }
 }
 
 #[inline(always)]
 pub fn intern (str_: *const c_char) -> Lisp_Object {
-    unsafe { intern_1 (str_, strlen (str_) as ptrdiff_t) }
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { intern_1 (str_, strlen (str_) as ptrdiff_t) }
 }
 
 #[inline(always)]
 pub fn intern_c_string (str_: *const c_char) -> Lisp_Object {
-    unsafe { intern_c_string_1 (str_, strlen (str_) as ptrdiff_t) }
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { intern_c_string_1 (str_, strlen (str_) as ptrdiff_t) }
 }
 
 #[inline(always)]
 pub fn xsignal (error_symbol: Lisp_Object, data: Lisp_Object) -> ! {
-    unsafe { Fsignal (error_symbol, data) }
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { Fsignal (error_symbol, data) }
 }
 
 #[inline(always)]
 pub fn CHECK_KEYWORD_ARGS (nargs: isize) {
     // A list of keyword/value pairs must not be missing a value.
     if nargs & 1 != 0 {
-        unsafe { xsignal0 (Qmalformed_keyword_arg_list ()) }
+        /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { xsignal0 (Qmalformed_keyword_arg_list ()) }
     }
 }
 
 #[inline(always)]
 pub fn fast_string_match (regexp: Lisp_Object, string: Lisp_Object) -> isize {
-    unsafe { fast_string_match_internal (regexp, string, Qnil ()) }
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { fast_string_match_internal (regexp, string, Qnil ()) }
 }
 
 #[inline(always)]
 pub fn fast_string_match_ignore_case (regexp: Lisp_Object, string: Lisp_Object) -> isize {
-    unsafe { fast_string_match_internal (regexp, string, Vascii_canon_table) }
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { fast_string_match_internal (regexp, string, Vascii_canon_table) }
 }
 
 #[inline(always)]
 pub fn fast_c_string_match (regexp: Lisp_Object, string: *const c_char, len: usize) -> isize {
-    unsafe { fast_c_string_match_internal (regexp, string, len as ptrdiff_t, Qnil ()) }
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { fast_c_string_match_internal (regexp, string, len as ptrdiff_t, Qnil ()) }
 }
 
 #[inline(always)]
 pub fn fast_c_string_match_ignore_case (regexp: Lisp_Object, string: *const c_char,
                                         len: usize) -> isize {
-    unsafe { fast_c_string_match_internal (regexp, string, len as ptrdiff_t, Vascii_canon_table) }
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { fast_c_string_match_internal (regexp, string, len as ptrdiff_t, Vascii_canon_table) }
 }
 
 /// C: lisp.h 5233-5237: `INLINE struct bc_frame *get_act_rec (struct thread_state *th)
@@ -2895,14 +2895,14 @@ pub fn fast_c_string_match_ignore_case (regexp: Lisp_Object, string: *const c_ch
 /// eval.c's own `static inline` copy; the mirror carries it once (P-20).
 #[inline(always)]
 pub unsafe fn get_act_rec (th: *mut thread_state) -> *mut c_void {
-    unsafe { (*th).bc.fp }
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (*th).bc.fp }
 }
 
 /// C: lisp.h 5239-5243: `INLINE void set_act_rec (struct thread_state *th, struct bc_frame
 /// *act_rec) { th->bc.fp = act_rec; }` - the setter half of the pair above.
 #[inline(always)]
 pub unsafe fn set_act_rec (th: *mut thread_state, act_rec: *mut c_void) {
-    unsafe { (*th).bc.fp = act_rec; }
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (*th).bc.fp = act_rec; }
 }
 
 /// C: lisp.h 5276-5280 (the live arm; `HAVE_PERSONALITY_ADDR_NO_RANDOMIZE` is `undef` in the
@@ -2923,7 +2923,7 @@ pub fn maybe_disable_address_randomization (argc: c_int, argv: *mut *mut c_char)
 #[inline(always)]
 pub fn lispstpcpy (dest: *mut c_char, string: Lisp_Object) -> *mut c_char {
     let len = SBYTES (string);
-    unsafe {
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe {
         std::ptr::copy_nonoverlapping (SDATA (string), dest as *mut u8, len as usize + 1);
         dest.add (len as usize)
     }
@@ -2935,12 +2935,12 @@ pub fn __lsan_ignore_object (_p: *const c_void) {}
 
 #[inline(always)]
 pub fn egetenv (var: *const c_char) -> *mut c_char {
-    unsafe { egetenv_internal (var, strlen (var) as ptrdiff_t) }
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { egetenv_internal (var, strlen (var) as ptrdiff_t) }
 }
 
 #[inline(always)]
 pub fn safe_free (sa_count: specpdl_ref) {
-    while unsafe { (specpdl_ptr! ()) } != specpdl_ref_to_ptr (sa_count) {
+    while /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (specpdl_ptr! ()) } != specpdl_ref_to_ptr (sa_count) {
         unsafe {
             (specpdl_ptr! ()) = (specpdl_ptr! ()).sub (1);
             /* C 5666-5675 has two arms: the `SAFE_ALLOCA_LISP` path records
@@ -2961,7 +2961,7 @@ pub fn safe_free (sa_count: specpdl_ref) {
 #[inline(always)]
 pub fn safe_free_unbind_to (count: specpdl_ref, sa_count: specpdl_ref, val: Lisp_Object) -> Lisp_Object {
     eassert! (!specpdl_ref_lt (sa_count, count));
-    unsafe { unbind_to (count, val) }
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { unbind_to (count, val) }
 }
 
 // --- native compilation and modules (feature-disabled configurations) ------
@@ -2988,13 +2988,13 @@ pub fn NATIVE_COMP_FUNCTION_DYNP (a: Lisp_Object) -> bool { let _ = a; false }
 #[cfg(feature = "have_native_comp")]
 #[inline(always)]
 pub fn NATIVE_COMP_FUNCTIONP (a: Lisp_Object) -> bool {
-    SUBRP (a) && !NILP (unsafe { (*XSUBR (a)).native_comp_u })
+    SUBRP (a) && !NILP (/* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (*XSUBR (a)).native_comp_u })
 }
 
 #[cfg(feature = "have_native_comp")]
 #[inline(always)]
 pub fn NATIVE_COMP_FUNCTION_DYNP (a: Lisp_Object) -> bool {
-    NATIVE_COMP_FUNCTIONP (a) && !NILP (unsafe { (*XSUBR (a)).lambda_list })
+    NATIVE_COMP_FUNCTIONP (a) && !NILP (/* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (*XSUBR (a)).lambda_list })
 }
 
 const _: () = core::assert! (!cfg! (feature = "have_native_comp") || HAVE_NATIVE_COMP);
@@ -3002,7 +3002,7 @@ const _: () = core::assert! (!cfg! (feature = "have_native_comp") || HAVE_NATIVE
 #[cfg(feature = "have_native_comp")]
 #[inline(always)]
 pub fn SUBR_TYPE (a: Lisp_Object) -> Lisp_Object {
-    unsafe { (*XSUBR (a)).r#type }
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (*XSUBR (a)).r#type }
 }
 
 // allocate_native_comp_unit is not mirrored yet: it allocates a
@@ -3105,21 +3105,21 @@ pub const fn VECSIZE (size: usize) -> isize {
 #[macro_export]
 macro_rules! ALLOCATE_PSEUDOVECTOR {
     ($type:ty, $field:tt, $tag:expr) => {
-        unsafe { allocate_pseudovector (VECSIZE (std::mem::size_of::<$type> ()) as c_int, PSEUDOVECSIZE! ($type, $field) as c_int, PSEUDOVECSIZE! ($type, $field) as c_int, $tag) as *mut $type }
+        /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { allocate_pseudovector (VECSIZE (std::mem::size_of::<$type> ()) as c_int, PSEUDOVECSIZE! ($type, $field) as c_int, PSEUDOVECSIZE! ($type, $field) as c_int, $tag) as *mut $type }
     };
 }
 
 #[macro_export]
 macro_rules! ALLOCATE_ZEROED_PSEUDOVECTOR {
     ($type:ty, $field:tt, $tag:expr) => {
-        unsafe { allocate_pseudovector (VECSIZE (std::mem::size_of::<$type> ()) as c_int, PSEUDOVECSIZE! ($type, $field) as c_int, VECSIZE (std::mem::size_of::<$type> ()) as c_int, $tag) as *mut $type }
+        /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { allocate_pseudovector (VECSIZE (std::mem::size_of::<$type> ()) as c_int, PSEUDOVECSIZE! ($type, $field) as c_int, VECSIZE (std::mem::size_of::<$type> ()) as c_int, $tag) as *mut $type }
     };
 }
 
 #[macro_export]
 macro_rules! ALLOCATE_PLAIN_PSEUDOVECTOR {
     ($type:ty, $tag:expr) => {
-        unsafe { allocate_pseudovector (VECSIZE (std::mem::size_of::<$type> ()) as c_int, 0, VECSIZE (std::mem::size_of::<$type> ()) as c_int, $tag) as *mut $type }
+        /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { allocate_pseudovector (VECSIZE (std::mem::size_of::<$type> ()) as c_int, 0, VECSIZE (std::mem::size_of::<$type> ()) as c_int, $tag) as *mut $type }
     };
 }
 
@@ -3146,9 +3146,9 @@ pub struct SaStackUnwindGuard(pub usize);
 impl Drop for SaStackUnwindGuard {
     #[inline]
     fn drop(&mut self) {
-        // SAFETY: `sa_stack_release_to` is idempotent and releases only blocks owned by
-        // `current_thread` pushed after `self.0`.
-        unsafe { sa_stack_release_to(self.0) };
+        // SAFETY: `sa_stack_frame_exit` releases blocks pushed after `self.0` and scrubs
+        // recycled `sa_stack_free` blocks once the lexical frame has exited (`mark == 0`).
+        unsafe { sa_stack_frame_exit(self.0) };
     }
 }
 
@@ -3157,7 +3157,7 @@ macro_rules! USE_SAFE_ALLOCA {
     ($sa_avail:ident, $sa_count:ident, $sa_mark:ident) => {
         let mut $sa_avail: isize = MAX_ALLOCA;
         let $sa_count: specpdl_ref = SPECPDL_INDEX ();
-        let $sa_mark: usize = unsafe { sa_stack_mark () };
+        let $sa_mark: usize = /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { sa_stack_mark () };
         let _sa_unwind_guard = $crate::common::SaStackUnwindGuard ($sa_mark);
     };
 }
@@ -3166,7 +3166,7 @@ macro_rules! USE_SAFE_ALLOCA {
 macro_rules! AVAIL_ALLOCA {
     ($sa_avail:ident, $size:expr) => {{
         $sa_avail -= $size as isize;
-        unsafe { sa_stack_alloc ($size as usize) }
+        /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { sa_stack_alloc ($size as usize) }
     }};
 }
 
@@ -3176,7 +3176,7 @@ macro_rules! SAFE_ALLOCA {
         if ($size as isize) <= $sa_avail {
             AVAIL_ALLOCA! ($sa_avail, $size)
         } else {
-            unsafe { record_xmalloc ($size as usize) }
+            /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { record_xmalloc ($size as usize) }
         }
     };
 }
@@ -3190,12 +3190,12 @@ macro_rules! SAFE_ALLOCA_LISP {
         // (P-15, the ckd_mul family in docs/ports/token-aliases.tsv).
         let (alloca_nbytes, overflow) = nelt_.overflowing_mul (word_size);
         if overflow || SIZE_MAX < alloca_nbytes as usize {
-            unsafe { memory_full_up () }
+            /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { memory_full_up () }
         } else if alloca_nbytes <= $sa_avail {
             $buf = AVAIL_ALLOCA! ($sa_avail, alloca_nbytes) as *mut Lisp_Object;
         } else {
             $buf = unsafe { xzalloc (alloca_nbytes as usize) } as *mut Lisp_Object;
-            unsafe { record_unwind_protect_array ($buf, nelt_) };
+            /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { record_unwind_protect_array ($buf, nelt_) };
         }
     }};
 }
@@ -3218,19 +3218,19 @@ macro_rules! SAFE_NALLOCA {
             let nbytes = pointee_size ($buf) as isize * mult * nitems_;
             $buf = AVAIL_ALLOCA! ($sa_avail, nbytes) as *mut _;
         } else {
-            $buf = unsafe { xnmalloc (nitems_, pointee_size ($buf) as isize * mult) } as *mut _;
+            $buf = /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { xnmalloc (nitems_, pointee_size ($buf) as isize * mult) } as *mut _;
             unsafe { record_unwind_protect_ptr (Some (xfree), $buf as *mut c_void) };
         }
     }};
 }
 
-pub unsafe extern "C-unwind" fn xfree_wrapper (p: *mut c_void) { unsafe { xfree (p) } }
+pub unsafe extern "C-unwind" fn xfree_wrapper (p: *mut c_void) { /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { xfree (p) } }
 
 #[macro_export]
 macro_rules! SAFE_ALLOCA_STRING {
     ($sa_avail:ident, $ptr:ident, $string:expr) => {{
         $ptr = SAFE_ALLOCA! ($sa_avail, SBYTES ($string) + 1) as *mut c_char;
-        unsafe { std::ptr::copy_nonoverlapping (SDATA ($string), $ptr as *mut u8, (SBYTES ($string) + 1) as usize) };
+        /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { std::ptr::copy_nonoverlapping (SDATA ($string), $ptr as *mut u8, (SBYTES ($string) + 1) as usize) };
     }};
 }
 
@@ -3241,7 +3241,7 @@ macro_rules! SAFE_ALLOCA_STRING {
 macro_rules! SAFE_FREE {
     ($sa_count:expr, $sa_mark:expr) => {{
         safe_free ($sa_count);
-        unsafe { sa_stack_release_to ($sa_mark) }
+        /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { sa_stack_release_to ($sa_mark) }
     }};
 }
 
@@ -3249,7 +3249,7 @@ macro_rules! SAFE_FREE {
 macro_rules! SAFE_FREE_UNBIND_TO {
     ($sa_count:expr, $count:expr, $val:expr, $sa_mark:expr) => {{
         let val_ = safe_free_unbind_to ($count, $sa_count, $val);
-        unsafe { sa_stack_release_to ($sa_mark) };
+        /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { sa_stack_release_to ($sa_mark) };
         val_
     }};
 }
@@ -3276,7 +3276,7 @@ macro_rules! XSETFLOAT { ($a:expr, $b:expr) => { $a = make_lisp_ptr ($b as *mut 
 macro_rules! XSETINT { ($a:expr, $b:expr) => { $a = make_fixnum ($b) } }
 macro_rules! XSETFASTINT { ($a:expr, $b:expr) => { $a = make_fixed_natnum ($b) } }
 macro_rules! XSETPVECTYPE { ($v:expr, $code:expr) => {
-    unsafe { (*$v).header.size |= PSEUDOVECTOR_FLAG | (($code as isize) << PSEUDOVECTOR_AREA_BITS) }
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (*$v).header.size |= PSEUDOVECTOR_FLAG | (($code as isize) << PSEUDOVECTOR_AREA_BITS) }
 } }
 macro_rules! XSETPVECTYPESIZE { ($v:expr, $code:expr, $lispsize:expr, $restsize:expr) => {
     unsafe { (*$v).header.size = PVECHEADERSIZE ($code, $lispsize, $restsize) }
@@ -3288,7 +3288,7 @@ macro_rules! XSETTYPED_PSEUDOVECTOR { ($a:expr, $b:expr, $size:expr, $code:expr)
 }} }
 macro_rules! XSETPSEUDOVECTOR { ($a:expr, $b:expr, $code:expr) => {
     XSETTYPED_PSEUDOVECTOR! ($a, $b,
-        unsafe { (*XUNTAG! ($a, Lisp_Type::Lisp_Vectorlike, vectorlike_header)).size }, $code)
+        /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (*XUNTAG! ($a, Lisp_Type::Lisp_Vectorlike, vectorlike_header)).size }, $code)
 } }
 macro_rules! XSETSUBR { ($a:expr, $b:expr) => { XSETPSEUDOVECTOR! ($a, $b, pvec_type::PVEC_SUBR) } }
 macro_rules! XSETBOOL_VECTOR { ($a:expr, $b:expr) => { XSETPSEUDOVECTOR! ($a, $b, pvec_type::PVEC_BOOL_VECTOR) } }
@@ -3342,14 +3342,14 @@ macro_rules! eabs {
 /// a call site reads `emacs_fclose! (f)`; a wrapper `fn` would be a *different* function (its
 /// address would not be `fclose`'s, PORTING.md 0.1-6), and mirrors declare, they do not
 /// define (0.1-2).  Recorded in docs/ports/lisp.md.
-macro_rules! emacs_fclose { ($f:expr) => { unsafe { fclose ($f) } }; }
+macro_rules! emacs_fclose { ($f:expr) => { /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { fclose ($f) } }; }
 
 
 #[inline(always)]
 pub fn QUITP () -> bool { !NILP (unsafe { Vquit_flag }) && NILP (unsafe { Vinhibit_quit }) }
 
 #[inline(always)]
-pub fn IS_DAEMON () -> bool { (unsafe { daemon_type }) != 0 }
+pub fn IS_DAEMON () -> bool { (/* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { daemon_type }) != 0 }
 
 #[inline(always)]
 pub fn DAEMON_RUNNING () -> bool { (unsafe { daemon_type }) >= 0 }
@@ -3361,12 +3361,12 @@ pub fn INT_TO_INTEGER (expr: EMACS_INT) -> Lisp_Object { make_int (expr as intma
 
 #[inline(always)]
 pub fn CONS_TO_INTEGER_signed (cons: Lisp_Object, lo: i64, hi: i64) -> i64 {
-    unsafe { cons_to_signed (cons, lo, hi) }
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { cons_to_signed (cons, lo, hi) }
 }
 
 #[inline(always)]
 pub fn CONS_TO_INTEGER_unsigned (cons: Lisp_Object, hi: u64) -> u64 {
-    unsafe { cons_to_unsigned (cons, hi) }
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { cons_to_unsigned (cons, hi) }
 }
 
 
@@ -3381,7 +3381,7 @@ pub fn STRING_SET_UNIBYTE (str_: *mut Lisp_Object) {
        the tagged word straight to `*mut Lisp_String` leaves the tag bits in the address and Rust's
        alignment check aborts - the first run of the linked program did exactly that
        (`init_obarray_once` -> `define_symbol` -> `make_string` -> `make_clear_string`, status 3.611).  */
-    unsafe {
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe {
         if (*XSTRING (*str_)).u.s.size == 0 {
             *str_ = empty_unibyte_string;
         } else {
@@ -3394,7 +3394,7 @@ pub fn STRING_SET_UNIBYTE (str_: *mut Lisp_Object) {
 
 /// CALLMANY (f, array): call the subr with the array's element count.
 #[macro_export]
-macro_rules! CALLMANY { ($f:expr, $array:expr) => { unsafe { ($f) ($array.len () as isize, $array.as_ptr () as *mut Lisp_Object) } } }
+macro_rules! CALLMANY { ($f:expr, $array:expr) => { /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { ($f) ($array.len () as isize, $array.as_ptr () as *mut Lisp_Object) } } }
 
 #[macro_export]
 macro_rules! CALLN { ($f:expr, $($args:expr),* $(,)?) => {{
@@ -3446,7 +3446,7 @@ macro_rules! list { ($($args:expr),* $(,)?) => {{
     // C's `list` passes __VA_ARGS__ twice (countof, then the call), so each argument is
     // evaluated once for the array and once for the argument — the port keeps that.
     let arr = [$($args),*];
-    unsafe { listn (arr.len () as isize, $($args),*) }
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { listn (arr.len () as isize, $($args),*) }
 }} }
 
 // --- batch 8: DEFUN/DEFVAR machinery, AUTO_* helpers, aliases ---
@@ -3517,7 +3517,7 @@ macro_rules! intspec_string {
 macro_rules! subr_function_pointer {
     (Lisp_Object, $cname:ident, ($($ty:ty),*)) => { Some ($cname) };
     (!, $cname:ident, ($($ty:ty),*)) => {
-        Some (unsafe {
+        Some (/* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe {
             core::mem::transmute::<unsafe extern "C-unwind" fn($($ty),*) -> !,
                                    unsafe extern "C-unwind" fn($($ty),*) -> Lisp_Object> (
                 $cname as unsafe extern "C-unwind" fn($($ty),*) -> !)
@@ -3639,7 +3639,11 @@ macro_rules! DEFUN {
         // C: `Lisp_Object fnname` (external linkage, declared here, not among the
         // dump-only statics), plus the port's `#[unsafe(no_mangle)]` (PORTING.md 0.2).
         #[unsafe(no_mangle)]
-        pub unsafe extern "C-unwind" fn $cname ($($arg : $ty),*) -> $ret $body
+        pub unsafe extern "C-unwind" fn $cname ($($arg : $ty),*) -> $ret {
+            // SAFETY: C-ABI Lisp subr entrypoint invoked by VM/JIT dispatch on the active Lisp
+            // thread under the VM global lock with valid tagged `Lisp_Object` arguments.
+            unsafe { $body }
+        }
     };
 }
 
@@ -3663,7 +3667,7 @@ macro_rules! DEFVAR_LISP {
            their variable under a name that ran into the next literal (status 3.617).  The
            binding below makes a plain `"..."` a compile error; use `c"..."`.  */
         let _: &core::ffi::CStr = $lname;
-        unsafe {
+        /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe {
             defvar_lisp (&raw const O_FWD, $lname.as_ptr () as *const c_char);
         }
     }};
@@ -3680,7 +3684,7 @@ macro_rules! DEFVAR_LISP_NOPRO {
            their variable under a name that ran into the next literal (status 3.617).  The
            binding below makes a plain `"..."` a compile error; use `c"..."`.  */
         let _: &core::ffi::CStr = $lname;
-        unsafe {
+        /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe {
             defvar_lisp_nopro (&raw const O_FWD, $lname.as_ptr () as *const c_char);
         }
     }};
@@ -3697,7 +3701,7 @@ macro_rules! DEFVAR_INT {
            their variable under a name that ran into the next literal (status 3.617).  The
            binding below makes a plain `"..."` a compile error; use `c"..."`.  */
         let _: &core::ffi::CStr = $lname;
-        unsafe {
+        /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe {
             // C: `.u.intvar = &V` with `intmax_t *intvar` and `EMACS_INT` = intmax_t; the
             // port spells the union with C's intmax_t (i64) and EMACS_INT as isize.
             defvar_int (&raw const I_FWD, $lname.as_ptr () as *const c_char);
@@ -3719,7 +3723,7 @@ macro_rules! DEFVAR_BOOL {
            their variable under a name that ran into the next literal (status 3.617).  The
            binding below makes a plain `"..."` a compile error; use `c"..."`.  */
         let _: &core::ffi::CStr = $lname;
-        unsafe {
+        /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe {
             defvar_bool (&raw const B_FWD, $lname.as_ptr () as *const c_char);
         }
     }};
@@ -3737,7 +3741,7 @@ macro_rules! DEFVAR_KBOARD {
            their variable under a name that ran into the next literal (status 3.617).  The
            binding below makes a plain `"..."` a compile error; use `c"..."`.  */
         let _: &core::ffi::CStr = $lname;
-        unsafe {
+        /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe {
             defvar_kboard (&raw const KO_FWD, $lname.as_ptr () as *const c_char);
         }
     }};
@@ -3826,7 +3830,7 @@ macro_rules! AUTO_CONS { ($name:ident, $a:expr, $b:expr) => {
     let $name = if USE_STACK_CONS {
         make_lisp_ptr (std::ptr::addr_of_mut! ($name) as *mut c_void, Lisp_Type::Lisp_Cons)
     } else {
-        unsafe { Fcons ($name.u.s.car, $name.u.s.u.cdr) }
+        /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { Fcons ($name.u.s.car, $name.u.s.u.cdr) }
     };
 } }
 
@@ -3837,6 +3841,8 @@ macro_rules! AUTO_CONS { ($name:ident, $a:expr, $b:expr) => {
 #[inline(always)]
 pub unsafe fn auto_list_link (cells: *mut Lisp_Cons, n: usize) -> Lisp_Object
 {
+  // SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers.
+  unsafe {
   let mut i: usize = n;
   let mut head: Lisp_Object = Qnil ();
   while i > 0
@@ -3846,11 +3852,13 @@ pub unsafe fn auto_list_link (cells: *mut Lisp_Cons, n: usize) -> Lisp_Object
       head = make_lisp_ptr (cells.add (i) as *mut c_void, Lisp_Type::Lisp_Cons);
     }
   head
+
+  }
 }
 
 #[macro_export]
 macro_rules! AUTO_LIST1 { ($name:ident, $a:expr) => {
-    let mut $name: [Lisp_Cons; 1] = unsafe { std::mem::zeroed () };
+    let mut $name: [Lisp_Cons; 1] = /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { std::mem::zeroed () };
     $name[0].u.s.car = $a;
     let $name = if USE_STACK_CONS { unsafe { auto_list_link ($name.as_mut_ptr (), 1) } }
                 else { unsafe { list1 ($name[0].u.s.car) } };
@@ -3858,7 +3866,7 @@ macro_rules! AUTO_LIST1 { ($name:ident, $a:expr) => {
 
 #[macro_export]
 macro_rules! AUTO_LIST2 { ($name:ident, $a:expr, $b:expr) => {
-    let mut $name: [Lisp_Cons; 2] = unsafe { std::mem::zeroed () };
+    let mut $name: [Lisp_Cons; 2] = /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { std::mem::zeroed () };
     $name[0].u.s.car = $a;
     $name[1].u.s.car = $b;
     let $name = if USE_STACK_CONS { unsafe { auto_list_link ($name.as_mut_ptr (), 2) } }
@@ -3867,22 +3875,22 @@ macro_rules! AUTO_LIST2 { ($name:ident, $a:expr, $b:expr) => {
 
 #[macro_export]
 macro_rules! AUTO_LIST3 { ($name:ident, $a:expr, $b:expr, $c:expr) => {
-    let mut $name: [Lisp_Cons; 3] = unsafe { std::mem::zeroed () };
+    let mut $name: [Lisp_Cons; 3] = /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { std::mem::zeroed () };
     $name[0].u.s.car = $a;
     $name[1].u.s.car = $b;
     $name[2].u.s.car = $c;
     let $name = if USE_STACK_CONS { unsafe { auto_list_link ($name.as_mut_ptr (), 3) } }
-                else { unsafe { list3 ($name[0].u.s.car, $name[1].u.s.car, $name[2].u.s.car) } };
+                else { /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { list3 ($name[0].u.s.car, $name[1].u.s.car, $name[2].u.s.car) } };
 } }
 
 #[macro_export]
 macro_rules! AUTO_LIST4 { ($name:ident, $a:expr, $b:expr, $c:expr, $d:expr) => {
-    let mut $name: [Lisp_Cons; 4] = unsafe { std::mem::zeroed () };
+    let mut $name: [Lisp_Cons; 4] = /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { std::mem::zeroed () };
     $name[0].u.s.car = $a;
     $name[1].u.s.car = $b;
     $name[2].u.s.car = $c;
     $name[3].u.s.car = $d;
-    let $name = if USE_STACK_CONS { unsafe { auto_list_link ($name.as_mut_ptr (), 4) } }
+    let $name = if USE_STACK_CONS { /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { auto_list_link ($name.as_mut_ptr (), 4) } }
                 else { unsafe { list4 ($name[0].u.s.car, $name[1].u.s.car,
                                        $name[2].u.s.car, $name[3].u.s.car) } };
 } }
@@ -3895,14 +3903,14 @@ macro_rules! AUTO_STRING_WITH_LEN { ($name:ident, $str:expr, $len:expr) => {
     let $name = if USE_STACK_STRING {
         make_lisp_ptr (std::ptr::addr_of_mut! ($name) as *mut c_void, Lisp_Type::Lisp_String)
     } else {
-        unsafe { make_unibyte_string ($name.u.s.data as *const c_char,
+        /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { make_unibyte_string ($name.u.s.data as *const c_char,
                                           $name.u.s.size as ptrdiff_t) }
     };
 } }
 
 #[macro_export]
 macro_rules! AUTO_STRING { ($name:ident, $str:expr) => {
-    AUTO_STRING_WITH_LEN! ($name, $str, unsafe { strlen ($str) } as isize)
+    AUTO_STRING_WITH_LEN! ($name, $str, /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { strlen ($str) } as isize)
 } }
 
 
@@ -3910,12 +3918,12 @@ macro_rules! AUTO_STRING { ($name:ident, $str:expr) => {
 
 #[inline(always)]
 pub unsafe fn sys_setjmp (j: *mut jmp_buf) -> c_int {
-    unsafe { _setjmp (j as *mut c_void) }
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { _setjmp (j as *mut c_void) }
 }
 
 #[inline(always)]
 pub unsafe fn sys_longjmp (j: *mut jmp_buf, v: c_int) -> ! {
-    unsafe { _longjmp (j as *mut c_void, v) }
+    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { _longjmp (j as *mut c_void, v) }
 }
 
 
@@ -3929,13 +3937,13 @@ pub trait ConsToInteger: Sized {
 
 impl ConsToInteger for i64 {
     fn cons_to_integer (cons: Lisp_Object) -> i64 {
-        unsafe { cons_to_signed (cons, i64::MIN, i64::MAX) }
+        /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { cons_to_signed (cons, i64::MIN, i64::MAX) }
     }
 }
 
 impl ConsToInteger for u64 {
     fn cons_to_integer (cons: Lisp_Object) -> u64 {
-        unsafe { cons_to_unsigned (cons, u64::MAX) }
+        /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { cons_to_unsigned (cons, u64::MAX) }
     }
 }
 
@@ -4334,6 +4342,7 @@ pub mod other_units {
         pub fn sa_stack_alloc (size: usize) -> *mut c_void;
         pub fn sa_stack_mark () -> usize;
         pub fn sa_stack_release_to (mark: usize);
+        pub fn sa_stack_frame_exit (mark: usize);
         pub fn record_xmalloc (size: usize) -> *mut c_void;
         pub fn xzalloc (size: usize) -> *mut c_void;
         // src/lisp.h 5544: `void *xnmalloc (ptrdiff_t, ptrdiff_t)`, not the

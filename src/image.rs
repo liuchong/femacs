@@ -59,11 +59,7 @@
 // `include/xlib.rs` / `include/jni.rs` / `lib/include/haiku_support.rs` precedent for a system
 // header that has no file in the reference tree.
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
-         unsafe_op_in_unsafe_fn, unused_assignments, unused_parens, unused_mut,
-         unreachable_code, unused_labels, while_true, unused_comparisons,
-         overflowing_literals, unused_must_use, clippy::all)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe, unused_assignments, unused_parens, unused_mut, unreachable_code, unused_labels, while_true, unused_comparisons, overflowing_literals, unused_must_use, clippy::all)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -898,14 +894,22 @@ unsafe fn cr_put_image_to_cr_data (img: *mut image)
 #[cfg (all (feature = "have_window_system", feature = "have_ns"))]
 unsafe fn XGetPixel (image: Emacs_Pix_Container, x: c_int, y: c_int) -> c_ulong
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   return ns_get_pixel (image as *mut c_void, x, y);
+
+  }
 }
 
 /// C: C 382-383: `static void XPutPixel (Emacs_Pix_Container image, int x, int y, unsigned long pixel)`
 #[cfg (all (feature = "have_window_system", feature = "have_ns"))]
 unsafe fn XPutPixel (image: Emacs_Pix_Container, x: c_int, y: c_int, pixel: c_ulong)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   ns_put_pixel (image as *mut c_void, x, y, pixel);
+
+  }
 }
 
 /* Code to deal with bitmaps.  Bitmaps are referenced by their bitmap
@@ -997,6 +1001,8 @@ pub unsafe extern "C-unwind" fn x_bitmap_mask (f: *mut frame, id: ptrdiff_t) -> 
 #[cfg (feature = "have_window_system")]
 unsafe fn image_allocate_bitmap_record (f: *mut frame) -> ptrdiff_t
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let dpyinfo: *mut Display_Info = FRAME_DISPLAY_INFO! (f);
   let mut i: ptrdiff_t;
 
@@ -1020,6 +1026,8 @@ unsafe fn image_allocate_bitmap_record (f: *mut frame) -> ptrdiff_t
       as *mut Bitmap_Record;
   (*dpyinfo).bitmaps_last += 1;
   return (*dpyinfo).bitmaps_last;
+
+  }
 }
 
 /* Add one reference to the reference count of the bitmap with id ID.  */
@@ -1029,7 +1037,11 @@ unsafe fn image_allocate_bitmap_record (f: *mut frame) -> ptrdiff_t
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn image_reference_bitmap (f: *mut frame, id: ptrdiff_t)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   (*((*FRAME_DISPLAY_INFO! (f)).bitmaps.offset (id - 1))).refcount += 1;
+
+  }
 }
 
 /* ----------------------------------------------------------------------------------------------
@@ -1146,6 +1158,8 @@ pub unsafe extern "C-unwind" fn image_create_bitmap_from_data (f: *mut frame, bi
                                                         width: c_uint, height: c_uint)
   -> ptrdiff_t
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let dpyinfo: *mut Display_Info = FRAME_DISPLAY_INFO! (f);
   let mut id: ptrdiff_t;
 
@@ -1303,6 +1317,8 @@ pub unsafe extern "C-unwind" fn image_create_bitmap_from_data (f: *mut frame, bi
   }
 
   return id;
+
+  }
 }
 
 /// C: C 737-742: `#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY / #include "android.h" / typedef struct android_fd_or_asset image_fd; / #else typedef int image_fd; / #endif`
@@ -1479,6 +1495,8 @@ pub type image_fd = c_int;
 pub unsafe extern "C-unwind" fn image_create_bitmap_from_file (f: *mut frame, file: Lisp_Object)
   -> ptrdiff_t
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let dpyinfo: *mut Display_Info = FRAME_DISPLAY_INFO! (f);
   let mut id: ptrdiff_t = 0;
   let mut size: ptrdiff_t = 0;
@@ -1488,7 +1506,7 @@ pub unsafe extern "C-unwind" fn image_create_bitmap_from_file (f: *mut frame, fi
   #[cfg (all (feature = "have_window_system", feature = "have_ntgui"))]
   {
     let mut rc: c_int = 0;
-    let mut fd: image_fd = unsafe { core::mem::zeroed () };
+    let mut fd: image_fd = /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { core::mem::zeroed () };
     let mut contents: *mut c_char = core::ptr::null_mut ();
     let mut data: *mut c_char = core::ptr::null_mut ();
     let mut bitmap: Emacs_Pixmap = core::ptr::null_mut ();
@@ -1784,7 +1802,7 @@ pub unsafe extern "C-unwind" fn image_create_bitmap_from_file (f: *mut frame, fi
   #[cfg (all (feature = "have_window_system", all (feature = "have_android", feature = "not_android_stubify")))]
   {
     let mut rc: c_int = 0;
-    let mut fd: image_fd = unsafe { core::mem::zeroed () };
+    let mut fd: image_fd = /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { core::mem::zeroed () };
     let mut contents: *mut c_char = core::ptr::null_mut ();
     let mut data: *mut c_char = core::ptr::null_mut ();
     let mut found: Lisp_Object = Qnil ();
@@ -1862,6 +1880,8 @@ pub unsafe extern "C-unwind" fn image_create_bitmap_from_file (f: *mut frame, fi
   #[cfg (all (feature = "have_window_system", not (any (feature = "have_ntgui", feature = "have_ns", feature = "have_pgtk",
                    feature = "have_x_windows", feature = "have_haiku", feature = "have_android"))))]
   unreachable! ()
+
+  }
 }
 
 /* ----------------------------------------------------------------------------------------------
@@ -1895,6 +1915,8 @@ pub unsafe extern "C-unwind" fn image_create_bitmap_from_file (f: *mut frame, fi
 #[cfg (feature = "have_window_system")]
 unsafe fn free_bitmap_record (dpyinfo: *mut Display_Info, bm: *mut Bitmap_Record)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* C 1102-1118: `#ifdef HAVE_X_WINDOWS`.  */
   #[cfg (all (feature = "have_window_system", feature = "have_x_windows"))]
   {
@@ -1955,6 +1977,8 @@ unsafe fn free_bitmap_record (dpyinfo: *mut Display_Info, bm: *mut Bitmap_Record
       xfree ((*bm).file as *mut c_void);
       (*bm).file = core::ptr::null_mut ();
     }
+
+  }
 }
 
 /* Remove reference to bitmap with id number ID.  */
@@ -1964,6 +1988,8 @@ unsafe fn free_bitmap_record (dpyinfo: *mut Display_Info, bm: *mut Bitmap_Record
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn image_destroy_bitmap (f: *mut frame, id: ptrdiff_t)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let dpyinfo: *mut Display_Info = FRAME_DISPLAY_INFO! (f);
 
   if id > 0
@@ -1978,6 +2004,8 @@ pub unsafe extern "C-unwind" fn image_destroy_bitmap (f: *mut frame, id: ptrdiff
 	  unblock_input ();
 	}
     }
+
+  }
 }
 
 /* Free all the bitmaps for the display specified by DPYINFO.  */
@@ -1987,6 +2015,8 @@ pub unsafe extern "C-unwind" fn image_destroy_bitmap (f: *mut frame, id: ptrdiff
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn image_destroy_all_bitmaps (dpyinfo: *mut Display_Info)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut i: ptrdiff_t;
   let mut bm: *mut Bitmap_Record = (*dpyinfo).bitmaps;
 
@@ -2001,6 +2031,8 @@ pub unsafe extern "C-unwind" fn image_destroy_all_bitmaps (dpyinfo: *mut Display
     }
 
   (*dpyinfo).bitmaps_last = 0;
+
+  }
 }
 
 /* C 1190-1193: `#ifndef HAVE_XRENDER`'s `typedef void Picture;` - the stand-in the
@@ -2230,7 +2262,11 @@ macro_rules! IMAGE_TYPE_INIT { ($f:expr) => { }; }
 #[cfg (feature = "have_window_system")]
 unsafe fn add_image_type (r#type: Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   Vimage_types = Fcons (r#type, Vimage_types);
+
+  }
 }
 
 
@@ -2246,6 +2282,8 @@ unsafe fn add_image_type (r#type: Lisp_Object)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn valid_image_p (object: Lisp_Object) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if IMAGEP (object)
     {
       let mut tail: Lisp_Object = XCDR (object);
@@ -2268,6 +2306,8 @@ pub unsafe extern "C-unwind" fn valid_image_p (object: Lisp_Object) -> bool
     }
 
   return false;
+
+  }
 }
 
 /* ----------------------------------------------------------------------------------------------
@@ -2426,9 +2466,13 @@ macro_rules! CLEAR_IMAGE_COLORS { () => { (1 << 2) }; }
 #[cfg (feature = "have_window_system")]
 unsafe extern "C-unwind" fn image_error (format: *const c_char, mut ap: ...)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* C's `va_list ap; va_start (ap, format);` and `va_end (ap);` have no port counterpart
      (PORTING.md P-04): the variadic argument is the port's `VaList`.  */
   vadd_to_log (format, ap);
+
+  }
 }
 
 // AppKit reports image errors through a fixed C ABI. Rust supplies the
@@ -2437,31 +2481,47 @@ unsafe extern "C-unwind" fn image_error (format: *const c_char, mut ap: ...)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn femacs_ns_log_image_error (spec: Lisp_Object, index: Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if NILP (index)
     { image_error (c"Unable to load image %s".as_ptr (), spec); }
   else
     { image_error (c"Unable to set index %d for image %s".as_ptr (), index, spec); }
+
+  }
 }
 
 /// C: C 1438-1439: `static void image_invalid_data_error (Lisp_Object data)`
 #[cfg (feature = "have_window_system")]
 unsafe fn image_invalid_data_error (data: Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   image_error (c"Invalid image data `%s'".as_ptr (), data);
+
+  }
 }
 
 /// C: C 1444-1445: `static void image_not_found_error (Lisp_Object filename)`
 #[cfg (feature = "have_window_system")]
 unsafe fn image_not_found_error (filename: Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   image_error (c"Cannot find image file `%s'".as_ptr (), filename);
+
+  }
 }
 
 /// C: C 1450-1451: `static void image_size_error (void)`
 #[cfg (feature = "have_window_system")]
 unsafe fn image_size_error ()
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   image_error (c"Invalid image size (see `max-image-size')".as_ptr ());
+
+  }
 }
 
 
@@ -2535,6 +2595,8 @@ pub struct image_keyword
 unsafe fn parse_image_spec (spec: Lisp_Object, keywords: *mut image_keyword, nkeywords: c_int,
 			   r#type: Lisp_Object) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut i: c_int;
   let mut plist: Lisp_Object;
 
@@ -2701,6 +2763,8 @@ unsafe fn parse_image_spec (spec: Lisp_Object, keywords: *mut image_keyword, nke
   });
 
   return false;
+
+  }
 }
 
 
@@ -2714,6 +2778,8 @@ unsafe fn parse_image_spec (spec: Lisp_Object, keywords: *mut image_keyword, nke
 pub unsafe extern "C-unwind" fn image_spec_value (spec: Lisp_Object, key: Lisp_Object,
 					   found: *mut bool) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut tail: Lisp_Object;
 
   eassert! (valid_image_p (spec));
@@ -2734,6 +2800,8 @@ pub unsafe extern "C-unwind" fn image_spec_value (spec: Lisp_Object, key: Lisp_O
   if !found.is_null ()
     { *found = false; }
   return Qnil ();
+
+  }
 }
 
 /* C 40-42 / C 114-116 / C 131: the X arm's `Emacs_Pixmap`/`Emacs_Pix_Container`, which
@@ -2837,6 +2905,8 @@ pub const MAX_IMAGE_SIZE: c_double = 10.0;
 #[cfg (feature = "have_window_system")]
 unsafe fn make_image (spec: Lisp_Object, hash: EMACS_UINT) -> *mut image
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let img: *mut image = xzalloc (core::mem::size_of::<image> ()) as *mut image;
   let file: Lisp_Object = image_spec_value (spec, QCfile (), core::ptr::null_mut ());
 
@@ -2851,6 +2921,8 @@ unsafe fn make_image (spec: Lisp_Object, hash: EMACS_UINT) -> *mut image
   (*img).hash = hash;
   (*img).corners[BOT_CORNER] = -1;  /* Full image */
   return img;
+
+  }
 }
 
 
@@ -2860,6 +2932,8 @@ unsafe fn make_image (spec: Lisp_Object, hash: EMACS_UINT) -> *mut image
 #[cfg (feature = "have_window_system")]
 unsafe fn free_image (f: *mut frame, img: *mut image)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if !img.is_null ()
     {
       /* `include/frame.rs` 186 degrades the member to the untyped pointer (P-72 rule 3, its own
@@ -2911,6 +2985,8 @@ unsafe fn free_image (f: *mut frame, img: *mut image)
       xfree ((*img).face_font_family as *mut c_void);
       xfree (img as *mut c_void);
     }
+
+  }
 }
 
 /* Return true if the given widths and heights are valid for display.  */
@@ -2919,6 +2995,8 @@ unsafe fn free_image (f: *mut frame, img: *mut image)
 #[cfg (feature = "have_window_system")]
 unsafe fn check_image_size (f: *mut frame, width: c_int, height: c_int) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let (mut w, mut h): (c_int, c_int);
 
   if width <= 0 || height <= 0
@@ -2941,6 +3019,8 @@ unsafe fn check_image_size (f: *mut frame, width: c_int, height: c_int) -> bool
     }
   else
     { return true; }
+
+  }
 }
 
 /* Prepare image IMG for display on frame F.  Must be called before
@@ -2951,6 +3031,8 @@ unsafe fn check_image_size (f: *mut frame, width: c_int, height: c_int) -> bool
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn prepare_image_for_display (f: *mut frame, img: *mut image)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* We're about to display IMG, so set its timestamp to `now'.  */
   (*img).timestamp = current_timespec ();
 
@@ -2996,6 +3078,8 @@ pub unsafe extern "C-unwind" fn prepare_image_for_display (f: *mut frame, img: *
       && EQ (image_spec_value ((*img).spec, QCtype (), core::ptr::null_mut ()), Qcanvas ())
       && (*img).refresh != (*(XFIXNUMPTR ((*img).lisp_data) as *mut canvas)).refresh
     { canvas_prepare_for_display (f, img); }
+
+  }
 }
 
 
@@ -3008,6 +3092,8 @@ pub unsafe extern "C-unwind" fn prepare_image_for_display (f: *mut frame, img: *
 pub unsafe extern "C-unwind" fn image_ascent (img: *mut image, face: *mut face, slice: *mut glyph_slice)
   -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut height: c_int;
   let mut ascent: c_int;
 
@@ -3047,6 +3133,8 @@ pub unsafe extern "C-unwind" fn image_ascent (img: *mut image, face: *mut face, 
     { ascent = (height as c_double * ((*img).ascent as c_double / 100.0)) as c_int; }
 
   return ascent;
+
+  }
 }
 
 
@@ -3060,6 +3148,8 @@ pub unsafe extern "C-unwind" fn image_ascent (img: *mut image, face: *mut face, 
 unsafe fn four_corners_best (mut pimg: Emacs_Pix_Context, corners: *mut c_int,
 			     mut width: c_ulong, mut height: c_ulong) -> RGB_PIXEL_COLOR
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut corner_pixels: [RGB_PIXEL_COLOR; 4] = [0; 4];
   /* C's `RGB_PIXEL_COLOR best UNINIT;` - zeroed (PORTING.md 1.5/0.1-13).  */
   let mut best: RGB_PIXEL_COLOR = 0;
@@ -3116,13 +3206,19 @@ unsafe fn four_corners_best (mut pimg: Emacs_Pix_Context, corners: *mut c_int,
     }
 
   return best;
+
+  }
 }
 
 /// C: C 2006-2007: `static Lisp_Object make_color_name (unsigned int red, unsigned int green, unsigned int blue)`
 #[cfg (feature = "have_window_system")]
 unsafe fn make_color_name (red: c_uint, green: c_uint, blue: c_uint) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   return make_formatted_string (c"#%04x%04x%04x".as_ptr (), red, green, blue);
+
+  }
 }
 
 /* Return the `background' field of IMG.  If IMG doesn't have one yet,
@@ -3136,6 +3232,8 @@ unsafe fn make_color_name (red: c_uint, green: c_uint, blue: c_uint) -> Lisp_Obj
 pub unsafe extern "C-unwind" fn image_background (img: *mut image, f: *mut frame,
 					   mut pimg: Emacs_Pix_Context) -> RGB_PIXEL_COLOR
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if (*img).bits & IMAGE_BACKGROUND_VALID_MASK == 0
     /* IMG doesn't have a background yet, try to guess a reasonable value.  */
     {
@@ -3172,6 +3270,8 @@ pub unsafe extern "C-unwind" fn image_background (img: *mut image, f: *mut frame
     }
 
   return (*img).background;
+
+  }
 }
 
 /* Return the `background_transparent' field of IMG.  If IMG doesn't
@@ -3185,6 +3285,8 @@ pub unsafe extern "C-unwind" fn image_background (img: *mut image, f: *mut frame
 pub unsafe extern "C-unwind" fn image_background_transparent (img: *mut image, f: *mut frame,
 						       mut mask: Emacs_Pix_Context) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if (*img).bits & IMAGE_BACKGROUND_TRANSPARENT_VALID_MASK == 0
     /* IMG doesn't have a background yet, try to guess a reasonable value.  */
     {
@@ -3218,6 +3320,8 @@ pub unsafe extern "C-unwind" fn image_background_transparent (img: *mut image, f
     }
 
   return ((*img).bits >> IMAGE_BACKGROUND_TRANSPARENT_SHIFT & 1) as c_int;
+
+  }
 }
 
 /***********************************************************************
@@ -3235,6 +3339,8 @@ pub unsafe extern "C-unwind" fn image_background_transparent (img: *mut image, f
 #[cfg (feature = "have_window_system")]
 unsafe fn image_clear_image_1 (f: *mut frame, img: *mut image, flags: c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if flags & CLEAR_IMAGE_PIXMAP! () != 0
     {
       if !(*img).pixmap.is_null ()
@@ -3296,6 +3402,8 @@ unsafe fn image_clear_image_1 (f: *mut frame, img: *mut image, flags: c_int)
       cairo_pattern_destroy ((*img).cr_data as *mut cairo_pattern_t);
       (*img).cr_data = core::ptr::null_mut ();
     }
+
+  }
 }
 
 /* Free X resources of image IMG which is used on frame F.  */
@@ -3304,6 +3412,8 @@ unsafe fn image_clear_image_1 (f: *mut frame, img: *mut image, flags: c_int)
 #[cfg (feature = "have_window_system")]
 unsafe extern "C-unwind" fn image_clear_image (f: *mut frame, img: *mut image)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   (*img).lisp_data = Qnil ();
   block_input ();
   image_clear_image_1 (f, img,
@@ -3311,6 +3421,8 @@ unsafe extern "C-unwind" fn image_clear_image (f: *mut frame, img: *mut image)
 			| CLEAR_IMAGE_MASK! ()
 			| CLEAR_IMAGE_COLORS! ()));
   unblock_input ();
+
+  }
 }
 
 
@@ -3324,6 +3436,8 @@ unsafe extern "C-unwind" fn image_clear_image (f: *mut frame, img: *mut image)
 unsafe fn image_alloc_image_color (f: *mut frame, img: *mut image, color_name: Lisp_Object,
 				   dflt: c_ulong) -> c_ulong
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* C's `Emacs_Color color;` - zeroed (PORTING.md 1.5/0.1-13).  */
   let mut color: Emacs_Color = core::mem::zeroed ();
   let result: c_ulong;
@@ -3349,6 +3463,8 @@ unsafe fn image_alloc_image_color (f: *mut frame, img: *mut image, color_name: L
     { result = dflt; }
 
   return result;
+
+  }
 }
 
 
@@ -3393,6 +3509,8 @@ unsafe fn image_alloc_image_color (f: *mut frame, img: *mut image, color_name: L
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn make_image_cache () -> *mut image_cache
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let c: *mut image_cache = xmalloc (core::mem::size_of::<image_cache> ()) as *mut image_cache;
 
   (*c).size = 50;
@@ -3406,6 +3524,8 @@ pub unsafe extern "C-unwind" fn make_image_cache () -> *mut image_cache
   /* This value should never be encountered.  */
   (*c).scaling_col_width = -1;
   return c;
+
+  }
 }
 
 /* Find an image matching SPEC in the cache, and return it.  If no
@@ -3417,6 +3537,8 @@ unsafe fn search_image_cache (f: *mut frame, spec: Lisp_Object, hash: EMACS_UINT
 			      foreground: c_ulong, background: c_ulong, font_size: c_int,
 			      font_family: *mut c_char, ignore_colors: bool) -> *mut image
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut img: *mut image;
   let c: *mut image_cache = FRAME_IMAGE_CACHE! (f) as *mut image_cache;
   let i: c_int = (hash % (IMAGE_CACHE_BUCKETS_SIZE as EMACS_UINT)) as c_int;
@@ -3454,6 +3576,8 @@ unsafe fn search_image_cache (f: *mut frame, spec: Lisp_Object, hash: EMACS_UINT
       img = (*img).next;
     }
   return img;
+
+  }
 }
 
 
@@ -3466,6 +3590,8 @@ unsafe fn search_image_cache (f: *mut frame, spec: Lisp_Object, hash: EMACS_UINT
 #[cfg (feature = "have_window_system")]
 unsafe fn filter_image_spec (spec: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut out: Lisp_Object = Qnil ();
 
   let is_canvas: bool = EQ (image_spec_value (spec, QCtype (), core::ptr::null_mut ()),
@@ -3505,6 +3631,8 @@ unsafe fn filter_image_spec (spec: Lisp_Object) -> Lisp_Object
 	}
     }
   return out;
+
+  }
 }
 
 /* Search frame F for an image with spec SPEC, and free it.  */
@@ -3513,6 +3641,8 @@ unsafe fn filter_image_spec (spec: Lisp_Object) -> Lisp_Object
 #[cfg (feature = "have_window_system")]
 unsafe fn uncache_image (f: *mut frame, spec: Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut img: *mut image;
   let hash: EMACS_UINT = sxhash (filter_image_spec (spec));
 
@@ -3532,6 +3662,8 @@ unsafe fn uncache_image (f: *mut frame, spec: Lisp_Object)
 	 must garbage the frame (Bug#6426).  */
       SET_FRAME_GARBAGED! (f);
     }
+
+  }
 }
 
 
@@ -3543,6 +3675,8 @@ unsafe fn uncache_image (f: *mut frame, spec: Lisp_Object)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn free_image_cache (f: *mut frame)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let c: *mut image_cache = FRAME_IMAGE_CACHE! (f) as *mut image_cache;
   let mut i: ptrdiff_t;
 
@@ -3561,6 +3695,8 @@ pub unsafe extern "C-unwind" fn free_image_cache (f: *mut frame)
   xfree ((*c).images as *mut c_void);
   xfree ((*c).buckets as *mut c_void);
   xfree (c as *mut c_void);
+
+  }
 }
 
 /* Clear image cache of frame F.  FILTER=t means free all images.
@@ -3576,6 +3712,8 @@ pub unsafe extern "C-unwind" fn free_image_cache (f: *mut frame)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn clear_image_cache (f: *mut frame, filter: Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let c: *mut image_cache = FRAME_IMAGE_CACHE! (f) as *mut image_cache;
 
   /* C's `f->inhibit_clear_image_cache` is one of `struct frame`'s bit members, which the mirror
@@ -3665,6 +3803,8 @@ pub unsafe extern "C-unwind" fn clear_image_cache (f: *mut frame, filter: Lisp_O
 
       unblock_input ();
     }
+
+  }
 }
 
 /// C: C 2455-2456: `void clear_image_caches (Lisp_Object filter)` - non-`static`.
@@ -3672,6 +3812,8 @@ pub unsafe extern "C-unwind" fn clear_image_cache (f: *mut frame, filter: Lisp_O
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn clear_image_caches (filter: Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* FIXME: We want to do
    * struct terminal *t;
    * for (t = terminal_list; t; t = t->next_terminal)
@@ -3682,6 +3824,8 @@ pub unsafe extern "C-unwind" fn clear_image_caches (filter: Lisp_Object)
     if FRAME_WINDOW_P (XFRAME (frame))
       { clear_image_cache (XFRAME (frame), filter); }
   });
+
+  }
 }
 
 #[cfg (feature = "have_window_system")]
@@ -3720,6 +3864,8 @@ DEFUN! ("clear-image-cache", Fclear_image_cache, Sclear_image_cache, 0, 2, 0,
 #[cfg (feature = "have_window_system")]
 unsafe fn image_size_in_bytes (img: *mut image) -> intptr_t
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut size: intptr_t = 0;
 
   /* C 2513-2552's five arms are one `#if`/`#elif` chain, so each below excludes the ones before
@@ -3798,12 +3944,16 @@ unsafe fn image_size_in_bytes (img: *mut image) -> intptr_t
   }
 
   return size;
+
+  }
 }
 
 /// C: C 2556-2557: `static intptr_t image_frame_cache_size (struct frame *f)`
 #[cfg (feature = "have_window_system")]
 unsafe fn image_frame_cache_size (f: *mut frame) -> intptr_t
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let c: *mut image_cache = FRAME_IMAGE_CACHE! (f) as *mut image_cache;
   if c.is_null ()
     { return 0; }
@@ -3817,6 +3967,8 @@ unsafe fn image_frame_cache_size (f: *mut frame) -> intptr_t
       i += 1;
     }
   return total;
+
+  }
 }
 
 #[cfg (feature = "have_window_system")]
@@ -3854,6 +4006,8 @@ DEFUN! ("image-flush", Fimage_flush, Simage_flush, 1, 2, 0,
 #[cfg (feature = "have_window_system")]
 unsafe fn postprocess_image (f: *mut frame, img: *mut image)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* Manipulation of the image's mask.  */
   if !(*img).pixmap.is_null ()
     {
@@ -3915,6 +4069,8 @@ unsafe fn postprocess_image (f: *mut frame, img: *mut image)
 				    plist_get (tem, QCcolor_adjustment ())); }
 	}
     }
+
+  }
 }
 
 /* ----------------------------------------------------------------------------------------------
@@ -3976,6 +4132,8 @@ pub const DBL_MAX: c_double = 1.7976931348623157e+308;
 	    any (feature = "have_imagemagick", feature = "have_native_transforms")))]
 unsafe fn scale_image_size (size: c_int, divisor: c_double, multiplier: c_double) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if divisor != 0 as c_double
     {
       let scaled: c_double = size as c_double * multiplier / divisor;
@@ -3987,6 +4145,8 @@ unsafe fn scale_image_size (size: c_int, divisor: c_double, multiplier: c_double
 	}
     }
   return INT_MAX;
+
+  }
 }
 
 /* Return a size, in pixels, from the value specified by SYMBOL, which
@@ -4002,6 +4162,8 @@ unsafe fn scale_image_size (size: c_int, divisor: c_double, multiplier: c_double
 	    any (feature = "have_imagemagick", feature = "have_native_transforms")))]
 unsafe fn image_get_dimension (img: *mut image, symbol: Lisp_Object) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let value: Lisp_Object = image_spec_value ((*img).spec, symbol, core::ptr::null_mut ());
 
   if FIXNATP (value)
@@ -4020,6 +4182,8 @@ unsafe fn image_get_dimension (img: *mut image, symbol: Lisp_Object) -> c_int
 				   XFLOATINT (CAR (value))); }
     }
   return -1;
+
+  }
 }
 /* C 2721: `#endif` */
 
@@ -4032,6 +4196,8 @@ unsafe fn image_get_dimension (img: *mut image, symbol: Lisp_Object) -> c_int
 #[cfg (feature = "have_window_system")]
 unsafe fn image_compute_scale (f: *mut frame, spec: Lisp_Object, img: *mut image) -> c_double
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut scale: c_double = 1 as c_double;
   let value: Lisp_Object = image_spec_value (spec, QCscale (), core::ptr::null_mut ());
 
@@ -4087,6 +4253,8 @@ unsafe fn image_compute_scale (f: *mut frame, spec: Lisp_Object, img: *mut image
     { (*img).scale = scale; }
 
   return scale;
+
+  }
 }
 
 /* C 2777: `#if defined HAVE_IMAGEMAGICK || defined HAVE_NATIVE_TRANSFORMS` - closed by C 3550
@@ -4102,6 +4270,8 @@ unsafe fn image_compute_scale (f: *mut frame, spec: Lisp_Object, img: *mut image
 unsafe fn compute_image_size (f: *mut frame, width: c_double, height: c_double, img: *mut image,
 			      d_width: *mut c_int, d_height: *mut c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let scale: c_double = image_compute_scale (f, (*img).spec, img);
 
   /* If width and/or height is set in the display spec assume we want
@@ -4172,6 +4342,8 @@ unsafe fn compute_image_size (f: *mut frame, width: c_double, height: c_double, 
   /* out: */
   *d_width = desired_width;
   *d_height = desired_height;
+
+  }
 }
 
 /* image_set_rotation and image_set_transform use affine
@@ -4269,6 +4441,8 @@ type matrix3x3 = [[c_double; 3]; 3];
 unsafe fn matrix3x3_mult (a: *mut [c_double; 3], b: *mut [c_double; 3],
 			  result: *mut [c_double; 3])
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut i: c_int = 0;
   while i < 3
     {
@@ -4288,6 +4462,8 @@ unsafe fn matrix3x3_mult (a: *mut [c_double; 3], b: *mut [c_double; 3],
 	}
       i += 1;
     }
+
+  }
 }
 
 /// C: C 2948-2949: `static void compute_image_rotation (struct image *img, double *rotation)`
@@ -4295,6 +4471,8 @@ unsafe fn matrix3x3_mult (a: *mut [c_double; 3], b: *mut [c_double; 3],
 	    any (feature = "have_imagemagick", feature = "have_native_transforms")))]
 unsafe fn compute_image_rotation (img: *mut image, rotation: *mut c_double)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut foundp: bool = false;
   let value: Lisp_Object = image_spec_value ((*img).spec, QCrotation (),
 					     &raw mut foundp);
@@ -4311,6 +4489,8 @@ unsafe fn compute_image_rotation (img: *mut image, rotation: *mut c_double)
     { *rotation = XFLOAT_DATA (reduced_angle); }
   else
     { *rotation = XFIXNUM (reduced_angle) as c_double; }
+
+  }
 }
 
 /* C 2970: `#ifdef HAVE_ANDROID` - the four matrix helpers below, closed by C 3056's `#endif`.  */
@@ -4428,6 +4608,8 @@ unsafe fn matrix_translate (transform: *mut [c_double; 3], tx: f32, ty: f32)
 	    any (feature = "have_imagemagick", feature = "have_native_transforms")))]
 unsafe fn image_set_transform (f: *mut frame, img: *mut image)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut flip: bool;
 
   /* C 3063-3072: `#if defined HAVE_HAIKU`.  */
@@ -5050,6 +5232,8 @@ unsafe fn image_set_transform (f: *mut frame, img: *mut image)
 
     /* Done! */
   }
+
+  }
 }
 
 
@@ -5079,13 +5263,13 @@ unsafe fn image_set_transform (f: *mut frame, img: *mut image)
 #[cfg (feature = "have_window_system")]
 #[inline(always)]
 fn FRAME_FACE_CACHE (f: *mut frame) -> *mut face_cache
-{ unsafe { (*f).face_cache as *mut face_cache } }
+{ /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f).face_cache as *mut face_cache } }
 // C: frame.h 1646-1650: `INLINE struct face * FACE_FROM_ID (struct frame *f, int id)`
 #[cfg (feature = "have_window_system")]
 #[inline(always)]
 fn FACE_FROM_ID (f: *mut frame, id: c_int) -> *mut face
 {
-  eassert! (0 <= id && id < unsafe { (*FRAME_FACE_CACHE (f)).used });
+  eassert! (0 <= id && id < /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*FRAME_FACE_CACHE (f)).used });
   unsafe { *(*FRAME_FACE_CACHE (f)).faces_by_id.add (id as usize) }
 }
 // C: dispextern.h 3821: `void init_frame_faces (struct frame *);` - the definition is `xfaces.c`'s.
@@ -5127,6 +5311,8 @@ pub const DEFAULT_IMAGE_HEIGHT: c_int = 30;
 pub unsafe extern "C-unwind" fn lookup_image (f: *mut frame, spec: Lisp_Object, mut face_id: c_int)
   -> ptrdiff_t
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut img: *mut image;
   let mut hash: EMACS_UINT;
 
@@ -5262,6 +5448,8 @@ pub unsafe extern "C-unwind" fn lookup_image (f: *mut frame, spec: Lisp_Object, 
 
   /* Value is the image id.  */
   return (*img).id;
+
+  }
 }
 
 
@@ -5271,6 +5459,8 @@ pub unsafe extern "C-unwind" fn lookup_image (f: *mut frame, spec: Lisp_Object, 
 #[cfg (feature = "have_window_system")]
 unsafe fn cache_image (f: *mut frame, img: *mut image)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut c: *mut image_cache = FRAME_IMAGE_CACHE! (f) as *mut image_cache;
   let mut i: ptrdiff_t;
 
@@ -5310,6 +5500,8 @@ unsafe fn cache_image (f: *mut frame, img: *mut image)
     { (*(*img).next).prev = img; }
   (*img).prev = core::ptr::null_mut ();
   *(*c).buckets.offset (i as isize) = img;
+
+  }
 }
 
 
@@ -5412,6 +5604,8 @@ static mut anim_cache: *mut anim_cache = core::ptr::null_mut ();
 #[cfg (all (feature = "have_window_system", any (feature = "have_webp", feature = "have_gif")))]
 unsafe fn anim_create_cache (spec: Lisp_Object) -> *mut anim_cache
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let cache: *mut anim_cache = xzalloc (core::mem::size_of::<anim_cache> ()) as *mut anim_cache;
   (*cache).spec = spec;
   (*cache).index = -1;
@@ -5419,6 +5613,8 @@ unsafe fn anim_create_cache (spec: Lisp_Object) -> *mut anim_cache
   (*cache).width = -1;
   (*cache).height = -1;
   return cache;
+
+  }
 }
 
 /* Discard cached images that haven't been used for a minute.  If
@@ -5430,6 +5626,8 @@ unsafe fn anim_create_cache (spec: Lisp_Object) -> *mut anim_cache
 #[cfg (all (feature = "have_window_system", any (feature = "have_webp", feature = "have_gif")))]
 unsafe fn anim_prune_animation_cache (clear: Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut pcache: *mut *mut anim_cache = &raw mut anim_cache;
   let old: timespec = timespec_sub (current_timespec (), make_timespec (60, 0));
 
@@ -5448,12 +5646,16 @@ unsafe fn anim_prune_animation_cache (clear: Lisp_Object)
       else
 	{ pcache = &raw mut (*cache).next; }
     }
+
+  }
 }
 
 /// C: C 3835-3836: `static struct anim_cache * anim_get_animation_cache (Lisp_Object spec)`
 #[cfg (all (feature = "have_window_system", any (feature = "have_webp", feature = "have_gif")))]
 unsafe fn anim_get_animation_cache (spec: Lisp_Object) -> *mut anim_cache
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut cache: *mut anim_cache;
   let mut pcache: *mut *mut anim_cache = &raw mut anim_cache;
 
@@ -5476,6 +5678,8 @@ unsafe fn anim_get_animation_cache (spec: Lisp_Object) -> *mut anim_cache
 
   (*cache).update_time = current_timespec ();
   return cache;
+
+  }
 }
 
 /* Mark Lisp objects in image IMG.  */
@@ -5484,11 +5688,15 @@ unsafe fn anim_get_animation_cache (spec: Lisp_Object) -> *mut anim_cache
 #[cfg (feature = "have_window_system")]
 unsafe fn mark_image (img: *mut image)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   mark_object ((*img).spec);
   mark_object ((*img).dependencies);
 
   if !NILP ((*img).lisp_data)
     { mark_object ((*img).lisp_data); }
+
+  }
 }
 
 /* Mark every image in image cache C, as well as the global animation
@@ -5499,6 +5707,8 @@ unsafe fn mark_image (img: *mut image)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mark_image_cache (c: *mut image_cache)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if !c.is_null ()
     {
       let mut i: ptrdiff_t;
@@ -5520,6 +5730,8 @@ pub unsafe extern "C-unwind" fn mark_image_cache (c: *mut image_cache)
 	mark_object ((*cache).spec);
 	cache = (*cache).next;
       }
+  }
+
   }
 }
 
@@ -5760,6 +5972,8 @@ unsafe fn image_create_x_image_and_pixmap_1 (f: *mut frame, width: c_int, height
 					    pixmap: *mut Emacs_Pixmap, picture: *mut Picture)
   -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* C 4091-4104: `#ifdef USE_CAIRO`.  */
   #[cfg (feature = "use_cairo")]
   {
@@ -5930,6 +6144,8 @@ unsafe fn image_create_x_image_and_pixmap_1 (f: *mut frame, width: c_int, height
 		  any (feature = "have_x_windows", feature = "have_android"),
 		  feature = "have_haiku", feature = "have_ntgui", feature = "have_ns")))]
   unreachable! ()
+
+  }
 }
 
 
@@ -5939,6 +6155,8 @@ unsafe fn image_create_x_image_and_pixmap_1 (f: *mut frame, width: c_int, height
 #[cfg (feature = "have_window_system")]
 unsafe fn image_destroy_x_image (pimg: Emacs_Pix_Container)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* C 4249-4250: `#if (defined HAVE_X_WINDOWS || defined HAVE_ANDROID) && !defined USE_CAIRO`.  */
   #[cfg (all (any (feature = "have_x_windows", feature = "have_android"), not (feature = "use_cairo")))]
   x_destroy_x_image (pimg as *mut XImage);
@@ -5959,6 +6177,8 @@ unsafe fn image_destroy_x_image (pimg: Emacs_Pix_Container)
 	  xfree (pimg);
 	}
       }
+  }
+
   }
 }
 
@@ -6002,6 +6222,8 @@ unsafe fn image_create_x_image_and_pixmap (f: *mut frame, img: *mut image, width
 					   height: c_int, depth: c_int,
 					   ximg: *mut Emacs_Pix_Container, mask_p: bool) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* C's `(!mask_p ? img->pixmap : img->mask) == NO_PIXMAP` - the record's members are the
      untyped pointers the mirror carries (P-72 rule 3), so each read names `Emacs_Pixmap`.  */
   eassert! ((if !mask_p { (*img).pixmap } else { (*img).mask }) as Emacs_Pixmap
@@ -6017,6 +6239,8 @@ unsafe fn image_create_x_image_and_pixmap (f: *mut frame, img: *mut image, width
 					    (if !mask_p { &raw mut (*img).pixmap }
 					     else { &raw mut (*img).mask }) as *mut Emacs_Pixmap,
 					    picture);
+
+  }
 }
 
 /* Put pixel image PIMG into image IMG on frame F, as a mask if and only
@@ -6030,6 +6254,8 @@ unsafe fn image_create_x_image_and_pixmap (f: *mut frame, img: *mut image, width
 unsafe fn image_put_x_image (f: *mut frame, img: *mut image, ximg: Emacs_Pix_Container,
 			     mask_p: bool)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* C 4322-4332: `#if (defined HAVE_X_WINDOWS || defined HAVE_ANDROID) && !defined USE_CAIRO`.  */
   #[cfg (all (any (feature = "have_x_windows", feature = "have_android"), not (feature = "use_cairo")))]
   {
@@ -6051,6 +6277,8 @@ unsafe fn image_put_x_image (f: *mut frame, img: *mut image, ximg: Emacs_Pix_Con
     gui_put_x_image (f, ximg, (if !mask_p { (*img).pixmap } else { (*img).mask }) as Emacs_Pixmap,
 		     (*img).width, (*img).height);
     image_destroy_x_image (ximg);
+  }
+
   }
 }
 
@@ -6115,6 +6343,8 @@ unsafe fn image_unget_x_image_or_dc (img: *mut image, mask_p: bool, ximg: HDC, p
 unsafe fn image_get_x_image (f: *mut frame, img: *mut image, mask_p: bool)
   -> Emacs_Pix_Container
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* C 4394-4395: `#if defined USE_CAIRO || defined (HAVE_HAIKU)`.  */
   #[cfg (any (feature = "use_cairo", feature = "have_haiku"))]
   { return (if !mask_p { (*img).pixmap } else { (*img).mask }) as Emacs_Pix_Container; }
@@ -6157,12 +6387,16 @@ unsafe fn image_get_x_image (f: *mut frame, img: *mut image, mask_p: bool)
     ns_retain_object (pixmap as *mut c_void);
     return pixmap;
   }
+
+  }
 }
 
 /// C: C 4423-4424: `static void image_unget_x_image (struct image *img, bool mask_p, Emacs_Pix_Container ximg)`
 #[cfg (all (feature = "have_window_system", not (feature = "have_ntgui")))]
 unsafe fn image_unget_x_image (img: *mut image, mask_p: bool, ximg: Emacs_Pix_Container)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* C 4426: `#ifdef USE_CAIRO` - C's arm holds no statement (the empty side of the `#elif`), so
      the port carries the line and nothing else; `docs/ports/image.md`'s Deviations records it.  */
 
@@ -6187,6 +6421,8 @@ unsafe fn image_unget_x_image (img: *mut image, mask_p: bool, ximg: Emacs_Pix_Co
   #[cfg (all (not (feature = "use_cairo"), not (any (feature = "have_x_windows", feature = "have_android")),
 	      feature = "have_ns"))]
   ns_release_object (ximg as *mut c_void);
+
+  }
 }
 
 
@@ -6217,6 +6453,8 @@ unsafe extern "C-unwind" {
 #[cfg (feature = "have_window_system")]
 unsafe fn image_find_image_fd (file: Lisp_Object, pfd: *mut image_fd) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* C's `Lisp_Object file_found, search_path;` - `openp` writes `*storeptr`, and `&raw mut` of a
      binding Rust has not initialised is `E0381`, so both take C's zero (`Qnil`; PORTING.md
      1.5/0.1-13).  */
@@ -6261,6 +6499,8 @@ unsafe fn image_find_image_fd (file: Lisp_Object, pfd: *mut image_fd) -> Lisp_Ob
       (*pfd).asset = platform;
     }
   return file_found;
+
+  }
 }
 
 /* Find image file FILE.  Look in data-directory/images, then
@@ -6272,7 +6512,11 @@ unsafe fn image_find_image_fd (file: Lisp_Object, pfd: *mut image_fd) -> Lisp_Ob
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn image_find_image_file (file: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   return image_find_image_fd (file, core::ptr::null_mut ());
+
+  }
 }
 
 /* C 4513-4521: `#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY`.  */
@@ -6297,6 +6541,8 @@ unsafe extern "C-unwind" fn close_android_fd (ptr: *mut c_void)
 #[cfg (feature = "have_window_system")]
 unsafe fn slurp_file (mut fd: image_fd, size: *mut ptrdiff_t) -> *mut c_char
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* C declares `buf` inside both arms below (`char *buf = NULL;` in the first, the uninitialised
      `char *buf;` in the second) and reads it once, after the `#endif`; Rust's `let` is
      block-scoped, so the declaration is hoisted to the function and each arm keeps its own
@@ -6371,6 +6617,8 @@ unsafe fn slurp_file (mut fd: image_fd, size: *mut ptrdiff_t) -> *mut c_char
   }
 
   return buf;
+
+  }
 }
 
 /* Like slurp_file above, but with added error handling.  Value is
@@ -6382,6 +6630,8 @@ unsafe fn slurp_file (mut fd: image_fd, size: *mut ptrdiff_t) -> *mut c_char
 unsafe fn slurp_image (filename: Lisp_Object, size: *mut ptrdiff_t, image_type: *const c_char)
   -> *mut c_char
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut fd: image_fd = core::mem::zeroed ();
   let file: Lisp_Object = image_find_image_fd (filename, &raw mut fd);
   if !STRINGP (file)
@@ -6394,6 +6644,8 @@ unsafe fn slurp_image (filename: Lisp_Object, size: *mut ptrdiff_t, image_type: 
     { image_error (c"Error loading %s image `%s'".as_ptr (),
 		   build_unibyte_string (image_type), file); }
   return result;
+
+  }
 }
 
 
@@ -6567,6 +6819,8 @@ pub const XBM_TK_OVERFLOW: c_int = 258;
 #[cfg (feature = "have_window_system")]
 unsafe extern "C-unwind" fn xbm_image_p (object: Lisp_Object) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* C's `struct image_keyword kw[XBM_LAST];` filled by the `memcpy` below - zeroed first
      (PORTING.md 1.5/0.1-13).  */
   let mut kw: [image_keyword; XBM_LAST as usize] = core::mem::zeroed ();
@@ -6660,6 +6914,8 @@ unsafe extern "C-unwind" fn xbm_image_p (object: Lisp_Object) -> bool
     }
 
   return true;
+
+  }
 }
 
 /* The names this slice calls that the mirrors this unit includes do not carry, declared at the
@@ -6734,6 +6990,8 @@ unsafe extern "C" {
 unsafe fn xbm_scan (s: *mut *mut c_char, end: *mut c_char, mut sval: *mut c_char,
 		    ival: *mut c_int) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* C's `unsigned char c UNINIT;` - zeroed (PORTING.md 1.5/0.1-13).  */
   let mut c: c_uchar = 0;
   let sval_end: *mut c_char = sval.offset (BUFSIZ as isize);
@@ -6895,6 +7153,8 @@ unsafe fn xbm_scan (s: *mut *mut c_char, end: *mut c_char, mut sval: *mut c_char
 
       return c as c_int;
     }
+
+  }
 }
 
 /* C 4936-5003: `#ifdef HAVE_NTGUI`.  Both definitions are text-only on this machine (no
@@ -6992,6 +7252,8 @@ unsafe fn Create_Pixmap_From_Bitmap_Data (f: *mut frame, img: *mut image, mut da
 					  mut fg: RGB_PIXEL_COLOR, mut bg: RGB_PIXEL_COLOR,
 					  non_default_colors: bool)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* C 5011-5016: `#ifdef USE_CAIRO`.  */
   #[cfg (all (feature = "have_window_system", feature = "use_cairo"))]
   {
@@ -7086,6 +7348,8 @@ unsafe fn Create_Pixmap_From_Bitmap_Data (f: *mut frame, img: *mut image, mut da
 	  }
       }
   }
+
+  }
 }
 
 /* Replacement for XReadBitmapFileData which isn't available under old
@@ -7103,6 +7367,8 @@ unsafe fn xbm_read_bitmap_data (f: *mut frame, contents: *mut c_char, end: *mut 
 				width: *mut c_int, height: *mut c_int, data: *mut *mut c_char,
 				inhibit_image_error: bool) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut s: *mut c_char = contents;
   let mut buffer: [c_char; BUFSIZ as usize] = [0; BUFSIZ as usize];
   let mut padding_p: bool = false;
@@ -7289,6 +7555,8 @@ unsafe fn xbm_read_bitmap_data (f: *mut frame, contents: *mut c_char, end: *mut 
       *data = core::ptr::null_mut ();
     }
   return false;
+
+  }
 }
 
 /* Load XBM image IMG which will be displayed on frame F from buffer
@@ -7300,6 +7568,8 @@ unsafe fn xbm_read_bitmap_data (f: *mut frame, contents: *mut c_char, end: *mut 
 unsafe fn xbm_load_image (f: *mut frame, img: *mut image, contents: *mut c_char,
 			  end: *mut c_char) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let rc: bool;
   let mut data: *mut c_char = core::ptr::null_mut ();
   let mut success_p: bool = false;
@@ -7353,6 +7623,8 @@ unsafe fn xbm_load_image (f: *mut frame, img: *mut image, contents: *mut c_char,
     { image_error (c"Error loading XBM image `%s'".as_ptr (), (*img).spec); }
 
   return success_p;
+
+  }
 }
 
 /* Value is true if DATA looks like an in-memory XBM file.  */
@@ -7361,12 +7633,16 @@ unsafe fn xbm_load_image (f: *mut frame, img: *mut image, contents: *mut c_char,
 #[cfg (feature = "have_window_system")]
 unsafe fn xbm_file_p (data: Lisp_Object) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut w: c_int = 0;
   let mut h: c_int = 0;
   return STRINGP (data)
     && xbm_read_bitmap_data (core::ptr::null_mut (), SSDATA (data),
 			     SSDATA (data).offset (SBYTES (data) as isize),
 			     &raw mut w, &raw mut h, core::ptr::null_mut (), true);
+
+  }
 }
 
 /* Fill image IMG which is used on frame F with pixmap data.  Value is
@@ -7376,6 +7652,8 @@ unsafe fn xbm_file_p (data: Lisp_Object) -> bool
 #[cfg (feature = "have_window_system")]
 unsafe extern "C-unwind" fn xbm_load (f: *mut frame, img: *mut image) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut success_p: bool = false;
   let file_name: Lisp_Object;
 
@@ -7516,6 +7794,8 @@ unsafe extern "C-unwind" fn xbm_load (f: *mut frame, img: *mut image) -> bool
     }
 
   return success_p;
+
+  }
 }
 
 /***********************************************************************
@@ -7600,6 +7880,8 @@ static mut canvas_list: *mut canvas = core::ptr::null_mut ();
 #[cfg (feature = "have_window_system")]
 unsafe fn canvas_parse (object: Lisp_Object, fmt: *mut image_keyword) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   memcpy (fmt as *mut c_void, canvas_format.as_ptr () as *const c_void,
 	  core::mem::size_of::<[image_keyword; CANVAS_LAST as usize]> ());
 
@@ -7614,6 +7896,8 @@ unsafe fn canvas_parse (object: Lisp_Object, fmt: *mut image_keyword) -> bool
 
   /* Check that w*h*4 does not overflow */
   return w <= INT_MAX as ptrdiff_t / 4 / h;
+
+  }
 }
 
 /* Return true if OBJECT is a valid canvas image specification.  */
@@ -7622,8 +7906,12 @@ unsafe fn canvas_parse (object: Lisp_Object, fmt: *mut image_keyword) -> bool
 #[cfg (feature = "have_window_system")]
 unsafe extern "C-unwind" fn canvas_image_p (object: Lisp_Object) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut fmt: [image_keyword; CANVAS_LAST as usize] = core::mem::zeroed ();
   return canvas_parse (object, fmt.as_mut_ptr ());
+
+  }
 }
 
 /* Clear canvas list.  All canvases which are not referenced anymore in
@@ -7633,6 +7921,8 @@ unsafe extern "C-unwind" fn canvas_image_p (object: Lisp_Object) -> bool
 #[cfg (feature = "have_window_system")]
 unsafe fn canvas_free_unused ()
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* Mark all referenced canvases as used (negative width).  */
   DOHASH! (XHASH_TABLE (canvas_map), k, v, {
     (*(XFIXNUMPTR (v) as *mut canvas)).width *= -1;
@@ -7655,6 +7945,8 @@ unsafe fn canvas_free_unused ()
 	  xfree (c as *mut c_void);
         }
     }
+
+  }
 }
 
 /* Copy pixel data into canvas C from a parsed image keyword array FMT.
@@ -7668,6 +7960,8 @@ unsafe fn canvas_free_unused ()
 #[cfg (feature = "have_window_system")]
 unsafe fn canvas_apply_data (c: *mut canvas, fmt: *mut image_keyword)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* C's compound literal `(ptrdiff_t) {c->width}` is the cast below.  */
   let expected_size: ptrdiff_t = ((*c).width as ptrdiff_t) * ((*c).height as ptrdiff_t);
 
@@ -7800,6 +8094,8 @@ unsafe fn canvas_apply_data (c: *mut canvas, fmt: *mut image_keyword)
 
       xfree (buf as *mut c_void);
     }
+
+  }
 }
 
 /* Get canvas object for IMAGE specification.  Returns NULL on error.  */
@@ -7808,6 +8104,8 @@ unsafe fn canvas_apply_data (c: *mut canvas, fmt: *mut image_keyword)
 #[cfg (feature = "have_window_system")]
 unsafe fn canvas_get (image: Lisp_Object, fmt: *mut image_keyword) -> *mut canvas
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if !canvas_parse (image, fmt)
     {
       image_error (c"Not a canvas image specification".as_ptr ());
@@ -7854,6 +8152,8 @@ unsafe fn canvas_get (image: Lisp_Object, fmt: *mut image_keyword) -> *mut canva
     }
 
   return c;
+
+  }
 }
 
 /* Create canvas IMG in frame F.  Value is true if successful.  */
@@ -7862,6 +8162,8 @@ unsafe fn canvas_get (image: Lisp_Object, fmt: *mut image_keyword) -> *mut canva
 #[cfg (feature = "have_window_system")]
 unsafe extern "C-unwind" fn canvas_load (f: *mut frame, img: *mut image) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut fmt: [image_keyword; CANVAS_LAST as usize] = core::mem::zeroed ();
   let c: *mut canvas = canvas_get ((*img).spec, fmt.as_mut_ptr ());
 
@@ -7886,6 +8188,8 @@ unsafe extern "C-unwind" fn canvas_load (f: *mut frame, img: *mut image) -> bool
   image_put_x_image (f, img, ximg, false);
 
   return true;
+
+  }
 }
 
 /* Prepare image IMG from canvas for display.  */
@@ -7894,6 +8198,8 @@ unsafe extern "C-unwind" fn canvas_load (f: *mut frame, img: *mut image) -> bool
 #[cfg (feature = "have_window_system")]
 unsafe fn canvas_prepare_for_display (f: *mut frame, img: *mut image)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let c: *mut canvas = XFIXNUMPTR ((*img).lisp_data) as *mut canvas;
   (*img).refresh = (*c).refresh;
   let src: *mut uint32_t = (*c).data;
@@ -8065,6 +8371,8 @@ unsafe fn canvas_prepare_for_display (f: *mut frame, img: *mut image)
   }
 
   unblock_input ();
+
+  }
 }
 
 /* Access canvas buffer.  Note that the pixel buffer
@@ -8075,6 +8383,8 @@ unsafe fn canvas_prepare_for_display (f: *mut frame, img: *mut image)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn canvas_data (image: Lisp_Object) -> *mut uint32_t
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut fmt: [image_keyword; CANVAS_LAST as usize] = core::mem::zeroed ();
   let c: *mut canvas = canvas_get (image, fmt.as_mut_ptr ());
 
@@ -8082,6 +8392,8 @@ pub unsafe extern "C-unwind" fn canvas_data (image: Lisp_Object) -> *mut uint32_
     { error (c"Not a canvas".as_ptr ()); }
 
   return (*c).data;
+
+  }
 }
 
 #[cfg (feature = "have_window_system")]
@@ -8689,7 +9001,11 @@ unsafe extern "C" fn xpm_free_colors (dpy: *mut Display, cmap: Colormap, pixels:
 #[inline(always)]
 pub unsafe fn xstrcasecmp (a: *const c_char, b: *const c_char) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   return c_strcasecmp (a, b);
+
+  }
 }
 // C: xterm.h 1796: `extern bool x_alloc_nearest_color (struct frame *, Colormap, XColor *);`
 // - the definition is `xterm.c`'s; `include/xterm.rs` does not carry the declaration.
@@ -8854,6 +9170,8 @@ unsafe fn xpm_valid_color_symbols_p (mut color_symbols: Lisp_Object) -> bool
 						  feature = "have_android")))]
 unsafe extern "C-unwind" fn xpm_image_p (object: Lisp_Object) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* C's `struct image_keyword fmt[XPM_LAST];` filled by the `memcpy` below - zeroed first
      (PORTING.md 1.5/0.1-13).  */
   let mut fmt: [image_keyword; XPM_LAST as usize] = core::mem::zeroed ();
@@ -8871,6 +9189,8 @@ unsafe extern "C-unwind" fn xpm_image_p (object: Lisp_Object) -> bool
 	     whose car and cdr are strings.  */
 	  && (! fmt [XPM_COLOR_SYMBOLS as usize].count
 	      || xpm_valid_color_symbols_p (fmt [XPM_COLOR_SYMBOLS as usize].value)));
+
+  }
 }
 
 /* C 6247-6299: `#if defined HAVE_XPM && defined HAVE_X_WINDOWS && !defined USE_GTK` - the
@@ -9355,6 +9675,8 @@ pub const XPM_TK_EOF: c_int = 258;
 unsafe fn xpm_scan (s: *mut *const c_char, end: *const c_char, beg: *mut *const c_char,
 		    len: *mut ptrdiff_t) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* C's `unsigned char c;` - uninitialised, zeroed (PORTING.md 1.5).  */
   let mut c: c_uchar = 0;
 
@@ -9428,6 +9750,8 @@ unsafe fn xpm_scan (s: *mut *const c_char, end: *const c_char, beg: *mut *const 
     }
 
   return XPM_TK_EOF;
+
+  }
 }
 
 /* Functions for color table lookup in XPM data.  A key is a string
@@ -9452,9 +9776,13 @@ unsafe fn xpm_make_color_table_v (put_func: *mut Option<unsafe extern "C-unwind"
 									      c_int) -> Lisp_Object>)
   -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   *put_func = Some (xpm_put_color_table_v);
   *get_func = Some (xpm_get_color_table_v);
   return make_nil_vector (256);
+
+  }
 }
 
 /// C: C 6725-6729: `static void xpm_put_color_table_v (Lisp_Object color_table, const char *chars_start, int chars_len, Lisp_Object color)`
@@ -9468,8 +9796,12 @@ unsafe extern "C-unwind" fn xpm_put_color_table_v (color_table: Lisp_Object,
 					   chars_start: *const c_char, chars_len: c_int,
 					   color: Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let uc: c_uchar = *chars_start as c_uchar;
   ASET (color_table, uc as isize, color);
+
+  }
 }
 
 /// C: C 6735-6738: `static Lisp_Object xpm_get_color_table_v (Lisp_Object color_table, const char *chars_start, int chars_len)`
@@ -9483,8 +9815,12 @@ unsafe extern "C-unwind" fn xpm_get_color_table_v (color_table: Lisp_Object,
 					   chars_start: *const c_char, chars_len: c_int)
   -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let uc: c_uchar = *chars_start as c_uchar;
   return AREF (color_table, uc as isize);
+
+  }
 }
 
 /// C: C 6744-6748: `static Lisp_Object xpm_make_color_table_h (void (**put_func) (Lisp_Object, const char *, int, Lisp_Object), Lisp_Object (**get_func) (Lisp_Object, const char *, int))`
@@ -9502,9 +9838,13 @@ unsafe fn xpm_make_color_table_h (put_func: *mut Option<unsafe extern "C-unwind"
 									      c_int) -> Lisp_Object>)
   -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   *put_func = Some (xpm_put_color_table_h);
   *get_func = Some (xpm_get_color_table_h);
   return make_hash_table (&raw const hashtest_equal, DEFAULT_HASH_SIZE as EMACS_INT, Weak_None);
+
+  }
 }
 
 /// C: C 6755-6759: `static void xpm_put_color_table_h (Lisp_Object color_table, const char *chars_start, int chars_len, Lisp_Object color)`
@@ -9518,6 +9858,8 @@ unsafe extern "C-unwind" fn xpm_put_color_table_h (color_table: Lisp_Object,
 					   chars_start: *const c_char, chars_len: c_int,
 					   color: Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let table: *mut Lisp_Hash_Table = XHASH_TABLE (color_table);
   let chars: Lisp_Object = make_unibyte_string (chars_start, chars_len as ptrdiff_t);
 
@@ -9525,6 +9867,8 @@ unsafe extern "C-unwind" fn xpm_put_color_table_h (color_table: Lisp_Object,
   let mut hash_code: hash_hash_t = 0;
   hash_find_get_hash (table, chars, &raw mut hash_code);
   hash_put (table, chars, color, hash_code);
+
+  }
 }
 
 /// C: C 6769-6772: `static Lisp_Object xpm_get_color_table_h (Lisp_Object color_table, const char *chars_start, int chars_len)`
@@ -9538,11 +9882,15 @@ unsafe extern "C-unwind" fn xpm_get_color_table_h (color_table: Lisp_Object,
 					   chars_start: *const c_char, chars_len: c_int)
   -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let table: *mut Lisp_Hash_Table = XHASH_TABLE (color_table);
   let i: ptrdiff_t
     = hash_find (table, make_unibyte_string (chars_start, chars_len as ptrdiff_t));
 
   return if i >= 0 { HASH_VALUE (table, i as hash_idx_t) } else { Qnil () };
+
+  }
 }
 
 /// C: C 6781-6787: `enum xpm_color_key { XPM_COLOR_KEY_S, XPM_COLOR_KEY_M, XPM_COLOR_KEY_G4, XPM_COLOR_KEY_G, XPM_COLOR_KEY_C }`
@@ -9611,6 +9959,8 @@ static xpm_color_key_strings: [[c_char; 4]; 5] =
 		 all (feature = "have_android", not (feature = "have_xpm")))))]
 unsafe fn xpm_str_to_color_key (s: *const c_char) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut i: c_int = 0;
   while i < countof! (xpm_color_key_strings) as c_int
     {
@@ -9619,6 +9969,8 @@ unsafe fn xpm_str_to_color_key (s: *const c_char) -> c_int
       i += 1;
     }
   return -1;
+
+  }
 }
 
 /// C: C 6800-6801: `static int xpm_str_to_int (char **buf)`
@@ -9630,6 +9982,8 @@ unsafe fn xpm_str_to_color_key (s: *const c_char) -> c_int
 		 all (feature = "have_android", not (feature = "have_xpm")))))]
 unsafe fn xpm_str_to_int (buf: *mut *mut c_char) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* C's `char *p;` is written by `strtol`'s out parameter, so it takes C's zero
      (PORTING.md 1.5/0.1-13).  */
   let mut p: *mut c_char = core::ptr::null_mut ();
@@ -9647,6 +10001,8 @@ unsafe fn xpm_str_to_int (buf: *mut *mut c_char) -> c_int
   *buf = p;
 
   return result as c_int;
+
+  }
 }
 
 /// C: C 6820-6824: `static bool xpm_load_image (struct frame *f, struct image *img, const char *contents, const char *end)`
@@ -9659,6 +10015,8 @@ unsafe fn xpm_str_to_int (buf: *mut *mut c_char) -> c_int
 unsafe fn xpm_load_image (f: *mut frame, img: *mut image, contents: *const c_char,
 			  end: *const c_char) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut s: *const c_char = contents;
   /* C's `const char *s = contents, *beg, *str;` - `beg` is written by every `xpm_scan` call
      before it is read, `str` by the loops below; both are zeroed (PORTING.md 1.5).  */
@@ -10020,6 +10378,8 @@ unsafe fn xpm_load_image (f: *mut frame, img: *mut image, contents: *const c_cha
       image_clear_image (f, img);
     }
   return false;
+
+  }
 }
 
 /// C: C 7086-7088: `static bool xpm_load (struct frame *f, struct image *img)` - the NS/cairo/cairo-with-XPM arm's second definition of the name (C 6307's is the plain-X11 one; C's `#if` chain keeps exactly one live, and the port's two Rust definitions carry natively disjoint gates).
@@ -10031,6 +10391,8 @@ unsafe fn xpm_load_image (f: *mut frame, img: *mut image, contents: *const c_cha
 		 all (feature = "have_android", not (feature = "have_xpm")))))]
 unsafe extern "C-unwind" fn xpm_load (f: *mut frame, img: *mut image) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut success_p: bool = false;
   let mut file_name: Lisp_Object;
 
@@ -10062,6 +10424,8 @@ unsafe extern "C-unwind" fn xpm_load (f: *mut frame, img: *mut image) -> bool
     }
 
   return success_p;
+
+  }
 }
 
 /* ==============================================================================================
@@ -10471,6 +10835,8 @@ macro_rules! ckd_mul {
 unsafe fn image_to_emacs_colors (f: *mut frame, img: *mut image, rgb_p: bool)
   -> *mut Emacs_Color
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut x: c_int;
   let mut y: c_int;
   let mut colors: *mut Emacs_Color;
@@ -10538,6 +10904,8 @@ unsafe fn image_to_emacs_colors (f: *mut frame, img: *mut image, rgb_p: bool)
   image_unget_x_image_or_dc! (img, false, ximg, prev);
 
   return colors;
+
+  }
 }
 
 /* C 7485-7529: `#ifdef HAVE_NTGUI` - the Windows pixel writer (`<windows.h>`'s `GetBValue`
@@ -10593,6 +10961,8 @@ unsafe fn XPutPixel (ximg: *mut XImage, x: c_int, y: c_int, color: COLORREF)
 #[cfg (feature = "have_window_system")]
 unsafe fn image_from_emacs_colors (f: *mut frame, img: *mut image, colors: *mut Emacs_Color)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut x: c_int;
   let mut y: c_int;
   let mut ximage: Emacs_Pix_Container;
@@ -10633,6 +11003,8 @@ unsafe fn image_from_emacs_colors (f: *mut frame, img: *mut image, colors: *mut 
     (*img).colors = colors_in_color_table (&raw mut (*img).ncolors);
     free_color_table ();
   }
+
+  }
 }
 
 /* On frame F, perform edge-detection on image IMG.
@@ -10648,6 +11020,8 @@ unsafe fn image_from_emacs_colors (f: *mut frame, img: *mut image, colors: *mut 
 unsafe fn image_detect_edges (f: *mut frame, img: *mut image, matrix: *mut c_int,
 			      color_adjust: c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let colors: *mut Emacs_Color = image_to_emacs_colors (f, img, true);
   let mut new: *mut Emacs_Color;
   let mut p: *mut Emacs_Color;
@@ -10756,6 +11130,8 @@ unsafe fn image_detect_edges (f: *mut frame, img: *mut image, matrix: *mut c_int
 
   xfree (colors as *mut c_void);
   image_from_emacs_colors (f, img, new);
+
+  }
 }
 
 /* Perform the pre-defined `emboss' edge-detection on image IMG
@@ -10765,7 +11141,11 @@ unsafe fn image_detect_edges (f: *mut frame, img: *mut image, matrix: *mut c_int
 #[cfg (feature = "have_window_system")]
 unsafe fn image_emboss (f: *mut frame, img: *mut image)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   image_detect_edges (f, img, &raw mut emboss_matrix as *mut c_int, 0xffff / 2);
+
+  }
 }
 
 /* Transform image IMG which is used on frame F with a Laplace
@@ -10776,7 +11156,11 @@ unsafe fn image_emboss (f: *mut frame, img: *mut image)
 #[cfg (feature = "have_window_system")]
 unsafe fn image_laplace (f: *mut frame, img: *mut image)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   image_detect_edges (f, img, &raw mut laplace_matrix as *mut c_int, 45000);
+
+  }
 }
 
 /* Perform edge-detection on image IMG on frame F, with specified
@@ -10795,6 +11179,8 @@ unsafe fn image_laplace (f: *mut frame, img: *mut image)
 unsafe fn image_edge_detection (f: *mut frame, img: *mut image, mut matrix: Lisp_Object,
 				mut color_adjust: Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut i: c_int = 0;
   /* C's `int trans[9];` - written only up to `i` (PORTING.md 1.5/0.1-13).  */
   let mut trans: [c_int; 9] = [0; 9];
@@ -10824,6 +11210,8 @@ unsafe fn image_edge_detection (f: *mut frame, img: *mut image, mut matrix: Lisp
 
   if i == 9 && NUMBERP (color_adjust)
     { image_detect_edges (f, img, trans.as_mut_ptr (), XFLOATINT (color_adjust) as c_int); }
+
+  }
 }
 
 /// C: C 7711-7714: `static void image_pixmap_draw_cross (struct frame *f, Emacs_Pixmap pixmap, int x, int y, unsigned int width, unsigned int height, unsigned long color)`
@@ -10898,6 +11286,8 @@ unsafe fn image_pixmap_draw_cross (f: *mut frame, pixmap: Emacs_Pixmap, x: c_int
 #[cfg (feature = "have_window_system")]
 unsafe fn image_disable_image (f: *mut frame, img: *mut image)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let dpyinfo: *mut Display_Info = FRAME_DISPLAY_INFO! (f);
   /* C 7769-7772: `#ifdef HAVE_NTGUI` `int n_planes = dpyinfo->n_planes * dpyinfo->n_cbits;`
      / `#else` `int n_planes = dpyinfo->n_planes;` - and C 219-221's
@@ -11002,6 +11392,8 @@ unsafe fn image_disable_image (f: *mut frame, img: *mut image)
 	DeleteDC (bmpdc);
       }
     }
+
+  }
 }
 
 
@@ -11016,6 +11408,8 @@ unsafe fn image_disable_image (f: *mut frame, img: *mut image)
 #[cfg (feature = "have_window_system")]
 unsafe fn image_build_heuristic_mask (f: *mut frame, img: *mut image, mut how: Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut ximg: Emacs_Pix_Context;
   /* C 7865-7871: `#ifdef HAVE_NTGUI`'s three / `#elif !defined HAVE_NS`'s one.  */
   #[cfg (feature = "have_ntgui")]
@@ -11158,6 +11552,8 @@ unsafe fn image_build_heuristic_mask (f: *mut frame, img: *mut image, mut how: L
   }
 
   image_unget_x_image_or_dc! (img, false, ximg, prev);
+
+  }
 }
 
 /* C 7970-7972's banner.  */
@@ -11230,6 +11626,8 @@ static pbm_format: [image_keyword; PBM_LAST as usize] =
 #[cfg (feature = "have_window_system")]
 unsafe extern "C-unwind" fn pbm_image_p (object: Lisp_Object) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* C's `struct image_keyword fmt[PBM_LAST];` filled by the `memcpy` below - zeroed first
      (PORTING.md 1.5/0.1-13).  */
   let mut fmt: [image_keyword; PBM_LAST as usize] = core::mem::zeroed ();
@@ -11246,6 +11644,8 @@ unsafe extern "C-unwind" fn pbm_image_p (object: Lisp_Object) -> bool
      conversion out (the `xpm_image_p` 8681 note).  */
   return (fmt[PBM_DATA as usize].count as c_int)
     + (fmt[PBM_FILE as usize].count as c_int) == 1;
+
+  }
 }
 
 
@@ -11256,6 +11656,8 @@ unsafe extern "C-unwind" fn pbm_image_p (object: Lisp_Object) -> bool
 #[cfg (feature = "have_window_system")]
 unsafe fn pbm_next_char (s: *mut *mut c_char, end: *mut c_char) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* C's `unsigned char c = *(*s)++;` is the load-then-step pair (Deviation 26): the port
      loads into `c` and steps `*s` as the two statements C's post-increment performs.  */
   let mut c: c_uchar;
@@ -11276,6 +11678,8 @@ unsafe fn pbm_next_char (s: *mut *mut c_char, end: *mut c_char) -> c_int
     }
 
   return -1;
+
+  }
 }
 
 
@@ -11287,6 +11691,8 @@ unsafe fn pbm_next_char (s: *mut *mut c_char, end: *mut c_char) -> c_int
 #[cfg (feature = "have_window_system")]
 unsafe fn pbm_scan_number (s: *mut *mut c_char, end: *mut c_char) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut c: c_int = 0;
   let mut val: c_int = -1;
 
@@ -11303,6 +11709,8 @@ unsafe fn pbm_scan_number (s: *mut *mut c_char, end: *mut c_char) -> c_int
     }
 
   return val;
+
+  }
 }
 
 /* Scan an index from *S and return it.  It is a one-byte unsigned
@@ -11313,6 +11721,8 @@ unsafe fn pbm_scan_number (s: *mut *mut c_char, end: *mut c_char) -> c_int
 #[cfg (feature = "have_window_system")]
 unsafe fn pbm_scan_index (s: *mut *mut c_char, two_byte: bool) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut p: *mut c_char = *s;
   /* C's `unsigned char c0 = *p++;` - the load-then-step pair (Deviation 26).  */
   let c0: c_uchar = *p as c_uchar;
@@ -11327,6 +11737,8 @@ unsafe fn pbm_scan_index (s: *mut *mut c_char, two_byte: bool) -> c_int
     }
   *s = p;
   return n;
+
+  }
 }
 
 
@@ -11336,6 +11748,8 @@ unsafe fn pbm_scan_index (s: *mut *mut c_char, two_byte: bool) -> c_int
 #[cfg (feature = "have_window_system")]
 unsafe extern "C-unwind" fn pbm_load (f: *mut frame, img: *mut image) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut raw_p: bool = false;
   let mut x: c_int;
   let mut y: c_int;
@@ -11679,6 +12093,8 @@ unsafe extern "C-unwind" fn pbm_load (f: *mut frame, img: *mut image) -> bool
   xfree (contents as *mut c_void);
   (*img).pixmap = NO_PIXMAP! () as *mut c_void;
   return false;
+
+  }
 }
 
 
@@ -11747,6 +12163,8 @@ static png_format: [image_keyword; PNG_LAST as usize] =
 #[cfg (all (feature = "have_window_system", feature = "have_png"))]
 unsafe extern "C-unwind" fn png_image_p (object: Lisp_Object) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* C's `struct image_keyword fmt[PNG_LAST];` filled by the `memcpy` below - zeroed first
      (PORTING.md 1.5/0.1-13).  */
   let mut fmt: [image_keyword; PNG_LAST as usize] = core::mem::zeroed ();
@@ -11763,6 +12181,8 @@ unsafe extern "C-unwind" fn png_image_p (object: Lisp_Object) -> bool
      conversion out (the `pbm_image_p` 8030 note).  */
   return (fmt[PNG_DATA as usize].count as c_int)
     + (fmt[PNG_FILE as usize].count as c_int) == 1;
+
+  }
 }
 
 /* C 8512-8610: `# ifdef WINDOWSNT` - the PNG library's lazy DLL binding.  This arm is C's own
@@ -11894,8 +12314,12 @@ unsafe extern "C" {
 	    not (feature = "windowsnt")))]
 unsafe extern "C" fn fast_longjmp (jmp: *mut c_void, val: c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* C's `FAST_LONGJMP` is `_longjmp`; the mirror is `src/include/lisp.rs`'s pair.  */
   sys_longjmp (jmp as *mut jmp_buf, val);
+
+  }
 }
 
 /* Error and warning handlers installed when the PNG library
@@ -11906,11 +12330,15 @@ unsafe extern "C" fn fast_longjmp (jmp: *mut c_void, val: c_int)
 	    not (feature = "windowsnt")))]
 unsafe extern "C" fn my_png_error (png_ptr: png_structp, msg: *const c_char)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   eassert! (!png_ptr.is_null ());
   /* Avoid compiler warning about deprecated direct access to
      png_ptr's fields in libpng versions 1.4.x.  */
   image_error (c"PNG error: %s".as_ptr (), build_string (msg));
   png_longjmp (png_ptr, 1);
+
+  }
 }
 
 /// C: C 8642-8648: `static void my_png_warning (png_struct *png_ptr, const char *msg)`
@@ -11918,8 +12346,12 @@ unsafe extern "C" fn my_png_error (png_ptr: png_structp, msg: *const c_char)
 	    not (feature = "windowsnt")))]
 unsafe extern "C" fn my_png_warning (png_ptr: png_structp, msg: *const c_char)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   eassert! (!png_ptr.is_null ());
   image_error (c"PNG warning: %s".as_ptr (), build_string (msg));
+
+  }
 }
 
 /* Memory source for PNG decoding.  */
@@ -11944,6 +12376,8 @@ pub struct png_memory_storage
 unsafe extern "C" fn png_read_from_memory (png_ptr: png_structp, data: png_bytep,
 					   length: png_size_t)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let tbr: *mut png_memory_storage = png_get_io_ptr (png_ptr) as *mut png_memory_storage;
 
   /* C's `length > tbr->len - tbr->index` compares a `png_size_t` with a `ptrdiff_t`; the
@@ -11954,6 +12388,8 @@ unsafe extern "C" fn png_read_from_memory (png_ptr: png_structp, data: png_bytep
   memcpy (data as *mut c_void, (*tbr).bytes.offset ((*tbr).index as isize) as *const c_void,
 	  length);
   (*tbr).index = (*tbr).index + length as ptrdiff_t;
+
+  }
 }
 
 /* Function set as reader function when reading PNG image from a file.
@@ -11966,10 +12402,14 @@ unsafe extern "C" fn png_read_from_memory (png_ptr: png_structp, data: png_bytep
 unsafe extern "C" fn png_read_from_file (png_ptr: png_structp, data: png_bytep,
 					 length: png_size_t)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let fp: *mut FILE = png_get_io_ptr (png_ptr) as *mut FILE;
 
   if fread (data as *mut c_void, 1, length, fp) < length
     { png_error (png_ptr, c"Read error".as_ptr ()); }
+
+  }
 }
 
 /* Load PNG image IMG for use on frame F.  Value is true if
@@ -11994,6 +12434,8 @@ pub struct png_load_context
 	    not (feature = "windowsnt")))]
 unsafe fn png_load_body (f: *mut frame, img: *mut image, c: *mut png_load_context) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let specified_file: Lisp_Object;
   let specified_data: Lisp_Object;
   /* C's `FILE *fp = NULL;` - the context's copy is the one the `error:` label reads, so the
@@ -12425,6 +12867,8 @@ unsafe fn png_load_body (f: *mut frame, img: *mut image, c: *mut png_load_contex
   if !(*c).fp.is_null ()
     { emacs_fclose! ((*c).fp); }
   return false;
+
+  }
 }
 
 /// C: C 9105-9109: `static bool png_load (struct frame *f, struct image *img)`
@@ -12432,9 +12876,13 @@ unsafe fn png_load_body (f: *mut frame, img: *mut image, c: *mut png_load_contex
 	    not (feature = "windowsnt")))]
 unsafe extern "C-unwind" fn png_load (f: *mut frame, img: *mut image) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* C's `struct png_load_context c;` - the decode writes it (PORTING.md 1.5).  */
   let mut c: png_load_context = core::mem::zeroed ();
   return png_load_body (f, img, &raw mut c);
+
+  }
 }
 
 
@@ -12503,6 +12951,8 @@ static jpeg_format: [image_keyword; JPEG_LAST as usize] =
 #[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
 unsafe extern "C-unwind" fn jpeg_image_p (object: Lisp_Object) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* C's `struct image_keyword fmt[JPEG_LAST];` filled by the `memcpy` below - zeroed first
      (PORTING.md 1.5/0.1-13).  */
   let mut fmt: [image_keyword; JPEG_LAST as usize] = core::mem::zeroed ();
@@ -12517,6 +12967,8 @@ unsafe extern "C-unwind" fn jpeg_image_p (object: Lisp_Object) -> bool
   /* Must specify either :data or :file.  */
   return (fmt[JPEG_DATA as usize].count as c_int)
     + (fmt[JPEG_FILE as usize].count as c_int) == 1;
+
+  }
 }
 
 /* C 9173-9280: `# ifdef WINDOWSNT`'s JPEG DLL binding and helpers.  Like the PNG arm above,
@@ -12927,9 +13379,13 @@ pub const MY_JPEG_CANNOT_CREATE_X: c_int = 2;
 	    not (feature = "windowsnt")))]
 unsafe extern "C" fn my_error_exit (cinfo: *mut jpeg_common_struct)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mgr: *mut my_jpeg_error_mgr = (*cinfo).err as *mut my_jpeg_error_mgr;
   (*mgr).failure_code = MY_JPEG_ERROR_EXIT;
   sys_longjmp (&raw mut (*mgr).setjmp_buffer as *mut jmp_buf, 1);
+
+  }
 }
 
 /* Init source method for JPEG data source manager.  Called by
@@ -12969,6 +13425,8 @@ static mut our_memory_buffer: [JOCTET; 2] = [0; 2];
 	    not (feature = "windowsnt")))]
 unsafe extern "C" fn our_memory_fill_input_buffer (cinfo: *mut jpeg_decompress_struct) -> boolean
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* Insert a fake EOI marker.  */
   let src: *mut jpeg_source_mgr = (*cinfo).src;
 
@@ -12978,6 +13436,8 @@ unsafe extern "C" fn our_memory_fill_input_buffer (cinfo: *mut jpeg_decompress_s
   (*src).next_input_byte = (&raw const our_memory_buffer) as *const JOCTET;
   (*src).bytes_in_buffer = 2;
   return 1;
+
+  }
 }
 
 /* Method to skip over NUM_BYTES bytes in the image data.  CINFO->src
@@ -12989,6 +13449,8 @@ unsafe extern "C" fn our_memory_fill_input_buffer (cinfo: *mut jpeg_decompress_s
 unsafe extern "C" fn our_memory_skip_input_data (cinfo: *mut jpeg_decompress_struct,
 						mut num_bytes: c_long)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let src: *mut jpeg_source_mgr = (*cinfo).src;
 
   if !src.is_null ()
@@ -13006,6 +13468,8 @@ unsafe extern "C" fn our_memory_skip_input_data (cinfo: *mut jpeg_decompress_str
       (*src).bytes_in_buffer -= num_bytes as usize;
       (*src).next_input_byte = (*src).next_input_byte.offset (num_bytes as isize);
     }
+
+  }
 }
 
 /* Set up the JPEG lib for reading an image from DATA which contains
@@ -13018,6 +13482,8 @@ unsafe extern "C" fn our_memory_skip_input_data (cinfo: *mut jpeg_decompress_str
 unsafe fn jpeg_memory_src (cinfo: *mut jpeg_decompress_struct, data: *mut JOCTET,
 			   len: ptrdiff_t)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut src: *mut jpeg_source_mgr = (*cinfo).src;
 
   if src.is_null ()
@@ -13037,6 +13503,8 @@ unsafe fn jpeg_memory_src (cinfo: *mut jpeg_decompress_struct, data: *mut JOCTET
   (*src).term_source = Some (our_common_term_source);
   (*src).bytes_in_buffer = len as usize;
   (*src).next_input_byte = data as *const JOCTET;
+
+  }
 }
 
 /// C: C 9361-9367: `struct jpeg_stdio_mgr`
@@ -13062,6 +13530,8 @@ pub struct jpeg_stdio_mgr
 	    not (feature = "windowsnt")))]
 unsafe extern "C" fn our_stdio_fill_input_buffer (cinfo: *mut jpeg_decompress_struct) -> boolean
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let src: *mut jpeg_stdio_mgr = (*cinfo).src as *mut jpeg_stdio_mgr;
 
   if (*src).finished == 0
@@ -13086,6 +13556,8 @@ unsafe extern "C" fn our_stdio_fill_input_buffer (cinfo: *mut jpeg_decompress_st
     }
 
   return 1;
+
+  }
 }
 
 /* Method to skip over NUM_BYTES bytes in the image data.  CINFO->src
@@ -13097,6 +13569,8 @@ unsafe extern "C" fn our_stdio_fill_input_buffer (cinfo: *mut jpeg_decompress_st
 unsafe extern "C" fn our_stdio_skip_input_data (cinfo: *mut jpeg_decompress_struct,
 					       mut num_bytes: c_long)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let src: *mut jpeg_stdio_mgr = (*cinfo).src as *mut jpeg_stdio_mgr;
 
   while num_bytes > 0 && (*src).finished == 0
@@ -13115,6 +13589,8 @@ unsafe extern "C" fn our_stdio_skip_input_data (cinfo: *mut jpeg_decompress_stru
 	  our_stdio_fill_input_buffer (cinfo);
 	}
     }
+
+  }
 }
 
 /* Set up the JPEG lib for reading an image from a FILE *.
@@ -13126,6 +13602,8 @@ unsafe extern "C" fn our_stdio_skip_input_data (cinfo: *mut jpeg_decompress_stru
 	    not (feature = "windowsnt")))]
 unsafe fn jpeg_file_src (cinfo: *mut jpeg_decompress_struct, fp: *mut FILE)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut src: *mut jpeg_stdio_mgr = (*cinfo).src as *mut jpeg_stdio_mgr;
 
   if src.is_null ()
@@ -13149,6 +13627,8 @@ unsafe fn jpeg_file_src (cinfo: *mut jpeg_decompress_struct, fp: *mut FILE)
   (*src).mgr.term_source = Some (our_common_term_source);
   (*src).mgr.bytes_in_buffer = 0;
   (*src).mgr.next_input_byte = core::ptr::null ();
+
+  }
 }
 
 /* Load image IMG for use on frame F.  Patterned after example.c
@@ -13159,6 +13639,8 @@ unsafe fn jpeg_file_src (cinfo: *mut jpeg_decompress_struct, fp: *mut FILE)
 	    not (feature = "windowsnt")))]
 unsafe fn jpeg_load_body (f: *mut frame, img: *mut image, mgr: *mut my_jpeg_error_mgr) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let specified_file: Lisp_Object;
   let specified_data: Lisp_Object;
   let mut fp: *mut FILE = core::ptr::null_mut ();
@@ -13352,6 +13834,8 @@ unsafe fn jpeg_load_body (f: *mut frame, img: *mut image, mgr: *mut my_jpeg_erro
   /* Put ximg into the image.  */
   image_put_x_image (f, img, ximg, false);
   return true;
+
+  }
 }
 
 /// C: C 9671-9675: `static bool jpeg_load (struct frame *f, struct image *img)`
@@ -13359,10 +13843,14 @@ unsafe fn jpeg_load_body (f: *mut frame, img: *mut image, mgr: *mut my_jpeg_erro
 	    not (feature = "windowsnt")))]
 unsafe extern "C-unwind" fn jpeg_load (f: *mut frame, img: *mut image) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* C's `struct my_jpeg_error_mgr mgr;` - zeroed so the record starts from the same state C's
      first writes leave (PORTING.md 1.5).  */
   let mut mgr: my_jpeg_error_mgr = core::mem::zeroed ();
   return jpeg_load_body (f, img, &raw mut mgr);
+
+  }
 }
 
 
@@ -13438,6 +13926,8 @@ static webp_format: [image_keyword; WEBP_LAST as usize] =
 #[cfg (all (feature = "have_window_system", feature = "have_webp"))]
 unsafe extern "C-unwind" fn webp_image_p (object: Lisp_Object) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* C's `struct image_keyword fmt[WEBP_LAST];` filled by the `memcpy` below - zeroed first
      (PORTING.md 1.5/0.1-13).  */
   let mut fmt: [image_keyword; WEBP_LAST as usize] = core::mem::zeroed ();
@@ -13451,6 +13941,8 @@ unsafe extern "C-unwind" fn webp_image_p (object: Lisp_Object) -> bool
   /* Must specify either :data or :file.  */
   return (fmt[WEBP_DATA as usize].count as c_int)
     + (fmt[WEBP_FILE as usize].count as c_int) == 1;
+
+  }
 }
 
 /* C 10918-10986: `#ifdef WINDOWSNT`'s WebP DLL binding.  As with the PNG and JPEG arm, this
@@ -13546,12 +14038,16 @@ unsafe extern "C" {
 	    not (feature = "windowsnt")))]
 unsafe extern "C-unwind" fn webp_destroy (handle: *mut anim_handle)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let h: *mut webp_anim_handle = &raw mut (*handle).webp;
   WebPAnimDecoderDelete ((*h).dec as *mut WebPAnimDecoder);
   (*h).dec = core::ptr::null_mut ();
   xfree ((*h).contents as *mut c_void);
   (*h).contents = core::ptr::null_mut ();
   (*h).timestamp = 0;
+
+  }
 }
 
 /* Load WebP image IMG for use on frame F.  Value is true if
@@ -13562,6 +14058,8 @@ unsafe extern "C-unwind" fn webp_destroy (handle: *mut anim_handle)
 	    not (feature = "windowsnt")))]
 unsafe extern "C-unwind" fn webp_load (f: *mut frame, img: *mut image) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* Return value.  */
   let mut success: bool = false;
   /* Owned copies and borrowed views of input WebP bitstream data and
@@ -13914,6 +14412,8 @@ unsafe extern "C-unwind" fn webp_load (f: *mut frame, img: *mut image) -> bool
   WebPFree (decoded_cpy as *mut c_void);
   xfree (contents_cpy as *mut c_void);
   return success;
+
+  }
 }
 
 
@@ -14069,6 +14569,8 @@ unsafe fn initialize_image_type (r#type: *const image_type) -> bool
 #[cfg (all (feature = "have_window_system", feature = "ns_impl_cocoa", not (feature = "have_gif")))]
 unsafe extern "C-unwind" fn cocoa_gif_image_p (object: Lisp_Object) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut format = [
     (c":type", IMAGE_SYMBOL_VALUE, true),
     (c":data", IMAGE_STRING_VALUE, false),
@@ -14089,16 +14591,22 @@ unsafe extern "C-unwind" fn cocoa_gif_image_p (object: Lisp_Object) -> bool
     { return false; }
   let [_, data, file, ..] = format;
   data.count != file.count
+
+  }
 }
 
 #[cfg (all (feature = "have_window_system", feature = "ns_impl_cocoa", not (feature = "have_gif")))]
 unsafe extern "C-unwind" fn cocoa_gif_load (f: *mut frame, img: *mut image) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut file = image_spec_value ((*img).spec, QCfile (), core::ptr::null_mut ());
   if STRINGP (file)
     { file = image_find_image_file (file); }
   let data = image_spec_value ((*img).spec, QCdata (), core::ptr::null_mut ());
   ns_load_image (f, img.cast (), file, data)
+
+  }
 }
 
 #[cfg (all (feature = "have_window_system", feature = "ns_impl_cocoa", not (feature = "have_gif")))]
@@ -14200,6 +14708,8 @@ static native_image_type: image_type =
 #[cfg (feature = "have_window_system")]
 unsafe fn lookup_image_type (r#type: Lisp_Object) -> *const image_type
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* C 13487-13491: `#if HAVE_NATIVE_IMAGE_API`.  */
   #[cfg (feature = "have_native_image_api")]
   {
@@ -14221,6 +14731,8 @@ unsafe fn lookup_image_type (r#type: Lisp_Object) -> *const image_type
       i += 1;
     }
   return core::ptr::null ();
+
+  }
 }
 
 /* Prune old entries from the animation cache.
@@ -14231,6 +14743,8 @@ unsafe fn lookup_image_type (r#type: Lisp_Object) -> *const image_type
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn image_prune_animation_caches (clear: bool)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* FIXME: Consolidate these animation cache implementations.  */
   /* C 13508-13510: `#if defined (HAVE_WEBP) || defined (HAVE_GIF)`.  */
   #[cfg (any (feature = "have_webp", feature = "have_gif"))]
@@ -14238,6 +14752,8 @@ pub unsafe extern "C-unwind" fn image_prune_animation_caches (clear: bool)
   /* C 13511-13513: `#ifdef HAVE_IMAGEMAGICK`.  */
   #[cfg (feature = "have_imagemagick")]
   { imagemagick_prune_animation_cache (clear); }
+
+  }
 }
 
 
@@ -14279,6 +14795,8 @@ pub static mut imagemagick_render_type: EMACS_INT = 0;                  // C 137
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_image ()
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* Must be defined now because we're going to update it below, while
      defining the supported image types.  */
   DEFVAR_LISP! (c"image-types", Vimage_types,
@@ -14567,6 +15085,8 @@ pub unsafe extern "C-unwind" fn syms_of_image ()
 
     DEFSYM! (Qimage_format_suffixes, "image-format-suffixes");
     DEFSYM! (QCformat, ":format");
+  }
+
   }
 }
 

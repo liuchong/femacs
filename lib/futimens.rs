@@ -18,8 +18,12 @@ unsafe extern "C" { pub fn fdutimens (fd: c_int, file: *const c_char, times: *co
 #[unsafe(export_name = "rpl_futimens")]
 pub unsafe extern "C" fn futimens (fd: c_int, times: *const timespec) -> c_int
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   /* fdutimens also works around bugs in native futimens, when running
      with glibc compiled against newer headers but on a Linux kernel
      older than 2.6.32.  */
   return fdutimens (fd, std::ptr::null (), times);
+
+  }
 }

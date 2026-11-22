@@ -43,9 +43,7 @@
 // `DT_*` values the mirror does not carry, and `struct dirent` itself (the dirent mirror's own
 // note says it is not mirrored; the frozen target's layout is measured in docs/ports/dired.md).
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
-         unsafe_op_in_unsafe_fn)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -172,22 +170,32 @@ macro_rules! emacs_closedir { ($dirp:expr) => { closedir ($dirp as *mut DIR) }; 
 /* Return the number of bytes in DP's name.  */
 unsafe fn dirent_namelen (dp: *mut dirent) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* C 74-75's `#ifdef _D_EXACT_NAMLEN` arm is dead: the macro is not defined on the frozen
      target (measured with clang: the `#else` arm is the one the C preprocessor takes).  */
   return strlen ((*dp).d_name.as_ptr ()) as ptrdiff_t;
+
+  }
 }
 
 /* Return the file type of DP.  */
 unsafe fn dirent_type (dp: *mut dirent) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* HAVE_STRUCT_DIRENT_D_TYPE is 1 on the frozen target, so C 99's arm is the live one and
      the `return DT_UNKNOWN;` of C 102 is dead.  */
   return (*dp).d_type as c_int;
+
+  }
 }
 
 unsafe fn open_directory (dirname: Lisp_Object, encoded_dirname: Lisp_Object,
                           fdp: *mut c_int) -> *mut emacs_dir
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let name: *mut c_char = SSDATA (encoded_dirname);
   let d: *mut emacs_dir;
   let fd: c_int;
@@ -215,13 +223,19 @@ unsafe fn open_directory (dirname: Lisp_Object, encoded_dirname: Lisp_Object,
     { report_file_errno (c"Opening directory".as_ptr (), dirname, opendir_errno); }
   *fdp = fd;
   return d;
+
+  }
 }
 
 /* C 169-175's `#ifdef WINDOWSNT` `directory_files_internal_w32_unwind` is dead.  */
 
 unsafe extern "C-unwind" fn directory_files_internal_unwind (d: *mut c_void)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   emacs_closedir! (d);
+
+  }
 }
 
 /* Return the next directory entry from DIR; DIR's name is DIRNAME.
@@ -230,6 +244,8 @@ unsafe extern "C-unwind" fn directory_files_internal_unwind (d: *mut c_void)
 
 unsafe fn read_dirent (dir: *mut emacs_dir, dirname: Lisp_Object) -> *mut dirent
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* C's `while (true)`: a Rust `while` loop has type `()` even with a literal condition, and
      this loop is the function's tail (its only exit is the `return dp;` inside), so the port
      spells C's infinite loop as Rust's diverging `loop` (docs/ports/macro-body-notes.tsv).  */
@@ -247,6 +263,8 @@ unsafe fn read_dirent (dir: *mut emacs_dir, dirname: Lisp_Object) -> *mut dirent
 	}
       maybe_quit ();
     }
+
+  }
 }
 
 /* Function shared by Fdirectory_files and Fdirectory_files_and_attributes.
@@ -259,6 +277,8 @@ pub unsafe extern "C-unwind" fn directory_files_internal (directory: Lisp_Object
 			  r#match: Lisp_Object, nosort: Lisp_Object, attrs: bool,
 			  id_format: Lisp_Object, return_count: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut ind: EMACS_INT = 0;
   let mut last: EMACS_INT = MOST_POSITIVE_FIXNUM;
 
@@ -400,6 +420,8 @@ pub unsafe extern "C-unwind" fn directory_files_internal (directory: Lisp_Object
      reading it is the port's counterpart of the cast to void.  */
   let _ = directory_volatile;
   return list;
+
+  }
 }
 
 DEFUN! ("directory-files", Fdirectory_files, Sdirectory_files, 1, 5, 0,
@@ -499,6 +521,8 @@ DEFUN! ("file-name-all-completions", Ffile_name_all_completions,
 unsafe fn file_name_completion (file: Lisp_Object, dirname: Lisp_Object, all_flag: bool,
 				predicate: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut bestmatchsize: ptrdiff_t = 0;
   let mut matchcount: c_int = 0;
   /* If ALL_FLAG is 1, BESTMATCH is the list of all matches, decoded.
@@ -863,6 +887,8 @@ unsafe fn file_name_completion (file: Lisp_Object, dirname: Lisp_Object, all_fla
   bestmatch = Fsubstring (bestmatch, make_fixnum (0),
 			  make_fixnum (bestmatchsize));
   return bestmatch;
+
+  }
 }
 
 /* Compare exactly LEN chars of strings at S1 and S2,
@@ -872,6 +898,8 @@ unsafe fn file_name_completion (file: Lisp_Object, dirname: Lisp_Object, all_fla
 
 unsafe fn scmp (mut s1: *const c_char, mut s2: *const c_char, len: ptrdiff_t) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut l: ptrdiff_t = len;
 
   if completion_ignore_case
@@ -893,12 +921,16 @@ unsafe fn scmp (mut s1: *const c_char, mut s2: *const c_char, len: ptrdiff_t) ->
     { return -1; }
   else
     { return len - l; }
+
+  }
 }
 
 /* Return true if in the directory FD the directory entry DP, whose
    string length is LEN, is that of a subdirectory that can be searched.  */
 unsafe fn file_name_completion_dirp (fd: c_int, dp: *mut dirent, len: ptrdiff_t) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   let subdir_name: *mut c_char = SAFE_ALLOCA! (sa_avail, len + 2) as *mut c_char;
   memcpy (subdir_name as *mut c_void, (*dp).d_name.as_ptr () as *const c_void,
@@ -909,10 +941,14 @@ unsafe fn file_name_completion_dirp (fd: c_int, dp: *mut dirent, len: ptrdiff_t)
 				  F_OK, AT_EACCESS) == 0;
   SAFE_FREE! (sa_count, sa_mark);
   return dirp;
+
+  }
 }
 
 unsafe fn stat_uname (st: *mut stat) -> *mut c_char
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* C 926-927's `#ifdef WINDOWSNT` arm (`return st->st_uname;`) is dead on this target.  */
   let pw: *mut passwd = getpwuid ((*st).st_uid);
 
@@ -920,10 +956,14 @@ unsafe fn stat_uname (st: *mut stat) -> *mut c_char
     { return (*pw).pw_name; }
   else
     { return std::ptr::null_mut (); }
+
+  }
 }
 
 unsafe fn stat_gname (st: *mut stat) -> *mut c_char
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* C 941-942's `#ifdef WINDOWSNT` arm (`return st->st_gname;`) is dead on this target.  */
   let gr: *mut group = getgrgid ((*st).st_gid);
 
@@ -931,6 +971,8 @@ unsafe fn stat_gname (st: *mut stat) -> *mut c_char
     { return (*gr).gr_name; }
   else
     { return std::ptr::null_mut (); }
+
+  }
 }
 
 DEFUN! ("file-attributes", Ffile_attributes, Sfile_attributes, 1, 2, 0,
@@ -969,6 +1011,8 @@ unsafe fn file_attributes (fd: c_int, name: *const c_char,
 			   dirname: Lisp_Object, filename: Lisp_Object,
 			   id_format: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let count: specpdl_ref = SPECPDL_INDEX ();
   let mut s: stat = std::mem::zeroed ();
 
@@ -1050,6 +1094,8 @@ unsafe fn file_attributes (fd: c_int, name: *const c_char,
 		Qt (),
 		make_uint (s.st_ino),
 		INT_TO_INTEGER (s.st_dev as isize));
+
+  }
 }
 
 DEFUN! ("file-attributes-lessp", Ffile_attributes_lessp,
@@ -1105,6 +1151,8 @@ DEFUN! ("system-groups", Fsystem_groups, Ssystem_groups, 0, 0, 0,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_dired ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   DEFSYM! (Qdirectory_files, c"directory-files");
   DEFSYM! (Qdirectory_files_and_attributes, c"directory-files-and-attributes");
   DEFSYM! (Qfile_name_completion, c"file-name-completion");
@@ -1126,6 +1174,8 @@ pub unsafe extern "C-unwind" fn syms_of_dired ()
   DEFVAR_LISP! (c"completion-ignored-extensions", Vcompletion_ignored_extensions,
 	       "Completion ignores file names ending in any string in this list.\nIt does not ignore them if all possible completions end in one of\nthese strings or when displaying a list of completions.\nIt ignores directory names if they match any string in this list which\nends in a slash.");
   Vcompletion_ignored_extensions = Qnil ();
+
+  }
 }
 
 /* C's `DEFVAR_LISP` variable: defined here and shadowing the `globals.rs` declaration

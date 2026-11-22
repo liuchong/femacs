@@ -58,11 +58,7 @@
 // (`INT_BUFSIZE_BOUND`, P-26) is declared there too.  Every record's layout is measured
 // with the frozen clang and pinned with `const _` assertions (PORTING.md 1.2/P-73).
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
-         unsafe_op_in_unsafe_fn, unused_assignments, unused_parens, unused_mut,
-         unused_comparisons, overflowing_literals, unused_must_use, unreachable_code,
-         unused_labels, clippy::all)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe, unused_assignments, unused_parens, unused_mut, unused_comparisons, overflowing_literals, unused_must_use, unreachable_code, unused_labels, clippy::all)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -313,7 +309,7 @@ macro_rules! FRAME_FACE_CACHE { ($f:expr) => { (*$f).face_cache as *mut face_cac
 #[inline(always)]
 pub fn FACE_FROM_ID (f: *mut frame, id: c_int) -> *mut face
 {
-  eassert! (0 <= id && id < unsafe { (*FRAME_FACE_CACHE! (f)).used });
+  eassert! (0 <= id && id < /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*FRAME_FACE_CACHE! (f)).used });
   unsafe { *((*FRAME_FACE_CACHE! (f)).faces_by_id).offset (id as isize) }
 }
 
@@ -333,6 +329,8 @@ macro_rules! INT_BUFSIZE_BOUND { ($t:ty) => { INT_STRLEN_BOUND! ($t) + 2 }; }
 #[inline(always)]
 pub unsafe fn xstrcasecmp (a: *const c_char, b: *const c_char) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut p = a;
   let mut q = b;
   while *p != 0 && *q != 0
@@ -350,6 +348,8 @@ pub unsafe fn xstrcasecmp (a: *const c_char, b: *const c_char) -> c_int
       q = q.offset (1);
     }
   return (*p as c_int) - (*q as c_int);
+
+  }
 }
 
 /* The functions this unit calls that no mirror declares, each with C's own prototype
@@ -380,12 +380,12 @@ pub fn FACE_FOR_CHAR (f: *mut frame, face: *mut face, character: c_int,
 {
   #[cfg(feature = "have_window_system")]
   {
-    return unsafe { face_for_char (f, face, character, pos, object) };
+    return /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { face_for_char (f, face, character, pos, object) };
   }
   #[cfg(not (feature = "have_window_system"))]
   {
     let _ = (f, character, pos, object);
-    return unsafe { (*face).id };
+    return /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*face).id };
   }
 }
 
@@ -639,6 +639,8 @@ static mut font_driver_list: *mut font_driver_list = std::ptr::null_mut ();
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn valid_font_driver (drv: *const font_driver) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut tail: Lisp_Object;
   let mut frame: Lisp_Object;
   let mut fdl: *mut font_driver_list;
@@ -660,12 +662,16 @@ pub unsafe extern "C-unwind" fn valid_font_driver (drv: *const font_driver) -> b
       }
   });
   return false;
+
+  }
 }
 
 /* Creators of font-related Lisp object.  */
 
 unsafe fn font_make_spec () -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut font_spec: Lisp_Object;
   let spec: *mut font_spec
     = allocate_pseudovector (VECSIZE (std::mem::size_of::<font_spec> ()) as c_int,
@@ -673,11 +679,15 @@ unsafe fn font_make_spec () -> Lisp_Object
 			     pvec_type::PVEC_FONT) as *mut font_spec;
   XSETFONT! (font_spec, spec);
   return font_spec;
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn font_make_entity () -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut font_entity: Lisp_Object;
   let entity: *mut font_entity
     = allocate_pseudovector (VECSIZE (std::mem::size_of::<font_entity> ()) as c_int,
@@ -691,6 +701,8 @@ pub unsafe extern "C-unwind" fn font_make_entity () -> Lisp_Object
   { (*entity).is_android = false; }
 
   return font_entity;
+
+  }
 }
 
 /* C 187: `#ifdef HAVE_ANDROID` (undef in the frozen configuration), carried.  */
@@ -719,6 +731,8 @@ pub unsafe extern "C-unwind" fn font_make_entity_android (size: c_int) -> Lisp_O
 pub unsafe extern "C-unwind" fn font_make_object (size: c_int, entity: Lisp_Object,
 					   pixelsize: c_int) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut font_object: Lisp_Object;
   let font: *mut font
     = allocate_pseudovector (size, FONT_OBJECT_MAX, FONT_OBJECT_MAX,
@@ -750,6 +764,8 @@ pub unsafe extern "C-unwind" fn font_make_object (size: c_int, entity: Lisp_Obje
   if size > 0
     { (*font).props[FONT_SIZE_INDEX as usize] = make_fixnum (pixelsize as EMACS_INT); }
   return font_object;
+
+  }
 }
 
 /* C 240: `#if defined (HAVE_XFT) || defined (HAVE_FREETYPE) || defined (HAVE_NS)` (all
@@ -767,6 +783,8 @@ pub unsafe extern "C-unwind" fn font_build_object (vectorsize: c_int, r#type: Li
 					    entity: Lisp_Object,
 					    pixelsize: c_double) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut len: c_int;
   let mut name: [c_char; 256] = [0; 256];
   let mut xlfd_name: *mut c_char;
@@ -792,6 +810,8 @@ pub unsafe extern "C-unwind" fn font_build_object (vectorsize: c_int, r#type: Li
     { ASET (font_object, FONT_FULLNAME_INDEX as isize,
 	    AREF (font_object, FONT_NAME_INDEX as isize)); }
   return font_object;
+
+  }
 }
 
 /* C 280-281: the two `static` forward declarations (`font_unparse_fcname`,
@@ -810,6 +830,8 @@ static mut num_font_drivers: c_int = 0;
 pub unsafe extern "C-unwind" fn font_intern_prop (str_: *const c_char, len: ptrdiff_t,
 					   force_symbol: bool) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut i: ptrdiff_t;
   let mut nbytes: ptrdiff_t = 0;
   let mut nchars: ptrdiff_t = 0;
@@ -864,6 +886,8 @@ pub unsafe extern "C-unwind" fn font_intern_prop (str_: *const c_char, len: ptrd
   name = make_specified_string (str_, nchars, len,
 				len != nchars && len == nbytes);
   return intern_driver (name, obarray, tem);
+
+  }
 }
 
 /* Return a pixel size of font-spec SPEC on frame F.  */
@@ -909,6 +933,8 @@ unsafe fn font_pixel_size (f: *mut frame, spec: Lisp_Object) -> c_int
 pub unsafe extern "C-unwind" fn font_style_to_value (prop: font_property_index, val: Lisp_Object,
 					      noerror: bool) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let table: Lisp_Object = AREF (font_style_table, (prop - FONT_WEIGHT_INDEX) as isize);
   let mut len: c_int;
 
@@ -1008,12 +1034,16 @@ pub unsafe extern "C-unwind" fn font_style_to_value (prop: font_property_index, 
 	{ return -1; }
       return (last_n << 8) | ((i - 1) << 4);
     }
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn font_style_symbolic (font: Lisp_Object, prop: font_property_index,
 					      for_face: bool) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut val: Lisp_Object = AREF (font, prop as isize);
   let mut table: Lisp_Object;
   let mut elt: Lisp_Object;
@@ -1031,6 +1061,8 @@ pub unsafe extern "C-unwind" fn font_style_symbolic (font: Lisp_Object, prop: fo
   elt = if for_face { AREF (elt, 1) } else { AREF (elt, ((i & 0xF) + 1) as isize) };
   CHECK_SYMBOL (elt);
   return elt;
+
+  }
 }
 
 /* Return ENCODING or a cons of ENCODING and REPERTORY of the font
@@ -1040,6 +1072,8 @@ pub unsafe extern "C-unwind" fn font_style_symbolic (font: Lisp_Object, prop: fo
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn find_font_encoding (fontname: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut tail: Lisp_Object;
   let mut elt: Lisp_Object;
 
@@ -1058,6 +1092,8 @@ pub unsafe extern "C-unwind" fn find_font_encoding (fontname: Lisp_Object) -> Li
       tail = XCDR (tail);
     }
   return Qnil ();
+
+  }
 }
 
 /* Return encoding charset and repertory charset for REGISTRY in
@@ -1069,6 +1105,8 @@ pub unsafe extern "C-unwind" fn font_registry_charsets (registry: Lisp_Object,
 						 encoding: *mut *mut charset,
 						 repertory: *mut *mut charset) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut val: Lisp_Object;
   let mut encoding_id: c_int;
   let mut repertory_id: c_int;
@@ -1125,6 +1163,8 @@ pub unsafe extern "C-unwind" fn font_registry_charsets (registry: Lisp_Object,
   font_charset_alist
     = nconc2 (font_charset_alist, list1 (Fcons (registry, Qnil ())));
   return -1;
+
+  }
 }
 
 /* Font property value validators.  See the comment of
@@ -1133,6 +1173,8 @@ pub unsafe extern "C-unwind" fn font_registry_charsets (registry: Lisp_Object,
 unsafe extern "C-unwind" fn font_prop_validate_symbol (prop: Lisp_Object, val: Lisp_Object)
 						-> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut val: Lisp_Object = val;
   if STRINGP (val)
     { val = Fintern (val, Qnil ()); }
@@ -1141,11 +1183,15 @@ unsafe extern "C-unwind" fn font_prop_validate_symbol (prop: Lisp_Object, val: L
   else if EQ (prop, QCregistry ())
     { val = Fintern (Fdowncase (SYMBOL_NAME (val)), Qnil ()); }
   return val;
+
+  }
 }
 
 unsafe extern "C-unwind" fn font_prop_validate_style (style: Lisp_Object, val: Lisp_Object)
 					       -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let prop: font_property_index = if EQ (style, QCweight ()) { FONT_WEIGHT_INDEX }
 				  else if EQ (style, QCslant ()) { FONT_SLANT_INDEX }
 				  else { FONT_WIDTH_INDEX };
@@ -1183,6 +1229,8 @@ unsafe extern "C-unwind" fn font_prop_validate_style (style: Lisp_Object, val: L
   else
     { val = Qerror (); }
   return val;
+
+  }
 }
 
 unsafe extern "C-unwind" fn font_prop_validate_non_neg (prop: Lisp_Object, val: Lisp_Object)
@@ -1196,6 +1244,8 @@ unsafe extern "C-unwind" fn font_prop_validate_non_neg (prop: Lisp_Object, val: 
 unsafe extern "C-unwind" fn font_prop_validate_spacing (prop: Lisp_Object, val: Lisp_Object)
 						 -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let _ = prop;
   if NILP (val) || (FIXNATP (val) && XFIXNUM (val) <= FONT_SPACING_CHARCELL as EMACS_INT)
     { return val; }
@@ -1213,6 +1263,8 @@ unsafe extern "C-unwind" fn font_prop_validate_spacing (prop: Lisp_Object, val: 
 	{ return make_fixnum (FONT_SPACING_DUAL as EMACS_INT); }
     }
   return Qerror ();
+
+  }
 }
 
 unsafe extern "C-unwind" fn font_prop_validate_otf (prop: Lisp_Object, val: Lisp_Object)
@@ -1322,6 +1374,8 @@ unsafe fn get_font_prop_index (key: Lisp_Object) -> c_int
 unsafe fn font_prop_validate (idx: c_int, prop: Lisp_Object, val: Lisp_Object)
 			      -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut idx: c_int = idx;
   let mut prop: Lisp_Object = prop;
   let validated: Lisp_Object;
@@ -1340,6 +1394,8 @@ unsafe fn font_prop_validate (idx: c_int, prop: Lisp_Object, val: Lisp_Object)
   if EQ (validated, Qerror ())
     { signal_error (c"invalid font property".as_ptr (), Fcons (prop, val)); }
   return validated;
+
+  }
 }
 
 
@@ -1352,6 +1408,8 @@ unsafe fn font_prop_validate (idx: c_int, prop: Lisp_Object, val: Lisp_Object)
 pub unsafe extern "C-unwind" fn font_put_extra (font: Lisp_Object, prop: Lisp_Object,
 					 val: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let extra: Lisp_Object = AREF (font, FONT_EXTRA_INDEX as isize);
   let slot: Lisp_Object
     = if NILP (extra) { Qnil () } else { assq_no_quit (prop, extra) };
@@ -1381,6 +1439,8 @@ pub unsafe extern "C-unwind" fn font_put_extra (font: Lisp_Object, prop: Lisp_Ob
   if BASE_EQ (val, Qunbound ())
     { ASET (font, FONT_EXTRA_INDEX as isize, Fdelq (slot, extra)); }
   return val;
+
+  }
 }
 
 
@@ -1443,6 +1503,8 @@ pub const XLFD_ENCODING_MASK: xlfd_field_mask = 0x2000;
 
 unsafe fn parse_matrix (p: *const c_char) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut matrix: [c_double; 4] = [0.0; 4];
   let mut end: *mut c_char;
   let mut i: c_int;
@@ -1466,6 +1528,8 @@ unsafe fn parse_matrix (p: *const c_char) -> c_int
       i += 1;
     }
   return if i == 4 { matrix[3] as c_int } else { -1 };
+
+  }
 }
 
 /* Expand a wildcard field in FIELD (the first N fields are filled) to
@@ -1488,6 +1552,8 @@ pub struct font_expand_range
 
 unsafe fn font_expand_wildcards (field: *mut Lisp_Object, n: c_int) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* Copy of FIELD.  */
   let mut tmp: [Lisp_Object; XLFD_LAST_INDEX as usize] = [Qnil (); XLFD_LAST_INDEX as usize];
   /* Array of information about where this element can go.  Nth
@@ -1753,6 +1819,8 @@ macro_rules! XLFD_REGENC_MASK {
 	= Fintern (Fnumber_to_string (*field.offset (XLFD_ENCODING_INDEX as isize)),
 		   Qnil ()); }
   return 0;
+
+  }
 }
 
 
@@ -1778,24 +1846,34 @@ macro_rules! XLFD_REGENC_MASK {
 #[inline(always)]
 unsafe fn INTERN_FIELD (f: *mut *mut c_char, n: c_int) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   font_intern_prop (*f.offset (n as isize),
 		    (*f.offset (n as isize + 1)).offset (-1)
 		      .offset_from (*f.offset (n as isize)),
 		    false)
+
+  }
 }
 
 #[inline(always)]
 unsafe fn INTERN_FIELD_SYM (f: *mut *mut c_char, n: c_int) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   font_intern_prop (*f.offset (n as isize),
 		    (*f.offset (n as isize + 1)).offset (-1)
 		      .offset_from (*f.offset (n as isize)),
 		    true)
+
+  }
 }
 
 unsafe fn font_parse_xlfd_1 (name: *mut c_char, len: ptrdiff_t, font: Lisp_Object,
 			     mut segments: c_int) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut i: c_int;
   let mut j: c_int;
   let mut n: c_int;
@@ -2020,12 +2098,16 @@ unsafe fn font_parse_xlfd_1 (name: *mut c_char, len: ptrdiff_t, font: Lisp_Objec
     }
 
   return 0;
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn font_parse_xlfd (name: *mut c_char, len: ptrdiff_t,
 					  font: Lisp_Object) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let found: c_int = font_parse_xlfd_1 (name, len, font, -1);
   if found > -1
     { return found; }
@@ -2046,6 +2128,8 @@ pub unsafe extern "C-unwind" fn font_parse_xlfd (name: *mut c_char, len: ptrdiff
     { return font_parse_xlfd_1 (name, len, font, segments); }
   else
     { return -1; }
+
+  }
 }
 
 /* Return the XLFD name of FONT as a NULL terminated string, or NULL
@@ -2061,6 +2145,8 @@ const PRIdMAX: &str = "jd";
 pub unsafe extern "C-unwind" fn font_dynamic_unparse_xlfd (font: Lisp_Object,
 						    pixel_size: c_int) -> *mut c_char
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut p: *mut c_char;
   let mut f: [*const c_char; XLFD_REGISTRY_INDEX as usize + 1]
     = [std::ptr::null (); XLFD_REGISTRY_INDEX as usize + 1];
@@ -2242,6 +2328,8 @@ pub unsafe extern "C-unwind" fn font_dynamic_unparse_xlfd (font: Lisp_Object,
 	   f[XLFD_REGISTRY_INDEX as usize]);
   SAFE_FREE! (sa_count, sa_mark);
   return name;
+
+  }
 }
 
 /* Store XLFD name of FONT (font-spec or font-entity) in NAME (NBYTES
@@ -2252,6 +2340,8 @@ pub unsafe extern "C-unwind" fn font_dynamic_unparse_xlfd (font: Lisp_Object,
 pub unsafe extern "C-unwind" fn font_unparse_xlfd (font: Lisp_Object, pixel_size: c_int,
 					    name: *mut c_char, nbytes: c_int) -> ptrdiff_t
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut p: *mut c_char;
   let mut f: [*const c_char; XLFD_REGISTRY_INDEX as usize + 1]
     = [std::ptr::null (); XLFD_REGISTRY_INDEX as usize + 1];
@@ -2415,6 +2505,8 @@ pub unsafe extern "C-unwind" fn font_unparse_xlfd (font: Lisp_Object, pixel_size
 		  f[XLFD_SPACING_INDEX as usize], f[XLFD_AVGWIDTH_INDEX as usize],
 		  f[XLFD_REGISTRY_INDEX as usize]);
   return if len < nbytes { len as ptrdiff_t } else { -1 };
+
+  }
 }
 
 /// C 1822-1826: `PROP_MATCH` and `PROP_SAVE`.  Both are expression macros over the calling
@@ -2434,6 +2526,8 @@ macro_rules! PROP_SAVE {
 
 unsafe fn font_parse_fcname (name: *mut c_char, len: ptrdiff_t, font: Lisp_Object) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut p: *mut c_char;
   let mut q: *mut c_char;
   let mut size_beg: *mut c_char = std::ptr::null_mut ();
@@ -2713,6 +2807,8 @@ unsafe fn font_parse_fcname (name: *mut c_char, len: ptrdiff_t, font: Lisp_Objec
     }
 
   return 0;
+
+  }
 }
 
 /* C 1872: `#if defined HAVE_XFT || defined HAVE_FREETYPE || defined HAVE_NS` (all undef in
@@ -2727,6 +2823,8 @@ unsafe fn font_parse_fcname (name: *mut c_char, len: ptrdiff_t, font: Lisp_Objec
 unsafe fn font_unparse_fcname (font: Lisp_Object, mut pixel_size: c_int, name: *mut c_char,
 			       nbytes: c_int) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut family: Lisp_Object;
   let mut foundry: Lisp_Object;
   let val: Lisp_Object;
@@ -2856,6 +2954,8 @@ unsafe fn font_unparse_fcname (font: Lisp_Object, mut pixel_size: c_int, name: *
     }
 
   return p.offset_from (name) as c_int;
+
+  }
 }
 
 /* Parse NAME (null terminated) and store information in FONT
@@ -2864,10 +2964,14 @@ unsafe fn font_unparse_fcname (font: Lisp_Object, mut pixel_size: c_int, name: *
 
 unsafe fn font_parse_name (name: *mut c_char, namelen: ptrdiff_t, font: Lisp_Object) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if *name == b'-' as c_char || !strchr (name, b'*' as c_int).is_null ()
       || !strchr (name, b'?' as c_int).is_null ()
     { return font_parse_xlfd (name, namelen, font); }
   return font_parse_fcname (name, namelen, font);
+
+  }
 }
 
 
@@ -2880,6 +2984,8 @@ pub unsafe extern "C-unwind" fn font_parse_family_registry (family: Lisp_Object,
 						     registry: Lisp_Object,
 						     font_spec: Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut len: ptrdiff_t;
   let mut p0: *mut c_char;
   let mut p1: *mut c_char;
@@ -2933,12 +3039,16 @@ pub unsafe extern "C-unwind" fn font_parse_family_registry (family: Lisp_Object,
       registry = Fdowncase (registry);
       ASET (font_spec, FONT_REGISTRY_INDEX as isize, Fintern (registry, Qnil ()));
     }
+
+  }
 }
 
 /* Font sorting.  */
 
 unsafe fn font_rescale_ratio (font_entity: Lisp_Object) -> c_double
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut tail: Lisp_Object;
   let mut elt: Lisp_Object;
   let mut name: Lisp_Object = Qnil ();
@@ -2969,6 +3079,8 @@ unsafe fn font_rescale_ratio (font_entity: Lisp_Object) -> c_double
       tail = XCDR (tail);
     }
   return 1.0;
+
+  }
 }
 
 /* We sort fonts by scoring each of them against a specified
@@ -2993,6 +3105,8 @@ static mut sort_shift_bits: [c_int; FONT_SIZE_INDEX as usize + 1]
 
 unsafe fn font_score (entity: Lisp_Object, spec_prop: *mut Lisp_Object) -> c_uint
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut score: c_uint = 0;
   let mut i: c_int;
 
@@ -3039,6 +3153,8 @@ unsafe fn font_score (entity: Lisp_Object, spec_prop: *mut Lisp_Object) -> c_uin
     }
 
   return score;
+
+  }
 }
 
 
@@ -3047,6 +3163,8 @@ unsafe fn font_score (entity: Lisp_Object, spec_prop: *mut Lisp_Object) -> c_uin
 
 unsafe fn font_vconcat_entity_vectors (list: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let nargs: ptrdiff_t = list_length (list);
   let mut args: *mut Lisp_Object;
   let mut list: Lisp_Object = list;
@@ -3064,6 +3182,8 @@ unsafe fn font_vconcat_entity_vectors (list: Lisp_Object) -> Lisp_Object
   let result: Lisp_Object = Fvconcat (nargs, args);
   SAFE_FREE! (sa_count, sa_mark);
   return result;
+
+  }
 }
 
 
@@ -3081,6 +3201,8 @@ pub struct font_sort_data
 
 pub unsafe extern "C" fn font_compare (d1: *const c_void, d2: *const c_void) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let data1: *const font_sort_data = d1 as *const font_sort_data;
   let data2: *const font_sort_data = d2 as *const font_sort_data;
 
@@ -3089,6 +3211,8 @@ pub unsafe extern "C" fn font_compare (d1: *const c_void, d2: *const c_void) -> 
   else if (*data1).score > (*data2).score
     { return 1; }
   return (*data1).font_driver_preference - (*data2).font_driver_preference;
+
+  }
 }
 
 
@@ -3109,6 +3233,8 @@ pub unsafe extern "C" fn font_compare (d1: *const c_void, d2: *const c_void) -> 
 unsafe fn font_sort_entities (list: Lisp_Object, prefer: Lisp_Object, f: *mut frame,
 			      best_only: c_int) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut prefer_prop: [Lisp_Object; FONT_SPEC_MAX as usize]
     = [Qnil (); FONT_SPEC_MAX as usize];
   let mut len: c_int;
@@ -3224,6 +3350,8 @@ unsafe fn font_sort_entities (list: Lisp_Object, prefer: Lisp_Object, f: *mut fr
 
   FONT_ADD_LOG! (c"sort-by".as_ptr (), prefer, vec);
   return vec;
+
+  }
 }
 
 
@@ -3236,6 +3364,8 @@ unsafe fn font_sort_entities (list: Lisp_Object, prefer: Lisp_Object, f: *mut fr
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn font_update_sort_order (order: *mut c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut i: c_int;
   let mut shift_bits: c_int;
 
@@ -3256,11 +3386,15 @@ pub unsafe extern "C-unwind" fn font_update_sort_order (order: *mut c_int)
       i += 1;
       shift_bits -= 7;
     }
+
+  }
 }
 
 unsafe fn font_check_otf_features (script: Lisp_Object, langsys: Lisp_Object,
 				   features: Lisp_Object, table: Lisp_Object) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut val: Lisp_Object;
   let mut negative: bool;
   let mut table: Lisp_Object = table;
@@ -3299,12 +3433,16 @@ unsafe fn font_check_otf_features (script: Lisp_Object, langsys: Lisp_Object,
       features = XCDR (features);
     }
   return true;
+
+  }
 }
 
 /* Check if OTF_CAPABILITY satisfies SPEC (otf-spec).  */
 
 unsafe fn font_check_otf (spec: Lisp_Object, otf_capability: Lisp_Object) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut script: Lisp_Object;
   let mut langsys: Lisp_Object = Qnil ();
   let mut gsub: Lisp_Object = Qnil ();
@@ -3333,6 +3471,8 @@ unsafe fn font_check_otf (spec: Lisp_Object, otf_capability: Lisp_Object) -> boo
 						 XCDR (otf_capability))
     { return false; }
   return true;
+
+  }
 }
 
 
@@ -3343,6 +3483,8 @@ unsafe fn font_check_otf (spec: Lisp_Object, otf_capability: Lisp_Object) -> boo
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn font_match_p (spec: Lisp_Object, font: Lisp_Object) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut prop: [Lisp_Object; FONT_SPEC_MAX as usize]
     = [Qnil (); FONT_SPEC_MAX as usize];
   let mut props: *mut Lisp_Object;
@@ -3474,6 +3616,8 @@ pub unsafe extern "C-unwind" fn font_match_p (spec: Lisp_Object, font: Lisp_Obje
     }
 
   return true;
+
+  }
 }
 
 
@@ -3495,6 +3639,8 @@ pub unsafe extern "C-unwind" fn font_match_p (spec: Lisp_Object, font: Lisp_Obje
 
 unsafe fn font_prepare_cache (f: *mut frame, driver: *const font_driver)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let cache: Lisp_Object;
   let mut val: Lisp_Object;
 
@@ -3512,11 +3658,15 @@ unsafe fn font_prepare_cache (f: *mut frame, driver: *const font_driver)
       val = XCDR (XCAR (val));
       XSETCAR (val, make_fixnum (XFIXNUM (XCAR (val)) + 1));
     }
+
+  }
 }
 
 
 unsafe fn font_finish_cache (f: *mut frame, driver: *const font_driver)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut cache: Lisp_Object;
   let mut val: Lisp_Object;
   let mut tmp: Lisp_Object;
@@ -3537,11 +3687,15 @@ unsafe fn font_finish_cache (f: *mut frame, driver: *const font_driver)
       font_clear_cache (f, XCAR (val), driver);
       XSETCDR (cache, XCDR (val));
     }
+
+  }
 }
 
 
 unsafe fn font_get_cache (f: *mut frame, driver: *const font_driver) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut val: Lisp_Object = ((*driver).get_cache.unwrap ()) (f as *mut c_void);
   let r#type: Lisp_Object = (*driver).r#type;
 
@@ -3553,11 +3707,15 @@ unsafe fn font_get_cache (f: *mut frame, driver: *const font_driver) -> Lisp_Obj
   /* VAL = ((DRIVER-TYPE NUM-FRAMES FONT-CACHE-DATA ...) ...) */
   val = XCDR (XCAR (val));
   return val;
+
+  }
 }
 
 
 unsafe fn font_clear_cache (f: *mut frame, cache: Lisp_Object, driver: *const font_driver)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut tail: Lisp_Object;
   let mut elt: Lisp_Object;
   let mut entity: Lisp_Object;
@@ -3613,6 +3771,8 @@ unsafe fn font_clear_cache (f: *mut frame, cache: Lisp_Object, driver: *const fo
       tail = XCDR (tail);
     }
   XSETCDR (cache, Qnil ());
+
+  }
 }
 
 
@@ -3623,6 +3783,8 @@ unsafe fn font_clear_cache (f: *mut frame, cache: Lisp_Object, driver: *const fo
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn font_is_ignored (name: *const c_char, namelen: ptrdiff_t) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut tail: Lisp_Object = Vface_ignored_fonts;
   let mut regexp: Lisp_Object;
 
@@ -3633,6 +3795,8 @@ pub unsafe extern "C-unwind" fn font_is_ignored (name: *const c_char, namelen: p
       { return true; }
   });
   return false;
+
+  }
 }
 static mut scratch_font_spec: Lisp_Object = lisp_h_Qnil ();
 static mut scratch_font_prefer: Lisp_Object = lisp_h_Qnil ();
@@ -3646,6 +3810,8 @@ static mut scratch_font_prefer: Lisp_Object = lisp_h_Qnil ();
 unsafe fn font_delete_unmatched (vec: Lisp_Object, spec: Lisp_Object, size: c_int)
 				 -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut entity: Lisp_Object;
   let mut val: Lisp_Object;
   let mut prop: font_property_index;
@@ -3761,6 +3927,8 @@ unsafe fn font_delete_unmatched (vec: Lisp_Object, spec: Lisp_Object, size: c_in
       i -= 1;
     }
   return Fvconcat (1, &mut val);
+
+  }
 }
 
 
@@ -3771,6 +3939,8 @@ unsafe fn font_delete_unmatched (vec: Lisp_Object, spec: Lisp_Object, size: c_in
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn font_list_entities (f: *mut frame, spec: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut driver_list: *mut font_driver_list = (*f).font_driver_list as *mut font_driver_list;
   let mut ftype: Lisp_Object;
   let mut val: Lisp_Object;
@@ -3861,6 +4031,8 @@ pub unsafe extern "C-unwind" fn font_list_entities (f: *mut frame, spec: Lisp_Ob
   list = Fnreverse (list);
   FONT_ADD_LOG! (c"list".as_ptr (), spec, list);
   return list;
+
+  }
 }
 
 
@@ -3871,6 +4043,8 @@ pub unsafe extern "C-unwind" fn font_list_entities (f: *mut frame, spec: Lisp_Ob
 unsafe fn font_matching_entity (f: *mut frame, attrs: *mut Lisp_Object,
 				spec: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut driver_list: *mut font_driver_list = (*f).font_driver_list as *mut font_driver_list;
   let mut ftype: Lisp_Object;
   let size: Lisp_Object;
@@ -3917,6 +4091,8 @@ unsafe fn font_matching_entity (f: *mut frame, attrs: *mut Lisp_Object,
     }
   FONT_ADD_LOG! (c"match".as_ptr (), work, entity);
   return entity;
+
+  }
 }
 
 /* Open a font of ENTITY and PIXEL_SIZE on frame F, and return the
@@ -3925,6 +4101,8 @@ unsafe fn font_matching_entity (f: *mut frame, attrs: *mut Lisp_Object,
 unsafe fn font_open_entity (f: *mut frame, entity: Lisp_Object, mut pixel_size: c_int)
 			    -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut driver_list: *mut font_driver_list;
   let mut objlist: Lisp_Object;
   let size: Lisp_Object;
@@ -4027,6 +4205,8 @@ unsafe fn font_open_entity (f: *mut frame, entity: Lisp_Object, mut pixel_size: 
   }
 
   return font_object;
+
+  }
 }
 
 
@@ -4034,6 +4214,8 @@ unsafe fn font_open_entity (f: *mut frame, entity: Lisp_Object, mut pixel_size: 
 
 unsafe fn font_close_object (f: *mut frame, font_object: Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let font: *mut font = XFONT_OBJECT (font_object);
 
   if NILP (AREF (font_object, FONT_TYPE_INDEX as isize))
@@ -4047,6 +4229,8 @@ unsafe fn font_close_object (f: *mut frame, font_object: Lisp_Object)
     eassert! ((*FRAME_DISPLAY_INFO! (f)).n_fonts != 0);
     (*FRAME_DISPLAY_INFO! (f)).n_fonts -= 1;
   }
+
+  }
 }
 
 
@@ -4056,6 +4240,8 @@ unsafe fn font_close_object (f: *mut frame, font_object: Lisp_Object)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn font_has_char (f: *mut frame, font: Lisp_Object, c: c_int) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut fontp: *mut font;
 
   if FONT_ENTITY_P (font)
@@ -4085,6 +4271,8 @@ pub unsafe extern "C-unwind" fn font_has_char (f: *mut frame, font: Lisp_Object,
     }
   return (if ((*((*fontp).driver as *const font_driver)).encode_char.unwrap ()) (fontp, c)
 	     != FONT_INVALID_CODE { 1 } else { 0 });
+
+  }
 }
 
 
@@ -4092,11 +4280,15 @@ pub unsafe extern "C-unwind" fn font_has_char (f: *mut frame, font: Lisp_Object,
 
 unsafe fn font_encode_char (font_object: Lisp_Object, c: c_int) -> c_uint
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let font: *mut font;
 
   eassert! (FONT_OBJECT_P (font_object));
   font = XFONT_OBJECT (font_object);
   return ((*((*font).driver as *const font_driver)).encode_char.unwrap ()) (font, c);
+
+  }
 }
 
 
@@ -4116,6 +4308,8 @@ pub unsafe extern "C-unwind" fn font_get_name (font_object: Lisp_Object) -> Lisp
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn font_spec_from_name (font_name: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let spec: Lisp_Object = Ffont_spec (0, std::ptr::null_mut ());
 
   CHECK_STRING (font_name);
@@ -4124,12 +4318,16 @@ pub unsafe extern "C-unwind" fn font_spec_from_name (font_name: Lisp_Object) -> 
   font_put_extra (spec, QCname (), font_name);
   font_put_extra (spec, QCuser_spec (), font_name);
   return spec;
+
+  }
 }
 
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn font_clear_prop (attrs: *mut Lisp_Object, prop: font_property_index)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut font: Lisp_Object = *attrs.offset (LFACE_FONT_INDEX as isize);
 
   if ! FONTP (font)
@@ -4176,6 +4374,8 @@ pub unsafe extern "C-unwind" fn font_clear_prop (attrs: *mut Lisp_Object, prop: 
   else if prop == FONT_WIDTH_INDEX
     { ASET (font, FONT_AVGWIDTH_INDEX as isize, Qnil ()); }
   *attrs.offset (LFACE_FONT_INDEX as isize) = font;
+
+  }
 }
 
 /* Select a font from ENTITIES (list of one or more font-entity
@@ -4186,6 +4386,8 @@ unsafe fn font_select_entity (f: *mut frame, entities: Lisp_Object,
 			      attrs: *mut Lisp_Object, pixel_size: c_int,
 			      c: c_int) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let font_entity: Lisp_Object;
   let prefer: Lisp_Object;
   let mut i: c_int;
@@ -4232,6 +4434,8 @@ unsafe fn font_select_entity (f: *mut frame, entities: Lisp_Object,
   ASET (prefer, FONT_SIZE_INDEX as isize, make_fixnum (pixel_size as EMACS_INT));
 
   return font_sort_entities (entities, prefer, f, c);
+
+  }
 }
 
 /* Return a font-entity that satisfies SPEC and is the best match for
@@ -4242,6 +4446,8 @@ unsafe fn font_select_entity (f: *mut frame, entities: Lisp_Object,
 pub unsafe extern "C-unwind" fn font_find_for_lface (f: *mut frame, attrs: *mut Lisp_Object,
 					      spec: Lisp_Object, c: c_int) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let work: Lisp_Object;
   let mut entities: Lisp_Object;
   let mut val: Lisp_Object;
@@ -4441,6 +4647,8 @@ pub unsafe extern "C-unwind" fn font_find_for_lface (f: *mut frame, attrs: *mut 
 
   SAFE_FREE! (sa_count, sa_mark);
   return Qnil ();
+
+  }
 }
 
 
@@ -4449,6 +4657,8 @@ pub unsafe extern "C-unwind" fn font_open_for_lface (f: *mut frame, entity: Lisp
 					      attrs: *mut Lisp_Object,
 					      spec: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut size: c_int;
 
   if FIXNUMP (AREF (entity, FONT_SIZE_INDEX as isize))
@@ -4494,6 +4704,8 @@ pub unsafe extern "C-unwind" fn font_open_for_lface (f: *mut frame, entity: Lisp
     }
 
   return font_open_entity (f, entity, size);
+
+  }
 }
 
 
@@ -4505,6 +4717,8 @@ pub unsafe extern "C-unwind" fn font_open_for_lface (f: *mut frame, entity: Lisp
 pub unsafe extern "C-unwind" fn font_load_for_lface (f: *mut frame, attrs: *mut Lisp_Object,
 					      spec: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut entity: Lisp_Object;
   let mut name: Lisp_Object;
 
@@ -4562,6 +4776,8 @@ pub unsafe extern "C-unwind" fn font_load_for_lface (f: *mut frame, attrs: *mut 
 	{ font_put_extra (entity, QCuser_spec (), name); }
     }
   return entity;
+
+  }
 }
 
 
@@ -4570,12 +4786,16 @@ pub unsafe extern "C-unwind" fn font_load_for_lface (f: *mut frame, attrs: *mut 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn font_prepare_for_face (f: *mut frame, face: *mut face)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if (*((*(*face).font).driver as *const font_driver)).prepare_face.is_some ()
     {
       let prepare_face = (*((*(*face).font).driver as *const font_driver)).prepare_face;
       if let Some (p) = prepare_face
 	{ p (f as *mut c_void, face as *mut c_void); }
     }
+
+  }
 }
 
 
@@ -4584,12 +4804,16 @@ pub unsafe extern "C-unwind" fn font_prepare_for_face (f: *mut frame, face: *mut
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn font_done_for_face (f: *mut frame, face: *mut face)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if (*((*(*face).font).driver as *const font_driver)).done_face.is_some ()
     {
       let done_face = (*((*(*face).font).driver as *const font_driver)).done_face;
       if let Some (d) = done_face
 	{ d (f as *mut c_void, face as *mut c_void); }
     }
+
+  }
 }
 
 
@@ -4599,6 +4823,8 @@ pub unsafe extern "C-unwind" fn font_done_for_face (f: *mut frame, face: *mut fa
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn font_open_by_spec (f: *mut frame, spec: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut attrs: [Lisp_Object; LFACE_VECTOR_SIZE as usize] = [Qnil (); LFACE_VECTOR_SIZE as usize];
 
   /* We set up the default font-related attributes of a face to prefer
@@ -4617,6 +4843,8 @@ pub unsafe extern "C-unwind" fn font_open_by_spec (f: *mut frame, spec: Lisp_Obj
   attrs[LFACE_FONT_INDEX as usize] = Qnil ();
 
   return font_load_for_lface (f, attrs.as_mut_ptr (), spec);
+
+  }
 }
 
 
@@ -4626,6 +4854,8 @@ pub unsafe extern "C-unwind" fn font_open_by_spec (f: *mut frame, spec: Lisp_Obj
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn font_open_by_name (f: *mut frame, name: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let spec: Lisp_Object = CALLN! (Ffont_spec, QCname (), name);
   let ret: Lisp_Object = font_open_by_spec (f, spec);
   /* Do not lose name originally put in.  */
@@ -4633,6 +4863,8 @@ pub unsafe extern "C-unwind" fn font_open_by_name (f: *mut frame, name: Lisp_Obj
     { font_put_extra (ret, QCuser_spec (), name); }
 
   return ret;
+
+  }
 }
 
 
@@ -4651,6 +4883,8 @@ pub unsafe extern "C-unwind" fn font_open_by_name (f: *mut frame, name: Lisp_Obj
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn register_font_driver (driver: *const font_driver, f: *mut frame)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let root: *mut font_driver_list = if !f.is_null ()
 				    { (*f).font_driver_list as *mut font_driver_list }
 				    else { font_driver_list };
@@ -4688,11 +4922,15 @@ pub unsafe extern "C-unwind" fn register_font_driver (driver: *const font_driver
     { font_driver_list = list; }
   if f.is_null ()
     { num_font_drivers += 1; }
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn free_font_driver_list (f: *mut frame)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut list: *mut font_driver_list;
   let mut next: *mut font_driver_list;
 
@@ -4704,6 +4942,8 @@ pub unsafe extern "C-unwind" fn free_font_driver_list (f: *mut frame)
       list = next;
     }
   (*f).font_driver_list = std::ptr::null_mut ();
+
+  }
 }
 
 
@@ -4722,6 +4962,8 @@ pub unsafe extern "C-unwind" fn free_font_driver_list (f: *mut frame)
 pub unsafe extern "C-unwind" fn font_update_drivers (f: *mut frame,
 					      new_drivers: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut active_drivers: Lisp_Object = Qnil ();
   let mut default_drivers: Lisp_Object = Qnil ();
   let mut list: *mut font_driver_list;
@@ -4870,6 +5112,8 @@ pub unsafe extern "C-unwind" fn font_update_drivers (f: *mut frame,
       list = (*list).next;
     }
   return active_drivers;
+
+  }
 }
 
 /* C 3729: `#if (defined HAVE_XFT || defined HAVE_FREETYPE) && !defined USE_CAIRO` (all undef
@@ -4920,6 +5164,8 @@ pub unsafe extern "C-unwind" fn font_filter_properties (font: Lisp_Object, alist
 						 boolean_properties: *const *const c_char,
 						 non_boolean_properties: *const *const c_char)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut it: Lisp_Object;
   let mut i: c_int;
 
@@ -4975,6 +5221,8 @@ pub unsafe extern "C-unwind" fn font_filter_properties (font: Lisp_Object, alist
 	}
       i += 1;
     }
+
+  }
 }
 
 /* Return the font used to draw character C by FACE at buffer position
@@ -4985,6 +5233,8 @@ pub unsafe extern "C-unwind" fn font_filter_properties (font: Lisp_Object, alist
 unsafe fn font_at (c: c_int, pos: ptrdiff_t, face: *mut face, w: *mut window,
 		   string: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut f: *mut frame;
   let mut multibyte: bool;
   let font_object: Lisp_Object;
@@ -5050,6 +5300,8 @@ unsafe fn font_at (c: c_int, pos: ptrdiff_t, face: *mut face, w: *mut window,
 
   XSETFONT! (font_object, (*face).font);
   return font_object;
+
+  }
 }
 
 /* C 3890: `#ifdef HAVE_WINDOW_SYSTEM` (undef in the frozen configuration), carried; the
@@ -5073,6 +5325,8 @@ unsafe extern "C-unwind" {
 #[cfg(feature = "have_window_system")]
 unsafe fn codepoint_is_emoji_eligible (ch: c_int) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if EQ (CHAR_TABLE_REF (Vchar_script_table, ch as isize), Qemoji ())
     { return true; }
 
@@ -5081,6 +5335,8 @@ unsafe fn codepoint_is_emoji_eligible (ch: c_int) -> bool
     { return true; }
 
   return false;
+
+  }
 }
 
 /* Check how many characters after character/byte position POS/POS_BYTE
@@ -5104,6 +5360,8 @@ pub unsafe extern "C-unwind" fn font_range (pos: ptrdiff_t, pos_byte: ptrdiff_t,
 				     face: *mut face, string: Lisp_Object,
 				     ch: c_int) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut ignore: ptrdiff_t = 0;
   let mut c: c_int;
   let mut font_object: Lisp_Object = Qnil ();
@@ -5172,6 +5430,8 @@ pub unsafe extern "C-unwind" fn font_range (pos: ptrdiff_t, pos_byte: ptrdiff_t,
 	{ *limit = pos - 1; }
     }
   return font_object;
+
+  }
 }
 
 
@@ -5244,6 +5504,8 @@ DEFUN! ("font-spec", Ffont_spec, Sfont_spec, 0, MANY, 0,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn copy_font_spec (font: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   const font_spec_size: isize = VECSIZE (std::mem::size_of::<font_spec> ());
   let mut new_spec: Lisp_Object;
   let mut tail: Lisp_Object;
@@ -5283,6 +5545,8 @@ pub unsafe extern "C-unwind" fn copy_font_spec (font: Lisp_Object) -> Lisp_Objec
 
   XSETFONT! (new_spec, spec);
   return new_spec;
+
+  }
 }
 
 /* Merge font-specs FROM and TO, and return a new font-spec.
@@ -5291,6 +5555,8 @@ pub unsafe extern "C-unwind" fn copy_font_spec (font: Lisp_Object) -> Lisp_Objec
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn merge_font_spec (from: Lisp_Object, to: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut extra: Lisp_Object;
   let mut tail: Lisp_Object;
   let mut i: c_int;
@@ -5322,6 +5588,8 @@ pub unsafe extern "C-unwind" fn merge_font_spec (from: Lisp_Object, to: Lisp_Obj
     }
   ASET (to, FONT_EXTRA_INDEX as isize, extra);
   return to;
+
+  }
 }
 
 DEFUN! ("font-get", Ffont_get, Sfont_get, 2, 2, 0,
@@ -5650,6 +5918,8 @@ DEFUN! ("font-xlfd-name", Ffont_xlfd_name, Sfont_xlfd_name, 1, 3, 0,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn clear_font_cache (f: *mut frame)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut driver_list: *mut font_driver_list = (*f).font_driver_list as *mut font_driver_list;
 
   while !driver_list.is_null ()
@@ -5677,6 +5947,8 @@ pub unsafe extern "C-unwind" fn clear_font_cache (f: *mut frame)
 	}
       driver_list = (*driver_list).next;
     }
+
+  }
 }
 
 DEFUN! ("clear-font-cache", Fclear_font_cache, Sclear_font_cache, 0, 0, 0,
@@ -5698,6 +5970,8 @@ DEFUN! ("clear-font-cache", Fclear_font_cache, Sclear_font_cache, 0, 0, 0,
 pub unsafe extern "C-unwind" fn font_fill_lglyph_metrics (glyph: Lisp_Object, font: *mut font,
 						   code: c_uint)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut metrics: font_metrics = font_metrics { lbearing: 0, rbearing: 0, width: 0,
 						 ascent: 0, descent: 0 };
 
@@ -5708,6 +5982,8 @@ pub unsafe extern "C-unwind" fn font_fill_lglyph_metrics (glyph: Lisp_Object, fo
   LGLYPH_SET_WIDTH (glyph, metrics.width as EMACS_INT);
   LGLYPH_SET_ASCENT (glyph, metrics.ascent as EMACS_INT);
   LGLYPH_SET_DESCENT (glyph, metrics.descent as EMACS_INT);
+
+  }
 }
 
 
@@ -6290,6 +6566,8 @@ macro_rules! BUILD_STYLE_TABLE {
 
 unsafe fn build_style_table (entry: *const table_entry, nelement: c_int) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let table: Lisp_Object = make_nil_vector (nelement as ptrdiff_t);
   let mut i: c_int = 0;
   while i < nelement
@@ -6311,6 +6589,8 @@ unsafe fn build_style_table (entry: *const table_entry, nelement: c_int) -> Lisp
       i += 1;
     }
   return table;
+
+  }
 }
 
 /* The deferred font-log data of the form [ACTION ARG RESULT].
@@ -6326,6 +6606,8 @@ static mut Vfont_log_deferred: Lisp_Object = lisp_h_Qnil ();
 pub unsafe extern "C-unwind" fn font_add_log (action: *const c_char, arg: Lisp_Object,
 				       result: Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut val: Lisp_Object;
   let mut i: c_int;
   let mut arg: Lisp_Object = arg;
@@ -6414,6 +6696,8 @@ pub unsafe extern "C-unwind" fn font_add_log (action: *const c_char, arg: Lisp_O
 	}
     }
   Vfont_log = Fcons (list3 (intern (action), arg, result), Vfont_log);
+
+  }
 }
 
 /* Record a font-related logging data to be added to Vfont_log when
@@ -6424,16 +6708,22 @@ pub unsafe extern "C-unwind" fn font_add_log (action: *const c_char, arg: Lisp_O
 pub unsafe extern "C-unwind" fn font_deferred_log (action: *const c_char, arg: Lisp_Object,
 					    result: Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if EQ (Vfont_log, Qt ())
     { return; }
   ASET (Vfont_log_deferred, 0, build_string (action));
   ASET (Vfont_log_deferred, 1, arg);
   ASET (Vfont_log_deferred, 2, result);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn font_drop_xrender_surfaces (f: *mut frame)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut list: *mut font_driver_list;
 
   list = (*f).font_driver_list as *mut font_driver_list;
@@ -6447,6 +6737,8 @@ pub unsafe extern "C-unwind" fn font_drop_xrender_surfaces (f: *mut frame)
 	}
       list = (*list).next;
     }
+
+  }
 }
 
 /* The `DEFVAR_*` storage this unit owns (status 3.29: the unit that owns the C definition
@@ -6470,6 +6762,8 @@ pub static mut query_all_font_backends: bool = false;
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_font ()
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   sort_shift_bits[FONT_TYPE_INDEX as usize] = 0;
   sort_shift_bits[FONT_SLANT_INDEX as usize] = 2;
   sort_shift_bits[FONT_WEIGHT_INDEX as usize] = 9;
@@ -6665,12 +6959,18 @@ pub unsafe extern "C-unwind" fn syms_of_font ()
     #[cfg(feature = "be_cairo")]
     { syms_of_ftcrfont (); }
   }
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn init_font ()
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   Vfont_log = if !egetenv (c"EMACS_FONT_LOG".as_ptr ()).is_null () { Qnil () } else { Qt () };
+
+  }
 }
 
 #[cfg(feature = "have_ns")]

@@ -1,3 +1,4 @@
+#![forbid(unsafe_code)]
 //! Fe artwork and platform release packaging. The editor remains built by xtask.
 use resvg::{tiny_skia, usvg};
 use sha2::{Digest, Sha256};

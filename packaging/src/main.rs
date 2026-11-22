@@ -1,3 +1,5 @@
+#![forbid(unsafe_code)]
+
 use fe_packaging::{
     APP_ICON_DARK, APP_ICON_LIGHT, LOGO, install_macos_icon, macho_payload_sha256, render,
     render_app_icon, run, sha256, validate_app,

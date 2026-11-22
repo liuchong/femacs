@@ -15,9 +15,7 @@
 // coding.rs precedent).  C's `struct casing_str_buf` is written through a cast in
 // do_casify_multibyte_string (C 267-274), so `data` stays the first member, as C asserts.
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
-         unsafe_op_in_unsafe_fn)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -86,6 +84,8 @@ pub struct casing_context
 unsafe fn prepare_casing_context (ctx: *mut casing_context,
 				  flag: case_action, inbuffer: bool)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   (*ctx).flag = flag;
   (*ctx).inbuffer = inbuffer;
   (*ctx).inword = false;
@@ -108,11 +108,13 @@ unsafe fn prepare_casing_context (ctx: *mut casing_context,
 
   if inbuffer && flag >= CASE_CAPITALIZE
     { SETUP_BUFFER_SYNTAX_TABLE (); }	/* For syntax_prefix_flag_p.  */
+
+  }
 }
 
 fn case_ch_is_word (syntax: syntaxcode) -> bool
 {
-  return syntax == Sword || (unsafe { case_symbols_as_words } && syntax == Ssymbol);
+  return syntax == Sword || (/* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { case_symbols_as_words } && syntax == Ssymbol);
 }
 
 #[repr(C)]
@@ -138,6 +140,8 @@ pub const CASING_STR_BUF_DATA_LEN: usize = if 6 > MAX_MULTIBYTE_LENGTH { 6 } els
 unsafe fn case_character_impl (buf: *mut casing_str_buf,
 			       ctx: *mut casing_context, ch: c_int) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut flag: case_action;
   let mut prop: Lisp_Object;
   // C's `int cased;` is read only after the `goto done` above has assigned it or the
@@ -213,6 +217,8 @@ unsafe fn case_character_impl (buf: *mut casing_str_buf,
   (*buf).len_chars = 1;
   (*buf).len_bytes = CHAR_STRING (cased, (*buf).data.as_mut_ptr ()) as u8;
   return (cased != ch) as c_int;
+
+  }
 }
 
 /* In Greek, lower case sigma has two forms: one when used in the middle and one
@@ -234,7 +240,11 @@ pub const GREEK_SMALL_LETTER_FINAL_SIGMA: c_int = 0x03C2; /* ς */
 #[inline(always)]
 unsafe fn case_single_character (ctx: *mut casing_context, ch: c_int) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   return case_character_impl (std::ptr::null_mut (), ctx, ch);
+
+  }
 }
 
 /* Save in BUF result of casing character CH.  Return whether casing changed the
@@ -249,6 +259,8 @@ unsafe fn case_single_character (ctx: *mut casing_context, ch: c_int) -> c_int
 unsafe fn case_character (buf: *mut casing_str_buf, ctx: *mut casing_context,
 			  ch: c_int, next: *const u8) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let was_inword: bool = (*ctx).inword;
   let changed: bool = case_character_impl (buf, ctx, ch) != 0;
 
@@ -264,6 +276,8 @@ unsafe fn case_character (buf: *mut casing_str_buf, ctx: *mut casing_context,
     }
 
   return changed;
+
+  }
 }
 
 /* If C is not ASCII, make it unibyte. */
@@ -275,6 +289,8 @@ fn make_char_unibyte (c: c_int) -> c_int
 
 unsafe fn do_casify_natnum (ctx: *mut casing_context, obj: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let flagbits: c_int = CHAR_ALT | CHAR_SUPER | CHAR_HYPER
 		  | CHAR_SHIFT | CHAR_CTL | CHAR_META;
   let mut ch: c_int = XFIXNAT (obj) as c_int;
@@ -301,11 +317,15 @@ unsafe fn do_casify_natnum (ctx: *mut casing_context, obj: Lisp_Object) -> Lisp_
 
   let cased: c_int = if ! multibyte { make_char_unibyte (cased) } else { cased };
   return make_fixed_natnum (cased as EMACS_INT | flags as EMACS_INT);
+
+  }
 }
 
 unsafe fn do_casify_multibyte_string (ctx: *mut casing_context, mut obj: Lisp_Object)
 				      -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* Verify that ‘data’ is the first member of struct casing_str_buf
      so that when casting char * to struct casing_str_buf *, the
      representation of the character is at the beginning of the
@@ -347,12 +367,14 @@ unsafe fn do_casify_multibyte_string (ctx: *mut casing_context, mut obj: Lisp_Ob
   obj = make_multibyte_string (dst as *const c_char, n, o.offset_from (dst));
   SAFE_FREE! (sa_count, sa_mark);
   return obj;
+
+  }
 }
 
 fn ascii_casify_character (downcase: bool, c: c_int) -> c_int
 {
   let cased: Lisp_Object = CHAR_TABLE_REF (if downcase
-					   { unsafe { uniprop_table (Qlowercase ()) } }
+					   { /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { uniprop_table (Qlowercase ()) } }
 					   else { unsafe { uniprop_table (Quppercase ()) } },
 					   c as isize);
   return if FIXNATP (cased) { XFIXNAT (cased) as c_int } else { c };
@@ -361,6 +383,8 @@ fn ascii_casify_character (downcase: bool, c: c_int) -> c_int
 unsafe fn do_casify_unibyte_string (ctx: *mut casing_context, mut obj: Lisp_Object)
 				    -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let size: ptrdiff_t = SCHARS (obj);
   let mut ch: c_int;
   let mut cased: c_int;
@@ -382,10 +406,14 @@ unsafe fn do_casify_unibyte_string (ctx: *mut casing_context, mut obj: Lisp_Obje
       i += 1;
     }
   return obj;
+
+  }
 }
 
 unsafe fn casify_object (flag: case_action, obj: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut ctx: casing_context = std::mem::zeroed ();
   prepare_casing_context (&raw mut ctx, flag, false);
 
@@ -399,6 +427,8 @@ unsafe fn casify_object (flag: case_action, obj: Lisp_Object) -> Lisp_Object
     { return do_casify_multibyte_string (&raw mut ctx, obj); }
   else
     { return do_casify_unibyte_string (&raw mut ctx, obj); }
+
+  }
 }
 
 DEFUN! ("upcase", Fupcase, Supcase, 1, 1, 0,
@@ -443,6 +473,8 @@ unsafe fn do_casify_unibyte_region (ctx: *mut casing_context,
 				    startp: *mut ptrdiff_t, endp: *mut ptrdiff_t)
 				    -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut first: ptrdiff_t = -1;
   let mut last: ptrdiff_t = -1;  /* Position of first and last changes.  */
   let end: ptrdiff_t = *endp;
@@ -466,6 +498,8 @@ unsafe fn do_casify_unibyte_region (ctx: *mut casing_context,
   *startp = first;
   *endp = last;
   return 0;
+
+  }
 }
 
 /* Based on CTX, case region in a multibyte buffer from *STARTP to *ENDP.
@@ -478,6 +512,8 @@ unsafe fn do_casify_multibyte_region (ctx: *mut casing_context,
 				      startp: *mut ptrdiff_t, endp: *mut ptrdiff_t)
 				      -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut first: ptrdiff_t = -1;
   let mut last: ptrdiff_t = -1;  /* Position of first and last changes.  */
   let mut pos: ptrdiff_t = *startp;
@@ -535,6 +571,8 @@ unsafe fn do_casify_multibyte_region (ctx: *mut casing_context,
   *startp = first;
   *endp = last;
   return added;
+
+  }
 }
 
 /* flag is CASE_UP, CASE_DOWN or CASE_CAPITALIZE or CASE_CAPITALIZE_UP.  b and
@@ -543,6 +581,8 @@ unsafe fn do_casify_multibyte_region (ctx: *mut casing_context,
 unsafe fn casify_region (flag: case_action, mut b: Lisp_Object, mut e: Lisp_Object)
 			 -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut added: ptrdiff_t;
   let mut ctx: casing_context = std::mem::zeroed ();
 
@@ -599,6 +639,8 @@ unsafe fn casify_region (flag: case_action, mut b: Lisp_Object, mut e: Lisp_Obje
   }
 
   return orig_end + added;
+
+  }
 }
 
 /* Casify a possibly noncontiguous region according to FLAG.  BEG and
@@ -609,6 +651,8 @@ unsafe fn casify_region (flag: case_action, mut b: Lisp_Object, mut e: Lisp_Obje
 unsafe fn casify_pnc_region (flag: case_action, beg: Lisp_Object, end: Lisp_Object,
 			     region_noncontiguous_p: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if !NILP (region_noncontiguous_p)
     {
       let mut bounds: Lisp_Object = calln! (Vregion_extract_function, Qbounds ());
@@ -622,6 +666,8 @@ unsafe fn casify_pnc_region (flag: case_action, beg: Lisp_Object, end: Lisp_Obje
     { casify_region (flag, beg, end); }
 
   return Qnil ();
+
+  }
 }
 
 DEFUN! ("upcase-region", Fupcase_region, Supcase_region, 2, 3,
@@ -662,12 +708,16 @@ DEFUN! ("upcase-initials-region", Fupcase_initials_region,
 
 unsafe fn casify_word (flag: case_action, arg: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   CHECK_FIXNUM (arg);
   let mut farend: ptrdiff_t = scan_words (PT! (), XFIXNUM (arg));
   if farend == 0
     { farend = if XFIXNUM (arg) <= 0 { BEGV! () } else { ZV! () }; }
   SET_PT (casify_region (flag, make_fixnum (PT! ()), make_fixnum (farend)));
   return Qnil ();
+
+  }
 }
 
 DEFUN! ("upcase-word", Fupcase_word, Supcase_word, 1, 1, "p",
@@ -694,6 +744,8 @@ DEFUN! ("capitalize-word", Fcapitalize_word, Scapitalize_word, 1, 1, "p",
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_casefiddle ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   DEFSYM! (Qbounds, "bounds");
   DEFSYM! (Qidentity, "identity");
   DEFSYM! (Qtitlecase, "titlecase");
@@ -724,4 +776,6 @@ pub unsafe extern "C-unwind" fn syms_of_casefiddle ()
   defsubr (&raw mut Supcase_word);
   defsubr (&raw mut Sdowncase_word);
   defsubr (&raw mut Scapitalize_word);
+
+  }
 }

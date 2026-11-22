@@ -20,9 +20,7 @@
 // declarator and the body) - so `#[unsafe(no_mangle)]` on `rpl_utimensat` is reported as an
 // "invented exported symbol".  The port keeps both bodies faithfully, non-exported, and
 // records the gap for adjudication (the same one utimens.c has).
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
-         static_mut_refs, unsafe_op_in_unsafe_fn)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -107,6 +105,8 @@ macro_rules! AT_FUNC_POST_FILE_ARGS { () => { , ts } }
 unsafe extern "C" fn local_utimensat (fd: c_int, file: *const c_char, ts: *const timespec,
                                       flag: c_int) -> c_int
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   if flag & !AT_SYMLINK_NOFOLLOW != 0
     {
       *errno () = EINVAL;
@@ -179,6 +179,8 @@ unsafe extern "C" fn local_utimensat (fd: c_int, file: *const c_char, ts: *const
   if saved_errno != 0
     { *errno () = saved_errno; }
   return err;
+
+  }
 }
 
 /* C 76-195's live `rpl_utimensat`.  C 78's `#  undef utimensat` means the call below names
@@ -189,6 +191,8 @@ unsafe extern "C" fn local_utimensat (fd: c_int, file: *const c_char, ts: *const
 pub unsafe extern "C" fn rpl_utimensat (fd: c_int, file: *const c_char,
                                         times: *const timespec, flag: c_int) -> c_int
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   static mut utimensat_works_really: c_int = 0;
 
   /* See comments in utimens.c for details.  */
@@ -242,4 +246,6 @@ pub unsafe extern "C" fn rpl_utimensat (fd: c_int, file: *const c_char,
   if 0 <= utimensat_works_really && *errno () == ENOSYS
     { utimensat_works_really = -1; }
   return local_utimensat (fd, file, times, flag);
+
+  }
 }

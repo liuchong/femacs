@@ -49,11 +49,7 @@
 // adding storage or moving a field (the ledger records the deviation, the layout is
 // pinned by `const _` assertions).
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
-         unsafe_op_in_unsafe_fn, unused_assignments, unreachable_code, while_true,
-         unused_parens, unused_mut, unused_parens, unused_labels, unused_comparisons,
-         overflowing_literals)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe, unused_assignments, unreachable_code, while_true, unused_parens, unused_mut, unused_parens, unused_labels, unused_comparisons, overflowing_literals)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -433,6 +429,8 @@ const _: () = core::assert! (std::mem::size_of::<charset_map_entries> () == 0xC0
 unsafe fn load_charset_map (charset: *mut charset, mut entries: *mut charset_map_entries,
 			    n_entries: c_int, mut control_flag: c_int)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut vec: Lisp_Object = Qnil ();          // C: `Lisp_Object vec UNINIT;` (PORTING.md 1.5)
   let mut table: Lisp_Object = Qnil ();        // C: `Lisp_Object table UNINIT;` (1.5)
   let max_code: c_uint = CHARSET_MAX_CODE! (charset);
@@ -637,6 +635,8 @@ unsafe fn load_charset_map (charset: *mut charset, mut entries: *mut charset_map
       (*temp_charset_work).min_char = min_char;
       (*temp_charset_work).max_char = max_char;
     }
+
+  }
 }
 
 /* Read a hexadecimal number (preceded by "0x") from the file FP while
@@ -648,6 +648,8 @@ unsafe fn load_charset_map (charset: *mut charset, mut entries: *mut charset_map
 unsafe fn read_hex (fp: *mut FILE, lookahead: c_int, terminator: *mut c_int,
 		    overflow: *mut bool) -> c_uint
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut c: c_int = if lookahead < 0 { getc (fp) } else { lookahead };
 
   while true
@@ -691,6 +693,8 @@ unsafe fn read_hex (fp: *mut FILE, lookahead: c_int, terminator: *mut c_int,
   *terminator = c;
   *overflow |= v;
   return n;
+
+  }
 }
 
 /* Return a mapping vector for CHARSET loaded from MAPFILE.
@@ -713,6 +717,8 @@ unsafe fn read_hex (fp: *mut FILE, lookahead: c_int, terminator: *mut c_int,
 unsafe fn load_charset_map_from_file (charset: *mut charset, mapfile: Lisp_Object,
 				      control_flag: c_int)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let min_code: c_uint = CHARSET_MIN_CODE! (charset);
   let max_code: c_uint = CHARSET_MAX_CODE! (charset);
   let mut fd: c_int = 0;
@@ -791,10 +797,14 @@ unsafe fn load_charset_map_from_file (charset: *mut charset, mapfile: Lisp_Objec
 
   load_charset_map (charset, head, n_entries, control_flag);
   unbind_to (count, Qnil ());
+
+  }
 }
 
 unsafe fn load_charset_map_from_vector (charset: *mut charset, vec: Lisp_Object, control_flag: c_int)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let min_code: c_uint = CHARSET_MIN_CODE! (charset);
   let max_code: c_uint = CHARSET_MAX_CODE! (charset);
   let mut head: *mut charset_map_entries = std::ptr::null_mut ();
@@ -857,6 +867,8 @@ unsafe fn load_charset_map_from_vector (charset: *mut charset, vec: Lisp_Object,
 
   load_charset_map (charset, head, n_entries, control_flag);
   unbind_to (count, Qnil ());
+
+  }
 }
 
 /* Load a mapping table for CHARSET.  CONTROL-FLAG tells what kind of
@@ -864,6 +876,8 @@ unsafe fn load_charset_map_from_vector (charset: *mut charset, vec: Lisp_Object,
 
 unsafe fn load_charset (charset: *mut charset, control_flag: c_int)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut map: Lisp_Object = Qnil ();
 
   if inhibit_load_charset_map
@@ -884,6 +898,8 @@ unsafe fn load_charset (charset: *mut charset, control_flag: c_int)
     { load_charset_map_from_file (charset, map, control_flag); }
   else
     { load_charset_map_from_vector (charset, map, control_flag); }
+
+  }
 }
 
 DEFUN! ("charsetp", Fcharsetp, Scharsetp, 1, 1, 0,
@@ -897,6 +913,8 @@ unsafe fn map_charset_for_dump (c_function: Option<unsafe extern "C-unwind" fn (
 				function: Lisp_Object, arg: Lisp_Object,
 				from: c_uint, to: c_uint)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let from_idx: c_int = CODE_POINT_TO_INDEX! ((*temp_charset_work).current, from);
   let to_idx: c_int = CODE_POINT_TO_INDEX! ((*temp_charset_work).current, to);
   let range: Lisp_Object = Fcons (Qnil (), Qnil ());
@@ -944,6 +962,8 @@ unsafe fn map_charset_for_dump (c_function: Option<unsafe extern "C-unwind" fn (
 	}
       c += 1;
     }
+
+  }
 }
 
 #[unsafe(no_mangle)]
@@ -951,6 +971,8 @@ pub unsafe extern "C-unwind" fn map_charset_chars (c_function: Option<unsafe ext
 			   function: Lisp_Object, arg: Lisp_Object, mut charset: *mut charset,
 			   mut from: c_uint, mut to: c_uint)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut range: Lisp_Object = Qnil ();
   let partial: bool = from > CHARSET_MIN_CODE! (charset)
 		       || to < CHARSET_MAX_CODE! (charset);
@@ -1033,6 +1055,8 @@ pub unsafe extern "C-unwind" fn map_charset_chars (c_function: Option<unsafe ext
 	  parents = XCDR (parents);
 	}
     }
+
+  }
 }
 
 DEFUN! ("map-charset-chars", Fmap_charset_chars, Smap_charset_chars, 2, 5, 0,
@@ -1496,6 +1520,8 @@ unsafe fn define_charset_internal (name: Lisp_Object,
 				   ascii_compatible: bool, supplementary: bool,
 				   code_offset: c_int) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let code_space: *const u8 = code_space_chars as *const u8;
   let mut args: [Lisp_Object; charset_arg_max as usize]
     = [Qnil (); charset_arg_max as usize];
@@ -1542,6 +1568,8 @@ unsafe fn define_charset_internal (name: Lisp_Object,
   Fdefine_charset_internal (charset_arg_max as ptrdiff_t, args.as_mut_ptr ());
 
   return XFIXNUM (CHARSET_SYMBOL_ID! (name)) as c_int;
+
+  }
 }
 
 DEFUN! ("define-charset-alias", Fdefine_charset_alias,
@@ -1633,6 +1661,8 @@ DEFUN! ("unify-charset", Funify_charset, Sunify_charset, 1, 3, 0,
 unsafe fn check_iso_charset_parameter (dimension: Lisp_Object, chars: Lisp_Object,
 					final_char: Lisp_Object) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   CHECK_FIXNUM (dimension);
   CHECK_FIXNUM (chars);
   CHECK_CHARACTER (final_char);
@@ -1650,6 +1680,8 @@ unsafe fn check_iso_charset_parameter (dimension: Lisp_Object, chars: Lisp_Objec
     { error (c"Invalid FINAL-CHAR `%c', it should be `0'..`~'".as_ptr (), final_ch); }
 
   return chars_flag;
+
+  }
 }
 
 DEFUN! ("get-unused-iso-final-char", Fget_unused_iso_final_char,
@@ -1699,6 +1731,8 @@ DEFUN! ("declare-equiv-charset", Fdeclare_equiv_charset, Sdeclare_equiv_charset,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn string_xstring_p (string: Lisp_Object) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let p: *const u8 = SDATA (string) as *const u8;
   let endp: *const u8 = p.offset (SBYTES (string));
 
@@ -1714,6 +1748,8 @@ pub unsafe extern "C-unwind" fn string_xstring_p (string: Lisp_Object) -> c_int
 	{ return 2; }
     }
   return 1;
+
+  }
 }
 
 /* Find charsets in the string at PTR of NCHARS and NBYTES.
@@ -1727,6 +1763,8 @@ unsafe fn find_charsets_in_text (ptr: *const u8, nchars: ptrdiff_t,
 				 nbytes: ptrdiff_t, charsets: Lisp_Object,
 				 table: Lisp_Object, multibyte: bool)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let pend: *const u8 = ptr.offset (nbytes);
 
   if nchars == nbytes
@@ -1764,6 +1802,8 @@ unsafe fn find_charsets_in_text (ptr: *const u8, nchars: ptrdiff_t,
 	  ASET (charsets, CHARSET_ID! (charset) as isize, Qt ());
 	}
     }
+
+  }
 }
 
 DEFUN! ("find-charset-region", Ffind_charset_region, Sfind_charset_region,
@@ -1853,6 +1893,8 @@ DEFUN! ("find-charset-string", Ffind_charset_string, Sfind_charset_string,
    charset symbol.  */
 unsafe fn maybe_unify_char (c: c_int, val: Lisp_Object) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut c: c_int = c;
   let mut val: Lisp_Object = val;
   let mut charset: *mut charset = std::ptr::null_mut ();
@@ -1879,6 +1921,8 @@ unsafe fn maybe_unify_char (c: c_int, val: Lisp_Object) -> c_int
 	{ c = unified; }
     }
   return c;
+
+  }
 }
 
 /* Return a character corresponding to the code-point CODE of
@@ -1887,6 +1931,8 @@ unsafe fn maybe_unify_char (c: c_int, val: Lisp_Object) -> c_int
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn decode_char (charset_: *mut charset, code: c_uint) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut charset: *mut charset = charset_;
   let mut c: c_int = 0;
   let mut char_index: c_int = 0;
@@ -1962,6 +2008,8 @@ pub unsafe extern "C-unwind" fn decode_char (charset_: *mut charset, code: c_uin
     }
 
   return c;
+
+  }
 }
 
 /* Variable used temporarily by the macro ENCODE_CHAR.  */
@@ -1975,6 +2023,8 @@ pub static mut charset_work: Lisp_Object = lisp_h_Qnil ();
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn encode_char (charset_: *mut charset, c: c_int) -> c_uint
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut charset: *mut charset = charset_;
   let mut c: c_int = c;
   let mut code: c_uint = 0;
@@ -2079,6 +2129,8 @@ pub unsafe extern "C-unwind" fn encode_char (charset_: *mut charset, c: c_int) -
     }
 
   return code;
+
+  }
 }
 
 DEFUN! ("decode-char", Fdecode_char, Sdecode_char, 2, 2, 0,
@@ -2206,6 +2258,8 @@ DEFUN! ("make-char", Fmake_char, Smake_char, 1, 5, 0,
 pub unsafe extern "C-unwind" fn char_charset (c: c_int, charset_list_: Lisp_Object,
 				code_return: *mut c_uint) -> *mut charset
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut charset_list: Lisp_Object = charset_list_;
   let mut maybe_null: bool = false;
 
@@ -2234,6 +2288,8 @@ pub unsafe extern "C-unwind" fn char_charset (c: c_int, charset_list_: Lisp_Obje
   return if maybe_null { std::ptr::null_mut () }
 	 else if c <= MAX_5_BYTE_CHAR { CHARSET_FROM_ID! (charset_emacs) }
 	 else { CHARSET_FROM_ID! (charset_eight_bit) };
+
+  }
 }
 
 DEFUN! ("split-char", Fsplit_char, Ssplit_char, 1, 1, 0,
@@ -2327,6 +2383,8 @@ DEFUN! ("iso-charset", Fiso_charset, Siso_charset, 3, 3, 0,
 /* Shrink charset_table to charset_table.used.  */
 unsafe fn shrink_charset_table ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   eassert! (charset_table.size >= charset_table.used);
   eassert! (ASIZE (charset_table.attributes_table) == charset_table.size as isize);
 
@@ -2346,6 +2404,8 @@ unsafe fn shrink_charset_table ()
     }
   eassert! (charset_table.size == charset_table.used);
   eassert! (ASIZE (charset_table.attributes_table) == charset_table.size as isize);
+
+  }
 }
 
 DEFUN! ("clear-charset-maps", Fclear_charset_maps, Sclear_charset_maps,
@@ -2466,11 +2526,15 @@ pub struct charset_sort_data
 
 unsafe extern "C" fn charset_compare (d1: *const c_void, d2: *const c_void) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let data1: *const charset_sort_data = d1 as *const charset_sort_data;
   let data2: *const charset_sort_data = d2 as *const charset_sort_data;
   if (*data1).priority != (*data2).priority
     { return if (*data1).priority < (*data2).priority { -1 } else { 1 }; }
   return 0;
+
+  }
 }
 
 DEFUN! ("sort-charsets", Fsort_charsets, Ssort_charsets, 1, 1, 0,
@@ -2549,6 +2613,8 @@ DEFUN! ("sort-charsets", Fsort_charsets, Ssort_charsets, 1, 1, 0,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn init_charset ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut tempdir: Lisp_Object = Qnil ();
   tempdir = Fexpand_file_name (build_string (c"charsets".as_ptr ()), Vdata_directory);
   if ! file_accessible_directory_p (tempdir)
@@ -2566,11 +2632,15 @@ pub unsafe extern "C-unwind" fn init_charset ()
     }
 
   Vcharset_map_path = list1 (tempdir);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn init_charset_once ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut i: c_int = 0;
   let mut j: c_int = 0;
   let mut k: c_int = 0;
@@ -2604,6 +2674,8 @@ pub unsafe extern "C-unwind" fn init_charset_once ()
 
   charset_ksc5601 = -1;
   PDUMPER_REMEMBER_SCALAR! (charset_ksc5601);
+
+  }
 }
 
 /* Initial value for charset_table_size.  As of October 2025, the
@@ -2615,6 +2687,8 @@ pub const CHARSET_TABLE_INIT_SIZE: c_int = 190;
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_charset ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   DEFSYM! (Qcharsetp, c"charsetp");
   DEFSYM! (Qdefine_charset_internal, c"define-charset-internal");
 
@@ -2716,4 +2790,6 @@ pub unsafe extern "C-unwind" fn syms_of_charset ()
 
   charset_unibyte = charset_iso_8859_1;
   PDUMPER_REMEMBER_SCALAR! (charset_unibyte);
+
+  }
 }

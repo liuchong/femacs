@@ -52,10 +52,7 @@
 // C's uninitialised locals are the `std::mem::zeroed ()` declarations named in
 // `docs/ports/bidi.md` (PORTING.md 1.5).
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
-         unsafe_op_in_unsafe_fn, unused_assignments, unreachable_code, while_true,
-         unused_parens, unused_mut)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe, unused_assignments, unreachable_code, while_true, unused_parens, unused_mut)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -274,6 +271,8 @@ static mut paragraph_separate_re: Lisp_Object = std::ptr::null_mut ();
    directional OVERRIDE.  */
 unsafe fn bidi_get_type (ch: c_int, r#override: bidi_dir_t) -> bidi_type_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut default_type: bidi_type_t;
 
   if ch == BIDI_EOB
@@ -304,6 +303,8 @@ unsafe fn bidi_get_type (ch: c_int, r#override: bidi_dir_t) -> bidi_type_t
 	  { return default_type; }
       }
     }
+
+  }
 }
 
 unsafe fn bidi_check_type (r#type: bidi_type_t)
@@ -314,6 +315,8 @@ unsafe fn bidi_check_type (r#type: bidi_type_t)
 /* Given a bidi TYPE of a character, return its category.  */
 unsafe fn bidi_get_category (r#type: bidi_type_t) -> bidi_category_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   match r#type
     {
       UNKNOWN_BT => return UNKNOWN_BC,
@@ -323,6 +326,8 @@ unsafe fn bidi_get_category (r#type: bidi_type_t) -> bidi_category_t
       LRE | LRO | RLE | RLO | PDF | LRI | RLI | FSI | PDI => return EXPLICIT_FORMATTING,
       _ => { emacs_abort (); }
     }
+
+  }
 }
 
 unsafe fn bidi_isolate_fmt_char (ch_type: bidi_type_t) -> bool
@@ -337,6 +342,8 @@ unsafe fn bidi_isolate_fmt_char (ch_type: bidi_type_t) -> bool
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn bidi_mirror_char (c: c_int) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut val: Lisp_Object;
 
   if c == BIDI_EOB
@@ -372,11 +379,15 @@ pub unsafe extern "C-unwind" fn bidi_mirror_char (c: c_int) -> c_int
     }
 
   return c;
+
+  }
 }
 
 /* Return the Bidi_Paired_Bracket_Type property of the character C.  */
 unsafe fn bidi_paired_bracket_type (c: c_int) -> bidi_bracket_type_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if c == BIDI_EOB || bidi_inhibit_bpa
     { return BIDI_BRACKET_NONE; }
   if c < 0 || c > MAX_CHAR
@@ -384,6 +395,8 @@ unsafe fn bidi_paired_bracket_type (c: c_int) -> bidi_bracket_type_t
 
   return XFIXNUM (CHAR_TABLE_REF (bidi_brackets_table, c as isize))
 	 as bidi_bracket_type_t;
+
+  }
 }
 
 /* Determine the start-of-sequence (sos) directional type given the two
@@ -393,6 +406,8 @@ unsafe fn bidi_paired_bracket_type (c: c_int) -> bidi_bracket_type_t
 unsafe fn bidi_set_sos_type (bidi_it: *mut bidi_it, level_before: c_int,
 			     level_after: c_int)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let higher_level: c_int = max (level_before as ptrdiff_t, level_after as ptrdiff_t)
 			    as c_int;
 
@@ -406,6 +421,8 @@ unsafe fn bidi_set_sos_type (bidi_it: *mut bidi_it, level_before: c_int,
   (*bidi_it).prev_for_neutral.charpos = (*bidi_it).charpos;
   (*bidi_it).next_for_neutral.orig_type = UNKNOWN_BT;
   (*bidi_it).next_for_neutral.r#type = UNKNOWN_BT;
+
+  }
 }
 
 macro_rules! ISOLATE_STATUS {
@@ -420,6 +437,8 @@ macro_rules! OVERRIDE {
 unsafe fn bidi_push_embedding_level (bidi_it: *mut bidi_it, level: c_int,
 				     r#override: bidi_dir_t, isolate_status: bool)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut st: *mut bidi_stack;
   let prev_level: c_int = (*bidi_it).level_stack[(*bidi_it).stack_idx as usize].level
 			  as c_int;
@@ -442,6 +461,8 @@ unsafe fn bidi_push_embedding_level (bidi_it: *mut bidi_it, level: c_int,
   /* We've got a new isolating sequence, compute the directional type
      of sos and initialize per-sequence variables (UAX#9, clause X10).  */
   bidi_set_sos_type (bidi_it, prev_level, level);
+
+  }
 }
 
 /* Pop from the stack the embedding level, the directional override
@@ -449,6 +470,8 @@ unsafe fn bidi_push_embedding_level (bidi_it: *mut bidi_it, level: c_int,
    sequence.  Return the new level.  */
 unsafe fn bidi_pop_embedding_level (bidi_it: *mut bidi_it) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut level: c_int;
 
   /* UAX#9 says to ignore invalid PDFs (X7, last bullet)
@@ -490,12 +513,16 @@ unsafe fn bidi_pop_embedding_level (bidi_it: *mut bidi_it) -> c_int
   level = (*bidi_it).level_stack[(*bidi_it).stack_idx as usize].level as c_int;
   eassert! (0 <= level && level <= BIDI_MAXDEPTH + 1);
   return level;
+
+  }
 }
 
 /* Record in SAVED_INFO the information about the current character.  */
 unsafe fn bidi_remember_char (saved_info: *mut bidi_saved_info, bidi_it: *mut bidi_it,
 			      from_type: bool)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   (*saved_info).charpos = (*bidi_it).charpos;
   if from_type
     { (*saved_info).r#type = (*bidi_it).r#type; }
@@ -504,18 +531,24 @@ unsafe fn bidi_remember_char (saved_info: *mut bidi_saved_info, bidi_it: *mut bi
   bidi_check_type ((*saved_info).r#type);
   (*saved_info).orig_type = (*bidi_it).orig_type;
   bidi_check_type ((*saved_info).orig_type);
+
+  }
 }
 
 /* Copy the bidi iterator from FROM to TO.  To save cycles, this only
    copies the part of the level stack that is actually in use.  */
 unsafe fn bidi_copy_it (to: *mut bidi_it, from: *mut bidi_it)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* Copy everything from the start through the active part of
      the level stack.  */
   memcpy (to as *mut c_void, from as *const c_void,
 	  std::mem::offset_of! (bidi_it, level_stack)
 	  + std::mem::size_of_val (&(*from).level_stack[0])
 	  + (*from).stack_idx as usize * std::mem::size_of_val (&(*from).level_stack[0]));
+
+  }
 }
 
 /***********************************************************************
@@ -551,13 +584,13 @@ static mut bidi_cache_sp: c_int = 0;
    exactly as C names them; taking a shared reference to a `static mut` is the one thing
    that needs the `unsafe` const block (PORTING.md 0.2's `static_mut_refs` allowance).  */
 const bidi_shelve_header_size: usize
-  = const { unsafe {
-      std::mem::size_of_val (&bidi_cache_idx)
-      + std::mem::size_of_val (&bidi_cache_start_stack)
-      + std::mem::size_of_val (&bidi_cache_sp)
-      + std::mem::size_of_val (&bidi_cache_start)
-      + std::mem::size_of_val (&bidi_cache_last_idx)
-      + std::mem::size_of_val (&bidi_cache_max_elts)
+  = const { /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe {
+      femacs_sizeof_ptr (&raw const bidi_cache_idx)
+      + femacs_sizeof_ptr (&raw const bidi_cache_start_stack)
+      + femacs_sizeof_ptr (&raw const bidi_cache_sp)
+      + femacs_sizeof_ptr (&raw const bidi_cache_start)
+      + femacs_sizeof_ptr (&raw const bidi_cache_last_idx)
+      + femacs_sizeof_ptr (&raw const bidi_cache_max_elts)
     } };
 
 /* Effectively remove the cached states beyond the Nth state from the
@@ -565,8 +598,12 @@ const bidi_shelve_header_size: usize
    (buffer or string).  */
 unsafe fn bidi_cache_reset_to (n: c_int)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   bidi_cache_idx = bidi_cache_start + n as ptrdiff_t;
   bidi_cache_last_idx = -1;
+
+  }
 }
 
 /* Reset the cache state to the empty state.  We only reset the part
@@ -577,7 +614,11 @@ unsafe fn bidi_cache_reset_to (n: c_int)
    new position on the same object.  */
 unsafe fn bidi_cache_reset ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   bidi_cache_reset_to (0);
+
+  }
 }
 
 /* Shrink the cache to its minimal size.  Called when we init the bidi
@@ -586,6 +627,8 @@ unsafe fn bidi_cache_reset ()
    cached info is of no further use.  */
 unsafe fn bidi_cache_shrink ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if bidi_cache_size > BIDI_CACHE_CHUNK
     {
       bidi_cache = xrealloc (bidi_cache as *mut c_void,
@@ -594,10 +637,14 @@ unsafe fn bidi_cache_shrink ()
     }
   bidi_cache_reset ();
   bidi_cache_max_elts = BIDI_CACHE_MAX_ELTS_PER_SLOT;
+
+  }
 }
 
 unsafe fn bidi_cache_fetch_state (idx: ptrdiff_t, bidi_it: *mut bidi_it)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let current_scan_dir: c_int = (*bidi_it).scan_dir;
 
   if idx < bidi_cache_start || idx >= bidi_cache_idx
@@ -606,6 +653,8 @@ unsafe fn bidi_cache_fetch_state (idx: ptrdiff_t, bidi_it: *mut bidi_it)
   bidi_copy_it (bidi_it, bidi_cache.offset (idx));
   (*bidi_it).scan_dir = current_scan_dir;
   bidi_cache_last_idx = idx;
+
+  }
 }
 
 /* Find a cached state with a given CHARPOS and resolved embedding
@@ -617,6 +666,8 @@ unsafe fn bidi_cache_fetch_state (idx: ptrdiff_t, bidi_it: *mut bidi_it)
 unsafe fn bidi_cache_search (charpos: ptrdiff_t, level: c_int, mut dir: c_int)
 			     -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut i: ptrdiff_t;
   let mut i_start: ptrdiff_t;
 
@@ -675,6 +726,8 @@ unsafe fn bidi_cache_search (charpos: ptrdiff_t, level: c_int, mut dir: c_int)
     }
 
   return -1;
+
+  }
 }
 
 /* Find a cached state where the resolved level changes to a value
@@ -686,6 +739,8 @@ unsafe fn bidi_cache_search (charpos: ptrdiff_t, level: c_int, mut dir: c_int)
 unsafe fn bidi_cache_find_level_change (level: c_int, mut dir: c_int, before: bool)
 					 -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if bidi_cache_idx != 0
     {
       let mut i: ptrdiff_t = if dir != 0 { bidi_cache_last_idx }
@@ -725,6 +780,8 @@ unsafe fn bidi_cache_find_level_change (level: c_int, mut dir: c_int, before: bo
     }
 
   return -1;
+
+  }
 }
 
 /* Find the previous character position where LEVEL changes to a lower
@@ -733,15 +790,21 @@ unsafe fn bidi_cache_find_level_change (level: c_int, mut dir: c_int, before: bo
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn bidi_level_start (level: c_int) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let slot: ptrdiff_t = bidi_cache_find_level_change (level, -1, true);
 
   if slot >= 0
     { return (*bidi_cache.offset (slot)).charpos; }
   return -1;
+
+  }
 }
 
 unsafe fn bidi_cache_ensure_space (idx: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* Enlarge the cache as needed.  */
   if idx >= bidi_cache_size
     {
@@ -772,11 +835,15 @@ unsafe fn bidi_cache_ensure_space (idx: ptrdiff_t)
 	  eassert! (bidi_cache_size > idx);
 	}
     }
+
+  }
 }
 
 unsafe fn bidi_cache_iterator_state (bidi_it: *mut bidi_it, resolved: bool,
 				     update_only: bool) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
 	  let mut idx: ptrdiff_t = 0;
 
   /* We should never cache on backward scans.  */
@@ -846,6 +913,8 @@ unsafe fn bidi_cache_iterator_state (bidi_it: *mut bidi_it, resolved: bool,
       bidi_cache_last_idx = -1;
       return 0;
     }
+
+  }
 }
 
 /* Look for a cached iterator state that corresponds to CHARPOS.  If
@@ -857,6 +926,8 @@ unsafe fn bidi_cache_iterator_state (bidi_it: *mut bidi_it, resolved: bool,
 unsafe fn bidi_cache_find (charpos: ptrdiff_t, resolved_only: bool,
 			   bidi_it: *mut bidi_it) -> bidi_type_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let i: ptrdiff_t = bidi_cache_search (charpos, -1, (*bidi_it).scan_dir);
 
   if i >= bidi_cache_start
@@ -878,10 +949,14 @@ unsafe fn bidi_cache_find (charpos: ptrdiff_t, resolved_only: bool,
     }
 
   return UNKNOWN_BT;
+
+  }
 }
 
 unsafe fn bidi_peek_at_next_level (bidi_it: *mut bidi_it) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if bidi_cache_idx == bidi_cache_start
     { emacs_abort (); }
   /* If the cache overflowed, return the level of the last cached
@@ -891,6 +966,8 @@ unsafe fn bidi_peek_at_next_level (bidi_it: *mut bidi_it) -> c_int
     { return (*bidi_cache.offset (bidi_cache_idx - 1)).resolved_level as c_int; }
   return (*bidi_cache.offset (bidi_cache_last_idx + (*bidi_it).scan_dir as ptrdiff_t))
 	 .resolved_level as c_int;
+
+  }
 }
 
 /***********************************************************************
@@ -905,6 +982,8 @@ unsafe fn bidi_peek_at_next_level (bidi_it: *mut bidi_it) -> c_int
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn bidi_push_it (bidi_it: *mut bidi_it)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* Give this stack slot its cache room.  */
   bidi_cache_max_elts += BIDI_CACHE_MAX_ELTS_PER_SLOT;
   /* Save the current iterator state in its entirety after the last
@@ -921,6 +1000,8 @@ pub unsafe extern "C-unwind" fn bidi_push_it (bidi_it: *mut bidi_it)
   /* Start a new level of cache, and make it empty.  */
   bidi_cache_start = bidi_cache_idx;
   bidi_cache_last_idx = -1;
+
+  }
 }
 
 /* Restore the iterator state saved by bidi_push_it and return the
@@ -928,6 +1009,8 @@ pub unsafe extern "C-unwind" fn bidi_push_it (bidi_it: *mut bidi_it)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn bidi_pop_it (bidi_it: *mut bidi_it)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if bidi_cache_start <= 0
     { emacs_abort (); }
 
@@ -949,6 +1032,8 @@ pub unsafe extern "C-unwind" fn bidi_pop_it (bidi_it: *mut bidi_it)
 
   bidi_cache_max_elts -= BIDI_CACHE_MAX_ELTS_PER_SLOT;
   eassert! (bidi_cache_max_elts > 0);
+
+  }
 }
 
 static mut bidi_cache_total_alloc: ptrdiff_t = 0;
@@ -957,6 +1042,8 @@ static mut bidi_cache_total_alloc: ptrdiff_t = 0;
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn bidi_shelve_cache () -> *mut c_void
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut databuf: *mut u8;
   let mut alloc: ptrdiff_t;
 
@@ -1009,6 +1096,8 @@ pub unsafe extern "C-unwind" fn bidi_shelve_cache () -> *mut c_void
 	  std::mem::size_of::<ptrdiff_t> ());
 
   return databuf as *mut c_void;
+
+  }
 }
 
 /* Restore the cache state from a copy stashed away by
@@ -1019,6 +1108,8 @@ pub unsafe extern "C-unwind" fn bidi_shelve_cache () -> *mut c_void
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn bidi_unshelve_cache (databuf: *mut c_void, just_free: bool)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut p: *mut u8 = databuf as *mut u8;
 
   if p.is_null ()
@@ -1094,6 +1185,8 @@ pub unsafe extern "C-unwind" fn bidi_unshelve_cache (databuf: *mut c_void, just_
 
       xfree (p as *mut c_void);
     }
+
+  }
 }
 
 /***********************************************************************
@@ -1101,6 +1194,8 @@ pub unsafe extern "C-unwind" fn bidi_unshelve_cache (databuf: *mut c_void, just_
  ***********************************************************************/
 unsafe fn bidi_initialize ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   bidi_type_table = uniprop_table (intern (c"bidi-class".as_ptr ()));
   if NILP (bidi_type_table)
     { emacs_abort (); }
@@ -1126,17 +1221,23 @@ unsafe fn bidi_initialize ()
   bidi_cache_max_elts = BIDI_CACHE_MAX_ELTS_PER_SLOT;
 
   bidi_initialized = true;
+
+  }
 }
 
 /* Do whatever UAX#9 clause X8 says should be done at paragraph's
    end.  */
 unsafe fn bidi_set_paragraph_end (bidi_it: *mut bidi_it)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   (*bidi_it).invalid_levels = 0;
   (*bidi_it).invalid_isolates = 0;
   (*bidi_it).stack_idx = 0;
   (*bidi_it).isolate_level = 0;
   (*bidi_it).resolved_level = (*bidi_it).level_stack[0].level as i8;
+
+  }
 }
 
 /* Initialize the bidi iterator from buffer/string position CHARPOS.  */
@@ -1144,6 +1245,8 @@ unsafe fn bidi_set_paragraph_end (bidi_it: *mut bidi_it)
 pub unsafe extern "C-unwind" fn bidi_init_it (charpos: ptrdiff_t, bytepos: ptrdiff_t,
 				       frame_window_p: bool, bidi_it: *mut bidi_it)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if !bidi_initialized
     { bidi_initialize (); }
   if charpos >= 0
@@ -1180,11 +1283,15 @@ pub unsafe extern "C-unwind" fn bidi_init_it (charpos: ptrdiff_t, bytepos: ptrdi
     { bidi_cache_shrink (); }
   else
     { bidi_cache_reset (); }
+
+  }
 }
 
 /* Perform initializations for reordering a new line of bidi text.  */
 unsafe fn bidi_line_init (bidi_it: *mut bidi_it)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   (*bidi_it).scan_dir = 1; /* FIXME: do we need to have control on this? */
   (*bidi_it).stack_idx = 0;
   (*bidi_it).resolved_level = (*bidi_it).level_stack[0].level as i8;
@@ -1204,6 +1311,8 @@ unsafe fn bidi_line_init (bidi_it: *mut bidi_it)
 		     (*bidi_it).level_stack[0].level as c_int); /* X10 */
 
   bidi_cache_reset ();
+
+  }
 }
 
 /***********************************************************************
@@ -1216,6 +1325,8 @@ unsafe fn bidi_line_init (bidi_it: *mut bidi_it)
 unsafe fn bidi_count_bytes (s: *const u8, beg: ptrdiff_t, begbyte: ptrdiff_t,
 			    end: ptrdiff_t, unibyte: bool) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut pos: ptrdiff_t = beg;
   let mut p: *const u8 = s.offset (begbyte);
   let start: *const u8 = p;
@@ -1235,6 +1346,8 @@ unsafe fn bidi_count_bytes (s: *const u8, beg: ptrdiff_t, begbyte: ptrdiff_t,
     }
 
   return p.offset_from (start);
+
+  }
 }
 
 /* Fetch and return the character at byte position BYTEPOS.  If S is
@@ -1243,6 +1356,8 @@ unsafe fn bidi_count_bytes (s: *const u8, beg: ptrdiff_t, begbyte: ptrdiff_t,
    unibyte string.  */
 unsafe fn bidi_char_at_pos (bytepos: ptrdiff_t, s: *const u8, unibyte: bool) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut s: *const u8 = s;
 
   if !s.is_null ()
@@ -1254,6 +1369,8 @@ unsafe fn bidi_char_at_pos (bytepos: ptrdiff_t, s: *const u8, unibyte: bool) -> 
   else
     { s = BYTE_POS_ADDR (bytepos); }
   return STRING_CHAR (s);
+
+  }
 }
 
 /* Fetch and return the character at CHARPOS/BYTEPOS. ...  */
@@ -1263,6 +1380,8 @@ unsafe fn bidi_fetch_char (charpos: ptrdiff_t, bytepos: ptrdiff_t,
 			   frame_window_p: bool, ch_len: *mut ptrdiff_t,
 			   nchars: *mut ptrdiff_t) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* C's `int ch;` is assigned on every path (PORTING.md 1.5 zero-initialises it).  */
   let mut ch: c_int = 0;
   let endpos: ptrdiff_t
@@ -1411,6 +1530,8 @@ unsafe fn bidi_fetch_char (charpos: ptrdiff_t, bytepos: ptrdiff_t,
     }
 
   return ch;
+
+  }
 }
 
 /* Like bidi_fetch_char, but ignore any text between an isolate
@@ -1426,6 +1547,8 @@ unsafe fn bidi_fetch_char_skip_isolates (charpos: ptrdiff_t, bytepos: ptrdiff_t,
 					 ch_len: *mut ptrdiff_t,
 					 nchars: *mut ptrdiff_t) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let orig_charpos: ptrdiff_t = charpos;
   let orig_bytepos: ptrdiff_t = bytepos;
   let mut charpos: ptrdiff_t = charpos;
@@ -1458,6 +1581,8 @@ unsafe fn bidi_fetch_char_skip_isolates (charpos: ptrdiff_t, bytepos: ptrdiff_t,
   *nchars += charpos - orig_charpos;
   *ch_len += bytepos - orig_bytepos;
   return ch;
+
+  }
 }
 
 /***********************************************************************
@@ -1471,6 +1596,8 @@ unsafe fn bidi_fetch_char_skip_isolates (charpos: ptrdiff_t, bytepos: ptrdiff_t,
    at end of a paragraph.  */
 unsafe fn bidi_at_paragraph_end (charpos: ptrdiff_t, bytepos: ptrdiff_t) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut sep_re: Lisp_Object;
   let mut start_re: Lisp_Object;
   let mut val: ptrdiff_t;
@@ -1500,6 +1627,8 @@ unsafe fn bidi_at_paragraph_end (charpos: ptrdiff_t, bytepos: ptrdiff_t) -> ptrd
 
   unbind_to (count, Qnil ());
   return val;
+
+  }
 }
 
 /* If the user has requested the long scans caching, make sure that
@@ -1507,6 +1636,8 @@ unsafe fn bidi_at_paragraph_end (charpos: ptrdiff_t, bytepos: ptrdiff_t) -> ptrd
 
 unsafe fn bidi_paragraph_cache_on_off () -> *mut c_void
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut cache_buffer: *mut buffer = (current_buffer! ());
   let mut indirect_p: bool = false;
 
@@ -1546,6 +1677,8 @@ unsafe fn bidi_paragraph_cache_on_off () -> *mut c_void
 	}
       return (*cache_buffer).bidi_paragraph_cache;
     }
+
+  }
 }
 
 /* On my 2005-vintage machine, searching back for paragraph start
@@ -1561,6 +1694,8 @@ const MAX_PARAGRAPH_SEARCH: ptrdiff_t = 7500;
 unsafe fn bidi_find_paragraph_start (pos: ptrdiff_t, pos_byte: ptrdiff_t)
 				     -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut pos: ptrdiff_t = pos;
   let mut pos_byte: ptrdiff_t = pos_byte;
   let re: Lisp_Object
@@ -1618,6 +1753,8 @@ unsafe fn bidi_find_paragraph_start (pos: ptrdiff_t, pos_byte: ptrdiff_t)
      BEGV..ZV range, so we limit them here.  */
   pos_byte = clip_to_bounds (BEGV_BYTE! (), pos_byte, ZV_BYTE! ());
   return pos_byte;
+
+  }
 }
 
 /* This tracks how far we needed to search for first strong character.  */
@@ -1644,6 +1781,8 @@ unsafe fn find_first_strong_char (pos: ptrdiff_t, bytepos: ptrdiff_t,
 				  ch_len: *mut ptrdiff_t, nchars: *mut ptrdiff_t,
 				  stop_at_pdi: bool) -> bidi_type_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut pos: ptrdiff_t = pos;
   let mut bytepos: ptrdiff_t = bytepos;
   let mut pos1: ptrdiff_t;
@@ -1705,6 +1844,8 @@ unsafe fn find_first_strong_char (pos: ptrdiff_t, bytepos: ptrdiff_t,
 
   nsearch_for_strong += pos - pos1;
   return r#type;
+
+  }
 }
 
 /* Determine the base direction, a.k.a. base embedding level, of the
@@ -1713,6 +1854,8 @@ unsafe fn find_first_strong_char (pos: ptrdiff_t, bytepos: ptrdiff_t,
 pub unsafe extern "C-unwind" fn bidi_paragraph_init (dir: bidi_dir_t, bidi_it: *mut bidi_it,
 					      no_default_p: bool)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut bytepos: ptrdiff_t = (*bidi_it).bytepos;
   let string_p: bool = !(*bidi_it).string.s.is_null ()
 		       || STRINGP ((*bidi_it).string.lstring);
@@ -1858,6 +2001,8 @@ pub unsafe extern "C-unwind" fn bidi_paragraph_init (dir: bidi_dir_t, bidi_it: *
   let nexamined: ptrdiff_t = (*bidi_it).charpos - pos + nsearch_for_strong;
   if max_redisplay_ticks > 0 && nexamined > 0
     { update_redisplay_ticks ((nexamined / 50) as c_int, (*bidi_it).w); }
+
+  }
 }
 
 /***********************************************************************
@@ -1867,6 +2012,8 @@ pub unsafe extern "C-unwind" fn bidi_paragraph_init (dir: bidi_dir_t, bidi_it: *
 
 unsafe fn bidi_explicit_dir_char (ch: c_int) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let ch_type: bidi_type_t;
 
   if !bidi_initialized
@@ -1880,6 +2027,8 @@ unsafe fn bidi_explicit_dir_char (ch: c_int) -> bool
   return ch_type == LRE || ch_type == LRO
 	 || ch_type == RLE || ch_type == RLO
 	 || ch_type == PDF;
+
+  }
 }
 
 /* Given an iterator state in BIDI_IT, advance one character position
@@ -1889,6 +2038,8 @@ unsafe fn bidi_explicit_dir_char (ch: c_int) -> bool
    character after resolving these explicit directives.  */
 unsafe fn bidi_resolve_explicit (bidi_it: *mut bidi_it) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut curchar: c_int;
   let mut r#type: bidi_type_t;
   let mut typ1: bidi_type_t;
@@ -2261,12 +2412,16 @@ unsafe fn bidi_resolve_explicit (bidi_it: *mut bidi_it) -> c_int
 
   eassert! ((*bidi_it).resolved_level >= 0);
   return (*bidi_it).resolved_level as c_int;
+
+  }
 }
 
 /* Advance in the buffer/string, resolve weak types and return the
    type of the next character after weak type resolution.  */
 unsafe fn bidi_resolve_weak (bidi_it: *mut bidi_it) -> bidi_type_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut r#type: bidi_type_t;
   let mut r#override: bidi_dir_t;
   let prev_level: c_int = (*bidi_it).level_stack[(*bidi_it).stack_idx as usize].level
@@ -2540,6 +2695,8 @@ unsafe fn bidi_resolve_weak (bidi_it: *mut bidi_it) -> bidi_type_t
   (*bidi_it).r#type = r#type;
   bidi_check_type ((*bidi_it).r#type);
   return r#type;
+
+  }
 }
 
 /* Resolve the type of a neutral character according to the type of
@@ -2636,6 +2793,8 @@ macro_rules! CANONICAL_EQU {
    zero otherwise.  */
 unsafe fn bidi_find_bracket_pairs (bidi_it: *mut bidi_it) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut btype: bidi_bracket_type_t;
   let mut r#type: bidi_type_t = (*bidi_it).r#type;
   let mut retval: bool = false;
@@ -2921,11 +3080,15 @@ unsafe fn bidi_find_bracket_pairs (bidi_it: *mut bidi_it) -> bool
   if max_redisplay_ticks > 0 && n > 0
     { update_redisplay_ticks ((n / 20 + 1) as c_int, (*bidi_it).w); }
   return retval;
+
+  }
 }
 
 unsafe fn bidi_record_type_for_neutral (info: *mut bidi_saved_info, level: c_int,
 					nextp: bool)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut idx: c_int;
 
   idx = bidi_cache_last_idx as c_int + 1;
@@ -2945,10 +3108,14 @@ unsafe fn bidi_record_type_for_neutral (info: *mut bidi_saved_info, level: c_int
 	}
       idx += 1;
     }
+
+  }
 }
 
 unsafe fn bidi_resolve_brackets (bidi_it: *mut bidi_it) -> bidi_type_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let prev_level: c_int = (*bidi_it).level_stack[(*bidi_it).stack_idx as usize].level
 			  as c_int;
   let mut resolve_bracket: bool = false;
@@ -3102,10 +3269,14 @@ unsafe fn bidi_resolve_brackets (bidi_it: *mut bidi_it) -> bidi_type_t
     }
 
   return r#type;
+
+  }
 }
 
 unsafe fn bidi_resolve_neutral (bidi_it: *mut bidi_it) -> bidi_type_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut r#type: bidi_type_t = bidi_resolve_brackets (bidi_it);
   let mut current_level: c_int;
   let mut is_neutral: bool;
@@ -3297,6 +3468,8 @@ unsafe fn bidi_resolve_neutral (bidi_it: *mut bidi_it) -> bidi_type_t
 	}
     }
   return r#type;
+
+  }
 }
 
 /* Given an iterator state in BIDI_IT, advance one character position
@@ -3305,6 +3478,8 @@ unsafe fn bidi_resolve_neutral (bidi_it: *mut bidi_it) -> bidi_type_t
    type.  */
 unsafe fn bidi_type_of_next_char (bidi_it: *mut bidi_it) -> bidi_type_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let r#type: bidi_type_t;
 
   /* This should always be called during a forward scan.  */
@@ -3314,6 +3489,8 @@ unsafe fn bidi_type_of_next_char (bidi_it: *mut bidi_it) -> bidi_type_t
   r#type = bidi_resolve_neutral (bidi_it);
 
   return r#type;
+
+  }
 }
 
 /* Given an iterator state BIDI_IT, advance one character position in
@@ -3322,6 +3499,8 @@ unsafe fn bidi_type_of_next_char (bidi_it: *mut bidi_it) -> bidi_type_t
    character, and return the resulting level.  */
 unsafe fn bidi_level_of_next_char (bidi_it: *mut bidi_it) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut r#type: bidi_type_t = UNKNOWN_BT;
   let mut level: c_int;
   let mut next_char_pos: ptrdiff_t = -2;
@@ -3468,12 +3647,16 @@ unsafe fn bidi_level_of_next_char (bidi_it: *mut bidi_it) -> c_int
 
   (*bidi_it).resolved_level = level as i8;
   return level;
+
+  }
 }
 
 /* Move to the other edge of a level given by LEVEL.  ...  */
 unsafe fn bidi_find_other_level_edge (bidi_it: *mut bidi_it, level: c_int,
 				      end_flag: bool)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let dir: c_int = if end_flag { -(*bidi_it).scan_dir } else { (*bidi_it).scan_dir };
   let idx: ptrdiff_t;
 
@@ -3530,11 +3713,15 @@ unsafe fn bidi_find_other_level_edge (bidi_it: *mut bidi_it, level: c_int,
 	{ update_redisplay_ticks ((((*bidi_it).charpos - pos0) / 50 + 1) as c_int,
 				 (*bidi_it).w); }
     }
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn bidi_move_to_visually_next (bidi_it: *mut bidi_it)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let old_level: c_int;
   let mut new_level: c_int;
   let mut next_level: c_int;
@@ -3675,6 +3862,8 @@ pub unsafe extern "C-unwind" fn bidi_move_to_visually_next (bidi_it: *mut bidi_i
 
   eassert! ((*bidi_it).resolved_level >= 0
 	    && (*bidi_it).resolved_level as c_int <= BIDI_MAXDEPTH + 2);
+
+  }
 }
 
 /* Utility function for looking for strong directional characters
@@ -3683,6 +3872,8 @@ pub unsafe extern "C-unwind" fn bidi_move_to_visually_next (bidi_it: *mut bidi_i
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn bidi_find_first_overridden (bidi_it: *mut bidi_it) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let eob: ptrdiff_t
     = if STRINGP ((*bidi_it).string.lstring) { (*bidi_it).string.schars } else { ZV! () };
   let mut found_pos: ptrdiff_t = eob;
@@ -3732,6 +3923,8 @@ pub unsafe extern "C-unwind" fn bidi_find_first_overridden (bidi_it: *mut bidi_i
     }
 
   return found_pos;
+
+  }
 }
 
 /* This is meant to be called from within the debugger, whenever you
@@ -3739,6 +3932,8 @@ pub unsafe extern "C-unwind" fn bidi_find_first_overridden (bidi_it: *mut bidi_i
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn bidi_dump_cached_states ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut i: ptrdiff_t;
   let mut ndigits: c_int = 1;
 
@@ -3780,4 +3975,6 @@ pub unsafe extern "C-unwind" fn bidi_dump_cached_states ()
       i += 1;
     }
   putc ('\n' as c_int, stderr);
+
+  }
 }

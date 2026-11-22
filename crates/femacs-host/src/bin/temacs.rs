@@ -1,4 +1,5 @@
 #![no_main]
+#![deny(static_mut_refs, unsafe_op_in_unsafe_fn)]
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn main(

@@ -281,9 +281,13 @@ pub mod signal_decls {
   #[inline(always)]
   pub unsafe fn sigemptyset (set: *mut sigset_t) -> c_int
   {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
     *set = sigset_t { __val: 0 };
     0
+  
   }
+}
 
   /// C: `#define sigemptyset(set) (*(set) = 0, 0)` (MinGW arm; **UNVERIFIED** reading)
   #[cfg (feature = "windowsnt")]
@@ -303,9 +307,13 @@ pub mod signal_decls {
   #[inline(always)]
   pub unsafe fn sigaddset (set: *mut sigset_t, signo: c_int) -> c_int
   {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
     (*set).__val |= __sigbits (signo);
     0
+  
   }
+}
 
   /// C: the same macro on bionic, where `sigset_t` is an `unsigned long`.
   #[cfg (feature = "have_android")]

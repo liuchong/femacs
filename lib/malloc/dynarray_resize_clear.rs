@@ -5,9 +5,7 @@
 // wrapper, which reaches the shared header with no `DYNARRAY_*` defined (its `#else` arm),
 // and the `__libc_dynarray_resize` it declares is the renamed `_gl_dynarray_resize` symbol
 // that lib/malloc/dynarray_resize.c defines.
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
-         static_mut_refs, unsafe_op_in_unsafe_fn)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -22,6 +20,8 @@ pub unsafe extern "C" fn __libc_dynarray_resize_clear (list: *mut dynarray_heade
                                                        size: usize, scratch: *mut c_void,
                                                        element_size: usize) -> bool
 {
+  // SAFETY: gnulib/OS raw buffer or dynamic-array boundary; caller upholds pointer validity, element capacity, and single-owner mutation invariants, returning error/null on overflow or OOM.
+  unsafe {
   let old_size: usize = (*list).used;
   if !__libc_dynarray_resize (list, size, scratch, element_size)
     { return false; }
@@ -30,4 +30,6 @@ pub unsafe extern "C" fn __libc_dynarray_resize_clear (list: *mut dynarray_heade
   memset (array.add (old_size * element_size) as *mut c_void, 0,
           (size - old_size) * element_size);
   return true;
+
+  }
 }

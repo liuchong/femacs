@@ -13,9 +13,7 @@
 // 037, 0100) have no Rust spelling (`0o…` is a different token pair), so they are the one
 // recorded token deviation of this file: docs/ports/macro-body-notes.tsv.
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
-         unsafe_op_in_unsafe_fn)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -130,6 +128,8 @@ pub unsafe extern "C-unwind" fn char_resolve_modifier_mask (mut c: EMACS_INT) ->
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn char_string (mut c: c_uint, p: *mut u8) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut bytes: c_int;
 
   if (c & CHAR_MODIFIER_MASK as c_uint) != 0
@@ -169,6 +169,8 @@ pub unsafe extern "C-unwind" fn char_string (mut c: c_uint, p: *mut u8) -> c_int
     { error (c"Invalid character: %x".as_ptr (), c); }
 
   return bytes;
+
+  }
 }
 
 
@@ -180,6 +182,8 @@ pub unsafe extern "C-unwind" fn char_string (mut c: c_uint, p: *mut u8) -> c_int
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn translate_char (mut table: Lisp_Object, mut c: c_int) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if CHAR_TABLE_P (table)
     {
       let ch: Lisp_Object;
@@ -197,6 +201,8 @@ pub unsafe extern "C-unwind" fn translate_char (mut table: Lisp_Object, mut c: c
 	}
     }
   return c;
+
+  }
 }
 
 DEFUN! ("characterp", Fcharacterp, Scharacterp, 1, 2, 0,
@@ -255,6 +261,8 @@ DEFUN! ("multibyte-char-to-unibyte", Fmultibyte_char_to_unibyte,
 
 unsafe fn char_width (c: c_int, dp: *mut Lisp_Char_Table) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut width: ptrdiff_t = CHARACTER_WIDTH (c) as ptrdiff_t;
 
   if ! dp.is_null ()
@@ -288,6 +296,8 @@ unsafe fn char_width (c: c_int, dp: *mut Lisp_Char_Table) -> ptrdiff_t
 	}
     }
   return width;
+
+  }
 }
 
 
@@ -316,6 +326,8 @@ pub unsafe extern "C-unwind" fn c_string_width (str: *const u8, len: ptrdiff_t, 
 					 nchars: *mut ptrdiff_t, nbytes: *mut ptrdiff_t)
   -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut i: ptrdiff_t = 0;
   let mut i_byte: ptrdiff_t = 0;
   let mut width: ptrdiff_t = 0;
@@ -348,6 +360,8 @@ pub unsafe extern "C-unwind" fn c_string_width (str: *const u8, len: ptrdiff_t, 
     }
 
   return width;
+
+  }
 }
 
 /* Return width of string STR of length LEN when displayed in the
@@ -357,8 +371,12 @@ pub unsafe extern "C-unwind" fn c_string_width (str: *const u8, len: ptrdiff_t, 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn strwidth (str: *const c_char, len: ptrdiff_t) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   return c_string_width (str as *const u8, len, -1, std::ptr::null_mut (),
 			 std::ptr::null_mut ());
+
+  }
 }
 
 /* Return width of a (substring of a) Lisp string STRING when
@@ -377,6 +395,8 @@ pub unsafe extern "C-unwind" fn lisp_string_width (string: Lisp_Object, from: pt
 					    nchars: *mut ptrdiff_t, nbytes: *mut ptrdiff_t,
 					    auto_comp: bool) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* This set multibyte to 0 even if STRING is multibyte when it
      contains only ascii and eight-bit-graphic, but that's
      intentional.  */
@@ -511,6 +531,8 @@ pub unsafe extern "C-unwind" fn lisp_string_width (string: Lisp_Object, from: pt
     }
 
   return width;
+
+  }
 }
 
 DEFUN! ("string-width", Fstring_width, Sstring_width, 1, 3, 0,
@@ -537,12 +559,16 @@ DEFUN! ("string-width", Fstring_width, Sstring_width, 1, 3, 0,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn chars_in_text (ptr: *const u8, nbytes: ptrdiff_t) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* current_buffer is null at early stages of Emacs initialization.  */
   if (current_buffer! ()).is_null ()
       || NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
     { return nbytes; }
 
   return multibyte_chars_in_text (ptr, nbytes);
+
+  }
 }
 
 /* Return the number of characters in the NBYTES bytes at PTR.
@@ -554,6 +580,8 @@ pub unsafe extern "C-unwind" fn chars_in_text (ptr: *const u8, nbytes: ptrdiff_t
 pub unsafe extern "C-unwind" fn multibyte_chars_in_text (mut ptr: *const u8, nbytes: ptrdiff_t)
   -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let endp: *const u8 = ptr.add (nbytes as usize);
   let mut chars: ptrdiff_t = 0;
 
@@ -568,6 +596,8 @@ pub unsafe extern "C-unwind" fn multibyte_chars_in_text (mut ptr: *const u8, nby
     }
 
   return chars;
+
+  }
 }
 
 /* Parse unibyte text at STR of LEN bytes as a multibyte text, count
@@ -581,6 +611,8 @@ pub unsafe extern "C-unwind" fn parse_str_as_multibyte (mut str: *const u8, len:
 						 nchars: *mut ptrdiff_t,
 						 nbytes: *mut ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let endp: *const u8 = str.add (len as usize);
   let mut chars: ptrdiff_t = 0;
   let mut bytes: ptrdiff_t = 0;
@@ -611,6 +643,8 @@ pub unsafe extern "C-unwind" fn parse_str_as_multibyte (mut str: *const u8, len:
 
   *nchars = chars;
   *nbytes = bytes;
+
+  }
 }
 
 /* Arrange unibyte text at STR of NBYTES bytes as a multibyte text.
@@ -626,6 +660,8 @@ pub unsafe extern "C-unwind" fn str_as_multibyte (str: *mut u8, len: ptrdiff_t,
 					   mut nbytes: ptrdiff_t,
 					   nchars: *mut ptrdiff_t) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut p: *mut u8 = str;
   let mut endp: *mut u8 = str.add (nbytes as usize);
   let mut to: *mut u8;
@@ -703,6 +739,8 @@ pub unsafe extern "C-unwind" fn str_as_multibyte (str: *mut u8, len: ptrdiff_t,
   if ! nchars.is_null ()
     { *nchars = chars; }
   return to.offset_from (str);
+
+  }
 }
 
 /* Parse unibyte string at STR of LEN bytes, and return the number of
@@ -713,6 +751,8 @@ pub unsafe extern "C-unwind" fn str_as_multibyte (str: *mut u8, len: ptrdiff_t,
 pub unsafe extern "C-unwind" fn count_size_as_multibyte (str: *const u8, len: ptrdiff_t)
   -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* Count the number of non-ASCII (raw) bytes, since they will occupy
      two bytes in a multibyte string.
 
@@ -739,6 +779,8 @@ pub unsafe extern "C-unwind" fn count_size_as_multibyte (str: *const u8, len: pt
   if over
     { string_overflow (); }
   return bytes;
+
+  }
 }
 
 
@@ -749,6 +791,8 @@ pub unsafe extern "C-unwind" fn count_size_as_multibyte (str: *const u8, len: pt
 pub unsafe extern "C-unwind" fn str_to_multibyte (dst: *mut u8, src: *const u8,
 					   nchars: ptrdiff_t) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut d: *mut u8 = dst;
   let mut i: ptrdiff_t = 0;
   while i < nchars
@@ -764,6 +808,8 @@ pub unsafe extern "C-unwind" fn str_to_multibyte (dst: *mut u8, src: *const u8,
       i += 1;
     }
   return d.offset_from (dst);
+
+  }
 }
 
 /* Arrange multibyte text at STR of LEN bytes as a unibyte text.  It
@@ -773,6 +819,8 @@ pub unsafe extern "C-unwind" fn str_to_multibyte (dst: *mut u8, src: *const u8,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn str_as_unibyte (str: *mut u8, bytes: ptrdiff_t) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut p: *const u8 = str;
   let endp: *const u8 = str.add (bytes as usize);
   let mut to: *mut u8;
@@ -804,10 +852,14 @@ pub unsafe extern "C-unwind" fn str_as_unibyte (str: *mut u8, bytes: ptrdiff_t) 
 	}
     }
   return to.offset_from (str);
+
+  }
 }
 
 unsafe fn string_count_byte8 (string: Lisp_Object) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let multibyte: bool = STRING_MULTIBYTE (string);
   let nbytes: ptrdiff_t = SBYTES (string);
   let mut p: *mut u8 = SDATA (string);
@@ -839,12 +891,16 @@ unsafe fn string_count_byte8 (string: Lisp_Object) -> ptrdiff_t
 	}
     }
   return count;
+
+  }
 }
 
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn string_escape_byte8 (string: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let nchars: ptrdiff_t = SCHARS (string);
   let nbytes: ptrdiff_t = SBYTES (string);
   let multibyte: bool = STRING_MULTIBYTE (string);
@@ -933,6 +989,8 @@ pub unsafe extern "C-unwind" fn string_escape_byte8 (string: Lisp_Object) -> Lis
 	}
     }
   return val;
+
+  }
 }
 
 
@@ -1047,6 +1105,8 @@ DEFUN! ("get-byte", Fget_byte, Sget_byte, 0, 2, 0,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn alphabeticp (c: c_int) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let category: Lisp_Object = CHAR_TABLE_REF (Vunicode_category_table, c as isize);
   if ! FIXNUMP (category)
     { return false; }
@@ -1064,12 +1124,16 @@ pub unsafe extern "C-unwind" fn alphabeticp (c: c_int) -> bool
 	 || gen_cat == UNICODE_CATEGORY_Mc as EMACS_INT
 	 || gen_cat == UNICODE_CATEGORY_Me as EMACS_INT
 	 || gen_cat == UNICODE_CATEGORY_Nl as EMACS_INT;
+
+  }
 }
 
 /* Return true if C is an alphabetic or decimal-number character.  */
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn alphanumericp (c: c_int) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let category: Lisp_Object = CHAR_TABLE_REF (Vunicode_category_table, c as isize);
   if ! FIXNUMP (category)
     { return false; }
@@ -1086,12 +1150,16 @@ pub unsafe extern "C-unwind" fn alphanumericp (c: c_int) -> bool
 	 || gen_cat == UNICODE_CATEGORY_Me as EMACS_INT
 	 || gen_cat == UNICODE_CATEGORY_Nl as EMACS_INT
 	 || gen_cat == UNICODE_CATEGORY_Nd as EMACS_INT;
+
+  }
 }
 
 /* Return true if C is a graphic character.  */
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn graphicp (c: c_int) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let category: Lisp_Object = CHAR_TABLE_REF (Vunicode_category_table, c as isize);
   if ! FIXNUMP (category)
     { return false; }
@@ -1104,12 +1172,16 @@ pub unsafe extern "C-unwind" fn graphicp (c: c_int) -> bool
 	   || gen_cat == UNICODE_CATEGORY_Cc as EMACS_INT /* control */
 	   || gen_cat == UNICODE_CATEGORY_Cs as EMACS_INT /* surrogate */
 	   || gen_cat == UNICODE_CATEGORY_Cn as EMACS_INT); /* unassigned */
+
+  }
 }
 
 /* Return true if C is a printable character.  */
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn printablep (c: c_int) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let category: Lisp_Object = CHAR_TABLE_REF (Vunicode_category_table, c as isize);
   if ! FIXNUMP (category)
     { return false; }
@@ -1119,12 +1191,16 @@ pub unsafe extern "C-unwind" fn printablep (c: c_int) -> bool
   return !(gen_cat == UNICODE_CATEGORY_Cc as EMACS_INT /* control */
 	   || gen_cat == UNICODE_CATEGORY_Cs as EMACS_INT /* surrogate */
 	   || gen_cat == UNICODE_CATEGORY_Cn as EMACS_INT); /* unassigned */
+
+  }
 }
 
 /* Return true if C is graphic character that can be printed independently.  */
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn graphic_base_p (c: c_int) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let category: Lisp_Object = CHAR_TABLE_REF (Vunicode_category_table, c as isize);
   if ! FIXNUMP (category)
     { return false; }
@@ -1140,6 +1216,8 @@ pub unsafe extern "C-unwind" fn graphic_base_p (c: c_int) -> bool
 	   || gen_cat == UNICODE_CATEGORY_Cs as EMACS_INT    /* other, surrogate */
 	   || gen_cat == UNICODE_CATEGORY_Cf as EMACS_INT    /* other, format */
 	   || gen_cat == UNICODE_CATEGORY_Cn as EMACS_INT);  /* other, unassigned */
+
+  }
 }
 
 /* Return true if C is a horizontal whitespace character, as defined
@@ -1147,11 +1225,15 @@ pub unsafe extern "C-unwind" fn graphic_base_p (c: c_int) -> bool
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn blankp (c: c_int) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let category: Lisp_Object = CHAR_TABLE_REF (Vunicode_category_table, c as isize);
   if ! FIXNUMP (category)
     { return false; }
 
   return XFIXNUM (category) == UNICODE_CATEGORY_Zs as EMACS_INT; /* separator, space */
+
+  }
 }
 
 /* hexdigit[C] is one greater than C's numeric value if C is a
@@ -1190,6 +1272,8 @@ pub static hexdigit: [c_char; 256] =
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_character ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   DEFSYM! (Qcharacterp, "characterp");
   DEFSYM! (Qauto_fill_chars, "auto-fill-chars");
 
@@ -1252,4 +1336,6 @@ pub unsafe extern "C-unwind" fn syms_of_character ()
 		"Char table of Unicode's \"General Category\".\nAll Unicode characters have one of the following values (symbol):\n  Lu, Ll, Lt, Lm, Lo, Mn, Mc, Me, Nd, Nl, No, Pc, Pd, Ps, Pe, Pi, Pf, Po,\n  Sm, Sc, Sk, So, Zs, Zl, Zp, Cc, Cf, Cs, Co, Cn\nSee The Unicode Standard for the meaning of those values.");
   /* The correct char-table is setup in characters.el.  */
   Vunicode_category_table = Qnil ();
+
+  }
 }

@@ -142,13 +142,48 @@ def strip_comments_and_strings(source: str) -> str:
                     out.append("\n" if source[k] == "\n" else " ")
                 i = min(end + len(closer), n)
                 continue
+        if ch == "b" and i + 3 < n and source[i + 1] == "'":
+            if source[i + 2] == "\\":
+                k = i + 3
+                while k < n and source[k] != "\n" and k - i <= 8:
+                    if source[k] == "'":
+                        out.append(" " * (k - i + 1))
+                        i = k + 1
+                        break
+                    k += 1
+                else:
+                    out.append(ch)
+                    i += 1
+                continue
+            if source[i + 2] != "\n" and source[i + 3] == "'":
+                out.append("    ")
+                i += 4
+                continue
+        if ch == "'" and i + 2 < n:
+            # Scrub Rust character literals ('a', '\n', '\x7f', '\u{...}') without touching lifetimes ('a)
+            if source[i + 1] == "\\":
+                k = i + 2
+                while k < n and source[k] != "\n" and k - i <= 12:
+                    if source[k] == "'":
+                        out.append(" " * (k - i + 1))
+                        i = k + 1
+                        break
+                    k += 1
+                else:
+                    out.append(ch)
+                    i += 1
+                continue
+            if source[i + 1] != "\n" and source[i + 2] == "'":
+                out.append("   ")
+                i += 3
+                continue
         if ch == '"':
             out.append(" ")
             i += 1
             while i < n:
                 c2 = source[i]
                 if c2 == "\\":
-                    out.append("  ")
+                    out.append(" \n" if i + 1 < n and source[i + 1] == "\n" else "  ")
                     i += 2
                     continue
                 out.append("\n" if c2 == "\n" else " ")
@@ -225,7 +260,9 @@ def is_fn_definition(scrubbed: str, match_end: int) -> bool:
 def analyze_rust_file(path: Path, rel: str) -> dict:
     raw = path.read_text(encoding="utf-8", errors="replace")
     scrubbed = strip_comments_and_strings(raw)
-    lines_raw = raw.splitlines()
+    lines_raw = raw.split("\n")
+    if lines_raw and lines_raw[-1] == "":
+        lines_raw.pop()
 
     allow_tokens: set[str] = set()
     for m in INNER_ALLOW_RE.finditer(scrubbed):
@@ -483,6 +520,90 @@ def inspect_binary(binary: Path, kind: str, native_comp: bool, require_modules: 
     return check_nm_symbols(proc.stdout.splitlines(), kind, native_comp, require_modules)
 
 
+def validate_manifest(repo: Path, report: dict, manifest_path: Path) -> list[str]:
+    errors: list[str] = []
+    if not manifest_path.is_file():
+        return [f"manifest file does not exist: {manifest_path}"]
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if manifest.get("schema") != "femacs-unsafe-boundary-manifest-v1":
+        errors.append(f"unexpected manifest schema: {manifest.get('schema')}")
+
+    for prefix in manifest.get("forbid_unsafe_modules", []):
+        matched = [
+            f
+            for f in report["files"]
+            if f["file"] == prefix or f["file"].startswith(prefix.rstrip("/") + "/")
+        ]
+        if not matched:
+            errors.append(f"manifest forbid_unsafe_modules entry matched no Rust files: {prefix}")
+            continue
+        if not any(f["forbid_unsafe_code"] for f in matched):
+            errors.append(f"manifest forbid_unsafe_modules entry lacks `#![forbid(unsafe_code)]`: {prefix}")
+        for f in matched:
+            if f["unsafe_fn_defs"] > 0 or f["unsafe_blocks"] > 0 or f["extern_c_blocks"] > 0:
+                errors.append(f"manifest forbid_unsafe_modules entry contains unsafe/FFI items: {f['file']}")
+
+    required_root_fields = (
+        "id",
+        "origin",
+        "registration",
+        "liveness",
+        "release",
+        "thread_callback_boundary",
+        "anchor_file",
+        "anchor_pattern",
+    )
+    root_cats = manifest.get("root_categories", [])
+    if len(root_cats) < 9:
+        errors.append(f"expected >= 9 root_categories in manifest, found {len(root_cats)}")
+    for entry in root_cats:
+        for k in required_root_fields:
+            if not str(entry.get(k, "")).strip():
+                errors.append(f"root_categories entry `{entry.get('id', '?')}` missing `{k}`")
+        af = repo / entry.get("anchor_file", "")
+        pat = entry.get("anchor_pattern", "")
+        if not af.is_file():
+            errors.append(f"root_categories `{entry.get('id')}` anchor_file missing: {af}")
+        elif pat and pat not in af.read_text(encoding="utf-8", errors="replace"):
+            errors.append(f"root_categories `{entry.get('id')}` anchor_pattern `{pat}` not found in {entry['anchor_file']}")
+
+    scans = manifest.get("conservative_scans", [])
+    if not scans:
+        errors.append("manifest conservative_scans must not be empty")
+    for sc in scans:
+        for k in ("symbol", "file", "status", "anchor_pattern", "justification"):
+            if not str(sc.get(k, "")).strip():
+                errors.append(f"conservative_scans entry `{sc.get('symbol', '?')}` missing `{k}`")
+        if sc.get("status") not in ("retained_hybrid", "retired_in_u4"):
+            errors.append(f"conservative_scans `{sc.get('symbol')}` invalid status: {sc.get('status')}")
+        sf = repo / sc.get("file", "")
+        pat = sc.get("anchor_pattern", "")
+        if not sf.is_file():
+            errors.append(f"conservative_scans `{sc.get('symbol')}` file missing: {sf}")
+        elif pat and pat not in sf.read_text(encoding="utf-8", errors="replace"):
+            errors.append(f"conservative_scans `{sc.get('symbol')}` anchor `{pat}` not found in {sc['file']}")
+
+    isolated: dict = manifest.get("isolated_unsafe_boundaries", {})
+    actual_unsafe_active = {
+        r["file"]
+        for r in report["files"]
+        if r["active_product"] and (r["unsafe_fn_defs"] > 0 or r["unsafe_blocks"] > 0 or r["extern_c_blocks"] > 0)
+    }
+    unlisted = sorted(actual_unsafe_active - set(isolated.keys()))
+    if unlisted:
+        errors.append(f"active files with unsafe/FFI items missing from isolated_unsafe_boundaries: {unlisted}")
+    stale = sorted(set(isolated.keys()) - actual_unsafe_active)
+    if stale:
+        errors.append(f"stale/non-unsafe entries in isolated_unsafe_boundaries: {stale}")
+
+    required_boundary_fields = ("boundary_class", "caller", "ownership", "invariant", "failure_path")
+    for rel, meta in sorted(isolated.items()):
+        for k in required_boundary_fields:
+            if not isinstance(meta, dict) or not str(meta.get(k, "")).strip():
+                errors.append(f"isolated_unsafe_boundaries[{rel}] missing `{k}`")
+    return errors
+
+
 def run_selftest() -> int:
     failures = 0
 
@@ -570,10 +691,85 @@ def run_selftest() -> int:
             assert res["stitching_includes"] == 0, res
             assert res["generated_includes"] == 0, res
 
+    def test_manifest_allowlist_and_anchors() -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "pure.rs").write_text("#![forbid(unsafe_code)]\npub fn ok() -> i32 { 1 }\n", encoding="utf-8")
+            (root / "bound.rs").write_text(
+                "pub unsafe fn raw() {\n    // SAFETY: test\n    unsafe {}\n}\n",
+                encoding="utf-8",
+            )
+            fake_report = {
+                "files": [
+                    {**analyze_rust_file(root / "pure.rs", "pure.rs"), "active_product": True},
+                    {**analyze_rust_file(root / "bound.rs", "bound.rs"), "active_product": True},
+                ]
+            }
+            mf = root / "manifest.json"
+            good_manifest = {
+                "schema": "femacs-unsafe-boundary-manifest-v1",
+                "forbid_unsafe_modules": ["pure.rs"],
+                "root_categories": [
+                    {
+                        "id": f"cat{i}",
+                        "origin": "o",
+                        "registration": "r",
+                        "liveness": "l",
+                        "release": "rel",
+                        "thread_callback_boundary": "t",
+                        "anchor_file": "bound.rs",
+                        "anchor_pattern": "pub unsafe fn raw",
+                    }
+                    for i in range(9)
+                ],
+                "conservative_scans": [
+                    {
+                        "symbol": "raw",
+                        "file": "bound.rs",
+                        "status": "retained_hybrid",
+                        "anchor_pattern": "pub unsafe fn raw",
+                        "justification": "documented",
+                    }
+                ],
+                "isolated_unsafe_boundaries": {
+                    "bound.rs": {
+                        "boundary_class": "test",
+                        "caller": "c",
+                        "ownership": "o",
+                        "invariant": "i",
+                        "failure_path": "f",
+                    }
+                },
+            }
+            mf.write_text(json.dumps(good_manifest), encoding="utf-8")
+            assert validate_manifest(root, fake_report, mf) == []
+            bad_manifest = dict(good_manifest, isolated_unsafe_boundaries={})
+            mf.write_text(json.dumps(bad_manifest), encoding="utf-8")
+            errs = validate_manifest(root, fake_report, mf)
+            assert any("missing from isolated_unsafe_boundaries" in e for e in errs), errs
+
+    def test_line_continuation_and_formfeed_newline_preservation() -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            p = Path(tmp) / "term_sample.rs"
+            p.write_text(
+                'const MSG: &str = "first\\\nsecond";\n'
+                "\x0c\n"
+                "pub unsafe fn after_formfeed() {\n"
+                "    // SAFETY: line index stays aligned across \\\\n and ^L.\n"
+                "    unsafe {}\n"
+                "}\n",
+                encoding="utf-8",
+            )
+            res = analyze_rust_file(p, "src/term_sample.rs")
+            assert res["unsafe_blocks"] == 1, res
+            assert res["safety_documented_blocks"] == 1, res
+
     case("source_metrics_and_foreign_decl_separation", test_source_metrics)
     case("forbid_unsafe_ignores_string_literals", test_forbid_detection)
     case("nm_duplicate_vm_state_and_abi_gate", test_nm_singleton_and_abi)
     case("comment_and_string_includes_ignored", test_comment_and_string_includes_ignored)
+    case("manifest_allowlist_and_anchor_gate", test_manifest_allowlist_and_anchors)
+    case("line_continuation_and_formfeed_newline_preservation", test_line_continuation_and_formfeed_newline_preservation)
     return 1 if failures else 0
 
 
@@ -584,10 +780,16 @@ def main() -> int:
     ap.add_argument("--out", type=Path, help="Write full JSON report to path")
     ap.add_argument("--baseline", type=Path, help="Compare summary against baseline JSON")
     ap.add_argument("--ratchet", action="store_true", help="Fail if unsafe metrics regress above baseline")
+    ap.add_argument("--manifest", type=Path, help="Validate explicit unsafe boundary manifest JSON")
     ap.add_argument(
         "--require-no-file-allows",
         action="store_true",
         help="Fail if any active product file retains #![allow(unsafe_op_in_unsafe_fn)] or #![allow(static_mut_refs)]",
+    )
+    ap.add_argument(
+        "--require-100pct-safety-docs",
+        action="store_true",
+        help="Fail if any active product `unsafe { ... }` block lacks a surrounding SAFETY: contract comment",
     )
     ap.add_argument(
         "--require-zero-active-stitching",
@@ -623,6 +825,16 @@ def main() -> int:
             errors.append(
                 f"found {active_product['allow_static_mut_refs_files']} active file(s) with #![allow(static_mut_refs)]"
             )
+
+    if args.require_100pct_safety_docs:
+        undoc = active_product["unsafe_blocks"] - active_product["safety_documented_blocks"]
+        if undoc > 0:
+            errors.append(
+                f"found {undoc} active `unsafe {{ ... }}` block(s) without `SAFETY:` contract comments"
+            )
+
+    if args.manifest:
+        errors.extend(validate_manifest(args.repo.resolve(), report, args.manifest.resolve()))
 
     if args.require_zero_active_stitching and active_product["stitching_includes"] > 0:
         bad = [

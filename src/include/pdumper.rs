@@ -35,7 +35,7 @@ pub const PDUMPER_NO_OBJECT: c_int = -1;       // pdumper.h 26
 // pdumper.h 31: `((void) &(thing))`.  Rust has no `(void)` cast; the block takes the
 // address and discards it, which is the same non-evaluation of `thing`'s value.
 macro_rules! PDUMPER_IGNORE {
-    ($thing:expr) => { { let _ = &$thing; } };
+    ($thing:expr) => { { let _ = &raw const $thing; } };
 }
 
 /* The portable dumper automatically preserves the Lisp heap and any C
@@ -60,7 +60,7 @@ macro_rules! PDUMPER_IGNORE {
 macro_rules! PDUMPER_REMEMBER_SCALAR {
     ($thing:expr) => {
         pdumper_remember_scalar (core::ptr::addr_of_mut! ($thing) as *mut c_void,
-                                 core::mem::size_of_val (&$thing) as ptrdiff_t)
+                                 femacs_sizeof_ptr (&raw const $thing) as ptrdiff_t)
     };
 }
 
@@ -100,7 +100,7 @@ pub type pdumper_hook = Option<unsafe extern "C-unwind" fn ()>;
 #[inline(always)]
 pub fn pdumper_remember_scalar (data: *mut c_void, nbytes: ptrdiff_t) {
   // HAVE_PDUMPER is 1 in the frozen configuration, so C's `#ifdef` arm is the live text.
-  unsafe { pdumper_remember_scalar_impl (data, nbytes); }
+  /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { pdumper_remember_scalar_impl (data, nbytes); }
 }
 
 /* Remember the pointer at *PTR.  *PTR must be null or point to a Lisp
@@ -108,19 +108,19 @@ pub fn pdumper_remember_scalar (data: *mut c_void, nbytes: ptrdiff_t) {
    points.  */
 #[inline(always)]
 pub fn pdumper_remember_lv_ptr_raw (ptr: *mut c_void, type_: Lisp_Type) {
-  unsafe { pdumper_remember_lv_ptr_raw_impl (ptr, type_); }
+  /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { pdumper_remember_lv_ptr_raw_impl (ptr, type_); }
 }
 
 #[inline(always)]
 pub fn pdumper_do_now_and_after_load (hook: pdumper_hook) {
-  unsafe { pdumper_do_now_and_after_load_impl (hook); }
+  /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { pdumper_do_now_and_after_load_impl (hook); }
 }
 
 /* Same as 'pdumper_do_now_and_after_load' but for hooks running code
    that can call into Lisp.  */
 #[inline(always)]
 pub fn pdumper_do_now_and_after_late_load (hook: pdumper_hook) {
-  unsafe { pdumper_do_now_and_after_late_load_impl (hook); }
+  /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { pdumper_do_now_and_after_late_load_impl (hook); }
 }
 
 /* Macros useful in pdumper callback functions.  Assign a value if
@@ -173,7 +173,7 @@ pub struct pdumper_loaded_dump
 #[inline(always)]
 pub fn pdumper_object_p (obj: *const c_void) -> bool {
   let obj_addr = obj as uintptr_t;
-  unsafe { dump_public.start <= obj_addr && obj_addr < dump_public.end }
+  /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { dump_public.start <= obj_addr && obj_addr < dump_public.end }
 }
 
 /* Return whether the OBJ is in the cold section of the dump.
@@ -183,7 +183,7 @@ pub fn pdumper_object_p (obj: *const c_void) -> bool {
 #[inline(always)]
 pub fn pdumper_cold_object_p (obj: *const c_void) -> bool {
   #[cfg(enable_checking)]
-  { unsafe { pdumper_cold_object_p_impl (obj) } }
+  { /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { pdumper_cold_object_p_impl (obj) } }
   #[cfg(not(enable_checking))]
   {
     unsafe extern "C-unwind" { static dump_private: [u8; 152]; }
@@ -200,7 +200,7 @@ pub fn pdumper_cold_object_p (obj: *const c_void) -> bool {
    pdumper_object_p would return false.  */
 #[inline(always)]
 pub fn pdumper_find_object_type (obj: *const c_void) -> c_int {
-  unsafe { pdumper_find_object_type_impl (obj) }
+  /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { pdumper_find_object_type_impl (obj) }
 }
 
 /* Return true if TYPE is that of a Lisp object.
@@ -225,7 +225,7 @@ pub fn pdumper_object_p_precise (obj: *const c_void) -> bool {
 #[inline(always)]
 pub fn pdumper_marked_p (obj: *const c_void) -> bool {
   #[cfg(enable_checking)]
-  { unsafe { pdumper_marked_p_impl (obj) } }
+  { /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { pdumper_marked_p_impl (obj) } }
   #[cfg(not(enable_checking))]
   {
     unsafe extern "C-unwind" { static dump_private: [u8; 152]; }
@@ -243,7 +243,7 @@ pub fn pdumper_marked_p (obj: *const c_void) -> bool {
 #[inline(always)]
 pub fn pdumper_set_marked (obj: *const c_void) {
   #[cfg(enable_checking)]
-  { unsafe { pdumper_set_marked_impl (obj) } }
+  { /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { pdumper_set_marked_impl (obj) } }
   #[cfg(not(enable_checking))]
   {
     unsafe extern "C-unwind" { static mut dump_private: [u8; 152]; }
@@ -266,7 +266,7 @@ pub fn pdumper_test_and_set_marked (obj: *const c_void) -> bool {
   #[cfg(not(enable_checking))]
   {
     unsafe extern "C-unwind" { static mut dump_private: [u8; 152]; }
-    unsafe {
+    /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe {
       let bitno: usize = (obj as uintptr_t).wrapping_sub (dump_public.start) >> 3;
       let bits = *(&raw mut dump_private as *mut u8).add (104).cast::<*mut u32> ();
       let slot = bits.add (bitno >> 5);
@@ -282,5 +282,5 @@ pub fn pdumper_test_and_set_marked (obj: *const c_void) -> bool {
 /* Clear all the mark bits for pdumper objects.  */
 #[inline(always)]
 pub fn pdumper_clear_marks () {
-  unsafe { pdumper_clear_marks_impl (); }
+  /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { pdumper_clear_marks_impl (); }
 }

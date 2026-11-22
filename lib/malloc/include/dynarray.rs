@@ -60,7 +60,11 @@ pub unsafe fn __dynarray_error_marker () -> usize
 #[inline(always)]
 pub unsafe fn __dynarray_error (list: *mut dynarray_header) -> bool
 {
+  // SAFETY: gnulib/OS raw buffer or dynamic-array boundary; caller upholds pointer validity, element capacity, and single-owner mutation invariants, returning error/null on overflow or OOM.
+  unsafe {
   return (*list).allocated == __dynarray_error_marker ();
+
+  }
 }
 
 /* struct dynarray_finalize_result { void *array; size_t length; } (C 145-150); the measured

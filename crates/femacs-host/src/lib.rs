@@ -1,3 +1,4 @@
+#![deny(static_mut_refs, unsafe_op_in_unsafe_fn)]
 //! Host boundary crate linking the single VM owner (`femacs-vm`).
 
 pub use femacs_vm;

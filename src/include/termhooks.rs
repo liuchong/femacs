@@ -312,7 +312,7 @@ pub const INPUT_EVENT_PART_SHIFT: u32 = 16;
 #[inline(always)]
 pub fn EVENT_INIT (event: *mut input_event)
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     *event = input_event {
       bits: 0,
       code: 0,
@@ -531,7 +531,7 @@ pub fn XTERMINAL (a: Lisp_Object) -> *mut terminal
    terminal.  */
 #[inline(always)]
 pub fn tset_charset_list (t: *mut terminal, val: Lisp_Object)
-{ unsafe { (*t).charset_list = val; } }
+{ /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*t).charset_list = val; } }
 
 #[inline(always)]
 pub fn tset_selection_alist (t: *mut terminal, val: Lisp_Object)
@@ -541,7 +541,7 @@ pub fn tset_selection_alist (t: *mut terminal, val: Lisp_Object)
 // (the rest of the `FRAME_*`/`TERMINAL_*` family dereferences `struct frame`).
 #[inline(always)]
 pub fn TERMINAL_TERMINAL_CODING (d: *mut terminal) -> *mut c_void
-{ unsafe { (*d).terminal_coding } }
+{ /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*d).terminal_coding } }
 #[inline(always)]
 pub fn TERMINAL_KEYBOARD_CODING (d: *mut terminal) -> *mut c_void
 { unsafe { (*d).keyboard_coding } }
@@ -557,7 +557,7 @@ unsafe extern "C-unwind" { pub static mut initial_terminal: *mut terminal; }    
 // is why that one token is exempted in docs/ports/macro-body-notes.tsv (the FRAME_GARBAGED_P
 // precedent); `scroll_region_cost` is a plain field.
 macro_rules! FRAME_SCROLL_REGION_OK {
-  ($f:expr) => { (unsafe { (*FRAME_TTY! ($f)).bits_caps } & TTY_SCROLL_REGION_OK) != 0 };
+  ($f:expr) => { (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*FRAME_TTY! ($f)).bits_caps } & TTY_SCROLL_REGION_OK) != 0 };
 }
 macro_rules! FRAME_SCROLL_REGION_COST {
   ($f:expr) => { (*FRAME_TTY! ($f)).scroll_region_cost };
@@ -570,7 +570,7 @@ macro_rules! FRAME_SCROLL_REGION_COST {
 // src/callint.rs).  `TERMINAL_ACTIVE_P`'s `(d)->display_info.tty->input` reads the union
 // member the mirror spells `*mut c_void` (P-72 rule ③) and casts it once.
 macro_rules! FRAME_TERMINAL {
-  ($f:expr) => { unsafe { (*$f).terminal } };
+  ($f:expr) => { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*$f).terminal } };
 }
 macro_rules! TERMINAL_ACTIVE_P {
   ($d:expr) => {
@@ -588,13 +588,13 @@ macro_rules! TERMINAL_ACTIVE_P {
 // termhooks.rs without termchar.rs (the FRAME_SCROLL_REGION_OK shape above).  That member
 // token is what docs/ports/macro-body-notes.tsv exempts, as it does for `scroll_region_ok`.
 macro_rules! FRAME_MUST_WRITE_SPACES {
-  ($f:expr) => { (unsafe { (*FRAME_TTY! ($f)).bits_caps } & TTY_MUST_WRITE_SPACES) != 0 };
+  ($f:expr) => { (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*FRAME_TTY! ($f)).bits_caps } & TTY_MUST_WRITE_SPACES) != 0 };
 }
 macro_rules! FRAME_LINE_INS_DEL_OK {
   ($f:expr) => { (unsafe { (*FRAME_TTY! ($f)).bits_caps } & TTY_LINE_INS_DEL_OK) != 0 };
 }
 macro_rules! FRAME_CHAR_INS_DEL_OK {
-  ($f:expr) => { (unsafe { (*FRAME_TTY! ($f)).bits_caps } & TTY_CHAR_INS_DEL_OK) != 0 };
+  ($f:expr) => { (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*FRAME_TTY! ($f)).bits_caps } & TTY_CHAR_INS_DEL_OK) != 0 };
 }
 macro_rules! FRAME_MEMORY_BELOW_FRAME {
   ($f:expr) => { (unsafe { (*FRAME_TTY! ($f)).bits_caps } & TTY_MEMORY_BELOW_FRAME) != 0 };

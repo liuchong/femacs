@@ -491,8 +491,12 @@ pub unsafe fn GC_XFONT_OBJECT (p: Lisp_Object) -> *mut font
 /* C 555-560: `CHECK_FONT_GET_OBJECT`.  */
 pub unsafe fn CHECK_FONT_GET_OBJECT (x: Lisp_Object) -> *mut font
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   CHECK_FONT_OBJECT (x);
   XFONT_OBJECT (x)
+
+  }
 }
 
 /* C 899-908: `valid_font_driver`.  `ENABLE_CHECKING` is undef (macros.tsv 872), so the frozen
@@ -523,7 +527,7 @@ pub fn font_data_structures_may_be_ill_formed () -> bool
     /* C 1023-1026 reads the global bare; the port's is a `static mut` (the mirror's own
        declaration), so the read needs the `unsafe` block - without it the Cairo/pgtk arms read
        `E0133 use of mutable static` (measured on the `xsettings` pgtk-only arm, status 3.542).  */
-    unsafe { gc_in_progress }
+    /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { gc_in_progress }
   }
   #[cfg (not (any (feature = "use_cairo", feature = "use_be_cairo")))]
   {

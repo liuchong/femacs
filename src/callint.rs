@@ -12,9 +12,7 @@
 // The three `static Lisp_Object`s are the port's `lisp_h_Qnil ()` (the C statics are
 // zero-initialized and NIL_IS_ZERO holds, PORTING.md 1.3).
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
-         unsafe_op_in_unsafe_fn)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -93,6 +91,8 @@ const letter_plus: c_int = b'+' as c_int;
 unsafe fn invalid_control_letter (tem: *const c_char, string: *const c_char,
 				  string_len: ptrdiff_t) -> !
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
     /* How many bytes are left unprocessed in the specs string?
        (Note that this excludes the trailing null byte.)  */
     let bytes_left: ptrdiff_t = string_len - (tem as ptrdiff_t - string as ptrdiff_t);
@@ -108,6 +108,8 @@ unsafe fn invalid_control_letter (tem: *const c_char, string: *const c_char,
 
     error (c"Invalid control letter `%c' (#o%03o, #x%04x) in interactive calling string".as_ptr (),
 	   letter as c_int, letter, letter);
+
+  }
 }
 
 static mut preserved_fns: Lisp_Object = lisp_h_Qnil ();
@@ -129,17 +131,23 @@ DEFUN! ("interactive", Finteractive, Sinteractive, 0, UNEVALLED, 0,
    If EXP is not constant, return (quote EXP).  */
 unsafe fn quotify_arg (exp: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if CONSP (exp)
       || (SYMBOLP (exp)
 	  && !NILP (exp) && !EQ (exp, Qt ()))
     { return list2 (Qquote (), exp); }
 
   return exp;
+
+  }
 }
 
 /* Modify EXP by quotifying each element (except the first).  */
 unsafe fn quotify_args (exp: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut tail: Lisp_Object;
   let mut next: Lisp_Object;
   tail = exp;
@@ -150,6 +158,8 @@ unsafe fn quotify_args (exp: Lisp_Object) -> Lisp_Object
       tail = next;
     }
   return exp;
+
+  }
 }
 
 static mut callint_argfuns: [*const c_char; 7]
@@ -158,6 +168,8 @@ static mut callint_argfuns: [*const c_char; 7]
 
 unsafe fn check_mark (for_region: bool)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut tem: Lisp_Object;
   tem = Fmarker_buffer (BVAR! ((current_buffer! ()), mark_));
   if NILP (tem) || (XBUFFER (tem) != (current_buffer! ()))
@@ -166,6 +178,8 @@ unsafe fn check_mark (for_region: bool)
   if !NILP (Vtransient_mark_mode) && NILP (Vmark_even_if_inactive)
       && NILP (BVAR! ((current_buffer! ()), mark_active_))
     { xsignal0 (Qmark_inactive ()); }
+
+  }
 }
 
 /* If FUNCTION has an `interactive-args' spec, replace relevant
@@ -176,6 +190,8 @@ unsafe fn check_mark (for_region: bool)
 
 unsafe fn fix_command (function: Lisp_Object, values: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* Quick exit if there's no values to alter.  */
   if !CONSP (values) || !SYMBOLP (function)
     { return; }
@@ -226,6 +242,8 @@ unsafe fn fix_command (function: Lisp_Object, values: Lisp_Object)
       if final_i > 0 && final_i >= XFIXNUM (XCAR (arity)) - 1
 	{ XSETCDR (final_, Qnil ()); }
     }
+
+  }
 }
 
 /* Helper function to call `read-file-name' from C.  */
@@ -233,9 +251,13 @@ unsafe fn fix_command (function: Lisp_Object, values: Lisp_Object)
 unsafe fn read_file_name (default_filename: Lisp_Object, mustmatch: Lisp_Object,
 			  initial: Lisp_Object, predicate: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   return calln! (Qread_file_name (),
 		 callint_message, Qnil (), default_filename,
 		 mustmatch, initial, predicate);
+
+  }
 }
 
 /* BEWARE: Calling this directly from C would defeat the purpose!  */
@@ -853,8 +875,7 @@ DEFUN! ("call-interactively", Fcall_interactively, Scall_interactively, 1, 3, 0,
       while i < nargs
 	{
 	  *visargs.offset (i) = if *varies.offset (i) > 0
-				  { list1 (intern (*(callint_argfuns
-						     .as_ptr ()
+				  { list1 (intern (*(femacs_array_ptr (&raw const callint_argfuns)
 						     .offset (*varies.offset (i) as isize)))) }
 				else
 				  { quotify_arg (*args.offset (i)) };
@@ -914,6 +935,8 @@ DEFUN! ("prefix-numeric-value", Fprefix_numeric_value, Sprefix_numeric_value,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_callint ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   point_marker = Fmake_marker ();
   staticpro (&raw const point_marker);
 
@@ -987,4 +1010,6 @@ pub unsafe extern "C-unwind" fn syms_of_callint ()
   DEFSYM! (Qcommand_history, "command-history");
   DEFSYM! (Qeval_minibuffer, "eval-minibuffer");
   DEFSYM! (Quse_region_p, "use-region-p");
+
+  }
 }

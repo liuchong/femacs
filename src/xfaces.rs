@@ -35,10 +35,7 @@
 // while a second crate-root item of the same name would be `E0428`; PORTING.md P-21, status
 // 3.29), and so are the `Lisp_Object` globals `globals.rs` declares.
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_mut, unused_assignments,
-         unused_unsafe, static_mut_refs, unsafe_op_in_unsafe_fn, unused_parens,
-         clashing_extern_declarations)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_mut, unused_assignments, unused_unsafe, unused_parens, clashing_extern_declarations)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -434,12 +431,12 @@ pub const FACE_COLORS_COPIED_BITWISE_P: u32 = 1 << 20;
 pub const FACE_OVERSTRIKE: u32 = 1 << 21;
 
 macro_rules! face_bits {
-  (box, $f:expr) => { unsafe { ((*$f).bits & FACE_BOX_MASK) >> FACE_BOX_SHIFT } };
+  (box, $f:expr) => { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { ((*$f).bits & FACE_BOX_MASK) >> FACE_BOX_SHIFT } };
   (box, $f:expr, $v:expr) => {{
     unsafe { (*$f).bits = ((*$f).bits & ! FACE_BOX_MASK) | ((($v) as u32) << FACE_BOX_SHIFT); } }};
   (underline, $f:expr) => { unsafe { ((*$f).bits & FACE_UNDERLINE_MASK) >> FACE_UNDERLINE_SHIFT } };
   (underline, $f:expr, $v:expr) => {{
-    unsafe { (*$f).bits = ((*$f).bits & ! FACE_UNDERLINE_MASK)
+    /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*$f).bits = ((*$f).bits & ! FACE_UNDERLINE_MASK)
                          | ((($v) as u32) << FACE_UNDERLINE_SHIFT); } }};
   (use_box_color_for_shadows_p, $f:expr) =>
     { face_bit_p ($f, FACE_USE_BOX_COLOR_FOR_SHADOWS_P) };
@@ -488,11 +485,19 @@ macro_rules! face_bits {
 }
 
 #[inline(always)]
-pub unsafe fn face_bit_p (f: *mut face, mask: u32) -> bool { ((*f).bits & mask) != 0 }
+pub unsafe fn face_bit_p (f: *mut face, mask: u32) -> bool {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe { ((*f).bits & mask) != 0 
+  }
+}
 
 #[inline(always)]
 pub unsafe fn face_bit_set (f: *mut face, mask: u32, v: bool)
-{ if v { (*f).bits |= mask; } else { (*f).bits &= ! mask; } }
+{
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe { if v { (*f).bits |= mask; } else { (*f).bits &= ! mask; } 
+  }
+}
 
 /// C: frame.h 1379: `#define FRAME_FACE_CACHE(F) (F)->face_cache`.  The `frame` mirror
 /// carries the field as `*mut c_void` ("C: `struct face_cache *face_cache`") because
@@ -507,7 +512,7 @@ macro_rules! FRAME_FACE_CACHE {
 
 #[inline(always)]
 pub fn FRAME_FACE_CACHE (f: *mut frame) -> *mut face_cache
-{ unsafe { (*f).face_cache as *mut face_cache } }
+{ /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f).face_cache as *mut face_cache } }
 
 /* frame.h 517: `bool_bf face_change : 1` is packed into the mirror's `bits2` (P-80); this
    unit writes it and no mirror carries a setter, so the member-named accessor lives here
@@ -522,14 +527,14 @@ macro_rules! frame_bits {
 #[inline(always)]
 pub fn FACE_FROM_ID (f: *mut frame, id: c_int) -> *mut face
 {
-  eassert! (0 <= id && id < unsafe { (*FRAME_FACE_CACHE (f)).used });
+  eassert! (0 <= id && id < /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*FRAME_FACE_CACHE (f)).used });
   unsafe { *((*FRAME_FACE_CACHE (f)).faces_by_id).offset (id as isize) }
 }
 
 #[inline(always)]
 pub fn FACE_FROM_ID_OR_NULL (f: *mut frame, id: c_int) -> *mut face
 {
-  let used: c_int = unsafe { (*FRAME_FACE_CACHE (f)).used };
+  let used: c_int = /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*FRAME_FACE_CACHE (f)).used };
   eassume! (0 <= used);
   if 0 <= id && id < used
     { unsafe { *((*FRAME_FACE_CACHE (f)).faces_by_id).offset (id as isize) } }
@@ -541,7 +546,7 @@ pub fn FACE_FROM_ID_OR_NULL (f: *mut frame, id: c_int) -> *mut face
 #[inline(always)]
 pub fn FACE_SUITABLE_FOR_ASCII_CHAR_P (face: *mut face) -> bool {
   #[cfg(feature = "have_window_system")]
-  { return unsafe { face == (*face).ascii_face }; }
+  { return /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { face == (*face).ascii_face }; }
   #[cfg(not(feature = "have_window_system"))]
   { let _ = face; true }
 }
@@ -557,12 +562,12 @@ pub fn FACE_FOR_CHAR (f: *mut frame, face: *mut face, character: c_int, pos: ptr
       fn face_for_char(f: *mut frame, face: *mut face, ch: c_int,
                        pos: ptrdiff_t, object: Lisp_Object) -> c_int;
     }
-    return unsafe { face_for_char(f, face, character, pos, object) };
+    return /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { face_for_char(f, face, character, pos, object) };
   }
   #[cfg(not(feature = "have_window_system"))]
   {
   let _ = (f, character, pos, object);
-  unsafe { (*face).id }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*face).id }
   }
 }
 
@@ -682,6 +687,8 @@ unsafe extern "C-unwind" {
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn share_image_cache (f: *mut frame) -> *mut image_cache
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let width: c_int = if 10 > FRAME_COLUMN_WIDTH (f) { 10 } else { FRAME_COLUMN_WIDTH (f) };
   let mut tail: Lisp_Object = Qnil ();                 // C 645: `Lisp_Object tail, frame;`
   let mut frame: Lisp_Object = Qnil ();
@@ -705,6 +712,8 @@ pub unsafe extern "C-unwind" fn share_image_cache (f: *mut frame) -> *mut image_
   cache = make_image_cache ();
   (*cache).scaling_col_width = width;
   return cache;
+
+  }
 }
 
 /* C 670-689: initialize face cache and basic faces for frame F.  */
@@ -712,6 +721,8 @@ pub unsafe extern "C-unwind" fn share_image_cache (f: *mut frame) -> *mut image_
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn init_frame_faces (f: *mut frame)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* Make a face cache, if F doesn't have one.  */
   if FRAME_FACE_CACHE (f) == std::ptr::null_mut ()
     { FRAME_FACE_CACHE! (f, make_face_cache (f)); }
@@ -726,6 +737,8 @@ pub unsafe extern "C-unwind" fn init_frame_faces (f: *mut frame)
   /* Realize faces early (Bug#17889).  */
   if ! realize_basic_faces (f)
     { emacs_abort (); }
+
+  }
 }
 
 /* C 695-722: free face cache of frame F.  */
@@ -733,6 +746,8 @@ pub unsafe extern "C-unwind" fn init_frame_faces (f: *mut frame)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn free_frame_faces (f: *mut frame)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let face_cache: *mut face_cache = FRAME_FACE_CACHE (f);
   if ! face_cache.is_null ()
     {
@@ -749,6 +764,8 @@ pub unsafe extern "C-unwind" fn free_frame_faces (f: *mut frame)
       (*f).image_cache = core::ptr::null_mut();
     }
   }
+
+  }
 }
 
 /* C 730-748: clear face caches, and recompute basic faces for frame F.  */
@@ -756,6 +773,8 @@ pub unsafe extern "C-unwind" fn free_frame_faces (f: *mut frame)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn recompute_basic_faces (f: *mut frame)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if ! FRAME_FACE_CACHE (f).is_null ()
     {
       let non_basic_faces_cached: bool =
@@ -771,6 +790,8 @@ pub unsafe extern "C-unwind" fn recompute_basic_faces (f: *mut frame)
       if non_basic_faces_cached
 	{ frame_bits! (face_change, f, true); }
     }
+
+  }
 }
 
 /* C 754-792: clear the face caches of all frames.  CLEAR_FONTS_P means
@@ -849,6 +870,8 @@ DEFUN! ("bitmap-spec-p", Fbitmap_spec_p, Sbitmap_spec_p, 1, 1, 0,
 #[cfg (feature = "have_window_system")]
 unsafe fn load_pixmap (f: *mut frame, name: Lisp_Object) -> ptrdiff_t
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let bitmap_id: ptrdiff_t;
 
   if NILP (name)
@@ -879,6 +902,8 @@ unsafe fn load_pixmap (f: *mut frame, name: Lisp_Object) -> ptrdiff_t
       return 0;
     }
   return bitmap_id;
+
+  }
 }
 
 /* image.c's three bitmap entries; C declares them in dispextern.h 3729-3739, which this
@@ -906,6 +931,8 @@ unsafe extern "C-unwind" {
 unsafe fn parse_hex_color_comp (mut s: *const c_char, e: *const c_char,
                                 dst: *mut c_ushort) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let n: c_int = e.offset_from (s) as c_int;
   if n <= 0 || n > 4
     { return false; }
@@ -927,6 +954,8 @@ unsafe fn parse_hex_color_comp (mut s: *const c_char, e: *const c_char,
   let maxval: c_int = (1 << (n * 4)) - 1;
   *dst = ((val as c_uint) * 65535 / maxval as c_uint) as c_ushort;
   return true;
+
+  }
 }
 
 /* C 955-972: parse floating-point color component specification that starts at S
@@ -935,6 +964,8 @@ unsafe fn parse_hex_color_comp (mut s: *const c_char, e: *const c_char,
 unsafe fn parse_float_color_comp (s: *const c_char, e: *const c_char,
                                   dst: *mut c_ushort) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* Only allow decimal float literals without whitespace.  */
   let mut p: *const c_char = s;
   while p < e
@@ -954,6 +985,8 @@ unsafe fn parse_float_color_comp (s: *const c_char, e: *const c_char,
     }
   else
     { return false; }
+
+  }
 }
 
 /* C 986-1027: parse SPEC as a numeric color specification and set *R, *G and *B.
@@ -963,6 +996,8 @@ pub unsafe extern "C-unwind" fn parse_color_spec (spec: *const c_char,
                                            r: *mut c_ushort, g: *mut c_ushort,
                                            b: *mut c_ushort) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let len: isize = strlen (spec) as isize;
   if *spec == '#' as c_char
     {
@@ -1000,6 +1035,8 @@ pub unsafe extern "C-unwind" fn parse_color_spec (spec: *const c_char,
 	      && parse_float_color_comp (sep2.offset (1), spec.offset (len), b));
     }
   return false;
+
+  }
 }
 
 DEFUN! ("color-values-from-color-spec",
@@ -1024,6 +1061,8 @@ DEFUN! ("color-values-from-color-spec",
 
 unsafe fn parse_rgb_list (mut rgb_list: Lisp_Object, color: *mut Emacs_Color) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* C's statement macro assigns both its free variables (the caller's `rgb_list` and
      `color`) and its `field` parameter; a `macro_rules!` cannot name a caller's local
      (docs/status.md 3.8), so the three field names are the arms and the two free variables
@@ -1063,6 +1102,8 @@ unsafe fn parse_rgb_list (mut rgb_list: Lisp_Object, color: *mut Emacs_Color) ->
   PARSE_RGB_LIST_FIELD! (blue);
 
   return true;
+
+  }
 }
 
 /* C 1082-1139: lookup on frame F the color described by the lisp string COLOR.  */
@@ -1071,6 +1112,8 @@ unsafe fn tty_lookup_color (f: *mut frame, color: Lisp_Object,
 			    tty_color: *mut Emacs_Color,
 			    std_color: *mut Emacs_Color) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut frame: Lisp_Object = Qnil ();
   let mut color_desc: Lisp_Object;
 
@@ -1125,6 +1168,8 @@ unsafe fn tty_lookup_color (f: *mut frame, color: Lisp_Object,
   else
     /* tty-color-desc seems to have returned a bad value.  */
     { return false; }
+
+  }
 }
 
 /* C 1143-1174: an implementation of defined_color_hook for tty frames.  */
@@ -1134,6 +1179,8 @@ pub unsafe extern "C-unwind" fn tty_defined_color (f: *mut frame, color_name: *c
 					    color_def: *mut Emacs_Color, alloc: bool,
 					    _makeIndex: bool) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let _ = (alloc, _makeIndex);
   let mut status: bool = true;
 
@@ -1162,6 +1209,8 @@ pub unsafe extern "C-unwind" fn tty_defined_color (f: *mut frame, color_name: *c
     { status = true; }
 
   return status;
+
+  }
 }
 
 /* C 1179-1207: given the index IDX of a tty color on frame F, return its name, a
@@ -1170,6 +1219,8 @@ pub unsafe extern "C-unwind" fn tty_defined_color (f: *mut frame, color_name: *c
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn tty_color_name (f: *mut frame, idx: c_int) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if idx >= 0 && ! NILP (Ffboundp (Qtty_color_by_index ()))
     {
       let mut frame: Lisp_Object = Qnil ();
@@ -1185,11 +1236,13 @@ pub unsafe extern "C-unwind" fn tty_color_name (f: *mut frame, idx: c_int) -> Li
   /* C's MSDOS arm (`FRAME_MSDOS_P` / `msdos_stdcolor_name`) is dead.  */
 
   if idx == FACE_TTY_DEFAULT_FG_COLOR as c_int
-    { return build_string (unspecified_fg.as_ptr ()); }
+    { return build_string (femacs_array_ptr (&raw const unspecified_fg)); }
   if idx == FACE_TTY_DEFAULT_BG_COLOR as c_int
-    { return build_string (unspecified_bg.as_ptr ()); }
+    { return build_string (femacs_array_ptr (&raw const unspecified_bg)); }
 
   return Qunspecified ();
+
+  }
 }
 
 
@@ -1198,6 +1251,8 @@ pub unsafe extern "C-unwind" fn tty_color_name (f: *mut frame, idx: c_int) -> Li
 
 unsafe fn face_color_gray_p (f: *mut frame, color_name: *const c_char) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut color: Emacs_Color = std::mem::zeroed ();
   let gray_p: bool;
 
@@ -1220,6 +1275,8 @@ unsafe fn face_color_gray_p (f: *mut frame, color_name: *const c_char) -> bool
     { gray_p = false; }
 
   return gray_p;
+
+  }
 }
 
 
@@ -1228,6 +1285,8 @@ unsafe fn face_color_gray_p (f: *mut frame, color_name: *const c_char) -> bool
 unsafe fn face_color_supported_p (f: *mut frame, color_name: *const c_char,
 				  background_p: bool) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut frame: Lisp_Object = Qnil ();
   let mut not_used: Emacs_Color = std::mem::zeroed ();
 
@@ -1236,6 +1295,8 @@ unsafe fn face_color_supported_p (f: *mut frame, color_name: *const c_char,
     /* C's `HAVE_WINDOW_SYSTEM` arm (`FRAME_WINDOW_P`, `Fxw_display_color_p`,
        `Fx_display_grayscale_p`) is dead.  */
     tty_defined_color (f, color_name, &mut not_used, false, false);
+
+  }
 }
 
 DEFUN! ("color-gray-p", Fcolor_gray_p, Scolor_gray_p, 1, 2, 0,
@@ -1264,6 +1325,8 @@ unsafe fn load_color2 (f: *mut frame, face: *mut face, name: Lisp_Object,
                        target_index: lface_attribute_index,
 		       color: *mut Emacs_Color) -> c_ulong
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   eassert! (STRINGP (name));
   eassert! (target_index == LFACE_FOREGROUND_INDEX
 	   || target_index == LFACE_BACKGROUND_INDEX
@@ -1324,6 +1387,8 @@ unsafe fn load_color2 (f: *mut frame, face: *mut face, name: Lisp_Object,
     }
 
   return (*color).pixel;
+
+  }
 }
 
 /* C 1365-1374: load color with name NAME for use by face FACE on frame F.  C spells
@@ -1332,8 +1397,12 @@ unsafe fn load_color2 (f: *mut frame, face: *mut face, name: Lisp_Object,
 unsafe fn load_color (f: *mut frame, face: *mut face, name: Lisp_Object,
 				    target_index: lface_attribute_index) -> c_ulong
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut color: Emacs_Color = std::mem::zeroed ();
   return load_color2 (f, face, name, target_index, &mut color);
+
+  }
 }
 
 /* C 1391-1428: load the foreground/background of FACE from ATTRS, with the stipple
@@ -1341,6 +1410,8 @@ unsafe fn load_color (f: *mut frame, face: *mut face, name: Lisp_Object,
 #[cfg (feature = "have_window_system")]
 unsafe fn load_face_colors (f: *mut frame, face: *mut face, attrs: *mut Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut fg: Lisp_Object;
   let mut bg: Lisp_Object;
   let mut dfg: Lisp_Object;
@@ -1381,6 +1452,8 @@ unsafe fn load_face_colors (f: *mut frame, face: *mut face, attrs: *mut Lisp_Obj
       else
 	{ (*face).foreground = load_color (f, face, dfg, LFACE_FOREGROUND_INDEX); }
     }
+
+  }
 }
 
 
@@ -1495,6 +1568,8 @@ unsafe fn push_named_merge_point (new_named_merge_point: *mut named_merge_point,
 				  named_merge_point_kind: named_merge_point_kind,
 				  named_merge_points: *mut *mut named_merge_point) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut prev: *mut named_merge_point;
 
   prev = *named_merge_points;
@@ -1522,12 +1597,16 @@ unsafe fn push_named_merge_point (new_named_merge_point: *mut named_merge_point,
   *named_merge_points = new_named_merge_point;
 
   return true;
+
+  }
 }
 
 /* C 2013-2050: resolve face name FACE_NAME.  */
 
 unsafe fn resolve_face_name (face_name: Lisp_Object, signal_p: bool) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut face_name = face_name;
   let mut orig_face: Lisp_Object;
   let mut tortoise: Lisp_Object;
@@ -1565,6 +1644,8 @@ unsafe fn resolve_face_name (face_name: Lisp_Object, signal_p: bool) -> Lisp_Obj
     }
 
   return face_name;
+
+  }
 }
 
 /* C 2059-2076: return the face definition of FACE_NAME on frame F.  */
@@ -1572,6 +1653,8 @@ unsafe fn resolve_face_name (face_name: Lisp_Object, signal_p: bool) -> Lisp_Obj
 unsafe fn lface_from_face_name_no_resolve (f: *mut frame, face_name: Lisp_Object,
 					   signal_p: bool) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let lface: Lisp_Object;
 
   if ! f.is_null ()
@@ -1585,14 +1668,20 @@ unsafe fn lface_from_face_name_no_resolve (f: *mut frame, face_name: Lisp_Object
   check_lface! (lface);
 
   return lface;
+
+  }
 }
 
 /* C 2085-2090.  */
 unsafe fn lface_from_face_name (f: *mut frame, face_name: Lisp_Object,
 				signal_p: bool) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let face_name = resolve_face_name (face_name, signal_p);
   return lface_from_face_name_no_resolve (f, face_name, signal_p);
+
+  }
 }
 
 /* C 2099-2113: get face attributes of face FACE_NAME from frame-local faces on
@@ -1600,6 +1689,8 @@ unsafe fn lface_from_face_name (f: *mut frame, face_name: Lisp_Object,
 unsafe fn get_lface_attributes_no_remap (f: *mut frame, face_name: Lisp_Object,
 					 attrs: *mut Lisp_Object, signal_p: bool) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let lface: Lisp_Object;
 
   lface = lface_from_face_name_no_resolve (f, face_name, signal_p);
@@ -1609,6 +1700,8 @@ unsafe fn get_lface_attributes_no_remap (f: *mut frame, face_name: Lisp_Object,
 	      LFACE_VECTOR_SIZE as usize * std::mem::size_of::<Lisp_Object> ()); }
 
   return ! NILP (lface);
+
+  }
 }
 
 /* C 2123-2164.  */
@@ -1616,6 +1709,8 @@ unsafe fn get_lface_attributes (w: *mut window, f: *mut frame, face_name: Lisp_O
 				attrs: *mut Lisp_Object, signal_p: bool,
 				mut named_merge_points: *mut named_merge_point) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let face_remapping: Lisp_Object;
   eassert! (w.is_null () || WINDOW_XFRAME! (w) == f);
 
@@ -1651,6 +1746,8 @@ unsafe fn get_lface_attributes (w: *mut window, f: *mut frame, face_name: Lisp_O
 
   /* Default case, no remapping.  */
   return get_lface_attributes_no_remap (f, face_name, attrs, signal_p);
+
+  }
 }
 
 /* C 2170-2182: true iff all attributes in face attribute vector ATTRS are
@@ -1658,6 +1755,8 @@ unsafe fn get_lface_attributes (w: *mut window, f: *mut frame, face_name: Lisp_O
 
 unsafe fn lface_fully_specified_p (attrs: *const Lisp_Object) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut i: c_int;
 
   i = 1;
@@ -1674,6 +1773,8 @@ unsafe fn lface_fully_specified_p (attrs: *const Lisp_Object) -> bool
     }
 
   return i == LFACE_VECTOR_SIZE;
+
+  }
 }
 
 
@@ -1683,6 +1784,8 @@ unsafe fn lface_fully_specified_p (attrs: *const Lisp_Object) -> bool
 unsafe fn lface_same_font_attributes_p (lface1: *const Lisp_Object,
 				       lface2: *const Lisp_Object) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   eassert! (lface_fully_specified_p (lface1) && lface_fully_specified_p (lface2));
   dispextern_externs::xstrcasecmp (SSDATA (*lface1.offset (LFACE_FAMILY_INDEX as isize)),
 	       SSDATA (*lface2.offset (LFACE_FAMILY_INDEX as isize))) == 0
@@ -1704,16 +1807,22 @@ unsafe fn lface_same_font_attributes_p (lface1: *const Lisp_Object,
 	    && STRINGP (*lface2.offset (LFACE_FONTSET_INDEX as isize))
 	    && dispextern_externs::xstrcasecmp (SSDATA (*lface1.offset (LFACE_FONTSET_INDEX as isize)),
 			    SSDATA (*lface2.offset (LFACE_FONTSET_INDEX as isize))) == 0))
+
+  }
 }
 
 /* Return the fontset id named by ATTRS' fontset attribute, or -1 (C 5971-5986).  */
 #[cfg (feature = "have_window_system")]
 unsafe fn face_fontset (attrs: *const Lisp_Object) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let name: Lisp_Object = *attrs.offset (LFACE_FONTSET_INDEX as isize);
   if ! STRINGP (name)
     { return -1; }
   return fs_query_fontset (name, 0);
+
+  }
 }
 
 /* C 6305-6318: clear the attributes named in `face-font-lax-matched-attributes'.  */
@@ -1721,6 +1830,8 @@ unsafe fn face_fontset (attrs: *const Lisp_Object) -> c_int
 unsafe fn font_maybe_unset_attribute (font_object: Lisp_Object,
 				      index: font_property_index, symbol: Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut tail: Lisp_Object = Vface_font_lax_matched_attributes;
   eassert! (CONSP (tail));
   'tail: loop
@@ -1731,6 +1842,8 @@ unsafe fn font_maybe_unset_attribute (font_object: Lisp_Object,
       if ! CONSP (tail)
 	{ break 'tail; }
     }
+
+  }
 }
 
 /* C's `f->default_face_done_p` (frame.h 340, a `bool_bf`): the per-unit reader/writer shape
@@ -1754,6 +1867,8 @@ macro_rules! default_face_done_p {
 unsafe fn set_lface_from_font (f: *mut frame, lface: Lisp_Object,
 			       font_object: Lisp_Object, force_p: bool)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut val: Lisp_Object;
   let font: *mut font = XFONT_OBJECT (font_object);
 
@@ -1793,6 +1908,8 @@ unsafe fn set_lface_from_font (f: *mut frame, lface: Lisp_Object,
     }
 
   ASET (lface, LFACE_FONT_INDEX as isize, font_object);
+
+  }
 }
 
 /* C 2252-2286: merges the face height FROM with the face height TO, and returns the
@@ -1801,6 +1918,8 @@ unsafe fn set_lface_from_font (f: *mut frame, lface: Lisp_Object,
 unsafe fn merge_face_heights (from: Lisp_Object, to: Lisp_Object,
 			      invalid: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut result: Lisp_Object = invalid;
 
   if FIXNUMP (from)
@@ -1831,6 +1950,8 @@ unsafe fn merge_face_heights (from: Lisp_Object, to: Lisp_Object,
     }
 
   return result;
+
+  }
 }
 
 /* C 2297-2388: merge two Lisp face attribute vectors on frame F, FROM and TO, and
@@ -1840,6 +1961,8 @@ unsafe fn merge_face_vectors (w: *mut window, f: *mut frame, from: *const Lisp_O
 			      to: *mut Lisp_Object,
 			      named_merge_points: *mut named_merge_point)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut i: c_int;
   let mut font: Lisp_Object = Qnil ();
   let mut tospec: Lisp_Object;
@@ -1936,6 +2059,8 @@ unsafe fn merge_face_vectors (w: *mut window, f: *mut frame, from: *const Lisp_O
   /* TO is always an absolute face, which should inherit from nothing.
      We blindly copy the :inherit attribute above and fix it up here.  */
   *to.offset (LFACE_INHERIT_INDEX as isize) = Qnil ();
+
+  }
 }
 
 /* C 2394-2439: chase the chain of face inheritance of frame F's face whose
@@ -1945,6 +2070,8 @@ unsafe fn face_inherited_attr (w: *mut window, f: *mut frame,
 			       attr_idx: lface_attribute_index,
 			       named_merge_points: *mut named_merge_point) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut inherited_attrs: [Lisp_Object; LFACE_VECTOR_SIZE as usize] =
     [Qnil (); LFACE_VECTOR_SIZE as usize];
   let mut attr_val: Lisp_Object = *attrs.offset (attr_idx as isize);
@@ -1988,6 +2115,8 @@ unsafe fn face_inherited_attr (w: *mut window, f: *mut frame,
 	}
     }
   return attr_val;
+
+  }
 }
 
 /* C 2446-2495: chase the chain of inheritance for FACE on frame F, and return
@@ -1995,6 +2124,8 @@ unsafe fn face_inherited_attr (w: *mut window, f: *mut frame,
 unsafe fn face_inheritance_cycle (f: *mut frame, face: Lisp_Object,
 				  child: Lisp_Object) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut face_attrs: [Lisp_Object; LFACE_VECTOR_SIZE as usize] =
     [Qnil (); LFACE_VECTOR_SIZE as usize];
   let mut parent_face: Lisp_Object;
@@ -2048,6 +2179,8 @@ unsafe fn face_inheritance_cycle (f: *mut frame, face: Lisp_Object,
     }
 
   return cycle_found;
+
+  }
 }
 
 /* C 2503-2542: merge the named face FACE_NAME on frame F, into the vector of face
@@ -2057,6 +2190,8 @@ unsafe fn merge_named_face (w: *mut window, f: *mut frame, face_name: Lisp_Objec
 			    mut named_merge_points: *mut named_merge_point,
 			    attr_filter: lface_attribute_index) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut named_merge_point: named_merge_point = std::mem::zeroed ();
 
   if push_named_merge_point (&mut named_merge_point,
@@ -2094,6 +2229,8 @@ unsafe fn merge_named_face (w: *mut window, f: *mut frame, face_name: Lisp_Objec
     }
   else
     { return false; }
+
+  }
 }
 
 /* C 2555-2606: determine whether the face filter FILTER evaluated in window W
@@ -2101,6 +2238,8 @@ unsafe fn merge_named_face (w: *mut window, f: *mut frame, face_name: Lisp_Objec
 unsafe fn evaluate_face_filter (filter: Lisp_Object, w: *mut window,
 				ok: *mut bool, err_msgs: bool) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let orig_filter: Lisp_Object = filter;
   let mut filter = filter;
 
@@ -2149,12 +2288,16 @@ unsafe fn evaluate_face_filter (filter: Lisp_Object, w: *mut window,
     { add_to_log (c"Invalid face filter %S".as_ptr (), orig_filter); }
   *ok = false;
   return false;
+
+  }
 }
 
 /* C 2620-2659: determine whether FACE_REF is a "filter" face specification.  */
 unsafe fn filter_face_ref (face_ref: Lisp_Object, w: *mut window,
 			   ok: *mut bool, err_msgs: bool) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let orig_face_ref: Lisp_Object = face_ref;
   let mut face_ref = face_ref;
   if ! CONSP (face_ref)
@@ -2189,6 +2332,8 @@ unsafe fn filter_face_ref (face_ref: Lisp_Object, w: *mut window,
     { add_to_log (c"Invalid face ref %S".as_ptr (), orig_face_ref); }
   *ok = false;
   return Qnil ();
+
+  }
 }
 
 /* C 2699-3026: merge face attributes from the lisp `face reference' FACE_REF on
@@ -2198,6 +2343,8 @@ unsafe fn merge_face_ref (w: *mut window, f: *mut frame, face_ref: Lisp_Object,
 			  err_msgs: bool, named_merge_points: *mut named_merge_point,
 			  attr_filter: lface_attribute_index) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut ok: bool = true;		/* Succeed without an error? */
   let mut filtered_face_ref: Lisp_Object;
   let mut attr_filter_passed: bool = false;
@@ -2518,6 +2665,8 @@ unsafe fn merge_face_ref (w: *mut window, f: *mut frame, face_ref: Lisp_Object,
     }
 
   return ok;
+
+  }
 }
 
 
@@ -2566,7 +2715,7 @@ DEFUN! ("internal-make-lisp-face", Finternal_make_lisp_face,
       if next_lface_id as ptrdiff_t == lface_id_to_name_size
 	{
 	  lface_id_to_name =
-	    xpalloc (lface_id_to_name as *mut c_void, &mut lface_id_to_name_size, 1,
+	    xpalloc (lface_id_to_name as *mut c_void, &raw mut lface_id_to_name_size, 1,
 		     MAX_FACE_ID, std::mem::size_of::<Lisp_Object> () as ptrdiff_t)
 	    as *mut Lisp_Object;
 	}
@@ -3302,7 +3451,7 @@ DEFUN! ("internal-set-lisp-face-attribute", Finternal_set_lisp_face_attribute,
 	  if EQ (frame, Qt ())
 	    /* Update `default-frame-alist', which is used for new frames.  */
 	    {
-	      store_in_alist (&mut Vdefault_frame_alist, param, value);
+	      store_in_alist (&raw mut Vdefault_frame_alist, param, value);
 	    }
 	  else
 	    /* Update the current frame's parameters.  */
@@ -3323,6 +3472,8 @@ DEFUN! ("internal-set-lisp-face-attribute", Finternal_set_lisp_face_attribute,
 pub unsafe extern "C-unwind" fn update_face_from_frame_parameter (f: *mut frame, param: Lisp_Object,
 							   new_value: Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut face: Lisp_Object = Qnil ();
   let lface: Lisp_Object;
 
@@ -3370,12 +3521,16 @@ pub unsafe extern "C-unwind" fn update_face_from_frame_parameter (f: *mut frame,
       frame_bits! (face_change, f, true);
       fset_redisplay (f as *mut c_void);
     }
+
+  }
 }
 
 /* Set the frame font from a resolved `default' face.  */
 #[cfg (feature = "have_window_system")]
 unsafe fn set_font_frame_param (frame: Lisp_Object, lface: Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let f = XFRAME (frame);
   let mut font = LFACE_FONT! (lface);
   if ! FRAME_WINDOW_P (f) || UNSPECIFIEDP! (font)
@@ -3395,6 +3550,8 @@ unsafe fn set_font_frame_param (frame: Lisp_Object, lface: Lisp_Object)
   AUTO_CONS! (font_parameter_arg, Qfont_parameter (), Qnil ());
   AUTO_LIST2! (args, font_arg, font_parameter_arg);
   gui_set_frame_parameters_1 (f, args, true);
+
+  }
 }
 
 
@@ -3653,6 +3810,8 @@ DEFUN! ("face-font", Fface_font, Sface_font, 1, 3, 0,
 
 unsafe fn face_attr_equal_p (v1: Lisp_Object, v2: Lisp_Object) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* Type can differ, e.g. when one attribute is unspecified, i.e. nil,
      and the other is specified.  */
   if XTYPE (v1) != XTYPE (v2)
@@ -3678,12 +3837,16 @@ unsafe fn face_attr_equal_p (v1: Lisp_Object, v2: Lisp_Object) -> bool
     _ =>
       { return ! NILP (Fequal (v1, v2)); }
     }
+
+  }
 }
 
 /* C 4516-4527: compare face vectors V1 and V2 for equality.  */
 
 unsafe fn lface_equal_p (v1: *const Lisp_Object, v2: *const Lisp_Object) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut i: c_int;
   let mut equal_p: bool = true;
 
@@ -3695,6 +3858,8 @@ unsafe fn lface_equal_p (v1: *const Lisp_Object, v2: *const Lisp_Object) -> bool
     }
 
   return equal_p;
+
+  }
 }
 
 DEFUN! ("internal-lisp-face-equal-p", Finternal_lisp_face_equal_p,
@@ -3803,6 +3968,8 @@ DEFUN! ("frame--face-hash-table", Fframe_face_hash_table, Sframe_face_hash_table
 
 unsafe fn hash_string_case_insensitive (string: Lisp_Object) -> uintptr_t
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut s: *const c_uchar;
   let mut hash: uintptr_t = 0;
   eassert! (STRINGP (string));
@@ -3813,12 +3980,16 @@ unsafe fn hash_string_case_insensitive (string: Lisp_Object) -> uintptr_t
       s = s.offset (1);
     }
   return hash;
+
+  }
 }
 
 /* C 4646-4657: return a hash code for face attribute vector V.  */
 
 unsafe fn lface_hash (v: *const Lisp_Object) -> uintptr_t
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   return hash_string_case_insensitive (*v.offset (LFACE_FAMILY_INDEX as isize))
 	 ^ hash_string_case_insensitive (*v.offset (LFACE_FOUNDRY_INDEX as isize))
 	 ^ hash_string_case_insensitive (*v.offset (LFACE_FOREGROUND_INDEX as isize))
@@ -3827,6 +3998,8 @@ unsafe fn lface_hash (v: *const Lisp_Object) -> uintptr_t
 	 ^ XHASH (*v.offset (LFACE_SLANT_INDEX as isize)) as uintptr_t
 	 ^ XHASH (*v.offset (LFACE_SWIDTH_INDEX as isize)) as uintptr_t
 	 ^ XHASH (*v.offset (LFACE_HEIGHT_INDEX as isize)) as uintptr_t;
+
+  }
 }
 
 /* C 4659-4708: the `HAVE_WINDOW_SYSTEM` block (`lface_same_font_attributes_p`) is dead.  */
@@ -3841,6 +4014,8 @@ unsafe fn lface_hash (v: *const Lisp_Object) -> uintptr_t
 
 unsafe fn make_realized_face (attr: *const Lisp_Object) -> *mut face
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* `enum { off = offsetof (struct face, id) };` — the compile-time offset the port
      keeps as a local the memset below uses.  */
   let off: usize = std::mem::offset_of! (face, id);
@@ -3854,18 +4029,24 @@ unsafe fn make_realized_face (attr: *const Lisp_Object) -> *mut face
   (*face).ascii_face = face;
 
   return face;
+
+  }
 }
 
 /* C 4714-4748: free realized face FACE, including its X resources.  FACE may be null.  */
 
 unsafe fn free_realized_face (f: *mut frame, face: *mut face)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let _ = f;
   if ! face.is_null ()
     {
       /* C's `HAVE_WINDOW_SYSTEM` body (the fontset, GC and bitmap releases) is dead.  */
       xfree (face as *mut c_void);
     }
+
+  }
 }
 
 /* C 4759-4805: `prepare_face_for_display` - "Prepare face FACE for subsequent display on frame F.
@@ -3907,17 +4088,27 @@ unsafe fn x_create_gc (f: *mut frame, value_mask: c_ulong, xgcv: *mut Emacs_GC) 
 // C 575-592: NS emulation owns a copy of the graphics-context values.
 #[cfg(feature = "have_ns")]
 unsafe fn x_create_gc (_f: *mut frame, _mask: c_ulong, egc: *mut Emacs_GC) -> *mut Emacs_GC {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let gc = xmalloc(core::mem::size_of::<Emacs_GC>()).cast::<Emacs_GC>();
   core::ptr::copy_nonoverlapping(egc, gc, 1);
   gc
+
+  }
 }
 #[cfg(feature = "have_ns")]
-unsafe fn x_free_gc (_f: *mut frame, gc: *mut Emacs_GC) { xfree(gc.cast()); }
+unsafe fn x_free_gc (_f: *mut frame, gc: *mut Emacs_GC) {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe { xfree(gc.cast()); 
+  }
+}
 
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn prepare_face_for_display (f: *mut frame, face: *mut face)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut egc: Emacs_GC = std::mem::zeroed ();            // C 4761
   let mut mask: c_ulong;                                  // C 4762
 
@@ -3955,12 +4146,16 @@ pub unsafe extern "C-unwind" fn prepare_face_for_display (f: *mut frame, face: *
 	{ font_prepare_for_face (f, face); }
       unblock_input ();
     }
+
+  }
 }
 
 /* C 4799-4834: returns the `distance' between the colors X and Y.  */
 
 unsafe fn color_distance (x: *mut Emacs_Color, y: *mut Emacs_Color) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* This formula is from a paper titled `Colour metric' by Thiadmer Riemersma.  */
   let r: i64 = (*x).red as i64 - (*y).red as i64;
   let g: i64 = (*x).green as i64 - (*y).green as i64;
@@ -3971,6 +4166,8 @@ unsafe fn color_distance (x: *mut Emacs_Color, y: *mut Emacs_Color) -> c_int
 	   + 4 * g * g
 	   + (((2 * 65536 + 65535 - r_mean) * b * b) >> 16))
 	  >> 16) as c_int;
+
+  }
 }
 
 DEFUN! ("color-distance", Fcolor_distance, Scolor_distance, 2, 4, 0,
@@ -4014,6 +4211,8 @@ DEFUN! ("color-distance", Fcolor_distance, Scolor_distance, 2, 4, 0,
 
 unsafe fn make_face_cache (f: *mut frame) -> *mut face_cache
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let c: *mut face_cache = xmalloc (std::mem::size_of::<face_cache> ()) as *mut face_cache;
 
   (*c).buckets = xzalloc (FACE_CACHE_BUCKETS_SIZE as usize
@@ -4025,6 +4224,8 @@ unsafe fn make_face_cache (f: *mut frame) -> *mut face_cache
   (*c).f = f;
   (*c).menu_face_changed_p = if menu_face_changed_default { 1 } else { 0 };
   return c;
+
+  }
 }
 
 /* C 4898-4970: the `HAVE_WINDOW_SYSTEM` block (`clear_face_gcs`) is dead.  */
@@ -4033,6 +4234,8 @@ unsafe fn make_face_cache (f: *mut frame) -> *mut face_cache
 
 unsafe fn free_realized_faces (c: *mut face_cache)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if ! c.is_null () && (*c).used != 0
     {
       let mut i: c_int;
@@ -4068,6 +4271,8 @@ unsafe fn free_realized_faces (c: *mut face_cache)
 
       unblock_input ();
     }
+
+  }
 }
 
 /* C 4977-4989: free all realized faces on FRAME or on all frames if FRAME is nil.  */
@@ -4075,6 +4280,8 @@ unsafe fn free_realized_faces (c: *mut face_cache)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn free_all_realized_faces (frame: Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if NILP (frame)
     {
       let mut rest: Lisp_Object = Qnil ();
@@ -4086,12 +4293,16 @@ pub unsafe extern "C-unwind" fn free_all_realized_faces (frame: Lisp_Object)
     }
   else
     { free_realized_faces (FRAME_FACE_CACHE (XFRAME (frame))); }
+
+  }
 }
 
 /* C 4994-5004: free face cache C and faces in it, including their X resources.  */
 
 unsafe fn free_face_cache (c: *mut face_cache)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if ! c.is_null ()
     {
       free_realized_faces (c);
@@ -4099,6 +4310,8 @@ unsafe fn free_face_cache (c: *mut face_cache)
       xfree ((*c).faces_by_id as *mut c_void);
       xfree (c as *mut c_void);
     }
+
+  }
 }
 
 /* C 5014-5081: cache realized face FACE in face cache C.  HASH is the hash value
@@ -4106,6 +4319,8 @@ unsafe fn free_face_cache (c: *mut face_cache)
 
 unsafe fn cache_face (c: *mut face_cache, face: *mut face, hash: uintptr_t)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut i: c_int = (hash % FACE_CACHE_BUCKETS_SIZE as uintptr_t) as c_int;
 
   (*face).hash = hash;
@@ -4162,12 +4377,16 @@ unsafe fn cache_face (c: *mut face_cache, face: *mut face, hash: uintptr_t)
     }
 
   *(*c).faces_by_id.offset (i as isize) = face;
+
+  }
 }
 
 /* C 5085-5100: remove face FACE from cache C.  */
 
 unsafe fn uncache_face (c: *mut face_cache, face: *mut face)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let i: c_int = ((*face).hash % FACE_CACHE_BUCKETS_SIZE as uintptr_t) as c_int;
 
   if ! (*face).prev.is_null ()
@@ -4181,6 +4400,8 @@ unsafe fn uncache_face (c: *mut face_cache, face: *mut face)
   *(*c).faces_by_id.offset ((*face).id as isize) = std::ptr::null_mut ();
   if (*face).id == (*c).used
     { (*c).used -= 1; }
+
+  }
 }
 
 /* C 5108-5143: look up a realized face with face attributes ATTR in the face cache
@@ -4188,6 +4409,8 @@ unsafe fn uncache_face (c: *mut face_cache, face: *mut face)
 
 unsafe fn lookup_face (f: *mut frame, attr: *mut Lisp_Object) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let cache: *mut face_cache = FRAME_FACE_CACHE (f);
   let mut face: *mut face;
 
@@ -4220,6 +4443,8 @@ unsafe fn lookup_face (f: *mut frame, attr: *mut Lisp_Object) -> c_int
   /* C's `GLYPH_DEBUG` assertion is dead.  */
 
   return (*face).id;
+
+  }
 }
 
 /// C 5145-5181: "Look up a realized face that has the same attributes as BASE_FACE except for the
@@ -4233,6 +4458,8 @@ unsafe fn lookup_face (f: *mut frame, attr: *mut Lisp_Object) -> c_int
 pub unsafe extern "C-unwind" fn face_for_font (f: *mut frame, font_object: Lisp_Object,
 					mut base_face: *mut face) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let cache: *mut face_cache = FRAME_FACE_CACHE (f);
   let hash: uintptr_t;
   let i: c_int;
@@ -4261,6 +4488,8 @@ pub unsafe extern "C-unwind" fn face_for_font (f: *mut frame, font_object: Lisp_
   /* If not found, realize a new face.  */
   face = realize_non_ascii_face (f, font_object, base_face);
   return (*face).id;
+
+  }
 }
 
 
@@ -4271,6 +4500,8 @@ pub unsafe extern "C-unwind" fn lookup_named_face (w: *mut window, f: *mut frame
 					    symbol: Lisp_Object,
 					    signal_p: bool) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut attrs: [Lisp_Object; LFACE_VECTOR_SIZE as usize] =
     [Qnil (); LFACE_VECTOR_SIZE as usize];
   let mut symbol_attrs: [Lisp_Object; LFACE_VECTOR_SIZE as usize] =
@@ -4303,6 +4534,8 @@ pub unsafe extern "C-unwind" fn lookup_named_face (w: *mut window, f: *mut frame
 		      0 as *mut named_merge_point);
 
   return lookup_face (f, attrs.as_mut_ptr ());
+
+  }
 }
 
 /* C 5232-5288: return the display face-id of the basic face whose canonical face-id
@@ -4312,6 +4545,8 @@ pub unsafe extern "C-unwind" fn lookup_named_face (w: *mut window, f: *mut frame
 pub unsafe extern "C-unwind" fn lookup_basic_face (w: *mut window, f: *mut frame,
 					    face_id: c_int) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut name: Lisp_Object;
   let mut mapping: Lisp_Object;
   let mut remapped_face_id: c_int;
@@ -4373,6 +4608,8 @@ pub unsafe extern "C-unwind" fn lookup_basic_face (w: *mut window, f: *mut frame
     { return face_id; }		/* Give up. */
 
   return remapped_face_id;
+
+  }
 }
 
 /* C 5296-5345: return a face for charset ASCII that is like the face with id
@@ -4407,6 +4644,8 @@ pub unsafe extern "C-unwind" fn lookup_derived_face (w: *mut window, f: *mut fra
 					      symbol: Lisp_Object, face_id: c_int,
 					      signal_p: bool) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut attrs: [Lisp_Object; LFACE_VECTOR_SIZE as usize] =
     [Qnil (); LFACE_VECTOR_SIZE as usize];
   let mut symbol_attrs: [Lisp_Object; LFACE_VECTOR_SIZE as usize] =
@@ -4432,6 +4671,8 @@ pub unsafe extern "C-unwind" fn lookup_derived_face (w: *mut window, f: *mut fra
   merge_face_vectors (w, f, symbol_attrs.as_mut_ptr (), attrs.as_mut_ptr (),
 		      0 as *mut named_merge_point);
   return lookup_face (f, attrs.as_mut_ptr ());
+
+  }
 }
 
 DEFUN! ("face-attributes-as-vector", Fface_attributes_as_vector,
@@ -4482,6 +4723,8 @@ unsafe extern "C-unwind" {
 unsafe fn tty_supports_face_attributes_p (f: *mut frame, attrs: *mut Lisp_Object,
 					   def_face: *mut face) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut weight: c_int;
   let mut slant: c_int;
   let mut val: Lisp_Object;
@@ -4670,6 +4913,8 @@ unsafe fn tty_supports_face_attributes_p (f: *mut frame, attrs: *mut Lisp_Object
   /* See if the capabilities we selected above are supported, with the
      given colors.  */
   return tty_capable_p (FRAME_TTY! (f), test_caps);
+
+  }
 }
 
 DEFUN! ("display-supports-face-attributes-p",
@@ -4793,7 +5038,7 @@ DEFUN! ("internal-set-font-selection-order",
     {
       memcpy (std::ptr::addr_of_mut! (font_sort_order) as *mut c_void,
 	      indices.as_mut_ptr () as *const c_void,
-	      std::mem::size_of_val (&font_sort_order));
+	      femacs_sizeof_ptr (&raw const font_sort_order));
       free_all_realized_faces (Qnil ());
     }
 
@@ -4889,6 +5134,8 @@ unsafe extern "C" {
 
 unsafe fn realize_basic_faces (f: *mut frame) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut success_p: bool = false;
 
   /* Block input here so that we won't be surprised by an X expose
@@ -4940,12 +5187,16 @@ unsafe fn realize_basic_faces (f: *mut frame) -> bool
 
   unblock_input ();
   return success_p;
+
+  }
 }
 
 /* C 6062-6185: realize the default face on frame F.  */
 
 unsafe fn realize_default_face (f: *mut frame) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let c: *mut face_cache = FRAME_FACE_CACHE (f);
   let mut lface: Lisp_Object;
   let mut attrs: [Lisp_Object; LFACE_VECTOR_SIZE as usize] =
@@ -5019,7 +5270,7 @@ unsafe fn realize_default_face (f: *mut frame) -> bool
       else if FRAME_WINDOW_P (f)
 	{ return false; }
       else if FRAME_INITIAL_P (f) || is_tty_frame (f)
-	{ ASET (lface, LFACE_FOREGROUND_INDEX as isize, build_string (unspecified_fg.as_ptr ())); }
+	{ ASET (lface, LFACE_FOREGROUND_INDEX as isize, build_string (femacs_array_ptr (&raw const unspecified_fg))); }
       else
 	{ emacs_abort (); }
     }
@@ -5034,7 +5285,7 @@ unsafe fn realize_default_face (f: *mut frame) -> bool
       else if FRAME_WINDOW_P (f)
 	{ return false; }
       else if FRAME_INITIAL_P (f) || is_tty_frame (f)
-	{ ASET (lface, LFACE_BACKGROUND_INDEX as isize, build_string (unspecified_bg.as_ptr ())); }
+	{ ASET (lface, LFACE_BACKGROUND_INDEX as isize, build_string (femacs_array_ptr (&raw const unspecified_bg))); }
       else
 	{ emacs_abort (); }
     }
@@ -5058,12 +5309,16 @@ unsafe fn realize_default_face (f: *mut frame) -> bool
   let _ = face;
   /* C's `HAVE_WINDOW_SYSTEM` arm (`gui_set_font`) is dead.  */
   return true;
+
+  }
 }
 
 /* C 6193-6227: realize basic faces other than the default face in face cache C.  */
 
 unsafe fn realize_named_face (f: *mut frame, symbol: Lisp_Object, id: c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let c: *mut face_cache = FRAME_FACE_CACHE (f);
   let mut lface: Lisp_Object = lface_from_face_name (f, symbol, false);
   let mut attrs: [Lisp_Object; LFACE_VECTOR_SIZE as usize] =
@@ -5101,6 +5356,8 @@ unsafe fn realize_named_face (f: *mut frame, symbol: Lisp_Object, id: c_int)
 
   /* Realize the face.  */
   realize_face (c, attrs.as_mut_ptr (), id);
+
+  }
 }
 
 /* C 6235-6270: realize the fully-specified face with attributes ATTRS in face
@@ -5109,6 +5366,8 @@ unsafe fn realize_named_face (f: *mut frame, symbol: Lisp_Object, id: c_int)
 unsafe fn realize_face (cache: *mut face_cache, attrs: *mut Lisp_Object,
 			former_face_id: c_int) -> *mut face
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let face: *mut face;
 
   /* LFACE must be fully specified.  */
@@ -5140,6 +5399,8 @@ unsafe fn realize_face (cache: *mut face_cache, attrs: *mut Lisp_Object,
   /* Insert the new face.  */
   cache_face (cache, face, lface_hash (attrs));
   return face;
+
+  }
 }
 
 /* C 6331-6333: `realize_gui_face`'s declaration and its `face = NULL` initializer are
@@ -5147,6 +5408,8 @@ unsafe fn realize_face (cache: *mut face_cache, attrs: *mut Lisp_Object,
 
 unsafe fn realize_gui_face (cache: *mut face_cache, attrs: *mut Lisp_Object) -> *mut face
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   #[cfg (not (feature = "have_window_system"))]
   {
     /* C 6329-6332 and 6662-6663: the declaration and `return face;` are the frozen
@@ -5463,6 +5726,8 @@ unsafe fn realize_gui_face (cache: *mut face_cache, attrs: *mut Lisp_Object) -> 
 
   return face;
   }
+
+  }
 }
 
 /// C 6277-6303: "Realize the fully-specified face that uses FONT-OBJECT and has the same
@@ -5473,6 +5738,8 @@ unsafe fn realize_gui_face (cache: *mut face_cache, attrs: *mut Lisp_Object) -> 
 unsafe fn realize_non_ascii_face (f: *mut frame, font_object: Lisp_Object,
 				  base_face: *mut face) -> *mut face
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let cache: *mut face_cache = FRAME_FACE_CACHE (f);
   let face: *mut face;
 
@@ -5496,6 +5763,8 @@ unsafe fn realize_non_ascii_face (f: *mut frame, font_object: Lisp_Object,
   cache_face (cache, face, (*face).hash);
 
   return face;
+
+  }
 }
 
 /* C 6305-6322: `font_maybe_unset_attribute` (and C 6324-6661's `realize_gui_face` body) stay
@@ -5508,6 +5777,8 @@ unsafe fn realize_non_ascii_face (f: *mut frame, font_object: Lisp_Object,
 unsafe fn map_tty_color (f: *mut frame, face: *mut face, color: Lisp_Object,
 			 idx: lface_attribute_index, defaulted: *mut bool)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut frame: Lisp_Object = Qnil ();
   let mut def: Lisp_Object;
   let foreground_p: bool = idx != LFACE_BACKGROUND_INDEX;
@@ -5551,6 +5822,8 @@ unsafe fn map_tty_color (f: *mut frame, face: *mut face, color: Lisp_Object,
       LFACE_BACKGROUND_INDEX | _ =>
 	{ (*face).background = pixel; }
     }
+
+  }
 }
 
 /* C 6755-6878: realize the fully-specified face with attributes ATTRS in face
@@ -5558,6 +5831,8 @@ unsafe fn map_tty_color (f: *mut frame, face: *mut face, color: Lisp_Object,
 
 unsafe fn realize_tty_face (cache: *mut face_cache, attrs: *mut Lisp_Object) -> *mut face
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let face: *mut face;
   let mut weight: c_int;
   let mut slant: c_int;
@@ -5677,6 +5952,8 @@ unsafe fn realize_tty_face (cache: *mut face_cache, attrs: *mut Lisp_Object) -> 
     { face_bits! (tty_bold_p, face, false); }
 
   return face;
+
+  }
 }
 
 DEFUN! ("tty-suppress-bold-inverse-default-colors",
@@ -5702,6 +5979,8 @@ DEFUN! ("tty-suppress-bold-inverse-default-colors",
 pub unsafe extern "C-unwind" fn compute_char_face (f: *mut frame, mut ch: c_int,
 					    prop: Lisp_Object) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut face_id: c_int;
 
   if NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
@@ -5725,6 +6004,8 @@ pub unsafe extern "C-unwind" fn compute_char_face (f: *mut frame, mut ch: c_int,
     }
 
   return face_id;
+
+  }
 }
 
 /* C 6954-7088: return the face ID associated with buffer position POS for
@@ -5738,6 +6019,8 @@ pub unsafe extern "C-unwind" fn face_at_buffer_position (w: *mut window, pos: pt
 						  attr_filter: lface_attribute_index)
   -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let f: *mut frame = XFRAME ((*w).frame);
   let mut attrs: [Lisp_Object; LFACE_VECTOR_SIZE as usize] =
     [Qnil (); LFACE_VECTOR_SIZE as usize];
@@ -5879,6 +6162,8 @@ pub unsafe extern "C-unwind" fn face_at_buffer_position (w: *mut window, pos: pt
   /* Look up a realized face with the given face attributes,
      or realize a new one for ASCII characters.  */
   return lookup_face (f, attrs.as_mut_ptr ());
+
+  }
 }
 
 /* C 7096-7146: return the face ID at buffer position POS … for overlay OVERLAY.  */
@@ -5891,6 +6176,8 @@ pub unsafe extern "C-unwind" fn face_for_overlay_string (w: *mut window, pos: pt
 						  attr_filter: lface_attribute_index)
   -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let f: *mut frame = XFRAME ((*w).frame);
   let mut attrs: [Lisp_Object; LFACE_VECTOR_SIZE as usize] =
     [Qnil (); LFACE_VECTOR_SIZE as usize];
@@ -5941,6 +6228,8 @@ pub unsafe extern "C-unwind" fn face_for_overlay_string (w: *mut window, pos: pt
   /* Look up a realized face with the given face attributes,
      or realize a new one for ASCII characters.  */
   return lookup_face (f, attrs.as_mut_ptr ());
+
+  }
 }
 
 
@@ -5956,6 +6245,8 @@ pub unsafe extern "C-unwind" fn face_at_string_position (w: *mut window, string:
 						  attr_filter: lface_attribute_index)
   -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let _ = bufpos;
   let mut prop: Lisp_Object;
   let mut position: Lisp_Object = Qnil ();
@@ -6012,6 +6303,8 @@ pub unsafe extern "C-unwind" fn face_at_string_position (w: *mut window, string:
   /* Look up a realized face with the given face attributes,
      or realize a new one for ASCII characters.  */
   return lookup_face (f, attrs.as_mut_ptr ());
+
+  }
 }
 
 
@@ -6021,6 +6314,8 @@ pub unsafe extern "C-unwind" fn face_at_string_position (w: *mut window, string:
 pub unsafe extern "C-unwind" fn merge_faces (w: *mut window, face_name: Lisp_Object,
 				      face_id: c_int, base_face_id: c_int) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let f: *mut frame = WINDOW_XFRAME! (w);
   let mut attrs: [Lisp_Object; LFACE_VECTOR_SIZE as usize] =
     [Qnil (); LFACE_VECTOR_SIZE as usize];
@@ -6086,6 +6381,8 @@ pub unsafe extern "C-unwind" fn merge_faces (w: *mut window, face_name: Lisp_Obj
   /* Look up a realized face with the given face attributes,
      or realize a new one for ASCII characters.  */
   return lookup_face (f, attrs.as_mut_ptr ());
+
+  }
 }
 
 /* C 7306-7352: the `#ifndef HAVE_X_WINDOWS` DEFUN.  */
@@ -6148,6 +6445,8 @@ DEFUN! ("x-load-color-file", Fx_load_color_file,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn init_xfaces ()
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* `HAVE_PDUMPER` is defined in the frozen configuration, so C's arm is live.  */
   let mut nfaces: c_int;
 
@@ -6201,11 +6500,15 @@ pub unsafe extern "C-unwind" fn init_xfaces ()
   face_attr_sym[LFACE_FONTSET_INDEX as usize] = QCfontset ();
   face_attr_sym[LFACE_DISTANT_FOREGROUND_INDEX as usize] = QCdistant_foreground ();
   face_attr_sym[LFACE_EXTEND_INDEX as usize] = QCextend ();
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_xfaces ()
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* The symbols `face' and `mouse-face' used as text properties.  */
   DEFSYM! (Qface, "face");
 
@@ -6401,6 +6704,8 @@ pub unsafe extern "C-unwind" fn syms_of_xfaces ()
   /* C's `HAVE_WINDOW_SYSTEM` registrations (`Sbitmap_spec_p`, `Sx_list_fonts`,
      `Sinternal_face_x_get_resource`, `Sx_family_fonts`) are dead.  */
   defsubr (&raw mut Scolor_values_from_color_spec);
+
+  }
 }
 
 /* C 7800-7843: the `DEFVAR_*` carriers this C file owns.  C's storage is

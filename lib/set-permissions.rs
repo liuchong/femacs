@@ -44,10 +44,14 @@ pub const HAVE_FCHMOD: c_int = 1;
 pub unsafe extern "C" fn chmod_or_fchmod (name: *const c_char, desc: c_int, mode: mode_t)
   -> c_int
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   if HAVE_FCHMOD != 0 && desc != -1
     { return fchmod (desc, mode); }
   else
     { return chmod (name, mode); }
+
+  }
 }
 
 /* Set the permissions in CTX on a file. If DESC is a valid file descriptor,
@@ -61,6 +65,8 @@ pub unsafe extern "C" fn chmod_or_fchmod (name: *const c_char, desc: c_int, mode
 pub unsafe extern "C" fn set_permissions (ctx: *mut permission_context, name: *const c_char,
                                           desc: c_int) -> c_int
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   let acls_set: bool = false;
   let early_chmod: bool;
   let mut must_chmod: bool = false;
@@ -96,4 +102,6 @@ pub unsafe extern "C" fn set_permissions (ctx: *mut permission_context, name: *c
     }
 
   return ret;
+
+  }
 }

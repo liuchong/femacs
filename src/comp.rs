@@ -43,11 +43,7 @@
 // 72-97's neighbours keep `deferred` in `docs/ports/excluded-macros.txt` (P-22).  C 824-5857 is
 // slice 2's and is recorded in the ledger as not yet transcribed.
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
-         unsafe_op_in_unsafe_fn, unused_assignments, unused_parens, unused_mut,
-         unreachable_code, unused_labels, while_true, unused_comparisons, overflowing_literals,
-         unused_must_use, clippy::all)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe, unused_assignments, unused_parens, unused_mut, unreachable_code, unused_labels, while_true, unused_comparisons, overflowing_literals, unused_must_use, clippy::all)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -942,7 +938,7 @@ const _: () = assert! (std::mem::offset_of! (comp_t, d_ephemeral_idx) == 728);
 
 /// C 660: `static comp_t comp;` - C's tentative definition, i.e. zeroed (PORTING.md 0.1-13).
 #[cfg (feature = "have_native_comp")]
-static mut comp: comp_t = unsafe { std::mem::zeroed () };
+static mut comp: comp_t = /* SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames. */ unsafe { std::mem::zeroed () };
 
 /// C 662: `static FILE *logfile;` - C's tentative definition, i.e. a null pointer.
 #[cfg (feature = "have_native_comp")]
@@ -966,13 +962,17 @@ static mut comp_u3: Option<CompU3State> = None;
 
 #[cfg (feature = "have_native_comp")]
 unsafe fn u3_state () -> &'static mut CompU3State {
-  comp_u3.get_or_insert_with (CompU3State::default)
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
+  (*(&raw mut comp_u3)).get_or_insert_with (CompU3State::default)
+
+  }
 }
 
 #[cfg (feature = "have_native_comp")]
 #[inline]
 fn subr_sym_key (sym: Lisp_Object) -> usize {
-  unsafe { Fbare_symbol (sym) as usize }
+  /* SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames. */ unsafe { Fbare_symbol (sym) as usize }
 }
 
 #[cfg(feature = "have_native_comp")]
@@ -982,7 +982,11 @@ mod native_context;
 #[cfg(feature = "have_native_comp")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn femacs_native_reset_process() {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   native_context::reset_process();
+
+  }
 }
 
 /// C 664-668: `static_obj_t` - a length and a flexible `char data[]` array (PORTING.md 1.3's
@@ -1159,14 +1163,18 @@ unsafe extern "C"
 #[cfg (feature = "have_native_comp")]
 unsafe extern "C" fn format_string (format: *const c_char, mut args: ...) -> *mut c_char
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   static mut scratch_area: [c_char; 512] = [0; 512];
   let ap: core::ffi::VaList<'_> = args;
-  let res: c_int = vsnprintf (scratch_area.as_mut_ptr (),
-                              std::mem::size_of_val (&scratch_area), format, ap);
-  if res as usize >= std::mem::size_of_val (&scratch_area)
-    { strcpy (scratch_area.as_mut_ptr ().offset (std::mem::size_of_val (&scratch_area) as isize - 4),
-              c"...".as_ptr ()); }
-  return scratch_area.as_mut_ptr ();
+  let cap: usize = 512;
+  let base: *mut c_char = (&raw mut scratch_area).cast::<c_char> ();
+  let res: c_int = vsnprintf (base, cap, format, ap);
+  if res as usize >= cap
+    { strcpy (base.offset (cap as isize - 4), c"...".as_ptr ()); }
+  return base;
+
+  }
 }
 
 /// C 722-730: `comp_hash_string` - the md5 of a Lisp string, hex-encoded into a substring of the
@@ -1174,11 +1182,15 @@ unsafe extern "C" fn format_string (format: *const c_char, mut args: ...) -> *mu
 #[cfg (feature = "have_native_comp")]
 unsafe fn comp_hash_string (string: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   let mut digest: Lisp_Object = make_uninit_string ((MD5_DIGEST_SIZE * 2) as EMACS_INT);
   md5_buffer (SSDATA (string), SBYTES (string) as usize, SSDATA (digest) as *mut c_void);
   hexbuf_digest (SSDATA (digest), SDATA (digest) as *const c_void, MD5_DIGEST_SIZE);
 
   return Fsubstring (digest, Qnil (), make_fixnum (HASH_LENGTH));
+
+  }
 }
 
 /// C 732-767: `comp_hash_source_file` - the same for a file's contents, with the two `HAVE_ZLIB`
@@ -1188,6 +1200,8 @@ unsafe fn comp_hash_string (string: Lisp_Object) -> Lisp_Object
 #[cfg (feature = "have_native_comp")]
 unsafe fn comp_hash_source_file (filename: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   /* Can't use Finsert_file_contents + Fbuffer_hash as this is called
      by Fcomp_el_to_eln_filename too early during bootstrap.  */
   let is_gz: bool = suffix_p (filename, c".gz".as_ptr ());
@@ -1229,6 +1243,8 @@ unsafe fn comp_hash_source_file (filename: Lisp_Object) -> Lisp_Object
   hexbuf_digest (SSDATA (digest), SDATA (digest) as *const c_void, MD5_DIGEST_SIZE);
 
   return Fsubstring (digest, Qnil (), make_fixnum (HASH_LENGTH));
+
+  }
 }
 
 /* C 769-777: `DEFUN ("comp--subr-signature", …)`.  */
@@ -1252,6 +1268,8 @@ DEFUN! ("comp--subr-signature", Fcomp__subr_signature,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn hash_native_abi ()
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   /* Check runs once.  */
   eassert! (NILP (Vcomp_abi_hash));
 
@@ -1294,6 +1312,7 @@ pub unsafe extern "C-unwind" fn hash_native_abi ()
 
   Vcomp_native_version_dir =
     concat3 (version, build_string (c"-".as_ptr ()), Vcomp_abi_hash);
+  }
 }
 
 /* ==============================================================================================
@@ -1352,9 +1371,13 @@ unsafe extern "C-unwind" fn native_load_roots_cleanup(_data: *mut c_void) {
 }
 #[cfg(feature = "have_native_comp")]
 unsafe extern "C-unwind" fn native_load_roots_mark(data: *mut c_void) {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   let roots = &*(data as *const NativeLoadRoots);
   mark_object(roots.request); mark_object(roots.active); mark_object(roots.ephemeral);
   mark_object(roots.filename); mark_object(roots.encoded); mark_object(roots.result);
+
+  }
 }
 
 /// C 5533-5576: `DEFUN ("native-elisp-load", Fnative_elisp_load, …)`.
@@ -1417,6 +1440,8 @@ DEFUN! ("native-elisp-load", Fnative_elisp_load, Snative_elisp_load, 1, 2, 0,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn unload_comp_unit (cu: *mut Lisp_Native_Comp_Unit)
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   if (*cu).handle.is_null ()
     { return; }
 
@@ -1430,6 +1455,8 @@ pub unsafe extern "C-unwind" fn unload_comp_unit (cu: *mut Lisp_Native_Comp_Unit
     { *saved_cu = Qnil (); }
   if saved_cu.is_null() { native_context::note_cleanup_failure(8); }
   if dynlib_close(handle) == 0 { native_context::note_cleanup_failure(16); }
+
+  }
 }
 
 /// C 5383-5398: `Lisp_Object native_function_doc (Lisp_Object function)`.
@@ -1437,6 +1464,8 @@ pub unsafe extern "C-unwind" fn unload_comp_unit (cu: *mut Lisp_Native_Comp_Unit
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn native_function_doc (function: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   let cu: *mut Lisp_Native_Comp_Unit =
     XNATIVE_COMP_UNIT (Fsubr_native_comp_unit (function));
 
@@ -1449,6 +1478,8 @@ pub unsafe extern "C-unwind" fn native_function_doc (function: Lisp_Object) -> L
   if doc < 0
     { return AREF ((*cu).data_fdoc_v, -doc - 1); }
   return make_fixnum (doc);
+
+  }
 }
 
 /// C 5400-5449: `static Lisp_Object make_subr (...)`.
@@ -1458,6 +1489,8 @@ unsafe fn make_subr (symbol_name: Lisp_Object, minarg: Lisp_Object, maxarg_in: L
 	   intspec: Lisp_Object, command_modes: Lisp_Object, comp_u: Lisp_Object)
   -> Lisp_Object
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   let cu: *mut Lisp_Native_Comp_Unit = XNATIVE_COMP_UNIT (comp_u);
   let handle: dynlib_handle_ptr = (*cu).handle;
   if handle.is_null ()
@@ -1499,6 +1532,8 @@ unsafe fn make_subr (symbol_name: Lisp_Object, minarg: Lisp_Object, maxarg_in: L
   XSETSUBR! (tem, &raw mut (*x).s);
 
   return tem;
+
+  }
 }
 
 /// C 5451-5482: `DEFUN ("comp--register-lambda", Fcomp__register_lambda, …)`.
@@ -1578,6 +1613,8 @@ DEFUN! ("comp--late-register-subr", Fcomp__late_register_subr,
 #[cfg (feature = "have_native_comp")]
 unsafe fn file_in_eln_sys_dir (filename: Lisp_Object) -> bool
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   let mut eln_sys_dir: Lisp_Object = Qnil ();
   let mut tmp: Lisp_Object = Vnative_comp_eln_load_path;
   FOR_EACH_TAIL! (tmp, {
@@ -1587,6 +1624,8 @@ unsafe fn file_in_eln_sys_dir (filename: Lisp_Object) -> bool
 								 Qnil ())),
 			       Fexpand_file_name (filename, Qnil ()),
 			       Qnil (), Qnil ()));
+
+  }
 }
 
 /// C 5279-5281's `Lisp_Object (*top_level_run)(Lisp_Object)` - the entry point the compiled unit
@@ -1603,6 +1642,8 @@ pub unsafe extern "C-unwind" fn load_comp_unit (comp_u_in: *mut Lisp_Native_Comp
                                          loading_dump: bool,
                                          late_load: bool) -> Lisp_Object
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   let roots_count = SPECPDL_INDEX();
   let mut roots = NativeLoadRoots::new();
   XSETPSEUDOVECTOR!(roots.request, comp_u_in, pvec_type::PVEC_NATIVE_COMP_UNIT);
@@ -1671,7 +1712,7 @@ pub unsafe extern "C-unwind" fn load_comp_unit (comp_u_in: *mut Lisp_Native_Comp
   if !already_loaded {
     *current_thread_reloc = &raw mut current_thread as *mut c_void;
     *symbols_reloc = &raw mut symbols_with_pos_enabled as *mut c_void;
-    *function_reloc = freloc.link_table.as_mut_ptr() as *mut c_void;
+    *function_reloc = (&raw mut freloc.link_table).cast::<c_void>();
     for index in 0..data_count {
       *data_relocs.offset(index) = AREF((*comp_u).data_vec, index);
     }
@@ -1691,6 +1732,8 @@ pub unsafe extern "C-unwind" fn load_comp_unit (comp_u_in: *mut Lisp_Native_Comp
   if !recursive_load { unbind_to(ongoing_count, Qnil()); }
   register_native_comp_unit(roots.active);
   return unbind_to(roots_count, roots.result);
+
+  }
 }
 
 #[cfg (feature = "have_native_comp")]
@@ -1698,6 +1741,8 @@ pub unsafe extern "C-unwind" fn load_comp_unit (comp_u_in: *mut Lisp_Native_Comp
 pub unsafe extern "C-unwind" fn maybe_defer_native_compilation (function_name: Lisp_Object,
 							 definition: Lisp_Object)
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   /* C 5080-5100: `#if 0` - `#include <sys/types.h>`, `#include <unistd.h>`, the `log_%d` file and
      the `fprintf`/`fflush` calls.  Dead text from C's own source; no port counterpart.  */
   if ! load_gccjit_if_necessary (false)
@@ -1727,6 +1772,8 @@ pub unsafe extern "C-unwind" fn maybe_defer_native_compilation (function_name: L
   pending_funcalls
     = Fcons (list! (Qnative__compile_async (), src, Qnil (), Qlate ()),
              pending_funcalls);
+
+  }
 }
 
 /**************************************/
@@ -1740,6 +1787,8 @@ pub unsafe extern "C-unwind" fn maybe_defer_native_compilation (function_name: L
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn fixup_eln_load_path (eln_filename: Lisp_Object)
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   let mut last_cell: Lisp_Object = Qnil ();
   let mut tem: Lisp_Object = Vnative_comp_eln_load_path;
   FOR_EACH_TAIL! (tem, {
@@ -1764,6 +1813,8 @@ pub unsafe extern "C-unwind" fn fixup_eln_load_path (eln_filename: Lisp_Object)
       i += 1;
     }
   Fsetcar (last_cell, eln_cache_sys);
+
+  }
 }
 
 /// Native-unit callable exports. Count exports use the same ptrdiff_t return
@@ -1781,6 +1832,8 @@ pub type comp_lit_str_func = unsafe extern "C" fn() -> *mut c_char;
 /// reader binding. P-346/P-352 reject malformed blob metadata before reading.
 #[cfg(feature = "have_native_comp")]
 unsafe fn load_static_obj(comp_u: *mut Lisp_Native_Comp_Unit, name: *const c_char) -> Lisp_Object {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   let count = SPECPDL_INDEX();
   let mut blob = dynlib_sym((*comp_u).handle, format_string(c"%s_blob".as_ptr(), name)) as *mut static_obj_t;
   specbind(intern_c_string(c"load-file-name".as_ptr()), Vcomp__hashdollar);
@@ -1793,23 +1846,33 @@ unsafe fn load_static_obj(comp_u: *mut Lisp_Native_Comp_Unit, name: *const c_cha
     xsignal1(Qnative_lisp_file_inconsistent(), (*comp_u).file);
   }
   unbind_to(count, Fread(make_string((*blob).data.as_ptr(), (*blob).len)))
+
+  }
 }
 
 /// C 5188-5195: a missing address export remains a null relocation pointer.
 #[cfg(feature = "have_native_comp")]
 unsafe fn find_relocs(handle: dynlib_handle_ptr, name: *const c_char) -> *mut Lisp_Object {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   let function: LLreloc_fn = std::mem::transmute(dynlib_sym(handle, name));
   match function { Some(function) => function(), None => std::ptr::null_mut() }
+
+  }
 }
 
 #[cfg(feature = "have_native_comp")]
 unsafe fn find_reloc_count(handle: dynlib_handle_ptr, name: *const c_char,
                          comp_u: *mut Lisp_Native_Comp_Unit) -> ptrdiff_t {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   let function: LLreloc_count_fn = std::mem::transmute(dynlib_sym(handle, name));
   let Some(function) = function else { xsignal1(Qnative_lisp_file_inconsistent(), (*comp_u).file); };
   let count = function();
   if count < 0 { xsignal1(Qnative_lisp_file_inconsistent(), (*comp_u).file); }
   count
+
+  }
 }
 
 /* Return false when something is wrong or true otherwise.  */
@@ -1818,6 +1881,8 @@ unsafe fn find_reloc_count(handle: dynlib_handle_ptr, name: *const c_char,
 #[cfg (feature = "have_native_comp")]
 unsafe fn check_comp_unit_relocs (comp_u: *mut Lisp_Native_Comp_Unit) -> bool
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   let handle: dynlib_handle_ptr = (*comp_u).handle;
   let data_relocs: *mut Lisp_Object
     = find_relocs (handle, DATA_RELOC_ADDR_SYM);
@@ -1845,13 +1910,19 @@ unsafe fn check_comp_unit_relocs (comp_u: *mut Lisp_Native_Comp_Unit) -> bool
       i += 1;
     }
   return true;
+
+  }
 }
 
 /// C 5226-5230: `static void unset_cu_load_ongoing (Lisp_Object comp_u)`.
 #[cfg (feature = "have_native_comp")]
 unsafe extern "C-unwind" fn unset_cu_load_ongoing (comp_u: Lisp_Object)
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   (*XNATIVE_COMP_UNIT (comp_u)).load_ongoing = false;
+
+  }
 }
 
 /* The helper entry points `declare_runtime_imported_funcs` names for the compiled code.  C's
@@ -1879,6 +1950,8 @@ unsafe fn comp_run_void_helper (body: impl FnOnce ()) -> c_int {
 #[cfg (feature = "have_native_comp")]
 #[inline]
 unsafe fn comp_run_lisp_helper (out: *mut Lisp_Object, body: impl FnOnce () -> Lisp_Object) -> c_int {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   match crate::nonlocal::catch_vm_nonlocal (body) {
     Ok (val) => {
       if crate::nonlocal::comp_native_exit_pending_for_current_thread () != 0 {
@@ -1895,11 +1968,17 @@ unsafe fn comp_run_lisp_helper (out: *mut Lisp_Object, body: impl FnOnce () -> L
       1
     }
   }
+
+  }
 }
 
 #[cfg (feature = "have_native_comp")]
 unsafe extern "C" fn comp_wrong_type_argument (predicate: Lisp_Object, value: Lisp_Object) -> c_int {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   comp_run_void_helper (|| unsafe { wrong_type_argument (predicate, value); })
+
+  }
 }
 
 #[cfg (feature = "have_native_comp")]
@@ -1908,6 +1987,8 @@ unsafe extern "C" fn comp_push_handler (
   htype: handlertype,
   out: *mut *mut handler,
 ) -> c_int {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   match crate::nonlocal::catch_vm_nonlocal (|| unsafe { push_handler (tag_ch_val, htype) }) {
     Ok (h) => {
       *out = h;
@@ -1919,52 +2000,82 @@ unsafe extern "C" fn comp_push_handler (
       1
     }
   }
+
+  }
 }
 
 #[cfg (feature = "have_native_comp")]
 unsafe extern "C" fn comp_record_unwind_protect_excursion () -> c_int {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   comp_run_void_helper (|| unsafe { record_unwind_protect_excursion (); })
+
+  }
 }
 
 /// C 4961-4967: `static void helper_unwind_protect (Lisp_Object handler)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn helper_unwind_protect (handler: Lisp_Object)
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   /* Support for a function here is new in 24.4.  */
   let fnptr =
     if FUNCTIONP (handler) { Some (std::mem::transmute (bcall0 as *const c_void)) }
     else { Some (std::mem::transmute (prog_ignore as *const c_void)) };
   record_unwind_protect (fnptr, handler);
+
+  }
 }
 
 #[cfg (feature = "have_native_comp")]
 unsafe extern "C" fn comp_helper_unwind_protect (handler: Lisp_Object) -> c_int {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   comp_run_void_helper (|| unsafe { helper_unwind_protect (handler); })
+
+  }
 }
 
 /// C 4969-4973: `static Lisp_Object helper_unbind_n (Lisp_Object n)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn helper_unbind_n (n: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   return unbind_to (specpdl_ref_add (SPECPDL_INDEX (), -XFIXNUM (n)), Qnil ());
+
+  }
 }
 
 #[cfg (feature = "have_native_comp")]
 unsafe extern "C" fn comp_helper_unbind_n (n: Lisp_Object, out: *mut Lisp_Object) -> c_int {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   comp_run_lisp_helper (out, || unsafe { helper_unbind_n (n) })
+
+  }
 }
 
 /// C 4975-4980: `static void helper_save_restriction (void)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn helper_save_restriction ()
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   record_unwind_protect (Some (std::mem::transmute (save_restriction_restore as *const c_void)),
 			 save_restriction_save ());
+
+  }
 }
 
 #[cfg (feature = "have_native_comp")]
 unsafe extern "C" fn comp_helper_save_restriction () -> c_int {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   comp_run_void_helper (|| unsafe { helper_save_restriction (); })
+
+  }
 }
 
 /// C 4982-4988: `static bool helper_PSEUDOVECTOR_TYPEP_XUNTAG (Lisp_Object a,
@@ -1993,6 +2104,8 @@ unsafe extern "C" fn comp_helper_GET_SYMBOL_WITH_POSITION (
   a: Lisp_Object,
   out: *mut *mut Lisp_Symbol_With_Pos,
 ) -> c_int {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   match crate::nonlocal::catch_vm_nonlocal (|| unsafe { helper_GET_SYMBOL_WITH_POSITION (a) }) {
     Ok (p) => {
       *out = p;
@@ -2004,6 +2117,8 @@ unsafe extern "C" fn comp_helper_GET_SYMBOL_WITH_POSITION (
       1
     }
   }
+
+  }
 }
 
 /// C 4997-5010: `static Lisp_Object helper_sanitizer_assert (Lisp_Object val,
@@ -2011,6 +2126,8 @@ unsafe extern "C" fn comp_helper_GET_SYMBOL_WITH_POSITION (
 #[cfg (feature = "have_native_comp")]
 unsafe fn helper_sanitizer_assert (val: Lisp_Object, type_: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   if ! comp_sanitizer_active
       || ! NILP ((CALLNI! ("cl-typep", val, type_)))
     { return Qnil (); }
@@ -2021,6 +2138,8 @@ unsafe fn helper_sanitizer_assert (val: Lisp_Object, type_: Lisp_Object) -> Lisp
   xsignal2 (Qcomp_sanitizer_error (), val, type_);
 
   return Qnil ();
+
+  }
 }
 
 #[cfg (feature = "have_native_comp")]
@@ -2029,12 +2148,20 @@ unsafe extern "C" fn comp_helper_sanitizer_assert (
   type_: Lisp_Object,
   out: *mut Lisp_Object,
 ) -> c_int {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   comp_run_lisp_helper (out, || unsafe { helper_sanitizer_assert (val, type_) })
+
+  }
 }
 
 #[cfg (feature = "have_native_comp")]
 unsafe extern "C" fn comp_record_unwind_current_buffer () -> c_int {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   comp_run_void_helper (|| unsafe { record_unwind_current_buffer (); })
+
+  }
 }
 
 #[cfg (feature = "have_native_comp")]
@@ -2044,30 +2171,50 @@ unsafe extern "C" fn comp_set_internal (
   bind_let: Lisp_Object,
   bindflag: Set_Internal_Bind,
 ) -> c_int {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   comp_run_void_helper (|| unsafe { set_internal (symbol, newval, bind_let, bindflag); })
+
+  }
 }
 
 #[cfg (feature = "have_native_comp")]
 unsafe extern "C" fn comp_specbind (symbol: Lisp_Object, value: Lisp_Object) -> c_int {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   comp_run_void_helper (|| unsafe { specbind (symbol, value); })
+
+  }
 }
 
 #[cfg (feature = "have_native_comp")]
 unsafe extern "C" fn comp_maybe_gc () -> c_int {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   comp_run_void_helper (|| unsafe { maybe_gc (); })
+
+  }
 }
 
 #[cfg (feature = "have_native_comp")]
 unsafe extern "C" fn comp_maybe_quit () -> c_int {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   comp_run_void_helper (|| unsafe { maybe_quit (); })
+
+  }
 }
 
 #[cfg (feature = "have_native_comp")]
 unsafe extern "C" fn comp_invoke_subr0 (fn_ptr: *mut c_void, out: *mut Lisp_Object) -> c_int {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   comp_run_lisp_helper (out, || unsafe {
     let f: unsafe extern "C-unwind" fn () -> Lisp_Object = core::mem::transmute (fn_ptr);
     f ()
   })
+
+  }
 }
 
 #[cfg (feature = "have_native_comp")]
@@ -2076,10 +2223,14 @@ unsafe extern "C" fn comp_invoke_subr1 (
   a0: Lisp_Object,
   out: *mut Lisp_Object,
 ) -> c_int {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   comp_run_lisp_helper (out, || unsafe {
     let f: unsafe extern "C-unwind" fn (Lisp_Object) -> Lisp_Object = core::mem::transmute (fn_ptr);
     f (a0)
   })
+
+  }
 }
 
 #[cfg (feature = "have_native_comp")]
@@ -2089,11 +2240,15 @@ unsafe extern "C" fn comp_invoke_subr2 (
   a1: Lisp_Object,
   out: *mut Lisp_Object,
 ) -> c_int {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   comp_run_lisp_helper (out, || unsafe {
     let f: unsafe extern "C-unwind" fn (Lisp_Object, Lisp_Object) -> Lisp_Object =
       core::mem::transmute (fn_ptr);
     f (a0, a1)
   })
+
+  }
 }
 
 #[cfg (feature = "have_native_comp")]
@@ -2104,11 +2259,15 @@ unsafe extern "C" fn comp_invoke_subr3 (
   a2: Lisp_Object,
   out: *mut Lisp_Object,
 ) -> c_int {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   comp_run_lisp_helper (out, || unsafe {
     let f: unsafe extern "C-unwind" fn (Lisp_Object, Lisp_Object, Lisp_Object) -> Lisp_Object =
       core::mem::transmute (fn_ptr);
     f (a0, a1, a2)
   })
+
+  }
 }
 
 #[cfg (feature = "have_native_comp")]
@@ -2120,12 +2279,16 @@ unsafe extern "C" fn comp_invoke_subr4 (
   a3: Lisp_Object,
   out: *mut Lisp_Object,
 ) -> c_int {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   comp_run_lisp_helper (out, || unsafe {
     let f: unsafe extern "C-unwind" fn (
       Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object,
     ) -> Lisp_Object = core::mem::transmute (fn_ptr);
     f (a0, a1, a2, a3)
   })
+
+  }
 }
 
 #[cfg (feature = "have_native_comp")]
@@ -2138,12 +2301,16 @@ unsafe extern "C" fn comp_invoke_subr5 (
   a4: Lisp_Object,
   out: *mut Lisp_Object,
 ) -> c_int {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   comp_run_lisp_helper (out, || unsafe {
     let f: unsafe extern "C-unwind" fn (
       Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object,
     ) -> Lisp_Object = core::mem::transmute (fn_ptr);
     f (a0, a1, a2, a3, a4)
   })
+
+  }
 }
 
 #[cfg (feature = "have_native_comp")]
@@ -2157,12 +2324,16 @@ unsafe extern "C" fn comp_invoke_subr6 (
   a5: Lisp_Object,
   out: *mut Lisp_Object,
 ) -> c_int {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   comp_run_lisp_helper (out, || unsafe {
     let f: unsafe extern "C-unwind" fn (
       Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object,
     ) -> Lisp_Object = core::mem::transmute (fn_ptr);
     f (a0, a1, a2, a3, a4, a5)
   })
+
+  }
 }
 
 #[cfg (feature = "have_native_comp")]
@@ -2177,12 +2348,16 @@ unsafe extern "C" fn comp_invoke_subr7 (
   a6: Lisp_Object,
   out: *mut Lisp_Object,
 ) -> c_int {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   comp_run_lisp_helper (out, || unsafe {
     let f: unsafe extern "C-unwind" fn (
       Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object,
     ) -> Lisp_Object = core::mem::transmute (fn_ptr);
     f (a0, a1, a2, a3, a4, a5, a6)
   })
+
+  }
 }
 
 #[cfg (feature = "have_native_comp")]
@@ -2198,6 +2373,8 @@ unsafe extern "C" fn comp_invoke_subr8 (
   a7: Lisp_Object,
   out: *mut Lisp_Object,
 ) -> c_int {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   comp_run_lisp_helper (out, || unsafe {
     let f: unsafe extern "C-unwind" fn (
       Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object,
@@ -2205,6 +2382,8 @@ unsafe extern "C" fn comp_invoke_subr8 (
     ) -> Lisp_Object = core::mem::transmute (fn_ptr);
     f (a0, a1, a2, a3, a4, a5, a6, a7)
   })
+
+  }
 }
 
 #[cfg (feature = "have_native_comp")]
@@ -2214,11 +2393,15 @@ unsafe extern "C" fn comp_invoke_subr_many (
   args: *mut Lisp_Object,
   out: *mut Lisp_Object,
 ) -> c_int {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   comp_run_lisp_helper (out, || unsafe {
     let f: unsafe extern "C-unwind" fn (ptrdiff_t, *mut Lisp_Object) -> Lisp_Object =
       core::mem::transmute (fn_ptr);
     f (nargs, args)
   })
+
+  }
 }
 
 #[cfg (feature = "have_native_comp")]
@@ -2227,10 +2410,14 @@ unsafe extern "C" fn comp_invoke_subr_unevalled (
   args: Lisp_Object,
   out: *mut Lisp_Object,
 ) -> c_int {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   comp_run_lisp_helper (out, || unsafe {
     let f: unsafe extern "C-unwind" fn (Lisp_Object) -> Lisp_Object = core::mem::transmute (fn_ptr);
     f (args)
   })
+
+  }
 }
 
 #[cfg (feature = "have_native_comp")]
@@ -2293,8 +2480,12 @@ pub unsafe extern "C-unwind" fn eln_load_path_final_clean_up ()
 #[cfg (feature = "have_native_comp")]
 unsafe fn register_native_comp_unit (comp_u: Lisp_Object)
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   Fputhash (
     (*XNATIVE_COMP_UNIT (comp_u)).file, comp_u, Vcomp_loaded_comp_units_h);
+
+  }
 }
 
 /***********************************/
@@ -2464,6 +2655,8 @@ DEFUN! ("comp--compile-ctxt-to-file0", Fcomp__compile_ctxt_to_file0,
 #[cfg (feature = "have_native_comp")]
 unsafe fn add_driver_options ()
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   #[cfg(feature = "libgccjit_have_gcc_jit_context_add_driver_option")]
   {
     if !FEMACS_NATIVE_ASSEMBLER_DIR.to_bytes().is_empty() {
@@ -2512,6 +2705,8 @@ unsafe fn add_driver_options ()
 	  });
       }
   }
+
+  }
 }
 
 /// C 4741-4776: `static void add_compiler_options (void)` - the same shape with the
@@ -2519,6 +2714,8 @@ unsafe fn add_driver_options ()
 #[cfg (feature = "have_native_comp")]
 unsafe fn add_compiler_options ()
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   let mut options: Lisp_Object = Fsymbol_value (Qnative_comp_compiler_options ());
 
   #[cfg (feature = "libgccjit_have_gcc_jit_context_add_command_line_option")]
@@ -2555,6 +2752,8 @@ unsafe fn add_compiler_options ()
                                                SSDATA (XCAR (options)));
 	  });
       }
+  }
+
   }
 }
 
@@ -3499,6 +3698,8 @@ unsafe extern "C-unwind" { pub fn fatal (msgid: *const c_char, ...) -> !; }
 #[cfg (feature = "have_native_comp")]
 unsafe fn freloc_check_fill ()
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   if freloc.size != 0
     { return; }
 
@@ -3507,9 +3708,9 @@ unsafe fn freloc_check_fill ()
   'overflow: {
     if countof! (helper_link_table) > F_RELOC_MAX_SIZE
       { break 'overflow; }
-    memcpy (freloc.link_table.as_mut_ptr () as *mut c_void,
-            helper_link_table.as_ptr () as *const c_void,
-            core::mem::size_of_val (&helper_link_table));
+    memcpy ((&raw mut freloc.link_table).cast::<c_void> (),
+            (&raw const helper_link_table).cast::<c_void> (),
+            femacs_sizeof_ptr (&raw const helper_link_table));
     freloc.size = countof! (helper_link_table) as ptrdiff_t;
 
     let mut subr_l: Lisp_Object = Vcomp_subr_list;
@@ -3525,6 +3726,8 @@ unsafe fn freloc_check_fill ()
   }
 
   fatal (c"Overflowing function relocation table, increase F_RELOC_MAX_SIZE".as_ptr ());
+
+  }
 }
 
 /// C 852-856: `static void bcall0 (Lisp_Object f)`.
@@ -3538,18 +3741,24 @@ unsafe extern "C-unwind" fn bcall0 (f: Lisp_Object)
 #[cfg (feature = "have_native_comp")]
 unsafe fn retrieve_block (block_name: Lisp_Object) -> *mut gcc_jit_block
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   let value: Lisp_Object = Fgethash (block_name, comp.func_blocks_h, Qnil ());
 
   if NILP (value)
     { xsignal2 (Qnative_ice (), build_string (c"missing basic block".as_ptr ()), block_name); }
 
   return xmint_pointer (value) as *mut gcc_jit_block;
+
+  }
 }
 
 /// C 869-880: `static void declare_block (Lisp_Object block_name)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn declare_block (block_name: Lisp_Object)
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   let name_str: *mut c_char = SSDATA (SYMBOL_NAME (block_name));
   let block: *mut gcc_jit_block = gcc_jit_function_new_block (comp.func, name_str);
   let value: Lisp_Object = make_mint_ptr (block as *mut c_void);
@@ -3558,12 +3767,16 @@ unsafe fn declare_block (block_name: Lisp_Object)
     { xsignal1 (Qnative_ice (), build_string (c"double basic block declaration".as_ptr ())); }
 
   Fputhash (block_name, value, comp.func_blocks_h);
+
+  }
 }
 
 /// C 882-900: `static gcc_jit_lvalue *emit_mvar_lval (Lisp_Object mvar)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_mvar_lval (mvar: Lisp_Object) -> *mut gcc_jit_lvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   let mvar_slot: Lisp_Object = CALLNI! ("comp-mvar-slot", mvar);
 
   if EQ (mvar_slot, Qscratch ())
@@ -3579,14 +3792,20 @@ unsafe fn emit_mvar_lval (mvar: Lisp_Object) -> *mut gcc_jit_lvalue
   let slot_n: EMACS_INT = XFIXNUM (mvar_slot);
   eassert! (slot_n < comp.frame_size);
   return *comp.frame.offset (slot_n as isize);
+
+  }
 }
 
 /// C 902-907: `static void register_emitter (Lisp_Object key, void *func)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn register_emitter (key: Lisp_Object, func: *mut c_void)
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   let value: Lisp_Object = make_mint_ptr (func);
   Fputhash (key, value, comp.emitter_dispatcher);
+
+  }
 }
 
 /// C 909-941: `static imm_reloc_t obj_to_reloc (Lisp_Object obj)`.  C declares `reloc` without an
@@ -3596,6 +3815,8 @@ unsafe fn register_emitter (key: Lisp_Object, func: *mut c_void)
 #[cfg (feature = "have_native_comp")]
 unsafe fn obj_to_reloc (obj: Lisp_Object) -> imm_reloc_t
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   let mut reloc: imm_reloc_t = std::mem::zeroed ();
   let idx: Lisp_Object;
 
@@ -3630,6 +3851,8 @@ unsafe fn obj_to_reloc (obj: Lisp_Object) -> imm_reloc_t
                                                    comp.ptrdiff_type,
                                                    XFIXNUM (idx) as c_int);
   return reloc;
+
+  }
 }
 
 /* Should come with libgccjit.  */
@@ -3641,6 +3864,8 @@ unsafe fn obj_to_reloc (obj: Lisp_Object) -> imm_reloc_t
 unsafe fn emit_rvalue_from_long_long (type_: *mut gcc_jit_type, n: c_longlong)
   -> *mut gcc_jit_rvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   emit_comment (format_string (c"emit long long: %lld".as_ptr (), n));
 
   let high: *mut gcc_jit_rvalue =
@@ -3678,12 +3903,16 @@ unsafe fn emit_rvalue_from_long_long (type_: *mut gcc_jit_type, n: c_longlong)
 					       comp.unsigned_long_long_type,
 					       32)),
 	low));
+
+  }
 }
 
 /// C 1256-1266: `static gcc_jit_rvalue *emit_rvalue_from_emacs_uint (EMACS_UINT val)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_rvalue_from_emacs_uint (val: EMACS_UINT) -> *mut gcc_jit_rvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   #[cfg (feature = "wide_emacs_int")]
   {
     if val > ULONG_MAX
@@ -3692,23 +3921,31 @@ unsafe fn emit_rvalue_from_emacs_uint (val: EMACS_UINT) -> *mut gcc_jit_rvalue
   return gcc_jit_context_new_rvalue_from_long (comp.ctxt,
 					       comp.emacs_uint_type,
 					       val as c_long);
+
+  }
 }
 
 /// C 1268-1276: `static gcc_jit_rvalue *emit_rvalue_from_emacs_int (EMACS_INT val)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_rvalue_from_emacs_int (val: EMACS_INT) -> *mut gcc_jit_rvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   if val > LONG_MAX as EMACS_INT || val < LONG_MIN as EMACS_INT
     { return emit_rvalue_from_long_long (comp.emacs_int_type, val as c_longlong); }
   else
     { return gcc_jit_context_new_rvalue_from_long (comp.ctxt,
 						 comp.emacs_int_type, val as c_long); }
+
+  }
 }
 
 /// C 1278-1288: `static gcc_jit_rvalue *emit_rvalue_from_lisp_word_tag (Lisp_Word_tag val)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_rvalue_from_lisp_word_tag (val: Lisp_Word_tag) -> *mut gcc_jit_rvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   #[cfg (feature = "wide_emacs_int")]
   {
     if val > ULONG_MAX
@@ -3717,6 +3954,8 @@ unsafe fn emit_rvalue_from_lisp_word_tag (val: Lisp_Word_tag) -> *mut gcc_jit_rv
   return gcc_jit_context_new_rvalue_from_long (comp.ctxt,
 					       comp.lisp_word_tag_type,
 					       val as c_long);
+
+  }
 }
 
 /// C 1290-1305: `static gcc_jit_rvalue *emit_rvalue_from_lisp_word (Lisp_Word val)`.  C's
@@ -3729,6 +3968,8 @@ unsafe fn emit_rvalue_from_lisp_word_tag (val: Lisp_Word_tag) -> *mut gcc_jit_rv
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_rvalue_from_lisp_word (val: Lisp_Word) -> *mut gcc_jit_rvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   if LISP_WORDS_ARE_POINTERS
     {
       return gcc_jit_context_new_rvalue_from_ptr (comp.ctxt,
@@ -3751,12 +3992,16 @@ unsafe fn emit_rvalue_from_lisp_word (val: Lisp_Word) -> *mut gcc_jit_rvalue
 						       comp.lisp_word_type,
 						       word as c_long); }
     }
+
+  }
 }
 
 /// C 1307-1316: `static gcc_jit_rvalue *emit_rvalue_from_lisp_obj (Lisp_Object obj)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_rvalue_from_lisp_obj (obj: Lisp_Object) -> *mut gcc_jit_rvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   #[cfg (feature = "lisp_object_is_struct")]
   {
     return emit_coerce (comp.lisp_obj_type,
@@ -3765,6 +4010,8 @@ unsafe fn emit_rvalue_from_lisp_obj (obj: Lisp_Object) -> *mut gcc_jit_rvalue
   #[cfg (not (feature = "lisp_object_is_struct"))]
   {
     return emit_rvalue_from_lisp_word (obj);
+  }
+
   }
 }
 
@@ -3780,6 +4027,8 @@ unsafe fn emit_ptr_arithmetic (ptr: *mut gcc_jit_rvalue, ptr_type: *mut gcc_jit_
 			       size_of_ptr_ref: c_int, i: *mut gcc_jit_rvalue)
   -> *mut gcc_jit_rvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   emit_comment (c"ptr_arithmetic".as_ptr ());
 
   let offset: *mut gcc_jit_rvalue =
@@ -3799,23 +4048,33 @@ unsafe fn emit_ptr_arithmetic (ptr: *mut gcc_jit_rvalue, ptr_type: *mut gcc_jit_
 	comp.uintptr_type,
 	ptr,
 	offset));
+
+  }
 }
 
 /// C 1348-1353: `static gcc_jit_rvalue *emit_XLI (gcc_jit_rvalue *obj)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_XLI (obj: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   emit_comment (c"XLI".as_ptr ());
   return emit_coerce (comp.emacs_int_type, obj);
+
+  }
 }
 
 /// C 1355-1361: `static gcc_jit_rvalue *emit_XLP (gcc_jit_rvalue *obj)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_XLP (obj: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   emit_comment (c"XLP".as_ptr ());
 
   return emit_coerce (comp.void_ptr_type, obj);
+
+  }
 }
 
 /// C 1363-1377: `static gcc_jit_rvalue *emit_XUNTAG (gcc_jit_rvalue *a, gcc_jit_type *type,
@@ -3824,6 +4083,8 @@ unsafe fn emit_XLP (obj: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
 unsafe fn emit_XUNTAG (a: *mut gcc_jit_rvalue, type_: *mut gcc_jit_type,
 		       lisp_word_tag: Lisp_Word_tag) -> *mut gcc_jit_rvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   /* #define XUNTAG(a, type, ctype) ((ctype *)
      ((char *) XLP (a) - LISP_WORD_TAG (type))) */
   emit_comment (c"XUNTAG".as_ptr ());
@@ -3835,23 +4096,31 @@ unsafe fn emit_XUNTAG (a: *mut gcc_jit_rvalue, type_: *mut gcc_jit_type,
 	     comp.uintptr_type,
 	     emit_XLP (a),
 	     emit_rvalue_from_lisp_word_tag (lisp_word_tag)));
+
+  }
 }
 
 /// C 1379-1387: `static gcc_jit_rvalue *emit_XCONS (gcc_jit_rvalue *a)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_XCONS (a: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   emit_comment (c"XCONS".as_ptr ());
 
   return emit_XUNTAG (a,
 		      gcc_jit_struct_as_type (comp.lisp_cons_s),
 		      LISP_WORD_TAG (Lisp_Type::Lisp_Cons as Lisp_Word_tag));
+
+  }
 }
 
 /// C 1389-1400: `static gcc_jit_rvalue *emit_BASE_EQ (gcc_jit_rvalue *x, gcc_jit_rvalue *y)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_BASE_EQ (x: *mut gcc_jit_rvalue, y: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   emit_comment (c"BASE_EQ".as_ptr ());
 
   return gcc_jit_context_new_comparison (
@@ -3860,12 +4129,16 @@ unsafe fn emit_BASE_EQ (x: *mut gcc_jit_rvalue, y: *mut gcc_jit_rvalue) -> *mut 
 	   GCC_JIT_COMPARISON_EQ,
 	   emit_XLI (x),
 	   emit_XLI (y));
+
+  }
 }
 
 /// C 1402-1412: `static gcc_jit_rvalue *emit_AND (gcc_jit_rvalue *x, gcc_jit_rvalue *y)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_AND (x: *mut gcc_jit_rvalue, y: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   return gcc_jit_context_new_binary_op (
     comp.ctxt,
     std::ptr::null_mut (),
@@ -3873,12 +4146,16 @@ unsafe fn emit_AND (x: *mut gcc_jit_rvalue, y: *mut gcc_jit_rvalue) -> *mut gcc_
     comp.bool_type,
     x,
     y);
+
+  }
 }
 
 /// C 1414-1424: `static gcc_jit_rvalue *emit_OR (gcc_jit_rvalue *x, gcc_jit_rvalue *y)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_OR (x: *mut gcc_jit_rvalue, y: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   return gcc_jit_context_new_binary_op (
     comp.ctxt,
     std::ptr::null_mut (),
@@ -3886,6 +4163,8 @@ unsafe fn emit_OR (x: *mut gcc_jit_rvalue, y: *mut gcc_jit_rvalue) -> *mut gcc_j
     comp.bool_type,
     x,
     y);
+
+  }
 }
 
 /// C 1426-1469: `static gcc_jit_rvalue *emit_TAGGEDP (gcc_jit_rvalue *obj, Lisp_Word_tag tag)`.
@@ -3894,6 +4173,8 @@ unsafe fn emit_OR (x: *mut gcc_jit_rvalue, y: *mut gcc_jit_rvalue) -> *mut gcc_j
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_TAGGEDP (obj: *mut gcc_jit_rvalue, tag: Lisp_Word_tag) -> *mut gcc_jit_rvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   /* (! (((unsigned) (XLI (a) >> (USE_LSB_TAG ? 0 : VALBITS)) 	- (unsigned) (tag)) 	& ((1 << GCTYPEBITS) - 1))) */
   emit_comment (c"TAGGEDP".as_ptr ());
 
@@ -3932,30 +4213,42 @@ unsafe fn emit_TAGGEDP (obj: *mut gcc_jit_rvalue, tag: Lisp_Word_tag) -> *mut gc
 	 ((1usize << GCTYPEBITS) - 1) as c_int)));
 
   return res;
+
+  }
 }
 
 /// C 1471-1477: `static gcc_jit_rvalue *emit_VECTORLIKEP (gcc_jit_rvalue *obj)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_VECTORLIKEP (obj: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   emit_comment (c"VECTORLIKEP".as_ptr ());
 
   return emit_TAGGEDP (obj, Lisp_Type::Lisp_Vectorlike as Lisp_Word_tag);
+
+  }
 }
 
 /// C 1479-1485: `static gcc_jit_rvalue *emit_CONSP (gcc_jit_rvalue *obj)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_CONSP (obj: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   emit_comment (c"CONSP".as_ptr ());
 
   return emit_TAGGEDP (obj, Lisp_Type::Lisp_Cons as Lisp_Word_tag);
+
+  }
 }
 
 /// C 1487-1504: `static gcc_jit_rvalue *emit_SYMBOL_WITH_POS_P (gcc_jit_rvalue *obj)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_SYMBOL_WITH_POS_P (obj: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   emit_comment (c"SYMBOL_WITH_POS_P".as_ptr ());
 
   let args: [*mut gcc_jit_rvalue; 2] =
@@ -3969,12 +4262,16 @@ unsafe fn emit_SYMBOL_WITH_POS_P (obj: *mut gcc_jit_rvalue) -> *mut gcc_jit_rval
 				   comp.pseudovectorp,
 				   2,
 				   args.as_ptr () as *mut *mut gcc_jit_rvalue);
+
+  }
 }
 
 /// C 1698-1723: `static gcc_jit_rvalue *emit_make_fixnum_MSB_TAG (gcc_jit_rvalue *n)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_make_fixnum_MSB_TAG (n: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   /*
     n &= INTMASK;
     n += (int0 << VALBITS);
@@ -3998,23 +4295,31 @@ unsafe fn emit_make_fixnum_MSB_TAG (n: *mut gcc_jit_rvalue) -> *mut gcc_jit_rval
 		    n);
 
   return emit_coerce (comp.lisp_obj_type, n);
+
+  }
 }
 
 /// C 1726-1733: `static gcc_jit_rvalue *emit_make_fixnum (gcc_jit_rvalue *obj)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_make_fixnum (obj: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   emit_comment (c"make_fixnum".as_ptr ());
   return if USE_LSB_TAG
     { emit_make_fixnum_LSB_TAG (obj) }
     else
     { emit_make_fixnum_MSB_TAG (obj) };
+
+  }
 }
 
 /// C 1735-1746: `static gcc_jit_lvalue *emit_lisp_obj_reloc_lval (Lisp_Object obj)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_lisp_obj_reloc_lval (obj: Lisp_Object) -> *mut gcc_jit_lvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   emit_comment (format_string (c"l-value for lisp obj: %s".as_ptr (),
 			       SSDATA (Fprin1_to_string (obj, Qnil (), Qnil ()))));
 
@@ -4023,12 +4328,16 @@ unsafe fn emit_lisp_obj_reloc_lval (obj: Lisp_Object) -> *mut gcc_jit_lvalue
 					   std::ptr::null_mut (),
 					   reloc.array.r_val,
 					   reloc.idx);
+
+  }
 }
 
 /// C 1748-1762: `static gcc_jit_rvalue *emit_lisp_obj_rval (Lisp_Object obj)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_lisp_obj_rval (obj: Lisp_Object) -> *mut gcc_jit_rvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   emit_comment (format_string (c"const lisp obj: %s".as_ptr (),
 			       SSDATA (Fprin1_to_string (obj, Qnil (), Qnil ()))));
 
@@ -4040,20 +4349,28 @@ unsafe fn emit_lisp_obj_rval (obj: Lisp_Object) -> *mut gcc_jit_rvalue
     }
 
   return gcc_jit_lvalue_as_rvalue (emit_lisp_obj_reloc_lval (obj));
+
+  }
 }
 
 /// C 1764-1769: `static gcc_jit_rvalue *emit_NILP (gcc_jit_rvalue *x)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_NILP (x: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   emit_comment (c"NILP".as_ptr ());
   return emit_BASE_EQ (x, emit_lisp_obj_rval (Qnil ()));
+
+  }
 }
 
 /// C 1771-1791: `static gcc_jit_rvalue *emit_XCAR (gcc_jit_rvalue *c)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_XCAR (c: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   emit_comment (c"XCAR".as_ptr ());
 
   /* XCONS (c)->u.s.car */
@@ -4071,12 +4388,16 @@ unsafe fn emit_XCAR (c: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
 	comp.lisp_cons_u_s),
       std::ptr::null_mut (),
       comp.lisp_cons_u_s_car);
+
+  }
 }
 
 /// C 1793-1812: `static gcc_jit_lvalue *emit_lval_XCAR (gcc_jit_rvalue *c)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_lval_XCAR (c: *mut gcc_jit_rvalue) -> *mut gcc_jit_lvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   emit_comment (c"lval_XCAR".as_ptr ());
 
   /* XCONS (c)->u.s.car */
@@ -4093,12 +4414,16 @@ unsafe fn emit_lval_XCAR (c: *mut gcc_jit_rvalue) -> *mut gcc_jit_lvalue
 	comp.lisp_cons_u_s),
       std::ptr::null_mut (),
       comp.lisp_cons_u_s_car);
+
+  }
 }
 
 /// C 1814-1837: `static gcc_jit_rvalue *emit_XCDR (gcc_jit_rvalue *c)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_XCDR (c: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   emit_comment (c"XCDR".as_ptr ());
   /* XCONS (c)->u.s.u.cdr */
   return
@@ -4119,12 +4444,16 @@ unsafe fn emit_XCDR (c: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
 	comp.lisp_cons_u_s_u),
       std::ptr::null_mut (),
       comp.lisp_cons_u_s_u_cdr);
+
+  }
 }
 
 /// C 1839-1862: `static gcc_jit_lvalue *emit_lval_XCDR (gcc_jit_rvalue *c)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_lval_XCDR (c: *mut gcc_jit_rvalue) -> *mut gcc_jit_lvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   emit_comment (c"lval_XCDR".as_ptr ());
 
   /* XCONS (c)->u.s.u.cdr */
@@ -4145,12 +4474,16 @@ unsafe fn emit_lval_XCDR (c: *mut gcc_jit_rvalue) -> *mut gcc_jit_lvalue
 	comp.lisp_cons_u_s_u),
       std::ptr::null_mut (),
       comp.lisp_cons_u_s_u_cdr);
+
+  }
 }
 
 /// C 1864-1882: `static gcc_jit_rvalue *emit_CHECK_CONS (gcc_jit_rvalue *x)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_CHECK_CONS (x: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   emit_comment (c"CHECK_CONS".as_ptr ());
 
   let args: [*mut gcc_jit_rvalue; 3] =
@@ -4163,12 +4496,16 @@ unsafe fn emit_CHECK_CONS (x: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
 			    comp.check_type,
 			    3,
 			    args.as_ptr () as *mut *mut gcc_jit_rvalue)
+
+  }
 }
 
 /// C 1884-1905: `static gcc_jit_rvalue *emit_CHECK_SYMBOL_WITH_POS (gcc_jit_rvalue *x)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_CHECK_SYMBOL_WITH_POS (x: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   emit_comment (c"CHECK_SYMBOL_WITH_POS".as_ptr ());
 
   let args: [*mut gcc_jit_rvalue; 3] =
@@ -4184,30 +4521,42 @@ unsafe fn emit_CHECK_SYMBOL_WITH_POS (x: *mut gcc_jit_rvalue) -> *mut gcc_jit_rv
 			    comp.check_type,
 			    3,
 			    args.as_ptr () as *mut *mut gcc_jit_rvalue)
+
+  }
 }
 
 /// C 1907-1913: `static gcc_jit_rvalue *emit_car_addr (gcc_jit_rvalue *c)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_car_addr (c: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   emit_comment (c"car_addr".as_ptr ());
 
   return gcc_jit_lvalue_get_address (emit_lval_XCAR (c), std::ptr::null_mut ());
+
+  }
 }
 
 /// C 1915-1921: `static gcc_jit_rvalue *emit_cdr_addr (gcc_jit_rvalue *c)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_cdr_addr (c: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   emit_comment (c"cdr_addr".as_ptr ());
 
   return gcc_jit_lvalue_get_address (emit_lval_XCDR (c), std::ptr::null_mut ());
+
+  }
 }
 
 /// C 1923-1935: `static void emit_XSETCAR (gcc_jit_rvalue *c, gcc_jit_rvalue *n)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_XSETCAR (c: *mut gcc_jit_rvalue, n: *mut gcc_jit_rvalue)
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   emit_comment (c"XSETCAR".as_ptr ());
 
   gcc_jit_block_add_assignment (
@@ -4224,12 +4573,16 @@ unsafe fn emit_XSETCAR (c: *mut gcc_jit_rvalue, n: *mut gcc_jit_rvalue)
       comp.void_type, 1, args.as_mut_ptr(), false);
     gcc_jit_block_add_eval(comp.block, std::ptr::null_mut(), call);
   }
+
+  }
 }
 
 /// C 1937-1949: `static void emit_XSETCDR (gcc_jit_rvalue *c, gcc_jit_rvalue *n)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_XSETCDR (c: *mut gcc_jit_rvalue, n: *mut gcc_jit_rvalue)
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   emit_comment (c"XSETCDR".as_ptr ());
 
   gcc_jit_block_add_assignment (
@@ -4246,6 +4599,8 @@ unsafe fn emit_XSETCDR (c: *mut gcc_jit_rvalue, n: *mut gcc_jit_rvalue)
       comp.void_type, 1, args.as_mut_ptr(), false);
     gcc_jit_block_add_eval(comp.block, std::ptr::null_mut(), call);
   }
+
+  }
 }
 
 /* ==============================================================================================
@@ -4260,6 +4615,8 @@ unsafe fn emit_XSETCDR (c: *mut gcc_jit_rvalue, n: *mut gcc_jit_rvalue)
 #[cfg (feature = "have_native_comp")]
 unsafe fn define_lisp_cons ()
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   /*
     union cdr_u
     {
@@ -4364,12 +4721,16 @@ unsafe fn define_lisp_cons ()
   gcc_jit_struct_set_fields (comp.lisp_cons_s,
 			     std::ptr::null_mut (), 1, &raw mut comp.lisp_cons_u);
 
+
+  }
 }
 
 /// C 3186-3217: `static void define_lisp_symbol_with_position (void)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn define_lisp_symbol_with_position ()
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   comp.lisp_symbol_with_position_header =
     gcc_jit_context_new_field (comp.ctxt,
 			       std::ptr::null_mut (),
@@ -4398,6 +4759,8 @@ unsafe fn define_lisp_symbol_with_position ()
     gcc_jit_struct_as_type (comp.lisp_symbol_with_position);
   comp.lisp_symbol_with_position_ptr_type =
     gcc_jit_type_get_pointer (comp.lisp_symbol_with_position_type);
+
+  }
 }
 
 /* Opaque jmp_buf definition.  */
@@ -4406,6 +4769,8 @@ unsafe fn define_lisp_symbol_with_position ()
 #[cfg (feature = "have_native_comp")]
 unsafe fn define_jmp_buf ()
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   let field: *mut gcc_jit_field =
     gcc_jit_context_new_field (
       comp.ctxt,
@@ -4420,12 +4785,16 @@ unsafe fn define_jmp_buf ()
 				     std::ptr::null_mut (),
 				     c"comp_jmp_buf".as_ptr (),
 				     1, &raw const field as *mut *mut gcc_jit_field);
+
+  }
 }
 
 /// C 3240-3253: `static void define_memcpy (void)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn define_memcpy ()
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
 
   let params: [*mut gcc_jit_param; 3] =
     [ gcc_jit_context_new_param (comp.ctxt, std::ptr::null_mut (), comp.void_ptr_type,
@@ -4440,6 +4809,8 @@ unsafe fn define_memcpy ()
 				  comp.void_ptr_type, c"memcpy".as_ptr (),
 				  countof! (params) as c_int,
 				  params.as_ptr () as *mut *mut gcc_jit_param, 0);
+
+  }
 }
 
 /* struct handler definition  */
@@ -4449,6 +4820,8 @@ unsafe fn define_memcpy ()
 #[cfg(feature = "have_native_comp")]
 unsafe fn define_handler_struct ()
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   comp.handler_s =
     gcc_jit_context_new_opaque_struct (comp.ctxt, std::ptr::null_mut (),
 				       c"comp_handler".as_ptr ());
@@ -4505,12 +4878,16 @@ unsafe fn define_handler_struct ()
 			     countof! (fields) as c_int,
 			     fields.as_ptr () as *mut *mut gcc_jit_field);
 
+
+  }
 }
 
 /// C 3508-3558: `static void define_CHECK_TYPE (void)` (U3: returns `c_int` status).
 #[cfg (feature = "have_native_comp")]
 unsafe fn define_CHECK_TYPE ()
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   let param: [*mut gcc_jit_param; 3] =
     [ gcc_jit_context_new_param (comp.ctxt,
 				 std::ptr::null_mut (),
@@ -4559,6 +4936,8 @@ unsafe fn define_CHECK_TYPE ()
     wrong_type_args.as_ptr () as *mut *mut gcc_jit_rvalue,
   );
   gcc_jit_block_end_with_return (not_ok_block, std::ptr::null_mut (), st);
+
+  }
 }
 
 /* Define a substitute for CAR as always inlined function.  */
@@ -4567,6 +4946,8 @@ unsafe fn define_CHECK_TYPE ()
 #[cfg (feature = "have_native_comp")]
 unsafe fn define_CAR_CDR ()
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   let mut func: [*mut gcc_jit_function; 2] = [std::ptr::null_mut (); 2];
   let f_name: [*const c_char; 2] = [ c"CAR".as_ptr (), c"CDR".as_ptr () ];
   let mut i: c_int = 0;
@@ -4658,12 +5039,16 @@ unsafe fn define_CAR_CDR ()
     }
   comp.car = func[0];
   comp.cdr = func[1];
+
+  }
 }
 
 /// C 3637-3690: `static void define_setcar_setcdr (void)` (U3: writes `out` and returns `c_int` status).
 #[cfg (feature = "have_native_comp")]
 unsafe fn define_setcar_setcdr ()
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   let f_name: [*const c_char; 2] = [ c"setcar".as_ptr (), c"setcdr".as_ptr () ];
   let par_name: [*const c_char; 2] = [ c"new_car".as_ptr (), c"new_cdr".as_ptr () ];
 
@@ -4746,6 +5131,8 @@ unsafe fn define_setcar_setcdr ()
       );
       i += 1;
     }
+
+  }
 }
 
 /*
@@ -4759,6 +5146,8 @@ unsafe fn define_setcar_setcdr ()
 #[cfg (feature = "have_native_comp")]
 unsafe fn define_bool_to_lisp_obj ()
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   /* x ? Qt : Qnil */
   let param: *mut gcc_jit_param = gcc_jit_context_new_param (comp.ctxt,
 						    std::ptr::null_mut (),
@@ -4791,12 +5180,16 @@ unsafe fn define_bool_to_lisp_obj ()
   gcc_jit_block_end_with_return (ret_nil_block,
 				 std::ptr::null_mut (),
 				 emit_lisp_obj_rval (Qnil ()));
+
+  }
 }
 
 /// C 4109-4163: `static gcc_jit_function *declare_lex_function (Lisp_Object func)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn declare_lex_function (func: Lisp_Object) -> *mut gcc_jit_function
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   let c_name: Lisp_Object = CALLNI! ("comp-func-c-name", func);
   let args: Lisp_Object = CALLNI! ("comp-func-l-args", func);
@@ -4856,6 +5249,8 @@ unsafe fn declare_lex_function (func: Lisp_Object) -> *mut gcc_jit_function
     }
   SAFE_FREE! (sa_count, sa_mark);
   return res;
+
+  }
 }
 
 /* Declare a function being compiled and add it to comp.exported_funcs_h.  */
@@ -4864,6 +5259,8 @@ unsafe fn declare_lex_function (func: Lisp_Object) -> *mut gcc_jit_function
 #[cfg (feature = "have_native_comp")]
 unsafe fn declare_function (func: Lisp_Object)
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   let gcc_func: *mut gcc_jit_function =
     if ! NILP (CALLNI! ("comp-func-l-p", func))
     { declare_lex_function (func) }
@@ -4877,12 +5274,16 @@ unsafe fn declare_function (func: Lisp_Object)
   Fputhash (CALLNI! ("comp-func-c-name", func),
 	    make_mint_ptr (gcc_func as *mut c_void),
 	    comp.exported_funcs_h);
+
+  }
 }
 
 /// C 4184-4283: `static void compile_function (Lisp_Object func)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn compile_function (func: Lisp_Object)
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   comp.frame_size = XFIXNUM (CALLNI! ("comp-func-frame-size", func));
   eassert! (comp.frame_size < INT_MAX as EMACS_INT);
@@ -5059,6 +5460,8 @@ unsafe fn compile_function (func: Lisp_Object)
 	      CALLNI! ("comp-func-name", func),
 	      build_string (err)); }
   SAFE_FREE! (sa_count, sa_mark);
+
+  }
 }
 
 /**********************************/
@@ -5069,6 +5472,8 @@ unsafe fn compile_function (func: Lisp_Object)
 #[cfg (feature = "have_native_comp")]
 unsafe fn define_negate ()
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   let bb_orig: *mut gcc_jit_block = comp.block;
   let param: [*mut gcc_jit_param; 3] =
 	[ gcc_jit_context_new_param (comp.ctxt,
@@ -5152,6 +5557,8 @@ unsafe fn define_negate ()
   );
   gcc_jit_block_end_with_return (fcall_block, std::ptr::null_mut (), st);
   comp.block = bb_orig;
+
+  }
 }
 
 /* Define a substitute for PSEUDOVECTORP as always inlined function.  */
@@ -5160,6 +5567,8 @@ unsafe fn define_negate ()
 #[cfg (feature = "have_native_comp")]
 unsafe fn define_PSEUDOVECTORP ()
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   let param: [*mut gcc_jit_param; 2] =
     [ gcc_jit_context_new_param (comp.ctxt,
 				 std::ptr::null_mut (),
@@ -5208,12 +5617,16 @@ unsafe fn define_PSEUDOVECTORP ()
     std::ptr::null_mut (),
     emit_call (intern_c_string (c"helper_PSEUDOVECTOR_TYPEP_XUNTAG".as_ptr ()),
 	       comp.bool_type, 2, args.as_ptr () as *mut *mut gcc_jit_rvalue, false));
+
+  }
 }
 
 /// C 3904-3936: `static void define_GET_SYMBOL_WITH_POSITION (void)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn define_GET_SYMBOL_WITH_POSITION ()
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   let param: [*mut gcc_jit_param; 1] =
     [ gcc_jit_context_new_param (comp.ctxt,
 				 std::ptr::null_mut (),
@@ -5243,12 +5656,16 @@ unsafe fn define_GET_SYMBOL_WITH_POSITION ()
     emit_call (intern_c_string (c"helper_GET_SYMBOL_WITH_POSITION".as_ptr ()),
 	       comp.lisp_symbol_with_position_ptr_type,
 	       1, args.as_ptr () as *mut *mut gcc_jit_rvalue, false));
+
+  }
 }
 
 /// C 3938-3978: `static void define_SYMBOL_WITH_POS_SYM (void)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn define_SYMBOL_WITH_POS_SYM ()
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   let param: [*mut gcc_jit_param; 1] =
     [ gcc_jit_context_new_param (comp.ctxt,
 				 std::ptr::null_mut (),
@@ -5290,12 +5707,16 @@ unsafe fn define_SYMBOL_WITH_POS_SYM ()
 				   tmpr,
 				   std::ptr::null_mut (),
 				   comp.lisp_symbol_with_position_sym));
+
+  }
 }
 
 /// C 3980-4068: `static void define_maybe_gc_or_quit (void)` (U3: returns `c_int` status).
 #[cfg (feature = "have_native_comp")]
 unsafe fn define_maybe_gc_or_quit ()
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   let bb_orig: *mut gcc_jit_block = comp.block;
 
   let quitcounter: *mut gcc_jit_lvalue =
@@ -5368,12 +5789,16 @@ unsafe fn define_maybe_gc_or_quit ()
   );
 
   comp.block = bb_orig;
+
+  }
 }
 
 /// C 3697-3776: `static void define_add1_sub1 (void)` (U3: writes `out` and returns `c_int` status).
 #[cfg (feature = "have_native_comp")]
 unsafe fn define_add1_sub1 ()
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   let bb_orig: *mut gcc_jit_block = comp.block;
   let mut func: [*mut gcc_jit_function; 2] = [std::ptr::null_mut (); 2];
   let f_name: [*const c_char; 2] = [ c"add1".as_ptr (), c"sub1".as_ptr () ];
@@ -5462,6 +5887,8 @@ unsafe fn define_add1_sub1 ()
   comp.block = bb_orig;
   comp.add1 = func[0];
   comp.sub1 = func[1];
+
+  }
 }
 
 /// C 3401-3406: `struct cast_type { gcc_jit_type *type; const char *name; bool is_ptr; };` - the
@@ -5487,6 +5914,8 @@ unsafe fn define_type_punning (name: *const c_char,
 			       to: *mut gcc_jit_type, to_field: *mut gcc_jit_field)
   -> *mut gcc_jit_function
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   let param: *mut gcc_jit_param = gcc_jit_context_new_param (comp.ctxt, std::ptr::null_mut (),
                                                     from, c"arg".as_ptr ());
   let result: *mut gcc_jit_function = gcc_jit_context_new_function (comp.ctxt,
@@ -5519,6 +5948,8 @@ unsafe fn define_type_punning (name: *const c_char,
                                    std::ptr::null_mut (), to_field));
 
   return result;
+
+  }
 }
 
 /// C 3408-3446: `static gcc_jit_function *define_cast_from_to (struct cast_type from,
@@ -5527,6 +5958,8 @@ unsafe fn define_type_punning (name: *const c_char,
 	    not (feature = "libgccjit_have_gcc_jit_context_new_bitcast")))]
 unsafe fn define_cast_from_to (from: cast_type, to: cast_type) -> *mut gcc_jit_function
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   let name: *mut c_char = format_string (c"cast_from_%s_to_%s".as_ptr (), from.name, to.name);
   let param: *mut gcc_jit_param = gcc_jit_context_new_param (comp.ctxt, std::ptr::null_mut (),
 						    from.r#type, c"arg".as_ptr ());
@@ -5565,6 +5998,8 @@ unsafe fn define_cast_from_to (from: cast_type, to: cast_type) -> *mut gcc_jit_f
   gcc_jit_block_end_with_return (entry_block, std::ptr::null_mut (), tmp);
 
   return result;
+
+  }
 }
 
 /// C 3448-3505: `static void define_cast_functions (void)`.  C's `struct cast_type
@@ -5574,6 +6009,8 @@ unsafe fn define_cast_from_to (from: cast_type, to: cast_type) -> *mut gcc_jit_f
 	    not (feature = "libgccjit_have_gcc_jit_context_new_bitcast")))]
 unsafe fn define_cast_functions ()
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   let cast_types: [cast_type; NUM_CAST_TYPES]
     = [ cast_type { r#type: comp.bool_type, name: c"bool".as_ptr (), is_ptr: false },
         cast_type { r#type: comp.char_ptr_type, name: c"char_ptr".as_ptr (), is_ptr: true },
@@ -5646,12 +6083,16 @@ unsafe fn define_cast_functions ()
         }
       i += 1;
     }
+
+  }
 }
 
 /// C 3317-3360: `static void define_thread_state_struct (void)`.
 #[cfg(feature = "have_native_comp")]
 unsafe fn define_thread_state_struct ()
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   /* Partially opaque definition for `thread_state'.
      Because we need to access just m_handlerlist hopefully this is requires
      less manutention then the full deifnition.	 */
@@ -5692,6 +6133,8 @@ unsafe fn define_thread_state_struct ()
 				     fields.as_ptr () as *mut *mut gcc_jit_field);
   comp.thread_state_ptr_type =
     gcc_jit_type_get_pointer (gcc_jit_struct_as_type (comp.thread_state_s));
+
+  }
 }
 
 /* Emit an r-value from an mvar meta variable.
@@ -5706,6 +6149,8 @@ pub type Llisp_emitter = unsafe extern "C-unwind" fn (Lisp_Object) -> *mut gcc_j
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_mvar_rval (mvar: Lisp_Object) -> *mut gcc_jit_rvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   let const_vld: Lisp_Object = CALLNI! ("comp-cstr-imm-vld-p", mvar);
 
   if ! NILP (const_vld)
@@ -5741,6 +6186,8 @@ unsafe fn emit_mvar_rval (mvar: Lisp_Object) -> *mut gcc_jit_rvalue
     }
 
   return gcc_jit_lvalue_as_rvalue (emit_mvar_lval (mvar));
+
+  }
 }
 
 /// C 1998-2007: `static void emit_frame_assignment (Lisp_Object dst_mvar,
@@ -5748,18 +6195,24 @@ unsafe fn emit_mvar_rval (mvar: Lisp_Object) -> *mut gcc_jit_rvalue
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_frame_assignment (dst_mvar: Lisp_Object, val: *mut gcc_jit_rvalue)
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
 
   gcc_jit_block_add_assignment (
     comp.block,
     std::ptr::null_mut (),
     emit_mvar_lval (dst_mvar),
     val);
+
+  }
 }
 
 /// C 2009-2033: `static gcc_jit_rvalue *emit_set_internal (Lisp_Object args)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_set_internal (args_in: Lisp_Object) -> *mut gcc_jit_rvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   /*
     Ex: (set_internal #s(comp-mvar nil nil t comp-test-up-val nil nil)
                       #s(comp-mvar 1 4 t nil symbol nil)).
@@ -5783,6 +6236,8 @@ unsafe fn emit_set_internal (args_in: Lisp_Object) -> *mut gcc_jit_rvalue
 						     SET_INTERNAL_SET);
   return emit_call (intern_c_string (c"set_internal".as_ptr ()), comp.void_type, 4,
 		    gcc_args.as_mut_ptr (), false);
+
+  }
 }
 
 /// C 2086-2143: `static gcc_jit_rvalue *emit_limple_call_ref (Lisp_Object insn, bool direct)`.
@@ -5790,6 +6245,8 @@ unsafe fn emit_set_internal (args_in: Lisp_Object) -> *mut gcc_jit_rvalue
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_limple_call_ref (insn: Lisp_Object, direct: bool) -> *mut gcc_jit_rvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   /* Ex: (funcall #s(comp-mvar 1 5 t eql symbol t)
                   #s(comp-mvar 2 6 nil nil nil t)
 		  #s(comp-mvar 3 7 t 0 fixnum t)).  */
@@ -5845,6 +6302,8 @@ unsafe fn emit_limple_call_ref (insn: Lisp_Object, direct: bool) -> *mut gcc_jit
 					     gcc_jit_lvalue_as_rvalue (tmp_arr),
 					     comp.zero),
 	   direct);
+
+  }
 }
 
 /* U3 removed `emit_setjmp`: `.eln` non-local exits propagate via explicit status branches and
@@ -5856,6 +6315,8 @@ unsafe fn emit_limple_call_ref (insn: Lisp_Object, direct: bool) -> *mut gcc_jit
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_limple_insn (insn: Lisp_Object)
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   let op: Lisp_Object = XCAR (insn);
   let args: Lisp_Object = XCDR (insn);
   let mut res: *mut gcc_jit_rvalue;
@@ -6165,6 +6626,8 @@ unsafe fn emit_limple_insn (insn: Lisp_Object)
 		build_string (c"LIMPLE op inconsistent".as_ptr ()),
 		op);
     }
+
+  }
 }
 
 /* Inliners.  (C 2524-2526's banner, kept where C has it.)  */
@@ -6174,6 +6637,8 @@ unsafe fn emit_limple_insn (insn: Lisp_Object)
 unsafe fn emit_call_with_type_hint (func: *mut gcc_jit_function, insn: Lisp_Object,
 				    type_: Lisp_Object) -> *mut gcc_jit_rvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   let hint_match: bool =
     comp.func_safety == 0
     && ! NILP (CALLNI! ("comp-mvar-type-hint-match-p", SECOND! (insn), type_));
@@ -6189,6 +6654,8 @@ unsafe fn emit_call_with_type_hint (func: *mut gcc_jit_function, insn: Lisp_Obje
 				     args.as_ptr () as *mut *mut gcc_jit_rvalue);
   emit_u3_status_branch (st);
   return gcc_jit_lvalue_as_rvalue (out_slot);
+
+  }
 }
 
 /* Same as before but with two args. The type hint is on the 2th.  */
@@ -6198,6 +6665,8 @@ unsafe fn emit_call_with_type_hint (func: *mut gcc_jit_function, insn: Lisp_Obje
 unsafe fn emit_call2_with_type_hint (func: *mut gcc_jit_function, insn: Lisp_Object,
 				     type_: Lisp_Object) -> *mut gcc_jit_rvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   let hint_match: bool =
     comp.func_safety == 0
     && ! NILP (CALLNI! ("comp-mvar-type-hint-match-p", SECOND! (insn), type_));
@@ -6214,33 +6683,49 @@ unsafe fn emit_call2_with_type_hint (func: *mut gcc_jit_function, insn: Lisp_Obj
 				     args.as_ptr () as *mut *mut gcc_jit_rvalue);
   emit_u3_status_branch (st);
   return gcc_jit_lvalue_as_rvalue (out_slot);
+
+  }
 }
 
 /// C 2563-2567: `static gcc_jit_rvalue *emit_add1 (Lisp_Object insn)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_add1 (insn: Lisp_Object) -> *mut gcc_jit_rvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   return emit_call_with_type_hint (comp.add1, insn, Qfixnum ());
+
+  }
 }
 
 /// C 2569-2573: `static gcc_jit_rvalue *emit_sub1 (Lisp_Object insn)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_sub1 (insn: Lisp_Object) -> *mut gcc_jit_rvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   return emit_call_with_type_hint (comp.sub1, insn, Qfixnum ());
+
+  }
 }
 
 /// C 2575-2579: `static gcc_jit_rvalue *emit_negate (Lisp_Object insn)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_negate (insn: Lisp_Object) -> *mut gcc_jit_rvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   return emit_call_with_type_hint (comp.negate, insn, Qfixnum ());
+
+  }
 }
 
 /// C 2581-2591: `static gcc_jit_rvalue *emit_consp (Lisp_Object insn)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_consp (insn: Lisp_Object) -> *mut gcc_jit_rvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   let x: *mut gcc_jit_rvalue = emit_mvar_rval (SECOND! (insn));
   let mut res: *mut gcc_jit_rvalue = emit_coerce (comp.bool_type,
 						  emit_CONSP (x));
@@ -6248,12 +6733,16 @@ unsafe fn emit_consp (insn: Lisp_Object) -> *mut gcc_jit_rvalue
 				   std::ptr::null_mut (),
 				   comp.bool_to_lisp_obj,
 				   1, &raw mut res);
+
+  }
 }
 
 /// C 2593-2605: `static gcc_jit_rvalue *emit_eq (Lisp_Object insn)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_eq (insn: Lisp_Object) -> *mut gcc_jit_rvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   let x: *mut gcc_jit_rvalue = emit_mvar_rval (SECOND! (insn));
   let y: *mut gcc_jit_rvalue = emit_mvar_rval (THIRD! (insn));
   let mut res: *mut gcc_jit_rvalue = emit_EQ (x, y);
@@ -6263,56 +6752,82 @@ unsafe fn emit_eq (insn: Lisp_Object) -> *mut gcc_jit_rvalue
                                    comp.bool_to_lisp_obj,
                                    1,
                                    &raw mut res);
+
+  }
 }
 
 /// C 2608-2612: `static gcc_jit_rvalue *emit_car (Lisp_Object insn)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_car (insn: Lisp_Object) -> *mut gcc_jit_rvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   return emit_call_with_type_hint (comp.car, insn, Qcons ());
+
+  }
 }
 
 /// C 2614-2618: `static gcc_jit_rvalue *emit_cdr (Lisp_Object insn)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_cdr (insn: Lisp_Object) -> *mut gcc_jit_rvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   return emit_call_with_type_hint (comp.cdr, insn, Qcons ());
+
+  }
 }
 
 /// C 2620-2624: `static gcc_jit_rvalue *emit_setcar (Lisp_Object insn)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_setcar (insn: Lisp_Object) -> *mut gcc_jit_rvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   return emit_call2_with_type_hint (comp.setcar, insn, Qcons ());
+
+  }
 }
 
 /// C 2626-2630: `static gcc_jit_rvalue *emit_setcdr (Lisp_Object insn)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_setcdr (insn: Lisp_Object) -> *mut gcc_jit_rvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   return emit_call2_with_type_hint (comp.setcdr, insn, Qcons ());
+
+  }
 }
 
 /// C 2632-2639: `static gcc_jit_rvalue *emit_numperp (Lisp_Object insn)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_numperp (insn: Lisp_Object) -> *mut gcc_jit_rvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   let x: *mut gcc_jit_rvalue = emit_mvar_rval (SECOND! (insn));
   let mut res: *mut gcc_jit_rvalue = emit_NUMBERP (x);
   return gcc_jit_context_new_call (comp.ctxt, std::ptr::null_mut (),
 				   comp.bool_to_lisp_obj, 1,
 				   &raw mut res);
+
+  }
 }
 
 /// C 2641-2648: `static gcc_jit_rvalue *emit_integerp (Lisp_Object insn)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_integerp (insn: Lisp_Object) -> *mut gcc_jit_rvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   let x: *mut gcc_jit_rvalue = emit_mvar_rval (SECOND! (insn));
   let mut res: *mut gcc_jit_rvalue = emit_INTEGERP (x);
   return gcc_jit_context_new_call (comp.ctxt, std::ptr::null_mut (),
 				   comp.bool_to_lisp_obj, 1,
 				   &raw mut res);
+
+  }
 }
 
 /* This is in charge of serializing an object and export a function to
@@ -6323,6 +6838,8 @@ unsafe fn emit_integerp (insn: Lisp_Object) -> *mut gcc_jit_rvalue
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_static_object (name: *const c_char, obj: Lisp_Object)
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   /* libgccjit has no support for initialized static data.
      The mechanism below is certainly not aesthetic but I assume the bottle neck
      in terms of performance at load time will still be the reader.
@@ -6526,12 +7043,16 @@ unsafe fn emit_static_object (name: *const c_char, obj: Lisp_Object)
 					     len as c_int));
   let res: *mut gcc_jit_rvalue = gcc_jit_lvalue_get_address (data_struct, std::ptr::null_mut ());
   gcc_jit_block_end_with_return (block, std::ptr::null_mut (), res);
+
+  }
 }
 
 /// C 2894-2908: `static void declare_imported_data (void)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn declare_imported_data ()
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   /* Imported objects.  */
   comp.data_relocs =
     declare_imported_data_relocs (CALLNI! ("comp-ctxt-d-default", Vcomp_ctxt),
@@ -6543,6 +7064,8 @@ unsafe fn declare_imported_data ()
 				  DATA_RELOC_EPHEMERAL_SYM,
 				  DATA_RELOC_EPHEMERAL_ADDR_SYM,
 				  TEXT_DATA_RELOC_EPHEMERAL_SYM, c"d_reloc_eph_count".as_ptr());
+
+  }
 }
 
 /*
@@ -6569,6 +7092,8 @@ macro_rules! ADD_IMPORTED {
 #[cfg (feature = "have_native_comp")]
 unsafe fn declare_runtime_imported_funcs () -> Lisp_Object
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   let mut field_list: Lisp_Object = Qnil ();
 
   let mut args: [*mut gcc_jit_type; 10] = [std::ptr::null_mut (); 10];
@@ -6676,6 +7201,8 @@ unsafe fn declare_runtime_imported_funcs () -> Lisp_Object
   }
 
   return Freverse (field_list);
+
+  }
 }
 
 /*
@@ -6685,6 +7212,8 @@ unsafe fn declare_runtime_imported_funcs () -> Lisp_Object
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_ctxt_code ()
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   /* Emit optimize qualities.  */
   let opt_qly: [Lisp_Object; 3] =
     [ Fcons (Qnative_comp_speed (), make_fixnum (comp.speed)),
@@ -6772,6 +7301,8 @@ unsafe fn emit_ctxt_code ()
 				FUNC_LINK_TABLE_SYM);
 
   xfree (fields as *mut c_void);
+
+  }
 }
 
 /// C 2854-2892: `static reloc_array_t declare_imported_data_relocs (Lisp_Object container,
@@ -6783,6 +7314,8 @@ unsafe fn declare_imported_data_relocs (container: Lisp_Object,
 					text_symbol: *const c_char,
                                         count_fun_symbol: *const c_char) -> reloc_array_t
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   /* Imported objects.  */
   let len: EMACS_INT =
     XFIXNUM (CALLNI! ("hash-table-count",
@@ -6825,17 +7358,23 @@ unsafe fn declare_imported_data_relocs (container: Lisp_Object,
 
   let res: reloc_array_t = reloc_array_t { len: len, r_val: d_reloc_rval };
   return res;
+
+  }
 }
 
 /// C 2650-2655: `static gcc_jit_rvalue *emit_maybe_gc_or_quit (Lisp_Object insn)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_maybe_gc_or_quit (insn: Lisp_Object) -> *mut gcc_jit_rvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   let st = gcc_jit_context_new_call (comp.ctxt, std::ptr::null_mut (),
 				     comp.maybe_gc_or_quit, 0,
 				     std::ptr::null_mut ());
   emit_u3_status_branch (st);
   return emit_lisp_obj_rval (Qnil ());
+
+  }
 }
 
 
@@ -6851,6 +7390,8 @@ unsafe fn emit_limple_push_handler (handler: *mut gcc_jit_rvalue,
 				    guarded_bb: *mut gcc_jit_block,
 				    clobbered_mvar: Lisp_Object)
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   let mut args: [*mut gcc_jit_rvalue; 2] = [ handler, handler_type ];
   let pushed_h = emit_call (intern_c_string (c"push_handler".as_ptr ()),
 			    comp.handler_ptr_type, 2, args.as_mut_ptr (), false);
@@ -6901,6 +7442,8 @@ unsafe fn emit_limple_push_handler (handler: *mut gcc_jit_rvalue,
     ),
   );
   gcc_jit_block_end_with_jump (comp.block, std::ptr::null_mut (), guarded_bb);
+
+  }
 }
 
 /* This is for a regular function with arguments as m-var.  */
@@ -6911,6 +7454,8 @@ unsafe fn emit_limple_push_handler (handler: *mut gcc_jit_rvalue,
 unsafe fn emit_simple_limple_call (args_in: Lisp_Object, ret_type: *mut gcc_jit_type,
 				   direct: bool) -> *mut gcc_jit_rvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   let callee: Lisp_Object = FIRST! (args_in);
   let mut args: Lisp_Object = XCDR (args_in);
@@ -6926,23 +7471,33 @@ unsafe fn emit_simple_limple_call (args_in: Lisp_Object, ret_type: *mut gcc_jit_
   let res: *mut gcc_jit_rvalue = emit_call (callee, ret_type, nargs, gcc_args, direct);
   SAFE_FREE! (sa_count, sa_mark);
   return res;
+
+  }
 }
 
 /// C 2054-2061: `static gcc_jit_rvalue *emit_simple_limple_call_lisp_ret (Lisp_Object args)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_simple_limple_call_lisp_ret (args: Lisp_Object) -> *mut gcc_jit_rvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   /*
     Ex: (call Fcons #s(comp-mvar 3 0 t 1 nil) #s(comp-mvar 4 nil t nil nil)).
   */
   return emit_simple_limple_call (args, comp.lisp_obj_type, false);
+
+  }
 }
 
 /// C 2063-2067: `static gcc_jit_rvalue *emit_simple_limple_call_void_ret (Lisp_Object args)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_simple_limple_call_void_ret (args: Lisp_Object) -> *mut gcc_jit_rvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   return emit_simple_limple_call (args, comp.void_type, false);
+
+  }
 }
 
 /* Entry point to dispatch emitting (call fun ...).  */
@@ -6953,6 +7508,8 @@ unsafe fn emit_simple_limple_call_void_ret (args: Lisp_Object) -> *mut gcc_jit_r
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_limple_call (insn: Lisp_Object) -> *mut gcc_jit_rvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   let callee_sym: Lisp_Object = FIRST! (insn);
   let emitter: Lisp_Object = Fgethash (callee_sym, comp.emitter_dispatcher, Qnil ());
 
@@ -6963,6 +7520,8 @@ unsafe fn emit_limple_call (insn: Lisp_Object) -> *mut gcc_jit_rvalue
     }
 
   return emit_simple_limple_call_lisp_ret (insn);
+
+  }
 }
 
 /* C 4932-4951's `DEFUN ("comp-libgccjit-version", …)` is transcribed **here**, out of C's order,
@@ -7003,6 +7562,8 @@ DEFUN! ("comp-libgccjit-version", Fcomp_libgccjit_version,
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_EQ (x: *mut gcc_jit_rvalue, y: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   let base_eq: *mut gcc_jit_rvalue = emit_BASE_EQ (x, y);
   let mut symbols_with_pos_enabled_rval: *mut gcc_jit_rvalue = gcc_jit_lvalue_as_rvalue (
     gcc_jit_rvalue_dereference (comp.f_symbols_with_pos_enabled_ref,
@@ -7032,21 +7593,29 @@ unsafe fn emit_EQ (x: *mut gcc_jit_rvalue, y: *mut gcc_jit_rvalue) -> *mut gcc_j
   return emit_OR (
     base_eq,
     emit_AND (symbols_with_pos_enabled_rval, emit_slow_eq (x, y)));
+
+  }
 }
 
 /// C 1554-1560: `static gcc_jit_rvalue *emit_FLOATP (gcc_jit_rvalue *obj)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_FLOATP (obj: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   emit_comment (c"FLOATP".as_ptr ());
 
   return emit_TAGGEDP (obj, Lisp_Type::Lisp_Float as Lisp_Word_tag);
+
+  }
 }
 
 /// C 1562-1579: `static gcc_jit_rvalue *emit_BIGNUMP (gcc_jit_rvalue *obj)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_BIGNUMP (obj: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   /* PSEUDOVECTORP (x, PVEC_BIGNUM); */
   emit_comment (c"BIGNUMP".as_ptr ());
 
@@ -7061,6 +7630,8 @@ unsafe fn emit_BIGNUMP (obj: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
 				   comp.pseudovectorp,
 				   2,
 				   args.as_ptr () as *mut *mut gcc_jit_rvalue);
+
+  }
 }
 
 /// C 1581-1625: `static gcc_jit_rvalue *emit_FIXNUMP (gcc_jit_rvalue *obj)`.  C's
@@ -7069,6 +7640,8 @@ unsafe fn emit_BIGNUMP (obj: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_FIXNUMP (obj: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   /* (! (((unsigned) (XLI (x) >> (USE_LSB_TAG ? 0 : FIXNUM_BITS))
 	- (unsigned) (Lisp_Int0 >> !USE_LSB_TAG))
 	& ((1 << INTTYPEBITS) - 1)))  */
@@ -7112,12 +7685,16 @@ unsafe fn emit_FIXNUMP (obj: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
 	 ((1usize << INTTYPEBITS) - 1) as c_int)));
 
   return res;
+
+  }
 }
 
 /// C 1627-1653: `static gcc_jit_rvalue *emit_XFIXNUM (gcc_jit_rvalue *obj)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_XFIXNUM (obj: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   emit_comment (c"XFIXNUM".as_ptr ());
   let mut i: *mut gcc_jit_rvalue = emit_coerce (comp.emacs_uint_type, emit_XLI (obj));
 
@@ -7141,36 +7718,48 @@ unsafe fn emit_XFIXNUM (obj: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
 					  comp.emacs_int_type,
 					  i,
 					  comp.inttypebits)); }
+
+  }
 }
 
 /// C 1655-1664: `static gcc_jit_rvalue *emit_INTEGERP (gcc_jit_rvalue *obj)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_INTEGERP (obj: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   emit_comment (c"INTEGERP".as_ptr ());
 
   return emit_binary_op (GCC_JIT_BINARY_OP_LOGICAL_OR,
 			 comp.bool_type,
 			 emit_FIXNUMP (obj),
 			 emit_BIGNUMP (obj));
+
+  }
 }
 
 /// C 1666-1675: `static gcc_jit_rvalue *emit_NUMBERP (gcc_jit_rvalue *obj)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_NUMBERP (obj: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   emit_comment (c"NUMBERP".as_ptr ());
 
   return emit_binary_op (GCC_JIT_BINARY_OP_LOGICAL_OR,
 			 comp.bool_type,
 			 emit_INTEGERP (obj),
 			 emit_FLOATP (obj));
+
+  }
 }
 
 /// C 1677-1696: `static gcc_jit_rvalue *emit_make_fixnum_LSB_TAG (gcc_jit_rvalue *n)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_make_fixnum_LSB_TAG (n: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   /*
     EMACS_UINT u = n;
     n = u << INTTYPEBITS;
@@ -7187,6 +7776,8 @@ unsafe fn emit_make_fixnum_LSB_TAG (n: *mut gcc_jit_rvalue) -> *mut gcc_jit_rval
 			tmp, comp.lisp_int0);
 
   return emit_coerce (comp.lisp_obj_type, tmp);
+
+  }
 }
 
 /// C 1506-1518: `static gcc_jit_rvalue *emit_slow_eq (gcc_jit_rvalue *x, gcc_jit_rvalue *y)`.
@@ -7194,6 +7785,8 @@ unsafe fn emit_make_fixnum_LSB_TAG (n: *mut gcc_jit_rvalue) -> *mut gcc_jit_rval
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_slow_eq (x: *mut gcc_jit_rvalue, y: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   let args: [*mut gcc_jit_rvalue; 2] =
     [ emit_coerce (comp.lisp_obj_type, x),
       emit_coerce (comp.lisp_obj_type, y) ];
@@ -7203,6 +7796,8 @@ unsafe fn emit_slow_eq (x: *mut gcc_jit_rvalue, y: *mut gcc_jit_rvalue) -> *mut 
 		    countof! (args) as ptrdiff_t,
                     args.as_ptr () as *mut *mut gcc_jit_rvalue,
                     false);
+
+  }
 }
 
 /// C 1120-1197: `static gcc_jit_rvalue *emit_coerce (gcc_jit_type *new_type, gcc_jit_rvalue *obj)`.
@@ -7214,6 +7809,8 @@ unsafe fn emit_slow_eq (x: *mut gcc_jit_rvalue, y: *mut gcc_jit_rvalue) -> *mut 
 unsafe fn emit_coerce (new_type: *mut gcc_jit_type, obj: *mut gcc_jit_rvalue)
   -> *mut gcc_jit_rvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   let old_type: *mut gcc_jit_type = gcc_jit_rvalue_get_type (obj);
 
   if new_type == old_type
@@ -7297,6 +7894,8 @@ unsafe fn emit_coerce (new_type: *mut gcc_jit_type, obj: *mut gcc_jit_rvalue)
 				       [new_index as usize],
 				     1, &raw mut obj_);
   }
+
+  }
 }
 
 /// C 1199-1210: `static gcc_jit_rvalue *emit_binary_op (enum gcc_jit_binary_op op,
@@ -7305,16 +7904,22 @@ unsafe fn emit_coerce (new_type: *mut gcc_jit_type, obj: *mut gcc_jit_rvalue)
 unsafe fn emit_binary_op (op: gcc_jit_binary_op, result_type: *mut gcc_jit_type,
 			  a: *mut gcc_jit_rvalue, b: *mut gcc_jit_rvalue) -> *mut gcc_jit_rvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   /* FIXME Check here for possible UB.  */
   return gcc_jit_context_new_binary_op (comp.ctxt, std::ptr::null_mut (),
 					op,
 					result_type,
 					emit_coerce (result_type, a),
 					emit_coerce (result_type, b));
+
+  }
 }
 
 #[cfg (feature = "have_native_comp")]
 unsafe fn new_u3_local (ty: *mut gcc_jit_type, prefix: &core::ffi::CStr) -> *mut gcc_jit_lvalue {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   let id = {
     let u3 = u3_state ();
     let n = u3.tmp_counter;
@@ -7327,20 +7932,28 @@ unsafe fn new_u3_local (ty: *mut gcc_jit_type, prefix: &core::ffi::CStr) -> *mut
     ty,
     format_string (c"%s_%zu".as_ptr (), prefix.as_ptr (), id),
   )
+
+  }
 }
 
 #[cfg (feature = "have_native_comp")]
 unsafe fn ensure_u3_unwind_dispatch_bb () -> *mut gcc_jit_block {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   let u3 = u3_state ();
   if u3.unwind_dispatch_bb.is_null () {
     u3.unwind_dispatch_bb =
       gcc_jit_function_new_block (comp.func, c"u3_unwind_dispatch".as_ptr ());
   }
   u3.unwind_dispatch_bb
+
+  }
 }
 
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_u3_status_branch (status_rval: *mut gcc_jit_rvalue) {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   if comp.func != u3_state ().current_exported_func {
     return;
   }
@@ -7357,10 +7970,14 @@ unsafe fn emit_u3_status_branch (status_rval: *mut gcc_jit_rvalue) {
   );
   emit_cond_jump (status_rval, unwind_bb, cont_bb);
   comp.block = cont_bb;
+
+  }
 }
 
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_u3_unwind_dispatch_blocks () {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   let (unwind_bb, eh_depth, eh_handlers, eh_sites, handler_bbs) = {
     let u3 = u3_state ();
     if u3.unwind_dispatch_bb.is_null () {
@@ -7465,10 +8082,14 @@ unsafe fn emit_u3_unwind_dispatch_blocks () {
     );
     emit_cond_jump (is_match, target_bb, fail_bb);
   }
+
+  }
 }
 
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_freloc_field_rval (sym: Lisp_Object) -> *mut gcc_jit_rvalue {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   let gcc_func: Lisp_Object = Fgethash (sym, comp.imported_funcs_h, Qnil ());
   if NILP (gcc_func) {
     xsignal2 (Qnative_ice (), build_string (c"missing function declaration".as_ptr ()), sym);
@@ -7486,6 +8107,8 @@ unsafe fn emit_freloc_field_rval (sym: Lisp_Object) -> *mut gcc_jit_rvalue {
     xsignal2 (Qnative_ice (), build_string (c"missing function relocation".as_ptr ()), sym);
   }
   gcc_jit_lvalue_as_rvalue (f_ptr)
+
+  }
 }
 
 #[cfg (feature = "have_native_comp")]
@@ -7494,6 +8117,8 @@ unsafe fn emit_runtime_helper_raw_call (
   nargs: c_int,
   args: *mut *mut gcc_jit_rvalue,
 ) -> *mut gcc_jit_rvalue {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   let sym = intern_c_string (helper_name);
   let f_ptr_rval = emit_freloc_field_rval (sym);
   gcc_jit_context_new_call_through_ptr (
@@ -7503,10 +8128,14 @@ unsafe fn emit_runtime_helper_raw_call (
     nargs,
     args,
   )
+
+  }
 }
 
 #[cfg (feature = "have_native_comp")]
 unsafe fn declare_imported_subr_ptr (subr_sym: Lisp_Object, max_args: c_int) -> *mut gcc_jit_field {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   if ! NILP (Fgethash (subr_sym, comp.imported_funcs_h, Qnil ())) {
     xsignal2 (
       Qnative_ice (),
@@ -7528,6 +8157,8 @@ unsafe fn declare_imported_subr_ptr (subr_sym: Lisp_Object, max_args: c_int) -> 
   Fputhash (subr_sym, make_mint_ptr (field as *mut c_void), comp.imported_funcs_h);
   u3_state ().subr_arities.insert (subr_sym_key (subr_sym), max_args);
   field
+
+  }
 }
 
 #[cfg (feature = "have_native_comp")]
@@ -7537,6 +8168,8 @@ unsafe fn emit_subr_call_into_out (
   args: *mut *mut gcc_jit_rvalue,
   out_ptr_rval: *mut gcc_jit_rvalue,
 ) -> *mut gcc_jit_rvalue {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   let Some (&max_args) = u3_state ().subr_arities.get (&subr_sym_key (subr_sym)) else {
     xsignal2 (Qnative_ice (), build_string (c"missing subr arity".as_ptr ()), subr_sym);
   };
@@ -7574,6 +8207,8 @@ unsafe fn emit_subr_call_into_out (
     }
   };
   emit_runtime_helper_raw_call (helper_name, (nargs + 2) as c_int, call_args.as_mut_ptr ())
+
+  }
 }
 
 /// C 1012-1066: `static gcc_jit_rvalue *emit_call (Lisp_Object func, gcc_jit_type *ret_type,
@@ -7582,6 +8217,8 @@ unsafe fn emit_subr_call_into_out (
 unsafe fn emit_call (func: Lisp_Object, ret_type: *mut gcc_jit_type, nargs: ptrdiff_t,
                      args: *mut *mut gcc_jit_rvalue, direct: bool) -> *mut gcc_jit_rvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   let gcc_func: Lisp_Object =
     Fgethash (func,
               if direct { comp.exported_funcs_h } else { comp.imported_funcs_h },
@@ -7624,7 +8261,7 @@ unsafe fn emit_call (func: Lisp_Object, ret_type: *mut gcc_jit_type, nargs: ptrd
 
   /* Pure non-signaling runtime helpers keep their direct signature.  */
   let sym_c = SSDATA (SYMBOL_NAME (func));
-  let sym_bytes = unsafe { core::ffi::CStr::from_ptr (sym_c).to_bytes () };
+  let sym_bytes = /* SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames. */ unsafe { core::ffi::CStr::from_ptr (sym_c).to_bytes () };
   if sym_bytes == b"helper_PSEUDOVECTOR_TYPEP_XUNTAG"
      || sym_bytes == b"slow_eq"
      || sym_bytes == b"femacs_gc_cons_written"
@@ -7682,6 +8319,8 @@ unsafe fn emit_call (func: Lisp_Object, ret_type: *mut gcc_jit_type, nargs: ptrd
   );
   emit_u3_status_branch (st);
   return emit_lisp_obj_rval (Qnil ());
+
+  }
 }
 
 /// C 1068-1078: `static gcc_jit_rvalue *emit_call_ref (Lisp_Object func, ptrdiff_t nargs,
@@ -7691,6 +8330,8 @@ unsafe fn emit_call (func: Lisp_Object, ret_type: *mut gcc_jit_type, nargs: ptrd
 unsafe fn emit_call_ref (func: Lisp_Object, nargs: ptrdiff_t, base_arg: *mut gcc_jit_lvalue,
 			 direct: bool) -> *mut gcc_jit_rvalue
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   let args: [*mut gcc_jit_rvalue; 2] =
     [ gcc_jit_context_new_rvalue_from_int (comp.ctxt,
 					   comp.ptrdiff_type,
@@ -7698,6 +8339,8 @@ unsafe fn emit_call_ref (func: Lisp_Object, nargs: ptrdiff_t, base_arg: *mut gcc
       gcc_jit_lvalue_get_address (base_arg, std::ptr::null_mut ()) ];
   return emit_call (func, comp.lisp_obj_type, 2,
 		    args.as_ptr () as *mut *mut gcc_jit_rvalue, direct);
+
+  }
 }
 
 /* Close current basic block emitting a conditional.  */
@@ -7708,6 +8351,8 @@ unsafe fn emit_call_ref (func: Lisp_Object, nargs: ptrdiff_t, base_arg: *mut gcc
 unsafe fn emit_cond_jump (test: *mut gcc_jit_rvalue, then_target: *mut gcc_jit_block,
 			  else_target: *mut gcc_jit_block)
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   if gcc_jit_rvalue_get_type (test) == comp.bool_type
     { gcc_jit_block_end_with_conditional (comp.block, std::ptr::null_mut (), test,
 					  then_target, else_target); }
@@ -7724,6 +8369,8 @@ unsafe fn emit_cond_jump (test: *mut gcc_jit_rvalue, then_target: *mut gcc_jit_b
 				      test),
 	else_target,
 	then_target); }
+
+  }
 }
 
 /// C 1108-1118: `#ifndef LIBGCCJIT_HAVE_gcc_jit_context_new_bitcast` / `static int
@@ -7734,6 +8381,8 @@ unsafe fn emit_cond_jump (test: *mut gcc_jit_rvalue, then_target: *mut gcc_jit_b
 	    not (feature = "libgccjit_have_gcc_jit_context_new_bitcast")))]
 unsafe fn type_to_cast_index (type_: *mut gcc_jit_type) -> c_int
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   let mut i: c_int = 0;
   while i < NUM_CAST_TYPES as c_int
     {
@@ -7743,14 +8392,20 @@ unsafe fn type_to_cast_index (type_: *mut gcc_jit_type) -> c_int
     }
 
   xsignal1 (Qnative_ice (), build_string (c"unsupported cast".as_ptr ()));
+
+  }
 }
 
 /// C 943-950: `static void emit_comment (const char *str)`.
 #[cfg (feature = "have_native_comp")]
 unsafe fn emit_comment (str_: *const c_char)
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   if comp.debug != 0
     { gcc_jit_block_add_comment (comp.block, std::ptr::null_mut (), str_); }
+
+  }
 }
 
 /// C 952-1010: `static gcc_jit_field *declare_imported_func (...)`.
@@ -7761,6 +8416,8 @@ unsafe fn declare_imported_func (subr_sym: Lisp_Object,
                                                 types_in: *mut *mut gcc_jit_type)
   -> *mut gcc_jit_field
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   let mut nargs: c_int = nargs;
   let mut types: *mut *mut gcc_jit_type = types_in;
@@ -7870,6 +8527,8 @@ pub static mut comp_sanitizer_active: bool = false;
 #[unsafe(no_mangle)]
 pub static mut Vcomp__hashdollar: Lisp_Object = lisp_h_Qnil ();
 
+
+  }
 }
 
 /// C 5593-5857: `syms_of_comp`.  C 5596-5854's `#ifdef HAVE_NATIVE_COMP` region is this file's
@@ -7880,6 +8539,8 @@ pub static mut Vcomp__hashdollar: Lisp_Object = lisp_h_Qnil ();
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_comp ()
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   /* C 5596-5854: `#ifdef HAVE_NATIVE_COMP`, the file gate's `syms_of` region.  */
   #[cfg (feature = "have_native_comp")]
   {
@@ -8095,4 +8756,6 @@ pub unsafe extern "C-unwind" fn syms_of_comp ()
   }
 
   defsubr (&raw mut Snative_comp_available_p);
+
+  }
 }

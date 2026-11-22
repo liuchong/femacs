@@ -418,7 +418,7 @@ def main() -> int:
             raise AssertionError("module_signal_or_throw regressed to `extern \"C\"`")
 
         run_thread_idx = thread_rs.index('unsafe extern "C" fn run_thread')
-        run_thread_slice = thread_rs[run_thread_idx : run_thread_idx + 1800]
+        run_thread_slice = thread_rs[run_thread_idx : run_thread_idx + 2400]
         if "catch_vm_nonlocal" not in run_thread_slice:
             raise AssertionError("run_thread (`extern \"C\"`) must guard Lisp body with catch_vm_nonlocal")
 

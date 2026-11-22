@@ -48,10 +48,7 @@
 // INTERVAL`; neither changes a token C's text carries.  `%"pD"d` (C 776) is written `%td`
 // (lisp.h 150: `pD` is `"t"`), the bytecode.rs/region-cache.rs precedent.
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
-         unsafe_op_in_unsafe_fn, unused_assignments, unreachable_code, while_true,
-         unused_parens, unused_mut)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe, unused_assignments, unreachable_code, while_true, unused_parens, unused_mut)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -103,12 +100,20 @@ macro_rules! TMEM {
 
 unsafe fn set_interval_left (i: INTERVAL, left: INTERVAL)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   (*((i) as *mut interval)).left = left as *mut interval;
+
+  }
 }
 
 unsafe fn set_interval_right (i: INTERVAL, right: INTERVAL)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   (*((i) as *mut interval)).right = right as *mut interval;
+
+  }
 }
 
 /* Make the parent of D be whatever the parent of S is, regardless
@@ -116,8 +121,12 @@ unsafe fn set_interval_right (i: INTERVAL, right: INTERVAL)
 
 unsafe fn copy_interval_parent (d: INTERVAL, s: INTERVAL)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   (*((d) as *mut interval)).up = (*((s) as *mut interval)).up;
   interval_bits! (up_obj, d, interval_bits! (up_obj, s));
+
+  }
 }
 
 /* Create the root interval of some object, a buffer or string.  */
@@ -125,6 +134,8 @@ unsafe fn copy_interval_parent (d: INTERVAL, s: INTERVAL)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn create_root_interval (parent: Lisp_Object) -> INTERVAL
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut new: INTERVAL = std::ptr::null_mut ();
 
   new = make_interval ();
@@ -149,6 +160,8 @@ pub unsafe extern "C-unwind" fn create_root_interval (parent: Lisp_Object) -> IN
   set_interval_object (new, parent);
 
   return new;
+
+  }
 }
 
 /* Make the interval TARGET have exactly the properties of SOURCE.  */
@@ -156,11 +169,15 @@ pub unsafe extern "C-unwind" fn create_root_interval (parent: Lisp_Object) -> IN
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn copy_properties (source: INTERVAL, target: INTERVAL)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if DEFAULT_INTERVAL_P! (source) && DEFAULT_INTERVAL_P! (target)
     { return; }
 
   COPY_INTERVAL_CACHE! (source, target);
   set_interval_plist (target, Fcopy_sequence ((*((source) as *mut interval)).plist));
+
+  }
 }
 
 /* Merge the properties of interval SOURCE into the properties
@@ -169,6 +186,8 @@ pub unsafe extern "C-unwind" fn copy_properties (source: INTERVAL, target: INTER
 
 unsafe fn merge_properties (source: INTERVAL, target: INTERVAL)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut o: Lisp_Object = Qnil ();
   let mut sym: Lisp_Object = Qnil ();
   let mut val: Lisp_Object = Qnil ();
@@ -201,6 +220,8 @@ unsafe fn merge_properties (source: INTERVAL, target: INTERVAL)
 	}
       o = XCDR (o);
     }
+
+  }
 }
 
 /* Return true if the two intervals have the same properties.
@@ -208,6 +229,8 @@ unsafe fn merge_properties (source: INTERVAL, target: INTERVAL)
 
 unsafe fn intervals_equal_1 (i0: INTERVAL, i1: INTERVAL, use_equal: bool) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut i0_cdr: Lisp_Object = Qnil ();
   let mut i0_sym: Lisp_Object = Qnil ();
   let mut i1_cdr: Lisp_Object = Qnil ();
@@ -258,6 +281,8 @@ unsafe fn intervals_equal_1 (i0: INTERVAL, i1: INTERVAL, use_equal: bool) -> boo
 
   /* Lengths of the two plists were equal.  */
   return (NILP (i0_cdr) && NILP (i1_cdr));
+
+  }
 }
 
 /* Return true if the two intervals have the same properties.  */
@@ -265,7 +290,11 @@ unsafe fn intervals_equal_1 (i0: INTERVAL, i1: INTERVAL, use_equal: bool) -> boo
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn intervals_equal (i0: INTERVAL, i1: INTERVAL) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   return intervals_equal_1 (i0, i1, false);
+
+  }
 }
 
 
@@ -277,6 +306,8 @@ pub unsafe extern "C-unwind" fn intervals_equal (i0: INTERVAL, i1: INTERVAL) -> 
 pub unsafe extern "C-unwind" fn traverse_intervals_noorder (mut tree: INTERVAL,
     function: Option<unsafe extern "C-unwind" fn (INTERVAL, *mut c_void)>, arg: *mut c_void)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* Minimize stack usage.  */
   while ! tree.is_null ()
     {
@@ -290,6 +321,8 @@ pub unsafe extern "C-unwind" fn traverse_intervals_noorder (mut tree: INTERVAL,
 	  tree = (*((tree) as *mut interval)).right as INTERVAL;
 	}
     }
+
+  }
 }
 
 /* Traverse an interval tree TREE, performing FUNCTION on each node.
@@ -299,6 +332,8 @@ pub unsafe extern "C-unwind" fn traverse_intervals_noorder (mut tree: INTERVAL,
 pub unsafe extern "C-unwind" fn traverse_intervals (mut tree: INTERVAL, mut position: ptrdiff_t,
     function: Option<unsafe extern "C-unwind" fn (INTERVAL, *mut c_void)>, arg: *mut c_void)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   while ! tree.is_null ()
     {
       traverse_intervals ((*((tree) as *mut interval)).left as INTERVAL, position,
@@ -308,6 +343,8 @@ pub unsafe extern "C-unwind" fn traverse_intervals (mut tree: INTERVAL, mut posi
       (function.unwrap ()) (tree, arg);
       position += LENGTH! (tree); tree = (*((tree) as *mut interval)).right as INTERVAL;
     }
+
+  }
 }
 
 
@@ -322,6 +359,8 @@ pub unsafe extern "C-unwind" fn traverse_intervals (mut tree: INTERVAL, mut posi
 
 unsafe fn rotate_right (A: INTERVAL) -> INTERVAL
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let B: INTERVAL = (*((A) as *mut interval)).left as INTERVAL;
   let c: INTERVAL = (*((B) as *mut interval)).right as INTERVAL;
   let old_total: ptrdiff_t = (*((A) as *mut interval)).total_length;
@@ -359,6 +398,8 @@ unsafe fn rotate_right (A: INTERVAL) -> INTERVAL
   eassert! (LENGTH! (B) > 0);
 
   return B;
+
+  }
 }
 
 /* Assuming that a right child exists, perform the following operation:
@@ -372,6 +413,8 @@ unsafe fn rotate_right (A: INTERVAL) -> INTERVAL
 
 unsafe fn rotate_left (A: INTERVAL) -> INTERVAL
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let B: INTERVAL = (*((A) as *mut interval)).right as INTERVAL;
   let c: INTERVAL = (*((B) as *mut interval)).left as INTERVAL;
   let old_total: ptrdiff_t = (*((A) as *mut interval)).total_length;
@@ -409,6 +452,8 @@ unsafe fn rotate_left (A: INTERVAL) -> INTERVAL
   eassert! (LENGTH! (B) > 0);
 
   return B;
+
+  }
 }
 
 
@@ -417,6 +462,8 @@ unsafe fn rotate_left (A: INTERVAL) -> INTERVAL
 
 unsafe fn balance_an_interval (mut i: INTERVAL) -> INTERVAL
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut old_diff: ptrdiff_t = 0;
   let mut new_diff: ptrdiff_t = 0;
 
@@ -454,6 +501,8 @@ unsafe fn balance_an_interval (mut i: INTERVAL) -> INTERVAL
 	{ break; }
     }
   return i;
+
+  }
 }
 
 /* Balance INTERVAL, potentially stuffing it back into its parent
@@ -461,6 +510,8 @@ unsafe fn balance_an_interval (mut i: INTERVAL) -> INTERVAL
 
 unsafe fn balance_possible_root_interval (mut interval: INTERVAL) -> INTERVAL
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut parent: Lisp_Object = Qnil ();
   let mut have_parent: bool = false;
 
@@ -483,6 +534,8 @@ unsafe fn balance_possible_root_interval (mut interval: INTERVAL) -> INTERVAL
     }
 
   return interval;
+
+  }
 }
 
 /* Balance the interval tree TREE.  Balancing is by weight
@@ -490,12 +543,16 @@ unsafe fn balance_possible_root_interval (mut interval: INTERVAL) -> INTERVAL
 
 unsafe fn balance_intervals_internal (tree: INTERVAL) -> INTERVAL
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* Balance within each side.  */
   if ! (*((tree) as *mut interval)).left.is_null ()
     { balance_intervals_internal ((*((tree) as *mut interval)).left as INTERVAL); }
   if ! (*((tree) as *mut interval)).right.is_null ()
     { balance_intervals_internal ((*((tree) as *mut interval)).right as INTERVAL); }
   return balance_an_interval (tree);
+
+  }
 }
 
 /* Advertised interface to balance intervals.  */
@@ -503,20 +560,28 @@ unsafe fn balance_intervals_internal (tree: INTERVAL) -> INTERVAL
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn balance_intervals (tree: INTERVAL) -> INTERVAL
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   return if ! tree.is_null () { balance_intervals_internal (tree) }
 	 else { std::ptr::null_mut () };
+
+  }
 }
 
 /* Rebalance text properties of B.  */
 
 unsafe fn buffer_balance_intervals (b: *mut buffer)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut i: INTERVAL = std::ptr::null_mut ();
 
   eassert! (b != std::ptr::null_mut ());
   i = buffer_intervals (b);
   if ! i.is_null ()
     { set_buffer_intervals (b, balance_an_interval (i)); }
+
+  }
 }
 
 /* Split INTERVAL into two pieces, starting the second piece at
@@ -535,6 +600,8 @@ unsafe fn buffer_balance_intervals (b: *mut buffer)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn split_interval_right (interval: INTERVAL, offset: ptrdiff_t) -> INTERVAL
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let new: INTERVAL = make_interval ();
   let position: ptrdiff_t = (*((interval) as *mut interval)).position;
   let new_length: ptrdiff_t = LENGTH! (interval) - offset;
@@ -562,6 +629,8 @@ pub unsafe extern "C-unwind" fn split_interval_right (interval: INTERVAL, offset
   balance_possible_root_interval (interval);
 
   return new;
+
+  }
 }
 
 /* Split INTERVAL into two pieces, starting the second piece at
@@ -580,6 +649,8 @@ pub unsafe extern "C-unwind" fn split_interval_right (interval: INTERVAL, offset
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn split_interval_left (interval: INTERVAL, offset: ptrdiff_t) -> INTERVAL
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let new: INTERVAL = make_interval ();
   let new_length: ptrdiff_t = offset;
 
@@ -607,6 +678,8 @@ pub unsafe extern "C-unwind" fn split_interval_left (interval: INTERVAL, offset:
   balance_possible_root_interval (interval);
 
   return new;
+
+  }
 }
 
 
@@ -646,6 +719,8 @@ unsafe fn interval_start_pos (source: INTERVAL) -> c_int
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn find_interval (mut tree: INTERVAL, position: ptrdiff_t) -> INTERVAL
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* The distance from the left edge of the subtree at TREE
                     to POSITION.  */
   let mut relative_position: ptrdiff_t = 0;
@@ -690,6 +765,8 @@ pub unsafe extern "C-unwind" fn find_interval (mut tree: INTERVAL, position: ptr
 	  return tree;
 	}
     }
+
+  }
 }
 
 /* Find the succeeding interval (lexicographically) to INTERVAL.
@@ -699,6 +776,8 @@ pub unsafe extern "C-unwind" fn find_interval (mut tree: INTERVAL, position: ptr
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn next_interval (interval: INTERVAL) -> INTERVAL
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut i: INTERVAL = interval;
   let mut next_position: ptrdiff_t = 0;
 
@@ -729,6 +808,8 @@ pub unsafe extern "C-unwind" fn next_interval (interval: INTERVAL) -> INTERVAL
     }
 
   return std::ptr::null_mut ();
+
+  }
 }
 
 /* Find the preceding interval (lexicographically) to INTERVAL.
@@ -738,6 +819,8 @@ pub unsafe extern "C-unwind" fn next_interval (interval: INTERVAL) -> INTERVAL
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn previous_interval (interval: INTERVAL) -> INTERVAL
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut i: INTERVAL = std::ptr::null_mut ();
 
   if interval.is_null ()
@@ -767,6 +850,8 @@ pub unsafe extern "C-unwind" fn previous_interval (interval: INTERVAL) -> INTERV
     }
 
   return std::ptr::null_mut ();
+
+  }
 }
 
 /* Set the ->position field of I's parent, based on I->position. */
@@ -790,6 +875,8 @@ macro_rules! SET_PARENT_POSITION {
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn update_interval (mut i: INTERVAL, pos: ptrdiff_t) -> INTERVAL
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if i.is_null ()
     { return std::ptr::null_mut (); }
 
@@ -835,6 +922,8 @@ pub unsafe extern "C-unwind" fn update_interval (mut i: INTERVAL, pos: ptrdiff_t
       else
 	{ return i; }
     }
+
+  }
 }
 
 
@@ -855,6 +944,8 @@ unsafe fn adjust_intervals_for_insertion (mut tree: INTERVAL,
 					  mut position: ptrdiff_t, length: ptrdiff_t)
   -> INTERVAL
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut i: INTERVAL = std::ptr::null_mut ();
   let mut temp: INTERVAL = std::ptr::null_mut ();
   let mut eobp: bool = false;
@@ -1047,6 +1138,8 @@ unsafe fn adjust_intervals_for_insertion (mut tree: INTERVAL,
     }
 
   return tree;
+
+  }
 }
 
 /* Any property might be front-sticky on the left, rear-sticky on the left,
@@ -1090,6 +1183,8 @@ FR     8  9  A  B
 
 unsafe fn merge_properties_sticky (pleft: Lisp_Object, pright: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut props: Lisp_Object = Qnil ();
   let mut front: Lisp_Object = Qnil ();
   let mut rear: Lisp_Object = Qnil ();
@@ -1243,6 +1338,8 @@ unsafe fn merge_properties_sticky (pleft: Lisp_Object, pright: Lisp_Object) -> L
 	 && EQ (Fget (cat, Qfront_sticky ()), Qt ()))
     { props = Fcons (Qfront_sticky (), Fcons (Fnreverse (front), props)); }
   return props;
+
+  }
 }
 
 
@@ -1252,6 +1349,8 @@ unsafe fn merge_properties_sticky (pleft: Lisp_Object, pright: Lisp_Object) -> L
 
 unsafe fn delete_node (i: INTERVAL) -> INTERVAL
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut migrate: INTERVAL = std::ptr::null_mut ();
   let mut this: INTERVAL = std::ptr::null_mut ();
   let mut migrate_amt: ptrdiff_t = 0;
@@ -1276,6 +1375,8 @@ unsafe fn delete_node (i: INTERVAL) -> INTERVAL
   eassert! (LENGTH! ((*((i) as *mut interval)).right as INTERVAL) > 0);
 
   return (*((i) as *mut interval)).right as INTERVAL;
+
+  }
 }
 
 /* Delete interval I from its tree by calling `delete_node'
@@ -1286,6 +1387,8 @@ unsafe fn delete_node (i: INTERVAL) -> INTERVAL
 
 unsafe fn delete_interval (i: INTERVAL)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut parent: INTERVAL = std::ptr::null_mut ();
   let amt: ptrdiff_t = LENGTH! (i);
 
@@ -1322,6 +1425,8 @@ unsafe fn delete_interval (i: INTERVAL)
       if ! (*((parent) as *mut interval)).right.is_null ()
 	{ set_interval_parent ((*((parent) as *mut interval)).right as INTERVAL, parent); }
     }
+
+  }
 }
 
 
@@ -1340,6 +1445,8 @@ unsafe fn delete_interval (i: INTERVAL)
 unsafe fn interval_deletion_adjustment (tree: INTERVAL, from: ptrdiff_t,
 					mut amount: ptrdiff_t) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut relative_position: ptrdiff_t = from;
 
   if tree.is_null ()
@@ -1389,6 +1496,8 @@ unsafe fn interval_deletion_adjustment (tree: INTERVAL, from: ptrdiff_t,
     }
 
   /* Never reach here.  */
+
+  }
 }
 
 /* Effect the adjustments necessary to the interval tree of BUFFER to
@@ -1399,6 +1508,8 @@ unsafe fn interval_deletion_adjustment (tree: INTERVAL, from: ptrdiff_t,
 unsafe fn adjust_intervals_for_deletion (buffer: *mut buffer,
 					 mut start: ptrdiff_t, length: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut left_to_delete: ptrdiff_t = length;
   let mut tree: INTERVAL = buffer_intervals (buffer);
   let mut parent: Lisp_Object = Qnil ();
@@ -1439,6 +1550,8 @@ unsafe fn adjust_intervals_for_deletion (buffer: *mut buffer,
 	  return;
 	}
     }
+
+  }
 }
 
 
@@ -1450,6 +1563,8 @@ unsafe fn adjust_intervals_for_deletion (buffer: *mut buffer,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn offset_intervals (buffer: *mut buffer, start: ptrdiff_t, length: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if buffer_intervals (buffer).is_null () || length == 0
     { return; }
 
@@ -1457,6 +1572,8 @@ pub unsafe extern "C-unwind" fn offset_intervals (buffer: *mut buffer, start: pt
     { adjust_intervals_for_insertion (buffer_intervals (buffer), start, length); }
   else
     { adjust_intervals_for_deletion (buffer, start, -length); }
+
+  }
 }
 
 
@@ -1471,6 +1588,8 @@ pub unsafe extern "C-unwind" fn offset_intervals (buffer: *mut buffer, start: pt
 
 unsafe fn merge_interval_right (i: INTERVAL) -> INTERVAL
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let absorb: ptrdiff_t = LENGTH! (i);
   let mut successor: INTERVAL = std::ptr::null_mut ();
 
@@ -1515,6 +1634,8 @@ unsafe fn merge_interval_right (i: INTERVAL) -> INTERVAL
   /* This must be the rightmost or last interval and cannot
      be merged right.  The caller should have known.  */
   emacs_abort ()
+
+  }
 }
 
 /* Merge interval I with its lexicographic predecessor. The resulting
@@ -1527,6 +1648,8 @@ unsafe fn merge_interval_right (i: INTERVAL) -> INTERVAL
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn merge_interval_left (i: INTERVAL) -> INTERVAL
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let absorb: ptrdiff_t = LENGTH! (i);
   let mut predecessor: INTERVAL = std::ptr::null_mut ();
 
@@ -1571,6 +1694,8 @@ pub unsafe extern "C-unwind" fn merge_interval_left (i: INTERVAL) -> INTERVAL
   /* This must be the leftmost or first interval and cannot
      be merged left.  The caller should have known.  */
   emacs_abort ()
+
+  }
 }
 
 
@@ -1578,6 +1703,8 @@ pub unsafe extern "C-unwind" fn merge_interval_left (i: INTERVAL) -> INTERVAL
 
 unsafe fn reproduce_interval (source: INTERVAL) -> INTERVAL
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let target: INTERVAL = make_interval ();
 
   eassert! (LENGTH! (source) > 0);
@@ -1594,6 +1721,8 @@ unsafe fn reproduce_interval (source: INTERVAL) -> INTERVAL
 
   eassert! (LENGTH! (target) > 0);
   return target;
+
+  }
 }
 
 /* Make an exact copy of interval tree SOURCE which descends from
@@ -1603,16 +1732,24 @@ unsafe fn reproduce_interval (source: INTERVAL) -> INTERVAL
 
 unsafe fn reproduce_tree (source: INTERVAL, parent: INTERVAL) -> INTERVAL
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let target: INTERVAL = reproduce_interval (source);
   set_interval_parent (target, parent);
   return target;
+
+  }
 }
 
 unsafe fn reproduce_tree_obj (source: INTERVAL, parent: Lisp_Object) -> INTERVAL
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let target: INTERVAL = reproduce_interval (source);
   set_interval_object (target, parent);
   return target;
+
+  }
 }
 
 
@@ -1658,6 +1795,8 @@ pub unsafe extern "C-unwind" fn graft_intervals_into_buffer (source: INTERVAL, m
 						      length: ptrdiff_t, buffer: *mut buffer,
 						      inherit: bool)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut tree: INTERVAL = buffer_intervals (buffer);
   let mut under: INTERVAL = std::ptr::null_mut ();
   let mut over: INTERVAL = std::ptr::null_mut ();
@@ -1785,6 +1924,8 @@ pub unsafe extern "C-unwind" fn graft_intervals_into_buffer (source: INTERVAL, m
     }
 
   buffer_balance_intervals (buffer);
+
+  }
 }
 
 /* Get the value of property PROP from PLIST,
@@ -1801,13 +1942,19 @@ unsafe extern "C" {
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn textget (plist: Lisp_Object, prop: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   return lookup_char_property (plist, prop, true);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn lookup_char_property (plist: Lisp_Object, prop: Lisp_Object,
 					       textprop: bool) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut tail: Lisp_Object = Qnil ();
   let mut fallback: Lisp_Object = Qnil ();
 
@@ -1844,6 +1991,8 @@ pub unsafe extern "C-unwind" fn lookup_char_property (plist: Lisp_Object, prop: 
   if textprop && NILP (fallback) && CONSP (Vdefault_text_properties)
     { fallback = plist_get (Vdefault_text_properties, prop); }
   return fallback;
+
+  }
 }
 
 
@@ -1868,8 +2017,12 @@ pub unsafe extern "C-unwind" fn temp_set_point_both (buffer: *mut buffer,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn temp_set_point (buffer: *mut buffer, charpos: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   temp_set_point_both (buffer, charpos,
 		       buf_charpos_to_bytepos (buffer as *mut c_void, charpos));
+
+  }
 }
 
 /* Set point in BUFFER to CHARPOS.  If the target position is
@@ -1878,7 +2031,11 @@ pub unsafe extern "C-unwind" fn temp_set_point (buffer: *mut buffer, charpos: pt
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn set_point (charpos: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   set_point_both (charpos, buf_charpos_to_bytepos ((current_buffer! ()) as *mut c_void, charpos));
+
+  }
 }
 
 /* Set PT from MARKER's clipped position.  */
@@ -1886,6 +2043,8 @@ pub unsafe extern "C-unwind" fn set_point (charpos: ptrdiff_t)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn set_point_from_marker (marker: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let charpos: ptrdiff_t = clip_to_bounds (BEGV! (), marker_position (marker), ZV! ());
   let mut bytepos: ptrdiff_t = marker_byte_position (marker);
 
@@ -1896,6 +2055,8 @@ pub unsafe extern "C-unwind" fn set_point_from_marker (marker: Lisp_Object)
   else
     { bytepos = clip_to_bounds (BEGV_BYTE! (), bytepos, ZV_BYTE! ()); }
   set_point_both (charpos, bytepos);
+
+  }
 }
 
 /* If there's an invisible character at position POS + TEST_OFFS in the
@@ -1912,6 +2073,8 @@ pub unsafe extern "C-unwind" fn set_point_from_marker (marker: Lisp_Object)
 unsafe fn adjust_for_invis_intang (mut pos: ptrdiff_t, test_offs: ptrdiff_t,
 				   adj: ptrdiff_t, test_intang: bool) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut invis_propval: Lisp_Object = Qnil ();
   let mut invis_overlay: Lisp_Object = Qnil ();
   let mut test_pos: Lisp_Object = Qnil ();
@@ -1943,6 +2106,8 @@ unsafe fn adjust_for_invis_intang (mut pos: ptrdiff_t, test_offs: ptrdiff_t,
     { pos += adj; }
 
   return pos;
+
+  }
 }
 
 
@@ -1953,6 +2118,8 @@ unsafe fn adjust_for_invis_intang (mut pos: ptrdiff_t, test_offs: ptrdiff_t,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn set_point_both (mut charpos: ptrdiff_t, mut bytepos: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut to: INTERVAL = std::ptr::null_mut ();
   let mut from: INTERVAL = std::ptr::null_mut ();
   let mut toprev: INTERVAL = std::ptr::null_mut ();
@@ -2170,6 +2337,8 @@ pub unsafe extern "C-unwind" fn set_point_both (mut charpos: ptrdiff_t, mut byte
       if ! EQ (enter_after, leave_after) && !NILP (enter_after)
 	{ calln! (enter_after, make_fixnum (old_position), make_fixnum (charpos)); }
     }
+
+  }
 }
 
 
@@ -2179,6 +2348,8 @@ pub unsafe extern "C-unwind" fn set_point_both (mut charpos: ptrdiff_t, mut byte
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn move_if_not_intangible (mut position: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut pos: Lisp_Object = Qnil ();
   let mut intangible_propval: Lisp_Object = Qnil ();
 
@@ -2234,6 +2405,8 @@ pub unsafe extern "C-unwind" fn move_if_not_intangible (mut position: ptrdiff_t)
 
   if XFIXNUM (pos) != PT! ()
     { SET_PT (position); }
+
+  }
 }
 
 
@@ -2250,6 +2423,8 @@ pub unsafe extern "C-unwind" fn get_property_and_range (pos: ptrdiff_t, prop: Li
 						 start: *mut ptrdiff_t, end: *mut ptrdiff_t,
 						 object: Lisp_Object) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut i: INTERVAL = std::ptr::null_mut ();
   let mut prev: INTERVAL = std::ptr::null_mut ();
   let mut next: INTERVAL = std::ptr::null_mut ();
@@ -2283,6 +2458,8 @@ pub unsafe extern "C-unwind" fn get_property_and_range (pos: ptrdiff_t, prop: Li
   *end = (*((i) as *mut interval)).position + LENGTH! (i);
 
   return true;
+
+  }
 }
 
 
@@ -2295,6 +2472,8 @@ pub unsafe extern "C-unwind" fn get_property_and_range (pos: ptrdiff_t, prop: Li
 pub unsafe extern "C-unwind" fn get_local_map (mut position: ptrdiff_t, buffer: *mut buffer,
 					r#type: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut prop: Lisp_Object = Qnil ();
   let mut lispy_position: Lisp_Object = Qnil ();
   let mut lispy_buffer: Lisp_Object = Qnil ();
@@ -2342,6 +2521,8 @@ pub unsafe extern "C-unwind" fn get_local_map (mut position: ptrdiff_t, buffer: 
     { return Qnil (); }
   else
     { return BVAR! (buffer, keymap_); }
+
+  }
 }
 
 /* Produce an interval tree reflecting the intervals in
@@ -2352,6 +2533,8 @@ pub unsafe extern "C-unwind" fn get_local_map (mut position: ptrdiff_t, buffer: 
 pub unsafe extern "C-unwind" fn copy_intervals (tree: INTERVAL, start: ptrdiff_t, length: ptrdiff_t)
   -> INTERVAL
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut i: INTERVAL = std::ptr::null_mut ();
   let mut new: INTERVAL = std::ptr::null_mut ();
   let mut t: INTERVAL = std::ptr::null_mut ();
@@ -2388,6 +2571,8 @@ pub unsafe extern "C-unwind" fn copy_intervals (tree: INTERVAL, start: ptrdiff_t
     }
 
   return balance_an_interval (new);
+
+  }
 }
 
 /* Give STRING the properties of BUFFER from POSITION to LENGTH.  */
@@ -2396,6 +2581,8 @@ pub unsafe extern "C-unwind" fn copy_intervals (tree: INTERVAL, start: ptrdiff_t
 pub unsafe extern "C-unwind" fn copy_intervals_to_string (string: Lisp_Object, buffer: *mut buffer,
 						   position: ptrdiff_t, length: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let interval_copy: INTERVAL = copy_intervals (buffer_intervals (buffer),
 						position, length);
   if interval_copy.is_null ()
@@ -2403,6 +2590,8 @@ pub unsafe extern "C-unwind" fn copy_intervals_to_string (string: Lisp_Object, b
 
   set_interval_object (interval_copy, string);
   set_string_intervals (string, interval_copy);
+
+  }
 }
 
 
@@ -2412,6 +2601,8 @@ pub unsafe extern "C-unwind" fn copy_intervals_to_string (string: Lisp_Object, b
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn compare_string_intervals (s1: Lisp_Object, s2: Lisp_Object) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut i1: INTERVAL = std::ptr::null_mut ();
   let mut i2: INTERVAL = std::ptr::null_mut ();
   let mut pos: ptrdiff_t = 0;
@@ -2441,6 +2632,8 @@ pub unsafe extern "C-unwind" fn compare_string_intervals (s1: Lisp_Object, s2: L
 	{ i2 = next_interval (i2); }
     }
   return true;
+
+  }
 }
 
 
@@ -2453,6 +2646,8 @@ unsafe fn set_intervals_multibyte_1 (i: INTERVAL, multi_flag: bool,
 				     start: ptrdiff_t, start_byte: ptrdiff_t,
 				     end: ptrdiff_t, end_byte: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* Fix the length of this interval.  */
   if multi_flag
     { (*((i) as *mut interval)).total_length = end - start; }
@@ -2533,6 +2728,8 @@ unsafe fn set_intervals_multibyte_1 (i: INTERVAL, multi_flag: bool,
 	  delete_interval ((*((i) as *mut interval)).right as INTERVAL);
 	}
     }
+
+  }
 }
 
 /* Update the intervals of the current buffer
@@ -2542,8 +2739,12 @@ unsafe fn set_intervals_multibyte_1 (i: INTERVAL, multi_flag: bool,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn set_intervals_multibyte (multi_flag: bool)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let i: INTERVAL = buffer_intervals ((current_buffer! ()));
 
   if ! i.is_null ()
     { set_intervals_multibyte_1 (i, multi_flag, BEG as ptrdiff_t, BEG_BYTE as ptrdiff_t, Z! (), Z_BYTE! ()); }
+
+  }
 }

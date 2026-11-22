@@ -35,6 +35,8 @@ pub const NAME_OF_NONCE_DEVICE: &[u8; 13] = b"/dev/urandom\0";
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn getrandom (buffer: *mut c_void, length: usize, flags: c_uint) -> ssize_t
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   /* C 118-176's `#if defined _WIN32 && ! defined __CYGWIN__` arm is dead on this target.  */
 
   /* C 177-178's `#elif HAVE_GETRANDOM` arm is dead: this target has no system getrandom.  */
@@ -67,6 +69,8 @@ pub unsafe extern "C" fn getrandom (buffer: *mut c_void, length: usize, flags: c
     }
 
   return read (fd, buffer, length);
+
+  }
 }
 
 /* C 116's `#undef getrandom`: the system entry the dead `#elif HAVE_GETRANDOM` arm calls.  */

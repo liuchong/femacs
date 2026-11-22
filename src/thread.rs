@@ -33,9 +33,7 @@
 // names them, and thread.c dereferences a `struct handler`, so the records had to land with
 // this port (see those mirrors' notes and the ledger's "Changes outside the unit").
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
-         unsafe_op_in_unsafe_fn, unreachable_code)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe, unreachable_code)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -167,7 +165,7 @@ static mut main_thread: aligned_thread_state
       m_saved_search_regs: re_registers { num_regs: 0, start: std::ptr::null_mut (), end: std::ptr::null_mut () },
       m_waiting_for_user_input_p: 0,
       m_waiting_for_input: false,
-      m_getcjmp: unsafe { core::mem::zeroed () },   // C's static is zero-initialized (192 or 256 bytes)
+      m_getcjmp: /* SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership. */ unsafe { core::mem::zeroed () },   // C's static is zero-initialized (192 or 256 bytes)
       thread_id: unsafe { core::mem::zeroed () },
       thread_condvar: unsafe { core::mem::zeroed () },
       wait_condvar: std::ptr::null_mut (),
@@ -183,12 +181,12 @@ static mut main_thread: aligned_thread_state
 // thread.c 60-62: C writes `&main_thread.s`, the address of the union's first (only) member,
 // which is the union's address; `addr_of_mut!` on the field is the same pointer.
 #[unsafe(no_mangle)]
-pub static mut current_thread: *mut thread_state = unsafe { std::ptr::addr_of_mut! (main_thread.s) };
+pub static mut current_thread: *mut thread_state = /* SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership. */ unsafe { std::ptr::addr_of_mut! (main_thread.s) };
 
 #[unsafe(no_mangle)]
 pub static mut all_threads: *mut thread_state = unsafe { std::ptr::addr_of_mut! (main_thread.s) };
 
-static mut global_lock: sys_mutex_t = unsafe { core::mem::zeroed () };
+static mut global_lock: sys_mutex_t = /* SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership. */ unsafe { core::mem::zeroed () };
 
 /* thread.c 70's declaration is the one above (interrupt_input_blocked).  */
 
@@ -199,22 +197,34 @@ macro_rules! thread_live_p { ($state:expr) => { (*( $state)).m_specpdl != std::p
 // thread.c 79-82.
 unsafe fn release_global_lock ()
 {
+  // SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership.
+  unsafe {
   sys_mutex_unlock (&raw mut global_lock);
+
+  }
 }
 
 // thread.c 84-90.
 unsafe fn rebind_for_thread_switch ()
 {
+  // SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership.
+  unsafe {
   let distance: ptrdiff_t
     = (*current_thread).m_specpdl_ptr.offset_from ((*current_thread).m_specpdl);
   specpdl_unrewind (specpdl_ptr! (), -distance as c_int, true);
+
+  }
 }
 
 // thread.c 92-98.
 unsafe fn unbind_for_thread_switch (thr: *mut thread_state)
 {
+  // SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership.
+  unsafe {
   let distance: ptrdiff_t = (*thr).m_specpdl_ptr.offset_from ((*thr).m_specpdl);
   specpdl_unrewind ((*thr).m_specpdl_ptr, distance as c_int, true);
+
+  }
 }
 
 /* You must call this after acquiring the global lock.
@@ -224,6 +234,8 @@ unsafe fn unbind_for_thread_switch (thr: *mut thread_state)
 // match - the `r#match` precedent, PORTING.md 0.2).
 unsafe fn post_acquire_global_lock (self_: *mut thread_state)
 {
+  // SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership.
+  unsafe {
   let prev_thread: *mut thread_state = current_thread;
 
   #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
@@ -255,13 +267,19 @@ unsafe fn post_acquire_global_lock (self_: *mut thread_state)
       (*current_thread).error_data = Qnil ();
       Fsignal (sym, data);
     }
+
+  }
 }
 
 // thread.c 154-159.
 unsafe fn acquire_global_lock (self_: *mut thread_state)
 {
+  // SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership.
+  unsafe {
   sys_mutex_lock (&raw mut global_lock);
   post_acquire_global_lock (self_);
+
+  }
 }
 
 /* This is called from keyboard.c when it detects that SIGINT was
@@ -271,6 +289,8 @@ unsafe fn acquire_global_lock (self_: *mut thread_state)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn maybe_reacquire_global_lock ()
 {
+  // SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership.
+  unsafe {
   /* SIGINT handler is always run on the main thread.  */
   current_thread = std::ptr::addr_of_mut! (main_thread.s);
 
@@ -281,14 +301,20 @@ pub unsafe extern "C-unwind" fn maybe_reacquire_global_lock ()
       acquire_global_lock (self_);
       (*current_thread).not_holding_lock = 0;
     }
+
+  }
 }
 
 // thread.c 181-188.
 unsafe fn lisp_mutex_init (mutex: *mut lisp_mutex_t)
 {
+  // SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership.
+  unsafe {
   (*mutex).owner = std::ptr::null_mut ();
   (*mutex).count = 0;
   sys_cond_init (&raw mut (*mutex).condition);
+
+  }
 }
 
 /* Lock MUTEX for thread LOCKER, setting its lock count to COUNT, if
@@ -297,6 +323,8 @@ unsafe fn lisp_mutex_init (mutex: *mut lisp_mutex_t)
 unsafe fn lisp_mutex_lock_for_thread (mutex: *mut lisp_mutex_t, locker: *mut thread_state,
                                       new_count: c_int) -> c_int
 {
+  // SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership.
+  unsafe {
   let self_: *mut thread_state;
 
   if (*mutex).owner.is_null ()
@@ -326,18 +354,26 @@ unsafe fn lisp_mutex_lock_for_thread (mutex: *mut lisp_mutex_t, locker: *mut thr
   (*mutex).count = if new_count == 0 { 1 } else { new_count as c_uint };
 
   return 1;
+
+  }
 }
 
 // thread.c 237-241.
 unsafe fn lisp_mutex_lock (mutex: *mut lisp_mutex_t, new_count: c_int) -> c_int
 {
+  // SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership.
+  unsafe {
   return lisp_mutex_lock_for_thread (mutex, current_thread, new_count);
+
+  }
 }
 
 /* Decrement MUTEX's lock count.  */
 // thread.c 243-258.
 unsafe fn lisp_mutex_unlock (mutex: *mut lisp_mutex_t) -> c_int
 {
+  // SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership.
+  unsafe {
   if (*mutex).owner != current_thread
     { error (c"Cannot unlock mutex owned by another thread".as_ptr ()); }
 
@@ -349,6 +385,8 @@ unsafe fn lisp_mutex_unlock (mutex: *mut lisp_mutex_t) -> c_int
   sys_cond_broadcast (&raw mut (*mutex).condition);
 
   return 1;
+
+  }
 }
 
 /* Like lisp_mutex_unlock, but sets MUTEX's lock count to zero
@@ -356,6 +394,8 @@ unsafe fn lisp_mutex_unlock (mutex: *mut lisp_mutex_t) -> c_int
 // thread.c 260-274.
 unsafe fn lisp_mutex_unlock_for_wait (mutex: *mut lisp_mutex_t) -> c_uint
 {
+  // SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership.
+  unsafe {
   let result: c_uint = (*mutex).count;
 
   /* Ensured by condvar code.  */
@@ -366,12 +406,18 @@ unsafe fn lisp_mutex_unlock_for_wait (mutex: *mut lisp_mutex_t) -> c_uint
   sys_cond_broadcast (&raw mut (*mutex).condition);
 
   return result;
+
+  }
 }
 
 // thread.c 276-279.
 unsafe fn lisp_mutex_destroy (mutex: *mut lisp_mutex_t)
 {
+  // SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership.
+  unsafe {
   sys_cond_destroy (&raw mut (*mutex).condition);
+
+  }
 }
 
 // thread.c 281-284.  C returns `mutex->owner == current_thread` for an `int` function; the
@@ -379,7 +425,11 @@ unsafe fn lisp_mutex_destroy (mutex: *mut lisp_mutex_t)
 // dired.rs precedent).
 unsafe fn lisp_mutex_owned_p (mutex: *mut lisp_mutex_t) -> c_int
 {
+  // SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership.
+  unsafe {
   return if (*mutex).owner == current_thread { 1 } else { 0 };
+
+  }
 }
 
 // thread.c 289-320.
@@ -403,6 +453,8 @@ DEFUN! ("make-mutex", Fmake_mutex, Smake_mutex, 0, 1, 0,
 // thread.c 322-332.
 unsafe extern "C-unwind" fn mutex_lock_callback (arg: *mut c_void)
 {
+  // SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership.
+  unsafe {
   let mutex: *mut Lisp_Mutex = arg as *mut Lisp_Mutex;
   let self_: *mut thread_state = current_thread;
 
@@ -410,12 +462,18 @@ unsafe extern "C-unwind" fn mutex_lock_callback (arg: *mut c_void)
      one waits for the mutex to become unlocked.  */
   if lisp_mutex_lock (&raw mut (*mutex).mutex, 0) != 0
     { post_acquire_global_lock (self_); }
+
+  }
 }
 
 // thread.c 334-337.
 unsafe extern "C-unwind" fn do_unwind_mutex_lock ()
 {
+  // SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership.
+  unsafe {
   (*current_thread).event_object = Qnil ();
+
+  }
 }
 
 // thread.c 339-370.
@@ -438,11 +496,15 @@ DEFUN! ("mutex-lock", Fmutex_lock, Smutex_lock, 1, 1, 0,
 // thread.c 372-379.
 unsafe extern "C-unwind" fn mutex_unlock_callback (arg: *mut c_void)
 {
+  // SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership.
+  unsafe {
   let mutex: *mut Lisp_Mutex = arg as *mut Lisp_Mutex;
   let self_: *mut thread_state = current_thread;
 
   if lisp_mutex_unlock (&raw mut (*mutex).mutex) != 0
     { post_acquire_global_lock (self_); } /* FIXME: is this call needed?  */
+
+  }
 }
 
 // thread.c 381-395.
@@ -476,7 +538,11 @@ DEFUN! ("mutex-name", Fmutex_name, Smutex_name, 1, 1, 0,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn finalize_one_mutex (mutex: *mut Lisp_Mutex)
 {
+  // SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership.
+  unsafe {
   lisp_mutex_destroy (&raw mut (*mutex).mutex);
+
+  }
 }
 
 // thread.c 416-441.
@@ -504,6 +570,8 @@ DEFUN! ("make-condition-variable",
 // thread.c 443-475.
 unsafe extern "C-unwind" fn condition_wait_callback (arg: *mut c_void)
 {
+  // SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership.
+  unsafe {
   let cvar: *mut Lisp_CondVar = arg as *mut Lisp_CondVar;
   let mutex: *mut Lisp_Mutex = XMUTEX ((*cvar).mutex);
   let self_: *mut thread_state = current_thread;
@@ -527,6 +595,8 @@ unsafe extern "C-unwind" fn condition_wait_callback (arg: *mut c_void)
   lisp_mutex_lock_for_thread (&raw mut (*mutex).mutex, self_, saved_count as c_int);
   /* Calling lisp_mutex_lock_for_thread might yield to other threads.  */
   post_acquire_global_lock (self_);
+
+  }
 }
 
 // thread.c 478-511.
@@ -561,6 +631,8 @@ pub struct notify_args
 // thread.c 520-541.
 unsafe extern "C-unwind" fn condition_notify_callback (arg: *mut c_void)
 {
+  // SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership.
+  unsafe {
   let na: *mut notify_args = arg as *mut notify_args;
   let mutex: *mut Lisp_Mutex = XMUTEX ((*(*na).cvar).mutex);
   let self_: *mut thread_state = current_thread;
@@ -577,6 +649,8 @@ unsafe extern "C-unwind" fn condition_notify_callback (arg: *mut c_void)
      one waits for the mutex to become unlocked.  */
   lisp_mutex_lock (&raw mut (*mutex).mutex, saved_count as c_int);
   post_acquire_global_lock (self_);
+
+  }
 }
 
 // thread.c 543-565.
@@ -632,7 +706,11 @@ DEFUN! ("condition-name", Fcondition_name, Scondition_name, 1, 1, 0,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn finalize_one_condvar (condvar: *mut Lisp_CondVar)
 {
+  // SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership.
+  unsafe {
   sys_cond_destroy (&raw mut (*condvar).cond);
+
+  }
 }
 
 // thread.c 601-611.
@@ -652,6 +730,8 @@ pub struct select_args
 // thread.c 613-641.
 unsafe extern "C-unwind" fn really_call_select (arg: *mut c_void)
 {
+  // SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership.
+  unsafe {
   let sa: *mut select_args = arg as *mut select_args;
   let self_: *mut thread_state = current_thread;
   let mut oldset: sigset_t = std::mem::zeroed ();
@@ -676,6 +756,8 @@ unsafe extern "C-unwind" fn really_call_select (arg: *mut c_void)
       (*self_).not_holding_lock = 0;
     }
   restore_signal_mask (&raw const oldset);
+
+  }
 }
 
 // thread.c 643-663.
@@ -685,6 +767,8 @@ pub unsafe extern "C-unwind" fn thread_select (func: Option<select_func>, max_fd
 					efds: *mut fd_set, timeout: *mut timespec,
 					sigmask: *mut sigset_t) -> c_int
 {
+  // SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership.
+  unsafe {
   let mut sa: select_args = std::mem::zeroed ();
 
   sa.func = func;
@@ -698,11 +782,15 @@ pub unsafe extern "C-unwind" fn thread_select (func: Option<select_func>, max_fd
   { thread_android_api::android_before_select (); }
   flush_stack_call_func (Some (really_call_select), &raw mut sa as *mut c_void);
   return sa.result;
+
+  }
 }
 
 // thread.c 666-693.
 unsafe fn mark_one_thread (thread: *mut thread_state)
 {
+  // SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership.
+  unsafe {
   /* Get the stack top now, in case mark_specpdl changes it.  */
   let stack_top: *const c_void = (*thread).stack_top;
 
@@ -727,14 +815,24 @@ unsafe fn mark_one_thread (thread: *mut thread_state)
 
   mark_bytecode (&raw mut (*thread).bc);
   crate::nonlocal::mark_thread_explicit_roots (thread as *mut c_void, |obj| mark_object (obj));
+  let mut slab_marked = 0usize;
+  crate::roots::mark_thread_u4_slab_roots (thread as *mut c_void, |obj| {
+    slab_marked += 1;
+    mark_object (obj);
+  });
+  crate::state::note_gc_thread_slab_marked (slab_marked);
 
   /* No need to mark Lisp_Object members like m_last_thing_searched,
      as mark_threads_callback does that by calling mark_object.  */
+
+  }
 }
 
 // thread.c 696-709.
 unsafe extern "C-unwind" fn mark_threads_callback (ignore: *mut c_void)
 {
+  // SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership.
+  unsafe {
   let mut iter: *mut thread_state;
 
   iter = all_threads;
@@ -747,6 +845,8 @@ unsafe extern "C-unwind" fn mark_threads_callback (ignore: *mut c_void)
       mark_one_thread (iter);
       iter = (*iter).next_thread;
     }
+
+  }
 }
 
 // thread.c 711-715.
@@ -760,17 +860,25 @@ pub unsafe extern "C-unwind" fn mark_threads ()
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn unmark_main_thread ()
 {
+  // SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership.
+  unsafe {
   main_thread.s.header.size &= !ARRAY_MARK_FLAG;
+
+  }
 }
 
 // thread.c 725-732.
 unsafe extern "C-unwind" fn yield_callback (ignore: *mut c_void)
 {
+  // SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership.
+  unsafe {
   let self_: *mut thread_state = current_thread;
 
   release_global_lock ();
   sys_thread_yield ();
   acquire_global_lock (self_);
+
+  }
 }
 
 // thread.c 734-741.
@@ -785,10 +893,14 @@ DEFUN! ("thread-yield", Fthread_yield, Sthread_yield, 0, 0, 0,
 // thread.c 743-749.
 unsafe extern "C-unwind" fn invoke_thread_function () -> Lisp_Object
 {
+  // SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership.
+  unsafe {
   let count: specpdl_ref = SPECPDL_INDEX ();
 
   (*current_thread).result = calln! ((*current_thread).function);
   return unbind_to (count, Qnil ());
+
+  }
 }
 
 // thread.c 751.
@@ -797,13 +909,19 @@ static mut last_thread_error: Lisp_Object = lisp_h_Qnil ();
 // thread.c 753-758.
 unsafe extern "C-unwind" fn record_thread_error (error_form: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership.
+  unsafe {
   last_thread_error = error_form;
   return error_form;
+
+  }
 }
 
 // thread.c 761-865.
 unsafe extern "C" fn run_thread (state: *mut c_void) -> *mut c_void
 {
+  // SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership.
+  unsafe {
   /* Make sure stack_top and m_stack_bottom are properly aligned as GC
      expects.  */
   #[repr(C)]
@@ -846,7 +964,7 @@ unsafe extern "C" fn run_thread (state: *mut c_void) -> *mut c_void
   (*handlerlist_sentinel! ()).next = std::ptr::null_mut ();
 
   /* It might be nice to do something with errors here.  */
-  let _ = crate::nonlocal::catch_vm_nonlocal (|| unsafe {
+  let _ = crate::nonlocal::catch_vm_nonlocal (|| /* SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership. */ unsafe {
     internal_condition_case (Some (invoke_thread_function), Qt (), Some (record_thread_error));
     update_processes_for_thread_death (Fcurrent_thread ());
   });
@@ -892,27 +1010,38 @@ unsafe extern "C" fn run_thread (state: *mut c_void) -> *mut c_void
   release_global_lock ();
 
   return std::ptr::null_mut ();
+
+  }
 }
 
 // thread.c 867-875.
 unsafe fn free_search_regs (regs: *mut re_registers)
 {
+  // SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership.
+  unsafe {
   if (*regs).num_regs != 0
     {
       xfree ((*regs).start as *mut c_void);
       xfree ((*regs).end as *mut c_void);
     }
+
+  }
 }
 
 // thread.c 877-886.
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn finalize_one_thread (state: *mut thread_state)
 {
+  // SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership.
+  unsafe {
   free_search_regs (&raw mut (*state).m_search_regs);
   free_search_regs (&raw mut (*state).m_saved_search_regs);
   sys_cond_destroy (&raw mut (*state).thread_condvar);
   free_bc_thread (&raw mut (*state).bc);
   crate::nonlocal::cleanup_thread_state (state as *mut c_void);
+  crate::roots::cleanup_thread_u4_slab (state as *mut c_void);
+
+  }
 }
 
 // thread.c 888-947.
@@ -1000,21 +1129,29 @@ DEFUN! ("thread-name", Fthread_name, Sthread_name, 1, 1, 0,
 // thread.c 975-983.
 unsafe extern "C-unwind" fn thread_signal_callback (arg: *mut c_void)
 {
+  // SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership.
+  unsafe {
   let tstate: *mut thread_state = arg as *mut thread_state;
   let self_: *mut thread_state = current_thread;
 
   sys_cond_broadcast ((*tstate).wait_condvar);
   post_acquire_global_lock (self_);
+
+  }
 }
 
 // thread.c 985-991.
 unsafe fn thread_set_error (tstate: *mut thread_state, error_symbol: Lisp_Object,
 			    data: Lisp_Object)
 {
+  // SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership.
+  unsafe {
   /* What to do if thread is already signaled?  */
   /* What if error_symbol is Qnil?  */
   (*tstate).error_symbol = error_symbol;
   (*tstate).error_data = data;
+
+  }
 }
 
 // thread.c 993-1034.
@@ -1114,6 +1251,8 @@ DEFUN! ("thread--blocker", Fthread_blocker, Sthread_blocker, 1, 1, 0,
 // thread.c 1101-1116.
 unsafe extern "C-unwind" fn thread_join_callback (arg: *mut c_void)
 {
+  // SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership.
+  unsafe {
   let tstate: *mut thread_state = arg as *mut thread_state;
   let self_: *mut thread_state = current_thread;
   let thread: Lisp_Object;
@@ -1127,6 +1266,8 @@ unsafe extern "C-unwind" fn thread_join_callback (arg: *mut c_void)
   (*self_).wait_condvar = std::ptr::null_mut ();
   (*self_).event_object = Qnil ();
   post_acquire_global_lock (self_);
+
+  }
 }
 
 // thread.c 1118-1144.
@@ -1198,6 +1339,8 @@ DEFUN! ("thread-last-error", Fthread_last_error, Sthread_last_error, 0, 1, 0,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn thread_check_current_buffer (buffer: *mut c_void) -> bool
 {
+  // SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership.
+  unsafe {
   let mut iter: *mut thread_state;
 
   iter = all_threads;
@@ -1213,12 +1356,16 @@ pub unsafe extern "C-unwind" fn thread_check_current_buffer (buffer: *mut c_void
     }
 
   return false;
+
+  }
 }
 
 // thread.c 1200-1230.
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn thread_all_before_buffer_killed (current: Lisp_Object)
 {
+  // SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership.
+  unsafe {
   let mut iter: *mut thread_state;
   let mut other: *mut buffer = std::ptr::null_mut ();
   let b: *mut buffer = XBUFFER (current);
@@ -1247,28 +1394,40 @@ pub unsafe extern "C-unwind" fn thread_all_before_buffer_killed (current: Lisp_O
 
       iter = (*iter).next_thread;
     }
+
+  }
 }
 
 // thread.c 1232-1236.
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn main_thread_p (ptr: *const c_void) -> bool
 {
+  // SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership.
+  unsafe {
   return ptr == std::ptr::addr_of! (main_thread.s) as *const c_void;
+
+  }
 }
 
 // thread.c 1238-1244.
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn in_current_thread () -> bool
 {
+  // SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership.
+  unsafe {
   if current_thread.is_null ()
     { return false; }
   return sys_thread_equal (sys_thread_self (), (*current_thread).thread_id);
+
+  }
 }
 
 // thread.c 1246-1260.
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn init_threads ()
 {
+  // SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership.
+  unsafe {
   sys_cond_init (&raw mut main_thread.s.thread_condvar);
   sys_mutex_init (&raw mut global_lock);
   sys_mutex_lock (&raw mut global_lock);
@@ -1279,12 +1438,16 @@ pub unsafe extern "C-unwind" fn init_threads ()
   main_thread.s.thread_id = sys_thread_self ();
   main_thread.s.buffer_disposition = Qnil ();
   init_bc_thread (&raw mut main_thread.s.bc);
+
+  }
 }
 
 // thread.c 1262-1314.
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_threads ()
 {
+  // SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership.
+  unsafe {
   #[cfg (feature = "threads_enabled")]
     {
       defsubr (&raw mut Sthread_yield);
@@ -1332,6 +1495,8 @@ pub unsafe extern "C-unwind" fn syms_of_threads ()
   { XSETTHREAD! (Vmain_thread, std::ptr::addr_of_mut! (main_thread.s)); }
   #[cfg (not (feature = "threads_enabled"))]
   { Vmain_thread = Qnil (); }
+
+  }
 }
 
 /* C's `DEFVAR_LISP` both declares and defines `Vmain_thread` (lisp.h 3280-3300's variable

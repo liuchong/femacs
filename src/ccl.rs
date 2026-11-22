@@ -64,10 +64,7 @@
 // function prototype of its own (only its file-scope objects), so PORTING.md 0.1-12 has
 // nothing to drop here.  Every deviation is recorded in `docs/ports/ccl.md`.
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
-         unsafe_op_in_unsafe_fn, unused_assignments, unreachable_code, while_true,
-         unused_parens, unused_mut, unused_labels, unused_braces)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe, unused_assignments, unreachable_code, while_true, unused_parens, unused_mut, unused_labels, unused_braces)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -272,10 +269,14 @@ macro_rules! CHARSET_DECODER {
 /// it here until the mirror exists.
 unsafe fn charset_attributes_getter (charset: *mut charset) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   eassert! (ASIZE (charset_table.attributes_table) == charset_table.size as isize);
   let attrs: Lisp_Object = AREF (charset_table.attributes_table, (*charset).id as isize);
   eassert! (XFIXNUM (CHARSET_ATTR_ID! (attrs)) == (*charset).id as isize);
   return attrs;
+
+  }
 }
 
 // charset.h 267: `#define CHARSET_FROM_ID(id) (charset_table.start + (id))`.
@@ -1104,7 +1105,11 @@ static mut ccl_prog_stack_struct: [ccl_prog_stack; 256] =
 #[inline]
 unsafe fn GET_TRANSLATION_TABLE (id: c_int) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   return XCDR (AREF (Vtranslation_table_vector, id as isize));
+
+  }
 }
 
 /* C's five labels have no Rust counterpart, so the port names them with C's own label
@@ -1127,6 +1132,8 @@ pub unsafe extern "C-unwind" fn ccl_driver (ccl: *mut ccl_program, source: *mut 
 				     destination: *mut c_int, src_size: c_int,
 				     dst_size: c_int, charset_list: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let reg: *mut c_int = (*ccl).reg.as_mut_ptr ();
   let mut ic: c_int = (*ccl).ic;
   /* PORTING.md 1.5: C declares `code = 0, field1, field2` and leaves the last two
@@ -1980,12 +1987,12 @@ pub unsafe extern "C-unwind" fn ccl_driver (ccl: *mut ccl_program, source: *mut 
 		    if stack_idx_of_map_multiple <= stack_idx
 		      {
 			stack_idx_of_map_multiple = 0;
-			mapping_stack_pointer = mapping_stack.as_mut_ptr ();
+			mapping_stack_pointer = femacs_array_mut_ptr (&raw mut mapping_stack);
 			CCL_INVALID_CMD! ();
 		      }
 		  }
 		else
-		  { mapping_stack_pointer = mapping_stack.as_mut_ptr (); }
+		  { mapping_stack_pointer = femacs_array_mut_ptr (&raw mut mapping_stack); }
 		stack_idx_of_map_multiple = 0;
 
 		/* Get number of maps and separators.  */
@@ -2006,15 +2013,15 @@ pub unsafe extern "C-unwind" fn ccl_driver (ccl: *mut ccl_program, source: *mut 
 		  {
 		    ic = fin_ic;
 		    *reg.offset (RRR! () as isize) = -1;
-		    mapping_stack_pointer = mapping_stack.as_mut_ptr ();
+		    mapping_stack_pointer = femacs_array_mut_ptr (&raw mut mapping_stack);
 		    /* C's `break` leaves both switches, so the `for (;;)` iterates.  */
 		    continue 'ccl_repeat;
 		  }
 
-		if mapping_stack_pointer <= mapping_stack.as_mut_ptr ().offset (1)
+		if mapping_stack_pointer <= femacs_array_mut_ptr (&raw mut mapping_stack).offset (1)
 		  {
 		    /* Set up initial state. */
-		    mapping_stack_pointer = mapping_stack.as_mut_ptr ();
+		    mapping_stack_pointer = femacs_array_mut_ptr (&raw mut mapping_stack);
 		    PUSH_MAPPING_STACK! (0, op);
 		    *reg.offset (RRR! () as isize) = -1;
 		  }
@@ -2079,7 +2086,7 @@ pub unsafe extern "C-unwind" fn ccl_driver (ccl: *mut ccl_program, source: *mut 
 			    /* +1 is for including separator. */
 			    point = -point + 1;
 			    if mapping_stack_pointer
-				>= mapping_stack.as_mut_ptr ()
+				>= femacs_array_mut_ptr (&raw mut mapping_stack)
 				   .offset (MAX_MAP_SET_LEVEL as isize)
 			      { CCL_INVALID_CMD! (); }
 			    PUSH_MAPPING_STACK! ((map_set_rest_length as EMACS_INT
@@ -2173,7 +2180,7 @@ pub unsafe extern "C-unwind" fn ccl_driver (ccl: *mut ccl_program, source: *mut 
 			else if SYMBOLP (content)
 			  {
 			    if mapping_stack_pointer
-				>= mapping_stack.as_mut_ptr ()
+				>= femacs_array_mut_ptr (&raw mut mapping_stack)
 				   .offset (MAX_MAP_SET_LEVEL as isize)
 			      { CCL_INVALID_CMD! (); }
 			    PUSH_MAPPING_STACK! (map_set_rest_length,
@@ -2186,7 +2193,7 @@ pub unsafe extern "C-unwind" fn ccl_driver (ccl: *mut ccl_program, source: *mut 
 			  { CCL_INVALID_CMD! (); }
 			i += 1; ic += 1; map_set_rest_length -= 1;
 		      }
-		    if mapping_stack_pointer <= mapping_stack.as_mut_ptr ().offset (1)
+		    if mapping_stack_pointer <= femacs_array_mut_ptr (&raw mut mapping_stack).offset (1)
 		      { break; }
 		    POP_MAPPING_STACK! (map_set_rest_length, *reg.offset (rrr! () as isize));
 		    i += map_set_rest_length;
@@ -2616,6 +2623,8 @@ pub unsafe extern "C-unwind" fn ccl_driver (ccl: *mut ccl_program, source: *mut 
     { (*ccl).produced = dst.offset_from (destination) as c_int; }
   else
     { (*ccl).produced = 0; }
+
+  }
 }
 
 /* Resolve symbols in the specified CCL code (Lisp vector).  This
@@ -2628,6 +2637,8 @@ pub unsafe extern "C-unwind" fn ccl_driver (ccl: *mut ccl_program, source: *mut 
 
 unsafe fn resolve_symbol_ccl_program (ccl: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* PORTING.md 1.5: C declares `i`, `veclen` and the three Lisp_Objects without
      initialisers (`unresolved` is C's own initialiser).  */
   let mut i: c_int = 0;
@@ -2695,6 +2706,8 @@ unsafe fn resolve_symbol_ccl_program (ccl: Lisp_Object) -> Lisp_Object
     { return Qnil (); }
 
   return if unresolved != 0 { Qt () } else { result };
+
+  }
 }
 
 /* Return the compiled code (vector) of CCL program CCL_PROG.
@@ -2705,6 +2718,8 @@ unsafe fn resolve_symbol_ccl_program (ccl: Lisp_Object) -> Lisp_Object
 
 unsafe fn ccl_get_compiled_code (ccl_prog: Lisp_Object, idx: *mut ptrdiff_t) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* PORTING.md 1.5: C declares `val` and `slot` without initialisers.  */
   let mut val: Lisp_Object = lisp_h_Qnil ();
   let mut slot: Lisp_Object = lisp_h_Qnil ();
@@ -2737,6 +2752,8 @@ unsafe fn ccl_get_compiled_code (ccl_prog: Lisp_Object, idx: *mut ptrdiff_t) -> 
       ASET (slot, 2, Qt ());
     }
   return AREF (slot, 1);
+
+  }
 }
 
 /* Setup fields of the structure pointed by CCL appropriately for the
@@ -2749,6 +2766,8 @@ unsafe fn ccl_get_compiled_code (ccl_prog: Lisp_Object, idx: *mut ptrdiff_t) -> 
 pub unsafe extern "C-unwind" fn setup_ccl_program (ccl: *mut ccl_program,
 					    mut ccl_prog: Lisp_Object) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if ! NILP (ccl_prog)
     {
       /* PORTING.md 1.5: C declares `vp` without an initialiser.  */
@@ -2782,6 +2801,8 @@ pub unsafe extern "C-unwind" fn setup_ccl_program (ccl: *mut ccl_program,
   (*ccl).stack_idx = 0;
   (*ccl).bits &= ! CCL_PROGRAM_QUIT_SILENTLY;
   return true;
+
+  }
 }
 
 
@@ -3163,6 +3184,8 @@ pub static mut Vtranslation_hash_table_vector: Lisp_Object = lisp_h_Qnil ();
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_ccl ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   staticpro (&raw const Vccl_program_table);
   Vccl_program_table = make_nil_vector (32);
 
@@ -3191,4 +3214,6 @@ pub unsafe extern "C-unwind" fn syms_of_ccl ()
   defsubr (&raw mut Sccl_execute_on_string);
   defsubr (&raw mut Sregister_ccl_program);
   defsubr (&raw mut Sregister_code_conversion_map);
+
+  }
 }

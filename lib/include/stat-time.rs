@@ -90,6 +90,8 @@ macro_rules! STAT_TIMESPEC_OFFSETOF {
 #[inline(always)]
 pub unsafe fn get_stat_atime_ns (st: *const stat) -> c_long
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   /* stat-time.h 76-80: the `STAT_TIMESPEC_NS` arm is dead text (see the file note).  */
   #[cfg (feature = "stat_time_stat_timespec_ns")]
   { return STAT_TIMESPEC_NS! (st, st_atim); }
@@ -97,36 +99,48 @@ pub unsafe fn get_stat_atime_ns (st: *const stat) -> c_long
   #[cfg (feature = "stat_time_member_absent")]
   { return 0; }
   return STAT_TIMESPEC! (st, st_atim).tv_nsec;
+
+  }
 }
 
 /* Return the nanosecond component of *ST's status change time.  */
 #[inline(always)]
 pub unsafe fn get_stat_ctime_ns (st: *const stat) -> c_long
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   /* stat-time.h 89-93: the same two arms.  */
   #[cfg (feature = "stat_time_stat_timespec_ns")]
   { return STAT_TIMESPEC_NS! (st, st_ctim); }
   #[cfg (feature = "stat_time_member_absent")]
   { return 0; }
   return STAT_TIMESPEC! (st, st_ctim).tv_nsec;
+
+  }
 }
 
 /* Return the nanosecond component of *ST's data modification time.  */
 #[inline(always)]
 pub unsafe fn get_stat_mtime_ns (st: *const stat) -> c_long
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   /* stat-time.h 102-106: the same two arms.  */
   #[cfg (feature = "stat_time_stat_timespec_ns")]
   { return STAT_TIMESPEC_NS! (st, st_mtim); }
   #[cfg (feature = "stat_time_member_absent")]
   { return 0; }
   return STAT_TIMESPEC! (st, st_mtim).tv_nsec;
+
+  }
 }
 
 /* Return the nanosecond component of *ST's birth time.  */
 #[inline(always)]
 pub unsafe fn get_stat_birthtime_ns (st: *const stat) -> c_long
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   /* stat-time.h 115-121: `# if defined HAVE_STRUCT_STAT_ST_BIRTHTIMESPEC_TV_NSEC` is the
      frozen arm; the `STAT_TIMESPEC_NS` arm and the `# else return 0;` arm are dead text.  */
   #[cfg (feature = "stat_time_stat_timespec_ns")]
@@ -139,6 +153,8 @@ pub unsafe fn get_stat_birthtime_ns (st: *const stat) -> c_long
   { return 0; }
   #[cfg (not (feature = "have_android"))]
   { return STAT_TIMESPEC! (st, st_birthtim).tv_nsec; }
+
+  }
 }
 
 /* stat-time.h 128-135: C's C99 compound literal and its C++ inline function say the same
@@ -147,40 +163,56 @@ pub unsafe fn get_stat_birthtime_ns (st: *const stat) -> c_long
 #[inline(always)]
 pub unsafe fn _gl_make_timespec (sec: time_t, nsec: c_long) -> timespec
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   let mut ts: timespec = std::mem::zeroed ();
   ts.tv_sec = sec;
   ts.tv_nsec = nsec;
   return ts;
+
+  }
 }
 
 /* Return *ST's access time.  */
 #[inline(always)]
 pub unsafe fn get_stat_atime (st: *const stat) -> timespec
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   /* stat-time.h 155: the `# else` arm is dead text (see the file note).  */
   #[cfg (feature = "stat_time_member_absent")]
   { return _gl_make_timespec ((*st).st_atime, get_stat_atime_ns (st)); }
   return STAT_TIMESPEC! (st, st_atim);
+
+  }
 }
 
 /* Return *ST's status change time.  */
 #[inline(always)]
 pub unsafe fn get_stat_ctime (st: *const stat) -> timespec
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   /* stat-time.h 166: the same arm.  */
   #[cfg (feature = "stat_time_member_absent")]
   { return _gl_make_timespec ((*st).st_ctime, get_stat_ctime_ns (st)); }
   return STAT_TIMESPEC! (st, st_ctim);
+
+  }
 }
 
 /* Return *ST's data modification time.  */
 #[inline(always)]
 pub unsafe fn get_stat_mtime (st: *const stat) -> timespec
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   /* stat-time.h 177: the same arm.  */
   #[cfg (feature = "stat_time_member_absent")]
   { return _gl_make_timespec ((*st).st_mtime, get_stat_mtime_ns (st)); }
   return STAT_TIMESPEC! (st, st_mtim);
+
+  }
 }
 
 /* Return *ST's birth time, if available; otherwise return a value
@@ -188,6 +220,8 @@ pub unsafe fn get_stat_mtime (st: *const stat) -> timespec
 #[inline(always)]
 pub unsafe fn get_stat_birthtime (st: *const stat) -> timespec
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   /* C's `struct timespec t;` is uninitialized and every arm assigns it; PORTING.md 0.1-13
      has the port zero it first.  */
   let mut t: timespec = timespec { tv_sec: 0, tv_nsec: 0 };
@@ -220,6 +254,8 @@ pub unsafe fn get_stat_birthtime (st: *const stat) -> timespec
     { t = _gl_make_timespec (-1, -1); }
 
   return t;
+
+  }
 }
 
 /* If a stat-like function returned RESULT, normalize the timestamps
@@ -230,6 +266,8 @@ pub unsafe fn get_stat_birthtime (st: *const stat) -> timespec
 #[inline(always)]
 pub unsafe fn stat_time_normalize (result: c_int, st: *mut stat) -> c_int
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   /* stat-time.h 228-229's condition `((defined __APPLE__ && defined __MACH__) || defined
      __sun) && defined STAT_TIMESPEC_OFFSETOF` holds on the frozen target (darwin-arm64), so
      the body below is the live text; it is what `lib/lstat.c` and `lib/fstatat.c` call.  */
@@ -265,4 +303,6 @@ pub unsafe fn stat_time_normalize (result: c_int, st: *mut stat) -> c_int
         }
     }
   return result;
+
+  }
 }

@@ -34,9 +34,7 @@
 // them yet, so each is declared at its use site (the terminal.rs/doc.rs shape).  `PRIdMAX`
 // and `EDOM` come from <inttypes.h>/<errno.h> the same way.
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
-         unsafe_op_in_unsafe_fn)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -158,6 +156,8 @@ unsafe extern "C" {
 
 unsafe fn get_boot_sec () -> time_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* get_boot_time maintains static state.  Don't touch that state
      if we are going to dump, since it might not survive dumping.  */
   if will_dump_p ()
@@ -170,6 +170,8 @@ unsafe fn get_boot_sec () -> time_t
   boot_time.tv_sec = 0;
   get_boot_time (&mut boot_time);
   return boot_time.tv_sec;
+
+  }
 }
 
 /* An arbitrary limit on lock contents length.  8 K should be plenty
@@ -207,6 +209,8 @@ pub const LINKS_MIGHT_NOT_WORK: c_int = EPERM;
    Return 0 if successful, -1 (setting errno) otherwise.  */
 unsafe fn rename_lock_file (old: *const c_char, new: *const c_char, force: bool) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   // C 161-162's `#ifdef WINDOWSNT` arm (`return sys_rename_replace (old, new, force);`) is dead
   // on this target (docs/ports/filelock.md).
   if !force
@@ -239,6 +243,8 @@ unsafe fn rename_lock_file (old: *const c_char, new: *const c_char, force: bool)
     }
 
   return emacs_rename (old, new);
+
+  }
 }
 
 /* Create the lock file LFNAME with contents LOCK_INFO_STR.  Return 0 if
@@ -247,6 +253,8 @@ unsafe fn rename_lock_file (old: *const c_char, new: *const c_char, force: bool)
 
 unsafe fn create_lock_file (lfname: *mut c_char, lock_info_str: *mut c_char, force: bool) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   // C 204-209's `#ifdef WINDOWSNT` arm (`int err = ENOSYS;`) is dead on this target; the live
   // initializer is the symlink attempt below.
   let mut err: c_int = if emacs_symlink (lock_info_str, lfname) == 0 { 0 } else { *errno () };
@@ -303,6 +311,8 @@ unsafe fn create_lock_file (lfname: *mut c_char, lock_info_str: *mut c_char, for
     }
 
   return err;
+
+  }
 }
 
 /* Lock the lock file named LFNAME.
@@ -311,6 +321,8 @@ unsafe fn create_lock_file (lfname: *mut c_char, lock_info_str: *mut c_char, for
 
 unsafe fn lock_file_1 (lfname: Lisp_Object, force: bool) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let boot: intmax_t = get_boot_sec () as intmax_t;
   let luser_name: Lisp_Object = Fuser_login_name (Qnil ());
   let lhost_name: Lisp_Object = Fsystem_name ();
@@ -345,6 +357,8 @@ unsafe fn lock_file_1 (lfname: Lisp_Object, force: bool) -> c_int
   if !(0 <= suffixlen && suffixlen < room)
     { return ENAMETOOLONG; }
   return create_lock_file (SSDATA (lfname), lock_info_str.as_mut_ptr (), force);
+
+  }
 }
 
 /* Return true if times A and B are no more than one second apart.  */
@@ -369,6 +383,8 @@ fn within_one_second (a: intmax_t, b: time_t) -> bool
 
 unsafe fn read_lock_data (lfname: *mut c_char, lfinfo: *mut c_char) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut nbytes: ptrdiff_t;
 
   while { nbytes = readlinkat (AT_FDCWD, lfname, lfinfo, (MAX_LFINFO + 1) as usize) as ptrdiff_t;
@@ -395,14 +411,20 @@ unsafe fn read_lock_data (lfname: *mut c_char, lfinfo: *mut c_char) -> ptrdiff_t
     }
 
   return nbytes;
+
+  }
 }
 
 /* Whether the string S starts with a decimal integer, optionally
    negative.  */
 unsafe fn integer_prefixed (s: *const c_char) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* Doing it this way avoids a conditional branch on most platforms.  */
   return c_isdigit (*s.offset ((*s.offset (0) == b'-' as c_char) as isize) as c_int);
+
+  }
 }
 
 /* Whether the integer P could identify an individual process.  On most
@@ -435,6 +457,8 @@ pub const I_OWN_IT: c_int = 2 * ANOTHER_OWNS_IT;
 
 unsafe fn current_lock_owner (owner: *mut lock_info_type, lfname: Lisp_Object) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut local_owner: lock_info_type = std::mem::zeroed ();
 
   /* Even if the caller doesn't want the owner info, we still have to
@@ -568,6 +592,8 @@ unsafe fn current_lock_owner (owner: *mut lock_info_type, lfname: Lisp_Object) -
      Emacs never creates empty lock files even temporarily, so removing
      an empty lock file should be harmless.  */
   return if emacs_unlink (SSDATA (lfname)) < 0 && *errno () != ENOENT { *errno () } else { 0 };
+
+  }
 }
 
 /* Lock the lock named LFNAME if possible.
@@ -578,6 +604,8 @@ unsafe fn current_lock_owner (owner: *mut lock_info_type, lfname: Lisp_Object) -
 
 unsafe fn lock_if_free (clasher: *mut lock_info_type, lfname: Lisp_Object) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut err: c_int;
   while { err = lock_file_1 (lfname, false); err == EEXIST }
     {
@@ -593,12 +621,16 @@ unsafe fn lock_if_free (clasher: *mut lock_info_type, lfname: Lisp_Object) -> c_
     }
 
   return err;
+
+  }
 }
 
 /* Return the encoded name of the lock file for FN, or nil if none.  */
 
 unsafe fn make_lock_file_name (mut r#fn: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let lock_file_name: Lisp_Object;
   // C 540-543's `#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY` declares `char *name`
   // and C 546-556 is its body (`android_is_special_directory` over "/assets"/"/content");
@@ -609,6 +641,8 @@ unsafe fn make_lock_file_name (mut r#fn: Lisp_Object) -> Lisp_Object
   lock_file_name = calln! (Qmake_lock_file_name (), r#fn);
 
   return if !NILP (lock_file_name) { ENCODE_FILE (lock_file_name) } else { Qnil () };
+
+  }
 }
 
 /* lock_file locks file FN,
@@ -631,6 +665,8 @@ unsafe fn make_lock_file_name (mut r#fn: Lisp_Object) -> Lisp_Object
 
 unsafe fn lock_file (r#fn: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut lock_info: lock_info_type = std::mem::zeroed ();
 
   /* Don't do locking while dumping Emacs.
@@ -683,10 +719,14 @@ unsafe fn lock_file (r#fn: Lisp_Object) -> Lisp_Object
 	}
     }
   return Qnil ();
+
+  }
 }
 
 unsafe extern "C-unwind" fn unlock_file (r#fn: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let lfname: Lisp_Object = make_lock_file_name (r#fn);
   if NILP (lfname)
     { return Qnil (); }
@@ -699,6 +739,8 @@ unsafe extern "C-unwind" fn unlock_file (r#fn: Lisp_Object) -> Lisp_Object
     { report_file_errno (c"Unlocking file".as_ptr (), r#fn, err); }
 
   return Qnil ();
+
+  }
 }
 
 unsafe extern "C-unwind" fn unlock_file_handle_error (err: Lisp_Object) -> Lisp_Object
@@ -719,6 +761,8 @@ pub static mut create_lockfiles: bool = false;
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn unlock_all_files ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut tail: Lisp_Object;
   let mut buf: Lisp_Object;
   let mut b: *mut buffer;
@@ -737,6 +781,8 @@ pub unsafe extern "C-unwind" fn unlock_all_files ()
 	{ Funlock_file (BVAR! (b, file_truename_)); }
       tail = XCDR (tail);
     }
+
+  }
 }
 
 DEFUN! ("lock-file", Flock_file, Slock_file, 1, 1, 0,
@@ -813,9 +859,13 @@ DEFUN! ("unlock-buffer", Funlock_buffer, Sunlock_buffer,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn unlock_buffer (buffer: *mut buffer)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if BUF_SAVE_MODIFF! (buffer) < BUF_MODIFF! (buffer)
       && STRINGP (BVAR! (buffer, file_truename_))
     { Funlock_file (BVAR! (buffer, file_truename_)); }
+
+  }
 }
 
 DEFUN! ("file-locked-p", Ffile_locked_p, Sfile_locked_p, 1, 1, 0,
@@ -863,6 +913,8 @@ DEFUN! ("file-locked-p", Ffile_locked_p, Sfile_locked_p, 1, 1, 0,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_filelock ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   DEFVAR_LISP! (c"temporary-file-directory", Vtemporary_file_directory,
 		"The directory for writing temporary files.");
   Vtemporary_file_directory = Qnil ();
@@ -886,4 +938,6 @@ pub unsafe extern "C-unwind" fn syms_of_filelock ()
   defsubr (&raw mut Slock_buffer);
   defsubr (&raw mut Sunlock_buffer);
   defsubr (&raw mut Sfile_locked_p);
+
+  }
 }

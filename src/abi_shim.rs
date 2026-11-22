@@ -44,6 +44,8 @@ use crate::common::*;
 #[cfg(feature = "have_ns")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn ns_accessibility_buffer_string(buf: *mut buffer) -> Lisp_Object {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let begin = BUF_BEGV_BYTE(buf);
   let end = BUF_ZV_BYTE(buf);
   let bytes = end - begin;
@@ -58,6 +60,8 @@ pub unsafe extern "C-unwind" fn ns_accessibility_buffer_string(buf: *mut buffer)
                                  SDATA(text).offset(first), (bytes - first) as usize);
   }
   text
+
+  }
 }
 // [U1] include/blockinput.rs imported via common
 // [U1] include/termchar.rs imported via common
@@ -86,70 +90,70 @@ const _: () = ();
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn frame_left_pos (f: *mut c_void) -> c_int
 {
-  unsafe { (*f.cast::<frame> ()).left_pos }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f.cast::<frame> ()).left_pos }
 }
 
 /// C: int left_pos, top_pos;   (frame.h 604)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn frame_top_pos (f: *mut c_void) -> c_int
 {
-  unsafe { (*f.cast::<frame> ()).top_pos }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f.cast::<frame> ()).top_pos }
 }
 
 /// C: Lisp_Object title;   (frame.h 162)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn frame_title (f: *mut c_void) -> Lisp_Object
 {
-  unsafe { (*f.cast::<frame> ()).title }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f.cast::<frame> ()).title }
 }
 
 /// C: Lisp_Object icon_name;   (frame.h 158)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn frame_icon_name (f: *mut c_void) -> Lisp_Object
 {
-  unsafe { (*f.cast::<frame> ()).icon_name }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f.cast::<frame> ()).icon_name }
 }
 
 /// C: Lisp_Object param_alist;   (frame.h 209)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn frame_param_alist (f: *mut c_void) -> Lisp_Object
 {
-  unsafe { (*f.cast::<frame> ()).param_alist }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f.cast::<frame> ()).param_alist }
 }
 
 /// C: #define FRAME_SELECTED_WINDOW(f) f->selected_window   (frame.h 1204)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn frame_selected_window (f: *mut c_void) -> Lisp_Object
 {
-  unsafe { (*f.cast::<frame> ()).selected_window }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f.cast::<frame> ()).selected_window }
 }
 
 /// C: Lisp_Object menu_bar_vector;   (frame.h 234)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn frame_menu_bar_vector (f: *mut c_void) -> Lisp_Object
 {
-  unsafe { (*f.cast::<frame> ()).menu_bar_vector }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f.cast::<frame> ()).menu_bar_vector }
 }
 
 /// C: Lisp_Object tool_bar_items;   (frame.h 283)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn frame_tool_bar_items (f: *mut c_void) -> Lisp_Object
 {
-  unsafe { (*f.cast::<frame> ()).tool_bar_items }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f.cast::<frame> ()).tool_bar_items }
 }
 
 /// C: int menu_bar_items_used;   (frame.h 307)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn frame_menu_bar_items_used (f: *mut c_void) -> c_int
 {
-  unsafe { (*f.cast::<frame> ()).menu_bar_items_used }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f.cast::<frame> ()).menu_bar_items_used }
 }
 
 /// C: int n_tool_bar_items;   (frame.h 573)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn frame_n_tool_bar_items (f: *mut c_void) -> c_int
 {
-  unsafe { (*f.cast::<frame> ()).n_tool_bar_items }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f.cast::<frame> ()).n_tool_bar_items }
 }
 
 /* ---------------------------------------------------------------------------------------------
@@ -161,21 +165,21 @@ pub unsafe extern "C-unwind" fn frame_n_tool_bar_items (f: *mut c_void) -> c_int
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn frame_set_border_width (f: *mut c_void, v: c_int)
 {
-  unsafe { (*f.cast::<frame> ()).border_width = v; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f.cast::<frame> ()).border_width = v; }
 }
 
 /// C: int child_frame_border_width;   (frame.h 617)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn frame_set_child_frame_border_width (f: *mut c_void, v: c_int)
 {
-  unsafe { (*f.cast::<frame> ()).child_frame_border_width = v; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f.cast::<frame> ()).child_frame_border_width = v; }
 }
 
 /// C: int internal_border_width;   (frame.h 622)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn frame_set_internal_border_width (f: *mut c_void, v: c_int)
 {
-  unsafe { (*f.cast::<frame> ()).internal_border_width = v; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f.cast::<frame> ()).internal_border_width = v; }
 }
 
 /// C: `int menu_bar_lines;` (frame.h 635, `menu_bar_lines`); the reader is
@@ -183,7 +187,7 @@ pub unsafe extern "C-unwind" fn frame_set_internal_border_width (f: *mut c_void,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn frame_set_menu_bar_lines (f: *mut c_void, v: c_int)
 {
-  unsafe { (*f.cast::<frame> ()).menu_bar_lines = v; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f.cast::<frame> ()).menu_bar_lines = v; }
 }
 
 /// C: `int tab_bar_lines;` (frame.h 558, `tab_bar_lines`); the reader is
@@ -191,7 +195,7 @@ pub unsafe extern "C-unwind" fn frame_set_menu_bar_lines (f: *mut c_void, v: c_i
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn frame_set_tab_bar_lines (f: *mut c_void, v: c_int)
 {
-  unsafe { (*f.cast::<frame> ()).tab_bar_lines = v; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f.cast::<frame> ()).tab_bar_lines = v; }
 }
 
 /// C: `int tab_bar_height;` (frame.h 561, `tab_bar_height`); the reader is
@@ -199,7 +203,7 @@ pub unsafe extern "C-unwind" fn frame_set_tab_bar_lines (f: *mut c_void, v: c_in
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn frame_set_tab_bar_height (f: *mut c_void, v: c_int)
 {
-  unsafe { (*f.cast::<frame> ()).tab_bar_height = v; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f.cast::<frame> ()).tab_bar_height = v; }
 }
 
 /// C: `unsigned long background_pixel;` (frame.h 732, `background_pixel`); the reader is
@@ -207,7 +211,7 @@ pub unsafe extern "C-unwind" fn frame_set_tab_bar_height (f: *mut c_void, v: c_i
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn frame_set_background_pixel (f: *mut c_void, v: c_ulong)
 {
-  unsafe { (*f.cast::<frame> ()).background_pixel = v; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f.cast::<frame> ()).background_pixel = v; }
 }
 
 /// C: `unsigned long foreground_pixel;` (frame.h 733, `foreground_pixel`); the reader is
@@ -215,7 +219,7 @@ pub unsafe extern "C-unwind" fn frame_set_background_pixel (f: *mut c_void, v: c
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn frame_set_foreground_pixel (f: *mut c_void, v: c_ulong)
 {
-  unsafe { (*f.cast::<frame> ()).foreground_pixel = v; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f.cast::<frame> ()).foreground_pixel = v; }
 }
 
 /* ---------------------------------------------------------------------------------------------
@@ -229,14 +233,14 @@ pub unsafe extern "C-unwind" fn frame_set_foreground_pixel (f: *mut c_void, v: c
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn frame_explicit_name (f: *mut c_void) -> bool
 {
-  unsafe { ((*f.cast::<frame> ()).bits1 >> FRAME_EXPLICIT_NAME_SHIFT) & 1 != 0 }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { ((*f.cast::<frame> ()).bits1 >> FRAME_EXPLICIT_NAME_SHIFT) & 1 != 0 }
 }
 
 /// C: bool_bf explicit_name : 1;   (frame.h 417)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn frame_set_explicit_name (f: *mut c_void, v: bool)
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     let bits = &mut (*f.cast::<frame> ()).bits1;
     *bits = (*bits & !(1 << FRAME_EXPLICIT_NAME_SHIFT)) | ((v as u32) << FRAME_EXPLICIT_NAME_SHIFT);
   }
@@ -247,7 +251,7 @@ pub unsafe extern "C-unwind" fn frame_set_explicit_name (f: *mut c_void, v: bool
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn frame_set_wants_modeline (f: *mut c_void, v: bool)
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     let bits = &mut (*f.cast::<frame> ()).bits1;
     *bits = (*bits & !(1 << FRAME_WANTS_MODELINE_SHIFT)) | ((v as u32) << FRAME_WANTS_MODELINE_SHIFT);
   }
@@ -258,7 +262,7 @@ pub unsafe extern "C-unwind" fn frame_set_wants_modeline (f: *mut c_void, v: boo
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn frame_set_output_method (f: *mut c_void, v: c_int)
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     let bits = &mut (*f.cast::<frame> ()).bits1;
     *bits = (*bits & !(FRAME_OUTPUT_METHOD_MASK << FRAME_OUTPUT_METHOD_SHIFT))
             | (((v as u32) & FRAME_OUTPUT_METHOD_MASK) << FRAME_OUTPUT_METHOD_SHIFT);
@@ -292,10 +296,14 @@ pub unsafe extern "C-unwind" fn frame_set_tab_bar_resized (f: *mut c_void, v: bo
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn frame_tab_bar_window (f: *mut c_void) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   #[cfg(feature = "have_window_system")]
   { (*f.cast::<frame>()).tab_bar_window }
   #[cfg(not(feature = "have_window_system"))]
   { let _ = f; Qnil() }
+
+  }
 }
 
 /// C: #ifdef HAVE_WINDOW_SYSTEM / #define FRAME_EXTERNAL_MENU_BAR(f) (f)->external_menu_bar /
@@ -337,7 +345,7 @@ pub unsafe extern "C-unwind" fn frame_set_external_tool_bar (f: *mut c_void, v: 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn frame_name (f: *mut c_void) -> Lisp_Object
 {
-  unsafe { (*f.cast::<frame> ()).name }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f.cast::<frame> ()).name }
 }
 
 /// C: struct terminal *terminal;   (frame.h 648; C's writes are src/nsfns.m 1267 and 2988,
@@ -345,7 +353,7 @@ pub unsafe extern "C-unwind" fn frame_name (f: *mut c_void) -> Lisp_Object
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn frame_set_terminal (f: *mut c_void, t: *mut c_void)
 {
-  unsafe { (*f.cast::<frame> ()).terminal = t.cast::<terminal> (); }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f.cast::<frame> ()).terminal = t.cast::<terminal> (); }
 }
 
 /// C: bool_bf no_split : 1;   (frame.h 411; C's writes are src/nsfns.m 1474 `f->no_split = …`
@@ -353,7 +361,7 @@ pub unsafe extern "C-unwind" fn frame_set_terminal (f: *mut c_void, t: *mut c_vo
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn frame_set_no_split (f: *mut c_void, v: bool)
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     let bits = &mut (*f.cast::<frame> ()).bits1;
     *bits = (*bits & !(1 << FRAME_NO_SPLIT_SHIFT)) | ((v as u32) << FRAME_NO_SPLIT_SHIFT);
   }
@@ -364,7 +372,7 @@ pub unsafe extern "C-unwind" fn frame_set_no_split (f: *mut c_void, v: bool)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn frame_set_undecorated (f: *mut c_void, v: bool)
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     let bits = &mut (*f.cast::<frame> ()).bits1;
     *bits = (*bits & !(1 << FRAME_UNDECORATED_SHIFT)) | ((v as u32) << FRAME_UNDECORATED_SHIFT);
   }
@@ -385,7 +393,7 @@ pub unsafe extern "C-unwind" fn frame_set_can_set_window_size (f: *mut c_void, v
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn frame_set_was_invisible (f: *mut c_void, v: bool)
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     let bits = &mut (*f.cast::<frame> ()).bits2;
     *bits = (*bits & !(1 << FRAME_WAS_INVISIBLE_SHIFT)) | ((v as u32) << FRAME_WAS_INVISIBLE_SHIFT);
   }
@@ -402,14 +410,14 @@ pub unsafe extern "C-unwind" fn frame_set_was_invisible (f: *mut c_void, v: bool
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn window_contents (w: *mut c_void) -> Lisp_Object
 {
-  unsafe { (*w.cast::<window> ()).contents }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*w.cast::<window> ()).contents }
 }
 
 /// C: struct glyph_matrix *current_matrix;   (window.h 224)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn window_current_matrix (w: *mut c_void) -> *mut c_void
 {
-  unsafe { (*w.cast::<window> ()).current_matrix }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*w.cast::<window> ()).current_matrix }
 }
 
 /// C: BVAR (XBUFFER (buf), filename)   (buffer.h 308; the member `BVAR` concatenates is
@@ -417,14 +425,14 @@ pub unsafe extern "C-unwind" fn window_current_matrix (w: *mut c_void) -> *mut c
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn buffer_filename (b: *mut c_void) -> Lisp_Object
 {
-  unsafe { (*b.cast::<buffer> ()).filename_ }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*b.cast::<buffer> ()).filename_ }
 }
 
 /// C: int id;   (termhooks.h 516)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn terminal_id (t: *mut c_void) -> c_int
 {
-  unsafe { (*t.cast::<terminal> ()).id }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*t.cast::<terminal> ()).id }
 }
 
 /// C: union display_info { … struct ns_display_info *ns; … };   (termhooks.h 533, the member at
@@ -433,7 +441,7 @@ pub unsafe extern "C-unwind" fn terminal_id (t: *mut c_void) -> c_int
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn terminal_display_info_ns (t: *mut c_void) -> *mut c_void
 {
-  unsafe { (*t.cast::<terminal> ()).display_info.ns }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*t.cast::<terminal> ()).display_info.ns }
 }
 
 /* ---------------------------------------------------------------------------------------------
@@ -457,7 +465,7 @@ unsafe extern "C-unwind" { fn xzalloc (size: size_t) -> *mut c_void; }
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn frame_alloc_ns_output (f: *mut c_void)
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     (*f.cast::<frame> ()).output_data.ns = xzalloc (std::mem::size_of::<ns_output> ());
   }
 }
@@ -468,7 +476,7 @@ pub unsafe extern "C-unwind" fn frame_alloc_ns_output (f: *mut c_void)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn frame_set_fontset (f: *mut c_void, v: c_int)
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     let ns = (*f.cast::<frame> ()).output_data.ns as *mut ns_output;
     (*ns).fontset = v;
   }
@@ -480,7 +488,7 @@ pub unsafe extern "C-unwind" fn frame_set_fontset (f: *mut c_void, v: c_int)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn frame_set_display_info (f: *mut c_void, dpyinfo: *mut c_void)
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     let ns = (*f.cast::<frame> ()).output_data.ns as *mut ns_output;
     (*ns).display_info = dpyinfo as *mut ns_display_info;
   }
@@ -501,7 +509,7 @@ pub unsafe extern "C-unwind" fn frame_set_display_info (f: *mut c_void, dpyinfo:
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn frame_set_double_buffered (f: *mut c_void, v: bool)
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     let ns = (*f.cast::<frame> ()).output_data.ns as *mut ns_output;
     (*ns).double_buffered = v;
   }
@@ -538,7 +546,7 @@ pub unsafe extern "C-unwind" fn frame_set_double_buffered (f: *mut c_void, v: bo
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn ns_output_view (f: *mut c_void) -> *mut c_void
 {
-  unsafe { FRAME_NS_VIEW! (f.cast::<frame> ()) }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { FRAME_NS_VIEW! (f.cast::<frame> ()) }
 }
 
 /// C: `id miniimage;` (nsterm.h 939; the frozen `#else` half is `void *miniimage;` 949) - C
@@ -550,7 +558,7 @@ pub unsafe extern "C-unwind" fn ns_output_view (f: *mut c_void) -> *mut c_void
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn ns_output_miniimage (f: *mut c_void) -> *mut c_void
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).miniimage
   }
 }
@@ -563,7 +571,7 @@ pub unsafe extern "C-unwind" fn ns_output_miniimage (f: *mut c_void) -> *mut c_v
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn ns_output_cursor_color (f: *mut c_void) -> *mut c_void
 {
-  unsafe { FRAME_CURSOR_COLOR! (f.cast::<frame> ()) }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { FRAME_CURSOR_COLOR! (f.cast::<frame> ()) }
 }
 
 /// C: `NSColor *foreground_color;` (nsterm.h 941; the frozen `#else` half is
@@ -575,7 +583,7 @@ pub unsafe extern "C-unwind" fn ns_output_cursor_color (f: *mut c_void) -> *mut 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn ns_output_foreground_color (f: *mut c_void) -> *mut c_void
 {
-  unsafe { FRAME_FOREGROUND_COLOR! (f.cast::<frame> ()) }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { FRAME_FOREGROUND_COLOR! (f.cast::<frame> ()) }
 }
 
 /// C: `NSColor *background_color;` (nsterm.h 942; the frozen `#else` half is
@@ -586,7 +594,7 @@ pub unsafe extern "C-unwind" fn ns_output_foreground_color (f: *mut c_void) -> *
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn ns_output_background_color (f: *mut c_void) -> *mut c_void
 {
-  unsafe { FRAME_BACKGROUND_COLOR! (f.cast::<frame> ()) }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { FRAME_BACKGROUND_COLOR! (f.cast::<frame> ()) }
 }
 
 /// C: `int icon_top;` (nsterm.h 990) - C writes it at nsfns.m 1036 (`= -1;`) and 1048
@@ -596,7 +604,7 @@ pub unsafe extern "C-unwind" fn ns_output_background_color (f: *mut c_void) -> *
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn ns_output_icon_top (f: *mut c_void) -> c_int
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).icon_top
   }
 }
@@ -608,7 +616,7 @@ pub unsafe extern "C-unwind" fn ns_output_icon_top (f: *mut c_void) -> c_int
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn ns_output_icon_left (f: *mut c_void) -> c_int
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).icon_left
   }
 }
@@ -623,7 +631,7 @@ pub unsafe extern "C-unwind" fn ns_output_icon_left (f: *mut c_void) -> c_int
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn ns_output_window_desc (f: *mut c_void) -> c_ulong
 {
-  unsafe { FRAME_NS_WINDOW! (f.cast::<frame> ()) as c_ulong }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { FRAME_NS_WINDOW! (f.cast::<frame> ()) as c_ulong }
 }
 
 /// C: `Window window_desc, parent_desc;` (nsterm.h 980) - C writes `parent_desc` at nsfns.m
@@ -635,7 +643,7 @@ pub unsafe extern "C-unwind" fn ns_output_window_desc (f: *mut c_void) -> c_ulon
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn ns_output_parent_desc (f: *mut c_void) -> Window
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).parent_desc
   }
 }
@@ -648,7 +656,7 @@ pub unsafe extern "C-unwind" fn ns_output_parent_desc (f: *mut c_void) -> Window
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn ns_output_explicit_parent (f: *mut c_void) -> bool
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).explicit_parent != 0
   }
 }
@@ -662,7 +670,7 @@ pub unsafe extern "C-unwind" fn ns_output_explicit_parent (f: *mut c_void) -> bo
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn ns_output_text_cursor (f: *mut c_void) -> *mut c_void
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).text_cursor
   }
 }
@@ -674,7 +682,7 @@ pub unsafe extern "C-unwind" fn ns_output_text_cursor (f: *mut c_void) -> *mut c
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn ns_output_in_animation (f: *mut c_void) -> c_int
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).in_animation
   }
 }
@@ -690,7 +698,7 @@ pub unsafe extern "C-unwind" fn ns_output_in_animation (f: *mut c_void) -> c_int
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn ns_output_display_info (f: *mut c_void) -> *mut ns_display_info
 {
-  unsafe { FRAME_DISPLAY_INFO! (f.cast::<frame> ()) }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { FRAME_DISPLAY_INFO! (f.cast::<frame> ()) }
 }
 
 /// C: `int zooming;` (nsterm.h 1007) - C tests it at nsterm.m 1906 and 1948 (`if
@@ -701,7 +709,7 @@ pub unsafe extern "C-unwind" fn ns_output_display_info (f: *mut c_void) -> *mut 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn ns_output_zooming (f: *mut c_void) -> bool
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).zooming != 0
   }
 }
@@ -713,7 +721,7 @@ pub unsafe extern "C-unwind" fn ns_output_zooming (f: *mut c_void) -> bool
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn ns_output_set_view (f: *mut c_void, v: *mut c_void)
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     replace_native_object(&raw mut (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).view, v);
   }
 }
@@ -725,7 +733,7 @@ pub unsafe extern "C-unwind" fn ns_output_set_view (f: *mut c_void, v: *mut c_vo
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn ns_output_set_miniimage (f: *mut c_void, v: *mut c_void)
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     replace_native_object(&raw mut (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).miniimage, v);
   }
 }
@@ -738,7 +746,7 @@ pub unsafe extern "C-unwind" fn ns_output_set_miniimage (f: *mut c_void, v: *mut
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn ns_output_set_cursor_color (f: *mut c_void, v: *mut c_void)
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     replace_native_object(&raw mut (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).cursor_color, v);
   }
 }
@@ -751,7 +759,7 @@ pub unsafe extern "C-unwind" fn ns_output_set_cursor_color (f: *mut c_void, v: *
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn ns_output_set_foreground_color (f: *mut c_void, v: *mut c_void)
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     replace_native_object(&raw mut (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).foreground_color, v);
   }
 }
@@ -764,7 +772,7 @@ pub unsafe extern "C-unwind" fn ns_output_set_foreground_color (f: *mut c_void, 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn ns_output_set_background_color (f: *mut c_void, v: *mut c_void)
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     replace_native_object(&raw mut (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).background_color, v);
   }
 }
@@ -776,7 +784,7 @@ pub unsafe extern "C-unwind" fn ns_output_set_background_color (f: *mut c_void, 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn ns_output_set_icon_top (f: *mut c_void, v: c_int)
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).icon_top = v;
   }
 }
@@ -788,7 +796,7 @@ pub unsafe extern "C-unwind" fn ns_output_set_icon_top (f: *mut c_void, v: c_int
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn ns_output_set_icon_left (f: *mut c_void, v: c_int)
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).icon_left = v;
   }
 }
@@ -802,7 +810,7 @@ pub unsafe extern "C-unwind" fn ns_output_set_icon_left (f: *mut c_void, v: c_in
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn ns_output_set_window_desc (f: *mut c_void, v: c_ulong)
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).window_desc = v as c_int;
   }
 }
@@ -816,7 +824,7 @@ pub unsafe extern "C-unwind" fn ns_output_set_window_desc (f: *mut c_void, v: c_
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn ns_output_set_parent_desc (f: *mut c_void, v: Window)
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).parent_desc = v as c_int;
   }
 }
@@ -829,7 +837,7 @@ pub unsafe extern "C-unwind" fn ns_output_set_parent_desc (f: *mut c_void, v: Wi
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn ns_output_set_explicit_parent (f: *mut c_void, v: bool)
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).explicit_parent = v as c_char;
   }
 }
@@ -843,7 +851,7 @@ pub unsafe extern "C-unwind" fn ns_output_set_explicit_parent (f: *mut c_void, v
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn ns_output_set_current_pointer (f: *mut c_void, v: *mut c_void)
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     replace_native_object(&raw mut (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).current_pointer, v);
   }
 }
@@ -856,7 +864,7 @@ pub unsafe extern "C-unwind" fn ns_output_set_current_pointer (f: *mut c_void, v
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn ns_output_set_text_cursor (f: *mut c_void, v: *mut c_void)
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     replace_native_object(&raw mut (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).text_cursor, v);
   }
 }
@@ -869,7 +877,7 @@ pub unsafe extern "C-unwind" fn ns_output_set_text_cursor (f: *mut c_void, v: *m
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn ns_output_set_nontext_cursor (f: *mut c_void, v: *mut c_void)
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).nontext_cursor = v;
   }
 }
@@ -882,7 +890,7 @@ pub unsafe extern "C-unwind" fn ns_output_set_nontext_cursor (f: *mut c_void, v:
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn ns_output_set_modeline_cursor (f: *mut c_void, v: *mut c_void)
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).modeline_cursor = v;
   }
 }
@@ -895,7 +903,7 @@ pub unsafe extern "C-unwind" fn ns_output_set_modeline_cursor (f: *mut c_void, v
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn ns_output_set_hand_cursor (f: *mut c_void, v: *mut c_void)
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).hand_cursor = v;
   }
 }
@@ -908,7 +916,7 @@ pub unsafe extern "C-unwind" fn ns_output_set_hand_cursor (f: *mut c_void, v: *m
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn ns_output_set_hourglass_cursor (f: *mut c_void, v: *mut c_void)
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).hourglass_cursor = v;
   }
 }
@@ -921,7 +929,7 @@ pub unsafe extern "C-unwind" fn ns_output_set_hourglass_cursor (f: *mut c_void, 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn ns_output_set_horizontal_drag_cursor (f: *mut c_void, v: *mut c_void)
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).horizontal_drag_cursor = v;
   }
 }
@@ -934,7 +942,7 @@ pub unsafe extern "C-unwind" fn ns_output_set_horizontal_drag_cursor (f: *mut c_
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn ns_output_set_vertical_drag_cursor (f: *mut c_void, v: *mut c_void)
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).vertical_drag_cursor = v;
   }
 }
@@ -947,7 +955,7 @@ pub unsafe extern "C-unwind" fn ns_output_set_vertical_drag_cursor (f: *mut c_vo
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn ns_output_set_left_edge_cursor (f: *mut c_void, v: *mut c_void)
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).left_edge_cursor = v;
   }
 }
@@ -960,7 +968,7 @@ pub unsafe extern "C-unwind" fn ns_output_set_left_edge_cursor (f: *mut c_void, 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn ns_output_set_top_left_corner_cursor (f: *mut c_void, v: *mut c_void)
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).top_left_corner_cursor = v;
   }
 }
@@ -973,7 +981,7 @@ pub unsafe extern "C-unwind" fn ns_output_set_top_left_corner_cursor (f: *mut c_
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn ns_output_set_top_edge_cursor (f: *mut c_void, v: *mut c_void)
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).top_edge_cursor = v;
   }
 }
@@ -986,7 +994,7 @@ pub unsafe extern "C-unwind" fn ns_output_set_top_edge_cursor (f: *mut c_void, v
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn ns_output_set_top_right_corner_cursor (f: *mut c_void, v: *mut c_void)
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).top_right_corner_cursor = v;
   }
 }
@@ -999,7 +1007,7 @@ pub unsafe extern "C-unwind" fn ns_output_set_top_right_corner_cursor (f: *mut c
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn ns_output_set_right_edge_cursor (f: *mut c_void, v: *mut c_void)
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).right_edge_cursor = v;
   }
 }
@@ -1012,7 +1020,7 @@ pub unsafe extern "C-unwind" fn ns_output_set_right_edge_cursor (f: *mut c_void,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn ns_output_set_bottom_right_corner_cursor (f: *mut c_void, v: *mut c_void)
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).bottom_right_corner_cursor = v;
   }
 }
@@ -1025,7 +1033,7 @@ pub unsafe extern "C-unwind" fn ns_output_set_bottom_right_corner_cursor (f: *mu
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn ns_output_set_bottom_edge_cursor (f: *mut c_void, v: *mut c_void)
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).bottom_edge_cursor = v;
   }
 }
@@ -1038,7 +1046,7 @@ pub unsafe extern "C-unwind" fn ns_output_set_bottom_edge_cursor (f: *mut c_void
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn ns_output_set_bottom_left_corner_cursor (f: *mut c_void, v: *mut c_void)
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).bottom_left_corner_cursor = v;
   }
 }
@@ -1050,7 +1058,7 @@ pub unsafe extern "C-unwind" fn ns_output_set_bottom_left_corner_cursor (f: *mut
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn ns_output_set_in_animation (f: *mut c_void, v: c_int)
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).in_animation = v;
   }
 }
@@ -1063,7 +1071,7 @@ pub unsafe extern "C-unwind" fn ns_output_set_in_animation (f: *mut c_void, v: c
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn ns_output_set_zooming (f: *mut c_void, v: c_int)
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     (*(FRAME_OUTPUT_DATA! (f.cast::<frame> ()) as *mut ns_output)).zooming = v as c_int;
   }
 }
@@ -1083,7 +1091,7 @@ pub unsafe extern "C-unwind" fn ns_output_set_zooming (f: *mut c_void, v: c_int)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn glyph_row_y (row: *mut c_void) -> c_int
 {
-  unsafe { (*row.cast::<glyph_row> ()).y }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*row.cast::<glyph_row> ()).y }
 }
 
 /// C: `int visible_height;` (dispextern.h 969, `visible_height`; inside `struct glyph_row` 918) - C reads it
@@ -1093,7 +1101,7 @@ pub unsafe extern "C-unwind" fn glyph_row_y (row: *mut c_void) -> c_int
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn glyph_row_visible_height (row: *mut c_void) -> c_int
 {
-  unsafe { (*row.cast::<glyph_row> ()).visible_height }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*row.cast::<glyph_row> ()).visible_height }
 }
 
 /* ---------------------------------------------------------------------------------------------
@@ -1112,7 +1120,7 @@ pub unsafe extern "C-unwind" fn glyph_row_visible_height (row: *mut c_void) -> c
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn set_waiting_for_input_flag (v: bool)
 {
-  unsafe { waiting_for_input! () = v; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { waiting_for_input! () = v; }
 }
 
 /* ---------------------------------------------------------------------------------------------
@@ -1134,7 +1142,7 @@ pub unsafe extern "C-unwind" fn set_waiting_for_input_flag (v: bool)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn face_set_background (face: *mut c_void, v: c_ulong)
 {
-  unsafe { (*face.cast::<face> ()).background = v; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*face.cast::<face> ()).background = v; }
 }
 
 /* ---------------------------------------------------------------------------------------------
@@ -1154,7 +1162,7 @@ pub unsafe extern "C-unwind" fn face_set_background (face: *mut c_void, v: c_ulo
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn frame_set_no_accept_focus (f: *mut c_void, v: bool)
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     let bits = &mut (*f.cast::<frame> ()).bits1;
     *bits = (*bits & !(1 << FRAME_NO_ACCEPT_FOCUS_SHIFT)) | ((v as u32) << FRAME_NO_ACCEPT_FOCUS_SHIFT);
   }
@@ -1168,7 +1176,7 @@ pub unsafe extern "C-unwind" fn frame_set_no_accept_focus (f: *mut c_void, v: bo
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn frame_set_menu_bar_items_used (f: *mut c_void, v: c_int)
 {
-  unsafe { (*f.cast::<frame> ()).menu_bar_items_used = v; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f.cast::<frame> ()).menu_bar_items_used = v; }
 }
 
 /// C: `double alpha[2];` (frame.h 707-711, "alpha[0]: alpha transparency of the active frame,
@@ -1179,7 +1187,7 @@ pub unsafe extern "C-unwind" fn frame_set_menu_bar_items_used (f: *mut c_void, v
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn frame_alpha (f: *mut c_void, index: c_int) -> c_double
 {
-  unsafe { (*f.cast::<frame> ()).alpha[index as usize] }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f.cast::<frame> ()).alpha[index as usize] }
 }
 
 /* ---------------------------------------------------------------------------------------------
@@ -1522,7 +1530,7 @@ pub mod c_abi_of_mirror_named_items
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn XSETFRAME (a: *mut Lisp_Object, b: *mut c_void)
 {
-  unsafe { XSETFRAME! (*a, b); }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { XSETFRAME! (*a, b); }
 }
 
 /* ---------------------------------------------------------------------------------------------
@@ -1543,7 +1551,7 @@ pub unsafe extern "C-unwind" fn XSETFRAME (a: *mut Lisp_Object, b: *mut c_void)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn frame_set_total_cols (f: *mut c_void, v: c_int)
 {
-  unsafe { (*f.cast::<frame> ()).total_cols = v; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f.cast::<frame> ()).total_cols = v; }
 }
 
 /// C: `int pixel_width, pixel_height;` (frame.h 598) - C's writes are `FRAME_PIXEL_WIDTH (f) =
@@ -1552,7 +1560,7 @@ pub unsafe extern "C-unwind" fn frame_set_total_cols (f: *mut c_void, v: c_int)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn frame_set_pixel_width (f: *mut c_void, v: c_int)
 {
-  unsafe { (*f.cast::<frame> ()).pixel_width = v; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f.cast::<frame> ()).pixel_width = v; }
 }
 
 /// C: `int pixel_width, pixel_height;` (frame.h 598) - C's write is `FRAME_PIXEL_HEIGHT (f) =
@@ -1561,7 +1569,7 @@ pub unsafe extern "C-unwind" fn frame_set_pixel_width (f: *mut c_void, v: c_int)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn frame_set_pixel_height (f: *mut c_void, v: c_int)
 {
-  unsafe { (*f.cast::<frame> ()).pixel_height = v; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f.cast::<frame> ()).pixel_height = v; }
 }
 
 /// C: `int border_width;` (frame.h 613, "Border width of the frame window as known by the (X)
@@ -1572,7 +1580,7 @@ pub unsafe extern "C-unwind" fn frame_set_pixel_height (f: *mut c_void, v: c_int
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn frame_border_width (f: *mut c_void) -> c_int
 {
-  unsafe { (*f.cast::<frame> ()).border_width }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f.cast::<frame> ()).border_width }
 }
 
 /// C: `int size_hint_flags;` (frame.h 610, "The geometry flags for this window") - C's reads are
@@ -1581,7 +1589,7 @@ pub unsafe extern "C-unwind" fn frame_border_width (f: *mut c_void) -> c_int
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn frame_size_hint_flags (f: *mut c_void) -> c_int
 {
-  unsafe { (*f.cast::<frame> ()).size_hint_flags }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f.cast::<frame> ()).size_hint_flags }
 }
 
 /// C: `int size_hint_flags;` (frame.h 610) - C's read-modify-writes are
@@ -1590,7 +1598,7 @@ pub unsafe extern "C-unwind" fn frame_size_hint_flags (f: *mut c_void) -> c_int
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn frame_set_size_hint_flags (f: *mut c_void, v: c_int)
 {
-  unsafe { (*f.cast::<frame> ()).size_hint_flags = v; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f.cast::<frame> ()).size_hint_flags = v; }
 }
 
 /// C: `int config_scroll_bar_width;` (frame.h 693) - C's write is
@@ -1600,7 +1608,7 @@ pub unsafe extern "C-unwind" fn frame_set_size_hint_flags (f: *mut c_void, v: c_
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn frame_set_config_scroll_bar_width (f: *mut c_void, v: c_int)
 {
-  unsafe { (*f.cast::<frame> ()).config_scroll_bar_width = v; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f.cast::<frame> ()).config_scroll_bar_width = v; }
 }
 
 /// C: `int config_scroll_bar_cols;` (frame.h 694) - C's write is
@@ -1610,7 +1618,7 @@ pub unsafe extern "C-unwind" fn frame_set_config_scroll_bar_width (f: *mut c_voi
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn frame_set_config_scroll_bar_cols (f: *mut c_void, v: c_int)
 {
-  unsafe { (*f.cast::<frame> ()).config_scroll_bar_cols = v; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f.cast::<frame> ()).config_scroll_bar_cols = v; }
 }
 
 /// C: `int config_scroll_bar_height;` (frame.h 701) - C's write is
@@ -1620,7 +1628,7 @@ pub unsafe extern "C-unwind" fn frame_set_config_scroll_bar_cols (f: *mut c_void
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn frame_set_config_scroll_bar_height (f: *mut c_void, v: c_int)
 {
-  unsafe { (*f.cast::<frame> ()).config_scroll_bar_height = v; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f.cast::<frame> ()).config_scroll_bar_height = v; }
 }
 
 /// C: `int config_scroll_bar_lines;` (frame.h 702) - C's write is
@@ -1630,7 +1638,7 @@ pub unsafe extern "C-unwind" fn frame_set_config_scroll_bar_height (f: *mut c_vo
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn frame_set_config_scroll_bar_lines (f: *mut c_void, v: c_int)
 {
-  unsafe { (*f.cast::<frame> ()).config_scroll_bar_lines = v; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f.cast::<frame> ()).config_scroll_bar_lines = v; }
 }
 
 /* ---------------------------------------------------------------------------------------------
@@ -1649,7 +1657,7 @@ pub unsafe extern "C-unwind" fn frame_set_config_scroll_bar_lines (f: *mut c_voi
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn window_set_left_col (w: *mut c_void, v: c_int)
 {
-  unsafe { (*w.cast::<window> ()).left_col = v; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*w.cast::<window> ()).left_col = v; }
 }
 
 /// C: `int top_line;` (window.h 249) - C's write is `w->top_line = 0;` (src/nsfns.m 3443).
@@ -1657,7 +1665,7 @@ pub unsafe extern "C-unwind" fn window_set_left_col (w: *mut c_void, v: c_int)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn window_set_top_line (w: *mut c_void, v: c_int)
 {
-  unsafe { (*w.cast::<window> ()).top_line = v; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*w.cast::<window> ()).top_line = v; }
 }
 
 /// C: `int pixel_left;` (window.h 243) - C's write is `w->pixel_left = 0;` (src/nsfns.m 3444).
@@ -1665,7 +1673,7 @@ pub unsafe extern "C-unwind" fn window_set_top_line (w: *mut c_void, v: c_int)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn window_set_pixel_left (w: *mut c_void, v: c_int)
 {
-  unsafe { (*w.cast::<window> ()).pixel_left = v; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*w.cast::<window> ()).pixel_left = v; }
 }
 
 /// C: `int pixel_top;` (window.h 244) - C's write is `w->pixel_top = 0;` (src/nsfns.m 3445).
@@ -1673,7 +1681,7 @@ pub unsafe extern "C-unwind" fn window_set_pixel_left (w: *mut c_void, v: c_int)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn window_set_pixel_top (w: *mut c_void, v: c_int)
 {
-  unsafe { (*w.cast::<window> ()).pixel_top = v; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*w.cast::<window> ()).pixel_top = v; }
 }
 
 /// C: `int total_cols;` (window.h 264) - C's writes are `w->total_cols = XFIXNAT (XCAR
@@ -1682,7 +1690,7 @@ pub unsafe extern "C-unwind" fn window_set_pixel_top (w: *mut c_void, v: c_int)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn window_set_total_cols (w: *mut c_void, v: c_int)
 {
-  unsafe { (*w.cast::<window> ()).total_cols = v; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*w.cast::<window> ()).total_cols = v; }
 }
 
 /// C: `int total_lines;` (window.h 265) - C's writes are `w->total_lines = XFIXNAT (XCDR
@@ -1691,7 +1699,7 @@ pub unsafe extern "C-unwind" fn window_set_total_cols (w: *mut c_void, v: c_int)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn window_set_total_lines (w: *mut c_void, v: c_int)
 {
-  unsafe { (*w.cast::<window> ()).total_lines = v; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*w.cast::<window> ()).total_lines = v; }
 }
 
 /// C: `int pixel_width;` (window.h 252) - C's write is `w->pixel_width = w->total_cols *
@@ -1700,7 +1708,7 @@ pub unsafe extern "C-unwind" fn window_set_total_lines (w: *mut c_void, v: c_int
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn window_set_pixel_width (w: *mut c_void, v: c_int)
 {
-  unsafe { (*w.cast::<window> ()).pixel_width = v; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*w.cast::<window> ()).pixel_width = v; }
 }
 
 /// C: `int pixel_height;` (window.h 253) - C's write is `w->pixel_height = w->total_lines *
@@ -1709,7 +1717,7 @@ pub unsafe extern "C-unwind" fn window_set_pixel_width (w: *mut c_void, v: c_int
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn window_set_pixel_height (w: *mut c_void, v: c_int)
 {
-  unsafe { (*w.cast::<window> ()).pixel_height = v; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*w.cast::<window> ()).pixel_height = v; }
 }
 
 /// C: `int total_cols;` (window.h 264) - C's reads are `w->pixel_width = w->total_cols * …`
@@ -1719,7 +1727,7 @@ pub unsafe extern "C-unwind" fn window_set_pixel_height (w: *mut c_void, v: c_in
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn window_total_cols (w: *mut c_void) -> c_int
 {
-  unsafe { (*w.cast::<window> ()).total_cols }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*w.cast::<window> ()).total_cols }
 }
 
 /// C: `int total_lines;` (window.h 265) - C's read is `w->pixel_height = w->total_lines *
@@ -1728,7 +1736,7 @@ pub unsafe extern "C-unwind" fn window_total_cols (w: *mut c_void) -> c_int
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn window_total_lines (w: *mut c_void) -> c_int
 {
-  unsafe { (*w.cast::<window> ()).total_lines }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*w.cast::<window> ()).total_lines }
 }
 
 /// C: `int pixel_width;` (window.h 252) - the read counterpart of the write at src/nsfns.m 3460
@@ -1739,7 +1747,7 @@ pub unsafe extern "C-unwind" fn window_total_lines (w: *mut c_void) -> c_int
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn window_pixel_width (w: *mut c_void) -> c_int
 {
-  unsafe { (*w.cast::<window> ()).pixel_width }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*w.cast::<window> ()).pixel_width }
 }
 
 /// C: `int pixel_height;` (window.h 253) - C's read is `make_fixnum (w->pixel_height)`
@@ -1748,7 +1756,7 @@ pub unsafe extern "C-unwind" fn window_pixel_width (w: *mut c_void) -> c_int
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn window_pixel_height (w: *mut c_void) -> c_int
 {
-  unsafe { (*w.cast::<window> ()).pixel_height }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*w.cast::<window> ()).pixel_height }
 }
 
 /// C: `struct cursor_pos phys_cursor;` (window.h 332) over `struct cursor_pos { int x, y; … }`
@@ -1761,7 +1769,7 @@ pub unsafe extern "C-unwind" fn window_pixel_height (w: *mut c_void) -> c_int
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn window_phys_cursor_x (w: *mut c_void) -> c_long
 {
-  unsafe { (*w.cast::<window> ()).phys_cursor.x as c_long }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*w.cast::<window> ()).phys_cursor.x as c_long }
 }
 
 /// C: `struct cursor_pos phys_cursor;` (window.h 332), `y` at window.h 95 - C's read is
@@ -1770,7 +1778,7 @@ pub unsafe extern "C-unwind" fn window_phys_cursor_x (w: *mut c_void) -> c_long
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn window_phys_cursor_y (w: *mut c_void) -> c_long
 {
-  unsafe { (*w.cast::<window> ()).phys_cursor.y as c_long }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*w.cast::<window> ()).phys_cursor.y as c_long }
 }
 
 /// C: `struct glyph_matrix *desired_matrix;` (window.h 225) - C's reads are
@@ -1781,7 +1789,7 @@ pub unsafe extern "C-unwind" fn window_phys_cursor_y (w: *mut c_void) -> c_long
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn window_desired_matrix (w: *mut c_void) -> *mut c_void
 {
-  unsafe { (*w.cast::<window> ()).desired_matrix }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*w.cast::<window> ()).desired_matrix }
 }
 
 /* ---------------------------------------------------------------------------------------------
@@ -1812,7 +1820,7 @@ pub unsafe extern "C-unwind" fn window_desired_matrix (w: *mut c_void) -> *mut c
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn glyph_string_set_left_overhang (s: *mut c_void, v: c_int)
 {
-  unsafe { (*s.cast::<glyph_string> ()).left_overhang = v; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*s.cast::<glyph_string> ()).left_overhang = v; }
 }
 
 /// C: `int right_overhang;` (src/dispextern.h 1389) - C's writes are
@@ -1824,7 +1832,7 @@ pub unsafe extern "C-unwind" fn glyph_string_set_left_overhang (s: *mut c_void, 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn glyph_string_set_right_overhang (s: *mut c_void, v: c_int)
 {
-  unsafe { (*s.cast::<glyph_string> ()).right_overhang = v; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*s.cast::<glyph_string> ()).right_overhang = v; }
 }
 
 /// C: `unsigned *char2b;` (src/dispextern.h 1407) - C's read is the `text_extents` call's
@@ -1836,7 +1844,7 @@ pub unsafe extern "C-unwind" fn glyph_string_set_right_overhang (s: *mut c_void,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn glyph_string_char2b (s: *mut c_void) -> *const c_uint
 {
-  unsafe { (*s.cast::<glyph_string> ()).char2b }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*s.cast::<glyph_string> ()).char2b }
 }
 
 /// C: `int nchars;` (src/dispextern.h 1408, "Characters to be drawn, and number of characters.
@@ -1847,7 +1855,7 @@ pub unsafe extern "C-unwind" fn glyph_string_char2b (s: *mut c_void) -> *const c
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn glyph_string_nchars (s: *mut c_void) -> c_int
 {
-  unsafe { (*s.cast::<glyph_string> ()).nchars }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*s.cast::<glyph_string> ()).nchars }
 }
 
 /// C: `struct font *font;` (src/dispextern.h 1417) - C's read is `struct font *font = s->font;`
@@ -1859,7 +1867,7 @@ pub unsafe extern "C-unwind" fn glyph_string_nchars (s: *mut c_void) -> c_int
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn glyph_string_font (s: *mut c_void) -> *mut c_void
 {
-  unsafe { (*s.cast::<glyph_string> ()).font as *mut c_void }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*s.cast::<glyph_string> ()).font as *mut c_void }
 }
 
 /// C: `struct composition *cmp;` (src/dispextern.h 1421, "Non-null means this string describes
@@ -1870,7 +1878,7 @@ pub unsafe extern "C-unwind" fn glyph_string_font (s: *mut c_void) -> *mut c_voi
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn glyph_string_cmp (s: *mut c_void) -> *mut c_void
 {
-  unsafe { (*s.cast::<glyph_string> ()).cmp as *mut c_void }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*s.cast::<glyph_string> ()).cmp as *mut c_void }
 }
 
 /// C: `ptrdiff_t cmp_id;` (src/dispextern.h 1424) - C's read is
@@ -1882,7 +1890,7 @@ pub unsafe extern "C-unwind" fn glyph_string_cmp (s: *mut c_void) -> *mut c_void
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn glyph_string_cmp_id (s: *mut c_void) -> ptrdiff_t
 {
-  unsafe { (*s.cast::<glyph_string> ()).cmp_id }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*s.cast::<glyph_string> ()).cmp_id }
 }
 
 /// C: `int cmp_from, cmp_to;` (src/dispextern.h 1427, "Start and end glyph indices in a
@@ -1893,7 +1901,7 @@ pub unsafe extern "C-unwind" fn glyph_string_cmp_id (s: *mut c_void) -> ptrdiff_
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn glyph_string_cmp_from (s: *mut c_void) -> c_int
 {
-  unsafe { (*s.cast::<glyph_string> ()).cmp_from }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*s.cast::<glyph_string> ()).cmp_from }
 }
 
 /// C: `int cmp_from, cmp_to;` (src/dispextern.h 1428) - the same call, `src/nsterm.m` 3069.
@@ -1902,7 +1910,7 @@ pub unsafe extern "C-unwind" fn glyph_string_cmp_from (s: *mut c_void) -> c_int
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn glyph_string_cmp_to (s: *mut c_void) -> c_int
 {
-  unsafe { (*s.cast::<glyph_string> ()).cmp_to }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*s.cast::<glyph_string> ()).cmp_to }
 }
 
 /// C: `struct glyph *first_glyph;` (src/dispextern.h 1480) - C's reads are
@@ -1914,7 +1922,7 @@ pub unsafe extern "C-unwind" fn glyph_string_cmp_to (s: *mut c_void) -> c_int
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn glyph_string_first_glyph (s: *mut c_void) -> *mut c_void
 {
-  unsafe { (*s.cast::<glyph_string> ()).first_glyph as *mut c_void }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*s.cast::<glyph_string> ()).first_glyph as *mut c_void }
 }
 
 /* ---------------------------------------------------------------------------------------------
@@ -1936,7 +1944,7 @@ pub unsafe extern "C-unwind" fn glyph_string_first_glyph (s: *mut c_void) -> *mu
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn glyph_type (g: *mut c_void) -> c_int
 {
-  unsafe { glyph_bits! (type, *g.cast::<glyph> ()) }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { glyph_bits! (type, *g.cast::<glyph> ()) }
 }
 
 /// C: `mode_line_p` (src/dispextern.h 1086, `mode_line_p`; one of `glyph_row`'s 29 `bool_bf : 1`
@@ -1947,7 +1955,7 @@ pub unsafe extern "C-unwind" fn glyph_type (g: *mut c_void) -> c_int
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn glyph_row_mode_line_p (row: *mut c_void) -> bool
 {
-  unsafe { glyph_row_bits! (mode_line_p, row.cast::<glyph_row> ()) }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { glyph_row_bits! (mode_line_p, row.cast::<glyph_row> ()) }
 }
 
 /// C: `bool_bf full_width_p : 1;` (src/dispextern.h 1083) - C's read is
@@ -1957,7 +1965,7 @@ pub unsafe extern "C-unwind" fn glyph_row_mode_line_p (row: *mut c_void) -> bool
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn glyph_row_full_width_p (row: *mut c_void) -> bool
 {
-  unsafe { glyph_row_bits! (full_width_p, row.cast::<glyph_row> ()) }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { glyph_row_bits! (full_width_p, row.cast::<glyph_row> ()) }
 }
 
 /// C: `bool_bf redraw_fringe_bitmaps_p : 1;` (src/dispextern.h 1043) - C's **write** is
@@ -1968,7 +1976,7 @@ pub unsafe extern "C-unwind" fn glyph_row_full_width_p (row: *mut c_void) -> boo
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn glyph_row_set_redraw_fringe_bitmaps_p (row: *mut c_void, v: bool)
 {
-  unsafe { glyph_row_bits! (redraw_fringe_bitmaps_p, row.cast::<glyph_row> (), v) }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { glyph_row_bits! (redraw_fringe_bitmaps_p, row.cast::<glyph_row> (), v) }
 }
 
 /// C: `bool_bf pseudo_window_p : 1;` (src/window.h 438, "Flag indicating that this window is
@@ -1984,7 +1992,7 @@ pub unsafe extern "C-unwind" fn glyph_row_set_redraw_fringe_bitmaps_p (row: *mut
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn window_pseudo_window_p (w: *mut c_void) -> bool
 {
-  unsafe { window_bit (w.cast::<window> (), WINDOW_PSEUDO_WINDOW_P_SHIFT) }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { window_bit (w.cast::<window> (), WINDOW_PSEUDO_WINDOW_P_SHIFT) }
 }
 
 /* ---------------------------------------------------------------------------------------------
@@ -2003,7 +2011,7 @@ pub unsafe extern "C-unwind" fn window_pseudo_window_p (w: *mut c_void) -> bool
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn composition_pixel_width (cmp: *mut c_void) -> c_int
 {
-  unsafe { (*cmp.cast::<composition> ()).pixel_width as c_int }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*cmp.cast::<composition> ()).pixel_width as c_int }
 }
 
 /// C: `short lbearing, rbearing;` (src/composite.h 155) - C's read is
@@ -2013,7 +2021,7 @@ pub unsafe extern "C-unwind" fn composition_pixel_width (cmp: *mut c_void) -> c_
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn composition_lbearing (cmp: *mut c_void) -> c_int
 {
-  unsafe { (*cmp.cast::<composition> ()).lbearing as c_int }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*cmp.cast::<composition> ()).lbearing as c_int }
 }
 
 /// C: `short lbearing, rbearing;` (src/composite.h 155) - C's read is
@@ -2022,7 +2030,7 @@ pub unsafe extern "C-unwind" fn composition_lbearing (cmp: *mut c_void) -> c_int
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn composition_rbearing (cmp: *mut c_void) -> c_int
 {
-  unsafe { (*cmp.cast::<composition> ()).rbearing as c_int }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*cmp.cast::<composition> ()).rbearing as c_int }
 }
 
 /// C: `struct font_driver const *driver;` (src/font.h 400, the first member after the
@@ -2036,7 +2044,7 @@ pub unsafe extern "C-unwind" fn composition_rbearing (cmp: *mut c_void) -> c_int
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn font_driver (font: *mut c_void) -> *mut c_void
 {
-  unsafe { (*font.cast::<font> ()).driver as *mut c_void }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*font.cast::<font> ()).driver as *mut c_void }
 }
 
 /// C: `void (*text_extents) (struct font *font, const unsigned *code, int nglyphs, struct
@@ -2052,7 +2060,7 @@ pub unsafe extern "C-unwind" fn font_driver (font: *mut c_void) -> *mut c_void
 pub unsafe extern "C-unwind" fn font_driver_text_extents (driver: *mut c_void)
   -> Option<unsafe extern "C-unwind" fn (*mut font, *const c_uint, c_int, *mut font_metrics)>
 {
-  unsafe { (*driver.cast::<font_driver> ()).text_extents }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*driver.cast::<font_driver> ()).text_extents }
 }
 
 /* ---------------------------------------------------------------------------------------------
@@ -2082,7 +2090,7 @@ pub unsafe extern "C-unwind" fn font_driver_text_extents (driver: *mut c_void)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn face_foreground (face: *mut c_void) -> c_ulong
 {
-  unsafe { (*face.cast::<face> ()).foreground }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*face.cast::<face> ()).foreground }
 }
 
 /// C: `unsigned long background;` (src/dispextern.h 1819) - C's reads are the bare member
@@ -2094,7 +2102,7 @@ pub unsafe extern "C-unwind" fn face_foreground (face: *mut c_void) -> c_ulong
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn face_background (face: *mut c_void) -> c_ulong
 {
-  unsafe { (*face.cast::<face> ()).background }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*face.cast::<face> ()).background }
 }
 
 /// C: `struct face *face;` (src/dispextern.h 2232, the last member of `struct
@@ -2106,7 +2114,7 @@ pub unsafe extern "C-unwind" fn face_background (face: *mut c_void) -> c_ulong
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn draw_fringe_bitmap_params_face (p: *mut c_void) -> *mut c_void
 {
-  unsafe { (*p.cast::<draw_fringe_bitmap_params> ()).face as *mut c_void }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*p.cast::<draw_fringe_bitmap_params> ()).face as *mut c_void }
 }
 
 /// C: `int which;  /* enum fringe_bitmap_type */` (src/dispextern.h 2225) - C's reads are
@@ -2116,7 +2124,7 @@ pub unsafe extern "C-unwind" fn draw_fringe_bitmap_params_face (p: *mut c_void) 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn draw_fringe_bitmap_params_which (p: *mut c_void) -> c_int
 {
-  unsafe { (*p.cast::<draw_fringe_bitmap_params> ()).which }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*p.cast::<draw_fringe_bitmap_params> ()).which }
 }
 
 /// C: `int wd, h, dh;` (src/dispextern.h 2227) - C's reads are `p->wd, p->h, p->dh`
@@ -2126,7 +2134,7 @@ pub unsafe extern "C-unwind" fn draw_fringe_bitmap_params_which (p: *mut c_void)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn draw_fringe_bitmap_params_wd (p: *mut c_void) -> c_int
 {
-  unsafe { (*p.cast::<draw_fringe_bitmap_params> ()).wd }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*p.cast::<draw_fringe_bitmap_params> ()).wd }
 }
 
 /// C: `int wd, h, dh;` (src/dispextern.h 2227), read at src/nsterm.m 3235/3238.
@@ -2135,7 +2143,7 @@ pub unsafe extern "C-unwind" fn draw_fringe_bitmap_params_wd (p: *mut c_void) ->
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn draw_fringe_bitmap_params_h (p: *mut c_void) -> c_int
 {
-  unsafe { (*p.cast::<draw_fringe_bitmap_params> ()).h }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*p.cast::<draw_fringe_bitmap_params> ()).h }
 }
 
 /// C: `int wd, h, dh;` (src/dispextern.h 2227), read at src/nsterm.m 3235.
@@ -2144,7 +2152,7 @@ pub unsafe extern "C-unwind" fn draw_fringe_bitmap_params_h (p: *mut c_void) -> 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn draw_fringe_bitmap_params_dh (p: *mut c_void) -> c_int
 {
-  unsafe { (*p.cast::<draw_fringe_bitmap_params> ()).dh }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*p.cast::<draw_fringe_bitmap_params> ()).dh }
 }
 
 /// C: `int x, y;` (src/dispextern.h 2228) - C's read is `NSMakeRect (p->x, p->y, p->wd, p->h)`
@@ -2154,7 +2162,7 @@ pub unsafe extern "C-unwind" fn draw_fringe_bitmap_params_dh (p: *mut c_void) ->
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn draw_fringe_bitmap_params_x (p: *mut c_void) -> c_int
 {
-  unsafe { (*p.cast::<draw_fringe_bitmap_params> ()).x }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*p.cast::<draw_fringe_bitmap_params> ()).x }
 }
 
 /// C: `int x, y;` (src/dispextern.h 2228), read at src/nsterm.m 3238.
@@ -2163,7 +2171,7 @@ pub unsafe extern "C-unwind" fn draw_fringe_bitmap_params_x (p: *mut c_void) -> 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn draw_fringe_bitmap_params_y (p: *mut c_void) -> c_int
 {
-  unsafe { (*p.cast::<draw_fringe_bitmap_params> ()).y }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*p.cast::<draw_fringe_bitmap_params> ()).y }
 }
 
 /// C: `int bx, nx, by, ny;` (src/dispextern.h 2229) - C's reads are `p->bx`, `p->by`, `p->nx`,
@@ -2173,7 +2181,7 @@ pub unsafe extern "C-unwind" fn draw_fringe_bitmap_params_y (p: *mut c_void) -> 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn draw_fringe_bitmap_params_bx (p: *mut c_void) -> c_int
 {
-  unsafe { (*p.cast::<draw_fringe_bitmap_params> ()).bx }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*p.cast::<draw_fringe_bitmap_params> ()).bx }
 }
 
 /// C: `int bx, nx, by, ny;` (src/dispextern.h 2229), read at src/nsterm.m 3240-3241.
@@ -2182,7 +2190,7 @@ pub unsafe extern "C-unwind" fn draw_fringe_bitmap_params_bx (p: *mut c_void) ->
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn draw_fringe_bitmap_params_by (p: *mut c_void) -> c_int
 {
-  unsafe { (*p.cast::<draw_fringe_bitmap_params> ()).by }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*p.cast::<draw_fringe_bitmap_params> ()).by }
 }
 
 /// C: `int bx, nx, by, ny;` (src/dispextern.h 2229), read at src/nsterm.m 3240-3241.
@@ -2191,7 +2199,7 @@ pub unsafe extern "C-unwind" fn draw_fringe_bitmap_params_by (p: *mut c_void) ->
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn draw_fringe_bitmap_params_nx (p: *mut c_void) -> c_int
 {
-  unsafe { (*p.cast::<draw_fringe_bitmap_params> ()).nx }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*p.cast::<draw_fringe_bitmap_params> ()).nx }
 }
 
 /// C: `int bx, nx, by, ny;` (src/dispextern.h 2229), read at src/nsterm.m 3240-3241.
@@ -2200,7 +2208,7 @@ pub unsafe extern "C-unwind" fn draw_fringe_bitmap_params_nx (p: *mut c_void) ->
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn draw_fringe_bitmap_params_ny (p: *mut c_void) -> c_int
 {
-  unsafe { (*p.cast::<draw_fringe_bitmap_params> ()).ny }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*p.cast::<draw_fringe_bitmap_params> ()).ny }
 }
 
 /// C: `bool_bf cursor_p : 1;` (src/dispextern.h 2230) - C's reads are `p->cursor_p`
@@ -2214,7 +2222,7 @@ pub unsafe extern "C-unwind" fn draw_fringe_bitmap_params_ny (p: *mut c_void) ->
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn draw_fringe_bitmap_params_cursor_p (p: *mut c_void) -> bool
 {
-  unsafe { (*p.cast::<draw_fringe_bitmap_params> ()).flags & (1 << 0) != 0 }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*p.cast::<draw_fringe_bitmap_params> ()).flags & (1 << 0) != 0 }
 }
 
 /// C: `bool_bf overlay_p : 1;` (src/dispextern.h 2231) - C's reads are `p->overlay_p`
@@ -2224,7 +2232,7 @@ pub unsafe extern "C-unwind" fn draw_fringe_bitmap_params_cursor_p (p: *mut c_vo
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn draw_fringe_bitmap_params_overlay_p (p: *mut c_void) -> bool
 {
-  unsafe { (*p.cast::<draw_fringe_bitmap_params> ()).flags & (1 << 1) != 0 }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*p.cast::<draw_fringe_bitmap_params> ()).flags & (1 << 1) != 0 }
 }
 
 /* ---------------------------------------------------------------------------------------------
@@ -2270,7 +2278,7 @@ pub unsafe extern "C-unwind" fn draw_fringe_bitmap_params_overlay_p (p: *mut c_v
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn WINDOW_XFRAME (w: *mut c_void) -> *mut c_void
 {
-  unsafe { WINDOW_XFRAME! (w.cast::<window> ()) as *mut c_void }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { WINDOW_XFRAME! (w.cast::<window> ()) as *mut c_void }
 }
 
 /// C: `enum text_cursor_kinds phys_cursor_type;` (src/window.h 344, inside the
@@ -2282,7 +2290,7 @@ pub unsafe extern "C-unwind" fn WINDOW_XFRAME (w: *mut c_void) -> *mut c_void
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn window_set_phys_cursor_type (w: *mut c_void, v: c_int)
 {
-  unsafe { (*w.cast::<window> ()).phys_cursor_type = v; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*w.cast::<window> ()).phys_cursor_type = v; }
 }
 
 /// C: `bool_bf phys_cursor_on_p : 1;` (src/window.h 422, **outside** the window-system block) -
@@ -2296,7 +2304,7 @@ pub unsafe extern "C-unwind" fn window_set_phys_cursor_type (w: *mut c_void, v: 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn window_set_phys_cursor_on_p (w: *mut c_void, v: bool)
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     let bits = &mut (*w.cast::<window> ()).bits;
     *bits = (*bits & ! (1u32 << WINDOW_PHYS_CURSOR_ON_P_SHIFT))
             | ((v as u32) << WINDOW_PHYS_CURSOR_ON_P_SHIFT);
@@ -2311,7 +2319,7 @@ pub unsafe extern "C-unwind" fn window_set_phys_cursor_on_p (w: *mut c_void, v: 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn window_phys_cursor_width (w: *mut c_void) -> c_int
 {
-  unsafe { (*w.cast::<window> ()).phys_cursor_width }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*w.cast::<window> ()).phys_cursor_width }
 }
 
 /// C: `int phys_cursor_width;` (src/window.h 347) - C's writes are src/nsterm.m 3324 (`w->
@@ -2321,7 +2329,7 @@ pub unsafe extern "C-unwind" fn window_phys_cursor_width (w: *mut c_void) -> c_i
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn window_set_phys_cursor_width (w: *mut c_void, v: c_int)
 {
-  unsafe { (*w.cast::<window> ()).phys_cursor_width = v; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*w.cast::<window> ()).phys_cursor_width = v; }
 }
 
 /// C: `struct cursor_pos phys_cursor;` (src/window.h 332) over `struct cursor_pos { int x, y;
@@ -2334,7 +2342,7 @@ pub unsafe extern "C-unwind" fn window_set_phys_cursor_width (w: *mut c_void, v:
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn window_phys_cursor_hpos (w: *mut c_void) -> c_int
 {
-  unsafe { (*w.cast::<window> ()).phys_cursor.hpos }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*w.cast::<window> ()).phys_cursor.hpos }
 }
 
 /* ---------------------------------------------------------------------------------------------
@@ -2351,7 +2359,7 @@ pub unsafe extern "C-unwind" fn window_phys_cursor_hpos (w: *mut c_void) -> c_in
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn glyph_row_exact_window_width_line_p (row: *mut c_void) -> bool
 {
-  unsafe { glyph_row_bits! (exact_window_width_line_p, row.cast::<glyph_row> ()) }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { glyph_row_bits! (exact_window_width_line_p, row.cast::<glyph_row> ()) }
 }
 
 /// C: `short used[1 + LAST_AREA];` (src/dispextern.h 938) - C's read is
@@ -2362,7 +2370,7 @@ pub unsafe extern "C-unwind" fn glyph_row_exact_window_width_line_p (row: *mut c
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn glyph_row_used (row: *mut c_void, area: c_int) -> c_short
 {
-  unsafe { (*row.cast::<glyph_row> ()).used [area as usize] }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*row.cast::<glyph_row> ()).used [area as usize] }
 }
 
 /// C: `bool_bf cursor_in_fringe_p : 1;` (src/dispextern.h 1118) - C's write is
@@ -2372,7 +2380,7 @@ pub unsafe extern "C-unwind" fn glyph_row_used (row: *mut c_void, area: c_int) -
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn glyph_row_set_cursor_in_fringe_p (row: *mut c_void, v: bool)
 {
-  unsafe { glyph_row_bits! (cursor_in_fringe_p, row.cast::<glyph_row> (), v) }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { glyph_row_bits! (cursor_in_fringe_p, row.cast::<glyph_row> (), v) }
 }
 
 /// C: `int ascent, height;` (src/dispextern.h 959) - C's reads are src/nsterm.m 3364-3365.
@@ -2380,7 +2388,7 @@ pub unsafe extern "C-unwind" fn glyph_row_set_cursor_in_fringe_p (row: *mut c_vo
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn glyph_row_height (row: *mut c_void) -> c_int
 {
-  unsafe { (*row.cast::<glyph_row> ()).height }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*row.cast::<glyph_row> ()).height }
 }
 
 /// C: `unsigned resolved_level : 7;` (src/dispextern.h 553, `resolved_level`; one of `struct glyph`'s bitfields) -
@@ -2390,7 +2398,7 @@ pub unsafe extern "C-unwind" fn glyph_row_height (row: *mut c_void) -> c_int
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn glyph_resolved_level (g: *mut c_void) -> c_int
 {
-  unsafe { glyph_bits! (resolved_level, *g.cast::<glyph> ()) }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { glyph_bits! (resolved_level, *g.cast::<glyph> ()) }
 }
 
 /// C: `short pixel_width;` (src/dispextern.h 503) - C's read is src/nsterm.m 3358.  The member
@@ -2399,7 +2407,7 @@ pub unsafe extern "C-unwind" fn glyph_resolved_level (g: *mut c_void) -> c_int
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn glyph_pixel_width (g: *mut c_void) -> c_short
 {
-  unsafe { (*g.cast::<glyph> ()).pixel_width }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*g.cast::<glyph> ()).pixel_width }
 }
 
 /* ---------------------------------------------------------------------------------------------
@@ -2496,18 +2504,42 @@ const _: () = core::assert!(core::mem::offset_of!(glyph_string, next) == 256);
 mod cocoa_record_views {
 use super::*;
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn ns_display_info_set_ns_focus_frame_from_display(p: *mut ns_display_info, f: *mut frame) { (*p).ns_focus_frame = f; }
+pub unsafe extern "C-unwind" fn ns_display_info_set_ns_focus_frame_from_display(p: *mut ns_display_info, f: *mut frame) {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe { (*p).ns_focus_frame = f; 
+  }
+}
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn ns_display_info_set_highlight_frame_from_display(p: *mut ns_display_info, f: *mut frame) { (*p).highlight_frame = f; }
+pub unsafe extern "C-unwind" fn ns_display_info_set_highlight_frame_from_display(p: *mut ns_display_info, f: *mut frame) {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe { (*p).highlight_frame = f; 
+  }
+}
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn frame_text_cols(f: *mut c_void) -> c_int { (*f.cast::<frame>()).text_cols }
+pub unsafe extern "C-unwind" fn frame_text_cols(f: *mut c_void) -> c_int {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe { (*f.cast::<frame>()).text_cols 
+  }
+}
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn frame_text_lines(f: *mut c_void) -> c_int { (*f.cast::<frame>()).text_lines }
+pub unsafe extern "C-unwind" fn frame_text_lines(f: *mut c_void) -> c_int {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe { (*f.cast::<frame>()).text_lines 
+  }
+}
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn frame_set_left_pos(f: *mut c_void, v: c_int) -> () { (*f.cast::<frame>()).left_pos = v; }
+pub unsafe extern "C-unwind" fn frame_set_left_pos(f: *mut c_void, v: c_int) -> () {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe { (*f.cast::<frame>()).left_pos = v; 
+  }
+}
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn frame_set_top_pos(f: *mut c_void, v: c_int) -> () { (*f.cast::<frame>()).top_pos = v; }
+pub unsafe extern "C-unwind" fn frame_set_top_pos(f: *mut c_void, v: c_int) -> () {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe { (*f.cast::<frame>()).top_pos = v; 
+  }
+}
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn frame_garbaged_p(f: *mut c_void) -> bool { frame_flag(f.cast::<frame>(), FRAME_GARBAGED_UNIT, FRAME_GARBAGED_SHIFT) }
 #[unsafe(no_mangle)]
@@ -2521,85 +2553,243 @@ pub unsafe extern "C-unwind" fn frame_want_fullscreen(f: *mut c_void) -> c_int {
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn frame_set_want_fullscreen(f: *mut c_void, v: c_int) -> () { frame_set_field(f.cast::<frame>(), FRAME_WANT_FULLSCREEN_UNIT, FRAME_WANT_FULLSCREEN_SHIFT, FRAME_WANT_FULLSCREEN_MASK, v as u32); }
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn frame_output_data_ns(f: *mut c_void) -> *mut c_void { (*f.cast::<frame>()).output_data.ns }
+pub unsafe extern "C-unwind" fn frame_output_data_ns(f: *mut c_void) -> *mut c_void {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe { (*f.cast::<frame>()).output_data.ns 
+  }
+}
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn buffer_enable_multibyte_characters(p: *mut c_void) -> Lisp_Object { (*p.cast::<buffer>()).enable_multibyte_characters_ }
+pub unsafe extern "C-unwind" fn buffer_enable_multibyte_characters(p: *mut c_void) -> Lisp_Object {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe { (*p.cast::<buffer>()).enable_multibyte_characters_ 
+  }
+}
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn buffer_mark(p: *mut c_void) -> Lisp_Object { (*p.cast::<buffer>()).mark_ }
+pub unsafe extern "C-unwind" fn buffer_mark(p: *mut c_void) -> Lisp_Object {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe { (*p.cast::<buffer>()).mark_ 
+  }
+}
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn buffer_mark_active(p: *mut c_void) -> Lisp_Object { (*p.cast::<buffer>()).mark_active_ }
+pub unsafe extern "C-unwind" fn buffer_mark_active(p: *mut c_void) -> Lisp_Object {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe { (*p.cast::<buffer>()).mark_active_ 
+  }
+}
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn current_buffer() -> *mut c_void { current_buffer!().cast() }
+pub unsafe extern "C-unwind" fn current_buffer() -> *mut c_void {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe { current_buffer!().cast() 
+  }
+}
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn waiting_for_input() -> bool { waiting_for_input!() }
+pub unsafe extern "C-unwind" fn waiting_for_input() -> bool {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe { waiting_for_input!() 
+  }
+}
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn terminal_type(p: *mut c_void) -> c_int { (*p.cast::<terminal>()).r#type }
+pub unsafe extern "C-unwind" fn terminal_type(p: *mut c_void) -> c_int {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe { (*p.cast::<terminal>()).r#type 
+  }
+}
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn window_frame(p: *mut c_void) -> Lisp_Object { (*p.cast::<window>()).frame }
+pub unsafe extern "C-unwind" fn window_frame(p: *mut c_void) -> Lisp_Object {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe { (*p.cast::<window>()).frame 
+  }
+}
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn image_pixmap(p: *mut c_void) -> *mut c_void { (*p.cast::<image>()).pixmap }
+pub unsafe extern "C-unwind" fn image_pixmap(p: *mut c_void) -> *mut c_void {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe { (*p.cast::<image>()).pixmap 
+  }
+}
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn image_load_failed_p(p: *mut c_void) -> bool { (*p.cast::<image>()).load_failed_p }
+pub unsafe extern "C-unwind" fn image_load_failed_p(p: *mut c_void) -> bool {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe { (*p.cast::<image>()).load_failed_p 
+  }
+}
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn input_event_set_part(p: *mut input_event, v: c_int) -> () { (*p).bits = ((*p).bits & INPUT_EVENT_KIND_MASK) | (((v as u32) & INPUT_EVENT_KIND_MASK) << INPUT_EVENT_PART_SHIFT); }
+pub unsafe extern "C-unwind" fn input_event_set_part(p: *mut input_event, v: c_int) -> () {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe { (*p).bits = ((*p).bits & INPUT_EVENT_KIND_MASK) | (((v as u32) & INPUT_EVENT_KIND_MASK) << INPUT_EVENT_PART_SHIFT); 
+  }
+}
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn mouse_highlight_mouse_face_window(p: *mut c_void) -> Lisp_Object { (*p.cast::<Mouse_HLInfo>()).mouse_face_window }
+pub unsafe extern "C-unwind" fn mouse_highlight_mouse_face_window(p: *mut c_void) -> Lisp_Object {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe { (*p.cast::<Mouse_HLInfo>()).mouse_face_window 
+  }
+}
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn mouse_highlight_mouse_face_mouse_frame(p: *mut c_void) -> *mut c_void { (*p.cast::<Mouse_HLInfo>()).mouse_face_mouse_frame }
+pub unsafe extern "C-unwind" fn mouse_highlight_mouse_face_mouse_frame(p: *mut c_void) -> *mut c_void {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe { (*p.cast::<Mouse_HLInfo>()).mouse_face_mouse_frame 
+  }
+}
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn mouse_highlight_mouse_face_hidden(p: *mut c_void) -> bool { (*p.cast::<Mouse_HLInfo>()).bits & MOUSE_FACE_HIDDEN != 0 }
+pub unsafe extern "C-unwind" fn mouse_highlight_mouse_face_hidden(p: *mut c_void) -> bool {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe { (*p.cast::<Mouse_HLInfo>()).bits & MOUSE_FACE_HIDDEN != 0 
+  }
+}
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn mouse_highlight_set_mouse_face_mouse_frame(p: *mut c_void, v: *mut c_void) -> () { (*p.cast::<Mouse_HLInfo>()).mouse_face_mouse_frame = v; }
+pub unsafe extern "C-unwind" fn mouse_highlight_set_mouse_face_mouse_frame(p: *mut c_void, v: *mut c_void) -> () {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe { (*p.cast::<Mouse_HLInfo>()).mouse_face_mouse_frame = v; 
+  }
+}
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn mouse_highlight_set_mouse_face_hidden(p: *mut c_void, v: c_int) -> () { if v != 0 { (*p.cast::<Mouse_HLInfo>()).bits |= MOUSE_FACE_HIDDEN; } else { (*p.cast::<Mouse_HLInfo>()).bits &= !MOUSE_FACE_HIDDEN; } }
+pub unsafe extern "C-unwind" fn mouse_highlight_set_mouse_face_hidden(p: *mut c_void, v: c_int) -> () {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe { if v != 0 { (*p.cast::<Mouse_HLInfo>()).bits |= MOUSE_FACE_HIDDEN; } else { (*p.cast::<Mouse_HLInfo>()).bits &= !MOUSE_FACE_HIDDEN; } 
+  }
+}
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn mouse_highlight_set_mouse_face_defer(p: *mut c_void, v: c_int) -> () { if v != 0 { (*p.cast::<Mouse_HLInfo>()).bits |= MOUSE_FACE_DEFER; } else { (*p.cast::<Mouse_HLInfo>()).bits &= !MOUSE_FACE_DEFER; } }
+pub unsafe extern "C-unwind" fn mouse_highlight_set_mouse_face_defer(p: *mut c_void, v: c_int) -> () {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe { if v != 0 { (*p.cast::<Mouse_HLInfo>()).bits |= MOUSE_FACE_DEFER; } else { (*p.cast::<Mouse_HLInfo>()).bits &= !MOUSE_FACE_DEFER; } 
+  }
+}
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn ns_display_info_next(p: *mut c_void) -> *mut c_void { (*p.cast::<ns_display_info>()).next as *mut c_void }
+pub unsafe extern "C-unwind" fn ns_display_info_next(p: *mut c_void) -> *mut c_void {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe { (*p.cast::<ns_display_info>()).next as *mut c_void 
+  }
+}
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn ns_display_info_grabbed(p: *mut c_void) -> c_int { (*p.cast::<ns_display_info>()).grabbed }
+pub unsafe extern "C-unwind" fn ns_display_info_grabbed(p: *mut c_void) -> c_int {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe { (*p.cast::<ns_display_info>()).grabbed 
+  }
+}
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn ns_display_info_highlight_frame(f: *mut c_void) -> *mut c_void { (*FRAME_DISPLAY_INFO!(f.cast::<frame>())).highlight_frame.cast() }
+pub unsafe extern "C-unwind" fn ns_display_info_highlight_frame(f: *mut c_void) -> *mut c_void {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe { (*FRAME_DISPLAY_INFO!(f.cast::<frame>())).highlight_frame.cast() 
+  }
+}
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn ns_display_info_ns_focus_frame(f: *mut c_void) -> *mut c_void { (*FRAME_DISPLAY_INFO!(f.cast::<frame>())).ns_focus_frame.cast() }
+pub unsafe extern "C-unwind" fn ns_display_info_ns_focus_frame(f: *mut c_void) -> *mut c_void {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe { (*FRAME_DISPLAY_INFO!(f.cast::<frame>())).ns_focus_frame.cast() 
+  }
+}
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn ns_display_info_ns_focus_frame_from_display(p: *mut c_void) -> *mut c_void { (*p.cast::<ns_display_info>()).ns_focus_frame.cast() }
+pub unsafe extern "C-unwind" fn ns_display_info_ns_focus_frame_from_display(p: *mut c_void) -> *mut c_void {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe { (*p.cast::<ns_display_info>()).ns_focus_frame.cast() 
+  }
+}
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn ns_display_info_set_highlight_frame(f: *mut c_void, v: *mut c_void) -> () { (*FRAME_DISPLAY_INFO!(f.cast::<frame>())).highlight_frame = v.cast::<frame>(); }
+pub unsafe extern "C-unwind" fn ns_display_info_set_highlight_frame(f: *mut c_void, v: *mut c_void) -> () {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe { (*FRAME_DISPLAY_INFO!(f.cast::<frame>())).highlight_frame = v.cast::<frame>(); 
+  }
+}
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn ns_display_info_set_ns_focus_frame(f: *mut c_void, v: *mut c_void) -> () { (*FRAME_DISPLAY_INFO!(f.cast::<frame>())).ns_focus_frame = v.cast::<frame>(); }
+pub unsafe extern "C-unwind" fn ns_display_info_set_ns_focus_frame(f: *mut c_void, v: *mut c_void) -> () {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe { (*FRAME_DISPLAY_INFO!(f.cast::<frame>())).ns_focus_frame = v.cast::<frame>(); 
+  }
+}
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn ns_display_info_set_last_mouse_motion_frame(f: *mut c_void, v: *mut c_void) -> () { (*FRAME_DISPLAY_INFO!(f.cast::<frame>())).last_mouse_motion_frame = v.cast::<frame>(); }
+pub unsafe extern "C-unwind" fn ns_display_info_set_last_mouse_motion_frame(f: *mut c_void, v: *mut c_void) -> () {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe { (*FRAME_DISPLAY_INFO!(f.cast::<frame>())).last_mouse_motion_frame = v.cast::<frame>(); 
+  }
+}
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn ns_display_info_set_grabbed(p: *mut c_void, v: c_int) -> () { (*p.cast::<ns_display_info>()).grabbed = v; }
+pub unsafe extern "C-unwind" fn ns_display_info_set_grabbed(p: *mut c_void, v: c_int) -> () {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe { (*p.cast::<ns_display_info>()).grabbed = v; 
+  }
+}
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn ns_display_info_set_last_mouse_motion_x(p: *mut c_void, v: c_int) -> () { (*p.cast::<ns_display_info>()).last_mouse_motion_x = v; }
+pub unsafe extern "C-unwind" fn ns_display_info_set_last_mouse_motion_x(p: *mut c_void, v: c_int) -> () {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe { (*p.cast::<ns_display_info>()).last_mouse_motion_x = v; 
+  }
+}
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn ns_display_info_set_last_mouse_motion_y(p: *mut c_void, v: c_int) -> () { (*p.cast::<ns_display_info>()).last_mouse_motion_y = v; }
+pub unsafe extern "C-unwind" fn ns_display_info_set_last_mouse_motion_y(p: *mut c_void, v: c_int) -> () {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe { (*p.cast::<ns_display_info>()).last_mouse_motion_y = v; 
+  }
+}
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn ns_display_info_set_last_mouse_frame(p: *mut c_void, v: *mut c_void) -> () { (*p.cast::<ns_display_info>()).last_mouse_frame = v.cast::<frame>(); }
+pub unsafe extern "C-unwind" fn ns_display_info_set_last_mouse_frame(p: *mut c_void, v: *mut c_void) -> () {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe { (*p.cast::<ns_display_info>()).last_mouse_frame = v.cast::<frame>(); 
+  }
+}
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn ns_display_info_set_last_mouse_movement_time(p: *mut c_void, v: c_ulong) -> () { (*p.cast::<ns_display_info>()).last_mouse_movement_time = v; }
+pub unsafe extern "C-unwind" fn ns_display_info_set_last_mouse_movement_time(p: *mut c_void, v: c_ulong) -> () {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe { (*p.cast::<ns_display_info>()).last_mouse_movement_time = v; 
+  }
+}
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn ns_display_info_last_mouse_glyph(f: *mut c_void) -> *mut NSRect { core::ptr::addr_of_mut!((*FRAME_DISPLAY_INFO!(f.cast::<frame>())).last_mouse_glyph) }
+pub unsafe extern "C-unwind" fn ns_display_info_last_mouse_glyph(f: *mut c_void) -> *mut NSRect {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe { core::ptr::addr_of_mut!((*FRAME_DISPLAY_INFO!(f.cast::<frame>())).last_mouse_glyph) 
+  }
+}
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn ns_output_double_buffered(f: *mut c_void) -> bool { (*(*f.cast::<frame>()).output_data.ns.cast::<ns_output>()).double_buffered }
+pub unsafe extern "C-unwind" fn ns_output_double_buffered(f: *mut c_void) -> bool {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe { (*(*f.cast::<frame>()).output_data.ns.cast::<ns_output>()).double_buffered 
+  }
+}
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn ns_output_current_pointer(f: *mut c_void) -> *mut c_void { (*(*f.cast::<frame>()).output_data.ns.cast::<ns_output>()).current_pointer }
+pub unsafe extern "C-unwind" fn ns_output_current_pointer(f: *mut c_void) -> *mut c_void {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe { (*(*f.cast::<frame>()).output_data.ns.cast::<ns_output>()).current_pointer 
+  }
+}
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn femacs_get_ns_antialias_text() -> Lisp_Object { cocoa_runtime_exports::ns_antialias_text }
+pub unsafe extern "C-unwind" fn femacs_get_ns_antialias_text() -> Lisp_Object {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe { cocoa_runtime_exports::ns_antialias_text }
+}
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn femacs_get_ns_use_thin_smoothing() -> Lisp_Object { cocoa_runtime_exports::ns_use_thin_smoothing }
+pub unsafe extern "C-unwind" fn femacs_get_ns_use_thin_smoothing() -> Lisp_Object {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe { cocoa_runtime_exports::ns_use_thin_smoothing }
+}
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn __darwin_fd_isset(fd: c_int, set: *const fd_set) -> c_int { FD_ISSET(fd, set) as c_int }
+pub unsafe extern "C-unwind" fn __darwin_fd_isset(fd: c_int, set: *const fd_set) -> c_int {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe { FD_ISSET(fd, set) as c_int 
+  }
+}
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn __darwin_fd_set(fd: c_int, set: *mut fd_set) -> () { FD_SET(fd, set); }
+pub unsafe extern "C-unwind" fn __darwin_fd_set(fd: c_int, set: *mut fd_set) -> () {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe { FD_SET(fd, set); 
+  }
+}
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn __darwin_fd_zero(set: *mut fd_set) -> () { FD_ZERO(set); }
+pub unsafe extern "C-unwind" fn __darwin_fd_zero(set: *mut fd_set) -> () {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe { FD_ZERO(set); 
+  }
+}
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn XSETINT(p: *mut Lisp_Object, n: EMACS_INT) -> () { XSETINT!(*p, n); }
+pub unsafe extern "C-unwind" fn XSETINT(p: *mut Lisp_Object, n: EMACS_INT) -> () {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe { XSETINT!(*p, n); 
+  }
+}
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn XSETWINDOW(p: *mut Lisp_Object, w: *mut window) -> () { XSETWINDOW!(*p, w); }
+pub unsafe extern "C-unwind" fn XSETWINDOW(p: *mut Lisp_Object, w: *mut window) -> () {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe { XSETWINDOW!(*p, w); 
+  }
+}
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn LGLYPH_SET_CODE(glyph: Lisp_Object, code: EMACS_INT) -> () { LGLYPH_SET_CODE!(glyph, code); }
 }
@@ -2612,10 +2802,14 @@ unsafe extern "C" {
 }
 #[cfg(feature = "have_ns")]
 unsafe fn replace_native_object(slot: *mut *mut c_void, value: *mut c_void) {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
     let retained = objc_retain(value);
     let old = *slot;
     *slot = retained;
     objc_release(old);
+
+  }
 }
 
 #[cfg(feature = "have_ns")]

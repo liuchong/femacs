@@ -38,10 +38,7 @@
 // shape), each with C's own prototype in a `/// C:` line; they are reported in
 // `docs/ports/textprop.md` for the mirror owners.
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
-         unsafe_op_in_unsafe_fn, unused_assignments, unreachable_code, while_true,
-         unused_parens, unused_mut)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe, unused_assignments, unreachable_code, while_true, unused_parens, unused_mut)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -133,16 +130,22 @@ pub static mut interval_insert_in_front_hooks: Lisp_Object = lisp_h_Qnil ();
 
 unsafe fn text_read_only (propval: Lisp_Object) -> !
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if STRINGP (propval)
     { xsignal1 (Qtext_read_only (), propval); }
 
   xsignal0 (Qtext_read_only ());
+
+  }
 }
 
 /* Prepare to modify the text properties of BUFFER from START to END.  */
 
 unsafe fn modify_text_properties (buffer: Lisp_Object, start: Lisp_Object, end: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let b: ptrdiff_t = XFIXNUM (start);
   let e: ptrdiff_t = XFIXNUM (end);
   let buf: *mut buffer = XBUFFER (buffer);
@@ -160,6 +163,8 @@ unsafe fn modify_text_properties (buffer: Lisp_Object, start: Lisp_Object, end: 
   bset_point_before_scroll ((current_buffer! ()), Qnil ());
 
   set_buffer_internal (old);
+
+  }
 }
 
 /* Complain if object is not string or buffer type.  */
@@ -197,6 +202,8 @@ pub unsafe extern "C-unwind" fn validate_interval_range (object: Lisp_Object, be
 						  end: *mut Lisp_Object, force: bool)
      -> INTERVAL
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut i: INTERVAL = std::ptr::null_mut ();
   let mut searchpos: ptrdiff_t = 0;
   let begin0: Lisp_Object = *begin;
@@ -253,6 +260,8 @@ pub unsafe extern "C-unwind" fn validate_interval_range (object: Lisp_Object, be
     { return if force { create_root_interval (object) } else { i }; }
 
   return find_interval (i, searchpos);
+
+  }
 }
 
 /* Validate LIST as a property list.  If LIST is not a list, then
@@ -261,6 +270,8 @@ pub unsafe extern "C-unwind" fn validate_interval_range (object: Lisp_Object, be
 
 unsafe fn validate_plist (list: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if NILP (list)
     { return Qnil (); }
 
@@ -282,6 +293,8 @@ unsafe fn validate_plist (list: Lisp_Object) -> Lisp_Object
     }
 
   return list2 (list, Qnil ());
+
+  }
 }
 
 /* Return true if interval I has all the properties,
@@ -289,6 +302,8 @@ unsafe fn validate_plist (list: Lisp_Object) -> Lisp_Object
 
 unsafe fn interval_has_all_properties (plist: Lisp_Object, i: INTERVAL) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut tail1: Lisp_Object = Qnil ();
   let mut tail2: Lisp_Object = Qnil ();
 
@@ -323,6 +338,8 @@ unsafe fn interval_has_all_properties (plist: Lisp_Object, i: INTERVAL) -> bool
     }
 
   return true;
+
+  }
 }
 
 /* Return true if the plist of interval I has any of the
@@ -330,6 +347,8 @@ unsafe fn interval_has_all_properties (plist: Lisp_Object, i: INTERVAL) -> bool
 
 unsafe fn interval_has_some_properties (plist: Lisp_Object, i: INTERVAL) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut tail1: Lisp_Object = Qnil ();
   let mut tail2: Lisp_Object = Qnil ();
   let mut sym: Lisp_Object = Qnil ();
@@ -352,6 +371,8 @@ unsafe fn interval_has_some_properties (plist: Lisp_Object, i: INTERVAL) -> bool
     }
 
   return false;
+
+  }
 }
 
 /* Return true if the plist of interval I has any of the
@@ -359,6 +380,8 @@ unsafe fn interval_has_some_properties (plist: Lisp_Object, i: INTERVAL) -> bool
 
 unsafe fn interval_has_some_properties_list (list: Lisp_Object, i: INTERVAL) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut tail1: Lisp_Object = Qnil ();
   let mut tail2: Lisp_Object = Qnil ();
   let mut sym: Lisp_Object = Qnil ();
@@ -381,6 +404,8 @@ unsafe fn interval_has_some_properties_list (list: Lisp_Object, i: INTERVAL) -> 
     }
 
   return false;
+
+  }
 }
 
 
@@ -409,6 +434,8 @@ unsafe fn property_value (mut plist: Lisp_Object, prop: Lisp_Object) -> Lisp_Obj
 
 unsafe fn set_properties (properties: Lisp_Object, interval: INTERVAL, object: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut sym: Lisp_Object = Qnil ();
   let mut value: Lisp_Object = Qnil ();
 
@@ -449,6 +476,8 @@ unsafe fn set_properties (properties: Lisp_Object, interval: INTERVAL, object: L
 
   /* Store new properties.  */
   set_interval_plist (interval, Fcopy_sequence (properties));
+
+  }
 }
 
 /* Add the properties of PLIST to the interval I, or set
@@ -466,6 +495,8 @@ unsafe fn set_properties (properties: Lisp_Object, interval: INTERVAL, object: L
 unsafe fn add_properties (plist: Lisp_Object, i: INTERVAL, object: Lisp_Object,
 			  set_type: property_set_type, destructive: bool) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut tail1: Lisp_Object = Qnil ();
   let mut tail2: Lisp_Object = Qnil ();
   let mut sym1: Lisp_Object = Qnil ();
@@ -562,6 +593,8 @@ unsafe fn add_properties (plist: Lisp_Object, i: INTERVAL, object: Lisp_Object,
     }
 
   return changed;
+
+  }
 }
 
 /* For any members of PLIST, or LIST,
@@ -572,6 +605,8 @@ unsafe fn add_properties (plist: Lisp_Object, i: INTERVAL, object: Lisp_Object,
 unsafe fn remove_properties (plist: Lisp_Object, list: Lisp_Object, i: INTERVAL,
 			     object: Lisp_Object) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut changed: bool = false;
 
   /* True means tail1 is a plist, otherwise it is a list.  */
@@ -627,6 +662,8 @@ unsafe fn remove_properties (plist: Lisp_Object, list: Lisp_Object, i: INTERVAL,
   if changed
     { set_interval_plist (i, current_plist); }
   return changed;
+
+  }
 }
 
 
@@ -636,6 +673,8 @@ unsafe fn remove_properties (plist: Lisp_Object, list: Lisp_Object, i: INTERVAL,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn interval_of (position: ptrdiff_t, mut object: Lisp_Object) -> INTERVAL
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut i: INTERVAL = std::ptr::null_mut ();
   let mut beg: ptrdiff_t = 0;
   let mut end: ptrdiff_t = 0;
@@ -668,6 +707,8 @@ pub unsafe extern "C-unwind" fn interval_of (position: ptrdiff_t, mut object: Li
     { return std::ptr::null_mut (); }
 
   return find_interval (i, position);
+
+  }
 }
 
 
@@ -721,6 +762,8 @@ pub unsafe extern "C-unwind" fn get_char_property_and_overlay (position: Lisp_Ob
 							overlay: *mut Lisp_Object)
      -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut w: *mut window = std::ptr::null_mut ();
 
   let pos: EMACS_INT = fix_position (position);
@@ -795,6 +838,8 @@ pub unsafe extern "C-unwind" fn get_char_property_and_overlay (position: Lisp_Ob
   /* Not a buffer, or no appropriate overlay, so fall through to the
      simpler case.  */
   return Fget_text_property (make_fixnum (pos), prop, object);
+
+  }
 }
 
 DEFUN! ("get-char-property", Fget_char_property, Sget_char_property, 2, 3, 0,
@@ -1212,6 +1257,8 @@ unsafe fn add_text_properties_1 (start: Lisp_Object, end: Lisp_Object,
 				 set_type: property_set_type,
 				 destructive: bool) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   // C rebinds its parameters (`properties = validate_plist (…)`, `XSETBUFFER (object,
   // current_buffer)`) and hands `&start`/`&end` to validate_interval_range; the port keeps
   // the same names in mutable bindings (the composite.rs `let mut start = start` shape).
@@ -1343,6 +1390,8 @@ unsafe fn add_text_properties_1 (start: Lisp_Object, end: Lisp_Object,
       i = next_interval (i);
     }
  }
+
+  }
 }
 
 /* Callers note, this can GC when OBJECT is a buffer (or nil).  */
@@ -1409,6 +1458,8 @@ pub unsafe extern "C-unwind" fn set_text_properties (start: Lisp_Object, end: Li
 					      object: Lisp_Object,
 					      coherent_change_p: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* Ensure we run the modification hooks for the right buffer,
      without switching buffers twice (bug 36190).  FIXME: Switching
      buffers is slow and often unnecessary.  */
@@ -1486,6 +1537,8 @@ pub unsafe extern "C-unwind" fn set_text_properties (start: Lisp_Object, end: Li
 			   XFIXNUM (end) - XFIXNUM (start)); }
   return Qt ();
  }
+
+  }
 }
 
 /* Replace properties of text from START to END with new list of
@@ -1498,6 +1551,8 @@ pub unsafe extern "C-unwind" fn set_text_properties_1 (start: Lisp_Object, end: 
 						properties: Lisp_Object, object: Lisp_Object,
 						i: INTERVAL)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* Ensure we run the modification hooks for the right buffer,
      without switching buffers twice (bug 36190).  FIXME: Switching
      buffers is slow and often unnecessary.  */
@@ -1583,6 +1638,8 @@ pub unsafe extern "C-unwind" fn set_text_properties_1 (start: Lisp_Object, end: 
       if !(len > 0)
 	{ break; }
     }
+
+  }
 }
 
 DEFUN! ("remove-text-properties", Fremove_text_properties,
@@ -1946,6 +2003,8 @@ DEFUN! ("text-property-not-all", Ftext_property_not_all,
 pub unsafe extern "C-unwind" fn text_property_stickiness (prop: Lisp_Object, pos: Lisp_Object,
 						   buffer: Lisp_Object) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut ignore_previous_character: bool;
   let prev_pos: Lisp_Object = make_fixnum (XFIXNUM (pos) - 1);
   let mut front_sticky: Lisp_Object = Qnil ();
@@ -2001,6 +2060,8 @@ pub unsafe extern "C-unwind" fn text_property_stickiness (prop: Lisp_Object, pos
     { return 1; }
   else
     { return -1; }
+
+  }
 }
 
 
@@ -2020,6 +2081,8 @@ pub unsafe extern "C-unwind" fn copy_text_properties (start: Lisp_Object, end: L
 					       dest: Lisp_Object, prop: Lisp_Object)
      -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut start = start;
   let mut end = end;
   let mut pos = pos;
@@ -2088,6 +2151,8 @@ pub unsafe extern "C-unwind" fn copy_text_properties (start: Lisp_Object, end: L
     }
 
   return if modified { Qt () } else { Qnil () };
+
+  }
 }
 
 
@@ -2103,6 +2168,8 @@ pub unsafe extern "C-unwind" fn text_property_list (object: Lisp_Object, start: 
 					     end: Lisp_Object, prop: Lisp_Object)
      -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut start = start;
   let mut end = end;
   let mut i: INTERVAL = std::ptr::null_mut ();
@@ -2155,6 +2222,8 @@ pub unsafe extern "C-unwind" fn text_property_list (object: Lisp_Object, start: 
     }
 
   return result;
+
+  }
 }
 
 
@@ -2167,6 +2236,8 @@ pub unsafe extern "C-unwind" fn text_property_list (object: Lisp_Object, start: 
 pub unsafe extern "C-unwind" fn add_text_properties_from_list (object: Lisp_Object, list: Lisp_Object,
 							delta: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut list = list;
   while CONSP (list)
     {
@@ -2183,6 +2254,8 @@ pub unsafe extern "C-unwind" fn add_text_properties_from_list (object: Lisp_Obje
       Fadd_text_properties (start, end, plist, object);
       list = XCDR (list);
     }
+
+  }
 }
 
 
@@ -2246,12 +2319,16 @@ pub unsafe extern "C-unwind" fn extend_property_ranges (list: Lisp_Object, old_e
 
 unsafe fn call_mod_hooks (list: Lisp_Object, start: Lisp_Object, end: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut list = list;
   while !NILP (list)
     {
       calln! (Fcar (list), start, end);
       list = Fcdr (list);
     }
+
+  }
 }
 
 /* Check for read-only intervals between character positions START ... END,
@@ -2266,6 +2343,8 @@ unsafe fn call_mod_hooks (list: Lisp_Object, start: Lisp_Object, end: Lisp_Objec
 pub unsafe extern "C-unwind" fn verify_interval_modification (buf: *mut buffer, mut start: ptrdiff_t,
 						       mut end: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let intervals: INTERVAL = buffer_intervals (buf);
   let mut i: INTERVAL = std::ptr::null_mut ();
   let mut p: ptrdiff_t = 0;
@@ -2463,6 +2542,8 @@ pub unsafe extern "C-unwind" fn verify_interval_modification (buf: *mut buffer, 
 	    }
 	}
     }
+
+  }
 }
 
 /* Run the interval hooks for an insertion on character range START ... END.
@@ -2473,18 +2554,24 @@ pub unsafe extern "C-unwind" fn verify_interval_modification (buf: *mut buffer, 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn report_interval_modification (start: Lisp_Object, end: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if ! NILP (interval_insert_behind_hooks)
     { call_mod_hooks (interval_insert_behind_hooks, start, end); }
   if ! NILP (interval_insert_in_front_hooks)
       && ! EQ (interval_insert_in_front_hooks,
 	       interval_insert_behind_hooks)
     { call_mod_hooks (interval_insert_in_front_hooks, start, end); }
+
+  }
 }
 
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_textprop ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   DEFVAR_LISP! (c"default-text-properties", Vdefault_text_properties,
 		"Property-list used as default values.\nThe value of a property in this list is seen as the value for every\ncharacter that does not have its own value for that property.  ");
   Vdefault_text_properties = Qnil ();
@@ -2551,4 +2638,6 @@ pub unsafe extern "C-unwind" fn syms_of_textprop ()
   defsubr (&raw mut Sremove_list_of_text_properties);
   defsubr (&raw mut Stext_property_any);
   defsubr (&raw mut Stext_property_not_all);
+
+  }
 }

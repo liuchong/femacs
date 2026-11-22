@@ -42,6 +42,8 @@ pub unsafe extern "C" fn copy_file_range (infd: c_int, pinoff: *mut off_t, outfd
                                           poutoff: *mut off_t, length: usize,
                                           flags: c_uint) -> ssize_t
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   /* C 50-92's `#if HAVE_COPY_FILE_RANGE` arm, kept as text (P-51; dead: the macro is
      undefined on this target).  The Linux-kernel prelude it opens with is noted rather than
      written, because `struct utsname` and `uname` have no mirror here.  */
@@ -72,4 +74,6 @@ pub unsafe extern "C" fn copy_file_range (infd: c_int, pinoff: *mut off_t, outfd
      read+write anyway.  */
   *errno () = ENOSYS;
   return -1;
+
+  }
 }

@@ -23,6 +23,10 @@ mod issymlink_unit {
   #[unsafe(export_name = "issymlink")]
   pub unsafe extern "C" fn issymlink (filename: *const c_char) -> c_int
   {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
     return super::issymlink (filename);
+  
   }
+}
 }

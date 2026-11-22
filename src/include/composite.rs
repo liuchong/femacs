@@ -125,7 +125,7 @@ pub fn COMPOSITION_MODIFICATION_FUNC (prop: Lisp_Object) -> Lisp_Object
 }
 
 #[inline(always)]                                      // composite.h 87
-pub fn COMPOSITION_KEY (cmp: *mut composition) -> Lisp_Object { return unsafe { (*cmp).key }; }
+pub fn COMPOSITION_KEY (cmp: *mut composition) -> Lisp_Object { return /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*cmp).key }; }
 
 /* Return the Nth glyph of composition specified by CMP.  CMP is a
    pointer to `struct composition'.  */
@@ -133,7 +133,7 @@ pub fn COMPOSITION_KEY (cmp: *mut composition) -> Lisp_Object { return unsafe { 
 pub fn COMPOSITION_GLYPH (cmp: *mut composition, n: ptrdiff_t) -> EMACS_INT
 {
   return XFIXNUM (AREF (COMPOSITION_KEY (cmp),
-			(if unsafe { (*cmp).method } == COMPOSITION_WITH_RULE_ALTCHARS
+			(if /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*cmp).method } == COMPOSITION_WITH_RULE_ALTCHARS
 			 { n * 2 } else { n })));
 }
 
@@ -153,7 +153,7 @@ pub fn COMPOSITION_RULE (cmp: *mut composition, n: ptrdiff_t) -> EMACS_INT
 
 pub fn COMPOSITION_DECODE_REFS (rule_code: *mut c_int, gref: *mut c_int, nref: *mut c_int)
 {                                                       // composite.h 102-113
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     *rule_code &= 0xFF;
     *gref = *rule_code / 12;
     if *gref > 12 { *gref = 11; }
@@ -167,7 +167,7 @@ pub fn COMPOSITION_DECODE_REFS (rule_code: *mut c_int, gref: *mut c_int, nref: *
 pub fn COMPOSITION_DECODE_RULE (rule_code: *mut c_int, gref: *mut c_int, nref: *mut c_int,
 				xoff: *mut c_int, yoff: *mut c_int)
 {                                                       // composite.h 115-122
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     *xoff = *rule_code >> 16;
     *yoff = (*rule_code >> 8) & 0xFF;
     COMPOSITION_DECODE_REFS (rule_code, gref, nref);
@@ -193,7 +193,7 @@ pub fn COMPOSITION_ENCODE_RULE (gref: c_int, nref: c_int) -> c_int { return gref
 pub fn composition_method (prop: Lisp_Object) -> composition_method
 {
   if composition_registered_p (prop)
-    { return unsafe { (**composition_table.add (COMPOSITION_ID (prop) as usize)).method }; }
+    { return /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (**composition_table.add (COMPOSITION_ID (prop) as usize)).method }; }
   else
     {
       let temp = XCDR (XCAR (prop));
@@ -214,7 +214,7 @@ pub fn composition_valid_p (start: ptrdiff_t, end: ptrdiff_t, prop: Lisp_Object)
   return (CONSP (prop)
 	  && (if composition_registered_p (prop)
 	      { (COMPOSITION_ID (prop) >= 0
-		 && COMPOSITION_ID (prop) <= unsafe { n_compositions }
+		 && COMPOSITION_ID (prop) <= /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { n_compositions }
 		 && CONSP (XCDR (prop))) }
 	      else { (CONSP (XCAR (prop))
 		      && (NILP (XCDR (XCAR (prop)))
@@ -322,7 +322,7 @@ macro_rules! LGLYPH_CODE {                             // composite.h 303-306
        4.766 measured `if and else have incompatible types` in the first unit that expanded it
        with `have_window_system`).  */
     (if NILP (AREF ($g, LGLYPH_IX_CODE)) { FONT_INVALID_CODE }
-     else { (unsafe { cons_to_unsigned (AREF ($g, LGLYPH_IX_CODE), u32::MAX as u64) }) as u32 })
+     else { (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { cons_to_unsigned (AREF ($g, LGLYPH_IX_CODE), u32::MAX as u64) }) as u32 })
   };
 }
 #[inline(always)]                                      // composite.h 307

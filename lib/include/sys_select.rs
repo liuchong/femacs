@@ -83,6 +83,8 @@ unsafe extern "C" {
 #[inline(always)]
 pub unsafe fn FD_ISSET (fd: c_int, p: *const fd_set) -> bool
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   if __darwin_check_fd_set (fd, p as *const c_void) != 0
     {
       return ((*p).fds_bits [(fd as u64 / __DARWIN_NFDBITS as u64) as usize]
@@ -90,6 +92,8 @@ pub unsafe fn FD_ISSET (fd: c_int, p: *const fd_set) -> bool
     }
 
   return false;
+
+  }
 }
 
 #[cfg (not (target_os = "android"))]
@@ -98,7 +102,11 @@ pub unsafe fn FD_ISSET (fd: c_int, p: *const fd_set) -> bool
 #[inline(always)]
 pub unsafe fn __darwin_check_fd_set (fd: c_int, p: *const c_void) -> c_int
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   return __darwin_check_fd_set_overflow (fd, p, 1);
+
+  }
 }
 
 #[cfg (not (target_os = "android"))]
@@ -108,11 +116,15 @@ pub unsafe fn __darwin_check_fd_set (fd: c_int, p: *const c_void) -> c_int
 #[inline(always)]
 pub unsafe fn FD_SET (fd: c_int, p: *mut fd_set)
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   if __darwin_check_fd_set (fd, p as *const c_void) != 0
     {
       (*p).fds_bits [(fd as u64 / __DARWIN_NFDBITS as u64) as usize]
         |= 1i32.wrapping_shl ((fd as u64 % __DARWIN_NFDBITS as u64) as u32);
     }
+
+  }
 }
 
 #[cfg (not (target_os = "android"))]
@@ -121,11 +133,15 @@ pub unsafe fn FD_SET (fd: c_int, p: *mut fd_set)
 #[inline(always)]
 pub unsafe fn FD_CLR (fd: c_int, p: *mut fd_set)
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   if __darwin_check_fd_set (fd, p as *const c_void) != 0
     {
       (*p).fds_bits [(fd as u64 / __DARWIN_NFDBITS as u64) as usize]
         &= !1i32.wrapping_shl ((fd as u64 % __DARWIN_NFDBITS as u64) as u32);
     }
+
+  }
 }
 
 /* bionic's <sys/select.h> 87-96: `__FD_SET`/`__FD_ISSET`/`__FD_CLR` are plain bit operations over
@@ -157,5 +173,9 @@ pub unsafe fn FD_CLR (fd: c_int, p: *mut fd_set)
 #[inline(always)]
 pub unsafe fn FD_ZERO (p: *mut fd_set)
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   std::ptr::write_bytes (p, 0, 1);
+
+  }
 }

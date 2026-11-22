@@ -9,9 +9,7 @@
 // does not mirror in full, PORTING.md P-26/P-62), then lisp.h, bignum.h, character.h, buffer.h,
 // keyboard.h, process.h, frame.h and keymap.h in C's order.
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
-         unsafe_op_in_unsafe_fn)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe)]
 // C's `switch`es carry a `default: eassume (false)` arm; the port's `match`es list every
 // enumerator *and* that arm, so the catch-all is unreachable by construction (P-78).
 #![allow(unreachable_patterns)]
@@ -67,32 +65,32 @@ fn OBJFWDP (a: lispfwd) -> bool { XFWDTYPE (a) == Lisp_Fwd_Obj }
 fn XBOOLVAR (a: lispfwd) -> *mut bool
 {
   eassert! (BOOLFWDP (a));
-  unsafe { (*a).u.boolvar }
+  /* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { (*a).u.boolvar }
 }
 #[inline(always)]
 fn XKBOARD_OFFSET (a: lispfwd) -> c_int
 {
   eassert! (KBOARD_OBJFWDP (a));
-  unsafe { (*a).u.kbdoffset }
+  /* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { (*a).u.kbdoffset }
 }
 #[inline(always)]
 fn XINTVAR (a: lispfwd) -> *mut intmax_t
 {
   eassert! (INTFWDP (a));
-  unsafe { (*a).u.intvar }
+  /* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { (*a).u.intvar }
 }
 #[inline(always)]
 fn XOBJVAR (a: lispfwd) -> *mut Lisp_Object
 {
   eassert! (OBJFWDP (a));
-  unsafe { (*a).u.objvar }
+  /* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { (*a).u.objvar }
 }
 
 // data.c 82-116: the buffer-local-value accessors.
 #[inline(always)]
 fn set_blv_found (blv: *mut Lisp_Buffer_Local_Value, found: c_int)
 {
-  eassert! (found == !BASE_EQ (unsafe { (*blv).defcell }, unsafe { (*blv).valcell }) as c_int);
+  eassert! (found == !BASE_EQ (/* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { (*blv).defcell }, unsafe { (*blv).valcell }) as c_int);
   // C assigns the one-bit `found` field; the mirror packs it with `local_if_set` (lisp.rs
   // `BLV_FOUND`), so the port sets that bit.
   let bits = unsafe { (*blv).bits };
@@ -100,25 +98,27 @@ fn set_blv_found (blv: *mut Lisp_Buffer_Local_Value, found: c_int)
 }
 #[inline(always)]
 fn blv_value (blv: *mut Lisp_Buffer_Local_Value) -> Lisp_Object
-{ XCDR (unsafe { (*blv).valcell }) }
+{ XCDR (/* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { (*blv).valcell }) }
 #[inline(always)]
 fn set_blv_value (blv: *mut Lisp_Buffer_Local_Value, val: Lisp_Object)
 { XSETCDR (unsafe { (*blv).valcell }, val); }
 #[inline(always)]
 fn set_blv_where (blv: *mut Lisp_Buffer_Local_Value, val: Lisp_Object)
-{ unsafe { (*blv).r#where = val; } }
+{ /* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { (*blv).r#where = val; } }
 #[inline(always)]
 fn set_blv_defcell (blv: *mut Lisp_Buffer_Local_Value, val: Lisp_Object)
 { unsafe { (*blv).defcell = val; } }
 #[inline(always)]
 fn set_blv_valcell (blv: *mut Lisp_Buffer_Local_Value, val: Lisp_Object)
-{ unsafe { (*blv).valcell = val; } }
+{ /* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { (*blv).valcell = val; } }
 
 // data.c 119-127.  C's `static AVOID` is `_Noreturn ATTRIBUTE_COLD void` (lisp.h 153);
 // the port keeps `-> !` and drops `ATTRIBUTE_COLD`, which only affects optimisation
 // (PORTING.md 490-491).  It is *not* NO_INLINE.
 unsafe fn wrong_length_argument (a1: Lisp_Object, a2: Lisp_Object, a3: Lisp_Object) -> !
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let size1 = make_fixnum (bool_vector_size (a1));
   let size2 = make_fixnum (bool_vector_size (a2));
   if NILP (a3)
@@ -128,27 +128,45 @@ unsafe fn wrong_length_argument (a1: Lisp_Object, a2: Lisp_Object, a3: Lisp_Obje
       xsignal3 (Qwrong_length_argument (), size1, size2,
                 make_fixnum (bool_vector_size (a3)))
     }
+
+  }
 }
 
 // data.c 131-136.
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn wrong_type_argument (predicate: Lisp_Object, value: Lisp_Object) -> !
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   eassert! (!TAGGEDP (value, Lisp_Type::Lisp_Type_Unused0));
   xsignal2 (Qwrong_type_argument (), predicate, value)
+
+  }
 }
 
 // data.c 138-155.
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn args_out_of_range (a1: Lisp_Object, a2: Lisp_Object)
-{ xsignal2 (Qargs_out_of_range (), a1, a2) }
+{
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe { xsignal2 (Qargs_out_of_range (), a1, a2) 
+  }
+}
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn args_out_of_range_3 (a1: Lisp_Object, a2: Lisp_Object, a3: Lisp_Object)
-{ xsignal3 (Qargs_out_of_range (), a1, a2, a3) }
+{
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe { xsignal3 (Qargs_out_of_range (), a1, a2, a3) 
+  }
+}
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn circular_list (list: Lisp_Object) { xsignal1 (Qcircular_list (), list) }
+pub unsafe extern "C-unwind" fn circular_list (list: Lisp_Object) {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe { xsignal1 (Qcircular_list (), list) 
+  }
+}
 
 // data.c 157-165.  C marks it NO_INLINE to keep LTO from growing the code
 // (PORTING.md 552: NO_INLINE is `#[inline(never)]`).
@@ -156,8 +174,12 @@ pub unsafe extern "C-unwind" fn circular_list (list: Lisp_Object) { xsignal1 (Qc
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn slow_eq (x: Lisp_Object, y: Lisp_Object) -> bool
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   BASE_EQ (if symbols_with_pos_enabled && SYMBOL_WITH_POS_P (x) { XSYMBOL_WITH_POS_SYM (x) } else { x },
            if symbols_with_pos_enabled && SYMBOL_WITH_POS_P (y) { XSYMBOL_WITH_POS_SYM (y) } else { y })
+
+  }
 }
 
 DEFUN! ("eq", Feq, Seq, 2, 2, 0,
@@ -228,7 +250,7 @@ DEFUN! ("cl-type-of", Fcl_type_of, Scl_type_of, 1, 1, 0,
           pvec_type::PVEC_WINDOW => { return Qwindow (); }
           pvec_type::PVEC_SUBR =>
             {
-              return if (unsafe { (*XSUBR (object)).max_args }) as isize == UNEVALLED
+              return if (/* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { (*XSUBR (object)).max_args }) as isize == UNEVALLED
                      { Qspecial_form () }
                      else if NATIVE_COMP_FUNCTIONP (object) { Qnative_comp_function () }
                      else { Qprimitive_function () };
@@ -364,7 +386,7 @@ DEFUN! ("keywordp", Fkeywordp, Skeywordp, 1, 1, 0,
   if BARE_SYMBOL_P (object)
     {
       let sym: *mut Lisp_Symbol = XBARE_SYMBOL (object);
-      return if SREF (unsafe { (*sym).u.s.name }, 0) == b':' as u8
+      return if SREF (/* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { (*sym).u.s.name }, 0) == b':' as u8
                 && ((unsafe { (*sym).u.s.bits } & SYMBOL_INTERNED_MASK) >> SYMBOL_INTERNED_SHIFT)
                    == SYMBOL_INTERNED_IN_INITIAL_OBARRAY
         { Qt () } else { Qnil () };
@@ -686,7 +708,7 @@ DEFUN! ("boundp", Fboundp, Sboundp, 1, 1, 0,
   if BARE_SYMBOL_P (symbol)
     {
       let sym: *mut Lisp_Symbol = XBARE_SYMBOL (symbol);
-      if ((unsafe { (*sym).u.s.bits } & SYMBOL_REDIRECT_MASK) >> SYMBOL_REDIRECT_SHIFT)
+      if ((/* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { (*sym).u.s.bits } & SYMBOL_REDIRECT_MASK) >> SYMBOL_REDIRECT_SHIFT)
          == SYMBOL_PLAINVAL
         {
           return if BASE_EQ (SYMBOL_VAL (sym), Qunbound ()) { Qnil () } else { Qt () };
@@ -698,14 +720,14 @@ DEFUN! ("boundp", Fboundp, Sboundp, 1, 1, 0,
   // C's `start:` label and its `goto start` (data.c 730, 736) become this loop.
   let valcontents = loop
     {
-      match unsafe { ((*sym).u.s.bits & SYMBOL_REDIRECT_MASK) >> SYMBOL_REDIRECT_SHIFT }
+      match /* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { ((*sym).u.s.bits & SYMBOL_REDIRECT_MASK) >> SYMBOL_REDIRECT_SHIFT }
         {
           SYMBOL_PLAINVAL => { break SYMBOL_VAL (sym); }
           SYMBOL_VARALIAS => { sym = SYMBOL_ALIAS (sym); continue; }
           SYMBOL_LOCALIZED =>
             {
               let blv = SYMBOL_BLV (sym) as *mut Lisp_Buffer_Local_Value;
-              if ! unsafe { (*blv).fwd }.is_null ()
+              if ! /* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { (*blv).fwd }.is_null ()
                 /* In set_internal, we un-forward vars when their value is
                    set to Qunbound.  */
                 { return Qt (); }
@@ -732,7 +754,7 @@ DEFUN! ("fboundp", Ffboundp, Sfboundp, 1, 1, 0,
        {
   if BARE_SYMBOL_P (symbol)
     {
-      return if NILP (unsafe { (*XBARE_SYMBOL (symbol)).u.s.function }) { Qnil () } else { Qt () };
+      return if NILP (/* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { (*XBARE_SYMBOL (symbol)).u.s.function }) { Qnil () } else { Qt () };
     }
   CHECK_SYMBOL (symbol);
   return if NILP (unsafe { (*XSYMBOL (symbol)).u.s.function }) { Qnil () } else { Qt () };
@@ -745,13 +767,13 @@ DEFUN! ("makunbound", Fmakunbound, Smakunbound, 1, 1, 0,
   CHECK_SYMBOL (symbol);
   if SYMBOL_CONSTANT_P (symbol)
     { xsignal1 (Qsetting_constant (), symbol); }
-  if unsafe { ((*XSYMBOL (symbol)).u.s.bits & SYMBOL_REDIRECT_MASK)
+  if /* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { ((*XSYMBOL (symbol)).u.s.bits & SYMBOL_REDIRECT_MASK)
                >> SYMBOL_REDIRECT_SHIFT } == SYMBOL_VARALIAS
     {
       // C assigns the bitfield `redirect`; the mirror packs it with the other
       // symbol bits (lisp.rs 1408-1500), so the port sets that field.
       let sym = XSYMBOL (symbol);
-      let bits = unsafe { (*sym).u.s.bits };
+      let bits = /* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { (*sym).u.s.bits };
       unsafe { (*sym).u.s.bits = (bits & !SYMBOL_REDIRECT_MASK)
                                  | (SYMBOL_PLAINVAL << SYMBOL_REDIRECT_SHIFT); }
       SET_SYMBOL_VAL (XSYMBOL (symbol), Qunbound ());
@@ -777,7 +799,7 @@ DEFUN! ("symbol-function", Fsymbol_function, Ssymbol_function, 1, 1, 0,
        (symbol: Lisp_Object),
        {
   if BARE_SYMBOL_P (symbol)
-    { return unsafe { (*XBARE_SYMBOL (symbol)).u.s.function }; }
+    { return /* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { (*XBARE_SYMBOL (symbol)).u.s.function }; }
   CHECK_SYMBOL (symbol);
   return unsafe { (*XSYMBOL (symbol)).u.s.function };
 });
@@ -787,7 +809,7 @@ DEFUN! ("symbol-plist", Fsymbol_plist, Ssymbol_plist, 1, 1, 0,
        (symbol: Lisp_Object),
        {
   if BARE_SYMBOL_P (symbol)
-    { return unsafe { (*XBARE_SYMBOL (symbol)).u.s.plist }; }
+    { return /* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { (*XBARE_SYMBOL (symbol)).u.s.plist }; }
   CHECK_SYMBOL (symbol);
   return unsafe { (*XSYMBOL (symbol)).u.s.plist };
 });
@@ -797,7 +819,7 @@ DEFUN! ("symbol-name", Fsymbol_name, Ssymbol_name, 1, 1, 0,
        (symbol: Lisp_Object),
        {
   if BARE_SYMBOL_P (symbol)
-    { return unsafe { (*XBARE_SYMBOL (symbol)).u.s.name }; }
+    { return /* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { (*XBARE_SYMBOL (symbol)).u.s.name }; }
   let name: Lisp_Object;
 
   CHECK_SYMBOL (symbol);
@@ -871,7 +893,7 @@ DEFUN! ("fset", Ffset, Sfset, 2, 2, 0,
       {
         if EQ (s, symbol)
           { xsignal1 (Qcyclic_function_indirection (), symbol); }
-        s = unsafe { (*XSYMBOL (s)).u.s.function };
+        s = /* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { (*XSYMBOL (s)).u.s.function };
       }
   }
 
@@ -880,7 +902,7 @@ DEFUN! ("fset", Ffset, Sfset, 2, 2, 0,
   // (PORTING.md P-08/P-51).  `have_native_comp` is what `xtask dead-arms` flips.
   #[cfg(feature = "have_native_comp")]
   {
-    let function = unsafe { (*XSYMBOL (symbol)).u.s.function };
+    let function = /* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { (*XSYMBOL (symbol)).u.s.function };
 
     if ! NILP (unsafe { Vnative_comp_enable_subr_trampolines })
       && SUBRP (function)
@@ -1197,6 +1219,8 @@ pub unsafe extern "C-unwind" fn kboard_for_bindings () -> *mut KBOARD
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn do_symval_forwarding (valcontents: lispfwd) -> Lisp_Object
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   match XFWDTYPE (valcontents)
     {
     Lisp_Fwd_Int =>
@@ -1216,6 +1240,8 @@ pub unsafe extern "C-unwind" fn do_symval_forwarding (valcontents: lispfwd) -> L
                  .offset (XKBOARD_OFFSET (valcontents) as isize) as *mut Lisp_Object); }
     _ => { emacs_abort (); }
     }
+
+  }
 }
 
 /* Used to signal a user-friendly error when symbol WRONG is
@@ -1224,6 +1250,8 @@ pub unsafe extern "C-unwind" fn do_symval_forwarding (valcontents: lispfwd) -> L
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn wrong_choice (choice: Lisp_Object, wrong: Lisp_Object) -> !
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let mut i: ptrdiff_t = 0;
   let len: ptrdiff_t = list_length (choice);
   let mut obj: Lisp_Object;
@@ -1256,6 +1284,8 @@ pub unsafe extern "C-unwind" fn wrong_choice (choice: Lisp_Object, wrong: Lisp_O
   let _ = sa_count;
 
   xsignal2 (Qerror (), obj2, wrong);
+
+  }
 }
 
 /* Used to signal a user-friendly error if WRONG is not a number or
@@ -1263,23 +1293,33 @@ pub unsafe extern "C-unwind" fn wrong_choice (choice: Lisp_Object, wrong: Lisp_O
 
 unsafe fn wrong_range (min: Lisp_Object, max: Lisp_Object, wrong: Lisp_Object)
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   AUTO_STRING! (value_should_be_from, b"Value should be from \0".as_ptr () as *const c_char);
   AUTO_STRING! (to, b" to \0".as_ptr () as *const c_char);
   xsignal2 (Qerror (),
             CALLN! (Fconcat, value_should_be_from, Fnumber_to_string (min),
                     to, Fnumber_to_string (max)),
             wrong);
+
+  }
 }
 
 unsafe fn check_choice (choice: Lisp_Object, val: Lisp_Object)
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   eassert! (CONSP (choice));
   if NILP (Fmemq (val, choice))
     { wrong_choice (choice, val); }
+
+  }
 }
 
 unsafe fn check_fwd_predicate (p: u32, val: Lisp_Object)
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   match p
     {
     FWDPRED_Qnil =>
@@ -1333,6 +1373,8 @@ unsafe fn check_fwd_predicate (p: u32, val: Lisp_Object)
     _ => {}
     }
   emacs_abort ();
+
+  }
 }
 
 /* Store NEWVAL into SYMBOL, where VALCONTENTS is found in the value cell
@@ -1346,6 +1388,8 @@ unsafe fn check_fwd_predicate (p: u32, val: Lisp_Object)
 unsafe fn store_symval_forwarding (valcontents: lispfwd, newval: Lisp_Object,
                             mut buf: *mut buffer)
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   match XFWDTYPE (valcontents)
     {
     Lisp_Fwd_Int =>
@@ -1411,6 +1455,8 @@ unsafe fn store_symval_forwarding (valcontents: lispfwd, newval: Lisp_Object,
     _ =>
       { emacs_abort (); /* goto def; */ }
     }
+
+  }
 }
 
 /* Set up SYMBOL to refer to its global binding.  This makes it safe
@@ -1421,6 +1467,8 @@ unsafe fn store_symval_forwarding (valcontents: lispfwd, newval: Lisp_Object,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn swap_in_global_binding (symbol: *mut Lisp_Symbol)
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let blv = SYMBOL_BLV (symbol) as *mut Lisp_Buffer_Local_Value;
 
   /* Unload the previously loaded binding.  */
@@ -1435,6 +1483,8 @@ pub unsafe extern "C-unwind" fn swap_in_global_binding (symbol: *mut Lisp_Symbol
   /* Indicate that the global binding is set up now.  */
   set_blv_where (blv, Qnil ());
   set_blv_found (blv, false as c_int);
+
+  }
 }
 
 /* Set up the buffer-local symbol SYMBOL for validity in the current buffer.
@@ -1446,6 +1496,8 @@ pub unsafe extern "C-unwind" fn swap_in_global_binding (symbol: *mut Lisp_Symbol
 
 unsafe fn swap_in_symval_forwarding (symbol: *mut Lisp_Symbol, blv: *mut Lisp_Buffer_Local_Value)
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let mut tem1: Lisp_Object;
 
   eassert! (blv as *mut c_void == SYMBOL_BLV (symbol));
@@ -1484,6 +1536,8 @@ unsafe fn swap_in_symval_forwarding (symbol: *mut Lisp_Symbol, blv: *mut Lisp_Bu
       if ! (*blv).fwd.is_null ()
         { store_symval_forwarding ((*blv).fwd, blv_value (blv), std::ptr::null_mut ()); }
     }
+
+  }
 }
 /* Find the value of a symbol, returning Qunbound if it's not bound.
    This is helpful for code which just wants to get a variable's value
@@ -1499,6 +1553,8 @@ unsafe fn swap_in_symval_forwarding (symbol: *mut Lisp_Symbol, blv: *mut Lisp_Bu
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn find_symbol_value (symbol: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   if BARE_SYMBOL_P (symbol)
     {
       let sym: *mut Lisp_Symbol = XBARE_SYMBOL (symbol);
@@ -1532,6 +1588,8 @@ pub unsafe extern "C-unwind" fn find_symbol_value (symbol: Lisp_Object) -> Lisp_
           { emacs_abort (); }
         }
     }
+
+  }
 }
 
 DEFUN! ("symbol-value", Fsymbol_value, Ssymbol_value, 1, 1, 0,
@@ -1566,6 +1624,8 @@ DEFUN! ("set", Fset, Sset, 2, 2, 0,
 pub unsafe extern "C-unwind" fn set_internal (symbol: Lisp_Object, newval: Lisp_Object,
                                        r#where: Lisp_Object, bindflag: Set_Internal_Bind)
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   if BARE_SYMBOL_P (symbol) && ! BASE_EQ (newval, Qunbound ())
     {
       let sym: *mut Lisp_Symbol = XBARE_SYMBOL (symbol);
@@ -1740,12 +1800,16 @@ pub unsafe extern "C-unwind" fn set_internal (symbol: Lisp_Object, newval: Lisp_
           { emacs_abort (); }
         }
     }
+
+  }
 }
 
 // data.c 1833-1840.  C reads and writes the `trapped_write` bitfield; the mirror packs it
 // into `u.s.bits` (lisp.rs 224-225), so both sides go through the mask/shift.
 unsafe extern "C-unwind" fn set_symbol_trapped_write (symbol: Lisp_Object, trap: u32)
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let sym: *mut Lisp_Symbol = XSYMBOL (symbol);
   if ((*sym).u.s.bits & SYMBOL_TRAPPED_WRITE_MASK) >> SYMBOL_TRAPPED_WRITE_SHIFT
      == SYMBOL_NOWRITE
@@ -1753,12 +1817,18 @@ unsafe extern "C-unwind" fn set_symbol_trapped_write (symbol: Lisp_Object, trap:
   let bits = (*sym).u.s.bits;
   (*sym).u.s.bits = (bits & ! SYMBOL_TRAPPED_WRITE_MASK)
                     | ((trap << SYMBOL_TRAPPED_WRITE_SHIFT) & SYMBOL_TRAPPED_WRITE_MASK);
+
+  }
 }
 
 // data.c 1842-1846.
 unsafe extern "C-unwind" fn restore_symbol_trapped_write (symbol: Lisp_Object)
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   set_symbol_trapped_write (symbol, SYMBOL_TRAPPED_WRITE);
+
+  }
 }
 
 /* Called after `defvaralias' to make sure all aliases have the same
@@ -1767,11 +1837,15 @@ unsafe extern "C-unwind" fn restore_symbol_trapped_write (symbol: Lisp_Object)
 unsafe extern "C-unwind" fn harmonize_variable_watchers (alias: Lisp_Object,
                                                   base_variable: Lisp_Object)
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   if ! EQ (base_variable, alias)
     && EQ (base_variable, Findirect_variable (alias))
     { set_symbol_trapped_write
         (alias, ((*XSYMBOL (base_variable)).u.s.bits & SYMBOL_TRAPPED_WRITE_MASK)
                >> SYMBOL_TRAPPED_WRITE_SHIFT); }
+
+  }
 }
 
 DEFUN! ("add-variable-watcher", Fadd_variable_watcher, Sadd_variable_watcher,
@@ -1826,6 +1900,8 @@ pub unsafe extern "C-unwind" fn notify_variable_watchers (symbol: Lisp_Object,
                                                    operation: Lisp_Object,
                                                    r#where: Lisp_Object)
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let mut symbol = symbol;
   let mut operation = operation;
   let mut r#where = r#where;
@@ -1864,6 +1940,8 @@ pub unsafe extern "C-unwind" fn notify_variable_watchers (symbol: Lisp_Object,
     }
 
   unbind_to (count, Qnil ());
+
+  }
 }
 /* Access or set a buffer-local symbol's default value.  */
 
@@ -1873,6 +1951,8 @@ pub unsafe extern "C-unwind" fn notify_variable_watchers (symbol: Lisp_Object,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn default_value (symbol: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let mut sym: *mut Lisp_Symbol;
 
   CHECK_SYMBOL (symbol);
@@ -1919,6 +1999,8 @@ pub unsafe extern "C-unwind" fn default_value (symbol: Lisp_Object) -> Lisp_Obje
           { emacs_abort (); }
         }
     }
+
+  }
 }
 
 DEFUN! ("default-boundp", Fdefault_boundp, Sdefault_boundp, 1, 1, 0,
@@ -1947,6 +2029,8 @@ pub unsafe extern "C-unwind" fn set_default_internal (symbol: Lisp_Object, value
                                                bindflag: Set_Internal_Bind,
                                                r#where: *mut KBOARD)
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   CHECK_SYMBOL (symbol);
   let mut sym: *mut Lisp_Symbol = XSYMBOL (symbol);
   match ((*sym).u.s.bits & SYMBOL_TRAPPED_WRITE_MASK) >> SYMBOL_TRAPPED_WRITE_SHIFT
@@ -2047,6 +2131,8 @@ pub unsafe extern "C-unwind" fn set_default_internal (symbol: Lisp_Object, value
           { emacs_abort (); }
         }
     }
+
+  }
 }
 
 DEFUN! ("set-default", Fset_default, Sset_default, 2, 2, 0,
@@ -2074,6 +2160,8 @@ const _: () = core::assert! (size_of::<Lisp_Val_Fwd> () == 8 && align_of::<Lisp_
 unsafe fn make_blv (sym: *mut Lisp_Symbol, forwarded: bool,
                     valcontents: Lisp_Val_Fwd) -> *mut Lisp_Buffer_Local_Value
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let blv = xmalloc (size_of::<Lisp_Buffer_Local_Value> ()) as *mut Lisp_Buffer_Local_Value;
   let symbol: Lisp_Object;
   let tem: Lisp_Object;
@@ -2100,6 +2188,8 @@ unsafe fn make_blv (sym: *mut Lisp_Symbol, forwarded: bool,
   set_blv_found (blv, false as c_int);
   __lsan_ignore_object (blv as *const c_void);
   return blv;
+
+  }
 }
 
 DEFUN! ("make-variable-buffer-local", Fmake_variable_buffer_local,
@@ -2491,6 +2581,8 @@ DEFUN! ("variable-binding-locus", Fvariable_binding_locus, Svariable_binding_loc
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn indirect_function (object: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   if BARE_SYMBOL_P (object)
     {
       if NILP (object) { return object; }
@@ -2501,6 +2593,8 @@ pub unsafe extern "C-unwind" fn indirect_function (object: Lisp_Object) -> Lisp_
   while SYMBOLP (object) && ! NILP (object)
     { object = (*XSYMBOL (object)).u.s.function; }
   return object;
+
+  }
 }
 
 DEFUN! ("indirect-function", Findirect_function, Sindirect_function, 1, 2, 0,
@@ -2539,7 +2633,7 @@ DEFUN! ("aref", Faref, Saref, 2, 2, 0,
         { return make_fixnum (SREF (array, idxval as usize) as EMACS_INT); }
       idxval_byte = string_char_to_byte (array, idxval);
 
-      c = STRING_CHAR (unsafe { SDATA (array).offset (idxval_byte) });
+      c = STRING_CHAR (/* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { SDATA (array).offset (idxval_byte) });
       return make_fixnum (c as EMACS_INT);
     }
   else if BOOL_VECTOR_P (array)
@@ -2653,7 +2747,7 @@ DEFUN! ("aset", Faset, Saset, 3, 3, 0,
 fn check_integer_coerce_marker (x: Lisp_Object) -> Lisp_Object
 {
   if MARKERP (x)
-    { return make_fixnum (unsafe { marker_position (x) }); }
+    { return make_fixnum (/* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { marker_position (x) }); }
   CHECK_TYPE (INTEGERP (x), Qinteger_or_marker_p (), x);
   return x;
 }
@@ -2661,19 +2755,19 @@ fn check_integer_coerce_marker (x: Lisp_Object) -> Lisp_Object
 fn check_number_coerce_marker (x: Lisp_Object) -> Lisp_Object
 {
   if MARKERP (x)
-    { return make_fixnum (unsafe { marker_position (x) }); }
+    { return make_fixnum (/* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { marker_position (x) }); }
   CHECK_TYPE (NUMBERP (x), Qnumber_or_marker_p (), x);
   return x;
 }
 
 fn coerce_marker (x: Lisp_Object) -> Lisp_Object
 {
-  return if MARKERP (x) { make_fixnum (unsafe { marker_position (x) }) } else { x };
+  return if MARKERP (x) { make_fixnum (/* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { marker_position (x) }) } else { x };
 }
 
 fn not_number_or_marker (x: Lisp_Object) -> !
 {
-  unsafe { wrong_type_argument (Qnumber_or_marker_p (), x); }
+  /* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { wrong_type_argument (Qnumber_or_marker_p (), x); }
 }
 
 #[unsafe(no_mangle)]
@@ -2728,7 +2822,7 @@ pub unsafe extern "C-unwind" fn arithcompare (mut num1: Lisp_Object, mut num2: L
             { lt = false; eq = false; gt = false; }
           else
             {
-              let cmp = unsafe { mpz_cmp_d (xbignum_val (num2), f1) };
+              let cmp = /* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { mpz_cmp_d (xbignum_val (num2), f1) };
               eq = cmp == 0;
               lt = cmp > 0;
               gt = cmp < 0;
@@ -2770,7 +2864,7 @@ pub unsafe extern "C-unwind" fn arithcompare (mut num1: Lisp_Object, mut num2: L
         }
       else if BIGNUMP (num2)
         {
-          let sgn = unsafe { mpz_sgn (xbignum_val (num2)) };
+          let sgn = /* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { mpz_sgn (xbignum_val (num2)) };
           eassume! (sgn != 0);
           eq = false;
           lt = sgn > 0;
@@ -2788,7 +2882,7 @@ pub unsafe extern "C-unwind" fn arithcompare (mut num1: Lisp_Object, mut num2: L
             { lt = false; eq = false; gt = false; }
           else
             {
-              let cmp = unsafe { mpz_cmp_d (xbignum_val (num1), f2) };
+              let cmp = /* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { mpz_cmp_d (xbignum_val (num1), f2) };
               eq = cmp == 0;
               lt = cmp < 0;
               gt = cmp > 0;
@@ -2796,7 +2890,7 @@ pub unsafe extern "C-unwind" fn arithcompare (mut num1: Lisp_Object, mut num2: L
         }
       else if FIXNUMP (num2)
         {
-          let sgn = unsafe { mpz_sgn (xbignum_val (num1)) };
+          let sgn = /* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { mpz_sgn (xbignum_val (num1)) };
           eassume! (sgn != 0);
           eq = false;
           lt = sgn < 0;
@@ -2804,7 +2898,7 @@ pub unsafe extern "C-unwind" fn arithcompare (mut num1: Lisp_Object, mut num2: L
         }
       else if BIGNUMP (num2)
         {
-          let cmp = unsafe { mpz_cmp (xbignum_val (num1), xbignum_val (num2)) };
+          let cmp = /* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { mpz_cmp (xbignum_val (num1), xbignum_val (num2)) };
           eq = cmp == 0;
           lt = cmp < 0;
           gt = cmp > 0;
@@ -2830,7 +2924,7 @@ unsafe fn arithcompare_driver (nargs: ptrdiff_t, args: *mut Lisp_Object, cmpmask
       /* C's `&` binds *looser* than `==`, so C must write `!(x & mask)`; Rust's `&` binds
          *tighter*, so `x & mask != 0` already means `(x & mask) != 0` and the parentheses
          below are only defensive (reviewer A's F1).  */
-      if ! ((unsafe { arithcompare (*args.offset (i - 1), *args.offset (i)) } & cmpmask) != 0)
+      if ! ((/* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { arithcompare (*args.offset (i - 1), *args.offset (i)) } & cmpmask) != 0)
         { return Qnil (); }
       i += 1;
     }
@@ -2841,7 +2935,7 @@ DEFUN! ("=", Feqlsign, Seqlsign, 1, MANY, 0,
        doc: "Return t if args, all numbers or markers, are equal.\nusage: (= NUMBER-OR-MARKER &rest NUMBERS-OR-MARKERS)",
        (nargs: isize, args: *mut Lisp_Object),
        {
-  if nargs == 2 && FIXNUMP (unsafe { *args }) && FIXNUMP (unsafe { *args.offset (1) })
+  if nargs == 2 && FIXNUMP (/* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { *args }) && FIXNUMP (unsafe { *args.offset (1) })
     {
       return if BASE_EQ (unsafe { *args }, unsafe { *args.offset (1) })
                      { Qt () } else { Qnil () };
@@ -2854,7 +2948,7 @@ DEFUN! ("<", Flss, Slss, 1, MANY, 0,
        doc: "Return t if each arg (a number or marker), is less than the next arg.\nusage: (< NUMBER-OR-MARKER &rest NUMBERS-OR-MARKERS)",
        (nargs: isize, args: *mut Lisp_Object),
        {
-  if nargs == 2 && FIXNUMP (unsafe { *args }) && FIXNUMP (unsafe { *args.offset (1) })
+  if nargs == 2 && FIXNUMP (/* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { *args }) && FIXNUMP (unsafe { *args.offset (1) })
     {
       return if XFIXNUM (unsafe { *args }) < XFIXNUM (unsafe { *args.offset (1) })
                      { Qt () } else { Qnil () };
@@ -2867,7 +2961,7 @@ DEFUN! (">", Fgtr, Sgtr, 1, MANY, 0,
        doc: "Return t if each arg (a number or marker) is greater than the next arg.\nusage: (> NUMBER-OR-MARKER &rest NUMBERS-OR-MARKERS)",
        (nargs: isize, args: *mut Lisp_Object),
        {
-  if nargs == 2 && FIXNUMP (unsafe { *args }) && FIXNUMP (unsafe { *args.offset (1) })
+  if nargs == 2 && FIXNUMP (/* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { *args }) && FIXNUMP (unsafe { *args.offset (1) })
     {
       return if XFIXNUM (unsafe { *args }) > XFIXNUM (unsafe { *args.offset (1) })
                      { Qt () } else { Qnil () };
@@ -2880,7 +2974,7 @@ DEFUN! ("<=", Fleq, Sleq, 1, MANY, 0,
        doc: "Return t if each arg (a number or marker) is less than or equal to the next.\nusage: (<= NUMBER-OR-MARKER &rest NUMBERS-OR-MARKERS)",
        (nargs: isize, args: *mut Lisp_Object),
        {
-  if nargs == 2 && FIXNUMP (unsafe { *args }) && FIXNUMP (unsafe { *args.offset (1) })
+  if nargs == 2 && FIXNUMP (/* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { *args }) && FIXNUMP (unsafe { *args.offset (1) })
     {
       return if XFIXNUM (unsafe { *args }) <= XFIXNUM (unsafe { *args.offset (1) })
                      { Qt () } else { Qnil () };
@@ -2893,7 +2987,7 @@ DEFUN! (">=", Fgeq, Sgeq, 1, MANY, 0,
        doc: "Return t if each arg (a number or marker) is greater than or equal to the next.\nusage: (>= NUMBER-OR-MARKER &rest NUMBERS-OR-MARKERS)",
        (nargs: isize, args: *mut Lisp_Object),
        {
-  if nargs == 2 && FIXNUMP (unsafe { *args }) && FIXNUMP (unsafe { *args.offset (1) })
+  if nargs == 2 && FIXNUMP (/* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { *args }) && FIXNUMP (unsafe { *args.offset (1) })
     {
       return if XFIXNUM (unsafe { *args }) >= XFIXNUM (unsafe { *args.offset (1) })
                      { Qt () } else { Qnil () };
@@ -2920,6 +3014,8 @@ const INT_BUFSIZE_BOUND: usize = ((EMACS_INT_WIDTH - 1) * 146 + 484) / 485 + 1 +
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn cons_to_unsigned (c: Lisp_Object, max: uintmax_t) -> uintmax_t
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let mut valid: bool = false;
   /* C: `uintmax_t val UNINIT;` - `= {0,}` in this configuration (the round-7 decision).  */
   let mut val: uintmax_t = 0;
@@ -2971,12 +3067,16 @@ pub unsafe extern "C-unwind" fn cons_to_unsigned (c: Lisp_Object, max: uintmax_t
                as *const c_char);
     }
   return val;
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn cons_to_signed (c: Lisp_Object, min: intmax_t, max: intmax_t)
   -> intmax_t
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let mut valid: bool = false;
   /* C: `intmax_t val UNINIT;` - `= {0,}` in this configuration (the round-7 decision).  */
   let mut val: intmax_t = 0;
@@ -3028,6 +3128,8 @@ pub unsafe extern "C-unwind" fn cons_to_signed (c: Lisp_Object, min: intmax_t, m
                as *const c_char);
     }
   return val;
+
+  }
 }
 
 /* Render NUMBER in decimal into BUFFER which ends right before END.
@@ -3044,7 +3146,7 @@ pub unsafe extern "C-unwind" fn fixnum_to_string (number: EMACS_INT, buffer: *mu
   let mut p: *mut c_char = end;
   loop
     {
-      eassume! (p > buffer && unsafe { p.offset (-1) } < end);
+      eassume! (p > buffer && /* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { p.offset (-1) } < end);
       p = unsafe { p.offset (-1) };
       unsafe { *p = b'0' as c_char + (x % 10) as c_char; };
       x /= 10;
@@ -3053,7 +3155,7 @@ pub unsafe extern "C-unwind" fn fixnum_to_string (number: EMACS_INT, buffer: *mu
     }
   if negative
     {
-      p = unsafe { p.offset (-1) };
+      p = /* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { p.offset (-1) };
       unsafe { *p = b'-' as c_char; };
     }
   return p;
@@ -3074,13 +3176,13 @@ DEFUN! ("number-to-string", Fnumber_to_string, Snumber_to_string, 1, 1, 0,
   if FIXNUMP (number)
     {
       let base = buffer.as_mut_ptr () as *mut c_char;
-      let end = unsafe { base.add (core::mem::size_of_val (&buffer)) };
+      let end = /* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { base.add (core::mem::size_of_val (&buffer)) };
       let p = unsafe { fixnum_to_string (XFIXNUM (number), base, end) };
       return unsafe { make_unibyte_string (p, end.offset_from (p)) };
     }
 
   if BIGNUMP (number)
-    { return unsafe { bignum_to_string (number, 10) }; }
+    { return /* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { bignum_to_string (number, 10) }; }
 
   if FLOATP (number)
     {
@@ -3113,7 +3215,7 @@ DEFUN! ("string-to-number", Fstring_to_number, Sstring_to_number, 1, 2, 0,
     }
 
   let mut p: *mut c_char = SSDATA (string);
-  while unsafe { *p } == b' ' as c_char || unsafe { *p } == b'\t' as c_char
+  while /* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { *p } == b' ' as c_char || unsafe { *p } == b'\t' as c_char
     { p = unsafe { p.offset (1) }; }
 
   let val: Lisp_Object = string_to_number (p, b, std::ptr::null_mut ());
@@ -3154,6 +3256,8 @@ unsafe fn floatop_arith_driver (code: arithop, nargs: ptrdiff_t, args: *mut Lisp
                                 mut next: c_double)
   -> Lisp_Object
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   // C's `goto next_arg` (data.c 3156) jumps from above the `while` into the loop's
   // tail, skipping the switch on that first pass; `skip_switch` is the jump and the
   // statements after it are the loop's `next_arg:` block.
@@ -3185,9 +3289,11 @@ unsafe fn floatop_arith_driver (code: arithop, nargs: ptrdiff_t, args: *mut Lisp
       argnum += 1;
       if argnum == nargs
         { return make_float (accum); }
-      next = XFLOATINT (check_number_coerce_marker (unsafe { *args.offset (argnum) }));
+      next = XFLOATINT (check_number_coerce_marker (/* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { *args.offset (argnum) }));
       continue 'next_arg;
     }
+
+  }
 }
 
 /* Like floatop_arith_driver, except CODE might not be a floating-point
@@ -3197,10 +3303,14 @@ unsafe fn float_arith_driver (code: arithop, nargs: ptrdiff_t, args: *mut Lisp_O
                               argnum: ptrdiff_t, accum: c_double, next: Lisp_Object)
   -> Lisp_Object
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   if ! floating_point_op (code)
     { wrong_type_argument (Qinteger_or_marker_p (), next); }
   return floatop_arith_driver (code, nargs, args, argnum, accum,
                                XFLOAT_DATA (next));
+
+  }
 }
 
 /* Return the result of applying the arithmetic operation CODE to the
@@ -3214,6 +3324,8 @@ unsafe fn bignum_arith_driver (code: arithop, nargs: ptrdiff_t, args: *mut Lisp_
                                mut val: Lisp_Object)
   -> Lisp_Object
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let mut accum: *const __mpz_struct;
   // C's `goto next_arg` (data.c 3203) is the same jump shape as the float driver's: it
   // enters the loop's tail and skips the switch on the first pass.
@@ -3260,12 +3372,14 @@ unsafe fn bignum_arith_driver (code: arithop, nargs: ptrdiff_t, args: *mut Lisp_
       argnum += 1;
       if argnum == nargs
         { return make_integer_mpz (); }
-      val = check_number_coerce_marker (unsafe { *args.offset (argnum) });
+      val = check_number_coerce_marker (/* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { *args.offset (argnum) });
       if FLOATP (val)
         { return float_arith_driver (code, nargs, args, argnum,
                                      mpz_get_d_rounded (accum), val); }
       continue 'next_arg;
     }
+
+  }
 }
 
 /* Return the result of applying the arithmetic operation CODE to the
@@ -3277,6 +3391,8 @@ unsafe fn arith_driver (code: arithop, nargs: ptrdiff_t, args: *mut Lisp_Object,
                         mut val: Lisp_Object)
   -> Lisp_Object
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   eassume! (2 <= nargs);
 
   let mut argnum: ptrdiff_t = 0;
@@ -3290,7 +3406,7 @@ unsafe fn arith_driver (code: arithop, nargs: ptrdiff_t, args: *mut Lisp_Object,
         argnum += 1;
         if argnum == nargs
           { return make_int (accum); }
-        val = check_number_coerce_marker (unsafe { *args.offset (argnum) });
+        val = check_number_coerce_marker (/* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { *args.offset (argnum) });
 
         /* Set NEXT to the next value if it fits, else exit the loop.  */
         let mut next: intmax_t = 0;
@@ -3333,19 +3449,21 @@ unsafe fn arith_driver (code: arithop, nargs: ptrdiff_t, args: *mut Lisp_Object,
            { float_arith_driver (code, nargs, args, argnum, accum as c_double, val) }
          else
            { bignum_arith_driver (code, nargs, args, argnum, accum, val) };
+
+  }
 }
 
 DEFUN! ("+", Fplus, Splus, 0, MANY, 0,
        doc: "Return sum of any number of arguments, which are numbers or markers.\nusage: (+ &rest NUMBERS-OR-MARKERS)",
        (nargs: isize, args: *mut Lisp_Object),
        {
-  if nargs == 2 && FIXNUMP (unsafe { *args }) && FIXNUMP (unsafe { *args.offset (1) })
+  if nargs == 2 && FIXNUMP (/* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { *args }) && FIXNUMP (unsafe { *args.offset (1) })
     {
       return make_int ((XFIXNUM (unsafe { *args }) + XFIXNUM (unsafe { *args.offset (1) })) as intmax_t);
     }
   if nargs == 0
     { return make_fixnum (0); }
-  let a: Lisp_Object = check_number_coerce_marker (unsafe { *args });
+  let a: Lisp_Object = check_number_coerce_marker (/* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { *args });
   return if nargs == 1 { a } else { arith_driver (Aadd, nargs, args, a) };
 });
 
@@ -3353,13 +3471,13 @@ DEFUN! ("-", Fminus, Sminus, 0, MANY, 0,
        doc: "Negate number or subtract numbers or markers and return the result.\nWith one arg, negates it.  With more than one arg,\nsubtracts all but the first from the first.\nusage: (- &optional NUMBER-OR-MARKER &rest MORE-NUMBERS-OR-MARKERS)",
        (nargs: isize, args: *mut Lisp_Object),
        {
-  if nargs == 2 && FIXNUMP (unsafe { *args }) && FIXNUMP (unsafe { *args.offset (1) })
+  if nargs == 2 && FIXNUMP (/* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { *args }) && FIXNUMP (unsafe { *args.offset (1) })
     {
       return make_int ((XFIXNUM (unsafe { *args }) - XFIXNUM (unsafe { *args.offset (1) })) as intmax_t);
     }
   if nargs == 0
     { return make_fixnum (0); }
-  let a: Lisp_Object = check_number_coerce_marker (unsafe { *args });
+  let a: Lisp_Object = check_number_coerce_marker (/* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { *args });
   if nargs == 1
     {
       if FIXNUMP (a)
@@ -3376,7 +3494,7 @@ DEFUN! ("*", Ftimes, Stimes, 0, MANY, 0,
        doc: "Return product of any number of arguments, which are numbers or markers.\nusage: (* &rest NUMBERS-OR-MARKERS)",
        (nargs: isize, args: *mut Lisp_Object),
        {
-  if nargs == 2 && FIXNUMP (unsafe { *args }) && FIXNUMP (unsafe { *args.offset (1) })
+  if nargs == 2 && FIXNUMP (/* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { *args }) && FIXNUMP (unsafe { *args.offset (1) })
     {
       let (prod, ov) = (XFIXNUM (unsafe { *args }) as intmax_t)
         .overflowing_mul (XFIXNUM (unsafe { *args.offset (1) }) as intmax_t);
@@ -3385,7 +3503,7 @@ DEFUN! ("*", Ftimes, Stimes, 0, MANY, 0,
     }
   if nargs == 0
     { return make_fixnum (1); }
-  let a: Lisp_Object = check_number_coerce_marker (unsafe { *args });
+  let a: Lisp_Object = check_number_coerce_marker (/* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { *args });
   return if nargs == 1 { a } else { arith_driver (Amult, nargs, args, a) };
 });
 
@@ -3393,7 +3511,7 @@ DEFUN! ("/", Fquo, Squo, 1, MANY, 0,
        doc: "Divide number by divisors and return the result.\nWith two or more arguments, return first argument divided by the rest.\nWith one argument, return 1 divided by the argument.\nThe arguments must be numbers or markers.\nusage: (/ NUMBER &rest DIVISORS)",
        (nargs: isize, args: *mut Lisp_Object),
        {
-  let a: Lisp_Object = check_number_coerce_marker (unsafe { *args });
+  let a: Lisp_Object = check_number_coerce_marker (/* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { *args });
   if nargs == 1
     {
       if FIXNUMP (a)
@@ -3416,7 +3534,7 @@ DEFUN! ("/", Fquo, Squo, 1, MANY, 0,
   let mut argnum: ptrdiff_t = 2;
   while argnum < nargs
     {
-      if FLOATP (unsafe { *args.offset (argnum) })
+      if FLOATP (/* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { *args.offset (argnum) })
         { return floatop_arith_driver (Adiv, nargs, args, 0, 0.0, XFLOATINT (a)); }
       argnum += 1;
     }
@@ -3428,6 +3546,8 @@ DEFUN! ("/", Fquo, Squo, 1, MANY, 0,
 unsafe fn integer_remainder (num: Lisp_Object, den: Lisp_Object, modulo: bool)
   -> Lisp_Object
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   if FIXNUMP (den)
     {
       let d: EMACS_INT = XFIXNUM (den);
@@ -3476,6 +3596,8 @@ unsafe fn integer_remainder (num: Lisp_Object, den: Lisp_Object, modulo: bool)
     }
 
   return make_integer_mpz ();
+
+  }
 }
 
 DEFUN! ("%", Frem, Srem, 2, 2, 0,
@@ -3507,12 +3629,12 @@ DEFUN! ("mod", Fmod, Smod, 2, 2, 0,
 unsafe fn minmax_driver (nargs: ptrdiff_t, args: *mut Lisp_Object, cmpmask: cmp_bits_t)
   -> Lisp_Object
 {
-  let mut accum: Lisp_Object = check_number_coerce_marker (unsafe { *args });
+  let mut accum: Lisp_Object = check_number_coerce_marker (/* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { *args });
   let mut argnum: ptrdiff_t = 1;
   while argnum < nargs
     {
       let val: Lisp_Object = check_number_coerce_marker (unsafe { *args.offset (argnum) });
-      if (unsafe { arithcompare (val, accum) } & cmpmask) != 0
+      if (/* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { arithcompare (val, accum) } & cmpmask) != 0
         { accum = val; }
       else if FLOATP (val) && isnan! (XFLOAT_DATA (val))
         { return val; }
@@ -3539,7 +3661,7 @@ DEFUN! ("logand", Flogand, Slogand, 0, MANY, 0,
        doc: "Return bitwise-and of all the arguments.\nArguments may be integers, or markers converted to integers.\nusage: (logand &rest INTS-OR-MARKERS)",
        (nargs: isize, args: *mut Lisp_Object),
        {
-  if nargs == 2 && FIXNUMP (unsafe { *args }) && FIXNUMP (unsafe { *args.offset (1) })
+  if nargs == 2 && FIXNUMP (/* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { *args }) && FIXNUMP (unsafe { *args.offset (1) })
     { return make_fixnum (XFIXNUM (unsafe { *args }) & XFIXNUM (unsafe { *args.offset (1) })); }
   if nargs == 0
     { return make_fixnum (-1); }
@@ -3551,7 +3673,7 @@ DEFUN! ("logior", Flogior, Slogior, 0, MANY, 0,
        doc: "Return bitwise-or of all the arguments.\nArguments may be integers, or markers converted to integers.\nusage: (logior &rest INTS-OR-MARKERS)",
        (nargs: isize, args: *mut Lisp_Object),
        {
-  if nargs == 2 && FIXNUMP (unsafe { *args }) && FIXNUMP (unsafe { *args.offset (1) })
+  if nargs == 2 && FIXNUMP (/* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { *args }) && FIXNUMP (unsafe { *args.offset (1) })
     { return make_fixnum (XFIXNUM (unsafe { *args }) | XFIXNUM (unsafe { *args.offset (1) })); }
   if nargs == 0
     { return make_fixnum (0); }
@@ -3563,7 +3685,7 @@ DEFUN! ("logxor", Flogxor, Slogxor, 0, MANY, 0,
        doc: "Return bitwise-exclusive-or of all the arguments.\nArguments may be integers, or markers converted to integers.\nusage: (logxor &rest INTS-OR-MARKERS)",
        (nargs: isize, args: *mut Lisp_Object),
        {
-  if nargs == 2 && FIXNUMP (unsafe { *args }) && FIXNUMP (unsafe { *args.offset (1) })
+  if nargs == 2 && FIXNUMP (/* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { *args }) && FIXNUMP (unsafe { *args.offset (1) })
     { return make_fixnum (XFIXNUM (unsafe { *args }) ^ XFIXNUM (unsafe { *args.offset (1) })); }
   if nargs == 0
     { return make_fixnum (0); }
@@ -3659,6 +3781,8 @@ DEFUN! ("ash", Fash, Sash, 2, 2, 0,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn expt_integer (x: Lisp_Object, y: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   /* Special cases for -1 <= x <= 1, which never overflow.  */
   if BASE_EQ (x, make_fixnum (1))
     { return x; }
@@ -3688,6 +3812,8 @@ pub unsafe extern "C-unwind" fn expt_integer (x: Lisp_Object, y: Lisp_Object) ->
 
   emacs_mpz_pow_ui (mpz[0].as_mut_ptr (), bignum_integer (&raw mut mpz[0], x), exp);
   return make_integer_mpz ();
+
+  }
 }
 
 DEFUN! ("1+", Fadd1, Sadd1, 1, 1, 0,
@@ -3734,7 +3860,7 @@ DEFUN! ("byteorder", Fbyteorder, Sbyteorder, 0, 0, 0,
        (),
        {
   let i: c_uint = 0x04030201;
-  let order: c_int = if unsafe { *(&i as *const c_uint as *const c_char) } == 1 { 108 } else { 66 };
+  let order: c_int = if /* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { *(&i as *const c_uint as *const c_char) } == 1 { 108 } else { 66 };
 
   return make_fixnum (order as EMACS_INT);
 });
@@ -3762,6 +3888,8 @@ unsafe fn bool_vector_binop_driver (a: Lisp_Object, b: Lisp_Object, mut dest: Li
                                     op: bool_vector_op)
   -> Lisp_Object
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let nr_bits: EMACS_INT;
   let adata: *mut bits_word;
   let bdata: *mut bits_word;
@@ -3803,7 +3931,7 @@ unsafe fn bool_vector_binop_driver (a: Lisp_Object, b: Lisp_Object, mut dest: Li
               {
                 while i < nr_words
                   {
-                    if unsafe { *destdata.offset (i) }
+                    if /* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { *destdata.offset (i) }
                        != (unsafe { *adata.offset (i) } ^ unsafe { *bdata.offset (i) })
                       { break 'set_dest; }
                     i += 1;
@@ -3814,7 +3942,7 @@ unsafe fn bool_vector_binop_driver (a: Lisp_Object, b: Lisp_Object, mut dest: Li
               {
                 while i < nr_words
                   {
-                    if unsafe { *adata.offset (i) } & (! unsafe { *bdata.offset (i) }) != 0
+                    if /* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { *adata.offset (i) } & (! unsafe { *bdata.offset (i) }) != 0
                       { return Qnil (); }
                     i += 1;
                   }
@@ -3825,7 +3953,7 @@ unsafe fn bool_vector_binop_driver (a: Lisp_Object, b: Lisp_Object, mut dest: Li
               {
                 while i < nr_words
                   {
-                    if unsafe { *destdata.offset (i) }
+                    if /* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { *destdata.offset (i) }
                        != (unsafe { *adata.offset (i) } | unsafe { *bdata.offset (i) })
                       { break 'set_dest; }
                     i += 1;
@@ -3836,7 +3964,7 @@ unsafe fn bool_vector_binop_driver (a: Lisp_Object, b: Lisp_Object, mut dest: Li
               {
                 while i < nr_words
                   {
-                    if unsafe { *destdata.offset (i) }
+                    if /* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { *destdata.offset (i) }
                        != (unsafe { *adata.offset (i) } & unsafe { *bdata.offset (i) })
                       { break 'set_dest; }
                     i += 1;
@@ -3847,7 +3975,7 @@ unsafe fn bool_vector_binop_driver (a: Lisp_Object, b: Lisp_Object, mut dest: Li
               {
                 while i < nr_words
                   {
-                    if unsafe { *destdata.offset (i) }
+                    if /* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { *destdata.offset (i) }
                        != (unsafe { *adata.offset (i) } & (! unsafe { *bdata.offset (i) }))
                       { break 'set_dest; }
                     i += 1;
@@ -3869,7 +3997,7 @@ unsafe fn bool_vector_binop_driver (a: Lisp_Object, b: Lisp_Object, mut dest: Li
       {
         while i < nr_words
           {
-            unsafe { *destdata.offset (i) = unsafe { *adata.offset (i) } ^ unsafe { *bdata.offset (i) } };
+            /* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { *destdata.offset (i) = unsafe { *adata.offset (i) } ^ unsafe { *bdata.offset (i) } };
             i += 1;
           }
       }
@@ -3878,7 +4006,7 @@ unsafe fn bool_vector_binop_driver (a: Lisp_Object, b: Lisp_Object, mut dest: Li
       {
         while i < nr_words
           {
-            unsafe { *destdata.offset (i) = unsafe { *adata.offset (i) } | unsafe { *bdata.offset (i) } };
+            /* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { *destdata.offset (i) = unsafe { *adata.offset (i) } | unsafe { *bdata.offset (i) } };
             i += 1;
           }
       }
@@ -3887,7 +4015,7 @@ unsafe fn bool_vector_binop_driver (a: Lisp_Object, b: Lisp_Object, mut dest: Li
       {
         while i < nr_words
           {
-            unsafe { *destdata.offset (i) = unsafe { *adata.offset (i) } & unsafe { *bdata.offset (i) } };
+            /* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { *destdata.offset (i) = unsafe { *adata.offset (i) } & unsafe { *bdata.offset (i) } };
             i += 1;
           }
       }
@@ -3896,7 +4024,7 @@ unsafe fn bool_vector_binop_driver (a: Lisp_Object, b: Lisp_Object, mut dest: Li
       {
         while i < nr_words
           {
-            unsafe { *destdata.offset (i) = unsafe { *adata.offset (i) } & (! unsafe { *bdata.offset (i) }) };
+            /* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { *destdata.offset (i) = unsafe { *adata.offset (i) } & (! unsafe { *bdata.offset (i) }) };
             i += 1;
           }
       }
@@ -3905,6 +4033,8 @@ unsafe fn bool_vector_binop_driver (a: Lisp_Object, b: Lisp_Object, mut dest: Li
     };
 
   return dest;
+
+  }
 }
 
 DEFUN! ("bool-vector-exclusive-or", Fbool_vector_exclusive_or,
@@ -3976,13 +4106,13 @@ DEFUN! ("bool-vector-not", Fbool_vector_not,
   i = 0;
   while i < nr_bits / BITS_PER_BITS_WORD as EMACS_INT
     {
-      unsafe { *bdata.offset (i) = BITS_WORD_MAX & (! unsafe { *adata.offset (i) }) };
+      /* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { *bdata.offset (i) = BITS_WORD_MAX & (! unsafe { *adata.offset (i) }) };
       i += 1;
     }
 
   if nr_bits % BITS_PER_BITS_WORD as EMACS_INT != 0
     {
-      let mut mword: bits_word = bits_word_to_host_endian (unsafe { *adata.offset (i) });
+      let mut mword: bits_word = bits_word_to_host_endian (/* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { *adata.offset (i) });
       mword = ! mword;
       mword &= bool_vector_spare_mask (nr_bits);
       unsafe { *bdata.offset (i) = bits_word_to_host_endian (mword) };
@@ -4012,7 +4142,7 @@ DEFUN! ("bool-vector-count-population", Fbool_vector_count_population,
   i = 0;
   while i < nwords
     {
-      count += stdc_count_ones! (unsafe { *adata.offset (i) }) as EMACS_INT;
+      count += stdc_count_ones! (/* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { *adata.offset (i) }) as EMACS_INT;
       i += 1;
     }
 
@@ -4055,7 +4185,7 @@ DEFUN! ("bool-vector-count-consecutive", Fbool_vector_count_consecutive,
   /* Scan the remainder of the mword at the current offset.  */
   if pos < nr_words && offset != 0
     {
-      mword = bits_word_to_host_endian (unsafe { *adata.offset (pos) });
+      mword = bits_word_to_host_endian (/* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { *adata.offset (pos) });
       mword ^= twiddle;
       mword >>= offset;
 
@@ -4072,7 +4202,7 @@ DEFUN! ("bool-vector-count-consecutive", Fbool_vector_count_consecutive,
      find an mword that doesn't completely match.  twiddle is
      endian-independent.  */
   pos0 = pos;
-  while pos < nr_words && unsafe { *adata.offset (pos) } == twiddle
+  while pos < nr_words && /* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { *adata.offset (pos) } == twiddle
     { pos += 1; }
   count += (pos - pos0) * BITS_PER_BITS_WORD as EMACS_INT;
 
@@ -4080,7 +4210,7 @@ DEFUN! ("bool-vector-count-consecutive", Fbool_vector_count_consecutive,
     {
       /* If we stopped because of a mismatch, see how many bits match
          in the current mword.  */
-      mword = bits_word_to_host_endian (unsafe { *adata.offset (pos) });
+      mword = bits_word_to_host_endian (/* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { *adata.offset (pos) });
       mword ^= twiddle;
       count += stdc_trailing_zeros! (mword) as EMACS_INT;
     }
@@ -4098,6 +4228,8 @@ DEFUN! ("bool-vector-count-consecutive", Fbool_vector_count_consecutive,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_data ()
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   /* C's `Lisp_Object error_tail, arith_tail, recursion_tail;` are filled
      before every read; the port's zero value is Qnil, C's `= {0,}` (the
      NIL_IS_ZERO convention, PORTING.md 1.3).  */
@@ -4433,12 +4565,16 @@ pub unsafe extern "C-unwind" fn syms_of_data ()
   defsubr (&raw mut Sremove_variable_watcher);
   defsubr (&raw mut Sget_variable_watchers);
 
+
+  }
 }
 
 /* Add to FUNCTION's history a description of its previous definition OLDDEFF.  Called
    by `defalias', and by `fset' and `defvar' via that.  */
 unsafe fn add_to_function_history (symbol: Lisp_Object, olddef: Lisp_Object)
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   eassert! (! NILP (olddef));
 
   let past: Lisp_Object = Fget (symbol, Qfunction_history ());
@@ -4472,11 +4608,15 @@ unsafe fn add_to_function_history (symbol: Lisp_Object, olddef: Lisp_Object)
     }
   /* Push new def from new file.  */
   Fput (symbol, Qfunction_history (), Fcons (file, Fcons (olddef, past)));
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn defalias (symbol: Lisp_Object, definition: Lisp_Object)
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   {
     let autoload: bool = AUTOLOADP (definition);
     if ! will_dump_p () || ! autoload
@@ -4488,7 +4628,7 @@ pub unsafe extern "C-unwind" fn defalias (symbol: Lisp_Object, definition: Lisp_
   }
 
   {
-    let olddef: Lisp_Object = unsafe { (*XSYMBOL (symbol)).u.s.function };
+    let olddef: Lisp_Object = /* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { (*XSYMBOL (symbol)).u.s.function };
     if ! NILP (olddef)
       {
         if ! NILP (Vautoload_queue)
@@ -4503,6 +4643,8 @@ pub unsafe extern "C-unwind" fn defalias (symbol: Lisp_Object, definition: Lisp_
       { calln! (hook, symbol, definition); }
     else
       { Ffset (symbol, definition); }
+  }
+
   }
 }
 

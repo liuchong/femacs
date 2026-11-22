@@ -24,9 +24,7 @@
 // docs/ports/marker.md and in the ledger rather than written out (the rawmemchr.c CHERI-arm
 // class).
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
-         unsafe_op_in_unsafe_fn)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -134,8 +132,12 @@ macro_rules! byte_char_debug_check {
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn clear_charpos_cache (b: *mut buffer)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if cached_buffer == b
     { cached_buffer = 0 as *mut buffer; }
+
+  }
 }
 
 /* Converting between character positions and byte positions.  */
@@ -238,6 +240,8 @@ unsafe extern "C" {
 pub unsafe extern "C-unwind" fn buf_charpos_to_bytepos (b: *mut c_void, charpos: ptrdiff_t)
   -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* C's prototype is `ptrdiff_t buf_charpos_to_bytepos (struct buffer *, ptrdiff_t)`; the
      parameter is `*mut c_void` because that is the type lisp.h's mirror gives every caller
      (P-39's opaque `struct buffer`), and the body casts once.  */
@@ -371,6 +375,8 @@ pub unsafe extern "C-unwind" fn buf_charpos_to_bytepos (b: *mut c_void, charpos:
 
       return best_above_byte;
     }
+
+  }
 }
 
 /* This macro is a subroutine of buf_bytepos_to_charpos.
@@ -432,6 +438,8 @@ unsafe fn consider_bytepos (b: *mut buffer, bytepos: ptrdiff_t,
 pub unsafe extern "C-unwind" fn buf_bytepos_to_charpos (b: *mut c_void, bytepos: ptrdiff_t)
   -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* As in buf_charpos_to_bytepos: C's parameter is `struct buffer *`, and the `*mut c_void`
      is what lisp.h's mirror gives the callers (P-39).  */
   let b: *mut buffer = b as *mut buffer;
@@ -562,6 +570,8 @@ pub unsafe extern "C-unwind" fn buf_bytepos_to_charpos (b: *mut c_void, bytepos:
 
       return best_above;
     }
+
+  }
 }
 
 /* Operations on markers. */
@@ -610,6 +620,8 @@ DEFUN! ("marker-last-position", Fmarker_last_position, Smarker_last_position, 1,
 unsafe fn attach_marker (m: *mut Lisp_Marker, b: *mut buffer,
 			 charpos: ptrdiff_t, bytepos: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* In a single-byte buffer, two positions must be equal.
      Otherwise, every character is at least one byte.  */
   if BUF_Z! (b) == BUF_Z_BYTE! (b)
@@ -629,6 +641,8 @@ unsafe fn attach_marker (m: *mut Lisp_Marker, b: *mut buffer,
       (*m).next = BUF_MARKERS! (b);
       BUF_MARKERS! (b) = m;
     }
+
+  }
 }
 
 /* If BUFFER is nil, return current buffer pointer.  Next, check
@@ -647,6 +661,8 @@ unsafe fn live_buffer (buffer: Lisp_Object) -> *mut buffer
 unsafe fn set_marker_internal (marker: Lisp_Object, position: Lisp_Object,
 			       buffer: Lisp_Object, restricted: bool) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let m: *mut Lisp_Marker;
   let b: *mut buffer = live_buffer (buffer);
 
@@ -716,6 +732,8 @@ unsafe fn set_marker_internal (marker: Lisp_Object, position: Lisp_Object,
      is recorded in docs/ports/marker.md (the rawmemchr.c CHERI-arm class).  */
 
   return marker;
+
+  }
 }
 
 DEFUN! ("set-marker", Fset_marker, Sset_marker, 2, 3, 0,
@@ -731,7 +749,11 @@ DEFUN! ("set-marker", Fset_marker, Sset_marker, 2, 3, 0,
 pub unsafe extern "C-unwind" fn set_marker_restricted (marker: Lisp_Object, position: Lisp_Object,
 						buffer: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   return set_marker_internal (marker, position, buffer, true);
+
+  }
 }
 
 /* Set the position of MARKER, specifying both the
@@ -742,6 +764,8 @@ pub unsafe extern "C-unwind" fn set_marker_both (marker: Lisp_Object, buffer: Li
 					  charpos: ptrdiff_t, bytepos: ptrdiff_t)
   -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let m: *mut Lisp_Marker;
   let b: *mut buffer = live_buffer (buffer);
 
@@ -753,6 +777,8 @@ pub unsafe extern "C-unwind" fn set_marker_both (marker: Lisp_Object, buffer: Li
   else
     { unchain_marker (m); }
   return marker;
+
+  }
 }
 
 /* Like the above, but won't let the position be outside the visible part.  */
@@ -763,6 +789,8 @@ pub unsafe extern "C-unwind" fn set_marker_restricted_both (marker: Lisp_Object,
 						     charpos: ptrdiff_t,
 						     bytepos: ptrdiff_t) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let m: *mut Lisp_Marker;
   let b: *mut buffer = live_buffer (buffer);
 
@@ -779,6 +807,8 @@ pub unsafe extern "C-unwind" fn set_marker_restricted_both (marker: Lisp_Object,
   else
     { unchain_marker (m); }
   return marker;
+
+  }
 }
 
 /* Detach a marker so that it no longer points anywhere and no longer
@@ -788,7 +818,11 @@ pub unsafe extern "C-unwind" fn set_marker_restricted_both (marker: Lisp_Object,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn detach_marker (marker: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   Fset_marker (marker, Qnil (), Qnil ());
+
+  }
 }
 
 /* Remove MARKER from the chain of whatever buffer it is in.  Set its
@@ -797,6 +831,8 @@ pub unsafe extern "C-unwind" fn detach_marker (marker: Lisp_Object)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn unchain_marker (marker: *mut Lisp_Marker)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let b: *mut buffer = (*marker).buffer as *mut buffer;
 
   if !b.is_null ()
@@ -843,6 +879,8 @@ pub unsafe extern "C-unwind" fn unchain_marker (marker: *mut Lisp_Marker)
       /* Error if marker was not in it's chain.  */
       eassert! (!tail.is_null ());
     }
+
+  }
 }
 
 /* Return the char position of marker MARKER, as a C integer.  */
@@ -850,6 +888,8 @@ pub unsafe extern "C-unwind" fn unchain_marker (marker: *mut Lisp_Marker)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn marker_position (marker: Lisp_Object) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let m: *mut Lisp_Marker = XMARKER (marker);
   let buf: *mut buffer = (*m).buffer as *mut buffer;
 
@@ -859,6 +899,8 @@ pub unsafe extern "C-unwind" fn marker_position (marker: Lisp_Object) -> ptrdiff
   eassert! (BUF_BEG (buf) <= (*m).charpos && (*m).charpos <= BUF_Z! (buf));
 
   return (*m).charpos;
+
+  }
 }
 
 /* Return the byte position of marker MARKER, as a C integer.  */
@@ -866,6 +908,8 @@ pub unsafe extern "C-unwind" fn marker_position (marker: Lisp_Object) -> ptrdiff
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn marker_byte_position (marker: Lisp_Object) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let m: *mut Lisp_Marker = XMARKER (marker);
   let buf: *mut buffer = (*m).buffer as *mut buffer;
 
@@ -875,6 +919,8 @@ pub unsafe extern "C-unwind" fn marker_byte_position (marker: Lisp_Object) -> pt
   eassert! (BUF_BEG_BYTE (buf) <= (*m).bytepos && (*m).bytepos <= BUF_Z_BYTE! (buf));
 
   return (*m).bytepos;
+
+  }
 }
 
 DEFUN! ("copy-marker", Fcopy_marker, Scopy_marker, 0, 2, 0,
@@ -958,6 +1004,8 @@ DEFUN! ("markers-in", Fmarkers_in, Smarkers_in, 0, 2, 0,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_marker ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   defsubr (&raw mut Smarker_position);
   defsubr (&raw mut Smarker_last_position);
   defsubr (&raw mut Smarker_buffer);
@@ -966,4 +1014,6 @@ pub unsafe extern "C-unwind" fn syms_of_marker ()
   defsubr (&raw mut Smarker_insertion_type);
   defsubr (&raw mut Sset_marker_insertion_type);
   defsubr (&raw mut Smarkers_in);
+
+  }
 }

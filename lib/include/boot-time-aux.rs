@@ -286,6 +286,8 @@ pub unsafe fn get_openbsd_boot_time (p_boot_time: *mut timespec) -> c_int
 #[cfg (all (not (feature = "not_have_sys_sysctl_h"), not (feature = "not_have_sysctl")))]
 pub unsafe fn get_bsd_boot_time_final_fallback (p_boot_time: *mut timespec) -> c_int
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   static mut request: [c_int; 2] = [CTL_KERN, KERN_BOOTTIME];
   let mut result: timeval = timeval { tv_sec: 0, tv_usec: 0 };
   let mut result_len: usize = std::mem::size_of_val (&result);
@@ -299,6 +301,8 @@ pub unsafe fn get_bsd_boot_time_final_fallback (p_boot_time: *mut timespec) -> c
       return 0;
     }
   return -1;
+
+  }
 }
 
 /* C 258-282: `#if defined __HAIKU__` - dead on this target, carried; `xtask dead-arms` is

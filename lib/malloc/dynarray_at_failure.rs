@@ -6,9 +6,7 @@
 // check sees both arms: the dead one is kept as the non-frozen side's text under the feature
 // that names it (P-51, the md5-stream.rs shape).  C 24's `#include <dynarray.h>` is the gnulib
 // wrapper, which reaches the shared header with no `DYNARRAY_*` defined (its `#else` arm).
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
-         static_mut_refs, unsafe_op_in_unsafe_fn)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -31,6 +29,8 @@ unsafe extern "C" {
 #[unsafe(export_name = "_gl_dynarray_at_failure")]
 pub unsafe extern "C" fn __libc_dynarray_at_failure (size: usize, index: usize) -> !
 {
+  // SAFETY: gnulib/OS raw buffer or dynamic-array boundary; caller upholds pointer validity, element capacity, and single-owner mutation invariants, returning error/null on overflow or OOM.
+  unsafe {
   /* C 30-35's `#ifdef _LIBC` arm, kept as text even though nothing compiles it here.  */
   #[cfg(feature = "libc")]
   {
@@ -49,4 +49,6 @@ pub unsafe extern "C" fn __libc_dynarray_at_failure (size: usize, index: usize) 
   }
   /* C 36-38's `#else` arm.  */
   abort ();
+
+  }
 }

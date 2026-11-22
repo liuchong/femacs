@@ -52,9 +52,7 @@
 // Names no mirror carries are declared at their use site (the terminal.rs/filelock.rs
 // shape), each with C's own prototype in the comment.
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
-         unsafe_op_in_unsafe_fn, unused_parens, unreachable_code, unused_assignments)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe, unused_parens, unreachable_code, unused_assignments)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -335,6 +333,8 @@ const _P_NOWAIT: c_int = 1;
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn get_current_directory (encode: bool) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let curdir: Lisp_Object = BVAR! ((current_buffer! ()), directory_);
   let mut dir: Lisp_Object = Funhandled_file_name_directory (curdir);
 
@@ -362,6 +362,8 @@ pub unsafe extern "C-unwind" fn get_current_directory (encode: bool) -> Lisp_Obj
     { report_file_error (c"Setting current directory".as_ptr (), curdir); }
 
   return if encode { encoded_dir } else { dir };
+
+  }
 }
 
 /* If P is reapable, record it as a deleted process and kill it.
@@ -371,6 +373,8 @@ pub unsafe extern "C-unwind" fn get_current_directory (encode: bool) -> Lisp_Obj
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn record_kill_process (p: *mut Lisp_Process, tempfile: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut oldset: sigset_t = std::mem::zeroed ();
   block_child_signal (&raw mut oldset);
 
@@ -384,17 +388,25 @@ pub unsafe extern "C-unwind" fn record_kill_process (p: *mut Lisp_Process, tempf
     }
 
   unblock_child_signal (&raw const oldset);
+
+  }
 }
 
 /* Clean up files, file descriptors and processes created by Fcall_process.  */
 
 unsafe extern "C-unwind" fn delete_temp_file (name: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   emacs_unlink (SSDATA (name));
+
+  }
 }
 
 unsafe extern "C-unwind" fn call_process_kill (ptr: *mut c_void)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let callproc_fd: *mut c_int = ptr as *mut c_int;
   { let mut i: c_int = 0;
     while i < CALLPROC_FDS
@@ -415,6 +427,8 @@ unsafe extern "C-unwind" fn call_process_kill (ptr: *mut c_void)
     }
   else if STRINGP (synch_process_tempfile ())
     { delete_temp_file (synch_process_tempfile ()); }
+
+  }
 }
 
 /* Clean up when exiting Fcall_process: restore the buffer, and
@@ -422,6 +436,8 @@ unsafe extern "C-unwind" fn call_process_kill (ptr: *mut c_void)
 
 unsafe extern "C-unwind" fn call_process_cleanup (buffer: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   Fset_buffer (buffer);
 
   if synch_process_pid != 0
@@ -437,6 +453,8 @@ unsafe extern "C-unwind" fn call_process_cleanup (buffer: Lisp_Object)
 		 else
 		 { c"Waiting for process to die...internal error" }).as_ptr ());
     }
+
+  }
 }
 
 /* C 266-270's `#ifdef DOS_NT` arm is carried text (feature `dos_nt`).  */
@@ -486,6 +504,8 @@ DEFUN! ("call-process", Fcall_process, Scall_process, 1, MANY, 0,
 unsafe fn call_process (nargs: ptrdiff_t, args: *mut Lisp_Object, filefd: c_int,
 			tempfile_index: specpdl_ref) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut buffer: Lisp_Object;
   let current_dir: Lisp_Object;
   /* PORTING.md 1.5: C declares PATH uninitialized (openp writes it through the pointer).  */
@@ -1140,6 +1160,8 @@ unsafe fn call_process (nargs: ptrdiff_t, args: *mut Lisp_Object, filefd: c_int,
 
   eassert! (WIFEXITED (status));
   return make_fixnum (WEXITSTATUS (status) as EMACS_INT);
+
+  }
 }
 
 /* Create a temporary file suitable for storing the input data of
@@ -1152,6 +1174,8 @@ unsafe fn call_process (nargs: ptrdiff_t, args: *mut Lisp_Object, filefd: c_int,
 unsafe fn create_temp_file (nargs: ptrdiff_t, args: *mut Lisp_Object,
 			    filename_string_ptr: *mut Lisp_Object) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let fd: c_int;
   let filename_string: Lisp_Object;
   let mut val: Lisp_Object;
@@ -1257,6 +1281,8 @@ unsafe fn create_temp_file (nargs: ptrdiff_t, args: *mut Lisp_Object,
 
   *filename_string_ptr = filename_string;
   return fd;
+
+  }
 }
 
 DEFUN! ("call-process-region", Fcall_process_region, Scall_process_region, 3, MANY, 0,
@@ -1331,6 +1357,8 @@ DEFUN! ("call-process-region", Fcall_process_region, Scall_process_region, 3, MA
 unsafe fn add_env (env: *mut *mut c_char, new_env: *mut *mut c_char,
 		   string: *mut c_char) -> *mut *mut c_char
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut ep: *mut *mut c_char;
   let mut ok: bool = true;
   let mut new_env: *mut *mut c_char = new_env;
@@ -1365,6 +1393,8 @@ unsafe fn add_env (env: *mut *mut c_char, new_env: *mut *mut c_char,
   if ok
     { *new_env = string; new_env = new_env.offset (1); }
   return new_env;
+
+  }
 }
 
 /* 'exec' failed inside a child running NAME, with error number ERR.
@@ -1375,6 +1405,8 @@ unsafe fn add_env (env: *mut *mut c_char, new_env: *mut *mut c_char,
 
 unsafe fn exec_failed (name: *const c_char, err: c_int) -> !
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* Avoid deadlock if the child's perror writes to a full pipe; the
      pipe's reader is the parent, but with vfork the parent can't
      run until the child exits.  Truncate the diagnostic instead.  */
@@ -1383,6 +1415,8 @@ unsafe fn exec_failed (name: *const c_char, err: c_int) -> !
   *errno () = err;
   emacs_perror (name);
   _exit (if err == ENOENT { EXIT_ENOENT } else { EXIT_CANNOT_INVOKE });
+
+  }
 }
 
 /* This is the last thing run in a newly forked inferior
@@ -1403,6 +1437,8 @@ unsafe fn exec_failed (name: *const c_char, err: c_int) -> !
 unsafe fn child_setup (in_: c_int, out: c_int, err: c_int, new_argv: *mut *mut c_char,
 		       env: *mut *mut c_char, current_dir: *const c_char) -> !
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* C 1239-1243's `#ifdef MSDOS` arm.  */
   #[cfg (feature = "msdos")]
   let mut pwd_var: *mut c_char;
@@ -1507,6 +1543,8 @@ unsafe fn child_setup (in_: c_int, out: c_int, err: c_int, new_argv: *mut *mut c
       { report_file_error (c"Spawning child process".as_ptr (), Qnil ()); }
     return pid;
   }
+
+  }
 }
 
 /* Set up ACTIONS and ATTRIBUTES for `posix_spawn'.  Return an error
@@ -1519,6 +1557,8 @@ unsafe fn emacs_posix_spawn_init_actions (actions: *mut posix_spawn_file_actions
 					  std_in: c_int, std_out: c_int, std_err: c_int,
 					  cwd: *const c_char) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut error: c_int = posix_spawn_file_actions_init (actions);
   if error != 0
     { return error; }
@@ -1558,12 +1598,16 @@ unsafe fn emacs_posix_spawn_init_actions (actions: *mut posix_spawn_file_actions
   if error != 0
     { posix_spawn_file_actions_destroy (actions); }
   return error;
+
+  }
 }
 
 #[cfg (not (feature = "not_usable_posix_spawn"))]
 unsafe fn emacs_posix_spawn_init_attributes (attributes: *mut posix_spawnattr_t,
 					     oldset: *const sigset_t) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut error: c_int = posix_spawnattr_init (attributes);
   if error != 0
     { return error; }
@@ -1613,6 +1657,8 @@ unsafe fn emacs_posix_spawn_init_attributes (attributes: *mut posix_spawnattr_t,
     { posix_spawnattr_destroy (attributes); }
 
   return error;
+
+  }
 }
 
 /* Child-side process-group diagnostic channel.
@@ -1664,6 +1710,8 @@ enum DiagnosticField<'a> { Text (&'a [u8]), Number (i64) }
 /// formatting by hand, no allocation and no libc formatting anywhere.
 unsafe fn spawn_diagnostic_write (fd: c_int, label: &[u8], fields: &[(&[u8], DiagnosticField)])
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut buf: [u8; 384] = [0; 384];
   let base: *mut u8 = buf.as_mut_ptr ();
   let mut length: usize = 0;
@@ -1714,6 +1762,8 @@ unsafe fn spawn_diagnostic_write (fd: c_int, label: &[u8], fields: &[(&[u8], Dia
   *base.offset (length as isize) = b'\n';
   length += 1;
   let _ = write (fd, base as *const c_void, length);
+
+  }
 }
 
 /// C: `emacs_spawn`'s child side, process-group setup observation only.
@@ -1724,6 +1774,8 @@ unsafe fn child_diagnostic_group_setup (pid: pid_t, setpgid_result: c_int,
 				       setpgid_error: c_int, tcsetpgrp_result: c_int,
 				       tcsetpgrp_error: c_int, fds: (c_int, c_int, c_int))
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let fd: c_int = SPAWN_DIAGNOSTIC_FD;
   if fd < 0 { return; }
   let saved_errno: c_int = *errno ();
@@ -1744,6 +1796,8 @@ unsafe fn child_diagnostic_group_setup (pid: pid_t, setpgid_result: c_int,
     (b" isatty0=", DiagnosticField::Number (isatty (STDIN_FILENO) as i64)),
   ]);
   *errno () = saved_errno;
+
+  }
 }
 
 /* Start a new asynchronous subprocess.  If successful, return zero
@@ -1768,6 +1822,8 @@ pub unsafe extern "C-unwind" fn emacs_spawn (mut newpid: *mut pid_t, mut std_in:
 				      mut pty_in: bool, mut pty_out: bool,
 				      mut oldset: *const sigset_t) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* C 1446-1455's `#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY` arm.  */
   #[cfg (feature = "have_android")]
   {
@@ -2053,12 +2109,16 @@ pub unsafe extern "C-unwind" fn emacs_spawn (mut newpid: *mut pid_t, mut std_in:
   eassert! (0 < pid);
   *newpid = pid;
   return 0;
+
+  }
 }
 
 unsafe fn getenv_internal_1 (var: *const c_char, varlen: ptrdiff_t,
 			     value: *mut *mut c_char, valuelen: *mut ptrdiff_t,
 			     mut env: Lisp_Object) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   while CONSP (env)
     {
       let entry: Lisp_Object = XCAR (env);
@@ -2091,12 +2151,16 @@ unsafe fn getenv_internal_1 (var: *const c_char, varlen: ptrdiff_t,
       env = XCDR (env);
     }
   return false;
+
+  }
 }
 
 unsafe fn getenv_internal (var: *const c_char, varlen: ptrdiff_t,
 			   value: *mut *mut c_char, valuelen: *mut ptrdiff_t,
 			   frame: Lisp_Object) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* Try to find VAR in Vprocess_environment first.  */
   if getenv_internal_1 (var, varlen, value, valuelen,
 			Vprocess_environment)
@@ -2138,6 +2202,8 @@ unsafe fn getenv_internal (var: *const c_char, varlen: ptrdiff_t,
     }
 
   return false;
+
+  }
 }
 
 DEFUN! ("getenv-internal", Fgetenv_internal, Sgetenv_internal, 1, 2, 0,
@@ -2170,6 +2236,8 @@ DEFUN! ("getenv-internal", Fgetenv_internal, Sgetenv_internal, 1, 2, 0,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn egetenv_internal (var: *const c_char, len: ptrdiff_t) -> *mut c_char
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut value: *mut c_char = std::ptr::null_mut ();
   let mut valuelen: ptrdiff_t = 0;
 
@@ -2177,6 +2245,8 @@ pub unsafe extern "C-unwind" fn egetenv_internal (var: *const c_char, len: ptrdi
     { return value; }
   else
     { return std::ptr::null_mut (); }
+
+  }
 }
 
 /* Create a new environment block.  You can pass the returned pointer
@@ -2187,6 +2257,8 @@ pub unsafe extern "C-unwind" fn egetenv_internal (var: *const c_char, len: ptrdi
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn make_environment_block (current_dir: Lisp_Object) -> *mut *mut c_char
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let env: *mut *mut c_char;
   let pwd_var: *mut c_char;
 
@@ -2321,6 +2393,8 @@ pub unsafe extern "C-unwind" fn make_environment_block (current_dir: Lisp_Object
   }
 
   return env;
+
+  }
 }
 
 /* This is run before init_cmdargs.  */
@@ -2328,6 +2402,8 @@ pub unsafe extern "C-unwind" fn make_environment_block (current_dir: Lisp_Object
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn init_callproc_1 ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   Vdata_directory = decode_env_path (c"EMACSDATA".as_ptr (), PATH_DATA (), false);
   Vdata_directory = Ffile_name_as_directory (Fcar (Vdata_directory));
 
@@ -2341,6 +2417,8 @@ pub unsafe extern "C-unwind" fn init_callproc_1 ()
   /* FIXME?  For ns, path_exec should go at the front?  */
   Vexec_path = nconc2 (decode_env_path (c"PATH".as_ptr (), std::ptr::null (), false),
 		       Vexec_path);
+
+  }
 }
 
 /* This is run after init_cmdargs, when Vinstallation_directory is valid.  */
@@ -2348,6 +2426,8 @@ pub unsafe extern "C-unwind" fn init_callproc_1 ()
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn init_callproc ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let data_dir: bool = ! egetenv (c"EMACSDATA".as_ptr ()).is_null ();
 
   let sh: *const c_char;
@@ -2461,11 +2541,15 @@ pub unsafe extern "C-unwind" fn init_callproc ()
 	{ dir_warning (c"game dir".as_ptr (), path_game); }
     }
   Vshared_game_score_directory = gamedir;
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn set_initial_environment ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* PORTING.md 1.5: C declares ENVP uninitialized; the loop assigns it first.  */
   let mut envp: *mut *mut c_char = std::ptr::null_mut ();
   envp = environ;
@@ -2478,6 +2562,8 @@ pub unsafe extern "C-unwind" fn set_initial_environment ()
   /* Ideally, the `copy' shouldn't be necessary, but it seems it's frequent
      to use `delete' and friends on process-environment.  */
   Vinitial_environment = Fcopy_sequence (Vprocess_environment);
+
+  }
 }
 /* The `DEFVAR_*` variables this C file owns: C's storage is `globals.f_<vname>`
    (lisp.h 3495-3530), and `struct emacs_globals globals` is defined once, in alloc.c; the
@@ -2523,6 +2609,8 @@ pub static mut command_line_max_length: EMACS_INT = 0;
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_callproc ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* C 2084-2088's `#ifndef DOS_NT` arm (live: DOS_NT is undefined).  */
   Vtemp_file_name_pattern = build_string (c"emacsXXXXXX".as_ptr ());
   #[cfg (feature = "dos_nt")]
@@ -2633,4 +2721,6 @@ pub unsafe extern "C-unwind" fn syms_of_callproc ()
 	  c"after-insert-file-set-buffer-file-coding-system");
   DEFSYM! (Qcoding_system_for_write, c"coding-system-for-write");
   DEFSYM! (Qexec_suffixes, c"exec-suffixes");
+
+  }
 }

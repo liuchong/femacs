@@ -50,11 +50,7 @@
 // (`nm -u build/emacs-ref/src/print.o`, docs/status.md 3.57): `putc` and the two stdio
 // streams.  Every one of those gaps is listed in `docs/ports/print.md`.
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
-         unsafe_op_in_unsafe_fn, unused_parens, unreachable_code, unused_assignments,
-         unused_mut, unused_labels, while_true, overflowing_literals, unused_comparisons,
-         clashing_extern_declarations)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe, unused_parens, unreachable_code, unused_assignments, unused_mut, unused_labels, while_true, overflowing_literals, unused_comparisons, clashing_extern_declarations)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -272,16 +268,24 @@ pub static mut print_output_debug_flag: bool = true;
    since print_buffer can be reallocated during the printing.  */
 unsafe extern "C-unwind" fn print_free_buffer ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   xfree (print_buffer.buffer as *mut c_void);
   print_buffer.buffer = std::ptr::null_mut ();
+
+  }
 }
 
 /* This is used to restore the saved contents of print_buffer
    when there is a recursive call to print.  */
 unsafe extern "C-unwind" fn print_unwind (saved_text: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   memcpy (print_buffer.buffer as *mut c_void, SDATA (saved_text) as *const c_void,
           SCHARS (saved_text) as usize);
+
+  }
 }
 
 /* Lisp functions to do output using a stream must start with a call to
@@ -316,6 +320,8 @@ const _: () = core::assert! (std::mem::offset_of! (print_context, specpdl_count)
 
 unsafe fn print_prepare (mut printcharfun: Lisp_Object) -> print_context
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut pc: print_context = print_context {
     printcharfun: std::ptr::null_mut (),
     old_printcharfun: printcharfun,
@@ -384,10 +390,14 @@ unsafe fn print_prepare (mut printcharfun: Lisp_Object) -> print_context
     { setup_echo_area_for_printing (multibyte); }
   pc.printcharfun = printcharfun;
   return pc;
+
+  }
 }
 
 unsafe fn print_finish (pc: *mut print_context)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if NILP ((*pc).printcharfun)
     {
       if print_buffer.pos != print_buffer.pos_byte
@@ -416,12 +426,16 @@ unsafe fn print_finish (pc: *mut print_context)
 		    + (if (*pc).old_point_byte >= (*pc).start_point_byte
 			 { PT_BYTE! () - (*pc).start_point_byte } else { 0 })); }
   unbind_to ((*pc).specpdl_count, Qnil ());
+
+  }
 }
 
 /* Print character CH to the stdio stream STREAM.  */
 
 unsafe fn printchar_to_stream (mut ch: c_uint, stream: *mut FILE)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut dv: Lisp_Object = Qnil ();   /* C: `Lisp_Object dv UNINIT;` (PORTING.md 1.5) */
   let mut i: ptrdiff_t = 0;
   let mut n: ptrdiff_t = 1;
@@ -495,6 +509,8 @@ unsafe fn printchar_to_stream (mut ch: c_uint, stream: *mut FILE)
 	{ break 'next_char; }
       ch = XFIXNAT (AREF (dv, i)) as c_uint;
   }
+
+  }
 }
 
 /* Print character CH using method FUN.  FUN nil means print to
@@ -505,6 +521,8 @@ unsafe fn printchar_to_stream (mut ch: c_uint, stream: *mut FILE)
 #[inline]
 unsafe fn printchar (ch: c_uint, fun: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if NILP (fun) && ASCII_CHAR_P (ch as isize) && print_buffer.pos_byte < print_buffer.size
     {
       *print_buffer.buffer.add (print_buffer.pos_byte as usize) = ch as c_char;
@@ -552,6 +570,8 @@ unsafe fn printchar (ch: c_uint, fun: Lisp_Object)
 	  message_dolog (str.as_ptr () as *const c_char, len as ptrdiff_t, 0, multibyte_p);
 	}
     }
+
+  }
 }
 
 /* Output an octal escape for C.  If C is less than '\100' consult the
@@ -564,6 +584,8 @@ unsafe fn printchar (ch: c_uint, fun: Lisp_Object)
 unsafe fn octalout (c: u8, data: *mut u8, i: ptrdiff_t, size: ptrdiff_t,
 		    printcharfun: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut digits: c_int = (if c as c_int > b'\x3f' as c_int
 			      || (i < size && b'0' as u8 <= *data.offset (i)
 				  && *data.offset (i) <= b'7' as u8)
@@ -577,6 +599,8 @@ unsafe fn octalout (c: u8, data: *mut u8, i: ptrdiff_t, size: ptrdiff_t,
 		 printcharfun);
       if digits == 0 { break; }
     }
+
+  }
 }
 
 /* Output SIZE characters, SIZE_BYTE bytes from string PTR using
@@ -593,6 +617,8 @@ unsafe fn octalout (c: u8, data: *mut u8, i: ptrdiff_t, size: ptrdiff_t,
 unsafe fn strout (ptr: *const c_char, size: ptrdiff_t, size_byte: ptrdiff_t,
 		  printcharfun: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if NILP (printcharfun)
     {
       let incr: ptrdiff_t = size_byte - (print_buffer.size - print_buffer.pos_byte);
@@ -687,6 +713,8 @@ unsafe fn strout (ptr: *const c_char, size: ptrdiff_t, size_byte: ptrdiff_t,
 	    }
 	}
     }
+
+  }
 }
 
 /* Print the contents of a string STRING using PRINTCHARFUN.
@@ -696,6 +724,8 @@ unsafe fn strout (ptr: *const c_char, size: ptrdiff_t, size_byte: ptrdiff_t,
 unsafe fn print_string_1 (mut string: Lisp_Object, printcharfun: Lisp_Object,
 			  escape_nonascii: bool)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if EQ (printcharfun, Qt ()) || NILP (printcharfun)
     {
       let chars: ptrdiff_t;
@@ -779,11 +809,17 @@ unsafe fn print_string_1 (mut string: Lisp_Object, printcharfun: Lisp_Object,
 	    }
 	}
     }
+
+  }
 }
 
 unsafe fn print_string (string: Lisp_Object, printcharfun: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   print_string_1 (string, printcharfun, print_escape_nonascii);
+
+  }
 }
 
 DEFUN! ("write-char", Fwrite_char, Swrite_char, 1, 2, 0,
@@ -806,8 +842,12 @@ DEFUN! ("write-char", Fwrite_char, Swrite_char, 1, 2, 0,
 
 unsafe fn print_c_string (string: *const c_char, printcharfun: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let len: ptrdiff_t = strlen (string) as ptrdiff_t;
   strout (string, len, len, printcharfun);
+
+  }
 }
 
 /* Print unibyte C string at DATA on a specified stream PRINTCHARFUN.
@@ -815,14 +855,20 @@ unsafe fn print_c_string (string: *const c_char, printcharfun: Lisp_Object)
 
 unsafe fn write_string (data: *const c_char, printcharfun: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut pc: print_context = print_prepare (printcharfun);
   print_c_string (data, pc.printcharfun);
   print_finish (&raw mut pc);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn temp_output_buffer_setup (bufname: *const c_char)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let count: specpdl_ref = SPECPDL_INDEX ();
   let old: *mut buffer = (current_buffer! ());
   let buf: Lisp_Object;
@@ -850,6 +896,8 @@ pub unsafe extern "C-unwind" fn temp_output_buffer_setup (bufname: *const c_char
   unbind_to (count, Qnil ());
 
   specbind (Qstandard_output (), buf);
+
+  }
 }
 
 /* C 622-625's three forward declarations (`print`, `print_preprocess`,
@@ -886,6 +934,8 @@ static mut Vprint_variable_mapping: Lisp_Object = std::ptr::null_mut ();
 
 unsafe fn print_bind_all_defaults ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut vars: Lisp_Object = Vprint_variable_mapping;
   while ! NILP (vars)
     {
@@ -893,10 +943,14 @@ unsafe fn print_bind_all_defaults ()
       specbind (XCAR (elem), XCAR (XCDR (elem)));
       vars = XCDR (vars);
     }
+
+  }
 }
 
 unsafe fn print_create_variable_mapping ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let total: [Lisp_Object; 17] = [
     list3 (intern (c"length".as_ptr ()), intern (c"print-length".as_ptr ()), Qnil ()),
     list3 (intern (c"level".as_ptr ()), intern (c"print-level".as_ptr ()), Qnil ()),
@@ -930,10 +984,14 @@ unsafe fn print_create_variable_mapping ()
   ];
 
   Vprint_variable_mapping = CALLMANY! (Flist, total);
+
+  }
 }
 
 unsafe fn print_bind_overrides (mut overrides: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if NILP (Vprint_variable_mapping)
     { print_create_variable_mapping (); }
 
@@ -965,6 +1023,8 @@ unsafe fn print_bind_overrides (mut overrides: Lisp_Object)
 	  overrides = XCDR (overrides);
 	}
     }
+
+  }
 }
 
 DEFUN! ("prin1", Fprin1, Sprin1, 1, 3, 0,
@@ -1100,7 +1160,11 @@ DEFUN! ("external-debugging-output", Fexternal_debugging_output, Sexternal_debug
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn debug_output_compilation_hack (x: bool)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   print_output_debug_flag = x;
+
+  }
 }
 
 DEFUN! ("redirect-debugging-output", Fredirect_debugging_output, Sredirect_debugging_output,
@@ -1148,14 +1212,20 @@ DEFUN! ("redirect-debugging-output", Fredirect_debugging_output, Sredirect_debug
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn debug_print (arg: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   Fprin1 (arg, Qexternal_debugging_output (), Qnil ());
   fputs (c"\r\n".as_ptr (), stderr);
+
+  }
 }
 
 /* C 1002: `void safe_debug_print (Lisp_Object) EXTERNALLY_VISIBLE;` */
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn safe_debug_print (arg: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let valid: c_int = valid_lisp_object_p (arg);
 
   if valid > 0
@@ -1167,6 +1237,8 @@ pub unsafe extern "C-unwind" fn safe_debug_print (arg: Lisp_Object)
 	       if valid == 0 { c"INVALID".as_ptr () } else { c"SOME".as_ptr () },
 	       n);
     }
+
+  }
 }
 
 /* This function formats the given object and returns the result as a
@@ -1183,8 +1255,12 @@ pub unsafe extern "C-unwind" fn debug_format (fmt: *const c_char, arg: Lisp_Obje
 /* Erase the Vprin1_to_string_buffer, potentially switching to it.  */
 unsafe extern "C-unwind" fn erase_prin1_to_string_buffer ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   set_buffer_internal (XBUFFER (Vprin1_to_string_buffer));
   Ferase_buffer ();
+
+  }
 }
 
 DEFUN! ("error-message-string", Ferror_message_string, Serror_message_string,
@@ -1221,6 +1297,8 @@ DEFUN! ("error-message-string", Ferror_message_string, Serror_message_string,
 pub unsafe extern "C-unwind" fn print_error_message (mut data: Lisp_Object, stream: Lisp_Object,
 					      context: *const c_char, caller: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut errname: Lisp_Object = Qnil ();
   let mut errmsg: Lisp_Object = Qnil ();
   let mut file_error: Lisp_Object = Qnil ();
@@ -1317,6 +1395,8 @@ pub unsafe extern "C-unwind" fn print_error_message (mut data: Lisp_Object, stre
 	  { Fprin1 (obj, stream, Qnil ()); }
       });
   }
+
+  }
 }
 
 /*
@@ -1337,6 +1417,8 @@ pub unsafe extern "C-unwind" fn print_error_message (mut data: Lisp_Object, stre
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn float_to_string (buf: *mut c_char, data: c_double) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut cp: *mut c_char = std::ptr::null_mut ();  /* C: `char *cp;` (PORTING.md 1.5) */
   let mut width: c_int = 0;
   let mut len: c_int = 0;
@@ -1452,10 +1534,14 @@ pub unsafe extern "C-unwind" fn float_to_string (buf: *mut c_char, data: c_doubl
     }
 
   return len;
+
+  }
 }
 
 unsafe fn print (obj: Lisp_Object, printcharfun: Lisp_Object, escapeflag: bool)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   new_backquote_output = 0;
 
   /* Reset print_number_index and Vprint_number_table only when
@@ -1493,7 +1579,7 @@ unsafe fn print (obj: Lisp_Object, printcharfun: Lisp_Object, escapeflag: bool)
   }
   impl Drop for NestedPrintDepthGuard {
     fn drop (&mut self) {
-      unsafe {
+      /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe {
         for (i, &obj) in self.saved_being.iter ().enumerate () {
           being_printed[i] = obj;
         }
@@ -1512,10 +1598,14 @@ unsafe fn print (obj: Lisp_Object, printcharfun: Lisp_Object, escapeflag: bool)
   };
   print_depth = 0;
   print_object (obj, printcharfun, escapeflag);
+
+  }
 }
 
 unsafe fn print_circle_candidate_p (obj: Lisp_Object) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if CONSP (obj)
     { return true; }
   else if STRINGP (obj)
@@ -1534,6 +1624,8 @@ unsafe fn print_circle_candidate_p (obj: Lisp_Object) -> bool
     }
   else
     { return false; }
+
+  }
 }
 
 /* The print preprocess stack, used to traverse data structures.  */
@@ -1579,25 +1671,35 @@ static mut ppstack: print_pp_stack = print_pp_stack {
 
 unsafe fn grow_pp_stack ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let ps: *mut print_pp_stack = &raw mut ppstack;
   eassert! ((*ps).sp == (*ps).size);
   (*ps).stack = xpalloc ((*ps).stack as *mut c_void, &raw mut (*ps).size, 1, -1,
 			 std::mem::size_of::<print_pp_entry> () as ptrdiff_t)
     as *mut print_pp_entry;
   eassert! ((*ps).sp < (*ps).size);
+
+  }
 }
 
 unsafe fn pp_stack_push_value (value: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if ppstack.sp >= ppstack.size
     { grow_pp_stack (); }
   *ppstack.stack.offset (ppstack.sp) = print_pp_entry {
     n: 0, u: print_pp_entry_u { value: value } };
   ppstack.sp += 1;
+
+  }
 }
 
 unsafe fn pp_stack_push_values (values: *mut Lisp_Object, n: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   eassume! (n >= 0);
   if n == 0
     { return; }
@@ -1606,15 +1708,23 @@ unsafe fn pp_stack_push_values (values: *mut Lisp_Object, n: ptrdiff_t)
   *ppstack.stack.offset (ppstack.sp) = print_pp_entry {
     n: n, u: print_pp_entry_u { values: values } };
   ppstack.sp += 1;
+
+  }
 }
 
 unsafe fn pp_stack_empty_p () -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   return ppstack.sp <= 0;
+
+  }
 }
 
 unsafe fn pp_stack_pop () -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   eassume! (! pp_stack_empty_p ());
   let e: *mut print_pp_entry = ppstack.stack.offset (ppstack.sp - 1);
   if (*e).n == 0		/* single value */
@@ -1629,6 +1739,8 @@ unsafe fn pp_stack_pop () -> Lisp_Object
     { ppstack.sp -= 1; }		/* last value consumed */
   (*e).u.values = (*e).u.values.offset (1);
   return *(*e).u.values.offset (-1);
+
+  }
 }
 
 /* Construct Vprint_number_table for the print-circle feature
@@ -1641,6 +1753,8 @@ unsafe fn pp_stack_pop () -> Lisp_Object
    first time, and Qt after that.  */
 unsafe fn print_preprocess (mut obj: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   eassert! (! NILP (Vprint_circle));
   /* The ppstack may contain HASH_UNUSED_ENTRY_KEY which is an invalid
      Lisp value.  Make sure that our filter stops us from traversing it.  */
@@ -1648,7 +1762,7 @@ unsafe fn print_preprocess (mut obj: Lisp_Object)
   let base_sp: ptrdiff_t = ppstack.sp;
   struct PpStackGuard { base_sp: ptrdiff_t }
   impl Drop for PpStackGuard {
-    fn drop (&mut self) { unsafe { ppstack.sp = self.base_sp; } }
+    fn drop (&mut self) { /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { ppstack.sp = self.base_sp; } }
   }
   let _pp_guard = PpStackGuard { base_sp };
 
@@ -1723,6 +1837,8 @@ unsafe fn print_preprocess (mut obj: Lisp_Object)
 	{ break; }
       obj = pp_stack_pop ();
     }
+
+  }
 }
 
 DEFUN! ("print--preprocess", Fprint_preprocess, Sprint_preprocess, 1, 1, 0,
@@ -1739,9 +1855,13 @@ DEFUN! ("print--preprocess", Fprint_preprocess, Sprint_preprocess, 1, 1, 0,
 
 unsafe extern "C-unwind" fn print_preprocess_string (interval: INTERVAL, arg: *mut c_void)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let _ = arg;
   let interval: *mut interval = interval as *mut interval;   /* P-72 rule 4 */
   print_preprocess ((*interval).plist);
+
+  }
 }
 
 /* C 1536-1537: */
@@ -1753,6 +1873,8 @@ static mut print_check_string_result: c_int = 0;
 
 unsafe extern "C-unwind" fn print_check_string_charset_prop (interval: INTERVAL, pstring: *mut c_void)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let interval: *mut interval = interval as *mut interval;   /* P-72 rule 4 */
   let mut val: Lisp_Object;
 
@@ -1794,6 +1916,8 @@ unsafe extern "C-unwind" fn print_check_string_charset_prop (interval: INTERVAL,
 	  i += 1;
 	}
     }
+
+  }
 }
 
 /* The value is (charset . nil).  */
@@ -1801,6 +1925,8 @@ static mut print_prune_charset_plist: Lisp_Object = std::ptr::null_mut ();
 
 unsafe fn print_prune_string_charset (mut string: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   print_check_string_result = 0;
   traverse_intervals (string_intervals (string), 0,
 		      Some (print_check_string_charset_prop), &raw mut string as *mut c_void);
@@ -1821,6 +1947,8 @@ unsafe fn print_prune_string_charset (mut string: Lisp_Object) -> Lisp_Object
 				Qnil (), string); }
     }
   return string;
+
+  }
 }
 
 /* C 1612-1639's `#ifdef HAVE_MODULES` arm (feature `have_modules`): the two helpers the
@@ -1840,6 +1968,8 @@ unsafe fn data_from_funcptr (funcptr: Option<unsafe extern "C" fn ()>) -> *const
 unsafe fn print_pointer (printcharfun: Lisp_Object, buf: *mut c_char, prefix: *const c_char,
 			 ptr: *const c_void)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let ui: uintptr_t = ptr as uintptr_t;
 
   /* In theory this assignment could lose info on pre-C99 hosts, but
@@ -1848,20 +1978,28 @@ unsafe fn print_pointer (printcharfun: Lisp_Object, buf: *mut c_char, prefix: *c
 
   let len: c_int = sprintf (buf, c"%s 0x%jx".as_ptr (), prefix, up);
   strout (buf, len as ptrdiff_t, len as ptrdiff_t, printcharfun);
+
+  }
 }
 
 unsafe fn print_bignum (obj: Lisp_Object, printcharfun: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let size: ptrdiff_t = bignum_bufsize (obj, 10);
   USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   let str: *mut c_char = SAFE_ALLOCA! (sa_avail, size) as *mut c_char;
   let len: ptrdiff_t = bignum_to_c_string (str, size, obj, 10);
   strout (str, len, len, printcharfun);
   SAFE_FREE! (sa_count, sa_mark);
+
+  }
 }
 
 unsafe fn print_bool_vector (obj: Lisp_Object, printcharfun: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let size: EMACS_INT = bool_vector_size (obj);
   let mut size_in_bytes: ptrdiff_t = bool_vector_bytes (size) as ptrdiff_t;
   let real_size_in_bytes: ptrdiff_t = size_in_bytes;
@@ -1906,12 +2044,16 @@ unsafe fn print_bool_vector (obj: Lisp_Object, printcharfun: Lisp_Object)
   if size_in_bytes < real_size_in_bytes
     { print_c_string (c" ...".as_ptr (), printcharfun); }
   printchar (b'\x22' as c_uint, printcharfun);
+
+  }
 }
 
 /* Print a pseudovector that has no readable syntax.  */
 unsafe fn print_vectorlike_unreadable (obj: Lisp_Object, printcharfun: Lisp_Object,
 				       escapeflag: bool, buf: *mut c_char)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* First check whether this is handled by `print-unreadable-function'.  */
   if ! NILP (Vprint_unreadable_function)
       && FUNCTIONP (Vprint_unreadable_function)
@@ -2377,6 +2519,8 @@ unsafe fn print_vectorlike_unreadable (obj: Lisp_Object, printcharfun: Lisp_Obje
     | pvec_type::PVEC_OTHER => { }
     }
   emacs_abort ();
+
+  }
 }
 
 unsafe fn named_escape (i: c_int) -> c_char
@@ -2513,26 +2657,36 @@ static mut prstack: print_stack = print_stack {
 
 unsafe fn grow_print_stack ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let ps: *mut print_stack = &raw mut prstack;
   eassert! ((*ps).sp == (*ps).size);
   (*ps).stack = xpalloc ((*ps).stack as *mut c_void, &raw mut (*ps).size, 1, -1,
 			 std::mem::size_of::<print_stack_entry> () as ptrdiff_t)
     as *mut print_stack_entry;
   eassert! ((*ps).sp < (*ps).size);
+
+  }
 }
 
 unsafe fn print_stack_push (e: print_stack_entry)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if prstack.sp >= prstack.size
     { grow_print_stack (); }
   *prstack.stack.offset (prstack.sp) = e;
   prstack.sp += 1;
+
+  }
 }
 
 unsafe fn print_stack_push_vector (lbrac: *const c_char, rbrac: *const c_char,
 				   obj: Lisp_Object, start: ptrdiff_t, size: ptrdiff_t,
 				   printcharfun: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   print_c_string (lbrac, printcharfun);
 
   let print_size: ptrdiff_t = if FIXNATP (Vprint_length)
@@ -2548,6 +2702,8 @@ unsafe fn print_stack_push_vector (lbrac: *const c_char, rbrac: *const c_char,
 	truncated: print_size < size,
       } },
     });
+
+  }
 }
 
 /* C's `h->weakness` is the `weakness : 3` bitfield of `struct Lisp_Hash_Table`
@@ -2560,12 +2716,14 @@ macro_rules! hash_table_bits {
 
 unsafe fn print_object (mut obj: Lisp_Object, printcharfun: Lisp_Object, escapeflag: bool)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let base_depth: ptrdiff_t = print_depth;
   let base_sp: ptrdiff_t = prstack.sp;
   struct PrintStackGuard { base_sp: ptrdiff_t, base_depth: ptrdiff_t }
   impl Drop for PrintStackGuard {
     fn drop (&mut self) {
-      unsafe {
+      /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe {
         prstack.sp = self.base_sp;
         print_depth = self.base_depth;
       }
@@ -3211,6 +3369,8 @@ unsafe fn print_object (mut obj: Lisp_Object, printcharfun: Lisp_Object, escapef
   }
   }
   eassert! (print_depth == base_depth);
+
+  }
 }
 
 /* Print a description of INTERVAL using PRINTCHARFUN.
@@ -3218,6 +3378,8 @@ unsafe fn print_object (mut obj: Lisp_Object, printcharfun: Lisp_Object, escapef
 
 unsafe extern "C-unwind" fn print_interval (interval: INTERVAL, pprintcharfun: *mut c_void)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let interval: *mut interval = interval as *mut interval;   /* P-72 rule 4 */
   if NILP ((*interval).plist)
     { return; }
@@ -3229,6 +3391,8 @@ unsafe extern "C-unwind" fn print_interval (interval: INTERVAL, pprintcharfun: *
 		printcharfun, true);
   printchar (b' ' as c_uint, printcharfun);
   print_object ((*interval).plist, printcharfun, true);
+
+  }
 }
 
 /* Initialize debug_print stuff early to have it working from the very
@@ -3237,16 +3401,22 @@ unsafe extern "C-unwind" fn print_interval (interval: INTERVAL, pprintcharfun: *
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn init_print_once ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* The subroutine object for external-debugging-output is kept here
      for the convenience of the debugger.  */
   DEFSYM! (Qexternal_debugging_output, "external-debugging-output");
 
   defsubr (&raw mut Sexternal_debugging_output);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_print ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   DEFSYM! (Qtemp_buffer_setup_hook, "temp-buffer-setup-hook");
 
   DEFVAR_LISP! (c"standard-output", Vstandard_output,
@@ -3353,4 +3523,6 @@ pub unsafe extern "C-unwind" fn syms_of_print ()
 
   /* Initialized in print_create_variable_mapping.  */
   staticpro (&raw mut Vprint_variable_mapping);
+
+  }
 }

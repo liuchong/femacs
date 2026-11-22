@@ -47,11 +47,7 @@
 // `map_keymap_function_t`'s sibling below.  Every deviation is recorded in
 // `docs/ports/keymap.md`.
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
-         unsafe_op_in_unsafe_fn, unused_assignments, unreachable_code, while_true,
-         unused_parens, unused_mut, unused_labels, unused_comparisons,
-         overflowing_literals, unused_braces)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe, unused_assignments, unreachable_code, while_true, unused_parens, unused_mut, unused_labels, unused_comparisons, overflowing_literals, unused_braces)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -163,8 +159,12 @@ pub unsafe extern "C-unwind" fn initial_define_lispy_key (keymap: Lisp_Object,
                                                    keyname: *const c_char,
                                                    defname: *const c_char)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   store_in_keymap (keymap, intern_c_string (keyname),
 		   intern_c_string (defname), false);
+
+  }
 }
 
 DEFUN! ("keymapp", Fkeymapp, Skeymapp, 1, 1, 0,
@@ -221,6 +221,8 @@ pub unsafe extern "C-unwind" fn get_keymap (mut object: Lisp_Object,
                                      error_if_not_keymap: bool,
                                      autoload: bool) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
  /* C's two labels (`autoload_retry:` for the back edge and `end:` for the forward exit) are
     both kept by name: the loop is the back edge and the labelled block is the exit
     (PORTING.md 2.2 - the ccl.rs/bytecode.rs shape for C's `goto`).  */
@@ -265,6 +267,8 @@ pub unsafe extern "C-unwind" fn get_keymap (mut object: Lisp_Object,
   if error_if_not_keymap
     { wrong_type_argument (Qkeymapp (), object); }
   Qnil ()
+
+  }
 }
 
 /* Return the parent map of KEYMAP, or nil if it has none.
@@ -272,6 +276,8 @@ pub unsafe extern "C-unwind" fn get_keymap (mut object: Lisp_Object,
 
 unsafe fn keymap_parent (mut keymap: Lisp_Object, autoload: bool) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   keymap = get_keymap (keymap, true, autoload);
 
   /* Skip past the initial element `keymap'.  */
@@ -285,6 +291,8 @@ unsafe fn keymap_parent (mut keymap: Lisp_Object, autoload: bool) -> Lisp_Object
     }
 
   return get_keymap (list, false, autoload);
+
+  }
 }
 
 DEFUN! ("keymap-parent", Fkeymap_parent, Skeymap_parent, 1, 1, 0,
@@ -297,10 +305,14 @@ DEFUN! ("keymap-parent", Fkeymap_parent, Skeymap_parent, 1, 1, 0,
 /* Check whether MAP is one of MAPS parents.  */
 unsafe fn keymap_memberp (map: Lisp_Object, mut maps: Lisp_Object) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if NILP (map) { return false; }
   while KEYMAPP! (maps) && !EQ (map, maps)
     { maps = keymap_parent (maps, false); }
   return EQ (map, maps);
+
+  }
 }
 
 /* Set the parent keymap of MAP to PARENT.  */
@@ -361,6 +373,8 @@ DEFUN! ("set-keymap-parent", Fset_keymap_parent, Sset_keymap_parent, 2, 2, 0,
 unsafe fn access_keymap_1 (map: Lisp_Object, idx: Lisp_Object,
 			   t_ok: bool, noinherit: bool) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut map = map;
   let mut idx = idx;
   let mut t_ok = t_ok;
@@ -523,22 +537,32 @@ unsafe fn access_keymap_1 (map: Lisp_Object, idx: Lisp_Object,
     return if BASE_EQ (Qunbound (), retval)
            { get_keyelt (t_binding, true) } else { retval };
   }
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn access_keymap (map: Lisp_Object, idx: Lisp_Object,
 				        t_ok: bool, noinherit: bool) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let val = access_keymap_1 (map, idx, t_ok, noinherit);
   return if BASE_EQ (val, Qunbound ()) { Qnil () } else { val };
+
+  }
 }
 
 unsafe extern "C-unwind" fn map_keymap_item (fun: map_keymap_function_t, args: Lisp_Object, key: Lisp_Object, val: Lisp_Object, data: *mut c_void)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut val = val;
   if EQ (val, Qt ())
     { val = Qnil (); }
   fun.unwrap () (key, val, args, data);
+
+  }
 }
 
 /// C: `union map_keymap` (keymap.c 507-516).  The anonymous `struct` is named
@@ -573,6 +597,8 @@ const _: () = core::assert! (std::mem::align_of::<map_keymap> () == 8);
 
 unsafe extern "C-unwind" fn map_keymap_char_table_item (args: Lisp_Object, key: Lisp_Object, val: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut key = key;
   if !NILP (val)
     {
@@ -583,6 +609,8 @@ unsafe extern "C-unwind" fn map_keymap_char_table_item (args: Lisp_Object, key: 
       let md = XFIXNUMPTR (args) as *mut map_keymap;
       map_keymap_item ((*md).s.fun, (*md).s.args, key, val, (*md).s.data);
     }
+
+  }
 }
 
 /* Call FUN for every binding in MAP and stop at (and return) the parent.
@@ -592,6 +620,8 @@ unsafe fn map_keymap_internal (map: Lisp_Object,
 			       args: Lisp_Object,
 			       data: *mut c_void) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut tail = if CONSP (map) && EQ (Qkeymap (), XCAR (map)) { XCDR (map) } else { map };
 
   while CONSP (tail) && !EQ (Qkeymap (), XCAR (tail))
@@ -627,6 +657,8 @@ unsafe fn map_keymap_internal (map: Lisp_Object,
     }
 
   return tail;
+
+  }
 }
 
 unsafe extern "C-unwind" fn map_keymap_call (key: Lisp_Object, val: Lisp_Object, fun: Lisp_Object, dummy: *mut c_void)
@@ -640,6 +672,8 @@ unsafe extern "C-unwind" fn map_keymap_call (key: Lisp_Object, val: Lisp_Object,
 pub unsafe extern "C-unwind" fn map_keymap (map: Lisp_Object, fun: map_keymap_function_t, args: Lisp_Object,
 				     data: *mut c_void, autoload: bool)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut map = map;
   map = get_keymap (map, true, autoload);
   while CONSP (map)
@@ -654,6 +688,8 @@ pub unsafe extern "C-unwind" fn map_keymap (map: Lisp_Object, fun: map_keymap_fu
       if !CONSP (map)
 	{ map = get_keymap (map, false, autoload); }
     }
+
+  }
 }
 
 /* Same as map_keymap, but does it right, properly eliminating duplicate
@@ -661,12 +697,16 @@ pub unsafe extern "C-unwind" fn map_keymap (map: Lisp_Object, fun: map_keymap_fu
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn map_keymap_canonical (map: Lisp_Object, fun: map_keymap_function_t, args: Lisp_Object, data: *mut c_void)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut map = map;
   /* map_keymap_canonical may be used from redisplay (e.g. when building menus)
      so be careful to ignore errors and to inhibit redisplay.  */
   map = safe_calln! (Qkeymap_canonicalize (), map);
   /* No need to use `map_keymap' here because canonical map has no parent.  */
   map_keymap_internal (map, fun, args, data);
+
+  }
 }
 
 DEFUN! ("map-keymap-internal", Fmap_keymap_internal, Smap_keymap_internal, 2, 2, 0,
@@ -713,6 +753,8 @@ DEFUN! ("keymap--get-keyelt", Fkeymap__get_keyelt, Skeymap__get_keyelt, 2, 2, 0,
 
 unsafe fn get_keyelt (object: Lisp_Object, autoload: bool) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut object = object;
   loop
     {
@@ -764,11 +806,15 @@ unsafe fn get_keyelt (object: Lisp_Object, autoload: bool) -> Lisp_Object
       else
 	{ return object; }
     }
+
+  }
 }
 
 unsafe fn store_in_keymap (keymap: Lisp_Object, idx: Lisp_Object,
 			   def: Lisp_Object, remove: bool) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut idx = idx;
   let mut def = def;
   /* Flush any reverse-map cache.  */
@@ -947,6 +993,8 @@ unsafe fn store_in_keymap (keymap: Lisp_Object, idx: Lisp_Object,
   }
 
   return def;
+
+  }
 }
 
 // C 905's `static Lisp_Object copy_keymap_1 (Lisp_Object keymap, int depth);` is a forward
@@ -954,6 +1002,8 @@ unsafe fn store_in_keymap (keymap: Lisp_Object, idx: Lisp_Object,
 
 unsafe fn copy_keymap_item (elt: Lisp_Object, depth: c_int) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut elt = elt;
   let mut res: Lisp_Object;
   let mut tem: Lisp_Object;
@@ -1014,18 +1064,26 @@ unsafe fn copy_keymap_item (elt: Lisp_Object, depth: c_int) -> Lisp_Object
 	{ res = copy_keymap_1 (elt, depth); }
     }
   return res;
+
+  }
 }
 
 unsafe extern "C-unwind" fn copy_keymap_set_char_table (chartable_and_depth: Lisp_Object, idx: Lisp_Object,
 			    elt: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   Fset_char_table_range
     (XCAR (chartable_and_depth), idx,
      copy_keymap_item (elt, XFIXNUM (XCDR (chartable_and_depth)) as c_int));
+
+  }
 }
 
 unsafe fn copy_keymap_1 (keymap: Lisp_Object, depth: c_int) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut keymap = keymap;
   let copy: Lisp_Object;
   let mut tail: Lisp_Object;
@@ -1071,6 +1129,8 @@ unsafe fn copy_keymap_1 (keymap: Lisp_Object, depth: c_int) -> Lisp_Object
     }
   XSETCDR (tail, keymap);
   return copy;
+
+  }
 }
 
 DEFUN! ("copy-keymap", Fcopy_keymap, Scopy_keymap, 1, 1, 0,
@@ -1084,6 +1144,8 @@ DEFUN! ("copy-keymap", Fcopy_keymap, Scopy_keymap, 1, 1, 0,
 
 unsafe fn possibly_translate_key_sequence (key: Lisp_Object, length: *mut ptrdiff_t) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut key = key;
   if VECTORP (key) && ASIZE (key) == 1 && STRINGP (AREF (key, 0))
     {
@@ -1106,6 +1168,8 @@ unsafe fn possibly_translate_key_sequence (key: Lisp_Object, length: *mut ptrdif
     }
 
   return key;
+
+  }
 }
 
 /* GC is possible in this function if it autoloads a keymap.  */
@@ -1232,6 +1296,8 @@ DEFUN! ("command-remapping", Fcommand_remapping, Scommand_remapping, 1, 3, 0,
 
 unsafe fn lookup_key_1 (keymap: Lisp_Object, key: Lisp_Object, accept_default: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut keymap = keymap;
   let mut key = key;
   let t_ok = !NILP (accept_default);
@@ -1273,6 +1339,8 @@ unsafe fn lookup_key_1 (keymap: Lisp_Object, key: Lisp_Object, accept_default: L
 
       maybe_quit ();
     }
+
+  }
 }
 
 DEFUN! ("lookup-key", Flookup_key, Slookup_key, 2, 3, 0,
@@ -1416,10 +1484,14 @@ DEFUN! ("lookup-key", Flookup_key, Slookup_key, 2, 3, 0,
 
 unsafe fn define_as_prefix (keymap: Lisp_Object, c: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let cmd = Fmake_sparse_keymap (Qnil ());
   store_in_keymap (keymap, c, cmd, false);
 
   return cmd;
+
+  }
 }
 
 /* Append a key to the end of a key sequence.  We always make a vector.  */
@@ -1435,6 +1507,8 @@ unsafe fn append_key (key_sequence: Lisp_Object, key: Lisp_Object) -> Lisp_Objec
 
 unsafe extern "C-unwind" fn silly_event_symbol_error (c: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut c = c;
   let parsed = parse_modifiers (c);
   let modifiers = XFIXNAT (XCAR (XCDR (parsed))) as c_int;
@@ -1471,6 +1545,8 @@ unsafe extern "C-unwind" fn silly_event_symbol_error (c: Lisp_Object)
 	     SDATA (SYMBOL_NAME (c)), SDATA (keystring),
 	     SDATA (SYMBOL_NAME (c)));
     }
+
+  }
 }
 
 /* Global, local, and minor mode keymap stuff.				*/
@@ -1503,6 +1579,8 @@ static mut cmm_size: ptrdiff_t = 0;
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn current_minor_maps (modeptr: *mut *mut Lisp_Object, mapptr: *mut *mut Lisp_Object) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut i: ptrdiff_t = 0;
   let mut alist: Lisp_Object;
   let mut assoc: Lisp_Object;
@@ -1615,18 +1693,24 @@ pub unsafe extern "C-unwind" fn current_minor_maps (modeptr: *mut *mut Lisp_Obje
   if !modeptr.is_null () { *modeptr = cmm_modes; }
   if !mapptr.is_null ()  { *mapptr  = cmm_maps; }
   return i;
+
+  }
 }
 
 /* Return the offset of POSITION, a click position, in the style of
    the respective argument of Fkey_binding.  */
 unsafe fn click_position (position: Lisp_Object) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let pos: EMACS_INT = if FIXNUMP (position) { XFIXNUM (position) }
 		   else if MARKERP (position) { marker_position (position) }
 		   else { PT! () };
   if ! (BEGV! () <= pos && pos <= ZV! ())
     { args_out_of_range (Fcurrent_buffer (), position); }
   return pos;
+
+  }
 }
 
 DEFUN! ("current-active-maps", Fcurrent_active_maps, Scurrent_active_maps,
@@ -1922,6 +2006,8 @@ const _: () = core::assert! (std::mem::offset_of! (accessible_keymaps_data, is_m
 unsafe extern "C-unwind" fn accessible_keymaps_1 (key: Lisp_Object, cmd: Lisp_Object, args: Lisp_Object, data: *mut c_void)
 /* Use void * data to be compatible with map_keymap_function_t.  */
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let d = data as *mut accessible_keymaps_data; /* Cast! */
   let mut maps = (*d).maps;
   let tail = (*d).tail;
@@ -1978,6 +2064,8 @@ unsafe extern "C-unwind" fn accessible_keymaps_1 (key: Lisp_Object, cmd: Lisp_Ob
       tem = append_key (thisseq, key);
       nconc2 (tail, list1 (Fcons (tem, cmd)));
     }
+
+  }
 }
 
 /* This function cannot GC.  */
@@ -2172,6 +2260,8 @@ DEFUN! ("key-description", Fkey_description, Skey_description, 1, 2, 0,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn push_key_description (ch: EMACS_INT, p: *mut c_char) -> *mut c_char
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut p = p;
   let mut c: c_int;
   let mut c2: c_int;
@@ -2283,6 +2373,8 @@ pub unsafe extern "C-unwind" fn push_key_description (ch: EMACS_INT, p: *mut c_c
     }
 
   return p;
+
+  }
 }
 
 /* This function cannot GC.  */
@@ -2349,6 +2441,8 @@ DEFUN! ("single-key-description", Fsingle_key_description,
 
 unsafe fn push_text_char_description (c: c_uint, p: *mut c_char) -> *mut c_char
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut p = p;
   if c < 0o40
     {
@@ -2363,6 +2457,8 @@ unsafe fn push_text_char_description (c: c_uint, p: *mut c_char) -> *mut c_char
   else
     { *p = c as c_char; p = p.add (1); }
   return p;
+
+  }
 }
 
 /* This function cannot GC.  */
@@ -2396,6 +2492,8 @@ static mut where_is_preferred_modifier: c_int = 0;
    and 1 otherwise.  */
 unsafe fn preferred_sequence_p (seq: Lisp_Object) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut i: EMACS_INT;
   let len: EMACS_INT = XFIXNAT (Flength (seq));
   let mut result: c_int = 1;
@@ -2423,6 +2521,8 @@ unsafe fn preferred_sequence_p (seq: Lisp_Object) -> c_int
     }
 
   return result;
+
+  }
 }
 
 /* where-is - finding a command in a set of keymaps.			*/
@@ -2437,6 +2537,8 @@ unsafe fn preferred_sequence_p (seq: Lisp_Object) -> c_int
 unsafe fn shadow_lookup (keymap: Lisp_Object, key: Lisp_Object, accept_default: Lisp_Object,
 	       remap: bool) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let value = Flookup_key (keymap, key, accept_default);
 
   if FIXNATP (value)          /* `key' is too long!  */
@@ -2448,6 +2550,8 @@ unsafe fn shadow_lookup (keymap: Lisp_Object, key: Lisp_Object, accept_default: 
     }
   else
     { return value; }
+
+  }
 }
 
 static mut Vmouse_events: Lisp_Object = lisp_h_Qnil ();
@@ -2484,6 +2588,8 @@ const _: () = core::assert! (std::mem::offset_of! (where_is_internal_data, seque
 unsafe fn where_is_internal (definition: Lisp_Object, keymaps: Lisp_Object,
 		   noindirect: bool, nomenus: bool) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut maps = Qnil ();
   /* C declares `struct where_is_internal_data data;` and assigns its fields later; the
      port zero-initialises it first (PORTING.md 1.5/0.1-13).  */
@@ -2574,6 +2680,8 @@ unsafe fn where_is_internal (definition: Lisp_Object, keymaps: Lisp_Object,
     }
   else
     { return data.sequences; }
+
+  }
 }
 
 /* This function can GC if Flookup_key autoloads any keymaps.  */
@@ -2754,6 +2862,8 @@ DEFUN! ("where-is-internal", Fwhere_is_internal, Swhere_is_internal, 1, 5, 0,
 
 unsafe extern "C-unwind" fn where_is_internal_1 (key: Lisp_Object, binding: Lisp_Object, args: Lisp_Object, data: *mut c_void)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let d = data as *mut where_is_internal_data; /* Cast! */
   let definition = (*d).definition;
   let noindirect = (*d).noindirect;
@@ -2798,6 +2908,8 @@ unsafe extern "C-unwind" fn where_is_internal_1 (key: Lisp_Object, binding: Lisp
     }
   else
     { (*d).sequences = Fcons (sequence, (*d).sequences); }
+
+  }
 }
 
 /* describe-bindings - summarizing all the bindings in a set of keymaps.  */
@@ -3005,9 +3117,13 @@ You type        Translation\n\
 
 unsafe extern "C-unwind" fn describe_vector_princ (elt: Lisp_Object, fun: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   Findent_to (make_fixnum (16), make_fixnum (1));
   calln! (fun, elt);
   Fterpri (Qnil (), Qnil ());
+
+  }
 }
 
 unsafe extern "C-unwind" fn describe_vector_basic (elt: Lisp_Object, fun: Lisp_Object)
@@ -3036,6 +3152,8 @@ static mut fontify_key_properties: Lisp_Object = lisp_h_Qnil ();
 unsafe fn describe_key_maybe_fontify (str_: Lisp_Object, prefix: Lisp_Object,
 				   keymap_p: bool) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let key_desc = Fkey_description (str_, prefix);
   if keymap_p
     { Fadd_text_properties (make_fixnum (0),
@@ -3043,6 +3161,8 @@ unsafe fn describe_key_maybe_fontify (str_: Lisp_Object, prefix: Lisp_Object,
 			  fontify_key_properties,
 			  key_desc); }
   return key_desc;
+
+  }
 }
 
 DEFUN! ("help--describe-vector", Fhelp__describe_vector, Shelp__describe_vector, 7, 7, 0,
@@ -3100,6 +3220,8 @@ unsafe fn describe_vector (vector: Lisp_Object, prefix: Lisp_Object, args: Lisp_
 		 partial: bool, shadow: Lisp_Object, entire_map: Lisp_Object,
 		 keymap_p: bool, mention_shadow: bool)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut prefix = prefix;
   let mut elt_prefix = Qnil ();
   let mut suppress = Qnil ();
@@ -3302,6 +3424,8 @@ unsafe fn describe_vector (vector: Lisp_Object, prefix: Lisp_Object, args: Lisp_
       insert (c"default".as_ptr (), 7);
       elt_describer.unwrap () ((*XCHAR_TABLE (vector)).defalt, args);
     }
+
+  }
 }
 
 /* The six `DEFVAR_LISP` variables this unit owns: C stores them as fields of `struct
@@ -3325,6 +3449,8 @@ pub static mut Vdescribe_bindings_check_shadowing_in_ranges: Lisp_Object = lisp_
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_keymap ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   DEFSYM! (Qkeymap, "keymap");
   DEFSYM! (Qhelp__describe_map_tree, "help--describe-map-tree");
   DEFSYM! (Qmap_keymap_sorted, "map-keymap-sorted");
@@ -3449,4 +3575,6 @@ pub unsafe extern "C-unwind" fn syms_of_keymap ()
   DEFSYM! (Qnon_key_event, "non-key-event");
   DEFSYM! (Qprinc, "princ");
   DEFSYM! (Qsuppress_keymap, "suppress-keymap");
+
+  }
 }

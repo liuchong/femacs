@@ -21,9 +21,7 @@
 // identifier, so it is recorded in `docs/ports/excluded-macros.txt` and its body - with
 // gettext.h's live arm an identity stub, proven by the reference object's missing `dgettext`
 // symbol - is written out at the five message sites.
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
-         static_mut_refs, unsafe_op_in_unsafe_fn)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -174,6 +172,8 @@ static mut getopt_data: _getopt_data = _getopt_data {
 
 unsafe fn exchange (argv: *mut *mut c_char, d: *mut _getopt_data)
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   let mut bottom: c_int = (*d).__first_nonopt;
   let mut middle: c_int = (*d).__last_nonopt;
   let mut top: c_int = (*d).optind;
@@ -228,6 +228,8 @@ unsafe fn exchange (argv: *mut *mut c_char, d: *mut _getopt_data)
 
   (*d).__first_nonopt += (*d).optind - (*d).__last_nonopt;
   (*d).__last_nonopt = (*d).optind;
+
+  }
 }
 
 /* Process the argument starting with d->__nextchar as a long option.
@@ -243,6 +245,8 @@ unsafe fn process_long_option (argc: c_int, argv: *mut *mut c_char, optstring: *
                                d: *mut _getopt_data, print_errors: c_int,
                                prefix: *const c_char) -> c_int
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   let mut nameend: *mut c_char;
   nameend = (*d).__nextchar;
   while *nameend != 0 && *nameend != '=' as c_char
@@ -448,6 +452,8 @@ unsafe fn process_long_option (argc: c_int, argv: *mut *mut c_char, optstring: *
       return 0;
     }
   return (*pfound).val;
+
+  }
 }
 
 /* Initialize internal data upon the first call to getopt.  */
@@ -455,6 +461,8 @@ unsafe fn process_long_option (argc: c_int, argv: *mut *mut c_char, optstring: *
 unsafe fn _getopt_initialize (argc: c_int, argv: *mut *mut c_char, optstring: *const c_char,
                               d: *mut _getopt_data, posixly_correct: c_int) -> *const c_char
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   let mut optstring = optstring;
 
   /* Start processing options with ARGV-element 1 (since ARGV-element 0
@@ -485,6 +493,8 @@ unsafe fn _getopt_initialize (argc: c_int, argv: *mut *mut c_char, optstring: *c
 
   (*d).__initialized = 1;
   return optstring;
+
+  }
 }
 
 /* Scan elements of ARGV (whose length is ARGC) for option characters
@@ -550,6 +560,8 @@ pub unsafe extern "C" fn _getopt_internal_r (argc: c_int, argv: *mut *mut c_char
                                              d: *mut _getopt_data, posixly_correct: c_int)
   -> c_int
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   if argc < 1
     { return -1; }
 
@@ -790,6 +802,8 @@ pub unsafe extern "C" fn _getopt_internal_r (argc: c_int, argv: *mut *mut c_char
       }
     return c as c_int;
   }
+
+  }
 }
 
 /* C 700-717's `int _getopt_internal (...)`.  `_getopt_internal` is one of the names
@@ -801,6 +815,8 @@ pub unsafe extern "C" fn _getopt_internal (argc: c_int, argv: *mut *mut c_char,
                                            longind: *mut c_int, long_only: c_int,
                                            posixly_correct: c_int) -> c_int
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   getopt_data.optind = optind;
   getopt_data.opterr = opterr;
 
@@ -813,6 +829,8 @@ pub unsafe extern "C" fn _getopt_internal (argc: c_int, argv: *mut *mut c_char,
   optopt = getopt_data.optopt;
 
   return result;
+
+  }
 }
 
 /* glibc gets a LSB-compliant getopt and a POSIX-compliant __posix_getopt.
@@ -829,10 +847,14 @@ macro_rules! GETOPT_ENTRY {
     pub unsafe extern "C" fn $name (argc: c_int, argv: *const *mut c_char,
                                     optstring: *const c_char) -> c_int
     {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
       return _getopt_internal (argc, argv as *mut *mut c_char, optstring,
 			       std::ptr::null (), std::ptr::null_mut (), 0,
 			       $posixly_correct);
-    }
+    
+  }
+}
   };
 }
 

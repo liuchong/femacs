@@ -1421,3 +1421,8 @@ Retired 8 verified zero-consumer `lib-src`/`lib` sources (`19,048` lines; recove
 ## CLN279 — U3 explicit non-local exits, native status protocol, and consumed AU3 runtime/build trees (2026-11-22)
 
 Completed U3/AU3 (`P-482`) across interpreter, bytecode, native `.eln` (`normal` + `ENABLE_CHECKING`), and C dynamic modules, then reclaimed 15 consumed build, `u3-native` runtime, manual, staging, acceptance, and `P-190` dump-alias scopes totaling 18,666 files, 921 directories, and 18 symlinks (`1,948,903,162` logical bytes). Retained verified `build/terminal/port` (`44 MB`), `dist/macos/Femacs.app` (`235 MB`), and active `U4–U5` incremental/toolchain caches (`build/cargo`, pinned Tree-sitter 0.27.1 SDK, and `u1-baseline` metrics) until `AU5`. [Report](reports/2026-11-22-279-u3-nonlocal-exit-and-au3-retirement.md).
+
+
+## CLN280 — U4 GC roots, VM state, safe boundary closure, and consumed AU4 build staging (2026-11-22)
+
+Completed U4/AU4 (`P-483`) across explicit GC roots (`Rooted`, `ScopedRawSpan`, `PersistentRoot`, `NoGcToken`), `#![forbid(unsafe_code)]` high-level domains, `0` active `allow(static_mut_refs)`/`allow(unsafe_op_in_unsafe_fn)` files, `7,162/7,162` `SAFETY:` block contracts, and `tools/unsafe-boundary-manifest.json`, then reclaimed 14 consumed Cocoa/Terminal staging, manual, generation, acceptance, tool-cache, and `P-190` dump-alias scopes (~`648 MB` measured via pre-delete `du -sh`). Retained verified `build/terminal/port` (`44 MB`), `dist/macos/Femacs.app` (`235 MB`), `build/runtime/u4-native` (`999 MB`), and `build/cargo` (`1.6 GB`) for immediate `U5`/`AU5` consumption and retirement at `AU5`. [Report](reports/2026-11-22-280-u4-gc-roots-and-au4-retirement.md).

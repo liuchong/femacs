@@ -242,30 +242,30 @@ pub fn XWINDOW (a: Lisp_Object) -> *mut window
    window.  */
 // window.h 499-565: the thirteen setters.
 #[inline(always)]
-pub fn wset_frame (w: *mut window, val: Lisp_Object) { unsafe { (*w).frame = val; } }
+pub fn wset_frame (w: *mut window, val: Lisp_Object) { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*w).frame = val; } }
 #[inline(always)]
 pub fn wset_next (w: *mut window, val: Lisp_Object) { unsafe { (*w).next = val; } }
 #[inline(always)]
 pub fn wset_prev (w: *mut window, val: Lisp_Object) { unsafe { (*w).prev = val; } }
 #[inline(always)]
 pub fn wset_mode_line_help_echo (w: *mut window, val: Lisp_Object)
-{ unsafe { (*w).mode_line_help_echo = val; } }
+{ /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*w).mode_line_help_echo = val; } }
 #[inline(always)]
 pub fn wset_new_pixel (w: *mut window, val: Lisp_Object) { unsafe { (*w).new_pixel = val; } }
 #[inline(always)]
 pub fn wset_vertical_scroll_bar (w: *mut window, val: Lisp_Object)
-{ unsafe { (*w).vertical_scroll_bar = val; } }
+{ /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*w).vertical_scroll_bar = val; } }
 #[inline(always)]
 pub fn wset_horizontal_scroll_bar (w: *mut window, val: Lisp_Object)
 { unsafe { (*w).horizontal_scroll_bar = val; } }
 #[inline(always)]
 pub fn wset_horizontal_scroll_bar_type (w: *mut window, val: Lisp_Object)
-{ unsafe { (*w).horizontal_scroll_bar_type = val; } }
+{ /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*w).horizontal_scroll_bar_type = val; } }
 #[inline(always)]
 pub fn wset_cursor_type (w: *mut window, val: Lisp_Object) { unsafe { (*w).cursor_type = val; } }
 #[inline(always)]
 pub fn wset_prev_buffers (w: *mut window, val: Lisp_Object)
-{ unsafe { (*w).prev_buffers = val; } }
+{ /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*w).prev_buffers = val; } }
 #[inline(always)]
 pub fn wset_next_buffers (w: *mut window, val: Lisp_Object)
 { unsafe { (*w).next_buffers = val; } }
@@ -275,7 +275,7 @@ pub fn wset_next_buffers (w: *mut window, val: Lisp_Object)
 pub fn output_cursor_to (w: *mut window, vpos: c_int, hpos: c_int, y: c_int, x: c_int)
 {
   eassert! (!w.is_null ());
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     (*w).output_cursor.hpos = hpos;
     (*w).output_cursor.vpos = vpos;
     (*w).output_cursor.x = x;
@@ -290,7 +290,7 @@ pub fn output_cursor_to (w: *mut window, vpos: c_int, hpos: c_int, y: c_int, x: 
 pub fn overlay_matches_window (w: *const window, ov: Lisp_Object) -> bool
 {
   eassert! (OVERLAYP (ov));
-  let window_ = unsafe { Foverlay_get (ov, Qwindow ()) };
+  let window_ = /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { Foverlay_get (ov, Qwindow ()) };
   !WINDOWP (window_) || std::ptr::eq (unsafe { XWINDOW (window_) }, w as *mut window)
 }
 
@@ -396,7 +396,7 @@ pub use self::window_fn_decls::*;
 // constants (PORTING.md 1.3 — the note file records the field names that cannot occur).
 #[inline(always)]
 pub fn WINDOW_LEAF_P (w: *mut window) -> bool
-{ BUFFERP (unsafe { (*w).contents }) }
+{ BUFFERP (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*w).contents }) }
 
 #[inline(always)]
 pub fn WINDOW_INTERNAL_P (w: *mut window) -> bool
@@ -416,7 +416,7 @@ pub fn WINDOW_PSEUDO_P (w: *mut window) -> bool
 
 #[inline(always)]
 pub fn WINDOW_BUFFER (w: *mut window) -> Lisp_Object
-{ if WINDOW_LEAF_P (w) { unsafe { (*w).contents } } else { lisp_h_Qnil () } }
+{ if WINDOW_LEAF_P (w) { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*w).contents } } else { lisp_h_Qnil () } }
 
 // window.h 633: `#define WINDOW_BUFFER_LOCAL_VALUE(V, W) (BUFFERP ((W)->contents) ?
 // buffer_local_value(V, (W)->contents) : Qnil)` - **C's parameter order is `(V, W)`**, value
@@ -429,19 +429,19 @@ pub fn WINDOW_BUFFER (w: *mut window) -> Lisp_Object
 #[inline(always)]
 pub fn WINDOW_BUFFER_LOCAL_VALUE (v: Lisp_Object, w: *mut window) -> Lisp_Object
 {
-  if BUFFERP (unsafe { (*w).contents })
+  if BUFFERP (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*w).contents })
     { unsafe { buffer_local_value (v, (*w).contents) } }
   else { lisp_h_Qnil () }
 }
 
 #[inline(always)]
-pub fn WINDOW_PIXEL_WIDTH (w: *mut window) -> c_int { unsafe { (*w).pixel_width } }
+pub fn WINDOW_PIXEL_WIDTH (w: *mut window) -> c_int { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*w).pixel_width } }
 #[inline(always)]
 pub fn WINDOW_PIXEL_HEIGHT (w: *mut window) -> c_int { unsafe { (*w).pixel_height } }
 #[inline(always)]
 pub fn WINDOW_TOTAL_COLS (w: *mut window) -> c_int { unsafe { (*w).total_cols } }
 #[inline(always)]
-pub fn WINDOW_TOTAL_LINES (w: *mut window) -> c_int { unsafe { (*w).total_lines } }
+pub fn WINDOW_TOTAL_LINES (w: *mut window) -> c_int { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*w).total_lines } }
 
 #[inline(always)]
 pub fn WINDOW_LEFT_EDGE_COL (w: *mut window) -> c_int { unsafe { (*w).left_col } }
@@ -449,18 +449,18 @@ pub fn WINDOW_LEFT_EDGE_COL (w: *mut window) -> c_int { unsafe { (*w).left_col }
 pub fn WINDOW_RIGHT_EDGE_COL (w: *mut window) -> c_int
 { WINDOW_LEFT_EDGE_COL (w) + WINDOW_TOTAL_COLS (w) }
 #[inline(always)]
-pub fn WINDOW_TOP_EDGE_LINE (w: *mut window) -> c_int { unsafe { (*w).top_line } }
+pub fn WINDOW_TOP_EDGE_LINE (w: *mut window) -> c_int { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*w).top_line } }
 #[inline(always)]
 pub fn WINDOW_BOTTOM_EDGE_LINE (w: *mut window) -> c_int
 { WINDOW_TOP_EDGE_LINE (w) + WINDOW_TOTAL_LINES (w) }
 
 #[inline(always)]
-pub fn WINDOW_LEFT_PIXEL_EDGE (w: *mut window) -> c_int { unsafe { (*w).pixel_left } }
+pub fn WINDOW_LEFT_PIXEL_EDGE (w: *mut window) -> c_int { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*w).pixel_left } }
 #[inline(always)]
 pub fn WINDOW_RIGHT_PIXEL_EDGE (w: *mut window) -> c_int
 { WINDOW_LEFT_PIXEL_EDGE (w) + WINDOW_PIXEL_WIDTH (w) }
 #[inline(always)]
-pub fn WINDOW_TOP_PIXEL_EDGE (w: *mut window) -> c_int { unsafe { (*w).pixel_top } }
+pub fn WINDOW_TOP_PIXEL_EDGE (w: *mut window) -> c_int { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*w).pixel_top } }
 #[inline(always)]
 pub fn WINDOW_BOTTOM_PIXEL_EDGE (w: *mut window) -> c_int
 { WINDOW_TOP_PIXEL_EDGE (w) + WINDOW_PIXEL_HEIGHT (w) }
@@ -479,7 +479,7 @@ pub fn WINDOW_TAB_BAR_P (_w: *mut window) -> bool { false }
 pub fn WINDOW_TOOL_BAR_P (_w: *mut window) -> bool { false }
 
 #[inline(always)]
-pub fn WINDOW_LEFT_MARGIN_COLS (w: *mut window) -> c_int { unsafe { (*w).left_margin_cols } }
+pub fn WINDOW_LEFT_MARGIN_COLS (w: *mut window) -> c_int { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*w).left_margin_cols } }
 #[inline(always)]
 pub fn WINDOW_RIGHT_MARGIN_COLS (w: *mut window) -> c_int { unsafe { (*w).right_margin_cols } }
 #[inline(always)]
@@ -496,7 +496,7 @@ pub fn WINDOW_HAS_HORIZONTAL_SCROLL_BAR (_w: *mut window) -> bool { false }
 
 #[inline(always)]
 pub fn WINDOW_VALID_P (window_: Lisp_Object) -> bool
-{ WINDOWP (window_) && !NILP (unsafe { (*XWINDOW (window_)).contents }) }
+{ WINDOWP (window_) && !NILP (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*XWINDOW (window_)).contents }) }
 #[inline(always)]
 pub fn WINDOW_LIVE_P (window_: Lisp_Object) -> bool
 { WINDOWP (window_) && BUFFERP (unsafe { (*XWINDOW (window_)).contents }) }
@@ -509,7 +509,7 @@ pub fn MINI_WINDOW_P (w: *mut window) -> bool { window_bit (w, WINDOW_MINI_SHIFT
 
 #[inline(always)]
 pub fn MINI_NON_ONLY_WINDOW_P (w: *mut window) -> bool
-{ MINI_WINDOW_P (w) && !NILP (unsafe { (*w).prev }) }
+{ MINI_WINDOW_P (w) && !NILP (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*w).prev }) }
 
 #[inline(always)]
 pub fn MINI_ONLY_WINDOW_P (w: *mut window) -> bool
@@ -536,7 +536,7 @@ pub fn CHECK_LIVE_WINDOW (window_: Lisp_Object)
 // The packed-flag reader the accessors above share.
 #[inline(always)]
 pub fn window_bit (w: *mut window, shift: u32) -> bool
-{ (unsafe { (*w).bits }) >> shift & 1 != 0 }
+{ (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*w).bits }) >> shift & 1 != 0 }
 
 // window.h 620-1092: the geometry family.  C writes all of it as macros, and the port keeps
 // that shape (`macro_rules!`, PORTING.md 2.1) rather than the `#[inline(always)]` functions

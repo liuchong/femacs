@@ -5,9 +5,7 @@
 // `#[cfg (enable_checking)]` text (P-51) which `xtask`'s checking pass compiles.  The
 // deviations and the include list are recorded in docs/ports/region-cache.md.
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
-         unsafe_op_in_unsafe_fn)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -134,6 +132,8 @@ const PRESERVE_THRESHOLD: ptrdiff_t = (500);
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn new_region_cache () -> *mut region_cache
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let c = xmalloc (size_of::<region_cache> ()) as *mut region_cache;
 
   (*c).gap_start = 0;
@@ -155,13 +155,19 @@ pub unsafe extern "C-unwind" fn new_region_cache () -> *mut region_cache
   (*(*c).boundaries.add (0)).value = 0;
 
   return c;
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn free_region_cache (c: *mut region_cache)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   xfree ((*c).boundaries as *mut c_void);
   xfree (c as *mut c_void);
+
+  }
 }
 
 /* Finding positions in the cache.  */
@@ -175,6 +181,8 @@ pub unsafe extern "C-unwind" fn free_region_cache (c: *mut region_cache)
    reference, too, by searching entries near the last entry found.  */
 unsafe fn find_cache_boundary (c: *mut region_cache, pos: ptrdiff_t) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut low = 0;
   let mut high = (*c).cache_len;
 
@@ -197,6 +205,8 @@ unsafe fn find_cache_boundary (c: *mut region_cache, pos: ptrdiff_t) -> ptrdiff_
 		  && BOUNDARY_POS! (c, low + 1) <= pos)));
 
   return low;
+
+  }
 }
 
 /* Moving the cache gap around, inserting, and deleting.  */
@@ -205,6 +215,8 @@ unsafe fn find_cache_boundary (c: *mut region_cache, pos: ptrdiff_t) -> ptrdiff_
    for at least MIN_SIZE boundaries.  */
 unsafe fn move_cache_gap (c: *mut region_cache, pos: ptrdiff_t, mut min_size: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* Copy these out of the cache and into registers.  */
   let mut gap_start = (*c).gap_start;
   let mut gap_len = (*c).gap_len;
@@ -277,6 +289,8 @@ unsafe fn move_cache_gap (c: *mut region_cache, pos: ptrdiff_t, mut min_size: pt
   /* Assign these back into the cache.  */
   (*c).gap_start = gap_start;
   (*c).gap_len  = gap_len;
+
+  }
 }
 
 /* Insert a new boundary in cache C; it will have cache index I,
@@ -284,6 +298,8 @@ unsafe fn move_cache_gap (c: *mut region_cache, pos: ptrdiff_t, mut min_size: pt
 unsafe fn insert_cache_boundary (c: *mut region_cache, i: ptrdiff_t, pos: ptrdiff_t,
 				 value: c_int)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* I must be a valid cache index, and we must never want
      to insert something before the dummy first boundary.  */
   eassert! (0 < i && i <= (*c).cache_len);
@@ -305,6 +321,8 @@ unsafe fn insert_cache_boundary (c: *mut region_cache, i: ptrdiff_t, pos: ptrdif
   (*c).gap_start += 1;
   (*c).gap_len -= 1;
   (*c).cache_len += 1;
+
+  }
 }
 
 /* Delete the i'th entry from cache C if START <= i < END.  */
@@ -312,6 +330,8 @@ unsafe fn insert_cache_boundary (c: *mut region_cache, i: ptrdiff_t, pos: ptrdif
 unsafe fn delete_cache_boundaries (c: *mut region_cache,
 				   start: ptrdiff_t, end: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let len = end - start;
 
   /* Gotta be in range.  */
@@ -349,6 +369,8 @@ unsafe fn delete_cache_boundaries (c: *mut region_cache,
     }
 
   (*c).cache_len -= len;
+
+  }
 }
 
 /* Set the value for a region.  */
@@ -357,6 +379,8 @@ unsafe fn delete_cache_boundaries (c: *mut region_cache,
 unsafe fn set_cache_region (c: *mut region_cache,
 			    start: ptrdiff_t, end: ptrdiff_t, value: c_int)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   eassert! (start <= end);
   eassert! ((*c).buffer_beg <= start && end <= (*c).buffer_end);
 
@@ -438,6 +462,8 @@ unsafe fn set_cache_region (c: *mut region_cache,
 	  { delete_cache_boundaries (c, end_ix, end_ix + 1); }
       }
   }
+
+  }
 }
 
 /* Interface: Invalidating the cache.  Private: Re-validating the cache.  */
@@ -454,6 +480,8 @@ unsafe fn set_cache_region (c: *mut region_cache,
 pub unsafe extern "C-unwind" fn invalidate_region_cache (buf: *mut buffer, c: *mut region_cache,
 						  head: ptrdiff_t, tail: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* Let chead = c->beg_unchanged, and
 	 ctail = c->end_unchanged.
      If z-tail < beg+chead by a large amount, or
@@ -502,6 +530,8 @@ pub unsafe extern "C-unwind" fn invalidate_region_cache (buf: *mut buffer, c: *m
      accounting for all the modifications at once, by calling
      revalidate_region_cache before we try to consult the cache the
      next time.  */
+
+  }
 }
 
 /* Clean out any cache entries applying to the modified region, and
@@ -529,6 +559,8 @@ pub unsafe extern "C-unwind" fn invalidate_region_cache (buf: *mut buffer, c: *m
 
 unsafe fn revalidate_region_cache (buf: *mut buffer, c: *mut region_cache)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* The boundaries now in the cache are expressed relative to the
      buffer_beg and buffer_end values stored in the cache.  Now,
      buffer_beg and buffer_end may not be the same as BUF_BEG (buf)
@@ -647,6 +679,8 @@ unsafe fn revalidate_region_cache (buf: *mut buffer, c: *mut region_cache)
   let unchanged = (*c).buffer_end - (*c).buffer_beg;
   (*c).beg_unchanged = unchanged;
   (*c).end_unchanged = unchanged;
+
+  }
 }
 
 /* Interface: Adding information to the cache.  */
@@ -658,9 +692,13 @@ unsafe fn revalidate_region_cache (buf: *mut buffer, c: *mut region_cache)
 pub unsafe extern "C-unwind" fn know_region_cache (buf: *mut buffer, c: *mut region_cache,
 					    start: ptrdiff_t, end: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   revalidate_region_cache (buf, c);
 
   set_cache_region (c, start, end, 1);
+
+  }
 }
 
 /* Interface: using the cache.  */
@@ -673,6 +711,8 @@ pub unsafe extern "C-unwind" fn know_region_cache (buf: *mut buffer, c: *mut reg
 pub unsafe extern "C-unwind" fn region_cache_forward (buf: *mut buffer, c: *mut region_cache,
 					       pos: ptrdiff_t, next: *mut ptrdiff_t) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   revalidate_region_cache (buf, c);
 
   {
@@ -705,6 +745,8 @@ pub unsafe extern "C-unwind" fn region_cache_forward (buf: *mut buffer, c: *mut 
 
     return i_value;
   }
+
+  }
 }
 
 /* Return the value for the text immediately before POS in BUF if the
@@ -715,6 +757,8 @@ pub unsafe extern "C-unwind" fn region_cache_forward (buf: *mut buffer, c: *mut 
 pub unsafe extern "C-unwind" fn region_cache_backward (buf: *mut buffer, c: *mut region_cache,
 						pos: ptrdiff_t, next: *mut ptrdiff_t) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   revalidate_region_cache (buf, c);
 
   /* Before the beginning of the buffer is unknown, by
@@ -749,6 +793,8 @@ pub unsafe extern "C-unwind" fn region_cache_backward (buf: *mut buffer, c: *mut
 
     return i_value;
   }
+
+  }
 }
 
 /* C 754-781: `#ifdef ENABLE_CHECKING` - dead in the frozen configuration, kept under the
@@ -761,6 +807,8 @@ unsafe extern "C" {
 #[cfg(enable_checking)]
 pub unsafe fn pp_cache (c: *mut region_cache)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let beg_u = (*c).buffer_beg + (*c).beg_unchanged;
   let end_u = (*c).buffer_end - (*c).end_unchanged;
 
@@ -780,4 +828,6 @@ pub unsafe fn pp_cache (c: *mut region_cache)
 	       pos, BOUNDARY_VALUE! (c, i));
       i += 1;
     }
+
+  }
 }

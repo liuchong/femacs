@@ -1,3 +1,4 @@
+#![forbid(unsafe_code)]
 //! Shared command-line entry point for Fe.
 
 use std::process::ExitCode;

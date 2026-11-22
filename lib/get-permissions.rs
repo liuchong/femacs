@@ -9,9 +9,7 @@
 // dead: only C 33-37's doc comment, the signature, C 38-39's two statements and C 289's
 // `return 0;` are live.  The dead chain is noted where C's `#if` stood rather than written
 // out (P-51's text is optional for a file whose conditions the evaluator decides).
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
-         static_mut_refs, unsafe_op_in_unsafe_fn)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -32,6 +30,8 @@ use std::ffi::{c_char, c_double, c_int, c_long, c_short, c_uchar, c_uint, c_ulon
 pub unsafe extern "C" fn get_permissions (name: *const c_char, desc: c_int, mode: mode_t,
                                           ctx: *mut permission_context) -> c_int
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   memset (ctx as *mut c_void, 0, std::mem::size_of::<permission_context> ());
   (*ctx).mode = mode;
 
@@ -43,4 +43,6 @@ pub unsafe extern "C" fn get_permissions (name: *const c_char, desc: c_int, mode
      `ACL_TYPE_NFS4` and `ACL_AIX_WIP`.  */
 
   return 0;
+
+  }
 }

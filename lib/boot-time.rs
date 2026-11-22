@@ -34,9 +34,7 @@
 // transcribed here; all three headers are included by this file alone (measured: `grep -l`
 // over emacs/lib and emacs/src).
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
-         unsafe_op_in_unsafe_fn)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -130,6 +128,8 @@ macro_rules! WIN32_LEAN_AND_MEAN { () => {}; }
 /* C 83-84: `static int get_boot_time_uncached (struct timespec *p_boot_time)`.  */
 unsafe fn get_boot_time_uncached (p_boot_time: *mut timespec) -> c_int
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   let mut found_boot_time: timespec = timespec { tv_sec: 0, tv_nsec: 0 };   /* C 86: `= {0}` */
 
   /* C 88's `#if (HAVE_UTMPX_H ? HAVE_STRUCT_UTMPX_UT_TYPE : HAVE_STRUCT_UTMP_UT_TYPE)` is
@@ -330,12 +330,16 @@ unsafe fn get_boot_time_uncached (p_boot_time: *mut timespec) -> c_int
     }
   else
     { return -1; }
+
+  }
 }
 
 /* C 274-275: `int get_boot_time (struct timespec *p_boot_time)`.  */
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn get_boot_time (p_boot_time: *mut timespec) -> c_int
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   /* Cache the result from get_boot_time_uncached.  */
   /* C 278-279's `int volatile`/`struct timespec volatile` qualifiers have no Rust counterpart
      on a `static`; the reads and writes keep C's order (docs/ports/boot-time.md).  */
@@ -357,6 +361,8 @@ pub unsafe extern "C" fn get_boot_time (p_boot_time: *mut timespec) -> c_int
     }
   else
     { return -1; }
+
+  }
 }
 
 /* C 298-306's `#else` arm - `int get_boot_time (struct timespec *p_boot_time) { return -1; }`

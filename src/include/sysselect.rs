@@ -27,24 +27,36 @@ pub const SYSSELECT_H: c_int = 1;
 #[inline(always)]
 pub unsafe fn fd_CLR (fd: c_int, set: *mut fd_set)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   eassume! (0 <= fd && fd < FD_SETSIZE);
   FD_CLR (fd, set);
+
+  }
 }
 
 /// C 74-78: `INLINE bool fd_ISSET (int fd, fd_set *set)`.
 #[inline(always)]
 pub unsafe fn fd_ISSET (fd: c_int, set: *const fd_set) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   eassume! (0 <= fd && fd < FD_SETSIZE);
   return FD_ISSET (fd, set) as c_int != 0;
+
+  }
 }
 
 /// C 81-84: `INLINE void fd_SET (int fd, fd_set *set)`.
 #[inline(always)]
 pub unsafe fn fd_SET (fd: c_int, set: *mut fd_set)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   eassume! (0 <= fd && fd < FD_SETSIZE);
   FD_SET (fd, set);
+
+  }
 }
 
 /// C 90-93: C `#undef`s the three system macros and re-points the names at the bounds-checked

@@ -63,7 +63,7 @@ struct EnvGuard {
 impl EnvGuard {
     fn set(key: &'static str, value: &str) -> Self {
         let old = std::env::var_os(key);
-        unsafe {
+        /* SAFETY: Serialized test environment guard mutates process env vars without concurrent readers. */ unsafe {
             std::env::set_var(key, value);
         }
         Self { key, old }
@@ -71,7 +71,7 @@ impl EnvGuard {
 
     fn remove(key: &'static str) -> Self {
         let old = std::env::var_os(key);
-        unsafe {
+        /* SAFETY: Serialized test environment guard mutates process env vars without concurrent readers. */ unsafe {
             std::env::remove_var(key);
         }
         Self { key, old }
@@ -81,10 +81,10 @@ impl EnvGuard {
 impl Drop for EnvGuard {
     fn drop(&mut self) {
         match &self.old {
-            Some(value) => unsafe {
+            Some(value) => /* SAFETY: Serialized test environment guard mutates process env vars without concurrent readers. */ unsafe {
                 std::env::set_var(self.key, value);
             },
-            None => unsafe {
+            None => /* SAFETY: Serialized test environment guard mutates process env vars without concurrent readers. */ unsafe {
                 std::env::remove_var(self.key);
             },
         }

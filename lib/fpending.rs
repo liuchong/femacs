@@ -1,6 +1,4 @@
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
-         static_mut_refs, unsafe_op_in_unsafe_fn)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 use std::ffi::{c_char, c_double, c_int, c_long, c_short, c_uint, c_ulong, c_void};
@@ -26,6 +24,8 @@ use std::ffi::{c_char, c_double, c_int, c_long, c_short, c_uint, c_ulong, c_void
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn __fpending (fp: *mut FILE) -> usize
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   /* Most systems provide FILE as a struct and the necessary bitmask in
      <stdio.h>, because they need it for implementing getc() and putc() as
      fast macros.  */
@@ -58,4 +58,6 @@ pub unsafe extern "C" fn __fpending (fp: *mut FILE) -> usize
      */
 
   return ((*fp)._p as isize - (*fp)._bf._base as isize) as usize;
+
+  }
 }

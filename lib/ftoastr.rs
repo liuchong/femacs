@@ -9,7 +9,7 @@
 // `--check` compares C's standalone reading (`LENGTH == 1`), which `mod standalone` records.
 // The frozen build takes the `!GNULIB_SNPRINTF` arm (dtoastr.o imports `_sprintf`, not
 // `_snprintf`), so the fallback `ftoastr_snprintf` is the live definition; `C_LOCALE` is
-// undefined, so C 39-41 leave `PREFIX(name)` as `name`.  There is no `#![allow (…)]` here:
+// undefined, so C 39-41 leave `PREFIX(name)` as `name`.  There is no `#![allow(…)]` here:
 // an inner attribute inside an included file is E0753, so the unit that compiles it
 // (`lib/dtoastr.rs`) carries the list.
 
@@ -72,6 +72,8 @@ macro_rules! ftoastr_body {
     unsafe fn ftoastr_snprintf (buf: *mut c_char, bufsize: usize, format: *const c_char,
                                 width: c_int, prec: c_int, x: FLOAT) -> c_int
     {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
       const WIDTH_0_BUFSIZE_BOUND: usize = if $length == 1 { FLT_BUFSIZE_BOUND }
           else if $length == 2 { DBL_BUFSIZE_BOUND } else { LDBL_BUFSIZE_BOUND };
       let promoted_x: PROMOTED_FLOAT = x;
@@ -88,7 +90,9 @@ macro_rules! ftoastr_body {
       if (n as usize) < bufsize
         { n = sprintf (buf, format, width, prec, promoted_x); }
       return n;
-    }
+    
+  }
+}
 
     /* C 111-152.  C 125's `char format[sizeof "%-+ 0*.*Lg"]` is the literal's 10 bytes plus
        the null.  */
@@ -96,6 +100,8 @@ macro_rules! ftoastr_body {
     pub unsafe extern "C" fn $name (buf: *mut c_char, bufsize: usize, flags: c_int,
                                     width: c_int, x: FLOAT) -> c_int
     {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
       let promoted_x: PROMOTED_FLOAT = x;
       let mut format: [c_char; 11] = [0; 11];
       let abs_x: FLOAT = if x < 0.0 { -x } else { x };
@@ -123,6 +129,8 @@ macro_rules! ftoastr_body {
             { return n; }
           prec += 1;
         }
-    }
+    
+  }
+}
   };
 }

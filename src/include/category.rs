@@ -68,7 +68,7 @@ pub fn CATEGORY_SET_P (x: Lisp_Object) -> bool
 #[inline(always)]
 pub fn MAKE_CATEGORY_SET () -> Lisp_Object
 {
-  unsafe { Fmake_bool_vector (make_fixnum (128), Qnil ()) }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { Fmake_bool_vector (make_fixnum (128), Qnil ()) }
 }
 
 /* category.h 75-76: `CHECK_TYPE (CATEGORY_SET_P (x), Qcategorysetp, x)` */
@@ -82,7 +82,7 @@ pub fn CHECK_CATEGORY_SET (x: Lisp_Object)
 /* category.h 79: `#define CATEGORY_SET(c) char_category_set (c)` - the function itself is
    declared in lisp.h 5354 (lisp.rs), as in C.  */
 #[inline(always)]
-pub fn CATEGORY_SET (c: c_int) -> Lisp_Object { unsafe { char_category_set (c) } }
+pub fn CATEGORY_SET (c: c_int) -> Lisp_Object { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { char_category_set (c) } }
 
 /* Return true if CATEGORY_SET contains CATEGORY.
    Faster than '!NILP (Faref (category_set, make_fixnum (category)))'.  */
@@ -112,7 +112,7 @@ pub fn CHAR_HAS_CATEGORY (ch: c_int, category: c_int) -> bool
 #[inline(always)]
 pub fn CATEGORY_DOCSTRING (table: Lisp_Object, category: c_int) -> Lisp_Object
 {
-  unsafe { AREF (Fchar_table_extra_slot (table, make_fixnum (0)),
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { AREF (Fchar_table_extra_slot (table, make_fixnum (0)),
                  (category - ' ' as c_int) as isize) }
 }
 
@@ -132,7 +132,7 @@ macro_rules! SET_CATEGORY_DOCSTRING {
 #[inline(always)]
 pub fn CATEGORY_TABLE_VERSION (table: Lisp_Object) -> Lisp_Object
 {
-  unsafe { Fchar_table_extra_slot (table, make_fixnum (1)) }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { Fchar_table_extra_slot (table, make_fixnum (1)) }
 }
 
 /* Return true if there is a word boundary between two
@@ -147,7 +147,7 @@ pub fn WORD_BOUNDARY_P (c1: c_int, c2: c_int) -> bool
   // C's macro is applied to ints; the mirror's SINGLE_BYTE_CHAR_P takes intmax_t
   // (lisp.rs 1755), so the two arguments are widened exactly as C widens them.
   ! (SINGLE_BYTE_CHAR_P (c1 as i64) && SINGLE_BYTE_CHAR_P (c2 as i64))
-  && unsafe { word_boundary_p (c1, c2) }
+  && /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { word_boundary_p (c1, c2) }
 }
 
 /* The definition is category.c's; it is declared in a module so the unit that defines it

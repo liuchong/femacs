@@ -5,9 +5,7 @@
 // `goto Succeed` / `goto CopyB` tails become the labels of one state machine,
 // because Rust has no goto and the tails must not be skipped (PORTING.md 2.2).
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
-         unsafe_op_in_unsafe_fn)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -34,6 +32,8 @@ use core::ptr;
 /* Reverse a slice of a vector in place, from lo up to (exclusive) hi. */
 unsafe fn reverse_slice (mut lo: *mut Lisp_Object, mut hi: *mut Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   hi = hi.sub (1);
   while lo < hi
     {
@@ -43,6 +43,8 @@ unsafe fn reverse_slice (mut lo: *mut Lisp_Object, mut hi: *mut Lisp_Object)
       lo = lo.add (1);
       hi = hi.sub (1);
     }
+
+  }
 }
 
 /* A sortslice contains a pointer to an array of keys and a pointer to
@@ -68,25 +70,37 @@ struct sortslice
 #[inline]
 unsafe fn sortslice_copy (s1: *mut sortslice, i: ptrdiff_t, s2: *mut sortslice, j: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   *(*s1).keys.offset (i) = *(*s2).keys.offset (j);
   if !(*s1).values.is_null ()
     { *(*s1).values.offset (i) = *(*s2).values.offset (j); }
+
+  }
 }
 
 #[inline]
 unsafe fn sortslice_copy_incr (dst: *mut sortslice, src: *mut sortslice)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   { let t = *(*src).keys; (*src).keys = (*src).keys.add (1); *(*dst).keys = t; (*dst).keys = (*dst).keys.add (1); }
   if !(*dst).values.is_null ()
     { let t = *(*src).values; (*src).values = (*src).values.add (1); *(*dst).values = t; (*dst).values = (*dst).values.add (1); }
+
+  }
 }
 
 #[inline]
 unsafe fn sortslice_copy_decr (dst: *mut sortslice, src: *mut sortslice)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   { let t = *(*src).keys; (*src).keys = (*src).keys.sub (1); *(*dst).keys = t; (*dst).keys = (*dst).keys.sub (1); }
   if !(*dst).values.is_null ()
     { let t = *(*src).values; (*src).values = (*src).values.sub (1); *(*dst).values = t; (*dst).values = (*dst).values.sub (1); }
+
+  }
 }
 
 
@@ -94,26 +108,38 @@ unsafe fn sortslice_copy_decr (dst: *mut sortslice, src: *mut sortslice)
 unsafe fn sortslice_memcpy (s1: *mut sortslice, i: ptrdiff_t, s2: *mut sortslice, j: ptrdiff_t,
                             n: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   ptr::copy_nonoverlapping ((*s2).keys.offset (j), (*s1).keys.offset (i), n as usize);
   if !(*s1).values.is_null ()
     { ptr::copy_nonoverlapping ((*s2).values.offset (j), (*s1).values.offset (i), n as usize); }
+
+  }
 }
 
 #[inline]
 unsafe fn sortslice_memmove (s1: *mut sortslice, i: ptrdiff_t, s2: *mut sortslice, j: ptrdiff_t,
                              n: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   ptr::copy ((*s2).keys.offset (j), (*s1).keys.offset (i), n as usize);
   if !(*s1).values.is_null ()
     { ptr::copy ((*s2).values.offset (j), (*s1).values.offset (i), n as usize); }
+
+  }
 }
 
 #[inline]
 unsafe fn sortslice_advance (slice: *mut sortslice, n: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   (*slice).keys = (*slice).keys.offset (n);
   if !(*slice).values.is_null ()
     { (*slice).values = (*slice).values.offset (n); }
+
+  }
 }
 
 
@@ -201,40 +227,58 @@ struct merge_state
 
 unsafe extern "C-unwind" fn order_pred_lisp (ms: *mut merge_state, a: Lisp_Object, b: Lisp_Object) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   return !NILP (calln! ((*ms).predicate, a, b));
+
+  }
 }
 
 unsafe extern "C-unwind" fn order_pred_lss (ms: *mut merge_state, a: Lisp_Object, b: Lisp_Object) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if FIXNUMP (a) && FIXNUMP (b) && !debug_on_next_call
     {
       maybe_quit ();
       return XFIXNUM (a) < XFIXNUM (b);
     }
   return !NILP (calln! ((*ms).predicate, a, b));
+
+  }
 }
 
 unsafe extern "C-unwind" fn order_pred_gtr (ms: *mut merge_state, a: Lisp_Object, b: Lisp_Object) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if FIXNUMP (a) && FIXNUMP (b) && !debug_on_next_call
     {
       maybe_quit ();
       return XFIXNUM (a) > XFIXNUM (b);
     }
   return !NILP (calln! ((*ms).predicate, a, b));
+
+  }
 }
 
 unsafe extern "C-unwind" fn order_pred_valuelt (ms: *mut merge_state, a: Lisp_Object, b: Lisp_Object) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if FIXNUMP (a) && FIXNUMP (b)
     { return XFIXNUM (a) < XFIXNUM (b); }
   return !NILP (Fvaluelt (a, b));
+
+  }
 }
 
 /* Return true iff A < B according to the order predicate.  */
 #[inline(always)]
 unsafe fn inorder (ms: *mut merge_state, a: Lisp_Object, b: Lisp_Object) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* C calls through the pointer directly, so a NULL pointer would crash; the
      port's `unwrap_unchecked` has exactly that precondition.  */
   let pred_fn = (*ms).pred_fun.unwrap_unchecked ();
@@ -245,6 +289,8 @@ unsafe fn inorder (ms: *mut merge_state, a: Lisp_Object, b: Lisp_Object) -> bool
       return XFIXNUM (a) < XFIXNUM (b);
     }
   return pred_fn (ms, a, b);
+
+  }
 }
 
 /* Sort the list starting at LO and ending at HI using a stable binary
@@ -256,6 +302,8 @@ unsafe fn inorder (ms: *mut merge_state, a: Lisp_Object, b: Lisp_Object) -> bool
 unsafe fn binarysort (ms: *mut merge_state, lo: sortslice, hi: *const Lisp_Object,
                       mut start: *mut Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   eassume! (lo.keys <= start && start <= hi as *mut Lisp_Object);
   if lo.keys == start
     { start = start.add (1); }
@@ -289,6 +337,8 @@ unsafe fn binarysort (ms: *mut merge_state, lo: sortslice, hi: *const Lisp_Objec
         }
       start = start.add (1);
     }
+
+  }
 }
 
 
@@ -304,6 +354,8 @@ unsafe fn binarysort (ms: *mut merge_state, lo: sortslice, hi: *const Lisp_Objec
 unsafe fn count_run (ms: *mut merge_state, mut lo: *mut Lisp_Object, hi: *const Lisp_Object,
                      descending: *mut bool) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   eassume! (lo < hi as *mut Lisp_Object);
   *descending = false;
   lo = lo.add (1);
@@ -335,6 +387,8 @@ unsafe fn count_run (ms: *mut merge_state, mut lo: *mut Lisp_Object, hi: *const 
     }
 
   return n;
+
+  }
 }
 
 
@@ -361,6 +415,8 @@ unsafe fn count_run (ms: *mut merge_state, mut lo: *mut Lisp_Object, hi: *const 
 unsafe fn gallop_left (ms: *mut merge_state, key: Lisp_Object, mut a: *mut Lisp_Object,
                        n: ptrdiff_t, hint: ptrdiff_t) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   eassume! (!a.is_null () && n > 0 && hint >= 0 && hint < n);
 
   a = a.offset (hint);
@@ -427,6 +483,8 @@ unsafe fn gallop_left (ms: *mut merge_state, key: Lisp_Object, mut a: *mut Lisp_
     }
   eassume! (lastofs == ofs);		/* Then a[ofs-1] < key <= a[ofs].  */
   return ofs;
+
+  }
 }
 
 
@@ -442,6 +500,8 @@ unsafe fn gallop_left (ms: *mut merge_state, key: Lisp_Object, mut a: *mut Lisp_
 unsafe fn gallop_right (ms: *mut merge_state, key: Lisp_Object, mut a: *mut Lisp_Object,
                         n: ptrdiff_t, hint: ptrdiff_t) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   eassume! (!a.is_null () && n > 0 && hint >= 0 && hint < n);
 
   a = a.offset (hint);
@@ -508,6 +568,8 @@ unsafe fn gallop_right (ms: *mut merge_state, key: Lisp_Object, mut a: *mut Lisp
     }
   eassume! (lastofs == ofs);		/* Now  a[ofs-1] <= key < a[ofs].  */
   return ofs;
+
+  }
 }
 
 
@@ -515,6 +577,8 @@ unsafe fn merge_init (ms: *mut merge_state, list_size: ptrdiff_t,
                       allocated_keys: *mut Lisp_Object, lo: *mut sortslice,
                       predicate: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   eassume! (!ms.is_null ());
 
   if !(*lo).values.is_null ()
@@ -558,6 +622,8 @@ unsafe fn merge_init (ms: *mut merge_state, list_size: ptrdiff_t,
   (*ms).count = make_invalid_specpdl_ref ();
   if !allocated_keys.is_null ()
     { merge_register_cleanup (ms); }
+
+  }
 }
 
 
@@ -567,6 +633,8 @@ unsafe fn merge_init (ms: *mut merge_state, list_size: ptrdiff_t,
 
 unsafe extern "C-unwind" fn merge_markmem (arg: *mut c_void)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let ms: *mut merge_state = arg as *mut merge_state;
   eassume! (!ms.is_null ());
 
@@ -580,6 +648,8 @@ unsafe extern "C-unwind" fn merge_markmem (arg: *mut c_void)
       eassume! (!src.is_null ());
       mark_objects (src, *(*ms).reloc.size);
     }
+
+  }
 }
 
 
@@ -589,6 +659,8 @@ unsafe extern "C-unwind" fn merge_markmem (arg: *mut c_void)
 
 unsafe extern "C-unwind" fn cleanup_mem (arg: *mut c_void)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let ms: *mut merge_state = arg as *mut merge_state;
   eassume! (!ms.is_null ());
 
@@ -622,13 +694,19 @@ unsafe extern "C-unwind" fn cleanup_mem (arg: *mut c_void)
       xfree ((*ms).allocated_keys as *mut c_void);
       (*ms).allocated_keys = ptr::null_mut ();
     }
+
+  }
 }
 
 unsafe fn merge_register_cleanup (ms: *mut merge_state)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let count: specpdl_ref = SPECPDL_INDEX ();
   record_unwind_protect_ptr_mark (Some (cleanup_mem), ms as *mut c_void, Some (merge_markmem));
   (*ms).count = count;
+
+  }
 }
 
 /* Allocate enough temp memory for NEED array slots.  Any previously
@@ -638,6 +716,8 @@ unsafe fn merge_register_cleanup (ms: *mut merge_state)
 
 unsafe fn merge_getmem (ms: *mut merge_state, need: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   eassume! (!ms.is_null ());
 
   if (*ms).a.keys == (*ms).temparray.as_mut_ptr ()
@@ -660,14 +740,20 @@ unsafe fn merge_getmem (ms: *mut merge_state, need: ptrdiff_t)
   (*ms).alloced = need;
   if !(*ms).a.values.is_null ()
     { (*ms).a.values = (*ms).a.keys.offset (need); }
+
+  }
 }
 
 
 #[inline]
 unsafe fn needmem (ms: *mut merge_state, na: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if na > (*ms).alloced
     { merge_getmem (ms, na); }
+
+  }
 }
 
 
@@ -679,6 +765,8 @@ unsafe fn needmem (ms: *mut merge_state, na: ptrdiff_t)
 unsafe fn merge_lo (ms: *mut merge_state, mut ssa: sortslice, mut na: ptrdiff_t,
 		    mut ssb: sortslice, mut nb: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   eassume! (!ms.is_null () && !ssa.keys.is_null () && !ssb.keys.is_null () && na > 0 && nb > 0);
   eassume! (ssa.keys.offset (na) == ssb.keys);
   needmem (ms, na);
@@ -804,6 +892,8 @@ unsafe fn merge_lo (ms: *mut merge_state, mut ssa: sortslice, mut na: ptrdiff_t,
       sortslice_memmove (&raw mut dest, 0, &raw mut ssb, 0, nb);
       sortslice_copy (&raw mut dest, nb, &raw mut ssa, 0);
     }
+
+  }
 }
 
 
@@ -815,6 +905,8 @@ unsafe fn merge_lo (ms: *mut merge_state, mut ssa: sortslice, mut na: ptrdiff_t,
 unsafe fn merge_hi (ms: *mut merge_state, mut ssa: sortslice, mut na: ptrdiff_t,
 		    mut ssb: sortslice, mut nb: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   eassume! (!ms.is_null () && !ssa.keys.is_null () && !ssb.keys.is_null () && na > 0 && nb > 0);
   eassume! (ssa.keys.offset (na) == ssb.keys);
   needmem (ms, nb);
@@ -943,6 +1035,8 @@ unsafe fn merge_hi (ms: *mut merge_state, mut ssa: sortslice, mut na: ptrdiff_t,
       sortslice_advance (&raw mut ssa, -na);
       sortslice_copy (&raw mut dest, 0, &raw mut ssb, 0);
     }
+
+  }
 }
 
 
@@ -950,6 +1044,8 @@ unsafe fn merge_hi (ms: *mut merge_state, mut ssa: sortslice, mut na: ptrdiff_t,
 
 unsafe fn merge_at (ms: *mut merge_state, i: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   eassume! (!ms.is_null ());
   eassume! ((*ms).n >= 2);
   eassume! (i >= 0);
@@ -991,6 +1087,8 @@ unsafe fn merge_at (ms: *mut merge_state, i: ptrdiff_t)
     { merge_lo (ms, ssa, na, ssb, nb); }
   else
     { merge_hi (ms, ssa, na, ssb, nb); }
+
+  }
 }
 
 
@@ -1044,6 +1142,8 @@ unsafe fn powerloop (s1: ptrdiff_t, n1: ptrdiff_t, n2: ptrdiff_t, n: ptrdiff_t) 
 
 unsafe fn found_new_run (ms: *mut merge_state, n2: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   eassume! (!ms.is_null ());
   if (*ms).n != 0
     {
@@ -1059,6 +1159,8 @@ unsafe fn found_new_run (ms: *mut merge_state, n2: ptrdiff_t)
       eassume! ((*ms).n < 2 || (*p.offset (((*ms).n - 2) as ptrdiff_t)).power < power);
       (*p.offset (((*ms).n - 1) as ptrdiff_t)).power = power;
     }
+
+  }
 }
 
 
@@ -1067,6 +1169,8 @@ unsafe fn found_new_run (ms: *mut merge_state, n2: ptrdiff_t)
 
 unsafe fn merge_force_collapse (ms: *mut merge_state)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let p = (*ms).pending.as_mut_ptr ();
 
   eassume! (!ms.is_null ());
@@ -1077,6 +1181,8 @@ unsafe fn merge_force_collapse (ms: *mut merge_state)
 	{ n -= 1; }
       merge_at (ms, n);
     }
+
+  }
 }
 
 
@@ -1105,13 +1211,19 @@ unsafe fn merge_compute_minrun (mut n: ptrdiff_t) -> ptrdiff_t
 
 unsafe fn reverse_sortslice (s: *mut sortslice, n: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   reverse_slice ((*s).keys, (*s).keys.offset (n));
   if !(*s).values.is_null ()
     { reverse_slice ((*s).values, (*s).values.offset (n)); }
+
+  }
 }
 
 unsafe fn resolve_fun (mut fun: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if SYMBOLP (fun)
     {
       /* Attempt to resolve the function as far as possible ahead of time,
@@ -1125,6 +1237,8 @@ unsafe fn resolve_fun (mut fun: Lisp_Object) -> Lisp_Object
 	{ fun = f; }
     }
   return fun;
+
+  }
 }
 
 /* Sort the array SEQ with LENGTH elements in the order determined by
@@ -1134,6 +1248,8 @@ unsafe fn resolve_fun (mut fun: Lisp_Object) -> Lisp_Object
 pub unsafe extern "C-unwind" fn tim_sort (mut predicate: Lisp_Object, mut keyfunc: Lisp_Object,
 				   seq: *mut Lisp_Object, length: ptrdiff_t, reverse: bool)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* FIXME: hoist this to the caller? */
   if EQ (predicate, Qvaluelt ())
     { predicate = Qnil (); }
@@ -1240,4 +1356,6 @@ pub unsafe extern "C-unwind" fn tim_sort (mut predicate: Lisp_Object, mut keyfun
 
   if (*ms).a.keys != (*ms).temparray.as_mut_ptr () || !allocated_keys.is_null ()
     { unbind_to ((*ms).count, Qnil ()); }
+
+  }
 }

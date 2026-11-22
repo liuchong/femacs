@@ -20,9 +20,7 @@
 // frozen configuration decides which arm is live, and the dead one is not part of this
 // program).  The mirror carries the matching arm of src/systhread.h (the three dummy types).
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, unused_mut,
-         static_mut_refs, unsafe_op_in_unsafe_fn)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe, unused_mut)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -43,7 +41,11 @@ const _: () = ();
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn sys_mutex_init (m: *mut sys_mutex_t)
 {
+  // SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership.
+  unsafe {
   *m = 0;
+
+  }
 }
 
 #[cfg (not (feature = "threads_enabled"))]
@@ -62,7 +64,11 @@ pub unsafe extern "C-unwind" fn sys_mutex_unlock (m: *mut sys_mutex_t)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn sys_cond_init (c: *mut sys_cond_t)
 {
+  // SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership.
+  unsafe {
   *c = 0;
+
+  }
 }
 
 #[cfg (not (feature = "threads_enabled"))]
@@ -201,6 +207,8 @@ unsafe extern "C-unwind" {
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn sys_mutex_init (sys_mutex: *mut sys_mutex_t)
 {
+  // SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership.
+  unsafe {
   let mutex: *mut pthread_mutex_t = SYSTHREAD_ALIGN_PTR! (pthread_mutex_t, sys_mutex);
   let mut attr_ptr: *mut pthread_mutexattr_t;
   /* C: `pthread_mutexattr_t attr;` - uninitialized until `pthread_mutexattr_init` writes it; the
@@ -227,6 +235,8 @@ pub unsafe extern "C-unwind" fn sys_mutex_init (sys_mutex: *mut sys_mutex_t)
     }
   #[cfg (feature = "enable_checking")]
   { error = pthread_mutexattr_destroy (&raw mut attr); eassert! (error == 0); }
+
+  }
 }
 
 /* C 138-145: `sys_mutex_lock`.  */
@@ -234,9 +244,13 @@ pub unsafe extern "C-unwind" fn sys_mutex_init (sys_mutex: *mut sys_mutex_t)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn sys_mutex_lock (sys_mutex: *mut sys_mutex_t)
 {
+  // SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership.
+  unsafe {
   let mutex: *mut pthread_mutex_t = SYSTHREAD_ALIGN_PTR! (pthread_mutex_t, sys_mutex);
   let error = pthread_mutex_lock (mutex);
   eassert! (error == 0);
+
+  }
 }
 
 /* C 147-152: `sys_mutex_unlock`.  */
@@ -244,9 +258,13 @@ pub unsafe extern "C-unwind" fn sys_mutex_lock (sys_mutex: *mut sys_mutex_t)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn sys_mutex_unlock (sys_mutex: *mut sys_mutex_t)
 {
+  // SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership.
+  unsafe {
   let mutex: *mut pthread_mutex_t = SYSTHREAD_ALIGN_PTR! (pthread_mutex_t, sys_mutex);
   let error = pthread_mutex_unlock (mutex);
   eassert! (error == 0);
+
+  }
 }
 
 /* C 154-166: `sys_cond_init`.  */
@@ -254,6 +272,8 @@ pub unsafe extern "C-unwind" fn sys_mutex_unlock (sys_mutex: *mut sys_mutex_t)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn sys_cond_init (sys_cond: *mut sys_cond_t)
 {
+  // SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership.
+  unsafe {
   let cond: *mut pthread_cond_t = SYSTHREAD_ALIGN_PTR! (pthread_cond_t, sys_cond);
   let error = pthread_cond_init (cond, core::ptr::null ());
   /* We could get ENOMEM.  Can't do anything except aborting.  */
@@ -262,6 +282,8 @@ pub unsafe extern "C-unwind" fn sys_cond_init (sys_cond: *mut sys_cond_t)
       fprintf (stderr, c"\npthread_cond_init failed: %s\n".as_ptr (), strerror (error));
       emacs_abort ();
     }
+
+  }
 }
 
 /* C 168-175: `sys_cond_wait`.  */
@@ -269,10 +291,14 @@ pub unsafe extern "C-unwind" fn sys_cond_init (sys_cond: *mut sys_cond_t)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn sys_cond_wait (sys_cond: *mut sys_cond_t, sys_mutex: *mut sys_mutex_t)
 {
+  // SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership.
+  unsafe {
   let cond: *mut pthread_cond_t = SYSTHREAD_ALIGN_PTR! (pthread_cond_t, sys_cond);
   let mutex: *mut pthread_mutex_t = SYSTHREAD_ALIGN_PTR! (pthread_mutex_t, sys_mutex);
   let error = pthread_cond_wait (cond, mutex);
   eassert! (error == 0);
+
+  }
 }
 
 /* C 177-183: `sys_cond_signal`.  */
@@ -280,9 +306,13 @@ pub unsafe extern "C-unwind" fn sys_cond_wait (sys_cond: *mut sys_cond_t, sys_mu
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn sys_cond_signal (sys_cond: *mut sys_cond_t)
 {
+  // SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership.
+  unsafe {
   let cond: *mut pthread_cond_t = SYSTHREAD_ALIGN_PTR! (pthread_cond_t, sys_cond);
   let error = pthread_cond_signal (cond);
   eassert! (error == 0);
+
+  }
 }
 
 /* C 185-199: `sys_cond_broadcast`.  */
@@ -290,6 +320,8 @@ pub unsafe extern "C-unwind" fn sys_cond_signal (sys_cond: *mut sys_cond_t)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn sys_cond_broadcast (sys_cond: *mut sys_cond_t)
 {
+  // SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership.
+  unsafe {
   let cond: *mut pthread_cond_t = SYSTHREAD_ALIGN_PTR! (pthread_cond_t, sys_cond);
   let error = pthread_cond_broadcast (cond);
   eassert! (error == 0);
@@ -300,6 +332,8 @@ pub unsafe extern "C-unwind" fn sys_cond_broadcast (sys_cond: *mut sys_cond_t)
        couple of tests in thread-tests.el.  */
     ns_run_loop_break ();
   }
+
+  }
 }
 
 /* C 201-206: `sys_cond_destroy`.  */
@@ -307,9 +341,13 @@ pub unsafe extern "C-unwind" fn sys_cond_broadcast (sys_cond: *mut sys_cond_t)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn sys_cond_destroy (sys_cond: *mut sys_cond_t)
 {
+  // SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership.
+  unsafe {
   let cond: *mut pthread_cond_t = SYSTHREAD_ALIGN_PTR! (pthread_cond_t, sys_cond);
   let error = pthread_cond_destroy (cond);
   eassert! (error == 0);
+
+  }
 }
 
 /* C 208-212: `sys_thread_self`.  */
@@ -317,7 +355,11 @@ pub unsafe extern "C-unwind" fn sys_cond_destroy (sys_cond: *mut sys_cond_t)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn sys_thread_self () -> sys_thread_t
 {
+  // SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership.
+  unsafe {
   return pthread_self ();
+
+  }
 }
 
 /* C 214-218: `sys_thread_equal`.  */
@@ -325,7 +367,11 @@ pub unsafe extern "C-unwind" fn sys_thread_self () -> sys_thread_t
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn sys_thread_equal (t: sys_thread_t, u: sys_thread_t) -> bool
 {
+  // SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership.
+  unsafe {
   return pthread_equal (t, u) != 0;
+
+  }
 }
 
 /* C 220-242: `sys_thread_set_name`.  C spells all three arities of `pthread_setname_np` with
@@ -372,6 +418,8 @@ unsafe extern "C" {
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn sys_thread_set_name (name: *const c_char)
 {
+  // SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership.
+  unsafe {
   #[cfg (feature = "have_pthread_setname_np")]
   {
     /* We need to truncate here otherwise pthread_setname_np fails to set the name.  TASK_COMM_LEN
@@ -394,6 +442,8 @@ pub unsafe extern "C-unwind" fn sys_thread_set_name (name: *const c_char)
     /* The name will automatically be truncated if it exceeds a system-specific length.  */
     pthread_set_name_np (pthread_self (), name);
   }
+
+  }
 }
 
 /* C 244-273: `sys_thread_create`.  C's `out:` label (C 268) and its one forward `goto out;`
@@ -404,6 +454,8 @@ pub unsafe extern "C-unwind" fn sys_thread_create (thread_ptr: *mut sys_thread_t
                                            func: thread_creation_function,
                                            arg: *mut c_void) -> bool
 {
+  // SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership.
+  unsafe {
   /* C declares this uninitialized (`pthread_attr_t attr;`); Rust rejects a `&raw mut` borrow of
      an uninitialized binding (E0381), so the port zeroes the storage first - the first statement
      that reads it is the `pthread_attr_init` call below, which initializes it either way
@@ -434,6 +486,8 @@ pub unsafe extern "C-unwind" fn sys_thread_create (thread_ptr: *mut sys_thread_t
   eassert! (error == 0);
 
   return result;
+
+  }
 }
 
 /* C 275-278: `sys_thread_yield`.  */
@@ -441,7 +495,11 @@ pub unsafe extern "C-unwind" fn sys_thread_create (thread_ptr: *mut sys_thread_t
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn sys_thread_yield ()
 {
+  // SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership.
+  unsafe {
   sched_yield ();
+
+  }
 }
 
 /* ------------------------------------------------------------------------------------------

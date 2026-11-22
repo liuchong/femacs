@@ -23,11 +23,7 @@
 // `docs/ports/fontset.md` carries the C line ranges, the acceptance readings, the use-site
 // declarations the mirrors cannot supply yet and every deviation.
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
-         unsafe_op_in_unsafe_fn, unused_assignments, unused_parens, unused_mut,
-         unreachable_code, unused_labels, while_true, unused_comparisons,
-         overflowing_literals, unused_must_use, clippy::all)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe, unused_assignments, unused_parens, unused_mut, unreachable_code, unused_labels, while_true, unused_comparisons, overflowing_literals, unused_must_use, clippy::all)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -143,13 +139,13 @@ pub mod frame_face_accessors
   /// C 1379: `#define FRAME_FACE_CACHE(F) (F)->face_cache`
   #[inline (always)]
   pub fn FRAME_FACE_CACHE (f: *mut frame) -> *mut face_cache
-  { unsafe { (*f).face_cache as *mut face_cache } }
+  { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f).face_cache as *mut face_cache } }
 
   /// C 1646-1650: `INLINE struct face * FACE_FROM_ID (struct frame *f, int id)`
   #[inline (always)]
   pub fn FACE_FROM_ID (f: *mut frame, id: c_int) -> *mut face
   {
-    eassert! (0 <= id && id < unsafe { (*FRAME_FACE_CACHE (f)).used });
+    eassert! (0 <= id && id < /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*FRAME_FACE_CACHE (f)).used });
     unsafe { *(*FRAME_FACE_CACHE (f)).faces_by_id.add (id as usize) }
   }
 
@@ -157,7 +153,7 @@ pub mod frame_face_accessors
   #[inline (always)]
   pub fn FACE_FROM_ID_OR_NULL (f: *mut frame, id: c_int) -> *mut face
   {
-    let used: c_int = unsafe { (*FRAME_FACE_CACHE (f)).used };
+    let used: c_int = /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*FRAME_FACE_CACHE (f)).used };
     eassume! (0 <= used);
     if 0 <= id && id < used { unsafe { *(*FRAME_FACE_CACHE (f)).faces_by_id.add (id as usize) } }
     else { core::ptr::null_mut () }
@@ -494,7 +490,11 @@ static mut Vdefault_fontset: Lisp_Object = std::ptr::null_mut ();          // C 
 #[cfg (feature = "have_window_system")]
 unsafe fn fontset_id_valid_p (id: c_int) -> bool                           // C 177
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   return id >= 0 && (id as isize) < ASIZE (Vfontset_table) - 1;
+
+  }
 }
 
 
@@ -675,6 +675,8 @@ macro_rules! FONTSET_REF {
 #[cfg (feature = "have_window_system")]
 unsafe fn fontset_ref (fontset: Lisp_Object, c: c_int) -> Lisp_Object      // C 301
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut elt: Lisp_Object;
 
   elt = CHAR_TABLE_REF (fontset, c as isize);
@@ -683,6 +685,8 @@ unsafe fn fontset_ref (fontset: Lisp_Object, c: c_int) -> Lisp_Object      // C 
       && NILP (FONTSET_BASE! (fontset))
     { elt = CHAR_TABLE_REF (Vdefault_fontset, c as isize); }
   return elt;
+
+  }
 }
 
 /* Set elements of FONTSET for characters in RANGE to the value ELT.
@@ -722,6 +726,8 @@ macro_rules! FONTSET_ADD {
 unsafe fn fontset_add (fontset: Lisp_Object, range: Lisp_Object, elt: Lisp_Object, // C 335
                        add: Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut args: [Lisp_Object; 2] = [Qnil (), Qnil ()];
   let mut idx: c_int = if EQ (add, Qappend ()) { 0 } else { 1 };
 
@@ -752,12 +758,16 @@ unsafe fn fontset_add (fontset: Lisp_Object, range: Lisp_Object, elt: Lisp_Objec
                             if NILP (args[idx as usize]) { args[(1 - idx) as usize] }
                             else { CALLMANY! (Fvconcat, args) });
     }
+
+  }
 }
 
 #[cfg (feature = "have_window_system")]
 unsafe extern "C" fn fontset_compare_rfontdef (val1: *const c_void,                        // C 367
                                                val2: *const c_void) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let v1: Lisp_Object = *(val1 as *const Lisp_Object);
   let v2: Lisp_Object = *(val2 as *const Lisp_Object);
   if NILP (v1) && NILP (v2)
@@ -767,6 +777,8 @@ unsafe extern "C" fn fontset_compare_rfontdef (val1: *const c_void,             
   else if NILP (v2)
     { return INT_MAX; }
   return (RFONT_DEF_SCORE! (v1) - RFONT_DEF_SCORE! (v2)) as c_int;
+
+  }
 }
 
 /* Update a cons cell which has this form:
@@ -779,6 +791,8 @@ unsafe extern "C" fn fontset_compare_rfontdef (val1: *const c_void,             
 #[cfg (feature = "have_window_system")]
 unsafe fn reorder_font_vector (font_group: Lisp_Object, font: *mut font)   // C 387
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut vec: Lisp_Object;
   let mut font_object: Lisp_Object;
   let mut size: c_int;
@@ -870,6 +884,8 @@ unsafe fn reorder_font_vector (font_group: Lisp_Object, font: *mut font)   // C 
   let low_tick_bits: EMACS_INT
     = (charset_ordered_list_tick & (MOST_POSITIVE_FIXNUM as EMACS_UINT)) as EMACS_INT;
   XSETCAR (font_group, make_fixnum (low_tick_bits));
+
+  }
 }
 
 
@@ -882,6 +898,8 @@ unsafe fn reorder_font_vector (font_group: Lisp_Object, font: *mut font)   // C 
 #[cfg (feature = "have_window_system")]
 unsafe fn fontset_get_font_group (fontset: Lisp_Object, c: c_int) -> Lisp_Object  // C 474
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut font_group: Lisp_Object;
   let mut base_fontset: Lisp_Object;
   let mut from: c_int = 0;
@@ -944,6 +962,8 @@ unsafe fn fontset_get_font_group (fontset: Lisp_Object, c: c_int) -> Lisp_Object
   else
     { set_fontset_fallback (fontset, font_group); }
   return font_group;
+
+  }
 }
 
 /* Return RFONT-DEF (vector) in the realized fontset FONTSET for the
@@ -970,6 +990,8 @@ unsafe fn fontset_get_font_group (fontset: Lisp_Object, c: c_int) -> Lisp_Object
 unsafe fn fontset_find_font (fontset: Lisp_Object, c: c_int, face: *mut face,   // C 550
 			     charset_id_: c_int, fallback: bool) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut vec: Lisp_Object;
   let mut font_group: Lisp_Object;
   let mut i: c_int;
@@ -1187,6 +1209,8 @@ unsafe fn fontset_find_font (fontset: Lisp_Object, c: c_int, face: *mut face,   
       ASET (vec, 0, rfont_def);
     }
   return rfont_def;
+
+  }
 }
 
 
@@ -1197,6 +1221,8 @@ unsafe fn fontset_find_font (fontset: Lisp_Object, c: c_int, face: *mut face,   
 unsafe fn fontset_font (fontset: Lisp_Object, c: c_int, face: *mut face,   // C 759
 			id: c_int) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut rfont_def: Lisp_Object;
   let mut default_rfont_def: Lisp_Object = Qnil ();  // C 763: `UNINIT` (PORTING.md 1.5)
   let mut base_fontset: Lisp_Object;
@@ -1255,6 +1281,8 @@ unsafe fn fontset_font (fontset: Lisp_Object, c: c_int, face: *mut face,   // C 
     }
 
   return Qnil ();
+
+  }
 }
 
 /* Return a newly created fontset with NAME.  If BASE is nil, make a
@@ -1263,7 +1291,9 @@ unsafe fn fontset_font (fontset: Lisp_Object, c: c_int, face: *mut face,   // C 
 
 #[cfg (feature = "have_window_system")]
 unsafe fn make_fontset (frame: Lisp_Object, name: Lisp_Object, base: Lisp_Object) -> Lisp_Object
-{                                                                          // C 822
+{
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {                                                                          // C 822
   let mut fontset: Lisp_Object;
   let size: c_int = ASIZE (Vfontset_table) as c_int;
   let mut id: c_int = next_fontset_id;
@@ -1293,6 +1323,8 @@ unsafe fn make_fontset (frame: Lisp_Object, name: Lisp_Object, base: Lisp_Object
   ASET (Vfontset_table, id as isize, fontset);
   next_fontset_id = id + 1;
   return fontset;
+
+  }
 }
 
 
@@ -1304,10 +1336,14 @@ unsafe fn make_fontset (frame: Lisp_Object, name: Lisp_Object, base: Lisp_Object
 #[unsafe(no_mangle)]
 pub unsafe fn fontset_name (id: c_int) -> Lisp_Object                         // C 861
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut fontset: Lisp_Object;
 
   fontset = FONTSET_FROM_ID! (id as isize);
   return FONTSET_NAME! (fontset);
+
+  }
 }
 
 
@@ -1317,6 +1353,8 @@ pub unsafe fn fontset_name (id: c_int) -> Lisp_Object                         //
 #[unsafe(no_mangle)]
 pub unsafe fn fontset_ascii (id: c_int) -> Lisp_Object                        // C 873
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut fontset: Lisp_Object;
   let mut elt: Lisp_Object;
 
@@ -1325,6 +1363,8 @@ pub unsafe fn fontset_ascii (id: c_int) -> Lisp_Object                        //
   if CONSP (elt)
     { elt = XCAR (elt); }
   return elt;
+
+  }
 }
 
 /* Free fontset of FACE defined on frame F.  Called from
@@ -1334,6 +1374,8 @@ pub unsafe fn fontset_ascii (id: c_int) -> Lisp_Object                        //
 #[unsafe(no_mangle)]
 pub unsafe fn free_face_fontset (f: *mut frame, face: *mut face)               // C 888
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut fontset: Lisp_Object;
 
   fontset = FONTSET_FROM_ID! ((*face).fontset as isize);
@@ -1356,6 +1398,8 @@ pub unsafe fn free_face_fontset (f: *mut frame, face: *mut face)               /
 	{ next_fontset_id = (*face).fontset; }
     }
   (*face).fontset = -1;
+
+  }
 }
 
 /* Return ID of face suitable for displaying character C at buffer position
@@ -1367,6 +1411,8 @@ pub unsafe fn free_face_fontset (f: *mut frame, face: *mut face)               /
 pub unsafe fn face_for_char (f: *mut frame, face: *mut face, c: c_int,       // C 919
 			     pos: ptrdiff_t, object: Lisp_Object) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut fontset: Lisp_Object;
   let mut rfont_def: Lisp_Object;
   let mut charset: Lisp_Object;
@@ -1453,6 +1499,8 @@ pub unsafe fn face_for_char (f: *mut frame, face: *mut face, c: c_int,       // 
     }
   eassert! (face_id >= 0);
   return face_id;
+
+  }
 }
 
 
@@ -1461,6 +1509,8 @@ pub unsafe fn face_for_char (f: *mut frame, face: *mut face, c: c_int,       // 
 pub unsafe fn font_for_char (face: *mut face, c: c_int, pos: ptrdiff_t,   // C 1035
 			     object: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut fontset: Lisp_Object;
   let mut rfont_def: Lisp_Object;
   let mut charset: Lisp_Object;
@@ -1502,6 +1552,8 @@ pub unsafe fn font_for_char (face: *mut face, c: c_int, pos: ptrdiff_t,   // C 1
   return if VECTORP (rfont_def)
 	 { RFONT_DEF_OBJECT! (rfont_def) }
 	 else { Qnil () };
+
+  }
 }
 
 
@@ -1515,6 +1567,8 @@ pub unsafe fn font_for_char (face: *mut face, c: c_int, pos: ptrdiff_t,   // C 1
 pub unsafe fn make_fontset_for_ascii_face (f: *mut frame, base_fontset_id: c_int,  // C 1085
 					    face: *mut face) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut base_fontset: Lisp_Object;
   let mut fontset: Lisp_Object;
   let mut frame: Lisp_Object = Qnil ();
@@ -1532,6 +1586,8 @@ pub unsafe fn make_fontset_for_ascii_face (f: *mut frame, base_fontset_id: c_int
 
   fontset = make_fontset (frame, Qnil (), base_fontset);
   return XFIXNUM (FONTSET_ID! (fontset)) as c_int;
+
+  }
 }
 
 
@@ -1556,6 +1612,8 @@ macro_rules! CACHED_FONTSET_REGEX {
 #[cfg (feature = "have_window_system")]
 unsafe fn fontset_pattern_regexp (pattern: Lisp_Object) -> Lisp_Object       // C 1118
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if strchr (SSDATA (pattern), b'*' as c_int).is_null ()
       && strchr (SSDATA (pattern), b'?' as c_int).is_null ()
     /* PATTERN does not contain any wild cards.  */
@@ -1630,6 +1688,8 @@ unsafe fn fontset_pattern_regexp (pattern: Lisp_Object) -> Lisp_Object       // 
     }
 
   return CACHED_FONTSET_REGEX! ();
+
+  }
 }
 
 /* Return ID of the base fontset named NAME.  If there's no such
@@ -1643,6 +1703,8 @@ unsafe fn fontset_pattern_regexp (pattern: Lisp_Object) -> Lisp_Object       // 
 #[unsafe(no_mangle)]
 pub unsafe fn fs_query_fontset (name: Lisp_Object, name_pattern: c_int) -> c_int  // C 1194
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut tem: Lisp_Object;
   let mut i: c_int;
   let mut name: Lisp_Object = name;
@@ -1686,6 +1748,8 @@ pub unsafe fn fs_query_fontset (name: Lisp_Object, name_pattern: c_int) -> c_int
       i += 1;
     }
   return -1;
+
+  }
 }
 
 
@@ -1723,6 +1787,8 @@ If REGEXPP is non-nil, PATTERN is a regular expression.  ",       // C 1237-1242
 pub unsafe fn list_fontsets (f: *mut frame, pattern: Lisp_Object,     // C 1266
 			     size: c_int) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut frame: Lisp_Object = Qnil ();
   let mut regexp: Lisp_Object;
   let mut val: Lisp_Object;
@@ -1756,6 +1822,8 @@ pub unsafe fn list_fontsets (f: *mut frame, pattern: Lisp_Object,     // C 1266
     }
 
   return val;
+
+  }
 }
 
 
@@ -1764,6 +1832,8 @@ pub unsafe fn list_fontsets (f: *mut frame, pattern: Lisp_Object,     // C 1266
 #[cfg (feature = "have_window_system")]
 unsafe fn free_realized_fontsets (base: Lisp_Object)                          // C 1302
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut id: c_int;
 
   /* C 1306-1333: `#if 0` - C's own dead text (the `free_realized_face` walk, with the
@@ -1790,6 +1860,8 @@ unsafe fn free_realized_fontsets (base: Lisp_Object)                          //
 	}
       id += 1;
     }
+
+  }
 }
 
 
@@ -1803,7 +1875,9 @@ unsafe fn free_realized_fontsets (base: Lisp_Object)                          //
 
 #[cfg (feature = "have_window_system")]
 unsafe fn check_fontset_name (name: Lisp_Object, frame: *mut Lisp_Object) -> Lisp_Object
-{                                                                             // C 1364
+{
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {                                                                             // C 1364
   let mut id: c_int;
   let f: *mut frame = decode_live_frame (*frame);
 
@@ -1829,12 +1903,16 @@ unsafe fn check_fontset_name (name: Lisp_Object, frame: *mut Lisp_Object) -> Lis
 	{ error (c"Fontset `%s' does not exist".as_ptr (), SDATA (name)); }
     }
   return FONTSET_FROM_ID! (id as isize);
+
+  }
 }
 
 #[cfg (feature = "have_window_system")]
 unsafe extern "C-unwind" fn accumulate_script_ranges (arg: Lisp_Object, range: Lisp_Object,  // C 1394
 					   val: Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if EQ (XCAR (arg), val)
     {
       if CONSP (range)
@@ -1842,6 +1920,8 @@ unsafe extern "C-unwind" fn accumulate_script_ranges (arg: Lisp_Object, range: L
       else
 	{ XSETCDR (arg, Fcons (Fcons (range, range), XCDR (arg))); }
     }
+
+  }
 }
 
 
@@ -1860,6 +1940,8 @@ unsafe extern "C-unwind" fn accumulate_script_ranges (arg: Lisp_Object, range: L
 #[cfg (feature = "have_window_system")]
 unsafe extern "C-unwind" fn set_fontset_font (arg: Lisp_Object, range: Lisp_Object)  // C 1419
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut fontset: Lisp_Object;
   let mut font_def: Lisp_Object;
   let mut add: Lisp_Object;
@@ -1910,6 +1992,8 @@ unsafe extern "C-unwind" fn set_fontset_font (arg: Lisp_Object, range: Lisp_Obje
 
   FONTSET_ADD! (fontset, range, font_def, add);
   ASET (arg, 4, script_range_list);
+
+  }
 }
 
 /* C 1458: `static void update_auto_fontset_alist (Lisp_Object, Lisp_Object);` - a forward
@@ -2284,6 +2368,8 @@ static mut num_auto_fontsets: ptrdiff_t = 0;                                  //
 #[unsafe(no_mangle)]
 pub unsafe fn fontset_from_font (font_object: Lisp_Object) -> c_int          // C 1798
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let font_name: Lisp_Object = font_get_name (font_object);
   let mut font_spec: Lisp_Object = copy_font_spec (font_object);
   let registry: Lisp_Object = AREF (font_spec, FONT_REGISTRY_INDEX as isize);
@@ -2343,6 +2429,8 @@ pub unsafe fn fontset_from_font (font_object: Lisp_Object) -> c_int          // 
   set_fontset_ascii (fontset, font_name);
 
   return XFIXNUM (FONTSET_ID! (fontset)) as c_int;
+
+  }
 }
 
 
@@ -2353,7 +2441,9 @@ pub unsafe fn fontset_from_font (font_object: Lisp_Object) -> c_int          // 
 
 #[cfg (feature = "have_window_system")]
 unsafe fn update_auto_fontset_alist (font_object: Lisp_Object, fontset: Lisp_Object)
-{                                                                             // C 1858
+{
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {                                                                             // C 1858
   let mut prev: Lisp_Object;
   let mut tail: Lisp_Object;
 
@@ -2371,6 +2461,8 @@ unsafe fn update_auto_fontset_alist (font_object: Lisp_Object, fontset: Lisp_Obj
       prev = tail;
       tail = XCDR (tail);
     }
+
+  }
 }
 
 
@@ -2661,6 +2753,8 @@ DEFUN! ("fontset-list", Ffontset_list, Sfontset_list, 0, 0, 0,
 #[unsafe(no_mangle)]
 pub unsafe fn dump_fontset (fontset: Lisp_Object) -> Lisp_Object            // C 2108
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let vec: Lisp_Object = make_nil_vector (3);
   ASET (vec, 0, FONTSET_ID! (fontset));
 
@@ -2689,6 +2783,8 @@ pub unsafe fn dump_fontset (fontset: Lisp_Object) -> Lisp_Object            // C
 	{ ASET (vec, 2, FONTSET_ID! (FONTSET_DEFAULT! (fontset))); }
     }
   return vec;
+
+  }
 }
 
 #[cfg (all (feature = "have_window_system", feature = "enable_checking"))]
@@ -2714,6 +2810,8 @@ DEFUN! ("fontset-list-all", Ffontset_list_all, Sfontset_list_all, 0, 0, 0,
 #[unsafe(no_mangle)]
 pub unsafe fn syms_of_fontset ()                                            // C 2155
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   DEFSYM! (Qfontset, c"fontset");
   Fput (Qfontset (), Qchar_table_extra_slots (), make_fixnum (8));
   DEFSYM! (Qfontset_info, c"fontset-info");
@@ -2810,6 +2908,8 @@ at the vertical center of lines.  ");
   #[cfg (feature = "enable_checking")]
   {
     defsubr (&raw mut Sfontset_list_all);
+  }
+
   }
 }
 

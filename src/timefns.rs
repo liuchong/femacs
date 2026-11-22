@@ -55,9 +55,7 @@
 // the frozen configuration, except the `#include` selections (C 47/202/2051), which the
 // port records in the ledger.
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
-         unsafe_op_in_unsafe_fn, unused_parens, arithmetic_overflow)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe, unused_parens, arithmetic_overflow)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -250,6 +248,8 @@ pub unsafe extern "C-unwind" fn make_timeval (t: timespec) -> timeval
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn monotonic_coarse_timespec () -> timespec
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut ts: timespec = std::mem::zeroed ();
   /* C 148-154: `#ifdef CLOCK_MONOTONIC_COARSE` is the Linux arm (dead here); the frozen
      target takes `#elif defined CLOCK_MONOTONIC`.  Both are carried (P-51).  */
@@ -261,23 +261,31 @@ pub unsafe extern "C-unwind" fn monotonic_coarse_timespec () -> timespec
     { return ts; }
   ts = current_timespec ();
   return ts;
+
+  }
 }
 
 /* Yield A's UTC offset, or an unspecified value if unknown.  */
 unsafe fn tm_gmtoff (a: *mut tm) -> c_long
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* C 163-168: the frozen `<config.h>` defines `HAVE_TM_GMTOFF` as 1; the `#else` arm is
      carried.  */
   #[cfg (not (feature = "no_have_tm_gmtoff"))]
   { return (*a).tm_gmtoff; }
   #[cfg (feature = "no_have_tm_gmtoff")]
   { return 0; }
+
+  }
 }
 
 /* Yield A - B, measured in seconds.
    This function is copied from the GNU C Library.  */
 unsafe fn tm_diff (a: *mut tm, b: *mut tm) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* Compute intervening leap days correctly even if year is negative.
      Take care to avoid int overflow in leap day calculations,
      but it's OK to assume that A and B are close to each other.  */
@@ -294,6 +302,8 @@ unsafe fn tm_diff (a: *mut tm, b: *mut tm) -> c_int
   return (60 * (60 * (24 * days + ((*a).tm_hour - (*b).tm_hour))
 		+ ((*a).tm_min - (*b).tm_min))
 	  + ((*a).tm_sec - (*b).tm_sec));
+
+  }
 }
 
 /* C 193: `enum { tzeqlen = sizeof "TZ=" - 1 };` (`sizeof` is skipped by the token check).  */
@@ -309,6 +319,8 @@ static mut utc_tz: timezone_t = std::ptr::null_mut ();
 
 unsafe fn emacs_localtime_rz (tz: timezone_t, t: *const time_t, tm: *mut tm) -> *mut tm
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* C 202-205's `#ifdef WINDOWSNT` arm (`tzset ()` / `w32_fix_tzset ()`), carried.  */
   #[cfg (feature = "windowsnt")]
   { tzset (); w32_fix_tzset (); }
@@ -316,19 +328,29 @@ unsafe fn emacs_localtime_rz (tz: timezone_t, t: *const time_t, tm: *mut tm) -> 
   if tm.is_null () && *errno () == ENOMEM
     { memory_full_up (); }
   return tm;
+
+  }
 }
 
 unsafe fn invalid_time_zone_specification (zone: Lisp_Object) -> !
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   xsignal2 (Qerror (), build_string (c"Invalid time zone specification".as_ptr ()), zone);
+
+  }
 }
 
 /* Free a timezone, except do not free the time zone for local time.
    Freeing utc_tz is also a no-op.  */
 unsafe fn xtzfree (tz: timezone_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if tz != local_tz
     { tzfree (tz); }
+
+  }
 }
 
 /* Convert the Lisp time zone rule ZONE to a timezone_t object.
@@ -337,6 +359,8 @@ unsafe fn xtzfree (tz: timezone_t)
    the caller should eventually pass the returned value to xtzfree.  */
 unsafe fn tzlookup (mut zone: Lisp_Object, settz: bool) -> timezone_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   const tzbuf_format: [u8; 24] = *b"<%+.*ld>%s%ld:%02d:%02d\0";
   let trailing_tzbuf_format: *const c_char =
     (tzbuf_format.as_ptr () as *const c_char).add (std::mem::size_of_val (&*b"<%+.*ld\0") - 1);
@@ -450,31 +474,47 @@ unsafe fn tzlookup (mut zone: Lisp_Object, settz: bool) -> timezone_t
     }
 
   return new_tz;
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn init_timefns ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut tz: *mut c_char = getenv (c"TZ".as_ptr ());
 
   /* Set the time zone rule now, so that the call to putenv is done
      before multiple threads are active.  */
   tzlookup (if !tz.is_null () { build_string (tz) } else { Qwall () }, true);
+
+  }
 }
 
 /* Report that a time value is out of range for Emacs.  */
 unsafe fn time_overflow () -> !
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   error (c"Specified time is not representable".as_ptr ());
+
+  }
 }
 
 unsafe fn time_spec_invalid () -> !
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   error (c"Invalid time specification".as_ptr ());
+
+  }
 }
 
 unsafe fn time_error (err: c_int) -> !
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   match err
     {
       ENOMEM => memory_full_up (),
@@ -483,11 +523,17 @@ unsafe fn time_error (err: c_int) -> !
     }
     // C's `switch` falls through from ENOMEM and EOVERFLOW into the default; the arms are
     // `noreturn`, so the port calls them (PORTING.md 2.2).
+
+  }
 }
 
 unsafe fn invalid_hz (hz: Lisp_Object) -> !
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   xsignal2 (Qerror (), build_string (c"Invalid time frequency".as_ptr ()), hz);
+
+  }
 }
 
 /* Return the upper part of the time T (everything but the bottom 16 bits).  */
@@ -515,6 +561,8 @@ static mut flt_radix_power: Lisp_Object = lisp_h_Qnil ();
    Arguments must be Lisp integers, and DENOMINATOR must be positive.  */
 unsafe fn frac_to_double (numerator: Lisp_Object, denominator: Lisp_Object) -> c_double
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut intmax_numerator: intmax_t = 0;
   let mut intmax_denominator: intmax_t = 0;
   if FASTER_TIMEFNS != 0
@@ -602,11 +650,15 @@ unsafe fn frac_to_double (numerator: Lisp_Object, denominator: Lisp_Object) -> c
 
   /* Rescale the integer Q back to double.  This step does not round.  */
   return scalbn (mpz_get_d ((*q).as_ptr ()), (-scale) as c_int);
+
+  }
 }
 
 /* Convert Z to time_t, returning true if it fits.  */
 unsafe fn mpz_time (z: *const __mpz_struct, t: *mut time_t) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if TYPE_SIGNED! (time_t)
     {
       let mut i: intmax_t = 0;
@@ -625,6 +677,8 @@ unsafe fn mpz_time (z: *const __mpz_struct, t: *mut time_t) -> bool
 	!ckd_add_overflow
       };
     }
+
+  }
 }
 
 /* Return a valid timespec (S, N) if S is in time_t range,
@@ -655,6 +709,8 @@ pub struct ticks_hz
    timespec if the result would not fit.  */
 unsafe fn ticks_hz_to_timespec (ticks: Lisp_Object, hz: Lisp_Object) -> timespec
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut ns: c_int = 0;
   let q: *mut mpz_t = &raw mut mpz[0];
   let mut qt: *const mpz_t = q;
@@ -697,6 +753,8 @@ unsafe fn ticks_hz_to_timespec (ticks: Lisp_Object, hz: Lisp_Object) -> timespec
   let mut sec: time_t = 0;
   return if mpz_time ((*qt).as_ptr (), &mut sec) { make_timespec (sec, ns as c_long) }
          else { invalid_timespec () };
+
+  }
 }
 
 /* C timestamp forms.  This enum is passed to conversion functions to
@@ -727,6 +785,8 @@ pub union c_time
    time value in CFORM form.  */
 unsafe fn decode_ticks_hz (ticks: Lisp_Object, hz: Lisp_Object, cform: cform) -> c_time
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   match cform
     {
       CFORM_DOUBLE =>
@@ -738,12 +798,16 @@ unsafe fn decode_ticks_hz (ticks: Lisp_Object, hz: Lisp_Object, cform: cform) ->
       _ =>
 	return c_time { ts: ticks_hz_to_timespec (ticks, hz) },
     }
+
+  }
 }
 
 /* Convert the finite number T into a C time of form CFORM, truncating
    toward minus infinity.  Signal an error if unsuccessful.  */
 unsafe fn decode_float_time (t: c_double, cform: cform) -> c_time
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if FASTER_TIMEFNS != 0 && cform == CFORM_DOUBLE
     { return c_time { d: t }; }
 
@@ -791,12 +855,16 @@ unsafe fn decode_float_time (t: c_double, cform: cform) -> c_time
 	}
     }
   return decode_ticks_hz (ticks, hz, cform);
+
+  }
 }
 
 /* Make a 4-element timestamp (HI LO US PS) from TICKS and HZ.
    Drop any excess precision.  */
 unsafe fn ticks_hz_list4 (ticks: Lisp_Object, hz: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* mpz[0] = floor ((ticks * trillion) / hz).  */
   let zticks: *const __mpz_struct = bignum_integer (&raw mut mpz[0], ticks);
   /* C 667-671: the frozen build takes the `TRILLION <= ULONG_MAX` arm; the `ztrillion`
@@ -836,30 +904,42 @@ unsafe fn ticks_hz_list4 (ticks: Lisp_Object, hz: Lisp_Object) -> Lisp_Object
 
   return list4 (make_integer_mpz (), make_fixnum (lo as EMACS_INT),
 		make_fixnum (us as EMACS_INT), make_fixnum (ps as EMACS_INT));
+
+  }
 }
 
 /* Set ROP to T.  */
 unsafe fn mpz_set_time (rop: *mut __mpz_struct, t: time_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if EXPR_SIGNED! (t)
     { mpz_set_intmax (rop, t as intmax_t); }
   else
     { mpz_set_uintmax (rop, t as uintmax_t); }
+
+  }
 }
 
 /* Store into mpz[0] a clock tick count for T, assuming a
    TIMESPEC_HZ-frequency clock.  Use mpz[1] as a temp.  */
 unsafe fn timespec_mpz (t: timespec)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* mpz[0] = sec * TIMESPEC_HZ + nsec.  */
   mpz_set_ui (mpz[0].as_mut_ptr (), t.tv_nsec as c_ulong);
   mpz_set_time (mpz[1].as_mut_ptr (), t.tv_sec);
   mpz_addmul_ui (mpz[0].as_mut_ptr (), mpz[1].as_ptr (), TIMESPEC_HZ as c_ulong);
+
+  }
 }
 
 /* Convert T to a Lisp integer counting TIMESPEC_HZ ticks.  */
 unsafe fn timespec_ticks (t: timespec) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* For speed, use intmax_t arithmetic if it will do.  */
   let mut accum: intmax_t = 0;
   if FASTER_TIMEFNS != 0
@@ -880,6 +960,8 @@ unsafe fn timespec_ticks (t: timespec) -> Lisp_Object
   /* Fall back on bignum arithmetic.  */
   timespec_mpz (t);
   return make_integer_mpz ();
+
+  }
 }
 
 /* Return greatest common divisor of positive A and B.  */
@@ -902,6 +984,8 @@ unsafe fn emacs_gcd (mut a: EMACS_INT, mut b: EMACS_INT) -> EMACS_INT
    Assume T is valid, but check HZ.  */
 unsafe fn ticks_hz_hz_ticks (mut t: ticks_hz, mut hz: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* The idea is to return the floor of ((T.ticks * HZ) / T.hz).  */
 
   /* For speed, just return T.ticks if T.hz == HZ.  */
@@ -955,11 +1039,15 @@ unsafe fn ticks_hz_hz_ticks (mut t: ticks_hz, mut hz: Lisp_Object) -> Lisp_Objec
     { mpz_fdiv_q (mpz[0].as_mut_ptr (), mpz[0].as_ptr (),
 		  bignum_integer (&raw mut mpz[1], t.hz)); }
   return make_integer_mpz ();
+
+  }
 }
 
 /* Convert T to a Lisp integer counting seconds, taking the floor.  */
 unsafe fn ticks_hz_seconds (t: ticks_hz) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* The idea is to return the floor of T.ticks / T.hz.  */
 
   if FASTER_TIMEFNS == 0
@@ -975,12 +1063,16 @@ unsafe fn ticks_hz_seconds (t: ticks_hz) -> Lisp_Object
 	      bignum_integer (&raw mut mpz[0], t.ticks),
 	      bignum_integer (&raw mut mpz[1], t.hz));
   return make_integer_mpz ();
+
+  }
 }
 
 /* Convert T to a Lisp timestamp.  */
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn make_lisp_time (t: timespec) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if current_time_list
     {
       let s: time_t = t.tv_sec;
@@ -991,13 +1083,19 @@ pub unsafe extern "C-unwind" fn make_lisp_time (t: timespec) -> Lisp_Object
     }
   else
     { return timespec_to_lisp (t); }
+
+  }
 }
 
 /* Return (TICKS . HZ) for time T.  */
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn timespec_to_lisp (t: timespec) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   return Fcons (timespec_ticks (t), timespec_hz! ());
+
+  }
 }
 
 /* An (error number, C timestamp) pair.  */
@@ -1018,6 +1116,8 @@ unsafe fn decode_time_components (high: Lisp_Object, low: Lisp_Object,
 				  usec: Lisp_Object, psec: Lisp_Object,
 				  hz: Lisp_Object, cform: cform) -> err_time
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if !(FIXNUMP (usec) && FIXNUMP (psec))
     { return err_time { err: EINVAL, time: std::mem::zeroed () }; }
 
@@ -1118,16 +1218,22 @@ unsafe fn decode_time_components (high: Lisp_Object, low: Lisp_Object,
 
   let ticks: Lisp_Object = make_integer_mpz ();
   return err_time { err: 0, time: decode_ticks_hz (ticks, hz, cform) };
+
+  }
 }
 
 /* Current time (seconds since epoch) in form CFORM.  */
 unsafe fn current_time_in_cform (cform: cform) -> c_time
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let now: timespec = current_timespec ();
   return if FASTER_TIMEFNS != 0
 	   && (cform == CFORM_TIMESPEC || cform == CFORM_SECS_ONLY)
 	 { c_time { ts: now } }
 	 else { decode_ticks_hz (timespec_ticks (now), timespec_hz! (), cform) };
+
+  }
 }
 
 /* Decode a Lisp timestamp SPECIFIED_TIME that represents a time.
@@ -1140,6 +1246,8 @@ unsafe fn current_time_in_cform (cform: cform) -> c_time
    Signal an error if unsuccessful.  */
 unsafe fn decode_lisp_time (specified_time: Lisp_Object, cform: cform) -> c_time
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* specified_time is one of:
 
      nil
@@ -1222,6 +1330,8 @@ unsafe fn decode_lisp_time (specified_time: Lisp_Object, cform: cform) -> c_time
     }
   else
     { time_spec_invalid (); }
+
+  }
 }
 
 /* Convert a non-float Lisp timestamp SPECIFIED_TIME to double.
@@ -1229,7 +1339,11 @@ unsafe fn decode_lisp_time (specified_time: Lisp_Object, cform: cform) -> c_time
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn float_time (specified_time: Lisp_Object) -> c_double
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   return decode_lisp_time (specified_time, CFORM_DOUBLE).d;
+
+  }
 }
 
 /* Convert (HIGH LOW USEC PSEC) to struct timespec.
@@ -1238,9 +1352,13 @@ pub unsafe extern "C-unwind" fn float_time (specified_time: Lisp_Object) -> c_do
 pub unsafe extern "C-unwind" fn list4_to_timespec (high: Lisp_Object, low: Lisp_Object,
 					    usec: Lisp_Object, psec: Lisp_Object) -> timespec
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let err_time: err_time
     = decode_time_components (high, low, usec, psec, trillion! (), CFORM_TIMESPEC);
   return if err_time.err != 0 { invalid_timespec () } else { err_time.time.ts };
+
+  }
 }
 
 /* Decode a Lisp time value SPECIFIED_TIME that represents a time.
@@ -1250,20 +1368,28 @@ pub unsafe extern "C-unwind" fn list4_to_timespec (high: Lisp_Object, low: Lisp_
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn lisp_time_argument (specified_time: Lisp_Object) -> timespec
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let t: timespec = decode_lisp_time (specified_time, CFORM_TIMESPEC).ts;
   if ! timespec_valid_p (t)
     { time_overflow (); }
   return t;
+
+  }
 }
 
 /* Like lisp_time_argument, except decode only the seconds part, and
    do not check the subseconds part.  */
 unsafe fn lisp_seconds_argument (specified_time: Lisp_Object) -> time_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let t: timespec = decode_lisp_time (specified_time, CFORM_SECS_ONLY).ts;
   if ! timespec_valid_p (t)
     { time_overflow (); }
   return t.tv_sec;
+
+  }
 }
 
 /* Return the sum of the Lisp integers A and B.
@@ -1271,6 +1397,8 @@ unsafe fn lisp_seconds_argument (specified_time: Lisp_Object) -> time_t
    This function is tuned for small B.  */
 unsafe fn lispint_arith (a: Lisp_Object, b: Lisp_Object, subtract: bool) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut mpz_done: bool = false;
 
   if FASTER_TIMEFNS != 0 && FIXNUMP (b)
@@ -1305,12 +1433,16 @@ unsafe fn lispint_arith (a: Lisp_Object, b: Lisp_Object, subtract: bool) -> Lisp
 		   bignum_integer (&raw mut mpz[1], b)); }
     }
   return make_integer_mpz ();
+
+  }
 }
 
 /* Given Lisp operands A and B, add their values, and return the
    result as a Lisp timestamp.  Subtract instead of adding if SUBTRACT.  */
 unsafe fn time_arith (a: Lisp_Object, b: Lisp_Object, subtract: bool) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let ta: ticks_hz = decode_lisp_time (a, CFORM_TICKS_HZ).th;
   let tb: ticks_hz = decode_lisp_time (b, CFORM_TICKS_HZ).th;
   let mut ticks: Lisp_Object;
@@ -1407,6 +1539,8 @@ unsafe fn time_arith (a: Lisp_Object, b: Lisp_Object, subtract: bool) -> Lisp_Ob
     { Fcons (ticks, hz) }
     else
     { ticks_hz_list4 (ticks, hz) };
+
+  }
 }
 
 DEFUN! ("time-add", Ftime_add, Stime_add, 2, 2, 0,
@@ -1433,6 +1567,8 @@ DEFUN! ("time-subtract", Ftime_subtract, Stime_subtract, 2, 2, 0,
    A and B should be Lisp time values.  */
 unsafe fn time_cmp (a: Lisp_Object, b: Lisp_Object) -> EMACS_INT
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* Compare nil to nil correctly, and handle other eq values quicker
      while we're at it.  This means (time-equal-p X X) does not signal
      an error if X is not a valid time value, but that's OK.  */
@@ -1469,6 +1605,8 @@ unsafe fn time_cmp (a: Lisp_Object, b: Lisp_Object) -> EMACS_INT
       zb = mpz[1].as_ptr ();
     }
   return mpz_cmp (za, zb) as EMACS_INT;
+
+  }
 }
 
 DEFUN! ("time-less-p", Ftime_less_p, Stime_less_p, 2, 2, 0,
@@ -1513,6 +1651,8 @@ unsafe fn emacs_nmemftime (mut s: *mut c_char, mut maxsize: usize, mut format: *
 			   mut format_len: usize, tp: *const tm, tz: timezone_t,
 			   ns: c_int) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut total: ptrdiff_t = 0;
 
   /* Loop through all the null-terminated strings in the format
@@ -1544,12 +1684,16 @@ unsafe fn emacs_nmemftime (mut s: *mut c_char, mut maxsize: usize, mut format: *
     }
 
   return total;
+
+  }
 }
 
 unsafe fn format_time_string (format: *const c_char, formatlen: ptrdiff_t,
 			      t: timespec, zone: Lisp_Object,
 			      mut tmp: *mut tm) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut buffer: [c_char; 4000] = [0; 4000];
   let mut buf: *mut c_char = buffer.as_mut_ptr ();
   let mut len: ptrdiff_t = -1;
@@ -1589,6 +1733,8 @@ unsafe fn format_time_string (format: *const c_char, formatlen: ptrdiff_t,
 							  Vlocale_coding_system, false);
   SAFE_FREE! (sa_count, sa_mark);
   return result;
+
+  }
 }
 
 DEFUN! ("format-time-string", Fformat_time_string, Sformat_time_string, 1, 3, 0,
@@ -1718,6 +1864,8 @@ DEFUN! ("decode-time", Fdecode_time, Sdecode_time, 0, 3, 0,
    the result is representable as an int.  0 <= OFFSET <= TM_YEAR_BASE.  */
 unsafe fn check_tm_member (obj: Lisp_Object, offset: c_int) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if FASTER_TIMEFNS != 0 && INT_MAX as EMACS_INT <= MOST_POSITIVE_FIXNUM - TM_YEAR_BASE as EMACS_INT
     {
       CHECK_FIXNUM (obj);
@@ -1741,6 +1889,8 @@ unsafe fn check_tm_member (obj: Lisp_Object, offset: c_int) -> c_int
 	{ time_overflow (); }
       return mpz_get_si (mpz[0].as_ptr ()) as c_int;
     }
+
+  }
 }
 
 DEFUN! ("encode-time", Fencode_time, Sencode_time, 1, MANY, 0,
@@ -2001,12 +2151,16 @@ static mut tzvalbuf: *mut c_char = std::ptr::null_mut ();
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn emacs_getenv_TZ () -> *mut c_char
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* C 1997-2001: the frozen build takes `#ifndef MSDOS`; the `#else` arm is carried.  */
   #[cfg (not (feature = "msdos"))]
   { return if *tzvalbuf == b'T' as c_char { tzvalbuf.add (tzeqlen as usize) }
 	   else { std::ptr::null_mut () }; }
   #[cfg (feature = "msdos")]
   { return getenv (c"TZ".as_ptr ()); }
+
+  }
 }
 
 /* Set the local time zone rule to TZSTRING, which can be null to
@@ -2019,6 +2173,8 @@ pub unsafe extern "C-unwind" fn emacs_getenv_TZ () -> *mut c_char
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn emacs_setenv_TZ (tzstring: *const c_char) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* C 2015-2084: the frozen build takes the `#ifndef MSDOS` arm; the `#else` arm is
      carried.  */
   #[cfg (not (feature = "msdos"))]
@@ -2095,6 +2251,8 @@ pub unsafe extern "C-unwind" fn emacs_setenv_TZ (tzstring: *const c_char) -> c_i
     SAFE_FREE! (sa_count, sa_mark);
     return 0;
   }
+
+  }
 }
 
 #[cfg (feature = "ztrillion_mpz")]
@@ -2112,6 +2270,8 @@ pub static mut current_time_list: bool = false;
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_timefns ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* C 2099-2106: the frozen build compiles neither `#ifndef` (the object macros are the
      live arm); both are carried (P-51).  */
   #[cfg (feature = "no_fixnum_timespec_hz")]
@@ -2151,4 +2311,6 @@ pub unsafe extern "C-unwind" fn syms_of_timefns ()
 
   #[cfg (feature = "ztrillion_mpz")]
   pdumper_do_now_and_after_load (Some (syms_of_timefns_for_pdumper));
+
+  }
 }

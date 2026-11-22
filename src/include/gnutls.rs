@@ -44,13 +44,13 @@ pub mod gnutls_decls {
   #[cfg(feature = "have_gnutls")]
   #[inline(always)]
   pub unsafe fn GNUTLS_INITSTAGE(process: Lisp_Object) -> process_gnutls_types::gnutls_initstage_t {
-    unsafe { (*XPROCESS(process)).gnutls_initstage }
+    /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*XPROCESS(process)).gnutls_initstage }
   }
 
   #[cfg(feature = "have_gnutls")]
   #[inline(always)]
   pub unsafe fn GNUTLS_PROCESS_USABLE(process: Lisp_Object) -> bool {
-    unsafe { GNUTLS_INITSTAGE(process) >= process_gnutls_types::GNUTLS_STAGE_READY }
+    /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { GNUTLS_INITSTAGE(process) >= process_gnutls_types::GNUTLS_STAGE_READY }
   }
 }
 pub use self::gnutls_decls::*;

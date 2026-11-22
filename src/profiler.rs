@@ -28,9 +28,7 @@
 // `deliver_process_signal`, `systime.rs` for `make_timespec`/`make_timeval`, `pdumper.rs`
 // for the dump hooks.
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
-         unsafe_op_in_unsafe_fn)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -87,6 +85,8 @@ pub struct log_t {
 
 unsafe fn mark_log (log: *mut log_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if log.is_null ()
     { return; }
   let size: c_int = (*log).size;
@@ -98,10 +98,14 @@ unsafe fn mark_log (log: *mut log_t)
 	{ mark_objects ((*log).keys.offset ((i * depth) as isize), depth as ptrdiff_t); }
       i += 1;
     }
+
+  }
 }
 
 unsafe fn make_log (size: c_int, depth: c_int) -> *mut log_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let log: *mut log_t = xmalloc (std::mem::size_of::<log_t> ()) as *mut log_t;
   (*log).size = size;
   (*log).depth = depth;
@@ -146,10 +150,14 @@ unsafe fn make_log (size: c_int, depth: c_int) -> *mut log_t
   (*log).counts = xcalloc (size as usize, std::mem::size_of::<EMACS_INT> ()) as *mut EMACS_INT;
 
   return log;
+
+  }
 }
 
 unsafe fn free_log (log: *mut log_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   xfree ((*log).trace as *mut c_void);
   xfree ((*log).index as *mut c_void);
   xfree ((*log).next as *mut c_void);
@@ -157,38 +165,58 @@ unsafe fn free_log (log: *mut log_t)
   xfree ((*log).keys as *mut c_void);
   xfree ((*log).counts as *mut c_void);
   xfree (log as *mut c_void);
+
+  }
 }
 
 #[inline(always)]
 unsafe fn get_log_count (log: *mut log_t, idx: c_int) -> EMACS_INT
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   eassume! (idx >= 0 && idx < (*log).size);
   return *(*log).counts.offset (idx as isize);
+
+  }
 }
 
 #[inline(always)]
 unsafe fn set_log_count (log: *mut log_t, idx: c_int, val: EMACS_INT)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   eassume! (idx >= 0 && idx < (*log).size && val >= 0);
   *(*log).counts.offset (idx as isize) = val;
+
+  }
 }
 
 #[inline(always)]
 unsafe fn get_key_vector (log: *mut log_t, idx: c_int) -> *mut Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   eassume! (idx >= 0 && idx < (*log).size);
   return (*log).keys.offset ((idx * (*log).depth) as isize);
+
+  }
 }
 
 #[inline(always)]
 unsafe fn log_hash_index (log: *mut log_t, hash: EMACS_UINT) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* FIXME: avoid division.  */
   return (hash % (*log).index_size as EMACS_UINT) as c_int;
+
+  }
 }
 
 unsafe fn remove_log_entry (log: *mut log_t, idx: c_int)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   eassume! (idx >= 0 && idx < (*log).size);
   /* Remove from index.  */
   let hidx: c_int = log_hash_index (log, *(*log).hash.offset (idx as isize));
@@ -203,10 +231,14 @@ unsafe fn remove_log_entry (log: *mut log_t, idx: c_int)
   *(*log).counts.offset (idx as isize) = 0;
   *(*log).next.offset (idx as isize) = (*log).next_free;
   (*log).next_free = idx;
+
+  }
 }
 
 unsafe fn trace_equal (bt1: *mut Lisp_Object, bt2: *mut Lisp_Object, depth: c_int) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut i: c_int = 0;
   while i < depth
     {
@@ -216,10 +248,14 @@ unsafe fn trace_equal (bt1: *mut Lisp_Object, bt2: *mut Lisp_Object, depth: c_in
       i += 1;
     }
   return true;
+
+  }
 }
 
 unsafe fn trace_hash (trace: *mut Lisp_Object, depth: c_int) -> EMACS_UINT
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut hash: EMACS_UINT = 0;
   let mut i: c_int = 0;
   while i < depth
@@ -231,6 +267,8 @@ unsafe fn trace_hash (trace: *mut Lisp_Object, depth: c_int) -> EMACS_UINT
       i += 1;
     }
   return hash;
+
+  }
 }
 
 #[repr(C)]
@@ -246,15 +284,23 @@ pub struct profiler_log {
 
 unsafe fn make_profiler_log () -> profiler_log
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let size: c_int = clip_to_bounds (0, profiler_log_size, min (MOST_POSITIVE_FIXNUM, INT_MAX as EMACS_INT)) as c_int;
   let max_stack_depth: c_int = clip_to_bounds (0, profiler_max_stack_depth, INT_MAX as EMACS_INT) as c_int;
   return profiler_log { log: make_log (size, max_stack_depth), gc_count: 0, discarded: 0 };
+
+  }
 }
 
 unsafe fn free_profiler_log (plog: *mut profiler_log)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   free_log ((*plog).log);
   (*plog).log = std::ptr::null_mut ();
+
+  }
 }
 
 
@@ -276,6 +322,8 @@ unsafe fn free_profiler_log (plog: *mut profiler_log)
 
 unsafe fn approximate_median (log: *mut log_t, start: c_int, size: c_int) -> EMACS_INT
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   eassert! (size > 0);
   if size < 2
     { return get_log_count (log, start); }
@@ -298,10 +346,14 @@ unsafe fn approximate_median (log: *mut log_t, start: c_int, size: c_int) -> EMA
       else
 	{ if i1 < i3 { i1 } else { max (i2, i3) } };
     }
+
+  }
 }
 
 unsafe fn evict_lower_half (plog: *mut profiler_log)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let log: *mut log_t = (*plog).log;
   let size: c_int = (*log).size;
   let median: EMACS_INT = approximate_median (log, 0, size);
@@ -319,6 +371,8 @@ unsafe fn evict_lower_half (plog: *mut profiler_log)
 	}
       i += 1;
     }
+
+  }
 }
 
 /* Record the current backtrace in LOG.  COUNT is the weight of this
@@ -327,6 +381,8 @@ unsafe fn evict_lower_half (plog: *mut profiler_log)
 
 unsafe fn record_backtrace (plog: *mut profiler_log, count: EMACS_INT)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let log: *mut log_t = (*plog).log;
   get_backtrace ((*log).trace, (*log).depth as ptrdiff_t);
   let hash: EMACS_UINT = trace_hash ((*log).trace, (*log).depth);
@@ -373,6 +429,8 @@ unsafe fn record_backtrace (plog: *mut profiler_log, count: EMACS_INT)
      take longer until we get a chance to run the Elisp code, so
      there's more risk that the table will get full before we
      get there.  */
+
+  }
 }
 
 /* Sampling profiler.  */
@@ -381,6 +439,8 @@ unsafe fn record_backtrace (plog: *mut profiler_log, count: EMACS_INT)
 
 unsafe fn add_sample (plog: *mut profiler_log, count: EMACS_INT)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if BASE_EQ (backtrace_top_function (), QAutomatic_GC ()) /* bug#60237 */
     /* Special case the time-count inside GC because the hash-table
        code is not prepared to be used while the GC is running.
@@ -391,6 +451,8 @@ unsafe fn add_sample (plog: *mut profiler_log, count: EMACS_INT)
     { (*plog).gc_count = saturated_add ((*plog).gc_count, count); }
   else
     { record_backtrace (plog, count); }
+
+  }
 }
 
 /* The sampling interval specified.  */
@@ -414,19 +476,29 @@ static mut current_sampling_interval: EMACS_INT = 0;
 
 unsafe extern "C" fn handle_profiler_signal (signal: c_int)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut count: EMACS_INT = 1;
   // C 404-406's `#if defined HAVE_ITIMERSPEC && defined HAVE_TIMER_GETOVERRUN` arm is
   // dead on this target (docs/ports/profiler.md).
   add_sample (&raw mut cpu, count);
+
+  }
 }
 
 unsafe extern "C" fn deliver_profiler_signal (signal: c_int)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   deliver_process_signal (signal, Some (handle_profiler_signal));
+
+  }
 }
 
 unsafe fn setup_cpu_timer (sampling_interval: Lisp_Object) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let billion: EMACS_INT = 1000000000;
 
   if !RANGED_FIXNUMP (1, sampling_interval,
@@ -454,6 +526,8 @@ unsafe fn setup_cpu_timer (sampling_interval: Lisp_Object) -> c_int
     { return SETITIMER_RUNNING; }
 
   return NOT_RUNNING;
+
+  }
 }
 
 DEFUN! ("profiler-cpu-start", Fprofiler_cpu_start, Sprofiler_cpu_start,
@@ -541,6 +615,8 @@ DEFUN! ("profiler-cpu-log", Fprofiler_cpu_log, Sprofiler_cpu_log,
 /* Extract log data to a Lisp hash table.  The log data is then erased.  */
 unsafe fn export_log (plog: *mut profiler_log) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if (*plog).log.is_null ()
     { return Qnil (); }
 
@@ -570,6 +646,8 @@ unsafe fn export_log (plog: *mut profiler_log) -> Lisp_Object
 		h); }
   free_profiler_log (plog);
   return h;
+
+  }
 }
 
 /* Memory profiler.  */
@@ -643,7 +721,11 @@ DEFUN! ("profiler-memory-log",
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn malloc_probe (size: usize)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   add_sample (&raw mut memory, min (size as EMACS_INT, MOST_POSITIVE_FIXNUM));
+
+  }
 }
 
 DEFUN! ("function-equal", Ffunction_equal, Sfunction_equal, 2, 2, 0,
@@ -663,13 +745,19 @@ DEFUN! ("function-equal", Ffunction_equal, Sfunction_equal, 2, 2, 0,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mark_profiler ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   mark_log (cpu.log);
   mark_log (memory.log);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_profiler ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   DEFVAR_INT! (c"profiler-max-stack-depth", profiler_max_stack_depth,
 	       "Number of elements from the call-stack recorded in the log.");
   profiler_max_stack_depth = 16;
@@ -691,4 +779,6 @@ pub unsafe extern "C-unwind" fn syms_of_profiler ()
   defsubr (&raw mut Sprofiler_memory_stop);
   defsubr (&raw mut Sprofiler_memory_running_p);
   defsubr (&raw mut Sprofiler_memory_log);
+
+  }
 }

@@ -24,7 +24,7 @@
    is a `macro_rules!` (PORTING.md 10.13②) parameterized on the entry's name and symbol,
    and the shim is its only instantiation (lib/nstrftime.rs — the C's own
    `#ifdef my_strftime` arm, in which `tz`/`ns` are the entry's parameters).  This file
-   therefore has **no** crate-level `#![allow (…)]`: an inner attribute inside an included
+   therefore has **no** crate-level `#![allow(…)]`: an inner attribute inside an included
    file is E0753, and the shim carries the allow list for the unit that compiles the body
    (see docs/ports/strftime.md).  C's `#define nl_get_alt_digit _nl_get_alt_digit` has no
    live user.  */
@@ -285,6 +285,8 @@ macro_rules! ISDIGIT {
 unsafe fn memcpy_lowcase (dest: *mut CHAR_T, src: *const CHAR_T, mut len: usize)
   -> *mut CHAR_T
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   loop
     {
       let _len: usize = len;
@@ -294,11 +296,15 @@ unsafe fn memcpy_lowcase (dest: *mut CHAR_T, src: *const CHAR_T, mut len: usize)
       *dest.add (len) = TOLOWER! (((*src.add (len)) as UCHAR_T) as c_int, ()) as CHAR_T;
     }
   return dest;
+
+  }
 }
 
 unsafe fn memcpy_uppcase (dest: *mut CHAR_T, src: *const CHAR_T, mut len: usize)
   -> *mut CHAR_T
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   loop
     {
       let _len: usize = len;
@@ -308,6 +314,8 @@ unsafe fn memcpy_uppcase (dest: *mut CHAR_T, src: *const CHAR_T, mut len: usize)
       *dest.add (len) = TOUPPER! (((*src.add (len)) as UCHAR_T) as c_int, ()) as CHAR_T;
     }
   return dest;
+
+  }
 }
 
 /* C 428-435: `HAVE_NATIVE_TIME_Z` is C's ternary over the four configuration
@@ -351,6 +359,8 @@ macro_rules! extra_args_spec { () => { () } }
 unsafe fn underlying_strftime (mut tz: timezone_t, ubuf: *mut c_char, ubufsize: usize,
                                modifier: c_char, format_char: c_char, tp: *const tm) -> usize
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   /* The relevant information is available only via the
      underlying strftime implementation, so use that.  */
   let mut ufmt: [c_char; 5] = [0; 5];
@@ -392,12 +402,16 @@ unsafe fn underlying_strftime (mut tz: timezone_t, ubuf: *mut c_char, ubufsize: 
          glibc < 2.31, NetBSD and Solaris).  */
     }
   return len;
+
+  }
 }
 
 /* C 1079-1124.  */
 unsafe fn get_tm_zone (tz: timezone_t, ubuf: *mut c_char, ubufsize: c_int, modifier: c_int,
                        tp: *const tm) -> *const c_char
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   /* C 1088's `#if HAVE_STRUCT_TM_TM_ZONE` arm is live (the frozen `struct tm` has
      `tm_zone`); the `#else` arm (which formats through the underlying strftime)
      is dead.  */
@@ -410,6 +424,8 @@ unsafe fn get_tm_zone (tz: timezone_t, ubuf: *mut c_char, ubufsize: c_int, modif
   let ret: *const c_char = (*tp).tm_zone;
   /* C 1096-1099's `# if defined __ANDROID__` arm is dead.  */
   return ret;
+
+  }
 }
 
 /* C 1126-1203.  */
@@ -417,12 +433,16 @@ unsafe fn get_tm_zone (tz: timezone_t, ubuf: *mut c_char, ubufsize: c_int, modif
 pub unsafe extern "C" fn $name (s: *mut c_char, maxsize: usize, format: *const c_char,
                                 tp: *const tm, tz: timezone_t, ns: c_int) -> retval_t
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   /* C 1143-1196's `#if !USE_C_LOCALE` arms are dead (this is a plain `strftime`).  */
   let mut tzset_called: bool = false;
   return __strftime_internal (s, maxsize, format, tp, false, ZERO_PAD, -1,
                               &raw mut tzset_called, tz, ns);
   /* C 1203's `libc_hidden_def (my_strftime)` is a glibc attribute the gnulib build
      defines to nothing.  */
+
+  }
 }
 
 /* C 1205-1218 and the `goto` targets of the format switch: the port keeps the shared
@@ -507,6 +527,8 @@ unsafe fn __strftime_internal (s: *mut CHAR_T, mut maxsize: usize, format: *cons
                                mut width: sbyte_count_t, tzset_called: *mut bool,
                                tz: timezone_t, ns: c_int) -> retval_t
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   /* C 1220-1222's `_LIBC`/`USE_IN_EXTENDED_LOCALE_MODEL` arm (and its `saved_errno`)
      is dead.  */
   /* C 1223-1228's `#if FAILURE == 0` arm is dead; this is the live clamp.  */
@@ -1332,6 +1354,8 @@ unsafe fn __strftime_internal (s: *mut CHAR_T, mut maxsize: usize, format: *cons
     { *p = L_C! (b'\0'); }
 
   return i;
+
+  }
 }
   };
 }

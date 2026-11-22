@@ -53,10 +53,7 @@
 // `target_multibyte` go through them, and the fields `can_be_null`, `regs_allocated` and
 // `fastmap_accurate` keep their declaration (layout) without a reader in this file.
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
-         unsafe_op_in_unsafe_fn, unused_assignments, unused_parens, unused_mut,
-         unreachable_code)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe, unused_assignments, unused_parens, unused_mut, unreachable_code)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -205,7 +202,11 @@ unsafe extern "C" {
 
 unsafe fn matcher_overflow () -> !                           // C 76-80
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   error (c"Stack overflow in regexp matcher".as_ptr ());
+
+  }
 }
 
 unsafe fn freeze_buffer_relocation ()                        // C 82-91
@@ -231,6 +232,8 @@ unsafe fn freeze_buffer_relocation ()                        // C 82-91
 unsafe fn compile_pattern_1 (cp: *mut regexp_cache, pattern: Lisp_Object,   // C 100-140
 			     translate: Lisp_Object, posix: bool)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut whitespace_regexp: *const c_char;
   let mut val: *mut c_char = std::ptr::null_mut ();
 
@@ -260,6 +263,8 @@ unsafe fn compile_pattern_1 (cp: *mut regexp_cache, pattern: Lisp_Object,   // C
     { xsignal1 (Qinvalid_regexp (), build_string (val)); }
 
   (*cp).regexp = Fcopy_sequence (pattern);
+
+  }
 }
 
 /* Shrink each compiled regexp buffer in the cache
@@ -269,6 +274,8 @@ unsafe fn compile_pattern_1 (cp: *mut regexp_cache, pattern: Lisp_Object,   // C
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn shrink_regexp_cache ()              // C 142-158
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut cp: *mut regexp_cache;
 
   cp = searchbuf_head;
@@ -282,6 +289,8 @@ pub unsafe extern "C-unwind" fn shrink_regexp_cache ()              // C 142-158
 	}
       cp = (*cp).next;
     }
+
+  }
 }
 
 /* Clear the regexp cache w.r.t. a particular syntax table,
@@ -293,6 +302,8 @@ pub unsafe extern "C-unwind" fn shrink_regexp_cache ()              // C 142-158
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn clear_regexp_cache ()               // C 160-171
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut i: c_int;
 
   i = 0;
@@ -305,19 +316,29 @@ pub unsafe extern "C-unwind" fn clear_regexp_cache ()               // C 160-171
 	{ searchbufs[i as usize].regexp = Qnil (); }
       i += 1;
     }
+
+  }
 }
 
 unsafe extern "C-unwind" fn unfreeze_pattern (arg: *mut c_void)     // C 173-178
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let searchbuf = arg as *mut regexp_cache;
   (*searchbuf).busy = false;
+
+  }
 }
 
 unsafe fn freeze_pattern (searchbuf: *mut regexp_cache)      // C 180-186
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   eassert! (!(*searchbuf).busy);
   record_unwind_protect_ptr (Some (unfreeze_pattern), searchbuf as *mut c_void);
   (*searchbuf).busy = true;
+
+  }
 }
 
 /* Compile a regexp if necessary, but first check to see if there's one in
@@ -335,6 +356,8 @@ unsafe fn compile_pattern (pattern: Lisp_Object, regp: *mut re_registers,   // C
 			   translate: Lisp_Object, posix: bool, multibyte: bool)
   -> *mut regexp_cache
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut cp: *mut regexp_cache = std::ptr::null_mut ();
   let mut cpp: *mut *mut regexp_cache;
   let mut lru_nonbusy: *mut *mut regexp_cache;
@@ -409,11 +432,15 @@ unsafe fn compile_pattern (pattern: Lisp_Object, regp: *mut re_registers,   // C
      target.  But, we have to tell which the pattern is used for. */
   set_target_multibyte_ (&raw mut (*cp).buf, multibyte);
   return cp;
+
+  }
 }
 
 unsafe fn looking_at_1 (string: Lisp_Object, posix: bool, modify_data: bool)   // C 261-350
   -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut val: Lisp_Object;
   let mut p1: *mut u8;
   let mut p2: *mut u8;
@@ -482,7 +509,7 @@ unsafe fn looking_at_1 (string: Lisp_Object, posix: bool, modify_data: bool)   /
      point with the same pattern a few hundred times in a row - and report that call's text and
      pattern once.  Repetition, not buffer size, is what identifies the loop, so the load-time noise
      (which also has small buffers) does not hide it.  */
-  unsafe {
+  /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe {
     static mut LAST_POINT: ptrdiff_t = -1;
     static mut LAST_PAT: Lisp_Object = std::ptr::null_mut ();
     static mut SAME: c_int = 0;
@@ -539,6 +566,8 @@ unsafe fn looking_at_1 (string: Lisp_Object, posix: bool, modify_data: bool)   /
     }
 
   return unbind_to (count, val);
+
+  }
 }
 
 DEFUN! ("looking-at", Flooking_at, Slooking_at, 1, 2, 0,          // C 347-358
@@ -559,6 +588,8 @@ unsafe fn string_match_1 (regexp: Lisp_Object, string: Lisp_Object,   // C 369-4
 			  start: Lisp_Object, posix: bool, modify_data: bool)
   -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut val: ptrdiff_t;
   let mut pos: EMACS_INT;
   let mut pos_byte: ptrdiff_t;
@@ -640,6 +671,8 @@ unsafe fn string_match_1 (regexp: Lisp_Object, string: Lisp_Object,   // C 369-4
     }
 
   return make_fixnum (val);
+
+  }
 }
 
 DEFUN! ("string-match", Fstring_match, Sstring_match, 2, 4, 0,     // C 442-460
@@ -668,6 +701,8 @@ pub unsafe extern "C-unwind" fn fast_string_match_internal (regexp: Lisp_Object,
 						    table: Lisp_Object)
   -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   re_match_object = string;
   let count: specpdl_ref = SPECPDL_INDEX ();
   let cache_entry: *mut regexp_cache
@@ -678,6 +713,8 @@ pub unsafe extern "C-unwind" fn fast_string_match_internal (regexp: Lisp_Object,
 				  SBYTES (string), std::ptr::null_mut ());
   unbind_to (count, Qnil ());
   return val;
+
+  }
 }
 
 /* Match REGEXP against STRING, searching all of STRING and return the
@@ -694,6 +731,8 @@ pub unsafe extern "C-unwind" fn fast_c_string_match_internal (regexp: Lisp_Objec
 						      table: Lisp_Object)
   -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* FIXME: This is expensive and not obviously correct when it makes
      a difference. I.e., no longer "fast", and may hide bugs.
      Something should be done about this.  */
@@ -709,6 +748,8 @@ pub unsafe extern "C-unwind" fn fast_c_string_match_internal (regexp: Lisp_Objec
 				  std::ptr::null_mut ());
   unbind_to (count, Qnil ());
   return val;
+
+  }
 }
 
 /* Match REGEXP against the characters after POS to LIMIT, and return
@@ -723,6 +764,8 @@ pub unsafe extern "C-unwind" fn fast_looking_at (regexp: Lisp_Object, pos: ptrdi
 					  limit_byte: ptrdiff_t, string: Lisp_Object)
   -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut multibyte: bool;
   let mut p1: *mut u8;
   let mut p2: *mut u8;
@@ -782,6 +825,8 @@ pub unsafe extern "C-unwind" fn fast_looking_at (regexp: Lisp_Object, pos: ptrdi
 
   unbind_to (count, Qnil ());
   return len;
+
+  }
 }
 
 /* The newline cache: remembering which sections of text have no newlines.  */
@@ -792,6 +837,8 @@ pub unsafe extern "C-unwind" fn fast_looking_at (regexp: Lisp_Object, pos: ptrdi
    state of a buffer-local variable.  */
 unsafe fn newline_cache_on_off (buf: *mut buffer) -> *mut region_cache   // C 602-655
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut base_buf: *mut buffer = buf;
   let mut indirect_p: bool = false;
 
@@ -834,6 +881,8 @@ unsafe fn newline_cache_on_off (buf: *mut buffer) -> *mut region_cache   // C 60
 	}
       return (*base_buf).newline_cache;
     }
+
+  }
 }
 
 /* Search for COUNT newlines between START/START_BYTE and END/END_BYTE.
@@ -868,6 +917,8 @@ pub unsafe extern "C-unwind" fn find_newline (start: ptrdiff_t, start_byte: ptrd
 				       bytepos: *mut ptrdiff_t, allow_quit: bool)
   -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let newline_cache: *mut region_cache;
   let cache_buffer: *mut buffer;
   let mut start = start;
@@ -1166,6 +1217,8 @@ pub unsafe extern "C-unwind" fn find_newline (start: ptrdiff_t, start_byte: ptrd
       eassert! (*bytepos == CHAR_TO_BYTE (start));
     }
   return start;
+
+  }
 }
 
 /* Search for COUNT instances of a line boundary.
@@ -1188,6 +1241,8 @@ pub unsafe extern "C-unwind" fn scan_newline (start: ptrdiff_t, start_byte: ptrd
 				       limit: ptrdiff_t, limit_byte: ptrdiff_t,
 				       count: ptrdiff_t, allow_quit: bool)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut charpos: ptrdiff_t;
   let mut bytepos: ptrdiff_t = 0;
   let mut counted: ptrdiff_t = 0;
@@ -1198,6 +1253,8 @@ pub unsafe extern "C-unwind" fn scan_newline (start: ptrdiff_t, start_byte: ptrd
     { TEMP_SET_PT_BOTH (limit, limit_byte); }
   else
     { TEMP_SET_PT_BOTH (charpos, bytepos); }
+
+  }
 }
 
 /* Like above, but always scan from point and report the
@@ -1209,6 +1266,8 @@ pub unsafe extern "C-unwind" fn scan_newline_from_point (count: ptrdiff_t,   // 
 						  bytepos: *mut ptrdiff_t)
   -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut counted: ptrdiff_t = 0;
 
   if count <= 0
@@ -1218,6 +1277,8 @@ pub unsafe extern "C-unwind" fn scan_newline_from_point (count: ptrdiff_t,   // 
     { *charpos = find_newline (PT! (), PT_BYTE! (), ZV! (), ZV_BYTE! (), count,
 			       &raw mut counted, bytepos, true); }
   return counted;
+
+  }
 }
 
 /* Like find_newline, but doesn't allow QUITting and doesn't return
@@ -1227,7 +1288,11 @@ pub unsafe extern "C-unwind" fn find_newline_no_quit (from: ptrdiff_t, frombyte:
 					       cnt: ptrdiff_t, bytepos: *mut ptrdiff_t)
   -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   return find_newline (from, frombyte, 0, -1, cnt, std::ptr::null_mut (), bytepos, false);
+
+  }
 }
 
 /* Like find_newline, but returns position before the newline, not
@@ -1239,6 +1304,8 @@ pub unsafe extern "C-unwind" fn find_before_next_newline (from: ptrdiff_t, to: p
 						   cnt: ptrdiff_t, bytepos: *mut ptrdiff_t)
   -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut counted: ptrdiff_t = 0;
   let mut pos: ptrdiff_t = find_newline (from, -1, to, -1, cnt, &raw mut counted, bytepos, true);
 
@@ -1250,6 +1317,8 @@ pub unsafe extern "C-unwind" fn find_before_next_newline (from: ptrdiff_t, to: p
 	{ pos -= 1; }
     }
   return pos;
+
+  }
 }
 
 /* Subroutines of Lisp buffer search functions. */
@@ -1258,6 +1327,8 @@ unsafe fn search_command (string: Lisp_Object, bound: Lisp_Object, noerror: Lisp
 			  count: Lisp_Object, direction: c_int, RE: bool, posix: bool)
   -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut np: EMACS_INT;
   let mut lim: EMACS_INT;
   let mut lim_byte: ptrdiff_t;
@@ -1320,12 +1391,16 @@ unsafe fn search_command (string: Lisp_Object, bound: Lisp_Object, noerror: Lisp
   SET_PT (np);
 
   return make_fixnum (np);
+
+  }
 }
 
 /* Return true if REGEXP it matches just one constant string.  */
 
 unsafe fn trivial_regexp_p (regexp: Lisp_Object) -> bool       // C 1109-1135
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut len: ptrdiff_t = SBYTES (regexp);
   let mut s: *mut u8 = SDATA (regexp);
   while { len -= 1; len >= 0 }
@@ -1357,6 +1432,8 @@ unsafe fn trivial_regexp_p (regexp: Lisp_Object) -> bool       // C 1109-1135
 	}
     }
   return true;
+
+  }
 }
 
 macro_rules! TRANSLATE {                                       // C 1137-1149
@@ -1386,6 +1463,8 @@ unsafe fn search_buffer_re (string: Lisp_Object, pos: ptrdiff_t, pos_byte: ptrdi
 			    trt: Lisp_Object, inverse_trt: Lisp_Object, posix: bool)
   -> EMACS_INT
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut p1: *mut u8;
   let mut p2: *mut u8;
   let mut s1: ptrdiff_t;
@@ -1530,6 +1609,8 @@ unsafe fn search_buffer_re (string: Lisp_Object, pos: ptrdiff_t, pos_byte: ptrdi
     }
   unbind_to (count, Qnil ());
   return pos;
+
+  }
 }
 
 unsafe fn search_buffer_non_re (string: Lisp_Object, pos: ptrdiff_t,   // C 1298-1472
@@ -1538,6 +1619,8 @@ unsafe fn search_buffer_non_re (string: Lisp_Object, pos: ptrdiff_t,   // C 1298
 				inverse_trt: Lisp_Object, posix: bool)
   -> EMACS_INT
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut raw_pattern: *mut u8;
   let mut pat: *mut u8;
   let mut raw_pattern_size: ptrdiff_t;
@@ -1740,6 +1823,8 @@ unsafe fn search_buffer_non_re (string: Lisp_Object, pos: ptrdiff_t,   // C 1298
       { simple_search (n, pat, raw_pattern_size, len_byte, trt, pos, pos_byte, lim, lim_byte) };
   SAFE_FREE! (sa_count, sa_mark);
   return result;
+
+  }
 }
 
 /* Search for the Nth occurrence of STRING in the current buffer,
@@ -1768,6 +1853,8 @@ pub unsafe extern "C-unwind" fn search_buffer (string: Lisp_Object, pos: ptrdiff
 					posix: bool)
   -> EMACS_INT
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut pos = pos;
 
   if running_asynch_code
@@ -1787,6 +1874,8 @@ pub unsafe extern "C-unwind" fn search_buffer (string: Lisp_Object, pos: ptrdiff
     { pos = search_buffer_non_re (string, pos, pos_byte, lim, lim_byte, n, RE, trt, inverse_trt, posix); }
 
   return pos;
+
+  }
 }
 
 /* Do a simple string search N times for the string PAT,
@@ -1806,6 +1895,8 @@ unsafe fn simple_search (n: EMACS_INT, pat: *mut u8, len: ptrdiff_t,   // C 1556
 			 pos_byte: ptrdiff_t, lim: ptrdiff_t, lim_byte: ptrdiff_t)
   -> EMACS_INT
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let multibyte: bool = ! NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_));
   let forward: bool = n > 0;
   let mut n = n;
@@ -2006,6 +2097,8 @@ unsafe fn simple_search (n: EMACS_INT, pat: *mut u8, len: ptrdiff_t,   // C 1556
     { return -n; }
   else
     { return n; }
+
+  }
 }
 
 /* Do Boyer-Moore search N times for the string BASE_PAT,
@@ -2028,6 +2121,8 @@ unsafe fn boyer_moore (n: EMACS_INT, base_pat: *mut u8, len_byte: ptrdiff_t,   /
 		       lim_byte: ptrdiff_t, char_base: c_int)
   -> EMACS_INT
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let direction: c_int = if n > 0 { 1 } else { -1 };
   let mut n = n;
   let mut pos_byte = pos_byte;
@@ -2465,6 +2560,8 @@ unsafe fn boyer_moore (n: EMACS_INT, base_pat: *mut u8, len_byte: ptrdiff_t,   /
 	{ return (0 - n) * direction as EMACS_INT; }
     }
   return BYTE_TO_CHAR (pos_byte);
+
+  }
 }
 
 /* Record beginning BEG_BYTE and end BEG_BYTE + NBYTES
@@ -2473,6 +2570,8 @@ unsafe fn boyer_moore (n: EMACS_INT, base_pat: *mut u8, len_byte: ptrdiff_t,   /
 
 unsafe fn set_search_regs (beg_byte: ptrdiff_t, nbytes: ptrdiff_t)   // C 2178-2204
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut i: ptrdiff_t;
 
   if !NILP (Vinhibit_changing_match_data)
@@ -2499,6 +2598,8 @@ unsafe fn set_search_regs (beg_byte: ptrdiff_t, nbytes: ptrdiff_t)   // C 2178-2
   *search_regs! ().start.offset (0) = BYTE_TO_CHAR (beg_byte);
   *search_regs! ().end.offset (0) = BYTE_TO_CHAR (beg_byte + nbytes);
   XSETBUFFER! (last_thing_searched! (), (current_buffer! ()));
+
+  }
 }
 
 DEFUN! ("search-backward", Fsearch_backward, Ssearch_backward, 1, 4,      // C 2206-2216
@@ -2967,6 +3068,8 @@ DEFUN! ("replace-match", Freplace_match, Sreplace_match, 1, 5, 0,        // C 23
 
 unsafe fn match_limit (num: Lisp_Object, beginningp: bool) -> Lisp_Object   // C 2769-2784
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut n: EMACS_INT;
 
   CHECK_FIXNUM (num);
@@ -2980,6 +3083,8 @@ unsafe fn match_limit (num: Lisp_Object, beginningp: bool) -> Lisp_Object   // C
     { return Qnil (); }
   return make_fixnum (if beginningp { *search_regs! ().start.offset (n as isize) }
 		      else { *search_regs! ().end.offset (n as isize) });
+
+  }
 }
 
 DEFUN! ("match-beginning", Fmatch_beginning, Smatch_beginning, 1, 1, 0,    // C 2786-2799
@@ -3267,6 +3372,8 @@ DEFUN! ("match-data--translate", Fmatch_data__translate, Smatch_data__translate,
    if asynchronous code (filter or sentinel) is running. */
 unsafe fn save_search_regs ()                                 // C 3082-3095
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if saved_search_regs! ().num_regs == 0
     {
       saved_search_regs! () = search_regs! ();
@@ -3276,12 +3383,16 @@ unsafe fn save_search_regs ()                                 // C 3082-3095
       search_regs! ().start = std::ptr::null_mut ();
       search_regs! ().end = std::ptr::null_mut ();
     }
+
+  }
 }
 
 /* Called upon exit from filters and sentinels. */
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn restore_search_regs ()               // C 3097-3113
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if saved_search_regs! ().num_regs != 0
     {
       if search_regs! ().num_regs > 0
@@ -3294,6 +3405,8 @@ pub unsafe extern "C-unwind" fn restore_search_regs ()               // C 3097-3
       saved_last_thing_searched! () = Qnil ();
       saved_search_regs! ().num_regs = 0;
     }
+
+  }
 }
 
 /* Called from replace-match via replace_range.  */
@@ -3301,6 +3414,8 @@ pub unsafe extern "C-unwind" fn restore_search_regs ()               // C 3097-3
 pub unsafe extern "C-unwind" fn update_search_regs (oldstart: ptrdiff_t, oldend: ptrdiff_t,   // C 3115-3147
 					     newend: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* Adjust search data for this change.  */
   let change: ptrdiff_t = newend - oldend;
   let mut i: ptrdiff_t;
@@ -3332,20 +3447,30 @@ pub unsafe extern "C-unwind" fn update_search_regs (oldstart: ptrdiff_t, oldend:
 	{ *search_regs! ().end.offset (i as isize) = oldstart; }
       i += 1;
     }
+
+  }
 }
 
 unsafe extern "C-unwind" fn unwind_set_match_data (list: Lisp_Object)   // C 3149-3154
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* It is NOT ALWAYS safe to free (evaporate) the markers immediately.  */
   Fset_match_data (list, Qt ());
+
+  }
 }
 
 /* Called to unwind protect the match data.  */
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn record_unwind_save_match_data ()      // C 3157-3162
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   record_unwind_protect (Some (unwind_set_match_data),
 			 Fmatch_data (Qnil (), Qnil (), Qnil ()));
+
+  }
 }
 
 /* Quote a string to deactivate reg-expr chars */
@@ -3408,6 +3533,8 @@ pub unsafe extern "C-unwind" fn find_newline1 (start: ptrdiff_t, start_byte: ptr
 					bytepos: *mut ptrdiff_t, allow_quit: bool)
   -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut start = start;
   let mut start_byte = start_byte;
   let mut end = end;
@@ -3502,6 +3629,8 @@ pub unsafe extern "C-unwind" fn find_newline1 (start: ptrdiff_t, start_byte: ptr
       eassert! (*bytepos == CHAR_TO_BYTE (start));
     }
   return start;
+
+  }
 }
 
 DEFUN! ("newline-cache-check", Fnewline_cache_check, Snewline_cache_check,   // C 3292-3373
@@ -3655,6 +3784,8 @@ pub static mut Vinhibit_changing_match_data: Lisp_Object = lisp_h_Qnil ();
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_search ()                 // C 3420-3498
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut i: c_int = 0;
   while i < REGEXP_CACHE_SIZE as c_int
     {
@@ -3722,10 +3853,14 @@ pub unsafe extern "C-unwind" fn syms_of_search ()                 // C 3420-3498
   defsubr (&raw mut Sre__describe_compiled);
 
   pdumper_do_now_and_after_load (Some (syms_of_search_for_pdumper));
+
+  }
 }
 
 unsafe extern "C-unwind" fn syms_of_search_for_pdumper ()         // C 3500-3515
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut i: c_int = 0;
   while i < REGEXP_CACHE_SIZE as c_int
     {
@@ -3742,4 +3877,6 @@ unsafe extern "C-unwind" fn syms_of_search_for_pdumper ()         // C 3500-3515
       i += 1;
     }
   searchbuf_head = &raw mut searchbufs[0];
+
+  }
 }

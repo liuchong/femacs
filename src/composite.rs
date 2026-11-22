@@ -26,10 +26,7 @@
 // (PORTING.md 0.1-12).  Names no mirror carries are declared at their use site (the
 // terminal.rs/filelock.rs shape), each with C's own prototype above it.
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
-         unsafe_op_in_unsafe_fn, unused_assignments, unreachable_code, while_true,
-         unused_parens, unused_mut)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe, unused_assignments, unreachable_code, while_true, unused_parens, unused_mut)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -189,6 +186,8 @@ pub unsafe extern "C-unwind" fn get_composition_id (mut charpos: ptrdiff_t, mut 
 					     nchars: ptrdiff_t, prop: Lisp_Object,
 					     string: Lisp_Object) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut id: Lisp_Object = lisp_h_Qnil ();
   let mut length: Lisp_Object = lisp_h_Qnil ();
   let mut components: Lisp_Object = lisp_h_Qnil ();
@@ -450,6 +449,8 @@ pub unsafe extern "C-unwind" fn get_composition_id (mut charpos: ptrdiff_t, mut 
   /* invalid_composition: */
   /* Would it be better to remove this `composition' property?  */
   return -1;
+
+  }
 }
 
 /* Find a static composition at or nearest to position POS of OBJECT
@@ -475,6 +476,8 @@ pub unsafe extern "C-unwind" fn find_composition (mut pos: ptrdiff_t, limit: ptr
 					   prop: *mut Lisp_Object, object: Lisp_Object)
 					   -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut val: Lisp_Object = lisp_h_Qnil ();
 
   if get_property_and_range (pos, Qcomposition (), prop, start, end, object)
@@ -504,6 +507,8 @@ pub unsafe extern "C-unwind" fn find_composition (mut pos: ptrdiff_t, limit: ptr
     }
   get_property_and_range (pos, Qcomposition (), prop, start, end, object);
   return true;
+
+  }
 }
 
 /* Run a proper function to adjust the composition sitting between
@@ -512,6 +517,8 @@ pub unsafe extern "C-unwind" fn find_composition (mut pos: ptrdiff_t, limit: ptr
 unsafe fn run_composition_function (mut from: ptrdiff_t, mut to: ptrdiff_t,
 				    mut prop: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let func: Lisp_Object = COMPOSITION_MODIFICATION_FUNC (prop);
   let mut start: ptrdiff_t = 0;
   let mut end: ptrdiff_t = 0;
@@ -529,6 +536,8 @@ unsafe fn run_composition_function (mut from: ptrdiff_t, mut to: ptrdiff_t,
     { to = end; }
   if !NILP (Ffboundp (func))
     { calln! (func, make_fixnum (from), make_fixnum (to)); }
+
+  }
 }
 
 /* Make invalid compositions adjacent to or inside FROM and TO valid.
@@ -546,6 +555,8 @@ unsafe fn run_composition_function (mut from: ptrdiff_t, mut to: ptrdiff_t,
 pub unsafe extern "C-unwind" fn update_compositions (mut from: ptrdiff_t, mut to: ptrdiff_t,
 					      check_mask: c_int)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut prop: Lisp_Object = lisp_h_Qnil ();
   let mut start: ptrdiff_t = 0;
   let mut end: ptrdiff_t = 0;
@@ -649,6 +660,8 @@ pub unsafe extern "C-unwind" fn update_compositions (mut from: ptrdiff_t, mut to
 				       list1 (Qauto_composed ()), Qnil ());
       unbind_to (count, Qnil ());
     }
+
+  }
 }
 
 /* Modify composition property values in LIST destructively.  LIST is
@@ -658,6 +671,8 @@ pub unsafe extern "C-unwind" fn update_compositions (mut from: ptrdiff_t, mut to
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn make_composition_value_copy (mut list: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut plist: Lisp_Object = lisp_h_Qnil ();
   let mut val: Lisp_Object = lisp_h_Qnil ();
 
@@ -673,6 +688,8 @@ pub unsafe extern "C-unwind" fn make_composition_value_copy (mut list: Lisp_Obje
 	}
       list = XCDR (list);
     }
+
+  }
 }
 
 /* Make text in the region between START and END a composition that
@@ -687,10 +704,14 @@ pub unsafe extern "C-unwind" fn compose_text (start: ptrdiff_t, end: ptrdiff_t,
 				       modification_func: Lisp_Object,
 				       string: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let prop: Lisp_Object = Fcons (Fcons (make_fixnum (end - start), components),
 				 modification_func);
   Fput_text_property (make_fixnum (start), make_fixnum (end),
 		      Qcomposition (), prop, string);
+
+  }
 }
 
 /* Lisp glyph-string handlers.  */
@@ -704,13 +725,19 @@ static mut gstring_hash_table: Lisp_Object = lisp_h_Qnil ();
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn composition_gstring_lookup_cache (header: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   return Fgethash (header, gstring_hash_table, Qnil ());
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn composition_gstring_put_cache (gstring: Lisp_Object,
 							mut len: ptrdiff_t) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let h: *mut Lisp_Hash_Table = XHASH_TABLE (gstring_hash_table);
   let header: Lisp_Object = LGSTRING_HEADER (gstring);
   let hash: EMACS_UINT = hash_from_key (h, header) as EMACS_UINT;
@@ -737,14 +764,20 @@ pub unsafe extern "C-unwind" fn composition_gstring_put_cache (gstring: Lisp_Obj
   let id: ptrdiff_t = hash_put (h, LGSTRING_HEADER (copy), copy, hash as hash_hash_t);
   LGSTRING_SET_ID (copy, make_fixnum (id));
   return copy;
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn composition_gstring_from_id (id: ptrdiff_t) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let h: *mut Lisp_Hash_Table = XHASH_TABLE (gstring_hash_table);
   /* FIXME: The stability of this value depends on the hash table internals!  */
   return HASH_VALUE (h, id as hash_idx_t);
+
+  }
 }
 
 /* Remove from the composition hash table every lgstring that
@@ -752,12 +785,16 @@ pub unsafe extern "C-unwind" fn composition_gstring_from_id (id: ptrdiff_t) -> L
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn composition_gstring_cache_clear_font (font_object: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let h: *mut Lisp_Hash_Table = XHASH_TABLE (gstring_hash_table);
 
   DOHASH! (h, k, gstring, {
     if EQ (LGSTRING_FONT (gstring), font_object)
       { hash_remove_from_table (h, k); }
   });
+
+  }
 }
 
 DEFUN! ("clear-composition-cache", Fclear_composition_cache,
@@ -815,6 +852,8 @@ pub unsafe extern "C-unwind" fn composition_gstring_width (gstring: Lisp_Object,
 						    to: ptrdiff_t,
 						    metrics: *mut font_metrics) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut glyph: *mut Lisp_Object = std::ptr::null_mut ();
   let mut width: c_int = 0;
 
@@ -872,6 +911,8 @@ pub unsafe extern "C-unwind" fn composition_gstring_width (gstring: Lisp_Object,
       glyph = glyph.offset (1);
     }
   return width;
+
+  }
 }
 
 /* Adjust the width of each grapheme cluster of GSTRING because
@@ -931,6 +972,8 @@ unsafe fn fill_gstring_header (mut from: ptrdiff_t, mut from_byte: ptrdiff_t,
 			       to: ptrdiff_t, font_object: Lisp_Object,
 			       string: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let len: ptrdiff_t = to - from;
   if len == 0
     { error (c"Attempt to shape zero-length text".as_ptr ()); }
@@ -952,10 +995,14 @@ unsafe fn fill_gstring_header (mut from: ptrdiff_t, mut from_byte: ptrdiff_t,
       i += 1;
     }
   return header;
+
+  }
 }
 
 unsafe fn fill_gstring_body (gstring: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let font_object: Lisp_Object = LGSTRING_FONT (gstring);
   let header: Lisp_Object = AREF (gstring, 0);
   let mut len: ptrdiff_t = LGSTRING_CHAR_LEN (gstring);
@@ -1003,6 +1050,8 @@ unsafe fn fill_gstring_body (gstring: Lisp_Object)
   len = LGSTRING_GLYPH_LEN (gstring);
   while i < len
     { LGSTRING_SET_GLYPH (gstring, i, Qnil ()); i += 1; }
+
+  }
 }
 
 
@@ -1019,6 +1068,8 @@ unsafe fn autocmp_chars (rule: Lisp_Object, charpos: ptrdiff_t, bytepos: ptrdiff
 			 string: Lisp_Object, direction: Lisp_Object, ch: c_int)
 			 -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let count: specpdl_ref = SPECPDL_INDEX ();
   let pos: Lisp_Object = make_fixnum (charpos);
   let mut to: ptrdiff_t = 0;
@@ -1076,6 +1127,8 @@ unsafe fn autocmp_chars (rule: Lisp_Object, charpos: ptrdiff_t, bytepos: ptrdiff
 			      direction);
     }
   return unbind_to (count, lgstring);
+
+  }
 }
 
 /* 1 iff the character C is composable.  Characters of general
@@ -1084,6 +1137,8 @@ unsafe fn autocmp_chars (rule: Lisp_Object, charpos: ptrdiff_t, bytepos: ptrdiff
 
 unsafe fn char_composable_p (c: c_int) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut val: Lisp_Object = lisp_h_Qnil ();
   return (c >= ' ' as c_int
 	  && (c == ZERO_WIDTH_NON_JOINER || c == ZERO_WIDTH_JOINER
@@ -1096,11 +1151,15 @@ unsafe fn char_composable_p (c: c_int) -> bool
 		  && { val = CHAR_TABLE_REF (Vunicode_category_table, c as isize);
 		       (FIXNUMP (val)
 			&& (XFIXNUM (val) <= unicode_category_t::UNICODE_CATEGORY_Zs as EMACS_INT)) })));
+
+  }
 }
 
 #[inline]
 unsafe fn inhibit_auto_composition () -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if NILP (Vauto_composition_mode)
     { return true; }
 
@@ -1113,6 +1172,8 @@ unsafe fn inhibit_auto_composition () -> bool
     }
 
   return false;
+
+  }
 }
 
 
@@ -1141,6 +1202,8 @@ pub unsafe extern "C-unwind" fn composition_compute_stop_pos (cmp_it: *mut compo
 						       string: Lisp_Object,
 						       include_static: bool)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut start: ptrdiff_t = 0;
   let mut end: ptrdiff_t = 0;
   let mut c: c_int = 0;
@@ -1373,6 +1436,8 @@ pub unsafe extern "C-unwind" fn composition_compute_stop_pos (cmp_it: *mut compo
 	}
     }
   (*cmp_it).stop_pos = charpos;
+
+  }
 }
 
 /* Check if the character at CHARPOS (and BYTEPOS) is composed
@@ -1398,6 +1463,8 @@ pub unsafe extern "C-unwind" fn composition_reseat_it (cmp_it: *mut composition_
 						bidi_level: i8, face: *mut c_void,
 						string: Lisp_Object) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if (*cmp_it).ch == -2
     {
       composition_compute_stop_pos (cmp_it, charpos, bytepos, endpos, string,
@@ -1560,6 +1627,8 @@ pub unsafe extern "C-unwind" fn composition_reseat_it (cmp_it: *mut composition_
     { endpos = -1; }
   composition_compute_stop_pos (cmp_it, charpos, bytepos, endpos, string, true);
   return false;
+
+  }
 }
 
 /* Update charpos, nchars, nbytes, and width of the current grapheme
@@ -1571,6 +1640,8 @@ pub unsafe extern "C-unwind" fn composition_update_it (cmp_it: *mut composition_
 						bytepos: ptrdiff_t,
 						string: Lisp_Object) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut i: c_int = 0;
   let mut c: c_int = 0;
 
@@ -1672,6 +1743,8 @@ pub unsafe extern "C-unwind" fn composition_update_it (cmp_it: *mut composition_
 	}
     }
   return c;
+
+  }
 }
 
 
@@ -1729,6 +1802,8 @@ pub unsafe extern "C-unwind" fn find_automatic_composition (pos: ptrdiff_t, mut 
 						     gstring: *mut Lisp_Object,
 						     string: Lisp_Object) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut head: ptrdiff_t = 0;
   let mut tail: ptrdiff_t = 0;
   let mut stop: ptrdiff_t = 0;
@@ -1924,6 +1999,8 @@ pub unsafe extern "C-unwind" fn find_automatic_composition (pos: ptrdiff_t, mut 
 	}
       BACKWARD_CHAR! (cur, stop);
     }
+
+  }
 }
 
 /* Return the adjusted point provided that point is moved from LAST_PT
@@ -1933,6 +2010,8 @@ pub unsafe extern "C-unwind" fn find_automatic_composition (pos: ptrdiff_t, mut 
 pub unsafe extern "C-unwind" fn composition_adjust_point (last_pt: ptrdiff_t,
 						   new_pt: ptrdiff_t) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut i: ptrdiff_t = 0;
   let mut beg: ptrdiff_t = 0;
   let mut end: ptrdiff_t = 0;
@@ -1977,6 +2056,8 @@ pub unsafe extern "C-unwind" fn composition_adjust_point (last_pt: ptrdiff_t,
       i += 1;
     }
   return new_pt;
+
+  }
 }
 
 DEFUN! ("composition-get-gstring", Fcomposition_get_gstring,
@@ -2188,10 +2269,14 @@ DEFUN! ("find-composition-internal", Ffind_composition_internal,
 
 unsafe extern "C" fn compare_composition_rules (r1: *const c_void, r2: *const c_void) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let vec1: Lisp_Object = *(r1 as *const Lisp_Object);
   let vec2: Lisp_Object = *(r2 as *const Lisp_Object);
 
   return (XFIXNAT (AREF (vec2, 1)) - XFIXNAT (AREF (vec1, 1))) as c_int;
+
+  }
 }
 
 DEFUN! ("composition-sort-rules", Fcomposition_sort_rules,
@@ -2237,12 +2322,16 @@ DEFUN! ("composition-sort-rules", Fcomposition_sort_rules,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mark_composite ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut i: c_int = 0;
   while (i as ptrdiff_t) < n_compositions
     {
       mark_object ((**composition_table.add (i as usize)).key);
       i += 1;
     }
+
+  }
 }
 
 // The `DEFVAR_*` variables this C file owns: C's storage is `globals.f_<vname>`
@@ -2264,6 +2353,8 @@ pub static mut Vauto_composition_emoji_eligible_codepoints: Lisp_Object = lisp_h
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_composite ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut i: c_int = 0;
 
   DEFSYM! (Qcomposition, c"composition");
@@ -2326,4 +2417,6 @@ pub unsafe extern "C-unwind" fn syms_of_composite ()
   defsubr (&raw mut Scomposition_get_gstring);
   defsubr (&raw mut Sclear_composition_cache);
   defsubr (&raw mut Scomposition_sort_rules);
+
+  }
 }

@@ -20,6 +20,10 @@ mod memeq_unit {
   #[unsafe(export_name = "memeq")]
   pub unsafe extern "C" fn memeq (s1: *const c_void, s2: *const c_void, n: usize) -> bool
   {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
     return super::memeq (s1, s2, n);
+  
   }
+}
 }

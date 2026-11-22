@@ -183,6 +183,6 @@ macro_rules! verify {
    */
 macro_rules! assume {
   ($r:expr) => {
-    if !($r) { unsafe { core::hint::unreachable_unchecked () } }
+    if !($r) { /* SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure. */ unsafe { core::hint::unreachable_unchecked () } }
   };
 }

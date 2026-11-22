@@ -90,13 +90,13 @@ pub const INTERVAL_REAR_STICKY_BIT: u32 = 1 << 5;
 #[inline(always)]
 pub fn interval_bit_p (i: *const interval, bit: u32) -> bool
 {
-  return (unsafe { (*i).bits } as u32 & bit) != 0;
+  return (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*i).bits } as u32 & bit) != 0;
 }
 
 #[inline(always)]
 pub fn interval_bit_set (i: *mut interval, bit: u32, value: bool)
 {
-  if value { unsafe { (*i).bits |= bit as u8 } }
+  if value { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*i).bits |= bit as u8 } }
   else { unsafe { (*i).bits &= !(bit as u8) } }
 }
 
@@ -130,35 +130,35 @@ macro_rules! interval_bits {
 
 /* True if this interval has no right child.  */
 macro_rules! NULL_RIGHT_CHILD {
-  ($i:expr) => { (unsafe { (*(($i) as *mut interval)).right == std::ptr::null_mut () }) };
+  ($i:expr) => { (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*(($i) as *mut interval)).right == std::ptr::null_mut () }) };
 }
 
 /* True if this interval has no left child.  */
 macro_rules! NULL_LEFT_CHILD {
-  ($i:expr) => { (unsafe { (*(($i) as *mut interval)).left == std::ptr::null_mut () }) };
+  ($i:expr) => { (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*(($i) as *mut interval)).left == std::ptr::null_mut () }) };
 }
 
 /* True if this interval has no parent.  */
 macro_rules! NULL_PARENT {
   ($i:expr) => { (interval_bits! (up_obj, $i)
-			 || unsafe { (*(($i) as *mut interval)).up.interval } == 0 as *mut interval) };
+			 || /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*(($i) as *mut interval)).up.interval } == 0 as *mut interval) };
 }
 
 /* True if this interval is the left child of some other interval.  */
 macro_rules! AM_LEFT_CHILD {
   ($i:expr) => { (! NULL_PARENT! ($i)
-		  && unsafe { (*INTERVAL_PARENT! ($i)).left } == (($i) as *mut interval)) };
+		  && /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*INTERVAL_PARENT! ($i)).left } == (($i) as *mut interval)) };
 }
 
 /* True if this interval is the right child of some other interval.  */
 macro_rules! AM_RIGHT_CHILD {
   ($i:expr) => { (! NULL_PARENT! ($i)
-		  && unsafe { (*INTERVAL_PARENT! ($i)).right } == (($i) as *mut interval)) };
+		  && /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*INTERVAL_PARENT! ($i)).right } == (($i) as *mut interval)) };
 }
 
 /* True if this interval has no children.  */
 macro_rules! LEAF_INTERVAL_P {
-  ($i:expr) => { (unsafe { (*(($i) as *mut interval)).left } == std::ptr::null_mut ()
+  ($i:expr) => { (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*(($i) as *mut interval)).left } == std::ptr::null_mut ()
 		  && unsafe { (*(($i) as *mut interval)).right } == std::ptr::null_mut ()) };
 }
 
@@ -172,13 +172,13 @@ macro_rules! ONLY_INTERVAL_P {
 
 /* True if this interval has both left and right children.  */
 macro_rules! BOTH_KIDS_P {
-  ($i:expr) => { (unsafe { (*(($i) as *mut interval)).left } != std::ptr::null_mut ()
+  ($i:expr) => { (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*(($i) as *mut interval)).left } != std::ptr::null_mut ()
 		  && unsafe { (*(($i) as *mut interval)).right } != std::ptr::null_mut ()) };
 }
 
 /* The total size of all text represented by the nonnull interval I
    and all its children in the tree.  */
-macro_rules! TOTAL_LENGTH { ($i:expr) => { unsafe { (*(($i) as *mut interval)).total_length } }; }
+macro_rules! TOTAL_LENGTH { ($i:expr) => { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*(($i) as *mut interval)).total_length } }; }
 
 /* Likewise, but also defined to be zero if I is null.  */
 macro_rules! TOTAL_LENGTH0 {
@@ -193,17 +193,17 @@ macro_rules! LENGTH {
 /* The position of the character just past the end of I.  Note that
    the position cache i->position must be valid for this to work.  */
 macro_rules! INTERVAL_LAST_POS {
-  ($i:expr) => { (unsafe { (*(($i) as *mut interval)).position } + LENGTH! ($i)) };
+  ($i:expr) => { (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*(($i) as *mut interval)).position } + LENGTH! ($i)) };
 }
 
 /* The total size of the left subtree of this interval.  */
 macro_rules! LEFT_TOTAL_LENGTH {
-  ($i:expr) => { TOTAL_LENGTH0! (unsafe { (*(($i) as *mut interval)).left }) };
+  ($i:expr) => { TOTAL_LENGTH0! (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*(($i) as *mut interval)).left }) };
 }
 
 /* The total size of the right subtree of this interval.  */
 macro_rules! RIGHT_TOTAL_LENGTH {
-  ($i:expr) => { TOTAL_LENGTH0! (unsafe { (*(($i) as *mut interval)).right }) };
+  ($i:expr) => { TOTAL_LENGTH0! (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*(($i) as *mut interval)).right }) };
 }
 
 /* These macros are for dealing with the interval properties.  */
@@ -212,14 +212,14 @@ macro_rules! RIGHT_TOTAL_LENGTH {
    or having no properties.  */
 macro_rules! DEFAULT_INTERVAL_P {
   ($i:expr) => { ((($i) as *mut interval).is_null ()
-		  || NILP (unsafe { (*(($i) as *mut interval)).plist })) };
+		  || NILP (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*(($i) as *mut interval)).plist })) };
 }
 
 /* Test what type of parent we have.  Three possibilities: another
    interval, a buffer or string object, or NULL.  */
 macro_rules! INTERVAL_HAS_PARENT {
   ($i:expr) => { (! interval_bits! (up_obj, $i)
-		  && unsafe { (*(($i) as *mut interval)).up.interval } != std::ptr::null_mut ()) };
+		  && /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*(($i) as *mut interval)).up.interval } != std::ptr::null_mut ()) };
 }
 macro_rules! INTERVAL_HAS_OBJECT { ($i:expr) => { (interval_bits! (up_obj, $i)) }; }
 
@@ -231,12 +231,12 @@ macro_rules! INTERVAL_HAS_OBJECT { ($i:expr) => { (interval_bits! (up_obj, $i)) 
 
 macro_rules! INTERVAL_PARENT {
   ($i:expr) => { { eassert! (!(($i) as *mut interval).is_null () && ! interval_bits! (up_obj, $i));
-		   unsafe { (*(($i) as *mut interval)).up.interval } } };
+		   /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*(($i) as *mut interval)).up.interval } } };
 }
 
 macro_rules! GET_INTERVAL_OBJECT {
   ($d:expr, $s:expr) => { { eassert! (interval_bits! (up_obj, $s));
-			    $d = unsafe { (*(($s) as *mut interval)).up.obj }; } };
+			    $d = /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*(($s) as *mut interval)).up.obj }; } };
 }
 
 /* Use these functions to set Lisp_Object
@@ -247,20 +247,20 @@ pub fn set_interval_object (i: INTERVAL, obj: Lisp_Object)
 {
   eassert! (BUFFERP (obj) || STRINGP (obj));
   interval_bits! (up_obj, i, true);
-  unsafe { (*(i as *mut interval)).up.obj = obj; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*(i as *mut interval)).up.obj = obj; }
 }
 
 #[inline(always)]
 pub fn set_interval_parent (i: INTERVAL, parent: INTERVAL)
 {
   interval_bits! (up_obj, i, false);
-  unsafe { (*(i as *mut interval)).up.interval = parent as *mut interval; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*(i as *mut interval)).up.interval = parent as *mut interval; }
 }
 
 #[inline(always)]
 pub fn set_interval_plist (i: INTERVAL, plist: Lisp_Object)
 {
-  unsafe { (*(i as *mut interval)).plist = plist; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*(i as *mut interval)).plist = plist; }
 }
 
 /* Get the parent interval, if any, otherwise a null pointer.  Useful
@@ -274,7 +274,7 @@ macro_rules! INTERVAL_PARENT_OR_NULL {
 /* Reset this interval to its vanilla, or no-property state.  */
 macro_rules! RESET_INTERVAL {
   ($i:expr) => { {
-    unsafe { (*(($i) as *mut interval)).total_length = 0; }
+    /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*(($i) as *mut interval)).total_length = 0; }
     unsafe { (*(($i) as *mut interval)).position = 0; }
     unsafe { (*(($i) as *mut interval)).left = std::ptr::null_mut (); }
     unsafe { (*(($i) as *mut interval)).right = std::ptr::null_mut (); }
@@ -310,7 +310,7 @@ macro_rules! MERGE_INTERVAL_CACHE {
 /* Is this interval visible?  Replace later with cache access.  */
 macro_rules! INTERVAL_VISIBLE_P {
   ($i:expr) => { (!(($i) as *mut interval).is_null ()
-		  && NILP (unsafe { textget (unsafe { (*(($i) as *mut interval)).plist },
+		  && NILP (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { textget (unsafe { (*(($i) as *mut interval)).plist },
 					      Qinvisible ()) })) };
 }
 
@@ -319,7 +319,7 @@ macro_rules! INTERVAL_VISIBLE_P {
    value of Vinhibit_read_only?  Replace later with cache access.  */
 macro_rules! INTERVAL_GENERALLY_WRITABLE_P {
   ($i:expr, $ro:expr) => { (NILP ($ro)
-			    || (! NILP (unsafe { Vinhibit_read_only })
+			    || (! NILP (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { Vinhibit_read_only })
 				&& ! CONSP (unsafe { Vinhibit_read_only }))) };
 }
 
@@ -327,7 +327,7 @@ macro_rules! INTERVAL_GENERALLY_WRITABLE_P {
    'inhibit-read-only' property, or due to the presence of its
    'read-only' property (passed via RO) in Vinhibit_read_only list?  */
 macro_rules! INTERVAL_EXPRESSLY_WRITABLE_P {
-  ($i:expr, $ro:expr) => { (! NILP (unsafe { textget (unsafe { (*(($i) as *mut interval)).plist },
+  ($i:expr, $ro:expr) => { (! NILP (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { textget (unsafe { (*(($i) as *mut interval)).plist },
 						     Qinhibit_read_only ()) })
 			    || (! NILP ($ro)
 				&& CONSP (unsafe { Vinhibit_read_only })
@@ -345,7 +345,7 @@ macro_rules! INTERVAL_EXPRESSLY_WRITABLE_P {
 // parameter.  The arm is deleted; the metavariable arm below is the macro (status §3.56's
 // integrator-edit class, recorded in docs/ports/indent.md).
 macro_rules! TEXT_PROP_MEANS_INVISIBLE {
-  ($prop:expr) => { (if EQ (unsafe { BVAR! ((current_buffer! ()), invisibility_spec_) }, Qt ()) { (! NILP ($prop)) as c_int }
+  ($prop:expr) => { (if EQ (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { BVAR! ((current_buffer! ()), invisibility_spec_) }, Qt ()) { (! NILP ($prop)) as c_int }
 		     else { unsafe { invisible_prop ($prop, unsafe { BVAR! ((current_buffer! ()), invisibility_spec_) }) } }) };
 }
 

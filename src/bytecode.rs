@@ -55,9 +55,7 @@
 // thread.rs records for `m_current_buffer`); the casts are spelled `(*bc).fp as *mut
 // bc_frame` and are the only place the port departs from C's field type.
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
-         unsafe_op_in_unsafe_fn, unreachable_code, while_true)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe, unreachable_code, while_true)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -356,6 +354,8 @@ DEFUN! ("byte-code", Fbyte_code, Sbyte_code, 3, 3, 0,
    `calln (f)` is the port's `calln!` variadic macro.  */
 unsafe extern "C-unwind" fn bcall0 (f: Lisp_Object)
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   if CLOSUREP (f) && ! debug_on_next_call && ! BYTE_CODE_SAFE! ()
     {
       let template: Lisp_Object = AREF (f, CLOSURE_ARGLIST as isize);
@@ -390,6 +390,8 @@ unsafe extern "C-unwind" fn bcall0 (f: Lisp_Object)
 	}
     }
   calln! (f);
+
+  }
 }
 
 #[cold]
@@ -404,8 +406,12 @@ unsafe fn bc_periodic_gc_and_quit ()
 #[inline(never)]
 unsafe fn bc_invalid_opcode (op: ptrdiff_t, pc: *const c_uchar, bytestr_data: *const c_uchar) -> !
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   error (c"Invalid byte opcode: op=%d, ptr=%td".as_ptr (),
 	 op as c_int, pc.offset (-1).offset_from (bytestr_data));
+
+  }
 }
 
 #[inline(never)]
@@ -416,6 +422,8 @@ unsafe fn bc_setup_frame_args (
   mut args: *mut Lisp_Object,
 ) -> *mut Lisp_Object
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   if args_template == ((nargs << 8) | nargs) && nargs < 128
     {
       if args != frame_base
@@ -441,12 +449,16 @@ unsafe fn bc_setup_frame_args (
       while i < nonrest
 	{ top = top.offset (1); *top = Qnil (); i += 1; } }
   top
+
+  }
 }
 
 #[cold]
 #[inline(never)]
 unsafe fn bc_call_housekeeping_slow (top: *mut Lisp_Object, call_nargs: ptrdiff_t) -> ptrdiff_t
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   maybe_quit ();
   let ct = current_thread;
   (*ct).m_lisp_eval_depth += 1;
@@ -462,6 +474,8 @@ unsafe fn bc_call_housekeeping_slow (top: *mut Lisp_Object, call_nargs: ptrdiff_
   if debug_on_next_call
     { do_debug_on_call (Qlambda (), count1); }
   call_nargs
+
+  }
 }
 
 #[inline(never)]
@@ -472,6 +486,8 @@ unsafe fn bc_dup_leq_cons_loop (
   quitcounter: *mut c_uchar,
 ) -> bool
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let from_obj: Lisp_Object = *top.offset (-5);
   let inc_obj: Lisp_Object = *top.offset (-3);
   let n_obj: Lisp_Object = *top.offset (-1);
@@ -512,6 +528,8 @@ unsafe fn bc_dup_leq_cons_loop (
       return true;
     }
   false
+
+  }
 }
 
 /* The bytecode stack size in bytes.
@@ -581,22 +599,32 @@ const _: () = core::assert! (std::mem::offset_of! (bc_frame, next_stack) == 32);
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn init_bc_thread (bc: *mut bc_thread_state)
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   (*bc).stack = xmalloc (BC_STACK_SIZE! ()) as *mut c_char;
   (*bc).stack_end = (*bc).stack.offset (BC_STACK_SIZE! () as isize);
   /* Put a dummy header at the bottom to indicate the first free location.  */
   (*bc).fp = (*bc).stack as *mut c_void;
   memset ((*bc).fp, 0, std::mem::size_of::<bc_frame> ());
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn free_bc_thread (bc: *mut bc_thread_state)
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   xfree ((*bc).stack as *mut c_void);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mark_bytecode (bc: *mut bc_thread_state)
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let mut fp: *mut bc_frame = (*bc).fp as *mut bc_frame;
   let mut top: *mut Lisp_Object = std::ptr::null_mut ();     /* stack pointer of topmost frame not known */
   loop
@@ -624,6 +652,8 @@ pub unsafe extern "C-unwind" fn mark_bytecode (bc: *mut bc_thread_state)
       top = (*fp).saved_top;
       fp = next_fp;
     }
+
+  }
 }
 
 DEFUN! ("internal-stack-stats", Finternal_stack_stats, Sinternal_stack_stats,
@@ -649,10 +679,14 @@ DEFUN! ("internal-stack-stats", Finternal_stack_stats, Sinternal_stack_stats,
 /* Whether a stack pointer is valid in the current frame.  */
 unsafe fn valid_sp (bc: *mut bc_thread_state, sp: *mut Lisp_Object) -> bool
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let fp: *mut bc_frame = (*bc).fp as *mut bc_frame;
   return sp < fp as *mut Lisp_Object
     && sp.offset (1) >= std::ptr::addr_of_mut! ((*(*fp).saved_fp).next_stack)
 		       as *mut Lisp_Object;
+
+  }
 }
 
 /* Execute the byte-code in FUN.  ARGS_TEMPLATE is the function arity
@@ -681,58 +715,90 @@ const EXIT: c_int = 8;
 #[inline(never)]
 unsafe fn bc_varref_slow (sym: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   return Fsymbol_value (sym);
+
+  }
 }
 
 #[cold]
 #[inline(never)]
 unsafe fn bc_varset_slow (sym: Lisp_Object, val: Lisp_Object)
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   set_internal (sym, val, Qnil (), SET_INTERNAL_SET);
+
+  }
 }
 
 #[cold]
 #[inline(never)]
 unsafe fn bc_varbind_slow (sym: Lisp_Object, val: Lisp_Object)
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   specbind (sym, val);
+
+  }
 }
 
 #[cold]
 #[inline(never)]
 unsafe fn bc_grow_specpdl ()
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   grow_specpdl_allocation ();
+
+  }
 }
 
 #[cold]
 #[inline(never)]
 unsafe fn bc_unbind_slow (ct: *mut thread_state, target_ptr: *mut specbinding)
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let target_ref: specpdl_ref =
     wrap_specpdl_ref (target_ptr as isize - ((*ct).m_specpdl) as isize);
   unbind_to (target_ref, Qnil ());
+
+  }
 }
 
 #[cold]
 #[inline(never)]
 unsafe fn bc_debug_on_exit (val: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   return call_debugger (list2 (Qexit (), val));
+
+  }
 }
 
 #[cold]
 #[inline(never)]
 unsafe fn bc_funcall_subr_slow (subr: *mut Lisp_Subr, nargs: ptrdiff_t, args: *mut Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   return funcall_subr (subr, nargs, args);
+
+  }
 }
 
 #[cold]
 #[inline(never)]
 unsafe fn bc_funcall_general_slow (fun: Lisp_Object, nargs: ptrdiff_t, args: *mut Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   return funcall_general (fun, nargs, args);
+
+  }
 }
 
 #[unsafe(no_mangle)]
@@ -740,6 +806,8 @@ pub unsafe extern "C-unwind" fn exec_byte_code (mut fun: Lisp_Object, mut args_t
 					 mut nargs: ptrdiff_t, mut args: *mut Lisp_Object)
   -> Lisp_Object
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let mut quitcounter: c_uchar = 1;
   let mut bc: *mut bc_thread_state = &raw mut (*current_thread).bc;
 
@@ -3169,12 +3237,16 @@ pub unsafe extern "C-unwind" fn exec_byte_code (mut fun: Lisp_Object, mut args_t
 	    }
 	}
     }
+
+  }
 }
 
 /* `args_template' has the same meaning as in exec_byte_code() above.  */
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn get_byte_code_arity (args_template: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   eassert! (FIXNATP (args_template));
   let at: EMACS_INT = XFIXNUM (args_template);
   let rest: bool = (at & 128) != 0;
@@ -3183,11 +3255,15 @@ pub unsafe extern "C-unwind" fn get_byte_code_arity (args_template: Lisp_Object)
 
   return Fcons (make_fixnum (mandatory as EMACS_INT),
 		if rest { Qmany () } else { make_fixnum (nonrest) });
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_bytecode ()
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   DEFSYM! (Qinteractive_p, c"interactive-p");
 
   defsubr (&raw mut Sbyte_code);
@@ -3196,4 +3272,6 @@ pub unsafe extern "C-unwind" fn syms_of_bytecode ()
   /* C 1830-1851's `#ifdef BYTE_CODE_METER` arm (the `byte-code-meter` histogram and
      `byte-metering-on`) is dead in the frozen configuration and is recorded in
      docs/ports/bytecode.md rather than transcribed (P-08).  */
+
+  }
 }

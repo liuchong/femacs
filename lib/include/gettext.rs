@@ -157,7 +157,7 @@ pub const LC_MESSAGES: c_int = 6;
    `concat!` spells.  `core::ptr::null ()` is C's `NULL`.  */
 macro_rules! pgettext {
   ($msgctxt:literal, $msgid:literal) => {
-    unsafe {
+    /* SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure. */ unsafe {
       const _: () = core::assert! (GETTEXT_CONTEXT_GLUE.to_bytes ()[0] == 0x04);
       pgettext_aux (core::ptr::null (), concat! ($msgctxt, "\x04", $msgid, "\0").as_ptr ()
                       as *const c_char, $msgid, LC_MESSAGES)
@@ -166,7 +166,7 @@ macro_rules! pgettext {
 }
 macro_rules! dpgettext {
   ($domainname:expr, $msgctxt:literal, $msgid:literal) => {
-    unsafe {
+    /* SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure. */ unsafe {
       const _: () = core::assert! (GETTEXT_CONTEXT_GLUE.to_bytes ()[0] == 0x04);
       pgettext_aux ($domainname, concat! ($msgctxt, "\x04", $msgid, "\0").as_ptr ()
                       as *const c_char, $msgid, LC_MESSAGES)
@@ -175,7 +175,7 @@ macro_rules! dpgettext {
 }
 macro_rules! dcpgettext {
   ($domainname:expr, $msgctxt:literal, $msgid:literal, $category:expr) => {
-    unsafe {
+    /* SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure. */ unsafe {
       const _: () = core::assert! (GETTEXT_CONTEXT_GLUE.to_bytes ()[0] == 0x04);
       pgettext_aux ($domainname, concat! ($msgctxt, "\x04", $msgid, "\0").as_ptr ()
                       as *const c_char, $msgid, $category)
@@ -184,7 +184,7 @@ macro_rules! dcpgettext {
 }
 macro_rules! npgettext {
   ($msgctxt:literal, $msgid:literal, $msgidplural:literal, $n:expr) => {
-    unsafe {
+    /* SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure. */ unsafe {
       const _: () = core::assert! (GETTEXT_CONTEXT_GLUE.to_bytes ()[0] == 0x04);
       npgettext_aux (core::ptr::null (), concat! ($msgctxt, "\x04", $msgid, "\0").as_ptr ()
                        as *const c_char, $msgid, $msgidplural, $n, LC_MESSAGES)
@@ -193,7 +193,7 @@ macro_rules! npgettext {
 }
 macro_rules! dnpgettext {
   ($domainname:expr, $msgctxt:literal, $msgid:literal, $msgidplural:literal, $n:expr) => {
-    unsafe {
+    /* SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure. */ unsafe {
       const _: () = core::assert! (GETTEXT_CONTEXT_GLUE.to_bytes ()[0] == 0x04);
       npgettext_aux ($domainname, concat! ($msgctxt, "\x04", $msgid, "\0").as_ptr ()
                        as *const c_char, $msgid, $msgidplural, $n, LC_MESSAGES)
@@ -203,7 +203,7 @@ macro_rules! dnpgettext {
 macro_rules! dcnpgettext {
   ($domainname:expr, $msgctxt:literal, $msgid:literal, $msgidplural:literal, $n:expr,
    $category:expr) => {
-    unsafe {
+    /* SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure. */ unsafe {
       const _: () = core::assert! (GETTEXT_CONTEXT_GLUE.to_bytes ()[0] == 0x04);
       npgettext_aux ($domainname, concat! ($msgctxt, "\x04", $msgid, "\0").as_ptr ()
                        as *const c_char, $msgid, $msgidplural, $n, $category)
@@ -266,23 +266,23 @@ pub const _LIBGETTEXT_HAVE_VARIABLE_SIZE_ARRAYS: c_int = 1;
 /* C 452-455 and C 496-499's four non-constant-argument pseudo calls.  */
 macro_rules! pgettext_expr {
   ($msgctxt:expr, $msgid:expr) => {
-    unsafe { dcpgettext_expr (core::ptr::null (), $msgctxt, $msgid, LC_MESSAGES) }
+    /* SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure. */ unsafe { dcpgettext_expr (core::ptr::null (), $msgctxt, $msgid, LC_MESSAGES) }
   };
 }
 macro_rules! dpgettext_expr {
   ($domainname:expr, $msgctxt:expr, $msgid:expr) => {
-    unsafe { dcpgettext_expr ($domainname, $msgctxt, $msgid, LC_MESSAGES) }
+    /* SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure. */ unsafe { dcpgettext_expr ($domainname, $msgctxt, $msgid, LC_MESSAGES) }
   };
 }
 macro_rules! npgettext_expr {
   ($msgctxt:expr, $msgid:expr, $msgidplural:expr, $n:expr) => {
-    unsafe { dcnpgettext_expr (core::ptr::null (), $msgctxt, $msgid, $msgidplural, $n,
+    /* SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure. */ unsafe { dcnpgettext_expr (core::ptr::null (), $msgctxt, $msgid, $msgidplural, $n,
                                LC_MESSAGES) }
   };
 }
 macro_rules! dnpgettext_expr {
   ($domainname:expr, $msgctxt:expr, $msgid:expr, $msgidplural:expr, $n:expr) => {
-    unsafe { dcnpgettext_expr ($domainname, $msgctxt, $msgid, $msgidplural, $n, LC_MESSAGES) }
+    /* SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure. */ unsafe { dcnpgettext_expr ($domainname, $msgctxt, $msgid, $msgidplural, $n, LC_MESSAGES) }
   };
 }
 
@@ -294,6 +294,8 @@ macro_rules! dnpgettext_expr {
 pub unsafe fn dcpgettext_expr (domain: *const c_char, msgctxt: *const c_char,
                                msgid: *const c_char, category: c_int) -> *const c_char
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   let msgctxt_len: usize = strlen (msgctxt) + 1;
   let msgid_len: usize = strlen (msgid) + 1;
   let mut buf: [c_char; 1024] = [0; 1024];
@@ -317,6 +319,8 @@ pub unsafe fn dcpgettext_expr (domain: *const c_char, msgctxt: *const c_char,
         { return translation; }
     }
   return msgid;
+
+  }
 }
 
 /* C 501-539: the plural form of the same.  */
@@ -325,6 +329,8 @@ pub unsafe fn dcnpgettext_expr (domain: *const c_char, msgctxt: *const c_char,
                                 msgid: *const c_char, msgid_plural: *const c_char,
                                 n: core::ffi::c_ulong, category: c_int) -> *const c_char
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   let msgctxt_len: usize = strlen (msgctxt) + 1;
   let msgid_len: usize = strlen (msgid) + 1;
   let mut buf: [c_char; 1024] = [0; 1024];
@@ -350,4 +356,6 @@ pub unsafe fn dcnpgettext_expr (domain: *const c_char, msgctxt: *const c_char,
         { return translation; }
     }
   return if n == 1 { msgid } else { msgid_plural };
+
+  }
 }

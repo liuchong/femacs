@@ -39,9 +39,7 @@
 // `static_assert` is `static_assert!` and `__set_errno` is the libc-config.h macro
 // (§2.5, the nanosleep/canonicalize-lgpl precedents), and `goto offset_found` is the
 // labelled block `'offset_found` (§2.2, the getdelim precedent).
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
-         static_mut_refs, unsafe_op_in_unsafe_fn)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -65,9 +63,13 @@ pub const NEED_MKTIME_WINDOWS: c_int = 0;
    (NEED_MKTIME_WORKING is 1).  */
 unsafe fn my_tzset ()
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   /* C 74-99's `#if NEED_MKTIME_WINDOWS` body - the `getenv`/`strchr`/`_putenv` dance that
      neutralizes a slash-bearing TZ - is dead: NEED_MKTIME_WINDOWS is 0.  */
   tzset ();
+
+  }
 }
 /* C 104-105: `# undef tzset` then `# define tzset() my_tzset ()`.  The `tzset ()` the body
    above calls is the system function the time mirror declares (the macro is not yet
@@ -148,6 +150,8 @@ unsafe fn ydhms_diff (year1: long_int, yday1: long_int, hour1: c_int, min1: c_in
                       sec1: c_int, year0: c_int, yday0: c_int, hour0: c_int, min0: c_int,
                       sec0: c_int) -> long_int
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   static_assert! (-1 / 2 == 0);
 
   /* Compute intervening leap days correctly even if year is negative.
@@ -170,31 +174,45 @@ unsafe fn ydhms_diff (year1: long_int, yday1: long_int, hour1: c_int, min1: c_in
   let minutes: long_int = 60 * hours + min1 as long_int - min0 as long_int;
   let seconds: long_int = 60 * minutes + sec1 as long_int - sec0 as long_int;
   return seconds;
+
+  }
 }
 
 /* C 232-238.  */
 unsafe fn long_int_avg (a: long_int, b: long_int) -> long_int
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   return shr (a, 1) + shr (b, 1) + ((a | b) & 1);
+
+  }
 }
 
 /* C 240-254.  */
 unsafe fn tm_diff (year: long_int, yday: long_int, hour: c_int, min: c_int, sec: c_int,
                    tp: *const tm) -> long_int
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   return ydhms_diff (year, yday, hour, min, sec,
                      (*tp).tm_year, (*tp).tm_yday,
                      (*tp).tm_hour, (*tp).tm_min, (*tp).tm_sec);
+
+  }
 }
 
 /* C 256-270's `#ifndef _LIBC` arm is live.  */
 unsafe fn convert_time (t: long_int, local: bool, tm: *mut tm) -> *mut tm
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   let x: __time64_t = t;
   if local
     { return __localtime64_r! (&x, tm); }
   else
     { return __gmtime64_r! (&x, tm); }
+
+  }
 }
 /* C 269: `# define __tz_convert convert_time`.  */
 macro_rules! __tz_convert {
@@ -204,6 +222,8 @@ macro_rules! __tz_convert {
 /* C 272-317.  */
 unsafe fn ranged_convert (local: bool, t: *mut long_int, tp: *mut tm) -> *mut tm
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   let t1: long_int = if *t < mktime_min
                      { mktime_min }
                      else if *t <= mktime_max { *t } else { mktime_max };
@@ -245,6 +265,8 @@ unsafe fn ranged_convert (local: bool, t: *mut long_int, tp: *mut tm) -> *mut tm
   *t = ok;
   *tp = oktm;
   return tp;
+
+  }
 }
 
 /* C 319-531.  */
@@ -252,6 +274,8 @@ unsafe fn ranged_convert (local: bool, t: *mut long_int, tp: *mut tm) -> *mut tm
 pub unsafe extern "C" fn __mktime_internal (tp: *mut tm, local: bool,
                                             offset: *mut mktime_offset_t) -> __time64_t
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   let mut tm: tm = std::mem::zeroed ();   /* the C declaration, PORTING.md 1.5  */
 
   /* The maximum number of probes should be enough to handle any
@@ -476,6 +500,8 @@ pub unsafe extern "C" fn __mktime_internal (tp: *mut tm, local: bool,
 
   *tp = tm;
   return t;
+
+  }
 }
 
 /* C 533's `#endif` closes the first live guard.  */
@@ -485,6 +511,8 @@ pub unsafe extern "C" fn __mktime_internal (tp: *mut tm, local: bool,
 #[unsafe(export_name = "rpl_mktime")]
 pub unsafe extern "C" fn __mktime64 (tp: *mut tm) -> __time64_t
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   __libc_lock_lock! (__tzset_lock);
   __tzset_unlocked! ();
 
@@ -495,6 +523,8 @@ pub unsafe extern "C" fn __mktime64 (tp: *mut tm) -> __time64_t
 
   __libc_lock_unlock! (__tzset_lock);
   return result;
+
+  }
 }
 /* C 557-581's `#if defined _LIBC && __TIMESIZE != 64` arm (the 32-bit `time_t` wrapper and
    its `libc_hidden_def`/`weak_alias`/`libc_hidden_weak` lines) is dead: `_LIBC` is

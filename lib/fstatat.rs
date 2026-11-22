@@ -48,13 +48,21 @@ pub const LSTAT_FOLLOWS_SLASHED_SYMLINK: c_int = 0;
 unsafe fn orig_fstatat (fd: c_int, filename: *const c_char, buf: *mut stat, flags: c_int)
   -> c_int
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   return fstatat (fd, filename, buf, flags);
+
+  }
 }
 
 /* C 59-63's `static int normal_fstatat (int fd, char const *file, struct stat *st, int flag)`.  */
 unsafe fn normal_fstatat (fd: c_int, file: *const c_char, st: *mut stat, flag: c_int) -> c_int
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   return stat_time_normalize (orig_fstatat (fd, file, st, flag), st);
+
+  }
 }
 
 /* fstatat should always follow symbolic links that end in /, but on
@@ -71,6 +79,8 @@ unsafe fn normal_fstatat (fd: c_int, file: *const c_char, st: *mut stat, flag: c
 pub unsafe extern "C" fn rpl_fstatat (fd: c_int, file: *const c_char, st: *mut stat,
                                       flags: c_int) -> c_int
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   /* Implement Linux kernel 6.11+ behavior on platforms that have
      AT_EMPTY_PATH but do not support it on null pointers.  */
   let mut file = file;
@@ -101,6 +111,8 @@ pub unsafe extern "C" fn rpl_fstatat (fd: c_int, file: *const c_char, st: *mut s
       return -1;
     }
   return result;
+
+  }
 }
 
 /* C 108-150's `#else` arm, kept as text (P-51; dead: both macros are 1).  */

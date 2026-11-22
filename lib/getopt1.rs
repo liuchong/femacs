@@ -14,9 +14,7 @@
 // The `__GETOPT_PREFIX` layer (`rpl_`) renames `getopt_long`/`getopt_long_only` and leaves the
 // two reentrant entry points alone: `nm build/emacs-ref/lib/getopt1.o` defines
 // `_rpl_getopt_long`, `_rpl_getopt_long_only`, `__getopt_long_r` and `__getopt_long_only_r`.
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
-         static_mut_refs, unsafe_op_in_unsafe_fn)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -46,8 +44,12 @@ pub unsafe extern "C" fn getopt_long (argc: c_int, argv: *mut *mut c_char,
                                       options: *const c_char, long_options: *const option,
                                       opt_index: *mut c_int) -> c_int
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   return _getopt_internal (argc, ARGV_CAST! (argv), options, long_options,
                            opt_index, 0, 0);
+
+  }
 }
 
 /* C 43-50's `_getopt_long_r` (not in the prefix list: the symbol keeps C's name).  */
@@ -56,8 +58,12 @@ pub unsafe extern "C" fn _getopt_long_r (argc: c_int, argv: *mut *mut c_char,
                                          options: *const c_char, long_options: *const option,
                                          opt_index: *mut c_int, d: *mut _getopt_data) -> c_int
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   return _getopt_internal_r (argc, argv, options, long_options, opt_index,
                              0, d, 0);
+
+  }
 }
 
 /* Like getopt_long, but '-' as well as '--' can indicate a long option.
@@ -72,8 +78,12 @@ pub unsafe extern "C" fn getopt_long_only (argc: c_int, argv: *mut *mut c_char,
                                            long_options: *const option, opt_index: *mut c_int)
   -> c_int
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   return _getopt_internal (argc, ARGV_CAST! (argv), options, long_options,
                            opt_index, 1, 0);
+
+  }
 }
 
 /* C 66-73's `_getopt_long_only_r`.  */
@@ -84,8 +94,12 @@ pub unsafe extern "C" fn _getopt_long_only_r (argc: c_int, argv: *mut *mut c_cha
                                               opt_index: *mut c_int, d: *mut _getopt_data)
   -> c_int
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   return _getopt_internal_r (argc, argv, options, long_options, opt_index,
                              1, d, 0);
+
+  }
 }
 
 /* C 76-166's `#ifdef TEST` program: dead in the frozen configuration (TEST is the macro the

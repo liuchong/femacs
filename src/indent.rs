@@ -44,11 +44,7 @@
 // `docs/ports/indent.md`.  C 867-944's `string_display_width` is dead text, so no Rust
 // counterpart is written for it.
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
-         unsafe_op_in_unsafe_fn, unused_assignments, unreachable_code, while_true,
-         unused_parens, unused_mut, unused_labels, unused_comparisons,
-         overflowing_literals)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe, unused_assignments, unreachable_code, while_true, unused_parens, unused_mut, unused_labels, unused_comparisons, overflowing_literals)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -478,6 +474,8 @@ pub static mut indent_tabs_mode: bool = false;
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn buffer_display_table () -> *mut Lisp_Char_Table
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut thisbuf: Lisp_Object = Qnil ();
 
   thisbuf = BVAR! ((current_buffer! ()), display_table_);
@@ -486,6 +484,8 @@ pub unsafe extern "C-unwind" fn buffer_display_table () -> *mut Lisp_Char_Table
   if DISP_TABLE_P (Vstandard_display_table)
     { return XCHAR_TABLE (Vstandard_display_table); }
   return 0 as *mut Lisp_Char_Table;
+
+  }
 }
 
 /* Width run cache considerations.  */
@@ -529,6 +529,8 @@ unsafe fn character_width (c: c_int, dp: *mut Lisp_Char_Table) -> c_int
 pub unsafe extern "C-unwind" fn disptab_matches_widthtab (disptab: *mut Lisp_Char_Table,
 						   widthtab: *mut Lisp_Vector) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   eassert! ((*widthtab).header.size == 256);
 
   for i in 0..256
@@ -539,6 +541,8 @@ pub unsafe extern "C-unwind" fn disptab_matches_widthtab (disptab: *mut Lisp_Cha
     }
 
   return true;
+
+  }
 }
 
 /* Recompute BUF's width table, using the display table DISPTAB.  */
@@ -547,6 +551,8 @@ pub unsafe extern "C-unwind" fn disptab_matches_widthtab (disptab: *mut Lisp_Cha
 pub unsafe extern "C-unwind" fn recompute_width_table (buf: *mut buffer,
 						disptab: *mut Lisp_Char_Table)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut widthtab: *mut Lisp_Vector = std::ptr::null_mut ();
 
   if !VECTORP (BVAR! (buf, width_table_))
@@ -559,6 +565,8 @@ pub unsafe extern "C-unwind" fn recompute_width_table (buf: *mut buffer,
       XSETFASTINT! (FAM_ELEM! ((*widthtab).contents, i),
 		    character_width (i, disptab) as EMACS_INT);
     }
+
+  }
 }
 
 /* Allocate or free the width run cache, as requested by the
@@ -569,6 +577,8 @@ pub unsafe extern "C-unwind" fn recompute_width_table (buf: *mut buffer,
 /// insdel.rs `invalidate_region_cache` shape).
 unsafe fn width_run_cache_on_off () -> *mut c_void
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut cache_buffer: *mut buffer = (current_buffer! ());
   let mut indirect_p: bool = false;
 
@@ -612,6 +622,8 @@ unsafe fn width_run_cache_on_off () -> *mut c_void
 	}
       return (*cache_buffer).width_run_cache;
     }
+
+  }
 }
 
 /* Skip some invisible characters starting from POS.
@@ -641,6 +653,8 @@ unsafe fn width_run_cache_on_off () -> *mut c_void
 pub unsafe extern "C-unwind" fn skip_invisible (pos: ptrdiff_t, next_boundary_p: *mut ptrdiff_t,
 					 to: ptrdiff_t, window: Lisp_Object) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut prop: Lisp_Object = Qnil ();
   let mut position: Lisp_Object = Qnil ();
   let mut overlay_limit: Lisp_Object = Qnil ();
@@ -693,6 +707,8 @@ pub unsafe extern "C-unwind" fn skip_invisible (pos: ptrdiff_t, next_boundary_p:
   if if NILP (window) { inv_p == 1 } else { inv_p != 0 }
     { return *next_boundary_p; }
   return pos;
+
+  }
 }
 
 /* Set variables WIDTH and BYTES for a multibyte sequence starting at P.
@@ -734,12 +750,18 @@ DEFUN! ("current-column", Fcurrent_column, Scurrent_column, 0, 0, 0,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn invalidate_current_column ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   last_known_column_point = 0;
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn current_column () -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut col: ptrdiff_t = 0;
   let mut ptr: *mut u8 = std::ptr::null_mut ();
   let mut stop: *mut u8 = std::ptr::null_mut ();
@@ -884,6 +906,8 @@ pub unsafe extern "C-unwind" fn current_column () -> ptrdiff_t
   last_known_column_modified = MODIFF! ();
 
   return col;
+
+  }
 }
 
 /* C 469's forward declaration of `restore_window_buffer` is dropped (PORTING.md 0.1-12).  */
@@ -901,6 +925,8 @@ unsafe fn check_display_width (window: Lisp_Object,
 			       pos: ptrdiff_t, pos_byte: ptrdiff_t, col: ptrdiff_t,
 			       endpos: *mut ptrdiff_t) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut val: Lisp_Object = Qnil ();
   let mut overlay: Lisp_Object = Qnil ();
 
@@ -1018,6 +1044,8 @@ unsafe fn check_display_width (window: Lisp_Object,
     }
 
   return -1;
+
+  }
 }
 
 /* Scanning from the beginning of the current line, stop at the buffer
@@ -1031,6 +1059,8 @@ unsafe fn scan_for_column (endpos: *mut ptrdiff_t, goalcol: *mut EMACS_INT,
 			   prevpos: *mut ptrdiff_t, prevbpos: *mut ptrdiff_t,
 			   prevcol: *mut ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let tab_width: c_int = SANE_TAB_WIDTH ((current_buffer! ()));
   let ctl_arrow: bool = !NILP (BVAR! ((current_buffer! ()), ctl_arrow_));
   let dp: *mut Lisp_Char_Table = buffer_display_table ();
@@ -1291,6 +1321,8 @@ unsafe fn scan_for_column (endpos: *mut ptrdiff_t, goalcol: *mut EMACS_INT,
     { *prevbpos = prev_bpos; }
   if !prevcol.is_null ()
     { *prevcol = prev_col; }
+
+  }
 }
 
 /* Return the column number of point
@@ -1300,12 +1332,16 @@ unsafe fn scan_for_column (endpos: *mut ptrdiff_t, goalcol: *mut EMACS_INT,
 
 unsafe fn current_column_1 () -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut col: EMACS_INT = MOST_POSITIVE_FIXNUM;
   let mut opoint: ptrdiff_t = PT! ();
 
   scan_for_column (&raw mut opoint, &raw mut col, std::ptr::null_mut (),
 		   std::ptr::null_mut (), std::ptr::null_mut ());
   return col as ptrdiff_t;
+
+  }
 }
 
 // C 867-944's `#if 0` block (the unused `string_display_width`, whose opening comment
@@ -1374,6 +1410,8 @@ DEFUN! ("current-indentation", Fcurrent_indentation, Scurrent_indentation,
 
 unsafe fn position_indentation (pos_byte: ptrdiff_t) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut pos_byte: ptrdiff_t = pos_byte;
   let mut column: ptrdiff_t = 0;
   let tab_width: c_int = SANE_TAB_WIDTH ((current_buffer! ()));
@@ -1460,6 +1498,8 @@ unsafe fn position_indentation (pos_byte: ptrdiff_t) -> ptrdiff_t
 	    }
 	}
     }
+
+  }
 }
 
 /* Test whether the line beginning at POS is indented beyond COLUMN.
@@ -1470,6 +1510,8 @@ unsafe fn position_indentation (pos_byte: ptrdiff_t) -> ptrdiff_t
 pub unsafe extern "C-unwind" fn indented_beyond_p (pos: ptrdiff_t, pos_byte: ptrdiff_t,
 					     column: EMACS_INT) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut pos: ptrdiff_t = pos;
   let mut pos_byte: ptrdiff_t = pos_byte;
 
@@ -1480,6 +1522,8 @@ pub unsafe extern "C-unwind" fn indented_beyond_p (pos: ptrdiff_t, pos_byte: ptr
 			  -1, std::ptr::null_mut (), &raw mut pos_byte, false);
     }
   return position_indentation (pos_byte) >= column;
+
+  }
 }
 
 DEFUN! ("move-to-column", Fmove_to_column, Smove_to_column, 1, 2,
@@ -1624,6 +1668,8 @@ pub unsafe extern "C-unwind" fn compute_motion (from: ptrdiff_t, frombyte: ptrdi
 					 tab_offset: c_int, win: *mut window)
 					 -> *mut position
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut did_motion: bool = did_motion;
   let mut width: EMACS_INT = width;
   let mut tab_offset: c_int = tab_offset;
@@ -2233,6 +2279,8 @@ pub unsafe extern "C-unwind" fn compute_motion (from: ptrdiff_t, frombyte: ptrdi
   val_compute_motion.contin = (contin_hpos != 0 && prev_hpos == 0) as c_int;
 
   return &raw mut val_compute_motion;
+
+  }
 }
 
 DEFUN! ("compute-motion", Fcompute_motion, Scompute_motion, 7, 7, 0,
@@ -2324,6 +2372,8 @@ static mut val_vmotion: position = position {
 pub unsafe extern "C-unwind" fn vmotion (from: ptrdiff_t, from_byte: ptrdiff_t,
 				  vtarget: EMACS_INT, w: *mut window) -> *mut position
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut from: ptrdiff_t = from;
   let mut from_byte: ptrdiff_t = from_byte;
   let hscroll: ptrdiff_t = (*w).hscroll;
@@ -2448,6 +2498,8 @@ pub unsafe extern "C-unwind" fn vmotion (from: ptrdiff_t, from_byte: ptrdiff_t,
   return compute_motion (from, from_byte, vpos, pos.hpos, did_motion,
 			 ZV! (), vtarget, - ((1 << (SHRT_WIDTH - 1)) as EMACS_INT),
 			 -1, hscroll, 0, w);
+
+  }
 }
 
 /* Return the width taken by line-number display in window W.  */
@@ -2455,6 +2507,8 @@ pub unsafe extern "C-unwind" fn vmotion (from: ptrdiff_t, from_byte: ptrdiff_t,
 pub unsafe extern "C-unwind" fn line_number_display_width (w: *mut window, width: *mut c_int,
 						    pixel_width: *mut c_int)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if NILP (Vdisplay_line_numbers)
     {
       *width = 0;
@@ -2504,6 +2558,8 @@ pub unsafe extern "C-unwind" fn line_number_display_width (w: *mut window, width
       set_buffer_internal_1 (old_buf);
       bidi_unshelve_cache (itdata, false);
     }
+
+  }
 }
 
 DEFUN! ("line-number-display-width", Fline_number_display_width,
@@ -2530,6 +2586,8 @@ DEFUN! ("line-number-display-width", Fline_number_display_width,
 unsafe fn window_column_x (w: *mut window, window: Lisp_Object,
 			   col: c_double, column: Lisp_Object) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let x: c_double = col * FRAME_COLUMN_WIDTH (XFRAME ((*w).frame)) as c_double + 0.5;
 
   /* FIXME: Should this be limited to W's dimensions?  */
@@ -2537,6 +2595,8 @@ unsafe fn window_column_x (w: *mut window, window: Lisp_Object,
     { args_out_of_range (window, column); }
 
   return x as c_int;
+
+  }
 }
 
 /* Restore window's buffer and point.  */
@@ -2547,6 +2607,8 @@ unsafe fn window_column_x (w: *mut window, window: Lisp_Object,
 /// `unsafe extern "C" fn` (PORTING.md 1.4: one ABI, the `floatfns.c` precedent).
 unsafe extern "C-unwind" fn restore_window_buffer (list: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut list: Lisp_Object = list;
   let w: *mut window = decode_live_window (XCAR (list));
   list = XCDR (list);
@@ -2555,6 +2617,8 @@ unsafe extern "C-unwind" fn restore_window_buffer (list: Lisp_Object)
   set_marker_both ((*w).pointm, (*w).contents,
 		   XFIXNAT (XCAR (list)),
 		   XFIXNAT (XCAR (XCDR (list))));
+
+  }
 }
 
 DEFUN! ("vertical-motion", Fvertical_motion, Svertical_motion, 1, 3, 0,
@@ -2895,6 +2959,8 @@ DEFUN! ("vertical-motion", Fvertical_motion, Svertical_motion, 1, 3, 0,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_indent ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   DEFVAR_BOOL! (c"indent-tabs-mode", indent_tabs_mode,
 	       "Indentation can insert tabs if this is non-nil.  ");
   indent_tabs_mode = true;
@@ -2908,4 +2974,6 @@ pub unsafe extern "C-unwind" fn syms_of_indent ()
   defsubr (&raw mut Sline_number_display_width);
   defsubr (&raw mut Svertical_motion);
   defsubr (&raw mut Scompute_motion);
+
+  }
 }

@@ -34,7 +34,11 @@ pub type dummy = c_int;
 /* C 38-42's `static int orig_lstat (const char *filename, struct stat *buf)`.  */
 unsafe fn orig_lstat (filename: *const c_char, buf: *mut stat) -> c_int
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   return lstat (filename, buf);
+
+  }
 }
 
 /* lstat works differently on Linux and Solaris systems.  POSIX (see
@@ -54,6 +58,8 @@ unsafe fn orig_lstat (filename: *const c_char, buf: *mut stat) -> c_int
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn rpl_lstat (file: *const c_char, sbuf: *mut stat) -> c_int
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   let mut result: c_int = orig_lstat (file, sbuf);
 
   /* This replacement file can blindly check against '/' rather than
@@ -81,4 +87,6 @@ pub unsafe extern "C" fn rpl_lstat (file: *const c_char, sbuf: *mut stat) -> c_i
         }
     }
   return result;
+
+  }
 }

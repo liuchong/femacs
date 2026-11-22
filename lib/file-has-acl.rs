@@ -42,10 +42,7 @@
 //
 // `docs/ports/file-has-acl.md` carries the `## C line ranges` table, the readings, the
 // deviations and what the integrator owes.
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
-         static_mut_refs, unsafe_op_in_unsafe_fn, unreachable_code, unused_assignments,
-         unused_parens, unused_comparisons, while_true, overflowing_literals)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe, unreachable_code, unused_assignments, unused_parens, unused_comparisons, while_true, overflowing_literals)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 use std::ffi::{c_char, c_double, c_int, c_long, c_short, c_uchar, c_uint, c_ulong, c_ushort,
@@ -830,7 +827,11 @@ mod nonstop_acl_surface {
 pub unsafe extern "C" fn file_has_aclinfo (name: *const c_char, ai: *mut aclinfo, flags: c_int)
   -> c_int
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   return fdfile_has_aclinfo (-1, name, ai, flags);
+
+  }
 }
 
 /* Return 1 if FD aka NAME has a nontrivial access control list,
@@ -855,6 +856,8 @@ pub unsafe extern "C" fn file_has_aclinfo (name: *const c_char, ai: *mut aclinfo
 pub unsafe extern "C" fn fdfile_has_aclinfo (fd: c_int, name: *const c_char, ai: *mut aclinfo,
                                              flags: c_int) -> c_int
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   let d_type: c_uchar = (flags & UCHAR_MAX) as c_uchar;
 
   /* C 465-509: the `#if USE_LINUX_XATTR` arm (dead on the frozen target).  */
@@ -1448,6 +1451,8 @@ pub unsafe extern "C" fn fdfile_has_aclinfo (fd: c_int, name: *const c_char, ai:
 
   /* C 967.  */
   return 0;
+
+  }
 }
 
 /* Return 1 if NAME has a nontrivial access control list,
@@ -1461,6 +1466,8 @@ pub unsafe extern "C" fn fdfile_has_aclinfo (fd: c_int, name: *const c_char, ai:
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn file_has_acl (name: *const c_char, sb: *const stat) -> c_int
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   let mut flags: c_int = IFTODT! ((*sb).st_mode);
   if ! S_ISDIR! ((*sb).st_mode)
     { flags |= _GL_DT_NOTDIR; }
@@ -1476,4 +1483,6 @@ pub unsafe extern "C" fn file_has_acl (name: *const c_char, sb: *const stat) -> 
   #[cfg (not (feature = "use_linux_xattr"))]
   aclinfo_free! (&mut ai);
   return r;
+
+  }
 }

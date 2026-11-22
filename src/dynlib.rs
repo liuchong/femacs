@@ -55,12 +55,16 @@ unsafe extern "C" { fn femacs_gc_unknown_producer_loaded(); }
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn dynlib_open (path: *const c_char) -> dynlib_handle_ptr
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   // Module constructors may run inside dlopen, before module_init. They are
   // not compiled with the candidate's cons write barrier. Latch before entry,
   // including a failed load; returning cannot prove all aliases were released.
   #[cfg(feature = "femacs_gc_generational")]
   femacs_gc_unknown_producer_loaded();
   return dlopen (path, RTLD_LAZY | RTLD_GLOBAL);
+
+  }
 }
 
 /* P-346: carry the original native-only POSIX arm when actually selected. */
@@ -68,14 +72,22 @@ pub unsafe extern "C" fn dynlib_open (path: *const c_char) -> dynlib_handle_ptr
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn dynlib_open_for_eln (path: *const c_char) -> dynlib_handle_ptr
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   dlopen(path, RTLD_LAZY)
+
+  }
 }
 
 /* C 290-294's `void *dynlib_sym (dynlib_handle_ptr h, const char *sym)`.  */
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn dynlib_sym (h: dynlib_handle_ptr, sym: *const c_char) -> *mut c_void
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   return dlsym (h, sym);
+
+  }
 }
 
 /* C 296-311's `void dynlib_addr (void (*funcptr) (void), const char **path,
@@ -84,6 +96,8 @@ pub unsafe extern "C" fn dynlib_sym (h: dynlib_handle_ptr, sym: *const c_char) -
 pub unsafe extern "C" fn dynlib_addr (funcptr: Option<unsafe extern "C" fn ()>,
                                       path: *mut *const c_char, sym: *mut *const c_char)
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   *path = std::ptr::null ();
   *sym = std::ptr::null ();
   #[cfg(feature = "have_dladdr")]
@@ -100,21 +114,31 @@ pub unsafe extern "C" fn dynlib_addr (funcptr: Option<unsafe extern "C" fn ()>,
   }
   #[cfg(not(feature = "have_dladdr"))]
   let _ = funcptr;
+
+  }
 }
 
 /* C 313-317's `const char *dynlib_error (void)`.  */
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn dynlib_error () -> *const c_char
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   return dlerror ();
+
+  }
 }
 
 #[cfg(feature = "have_native_comp")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn dynlib_close (handle: dynlib_handle_ptr) -> c_int
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   // Original wrapper returns boolean success, unlike raw dlclose.
   (dlclose(handle) == 0) as c_int
+
+  }
 }
 
 /* C 333-335's `#if !HAVE_DLFUNC / # define dlfunc dynlib_sym / #endif`, the live arm.  */
@@ -125,8 +149,12 @@ macro_rules! dlfunc { ($h:expr, $sym:expr) => { dynlib_sym ($h, $sym) }; }
 pub unsafe extern "C" fn dynlib_func (h: dynlib_handle_ptr, sym: *const c_char)
   -> dynlib_function_ptr
 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
   /* C's `(dynlib_function_ptr) dlfunc (h, sym)` is the pointer cast the port spells with the
      same type name.  */
   let f: dynlib_function_ptr = std::mem::transmute (dlfunc! (h, sym));
   return f;
+
+  }
 }

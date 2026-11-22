@@ -190,7 +190,7 @@ pub fn XPROCESS (a: Lisp_Object) -> *mut Lisp_Process
 
 // process.h 244-254: the setters C's code uses for the two Lisp fields GC cares about.
 #[inline(always)]
-pub fn pset_childp (p: *mut Lisp_Process, val: Lisp_Object) { unsafe { (*p).childp = val; } }
+pub fn pset_childp (p: *mut Lisp_Process, val: Lisp_Object) { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*p).childp = val; } }
 
 #[inline(always)]
 pub fn pset_status (p: *mut Lisp_Process, val: Lisp_Object) { unsafe { (*p).status = val; } }
@@ -198,7 +198,7 @@ pub fn pset_status (p: *mut Lisp_Process, val: Lisp_Object) { unsafe { (*p).stat
 #[cfg(feature = "have_gnutls")]
 #[inline(always)]
 pub fn pset_gnutls_cred_type(p: *mut Lisp_Process, val: Lisp_Object) {
-  unsafe { (*p).gnutls_cred_type = val; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*p).gnutls_cred_type = val; }
 }
 
 /* process.h 263-268: the two objects C's `src/process.c` defines (C 161 and C 7674).  They

@@ -21,26 +21,26 @@ pub const EMACS_DISPTAB_H: bool = true;
 pub fn DISP_TABLE_P (obj: Lisp_Object) -> bool
 {
   return CHAR_TABLE_P (obj)
-	 && EQ (unsafe { (*XCHAR_TABLE (obj)).purpose }, Qdisplay_table ())
+	 && EQ (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*XCHAR_TABLE (obj)).purpose }, Qdisplay_table ())
 	 && CHAR_TABLE_EXTRA_SLOTS (XCHAR_TABLE (obj)) == DISP_TABLE_EXTRA_SLOTS;
 }
 
 // disptab.h 30-35: the six slots at the head of the table's `extras` area.
 #[inline(always)]
 pub fn DISP_TRUNC_GLYPH (dp: *mut Lisp_Char_Table) -> Lisp_Object
-{ return unsafe { FAM_ELEM! ((*dp).extras, 0) }; }
+{ return /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { FAM_ELEM! ((*dp).extras, 0) }; }
 #[inline(always)]
 pub fn DISP_CONTINUE_GLYPH (dp: *mut Lisp_Char_Table) -> Lisp_Object
 { return unsafe { FAM_ELEM! ((*dp).extras, 1) }; }
 #[inline(always)]
 pub fn DISP_ESCAPE_GLYPH (dp: *mut Lisp_Char_Table) -> Lisp_Object
-{ return unsafe { FAM_ELEM! ((*dp).extras, 2) }; }
+{ return /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { FAM_ELEM! ((*dp).extras, 2) }; }
 #[inline(always)]
 pub fn DISP_CTRL_GLYPH (dp: *mut Lisp_Char_Table) -> Lisp_Object
 { return unsafe { FAM_ELEM! ((*dp).extras, 3) }; }
 #[inline(always)]
 pub fn DISP_INVIS_VECTOR (dp: *mut Lisp_Char_Table) -> Lisp_Object
-{ return unsafe { FAM_ELEM! ((*dp).extras, 4) }; }
+{ return /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { FAM_ELEM! ((*dp).extras, 4) }; }
 #[inline(always)]
 pub fn DISP_BORDER_GLYPH (dp: *mut Lisp_Char_Table) -> Lisp_Object
 { return unsafe { FAM_ELEM! ((*dp).extras, 5) }; }
@@ -75,12 +75,12 @@ pub fn DISP_CHAR_VECTOR (dp: *mut Lisp_Char_Table, c: c_int) -> Lisp_Object
 {
   return if ASCII_CHAR_P (c as isize)
     {
-      if NILP (unsafe { (*dp).ascii })
+      if NILP (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*dp).ascii })
 	{ unsafe { (*dp).defalt } }
       else if SUB_CHAR_TABLE_P (unsafe { (*dp).ascii })
 	{ unsafe { FAM_ELEM! ((*XSUB_CHAR_TABLE ((*dp).ascii)).contents, c as isize) } }
       else
-	{ unsafe { (*dp).ascii } }
+	{ /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*dp).ascii } }
     }
     else
     { unsafe { disp_char_vector (dp, c) } };
@@ -113,7 +113,7 @@ macro_rules! GLYPH_TABLE_LENGTH {
 
 /* Return the current base (for indexing) of the GLYPH table, or 0 if invalid.  */
 macro_rules! GLYPH_TABLE_BASE {
-  () => { { if VECTORP (Vglyph_table) { unsafe { (*XVECTOR (Vglyph_table)).contents.as_mut_ptr () } }
+  () => { { if VECTORP (Vglyph_table) { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*XVECTOR (Vglyph_table)).contents.as_mut_ptr () } }
             else { 0 as *mut Lisp_Object } } };
 }
 

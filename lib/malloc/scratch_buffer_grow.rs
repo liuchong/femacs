@@ -2,9 +2,7 @@
 //
 // C 19-21's `#ifndef _LIBC` arm is live: `<libc-config.h>`'s `__set_errno` (below) is taken,
 // C 56's `libc_hidden_def (…)` stays empty, and C 23's `<scratch_buffer.h>` is included below.
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
-         static_mut_refs, unsafe_op_in_unsafe_fn)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 use std::ffi::{c_char, c_int, c_void};
@@ -30,6 +28,8 @@ unsafe extern "C" { pub fn malloc (size: usize) -> *mut c_void; }
 #[unsafe(export_name = "_gl_scratch_buffer_grow")]
 pub unsafe extern "C" fn __libc_scratch_buffer_grow (buffer: *mut scratch_buffer) -> bool
 {
+  // SAFETY: gnulib/OS raw buffer or dynamic-array boundary; caller upholds pointer validity, element capacity, and single-owner mutation invariants, returning error/null on overflow or OOM.
+  unsafe {
   let mut new_ptr: *mut c_void;
   let new_length: usize = (*buffer).length * 2;
 
@@ -56,5 +56,7 @@ pub unsafe extern "C" fn __libc_scratch_buffer_grow (buffer: *mut scratch_buffer
   (*buffer).data = new_ptr;
   (*buffer).length = new_length;
   return true;
+
+  }
 }
 /* C 56's `libc_hidden_def (__libc_scratch_buffer_grow)`: empty in this build.  */

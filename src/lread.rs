@@ -22,10 +22,7 @@
 // 0 disagreements`).  The file still stays out of the verified list on purpose: carrying
 // both arms is the stricter comparison (docs/status.md 3.51, the callproc.rs precedent).
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
-         unsafe_op_in_unsafe_fn, unused_assignments, unreachable_code, while_true,
-         unused_parens, unused_mut, clashing_extern_declarations)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe, unused_assignments, unreachable_code, while_true, unused_parens, unused_mut, clashing_extern_declarations)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -121,7 +118,7 @@ macro_rules! lread_lseek { ($fd:expr, $off:expr, $whence:expr) => { lseek ($fd, 
 /* P-389: configure's module suffix follows the actual dynamic-library target;
    Darwin also accepts its secondary .so spelling. */
 #[cfg (feature = "have_modules")]
-pub const MODULES_SUFFIX: &core::ffi::CStr = unsafe {
+pub const MODULES_SUFFIX: &core::ffi::CStr = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe {
   core::ffi::CStr::from_ptr (DYNAMIC_LIB_SUFFIX)
 };
 #[cfg (feature = "modules_secondary_suffix")]
@@ -395,6 +392,8 @@ const _: () = core::assert! (std::mem::offset_of! (source, emacs_mule_encoding) 
 /* C 285-336.  */
 unsafe fn init_source (src: *mut source, readcharfun: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   (*src).object = readcharfun;
   if BUFFERP (readcharfun)
     {
@@ -434,10 +433,14 @@ unsafe fn init_source (src: *mut source, readcharfun: Lisp_Object)
       (*src).unget = Some (source_function_unget);
       (*src).multibyte = true;
     }
+
+  }
 }
 
 unsafe extern "C-unwind" fn source_buffer_get (src: *mut source) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let b: *mut buffer = XBUFFER ((*src).object);
   if !BUFFER_LIVE_P (b)
     { return -1; }
@@ -463,19 +466,27 @@ unsafe extern "C-unwind" fn source_buffer_get (src: *mut source) -> c_int
     }
   SET_BUF_PT_BOTH (b, BUF_PT (b) + 1, pt_byte);
   c
+
+  }
 }
 
 unsafe extern "C-unwind" fn source_buffer_unget (src: *mut source, c: c_int)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let b: *mut buffer = XBUFFER ((*src).object);
   let charpos: ptrdiff_t = BUF_PT (b);
   let mut bytepos: ptrdiff_t = BUF_PT_BYTE (b);
   bytepos -= if (*src).multibyte { buf_prev_char_len (b, bytepos) as ptrdiff_t } else { 1 };
   SET_BUF_PT_BOTH (b, charpos - 1, bytepos);
+
+  }
 }
 
 unsafe extern "C-unwind" fn source_marker_get (src: *mut source) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let m: Lisp_Object = (*src).object;
   let b: *mut buffer = (*XMARKER (m)).buffer as *mut buffer;
   let mut bytepos: ptrdiff_t = marker_byte_position (m);
@@ -500,21 +511,29 @@ unsafe extern "C-unwind" fn source_marker_get (src: *mut source) -> c_int
   (*XMARKER (m)).bytepos = bytepos;
   (*XMARKER (m)).charpos += 1;
   c
+
+  }
 }
 
 unsafe extern "C-unwind" fn source_marker_unget (src: *mut source, c: c_int)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let m: Lisp_Object = (*src).object;
   let b: *mut buffer = (*XMARKER (m)).buffer as *mut buffer;
   let mut bytepos: ptrdiff_t = (*XMARKER (m)).bytepos;
   (*XMARKER (m)).charpos -= 1;
   bytepos -= if (*src).multibyte { buf_prev_char_len (b, bytepos) as ptrdiff_t } else { 1 };
   (*XMARKER (m)).bytepos = bytepos;
+
+  }
 }
 
 #[inline(always)]
 unsafe extern "C-unwind" fn source_string_get (src: *mut source) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if read_from_string_index >= read_from_string_limit
     { return -1; }
   let s: Lisp_Object = (*src).object;
@@ -533,11 +552,15 @@ unsafe extern "C-unwind" fn source_string_get (src: *mut source) -> c_int
       read_from_string_index_byte += 1;
     }
   c
+
+  }
 }
 
 #[inline(always)]
 unsafe extern "C-unwind" fn source_string_unget (src: *mut source, c: c_int)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   read_from_string_index -= 1;
   if ! (*src).multibyte
     { read_from_string_index_byte = read_from_string_index; }
@@ -546,6 +569,8 @@ unsafe extern "C-unwind" fn source_string_unget (src: *mut source, c: c_int)
       read_from_string_index_byte = string_char_to_byte ((*src).object,
 							 read_from_string_index);
     }
+
+  }
 }
 
 /* C 437-444: `readbyte_from_file`'s and `read_emacs_mule_char`'s forward declarations are
@@ -560,6 +585,8 @@ unsafe extern "C" {
 #[inline(always)]
 unsafe fn darwin_sgetc (stream: *mut FILE) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   (*stream)._r -= 1;
   if (*stream)._r < 0
     { __srget (stream) }
@@ -569,11 +596,15 @@ unsafe fn darwin_sgetc (stream: *mut FILE) -> c_int
       (*stream)._p = (*stream)._p.add (1);
       b as c_int
     }
+
+  }
 }
 
 #[inline(always)]
 unsafe extern "C-unwind" fn source_file_get (src: *mut source) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if unread_char >= 0
     {
       let c: c_int = unread_char;
@@ -607,29 +638,45 @@ unsafe extern "C-unwind" fn source_file_get (src: *mut source) -> c_int
 	}
     }
   STRING_CHAR (buf.as_ptr ())
+
+  }
 }
 
 #[inline(always)]
 unsafe extern "C-unwind" fn source_file_unget (src: *mut source, c: c_int)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   unread_char = c;
+
+  }
 }
 
 unsafe extern "C-unwind" fn source_function_get (src: *mut source) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let x: Lisp_Object = call0 ((*src).object);
   if CHARACTERP (x) { XFIXNUM (x) as c_int } else { -1 }
+
+  }
 }
 
 unsafe extern "C-unwind" fn source_function_unget (src: *mut source, c: c_int)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   calln! ((*src).object, make_fixnum (c as EMACS_INT));
+
+  }
 }
 
 /* Read a character from SRC.  */
 #[inline(always)]
 unsafe fn readchar (src: *mut source) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   readchar_offset += 1;
   let get_fn = (*src).get.unwrap ();
   if get_fn as usize == source_file_get as *const () as usize
@@ -637,12 +684,16 @@ unsafe fn readchar (src: *mut source) -> c_int
   if get_fn as usize == source_string_get as *const () as usize
     { return source_string_get (src); }
   get_fn (src)
+
+  }
 }
 
 /* Unread C from (to?) SRC.  Only a single char can be unread at a time.  */
 #[inline(always)]
 unsafe fn unreadchar (src: *mut source, c: c_int)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   readchar_offset -= 1;
   /* Don't back up the pointer if we're unreading the end-of-input mark,
      since readchar didn't advance it when we read it.  */
@@ -654,20 +705,32 @@ unsafe fn unreadchar (src: *mut source, c: c_int)
   if unget_fn as usize == source_string_unget as *const () as usize
     { source_string_unget (src, c); return; }
   unget_fn (src, c);
+
+  }
 }
 
 unsafe fn from_file_p (source: *mut source) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   (*source).get == Some (source_file_get)
+
+  }
 }
 
 unsafe fn from_buffer_p (source: *mut source) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   (*source).get == Some (source_buffer_get)
+
+  }
 }
 
 unsafe fn skip_dyn_bytes (source: *mut source, n: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if from_file_p (source)
     {
       block_input ();		/* FIXME: Not sure if it's needed.  */
@@ -690,10 +753,14 @@ unsafe fn skip_dyn_bytes (source: *mut source, n: ptrdiff_t)
 	    { break; }
 	}
     }
+
+  }
 }
 
 unsafe fn skip_dyn_eof (source: *mut source)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if from_file_p (source)
     {
       block_input ();		/* FIXME: Not sure if it's needed.  */
@@ -703,6 +770,8 @@ unsafe fn skip_dyn_eof (source: *mut source)
     }
   else
     { while readchar (source) >= 0 {} }
+
+  }
 }
 
 /* C 559-566: `#if !defined USE_ANDROID_ASSETS` selects the live body; the `#else` (C
@@ -711,6 +780,8 @@ unsafe fn skip_dyn_eof (source: *mut source)
 #[inline(always)]
 unsafe fn readbyte_from_file () -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if (*infile).lookahead != 0
     {
       /* C: `return infile->buf[--infile->lookahead];` - the pre-decrement consumes the
@@ -775,19 +846,27 @@ unsafe fn readbyte_from_file () -> c_int
   unblock_input ();
 
   if c == EOF { -1 } else { c }
+
+  }
 }
 
 unsafe fn unreadbyte_from_file (c: c_uchar)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   eassert! (((*infile).lookahead as usize) < std::mem::size_of_val (&(*infile).buf));
   (*infile).buf[(*infile).lookahead as usize] = c;
   (*infile).lookahead += 1;
+
+  }
 }
 
 /* Signal Qinvalid_read_syntax error.
    S is error string of length N (if > 0)  */
 unsafe fn invalid_syntax_lisp (s: Lisp_Object, source: *mut source) -> !
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if from_buffer_p (source)
     {
       let buffer: Lisp_Object = (*source).object;
@@ -805,17 +884,25 @@ unsafe fn invalid_syntax_lisp (s: Lisp_Object, source: *mut source) -> !
   else
     { xsignal1 (Qinvalid_read_syntax (), s); }
   unreachable! ()
+
+  }
 }
 
 unsafe fn invalid_syntax (s: *const c_char, source: *mut source) -> !
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   invalid_syntax_lisp (build_string (s), source)
+
+  }
 }
 
 /* C 631-750.  Read one non-ASCII character from INFILE.  The character is encoded in
    `emacs-mule' and the first byte is already read in C.  */
 unsafe fn read_emacs_mule_char (src: *mut source, c: c_int) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* Emacs-mule coding uses at most 4-byte for one character.  */
   let mut buf: [c_uchar; 4] = [0; 4];
   let len: c_int = emacs_mule_bytes[c as usize] as c_int;
@@ -873,6 +960,8 @@ unsafe fn read_emacs_mule_char (src: *mut source, c: c_int) -> c_int
   if c < 0
     { invalid_syntax (c"invalid multibyte form".as_ptr (), src); }
   c
+
+  }
 }
 
 /* C's `struct subst` (C 630-650): an in-progress substitution of OBJECT for PLACEHOLDER.  */
@@ -910,6 +999,8 @@ pub type lexical_cookie_t = c_int;
 #[inline(always)]
 unsafe fn UPDATE_BEG_END_STATE (ch: c_int, beg_end_state: *mut c_int, in_file_vars: *mut bool)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if *beg_end_state == NOMINAL
     { *beg_end_state = if ch == '-' as c_int { AFTER_FIRST_DASH } else { NOMINAL }; }
   else if *beg_end_state == AFTER_FIRST_DASH
@@ -920,6 +1011,8 @@ unsafe fn UPDATE_BEG_END_STATE (ch: c_int, beg_end_state: *mut c_int, in_file_va
 	{ *in_file_vars = !*in_file_vars; }
       *beg_end_state = NOMINAL;
     }
+
+  }
 }
 
 /* C's `enum { NOMINAL, AFTER_FIRST_DASH, AFTER_ASTERIX } beg_end_state` is function-local;
@@ -931,6 +1024,8 @@ const AFTER_ASTERIX: c_int = 2;
 
 unsafe fn lisp_file_lexical_cookie (readcharfun: Lisp_Object) -> lexical_cookie_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut source: source_t = std::mem::zeroed ();
   init_source (&mut source, readcharfun);
 
@@ -1056,12 +1151,16 @@ unsafe fn lisp_file_lexical_cookie (readcharfun: Lisp_Object) -> lexical_cookie_
 
       rv
     }
+
+  }
 }
 
 /* C 886-925.  Value is a version number of byte compiled code if the file associated with
    file descriptor FD is a compiled Lisp file that's safe to load.  */
 unsafe fn safe_to_load_version (file: Lisp_Object, fd: lread_fd) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut st: stat = std::mem::zeroed ();
   let mut buf: [c_char; 512] = [0; 512];
   let mut nbytes: c_int;
@@ -1100,13 +1199,19 @@ unsafe fn safe_to_load_version (file: Lisp_Object, fd: lread_fd) -> c_int
     { report_file_error (c"Seeking to start of file".as_ptr (), file); }
 
   version
+
+  }
 }
 
 /* Callback for record_unwind_protect.  Restore the old load list OLD,
    after loading a file successfully.  */
 unsafe extern "C-unwind" fn record_load_unwind (old: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   Vloads_in_progress = old;
+
+  }
 }
 
 /* This handler function is used via internal_condition_case_1.  */
@@ -1117,6 +1222,8 @@ unsafe extern "C-unwind" fn load_error_handler (data: Lisp_Object) -> Lisp_Objec
 
 unsafe extern "C-unwind" fn load_warn_unescaped_character_literals (file: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let function: Lisp_Object
     = Fsymbol_function (Qbyte_run_unescaped_character_literals_warning ());
   /* If byte-run.el is being loaded,
@@ -1129,6 +1236,8 @@ unsafe extern "C-unwind" fn load_warn_unescaped_character_literals (file: Lisp_O
       AUTO_STRING! (format, c"Loading `%s': %s".as_ptr ());
       CALLN! (Fmessage, format, file, warning);
     }
+
+  }
 }
 
 DEFUN! ("get-load-suffixes", Fget_load_suffixes, Sget_load_suffixes, 0, 0, 0,
@@ -1165,24 +1274,34 @@ DEFUN! ("get-load-suffixes", Fget_load_suffixes, Sget_load_suffixes, 0, 0, 0,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn suffix_p (string: Lisp_Object, suffix: *const c_char) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let suffix_len: ptrdiff_t = strlen (suffix) as ptrdiff_t;
   let string_len: ptrdiff_t = SBYTES (string);
 
   (suffix_len <= string_len
    && strcmp (SSDATA (string).add ((string_len - suffix_len) as usize), suffix) == 0)
+
+  }
 }
 
 unsafe extern "C-unwind" fn close_infile_unwind (arg: *mut c_void)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let prev_infile: *mut infile = arg as *mut infile;
   eassert! (!infile.is_null () && infile != prev_infile);
   file_stream_close! ((*infile).stream);
   infile = prev_infile;
+
+  }
 }
 
 /* Compute the filename we want in `load-history' and `load-file-name'.  */
 unsafe fn compute_found_effective (found: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* Reconstruct the .elc filename.  */
   let mut src_name: Lisp_Object
     = Fgethash (Ffile_name_nondirectory (found), Vcomp_eln_to_el_h, Qnil ());
@@ -1194,12 +1313,18 @@ unsafe fn compute_found_effective (found: Lisp_Object) -> Lisp_Object
   if suffix_p (src_name, c"el.gz".as_ptr ())
     { src_name = Fsubstring (src_name, make_fixnum (0), make_fixnum (-3)); }
   concat2 (src_name, build_string (c"c".as_ptr ()))
+
+  }
 }
 
 unsafe extern "C-unwind" fn loadhist_initialize (filename: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   eassert! (STRINGP (filename) || NILP (filename));
   specbind (Qcurrent_load_list (), Fcons (filename, Qnil ()));
+
+  }
 }
 
 /* C 1037-1051: `#ifdef USE_ANDROID_ASSETS`'s `close_file_unwind_android_fd` is carried
@@ -1214,6 +1339,8 @@ unsafe extern "C-unwind" fn close_file_unwind_android_fd (ptr: *mut c_void)
 
 unsafe fn get_lexical_binding (stream: Lisp_Object, from: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let lexc: lexical_cookie_t = lisp_file_lexical_cookie (stream);
   if lexc == Cookie_Lex
     { Qt () }
@@ -1224,6 +1351,8 @@ unsafe fn get_lexical_binding (stream: Lisp_Object, from: Lisp_Object) -> Lisp_O
     { Fdefault_toplevel_value (Qlexical_binding ()) }
   else
     { calln! (Vinternal__get_default_lexical_binding_function, from) }
+
+  }
 }
 
 /* ---- use-site declarations for names no included mirror carries ---------------- */
@@ -1331,7 +1460,11 @@ fn IS_DEVICE_SEP (_c_: c_char) -> bool { _c_ == b':' as c_char }
 #[inline(always)]
 unsafe fn FUNCTIONP (a: Lisp_Object) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if SYMBOLP (a) { !NILP (Fsymbol_function (a)) } else { SUBRP (a) || NATIVE_COMP_FUNCTIONP (a) }
+
+  }
 }
 
 DEFUN! ("load", Fload, Sload, 1, 5, 0,
@@ -1345,7 +1478,7 @@ DEFUN! ("load", Fload, Sload, 1, 5, 0,
 	 /* C 1117 leaves `lread_fd fd;` indeterminate; on Android the type is
 	    `struct android_fd_or_asset`, so `-1` is not a value of it - a zeroed record is the
 	    port's defined stand-in (P-14), and every read of it is under the guard below.  */
-	 let mut fd: lread_fd = unsafe { core::mem::zeroed () };
+	 let mut fd: lread_fd = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { core::mem::zeroed () };
 	 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]   // C 69: `#define USE_ANDROID_ASSETS`
 	 let mut rc: c_int = 0;
 	 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]   // C 69: `#define USE_ANDROID_ASSETS`
@@ -1824,19 +1957,27 @@ pub unsafe extern "C-unwind" fn save_match_data_load (file: Lisp_Object, noerror
 				nomessage: Lisp_Object, nosuffix: Lisp_Object,
 				must_suffix: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let count: specpdl_ref = SPECPDL_INDEX ();
   record_unwind_save_match_data ();
   let result: Lisp_Object = Fload (file, noerror, nomessage, nosuffix, must_suffix);
   unbind_to (count, result)
+
+  }
 }
 
 unsafe fn complete_filename_p (pathname: Lisp_Object) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let s: *const c_uchar = SDATA (pathname);
   IS_DIRECTORY_SEP (*s.offset (0) as c_char)
     || (SCHARS (pathname) > 2
 	&& IS_DEVICE_SEP (*s.offset (1) as c_char)
 	&& IS_DIRECTORY_SEP (*s.offset (2) as c_char))
+
+  }
 }
 
 DEFUN! ("locate-file-internal", Flocate_file_internal, Slocate_file_internal, 2, 4, 0,
@@ -1859,6 +2000,8 @@ unsafe fn maybe_swap_for_eln1 (src_name: Lisp_Object, eln_name: Lisp_Object,
 			       filename: *mut Lisp_Object, fd: *mut c_int,
 			       mtime: timespec) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut eln_st: stat = std::mem::zeroed ();
   let eln_fd: c_int = emacs_open (SSDATA (ENCODE_FILE (eln_name)), O_RDONLY, 0);
 
@@ -1885,6 +2028,8 @@ unsafe fn maybe_swap_for_eln1 (src_name: Lisp_Object, eln_name: Lisp_Object,
     }
 
   false
+
+  }
 }
 
 /* Look for a suitable .eln file to be loaded in place of FILENAME.
@@ -1892,6 +2037,8 @@ unsafe fn maybe_swap_for_eln1 (src_name: Lisp_Object, eln_name: Lisp_Object,
 unsafe fn maybe_swap_for_eln (no_native: bool, filename: *mut Lisp_Object,
 			      fd: *mut c_int, mtime: timespec)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   #[cfg (feature = "have_native_comp")]
   {
     if no_native
@@ -1962,6 +2109,8 @@ unsafe fn maybe_swap_for_eln (no_native: bool, filename: *mut Lisp_Object,
   {
     let _ = (no_native, filename, fd, mtime);
   }
+
+  }
 }
 
 /* C 1756-2052.  Search for a file whose name is STR, looking in directories in the Lisp
@@ -1971,6 +2120,8 @@ pub unsafe extern "C-unwind" fn openp (path: Lisp_Object, str_: Lisp_Object, suf
 		 storeptr: *mut Lisp_Object, predicate: Lisp_Object, newer: bool,
 		 no_native: bool, platform: *mut *mut c_void) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut path: Lisp_Object = path;
   let mut fn_size: ptrdiff_t = 100;
   let mut buf: [c_char; 100] = [0; 100];
@@ -2261,6 +2412,8 @@ pub unsafe extern "C-unwind" fn openp (path: Lisp_Object, str_: Lisp_Object, suf
   SAFE_FREE! (sa_count, sa_mark);
   *errno () = last_errno;
   -1
+
+  }
 }
 
 /* Merge the list we've accumulated of globals from the current input source into the
@@ -2268,6 +2421,8 @@ pub unsafe extern "C-unwind" fn openp (path: Lisp_Object, str_: Lisp_Object, suf
    name or not.  */
 unsafe fn build_load_history (filename: Lisp_Object, entire: bool)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut tail: Lisp_Object;
   let mut prev: Lisp_Object;
   let mut newelt: Lisp_Object;
@@ -2327,11 +2482,15 @@ unsafe fn build_load_history (filename: Lisp_Object, entire: bool)
 	 should re-establish the previous value of Vcurrent_load_list.  */
       Vcurrent_load_list = Qt ();
     }
+
+  }
 }
 
 /* Signal an `end-of-file' error, if possible with file name information.  */
 unsafe fn end_of_file_error (source: *mut source) -> !
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if from_file_p (source)
     /* Only Fload calls read on a file, and Fload always binds
        load-true-file-name around the call.  */
@@ -2341,10 +2500,14 @@ unsafe fn end_of_file_error (source: *mut source) -> !
   else
     { xsignal0 (Qend_of_file ()); }
   unreachable! ()
+
+  }
 }
 
 unsafe fn readevalloop_eager_expand_eval (val: Lisp_Object, macroexpand: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut val: Lisp_Object = val;
   /* If we macroexpand the toplevel form non-recursively and it ends
      up being a `progn' (or if it was a progn to start), treat each
@@ -2363,6 +2526,8 @@ unsafe fn readevalloop_eager_expand_eval (val: Lisp_Object, macroexpand: Lisp_Ob
   else
     { val = eval_sub (calln! (macroexpand, val, Qt ())); }
   val
+
+  }
 }
 
 /* READFUN, if non-nil, is used instead of `read'.
@@ -2373,6 +2538,8 @@ unsafe fn readevalloop (readcharfun: Lisp_Object, infile0: *mut infile,
 			sourcename: Lisp_Object, printflag: bool,
 			readfun: Lisp_Object, start: Lisp_Object, end: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut c: c_int;
   let mut val: Lisp_Object;
   let count: specpdl_ref = SPECPDL_INDEX ();
@@ -2506,11 +2673,11 @@ unsafe fn readevalloop (readcharfun: Lisp_Object, infile0: *mut infile,
       if !HASH_TABLE_P (read_objects_map)
 	  || (*XHASH_TABLE (read_objects_map)).count != 0
 	{ read_objects_map
-	    = make_hash_table (&hashtest_eq, DEFAULT_HASH_SIZE as EMACS_INT, Weak_None); }
+	    = make_hash_table (&raw const hashtest_eq, DEFAULT_HASH_SIZE as EMACS_INT, Weak_None); }
       if !HASH_TABLE_P (read_objects_completed)
 	  || (*XHASH_TABLE (read_objects_completed)).count != 0
 	{ read_objects_completed
-	    = make_hash_table (&hashtest_eq, DEFAULT_HASH_SIZE as EMACS_INT, Weak_None); }
+	    = make_hash_table (&raw const hashtest_eq, DEFAULT_HASH_SIZE as EMACS_INT, Weak_None); }
       if !NILP (Vpurify_flag) && c == '(' as c_int
 	{ val = read0 (&mut source, false); }
       else
@@ -2572,6 +2739,8 @@ unsafe fn readevalloop (readcharfun: Lisp_Object, infile0: *mut infile,
 		      !infile0.is_null () || whole_buffer);
 
   unbind_to (count, Qnil ());
+
+  }
 }
 
 DEFUN! ("eval-buffer", Feval_buffer, Seval_buffer, 0, 5, "",
@@ -2695,6 +2864,8 @@ DEFUN! ("read-from-string", Fread_from_string, Sread_from_string, 1, 3, 0,
 unsafe fn read_internal_start (stream: Lisp_Object, start: Lisp_Object,
 			       end: Lisp_Object, locate_syms: bool) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let retval: Lisp_Object;
 
   readchar_offset = if BUFFERP (stream) { (*XBUFFER (stream)).pt as EMACS_INT } else { 0 };
@@ -2703,11 +2874,11 @@ unsafe fn read_internal_start (stream: Lisp_Object, start: Lisp_Object,
   if !HASH_TABLE_P (read_objects_map)
       || (*XHASH_TABLE (read_objects_map)).count != 0
     { read_objects_map
-	= make_hash_table (&hashtest_eq, DEFAULT_HASH_SIZE as EMACS_INT, Weak_None); }
+	= make_hash_table (&raw const hashtest_eq, DEFAULT_HASH_SIZE as EMACS_INT, Weak_None); }
   if !HASH_TABLE_P (read_objects_completed)
       || (*XHASH_TABLE (read_objects_completed)).count != 0
     { read_objects_completed
-	= make_hash_table (&hashtest_eq, DEFAULT_HASH_SIZE as EMACS_INT, Weak_None); }
+	= make_hash_table (&raw const hashtest_eq, DEFAULT_HASH_SIZE as EMACS_INT, Weak_None); }
 
   if STRINGP (stream)
     {
@@ -2740,6 +2911,8 @@ unsafe fn read_internal_start (stream: Lisp_Object, start: Lisp_Object,
       && (*XHASH_TABLE (read_objects_completed)).count > 0
     { read_objects_completed = Qnil (); }
   retval
+
+  }
 }
 
 /* Return the scalar value that has the Unicode character name NAME.
@@ -2747,6 +2920,8 @@ unsafe fn read_internal_start (stream: Lisp_Object, start: Lisp_Object,
 unsafe fn character_name_to_code (name: *const c_char, name_len: ptrdiff_t,
 				  source: *mut source) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* For "U+XXXX", pass the leading '+' to string_to_number to reject
      monstrosities like "U+-0000".  */
   let mut len: ptrdiff_t = name_len - 1;
@@ -2766,6 +2941,8 @@ unsafe fn character_name_to_code (name: *const c_char, name_len: ptrdiff_t,
     }
 
   if FIXNUMP (code) { XFIXNUM (code) as c_int } else { -1 }
+
+  }
 }
 
 /* Bound on the length of a Unicode character name.  As of
@@ -2776,6 +2953,8 @@ const UNICODE_CHARACTER_NAME_LENGTH_BOUND: usize = 200;		// C 2585
    and one more character (next_char).  */
 unsafe fn read_char_escape (source: *mut source, next_char: c_int) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* C's `again:`/`mod_key:`/`unicode_hex:` labels: `again` is the outer loop, and
      `mod_key`/`unicode_hex` are the two sentinels the `while again_dispatch` loop below
      re-enters with (a `goto` into the switch's middle, the ccl.rs/print.rs shape,
@@ -3063,6 +3242,8 @@ unsafe fn read_char_escape (source: *mut source, next_char: c_int) -> c_int
 
       return chr | modifiers;
     }
+
+  }
 }
 
 /* Return the digit that CHARACTER stands for in the given BASE.
@@ -3086,6 +3267,8 @@ unsafe fn digit_to_number (character: c_int, base: c_int) -> c_int
 
 unsafe fn invalid_radix_integer (radix: EMACS_INT, source: *mut source) -> !
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* C: `static char const format[] = "integer, radix %"pI"d";` — pI is the
      intmax_t length modifier, so the format is `integer, radix %lld` for this target.  */
   /* C: `static char const format[] = "integer, radix %"pI"d";` — pI is "l" on the frozen
@@ -3096,6 +3279,8 @@ unsafe fn invalid_radix_integer (radix: EMACS_INT, source: *mut source) -> !
   let mut buf: [c_char; 36] = [0; 36];
   sprintf (buf.as_mut_ptr (), format, radix);
   invalid_syntax (buf.as_ptr (), source)
+
+  }
 }
 
 /* A character buffer that starts on the C stack and switches to heap
@@ -3121,6 +3306,8 @@ const _: () = core::assert! (std::mem::offset_of! (readbuf_t, count) == 32);
 #[inline(never)]
 unsafe fn readbuf_grow (rb: *mut readbuf_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let used: ptrdiff_t = (*rb).cur.offset_from ((*rb).start);
   let mut size: ptrdiff_t = (*rb).end.offset_from ((*rb).start);
   let p: *mut c_char
@@ -3139,11 +3326,15 @@ unsafe fn readbuf_grow (rb: *mut readbuf_t)
   (*rb).heap = p;
   (*rb).cur = (*rb).start.offset (used);
   (*rb).end = (*rb).start.offset (size);
+
+  }
 }
 
 #[inline(always)]
 unsafe fn add_char_to_buffer (rb: *mut readbuf_t, c: c_int, multibyte: bool)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* Make room for a multibyte char and a terminating NUL.  */
   if (*rb).end.offset_from ((*rb).cur) < (MAX_MULTIBYTE_LENGTH + 1) as ptrdiff_t
     { readbuf_grow (rb); }
@@ -3154,6 +3345,8 @@ unsafe fn add_char_to_buffer (rb: *mut readbuf_t, c: c_int, multibyte: bool)
     }
   else
     { (*rb).cur = (*rb).cur.offset (CHAR_STRING (c, (*rb).cur as *mut u8) as isize); }
+
+  }
 }
 
 /* Read an integer in radix RADIX using READCHARFUN to read characters.  RADIX must be in
@@ -3161,6 +3354,8 @@ unsafe fn add_char_to_buffer (rb: *mut readbuf_t, c: c_int, multibyte: bool)
    invalid read syntax.  */
 unsafe fn read_integer (source: *mut source, radix: c_int) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let count: specpdl_ref = SPECPDL_INDEX ();
   let mut stackbuf: [c_char; 20] = [0; 20];
   let mut rb: readbuf_t = readbuf_t {
@@ -3216,11 +3411,15 @@ unsafe fn read_integer (source: *mut source, radix: c_int) -> Lisp_Object
   *rb.cur = 0;
   rb.cur = rb.cur.add (1);
   unbind_to (count, string_to_number (rb.start, radix, std::ptr::null_mut ()))
+
+  }
 }
 
 /* Read a character literal (preceded by `?').  */
 unsafe fn read_char_literal (source: *mut source) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut ch: c_int = readchar (source);
   if ch < 0
     { end_of_file_error (source); }
@@ -3261,11 +3460,15 @@ unsafe fn read_char_literal (source: *mut source) -> Lisp_Object
     { return make_fixnum (ch as EMACS_INT); }
 
   invalid_syntax (c"?".as_ptr (), source)
+
+  }
 }
 
 /* Read a string literal (preceded by '"').  */
 unsafe fn read_string_literal (source: *mut source) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let count: specpdl_ref = SPECPDL_INDEX ();
   let mut stackbuf: [c_char; 1024] = [0; 1024];
   let mut rb: readbuf_t = readbuf_t {
@@ -3377,6 +3580,7 @@ unsafe fn read_string_literal (source: *mut source) -> Lisp_Object
   let obj: Lisp_Object = make_specified_string (rb.start, nchars, nbytes,
 						force_multibyte || nbytes != nchars);
   unbind_to (count, obj)
+  }
 }
 
 /* C 3159-3168's `#define ADDPARAM (name)` is written *inside* `hash_table_from_plist`, so
@@ -3425,6 +3629,8 @@ macro_rules! ADDPARAM {
 /* Make a hash table from the constructor plist.  */
 unsafe fn hash_table_from_plist (plist: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut params: [Lisp_Object; 4 * 2] = [std::ptr::null_mut (); 4 * 2];
   let mut par: *mut Lisp_Object = params.as_mut_ptr ();
 
@@ -3458,10 +3664,14 @@ unsafe fn hash_table_from_plist (plist: Lisp_Object) -> Lisp_Object
     }
 
   ht
+
+  }
 }
 
 unsafe fn record_from_list (elems: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let size: ptrdiff_t = list_length (elems);
   let obj: Lisp_Object = Fmake_record (XCAR (elems),
 				       make_fixnum (size - 1),
@@ -3473,11 +3683,15 @@ unsafe fn record_from_list (elems: Lisp_Object) -> Lisp_Object
       tl = XCDR (tl);
     }
   obj
+
+  }
 }
 
 /* Turn a reversed list into a vector.  */
 unsafe fn vector_from_rev_list (elems: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let size: ptrdiff_t = list_length (elems);
   let obj: Lisp_Object = make_nil_vector (size);
   let vec: *mut Lisp_Object = (*XVECTOR (obj)).contents.as_mut_ptr ();
@@ -3492,10 +3706,14 @@ unsafe fn vector_from_rev_list (elems: Lisp_Object) -> Lisp_Object
       i -= 1;
     }
   obj
+
+  }
 }
 
 unsafe fn bytecode_from_rev_list (elems: Lisp_Object, source: *mut source) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let obj: Lisp_Object = vector_from_rev_list (elems);
   let vec: *mut Lisp_Object = (*XVECTOR (obj)).contents.as_mut_ptr ();
   let size: ptrdiff_t = ASIZE (obj);
@@ -3564,19 +3782,27 @@ unsafe fn bytecode_from_rev_list (elems: Lisp_Object, source: *mut source) -> Li
 
   XSETPVECTYPE! (XVECTOR (obj), pvec_type::PVEC_CLOSURE);
   obj
+
+  }
 }
 
 unsafe fn char_table_from_rev_list (elems: Lisp_Object, source: *mut source) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let obj: Lisp_Object = vector_from_rev_list (elems);
   if ASIZE (obj) < CHAR_TABLE_STANDARD_SLOTS as ptrdiff_t
     { invalid_syntax (c"Invalid size char-table".as_ptr (), source); }
   XSETPVECTYPE! (XVECTOR (obj), pvec_type::PVEC_CHAR_TABLE);
   obj
+
+  }
 }
 
 unsafe fn sub_char_table_from_rev_list (elems: Lisp_Object, source: *mut source) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* A sub-char-table can't be read as a regular vector because of two
      C integer fields.  */
   let mut elems: Lisp_Object = Fnreverse (elems);
@@ -3606,10 +3832,14 @@ unsafe fn sub_char_table_from_rev_list (elems: Lisp_Object, source: *mut source)
       i += 1;
     }
   tbl
+
+  }
 }
 
 unsafe fn string_props_from_rev_list (elems: Lisp_Object, source: *mut source) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let elems: Lisp_Object = Fnreverse (elems);
   if NILP (elems) || !STRINGP (XCAR (elems))
     { invalid_syntax (c"#".as_ptr (), source); }
@@ -3630,11 +3860,15 @@ unsafe fn string_props_from_rev_list (elems: Lisp_Object, source: *mut source) -
       Fset_text_properties (beg, end, plist, obj);
     }
   obj
+
+  }
 }
 
 /* Read a bool vector (preceded by "#&").  */
 unsafe fn read_bool_vector (source: *mut source) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut length: EMACS_INT = 0;
   loop
     {
@@ -3676,6 +3910,8 @@ unsafe fn read_bool_vector (source: *mut source) -> Lisp_Object
     { *data.offset (size_in_chars - 1) &= ((1u32 << (length % BOOL_VECTOR_BITS_PER_CHAR as EMACS_INT))
 					   - 1) as u8; }
   obj
+
+  }
 }
 
 /* Skip (and optionally remember) a lazily-loaded string
@@ -3683,6 +3919,8 @@ unsafe fn read_bool_vector (source: *mut source) -> Lisp_Object
    false if we read #@00 (which skips to EOB/EOF).  */
 unsafe fn skip_lazy_string (source: *mut source) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut nskip: ptrdiff_t = 0;
   let mut digits: ptrdiff_t = 0;
   loop
@@ -3781,12 +4019,16 @@ unsafe fn skip_lazy_string (source: *mut source) -> bool
     { skip_dyn_bytes (source, nskip); }
 
   true
+
+  }
 }
 
 /* Given a lazy-loaded string designator VAL, return the actual string.
    VAL is (FILENAME . POS).  */
 unsafe fn get_lazy_string (val: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* Get a doc string from the file we are loading.
      If it's in a saved string, get it from there.
 
@@ -3800,7 +4042,7 @@ unsafe fn get_lazy_string (val: Lisp_Object) -> Lisp_Object
      compatibility.  */
   let pos: EMACS_INT = eabs! (XFIXNUM (XCDR (val)));
   let mut ss: *mut saved_string = &raw mut saved_strings[0];
-  let ssend: *mut saved_string = unsafe { ss.add (countof! (saved_strings)) };
+  let ssend: *mut saved_string = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { ss.add (countof! (saved_strings)) };
   while ss < ssend
       && !(pos >= (*ss).position as EMACS_INT
 	   && pos < (*ss).position as EMACS_INT + (*ss).length as EMACS_INT)
@@ -3837,11 +4079,15 @@ unsafe fn get_lazy_string (val: Lisp_Object) -> Lisp_Object
     }
 
   make_unibyte_string (str_.offset (start), to - start)
+
+  }
 }
 
 /* Length of prefix only consisting of symbol constituent characters.  */
 unsafe fn symbol_char_span (s: *const c_char) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut p: *const c_char = s;
   while *p == b'^' as c_char || *p == b'*' as c_char || *p == b'+' as c_char
       || *p == b'-' as c_char || *p == b'/' as c_char
@@ -3849,10 +4095,14 @@ unsafe fn symbol_char_span (s: *const c_char) -> ptrdiff_t
       || *p == b'_' as c_char || *p == b'|' as c_char
     { p = p.add (1); }
   p.offset_from (s)
+
+  }
 }
 
 unsafe fn skip_space_and_comments (source: *mut source)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut c: c_int;
   loop
     {
@@ -3872,6 +4122,8 @@ unsafe fn skip_space_and_comments (source: *mut source)
 	{ break; }
     }
   unreadchar (source, c);
+
+  }
 }
 
 /* When an object is read, the type of the top read stack entry indicates
@@ -3969,6 +4221,8 @@ static mut rdstack: read_stack = read_stack { stack: std::ptr::null_mut (), size
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mark_lread ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* Mark the read stack, which may contain data not otherwise traced */
   let mut i: ptrdiff_t = 0;
   while i < rdstack.sp
@@ -3999,75 +4253,111 @@ pub unsafe extern "C-unwind" fn mark_lread ()
 	}
       i += 1;
     }
+
+  }
 }
 
 #[inline(always)]
 unsafe fn read_stack_top () -> *mut read_stack_entry
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   eassume! (rdstack.sp > 0);
   rdstack.stack.offset (rdstack.sp - 1)
+
+  }
 }
 
 #[inline(always)]
 unsafe fn read_stack_pop () -> *mut read_stack_entry
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   eassume! (rdstack.sp > 0);
   rdstack.sp -= 1;
   rdstack.stack.offset (rdstack.sp)
+
+  }
 }
 
 #[inline(always)]
 unsafe fn read_stack_empty_p (base_sp: ptrdiff_t) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   rdstack.sp <= base_sp
+
+  }
 }
 
 #[inline(never)]
 unsafe fn grow_read_stack ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let rs: *mut read_stack = &raw mut rdstack;
   eassert! ((*rs).sp == (*rs).size);
   (*rs).stack = xpalloc ((*rs).stack as *mut c_void, &mut (*rs).size, 1, -1,
 			 std::mem::size_of::<read_stack_entry> () as ptrdiff_t)
     as *mut read_stack_entry;
   eassert! ((*rs).sp < (*rs).size);
+
+  }
 }
 
 #[inline(always)]
 unsafe fn read_stack_push (e: read_stack_entry)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if rdstack.sp >= rdstack.size
     { grow_read_stack (); }
   *rdstack.stack.offset (rdstack.sp) = e;
   rdstack.sp += 1;
+
+  }
 }
 
 unsafe extern "C-unwind" fn read_stack_reset (sp: i64)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   eassert! (sp as ptrdiff_t <= rdstack.sp);
   rdstack.sp = sp as ptrdiff_t;
+
+  }
 }
 
 unsafe fn invalid_syntax_with_buffer (rb: *mut readbuf_t, source: *mut source) -> !
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   *(*rb).cur = 0;
   invalid_syntax ((*rb).start, source)
+
+  }
 }
 
 #[inline(always)]
 unsafe fn read_and_buffer (rb: *mut readbuf_t, source: *mut source) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let c: c_int = readchar (source);
   if c < 0
     { invalid_syntax_with_buffer (rb, source); }
   add_char_to_buffer (rb, c, (*source).multibyte);
   c
+
+  }
 }
 
 /* Read a Lisp object.
    If LOCATE_SYMS is true, symbols are read with position.  */
 unsafe fn read0 (source: *mut source, locate_syms: bool) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut stackbuf: [c_char; 64] = [0; 64];
 
   let base_pdl: specpdl_ref = SPECPDL_INDEX ();
@@ -4800,6 +5090,8 @@ unsafe fn read0 (source: *mut source, locate_syms: bool) -> Lisp_Object
 
       return unbind_to (base_pdl, obj);
     }
+
+  }
 }
 
 DEFUN! ("lread--substitute-object-in-subtree",
@@ -4821,6 +5113,8 @@ DEFUN! ("lread--substitute-object-in-subtree",
 
 unsafe fn substitute_object_recurse (subst: *mut subst, subtree: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* If we find the placeholder, return the target object.  */
   if EQ ((*subst).placeholder, subtree)
     { return (*subst).object; }
@@ -4900,14 +5194,20 @@ unsafe fn substitute_object_recurse (subst: *mut subst, subtree: Lisp_Object) ->
       _ =>
 	{ subtree }
     }
+
+  }
 }
 
 /*  Helper function for substitute_object_recurse.  */
 unsafe extern "C-unwind" fn substitute_in_interval (interval: INTERVAL, arg: *mut c_void)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   set_interval_plist (interval,
 		      substitute_object_recurse (arg as *mut subst,
 						 (*((interval) as *mut interval)).plist));
+
+  }
 }
 
 /* C 4485-4488: `#if !IEEE_FLOATING_POINT`'s two Lisp objects.  The condition is dead
@@ -4927,6 +5227,8 @@ static mut not_a_number: [Lisp_Object; 2] = [std::ptr::null_mut (); 2];	// C 448
 pub unsafe extern "C-unwind" fn string_to_number (string: *const c_char, base: c_int,
 					   plen: *mut ptrdiff_t) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut cp: *const c_char = string;
   let mut float_syntax: bool = false;
   let mut value: c_double = 0.0;
@@ -5086,6 +5388,8 @@ pub unsafe extern "C-unwind" fn string_to_number (string: *const c_char, base: c
   let result: Lisp_Object = make_bignum_str (trimmed, base);
   SAFE_FREE! (sa_count, sa_mark);
   result
+
+  }
 }
 
 static mut initial_obarray: Lisp_Object = std::ptr::null_mut ();	// C 4636
@@ -5138,6 +5442,8 @@ macro_rules! DOOBARRAY {
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn check_obarray_slow (obarray: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* For compatibility, we accept vectors whose first element is 0,
      and store an obarray object there.  */
   if VECTORP (obarray) && ASIZE (obarray) > 0
@@ -5159,12 +5465,16 @@ pub unsafe extern "C-unwind" fn check_obarray_slow (obarray: Lisp_Object) -> Lis
     { Vobarray = initial_obarray; }
 
   wrong_type_argument (Qobarrayp (), obarray)
+
+  }
 }
 
 /* Intern symbol SYM in OBARRAY using bucket INDEX.  */
 /* FIXME: retype arguments as pure C types */
 unsafe fn intern_sym (sym: Lisp_Object, obarray: Lisp_Object, index: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   eassert! (BARE_SYMBOL_P (sym) && OBARRAYP (obarray) && FIXNUMP (index));
   let s: *mut Lisp_Symbol = XBARE_SYMBOL (sym);
   set_symbol_bits! (interned, s,
@@ -5189,6 +5499,8 @@ unsafe fn intern_sym (sym: Lisp_Object, obarray: Lisp_Object, index: Lisp_Object
   if (*o).count as ptrdiff_t > obarray_size (o)
     { grow_obarray (o); }
   sym
+
+  }
 }
 
 /* Intern a symbol with name STRING in OBARRAY using bucket INDEX.  */
@@ -5196,8 +5508,12 @@ unsafe fn intern_sym (sym: Lisp_Object, obarray: Lisp_Object, index: Lisp_Object
 pub unsafe extern "C-unwind" fn intern_driver (string: Lisp_Object, obarray: Lisp_Object,
 					index: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   SET_SYMBOL_VAL (XBARE_SYMBOL (Qobarray_cache ()), Qnil ());
   intern_sym (Fmake_symbol (string), obarray, index)
+
+  }
 }
 
 /* Intern the C string STR: return a symbol with that name,
@@ -5205,6 +5521,8 @@ pub unsafe extern "C-unwind" fn intern_driver (string: Lisp_Object, obarray: Lis
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn intern_1 (str_: *const c_char, len: ptrdiff_t) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let obarray: Lisp_Object = check_obarray (Vobarray);
   let tem: Lisp_Object = oblookup (obarray, str_, len, len);
 
@@ -5212,11 +5530,15 @@ pub unsafe extern "C-unwind" fn intern_1 (str_: *const c_char, len: ptrdiff_t) -
   /* The above `oblookup' was done on the basis of nchars==nbytes, so
      the string has to be unibyte.  */
   else { intern_driver (make_unibyte_string (str_, len), obarray, tem) }
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn intern_c_string_1 (str_: *const c_char, len: ptrdiff_t) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let obarray: Lisp_Object = check_obarray (Vobarray);
   let mut tem: Lisp_Object = oblookup (obarray, str_, len, len);
 
@@ -5229,6 +5551,8 @@ pub unsafe extern "C-unwind" fn intern_c_string_1 (str_: *const c_char, len: ptr
       tem = intern_driver (string, obarray, tem);
     }
   tem
+
+  }
 }
 
 /* Intern STR of NBYTES bytes and NCHARS characters in the default obarray.  */
@@ -5236,15 +5560,21 @@ pub unsafe extern "C-unwind" fn intern_c_string_1 (str_: *const c_char, len: ptr
 pub unsafe extern "C-unwind" fn intern_c_multibyte (str_: *const c_char, nchars: ptrdiff_t,
 					     nbytes: ptrdiff_t) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let obarray: Lisp_Object = check_obarray (Vobarray);
   let sym: Lisp_Object = oblookup (obarray, str_, nchars, nbytes);
   if BARE_SYMBOL_P (sym)
     { return sym; }
   intern_driver (make_multibyte_string (str_, nchars, nbytes), obarray, sym)
+
+  }
 }
 
 unsafe fn define_symbol (sym: Lisp_Object, str_: *const c_char)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let len: ptrdiff_t = strlen (str_) as ptrdiff_t;
   let string: Lisp_Object = make_string (str_, len);
   init_symbol (sym, string);
@@ -5257,6 +5587,8 @@ unsafe fn define_symbol (sym: Lisp_Object, str_: *const c_char)
       eassert! (FIXNUMP (bucket));
       intern_sym (sym, initial_obarray, bucket);
     }
+
+  }
 }
 
 DEFUN! ("intern", Fintern, Sintern, 1, 2, 0,
@@ -5306,8 +5638,12 @@ DEFUN! ("intern-soft", Fintern_soft, Sintern_soft, 1, 2, 0,
 unsafe fn obarray_index (oa: *mut Lisp_Obarray, str_: *const c_char,
 			 size_byte: ptrdiff_t) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let hash: EMACS_UINT = hash_char_array (str_, size_byte);
   knuth_hash (reduce_emacs_uint_to_hash_hash (hash), (*oa).size_bits)
+
+  }
 }
 
 DEFUN! ("unintern", Funintern, Sunintern, 2, 2, 0,
@@ -5376,6 +5712,8 @@ DEFUN! ("unintern", Funintern, Sunintern, 2, 2, 0,
 pub unsafe extern "C-unwind" fn oblookup (obarray: Lisp_Object, ptr: *const c_char,
 				   size: ptrdiff_t, size_byte: ptrdiff_t) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let o: *mut Lisp_Obarray = XOBARRAY (obarray);
   let idx: ptrdiff_t = obarray_index (o, ptr, size_byte);
   let bucket: Lisp_Object = *(*o).buckets.offset (idx);
@@ -5397,6 +5735,8 @@ pub unsafe extern "C-unwind" fn oblookup (obarray: Lisp_Object, ptr: *const c_ch
 	}
     }
   make_fixnum (idx)
+
+  }
 }
 
 /* Like 'oblookup', but considers 'Vread_symbol_shorthands', ...  */
@@ -5405,6 +5745,8 @@ unsafe fn oblookup_considering_shorthand (obarray: Lisp_Object, mut in_: *const 
 					  out: *mut *mut c_char, size_out: *mut ptrdiff_t,
 					  size_byte_out: *mut ptrdiff_t) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut tail: Lisp_Object = Vread_symbol_shorthands;
 
   /* First, assume no transformation will take place.  */
@@ -5454,6 +5796,8 @@ unsafe fn oblookup_considering_shorthand (obarray: Lisp_Object, mut in_: *const 
   if !(*out).is_null ()
     { return oblookup (obarray, *out, *size_out, *size_byte_out); }
   oblookup (obarray, in_, size, size_byte)
+
+  }
 }
 
 unsafe fn allocate_obarray () -> *mut Lisp_Obarray
@@ -5463,6 +5807,8 @@ unsafe fn allocate_obarray () -> *mut Lisp_Obarray
 
 unsafe fn make_obarray (bits: c_uint) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let o: *mut Lisp_Obarray = allocate_obarray ();
   (*o).count = 0;
   (*o).size_bits = bits as c_uint;
@@ -5475,6 +5821,8 @@ unsafe fn make_obarray (bits: c_uint) -> Lisp_Object
       i += 1;
     }
   make_lisp_obarray (o)
+
+  }
 }
 
 /* C 5006-5010's `enum { obarray_default_bits = 3, word_size_log2 = word_size < 8 ? 5 : 6,
@@ -5489,6 +5837,8 @@ const obarray_max_bits: c_int = MIN! (8 * std::mem::size_of::<c_int> () as c_int
 
 unsafe fn grow_obarray (o: *mut Lisp_Obarray)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let old_size: ptrdiff_t = obarray_size (o);
   eassert! ((*o).count as ptrdiff_t > old_size);
   let old_buckets: *mut Lisp_Object = (*o).buckets;
@@ -5534,6 +5884,8 @@ unsafe fn grow_obarray (o: *mut Lisp_Obarray)
 
   hash_table_free_bytes (old_buckets as *mut c_void,
 			 (old_size * std::mem::size_of::<Lisp_Object> () as ptrdiff_t) as usize);
+
+  }
 }
 
 DEFUN! ("obarray-make", Fobarray_make, Sobarray_make, 0, 1, 0,
@@ -5596,6 +5948,8 @@ pub unsafe extern "C-unwind" fn map_obarray (obarray: Lisp_Object,
 				      fn_: Option<unsafe extern "C-unwind" fn (Lisp_Object, Lisp_Object)>,
 				      arg: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   CHECK_OBARRAY (obarray);
   /* C: `DOOBARRAY (XOBARRAY (obarray), it) (*fn) (obarray_iter_symbol (&it), arg);` —
      the loop macro has no Rust counterpart (docs/ports/excluded-macros.txt's DOOBARRAY
@@ -5603,6 +5957,8 @@ pub unsafe extern "C-unwind" fn map_obarray (obarray: Lisp_Object,
   DOOBARRAY! (XOBARRAY (obarray), it, {
     (fn_.unwrap ()) (obarray_iter_symbol (&raw mut it), arg);
   });
+
+  }
 }
 
 unsafe extern "C-unwind" fn mapatoms_1 (sym: Lisp_Object, function: Lisp_Object)
@@ -6205,6 +6561,8 @@ static mut defsym_name: [*const c_char; lispsym_count] = include!(env!("FEMACS_S
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn init_obarray_once ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   Vobarray = make_obarray (15);
   initial_obarray = Vobarray;
   staticpro (&raw mut initial_obarray);
@@ -6254,11 +6612,15 @@ pub unsafe extern "C-unwind" fn init_obarray_once ()
   Vpurify_flag = Qt ();
 
   DEFSYM! (Qvariable_documentation, "variable-documentation");
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn defsubr (aname: *mut Aligned_Lisp_Subr)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let sname: *mut Lisp_Subr = &mut (*aname).s;
   let sym: Lisp_Object;
   let mut tem: Lisp_Object;
@@ -6271,6 +6633,8 @@ pub unsafe extern "C-unwind" fn defsubr (aname: *mut Aligned_Lisp_Subr)
     eassert! (NILP (Vcomp_abi_hash));
     Vcomp_subr_list = Fcons (tem, Vcomp_subr_list);
   }
+
+  }
 }
 
 /* Define an "integer variable"; a symbol whose value is forwarded to a
@@ -6279,23 +6643,31 @@ pub unsafe extern "C-unwind" fn defsubr (aname: *mut Aligned_Lisp_Subr)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn defvar_int (i_fwd: *const Lisp_Fwd, namestring: *const c_char)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   eassert! ((*i_fwd).r#type == Lisp_Fwd_Int);
   let sym: Lisp_Object = intern_c_string (namestring);
   set_symbol_bits! (declared_special, XBARE_SYMBOL (sym), true);
   set_symbol_bits! (redirect, XBARE_SYMBOL (sym), SYMBOL_FORWARDED);
   SET_SYMBOL_FWD (XBARE_SYMBOL (sym), i_fwd as *mut c_void);
+
+  }
 }
 
 /* Similar but define a variable whose value is t if 1, nil if 0.  */
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn defvar_bool (b_fwd: *const Lisp_Fwd, namestring: *const c_char)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   eassert! ((*b_fwd).r#type == Lisp_Fwd_Bool);
   let sym: Lisp_Object = intern_c_string (namestring);
   set_symbol_bits! (declared_special, XBARE_SYMBOL (sym), true);
   set_symbol_bits! (redirect, XBARE_SYMBOL (sym), SYMBOL_FORWARDED);
   SET_SYMBOL_FWD (XBARE_SYMBOL (sym), b_fwd as *mut c_void);
   Vbyte_boolean_vars = Fcons (sym, Vbyte_boolean_vars);
+
+  }
 }
 
 /* Similar but define a variable whose value is the Lisp Object stored
@@ -6306,19 +6678,27 @@ pub unsafe extern "C-unwind" fn defvar_bool (b_fwd: *const Lisp_Fwd, namestring:
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn defvar_lisp_nopro (o_fwd: *const Lisp_Fwd, namestring: *const c_char)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   eassert! ((*o_fwd).r#type == Lisp_Fwd_Obj);
   let sym: Lisp_Object = intern_c_string (namestring);
   set_symbol_bits! (declared_special, XBARE_SYMBOL (sym), true);
   set_symbol_bits! (redirect, XBARE_SYMBOL (sym), SYMBOL_FORWARDED);
   SET_SYMBOL_FWD (XBARE_SYMBOL (sym), o_fwd as *mut c_void);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn defvar_lisp (o_fwd: *const Lisp_Fwd, namestring: *const c_char)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   eassert! ((*o_fwd).r#type == Lisp_Fwd_Obj);
   defvar_lisp_nopro (o_fwd, namestring);
   staticpro ((*o_fwd).u.objvar);
+
+  }
 }
 
 /* Similar but define a variable whose value is the Lisp Object stored
@@ -6326,16 +6706,22 @@ pub unsafe extern "C-unwind" fn defvar_lisp (o_fwd: *const Lisp_Fwd, namestring:
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn defvar_kboard (ko_fwd: *const Lisp_Fwd, namestring: *const c_char)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   eassert! ((*ko_fwd).r#type == Lisp_Fwd_Kboard_Obj);
   let sym: Lisp_Object = intern_c_string (namestring);
   set_symbol_bits! (declared_special, XBARE_SYMBOL (sym), true);
   set_symbol_bits! (redirect, XBARE_SYMBOL (sym), SYMBOL_FORWARDED);
   SET_SYMBOL_FWD (XBARE_SYMBOL (sym), ko_fwd as *mut c_void);
+
+  }
 }
 
 /* Check that the elements of lpath exist.  */
 unsafe fn load_path_check (lpath: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut path_tail: Lisp_Object;
 
   /* The only elements that might not exist are those from
@@ -6354,11 +6740,15 @@ unsafe fn load_path_check (lpath: Lisp_Object)
 	}
       path_tail = XCDR (path_tail);
     }
+
+  }
 }
 
 /* Return the default load-path, to be used if EMACSLOADPATH is unset.  ...  */
 unsafe fn load_path_default () -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if will_dump_p ()
     /* PATH_DUMPLOADSEARCH is the lisp dir in the source directory.
        We used to add ../lisp (ie the lisp dir in the build
@@ -6459,11 +6849,15 @@ unsafe fn load_path_default () -> Lisp_Object
     } /* if Vinstallation_directory */
 
   lpath
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn init_lread ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* First, set Vload_path.  */
 
   /* Ignore EMACSLOADPATH when dumping.  */
@@ -6534,6 +6928,8 @@ pub unsafe extern "C-unwind" fn init_lread ()
   Vload_true_file_name = Qnil ();
   Vstandard_input = Qt ();
   Vloads_in_progress = Qnil ();
+
+  }
 }
 
 /* Print a warning that directory intended for use USE and with name
@@ -6543,6 +6939,8 @@ pub unsafe extern "C-unwind" fn init_lread ()
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn dir_warning (r#use: *const c_char, dirname: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let format: *const c_char = c"Warning: %s '%s': %s\n".as_ptr ();
   let diagnostic: *const c_char = emacs_strerror (*errno ());
   fprintf (stderr, format, r#use, SSDATA (ENCODE_SYSTEM (dirname)), diagnostic);
@@ -6571,6 +6969,8 @@ pub unsafe extern "C-unwind" fn dir_warning (r#use: *const c_char, dirname: Lisp
       message_dolog (buffer, message_len, false, STRING_MULTIBYTE (dirname));
       SAFE_FREE! (sa_count, sa_mark);
     }
+
+  }
 }
 
 /* The `DEFVAR_*` variables this C file owns.  C's storage is `globals.f_<vname>`
@@ -6687,6 +7087,8 @@ pub static mut load_no_native: bool = false;
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_lread ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
 
   defsubr (&raw mut Sread);
   defsubr (&raw mut Sread_positioning_symbols);
@@ -6903,4 +7305,6 @@ pub unsafe extern "C-unwind" fn syms_of_lread ()
   DEFSYM! (Qinternal_macroexpand_for_load,
 	  "internal-macroexpand-for-load");
   DEFSYM! (Qread_minibuffer, "read-minibuffer");
+
+  }
 }

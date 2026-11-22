@@ -47,6 +47,8 @@ unsafe fn readlink_stk (fd: c_int, filename: *const c_char,
                                                        -> ssize_t>,
                         stack_buf: *mut c_char) -> *mut c_char
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   if alloc.is_null ()
     { alloc = std::ptr::addr_of! (stdlib_allocator); }
 
@@ -129,6 +131,8 @@ unsafe fn readlink_stk (fd: c_int, filename: *const c_char,
     { (*alloc).die.unwrap () (buf_size as usize); }
   *errno () = ENOMEM;
   return std::ptr::null_mut ();
+
+  }
 }
 
 /* C 161-173's `char *careadlinkat (…)`.  */
@@ -143,6 +147,8 @@ pub unsafe extern "C-unwind" fn careadlinkat (fd: c_int, filename: *const c_char
                                                                             -> ssize_t>)
   -> *mut c_char
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   /* Allocate the initial buffer on the stack.  This way, in the
      common case of a symlink of small size, we get away with a
      single small malloc instead of a big malloc followed by a
@@ -150,4 +156,6 @@ pub unsafe extern "C-unwind" fn careadlinkat (fd: c_int, filename: *const c_char
   let mut stack_buf: [c_char; STACK_BUF_SIZE] = [0; STACK_BUF_SIZE];
   return readlink_stk (fd, filename, buffer, buffer_size, alloc,
                        preadlinkat, stack_buf.as_mut_ptr ());
+
+  }
 }

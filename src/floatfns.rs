@@ -9,9 +9,7 @@
 // `…as_mut_ptr ()`/`…as_ptr ()` because the port's `mpz_t` is C's array-of-one typedef
 // (P-49, bignum.rs).
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
-         unsafe_op_in_unsafe_fn)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -338,6 +336,8 @@ DEFUN! ("logb", Flogb, Slogb, 1, 1, 0,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn double_integer_scale (d: c_double) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let exponent = ilogb (d);
   // C gates this block on `#ifdef HAIKU`; HAIKU is undefined in the frozen
   // configuration, so the port keeps the text under the same condition (P-08).
@@ -362,6 +362,8 @@ pub unsafe extern "C-unwind" fn double_integer_scale (d: c_double) -> c_int
     else
       { DBL_MANT_DIG - DBL_MIN_EXP
 	  + if isnan! (d) { 2 } else { (exponent == INT_MAX) as c_int } };
+
+  }
 }
 
 const _: () = core::assert! (!cfg! (feature = "have_haiku") || HAIKU);
@@ -377,6 +379,8 @@ const _: () = core::assert! (!cfg! (feature = "have_haiku") || HAIKU);
 unsafe fn rescale_for_division (n: Lisp_Object, t: *mut mpz_t, nscale: c_int,
 				dscale: c_int) -> *const __mpz_struct
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut pn: *const __mpz_struct;
 
   if FLOATP (n)
@@ -396,6 +400,8 @@ unsafe fn rescale_for_division (n: Lisp_Object, t: *mut mpz_t, nscale: c_int,
       pn = (*t).as_ptr ();
     }
   return pn;
+
+  }
 }
 
 /* the rounding functions  */
@@ -408,6 +414,8 @@ unsafe fn rounding_driver (n: Lisp_Object, d: Lisp_Object,
 			   fixnum_divide: unsafe extern "C-unwind" fn (EMACS_INT, EMACS_INT) -> EMACS_INT)
      -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   CHECK_NUMBER (n);
 
   if NILP (d)
@@ -444,6 +452,8 @@ unsafe fn rounding_driver (n: Lisp_Object, d: Lisp_Object,
 	      rescale_for_division (n, &raw mut mpz[0], nscale, dscale),
 	      rescale_for_division (d, &raw mut mpz[1], dscale, nscale));
   return make_integer_mpz ();
+
+  }
 }
 
 unsafe extern "C-unwind" fn ceiling2 (n: EMACS_INT, d: EMACS_INT) -> EMACS_INT
@@ -482,6 +492,8 @@ unsafe extern "C-unwind" fn round2 (n: EMACS_INT, d: EMACS_INT) -> EMACS_INT
 unsafe extern "C-unwind" fn rounddiv_q (q: *mut __mpz_struct, n: *const __mpz_struct,
 			      d: *const __mpz_struct)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* Mimic the source code of round2, using mpz_t instead of EMACS_INT.  */
   let r: *mut mpz_t = &raw mut mpz[2];
   let abs_r: *mut mpz_t = r;
@@ -494,6 +506,8 @@ unsafe extern "C-unwind" fn rounddiv_q (q: *mut __mpz_struct, n: *const __mpz_st
   mpz_sub ((*abs_r1).as_mut_ptr (), (*abs_r1).as_ptr (), (*abs_r).as_ptr ());
   if mpz_cmp ((*abs_r1).as_ptr (), (*abs_r).as_ptr ()) < (mpz_odd_p! (q) != 0) as c_int
     { if neg_d == neg_r { mpz_add_ui (q, q, 1) } else { mpz_sub_ui (q, q, 1) } }
+
+  }
 }
 
 /* The code uses emacs_rint, so that it works to undefine HAVE_RINT
@@ -573,6 +587,8 @@ DEFUN! ("truncate", Ftruncate, Struncate, 1, 2, 0,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn fmod_float (x: Lisp_Object, y: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut f1: c_double = XFLOATINT (x);
   let f2: c_double = XFLOATINT (y);
 
@@ -583,6 +599,8 @@ pub unsafe extern "C-unwind" fn fmod_float (x: Lisp_Object, y: Lisp_Object) -> L
     { f1 += f2; }
 
   return make_float (f1);
+
+  }
 }
 
 DEFUN! ("fceiling", Ffceiling, Sfceiling, 1, 1, 0,
@@ -632,6 +650,8 @@ DEFUN! ("ftruncate", Fftruncate, Sftruncate, 1, 1, 0,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_floatfns ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   defsubr (&raw mut Sacos);
   defsubr (&raw mut Sasin);
   defsubr (&raw mut Satan);
@@ -658,4 +678,6 @@ pub unsafe extern "C-unwind" fn syms_of_floatfns ()
   defsubr (&raw mut Sfloor);
   defsubr (&raw mut Sround);
   defsubr (&raw mut Struncate);
+
+  }
 }

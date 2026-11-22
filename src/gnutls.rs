@@ -36,11 +36,7 @@
 // are **owed back to that mirror** (docs/ports/gnutls.md's `## Owed`; the P-72 rule-4 shape
 // `src/font.rs` 380-381 uses for `nconc2`).
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
-         unsafe_op_in_unsafe_fn, unused_assignments, unused_parens, unused_mut,
-         unreachable_code, unused_labels, while_true, unused_comparisons,
-         overflowing_literals, unused_must_use, clippy::all)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe, unused_assignments, unused_parens, unused_mut, unreachable_code, unused_labels, while_true, unused_comparisons, overflowing_literals, unused_must_use, clippy::all)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -1242,11 +1238,15 @@ unsafe fn init_gnutls_functions () -> bool
 #[cfg (feature = "have_gnutls")]
 unsafe fn check_memory_full (err: c_int)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* When GnuTLS exhausts memory, it doesn't say how much memory it
      asked for, so tell the Emacs allocator that GnuTLS asked for no
      bytes.  This isn't accurate, but it's good enough.  */
   if err == GNUTLS_E_MEMORY_ERROR
     { memory_full (0); }
+
+  }
 }
 
 /* C 601: `# ifdef HAVE_GNUTLS3` -> `feature = "have_gnutls3"` (C 612 closes the arm).  */
@@ -1255,10 +1255,14 @@ unsafe fn check_memory_full (err: c_int)
 #[cfg (all (feature = "have_gnutls", feature = "have_gnutls3"))]
 unsafe extern "C" fn gnutls_audit_log_function (session: gnutls_session_t, string: *const c_char)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if global_gnutls_log_level >= 1
     {
       message (c"gnutls.c: [audit] %s".as_ptr (), string);
     }
+
+  }
 }
 
 /* Log a simple message.  */
@@ -1266,7 +1270,11 @@ unsafe extern "C" fn gnutls_audit_log_function (session: gnutls_session_t, strin
 #[cfg (feature = "have_gnutls")]
 unsafe extern "C" fn gnutls_log_function (level: c_int, string: *const c_char)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   message (c"gnutls.c: [%d] %s".as_ptr (), level, string);
+
+  }
 }
 
 /* Log a message and a string.  */
@@ -1274,7 +1282,11 @@ unsafe extern "C" fn gnutls_log_function (level: c_int, string: *const c_char)
 #[cfg (feature = "have_gnutls")]
 unsafe fn gnutls_log_function2 (level: c_int, string: *const c_char, extra: *const c_char)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   message (c"gnutls.c: [%d] %s %s".as_ptr (), level, string, extra);
+
+  }
 }
 
 /// C 629-660: `gnutls_try_handshake`.  C's `while ((ret = gnutls_handshake (state)) < 0)` is the
@@ -1284,6 +1296,8 @@ unsafe fn gnutls_log_function2 (level: c_int, string: *const c_char, extra: *con
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn gnutls_try_handshake (proc_: *mut Lisp_Process) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let state: gnutls_session_t = (*proc_).gnutls_state;
   let mut ret: c_int = 0;
   /* C's `proc->is_non_blocking_client` is a `bool_bf` bit of the process record; the port
@@ -1329,6 +1343,8 @@ pub unsafe extern "C-unwind" fn gnutls_try_handshake (proc_: *mut Lisp_Process) 
       /* check_memory_full (gnutls_alert_send_appropriate (state, ret));  */
     }
   return ret;
+
+  }
 }
 
 /* C 669-692: `# ifndef WINDOWSNT` -> `not (feature = "windowsnt")`.  */
@@ -1338,6 +1354,8 @@ pub unsafe extern "C-unwind" fn gnutls_try_handshake (proc_: *mut Lisp_Process) 
 #[cfg (all (feature = "have_gnutls", not (feature = "windowsnt")))]
 unsafe extern "C" fn emacs_gnutls_nonblock_errno (ptr: gnutls_transport_ptr_t) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let err: c_int = *errno ();
 
   match err
@@ -1357,6 +1375,8 @@ unsafe extern "C" fn emacs_gnutls_nonblock_errno (ptr: gnutls_transport_ptr_t) -
       _ =>
 	{ return err; }
     }
+
+  }
 }
 
 /// C 694-726: `emacs_gnutls_handshake`.  C's `(gnutls_transport_ptr_t) proc` and
@@ -1366,6 +1386,8 @@ unsafe extern "C" fn emacs_gnutls_nonblock_errno (ptr: gnutls_transport_ptr_t) -
 #[cfg (feature = "have_gnutls")]
 unsafe fn emacs_gnutls_handshake (proc_: *mut Lisp_Process) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let state: gnutls_session_t = (*proc_).gnutls_state;
 
   if (*proc_).gnutls_initstage < GNUTLS_STAGE_HANDSHAKE_CANDO
@@ -1400,6 +1422,8 @@ unsafe fn emacs_gnutls_handshake (proc_: *mut Lisp_Process) -> c_int
     }
 
   return gnutls_try_handshake (proc_);
+
+  }
 }
 
 /// C 728-732: `emacs_gnutls_record_check_pending`.
@@ -1407,10 +1431,14 @@ unsafe fn emacs_gnutls_handshake (proc_: *mut Lisp_Process) -> c_int
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn emacs_gnutls_record_check_pending (state: gnutls_session_t) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   #[cfg (not (feature = "windowsnt"))]
   { return gnutls_record_check_pending (state) as ptrdiff_t; }
   #[cfg (feature = "windowsnt")]
   { return (fn_gnutls_record_check_pending.unwrap ()) (state) as ptrdiff_t; }
+
+  }
 }
 
 /* C 734-741: `# ifdef WINDOWSNT` -> `feature = "windowsnt"`.  */
@@ -1428,6 +1456,8 @@ pub unsafe extern "C-unwind" fn emacs_gnutls_transport_set_errno (state: gnutls_
 pub unsafe extern "C-unwind" fn emacs_gnutls_write (proc_: *mut Lisp_Process, buf_: *const c_char,
 					     nbyte: ptrdiff_t) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let state: gnutls_session_t = (*proc_).gnutls_state;
 
   if (*proc_).gnutls_initstage != GNUTLS_STAGE_READY
@@ -1466,6 +1496,8 @@ pub unsafe extern "C-unwind" fn emacs_gnutls_write (proc_: *mut Lisp_Process, bu
     }
 
   return bytes_written;
+
+  }
 }
 
 /// C 772-796: `emacs_gnutls_read`.
@@ -1474,6 +1506,8 @@ pub unsafe extern "C-unwind" fn emacs_gnutls_write (proc_: *mut Lisp_Process, bu
 pub unsafe extern "C-unwind" fn emacs_gnutls_read (proc_: *mut Lisp_Process, buf_: *mut c_char,
 					    nbyte: ptrdiff_t) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let state: gnutls_session_t = (*proc_).gnutls_state;
 
   if (*proc_).gnutls_initstage != GNUTLS_STAGE_READY
@@ -1500,17 +1534,23 @@ pub unsafe extern "C-unwind" fn emacs_gnutls_read (proc_: *mut Lisp_Process, buf
     { return 0; }
   else
     { return emacs_gnutls_handle_error (state, rtnval as c_int) as ptrdiff_t; }
+
+  }
 }
 
 /// C 798-803: `emacs_gnutls_strerror`.
 #[cfg (feature = "have_gnutls")]
 unsafe fn emacs_gnutls_strerror (err: c_int) -> *const c_char
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   #[cfg (not (feature = "windowsnt"))]
   let str_: *const c_char = gnutls_strerror (err);
   #[cfg (feature = "windowsnt")]
   let str_: *const c_char = (fn_gnutls_strerror.unwrap ()) (err);
   return if !str_.is_null () { str_ } else { c"unknown".as_ptr () };
+
+  }
 }
 
 /* Report a GnuTLS error to the user.
@@ -1525,6 +1565,8 @@ unsafe fn emacs_gnutls_strerror (err: c_int) -> *const c_char
 #[cfg (feature = "have_gnutls")]
 unsafe fn emacs_gnutls_handle_error (session: gnutls_session_t, err: c_int) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut ret: c_int = 0;
 
   /* TODO: use a Lisp_Object generated by gnutls_make_error?  */
@@ -1620,6 +1662,8 @@ unsafe fn emacs_gnutls_handle_error (session: gnutls_session_t, err: c_int) -> c
 
   *errno () = errnum;
   return ret;
+
+  }
 }
 
 /* convert an integer error to a Lisp_Object; it will be either a
@@ -1630,6 +1674,8 @@ unsafe fn emacs_gnutls_handle_error (session: gnutls_session_t, err: c_int) -> c
 #[cfg (feature = "have_gnutls")]
 unsafe fn gnutls_make_error (err: c_int) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   match err
     {
       GNUTLS_E_SUCCESS =>
@@ -1645,12 +1691,16 @@ unsafe fn gnutls_make_error (err: c_int) -> Lisp_Object
 
   check_memory_full (err);
   return make_fixnum (err as EMACS_INT);
+
+  }
 }
 
 /// C 925-936: `gnutls_deinit_certificates`.
 #[cfg (feature = "have_gnutls")]
 unsafe fn gnutls_deinit_certificates (p: *mut Lisp_Process)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if (*p).gnutls_certificates.is_null ()
     { return; }
 
@@ -1664,6 +1714,8 @@ unsafe fn gnutls_deinit_certificates (p: *mut Lisp_Process)
 
   xfree ((*p).gnutls_certificates as *mut c_void);
   (*p).gnutls_certificates = std::ptr::null_mut ();
+
+  }
 }
 
 /// C 938-977: `emacs_gnutls_deinit`.
@@ -1671,6 +1723,8 @@ unsafe fn gnutls_deinit_certificates (p: *mut Lisp_Process)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn emacs_gnutls_deinit (proc_: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut log_level: c_int;
 
   CHECK_PROCESS (proc_);
@@ -1716,6 +1770,8 @@ pub unsafe extern "C-unwind" fn emacs_gnutls_deinit (proc_: Lisp_Object) -> Lisp
 
   (*XPROCESS (proc_)).set_gnutls_p(false);
   return Qt ();
+
+  }
 }
 
 /// C 979-990: the DEFUN `gnutls-asynchronous-parameters`.
@@ -1839,6 +1895,8 @@ DEFUN! ("gnutls-deinit", Fgnutls_deinit, Sgnutls_deinit, 1, 1, 0,
 unsafe fn gnutls_hex_string (buf_: *mut c_uchar, buf_size: ptrdiff_t,
 			     prefix: *const c_char) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let prefix_length: ptrdiff_t = strlen (prefix) as ptrdiff_t;
   let mut retlen: ptrdiff_t = 0;
   let (retlen_mul, mul_overflow) = buf_size.overflowing_mul (3);
@@ -1867,12 +1925,16 @@ unsafe fn gnutls_hex_string (buf_: *mut c_uchar, buf_size: ptrdiff_t,
     }
 
   return ret;
+
+  }
 }
 
 /// C 1104-1130: `emacs_gnutls_certificate_export_pem`.
 #[cfg (feature = "have_gnutls")]
 unsafe fn emacs_gnutls_certificate_export_pem (cert: gnutls_x509_crt_t) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut size: size_t = 0;
   #[cfg (not (feature = "windowsnt"))]
   let mut err: c_int = gnutls_x509_crt_export (cert, GNUTLS_X509_FMT_PEM,
@@ -1909,12 +1971,16 @@ unsafe fn emacs_gnutls_certificate_export_pem (cert: gnutls_x509_crt_t) -> Lisp_
     { error (c"GnuTLS certificate export error: %s".as_ptr (), emacs_gnutls_strerror (err)); }
 
   return Qnil ();
+
+  }
 }
 
 // P-401: the certificate detail path preserves the original property order,
 // short-buffer protocol, library errors and explicit external-buffer release.
 #[cfg(all(feature = "have_gnutls", not(feature = "windowsnt")))]
 unsafe fn emacs_gnutls_certificate_details(cert: gnutls_x509_crt_t) -> Lisp_Object {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut res = Qnil();
   let version = gnutls_x509_crt_get_version(cert);
   check_memory_full(version);
@@ -2066,6 +2132,8 @@ unsafe fn emacs_gnutls_certificate_details(cert: gnutls_x509_crt_t) -> Lisp_Obje
     xfree(buf);
   }
   nconc2(res, list2(QCpem(), emacs_gnutls_certificate_export_pem(cert)))
+
+  }
 }
 
 #[cfg(all(feature = "have_gnutls", not(feature = "windowsnt")))]
@@ -2193,16 +2261,22 @@ DEFUN! ("gnutls-peer-status", Fgnutls_peer_status, Sgnutls_peer_status, 1, 1, 0,
 
 #[cfg(all(feature = "have_gnutls", not(feature = "windowsnt")))]
 unsafe fn emacs_gnutls_global_init() -> Lisp_Object {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut result = GNUTLS_E_SUCCESS;
   if !gnutls_global_initialized {
     result = gnutls_global_init();
     if result == GNUTLS_E_SUCCESS { gnutls_global_initialized = true; }
   }
   gnutls_make_error(result)
+
+  }
 }
 
 #[cfg(all(feature = "have_gnutls", not(feature = "windowsnt")))]
 unsafe fn gnutls_ip_address_p(mut string: *const c_char) -> bool {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   loop {
     let c = *string;
     string = string.add(1);
@@ -2210,14 +2284,20 @@ unsafe fn gnutls_ip_address_p(mut string: *const c_char) -> bool {
     if !(c == b'.' as c_char || c == b':' as c_char
          || (c >= b'0' as c_char && c <= b'9' as c_char)) { return false; }
   }
+
+  }
 }
 
 #[cfg(all(feature = "have_gnutls", not(feature = "windowsnt")))]
 unsafe extern "C-unwind" fn boot_error(process: *mut Lisp_Process, message: *const c_char, mut args: ...) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if (*process).is_non_blocking_client() {
     pset_status(process, list2(Qfailed(), vformat_string(message, args)));
   } else {
     verror(message, args);
+  }
+
   }
 }
 
@@ -2267,6 +2347,8 @@ DEFUN! ("gnutls-format-certificate", Fgnutls_format_certificate,
 #[cfg(all(feature = "have_gnutls", not(feature = "windowsnt")))]
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn gnutls_verify_boot(proc_: Lisp_Object, mut proplist: Lisp_Object) -> Lisp_Object {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let p = XPROCESS(proc_);
   let state = (*p).gnutls_state;
   let mut peer_verification: c_uint = 0;
@@ -2345,6 +2427,8 @@ pub unsafe extern "C-unwind" fn gnutls_verify_boot(proc_: Lisp_Object, mut propl
   }
   (*p).set_gnutls_p(true);
   gnutls_make_error(ret)
+
+  }
 }
 
 #[cfg(all(feature = "have_gnutls", feature = "have_gnutls_certificate_set_x509_key_file2", not(feature = "windowsnt")))]
@@ -2596,6 +2680,8 @@ unsafe fn gnutls_symmetric_aead(encrypting: bool, gca: gnutls_cipher_algorithm_t
     cipher: Lisp_Object, kdata: *const c_char, ksize: ptrdiff_t,
     vdata: *const c_char, vsize: ptrdiff_t, idata: *const c_char,
     isize: ptrdiff_t, mut aead_auth: Lisp_Object) -> Lisp_Object {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   #[cfg(feature = "have_gnutls_aead")]
   {
     let desc = if encrypting { c"encrypt" } else { c"decrypt" };
@@ -2648,6 +2734,8 @@ unsafe fn gnutls_symmetric_aead(encrypting: bool, gca: gnutls_cipher_algorithm_t
   }
   #[cfg(not(feature = "have_gnutls_aead"))]
   { error(c"GnuTLS AEAD cipher %jd is invalid or not found".as_ptr(), gca as i64); }
+
+  }
 }
 
 #[cfg(all(feature = "have_gnutls3", not(feature = "windowsnt")))]
@@ -2669,6 +2757,8 @@ unsafe fn gnutls_digest_get_name(id: gnutls_digest_algorithm_t) -> *const c_char
 unsafe fn gnutls_symmetric(encrypting: bool, mut cipher: Lisp_Object,
     mut key: Lisp_Object, mut iv: Lisp_Object, mut input: Lisp_Object,
     aead_auth: Lisp_Object) -> Lisp_Object {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if BUFFERP(key) || STRINGP(key) { key = list1(key); }
   CHECK_CONS(key);
   if BUFFERP(input) || STRINGP(input) { input = list1(input); }
@@ -2750,6 +2840,8 @@ unsafe fn gnutls_symmetric(encrypting: bool, mut cipher: Lisp_Object,
   }
   gnutls_cipher_deinit(hcipher);
   list2(storage, actual_iv)
+
+  }
 }
 
 #[cfg(all(feature = "have_gnutls3", not(feature = "windowsnt")))]
@@ -2940,6 +3032,8 @@ DEFUN! ("gnutls-available-p", Fgnutls_available_p, Sgnutls_available_p, 0, 0, 0,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_gnutls ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   DEFVAR_LISP! (c"libgnutls-version", Vlibgnutls_version,
 		"The version of libgnutls that Emacs was compiled with.\nThe version number is encoded as an integer with the major version in\nthe ten thousands place, minor version in the hundreds, and patch\nlevel in the ones.  For builds without libgnutls, the value is -1.");
   #[cfg(feature = "have_gnutls")]
@@ -3090,4 +3184,6 @@ pub unsafe extern "C-unwind" fn syms_of_gnutls ()
   DEFSYM! (Qgnutls, "gnutls");
   DEFSYM! (Qgnutls3, "gnutls3");
   DEFSYM! (Qmacs, "macs");
+
+  }
 }

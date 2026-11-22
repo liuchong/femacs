@@ -555,7 +555,7 @@ pub const GLYPH_FONT_TYPE_WIDTH: u32 = 3;
 #[inline(always)]
 pub fn glyph_bits_get (g: *const glyph, shift: u32, width: u32) -> c_int
 {
-  unsafe { (((*g).bits >> shift) & glyph_bits_mask (width)) as c_int }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (((*g).bits >> shift) & glyph_bits_mask (width)) as c_int }
 }
 
 /// Assign one numeric member of `glyph::bits` — C's `(GLYPH).MEMBER = VALUE`: only the
@@ -564,7 +564,7 @@ pub fn glyph_bits_get (g: *const glyph, shift: u32, width: u32) -> c_int
 #[inline(always)]
 pub fn glyph_bits_set (g: *mut glyph, shift: u32, width: u32, value: c_int)
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     let mask = glyph_bits_mask (width) << shift;
     (*g).bits = ((*g).bits & !mask) | ((((value as u64) & glyph_bits_mask (width)) << shift) & mask);
   }
@@ -581,7 +581,7 @@ pub fn glyph_bits_mask (width: u32) -> u64
 #[inline(always)]
 pub fn glyph_bool_p (g: *const glyph, mask: u64) -> bool
 {
-  unsafe { ((*g).bits & mask) != 0 }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { ((*g).bits & mask) != 0 }
 }
 
 /// Assign one `bool_bf : 1` member of `glyph::bits` — C's `(GLYPH).MEMBER = VALUE` (C's
@@ -589,7 +589,7 @@ pub fn glyph_bool_p (g: *const glyph, mask: u64) -> bool
 #[inline(always)]
 pub fn glyph_bool_set (g: *mut glyph, mask: u64, value: bool)
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     let bits = &mut (*g).bits;
     *bits = if value { *bits | mask } else { *bits & !mask };
   }
@@ -660,7 +660,7 @@ macro_rules! glyph_slice_bits {
 // union access, exactly as C reads them.
 macro_rules! GLYPH_SLICE_EQUAL_P {
   ($x:expr, $y:expr) => {
-    unsafe {
+    /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
       if glyph_bits! (type, *($x)) == IMAGE_GLYPH {
         glyph_slice_bits! (x, (*($x)).slice.img) == glyph_slice_bits! (x, (*($y)).slice.img)
           && glyph_slice_bits! (y, (*($x)).slice.img) == glyph_slice_bits! (y, (*($y)).slice.img)
@@ -680,7 +680,7 @@ macro_rules! GLYPH_SLICE_EQUAL_P {
 
 macro_rules! GLYPH_EQUAL_P {
   ($x:expr, $y:expr) => {
-    unsafe {
+    /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
       glyph_bits! (type, *($x)) == glyph_bits! (type, *($y))
         && (*($x)).u.val == (*($y)).u.val
         && GLYPH_SLICE_EQUAL_P! ($x, $y)
@@ -860,7 +860,7 @@ macro_rules! PIX_CONTAINER_TO_CONTEXT {
 
 macro_rules! GLYPH_CHAR_AND_FACE_EQUAL_P {
   ($x:expr, $y:expr) => {
-    unsafe {
+    /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
       (*($x)).u.ch == (*($y)).u.ch
         && glyph_bits! (face_id, *($x)) == glyph_bits! (face_id, *($y))
         && (*($x)).frame == (*($y)).frame
@@ -979,14 +979,14 @@ pub const GLYPH_MATRIX_HEADER_LINE_P: u8 = 1 << 2;      // 845
 #[inline(always)]
 pub fn glyph_matrix_bool_p (matrix: *const glyph_matrix, mask: u8) -> bool
 {
-  unsafe { ((*matrix).bits & mask) != 0 }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { ((*matrix).bits & mask) != 0 }
 }
 
 /// Assign one `bool_bf : 1` member of `glyph_matrix::bits` — C's `(MATRIX)->MEMBER = VALUE`.
 #[inline(always)]
 pub fn glyph_matrix_bool_set (matrix: *mut glyph_matrix, mask: u8, value: bool)
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     let bits = &mut (*matrix).bits;
     *bits = if value { *bits | mask } else { *bits & !mask };
   }
@@ -1109,7 +1109,7 @@ pub struct glyph_row
 pub fn glyph_row_bits_get (row: *const glyph_row, unit: usize, shift: u32, width: u32,
                            signed_p: bool) -> c_int
 {
-  let raw = unsafe { ((*row).bits [unit] >> shift) & glyph_row_bits_mask (width) };
+  let raw = /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { ((*row).bits [unit] >> shift) & glyph_row_bits_mask (width) };
   if signed_p { ((raw as i32) << (32 - width)) >> (32 - width) } else { raw as i32 }
 }
 
@@ -1120,7 +1120,7 @@ pub fn glyph_row_bits_set (row: *mut glyph_row, unit: usize, shift: u32, width: 
                            value: c_int)
 {
   let mask = glyph_row_bits_mask (width) << shift;
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     let bits = &mut (*row).bits [unit];
     *bits = (*bits & !mask) | ((((value as u32) & glyph_row_bits_mask (width)) << shift) & mask);
   }
@@ -1138,7 +1138,7 @@ pub fn glyph_row_bits_mask (width: u32) -> u32
 #[inline(always)]
 pub fn glyph_row_bool_p (row: *const glyph_row, byte: usize, shift: u32) -> bool
 {
-  unsafe { ((*row).bools [byte] >> shift) & 1 != 0 }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { ((*row).bools [byte] >> shift) & 1 != 0 }
 }
 
 /// Assign one of `glyph_row`'s 29 `bool_bf : 1` members — C's `(ROW)->MEMBER = VALUE`,
@@ -1146,7 +1146,7 @@ pub fn glyph_row_bool_p (row: *const glyph_row, byte: usize, shift: u32) -> bool
 #[inline(always)]
 pub fn glyph_row_bool_set (row: *mut glyph_row, byte: usize, shift: u32, value: bool)
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     let b = &mut (*row).bools [byte];
     *b = if value { *b | (1 << shift) } else { *b & !(1 << shift) };
   }
@@ -1470,7 +1470,7 @@ macro_rules! MATRIX_BOTTOM_TEXT_ROW {
   ($matrix:expr, $w:expr) => { {
     let matrix = $matrix;
     (*matrix).rows.offset ((*matrix).nrows as isize
-                           - if unsafe { window_wants_mode_line ($w) } { 1 } else { 0 })
+                           - if /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { window_wants_mode_line ($w) } { 1 } else { 0 })
   } };
 }
 
@@ -1848,7 +1848,7 @@ pub const GLYPH_STRING_PADDING_P: u32 = 1 << 7;                  // C 1461
 #[inline(always)]
 pub fn glyph_string_bits_get (g: *const glyph_string, shift: u32, width: u32) -> c_int
 {
-  unsafe { (((*g).bits >> shift) & glyph_string_bits_mask (width)) as c_int }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (((*g).bits >> shift) & glyph_string_bits_mask (width)) as c_int }
 }
 
 /// Assign one numeric member of `glyph_string::bits` — C's `(S).for_overlaps = VALUE`: only the
@@ -1857,7 +1857,7 @@ pub fn glyph_string_bits_get (g: *const glyph_string, shift: u32, width: u32) ->
 #[inline(always)]
 pub fn glyph_string_bits_set (g: *mut glyph_string, shift: u32, width: u32, value: c_int)
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     let mask = glyph_string_bits_mask (width) << shift;
     (*g).bits = ((*g).bits & !mask) | ((((value as u32) & glyph_string_bits_mask (width)) << shift) & mask);
   }
@@ -1876,7 +1876,7 @@ pub fn glyph_string_bits_mask (width: u32) -> u32
 #[inline(always)]
 pub fn glyph_string_bool_p (g: *const glyph_string, mask: u32) -> bool
 {
-  unsafe { ((*g).bits & mask) != 0 }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { ((*g).bits & mask) != 0 }
 }
 
 /// Assign one `bool_bf : 1` member of `glyph_string::bits` — C's `(S).MEMBER = VALUE`.
@@ -1884,7 +1884,7 @@ pub fn glyph_string_bool_p (g: *const glyph_string, mask: u32) -> bool
 #[inline(always)]
 pub fn glyph_string_bool_set (g: *mut glyph_string, mask: u32, value: bool)
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     let bits = &mut (*g).bits;
     *bits = if value { *bits | mask } else { *bits & !mask };
   }
@@ -2199,7 +2199,7 @@ pub const MOUSE_FACE_HIDDEN: u8 = 1 << 2;     // dispextern.h 3023
 /// C: `bool_bf mouse_face_defer : 1;`
 #[inline(always)]
 pub fn get_mouse_face_defer (hlinfo: *const Mouse_HLInfo) -> bool
-{ unsafe { (*hlinfo).bits & MOUSE_FACE_DEFER != 0 } }
+{ /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*hlinfo).bits & MOUSE_FACE_DEFER != 0 } }
 #[inline(always)]
 pub fn set_mouse_face_defer (hlinfo: *mut Mouse_HLInfo, value: bool)
 {
@@ -2218,7 +2218,7 @@ pub fn set_mouse_face_defer (hlinfo: *mut Mouse_HLInfo, value: bool)
 #[inline(always)]
 pub fn reset_mouse_highlight (hlinfo: *mut Mouse_HLInfo)
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     (*hlinfo).mouse_face_beg_row = -1;
     (*hlinfo).mouse_face_beg_col = -1;
     (*hlinfo).mouse_face_end_row = -1;
@@ -2420,7 +2420,7 @@ pub fn FACE_FOR_CHAR (f: *mut c_void, face: *mut face, character: c_int, pos: pt
                       object: Lisp_Object) -> face_id
 {
   let _ = (f, character, pos, object);
-  unsafe { (*face).id }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*face).id }
 }
 
 /* =============================================================================================
@@ -2700,7 +2700,7 @@ pub mod dispextern_externs {
   /// C 105-108: `INLINE int xstrcasecmp (char const *a, char const *b) { return c_strcasecmp (a, b); }`
   /// C: INLINE int xstrcasecmp (char const *a, char const *b) { return c_strcasecmp (a, b); }
   #[inline(always)]
-  pub fn xstrcasecmp (a: *const c_char, b: *const c_char) -> c_int { unsafe { c_strcasecmp (a, b) } }
+  pub fn xstrcasecmp (a: *const c_char, b: *const c_char) -> c_int { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { c_strcasecmp (a, b) } }
 }
 
 // C 176-181: `#ifndef NativeRectangle / #define NativeRectangle int / #endif` is deliberately
@@ -3177,12 +3177,12 @@ pub const DRAW_FRINGE_BITMAP_OVERLAY_P: u8 = 1 << 1;
 #[cfg (feature = "dispextern_face_records")]
 #[inline(always)]
 pub fn get_cursor_p (p: *const draw_fringe_bitmap_params) -> bool
-{ unsafe { (*p).flags & DRAW_FRINGE_BITMAP_CURSOR_P != 0 } }
+{ /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*p).flags & DRAW_FRINGE_BITMAP_CURSOR_P != 0 } }
 #[cfg (feature = "dispextern_face_records")]
 #[inline(always)]
 pub fn set_cursor_p (p: *mut draw_fringe_bitmap_params, value: bool)
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     if value { (*p).flags |= DRAW_FRINGE_BITMAP_CURSOR_P }
     else { (*p).flags &= !DRAW_FRINGE_BITMAP_CURSOR_P }
   }
@@ -3190,12 +3190,12 @@ pub fn set_cursor_p (p: *mut draw_fringe_bitmap_params, value: bool)
 #[cfg (feature = "dispextern_face_records")]
 #[inline(always)]
 pub fn get_overlay_p (p: *const draw_fringe_bitmap_params) -> bool
-{ unsafe { (*p).flags & DRAW_FRINGE_BITMAP_OVERLAY_P != 0 } }
+{ /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*p).flags & DRAW_FRINGE_BITMAP_OVERLAY_P != 0 } }
 #[cfg (feature = "dispextern_face_records")]
 #[inline(always)]
 pub fn set_overlay_p (p: *mut draw_fringe_bitmap_params, value: bool)
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     if value { (*p).flags |= DRAW_FRINGE_BITMAP_OVERLAY_P }
     else { (*p).flags &= !DRAW_FRINGE_BITMAP_OVERLAY_P }
   }

@@ -18,6 +18,14 @@
 
 ## 0. 总则
 
+### P-483：U4 显式 GC 根句柄、VM 单一状态清单、安全高层域与全产品危险代码门禁收口（2026-11-22）
+
+按去 `unsafe` 先行计划 U4/AU4，建立 SpiderMonkey 风格 GC 句柄与九类根/状态清单，交付 `#![forbid(unsafe_code)]` 高层业务域，移除活动产品全部文件级 `allow(unsafe_op_in_unsafe_fn)` 与 `allow(static_mut_refs)`，并以 `tools/unsafe-boundary-manifest.json` 锁定底层平台隔离白名单与混合扫描边界：
+
+1. **安全根句柄、单状态所有者与死栈帧擦除（`crates/femacs-vm/src/{roots,state}.rs`、`src/{alloc,eval,thread,pdumper}.rs`）**：实现 `LispVal`、`GcContext`、`NoGcToken<'a>` / `UnrootedBorrow<'nogc, T>`、每线程 LIFO `Rooted` / `Handle<'a>` / `MutableHandle<'a>`、渐进槽位根 `ScopedRawSpan`（接入 `Fprog1`、`Flet`、`eval_sub`、`apply_lambda` 的 `<= 8` 与 `> 8` 实参/绑定路径）及带代际校验的持久根表 `PersistentRoot`（含 C-ABI `femacs_vm_persistent_root_{alloc,get,release}`，释放后立即阻断 ABA 悬垂代际读取）。`VmState` / `ThreadState` 汇总九类根与状态读数（`staticvec`、`specpdl`、`bytecode_frames`、`eval_scoped_spans`、`rooted_lifo_handles`、`persistent_roots`、`nonlocal_exit_payloads`、`module_global_refs`、`pdumper_relocations`）。`SaStackUnwindGuard::drop` 在真实 Rust 词法作用域退出时调用 `sa_stack_frame_exit` 清零回收块并置 `used = 0`，在不破坏 `P-172` 同帧 `SAFE_FREE!` 后读取契约的前提下退役 `sa_stack_free` 死帧保守扫描。
+2. **高层安全业务域与全产品编译门禁（`crates/femacs-vm/src/{vm_primitives,safe_domain}.rs`、`lib/include/stdcountof.rs`）**：`safe_domain.rs` 启用 `#![forbid(unsafe_code)]`，完整覆盖 Buffer 创建/多字节写入/跨 GC 读回、Reader + 词法求值 + `PersistentRoot`、UTF-8 文件 I/O 往返及窗口状态检查；`cli`、`packaging`、`lib/include/stdcountof.rs`（新增零 `unsafe` 原生指针辅助 `femacs_countof_ptr` / `femacs_sizeof_ptr` / `femacs_array_ptr` / `femacs_array_mut_ptr`）与 `src/include/macuvs.rs` 同步启用 `#![forbid(unsafe_code)]`（活动 `#![forbid(unsafe_code)]` 文件增至 `32` 份）。`femacs-sys`、`femacs-vm`、`femacs-host`、`xtask` 全部启用 `#![deny(static_mut_refs, unsafe_op_in_unsafe_fn)]`，活动产品文件级 `allow(unsafe_op_in_unsafe_fn)` 与 `allow(static_mut_refs)` 双双由 `120` 降至 **`0`**，活动 `unsafe { ... }` 块 `SAFETY:` 契约覆盖率达 **`7,162 / 7,162`（`100.0%`）**；同时修复 `runtime_gc_observation.rs` 与 `runtime_gc_collector.rs` 的 `extern "C-unwind"` specpdl 回调签名及 `xtask/src/runtime.rs` 生成 `live_path` 的内部安全边界。
+3. **显式隔离白名单与 AU4 四组验收（`tools/unsafe-boundary-manifest.json`、`tools/test-u4-gc-roots.py`、`tools/test-u4-unit.py`）**：`tools/check-unsafe-boundary.py` 扩展 `--manifest` 与 `--require-100pct-safety-docs` 门禁（同步修复字符串续行 `\\\n` 与换页符 `^L` 行号对齐缺陷），双向锁定 `293` 份底层隔离边界文件的类别/调用者/所有权/不变量/失败路径，并将 `mark_c_stack`（供 `.eln` `libgccjit` 机器栈局部槽位及未迁移 C 转写帧使用）、`flush_stack_call_func`、`sa_stack_top` 活动帧与已退役的 `sa_stack_free` 死帧逐项绑定源码锚点与理由。`AU4` 四组集成验收（`28.241s`，含 `FEMACS_GC_SKIP_STACK_SCAN=1` 无栈扫压力存活、释放后弱哈希表置空与 `make-finalizer` 确定性触发、跨解释/字节码/Cocoa/`.eln` 分代收集器及多线程/动态模块回调、全新 `.pdmp` 导出恢复）与保护性单测（`3/3` 组，`1.982s`）全部通过。
+
 ### P-482：U3 显式非局部退出、原生状态分支与 FFI 边界隔离（2026-11-22）
 
 按去 `unsafe` 先行计划 U3/AU3，移除求值器、字节码、原生编译 `.eln`、动态模块与辅助子系统中的 Lisp 级 `sys_setjmp` / `sys_longjmp`，统一收敛至显式 `VmResult<T>`（`Result<T, NonLocalExit>`）与受控 `extern "C-unwind"` 栈展开，并保持外部 C ABI 与第三方库局部跳转隔离：

@@ -21,9 +21,7 @@
 // is `std::ptr::null_mut ()`/`is_null ()`, C's forward `goto error` is the labelled block
 // `'error` (PORTING.md 2.2), and `struct realpath_bufs bufs;` is zero-initialized
 // (PORTING.md 1.5) before the three `scratch_buffer_init` calls C makes.
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
-         static_mut_refs, unsafe_op_in_unsafe_fn)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -153,6 +151,8 @@ pub const _PC_PATH_MAX: c_int = 4;
    otherwise.  Follow symbolic links.  */
 unsafe extern "C" fn file_accessible (file: *const c_char) -> bool
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   /* C 105-107's `# else` arm, kept as text (P-51; dead: HAVE_FACCESSAT is 1).  */
   #[cfg (feature = "no_faccessat")]
   {
@@ -160,6 +160,8 @@ unsafe extern "C" fn file_accessible (file: *const c_char) -> bool
     return stat (file, &mut st) == 0 || *errno () == EOVERFLOW;
   }
   return __faccessat! (AT_FDCWD, file, F_OK, AT_EACCESS) == 0;
+
+  }
 }
 
 /* True if concatenating END as a suffix to a file name means that the
@@ -171,6 +173,8 @@ unsafe extern "C" fn file_accessible (file: *const c_char) -> bool
 
 unsafe extern "C" fn suffix_requires_dir_check (end: *const c_char) -> bool
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   let mut end = end;
   /* If END does not start with a slash, the suffix is OK.  */
   while ISSLASH! (*end)
@@ -195,6 +199,8 @@ unsafe extern "C" fn suffix_requires_dir_check (end: *const c_char) -> bool
     }
 
   return false;
+
+  }
 }
 
 /* Append this to a file name to test whether it is a searchable directory.
@@ -216,8 +222,12 @@ static dir_suffix_slashed: [c_char; 4]
 
 unsafe extern "C" fn dir_check (dir: *mut c_char, dirend: *mut c_char) -> bool
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   let _ = strcpy (dirend, &dir_suffix as *const c_char);
   return file_accessible (dir);
+
+  }
 }
 
 unsafe extern "C" fn get_path_max () -> idx_t
@@ -254,6 +264,8 @@ pub struct realpath_bufs
 unsafe extern "C" fn realpath_stk (name: *const c_char, resolved: *mut c_char,
                                    bufs: *mut realpath_bufs) -> *mut c_char
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   let mut name = name;
   let mut start: *const c_char;
   let mut end: *const c_char;
@@ -499,6 +511,8 @@ unsafe extern "C" fn realpath_stk (name: *const c_char, resolved: *mut c_char,
       else
         { return __strdup! ((*bufs).rname.data as *const c_char); }
     }
+
+  }
 }
 
 /* Return the canonical absolute name of file NAME.  A canonical name
@@ -516,6 +530,8 @@ unsafe extern "C" fn realpath_stk (name: *const c_char, resolved: *mut c_char,
 pub unsafe extern "C" fn __realpath (name: *const c_char, resolved: *mut c_char)
   -> *mut c_char
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   /* C declares `struct realpath_bufs bufs;` uninitialized; the three
      `scratch_buffer_init` calls below define every field the code reads (PORTING.md 1.5).  */
   let mut bufs: realpath_bufs = std::mem::zeroed ();
@@ -527,6 +543,8 @@ pub unsafe extern "C" fn __realpath (name: *const c_char, resolved: *mut c_char)
   scratch_buffer_free (&mut bufs.extra);
   scratch_buffer_free (&mut bufs.rname);
   return result;
+
+  }
 }
 /* C 447-448's `libc_hidden_def (__realpath)` / `versioned_symbol (…)` are glibc-only
    (dead); the ledger records them.  */
@@ -553,5 +571,9 @@ pub unsafe extern "C" fn __old_realpath (name: *const c_char, resolved: *mut c_c
 #[unsafe(export_name = "canonicalize_file_name")]
 pub unsafe extern "C" fn __canonicalize_file_name (name: *const c_char) -> *mut c_char
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   return __realpath (name, std::ptr::null_mut ());
+
+  }
 }

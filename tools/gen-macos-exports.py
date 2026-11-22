@@ -147,7 +147,7 @@ def record_exports(imports, existing):
             args.append(f'a{i}: {ty}')
         rt=scalar.get(decl['return'],'*mut c_void')
         if rt not in ('()','bool','Lisp_Object'):expression=f'({expression}) as {rt}'
-        code += [f'#[unsafe(export_name="{name}")]', f'pub unsafe extern "C-unwind" fn view_{name}({", ".join(args)}) -> {rt} {{ {expression} }}']
+        code += [f'#[unsafe(export_name="{name}")]', f'pub unsafe extern "C-unwind" fn view_{name}({", ".join(args)}) -> {rt} {{ /* SAFETY: Cocoa Swift bridge record accessor on valid target pointer. */ unsafe {{ {expression} }} }}']
         mapping.append({'name':name,'kind':'record-view','provider':'actual target header fields'})
     return code,mapping
 
@@ -187,7 +187,7 @@ def main():
             if any(not re.fullmatch(r'\w+',n) for n in names):unresolved.append(name);continue
             # Use the provider's actual signature and implementation, including its actual
             # pointer/record types. Do not infer layout from the Swift facade.
-            code += [f'#[unsafe(export_name="{name}")]',f'pub unsafe extern "C-unwind" fn cocoa_{name}({args}) -> {rt} {{ {name}({", ".join(names)}) }}']
+            code += [f'#[unsafe(export_name="{name}")]',f'pub unsafe extern "C-unwind" fn cocoa_{name}({args}) -> {rt} {{ /* SAFETY: Cocoa Swift bridge inline provider on valid target arguments. */ unsafe {{ {name}({", ".join(names)}) }} }}']
             mapping.append({'name':name,'provider':source,'kind':'inline'})
         elif name in constants and not decl['args'].strip() and decl['return'] in scalar:
             rt=scalar[decl['return']]
@@ -214,7 +214,7 @@ def main():
             if not good or rt is None:unresolved.append(name);continue
             expression=f'{name}!({", ".join(calls)})'
             if rt not in ('()','Lisp_Object','bool'):expression=f'({expression}) as {rt}'
-            code += [f'#[unsafe(export_name="{name}")]',f'pub unsafe extern "C-unwind" fn cocoa_{name}({", ".join(arguments)}) -> {rt} {{ {expression} }}']
+            code += [f'#[unsafe(export_name="{name}")]',f'pub unsafe extern "C-unwind" fn cocoa_{name}({", ".join(arguments)}) -> {rt} {{ /* SAFETY: Cocoa Swift bridge macro provider on valid target record pointer. */ unsafe {{ {expression} }} }}']
             mapping.append({'name':name,'provider':macros[name],'kind':'macro'})
         else:unresolved.append(name)
     code.append('}')

@@ -5,9 +5,7 @@
 // *is* the `VaList`, `va_arg` is `next_arg`, `va_copy` is `clone`, and C's by-value
 // `va_list` pass is a `clone ()` at the call site.
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
-         unsafe_op_in_unsafe_fn)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -86,13 +84,13 @@ fn parse_format_integer (mut fmt: *const c_char, value: *mut c_int) -> *const c_
 {
   let mut n: c_int = 0;
   let mut overflow = false;
-  while unsafe { b'0' as c_char <= *fmt && *fmt <= b'9' as c_char }
+  while /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { b'0' as c_char <= *fmt && *fmt <= b'9' as c_char }
     {
       // C's ckd_mul/ckd_add (P-15): they store the wrapped product and say whether it
       // overflowed; `overflowing_*` is the same pair.
       let (prod, mul_over) = n.overflowing_mul (10);
       overflow |= mul_over;
-      let (sum, add_over) = prod.overflowing_add (unsafe { *fmt } as c_int - b'0' as c_int);
+      let (sum, add_over) = prod.overflowing_add (/* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { *fmt } as c_int - b'0' as c_int);
       overflow |= add_over;
       n = sum;
       fmt = unsafe { fmt.add (1) };
@@ -102,7 +100,7 @@ fn parse_format_integer (mut fmt: *const c_char, value: *mut c_int) -> *const c_
   let limit = (PTRDIFF_MAX as usize).min (SIZE_MAX) - SIZE_BOUND_EXTRA as usize;
   if overflow || limit < n as usize
     {
-      unsafe { error (c"Format width or precision too large".as_ptr ()) }
+      /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { error (c"Format width or precision too large".as_ptr ()) }
     }
   unsafe { *value = n };
   return fmt;
@@ -122,13 +120,13 @@ fn doprnt_non_null_end (buffer: *mut c_char, bufsize: ptrdiff_t, format: *const 
                         format_end: *const c_char, ap: VaList<'_>) -> ptrdiff_t
 {
   USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
-  let fmtlen = unsafe { format_end.offset_from (format) };
+  let fmtlen = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { format_end.offset_from (format) };
   let fmt = SAFE_ALLOCA! (sa_avail, fmtlen + 1) as *mut c_char;
   unsafe {
     std::ptr::copy_nonoverlapping (format, fmt, fmtlen as usize);
     *fmt.offset (fmtlen) = 0;
   }
-  let nbytes = unsafe { doprnt (buffer, bufsize, fmt, std::ptr::null (), ap) };
+  let nbytes = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { doprnt (buffer, bufsize, fmt, std::ptr::null (), ap) };
   SAFE_FREE! (sa_count, sa_mark);
   return nbytes;
 }
@@ -140,6 +138,8 @@ pub unsafe extern "C-unwind" fn doprnt (buffer: *mut c_char, mut bufsize: ptrdif
                                  format: *const c_char, format_end: *const c_char,
                                  mut ap: VaList<'_>) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if !format_end.is_null ()
     {
       return doprnt_non_null_end (buffer, bufsize, format, format_end, ap);
@@ -165,7 +165,7 @@ pub unsafe extern "C-unwind" fn doprnt (buffer: *mut c_char, mut bufsize: ptrdif
   bufsize -= 1;
 
   /* Loop until end of format string or buffer full. */
-  'outer: while unsafe { *fmt } != 0 && bufsize > 0
+  'outer: while /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { *fmt } != 0 && bufsize > 0
     {
       let fmt0 = fmt;
       let mut fmtchar = unsafe { *fmt };
@@ -201,7 +201,7 @@ pub unsafe extern "C-unwind" fn doprnt (buffer: *mut c_char, mut bufsize: ptrdif
 	     Start by putting '%' into FMTSTAR.  */
 	  let mut fmtstar = [0 as c_char; 10 + MAXMLEN as usize];
 	  let mut string: *mut c_char = fmtstar.as_mut_ptr ();
-	  unsafe { *string = b'%' as c_char };
+	  /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { *string = b'%' as c_char };
 	  string = unsafe { string.add (1) };
 
 	  /* Copy at most one instance of each flag into FMTSTAR.  */
@@ -211,12 +211,12 @@ pub unsafe extern "C-unwind" fn doprnt (buffer: *mut c_char, mut bufsize: ptrdif
 	  let mut spaceflag = false;
 	  loop
 	    {
-	      unsafe { *string = *fmt };
+	      /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { *string = *fmt };
 	      let c = unsafe { *fmt } as u8 as char;
 	      match c
 		{
 		  '-' => { if !minusflag { string = unsafe { string.add (1) } } minusflag = true; fmt = unsafe { fmt.add (1) }; continue; }
-		  '+' => { if !plusflag { string = unsafe { string.add (1) } } plusflag = true; fmt = unsafe { fmt.add (1) }; continue; }
+		  '+' => { if !plusflag { string = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { string.add (1) } } plusflag = true; fmt = unsafe { fmt.add (1) }; continue; }
 		  ' ' => { if !spaceflag { string = unsafe { string.add (1) } } spaceflag = true; fmt = unsafe { fmt.add (1) }; continue; }
 		  '0' => { if !zeroflag { string = unsafe { string.add (1) } } zeroflag = true; fmt = unsafe { fmt.add (1) }; continue; }
 		  _ => {}
@@ -225,13 +225,13 @@ pub unsafe extern "C-unwind" fn doprnt (buffer: *mut c_char, mut bufsize: ptrdif
 	    }
 
 	  /* Parse width and precision, putting "*.*" into FMTSTAR.  */
-	  if unsafe { b'1' as c_char <= *fmt && *fmt <= b'9' as c_char }
+	  if /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { b'1' as c_char <= *fmt && *fmt <= b'9' as c_char }
 	    {
 	      fmt = parse_format_integer (fmt, &raw mut wid);
 	    }
 	  if unsafe { *fmt } == b'.' as c_char
 	    {
-	      fmt = parse_format_integer (unsafe { fmt.add (1) }, &raw mut prec);
+	      fmt = parse_format_integer (/* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { fmt.add (1) }, &raw mut prec);
 	    }
 	  unsafe {
 	    *string = b'*' as c_char;
@@ -248,13 +248,13 @@ pub unsafe extern "C-unwind" fn doprnt (buffer: *mut c_char, mut bufsize: ptrdif
 	  let mut mlen: isize = 1;
 	  while mlen <= MAXMLEN
 	    {
-	      if mlen == 1 && unsafe { *fmt } == b'l' as c_char
+	      if mlen == 1 && /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { *fmt } == b'l' as c_char
 		{ length_mod = length_modifier::long_modifier; }
 	      if mlen == PDLEN && unsafe { strncmp (fmt, pD.as_ptr () as *const c_char, PDLEN as usize) } == 0
 		{ length_mod = length_modifier::pD_modifier; }
 	      if mlen == PILEN && unsafe { strncmp (fmt, pI.as_ptr () as *const c_char, PILEN as usize) } == 0
 		{ length_mod = length_modifier::pI_modifier; }
-	      if mlen == PMLEN && unsafe { strncmp (fmt, PRIdMAX.as_ptr () as *const c_char, PMLEN as usize) } == 0
+	      if mlen == PMLEN && /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { strncmp (fmt, PRIdMAX.as_ptr () as *const c_char, PMLEN as usize) } == 0
 		{ length_mod = length_modifier::pM_modifier; }
 	      mlen += 1;
 	    }
@@ -262,12 +262,12 @@ pub unsafe extern "C-unwind" fn doprnt (buffer: *mut c_char, mut bufsize: ptrdif
 	  /* Copy optional length modifier and conversion specifier
 	     character into FMTSTAR, and append a NUL.  */
 	  mlen = modifier_len[length_mod as usize];
-	  string = unsafe {
+	  string = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe {
 	    mempcpy (string as *mut c_void, fmt as *const c_void, (mlen + 1) as size_t)
 	      as *mut c_char
 	  };
 	  fmt = unsafe { fmt.add (mlen as usize) };
-	  unsafe { *string = 0 };
+	  /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { *string = 0 };
 
 	  /* An idea of how much space we might need. ... */
 	  let size_bound = (if wid > prec { wid } else { prec }) as ptrdiff_t + SIZE_BOUND_EXTRA as ptrdiff_t;
@@ -275,7 +275,7 @@ pub unsafe extern "C-unwind" fn doprnt (buffer: *mut c_char, mut bufsize: ptrdif
 	  /* Make sure we have that much.  */
 	  if size_bound > size_allocated
 	    {
-	      if !big_buffer.is_null () { unsafe { xfree (big_buffer as *mut c_void) } }
+	      if !big_buffer.is_null () { /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { xfree (big_buffer as *mut c_void) } }
 	      big_buffer = unsafe { xmalloc (size_bound as size_t) } as *mut c_char;
 	      sprintf_buffer = big_buffer;
 	      size_allocated = size_bound;
@@ -283,7 +283,7 @@ pub unsafe extern "C-unwind" fn doprnt (buffer: *mut c_char, mut bufsize: ptrdif
 	  let mut minlen: c_int = 0;
 	  let mut tem: ptrdiff_t = 0;
 
-	  let conversion = unsafe { *fmt } as u8 as char;
+	  let conversion = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { *fmt } as u8 as char;
 	  fmt = unsafe { fmt.add (1) };
 	  match conversion
 	    {
@@ -296,54 +296,54 @@ pub unsafe extern "C-unwind" fn doprnt (buffer: *mut c_char, mut bufsize: ptrdif
 		    length_modifier::no_modifier => {
 		      if unsigned
 			{
-			  let v = unsafe { ap.next_arg::<c_uint> () };
+			  let v = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { ap.next_arg::<c_uint> () };
 			  tem = unsafe { sprintf (sprintf_buffer, fmtstar.as_ptr (), wid, prec, v) } as ptrdiff_t;
 			}
 		      else
 			{
-			  let v = unsafe { ap.next_arg::<c_int> () };
+			  let v = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { ap.next_arg::<c_int> () };
 			  tem = unsafe { sprintf (sprintf_buffer, fmtstar.as_ptr (), wid, prec, v) } as ptrdiff_t;
 			}
 		    }
 		    length_modifier::long_modifier => {
 		      if unsigned
 			{
-			  let v = unsafe { ap.next_arg::<c_ulong> () };
+			  let v = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { ap.next_arg::<c_ulong> () };
 			  tem = unsafe { sprintf (sprintf_buffer, fmtstar.as_ptr (), wid, prec, v) } as ptrdiff_t;
 			}
 		      else
 			{
-			  let v = unsafe { ap.next_arg::<c_long> () };
+			  let v = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { ap.next_arg::<c_long> () };
 			  tem = unsafe { sprintf (sprintf_buffer, fmtstar.as_ptr (), wid, prec, v) } as ptrdiff_t;
 			}
 		    }
 		    /* C's `goto signed_pD_modifier` from the unsigned cases lands on the same
 		       block the 'd' case uses: a ptrdiff_t read, formatted with FMTSTAR.  */
 		    length_modifier::pD_modifier => {
-		      let v = unsafe { ap.next_arg::<ptrdiff_t> () };
+		      let v = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { ap.next_arg::<ptrdiff_t> () };
 		      tem = unsafe { sprintf (sprintf_buffer, fmtstar.as_ptr (), wid, prec, v) } as ptrdiff_t;
 		    }
 		    length_modifier::pI_modifier => {
 		      if unsigned
 			{
-			  let v = unsafe { ap.next_arg::<EMACS_UINT> () };
+			  let v = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { ap.next_arg::<EMACS_UINT> () };
 			  tem = unsafe { sprintf (sprintf_buffer, fmtstar.as_ptr (), wid, prec, v) } as ptrdiff_t;
 			}
 		      else
 			{
-			  let v = unsafe { ap.next_arg::<EMACS_INT> () };
+			  let v = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { ap.next_arg::<EMACS_INT> () };
 			  tem = unsafe { sprintf (sprintf_buffer, fmtstar.as_ptr (), wid, prec, v) } as ptrdiff_t;
 			}
 		    }
 		    length_modifier::pM_modifier => {
 		      if unsigned
 			{
-			  let v = unsafe { ap.next_arg::<u64> () };
+			  let v = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { ap.next_arg::<u64> () };
 			  tem = unsafe { sprintf (sprintf_buffer, fmtstar.as_ptr (), wid, prec, v) } as ptrdiff_t;
 			}
 		      else
 			{
-			  let v = unsafe { ap.next_arg::<i64> () };
+			  let v = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { ap.next_arg::<i64> () };
 			  tem = unsafe { sprintf (sprintf_buffer, fmtstar.as_ptr (), wid, prec, v) } as ptrdiff_t;
 			}
 		    }
@@ -353,7 +353,7 @@ pub unsafe extern "C-unwind" fn doprnt (buffer: *mut c_char, mut bufsize: ptrdif
 		tail = 1;
 	      }
 	      'f' | 'e' | 'g' => {
-		let d = unsafe { ap.next_arg::<c_double> () };
+		let d = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { ap.next_arg::<c_double> () };
 		tem = unsafe { sprintf (sprintf_buffer, fmtstar.as_ptr (), wid, prec, d) } as ptrdiff_t;
 		/* Now copy into final output, truncating as necessary.  */
 		string = sprintf_buffer;
@@ -361,7 +361,7 @@ pub unsafe extern "C-unwind" fn doprnt (buffer: *mut c_char, mut bufsize: ptrdif
 	      }
 	      'S' | 's' => {
 		minlen = if minusflag { -(wid) } else { wid };
-		string = unsafe { ap.next_arg::<*mut c_char> () };
+		string = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { ap.next_arg::<*mut c_char> () };
 		tem = unsafe { strnlen (string, (STRING_BYTES_BOUND + 1) as size_t) } as ptrdiff_t;
 		if tem == STRING_BYTES_BOUND + 1
 		  {
@@ -371,7 +371,7 @@ pub unsafe extern "C-unwind" fn doprnt (buffer: *mut c_char, mut bufsize: ptrdif
 		tail = 2;
 	      }
 	      'c' => {
-		charbuf = unsafe { charbuf_storage.as_mut_ptr () };
+		charbuf = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { charbuf_storage.as_mut_ptr () };
 		let chr = unsafe { ap.next_arg::<c_int> () };
 		tem = CHAR_STRING (chr, unsafe { charbuf as *mut u8 }) as ptrdiff_t;
 		string = charbuf;
@@ -385,7 +385,7 @@ pub unsafe extern "C-unwind" fn doprnt (buffer: *mut c_char, mut bufsize: ptrdif
 		tail = 0;
 	      }
 	      _ => {
-		unsafe { error (c"Invalid format operation %s".as_ptr (), fmt0) }
+		/* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { error (c"Invalid format operation %s".as_ptr (), fmt0) }
 	      }
 	    }
 
@@ -397,7 +397,7 @@ pub unsafe extern "C-unwind" fn doprnt (buffer: *mut c_char, mut bufsize: ptrdif
 		  eassert! (0 <= tem);
 		  if STRING_BYTES_BOUND < tem
 		    {
-		      unsafe { error (c"Format width or precision too large".as_ptr ()) }
+		      /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { error (c"Format width or precision too large".as_ptr ()) }
 		    }
 		  width = tem;
 		}
@@ -406,7 +406,7 @@ pub unsafe extern "C-unwind" fn doprnt (buffer: *mut c_char, mut bufsize: ptrdif
 		{
 		  while (minlen as ptrdiff_t) > width && bufsize > 0
 		    {
-		      unsafe { *bufptr = b' ' as c_char };
+		      /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { *bufptr = b' ' as c_char };
 		      bufptr = unsafe { bufptr.add (1) };
 		      bufsize -= 1;
 		      minlen -= 1;
@@ -420,7 +420,7 @@ pub unsafe extern "C-unwind" fn doprnt (buffer: *mut c_char, mut bufsize: ptrdif
 		  while tem != 0
 		    {
 		      tem -= 1;
-		      if CHAR_HEAD_P (unsafe { *string.offset (tem) } as c_int)
+		      if CHAR_HEAD_P (/* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { *string.offset (tem) } as c_int)
 			{
 			  if BYTES_BY_CHAR_HEAD (unsafe { *string.offset (tem) } as c_int) as ptrdiff_t
 			     <= bufsize - tem
@@ -431,7 +431,7 @@ pub unsafe extern "C-unwind" fn doprnt (buffer: *mut c_char, mut bufsize: ptrdif
 			}
 		    }
 
-		  unsafe { std::ptr::copy_nonoverlapping (string, bufptr, tem as usize) };
+		  /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { std::ptr::copy_nonoverlapping (string, bufptr, tem as usize) };
 		  while tem < bufsize
 		    {
 		      unsafe { *bufptr.offset (tem) = 0 };
@@ -440,18 +440,18 @@ pub unsafe extern "C-unwind" fn doprnt (buffer: *mut c_char, mut bufsize: ptrdif
 		  /* Trigger exit from the loop, but make sure we
 		     return to the caller a value which will indicate
 		     that the buffer was too small.  */
-		  bufptr = unsafe { bufptr.offset (bufsize) };
+		  bufptr = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { bufptr.offset (bufsize) };
 		  bufsize = 0;
 		  continue 'outer;
 		}
 	      unsafe { std::ptr::copy_nonoverlapping (string, bufptr, tem as usize) };
-	      bufptr = unsafe { bufptr.add (tem as usize) };
+	      bufptr = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { bufptr.add (tem as usize) };
 	      bufsize -= tem;
 	      if minlen < 0
 		{
 		  while (minlen as ptrdiff_t) < -width && bufsize > 0
 		    {
-		      unsafe { *bufptr = b' ' as c_char };
+		      /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { *bufptr = b' ' as c_char };
 		      bufptr = unsafe { bufptr.add (1) };
 		      bufsize -= 1;
 		      minlen += 1;
@@ -480,7 +480,7 @@ pub unsafe extern "C-unwind" fn doprnt (buffer: *mut c_char, mut bufsize: ptrdif
 	    {
 	      fmtchar = b'\'' as c_char;
 	    }
-	  unsafe { *bufptr = fmtchar };
+	  /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { *bufptr = fmtchar };
 	  bufptr = unsafe { bufptr.add (1) };
 	  bufsize -= 1;
 	  continue 'outer;
@@ -493,12 +493,12 @@ pub unsafe extern "C-unwind" fn doprnt (buffer: *mut c_char, mut bufsize: ptrdif
 	  /* If the format string ends in the middle of a multibyte
 	     character we don't want to skip over the NUL byte.  */
 	  srclen = 1;
-	  while unsafe { *src.offset (srclen) } != 0 && srclen < charlen
+	  while /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { *src.offset (srclen) } != 0 && srclen < charlen
 	    {
 	      srclen += 1;
 	    }
 
-	  fmt = unsafe { src.offset (srclen) };
+	  fmt = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { src.offset (srclen) };
 	}
 
       if bufsize < srclen
@@ -507,7 +507,7 @@ pub unsafe extern "C-unwind" fn doprnt (buffer: *mut c_char, mut bufsize: ptrdif
 	     that the buffer was too small.  */
 	  loop
 	    {
-	      unsafe { *bufptr = 0 };
+	      /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { *bufptr = 0 };
 	      bufptr = unsafe { bufptr.add (1) };
 	      bufsize -= 1;
 	      if bufsize == 0
@@ -520,7 +520,7 @@ pub unsafe extern "C-unwind" fn doprnt (buffer: *mut c_char, mut bufsize: ptrdif
 	{
 	  loop
 	    {
-	      unsafe {
+	      /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe {
 		*bufptr = *src;
 		bufptr = bufptr.add (1);
 		src = src.add (1);
@@ -536,10 +536,12 @@ pub unsafe extern "C-unwind" fn doprnt (buffer: *mut c_char, mut bufsize: ptrdif
     }
 
   /* If we had to malloc something, free it.  */
-  unsafe { xfree (big_buffer as *mut c_void) };
+  /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { xfree (big_buffer as *mut c_void) };
 
   unsafe { *bufptr = 0 };	/* Make sure our string ends with a '\0' */
   return unsafe { bufptr.offset_from (buffer) };
+
+  }
 }
 
 /* Format to an unbounded buffer BUF.  This is like sprintf, except it
@@ -554,11 +556,15 @@ pub unsafe extern "C-unwind" fn doprnt (buffer: *mut c_char, mut bufsize: ptrdif
 pub unsafe extern "C-unwind" fn esprintf (buf: *mut c_char, format: *const c_char,
                                    mut ap: ...) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   // C's `va_start (ap, format)` / `va_end (ap)` have no port counterpart: the `...`
   // parameter is the list (P-04).  `TYPE_MAXIMUM (ptrdiff_t)` from gnulib's intprops.h
   // is the type's maximum, i.e. isize::MAX.
   let nbytes = doprnt (buf, isize::MAX, format, std::ptr::null (), ap);
   return nbytes;
+
+  }
 }
 
 #[cfg(feature = "have_x_windows")]
@@ -581,6 +587,8 @@ pub unsafe extern "C-unwind" fn evxprintf (buf: *mut *mut c_char, bufsize: *mut 
                                     nonheapbuf: *mut c_char, bufsize_max: ptrdiff_t,
                                     format: *const c_char, mut ap: VaList<'_>) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   loop
     {
       // C: `va_list ap_copy; va_copy (ap_copy, ap);` … `va_end (ap_copy);` — the clone
@@ -598,4 +606,6 @@ pub unsafe extern "C-unwind" fn evxprintf (buf: *mut *mut c_char, bufsize: *mut 
 	}
       *buf = xpalloc (std::ptr::null_mut (), bufsize, 1, bufsize_max, 1) as *mut c_char;
     }
+
+  }
 }

@@ -23,6 +23,8 @@ type reg_char = c_uchar;
 #[unsafe(export_name = "memrchr")]
 pub unsafe extern "C" fn __memrchr (s: *const c_void, c_in: c_int, mut n: usize) -> *mut c_void
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   /* On 32-bit hardware, choosing longword to be a 32-bit unsigned
      long instead of a 64-bit uintmax_t tends to give better
      performance.  On 64-bit hardware, unsigned long is generally 64
@@ -142,4 +144,6 @@ pub unsafe extern "C" fn __memrchr (s: *const c_void, c_in: c_int, mut n: usize)
   }
 
   return std::ptr::null_mut ();
+
+  }
 }

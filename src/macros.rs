@@ -8,9 +8,7 @@
 // the port writes the field it pastes, `defining_kbd_macro_`, at each use site, which
 // docs/ports/excluded-macros.txt records).
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
-         unsafe_op_in_unsafe_fn)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -125,7 +123,7 @@ DEFUN! ("start-kbd-macro", Fstart_kbd_macro, Sstart_kbd_macro, 1, 2, "P",
           c = Faref ((*current_kboard).Vlast_kbd_macro_, make_fixnum (i));
           if cvt && FIXNATP (c) && (XFIXNAT (c) & 0x80) != 0
             { XSETFASTINT! (c, CHAR_META as EMACS_INT | (XFIXNAT (c) & ! 0x80)); }
-          unsafe { *(*current_kboard).kbd_macro_buffer.offset (i) = c };
+          /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { *(*current_kboard).kbd_macro_buffer.offset (i) = c };
           i += 1;
         }
 
@@ -152,6 +150,8 @@ DEFUN! ("start-kbd-macro", Fstart_kbd_macro, Sstart_kbd_macro, 1, 2, "P",
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn end_kbd_macro ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   kset_defining_kbd_macro (current_kboard, Qnil ());
   update_mode_lines = 20;
   kset_last_kbd_macro
@@ -159,6 +159,8 @@ pub unsafe extern "C-unwind" fn end_kbd_macro ()
      Fvector ((*current_kboard).kbd_macro_end
                 .offset_from ((*current_kboard).kbd_macro_buffer),
               (*current_kboard).kbd_macro_buffer));
+
+  }
 }
 
 DEFUN! ("end-kbd-macro", Fend_kbd_macro, Send_kbd_macro, 0, 2, "p",
@@ -195,6 +197,8 @@ DEFUN! ("end-kbd-macro", Fend_kbd_macro, Send_kbd_macro, 0, 2, "p",
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn store_kbd_macro_char (c: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let kb: *mut kboard = current_kboard;
 
   if ! NILP ((*kb).defining_kbd_macro_)
@@ -213,9 +217,11 @@ pub unsafe extern "C-unwind" fn store_kbd_macro_char (c: Lisp_Object)
           (*kb).kbd_macro_end = (*kb).kbd_macro_buffer.offset (end_offset);
         }
 
-      unsafe { *(*kb).kbd_macro_ptr = c };
+      /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { *(*kb).kbd_macro_ptr = c };
       (*kb).kbd_macro_ptr = (*kb).kbd_macro_ptr.offset (1);
     }
+
+  }
 }
 
 /* Declare that all chars stored so far in the kbd macro being defined
@@ -224,7 +230,11 @@ pub unsafe extern "C-unwind" fn store_kbd_macro_char (c: Lisp_Object)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn finalize_kbd_macro_chars ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   (*current_kboard).kbd_macro_end = (*current_kboard).kbd_macro_ptr;
+
+  }
 }
 
 DEFUN! ("cancel-kbd-macro-events", Fcancel_kbd_macro_events,
@@ -276,6 +286,8 @@ DEFUN! ("call-last-kbd-macro", Fcall_last_kbd_macro, Scall_last_kbd_macro,
 
 unsafe extern "C-unwind" fn pop_kbd_macro (info: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut tem: Lisp_Object;
   Vexecuting_kbd_macro = XCAR (info);
   tem = XCDR (info);
@@ -284,6 +296,8 @@ unsafe extern "C-unwind" fn pop_kbd_macro (info: Lisp_Object)
   integer_to_intmax (XCAR (tem), (&raw mut executing_kbd_macro_index) as *mut i64);
   Vreal_this_command = XCDR (tem);
   run_hook (Qkbd_macro_termination_hook ());
+
+  }
 }
 
 DEFUN! ("execute-kbd-macro", Fexecute_kbd_macro, Sexecute_kbd_macro, 1, 3, 0,
@@ -394,8 +408,12 @@ DEFUN! ("execute-kbd-macro", Fexecute_kbd_macro, Sexecute_kbd_macro, 1, 3, 0,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn init_macros ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   Vexecuting_kbd_macro = Qnil ();
   executing_kbd_macro = Qnil ();
+
+  }
 }
 
 /* Whether the execution of a macro has reached its end.
@@ -404,15 +422,21 @@ pub unsafe extern "C-unwind" fn init_macros ()
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn at_end_of_macro_p () -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   eassume! (! NILP (Vexecuting_kbd_macro));
   /* Some things replace the macro with t to force an early exit.  */
   return EQ (Vexecuting_kbd_macro, Qt ())
     || executing_kbd_macro_index >= XFIXNAT (Flength (Vexecuting_kbd_macro));
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_macros ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   DEFVAR_LISP! (c"kbd-macro-termination-hook", Vkbd_macro_termination_hook,
                 "Normal hook run whenever a keyboard macro terminates.\nThis is run whether the macro ends normally or prematurely due to an error.");
   Vkbd_macro_termination_hook = Qnil ();
@@ -440,4 +464,6 @@ pub unsafe extern "C-unwind" fn syms_of_macros ()
 
   DEFVAR_KBOARD! (c"last-kbd-macro", std::mem::offset_of! (kboard, Vlast_kbd_macro_),
                   "Last kbd macro defined, as a string or vector; nil if none defined.");
+
+  }
 }

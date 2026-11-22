@@ -1,4 +1,5 @@
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe, static_mut_refs, unsafe_op_in_unsafe_fn, unexpected_cfgs, ambiguous_glob_reexports)]
+#![deny(static_mut_refs, unsafe_op_in_unsafe_fn)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe, unexpected_cfgs, ambiguous_glob_reexports)]
 pub use femacs_pure;
 #[macro_use] pub mod common;
 pub mod client_os;

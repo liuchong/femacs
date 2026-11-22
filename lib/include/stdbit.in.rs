@@ -102,7 +102,7 @@ macro_rules! _GL_STDBIT_UINT_FAST64 { () => { __UINT_FAST64_TYPE__ }; }
 /// C: #  define _GL_STDBIT_MEMCPY(dest, src, n) memcpy (dest, src, n)
 macro_rules! _GL_STDBIT_MEMCPY {
   ($dest:expr, $src:expr, $n:expr) => {
-    unsafe { std::ptr::copy_nonoverlapping (($src) as *const _ as *const c_uchar,
+    /* SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure. */ unsafe { std::ptr::copy_nonoverlapping (($src) as *const _ as *const c_uchar,
                                             ($dest) as *mut _ as *mut c_uchar, $n) }
   };
 }
@@ -1280,7 +1280,7 @@ pub fn stdc_memreverse8 (n: usize, ptr: *mut c_uchar)
       let mut j: usize = n - 1;
       while i < j
         {
-          let xi: c_uchar = unsafe { *ptr.add (i) };
+          let xi: c_uchar = /* SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure. */ unsafe { *ptr.add (i) };
           let xj: c_uchar = unsafe { *ptr.add (j) };
           unsafe { *ptr.add (j) = xi; }
           unsafe { *ptr.add (i) = xj; }
@@ -1306,7 +1306,7 @@ pub fn stdc_memreverse8 (n: usize, ptr: *mut c_uchar)
 #[inline(always)]
 pub fn stdc_load8_beu8 (ptr: *const c_uchar) -> uint_least8_t
 {
-  return unsafe { *ptr.add (0) };
+  return /* SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure. */ unsafe { *ptr.add (0) };
 }
 
 /// C 1728: `stdc_load8_bes8 (const unsigned char ptr[1])`.
@@ -1320,7 +1320,7 @@ pub fn stdc_load8_bes8 (ptr: *const c_uchar) -> int_least8_t
 #[inline(always)]
 pub fn stdc_load8_beu16 (ptr: *const c_uchar) -> uint_least16_t
 {
-  let v0: _GL_STDBIT_UINT_FAST16 = unsafe { *ptr.add (0) as _GL_STDBIT_UINT_FAST16 };
+  let v0: _GL_STDBIT_UINT_FAST16 = /* SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure. */ unsafe { *ptr.add (0) as _GL_STDBIT_UINT_FAST16 };
   let v1: _GL_STDBIT_UINT_FAST16 = unsafe { *ptr.add (1) as _GL_STDBIT_UINT_FAST16 };
   return (v0 << (8 * 1)) | (v1 << (8 * 0));
 }
@@ -1336,7 +1336,7 @@ pub fn stdc_load8_bes16 (ptr: *const c_uchar) -> int_least16_t
 #[inline(always)]
 pub fn stdc_load8_beu32 (ptr: *const c_uchar) -> uint_least32_t
 {
-  let v0: _GL_STDBIT_UINT_FAST32 = unsafe { *ptr.add (0) as _GL_STDBIT_UINT_FAST32 };
+  let v0: _GL_STDBIT_UINT_FAST32 = /* SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure. */ unsafe { *ptr.add (0) as _GL_STDBIT_UINT_FAST32 };
   let v1: _GL_STDBIT_UINT_FAST32 = unsafe { *ptr.add (1) as _GL_STDBIT_UINT_FAST32 };
   let v2: _GL_STDBIT_UINT_FAST32 = unsafe { *ptr.add (2) as _GL_STDBIT_UINT_FAST32 };
   let v3: _GL_STDBIT_UINT_FAST32 = unsafe { *ptr.add (3) as _GL_STDBIT_UINT_FAST32 };
@@ -1354,12 +1354,12 @@ pub fn stdc_load8_bes32 (ptr: *const c_uchar) -> int_least32_t
 #[inline(always)]
 pub fn stdc_load8_beu64 (ptr: *const c_uchar) -> uint_least64_t
 {
-  let v0: _GL_STDBIT_UINT_FAST64 = unsafe { *ptr.add (0) as _GL_STDBIT_UINT_FAST64 };
+  let v0: _GL_STDBIT_UINT_FAST64 = /* SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure. */ unsafe { *ptr.add (0) as _GL_STDBIT_UINT_FAST64 };
   let v1: _GL_STDBIT_UINT_FAST64 = unsafe { *ptr.add (1) as _GL_STDBIT_UINT_FAST64 };
   let v2: _GL_STDBIT_UINT_FAST64 = unsafe { *ptr.add (2) as _GL_STDBIT_UINT_FAST64 };
   let v3: _GL_STDBIT_UINT_FAST64 = unsafe { *ptr.add (3) as _GL_STDBIT_UINT_FAST64 };
   let v4: _GL_STDBIT_UINT_FAST64 = unsafe { *ptr.add (4) as _GL_STDBIT_UINT_FAST64 };
-  let v5: _GL_STDBIT_UINT_FAST64 = unsafe { *ptr.add (5) as _GL_STDBIT_UINT_FAST64 };
+  let v5: _GL_STDBIT_UINT_FAST64 = /* SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure. */ unsafe { *ptr.add (5) as _GL_STDBIT_UINT_FAST64 };
   let v6: _GL_STDBIT_UINT_FAST64 = unsafe { *ptr.add (6) as _GL_STDBIT_UINT_FAST64 };
   let v7: _GL_STDBIT_UINT_FAST64 = unsafe { *ptr.add (7) as _GL_STDBIT_UINT_FAST64 };
   return (v0 << (8 * 7)) | (v1 << (8 * 6)) | (v2 << (8 * 5)) | (v3 << (8 * 4)) | (v4 << (8 * 3)) | (v5 << (8 * 2)) | (v6 << (8 * 1)) | (v7 << (8 * 0));
@@ -1376,7 +1376,7 @@ pub fn stdc_load8_bes64 (ptr: *const c_uchar) -> int_least64_t
 #[inline(always)]
 pub fn stdc_load8_leu8 (ptr: *const c_uchar) -> uint_least8_t
 {
-  return unsafe { *ptr.add (0) };
+  return /* SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure. */ unsafe { *ptr.add (0) };
 }
 
 /// C 1752: `stdc_load8_les8 (const unsigned char ptr[1])`.
@@ -1390,7 +1390,7 @@ pub fn stdc_load8_les8 (ptr: *const c_uchar) -> int_least8_t
 #[inline(always)]
 pub fn stdc_load8_leu16 (ptr: *const c_uchar) -> uint_least16_t
 {
-  let v0: _GL_STDBIT_UINT_FAST16 = unsafe { *ptr.add (0) as _GL_STDBIT_UINT_FAST16 };
+  let v0: _GL_STDBIT_UINT_FAST16 = /* SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure. */ unsafe { *ptr.add (0) as _GL_STDBIT_UINT_FAST16 };
   let v1: _GL_STDBIT_UINT_FAST16 = unsafe { *ptr.add (1) as _GL_STDBIT_UINT_FAST16 };
   return (v0 << (8 * 0)) | (v1 << (8 * 1));
 }
@@ -1406,7 +1406,7 @@ pub fn stdc_load8_les16 (ptr: *const c_uchar) -> int_least16_t
 #[inline(always)]
 pub fn stdc_load8_leu32 (ptr: *const c_uchar) -> uint_least32_t
 {
-  let v0: _GL_STDBIT_UINT_FAST32 = unsafe { *ptr.add (0) as _GL_STDBIT_UINT_FAST32 };
+  let v0: _GL_STDBIT_UINT_FAST32 = /* SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure. */ unsafe { *ptr.add (0) as _GL_STDBIT_UINT_FAST32 };
   let v1: _GL_STDBIT_UINT_FAST32 = unsafe { *ptr.add (1) as _GL_STDBIT_UINT_FAST32 };
   let v2: _GL_STDBIT_UINT_FAST32 = unsafe { *ptr.add (2) as _GL_STDBIT_UINT_FAST32 };
   let v3: _GL_STDBIT_UINT_FAST32 = unsafe { *ptr.add (3) as _GL_STDBIT_UINT_FAST32 };
@@ -1424,12 +1424,12 @@ pub fn stdc_load8_les32 (ptr: *const c_uchar) -> int_least32_t
 #[inline(always)]
 pub fn stdc_load8_leu64 (ptr: *const c_uchar) -> uint_least64_t
 {
-  let v0: _GL_STDBIT_UINT_FAST64 = unsafe { *ptr.add (0) as _GL_STDBIT_UINT_FAST64 };
+  let v0: _GL_STDBIT_UINT_FAST64 = /* SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure. */ unsafe { *ptr.add (0) as _GL_STDBIT_UINT_FAST64 };
   let v1: _GL_STDBIT_UINT_FAST64 = unsafe { *ptr.add (1) as _GL_STDBIT_UINT_FAST64 };
   let v2: _GL_STDBIT_UINT_FAST64 = unsafe { *ptr.add (2) as _GL_STDBIT_UINT_FAST64 };
   let v3: _GL_STDBIT_UINT_FAST64 = unsafe { *ptr.add (3) as _GL_STDBIT_UINT_FAST64 };
   let v4: _GL_STDBIT_UINT_FAST64 = unsafe { *ptr.add (4) as _GL_STDBIT_UINT_FAST64 };
-  let v5: _GL_STDBIT_UINT_FAST64 = unsafe { *ptr.add (5) as _GL_STDBIT_UINT_FAST64 };
+  let v5: _GL_STDBIT_UINT_FAST64 = /* SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure. */ unsafe { *ptr.add (5) as _GL_STDBIT_UINT_FAST64 };
   let v6: _GL_STDBIT_UINT_FAST64 = unsafe { *ptr.add (6) as _GL_STDBIT_UINT_FAST64 };
   let v7: _GL_STDBIT_UINT_FAST64 = unsafe { *ptr.add (7) as _GL_STDBIT_UINT_FAST64 };
   return (v0 << (8 * 0)) | (v1 << (8 * 1)) | (v2 << (8 * 2)) | (v3 << (8 * 3)) | (v4 << (8 * 4)) | (v5 << (8 * 5)) | (v6 << (8 * 6)) | (v7 << (8 * 7));
@@ -1606,7 +1606,7 @@ pub fn stdc_load8_aligned_les64 (ptr: *const c_uchar) -> int_least64_t
 #[inline(always)]
 pub fn stdc_store8_beu8 (value: uint_least8_t, ptr: *mut c_uchar)
 {
-  unsafe { *ptr.add (0) = value; }
+  /* SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure. */ unsafe { *ptr.add (0) = value; }
 }
 
 /// C 2017: `stdc_store8_bes8 (int_least8_t value, unsigned char ptr[1])`.
@@ -1620,7 +1620,7 @@ pub fn stdc_store8_bes8 (value: int_least8_t, ptr: *mut c_uchar)
 #[inline(always)]
 pub fn stdc_store8_beu16 (value: uint_least16_t, ptr: *mut c_uchar)
 {
-  unsafe { *ptr.add (0) = ((value >> 8) & 0xFF) as c_uchar };
+  /* SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure. */ unsafe { *ptr.add (0) = ((value >> 8) & 0xFF) as c_uchar };
   unsafe { *ptr.add (1) = (value & 0xFF) as c_uchar };
 }
 
@@ -1635,7 +1635,7 @@ pub fn stdc_store8_bes16 (value: int_least16_t, ptr: *mut c_uchar)
 #[inline(always)]
 pub fn stdc_store8_beu32 (value: uint_least32_t, ptr: *mut c_uchar)
 {
-  unsafe { *ptr.add (0) = ((value >> 24) & 0xFF) as c_uchar };
+  /* SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure. */ unsafe { *ptr.add (0) = ((value >> 24) & 0xFF) as c_uchar };
   unsafe { *ptr.add (1) = ((value >> 16) & 0xFF) as c_uchar };
   unsafe { *ptr.add (2) = ((value >> 8) & 0xFF) as c_uchar };
   unsafe { *ptr.add (3) = (value & 0xFF) as c_uchar };
@@ -1652,12 +1652,12 @@ pub fn stdc_store8_bes32 (value: int_least32_t, ptr: *mut c_uchar)
 #[inline(always)]
 pub fn stdc_store8_beu64 (value: uint_least64_t, ptr: *mut c_uchar)
 {
-  unsafe { *ptr.add (0) = ((value >> 56) & 0xFF) as c_uchar };
+  /* SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure. */ unsafe { *ptr.add (0) = ((value >> 56) & 0xFF) as c_uchar };
   unsafe { *ptr.add (1) = ((value >> 48) & 0xFF) as c_uchar };
   unsafe { *ptr.add (2) = ((value >> 40) & 0xFF) as c_uchar };
   unsafe { *ptr.add (3) = ((value >> 32) & 0xFF) as c_uchar };
   unsafe { *ptr.add (4) = ((value >> 24) & 0xFF) as c_uchar };
-  unsafe { *ptr.add (5) = ((value >> 16) & 0xFF) as c_uchar };
+  /* SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure. */ unsafe { *ptr.add (5) = ((value >> 16) & 0xFF) as c_uchar };
   unsafe { *ptr.add (6) = ((value >> 8) & 0xFF) as c_uchar };
   unsafe { *ptr.add (7) = (value & 0xFF) as c_uchar };
 }
@@ -1673,7 +1673,7 @@ pub fn stdc_store8_bes64 (value: int_least64_t, ptr: *mut c_uchar)
 #[inline(always)]
 pub fn stdc_store8_leu8 (value: uint_least8_t, ptr: *mut c_uchar)
 {
-  unsafe { *ptr.add (0) = value; }
+  /* SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure. */ unsafe { *ptr.add (0) = value; }
 }
 
 /// C 2041: `stdc_store8_les8 (int_least8_t value, unsigned char ptr[1])`.
@@ -1687,7 +1687,7 @@ pub fn stdc_store8_les8 (value: int_least8_t, ptr: *mut c_uchar)
 #[inline(always)]
 pub fn stdc_store8_leu16 (value: uint_least16_t, ptr: *mut c_uchar)
 {
-  unsafe { *ptr.add (0) = (value & 0xFF) as c_uchar };
+  /* SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure. */ unsafe { *ptr.add (0) = (value & 0xFF) as c_uchar };
   unsafe { *ptr.add (1) = ((value >> 8) & 0xFF) as c_uchar };
 }
 
@@ -1702,7 +1702,7 @@ pub fn stdc_store8_les16 (value: int_least16_t, ptr: *mut c_uchar)
 #[inline(always)]
 pub fn stdc_store8_leu32 (value: uint_least32_t, ptr: *mut c_uchar)
 {
-  unsafe { *ptr.add (0) = (value & 0xFF) as c_uchar };
+  /* SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure. */ unsafe { *ptr.add (0) = (value & 0xFF) as c_uchar };
   unsafe { *ptr.add (1) = ((value >> 8) & 0xFF) as c_uchar };
   unsafe { *ptr.add (2) = ((value >> 16) & 0xFF) as c_uchar };
   unsafe { *ptr.add (3) = ((value >> 24) & 0xFF) as c_uchar };
@@ -1719,12 +1719,12 @@ pub fn stdc_store8_les32 (value: int_least32_t, ptr: *mut c_uchar)
 #[inline(always)]
 pub fn stdc_store8_leu64 (value: uint_least64_t, ptr: *mut c_uchar)
 {
-  unsafe { *ptr.add (0) = (value & 0xFF) as c_uchar };
+  /* SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure. */ unsafe { *ptr.add (0) = (value & 0xFF) as c_uchar };
   unsafe { *ptr.add (1) = ((value >> 8) & 0xFF) as c_uchar };
   unsafe { *ptr.add (2) = ((value >> 16) & 0xFF) as c_uchar };
   unsafe { *ptr.add (3) = ((value >> 24) & 0xFF) as c_uchar };
   unsafe { *ptr.add (4) = ((value >> 32) & 0xFF) as c_uchar };
-  unsafe { *ptr.add (5) = ((value >> 40) & 0xFF) as c_uchar };
+  /* SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure. */ unsafe { *ptr.add (5) = ((value >> 40) & 0xFF) as c_uchar };
   unsafe { *ptr.add (6) = ((value >> 48) & 0xFF) as c_uchar };
   unsafe { *ptr.add (7) = ((value >> 56) & 0xFF) as c_uchar };
 }

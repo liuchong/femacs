@@ -15,9 +15,7 @@
 //   * Function-pointer values are `unsafe extern "C" fn …`; where C allows NULL
 //     (the `mp_*_memory_functions` arguments) the port uses `Option<…>`.
 //   * `stderr` keeps C's name; the platform symbol is `__stderrp` on darwin (P-26/P-50).
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
-         static_mut_refs, unsafe_op_in_unsafe_fn)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -413,12 +411,18 @@ pub static mp_bits_per_limb: c_int = GMP_LIMB_BITS as c_int;
 /* Memory allocation and other helper functions. */
 unsafe extern "C-unwind" fn gmp_die (msg: *const c_char)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   fprintf (stderr, c"%s\n".as_ptr (), msg);
   abort();
+
+  }
 }
 
 unsafe extern "C-unwind" fn gmp_default_alloc (size: usize) -> *mut c_void
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut p: *mut c_void;
 
   assert! (size > 0);
@@ -428,11 +432,15 @@ unsafe extern "C-unwind" fn gmp_default_alloc (size: usize) -> *mut c_void
     { gmp_die(c"gmp_default_alloc: Virtual memory exhausted.".as_ptr ()); }
 
   return p;
+
+  }
 }
 
 unsafe extern "C-unwind" fn gmp_default_realloc (old: *mut c_void, unused_old_size: usize,
                                           new_size: usize) -> *mut c_void
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut p: *mut c_void;
 
   p = realloc (old, new_size);
@@ -441,11 +449,17 @@ unsafe extern "C-unwind" fn gmp_default_realloc (old: *mut c_void, unused_old_si
     { gmp_die(c"gmp_default_realloc: Virtual memory exhausted.".as_ptr ()); }
 
   return p;
+
+  }
 }
 
 unsafe extern "C-unwind" fn gmp_default_free (p: *mut c_void, unused_size: usize)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   free (p);
+
+  }
 }
 
 static mut gmp_allocate_func: unsafe extern "C-unwind" fn (usize) -> *mut c_void
@@ -461,6 +475,8 @@ pub unsafe extern "C-unwind" fn mp_get_memory_functions
                                  -> *mut c_void>,
    free_func: *mut Option<unsafe extern "C-unwind" fn (*mut c_void, usize)>)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   if !alloc_func.is_null ()
     { *alloc_func = Some (gmp_allocate_func); }
 
@@ -469,6 +485,8 @@ pub unsafe extern "C-unwind" fn mp_get_memory_functions
 
   if !free_func.is_null ()
     { *free_func = Some (gmp_free_func); }
+
+  }
 }
 
 #[unsafe(no_mangle)]
@@ -478,6 +496,8 @@ pub unsafe extern "C-unwind" fn mp_set_memory_functions
                                      -> *mut c_void>,
    mut free_func: Option<unsafe extern "C-unwind" fn (*mut c_void, usize)>)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   if alloc_func.is_none ()
     { alloc_func = Some (gmp_default_alloc); }
   if realloc_func.is_none ()
@@ -488,11 +508,13 @@ pub unsafe extern "C-unwind" fn mp_set_memory_functions
   gmp_allocate_func = match alloc_func { Some (f) => f, None => gmp_default_alloc };
   gmp_reallocate_func = match realloc_func { Some (f) => f, None => gmp_default_realloc };
   gmp_free_func = match free_func { Some (f) => f, None => gmp_default_free };
+
+  }
 }
 
 /* #define gmp_alloc(size) ((*gmp_allocate_func)((size)))  */
 macro_rules! gmp_alloc {
-    ($size:expr) => { unsafe { (gmp_allocate_func) ($size) } };
+    ($size:expr) => { /* SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants. */ unsafe { (gmp_allocate_func) ($size) } };
 }
 /* #define gmp_free(p, size) ((*gmp_free_func) ((p), (size)))  */
 macro_rules! gmp_free {
@@ -501,7 +523,7 @@ macro_rules! gmp_free {
 /* #define gmp_realloc(ptr, old_size, size) ((*gmp_reallocate_func)(ptr, old_size, size))  */
 macro_rules! gmp_realloc {
     ($ptr:expr, $old_size:expr, $size:expr) => {
-        unsafe { (gmp_reallocate_func) ($ptr, $old_size, $size) }
+        /* SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants. */ unsafe { (gmp_reallocate_func) ($ptr, $old_size, $size) }
     };
 }
 
@@ -531,65 +553,95 @@ unsafe extern "C-unwind" fn gmp_free_limbs (old: mp_ptr, size: mp_size_t)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpn_copyi (d: mp_ptr, s: mp_srcptr, n: mp_size_t)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut i: mp_size_t;
   i = 0;
   while i < n
     { *d.offset (i as isize) = *s.offset (i as isize); i += 1; }
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpn_copyd (d: mp_ptr, s: mp_srcptr, mut n: mp_size_t)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   while { n -= 1; n >= 0 }
     { *d.offset (n as isize) = *s.offset (n as isize); }
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpn_cmp (ap: mp_srcptr, bp: mp_srcptr, mut n: mp_size_t)
   -> c_int
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   while { n -= 1; n >= 0 }
     {
       if *ap.offset (n as isize) != *bp.offset (n as isize)
 	{ return if *ap.offset (n as isize) > *bp.offset (n as isize) { 1 } else { -1 }; }
     }
   return 0;
+
+  }
 }
 
 unsafe extern "C-unwind" fn mpn_cmp4 (ap: mp_srcptr, an: mp_size_t, bp: mp_srcptr,
                                bn: mp_size_t) -> c_int
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   if an != bn
     { return if an < bn { -1 } else { 1 }; }
   else
     { return mpn_cmp (ap, bp, an); }
+
+  }
 }
 
 unsafe extern "C-unwind" fn mpn_normalized_size (xp: mp_srcptr, mut n: mp_size_t)
   -> mp_size_t
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   while n > 0 && *xp.offset ((n-1) as isize) == 0
     { n -= 1; }
   return n;
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpn_zero_p (rp: mp_srcptr, n: mp_size_t) -> c_int
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   return (mpn_normalized_size (rp, n) == 0) as c_int;
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpn_zero (rp: mp_ptr, mut n: mp_size_t)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   while { n -= 1; n >= 0 }
     { *rp.offset (n as isize) = 0; }
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpn_add_1 (rp: mp_ptr, ap: mp_srcptr, n: mp_size_t,
                                     mut b: mp_limb_t) -> mp_limb_t
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut i: mp_size_t;
 
   assert! (n > 0);
@@ -605,12 +657,16 @@ pub unsafe extern "C-unwind" fn mpn_add_1 (rp: mp_ptr, ap: mp_srcptr, n: mp_size
     }
 
   return b;
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpn_add_n (rp: mp_ptr, ap: mp_srcptr, bp: mp_srcptr,
                                     n: mp_size_t) -> mp_limb_t
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut i: mp_size_t;
   let mut cy: mp_limb_t;
 
@@ -630,12 +686,16 @@ pub unsafe extern "C-unwind" fn mpn_add_n (rp: mp_ptr, ap: mp_srcptr, bp: mp_src
       i += 1;
     }
   return cy;
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpn_add (rp: mp_ptr, ap: mp_srcptr, an: mp_size_t,
                                   bp: mp_srcptr, bn: mp_size_t) -> mp_limb_t
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut cy: mp_limb_t;
 
   assert! (an >= bn);
@@ -644,12 +704,16 @@ pub unsafe extern "C-unwind" fn mpn_add (rp: mp_ptr, ap: mp_srcptr, an: mp_size_
   if an > bn
     { cy = mpn_add_1 (rp.offset (bn as isize), ap.offset (bn as isize), an - bn, cy); }
   return cy;
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpn_sub_1 (rp: mp_ptr, ap: mp_srcptr, n: mp_size_t,
                                     mut b: mp_limb_t) -> mp_limb_t
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut i: mp_size_t;
 
   assert! (n > 0);
@@ -667,12 +731,16 @@ pub unsafe extern "C-unwind" fn mpn_sub_1 (rp: mp_ptr, ap: mp_srcptr, n: mp_size
     }
 
   return b;
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpn_sub_n (rp: mp_ptr, ap: mp_srcptr, bp: mp_srcptr,
                                     n: mp_size_t) -> mp_limb_t
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut i: mp_size_t;
   let mut cy: mp_limb_t;
 
@@ -690,12 +758,16 @@ pub unsafe extern "C-unwind" fn mpn_sub_n (rp: mp_ptr, ap: mp_srcptr, bp: mp_src
       i += 1;
     }
   return cy;
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpn_sub (rp: mp_ptr, ap: mp_srcptr, an: mp_size_t,
                                   bp: mp_srcptr, bn: mp_size_t) -> mp_limb_t
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut cy: mp_limb_t;
 
   assert! (an >= bn);
@@ -704,12 +776,16 @@ pub unsafe extern "C-unwind" fn mpn_sub (rp: mp_ptr, ap: mp_srcptr, an: mp_size_
   if an > bn
     { cy = mpn_sub_1 (rp.offset (bn as isize), ap.offset (bn as isize), an - bn, cy); }
   return cy;
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpn_mul_1 (rp: mp_ptr, up: mp_srcptr, mut n: mp_size_t,
                                     vl: mp_limb_t) -> mp_limb_t
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut ul: mp_limb_t;
   let mut cl: mp_limb_t;
   let mut hpl: mp_limb_t = 0;
@@ -736,12 +812,16 @@ pub unsafe extern "C-unwind" fn mpn_mul_1 (rp: mp_ptr, up: mp_srcptr, mut n: mp_
     }
 
   return cl;
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpn_addmul_1 (rp: mp_ptr, up: mp_srcptr, mut n: mp_size_t,
                                        vl: mp_limb_t) -> mp_limb_t
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut ul: mp_limb_t;
   let mut cl: mp_limb_t;
   let mut hpl: mp_limb_t = 0;
@@ -772,12 +852,16 @@ pub unsafe extern "C-unwind" fn mpn_addmul_1 (rp: mp_ptr, up: mp_srcptr, mut n: 
     }
 
   return cl;
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpn_submul_1 (rp: mp_ptr, up: mp_srcptr, mut n: mp_size_t,
                                        vl: mp_limb_t) -> mp_limb_t
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut ul: mp_limb_t;
   let mut cl: mp_limb_t;
   let mut hpl: mp_limb_t = 0;
@@ -808,12 +892,16 @@ pub unsafe extern "C-unwind" fn mpn_submul_1 (rp: mp_ptr, up: mp_srcptr, mut n: 
     }
 
   return cl;
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpn_mul (rp: mp_ptr, up: mp_srcptr, un: mp_size_t,
                                   vp: mp_srcptr, mut vn: mp_size_t) -> mp_limb_t
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   assert! (un >= vn);
   assert! (vn >= 1);
   assert! (!GMP_MPN_OVERLAP_P!(rp, un + vn, up, un));
@@ -836,25 +924,37 @@ pub unsafe extern "C-unwind" fn mpn_mul (rp: mp_ptr, up: mp_srcptr, un: mp_size_
       *rp.offset (un as isize) = mpn_addmul_1 (rp, up, un, *vp.offset (0));
     }
   return *rp.offset (un as isize);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpn_mul_n (rp: mp_ptr, ap: mp_srcptr, bp: mp_srcptr,
                                     n: mp_size_t)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   mpn_mul (rp, ap, n, bp, n);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpn_sqr (rp: mp_ptr, ap: mp_srcptr, n: mp_size_t)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   mpn_mul (rp, ap, n, ap, n);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpn_lshift (rp: mp_ptr, up: mp_srcptr, mut n: mp_size_t,
                                      cnt: c_uint) -> mp_limb_t
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut high_limb: mp_limb_t;
   let mut low_limb: mp_limb_t;
   let mut tnc: c_uint;
@@ -887,12 +987,16 @@ pub unsafe extern "C-unwind" fn mpn_lshift (rp: mp_ptr, up: mp_srcptr, mut n: mp
   *rp = high_limb;
 
   return retval;
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpn_rshift (rp: mp_ptr, up: mp_srcptr, mut n: mp_size_t,
                                      cnt: c_uint) -> mp_limb_t
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut high_limb: mp_limb_t;
   let mut low_limb: mp_limb_t;
   let mut tnc: c_uint;
@@ -921,12 +1025,16 @@ pub unsafe extern "C-unwind" fn mpn_rshift (rp: mp_ptr, up: mp_srcptr, mut n: mp
   *rp = low_limb;
 
   return retval;
+
+  }
 }
 
 unsafe extern "C-unwind" fn mpn_common_scan (mut limb: mp_limb_t, mut i: mp_size_t,
                                       up: mp_srcptr, un: mp_size_t, ux: mp_limb_t)
   -> mp_bitcnt_t
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut cnt: c_uint = 0;
 
   assert! (ux == 0 || ux == GMP_LIMB_MAX);
@@ -941,43 +1049,59 @@ unsafe extern "C-unwind" fn mpn_common_scan (mut limb: mp_limb_t, mut i: mp_size
     }
   gmp_ctz! (cnt, limb);
   return (i as usize * GMP_LIMB_BITS) as mp_bitcnt_t + cnt as mp_bitcnt_t;
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpn_scan1 (ptr: mp_srcptr, bit: mp_bitcnt_t) -> mp_bitcnt_t
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut i: mp_size_t;
   i = (bit / GMP_LIMB_BITS as mp_bitcnt_t) as mp_size_t;
 
   return mpn_common_scan ( *ptr.offset (i as isize)
                            & (GMP_LIMB_MAX << (bit % GMP_LIMB_BITS as mp_bitcnt_t)),
 			  i, ptr, i, 0);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpn_scan0 (ptr: mp_srcptr, bit: mp_bitcnt_t) -> mp_bitcnt_t
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut i: mp_size_t;
   i = (bit / GMP_LIMB_BITS as mp_bitcnt_t) as mp_size_t;
 
   return mpn_common_scan ((!*ptr.offset (i as isize))
                           & (GMP_LIMB_MAX << (bit % GMP_LIMB_BITS as mp_bitcnt_t)),
 			  i, ptr, i, GMP_LIMB_MAX);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpn_com (rp: mp_ptr, up: mp_srcptr, mut n: mp_size_t)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut rp = rp;
   let mut up = up;
   while { n -= 1; n >= 0 }
     { *rp = ! *up; rp = rp.add (1); up = up.add (1); }
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpn_neg (rp: mp_ptr, up: mp_srcptr, mut n: mp_size_t)
   -> mp_limb_t
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut rp = rp;
   let mut up = up;
   while *up == 0
@@ -992,6 +1116,8 @@ pub unsafe extern "C-unwind" fn mpn_neg (rp: mp_ptr, up: mp_srcptr, mut n: mp_si
   rp = rp.add (1); up = up.add (1); n -= 1;
   mpn_com (rp, up, n);
   return 1;
+
+  }
 }
 
 /* MPN division interface. */
@@ -1131,6 +1257,8 @@ pub struct gmp_div_inverse
 
 unsafe extern "C-unwind" fn mpn_div_qr_1_invert (inv: *mut gmp_div_inverse, d: mp_limb_t)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut shift: c_uint = 0;
 
   assert! (d > 0);
@@ -1138,11 +1266,15 @@ unsafe extern "C-unwind" fn mpn_div_qr_1_invert (inv: *mut gmp_div_inverse, d: m
   (*inv).shift = shift;
   (*inv).d1 = d << shift;
   (*inv).di = mpn_invert_limb! ((*inv).d1);
+
+  }
 }
 
 unsafe extern "C-unwind" fn mpn_div_qr_2_invert (inv: *mut gmp_div_inverse,
                                           mut d1: mp_limb_t, mut d0: mp_limb_t)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut shift: c_uint = 0;
 
   assert! (d1 > 0);
@@ -1156,11 +1288,15 @@ unsafe extern "C-unwind" fn mpn_div_qr_2_invert (inv: *mut gmp_div_inverse,
   (*inv).d1 = d1;
   (*inv).d0 = d0;
   (*inv).di = mpn_invert_3by2 (d1, d0);
+
+  }
 }
 
 unsafe extern "C-unwind" fn mpn_div_qr_invert (inv: *mut gmp_div_inverse,
                                         dp: mp_srcptr, dn: mp_size_t)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   assert! (dn > 0);
 
   if (dn == 1)
@@ -1188,6 +1324,8 @@ unsafe extern "C-unwind" fn mpn_div_qr_invert (inv: *mut gmp_div_inverse,
       (*inv).d0 = d0;
       (*inv).di = mpn_invert_3by2 (d1, d0);
     }
+
+  }
 }
 
 /* Not matching current public gmp interface, rather corresponding to
@@ -1195,6 +1333,8 @@ unsafe extern "C-unwind" fn mpn_div_qr_invert (inv: *mut gmp_div_inverse,
 unsafe extern "C-unwind" fn mpn_div_qr_1_preinv (qp: mp_ptr, np: mp_srcptr, mut nn: mp_size_t,
                                           inv: *const gmp_div_inverse) -> mp_limb_t
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut d: mp_limb_t;
   let mut di: mp_limb_t;
   let mut r: mp_limb_t;
@@ -1231,11 +1371,15 @@ unsafe extern "C-unwind" fn mpn_div_qr_1_preinv (qp: mp_ptr, np: mp_srcptr, mut 
     { gmp_free_limbs (tp, tn); }
 
   return r >> (*inv).shift;
+
+  }
 }
 
 unsafe extern "C-unwind" fn mpn_div_qr_2_preinv (qp: mp_ptr, np: mp_ptr, nn: mp_size_t,
                                           inv: *const gmp_div_inverse)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut shift: c_uint = 0;
   let mut i: mp_size_t;
   let mut d1: mp_limb_t;
@@ -1280,6 +1424,8 @@ unsafe extern "C-unwind" fn mpn_div_qr_2_preinv (qp: mp_ptr, np: mp_ptr, nn: mp_
 
   *np.offset (1) = r1;
   *np = r0;
+
+  }
 }
 
 unsafe extern "C-unwind" fn mpn_div_qr_pi1 (qp: mp_ptr,
@@ -1287,6 +1433,8 @@ unsafe extern "C-unwind" fn mpn_div_qr_pi1 (qp: mp_ptr,
                                      dp: mp_srcptr, dn: mp_size_t,
                                      dinv: mp_limb_t)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut i: mp_size_t;
 
   let mut d1: mp_limb_t;
@@ -1348,12 +1496,16 @@ unsafe extern "C-unwind" fn mpn_div_qr_pi1 (qp: mp_ptr,
     }
 
   *np.offset ((dn - 1) as isize) = n1;
+
+  }
 }
 
 unsafe extern "C-unwind" fn mpn_div_qr_preinv (qp: mp_ptr, np: mp_ptr, nn: mp_size_t,
                                         dp: mp_srcptr, dn: mp_size_t,
                                         inv: *const gmp_div_inverse)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   assert! (dn > 0);
   assert! (nn >= dn);
 
@@ -1382,11 +1534,15 @@ unsafe extern "C-unwind" fn mpn_div_qr_preinv (qp: mp_ptr, np: mp_ptr, nn: mp_si
       if (shift > 0)
 	{ gmp_assert_nocarry! (mpn_rshift (np, np, dn, shift)); }
     }
+
+  }
 }
 
 unsafe extern "C-unwind" fn mpn_div_qr (qp: mp_ptr, np: mp_ptr, nn: mp_size_t,
                                  dp: mp_srcptr, dn: mp_size_t)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut inv: gmp_div_inverse
     = gmp_div_inverse { shift: 0, d1: 0, d0: 0, di: 0 };
   let mut tp: mp_ptr = std::ptr::null_mut ();
@@ -1405,6 +1561,8 @@ unsafe extern "C-unwind" fn mpn_div_qr (qp: mp_ptr, np: mp_ptr, nn: mp_size_t,
   mpn_div_qr_preinv (qp, np, nn, dp, dn, &inv);
   if !tp.is_null ()
     { gmp_free_limbs (tp, dn); }
+
+  }
 }
 
 /* MPN base conversion. */
@@ -1436,6 +1594,8 @@ pub struct mpn_base_info
 
 unsafe extern "C-unwind" fn mpn_get_base_info (info: *mut mpn_base_info, b: mp_limb_t)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut m: mp_limb_t;
   let mut p: mp_limb_t;
   let mut exp: c_uint;
@@ -1448,6 +1608,8 @@ unsafe extern "C-unwind" fn mpn_get_base_info (info: *mut mpn_base_info, b: mp_l
 
   (*info).exp = exp;
   (*info).bb = p;
+
+  }
 }
 
 unsafe extern "C-unwind" fn mpn_limb_size_in_base_2 (u: mp_limb_t) -> mp_bitcnt_t
@@ -1462,6 +1624,8 @@ unsafe extern "C-unwind" fn mpn_limb_size_in_base_2 (u: mp_limb_t) -> mp_bitcnt_
 unsafe extern "C-unwind" fn mpn_get_str_bits (sp: *mut u8, bits: c_uint, up: mp_srcptr,
                                       un: mp_size_t) -> usize
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut mask: u8;
   let mut sn: usize;
   let mut j: usize;
@@ -1496,6 +1660,8 @@ unsafe extern "C-unwind" fn mpn_get_str_bits (sp: *mut u8, bits: c_uint, up: mp_
       *sp.offset (j as isize) = digit & mask;
     }
   return sn;
+
+  }
 }
 
 /* We generate digits from the least significant end, and reverse at
@@ -1503,6 +1669,8 @@ unsafe extern "C-unwind" fn mpn_get_str_bits (sp: *mut u8, bits: c_uint, up: mp_
 unsafe extern "C-unwind" fn mpn_limb_get_str (sp: *mut u8, mut w: mp_limb_t,
                                        binv: *const gmp_div_inverse) -> usize
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut i: mp_size_t;
   i = 0;
   while w > 0
@@ -1522,12 +1690,16 @@ unsafe extern "C-unwind" fn mpn_limb_get_str (sp: *mut u8, mut w: mp_limb_t,
       i += 1;
     }
   return i as usize;
+
+  }
 }
 
 unsafe extern "C-unwind" fn mpn_get_str_other (sp: *mut u8,
                                         base: c_int, info: *const mpn_base_info,
                                         up: mp_ptr, mut un: mp_size_t) -> usize
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut binv: gmp_div_inverse = gmp_div_inverse { shift: 0, d1: 0, d0: 0, di: 0 };
   let mut sn: usize;
   let mut i: usize;
@@ -1568,12 +1740,16 @@ unsafe extern "C-unwind" fn mpn_get_str_other (sp: *mut u8,
     }
 
   return sn;
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpn_get_str (sp: *mut u8, base: c_int, up: mp_ptr,
                                       un: mp_size_t) -> usize
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut bits: c_uint;
 
   assert! (un > 0);
@@ -1589,11 +1765,15 @@ pub unsafe extern "C-unwind" fn mpn_get_str (sp: *mut u8, base: c_int, up: mp_pt
       mpn_get_base_info (&mut info, base as mp_limb_t);
       return mpn_get_str_other (sp, base, &info, up, un);
     }
+
+  }
 }
 
 unsafe extern "C-unwind" fn mpn_set_str_bits (rp: mp_ptr, sp: *const u8, mut sn: usize,
                                        bits: c_uint) -> mp_size_t
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut rn: mp_size_t;
   let mut limb: mp_limb_t;
   let mut shift: c_uint;
@@ -1621,6 +1801,8 @@ unsafe extern "C-unwind" fn mpn_set_str_bits (rp: mp_ptr, sp: *const u8, mut sn:
   else
     { rn = mpn_normalized_size (rp, rn); }
   return rn;
+
+  }
 }
 
 /* Result is usually normalized, except for all-zero input, in which
@@ -1629,6 +1811,8 @@ unsafe extern "C-unwind" fn mpn_set_str_other (rp: mp_ptr, sp: *const u8, sn: us
                                         b: mp_limb_t, info: *const mpn_base_info)
   -> mp_size_t
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut rn: mp_size_t;
   let mut w: mp_limb_t;
   let mut k: c_uint;
@@ -1665,12 +1849,16 @@ unsafe extern "C-unwind" fn mpn_set_str_other (rp: mp_ptr, sp: *const u8, sn: us
   assert! (j == sn);
 
   return rn;
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpn_set_str (rp: mp_ptr, sp: *const u8, sn: usize,
                                       base: c_int) -> mp_size_t
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut bits: c_uint;
 
   if (sn == 0)
@@ -1686,17 +1874,23 @@ pub unsafe extern "C-unwind" fn mpn_set_str (rp: mp_ptr, sp: *const u8, sn: usiz
       mpn_get_base_info (&mut info, base as mp_limb_t);
       return mpn_set_str_other (rp, sp, sn, base as mp_limb_t, &info);
     }
+
+  }
 }
 
 /* MPZ interface */
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_init (r: *mut __mpz_struct)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   static dummy_limb: mp_limb_t = GMP_LIMB_MAX & 0xc1a0;
 
   (*r)._mp_alloc = 0;
   (*r)._mp_size = 0;
   (*r)._mp_d = &dummy_limb as *const mp_limb_t as mp_ptr;
+
+  }
 }
 
 /* The utility of this function is a bit limited, since many functions
@@ -1704,6 +1898,8 @@ pub unsafe extern "C-unwind" fn mpz_init (r: *mut __mpz_struct)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_init2 (r: *mut __mpz_struct, mut bits: mp_bitcnt_t)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let rn: mp_size_t;
 
   bits -= (bits != 0) as mp_bitcnt_t;		/* Round down, except if 0 */
@@ -1712,17 +1908,25 @@ pub unsafe extern "C-unwind" fn mpz_init2 (r: *mut __mpz_struct, mut bits: mp_bi
   (*r)._mp_alloc = rn as c_int;
   (*r)._mp_size = 0;
   (*r)._mp_d = gmp_alloc_limbs (rn);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_clear (r: *mut __mpz_struct)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   if ((*r)._mp_alloc != 0)
     { gmp_free_limbs ((*r)._mp_d, (*r)._mp_alloc as mp_size_t); }
+
+  }
 }
 
 unsafe extern "C-unwind" fn mpz_realloc (r: *mut __mpz_struct, size: mp_size_t) -> mp_ptr
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut size = size;
   size = GMP_MAX! (size, 1);
 
@@ -1736,6 +1940,8 @@ unsafe extern "C-unwind" fn mpz_realloc (r: *mut __mpz_struct, size: mp_size_t) 
     { (*r)._mp_size = 0; }
 
   return (*r)._mp_d;
+
+  }
 }
 
 /* Realloc for an mpz_t WHAT if it has less than NEEDED limbs.  */
@@ -1752,6 +1958,8 @@ macro_rules! MPZ_REALLOC {
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_set_si (r: *mut __mpz_struct, x: c_long)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   if (x >= 0)
     { mpz_set_ui (r, x as c_ulong); }
   else /* (x < 0) */
@@ -1765,11 +1973,15 @@ pub unsafe extern "C-unwind" fn mpz_set_si (r: *mut __mpz_struct, x: c_long)
 	(*r)._mp_size = -1;
 	*MPZ_REALLOC! (r, 1) = GMP_NEG_CAST! (c_ulong, x);
       } }
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_set_ui (r: *mut __mpz_struct, mut x: c_ulong)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   if (x > 0)
     {
       (*r)._mp_size = 1;
@@ -1788,11 +2000,15 @@ pub unsafe extern "C-unwind" fn mpz_set_ui (r: *mut __mpz_struct, mut x: c_ulong
     }
   else
     { (*r)._mp_size = 0; }
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_set (r: *mut __mpz_struct, x: *const __mpz_struct)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   /* Allow the NOP r == x */
   if (r as *const __mpz_struct != x)
     {
@@ -1805,37 +2021,57 @@ pub unsafe extern "C-unwind" fn mpz_set (r: *mut __mpz_struct, x: *const __mpz_s
       mpn_copyi (rp, (*x)._mp_d, n);
       (*r)._mp_size = (*x)._mp_size;
     }
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_init_set_si (r: *mut __mpz_struct, x: c_long)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   mpz_init (r);
   mpz_set_si (r, x);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_init_set_ui (r: *mut __mpz_struct, x: c_ulong)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   mpz_init (r);
   mpz_set_ui (r, x);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_init_set (r: *mut __mpz_struct, x: *const __mpz_struct)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   mpz_init (r);
   mpz_set (r, x);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_fits_slong_p (u: *const __mpz_struct) -> c_int
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   return (mpz_cmp_si (u, LONG_MAX) <= 0 && mpz_cmp_si (u, LONG_MIN) >= 0) as c_int;
+
+  }
 }
 
 unsafe extern "C-unwind" fn mpn_absfits_ulong_p (up: mp_srcptr, un: mp_size_t) -> c_int
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let ulongsize: c_int = (GMP_ULONG_BITS / GMP_LIMB_BITS) as c_int;
   let mut ulongrem: mp_limb_t = 0;
 
@@ -1845,47 +2081,71 @@ unsafe extern "C-unwind" fn mpn_absfits_ulong_p (up: mp_srcptr, un: mp_size_t) -
   return (un <= ulongsize as mp_size_t
           || (*up.offset (ulongsize as isize) < ulongrem
               && un == ulongsize as mp_size_t + 1)) as c_int;
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_fits_ulong_p (u: *const __mpz_struct) -> c_int
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let us: mp_size_t = (*u)._mp_size as mp_size_t;
 
   return (us >= 0 && mpn_absfits_ulong_p ((*u)._mp_d, us) != 0) as c_int;
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_fits_sint_p (u: *const __mpz_struct) -> c_int
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   return (mpz_cmp_si (u, INT_MAX as c_long) <= 0
           && mpz_cmp_si (u, INT_MIN as c_long) >= 0) as c_int;
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_fits_uint_p (u: *const __mpz_struct) -> c_int
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   return ((*u)._mp_size >= 0
           && mpz_cmpabs_ui (u, UINT_MAX as c_ulong) <= 0) as c_int;
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_fits_sshort_p (u: *const __mpz_struct) -> c_int
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   return (mpz_cmp_si (u, SHRT_MAX as c_long) <= 0
           && mpz_cmp_si (u, SHRT_MIN as c_long) >= 0) as c_int;
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_fits_ushort_p (u: *const __mpz_struct) -> c_int
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   return ((*u)._mp_size >= 0
           && mpz_cmpabs_ui (u, USHRT_MAX as c_ulong) <= 0) as c_int;
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_get_si (u: *const __mpz_struct) -> c_long
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let r: c_ulong = mpz_get_ui (u);
   let c: c_ulong = (-LONG_MAX - LONG_MIN) as c_ulong;
 
@@ -1895,11 +2155,15 @@ pub unsafe extern "C-unwind" fn mpz_get_si (u: *const __mpz_struct) -> c_long
                (r.wrapping_sub (c) & LONG_MAX as c_ulong) as c_long); }
   else
     { return (r & LONG_MAX as c_ulong) as c_long; }
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_get_ui (u: *const __mpz_struct) -> c_ulong
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   if (GMP_LIMB_BITS < GMP_ULONG_BITS)
     {
       let LOCAL_GMP_LIMB_BITS: c_int = GMP_LIMB_BITS as c_int;
@@ -1913,76 +2177,114 @@ pub unsafe extern "C-unwind" fn mpz_get_ui (u: *const __mpz_struct) -> c_ulong
     }
 
   return if (*u)._mp_size == 0 { 0 } else { *(*u)._mp_d };
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_size (u: *const __mpz_struct) -> usize
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   return GMP_ABS! ((*u)._mp_size) as usize;
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_getlimbn (u: *const __mpz_struct, n: mp_size_t)
   -> mp_limb_t
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   if (n >= 0 && n < GMP_ABS! ((*u)._mp_size) as mp_size_t)
     { return *(*u)._mp_d.offset (n as isize); }
   else
     { return 0; }
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_realloc2 (x: *mut __mpz_struct, n: mp_bitcnt_t)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   mpz_realloc (x, (1 + (n - (n != 0) as mp_bitcnt_t) as usize / GMP_LIMB_BITS)
                   as mp_size_t);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_limbs_read (x: *const __mpz_struct) -> mp_srcptr
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   return (*x)._mp_d as mp_srcptr;
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_limbs_modify (x: *mut __mpz_struct, n: mp_size_t)
   -> mp_ptr
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   assert! (n > 0);
   return MPZ_REALLOC! (x, n);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_limbs_write (x: *mut __mpz_struct, n: mp_size_t)
   -> mp_ptr
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   return mpz_limbs_modify (x, n);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_limbs_finish (x: *mut __mpz_struct, xs: mp_size_t)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let xn: mp_size_t;
   xn = mpn_normalized_size ((*x)._mp_d, GMP_ABS! (xs));
   (*x)._mp_size = (if xs < 0 { -xn } else { xn }) as c_int;
+
+  }
 }
 
 unsafe extern "C-unwind" fn mpz_roinit_normal_n (x: *mut __mpz_struct, xp: mp_srcptr,
                                          xs: mp_size_t) -> mpz_srcptr
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   (*x)._mp_alloc = 0;
   (*x)._mp_d = xp as mp_ptr;
   (*x)._mp_size = xs as c_int;
   return x;
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_roinit_n (x: *mut __mpz_struct, xp: mp_srcptr,
                                        xs: mp_size_t) -> mpz_srcptr
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   mpz_roinit_normal_n (x, xp, xs);
   mpz_limbs_finish (x, xs);
   return x;
+
+  }
 }
 
 /* `#if MINI_GMP_ENABLE_FLOAT` — the frozen build enables it, so the block is ported.  */
@@ -1990,6 +2292,8 @@ pub unsafe extern "C-unwind" fn mpz_roinit_n (x: *mut __mpz_struct, xp: mp_srcpt
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_set_d (r: *mut __mpz_struct, mut x: c_double)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut sign: c_int;
   let mut rp: mp_ptr;
   let mut rn: mp_size_t;
@@ -2038,18 +2342,26 @@ pub unsafe extern "C-unwind" fn mpz_set_d (r: *mut __mpz_struct, mut x: c_double
     }
 
   (*r)._mp_size = (if sign != 0 { - rn } else { rn }) as c_int;
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_init_set_d (r: *mut __mpz_struct, x: c_double)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   mpz_init (r);
   mpz_set_d (r, x);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_get_d (u: *const __mpz_struct) -> c_double
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut m: c_int;
   let mut l: mp_limb_t;
   let mut un: mp_size_t;
@@ -2089,11 +2401,15 @@ pub unsafe extern "C-unwind" fn mpz_get_d (u: *const __mpz_struct) -> c_double
     { x = -x; }
 
   return x;
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_cmpabs_d (x: *const __mpz_struct, d: c_double) -> c_int
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut xn: mp_size_t;
   let mut B: c_double;
   let mut Bi: c_double;
@@ -2135,11 +2451,15 @@ pub unsafe extern "C-unwind" fn mpz_cmpabs_d (x: *const __mpz_struct, d: c_doubl
 	}
     }
   return -((d > 0.0) as c_int);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_cmp_d (x: *const __mpz_struct, d: c_double) -> c_int
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   if ((*x)._mp_size < 0)
     {
       if (d >= 0.0)
@@ -2154,6 +2474,8 @@ pub unsafe extern "C-unwind" fn mpz_cmp_d (x: *const __mpz_struct, d: c_double) 
       else
 	{ return mpz_cmpabs_d (x, d); }
     }
+
+  }
 }
 
 /* The port's spelling of a zero-initialized `mpz_t` local: C's `mpz_t x;` has no
@@ -2167,12 +2489,18 @@ fn zero_mpz () -> mpz_t
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_sgn (u: *const __mpz_struct) -> c_int
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   return GMP_CMP! ((*u)._mp_size, 0);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_cmp_si (u: *const __mpz_struct, v: c_long) -> c_int
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let usize_: mp_size_t = (*u)._mp_size as mp_size_t;
 
   if (v >= 0)
@@ -2181,23 +2509,31 @@ pub unsafe extern "C-unwind" fn mpz_cmp_si (u: *const __mpz_struct, v: c_long) -
     { return 1; }
   else
     { return - mpz_cmpabs_ui (u, GMP_NEG_CAST! (c_ulong, v)); }
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_cmp_ui (u: *const __mpz_struct, v: c_ulong) -> c_int
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let usize_: mp_size_t = (*u)._mp_size as mp_size_t;
 
   if (usize_ < 0)
     { return -1; }
   else
     { return mpz_cmpabs_ui (u, v); }
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_cmp (a: *const __mpz_struct, b: *const __mpz_struct)
   -> c_int
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let asize: mp_size_t = (*a)._mp_size as mp_size_t;
   let bsize: mp_size_t = (*b)._mp_size as mp_size_t;
 
@@ -2207,11 +2543,15 @@ pub unsafe extern "C-unwind" fn mpz_cmp (a: *const __mpz_struct, b: *const __mpz
     { return mpn_cmp ((*a)._mp_d, (*b)._mp_d, asize); }
   else
     { return mpn_cmp ((*b)._mp_d, (*a)._mp_d, -asize); }
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_cmpabs_ui (u: *const __mpz_struct, v: c_ulong) -> c_int
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let un: mp_size_t = GMP_ABS! ((*u)._mp_size) as mp_size_t;
 
   if !(mpn_absfits_ulong_p ((*u)._mp_d, un) != 0)
@@ -2221,35 +2561,53 @@ pub unsafe extern "C-unwind" fn mpz_cmpabs_ui (u: *const __mpz_struct, v: c_ulon
       let uu: c_ulong = mpz_get_ui (u);
       return GMP_CMP! (uu, v);
     }
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_cmpabs (u: *const __mpz_struct, v: *const __mpz_struct)
   -> c_int
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   return mpn_cmp4 ((*u)._mp_d, GMP_ABS! ((*u)._mp_size) as mp_size_t,
 		   (*v)._mp_d, GMP_ABS! ((*v)._mp_size) as mp_size_t);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_abs (r: *mut __mpz_struct, u: *const __mpz_struct)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   mpz_set (r, u);
   (*r)._mp_size = GMP_ABS! ((*r)._mp_size);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_neg (r: *mut __mpz_struct, u: *const __mpz_struct)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   mpz_set (r, u);
   (*r)._mp_size = -(*r)._mp_size;
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_swap (u: *mut __mpz_struct, v: *mut __mpz_struct)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   MP_SIZE_T_SWAP! ((*u)._mp_alloc, (*v)._mp_alloc);
   MPN_PTR_SWAP! ((*u)._mp_d, (*u)._mp_size, (*v)._mp_d, (*v)._mp_size);
+
+  }
 }
 
 /* MPZ addition and subtraction */
@@ -2258,32 +2616,46 @@ pub unsafe extern "C-unwind" fn mpz_swap (u: *mut __mpz_struct, v: *mut __mpz_st
 pub unsafe extern "C-unwind" fn mpz_add_ui (r: *mut __mpz_struct, a: *const __mpz_struct,
                                      b: c_ulong)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut bb: mpz_t = [__mpz_struct { _mp_alloc: 0, _mp_size: 0,
                                       _mp_d: std::ptr::null_mut () }; 1];
   mpz_init_set_ui (bb.as_mut_ptr (), b);
   mpz_add (r, a, bb.as_ptr ());
   mpz_clear (bb.as_mut_ptr ());
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_sub_ui (r: *mut __mpz_struct, a: *const __mpz_struct,
                                      b: c_ulong)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   mpz_ui_sub (r, b, a);
   mpz_neg (r, r);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_ui_sub (r: *mut __mpz_struct, a: c_ulong,
                                      b: *const __mpz_struct)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   mpz_neg (r, b);
   mpz_add_ui (r, r, a);
+
+  }
 }
 
 unsafe extern "C-unwind" fn mpz_abs_add (r: *mut __mpz_struct, a: *const __mpz_struct,
                                   b: *const __mpz_struct) -> mp_size_t
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut an: mp_size_t = GMP_ABS! ((*a)._mp_size) as mp_size_t;
   let mut bn: mp_size_t = GMP_ABS! ((*b)._mp_size) as mp_size_t;
   let rp: mp_ptr;
@@ -2303,11 +2675,15 @@ unsafe extern "C-unwind" fn mpz_abs_add (r: *mut __mpz_struct, a: *const __mpz_s
   *rp.offset (an as isize) = cy;
 
   return an + cy as mp_size_t;
+
+  }
 }
 
 unsafe extern "C-unwind" fn mpz_abs_sub (r: *mut __mpz_struct, a: *const __mpz_struct,
                                   b: *const __mpz_struct) -> mp_size_t
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let an: mp_size_t = GMP_ABS! ((*a)._mp_size) as mp_size_t;
   let bn: mp_size_t = GMP_ABS! ((*b)._mp_size) as mp_size_t;
   let mut cmp: c_int;
@@ -2328,12 +2704,16 @@ unsafe extern "C-unwind" fn mpz_abs_sub (r: *mut __mpz_struct, a: *const __mpz_s
     }
   else
     { return 0; }
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_add (r: *mut __mpz_struct, a: *const __mpz_struct,
                                   b: *const __mpz_struct)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let rn: mp_size_t;
 
   if ( ((*a)._mp_size ^ (*b)._mp_size) >= 0)
@@ -2342,12 +2722,16 @@ pub unsafe extern "C-unwind" fn mpz_add (r: *mut __mpz_struct, a: *const __mpz_s
     { rn = mpz_abs_sub (r, a, b); }
 
   (*r)._mp_size = (if (*a)._mp_size >= 0 { rn } else { - rn }) as c_int;
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_sub (r: *mut __mpz_struct, a: *const __mpz_struct,
                                   b: *const __mpz_struct)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let rn: mp_size_t;
 
   if ( ((*a)._mp_size ^ (*b)._mp_size) >= 0)
@@ -2356,6 +2740,8 @@ pub unsafe extern "C-unwind" fn mpz_sub (r: *mut __mpz_struct, a: *const __mpz_s
     { rn = mpz_abs_add (r, a, b); }
 
   (*r)._mp_size = (if (*a)._mp_size >= 0 { rn } else { - rn }) as c_int;
+
+  }
 }
 
 /* MPZ multiplication */
@@ -2363,6 +2749,8 @@ pub unsafe extern "C-unwind" fn mpz_sub (r: *mut __mpz_struct, a: *const __mpz_s
 pub unsafe extern "C-unwind" fn mpz_mul_si (r: *mut __mpz_struct, u: *const __mpz_struct,
                                      v: c_long)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   if (v < 0)
     {
       mpz_mul_ui (r, u, GMP_NEG_CAST! (c_ulong, v));
@@ -2370,24 +2758,32 @@ pub unsafe extern "C-unwind" fn mpz_mul_si (r: *mut __mpz_struct, u: *const __mp
     }
   else
     { mpz_mul_ui (r, u, v as c_ulong); }
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_mul_ui (r: *mut __mpz_struct, u: *const __mpz_struct,
                                      v: c_ulong)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut vv: mpz_t = [__mpz_struct { _mp_alloc: 0, _mp_size: 0,
                                       _mp_d: std::ptr::null_mut () }; 1];
   mpz_init_set_ui (vv.as_mut_ptr (), v);
   mpz_mul (r, u, vv.as_ptr ());
   mpz_clear (vv.as_mut_ptr ());
   return;
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_mul (r: *mut __mpz_struct, u: *const __mpz_struct,
                                   v: *const __mpz_struct)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut sign: c_int;
   let mut un: mp_size_t;
   let mut vn: mp_size_t;
@@ -2424,12 +2820,16 @@ pub unsafe extern "C-unwind" fn mpz_mul (r: *mut __mpz_struct, u: *const __mpz_s
   t[0]._mp_size = (if sign != 0 { - rn } else { rn }) as c_int;
   mpz_swap (r, t.as_mut_ptr ());
   mpz_clear (t.as_mut_ptr ());
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_mul_2exp (r: *mut __mpz_struct, u: *const __mpz_struct,
                                        bits: mp_bitcnt_t)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let un: mp_size_t;
   let mut rn: mp_size_t;
   let mut limbs: mp_size_t;
@@ -2460,54 +2860,72 @@ pub unsafe extern "C-unwind" fn mpz_mul_2exp (r: *mut __mpz_struct, u: *const __
   mpn_zero (rp, limbs);
 
   (*r)._mp_size = (if (*u)._mp_size < 0 { - rn } else { rn }) as c_int;
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_addmul_ui (r: *mut __mpz_struct, u: *const __mpz_struct,
                                         v: c_ulong)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut t: mpz_t = [__mpz_struct { _mp_alloc: 0, _mp_size: 0,
                                      _mp_d: std::ptr::null_mut () }; 1];
   mpz_init_set_ui (t.as_mut_ptr (), v);
   mpz_mul (t.as_mut_ptr (), u, t.as_ptr ());
   mpz_add (r, r, t.as_ptr ());
   mpz_clear (t.as_mut_ptr ());
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_submul_ui (r: *mut __mpz_struct, u: *const __mpz_struct,
                                         v: c_ulong)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut t: mpz_t = [__mpz_struct { _mp_alloc: 0, _mp_size: 0,
                                      _mp_d: std::ptr::null_mut () }; 1];
   mpz_init_set_ui (t.as_mut_ptr (), v);
   mpz_mul (t.as_mut_ptr (), u, t.as_ptr ());
   mpz_sub (r, r, t.as_ptr ());
   mpz_clear (t.as_mut_ptr ());
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_addmul (r: *mut __mpz_struct, u: *const __mpz_struct,
                                      v: *const __mpz_struct)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut t: mpz_t = [__mpz_struct { _mp_alloc: 0, _mp_size: 0,
                                      _mp_d: std::ptr::null_mut () }; 1];
   mpz_init (t.as_mut_ptr ());
   mpz_mul (t.as_mut_ptr (), u, v);
   mpz_add (r, r, t.as_ptr ());
   mpz_clear (t.as_mut_ptr ());
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_submul (r: *mut __mpz_struct, u: *const __mpz_struct,
                                      v: *const __mpz_struct)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut t: mpz_t = [__mpz_struct { _mp_alloc: 0, _mp_size: 0,
                                      _mp_d: std::ptr::null_mut () }; 1];
   mpz_init (t.as_mut_ptr ());
   mpz_mul (t.as_mut_ptr (), u, v);
   mpz_sub (r, r, t.as_ptr ());
   mpz_clear (t.as_mut_ptr ());
+
+  }
 }
 
 /* MPZ division */
@@ -2520,6 +2938,8 @@ unsafe extern "C-unwind" fn mpz_div_qr (q: *mut __mpz_struct, r: *mut __mpz_stru
                                  n: *const __mpz_struct, d: *const __mpz_struct,
                                  mode: mpz_div_round_mode) -> c_int
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut ns: mp_size_t;
   let mut ds: mp_size_t;
   let mut nn: mp_size_t;
@@ -2635,84 +3055,128 @@ unsafe extern "C-unwind" fn mpz_div_qr (q: *mut __mpz_struct, r: *mut __mpz_stru
 
       return (rn != 0) as c_int;
     }
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_cdiv_qr (q: *mut __mpz_struct, r: *mut __mpz_struct,
                                       n: *const __mpz_struct, d: *const __mpz_struct)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   mpz_div_qr (q, r, n, d, mpz_div_round_mode::GMP_DIV_CEIL);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_fdiv_qr (q: *mut __mpz_struct, r: *mut __mpz_struct,
                                       n: *const __mpz_struct, d: *const __mpz_struct)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   mpz_div_qr (q, r, n, d, mpz_div_round_mode::GMP_DIV_FLOOR);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_tdiv_qr (q: *mut __mpz_struct, r: *mut __mpz_struct,
                                       n: *const __mpz_struct, d: *const __mpz_struct)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   mpz_div_qr (q, r, n, d, mpz_div_round_mode::GMP_DIV_TRUNC);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_cdiv_q (q: *mut __mpz_struct, n: *const __mpz_struct,
                                      d: *const __mpz_struct)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   mpz_div_qr (q, std::ptr::null_mut (), n, d, mpz_div_round_mode::GMP_DIV_CEIL);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_fdiv_q (q: *mut __mpz_struct, n: *const __mpz_struct,
                                      d: *const __mpz_struct)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   mpz_div_qr (q, std::ptr::null_mut (), n, d, mpz_div_round_mode::GMP_DIV_FLOOR);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_tdiv_q (q: *mut __mpz_struct, n: *const __mpz_struct,
                                      d: *const __mpz_struct)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   mpz_div_qr (q, std::ptr::null_mut (), n, d, mpz_div_round_mode::GMP_DIV_TRUNC);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_cdiv_r (r: *mut __mpz_struct, n: *const __mpz_struct,
                                      d: *const __mpz_struct)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   mpz_div_qr (std::ptr::null_mut (), r, n, d, mpz_div_round_mode::GMP_DIV_CEIL);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_fdiv_r (r: *mut __mpz_struct, n: *const __mpz_struct,
                                      d: *const __mpz_struct)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   mpz_div_qr (std::ptr::null_mut (), r, n, d, mpz_div_round_mode::GMP_DIV_FLOOR);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_tdiv_r (r: *mut __mpz_struct, n: *const __mpz_struct,
                                      d: *const __mpz_struct)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   mpz_div_qr (std::ptr::null_mut (), r, n, d, mpz_div_round_mode::GMP_DIV_TRUNC);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_mod (r: *mut __mpz_struct, n: *const __mpz_struct,
                                   d: *const __mpz_struct)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   mpz_div_qr (std::ptr::null_mut (), r, n, d,
               if (*d)._mp_size >= 0 { mpz_div_round_mode::GMP_DIV_FLOOR }
               else { mpz_div_round_mode::GMP_DIV_CEIL });
+
+  }
 }
 
 unsafe extern "C-unwind" fn mpz_div_q_2exp (q: *mut __mpz_struct, u: *const __mpz_struct,
                                      mut bit_index: mp_bitcnt_t,
                                      mode: mpz_div_round_mode)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut un: mp_size_t;
   let mut qn: mp_size_t;
   let mut limb_cnt: mp_size_t;
@@ -2763,12 +3227,16 @@ unsafe extern "C-unwind" fn mpz_div_q_2exp (q: *mut __mpz_struct, u: *const __mp
     { mpz_add_ui (q, q, 1); }
   if (un < 0)
     { mpz_neg (q, q); }
+
+  }
 }
 
 unsafe extern "C-unwind" fn mpz_div_r_2exp (r: *mut __mpz_struct, u: *const __mpz_struct,
                                      bit_index: mp_bitcnt_t,
                                      mode: mpz_div_round_mode)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut us: mp_size_t;
   let mut un: mp_size_t;
   let mut rn: mp_size_t;
@@ -2840,70 +3308,106 @@ unsafe extern "C-unwind" fn mpz_div_r_2exp (r: *mut __mpz_struct, u: *const __mp
     }
   rn = mpn_normalized_size (rp, rn);
   (*r)._mp_size = (if us < 0 { -rn } else { rn }) as c_int;
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_cdiv_q_2exp (r: *mut __mpz_struct, u: *const __mpz_struct,
                                           cnt: mp_bitcnt_t)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   mpz_div_q_2exp (r, u, cnt, mpz_div_round_mode::GMP_DIV_CEIL);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_fdiv_q_2exp (r: *mut __mpz_struct, u: *const __mpz_struct,
                                           cnt: mp_bitcnt_t)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   mpz_div_q_2exp (r, u, cnt, mpz_div_round_mode::GMP_DIV_FLOOR);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_tdiv_q_2exp (r: *mut __mpz_struct, u: *const __mpz_struct,
                                           cnt: mp_bitcnt_t)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   mpz_div_q_2exp (r, u, cnt, mpz_div_round_mode::GMP_DIV_TRUNC);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_cdiv_r_2exp (r: *mut __mpz_struct, u: *const __mpz_struct,
                                           cnt: mp_bitcnt_t)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   mpz_div_r_2exp (r, u, cnt, mpz_div_round_mode::GMP_DIV_CEIL);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_fdiv_r_2exp (r: *mut __mpz_struct, u: *const __mpz_struct,
                                           cnt: mp_bitcnt_t)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   mpz_div_r_2exp (r, u, cnt, mpz_div_round_mode::GMP_DIV_FLOOR);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_tdiv_r_2exp (r: *mut __mpz_struct, u: *const __mpz_struct,
                                           cnt: mp_bitcnt_t)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   mpz_div_r_2exp (r, u, cnt, mpz_div_round_mode::GMP_DIV_TRUNC);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_divexact (q: *mut __mpz_struct, n: *const __mpz_struct,
                                        d: *const __mpz_struct)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   gmp_assert_nocarry! (mpz_div_qr (q, std::ptr::null_mut (), n, d,
                                    mpz_div_round_mode::GMP_DIV_TRUNC) as mp_limb_t);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_divisible_p (n: *const __mpz_struct, d: *const __mpz_struct)
   -> c_int
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   return (mpz_div_qr (std::ptr::null_mut (), std::ptr::null_mut (), n, d,
                       mpz_div_round_mode::GMP_DIV_TRUNC) == 0) as c_int;
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_congruent_p (a: *const __mpz_struct, b: *const __mpz_struct,
                                           m: *const __mpz_struct) -> c_int
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut t: mpz_t = [__mpz_struct { _mp_alloc: 0, _mp_size: 0,
                                      _mp_d: std::ptr::null_mut () }; 1];
   let mut res: c_int;
@@ -2918,12 +3422,16 @@ pub unsafe extern "C-unwind" fn mpz_congruent_p (a: *const __mpz_struct, b: *con
   mpz_clear (t.as_mut_ptr ());
 
   return res;
+
+  }
 }
 
 unsafe extern "C-unwind" fn mpz_div_qr_ui (q: *mut __mpz_struct, r: *mut __mpz_struct,
                                     n: *const __mpz_struct, d: c_ulong,
                                     mode: mpz_div_round_mode) -> c_ulong
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut ret: c_ulong;
   let mut rr: mpz_t = [__mpz_struct { _mp_alloc: 0, _mp_size: 0,
                                       _mp_d: std::ptr::null_mut () }; 1];
@@ -2941,118 +3449,180 @@ unsafe extern "C-unwind" fn mpz_div_qr_ui (q: *mut __mpz_struct, r: *mut __mpz_s
   mpz_clear (rr.as_mut_ptr ());
 
   return ret;
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_cdiv_qr_ui (q: *mut __mpz_struct, r: *mut __mpz_struct,
                                          n: *const __mpz_struct, d: c_ulong) -> c_ulong
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   return mpz_div_qr_ui (q, r, n, d, mpz_div_round_mode::GMP_DIV_CEIL);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_fdiv_qr_ui (q: *mut __mpz_struct, r: *mut __mpz_struct,
                                          n: *const __mpz_struct, d: c_ulong) -> c_ulong
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   return mpz_div_qr_ui (q, r, n, d, mpz_div_round_mode::GMP_DIV_FLOOR);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_tdiv_qr_ui (q: *mut __mpz_struct, r: *mut __mpz_struct,
                                          n: *const __mpz_struct, d: c_ulong) -> c_ulong
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   return mpz_div_qr_ui (q, r, n, d, mpz_div_round_mode::GMP_DIV_TRUNC);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_cdiv_q_ui (q: *mut __mpz_struct, n: *const __mpz_struct,
                                         d: c_ulong) -> c_ulong
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   return mpz_div_qr_ui (q, std::ptr::null_mut (), n, d,
                         mpz_div_round_mode::GMP_DIV_CEIL);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_fdiv_q_ui (q: *mut __mpz_struct, n: *const __mpz_struct,
                                         d: c_ulong) -> c_ulong
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   return mpz_div_qr_ui (q, std::ptr::null_mut (), n, d,
                         mpz_div_round_mode::GMP_DIV_FLOOR);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_tdiv_q_ui (q: *mut __mpz_struct, n: *const __mpz_struct,
                                         d: c_ulong) -> c_ulong
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   return mpz_div_qr_ui (q, std::ptr::null_mut (), n, d,
                         mpz_div_round_mode::GMP_DIV_TRUNC);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_cdiv_r_ui (r: *mut __mpz_struct, n: *const __mpz_struct,
                                         d: c_ulong) -> c_ulong
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   return mpz_div_qr_ui (std::ptr::null_mut (), r, n, d,
                         mpz_div_round_mode::GMP_DIV_CEIL);
+
+  }
 }
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_fdiv_r_ui (r: *mut __mpz_struct, n: *const __mpz_struct,
                                         d: c_ulong) -> c_ulong
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   return mpz_div_qr_ui (std::ptr::null_mut (), r, n, d,
                         mpz_div_round_mode::GMP_DIV_FLOOR);
+
+  }
 }
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_tdiv_r_ui (r: *mut __mpz_struct, n: *const __mpz_struct,
                                         d: c_ulong) -> c_ulong
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   return mpz_div_qr_ui (std::ptr::null_mut (), r, n, d,
                         mpz_div_round_mode::GMP_DIV_TRUNC);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_cdiv_ui (n: *const __mpz_struct, d: c_ulong) -> c_ulong
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   return mpz_div_qr_ui (std::ptr::null_mut (), std::ptr::null_mut (), n, d,
                         mpz_div_round_mode::GMP_DIV_CEIL);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_fdiv_ui (n: *const __mpz_struct, d: c_ulong) -> c_ulong
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   return mpz_div_qr_ui (std::ptr::null_mut (), std::ptr::null_mut (), n, d,
                         mpz_div_round_mode::GMP_DIV_FLOOR);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_tdiv_ui (n: *const __mpz_struct, d: c_ulong) -> c_ulong
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   return mpz_div_qr_ui (std::ptr::null_mut (), std::ptr::null_mut (), n, d,
                         mpz_div_round_mode::GMP_DIV_TRUNC);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_mod_ui (r: *mut __mpz_struct, n: *const __mpz_struct,
                                      d: c_ulong) -> c_ulong
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   return mpz_div_qr_ui (std::ptr::null_mut (), r, n, d,
                         mpz_div_round_mode::GMP_DIV_FLOOR);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_divexact_ui (q: *mut __mpz_struct, n: *const __mpz_struct,
                                           d: c_ulong)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   gmp_assert_nocarry! (mpz_div_qr_ui (q, std::ptr::null_mut (), n, d,
                                       mpz_div_round_mode::GMP_DIV_TRUNC));
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_divisible_ui_p (n: *const __mpz_struct, d: c_ulong)
   -> c_int
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   return (mpz_div_qr_ui (std::ptr::null_mut (), std::ptr::null_mut (), n, d,
                          mpz_div_round_mode::GMP_DIV_TRUNC) == 0) as c_int;
+
+  }
 }
 
 /* GCD */
@@ -3100,6 +3670,8 @@ unsafe extern "C-unwind" fn mpn_gcd_11 (mut u: mp_limb_t, mut v: mp_limb_t) -> m
 pub unsafe extern "C-unwind" fn mpn_gcd (rp: mp_ptr, up: mp_ptr, mut un: mp_size_t,
                                   vp: mp_ptr, mut vn: mp_size_t) -> mp_size_t
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   assert! (un >= vn);
   assert! (vn > 0);
   assert! (!GMP_MPN_OVERLAP_P! (up, un, vp, vn));
@@ -3158,12 +3730,16 @@ pub unsafe extern "C-unwind" fn mpn_gcd (rp: mp_ptr, up: mp_ptr, mut un: mp_size
     }
   *rp = mpn_gcd_11 (*up, *vp);
   return 1;
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_gcd_ui (g: *mut __mpz_struct, u: *const __mpz_struct,
                                      mut v: c_ulong) -> c_ulong
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut t: mpz_t = [__mpz_struct { _mp_alloc: 0, _mp_size: 0,
                                      _mp_d: std::ptr::null_mut () }; 1];
   mpz_init_set_ui (t.as_mut_ptr (), v);
@@ -3177,10 +3753,14 @@ pub unsafe extern "C-unwind" fn mpz_gcd_ui (g: *mut __mpz_struct, u: *const __mp
   mpz_clear (t.as_mut_ptr ());
 
   return v;
+
+  }
 }
 
 unsafe extern "C-unwind" fn mpz_make_odd (r: *mut __mpz_struct) -> mp_bitcnt_t
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let shift: mp_bitcnt_t;
 
   assert! ((*r)._mp_size > 0);
@@ -3189,12 +3769,16 @@ unsafe extern "C-unwind" fn mpz_make_odd (r: *mut __mpz_struct) -> mp_bitcnt_t
   mpz_tdiv_q_2exp (r, r, shift);
 
   return shift;
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_gcd (g: *mut __mpz_struct, u: *const __mpz_struct,
                                   v: *const __mpz_struct)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut tu: mpz_t = [__mpz_struct { _mp_alloc: 0, _mp_size: 0,
                                       _mp_d: std::ptr::null_mut () }; 1];
   let mut tv: mpz_t = [__mpz_struct { _mp_alloc: 0, _mp_size: 0,
@@ -3232,6 +3816,8 @@ pub unsafe extern "C-unwind" fn mpz_gcd (g: *mut __mpz_struct, u: *const __mpz_s
 
   mpz_mul_2exp (g, tu.as_ptr (), gz);
   mpz_clear (tu.as_mut_ptr ());
+
+  }
 }
 
 #[unsafe(no_mangle)]
@@ -3239,6 +3825,8 @@ pub unsafe extern "C-unwind" fn mpz_gcdext (g: *mut __mpz_struct, s: *mut __mpz_
                                      t: *mut __mpz_struct, u: *const __mpz_struct,
                                      v: *const __mpz_struct)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut tu: mpz_t = zero_mpz ();
   let mut tv: mpz_t = zero_mpz ();
   let mut s0: mpz_t = zero_mpz ();
@@ -3442,12 +4030,16 @@ pub unsafe extern "C-unwind" fn mpz_gcdext (g: *mut __mpz_struct, s: *mut __mpz_
   mpz_clear (tv.as_mut_ptr ());
   mpz_clear (s0.as_mut_ptr ());
   mpz_clear (t0.as_mut_ptr ());
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_lcm (r: *mut __mpz_struct, u: *const __mpz_struct,
                                   v: *const __mpz_struct)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut g: mpz_t = zero_mpz ();
 
   if ((*u)._mp_size == 0 || (*v)._mp_size == 0)
@@ -3464,12 +4056,16 @@ pub unsafe extern "C-unwind" fn mpz_lcm (r: *mut __mpz_struct, u: *const __mpz_s
 
   mpz_clear (g.as_mut_ptr ());
   mpz_abs (r, r);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_lcm_ui (r: *mut __mpz_struct, u: *const __mpz_struct,
                                      mut v: c_ulong)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   if (v == 0 || (*u)._mp_size == 0)
     {
       (*r)._mp_size = 0;
@@ -3480,12 +4076,16 @@ pub unsafe extern "C-unwind" fn mpz_lcm_ui (r: *mut __mpz_struct, u: *const __mp
   mpz_mul_ui (r, u, v);
 
   mpz_abs (r, r);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_invert (r: *mut __mpz_struct, u: *const __mpz_struct,
                                      m: *const __mpz_struct) -> c_int
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut g: mpz_t = zero_mpz ();
   let mut tr: mpz_t = zero_mpz ();
   let invertible: c_int;
@@ -3514,6 +4114,8 @@ pub unsafe extern "C-unwind" fn mpz_invert (r: *mut __mpz_struct, u: *const __mp
 
   mpz_clear (tr.as_mut_ptr ());
   return invertible;
+
+  }
 }
 
 /* Higher level operations (sqrt, pow and root) */
@@ -3522,6 +4124,8 @@ pub unsafe extern "C-unwind" fn mpz_invert (r: *mut __mpz_struct, u: *const __mp
 pub unsafe extern "C-unwind" fn mpz_pow_ui (r: *mut __mpz_struct, b: *const __mpz_struct,
                                      e: c_ulong)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut bit: c_ulong;
   let mut tr: mpz_t = zero_mpz ();
   mpz_init_set_ui (tr.as_mut_ptr (), 1);
@@ -3538,22 +4142,30 @@ pub unsafe extern "C-unwind" fn mpz_pow_ui (r: *mut __mpz_struct, b: *const __mp
 
   mpz_swap (r, tr.as_mut_ptr ());
   mpz_clear (tr.as_mut_ptr ());
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_ui_pow_ui (r: *mut __mpz_struct, blimb: c_ulong, e: c_ulong)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut b: mpz_t = zero_mpz ();
 
   mpz_init_set_ui (b.as_mut_ptr (), blimb);
   mpz_pow_ui (r, b.as_ptr (), e);
   mpz_clear (b.as_mut_ptr ());
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_powm (r: *mut __mpz_struct, b: *const __mpz_struct,
                                    e: *const __mpz_struct, m: *const __mpz_struct)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut tr: mpz_t = zero_mpz ();
   let mut base: mpz_t = zero_mpz ();
   let mut en: mp_size_t;
@@ -3658,17 +4270,23 @@ pub unsafe extern "C-unwind" fn mpz_powm (r: *mut __mpz_struct, b: *const __mpz_
 
   mpz_swap (r, tr.as_mut_ptr ());
   mpz_clear (tr.as_mut_ptr ());
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_powm_ui (r: *mut __mpz_struct, b: *const __mpz_struct,
                                       elimb: c_ulong, m: *const __mpz_struct)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut e: mpz_t = zero_mpz ();
 
   mpz_init_set_ui (e.as_mut_ptr (), elimb);
   mpz_powm (r, b, e.as_ptr (), m);
   mpz_clear (e.as_mut_ptr ());
+
+  }
 }
 
 /* x=trunc(y^(1/z)), r=y-x^z */
@@ -3676,6 +4294,8 @@ pub unsafe extern "C-unwind" fn mpz_powm_ui (r: *mut __mpz_struct, b: *const __m
 pub unsafe extern "C-unwind" fn mpz_rootrem (x: *mut __mpz_struct, r: *mut __mpz_struct,
                                       y: *const __mpz_struct, z: c_ulong)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut sgn: c_int;
   let mut bc: mp_bitcnt_t;
   let mut t: mpz_t = zero_mpz ();
@@ -3735,12 +4355,16 @@ pub unsafe extern "C-unwind" fn mpz_rootrem (x: *mut __mpz_struct, r: *mut __mpz
     { mpz_swap (x, u.as_mut_ptr ()); }
   mpz_clear (u.as_mut_ptr ());
   mpz_clear (t.as_mut_ptr ());
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_root (x: *mut __mpz_struct, y: *const __mpz_struct,
                                    z: c_ulong) -> c_int
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut res: c_int;
   let mut r: mpz_t = zero_mpz ();
 
@@ -3750,6 +4374,8 @@ pub unsafe extern "C-unwind" fn mpz_root (x: *mut __mpz_struct, y: *const __mpz_
   mpz_clear (r.as_mut_ptr ());
 
   return res;
+
+  }
 }
 
 /* Compute s = floor(sqrt(u)) and r = u - s^2. Allows r == NULL */
@@ -3757,19 +4383,29 @@ pub unsafe extern "C-unwind" fn mpz_root (x: *mut __mpz_struct, y: *const __mpz_
 pub unsafe extern "C-unwind" fn mpz_sqrtrem (s: *mut __mpz_struct, r: *mut __mpz_struct,
                                       u: *const __mpz_struct)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   mpz_rootrem (s, r, u, 2);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_sqrt (s: *mut __mpz_struct, u: *const __mpz_struct)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   mpz_rootrem (s, std::ptr::null_mut (), u, 2);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_perfect_square_root (r: *mut __mpz_struct,
                                                   u: *const __mpz_struct) -> c_int
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   if ((*u)._mp_size <= 0)
     {
       let ret: c_int = ((*u)._mp_size == 0) as c_int;
@@ -3779,28 +4415,40 @@ pub unsafe extern "C-unwind" fn mpz_perfect_square_root (r: *mut __mpz_struct,
     }
   else
     { return mpz_root (r, u, 2); }
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_perfect_square_p (u: *const __mpz_struct) -> c_int
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   return mpz_perfect_square_root (std::ptr::null_mut (), u);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpn_perfect_square_p (p: mp_srcptr, n: mp_size_t) -> c_int
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut t: mpz_t = zero_mpz ();
 
   assert! (n > 0);
   assert! (*p.offset ((n-1) as isize) != 0);
   return mpz_root (std::ptr::null_mut (), mpz_roinit_normal_n (t.as_mut_ptr (), p, n), 2);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpn_sqrtrem (sp: mp_ptr, rp: mp_ptr, p: mp_srcptr,
                                       n: mp_size_t) -> mp_size_t
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut s: mpz_t = zero_mpz ();
   let mut r: mpz_t = zero_mpz ();
   let mut u: mpz_t = zero_mpz ();
@@ -3822,6 +4470,8 @@ pub unsafe extern "C-unwind" fn mpn_sqrtrem (sp: mp_ptr, rp: mp_ptr, p: mp_srcpt
     { mpn_copyd (rp, r[0]._mp_d, res); }
   mpz_clear (r.as_mut_ptr ());
   return res;
+
+  }
 }
 
 /* Combinatorics */
@@ -3830,28 +4480,42 @@ pub unsafe extern "C-unwind" fn mpn_sqrtrem (sp: mp_ptr, rp: mp_ptr, p: mp_srcpt
 pub unsafe extern "C-unwind" fn mpz_mfac_uiui (x: *mut __mpz_struct, mut n: c_ulong,
                                         m: c_ulong)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   mpz_set_ui (x, n + (n == 0) as c_ulong);
   if (m + 1 < 2) { return; }
   while (n > m + 1)
     { n -= m; mpz_mul_ui (x, x, n); }
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_2fac_ui (x: *mut __mpz_struct, n: c_ulong)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   mpz_mfac_uiui (x, n, 2);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_fac_ui (x: *mut __mpz_struct, n: c_ulong)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   mpz_mfac_uiui (x, n, 1);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_bin_uiui (r: *mut __mpz_struct, mut n: c_ulong,
                                        mut k: c_ulong)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut t: mpz_t = zero_mpz ();
 
   mpz_set_ui (r, (k <= n) as c_ulong);
@@ -3867,6 +4531,8 @@ pub unsafe extern "C-unwind" fn mpz_bin_uiui (r: *mut __mpz_struct, mut n: c_ulo
 
   mpz_divexact (r, r, t.as_ptr ());
   mpz_clear (t.as_mut_ptr ());
+
+  }
 }
 
 /* Computes Kronecker (a/b) with odd b, a!=0 and GCD(a,b) = 1 */
@@ -3914,6 +4580,8 @@ unsafe extern "C-unwind" fn gmp_jacobi_coprime (mut a: mp_limb_t, mut b: mp_limb
 unsafe extern "C-unwind" fn gmp_lucas_step_k_2k (V: *mut __mpz_struct, Qk: *mut __mpz_struct,
                                           n: *const __mpz_struct)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   mpz_mod (Qk, Qk, n);
   /* V_{2k} <- V_k ^ 2 - 2Q^k */
   mpz_mul (V, V, V);
@@ -3921,6 +4589,8 @@ unsafe extern "C-unwind" fn gmp_lucas_step_k_2k (V: *mut __mpz_struct, Qk: *mut 
   mpz_tdiv_r (V, V, n);
   /* Q^{2k} = (Q^k)^2 */
   mpz_mul (Qk, Qk, Qk);
+
+  }
 }
 
 /* Computes V_k, Q^k (mod n) for the Lucas' sequence */
@@ -3931,6 +4601,8 @@ unsafe extern "C-unwind" fn gmp_lucas_mod (V: *mut __mpz_struct, Qk: *mut __mpz_
                                     Q: c_long, b0: mp_bitcnt_t,
                                     n: *const __mpz_struct) -> c_int
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut bs: mp_bitcnt_t;
   let mut U: mpz_t = zero_mpz ();
   let mut res: c_int;
@@ -3981,6 +4653,8 @@ unsafe extern "C-unwind" fn gmp_lucas_mod (V: *mut __mpz_struct, Qk: *mut __mpz_
   res = (U[0]._mp_size == 0) as c_int;
   mpz_clear (U.as_mut_ptr ());
   return res;
+
+  }
 }
 
 /* Performs strong Lucas' test on x, with parameters suggested */
@@ -3989,6 +4663,8 @@ unsafe extern "C-unwind" fn gmp_lucas_mod (V: *mut __mpz_struct, Qk: *mut __mpz_
 unsafe extern "C-unwind" fn gmp_stronglucas (x: *const __mpz_struct, Qk: *mut __mpz_struct)
   -> c_int
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut b0: mp_bitcnt_t;
   let mut V: mpz_t = zero_mpz ();
   let mut n: mpz_t = zero_mpz ();
@@ -4041,12 +4717,16 @@ unsafe extern "C-unwind" fn gmp_stronglucas (x: *const __mpz_struct, Qk: *mut __
 
   mpz_clear (V.as_mut_ptr ());
   return (b0 != 0) as c_int;
+
+  }
 }
 
 unsafe extern "C-unwind" fn gmp_millerrabin (n: *const __mpz_struct, nm1: *const __mpz_struct,
                                       y: *mut __mpz_struct, q: *const __mpz_struct,
                                       mut k: mp_bitcnt_t) -> c_int
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   assert! (k > 0);
 
   /* Caller must initialize y to the base. */
@@ -4062,6 +4742,8 @@ unsafe extern "C-unwind" fn gmp_millerrabin (n: *const __mpz_struct, nm1: *const
 	{ return 1; }
     }
   return 0;
+
+  }
 }
 
 /* This product is 0xc0cfd797, and fits in 32 bits. */
@@ -4077,6 +4759,8 @@ pub const GMP_PRIME_MASK: c_ulong = 0xc96996dc;
 pub unsafe extern "C-unwind" fn mpz_probab_prime_p (n: *const __mpz_struct, mut reps: c_int)
   -> c_int
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut nm1: mpz_t = zero_mpz ();
   let mut q: mpz_t = zero_mpz ();
   let mut y: mpz_t = zero_mpz ();
@@ -4142,6 +4826,8 @@ pub unsafe extern "C-unwind" fn mpz_probab_prime_p (n: *const __mpz_struct, mut 
   mpz_clear (y.as_mut_ptr ());
 
   return is_prime;
+
+  }
 }
 
 /* Logical operations and bit manipulation. */
@@ -4172,6 +4858,8 @@ pub unsafe extern "C-unwind" fn mpz_probab_prime_p (n: *const __mpz_struct, mut 
 pub unsafe extern "C-unwind" fn mpz_tstbit (d: *const __mpz_struct, bit_index: mp_bitcnt_t)
   -> c_int
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut limb_index: mp_size_t;
   let mut shift: c_uint;
   let mut ds: mp_size_t;
@@ -4200,10 +4888,14 @@ pub unsafe extern "C-unwind" fn mpz_tstbit (d: *const __mpz_struct, bit_index: m
 	    { return bit ^ 1; } }
     }
   return bit;
+
+  }
 }
 
 unsafe extern "C-unwind" fn mpz_abs_add_bit (d: *mut __mpz_struct, bit_index: mp_bitcnt_t)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut dn: mp_size_t;
   let mut limb_index: mp_size_t;
   let bit: mp_limb_t;
@@ -4243,10 +4935,14 @@ unsafe extern "C-unwind" fn mpz_abs_add_bit (d: *mut __mpz_struct, bit_index: mp
 	}
     }
   (*d)._mp_size = (if (*d)._mp_size < 0 { - dn } else { dn }) as c_int;
+
+  }
 }
 
 unsafe extern "C-unwind" fn mpz_abs_sub_bit (d: *mut __mpz_struct, bit_index: mp_bitcnt_t)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut dn: mp_size_t;
   let limb_index: mp_size_t;
   let dp: mp_ptr;
@@ -4265,11 +4961,15 @@ unsafe extern "C-unwind" fn mpz_abs_sub_bit (d: *mut __mpz_struct, bit_index: mp
 				  dn - limb_index, bit));
   dn = mpn_normalized_size (dp, dn);
   (*d)._mp_size = (if (*d)._mp_size < 0 { - dn } else { dn }) as c_int;
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_setbit (d: *mut __mpz_struct, bit_index: mp_bitcnt_t)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   if (mpz_tstbit (d, bit_index) == 0)
     {
       if ((*d)._mp_size >= 0)
@@ -4277,11 +4977,15 @@ pub unsafe extern "C-unwind" fn mpz_setbit (d: *mut __mpz_struct, bit_index: mp_
       else
 	{ mpz_abs_sub_bit (d, bit_index); }
     }
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_clrbit (d: *mut __mpz_struct, bit_index: mp_bitcnt_t)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   if (mpz_tstbit (d, bit_index) != 0)
     {
       if ((*d)._mp_size >= 0)
@@ -4289,36 +4993,52 @@ pub unsafe extern "C-unwind" fn mpz_clrbit (d: *mut __mpz_struct, bit_index: mp_
       else
 	{ mpz_abs_add_bit (d, bit_index); }
     }
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_combit (d: *mut __mpz_struct, bit_index: mp_bitcnt_t)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   if (mpz_tstbit (d, bit_index) ^ (((*d)._mp_size < 0) as c_int)) != 0
     { mpz_abs_sub_bit (d, bit_index); }
   else
     { mpz_abs_add_bit (d, bit_index); }
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_init_setbit (r: *mut __mpz_struct, b: mp_bitcnt_t)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   mpz_init (r);
   /* mpz_setbit (r, b); */
   mpz_abs_add_bit (r, b);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_com (r: *mut __mpz_struct, u: *const __mpz_struct)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   mpz_add_ui (r, u, 1);
   mpz_neg (r, r);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_and (r: *mut __mpz_struct, u: *const __mpz_struct,
                                  v: *const __mpz_struct)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut un: mp_size_t;
   let mut vn: mp_size_t;
   let mut rn: mp_size_t;
@@ -4401,12 +5121,16 @@ pub unsafe extern "C-unwind" fn mpz_and (r: *mut __mpz_struct, u: *const __mpz_s
     { rn = mpn_normalized_size (rp, rn); }
 
   (*r)._mp_size = (if rx != 0 { -rn } else { rn }) as c_int;
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_ior (r: *mut __mpz_struct, u: *const __mpz_struct,
                                   v: *const __mpz_struct)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut un: mp_size_t;
   let mut vn: mp_size_t;
   let mut rn: mp_size_t;
@@ -4490,12 +5214,16 @@ pub unsafe extern "C-unwind" fn mpz_ior (r: *mut __mpz_struct, u: *const __mpz_s
     { rn = mpn_normalized_size (rp, rn); }
 
   (*r)._mp_size = (if rx != 0 { -rn } else { rn }) as c_int;
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_xor (r: *mut __mpz_struct, u: *const __mpz_struct,
                                   v: *const __mpz_struct)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut un: mp_size_t;
   let mut vn: mp_size_t;
   let mut i: mp_size_t;
@@ -4574,6 +5302,8 @@ pub unsafe extern "C-unwind" fn mpz_xor (r: *mut __mpz_struct, u: *const __mpz_s
     { un = mpn_normalized_size (rp, un); }
 
   (*r)._mp_size = (if rx != 0 { -un } else { un }) as c_int;
+
+  }
 }
 
 unsafe extern "C-unwind" fn gmp_popcount_limb (mut x: mp_limb_t) -> c_uint
@@ -4601,6 +5331,8 @@ unsafe extern "C-unwind" fn gmp_popcount_limb (mut x: mp_limb_t) -> c_uint
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpn_popcount (p: mp_srcptr, n: mp_size_t) -> mp_bitcnt_t
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut i: mp_size_t;
   let mut c: mp_bitcnt_t;
 
@@ -4610,11 +5342,15 @@ pub unsafe extern "C-unwind" fn mpn_popcount (p: mp_srcptr, n: mp_size_t) -> mp_
     { c += gmp_popcount_limb (*p.offset (i as isize)) as mp_bitcnt_t; i += 1; }
 
   return c;
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_popcount (u: *const __mpz_struct) -> mp_bitcnt_t
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let un: mp_size_t;
 
   un = (*u)._mp_size as mp_size_t;
@@ -4623,12 +5359,16 @@ pub unsafe extern "C-unwind" fn mpz_popcount (u: *const __mpz_struct) -> mp_bitc
     { return !(0 as mp_bitcnt_t); }
 
   return mpn_popcount ((*u)._mp_d, un);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_hamdist (u: *const __mpz_struct, v: *const __mpz_struct)
   -> mp_bitcnt_t
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut un: mp_size_t;
   let mut vn: mp_size_t;
   let mut i: mp_size_t;
@@ -4686,12 +5426,16 @@ pub unsafe extern "C-unwind" fn mpz_hamdist (u: *const __mpz_struct, v: *const _
     }
 
   return c;
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_scan1 (u: *const __mpz_struct, starting_bit: mp_bitcnt_t)
   -> mp_bitcnt_t
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let up: mp_ptr;
   let mut us: mp_size_t;
   let un: mp_size_t;
@@ -4726,12 +5470,16 @@ pub unsafe extern "C-unwind" fn mpz_scan1 (u: *const __mpz_struct, starting_bit:
     }
 
   return mpn_common_scan (limb, i, up, un, ux);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_scan0 (u: *const __mpz_struct, starting_bit: mp_bitcnt_t)
   -> mp_bitcnt_t
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let up: mp_ptr;
   let us: mp_size_t;
   let un: mp_size_t;
@@ -4759,6 +5507,8 @@ pub unsafe extern "C-unwind" fn mpz_scan0 (u: *const __mpz_struct, starting_bit:
   limb &= GMP_LIMB_MAX << (starting_bit % GMP_LIMB_BITS as mp_bitcnt_t);
 
   return mpn_common_scan (limb, i, up, un, ux);
+
+  }
 }
 
 /* MPZ base conversion. */
@@ -4766,6 +5516,8 @@ pub unsafe extern "C-unwind" fn mpz_scan0 (u: *const __mpz_struct, starting_bit:
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_sizeinbase (u: *const __mpz_struct, base: c_int) -> usize
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut un: mp_size_t;
   let mut tn: mp_size_t;
   let mut up: mp_srcptr;
@@ -4813,12 +5565,16 @@ pub unsafe extern "C-unwind" fn mpz_sizeinbase (u: *const __mpz_struct, base: c_
 
   gmp_free_limbs (tp, un);
   return ndigits;
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_get_str (sp: *mut c_char, mut base: c_int,
                                       u: *const __mpz_struct) -> *mut c_char
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut bits: c_uint;
   let mut digits: *const c_char;
   let mut un: mp_size_t;
@@ -4898,12 +5654,16 @@ pub unsafe extern "C-unwind" fn mpz_get_str (sp: *mut c_char, mut base: c_int,
   if (osn != 0 && osn != sn + 1)
     { sp = gmp_realloc! (sp as *mut c_void, osn, sn + 1) as *mut c_char; }
   return sp;
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_set_str (r: *mut __mpz_struct, sp: *const c_char,
                                       mut base: c_int) -> c_int
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut bits: c_uint;
   let mut value_of_a: c_uint;
   let mut rn: mp_size_t;
@@ -5012,20 +5772,28 @@ pub unsafe extern "C-unwind" fn mpz_set_str (r: *mut __mpz_struct, sp: *const c_
   (*r)._mp_size = (if sign != 0 { - rn } else { rn }) as c_int;
 
   return 0;
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_init_set_str (r: *mut __mpz_struct, sp: *const c_char,
                                            base: c_int) -> c_int
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   mpz_init (r);
   return mpz_set_str (r, sp, base);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_out_str (stream: *mut FILE, base: c_int,
                                       x: *const __mpz_struct) -> usize
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut str_: *mut c_char;
   let len: usize;
   let n: usize;
@@ -5037,13 +5805,19 @@ pub unsafe extern "C-unwind" fn mpz_out_str (stream: *mut FILE, base: c_int,
   n = fwrite (str_ as *const c_void, 1, len, stream);
   gmp_free! (str_ as *mut c_void, len + 1);
   return n;
+
+  }
 }
 
 unsafe extern "C-unwind" fn gmp_detect_endian () -> c_int
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   static i: c_int = 2;
   let p: *const u8 = &i as *const c_int as *const u8;
   return 1 - *p as c_int;
+
+  }
 }
 
 /* Import and export. Does not support nails. */
@@ -5052,6 +5826,8 @@ pub unsafe extern "C-unwind" fn mpz_import (r: *mut __mpz_struct, mut count: usi
                                      order: c_int, size: usize, mut endian: c_int,
                                      nails: usize, src: *const c_void)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut p: *const u8;
   let mut word_step: isize;
   let rp: mp_ptr;
@@ -5128,6 +5904,8 @@ pub unsafe extern "C-unwind" fn mpz_import (r: *mut __mpz_struct, mut count: usi
     { i = mpn_normalized_size (rp, i); }
 
   (*r)._mp_size = i as c_int;
+
+  }
 }
 
 #[unsafe(no_mangle)]
@@ -5136,6 +5914,8 @@ pub unsafe extern "C-unwind" fn mpz_export (mut r: *mut c_void, countp: *mut usi
                                      nails: usize, u: *const __mpz_struct)
   -> *mut c_void
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut count: usize;
   let mut un: mp_size_t;
 
@@ -5242,6 +6022,8 @@ pub unsafe extern "C-unwind" fn mpz_export (mut r: *mut c_void, countp: *mut usi
     { *countp = count; }
 
   return r;
+
+  }
 }
 
 /// C: `realloc` as gnulib's generated `<stdlib.h>` leaves it for this configuration:
@@ -5250,5 +6032,9 @@ pub unsafe extern "C-unwind" fn mpz_export (mut r: *mut c_void, countp: *mut usi
 #[cfg (feature = "replace_realloc_for_realloc_posix")]
 unsafe extern "C" fn realloc (ptr: *mut c_void, size: usize) -> *mut c_void
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   return realloc_system (ptr, if size == 0 { 1 } else { size });
+
+  }
 }

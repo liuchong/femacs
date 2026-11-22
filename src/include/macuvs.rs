@@ -23,6 +23,7 @@
 
    FIXME: Make it convenient to do headless bootstrap builds on macOS,
    so that this file need not be put into the source repository.  */
+#![forbid(unsafe_code)]
 
 /// C 9: `static const unsigned char mac_uvs_table_adobe_japan1_bytes[] = { … };`
 /// (value lines C 11-9217, the close brace C 9218; 73,655 values.)

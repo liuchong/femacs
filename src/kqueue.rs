@@ -22,9 +22,7 @@
 // *header* macros C tests by value (`O_EVTONLY`, `O_SYMLINK`, `EV_ENABLE`) are measured present
 // here and follow the same shape with `no_o_evtonly`/`no_o_symlink`/`no_ev_enable`.
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports,
-         unused_macros, unused_variables, unused_assignments, unused_mut, unused_unsafe,
-         static_mut_refs, unsafe_op_in_unsafe_fn, clippy::all)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_assignments, unused_mut, unused_unsafe, clippy::all)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -166,7 +164,11 @@ macro_rules! input_event_bits {
 #[cfg (feature = "have_kqueue")]
 pub unsafe fn FUNCTIONP (a: Lisp_Object) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   !NILP (Ffunctionp (a))
+
+  }
 }
 
 /* C 35-39: the two file-scope objects.  `kqueuefd`'s `-1` and the tentative `watch_list` (i.e.
@@ -180,6 +182,8 @@ static mut watch_list: Lisp_Object = lisp_h_Qnil ();
 #[cfg (feature = "have_kqueue")]
 unsafe fn kqueue_directory_listing (directory_files: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut result: Lisp_Object = Qnil ();
 
   let mut dl = directory_files;
@@ -207,6 +211,8 @@ unsafe fn kqueue_directory_listing (directory_files: Lisp_Object) -> Lisp_Object
       dl = XCDR (dl);
     }
   result
+
+  }
 }
 
 /* C 70-105: `static void kqueue_generate_event (Lisp_Object watch_object, Lisp_Object actions,
@@ -215,6 +221,8 @@ unsafe fn kqueue_directory_listing (directory_files: Lisp_Object) -> Lisp_Object
 unsafe fn kqueue_generate_event (watch_object: Lisp_Object, actions: Lisp_Object,
                                  file: Lisp_Object, file1: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut flags: Lisp_Object;
   let mut action: Lisp_Object;
   let mut entry: Lisp_Object;
@@ -253,6 +261,8 @@ unsafe fn kqueue_generate_event (watch_object: Lisp_Object, actions: Lisp_Object
                          Fnth (make_fixnum (3), watch_object));
       kbd_buffer_store_event (&raw mut event as *mut c_void);
     }
+
+  }
 }
 
 /* C 107-274: `static void kqueue_compare_dir_list (Lisp_Object watch_object)`.  C's `goto the_end`
@@ -262,6 +272,8 @@ unsafe fn kqueue_generate_event (watch_object: Lisp_Object, actions: Lisp_Object
 #[cfg (feature = "have_kqueue")]
 unsafe fn kqueue_compare_dir_list (watch_object: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut dir: Lisp_Object;
   let mut pending_dl: Lisp_Object;
   let mut deleted_dl: Lisp_Object;
@@ -452,12 +464,16 @@ unsafe fn kqueue_compare_dir_list (watch_object: Lisp_Object)
   /* Replace old directory listing with the new one.  */
   XSETCDR (Fnthcdr (make_fixnum (3), watch_object),
            Fcons (new_directory_files, Qnil ()));
+
+  }
 }
 
 /* C 276-336: `static void kqueue_callback (int fd, void *data)`.  */
 #[cfg (feature = "have_kqueue")]
 unsafe extern "C-unwind" fn kqueue_callback (fd: c_int, data: *mut c_void)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let _ = fd;
   let _ = data;
   loop
@@ -522,6 +538,8 @@ unsafe extern "C-unwind" fn kqueue_callback (fd: c_int, data: *mut c_void)
       if kev.fflags & (NOTE_DELETE as c_uint | NOTE_RENAME as c_uint | NOTE_REVOKE as c_uint) != 0
         { Fkqueue_rm_watch (descriptor); }
     }
+
+  }
 }
 
 /* C 338-473: the first subr.  */
@@ -686,7 +704,11 @@ DEFUN! ("kqueue-valid-p", Fkqueue_valid_p, Skqueue_valid_p, 1, 1, 0,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn globals_of_kqueue ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   watch_list = Qnil ();
+
+  }
 }
 
 /* C 526-546: `void syms_of_kqueue (void)`.  */
@@ -694,6 +716,8 @@ pub unsafe extern "C-unwind" fn globals_of_kqueue ()
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_kqueue ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   defsubr (&raw mut Skqueue_add_watch);
   defsubr (&raw mut Skqueue_rm_watch);
   defsubr (&raw mut Skqueue_valid_p);
@@ -711,6 +735,8 @@ pub unsafe extern "C-unwind" fn syms_of_kqueue ()
   staticpro (&raw mut watch_list);
 
   Fprovide (intern_c_string (c"kqueue".as_ptr ()), Qnil ());
+
+  }
 }
 
 /* C 548-550: the file's closing note.

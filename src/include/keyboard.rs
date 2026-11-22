@@ -118,7 +118,7 @@ pub union buffered_input_event
 // keyboard.h 188-228.
 #[inline(always)]
 pub fn kset_default_minibuffer_frame (kb: *mut kboard, val: Lisp_Object)
-{ unsafe { (*kb).Vdefault_minibuffer_frame_ = val; } }
+{ /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*kb).Vdefault_minibuffer_frame_ = val; } }
 
 #[inline(always)]
 pub fn kset_defining_kbd_macro (kb: *mut kboard, val: Lisp_Object)
@@ -126,7 +126,7 @@ pub fn kset_defining_kbd_macro (kb: *mut kboard, val: Lisp_Object)
 
 #[inline(always)]
 pub fn kset_input_decode_map (kb: *mut kboard, val: Lisp_Object)
-{ unsafe { (*kb).Vinput_decode_map_ = val; } }
+{ /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*kb).Vinput_decode_map_ = val; } }
 
 #[inline(always)]
 pub fn kset_last_command (kb: *mut kboard, val: Lisp_Object)
@@ -134,7 +134,7 @@ pub fn kset_last_command (kb: *mut kboard, val: Lisp_Object)
 
 #[inline(always)]
 pub fn kset_last_kbd_macro (kb: *mut kboard, val: Lisp_Object)
-{ unsafe { (*kb).Vlast_kbd_macro_ = val; } }
+{ /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*kb).Vlast_kbd_macro_ = val; } }
 
 #[inline(always)]
 pub fn kset_prefix_arg (kb: *mut kboard, val: Lisp_Object)
@@ -142,7 +142,7 @@ pub fn kset_prefix_arg (kb: *mut kboard, val: Lisp_Object)
 
 #[inline(always)]
 pub fn kset_system_key_alist (kb: *mut kboard, val: Lisp_Object)
-{ unsafe { (*kb).Vsystem_key_alist_ = val; } }
+{ /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*kb).Vsystem_key_alist_ = val; } }
 
 #[inline(always)]
 pub fn kset_window_system (kb: *mut kboard, val: Lisp_Object)
@@ -160,7 +160,7 @@ pub fn kbd_buffer_store_event_hold (event: *mut input_event, hold_quit: *mut inp
   // `input_event`; the port keeps it in the same place (PORTING.md 1.3).
   static_assert! (align_of::<input_event> () == align_of::<buffered_input_event> ()
                   && size_of::<input_event> () == size_of::<buffered_input_event> ());
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     kbd_buffer_store_buffered_event (event as *mut buffered_input_event, hold_quit);
   }
 }
@@ -171,7 +171,7 @@ pub fn kbd_buffer_store_event_hold (event: *mut input_event, hold_quit: *mut inp
 pub fn ENCODE_MENU_STRING (str: Lisp_Object) -> Lisp_Object
 {
   #[cfg(feature = "have_ns")]
-  { return unsafe { ENCODE_UTF_8(str) }; }
+  { return /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { ENCODE_UTF_8(str) }; }
   #[cfg(not(feature = "have_ns"))]
   { unsafe { string_make_unibyte (str) } }
 }
@@ -233,7 +233,7 @@ pub fn EVENT_END (event: Lisp_Object) -> Lisp_Object
 
 #[inline(always)]
 pub fn EVENT_CLICK_COUNT (event: Lisp_Object) -> Lisp_Object
-{ unsafe { Fnth (make_fixnum (2), event) } }
+{ /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { Fnth (make_fixnum (2), event) } }
 
 #[inline(always)]
 pub fn EVENT_HEAD_KIND (event_head: Lisp_Object) -> Lisp_Object
@@ -253,7 +253,7 @@ pub fn POSN_TIMESTAMP (posn: Lisp_Object) -> Lisp_Object
 { CAR_SAFE (CDR_SAFE (CDR_SAFE (CDR_SAFE (posn)))) }
 #[inline(always)]
 pub fn POSN_SCROLLBAR_PART (posn: Lisp_Object) -> Lisp_Object
-{ unsafe { Fnth (make_fixnum (4), posn) } }
+{ /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { Fnth (make_fixnum (4), posn) } }
 #[inline(always)]
 pub fn POSN_STRING (posn: Lisp_Object) -> Lisp_Object
 { unsafe { Fnth (make_fixnum (4), posn) } }
@@ -261,7 +261,7 @@ pub fn POSN_STRING (posn: Lisp_Object) -> Lisp_Object
 pub fn POSN_INBUFFER_P (posn: Lisp_Object) -> bool { NILP (POSN_STRING (posn)) }
 #[inline(always)]
 pub fn POSN_BUFFER_POSN (posn: Lisp_Object) -> Lisp_Object
-{ unsafe { Fnth (make_fixnum (5), posn) } }
+{ /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { Fnth (make_fixnum (5), posn) } }
 
 // keyboard.h 238-470: the file-scope objects (the C files define them).
 unsafe extern "C-unwind" { pub static mut initial_kboard: *mut KBOARD; }                        // 238

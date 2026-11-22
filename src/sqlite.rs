@@ -57,10 +57,7 @@
 // file was executed anywhere: there is no SQLite library linked, no database opened and no
 // statement run.
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
-         unsafe_op_in_unsafe_fn, unused_assignments, unused_parens, unused_mut,
-         unreachable_code, unused_labels, unused_comparisons, unused_must_use)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe, unused_assignments, unused_parens, unused_mut, unreachable_code, unused_labels, unused_comparisons, unused_must_use)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -441,6 +438,8 @@ unsafe fn init_sqlite_functions () -> bool
 #[cfg (feature = "have_sqlite3")]
 unsafe extern "C" fn sqlite_free (arg: *mut c_void)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let ptr: *mut Lisp_Sqlite = arg as *mut Lisp_Sqlite;             // C 231
   if (*ptr).is_statement                                           // C 232
     { sqlite3_finalize ((*ptr).stmt as *mut sqlite3_stmt); }       // C 233
@@ -448,6 +447,8 @@ unsafe extern "C" fn sqlite_free (arg: *mut c_void)
     { sqlite3_close ((*ptr).db as *mut sqlite3); }                 // C 235
   xfree ((*ptr).name as *mut c_void);                              // C 236
   xfree (ptr as *mut c_void);                                      // C 237
+
+  }
 }
 /* C 238: end of `sqlite_free`.  */
 
@@ -456,10 +457,14 @@ unsafe extern "C" fn sqlite_free (arg: *mut c_void)
 #[cfg (feature = "have_sqlite3")]
 unsafe fn encode_string (string: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if STRING_MULTIBYTE (string)                                     // C 243
     { return encode_string_utf_8 (string, Qnil (), false, Qt (), Qt ()); }  // C 244
   else
     { return string; }                                             // C 246
+
+  }
 }
 /* C 247: end of `encode_string`.  */
 
@@ -479,6 +484,8 @@ unsafe extern "C" {
 unsafe fn make_sqlite (is_statement: bool, db: *mut c_void, stmt: *mut c_void, name: *mut c_char)
   -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let ptr: *mut Lisp_Sqlite
     = ALLOCATE_PLAIN_PSEUDOVECTOR! (Lisp_Sqlite, pvec_type::PVEC_SQLITE);   // C 252-253
   (*ptr).is_statement = is_statement;                                       // C 254
@@ -488,6 +495,8 @@ unsafe fn make_sqlite (is_statement: bool, db: *mut c_void, stmt: *mut c_void, n
   (*ptr).stmt = stmt;                                                       // C 258
   (*ptr).eof = false;                                                       // C 259
   return make_lisp_ptr (ptr as *mut c_void, Lisp_Type::Lisp_Vectorlike);    // C 260
+
+  }
 }
 /* C 261: end of `make_sqlite`.  */
 
@@ -508,6 +517,8 @@ const _: () = core::assert! (std::mem::offset_of! (Lisp_Sqlite, is_statement) ==
 #[cfg (feature = "have_sqlite3")]
 unsafe fn check_sqlite (db: Lisp_Object, is_statement: bool)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   init_sqlite_functions ();                                                       // C 266
   CHECK_SQLITE (db);                                                              // C 267
   if is_statement && ! (*XSQLITE (db)).is_statement                               // C 268
@@ -518,6 +529,8 @@ unsafe fn check_sqlite (db: Lisp_Object, is_statement: bool)
     { xsignal1 (Qsqlite_error (), build_string (c"Database closed".as_ptr ())); }        // C 273
   else if is_statement && (*XSQLITE (db)).db.is_null ()                           // C 274
     { xsignal1 (Qsqlite_error (), build_string (c"Statement closed".as_ptr ())); }       // C 275
+
+  }
 }
 /* C 276: end of `check_sqlite`.  */
 
@@ -614,6 +627,8 @@ DEFUN! ("sqlite-close", Fsqlite_close, Ssqlite_close, 1, 1, 0,
 unsafe fn bind_values (db: *mut sqlite3, stmt: *mut sqlite3_stmt, mut values: Lisp_Object)
   -> *const c_char
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   sqlite3_reset (stmt);                                               // C 349
   let mut len: c_int;                                                 // C 350
   if VECTORP (values)                                                 // C 351
@@ -695,6 +710,8 @@ unsafe fn bind_values (db: *mut sqlite3, stmt: *mut sqlite3_stmt, mut values: Li
   /* C 418-419: end of the loop / blank.  */
 
   return std::ptr::null ();                                           // C 420
+
+  }
 }
 /* C 421: end of `bind_values`.  */
 
@@ -703,6 +720,8 @@ unsafe fn bind_values (db: *mut sqlite3, stmt: *mut sqlite3_stmt, mut values: Li
 #[cfg (feature = "have_sqlite3")]
 unsafe fn row_to_value (stmt: *mut sqlite3_stmt) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let len: c_int = sqlite3_column_count (stmt);                        // C 426
   let mut values: Lisp_Object = Qnil ();                               // C 427
   /* C 428: blank.  */
@@ -740,6 +759,8 @@ unsafe fn row_to_value (stmt: *mut sqlite3_stmt) -> Lisp_Object
   /* C 462-463: end of the loop / blank.  */
 
   return values;                                                        // C 464
+
+  }
 }
 /* C 465: end of `row_to_value`.  */
 
@@ -748,6 +769,8 @@ unsafe fn row_to_value (stmt: *mut sqlite3_stmt) -> Lisp_Object
 #[cfg (feature = "have_sqlite3")]
 unsafe fn sqlite_prepare_errdata (code: c_int, sdb: *mut sqlite3) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let errcode: Lisp_Object = make_fixnum (code as EMACS_INT);           // C 470
   let errmsg: *const c_char = sqlite3_errmsg (sdb);                     // C 471
   let lerrmsg: Lisp_Object = if errmsg.is_null () { Qnil () } else { build_string (errmsg) };  // C 472
@@ -774,6 +797,8 @@ unsafe fn sqlite_prepare_errdata (code: c_int, sdb: *mut sqlite3) -> Lisp_Object
   /* C 489: blank.  */
 
   return list4 (errstr, lerrmsg, errcode, ext_errcode);                 // C 490
+
+  }
 }
 /* C 491: end of `sqlite_prepare_errdata`.  */
 
@@ -868,6 +893,8 @@ DEFUN! ("sqlite-execute", Fsqlite_execute, Ssqlite_execute, 2, 3, 0,
 #[cfg (feature = "have_sqlite3")]
 unsafe fn column_names (stmt: *mut sqlite3_stmt) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut columns: Lisp_Object = Qnil ();                               // C 571
   let count: c_int = sqlite3_column_count (stmt);                       // C 572
   for i in 0 .. count                                                     // C 573
@@ -875,6 +902,8 @@ unsafe fn column_names (stmt: *mut sqlite3_stmt) -> Lisp_Object
   /* C 575: blank.  */
 
   return Fnreverse (columns);                                           // C 576
+
+  }
 }
 /* C 577: end of `column_names`.  */
 
@@ -961,6 +990,8 @@ DEFUN! ("sqlite-select", Fsqlite_select, Ssqlite_select, 2, 4, 0,
 #[cfg (feature = "have_sqlite3")]
 unsafe fn sqlite_exec (sdb: *mut sqlite3, query: *const c_char) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let ret: c_int = sqlite3_exec (sdb, query, None, std::ptr::null_mut (),
                                 std::ptr::null_mut ());                 // C 657
   if ret != SQLITE_OK                                                   // C 658
@@ -968,6 +999,8 @@ unsafe fn sqlite_exec (sdb: *mut sqlite3, query: *const c_char) -> Lisp_Object
   /* C 660: blank.  */
 
   return Qt ();                                                         // C 661
+
+  }
 }
 /* C 662: end of `sqlite_exec`.  */
 
@@ -1268,6 +1301,8 @@ DEFUN! ("sqlite-available-p", Fsqlite_available_p, Ssqlite_available_p, 0, 0, 0,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_sqlite ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* C 891-911: `#ifdef HAVE_SQLITE3` - the fifteen `defsubr`s (C 892-908, with C 901-903's
      `#if HAVE_LOAD_EXTENSION` around `sqlite-load-extension`) and C 909-910's two `DEFSYM`s.  */
   #[cfg (feature = "have_sqlite3")]
@@ -1317,5 +1352,7 @@ pub unsafe extern "C-unwind" fn syms_of_sqlite ()
   DEFSYM! (Qsqlite3, "sqlite3");                                        // C 930
   DEFSYM! (Qbinary, "binary");                                          // C 931
   DEFSYM! (Qcoding_system, "coding-system");                            // C 932
+
+  }
 }
 /* C 933: end of `syms_of_sqlite`, and of the reference file.  */

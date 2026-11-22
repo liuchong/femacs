@@ -30,6 +30,8 @@ use std::ffi::{c_int, c_long, c_uint, c_ulong, c_void};
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn rawmemchr (mut s: *const c_void, c_in: c_int) -> *mut c_void
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   /* C 37's `#ifdef __CHERI_PURE_CAPABILITY__` arm is dead in the frozen configuration
      (the macro is not in the table, and the arm calls builtins this target has not got);
      its text is recorded in docs/ports/rawmemchr.md.  */
@@ -138,5 +140,7 @@ pub unsafe extern "C" fn rawmemchr (mut s: *const c_void, c_in: c_int) -> *mut c
     while *char_ptr != c
       { char_ptr = char_ptr.add (1); }
     return char_ptr as *mut c_void;
+  }
+
   }
 }

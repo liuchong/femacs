@@ -51,12 +51,16 @@ macro_rules! fchdir { ($fd:expr) => { -1 }; }
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn save_cwd (cwd: *mut saved_cwd) -> c_int
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   /* The 'name' member is present only to minimize differences from
      gnulib.  Initialize it to NULL, if only to simplify debugging.  */
   (*cwd).name = std::ptr::null_mut ();
 
   (*cwd).desc = open (c".".as_ptr (), O_SEARCH | O_CLOEXEC);
   return 0;
+
+  }
 }
 
 /* Change to recorded location, CWD, in directory hierarchy.
@@ -67,6 +71,8 @@ pub unsafe extern "C" fn save_cwd (cwd: *mut saved_cwd) -> c_int
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn restore_cwd (cwd: *const saved_cwd) -> c_int
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   /* Restore the previous directory if possible, to avoid tying down
      the file system of the new directory (Bug#18232).
      Don't worry if fchdir fails, as Emacs doesn't care what the
@@ -76,11 +82,17 @@ pub unsafe extern "C" fn restore_cwd (cwd: *const saved_cwd) -> c_int
     { return 0; }
 
   return 0;
+
+  }
 }
 
 /* C 85-89's `void free_cwd (struct saved_cwd *cwd)`.  */
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn free_cwd (cwd: *mut saved_cwd)
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   close ((*cwd).desc);
+
+  }
 }

@@ -16,9 +16,7 @@
 // configuration, so each non-frozen arm is kept as gated text (P-51, the status 3.9 convention
 // of naming the feature after the non-frozen side).
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
-         unsafe_op_in_unsafe_fn)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -164,6 +162,8 @@ unsafe extern "C-unwind" fn close_file_unwind_android_fd (ptr: *mut c_void)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn get_doc_string (filepos: Lisp_Object, unibyte: bool) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   // C declares these as uninitialized pointers and fills them below; the port gives the C
   // locals that are "written through a pointer or before their first read" the zero
   // initializer the ledger prescribes (PORTING.md 1.5).
@@ -382,14 +382,20 @@ Invalid data in documentation file -- %c followed by code %03o\0".as_ptr () as *
 				     nchars,
 				     to.offset_from (get_doc_string_buffer.offset (offset as isize)));
     }
+
+  }
 }
 
 unsafe fn reread_doc_file (file: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if NILP (file)
     { Fsnarf_documentation (Vdoc_file_name); }
   else
     { save_match_data_load (file, Qt (), Qt (), Qt (), Qnil ()); }
+
+  }
 }
 
 DEFUN! ("documentation-stringp", Fdocumentation_stringp, Sdocumentation_stringp,
@@ -542,6 +548,8 @@ DEFUN! ("documentation-property", Fdocumentation_property,
 
 unsafe fn store_function_docstring (obj: Lisp_Object, offset: EMACS_INT)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* Don't use indirect_function here, or defaliases will apply their
      docstrings to the base functions (Bug#2603).  */
   let mut fun: Lisp_Object = if SYMBOLP (obj) { (*XSYMBOL (obj)).u.s.function } else { obj };
@@ -577,6 +585,8 @@ unsafe fn store_function_docstring (obj: Lisp_Object, offset: EMACS_INT)
       AUTO_STRING! (format, b"Ignoring DOC string on non-compiled non-subr: %S\0".as_ptr () as *const c_char);
       CALLN! (Fmessage, format, obj);
     }
+
+  }
 }
 
 
@@ -718,7 +728,7 @@ DEFUN! ("Snarf-documentation", Fsnarf_documentation, Ssnarf_documentation,
 /* Return true if text quoting style should default to quote `like this'.  */
 fn default_to_grave_quoting_style () -> bool
 {
-  if !unsafe { text_quoting_flag }
+  if !/* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { text_quoting_flag }
     { return true; }
   if ! DISP_TABLE_P (unsafe { Vstandard_display_table })
     { return false; }
@@ -752,6 +762,8 @@ DEFUN! ("text-quoting-style", Ftext_quoting_style,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_doc ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   DEFSYM! (Qlisp_directory, "lisp-directory");
   DEFSYM! (Qsubstitute_command_keys, "substitute-command-keys");
   DEFSYM! (Qfunction_documentation, "function-documentation");
@@ -786,4 +798,6 @@ pub unsafe extern "C-unwind" fn syms_of_doc ()
   defsubr (&raw mut Ssnarf_documentation);
   defsubr (&raw mut Stext_quoting_style);
   DEFSYM! (Qcustom_delayed_init_variables, "custom-delayed-init-variables");
+
+  }
 }

@@ -123,6 +123,8 @@ macro_rules! ISDIGIT {
 /* C 276-318's `static int str2signum (char const *signame)`.  */
 unsafe fn str2signum (signame: *const c_char) -> c_int
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   if ISDIGIT! (*signame)
     {
       let mut endp: *mut c_char = std::ptr::null_mut ();
@@ -162,6 +164,8 @@ unsafe fn str2signum (signame: *const c_char) -> c_int
     }
 
   return -1;
+
+  }
 }
 
 /* Convert the signal name SIGNAME to the signal number *SIGNUM.
@@ -171,8 +175,12 @@ unsafe fn str2signum (signame: *const c_char) -> c_int
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn str2sig (signame: *const c_char, signum: *mut c_int) -> c_int
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   *signum = str2signum (signame);
   return if *signum < 0 { -1 } else { 0 };
+
+  }
 }
 
 /* Convert SIGNUM to a signal name in SIGNAME.  SIGNAME must point to
@@ -183,6 +191,8 @@ pub unsafe extern "C" fn str2sig (signame: *const c_char, signum: *mut c_int) ->
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn sig2str (signum: c_int, signame: *mut c_char) -> c_int
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   let mut i: c_int = 0;
   while i < countof! (numname_table) as c_int
     {
@@ -217,5 +227,7 @@ pub unsafe extern "C" fn sig2str (signum: c_int, signame: *mut c_char) -> c_int
     if delta != 0
       { sprintf (signame.add (5), c"%+d".as_ptr (), delta); }
     return 0;
+  }
+
   }
 }

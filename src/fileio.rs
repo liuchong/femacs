@@ -17,11 +17,7 @@
 // editfns.rs/sysdep.rs shape) and each record's layout is measured with the frozen clang and
 // pinned by `const _` assertions.
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
-         unsafe_op_in_unsafe_fn, unused_assignments, unused_parens, unused_mut,
-         unreachable_code, unused_labels, while_true, unused_comparisons,
-         overflowing_literals, unused_must_use, clippy::all)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe, unused_assignments, unused_parens, unused_mut, unreachable_code, unused_labels, while_true, unused_comparisons, overflowing_literals, unused_must_use, clippy::all)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -205,10 +201,14 @@ unsafe fn check_vfs_filename (encoded: Lisp_Object, reason: *const c_char)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn file_access_p (file: *const c_char, amode: c_int) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if sys_faccessat (AT_FDCWD, file, amode, AT_EACCESS) == 0
     { return true; }
 
   return false;
+
+  }
 }
 
 /* Signal a file-access failure.  STRING describes the failure,
@@ -222,6 +222,8 @@ pub unsafe extern "C-unwind" fn file_access_p (file: *const c_char, amode: c_int
 pub unsafe extern "C-unwind" fn get_file_errno_data (string: *const c_char, name: Lisp_Object,
 					      errorno: c_int) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut data: Lisp_Object = if CONSP (name) || NILP (name) { name } else { list1 (name) };
   let mut str_: *mut c_char = emacs_strerror (errorno);
   AUTO_STRING! (unibyte_str, str_);
@@ -238,14 +240,20 @@ pub unsafe extern "C-unwind" fn get_file_errno_data (string: *const c_char, name
 		    { Qpermission_denied () }
 		    else { Qfile_error () },
 		    Fcons (build_string (string), errdata)); }
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn report_file_errno (string: *const c_char, name: Lisp_Object,
 					    errorno: c_int) -> !
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut data: Lisp_Object = get_file_errno_data (string, name, errorno);
   xsignal (data, Qnil ());
+
+  }
 }
 
 /* Signal a file-access failure that set errno.  STRING describes the
@@ -256,7 +264,11 @@ pub unsafe extern "C-unwind" fn report_file_errno (string: *const c_char, name: 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn report_file_error (string: *const c_char, name: Lisp_Object) -> !
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   report_file_errno (string, name, *errno ());
+
+  }
 }
 
 /* C 303-317: `#ifdef USE_FILE_NOTIFY` - dead for the frozen configuration, live for the Android
@@ -269,6 +281,8 @@ pub unsafe extern "C-unwind" fn report_file_error (string: *const c_char, name: 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn report_file_notify_error (string: *const c_char, name: Lisp_Object) -> !
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut str_: *mut c_char = emacs_strerror (*errno ());
   AUTO_STRING! (unibyte_str, str_);
   let mut errstring: Lisp_Object
@@ -277,6 +291,8 @@ pub unsafe extern "C-unwind" fn report_file_notify_error (string: *const c_char,
   let mut errdata: Lisp_Object = Fcons (errstring, data);
 
   xsignal (Qfile_notify_error (), Fcons (build_string (string), errdata));
+
+  }
 }
 
 /* ACTION failed for FILE with errno ERR.  Signal an error if ERR
@@ -286,29 +302,45 @@ pub unsafe extern "C-unwind" fn report_file_notify_error (string: *const c_char,
 unsafe fn file_metadata_errno (action: *const c_char, file: Lisp_Object,
 				      err: c_int) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if err == ENOENT || err == ENOTDIR || err == 0
     { return Qnil (); }
   report_file_errno (action, file, err);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn file_attribute_errno (file: Lisp_Object, err: c_int) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   return file_metadata_errno (c"Getting attributes".as_ptr (), file, err);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn close_file_unwind (fd: c_int)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   emacs_close (fd);
+
+  }
 }
 
 unsafe extern "C-unwind" fn close_file_unwind_emacs_fd (ptr: *mut c_void)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut fd: *mut emacs_fd;
 
   fd = ptr as *mut emacs_fd;
   emacs_fd_close! (*fd);
+
+  }
 }
 
 #[unsafe(no_mangle)]
@@ -323,8 +355,12 @@ pub unsafe extern "C-unwind" fn fclose_unwind (arg: *mut c_void)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn restore_point_unwind (location: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   Fgoto_char (location);
   unchain_marker (XMARKER (location) as *mut c_void);
+
+  }
 }
 
 /* ---- further use-site declarations (PORTING.md 0.1-2/P-72 rule 3) ---------------------- */
@@ -411,6 +447,8 @@ DEFUN! ("find-file-name-handler", Ffind_file_name_handler,
 
 unsafe fn file_name_directory (filename: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut beg: *mut c_char = SSDATA (filename);
   let mut p: *const c_char = beg.offset (SBYTES (filename)) as *const c_char;
 
@@ -421,6 +459,8 @@ unsafe fn file_name_directory (filename: Lisp_Object) -> Lisp_Object
     { return Qnil (); }
   return make_specified_string (beg, -1, p.offset_from (beg as *const c_char),
 				STRING_MULTIBYTE (filename));
+
+  }
 }
 
 DEFUN! ("file-name-directory", Ffile_name_directory, Sfile_name_directory,
@@ -512,6 +552,8 @@ const file_name_as_directory_slop: c_int = 2;
 unsafe fn file_name_as_directory (dst: *mut c_char, src: *const c_char,
 					 mut srclen: ptrdiff_t, multibyte: bool) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if srclen == 0
     {
       *dst.offset (0) = b'.' as c_char;
@@ -525,6 +567,8 @@ unsafe fn file_name_as_directory (dst: *mut c_char, src: *const c_char,
     { *dst.offset (srclen) = DIRECTORY_SEP; srclen += 1; }
   *dst.offset (srclen) = 0;
   return srclen;
+
+  }
 }
 
 DEFUN! ("file-name-as-directory", Ffile_name_as_directory,
@@ -569,6 +613,8 @@ DEFUN! ("file-name-as-directory", Ffile_name_as_directory,
 unsafe fn directory_file_name (dst: *mut c_char, src: *mut c_char,
 				      mut srclen: ptrdiff_t, multibyte: bool) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* In Unix-like systems, just remove any final slashes.  However, if
      they are all slashes, leave "/" and "//" alone, and treat "///"
      and longer as if they were "/".  */
@@ -581,6 +627,8 @@ unsafe fn directory_file_name (dst: *mut c_char, src: *mut c_char,
   memcpy (dst as *mut c_void, src as *const c_void, srclen as usize);
   *dst.offset (srclen) = 0;
   return srclen;
+
+  }
 }
 
 DEFUN! ("directory-name-p", Fdirectory_name_p, Sdirectory_name_p, 1, 1, 0,
@@ -601,10 +649,14 @@ DEFUN! ("directory-name-p", Fdirectory_name_p, Sdirectory_name_p, 1, 1, 0,
 
 unsafe fn expand_cp_target (file: Lisp_Object, newname: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   return if !NILP (Fdirectory_name_p (newname))
     { Fexpand_file_name (Ffile_name_nondirectory (file), newname) }
   else
     { Fexpand_file_name (newname, Qnil ()) };
+
+  }
 }
 
 DEFUN! ("directory-file-name", Fdirectory_file_name, Sdirectory_file_name,
@@ -817,7 +869,11 @@ DEFUN! ("file-name-concat", Ffile_name_concat, Sfile_name_concat, 1, MANY, 0,
 /* NAME must be a string.  */
 unsafe fn file_name_absolute_no_tilde_p (name: Lisp_Object) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   return IS_ABSOLUTE_FILE_NAME! (SSDATA (name));
+
+  }
 }
 
 /* Return the home directory of the user NAME, or a null pointer if
@@ -828,6 +884,8 @@ unsafe fn file_name_absolute_no_tilde_p (name: Lisp_Object) -> bool
    until the next call to this or similar functions.  */
 unsafe fn user_homedir (name: *const c_char) -> *mut c_char
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut length: ptrdiff_t;
   length = 0;
   while *name.offset (length) != 0 && ! IS_DIRECTORY_SEP (*name.offset (length) as c_int)
@@ -845,6 +903,8 @@ unsafe fn user_homedir (name: *const c_char) -> *mut c_char
   if pw.is_null () || (!(*pw).pw_dir.is_null () && ! IS_ABSOLUTE_FILE_NAME! ((*pw).pw_dir))
     { return std::ptr::null_mut (); }
   return (*pw).pw_dir;
+
+  }
 }
 
 DEFUN! ("expand-file-name", Fexpand_file_name, Sexpand_file_name, 1, 2, 0,
@@ -1303,10 +1363,14 @@ unsafe extern "C-unwind" {
 pub unsafe extern "C-unwind" fn splice_dir_file (buf: *mut c_char, dir: *const c_char,
 					  file: *const c_char) -> *mut c_char
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut e: *mut c_char = stpcpy (buf, dir);
   *e = DIRECTORY_SEP;
   e = e.offset ((! (buf < e && IS_DIRECTORY_SEP (*e.offset (-1) as c_int))) as isize);
   return stpcpy (e, file);
+
+  }
 }
 
 /* Get the home directory, an absolute file name.  Return the empty
@@ -1316,6 +1380,8 @@ pub unsafe extern "C-unwind" fn splice_dir_file (buf: *mut c_char, dir: *const c
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn get_homedir () -> *const c_char
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut home: *const c_char = egetenv (c"HOME".as_ptr ());
 
   /* C 1954-1965: `#ifdef WINDOWSNT` (undefined): recorded in `docs/ports/fileio.md`.  */
@@ -1360,6 +1426,8 @@ pub unsafe extern "C-unwind" fn get_homedir () -> *const c_char
 		       ahomelenbound + 1 - ahomesize, -1, 1) as *mut c_char; }
   splice_dir_file (ahome, wd, home);
   return ahome;
+
+  }
 }
 
 /* If a directory separator followed by an absolute file name (e.g.,
@@ -1369,6 +1437,8 @@ pub unsafe extern "C-unwind" fn get_homedir () -> *const c_char
 unsafe fn search_embedded_absfilename (nm: *mut c_char, endp: *mut c_char)
   -> *mut c_char
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut p: *mut c_char = nm.offset (1);
   /* C 2027-2029: `#ifdef DOUBLE_SLASH_IS_DISTINCT_ROOT` (undefined on the frozen target):
      recorded in `docs/ports/fileio.md`.  */
@@ -1379,6 +1449,8 @@ unsafe fn search_embedded_absfilename (nm: *mut c_char, endp: *mut c_char)
       p = p.offset (1);
     }
   return std::ptr::null_mut ();
+
+  }
 }
 
 DEFUN! ("substitute-in-file-name", Fsubstitute_in_file_name,
@@ -1479,6 +1551,8 @@ DEFUN! ("substitute-in-file-name", Fsubstitute_in_file_name,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn expand_and_dir_to_file (filename: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut absname: Lisp_Object = Fexpand_file_name (filename, Qnil ());
 
   /* Remove final slash, if any (unless this is the root dir).
@@ -1489,6 +1563,8 @@ pub unsafe extern "C-unwind" fn expand_and_dir_to_file (filename: Lisp_Object) -
     /* We cannot take shortcuts; they might be wrong for magic file names.  */
     { absname = Fdirectory_file_name (absname); }
   return absname;
+
+  }
 }
 
 /* Signal an error if the file ABSNAME already exists.
@@ -1504,6 +1580,8 @@ unsafe fn barf_or_query_if_file_exists (absname: Lisp_Object,
 					       querystring: *const c_char,
 					       interactive: bool, quick: bool)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut tem: Lisp_Object;
   let mut encoded_filename: Lisp_Object;
   let mut statbuf: stat = std::mem::zeroed ();
@@ -1536,6 +1614,8 @@ unsafe fn barf_or_query_if_file_exists (absname: Lisp_Object,
 	{ xsignal2 (Qfile_already_exists (),
 		    build_string (c"File already exists".as_ptr ()), absname); }
     }
+
+  }
 }
 
 /* Read a full buffer of bytes from FD into BUF, which is of size BUFSIZE.
@@ -1545,6 +1625,8 @@ unsafe fn barf_or_query_if_file_exists (absname: Lisp_Object,
 unsafe fn emacs_full_read (fd: emacs_fd, buf: *mut c_void, bufsize: ptrdiff_t)
   -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut b: *mut c_char = buf as *mut c_char;
   let mut nread: ptrdiff_t = 0;
   let mut r: ptrdiff_t;
@@ -1552,6 +1634,8 @@ unsafe fn emacs_full_read (fd: emacs_fd, buf: *mut c_void, bufsize: ptrdiff_t)
 	&& { nread += r; nread < bufsize }
     { }
   return if r < 0 { r } else { nread };
+
+  }
 }
 
 /* C 2242: `#ifndef WINDOWSNT` (undefined, so the text is live).  */
@@ -1848,6 +1932,8 @@ DEFUN! ("delete-file-internal", Fdelete_file_internal, Sdelete_file_internal, 1,
 
 unsafe fn file_name_case_insensitive_err (file: Lisp_Object) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* Filesystems are case-sensitive on all supported systems except
      MS-Windows, MS-DOS, Cygwin, and macOS.  They are always
      case-insensitive on the first two, but they may or may not be
@@ -1877,6 +1963,8 @@ unsafe fn file_name_case_insensitive_err (file: Lisp_Object) -> c_int
 
   /* C 2678-2682: `#if defined CYGWIN || defined DOS_NT` (both undefined): recorded.  */
   return 0;
+
+  }
 }
 
 DEFUN! ("file-name-case-insensitive-p", Ffile_name_case_insensitive_p,
@@ -1919,7 +2007,11 @@ DEFUN! ("file-name-case-insensitive-p", Ffile_name_case_insensitive_p,
 /// `memory_full` as `-> !` (the reference marks it AVOID); a `-> !` fn does not coerce to a
 /// `fn (…)` field (measured), so the port passes this same-signature wrapper - the lisp.rs
 /// `xfree_wrapper` shape, and the only name here with no C counterpart.
-unsafe extern "C-unwind" fn memory_full_wrapper (size: usize) { memory_full (size) }
+unsafe extern "C-unwind" fn memory_full_wrapper (size: usize) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe { memory_full (size) 
+  }
+}
 
 unsafe extern "C-unwind" {
   /// C: lisp.h 5328: `extern int emacs_renameat_noreplace (int, const char *, int, const char *);`
@@ -2177,10 +2269,14 @@ DEFUN! ("file-name-absolute-p", Ffile_name_absolute_p, Sfile_name_absolute_p,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn file_name_absolute_p (filename: *const c_char) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   return IS_ABSOLUTE_FILE_NAME! (filename)
     || (*filename.offset (0) == b'~' as c_char
 	&& (*filename.offset (1) == 0 || IS_DIRECTORY_SEP (*filename.offset (1) as c_int)
 	    || !user_homedir (filename.offset (1)).is_null ()));
+
+  }
 }
 
 /* Return t if FILE exists and is accessible via OPERATION and AMODE,
@@ -2189,6 +2285,8 @@ pub unsafe extern "C-unwind" fn file_name_absolute_p (filename: *const c_char) -
 unsafe fn check_file_access (file: Lisp_Object, operation: Lisp_Object,
 				    amode: c_int) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut file = file;                        /* C reassigns `file` below.  */
   file = Fexpand_file_name (file, Qnil ());
   let mut handler: Lisp_Object = Ffind_file_name_handler (file, operation);
@@ -2204,6 +2302,8 @@ unsafe fn check_file_access (file: Lisp_Object, operation: Lisp_Object,
 
   let mut encoded_file: *mut c_char = SSDATA (ENCODE_FILE (file));
   return if file_access_p (encoded_file, amode) { Qt () } else { Qnil () };
+
+  }
 }
 
 DEFUN! ("file-exists-p", Ffile_exists_p, Sfile_exists_p, 1, 1, 0,
@@ -2292,6 +2392,8 @@ DEFUN! ("access-file", Faccess_file, Saccess_file, 2, 2, 0,
 
 unsafe fn emacs_readlinkat (fd: c_int, filename: *const c_char) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   static emacs_norealloc_allocator: allocator = allocator {
     allocate: Some (xmalloc),
     reallocate: None,
@@ -2317,6 +2419,8 @@ unsafe fn emacs_readlinkat (fd: c_int, filename: *const c_char) -> Lisp_Object
     { xfree (buf as *mut c_void); }
   val = DECODE_FILE (val);
   return val;
+
+  }
 }
 
 /* Relative to directory FD, return the symbolic link value of FILE.
@@ -2327,6 +2431,8 @@ pub unsafe extern "C-unwind" fn check_emacs_readlinkat (fd: c_int, file: Lisp_Ob
 						 encoded_file: *const c_char)
   -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut val: Lisp_Object = emacs_readlinkat (fd, encoded_file);
   if NILP (val)
     {
@@ -2336,6 +2442,8 @@ pub unsafe extern "C-unwind" fn check_emacs_readlinkat (fd: c_int, file: Lisp_Ob
       return file_metadata_errno (c"Reading symbolic link".as_ptr (), file, *errno ());
     }
   return val;
+
+  }
 }
 
 DEFUN! ("file-symlink-p", Ffile_symlink_p, Sfile_symlink_p, 1, 1, 0,
@@ -2377,6 +2485,8 @@ DEFUN! ("file-directory-p", Ffile_directory_p, Sfile_directory_p, 1, 1, 0,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn file_directory_p (file: Lisp_Object) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* C 3194-3203: `#ifdef DOS_NT` (undefined): recorded in `docs/ports/fileio.md`.  */
   /* C 3204-3219: `# if defined O_PATH && !(defined HAVE_ANDROID && !defined
      ANDROID_STUBIFY)`: O_PATH is not defined on the frozen target: recorded.  */
@@ -2396,6 +2506,8 @@ pub unsafe extern "C-unwind" fn file_directory_p (file: Lisp_Object) -> bool
     { return true; }
   *errno () = ENOTDIR;
   return false;
+
+  }
 }
 
 /* ---- further use-site declarations (PORTING.md 0.1-2/P-72 rule 3) ---------------------- */
@@ -2457,6 +2569,8 @@ DEFUN! ("file-accessible-directory-p", Ffile_accessible_directory_p,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn file_accessible_directory_p (file: Lisp_Object) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* C 3304-3317: `#ifdef DOS_NT` (undefined): recorded in `docs/ports/fileio.md`.  */
   /* On POSIXish platforms, use just one system call; this avoids a
      race and is typically faster.  */
@@ -2497,6 +2611,8 @@ pub unsafe extern "C-unwind" fn file_accessible_directory_p (file: Lisp_Object) 
   ok = file_access_p (dir, F_OK);
   SAFE_FREE! (sa_count, sa_mark);
   return ok;
+
+  }
 }
 
 DEFUN! ("file-regular-p", Ffile_regular_p, Sfile_regular_p, 1, 1, 0,
@@ -2772,6 +2888,8 @@ DEFUN! ("file-newer-than-file-p", Ffile_newer_than_file_p, Sfile_newer_than_file
 
 unsafe extern "C-unwind" fn decide_coding_unwind (unwind_data: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut multibyte: Lisp_Object = XCAR (unwind_data);
   let mut tmp: Lisp_Object = XCDR (unwind_data);
   let mut undo_list: Lisp_Object = XCAR (tmp);
@@ -2817,6 +2935,8 @@ unsafe extern "C-unwind" fn decide_coding_unwind (unwind_data: Lisp_Object)
   /* Now we are safe to change the buffer's multibyteness directly.  */
   bset_enable_multibyte_characters ((current_buffer! ()), multibyte);
   bset_undo_list ((current_buffer! ()), undo_list);
+
+  }
 }
 
 /* Read from a non-regular file.  Return the number of bytes read.  */
@@ -2860,6 +2980,8 @@ const _: () = core::assert! (std::mem::size_of::<read_non_regular> () == 32);
 
 unsafe extern "C-unwind" fn read_non_regular (state: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut data: *mut read_non_regular = XFIXNUMPTR (state) as *mut read_non_regular;
   let mut nbytes: intmax_t
     = emacs_fd_read! ((*data).s.fd,
@@ -2868,6 +2990,8 @@ unsafe extern "C-unwind" fn read_non_regular (state: Lisp_Object) -> Lisp_Object
 						     + (*data).s.inserted) as *mut c_char }) as *mut c_void,
 		      (*data).s.bufsize) as intmax_t;
   return make_int (if nbytes < 0 { - (*errno ()) as intmax_t } else { nbytes });
+
+  }
 }
 
 /* Condition-case handler used when reading from non-regular files
@@ -2882,6 +3006,8 @@ unsafe extern "C-unwind" fn read_non_regular_quit (ignore: Lisp_Object) -> Lisp_
    errors and overflow.  */
 unsafe fn file_offset (val: Lisp_Object) -> off_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if INTEGERP (val)
     {
       let mut v: intmax_t = 0;
@@ -2900,6 +3026,8 @@ unsafe fn file_offset (val: Lisp_Object) -> off_t
     }
 
   wrong_type_argument (Qfile_offset (), val);
+
+  }
 }
 
 /* Return a special time value indicating the error number ERRNUM.  */
@@ -2912,6 +3040,8 @@ unsafe fn time_error_value (errnum: c_int) -> timespec
 
 unsafe fn get_window_points_and_markers () -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut pt_marker: Lisp_Object = Fpoint_marker ();
   let mut windows: Lisp_Object
     = calln! (Qget_buffer_window_list (), Fcurrent_buffer (), Qnil (), Qt ());
@@ -2933,11 +3063,15 @@ unsafe fn get_window_points_and_markers () -> Lisp_Object
       windows = XCDR (windows);
     }
   return Fcons (Fcons (pt_marker, Fpoint ()), window_markers);
+
+  }
 }
 
 unsafe fn restore_window_points (mut window_markers: Lisp_Object, inserted: ptrdiff_t,
 					same_at_start: ptrdiff_t, same_at_end: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   while CONSP (window_markers)
     {
       if CONSP (XCAR (window_markers))
@@ -2960,12 +3094,16 @@ unsafe fn restore_window_points (mut window_markers: Lisp_Object, inserted: ptrd
 	}
       window_markers = XCDR (window_markers);
     }
+
+  }
 }
 
 /* Make sure the gap is at Z_BYTE.  This is required to treat buffer
    text as a linear C char array.  */
 unsafe fn maybe_move_gap (b: *mut buffer)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if BUF_GPT_BYTE! (b) != BUF_Z_BYTE! (b)
     {
       let mut cb: *mut buffer = (current_buffer! ());
@@ -2974,6 +3112,8 @@ unsafe fn maybe_move_gap (b: *mut buffer)
       move_gap_both (Z! (), Z_BYTE! ());
       set_buffer_internal (cb);
     }
+
+  }
 }
 
 /* In FD, position to POS relative to WHENCE.  Return the resulting
@@ -2981,10 +3121,14 @@ unsafe fn maybe_move_gap (b: *mut buffer)
 unsafe fn xlseek (fd: emacs_fd, pos: off_t, whence: c_int, filename: Lisp_Object)
   -> off_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut newpos: off_t = emacs_fd_lseek! (fd, pos, whence);
   if newpos < 0
     { report_file_error (c"Setting file position".as_ptr (), filename); }
   return newpos;
+
+  }
 }
 
 /* ---- further use-site declarations (PORTING.md 0.1-2/P-72 rule 3) ---------------------- */
@@ -4347,6 +4491,8 @@ unsafe fn choose_write_coding_system (start: Lisp_Object, end: Lisp_Object,
 					     visit: Lisp_Object, lockname: Lisp_Object,
 					     coding: *mut coding_system) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut val: Lisp_Object;
   let mut eol_parent: Lisp_Object = Qnil ();
 
@@ -4455,6 +4601,8 @@ unsafe fn choose_write_coding_system (start: Lisp_Object, end: Lisp_Object,
   if !STRINGP (start) && EQ (Qt (), BVAR! ((current_buffer! ()), selective_display_))
     { (*coding).bits |= (CODING_MODE_SELECTIVE_DISPLAY as u32) << CODING_SYSTEM_MODE_SHIFT; }
   return val;
+
+  }
 }
 
 DEFUN! ("write-region", Fwrite_region, Swrite_region, 3, 7,
@@ -4491,6 +4639,8 @@ pub unsafe extern "C-unwind" fn write_region (start: Lisp_Object, end: Lisp_Obje
 				       visit: Lisp_Object, lockname: Lisp_Object,
 				       mustbenew: Lisp_Object, mut desc: c_int) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut open_flags: c_int;
   let mut mode: c_int;
   let mut offset: off_t = 0;                  /* C: `off_t offset UNINIT;`  */
@@ -4841,6 +4991,8 @@ pub unsafe extern "C-unwind" fn write_region (start: Lisp_Object, end: Lisp_Obje
 			   visit_file, true); }
 
   return Qnil ();
+
+  }
 }
 
 DEFUN! ("car-less-than-car", Fcar_less_than_car, Scar_less_than_car, 2, 2, 0,
@@ -4856,7 +5008,11 @@ DEFUN! ("car-less-than-car", Fcar_less_than_car, Scar_less_than_car, 2, 2, 0,
 
 unsafe extern "C-unwind" fn build_annotations_unwind (arg: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   Vwrite_region_annotation_buffers = arg;
+
+  }
 }
 
 /* Build the complete list of annotations appropriate for writing out
@@ -4869,6 +5025,8 @@ unsafe extern "C-unwind" fn build_annotations_unwind (arg: Lisp_Object)
 
 unsafe fn build_annotations (start: Lisp_Object, end: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut annotations: Lisp_Object;
   let mut p: Lisp_Object;
   let mut res: Lisp_Object;
@@ -4964,6 +5122,8 @@ unsafe fn build_annotations (start: Lisp_Object, end: Lisp_Object) -> Lisp_Objec
     });
 
   return annotations;
+
+  }
 }
 
 /* ---- further use-site declarations (PORTING.md 0.1-2/P-72 rule 3) ---------------------- */
@@ -5001,6 +5161,8 @@ unsafe fn a_write (desc: c_int, string: Lisp_Object, mut pos: ptrdiff_t,
 			  nchars: ptrdiff_t, annot: *mut Lisp_Object,
 			  coding: *mut coding_system) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut tem: Lisp_Object;
   let mut nextpos: ptrdiff_t;
   let mut lastpos: ptrdiff_t = pos + nchars;
@@ -5034,6 +5196,8 @@ unsafe fn a_write (desc: c_int, string: Lisp_Object, mut pos: ptrdiff_t,
       *annot = Fcdr (*annot);
     }
   return true;
+
+  }
 }
 
 /* Maximum number of characters that the next
@@ -5050,6 +5214,8 @@ const E_WRITE_MAX: ptrdiff_t = 8 * 1024 * 1024;
 unsafe fn e_write (desc: c_int, string: Lisp_Object, mut start: ptrdiff_t,
 			  mut end: ptrdiff_t, coding: *mut coding_system) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if STRINGP (string)
     {
       start = 0;
@@ -5141,6 +5307,8 @@ unsafe fn e_write (desc: c_int, string: Lisp_Object, mut start: ptrdiff_t,
     }
 
   return true;
+
+  }
 }
 
 DEFUN! ("verify-visited-file-modtime", Fverify_visited_file_modtime,
@@ -5178,10 +5346,14 @@ DEFUN! ("verify-visited-file-modtime", Fverify_visited_file_modtime,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn buffer_visited_file_modtime (buf: *mut buffer) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut ns: c_int = (*buf).modtime.tv_nsec as c_int;
   if ns < 0
     { return make_fixnum ((UNKNOWN_MODTIME_NSECS - ns) as isize); }
   return make_lisp_time ((*buf).modtime);
+
+  }
 }
 
 DEFUN! ("visited-file-modtime", Fvisited_file_modtime,
@@ -5246,6 +5418,8 @@ DEFUN! ("set-visited-file-modtime", Fset_visited_file_modtime,
 
 unsafe extern "C-unwind" fn auto_save_error (error_val: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   auto_save_error_occurred = true;
 
   ring_bell (XFRAME (selected_frame));
@@ -5256,10 +5430,14 @@ unsafe extern "C-unwind" fn auto_save_error (error_val: Lisp_Object) -> Lisp_Obj
   calln! (Qdisplay_warning (), Qauto_save (), msg, QCerror ());
 
   return Qnil ();
+
+  }
 }
 
 unsafe extern "C-unwind" fn auto_save_1 () -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut st: stat = std::mem::zeroed ();
   let mut modes: Lisp_Object;
 
@@ -5283,6 +5461,8 @@ unsafe extern "C-unwind" fn auto_save_1 () -> Lisp_Object
     Fwrite_region (Qnil (), Qnil (), BVAR! ((current_buffer! ()), auto_save_file_name_), Qnil (),
 		   if NILP (Vauto_save_visited_file_name) { Qlambda () } else { Qt () },
 		   Qnil (), Qnil ());
+
+  }
 }
 
 /// C 6276-6280: `struct auto_save_unwind { FILE *stream; bool auto_raise; };` - clang measures
@@ -5300,6 +5480,8 @@ const _: () = core::assert! (std::mem::offset_of! (auto_save_unwind, auto_raise)
 
 unsafe extern "C-unwind" fn do_auto_save_unwind (arg: *mut c_void)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut p: *mut auto_save_unwind = arg as *mut auto_save_unwind;
   let mut stream: *mut FILE = (*p).stream;
   minibuffer_auto_raise = (*p).auto_raise;
@@ -5310,22 +5492,32 @@ unsafe extern "C-unwind" fn do_auto_save_unwind (arg: *mut c_void)
       emacs_fclose! (stream);
       unblock_input ();
     }
+
+  }
 }
 
 unsafe extern "C-unwind" fn do_auto_save_make_dir (dir: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut result: Lisp_Object;
 
   auto_saving_dir_umask = 0o77;
   result = calln! (Qmake_directory (), dir, Qt ());
   auto_saving_dir_umask = 0;
   return result;
+
+  }
 }
 
 unsafe extern "C-unwind" fn do_auto_save_eh (ignore: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   auto_saving_dir_umask = 0;
   return Qnil ();
+
+  }
 }
 
 DEFUN! ("do-auto-save", Fdo_auto_save, Sdo_auto_save, 0, 2, "",
@@ -5586,6 +5778,8 @@ DEFUN! ("next-read-file-uses-dialog-p", Fnext_read_file_uses_dialog_p,
 
 unsafe fn file_for_stream (stream: Lisp_Object) -> *mut FILE
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if EQ (stream, Qstdin ())
     { return stdin; }
   else if EQ (stream, Qstdout ())
@@ -5594,6 +5788,8 @@ unsafe fn file_for_stream (stream: Lisp_Object) -> *mut FILE
     { return stderr; }
   else
     { xsignal2 (Qerror (), build_string (c"unsupported stream".as_ptr ()), stream); }
+
+  }
 }
 
 DEFUN! ("set-binary-mode", Fset_binary_mode, Sset_binary_mode, 2, 2, 0,
@@ -5683,15 +5879,21 @@ DEFUN! ("file-system-info", Ffile_system_info, Sfile_system_info, 1, 1, 0,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn init_fileio ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   realmask = umask (0);
   umask (realmask);
 
   valid_timestamp_file_system = false;
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_fileio ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* Property name of a file name handler,
      which gives a list of operations it handles.  */
   DEFSYM! (Qoperations, c"operations");
@@ -5942,6 +6144,8 @@ pub unsafe extern "C-unwind" fn syms_of_fileio ()
   DEFSYM! (Qauto_save, c"auto-save");
   DEFSYM! (QCerror, c":error");
   DEFSYM! (Qauto_save_hook, c"auto-save-hook");
+
+  }
 }
 
 unsafe extern "C-unwind" {

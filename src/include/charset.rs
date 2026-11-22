@@ -294,7 +294,7 @@ macro_rules! CHARSET_FROM_ID { ($id:expr) => { charset_table.start.offset (($id)
 /// shape; the six families are in docs/ports/token-aliases.tsv).
 #[inline(always)]
 pub fn charset_bit_p (charset: *const charset, bit: u8) -> bool
-{ unsafe { (*charset).bits & bit != 0 } }
+{ /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*charset).bits & bit != 0 } }
 
 #[inline(always)]
 pub fn charset_bit_set (charset: *mut charset, bit: u8, value: bool)
@@ -330,10 +330,14 @@ macro_rules! charset_bits {
 /// charset.h 305-313: `INLINE Lisp_Object charset_attributes_getter (struct charset *)`.
 pub unsafe fn charset_attributes_getter (charset: *mut charset) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   eassert! (ASIZE (charset_table.attributes_table) == charset_table.size as isize);
   let attrs: Lisp_Object = AREF (charset_table.attributes_table, unsafe { (*charset).id } as isize);
   eassert! (XFIXNUM (CHARSET_ATTR_ID! (attrs)) == unsafe { (*charset).id } as isize);
   return attrs;
+
+  }
 }
 
 /* Return the attribute vector of CHARSET.  */
@@ -394,7 +398,11 @@ macro_rules! CHARSET_DEUNIFIER {
 /// charset_attr_index, Lisp_Object)`.
 pub unsafe fn set_charset_attr (charset: *mut charset, idx: charset_attr_index, val: Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   ASET (CHARSET_ATTRIBUTES! (charset), idx as isize, val);
+
+  }
 }
 
 

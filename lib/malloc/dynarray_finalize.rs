@@ -4,9 +4,7 @@
 // is conditional; the body has no `#if`.  C 23's `#include <dynarray.h>` is the gnulib
 // wrapper, which reaches the shared header with no `DYNARRAY_*` defined (its `#else` arm) -
 // that header's `__dynarray_error` inline is what C 32 calls.
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
-         static_mut_refs, unsafe_op_in_unsafe_fn)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -33,6 +31,8 @@ pub unsafe extern "C" fn __libc_dynarray_finalize (list: *mut dynarray_header,
                                                    result: *mut dynarray_finalize_result)
   -> bool
 {
+  // SAFETY: gnulib/OS raw buffer or dynamic-array boundary; caller upholds pointer validity, element capacity, and single-owner mutation invariants, returning error/null on overflow or OOM.
+  unsafe {
   if __dynarray_error (list)
     /* The caller will reported the deferred error.  */
     { return false; }
@@ -65,4 +65,6 @@ pub unsafe extern "C" fn __libc_dynarray_finalize (list: *mut dynarray_header,
   else
     /* The caller will perform the freeing operation.  */
     { return false; }
+
+  }
 }

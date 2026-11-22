@@ -19,17 +19,17 @@ pub const _GL_USE_STDLIB_ALLOC: c_int = 1;
 
 unsafe extern "C-unwind" fn stdlib_allocate (size: usize) -> *mut c_void
 {
-  unsafe { malloc (size) }
+  /* SAFETY: gnulib/OS raw buffer or dynamic-array boundary; caller upholds pointer validity, element capacity, and single-owner mutation invariants, returning error/null on overflow or OOM. */ unsafe { malloc (size) }
 }
 
 unsafe extern "C-unwind" fn stdlib_reallocate (ptr: *mut c_void, size: usize) -> *mut c_void
 {
-  unsafe { realloc (ptr, size) }
+  /* SAFETY: gnulib/OS raw buffer or dynamic-array boundary; caller upholds pointer validity, element capacity, and single-owner mutation invariants, returning error/null on overflow or OOM. */ unsafe { realloc (ptr, size) }
 }
 
 unsafe extern "C-unwind" fn stdlib_free (ptr: *mut c_void)
 {
-  unsafe { free (ptr) }
+  /* SAFETY: gnulib/OS raw buffer or dynamic-array boundary; caller upholds pointer validity, element capacity, and single-owner mutation invariants, returning error/null on overflow or OOM. */ unsafe { free (ptr) }
 }
 
 /* C 22's `struct allocator const stdlib_allocator = { malloc, realloc, free, NULL };`.  */

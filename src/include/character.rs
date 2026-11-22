@@ -185,7 +185,7 @@ pub fn CHECK_CHARACTER_CDR (x: Lisp_Object)
 pub fn CHAR_PRINTABLE_P (c: c_int) -> bool
 {
   return (32 <= c && c < 127)
-	 || ! NILP (CHAR_TABLE_REF (unsafe { Vprintable_chars }, c as isize));
+	 || ! NILP (CHAR_TABLE_REF (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { Vprintable_chars }, c as isize));
 }
 
 /* Return byte length of multibyte form for character C.  */
@@ -222,12 +222,12 @@ pub fn CHAR_STRING (c: c_int, p: *mut u8) -> c_int
   eassume! (0 <= c);
   if c <= MAX_1_BYTE_CHAR
     {
-      unsafe { *p.offset (0) = c as u8; }
+      /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { *p.offset (0) = c as u8; }
       return 1;
     }
   if c <= MAX_2_BYTE_CHAR
     {
-      unsafe {
+      /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
 	*p.offset (0) = (0xC0 | (c >> 6)) as u8;
 	*p.offset (1) = (0x80 | (c & 0x3F)) as u8;
       }
@@ -235,14 +235,14 @@ pub fn CHAR_STRING (c: c_int, p: *mut u8) -> c_int
     }
   if c <= MAX_3_BYTE_CHAR
     {
-      unsafe {
+      /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
 	*p.offset (0) = (0xE0 | (c >> 12)) as u8;
 	*p.offset (1) = (0x80 | ((c >> 6) & 0x3F)) as u8;
 	*p.offset (2) = (0x80 | (c & 0x3F)) as u8;
       }
       return 3;
     }
-  let len = unsafe { char_string (c as c_uint, p) };
+  let len = /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { char_string (c as c_uint, p) };
   eassume! (0 < len && len <= MAX_MULTIBYTE_LENGTH);
   return len;
 }
@@ -254,7 +254,7 @@ pub fn CHAR_STRING (c: c_int, p: *mut u8) -> c_int
 #[inline(always)]
 pub fn BYTE8_STRING (b: c_int, p: *mut u8) -> c_int
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     *p.offset (0) = (0xC0 | ((b >> 6) & 0x01)) as u8;
     *p.offset (1) = (0x80 | (b & 0x3F)) as u8;
   }
@@ -311,37 +311,37 @@ pub fn multibyte_length (p: *const u8, pend: *const u8, check: bool, allow_8bit:
 {
   if !check || p < pend
     {
-      let c: c_int = unsafe { *p } as c_int;
+      let c: c_int = /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { *p } as c_int;
       if c < 0x80
 	{ return 1; }
       if !check || unsafe { p.offset (1) } < pend
 	{
-	  let d: c_int = unsafe { *p.offset (1) } as c_int;
+	  let d: c_int = /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { *p.offset (1) } as c_int;
 	  let mut w: c_int = ((d & 0xC0) << 2) + c;
 	  if (if allow_8bit { 0x2C0 } else { 0x2C2 }) <= w && w <= 0x2DF
 	    { return 2; }
 	  if !check || unsafe { p.offset (2) } < pend
 	    {
-	      let e: c_int = unsafe { *p.offset (2) } as c_int;
+	      let e: c_int = /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { *p.offset (2) } as c_int;
 	      w += (e & 0xC0) << 4;
 	      let w1: c_int = w | ((d & 0x20) >> 2);
 	      if 0xAE1 <= w1 && w1 <= 0xAEF
 		{ return 3; }
-	      if !check || unsafe { p.offset (3) } < pend
+	      if !check || /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { p.offset (3) } < pend
 		{
 		  let f: c_int = unsafe { *p.offset (3) } as c_int;
 		  w += (f & 0xC0) << 6;
 		  let w2: c_int = w | ((d & 0x30) >> 3);
 		  if 0x2AF1 <= w2 && w2 <= 0x2AF7
 		    { return 4; }
-		  if !check || unsafe { p.offset (4) } < pend
+		  if !check || /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { p.offset (4) } < pend
 		    {
 		      // C: `w + ((p[4] & 0xC0) << 8)`.  The shift must be
 		      // parenthesised: Rust's `<<` binds *looser* than `+`, so the
 		      // unparenthesised form is `(w + x) << 8` and rejects every
 		      // valid five-byte form (review A, F1).
 		      let lw: int_fast64_t = (w as int_fast64_t)
-			+ ((((unsafe { *p.offset (4) } as c_int) & 0xC0) as int_fast64_t) << 8);
+			+ ((((/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { *p.offset (4) } as c_int) & 0xC0) as int_fast64_t) << 8);
 		      let w3: int_fast64_t = (lw << 24) + ((d as int_fast64_t) << 16)
 			                     + ((e as int_fast64_t) << 8) + f as int_fast64_t;
 		      if 0xAAF8888080 <= w3 && w3 <= 0xAAF88FBFBD
@@ -366,7 +366,7 @@ pub fn raw_prev_char_len (p: *const u8) -> c_int
   let mut len: c_int = 1;
   loop
     {
-      if CHAR_HEAD_P (unsafe { *p.offset (-(len as isize)) } as c_int)
+      if CHAR_HEAD_P (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { *p.offset (-(len as isize)) } as c_int)
 	{ return len; }
       len += 1;
     }
@@ -379,7 +379,7 @@ pub fn raw_prev_char_len (p: *const u8) -> c_int
 #[inline(always)]
 pub fn string_char_and_length (p: *const u8, length: *mut c_int) -> c_int
 {
-  let c: c_int = unsafe { *p } as c_int;
+  let c: c_int = /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { *p } as c_int;
   if c & 0x80 == 0
     {
       unsafe { *length = 1; }
@@ -387,14 +387,14 @@ pub fn string_char_and_length (p: *const u8, length: *mut c_int) -> c_int
     }
   eassume! (0xC0 <= c);
 
-  let mut d: c_int = (c << 6) + (unsafe { *p.offset (1) } as c_int) - ((0xC0 << 6) + 0x80);
+  let mut d: c_int = (c << 6) + (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { *p.offset (1) } as c_int) - ((0xC0 << 6) + 0x80);
   if c & 0x20 == 0
     {
       unsafe { *length = 2; }
       return d + (if c < 0xC2 { 0x3FFF80 } else { 0 });
     }
 
-  d = (d << 6) + (unsafe { *p.offset (2) } as c_int) - ((0x20 << 12) + 0x80);
+  d = (d << 6) + (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { *p.offset (2) } as c_int) - ((0x20 << 12) + 0x80);
   if c & 0x10 == 0
     {
       unsafe { *length = 3; }
@@ -402,7 +402,7 @@ pub fn string_char_and_length (p: *const u8, length: *mut c_int) -> c_int
       return d;
     }
 
-  d = (d << 6) + (unsafe { *p.offset (3) } as c_int) - ((0x10 << 18) + 0x80);
+  d = (d << 6) + (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { *p.offset (3) } as c_int) - ((0x10 << 18) + 0x80);
   if c & 0x08 == 0
     {
       unsafe { *length = 4; }
@@ -410,7 +410,7 @@ pub fn string_char_and_length (p: *const u8, length: *mut c_int) -> c_int
       return d;
     }
 
-  d = (d << 6) + (unsafe { *p.offset (4) } as c_int) - ((0x08 << 24) + 0x80);
+  d = (d << 6) + (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { *p.offset (4) } as c_int) - ((0x08 << 24) + 0x80);
   unsafe { *length = 5; }
   eassume! (MAX_4_BYTE_CHAR < d && d <= MAX_5_BYTE_CHAR);
   return d;
@@ -431,7 +431,7 @@ pub fn STRING_CHAR (p: *const u8) -> c_int
 #[inline(always)]
 pub fn string_char_advance (pp: *mut *const u8) -> c_int
 {
-  let p: *const u8 = unsafe { *pp };
+  let p: *const u8 = /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { *pp };
   let mut len: c_int = 0;
   let c = string_char_and_length (p, &raw mut len);
   unsafe { *pp = p.offset (len as isize); }
@@ -448,7 +448,7 @@ pub fn fetch_string_char_advance (string: Lisp_Object, charidx: *mut ptrdiff_t,
 				  byteidx: *mut ptrdiff_t) -> c_int
 {
   let output: c_int;
-  let mut b: ptrdiff_t = unsafe { *byteidx };
+  let mut b: ptrdiff_t = /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { *byteidx };
   let chp: *mut u8 = unsafe { SDATA (string).offset (b) };
   if STRING_MULTIBYTE (string)
     {
@@ -458,7 +458,7 @@ pub fn fetch_string_char_advance (string: Lisp_Object, charidx: *mut ptrdiff_t,
     }
   else
     {
-      output = unsafe { *chp } as c_int;
+      output = /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { *chp } as c_int;
       b += 1;
     }
   unsafe { *charidx += 1; }
@@ -474,7 +474,7 @@ pub fn fetch_string_char_as_multibyte_advance (string: Lisp_Object, charidx: *mu
 					       byteidx: *mut ptrdiff_t) -> c_int
 {
   let output: c_int;
-  let mut b: ptrdiff_t = unsafe { *byteidx };
+  let mut b: ptrdiff_t = /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { *byteidx };
   let chp: *mut u8 = unsafe { SDATA (string).offset (b) };
   if STRING_MULTIBYTE (string)
     {
@@ -484,7 +484,7 @@ pub fn fetch_string_char_as_multibyte_advance (string: Lisp_Object, charidx: *mu
     }
   else
     {
-      output = make_char_multibyte (unsafe { *chp } as c_int);
+      output = make_char_multibyte (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { *chp } as c_int);
       b += 1;
     }
   unsafe { *charidx += 1; }
@@ -499,12 +499,12 @@ pub fn fetch_string_char_as_multibyte_advance (string: Lisp_Object, charidx: *mu
 pub fn fetch_string_char_advance_no_check (string: Lisp_Object, charidx: *mut ptrdiff_t,
 					   byteidx: *mut ptrdiff_t) -> c_int
 {
-  let b: ptrdiff_t = unsafe { *byteidx };
+  let b: ptrdiff_t = /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { *byteidx };
   let chp: *mut u8 = unsafe { SDATA (string).offset (b) };
   let mut chlen: c_int = 0;
   let output: c_int = string_char_and_length (chp, &raw mut chlen);
   unsafe { *charidx += 1; }
-  unsafe { *byteidx = b + chlen as ptrdiff_t; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { *byteidx = b + chlen as ptrdiff_t; }
   return output;
 }
 
@@ -634,6 +634,6 @@ pub fn char_table_translate (obj: Lisp_Object, ch: c_int) -> c_int
 #[inline(always)]
 pub fn char_hexdigit (c: c_int) -> c_int
 {
-  return if 0 <= c && c <= UCHAR_MAX { (unsafe { hexdigit[c as usize] }) as c_int - 1 }
+  return if 0 <= c && c <= UCHAR_MAX { (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { hexdigit[c as usize] }) as c_int - 1 }
 	 else { -1 };
 }

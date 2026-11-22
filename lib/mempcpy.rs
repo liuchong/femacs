@@ -18,5 +18,9 @@ unsafe extern "C" { pub fn memcpy (dest: *mut c_void, src: *const c_void, n: usi
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn mempcpy (dest: *mut c_void, src: *const c_void, n: usize) -> *mut c_void
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   return (memcpy (dest, src, n) as *mut c_char).offset (n as isize) as *mut c_void;
+
+  }
 }

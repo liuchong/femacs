@@ -8,9 +8,7 @@
 // C 114-150's klibc / z-OS arm are the non-frozen sides; the latter is kept as `#[cfg]` text
 // (P-51), whose entries this target has not got (`__libc_Back_ioFHToPath`, `_MAX_PATH`,
 // `w_ioctl`, `_IOCC_GPN`, `_XOPEN_PATH_MAX`, `__e2a_l`).
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
-         static_mut_refs, unsafe_op_in_unsafe_fn)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -60,6 +58,8 @@ pub const PROC_SELF_FD_FORMAT: &[u8; 18] = b"/proc/self/fd/%d/\0";
 pub unsafe extern "C" fn openat_proc_name (buf: *mut c_char, fd: c_int, file: *const c_char)
   -> *mut c_char
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   /* Make sure the caller gets ENOENT when appropriate.  */
   if *file == 0
     {
@@ -170,4 +170,6 @@ pub unsafe extern "C" fn openat_proc_name (buf: *mut c_char, fd: c_int, file: *c
 
   strcpy (result.add (dirlen as usize), file);
   return result;
+
+  }
 }

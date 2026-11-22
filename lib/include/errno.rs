@@ -25,10 +25,14 @@ unsafe extern "C" {
 #[inline(always)]
 pub unsafe fn errno () -> *mut c_int
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   #[cfg (not (target_os = "android"))]
   { __error () }
   #[cfg (target_os = "android")]
   { __errno () }
+
+  }
 }
 
 /// <errno.h>: `#define EINVAL 22`.

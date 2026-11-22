@@ -1,6 +1,4 @@
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
-         static_mut_refs, unsafe_op_in_unsafe_fn)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 use std::ffi::{c_char, c_double, c_int, c_long, c_uint, c_ulong, c_void};
@@ -21,6 +19,8 @@ use std::ffi::{c_char, c_double, c_int, c_long, c_uint, c_ulong, c_void};
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn memset_explicit (s: *mut c_void, c: c_int, len: usize) -> *mut c_void
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   /* C 10-36's four arms, in C's order.  `HAVE_EXPLICIT_MEMSET` and `HAVE_MEMSET_S` are the
      configuration's; the third (`__GNUC__ && !__clang__`) cannot apply to rustc, and the port is
      compiled by LLVM, so the clang arm (`memset` plus a barrier) is the one that stands for both
@@ -57,5 +57,7 @@ pub unsafe extern "C" fn memset_explicit (s: *mut c_void, c: c_int, len: usize) 
     let _ = memset (s, c, len);
     let _ = std::hint::black_box (s);
     return s;
+  }
+
   }
 }

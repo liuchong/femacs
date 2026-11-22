@@ -28,7 +28,7 @@ fn generate_paths(repo: &Path, config: &Path) -> Result<(), String> {
     ] {
         let owned = if tree == "lisp" { standalone::lisp_paths(repo, false) }
                     else { repo.join(tree).display().to_string() };
-        code.push_str(&format!("#[inline(always)] pub fn {name}() -> *const c_char {{ if will_dump_p() {{ c{owned:?}.as_ptr() }} else {{ unsafe {{ relocate(c\"Contents/Resources/{tree}\".as_ptr()) }} }} }}\n"));
+        code.push_str(&format!("#[inline(always)] pub fn {name}() -> *const c_char {{ if will_dump_p() {{ c{owned:?}.as_ptr() }} else {{ /* SAFETY: Relocates bundle-relative NUL-terminated path into static path cache. */ unsafe {{ relocate(c\"Contents/Resources/{tree}\".as_ptr()) }} }} }}\n"));
     }
     for (name, path) in [
         ("PATH_DUMPLOADSEARCH", standalone::lisp_paths(repo, false)),

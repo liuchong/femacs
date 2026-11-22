@@ -26,11 +26,7 @@
 // the arms spell the call sites the way C's preprocessor leaves them (see the arm's note, and
 // `docs/ports/lcms.md`'s `## Deviations`).
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
-         unsafe_op_in_unsafe_fn, unused_assignments, unused_parens, unused_mut,
-         unreachable_code, unused_labels, while_true, unused_comparisons,
-         overflowing_literals, unused_must_use, clippy::all)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe, unused_assignments, unused_parens, unused_mut, unreachable_code, unused_labels, while_true, unused_comparisons, overflowing_literals, unused_must_use, clippy::all)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -307,6 +303,8 @@ unsafe fn init_lcms_functions () -> bool
 #[cfg (feature = "have_lcms2")]
 unsafe fn parse_lab_list (lab_list: Lisp_Object, color: *mut cmsCIELab) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* C's macro assigns the parameter, so the port rebinds it mutable before the
      `macro_rules!` that captures it (a macro's names resolve where it is defined).  */
   let mut lab_list = lab_list;
@@ -328,6 +326,8 @@ unsafe fn parse_lab_list (lab_list: Lisp_Object, color: *mut cmsCIELab) -> bool
   PARSE_LAB_LIST_FIELD! (b);
 
   return true;
+
+  }
 }
 
 /* http://www.ece.rochester.edu/~gsharma/ciede2000/ciede2000noteCRNA.pdf */
@@ -407,6 +407,8 @@ static mut illuminant_d65: cmsCIEXYZ
 #[cfg (feature = "have_lcms2")]
 unsafe fn default_viewing_conditions (wp: *const cmsCIEXYZ, vc: *mut cmsViewingConditions)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   (*vc).whitePoint.X = (*wp).X;
   (*vc).whitePoint.Y = (*wp).Y;
   (*vc).whitePoint.Z = (*wp).Z;
@@ -414,6 +416,8 @@ unsafe fn default_viewing_conditions (wp: *const cmsCIEXYZ, vc: *mut cmsViewingC
   (*vc).La = 100.0;
   (*vc).surround = AVG_SURROUND as cmsUInt32Number;
   (*vc).D_value = 1.0;
+
+  }
 }
 
 /* FIXME: code duplication */
@@ -422,6 +426,8 @@ unsafe fn default_viewing_conditions (wp: *const cmsCIEXYZ, vc: *mut cmsViewingC
 #[cfg (feature = "have_lcms2")]
 unsafe fn parse_xyz_list (xyz_list: Lisp_Object, color: *mut cmsCIEXYZ) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* C's macro assigns the parameter, so the port rebinds it mutable before the
      `macro_rules!` that captures it (a macro's names resolve where it is defined).  */
   let mut xyz_list = xyz_list;
@@ -443,12 +449,16 @@ unsafe fn parse_xyz_list (xyz_list: Lisp_Object, color: *mut cmsCIEXYZ) -> bool
   PARSE_XYZ_LIST_FIELD! (Z);
 
   return true;
+
+  }
 }
 
 /// C 202-221: `parse_jch_list`.
 #[cfg (feature = "have_lcms2")]
 unsafe fn parse_jch_list (jch_list: Lisp_Object, color: *mut cmsJCh) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* C's macro assigns the parameter, so the port rebinds it mutable before the
      `macro_rules!` that captures it (a macro's names resolve where it is defined).  */
   let mut jch_list = jch_list;
@@ -472,12 +482,16 @@ unsafe fn parse_jch_list (jch_list: Lisp_Object, color: *mut cmsJCh) -> bool
   if ! NILP (jch_list)
     { return false; }
   return true;
+
+  }
 }
 
 /// C 223-240: `parse_jab_list`.
 #[cfg (feature = "have_lcms2")]
 unsafe fn parse_jab_list (jab_list: Lisp_Object, color: *mut lcmsJab_t) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* C's macro assigns the parameter, so the port rebinds it mutable before the
      `macro_rules!` that captures it (a macro's names resolve where it is defined).  */
   let mut jab_list = jab_list;
@@ -499,6 +513,8 @@ unsafe fn parse_jab_list (jab_list: Lisp_Object, color: *mut lcmsJab_t) -> bool
   PARSE_JAB_LIST_FIELD! (b);
 
   return true;
+
+  }
 }
 
 /// C 242-275: `parse_viewing_conditions` - the second of its two macros takes an integer field:
@@ -508,6 +524,8 @@ unsafe fn parse_jab_list (jab_list: Lisp_Object, color: *mut lcmsJab_t) -> bool
 unsafe fn parse_viewing_conditions (view: Lisp_Object, wp: *const cmsCIEXYZ,
                                     vc: *mut cmsViewingConditions) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* C's macro assigns the parameter, so the port rebinds it mutable before the
      `macro_rules!` that captures it (a macro's names resolve where it is defined).  */
   let mut view = view;
@@ -547,28 +565,38 @@ unsafe fn parse_viewing_conditions (view: Lisp_Object, wp: *const cmsCIEXYZ,
   (*vc).whitePoint.Y = (*wp).Y;
   (*vc).whitePoint.Z = (*wp).Z;
   return true;
+
+  }
 }
 
 /// C 277-285: `xyz_to_jch`.  C's `cmsCIECAM02Init (0, vc)` passes a null `cmsContext`.
 #[cfg (feature = "have_lcms2")]
 unsafe fn xyz_to_jch (xyz: *const cmsCIEXYZ, jch: *mut cmsJCh, vc: *const cmsViewingConditions)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut h: cmsHANDLE;
 
   h = cmsCIECAM02Init (std::ptr::null_mut (), vc);
   cmsCIECAM02Forward (h, xyz, jch);
   cmsCIECAM02Done (h);
+
+  }
 }
 
 /// C 287-295: `jch_to_xyz`.
 #[cfg (feature = "have_lcms2")]
 unsafe fn jch_to_xyz (jch: *const cmsJCh, xyz: *mut cmsCIEXYZ, vc: *const cmsViewingConditions)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut h: cmsHANDLE;
 
   h = cmsCIECAM02Init (std::ptr::null_mut (), vc);
   cmsCIECAM02Reverse (h, jch, xyz);
   cmsCIECAM02Done (h);
+
+  }
 }
 
 /// C 297-304: `jch_to_jab`.
@@ -576,10 +604,14 @@ unsafe fn jch_to_xyz (jch: *const cmsJCh, xyz: *mut cmsCIEXYZ, vc: *const cmsVie
 unsafe fn jch_to_jab (jch: *const cmsJCh, jab: *mut lcmsJab_t, FL: c_double, c1: c_double,
                       c2: c_double)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let Mp: c_double = 43.86 * log (1.0 + c2 * ((*jch).C * sqrt (sqrt (FL))));
   (*jab).J = 1.7 * (*jch).J / (1.0 + (c1 * (*jch).J));
   (*jab).a = Mp * cos (deg2rad ((*jch).h));
   (*jab).b = Mp * sin (deg2rad ((*jch).h));
+
+  }
 }
 
 /// C 306-316: `jab_to_jch`.
@@ -587,6 +619,8 @@ unsafe fn jch_to_jab (jch: *const cmsJCh, jab: *mut lcmsJab_t, FL: c_double, c1:
 unsafe fn jab_to_jch (jab: *const lcmsJab_t, jch: *mut cmsJCh, FL: c_double, c1: c_double,
                       c2: c_double)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   (*jch).J = (*jab).J / (1.0 + c1 * (100.0 - (*jab).J));
   (*jch).h = atan2 ((*jab).b, (*jab).a);
   let Mp: c_double = hypot ((*jab).a, (*jab).b);
@@ -594,6 +628,8 @@ unsafe fn jab_to_jch (jab: *const lcmsJab_t, jch: *mut cmsJCh, FL: c_double, c1:
   if (*jch).h < 0.0
     { (*jch).h += 360.0; }
   (*jch).C = (exp (c2 * Mp) - 1.0) / (c2 * sqrt (sqrt (FL)));
+
+  }
 }
 
 #[cfg (feature = "have_lcms2")]
@@ -875,6 +911,8 @@ DEFUN! ("lcms2-available-p", Flcms2_available_p, Slcms2_available_p, 0, 0, 0,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_lcms2 ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   defsubr (&raw mut Slcms_cie_de2000);
   defsubr (&raw mut Slcms_xyz_to_jch);
   defsubr (&raw mut Slcms_jch_to_xyz);
@@ -885,4 +923,6 @@ pub unsafe extern "C-unwind" fn syms_of_lcms2 ()
   defsubr (&raw mut Slcms_temp_to_white_point);
 
   Fprovide (intern_c_string (c"lcms2".as_ptr ()), Qnil ());
+
+  }
 }

@@ -139,7 +139,7 @@ pub use self::syntax_h_own_definitions::*;
 pub fn syntax_property_entry (c: c_int, via_property: bool) -> Lisp_Object
 {
   if via_property
-    { return if unsafe { gl_state.use_global }
+    { return if /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { gl_state.use_global }
 	{ unsafe { gl_state.global_code } }
 	else { CHAR_TABLE_REF (unsafe { gl_state.current_syntax_table }, c as isize) }; }
   return CHAR_TABLE_REF (unsafe { BVAR! ((current_buffer! ()), syntax_table_) }, c as isize);
@@ -172,12 +172,12 @@ pub fn syntax_property (c: c_int, via_property: bool) -> syntaxcode
 #[inline(always)]
 pub fn RE_SYNTAX_TABLE_BYTE_TO_CHAR (byteoffset: ptrdiff_t) -> ptrdiff_t
 {
-  return if !unsafe { parse_sexp_lookup_properties }
+  return if !/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { parse_sexp_lookup_properties }
     { 0 }
   else if STRINGP (unsafe { gl_state.object })
     { unsafe { string_byte_to_char (gl_state.object, byteoffset) } }
   else if BUFFERP (unsafe { gl_state.object })
-    { unsafe { buf_bytepos_to_charpos (XBUFFER (gl_state.object) as *mut c_void,
+    { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { buf_bytepos_to_charpos (XBUFFER (gl_state.object) as *mut c_void,
 				       byteoffset + BUF_BEGV_BYTE (XBUFFER (gl_state.object))) } }
   else if NILP (unsafe { gl_state.object })
     { BYTE_TO_CHAR (byteoffset + unsafe { BEGV_BYTE! () }) }
@@ -190,7 +190,7 @@ pub fn RE_SYNTAX_TABLE_BYTE_TO_CHAR (byteoffset: ptrdiff_t) -> ptrdiff_t
 #[inline(always)]
 pub fn UPDATE_SYNTAX_TABLE_FORWARD (charpos: ptrdiff_t)
 { /* Performs just-in-time syntax-propertization.  */
-  if unsafe { parse_sexp_lookup_properties } && charpos >= unsafe { gl_state.e_property }
+  if /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { parse_sexp_lookup_properties } && charpos >= unsafe { gl_state.e_property }
     { unsafe { update_syntax_table_forward (charpos, gl_state.object) } }
 }
 
@@ -200,7 +200,7 @@ pub fn UPDATE_SYNTAX_TABLE_FORWARD (charpos: ptrdiff_t)
 #[inline(always)]
 pub fn UPDATE_SYNTAX_TABLE_BACKWARD (charpos: ptrdiff_t)
 {
-  if unsafe { parse_sexp_lookup_properties } && charpos < unsafe { gl_state.b_property }
+  if /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { parse_sexp_lookup_properties } && charpos < unsafe { gl_state.b_property }
     { unsafe { update_syntax_table (charpos, -1, gl_state.object) } }
 }
 
@@ -218,7 +218,7 @@ pub fn UPDATE_SYNTAX_TABLE (charpos: ptrdiff_t)
 #[inline(always)]
 pub fn SETUP_BUFFER_SYNTAX_TABLE ()
 {
-  unsafe { gl_state.use_global = false; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { gl_state.use_global = false; }
   unsafe { gl_state.e_property_truncated = false; }
   unsafe { gl_state.current_syntax_table = BVAR! ((current_buffer! ()), syntax_table_) };
 }

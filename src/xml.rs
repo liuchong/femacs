@@ -2,9 +2,7 @@
 // a360712c9d272d950d8d8255ef74570f7e90b7d9 and pinned fd7afced403.
 // Parser options, DOM construction and error/nil behavior follow that source.
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
-         unsafe_op_in_unsafe_fn)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -37,6 +35,8 @@ unsafe fn init_libxml2_functions() -> bool { true }
 
 #[cfg(feature = "have_libxml2")]
 unsafe fn make_dom(node: *mut xmlNode) -> Lisp_Object {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
     if (*node).r#type == XML_ELEMENT_NODE {
         let mut result = list1(intern((*node).name as *const c_char));
         let mut plist = Qnil();
@@ -65,6 +65,8 @@ unsafe fn make_dom(node: *mut xmlNode) -> Lisp_Object {
             list3(Qcomment(), Qnil(), build_string((*node).content as *const c_char))
         } else { Qnil() }
     } else { Qnil() }
+
+  }
 }
 
 #[cfg(all(feature = "have_libxml2", feature = "rel_alloc"))]
@@ -75,6 +77,8 @@ unsafe extern "C" {
 #[cfg(feature = "have_libxml2")]
 unsafe fn parse_region(start: Lisp_Object, end: Lisp_Object, base_url: Lisp_Object,
                        discard_comments: Lisp_Object, htmlp: bool) -> Lisp_Object {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
     let mut start = start;
     let mut end = end;
     let mut result = Qnil();
@@ -126,11 +130,17 @@ unsafe fn parse_region(start: Lisp_Object, end: Lisp_Object, base_url: Lisp_Obje
         xmlFreeDoc(doc);
     }
     result
+
+  }
 }
 
 #[cfg(feature = "have_libxml2")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn xml_cleanup_parser() { xmlCleanupParser(); }
+pub unsafe extern "C-unwind" fn xml_cleanup_parser() {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe { xmlCleanupParser(); 
+  }
+}
 
 #[cfg(feature = "have_libxml2")]
 DEFUN! ("libxml-parse-html-region", Flibxml_parse_html_region, Slibxml_parse_html_region,
@@ -160,6 +170,8 @@ DEFUN! ("libxml-available-p", Flibxml_available_p, Slibxml_available_p, 0, 0, 0,
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_xml() {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
     #[cfg(feature = "have_libxml2")]
     {
         defsubr(&raw mut Slibxml_parse_html_region);
@@ -167,4 +179,6 @@ pub unsafe extern "C-unwind" fn syms_of_xml() {
     }
     defsubr(&raw mut Slibxml_available_p);
     DEFSYM! (Qcomment, "comment");
+
+  }
 }

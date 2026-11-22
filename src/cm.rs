@@ -23,9 +23,7 @@
 // a value that is assigned before use, so the port writes the explicit zero initializer the
 // other units use (the `Fmake_variable_buffer_local` ledger row).
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_mut, unused_assignments,
-         unused_unsafe, static_mut_refs, unsafe_op_in_unsafe_fn)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_mut, unused_assignments, unused_unsafe)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -68,8 +66,12 @@ pub static mut cost: c_int = 0;
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn evalcost (c: c_int) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   cost += 1;
   return c;
+
+  }
 }
 
 /* The terminal to use for low-level output. */
@@ -79,10 +81,14 @@ pub static mut current_tty: *mut tty_display_info = std::ptr::null_mut ();
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn cmputc (c: c_int) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if ! (*current_tty).termscript.is_null ()
     { putc (c & 0o177, (*current_tty).termscript); }
   putc (c & 0o177, (*current_tty).output);
   return c;
+
+  }
 }
 
 /* C 54-100 is `#if 0`: the two macros' stand-alone versions, `at` and `addcol`.
@@ -151,6 +157,8 @@ addcol (tty, n) {
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn cmcheckmagic (tty: *mut tty_display_info)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* dispextern.h 3925: `extern bool frame_size_change_delayed (struct frame *);`.  The
      dispextern mirror does not carry the dispnew.c/terminal.c block of prototypes yet, so
      the declaration is made at its use site (the scroll.rs shape) - nothing in this file
@@ -174,6 +182,8 @@ pub unsafe extern "C-unwind" fn cmcheckmagic (tty: *mut tty_display_info)
       curX! (tty) = 0;
       curY! (tty) += 1;
     }
+
+  }
 }
 
 /*
@@ -185,6 +195,8 @@ pub unsafe extern "C-unwind" fn cmcheckmagic (tty: *mut tty_display_info)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn cmcostinit (tty: *mut tty_display_info)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut p: *mut c_char = std::ptr::null_mut ();
 
   /* C 146-147's two file-local macros.  `macro_rules!` has no `#undef`, so they are
@@ -223,6 +235,8 @@ pub unsafe extern "C-unwind" fn cmcostinit (tty: *mut tty_display_info)
   (*(*tty).Wcm).cc_abs =  CMCOST! ((*(*tty).Wcm).cm_abs, evalcost);
   (*(*tty).Wcm).cc_habs = CMCOST! ((*(*tty).Wcm).cm_habs, evalcost);
   (*(*tty).Wcm).cc_vabs = CMCOST! ((*(*tty).Wcm).cm_vabs, evalcost);
+
+  }
 }
 
 /*
@@ -235,6 +249,8 @@ unsafe fn calccost (tty: *mut tty_display_info,
 		    srcy: c_int, mut srcx: c_int, dsty: c_int, dstx: c_int, doit: c_int)
   -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut deltay: c_int = 0;
   let mut deltax: c_int = 0;
   let mut c: c_int = 0;
@@ -431,6 +447,8 @@ unsafe fn calccost (tty: *mut tty_display_info,
 
   /* done: */
   return totalcost;
+
+  }
 }
 
 /* C 315-321 is `#if 0`: a stand-alone `losecursor` (the live spelling is the cm.h
@@ -455,6 +473,8 @@ const USECR: c_int = 3;
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn cmgoto (tty: *mut tty_display_info, row: c_int, col: c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut homecost: c_int = 0;
   let mut crcost: c_int = 0;
   let mut llcost: c_int = 0;
@@ -568,6 +588,8 @@ pub unsafe extern "C-unwind" fn cmgoto (tty: *mut tty_display_info, row: c_int, 
      terminal (doit is 1).  */
   let _ = calccost (tty, curY! (tty), curX! (tty), row, col, 1);
   curY! (tty) = row; curX! (tty) = col;
+
+  }
 }
 
 /* Clear out all terminal info.
@@ -577,9 +599,13 @@ pub unsafe extern "C-unwind" fn cmgoto (tty: *mut tty_display_info, row: c_int, 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn Wcm_clear (tty: *mut tty_display_info)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   memset ((*tty).Wcm.cast (), 0, size_of::<cm> ());
   UP = std::ptr::null_mut ();
   BC = std::ptr::null_mut ();
+
+  }
 }
 
 /*
@@ -592,6 +618,8 @@ pub unsafe extern "C-unwind" fn Wcm_clear (tty: *mut tty_display_info)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn Wcm_init (tty: *mut tty_display_info) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* C 452-455 is `#if 0`: `if (tty->Wcm->cm_abs && !tty->Wcm->cm_ds) return 0;`.  */
   if ! (*(*tty).Wcm).cm_abs.is_null ()
     { return 0; }
@@ -605,4 +633,6 @@ pub unsafe extern "C-unwind" fn Wcm_init (tty: *mut tty_display_info) -> c_int
   if (*(*tty).Wcm).cm_rows <= 0 || (*(*tty).Wcm).cm_cols <= 0
     { return - 2; }
   return 0;
+
+  }
 }

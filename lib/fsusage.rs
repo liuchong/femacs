@@ -13,9 +13,7 @@
 //
 // The port reaches the system entries through the new `include/sys_mount.rs` mirror (the
 // measured `struct statfs` layout) and lib/fsusage.h through `include/fsusage.rs`.
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
-         static_mut_refs, unsafe_op_in_unsafe_fn)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -103,6 +101,8 @@ macro_rules! PROPAGATE_TOP_BIT {
 pub unsafe extern "C" fn get_fs_usage (file: *const c_char, disk: *const c_char,
                                        fsp: *mut fs_usage) -> c_int
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   /* C 116-139's `#ifdef STAT_STATVFS` block (`statvfs_works ()` plus the `struct statvfs vfsd`
      reads of f_frsize/f_bsize/f_blocks/f_bfree/f_bavail/f_files/f_ffree) is dead: the macro is
      undefined.  */
@@ -140,4 +140,6 @@ pub unsafe extern "C" fn get_fs_usage (file: *const c_char, disk: *const c_char,
 
   let _ = disk;  /* (void) disk;  avoid argument-unused warning */
   return 0;
+
+  }
 }

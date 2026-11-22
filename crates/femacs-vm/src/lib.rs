@@ -1,8 +1,13 @@
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe, static_mut_refs, unsafe_op_in_unsafe_fn, unexpected_cfgs, ambiguous_glob_reexports)]
+#![deny(static_mut_refs, unsafe_op_in_unsafe_fn)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe, unexpected_cfgs, ambiguous_glob_reexports)]
 pub use femacs_pure;
 pub use femacs_sys;
 #[macro_use] pub mod common;
 pub mod nonlocal;
+pub mod roots;
+pub mod state;
+pub mod vm_primitives;
+pub mod safe_domain;
 #[cfg(feature = "have_window_system")]
 pub use common::frame_image_accessors;
 #[path = "../../../src/dispnew.rs"] pub mod dispnew;

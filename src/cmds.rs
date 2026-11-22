@@ -19,9 +19,7 @@
 //     as the unit's own object, the shape casetab.rs/character.rs already use for the `V*`
 //     their C files own (status §3.29).
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
-         unsafe_op_in_unsafe_fn)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -49,6 +47,8 @@ const _: () = ();
    Validate the new location.  Return nil.  */
 unsafe fn move_point (mut n: Lisp_Object, forward: bool) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* This used to just set point to point + XFIXNUM (n), and then check
      to see if it was within boundaries.  But now that SET_PT can
      potentially do a lot of stuff (calling entering and exiting
@@ -78,6 +78,8 @@ unsafe fn move_point (mut n: Lisp_Object, forward: bool) -> Lisp_Object
 
   SET_PT (new_point);
   return Qnil ();
+
+  }
 }
 
 DEFUN! ("forward-char", Fforward_char, Sforward_char, 0, 1, "^p",
@@ -279,6 +281,8 @@ DEFUN! ("self-insert-command", Fself_insert_command, Sself_insert_command, 1, 2,
 
 unsafe fn internal_self_insert (mut c: c_int, mut n: EMACS_INT) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut hairy: c_int = 0;
   let mut tem: Lisp_Object;
   let mut synt: syntaxcode;
@@ -483,6 +487,8 @@ unsafe fn internal_self_insert (mut c: c_int, mut n: EMACS_INT) -> c_int
   run_hook (Qpost_self_insert_hook ());
 
   return hairy;
+
+  }
 }
 
 /* module initialization */
@@ -496,6 +502,8 @@ pub static mut Vpost_self_insert_hook: Lisp_Object = lisp_h_Qnil ();
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_cmds ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   DEFSYM! (Qinternal_auto_fill, "internal-auto-fill");
 
   DEFSYM! (Qundo_auto_amalgamate, "undo-auto-amalgamate");
@@ -523,4 +531,6 @@ pub unsafe extern "C-unwind" fn syms_of_cmds ()
 
   defsubr (&raw mut Sdelete_char);
   defsubr (&raw mut Sself_insert_command);
+
+  }
 }

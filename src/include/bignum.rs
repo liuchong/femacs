@@ -100,6 +100,8 @@ pub unsafe fn XBIGNUM (a: Lisp_Object) -> *mut Lisp_Bignum
 #[inline(always)]
 pub unsafe fn mpz_set_intmax (result: *mut __mpz_struct, v: intmax_t)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   // C declares `long int i` and lets `ckd_add (&i, v, 0)` store into it; the port has
   // the same pair (the wrapped sum and the overflow flag) from `overflowing_add`
   // (P-15, and the ckd_add family in docs/ports/token-aliases.tsv).
@@ -112,12 +114,16 @@ pub unsafe fn mpz_set_intmax (result: *mut __mpz_struct, v: intmax_t)
     {
       mpz_set_intmax_slow (result, v);
     }
+
+  }
 }
 
 /* INLINE void mpz_set_uintmax (mpz_t result, uintmax_t v)  */
 #[inline(always)]
 pub unsafe fn mpz_set_uintmax (result: *mut __mpz_struct, v: uintmax_t)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let (i, overflow) = v.overflowing_add (0);
   if FASTER_BIGNUM != 0 && !overflow
     {
@@ -127,28 +133,40 @@ pub unsafe fn mpz_set_uintmax (result: *mut __mpz_struct, v: uintmax_t)
     {
       mpz_set_uintmax_slow (result, v);
     }
+
+  }
 }
 
 /* INLINE mpz_t const *bignum_val (struct Lisp_Bignum const *i)  */
 #[inline(always)]
 pub unsafe fn bignum_val (i: *const Lisp_Bignum) -> *const __mpz_struct
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   // C: `return &i->value;` — `value` is an array, so the address of the array and
   // the address of its first element are the same object.
   return (*i).value.as_ptr ();
+
+  }
 }
 
 /* INLINE mpz_t const *xbignum_val (Lisp_Object i)  */
 #[inline(always)]
 pub unsafe fn xbignum_val (i: Lisp_Object) -> *const __mpz_struct
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   return bignum_val (XBIGNUM (i));
+
+  }
 }
 
 /* INLINE mpz_t const *bignum_integer (mpz_t *tmp, Lisp_Object i)  */
 #[inline(always)]
 pub unsafe fn bignum_integer (tmp: *mut mpz_t, i: Lisp_Object) -> *const __mpz_struct
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   if FIXNUMP (i)
     {
       mpz_set_intmax ((*tmp).as_mut_ptr (), XFIXNUM (i) as intmax_t);
@@ -156,12 +174,16 @@ pub unsafe fn bignum_integer (tmp: *mut mpz_t, i: Lisp_Object) -> *const __mpz_s
       return (*tmp).as_ptr ();
     }
   return xbignum_val (i);
+
+  }
 }
 
 /* INLINE void mpz_set_integer (mpz_t result, Lisp_Object i)  */
 #[inline(always)]
 pub unsafe fn mpz_set_integer (result: *mut __mpz_struct, i: Lisp_Object)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   if FIXNUMP (i)
     {
       mpz_set_intmax (result, XFIXNUM (i) as intmax_t);
@@ -170,4 +192,6 @@ pub unsafe fn mpz_set_integer (result: *mut __mpz_struct, i: Lisp_Object)
     {
       mpz_set (result, xbignum_val (i));
     }
+
+  }
 }

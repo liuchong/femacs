@@ -61,5 +61,9 @@ macro_rules! lutimens {
 #[inline(always)]
 pub unsafe fn lutimensat (dir: c_int, file: *const c_char, times: *const timespec) -> c_int
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   return utimensat (dir, file, times, AT_SYMLINK_NOFOLLOW);
+
+  }
 }

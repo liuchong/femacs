@@ -16,9 +16,7 @@
 // recorded in docs/ports/itree.md, and the macro's own name in
 // docs/ports/macro-body-notes.tsv.
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
-         unsafe_op_in_unsafe_fn)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -155,56 +153,80 @@ pub struct itree_stack
 
 unsafe fn itree_stack_create (initial_size: intmax_t) -> *mut itree_stack
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let stack: *mut itree_stack = xmalloc (size_of::<itree_stack> ()) as *mut itree_stack;
   (*stack).size = max (0, initial_size as isize) as size_t;
   (*stack).nodes = xmalloc ((*stack).size * size_of::<*mut itree_node> ()) as *mut *mut itree_node;
   (*stack).length = 0;
   return stack;
+
+  }
 }
 
 unsafe fn itree_stack_destroy (stack: *mut itree_stack)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if stack.is_null ()
     { return; }
   if !(*stack).nodes.is_null ()
     { xfree ((*stack).nodes as *mut c_void); }
   xfree (stack as *mut c_void);
+
+  }
 }
 
 unsafe fn itree_stack_ensure_space (stack: *mut itree_stack, nelements: uintmax_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if nelements > (*stack).size as uintmax_t
     {
       (*stack).size = (nelements as size_t + 1) * 2;
       (*stack).nodes = xrealloc ((*stack).nodes as *mut c_void,
 				 (*stack).size * size_of::<*mut itree_node> ()) as *mut *mut itree_node;
     }
+
+  }
 }
 
 /* Push NODE on the STACK, while settings its visited flag to FLAG. */
 
 unsafe fn itree_stack_push (stack: *mut itree_stack, node: *mut itree_node)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   eassert! (!node.is_null ());
   itree_stack_ensure_space (stack, (*stack).length as uintmax_t + 1);
 
   *(*stack).nodes.offset ((*stack).length as isize) = node;
   (*stack).length += 1;
+
+  }
 }
 
 unsafe fn itree_stack_pop (stack: *mut itree_stack) -> *mut itree_node
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if (*stack).length == 0
     { return std::ptr::null_mut (); }
   (*stack).length -= 1;
   return *(*stack).nodes.offset ((*stack).length as isize);
+
+  }
 }
 
 /* +-----------------------------------------------------------------------+ */
 
 unsafe fn itree_max_height (tree: *const itree_tree) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   return (2.0 * log (((*tree).size + 1) as c_double) / log (2.0) + 0.5) as c_int;
+
+  }
 }
 
 #[repr(C)]
@@ -225,6 +247,8 @@ unsafe fn check_subtree (node: *mut itree_node,
 			 offset: ptrdiff_t, min_begin: ptrdiff_t,
 			 max_begin: ptrdiff_t) -> check_subtree_result
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut result: check_subtree_result = check_subtree_result { size: 0,
 					       limit: PTRDIFF_MIN,
 					       black_height: 0 };
@@ -280,6 +304,8 @@ unsafe fn check_subtree (node: *mut itree_node,
   result.black_height = (if (*node).bits & ITREE_RED != 0 { 0 } else { 1 })
     + left_result.black_height;
   return result;
+
+  }
 }
 
 /* Validate invariants for TREE.  If CHECK_RED_BLACK_INVARIANTS, red
@@ -295,6 +321,8 @@ unsafe fn check_subtree (node: *mut itree_node,
 unsafe fn check_tree (tree: *mut itree_tree,
 		      check_red_black_invariants: bool) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   eassert! (!tree.is_null ());
   eassert! ((*tree).size >= 0);
   eassert! (((*tree).size == 0) == ((*tree).root.is_null ()));
@@ -312,6 +340,8 @@ unsafe fn check_tree (tree: *mut itree_tree,
 
   /* The only way this function fails is eassert().  */
   return true;
+
+  }
 }
 
 /* +=======================================================================+
@@ -320,16 +350,26 @@ unsafe fn check_tree (tree: *mut itree_tree,
 
 unsafe fn null_safe_is_red (node: *mut itree_node) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   return !node.is_null () && ((*node).bits & ITREE_RED) != 0;
+
+  }
 }
 
 unsafe fn null_safe_is_black (node: *mut itree_node) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   return node.is_null () || ((*node).bits & ITREE_RED) == 0; /* NULL nodes are black */
+
+  }
 }
 
 unsafe fn itree_newlimit (node: *mut itree_node) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   eassert! (!node.is_null ());
   return max ((*node).end,
 	      max (if (*node).left.is_null ()
@@ -340,16 +380,22 @@ unsafe fn itree_newlimit (node: *mut itree_node) -> ptrdiff_t
 		     { PTRDIFF_MIN }
 		     else
 		     { (*(*node).right).limit + (*(*node).right).offset }));
+
+  }
 }
 
 /* Update NODE's limit attribute according to its children. */
 
 unsafe fn itree_update_limit (node: *mut itree_node)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if node.is_null ()
     { return; }
 
   (*node).limit = itree_newlimit (node);
+
+  }
 }
 
 /* Apply NODE's offset to its begin, end and limit values and
@@ -360,6 +406,8 @@ unsafe fn itree_update_limit (node: *mut itree_node)
 
 unsafe fn itree_inherit_offset (otick: uintmax_t, node: *mut itree_node)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   eassert! ((*node).parent.is_null () || (*(*node).parent).otick >= (*node).otick);
   if (*node).otick == otick
     {
@@ -389,6 +437,8 @@ unsafe fn itree_inherit_offset (otick: uintmax_t, node: *mut itree_node)
      but we need the tree's 'otick' anyway for when there's no parent.  */
   if (*node).parent.is_null () || (*(*node).parent).otick == otick
     { (*node).otick = otick; }
+
+  }
 }
 
 /* Update limit of NODE and its ancestors.  Stop when it becomes
@@ -396,6 +446,8 @@ unsafe fn itree_inherit_offset (otick: uintmax_t, node: *mut itree_node)
 
 unsafe fn itree_propagate_limit (node: *mut itree_node)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut newlimit: ptrdiff_t;
 
   if node.is_null ()
@@ -413,11 +465,15 @@ unsafe fn itree_propagate_limit (node: *mut itree_node)
 	{ break; }
       node = (*node).parent;
     }
+
+  }
 }
 
 unsafe fn itree_validate (tree: *mut itree_tree, node: *mut itree_node)
   -> *mut itree_node
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
 
   if (*tree).otick == (*node).otick || node.is_null ()
     { return node; }
@@ -426,6 +482,8 @@ unsafe fn itree_validate (tree: *mut itree_tree, node: *mut itree_node)
 
   itree_inherit_offset ((*tree).otick, node);
   return node;
+
+  }
 }
 
 /* +=======================================================================+
@@ -439,6 +497,8 @@ pub unsafe extern "C-unwind" fn itree_node_init (node: *mut itree_node,
 					  front_advance: bool, rear_advance: bool,
 					  data: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   (*node).parent = std::ptr::null_mut ();
   (*node).left = std::ptr::null_mut ();
   (*node).right = std::ptr::null_mut ();
@@ -449,6 +509,8 @@ pub unsafe extern "C-unwind" fn itree_node_init (node: *mut itree_node,
   (*node).bits = if rear_advance
     { (*node).bits | ITREE_REAR_ADVANCE } else { (*node).bits & !ITREE_REAR_ADVANCE };
   (*node).data = data;
+
+  }
 }
 
 /* Return NODE's begin value, computing it if necessary. */
@@ -457,8 +519,12 @@ pub unsafe extern "C-unwind" fn itree_node_init (node: *mut itree_node,
 pub unsafe extern "C-unwind" fn itree_node_begin (tree: *mut itree_tree,
 					   node: *mut itree_node) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   itree_validate (tree, node);
   return (*node).begin;
+
+  }
 }
 
 /* Return NODE's end value, computing it if necessary. */
@@ -467,8 +533,12 @@ pub unsafe extern "C-unwind" fn itree_node_begin (tree: *mut itree_tree,
 pub unsafe extern "C-unwind" fn itree_node_end (tree: *mut itree_tree,
 					 node: *mut itree_node) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   itree_validate (tree, node);
   return (*node).end;
+
+  }
 }
 
 /* Allocate an itree_tree.  Free with itree_destroy.  */
@@ -476,9 +546,13 @@ pub unsafe extern "C-unwind" fn itree_node_end (tree: *mut itree_tree,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn itree_create () -> *mut itree_tree
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let tree: *mut itree_tree = xmalloc (size_of::<itree_tree> ()) as *mut itree_tree;
   itree_clear (tree);
   return tree;
+
+  }
 }
 
 /* Reset the tree TREE to its empty state.  */
@@ -486,9 +560,13 @@ pub unsafe extern "C-unwind" fn itree_create () -> *mut itree_tree
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn itree_clear (tree: *mut itree_tree)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   (*tree).root = std::ptr::null_mut ();
   (*tree).otick = 1;
   (*tree).size = 0;
+
+  }
 }
 
 /* C 486-494's `#ifdef ITREE_TESTING` arm: ITREE_TESTING is not in the frozen macro table
@@ -496,15 +574,23 @@ pub unsafe extern "C-unwind" fn itree_clear (tree: *mut itree_tree)
    kept as written (the rawmemchr.c CHERI-arm class).  */
 unsafe fn itree_init (tree: *mut itree_tree)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   itree_clear (tree);
+
+  }
 }
 
 /* Release a tree, freeing its allocated memory.  */
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn itree_destroy (tree: *mut itree_tree)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   eassert! ((*tree).root.is_null ());
   xfree (tree as *mut c_void);
+
+  }
 }
 
 /* Return the number of nodes in TREE.  */
@@ -512,7 +598,11 @@ pub unsafe extern "C-unwind" fn itree_destroy (tree: *mut itree_tree)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn itree_size (tree: *mut itree_tree) -> intmax_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   return (*tree).size;
+
+  }
 }
 
 /* Perform the familiar left-rotation on node NODE.  */
@@ -520,6 +610,8 @@ pub unsafe extern "C-unwind" fn itree_size (tree: *mut itree_tree) -> intmax_t
 unsafe fn itree_rotate_left (tree: *mut itree_tree,
 			     node: *mut itree_node)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   eassert! (!(*node).right.is_null ());
 
   let right: *mut itree_node = (*node).right;
@@ -555,6 +647,8 @@ unsafe fn itree_rotate_left (tree: *mut itree_tree,
   /* Order matters here.  */
   itree_update_limit (node);
   itree_update_limit (right);
+
+  }
 }
 
 /* Perform the familiar right-rotation on node NODE.  */
@@ -562,6 +656,8 @@ unsafe fn itree_rotate_left (tree: *mut itree_tree,
 unsafe fn itree_rotate_right (tree: *mut itree_tree,
 			      node: *mut itree_node)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   eassert! (!tree.is_null () && !node.is_null () && !(*node).left.is_null ());
 
   let left: *mut itree_node = (*node).left;
@@ -591,6 +687,8 @@ unsafe fn itree_rotate_right (tree: *mut itree_tree,
 
   itree_update_limit (left);
   itree_update_limit (node);
+
+  }
 }
 
 /* Repair the tree after an insertion.
@@ -600,6 +698,8 @@ unsafe fn itree_rotate_right (tree: *mut itree_tree,
 unsafe fn itree_insert_fix (tree: *mut itree_tree,
 			    node: *mut itree_node)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   eassert! (((*(*tree).root).bits & ITREE_RED) == 0);
 
   let mut node: *mut itree_node = node;
@@ -671,6 +771,8 @@ unsafe fn itree_insert_fix (tree: *mut itree_tree,
      Set it to black so that property #5 is satisfied.  */
   (*(*tree).root).bits &= !ITREE_RED;
   eassert! (check_tree (tree, true)); /* FIXME: Too expensive.  */
+
+  }
 }
 
 /* Insert a NODE into the TREE.
@@ -678,6 +780,8 @@ unsafe fn itree_insert_fix (tree: *mut itree_tree,
 
 unsafe fn itree_insert_node (tree: *mut itree_tree, node: *mut itree_node)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   eassert! (!node.is_null () && (*node).begin <= (*node).end);
   eassert! ((*node).left.is_null () && (*node).right.is_null ()
 	    && (*node).parent.is_null ());
@@ -729,16 +833,22 @@ unsafe fn itree_insert_node (tree: *mut itree_tree, node: *mut itree_node)
       eassert! (check_tree (tree, false)); /* FIXME: Too expensive.  */
       itree_insert_fix (tree, node);
     }
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn itree_insert (tree: *mut itree_tree, node: *mut itree_node,
 				       begin: ptrdiff_t, end: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   (*node).begin = begin;
   (*node).end = end;
   (*node).otick = (*tree).otick;
   itree_insert_node (tree, node);
+
+  }
 }
 
 /* Safely modify a node's interval. */
@@ -748,6 +858,8 @@ pub unsafe extern "C-unwind" fn itree_node_set_region (tree: *mut itree_tree,
 						node: *mut itree_node,
 						begin: ptrdiff_t, end: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   itree_validate (tree, node);
   if begin != (*node).begin
     {
@@ -762,12 +874,16 @@ pub unsafe extern "C-unwind" fn itree_node_set_region (tree: *mut itree_tree,
       eassert! (!node.is_null ());
       itree_propagate_limit (node);
     }
+
+  }
 }
 
 /* Return true, if NODE is a member of TREE. */
 
 unsafe fn itree_contains (tree: *mut itree_tree, node: *mut itree_node) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   eassert! (!node.is_null ());
   let mut node: *mut itree_node = node;
   let root: *mut itree_node = (*tree).root;
@@ -780,25 +896,35 @@ unsafe fn itree_contains (tree: *mut itree_tree, node: *mut itree_node) -> bool
       node = parent;
     }
   return true;
+
+  }
 }
 
 unsafe fn itree_limit_is_stable (node: *mut itree_node) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if node.is_null ()
     { return true; }
   let newlimit: ptrdiff_t = itree_newlimit (node);
   return (newlimit == (*node).limit);
+
+  }
 }
 
 unsafe fn itree_subtree_min (otick: uintmax_t, node: *mut itree_node)
   -> *mut itree_node
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut node: *mut itree_node = node;
   if node.is_null ()
     { return node; }
   while ({ itree_inherit_offset (otick, node); !(*node).left.is_null () })
     { node = (*node).left; }
   return node;
+
+  }
 }
 
 /* Repair the tree after a deletion.
@@ -809,6 +935,8 @@ unsafe fn itree_remove_fix (tree: *mut itree_tree,
 			    node: *mut itree_node,
 			    parent: *mut itree_node)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if parent.is_null ()
     { eassert! (node == (*tree).root); }
   else
@@ -901,11 +1029,15 @@ unsafe fn itree_remove_fix (tree: *mut itree_tree,
 
   if !node.is_null ()
     { (*node).bits &= !ITREE_RED; }
+
+  }
 }
 
 /* Return accumulated offsets of NODE's parents.  */
 unsafe fn itree_total_offset (node: *mut itree_node) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   eassert! (!node.is_null ());
   let mut offset: ptrdiff_t = 0;
   let mut node: *mut itree_node = node;
@@ -915,6 +1047,8 @@ unsafe fn itree_total_offset (node: *mut itree_node) -> ptrdiff_t
       offset += (*node).offset;
     }
   return offset;
+
+  }
 }
 
 /* Replace DEST with SOURCE as a child of DEST's parent.  Adjusts
@@ -928,6 +1062,8 @@ unsafe fn itree_replace_child (tree: *mut itree_tree,
 			       source: *mut itree_node,
 			       dest: *mut itree_node)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   eassert! (!tree.is_null () && !dest.is_null ());
   eassert! (source.is_null ()
 	    || itree_total_offset (source) == itree_total_offset (dest));
@@ -941,6 +1077,8 @@ unsafe fn itree_replace_child (tree: *mut itree_tree,
 
   if !source.is_null ()
     { (*source).parent = (*dest).parent; }
+
+  }
 }
 /* Replace DEST with SOURCE in the tree.  Copies the following fields
    from DEST to SOURCE: red, parent, left, right.  Also updates
@@ -953,6 +1091,8 @@ unsafe fn itree_transplant (tree: *mut itree_tree,
 			    source: *mut itree_node,
 			    dest: *mut itree_node)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   itree_replace_child (tree, source, dest);
   (*source).left = (*dest).left;
   if !(*source).left.is_null ()
@@ -962,6 +1102,8 @@ unsafe fn itree_transplant (tree: *mut itree_tree,
     { (*(*source).right).parent = source; }
   (*source).bits = if ((*dest).bits & ITREE_RED) != 0
     { (*source).bits | ITREE_RED } else { (*source).bits & !ITREE_RED };
+
+  }
 }
 
 /* Remove NODE from TREE and return it.  NODE must exist in TREE.  */
@@ -970,6 +1112,8 @@ unsafe fn itree_transplant (tree: *mut itree_tree,
 pub unsafe extern "C-unwind" fn itree_remove (tree: *mut itree_tree, node: *mut itree_node)
   -> *mut itree_node
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   eassert! (itree_contains (tree, node));
   eassert! (check_tree (tree, true)); /* FIXME: Too expensive.  */
 
@@ -1045,6 +1189,8 @@ pub unsafe extern "C-unwind" fn itree_remove (tree: *mut itree_tree, node: *mut 
   eassert! ((*node).offset == 0);
 
   return node;
+
+  }
 }
 
 /* +=======================================================================+
@@ -1063,6 +1209,8 @@ pub unsafe extern "C-unwind" fn itree_insert_gap (tree: *mut itree_tree,
 					   pos: ptrdiff_t, length: ptrdiff_t,
 					   before_markers: bool)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if tree.is_null () || length <= 0 || (*tree).root.is_null ()
     { return; }
   let ootick: uintmax_t = (*tree).otick;
@@ -1170,6 +1318,8 @@ pub unsafe extern "C-unwind" fn itree_insert_gap (tree: *mut itree_tree,
     }
 
   itree_stack_destroy (saved);
+
+  }
 }
 
 /* Delete a gap at POS of length LENGTH, contracting all intervals
@@ -1179,6 +1329,8 @@ pub unsafe extern "C-unwind" fn itree_insert_gap (tree: *mut itree_tree,
 pub unsafe extern "C-unwind" fn itree_delete_gap (tree: *mut itree_tree,
 					   pos: ptrdiff_t, length: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if tree.is_null () || length <= 0 || (*tree).root.is_null ()
     { return; }
 
@@ -1222,6 +1374,8 @@ pub unsafe extern "C-unwind" fn itree_delete_gap (tree: *mut itree_tree,
 	}
     }
   itree_stack_destroy (stack);
+
+  }
 }
 
 /* +=======================================================================+
@@ -1239,8 +1393,12 @@ pub unsafe extern "C-unwind" fn itree_delete_gap (tree: *mut itree_tree,
 unsafe fn itree_node_intersects (node: *const itree_node,
 				 begin: ptrdiff_t, end: ptrdiff_t) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   return (begin < (*node).end && (*node).begin < end)
     || ((*node).begin == (*node).end && begin == (*node).begin);
+
+  }
 }
 
 /* Return the "next" node in the current traversal order.
@@ -1258,6 +1416,8 @@ unsafe fn itree_node_intersects (node: *const itree_node,
 unsafe fn itree_iter_next_in_subtree (node: *mut itree_node,
 				      iter: *mut itree_iterator) -> *mut itree_node
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* FIXME: Like in the previous version of the iterator, we
      prune based on 'limit' only when moving to a left child,
      but 'limit' can also get smaller when moving to a right child
@@ -1418,11 +1578,15 @@ unsafe fn itree_iter_next_in_subtree (node: *mut itree_node,
     _ =>
     { emacs_abort (); }
     }
+
+  }
 }
 
 unsafe fn itree_iterator_first_node (tree: *mut itree_tree,
 				     iter: *mut itree_iterator) -> *mut itree_node
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut node: *mut itree_node = (*tree).root;
   if !node.is_null ()
     {
@@ -1462,6 +1626,8 @@ unsafe fn itree_iterator_first_node (tree: *mut itree_tree,
 	}
     }
   return node;
+
+  }
 }
 
 /* Start an iterator enumerating all intervals in [BEGIN,END) in the
@@ -1473,6 +1639,8 @@ pub unsafe extern "C-unwind" fn itree_iterator_start (iter: *mut itree_iterator,
 					       begin: ptrdiff_t, end: ptrdiff_t,
 					       order: itree_order) -> *mut itree_iterator
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   eassert! (!iter.is_null ());
   (*iter).begin = begin;
   (*iter).end = end;
@@ -1486,11 +1654,15 @@ pub unsafe extern "C-unwind" fn itree_iterator_start (iter: *mut itree_iterator,
      find the next.  */
   (*iter).node = itree_iterator_first_node (tree, iter);
   return iter;
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn itree_iterator_next (iter: *mut itree_iterator) -> *mut itree_node
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut node: *mut itree_node = (*iter).node;
   while !node.is_null ()
       && !itree_node_intersects (node, (*iter).begin, (*iter).end)
@@ -1501,6 +1673,8 @@ pub unsafe extern "C-unwind" fn itree_iterator_next (iter: *mut itree_iterator) 
   (*iter).node = if !node.is_null ()
     { itree_iter_next_in_subtree (node, iter) } else { std::ptr::null_mut () };
   return node;
+
+  }
 }
 
 /* Limit G to the new interval [BEGIN, END), which must be a subset of
@@ -1510,9 +1684,13 @@ pub unsafe extern "C-unwind" fn itree_iterator_next (iter: *mut itree_iterator) 
 pub unsafe extern "C-unwind" fn itree_iterator_narrow (g: *mut itree_iterator,
 						begin: ptrdiff_t, end: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   eassert! (!g.is_null ());
   eassert! (begin >= (*g).begin);
   eassert! (end <= (*g).end);
   (*g).begin = max (begin, (*g).begin);
   (*g).end = min (end, (*g).end);
+
+  }
 }

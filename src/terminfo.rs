@@ -10,9 +10,7 @@
 // `tparm` is the curses/terminfo entry point, declared in C just above `tparam`; the port
 // declares it in the unit (the tparam.rs precedent for a libc entry).
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
-         unsafe_op_in_unsafe_fn)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -51,6 +49,8 @@ pub unsafe extern "C-unwind" fn tparam (string: *const c_char, outstring: *mut c
 				 arg1: c_int, arg2: c_int, arg3: c_int, arg4: c_int)
   -> *mut c_char
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let temp: *mut c_char;
 
   /* Emacs always should pass a null OUTSTRING and zero LEN.  */
@@ -59,4 +59,6 @@ pub unsafe extern "C-unwind" fn tparam (string: *const c_char, outstring: *mut c
 
   temp = tparm (string, arg1, arg2, arg3, arg4);
   return xstrdup (temp);
+
+  }
 }

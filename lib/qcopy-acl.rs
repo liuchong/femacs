@@ -7,9 +7,7 @@
 // `<attr/libattr.h>` and `<dirent.h>` — neither exists on this target) and the function's own
 // `#ifdef USE_XATTR` arm (C 79-113, the `attr_copy_*` path) are dead, and the `#else` arm
 // (C 115-123) is what remains.
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
-         static_mut_refs, unsafe_op_in_unsafe_fn)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -41,6 +39,8 @@ pub unsafe extern "C" fn qcopy_acl (src_name: *const c_char, source_desc: c_int,
                                     dst_name: *const c_char, dest_desc: c_int,
                                     mode: mode_t) -> c_int
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   let ret: c_int;
 
   /* C 79-113's `#ifdef USE_XATTR` arm is dead (USE_XATTR is undefined): the
@@ -57,4 +57,6 @@ pub unsafe extern "C" fn qcopy_acl (src_name: *const c_char, source_desc: c_int,
 
   free_permission_context (&mut ctx);
   return ret;
+
+  }
 }

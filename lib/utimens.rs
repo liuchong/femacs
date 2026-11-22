@@ -15,9 +15,7 @@
 // emitting the C symbols (`#[unsafe(no_mangle)]` on the two definitions) is reported as an
 // "invented exported symbol".  The port therefore keeps both bodies, faithfully, as
 // non-exported functions, and records the gap for adjudication.
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
-         static_mut_refs, unsafe_op_in_unsafe_fn)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -86,6 +84,8 @@ mod system {
 #[inline(always)]
 pub unsafe fn issymlink (filename: *const c_char) -> c_int
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   let mut linkbuf: [c_char; 1] = [0];
   if readlink (filename, linkbuf.as_mut_ptr (), std::mem::size_of_val (&linkbuf)) >= 0
     { return 1; }
@@ -93,6 +93,8 @@ pub unsafe fn issymlink (filename: *const c_char) -> c_int
     { return 0; }
   else
     { return -1; }
+
+  }
 }
 
 /* Solaris 9 mistakenly succeeds when given a non-directory with a
@@ -118,15 +120,23 @@ static mut lutimensat_works_really: c_int = 0;
 
 unsafe extern "C" fn is_valid_timespec (timespec: *const timespec) -> bool
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   return ((*timespec).tv_nsec == UTIME_NOW
           || (*timespec).tv_nsec == UTIME_OMIT
           || (0 <= (*timespec).tv_nsec && (*timespec).tv_nsec < TIMESPEC_HZ as c_long));
+
+  }
 }
 
 unsafe extern "C" fn is_valid_timespecs (timespec: *const timespec) -> bool
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   return (is_valid_timespec (timespec.offset (0))
           && is_valid_timespec (timespec.offset (1)));
+
+  }
 }
 
 /* Validate the requested timestamps.  Return 0 if the resulting
@@ -138,6 +148,8 @@ unsafe extern "C" fn is_valid_timespecs (timespec: *const timespec) -> bool
    timespec is out of range.  */
 unsafe extern "C" fn validate_timespec (timespec: *mut timespec) -> c_int
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   if ! is_valid_timespecs (timespec)
     {
       *errno () = EINVAL;
@@ -166,6 +178,8 @@ unsafe extern "C" fn validate_timespec (timespec: *mut timespec) -> c_int
         { utime_omit_count += 1; }
     }
   return result + ((utime_omit_count == 1) as c_int);
+
+  }
 }
 
 /* Normalize any UTIME_NOW or UTIME_OMIT values in (*TS)[0] and (*TS)[1],
@@ -177,6 +191,8 @@ unsafe extern "C" fn validate_timespec (timespec: *mut timespec) -> c_int
 unsafe extern "C" fn update_timespec (statbuf: *const stat, ts: *mut *mut timespec)
   -> bool
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   let timespec: *mut timespec = *ts;
   if ((*timespec.offset (0)).tv_nsec == UTIME_OMIT
       && (*timespec.offset (1)).tv_nsec == UTIME_OMIT)
@@ -199,6 +215,8 @@ unsafe extern "C" fn update_timespec (statbuf: *const stat, ts: *mut *mut timesp
     { gettime (timespec.offset (1)); }
 
   return false;
+
+  }
 }
 
 /* Set the access and modification timestamps of FD (a.k.a. FILE) to be
@@ -215,6 +233,8 @@ unsafe extern "C" fn update_timespec (statbuf: *const stat, ts: *mut *mut timesp
 pub unsafe extern "C" fn fdutimens (fd: c_int, file: *const c_char,
                                     timespec: *const timespec) -> c_int
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   let mut adjusted_timespec: [timespec; 2] = [timespec { tv_sec: 0, tv_nsec: 0 },
                                               timespec { tv_sec: 0, tv_nsec: 0 }];
   let mut ts: *mut timespec
@@ -374,6 +394,8 @@ pub unsafe extern "C" fn fdutimens (fd: c_int, file: *const c_char,
        `#else` arm (`utime`) is dead too, because HAVE_WORKING_UTIMES is 1.  */
     return utimes (file, t);
   }
+
+  }
 }
 
 /* Set the access and modification timestamps of FILE to be
@@ -385,7 +407,11 @@ pub unsafe extern "C" fn fdutimens (fd: c_int, file: *const c_char,
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn utimens (file: *const c_char, timespec: *const timespec) -> c_int
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   return fdutimens (-1, file, timespec);
+
+  }
 }
 
 /* Set the access and modification timestamps of FILE to be
@@ -396,6 +422,8 @@ pub unsafe extern "C" fn utimens (file: *const c_char, timespec: *const timespec
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn lutimens (file: *const c_char, timespec: *const timespec) -> c_int
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   let mut adjusted_timespec: [timespec; 2] = [timespec { tv_sec: 0, tv_nsec: 0 },
                                               timespec { tv_sec: 0, tv_nsec: 0 }];
   let mut ts: *mut timespec
@@ -466,4 +494,6 @@ pub unsafe extern "C" fn lutimens (file: *const c_char, timespec: *const timespe
     { return fdutimens (-1, file, ts); }
   *errno () = ENOSYS;
   return -1;
+
+  }
 }

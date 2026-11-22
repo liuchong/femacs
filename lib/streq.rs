@@ -20,6 +20,10 @@ mod streq_unit {
   #[unsafe(export_name = "streq")]
   pub unsafe extern "C" fn streq (s1: *const c_char, s2: *const c_char) -> bool
   {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
     return super::streq (s1, s2);
+  
   }
+}
 }

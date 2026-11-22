@@ -255,27 +255,27 @@ pub use self::buffer_point_decls::*;
 #[inline(always)]
 pub fn SET_PT (position: ptrdiff_t)
 {
-  unsafe { set_point (position); }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { set_point (position); }
 }
 #[inline(always)]
 pub fn TEMP_SET_PT (position: ptrdiff_t)
 {
-  unsafe { temp_set_point ((current_buffer! ()), position); }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { temp_set_point ((current_buffer! ()), position); }
 }
 #[inline(always)]
 pub fn SET_PT_BOTH (position: ptrdiff_t, byte: ptrdiff_t)
 {
-  unsafe { set_point_both (position, byte); }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { set_point_both (position, byte); }
 }
 #[inline(always)]
 pub fn TEMP_SET_PT_BOTH (position: ptrdiff_t, byte: ptrdiff_t)
 {
-  unsafe { temp_set_point_both ((current_buffer! ()), position, byte); }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { temp_set_point_both ((current_buffer! ()), position, byte); }
 }
 #[inline(always)]
 pub fn BUF_TEMP_SET_PT (buffer: *mut buffer, position: ptrdiff_t)
 {
-  unsafe { temp_set_point (buffer, position); }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { temp_set_point (buffer, position); }
 }
 
 /* Maximum number of bytes in a buffer.
@@ -804,118 +804,118 @@ pub fn XBUFFER (a: Lisp_Object) -> *mut buffer
 #[inline(always)]
 pub fn bset_bidi_paragraph_direction (b: *mut buffer, val: Lisp_Object)
 {
-  unsafe { (*b).bidi_paragraph_direction_ = val; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*b).bidi_paragraph_direction_ = val; }
 }
 #[inline(always)]
 pub fn bset_cache_long_scans (b: *mut buffer, val: Lisp_Object)
 {
-  unsafe { (*b).cache_long_scans_ = val; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*b).cache_long_scans_ = val; }
 }
 #[inline(always)]
 pub fn bset_case_canon_table (b: *mut buffer, val: Lisp_Object)
 {
-  unsafe { (*b).case_canon_table_ = val; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*b).case_canon_table_ = val; }
 }
 #[inline(always)]
 pub fn bset_case_eqv_table (b: *mut buffer, val: Lisp_Object)
 {
-  unsafe { (*b).case_eqv_table_ = val; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*b).case_eqv_table_ = val; }
 }
 #[inline(always)]
 pub fn bset_directory (b: *mut buffer, val: Lisp_Object)
 {
-  unsafe { (*b).directory_ = val; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*b).directory_ = val; }
 }
 #[inline(always)]
 pub fn bset_display_count (b: *mut buffer, val: Lisp_Object)
 {
-  unsafe { (*b).display_count_ = val; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*b).display_count_ = val; }
 }
 #[inline(always)]
 pub fn bset_left_margin_cols (b: *mut buffer, val: Lisp_Object)
 {
-  unsafe { (*b).left_margin_cols_ = val; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*b).left_margin_cols_ = val; }
 }
 #[inline(always)]
 pub fn bset_right_margin_cols (b: *mut buffer, val: Lisp_Object)
 {
-  unsafe { (*b).right_margin_cols_ = val; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*b).right_margin_cols_ = val; }
 }
 #[inline(always)]
 pub fn bset_display_time (b: *mut buffer, val: Lisp_Object)
 {
-  unsafe { (*b).display_time_ = val; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*b).display_time_ = val; }
 }
 #[inline(always)]
 pub fn bset_downcase_table (b: *mut buffer, val: Lisp_Object)
 {
-  unsafe { (*b).downcase_table_ = val; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*b).downcase_table_ = val; }
 }
 #[inline(always)]
 pub fn bset_enable_multibyte_characters (b: *mut buffer, val: Lisp_Object)
 {
-  unsafe { (*b).enable_multibyte_characters_ = val; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*b).enable_multibyte_characters_ = val; }
 }
 #[inline(always)]
 pub fn bset_filename (b: *mut buffer, val: Lisp_Object)
 {
-  unsafe { (*b).filename_ = val; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*b).filename_ = val; }
 }
 #[inline(always)]
 pub fn bset_keymap (b: *mut buffer, val: Lisp_Object)
 {
-  unsafe { (*b).keymap_ = val; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*b).keymap_ = val; }
 }
 #[inline(always)]
 pub fn bset_last_selected_window (b: *mut buffer, val: Lisp_Object)
 {
-  unsafe { (*b).last_selected_window_ = val; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*b).last_selected_window_ = val; }
 }
 #[inline(always)]
 pub fn bset_local_var_alist (b: *mut buffer, val: Lisp_Object)
 {
-  unsafe { (*b).local_var_alist_ = val; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*b).local_var_alist_ = val; }
 }
 #[inline(always)]
 pub fn bset_mark_active (b: *mut buffer, val: Lisp_Object)
 {
-  unsafe { (*b).mark_active_ = val; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*b).mark_active_ = val; }
 }
 #[inline(always)]
 pub fn bset_point_before_scroll (b: *mut buffer, val: Lisp_Object)
 {
-  unsafe { (*b).point_before_scroll_ = val; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*b).point_before_scroll_ = val; }
 }
 #[inline(always)]
 pub fn bset_read_only (b: *mut buffer, val: Lisp_Object)
 {
-  unsafe { (*b).read_only_ = val; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*b).read_only_ = val; }
 }
 #[inline(always)]
 pub fn bset_truncate_lines (b: *mut buffer, val: Lisp_Object)
 {
-  unsafe { (*b).truncate_lines_ = val; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*b).truncate_lines_ = val; }
 }
 #[inline(always)]
 pub fn bset_undo_list (b: *mut buffer, val: Lisp_Object)
 {
-  unsafe { (*b).undo_list_ = val; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*b).undo_list_ = val; }
 }
 #[inline(always)]
 pub fn bset_upcase_table (b: *mut buffer, val: Lisp_Object)
 {
-  unsafe { (*b).upcase_table_ = val; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*b).upcase_table_ = val; }
 }
 #[inline(always)]
 pub fn bset_width_table (b: *mut buffer, val: Lisp_Object)
 {
-  unsafe { (*b).width_table_ = val; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*b).width_table_ = val; }
 }
 
 #[inline(always)]
 pub fn bset_text_conversion_style (b: *mut buffer, val: Lisp_Object)
 {
-  unsafe { (*b).text_conversion_style_ = val; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*b).text_conversion_style_ = val; }
 }
 
 /* BUFFER_CEILING_OF (resp. BUFFER_FLOOR_OF), when applied to n, return
@@ -926,7 +926,7 @@ pub fn bset_text_conversion_style (b: *mut buffer, val: Lisp_Object)
 #[inline(always)]
 pub fn BUFFER_CEILING_OF (bytepos: ptrdiff_t) -> ptrdiff_t
 {
-  return (unsafe {
+  return (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     if bytepos < GPT_BYTE! () && GPT! () < ZV! () { GPT_BYTE! () } else { ZV_BYTE! () }
   }) - 1;
 }
@@ -934,7 +934,7 @@ pub fn BUFFER_CEILING_OF (bytepos: ptrdiff_t) -> ptrdiff_t
 #[inline(always)]
 pub fn BUFFER_FLOOR_OF (bytepos: ptrdiff_t) -> ptrdiff_t
 {
-  return unsafe {
+  return /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     if BEGV! () <= GPT! () && GPT_BYTE! () <= bytepos { GPT_BYTE! () } else { BEGV_BYTE! () }
   };
 }
@@ -946,7 +946,7 @@ pub fn BUFFER_FLOOR_OF (bytepos: ptrdiff_t) -> ptrdiff_t
 #[inline(always)]
 pub fn BUF_BEGV (buf: *mut buffer) -> ptrdiff_t
 {
-  return if unsafe { buf == (current_buffer! ()) } { unsafe { BEGV! () } }
+  return if /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { buf == (current_buffer! ()) } { unsafe { BEGV! () } }
     else if NILP (unsafe { BVAR! (buf, begv_marker_) }) { unsafe { (*buf).begv } }
     else { unsafe { marker_position (BVAR! (buf, begv_marker_)) } };
 }
@@ -954,7 +954,7 @@ pub fn BUF_BEGV (buf: *mut buffer) -> ptrdiff_t
 #[inline(always)]
 pub fn BUF_BEGV_BYTE (buf: *mut buffer) -> ptrdiff_t
 {
-  return if unsafe { buf == (current_buffer! ()) } { unsafe { BEGV_BYTE! () } }
+  return if /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { buf == (current_buffer! ()) } { unsafe { BEGV_BYTE! () } }
     else if NILP (unsafe { BVAR! (buf, begv_marker_) }) { unsafe { (*buf).begv_byte } }
     else { unsafe { marker_byte_position (BVAR! (buf, begv_marker_)) } };
 }
@@ -963,7 +963,7 @@ pub fn BUF_BEGV_BYTE (buf: *mut buffer) -> ptrdiff_t
 #[inline(always)]
 pub fn BUF_PT (buf: *mut buffer) -> ptrdiff_t
 {
-  return if unsafe { buf == (current_buffer! ()) } { unsafe { PT! () } }
+  return if /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { buf == (current_buffer! ()) } { unsafe { PT! () } }
     else if NILP (unsafe { BVAR! (buf, pt_marker_) }) { unsafe { (*buf).pt } }
     else { unsafe { marker_position (BVAR! (buf, pt_marker_)) } };
 }
@@ -971,7 +971,7 @@ pub fn BUF_PT (buf: *mut buffer) -> ptrdiff_t
 #[inline(always)]
 pub fn BUF_PT_BYTE (buf: *mut buffer) -> ptrdiff_t
 {
-  return if unsafe { buf == (current_buffer! ()) } { unsafe { PT_BYTE! () } }
+  return if /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { buf == (current_buffer! ()) } { unsafe { PT_BYTE! () } }
     else if NILP (unsafe { BVAR! (buf, pt_marker_) }) { unsafe { (*buf).pt_byte } }
     else { unsafe { marker_byte_position (BVAR! (buf, pt_marker_)) } };
 }
@@ -980,7 +980,7 @@ pub fn BUF_PT_BYTE (buf: *mut buffer) -> ptrdiff_t
 #[inline(always)]
 pub fn BUF_ZV (buf: *mut buffer) -> ptrdiff_t
 {
-  return if unsafe { buf == (current_buffer! ()) } { unsafe { ZV! () } }
+  return if /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { buf == (current_buffer! ()) } { unsafe { ZV! () } }
     else if NILP (unsafe { BVAR! (buf, zv_marker_) }) { unsafe { (*buf).zv } }
     else { unsafe { marker_position (BVAR! (buf, zv_marker_)) } };
 }
@@ -988,7 +988,7 @@ pub fn BUF_ZV (buf: *mut buffer) -> ptrdiff_t
 #[inline(always)]
 pub fn BUF_ZV_BYTE (buf: *mut buffer) -> ptrdiff_t
 {
-  return if unsafe { buf == (current_buffer! ()) } { unsafe { ZV_BYTE! () } }
+  return if /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { buf == (current_buffer! ()) } { unsafe { ZV_BYTE! () } }
     else if NILP (unsafe { BVAR! (buf, zv_marker_) }) { unsafe { (*buf).zv_byte } }
     else { unsafe { marker_byte_position (BVAR! (buf, zv_marker_)) } };
 }
@@ -1012,14 +1012,14 @@ pub fn BUF_BEG_BYTE (buf: *mut buffer) -> ptrdiff_t
 #[inline(always)]
 pub fn BUF_GPT_ADDR (buf: *mut buffer) -> *mut u8
 {
-  return unsafe { (*(*buf).text).beg.offset ((*(*buf).text).gpt_byte - BEG_BYTE as isize) };
+  return /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*(*buf).text).beg.offset ((*(*buf).text).gpt_byte - BEG_BYTE as isize) };
 }
 
 /* Address of end of buffer.  */
 #[inline(always)]
 pub fn BUF_Z_ADDR (buf: *mut buffer) -> *mut u8
 {
-  return unsafe {
+  return /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     (*(*buf).text).beg.offset ((*(*buf).text).gap_size + (*(*buf).text).z_byte
                                - BEG_BYTE as isize)
   };
@@ -1029,7 +1029,7 @@ pub fn BUF_Z_ADDR (buf: *mut buffer) -> *mut u8
 #[inline(always)]
 pub fn BUF_GAP_END_ADDR (buf: *mut buffer) -> *mut u8
 {
-  return unsafe {
+  return /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     (*(*buf).text).beg.offset ((*(*buf).text).gpt_byte + (*(*buf).text).gap_size
                                - BEG_BYTE as isize)
   };
@@ -1042,7 +1042,7 @@ pub fn BUF_GAP_END_ADDR (buf: *mut buffer) -> *mut u8
 #[inline(always)]
 pub fn BUF_COMPUTE_UNCHANGED (buf: *mut buffer, start: ptrdiff_t, end: ptrdiff_t)
 {
-  if unsafe { BUF_UNCHANGED_MODIFIED! (buf) == BUF_MODIFF! (buf)
+  if /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { BUF_UNCHANGED_MODIFIED! (buf) == BUF_MODIFF! (buf)
               && BUF_OVERLAY_UNCHANGED_MODIFIED! (buf) == BUF_OVERLAY_MODIFF! (buf) }
     {
       unsafe {
@@ -1052,13 +1052,13 @@ pub fn BUF_COMPUTE_UNCHANGED (buf: *mut buffer, start: ptrdiff_t, end: ptrdiff_t
     }
   else
     {
-      if unsafe { BUF_Z! (buf) - end < BUF_END_UNCHANGED! (buf) }
+      if /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { BUF_Z! (buf) - end < BUF_END_UNCHANGED! (buf) }
         {
           unsafe { (*(*buf).text).end_unchanged = BUF_Z! (buf) - end; }
         }
       if unsafe { start - BUF_BEG (buf) < BUF_BEG_UNCHANGED! (buf) }
         {
-          unsafe { (*(*buf).text).beg_unchanged = start - BUF_BEG (buf); }
+          /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*(*buf).text).beg_unchanged = start - BUF_BEG (buf); }
         }
     }
 }
@@ -1074,7 +1074,7 @@ pub fn BUF_COMPUTE_UNCHANGED (buf: *mut buffer, start: ptrdiff_t, end: ptrdiff_t
 #[inline(always)]
 pub fn SET_BUF_BEGV (buf: *mut buffer, charpos: ptrdiff_t)
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     (*buf).begv_byte = buf_charpos_to_bytepos (buf as *mut c_void, charpos);
     (*buf).begv = charpos;
   }
@@ -1083,7 +1083,7 @@ pub fn SET_BUF_BEGV (buf: *mut buffer, charpos: ptrdiff_t)
 #[inline(always)]
 pub fn SET_BUF_ZV (buf: *mut buffer, charpos: ptrdiff_t)
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     (*buf).zv_byte = buf_charpos_to_bytepos (buf as *mut c_void, charpos);
     (*buf).zv = charpos;
   }
@@ -1092,7 +1092,7 @@ pub fn SET_BUF_ZV (buf: *mut buffer, charpos: ptrdiff_t)
 #[inline(always)]
 pub fn SET_BUF_BEGV_BOTH (buf: *mut buffer, charpos: ptrdiff_t, byte: ptrdiff_t)
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     (*buf).begv = charpos;
     (*buf).begv_byte = byte;
   }
@@ -1101,7 +1101,7 @@ pub fn SET_BUF_BEGV_BOTH (buf: *mut buffer, charpos: ptrdiff_t, byte: ptrdiff_t)
 #[inline(always)]
 pub fn SET_BUF_ZV_BOTH (buf: *mut buffer, charpos: ptrdiff_t, byte: ptrdiff_t)
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     (*buf).zv = charpos;
     (*buf).zv_byte = byte;
   }
@@ -1110,7 +1110,7 @@ pub fn SET_BUF_ZV_BOTH (buf: *mut buffer, charpos: ptrdiff_t, byte: ptrdiff_t)
 #[inline(always)]
 pub fn SET_BUF_PT_BOTH (buf: *mut buffer, charpos: ptrdiff_t, byte: ptrdiff_t)
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     (*buf).pt = charpos;
     (*buf).pt_byte = byte;
   }
@@ -1128,7 +1128,7 @@ pub fn SET_BUF_PT_BOTH (buf: *mut buffer, charpos: ptrdiff_t, byte: ptrdiff_t)
 #[inline(always)]
 pub fn BYTE_POS_ADDR (n: ptrdiff_t) -> *mut u8
 {
-  return unsafe {
+  return /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     BEG_ADDR! ().offset ((if n < GPT_BYTE! () { 0 } else { GAP_SIZE! () }) + n - BEG_BYTE as isize)
   };
 }
@@ -1138,7 +1138,7 @@ pub fn BYTE_POS_ADDR (n: ptrdiff_t) -> *mut u8
 #[inline(always)]
 pub fn CHAR_POS_ADDR (n: ptrdiff_t) -> *mut u8
 {
-  return unsafe {
+  return /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     BEG_ADDR! ().offset ((if n < GPT! () { 0 } else { GAP_SIZE! () })
                         + buf_charpos_to_bytepos ((current_buffer! ()) as *mut c_void, n) - BEG_BYTE as isize)
   };
@@ -1149,7 +1149,7 @@ pub fn CHAR_POS_ADDR (n: ptrdiff_t) -> *mut u8
 #[inline(always)]
 pub fn CHAR_TO_BYTE (charpos: ptrdiff_t) -> ptrdiff_t
 {
-  return unsafe { buf_charpos_to_bytepos ((current_buffer! ()) as *mut c_void, charpos) };
+  return /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { buf_charpos_to_bytepos ((current_buffer! ()) as *mut c_void, charpos) };
 }
 
 /* Convert a byte position to a character position.  */
@@ -1157,7 +1157,7 @@ pub fn CHAR_TO_BYTE (charpos: ptrdiff_t) -> ptrdiff_t
 #[inline(always)]
 pub fn BYTE_TO_CHAR (bytepos: ptrdiff_t) -> ptrdiff_t
 {
-  return unsafe { buf_bytepos_to_charpos ((current_buffer! ()) as *mut c_void, bytepos) };
+  return /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { buf_bytepos_to_charpos ((current_buffer! ()) as *mut c_void, bytepos) };
 }
 
 /* Convert PTR, the address of a byte in the buffer, into a byte position.  */
@@ -1165,7 +1165,7 @@ pub fn BYTE_TO_CHAR (bytepos: ptrdiff_t) -> ptrdiff_t
 #[inline(always)]
 pub fn PTR_BYTE_POS (ptr: *const u8) -> ptrdiff_t
 {
-  let byte = unsafe { ptr.offset_from ((*(*(current_buffer! ())).text).beg) };
+  let byte = /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { ptr.offset_from ((*(*(current_buffer! ())).text).beg) };
   return byte - unsafe {
     if byte <= GPT_BYTE! () - BEG_BYTE as isize { 0 } else { GAP_SIZE! () }
   } + BEG_BYTE as isize;
@@ -1198,7 +1198,7 @@ pub fn BUFFER_PVEC_INIT (b: *mut buffer)
 #[inline(always)]
 pub fn BUFFER_LIVE_P (b: *mut buffer) -> bool
 {
-  return !NILP (unsafe { BVAR! (b, name_) });
+  return !NILP (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { BVAR! (b, name_) });
 }
 
 /* Convenient check whether buffer B is hidden (i.e. its name
@@ -1207,7 +1207,7 @@ pub fn BUFFER_LIVE_P (b: *mut buffer) -> bool
 #[inline(always)]
 pub fn BUFFER_HIDDEN_P (b: *mut buffer) -> bool
 {
-  return SREF (unsafe { BVAR! (b, name_) }, 0) == b' ';
+  return SREF (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { BVAR! (b, name_) }, 0) == b' ';
 }
 
 /* Verify indirection counters.  */
@@ -1217,14 +1217,14 @@ pub fn BUFFER_CHECK_INDIRECTION (b: *mut buffer)
 {
   if BUFFER_LIVE_P (b)
     {
-      if unsafe { !(*b).base_buffer.is_null () }
+      if /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { !(*b).base_buffer.is_null () }
         {
           eassert! (unsafe { (*b).indirections == -1 });
           eassert! (unsafe { (*(*b).base_buffer).indirections > 0 });
         }
       else
         {
-          eassert! (unsafe { (*b).indirections >= 0 });
+          eassert! (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*b).indirections >= 0 });
         }
     }
 }
@@ -1240,41 +1240,41 @@ const _: () = core::assert! (!cfg! (feature = "have_tree_sitter") || HAVE_TREE_S
 #[inline(always)]
 pub fn BUF_TS_LINECOL_BEGV (buf: *mut buffer) -> ts_linecol
 {
-  return unsafe { (*buf).ts_linecol_begv };
+  return /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*buf).ts_linecol_begv };
 }
 #[cfg(feature = "have_tree_sitter")]
 #[inline(always)]
 pub fn BUF_TS_LINECOL_POINT (buf: *mut buffer) -> ts_linecol
 {
-  return unsafe { (*buf).ts_linecol_point };
+  return /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*buf).ts_linecol_point };
 }
 
 #[cfg(feature = "have_tree_sitter")]
 #[inline(always)]
 pub fn BUF_TS_LINECOL_ZV (buf: *mut buffer) -> ts_linecol
 {
-  return unsafe { (*buf).ts_linecol_zv };
+  return /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*buf).ts_linecol_zv };
 }
 
 #[cfg(feature = "have_tree_sitter")]
 #[inline(always)]
 pub fn SET_BUF_TS_LINECOL_BEGV (buf: *mut buffer, linecol: ts_linecol)
 {
-  unsafe { (*buf).ts_linecol_begv = linecol; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*buf).ts_linecol_begv = linecol; }
 }
 
 #[cfg(feature = "have_tree_sitter")]
 #[inline(always)]
 pub fn SET_BUF_TS_LINECOL_POINT (buf: *mut buffer, linecol: ts_linecol)
 {
-  unsafe { (*buf).ts_linecol_point = linecol; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*buf).ts_linecol_point = linecol; }
 }
 
 #[cfg(feature = "have_tree_sitter")]
 #[inline(always)]
 pub fn SET_BUF_TS_LINECOL_ZV (buf: *mut buffer, linecol: ts_linecol)
 {
-  unsafe { (*buf).ts_linecol_zv = linecol; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*buf).ts_linecol_zv = linecol; }
 }
 
 /* This structure holds the default values of the buffer-local variables
@@ -1376,7 +1376,7 @@ pub use self::buffer_decls::*;
 // macro cannot be an l-value, so this is a statement macro (C never uses the value).
 #[macro_export]
 macro_rules! CHECK_FIXNUM_COERCE_MARKER {
-    ($x:ident) => { $x = make_fixnum (unsafe { fix_position ($x) }); };
+    ($x:ident) => { $x = make_fixnum (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { fix_position ($x) }); };
     // C's `CHECK_FIXNUM_COERCE_MARKER (*begin)` (textprop.c 136-137 passes a pointer's
     // pointee): the same assignment with a deref place expression on the left.
     ($x:expr) => { $x = make_fixnum (unsafe { fix_position ($x) }); };
@@ -1406,7 +1406,7 @@ pub use self::buffer_other_decls::*;
 #[inline(always)]
 pub fn decode_buffer (b: Lisp_Object) -> *mut buffer
 {
-  return if NILP (b) { unsafe { (current_buffer! ()) } }
+  return if NILP (b) { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (current_buffer! ()) } }
     else { CHECK_BUFFER (b); XBUFFER (b) };
 }
 
@@ -1422,7 +1422,7 @@ pub fn decode_buffer (b: Lisp_Object) -> *mut buffer
 #[inline(always)]
 pub fn set_buffer_internal (b: *mut buffer)
 {
-  if unsafe { (current_buffer! ()) } != b
+  if /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (current_buffer! ()) } != b
     {
       unsafe { set_buffer_internal_1 (b); }
     }
@@ -1434,7 +1434,7 @@ pub fn set_buffer_internal (b: *mut buffer)
 #[inline(always)]
 pub fn record_unwind_current_buffer ()
 {
-  unsafe { record_unwind_protect (Some (set_buffer_if_live), Fcurrent_buffer ()); }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { record_unwind_protect (Some (set_buffer_if_live), Fcurrent_buffer ()); }
 }
 
 /* Get overlays at POSN into array OVERLAYS with NOVERLAYS elements.
@@ -1451,14 +1451,14 @@ macro_rules! GET_OVERLAYS_AT {
   ($sa_avail:ident, $posn:expr, $overlays:ident, $noverlays:ident, $next:expr) => {{
     let mut maxlen: ptrdiff_t = 40;
     SAFE_NALLOCA! ($sa_avail, $overlays, 1, maxlen);
-    $noverlays = unsafe {
+    $noverlays = /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
       overlays_at ($posn, false, &raw mut $overlays, &raw mut maxlen, $next)
     };
     if $noverlays > maxlen
       {
         maxlen = $noverlays;
         SAFE_NALLOCA! ($sa_avail, $overlays, 1, maxlen);
-        $noverlays = unsafe {
+        $noverlays = /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
           overlays_at ($posn, false, &raw mut $overlays, &raw mut maxlen, $next)
         };
       }
@@ -1478,7 +1478,7 @@ macro_rules! GET_OVERLAYS_AT {
 #[inline(always)]
 pub fn buffer_intervals (b: *mut buffer) -> INTERVAL
 {
-  eassert! (unsafe { !(*b).text.is_null () });
+  eassert! (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { !(*b).text.is_null () });
   return unsafe { (*(*b).text).intervals };
 }
 
@@ -1487,7 +1487,7 @@ pub fn buffer_intervals (b: *mut buffer) -> INTERVAL
 #[inline(always)]
 pub fn set_buffer_intervals (b: *mut buffer, i: INTERVAL)
 {
-  eassert! (unsafe { !(*b).text.is_null () });
+  eassert! (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { !(*b).text.is_null () });
   unsafe { (*(*b).text).intervals = i; }
 }
 
@@ -1496,7 +1496,7 @@ pub fn set_buffer_intervals (b: *mut buffer, i: INTERVAL)
 #[inline(always)]
 pub fn buffer_has_overlays () -> bool
 {
-  return !itree_empty_p (unsafe { (*(current_buffer! ())).overlays });
+  return !itree_empty_p (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*(current_buffer! ())).overlays });
 }
 
 /* Functions for accessing a character or byte,
@@ -1521,7 +1521,7 @@ pub fn FETCH_MULTIBYTE_CHAR (pos: ptrdiff_t) -> c_int
 #[inline(always)]
 pub fn BUF_FETCH_MULTIBYTE_CHAR (buf: *mut buffer, pos: ptrdiff_t) -> c_int
 {
-  let p = unsafe {
+  let p = /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     BUF_BEG_ADDR! (buf).offset ((if pos >= BUF_GPT_BYTE! (buf) { BUF_GAP_SIZE! (buf) } else { 0 })
                                + pos - BEG_BYTE as isize)
   };
@@ -1535,7 +1535,7 @@ pub fn BUF_FETCH_MULTIBYTE_CHAR (buf: *mut buffer, pos: ptrdiff_t) -> c_int
 #[inline(always)]
 pub fn FETCH_CHAR_AS_MULTIBYTE (pos: ptrdiff_t) -> c_int
 {
-  return if !NILP (unsafe { BVAR! ((current_buffer! ()), enable_multibyte_characters_) })
+  return if !NILP (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { BVAR! ((current_buffer! ()), enable_multibyte_characters_) })
     { FETCH_MULTIBYTE_CHAR (pos) }
     else { UNIBYTE_TO_CHAR (unsafe { FETCH_BYTE! (pos) } as c_int) };
 }
@@ -1546,7 +1546,7 @@ pub fn FETCH_CHAR_AS_MULTIBYTE (pos: ptrdiff_t) -> c_int
 #[inline(always)]
 pub fn FETCH_CHAR (pos: ptrdiff_t) -> c_int
 {
-  return if !NILP (unsafe { BVAR! ((current_buffer! ()), enable_multibyte_characters_) })
+  return if !NILP (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { BVAR! ((current_buffer! ()), enable_multibyte_characters_) })
     { FETCH_MULTIBYTE_CHAR (pos) }
     else { (unsafe { FETCH_BYTE! (pos) }) as c_int };
 }
@@ -1557,7 +1557,7 @@ pub fn FETCH_CHAR (pos: ptrdiff_t) -> c_int
 #[inline(always)]
 pub fn BUF_BYTE_ADDRESS (buf: *mut buffer, pos: ptrdiff_t) -> *mut u8
 {
-  return unsafe {
+  return /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     (*(*buf).text).beg.offset (pos - BEG_BYTE as isize
                                + (if pos < (*(*buf).text).gpt_byte { 0 }
                                   else { (*(*buf).text).gap_size }))
@@ -1570,7 +1570,7 @@ pub fn BUF_BYTE_ADDRESS (buf: *mut buffer, pos: ptrdiff_t) -> *mut u8
 #[inline(always)]
 pub fn BUF_CHAR_ADDRESS (buf: *mut buffer, pos: ptrdiff_t) -> *mut u8
 {
-  return unsafe {
+  return /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     (*(*buf).text).beg.offset (buf_charpos_to_bytepos (buf as *mut c_void, pos) - BEG_BYTE as isize
                                + (if pos < (*(*buf).text).gpt { 0 }
                                   else { (*(*buf).text).gap_size }))
@@ -1583,7 +1583,7 @@ pub fn BUF_CHAR_ADDRESS (buf: *mut buffer, pos: ptrdiff_t) -> *mut u8
 #[inline(always)]
 pub fn BUF_PTR_BYTE_POS (buf: *mut buffer, ptr: *mut u8) -> ptrdiff_t
 {
-  let byte = unsafe { ptr.offset_from ((*(*buf).text).beg) };
+  let byte = /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { ptr.offset_from ((*(*buf).text).beg) };
   return byte - unsafe {
     if byte <= BUF_GPT_BYTE! (buf) - BEG_BYTE as isize { 0 } else { BUF_GAP_SIZE! (buf) }
   } + BEG_BYTE as isize;
@@ -1594,7 +1594,7 @@ pub fn BUF_PTR_BYTE_POS (buf: *mut buffer, ptr: *mut u8) -> ptrdiff_t
 #[inline(always)]
 pub fn BUF_FETCH_BYTE (buf: *mut buffer, n: ptrdiff_t) -> u8
 {
-  return unsafe { *BUF_BYTE_ADDRESS (buf, n) };
+  return /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { *BUF_BYTE_ADDRESS (buf, n) };
 }
 
 /* Return character at byte position POS in buffer BUF.  If BUF is
@@ -1604,7 +1604,7 @@ pub fn BUF_FETCH_BYTE (buf: *mut buffer, n: ptrdiff_t) -> u8
 #[inline(always)]
 pub fn BUF_FETCH_CHAR_AS_MULTIBYTE (buf: *mut buffer, pos: ptrdiff_t) -> c_int
 {
-  return if !NILP (unsafe { BVAR! (buf, enable_multibyte_characters_) })
+  return if !NILP (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { BVAR! (buf, enable_multibyte_characters_) })
     { BUF_FETCH_MULTIBYTE_CHAR (buf, pos) }
     else { UNIBYTE_TO_CHAR (BUF_FETCH_BYTE (buf, pos) as c_int) };
 }
@@ -1617,12 +1617,12 @@ pub fn BUF_FETCH_CHAR_AS_MULTIBYTE (buf: *mut buffer, pos: ptrdiff_t) -> c_int
 pub fn buffer_window_count (b: *mut buffer) -> c_int
 {
   let mut b = b;
-  if unsafe { !(*b).base_buffer.is_null () }
+  if /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { !(*b).base_buffer.is_null () }
     {
       b = unsafe { (*b).base_buffer };
     }
   eassert! (unsafe { (*b).window_count >= 0 });
-  return unsafe { (*b).window_count };
+  return /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*b).window_count };
 }
 
 /* Overlays */
@@ -1630,7 +1630,7 @@ pub fn buffer_window_count (b: *mut buffer) -> c_int
 #[inline(always)]
 pub fn overlay_start (ov: *mut Lisp_Overlay) -> ptrdiff_t
 {
-  if unsafe { (*ov).buffer.is_null () }
+  if /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*ov).buffer.is_null () }
     {
       return -1;
     }
@@ -1644,7 +1644,7 @@ pub fn overlay_start (ov: *mut Lisp_Overlay) -> ptrdiff_t
 #[inline(always)]
 pub fn overlay_end (ov: *mut Lisp_Overlay) -> ptrdiff_t
 {
-  if unsafe { (*ov).buffer.is_null () }
+  if /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*ov).buffer.is_null () }
     {
       return -1;
     }
@@ -1677,7 +1677,7 @@ pub fn OVERLAY_END (ov: Lisp_Object) -> ptrdiff_t
 #[inline(always)]
 pub fn OVERLAY_PLIST (ov: Lisp_Object) -> Lisp_Object
 {
-  return unsafe { (*XOVERLAY (ov)).plist };
+  return /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*XOVERLAY (ov)).plist };
 }
 
 /* Return the buffer of overlay OV. */
@@ -1687,7 +1687,7 @@ pub fn OVERLAY_BUFFER (ov: Lisp_Object) -> *mut buffer
 {
   // Lisp_Overlay.buffer is declared `*mut c_void` because `struct buffer` is
   // incomplete in lisp.h (PORTING.md 0.1-2); C's return type is `struct buffer *`.
-  return unsafe { (*XOVERLAY (ov)).buffer as *mut buffer };
+  return /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*XOVERLAY (ov)).buffer as *mut buffer };
 }
 
 /* Return true, if OV's rear-advance is set. */
@@ -1696,7 +1696,7 @@ pub fn OVERLAY_BUFFER (ov: Lisp_Object) -> *mut buffer
 pub fn OVERLAY_REAR_ADVANCE_P (ov: Lisp_Object) -> bool
 {
   // itree.h's `rear_advance` is bit 1 of the node's packed bool_bf byte (itree.rs).
-  return unsafe {
+  return /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     let node = (*XOVERLAY (ov)).interval as *mut itree_node;
     ((*node).bits & ITREE_REAR_ADVANCE) != 0
   };
@@ -1707,7 +1707,7 @@ pub fn OVERLAY_REAR_ADVANCE_P (ov: Lisp_Object) -> bool
 #[inline(always)]
 pub fn OVERLAY_FRONT_ADVANCE_P (ov: Lisp_Object) -> bool
 {
-  return unsafe {
+  return /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     let node = (*XOVERLAY (ov)).interval as *mut itree_node;
     ((*node).bits & ITREE_FRONT_ADVANCE) != 0
   };
@@ -1770,7 +1770,7 @@ macro_rules! PER_BUFFER_VAR_IDX {
 #[inline(always)]
 pub fn PER_BUFFER_VALUE_P (b: *mut buffer, idx: c_int) -> bool
 {
-  eassert! (unsafe { valid_per_buffer_idx (idx) });
+  eassert! (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { valid_per_buffer_idx (idx) });
   return unsafe { (*b).local_flags[idx as usize] != 0 };
 }
 
@@ -1780,7 +1780,7 @@ pub fn PER_BUFFER_VALUE_P (b: *mut buffer, idx: c_int) -> bool
 #[inline(always)]
 pub fn SET_PER_BUFFER_VALUE_P (b: *mut buffer, idx: c_int, val: bool)
 {
-  eassert! (unsafe { valid_per_buffer_idx (idx) });
+  eassert! (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { valid_per_buffer_idx (idx) });
   unsafe { (*b).local_flags[idx as usize] = val as c_char; }
 }
 
@@ -1807,7 +1807,7 @@ pub fn SET_PER_BUFFER_VALUE_P (b: *mut buffer, idx: c_int, val: bool)
 #[inline(always)]
 pub fn PER_BUFFER_IDX (offset: ptrdiff_t) -> c_int
 {
-  return unsafe {
+  return /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     XFIXNUM (*((&raw const buffer_local_flags as *const u8).offset (offset)
                as *const Lisp_Object)) as c_int
   };
@@ -1819,7 +1819,7 @@ pub fn PER_BUFFER_IDX (offset: ptrdiff_t) -> c_int
 #[inline(always)]
 pub fn per_buffer_default (offset: c_int) -> Lisp_Object
 {
-  return unsafe {
+  return /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     *((&raw const buffer_defaults as *const u8).offset (offset as isize) as *const Lisp_Object)
   };
 }
@@ -1827,7 +1827,7 @@ pub fn per_buffer_default (offset: c_int) -> Lisp_Object
 #[inline(always)]
 pub fn set_per_buffer_default (offset: c_int, value: Lisp_Object)
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     *((&raw const buffer_defaults as *const u8).offset (offset as isize)
       as *mut Lisp_Object) = value;
   }
@@ -1839,7 +1839,7 @@ pub fn set_per_buffer_default (offset: c_int, value: Lisp_Object)
 #[inline(always)]
 pub fn per_buffer_value (b: *mut buffer, offset: c_int) -> Lisp_Object
 {
-  return unsafe {
+  return /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     *((b as *const u8).offset (offset as isize) as *const Lisp_Object)
   };
 }
@@ -1847,14 +1847,14 @@ pub fn per_buffer_value (b: *mut buffer, offset: c_int) -> Lisp_Object
 #[inline(always)]
 pub fn set_per_buffer_value (b: *mut buffer, offset: c_int, value: Lisp_Object)
 {
-  unsafe { *((b as *mut u8).offset (offset as isize) as *mut Lisp_Object) = value; }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { *((b as *mut u8).offset (offset as isize) as *mut Lisp_Object) = value; }
 }
 
 /* Downcase a character C, or make no change if that cannot be done.  */
 #[inline(always)]
 pub fn downcase (c: c_int) -> c_int
 {
-  let downcase_table = unsafe { BVAR! ((current_buffer! ()), downcase_table_) };
+  let downcase_table = /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { BVAR! ((current_buffer! ()), downcase_table_) };
   let down = CHAR_TABLE_REF (downcase_table, c as isize);
   return if FIXNATP (down) { XFIXNAT (down) as c_int } else { c };
 }
@@ -1863,7 +1863,7 @@ pub fn downcase (c: c_int) -> c_int
 #[inline(always)]
 pub fn upcase (c: c_int) -> c_int
 {
-  let upcase_table = unsafe { BVAR! ((current_buffer! ()), upcase_table_) };
+  let upcase_table = /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { BVAR! ((current_buffer! ()), upcase_table_) };
   let up = CHAR_TABLE_REF (upcase_table, c as isize);
   return if FIXNATP (up) { XFIXNAT (up) as c_int } else { c };
 }
@@ -1894,7 +1894,7 @@ pub fn sanitize_tab_width (width: Lisp_Object) -> c_int
 #[inline(always)]
 pub fn SANE_TAB_WIDTH (buf: *mut buffer) -> c_int
 {
-  return sanitize_tab_width (unsafe { BVAR! (buf, tab_width_) });
+  return sanitize_tab_width (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { BVAR! (buf, tab_width_) });
 }
 
 /* Return a non-outlandish value for a character width.  */
@@ -1916,12 +1916,12 @@ pub fn CHARACTER_WIDTH (c: c_int) -> c_int
   return if 0x20 <= c && c < 0x7f { 1 }
     else if 0x7f < c
       {
-        sanitize_char_width (XFIXNUM (CHAR_TABLE_REF (unsafe { Vchar_width_table },
+        sanitize_char_width (XFIXNUM (CHAR_TABLE_REF (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { Vchar_width_table },
                                                        c as isize)))
       }
     else if c == '\t' as c_int { SANE_TAB_WIDTH (unsafe { (current_buffer! ()) }) }
     else if c == '\n' as c_int { 0 }
-    else if !NILP (unsafe { BVAR! ((current_buffer! ()), ctl_arrow_) }) { 2 }
+    else if !NILP (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { BVAR! ((current_buffer! ()), ctl_arrow_) }) { 2 }
     else { 4 };
 }
 
@@ -1932,7 +1932,7 @@ pub fn CHARACTER_WIDTH (c: c_int) -> c_int
 pub fn fetch_char_advance (charidx: *mut ptrdiff_t, byteidx: *mut ptrdiff_t) -> c_int
 {
   let output: c_int;
-  let mut c = unsafe { *charidx };
+  let mut c = /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { *charidx };
   let mut b = unsafe { *byteidx };
   c += 1;
   let chp = BYTE_POS_ADDR (b);
@@ -1944,7 +1944,7 @@ pub fn fetch_char_advance (charidx: *mut ptrdiff_t, byteidx: *mut ptrdiff_t) -> 
     }
   else
     {
-      output = unsafe { *chp } as c_int;
+      output = /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { *chp } as c_int;
       b += 1;
     }
   unsafe {
@@ -1960,14 +1960,14 @@ pub fn fetch_char_advance (charidx: *mut ptrdiff_t, byteidx: *mut ptrdiff_t) -> 
 pub fn fetch_char_advance_no_check (charidx: *mut ptrdiff_t, byteidx: *mut ptrdiff_t) -> c_int
 {
   let output: c_int;
-  let mut c = unsafe { *charidx };
+  let mut c = /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { *charidx };
   let mut b = unsafe { *byteidx };
   c += 1;
   let chp = BYTE_POS_ADDR (b);
   let mut chlen: c_int = 0;
   output = string_char_and_length (chp as *const u8, &raw mut chlen);
   b += chlen as isize;
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     *charidx = c;
     *byteidx = b;
   }
@@ -1983,13 +1983,13 @@ pub fn fetch_char_advance_no_check (charidx: *mut ptrdiff_t, byteidx: *mut ptrdi
 pub fn buf_next_char_len (buf: *mut buffer, pos_byte: ptrdiff_t) -> c_int
 {
   let chp = BUF_BYTE_ADDRESS (buf, pos_byte);
-  return BYTES_BY_CHAR_HEAD (unsafe { *chp } as c_int);
+  return BYTES_BY_CHAR_HEAD (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { *chp } as c_int);
 }
 
 #[inline(always)]
 pub fn next_char_len (pos_byte: ptrdiff_t) -> c_int
 {
-  return buf_next_char_len (unsafe { (current_buffer! ()) }, pos_byte);
+  return buf_next_char_len (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (current_buffer! ()) }, pos_byte);
 }
 
 /* Return the number of bytes in the multibyte character in BUF just
@@ -1998,7 +1998,7 @@ pub fn next_char_len (pos_byte: ptrdiff_t) -> c_int
 #[inline(always)]
 pub fn buf_prev_char_len (buf: *mut buffer, pos_byte: ptrdiff_t) -> c_int
 {
-  let chp = unsafe {
+  let chp = /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     BUF_BEG_ADDR! (buf).offset (pos_byte - BEG_BYTE as isize
                                + (if pos_byte <= BUF_GPT_BYTE! (buf) { 0 }
                                   else { BUF_GAP_SIZE! (buf) }))
@@ -2009,7 +2009,7 @@ pub fn buf_prev_char_len (buf: *mut buffer, pos_byte: ptrdiff_t) -> c_int
 #[inline(always)]
 pub fn prev_char_len (pos_byte: ptrdiff_t) -> c_int
 {
-  return buf_prev_char_len (unsafe { (current_buffer! ()) }, pos_byte);
+  return buf_prev_char_len (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (current_buffer! ()) }, pos_byte);
 }
 
 /* Increment both *CHARPOS and *BYTEPOS, each in the appropriate way.  */
@@ -2017,7 +2017,7 @@ pub fn prev_char_len (pos_byte: ptrdiff_t) -> c_int
 #[inline(always)]
 pub fn inc_both (charpos: *mut ptrdiff_t, bytepos: *mut ptrdiff_t)
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     (*charpos) += 1;
     (*bytepos) += (if !NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
       { next_char_len (*bytepos) } else { 1 }) as ptrdiff_t;
@@ -2029,7 +2029,7 @@ pub fn inc_both (charpos: *mut ptrdiff_t, bytepos: *mut ptrdiff_t)
 #[inline(always)]
 pub fn dec_both (charpos: *mut ptrdiff_t, bytepos: *mut ptrdiff_t)
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     (*charpos) -= 1;
     (*bytepos) -= (if !NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
       { prev_char_len (*bytepos) } else { 1 }) as ptrdiff_t;

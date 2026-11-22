@@ -31,9 +31,7 @@
 // and the single name this file takes from C's keyboard chain — `pending_signals` — is
 // declared by lisp.h 3879, which is where C's own text gets it (docs/ports/atimer.md).
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
-         unsafe_op_in_unsafe_fn)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -72,15 +70,23 @@ static mut atimers: *mut atimer = std::ptr::null_mut ();
 
 unsafe fn block_atimers (oldset: *mut sigset_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut blocked: sigset_t = std::mem::zeroed ();
   sigemptyset (&mut blocked);
   sigaddset (&mut blocked, SIGALRM);
   sigaddset (&mut blocked, SIGINT);
   pthread_sigmask (SIG_BLOCK, &blocked, oldset);
+
+  }
 }
 unsafe fn unblock_atimers (oldset: *const sigset_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   pthread_sigmask (SIG_SETMASK, oldset, 0 as *mut sigset_t);
+
+  }
 }
 
 /* Function prototypes.  */
@@ -112,6 +118,8 @@ pub unsafe extern "C-unwind" fn start_atimer (r#type: atimer_type, mut timestamp
                                        r#fn: atimer_callback,
                                        client_data: *mut c_void) -> *mut atimer
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut t: *mut atimer;
   let mut oldset: sigset_t = std::mem::zeroed ();
 
@@ -171,6 +179,8 @@ pub unsafe extern "C-unwind" fn start_atimer (r#type: atimer_type, mut timestamp
   set_alarm ();
 
   return t;
+
+  }
 }
 
 
@@ -179,6 +189,8 @@ pub unsafe extern "C-unwind" fn start_atimer (r#type: atimer_type, mut timestamp
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn cancel_atimer (timer: *mut atimer)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut i: c_int = 0;
   let mut oldset: sigset_t = std::mem::zeroed ();
 
@@ -218,6 +230,8 @@ pub unsafe extern "C-unwind" fn cancel_atimer (timer: *mut atimer)
   eassert! (i != 2);
 
   unblock_atimers (&oldset);
+
+  }
 }
 
 
@@ -226,6 +240,8 @@ pub unsafe extern "C-unwind" fn cancel_atimer (timer: *mut atimer)
 
 unsafe fn append_atimer_lists (list_1: *mut atimer, list_2: *mut atimer) -> *mut atimer
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if list_1.is_null ()
     { return list_2; }
   else if list_2.is_null ()
@@ -240,6 +256,8 @@ unsafe fn append_atimer_lists (list_1: *mut atimer, list_2: *mut atimer) -> *mut
       (*p).next = list_2;
       return list_1;
     }
+
+  }
 }
 
 
@@ -248,6 +266,8 @@ unsafe fn append_atimer_lists (list_1: *mut atimer, list_2: *mut atimer) -> *mut
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn stop_other_atimers (mut t: *mut atimer)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut oldset: sigset_t = std::mem::zeroed ();
   block_atimers (&mut oldset);
 
@@ -278,6 +298,8 @@ pub unsafe extern "C-unwind" fn stop_other_atimers (mut t: *mut atimer)
   stopped_atimers = append_atimer_lists (atimers, stopped_atimers);
   atimers = t;
   unblock_atimers (&oldset);
+
+  }
 }
 
 
@@ -287,6 +309,8 @@ pub unsafe extern "C-unwind" fn stop_other_atimers (mut t: *mut atimer)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn run_all_atimers ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if !stopped_atimers.is_null ()
     {
       let mut t: *mut atimer = atimers;
@@ -306,6 +330,8 @@ pub unsafe extern "C-unwind" fn run_all_atimers ()
 
       unblock_atimers (&oldset);
     }
+
+  }
 }
 
 
@@ -313,6 +339,8 @@ pub unsafe extern "C-unwind" fn run_all_atimers ()
 
 unsafe fn set_alarm ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if !atimers.is_null ()
     {
       // C 303-336's `#ifdef HAVE_ITIMERSPEC` block (the POSIX timer and the timerfd, with
@@ -338,6 +366,8 @@ unsafe fn set_alarm ()
 	  setitimer (ITIMER_REAL, &it, std::ptr::null_mut ());
 	}
     }
+
+  }
 }
 
 
@@ -347,6 +377,8 @@ unsafe fn set_alarm ()
 
 unsafe fn schedule_atimer (t: *mut atimer)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut a: *mut atimer = atimers;
   let mut prev: *mut atimer = std::ptr::null_mut ();
 
@@ -361,10 +393,14 @@ unsafe fn schedule_atimer (t: *mut atimer)
     { atimers = t; }
 
   (*t).next = a;
+
+  }
 }
 
 unsafe fn run_timers ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let now: timespec = current_timespec ();
 
   while !atimers.is_null () && timespec_cmp ((*atimers).expiration, now) <= 0
@@ -389,6 +425,8 @@ unsafe fn run_timers ()
     }
 
   set_alarm ();
+
+  }
 }
 
 
@@ -397,7 +435,11 @@ unsafe fn run_timers ()
 
 unsafe extern "C" fn handle_alarm_signal (sig: c_int)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   pending_signals = true;
+
+  }
 }
 
 /* C 418-448: `#ifdef HAVE_TIMERFD` - dead for the frozen configuration, live for the Android one
@@ -440,6 +482,8 @@ pub unsafe extern "C-unwind" fn timerfd_callback (fd: c_int, _arg: *mut c_void)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn do_pending_atimers ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if !atimers.is_null ()
     {
       let mut oldset: sigset_t = std::mem::zeroed ();
@@ -447,6 +491,8 @@ pub unsafe extern "C-unwind" fn do_pending_atimers ()
       run_timers ();
       unblock_atimers (&oldset);
     }
+
+  }
 }
 
 
@@ -456,6 +502,8 @@ pub unsafe extern "C-unwind" fn do_pending_atimers ()
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn turn_on_atimers (on: bool)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if on
     { set_alarm (); }
   else
@@ -465,6 +513,8 @@ pub unsafe extern "C-unwind" fn turn_on_atimers (on: bool)
       // `alarm (0)` below is the live text (docs/ports/atimer.md).
       alarm (0);
     }
+
+  }
 }
 
 // C 489-576's `#ifdef ENABLE_CHECKING` block - `MAXTIMERS`, `struct atimer_result`,
@@ -477,6 +527,8 @@ pub unsafe extern "C-unwind" fn turn_on_atimers (on: bool)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn init_atimer ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   // C 596-613's `#ifdef HAVE_ITIMERSPEC` block (the `timerfd_create` call guarded by
   // `EMACS_IGNORE_TIMERFD`, the `struct sigevent sigev` and the `timer_create` that arms the
   // POSIX timer) is dead on this target (docs/ports/atimer.md).
@@ -493,4 +545,6 @@ pub unsafe extern "C-unwind" fn init_atimer ()
 
   // C 621-624's `#ifdef ENABLE_CHECKING` (`if (!initialized) defsubr (&Sdebug_timer_check);`)
   // is dead here; `defsubr` is not written (P-76), see the block comment above.
+
+  }
 }

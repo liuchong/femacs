@@ -3,9 +3,7 @@
 // P-50); `mpz_t` values pass as `…as_mut_ptr ()`/`…as_ptr ()` (P-49), and `mpz[5]`'s
 // definition here shadows `include/bignum.rs`'s `bignum_externs` one (P-21/P-39).
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
-         unsafe_op_in_unsafe_fn)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -33,17 +31,27 @@ pub static mut mpz: [mpz_t; 5] =
 unsafe extern "C-unwind" fn xrealloc_for_gmp (ptr: *mut c_void, _ignore: usize, size: usize)
 				      -> *mut c_void
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   return xrealloc (ptr, size);
+
+  }
 }
 
 unsafe extern "C-unwind" fn xfree_for_gmp (ptr: *mut c_void, _ignore: usize)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   xfree (ptr);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn init_bignum ()
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   eassert! (mp_bits_per_limb == GMP_NUMB_BITS);
   integer_width = 1 << 16;
 
@@ -63,13 +71,19 @@ pub unsafe extern "C-unwind" fn init_bignum ()
       mpz_init (mpz[i].as_mut_ptr ());
       i += 1;
     }
+
+  }
 }
 
 /* Return the value of the Lisp bignum N, as a double.  */
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn bignum_to_double (n: Lisp_Object) -> c_double
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   return mpz_get_d_rounded (xbignum_val (n));
+
+  }
 }
 
 /* Return D, converted to a Lisp integer.  Discard any fraction.
@@ -77,16 +91,22 @@ pub unsafe extern "C-unwind" fn bignum_to_double (n: Lisp_Object) -> c_double
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn double_to_integer (d: c_double) -> Lisp_Object
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   if !isfinite! (d)
     { overflow_error (); }
   mpz_set_d (mpz[0].as_mut_ptr (), d);
   return make_integer_mpz ();
+
+  }
 }
 
 /* Return a Lisp integer equal to mpz[0], which has BITS bits and which
    must not be in fixnum range.  Set mpz[0] to a junk value.  */
 unsafe fn make_bignum_bits (bits: usize) -> Lisp_Object
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   /* The documentation says integer-width should be nonnegative, so
      comparing it to BITS works even though BITS is unsigned.  Treat
      integer-width as if it were at least twice the machine integer width,
@@ -99,40 +119,58 @@ unsafe fn make_bignum_bits (bits: usize) -> Lisp_Object
   mpz_init ((*b).value.as_mut_ptr ());
   mpz_swap ((*b).value.as_mut_ptr (), mpz[0].as_mut_ptr ());
   return make_lisp_ptr (b as *mut c_void, Lisp_Type::Lisp_Vectorlike);
+
+  }
 }
 
 /* Return a Lisp integer equal to mpz[0], which must not be in fixnum range.
    Set mpz[0] to a junk value.  */
 unsafe fn make_bignum () -> Lisp_Object
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   return make_bignum_bits (mpz_sizeinbase (mpz[0].as_ptr (), 2));
+
+  }
 }
 
 /* Return a Lisp integer equal to N, which must not be in fixnum range.  */
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn make_bigint (n: intmax_t) -> Lisp_Object
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   eassert! (FIXNUM_OVERFLOW_P (n as EMACS_INT));
   mpz_set_intmax (mpz[0].as_mut_ptr (), n);
   return make_bignum ();
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn make_biguint (n: uintmax_t) -> Lisp_Object
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   eassert! (FIXNUM_OVERFLOW_P (n as EMACS_INT) || (MOST_POSITIVE_FIXNUM as uintmax_t) < n);
   mpz_set_uintmax (mpz[0].as_mut_ptr (), n);
   return make_bignum ();
+
+  }
 }
 
 /* Return a Lisp integer equal to -N, which must not be in fixnum range.  */
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn make_neg_biguint (n: uintmax_t) -> Lisp_Object
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   eassert! (((-MOST_NEGATIVE_FIXNUM) as uintmax_t) < n);
   mpz_set_uintmax (mpz[0].as_mut_ptr (), n);
   mpz_neg (mpz[0].as_mut_ptr (), mpz[0].as_ptr ());
   return make_bignum ();
+
+  }
 }
 
 /* Return a Lisp integer with value taken from mpz[0].
@@ -140,6 +178,8 @@ pub unsafe extern "C-unwind" fn make_neg_biguint (n: uintmax_t) -> Lisp_Object
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn make_integer_mpz () -> Lisp_Object
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   if FASTER_BIGNUM != 0 && mpz_fits_slong_p (mpz[0].as_ptr ()) != 0
     {
       let v: c_long = mpz_get_si (mpz[0].as_ptr ());
@@ -172,12 +212,16 @@ pub unsafe extern "C-unwind" fn make_integer_mpz () -> Lisp_Object
     }
 
   return make_bignum_bits (bits);
+
+  }
 }
 
 /* Set RESULT to V.  This code is for when intmax_t is wider than long.  */
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_set_intmax_slow (result: *mut __mpz_struct, v: intmax_t)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let maxlimbs: c_int = (INTMAX_WIDTH + GMP_NUMB_BITS - 1) / GMP_NUMB_BITS;
   let limb: *mut mp_limb_t = mpz_limbs_write (result, maxlimbs as mp_size_t);
   let mut n: c_int = 0;
@@ -199,11 +243,15 @@ pub unsafe extern "C-unwind" fn mpz_set_intmax_slow (result: *mut __mpz_struct, 
     }
 
   mpz_limbs_finish (result, (if negative { -n } else { n }) as mp_size_t);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_set_uintmax_slow (result: *mut __mpz_struct, mut v: uintmax_t)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let maxlimbs: c_int = (UINTMAX_WIDTH + GMP_NUMB_BITS - 1) / GMP_NUMB_BITS;
   let limb: *mut mp_limb_t = mpz_limbs_write (result, maxlimbs as mp_size_t);
   let mut n: c_int = 0;
@@ -217,6 +265,8 @@ pub unsafe extern "C-unwind" fn mpz_set_uintmax_slow (result: *mut __mpz_struct,
     }
 
   mpz_limbs_finish (result, n as mp_size_t);
+
+  }
 }
 
 /* If Z fits into *PI, store its value there and return true.
@@ -224,6 +274,8 @@ pub unsafe extern "C-unwind" fn mpz_set_uintmax_slow (result: *mut __mpz_struct,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_to_intmax (z: *const __mpz_struct, pi: *mut intmax_t) -> bool
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   if FASTER_BIGNUM != 0
     {
       if mpz_fits_slong_p (z) != 0
@@ -259,11 +311,15 @@ pub unsafe extern "C-unwind" fn mpz_to_intmax (z: *const __mpz_struct, pi: *mut 
       return true;
     }
   return false;
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_to_uintmax (z: *const __mpz_struct, pi: *mut uintmax_t) -> bool
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   if FASTER_BIGNUM != 0
     {
       if mpz_fits_ulong_p (z) != 0
@@ -293,6 +349,8 @@ pub unsafe extern "C-unwind" fn mpz_to_uintmax (z: *const __mpz_struct, pi: *mut
 
   *pi = v;
   return true;
+
+  }
 }
 
 /* Return the value of the bignum X if it fits, 0 otherwise.
@@ -300,15 +358,23 @@ pub unsafe extern "C-unwind" fn mpz_to_uintmax (z: *const __mpz_struct, pi: *mut
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn bignum_to_intmax (x: Lisp_Object) -> intmax_t
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut i: intmax_t = 0;
   return if mpz_to_intmax (xbignum_val (x), &mut i) { i } else { 0 };
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn bignum_to_uintmax (x: Lisp_Object) -> uintmax_t
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let mut i: uintmax_t = 0;
   return if mpz_to_uintmax (xbignum_val (x), &mut i) { i } else { 0 };
+
+  }
 }
 
 /* Multiply and exponentiate mpz_t values without aborting due to size
@@ -345,9 +411,13 @@ const _: () = core::assert! (NLIMBS_LIMIT == 2147483647);
 
 unsafe fn emacs_mpz_size (op: *const __mpz_struct) -> c_int
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let size: mp_size_t = mpz_size (op) as mp_size_t;
   eassume! (0 <= size && size <= INT_MAX as mp_size_t);
   return size as c_int;
+
+  }
 }
 
 /* Wrappers to work around GMP limitations.  As of GMP 6.1.2 (2016),
@@ -360,15 +430,21 @@ unsafe fn emacs_mpz_size (op: *const __mpz_struct) -> c_int
 pub unsafe extern "C-unwind" fn emacs_mpz_mul (rop: *mut __mpz_struct, op1: *const __mpz_struct,
 					op2: *const __mpz_struct)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   if NLIMBS_LIMIT - emacs_mpz_size (op1) < emacs_mpz_size (op2)
     { overflow_error (); }
   mpz_mul (rop, op1, op2);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn emacs_mpz_mul_2exp (rop: *mut __mpz_struct, op1: *const __mpz_struct,
 					     op2: EMACS_INT)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   /* Fudge factor derived from GMP 6.1.2, to avoid an abort in
      mpz_mul_2exp (look for the '+ 1' in its source code).  */
   const mul_2exp_extra_limbs: c_int = 1;
@@ -379,12 +455,16 @@ pub unsafe extern "C-unwind" fn emacs_mpz_mul_2exp (rop: *mut __mpz_struct, op1:
   if ((lim as EMACS_INT) - emacs_mpz_size (op1) as EMACS_INT) < op2limbs
     { overflow_error (); }
   mpz_mul_2exp (rop, op1, op2 as mp_bitcnt_t);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn emacs_mpz_pow_ui (rop: *mut __mpz_struct, base: *const __mpz_struct,
 					   exp: c_ulong)
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   /* This fudge factor is derived from GMP 6.1.2, to avoid an abort in
      mpz_n_pow_ui (look for the '5' in its source code).  */
   const pow_ui_extra_limbs: c_int = 5;
@@ -396,6 +476,8 @@ pub unsafe extern "C-unwind" fn emacs_mpz_pow_ui (rop: *mut __mpz_struct, base: 
   let (prod, mul_overflow) = (nbase as c_ulong).overflowing_mul (exp); let n = prod as c_int;
   if mul_overflow || (INT_MAX as c_ulong) < prod || lim < n { overflow_error (); }
   mpz_pow_ui (rop, base, exp);
+
+  }
 }
 
 /* Yield an upper bound on the buffer size needed to contain a C
@@ -403,13 +485,21 @@ pub unsafe extern "C-unwind" fn emacs_mpz_pow_ui (rop: *mut __mpz_struct, base: 
    preceding '-' and the terminating null.  */
 unsafe fn mpz_bufsize (num: *const __mpz_struct, base: c_int) -> ptrdiff_t
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   return (mpz_sizeinbase (num, base) + 2) as ptrdiff_t;
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn bignum_bufsize (num: Lisp_Object, base: c_int) -> ptrdiff_t
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   return mpz_bufsize (xbignum_val (num), base);
+
+  }
 }
 
 /* Convert NUM to a nearest double, as opposed to mpz_get_d which
@@ -417,6 +507,8 @@ pub unsafe extern "C-unwind" fn bignum_bufsize (num: Lisp_Object, base: c_int) -
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mpz_get_d_rounded (num: *const __mpz_struct) -> c_double
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let size: ptrdiff_t = mpz_bufsize (num, 10);
 
   /* Use mpz_get_d as a shortcut for a bignum so small that rounding
@@ -433,6 +525,8 @@ pub unsafe extern "C-unwind" fn mpz_get_d_rounded (num: *const __mpz_struct) -> 
   let result: c_double = strtod (buf, std::ptr::null_mut ());
   SAFE_FREE! (sa_count, sa_mark);
   return result;
+
+  }
 }
 
 /* Store into BUF (of size SIZE) the value of NUM as a base-BASE string.
@@ -443,11 +537,15 @@ pub unsafe extern "C-unwind" fn mpz_get_d_rounded (num: *const __mpz_struct) -> 
 pub unsafe extern "C-unwind" fn bignum_to_c_string (buf: *mut c_char, size: ptrdiff_t,
 					     num: Lisp_Object, base: c_int) -> ptrdiff_t
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   eassert! (bignum_bufsize (num, base.abs ()) == size);
   mpz_get_str (buf, base, xbignum_val (num));
   let n: ptrdiff_t = size - 2;
   return if *buf.offset (n - 1) == 0 { n - 1 }
     else { n + (*buf.offset (n) != 0) as ptrdiff_t };
+
+  }
 }
 
 /* Convert NUM to a base-BASE Lisp string.
@@ -456,6 +554,8 @@ pub unsafe extern "C-unwind" fn bignum_to_c_string (buf: *mut c_char, size: ptrd
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn bignum_to_string (num: Lisp_Object, base: c_int) -> Lisp_Object
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let size: ptrdiff_t = bignum_bufsize (num, base.abs ());
   USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   let str_ = SAFE_ALLOCA! (sa_avail, size as usize) as *mut c_char;
@@ -463,6 +563,8 @@ pub unsafe extern "C-unwind" fn bignum_to_string (num: Lisp_Object, base: c_int)
   let result: Lisp_Object = make_unibyte_string (str_, len);
   SAFE_FREE! (sa_count, sa_mark);
   return result;
+
+  }
 }
 
 /* Create a bignum by scanning NUM, with digits in BASE.
@@ -473,11 +575,15 @@ pub unsafe extern "C-unwind" fn bignum_to_string (num: Lisp_Object, base: c_int)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn make_bignum_str (num: *const c_char, base: c_int) -> Lisp_Object
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let b: *mut Lisp_Bignum = ALLOCATE_PLAIN_PSEUDOVECTOR! (Lisp_Bignum, pvec_type::PVEC_BIGNUM);
   mpz_init ((*b).value.as_mut_ptr ());
   let check: c_int = mpz_set_str ((*b).value.as_mut_ptr (), num, base);
   eassert! (check == 0);
   return make_lisp_ptr (b as *mut c_void, Lisp_Type::Lisp_Vectorlike);
+
+  }
 }
 
 /* Check that X is a Lisp integer in the range LO..HI.
@@ -487,11 +593,15 @@ pub unsafe extern "C-unwind" fn make_bignum_str (num: *const c_char, base: c_int
 pub unsafe extern "C-unwind" fn check_integer_range (x: Lisp_Object, lo: intmax_t,
 					      hi: intmax_t) -> intmax_t
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   CHECK_INTEGER (x);
   let mut i: intmax_t = 0;
   if ! (integer_to_intmax (x, &mut i) && lo <= i && i <= hi)
     { args_out_of_range_3 (x, make_int (lo), make_int (hi)); }
   return i;
+
+  }
 }
 
 /* Check that X is a Lisp integer in the range 0..HI.
@@ -500,11 +610,15 @@ pub unsafe extern "C-unwind" fn check_integer_range (x: Lisp_Object, lo: intmax_
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn check_uinteger_max (x: Lisp_Object, hi: uintmax_t) -> uintmax_t
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   CHECK_INTEGER (x);
   let mut i: uintmax_t = 0;
   if ! (integer_to_uintmax (x, &mut i) && i <= hi)
     { args_out_of_range_3 (x, make_fixnum (0), make_uint (hi)); }
   return i;
+
+  }
 }
 
 /* Check that X is a Lisp integer no greater than INT_MAX,
@@ -513,14 +627,20 @@ pub unsafe extern "C-unwind" fn check_uinteger_max (x: Lisp_Object, hi: uintmax_
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn check_int_nonnegative (x: Lisp_Object) -> c_int
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   CHECK_INTEGER (x);
   return if NILP (Fnatnump (x)) { 0 } else { check_integer_range (x, 0, INT_MAX as intmax_t) as c_int };
+
+  }
 }
 
 /* Return a random mp_limb_t.  */
 
 unsafe fn get_random_limb () -> mp_limb_t
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   if GMP_NUMB_BITS <= ULONG_WIDTH
     { return get_random_ulong (); }
 
@@ -537,6 +657,8 @@ unsafe fn get_random_limb () -> mp_limb_t
       i += ULONG_WIDTH;
     }
   return r;
+
+  }
 }
 
 /* Return a random mp_limb_t I in the range 0 <= I < LIM.
@@ -544,6 +666,8 @@ unsafe fn get_random_limb () -> mp_limb_t
 
 unsafe fn get_random_limb_lim (lim: mp_limb_t) -> mp_limb_t
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   /* Return the remainder of a random mp_limb_t R divided by LIM,
      except reject the rare case where R is so close to the maximum
      mp_limb_t that the remainder isn't random.  */
@@ -560,6 +684,8 @@ unsafe fn get_random_limb_lim (lim: mp_limb_t) -> mp_limb_t
     }
 
   return remainder;
+
+  }
 }
 
 /* Return a random Lisp integer I in the range 0 <= I < LIMIT,
@@ -568,6 +694,8 @@ unsafe fn get_random_limb_lim (lim: mp_limb_t) -> mp_limb_t
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn get_random_bignum (limit: *const Lisp_Bignum) -> Lisp_Object
 {
+  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
+  unsafe {
   let lim: *const __mpz_struct = bignum_val (limit);
   let nlimbs: mp_size_t = mpz_size (lim) as mp_size_t;
   eassume! (0 < nlimbs);
@@ -613,4 +741,6 @@ pub unsafe extern "C-unwind" fn get_random_bignum (limit: *const Lisp_Bignum) ->
 
   mpz_limbs_finish (mpz[0].as_mut_ptr (), nlimbs);
   return make_integer_mpz ();
+
+  }
 }

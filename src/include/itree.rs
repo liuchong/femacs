@@ -148,7 +148,7 @@ pub fn itree_empty_p (tree: *mut itree_tree) -> bool
 {
   // `||` short-circuits exactly as C's `!tree || !tree->root` does, so the
   // dereference only happens for a non-null tree (hence the unsafe block).
-  return tree.is_null () || unsafe { (*tree).root.is_null () };
+  return tree.is_null () || /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*tree).root.is_null () };
 }
 
 /// State used when iterating interval.

@@ -30,9 +30,7 @@
 // `string_cost`, `per_line_cost`.  `frame.current_matrix` is frame.rs's `*mut c_void`
 // (P-72 rule 3: frame.h cannot name `struct glyph_matrix`), so the use site casts once.
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
-         unsafe_op_in_unsafe_fn)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -126,6 +124,8 @@ unsafe fn calculate_scrolling (frame: *mut frame,
 			       new_hash: *mut c_uint,
 			       free_at_end: c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut i: c_int;
   let mut j: c_int;
   let frame_total_lines: c_int = FRAME_TOTAL_LINES (frame);
@@ -273,6 +273,8 @@ unsafe fn calculate_scrolling (frame: *mut frame,
       i += 1;
       p = p.offset (1);
     }
+
+  }
 }
 
 
@@ -291,6 +293,8 @@ unsafe fn do_scrolling (frame: *mut frame, current_matrix: *mut glyph_matrix,
 			matrix: *mut matrix_elt, window_size: c_int,
 			unchanged_at_top: c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut p: *mut matrix_elt;
   let mut i: c_int;
   let mut j: c_int;
@@ -467,6 +471,8 @@ unsafe fn do_scrolling (frame: *mut frame, current_matrix: *mut glyph_matrix,
   if terminal_window_p
     { set_terminal_window (frame, 0); }
   SAFE_FREE! (sa_count, sa_mark);
+
+  }
 }
 
 
@@ -519,6 +525,8 @@ unsafe fn calculate_direct_scrolling (frame: *mut frame,
 				      old_hash: *mut c_uint, new_hash: *mut c_uint,
 				      free_at_end: c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut i: c_int;
   let mut j: c_int;
   let frame_total_lines: c_int = FRAME_TOTAL_LINES (frame);
@@ -730,6 +738,8 @@ unsafe fn calculate_direct_scrolling (frame: *mut frame,
       i += 1;
       p = p.offset (1);
     }
+
+  }
 }
 
 
@@ -754,6 +764,8 @@ unsafe fn do_direct_scrolling (frame: *mut frame, current_matrix: *mut glyph_mat
 			       cost_matrix: *mut matrix_elt, window_size: c_int,
 			       unchanged_at_top: c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut p: *mut matrix_elt;
   let mut i: c_int;
   let mut j: c_int;
@@ -919,6 +931,8 @@ unsafe fn do_direct_scrolling (frame: *mut frame, current_matrix: *mut glyph_mat
   if terminal_window_p
     { set_terminal_window (frame, 0); }
   SAFE_FREE! (sa_count, sa_mark);
+
+  }
 }
 
 
@@ -930,6 +944,8 @@ pub unsafe extern "C-unwind" fn scrolling_1 (frame: *mut frame, window_size: c_i
 				      old_hash: *mut c_uint, new_hash: *mut c_uint,
 				      free_at_end: c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   let mut matrix: *mut matrix_elt = std::ptr::null_mut ();
   SAFE_NALLOCA! (sa_avail, matrix, window_size + 1, window_size + 1);
@@ -956,6 +972,8 @@ pub unsafe extern "C-unwind" fn scrolling_1 (frame: *mut frame, window_size: c_i
     }
 
   SAFE_FREE! (sa_count, sa_mark);
+
+  }
 }
 
 
@@ -971,6 +989,8 @@ pub unsafe extern "C-unwind" fn scrolling_max_lines_saved (start: c_int, end: c_
 						    oldhash: *mut c_uint, newhash: *mut c_uint,
 						    cost: *mut c_int) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   const LOG2_NLINES: usize = 9;
   const NLINES: usize = 1 << LOG2_NLINES;
   /* C 840-841 declares the array's element type anonymously (`struct { unsigned hash; int
@@ -1033,6 +1053,8 @@ pub unsafe extern "C-unwind" fn scrolling_max_lines_saved (start: c_int, end: c_
     }
 
   return matchcount;
+
+  }
 }
 
 /* Calculate the line insertion/deletion
@@ -1042,6 +1064,8 @@ pub unsafe extern "C-unwind" fn scrolling_max_lines_saved (start: c_int, end: c_
 unsafe fn line_ins_del (frame: *mut frame, ov1: c_int, pf1: c_int, ovn: c_int, pfn: c_int,
 			ov: *mut c_int, mf: *mut c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut i: c_int;
   let frame_total_lines: c_int = FRAME_TOTAL_LINES (frame);
   let mut insert_overhead: c_int = ov1 * 10;
@@ -1056,6 +1080,8 @@ unsafe fn line_ins_del (frame: *mut frame, ov1: c_int, pf1: c_int, ovn: c_int, p
       insert_overhead += pf1;
       i -= 1;
     }
+
+  }
 }
 
 #[cfg (not (feature = "have_android"))]
@@ -1065,6 +1091,8 @@ unsafe fn ins_del_costs (frame: *mut frame,
 			 costvec: *mut c_int, ncostvec: *mut c_int,
 			 coefficient: c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   // dispextern.h 3953-3954: `extern int string_cost (const char *);` and
   // `extern int per_line_cost (const char *);` (defined in term.c).
   unsafe extern "C-unwind" {
@@ -1088,6 +1116,8 @@ unsafe fn ins_del_costs (frame: *mut frame,
     { line_ins_del (frame,
 		    9999, 0, 9999, 0,
 		    costvec, ncostvec); }
+
+  }
 }
 
 /* Calculate the insert and delete line costs.
@@ -1133,6 +1163,8 @@ pub unsafe extern "C-unwind" fn do_line_insertion_deletion_costs (frame: *mut fr
 							   cleanup_string: *const c_char,
 							   coefficient: c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let frame_total_lines: c_int = FRAME_TOTAL_LINES (frame);
   /* C writes through the object-like macros (`FRAME_INSERT_COST (frame) = ...`), which
      frame.rs mirrors as functions returning the field; the assignment target is therefore
@@ -1161,6 +1193,8 @@ pub unsafe extern "C-unwind" fn do_line_insertion_deletion_costs (frame: *mut fr
 		 setup_string, cleanup_string,
 		 FRAME_DELETE_COST (frame), FRAME_DELETEN_COST (frame),
 		 coefficient);
+
+  }
 }
 
 // C 993: `#endif` of the file's `#ifndef HAVE_ANDROID` (see the header note).

@@ -23,6 +23,8 @@ use std::ffi::{c_char, c_int, c_long, c_uint, c_ulong, c_void};
 #[unsafe(export_name = "rpl_pipe2")]
 pub unsafe extern "C" fn pipe2 (fd: *mut c_int, flags: c_int) -> c_int
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   /* Mingw _pipe() corrupts fd on failure; also, if we succeed at
      creating the pipe but later fail at changing fcntl, we want
      to leave fd unchanged: https://austingroupbugs.net/view.php?id=467  */
@@ -96,5 +98,7 @@ pub unsafe extern "C" fn pipe2 (fd: *mut c_int, flags: c_int) -> c_int
     *fd.add (1) = tmp[1];
     *errno () = saved_errno;
     return -1;
+  }
+
   }
 }

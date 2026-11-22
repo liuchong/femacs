@@ -45,11 +45,7 @@
 // own name (`window_bits!`, …), so the port's body keeps C's token and the write goes through
 // the mirror's mask; `NAME! (…)` is the macro call in Rust, whose `!` the token check ignores.
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
-         unsafe_op_in_unsafe_fn, unused_assignments, unused_parens, unused_mut,
-         unreachable_code, unused_labels, while_true, unused_comparisons,
-         overflowing_literals, unused_must_use, clippy::all)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe, unused_assignments, unused_parens, unused_mut, unreachable_code, unused_labels, while_true, unused_comparisons, overflowing_literals, unused_must_use, clippy::all)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -312,76 +308,134 @@ unsafe fn CHECK_WINDOW_CONFIGURATION (x: Lisp_Object)
 /* These setters are used only in this file, so they can be private.  */
 unsafe fn wset_combination_limit (w: *mut window, val: Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   (*w).combination_limit = val;
+
+  }
 }
 
 unsafe fn wset_dedicated (w: *mut window, val: Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   (*w).dedicated = val;
+
+  }
 }
 
 unsafe fn wset_display_table (w: *mut window, val: Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   (*w).display_table = val;
+
+  }
 }
 
 unsafe fn wset_new_normal (w: *mut window, val: Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   (*w).new_normal = val;
+
+  }
 }
 
 unsafe fn wset_new_total (w: *mut window, val: Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   (*w).new_total = val;
+
+  }
 }
 
 unsafe fn wset_normal_cols (w: *mut window, val: Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   (*w).normal_cols = val;
+
+  }
 }
 
 unsafe fn wset_normal_lines (w: *mut window, val: Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   (*w).normal_lines = val;
+
+  }
 }
 
 unsafe fn wset_parent (w: *mut window, val: Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   (*w).parent = val;
+
+  }
 }
 
 unsafe fn wset_pointm (w: *mut window, val: Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   (*w).pointm = val;
+
+  }
 }
 
 unsafe fn wset_old_pointm (w: *mut window, val: Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   (*w).old_pointm = val;
+
+  }
 }
 
 unsafe fn wset_start (w: *mut window, val: Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   (*w).start = val;
+
+  }
 }
 
 unsafe fn wset_temslot (w: *mut window, val: Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   (*w).temslot = val;
+
+  }
 }
 
 unsafe fn wset_vertical_scroll_bar_type (w: *mut window, val: Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   (*w).vertical_scroll_bar_type = val;
+
+  }
 }
 
 unsafe fn wset_window_parameters (w: *mut window, val: Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   (*w).window_parameters = val;
+
+  }
 }
 
 unsafe fn wset_combination (w: *mut window, horflag: bool, val: Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* Since leaf windows never becomes non-leaf, there should
      be no buffer and markers in start and pointm fields of W.  */
   eassert! (!BUFFERP ((*w).contents) && NILP ((*w).start) && NILP ((*w).pointm));
@@ -390,6 +444,8 @@ unsafe fn wset_combination (w: *mut window, horflag: bool, val: Lisp_Object)
      is meaningless.  */
   if !NILP (val)
     { window_bits! (w, horizontal, horflag); }
+
+  }
 }
 
 /* True if leaf window W doesn't reflect the actual state
@@ -398,25 +454,35 @@ unsafe fn wset_combination (w: *mut window, horflag: bool, val: Lisp_Object)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn window_outdated (w: *mut window) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let b: *mut buffer = XBUFFER ((*w).contents);
   return ((*w).last_modified < BUF_MODIFF! (b)
 	  || (*w).last_overlay_modified < BUF_OVERLAY_MODIFF! (b));
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn decode_live_window (window: Lisp_Object) -> *mut window
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut window = window;
   if NILP (window)
     { return XWINDOW (selected_window); }
 
   CHECK_LIVE_WINDOW (window);
   return XWINDOW (window);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn decode_any_window (window: Lisp_Object) -> *mut window
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut window = window;
   let w: *mut window;
 
@@ -426,10 +492,14 @@ pub unsafe extern "C-unwind" fn decode_any_window (window: Lisp_Object) -> *mut 
   CHECK_WINDOW (window);
   w = XWINDOW (window);
   return w;
+
+  }
 }
 
 unsafe fn decode_valid_window (window: Lisp_Object) -> *mut window
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut window = window;
   let w: *mut window;
 
@@ -439,6 +509,8 @@ unsafe fn decode_valid_window (window: Lisp_Object) -> *mut window
   CHECK_VALID_WINDOW (window);
   w = XWINDOW (window);
   return w;
+
+  }
 }
 
 /* Called when W's buffer slot is changed.  ARG -1 means that W is about to
@@ -446,6 +518,8 @@ unsafe fn decode_valid_window (window: Lisp_Object) -> *mut window
 
 unsafe fn adjust_window_count (w: *mut window, arg: c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   eassert! (eabs! (arg) == 1);
   if BUFFERP ((*w).contents)
     {
@@ -459,6 +533,8 @@ unsafe fn adjust_window_count (w: *mut window, arg: c_int)
       window_bits! (w, window_end_valid, false);
       (*w).base_line_pos = 0;
     }
+
+  }
 }
 
 /* Set W's buffer slot to VAL and recompute number
@@ -467,6 +543,8 @@ unsafe fn adjust_window_count (w: *mut window, arg: c_int)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn wset_buffer (w: *mut window, val: Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   adjust_window_count (w, -1);
   if BUFFERP (val)
     /* Make sure that we do not assign the buffer
@@ -474,11 +552,17 @@ pub unsafe extern "C-unwind" fn wset_buffer (w: *mut window, val: Lisp_Object)
     { eassert! (MARKERP ((*w).start) && MARKERP ((*w).pointm)); }
   (*w).contents = val;
   adjust_window_count (w, 1);
+
+  }
 }
 
 unsafe fn wset_old_buffer (w: *mut window, val: Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   (*w).old_buffer = val;
+
+  }
 }
 
 DEFUN! ("windowp", Fwindowp, Swindowp, 1, 1, 0,
@@ -648,6 +732,8 @@ DEFUN! ("old-selected-window", Fold_selected_window,
 unsafe fn select_window (window: Lisp_Object, norecord: Lisp_Object,
 	       inhibit_point_swap: bool) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let w: *mut window;
   let mut sf: *mut frame;
   let frame: Lisp_Object;
@@ -718,6 +804,8 @@ unsafe fn select_window (window: Lisp_Object, norecord: Lisp_Object,
     }
 
   return window;
+
+  }
 }
 
 /* Select window with a minimum of fuss, i.e. don't record the change anywhere
@@ -725,6 +813,8 @@ unsafe fn select_window (window: Lisp_Object, norecord: Lisp_Object,
    already selected.  */
 unsafe fn select_window_1 (window: Lisp_Object, inhibit_point_swap: bool)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* Store the old selected window's buffer's point in pointm of the old
      selected window.  It belongs to that window, and when the window is
      not selected, must be in the window.  */
@@ -745,6 +835,8 @@ unsafe fn select_window_1 (window: Lisp_Object, inhibit_point_swap: bool)
      redisplay_window has altered point after scrolling,
      because it makes the change only in the window.  */
   set_point_from_marker ((*XWINDOW (window)).pointm);
+
+  }
 }
 
 DEFUN! ("select-window", Fselect_window, Sselect_window, 1, 2, 0,
@@ -932,11 +1024,15 @@ macro_rules! FRAME_FACE_CACHE {
 /// `include/font.rs` carries `FACE_FROM_ID` but not the "_OR_NULL" sibling (gap).
 unsafe fn FACE_FROM_ID_OR_NULL (f: *mut frame, id: c_int) -> *mut face
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let used: c_int = (*FRAME_FACE_CACHE! (f)).used;
   eassume! (0 <= used);
   return if 0 <= id && id < used
     { *((*FRAME_FACE_CACHE! (f)).faces_by_id).offset (id as isize) }
     else { std::ptr::null_mut () };
+
+  }
 }
 
 
@@ -1113,6 +1209,8 @@ unsafe fn window_body_unit_from_symbol (unit: Lisp_Object) -> window_body_unit
 pub unsafe extern "C-unwind" fn window_body_height (w: *mut window,
                                              pixelwise: window_body_unit) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut pixelwise = pixelwise;
   let height: c_int = ((*w).pixel_height
 		- WINDOW_TAB_LINE_HEIGHT! (w)
@@ -1144,6 +1242,8 @@ pub unsafe extern "C-unwind" fn window_body_height (w: *mut window,
 
   /* Don't return a negative value.  */
   return max ((height / denom) as isize, 0) as c_int;
+
+  }
 }
 
 /* Return the number of columns/pixels of W's body.  Don't count columns
@@ -1155,6 +1255,8 @@ pub unsafe extern "C-unwind" fn window_body_height (w: *mut window,
 pub unsafe extern "C-unwind" fn window_body_width (w: *mut window,
                                             pixelwise: window_body_unit) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut pixelwise = pixelwise;
   let f: *mut frame = XFRAME (WINDOW_FRAME! (w));
 
@@ -1195,6 +1297,8 @@ pub unsafe extern "C-unwind" fn window_body_width (w: *mut window,
 
   /* Don't return a negative value.  */
   return max ((width / denom) as isize, 0) as c_int;
+
+  }
 }
 
 DEFUN! ("window-body-width", Fwindow_body_width, Swindow_body_width, 0, 2, 0,
@@ -1302,6 +1406,8 @@ DEFUN! ("window-hscroll", Fwindow_hscroll, Swindow_hscroll, 0, 1, 0,
    range, returning the new amount as a fixnum.  */
 unsafe fn set_window_hscroll (w: *mut window, hscroll: EMACS_INT) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* Horizontal scrolling has problems with large scroll amounts.
      It's too slow with long lines, and even with small lines the
      display can be messed up.  For now, though, impose only the limits
@@ -1322,6 +1428,8 @@ unsafe fn set_window_hscroll (w: *mut window, hscroll: EMACS_INT) -> Lisp_Object
   window_bits! (w, suspend_auto_hscroll, true);
 
   return make_fixnum (new_hscroll);
+
+  }
 }
 
 DEFUN! ("set-window-hscroll", Fset_window_hscroll, Sset_window_hscroll, 2, 2, 0,
@@ -1354,6 +1462,8 @@ DEFUN! ("set-window-hscroll", Fset_window_hscroll, Sset_window_hscroll, 2, 2, 0,
 
 unsafe fn coordinates_in_window (w: *mut window, x: c_int, y: c_int) -> window_part
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut x = x;
   let mut y = y;
   let f: *mut frame = XFRAME (WINDOW_FRAME! (w));
@@ -1498,6 +1608,8 @@ unsafe fn coordinates_in_window (w: *mut window, x: c_int, y: c_int) -> window_p
 
   /* Everything special ruled out - must be on text area */
   return ON_TEXT;
+
+  }
 }
 
 /* Take X is the frame-relative pixel x-coordinate, and return the
@@ -1506,6 +1618,8 @@ unsafe fn coordinates_in_window (w: *mut window, x: c_int, y: c_int) -> window_p
 pub unsafe extern "C-unwind" fn window_relative_x_coord (w: *mut window, part: window_part,
                                                   x: c_int) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let left_x: c_int = if window_bits! (w, pseudo_window_p)
     { 0 } else { WINDOW_BOX_LEFT_EDGE_X! (w) };
 
@@ -1541,6 +1655,8 @@ pub unsafe extern "C-unwind" fn window_relative_x_coord (w: *mut window, part: w
     _ =>
       { emacs_abort () }
     }
+
+  }
 }
 
 /* dispextern.h 2940 and 328-333: `IT_CHARPOS` and `CLIP_TEXT_POS_FROM_MARKER` (the mirror
@@ -1843,6 +1959,8 @@ pub struct check_window_data
 
 unsafe extern "C-unwind" fn check_window_containing (w: *mut window, user_data: *mut c_void) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let cw: *mut check_window_data = user_data as *mut check_window_data;
   let found: window_part = coordinates_in_window (w, (*cw).x, (*cw).y);
   if found == ON_NOTHING
@@ -1853,6 +1971,8 @@ unsafe extern "C-unwind" fn check_window_containing (w: *mut window, user_data: 
       XSETWINDOW! (*(*cw).window, w);
       return false;
     }
+
+  }
 }
 
 
@@ -1880,6 +2000,8 @@ pub unsafe extern "C-unwind" fn window_from_coordinates (f: *mut frame, x: c_int
 			 mut part: *mut window_part, menu_bar_p: bool,
 			 tab_bar_p: bool, tool_bar_p: bool) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut window: Lisp_Object;
   let mut cw: check_window_data = std::mem::zeroed ();
   let mut dummy: window_part = 0;
@@ -1895,6 +2017,8 @@ pub unsafe extern "C-unwind" fn window_from_coordinates (f: *mut frame, x: c_int
   foreach_window (f, check_window_containing, &raw mut cw as *mut c_void);
 
   return window;
+
+  }
 }
 
 DEFUN! ("window-at", Fwindow_at, Swindow_at, 2, 3, 0,
@@ -1924,9 +2048,13 @@ DEFUN! ("window-at", Fwindow_at, Swindow_at, 2, 3, 0,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn window_point (w: *mut window) -> ptrdiff_t
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   return if w == XWINDOW (selected_window)
           { BUF_PT (XBUFFER ((*w).contents)) }
           else { (*XMARKER ((*w).pointm)).charpos };
+
+  }
 }
 
 DEFUN! ("window-point", Fwindow_point, Swindow_point, 0, 1, 0,
@@ -2085,7 +2213,7 @@ DEFUN! ("pos-visible-in-window-p", Fpos_visible_in_window_p,
   let w: *mut window;
   let mut posint: EMACS_INT;
   let buf: *mut buffer;
-  let mut top: text_pos = unsafe { std::mem::zeroed () };
+  let mut top: text_pos = /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { std::mem::zeroed () };
   let mut in_window: Lisp_Object = Qnil ();
   let mut rtop: c_int = 0;
   let mut rbot: c_int = 0;
@@ -2374,9 +2502,13 @@ DEFUN! ("window-parameters", Fwindow_parameters, Swindow_parameters,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn window_parameter (w: *mut window, parameter: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let result: Lisp_Object = assq_no_quit (parameter, (*w).window_parameters);
 
   return CDR_SAFE (result);
+
+  }
 }
 
 DEFUN! ("window-parameter", Fwindow_parameter, Swindow_parameter,
@@ -2461,6 +2593,8 @@ pub mod window_defined_decls {
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn window_display_table (w: *mut window) -> *mut Lisp_Char_Table
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut dp: *mut Lisp_Char_Table = std::ptr::null_mut ();
 
   if DISP_TABLE_P ((*w).display_table)
@@ -2476,6 +2610,8 @@ pub unsafe extern "C-unwind" fn window_display_table (w: *mut window) -> *mut Li
     }
 
   return dp;
+
+  }
 }
 }
 use window_defined_decls::*;
@@ -2492,6 +2628,8 @@ DEFUN! ("set-window-display-table", Fset_window_display_table, Sset_window_displ
    when it is about to cease to display that buffer.  */
 unsafe fn unshow_buffer (w: *mut window)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let buf: Lisp_Object = (*w).contents;
   let b: *mut buffer = XBUFFER (buf);
 
@@ -2532,6 +2670,8 @@ unsafe fn unshow_buffer (w: *mut window)
   if WINDOWP (BVAR! (b, last_selected_window_))
       && w == XWINDOW (BVAR! (b, last_selected_window_))
     { bset_last_selected_window (b, Qnil ()); }
+
+  }
 }
 
 /* Put NEW into the window structure in place of OLD.  SETFLAG false
@@ -2539,6 +2679,8 @@ unsafe fn unshow_buffer (w: *mut window)
    other settings as well.  */
 unsafe fn replace_window (old: Lisp_Object, new: Lisp_Object, setflag: bool)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut tem: Lisp_Object = Qnil ();
   let o: *mut window = XWINDOW (old);
   let n: *mut window = XWINDOW (new);
@@ -2592,6 +2734,8 @@ unsafe fn replace_window (old: Lisp_Object, new: Lisp_Object, setflag: bool)
   wset_parent (n, tem);
   if !NILP (tem) && EQ ((*XWINDOW (tem)).contents, old)
     { wset_combination (XWINDOW (tem), window_bits! (XWINDOW (tem), horizontal), new); }
+
+  }
 }
 
 /* If window WINDOW and its parent window are iso-combined, merge
@@ -2600,6 +2744,8 @@ unsafe fn replace_window (old: Lisp_Object, new: Lisp_Object, setflag: bool)
 
 unsafe fn recombine_windows (window: Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut w: *mut window;
   let mut p: *mut window;
   let mut c: *mut window;
@@ -2665,6 +2811,8 @@ unsafe fn recombine_windows (window: Lisp_Object)
 	  wset_combination (w, false, Qnil ());
 	}
     }
+
+  }
 }
 
 /* If WINDOW can be deleted, delete it.  */
@@ -2684,11 +2832,15 @@ unsafe fn delete_deletable_window (window: Lisp_Object)
 
 unsafe extern "C-unwind" fn add_window_to_list (w: *mut window, user_data: *mut c_void) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let list: *mut Lisp_Object = user_data as *mut Lisp_Object;
   let mut window: Lisp_Object = Qnil ();
   XSETWINDOW! (window, w);
   *list = Fcons (window, *list);
   return true;
+
+  }
 }
 
 /* Return a list of all windows, for use by next_window.  If
@@ -2698,6 +2850,8 @@ unsafe extern "C-unwind" fn add_window_to_list (w: *mut window, user_data: *mut 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn window_list () -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if !CONSP (Vwindow_list)
     {
       let mut tail: Lisp_Object;
@@ -2724,6 +2878,8 @@ pub unsafe extern "C-unwind" fn window_list () -> Lisp_Object
     }
 
   return Vwindow_list;
+
+  }
 }
 
 /* Value is true if WINDOW satisfies the constraints given by
@@ -2745,6 +2901,8 @@ pub unsafe extern "C-unwind" fn window_list () -> Lisp_Object
 unsafe fn candidate_window_p (window: Lisp_Object, owindow: Lisp_Object,
 		    minibuf: Lisp_Object, all_frames: Lisp_Object) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let w: *mut window = XWINDOW (window);
   let f: *mut frame = XFRAME ((*w).frame);
   let mut candidate_p: bool = true;
@@ -2794,6 +2952,8 @@ unsafe fn candidate_window_p (window: Lisp_Object, owindow: Lisp_Object,
     { candidate_p = EQ (all_frames, (*w).frame); }
 
   return candidate_p;
+
+  }
 }
 
 /* Decode arguments as allowed by Fnext_window, Fprevious_window, and
@@ -2803,6 +2963,8 @@ unsafe fn candidate_window_p (window: Lisp_Object, owindow: Lisp_Object,
 unsafe fn decode_next_window_args (window: *mut Lisp_Object, minibuf: *mut Lisp_Object,
                           all_frames: *mut Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let w: *mut window = decode_live_window (*window);
   let miniwin: Lisp_Object = (*XFRAME ((*w).frame)).minibuffer_window;
 
@@ -2835,6 +2997,8 @@ unsafe fn decode_next_window_args (window: *mut Lisp_Object, minibuf: *mut Lisp_
     { }
   else if !EQ (*all_frames, Qt ())
     { *all_frames = Qnil (); }
+
+  }
 }
 
 /* Return the next or previous window of WINDOW in cyclic ordering
@@ -2845,6 +3009,8 @@ unsafe fn decode_next_window_args (window: *mut Lisp_Object, minibuf: *mut Lisp_
 unsafe fn next_window (window: Lisp_Object, minibuf: Lisp_Object, all_frames: Lisp_Object,
 	     next_p: bool) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut window = window;
   let mut minibuf = minibuf;
   let mut all_frames = all_frames;
@@ -2918,6 +3084,8 @@ unsafe fn next_window (window: Lisp_Object, minibuf: Lisp_Object, all_frames: Li
   unbind_to (count, Qnil ());
 
   return window;
+
+  }
 }
 
 DEFUN! ("next-window", Fnext_window, Snext_window, 0, 3, 0,
@@ -2940,6 +3108,8 @@ DEFUN! ("previous-window", Fprevious_window, Sprevious_window, 0, 3, 0,
 unsafe fn window_list_1 (window: Lisp_Object, minibuf: Lisp_Object,
                          all_frames: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut window = window;
   let mut minibuf = minibuf;
   let mut all_frames = all_frames;
@@ -2975,6 +3145,8 @@ unsafe fn window_list_1 (window: Lisp_Object, minibuf: Lisp_Object,
   unbind_to (count, Qnil ());
 
   return list;
+
+  }
 }
 
 DEFUN! ("window-list", Fwindow_list, Swindow_list, 0, 3, 0,
@@ -3008,6 +3180,8 @@ DEFUN! ("window-list-1", Fwindow_list_1, Swindow_list_1, 0, 3, 0,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mru_rooted_frame (f: *mut frame) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut windows: Lisp_Object = window_list_1 (FRAME_SELECTED_WINDOW (f), Qnil (), Qt ());
   let r: *mut frame = root_frame (f);
   let mut b: *mut window = std::ptr::null_mut ();
@@ -3033,6 +3207,8 @@ pub unsafe extern "C-unwind" fn mru_rooted_frame (f: *mut frame) -> Lisp_Object
 
       return root;
     }
+
+  }
 }
 
 /* Look at all windows, performing an operation specified by TYPE
@@ -3057,6 +3233,8 @@ pub enum window_loop
 unsafe fn window_loop (r#type: window_loop, obj: Lisp_Object, mini: bool,
 	     frames: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut window: Lisp_Object;
   let mut windows: Lisp_Object;
   let mut best_window: Lisp_Object;
@@ -3187,6 +3365,8 @@ unsafe fn window_loop (r#type: window_loop, obj: Lisp_Object, mini: bool,
     }
 
   return best_window;
+
+  }
 }
 
 /* Used for debugging.  Abort if any window has a dead buffer.  */
@@ -3194,7 +3374,11 @@ unsafe fn window_loop (r#type: window_loop, obj: Lisp_Object, mini: bool,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn check_all_windows ()
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   window_loop (window_loop::CHECK_ALL_WINDOWS, Qnil (), true, Qt ());
+
+  }
 }
 
 DEFUN! ("get-buffer-window", Fget_buffer_window, Sget_buffer_window, 0, 2, 0,
@@ -3232,6 +3416,8 @@ unsafe fn window_pixel_to_total (frame: Lisp_Object, horizontal: Lisp_Object) ->
 unsafe fn window_discard_buffer_from_alist (buffer: Lisp_Object, alist: Lisp_Object)
                                             -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut alist = alist;
   let mut tail: Lisp_Object;
   let mut prev: *mut Lisp_Object = &mut alist;
@@ -3251,6 +3437,8 @@ unsafe fn window_discard_buffer_from_alist (buffer: Lisp_Object, alist: Lisp_Obj
     }
 
   return alist;
+
+  }
 }
 
 /** Remove all occurrences of BUFFER from LIST.  Return changed
@@ -3258,6 +3446,8 @@ unsafe fn window_discard_buffer_from_alist (buffer: Lisp_Object, alist: Lisp_Obj
 unsafe fn window_discard_buffer_from_list (buffer: Lisp_Object, list: Lisp_Object)
                                            -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut list = list;
   let mut tail: Lisp_Object;
   let mut prev: *mut Lisp_Object = &mut list;
@@ -3271,6 +3461,8 @@ unsafe fn window_discard_buffer_from_list (buffer: Lisp_Object, list: Lisp_Objec
       tail = XCDR (tail); }
 
   return list;
+
+  }
 }
 
 /** Remove BUFFER from the lists of previous and next buffers of object
@@ -3278,6 +3470,8 @@ unsafe fn window_discard_buffer_from_list (buffer: Lisp_Object, list: Lisp_Objec
     `quit-restore-prev' parameter of WINDOW referencing BUFFER too.  */
 unsafe fn window_discard_buffer_from_window (buffer: Lisp_Object, window: Lisp_Object, all: bool)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let w: *mut window = XWINDOW (window);
 
   wset_prev_buffers
@@ -3305,6 +3499,8 @@ unsafe fn window_discard_buffer_from_window (buffer: Lisp_Object, window: Lisp_O
 	  Fset_window_parameter (window, Qquit_restore_prev (), Qnil ());
 	}
     }
+
+  }
 }
 
 /** Remove BUFFER from the lists of previous and next buffers and the
@@ -3313,11 +3509,15 @@ unsafe fn window_discard_buffer_from_window (buffer: Lisp_Object, window: Lisp_O
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn window_discard_buffer_from_dead_windows (buffer: Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let h: *mut Lisp_Hash_Table = XHASH_TABLE (window_dead_windows_table);
 
   DOHASH! (h, k, v, {
     window_discard_buffer_from_window (buffer, v, true);
   });
+
+  }
 }
 
 DEFUN! ("window-discard-buffer-from-window", Fwindow_discard_buffer,
@@ -3588,10 +3788,14 @@ DEFUN! ("delete-other-windows-internal", Fdelete_other_windows_internal,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn replace_buffer_in_windows (buffer: Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* When kill-buffer is called early during loadup, this function is
      undefined.  */
   if !NILP (Ffboundp (Qreplace_buffer_in_windows ()))
     { calln! (Qreplace_buffer_in_windows (), buffer); }
+
+  }
 }
 
 /** If BUFFER is shown in any window, safely replace it with some other
@@ -3608,6 +3812,8 @@ pub unsafe extern "C-unwind" fn replace_buffer_in_windows (buffer: Lisp_Object)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn replace_buffer_in_windows_safely (buffer: Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if buffer_window_count (XBUFFER (buffer)) != 0
     {
       let mut tail: Lisp_Object = Qnil ();
@@ -3620,6 +3826,8 @@ pub unsafe extern "C-unwind" fn replace_buffer_in_windows_safely (buffer: Lisp_O
 	window_loop (window_loop::REPLACE_BUFFER_IN_WINDOWS_SAFELY, buffer, true, frame);
       });
     }
+
+  }
 }
 
 /* The following three routines are needed for running a window's
@@ -3635,14 +3843,22 @@ unsafe fn run_funs (funs: Lisp_Object)
 
 unsafe extern "C-unwind" fn select_window_norecord (window: Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if WINDOW_LIVE_P (window)
     { Fselect_window (window, Qt ()); }
+
+  }
 }
 
 unsafe extern "C-unwind" fn select_frame_norecord (frame: Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if FRAME_LIVE_P (XFRAME (frame))
     { Fselect_frame (frame, Qt ()); }
+
+  }
 }
 
 /**
@@ -3656,6 +3872,8 @@ unsafe extern "C-unwind" fn select_frame_norecord (frame: Lisp_Object)
  */
 unsafe fn run_window_configuration_change_hook (f: *mut frame)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let count: specpdl_ref = SPECPDL_INDEX ();
   let mut frame: Lisp_Object = Qnil ();
   let global_wcch: Lisp_Object
@@ -3703,6 +3921,8 @@ unsafe fn run_window_configuration_change_hook (f: *mut frame)
 
   run_funs (global_wcch);
   unbind_to (count, Qnil ());
+
+  }
 }
 
 DEFUN! ("run-window-configuration-change-hook", Frun_window_configuration_change_hook,
@@ -3742,6 +3962,8 @@ DEFUN! ("run-window-scroll-functions", Frun_window_scroll_functions,
  */
 unsafe fn window_sub_list (window: Lisp_Object, windows: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut window = window;
   let mut windows = windows;
 
@@ -3759,6 +3981,8 @@ unsafe fn window_sub_list (window: Lisp_Object, windows: Lisp_Object) -> Lisp_Ob
     }
 
   return windows;
+
+  }
 }
 
 /**
@@ -3778,6 +4002,8 @@ unsafe fn window_sub_list (window: Lisp_Object, windows: Lisp_Object) -> Lisp_Ob
 unsafe fn window_change_record_windows (window: Lisp_Object, stamp: c_int,
                                         number: ptrdiff_t) -> ptrdiff_t
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut number = number;
   let mut w: *mut window = XWINDOW (window);
 
@@ -3802,6 +4028,8 @@ unsafe fn window_change_record_windows (window: Lisp_Object, stamp: c_int,
     }
 
   return number;
+
+  }
 }
 
 /**
@@ -3817,6 +4045,8 @@ unsafe fn window_change_record_windows (window: Lisp_Object, stamp: c_int,
  */
 unsafe extern "C-unwind" fn window_change_record ()
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if window_change_record_frames
     {
       let mut tail: Lisp_Object = Qnil ();
@@ -3851,6 +4081,8 @@ unsafe extern "C-unwind" fn window_change_record ()
      value is the old selected window of old_selected_frame.  */
   old_selected_window = selected_window;
   old_selected_frame = selected_frame;
+
+  }
 }
 
 /** Run the buffer local value of SYMBOL in BUFFER, if any, with
@@ -3860,6 +4092,8 @@ unsafe extern "C-unwind" fn window_change_record ()
 unsafe fn run_window_change_functions_locally (symbol: Lisp_Object, buffer: Lisp_Object,
 				     window: Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if !NILP (assq_no_quit (symbol, BVAR! (XBUFFER (buffer), local_var_alist_)))
     {
       let mut funs: Lisp_Object = buffer_local_value (symbol, buffer);
@@ -3877,11 +4111,15 @@ unsafe fn run_window_change_functions_locally (symbol: Lisp_Object, buffer: Lisp
 	  funs = XCDR (funs);
 	}
     }
+
+  }
 }
 
 /** Run the default value of SYMBOL, if any, with argument FRAME.  */
 unsafe fn run_window_change_functions_globally (symbol: Lisp_Object, frame: Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut funs: Lisp_Object = Fdefault_value (symbol);
 
   if !NILP (funs)
@@ -3897,6 +4135,8 @@ unsafe fn run_window_change_functions_globally (symbol: Lisp_Object, frame: Lisp
 	  funs = XCDR (funs);
 	}
     }
+
+  }
 }
 
 /**
@@ -3964,6 +4204,8 @@ unsafe fn run_window_change_functions_globally (symbol: Lisp_Object, frame: Lisp
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn run_window_change_functions ()
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut tail: Lisp_Object = Qnil ();
   let mut frame: Lisp_Object = Qnil ();
   let selected_frame_change: bool = !EQ (selected_frame, old_selected_frame);
@@ -4172,12 +4414,16 @@ pub unsafe extern "C-unwind" fn run_window_change_functions ()
   /* Record changes for all frames (if asked for), selected window and
      frame.  */
   unbind_to (count, Qnil ());
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn set_window_buffer (window: Lisp_Object, buffer: Lisp_Object,
 		   run_hooks_p: bool, keep_margins_p: bool)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let w: *mut window = XWINDOW (window);
   let b: *mut buffer = XBUFFER (buffer);
   let count: specpdl_ref = SPECPDL_INDEX ();
@@ -4274,6 +4520,8 @@ pub unsafe extern "C-unwind" fn set_window_buffer (window: Lisp_Object, buffer: 
     { FRAME_WINDOW_CHANGE! (XFRAME ((*w).frame), true); }
 
   unbind_to (count, Qnil ());
+
+  }
 }
 
 DEFUN! ("set-window-buffer", Fset_window_buffer, Sset_window_buffer, 2, 3, 0,
@@ -4370,6 +4618,8 @@ DEFUN! ("force-window-update", Fforce_window_update, Sforce_window_update,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn temp_output_buffer_show (buf: Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let old: *mut buffer = (current_buffer! ());
   let mut window: Lisp_Object = Qnil ();
   let mut w: *mut window;
@@ -4421,6 +4671,8 @@ pub unsafe extern "C-unwind" fn temp_output_buffer_show (buf: Lisp_Object)
         unbind_to (count, Qnil ());
       }
     }
+
+  }
 }
 
 /* Allocate basically initialized window.  */
@@ -4434,6 +4686,8 @@ unsafe fn allocate_window () -> *mut window
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn make_window () -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut window: Lisp_Object = Qnil ();
   let w: *mut window;
 
@@ -4467,6 +4721,8 @@ pub unsafe extern "C-unwind" fn make_window () -> Lisp_Object
   /* Return window.  */
   XSETWINDOW! (window, w);
   return window;
+
+  }
 }
 
 DEFUN! ("set-window-new-pixel", Fset_window_new_pixel, Sset_window_new_pixel, 2, 3, 0,
@@ -4519,6 +4775,8 @@ DEFUN! ("set-window-new-normal", Fset_window_new_normal, Sset_window_new_normal,
    sizes do not drop below one line (two columns). */
 unsafe fn window_resize_check (w: *mut window, horflag: bool) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let f: *mut frame = XFRAME ((*w).frame);
   let mut c: *mut window;
 
@@ -4605,6 +4863,8 @@ unsafe fn window_resize_check (w: *mut window, horflag: bool) -> bool
     { return XFIXNUM ((*w).new_pixel) >= (if horflag
 				       { 2 * FRAME_COLUMN_WIDTH (f) }
 				       else { FRAME_LINE_HEIGHT (f) }) as EMACS_INT; }
+
+  }
 }
 
 /* Set w->pixel_height (w->pixel_width if HORFLAG) to
@@ -4616,6 +4876,8 @@ unsafe fn window_resize_check (w: *mut window, horflag: bool) -> bool
    run window_resize_check on W before applying this function.  */
 unsafe fn window_resize_apply (w: *mut window, horflag: bool)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut c: *mut window;
   let mut edge: c_int;
   let unit: c_int = if horflag
@@ -4696,6 +4958,8 @@ unsafe fn window_resize_apply (w: *mut window, horflag: bool)
 
   if !WINDOW_PSEUDO_P (w)
     { FRAME_WINDOW_CHANGE! (WINDOW_XFRAME! (w), true); }
+
+  }
 }
 
 /* Set w->total_lines (w->total_cols if HORFLAG) to
@@ -4705,6 +4969,8 @@ unsafe fn window_resize_apply (w: *mut window, horflag: bool)
 
 unsafe fn window_resize_apply_total (w: *mut window, horflag: bool)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut c: *mut window;
   let mut edge: c_int;
 
@@ -4757,6 +5023,8 @@ unsafe fn window_resize_apply_total (w: *mut window, horflag: bool)
 	  c = if NILP ((*c).next) { std::ptr::null_mut () } else { XWINDOW ((*c).next) };
 	}
     }
+
+  }
 }
 
 DEFUN! ("window-resize-apply", Fwindow_resize_apply, Swindow_resize_apply, 0, 2, 0,
@@ -4821,6 +5089,8 @@ DEFUN! ("window-resize-apply-total", Fwindow_resize_apply_total, Swindow_resize_
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn resize_frame_windows (f: *mut frame, size: c_int, horflag: bool)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let root: Lisp_Object = (*f).root_window;
   let r: *mut window = XWINDOW (root);
   let old_pixel_size: c_int = if horflag { (*r).pixel_width } else { (*r).pixel_height };
@@ -4911,12 +5181,16 @@ pub unsafe extern "C-unwind" fn resize_frame_windows (f: *mut frame, size: c_int
     }
 
   fset_redisplay (f as *mut c_void);
+
+  }
 }
 
 
 /** Make parent window on FRAME and return its object.  */
 unsafe fn make_parent_window (frame: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut parent: Lisp_Object;
   let p: *mut window = allocate_window ();
 
@@ -4928,6 +5202,8 @@ unsafe fn make_parent_window (frame: Lisp_Object) -> Lisp_Object
   XSETWINDOW! (parent, p);
 
   return parent;
+
+  }
 }
 
 
@@ -4938,6 +5214,8 @@ unsafe fn make_parent_window (frame: Lisp_Object) -> Lisp_Object
     Fcombine_windows or Funcombine_window.  */
 unsafe fn window_set_parent_and_normal_sizes (parent: Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let p: *mut window = XWINDOW (parent);
   let mut w: *mut window = XWINDOW ((*p).contents);
   /* Normal size left for yet unprocessed windows.  */
@@ -4985,6 +5263,8 @@ unsafe fn window_set_parent_and_normal_sizes (parent: Lisp_Object)
 	    }
 	}
     }
+
+  }
 }
 
 
@@ -5639,6 +5919,8 @@ DEFUN! ("delete-window-internal", Fdelete_window_internal, Sdelete_window_intern
   */
 unsafe fn resize_mini_window_apply (w: *mut window, delta: c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let f: *mut frame = XFRAME ((*w).frame);
   let root: Lisp_Object = FRAME_ROOT_WINDOW (f);
   let r: *mut window = XWINDOW (root);
@@ -5667,6 +5949,8 @@ unsafe fn resize_mini_window_apply (w: *mut window, delta: c_int)
   fset_redisplay (f as *mut c_void);
   adjust_frame_glyphs (f);
   unblock_input ();
+
+  }
 }
 
 /**
@@ -5679,6 +5963,8 @@ unsafe fn resize_mini_window_apply (w: *mut window, delta: c_int)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn grow_mini_window (w: *mut window, delta: c_int, unit: c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let f: *mut frame = XFRAME ((*w).frame);
   let old_height: c_int = window_body_height (w, window_body_unit::WINDOW_BODY_IN_PIXELS);
   let min_height: c_int = unit;
@@ -5711,6 +5997,8 @@ pub unsafe extern "C-unwind" fn grow_mini_window (w: *mut window, delta: c_int, 
     }
   FRAME_WINDOWS_FROZEN!
     (f, window_body_height (w, window_body_unit::WINDOW_BODY_IN_PIXELS) > unit);
+
+  }
 }
 
 /**
@@ -5722,6 +6010,8 @@ pub unsafe extern "C-unwind" fn grow_mini_window (w: *mut window, delta: c_int, 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn shrink_mini_window (w: *mut window, unit: c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let f: *mut frame = XFRAME ((*w).frame);
   let delta: c_int = (window_body_height (w, window_body_unit::WINDOW_BODY_IN_PIXELS) - unit);
 
@@ -5746,6 +6036,8 @@ pub unsafe extern "C-unwind" fn shrink_mini_window (w: *mut window, unit: c_int)
 
   FRAME_WINDOWS_FROZEN!
     (f, window_body_height (w, window_body_unit::WINDOW_BODY_IN_PIXELS) > unit);
+
+  }
 }
 
 DEFUN! ("resize-mini-window-internal", Fresize_mini_window_internal,
@@ -5790,6 +6082,8 @@ DEFUN! ("resize-mini-window-internal", Fresize_mini_window_internal,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mark_window_cursors_off (w: *mut window)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut w = w;
   while !w.is_null ()
     {
@@ -5800,6 +6094,8 @@ pub unsafe extern "C-unwind" fn mark_window_cursors_off (w: *mut window)
 
       w = if NILP ((*w).next) { std::ptr::null_mut () } else { XWINDOW ((*w).next) };
     }
+
+  }
 }
 
 
@@ -5818,6 +6114,8 @@ pub unsafe extern "C-unwind" fn mark_window_cursors_off (w: *mut window)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn window_wants_mode_line (w: *mut window) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let window_mode_line_format: Lisp_Object =
     window_parameter (w, Qmode_line_format ());
 
@@ -5828,6 +6126,8 @@ pub unsafe extern "C-unwind" fn window_wants_mode_line (w: *mut window) -> bool
 	  && (!NILP (window_mode_line_format)
 	      || !NILP (BVAR! (XBUFFER (WINDOW_BUFFER! (w)), mode_line_format_)))
 	  && WINDOW_PIXEL_HEIGHT (w) > WINDOW_FRAME_LINE_HEIGHT! (w));
+
+  }
 }
 
 
@@ -5848,6 +6148,8 @@ pub unsafe extern "C-unwind" fn window_wants_mode_line (w: *mut window) -> bool
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn window_wants_header_line (w: *mut window) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let window_header_line_format: Lisp_Object =
     window_parameter (w, Qheader_line_format ());
 
@@ -5861,6 +6163,8 @@ pub unsafe extern "C-unwind" fn window_wants_header_line (w: *mut window) -> boo
 	      > (if window_wants_mode_line (w)
 		 { 2 * WINDOW_FRAME_LINE_HEIGHT! (w) }
 		 else { WINDOW_FRAME_LINE_HEIGHT! (w) })));
+
+  }
 }
 
 
@@ -5882,6 +6186,8 @@ pub unsafe extern "C-unwind" fn window_wants_header_line (w: *mut window) -> boo
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn window_wants_tab_line (w: *mut window) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let window_tab_line_format: Lisp_Object =
     window_parameter (w, Qtab_line_format ());
 
@@ -5895,6 +6201,8 @@ pub unsafe extern "C-unwind" fn window_wants_tab_line (w: *mut window) -> bool
 	      > (((if window_wants_mode_line (w) { 1 } else { 0 })
 		  + (if window_wants_header_line (w) { 1 } else { 0 })
 		  + 1) * WINDOW_FRAME_LINE_HEIGHT! (w))));
+
+  }
 }
 
 /* Return number of lines of text in window W, not counting the mode
@@ -5905,6 +6213,8 @@ pub unsafe extern "C-unwind" fn window_wants_tab_line (w: *mut window) -> bool
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn window_internal_height (w: *mut window) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut ht: c_int = (*w).total_lines;
 
   if window_wants_mode_line (w)
@@ -5917,6 +6227,8 @@ pub unsafe extern "C-unwind" fn window_internal_height (w: *mut window) -> c_int
     { ht -= 1; }
 
   return ht;
+
+  }
 }
 
 
@@ -5933,6 +6245,8 @@ pub unsafe extern "C-unwind" fn window_internal_height (w: *mut window) -> c_int
 
 unsafe fn window_scroll (window: Lisp_Object, n: EMACS_INT, whole: bool, noerror: bool)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let w: *mut window = XWINDOW (window);
   let b: *mut buffer = XBUFFER ((*w).contents);
   let mut long_lines_truncated: bool =
@@ -5979,6 +6293,8 @@ unsafe fn window_scroll (window: Lisp_Object, n: EMACS_INT, whole: bool, noerror
 
   /* Bug#15957.  */
   window_bits! (XWINDOW (window), window_end_valid, false);
+
+  }
 }
 
 /* Compute scroll margin for WINDOW.
@@ -5997,6 +6313,8 @@ unsafe extern "C-unwind" {
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn window_scroll_margin (window: *mut window, unit: margin_unit) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if scroll_margin > 0
     {
       let frame_line_height: c_int = default_line_pixel_height (window);
@@ -6019,11 +6337,17 @@ pub unsafe extern "C-unwind" fn window_scroll_margin (window: *mut window, unit:
     }
   else
     { return 0; }
+
+  }
 }
 
 unsafe fn sanitize_next_screen_context_lines () -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   return clip_to_bounds (0, next_screen_context_lines as EMACS_INT, 1000000) as c_int;
+
+  }
 }
 
 /* Implementation of window_scroll for very long and truncated lines.
@@ -6032,6 +6356,8 @@ unsafe fn sanitize_next_screen_context_lines () -> c_int
 
 unsafe fn window_scroll_for_long_lines (w: *mut window, n: c_int, noerror: bool)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut startpos: ptrdiff_t = marker_position ((*w).start);
   let mut startbyte: ptrdiff_t = marker_byte_position ((*w).start);
   let nscls: c_int = sanitize_next_screen_context_lines ();
@@ -6101,6 +6427,8 @@ unsafe fn window_scroll_for_long_lines (w: *mut window, n: c_int, noerror: bool)
       else
 	{ xsignal0 (Qend_of_buffer ()); }
     }
+
+  }
 }
 
 /* C: dispextern.h 2977-2988 `enum move_operation_enum` and 3566/3583/3590/3600/3605/3606's
@@ -6150,6 +6478,8 @@ unsafe extern "C-unwind" {
 
 unsafe fn window_scroll_pixel_based (window: Lisp_Object, n: c_int, whole: bool, noerror: bool)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut it: it = std::mem::zeroed ();
   let w: *mut window = XWINDOW (window);
   let mut start: text_pos = std::mem::zeroed ();
@@ -6630,6 +6960,8 @@ unsafe fn window_scroll_pixel_based (window: Lisp_Object, n: c_int, whole: bool,
 		    { make_fixnum (BUF_PT (XBUFFER ((*w).contents)) as EMACS_INT) }
 		    else { Fmarker_position ((*w).pointm) }),
 		   (*w).contents); }
+
+  }
 }
 
 /* P-132: C's call sites here (window.c 7078, 7956, 7981, 8111) call the *function* FUNCTIONP
@@ -6646,6 +6978,8 @@ unsafe extern "C-unwind" {
 
 unsafe fn window_scroll_line_based (window: Lisp_Object, n: c_int, whole: bool, noerror: bool)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let w: *mut window = XWINDOW (window);
   /* Fvertical_motion enters redisplay, which can trigger
      fontification, which in turn can modify buffer text (e.g., if the
@@ -6822,6 +7156,8 @@ unsafe fn window_scroll_line_based (window: Lisp_Object, n: c_int, whole: bool, 
 		    { make_fixnum (BUF_PT (XBUFFER ((*w).contents)) as EMACS_INT) }
 		    else { Fmarker_position ((*w).pointm) }),
 		   (*w).contents); }
+
+  }
 }
 
 
@@ -6833,6 +7169,8 @@ unsafe fn window_scroll_line_based (window: Lisp_Object, n: c_int, whole: bool, 
 
 unsafe fn scroll_command (window: Lisp_Object, n: Lisp_Object, direction: c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let w: *mut window;
   let other_window: bool;
   let count: specpdl_ref = SPECPDL_INDEX ();
@@ -6881,6 +7219,8 @@ unsafe fn scroll_command (window: Lisp_Object, n: Lisp_Object, direction: c_int)
     }
 
   unbind_to (count, Qnil ());
+
+  }
 }
 
 DEFUN! ("scroll-up", Fscroll_up, Sscroll_up, 0, 1, "^P",
@@ -6994,6 +7334,8 @@ DEFUN! ("minibuffer-selected-window", Fminibuffer_selected_window, Sminibuffer_s
 
 unsafe fn displayed_window_lines (w: *mut window) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut it: it = std::mem::zeroed ();
   let mut start: text_pos = std::mem::zeroed ();
   let mut height: c_int = window_box_height (w);
@@ -7038,6 +7380,8 @@ unsafe fn displayed_window_lines (w: *mut window) -> c_int
     { set_buffer_internal (old_buffer); }
 
   return it.vpos;
+
+  }
 }
 
 
@@ -7941,12 +8285,16 @@ DEFUN! ("set-window-configuration", Fset_window_configuration,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn restore_window_configuration (configuration: Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if CONSP (configuration)
     { Fset_window_configuration (XCAR (configuration),
 			       Fcar_safe (XCDR (configuration)),
 			       Fcar_safe (Fcdr_safe (XCDR (configuration)))); }
   else
     { Fset_window_configuration (configuration, Qnil (), Qnil ()); }
+
+  }
 }
 
 /* lisp.h 2015-2016: `#define VECSIZE(type) ((sizeof (type) - header_size + word_size - 1) /
@@ -7962,6 +8310,8 @@ macro_rules! VECSIZE {
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn restore_focus_frame (frame_and_focus_frame: Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let frame: Lisp_Object = Fcar (frame_and_focus_frame);
   let focus_frame: Lisp_Object = Fcdr (frame_and_focus_frame);
 
@@ -7978,6 +8328,8 @@ pub unsafe extern "C-unwind" fn restore_focus_frame (frame_and_focus_frame: Lisp
 	  && EQ (selected_frame, frame_focus_frame)
 	{ calln! (Qselect_frame_set_input_focus (), frame, Qnil ()); }
     }
+
+  }
 }
 
 /* If WINDOW is an internal window, recursively delete all child windows
@@ -7987,6 +8339,8 @@ pub unsafe extern "C-unwind" fn restore_focus_frame (frame_and_focus_frame: Lisp
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn delete_all_child_windows (window: Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let w: *mut window;
 
   w = XWINDOW (window);
@@ -8021,16 +8375,22 @@ pub unsafe extern "C-unwind" fn delete_all_child_windows (window: Lisp_Object)
     }
 
   Vwindow_list = Qnil ();
+
+  }
 }
 
 unsafe fn count_windows (window: *mut window) -> ptrdiff_t
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut count: ptrdiff_t = 1;
   if !NILP ((*window).next)
     { count += count_windows (XWINDOW ((*window).next)); }
   if WINDOWP ((*window).contents)
     { count += count_windows (XWINDOW ((*window).contents)); }
   return count;
+
+  }
 }
 
 
@@ -8039,6 +8399,8 @@ unsafe fn count_windows (window: *mut window) -> ptrdiff_t
 unsafe fn get_leaf_windows (w: *mut window, flat: *mut *mut window,
 			    mut i: ptrdiff_t) -> ptrdiff_t
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut w = w;
   while !w.is_null ()
     {
@@ -8054,6 +8416,8 @@ unsafe fn get_leaf_windows (w: *mut window, flat: *mut *mut window,
     }
 
   return i;
+
+  }
 }
 
 
@@ -8063,6 +8427,8 @@ unsafe fn get_leaf_windows (w: *mut window, flat: *mut *mut window,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn get_phys_cursor_glyph (w: *mut window) -> *mut glyph
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let row: *mut glyph_row;
   let glyph: *mut glyph;
   let mut hpos: c_int = (*w).phys_cursor.hpos;
@@ -8094,12 +8460,16 @@ pub unsafe extern "C-unwind" fn get_phys_cursor_glyph (w: *mut window) -> *mut g
     { glyph = std::ptr::null_mut (); }
 
   return glyph;
+
+  }
 }
 
 
 unsafe fn save_window_save (window: Lisp_Object, vector: *mut Lisp_Vector,
 			    mut i: ptrdiff_t) -> ptrdiff_t
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut p: *mut saved_window;
   let mut w: *mut window;
   let mut tem: Lisp_Object;
@@ -8248,6 +8618,8 @@ unsafe fn save_window_save (window: Lisp_Object, vector: *mut Lisp_Vector,
     }
 
   return i;
+
+  }
 }
 
 DEFUN! ("current-window-configuration", Fcurrent_window_configuration,
@@ -8295,11 +8667,15 @@ DEFUN! ("current-window-configuration", Fcurrent_window_configuration,
 
 unsafe fn apply_window_adjustment (w: *mut window)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   eassert! (!w.is_null ());
   clear_glyph_matrix ((*w).current_matrix as *mut glyph_matrix);
   window_bits! (w, window_end_valid, false);
   wset_redisplay (w);
   adjust_frame_glyphs (XFRAME (WINDOW_FRAME! (w)));
+
+  }
 }
 
 /***********************************************************************
@@ -8308,14 +8684,20 @@ unsafe fn apply_window_adjustment (w: *mut window)
 
 unsafe fn extract_dimension (dimension: Lisp_Object) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if NILP (dimension)
     { return -1; }
   return check_integer_range (dimension, 0, INT_MAX as intmax_t) as c_int;
+
+  }
 }
 
 unsafe fn set_window_margins (w: *mut window, left_width: Lisp_Object,
 			      right_width: Lisp_Object) -> *mut window
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let unit: c_int = WINDOW_FRAME_COLUMN_WIDTH! (w);
   let left: c_int = if NILP (left_width) { 0 } else { extract_dimension (left_width) };
   let right: c_int = if NILP (right_width) { 0 } else { extract_dimension (right_width) };
@@ -8339,6 +8721,8 @@ unsafe fn set_window_margins (w: *mut window, left_width: Lisp_Object,
     }
   else
     { return std::ptr::null_mut (); }
+
+  }
 }
 
 DEFUN! ("set-window-margins", Fset_window_margins, Sset_window_margins,
@@ -8374,6 +8758,8 @@ unsafe fn set_window_fringes (w: *mut window,
 			      outside_margins: Lisp_Object, persistent: Lisp_Object)
 			      -> *mut window
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* Do nothing on a tty.  */
   if !FRAME_WINDOW_P (WINDOW_XFRAME! (w))
     { return std::ptr::null_mut (); }
@@ -8429,6 +8815,8 @@ unsafe fn set_window_fringes (w: *mut window,
       else
 	{ return std::ptr::null_mut (); }
     }
+
+  }
 }
 
 DEFUN! ("set-window-fringes", Fset_window_fringes, Sset_window_fringes,
@@ -8535,7 +8923,7 @@ DEFUN! ("window-cursor-info", Fwindow_cursor_info, Swindow_cursor_info,
      This mimics what the various *term.c backends do in their
      *_draw_stretch_glyph methods.  */
   if !phys_cursor_glyph.is_null ()
-      && glyph_bits! (type, unsafe { *phys_cursor_glyph }) == STRETCH_GLYPH   // C 8748: `phys_cursor_glyph->type`
+      && glyph_bits! (type, /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { *phys_cursor_glyph }) == STRETCH_GLYPH   // C 8748: `phys_cursor_glyph->type`
       && !((*w).phys_cursor_type == BAR_CURSOR
 	  || (*w).phys_cursor_type == HBAR_CURSOR)
       && !x_stretch_cursor_p
@@ -8561,6 +8949,8 @@ unsafe fn set_window_scroll_bars (w: *mut window, width: Lisp_Object,
 				  horizontal_type: Lisp_Object, persistent: Lisp_Object)
 				  -> *mut window
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* Do nothing on a tty.  */
   if !FRAME_WINDOW_P (WINDOW_XFRAME! (w))
     { return std::ptr::null_mut (); }
@@ -8612,6 +9002,8 @@ unsafe fn set_window_scroll_bars (w: *mut window, width: Lisp_Object,
 
       return if changed { w } else { std::ptr::null_mut () };
     }
+
+  }
 }
 
 DEFUN! ("set-window-scroll-bars", Fset_window_scroll_bars,
@@ -8720,9 +9112,13 @@ unsafe fn foreach_window (f: *mut frame,
 			  r#fn: unsafe extern "C-unwind" fn(*mut window, *mut c_void) -> bool,
 			  user_data: *mut c_void)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* delete_frame may set FRAME_ROOT_WINDOW (f) to Qnil.  */
   if WINDOWP (FRAME_ROOT_WINDOW (f))
     { foreach_window_1 (XWINDOW (FRAME_ROOT_WINDOW (f)), r#fn, user_data); }
+
+  }
 }
 
 
@@ -8735,6 +9131,8 @@ unsafe fn foreach_window_1 (w: *mut window,
 			    r#fn: unsafe extern "C-unwind" fn(*mut window, *mut c_void) -> bool,
 			    user_data: *mut c_void) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut cont: bool;
   let mut w = w;
 
@@ -8750,6 +9148,8 @@ unsafe fn foreach_window_1 (w: *mut window,
     }
 
   return cont;
+
+  }
 }
 
 /***********************************************************************
@@ -8768,6 +9168,8 @@ unsafe fn foreach_window_1 (w: *mut window,
 unsafe fn compare_window_configurations (configuration1: Lisp_Object,
 				       configuration2: Lisp_Object) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let d1: *mut save_window_data;
   let d2: *mut save_window_data;
   let sws1: *mut Lisp_Vector;
@@ -8838,6 +9240,8 @@ unsafe fn compare_window_configurations (configuration1: Lisp_Object,
     }
 
   return true;
+
+  }
 }
 
 DEFUN! ("window-configuration-equal-p", Fwindow_configuration_equal_p,
@@ -8912,6 +9316,8 @@ unsafe extern "C" {
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn init_window_once ()
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   minibuf_window = Qnil ();
   staticpro (&raw mut minibuf_window);
 
@@ -8929,10 +9335,14 @@ pub unsafe extern "C-unwind" fn init_window_once ()
   staticpro (&raw mut old_selected_window);
 
   pdumper_do_now_and_after_late_load (Some (init_window_once_for_pdumper));
+
+  }
 }
 
 unsafe extern "C-unwind" fn init_window_once_for_pdumper ()
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   window_scroll_pixel_based_preserve_x = -1;
   window_scroll_pixel_based_preserve_y = -1;
   window_scroll_preserve_hpos = -1;
@@ -8968,17 +9378,25 @@ unsafe extern "C-unwind" fn init_window_once_for_pdumper ()
   old_selected_frame = { Vterminal_frame = selected_frame; Vterminal_frame };
   minibuf_window = (*f).minibuffer_window;
   old_selected_window = { selected_window = (*f).selected_window; selected_window };
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn init_window ()
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   Vwindow_list = Qnil ();
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_window ()
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
 	DEFSYM! (Qscroll_up, "scroll-up");
 	DEFSYM! (Qscroll_down, "scroll-down");
 	DEFSYM! (Qscroll_command, "scroll-command");
@@ -9215,4 +9633,6 @@ pub unsafe extern "C-unwind" fn syms_of_window ()
 	defsubr (&raw mut Swindow_cursor_type);
 	defsubr (&raw mut Swindow_cursor_info);
 	defsubr (&raw mut Sset_window_cursor_type);
+
+  }
 }

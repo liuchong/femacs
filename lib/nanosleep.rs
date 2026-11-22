@@ -12,9 +12,7 @@
 // nanosleep` before the definition has no counterpart (Rust's own name is the entry point),
 // and `pselect` is declared locally with `void *` for the three `fd_set *` parameters, which
 // only the dead arm passes `NULL` (the P-55 shape).
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
-         static_mut_refs, unsafe_op_in_unsafe_fn)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -63,6 +61,8 @@ unsafe extern "C" {
 pub unsafe extern "C" fn nanosleep (requested_delay: *const timespec,
                                    remaining_delay: *mut timespec) -> c_int
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   /* C 82-177's `#elif defined _WIN32 && ! defined __CYGWIN__` arm (the Windows
      implementation, whose `WIN32_LEAN_AND_MEAN` is recorded in
      docs/ports/excluded-macros.txt) is dead text on this target: the tokens it names are
@@ -121,5 +121,7 @@ pub unsafe extern "C" fn nanosleep (requested_delay: *const timespec,
       }
     intermediate.tv_sec = seconds;
     return time_decls::nanosleep (&intermediate as *const timespec, remaining_delay);
+  }
+
   }
 }

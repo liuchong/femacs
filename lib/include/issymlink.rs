@@ -34,6 +34,8 @@ pub const _ISSYMLINK_H: bool = true;
 #[inline(always)]
 pub unsafe fn issymlink (filename: *const c_char) -> c_int
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   let mut linkbuf: [c_char; 1] = [0];
   if readlink (filename, linkbuf.as_mut_ptr (), linkbuf.len ()) >= 0
     { return 1; }
@@ -41,4 +43,6 @@ pub unsafe fn issymlink (filename: *const c_char) -> c_int
     { return 0; }
   else
     { return -1; }
+
+  }
 }

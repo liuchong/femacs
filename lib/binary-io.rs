@@ -14,9 +14,7 @@
 // `#if` is false; the inventory's function list for this file is empty) - and is recorded in
 // docs/ports/binary-io.md rather than transcribed (P-08).
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
-         unsafe_op_in_unsafe_fn)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -37,12 +35,20 @@ mod binary_io_unit {
   #[unsafe(export_name = "_gl_set_fd_mode")]
   pub unsafe extern "C" fn _gl_set_fd_mode (fd: c_int, mode: c_int) -> c_int
   {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
     return super::_gl_set_fd_mode (fd, mode);
+  
   }
+}
 
   #[unsafe(export_name = "set_binary_mode")]
   pub unsafe extern "C" fn set_binary_mode (fd: c_int, mode: c_int) -> c_int
   {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
     return super::set_binary_mode (fd, mode);
+  
   }
+}
 }

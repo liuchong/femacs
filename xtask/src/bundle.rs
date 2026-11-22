@@ -155,7 +155,7 @@ fn exchange(left: &Path, right: &Path) -> Result<(), String> {
     let from = CString::new(left.as_os_str().as_bytes()).map_err(|_| "NUL in staging path")?;
     let to = CString::new(right.as_os_str().as_bytes()).map_err(|_| "NUL in destination path")?;
     // sys/stdio.h: RENAME_SWAP, available since macOS 10.12.
-    if unsafe { renamex_np(from.as_ptr(), to.as_ptr(), 0x00000002) } != 0 {
+    if /* SAFETY: `from` and `to` are NUL-terminated `CString` paths passed to macOS `renamex_np(RENAME_SWAP)`. */ unsafe { renamex_np(from.as_ptr(), to.as_ptr(), 0x00000002) } != 0 {
         return Err(format!(
             "atomic app exchange failed; old app retained: {}",
             std::io::Error::last_os_error()

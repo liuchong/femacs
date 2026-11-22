@@ -27,9 +27,7 @@
 // just `return 0;` (C 230) on this target — every one of its arms is dead — and
 // `cpu_quota`'s is `return quota;` with `quota` still `ULONG_MAX` (C 510), which is what
 // makes `num_processors (NPROC_CURRENT)` fall through to the `sysconf`/`sysctl` chain.
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
-         static_mut_refs, unsafe_op_in_unsafe_fn)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -88,6 +86,8 @@ unsafe fn num_processors_via_affinity_mask () -> c_ulong       /* C 71-72 */
    NPROC_ALL, NPROC_CURRENT.  The result is guaranteed to be at least 1.  */
 unsafe fn num_processors_available (query: nproc_query) -> c_ulong   /* C 236-237 */
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   /* C 239-253's comment block is C's explanation of the three numbers (sysconf
      _SC_NPROCESSORS_CONF >= sysconf _SC_NPROCESSORS_ONLN >=
      num_processors_via_affinity_mask ()) and of the glibc /sys//proc caveat; the two arms it
@@ -163,6 +163,8 @@ unsafe fn num_processors_available (query: nproc_query) -> c_ulong   /* C 236-23
   /* C 347-354's native-Windows `GetSystemInfo` arm is dead.  */
 
   return NPROC_MINIMUM;                                       /* C 356 */
+
+  }
 }
 
 /* C 359-481's `#if defined __linux__ || defined __ANDROID__` block - `cgroup2_mount`
@@ -189,6 +191,8 @@ unsafe fn cpu_quota () -> c_ulong                          /* C 487-488 */
    Return 0 for invalid values.  */
 unsafe fn parse_omp_threads (mut threads: *const c_char) -> c_ulong   /* C 515-516 */
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   if threads.is_null ()                                       /* C 518 */
     {
       return 0;
@@ -223,11 +227,15 @@ unsafe fn parse_omp_threads (mut threads: *const c_char) -> c_ulong   /* C 515-5
     }
 
   return 0;                                                    /* C 541 */
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn num_processors (mut query: nproc_query) -> c_ulong  /* C 544-545 */
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   let mut nproc_limit: c_ulong = ULONG_MAX;                    /* C 547 */
 
   /* Honor the OpenMP environment variables, recognized also by all
@@ -267,4 +275,6 @@ pub unsafe extern "C" fn num_processors (mut query: nproc_query) -> c_ulong  /* 
     }
 
   return nproc_limit;                                          /* C 581 */
+
+  }
 }

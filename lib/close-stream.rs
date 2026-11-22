@@ -1,6 +1,4 @@
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
-         static_mut_refs, unsafe_op_in_unsafe_fn)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 use std::ffi::{c_char, c_double, c_int, c_long, c_short, c_uint, c_ulong, c_void};
@@ -47,6 +45,8 @@ use std::ffi::{c_char, c_double, c_int, c_long, c_short, c_uint, c_ulong, c_void
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn close_stream (stream: *mut FILE) -> c_int
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   let some_pending: bool = (__fpending (stream) != 0);
   let prev_fail: bool = (ferror (stream) != 0);
   let fclose_fail: bool = (fclose (stream) != 0);
@@ -67,4 +67,6 @@ pub unsafe extern "C" fn close_stream (stream: *mut FILE) -> c_int
     }
 
   return 0;
+
+  }
 }

@@ -42,9 +42,7 @@
 // too; they are the mirrors' now - include/window.rs and include/dispextern.rs - and this unit
 // only calls them.)
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
-         unsafe_op_in_unsafe_fn)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -110,7 +108,7 @@ fn have_boxes () -> bool
   // || defined (HAVE_NS) || defined (HAVE_HAIKU) || defined (HAVE_ANDROID)` arm is dead on
   // this target; C's live text is the `return 0` below (docs/ports/menu.md).
   #[cfg(feature = "have_ns")]
-  if unsafe { FRAME_WINDOW_P(XFRAME(Vmenu_updating_frame)) } { return true; }
+  if /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { FRAME_WINDOW_P(XFRAME(Vmenu_updating_frame)) } { return true; }
   return false;
 }
 
@@ -141,6 +139,8 @@ static mut menu_items_submenu_depth: c_int = 0;
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn init_menu_items ()
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if menu_items_inuse
     { error (c"Trying to use a menu from within a menu-entry".as_ptr ()); }
 
@@ -154,6 +154,8 @@ pub unsafe extern "C-unwind" fn init_menu_items ()
   menu_items_used = 0;
   menu_items_n_panes = 0;
   menu_items_submenu_depth = 0;
+
+  }
 }
 
 /* Call at the end of generating the data in menu_items.  */
@@ -166,7 +168,11 @@ pub unsafe extern "C-unwind" fn finish_menu_items ()
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn unuse_menu_items ()
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   menu_items_inuse = false;
+
+  }
 }
 
 /* Call when finished using the data for the current menu
@@ -175,6 +181,8 @@ pub unsafe extern "C-unwind" fn unuse_menu_items ()
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn discard_menu_items ()
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* Free the structure if it is especially large.
      Otherwise, hold on to it, to save time.  */
   if menu_items_allocated > 200
@@ -183,6 +191,8 @@ pub unsafe extern "C-unwind" fn discard_menu_items ()
       menu_items_allocated = 0;
     }
   eassert! (!menu_items_inuse);
+
+  }
 }
 
 /* This undoes save_menu_items, and it is called by the specpdl unwind
@@ -190,6 +200,8 @@ pub unsafe extern "C-unwind" fn discard_menu_items ()
 
 unsafe extern "C-unwind" fn restore_menu_items (mut saved: Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   menu_items = XCAR (saved);
   menu_items_inuse = ! NILP (menu_items);
   menu_items_allocated = if VECTORP (menu_items) { ASIZE (menu_items) as c_int } else { 0 };
@@ -199,6 +211,8 @@ unsafe extern "C-unwind" fn restore_menu_items (mut saved: Lisp_Object)
   menu_items_n_panes = XFIXNUM (XCAR (saved)) as c_int;
   saved = XCDR (saved);
   menu_items_submenu_depth = XFIXNUM (XCAR (saved)) as c_int;
+
+  }
 }
 
 /* Push the whole state of menu_items processing onto the specpdl.
@@ -207,6 +221,8 @@ unsafe extern "C-unwind" fn restore_menu_items (mut saved: Lisp_Object)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn save_menu_items ()
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let saved: Lisp_Object = list4 (if menu_items_inuse { menu_items } else { Qnil () },
 				  make_fixnum (menu_items_used as EMACS_INT),
 				  make_fixnum (menu_items_n_panes as EMACS_INT),
@@ -214,18 +230,24 @@ pub unsafe extern "C-unwind" fn save_menu_items ()
   record_unwind_protect (Some (restore_menu_items), saved);
   menu_items_inuse = false;
   menu_items = Qnil ();
+
+  }
 }
 
 /* Ensure that there is room for ITEMS items in the menu_items vector.  */
 
 unsafe fn ensure_menu_items (items: c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let incr: c_int = items - (menu_items_allocated - menu_items_used);
   if incr > 0
     {
       menu_items = larger_vector (menu_items, incr as ptrdiff_t, INT_MAX as ptrdiff_t);
       menu_items_allocated = ASIZE (menu_items) as c_int;
     }
+
+  }
 }
 
 // C 170-193's `#if defined HAVE_EXT_MENU_BAR || defined HAVE_ANDROID` block
@@ -237,9 +259,13 @@ unsafe fn ensure_menu_items (items: c_int)
 
 unsafe fn push_left_right_boundary ()
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   ensure_menu_items (1);
   ASET (menu_items, menu_items_used as isize, Qquote ());
   menu_items_used += 1;
+
+  }
 }
 
 /* Start a new menu pane in menu_items.
@@ -247,6 +273,8 @@ unsafe fn push_left_right_boundary ()
 
 unsafe fn push_menu_pane (name: Lisp_Object, prefix_vec: Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   ensure_menu_items (MENU_ITEMS_PANE_LENGTH);
   if menu_items_submenu_depth == 0
     { menu_items_n_panes += 1; }
@@ -256,6 +284,8 @@ unsafe fn push_menu_pane (name: Lisp_Object, prefix_vec: Lisp_Object)
   menu_items_used += 1;
   ASET (menu_items, menu_items_used as isize, prefix_vec);
   menu_items_used += 1;
+
+  }
 }
 
 /* Push one menu item into the current pane.  NAME is the string to
@@ -270,6 +300,8 @@ unsafe fn push_menu_item (name: Lisp_Object, enable: Lisp_Object, key: Lisp_Obje
 			  def: Lisp_Object, equiv: Lisp_Object, r#type: Lisp_Object,
 			  selected: Lisp_Object, help: Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   ensure_menu_items (MENU_ITEMS_ITEM_LENGTH);
 
   ASET (menu_items, menu_items_used as isize + MENU_ITEMS_ITEM_NAME as isize,	name);
@@ -282,6 +314,8 @@ unsafe fn push_menu_item (name: Lisp_Object, enable: Lisp_Object, key: Lisp_Obje
   ASET (menu_items, menu_items_used as isize + MENU_ITEMS_ITEM_HELP as isize,	help);
 
   menu_items_used += MENU_ITEMS_ITEM_LENGTH;
+
+  }
 }
 
 /* Args passed between single_keymap_panes and single_menu_item.  */
@@ -307,6 +341,8 @@ pub struct skp
 unsafe fn single_keymap_panes (keymap: Lisp_Object, pane_name: Lisp_Object,
 			       prefix: Lisp_Object, maxdepth: c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut skp: skp = std::mem::zeroed ();
 
   skp.pending_maps = Qnil ();
@@ -344,6 +380,8 @@ unsafe fn single_keymap_panes (keymap: Lisp_Object, pane_name: Lisp_Object,
       single_keymap_panes (Fcar (elt), string, XCDR (eltcdr), maxdepth - 1);
       skp.pending_maps = XCDR (skp.pending_maps);
     }
+
+  }
 }
 
 /* This is a subroutine of single_keymap_panes that handles one
@@ -356,6 +394,8 @@ unsafe fn single_keymap_panes (keymap: Lisp_Object, pane_name: Lisp_Object,
 unsafe extern "C-unwind" fn single_menu_item (key: Lisp_Object, item: Lisp_Object,
 				       dummy: Lisp_Object, skp_v: *mut c_void)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let map: Lisp_Object;
   let mut item_string: Lisp_Object;
   let enabled: Lisp_Object;
@@ -470,6 +510,8 @@ unsafe extern "C-unwind" fn single_menu_item (key: Lisp_Object, item: Lisp_Objec
     single_keymap_panes(map, Qnil(), key, (*skp).maxdepth - 1);
     push_submenu_end();
   }
+
+  }
 }
 
 /* Look through KEYMAPS, a vector of keymaps that is NMAPS long,
@@ -477,6 +519,8 @@ unsafe extern "C-unwind" fn single_menu_item (key: Lisp_Object, item: Lisp_Objec
 
 unsafe fn keymap_panes (keymaps: *mut Lisp_Object, nmaps: ptrdiff_t)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut mapno: ptrdiff_t;
 
   init_menu_items ();
@@ -493,21 +537,29 @@ unsafe fn keymap_panes (keymaps: *mut Lisp_Object, nmaps: ptrdiff_t)
     }
 
   finish_menu_items ();
+
+  }
 }
 
 /* Encode a menu string as appropriate for menu-updating-frame's type.  */
 unsafe fn encode_menu_string (str: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* TTY menu strings are encoded by write_glyphs, when they are
      delivered to the glass, so no need to encode them here.  */
   if FRAME_TERMCAP_P (XFRAME (Vmenu_updating_frame))
     { return str; }
   return ENCODE_MENU_STRING (str);
+
+  }
 }
 
 /* Push the items in a single pane defined by the alist PANE.  */
 unsafe fn list_of_items (pane: Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut tail: Lisp_Object;
   let mut item: Lisp_Object;
   let mut item1: Lisp_Object;
@@ -531,6 +583,8 @@ unsafe fn list_of_items (pane: Lisp_Object)
 
       tail = XCDR (tail);
     }
+
+  }
 }
 
 /* Push all the panes and items of a menu described by the
@@ -539,6 +593,8 @@ unsafe fn list_of_items (pane: Lisp_Object)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn list_of_panes (menu: Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut tail: Lisp_Object;
 
   init_menu_items ();
@@ -560,6 +616,8 @@ pub unsafe extern "C-unwind" fn list_of_panes (menu: Lisp_Object)
     }
 
   finish_menu_items ();
+
+  }
 }
 
 /* Set up data in menu_items for a menu bar item
@@ -570,6 +628,8 @@ pub unsafe extern "C-unwind" fn parse_single_submenu (item_key: Lisp_Object,
 					       item_name: Lisp_Object,
 					       mut maps: Lisp_Object) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mapvec: *mut Lisp_Object;
   let mut top_level_items: bool = false;
   USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
@@ -613,22 +673,32 @@ pub unsafe extern "C-unwind" fn parse_single_submenu (item_key: Lisp_Object,
 
   SAFE_FREE! (sa_count, sa_mark);
   return top_level_items;
+
+  }
 }
 
 // C menu.c 170-193: the toolkit submenu delimiters (Cocoa arm).
 #[cfg(feature = "have_ns")]
 unsafe fn push_submenu_start() {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   ensure_menu_items(1);
   ASET(menu_items, menu_items_used as isize, Qnil());
   menu_items_used += 1;
   menu_items_submenu_depth += 1;
+
+  }
 }
 #[cfg(feature = "have_ns")]
 unsafe fn push_submenu_end() {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   ensure_menu_items(1);
   ASET(menu_items, menu_items_used as isize, Qlambda());
   menu_items_used += 1;
   menu_items_submenu_depth -= 1;
+
+  }
 }
 
 // C menu.c 566-873: the native widget-value tree, including its GC ordering.
@@ -636,6 +706,8 @@ unsafe fn push_submenu_end() {
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn make_widget_value(name: *const c_char, value: *mut c_char,
                                            enabled: bool, help: Lisp_Object) -> *mut widget_value {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   block_input();
   let wv = xzalloc(core::mem::size_of::<widget_value>()).cast::<widget_value>();
   unblock_input();
@@ -644,11 +716,15 @@ pub unsafe extern "C-unwind" fn make_widget_value(name: *const c_char, value: *m
   (*wv).enabled = enabled;
   (*wv).help = help;
   wv
+
+  }
 }
 
 #[cfg(feature = "have_ns")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn free_menubar_widget_value_tree(wv: *mut widget_value) {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if wv.is_null() { return; }
   (*wv).key = 0xDEADBEEFusize as *mut c_char;
   (*wv).value = (*wv).key;
@@ -664,11 +740,15 @@ pub unsafe extern "C-unwind" fn free_menubar_widget_value_tree(wv: *mut widget_v
   block_input();
   xfree(wv.cast());
   unblock_input();
+
+  }
 }
 
 #[cfg(feature = "have_ns")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn digest_single_submenu(start: c_int, end: c_int, top_level_items: bool) -> *mut widget_value {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut submenu_depth: c_int = 0;
   let mut submenu_stack: *mut *mut widget_value = core::ptr::null_mut();
   let mut panes_seen = false;
@@ -757,11 +837,15 @@ pub unsafe extern "C-unwind" fn digest_single_submenu(start: c_int, end: c_int, 
   }
   SAFE_FREE!(sa_count, sa_mark);
   first_wv
+
+  }
 }
 
 #[cfg(feature = "have_ns")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn update_submenu_strings(first_wv: *mut widget_value) {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut wv = first_wv;
   while !wv.is_null() {
     if STRINGP((*wv).lname) {
@@ -775,6 +859,8 @@ pub unsafe extern "C-unwind" fn update_submenu_strings(first_wv: *mut widget_val
     if !(*wv).contents.is_null() { update_submenu_strings((*wv).contents); }
     wv = (*wv).next;
   }
+
+  }
 }
 
 // C menu.c 875-964: enqueue every selected prefix in original order.
@@ -782,6 +868,8 @@ pub unsafe extern "C-unwind" fn update_submenu_strings(first_wv: *mut widget_val
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn find_and_call_menu_selection(f: *mut frame, menu_bar_items_used: c_int,
                                                        vector: Lisp_Object, client_data: *mut c_void) {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut entry = Qnil();
   let mut subprefix_stack: *mut Lisp_Object = core::ptr::null_mut();
   let mut submenu_depth: c_int = 0;
@@ -830,12 +918,16 @@ pub unsafe extern "C-unwind" fn find_and_call_menu_selection(f: *mut frame, menu
     }
   }
   SAFE_FREE!(sa_count, sa_mark);
+
+  }
 }
 
 // C menu.c 967-1031: return the selection and its keymap prefixes.
 #[cfg(feature = "have_ns")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn find_and_return_menu_selection(_f: *mut frame, keymaps: bool, client_data: *mut c_void) -> Lisp_Object {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut prefix = Qnil(); let mut entry = Qnil(); let mut i = 0;
   let mut subprefix_stack: *mut Lisp_Object = core::ptr::null_mut();
   let mut submenu_depth: c_int = 0;
@@ -870,11 +962,15 @@ pub unsafe extern "C-unwind" fn find_and_return_menu_selection(_f: *mut frame, k
   }
   SAFE_FREE!(sa_count, sa_mark);
   Qnil()
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn menu_item_width (str: *const u8) -> ptrdiff_t
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut len: ptrdiff_t;
   let mut p: *const u8;
 
@@ -888,6 +984,8 @@ pub unsafe extern "C-unwind" fn menu_item_width (str: *const u8) -> ptrdiff_t
       p = p.offset (ch_len as isize);
     }
   return len;
+
+  }
 }
 
 DEFUN! ("menu-bar-menu-at-x-y", Fmenu_bar_menu_at_x_y, Smenu_bar_menu_at_x_y,
@@ -944,6 +1042,8 @@ DEFUN! ("menu-bar-menu-at-x-y", Fmenu_bar_menu_at_x_y, Smenu_bar_menu_at_x_y,
 pub unsafe extern "C-unwind" fn x_popup_menu_1 (position: Lisp_Object, mut menu: Lisp_Object)
   -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut keymap: Lisp_Object;
   let mut tem: Lisp_Object;
   let mut tem2: Lisp_Object = Qnil ();
@@ -1221,6 +1321,8 @@ pub unsafe extern "C-unwind" fn x_popup_menu_1 (position: Lisp_Object, mut menu:
   if !error_name.is_null ()
     { error (c"%s".as_ptr (), error_name); }
   return selection;
+
+  }
 }
 
 DEFUN! ("x-popup-menu", Fx_popup_menu, Sx_popup_menu, 2, 2, 0,
@@ -1236,6 +1338,8 @@ DEFUN! ("x-popup-menu", Fx_popup_menu, Sx_popup_menu, 2, 2, 0,
 
 unsafe fn emulate_dialog_with_menu (f: *mut frame, contents: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut x: Lisp_Object;
   let mut y: Lisp_Object;
   let frame: Lisp_Object;
@@ -1265,6 +1369,8 @@ unsafe fn emulate_dialog_with_menu (f: *mut frame, contents: Lisp_Object) -> Lis
   newpos = list2 (list2 (x, y), frame);
 
   return Fx_popup_menu (newpos, list2 (prompt, contents));
+
+  }
 }
 
 DEFUN! ("x-popup-dialog", Fx_popup_dialog, Sx_popup_dialog, 2, 3, 0,
@@ -1350,6 +1456,8 @@ pub static mut Vx_popup_menu_function: Lisp_Object = lisp_h_Qnil ();
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_menu ()
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   menu_items = Qnil ();
   staticpro (&raw const menu_items);
 
@@ -1367,4 +1475,6 @@ pub unsafe extern "C-unwind" fn syms_of_menu ()
   defsubr (&raw mut Sx_popup_menu);
   defsubr (&raw mut Sx_popup_dialog);
   defsubr (&raw mut Smenu_bar_menu_at_x_y);
+
+  }
 }

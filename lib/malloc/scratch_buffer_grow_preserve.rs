@@ -2,9 +2,7 @@
 //
 // C 19-21's `#ifndef _LIBC` arm is live: `<libc-config.h>`'s `__set_errno` (below) is taken,
 // C 67's `libc_hidden_def (…)` stays empty, and C 23's `<scratch_buffer.h>` is included below.
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
-         static_mut_refs, unsafe_op_in_unsafe_fn)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 use std::ffi::{c_char, c_int, c_void};
@@ -32,7 +30,11 @@ unsafe extern "C" {
 #[cfg (feature = "replace_realloc_for_realloc_posix")]
 unsafe extern "C" fn realloc (ptr: *mut c_void, size: usize) -> *mut c_void
 {
+  // SAFETY: gnulib/OS raw buffer or dynamic-array boundary; caller upholds pointer validity, element capacity, and single-owner mutation invariants, returning error/null on overflow or OOM.
+  unsafe {
   return realloc_system (ptr, if size == 0 { 1 } else { size });
+
+  }
 }
 
 /* Like __libc_scratch_buffer_grow, but preserve the old buffer
@@ -42,6 +44,8 @@ unsafe extern "C" fn realloc (ptr: *mut c_void, size: usize) -> *mut c_void
 #[unsafe(export_name = "_gl_scratch_buffer_grow_preserve")]
 pub unsafe extern "C" fn __libc_scratch_buffer_grow_preserve (buffer: *mut scratch_buffer) -> bool
 {
+  // SAFETY: gnulib/OS raw buffer or dynamic-array boundary; caller upholds pointer validity, element capacity, and single-owner mutation invariants, returning error/null on overflow or OOM.
+  unsafe {
   let new_length: usize = 2 * (*buffer).length;
   let mut new_ptr: *mut c_void;
 
@@ -79,5 +83,7 @@ pub unsafe extern "C" fn __libc_scratch_buffer_grow_preserve (buffer: *mut scrat
   (*buffer).data = new_ptr;
   (*buffer).length = new_length;
   return true;
+
+  }
 }
 /* C 67's `libc_hidden_def (__libc_scratch_buffer_grow_preserve)`: empty in this build.  */

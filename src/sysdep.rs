@@ -36,11 +36,7 @@
 // function (carried as `#[cfg (feature = …)] { … }` blocks), and the `#include` selections
 // (C 24-142) are recorded in `docs/ports/sysdep.md`.
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
-         unsafe_op_in_unsafe_fn, unused_assignments, unreachable_code, while_true,
-         unused_parens, unused_mut, unused_labels, unused_comparisons, overflowing_literals,
-         unnecessary_cast)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe, unused_assignments, unreachable_code, while_true, unused_parens, unused_mut, unused_labels, unused_comparisons, overflowing_literals, unnecessary_cast)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -590,8 +586,12 @@ unsafe extern "C" {
 /// C's spelling.
 #[inline(always)]
 pub unsafe fn sigfillset (set: *mut sigset_t) -> c_int {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   *set = sigset_t { __val: !0 };
   0
+
+  }
 }
 
 /// `"syswait.h"`: `#define WNOHANG 1` and the status decoders (measured; C 517's
@@ -1239,16 +1239,22 @@ pub unsafe extern "C-unwind" fn maybe_disable_address_randomization (argc: c_int
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn emacs_exec_file (file: *const c_char, argv: *const *mut c_char,
                                           envp: *const *mut c_char) -> c_int {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   #[cfg (feature = "have_personality_addr_no_randomize")]
   if exec_personality != -1
     { personality (exec_personality as c_ulong); }
 
   execve (file, argv, envp);
   return *errno ();
+
+  }
 }
 
 /* If FD is not already open, arrange for it to be open with FLAGS.  */
 unsafe fn force_open (fd: c_int, flags: c_int) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if dup2 (fd, fd) < 0 && *errno () == EBADF
     {
       let n: c_int = open (NULL_DEVICE.as_ptr () as *const c_char, flags);
@@ -1258,6 +1264,8 @@ unsafe fn force_open (fd: c_int, flags: c_int) {
 	  exit (EXIT_FAILURE);
 	}
     }
+
+  }
 }
 
 /* A stream that is like stderr, except line buffered.  It is NULL
@@ -1268,6 +1276,8 @@ static mut buferr: *mut FILE = std::ptr::null_mut ();
    their file descriptors are not hijacked by later system calls.  */
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn init_standard_fds () {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* Open stdin for *writing*, and stdout and stderr for *reading*.
      That way, any attempt to do normal I/O will result in an error,
      just as if the files were closed, and the file descriptors will
@@ -1283,6 +1293,8 @@ pub unsafe extern "C-unwind" fn init_standard_fds () {
     if !buferr.is_null ()
       { setvbuf (buferr, std::ptr::null_mut (), _IOLBF, 0); }
   }
+
+  }
 }
 
 /* Return the current working directory.  The result should be freed
@@ -1291,6 +1303,8 @@ pub unsafe extern "C-unwind" fn init_standard_fds () {
    beginning with '('.  */
 
 unsafe fn get_current_dir_name_or_unreachable () -> *mut c_char {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* Use malloc, not xmalloc, since this function can be called before
      the xmalloc exception machinery is available.  */
 
@@ -1364,6 +1378,8 @@ unsafe fn get_current_dir_name_or_unreachable () -> *mut c_char {
 	  buf_size = if buf_size <= bufsize_max / 2 { 2 * buf_size } else { bufsize_max };
         }
     }
+
+  }
 }
 
 /* Return the current working directory.  The result should be freed
@@ -1372,6 +1388,8 @@ unsafe fn get_current_dir_name_or_unreachable () -> *mut c_char {
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn emacs_get_current_dir_name () -> *mut c_char {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let dir: *mut c_char = get_current_dir_name_or_unreachable ();
   if !dir.is_null () && *dir == b'(' as c_char
     {
@@ -1380,12 +1398,16 @@ pub unsafe extern "C-unwind" fn emacs_get_current_dir_name () -> *mut c_char {
       return std::ptr::null_mut ();
     }
   return dir;
+
+  }
 }
 
 /* Discard pending input on all input descriptors.  */
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn discard_tty_input () {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   // C 364-386: `#ifndef WINDOWSNT` is live; its `MSDOS` arm (C 370-372) is dead and carried.
   {
     let mut buf: emacs_tty = std::mem::zeroed ();
@@ -1419,6 +1441,8 @@ pub unsafe extern "C-unwind" fn discard_tty_input () {
       }
     }
   }
+
+  }
 }
 
 // C 390-412: `#ifdef SIGTSTP` — live (`SIGTSTP` is 18 in the frozen table).
@@ -1431,6 +1455,8 @@ pub unsafe extern "C-unwind" fn discard_tty_input () {
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn stuff_char (mut c: c_char) -> c_int {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
 /* Should perhaps error if in batch mode */
   /* C 402-407's `#ifdef TIOCSTI` is live.  */
   {
@@ -1441,10 +1467,14 @@ pub unsafe extern "C-unwind" fn stuff_char (mut c: c_char) -> c_int {
   }
 
   return -1;
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn init_baud_rate (fd: c_int) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut emacs_ospeed: c_int;
 
   if noninteractive
@@ -1468,6 +1498,8 @@ pub unsafe extern "C-unwind" fn init_baud_rate (fd: c_int) {
 	      { baud_convert[emacs_ospeed as usize] as EMACS_INT } else { 9600 };
   if baud_rate == 0
     { baud_rate = 1200; }
+
+  }
 }
 
 // C 442: `#ifndef MSDOS` — live.
@@ -1501,6 +1533,8 @@ unsafe fn femacs_child_trace () -> bool {
    negative value (setting errno) if waitpid is buggy.  */
 unsafe fn get_child_status (child: pid_t, status: *mut c_int, options: c_int,
                             interruptible: bool) -> pid_t {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* PORTING.md P-122's instrument (FEMACS_CHILD_TRACE, P-115's shape): every reap in the port
      goes through here, so a missing line means the reap itself never happened.  */
   if femacs_child_trace ()
@@ -1552,6 +1586,8 @@ unsafe fn get_child_status (child: pid_t, status: *mut c_int, options: c_int,
     }
 
   return pid;
+
+  }
 }
 
 /* Wait for the subprocess with process id CHILD to terminate.
@@ -1564,7 +1600,11 @@ unsafe fn get_child_status (child: pid_t, status: *mut c_int, options: c_int,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn wait_for_termination (child: pid_t, status: *mut c_int,
                                                interruptible: bool) -> bool {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   return 0 <= get_child_status (child, status, 0, interruptible);
+
+  }
 }
 
 /* Report whether the subprocess with process id CHILD has changed status.
@@ -1579,7 +1619,11 @@ pub unsafe extern "C-unwind" fn wait_for_termination (child: pid_t, status: *mut
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn child_status_changed (child: pid_t, status: *mut c_int,
                                                options: c_int) -> pid_t {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   return get_child_status (child, status, WNOHANG | options, false);
+
+  }
 }
 
 /*  Set up the terminal at the other end of a pseudo-terminal that
@@ -1589,6 +1633,8 @@ pub unsafe extern "C-unwind" fn child_status_changed (child: pid_t, status: *mut
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn child_setup_tty (out: c_int) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   // C 530: `#ifndef WINDOWSNT` is live.
   {
     let mut s: emacs_tty = std::mem::zeroed ();
@@ -1674,6 +1720,8 @@ pub unsafe extern "C-unwind" fn child_setup_tty (out: c_int) {
 
     emacs_set_tty (out, &mut s, false);
   }
+
+  }
 }
 
 /* Record a signal code and the action for it.  */
@@ -1682,6 +1730,8 @@ pub unsafe extern "C-unwind" fn child_setup_tty (out: c_int) {
 /// C 630-644's `sys_suspend`, whose `#ifndef DOS_NT` arm is live.
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn sys_suspend () {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* C 632-640: `#ifndef DOS_NT` is live; the `#else` arm is carried.  */
   #[cfg (not (feature = "dos_nt"))]
   {
@@ -1694,12 +1744,16 @@ pub unsafe extern "C-unwind" fn sys_suspend () {
    while we wait.  */
     sys_subshell ();
   }
+
+  }
 }
 
 /* Fork a subshell.  */
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn sys_subshell () {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   #[cfg (feature = "dos_nt")]
   let mut st: c_int = 0;
   #[cfg (feature = "msdos")]
@@ -1816,9 +1870,13 @@ pub unsafe extern "C-unwind" fn sys_subshell () {
   #[cfg (not (feature = "dos_nt"))]
   { wait_for_termination (pid, &mut status, false); }
   restore_signal_handlers (saved_handlers.as_mut_ptr ());
+
+  }
 }
 
 unsafe extern "C-unwind" fn save_signal_handlers (saved_handlers: *mut save_signal) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut saved_handlers = saved_handlers;
   while (*saved_handlers).code != 0
     {
@@ -1827,15 +1885,21 @@ unsafe extern "C-unwind" fn save_signal_handlers (saved_handlers: *mut save_sign
       sigaction ((*saved_handlers).code, &action, &mut (*saved_handlers).action);
       saved_handlers = saved_handlers.add (1);
     }
+
+  }
 }
 
 unsafe extern "C-unwind" fn restore_signal_handlers (saved_handlers: *mut save_signal) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut saved_handlers = saved_handlers;
   while (*saved_handlers).code != 0
     {
       sigaction ((*saved_handlers).code, &(*saved_handlers).action, std::ptr::null_mut ());
       saved_handlers = saved_handlers.add (1);
     }
+
+  }
 }
 
 // C 779-781: `#ifdef USABLE_SIGIO` — live (USABLE_SIGIO is 1).
@@ -1843,24 +1907,34 @@ static mut old_fcntl_flags: [c_int; FD_SETSIZE as usize] = [0; FD_SETSIZE as usi
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn init_sigio (fd: c_int) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* C 786-790: `#ifdef USABLE_SIGIO` is live.  */
   {
     old_fcntl_flags[fd as usize] = fcntl (fd, F_GETFL, 0) & !FASYNC;
     fcntl (fd, F_SETFL, old_fcntl_flags[fd as usize] | FASYNC);
     interrupts_deferred = false;
   }
+
+  }
 }
 
 // C 793-805: `#ifndef HAVE_ANDROID`, `#ifndef DOS_NT` and `#ifdef F_SETOWN` are all live.
 unsafe fn reset_sigio (fd: c_int) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* C 799-801: `#ifdef USABLE_SIGIO` is live.  */
   {
     fcntl (fd, F_SETFL, old_fcntl_flags[fd as usize]);
+  }
+
   }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn request_sigio () {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* C 810-828: `#if defined (USABLE_SIGIO) || defined (USABLE_SIGPOLL)` is live.  */
   {
     let mut unblocked: sigset_t = std::mem::zeroed ();
@@ -1887,10 +1961,14 @@ pub unsafe extern "C-unwind" fn request_sigio () {
 
     interrupts_deferred = false;
   }
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn unrequest_sigio () {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* C 834-851: `#if defined (USABLE_SIGIO) || defined (USABLE_SIGPOLL)` is live.  */
   {
     let mut blocked: sigset_t = std::mem::zeroed ();
@@ -1916,6 +1994,8 @@ pub unsafe extern "C-unwind" fn unrequest_sigio () {
     pthread_sigmask (SIG_BLOCK, &blocked, std::ptr::null_mut ());
     interrupts_deferred = true;
   }
+
+  }
 }
 
 // C 854: `#ifndef MSDOS` — live.
@@ -1923,33 +2003,49 @@ pub unsafe extern "C-unwind" fn unrequest_sigio () {
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn block_child_signal (oldset: *mut sigset_t) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut blocked: sigset_t = std::mem::zeroed ();
   sigemptyset (&mut blocked);
   sigaddset (&mut blocked, SIGCHLD);
   sigaddset (&mut blocked, SIGINT);
   pthread_sigmask (SIG_BLOCK, &blocked, oldset);
+
+  }
 }
 
 /* Unblock SIGCHLD.  */
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn unblock_child_signal (oldset: *const sigset_t) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   pthread_sigmask (SIG_SETMASK, oldset, std::ptr::null_mut ());
+
+  }
 }
 
 /* Block SIGINT.  */
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn block_interrupt_signal (oldset: *mut sigset_t) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut blocked: sigset_t = std::mem::zeroed ();
   sigemptyset (&mut blocked);
   sigaddset (&mut blocked, SIGINT);
   pthread_sigmask (SIG_BLOCK, &blocked, oldset);
+
+  }
 }
 
 /* Restore previously saved signal mask.  */
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn restore_signal_mask (oldset: *const sigset_t) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   pthread_sigmask (SIG_SETMASK, oldset, std::ptr::null_mut ());
+
+  }
 }
 
 /* Saving and restoring the process group of Emacs's terminal.  */
@@ -1977,14 +2073,20 @@ static mut inherited_pgroup: pid_t = 0;
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn init_foreground_group () {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let pgrp: pid_t = getpgrp ();
   inherited_pgroup = if getpid () == pgrp { 0 } else { pgrp };
+
+  }
 }
 
 /* Block and unblock SIGTTOU.  */
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn block_tty_out_signal (oldset: *mut sigset_t) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* C 930-935: `#ifdef SIGTTOU` is live.  */
   {
     let mut blocked: sigset_t = std::mem::zeroed ();
@@ -1992,13 +2094,19 @@ pub unsafe extern "C-unwind" fn block_tty_out_signal (oldset: *mut sigset_t) {
     sigaddset (&mut blocked, SIGTTOU);
     pthread_sigmask (SIG_BLOCK, &blocked, oldset);
   }
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn unblock_tty_out_signal (oldset: *const sigset_t) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* C 941-943: `#ifdef SIGTTOU` is live.  */
   {
     pthread_sigmask (SIG_SETMASK, oldset, std::ptr::null_mut ());
+  }
+
   }
 }
 
@@ -2010,6 +2118,8 @@ pub unsafe extern "C-unwind" fn unblock_tty_out_signal (oldset: *const sigset_t)
    In practice, platforms lacking SIGTTOU also lack tcsetpgrp, so
    skip all this unless SIGTTOU is defined.  */
 unsafe fn tcsetpgrp_without_stopping (fd: c_int, pgid: pid_t) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* C 956-963: `#ifdef SIGTTOU` is live.  */
   {
     let mut oldset: sigset_t = std::mem::zeroed ();
@@ -2019,6 +2129,8 @@ unsafe fn tcsetpgrp_without_stopping (fd: c_int, pgid: pid_t) {
     unblock_tty_out_signal (&oldset);
     unblock_input ();
   }
+
+  }
 }
 
 /* Split off the foreground process group to Emacs alone.  When we are
@@ -2026,16 +2138,24 @@ unsafe fn tcsetpgrp_without_stopping (fd: c_int, pgid: pid_t) {
    redirect the tty device handle FD to point to our own process
    group.  FD must be the file descriptor of the controlling tty.  */
 unsafe fn narrow_foreground_group (fd: c_int) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if inherited_pgroup != 0 && setpgid (0, 0) == 0
     { tcsetpgrp_without_stopping (fd, getpid ()); }
+
+  }
 }
 
 // C 977-987: `#ifndef HAVE_ANDROID` — live.
 
 /* Set the tty to our original foreground group.  */
 unsafe fn widen_foreground_group (fd: c_int) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if inherited_pgroup != 0 && setpgid (0, inherited_pgroup) == 0
     { tcsetpgrp_without_stopping (fd, inherited_pgroup); }
+
+  }
 }
 
 /* Getting and setting emacs_tty structures.  */
@@ -2045,6 +2165,8 @@ unsafe fn widen_foreground_group (fd: c_int) {
    Return 0 on success, -1 on failure.  */
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn emacs_get_tty (fd: c_int, settings: *mut emacs_tty) -> c_int {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* Retrieve the primary parameters - baud rate, character size, etcetera.  */
   memset (&mut (*settings).main as *mut termios as *mut c_void, 0,
 	  std::mem::size_of::<termios> ());
@@ -2069,6 +2191,8 @@ pub unsafe extern "C-unwind" fn emacs_get_tty (fd: c_int, settings: *mut emacs_t
     /* We have those nifty POSIX tcmumbleattr functions.  */
     return tcgetattr (fd, &mut (*settings).main);
   }
+
+  }
 }
 
 /* Set the parameters of the tty on FD according to the contents of
@@ -2078,6 +2202,8 @@ pub unsafe extern "C-unwind" fn emacs_get_tty (fd: c_int, settings: *mut emacs_t
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn emacs_set_tty (fd: c_int, settings: *mut emacs_tty, flushp: bool)
   -> c_int {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* Set the primary parameters - baud rate, character size, etcetera.  */
   #[cfg (feature = "dos_nt")]
   {
@@ -2145,6 +2271,8 @@ pub unsafe extern "C-unwind" fn emacs_set_tty (fd: c_int, settings: *mut emacs_t
 
   /* We have survived the tempest.  */
   return 0;
+
+  }
 }
 
 // C 1088-1090: `#ifdef F_SETOWN` — live.
@@ -2172,6 +2300,8 @@ macro_rules! tty_bits {
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn init_all_sys_modes () {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut tty: *mut tty_display_info;
   {
     let mut tty_: *mut tty_display_info = tty_list;
@@ -2185,12 +2315,16 @@ pub unsafe extern "C-unwind" fn init_all_sys_modes () {
 	tty_ = (*tty).next;
       }
   }
+
+  }
 }
 
 /* Initialize the terminal mode on the given tty device. */
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn init_sys_modes (tty_out: *mut tty_display_info) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut tty: emacs_tty = std::mem::zeroed ();
   // C 1109-1111: `#ifndef DOS_NT` — live.
   let mut terminal: Lisp_Object = Qnil ();
@@ -2461,6 +2595,8 @@ pub unsafe extern "C-unwind" fn init_sys_modes (tty_out: *mut tty_display_info) 
     }
 
   tty_bits! (term_initted, tty_out, 1);
+
+  }
 }
 
 /* Return true if safe to use tabs in output.
@@ -2468,6 +2604,8 @@ pub unsafe extern "C-unwind" fn init_sys_modes (tty_out: *mut tty_display_info) 
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn tabs_safe_p (fd: c_int) -> bool {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut etty: emacs_tty = std::mem::zeroed ();
 
   emacs_get_tty (fd, &mut etty);
@@ -2489,12 +2627,16 @@ pub unsafe extern "C-unwind" fn tabs_safe_p (fd: c_int) -> bool {
     let _ = fd;
     return false;
   }
+
+  }
 }
 
 /* Discard echoing.  */
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn suppress_echo_on_tty (fd: c_int) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut etty: emacs_tty = std::mem::zeroed ();
 
   emacs_get_tty (fd, &mut etty);
@@ -2510,6 +2652,8 @@ pub unsafe extern "C-unwind" fn suppress_echo_on_tty (fd: c_int) {
     etty.main.c_lflag &= !ECHO;	/* Disable echoing */
   }
   emacs_set_tty (fd, &mut etty, false);
+
+  }
 }
 
 /* Get terminal size from system.
@@ -2518,6 +2662,8 @@ pub unsafe extern "C-unwind" fn suppress_echo_on_tty (fd: c_int) {
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn get_tty_size (fd: c_int, widthp: *mut c_int, heightp: *mut c_int) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* C 1399: `#if defined TIOCGWINSZ` is live.  */
   {
     /* BSD-style.  */
@@ -2567,6 +2713,8 @@ pub unsafe extern "C-unwind" fn get_tty_size (fd: c_int, widthp: *mut c_int, hei
     *widthp = 0;
     *heightp = 0;
   }
+
+  }
 }
 
 /* Set the logical window size associated with descriptor FD
@@ -2575,6 +2723,8 @@ pub unsafe extern "C-unwind" fn get_tty_size (fd: c_int, widthp: *mut c_int, hei
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn set_window_size (fd: c_int, height: c_int, width: c_int) -> c_int {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* C 1456: `#ifdef TIOCSWINSZ` is live.  */
   {
     /* BSD-style.  */
@@ -2602,12 +2752,16 @@ pub unsafe extern "C-unwind" fn set_window_size (fd: c_int, height: c_int, width
     let _ = (fd, height, width);
     return -1;
   }
+
+  }
 }
 
 /* Prepare all terminal devices for exiting Emacs. */
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn reset_all_sys_modes () {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut tty: *mut tty_display_info;
   {
     let mut tty_: *mut tty_display_info = tty_list;
@@ -2621,6 +2775,8 @@ pub unsafe extern "C-unwind" fn reset_all_sys_modes () {
 	tty_ = (*tty).next;
       }
   }
+
+  }
 }
 
 /* Prepare the terminal for closing it; move the cursor to the
@@ -2628,6 +2784,8 @@ pub unsafe extern "C-unwind" fn reset_all_sys_modes () {
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn reset_sys_modes (tty_out: *mut tty_display_info) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if noninteractive
     {
       fflush (stdout);
@@ -2701,6 +2859,8 @@ pub unsafe extern "C-unwind" fn reset_sys_modes (tty_out: *mut tty_display_info)
 
     widen_foreground_group (fileno ((*tty_out).input));
   }
+
+  }
 }
 
 // C 1566: `#ifdef HAVE_PTYS` — live (HAVE_PTYS is 1).
@@ -2709,6 +2869,8 @@ pub unsafe extern "C-unwind" fn reset_sys_modes (tty_out: *mut tty_display_info)
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn setup_pty (fd: c_int) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* I'm told that TOICREMOTE does not mean control chars
      "can't be sent" but rather that they don't have
      input-editing or signaling effects.
@@ -2739,10 +2901,14 @@ pub unsafe extern "C-unwind" fn setup_pty (fd: c_int) {
       ioctl (fd, FIONBIO, &mut on);
     }
   }
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn init_system_name () {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if !build_details
     {
       /* Set system-name to nil so that the build is deterministic.  */
@@ -2805,6 +2971,8 @@ pub unsafe extern "C-unwind" fn init_system_name () {
 	 && strcmp (SSDATA (Vsystem_name), hostname) == 0)
     { Vsystem_name = build_string (hostname); }
   xfree (hostname_alloc as *mut c_void);
+
+  }
 }
 
 // C 1653-1656: `sigset_t empty_mask;` and `static struct sigaction process_fatal_action;`.
@@ -2816,6 +2984,8 @@ pub static mut empty_mask: sigset_t = sigset_t { __val: 0 };
 static mut process_fatal_action: sigaction = unsafe { std::mem::zeroed () };
 
 unsafe fn emacs_sigaction_flags () -> c_int {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* C 1661-1673: `#ifdef SA_RESTART` is live (SA_RESTART is 0x0002).  */
   {
     /* SA_RESTART causes interruptible functions with timeouts (e.g.,
@@ -2831,6 +3001,8 @@ unsafe fn emacs_sigaction_flags () -> c_int {
       { return SA_RESTART; }
   }
   return 0;
+
+  }
 }
 
 /* Store into *ACTION a signal action suitable for Emacs, with handler
@@ -2838,6 +3010,8 @@ unsafe fn emacs_sigaction_flags () -> c_int {
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn emacs_sigaction_init (action: *mut sigaction,
                                                handler: signal_handler_t) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   sigemptyset (&mut (*action).sa_mask);
 
   /* When handling a signal, block nonfatal system signals that are caught
@@ -2880,6 +3054,8 @@ pub unsafe extern "C-unwind" fn emacs_sigaction_init (action: *mut sigaction,
 
   (*action).__sigaction_u.__sa_handler = handler;
   (*action).sa_flags = emacs_sigaction_flags ();
+
+  }
 }
 
 // C 1714-1716: `#ifdef FORWARD_SIGNAL_TO_MAIN_THREAD` is live (syssignal.h 39).
@@ -2903,6 +3079,8 @@ static mut main_thread_id: pthread_t = 0 as pthread_t;
    signal to other threads.  */
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn deliver_process_signal (sig: c_int, handler: signal_handler_t) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* Preserve errno, to avoid race conditions with signal handlers that
      might change errno.  Races can occur even in single-threaded hosts.  */
   let old_errno: c_int = *errno ();
@@ -2924,6 +3102,8 @@ pub unsafe extern "C-unwind" fn deliver_process_signal (sig: c_int, handler: sig
     { handler.unwrap () (sig); }
 
   *errno () = old_errno;
+
+  }
 }
 
 /* Static location to save a fatal backtrace in a thread.
@@ -2939,6 +3119,8 @@ static mut thread_backtrace_npointers: c_int = 0;
    If we are on the main thread, handle the signal SIG with HANDLER.
    Otherwise, this is a fatal error in the handling thread.  */
 unsafe extern "C-unwind" fn deliver_thread_signal (sig: c_int, handler: signal_handler_t) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let old_errno: c_int = *errno ();
 
   /* C 1770-1782: `#ifdef FORWARD_SIGNAL_TO_MAIN_THREAD` - live for the frozen configuration,
@@ -2961,25 +3143,43 @@ unsafe extern "C-unwind" fn deliver_thread_signal (sig: c_int, handler: signal_h
 
   handler.unwrap () (sig);
   *errno () = old_errno;
+
+  }
 }
 
 /* Handle bus errors, invalid instruction, etc.  */
 unsafe extern "C" fn handle_fatal_signal (sig: c_int) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   terminate_due_to_signal (sig, 40);
+
+  }
 }
 
 unsafe extern "C" fn deliver_fatal_signal (sig: c_int) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   deliver_process_signal (sig, Some (handle_fatal_signal));
+
+  }
 }
 
 unsafe extern "C" fn deliver_fatal_thread_signal (sig: c_int) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   deliver_thread_signal (sig, Some (handle_fatal_signal));
+
+  }
 }
 
 unsafe extern "C" fn handle_arith_signal (sig: c_int) -> ! {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let _ = sig;
-  pthread_sigmask (SIG_SETMASK, &empty_mask, std::ptr::null_mut ());
+  pthread_sigmask (SIG_SETMASK, &raw const empty_mask, std::ptr::null_mut ());
   xsignal0 (Qarith_error ());
+
+  }
 }
 
 // C 1814-1846: `#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY && defined HAVE_MMAP`
@@ -3036,6 +3236,8 @@ static mut sigsegv_stack: [max_align_t; (64 * 1024
 /* Return true if SIGINFO indicates a stack overflow.  */
 
 unsafe extern "C-unwind" fn stack_overflow (siginfo: *mut siginfo_t) -> bool {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if !attempt_stack_overflow_recovery
     { return false; }
 
@@ -3081,14 +3283,18 @@ unsafe extern "C-unwind" fn stack_overflow (siginfo: *mut siginfo_t) -> bool {
   else
     { return 0 <= top as isize - addr as isize
 	&& (top as isize - addr as isize) < ((bot as isize - top as isize) >> lg_stack_heuristic); }
+
+  }
 }
 
 /* Signal handler for SIGSEGV before our new handler was installed.  */
-static mut old_sigsegv_handler: sigaction = unsafe { std::mem::zeroed () };
+static mut old_sigsegv_handler: sigaction = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { std::mem::zeroed () };
 
 /* Attempt to recover from SIGSEGV caused by C stack overflow.  */
 
 unsafe extern "C" fn handle_sigsegv (sig: c_int, siginfo: *mut siginfo_t, arg: *mut c_void) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* Hard GC error may lead to stack overflow caused by
      too nested calls to mark_object.  No way to survive.  */
   let mut fatal: bool = gc_in_progress;
@@ -3116,17 +3322,21 @@ unsafe extern "C" fn handle_sigsegv (sig: c_int, siginfo: *mut siginfo_t, arg: *
 
   /* Otherwise we can't do anything with this.  */
   deliver_fatal_thread_signal (sig);
+
+  }
 }
 
 /* Return true if we have successfully set up SIGSEGV handler on alternate
    stack.  Otherwise we just treat SIGSEGV among the rest of fatal signals.  */
 
 unsafe extern "C-unwind" fn init_sigsegv () -> bool {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut sa: sigaction = std::mem::zeroed ();
   let mut ss: stack_t = std::mem::zeroed ();
 
-  ss.ss_sp = sigsegv_stack.as_mut_ptr () as *mut c_void;
-  ss.ss_size = std::mem::size_of_val (&sigsegv_stack);
+  ss.ss_sp = femacs_array_mut_ptr (&raw mut sigsegv_stack) as *mut c_void;
+  ss.ss_size = femacs_sizeof_ptr (&raw const sigsegv_stack);
   ss.ss_flags = 0;
   if sigaltstack (&ss, std::ptr::null_mut ()) < 0
     { return false; }
@@ -3140,10 +3350,12 @@ unsafe extern "C-unwind" fn init_sigsegv () -> bool {
 				unsafe extern "C" fn (c_int, *mut c_void, *mut c_void)>
 	    (handle_sigsegv));
   sa.sa_flags = SA_SIGINFO | SA_ONSTACK | emacs_sigaction_flags ();
-  if sigaction (SIGSEGV, &sa, &mut old_sigsegv_handler) < 0
+  if sigaction (SIGSEGV, &sa, &raw mut old_sigsegv_handler) < 0
     { return false; }
 
   return true;
+
+  }
 }
 
 // C 1969-1977's `#else /* not HAVE_STACK_OVERFLOW_HANDLING or WINDOWSNT */` arm is dead
@@ -3154,12 +3366,16 @@ unsafe extern "C-unwind" fn init_sigsegv () -> bool {
 }
 
 unsafe extern "C" fn deliver_arith_signal (sig: c_int) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* C's `handle_arith_signal` is `static AVOID` (never returns), while the handler slot's
      type is the plain `void (*) (int)`; C makes that conversion implicitly, so the port
      writes the fn-pointer transmute (the same ABI, the same never-returning body).  */
   deliver_thread_signal (sig, Some (std::mem::transmute::<unsafe extern "C" fn (c_int) -> !,
 							   unsafe extern "C" fn (c_int)>
 				     (handle_arith_signal)));
+
+  }
 }
 
 // C 1985-2002: `#ifdef SIGDANGER` is dead; carried.
@@ -3180,6 +3396,8 @@ unsafe extern "C-unwind" fn deliver_danger_signal (sig: c_int) {
 /* Treat SIG as a terminating signal, unless it is already ignored and
    we are in --batch mode.  Among other things, this makes nohup work.  */
 unsafe extern "C-unwind" fn maybe_fatal_sig (sig: c_int) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut catch_sig: bool = !noninteractive;
   if !catch_sig
     {
@@ -3189,22 +3407,26 @@ unsafe extern "C-unwind" fn maybe_fatal_sig (sig: c_int) {
 		    (old_action.__sigaction_u.__sa_handler) != SIG_IGN;
     }
   if catch_sig
-    { sigaction (sig, &process_fatal_action, std::ptr::null_mut ()); }
+    { sigaction (sig, &raw const process_fatal_action, std::ptr::null_mut ()); }
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn init_signals () {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut thread_fatal_action: sigaction = std::mem::zeroed ();
   let mut action: sigaction = std::mem::zeroed ();
 
-  sigemptyset (&mut empty_mask);
+  sigemptyset (&raw mut empty_mask);
 
   /* C 2028-2030: `#ifdef FORWARD_SIGNAL_TO_MAIN_THREAD` is live.  */
   {
     main_thread_id = pthread_self ();
   }
 
-  sigfillset (&mut process_fatal_action.sa_mask);
+  sigfillset (&raw mut process_fatal_action.sa_mask);
   process_fatal_action.__sigaction_u.__sa_handler = Some (deliver_fatal_signal);
   process_fatal_action.sa_flags = emacs_sigaction_flags ();
 
@@ -3227,7 +3449,7 @@ pub unsafe extern "C-unwind" fn init_signals () {
   if ! noninteractive
     { signal (SIGPIPE, SIG_IGN); }
 
-  sigaction (SIGQUIT, &process_fatal_action, std::ptr::null_mut ());
+  sigaction (SIGQUIT, &raw const process_fatal_action, std::ptr::null_mut ());
   /* C 2056-2058: `#ifndef __vax__` is live.  */
   {
     sigaction (SIGILL, &thread_fatal_action, std::ptr::null_mut ());
@@ -3301,18 +3523,18 @@ pub unsafe extern "C-unwind" fn init_signals () {
   {
     sigaction (SIGSYS, &thread_fatal_action, std::ptr::null_mut ());
   }
-  sigaction (SIGTERM, &process_fatal_action, std::ptr::null_mut ());
+  sigaction (SIGTERM, &raw const process_fatal_action, std::ptr::null_mut ());
   {
     signal (SIGPROF, SIG_IGN);
   }
   {
-    sigaction (SIGVTALRM, &process_fatal_action, std::ptr::null_mut ());
+    sigaction (SIGVTALRM, &raw const process_fatal_action, std::ptr::null_mut ());
   }
   {
-    sigaction (SIGXCPU, &process_fatal_action, std::ptr::null_mut ());
+    sigaction (SIGXCPU, &raw const process_fatal_action, std::ptr::null_mut ());
   }
   {
-    sigaction (SIGXFSZ, &process_fatal_action, std::ptr::null_mut ());
+    sigaction (SIGXFSZ, &raw const process_fatal_action, std::ptr::null_mut ());
   }
 
   #[cfg (feature = "sigdanger")]
@@ -3337,6 +3559,8 @@ pub unsafe extern "C-unwind" fn init_signals () {
   { sigaction (SIGSOUND, &process_fatal_action, std::ptr::null_mut ()); }
   #[cfg (feature = "sig_talrm")]
   { sigaction (SIGTALRM, &thread_fatal_action, std::ptr::null_mut ()); }
+
+  }
 }
 
 // C 2166-2201: the `HAVE_RANDOM`/`RAND_BITS`/`random` selection.  The frozen configuration
@@ -3378,7 +3602,11 @@ pub type random_seed = c_uint;
 /// (`HAVE_RANDOM` is defined).  C's `static` is real even though the inventory's row lost the
 /// marker (the scanner read the `typedef` line before the declarator); the reference object
 /// exports no `_set_random_seed`, so the port keeps C's internal linkage (docs/status.md 3.67).
-pub unsafe fn set_random_seed (arg: random_seed) { srandom (arg); }
+pub unsafe fn set_random_seed (arg: random_seed) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe { srandom (arg); 
+  }
+}
 
 /// C 2206-2208: the `HAVE_LRAND48` arm (`typedef long int random_seed; srand48 (arg)`).
 #[cfg (feature = "no_have_random")]
@@ -3394,6 +3622,8 @@ pub unsafe fn set_random_seed (arg: random_seed_rand) { srand (arg); }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn seed_random (seed: *mut c_void, seed_size: ptrdiff_t) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut arg: random_seed = 0;
   let argp: *mut c_uchar = &mut arg as *mut random_seed as *mut c_uchar;
   let seedp: *mut c_uchar = seed as *mut c_uchar;
@@ -3405,10 +3635,14 @@ pub unsafe extern "C-unwind" fn seed_random (seed: *mut c_void, seed_size: ptrdi
       i += 1;
     }
   set_random_seed (arg);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn init_random () {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut v: random_seed = 0;
   let mut success: bool = false;
 
@@ -3438,6 +3672,8 @@ pub unsafe extern "C-unwind" fn init_random () {
     }
 
   set_random_seed (v);
+
+  }
 }
 
 /*
@@ -3447,6 +3683,8 @@ pub unsafe extern "C-unwind" fn init_random () {
  */
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn get_random () -> EMACS_INT {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut val: EMACS_UINT = 0;
   let mut i: c_int;
   i = 0;
@@ -3458,11 +3696,15 @@ pub unsafe extern "C-unwind" fn get_random () -> EMACS_INT {
     }
   val ^= val >> (EMACS_INT_WIDTH - FIXNUM_BITS);
   return (val & INTMASK as EMACS_UINT) as EMACS_INT;
+
+  }
 }
 
 /* Return a random unsigned long.  */
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn get_random_ulong () -> c_ulong {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut r: c_ulong = 0;
   let mut i: c_int = 0;
   while i < (ULONG_WIDTH + RAND_BITS as c_int - 1) / RAND_BITS as c_int
@@ -3472,6 +3714,8 @@ pub unsafe extern "C-unwind" fn get_random_ulong () -> c_ulong {
       i += 1;
     }
   return r;
+
+  }
 }
 
 // C 2279-2320: `#ifndef HAVE_SNPRINTF` — dead (`HAVE_SNPRINTF` is 1); carried.
@@ -3536,6 +3780,8 @@ pub unsafe extern "C-unwind" fn snprintf (buf: *mut c_char, bufsize: usize, form
    backtrace instead, ignoring BACKTRACE_LIMIT.  */
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn emacs_backtrace (backtrace_limit: c_int) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut main_backtrace_buffer: [*mut c_void; BACKTRACE_LIMIT_MAX + 1] =
     [std::ptr::null_mut (); BACKTRACE_LIMIT_MAX + 1];
   let bounded_limit: c_int =
@@ -3545,7 +3791,7 @@ pub unsafe extern "C-unwind" fn emacs_backtrace (backtrace_limit: c_int) {
 
   if thread_backtrace_npointers != 0
     {
-      buffer = thread_backtrace_buffer.as_mut_ptr ();
+      buffer = femacs_array_mut_ptr (&raw mut thread_backtrace_buffer);
       npointers = thread_backtrace_npointers;
     }
   else
@@ -3569,6 +3815,8 @@ pub unsafe extern "C-unwind" fn emacs_backtrace (backtrace_limit: c_int) {
       if bounded_limit < npointers
 	{ emacs_write (STDERR_FILENO, c"...\n".as_ptr () as *const c_void, 4); }
     }
+
+  }
 }
 
 /* Rename directory SRCFD's entry SRC to directory DSTFD's entry DST.
@@ -3584,6 +3832,8 @@ pub unsafe extern "C-unwind" fn emacs_backtrace (backtrace_limit: c_int) {
 #[cfg_attr (feature = "have_android", unsafe(no_mangle))]
 pub unsafe fn renameat_noreplace (srcfd: c_int, src: *const c_char, dstfd: c_int,
                                   dst: *const c_char) -> c_int {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* C 2382-2396 is a four-arm chain and the arms are per *target*, so each one carries its own
      condition instead of the frozen target's arm standing for all of them: with
      `#elif defined RENAME_EXCL` (C 2407-2408) unconditional, the Android build imported
@@ -3620,6 +3870,8 @@ pub unsafe fn renameat_noreplace (srcfd: c_int, src: *const c_char, dstfd: c_int
     let _ = (srcfd, dstfd);
     *errno () = ENOSYS;
     return -1;
+  }
+
   }
 }
 
@@ -3661,7 +3913,11 @@ pub const RENAME_EXCL: c_uint = 0x00000004;
 // ANDROID_STUBIFY)` is live.
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn emacs_abort () {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   terminate_due_to_signal (SIGABRT, 40);
+
+  }
 }
 
 /* Assuming the directory DIRFD, store information about FILENAME into *ST,
@@ -3677,6 +3933,8 @@ pub unsafe extern "C-unwind" fn emacs_abort () {
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn emacs_fstatat (dirfd: c_int, filename: *const c_char, st: *mut c_void,
                                         flags: c_int) -> c_int {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut r: c_int;
   // C 2422-2430: `#if !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)` is live.
   #[cfg (not (feature = "have_android"))]
@@ -3700,10 +3958,14 @@ pub unsafe extern "C-unwind" fn emacs_fstatat (dirfd: c_int, filename: *const c_
       }
   }
   return r;
+
+  }
 }
 
 // C 2434-2450: `#if !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)` is live.
 unsafe fn sys_openat (dirfd: c_int, file: *const c_char, oflags: c_int, mode: c_int) -> c_int {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* C 2439-2447: `#ifdef O_PATH` is dead (`O_PATH` does not exist on this target);
      carried.  */
   #[cfg (feature = "o_path")]
@@ -3718,10 +3980,14 @@ unsafe fn sys_openat (dirfd: c_int, file: *const c_char, oflags: c_int, mode: c_
     eassert! (dirfd == AT_FDCWD);
     return open (file, oflags, mode);
   }
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn sys_fstat (fd: c_int, statb: *mut stat) -> c_int {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   // C 2455-2461: `#if !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)` is live.
   #[cfg (not (feature = "have_android"))]
   {
@@ -3731,11 +3997,15 @@ pub unsafe extern "C-unwind" fn sys_fstat (fd: c_int, statb: *mut stat) -> c_int
   {
     return android_fstat (fd, statb);
   }
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn sys_faccessat (fd: c_int, pathname: *const c_char, mode: c_int,
                                         flags: c_int) -> c_int {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   // C 2465-2471: `#if !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)` is live.
   #[cfg (not (feature = "have_android"))]
   {
@@ -3744,6 +4014,8 @@ pub unsafe extern "C-unwind" fn sys_faccessat (fd: c_int, pathname: *const c_cha
   #[cfg (feature = "have_android")]
   {
     return android_faccessat (fd, pathname, mode, flags);
+  }
+
   }
 }
 
@@ -3760,6 +4032,8 @@ pub unsafe extern "C-unwind" fn sys_faccessat (fd: c_int, pathname: *const c_cha
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn emacs_openat (dirfd: c_int, file: *const c_char, mut oflags: c_int,
                                        mode: c_int) -> c_int {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut fd: c_int;
   if (oflags & O_TEXT) == 0
     { oflags |= O_BINARY; }
@@ -3772,10 +4046,14 @@ pub unsafe extern "C-unwind" fn emacs_openat (dirfd: c_int, file: *const c_char,
       maybe_quit ();
     }
   return fd;
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn emacs_open (file: *const c_char, oflags: c_int, mode: c_int) -> c_int {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   // C 2499-2510: `#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY` is dead; carried.
   #[cfg (feature = "have_android")]
   let mut fd: c_int = 0;
@@ -3796,6 +4074,8 @@ pub unsafe extern "C-unwind" fn emacs_open (file: *const c_char, oflags: c_int, 
 
     return fd;
   }
+
+  }
 }
 
 /* Same as above, but doesn't allow the user to quit.  */
@@ -3803,6 +4083,8 @@ pub unsafe extern "C-unwind" fn emacs_open (file: *const c_char, oflags: c_int, 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn emacs_open_noquit (file: *const c_char, mut oflags: c_int, mode: c_int)
   -> c_int {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut fd: c_int;
   if (oflags & O_TEXT) == 0
     { oflags |= O_BINARY; }
@@ -3819,6 +4101,8 @@ pub unsafe extern "C-unwind" fn emacs_open_noquit (file: *const c_char, mut ofla
       { fd = android_open (file, oflags, mode as mode_t); if !(fd < 0 && *errno () == EINTR) { break; } }
   }
   return fd;
+
+  }
 }
 
 /* Open FILE as a stream for Emacs use, with mode MODE.
@@ -3826,6 +4110,8 @@ pub unsafe extern "C-unwind" fn emacs_open_noquit (file: *const c_char, mut ofla
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn emacs_fopen (file: *const c_char, mode: *const c_char) -> *mut FILE {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut fd: c_int = 0;
   let mut omode: c_int = 0;
   let mut oflags: c_int = 0;
@@ -3855,12 +4141,16 @@ pub unsafe extern "C-unwind" fn emacs_fopen (file: *const c_char, mode: *const c
 
   fd = emacs_open (file, omode | oflags | bflag, 0o666);
   return if fd < 0 { std::ptr::null_mut () } else { emacs_fdopen (fd, mode) };
+
+  }
 }
 
 /* Create a pipe for Emacs use.  */
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn emacs_pipe (fd: *mut c_int) -> c_int {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   // C 2569-2573: `#ifdef MSDOS` is dead; carried.
   #[cfg (feature = "msdos")]
   {
@@ -3869,6 +4159,8 @@ pub unsafe extern "C-unwind" fn emacs_pipe (fd: *mut c_int) -> c_int {
   #[cfg (not (feature = "msdos"))]
   {
     return pipe2! (fd, O_BINARY | O_CLOEXEC);   /* C: `pipe2` is unistd.in.h 1831's rename */
+  }
+
   }
 }
 
@@ -3884,6 +4176,8 @@ pub unsafe extern "C-unwind" fn emacs_pipe (fd: *mut c_int) -> c_int {
 pub const POSIX_CLOSE_RESTART: c_int = 1;
 
 unsafe fn posix_close (fd: c_int, flag: c_int) -> c_int {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* Only the POSIX_CLOSE_RESTART case is emulated.  */
   eassert! (flag == POSIX_CLOSE_RESTART);
 
@@ -3902,6 +4196,8 @@ unsafe fn posix_close (fd: c_int, flag: c_int) -> c_int {
      leak a file descriptor on other systems, the leak is unlikely and
      it's better to leak than to close a random victim.  */
   return if close (fd) == 0 || *errno () == EINTR { 0 } else { -1 };
+
+  }
 }
 
 /* Close FD, retrying if interrupted.  If successful, return 0;
@@ -3915,6 +4211,8 @@ unsafe fn posix_close (fd: c_int, flag: c_int) -> c_int {
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn emacs_close (fd: c_int) -> c_int {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut r: c_int;
 
   loop
@@ -3940,6 +4238,8 @@ pub unsafe extern "C-unwind" fn emacs_close (fd: c_int) -> c_int {
 	  return if *errno () == EINPROGRESS { 0 } else { r };
 	}
     }
+
+  }
 }
 
 /* Wrapper around fdopen.  On Android, this calls `android_fclose' to
@@ -3947,6 +4247,8 @@ pub unsafe extern "C-unwind" fn emacs_close (fd: c_int) -> c_int {
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn emacs_fdopen (fd: c_int, mode: *const c_char) -> *mut FILE {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   // C 2649-2653: `#if !(defined HAVE_ANDROID && !defined ANDROID_STUBIFY)` is live.
   #[cfg (not (feature = "have_android"))]
   {
@@ -3955,6 +4257,8 @@ pub unsafe extern "C-unwind" fn emacs_fdopen (fd: c_int, mode: *const c_char) ->
   #[cfg (feature = "have_android")]
   {
     return android_fdopen (fd, mode);
+  }
+
   }
 }
 
@@ -3975,6 +4279,8 @@ pub unsafe extern "C-unwind" fn emacs_fclose (stream: *mut FILE) -> c_int {
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn emacs_unlink (name: *const c_char) -> c_int {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   // C 2675-2679: the non-Android arm is live; the Android arm is carried.
   #[cfg (not (feature = "have_android"))]
   {
@@ -3984,11 +4290,15 @@ pub unsafe extern "C-unwind" fn emacs_unlink (name: *const c_char) -> c_int {
   {
     return android_unlink (name);
   }
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn emacs_symlink (target: *const c_char, linkname: *const c_char)
   -> c_int {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   // C 2685-2689: the non-Android arm is live; the Android arm is carried.
   #[cfg (not (feature = "have_android"))]
   {
@@ -3998,10 +4308,14 @@ pub unsafe extern "C-unwind" fn emacs_symlink (target: *const c_char, linkname: 
   {
     return android_symlink (target, linkname);
   }
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn emacs_rmdir (dirname: *const c_char) -> c_int {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   // C 2695-2699: the non-Android arm is live; the Android arm is carried.
   #[cfg (not (feature = "have_android"))]
   {
@@ -4011,10 +4325,14 @@ pub unsafe extern "C-unwind" fn emacs_rmdir (dirname: *const c_char) -> c_int {
   {
     return android_rmdir (dirname);
   }
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn emacs_mkdir (dirname: *const c_char, mode: mode_t) -> c_int {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   // C 2705-2709: the non-Android arm is live; the Android arm is carried.
   #[cfg (not (feature = "have_android"))]
   {
@@ -4024,12 +4342,16 @@ pub unsafe extern "C-unwind" fn emacs_mkdir (dirname: *const c_char, mode: mode_
   {
     return android_mkdir (dirname, mode);
   }
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn emacs_renameat_noreplace (srcfd: c_int, src: *const c_char,
                                                    dstfd: c_int, dst: *const c_char)
   -> c_int {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   // C 2716-2720: the non-Android arm is live; the Android arm is carried.
   #[cfg (not (feature = "have_android"))]
   {
@@ -4039,10 +4361,14 @@ pub unsafe extern "C-unwind" fn emacs_renameat_noreplace (srcfd: c_int, src: *co
   {
     return android_renameat_noreplace (srcfd, src, dstfd, dst);
   }
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn emacs_rename (src: *const c_char, dst: *const c_char) -> c_int {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   // C 2726-2730: the non-Android arm is live; the Android arm is carried.
   #[cfg (not (feature = "have_android"))]
   {
@@ -4052,11 +4378,15 @@ pub unsafe extern "C-unwind" fn emacs_rename (src: *const c_char, dst: *const c_
   {
     return android_rename (src, dst);
   }
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn emacs_fchmodat (fd: c_int, path: *const c_char, mode: mode_t,
                                          flags: c_int) -> c_int {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   // C 2736-2740: the non-Android arm is live; the Android arm is carried.
   #[cfg (not (feature = "have_android"))]
   {
@@ -4065,6 +4395,8 @@ pub unsafe extern "C-unwind" fn emacs_fchmodat (fd: c_int, path: *const c_char, 
   #[cfg (feature = "have_android")]
   {
     return android_fchmodat (fd, path, mode, flags);
+  }
+
   }
 }
 
@@ -4102,6 +4434,8 @@ pub const SYS_BUFSIZE_MAX: ptrdiff_t = ((INT_MAX >> 20) << 20) as ptrdiff_t;
    On error, set errno to a value other than EINTR, and return -1.  */
 unsafe fn emacs_intr_read (fd: c_int, buf: *mut c_void, nbyte: ptrdiff_t,
                            interruptible: bool) -> ptrdiff_t {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* No caller should ever pass a too-large size to emacs_read.  */
   eassert! (nbyte <= SYS_BUFSIZE_MAX);
 
@@ -4117,6 +4451,8 @@ unsafe fn emacs_intr_read (fd: c_int, buf: *mut c_void, nbyte: ptrdiff_t,
     }
 
   return result as ptrdiff_t;
+
+  }
 }
 
 /* Read from FD to a buffer BUF with size NBYTE.
@@ -4126,14 +4462,22 @@ unsafe fn emacs_intr_read (fd: c_int, buf: *mut c_void, nbyte: ptrdiff_t,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn emacs_read (fd: c_int, buf: *mut c_void, nbyte: ptrdiff_t)
   -> ptrdiff_t {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   return emacs_intr_read (fd, buf, nbyte, false);
+
+  }
 }
 
 /* Like emacs_read, but also process quits and pending signals.  */
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn emacs_read_quit (fd: c_int, buf: *mut c_void, nbyte: ptrdiff_t)
   -> ptrdiff_t {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   return emacs_intr_read (fd, buf, nbyte, true);
+
+  }
 }
 
 /* Write to FILEDES from a buffer BUF with size NBYTE, retrying if
@@ -4144,6 +4488,8 @@ pub unsafe extern "C-unwind" fn emacs_read_quit (fd: c_int, buf: *mut c_void, nb
    other than EINTR.  */
 unsafe fn emacs_full_write (fd: c_int, buf: *const c_char, mut nbyte: ptrdiff_t,
 			    interruptible: c_int) -> ptrdiff_t {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut bytes_written: ptrdiff_t = 0;
   let mut buf: *const c_char = buf;
 
@@ -4174,6 +4520,8 @@ unsafe fn emacs_full_write (fd: c_int, buf: *const c_char, mut nbyte: ptrdiff_t,
     }
 
   return bytes_written;
+
+  }
 }
 
 /* Write to FD from a buffer BUF with size NBYTE, retrying if
@@ -4183,21 +4531,33 @@ unsafe fn emacs_full_write (fd: c_int, buf: *const c_char, mut nbyte: ptrdiff_t,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn emacs_write (fd: c_int, buf: *const c_void, nbyte: ptrdiff_t)
   -> ptrdiff_t {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   return emacs_full_write (fd, buf as *const c_char, nbyte, 0);
+
+  }
 }
 
 /* Like emacs_write, but also process pending signals.  */
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn emacs_write_sig (fd: c_int, buf: *const c_void, nbyte: ptrdiff_t)
   -> ptrdiff_t {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   return emacs_full_write (fd, buf as *const c_char, nbyte, -1);
+
+  }
 }
 
 /* Like emacs_write, but also process quits and pending signals.  */
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn emacs_write_quit (fd: c_int, buf: *const c_void, nbyte: ptrdiff_t)
   -> ptrdiff_t {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   return emacs_full_write (fd, buf as *const c_char, nbyte, 1);
+
+  }
 }
 
 /* Write a diagnostic to standard error that contains MESSAGE and a
@@ -4205,6 +4565,8 @@ pub unsafe extern "C-unwind" fn emacs_write_quit (fd: c_int, buf: *const c_void,
    Do not process quits or pending signals if interrupted.  */
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn emacs_perror (message: *const c_char) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let err: c_int = *errno ();
   let error_string: *const c_char = emacs_strerror (err);
   let command: *const c_char = if !initial_argv0.is_null () { initial_argv0 }
@@ -4231,29 +4593,39 @@ pub unsafe extern "C-unwind" fn emacs_perror (message: *const c_char) {
       emacs_write (STDERR_FILENO, c"\n".as_ptr () as *const c_void, 1);
     }
   *errno () = err;
+
+  }
 }
 
 /* Like strsignal, except async-signal-safe, and this function
    returns a string in the C locale rather than the current locale.  */
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn safe_strsignal (code: c_int) -> *const c_char {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut signame: *const c_char = sigdescr_np (code);
 
   if signame.is_null ()
     { signame = c"Unknown signal".as_ptr (); }
 
   return signame;
+
+  }
 }
 
 /* Output to stderr.  */
 
 /* Return the error output stream.  */
 unsafe fn errstream () -> *mut FILE {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let err: *mut FILE = buferr;
   if err.is_null ()
     { return stderr; }
   fflush_unlocked! (stderr);
   return err;
+
+  }
 }
 
 /* These functions are like fputc, vfprintf, and fwrite,
@@ -4267,6 +4639,8 @@ unsafe fn errstream () -> *mut FILE {
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn errputc (c: c_int) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   fputc_unlocked! (c, errstream ());
 
   /* C 2932-2937: `#ifdef WINDOWSNT` is dead; carried.  */
@@ -4277,17 +4651,25 @@ pub unsafe extern "C-unwind" fn errputc (c: c_int) {
     if c == b'\n' as c_int
       { fflush_unlocked! (stderr); }
   }
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn errwrite (buf: *const c_void, nbuf: ptrdiff_t) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   fwrite_unlocked! (buf, 1, nbuf as usize, errstream ());
+
+  }
 }
 
 /* Close standard output and standard error, reporting any write
    errors as best we can.  This is intended for use with atexit.  */
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn close_output_streams () {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* Android comes with some kind of ``file descriptor sanitizer''
      that aborts when stdout or stderr is closed.  (bug#65340)
 
@@ -4321,12 +4703,16 @@ pub unsafe extern "C" fn close_output_streams () {
     if (err | sanitizer_err) != 0
       { _exit (EXIT_FAILURE); }
   }
+
+  }
 }
 
 // C 2978: `#ifndef DOS_NT` — live.
 /* For make-serial-process  */
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn serial_open (port: Lisp_Object) -> c_int {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let fd: c_int = emacs_open (SSDATA (port), O_RDWR | O_NOCTTY | O_NONBLOCK, 0);
   /* C 2984-2987: `#ifdef TIOCEXCL` is live.  */
   {
@@ -4335,6 +4721,8 @@ pub unsafe extern "C-unwind" fn serial_open (port: Lisp_Object) -> c_int {
   }
 
   return fd;
+
+  }
 }
 
 // C 2992-3004: `#if !defined (HAVE_CFMAKERAW)` is dead (`HAVE_CFMAKERAW` is 1); carried.
@@ -4456,6 +4844,8 @@ unsafe fn convert_speed (speed: speed_t) -> speed_t {
 /* For serial-process-configure  */
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn serial_configure (p: *mut Lisp_Process, contact: Lisp_Object) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut childp2: Lisp_Object = Qnil ();
   let mut tem: Lisp_Object = Qnil ();
   let mut attr: termios = std::mem::zeroed ();
@@ -4605,6 +4995,8 @@ pub unsafe extern "C-unwind" fn serial_configure (p: *mut Lisp_Process, contact:
 
   childp2 = plist_put (childp2, QCsummary (), build_string (summary.as_ptr ()));
   pset_childp (p, childp2);
+
+  }
 }
 
 /* System depended enumeration of and access to system processes a-la ps(1).  */
@@ -4659,6 +5051,8 @@ pub unsafe extern "C-unwind" fn list_system_processes () -> Lisp_Object {
             any (target_os = "macos", target_os = "freebsd", target_os = "openbsd")))]
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn list_system_processes () -> Lisp_Object {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* C 3351-3358's three arrays, each with its own length: Darwin's is **three** entries
      (`{CTL_KERN, KERN_PROC, KERN_PROC_ALL}`), OpenBSD's six (`KERN_PROC_ALL, 0,
      sizeof (struct kinfo_proc), 4096`) and FreeBSD's three with `KERN_PROC_PROC`.  The port had
@@ -4706,6 +5100,8 @@ pub unsafe extern "C-unwind" fn list_system_processes () -> Lisp_Object {
   xfree (procs as *mut c_void);
 
   return  proclist;
+
+  }
 }
 
 /* The WINDOWSNT implementation is in w32.c.
@@ -4726,16 +5122,24 @@ pub unsafe extern "C-unwind" fn list_system_processes () -> Lisp_Object {
 // C 3406-3419: `#if (HAVE_GETRUSAGE || defined __FreeBSD__ || defined DARWIN_OS || defined
 // __OpenBSD__)` — live (`HAVE_GETRUSAGE` is 1).
 unsafe fn make_lisp_s_us (s: time_t, us: c_long) -> Lisp_Object {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let sec: Lisp_Object = make_int (s as intmax_t);
   let usec: Lisp_Object = make_fixnum (us as EMACS_INT);
   let hz: Lisp_Object = make_fixnum (1000000);
   let ticks: Lisp_Object = CALLN! (Fplus, CALLN! (Ftimes, sec, hz), usec);
   return Ftime_convert (Fcons (ticks, hz), Qnil ());
+
+  }
 }
 
 // C 3421-3429: `#if defined __FreeBSD__ || defined DARWIN_OS` — live (DARWIN_OS).
 unsafe fn make_lisp_timeval (t: timeval) -> Lisp_Object {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   return make_lisp_s_us (t.tv_sec, t.tv_usec as c_long);
+
+  }
 }
 
 // C 3431-3810: `#if defined (GNU_LINUX) || defined (CYGWIN) || defined __ANDROID__` — dead;
@@ -5777,6 +6181,8 @@ pub const HAVE_PROC_PIDINFO: bool = __MAC_OS_X_VERSION_MIN_REQUIRED >= 1050;
             not (feature = "freebsd"), not (feature = "openbsd"), any (target_os = "macos")))]
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn system_process_attributes (pid: Lisp_Object) -> Lisp_Object {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut proc_id: c_int = 0;
   let mut i: c_int;
   let mut pw: *mut passwd;
@@ -6022,6 +6428,8 @@ pub unsafe extern "C-unwind" fn system_process_attributes (pid: Lisp_Object) -> 
   }
 
   return attrs;
+
+  }
 }
 
 /// `<sys/param.h>`: `#define ARG_MAX (1024 * 1024)` (measured on this target).
@@ -6319,8 +6727,12 @@ pub unsafe extern "C-unwind" fn str_collate (s1: Lisp_Object, s2: Lisp_Object, l
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_sysdep () {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* PORTING.md P-126: sample the diagnostic switch here, where no handler can be running yet.  */
   FEMACS_CHILD_TRACE.store (! getenv (c"FEMACS_CHILD_TRACE".as_ptr ()).is_null (),
                             core::sync::atomic::Ordering::Relaxed);
   defsubr (&raw mut Sget_internal_run_time);
+
+  }
 }

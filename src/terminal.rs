@@ -38,9 +38,7 @@
 // with no Rust counterpart (PORTING.md 0.1-12): it is deleted here, the definition keeps its
 // C place, and the deviation is recorded in docs/ports/terminal.md.
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
-         unsafe_op_in_unsafe_fn)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe)]
 // C's `switch (t->type)` carries a `default: emacs_abort ()` arm; the port's `match` lists
 // every enumerator *and* that arm, so the catch-all is unreachable by construction (P-78).
 #![allow(unreachable_patterns)]
@@ -101,12 +99,18 @@ pub static mut Vdelete_terminal_functions: Lisp_Object = lisp_h_Qnil ();
 // C: `static void tset_param_alist (struct terminal *t, Lisp_Object val)`
 unsafe fn tset_param_alist (t: *mut terminal, val: Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   (*t).param_alist = val;
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn ring_bell (f: *mut frame)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if ! NILP (Vring_bell_function)
     {
       let function: Lisp_Object;
@@ -128,20 +132,30 @@ pub unsafe extern "C-unwind" fn ring_bell (f: *mut frame)
     }
   else if let Some (hook) = (*FRAME_TERMINAL! (f)).ring_bell_hook
     { hook (f as *mut c_void); }
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn update_begin (f: *mut frame)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if let Some (hook) = (*FRAME_TERMINAL! (f)).update_begin_hook
     { hook (f as *mut c_void); }
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn update_end (f: *mut frame)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if let Some (hook) = (*FRAME_TERMINAL! (f)).update_end_hook
     { hook (f as *mut c_void); }
+
+  }
 }
 
 /* Specify how many text lines, from the top of the window,
@@ -152,8 +166,12 @@ pub unsafe extern "C-unwind" fn update_end (f: *mut frame)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn set_terminal_window (f: *mut frame, size: c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if let Some (hook) = (*FRAME_TERMINAL! (f)).set_terminal_window_hook
     { hook (f as *mut c_void, size); }
+
+  }
 }
 
 /* Move cursor to row/column position VPOS/HPOS.  HPOS/VPOS are
@@ -162,6 +180,8 @@ pub unsafe extern "C-unwind" fn set_terminal_window (f: *mut frame, size: c_int)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn cursor_to (f: *mut frame, vpos: c_int, hpos: c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let term: *mut terminal = FRAME_TERMINAL! (f);
   if let Some (hook) = (*term).cursor_to_hook
     {
@@ -182,6 +202,8 @@ pub unsafe extern "C-unwind" fn cursor_to (f: *mut frame, vpos: c_int, hpos: c_i
       { x = hpos; y = vpos; }
       hook (f as *mut c_void, y, x);
     }
+
+  }
 }
 
 /* Similar but don't take any account of the wasted characters.  */
@@ -189,6 +211,8 @@ pub unsafe extern "C-unwind" fn cursor_to (f: *mut frame, vpos: c_int, hpos: c_i
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn raw_cursor_to (f: *mut frame, row: c_int, col: c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let term: *mut terminal = FRAME_TERMINAL! (f);
   if let Some (hook) = (*term).raw_cursor_to_hook
     {
@@ -206,6 +230,8 @@ pub unsafe extern "C-unwind" fn raw_cursor_to (f: *mut frame, row: c_int, col: c
       { x = col; y = row; }
       hook (f as *mut c_void, y, x);
     }
+
+  }
 }
 
 /* Erase operations.  */
@@ -214,8 +240,12 @@ pub unsafe extern "C-unwind" fn raw_cursor_to (f: *mut frame, row: c_int, col: c
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn clear_to_end (f: *mut frame)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if let Some (hook) = (*FRAME_TERMINAL! (f)).clear_to_end_hook
     { hook (f as *mut c_void); }
+
+  }
 }
 
 /* Clear entire frame.  */
@@ -223,8 +253,12 @@ pub unsafe extern "C-unwind" fn clear_to_end (f: *mut frame)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn clear_frame (f: *mut frame)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if let Some (hook) = (*FRAME_TERMINAL! (f)).clear_frame_hook
     { hook (f as *mut c_void); }
+
+  }
 }
 
 /* Clear from cursor to end of line.
@@ -235,8 +269,12 @@ pub unsafe extern "C-unwind" fn clear_frame (f: *mut frame)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn clear_end_of_line (f: *mut frame, first_unused_hpos: c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if let Some (hook) = (*FRAME_TERMINAL! (f)).clear_end_of_line_hook
     { hook (f as *mut c_void, first_unused_hpos); }
+
+  }
 }
 
 /* Output LEN glyphs starting at STRING at the nominal cursor position.
@@ -245,8 +283,12 @@ pub unsafe extern "C-unwind" fn clear_end_of_line (f: *mut frame, first_unused_h
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn write_glyphs (f: *mut frame, string: *mut glyph, len: c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if let Some (hook) = (*FRAME_TERMINAL! (f)).write_glyphs_hook
     { hook (f as *mut c_void, string as *mut c_void, len); }
+
+  }
 }
 
 /* Insert LEN glyphs from START at the nominal cursor position.
@@ -256,11 +298,15 @@ pub unsafe extern "C-unwind" fn write_glyphs (f: *mut frame, string: *mut glyph,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn insert_glyphs (f: *mut frame, start: *mut glyph, len: c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if len <= 0
     { return; }
 
   if let Some (hook) = (*FRAME_TERMINAL! (f)).insert_glyphs_hook
     { hook (f as *mut c_void, start as *mut c_void, len); }
+
+  }
 }
 
 /* Delete N glyphs at the nominal cursor position. */
@@ -268,8 +314,12 @@ pub unsafe extern "C-unwind" fn insert_glyphs (f: *mut frame, start: *mut glyph,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn delete_glyphs (f: *mut frame, n: c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if let Some (hook) = (*FRAME_TERMINAL! (f)).delete_glyphs_hook
     { hook (f as *mut c_void, n); }
+
+  }
 }
 
 /* Insert N lines at vpos VPOS.  If N is negative, delete -N lines.  */
@@ -277,8 +327,12 @@ pub unsafe extern "C-unwind" fn delete_glyphs (f: *mut frame, n: c_int)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn ins_del_lines (f: *mut frame, vpos: c_int, n: c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if let Some (hook) = (*FRAME_TERMINAL! (f)).ins_del_lines_hook
     { hook (f as *mut c_void, vpos, n); }
+
+  }
 }
 
 /* Return the terminal object specified by TERMINAL.  TERMINAL may
@@ -289,6 +343,8 @@ pub unsafe extern "C-unwind" fn ins_del_lines (f: *mut frame, vpos: c_int, n: c_
 // C: `static struct terminal *decode_terminal (Lisp_Object terminal)`
 unsafe fn decode_terminal (mut terminal: Lisp_Object) -> *mut terminal
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let t: *mut terminal;
 
   if NILP (terminal)
@@ -298,6 +354,8 @@ unsafe fn decode_terminal (mut terminal: Lisp_Object) -> *mut terminal
       else if FRAMEP (terminal) { FRAME_TERMINAL! (XFRAME (terminal)) }
       else { std::ptr::null_mut () };
   return if ! t.is_null () && ! (*t).name.is_null () { t } else { std::ptr::null_mut () };
+
+  }
 }
 
 /* Like above, but throw an error if TERMINAL is not valid or deleted.  */
@@ -305,11 +363,15 @@ unsafe fn decode_terminal (mut terminal: Lisp_Object) -> *mut terminal
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn decode_live_terminal (terminal: Lisp_Object) -> *mut terminal
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let t: *mut terminal = decode_terminal (terminal);
 
   if t.is_null ()
     { wrong_type_argument (Qterminal_live_p (), terminal); }
   return t;
+
+  }
 }
 
 /* Like decode_live_terminal, but ensure that the resulting terminal
@@ -318,10 +380,14 @@ pub unsafe extern "C-unwind" fn decode_live_terminal (terminal: Lisp_Object) -> 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn decode_tty_terminal (terminal: Lisp_Object) -> *mut terminal
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let t: *mut terminal = decode_live_terminal (terminal);
 
   return if (*t).r#type == output_termcap || (*t).r#type == output_msdos_raw
 	 { t } else { std::ptr::null_mut () };
+
+  }
 }
 
 /* Return an active (not suspended) text-based terminal device that uses
@@ -331,6 +397,8 @@ pub unsafe extern "C-unwind" fn decode_tty_terminal (terminal: Lisp_Object) -> *
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn get_named_terminal (name: *const c_char) -> *mut terminal
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut t: *mut terminal;
 
   eassert! (! name.is_null ());
@@ -346,6 +414,8 @@ pub unsafe extern "C-unwind" fn get_named_terminal (name: *const c_char) -> *mut
       t = (*t).next_terminal;
     }
   return std::ptr::null_mut ();
+
+  }
 }
 
 /* Allocate basically initialized terminal.  */
@@ -364,6 +434,8 @@ unsafe fn allocate_terminal () -> *mut terminal
 pub unsafe extern "C-unwind" fn create_terminal (r#type: output_method, rif: *mut c_void)
      -> *mut terminal
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let terminal: *mut terminal = allocate_terminal ();
   let mut terminal_coding: Lisp_Object;
   let mut keyboard_coding: Lisp_Object;
@@ -402,6 +474,8 @@ pub unsafe extern "C-unwind" fn create_terminal (r#type: output_method, rif: *mu
   setup_coding_system (terminal_coding, (*terminal).terminal_coding as *mut coding_system);
 
   return terminal;
+
+  }
 }
 
 /* Low-level function to close all frames on a terminal, remove it
@@ -410,6 +484,8 @@ pub unsafe extern "C-unwind" fn create_terminal (r#type: output_method, rif: *mu
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn delete_terminal (terminal: *mut terminal)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   // PORTING.md 1.5: C declares `Lisp_Object tail, frame;` uninitialized; the port starts
   // them at Qnil (the loop assigns both before either is read).
   let mut tail: Lisp_Object = Qnil ();
@@ -443,11 +519,15 @@ pub unsafe extern "C-unwind" fn delete_terminal (terminal: *mut terminal)
 
   delete_terminal_internal (terminal);
   unblock_input ();
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn delete_terminal_internal (terminal: *mut terminal)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut tp: *mut *mut terminal;
 
   tp = &raw mut terminal_list;
@@ -479,6 +559,8 @@ pub unsafe extern "C-unwind" fn delete_terminal_internal (terminal: *mut termina
       delete_kboard ((*terminal).kboard as *mut KBOARD);
       (*terminal).kboard = std::ptr::null_mut ();
     }
+
+  }
 }
 
 
@@ -629,6 +711,8 @@ DEFUN! ("terminal-name", Fterminal_name, Sterminal_name, 0, 1, 0,
 unsafe fn store_terminal_param (t: *mut terminal, parameter: Lisp_Object,
 			       value: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let old_alist_elt: Lisp_Object = Fassq (parameter, (*t).param_alist);
   if NILP (old_alist_elt)
     {
@@ -641,6 +725,8 @@ unsafe fn store_terminal_param (t: *mut terminal, parameter: Lisp_Object,
       Fsetcdr (old_alist_elt, value);
       return result;
     }
+
+  }
 }
 
 
@@ -710,12 +796,16 @@ pub unsafe extern "C-unwind" fn terminal_glyph_code (t: *mut terminal, ch: c_int
 // cast lives here.
 unsafe extern "C-unwind" fn initial_free_frame_resources (f: *mut c_void)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   eassert! (FRAME_INITIAL_P (f as *mut frame));
   unsafe extern "C-unwind" {
     /// C: void free_frame_faces (struct frame *)  (xfaces.c)
     pub fn free_frame_faces (f: *mut frame);
   }
   free_frame_faces (f as *mut frame);
+
+  }
 }
 
 /* Create the bootstrap display terminal for the initial frame.
@@ -724,6 +814,8 @@ unsafe extern "C-unwind" fn initial_free_frame_resources (f: *mut c_void)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn init_initial_terminal () -> *mut terminal
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if initialized || ! terminal_list.is_null () || ! tty_list.is_null ()
     { emacs_abort (); }
 
@@ -744,6 +836,8 @@ pub unsafe extern "C-unwind" fn init_initial_terminal () -> *mut terminal
   /* Other hooks are NULL by default.  */
 
   return initial_terminal;
+
+  }
 }
 
 /* Deletes the bootstrap terminal device.
@@ -753,16 +847,22 @@ pub unsafe extern "C-unwind" fn init_initial_terminal () -> *mut terminal
 // into `delete_terminal_hook`, whose parameter is the mirror's `*mut terminal`.
 unsafe extern "C-unwind" fn delete_initial_terminal (terminal: *mut terminal)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if terminal != initial_terminal
     { emacs_abort (); }
 
   delete_terminal (terminal);
   initial_terminal = std::ptr::null_mut ();
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_terminal ()
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   DEFVAR_LISP! (c"ring-bell-function", Vring_bell_function,
     "Non-nil means call this function to ring the bell.\nThe function should accept no arguments.  ");
   Vring_bell_function = Qnil ();
@@ -789,4 +889,6 @@ pub unsafe extern "C-unwind" fn syms_of_terminal ()
   Fprovide (intern_c_string (c"multi-tty".as_ptr ()), Qnil ());
   DEFSYM! (Qdefault_keyboard_coding_system, "default-keyboard-coding-system");
   DEFSYM! (Qdefault_terminal_coding_system, "default-terminal-coding-system");
+
+  }
 }

@@ -24,11 +24,7 @@
 // way C's preprocessor makes them differ (`fn_inflate (...)` against `inflate (...)`), and
 // `docs/ports/decompress.md` records that class with the rest.
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
-         unsafe_op_in_unsafe_fn, unused_assignments, unused_parens, unused_mut,
-         unreachable_code, unused_labels, while_true, unused_comparisons,
-         overflowing_literals, unused_must_use, clippy::all)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe, unused_assignments, unused_parens, unused_mut, unreachable_code, unused_labels, while_true, unused_comparisons, overflowing_literals, unused_must_use, clippy::all)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -303,30 +299,37 @@ static mut acc_size: ptrdiff_t = 0;
 #[cfg (all (feature = "have_zlib", feature = "have_native_comp"))]
 unsafe fn accumulate_and_process_md5 (data: *mut c_void, len: ptrdiff_t, ctxt: *mut md5_ctx)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   eassert! (len <= MD5_BLOCKSIZE as ptrdiff_t);
   /* We may optimize this saving some of these memcpy/move using
      directly the outer buffers but so far don't bother.  */
-  memcpy (acc_buff.as_mut_ptr ().offset (acc_size) as *mut c_void, data, len as usize);
+  let buf_ptr: *mut c_uchar = (&raw mut acc_buff).cast::<c_uchar> ();
+  memcpy (buf_ptr.offset (acc_size) as *mut c_void, data, len as usize);
   acc_size += len;
   if acc_size >= MD5_BLOCKSIZE as ptrdiff_t
     {
       acc_size -= MD5_BLOCKSIZE as ptrdiff_t;
-      md5_process_block (acc_buff.as_ptr () as *const c_void, MD5_BLOCKSIZE, ctxt);
-      memmove (acc_buff.as_mut_ptr () as *mut c_void,
-               acc_buff.as_ptr ().offset (MD5_BLOCKSIZE as isize) as *const c_void,
+      md5_process_block (buf_ptr as *const c_void, MD5_BLOCKSIZE, ctxt);
+      memmove (buf_ptr as *mut c_void,
+               buf_ptr.offset (MD5_BLOCKSIZE as isize) as *const c_void,
                acc_size as usize);
     }
+  }
 }
 
 /// C 91-99: `final_process_md5`.
 #[cfg (all (feature = "have_zlib", feature = "have_native_comp"))]
 unsafe fn final_process_md5 (ctxt: *mut md5_ctx)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if acc_size != 0
     {
-      md5_process_bytes (acc_buff.as_ptr () as *const c_void, acc_size as usize, ctxt);
+      md5_process_bytes ((&raw const acc_buff).cast::<c_void> (), acc_size as usize, ctxt);
       acc_size = 0;
     }
+  }
 }
 
 /// C 101-165: `md5_gz_stream`, one of the file's two non-`static` definitions.  The two 32K
@@ -336,6 +339,8 @@ unsafe fn final_process_md5 (ctxt: *mut md5_ctx)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn md5_gz_stream (source: *mut FILE, resblock: *mut c_void) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut stream: z_stream = std::mem::zeroed ();
   let mut r#in: [c_uchar; MD5_BLOCKSIZE] = std::mem::zeroed ();
   let mut out: [c_uchar; MD5_BLOCKSIZE] = std::mem::zeroed ();
@@ -413,6 +418,7 @@ pub unsafe extern "C-unwind" fn md5_gz_stream (source: *mut FILE, resblock: *mut
   md5_finish_ctx (&mut ctx, resblock);
 
   return 0;
+  }
 }
 
 /* ----------------------------------------------------------------------------------------------
@@ -435,6 +441,8 @@ pub struct decompress_unwind_data
 #[cfg (feature = "have_zlib")]
 unsafe extern "C-unwind" fn unwind_decompress (ddata: *mut c_void)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let data: *mut decompress_unwind_data = ddata as *mut decompress_unwind_data;
   #[cfg (not (feature = "windowsnt"))]
   { inflateEnd ((*data).stream); }
@@ -458,6 +466,8 @@ unsafe extern "C-unwind" fn unwind_decompress (ddata: *mut c_void)
      compressed data is bigger than the uncompressed, at
      point-max.  */
   SET_PT (min ((*data).old_point, ZV! ()));
+
+  }
 }
 
 #[cfg (feature = "have_zlib")]
@@ -622,6 +632,10 @@ unsafe extern "C-unwind" {
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_decompress ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   defsubr (&raw mut Szlib_decompress_region);
   defsubr (&raw mut Szlib_available_p);
+
+  }
 }

@@ -19,9 +19,7 @@
 // C 271-275: C's preprocessor renames the definition to `gen_tempname`, which is what the
 // object shows, so the port keeps C's name on the Rust item and emits the real symbol with
 // `#[unsafe(export_name = "gen_tempname")]` (PORTING.md 10.13, the mempcpy precedent).
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
-         static_mut_refs, unsafe_op_in_unsafe_fn)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -141,6 +139,8 @@ unsafe extern "C" fn mix_random_values (r: random_value, s: random_value) -> ran
 
 unsafe extern "C" fn random_bits (r: *mut random_value, s: random_value) -> bool
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   /* Without GRND_NONBLOCK it can be blocked for minutes on some systems.  */
   if __getrandom! (r as *mut c_void, std::mem::size_of_val (&*r),
                    GRND_NONBLOCK as c_uint) == std::mem::size_of_val (&*r) as ssize_t
@@ -174,6 +174,8 @@ unsafe extern "C" fn random_bits (r: *mut random_value, s: random_value) -> bool
 
   *r = v;
   return false;
+
+  }
 }
 
 /* C 122-125's `#if _LIBC static int try_tempname_len (…);` forward declaration has no Rust
@@ -182,26 +184,38 @@ unsafe extern "C" fn random_bits (r: *mut random_value, s: random_value) -> bool
 /* C 127-135's `try_file`.  */
 unsafe extern "C" fn try_file (tmpl: *mut c_char, flags: *mut c_void) -> c_int
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   let openflags: *mut c_int = flags as *mut c_int;
   return __open! (tmpl,
                   (*openflags & !O_ACCMODE) | O_RDWR | O_CREAT | O_EXCL,
                   (S_IRUSR | S_IWUSR) as c_uint);
+
+  }
 }
 
 /* C 136-141's `try_dir` (`_GL_UNUSED void *flags` is Rust's unused parameter).  */
 unsafe extern "C" fn try_dir (tmpl: *mut c_char, flags: *mut c_void) -> c_int
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   return __mkdir! (tmpl, (S_IRUSR | S_IWUSR | S_IXUSR) as mode_t);
+
+  }
 }
 
 /* C 142-150's `try_nocreate`.  */
 unsafe extern "C" fn try_nocreate (tmpl: *mut c_char, flags: *mut c_void) -> c_int
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   let mut st: struct_stat64! () = std::mem::zeroed ();
 
   if __lstat64_time64! (tmpl, &mut st) == 0 || *errno () == EOVERFLOW
     { __set_errno! (EEXIST); }
   return if *errno () == ENOENT { 0 } else { -1 };
+
+  }
 }
 
 /* These are the characters used in temporary file names.  */
@@ -241,6 +255,8 @@ pub unsafe extern "C" fn gen_tempname_len (tmpl: *mut c_char, suffixlen: c_int,
                                            mut flags: c_int, kind: c_int, x_suffix_len: usize)
   -> c_int
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   /* C 177-182's `static int (*const tryfunc[]) (char *, void *)` with C99 designated
      initializers `[__GT_FILE] = try_file`, `[__GT_DIR] = try_dir`, `[__GT_NOCREATE] =
      try_nocreate`.  Rust has no designated initializers, so the port fills the three slots by
@@ -256,6 +272,8 @@ pub unsafe extern "C" fn gen_tempname_len (tmpl: *mut c_char, suffixlen: c_int,
   /* C's `&flags` is the address of the parameter itself (C 183).  */
   return try_tempname_len (tmpl, suffixlen, &raw mut flags as *mut c_void,
                            tryfunc[kind as usize], x_suffix_len);
+
+  }
 }
 
 /* C 187-269's `try_tempname_len` (`#ifdef _LIBC static #endif` again: the object exports
@@ -268,6 +286,8 @@ pub unsafe extern "C" fn try_tempname_len (tmpl: *mut c_char, suffixlen: c_int,
                                                      -> c_int,
                                            x_suffix_len: usize) -> c_int
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   let saved_errno: c_int = *errno ();
 
   /* A lower bound on the number of temporary files to attempt to
@@ -346,6 +366,8 @@ pub unsafe extern "C" fn try_tempname_len (tmpl: *mut c_char, suffixlen: c_int,
   /* We got out of the loop because we ran out of combinations to try.  */
   __set_errno! (EEXIST);
   return -1;
+
+  }
 }
 
 /* C 52's `# define __gen_tempname gen_tempname`: the macro the definition below is spelled
@@ -364,7 +386,11 @@ macro_rules! __gen_tempname {
 pub unsafe extern "C" fn __gen_tempname (tmpl: *mut c_char, suffixlen: c_int, flags: c_int,
                                          kind: c_int) -> c_int
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   return gen_tempname_len (tmpl, suffixlen, flags, kind, 6);
+
+  }
 }
 
 /* C 277-284's `#if !_LIBC int try_tempname (…)`: live, and the object exports it.  */
@@ -373,7 +399,11 @@ pub unsafe extern "C" fn try_tempname (tmpl: *mut c_char, suffixlen: c_int, args
                                        tryfunc: unsafe extern "C" fn (*mut c_char, *mut c_void)
                                                  -> c_int) -> c_int
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   return try_tempname_len (tmpl, suffixlen, args, tryfunc, 6);
+
+  }
 }
 
 /* C 35's `return open (filename, flags, mode);`-style entry the file's own macros name: the

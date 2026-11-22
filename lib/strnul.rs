@@ -23,6 +23,10 @@ mod strnul_unit {
   #[unsafe(export_name = "_gl_strnul")]
   pub unsafe extern "C" fn _gl_strnul (string: *const c_char) -> *const c_char
   {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
     return super::_gl_strnul (string);
+  
   }
+}
 }

@@ -34,16 +34,26 @@ use super::*;
     static mut INIT_IN_PROGRESS: bool = false;
     static mut CURRENT_SCOPE: *mut CompScopeGuard = std::ptr::null_mut();
     static mut CLEANUP_STATUS: u32 = 0;
-    pub(super) unsafe fn note_cleanup_failure(bits: u32) { CLEANUP_STATUS |= bits; }
+    pub(super) unsafe fn note_cleanup_failure(bits: u32) {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe { CLEANUP_STATUS |= bits; 
+  }
+}
 
     unsafe fn reserve() -> u64 {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
         let Some(token) = NEXT_CONTEXT_EPOCH.checked_add(1) else {
             error(c"Native compiler context identity exhausted".as_ptr());
         };
         NEXT_CONTEXT_EPOCH = token;
         token
-    }
+    
+  }
+}
     pub(super) unsafe fn reset_process() {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
         // Dumped pointers describe the writing process. Do not close/dereference
         // them in the fresh process, and never reuse cached emitter addresses.
         comp.ctxt = std::ptr::null_mut();
@@ -56,8 +66,12 @@ use super::*;
         INIT_IN_PROGRESS = false;
         CURRENT_SCOPE = std::ptr::null_mut();
         CLEANUP_STATUS = 0;
-    }
+    
+  }
+}
     unsafe fn release_matching(epoch: u64) {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
         if epoch == 0 || CURRENT_CONTEXT_EPOCH != epoch { return; }
         let context = comp.ctxt;
         let stream = logfile;
@@ -77,10 +91,18 @@ use super::*;
             { gcc_jit_context_release(context); }
         }
         if !stream.is_null() && emacs_fclose!(stream) != 0 { CLEANUP_STATUS |= 1; }
-    }
-    pub(super) unsafe fn release_public() { release_matching(CURRENT_CONTEXT_EPOCH); }
+    
+  }
+}
+    pub(super) unsafe fn release_public() {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe { release_matching(CURRENT_CONTEXT_EPOCH); 
+  }
+}
 
     unsafe extern "C-unwind" fn cleanup_init(pointer: *mut c_void) {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
         let guard = &mut *(pointer as *mut CompInitGuard);
         if !guard.armed { return; }
         if !guard.owned_ctxt.is_null() && guard.owned_ctxt == comp.ctxt {
@@ -91,8 +113,12 @@ use super::*;
         }
         INIT_IN_PROGRESS = false;
         guard.armed = false;
-    }
+    
+  }
+}
     pub(super) unsafe fn begin_init(guard: &mut CompInitGuard) {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
         if INIT_IN_PROGRESS || !comp.ctxt.is_null() {
             xsignal1(Qnative_ice(), build_string(c"compiler context already taken".as_ptr()));
         }
@@ -102,9 +128,13 @@ use super::*;
         record_unwind_protect_ptr(Some(cleanup_init), (guard as *mut CompInitGuard).cast());
         guard.armed = true;
         INIT_IN_PROGRESS = true;
-    }
+    
+  }
+}
     pub(super) unsafe fn emitters_ready(guard: &mut CompInitGuard) { guard.emitters_ready = true; }
     pub(super) unsafe fn acquire(guard: &mut CompInitGuard) {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
         let context = gcc_jit_context_acquire();
         if context.is_null() {
             xsignal1(Qnative_ice(), build_string(c"native compiler context acquisition failed".as_ptr()));
@@ -113,27 +143,43 @@ use super::*;
         comp.ctxt = context;
         CURRENT_CONTEXT_EPOCH = guard.token;
         CONTEXT_SCOPE_TOKEN = if CURRENT_SCOPE.is_null() { 0 } else { (*CURRENT_SCOPE).token };
-    }
+    
+  }
+}
     pub(super) unsafe fn finish_init(guard: &mut CompInitGuard) {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
         let message = gcc_jit_context_get_first_error(comp.ctxt);
         if !message.is_null() { xsignal1(Qnative_ice(), build_string(message)); }
         INIT_IN_PROGRESS = false;
         guard.armed = false;
-    }
+    
+  }
+}
     unsafe extern "C-unwind" fn mark_scope(pointer: *mut c_void) {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
         let guard = &*(pointer as *const CompScopeGuard);
         mark_object(guard.callback);
         mark_object(guard.result);
-    }
+    
+  }
+}
     unsafe extern "C-unwind" fn cleanup_scope(pointer: *mut c_void) {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
         let guard = &mut *(pointer as *mut CompScopeGuard);
         if !guard.armed { return; }
         if CONTEXT_SCOPE_TOKEN == guard.token { release_matching(CURRENT_CONTEXT_EPOCH); }
         if CURRENT_SCOPE == guard as *mut CompScopeGuard { CURRENT_SCOPE = guard.previous_scope; }
         else { CLEANUP_STATUS |= 4; }
         guard.armed = false;
-    }
+    
+  }
+}
     pub(super) unsafe fn begin_scope(guard: &mut CompScopeGuard) {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
         if INIT_IN_PROGRESS || !comp.ctxt.is_null() {
             xsignal1(Qnative_ice(), build_string(c"compiler context already taken".as_ptr()));
         }
@@ -143,11 +189,17 @@ use super::*;
             (guard as *mut CompScopeGuard).cast(), Some(mark_scope));
         guard.armed = true;
         CURRENT_SCOPE = guard;
-    }
+    
+  }
+}
     pub(super) unsafe fn verify_scope(guard: &CompScopeGuard) {
+  // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
+  unsafe {
         if comp.ctxt.is_null() || CURRENT_CONTEXT_EPOCH == 0
             || CONTEXT_SCOPE_TOKEN != guard.token
             || CURRENT_SCOPE != guard as *const CompScopeGuard as *mut CompScopeGuard {
             xsignal1(Qnative_ice(), build_string(c"advised init did not create an owned compiler context".as_ptr()));
         }
-    }
+    
+  }
+}

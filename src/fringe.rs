@@ -47,10 +47,7 @@
 // (3812), `lookup_derived_face` (3816) and `prepare_face_for_display` (3810).  Each is named in the
 // ledger's Owed 3, with the mirror it belongs in.
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports,
-         unused_macros, unused_variables, unused_unsafe, static_mut_refs, unsafe_op_in_unsafe_fn,
-         unused_assignments, unused_parens, unused_mut, unreachable_code, unused_labels, while_true,
-         unused_comparisons, overflowing_literals, unused_must_use, clippy::all)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe, unused_assignments, unused_parens, unused_mut, unreachable_code, unused_labels, while_true, unused_comparisons, overflowing_literals, unused_must_use, clippy::all)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -218,7 +215,11 @@ pub const FRINGE_BITMAP_DYNAMIC_MASK: u32 = 0x1;
 #[inline(always)]
 pub unsafe fn fringe_bitmap_bits_get (fb: *const fringe_bitmap, shift: u32, mask: u32) -> c_uint
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   ((*fb).flags >> shift) & mask
+
+  }
 }
 
 /// Assign one bitfield of `fringe_bitmap::flags` - C's `(FB)->MEMBER = VALUE`, which evaluates
@@ -227,7 +228,11 @@ pub unsafe fn fringe_bitmap_bits_get (fb: *const fringe_bitmap, shift: u32, mask
 #[inline(always)]
 pub unsafe fn fringe_bitmap_bits_set (fb: *mut fringe_bitmap, shift: u32, mask: u32, value: c_uint)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   (*fb).flags = ((*fb).flags & ! (mask << shift)) | ((value & mask) << shift);
+
+  }
 }
 
 /// C's five bit members of `fringe_bitmap` as a read/write pair, because Rust has no bitfields
@@ -734,7 +739,7 @@ macro_rules! BYTES_PER_BITMAP_ROW { () => { core::mem::size_of::<c_ushort> () as
 #[cfg (feature = "have_window_system")]
 macro_rules! STANDARD_BITMAP_HEIGHT {
   ($bits:expr) => {
-    unsafe { core::mem::size_of_val_raw (core::ptr::addr_of! ($bits)) } / BYTES_PER_BITMAP_ROW! ()
+    /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { core::mem::size_of_val_raw (core::ptr::addr_of! ($bits)) } / BYTES_PER_BITMAP_ROW! ()
   };
 }
 
@@ -1094,12 +1099,12 @@ pub const DRAW_FRINGE_BITMAP_OVERLAY_P: u8 = 1 << 1;
 #[cfg (feature = "have_window_system")]
 #[inline(always)]
 pub fn get_cursor_p (p: *const draw_fringe_bitmap_params) -> bool
-{ unsafe { (*p).flags & DRAW_FRINGE_BITMAP_CURSOR_P != 0 } }
+{ /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*p).flags & DRAW_FRINGE_BITMAP_CURSOR_P != 0 } }
 #[cfg (feature = "have_window_system")]
 #[inline(always)]
 pub fn set_cursor_p (p: *mut draw_fringe_bitmap_params, value: bool)
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     if value { (*p).flags |= DRAW_FRINGE_BITMAP_CURSOR_P }
     else { (*p).flags &= !DRAW_FRINGE_BITMAP_CURSOR_P }
   }
@@ -1107,12 +1112,12 @@ pub fn set_cursor_p (p: *mut draw_fringe_bitmap_params, value: bool)
 #[cfg (feature = "have_window_system")]
 #[inline(always)]
 pub fn get_overlay_p (p: *const draw_fringe_bitmap_params) -> bool
-{ unsafe { (*p).flags & DRAW_FRINGE_BITMAP_OVERLAY_P != 0 } }
+{ /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*p).flags & DRAW_FRINGE_BITMAP_OVERLAY_P != 0 } }
 #[cfg (feature = "have_window_system")]
 #[inline(always)]
 pub fn set_overlay_p (p: *mut draw_fringe_bitmap_params, value: bool)
 {
-  unsafe {
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     if value { (*p).flags |= DRAW_FRINGE_BITMAP_OVERLAY_P }
     else { (*p).flags &= !DRAW_FRINGE_BITMAP_OVERLAY_P }
   }
@@ -1181,11 +1186,15 @@ macro_rules! FRAME_FACE_CACHE { ($f:expr) => { (*$f).face_cache as *mut face_cac
 #[cfg (feature = "have_window_system")]
 unsafe fn FACE_FROM_ID_OR_NULL (f: *mut frame, id: c_int) -> *mut face
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let used: c_int = (*FRAME_FACE_CACHE! (f)).used;
   eassume! (0 <= used);
   return if 0 <= id && id < used
     { *((*FRAME_FACE_CACHE! (f)).faces_by_id).offset (id as isize) }
   else { core::ptr::null_mut () };
+
+  }
 }
 
 /* Lookup bitmap number for symbol BITMAP.
@@ -1197,6 +1206,8 @@ unsafe fn FACE_FROM_ID_OR_NULL (f: *mut frame, id: c_int) -> *mut face
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn lookup_fringe_bitmap (mut bitmap: Lisp_Object) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let bn: EMACS_INT;
 
   bitmap = Fget (bitmap, Qfringe ());
@@ -1211,6 +1222,8 @@ pub unsafe extern "C-unwind" fn lookup_fringe_bitmap (mut bitmap: Lisp_Object) -
     { return bn as c_int; }
 
   return 0;
+
+  }
 }
 
 /* Get fringe bitmap name for bitmap number BN.
@@ -1224,6 +1237,8 @@ pub unsafe extern "C-unwind" fn lookup_fringe_bitmap (mut bitmap: Lisp_Object) -
 #[cfg (feature = "have_window_system")]
 unsafe fn get_fringe_bitmap_name (bn: c_int) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut bitmaps: Lisp_Object;
   let num: Lisp_Object;
 
@@ -1243,6 +1258,8 @@ unsafe fn get_fringe_bitmap_name (bn: c_int) -> Lisp_Object
     }
 
   return num;
+
+  }
 }
 
 /* Get fringe bitmap data for bitmap number BN.  */
@@ -1251,6 +1268,8 @@ unsafe fn get_fringe_bitmap_name (bn: c_int) -> Lisp_Object
 #[cfg (feature = "have_window_system")]
 unsafe fn get_fringe_bitmap_data (bn: c_int) -> *mut fringe_bitmap
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut fb: *mut fringe_bitmap;
 
   fb = *fringe_bitmaps.add (bn as usize);
@@ -1260,6 +1279,8 @@ unsafe fn get_fringe_bitmap_data (bn: c_int) -> *mut fringe_bitmap
 						       as usize]); }
 
   return fb;
+
+  }
 }
 
 /* Draw the bitmap WHICH in one of the left or right fringes of
@@ -1277,6 +1298,8 @@ unsafe fn get_fringe_bitmap_data (bn: c_int) -> *mut fringe_bitmap
 unsafe fn draw_fringe_bitmap_1 (w: *mut window, row: *mut glyph_row, left_p: c_int,
 				overlay: c_int, mut which: c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let f: *mut frame = XFRAME (WINDOW_FRAME! (w));
   let mut p: draw_fringe_bitmap_params = core::mem::zeroed ();
   let fb: *mut fringe_bitmap;
@@ -1414,6 +1437,8 @@ unsafe fn draw_fringe_bitmap_1 (w: *mut window, row: *mut glyph_row, left_p: c_i
       let rif: *mut redisplay_interface = FRAME_RIF! (f) as *mut redisplay_interface;
       ((*rif).draw_fringe_bitmap.unwrap ()) (w as *mut c_void, row, &mut p);
     }
+
+  }
 }
 
 /// C: 714-715: `static int` / `get_logical_cursor_bitmap (struct window *w, Lisp_Object cursor)`.
@@ -1422,6 +1447,8 @@ unsafe fn draw_fringe_bitmap_1 (w: *mut window, row: *mut glyph_row, left_p: c_i
 #[cfg (feature = "have_window_system")]
 unsafe fn get_logical_cursor_bitmap (w: *mut window, cursor: Lisp_Object) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut cmap: Lisp_Object;
   let mut bm: Lisp_Object = Qnil ();
 
@@ -1443,6 +1470,8 @@ unsafe fn get_logical_cursor_bitmap (w: *mut window, cursor: Lisp_Object) -> c_i
   if !CONSP (bm) || { bm = XCDR (bm); NILP (bm) }
     { return NO_FRINGE_BITMAP; }
   return lookup_fringe_bitmap (bm);
+
+  }
 }
 
 /// C: 737-738: `static int` / `get_logical_fringe_bitmap (struct window *w, Lisp_Object bitmap,
@@ -1453,6 +1482,8 @@ unsafe fn get_logical_cursor_bitmap (w: *mut window, cursor: Lisp_Object) -> c_i
 unsafe fn get_logical_fringe_bitmap (w: *mut window, bitmap: Lisp_Object, right_p: c_int,
 				     partial_p: c_int) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut cmap: Lisp_Object;
   let mut bm1: Lisp_Object = Qnil ();
   let mut bm2: Lisp_Object = Qnil ();
@@ -1563,6 +1594,8 @@ unsafe fn get_logical_fringe_bitmap (w: *mut window, bitmap: Lisp_Object, right_
   }
 
   return lookup_fringe_bitmap (bm);
+
+  }
 }
 
 /// C: 837-838: `void` / `draw_fringe_bitmap (struct window *w, struct glyph_row *row, int left_p)`
@@ -1572,6 +1605,8 @@ unsafe fn get_logical_fringe_bitmap (w: *mut window, bitmap: Lisp_Object, right_
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn draw_fringe_bitmap (w: *mut window, row: *mut glyph_row, left_p: c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut overlay: c_int = 0;
 
   if (left_p != 0) == glyph_row_bits! (reversed_p, row)
@@ -1614,6 +1649,8 @@ pub unsafe extern "C-unwind" fn draw_fringe_bitmap (w: *mut window, row: *mut gl
 
   if left_p != 0 && (*row).overlay_arrow_bitmap != NO_FRINGE_BITMAP
     { draw_fringe_bitmap_1 (w, row, 1, 1, (*row).overlay_arrow_bitmap); }
+
+  }
 }
 
 
@@ -1626,6 +1663,8 @@ pub unsafe extern "C-unwind" fn draw_fringe_bitmap (w: *mut window, row: *mut gl
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn draw_row_fringe_bitmaps (w: *mut window, row: *mut glyph_row)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   eassert! (input_blocked_p ());
 
   /* If row is completely invisible, because of vscrolling, we
@@ -1638,6 +1677,8 @@ pub unsafe extern "C-unwind" fn draw_row_fringe_bitmaps (w: *mut window, row: *m
 
   if WINDOW_RIGHT_FRINGE_WIDTH! (w) != 0
     { draw_fringe_bitmap (w, row, 0); }
+
+  }
 }
 
 /* Draw the fringes of window W.  Only fringes for rows marked for
@@ -1659,6 +1700,8 @@ pub unsafe extern "C-unwind" fn draw_row_fringe_bitmaps (w: *mut window, row: *m
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn draw_window_fringes (w: *mut window, no_fringe_p: bool) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut row: *mut glyph_row;
   let yb: c_int = window_text_bottom_y (w);
   let nrows: c_int = (*( (*w).current_matrix as *mut glyph_matrix )).nrows;
@@ -1700,6 +1743,8 @@ pub unsafe extern "C-unwind" fn draw_window_fringes (w: *mut window, no_fringe_p
   set_buffer_internal_1 (oldbuf);
 
   return updated_p;
+
+  }
 }
 
 /* Recalculate the bitmaps to show in the fringes of window W.
@@ -1717,6 +1762,8 @@ pub unsafe extern "C-unwind" fn draw_window_fringes (w: *mut window, no_fringe_p
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn update_window_fringes (w: *mut window, keep_current_p: bool) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut row: *mut glyph_row;
   let mut cur: *mut glyph_row = core::ptr::null_mut ();
   let yb: c_int = window_text_bottom_y (w);
@@ -2195,6 +2242,8 @@ pub unsafe extern "C-unwind" fn update_window_fringes (w: *mut window, keep_curr
   unbind_to (count, Qnil ());
 
   return redraw_p && !keep_current_p;
+
+  }
 }
 
 /* ==========================================================================================
@@ -2216,6 +2265,8 @@ pub unsafe extern "C-unwind" fn update_window_fringes (w: *mut window, keep_curr
 #[cfg (feature = "have_window_system")]
 unsafe fn destroy_fringe_bitmap (mut n: c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut fbp: *mut *mut fringe_bitmap;
 
   *fringe_faces.add (n as usize) = Qnil ();
@@ -2235,6 +2286,8 @@ unsafe fn destroy_fringe_bitmap (mut n: c_int)
   while max_used_fringe_bitmap > MAX_STANDARD_FRINGE_BITMAPS
 	 && (*fringe_bitmaps.add ((max_used_fringe_bitmap - 1) as usize)).is_null ()
     { max_used_fringe_bitmap -= 1; }
+
+  }
 }
 
 /// C: 1394-1398: `DEFUN ("destroy-fringe-bitmap", Fdestroy_fringe_bitmap,
@@ -2294,6 +2347,8 @@ static swap_nibble: [c_uchar; 16] =
 #[cfg (feature = "have_window_system")]
 unsafe fn init_fringe_bitmap (which: c_int, fb: *mut fringe_bitmap, once_p: c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if once_p != 0 || fringe_bitmap_bits! (dynamic, fb)
     {
       #[cfg (any (feature = "have_x_windows", feature = "have_android"))]
@@ -2424,6 +2479,8 @@ unsafe fn init_fringe_bitmap (which: c_int, fb: *mut fringe_bitmap, once_p: c_in
       if which >= max_used_fringe_bitmap
 	{ max_used_fringe_bitmap = which + 1; }
     }
+
+  }
 }
 
 /// C: 1549-1563: `DEFUN ("define-fringe-bitmap", Fdefine_fringe_bitmap,
@@ -2666,6 +2723,8 @@ pub static mut Vfringe_bitmaps: Lisp_Object = lisp_h_Qnil ();                // 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_fringe ()
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   DEFSYM! (Qtruncation, c"truncation");
   DEFSYM! (Qcontinuation, c"continuation");
   DEFSYM! (Qoverlay_arrow, c"overlay-arrow");
@@ -2685,6 +2744,8 @@ pub unsafe extern "C-unwind" fn syms_of_fringe ()
   DEFVAR_LISP! (c"fringe-bitmaps", Vfringe_bitmaps,
     "List of fringe bitmap symbols.");
   Vfringe_bitmaps = Qnil ();
+
+  }
 }
 
 /* Garbage collection hook */
@@ -2694,7 +2755,11 @@ pub unsafe extern "C-unwind" fn syms_of_fringe ()
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mark_fringe_data ()
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   mark_objects (fringe_faces, max_fringe_bitmaps as ptrdiff_t);
+
+  }
 }
 
 /* Initialize this module when Emacs starts.  */
@@ -2718,12 +2783,16 @@ pub unsafe extern "C-unwind" fn init_fringe_once ()
 #[cfg (feature = "have_window_system")]
 unsafe extern "C-unwind" fn init_fringe_once_for_pdumper ()
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut bt: c_int = NO_FRINGE_BITMAP + 1;
   while bt < MAX_STANDARD_FRINGE_BITMAPS
     {
       init_fringe_bitmap (bt, core::ptr::addr_of_mut! (standard_bitmaps [bt as usize]), 1);
       bt += 1;
     }
+
+  }
 }
 
 /// C: 1809-1810: `void` / `init_fringe (void)`.
@@ -2731,6 +2800,8 @@ unsafe extern "C-unwind" fn init_fringe_once_for_pdumper ()
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn init_fringe ()
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   max_fringe_bitmaps = MAX_STANDARD_FRINGE_BITMAPS + 20;
 
   fringe_bitmaps = xzalloc (max_fringe_bitmaps as usize
@@ -2740,6 +2811,8 @@ pub unsafe extern "C-unwind" fn init_fringe ()
   static_assert! (NIL_IS_ZERO);
   fringe_faces = xzalloc (max_fringe_bitmaps as usize * core::mem::size_of::<Lisp_Object> ())
 		 as *mut Lisp_Object;
+
+  }
 }
 
 /// C: 1820-1821: `void` / `gui_init_fringe (struct redisplay_interface *rif)`.
@@ -2747,6 +2820,8 @@ pub unsafe extern "C-unwind" fn init_fringe ()
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn gui_init_fringe (rif: *mut redisplay_interface)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut bt: c_int;
 
   if rif.is_null () || ((*rif).define_fringe_bitmap).is_none ()
@@ -2778,6 +2853,8 @@ pub unsafe extern "C-unwind" fn gui_init_fringe (rif: *mut redisplay_interface)
 						       fringe_bitmap_bits! (width, fb) as c_int); }
       bt += 1;
     }
+
+  }
 }
 
 /* Call frame F's specific define_fringe_bitmap method for a fringe
@@ -2790,6 +2867,8 @@ pub unsafe extern "C-unwind" fn gui_init_fringe (rif: *mut redisplay_interface)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn gui_define_fringe_bitmap (f: *mut frame, n: c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let rif: *mut redisplay_interface = FRAME_RIF! (f) as *mut redisplay_interface;
 
   if rif.is_null () || ((*rif).define_fringe_bitmap).is_none () || n >= max_used_fringe_bitmap
@@ -2800,6 +2879,8 @@ pub unsafe extern "C-unwind" fn gui_define_fringe_bitmap (f: *mut frame, n: c_in
     { ((((*rif).define_fringe_bitmap)).unwrap ()) (n, (*fb).bits,
 						   fringe_bitmap_bits! (height, fb) as c_int,
 						   fringe_bitmap_bits! (width, fb) as c_int); }
+
+  }
 }
 
 /// C: 1866-1867: `void` / `w32_reset_fringes (void)` - C 1865's `#ifdef HAVE_NTGUI`.

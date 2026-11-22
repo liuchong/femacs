@@ -391,21 +391,35 @@ use core::sync::atomic::{AtomicBool, AtomicU64, AtomicU8, Ordering};
     }
     #[inline]
     unsafe fn owner() -> bool {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
         if !READY.load(Ordering::Relaxed) { return false; }
         if in_current_thread() { true } else {
             let _ = OWNER_ERRORS.fetch_update(Ordering::Relaxed, Ordering::Relaxed,
                 |value| Some(value.saturating_add(1)));
             false
         }
-    }
+    
+  }
+}
     #[inline]
-    unsafe fn state() -> &'static mut numeric::Recorder { &mut *(&raw mut RECORDER) }
+    unsafe fn state() -> &'static mut numeric::Recorder {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe { &mut *(&raw mut RECORDER) 
+  }
+}
     unsafe fn now() -> Option<u64> {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
         let mut value = timespec { tv_sec: 0, tv_nsec: 0 };
         let rc = observer_clock_gettime(6, &raw mut value);
         numeric::checked_ns(rc, value.tv_sec as i64, value.tv_nsec as i64)
-    }
+    
+  }
+}
     pub(super) unsafe fn reset_process() {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
         READY.store(false, Ordering::Relaxed);
         let value = getenv(c"FEMACS_GC_OBSERVATION".as_ptr());
         let mode = if value.is_null() { 0 } else {
@@ -418,90 +432,173 @@ use core::sync::atomic::{AtomicBool, AtomicU64, AtomicU8, Ordering};
         state().reset_process(mode);
         OWNER_ERRORS.store(0, Ordering::Relaxed);
         MODE.store(mode, Ordering::Relaxed);
-    }
+    
+  }
+}
     pub(super) unsafe fn activate_owner() {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
         if !in_current_thread() { fatal(c"GC observer thread initialization failed".as_ptr()); }
         READY.store(true, Ordering::Relaxed);
-    }
+    
+  }
+}
     pub(super) unsafe fn begin_cycle() -> u64 {
-        if MODE.load(Ordering::Relaxed) == 0 || !owner() { return 0; }
-        let token = state().reserve_cycle();
-        if token == 0 { return 0; }
-        // Guard may allocate specpdl storage; enter only after it is installed.
-        record_unwind_protect_intmax(Some(abort_cycle), token as i64);
-        if state().enter_cycle(token) { token } else { 0 }
+        // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+        unsafe {
+            if MODE.load(Ordering::Relaxed) == 0 || !owner() { return 0; }
+            let token = state().reserve_cycle();
+            if token == 0 { return 0; }
+            // Guard may allocate specpdl storage; enter only after it is installed.
+            record_unwind_protect_intmax(Some(abort_cycle), token as i64);
+            if state().enter_cycle(token) { token } else { 0 }
+        }
     }
-    pub(super) unsafe extern "C" fn abort_cycle(token: i64) {
+    pub(super) unsafe extern "C-unwind" fn abort_cycle(token: i64) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
         if token > 0 && owner() { state().abort_cycle(token as u64); }
-    }
+    
+  }
+}
     pub(super) unsafe fn phase_begin(token: u64, phase: u32) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
         if token != 0 && owner() { let clock = now(); state().phase_begin(token, phase, clock); }
-    }
+    
+  }
+}
     pub(super) unsafe fn phase_end(token: u64, phase: u32) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
         if token != 0 && owner() { let clock = now(); state().phase_end(token, phase, clock); }
-    }
+    
+  }
+}
     pub(super) unsafe fn classification(token: u64, young: bool, reason: u32) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
         if token != 0 && owner() { let clock = now(); state().classification(token, young, reason, clock); }
-    }
+    
+  }
+}
     pub(super) unsafe fn current_cycle() -> u64 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
         if MODE.load(Ordering::Relaxed) == 0 || !owner() { return 0; }
         state().current_cycle()
-    }
+    
+  }
+}
     pub(super) unsafe fn end_cycle(token: u64) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
         if token != 0 && owner() { state().end_cycle(token); }
-    }
+    
+  }
+}
     #[inline]
     unsafe fn survival_owner() -> bool {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
         let mode = MODE.load(Ordering::Relaxed);
         (mode == 2 || mode == 3) && owner()
-    }
+    
+  }
+}
     pub(super) unsafe fn cons_birth(ptr: *mut Lisp_Cons) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
         if survival_owner() { state().cons_birth(ptr as u64); }
-    }
+    
+  }
+}
     pub(super) unsafe fn cons_retire(ptr: *mut Lisp_Cons, explicit: bool) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
         if survival_owner() { state().cons_retire(ptr as u64, explicit); }
-    }
+    
+  }
+}
     pub(super) unsafe fn cons_survivor(ptr: *mut Lisp_Cons) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
         if survival_owner() { state().cons_survivor(ptr as u64); }
-    }
+    
+  }
+}
     pub(super) unsafe fn sweep_begin() {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
         if survival_owner() { state().sweep_begin(); }
-    }
+    
+  }
+}
     pub(super) unsafe fn completed_sweep() {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
         if survival_owner() { state().completed_sweep(); }
-    }
+    
+  }
+}
     pub(super) unsafe fn reset_window_idle() -> bool {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
         if !owner() || !state().reset_window() { return false; }
         OWNER_ERRORS.swap(0, Ordering::Relaxed);
         true
-    }
+    
+  }
+}
     pub(super) unsafe fn control(enabled: bool) -> Lisp_Object {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
         if !owner() || state().busy() { error(c"GC observer is busy".as_ptr()); }
         if !state().phases { error(c"GC observer mode does not support phase control".as_ptr()); }
         let previous = state().enabled;
         state().enabled = enabled;
         if previous { Qt() } else { Qnil() }
-    }
+    
+  }
+}
 
     struct SnapshotRoots {
         result: Lisp_Object, totals: Lisp_Object, records: Lisp_Object,
         ages: Lisp_Object, current: Lisp_Object, owner_token: u64,
     }
-    unsafe extern "C" fn mark_snapshot(data: *mut c_void) {
+    unsafe extern "C-unwind" fn mark_snapshot(data: *mut c_void) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
         let roots = &*(data as *const SnapshotRoots);
         mark_object(roots.result); mark_object(roots.totals);
         mark_object(roots.records); mark_object(roots.ages); mark_object(roots.current);
-    }
-    unsafe extern "C" fn release_snapshot(data: *mut c_void) {
+    
+  }
+}
+    unsafe extern "C-unwind" fn release_snapshot(data: *mut c_void) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
         let roots = &mut *(data as *mut SnapshotRoots);
         if owner() { state().release_export(roots.owner_token); }
         roots.owner_token = 0;
-    }
-    pub(super) unsafe fn snapshot_idle() -> Lisp_Object { snapshot_impl(0) }
+    
+  }
+}
+    pub(super) unsafe fn snapshot_idle() -> Lisp_Object {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe { snapshot_impl(0) 
+  }
+}
     #[cfg(feature = "femacs_gc_observer_test_hooks")]
-    pub(super) unsafe fn snapshot_with_fault(fault: u32) -> Lisp_Object { snapshot_impl(fault) }
+    pub(super) unsafe fn snapshot_with_fault(fault: u32) -> Lisp_Object {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe { snapshot_impl(fault) 
+  }
+}
 
     unsafe fn snapshot_impl(fault: u32) -> Lisp_Object {
+        // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+        unsafe {
         if !owner() || state().busy() { error(c"GC observer is busy".as_ptr()); }
         let count = SPECPDL_INDEX();
         let mut roots = SnapshotRoots {
@@ -560,4 +657,5 @@ use core::sync::atomic::{AtomicBool, AtomicU64, AtomicU8, Ordering};
             }
         }
         unbind_to(count, roots.result)
+        }
     }

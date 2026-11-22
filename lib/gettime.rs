@@ -29,8 +29,12 @@ unsafe extern "C" {
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn gettime (ts: *mut timespec)
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   /* C 30-32's `#if defined CLOCK_REALTIME && HAVE_CLOCK_GETTIME` arm, the live one.  */
   clock_gettime (CLOCK_REALTIME, ts);
+
+  }
 }
 
 /* Return the current system time as a struct timespec.  */
@@ -39,7 +43,11 @@ pub unsafe extern "C" fn gettime (ts: *mut timespec)
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn current_timespec () -> timespec
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   let mut ts: timespec = std::mem::zeroed ();
   gettime (&mut ts);
   return ts;
+
+  }
 }

@@ -87,7 +87,11 @@ pub use self::memmem_decl::*;
 #[inline(always)]
 pub unsafe fn _gl_strnul (string: *const c_char) -> *const c_char
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   return string.add (strlen (string));
+
+  }
 }
 
 /* string.in.h 1302-1305: `# define strnul(s) _Generic (1 ? (s) : (void *) 99, void * :

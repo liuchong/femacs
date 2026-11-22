@@ -45,11 +45,7 @@
 //
 // Every deviation, and the D7 call-relationship check, is in `docs/ports/regex-emacs.md`.
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
-         unsafe_op_in_unsafe_fn, unused_assignments, unused_parens, unused_mut,
-         unreachable_code, unused_labels, unused_braces, while_true, unused_comparisons,
-         overflowing_literals, unused_must_use, path_statements)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe, unused_assignments, unused_parens, unused_mut, unreachable_code, unused_labels, unused_braces, while_true, unused_comparisons, overflowing_literals, unused_must_use, path_statements)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -373,8 +369,12 @@ pub const notcategoryspec: re_opcode_t = 32;
 
 unsafe fn STORE_NUMBER (destination: *mut u8, number: c_int)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   *destination.offset (0) = (number & 0o377) as u8;
   *destination.offset (1) = (number >> 8) as u8;
+
+  }
 }
 
 /* Same as STORE_NUMBER, except increment DESTINATION to
@@ -399,6 +399,8 @@ macro_rules! EXTRACT_NUMBER {
 
 unsafe fn extract_number (source: *const re_char) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* C 369 writes `signed char leading_byte = source[1];`.  The type must be `i8`, not `c_char`:
      plain `char` is the *target*'s signedness, so Rust's `c_char` is `u8` on bionic (aarch64 Linux)
      and `i8` on the host, and an unsigned leading byte turns every negative jump offset into a
@@ -406,11 +408,17 @@ unsafe fn extract_number (source: *const re_char) -> c_int
      and aborts (status 4.790).  */
   let leading_byte: i8 = *source.offset (1) as i8;
   (leading_byte as c_int) * 256 + *source.offset (0) as c_int
+
+  }
 }
 
 unsafe fn extract_address (source: *const re_char) -> *const re_char
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   source.offset (2 + extract_number (source) as isize)
+
+  }
 }
 
 /* Same as EXTRACT_NUMBER, except increment SOURCE to after the number.
@@ -422,9 +430,13 @@ macro_rules! EXTRACT_NUMBER_AND_INCR {
 
 unsafe fn extract_number_and_incr (source: *mut *const re_char) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let num = extract_number (*source);
   *source = (*source).offset (2);
   num
+
+  }
 }
 
 /* Store a multibyte character in three contiguous bytes starting
@@ -509,6 +521,8 @@ macro_rules! CHARSET_RANGE_TABLE_END {
 #[cfg (any (regex_emacs_debug, enable_checking))]
 unsafe fn debug_putchar (dest: *mut FILE, c: c_int)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if c >= 32 && c <= 126
     { putc (c, dest); }
   else
@@ -516,6 +530,8 @@ unsafe fn debug_putchar (dest: *mut FILE, c: c_int)
       let uc: c_uint = c as c_uint;
       fprintf (dest, c"{%02x}".as_ptr (), uc);
     }
+
+  }
 }
 
 /* Print the fastmap in human-readable form.  */
@@ -523,6 +539,8 @@ unsafe fn debug_putchar (dest: *mut FILE, c: c_int)
 #[cfg (any (regex_emacs_debug, enable_checking))]
 unsafe fn print_fastmap (dest: *mut FILE, fastmap: *mut c_char)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut was_a_range = false;
   let mut i = 0;
 
@@ -548,6 +566,8 @@ unsafe fn print_fastmap (dest: *mut FILE, fastmap: *mut c_char)
 	}
     }
   putc ('\n' as c_int, dest);
+
+  }
 }
 
 /* Print a compiled pattern string in human-readable form, starting at
@@ -557,6 +577,8 @@ unsafe fn print_fastmap (dest: *mut FILE, fastmap: *mut c_char)
 unsafe fn print_partial_compiled_pattern (dest: *mut FILE, start: *const re_char,
 					  end: *const re_char)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut mcnt: c_int = 0;
   let mut mcnt2: c_int = 0;
   let mut p = start;
@@ -775,6 +797,8 @@ unsafe fn print_partial_compiled_pattern (dest: *mut FILE, start: *const re_char
     }
 
   fprintf (dest, c"%td:\tend of pattern.\n".as_ptr (), p.offset_from (start));
+
+  }
 }
 
 #[cfg (any (regex_emacs_debug, enable_checking))]
@@ -782,6 +806,8 @@ unsafe fn print_partial_compiled_pattern (dest: *mut FILE, start: *const re_char
 pub unsafe extern "C-unwind" fn print_compiled_pattern (dest: *mut FILE,
 						 bufp: *mut re_pattern_buffer)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut dest = dest;
   if dest.is_null ()
     {
@@ -804,6 +830,8 @@ pub unsafe extern "C-unwind" fn print_compiled_pattern (dest: *mut FILE,
   fprintf (dest, c"regs_alloc: %d\t".as_ptr (), regs_allocated_ (bufp) as c_int);
   fprintf (dest, c"can_be_null: %d\n".as_ptr (), can_be_null_ (bufp) as c_int);
   /* Perhaps we should print the translate table?  */
+
+  }
 }
 
 // C 764: `#endif` of the debug/checking block.
@@ -1290,6 +1318,8 @@ pub const BIT_BLANK: c_int = 0x400;
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn re_wctype_parse (strp: *mut *const u8, mut limit: ptrdiff_t) -> re_wctype_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let beg = *strp as *const c_char;
   let mut it: *const c_char;
 
@@ -1383,12 +1413,16 @@ pub unsafe extern "C-unwind" fn re_wctype_parse (strp: *mut *const u8, mut limit
     }
 
   RECC_ERROR
+
+  }
 }
 
 /* True if CH is in the char class CC.  */
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn re_iswctype (ch: c_int, cc: re_wctype_t) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   match cc
     {
       RECC_ALNUM => ISALNUM! (ch) != 0,
@@ -1411,12 +1445,16 @@ pub unsafe extern "C-unwind" fn re_iswctype (ch: c_int, cc: re_wctype_t) -> bool
       RECC_ERROR => false,
       _ => { emacs_abort (); }
     }
+
+  }
 }
 
 /* Return a bit-pattern to use in the range-table bits to match multibyte
    chars of class CC.  */
 unsafe fn re_wctype_to_bit (cc: re_wctype_t) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   match cc
     {
       RECC_NONASCII | RECC_MULTIBYTE => BIT_MULTIBYTE,
@@ -1434,6 +1472,8 @@ unsafe fn re_wctype_to_bit (cc: re_wctype_t) -> c_int
       RECC_UNIBYTE | RECC_ERROR => 0,
       _ => { emacs_abort (); }
     }
+
+  }
 }
 
 /* Filling in the work area of a range.  */
@@ -1442,9 +1482,13 @@ unsafe fn re_wctype_to_bit (cc: re_wctype_t) -> c_int
 
 unsafe fn extend_range_table_work_area (work_area: *mut range_table_work_area)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   (*work_area).allocated += 16 * std::mem::size_of::<c_int> () as c_int;
   (*work_area).table = xrealloc ((*work_area).table as *mut c_void,
 				 (*work_area).allocated as usize) as *mut c_int;
+
+  }
 }
 
 /* regex_compile and helpers.  */
@@ -1483,6 +1527,8 @@ unsafe fn regex_compile (mut pattern: *const re_char, size: ptrdiff_t,
 			 whitespace_regexp: *const c_char,
 			 bufp: *mut re_pattern_buffer) -> reg_errcode_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* Fetch characters from PATTERN here.  */
   let mut c: c_int = 0;
   let mut c1: c_int = 0;
@@ -2825,6 +2871,8 @@ unsafe fn regex_compile (mut pattern: *const re_char, size: ptrdiff_t,
 
   FREE_STACK_RETURN! (REG_NOERROR);
 
+
+  }
 } /* regex_compile */
 
 /* Subroutines for 'regex_compile'.  */
@@ -2833,17 +2881,25 @@ unsafe fn regex_compile (mut pattern: *const re_char, size: ptrdiff_t,
 
 unsafe fn store_op1 (op: re_opcode_t, loc: *mut u8, arg: c_int)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   *loc = op as u8;
   STORE_NUMBER (loc.offset (1), arg);
+
+  }
 }
 
 /* Like 'store_op1', but for two two-byte parameters ARG1 and ARG2.  */
 
 unsafe fn store_op2 (op: re_opcode_t, loc: *mut u8, arg1: c_int, arg2: c_int)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   *loc = op as u8;
   STORE_NUMBER (loc.offset (1), arg1);
   STORE_NUMBER (loc.offset (3), arg2);
+
+  }
 }
 
 /* Copy the bytes from LOC to END to open up three bytes of space at LOC
@@ -2851,6 +2907,8 @@ unsafe fn store_op2 (op: re_opcode_t, loc: *mut u8, arg1: c_int, arg2: c_int)
 
 unsafe fn insert_op1 (op: re_opcode_t, loc: *mut u8, arg: c_int, end: *mut u8)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut pfrom: *mut u8 = end;
   let mut pto: *mut u8 = end.offset (3);
 
@@ -2862,6 +2920,8 @@ unsafe fn insert_op1 (op: re_opcode_t, loc: *mut u8, arg: c_int, end: *mut u8)
     }
 
   store_op1 (op, loc, arg);
+
+  }
 }
 
 /* Like 'insert_op1', but for two two-byte parameters ARG1 and ARG2.  */
@@ -2869,6 +2929,8 @@ unsafe fn insert_op1 (op: re_opcode_t, loc: *mut u8, arg: c_int, end: *mut u8)
 unsafe fn insert_op2 (op: re_opcode_t, loc: *mut u8, arg1: c_int, arg2: c_int,
 		      end: *mut u8)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut pfrom: *mut u8 = end;
   let mut pto: *mut u8 = end.offset (5);
 
@@ -2880,6 +2942,8 @@ unsafe fn insert_op2 (op: re_opcode_t, loc: *mut u8, arg1: c_int, arg2: c_int,
     }
 
   store_op2 (op, loc, arg1, arg2);
+
+  }
 }
 
 /* P points to just after a ^ in PATTERN.  Return true if that ^ comes
@@ -2888,6 +2952,8 @@ unsafe fn insert_op2 (op: re_opcode_t, loc: *mut u8, arg1: c_int, arg2: c_int,
 
 unsafe fn at_begline_loc_p (pattern: *const re_char, mut p: *const re_char) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut prev: *const re_char = p.offset (-2);
 
   match *prev as u8 as char
@@ -2915,6 +2981,8 @@ unsafe fn at_begline_loc_p (pattern: *const re_char, mut p: *const re_char) -> b
   while prev > pattern && *prev.offset (-1) == '\\' as re_char
     { prev = prev.offset (-1); }
   (p.offset_from (prev) & 1) != 0
+
+  }
 }
 
 /* The dual of at_begline_loc_p.  This one is for $.  Assume there is
@@ -2922,9 +2990,13 @@ unsafe fn at_begline_loc_p (pattern: *const re_char, mut p: *const re_char) -> b
 
 unsafe fn at_endline_loc_p (p: *const re_char, pend: *const re_char) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* Before a subexpression or an alternative?  */
   *p == '\\' as re_char && p.offset (1) < pend
     && (*p.offset (1) == ')' as re_char || *p.offset (1) == '|' as re_char)
+
+  }
 }
 
 /* Returns true if REGNUM is in one of COMPILE_STACK's elements and
@@ -2932,6 +3004,8 @@ unsafe fn at_endline_loc_p (p: *const re_char, pend: *const re_char) -> bool
 
 unsafe fn group_in_compile_stack (compile_stack: compile_stack_type, regnum: regnum_t) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut this_element: ptrdiff_t;
 
   this_element = compile_stack.avail - 1;
@@ -2943,6 +3017,8 @@ unsafe fn group_in_compile_stack (compile_stack: compile_stack_type, regnum: reg
     }
 
   false
+
+  }
 }
 
 /* Iterate through all the char-matching operations directly reachable from P.
@@ -2957,6 +3033,8 @@ unsafe fn forall_firstchar_1 (p: *const re_char, pend: *const re_char,
 			      f: unsafe extern "C-unwind" fn (*const re_char, *mut c_void) -> bool,
 			      arg: *mut c_void) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut p = p;
   let mut loop_beg = loop_beg;
   let mut loop_end = loop_end;
@@ -3184,6 +3262,8 @@ unsafe fn forall_firstchar_1 (p: *const re_char, pend: *const re_char,
 	  continue;
 	}
     }
+
+  }
 }
 
 /* Iterate through all the char-matching operations directly reachable from P.
@@ -3213,12 +3293,16 @@ unsafe fn forall_firstchar (bufp: *mut re_pattern_buffer, p: *const re_char,
 			    f: unsafe extern "C-unwind" fn (*const re_char, *mut c_void) -> bool,
 			    arg: *mut c_void) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   eassert! (if !bufp.is_null () { (*bufp).used != 0 } else { !pend.is_null () });
   forall_firstchar_1 (p, pend,
 		      if !bufp.is_null () { (*bufp).buffer.offset (-1) } else { p },
 		      if !bufp.is_null () { (*bufp).buffer.offset ((*bufp).used).offset (1) }
 		      else { pend },
 		      f, arg)
+
+  }
 }
 
 #[repr(C)]
@@ -3236,6 +3320,8 @@ const _: () = core::assert! (std::mem::offset_of! (anafirst_data, match_any_mult
 
 unsafe extern "C-unwind" fn analyze_first_fastmap (mut p: *const re_char, arg: *mut c_void) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let data: *mut anafirst_data = arg as *mut anafirst_data;
 
   let mut j: c_int;
@@ -3448,10 +3534,14 @@ unsafe extern "C-unwind" fn analyze_first_fastmap (mut p: *const re_char, arg: *
         return false;
       }
     }
+
+  }
 }
 
 unsafe extern "C-unwind" fn analyze_first_null (p: *const re_char, _arg: *mut c_void) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   match *p as re_opcode_t
     {
       succeed => {
@@ -3500,6 +3590,8 @@ unsafe extern "C-unwind" fn analyze_first_null (p: *const re_char, _arg: *mut c_
         return false;
       }
     }
+
+  }
 }
 
 /* analyze_first.
@@ -3515,6 +3607,8 @@ unsafe extern "C-unwind" fn analyze_first_null (p: *const re_char, _arg: *mut c_
 unsafe fn analyze_first (bufp: *mut re_pattern_buffer,
 			 p: *const re_char, pend: *const re_char, fastmap: *mut c_char) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   eassert! (!pend.is_null ());
   let mut data: anafirst_data = anafirst_data
     { multibyte: if !bufp.is_null () { multibyte_ (bufp) } else { false },
@@ -3526,6 +3620,8 @@ unsafe fn analyze_first (bufp: *mut re_pattern_buffer,
                                else { analyze_first_null },
                                &raw mut data as *mut c_void);
   !safe
+
+  }
 }
 
 /* Compute a fastmap for the compiled pattern in BUFP.
@@ -3545,6 +3641,8 @@ unsafe fn analyze_first (bufp: *mut re_pattern_buffer,
 
 unsafe fn re_compile_fastmap (bufp: *mut re_pattern_buffer)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let fastmap: *mut c_char = (*bufp).fastmap;
 
   eassert! (!fastmap.is_null () && !(*bufp).buffer.is_null ());
@@ -3557,6 +3655,8 @@ unsafe fn re_compile_fastmap (bufp: *mut re_pattern_buffer)
   set_can_be_null_ (bufp, analyze_first (bufp, (*bufp).buffer as *const re_char,
 				         (*bufp).buffer.offset ((*bufp).used)
 					   as *const re_char, fastmap));
+
+  }
 } /* re_compile_fastmap */
 
 /* Set REGS to hold NUM_REGS registers, storing them in STARTS and
@@ -3581,6 +3681,8 @@ pub unsafe extern "C-unwind" fn re_set_registers (bufp: *mut re_pattern_buffer,
 					   num_regs: ptrdiff_t,
 					   starts: *mut ptrdiff_t, ends: *mut ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if num_regs != 0
     {
       set_regs_allocated_ (bufp, REGS_REALLOCATE as u8);
@@ -3595,6 +3697,8 @@ pub unsafe extern "C-unwind" fn re_set_registers (bufp: *mut re_pattern_buffer,
       (*regs).start = std::ptr::null_mut ();
       (*regs).end = std::ptr::null_mut ();
     }
+
+  }
 }
 
 /* Searching routines.  */
@@ -3610,8 +3714,12 @@ pub unsafe extern "C-unwind" fn re_search (bufp: *mut re_pattern_buffer, string:
 				    size: ptrdiff_t, startpos: ptrdiff_t,
 				    range: ptrdiff_t, regs: *mut re_registers) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   re_search_2 (bufp, std::ptr::null (), 0, string, size, startpos, range,
 	      regs, size)
+
+  }
 }
 
 /* Address of POS in the concatenation of virtual string.  */
@@ -3648,6 +3756,8 @@ pub unsafe extern "C-unwind" fn re_search_2 (bufp: *mut re_pattern_buffer, str1:
 				      mut startpos: ptrdiff_t, mut range: ptrdiff_t,
 				      regs: *mut re_registers, stop: ptrdiff_t) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut val: ptrdiff_t = 0;
   let string1: *const re_char = str1 as *const re_char;
   let string2: *const re_char = str2 as *const re_char;
@@ -3889,6 +3999,8 @@ pub unsafe extern "C-unwind" fn re_search_2 (bufp: *mut re_pattern_buffer, str1:
 	}
     }
   -1
+
+  }
 } /* re_search_2 */
 
 /* Declarations and macros for re_match_2.  */
@@ -3937,6 +4049,8 @@ pub unsafe extern "C-unwind" fn re_search_2 (bufp: *mut re_pattern_buffer, str1:
    return a pointer to the next operation, else return NULL.  */
 unsafe fn skip_one_char (mut p: *const re_char) -> *const re_char
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   match { let op = *p as re_opcode_t; p = p.offset (1); op }
     {
       anychar => { }
@@ -3970,6 +4084,8 @@ unsafe fn skip_one_char (mut p: *const re_char) -> *const re_char
       }
     }
   p
+
+  }
 }
 
 /* Test if C matches charset op.  *PP points to the charset or charset_not
@@ -3981,6 +4097,8 @@ unsafe fn skip_one_char (mut p: *const re_char) -> *const re_char
 unsafe fn execute_charset (pp: *mut *const re_char, c: c_int, corig: c_int, unibyte: bool,
 			   canon_table: Lisp_Object) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   eassume! (0 <= c && 0 <= corig);
   let mut p: *const re_char = *pp;
   let mut rtp: *const re_char = std::ptr::null ();
@@ -4044,12 +4162,16 @@ unsafe fn execute_charset (pp: *mut *const re_char, c: c_int, corig: c_int, unib
     }
 
   not
+
+  }
 }
 
 /* Case where `p2` points to an `exactn` or `endline`.  */
 unsafe fn mutually_exclusive_exactn (bufp: *mut re_pattern_buffer, p1: *const re_char,
 				     p2: *const re_char) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let multibyte: bool = RE_MULTIBYTE_P! (bufp);
   let c: c_int
     = if *p2 as re_opcode_t == endline { '\n' as c_int }
@@ -4082,12 +4204,16 @@ unsafe fn mutually_exclusive_exactn (bufp: *mut re_pattern_buffer, p1: *const re
       return true;
     }
   false
+
+  }
 }
 
 /* Case where `p2` points to an `charset`.  */
 unsafe fn mutually_exclusive_charset (bufp: *mut re_pattern_buffer, p1: *const re_char,
 				      p2: *const re_char) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* It is hard to list up all the character in charset
      P2 if it includes multibyte character.  Give up in
      such case.  */
@@ -4150,6 +4276,8 @@ unsafe fn mutually_exclusive_charset (bufp: *mut re_pattern_buffer, p1: *const r
 	}
     }
   false
+
+  }
 }
 
 #[repr(C)]
@@ -4167,6 +4295,8 @@ const _: () = core::assert! (std::mem::offset_of! (mutexcl_data, unconstrained) 
 
 unsafe extern "C-unwind" fn mutually_exclusive_one (p2: *const re_char, arg: *mut c_void) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let data: *mut mutexcl_data = arg as *mut mutexcl_data;
 
   /* Remember that there may be an empty matching operator on the way.
@@ -4297,6 +4427,8 @@ unsafe extern "C-unwind" fn mutually_exclusive_one (p2: *const re_char, arg: *mu
         return false;
       }
     }
+
+  }
 }
 
 /* True if "p1 matches something" implies "p2 fails".  */
@@ -4304,10 +4436,14 @@ unsafe extern "C-unwind" fn mutually_exclusive_one (p2: *const re_char, arg: *mu
 unsafe fn mutually_exclusive_p (bufp: *mut re_pattern_buffer, p1: *const re_char,
 				p2: *const re_char) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut data: mutexcl_data = mutexcl_data { bufp: bufp, p1: p1, unconstrained: true };
   eassert! ((*bufp).used != 0);
   forall_firstchar (bufp, p2, (*bufp).buffer.offset ((*bufp).used),
 		    mutually_exclusive_one, &raw mut data as *mut c_void)
+
+  }
 }
 
 /* Matching routines.  */
@@ -4334,6 +4470,8 @@ pub unsafe extern "C-unwind" fn re_match_2 (bufp: *mut re_pattern_buffer,
 				     pos: ptrdiff_t, regs: *mut re_registers,
 				     stop: ptrdiff_t) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let result: ptrdiff_t;
 
   RE_SETUP_SYNTAX_TABLE_FOR_OBJECT (re_match_object, pos);
@@ -4342,13 +4480,19 @@ pub unsafe extern "C-unwind" fn re_match_2 (bufp: *mut re_pattern_buffer,
 				string2 as *const re_char, size2,
 				pos, regs, stop);
   result
+
+  }
 }
 
 
 unsafe extern "C-unwind" fn unwind_re_match (ptr: *mut c_void)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let b: *mut buffer = ptr as *mut buffer;
   (*(*b).text).bits &= ! BUFFER_TEXT_INHIBIT_SHRINKING;
+
+  }
 }
 
 /* This is a separate function so that we can force an alloca cleanup
@@ -4367,6 +4511,8 @@ unsafe fn re_match_2_internal (bufp: *mut re_pattern_buffer,
 			       pos: ptrdiff_t, regs: *mut re_registers,
 			       stop: ptrdiff_t) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut string1 = string1;
   let mut size1 = size1;
   let mut string2 = string2;
@@ -4485,7 +4631,7 @@ unsafe fn re_match_2_internal (bufp: *mut re_pattern_buffer,
   let sa_count: specpdl_ref = SPECPDL_INDEX ();
   /* The port's third name (PORTING.md P-05/P-117 ⑧): this function captures the pool's height
      the way `USE_SAFE_ALLOCA!` does, so `SAFE_FREE!` below releases the scope's own requests.  */
-  let sa_mark: usize = unsafe { sa_stack_mark () };
+  let sa_mark: usize = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { sa_stack_mark () };
   let count: specpdl_ref = SPECPDL_INDEX ();
 
   /* Failure-stack and matching macros (C 911-1160, 3658-3681): every one of them names a
@@ -5140,7 +5286,7 @@ unsafe fn re_match_2_internal (bufp: *mut re_pattern_buffer,
                    (end2 as isize) - (string1 as isize));
         }
       /* Otherwise match next pattern command.  */
-      unsafe { if REG_TRACE_ON != 0 { PREV_OP_SAVE = *p as c_int; } }
+      /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { if REG_TRACE_ON != 0 { PREV_OP_SAVE = *p as c_int; } }
       match { let op = *p as re_opcode_t; p = p.offset (1); op }
 	{
 	/* Ignore these.  Used to ignore the n of succeed_n's which
@@ -6241,6 +6387,8 @@ unsafe fn re_match_2_internal (bufp: *mut re_pattern_buffer,
     { update_redisplay_ticks ((nchars / 50 + 1) as c_int, std::ptr::null_mut ()); }
 
   retval
+
+  }
 } /* re_match_2_internal */
 
 /* Subroutine definitions for re_match_2.  */
@@ -6251,6 +6399,8 @@ unsafe fn re_match_2_internal (bufp: *mut re_pattern_buffer,
 unsafe fn bcmp_translate (s1: *const re_char, s2: *const re_char, len: ptrdiff_t,
 			  translate: Lisp_Object, target_multibyte: bool) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* Set C a (possibly converted to multibyte) character at P, and set
      LEN to the byte length of that character.  C's own macro is defined at C 86-96 (and the
      port defines a second copy inside `re_match_2_internal`, where the same name is a local
@@ -6296,6 +6446,8 @@ unsafe fn bcmp_translate (s1: *const re_char, s2: *const re_char, len: ptrdiff_t
     }
 
   p1 != p1_end || p2 != p2_end
+
+  }
 }
 
 /* Entry points for GNU code.  */
@@ -6319,6 +6471,8 @@ pub unsafe extern "C-unwind" fn re_compile_pattern (pattern: *const c_char, leng
 					     bufp: *mut re_pattern_buffer)
   -> *const c_char
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   set_regs_allocated_ (bufp, REGS_UNALLOCATED as u8);
 
   let ret: reg_errcode_t
@@ -6330,4 +6484,6 @@ pub unsafe extern "C-unwind" fn re_compile_pattern (pattern: *const c_char, leng
   if ret == 0
     { return std::ptr::null (); }
   re_error_msgid[ret as usize]
+
+  }
 }

@@ -1,3 +1,4 @@
+#![deny(static_mut_refs, unsafe_op_in_unsafe_fn)]
 //! femacs build and gate driver.
 //!
 //! Orchestrates Cargo workspace builds (`femacs-pure`, `femacs-sys`, `femacs-vm`,
@@ -1164,8 +1165,7 @@ fn layout_check() -> i32 {
     fs::create_dir_all(units_dir()).ok();
     let probe = units_dir().join("layout_probe.rs");
     let mut src = String::new();
-    src.push_str("#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs)]\n");
+    src.push_str("#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe)]\n");
     src.push_str("use std::mem::{align_of, size_of, offset_of};\n");
     // Every header mirror, so the assertions run for all of them; globals.rs is
     // included by lisp.rs (mirroring lisp.h including <globals.h>).

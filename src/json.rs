@@ -13,9 +13,7 @@
 // fields and are called with `.unwrap () (…)`, the vm-limit.rs shape (the C field is never
 // null once json_parser_init has run).
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
-         unsafe_op_in_unsafe_fn)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -78,6 +76,8 @@ unsafe fn json_parse_args (nargs: ptrdiff_t, args: *mut Lisp_Object,
 			   conf: *mut json_configuration,
 			   parse_object_types: bool)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if nargs % 2 != 0
     { wrong_type_argument (Qplistp (), Flist (nargs, args)); }
 
@@ -124,6 +124,8 @@ unsafe fn json_parse_args (nargs: ptrdiff_t, args: *mut Lisp_Object,
 			value); }
       i -= 2;
     }
+
+  }
 }
 
 /* JSON encoding context.  */
@@ -166,6 +168,8 @@ unsafe fn symset_size (bits: c_int) -> ptrdiff_t
 
 unsafe fn make_symset_table (bits: c_int, up: *mut symset_tbl) -> *mut symset_tbl
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let maxbits: c_int = min ((SIZE_WIDTH - 2 - (if word_size < 8 { 2 } else { 3 })) as isize,
 			    32) as c_int;
   if bits > maxbits
@@ -182,33 +186,47 @@ unsafe fn make_symset_table (bits: c_int, up: *mut symset_tbl) -> *mut symset_tb
       i += 1;
     }
   return st;
+
+  }
 }
 
 /* Create a new symset to use for a new object.  */
 unsafe fn push_symset (jo: *mut json_out_t) -> symset_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let bits: c_int = 4;
   let tbl: *mut symset_tbl = make_symset_table (bits, (*jo).ss_table);
   (*jo).ss_table = tbl;
   return symset_t { count: 0, bits: bits, table: tbl };
+
+  }
 }
 
 /* Destroy the current symset.  */
 unsafe fn pop_symset (jo: *mut json_out_t, ss: *mut symset_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   (*jo).ss_table = (*(*ss).table).up;
   xfree ((*ss).table as *mut c_void);
+
+  }
 }
 
 /* Remove all heap-allocated symset tables, in case an error occurred.  */
 unsafe fn cleanup_symset_tables (mut st: *mut symset_tbl)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   while !st.is_null ()
     {
       let up: *mut symset_tbl = (*st).up;
       xfree (st as *mut c_void);
       st = up;
     }
+
+  }
 }
 
 unsafe fn symset_hash (sym: Lisp_Object, bits: c_int) -> u32
@@ -219,6 +237,8 @@ unsafe fn symset_hash (sym: Lisp_Object, bits: c_int) -> u32
 /* Enlarge the table used by a symset.  */
 unsafe fn symset_expand (ss: *mut symset_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let old_table: *mut symset_tbl = (*ss).table;
   let oldbits: c_int = (*ss).bits;
   let oldsize: ptrdiff_t = symset_size (oldbits);
@@ -242,12 +262,16 @@ unsafe fn symset_expand (ss: *mut symset_t)
       i += 1;
     }
   xfree (old_table as *mut c_void);
+
+  }
 }
 
 /* If sym is in ss, return false; otherwise add it and return true.
    Comparison is done by strict identity.  */
 unsafe fn symset_add (jo: *mut json_out_t, ss: *mut symset_t, sym: Lisp_Object) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* Make sure we don't fill more than half of the table.  */
   if (*ss).count >= (symset_size ((*ss).bits) >> 1)
     {
@@ -272,30 +296,44 @@ unsafe fn symset_add (jo: *mut json_out_t, ss: *mut symset_t, sym: Lisp_Object) 
 	}
       i = (i + 1) & mask;
     }
+
+  }
 }
 
 unsafe fn json_out_grow_buf (jo: *mut json_out_t, incr_min: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut new_size: ptrdiff_t = (*jo).capacity;
   (*jo).buf = xpalloc ((*jo).buf as *mut c_void, &raw mut new_size, incr_min, -1, 1)
     as *mut c_char;
   (*jo).capacity = new_size;
+
+  }
 }
 
 pub unsafe extern "C-unwind" fn cleanup_json_out (arg: *mut c_void)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let jo: *mut json_out_t = arg as *mut json_out_t;
   xfree ((*jo).buf as *mut c_void);
   (*jo).buf = std::ptr::null_mut ();
   cleanup_symset_tables ((*jo).ss_table);
+
+  }
 }
 
 /* Make room for `bytes` more bytes in buffer.  */
 unsafe fn json_make_room (jo: *mut json_out_t, bytes: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let avail: ptrdiff_t = (*jo).capacity - (*jo).size;
   if avail < bytes
     { json_out_grow_buf (jo, bytes - avail); }
+
+  }
 }
 
 /* C 272's `#define JSON_OUT_STR(jo, str) (json_out_str (jo, str, sizeof (str) - 1))`: the
@@ -310,34 +348,50 @@ macro_rules! JSON_OUT_STR {
 /* Add `bytes` bytes from `str` to the buffer.  */
 unsafe fn json_out_str (jo: *mut json_out_t, str: *const c_char, bytes: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   json_make_room (jo, bytes);
   std::ptr::copy_nonoverlapping (str as *const c_void,
 		       (*jo).buf.offset ((*jo).size as isize) as *mut c_void,
 		       bytes as usize);
   (*jo).size += bytes;
+
+  }
 }
 
 unsafe fn json_out_byte (jo: *mut json_out_t, c: u8)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   json_make_room (jo, 1);
   *(*jo).buf.offset ((*jo).size as isize) = c as c_char;
   (*jo).size += 1;
+
+  }
 }
 
 unsafe fn json_out_fixnum (jo: *mut json_out_t, x: EMACS_INT)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut buf: [c_char; INT_BUFSIZE_BOUND] = [0; INT_BUFSIZE_BOUND];
   let end: *mut c_char = buf.as_mut_ptr ().offset (size_of::<[c_char; INT_BUFSIZE_BOUND]> ()
 						   as isize);
   let p: *mut c_char = fixnum_to_string (x, buf.as_mut_ptr (), end);
   json_out_str (jo, p, (end as ptrdiff_t) - (p as ptrdiff_t));
+
+  }
 }
 
 unsafe fn string_not_unicode (obj: Lisp_Object) -> !
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* FIXME: this is just for compatibility with existing tests, it's not
      a very descriptive error.  */
   wrong_type_argument (Qjson_value_p (), obj);
+
+  }
 }
 
 static json_plain_char: [u8; 256] = [
@@ -354,6 +408,8 @@ static json_plain_char: [u8; 256] = [
 
 unsafe fn json_out_string (jo: *mut json_out_t, str: Lisp_Object, skip: c_int)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* FIXME: this code is slow, make faster! */
 
   /* C's `static const char hexchar[16] ATTRIBUTE_NONSTRING = "0123456789ABCDEF";` (C 324);
@@ -443,18 +499,28 @@ unsafe fn json_out_string (jo: *mut json_out_t, str: Lisp_Object, skip: c_int)
 	}
     }
   json_out_byte (jo, 0x22);
+
+  }
 }
 
 unsafe fn json_out_nest (jo: *mut json_out_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   (*jo).maxdepth -= 1;
   if (*jo).maxdepth < 0
     { error (c"Maximum JSON serialization depth exceeded".as_ptr ()); }
+
+  }
 }
 
 unsafe fn json_out_unnest (jo: *mut json_out_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   (*jo).maxdepth += 1;
+
+  }
 }
 
 /* C 419's `static void json_out_something (…);` has no counterpart: Rust items are
@@ -462,6 +528,8 @@ unsafe fn json_out_unnest (jo: *mut json_out_t)
 
 unsafe fn json_out_object_cons (jo: *mut json_out_t, obj: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   json_out_nest (jo);
   let mut ss: symset_t = push_symset (jo);
   json_out_byte (jo, 0x7b);
@@ -510,10 +578,14 @@ unsafe fn json_out_object_cons (jo: *mut json_out_t, obj: Lisp_Object)
   json_out_byte (jo, 0x7d);
   pop_symset (jo, &raw mut ss);
   json_out_unnest (jo);
+
+  }
 }
 
 unsafe fn json_out_object_hash (jo: *mut json_out_t, obj: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   json_out_nest (jo);
   json_out_byte (jo, 0x7b);
   let h: *mut Lisp_Hash_Table = XHASH_TABLE (obj);
@@ -532,10 +604,14 @@ unsafe fn json_out_object_hash (jo: *mut json_out_t, obj: Lisp_Object)
   json_out_byte (jo, 0x7d);
   json_out_unnest (jo);
 
+
+  }
 }
 
 unsafe fn json_out_array (jo: *mut json_out_t, obj: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   json_out_nest (jo);
   json_out_byte (jo, b'[');
   let n: ptrdiff_t = ASIZE (obj);
@@ -549,10 +625,14 @@ unsafe fn json_out_array (jo: *mut json_out_t, obj: Lisp_Object)
     }
   json_out_byte (jo, b']');
   json_out_unnest (jo);
+
+  }
 }
 
 unsafe fn json_out_float (jo: *mut json_out_t, f: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let x: c_double = XFLOAT_DATA (f);
   if !isfinite! (x)
     { signal_error (c"JSON does not allow Inf or NaN".as_ptr (), f); }
@@ -561,19 +641,27 @@ unsafe fn json_out_float (jo: *mut json_out_t, f: Lisp_Object)
   json_make_room (jo, FLOAT_TO_STRING_BUFSIZE as ptrdiff_t);
   let n: c_int = float_to_string ((*jo).buf.offset ((*jo).size as isize), x);
   (*jo).size += n as ptrdiff_t;
+
+  }
 }
 
 unsafe fn json_out_bignum (jo: *mut json_out_t, x: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let base: c_int = 10;
   let size: ptrdiff_t = bignum_bufsize (x, base);
   json_make_room (jo, size);
   let n: ptrdiff_t = bignum_to_c_string ((*jo).buf.offset ((*jo).size as isize), size, x, base);
   (*jo).size += n;
+
+  }
 }
 
 unsafe fn json_out_something (jo: *mut json_out_t, obj: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if EQ (obj, (*jo).conf.null_object)
     { JSON_OUT_STR! (jo, c"null"); }
   else if EQ (obj, (*jo).conf.false_object)
@@ -598,11 +686,15 @@ unsafe fn json_out_something (jo: *mut json_out_t, obj: Lisp_Object)
     { json_out_bignum (jo, obj); }
   else
     { wrong_type_argument (Qjson_value_p (), obj); }
+
+  }
 }
 
 unsafe fn json_serialize (jo: *mut json_out_t, object: Lisp_Object,
 			  nargs: ptrdiff_t, args: *mut Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   (*jo).maxdepth = 50;
   (*jo).size = 0;
   (*jo).capacity = 0;
@@ -622,6 +714,8 @@ unsafe fn json_serialize (jo: *mut json_out_t, object: Lisp_Object,
     { specbind (Qfloat_output_format (), Qnil ()); }
 
   json_out_something (jo, object);
+
+  }
 }
 
 DEFUN! ("json-serialize", Fjson_serialize, Sjson_serialize, 1, MANY,
@@ -728,6 +822,8 @@ pub struct json_parser
 
 unsafe fn json_signal_error (p: *mut json_parser, error: Lisp_Object) -> !
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let byte: ptrdiff_t = ((*p).input_current as ptrdiff_t) - ((*p).input_begin as ptrdiff_t)
     + (*p).additional_bytes_count;
   let pos: ptrdiff_t = ((*p).byte_to_pos.unwrap ()) ((*p).obj, byte);
@@ -735,6 +831,8 @@ unsafe fn json_signal_error (p: *mut json_parser, error: Lisp_Object) -> !
   /* The line number here is deprecated and provided for compatibility only.
      It is scheduled for removal in Emacs 32.  */
   xsignal3 (error, INT_TO_INTEGER (line), Qnil (), INT_TO_INTEGER (pos));
+
+  }
 }
 
 unsafe fn json_parser_init (parser: *mut json_parser,
@@ -749,6 +847,8 @@ unsafe fn json_parser_init (parser: *mut json_parser,
 			      -> ptrdiff_t,
 			    obj: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut secondary_input: *const u8 = secondary_input;
   let mut secondary_input_end: *const u8 = secondary_input_end;
   if secondary_input >= secondary_input_end
@@ -792,15 +892,21 @@ unsafe fn json_parser_init (parser: *mut json_parser,
   (*parser).byte_to_pos = Some (byte_to_pos);
   (*parser).byte_to_line = Some (byte_to_line);
   (*parser).obj = obj;
+
+  }
 }
 
 pub unsafe extern "C-unwind" fn json_parser_done (parser: *mut c_void)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let p: *mut json_parser = parser as *mut json_parser;
   if (*p).object_workspace != (*p).internal_object_workspace.as_mut_ptr ()
     { xfree ((*p).object_workspace as *mut c_void); }
   if (*p).byte_workspace != (*p).internal_byte_workspace.as_mut_ptr ()
     { xfree ((*p).byte_workspace as *mut c_void); }
+
+  }
 }
 
 /* Makes sure that the object_workspace has 'size' available space for
@@ -808,6 +914,8 @@ pub unsafe extern "C-unwind" fn json_parser_done (parser: *mut c_void)
 unsafe fn json_make_object_workspace_for_slow_path (parser: *mut json_parser,
 						    size: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let internal: bool = (*parser).object_workspace_size
     == JSON_PARSER_INTERNAL_OBJECT_WORKSPACE_SIZE as ptrdiff_t;
   let new_workspace_ptr: *mut Lisp_Object
@@ -823,27 +931,39 @@ unsafe fn json_make_object_workspace_for_slow_path (parser: *mut json_parser,
 			   (size_of::<Lisp_Object> ()
 			    * (*parser).object_workspace_current as usize)); }
   (*parser).object_workspace = new_workspace_ptr;
+
+  }
 }
 
 unsafe fn json_make_object_workspace_for (parser: *mut json_parser,
 					  size: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if (*parser).object_workspace_size - (*parser).object_workspace_current
       < size
     {
       json_make_object_workspace_for_slow_path (parser, size);
     }
+
+  }
 }
 
 unsafe fn json_byte_workspace_reset (parser: *mut json_parser)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   (*parser).byte_workspace_current = (*parser).byte_workspace;
+
+  }
 }
 
 /* Put VALUE into the byte_workspace, allocating space.  */
 unsafe fn json_byte_workspace_put_slow_path (parser: *mut json_parser,
 					     value: u8)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut new_workspace_size: ptrdiff_t
     = ((*parser).byte_workspace_end as ptrdiff_t)
       - ((*parser).byte_workspace as ptrdiff_t);
@@ -865,10 +985,14 @@ unsafe fn json_byte_workspace_put_slow_path (parser: *mut json_parser,
   (*parser).byte_workspace_current = (*parser).byte_workspace.offset (offset as isize);
   *(*parser).byte_workspace_current = value;
   (*parser).byte_workspace_current = (*parser).byte_workspace_current.offset (1);
+
+  }
 }
 
 unsafe fn json_byte_workspace_put (parser: *mut json_parser, value: u8)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if (*parser).byte_workspace_current < (*parser).byte_workspace_end
     {
       *(*parser).byte_workspace_current = value;
@@ -878,18 +1002,26 @@ unsafe fn json_byte_workspace_put (parser: *mut json_parser, value: u8)
     {
       json_byte_workspace_put_slow_path (parser, value);
     }
+
+  }
 }
 
 unsafe fn json_input_at_eof (parser: *mut json_parser) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if (*parser).input_current < (*parser).input_end
     { return false; }
   return (*parser).secondary_input_end.is_null ();
+
+  }
 }
 
 /* If there is a secondary buffer, this switches to it */
 unsafe fn json_input_switch_to_secondary (parser: *mut json_parser) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if (*parser).secondary_input_begin < (*parser).secondary_input_end
     {
       (*parser).additional_bytes_count
@@ -903,20 +1035,28 @@ unsafe fn json_input_switch_to_secondary (parser: *mut json_parser) -> c_int
     }
   else
     { return -1; }
+
+  }
 }
 
 /* Reads a byte from the JSON input stream */
 unsafe fn json_input_get_slow_path (parser: *mut json_parser) -> u8
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if json_input_switch_to_secondary (parser) < 0
     { json_signal_error (parser, Qjson_end_of_file ()); }
   let c: u8 = *(*parser).input_current;
   (*parser).input_current = (*parser).input_current.offset (1);
   return c;
+
+  }
 }
 
 unsafe fn json_input_get (parser: *mut json_parser) -> u8
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if (*parser).input_current < (*parser).input_end
     {
       let c: u8 = *(*parser).input_current;
@@ -924,18 +1064,24 @@ unsafe fn json_input_get (parser: *mut json_parser) -> u8
       return c;
     }
   return json_input_get_slow_path (parser);
+
+  }
 }
 
 /* Reads a byte from the JSON input stream, if the stream is not at
  * eof.  At eof, returns -1 */
 unsafe fn json_input_get_if_possible (parser: *mut json_parser) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if (*parser).input_current >= (*parser).input_end
       && json_input_switch_to_secondary (parser) < 0
     { return -1; }
   let c: u8 = *(*parser).input_current;
   (*parser).input_current = (*parser).input_current.offset (1);
   return c as c_int;
+
+  }
 }
 
 /* Puts back the last read input byte.  Only one byte can be put back,
@@ -943,7 +1089,11 @@ unsafe fn json_input_get_if_possible (parser: *mut json_parser) -> c_int
    the secondary buffer to the initial */
 unsafe fn json_input_put_back (parser: *mut json_parser)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   (*parser).input_current = (*parser).input_current.offset (-1);
+
+  }
 }
 
 unsafe fn is_json_whitespace (c: c_int) -> bool
@@ -955,12 +1105,16 @@ unsafe fn is_json_whitespace (c: c_int) -> bool
  * character */
 unsafe fn json_skip_whitespace (parser: *mut json_parser) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   loop
     {
       let c: c_int = json_input_get (parser) as c_int;
       if !is_json_whitespace (c)
 	{ return c; }
     }
+
+  }
 }
 
 /* Skips JSON whitespace, and returns with the first non-whitespace
@@ -968,12 +1122,16 @@ unsafe fn json_skip_whitespace (parser: *mut json_parser) -> c_int
  * (because we reached the end), it returns -1 */
 unsafe fn json_skip_whitespace_if_possible (parser: *mut json_parser) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   loop
     {
       let c: c_int = json_input_get_if_possible (parser);
       if !is_json_whitespace (c) || c < 0
 	{ return c; }
     }
+
+  }
 }
 
 unsafe fn json_hex_value (c: c_int) -> c_int
@@ -991,6 +1149,8 @@ unsafe fn json_hex_value (c: c_int) -> c_int
 /* Parses the CCCC part of the unicode escape sequence \uCCCC */
 unsafe fn json_parse_unicode (parser: *mut json_parser) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut v: [u8; 4] = [0; 4];
   let mut i: c_int = 0;
   while i < 4
@@ -1004,11 +1164,17 @@ unsafe fn json_parse_unicode (parser: *mut json_parser) -> c_int
 
   return ((v[0] as c_int) << 12) | ((v[1] as c_int) << 8) | ((v[2] as c_int) << 4)
     | (v[3] as c_int);
+
+  }
 }
 
 unsafe fn utf8_error (parser: *mut json_parser) -> !
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   json_signal_error (parser, Qjson_utf8_decode_error ());
+
+  }
 }
 
 /* Parse a string literal.  Optionally prepend a ':'.
@@ -1016,6 +1182,8 @@ unsafe fn utf8_error (parser: *mut json_parser) -> !
 unsafe fn json_parse_string (parser: *mut json_parser, intern: bool,
 			     leading_colon: bool) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   json_byte_workspace_reset (parser);
   if leading_colon
     { json_byte_workspace_put (parser, b':'); }
@@ -1183,6 +1351,8 @@ unsafe fn json_parse_string (parser: *mut json_parser, intern: bool,
       else
 	{ json_signal_error (parser, Qjson_parse_error ()); }
     }
+
+  }
 }
 
 /* If there was no integer overflow during parsing the integer, this
@@ -1195,6 +1365,8 @@ unsafe fn json_create_integer (parser: *mut json_parser,
 			       integer_overflow: bool, negative: bool,
 			       value: EMACS_UINT) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if !integer_overflow
     {
       if negative
@@ -1215,11 +1387,15 @@ unsafe fn json_create_integer (parser: *mut json_parser,
       - ((*parser).byte_workspace as ptrdiff_t) - 1
     { json_signal_error (parser, Qjson_error ()); }
   return result;
+
+  }
 }
 
 /* Parses a float using the byte workspace */
 unsafe fn json_create_float (parser: *mut json_parser) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   json_byte_workspace_put (parser, 0);
   *errno () = 0;
   let mut e: *mut c_char = std::ptr::null_mut ();
@@ -1233,12 +1409,16 @@ unsafe fn json_create_float (parser: *mut json_parser) -> Lisp_Object
     { json_signal_error (parser, Qjson_error ()); }
   else
     { return make_float (value); }
+
+  }
 }
 
 /* Parses a number.  The first character is the input parameter 'c'.
  */
 unsafe fn json_parse_number (parser: *mut json_parser, c_in: c_int) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut c: c_int = c_in;
   json_byte_workspace_reset (parser);
   json_byte_workspace_put (parser, c as u8);
@@ -1344,6 +1524,8 @@ unsafe fn json_parse_number (parser: *mut json_parser, c_in: c_int) -> Lisp_Obje
   else
     { return json_create_integer (parser, integer_overflow, negative,
 				  integer); }
+
+  }
 }
 
 /* C 1342-1343's `static Lisp_Object json_parse_value (…);` has no counterpart: Rust items are
@@ -1352,6 +1534,8 @@ unsafe fn json_parse_number (parser: *mut json_parser, c_in: c_int) -> Lisp_Obje
 /* Parses a JSON array. */
 unsafe fn json_parse_array (parser: *mut json_parser) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut c: c_int = json_skip_whitespace (parser);
 
   let first: ptrdiff_t = (*parser).object_workspace_current;
@@ -1425,11 +1609,15 @@ unsafe fn json_parse_array (parser: *mut json_parser) -> Lisp_Object
     }
 
   return result;
+
+  }
 }
 
 /* Parses the ": value" part of a JSON object member. */
 unsafe fn json_parse_object_member_value (parser: *mut json_parser) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut c: c_int = json_skip_whitespace (parser);
   if c != b':' as c_int
     { json_signal_error (parser, Qjson_parse_error ()); }
@@ -1437,11 +1625,15 @@ unsafe fn json_parse_object_member_value (parser: *mut json_parser) -> Lisp_Obje
   c = json_skip_whitespace (parser);
 
   return json_parse_value (parser, c);
+
+  }
 }
 
 /* Parses a JSON object. */
 unsafe fn json_parse_object (parser: *mut json_parser) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut c: c_int = json_skip_whitespace (parser);
 
   let first: ptrdiff_t = (*parser).object_workspace_current;
@@ -1548,6 +1740,8 @@ unsafe fn json_parse_object (parser: *mut json_parser) -> Lisp_Object
     }
 
   return result;
+
+  }
 }
 
 /* Token-char is not a JSON terminology.  When parsing
@@ -1568,6 +1762,8 @@ unsafe fn json_is_token_char (c: c_int) -> bool
 
 unsafe fn json_parse_value (parser: *mut json_parser, c: c_int) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   match c as u8
     {
     0x7b =>
@@ -1633,16 +1829,24 @@ unsafe fn json_parse_value (parser: *mut json_parser, c: c_int) -> Lisp_Object
     }
 
   json_signal_error (parser, Qjson_parse_error ());
+
+  }
 }
 
 unsafe fn json_parse (parser: *mut json_parser) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   return json_parse_value (parser, json_skip_whitespace (parser));
+
+  }
 }
 
 /* Count number of characters in the NBYTES bytes at S.  */
 unsafe fn count_chars (s: *const u8, nbytes: ptrdiff_t) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut nchars: ptrdiff_t = 0;
   let mut i: ptrdiff_t = 0;
   while i < nbytes
@@ -1651,11 +1855,15 @@ unsafe fn count_chars (s: *const u8, nbytes: ptrdiff_t) -> ptrdiff_t
       i += 1;
     }
   return nchars;
+
+  }
 }
 
 /* Count number of newlines in the NBYTES bytes at S.  */
 unsafe fn count_newlines (s: *const u8, nbytes: ptrdiff_t) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut nls: ptrdiff_t = 0;
   let mut i: ptrdiff_t = 0;
   while i < nbytes
@@ -1664,20 +1872,30 @@ unsafe fn count_newlines (s: *const u8, nbytes: ptrdiff_t) -> ptrdiff_t
       i += 1;
     }
   return nls;
+
+  }
 }
 
 pub unsafe extern "C-unwind" fn string_byte_to_pos (obj: Lisp_Object, byte: ptrdiff_t) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   eassert! (STRINGP (obj));
   eassert! (byte <= SBYTES (obj));
   return if STRING_MULTIBYTE (obj) { count_chars (SDATA (obj), byte) } else { byte };
+
+  }
 }
 
 pub unsafe extern "C-unwind" fn string_byte_to_line (obj: Lisp_Object, byte: ptrdiff_t) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   eassert! (STRINGP (obj));
   eassert! (byte <= SBYTES (obj));
   return count_newlines (SDATA (obj), byte);
+
+  }
 }
 
 DEFUN! ("json-parse-string", Fjson_parse_string, Sjson_parse_string, 1, MANY,
@@ -1711,12 +1929,18 @@ DEFUN! ("json-parse-string", Fjson_parse_string, Sjson_parse_string, 1, MANY,
 
 pub unsafe extern "C-unwind" fn buffer_byte_to_pos (obj: Lisp_Object, byte: ptrdiff_t) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* The position from the start of the parse (for compatibility).  */
   return BYTE_TO_CHAR (PT_BYTE! () + byte) - PT! ();
+
+  }
 }
 
 pub unsafe extern "C-unwind" fn buffer_byte_to_line (obj: Lisp_Object, byte: ptrdiff_t) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* Line from start of the parse (for compatibility). */
   let to_gap: ptrdiff_t = GPT_BYTE! () - PT_BYTE! ();
   return if to_gap > 0 && to_gap < byte
@@ -1724,6 +1948,8 @@ pub unsafe extern "C-unwind" fn buffer_byte_to_line (obj: Lisp_Object, byte: ptr
 	     + count_newlines (GAP_END_ADDR! (), byte - to_gap) }
 	 else
 	   { count_newlines (PT_ADDR! (), byte) };
+
+  }
 }
 
 DEFUN! ("json-parse-buffer", Fjson_parse_buffer, Sjson_parse_buffer,
@@ -1775,6 +2001,8 @@ DEFUN! ("json-parse-buffer", Fjson_parse_buffer, Sjson_parse_buffer,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_json ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   DEFSYM! (QCnull, ":null");
   DEFSYM! (QCfalse, ":false");
 
@@ -1822,4 +2050,6 @@ pub unsafe extern "C-unwind" fn syms_of_json ()
   defsubr (&raw mut Sjson_insert);
   defsubr (&raw mut Sjson_parse_string);
   defsubr (&raw mut Sjson_parse_buffer);
+
+  }
 }

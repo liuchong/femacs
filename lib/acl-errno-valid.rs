@@ -1,6 +1,4 @@
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
-         static_mut_refs, unsafe_op_in_unsafe_fn)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 use std::ffi::{c_char, c_double, c_int, c_long, c_uint, c_ulong, c_void};
@@ -16,7 +14,7 @@ use std::ffi::{c_char, c_double, c_int, c_long, c_uint, c_ulong, c_void};
 
 /* bool acl_errno_valid (int errnum)  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn acl_errno_valid (errnum: c_int) -> bool
+pub extern "C" fn acl_errno_valid (errnum: c_int) -> bool
 {
   /* Recognize some common errors such as from an NFS mount that does
      not support ACLs, even when local drives do.  */

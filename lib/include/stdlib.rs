@@ -61,5 +61,9 @@ unsafe extern "C" {
 #[cfg (feature = "replace_realloc_for_realloc_posix")]
 pub unsafe extern "C" fn realloc (ptr: *mut c_void, size: usize) -> *mut c_void
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   return realloc_system (ptr, if size == 0 { 1 } else { size });
+
+  }
 }

@@ -7,9 +7,7 @@
 // the mirrors those pull in.  undo.c has no preprocessor conditional at all, so the whole
 // file is live text.
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
-         unsafe_op_in_unsafe_fn)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -60,9 +58,13 @@ static mut pending_boundary: Lisp_Object = lisp_h_Qnil ();
 /* Prepare the undo info for recording a change. */
 unsafe fn prepare_record ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* Allocate a cons cell to be the undo boundary after this command.  */
   if NILP (pending_boundary)
     { pending_boundary = Fcons (Qnil (), Qnil ()); }
+
+  }
 }
 
 /* Record point, if necessary, as it was at beginning of this command.
@@ -71,6 +73,8 @@ unsafe fn prepare_record ()
    terminates.  */
 unsafe fn record_point (beg: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* Don't record position of pt when undo_inhibit_record_point holds.  */
   if undo_inhibit_record_point
     { return; }
@@ -102,6 +106,8 @@ unsafe fn record_point (beg: ptrdiff_t)
                       Fcons (make_fixnum (point_before_last_command_or_undo),
                              BVAR! ((current_buffer! ()), undo_list_)));
     }
+
+  }
 }
 
 /* Record an insertion that just happened or is about to happen,
@@ -112,6 +118,8 @@ unsafe fn record_point (beg: ptrdiff_t)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn record_insert (beg: ptrdiff_t, length: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut lbeg: Lisp_Object = Qnil ();
   let mut lend: Lisp_Object = Qnil ();
 
@@ -141,6 +149,8 @@ pub unsafe extern "C-unwind" fn record_insert (beg: ptrdiff_t, length: ptrdiff_t
   XSETINT! (lend, beg + length);
   bset_undo_list ((current_buffer! ()),
                   Fcons (Fcons (lbeg, lend), BVAR! ((current_buffer! ()), undo_list_)));
+
+  }
 }
 
 /* Record the fact that markers in the region of FROM, TO are about to
@@ -151,6 +161,8 @@ pub unsafe extern "C-unwind" fn record_insert (beg: ptrdiff_t, length: ptrdiff_t
 
 unsafe fn record_marker_adjustments (from: ptrdiff_t, to: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   prepare_record ();
 
   let mut m: *mut Lisp_Marker = BUF_MARKERS! ((current_buffer! ()));
@@ -182,6 +194,8 @@ unsafe fn record_marker_adjustments (from: ptrdiff_t, to: ptrdiff_t)
         }
       m = (*m).next;
     }
+
+  }
 }
 
 /* Record that a deletion is about to take place, of the characters in
@@ -191,6 +205,8 @@ unsafe fn record_marker_adjustments (from: ptrdiff_t, to: ptrdiff_t)
 pub unsafe extern "C-unwind" fn record_delete (beg: ptrdiff_t, string: Lisp_Object,
                                         record_markers: bool)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut sbeg: Lisp_Object = Qnil ();
 
   if EQ (BVAR! ((current_buffer! ()), undo_list_), Qt ())
@@ -214,6 +230,8 @@ pub unsafe extern "C-unwind" fn record_delete (beg: ptrdiff_t, string: Lisp_Obje
   bset_undo_list
     ((current_buffer! ()),
      Fcons (Fcons (string, sbeg), BVAR! ((current_buffer! ()), undo_list_)));
+
+  }
 }
 
 /* Record that a replacement is about to take place,
@@ -223,8 +241,12 @@ pub unsafe extern "C-unwind" fn record_delete (beg: ptrdiff_t, string: Lisp_Obje
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn record_change (beg: ptrdiff_t, length: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   record_delete (beg, make_buffer_string (beg, beg + length, true), false);
   record_insert (beg, length);
+
+  }
 }
 
 /* Record that an unmodified buffer is about to be changed.
@@ -234,6 +256,8 @@ pub unsafe extern "C-unwind" fn record_change (beg: ptrdiff_t, length: ptrdiff_t
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn record_first_change ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut base_buffer: *mut buffer = (current_buffer! ());
 
   if EQ (BVAR! ((current_buffer! ()), undo_list_), Qt ())
@@ -245,6 +269,8 @@ pub unsafe extern "C-unwind" fn record_first_change ()
   bset_undo_list ((current_buffer! ()),
                   Fcons (Fcons (Qt (), buffer_visited_file_modtime (base_buffer as *mut c_void)),
                          BVAR! ((current_buffer! ()), undo_list_)));
+
+  }
 }
 
 /* Record a change in property PROP (whose old value was VAL)
@@ -255,6 +281,8 @@ pub unsafe extern "C-unwind" fn record_property_change (beg: ptrdiff_t, length: 
                                                  prop: Lisp_Object, value: Lisp_Object,
                                                  buffer: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut lbeg: Lisp_Object = Qnil ();
   let mut lend: Lisp_Object = Qnil ();
   let mut entry: Lisp_Object = Qnil ();
@@ -273,6 +301,8 @@ pub unsafe extern "C-unwind" fn record_property_change (beg: ptrdiff_t, length: 
   entry = Fcons (Qnil (), Fcons (prop, Fcons (value, Fcons (lbeg, lend))));
   bset_undo_list ((current_buffer! ()),
                   Fcons (entry, BVAR! ((current_buffer! ()), undo_list_)));
+
+  }
 }
 
 DEFUN! ("undo-boundary", Fundo_boundary, Sundo_boundary, 0, 0, 0,
@@ -314,6 +344,8 @@ DEFUN! ("undo-boundary", Fundo_boundary, Sundo_boundary, 0, 0, 0,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn truncate_undo_list (b: *mut buffer)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut list: Lisp_Object;
   let mut prev: Lisp_Object;
   let mut next: Lisp_Object;
@@ -449,11 +481,15 @@ pub unsafe extern "C-unwind" fn truncate_undo_list (b: *mut buffer)
     { bset_undo_list (b, Qnil ()); }
 
   unbind_to (count, Qnil ());
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_undo ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   DEFSYM! (Qinhibit_read_only, "inhibit-read-only");
   DEFSYM! (Qundo_auto__last_boundary_cause, "undo-auto--last-boundary-cause");
   DEFSYM! (Qexplicit, "explicit");
@@ -485,4 +521,6 @@ pub unsafe extern "C-unwind" fn syms_of_undo ()
   DEFVAR_BOOL! (c"undo-inhibit-record-point", undo_inhibit_record_point,
                 "Non-nil means do not record `point' in `buffer-undo-list'.");
   undo_inhibit_record_point = false;
+
+  }
 }

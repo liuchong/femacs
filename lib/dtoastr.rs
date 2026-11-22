@@ -10,10 +10,9 @@
 // `macro_rules! ftoastr_body` (that file's standalone-arm record and the parameterised body),
 // and this shim instantiates it once with the `LENGTH == 2` arm's bindings.  The reference
 // object `build/emacs-ref/lib/dtoastr.o` exports `dtoastr`, which is the `$export` below.  The
-// inner `#![allow (…)]` lives here, not in `ftoastr.rs`: an attribute inside an included file
+// inner `#![allow(…)]` lives here, not in `ftoastr.rs`: an attribute inside an included file
 // is E0753.  The `LENGTH == 3` arm (`ldtoastr.c`) is not compiled on this target.
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports,
-         unused_macros, unused_variables, unused_mut, unused_unsafe, static_mut_refs, unsafe_op_in_unsafe_fn)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 

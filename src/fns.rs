@@ -44,11 +44,7 @@
 // `internal_equal` and `sxhash_obj` have no Rust counterpart (a declaration plus a definition
 // is `E0428`); the definitions stay at C's positions.
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
-         unsafe_op_in_unsafe_fn, unused_assignments, unreachable_code, while_true,
-         unused_parens, unused_mut, unused_labels, unused_comparisons, overflowing_literals,
-         unnecessary_cast, dropping_copy_types, unused_must_use, clashing_extern_declarations)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe, unused_assignments, unreachable_code, while_true, unused_parens, unused_mut, unused_labels, unused_comparisons, overflowing_literals, unnecessary_cast, dropping_copy_types, unused_must_use, clashing_extern_declarations)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -158,6 +154,8 @@ DEFUN! ("identity", Fidentity, Sidentity, 1, 1, 0,
 /* C 58-73: `get_random_fixnum`.  */
 unsafe fn get_random_fixnum (lim: EMACS_INT) -> Lisp_Object
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   /* Return the remainder of a random integer R (in range 0..INTMASK)
      divided by LIM, except reject the rare case where R is so close
      to INTMASK that the remainder isn't random.  */
@@ -174,6 +172,8 @@ unsafe fn get_random_fixnum (lim: EMACS_INT) -> Lisp_Object
     }
 
   return make_fixnum (remainder);
+
+  }
 }
 
 DEFUN! ("random", Frandom, Srandom, 0, 1, 0,
@@ -209,6 +209,8 @@ DEFUN! ("random", Frandom, Srandom, 0, 1, 0,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn list_length (mut list: Lisp_Object) -> ptrdiff_t
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let mut i: ptrdiff_t = 0;
   let orig: Lisp_Object = list;
   while CONSP (list) && i < (FOR_EACH_TAIL_THRESHOLD as ptrdiff_t)
@@ -236,6 +238,8 @@ pub unsafe extern "C-unwind" fn list_length (mut list: Lisp_Object) -> ptrdiff_t
     }
   CHECK_LIST_END (list, list);
   return i;
+
+  }
 }
 
 
@@ -282,6 +286,8 @@ DEFUN! ("safe-length", Fsafe_length, Ssafe_length, 1, 1, 0,
 /* C 176-194: `length_internal`.  */
 unsafe fn length_internal (sequence: Lisp_Object, len: c_int) -> EMACS_INT
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let mut sequence: Lisp_Object = sequence;
   let mut len: c_int = len;
   /* If LENGTH is short (arbitrarily chosen cut-off point), use a
@@ -307,6 +313,8 @@ unsafe fn length_internal (sequence: Lisp_Object, len: c_int) -> EMACS_INT
       });
     }
   return len as EMACS_INT;
+
+  }
 }
 
 DEFUN! ("length<", Flength_less, Slength_less, 2, 2, 0,
@@ -572,16 +580,22 @@ pub const HAVE_FAST_UNALIGNED_ACCESS: bool = false;
 /* C 460-469: `load_unaligned_size_t`.  */
 unsafe fn load_unaligned_size_t (p: *const c_void) -> size_t
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let mut x: size_t = 0;
   std::ptr::copy_nonoverlapping (p, &raw mut x as *mut c_void,
 				 std::mem::size_of::<size_t> ());
   return x;
+
+  }
 }
 
 /* Return -1/0/1 to indicate the relation </=/> between string1 and string2.  */
 /* C 471-556: `string_cmp`.  */
 unsafe fn string_cmp (string1: Lisp_Object, string2: Lisp_Object) -> c_int
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let n: ptrdiff_t = min (SCHARS (string1), SCHARS (string2));
 
   if (!STRING_MULTIBYTE (string1) || SCHARS (string1) == SBYTES (string1))
@@ -676,6 +690,8 @@ unsafe fn string_cmp (string1: Lisp_Object, string2: Lisp_Object) -> c_int
 	}
       return if i1 < SCHARS (string2) { -1 } else { if i1 < SCHARS (string1) { 1 } else { 0 } };
     }
+
+  }
 }
 
 DEFUN! ("string-lessp", Fstring_lessp, Sstring_lessp, 2, 2, 0,
@@ -771,16 +787,24 @@ DEFUN! ("string-collate-equalp", Fstring_collate_equalp, Sstring_collate_equalp,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn concat2 (s1: Lisp_Object, s2: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let mut args: [Lisp_Object; 2] = [s1, s2];
   return concat_to_string (2, args.as_mut_ptr ());
+
+  }
 }
 
 /* C 711-715: `concat3`.  */
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn concat3 (s1: Lisp_Object, s2: Lisp_Object, s3: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let mut args: [Lisp_Object; 3] = [s1, s2, s3];
   return concat_to_string (3, args.as_mut_ptr ());
+
+  }
 }
 
 DEFUN! ("append", Fappend, Sappend, 0, MANY, 0,
@@ -907,6 +931,8 @@ pub struct textprop_rec
 /* C 835-1029: `concat_to_string`.  */
 unsafe fn concat_to_string (nargs: ptrdiff_t, args: *mut Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   /* Check types and compute total length in chars of arguments in RESULT_LEN,
      length in bytes in RESULT_LEN_BYTE, and determine in DEST_MULTIBYTE
      whether the result should be a multibyte string.  */
@@ -1138,6 +1164,8 @@ unsafe fn concat_to_string (nargs: ptrdiff_t, args: *mut Lisp_Object) -> Lisp_Ob
   if num_with_textprops > 0
     { SAFE_FREE! (sa_count, sa_mark); }
   return result;
+
+  }
 }
 
 /* Concatenate sequences into a list. */
@@ -1147,6 +1175,8 @@ unsafe fn concat_to_string (nargs: ptrdiff_t, args: *mut Lisp_Object) -> Lisp_Ob
 unsafe fn concat_to_list (nargs: ptrdiff_t, args: *mut Lisp_Object,
 			      last_tail: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   /* Copy the contents of the args into the result.  */
   let mut result: Lisp_Object = Qnil ();
   let mut last: Lisp_Object = Qnil ();	/* Last cons in result if nonempty.  */
@@ -1246,12 +1276,16 @@ unsafe fn concat_to_list (nargs: ptrdiff_t, args: *mut Lisp_Object,
     { XSETCDR (last, last_tail); }
 
   return result;
+
+  }
 }
 
 /* Concatenate sequences into a vector.  */
 /* C 1114-1193: `concat_to_vector`.  C 701 declares it `static` (as above).  */
 unsafe fn concat_to_vector (nargs: ptrdiff_t, args: *mut Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   /* Check argument types and compute total length of arguments.  */
   let mut result_len: EMACS_INT = 0;
   let mut i: ptrdiff_t = 0;
@@ -1347,6 +1381,8 @@ unsafe fn concat_to_vector (nargs: ptrdiff_t, args: *mut Lisp_Object) -> Lisp_Ob
   eassert! (dst == (*XVECTOR (result)).contents.as_mut_ptr ().offset (result_len));
 
   return result;
+
+  }
 }
 
 /* C 1189-1191: the three file-scope objects the cache below uses.  */
@@ -1360,6 +1396,8 @@ static mut string_char_byte_cache_bytepos: ptrdiff_t = 0;
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn string_char_to_byte (string: Lisp_Object, char_index: ptrdiff_t) -> ptrdiff_t
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let mut i_byte: ptrdiff_t;
   let mut best_below: ptrdiff_t;
   let mut best_below_byte: ptrdiff_t;
@@ -1416,6 +1454,8 @@ pub unsafe extern "C-unwind" fn string_char_to_byte (string: Lisp_Object, char_i
   string_char_byte_cache_string = string;
 
   return i_byte;
+
+  }
 }
 
 /* Return the character index corresponding to BYTE_INDEX in STRING.  */
@@ -1424,6 +1464,8 @@ pub unsafe extern "C-unwind" fn string_char_to_byte (string: Lisp_Object, char_i
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn string_byte_to_char (string: Lisp_Object, byte_index: ptrdiff_t) -> ptrdiff_t
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let mut i: ptrdiff_t;
   let mut i_byte: ptrdiff_t;
   let mut best_below: ptrdiff_t;
@@ -1485,6 +1527,8 @@ pub unsafe extern "C-unwind" fn string_byte_to_char (string: Lisp_Object, byte_i
   string_char_byte_cache_string = string;
 
   return i;
+
+  }
 }
 
 /* Convert STRING (if unibyte) to a multibyte string without changing
@@ -1495,6 +1539,8 @@ pub unsafe extern "C-unwind" fn string_byte_to_char (string: Lisp_Object, byte_i
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn string_to_multibyte (string: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   if STRING_MULTIBYTE (string)
     { return string; }
 
@@ -1508,6 +1554,8 @@ pub unsafe extern "C-unwind" fn string_to_multibyte (string: Lisp_Object) -> Lis
   let ret: Lisp_Object = make_uninit_multibyte_string (nchars, nbytes);
   str_to_multibyte (SDATA (ret), SDATA (string), nchars);
   return ret;
+
+  }
 }
 
 
@@ -1517,6 +1565,8 @@ pub unsafe extern "C-unwind" fn string_to_multibyte (string: Lisp_Object) -> Lis
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn string_make_unibyte (string: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let nchars: ptrdiff_t;
   let mut buf: *mut u8;
   let ret: Lisp_Object;
@@ -1534,7 +1584,9 @@ pub unsafe extern "C-unwind" fn string_make_unibyte (string: Lisp_Object) -> Lis
   ret = make_unibyte_string (buf as *mut c_char, nchars);
   SAFE_FREE! (sa_count, sa_mark);
 
-  return ret;}
+  return ret;
+  }
+}
 
 DEFUN! ("string-make-multibyte", Fstring_make_multibyte, Sstring_make_multibyte,
        1, 1, 0,
@@ -1718,6 +1770,8 @@ DEFUN! ("copy-alist", Fcopy_alist, Scopy_alist, 1, 1, 0,
 pub unsafe extern "C-unwind" fn validate_subarray (array: Lisp_Object, from: Lisp_Object, to: Lisp_Object,
 				 size: ptrdiff_t, ifrom: *mut ptrdiff_t, ito: *mut ptrdiff_t)
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let mut f: EMACS_INT;
   let mut t: EMACS_INT;
 
@@ -1748,6 +1802,8 @@ pub unsafe extern "C-unwind" fn validate_subarray (array: Lisp_Object, from: Lis
 
   *ifrom = f;
   *ito = t;
+
+  }
 }
 
 DEFUN! ("substring", Fsubstring, Ssubstring, 1, 3, 0,
@@ -1816,6 +1872,8 @@ DEFUN! ("substring-no-properties", Fsubstring_no_properties, Ssubstring_no_prope
 pub unsafe extern "C-unwind" fn substring_both (string: Lisp_Object, from: ptrdiff_t, from_byte: ptrdiff_t,
 			      to: ptrdiff_t, to_byte: ptrdiff_t) -> Lisp_Object
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let res: Lisp_Object;
   let size: ptrdiff_t = CHECK_VECTOR_OR_STRING (string);
 
@@ -1837,6 +1895,8 @@ pub unsafe extern "C-unwind" fn substring_both (string: Lisp_Object, from: ptrdi
     { res = Fvector (to - from, aref_addr (string, from)); }
 
   return res;
+
+  }
 }
 
 DEFUN! ("take", Ftake, Stake, 2, 2, 0,
@@ -2081,6 +2141,8 @@ pub union double_and_words
 /* C 1877-1889: `same_float`.  */
 unsafe fn same_float (x: Lisp_Object, y: Lisp_Object) -> bool
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let xu: double_and_words = double_and_words { val: XFLOAT_DATA (x) };
   let yu: double_and_words = double_and_words { val: XFLOAT_DATA (y) };
   let mut neql: EMACS_UINT = 0;
@@ -2091,6 +2153,8 @@ unsafe fn same_float (x: Lisp_Object, y: Lisp_Object) -> bool
       i += 1;
     }
   return neql == 0;
+
+  }
 }
 
 /* True if X can be compared using `eq'.
@@ -2122,6 +2186,8 @@ DEFUN! ("member", Fmember, Smember, 2, 2, 0,
 #[inline(never)]
 unsafe fn memq_slow (elt: Lisp_Object, list: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let mut tail: Lisp_Object = list;
   FOR_EACH_TAIL! (tail, {
     if EQ (XCAR (tail), elt)
@@ -2129,6 +2195,8 @@ unsafe fn memq_slow (elt: Lisp_Object, list: Lisp_Object) -> Lisp_Object
   });
   CHECK_LIST_END (tail, list);
   return Qnil ();
+
+  }
 }
 
 DEFUN! ("memq", Fmemq, Smemq, 2, 2, 0,
@@ -2204,6 +2272,8 @@ DEFUN! ("memql", Fmemql, Smemql, 2, 2, 0,
 #[inline(never)]
 unsafe fn assq_slow (key: Lisp_Object, alist: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let mut tail: Lisp_Object = alist;
   FOR_EACH_TAIL! (tail, {
     if CONSP (XCAR (tail)) && EQ (XCAR (XCAR (tail)), key)
@@ -2211,6 +2281,8 @@ unsafe fn assq_slow (key: Lisp_Object, alist: Lisp_Object) -> Lisp_Object
   });
   CHECK_LIST_END (tail, alist);
   return Qnil ();
+
+  }
 }
 
 DEFUN! ("assq", Fassq, Sassq, 2, 2, 0,
@@ -2303,6 +2375,8 @@ DEFUN! ("assoc", Fassoc, Sassoc, 2, 3, 0,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn assoc_no_quit (key: Lisp_Object, alist: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let mut alist: Lisp_Object = alist;
   while ! NILP (alist)
     {
@@ -2313,6 +2387,8 @@ pub unsafe extern "C-unwind" fn assoc_no_quit (key: Lisp_Object, alist: Lisp_Obj
       alist = XCDR (alist);
     }
   return Qnil ();
+
+  }
 }
 
 DEFUN! ("rassq", Frassq, Srassq, 2, 2, 0,
@@ -2419,6 +2495,8 @@ DEFUN! ("delq", Fdelq, Sdelq, 2, 2, 0,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn delq_no_quit (elt: Lisp_Object, list: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let mut prev: Lisp_Object = Qnil ();
   let mut list: Lisp_Object = list;
   let mut tail: Lisp_Object = list;
@@ -2440,6 +2518,8 @@ pub unsafe extern "C-unwind" fn delq_no_quit (elt: Lisp_Object, list: Lisp_Objec
     }
 
   return list;
+
+  }
 }
 
 DEFUN! ("delete", Fdelete, Sdelete, 2, 2, 0,
@@ -2753,6 +2833,8 @@ DEFUN! ("reverse", Freverse, Sreverse, 1, 1, 0,
 unsafe fn sort_list (list: Lisp_Object, predicate: Lisp_Object, keyfunc: Lisp_Object,
 		     reverse: bool, inplace: bool) -> Lisp_Object
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let mut list: Lisp_Object = list;
   let mut length: ptrdiff_t = 0;
   let pred_resolved: Lisp_Object = if SYMBOLP (predicate)
@@ -2848,6 +2930,8 @@ unsafe fn sort_list (list: Lisp_Object, predicate: Lisp_Object, keyfunc: Lisp_Ob
       SAFE_FREE! (sa_count, sa_mark);
       return list;
     }
+
+  }
 }
 
 /* Stably sort VECTOR in-place ordered by PREDICATE and KEYFUNC,
@@ -2856,10 +2940,14 @@ unsafe fn sort_list (list: Lisp_Object, predicate: Lisp_Object, keyfunc: Lisp_Ob
 unsafe fn sort_vector (vector: Lisp_Object, predicate: Lisp_Object, keyfunc: Lisp_Object,
 		       reverse: bool) -> Lisp_Object
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let length: ptrdiff_t = ASIZE (vector);
   if length >= 2
     { tim_sort (predicate, keyfunc, (*XVECTOR (vector)).contents.as_mut_ptr (), length, reverse); }
   return vector;
+
+  }
 }
 
 DEFUN! ("sort", Fsort, Ssort, 1, MANY, 0,
@@ -2914,6 +3002,8 @@ DEFUN! ("sort", Fsort, Ssort, 1, MANY, 0,
 pub unsafe extern "C-unwind" fn merge (org_l1: Lisp_Object, org_l2: Lisp_Object,
 				pred: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let mut org_l1: Lisp_Object = org_l1;
   let mut org_l2: Lisp_Object = org_l2;
   let mut l1: Lisp_Object = org_l1;
@@ -2957,6 +3047,8 @@ pub unsafe extern "C-unwind" fn merge (org_l1: Lisp_Object, org_l2: Lisp_Object,
 	{ Fsetcdr (tail, tem); }
       tail = tem;
     }
+
+  }
 }
 
 /* C 2561-2603: `merge_c`.  */
@@ -2966,6 +3058,8 @@ pub unsafe extern "C-unwind" fn merge_c (org_l1: Lisp_Object, org_l2: Lisp_Objec
 					      -> bool>)
   -> Lisp_Object
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let mut org_l1: Lisp_Object = org_l1;
   let mut org_l2: Lisp_Object = org_l2;
   let mut l1: Lisp_Object = org_l1;
@@ -3009,6 +3103,8 @@ pub unsafe extern "C-unwind" fn merge_c (org_l1: Lisp_Object, org_l2: Lisp_Objec
 	{ Fsetcdr (tail, tem); }
       tail = tem;
     }
+
+  }
 }
 
 
@@ -3058,6 +3154,8 @@ unsafe fn plist_get_slow (plist: Lisp_Object, prop: Lisp_Object) -> Lisp_Object
 #[inline(always)]
 unsafe fn plist_get_inline (plist: Lisp_Object, prop: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   if NILP (plist)
     { return Qnil (); }
   let mut tail: Lisp_Object = plist;
@@ -3078,6 +3176,8 @@ unsafe fn plist_get_inline (plist: Lisp_Object, prop: Lisp_Object) -> Lisp_Objec
 	{ return Qnil (); }
     }
   return plist_get_slow (plist, prop);
+
+  }
 }
 
 /* Faster version of Fplist_get that works with EQ only.  */
@@ -3085,19 +3185,27 @@ unsafe fn plist_get_inline (plist: Lisp_Object, prop: Lisp_Object) -> Lisp_Objec
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn plist_get (plist: Lisp_Object, prop: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   return plist_get_inline (plist, prop);
+
+  }
 }
 
 #[cold]
 #[inline(never)]
 unsafe fn fget_overriding_slow (symbol: Lisp_Object, propname: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let propval: Lisp_Object = plist_get_inline (CDR (Fassq (symbol,
 							   Voverriding_plist_environment)),
 					       propname);
   if !NILP (propval)
     { return propval; }
   return plist_get_inline ((*XSYMBOL (symbol)).u.s.plist, propname);
+
+  }
 }
 
 DEFUN! ("get", Fget, Sget, 2, 2, 0,
@@ -3146,6 +3254,8 @@ DEFUN! ("plist-put", Fplist_put, Splist_put, 3, 4, 0,
 pub unsafe extern "C-unwind" fn plist_put (plist: Lisp_Object, prop: Lisp_Object,
 				    val: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let mut prev: Lisp_Object = Qnil ();
   let mut tail: Lisp_Object = plist;
   if ! symbols_with_pos_enabled
@@ -3197,6 +3307,8 @@ pub unsafe extern "C-unwind" fn plist_put (plist: Lisp_Object, prop: Lisp_Object
     { return newcell; }
   Fsetcdr (XCDR (prev), newcell);
   return plist;
+
+  }
 }
 
 DEFUN! ("put", Fput, Sput, 3, 3, 0,
@@ -3232,6 +3344,8 @@ DEFUN! ("plist-member", Fplist_member, Splist_member, 2, 3, 0,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn plist_member (plist: Lisp_Object, prop: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let mut tail: Lisp_Object = plist;
   FOR_EACH_TAIL! (tail, {
       if EQ (XCAR (tail), prop)
@@ -3242,6 +3356,8 @@ pub unsafe extern "C-unwind" fn plist_member (plist: Lisp_Object, prop: Lisp_Obj
   });
   CHECK_TYPE (NILP (tail), Qplistp (), plist);
   return Qnil ();
+
+  }
 }
 
 DEFUN! ("eql", Feql, Seql, 2, 2, 0,
@@ -3287,7 +3403,11 @@ DEFUN! ("equal-including-properties", Fequal_including_properties, Sequal_includ
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn equal_no_quit (o1: Lisp_Object, o2: Lisp_Object) -> bool
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   return internal_equal (o1, o2, EQUAL_NO_QUIT, 0, Qnil ());
+
+  }
 }
 
 /* Return true if O1 and O2 are equal.  EQUAL_KIND specifies what kind
@@ -3305,6 +3425,8 @@ pub unsafe extern "C-unwind" fn equal_no_quit (o1: Lisp_Object, o2: Lisp_Object)
 unsafe fn internal_equal_1 (o1: Lisp_Object, o2: Lisp_Object, equal_kind: equal_kind,
 			    depth: c_int, ht: *mut Lisp_Object) -> bool
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let mut o1: Lisp_Object = o1;
   let mut o2: Lisp_Object = o2;
   let mut depth: c_int = depth;
@@ -3533,6 +3655,8 @@ unsafe fn internal_equal_1 (o1: Lisp_Object, o2: Lisp_Object, equal_kind: equal_
 
   return false;
     }
+
+  }
 }
 
 /* Slow path comparison when o1 and o2 are lists and o2 is circular.  */
@@ -3540,6 +3664,8 @@ unsafe fn internal_equal_1 (o1: Lisp_Object, o2: Lisp_Object, equal_kind: equal_
 unsafe fn internal_equal_cycle (o1: Lisp_Object, o2: Lisp_Object, equal_kind: equal_kind,
 				depth: c_int, ht: *mut Lisp_Object) -> bool
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let mut o1: Lisp_Object = o1;
   let mut o2: Lisp_Object = o2;
   eassert! (CONSP (o1) && CONSP (o2));
@@ -3577,20 +3703,28 @@ unsafe fn internal_equal_cycle (o1: Lisp_Object, o2: Lisp_Object, equal_kind: eq
     }
   /* o1 terminated but o2 is circular: not equal.  */
   return false;
+
+  }
 }
 
 /* C 3054-3060: `internal_equal`.  */
 unsafe fn internal_equal (o1: Lisp_Object, o2: Lisp_Object, equal_kind: equal_kind,
 			  depth: c_int, ht: Lisp_Object) -> bool
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let mut ht: Lisp_Object = ht;
   return internal_equal_1 (o1, o2, equal_kind, depth, &raw mut ht);
+
+  }
 }
 
 /* Return -1/0/1 for the </=/> lexicographic relation between bool-vectors.  */
 /* C 3062-3092: `bool_vector_cmp`.  */
 unsafe fn bool_vector_cmp (a: Lisp_Object, b: Lisp_Object) -> c_int
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let mut na: ptrdiff_t = bool_vector_size (a);
   let mut nb: ptrdiff_t = bool_vector_size (b);
   /* Skip equal words.  */
@@ -3617,6 +3751,8 @@ unsafe fn bool_vector_cmp (a: Lisp_Object, b: Lisp_Object) -> c_int
   let d: bits_word = xw & (xw.wrapping_neg ());	/* Isolate first difference.  */
   eassume! (d != 0);
   return if (d & aw) != 0 { 1 } else { -1 };
+
+  }
 }
 
 /* Return -1 if a<b, 1 if a>b, 0 if a=b or if b is NaN (a must be a fixnum).  */
@@ -3645,6 +3781,8 @@ unsafe fn fixnum_float_cmp (a: EMACS_INT, b: f64) -> c_int
 /* C 3116-3274: `value_cmp`.  */
 unsafe fn value_cmp (a: Lisp_Object, b: Lisp_Object, maxdepth: c_int) -> c_int
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let mut a: Lisp_Object = a;
   let mut b: Lisp_Object = b;
   if maxdepth < 0
@@ -3843,6 +3981,8 @@ unsafe fn value_cmp (a: Lisp_Object, b: Lisp_Object, maxdepth: c_int) -> c_int
     }
  }
   xsignal2 (Qtype_mismatch (), a, b);
+
+  }
 }
 
 DEFUN! ("value<", Fvaluelt, Svaluelt, 2, 2, 0,
@@ -4024,6 +4164,8 @@ DEFUN! ("nconc", Fnconc, Snconc, 0, MANY, 0,
 unsafe fn mapcar1 (leni: EMACS_INT, vals: *mut Lisp_Object, r#fn: Lisp_Object,
 		   seq: Lisp_Object) -> EMACS_INT
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   if NILP (seq)
     { return 0; }
   else if CONSP (seq)
@@ -4081,6 +4223,8 @@ unsafe fn mapcar1 (leni: EMACS_INT, vals: *mut Lisp_Object, r#fn: Lisp_Object,
     { wrong_type_argument (Qsequencep (), seq); }
 
   return leni;
+
+  }
 }
 
 DEFUN! ("mapconcat", Fmapconcat, Smapconcat, 2, 3, 0,
@@ -4369,7 +4513,11 @@ static mut require_nesting_list: Lisp_Object = lisp_h_Qnil ();
 /* C 3776-3779: `require_unwind`.  */
 unsafe extern "C-unwind" fn require_unwind (old_value: Lisp_Object)
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   require_nesting_list = old_value;
+
+  }
 }
 
 DEFUN! ("require", Frequire, Srequire, 1, 3, 0,
@@ -4615,6 +4763,8 @@ DEFUN! ("base64url-encode-region", Fbase64url_encode_region, Sbase64url_encode_r
 unsafe fn base64_encode_region_1 (beg: Lisp_Object, end: Lisp_Object, line_break: bool,
 				  pad: bool, base64url: bool) -> Lisp_Object
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let mut beg: Lisp_Object = beg;
   let mut end: Lisp_Object = end;
   let mut encoded: *mut c_char;
@@ -4671,6 +4821,8 @@ unsafe fn base64_encode_region_1 (beg: Lisp_Object, end: Lisp_Object, line_break
 
   /* We return the length of the encoded text. */
   return make_fixnum (encoded_length);
+
+  }
 }
 
 DEFUN! ("base64-encode-string", Fbase64_encode_string, Sbase64_encode_string,
@@ -4695,6 +4847,8 @@ DEFUN! ("base64url-encode-string", Fbase64url_encode_string,
 unsafe fn base64_encode_string_1 (string: Lisp_Object, line_break: bool,
 				  pad: bool, base64url: bool) -> Lisp_Object
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let mut allength: ptrdiff_t;
   let length: ptrdiff_t;
   let mut encoded_length: ptrdiff_t;
@@ -4731,6 +4885,8 @@ unsafe fn base64_encode_string_1 (string: Lisp_Object, line_break: bool,
   SAFE_FREE! (sa_count, sa_mark);
 
   return encoded_string;
+
+  }
 }
 
 /* C 4232-4318: `base64_encode_1`.  */
@@ -4738,6 +4894,8 @@ unsafe fn base64_encode_1 (from: *const c_char, to: *mut c_char, length: ptrdiff
 			   line_break: bool, pad: bool, base64url: bool,
 			   multibyte: bool) -> ptrdiff_t
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let mut counter: c_int = 0;
   let mut i: ptrdiff_t = 0;
   let mut e: *mut c_char = to;
@@ -4854,6 +5012,8 @@ unsafe fn base64_encode_1 (from: *const c_char, to: *mut c_char, length: ptrdiff
     }
 
   return e.offset_from (to);
+
+  }
 }
 
 
@@ -4971,6 +5131,8 @@ unsafe fn base64_decode_1 (from: *const c_char, to: *mut c_char, length: ptrdiff
 			   base64url: bool, multibyte: bool, ignore_invalid: bool,
 			   nchars_return: *mut ptrdiff_t) -> ptrdiff_t
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let mut f: *const c_char = from;
   let flim: *const c_char = from.offset (length);
   let mut e: *mut c_char = to;
@@ -5114,6 +5276,8 @@ unsafe fn base64_decode_1 (from: *const c_char, to: *mut c_char, length: ptrdiff
 	}
       nchars += 1;
     }
+
+  }
 }
 
 
@@ -5151,20 +5315,32 @@ unsafe fn CHECK_HASH_TABLE (x: Lisp_Object)
 /* C 4619-4623: `set_hash_next_slot`.  */
 unsafe fn set_hash_next_slot (h: *mut Lisp_Hash_Table, idx: ptrdiff_t, val: ptrdiff_t)
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   eassert! (idx >= 0 && idx < (*h).table_size as ptrdiff_t);
   *(*h).next.offset (idx) = val as hash_idx_t;
+
+  }
 }
 /* C 4625-4629: `set_hash_hash_slot`.  */
 unsafe fn set_hash_hash_slot (h: *mut Lisp_Hash_Table, idx: ptrdiff_t, val: hash_hash_t)
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   eassert! (idx >= 0 && idx < (*h).table_size as ptrdiff_t);
   *(*h).hash.offset (idx) = val;
+
+  }
 }
 /* C 4631-4635: `set_hash_index_slot`.  */
 unsafe fn set_hash_index_slot (h: *mut Lisp_Hash_Table, idx: ptrdiff_t, val: ptrdiff_t)
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   eassert! (idx >= 0 && idx < hash_table_index_size (h));
   *(*h).index.offset (idx) = val as hash_idx_t;
+
+  }
 }
 
 /* If OBJ is a Lisp hash table, return a pointer to its struct
@@ -5173,8 +5349,12 @@ unsafe fn set_hash_index_slot (h: *mut Lisp_Hash_Table, idx: ptrdiff_t, val: ptr
 /* C 4641-4645: `check_hash_table`.  */
 unsafe fn check_hash_table (obj: Lisp_Object) -> *mut Lisp_Hash_Table
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   CHECK_HASH_TABLE (obj);
   return XHASH_TABLE (obj);
+
+  }
 }
 
 
@@ -5207,6 +5387,8 @@ pub unsafe extern "C-unwind" fn next_almost_prime (n: EMACS_INT) -> EMACS_INT
 pub unsafe extern "C-unwind" fn larger_vector (vec: Lisp_Object, incr_min: ptrdiff_t,
 					nitems_max: ptrdiff_t) -> Lisp_Object
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let mut vec: Lisp_Object = vec;
   let v: *mut Lisp_Vector;
   let mut incr: ptrdiff_t;
@@ -5236,6 +5418,8 @@ pub unsafe extern "C-unwind" fn larger_vector (vec: Lisp_Object, incr_min: ptrdi
 	    (new_size - old_size) * word_size);
   XSETVECTOR! (vec, v);
   return vec;
+
+  }
 }
 
 
@@ -5249,8 +5433,12 @@ pub unsafe extern "C-unwind" fn larger_vector (vec: Lisp_Object, incr_min: ptrdi
 /* C 4698-4703: `HASH_NEXT`.  */
 unsafe fn HASH_NEXT (h: *mut Lisp_Hash_Table, idx: ptrdiff_t) -> ptrdiff_t
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   eassert! (idx >= 0 && idx < (*h).table_size as ptrdiff_t);
   return *(*h).next.offset (idx) as ptrdiff_t;
+
+  }
 }
 
 /* Return the index of the element in hash table H that is the start
@@ -5259,8 +5447,12 @@ unsafe fn HASH_NEXT (h: *mut Lisp_Hash_Table, idx: ptrdiff_t) -> ptrdiff_t
 /* C 4708-4713: `HASH_INDEX`.  */
 unsafe fn HASH_INDEX (h: *mut Lisp_Hash_Table, idx: ptrdiff_t) -> ptrdiff_t
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   eassert! (idx >= 0 && idx < hash_table_index_size (h));
   return *(*h).index.offset (idx) as ptrdiff_t;
+
+  }
 }
 
 /* Restore a hash table's mutability after the critical section exits.  */
@@ -5268,8 +5460,12 @@ unsafe fn HASH_INDEX (h: *mut Lisp_Hash_Table, idx: ptrdiff_t) -> ptrdiff_t
 /* C 4717-4721: `restore_mutability`.  */
 unsafe extern "C-unwind" fn restore_mutability (ptr: *mut c_void)
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let h: *mut Lisp_Hash_Table = ptr as *mut Lisp_Hash_Table;
   (*h).bits |= HASH_MUTABLE_MASK;
+
+  }
 }
 
 /* Return the result of calling a user-defined hash or comparison
@@ -5281,12 +5477,16 @@ unsafe extern "C-unwind" fn restore_mutability (ptr: *mut c_void)
 unsafe fn hash_table_user_defined_call (nargs: ptrdiff_t, args: *mut Lisp_Object,
 					h: *mut Lisp_Hash_Table) -> Lisp_Object
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   if ((*h).bits & HASH_MUTABLE_MASK) == 0
     { return Ffuncall (nargs, args); }
   let count: specpdl_ref = inhibit_garbage_collection ();
   record_unwind_protect_ptr (Some (restore_mutability), h as *mut c_void);
   (*h).bits &= !HASH_MUTABLE_MASK;
   return unbind_to (count, Ffuncall (nargs, args));
+
+  }
 }
 
 /* Ignore H and compare KEY1 and KEY2 using 'eql'.
@@ -5296,8 +5496,12 @@ unsafe fn hash_table_user_defined_call (nargs: ptrdiff_t, args: *mut Lisp_Object
 unsafe extern "C-unwind" fn cmpfn_eql (key1: Lisp_Object, key2: Lisp_Object,
 				h: *mut Lisp_Hash_Table) -> Lisp_Object
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let _ = h;
   return Feql (key1, key2);
+
+  }
 }
 
 /* Ignore H and compare KEY1 and KEY2 using 'equal'.
@@ -5307,8 +5511,12 @@ unsafe extern "C-unwind" fn cmpfn_eql (key1: Lisp_Object, key2: Lisp_Object,
 unsafe extern "C-unwind" fn cmpfn_equal (key1: Lisp_Object, key2: Lisp_Object,
 				  h: *mut Lisp_Hash_Table) -> Lisp_Object
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let _ = h;
   return Fequal (key1, key2);
+
+  }
 }
 
 
@@ -5319,8 +5527,12 @@ unsafe extern "C-unwind" fn cmpfn_equal (key1: Lisp_Object, key2: Lisp_Object,
 unsafe extern "C-unwind" fn cmpfn_user_defined (key1: Lisp_Object, key2: Lisp_Object,
 					 h: *mut Lisp_Hash_Table) -> Lisp_Object
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let mut args: [Lisp_Object; 3] = [(*(*h).test).user_cmp_function, key1, key2];
   return hash_table_user_defined_call (countof! (args) as ptrdiff_t, args.as_mut_ptr (), h);
+
+  }
 }
 
 /* C 4771-4776: `sxhash_eq`.  */
@@ -5333,7 +5545,11 @@ unsafe fn sxhash_eq (key: Lisp_Object) -> EMACS_INT
 /* C 4778-4781: `sxhash_eql`.  */
 unsafe fn sxhash_eql (key: Lisp_Object) -> EMACS_INT
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   return if FLOATP (key) || BIGNUMP (key) { sxhash (key) as EMACS_INT } else { sxhash_eq (key) };
+
+  }
 }
 
 /* Ignore H and return a hash code for KEY which uses 'eq' to compare keys.  */
@@ -5341,8 +5557,12 @@ unsafe fn sxhash_eql (key: Lisp_Object) -> EMACS_INT
 /* C 4786-4790: `hashfn_eq`.  */
 unsafe extern "C-unwind" fn hashfn_eq (key: Lisp_Object, h: *mut Lisp_Hash_Table) -> hash_hash_t
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let _ = h;
   return reduce_emacs_uint_to_hash_hash (sxhash_eq (key) as EMACS_UINT);
+
+  }
 }
 
 /* Ignore H and return a hash code for KEY which uses 'equal' to
@@ -5350,16 +5570,24 @@ unsafe extern "C-unwind" fn hashfn_eq (key: Lisp_Object, h: *mut Lisp_Hash_Table
 /* C 4794-4798: `hashfn_equal`.  */
 unsafe extern "C-unwind" fn hashfn_equal (key: Lisp_Object, h: *mut Lisp_Hash_Table) -> hash_hash_t
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let _ = h;
   return reduce_emacs_uint_to_hash_hash (sxhash (key) as EMACS_UINT);
+
+  }
 }
 
 /* Ignore H and return a hash code for KEY which uses 'eql' to compare keys.  */
 /* C 4801-4805: `hashfn_eql`.  */
 unsafe extern "C-unwind" fn hashfn_eql (key: Lisp_Object, h: *mut Lisp_Hash_Table) -> hash_hash_t
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let _ = h;
   return reduce_emacs_uint_to_hash_hash (sxhash_eql (key) as EMACS_UINT);
+
+  }
 }
 
 /* Given H, return a hash code for KEY which uses a user-defined
@@ -5369,12 +5597,16 @@ unsafe extern "C-unwind" fn hashfn_eql (key: Lisp_Object, h: *mut Lisp_Hash_Tabl
 unsafe extern "C-unwind" fn hashfn_user_defined (key: Lisp_Object, h: *mut Lisp_Hash_Table)
   -> hash_hash_t
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let mut args: [Lisp_Object; 2] = [(*(*h).test).user_hash_function, key];
   let hash: Lisp_Object = hash_table_user_defined_call (countof! (args) as ptrdiff_t,
 							args.as_mut_ptr (), h);
   return reduce_emacs_uint_to_hash_hash (if FIXNUMP (hash)
 					 { XUFIXNUM (hash) as EMACS_UINT }
 					 else { sxhash (hash) as EMACS_UINT });
+
+  }
 }
 
 /* C 4819-4824: the three `struct hash_table_test` objects.  C's `.name = LISPSYM_INITIALLY
@@ -5434,6 +5666,8 @@ unsafe fn allocate_hash_table () -> *mut Lisp_Hash_Table
 /* C 4836-4847: `compute_hash_index_bits`.  */
 unsafe fn compute_hash_index_bits (size: hash_idx_t) -> c_int
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   /* An upper bound on the size of a hash table index index.  */
   let upper_bound: hash_idx_t = min (MOST_POSITIVE_FIXNUM as isize,
 				     min (TYPE_MAXIMUM! (hash_idx_t) as isize,
@@ -5445,6 +5679,8 @@ unsafe fn compute_hash_index_bits (size: hash_idx_t) -> c_int
       || ((1 as uintmax_t) << bits) > upper_bound as uintmax_t
     { error (c"Hash table too large".as_ptr ()); }
   return bits;
+
+  }
 }
 
 /* Constant hash index vector used when the table size is zero.
@@ -5467,6 +5703,8 @@ static empty_hash_index_vector: [hash_idx_t; 1] = [-1];
 pub unsafe extern "C-unwind" fn make_hash_table (test: *const hash_table_test, size: EMACS_INT,
 					  weak: hash_table_weakness_t) -> Lisp_Object
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   eassert! (SYMBOLP ((*test).name));
   eassert! (0 <= size && size <= min (MOST_POSITIVE_FIXNUM, PTRDIFF_MAX));
 
@@ -5530,6 +5768,8 @@ pub unsafe extern "C-unwind" fn make_hash_table (test: *const hash_table_test, s
   (*h).next_weak = std::ptr::null_mut ();
   (*h).bits |= HASH_MUTABLE_MASK;
   return make_lisp_hash_table (h);
+
+  }
 }
 
 
@@ -5539,6 +5779,8 @@ pub unsafe extern "C-unwind" fn make_hash_table (test: *const hash_table_test, s
 /* C 4921-4950: `copy_hash_table`.  */
 unsafe fn copy_hash_table (h1: *mut Lisp_Hash_Table) -> Lisp_Object
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let h2: *mut Lisp_Hash_Table;
 
   h2 = allocate_hash_table ();
@@ -5578,6 +5820,8 @@ unsafe fn copy_hash_table (h1: *mut Lisp_Hash_Table) -> Lisp_Object
 				     index_bytes as usize);
     }
   return make_lisp_hash_table (h2);
+
+  }
 }
 
 /* Compute index into the index vector from a hash value.  */
@@ -5585,7 +5829,11 @@ unsafe fn copy_hash_table (h1: *mut Lisp_Hash_Table) -> Lisp_Object
 #[inline(always)]
 unsafe fn hash_index_index (h: *mut Lisp_Hash_Table, hash: hash_hash_t) -> ptrdiff_t
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   return knuth_hash (hash, (*h).index_bits as c_uint);
+
+  }
 }
 
 /* Resize hash table H if it's too full.  If H cannot be resized
@@ -5594,6 +5842,8 @@ unsafe fn hash_index_index (h: *mut Lisp_Hash_Table, hash: hash_hash_t) -> ptrdi
 /* C 4961-5030: `maybe_resize_hash_table`.  */
 unsafe fn maybe_resize_hash_table (h: *mut Lisp_Hash_Table)
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   if (*h).next_free < 0
     {
       let old_size: ptrdiff_t = HASH_TABLE_SIZE (h) as ptrdiff_t;
@@ -5702,11 +5952,15 @@ unsafe fn maybe_resize_hash_table (h: *mut Lisp_Hash_Table)
 	  i += 1;
 	}
     }
+
+  }
 }
 
 /* C 5032-5043: `hash_table_test_from_std`.  */
 unsafe fn hash_table_test_from_std (test: hash_table_std_test_t) -> *const hash_table_test
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   match test
     {
       Test_eq => { return &raw const hashtest_eq; }
@@ -5715,6 +5969,8 @@ unsafe fn hash_table_test_from_std (test: hash_table_std_test_t) -> *const hash_
       _ => { }
     }
   emacs_abort ();
+
+  }
 }
 
 /* Rebuild a hash table from its frozen (dumped) form.  */
@@ -5722,6 +5978,8 @@ unsafe fn hash_table_test_from_std (test: hash_table_std_test_t) -> *const hash_
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn hash_table_thaw (hash_table: Lisp_Object)
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let h: *mut Lisp_Hash_Table = XHASH_TABLE (hash_table);
 
   /* Freezing discarded most non-essential information; recompute it.
@@ -5774,6 +6032,8 @@ pub unsafe extern "C-unwind" fn hash_table_thaw (hash_table: Lisp_Object)
 	  i += 1;
 	}
     }
+
+  }
 }
 
 /* Look up KEY with hash HASH in table H.
@@ -5783,6 +6043,8 @@ pub unsafe extern "C-unwind" fn hash_table_thaw (hash_table: Lisp_Object)
 unsafe fn hash_find_with_hash (h: *mut Lisp_Hash_Table, key: Lisp_Object,
 			       hash: hash_hash_t) -> ptrdiff_t
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let start_of_bucket: ptrdiff_t = hash_index_index (h, hash);
   let mut i: ptrdiff_t = HASH_INDEX (h, start_of_bucket);
   let cmpfn: Lisp_Object = (*(*h).test).cmpfn;
@@ -5814,6 +6076,8 @@ unsafe fn hash_find_with_hash (h: *mut Lisp_Hash_Table, key: Lisp_Object,
     }
 
   return -1;
+
+  }
 }
 
 
@@ -5824,17 +6088,25 @@ unsafe fn hash_find_with_hash (h: *mut Lisp_Hash_Table, key: Lisp_Object,
 pub unsafe extern "C-unwind" fn hash_find_get_hash (h: *mut Lisp_Hash_Table, key: Lisp_Object,
 					     phash: *mut hash_hash_t) -> ptrdiff_t
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let hash: EMACS_UINT = hash_from_key (h, key) as EMACS_UINT;
   *phash = hash as hash_hash_t;
   return hash_find_with_hash (h, key, hash as hash_hash_t);
+
+  }
 }
 
 /* C 5128-5133: `check_mutable_hash_table`.  */
 #[inline(always)]
 unsafe fn check_mutable_hash_table (obj: Lisp_Object, h: *mut Lisp_Hash_Table)
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   if ((*h).bits & HASH_MUTABLE_MASK) == 0
     { signal_error (c"hash table test modifies table".as_ptr (), obj); }
+
+  }
 }
 
 
@@ -5845,6 +6117,8 @@ unsafe fn check_mutable_hash_table (obj: Lisp_Object, h: *mut Lisp_Hash_Table)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn hash_remove_from_table (h: *mut Lisp_Hash_Table, key: Lisp_Object)
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let hashval: hash_hash_t = hash_from_key (h, key);
   let start_of_bucket: ptrdiff_t = hash_index_index (h, hashval);
   let mut prev: ptrdiff_t = -1;
@@ -5880,6 +6154,8 @@ pub unsafe extern "C-unwind" fn hash_remove_from_table (h: *mut Lisp_Hash_Table,
       prev = i;
       i = HASH_NEXT (h, i);
     }
+
+  }
 }
 
 
@@ -5888,6 +6164,8 @@ pub unsafe extern "C-unwind" fn hash_remove_from_table (h: *mut Lisp_Hash_Table,
 /* C 5208-5235: `hash_clear`.  */
 unsafe fn hash_clear (h: *mut Lisp_Hash_Table)
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   if (*h).count > 0
     {
       let size: ptrdiff_t = HASH_TABLE_SIZE (h) as ptrdiff_t;
@@ -5911,6 +6189,8 @@ unsafe fn hash_clear (h: *mut Lisp_Hash_Table)
       (*h).next_free = 0;
       (*h).count = 0;
     }
+
+  }
 }
 
 /* Look up KEY in table H.  Return entry index or -1 if none.  */
@@ -5918,24 +6198,34 @@ unsafe fn hash_clear (h: *mut Lisp_Hash_Table)
 #[inline(never)]
 unsafe fn hash_find_slow (h: *mut Lisp_Hash_Table, key: Lisp_Object) -> ptrdiff_t
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   return hash_find_with_hash (h, key, hash_from_key (h, key));
+
+  }
 }
 
 #[cold]
 #[inline(never)]
 unsafe fn puthash_slow (h: *mut Lisp_Hash_Table, key: Lisp_Object, value: Lisp_Object)
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let hash: hash_hash_t = hash_from_key (h, key);
   let i: ptrdiff_t = hash_find_with_hash (h, key, hash);
   if i >= 0
     { *(*h).key_and_value.offset (2 * i + 1) = value; }
   else
     { hash_put (h, key, value, hash); }
+
+  }
 }
 
 #[inline(always)]
 unsafe fn hash_find_inline (h: *mut Lisp_Hash_Table, key: Lisp_Object) -> ptrdiff_t
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let test: *const hash_table_test = (*h).test;
   if ! symbols_with_pos_enabled
      && ((test == &raw const hashtest_eql && ! (FLOATP (key) || BIGNUMP (key)))
@@ -5957,13 +6247,19 @@ unsafe fn hash_find_inline (h: *mut Lisp_Hash_Table, key: Lisp_Object) -> ptrdif
       return -1;
     }
   return hash_find_slow (h, key);
+
+  }
 }
 
 /* C 5111-5115: `hash_find`.  */
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn hash_find (h: *mut Lisp_Hash_Table, key: Lisp_Object) -> ptrdiff_t
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   return hash_find_inline (h, key);
+
+  }
 }
 
 /* Put an entry into hash table H that associates KEY with VALUE.
@@ -5977,6 +6273,8 @@ pub unsafe extern "C-unwind" fn hash_find (h: *mut Lisp_Hash_Table, key: Lisp_Ob
 pub unsafe extern "C-unwind" fn hash_put (h: *mut Lisp_Hash_Table, key: Lisp_Object,
 				   value: Lisp_Object, hash: hash_hash_t) -> ptrdiff_t
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   eassert! (!hash_unused_entry_key_p (key));
   /* Increment count after resizing because resizing may fail.  */
   maybe_resize_hash_table (h);
@@ -5997,6 +6295,8 @@ pub unsafe extern "C-unwind" fn hash_put (h: *mut Lisp_Hash_Table, key: Lisp_Obj
   set_hash_next_slot (h, i, HASH_INDEX (h, start_of_bucket));
   set_hash_index_slot (h, start_of_bucket, i);
   return i;
+
+  }
 }
 
 
@@ -6010,6 +6310,8 @@ pub unsafe extern "C-unwind" fn hash_put (h: *mut Lisp_Hash_Table, key: Lisp_Obj
 unsafe fn keep_entry_p (weakness: hash_table_weakness_t, strong_key: bool,
 			strong_value: bool) -> bool
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   match weakness
     {
       Weak_None =>          { return true; }
@@ -6020,6 +6322,8 @@ unsafe fn keep_entry_p (weakness: hash_table_weakness_t, strong_key: bool,
       _ => { }
     }
   emacs_abort ();
+
+  }
 }
 
 /* Sweep weak hash table H.  REMOVE_ENTRIES_P means remove
@@ -6032,6 +6336,8 @@ unsafe fn keep_entry_p (weakness: hash_table_weakness_t, strong_key: bool,
 pub unsafe extern "C-unwind" fn sweep_weak_table (h: *mut Lisp_Hash_Table,
 					   remove_entries_p: bool) -> bool
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let n: ptrdiff_t = hash_table_index_size (h);
   let mut marked: bool = false;
 
@@ -6106,6 +6412,8 @@ pub unsafe extern "C-unwind" fn sweep_weak_table (h: *mut Lisp_Hash_Table,
     }
 
   return marked;
+
+  }
 }
 
 
@@ -6129,6 +6437,8 @@ pub const SXHASH_MAX_LEN: c_int = 7;
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn hash_char_array (ptr: *const c_char, len: ptrdiff_t) -> EMACS_UINT
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let mut p: *const c_char = ptr;
   let end: *const c_char = ptr.offset (len);
   let mut hash: EMACS_UINT = len as EMACS_UINT;
@@ -6189,6 +6499,8 @@ pub unsafe extern "C-unwind" fn hash_char_array (ptr: *const c_char, len: ptrdif
     }
 
   return hash;
+
+  }
 }
 
 /* Return a hash for the floating point value VAL.  */
@@ -6196,6 +6508,8 @@ pub unsafe extern "C-unwind" fn hash_char_array (ptr: *const c_char, len: ptrdif
 /* C 5410-5417: `sxhash_float`.  */
 unsafe fn sxhash_float (val: f64) -> EMACS_UINT
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let mut hash: EMACS_UINT = 0;
   let u: double_and_words = double_and_words { val: val };
   let mut i: c_int = 0;
@@ -6205,6 +6519,8 @@ unsafe fn sxhash_float (val: f64) -> EMACS_UINT
       i += 1;
     }
   return hash;
+
+  }
 }
 
 /* Return a hash for list LIST.  DEPTH is the current depth in the
@@ -6213,6 +6529,8 @@ unsafe fn sxhash_float (val: f64) -> EMACS_UINT
 /* C 5423-5441: `sxhash_list`.  */
 unsafe fn sxhash_list (list: Lisp_Object, depth: c_int) -> EMACS_UINT
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let mut hash: EMACS_UINT = 0;
   let mut i: c_int;
 
@@ -6236,6 +6554,8 @@ unsafe fn sxhash_list (list: Lisp_Object, depth: c_int) -> EMACS_UINT
     }
 
   return hash;
+
+  }
 }
 
 
@@ -6245,6 +6565,8 @@ unsafe fn sxhash_list (list: Lisp_Object, depth: c_int) -> EMACS_UINT
 /* C 5447-5463: `sxhash_vector`.  */
 unsafe fn sxhash_vector (vec: Lisp_Object, depth: c_int) -> EMACS_UINT
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let mut hash: EMACS_UINT = ASIZE (vec) as EMACS_UINT;
   let mut i: c_int;
   let n: c_int;
@@ -6260,6 +6582,8 @@ unsafe fn sxhash_vector (vec: Lisp_Object, depth: c_int) -> EMACS_UINT
     }
 
   return hash;
+
+  }
 }
 
 /* Return a hash for bool-vector VECTOR.  */
@@ -6267,6 +6591,8 @@ unsafe fn sxhash_vector (vec: Lisp_Object, depth: c_int) -> EMACS_UINT
 /* C 5469-5479: `sxhash_bool_vector`.  */
 unsafe fn sxhash_bool_vector (vec: Lisp_Object) -> EMACS_UINT
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let size: EMACS_INT = bool_vector_size (vec);
   let mut hash: EMACS_UINT = size as EMACS_UINT;
   let mut i: c_int;
@@ -6282,6 +6608,8 @@ unsafe fn sxhash_bool_vector (vec: Lisp_Object) -> EMACS_UINT
     }
 
   return hash;
+
+  }
 }
 
 /* Return a hash for a bignum.  */
@@ -6289,6 +6617,8 @@ unsafe fn sxhash_bool_vector (vec: Lisp_Object) -> EMACS_UINT
 /* C 5485-5496: `sxhash_bignum`.  */
 unsafe fn sxhash_bignum (bignum: Lisp_Object) -> EMACS_UINT
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let n: *const __mpz_struct = xbignum_val (bignum);
   let nlimbs: ptrdiff_t = mpz_size (n) as ptrdiff_t;
   let mut hash: EMACS_UINT = if mpz_sgn (n) < 0 { 1 } else { 0 };
@@ -6301,13 +6631,19 @@ unsafe fn sxhash_bignum (bignum: Lisp_Object) -> EMACS_UINT
     }
 
   return hash;
+
+  }
 }
 
 /* C 5498-5501: `sxhash`.  */
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn sxhash (obj: Lisp_Object) -> EMACS_UINT
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   return sxhash_obj (obj, 0);
+
+  }
 }
 
 /* Return a hash code for OBJ.  DEPTH is the current depth in the Lisp
@@ -6316,6 +6652,8 @@ pub unsafe extern "C-unwind" fn sxhash (obj: Lisp_Object) -> EMACS_UINT
 /* C 5507-5580: `sxhash_obj`.  */
 unsafe fn sxhash_obj (obj: Lisp_Object, depth: c_int) -> EMACS_UINT
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let mut obj: Lisp_Object = obj;
   if depth > SXHASH_MAX_DEPTH
     { return 0; }
@@ -6389,11 +6727,15 @@ unsafe fn sxhash_obj (obj: Lisp_Object, depth: c_int) -> EMACS_UINT
     _ =>
       { emacs_abort (); }
     }
+
+  }
 }
 
 /* C 5583-5591: `hash_interval`.  */
 unsafe extern "C-unwind" fn hash_interval (interval: INTERVAL, arg: *mut c_void)
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let interval: *mut interval = interval as *mut interval;   /* P-72 rule 4 */
   let phash: *mut EMACS_UINT = arg as *mut EMACS_UINT;
   let mut hash: EMACS_UINT = *phash;
@@ -6401,11 +6743,15 @@ unsafe extern "C-unwind" fn hash_interval (interval: INTERVAL, arg: *mut c_void)
   hash = sxhash_combine (hash, LENGTH! (interval) as EMACS_UINT);
   hash = sxhash_combine (hash, sxhash_obj ((*interval).plist, 0));
   *phash = hash;
+
+  }
 }
 
 /* C 5594-5604: `collect_interval`.  */
 unsafe extern "C-unwind" fn collect_interval (interval: INTERVAL, arg: *mut c_void)
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let interval: *mut interval = interval as *mut interval;   /* P-72 rule 4 */
   let collector: *mut Lisp_Object = arg as *mut Lisp_Object;
   *collector = Fcons (list3 (make_fixnum ((*interval).position),
@@ -6413,6 +6759,8 @@ unsafe extern "C-unwind" fn collect_interval (interval: INTERVAL, arg: *mut c_vo
 					  + LENGTH! (interval)),
 			     (*interval).plist),
 		      *collector);
+
+  }
 }
 
 
@@ -6478,6 +6826,8 @@ static mut hash_table_user_tests: *mut hash_table_user_test = std::ptr::null_mut
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mark_fns ()
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let mut ut: *mut hash_table_user_test = hash_table_user_tests;
   while !ut.is_null ()
     {
@@ -6486,6 +6836,8 @@ pub unsafe extern "C-unwind" fn mark_fns ()
       mark_object ((*ut).test.user_hash_function);
       ut = (*ut).next;
     }
+
+  }
 }
 
 /* Find the hash_table_test object corresponding to the (bare) symbol TEST,
@@ -6493,6 +6845,8 @@ pub unsafe extern "C-unwind" fn mark_fns ()
 /* C 5693-5723: `get_hash_table_user_test`.  */
 unsafe fn get_hash_table_user_test (test: Lisp_Object) -> *mut hash_table_test
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let prop: Lisp_Object = Fget (test, Qhash_table_test ());
   if !CONSP (prop) || !CONSP (XCDR (prop))
     { signal_error (c"Invalid hash table test".as_ptr (), test); }
@@ -6519,6 +6873,8 @@ unsafe fn get_hash_table_user_test (test: Lisp_Object) -> *mut hash_table_test
       hash_table_user_tests = ut;
     }
   return &raw mut (*ut).test;
+
+  }
 }
 
 DEFUN! ("make-hash-table", Fmake_hash_table, Smake_hash_table, 0, MANY, 0,
@@ -6644,6 +7000,8 @@ DEFUN! ("hash-table-test", Fhash_table_test, Shash_table_test, 1, 1, 0,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn hash_table_weakness_symbol (weak: hash_table_weakness_t) -> Lisp_Object
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   match weak
     {
       Weak_None =>          { return Qnil (); }
@@ -6654,6 +7012,8 @@ pub unsafe extern "C-unwind" fn hash_table_weakness_symbol (weak: hash_table_wea
       _ => { }
     }
   emacs_abort ();
+
+  }
 }
 
 DEFUN! ("hash-table-weakness", Fhash_table_weakness, Shash_table_weakness,
@@ -6900,6 +7260,8 @@ DEFUN! ("internal--hash-table-index-size",
 pub unsafe extern "C-unwind" fn hexbuf_digest (hexbuf: *mut c_char, digest: *const c_void,
 					digest_size: c_int)
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let p: *const u8 = digest as *const u8;
 
   let mut i: c_int = digest_size - 1;
@@ -6916,14 +7278,20 @@ pub unsafe extern "C-unwind" fn hexbuf_digest (hexbuf: *mut c_char, digest: *con
       *hexbuf.offset ((2 * i + 1) as isize) = hexdigit[(p_i & 0xf) as usize];
       i -= 1;
     }
+
+  }
 }
 
 /* C 6155-6160: `make_digest_string`.  */
 unsafe fn make_digest_string (digest: Lisp_Object, digest_size: c_int) -> Lisp_Object
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   hexbuf_digest (SSDATA (digest) as *mut c_char, SDATA (digest) as *const c_void,
 		 digest_size);
   return digest;
+
+  }
 }
 
 DEFUN! ("secure-hash-algorithms", Fsecure_hash_algorithms,
@@ -6946,6 +7314,8 @@ pub unsafe extern "C-unwind" fn extract_data_from_object (spec: Lisp_Object,
 						   end_byte: *mut ptrdiff_t)
   -> *mut c_char
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let object: Lisp_Object = XCAR (spec);
   let mut spec: Lisp_Object = spec;
 
@@ -7134,6 +7504,8 @@ pub unsafe extern "C-unwind" fn extract_data_from_object (spec: Lisp_Object,
     { signal_error (c"Invalid object argument".as_ptr (),
 		    if NILP (object) { build_string (c"nil".as_ptr ()) } else { object }); }
   return SSDATA (object) as *mut c_char;
+
+  }
 }
 
 
@@ -7144,6 +7516,8 @@ unsafe fn secure_hash (algorithm: Lisp_Object, object: Lisp_Object, start: Lisp_
 		       end: Lisp_Object, coding_system: Lisp_Object, noerror: Lisp_Object,
 		       binary: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let mut start_byte: ptrdiff_t = 0;
   let mut end_byte: ptrdiff_t = 0;
   let mut digest_size: c_int;
@@ -7225,6 +7599,8 @@ unsafe fn secure_hash (algorithm: Lisp_Object, object: Lisp_Object, start: Lisp_
     { return make_digest_string (digest, digest_size); }
   else
     { return make_unibyte_string (SSDATA (digest) as *mut c_char, digest_size as ptrdiff_t); }
+
+  }
 }
 
 DEFUN! ("md5", Fmd5, Smd5, 1, 5, 0,
@@ -7518,6 +7894,8 @@ DEFUN! ("line-number-at-pos", Fline_number_at_pos,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_fns ()
 {
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   /* Hash table stuff.  */
   DEFSYM! (Qhash_table_p, c"hash-table-p");
   DEFSYM! (Qeq, c"eq");
@@ -7706,6 +8084,8 @@ pub unsafe extern "C-unwind" fn syms_of_fns ()
   /* sleep-event states.  */
   DEFSYM! (Qpre_sleep, c"pre-sleep");
   DEFSYM! (Qpost_wake, c"post-wake");
+
+  }
 }
 
 /* The `DEFVAR_*` variables this C file owns: C's storage is `globals.f_<vname>`

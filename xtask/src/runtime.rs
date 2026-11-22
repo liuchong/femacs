@@ -570,26 +570,29 @@ unsafe extern "C" {
     #[link_name="abort"] fn resource_path_failure() -> !;
 }
 unsafe fn live_path(slot: usize, suffix: &[u8]) -> *const c_char {
-    if STATES[slot].load(Ordering::Acquire) != 2 {
-        if STATES[slot].compare_exchange(0, 1, Ordering::Acquire, Ordering::Acquire).is_ok() {
-            let mut executable = [0 as c_char; 4096];
-            let mut resolved = [0 as c_char; 4096];
-            let mut size = 4096_u32;
-            if executable_path(executable.as_mut_ptr(), &raw mut size) != 0
-                || canonical_path(executable.as_ptr(), resolved.as_mut_ptr()).is_null() { resource_path_failure(); }
-            let length = resolved.iter().position(|value| *value == 0).unwrap_or(4096);
-            let Some(slash) = resolved[..length].iter().rposition(|value| *value == b'/' as c_char) else { resource_path_failure(); };
-            if slash + 1 + suffix.len() >= 4096 { resource_path_failure(); }
-            let output = (&raw mut BUFFERS).cast::<[c_char; 4096]>().add(slot).cast::<c_char>();
-            core::ptr::copy_nonoverlapping(resolved.as_ptr(), output, slash + 1);
-            for (index, byte) in suffix.iter().enumerate() { *output.add(slash + 1 + index) = *byte as c_char; }
-            *output.add(slash + 1 + suffix.len()) = 0;
-            STATES[slot].store(2, Ordering::Release);
-        } else {
-            while STATES[slot].load(Ordering::Acquire) != 2 { core::hint::spin_loop(); }
+    // SAFETY: Initializes bounded 4096-byte static path slot `slot < 8` under atomic CAS state machine.
+    unsafe {
+        if STATES[slot].load(Ordering::Acquire) != 2 {
+            if STATES[slot].compare_exchange(0, 1, Ordering::Acquire, Ordering::Acquire).is_ok() {
+                let mut executable = [0 as c_char; 4096];
+                let mut resolved = [0 as c_char; 4096];
+                let mut size = 4096_u32;
+                if executable_path(executable.as_mut_ptr(), &raw mut size) != 0
+                    || canonical_path(executable.as_ptr(), resolved.as_mut_ptr()).is_null() { resource_path_failure(); }
+                let length = resolved.iter().position(|value| *value == 0).unwrap_or(4096);
+                let Some(slash) = resolved[..length].iter().rposition(|value| *value == b'/' as c_char) else { resource_path_failure(); };
+                if slash + 1 + suffix.len() >= 4096 { resource_path_failure(); }
+                let output = (&raw mut BUFFERS).cast::<[c_char; 4096]>().add(slot).cast::<c_char>();
+                core::ptr::copy_nonoverlapping(resolved.as_ptr(), output, slash + 1);
+                for (index, byte) in suffix.iter().enumerate() { *output.add(slash + 1 + index) = *byte as c_char; }
+                *output.add(slash + 1 + suffix.len()) = 0;
+                STATES[slot].store(2, Ordering::Release);
+            } else {
+                while STATES[slot].load(Ordering::Acquire) != 2 { core::hint::spin_loop(); }
+            }
         }
+        (&raw const BUFFERS).cast::<[c_char; 4096]>().add(slot).cast::<c_char>()
     }
-    (&raw const BUFFERS).cast::<[c_char; 4096]>().add(slot).cast::<c_char>()
 }
 "#);
     for (slot, name, relative, original) in [
@@ -605,7 +608,7 @@ unsafe fn live_path(slot: usize, suffix: &[u8]) -> *const c_char {
         let owned = if name.starts_with("PATH_LOADSEARCH") || name.starts_with("PATH_DUMPLOADSEARCH") {
             crate::standalone::lisp_paths(repo, name == "PATH_DUMPLOADSEARCH_SLASH")
         } else { original.display().to_string() };
-        code.push_str(&format!("#[inline(always)] pub fn {name}() -> *const c_char {{ if will_dump_p() {{ c{owned:?}.as_ptr() }} else {{ unsafe {{ live_path({slot}, b{relative:?}) }} }} }}\n"));
+        code.push_str(&format!("#[inline(always)] pub fn {name}() -> *const c_char {{ if will_dump_p() {{ c{owned:?}.as_ptr() }} else {{ /* SAFETY: Relocates runtime-relative resource slice into static path slot. */ unsafe {{ live_path({slot}, b{relative:?}) }} }} }}\n"));
     }
     code.push_str("pub fn PATH_SITELOADSEARCH() -> *const c_char { c\"\".as_ptr() }\npub fn PATH_GAME() -> *const c_char { core::ptr::null() }\n}\npub use runtime_terminal_paths::*;\n");
     code
@@ -907,9 +910,9 @@ pub(crate) fn command(args: &[String]) -> i32 {
                                 ("FEMACS_RUNTIME_NATIVE_CACHE", "build-native-cache")] {
                 let path = root.join(name);
                 fs::create_dir_all(&path).map_err(|e| e.to_string())?;
-                unsafe { std::env::set_var(key, path); }
+                /* SAFETY: Serialized test environment guard mutates process env vars without concurrent readers. */ unsafe { std::env::set_var(key, path); }
             }
-            unsafe {
+            /* SAFETY: Serialized test environment guard mutates process env vars without concurrent readers. */ unsafe {
                 std::env::set_var("RUSTUP_HOME", &rustup_home);
                 std::env::set_var("CARGO_HOME", &cargo_home);
             }

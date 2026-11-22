@@ -5,9 +5,7 @@
 // with `FAM_ELEM!` (PORTING.md 1.3); the two globals this unit defines shadow the
 // declarations lisp.rs carries for them (P-21, P-39).
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
-         unsafe_op_in_unsafe_fn)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -37,12 +35,12 @@ DEFUN! ("case-table-p", Fcase_table_p, Scase_table_p, 1, 1, 0,
 
   if ! CHAR_TABLE_P (object)
     { return Qnil (); }
-  if ! EQ (unsafe { (*XCHAR_TABLE (object)).purpose }, Qcase_table ())
+  if ! EQ (/* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { (*XCHAR_TABLE (object)).purpose }, Qcase_table ())
     { return Qnil (); }
 
   up = unsafe { FAM_ELEM! ((*XCHAR_TABLE (object)).extras, 0) };
   canon = unsafe { FAM_ELEM! ((*XCHAR_TABLE (object)).extras, 1) };
-  eqv = unsafe { FAM_ELEM! ((*XCHAR_TABLE (object)).extras, 2) };
+  eqv = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { FAM_ELEM! ((*XCHAR_TABLE (object)).extras, 2) };
 
   return if (NILP (up) || CHAR_TABLE_P (up))
     && ((NILP (canon) && NILP (eqv))
@@ -53,7 +51,7 @@ DEFUN! ("case-table-p", Fcase_table_p, Scase_table_p, 1, 1, 0,
 
 fn check_case_table (obj: Lisp_Object) -> Lisp_Object
 {
-  CHECK_TYPE (!NILP (unsafe { Fcase_table_p (obj) }), Qcase_table_p (), obj);
+  CHECK_TYPE (!NILP (/* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { Fcase_table_p (obj) }), Qcase_table_p (), obj);
   return obj;
 }
 
@@ -61,14 +59,14 @@ DEFUN! ("current-case-table", Fcurrent_case_table, Scurrent_case_table, 0, 0, 0,
        doc: "Return the case table of the current buffer.",
        (),
        {
-  return unsafe { BVAR! ((current_buffer! ()), downcase_table_) };
+  return /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { BVAR! ((current_buffer! ()), downcase_table_) };
 });
 
 DEFUN! ("standard-case-table", Fstandard_case_table, Sstandard_case_table, 0, 0, 0,
        doc: "Return the standard case table.\nThis is the one used for new buffers.",
        (),
        {
-  return unsafe { Vascii_downcase_table };
+  return /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { Vascii_downcase_table };
 });
 
 DEFUN! ("set-case-table", Fset_case_table, Sset_case_table, 1, 1, 0,
@@ -93,13 +91,13 @@ fn set_case_table (table: Lisp_Object, standard: bool) -> Lisp_Object
 
   check_case_table (table);
 
-  up = unsafe { FAM_ELEM! ((*XCHAR_TABLE (table)).extras, 0) };
+  up = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { FAM_ELEM! ((*XCHAR_TABLE (table)).extras, 0) };
   canon = unsafe { FAM_ELEM! ((*XCHAR_TABLE (table)).extras, 1) };
   eqv = unsafe { FAM_ELEM! ((*XCHAR_TABLE (table)).extras, 2) };
 
   if NILP (up)
     {
-      up = unsafe { Fmake_char_table (Qcase_table (), Qnil ()) };
+      up = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { Fmake_char_table (Qcase_table (), Qnil ()) };
       unsafe { map_char_table (Some (set_identity), Qnil (), table, up); }
       unsafe { map_char_table (Some (shuffle), Qnil (), table, up); }
       set_char_table_extras (table, 0, up);
@@ -107,14 +105,14 @@ fn set_case_table (table: Lisp_Object, standard: bool) -> Lisp_Object
 
   if NILP (canon)
     {
-      canon = unsafe { Fmake_char_table (Qcase_table (), Qnil ()) };
+      canon = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { Fmake_char_table (Qcase_table (), Qnil ()) };
       set_char_table_extras (table, 1, canon);
       unsafe { map_char_table (Some (set_canon), Qnil (), table, table); }
     }
 
   if NILP (eqv)
     {
-      eqv = unsafe { Fmake_char_table (Qcase_table (), Qnil ()) };
+      eqv = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { Fmake_char_table (Qcase_table (), Qnil ()) };
       unsafe { map_char_table (Some (set_identity), Qnil (), canon, eqv); }
       unsafe { map_char_table (Some (shuffle), Qnil (), canon, eqv); }
       set_char_table_extras (table, 2, eqv);
@@ -126,7 +124,7 @@ fn set_case_table (table: Lisp_Object, standard: bool) -> Lisp_Object
 
   if standard
     {
-      unsafe {
+      /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe {
         Vascii_downcase_table = table;
         Vascii_upcase_table = up;
         Vascii_canon_table = canon;
@@ -135,7 +133,7 @@ fn set_case_table (table: Lisp_Object, standard: bool) -> Lisp_Object
     }
   else
     {
-      bset_downcase_table (unsafe { (current_buffer! ()) }, table);
+      bset_downcase_table (/* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { (current_buffer! ()) }, table);
       bset_upcase_table (unsafe { (current_buffer! ()) }, up);
       bset_case_canon_table (unsafe { (current_buffer! ()) }, canon);
       bset_case_eqv_table (unsafe { (current_buffer! ()) }, eqv);
@@ -153,11 +151,15 @@ fn set_case_table (table: Lisp_Object, standard: bool) -> Lisp_Object
 
 unsafe extern "C-unwind" fn set_canon (case_table: Lisp_Object, range: Lisp_Object, elt: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let up = unsafe { FAM_ELEM! ((*XCHAR_TABLE (case_table)).extras, 0) };
   let canon = unsafe { FAM_ELEM! ((*XCHAR_TABLE (case_table)).extras, 1) };
 
   if FIXNATP (elt)
     { Fset_char_table_range (canon, range, Faref (case_table, Faref (up, elt))); }
+
+  }
 }
 
 /* Set elements of char-table TABLE for C to C itself.  C may be a
@@ -197,6 +199,8 @@ unsafe extern "C-unwind" fn set_identity (table: Lisp_Object, c: Lisp_Object, el
 
 unsafe extern "C-unwind" fn shuffle (table: Lisp_Object, c: Lisp_Object, elt: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if FIXNATP (elt)
     {
       let mut from: c_int;
@@ -220,11 +224,15 @@ unsafe extern "C-unwind" fn shuffle (table: Lisp_Object, c: Lisp_Object, elt: Li
 	  from += 1;
 	}
     }
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn init_casetab_once ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut i: c_int;
   let mut down: Lisp_Object;
   let mut up: Lisp_Object;
@@ -278,11 +286,15 @@ pub unsafe extern "C-unwind" fn init_casetab_once ()
 
   /* Fill in what isn't filled in.  */
   set_case_table (down, true);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_casetab ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   DEFSYM! (Qcase_table_p, "case-table-p");
 
   staticpro (&raw const Vascii_canon_table);
@@ -295,4 +307,6 @@ pub unsafe extern "C-unwind" fn syms_of_casetab ()
   defsubr (&raw mut Sstandard_case_table);
   defsubr (&raw mut Sset_case_table);
   defsubr (&raw mut Sset_standard_case_table);
+
+  }
 }

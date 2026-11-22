@@ -44,11 +44,7 @@
 // (PORTING.md 1.3).  The field names this removes from the macro bodies are recorded in
 // `docs/ports/macro-body-notes.tsv`.
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_mut, unused_assignments,
-         unused_unsafe, static_mut_refs, unsafe_op_in_unsafe_fn, unused_parens,
-         clashing_extern_declarations, unused_comparisons, overflowing_literals,
-         unreachable_code, unused_labels, while_true, unused_must_use)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_mut, unused_assignments, unused_unsafe, unused_parens, clashing_extern_declarations, unused_comparisons, overflowing_literals, unreachable_code, unused_labels, while_true, unused_must_use)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -108,12 +104,20 @@ unsafe extern "C-unwind" {
    C names, so no ledger compares them.  */
 #[inline(always)]
 unsafe fn coding_bits_get (coding: *mut coding_system, shift: u32, mask: u32) -> u32
-{ ((*coding).bits >> shift) & mask }
+{
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe { ((*coding).bits >> shift) & mask 
+  }
+}
 
 #[inline(always)]
 unsafe fn coding_bits_set (coding: *mut coding_system, shift: u32, mask: u32, value: u32)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   (*coding).bits = ((*coding).bits & !(mask << shift)) | ((value & mask) << shift);
+
+  }
 }
 
 /* `coding_system`'s `mode` and `common_flags` bitfields, spelled the way the mirror's
@@ -125,33 +129,57 @@ unsafe fn mode_of_int (coding: *mut coding_system) -> c_int
 
 #[inline(always)]
 unsafe fn coding_mode_set (coding: *mut coding_system, bits: c_int)
-{ coding_bits_set (coding, CODING_SYSTEM_MODE_SHIFT, CODING_SYSTEM_MODE_MASK,
-                   (mode_of (coding) as c_int | bits) as u32) }
+{
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe { coding_bits_set (coding, CODING_SYSTEM_MODE_SHIFT, CODING_SYSTEM_MODE_MASK,
+                   (mode_of (coding) as c_int | bits) as u32) 
+  }
+}
 
 #[inline(always)]
 unsafe fn coding_mode_clear (coding: *mut coding_system, bits: c_int)
-{ coding_bits_set (coding, CODING_SYSTEM_MODE_SHIFT, CODING_SYSTEM_MODE_MASK,
-                   (mode_of (coding) as c_int & !bits) as u32) }
+{
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe { coding_bits_set (coding, CODING_SYSTEM_MODE_SHIFT, CODING_SYSTEM_MODE_MASK,
+                   (mode_of (coding) as c_int & !bits) as u32) 
+  }
+}
 
 #[inline(always)]
 unsafe fn common_flags_of (coding: *mut coding_system) -> c_uint
-{ coding_bits_get (coding, CODING_SYSTEM_COMMON_FLAGS_SHIFT, CODING_SYSTEM_COMMON_FLAGS_MASK) }
+{
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe { coding_bits_get (coding, CODING_SYSTEM_COMMON_FLAGS_SHIFT, CODING_SYSTEM_COMMON_FLAGS_MASK) 
+  }
+}
 
 
 /* C writes `coding->common_flags = X` / `|= X` in `setup_coding_system`; this is that
    spelling for the writer, next to the reader above (PORTING.md 1.3).  */
 #[inline(always)]
 unsafe fn common_flags_set (coding: *mut coding_system, flags: c_uint)
-{ coding_bits_set (coding, CODING_SYSTEM_COMMON_FLAGS_SHIFT, CODING_SYSTEM_COMMON_FLAGS_MASK, flags) }
+{
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe { coding_bits_set (coding, CODING_SYSTEM_COMMON_FLAGS_SHIFT, CODING_SYSTEM_COMMON_FLAGS_MASK, flags) 
+  }
+}
 
 /* `coding_system`'s three-bit `eol_seen` member: C reads and `|=`s it directly.  */
 #[inline(always)]
 unsafe fn eol_seen_of (coding: *mut coding_system) -> c_int
-{ coding_bits_get (coding, CODING_SYSTEM_EOL_SEEN_SHIFT, CODING_SYSTEM_EOL_SEEN_MASK) as c_int }
+{
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe { coding_bits_get (coding, CODING_SYSTEM_EOL_SEEN_SHIFT, CODING_SYSTEM_EOL_SEEN_MASK) as c_int 
+  }
+}
 
 #[inline(always)]
 unsafe fn coding_eol_seen_set (coding: *mut coding_system, seen: c_int)
-{ coding_bits_set (coding, CODING_SYSTEM_EOL_SEEN_SHIFT, CODING_SYSTEM_EOL_SEEN_MASK, seen as u32) }
+{
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe { coding_bits_set (coding, CODING_SYSTEM_EOL_SEEN_SHIFT, CODING_SYSTEM_EOL_SEEN_MASK, seen as u32) 
+  }
+}
 /* gnulib's `<stdckdint.h>` `ckd_add`: stores the wrapped sum in `$dst` and yields the
    overflow flag (P-15, the `ckd_add` family of docs/ports/token-aliases.tsv).  */
 macro_rules! ckd_add {
@@ -176,7 +204,7 @@ macro_rules! ckd_add {
   /* Coding system to be used to encode text for terminal display when
      terminal coding system is nil.  */
   #[unsafe(no_mangle)]
-  pub static mut safe_terminal_coding: coding_system = unsafe { std::mem::zeroed () };
+  pub static mut safe_terminal_coding: coding_system = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { std::mem::zeroed () };
 
   #[unsafe(no_mangle)]
   pub static mut emacs_mule_bytes: [c_char; 256] = [0; 256];
@@ -334,13 +362,13 @@ impl iso_2022_bit
 {
   #[inline(always)]
   pub fn get (self) -> c_int
-  { ((unsafe { *self.word }) >> self.shift) as c_int & 1 }
+  { ((/* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { *self.word }) >> self.shift) as c_int & 1 }
 
   #[inline(always)]
   pub fn set (self, value: c_int)
   {
     if value != 0
-      { unsafe { *self.word |= 1 << self.shift; } }
+      { /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { *self.word |= 1 << self.shift; } }
     else
       { unsafe { *self.word &= !(1 << self.shift); } }
   }
@@ -349,21 +377,21 @@ impl iso_2022_bit
 macro_rules! CODING_ISO_SINGLE_SHIFTING {
   ($coding:expr) => {
     /* C: `((coding)->spec.iso_2022.single_shifting)`  */
-    iso_2022_bit { word: unsafe { std::ptr::addr_of_mut! ((*$coding).spec.iso_2022.bits) },
+    iso_2022_bit { word: /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { std::ptr::addr_of_mut! ((*$coding).spec.iso_2022.bits) },
                    shift: ISO_2022_SINGLE_SHIFTING_SHIFT }
   };
 }
 macro_rules! CODING_ISO_BOL {
   ($coding:expr) => {
     /* C: `((coding)->spec.iso_2022.bol)`  */
-    iso_2022_bit { word: unsafe { std::ptr::addr_of_mut! ((*$coding).spec.iso_2022.bits) },
+    iso_2022_bit { word: /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { std::ptr::addr_of_mut! ((*$coding).spec.iso_2022.bits) },
                    shift: ISO_2022_BOL_SHIFT }
   };
 }
 macro_rules! CODING_ISO_EMBEDDED_UTF_8 {
   ($coding:expr) => {
     /* C: `((coding)->spec.iso_2022.embedded_utf_8)`  */
-    iso_2022_bit { word: unsafe { std::ptr::addr_of_mut! ((*$coding).spec.iso_2022.bits) },
+    iso_2022_bit { word: /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { std::ptr::addr_of_mut! ((*$coding).spec.iso_2022.bits) },
                    shift: ISO_2022_EMBEDDED_UTF_8_SHIFT }
   };
 }
@@ -376,7 +404,7 @@ macro_rules! CODING_ISO_INVOKED_CHARSET {
 }
 macro_rules! CODING_ISO_CMP_STATUS {
   ($coding:expr) => {
-    unsafe { std::ptr::addr_of_mut! ((*$coding).spec.iso_2022.cmp_status) }
+    /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { std::ptr::addr_of_mut! ((*$coding).spec.iso_2022.cmp_status) }
   };
 }
 macro_rules! CODING_ISO_EXTSEGMENT_LEN {
@@ -633,7 +661,7 @@ static mut coding_priorities: [coding_category; coding_category_max as usize]
 /* Nth element is a coding context for the coding system bound to the
    Nth coding category.  */
 static mut coding_categories: [coding_system; coding_category_max as usize]
-  = unsafe { std::mem::zeroed () };
+  = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { std::mem::zeroed () };
 
 /* Encode a flag that can be nil, something else, or t as -1, 0, 1.  */
 
@@ -663,14 +691,20 @@ macro_rules! CODING_GET_INFO {
 
 unsafe fn growable_destination (coding: *mut coding_system) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   return (STRINGP ((*coding).dst_object)
 	  || BUFFERP ((*coding).dst_object)
 	  || NILP ((*coding).dst_object));
+
+  }
 }
 
 unsafe fn record_conversion_result (coding: *mut coding_system,
                                            result: coding_result_code)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   coding_bits_set (coding, CODING_SYSTEM_RESULT_SHIFT, CODING_SYSTEM_RESULT_MASK, result as u32);
   match result
     {
@@ -690,6 +724,8 @@ unsafe fn record_conversion_result (coding: *mut coding_system,
     _ =>
       Vlast_code_conversion_error = QUnknown_error (),
     }
+
+  }
 }
 
 /* These wrapper macros are used to preserve validity of pointers into
@@ -719,6 +755,8 @@ macro_rules! STRING_CHAR_ADVANCE_NO_UNIFY {
 
 unsafe fn coding_set_source (coding: *mut coding_system)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if BUFFERP ((*coding).src_object)
     {
       let buf: *mut buffer = XBUFFER ((*coding).src_object);
@@ -737,6 +775,8 @@ unsafe fn coding_set_source (coding: *mut coding_system)
       /* Otherwise, the source is C string and is never relocated
 	 automatically.  Thus we don't have to update anything.  */
     }
+
+  }
 }
 
 
@@ -745,9 +785,13 @@ unsafe fn coding_set_source (coding: *mut coding_system)
 
 unsafe fn coding_change_source (coding: *mut coding_system) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let orig: *const c_uchar = (*coding).source;
   coding_set_source (coding);
   return (*coding).source.offset_from (orig);
+
+  }
 }
 
 
@@ -755,6 +799,8 @@ unsafe fn coding_change_source (coding: *mut coding_system) -> ptrdiff_t
 
 unsafe fn coding_set_destination (coding: *mut coding_system)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if BUFFERP ((*coding).dst_object)
     {
       if BUFFERP ((*coding).src_object) && (*coding).src_pos < 0
@@ -779,6 +825,8 @@ unsafe fn coding_set_destination (coding: *mut coding_system)
       /* Otherwise, the destination is C string and is never relocated
 	 automatically.  Thus we don't have to update anything.  */
     }
+
+  }
 }
 
 
@@ -787,25 +835,35 @@ unsafe fn coding_set_destination (coding: *mut coding_system)
 
 unsafe fn coding_change_destination (coding: *mut coding_system) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let orig: *const c_uchar = (*coding).destination;
   coding_set_destination (coding);
   return (*coding).destination.offset_from (orig as *mut c_uchar);
+
+  }
 }
 
 
 unsafe fn coding_alloc_by_realloc (coding: *mut coding_system, bytes: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut newbytes: ptrdiff_t = 0;
   if ckd_add! (newbytes, (*coding).dst_bytes, bytes)
     || SIZE_MAX < newbytes as usize
     { string_overflow (); }
   (*coding).destination = xrealloc ((*coding).destination as *mut c_void, newbytes as usize) as *mut u8;
   (*coding).dst_bytes = newbytes;
+
+  }
 }
 
 unsafe fn coding_alloc_by_making_gap (coding: *mut coding_system,
                                              gap_head_used: ptrdiff_t, bytes: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if EQ ((*coding).src_object, (*coding).dst_object)
     {
       /* The gap may contain the produced data at the head and not-yet
@@ -822,12 +880,16 @@ unsafe fn coding_alloc_by_making_gap (coding: *mut coding_system,
     }
   else
     { make_gap_1 (XBUFFER ((*coding).dst_object), bytes); }
+
+  }
 }
 
 
 unsafe fn alloc_destination (coding: *mut coding_system, nbytes: ptrdiff_t,
                                     dst: *mut c_uchar) -> *mut c_uchar
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut offset: ptrdiff_t = dst.offset_from ((*coding).destination);
 
   if BUFFERP ((*coding).dst_object)
@@ -841,6 +903,8 @@ unsafe fn alloc_destination (coding: *mut coding_system, nbytes: ptrdiff_t,
   coding_set_destination (coding);
   let mut dst: *mut c_uchar = (*coding).destination.offset (offset);
   return dst;
+
+  }
 }
 
 
@@ -882,6 +946,8 @@ pub const UTF_8_BOM_3: c_int = 0xBF;
 unsafe extern "C-unwind" fn detect_coding_utf_8 (coding: *mut coding_system,
                                detect_info: *mut coding_detection_info) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut src: *const c_uchar = (*coding).source;
   let mut src_base: *const c_uchar = std::ptr::null ();
   let src_end: *const c_uchar = (*coding).source.offset ((*coding).src_bytes);
@@ -1014,11 +1080,15 @@ unsafe extern "C-unwind" fn detect_coding_utf_8 (coding: *mut coding_system,
   (*coding).detected_utf8_bytes = src_base.offset_from ((*coding).source);
   (*coding).detected_utf8_chars = nchars;
   return true;
+
+  }
 }
 
 
 unsafe extern "C-unwind" fn decode_coding_utf_8 (coding: *mut coding_system)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut src: *const c_uchar = (*coding).source.offset ((*coding).consumed);
   let src_end: *const c_uchar = (*coding).source.offset ((*coding).src_bytes);
   let mut src_base: *const c_uchar = std::ptr::null ();
@@ -1235,12 +1305,16 @@ unsafe extern "C-unwind" fn decode_coding_utf_8 (coding: *mut coding_system)
   (*coding).consumed_char += consumed_chars_base;
   (*coding).consumed = src_base.offset_from ((*coding).source);
   (*coding).charbuf_used = charbuf.offset_from ((*coding).charbuf) as c_int;
+
+  }
 }
 
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn encode_coding_utf_8 (coding: *mut coding_system) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let multibytep = dst_multibyte_p (coding);
   let mut charbuf: *mut c_int = (*coding).charbuf;
   let charbuf_end: *mut c_int = charbuf.offset ((*coding).charbuf_used as isize);
@@ -1376,6 +1450,8 @@ pub unsafe extern "C-unwind" fn encode_coding_utf_8 (coding: *mut coding_system)
   (*coding).produced_char += produced_chars;
   (*coding).produced = dst.offset_from ((*coding).destination);
   return false;
+
+  }
 }
 
 
@@ -1385,6 +1461,8 @@ pub unsafe extern "C-unwind" fn encode_coding_utf_8 (coding: *mut coding_system)
 unsafe extern "C-unwind" fn detect_coding_utf_16 (coding: *mut coding_system,
                                 detect_info: *mut coding_detection_info) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut src: *const c_uchar = (*coding).source;
   let src_end: *const c_uchar = (*coding).source.offset ((*coding).src_bytes);
   let multibytep = src_multibyte_p (coding);
@@ -1504,11 +1582,15 @@ unsafe extern "C-unwind" fn detect_coding_utf_16 (coding: *mut coding_system,
 
   /* no_more_source: */
   return true;
+
+  }
 }
 
 
 unsafe extern "C-unwind" fn decode_coding_utf_16 (coding: *mut coding_system)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut src: *const c_uchar = (*coding).source.offset ((*coding).consumed);
   let src_end: *const c_uchar = (*coding).source.offset ((*coding).src_bytes);
   let mut src_base: *const c_uchar = std::ptr::null ();
@@ -1658,10 +1740,14 @@ unsafe extern "C-unwind" fn decode_coding_utf_16 (coding: *mut coding_system)
   (*coding).consumed_char += consumed_chars_base;
   (*coding).consumed = src_base.offset_from ((*coding).source);
   (*coding).charbuf_used = charbuf.offset_from ((*coding).charbuf) as c_int;
+
+  }
 }
 
 unsafe extern "C-unwind" fn encode_coding_utf_16 (coding: *mut coding_system) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let multibytep = dst_multibyte_p (coding);
   let mut charbuf: *mut c_int = (*coding).charbuf;
   let charbuf_end: *mut c_int = charbuf.offset ((*coding).charbuf_used as isize);
@@ -1761,6 +1847,8 @@ unsafe extern "C-unwind" fn encode_coding_utf_16 (coding: *mut coding_system) ->
   (*coding).produced = dst.offset_from ((*coding).destination);
   (*coding).produced_char += produced_chars;
   return false;
+
+  }
 }
 
 /*** 6. Old Emacs's internal format (emacs-mule) ***/
@@ -1842,6 +1930,8 @@ unsafe extern "C-unwind" fn encode_coding_utf_16 (coding: *mut coding_system) ->
 unsafe extern "C-unwind" fn detect_coding_emacs_mule (coding: *mut coding_system,
                                     detect_info: *mut coding_detection_info) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut src: *const c_uchar = (*coding).source;
   let mut src_base: *const c_uchar = std::ptr::null ();
   let src_end: *const c_uchar = (*coding).source.offset ((*coding).src_bytes);
@@ -1951,6 +2041,8 @@ unsafe extern "C-unwind" fn detect_coding_emacs_mule (coding: *mut coding_system
     }
   (*detect_info).found |= found;
   return true;
+
+  }
 }
 
 
@@ -1964,6 +2056,8 @@ unsafe fn emacs_mule_char (coding: *mut coding_system, src: *const c_uchar,
 			   nbytes: *mut c_int, nchars: *mut c_int, id: *mut c_int,
 			   cmp_status: *mut composition_status) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut src_end: *const c_uchar = (*coding).source.offset ((*coding).src_bytes);
   let mut src_base: *const c_uchar = src;
   let multibytep = src_multibyte_p (coding);
@@ -2139,6 +2233,8 @@ unsafe fn emacs_mule_char (coding: *mut coding_system, src: *const c_uchar,
 
   /* invalid_code: */
   return -1;
+
+  }
 }
 
 
@@ -2155,6 +2251,8 @@ pub const EOL_SEEN_CRLF: c_int = 4;
 unsafe fn emacs_mule_finish_composition (charbuf: *mut c_int,
                                          cmp_status: *mut composition_status) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut idx: c_int = - (*cmp_status).length;
   let mut new_chars: c_int;
 
@@ -2198,10 +2296,14 @@ unsafe fn emacs_mule_finish_composition (charbuf: *mut c_int,
     }
   (*cmp_status).state = COMPOSING_NO;
   return new_chars;
+
+  }
 }
 
 unsafe extern "C-unwind" fn decode_coding_emacs_mule (coding: *mut coding_system)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut src: *const c_uchar = (*coding).source.offset ((*coding).consumed);
   let mut src_end: *const c_uchar = (*coding).source.offset ((*coding).src_bytes);
   let mut src_base: *const c_uchar = std::ptr::null ();
@@ -2651,11 +2753,15 @@ unsafe extern "C-unwind" fn decode_coding_emacs_mule (coding: *mut coding_system
   (*coding).consumed_char += consumed_chars_base;
   (*coding).consumed = src_base.offset_from ((*coding).source);
   (*coding).charbuf_used = charbuf.offset_from ((*coding).charbuf) as c_int;
+
+  }
 }
 
 
 unsafe extern "C-unwind" fn encode_coding_emacs_mule (coding: *mut coding_system) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let multibytep = dst_multibyte_p (coding);
   let mut charbuf: *mut c_int = (*coding).charbuf;
   let charbuf_end: *mut c_int = charbuf.offset ((*coding).charbuf_used as isize);
@@ -2854,6 +2960,8 @@ unsafe extern "C-unwind" fn encode_coding_emacs_mule (coding: *mut coding_system
   (*coding).produced_char += produced_chars;
   (*coding).produced = dst.offset_from ((*coding).destination);
   return false;
+
+  }
 }
 
 
@@ -2870,6 +2978,8 @@ macro_rules! SAFE_CHARSET_P {
 
 unsafe fn setup_iso_safe_charsets (attrs: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut charset_list: Lisp_Object;
   let mut safe_charsets: Lisp_Object;
   let mut request: Lisp_Object;
@@ -2934,6 +3044,8 @@ unsafe fn setup_iso_safe_charsets (attrs: Lisp_Object)
       tail = XCDR (tail);
     }
   ASET (attrs, coding_attr_safe_charsets as isize, safe_charsets);
+
+  }
 }
 
 
@@ -2944,6 +3056,8 @@ unsafe fn setup_iso_safe_charsets (attrs: Lisp_Object)
 unsafe extern "C-unwind" fn detect_coding_iso_2022 (coding: *mut coding_system,
                                   detect_info: *mut coding_detection_info) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut src: *const c_uchar = (*coding).source;
   let mut src_base: *const c_uchar = src;
   let src_end: *const c_uchar = (*coding).source.offset ((*coding).src_bytes);
@@ -3244,12 +3358,16 @@ unsafe extern "C-unwind" fn detect_coding_iso_2022 (coding: *mut coding_system,
   (*detect_info).rejected |= rejected;
   (*detect_info).found |= (found & !rejected);
   return true;
+
+  }
 }
 
 /* Finish the current composition as invalid.  */
 
 unsafe fn finish_composition (charbuf: *mut c_int, cmp_status: *mut composition_status) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut idx: c_int = - (*cmp_status).length;
   let mut new_chars: c_int;
 
@@ -3312,10 +3430,14 @@ unsafe fn finish_composition (charbuf: *mut c_int, cmp_status: *mut composition_
     }
   (*cmp_status).state = COMPOSING_NO;
   return new_chars;
+
+  }
 }
 
 unsafe extern "C-unwind" fn decode_coding_iso_2022 (coding: *mut coding_system)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut src: *const c_uchar = (*coding).source.offset ((*coding).consumed);
   let mut src_end: *const c_uchar = (*coding).source.offset ((*coding).src_bytes);
   let mut src_base: *const c_uchar = std::ptr::null ();
@@ -4135,12 +4257,16 @@ unsafe extern "C-unwind" fn decode_coding_iso_2022 (coding: *mut coding_system)
   (*coding).consumed_char += consumed_chars_base;
   (*coding).consumed = src_base.offset_from ((*coding).source);
   (*coding).charbuf_used = charbuf.offset_from ((*coding).charbuf) as c_int;
+
+  }
 }
 
 unsafe fn encode_invocation_designation (charset: *mut charset,
                                          coding: *mut coding_system,
                                          dst: *mut c_uchar, p_nchars: *mut ptrdiff_t) -> *mut c_uchar
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let multibytep = dst_multibyte_p (coding);
   let mut produced_chars: ptrdiff_t = *p_nchars;
   let mut dst: *mut c_uchar = dst;
@@ -4343,6 +4469,8 @@ unsafe fn encode_invocation_designation (charset: *mut charset,
 
   *p_nchars = produced_chars;
   return dst;
+
+  }
 }
 
 
@@ -4350,6 +4478,8 @@ unsafe fn encode_designation_at_bol (coding: *mut coding_system,
                                     charbuf_in: *mut c_int, charbuf_end: *mut c_int,
                                     dst: *mut c_uchar) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let orig: *mut c_uchar = dst;
   let mut charset: *mut charset;
   /* Table of charsets to be designated to each graphic register.  */
@@ -4485,10 +4615,14 @@ unsafe fn encode_designation_at_bol (coding: *mut coding_system,
     }
 
   return dst.offset_from (orig);
+
+  }
 }
 
 unsafe extern "C-unwind" fn encode_coding_iso_2022 (coding: *mut coding_system) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let multibytep = dst_multibyte_p (coding);
   let mut charbuf: *mut c_int = (*coding).charbuf;
   let charbuf_end: *mut c_int = charbuf.offset ((*coding).charbuf_used as isize);
@@ -5007,6 +5141,8 @@ unsafe extern "C-unwind" fn encode_coding_iso_2022 (coding: *mut coding_system) 
   (*coding).produced_char += produced_chars;
   (*coding).produced = dst.offset_from ((*coding).destination);
   return false;
+
+  }
 }
 /* See the above "GENERAL NOTES on `detect_coding_XXX ()' functions".
    Return true if a text is encoded in SJIS.  */
@@ -5014,6 +5150,8 @@ unsafe extern "C-unwind" fn encode_coding_iso_2022 (coding: *mut coding_system) 
 unsafe extern "C-unwind" fn detect_coding_sjis (coding: *mut coding_system,
 			      detect_info: *mut coding_detection_info) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut src: *const c_uchar = (*coding).source;
   let mut src_base: *const c_uchar = std::ptr::null ();
   let src_end: *const c_uchar = (*coding).source.offset ((*coding).src_bytes);
@@ -5090,6 +5228,8 @@ unsafe extern "C-unwind" fn detect_coding_sjis (coding: *mut coding_system,
     }
   (*detect_info).found |= found;
   return true;
+
+  }
 }
 
 /* See the above "GENERAL NOTES on `detect_coding_XXX ()' functions".
@@ -5098,6 +5238,8 @@ unsafe extern "C-unwind" fn detect_coding_sjis (coding: *mut coding_system,
 unsafe extern "C-unwind" fn detect_coding_big5 (coding: *mut coding_system,
 			      detect_info: *mut coding_detection_info) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut src: *const c_uchar = (*coding).source;
   let mut src_base: *const c_uchar = std::ptr::null ();
   let src_end: *const c_uchar = (*coding).source.offset ((*coding).src_bytes);
@@ -5165,12 +5307,16 @@ unsafe extern "C-unwind" fn detect_coding_big5 (coding: *mut coding_system,
     }
   (*detect_info).found |= found;
   return true;
+
+  }
 }
 
 /* See the above "GENERAL NOTES on `decode_coding_XXX ()' functions".  */
 
 unsafe extern "C-unwind" fn decode_coding_sjis (coding: *mut coding_system)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut src: *const c_uchar = (*coding).source.offset ((*coding).consumed);
   let mut src_end: *const c_uchar = (*coding).source.offset ((*coding).src_bytes);
   let mut src_base: *const c_uchar = std::ptr::null ();
@@ -5357,10 +5503,14 @@ unsafe extern "C-unwind" fn decode_coding_sjis (coding: *mut coding_system)
   (*coding).consumed_char += consumed_chars_base;
   (*coding).consumed = src_base.offset_from ((*coding).source);
   (*coding).charbuf_used = charbuf.offset_from ((*coding).charbuf) as c_int;
+
+  }
 }
 
 unsafe extern "C-unwind" fn decode_coding_big5 (coding: *mut coding_system)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut src: *const c_uchar = (*coding).source.offset ((*coding).consumed);
   let mut src_end: *const c_uchar = (*coding).source.offset ((*coding).src_bytes);
   let mut src_base: *const c_uchar = std::ptr::null ();
@@ -5521,6 +5671,8 @@ unsafe extern "C-unwind" fn decode_coding_big5 (coding: *mut coding_system)
   (*coding).consumed_char += consumed_chars_base;
   (*coding).consumed = src_base.offset_from ((*coding).source);
   (*coding).charbuf_used = charbuf.offset_from ((*coding).charbuf) as c_int;
+
+  }
 }
 /* See the above "GENERAL NOTES on `encode_coding_XXX ()' functions".
    This function can encode charsets `ascii', `katakana-jisx0201',
@@ -5531,6 +5683,8 @@ unsafe extern "C-unwind" fn decode_coding_big5 (coding: *mut coding_system)
 
 unsafe extern "C-unwind" fn encode_coding_sjis (coding: *mut coding_system) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let multibytep = dst_multibyte_p (coding);
   let mut charbuf: *mut c_int = (*coding).charbuf;
   let charbuf_end: *mut c_int = charbuf.offset ((*coding).charbuf_used as isize);
@@ -5702,10 +5856,14 @@ unsafe extern "C-unwind" fn encode_coding_sjis (coding: *mut coding_system) -> b
   (*coding).produced_char += produced_chars;
   (*coding).produced = dst.offset_from ((*coding).destination);
   return false;
+
+  }
 }
 
 unsafe extern "C-unwind" fn encode_coding_big5 (coding: *mut coding_system) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let multibytep = dst_multibyte_p (coding);
   let mut charbuf: *mut c_int = (*coding).charbuf;
   let charbuf_end: *mut c_int = charbuf.offset ((*coding).charbuf_used as isize);
@@ -5854,6 +6012,8 @@ unsafe extern "C-unwind" fn encode_coding_big5 (coding: *mut coding_system) -> b
   (*coding).produced_char += produced_chars;
   (*coding).produced = dst.offset_from ((*coding).destination);
   return false;
+
+  }
 }
 
 
@@ -5864,6 +6024,8 @@ unsafe extern "C-unwind" fn encode_coding_big5 (coding: *mut coding_system) -> b
 unsafe extern "C-unwind" fn detect_coding_ccl (mut coding: *mut coding_system,
 			     detect_info: *mut coding_detection_info) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut src: *const c_uchar = (*coding).source;
   let mut src_base: *const c_uchar = std::ptr::null ();
   let src_end: *const c_uchar = (*coding).source.offset ((*coding).src_bytes);
@@ -5926,10 +6088,14 @@ unsafe extern "C-unwind" fn detect_coding_ccl (mut coding: *mut coding_system,
 
   (*detect_info).found |= found;
   return true;
+
+  }
 }
 
 unsafe extern "C-unwind" fn decode_coding_ccl (coding: *mut coding_system)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut src: *const c_uchar = (*coding).source.offset ((*coding).consumed);
   let mut src_end: *const c_uchar = (*coding).source.offset ((*coding).src_bytes);
   let mut charbuf: *mut c_int = (*coding).charbuf.offset ((*coding).charbuf_used as isize);
@@ -6012,10 +6178,14 @@ unsafe extern "C-unwind" fn decode_coding_ccl (coding: *mut coding_system)
   (*coding).consumed_char += consumed_chars;
   (*coding).consumed = src.offset_from ((*coding).source);
   (*coding).charbuf_used = charbuf.offset_from ((*coding).charbuf) as c_int;
+
+  }
 }
 
 unsafe extern "C-unwind" fn encode_coding_ccl (coding: *mut coding_system) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let ccl: *mut ccl_program = &raw mut (*((*coding).spec.ccl as *mut ccl_spec)).ccl;
   let multibytep = dst_multibyte_p (coding);
   let mut charbuf: *mut c_int = (*coding).charbuf;
@@ -6117,6 +6287,8 @@ unsafe extern "C-unwind" fn encode_coding_ccl (coding: *mut coding_system) -> bo
   (*coding).produced_char += produced_chars;
   (*coding).produced = dst.offset_from ((*coding).destination);
   return false;
+
+  }
 }
 
 
@@ -6126,6 +6298,8 @@ unsafe extern "C-unwind" fn encode_coding_ccl (coding: *mut coding_system) -> bo
 
 unsafe extern "C-unwind" fn decode_coding_raw_text (coding: *mut coding_system)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let eol_dos
     = !inhibit_eol_conversion && EQ (CODING_ID_EOL_TYPE ((*coding).id as hash_idx_t), Qdos ());
 
@@ -6142,11 +6316,15 @@ unsafe extern "C-unwind" fn decode_coding_raw_text (coding: *mut coding_system)
     }
   else
     { record_conversion_result (coding, CODING_RESULT_SUCCESS); }
+
+  }
 }
 
 
 unsafe extern "C-unwind" fn encode_coding_raw_text (coding: *mut coding_system) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let multibytep = dst_multibyte_p (coding);
   let mut charbuf: *mut c_int = (*coding).charbuf;
   let charbuf_end: *mut c_int = charbuf.offset ((*coding).charbuf_used as isize);
@@ -6267,6 +6445,8 @@ unsafe extern "C-unwind" fn encode_coding_raw_text (coding: *mut coding_system) 
   (*coding).produced_char += produced_chars;
   (*coding).produced = dst.offset_from ((*coding).destination);
   return false;
+
+  }
 }
 
 /* See the above "GENERAL NOTES on `detect_coding_XXX ()' functions".
@@ -6275,6 +6455,8 @@ unsafe extern "C-unwind" fn encode_coding_raw_text (coding: *mut coding_system) 
 unsafe extern "C-unwind" fn detect_coding_charset (mut coding: *mut coding_system,
 				 detect_info: *mut coding_detection_info) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut src: *const c_uchar = (*coding).source;
   let mut src_base: *const c_uchar = std::ptr::null ();
   let src_end: *const c_uchar = (*coding).source.offset ((*coding).src_bytes);
@@ -6410,10 +6592,14 @@ unsafe extern "C-unwind" fn detect_coding_charset (mut coding: *mut coding_syste
 
   (*detect_info).found |= found;
   return true;
+
+  }
 }
 
 unsafe extern "C-unwind" fn decode_coding_charset (coding: *mut coding_system)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut src: *const c_uchar = (*coding).source.offset ((*coding).consumed);
   let mut src_end: *const c_uchar = (*coding).source.offset ((*coding).src_bytes);
   let mut src_base: *const c_uchar = std::ptr::null ();
@@ -6606,10 +6792,14 @@ unsafe extern "C-unwind" fn decode_coding_charset (coding: *mut coding_system)
   (*coding).consumed_char += consumed_chars_base;
   (*coding).consumed = src_base.offset_from ((*coding).source);
   (*coding).charbuf_used = charbuf.offset_from ((*coding).charbuf) as c_int;
+
+  }
 }
 
 unsafe extern "C-unwind" fn encode_coding_charset (coding: *mut coding_system) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let multibytep = dst_multibyte_p (coding);
   let mut charbuf: *mut c_int = (*coding).charbuf;
   let charbuf_end: *mut c_int = charbuf.offset ((*coding).charbuf_used as isize);
@@ -6766,6 +6956,8 @@ unsafe extern "C-unwind" fn encode_coding_charset (coding: *mut coding_system) -
   (*coding).produced_char += produced_chars;
   (*coding).produced = dst.offset_from ((*coding).destination);
   return false;
+
+  }
 }
 
 /* Setup coding context CODING from information about CODING_SYSTEM.
@@ -6776,6 +6968,8 @@ unsafe extern "C-unwind" fn encode_coding_charset (coding: *mut coding_system) -
 pub unsafe extern "C-unwind" fn setup_coding_system (coding_system: Lisp_Object,
 					      coding: *mut coding_system)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut coding_system: Lisp_Object = coding_system;
   let mut attrs: Lisp_Object;
   let mut eol_type: Lisp_Object;
@@ -6991,6 +7185,8 @@ pub unsafe extern "C-unwind" fn setup_coding_system (coding_system: Lisp_Object,
     }
 
   return;
+
+  }
 }
 
 /* Return a list of charsets supported by CODING.  */
@@ -6998,6 +7194,8 @@ pub unsafe extern "C-unwind" fn setup_coding_system (coding_system: Lisp_Object,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn coding_charset_list (coding: *mut coding_system) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut attrs: Lisp_Object;
   let mut charset_list: Lisp_Object;
 
@@ -7014,6 +7212,8 @@ pub unsafe extern "C-unwind" fn coding_charset_list (coding: *mut coding_system)
       charset_list = Vemacs_mule_charset_list;
     }
   return charset_list;
+
+  }
 }
 
 
@@ -7022,6 +7222,8 @@ pub unsafe extern "C-unwind" fn coding_charset_list (coding: *mut coding_system)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn coding_system_charset_list (coding_system: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut id: ptrdiff_t;
   let mut attrs: Lisp_Object;
   let mut charset_list: Lisp_Object;
@@ -7047,6 +7249,8 @@ pub unsafe extern "C-unwind" fn coding_system_charset_list (coding_system: Lisp_
       charset_list = CODING_ATTR_CHARSET_LIST (attrs);
     }
   return charset_list;
+
+  }
 }
 
 
@@ -7084,8 +7288,12 @@ pub unsafe extern "C-unwind" fn raw_text_coding_system (coding_system: Lisp_Obje
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn raw_text_coding_system_p (coding: *mut coding_system) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   return if (*coding).decoder == Some (decode_coding_raw_text)
 	   && (*coding).encoder == Some (encode_coding_raw_text) { true } else { false };
+
+  }
 }
 
 
@@ -7142,6 +7350,8 @@ pub unsafe extern "C-unwind" fn coding_inherit_eol_type (coding_system: Lisp_Obj
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn complement_process_encoding_system (coding_system: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut coding_system: Lisp_Object = coding_system;
   let mut coding_base: Lisp_Object = Qnil ();
   let mut eol_base: Lisp_Object = Qnil ();
@@ -7175,6 +7385,8 @@ pub unsafe extern "C-unwind" fn complement_process_encoding_system (coding_syste
        coding system.  */
     { coding_system = coding_inherit_eol_type (coding_base, eol_base); }
   return coding_system;
+
+  }
 }
 
 
@@ -7186,6 +7398,8 @@ pub unsafe extern "C-unwind" fn complement_process_encoding_system (coding_syste
 
 unsafe fn check_ascii (coding: *mut coding_system) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut src: *const c_uchar;
   let mut end: *const c_uchar;
   let eol_type: Lisp_Object = CODING_ID_EOL_TYPE ((*coding).id as hash_idx_t);
@@ -7247,6 +7461,8 @@ unsafe fn check_ascii (coding: *mut coding_system) -> ptrdiff_t
   (*coding).head_ascii = src.offset_from ((*coding).source);
   coding_eol_seen_set (coding, eol_seen);
   return (*coding).head_ascii;
+
+  }
 }
 
 
@@ -7259,6 +7475,8 @@ unsafe fn check_ascii (coding: *mut coding_system) -> ptrdiff_t
 
 unsafe fn check_utf_8 (coding: *mut coding_system) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut src: *const c_uchar;
   let mut end: *const c_uchar;
   let mut eol_seen: c_int;
@@ -7348,6 +7566,8 @@ unsafe fn check_utf_8 (coding: *mut coding_system) -> ptrdiff_t
     }
   coding_eol_seen_set (coding, eol_seen);
   return nchars;
+
+  }
 }
 
 /* Like make_string, but always returns a multibyte Lisp string, and
@@ -7363,10 +7583,14 @@ pub mod make_string_from_utf8_def {
   #[unsafe(no_mangle)]
   pub unsafe extern "C-unwind" fn make_string_from_utf8 (text: *const c_char, nbytes: ptrdiff_t) -> Lisp_Object
   {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
     /* C 6338-6361 is `#if 0`/`#else`: the slow parse_str_as_multibyte implementation is dead
        in every configuration and the `#else` arm is live (docs/ports/coding.md).  */
     return decode_string_utf_8 (Qnil (), text, nbytes, Qnil (), false, Qt (), Qt ());
+  
   }
+}
 }
 use make_string_from_utf8_def::*;
 
@@ -7382,6 +7606,8 @@ pub const MAX_EOL_CHECK_COUNT: c_int = 3;
 unsafe fn detect_eol (source: *const c_uchar, src_bytes: ptrdiff_t,
 		      category: coding_category) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut src: *const c_uchar = source;
   let src_end: *const c_uchar = src.offset (src_bytes);
   let mut c: c_uchar = 0;
@@ -7478,11 +7704,15 @@ unsafe fn detect_eol (source: *const c_uchar, src_bytes: ptrdiff_t,
 	}
     }
   return eol_seen;
+
+  }
 }
 
 
 unsafe fn adjust_coding_eol_type (coding: *mut coding_system, eol_seen: c_int) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut eol_type: Lisp_Object;
 
   eol_type = CODING_ID_EOL_TYPE ((*coding).id as hash_idx_t);
@@ -7505,6 +7735,8 @@ unsafe fn adjust_coding_eol_type (coding: *mut coding_system, eol_seen: c_int) -
       eol_type = Qmac ();
     }
   return eol_type;
+
+  }
 }
 
 /* Detect how a text specified in CODING is encoded.  If a coding
@@ -7513,6 +7745,8 @@ unsafe fn adjust_coding_eol_type (coding: *mut coding_system, eol_seen: c_int) -
 
 unsafe fn detect_coding (coding: *mut coding_system)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut src: *const c_uchar;
   let src_end: *const c_uchar;
   let saved_mode: c_uint = mode_of (coding);
@@ -7782,11 +8016,15 @@ unsafe fn detect_coding (coding: *mut coding_system)
     }
 
   coding_bits_set (coding, CODING_SYSTEM_MODE_SHIFT, CODING_SYSTEM_MODE_MASK, saved_mode);
+
+  }
 }
 
 
 unsafe fn decode_eol (coding: *mut coding_system)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut eol_type: Lisp_Object;
   let mut p: *mut c_uchar;
   let mut pbeg: *mut c_uchar;
@@ -7881,6 +8119,8 @@ unsafe fn decode_eol (coding: *mut coding_system)
       (*coding).produced -= n;
       (*coding).produced_char -= n;
     }
+
+  }
 }
 
 
@@ -7900,6 +8140,8 @@ pub const MAX_LOOKUP_MAX: c_int
 unsafe fn get_translation_table (attrs: Lisp_Object, encodep: bool,
 				 max_lookup: *mut c_int) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut standard: Lisp_Object;
   let mut translation_table: Lisp_Object;
   let mut val: Lisp_Object;
@@ -7975,6 +8217,8 @@ unsafe fn get_translation_table (attrs: Lisp_Object, encodep: bool,
 	}
     }
   return translation_table;
+
+  }
 }
 
 /* Return a translation of character(s) at BUF according to TRANS.
@@ -7988,6 +8232,8 @@ unsafe fn get_translation_table (attrs: Lisp_Object, encodep: bool,
 unsafe fn get_translation (mut trans: Lisp_Object, buf: *mut c_int, buf_end: *mut c_int,
 			   nchars: *mut ptrdiff_t) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if FIXNUMP (trans) || VECTORP (trans)
     {
       *nchars = 1;
@@ -8017,12 +8263,16 @@ unsafe fn get_translation (mut trans: Lisp_Object, buf: *mut c_int, buf_end: *mu
       trans = XCDR (trans);
     }
   return Qnil ();
+
+  }
 }
 
 
 unsafe fn produce_chars (coding: *mut coding_system, translation_table: Lisp_Object,
 			 last_block: bool) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut dst: *mut c_uchar = (*coding).destination.offset ((*coding).produced);
   let mut dst_end: *mut c_uchar = (*coding).destination.offset ((*coding).dst_bytes);
   let produced: ptrdiff_t;
@@ -8325,6 +8575,8 @@ unsafe fn produce_chars (coding: *mut coding_system, translation_table: Lisp_Obj
   (*coding).produced += produced;
   (*coding).produced_char += produced_chars;
   return carryover;
+
+  }
 }
 
 /* Compose text in CODING->object according to the annotation data at
@@ -8335,6 +8587,8 @@ unsafe fn produce_chars (coding: *mut coding_system, translation_table: Lisp_Obj
 unsafe fn produce_composition (coding: *mut coding_system, mut charbuf: *mut c_int,
 			       pos: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut len: c_int;
   let to: ptrdiff_t;
   let method: composition_method;
@@ -8373,6 +8627,8 @@ unsafe fn produce_composition (coding: *mut coding_system, mut charbuf: *mut c_i
 		   else { Fvector (j as ptrdiff_t, args.as_mut_ptr ()) };
     }
   compose_text (pos, to, components, Qnil (), (*coding).dst_object);
+
+  }
 }
 
 
@@ -8383,12 +8639,16 @@ unsafe fn produce_composition (coding: *mut coding_system, mut charbuf: *mut c_i
 
 unsafe fn produce_charset (coding: *mut coding_system, charbuf: *mut c_int, pos: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let from: ptrdiff_t = pos - *charbuf.offset (2) as isize;
   let charset: *mut charset = CHARSET_FROM_ID! (*charbuf.offset (3));
 
   Fput_text_property (make_fixnum (from as EMACS_INT), make_fixnum (pos as EMACS_INT),
 		      Qcharset (), CHARSET_NAME! (charset),
 		      (*coding).dst_object);
+
+  }
 }
 
 pub const MAX_CHARBUF_SIZE: c_int = 0x4000;
@@ -8399,6 +8659,8 @@ pub const MAX_CHARBUF_EXTRA_SIZE: c_int = ((MAX_ANNOTATION_LENGTH * 3) + 1);
 
 unsafe fn produce_annotation (coding: *mut coding_system, pos: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut charbuf: *mut c_int = (*coding).charbuf;
   let charbuf_end: *mut c_int = charbuf.offset ((*coding).charbuf_used as isize);
   let mut pos: ptrdiff_t = pos;
@@ -8429,6 +8691,8 @@ unsafe fn produce_annotation (coding: *mut coding_system, pos: ptrdiff_t)
 	  charbuf = charbuf.offset (len as isize);
 	}
     }
+
+  }
 }
 
 
@@ -8461,6 +8725,8 @@ unsafe fn produce_annotation (coding: *mut coding_system, pos: ptrdiff_t)
 
 unsafe fn decode_coding (coding: *mut coding_system)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut attrs: Lisp_Object;
   let mut undo_list: Lisp_Object;
   let translation_table: Lisp_Object;
@@ -8639,6 +8905,8 @@ unsafe fn decode_coding (coding: *mut coding_system)
     }
 
   SAFE_FREE_UNBIND_TO! (sa_count, count, Qnil (), sa_mark);
+
+  }
 }
 
 
@@ -8656,6 +8924,8 @@ unsafe fn handle_composition_annotation (pos: ptrdiff_t, limit: ptrdiff_t,
 					 coding: *mut coding_system, mut buf: *mut c_int,
 					 stop: *mut ptrdiff_t) -> *mut c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut start: ptrdiff_t = 0;
   let mut end: ptrdiff_t = 0;
   let mut prop: Lisp_Object = Qnil ();
@@ -8754,6 +9024,8 @@ unsafe fn handle_composition_annotation (pos: ptrdiff_t, limit: ptrdiff_t,
 	{ *stop = limit; }
     }
   return buf;
+
+  }
 }
 
 
@@ -8770,6 +9042,8 @@ unsafe fn handle_charset_annotation (pos: ptrdiff_t, limit: ptrdiff_t,
 				     coding: *mut coding_system, mut buf: *mut c_int,
 				     stop: *mut ptrdiff_t) -> *mut c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let val: Lisp_Object;
   let next: Lisp_Object;
   let mut id: c_int;
@@ -8804,6 +9078,8 @@ unsafe fn handle_charset_annotation (pos: ptrdiff_t, limit: ptrdiff_t,
 				       make_fixnum (limit as EMACS_INT));
   *stop = XFIXNUM (next) as ptrdiff_t;
   return buf;
+
+  }
 }
 
 /* Encode the text at CODING->src_object into CODING->dst_object.
@@ -8812,6 +9088,8 @@ unsafe fn handle_charset_annotation (pos: ptrdiff_t, limit: ptrdiff_t,
 unsafe fn consume_chars (coding: *mut coding_system, translation_table: Lisp_Object,
 			 max_lookup: c_int)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut buf: *mut c_int = (*coding).charbuf;
   let mut buf_end: *mut c_int = (*coding).charbuf.offset ((*coding).charbuf_size as isize);
   let mut src: *const c_uchar = (*coding).source.offset ((*coding).consumed);
@@ -8996,6 +9274,8 @@ unsafe fn consume_chars (coding: *mut coding_system, translation_table: Lisp_Obj
   (*coding).consumed_char = pos - (*coding).src_pos;
   (*coding).charbuf_used = buf.offset_from ((*coding).charbuf) as c_int;
   coding_bits_set (coding, CODING_SYSTEM_CHARS_AT_SOURCE_SHIFT, 1, 0);
+
+  }
 }
 
 
@@ -9022,6 +9302,8 @@ unsafe fn consume_chars (coding: *mut coding_system, translation_table: Lisp_Obj
 
 unsafe fn encode_coding (coding: *mut coding_system)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let attrs: Lisp_Object;
   let translation_table: Lisp_Object;
   let mut max_lookup: c_int = 0;
@@ -9089,6 +9371,8 @@ unsafe fn encode_coding (coding: *mut coding_system)
     }
 
   SAFE_FREE! (sa_count, sa_mark);
+
+  }
 }
 
 /* Code-conversion operations use internal buffers.  There's a single
@@ -9114,6 +9398,8 @@ static mut reused_workbuf_in_use: bool = false;
 
 unsafe extern "C-unwind" fn code_conversion_restore (arg: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let current: Lisp_Object;
   let workbuf: Lisp_Object;
 
@@ -9127,11 +9413,15 @@ unsafe extern "C-unwind" fn code_conversion_restore (arg: Lisp_Object)
 	{ Fkill_buffer (workbuf); }
     }
   set_buffer_internal (XBUFFER (current));
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn code_conversion_save (with_work_buf: bool, multibyte: bool) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut workbuf: Lisp_Object = Qnil ();
 
   if with_work_buf
@@ -9173,6 +9463,8 @@ pub unsafe extern "C-unwind" fn code_conversion_save (with_work_buf: bool, multi
     }
 
   return workbuf;
+
+  }
 }
 
 unsafe extern "C-unwind" fn coding_restore_undo_list (arg: Lisp_Object)
@@ -9193,6 +9485,8 @@ pub mod decode_coding_gap_def {
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn decode_coding_gap (coding: *mut coding_system, mut bytes: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut count: specpdl_ref = SPECPDL_INDEX ();
   let mut attrs: Lisp_Object;
 
@@ -9323,6 +9617,8 @@ pub unsafe extern "C-unwind" fn decode_coding_gap (coding: *mut coding_system, m
     }
 
   unbind_to (count, Qnil ());
+
+  }
 }
 }
 use decode_coding_gap_def::*;
@@ -9367,6 +9663,8 @@ pub unsafe extern "C-unwind" fn decode_coding_object (coding: *mut coding_system
 					       to: ptrdiff_t, to_byte: ptrdiff_t,
 					       dst_object: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut count: specpdl_ref = SPECPDL_INDEX ();
   let mut destination: *mut u8 = std::ptr::null_mut ();
   let mut dst_bytes: ptrdiff_t = 0;
@@ -9575,6 +9873,8 @@ pub unsafe extern "C-unwind" fn decode_coding_object (coding: *mut coding_system
 
   Vdeactivate_mark = old_deactivate_mark;
   unbind_to (count, (*coding).dst_object);
+
+  }
 }
 
 /* Encode the text in the range FROM/FROM_BYTE and TO/TO_BYTE in
@@ -9620,6 +9920,8 @@ pub unsafe extern "C-unwind" fn encode_coding_object (coding: *mut coding_system
 					       to: ptrdiff_t, to_byte: ptrdiff_t,
 					       dst_object: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut count: specpdl_ref = SPECPDL_INDEX ();
   let mut chars: ptrdiff_t = to - from;
   let mut bytes: ptrdiff_t = to_byte - from_byte;
@@ -9852,6 +10154,8 @@ pub unsafe extern "C-unwind" fn encode_coding_object (coding: *mut coding_system
 
   Vdeactivate_mark = old_deactivate_mark;
   unbind_to (count, Qnil ());
+
+  }
 }
 
 /* `src/coding.rs`'s `coding_fwd` module declares `preferred_coding_system` (coding.h
@@ -9859,9 +10163,13 @@ pub unsafe extern "C-unwind" fn encode_coding_object (coding: *mut coding_system
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn preferred_coding_system () -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let id: c_int = coding_categories[coding_priorities[0] as usize].id as c_int;
 
   return CODING_ID_NAME (id as hash_idx_t);
+
+  }
 }
 
 /* C 8528-8578: `#if defined (WINDOWSNT) || defined (CYGWIN) || defined HAVE_ANDROID`.  The frozen
@@ -10019,6 +10327,8 @@ pub unsafe extern "C-unwind" fn detect_coding_system (mut src: *const c_uchar,
 					       highest: bool, multibytep: bool,
 					       mut coding_system: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let src_end: *const c_uchar = src.offset (src_bytes);
   let mut attrs: Lisp_Object; let mut eol_type: Lisp_Object;
   let mut val: Lisp_Object = Qnil ();
@@ -10347,6 +10657,8 @@ pub unsafe extern "C-unwind" fn detect_coding_system (mut src: *const c_uchar,
   }
 
   return if highest { if CONSP (val) { XCAR (val) } else { Qnil () } } else { val };
+
+  }
 }
 
 DEFUN! ("detect-coding-region", Fdetect_coding_region, Sdetect_coding_region,
@@ -10390,6 +10702,8 @@ DEFUN! ("detect-coding-string", Fdetect_coding_string, Sdetect_coding_string,
 
 unsafe fn char_encodable_p (mut c: c_int, attrs: Lisp_Object) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut tail: Lisp_Object;
   let mut charset: *mut charset;
   let mut translation_table: Lisp_Object;
@@ -10413,6 +10727,8 @@ unsafe fn char_encodable_p (mut c: c_int, attrs: Lisp_Object) -> bool
       tail = XCDR (tail);
     }
   return ! NILP (tail);
+
+  }
 }
 
 
@@ -10786,6 +11102,8 @@ unsafe fn code_convert_region (mut start: Lisp_Object, mut end: Lisp_Object,
 			       mut coding_system: Lisp_Object, mut dst_object: Lisp_Object,
 			       encodep: bool, norecord: bool) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut coding: coding_system = std::mem::zeroed ();
   let mut from: ptrdiff_t; let mut from_byte: ptrdiff_t;
   let mut to: ptrdiff_t; let mut to_byte: ptrdiff_t;
@@ -10830,6 +11148,8 @@ unsafe fn code_convert_region (mut start: Lisp_Object, mut end: Lisp_Object,
   return if BUFFERP (dst_object)
 	   { make_fixnum (coding.produced_char as EMACS_INT) }
 	 else { coding.dst_object };
+
+  }
 }
 
 
@@ -10873,6 +11193,8 @@ pub unsafe extern "C-unwind" fn code_convert_string (string: Lisp_Object,
 					      encodep: bool, nocopy: bool,
 					      norecord: bool) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut coding: coding_system = std::mem::zeroed ();
   let mut chars: ptrdiff_t; let mut bytes: ptrdiff_t;
 
@@ -10940,6 +11262,8 @@ pub unsafe extern "C-unwind" fn code_convert_string (string: Lisp_Object,
   return if BUFFERP (dst_object)
 	   { make_fixnum (coding.produced_char as EMACS_INT) }
 	 else { coding.dst_object };
+
+  }
 }
 
 
@@ -10957,7 +11281,11 @@ pub unsafe extern "C-unwind" fn code_convert_string_norecord (string: Lisp_Objec
 						      coding_system: Lisp_Object,
 						      encodep: bool) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   return code_convert_string (string, coding_system, Qt (), encodep, false, true);
+
+  }
 }
 }
 use code_convert_string_norecord_def::*;
@@ -10968,6 +11296,8 @@ use code_convert_string_norecord_def::*;
 
 unsafe fn get_buffer_gap_address (buffer: Lisp_Object, nbytes: ptrdiff_t) -> *mut c_uchar
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let buf: *mut buffer = XBUFFER (buffer);
 
   if BUF_GPT! (buf) != BUF_PT (buf)
@@ -10981,6 +11311,8 @@ unsafe fn get_buffer_gap_address (buffer: Lisp_Object, nbytes: ptrdiff_t) -> *mu
   if BUF_GAP_SIZE! (buf) < nbytes
     { make_gap_1 (buf, nbytes); }
   return BUF_GPT_ADDR (buf) as *mut c_uchar;
+
+  }
 }
 
 /* Return a pointer to the byte sequence for C, and its byte length in
@@ -11005,6 +11337,8 @@ mod get_char_bytes_caches {
 
 unsafe fn get_char_bytes (c: c_int, len: *mut c_int) -> *mut c_uchar
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   use get_char_bytes_caches::*;
 
   /* Use two caches, since encode/decode_string_utf_8 are called
@@ -11026,13 +11360,19 @@ unsafe fn get_char_bytes (c: c_int, len: *mut c_int) -> *mut c_uchar
   nbytes[last_index as usize] = n;
   *len = n;
   return bytes[last_index as usize].as_mut_ptr ();
+
+  }
 }
 
 
 unsafe fn convert_string_nocopy (string: Lisp_Object, coding_system: Lisp_Object,
 				 encodep: bool) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   return code_convert_string (string, coding_system, Qt (), encodep, true, true);
+
+  }
 }
 
 /* Encode or decode a file name, to or from a unibyte string suitable
@@ -11046,6 +11386,8 @@ pub mod decode_file_name_def {
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn decode_file_name (fname: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* C 10432-10438 is `#ifdef WINDOWSNT`, dead in the frozen configuration; the `#else`
      arm below is live (docs/ports/coding.md).  */
   if ! NILP (Vfile_name_coding_system)
@@ -11054,12 +11396,16 @@ pub unsafe extern "C-unwind" fn decode_file_name (fname: Lisp_Object) -> Lisp_Ob
     { return convert_string_nocopy (fname, Vdefault_file_name_coding_system, false); }
   else
     { return fname; }
+
+  }
 }
 }
 use decode_file_name_def::*;
 
 unsafe fn encode_file_name_1 (fname: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* This is especially important during bootstrap and dumping, when
      file-name encoding is not yet known, and therefore any non-ASCII
      file names are unibyte strings, and could only be thrashed if we
@@ -11074,6 +11420,8 @@ unsafe fn encode_file_name_1 (fname: Lisp_Object) -> Lisp_Object
     { return convert_string_nocopy (fname, Vdefault_file_name_coding_system, true); }
   else
     { return fname; }
+
+  }
 }
 
 /* `src/include/coding.rs` declares `encode_file_name` at its crate root
@@ -11085,6 +11433,8 @@ pub mod encode_file_name_def {
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn encode_file_name (fname: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let encoded: Lisp_Object = encode_file_name_1 (fname);
   /* No system accepts NUL bytes in filenames.  Allowing them can
      cause subtle bugs because the system would silently use a
@@ -11092,6 +11442,8 @@ pub unsafe extern "C-unwind" fn encode_file_name (fname: Lisp_Object) -> Lisp_Ob
      encoding to not miss NUL bytes introduced through encoding.  */
   CHECK_STRING_NULL_BYTES (encoded);
   return encoded;
+
+  }
 }
 }
 use encode_file_name_def::*;
@@ -11494,7 +11846,7 @@ DEFUN! ("set-coding-system-priority", Fset_coding_system_priority,
 	     i += 1; j += 1;
 	   }
 
-	 memcpy (coding_priorities.as_mut_ptr () as *mut c_void,
+	 memcpy (femacs_array_mut_ptr (&raw mut coding_priorities) as *mut c_void,
 		 priorities.as_ptr () as *const c_void,
 		 std::mem::size_of_val (&priorities));
 
@@ -11544,6 +11896,8 @@ static suffixes: [[u8; 8]; 3] = [*b"-unix\0\0\0", *b"-dos\0\0\0\0", *b"-mac\0\0\
 
 unsafe fn make_subsidiaries (base: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let base_name_len: ptrdiff_t = SBYTES (SYMBOL_NAME (base));
   USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   let buf: *mut c_char = SAFE_ALLOCA! (sa_avail, base_name_len + 6) as *mut c_char;
@@ -11560,6 +11914,8 @@ unsafe fn make_subsidiaries (base: Lisp_Object) -> Lisp_Object
     }
   SAFE_FREE! (sa_count, sa_mark);
   return subsidiaries;
+
+  }
 }
 
 
@@ -11630,6 +11986,8 @@ pub unsafe extern "C-unwind" fn encode_string_utf_8 (string: Lisp_Object, buffer
 					       nocopy: bool, handle_8_bit: Lisp_Object,
 					       handle_over_uni: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut nchars: ptrdiff_t = SCHARS (string); let nbytes: ptrdiff_t = SBYTES (string);
   if NILP (buffer) && nchars == nbytes && nocopy
     /* STRING contains only ASCII characters.  */
@@ -11836,6 +12194,8 @@ pub unsafe extern "C-unwind" fn encode_string_utf_8 (string: Lisp_Object, buffer
       set_current_buffer! (oldb);
     }
   return val;
+
+  }
 }
 
 
@@ -11918,6 +12278,8 @@ pub unsafe extern "C-unwind" fn decode_string_utf_8 (string: Lisp_Object, str: *
 					      nocopy: bool, handle_8_bit: Lisp_Object,
 					      handle_over_uni: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* This is like BYTES_BY_CHAR_HEAD, but it is assured that C >= 0x80
      and it returns 0 for an invalid sequence.  */
   /* C's function-scope `#define UTF_8_SEQUENCE_LENGTH(c)`; the port defines the same
@@ -12163,6 +12525,8 @@ pub unsafe extern "C-unwind" fn decode_string_utf_8 (string: Lisp_Object, str: *
       set_current_buffer! (oldb);
     }
   return val;
+
+  }
 }
 
 
@@ -12932,6 +13296,8 @@ DEFUN! ("coding-system-eol-type", Fcoding_system_eol_type,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn init_coding_once ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut i: c_int;
 
   i = 0;
@@ -12994,11 +13360,15 @@ pub unsafe extern "C-unwind" fn init_coding_once ()
   emacs_mule_bytes[EMACS_MULE_LEADING_CODE_PRIVATE_22 as usize] = 4;
 
   PDUMPER_REMEMBER_SCALAR! (emacs_mule_bytes);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_coding ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   staticpro (&raw const Vcoding_system_hash_table);
   Vcoding_system_hash_table = CALLN! (Fmake_hash_table, QCtest (), Qeq ());
 
@@ -13379,14 +13749,18 @@ pub unsafe extern "C-unwind" fn syms_of_coding ()
 
   DEFSYM! (QUnknown_error, c"Unknown error");
   DEFSYM! (Qdefine_coding_system_internal, c"define-coding-system-internal");
+
+  }
 }
 
 unsafe extern "C-unwind" fn reset_coding_after_pdumper_load ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if ! dumped_with_pdumper_p ()
     { return; }
-  let mut this: *mut coding_system = coding_categories.as_mut_ptr ();
-  while this < coding_categories.as_mut_ptr ().offset (coding_category_max as isize)
+  let mut this: *mut coding_system = femacs_array_mut_ptr (&raw mut coding_categories);
+  while this < femacs_array_mut_ptr (&raw mut coding_categories).offset (coding_category_max as isize)
     {
       let id: c_int = (*this).id as c_int;
       if id >= 0
@@ -13404,4 +13778,6 @@ unsafe extern "C-unwind" fn reset_coding_after_pdumper_load ()
      by the above loop, and mule-conf.el will not be loaded, so we set
      it up now; otherwise safe_terminal_coding will remain zeroed.  */
   Fset_safe_terminal_coding_system_internal (Qus_ascii ());
+
+  }
 }

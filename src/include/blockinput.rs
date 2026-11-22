@@ -25,7 +25,11 @@ unsafe extern "C-unwind" { pub static mut interrupt_input_blocked: c_int; }     
 #[inline(always)]
 pub unsafe fn block_input ()
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   interrupt_input_blocked += 1;
+
+  }
 }
 
 unsafe extern "C-unwind" {
@@ -40,5 +44,9 @@ unsafe extern "C-unwind" {
 #[inline(always)]
 pub unsafe fn input_blocked_p () -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   return interrupt_input_blocked > 0;
+
+  }
 }

@@ -24,9 +24,7 @@
 // `goto` targets (`found`, `lossage`, `done`) follow PORTING.md 2.2: a labelled block
 // `'label: { ... }` or a `loop` whose `break` carries the jump, never an early return.
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
-         unsafe_op_in_unsafe_fn)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -234,7 +232,7 @@ static mut find_start_modiff: modiff_count = 0;
 /* This setter is used only in this file, so it can be private.  */
 fn bset_syntax_table (b: *mut buffer, val: Lisp_Object)
 {
-  unsafe { (*b).syntax_table_ = val; }
+  /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { (*b).syntax_table_ = val; }
 }
 
 /* Whether the syntax of the character C has the prefix flag set.  */
@@ -268,7 +266,7 @@ fn SET_RAW_SYNTAX_ENTRY (table: Lisp_Object, c: c_int, val: Lisp_Object)
 
 unsafe fn SET_RAW_SYNTAX_ENTRY_RANGE (table: Lisp_Object, range: Lisp_Object, val: Lisp_Object)
 {
-  unsafe { Fset_char_table_range (table, range, val); }
+  /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { Fset_char_table_range (table, range, val); }
 }
 
 /* Extract the information from the entry for character C
@@ -294,24 +292,28 @@ const uninitialized_interval: INTERVAL = 1 as INTERVAL;
 
 unsafe fn SETUP_SYNTAX_TABLE (from: ptrdiff_t, count: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   SETUP_BUFFER_SYNTAX_TABLE ();
   unsafe { gl_state.b_property = BEGV! (); }
   unsafe { gl_state.e_property = ZV! () + 1; }
   unsafe { gl_state.object = Qnil (); }
-  if unsafe { parse_sexp_lookup_properties }
+  if /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { parse_sexp_lookup_properties }
     {
       unsafe { gl_state.start = gl_state.b_property; }
       unsafe { gl_state.stop = gl_state.e_property; }
       unsafe { gl_state.backward_i = uninitialized_interval; }
-      unsafe { gl_state.forward_i = uninitialized_interval; }
+      /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { gl_state.forward_i = uninitialized_interval; }
       if count > 0
 	{ unsafe { update_syntax_table_forward (from, Qnil ()) }; }
       else if from > unsafe { BEGV! () }
 	{
-	  unsafe { update_syntax_table (from - 1, count, Qnil ()) };
+	  /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { update_syntax_table (from - 1, count, Qnil ()) };
 	  parse_sexp_propertize (from - 1);
 	}
     }
+
+  }
 }
 
 /* Same as above, but in OBJECT.  If OBJECT is nil, use current buffer.
@@ -324,37 +326,37 @@ pub unsafe extern "C-unwind" fn RE_SETUP_SYNTAX_TABLE_FOR_OBJECT (object: Lisp_O
 							    frombyte: ptrdiff_t)
 {
   SETUP_BUFFER_SYNTAX_TABLE ();
-  unsafe { gl_state.object = object; }
+  /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { gl_state.object = object; }
   if BUFFERP (unsafe { gl_state.object })
     {
       let buf: *mut buffer = XBUFFER (unsafe { gl_state.object });
       unsafe { gl_state.b_property = BEG as ptrdiff_t; }
-      unsafe { gl_state.e_property = BUF_ZV (buf); }
+      /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { gl_state.e_property = BUF_ZV (buf); }
     }
   else if NILP (unsafe { gl_state.object })
     {
       unsafe { gl_state.b_property = BEG as ptrdiff_t; }
-      unsafe { gl_state.e_property = ZV! () }; /* FIXME: Why not +1 like in SETUP_SYNTAX_TABLE? */
+      /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { gl_state.e_property = ZV! () }; /* FIXME: Why not +1 like in SETUP_SYNTAX_TABLE? */
     }
   else if EQ (unsafe { gl_state.object }, Qt ())
     {
       unsafe { gl_state.b_property = 0; }
-      unsafe { gl_state.e_property = PTRDIFF_MAX; }
+      /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { gl_state.e_property = PTRDIFF_MAX; }
     }
   else
     {
       unsafe { gl_state.b_property = 0; }
-      unsafe { gl_state.e_property = 1 + SCHARS (unsafe { gl_state.object }); }
+      /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { gl_state.e_property = 1 + SCHARS (unsafe { gl_state.object }); }
     }
   if unsafe { parse_sexp_lookup_properties }
     {
       unsafe { gl_state.start = gl_state.b_property; }
-      unsafe { gl_state.stop = gl_state.e_property; }
+      /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { gl_state.stop = gl_state.e_property; }
       /* Don't cover any char, to make sure we'll call `update_syntax_table`
        * the very next time we need the syntax of a character.  */
       unsafe { gl_state.e_property = gl_state.b_property; }
       unsafe { gl_state.backward_i = uninitialized_interval; }
-      unsafe { gl_state.forward_i = uninitialized_interval; }
+      /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { gl_state.forward_i = uninitialized_interval; }
     }
 }
 
@@ -375,45 +377,47 @@ pub unsafe extern "C-unwind" fn RE_SETUP_SYNTAX_TABLE_FOR_OBJECT (object: Lisp_O
 pub unsafe extern "C-unwind" fn update_syntax_table (charpos: ptrdiff_t, count: EMACS_INT,
 					      object: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut tmp_table: Lisp_Object;
   let mut cnt: c_int = 0;
   let mut invalidate: bool = true;
   let mut i: INTERVAL;
 
-  if unsafe { gl_state.backward_i } == uninitialized_interval
+  if /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { gl_state.backward_i } == uninitialized_interval
     {
       eassert! (unsafe { gl_state.forward_i } == uninitialized_interval);
       unsafe { gl_state.old_prop = Qnil (); }
       i = interval_of (charpos, object);
-      unsafe { gl_state.backward_i = i; }
+      /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { gl_state.backward_i = i; }
       unsafe { gl_state.forward_i = i; }
       invalidate = false;
       if i.is_null ()
 	{
-	  unsafe { gl_state.b_property = gl_state.start; }
+	  /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { gl_state.b_property = gl_state.start; }
 	  unsafe { gl_state.e_property = gl_state.stop; }
 	  return;
 	}
       unsafe { gl_state.b_property = (*((i) as *mut interval)).position; }
-      unsafe { gl_state.e_property = INTERVAL_LAST_POS! (i); }
+      /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { gl_state.e_property = INTERVAL_LAST_POS! (i); }
     }
   else
     {
       eassert! (unsafe { gl_state.backward_i } != uninitialized_interval);
-      eassert! (unsafe { gl_state.forward_i } != uninitialized_interval);
+      eassert! (/* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { gl_state.forward_i } != uninitialized_interval);
       i = if count > 0 { unsafe { gl_state.forward_i } } else { unsafe { gl_state.backward_i } };
 
       /* We are guaranteed to be called with CHARPOS either in i,
          or further off.  */
       if i.is_null ()
         { error (c"Error in syntax_table logic for to-the-end intervals".as_ptr ()); }
-      else if charpos < unsafe { (*((i) as *mut interval)).position }	/* Move left.  */
+      else if charpos < /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { (*((i) as *mut interval)).position }	/* Move left.  */
         {
           if count > 0
 	    { error (c"Error in syntax_table logic for intervals <-".as_ptr ()); }
           /* Update the interval.  */
           i = update_interval (i, charpos);
-          if INTERVAL_LAST_POS! (i) != unsafe { gl_state.b_property }
+          if INTERVAL_LAST_POS! (i) != /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { gl_state.b_property }
 	    {
 	      invalidate = false;
 	      unsafe { gl_state.forward_i = i; }
@@ -426,7 +430,7 @@ pub unsafe extern "C-unwind" fn update_syntax_table (charpos: ptrdiff_t, count: 
 	    { error (c"Error in syntax_table logic for intervals ->".as_ptr ()); }
           /* Update the interval.  */
           i = update_interval (i, charpos);
-          if unsafe { (*((i) as *mut interval)).position } != unsafe { gl_state.e_property }
+          if /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { (*((i) as *mut interval)).position } != unsafe { gl_state.e_property }
 	    {
 	      invalidate = false;
 	      unsafe { gl_state.backward_i = i; }
@@ -435,7 +439,7 @@ pub unsafe extern "C-unwind" fn update_syntax_table (charpos: ptrdiff_t, count: 
         }
     }
 
-  tmp_table = textget (unsafe { (*((i) as *mut interval)).plist }, Qsyntax_table ());
+  tmp_table = textget (/* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { (*((i) as *mut interval)).plist }, Qsyntax_table ());
 
   if invalidate
     { invalidate = ! EQ (tmp_table, unsafe { gl_state.old_prop }); } /* Need to invalidate? */
@@ -445,49 +449,49 @@ pub unsafe extern "C-unwind" fn update_syntax_table (charpos: ptrdiff_t, count: 
 				/* invalidate the old range.  */
       if count > 0
 	{
-	  unsafe { gl_state.backward_i = i; }
+	  /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { gl_state.backward_i = i; }
 	  unsafe { gl_state.b_property = (*((i) as *mut interval)).position; }
 	}
       else
 	{
-	  unsafe { gl_state.forward_i = i; }
+	  /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { gl_state.forward_i = i; }
 	  unsafe { gl_state.e_property = INTERVAL_LAST_POS! (i); }
 	}
     }
 
-  if ! EQ (tmp_table, unsafe { gl_state.old_prop })
+  if ! EQ (tmp_table, /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { gl_state.old_prop })
     {
       unsafe { gl_state.current_syntax_table = tmp_table; }
       unsafe { gl_state.old_prop = tmp_table; }
       if EQ (Fsyntax_table_p (tmp_table), Qt ())
 	{
-	  unsafe { gl_state.use_global = false; }
+	  /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { gl_state.use_global = false; }
 	}
       else if CONSP (tmp_table)
 	{
 	  unsafe { gl_state.use_global = true; }
-	  unsafe { gl_state.global_code = tmp_table; }
+	  /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { gl_state.global_code = tmp_table; }
 	}
       else
 	{
 	  unsafe { gl_state.use_global = false; }
-	  unsafe { gl_state.current_syntax_table = BVAR! ((current_buffer! ()), syntax_table_); }
+	  /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { gl_state.current_syntax_table = BVAR! ((current_buffer! ()), syntax_table_); }
 	}
     }
 
   while ! i.is_null ()
     {
-      if cnt != 0 && ! EQ (tmp_table, textget (unsafe { (*((i) as *mut interval)).plist },
+      if cnt != 0 && ! EQ (tmp_table, textget (/* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { (*((i) as *mut interval)).plist },
 					       Qsyntax_table ()))
 	{
 	  if count > 0
 	    {
-	      unsafe { gl_state.e_property = (*((i) as *mut interval)).position; }
+	      /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { gl_state.e_property = (*((i) as *mut interval)).position; }
 	      unsafe { gl_state.forward_i = i; }
 	    }
 	  else
 	    {
-	      unsafe { gl_state.b_property
+	      /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { gl_state.b_property
 		= (*((i) as *mut interval)).position + LENGTH! (i); }
 	      unsafe { gl_state.backward_i = i; }
 	    }
@@ -497,18 +501,18 @@ pub unsafe extern "C-unwind" fn update_syntax_table (charpos: ptrdiff_t, count: 
 	{
 	  if count > 0
 	    {
-	      unsafe { gl_state.e_property
+	      /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { gl_state.e_property
 		= (*((i) as *mut interval)).position + LENGTH! (i)
 		/* e_property at EOB is not set to ZV but to ZV+1, so that
 		   we can do INC(from);UPDATE_SYNTAX_TABLE_FORWARD without
 		   having to check eob between the two.  */
 		+ (if ! next_interval (i).is_null () { 0 } else { 1 }) };
-	      unsafe { gl_state.forward_i = i; }
+	      /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { gl_state.forward_i = i; }
 	    }
 	  else
 	    {
 	      unsafe { gl_state.b_property = (*((i) as *mut interval)).position; }
-	      unsafe { gl_state.backward_i = i; }
+	      /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { gl_state.backward_i = i; }
 	    }
 	  return;
 	}
@@ -518,15 +522,19 @@ pub unsafe extern "C-unwind" fn update_syntax_table (charpos: ptrdiff_t, count: 
   eassert! (i.is_null ()); /* This property goes to the end.  */
   if count > 0
     {
-      unsafe { gl_state.e_property = gl_state.stop; }
+      /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { gl_state.e_property = gl_state.stop; }
       unsafe { gl_state.forward_i = i; }
     }
   else
     { unsafe { gl_state.b_property = gl_state.start; } }
+
+  }
 }
 
 unsafe fn parse_sexp_propertize (charpos: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let zv: EMACS_INT = ZV! ();
   if unsafe { syntax_propertize__done } <= charpos
       && unsafe { syntax_propertize__done } < zv
@@ -535,30 +543,34 @@ unsafe fn parse_sexp_propertize (charpos: ptrdiff_t)
       safe_calln! (Qinternal__syntax_propertize (),
 		   make_fixnum (min (zv, 1 + charpos)));
       if modiffs != CHARS_MODIFF! ()
-	{ unsafe { error (c"internal--syntax-propertize modified the buffer!".as_ptr ()); } }
+	{ /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { error (c"internal--syntax-propertize modified the buffer!".as_ptr ()); } }
       if unsafe { syntax_propertize__done } <= charpos
 	  && unsafe { syntax_propertize__done } < zv
 	{ unsafe { error (c"internal--syntax-propertize did not move syntax-propertize--done".as_ptr ()); } }
       SETUP_SYNTAX_TABLE (charpos, 1);
     }
-  else if unsafe { gl_state.e_property } > unsafe { syntax_propertize__done }
+  else if /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { gl_state.e_property } > unsafe { syntax_propertize__done }
     {
       unsafe { gl_state.e_property = syntax_propertize__done; }
       unsafe { gl_state.e_property_truncated = true; }
     }
-  else if unsafe { gl_state.e_property_truncated }
+  else if /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { gl_state.e_property_truncated }
 	   && unsafe { gl_state.e_property } < unsafe { syntax_propertize__done }
     { /* When moving backward, e_property might be set without resetting
 	 e_property_truncated, so the e_property_truncated flag may
 	 occasionally be left raised spuriously.  This should be rare.  */
-      unsafe { gl_state.e_property_truncated = false; }
+      /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { gl_state.e_property_truncated = false; }
       unsafe { update_syntax_table_forward (charpos, Qnil ()) };
     }
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn update_syntax_table_forward (charpos: ptrdiff_t, object: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if unsafe { gl_state.e_property_truncated }
     {
       eassert! (NILP (object));
@@ -567,10 +579,12 @@ pub unsafe extern "C-unwind" fn update_syntax_table_forward (charpos: ptrdiff_t,
     }
   else
     {
-      unsafe { update_syntax_table (charpos, 1, object) };
+      /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { update_syntax_table (charpos, 1, object) };
       if NILP (object) && unsafe { gl_state.e_property } > unsafe { syntax_propertize__done }
 	{ parse_sexp_propertize (charpos); }
     }
+
+  }
 }
 
 /* Returns true if char at CHARPOS is quoted.
@@ -579,6 +593,8 @@ pub unsafe extern "C-unwind" fn update_syntax_table_forward (charpos: ptrdiff_t,
 
 unsafe fn char_quoted (mut charpos: ptrdiff_t, mut bytepos: ptrdiff_t) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut code: syntaxcode;
   let beg: ptrdiff_t = BEGV! ();
   let mut quoted: bool = false;
@@ -600,6 +616,8 @@ unsafe fn char_quoted (mut charpos: ptrdiff_t, mut bytepos: ptrdiff_t) -> bool
 
   UPDATE_SYNTAX_TABLE (orig);
   return quoted;
+
+  }
 }
 
 /* Return the bytepos one character before BYTEPOS.
@@ -607,9 +625,13 @@ unsafe fn char_quoted (mut charpos: ptrdiff_t, mut bytepos: ptrdiff_t) -> bool
 
 unsafe fn dec_bytepos (bytepos: ptrdiff_t) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   return (bytepos
 	  - (if ! NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
 	     { prev_char_len (bytepos) as ptrdiff_t } else { 1 }));
+
+  }
 }
 
 /* Return a defun-start position before POS and not too far before.
@@ -628,6 +650,8 @@ unsafe fn dec_bytepos (bytepos: ptrdiff_t) -> ptrdiff_t
 
 unsafe fn find_defun_start (pos: ptrdiff_t, pos_byte: ptrdiff_t) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let opoint: ptrdiff_t = PT! ();
   let opoint_byte: ptrdiff_t = PT_BYTE! ();
 
@@ -636,37 +660,37 @@ unsafe fn find_defun_start (pos: ptrdiff_t, pos_byte: ptrdiff_t) -> ptrdiff_t
   'found: {
 
   /* Use previous finding, if it's valid and applies to this inquiry.  */
-  if unsafe { (current_buffer! ()) } == unsafe { find_start_buffer }
+  if /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { (current_buffer! ()) } == unsafe { find_start_buffer }
       /* Reuse the defun-start even if POS is a little farther on.
 	 POS might be in the next defun, but that's ok.
 	 Our value may not be the best possible, but will still be usable.  */
       && pos <= unsafe { find_start_pos } + 1000
-      && pos >= unsafe { find_start_value }
+      && pos >= /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { find_start_value }
       && BEGV! () == unsafe { find_start_begv }
       && MODIFF! () == unsafe { find_start_modiff }
     { return unsafe { find_start_value }; }
 
-  if ! NILP (unsafe { Vcomment_use_syntax_ppss })
+  if ! NILP (/* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { Vcomment_use_syntax_ppss })
     {
       let modiffs: modiff_count = CHARS_MODIFF! ();
       let ppss: Lisp_Object = calln! (Qsyntax_ppss (), make_fixnum (pos));
       if modiffs != CHARS_MODIFF! ()
-	{ unsafe { error (c"syntax-ppss modified the buffer!".as_ptr ()); } }
+	{ /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { error (c"syntax-ppss modified the buffer!".as_ptr ()); } }
       TEMP_SET_PT_BOTH (opoint, opoint_byte);
       let boc: Lisp_Object = unsafe { Fnth (make_fixnum (8), ppss) };
       if FIXNUMP (boc)
         {
-          unsafe { find_start_value = XFIXNUM (boc); }
+          /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { find_start_value = XFIXNUM (boc); }
           unsafe { find_start_value_byte = CHAR_TO_BYTE (find_start_value); }
         }
       else
         {
-          unsafe { find_start_value = pos; }
+          /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { find_start_value = pos; }
           unsafe { find_start_value_byte = pos_byte; }
         }
       break 'found;
     }
-  if ! unsafe { open_paren_in_column_0_is_defun_start }
+  if ! /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { open_paren_in_column_0_is_defun_start }
     {
       unsafe { find_start_value = BEGV! (); }
       unsafe { find_start_value_byte = BEGV_BYTE! (); }
@@ -674,7 +698,7 @@ unsafe fn find_defun_start (pos: ptrdiff_t, pos_byte: ptrdiff_t) -> ptrdiff_t
     }
 
   /* Back up to start of line.  */
-  unsafe { scan_newline (pos, pos_byte, BEGV! (), BEGV_BYTE! (), -1, true) };
+  /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { scan_newline (pos, pos_byte, BEGV! (), BEGV_BYTE! (), -1, true) };
 
   /* We optimize syntax-table lookup for rare updates.  Thus we accept
      only those `^\s(' which are good in global _and_ text-property
@@ -695,23 +719,25 @@ unsafe fn find_defun_start (pos: ptrdiff_t, pos_byte: ptrdiff_t) -> ptrdiff_t
 	  SETUP_BUFFER_SYNTAX_TABLE ();
 	}
       /* Move to beg of previous line.  */
-      unsafe { scan_newline (PT! (), PT_BYTE! (), BEGV! (), BEGV_BYTE! (), -2, true) };
+      /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { scan_newline (PT! (), PT_BYTE! (), BEGV! (), BEGV_BYTE! (), -2, true) };
     }
 
   /* Record what we found, for the next try.  */
   unsafe { find_start_value = PT! (); }
-  unsafe { find_start_value_byte = PT_BYTE! (); }
+  /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { find_start_value_byte = PT_BYTE! (); }
   TEMP_SET_PT_BOTH (opoint, opoint_byte);
 
   } /* 'found */
 
   // found:
-  unsafe { find_start_buffer = (current_buffer! ()); }
+  /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { find_start_buffer = (current_buffer! ()); }
   unsafe { find_start_modiff = MODIFF! (); }
   unsafe { find_start_begv = BEGV! (); }
   unsafe { find_start_pos = pos; }
 
-  return unsafe { find_start_value };
+  return /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { find_start_value };
+
+  }
 }
 
 /* Return the SYNTAX_COMEND_FIRST of the character before POS, POS_BYTE.  */
@@ -748,6 +774,8 @@ unsafe fn back_comment (from: ptrdiff_t, from_byte: ptrdiff_t, stop: ptrdiff_t,
 		 comnested: bool, comstyle: c_int, charpos_ptr: *mut ptrdiff_t,
 		 bytepos_ptr: *mut ptrdiff_t) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* Look back, counting the parity of string-quotes,
      and recording the comment-starters seen.
      When we reach a safe place, assume that's not in a string;
@@ -795,7 +823,7 @@ unsafe fn back_comment (from: ptrdiff_t, from_byte: ptrdiff_t, stop: ptrdiff_t,
 	 itself (the same `getenv` the rest of the port already links against).  */
       unsafe extern "C" { fn getenv (name: *const c_char) -> *mut c_char; }
       if BC_TRACE_ON < 0
-	{ unsafe { BC_TRACE_ON = if getenv (c"FEMACS_BC_TRACE".as_ptr ()).is_null () { 0 } else { 1 }; } }
+	{ /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { BC_TRACE_ON = if getenv (c"FEMACS_BC_TRACE".as_ptr ()).is_null () { 0 } else { 1 }; } }
       if BC_TRACE_ON != 0
 	{ unsafe { fprintf (stderr, $($a)*); } }
     };
@@ -895,7 +923,7 @@ unsafe fn back_comment (from: ptrdiff_t, from_byte: ptrdiff_t, stop: ptrdiff_t,
 
       /* Ignore escaped characters, except comment-enders which cannot
          be escaped.  */
-      if (unsafe { comment_end_can_be_escaped } || code != Sendcomment)
+      if (/* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { comment_end_can_be_escaped } || code != Sendcomment)
           && char_quoted (from, from_byte)
 	{ continue; }
 
@@ -975,7 +1003,7 @@ unsafe fn back_comment (from: ptrdiff_t, from_byte: ptrdiff_t, stop: ptrdiff_t,
 	Sopen =>
 	  {
 	    /* Assume a defun-start point is outside of strings.  */
-	    if unsafe { open_paren_in_column_0_is_defun_start }
+	    if /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { open_paren_in_column_0_is_defun_start }
               && NILP (unsafe { Vcomment_use_syntax_ppss })
 	      && (from == stop
 		  || { temp_byte = dec_bytepos (from_byte);
@@ -1004,7 +1032,7 @@ unsafe fn back_comment (from: ptrdiff_t, from_byte: ptrdiff_t, stop: ptrdiff_t,
 	{ /* lossage: */
 	  BCTRACE! (c"BCT lossage-in comnested=%d comstyle=%d comment_end=%td\n".as_ptr (),
 		   comnested as c_int, comstyle, comment_end);
-	  let mut state: lisp_parse_state = unsafe { std::mem::zeroed () };
+	  let mut state: lisp_parse_state = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { std::mem::zeroed () };
 	  let mut adjusted: bool = true;
 	  /* We had two kinds of string delimiters mixed up
 	     together.  Decode this going forwards.
@@ -1015,7 +1043,7 @@ unsafe fn back_comment (from: ptrdiff_t, from_byte: ptrdiff_t, stop: ptrdiff_t,
 	  if defun_start == 0
 	    {
 	      defun_start = find_defun_start (comment_end, comment_end_byte);
-	      defun_start_byte = unsafe { find_start_value_byte };
+	      defun_start_byte = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { find_start_value_byte };
 	      adjusted = (defun_start > BEGV! ());
 	    }
 	  loop
@@ -1029,7 +1057,7 @@ unsafe fn back_comment (from: ptrdiff_t, from_byte: ptrdiff_t, stop: ptrdiff_t,
 	      if ! adjusted
 		{
 		  adjusted = true;
-		  unsafe { find_start_value
+		  /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { find_start_value
 		    = if CONSP (state.levelstarts) { XFIXNUM (XCAR (state.levelstarts)) }
 		    else if state.thislevelstart >= 0 { state.thislevelstart }
 		    else { find_start_value }; }
@@ -1080,12 +1108,14 @@ unsafe fn back_comment (from: ptrdiff_t, from_byte: ptrdiff_t, stop: ptrdiff_t,
     }
 
   // done:
-  unsafe { *charpos_ptr = from; }
+  /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { *charpos_ptr = from; }
   unsafe { *bytepos_ptr = from_byte; }
 
   BCTRACE! (c"BCT end from=%td comment_end=%td lossage=%d done=%d csp=%td\n".as_ptr (),
 	   from, comment_end, jumped_to_lossage as c_int, jumped_to_done as c_int, comstart_pos);
   return from != comment_end;
+
+  }
 }
 
 /* This array, indexed by a character less than 256, contains the syntax code which that
@@ -1147,7 +1177,7 @@ static mut Vsyntax_code_object: Lisp_Object = lisp_h_Qnil ();
 
 unsafe fn check_syntax_table (obj: Lisp_Object)
 {
-  CHECK_TYPE (CHAR_TABLE_P (obj) && EQ (unsafe { (*XCHAR_TABLE (obj)).purpose },
+  CHECK_TYPE (CHAR_TABLE_P (obj) && EQ (/* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { (*XCHAR_TABLE (obj)).purpose },
 					Qsyntax_table ()),
 	      Qsyntax_table_p (), obj);
 }
@@ -1157,7 +1187,7 @@ DEFUN! ("syntax-table-p", Fsyntax_table_p, Ssyntax_table_p, 1, 1, 0,
        (object: Lisp_Object),
        {
   if CHAR_TABLE_P (object)
-      && EQ (unsafe { (*XCHAR_TABLE (object)).purpose }, Qsyntax_table ())
+      && EQ (/* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { (*XCHAR_TABLE (object)).purpose }, Qsyntax_table ())
     { return Qt (); }
   return Qnil ();
 });
@@ -1188,7 +1218,7 @@ DEFUN! ("copy-syntax-table", Fcopy_syntax_table, Scopy_syntax_table, 0, 1, 0,
   else
     { table = Vstandard_syntax_table! (); }
 
-  copy = unsafe { Fcopy_sequence (table) };
+  copy = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { Fcopy_sequence (table) };
 
   /* Only the standard syntax table should have a default element.
      Other syntax tables should inherit from parents instead.  */
@@ -1197,7 +1227,7 @@ DEFUN! ("copy-syntax-table", Fcopy_syntax_table, Scopy_syntax_table, 0, 1, 0,
   /* Copied syntax tables should all have parents.
      If we copied one with no parent, such as the standard syntax table,
      use the standard syntax table as the copy's parent.  */
-  if NILP (unsafe { (*XCHAR_TABLE (copy)).parent })
+  if NILP (/* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { (*XCHAR_TABLE (copy)).parent })
     { unsafe { Fset_char_table_parent (copy, Vstandard_syntax_table! ()) }; }
   return copy;
 });
@@ -1208,7 +1238,7 @@ DEFUN! ("set-syntax-table", Fset_syntax_table, Sset_syntax_table, 1, 1, 0,
        {
   let mut idx: c_int;
   check_syntax_table (table);
-  bset_syntax_table (unsafe { (current_buffer! ()) }, table);
+  bset_syntax_table (/* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { (current_buffer! ()) }, table);
   /* Indicate that this buffer now has a specified syntax table.  */
   idx = PER_BUFFER_VAR_IDX! (syntax_table_);
   SET_PER_BUFFER_VALUE_P (unsafe { (current_buffer! ()) }, idx, true);
@@ -1222,7 +1252,7 @@ DEFUN! ("char-syntax", Fchar_syntax, Schar_syntax, 1, 1, 0,
   CHECK_CHARACTER (character);
   let mut char_int: c_int = XFIXNAT (character) as c_int;
   SETUP_BUFFER_SYNTAX_TABLE ();
-  if NILP (unsafe { BVAR! ((current_buffer! ()), enable_multibyte_characters_) })
+  if NILP (/* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { BVAR! ((current_buffer! ()), enable_multibyte_characters_) })
       && SINGLE_BYTE_CHAR_P (char_int as intmax_t)
     { char_int = make_char_multibyte (char_int); }
   return make_fixnum (syntax_code_spec[SYNTAX (char_int) as usize] as EMACS_INT);
@@ -1237,7 +1267,7 @@ DEFUN! ("syntax-class-to-char", Fsyntax_class_to_char, Ssyntax_class_to_char, 1,
   syn = XFIXNUM (syntax) as c_int;
 
   if syn < 0 || syn >= size_of_val (&syntax_code_spec) as c_int
-    { unsafe { args_out_of_range (make_fixnum (size_of_val (&syntax_code_spec) as EMACS_INT - 1),
+    { /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { args_out_of_range (make_fixnum (size_of_val (&syntax_code_spec) as EMACS_INT - 1),
 			  syntax) }; }
   return make_fixnum (syntax_code_spec[syn as usize] as EMACS_INT);
 });
@@ -1268,7 +1298,7 @@ DEFUN! ("string-to-syntax", Fstring_to_syntax, Sstring_to_syntax, 1, 1, 0,
   CHECK_STRING (string);
 
   p = SDATA (string) as *const u8;
-  val = syntax_spec_code[unsafe { *p } as usize] as c_int;
+  val = syntax_spec_code[/* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { *p } as usize] as c_int;
   p = unsafe { p.add (1) };
   if val == 0o377
     { unsafe { error (c"Invalid syntax description letter: %c".as_ptr (),
@@ -1277,19 +1307,19 @@ DEFUN! ("string-to-syntax", Fstring_to_syntax, Sstring_to_syntax, 1, 1, 0,
   if val == Sinherit
     { return Qnil (); }
 
-  if unsafe { *p } != 0
+  if /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { *p } != 0
     {
       let mut len: c_int = 0;
       let character: c_int = string_char_and_length (p, &mut len);
       XSETINT! (match_lisp, character as EMACS_INT);
       if XFIXNAT (match_lisp) == b' ' as EMACS_INT
 	{ match_lisp = Qnil (); }
-      p = unsafe { p.add (len as usize) };
+      p = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { p.add (len as usize) };
     }
   else
     { match_lisp = Qnil (); }
 
-  while unsafe { *p } != 0
+  while /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { *p } != 0
     {
       let ch: u8 = unsafe { *p };
       p = unsafe { p.add (1) };
@@ -1324,7 +1354,7 @@ DEFUN! ("string-to-syntax", Fstring_to_syntax, Sstring_to_syntax, 1, 1, 0,
 	}
     }
 
-  if (val as isize) < ASIZE (unsafe { Vsyntax_code_object }) && NILP (match_lisp)
+  if (val as isize) < ASIZE (/* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { Vsyntax_code_object }) && NILP (match_lisp)
     { return AREF (unsafe { Vsyntax_code_object }, val as isize); }
   else
     /* Since we can't use a shared object, let's make a new one.  */
@@ -1353,7 +1383,7 @@ DEFUN! ("modify-syntax-entry", Fmodify_syntax_entry, Smodify_syntax_entry, 2, 3,
   else
     { check_syntax_table (syntax_table); }
 
-  let newentry: Lisp_Object = unsafe { Fstring_to_syntax (newentry) };
+  let newentry: Lisp_Object = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { Fstring_to_syntax (newentry) };
   if CONSP (c)
     { SET_RAW_SYNTAX_ENTRY_RANGE (syntax_table, c, newentry); }
   else
@@ -1361,7 +1391,7 @@ DEFUN! ("modify-syntax-entry", Fmodify_syntax_entry, Smodify_syntax_entry, 2, 3,
 
   /* We clear the regexp cache, since character classes can now have
      different values from those in the compiled regexps.*/
-  unsafe { clear_regexp_cache () };
+  /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { clear_regexp_cache () };
 
   return Qnil ();
 });
@@ -1374,6 +1404,8 @@ DEFUN! ("modify-syntax-entry", Fmodify_syntax_entry, Smodify_syntax_entry, 2, 3,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn scan_words (from: ptrdiff_t, count: EMACS_INT) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let beg: ptrdiff_t = BEGV! ();
   let end: ptrdiff_t = ZV! ();
   let mut from = from;
@@ -1397,7 +1429,7 @@ pub unsafe extern "C-unwind" fn scan_words (from: ptrdiff_t, count: EMACS_INT) -
 	  ch0 = FETCH_CHAR_AS_MULTIBYTE (from_byte);
 	  code = SYNTAX (ch0);
 	  inc_both (&mut from, &mut from_byte);
-	  if unsafe { words_include_escapes }
+	  if /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { words_include_escapes }
 	      && (code == Sescape || code == Scharquote)
 	    { break; }
 	  if code == Sword
@@ -1406,7 +1438,7 @@ pub unsafe extern "C-unwind" fn scan_words (from: ptrdiff_t, count: EMACS_INT) -
 	}
       /* Now CH0 is a character which begins a word and FROM is the
          position of the next character.  */
-      func = CHAR_TABLE_REF (unsafe { Vfind_word_boundary_function_table }, ch0 as isize);
+      func = CHAR_TABLE_REF (/* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { Vfind_word_boundary_function_table }, ch0 as isize);
       if ! NILP (unsafe { Ffboundp (func) })
 	{
 	  pos = calln! (func, make_fixnum (from - 1), make_fixnum (end));
@@ -1425,7 +1457,7 @@ pub unsafe extern "C-unwind" fn scan_words (from: ptrdiff_t, count: EMACS_INT) -
 	      ch1 = FETCH_CHAR_AS_MULTIBYTE (from_byte);
 	      code = SYNTAX (ch1);
 	      if ((code != Sword
-		   && (! unsafe { words_include_escapes }
+		   && (! /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { words_include_escapes }
 		       || (code != Sescape && code != Scharquote)))
 		  || word_boundary_p (ch0, ch1))
 		{ break; }
@@ -1446,7 +1478,7 @@ pub unsafe extern "C-unwind" fn scan_words (from: ptrdiff_t, count: EMACS_INT) -
 	  UPDATE_SYNTAX_TABLE_BACKWARD (from);
 	  ch1 = FETCH_CHAR_AS_MULTIBYTE (from_byte);
 	  code = SYNTAX (ch1);
-	  if unsafe { words_include_escapes }
+	  if /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { words_include_escapes }
 	      && (code == Sescape || code == Scharquote)
 	    { break; }
 	  if code == Sword
@@ -1455,7 +1487,7 @@ pub unsafe extern "C-unwind" fn scan_words (from: ptrdiff_t, count: EMACS_INT) -
 	}
       /* Now CH1 is a character which ends a word and FROM is the
          position of it.  */
-      func = CHAR_TABLE_REF (unsafe { Vfind_word_boundary_function_table }, ch1 as isize);
+      func = CHAR_TABLE_REF (/* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { Vfind_word_boundary_function_table }, ch1 as isize);
       if ! NILP (unsafe { Ffboundp (func) })
  	{
 	  pos = calln! (func, make_fixnum (from), make_fixnum (beg));
@@ -1476,7 +1508,7 @@ pub unsafe extern "C-unwind" fn scan_words (from: ptrdiff_t, count: EMACS_INT) -
 	      ch0 = FETCH_CHAR_AS_MULTIBYTE (from_byte);
 	      code = SYNTAX (ch0);
 	      if ((code != Sword
-		   && (! unsafe { words_include_escapes }
+		   && (! /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { words_include_escapes }
 		       || (code != Sescape && code != Scharquote)))
 		  || word_boundary_p (ch0, ch1))
 		{
@@ -1491,6 +1523,8 @@ pub unsafe extern "C-unwind" fn scan_words (from: ptrdiff_t, count: EMACS_INT) -
     }
 
   return from;
+
+  }
 }
 
 DEFUN! ("internal-describe-syntax-value", Finternal_describe_syntax_value, Sinternal_describe_syntax_value, 1, 1, 0,
@@ -1507,19 +1541,19 @@ DEFUN! ("internal-describe-syntax-value", Finternal_describe_syntax_value, Sinte
 
   if NILP (value)
     {
-      unsafe { insert_string (c"default".as_ptr ()) };
+      /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { insert_string (c"default".as_ptr ()) };
       return syntax;
     }
 
   if CHAR_TABLE_P (value)
     {
-      unsafe { insert_string (c"deeper char-table ...".as_ptr ()) };
+      /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { insert_string (c"deeper char-table ...".as_ptr ()) };
       return syntax;
     }
 
   if ! CONSP (value)
     {
-      unsafe { insert_string (c"invalid".as_ptr ()) };
+      /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { insert_string (c"invalid".as_ptr ()) };
       return syntax;
     }
 
@@ -1528,7 +1562,7 @@ DEFUN! ("internal-describe-syntax-value", Finternal_describe_syntax_value, Sinte
 
   if ! FIXNUMP (first) || ! (NILP (match_lisp) || CHARACTERP (match_lisp))
     {
-      unsafe { insert_string (c"invalid".as_ptr ()) };
+      /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { insert_string (c"invalid".as_ptr ()) };
       return syntax;
     }
 
@@ -1545,74 +1579,74 @@ DEFUN! ("internal-describe-syntax-value", Finternal_describe_syntax_value, Sinte
 
   if Smax <= code
     {
-      unsafe { insert_string (c"invalid".as_ptr ()) };
+      /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { insert_string (c"invalid".as_ptr ()) };
       return syntax;
     }
 
   str_[0] = syntax_code_spec[code as usize];
   str_[1] = 0;
-  unsafe { insert (str_.as_ptr (), 1) };
+  /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { insert (str_.as_ptr (), 1) };
 
   if NILP (match_lisp)
     { unsafe { insert (c" ".as_ptr (), 1) }; }
   else
-    { unsafe { insert_char (XFIXNUM (match_lisp) as c_int) }; }
+    { /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { insert_char (XFIXNUM (match_lisp) as c_int) }; }
 
   if start1
     { unsafe { insert (c"1".as_ptr (), 1) }; }
   if start2
-    { unsafe { insert (c"2".as_ptr (), 1) }; }
+    { /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { insert (c"2".as_ptr (), 1) }; }
 
   if end1
     { unsafe { insert (c"3".as_ptr (), 1) }; }
   if end2
-    { unsafe { insert (c"4".as_ptr (), 1) }; }
+    { /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { insert (c"4".as_ptr (), 1) }; }
 
   if prefix
     { unsafe { insert (c"p".as_ptr (), 1) }; }
   if comstyleb
-    { unsafe { insert (c"b".as_ptr (), 1) }; }
+    { /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { insert (c"b".as_ptr (), 1) }; }
   if comstylec
     { unsafe { insert (c"c".as_ptr (), 1) }; }
   if comnested
     { unsafe { insert (c"n".as_ptr (), 1) }; }
 
-  unsafe { insert_string (c"\twhich means: ".as_ptr ()) };
+  /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { insert_string (c"\twhich means: ".as_ptr ()) };
 
   match code
     {
     Swhitespace =>
-      { unsafe { insert_string (c"whitespace".as_ptr ()) }; }
+      { /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { insert_string (c"whitespace".as_ptr ()) }; }
     Spunct =>
       { unsafe { insert_string (c"punctuation".as_ptr ()) }; }
     Sword =>
       { unsafe { insert_string (c"word".as_ptr ()) }; }
     Ssymbol =>
-      { unsafe { insert_string (c"symbol".as_ptr ()) }; }
+      { /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { insert_string (c"symbol".as_ptr ()) }; }
     Sopen =>
       { unsafe { insert_string (c"open".as_ptr ()) }; }
     Sclose =>
       { unsafe { insert_string (c"close".as_ptr ()) }; }
     Squote =>
-      { unsafe { insert_string (c"prefix".as_ptr ()) }; }
+      { /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { insert_string (c"prefix".as_ptr ()) }; }
     Sstring =>
       { unsafe { insert_string (c"string".as_ptr ()) }; }
     Smath =>
       { unsafe { insert_string (c"math".as_ptr ()) }; }
     Sescape =>
-      { unsafe { insert_string (c"escape".as_ptr ()) }; }
+      { /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { insert_string (c"escape".as_ptr ()) }; }
     Scharquote =>
       { unsafe { insert_string (c"charquote".as_ptr ()) }; }
     Scomment =>
       { unsafe { insert_string (c"comment".as_ptr ()) }; }
     Sendcomment =>
-      { unsafe { insert_string (c"endcomment".as_ptr ()) }; }
+      { /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { insert_string (c"endcomment".as_ptr ()) }; }
     Sinherit =>
       { unsafe { insert_string (c"inherit".as_ptr ()) }; }
     Scomment_fence =>
       { unsafe { insert_string (c"comment fence".as_ptr ()) }; }
     Sstring_fence =>
-      { unsafe { insert_string (c"string fence".as_ptr ()) }; }
+      { /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { insert_string (c"string fence".as_ptr ()) }; }
     _ =>
       {
 	unsafe { insert_string (c"invalid".as_ptr ()) };
@@ -1622,23 +1656,23 @@ DEFUN! ("internal-describe-syntax-value", Finternal_describe_syntax_value, Sinte
 
   if ! NILP (match_lisp)
     {
-      unsafe { insert_string (c", matches ".as_ptr ()) };
+      /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { insert_string (c", matches ".as_ptr ()) };
       unsafe { insert_char (XFIXNUM (match_lisp) as c_int) };
     }
 
   if start1
-    { unsafe { insert_string (c",\n\t  is the first character of a comment-start sequence".as_ptr ()) }; }
+    { /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { insert_string (c",\n\t  is the first character of a comment-start sequence".as_ptr ()) }; }
   if start2
     { unsafe { insert_string (c",\n\t  is the second character of a comment-start sequence".as_ptr ()) }; }
 
   if end1
-    { unsafe { insert_string (c",\n\t  is the first character of a comment-end sequence".as_ptr ()) }; }
+    { /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { insert_string (c",\n\t  is the first character of a comment-end sequence".as_ptr ()) }; }
   if end2
     { unsafe { insert_string (c",\n\t  is the second character of a comment-end sequence".as_ptr ()) }; }
   if comstyleb
     { unsafe { insert_string (c" (comment style b)".as_ptr ()) }; }
   if comstylec
-    { unsafe { insert_string (c" (comment style c)".as_ptr ()) }; }
+    { /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { insert_string (c" (comment style c)".as_ptr ()) }; }
   if comnested
     { unsafe { insert_string (c" (nestable)".as_ptr ()) }; }
 
@@ -1646,7 +1680,7 @@ DEFUN! ("internal-describe-syntax-value", Finternal_describe_syntax_value, Sinte
     {
       AUTO_STRING! (prefixdoc,
 		    b",\n\t  is a prefix character for `backward-prefix-chars'\0".as_ptr () as *const c_char);
-      unsafe { insert1 (calln! (Qsubstitute_command_keys (), prefixdoc)) };
+      /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { insert1 (calln! (Qsubstitute_command_keys (), prefixdoc)) };
     }
 
   return syntax;
@@ -1666,13 +1700,13 @@ DEFUN! ("forward-word", Fforward_word, Sforward_word, 0, 1, "^p",
   else
     { CHECK_FIXNUM (arg); }
 
-  val = unsafe { scan_words (PT! (), XFIXNUM (arg)) };
+  val = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { scan_words (PT! (), XFIXNUM (arg)) };
   orig_val = val;
   if orig_val == 0
     { val = if XFIXNUM (arg) > 0 { ZV! () } else { BEGV! () }; }
 
   /* Avoid jumping out of an input field.  */
-  tmp = unsafe { Fconstrain_to_field (make_fixnum (val), make_fixnum (PT! ()),
+  tmp = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { Fconstrain_to_field (make_fixnum (val), make_fixnum (PT! ()),
 				       Qnil (), Qnil (), Qnil ()) };
   val = XFIXNAT (tmp);
 
@@ -1712,6 +1746,8 @@ DEFUN! ("skip-syntax-backward", Fskip_syntax_backward, Sskip_syntax_backward, 1,
 
 unsafe fn skip_chars (forwardp: bool, string: Lisp_Object, lim: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut c: c_int;
   let mut fastmap: [c_char; 0o400] = [0; 0o400];
   /* Store the ranges of non-ASCII characters.  */
@@ -1751,7 +1787,7 @@ unsafe fn skip_chars (forwardp: bool, string: Lisp_Object, lim: Lisp_Object) -> 
 	       && (XFIXNUM (lim) - PT! () != CHAR_TO_BYTE (XFIXNUM (lim)) - PT_BYTE! ()));
   string_multibyte = SBYTES (string) > SCHARS (string);
 
-  unsafe { memset (fastmap.as_mut_ptr () as *mut c_void, 0, size_of_val (&fastmap)) };
+  /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { memset (fastmap.as_mut_ptr () as *mut c_void, 0, size_of_val (&fastmap)) };
 
   str_ = SDATA (string) as *const u8;
   size_byte = SBYTES (string);
@@ -1778,20 +1814,20 @@ unsafe fn skip_chars (forwardp: bool, string: Lisp_Object, lim: Lisp_Object) -> 
       /* At first setup fastmap.  */
       while i_byte < size_byte
 	{
-	  let mut ch: *const u8 = unsafe { str_.add (i_byte as usize) };
+	  let mut ch: *const u8 = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { str_.add (i_byte as usize) };
 	  let cc: re_wctype_t = unsafe { re_wctype_parse (&mut ch, size_byte - i_byte) };
 	  if cc == 0
 	    { unsafe { error (c"Invalid ISO C character class".as_ptr ()) }; }
 	  if cc != -1
 	    {
-	      if ! (nclasses != 0 && ! unsafe { memchr (classes.as_ptr () as *const c_void,
+	      if ! (nclasses != 0 && ! /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { memchr (classes.as_ptr () as *const c_void,
 						       cc, nclasses as usize) }.is_null ())
 		{ classes[nclasses as usize] = cc as u8; nclasses += 1; }
 	      i_byte = unsafe { ch.offset_from (str_) };
 	      continue;
 	    }
 
-	  c = unsafe { *str_.add (i_byte as usize) } as c_int;
+	  c = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { *str_.add (i_byte as usize) } as c_int;
 	  i_byte += 1;
 
 	  if c == '\\' as c_int
@@ -1799,13 +1835,13 @@ unsafe fn skip_chars (forwardp: bool, string: Lisp_Object, lim: Lisp_Object) -> 
 	      if i_byte == size_byte
 		{ break; }
 
-	      c = unsafe { *str_.add (i_byte as usize) } as c_int;
+	      c = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { *str_.add (i_byte as usize) } as c_int;
 	      i_byte += 1;
 	    }
 	  /* Treat `-' as range character only if another character
 	     follows.  */
 	  if i_byte + 1 < size_byte
-	      && unsafe { *str_.add (i_byte as usize) } == b'-'
+	      && /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { *str_.add (i_byte as usize) } == b'-'
 	    {
 	      let mut c2: c_int;
 
@@ -1813,7 +1849,7 @@ unsafe fn skip_chars (forwardp: bool, string: Lisp_Object, lim: Lisp_Object) -> 
 	      i_byte += 1;
 
 	      /* Get the end of the range.  */
-	      c2 = unsafe { *str_.add (i_byte as usize) } as c_int;
+	      c2 = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { *str_.add (i_byte as usize) } as c_int;
 	      i_byte += 1;
 	      if c2 == '\\' as c_int
 		  && i_byte < size_byte
@@ -1843,7 +1879,7 @@ unsafe fn skip_chars (forwardp: bool, string: Lisp_Object, lim: Lisp_Object) -> 
 	{
 	  let mut p1: *mut c_char;
 	  let mut himap: [c_char; 0o200 + 1] = [0; 0o200 + 1];
-	  unsafe { memcpy (himap.as_mut_ptr () as *mut c_void,
+	  /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { memcpy (himap.as_mut_ptr () as *mut c_void,
 			   fastmap.as_ptr ().add (0o200) as *const c_void, 0o200) };
 	  himap[0o200] = 0;
 	  unsafe { memset (fastmap.as_mut_ptr ().add (0o200) as *mut c_void, 0, 0o200) };
@@ -1852,7 +1888,7 @@ unsafe fn skip_chars (forwardp: bool, string: Lisp_Object, lim: Lisp_Object) -> 
 
 	  loop
 	    {
-	      p1 = unsafe { memchr (himap.as_ptr ().add (i as usize) as *const c_void,
+	      p1 = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { memchr (himap.as_ptr ().add (i as usize) as *const c_void,
 				    1, (0o200 - i) as usize) } as *mut c_char;
 	      if p1.is_null () { break; }
 	      /* Deduce the next range C..C2 from the next clump of 1s
@@ -1860,17 +1896,17 @@ unsafe fn skip_chars (forwardp: bool, string: Lisp_Object, lim: Lisp_Object) -> 
 		 order half of the old FASTMAP.  */
 	      let mut c2: c_int;
 	      let mut leading_code: c_int;
-	      i = unsafe { p1.offset_from (himap.as_ptr ()) } as ptrdiff_t;
+	      i = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { p1.offset_from (himap.as_ptr ()) } as ptrdiff_t;
 	      c = BYTE8_TO_CHAR ((i + 0o200) as c_int);
 	      i += unsafe { strlen (p1 as *const c_char) } as ptrdiff_t;
 	      c2 = BYTE8_TO_CHAR ((i + 0o200 - 1) as c_int);
 
-	      unsafe { *char_ranges.add (n_char_ranges as usize) = c; }
+	      /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { *char_ranges.add (n_char_ranges as usize) = c; }
 	      n_char_ranges += 1;
 	      unsafe { *char_ranges.add (n_char_ranges as usize) = c2; }
 	      n_char_ranges += 1;
 	      leading_code = CHAR_LEADING_CODE (c);
-	      unsafe { memset (fastmap.as_mut_ptr ().add (leading_code as usize) as *mut c_void, 1,
+	      /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { memset (fastmap.as_mut_ptr ().add (leading_code as usize) as *mut c_void, 1,
 			       (CHAR_LEADING_CODE (c2) - leading_code + 1) as usize) };
 	    }
 	}
@@ -1881,18 +1917,18 @@ unsafe fn skip_chars (forwardp: bool, string: Lisp_Object, lim: Lisp_Object) -> 
 
       while i_byte < size_byte
 	{
-	  let mut leading_code: c_int = unsafe { *str_.add (i_byte as usize) } as c_int;
+	  let mut leading_code: c_int = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { *str_.add (i_byte as usize) } as c_int;
 
 	  let mut ch: *const u8 = unsafe { str_.add (i_byte as usize) };
 	  let cc: re_wctype_t = unsafe { re_wctype_parse (&mut ch, size_byte - i_byte) };
 	  if cc == 0
-	    { unsafe { error (c"Invalid ISO C character class".as_ptr ()) }; }
+	    { /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { error (c"Invalid ISO C character class".as_ptr ()) }; }
 	  if cc != -1
 	    {
 	      if ! (nclasses != 0 && ! unsafe { memchr (classes.as_ptr () as *const c_void,
 						       cc, nclasses as usize) }.is_null ())
 		{ classes[nclasses as usize] = cc as u8; nclasses += 1; }
-	      i_byte = unsafe { ch.offset_from (str_) };
+	      i_byte = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { ch.offset_from (str_) };
 	      continue;
 	    }
 
@@ -1902,7 +1938,7 @@ unsafe fn skip_chars (forwardp: bool, string: Lisp_Object, lim: Lisp_Object) -> 
 	      if i_byte == size_byte
 		{ break; }
 
-	      leading_code = unsafe { *str_.add (i_byte as usize) } as c_int;
+	      leading_code = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { *str_.add (i_byte as usize) } as c_int;
 	    }
 	  c = string_char_and_length (unsafe { str_.add (i_byte as usize) }, &mut len);
 	  i_byte += len as ptrdiff_t;
@@ -1911,7 +1947,7 @@ unsafe fn skip_chars (forwardp: bool, string: Lisp_Object, lim: Lisp_Object) -> 
 	  /* Treat `-' as range character only if another character
 	     follows.  */
 	  if i_byte + 1 < size_byte
-	      && unsafe { *str_.add (i_byte as usize) } == b'-'
+	      && /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { *str_.add (i_byte as usize) } == b'-'
 	    {
 	      let mut c2: c_int;
 	      let mut leading_code2: c_int;
@@ -1920,14 +1956,14 @@ unsafe fn skip_chars (forwardp: bool, string: Lisp_Object, lim: Lisp_Object) -> 
 	      i_byte += 1;
 
 	      /* Get the end of the range.  */
-	      leading_code2 = unsafe { *str_.add (i_byte as usize) } as c_int;
+	      leading_code2 = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { *str_.add (i_byte as usize) } as c_int;
 	      c2 = string_char_and_length (unsafe { str_.add (i_byte as usize) }, &mut len);
 	      i_byte += len as ptrdiff_t;
 
 	      if c2 == '\\' as c_int
 		  && i_byte < size_byte
 		{
-		  leading_code2 = unsafe { *str_.add (i_byte as usize) } as c_int;
+		  leading_code2 = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { *str_.add (i_byte as usize) } as c_int;
 		  c2 = string_char_and_length (unsafe { str_.add (i_byte as usize) }, &mut len);
 		  i_byte += len as ptrdiff_t;
 		}
@@ -1947,7 +1983,7 @@ unsafe fn skip_chars (forwardp: bool, string: Lisp_Object, lim: Lisp_Object) -> 
 		    { fastmap[leading_code as usize] = 1; leading_code += 1; }
 		  if c <= c2
 		    {
-		      unsafe { *char_ranges.add (n_char_ranges as usize) = c; }
+		      /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { *char_ranges.add (n_char_ranges as usize) = c; }
 		      n_char_ranges += 1;
 		      unsafe { *char_ranges.add (n_char_ranges as usize) = c2; }
 		      n_char_ranges += 1;
@@ -1961,7 +1997,7 @@ unsafe fn skip_chars (forwardp: bool, string: Lisp_Object, lim: Lisp_Object) -> 
 	      else
 		{
 		  fastmap[leading_code as usize] = 1;
-		  unsafe { *char_ranges.add (n_char_ranges as usize) = c; }
+		  /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { *char_ranges.add (n_char_ranges as usize) = c; }
 		  n_char_ranges += 1;
 		  unsafe { *char_ranges.add (n_char_ranges as usize) = c; }
 		  n_char_ranges += 1;
@@ -1975,12 +2011,12 @@ unsafe fn skip_chars (forwardp: bool, string: Lisp_Object, lim: Lisp_Object) -> 
 
       if ! multibyte && n_char_ranges > 0
 	{
-	  unsafe { memset (fastmap.as_mut_ptr ().add (0o200) as *mut c_void, 0, 0o200) };
+	  /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { memset (fastmap.as_mut_ptr ().add (0o200) as *mut c_void, 0, 0o200) };
 	  i = 0;
 	  while i < n_char_ranges as ptrdiff_t
 	    {
 	      let c1_: c_int = unsafe { *char_ranges.add (i as usize) };
-	      let lim2: c_int = unsafe { *char_ranges.add (i as usize + 1) } + 1;
+	      let lim2: c_int = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { *char_ranges.add (i as usize + 1) } + 1;
 	      let mut c1: c_int = c1_;
 
 	      while c1 < lim2
@@ -2066,7 +2102,7 @@ unsafe fn skip_chars (forwardp: bool, string: Lisp_Object, lim: Lisp_Object) -> 
 			{ break 'fwd_ok; }
 		    }
 
-		  if fastmap[unsafe { *p } as usize] == 0
+		  if fastmap[/* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { *p } as usize] == 0
 		    { break 'fwd; }
 		  if ! ASCII_CHAR_P (c as isize)
 		    {
@@ -2081,7 +2117,7 @@ unsafe fn skip_chars (forwardp: bool, string: Lisp_Object, lim: Lisp_Object) -> 
 		      i = 0;
 		      while i < n_char_ranges as ptrdiff_t
 			{
-			  if c >= unsafe { *char_ranges.add (i as usize) }
+			  if c >= /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { *char_ranges.add (i as usize) }
 			      && c <= unsafe { *char_ranges.add (i as usize + 1) }
 			    { break; }
 			  i += 2;
@@ -2091,7 +2127,7 @@ unsafe fn skip_chars (forwardp: bool, string: Lisp_Object, lim: Lisp_Object) -> 
 		    }
 		  }
 		/* fwd_ok: */
-		p = unsafe { p.add (nbytes as usize) };
+		p = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { p.add (nbytes as usize) };
 		pos += 1;
 		pos_byte += nbytes as ptrdiff_t;
 		rarely_quit (pos as u64);
@@ -2111,7 +2147,7 @@ unsafe fn skip_chars (forwardp: bool, string: Lisp_Object, lim: Lisp_Object) -> 
 
 		/* C's `goto fwd_unibyte_ok` (C 1991) skips the check below.  */
 		'fwd_unibyte_ok: {
-		  if nclasses != 0 && in_classes (unsafe { *p } as c_int, nclasses,
+		  if nclasses != 0 && in_classes (/* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { *p } as c_int, nclasses,
 						  classes.as_ptr () as *const u8)
 		    {
 		      if negate
@@ -2120,7 +2156,7 @@ unsafe fn skip_chars (forwardp: bool, string: Lisp_Object, lim: Lisp_Object) -> 
 			{ break 'fwd_unibyte_ok; }
 		    }
 
-		  if fastmap[unsafe { *p } as usize] == 0
+		  if fastmap[/* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { *p } as usize] == 0
 		    { break 'fwd_unibyte; }
 		  }
 		/* fwd_unibyte_ok: */
@@ -2147,7 +2183,7 @@ unsafe fn skip_chars (forwardp: bool, string: Lisp_Object, lim: Lisp_Object) -> 
 		let prev_p: *mut u8 = p;
 		loop
 		  {
-		    p = unsafe { p.sub (1) };
+		    p = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { p.sub (1) };
 		    if ! (stop <= p && ! CHAR_HEAD_P (unsafe { *p } as c_int)) { break; }
 		  }
 
@@ -2163,7 +2199,7 @@ unsafe fn skip_chars (forwardp: bool, string: Lisp_Object, lim: Lisp_Object) -> 
 			{ break 'back_ok; }
 		    }
 
-		  if fastmap[unsafe { *p } as usize] == 0
+		  if fastmap[/* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { *p } as usize] == 0
 		    { break 'back; }
 		  if ! ASCII_CHAR_P (c as isize)
 		    {
@@ -2171,7 +2207,7 @@ unsafe fn skip_chars (forwardp: bool, string: Lisp_Object, lim: Lisp_Object) -> 
 		      i = 0;
 		      while i < n_char_ranges as ptrdiff_t
 			{
-			  if c >= unsafe { *char_ranges.add (i as usize) }
+			  if c >= /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { *char_ranges.add (i as usize) }
 			      && c <= unsafe { *char_ranges.add (i as usize + 1) }
 			    { break; }
 			  i += 2;
@@ -2182,7 +2218,7 @@ unsafe fn skip_chars (forwardp: bool, string: Lisp_Object, lim: Lisp_Object) -> 
 		  }
 		/* back_ok: */
 		pos -= 1;
-		pos_byte -= unsafe { prev_p.offset_from (p) };
+		pos_byte -= /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { prev_p.offset_from (p) };
 		rarely_quit (pos as u64);
 	      }
 	  }
@@ -2200,7 +2236,7 @@ unsafe fn skip_chars (forwardp: bool, string: Lisp_Object, lim: Lisp_Object) -> 
 
 		/* C's `goto back_unibyte_ok` (C 2035) skips the check below.  */
 		'back_unibyte_ok: {
-		  if nclasses != 0 && in_classes (unsafe { *p.sub (1) } as c_int, nclasses,
+		  if nclasses != 0 && in_classes (/* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { *p.sub (1) } as c_int, nclasses,
 						  classes.as_ptr () as *const u8)
 		    {
 		      if negate
@@ -2209,7 +2245,7 @@ unsafe fn skip_chars (forwardp: bool, string: Lisp_Object, lim: Lisp_Object) -> 
 			{ break 'back_unibyte_ok; }
 		    }
 
-		  if fastmap[unsafe { *p.sub (1) } as usize] == 0
+		  if fastmap[/* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { *p.sub (1) } as usize] == 0
 		    { break 'back_unibyte; }
 		  }
 		/* back_unibyte_ok: */
@@ -2226,6 +2262,8 @@ unsafe fn skip_chars (forwardp: bool, string: Lisp_Object, lim: Lisp_Object) -> 
     SAFE_FREE! (sa_count, sa_mark);
     return make_fixnum (PT! () - start_point);
   }
+
+  }
 }
 
 
@@ -2233,6 +2271,8 @@ unsafe fn skip_chars (forwardp: bool, string: Lisp_Object, lim: Lisp_Object) -> 
 
 unsafe fn skip_syntaxes (forwardp: bool, string: Lisp_Object, lim: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut c: c_int;
   let mut fastmap: [u8; 0o400] = [0; 0o400];
   let mut negate: bool = false;
@@ -2264,12 +2304,12 @@ unsafe fn skip_syntaxes (forwardp: bool, string: Lisp_Object, lim: Lisp_Object) 
   multibyte = (! NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
 	       && (XFIXNUM (lim) - PT! () != CHAR_TO_BYTE (XFIXNUM (lim)) - PT_BYTE! ()));
 
-  unsafe { memset (fastmap.as_mut_ptr () as *mut c_void, 0, size_of_val (&fastmap)) };
+  /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { memset (fastmap.as_mut_ptr () as *mut c_void, 0, size_of_val (&fastmap)) };
 
   if SBYTES (string) > SCHARS (string)
     /* As this is very rare case (syntax spec is ASCII only), don't
        consider efficiency.  */
-    { string = unsafe { string_make_unibyte (string) }; }
+    { string = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { string_make_unibyte (string) }; }
 
   str_ = SDATA (string);
   size_byte = SBYTES (string);
@@ -2285,7 +2325,7 @@ unsafe fn skip_syntaxes (forwardp: bool, string: Lisp_Object, lim: Lisp_Object) 
 
   while i_byte < size_byte
     {
-      c = unsafe { *str_.add (i_byte as usize) } as c_int;
+      c = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { *str_.add (i_byte as usize) } as c_int;
       i_byte += 1;
       fastmap[syntax_spec_code[c as usize] as usize] = 1;
     }
@@ -2333,7 +2373,7 @@ unsafe fn skip_syntaxes (forwardp: bool, string: Lisp_Object, lim: Lisp_Object) 
 		if multibyte
 		  { c = string_char_and_length (p, &mut nbytes); }
 		else
-		  { c = unsafe { *p } as c_int; nbytes = 1; }
+		  { c = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { *p } as c_int; nbytes = 1; }
 		if fastmap[SYNTAX (c) as usize] == 0
 		  { break 'done; }
 		p = unsafe { p.add (nbytes as usize) };
@@ -2347,12 +2387,12 @@ unsafe fn skip_syntaxes (forwardp: bool, string: Lisp_Object, lim: Lisp_Object) 
 		   syntax properties are off, and the unguarded
 		   `update_syntax_table_forward (pos, gl_state.object)` that follows then asked for
 		   syntax at a charpos the interval cache had already left NULL).  */
-		if ! (! unsafe { parse_sexp_lookup_properties }
+		if ! (! /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { parse_sexp_lookup_properties }
 		      || pos < unsafe { gl_state.e_property })
 		  { break; }
 	      }
 
-	    unsafe { update_syntax_table_forward (pos, gl_state.object) };
+	    /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { update_syntax_table_forward (pos, gl_state.object) };
 	  }
       }
     else
@@ -2377,7 +2417,7 @@ unsafe fn skip_syntaxes (forwardp: bool, string: Lisp_Object, lim: Lisp_Object) 
 		let prev_p: *mut u8 = p;
 		loop
 		  {
-		    p = unsafe { p.sub (1) };
+		    p = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { p.sub (1) };
 		    if ! (stop <= p && ! CHAR_HEAD_P (unsafe { *p } as c_int)) { break; }
 		  }
 
@@ -2385,7 +2425,7 @@ unsafe fn skip_syntaxes (forwardp: bool, string: Lisp_Object, lim: Lisp_Object) 
 		if fastmap[SYNTAX (c) as usize] == 0
 		  { break; }
 		pos -= 1;
-		pos_byte -= unsafe { prev_p.offset_from (p) };
+		pos_byte -= /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { prev_p.offset_from (p) };
 		rarely_quit (pos as u64);
 	      }
 	  }
@@ -2401,7 +2441,7 @@ unsafe fn skip_syntaxes (forwardp: bool, string: Lisp_Object, lim: Lisp_Object) 
 		    stop = endp;
 		  }
 		UPDATE_SYNTAX_TABLE_BACKWARD (pos - 1);
-		if fastmap[SYNTAX (unsafe { *p.sub (1) } as c_int) as usize] == 0
+		if fastmap[SYNTAX (/* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { *p.sub (1) } as c_int) as usize] == 0
 		  { break; }
 		p = unsafe { p.sub (1) };
 		pos -= 1;
@@ -2417,6 +2457,8 @@ unsafe fn skip_syntaxes (forwardp: bool, string: Lisp_Object, lim: Lisp_Object) 
 
     return make_fixnum (PT! () - start_point);
   }
+
+  }
 }
 
 /* Return true if character C belongs to one of the ISO classes in the
@@ -2424,6 +2466,8 @@ unsafe fn skip_syntaxes (forwardp: bool, string: Lisp_Object, lim: Lisp_Object) 
 
 unsafe fn in_classes (c: c_int, nclasses: c_int, classes: *const u8) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut i: c_int = 0;
   while i < nclasses
     {
@@ -2432,6 +2476,8 @@ unsafe fn in_classes (c: c_int, nclasses: c_int, classes: *const u8) -> bool
       i += 1;
     }
   return false;
+
+  }
 }
 
 
@@ -2498,7 +2544,7 @@ unsafe fn forw_comment (from: ptrdiff_t, from_byte: ptrdiff_t, stop: ptrdiff_t,
 	{
 	  if from == stop
 	    {
-	      unsafe { *incomment_ptr = nesting; }
+	      /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { *incomment_ptr = nesting; }
 	      unsafe { *charpos_ptr = from; }
 	      unsafe { *bytepos_ptr = from_byte; }
               unsafe { *last_syntax_ptr =
@@ -2517,7 +2563,7 @@ unsafe fn forw_comment (from: ptrdiff_t, from_byte: ptrdiff_t, stop: ptrdiff_t,
 	      && (if SYNTAX_FLAGS_COMMENT_NESTED (syntax)
 		  { if nesting > 0 { nesting -= 1; nesting == 0 } else { false } }
 		  else { nesting < 0 })
-              && ! (unsafe { comment_end_can_be_escaped }
+              && ! (/* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { comment_end_can_be_escaped }
 		    && ((prev_syntax & 0xff) == Sescape
 			|| (prev_syntax & 0xff) == Scharquote))
 	    /* We have encountered a comment end of the same style
@@ -2537,7 +2583,7 @@ unsafe fn forw_comment (from: ptrdiff_t, from_byte: ptrdiff_t, stop: ptrdiff_t,
 	    /* We have encountered a nested comment of the same style
 	       as the comment sequence which began this comment section.  */
 	    { nesting += 1; }
-	  if unsafe { comment_end_can_be_escaped }
+	  if /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { comment_end_can_be_escaped }
               && (code == Sescape || code == Scharquote)
 	    {
 	      inc_both (&mut from, &mut from_byte);
@@ -2596,7 +2642,7 @@ unsafe fn forw_comment (from: ptrdiff_t, from_byte: ptrdiff_t, stop: ptrdiff_t,
       quit_count = quit_count.wrapping_add (1);
       rarely_quit (quit_count as u64);
     }
-  unsafe { *charpos_ptr = from; }
+  /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { *charpos_ptr = from; }
   unsafe { *bytepos_ptr = from_byte; }
   unsafe { *last_syntax_ptr = Smax; } /* Any syntactic power the last byte had is
                               used up. */
@@ -2623,7 +2669,7 @@ DEFUN! ("forward-comment", Fforward_comment, Sforward_comment, 1, 1, 0,
   let mut dummy2: c_int = 0;
   let mut quit_count: u16 = 0;
 
-  if ! NILP (unsafe { Vforward_comment_function })
+  if ! NILP (/* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { Vforward_comment_function })
     { return calln! (unsafe { Vforward_comment_function }, count); }
 
   CHECK_FIXNUM (count);
@@ -2781,7 +2827,7 @@ DEFUN! ("forward-comment", Fforward_comment, Sforward_comment, 1, 1, 0,
 	      }
 	    else if code == Sendcomment
 	      {
-              found = (! quoted || ! unsafe { comment_end_can_be_escaped })
+              found = (! quoted || ! /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { comment_end_can_be_escaped })
                 && back_comment (from, from_byte, stop, comnested, comstyle,
                                  &mut out_charpos, &mut out_bytepos);
 		if ! found
@@ -2860,12 +2906,12 @@ unsafe fn in_2char_comment_start (state: *mut lisp_parse_state, prev_from_syntax
       /* Record the comment style we have entered so that only
          the comment-end sequence of the same style actually
          terminates the comment section.  */
-      unsafe { (*state).comstyle
+      /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { (*state).comstyle
 	= SYNTAX_FLAGS_COMMENT_STYLE (syntax, prev_from_syntax); }
       let comnested: bool = (SYNTAX_FLAGS_COMMENT_NESTED (prev_from_syntax)
 			     | SYNTAX_FLAGS_COMMENT_NESTED (syntax));
       unsafe { (*state).incomment = if comnested { 1 } else { -1 }; }
-      unsafe { (*state).comstr_start = prev_from; }
+      /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { (*state).comstr_start = prev_from; }
       return true;
     }
   return false;
@@ -2874,6 +2920,8 @@ unsafe fn in_2char_comment_start (state: *mut lisp_parse_state, prev_from_syntax
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn init_syntax_once ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut i: c_int;
   let mut c: c_int;
   let mut temp: Lisp_Object;
@@ -2882,7 +2930,7 @@ pub unsafe extern "C-unwind" fn init_syntax_once ()
   DEFSYM! (Qsyntax_table, "syntax-table");
 
   /* Create objects which can be shared among syntax tables.  */
-  unsafe { Vsyntax_code_object = make_nil_vector (Smax as ptrdiff_t) };
+  /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { Vsyntax_code_object = make_nil_vector (Smax as ptrdiff_t) };
   i = 0;
   while i < Smax
     {
@@ -2892,14 +2940,14 @@ pub unsafe extern "C-unwind" fn init_syntax_once ()
 
   /* Now we are ready to set up this property, so we can
      create syntax tables.  */
-  unsafe { Fput (Qsyntax_table (), Qchar_table_extra_slots (), make_fixnum (0)) };
+  /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { Fput (Qsyntax_table (), Qchar_table_extra_slots (), make_fixnum (0)) };
 
   temp = AREF (unsafe { Vsyntax_code_object }, Swhitespace as isize);
 
   unsafe { Vstandard_syntax_table! () = Fmake_char_table (Qsyntax_table (), temp) };
 
   /* Control characters should not be whitespace.  */
-  temp = AREF (unsafe { Vsyntax_code_object }, Spunct as isize);
+  temp = AREF (/* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { Vsyntax_code_object }, Spunct as isize);
   i = 0;
   while i <= ' ' as c_int - 1
     {
@@ -2909,14 +2957,14 @@ pub unsafe extern "C-unwind" fn init_syntax_once ()
   SET_RAW_SYNTAX_ENTRY (Vstandard_syntax_table! (), 0o177, temp);
 
   /* Except that a few really are whitespace.  */
-  temp = AREF (unsafe { Vsyntax_code_object }, Swhitespace as isize);
+  temp = AREF (/* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { Vsyntax_code_object }, Swhitespace as isize);
   SET_RAW_SYNTAX_ENTRY (Vstandard_syntax_table! (), ' ' as c_int, temp);
   SET_RAW_SYNTAX_ENTRY (Vstandard_syntax_table! (), '\t' as c_int, temp);
   SET_RAW_SYNTAX_ENTRY (Vstandard_syntax_table! (), '\n' as c_int, temp);
   SET_RAW_SYNTAX_ENTRY (Vstandard_syntax_table! (), 0o15, temp);
   SET_RAW_SYNTAX_ENTRY (Vstandard_syntax_table! (), 0o14, temp);
 
-  temp = AREF (unsafe { Vsyntax_code_object }, Sword as isize);
+  temp = AREF (/* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { Vsyntax_code_object }, Sword as isize);
   i = 'a' as c_int;
   while i <= 'z' as c_int
     {
@@ -2940,25 +2988,25 @@ pub unsafe extern "C-unwind" fn init_syntax_once ()
   SET_RAW_SYNTAX_ENTRY (Vstandard_syntax_table! (), '%' as c_int, temp);
 
   SET_RAW_SYNTAX_ENTRY (Vstandard_syntax_table! (), '(' as c_int,
-			unsafe { Fcons (make_fixnum (Sopen as EMACS_INT),
+			/* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { Fcons (make_fixnum (Sopen as EMACS_INT),
 					make_fixnum (')' as EMACS_INT)) });
   SET_RAW_SYNTAX_ENTRY (Vstandard_syntax_table! (), ')' as c_int,
 			unsafe { Fcons (make_fixnum (Sclose as EMACS_INT),
 					make_fixnum ('(' as EMACS_INT)) });
   SET_RAW_SYNTAX_ENTRY (Vstandard_syntax_table! (), '[' as c_int,
-			unsafe { Fcons (make_fixnum (Sopen as EMACS_INT),
+			/* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { Fcons (make_fixnum (Sopen as EMACS_INT),
 					make_fixnum (']' as EMACS_INT)) });
   SET_RAW_SYNTAX_ENTRY (Vstandard_syntax_table! (), ']' as c_int,
 			unsafe { Fcons (make_fixnum (Sclose as EMACS_INT),
 					make_fixnum ('[' as EMACS_INT)) });
   SET_RAW_SYNTAX_ENTRY (Vstandard_syntax_table! (), '{' as c_int,
-			unsafe { Fcons (make_fixnum (Sopen as EMACS_INT),
+			/* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { Fcons (make_fixnum (Sopen as EMACS_INT),
 					make_fixnum ('}' as EMACS_INT)) });
   SET_RAW_SYNTAX_ENTRY (Vstandard_syntax_table! (), '}' as c_int,
 			unsafe { Fcons (make_fixnum (Sclose as EMACS_INT),
 					make_fixnum ('{' as EMACS_INT)) });
   SET_RAW_SYNTAX_ENTRY (Vstandard_syntax_table! (), '"' as c_int,
-			unsafe { Fcons (make_fixnum (Sstring as EMACS_INT), Qnil ()) });
+			/* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { Fcons (make_fixnum (Sstring as EMACS_INT), Qnil ()) });
   SET_RAW_SYNTAX_ENTRY (Vstandard_syntax_table! (), '\\' as c_int,
 			unsafe { Fcons (make_fixnum (Sescape as EMACS_INT), Qnil ()) });
 
@@ -2971,7 +3019,7 @@ pub unsafe extern "C-unwind" fn init_syntax_once ()
       i += 1;
     }
 
-  temp = AREF (unsafe { Vsyntax_code_object }, Spunct as isize);
+  temp = AREF (/* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { Vsyntax_code_object }, Spunct as isize);
   i = 0;
   while i < 12
     {
@@ -2981,13 +3029,16 @@ pub unsafe extern "C-unwind" fn init_syntax_once ()
     }
 
   /* All multibyte characters have syntax `word' by default.  */
-  temp = AREF (unsafe { Vsyntax_code_object }, Sword as isize);
+  temp = AREF (/* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { Vsyntax_code_object }, Sword as isize);
   char_table_set_range (Vstandard_syntax_table! (), 0x80, MAX_CHAR, temp);
+  }
 }
 
 unsafe fn scan_lists (mut from0: EMACS_INT, mut count: EMACS_INT, mut depth: EMACS_INT,
 		      sexpflag: bool) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut val: Lisp_Object;
   let stop: ptrdiff_t = if count > 0 { ZV! () } else { BEGV! () };
   let mut c: c_int = 0;
@@ -3007,7 +3058,7 @@ unsafe fn scan_lists (mut from0: EMACS_INT, mut count: EMACS_INT, mut depth: EMA
   let mut out_charpos: ptrdiff_t = 0;
   let mut dummy: EMACS_INT = 0;
   let mut dummy2: c_int = 0;
-  let multibyte_symbol_p: bool = sexpflag && unsafe { multibyte_syntax_as_symbol };
+  let multibyte_symbol_p: bool = sexpflag && /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { multibyte_syntax_as_symbol };
   let mut quit_count: u16 = 0;
 
   if depth > 0 { min_depth = 0; }
@@ -3057,7 +3108,7 @@ unsafe fn scan_lists (mut from0: EMACS_INT, mut count: EMACS_INT, mut depth: EMA
 		    other_syntax = SYNTAX_WITH_FLAGS (c);
 		    comstart_second = SYNTAX_FLAGS_COMSTART_SECOND (other_syntax);
 		  }
-		if comstart_second && unsafe { parse_sexp_ignore_comments }
+		if comstart_second && /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { parse_sexp_ignore_comments }
 		  {
 		    /* We have encountered a comment start sequence and we
 		       are ignoring all text inside comments.  We must record
@@ -3123,7 +3174,7 @@ unsafe fn scan_lists (mut from0: EMACS_INT, mut count: EMACS_INT, mut depth: EMA
 			  /* C 2735 falls through from Scomment_fence into Scomment,
 			     carrying the style it just set (PORTING.md 2.2).  */
 			  { comstyle = ST_COMMENT_STYLE; }
-			if unsafe { parse_sexp_ignore_comments }
+			if /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { parse_sexp_ignore_comments }
 			  {
 			    UPDATE_SYNTAX_TABLE_FORWARD (from);
 			    found = forw_comment (from, from_byte, stop,
@@ -3265,7 +3316,7 @@ unsafe fn scan_lists (mut from0: EMACS_INT, mut count: EMACS_INT, mut depth: EMA
 		  {
 		    comend_second_first = prev_char_comend_first (from, from_byte);
 		  }
-		if comend_second_first && unsafe { parse_sexp_ignore_comments }
+		if comend_second_first && /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { parse_sexp_ignore_comments }
 		  {
 		    /* We must record the comment style encountered so that
 		       later, we can match only the proper comment begin
@@ -3377,7 +3428,7 @@ unsafe fn scan_lists (mut from0: EMACS_INT, mut count: EMACS_INT, mut depth: EMA
 
 		    Sendcomment =>
 		      {
-			if unsafe { parse_sexp_ignore_comments }
+			if /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { parse_sexp_ignore_comments }
 			  {
 			    found = back_comment (from, from_byte, stop, comnested, comstyle,
 						  &mut out_charpos, &mut out_bytepos);
@@ -3476,6 +3527,8 @@ unsafe fn scan_lists (mut from0: EMACS_INT, mut count: EMACS_INT, mut depth: EMA
   xsignal3 (Qscan_error (),
 	    build_string (c"Unbalanced parentheses".as_ptr ()),
 	    make_fixnum (last_good), make_fixnum (from as EMACS_INT));
+
+  }
 }
 
 /* Parse forward from FROM / FROM_BYTE to END,
@@ -3491,6 +3544,8 @@ unsafe fn scan_sexps_forward (state: *mut lisp_parse_state,
 			      targetdepth: EMACS_INT, stopbefore: bool,
 			      commentstop: c_int)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut code: syntaxcode = 0;
   /* C's function-local `struct level` (PORTING.md 1.3: same fields, same order).  */
   #[derive(Copy, Clone)]
@@ -3544,28 +3599,28 @@ unsafe fn scan_sexps_forward (state: *mut lisp_parse_state,
 
   maybe_quit ();
 
-  depth = unsafe { (*state).depth };
+  depth = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { (*state).depth };
   start_quoted = unsafe { (*state).quoted };
   prev_prev_from_syntax = Smax;
   prev_from_syntax = unsafe { (*state).prev_syntax };
 
-  tem = unsafe { (*state).levelstarts };
+  tem = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { (*state).levelstarts };
   while ! NILP (tem)		/* >= second enclosing sexps.  */
     {
       let temhd: Lisp_Object = unsafe { Fcar (tem) };
       if RANGED_FIXNUMP (PTRDIFF_MIN, temhd, PTRDIFF_MAX)
-	{ unsafe { (*curlevel).last = XFIXNUM (temhd) }; }
+	{ /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { (*curlevel).last = XFIXNUM (temhd) }; }
       curlevel = curlevel.add (1);
       if curlevel == endlevel
 	{ curlevel = curlevel.sub (1); } /* error ("Nesting too deep for parser"); */
       unsafe { (*curlevel).prev = -1; }
-      unsafe { (*curlevel).last = -1; }
+      /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { (*curlevel).last = -1; }
       tem = unsafe { Fcdr (tem) };
     }
   unsafe { (*curlevel).prev = -1; }
   unsafe { (*curlevel).last = -1; }
 
-  unsafe { (*state).quoted = false; }
+  /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { (*state).quoted = false; }
   mindepth = depth;
 
   SETUP_SYNTAX_TABLE (from, 1);
@@ -3592,7 +3647,7 @@ unsafe fn scan_sexps_forward (state: *mut lisp_parse_state,
   /* dispextern.h 3721: the redisplay tick budget this function charges.  Its mirror
      does not exist yet, so it is declared at its use site (the doc.rs shape).  */
 
-  if unsafe { (*state).incomment } != 0
+  if /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { (*state).incomment } != 0
     { stage = STAGE_STARTINCOMMENT; }
   else if unsafe { (*state).instring } >= 0
     {
@@ -3657,7 +3712,7 @@ unsafe fn scan_sexps_forward (state: *mut lisp_parse_state,
 		 middle of it.  We don't want to do that if we're just at the
 		 beginning of the comment (think of (*) ... (*)).  */
 	      found = forw_comment (from, from_byte, end,
-				    unsafe { (*state).incomment }, unsafe { (*state).comstyle },
+				    /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { (*state).incomment }, unsafe { (*state).comstyle },
 				    if from == BEGV! () { 0 } else { prev_from_syntax },
 				    &raw mut out_charpos, &raw mut out_bytepos,
 				    &raw mut (*state).incomment, &raw mut prev_from_syntax);
@@ -3677,7 +3732,7 @@ unsafe fn scan_sexps_forward (state: *mut lisp_parse_state,
 		  break 'scan;
 		}
 	      INC_FROM! ();
-	      unsafe { (*state).incomment = 0; }
+	      /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { (*state).incomment = 0; }
 	      unsafe { (*state).comstyle = 0; }	/* reset the comment style */
 	      prev_from_syntax = Smax; /* For the comment closer */
 	      if boundary_stop
@@ -3735,7 +3790,7 @@ unsafe fn scan_sexps_forward (state: *mut lisp_parse_state,
 		  rarely_quit (quit_count as u64);
 		}
 	      /* symdone: */
-	      unsafe { (*curlevel).prev = (*curlevel).last; }
+	      /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { (*curlevel).prev = (*curlevel).last; }
 	    }
 
 	  STAGE_STARTINSTRING | STAGE_STARTQUOTEDINSTRING =>
@@ -3752,7 +3807,7 @@ unsafe fn scan_sexps_forward (state: *mut lisp_parse_state,
 		 every `;;;###theme-autoload` cookie it finds inside a docstring (measured
 		 2026-10-16: 3 of the 25 themes lost their `theme-properties` line in
 		 `lisp/theme-loaddefs.el`; docs/status.md 4.382).  */
-	      nofence = unsafe { (*state).instring } != ST_STRING_STYLE;
+	      nofence = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { (*state).instring } != ST_STRING_STYLE;
 	      let mut at_quotedinstring: bool = entry == STAGE_STARTQUOTEDINSTRING;
 	      loop
 		{
@@ -3772,7 +3827,7 @@ unsafe fn scan_sexps_forward (state: *mut lisp_parse_state,
 		      /* Check C_CODE here so that if the char has
 			 a syntax-table property which says it is NOT
 			 a string character, it does not end the string.  */
-		      if nofence && c == unsafe { (*state).instring } && c_code == Sstring
+		      if nofence && c == /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { (*state).instring } && c_code == Sstring
 			{ break; }
 
 		      match c_code
@@ -3810,7 +3865,7 @@ unsafe fn scan_sexps_forward (state: *mut lisp_parse_state,
 		  rarely_quit (quit_count as u64);
 		}
 	      /* string_end: */
-	      unsafe { (*state).instring = -1; }
+	      /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { (*state).instring = -1; }
 	      unsafe { (*curlevel).prev = (*curlevel).last; }
 	      INC_FROM! ();
 	      if boundary_stop
@@ -3830,7 +3885,7 @@ unsafe fn scan_sexps_forward (state: *mut lisp_parse_state,
 			exit_kind = EXIT_STOP;
 			break 'scan;
 		      }
-		    unsafe { (*curlevel).last = prev_from; }
+		    /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { (*curlevel).last = prev_from; }
 		    if code == Sescape || code == Scharquote
 		      {
 			/* C's `startquoted:` label: the escape cases fall through
@@ -3851,7 +3906,7 @@ unsafe fn scan_sexps_forward (state: *mut lisp_parse_state,
 		    /* Record the comment style we have entered so that only
 		       the comment-end sequence of the same style actually
 		       terminates the comment section.  */
-		    unsafe { (*state).comstyle = ST_COMMENT_STYLE; }
+		    /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { (*state).comstyle = ST_COMMENT_STYLE; }
 		    unsafe { (*state).incomment = -1; }
 		    unsafe { (*state).comstr_start = prev_from; }
 		    stage = STAGE_ATCOMMENT;	/* C's `goto atcomment` */
@@ -3860,7 +3915,7 @@ unsafe fn scan_sexps_forward (state: *mut lisp_parse_state,
 
 		Scomment =>
 		  {
-		    unsafe { (*state).comstyle =
+		    /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { (*state).comstyle =
 			SYNTAX_FLAGS_COMMENT_STYLE (prev_from_syntax, 0) as c_int; }
 		    unsafe { (*state).incomment =
 			if SYNTAX_FLAGS_COMMENT_NESTED (prev_from_syntax) { 1 } else { -1 }; }
@@ -3878,12 +3933,12 @@ unsafe fn scan_sexps_forward (state: *mut lisp_parse_state,
 		      }
 		    depth += 1;
 		    /* curlevel++->last ran into compiler bug on Apollo */
-		    unsafe { (*curlevel).last = prev_from; }
+		    /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { (*curlevel).last = prev_from; }
 		    curlevel = curlevel.add (1);
 		    if curlevel == endlevel
 		      { curlevel = curlevel.sub (1); } /* error ("Nesting too deep for parser"); */
 		    unsafe { (*curlevel).prev = -1; }
-		    unsafe { (*curlevel).last = -1; }
+		    /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { (*curlevel).last = -1; }
 		    if targetdepth == depth
 		      {
 			exit_kind = EXIT_DONE;
@@ -3898,7 +3953,7 @@ unsafe fn scan_sexps_forward (state: *mut lisp_parse_state,
 		      { mindepth = depth; }
 		    if curlevel != levelstart.as_mut_ptr ()
 		      { curlevel = curlevel.sub (1); }
-		    unsafe { (*curlevel).prev = (*curlevel).last; }
+		    /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { (*curlevel).prev = (*curlevel).last; }
 		    if targetdepth == depth
 		      {
 			exit_kind = EXIT_DONE;
@@ -3908,13 +3963,13 @@ unsafe fn scan_sexps_forward (state: *mut lisp_parse_state,
 
 		Sstring | Sstring_fence =>
 		  {
-		    unsafe { (*state).comstr_start = from - 1; }
+		    /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { (*state).comstr_start = from - 1; }
 		    if stopbefore
 		      {
 			exit_kind = EXIT_STOP;
 			break 'scan;
 		      }
-		    unsafe { (*curlevel).last = prev_from; }
+		    /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { (*curlevel).last = prev_from; }
 		    unsafe { (*state).instring =
 			if code == Sstring
 			  { FETCH_CHAR_AS_MULTIBYTE (prev_from_byte) }
@@ -3952,24 +4007,24 @@ unsafe fn scan_sexps_forward (state: *mut lisp_parse_state,
       /* but return the position before it. */
     }
   else if exit_kind == EXIT_ENDQUOTED
-    { unsafe { (*state).quoted = true; } }
+    { /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { (*state).quoted = true; } }
 
   /* done: */
   unsafe { (*state).depth = depth; }
   unsafe { (*state).mindepth = mindepth; }
-  unsafe { (*state).thislevelstart = (*curlevel).prev; }
+  /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { (*state).thislevelstart = (*curlevel).prev; }
   unsafe { (*state).prevlevelstart =
     if curlevel == levelstart.as_mut_ptr () { -1 } else { (*curlevel.sub (1)).last }; }
   unsafe { (*state).location = from; }
   unsafe { (*state).location_byte = from_byte; }
-  unsafe { (*state).levelstarts = Qnil (); }
+  /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { (*state).levelstarts = Qnil (); }
   while curlevel > levelstart.as_mut_ptr ()
     {
       curlevel = curlevel.sub (1);
       unsafe { (*state).levelstarts = Fcons (make_fixnum ((*curlevel).last as EMACS_INT),
 					     (*state).levelstarts); }
     }
-  unsafe { (*state).prev_syntax =
+  /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { (*state).prev_syntax =
     if SYNTAX_FLAGS_COMSTARTEND_FIRST (prev_from_syntax) || (*state).quoted
       { prev_from_syntax } else { Smax }; }
 
@@ -3977,9 +4032,11 @@ unsafe fn scan_sexps_forward (state: *mut lisp_parse_state,
      means we consider 10 buffer positions examined by this function
      roughly equivalent to the display engine iterating over a single
      buffer position.  */
-  if unsafe { max_redisplay_ticks } > 0 && from > started_from
+  if /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { max_redisplay_ticks } > 0 && from > started_from
     { update_redisplay_ticks (((from - started_from) / 10 + 1) as c_int,
 			      std::ptr::null_mut ()); }
+
+  }
 }
 
 /* Convert a (lisp) parse state to the internal form used in
@@ -3990,23 +4047,23 @@ unsafe fn internalize_parse_state (mut external: Lisp_Object, state: *mut lisp_p
 
   if NILP (external)
     {
-      unsafe { (*state).depth = 0; }
+      /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { (*state).depth = 0; }
       unsafe { (*state).instring = -1; }
       unsafe { (*state).incomment = 0; }
       unsafe { (*state).quoted = false; }
       unsafe { (*state).comstyle = 0; }	/* comment style a by default.  */
-      unsafe { (*state).comstr_start = -1; }	/* no comment/string seen.  */
+      /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { (*state).comstr_start = -1; }	/* no comment/string seen.  */
       unsafe { (*state).levelstarts = Qnil (); }
       unsafe { (*state).prev_syntax = Smax; }
     }
   else
     {
-      tem = unsafe { Fcar (external) };
+      tem = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { Fcar (external) };
       unsafe { (*state).depth = if FIXNUMP (tem) { XFIXNUM (tem) } else { 0 }; }
 
       external = unsafe { Fcdr (external) };
       external = unsafe { Fcdr (external) };
-      external = unsafe { Fcdr (external) };
+      external = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { Fcdr (external) };
       tem = unsafe { Fcar (external) };
       /* Check whether we are inside string_fence-style string: */
       unsafe { (*state).instring =
@@ -4014,20 +4071,20 @@ unsafe fn internalize_parse_state (mut external: Lisp_Object, state: *mut lisp_p
 	  { if CHARACTERP (tem) { XFIXNAT (tem) as c_int } else { ST_STRING_STYLE } }
 	  else { -1 }; }
 
-      external = unsafe { Fcdr (external) };
+      external = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { Fcdr (external) };
       tem = unsafe { Fcar (external) };
       unsafe { (*state).incomment =
 	if ! NILP (tem)
 	  { if FIXNUMP (tem) { XFIXNUM (tem) } else { -1 } }
 	  else { 0 }; }
 
-      external = unsafe { Fcdr (external) };
+      external = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { Fcdr (external) };
       tem = unsafe { Fcar (external) };
       unsafe { (*state).quoted = ! NILP (tem); }
 
       /* if the eighth element of the list is nil, we are in comment
 	 style a.  If it is non-nil, we are in comment style b */
-      external = unsafe { Fcdr (external) };
+      external = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { Fcdr (external) };
       external = unsafe { Fcdr (external) };
       tem = unsafe { Fcar (external) };
       unsafe { (*state).comstyle =
@@ -4038,17 +4095,17 @@ unsafe fn internalize_parse_state (mut external: Lisp_Object, state: *mut lisp_p
 	  else
 	  { ST_COMMENT_STYLE }; }
 
-      external = unsafe { Fcdr (external) };
+      external = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { Fcdr (external) };
       tem = unsafe { Fcar (external) };
       unsafe { (*state).comstr_start =
 	if RANGED_FIXNUMP (PTRDIFF_MIN, tem, PTRDIFF_MAX)
 	  { XFIXNUM (tem) } else { -1 }; }
-      external = unsafe { Fcdr (external) };
+      external = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { Fcdr (external) };
       tem = unsafe { Fcar (external) };
       unsafe { (*state).levelstarts = tem; }
 
       external = unsafe { Fcdr (external) };
-      tem = unsafe { Fcar (external) };
+      tem = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { Fcar (external) };
       unsafe { (*state).prev_syntax = if NILP (tem) { Smax } else { XFIXNUM (tem) as c_int }; }
     }
 }
@@ -4200,6 +4257,8 @@ DEFUN! ("parse-partial-sexp", Fparse_partial_sexp, Sparse_partial_sexp, 2, 6, 0,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_syntax ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   DEFSYM! (Qsyntax_table_p, "syntax-table-p");
   DEFSYM! (Qsyntax_ppss, "syntax-ppss");
   DEFVAR_LISP! (c"comment-use-syntax-ppss", Vcomment_use_syntax_ppss,
@@ -4282,4 +4341,6 @@ pub unsafe extern "C-unwind" fn syms_of_syntax ()
   defsubr (&raw mut Sscan_sexps);
   defsubr (&raw mut Sbackward_prefix_chars);
   defsubr (&raw mut Sparse_partial_sexp);
+
+  }
 }

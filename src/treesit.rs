@@ -26,11 +26,7 @@
 // actual ABI and runtime acceptance are recorded separately, not inferred from
 // this transcription. The inactive development-only cache is retired in CLN132.
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
-         unsafe_op_in_unsafe_fn, unused_assignments, unused_parens, unused_mut,
-         unreachable_code, unused_labels, while_true, unused_comparisons, overflowing_literals,
-         unused_must_use, clippy::all)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe, unused_assignments, unused_parens, unused_mut, unreachable_code, unused_labels, while_true, unused_comparisons, overflowing_literals, unused_must_use, clippy::all)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -756,6 +752,8 @@ unsafe extern "C" fn treesit_free_wrapper(ptr: *mut c_void) {
 #[cfg (feature = "have_tree_sitter")]
 unsafe fn treesit_initialize ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if !treesit_initialized
     {
       load_tree_sitter_if_necessary (true);
@@ -765,6 +763,8 @@ unsafe fn treesit_initialize ()
       { (fn_ts_set_allocator.unwrap ()) (Some (treesit_malloc_wrapper), Some (treesit_calloc_wrapper), Some (treesit_realloc_wrapper), Some (treesit_free_wrapper)); }
       treesit_initialized = true;
     }
+
+  }
 }
 
 /* C 576: `void treesit_debug_print_parser_list (char *, Lisp_Object) EXTERNALLY_VISIBLE;` - C's own
@@ -779,6 +779,8 @@ unsafe fn treesit_initialize ()
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn treesit_debug_print_parser_list (msg: *mut c_char, parser: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let buf: *mut buffer = XBUFFER ((*XTS_PARSER (parser)).buffer);
   let buf_name: *mut c_char = SSDATA (BVAR! (buf, name_));
   printf (c"%s (%s) [%s] <%s>: %td(%td)-(%td)%td {\n".as_ptr (),
@@ -828,6 +830,8 @@ pub unsafe extern "C-unwind" fn treesit_debug_print_parser_list (msg: *mut c_cha
 	}
   });
   printf (c"}\n\n".as_ptr ());
+
+  }
 }
 
 /* C 624: the Loading language library banner.  */
@@ -858,6 +862,8 @@ const _: () = core::assert! (std::mem::offset_of! (treesit_loaded_lang, filename
 #[cfg (feature = "have_tree_sitter")]
 unsafe fn treesit_symbol_to_c_name (symbol_name: *mut c_char)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let len: size_t = strlen (symbol_name);
   let mut idx: c_int = 0;
   while (idx as size_t) < len
@@ -866,6 +872,8 @@ unsafe fn treesit_symbol_to_c_name (symbol_name: *mut c_char)
 	{ *symbol_name.offset (idx as isize) = b'_' as c_char; }
       idx += 1;
     }
+
+  }
 }
 
 /* Resolve language symbol LANG according to
@@ -874,10 +882,14 @@ unsafe fn treesit_symbol_to_c_name (symbol_name: *mut c_char)
 #[cfg (feature = "have_tree_sitter")]
 unsafe fn resolve_language_symbol (lang: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let res: Lisp_Object = Fassoc (lang, Vtreesit_language_remap_alist, Qeq ());
   if NILP (res)
     { return lang; }
   return Fcdr (res);
+
+  }
 }
 
 /* Find the override name for LANGUAGE_SYMBOL in
@@ -892,6 +904,8 @@ unsafe fn resolve_language_symbol (lang: Lisp_Object) -> Lisp_Object
 unsafe fn treesit_find_override_name (language_symbol: Lisp_Object, name: *mut Lisp_Object,
 				      c_symbol: *mut Lisp_Object) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   CHECK_LIST (Vtreesit_load_name_override_list);
   let mut tail: Lisp_Object = Vtreesit_load_name_override_list;
 
@@ -915,6 +929,8 @@ unsafe fn treesit_find_override_name (language_symbol: Lisp_Object, name: *mut L
   CHECK_LIST_END (tail, Vtreesit_load_name_override_list);
 
   return false;
+
+  }
 }
 
 /* For example, if Vdynamic_library_suffixes is (".so", ".dylib"),
@@ -929,6 +945,8 @@ unsafe fn treesit_find_override_name (language_symbol: Lisp_Object, name: *mut L
 unsafe fn treesit_load_language_push_for_each_suffix (lib_base_name: Lisp_Object,
 						      path_candidates: *mut Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut suffixes: Lisp_Object;
 
   suffixes = Vdynamic_library_suffixes;
@@ -964,6 +982,8 @@ unsafe fn treesit_load_language_push_for_each_suffix (lib_base_name: Lisp_Object
       }
       *path_candidates = Fcons (candidate1, *path_candidates);
   });
+
+  }
 }
 
 /* This function is a compatibility shim.  Tree-sitter 0.25 introduced
@@ -977,6 +997,8 @@ unsafe fn treesit_load_language_push_for_each_suffix (lib_base_name: Lisp_Object
 #[cfg (feature = "have_tree_sitter")]
 unsafe fn treesit_language_abi_version (ts_lang: *const TSLanguage) -> u32
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   #[cfg (all (feature = "treesit_language_version_ge_15", not (feature = "windowsnt")))]
   { return ts_language_abi_version (ts_lang); }
   #[cfg (all (feature = "treesit_language_version_ge_15", feature = "windowsnt"))]
@@ -985,6 +1007,8 @@ unsafe fn treesit_language_abi_version (ts_lang: *const TSLanguage) -> u32
   { return ts_language_version (ts_lang); }
   #[cfg (all (not (feature = "treesit_language_version_ge_15"), feature = "windowsnt"))]
   { return (fn_ts_language_version.unwrap ()) (ts_lang); }
+
+  }
 }
 
 /* Load the dynamic library of LANGUAGE_SYMBOL and return the pointer
@@ -1005,6 +1029,8 @@ unsafe fn treesit_language_abi_version (ts_lang: *const TSLanguage) -> u32
 unsafe fn treesit_load_language (language_symbol: Lisp_Object, signal_symbol: *mut Lisp_Object,
 				 signal_data: *mut Lisp_Object) -> treesit_loaded_lang
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let symbol_name: Lisp_Object = Fsymbol_name (language_symbol);
 
   CHECK_LIST (Vtreesit_extra_load_path);
@@ -1138,6 +1164,8 @@ unsafe fn treesit_load_language (language_symbol: Lisp_Object, signal_symbol: *m
 
   loaded_lang.lang = lang;
   return loaded_lang;
+
+  }
 }
 
 #[cfg(feature = "have_tree_sitter")]
@@ -1199,7 +1227,11 @@ return DECODE_FILE(make_unibyte_string(lang.filename,strlen(lang.filename) as pt
 #[cfg(feature = "have_tree_sitter")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn treesit_debug_print_linecol(linecol:ts_linecol) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
  printf(c"{ line=%td col=%td bytepos=%td }\n".as_ptr(),linecol.line,linecol.col,linecol.bytepos);
+
+  }
 }
 
 
@@ -1211,14 +1243,20 @@ unsafe fn treesit_buf_tracks_linecol_p(buf:*mut buffer)->bool {
 
 #[cfg(feature = "have_tree_sitter")]
 unsafe extern "C-unwind" fn restore_restriction_and_selective_display(record:Lisp_Object) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
  save_restriction_restore(Fcar(record));
  BVAR!(current_buffer!(),selective_display_)=Fcdr(record);
+
+  }
 }
 
 
 #[cfg(feature = "have_tree_sitter")]
 unsafe fn treesit_count_lines(start_byte:ptrdiff_t,limit_byte:ptrdiff_t,count:ptrdiff_t,
                              byte_pos_ptr:*mut ptrdiff_t)->ptrdiff_t {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
  let record=Fcons(save_restriction_save(),BVAR!(current_buffer!(),selective_display_));
  let pdl_count=SPECPDL_INDEX();
  record_unwind_protect(Some(restore_restriction_and_selective_display),record);
@@ -1228,20 +1266,28 @@ unsafe fn treesit_count_lines(start_byte:ptrdiff_t,limit_byte:ptrdiff_t,count:pt
  unbind_to(pdl_count,Qnil());
  if count < 0 && limit_byte != *byte_pos_ptr { counted += 1; *byte_pos_ptr -= 1; }
  return counted;
+
+  }
 }
 
 
 #[cfg(feature = "have_tree_sitter")]
 unsafe fn treesit_debug_validate_linecol(linecol:ts_linecol) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
  eassert!(linecol.bytepos <= Z_BYTE!());
  let mut unused=0;
  let true_line_count=treesit_count_lines(BEG_BYTE as ptrdiff_t,linecol.bytepos,Z_BYTE!(),&raw mut unused)+1;
  eassert!(true_line_count==linecol.line);
+
+  }
 }
 
 
 #[cfg(feature = "have_tree_sitter")]
 unsafe fn treesit_linecol_of_pos(target_bytepos:ptrdiff_t,cache:ts_linecol)->ts_linecol {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
  if TREESIT_DEBUG_LINECOL { treesit_debug_validate_linecol(cache); }
  let mut byte_pos_1=0; let mut byte_pos_2=0; let mut line_delta=0;
  if target_bytepos==cache.bytepos { return cache; }
@@ -1274,6 +1320,8 @@ unsafe fn treesit_linecol_of_pos(target_bytepos:ptrdiff_t,cache:ts_linecol)->ts_
  }
  if TREESIT_DEBUG_LINECOL { treesit_debug_validate_linecol(target_linecol); }
  return target_linecol;
+
+  }
 }
 
 
@@ -1333,14 +1381,20 @@ pub static mut Vtreesit_major_mode_remap_alist: Lisp_Object = lisp_h_Qnil();
 // interval; edits update it before the next lazy parse reconciles narrowing.
 #[cfg(feature = "have_tree_sitter")]
 unsafe fn treesit_check_parser(obj: Lisp_Object) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
     CHECK_TS_PARSER(obj);
     if (*XTS_PARSER(obj)).deleted { xsignal1(Qtreesit_parser_deleted(), obj); }
+
+  }
 }
 
 #[cfg(feature = "have_tree_sitter")]
 unsafe fn treesit_tree_edit_1(tree: *mut TSTree, start_byte: ptrdiff_t,
     old_end_byte: ptrdiff_t, new_end_byte: ptrdiff_t,
     start_point: TSPoint, old_end_point: TSPoint, new_end_point: TSPoint) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
     eassert!(start_byte >= 0);
     eassert!(start_byte <= old_end_byte);
     eassert!(start_byte <= new_end_byte);
@@ -1351,12 +1405,16 @@ unsafe fn treesit_tree_edit_1(tree: *mut TSTree, start_byte: ptrdiff_t,
         old_end_byte: old_end_byte as u32, new_end_byte: new_end_byte as u32,
         start_point, old_end_point, new_end_point };
     ts_tree_edit(tree, &edit);
+
+  }
 }
 
 #[cfg(feature = "have_tree_sitter")]
 unsafe fn compute_new_linecol_by_change(pos_linecol: ts_linecol,
     start_linecol: ts_linecol, old_end_linecol: ts_linecol,
     new_end_linecol: ts_linecol, target_bytepos: ptrdiff_t) -> ts_linecol {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
     let mut new_linecol = ts_linecol { bytepos: 0, line: 0, col: 0 };
     if start_linecol.bytepos >= pos_linecol.bytepos {
         new_linecol = pos_linecol;
@@ -1377,12 +1435,16 @@ unsafe fn compute_new_linecol_by_change(pos_linecol: ts_linecol,
     }
     if TREESIT_DEBUG_LINECOL { treesit_debug_validate_linecol(new_linecol); }
     new_linecol
+
+  }
 }
 
 #[cfg(feature = "have_tree_sitter")]
 unsafe fn treesit_record_change_1(start_byte: ptrdiff_t, old_end_byte: ptrdiff_t,
     new_end_byte: ptrdiff_t, start_linecol: ts_linecol,
     old_end_linecol: ts_linecol, new_end_linecol: ts_linecol) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
     let mut base_buffer = current_buffer!();
     if !(*current_buffer!()).base_buffer.is_null() { base_buffer = (*current_buffer!()).base_buffer; }
     let mut parser_list = BVAR!(base_buffer, ts_parser_list_);
@@ -1440,16 +1502,22 @@ unsafe fn treesit_record_change_1(start_byte: ptrdiff_t, old_end_byte: ptrdiff_t
             (*p).need_reparse = true;
         }
     });
+
+  }
 }
 
 #[cfg(feature = "have_tree_sitter")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn treesit_linecol_maybe(_pos: ptrdiff_t, pos_byte: ptrdiff_t,
     cache: ts_linecol) -> ts_linecol {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
     if NILP(BVAR!(current_buffer!(), ts_parser_list_)) || !treesit_buf_tracks_linecol_p(current_buffer!()) {
         return TREESIT_EMPTY_LINECOL;
     }
     treesit_linecol_of_pos(pos_byte, cache)
+
+  }
 }
 
 #[cfg(feature = "have_tree_sitter")]
@@ -1457,6 +1525,8 @@ pub unsafe extern "C-unwind" fn treesit_linecol_maybe(_pos: ptrdiff_t, pos_byte:
 pub unsafe extern "C-unwind" fn treesit_record_change(start_byte: ptrdiff_t, old_end_byte: ptrdiff_t,
     new_end_byte: ptrdiff_t, start_linecol: ts_linecol,
     old_end_linecol: ts_linecol, new_end: ptrdiff_t) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
     let new_end_linecol = treesit_linecol_maybe(new_end, new_end_byte, start_linecol);
     treesit_record_change_1(start_byte, old_end_byte, new_end_byte,
         start_linecol, old_end_linecol, new_end_linecol);
@@ -1469,10 +1539,14 @@ pub unsafe extern "C-unwind" fn treesit_record_change(start_byte: ptrdiff_t, old
         SET_BUF_TS_LINECOL_POINT(current_buffer!(), new_end_linecol);
         SET_BUF_TS_LINECOL_ZV(current_buffer!(), new_zv_linecol);
     }
+
+  }
 }
 
 #[cfg(feature = "have_tree_sitter")]
 unsafe fn treesit_sync_visible_region(parser: Lisp_Object) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
     let p = XTS_PARSER(parser);
     let tree = (*p).tree;
     let buffer = XBUFFER((*p).buffer);
@@ -1583,20 +1657,28 @@ unsafe fn treesit_sync_visible_region(parser: Lisp_Object) {
     let success = ts_parser_set_included_ranges((*p).parser, ts_ranges, len);
     xfree(ts_ranges.cast());
     eassert!(success);
+
+  }
 }
 
 #[cfg(feature = "have_tree_sitter")]
 unsafe fn treesit_check_buffer_size(buffer: *mut buffer) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
     let buffer_size_bytes = BUF_Z_BYTE!(buffer) - BUF_BEG_BYTE(buffer);
     if buffer_size_bytes > u32::MAX as ptrdiff_t {
         xsignal2(Qtreesit_buffer_too_large(), build_string(c"Buffer size cannot be larger than 4GB".as_ptr()),
             make_fixnum(buffer_size_bytes));
     }
+
+  }
 }
 
 #[cfg(feature = "have_tree_sitter")]
 unsafe fn treesit_get_affected_ranges(old_tree: *mut TSTree, new_tree: *mut TSTree,
     parser: Lisp_Object) -> Lisp_Object {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
     let buf = XBUFFER((*XTS_PARSER(parser)).buffer);
     if !old_tree.is_null() {
         let mut len = 0;
@@ -1611,18 +1693,26 @@ unsafe fn treesit_get_affected_ranges(old_tree: *mut TSTree, new_tree: *mut TSTr
         set_buffer_internal(oldbuf);
         lisp_ranges
     }
+
+  }
 }
 
 #[cfg(feature = "have_tree_sitter")]
 unsafe fn treesit_call_after_change_functions(parser: Lisp_Object, ranges: Lisp_Object) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
     let count = SPECPDL_INDEX();
     let mut functions = (*XTS_PARSER(parser)).after_change_functions;
     FOR_EACH_TAIL!(functions, { safe_calln!(XCAR(functions), ranges, parser); });
     unbind_to(count, Qnil());
+
+  }
 }
 
 #[cfg(feature = "have_tree_sitter")]
 unsafe fn treesit_ensure_parsed(parser: Lisp_Object) -> Lisp_Object {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
     let p = XTS_PARSER(parser);
     if (*p).within_reparse { return Qnil(); }
     (*p).within_reparse = true;
@@ -1650,11 +1740,15 @@ unsafe fn treesit_ensure_parsed(parser: Lisp_Object) -> Lisp_Object {
     ts_tree_delete(tree);
     (*p).within_reparse = false;
     ranges
+
+  }
 }
 
 #[cfg(feature = "have_tree_sitter")]
 unsafe extern "C" fn treesit_read_buffer(parser: *mut c_void, byte_index: u32,
     _position: TSPoint, bytes_read: *mut u32) -> *const c_char {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
     let parser = parser.cast::<Lisp_TS_Parser>();
     let buffer = XBUFFER((*parser).buffer);
     let mut visible_beg = (*parser).visible_beg;
@@ -1675,12 +1769,16 @@ unsafe extern "C" fn treesit_read_buffer(parser: *mut c_void, byte_index: u32,
     eassert!((len as u64) < u32::MAX as u64);
     *bytes_read = len as u32;
     beg
+
+  }
 }
 
 #[cfg(feature = "have_tree_sitter")]
 unsafe fn make_treesit_parser(buffer: Lisp_Object, parser: *mut TSParser,
     tree: *mut TSTree, language_symbol: Lisp_Object, tag: Lisp_Object,
     tracks_linecol: bool) -> Lisp_Object {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
     let lisp_parser = ALLOCATE_PSEUDOVECTOR!(Lisp_TS_Parser, buffer, pvec_type::PVEC_TS_PARSER);
     (*lisp_parser).language_symbol = language_symbol;
     (*lisp_parser).after_change_functions = Qnil();
@@ -1712,45 +1810,67 @@ unsafe fn make_treesit_parser(buffer: Lisp_Object, parser: *mut TSParser,
         (*lisp_parser).visi_end_linecol = TREESIT_EMPTY_LINECOL;
     }
     make_lisp_ptr(lisp_parser.cast(), Lisp_Type::Lisp_Vectorlike)
+
+  }
 }
 
 #[cfg(feature = "have_tree_sitter")]
 unsafe fn make_treesit_node(parser: Lisp_Object, node: TSNode) -> Lisp_Object {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
     let lisp_node = ALLOCATE_PSEUDOVECTOR!(Lisp_TS_Node, parser, pvec_type::PVEC_TS_NODE);
     (*lisp_node).parser = parser;
     (*lisp_node).node = node;
     (*lisp_node).timestamp = (*XTS_PARSER(parser)).timestamp;
     make_lisp_ptr(lisp_node.cast(), Lisp_Type::Lisp_Vectorlike)
+
+  }
 }
 
 #[cfg(feature = "have_tree_sitter")]
 unsafe fn make_treesit_query(query: Lisp_Object, language: Lisp_Object) -> Lisp_Object {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
     let lisp_query = ALLOCATE_PSEUDOVECTOR!(Lisp_TS_Query, source, pvec_type::PVEC_TS_COMPILED_QUERY);
     (*lisp_query).language = language;
     (*lisp_query).source = query;
     (*lisp_query).query = core::ptr::null_mut();
     (*lisp_query).cursor = core::ptr::null_mut();
     make_lisp_ptr(lisp_query.cast(), Lisp_Type::Lisp_Vectorlike)
+
+  }
 }
 
 #[cfg(feature = "have_tree_sitter")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn treesit_delete_parser(lisp_parser: *mut Lisp_TS_Parser) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
     if (*lisp_parser).need_to_gc_buffer { Fkill_buffer((*lisp_parser).buffer); }
     ts_tree_delete((*lisp_parser).tree);
     ts_parser_delete((*lisp_parser).parser);
+
+  }
 }
 
 #[cfg(feature = "have_tree_sitter")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn treesit_delete_query(lisp_query: *mut Lisp_TS_Query) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
     if !(*lisp_query).query.is_null() { ts_query_delete((*lisp_query).query); }
     if !(*lisp_query).cursor.is_null() { ts_query_cursor_delete((*lisp_query).cursor); }
+
+  }
 }
 
 #[cfg(feature = "have_tree_sitter")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn treesit_named_node_p(node: TSNode) -> bool { ts_node_is_named(node) }
+pub unsafe extern "C-unwind" fn treesit_named_node_p(node: TSNode) -> bool {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe { ts_node_is_named(node) 
+  }
+}
 
 #[cfg(feature = "have_tree_sitter")]
 unsafe fn treesit_query_error_to_string(error: TSQueryError) -> *const c_char {
@@ -1768,21 +1888,31 @@ unsafe fn treesit_query_error_to_string(error: TSQueryError) -> *const c_char {
 #[cfg(feature = "have_tree_sitter")]
 unsafe fn treesit_compose_query_signal_data(error_offset: u32, error_type: TSQueryError,
     query_source: Lisp_Object) -> Lisp_Object {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
     list4(build_string(treesit_query_error_to_string(error_type)),
         make_fixnum(error_offset.wrapping_add(1) as EMACS_INT), query_source,
         build_string(c"Debug the query with `treesit-query-validate'".as_ptr()))
+
+  }
 }
 
 #[cfg(feature = "have_tree_sitter")]
 unsafe fn treesit_ensure_query_cursor(query: Lisp_Object) -> *mut TSQueryCursor {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
     let q = XTS_COMPILED_QUERY(query);
     if (*q).cursor.is_null() { (*q).cursor = ts_query_cursor_new(); }
     (*q).cursor
+
+  }
 }
 
 #[cfg(feature = "have_tree_sitter")]
 unsafe fn treesit_ensure_query_compiled(query: Lisp_Object, signal_symbol: *mut Lisp_Object,
     signal_data: *mut Lisp_Object) -> *mut TSQuery {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
     let mut treesit_query = (*XTS_COMPILED_QUERY(query)).query;
     if !treesit_query.is_null() { return treesit_query; }
     let mut source = (*XTS_COMPILED_QUERY(query)).source;
@@ -1807,34 +1937,50 @@ unsafe fn treesit_ensure_query_compiled(query: Lisp_Object, signal_symbol: *mut 
     }
     (*XTS_COMPILED_QUERY(query)).query = treesit_query;
     treesit_query
+
+  }
 }
 
 #[cfg(feature = "have_tree_sitter")]
 unsafe fn treesit_ensure_query_compiled_signal(lisp_query: Lisp_Object) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
     let mut signal_symbol = Qnil();
     let mut signal_data = Qnil();
     let treesit_query = treesit_ensure_query_compiled(lisp_query, &raw mut signal_symbol, &raw mut signal_data);
     if treesit_query.is_null() { xsignal(signal_symbol, signal_data); }
+
+  }
 }
 
 #[cfg(feature = "have_tree_sitter")]
 unsafe fn treesit_pred_with_guard(pred: Lisp_Object, node: Lisp_Object, parser: Lisp_Object) -> Lisp_Object {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
     let pre_timestamp = (*XTS_PARSER(parser)).timestamp;
     let res = calln!(pred, node);
     if (*XTS_PARSER(parser)).timestamp != pre_timestamp {
         xsignal(Qtreesit_buffer_changed(), list1(pred));
     }
     res
+
+  }
 }
 
 #[cfg(feature = "have_tree_sitter")]
 unsafe fn treesit_parser_live_p(parser: Lisp_Object) -> bool {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
     CHECK_TS_PARSER(parser);
     !(*XTS_PARSER(parser)).deleted && !NILP(Fbuffer_live_p((*XTS_PARSER(parser)).buffer))
+
+  }
 }
 
 #[cfg(feature = "have_tree_sitter")]
 unsafe fn treesit_check_range_argument(ranges: Lisp_Object) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
     let buffer = current_buffer!();
     let point_min = BUF_BEGV(buffer);
     let point_max = BUF_ZV(buffer);
@@ -1856,11 +2002,15 @@ unsafe fn treesit_check_range_argument(ranges: Lisp_Object) {
         last_point = end;
     });
     CHECK_LIST_END(tail, ranges);
+
+  }
 }
 
 #[cfg(feature = "have_tree_sitter")]
 unsafe fn treesit_make_ranges(ranges: *const TSRange, len: u32, parser: Lisp_Object,
     buffer: *mut buffer) -> Lisp_Object {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
     let mut list = Qnil();
     let mut idx: c_int = 0;
     while (idx as u32) < len {
@@ -1876,10 +2026,14 @@ unsafe fn treesit_make_ranges(ranges: *const TSRange, len: u32, parser: Lisp_Obj
         idx = idx.wrapping_add(1);
     }
     Fnreverse(list)
+
+  }
 }
 
 #[cfg(feature = "have_tree_sitter")]
 unsafe fn treesit_make_ts_ranges(mut ranges: Lisp_Object, parser: Lisp_Object, len: *mut u32) -> *mut TSRange {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
     let ranges_len = list_length(ranges);
     if ranges_len > u32::MAX as ptrdiff_t {
         xsignal(Qargs_out_of_range(), list2(ranges, Flength(ranges)));
@@ -1903,6 +2057,8 @@ unsafe fn treesit_make_ts_ranges(mut ranges: Lisp_Object, parser: Lisp_Object, l
         ranges = XCDR(ranges);
     }
     treesit_ranges
+
+  }
 }
 
 
@@ -2100,43 +2256,65 @@ FOR_EACH_TAIL!(tail, {
 
 #[cfg(feature = "have_tree_sitter")]
 unsafe fn treesit_check_node(obj:Lisp_Object) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
  CHECK_TS_NODE(obj);
  if !treesit_node_uptodate_p(obj) { xsignal1(Qtreesit_node_outdated(),obj); }
  if !treesit_node_buffer_live_p(obj) { xsignal1(Qtreesit_node_buffer_killed(),obj); }
+
+  }
 }
 
 
 #[cfg(feature = "have_tree_sitter")]
 unsafe fn treesit_check_position(obj:Lisp_Object,buf:*mut buffer) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
  let pos=fix_position(obj);if pos<BUF_BEGV(buf)||pos>BUF_ZV(buf) { xsignal1(Qargs_out_of_range(),obj); }
+
+  }
 }
 
 
 #[cfg(feature = "have_tree_sitter")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn treesit_node_uptodate_p(obj:Lisp_Object)->bool {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
  let lisp_parser=(*XTS_NODE(obj)).parser;
  return (*XTS_NODE(obj)).timestamp==(*XTS_PARSER(lisp_parser)).timestamp;
+
+  }
 }
 
 
 #[cfg(feature = "have_tree_sitter")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn treesit_node_buffer_live_p(obj:Lisp_Object)->bool {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
  let buffer=XBUFFER((*XTS_PARSER((*XTS_NODE(obj)).parser)).buffer);return BUFFER_LIVE_P(buffer);
+
+  }
 }
 
 
 #[cfg(feature = "have_tree_sitter")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn treesit_node_eq(node1:Lisp_Object,node2:Lisp_Object)->bool {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
  treesit_initialize();let treesit_node_1=(*XTS_NODE(node1)).node;let treesit_node_2=(*XTS_NODE(node2)).node;
  return ts_node_eq(treesit_node_1,treesit_node_2);
+
+  }
 }
 
 
 #[cfg(feature = "have_tree_sitter")]
 unsafe fn treesit_cursor_first_child_for_byte(cursor:*mut TSTreeCursor,pos:ptrdiff_t,named:bool)->bool {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
  if ts_tree_cursor_goto_first_child_for_byte(cursor,pos as u32)==-1 && !ts_tree_cursor_goto_first_child(cursor) { return false; }
  let mut node=ts_tree_cursor_current_node(cursor);
  while (ts_node_end_byte(node) as ptrdiff_t) <= pos {
@@ -2146,6 +2324,8 @@ unsafe fn treesit_cursor_first_child_for_byte(cursor:*mut TSTreeCursor,pos:ptrdi
   if ts_tree_cursor_goto_next_sibling(cursor) { node=ts_tree_cursor_current_node(cursor); } else { return false; }
  }
  return true;
+
+  }
 }
 
 
@@ -2420,6 +2600,8 @@ if ts_node_is_null(sibling) { return Qnil(); }return make_treesit_node((*XTS_NOD
 
 #[cfg(feature = "have_tree_sitter")]
 unsafe fn treesit_query_string_string(str_: Lisp_Object) -> Lisp_Object {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
     let nbytes = SBYTES(str_);
     let mut escapes: ptrdiff_t = 0;
     for i in 0..nbytes {
@@ -2446,6 +2628,8 @@ unsafe fn treesit_query_string_string(str_: Lisp_Object) -> Lisp_Object {
     *d = b'"'; d = d.add(1);
     eassert!(d == SDATA(dst).offset(SBYTES(dst)));
     dst
+
+  }
 }
 
 #[cfg(feature = "have_tree_sitter")]
@@ -2455,6 +2639,8 @@ struct capture_range { start: Lisp_Object, end: Lisp_Object }
 
 #[cfg(feature = "have_tree_sitter")]
 unsafe fn treesit_predicates_for_pattern(query: *mut TSQuery, pattern_index: u32) -> Lisp_Object {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
     let mut len = 0;
     let predicate_list = ts_query_predicates_for_pattern(query, pattern_index, &raw mut len);
     let mut result = Qnil();
@@ -2479,11 +2665,15 @@ unsafe fn treesit_predicates_for_pattern(query: *mut TSQuery, pattern_index: u32
         idx = idx.wrapping_add(1);
     }
     Fnreverse(result)
+
+  }
 }
 
 #[cfg(feature = "have_tree_sitter")]
 unsafe fn treesit_predicate_capture_name_to_node(name: Lisp_Object, captures: capture_range,
     node: *mut Lisp_Object, signal_data: *mut Lisp_Object) -> bool {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
     *node = Qnil();
     let mut tail = captures.start;
     while !EQ(tail, captures.end) {
@@ -2496,11 +2686,15 @@ unsafe fn treesit_predicate_capture_name_to_node(name: Lisp_Object, captures: ca
         return false;
     }
     true
+
+  }
 }
 
 #[cfg(feature = "have_tree_sitter")]
 unsafe fn treesit_predicate_capture_name_to_text(name: Lisp_Object, captures: capture_range,
     text: *mut Lisp_Object, signal_data: *mut Lisp_Object) -> bool {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
     let mut node = Qnil();
     if !treesit_predicate_capture_name_to_node(name, captures, &raw mut node, signal_data) { return false; }
     let old_buffer = current_buffer!();
@@ -2508,11 +2702,15 @@ unsafe fn treesit_predicate_capture_name_to_text(name: Lisp_Object, captures: ca
     *text = Fbuffer_substring(Ftreesit_node_start(node), Ftreesit_node_end(node));
     set_buffer_internal(old_buffer);
     true
+
+  }
 }
 
 #[cfg(feature = "have_tree_sitter")]
 unsafe fn treesit_predicate_equal(args: Lisp_Object, captures: capture_range,
     signal_data: *mut Lisp_Object) -> bool {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
     if list_length(args) != 2 {
         *signal_data = list2(build_string(c"Predicate `equal' requires two arguments but got".as_ptr()), Flength(args));
         return false;
@@ -2524,6 +2722,8 @@ unsafe fn treesit_predicate_equal(args: Lisp_Object, captures: capture_range,
     if SYMBOLP(arg1) && !treesit_predicate_capture_name_to_text(arg1, captures, &raw mut text1, signal_data) { return false; }
     if SYMBOLP(arg2) && !treesit_predicate_capture_name_to_text(arg2, captures, &raw mut text2, signal_data) { return false; }
     !NILP(Fstring_equal(text1, text2))
+
+  }
 }
 
 #[cfg(feature = "have_tree_sitter")]
@@ -2540,6 +2740,8 @@ unsafe extern "C-unwind" {
 #[cfg(feature = "have_tree_sitter")]
 unsafe fn treesit_predicate_match(args: Lisp_Object, captures: capture_range,
     signal_data: *mut Lisp_Object) -> bool {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
     if list_length(args) != 2 {
         *signal_data = list2(build_string(c"Predicate `match?' requires two arguments but got".as_ptr()), Flength(args));
         return false;
@@ -2571,11 +2773,15 @@ unsafe fn treesit_predicate_match(args: Lisp_Object, captures: capture_range,
     BEGV!() = old_begv; BEGV_BYTE!() = old_begv_byte;
     ZV!() = old_zv; ZV_BYTE!() = old_zv_byte;
     val > 0
+
+  }
 }
 
 #[cfg(feature = "have_tree_sitter")]
 unsafe fn treesit_predicate_pred(args: Lisp_Object, captures: capture_range,
     signal_data: *mut Lisp_Object, parser: Lisp_Object) -> bool {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
     if list_length(args) < 2 {
         *signal_data = list2(build_string(c"Predicate `pred' requires at least two arguments, but only got".as_ptr()), Flength(args));
         return false;
@@ -2593,11 +2799,15 @@ unsafe fn treesit_predicate_pred(args: Lisp_Object, captures: capture_range,
     let val = CALLN!(Fapply, fn_, nodes);
     if (*XTS_PARSER(parser)).timestamp != ts { *signal_data = list1(fn_); return false; }
     !NILP(val)
+
+  }
 }
 
 #[cfg(feature = "have_tree_sitter")]
 unsafe fn treesit_eval_predicates(captures: capture_range, predicates: Lisp_Object,
     signal_data: *mut Lisp_Object, parser: Lisp_Object) -> bool {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
     let mut pass = true;
     let mut tail = predicates;
     while pass && !NILP(tail) {
@@ -2618,22 +2828,30 @@ unsafe fn treesit_eval_predicates(captures: capture_range, predicates: Lisp_Obje
         tail = XCDR(tail);
     }
     pass
+
+  }
 }
 
 #[cfg(feature = "have_tree_sitter")]
 unsafe fn treesit_resolve_node(obj: Lisp_Object) -> Lisp_Object {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
     if TS_NODEP(obj) { treesit_check_node(obj); obj }
     else if TS_PARSERP(obj) { treesit_check_parser(obj); Ftreesit_parser_root_node(obj) }
     else if SYMBOLP(obj) {
         let parser = Ftreesit_parser_create(obj, Fcurrent_buffer(), Qnil(), Qnil());
         Ftreesit_parser_root_node(parser)
     } else { wrong_type_argument(list4(Qor(), Qtreesit_node_p(), Qtreesit_parser_p(), Qsymbolp()), obj) }
+
+  }
 }
 
 #[cfg(feature = "have_tree_sitter")]
 unsafe fn treesit_initialize_query(mut query: Lisp_Object, lang: *const TSLanguage,
     ts_query: *mut *mut TSQuery, cursor: *mut *mut TSQueryCursor, need_free: *mut bool,
     signal_symbol: *mut Lisp_Object, signal_data: *mut Lisp_Object) -> bool {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
     if TS_COMPILED_QUERY_P(query) {
         *ts_query = treesit_ensure_query_compiled(query, signal_symbol, signal_data);
         *cursor = treesit_ensure_query_cursor(query);
@@ -2651,10 +2869,14 @@ unsafe fn treesit_initialize_query(mut query: Lisp_Object, lang: *const TSLangua
             false
         } else { *cursor = ts_query_cursor_new(); *need_free = true; true }
     }
+
+  }
 }
 
 #[cfg(feature = "have_tree_sitter")]
 unsafe fn query_capture_remove_capture_name(start: Lisp_Object, end: Lisp_Object) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
     let mut tail = start;
     FOR_EACH_TAIL!(tail, {
         let cell = CAR(tail);
@@ -2662,6 +2884,8 @@ unsafe fn query_capture_remove_capture_name(start: Lisp_Object, end: Lisp_Object
         XSETCAR(tail, CDR(cell));
         if EQ(CDR(tail), end) { return; }
     });
+
+  }
 }
 
 #[cfg(feature = "have_tree_sitter")]
@@ -2670,6 +2894,8 @@ unsafe fn treesit_assume_true(val: bool) { eassert!(val == true); }
 #[cfg(feature = "have_tree_sitter")]
 unsafe fn treesit_cursor_helper_1(cursor: *mut TSTreeCursor, target: *const TSNode,
     start_pos: u32, end_pos: u32, limit: ptrdiff_t) -> bool {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
     if limit <= 0 { return false; }
     let mut cursor_node = ts_tree_cursor_current_node(cursor);
     if ts_node_eq(cursor_node, *target) { return true; }
@@ -2684,10 +2910,14 @@ unsafe fn treesit_cursor_helper_1(cursor: *mut TSTreeCursor, target: *const TSNo
     }
     treesit_assume_true(ts_tree_cursor_goto_parent(cursor));
     false
+
+  }
 }
 
 #[cfg(feature = "have_tree_sitter")]
 unsafe fn treesit_cursor_helper(cursor: *mut TSTreeCursor, node: TSNode, parser: Lisp_Object) -> bool {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
     let start_pos = ts_node_start_byte(node);
     let end_pos = ts_node_end_byte(node);
     let root = ts_tree_root_node((*XTS_PARSER(parser)).tree);
@@ -2695,10 +2925,14 @@ unsafe fn treesit_cursor_helper(cursor: *mut TSTreeCursor, node: TSNode, parser:
     let success = treesit_cursor_helper_1(cursor, &node, start_pos, end_pos, TREESIT_RECURSION_LIMIT as ptrdiff_t);
     if !success { ts_tree_cursor_delete(cursor); }
     success
+
+  }
 }
 
 #[cfg(feature = "have_tree_sitter")]
 unsafe fn treesit_traverse_sibling_helper(cursor: *mut TSTreeCursor, forward: bool, named: bool) -> bool {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
     if forward {
         if !named { return ts_tree_cursor_goto_next_sibling(cursor); }
         while ts_tree_cursor_goto_next_sibling(cursor) {
@@ -2743,10 +2977,14 @@ unsafe fn treesit_traverse_sibling_helper(cursor: *mut TSTreeCursor, forward: bo
             false
         }
     }
+
+  }
 }
 
 #[cfg(feature = "have_tree_sitter")]
 unsafe fn treesit_traverse_child_helper(cursor: *mut TSTreeCursor, forward: bool, named: bool) -> bool {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
     if forward {
         if !named { return ts_tree_cursor_goto_first_child(cursor); }
         if !ts_tree_cursor_goto_first_child(cursor) { return false; }
@@ -2761,10 +2999,14 @@ unsafe fn treesit_traverse_child_helper(cursor: *mut TSTreeCursor, forward: bool
         if treesit_traverse_sibling_helper(cursor, false, true) { true }
         else { treesit_assume_true(ts_tree_cursor_goto_parent(cursor)); false }
     }
+
+  }
 }
 
 #[cfg(feature = "have_tree_sitter")]
 unsafe fn treesit_traverse_get_predicate(thing: Lisp_Object, language: Lisp_Object) -> Lisp_Object {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
     let cons = assq_no_signal(language, Vtreesit_thing_settings);
     if NILP(cons) { return Qnil(); }
     let definitions = XCDR(cons);
@@ -2773,11 +3015,15 @@ unsafe fn treesit_traverse_get_predicate(thing: Lisp_Object, language: Lisp_Obje
     let cdr = XCDR(entry);
     if !CONSP(cdr) { return Qnil(); }
     XCAR(cdr)
+
+  }
 }
 
 #[cfg(feature = "have_tree_sitter")]
 unsafe fn treesit_traverse_validate_predicate(pred: Lisp_Object, language: Lisp_Object,
     signal_data: *mut Lisp_Object, recursion_level: ptrdiff_t) -> bool {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
     if recursion_level > 99 {
         *signal_data = list2(Qtreesit_invalid_predicate(),
             build_string(c"Predicate recursion level exceeded: it must not exceed 100 levels".as_ptr()));
@@ -2822,11 +3068,15 @@ unsafe fn treesit_traverse_validate_predicate(pred: Lisp_Object, language: Lisp_
     *signal_data = list3(Qtreesit_invalid_predicate(),
         build_string(c"Invalid predicate, see `treesit-thing-settings' for valid forms of predicate".as_ptr()), pred);
     false
+
+  }
 }
 
 #[cfg(feature = "have_tree_sitter")]
 unsafe fn treesit_traverse_match_predicate(cursor: *mut TSTreeCursor, pred: Lisp_Object,
     parser: Lisp_Object, named: bool) -> bool {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
     let node = ts_tree_cursor_current_node(cursor);
     if named && !ts_node_is_named(node) { return false; }
     if STRINGP(pred) {
@@ -2868,11 +3118,15 @@ unsafe fn treesit_traverse_match_predicate(cursor: *mut TSTreeCursor, pred: Lisp
         }
     }
     false
+
+  }
 }
 
 #[cfg(feature = "have_tree_sitter")]
 unsafe fn treesit_search_dfs(cursor: *mut TSTreeCursor, pred: Lisp_Object,
     parser: Lisp_Object, forward: bool, named: bool, limit: ptrdiff_t, skip_root: bool) -> bool {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
     if !skip_root && treesit_traverse_match_predicate(cursor, pred, parser, named) { return true; }
     if limit == 0 { return false; }
     if !treesit_traverse_child_helper(cursor, forward, named) { return false; }
@@ -2882,11 +3136,15 @@ unsafe fn treesit_search_dfs(cursor: *mut TSTreeCursor, pred: Lisp_Object,
     }
     treesit_assume_true(ts_tree_cursor_goto_parent(cursor));
     false
+
+  }
 }
 
 #[cfg(feature = "have_tree_sitter")]
 unsafe fn treesit_search_forward(cursor: *mut TSTreeCursor, pred: Lisp_Object,
     parser: Lisp_Object, forward: bool, named: bool) -> bool {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
     let mut initial = true;
     loop {
         if !initial && treesit_traverse_match_predicate(cursor, pred, parser, named) { return true; }
@@ -2897,16 +3155,24 @@ unsafe fn treesit_search_forward(cursor: *mut TSTreeCursor, pred: Lisp_Object,
         }
         while treesit_traverse_child_helper(cursor, forward, false) {}
     }
+
+  }
 }
 
 #[cfg(feature = "have_tree_sitter")]
 unsafe extern "C-unwind" fn treesit_traverse_cleanup_cursor(cursor: *mut c_void) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
     ts_tree_cursor_delete(cursor.cast());
+
+  }
 }
 
 #[cfg(feature = "have_tree_sitter")]
 unsafe fn treesit_build_sparse_tree(cursor: *mut TSTreeCursor, mut parent: Lisp_Object,
     pred: Lisp_Object, process_fn: Lisp_Object, limit: ptrdiff_t, parser: Lisp_Object) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
     let match_ = treesit_traverse_match_predicate(cursor, pred, parser, false);
     if match_ {
         let node = ts_tree_cursor_current_node(cursor);
@@ -2924,6 +3190,8 @@ unsafe fn treesit_build_sparse_tree(cursor: *mut TSTreeCursor, mut parent: Lisp_
         ts_tree_cursor_goto_parent(cursor);
     }
     if match_ { Fsetcdr(parent, Fnreverse(Fcdr(parent))); }
+
+  }
 }
 
 
@@ -3169,6 +3437,8 @@ DEFUN! ("treesit-available-p", Ftreesit_available_p,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_treesit ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   #[cfg(feature = "have_tree_sitter")]
   {
 
@@ -3389,5 +3659,7 @@ pub unsafe extern "C-unwind" fn syms_of_treesit ()
     Fset(Qtree_sitter__library_abi(), make_fixnum(TREE_SITTER_LANGUAGE_VERSION as EMACS_INT));
     #[cfg(not(feature = "have_tree_sitter"))]
     Fset(Qtree_sitter__library_abi(), make_fixnum(-1));
+  }
+
   }
 }

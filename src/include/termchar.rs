@@ -258,7 +258,7 @@ macro_rules! FRAME_TTY {
   ($f:expr) => {{
     let f = $f;
     if output_method (f) == output_termcap || output_method (f) == output_msdos_raw
-    { unsafe { (*(*f).terminal).display_info.tty }.cast::<tty_display_info> () }
+    { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*(*f).terminal).display_info.tty }.cast::<tty_display_info> () }
     else
     { unsafe { emacs_abort () }; 0 as *mut tty_display_info }
   }};

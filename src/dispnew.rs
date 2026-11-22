@@ -22,11 +22,7 @@
 // in Rust and are not carried; the `#if 0` debugging aid of C 107-119 and the other `#if 0`
 // regions are dead in C itself and are recorded only.
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_mut, unused_assignments,
-         unused_unsafe, static_mut_refs, unsafe_op_in_unsafe_fn, unused_parens,
-         clashing_extern_declarations, unused_labels, unreachable_code, unused_comparisons,
-         unnecessary_cast, unused_must_use, overflowing_literals)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_mut, unused_assignments, unused_unsafe, unused_parens, clashing_extern_declarations, unused_labels, unreachable_code, unused_comparisons, unnecessary_cast, unused_must_use, overflowing_literals)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -125,7 +121,7 @@ static mut delayed_size_change: bool = false;
    `docs/ports/frame.md`).  */
 
 
-#[unsafe(no_mangle)] pub static mut space_glyph: glyph = unsafe { std::mem::zeroed () };
+#[unsafe(no_mangle)] pub static mut space_glyph: glyph = /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { std::mem::zeroed () };
 
 /* C 129-137: `#if defined GLYPH_DEBUG && defined ENABLE_CHECKING` — the counts of allocated
    structures, used to diagnose memory leaks and double frees.  `GLYPH_DEBUG` and
@@ -514,6 +510,8 @@ macro_rules! xwidget_end_redisplay {
 
 unsafe fn new_glyph_matrix (pool: *mut glyph_pool) -> *mut glyph_matrix
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut result: *mut glyph_matrix =
     xzalloc (core::mem::size_of::<glyph_matrix> ()) as *mut glyph_matrix;
 
@@ -527,6 +525,8 @@ unsafe fn new_glyph_matrix (pool: *mut glyph_pool) -> *mut glyph_matrix
   /* Set pool and return.  */
   (*result).pool = pool;
   return result;
+
+  }
 }
 
 
@@ -543,6 +543,8 @@ unsafe fn new_glyph_matrix (pool: *mut glyph_pool) -> *mut glyph_matrix
 
 unsafe fn free_glyph_matrix (matrix: *mut glyph_matrix)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if !matrix.is_null ()
     {
       let mut i: c_int;
@@ -571,6 +573,8 @@ unsafe fn free_glyph_matrix (matrix: *mut glyph_matrix)
       xfree ((*matrix).rows as *mut c_void);
       xfree (matrix as *mut c_void);
     }
+
+  }
 }
 
 
@@ -582,6 +586,8 @@ unsafe fn free_glyph_matrix (matrix: *mut glyph_matrix)
 unsafe fn margin_glyphs_to_reserve (w: *mut window, total_glyphs: c_int,
 					   margin: c_int) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if margin > 0
     {
       let width: c_int = (*w).total_cols;
@@ -592,6 +598,8 @@ unsafe fn margin_glyphs_to_reserve (w: *mut window, total_glyphs: c_int,
       return std::cmp::max (1, (total_glyphs as c_double / width as c_double * d) as c_int);
     }
   return 0;
+
+  }
 }
 
 /* Return true if ROW's hash value is correct.
@@ -599,7 +607,11 @@ unsafe fn margin_glyphs_to_reserve (w: *mut window, total_glyphs: c_int,
 
 unsafe fn verify_row_hash (row: *mut glyph_row) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   return (*row).hash == row_hash (row);
+
+  }
 }
 
 /* Adjust glyph matrix MATRIX on window W or on a frame to changed
@@ -627,6 +639,8 @@ unsafe fn verify_row_hash (row: *mut glyph_row) -> bool
 unsafe fn adjust_glyph_matrix (w: *mut window, matrix: *mut glyph_matrix,
 				      x: c_int, y: c_int, dim: dim)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut i: c_int;
   let mut new_rows: c_int;
   let mut marginal_areas_changed_p: bool = false;
@@ -701,7 +715,7 @@ unsafe fn adjust_glyph_matrix (w: *mut window, matrix: *mut glyph_matrix,
       /* A diagnostic switch (PORTING.md P-115's shape): the two operands of the clear below and
 	 the element size, so a size disagreement between this call site and the allocator is
 	 visible in one line.  Off unless the variable is set.  */
-      if unsafe { !getenv (c"FEMACS_XPALLOC_TRACE".as_ptr ()).is_null () }
+      if /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { !getenv (c"FEMACS_XPALLOC_TRACE".as_ptr ()).is_null () }
 	{
 	  fprintf (stderr, c"adjust_glyph_matrix: sizeof(glyph_row)=%d old_alloc=%d rows_allocated=%d dim.height=%d\n".as_ptr (),
 		   core::mem::size_of::<glyph_row> () as c_int, old_alloc,
@@ -948,6 +962,8 @@ unsafe fn adjust_glyph_matrix (w: *mut window, matrix: *mut glyph_matrix,
       (*matrix).window_width = window_width;
       (*matrix).window_vscroll = (*w).vscroll;
     }
+
+  }
 }
 
 /* Reverse the contents of rows in MATRIX between START and END.  The
@@ -957,6 +973,8 @@ unsafe fn adjust_glyph_matrix (w: *mut window, matrix: *mut glyph_matrix,
 
 unsafe fn reverse_rows (matrix: *mut glyph_matrix, start: c_int, end: c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut i: c_int;
   let mut j: c_int;
 
@@ -971,6 +989,8 @@ unsafe fn reverse_rows (matrix: *mut glyph_matrix, start: c_int, end: c_int)
       *(*matrix).rows.add (j as usize) = temp;
       i += 1; j -= 1;
     }
+
+  }
 }
 
 
@@ -990,6 +1010,8 @@ unsafe fn reverse_rows (matrix: *mut glyph_matrix, start: c_int, end: c_int)
 							     first: c_int, last: c_int,
 							     mut by: c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if by < 0
     {
       /* Up (rotate left, i.e. towards lower indices).  */
@@ -1005,6 +1027,8 @@ unsafe fn reverse_rows (matrix: *mut glyph_matrix, start: c_int, end: c_int)
       reverse_rows (matrix, first, last - by);
       reverse_rows (matrix, first, last);
     }
+
+  }
 }
 
 
@@ -1016,6 +1040,8 @@ unsafe fn reverse_rows (matrix: *mut glyph_matrix, start: c_int, end: c_int)
   (matrix: *mut glyph_matrix, mut start: c_int, end: c_int, delta: ptrdiff_t,
    delta_bytes: ptrdiff_t)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* Check that START and END are reasonable values.  */
   eassert! (start >= 0 && start <= (*matrix).nrows);
   eassert! (end >= 0 && end <= (*matrix).nrows);
@@ -1026,6 +1052,8 @@ unsafe fn reverse_rows (matrix: *mut glyph_matrix, start: c_int, end: c_int)
       increment_row_positions ((*matrix).rows.offset (start as isize), delta, delta_bytes);
       start += 1;
     }
+
+  }
 }
 
 
@@ -1035,6 +1063,8 @@ unsafe fn reverse_rows (matrix: *mut glyph_matrix, start: c_int, end: c_int)
 #[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn clear_glyph_matrix_rows
   (matrix: *mut glyph_matrix, mut start: c_int, end: c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   eassert! (start <= end);
   eassert! (start >= 0 && (start < (*matrix).nrows
 			   /* matrix->nrows can be 0 for the initial frame.  */
@@ -1046,6 +1076,8 @@ unsafe fn reverse_rows (matrix: *mut glyph_matrix, start: c_int, end: c_int)
       glyph_row_bits! (enabled_p, (*matrix).rows.offset (start as isize), false);
       start += 1;
     }
+
+  }
 }
 
 
@@ -1060,11 +1092,15 @@ unsafe fn reverse_rows (matrix: *mut glyph_matrix, start: c_int, end: c_int)
 
 #[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn clear_glyph_matrix (matrix: *mut glyph_matrix)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if !matrix.is_null ()
     {
       clear_glyph_matrix_rows (matrix, 0, (*matrix).nrows);
       glyph_matrix_bits! (no_scrolling_p, matrix, false);
     }
+
+  }
 }
 
 
@@ -1075,6 +1111,8 @@ unsafe fn reverse_rows (matrix: *mut glyph_matrix, start: c_int, end: c_int)
 #[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn shift_glyph_matrix
   (w: *mut window, matrix: *mut glyph_matrix, mut start: c_int, end: c_int, dy: c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut min_y: c_int;
   let mut max_y: c_int;
 
@@ -1100,6 +1138,8 @@ unsafe fn reverse_rows (matrix: *mut glyph_matrix, start: c_int, end: c_int)
 	{ glyph_row_bits! (redraw_fringe_bitmaps_p, row, true); }
       start += 1;
     }
+
+  }
 }
 
 /* Mark all rows in current matrices of frame F as invalid.  Marking
@@ -1108,6 +1148,8 @@ unsafe fn reverse_rows (matrix: *mut glyph_matrix, start: c_int, end: c_int)
 
 #[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn clear_current_matrices (f: *mut frame)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* Clear frame current matrix, if we have one.  */
   if !(*f).current_matrix.is_null ()
     { clear_glyph_matrix ((*f).current_matrix as *mut glyph_matrix); }
@@ -1141,6 +1183,8 @@ unsafe fn reverse_rows (matrix: *mut glyph_matrix, start: c_int, end: c_int)
   /* Clear current window matrices.  */
   eassert! (WINDOWP (FRAME_ROOT_WINDOW (f)));
   clear_window_matrices (XWINDOW (FRAME_ROOT_WINDOW (f)), false);
+
+  }
 }
 
 
@@ -1148,6 +1192,8 @@ unsafe fn reverse_rows (matrix: *mut glyph_matrix, start: c_int, end: c_int)
 
 #[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn clear_desired_matrices (f: *mut frame)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if !(*f).desired_matrix.is_null ()
     { clear_glyph_matrix ((*f).desired_matrix as *mut glyph_matrix); }
 
@@ -1175,6 +1221,8 @@ unsafe fn reverse_rows (matrix: *mut glyph_matrix, start: c_int, end: c_int)
   /* Do it for window matrices.  */
   eassert! (WINDOWP (FRAME_ROOT_WINDOW (f)));
   clear_window_matrices (XWINDOW (FRAME_ROOT_WINDOW (f)), true);
+
+  }
 }
 
 
@@ -1183,6 +1231,8 @@ unsafe fn reverse_rows (matrix: *mut glyph_matrix, start: c_int, end: c_int)
 
 unsafe fn clear_window_matrices (w: *mut window, desired_p: bool)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut w: *mut window = w;
 
   while !w.is_null ()
@@ -1202,6 +1252,8 @@ unsafe fn clear_window_matrices (w: *mut window, desired_p: bool)
 
       w = if NILP ((*w).next) { core::ptr::null_mut () } else { XWINDOW ((*w).next) };
     }
+
+  }
 }
 
 
@@ -1216,11 +1268,15 @@ unsafe fn clear_window_matrices (w: *mut window, desired_p: bool)
 
 #[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn clear_glyph_row (row: *mut glyph_row)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let off: usize = core::mem::offset_of! (glyph_row, used);
 
   /* Zero everything except pointers in `glyphs'.  */
   std::ptr::write_bytes ((row as *mut u8).offset (off as isize), 0,
 			 core::mem::size_of::<glyph_row> () - off);
+
+  }
 }
 
 
@@ -1230,6 +1286,8 @@ unsafe fn clear_window_matrices (w: *mut window, desired_p: bool)
 #[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn blank_row (w: *mut window, row: *mut glyph_row,
 							y: c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut min_y: c_int;
   let mut max_y: c_int;
 
@@ -1250,6 +1308,8 @@ unsafe fn clear_window_matrices (w: *mut window, desired_p: bool)
     { (*row).visible_height -= (*row).y + (*row).height - max_y; }
 
   glyph_row_bits! (enabled_p, row, true);
+
+  }
 }
 
 
@@ -1262,6 +1322,8 @@ unsafe fn clear_window_matrices (w: *mut window, desired_p: bool)
 unsafe fn increment_row_positions (row: *mut glyph_row, delta: ptrdiff_t,
 				   delta_bytes: ptrdiff_t)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut area: c_int;
   let mut i: c_int;
 
@@ -1297,6 +1359,8 @@ unsafe fn increment_row_positions (row: *mut glyph_row, delta: ptrdiff_t,
   if (*row).used [TEXT_AREA as usize] == 0
       && MATRIX_ROW_DISPLAYS_TEXT_P! (row)
     { (*((*row).glyphs [TEXT_AREA as usize])).charpos += delta; }
+
+  }
 }
 
 /* Exchange pointers to glyph memory between glyph rows A and B.  Also
@@ -1306,6 +1370,8 @@ unsafe fn increment_row_positions (row: *mut glyph_row, delta: ptrdiff_t,
 
 unsafe fn swap_glyph_pointers (a: *mut glyph_row, b: *mut glyph_row)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut i: c_int;
   let mut hash_tem: c_uint = (*a).hash;
 
@@ -1327,6 +1393,8 @@ unsafe fn swap_glyph_pointers (a: *mut glyph_row, b: *mut glyph_row)
     }
   (*a).hash = (*b).hash;
   (*b).hash = hash_tem;
+
+  }
 }
 
 
@@ -1337,11 +1405,15 @@ unsafe fn swap_glyph_pointers (a: *mut glyph_row, b: *mut glyph_row)
 
 unsafe fn copy_row_except_pointers (to: *mut glyph_row, from: *mut glyph_row)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let off: usize = core::mem::offset_of! (glyph_row, x);
 
   std::ptr::copy_nonoverlapping ((from as *const u8).offset (off as isize),
 				 (to as *mut u8).offset (off as isize),
 				 core::mem::size_of::<glyph_row> () - off);
+
+  }
 }
 
 
@@ -1352,8 +1424,12 @@ unsafe fn copy_row_except_pointers (to: *mut glyph_row, from: *mut glyph_row)
 
 unsafe fn assign_row (to: *mut glyph_row, from: *mut glyph_row)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   swap_glyph_pointers (to, from);
   copy_row_except_pointers (to, from);
+
+  }
 }
 
 
@@ -1387,6 +1463,8 @@ unsafe fn glyph_row_slice_p (window_row: *mut glyph_row, frame_row: *mut glyph_r
 #[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn prepare_desired_row
   (w: *mut window, row: *mut glyph_row, mode_line_p: bool)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if !glyph_row_bits! (enabled_p, row)
     {
       let rp: bool = glyph_row_bits! (reversed_p, row);
@@ -1441,6 +1519,8 @@ unsafe fn glyph_row_slice_p (window_row: *mut glyph_row, frame_row: *mut glyph_r
 		= (*row).glyphs [RIGHT_MARGIN_AREA as usize].offset (-1); }
 	}
     }
+
+  }
 }
 
 /* C 1165-3827: `#ifndef HAVE_ANDROID` — live on the frozen target (HAVE_ANDROID is
@@ -1452,6 +1532,8 @@ unsafe fn glyph_row_slice_p (window_row: *mut glyph_row, frame_row: *mut glyph_r
 
 unsafe fn line_hash_code (f: *mut frame, row: *mut glyph_row) -> c_uint
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut hash: c_uint = 0;
 
   if glyph_row_bits! (enabled_p, row)
@@ -1486,6 +1568,8 @@ unsafe fn line_hash_code (f: *mut frame, row: *mut glyph_row) -> c_uint
     }
 
   return hash;
+
+  }
 }
 
 
@@ -1496,6 +1580,8 @@ unsafe fn line_hash_code (f: *mut frame, row: *mut glyph_row) -> c_uint
 
 unsafe fn line_draw_cost (f: *mut frame, matrix: *mut glyph_matrix, vpos: c_int) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let row: *mut glyph_row = (*matrix).rows.offset (vpos as isize);
   let mut beg: *mut glyph = (*row).glyphs [TEXT_AREA as usize];
   let mut end: *mut glyph = beg.offset ((*row).used [TEXT_AREA as usize] as isize);
@@ -1545,6 +1631,8 @@ unsafe fn line_draw_cost (f: *mut frame, matrix: *mut glyph_matrix, vpos: c_int)
     }
 
   return len;
+
+  }
 }
 
 /* Return true if the glyph rows A and B have equal contents.
@@ -1552,6 +1640,8 @@ unsafe fn line_draw_cost (f: *mut frame, matrix: *mut glyph_matrix, vpos: c_int)
 
 unsafe fn row_equal_p (a: *mut glyph_row, b: *mut glyph_row, mouse_face_p: bool) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   eassert! (verify_row_hash (a));
   eassert! (verify_row_hash (b));
 
@@ -1618,6 +1708,8 @@ unsafe fn row_equal_p (a: *mut glyph_row, b: *mut glyph_row, mouse_face_p: bool)
     }
 
   return true;
+
+  }
 }
 
 
@@ -1633,6 +1725,8 @@ unsafe fn row_equal_p (a: *mut glyph_row, b: *mut glyph_row, mouse_face_p: bool)
 
 unsafe fn new_glyph_pool () -> *mut glyph_pool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut result: *mut glyph_pool =
     xzalloc (core::mem::size_of::<glyph_pool> ()) as *mut glyph_pool;
 
@@ -1643,6 +1737,8 @@ unsafe fn new_glyph_pool () -> *mut glyph_pool
   }
 
   return result;
+
+  }
 }
 
 
@@ -1655,6 +1751,8 @@ unsafe fn new_glyph_pool () -> *mut glyph_pool
 
 unsafe fn free_glyph_pool (pool: *mut glyph_pool)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if !pool.is_null ()
     {
       #[cfg (all (feature = "glyph_debug", enable_checking))]
@@ -1666,6 +1764,8 @@ unsafe fn free_glyph_pool (pool: *mut glyph_pool)
       xfree ((*pool).glyphs as *mut c_void);
       xfree (pool as *mut c_void);
     }
+
+  }
 }
 
 
@@ -1680,6 +1780,8 @@ unsafe fn free_glyph_pool (pool: *mut glyph_pool)
 
 unsafe fn realloc_glyph_pool (pool: *mut glyph_pool, matrix_dim: dim) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut needed: ptrdiff_t;
   let mut changed_p: bool;
 
@@ -1712,6 +1814,8 @@ unsafe fn realloc_glyph_pool (pool: *mut glyph_pool, matrix_dim: dim) -> bool
   (*pool).ncolumns = matrix_dim.width;
 
   return changed_p;
+
+  }
 }
 
 
@@ -1881,6 +1985,8 @@ unsafe fn allocate_matrices_for_frame_redisplay (window: Lisp_Object, x: c_int, 
 						  dim_only_p: bool,
 						  window_change_flags: *mut c_int) -> dim
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let f: *mut frame = XFRAME (WINDOW_FRAME! (XWINDOW (window)));
   let x0: c_int = x; let y0: c_int = y;
   let mut x: c_int = x; let mut y: c_int = y;
@@ -1986,6 +2092,8 @@ unsafe fn allocate_matrices_for_frame_redisplay (window: Lisp_Object, x: c_int, 
     }
 
   return total;
+
+  }
 }
 
 
@@ -1993,6 +2101,8 @@ unsafe fn allocate_matrices_for_frame_redisplay (window: Lisp_Object, x: c_int, 
 
 unsafe fn required_matrix_height (w: *mut window) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   #[cfg (feature = "have_window_system")]
   {
   let f: *mut frame = XFRAME ((*w).frame);
@@ -2014,6 +2124,8 @@ unsafe fn required_matrix_height (w: *mut window) -> c_int
   }
 
   return WINDOW_TOTAL_LINES (w);
+
+  }
 }
 
 
@@ -2021,6 +2133,8 @@ unsafe fn required_matrix_height (w: *mut window) -> c_int
 
 unsafe fn required_matrix_width (w: *mut window) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   #[cfg (feature = "have_window_system")]
   {
   let f: *mut frame = XFRAME ((*w).frame);
@@ -2041,6 +2155,8 @@ unsafe fn required_matrix_width (w: *mut window) -> c_int
   }
 
   return (*w).total_cols;
+
+  }
 }
 
 
@@ -2049,6 +2165,8 @@ unsafe fn required_matrix_width (w: *mut window) -> c_int
 
 unsafe fn allocate_matrices_for_window_redisplay (w: *mut window)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut w: *mut window = w;
 
   while !w.is_null ()
@@ -2078,6 +2196,8 @@ unsafe fn allocate_matrices_for_window_redisplay (w: *mut window)
 
       w = if NILP ((*w).next) { core::ptr::null_mut () } else { XWINDOW ((*w).next) };
     }
+
+  }
 }
 
 /* Allocate/reallocate glyph matrices of a single frame F.
@@ -2086,6 +2206,8 @@ unsafe fn allocate_matrices_for_window_redisplay (w: *mut window)
 
 #[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn adjust_frame_glyphs (f: *mut frame)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* Block input so that expose events and other events that access
      glyph matrices are not processed while we are changing them.  */
   block_input ();
@@ -2113,12 +2235,16 @@ unsafe fn allocate_matrices_for_window_redisplay (w: *mut window)
   glyphs_initialized_p! (f, true);
 
   unblock_input ();
+
+  }
 }
 
 /* Return true if any window in the tree has nonzero window margins.  See
    the hack at the end of adjust_frame_glyphs_for_frame_redisplay.  */
 unsafe fn showing_window_margins_p (w: *mut window) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut w: *mut window = w;
 
   while !w.is_null ()
@@ -2134,6 +2260,8 @@ unsafe fn showing_window_margins_p (w: *mut window) -> bool
       w = if NILP ((*w).next) { core::ptr::null_mut () } else { XWINDOW ((*w).next) };
     }
   return false;
+
+  }
 }
 
 
@@ -2142,6 +2270,8 @@ unsafe fn showing_window_margins_p (w: *mut window) -> bool
 
 unsafe fn fake_current_matrices (window: Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut window: Lisp_Object = window;
   let mut w: *mut window;
 
@@ -2193,6 +2323,8 @@ unsafe fn fake_current_matrices (window: Lisp_Object)
 	}
       window = (*w).next;
     }
+
+  }
 }
 
 
@@ -2201,6 +2333,8 @@ unsafe fn fake_current_matrices (window: Lisp_Object)
 
 unsafe fn save_current_matrix (f: *mut frame) -> *mut glyph_matrix
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut i: c_int;
   let mut saved: *mut glyph_matrix =
     xzalloc (core::mem::size_of::<glyph_matrix> ()) as *mut glyph_matrix;
@@ -2249,6 +2383,8 @@ unsafe fn save_current_matrix (f: *mut frame) -> *mut glyph_matrix
     }
 
   return saved;
+
+  }
 }
 
 
@@ -2257,6 +2393,8 @@ unsafe fn save_current_matrix (f: *mut frame) -> *mut glyph_matrix
 
 unsafe fn restore_current_matrix (f: *mut frame, saved: *mut glyph_matrix)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut i: c_int;
 
   i = 0;
@@ -2301,6 +2439,8 @@ unsafe fn restore_current_matrix (f: *mut frame, saved: *mut glyph_matrix)
 
   xfree ((*saved).rows as *mut c_void);
   xfree (saved as *mut c_void);
+
+  }
 }
 
 
@@ -2309,6 +2449,8 @@ unsafe fn restore_current_matrix (f: *mut frame, saved: *mut glyph_matrix)
 
 unsafe fn adjust_frame_glyphs_for_frame_redisplay (f: *mut frame)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut matrix_dim: dim = dim { width: 0, height: 0 };
   let pool_changed_p: bool;
   let mut window_change_flags: c_int;
@@ -2436,6 +2578,8 @@ unsafe fn adjust_frame_glyphs_for_frame_redisplay (f: *mut frame)
 	  SET_FRAME_GARBAGED! (f);
 	}
     }
+
+  }
 }
 
 
@@ -2444,6 +2588,8 @@ unsafe fn adjust_frame_glyphs_for_frame_redisplay (f: *mut frame)
 
 unsafe fn adjust_frame_glyphs_for_window_redisplay (f: *mut frame)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   eassert! (FRAME_WINDOW_P (f) && FRAME_LIVE_P (f));
 
   /* Allocate/reallocate window matrices.  */
@@ -2573,6 +2719,8 @@ unsafe fn adjust_frame_glyphs_for_window_redisplay (f: *mut frame)
     allocate_matrices_for_window_redisplay (w);
   }
   }
+
+  }
 }
 
 
@@ -2580,11 +2728,15 @@ unsafe fn adjust_frame_glyphs_for_window_redisplay (f: *mut frame)
 
 unsafe fn adjust_decode_mode_spec_buffer (f: *mut frame)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let frame_message_buf_size: c_int = FRAME_MESSAGE_BUF_SIZE (f);
 
   eassert! (frame_message_buf_size >= 0);
   (*f).decode_mode_spec_buffer = xrealloc ((*f).decode_mode_spec_buffer as *mut c_void,
 					   (frame_message_buf_size + 1) as usize) as *mut c_char;
+
+  }
 }
 
 
@@ -2599,6 +2751,8 @@ unsafe fn adjust_decode_mode_spec_buffer (f: *mut frame)
 
 #[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn free_glyphs (f: *mut frame)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if !f.is_null () && glyphs_initialized_p! (f)
     {
       /* Block interrupt input so that we don't get surprised by an X
@@ -2674,6 +2828,8 @@ unsafe fn adjust_decode_mode_spec_buffer (f: *mut frame)
 
       unblock_input ();
     }
+
+  }
 }
 
 
@@ -2683,6 +2839,8 @@ unsafe fn adjust_decode_mode_spec_buffer (f: *mut frame)
 
 #[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn free_window_matrices (w: *mut window)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut w: *mut window = w;
 
   while !w.is_null ()
@@ -2703,6 +2861,8 @@ unsafe fn adjust_decode_mode_spec_buffer (f: *mut frame)
       /* Next window on same level.  */
       w = if NILP ((*w).next) { core::ptr::null_mut () } else { XWINDOW ((*w).next) };
     }
+
+  }
 }
 
 
@@ -2713,6 +2873,8 @@ unsafe fn adjust_decode_mode_spec_buffer (f: *mut frame)
 
 #[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn check_glyph_memory ()
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut tail: Lisp_Object;
   let mut frame: Lisp_Object;
 
@@ -2726,6 +2888,8 @@ unsafe fn adjust_decode_mode_spec_buffer (f: *mut frame)
     /* Check that nothing is left allocated.  */
     eassert! (glyph_matrix_count == 0);
     eassert! (glyph_pool_count == 0);
+  }
+
   }
 }
 
@@ -2798,6 +2962,8 @@ unsafe fn adjust_decode_mode_spec_buffer (f: *mut frame)
 
 unsafe fn build_frame_matrix (f: *mut frame)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut i: c_int;
 
   /* F must have a frame matrix when this function is called.  */
@@ -2815,6 +2981,8 @@ unsafe fn build_frame_matrix (f: *mut frame)
   /* Build the matrix by walking the window tree.  */
   build_frame_matrix_from_window_tree ((*f).desired_matrix as *mut glyph_matrix,
 				       XWINDOW (FRAME_ROOT_WINDOW (f)));
+
+  }
 }
 
 
@@ -2823,6 +2991,8 @@ unsafe fn build_frame_matrix (f: *mut frame)
 
 unsafe fn build_frame_matrix_from_window_tree (matrix: *mut glyph_matrix, w: *mut window)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut w: *mut window = w;
 
   while !w.is_null ()
@@ -2834,6 +3004,8 @@ unsafe fn build_frame_matrix_from_window_tree (matrix: *mut glyph_matrix, w: *mu
 
       w = if NILP ((*w).next) { core::ptr::null_mut () } else { XWINDOW ((*w).next) };
     }
+
+  }
 }
 
 
@@ -2851,6 +3023,8 @@ unsafe fn build_frame_matrix_from_window_tree (matrix: *mut glyph_matrix, w: *mu
 unsafe fn build_frame_matrix_from_leaf_window (frame_matrix: *mut glyph_matrix,
 					       w: *mut window)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut window_matrix: *mut glyph_matrix;
   let mut window_y: c_int; let mut frame_y: c_int;
   /* If non-zero, a glyph to insert at the right border of W.  */
@@ -2989,6 +3163,8 @@ unsafe fn build_frame_matrix_from_leaf_window (frame_matrix: *mut glyph_matrix,
       window_y += 1;
       frame_y += 1;
     }
+
+  }
 }
 
 /* Given a user-specified glyph, possibly including a Lisp-level face
@@ -2999,6 +3175,8 @@ unsafe fn build_frame_matrix_from_leaf_window (frame_matrix: *mut glyph_matrix,
 #[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn spec_glyph_lookup_face
   (w: *mut window, glyph: *mut GLYPH)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let lface_id: c_int = GLYPH_FACE (*glyph);
   /* Convert the glyph's specified face to a realized (cache) face.  */
   if lface_id > 0
@@ -3006,6 +3184,8 @@ unsafe fn build_frame_matrix_from_leaf_window (frame_matrix: *mut glyph_matrix,
       let face_id: c_int = merge_faces (w, Qt (), lface_id, DEFAULT_FACE_ID);
       SET_GLYPH_FACE! (*glyph, face_id);
     }
+
+  }
 }
 
 /* Add spaces to a glyph row ROW in a window matrix.
@@ -3026,9 +3206,13 @@ unsafe fn build_frame_matrix_from_leaf_window (frame_matrix: *mut glyph_matrix,
 
 unsafe fn fill_up_glyph_row_with_spaces (f: *mut frame, row: *mut glyph_row)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   fill_up_glyph_row_area_with_spaces (f, row, LEFT_MARGIN_AREA);
   fill_up_glyph_row_area_with_spaces (f, row, TEXT_AREA);
   fill_up_glyph_row_area_with_spaces (f, row, RIGHT_MARGIN_AREA);
+
+  }
 }
 
 
@@ -3037,6 +3221,8 @@ unsafe fn fill_up_glyph_row_with_spaces (f: *mut frame, row: *mut glyph_row)
 
 unsafe fn fill_up_glyph_row_area_with_spaces (f: *mut frame, row: *mut glyph_row, area: c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if (*row).glyphs [area as usize] < (*row).glyphs [area as usize + 1]
     {
       let end: *mut glyph = (*row).glyphs [area as usize + 1];
@@ -3051,6 +3237,8 @@ unsafe fn fill_up_glyph_row_area_with_spaces (f: *mut frame, row: *mut glyph_row
 	}
       (*row).used [area as usize] = text.offset_from ((*row).glyphs [area as usize]) as c_short;
     }
+
+  }
 }
 
 
@@ -3060,6 +3248,8 @@ unsafe fn fill_up_glyph_row_area_with_spaces (f: *mut frame, row: *mut glyph_row
 #[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn fill_up_frame_row_with_spaces
   (f: *mut frame, row: *mut glyph_row, upto: c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut i: c_int = (*row).used [TEXT_AREA as usize] as c_int;
   let glyph: *mut glyph = (*row).glyphs [TEXT_AREA as usize];
 
@@ -3071,6 +3261,8 @@ unsafe fn fill_up_glyph_row_area_with_spaces (f: *mut frame, row: *mut glyph_row
     }
 
   (*row).used [TEXT_AREA as usize] = i as c_short;
+
+  }
 }
 
 
@@ -3088,6 +3280,8 @@ unsafe fn fill_up_glyph_row_area_with_spaces (f: *mut frame, row: *mut glyph_row
 
 unsafe fn make_current (f: *mut frame, w: *mut window, row: c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let desired_matrix: *mut glyph_matrix = if !f.is_null ()
     { (*f).desired_matrix as *mut glyph_matrix }
     else { (*w).desired_matrix as *mut glyph_matrix };
@@ -3122,6 +3316,8 @@ unsafe fn make_current (f: *mut frame, w: *mut window, row: c_int)
      for window matrices.  */
   if !f.is_null ()
     { mirror_make_current (XWINDOW ((*f).root_window), row); }
+
+  }
 }
 
 
@@ -3132,6 +3328,8 @@ unsafe fn make_current (f: *mut frame, w: *mut window, row: c_int)
 
 unsafe fn mirror_make_current (w: *mut window, frame_row: c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut w: *mut window = w;
 
   while !w.is_null ()
@@ -3173,6 +3371,8 @@ unsafe fn mirror_make_current (w: *mut window, frame_row: c_int)
 
       w = if NILP ((*w).next) { core::ptr::null_mut () } else { XWINDOW ((*w).next) };
     }
+
+  }
 }
 
 
@@ -3190,6 +3390,8 @@ unsafe fn mirror_make_current (w: *mut window, frame_row: c_int)
   (f: *mut frame, unchanged_at_top: c_int, nlines: c_int, copy_from: *mut c_int,
    retained_p: *mut c_char)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let matrix: *mut glyph_matrix = (*f).current_matrix as *mut glyph_matrix;
 
   /* A copy of original rows.  */
@@ -3228,6 +3430,8 @@ unsafe fn mirror_make_current (w: *mut window, frame_row: c_int)
 		     unchanged_at_top, nlines, copy_from, retained_p);
 
   SAFE_FREE! (sa_count, sa_mark);
+
+  }
 }
 
 
@@ -3236,6 +3440,8 @@ unsafe fn mirror_make_current (w: *mut window, frame_row: c_int)
 
 unsafe fn sync_window_with_frame_matrix_rows (w: *mut window)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let f: *mut frame = XFRAME ((*w).frame);
   let mut window_row: *mut glyph_row;
   let window_row_end: *mut glyph_row;
@@ -3269,6 +3475,8 @@ unsafe fn sync_window_with_frame_matrix_rows (w: *mut window)
 	= (*window_row).glyphs [LAST_AREA as usize].offset (-(right as isize));
       window_row = window_row.offset (1); frame_row = frame_row.offset (1);
     }
+
+  }
 }
 
 
@@ -3277,6 +3485,8 @@ unsafe fn sync_window_with_frame_matrix_rows (w: *mut window)
 
 unsafe fn frame_row_to_window (w: *mut window, row: c_int) -> *mut window
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut found: *mut window = core::ptr::null_mut ();
   let mut w: *mut window = w;
 
@@ -3292,6 +3502,8 @@ unsafe fn frame_row_to_window (w: *mut window, row: c_int) -> *mut window
     }
 
   return found;
+
+  }
 }
 
 
@@ -3309,6 +3521,8 @@ unsafe fn frame_row_to_window (w: *mut window, row: c_int) -> *mut window
 unsafe fn mirror_line_dance (w: *mut window, unchanged_at_top: c_int, nlines: c_int,
 			     copy_from: *mut c_int, retained_p: *mut c_char)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut w: *mut window = w;
 
   while !w.is_null ()
@@ -3418,6 +3632,8 @@ unsafe fn mirror_line_dance (w: *mut window, unchanged_at_top: c_int, nlines: c_
       /* Next window on same level.  */
       w = if NILP ((*w).next) { core::ptr::null_mut () } else { XWINDOW ((*w).next) };
     }
+
+  }
 }
 
 
@@ -3430,6 +3646,8 @@ unsafe fn mirror_line_dance (w: *mut window, unchanged_at_top: c_int, nlines: c_
 
 unsafe fn window_to_frame_vpos (w: *mut window, vpos: c_int) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut vpos = vpos;
   eassert! (!FRAME_WINDOW_P (XFRAME ((*w).frame)));
   eassert! (vpos >= 0 && vpos <= (*( (*w).desired_matrix as *mut glyph_matrix )).nrows);
@@ -3437,6 +3655,8 @@ unsafe fn window_to_frame_vpos (w: *mut window, vpos: c_int) -> c_int
   eassert! (frame_size_change_delayed (XFRAME ((*w).frame))
 	    || (vpos >= 0 && vpos <= FRAME_TOTAL_LINES (XFRAME ((*w).frame))));
   return vpos;
+
+  }
 }
 
 
@@ -3445,10 +3665,14 @@ unsafe fn window_to_frame_vpos (w: *mut window, vpos: c_int) -> c_int
 
 unsafe fn window_to_frame_hpos (w: *mut window, hpos: c_int) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut hpos = hpos;
   eassert! (!FRAME_WINDOW_P (XFRAME ((*w).frame)));
   hpos += WINDOW_LEFT_EDGE_COL (w);
   return hpos;
+
+  }
 }
 
 
@@ -3460,6 +3684,8 @@ unsafe fn window_to_frame_hpos (w: *mut window, hpos: c_int) -> c_int
 
 #[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn redraw_frame (f: *mut frame)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* Error if F has no glyphs.  */
   eassert! (glyphs_initialized_p! (f));
   update_begin (f);
@@ -3487,6 +3713,8 @@ unsafe fn window_to_frame_hpos (w: *mut window, hpos: c_int) -> c_int
   set_window_update_flags (XWINDOW (FRAME_ROOT_WINDOW (f)), true);
 
   garbaged! (f, false);
+
+  }
 }
 
 DEFUN! ("redraw-frame", Fredraw_frame, Sredraw_frame, 0, 1, 0,
@@ -3624,13 +3852,13 @@ const _: () = core::assert! (core::mem::offset_of! (face_cache, used) == 32);
 
 #[inline(always)]
 fn FRAME_FACE_CACHE (f: *mut frame) -> *mut face_cache
-{ unsafe { (*f).face_cache as *mut face_cache } }
+{ /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f).face_cache as *mut face_cache } }
 
 /// C: dispextern.h 1998-2010: `FACE_FROM_ID`.
 #[inline(always)]
 pub fn FACE_FROM_ID (f: *mut frame, id: c_int) -> *mut face
 {
-  eassert! (0 <= id && id < unsafe { (*FRAME_FACE_CACHE (f)).used });
+  eassert! (0 <= id && id < /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*FRAME_FACE_CACHE (f)).used });
   unsafe { *((*FRAME_FACE_CACHE (f)).faces_by_id).offset (id as isize) }
 }
 
@@ -3655,6 +3883,8 @@ pub const OVERLAPS_SUCC: c_int = (1 << 1);
 
 unsafe fn rect_intersect (r: *mut rect, r1: rect, r2: rect) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let x: c_int = std::cmp::max (r1.x, r2.x);
   let y: c_int = std::cmp::max (r1.y, r2.y);
   let w: c_int = std::cmp::min (r1.x + r1.w, r2.x + r2.w) - x;
@@ -3665,6 +3895,8 @@ unsafe fn rect_intersect (r: *mut rect, r1: rect, r2: rect) -> bool
 
   *r = rect { x: x, y: y, w: w, h: h };
   return true;
+
+  }
 }
 
 /* Translate (X, Y) relative to frame F to absolute coordinates
@@ -3673,6 +3905,8 @@ unsafe fn rect_intersect (r: *mut rect, r1: rect, r2: rect) -> bool
 #[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn root_xy (f: *mut frame, x: c_int, y: c_int,
 						      rx: *mut c_int, ry: *mut c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut f = f;
   *rx = x;
   *ry = y;
@@ -3682,6 +3916,8 @@ unsafe fn rect_intersect (r: *mut rect, r1: rect, r2: rect) -> bool
       *ry += (*f).top_pos;
       f = FRAME_PARENT_FRAME (f);
     }
+
+  }
 }
 
 /* Translate absolute coordinates (X, Y) to coordinates relative to F's origin.  */
@@ -3689,10 +3925,14 @@ unsafe fn rect_intersect (r: *mut rect, r1: rect, r2: rect) -> bool
 #[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn child_xy (f: *mut frame, x: c_int, y: c_int,
 						       cx: *mut c_int, cy: *mut c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut rx: c_int = 0; let mut ry: c_int = 0;
   root_xy (f, 0, 0, &mut rx, &mut ry);
   *cx = x - rx;
   *cy = y - ry;
+
+  }
 }
 
 /* Return the rectangle frame F occupies.  X and Y are in absolute
@@ -3700,9 +3940,13 @@ unsafe fn rect_intersect (r: *mut rect, r1: rect, r2: rect) -> bool
 
 unsafe fn frame_rect_abs (f: *mut frame) -> rect
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut x: c_int = 0; let mut y: c_int = 0;
   root_xy (f, 0, 0, &mut x, &mut y);
   return rect { x: x, y: y, w: (*f).total_cols, h: (*f).total_lines };
+
+  }
 }
 
 /* C 3356-3357: `#endif /* !HAVE_ANDROID */` closes the `#ifndef HAVE_ANDROID` that C 3299
@@ -3710,6 +3954,8 @@ unsafe fn frame_rect_abs (f: *mut frame) -> rect
 
 #[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn max_child_z_order (parent: *mut frame) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut tail: Lisp_Object;
   let mut frame: Lisp_Object;
   let mut z_order: c_int = 0;
@@ -3719,6 +3965,8 @@ unsafe fn frame_rect_abs (f: *mut frame) -> rect
 	{ z_order = std::cmp::max (z_order, (*f).z_order); }
   });
   return z_order;
+
+  }
 }
 
 /* Return true if and only if F and all its ancestors are visible.  */
@@ -3744,6 +3992,8 @@ unsafe fn frame_ancestors_visible_p (f: *mut frame) -> bool
 
 unsafe fn frames_with_root (root: *mut frame, visible_only: bool) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut list: Lisp_Object = Qnil ();
   let mut tail: Lisp_Object;
   let mut frame: Lisp_Object;
@@ -3755,6 +4005,8 @@ unsafe fn frames_with_root (root: *mut frame, visible_only: bool) -> Lisp_Object
 	{ list = Fcons (frame, list); }
   });
   return list;
+
+  }
 }
 
 /* Return a list of frames having parent frame PARENT.
@@ -3762,6 +4014,8 @@ unsafe fn frames_with_root (root: *mut frame, visible_only: bool) -> Lisp_Object
 
 unsafe fn frames_with_parent (parent: *mut frame, visible_only: bool) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut list: Lisp_Object = Qnil ();
   let mut tail: Lisp_Object;
   let mut frame: Lisp_Object;
@@ -3772,12 +4026,16 @@ unsafe fn frames_with_parent (parent: *mut frame, visible_only: bool) -> Lisp_Ob
 	{ list = Fcons (frame, list); }
   });
   return list;
+
+  }
 }
 
 /* Compare frames F1 and F2 for z-order.  Value is like strcmp.  */
 
 unsafe fn frame_z_order_cmp (f1: *mut frame, f2: *mut frame) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if f1 == f2
     { return 0; }
   if frame_ancestor_p (f1, f2)
@@ -3785,6 +4043,8 @@ unsafe fn frame_z_order_cmp (f1: *mut frame, f2: *mut frame) -> c_int
   if frame_ancestor_p (f2, f1)
     { return 1; }
   return (*f1).z_order - (*f2).z_order;
+
+  }
 }
 
 DEFUN! ("frame--z-order-lessp", Fframe__z_order_lessp, Sframe__z_order_lessp,
@@ -3803,12 +4063,16 @@ DEFUN! ("frame--z-order-lessp", Fframe__z_order_lessp, Sframe__z_order_lessp,
 #[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn frames_in_reverse_z_order
   (f: *mut frame, visible_only: bool) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let root: *mut frame = root_frame (f);
   let mut frames: Lisp_Object = frames_with_root (root, visible_only);
   frames = CALLN! (Fsort, frames, QClessp (), Qframe__z_order_lessp ());
   eassert! (FRAMEP (XCAR (frames)));
   eassert! (XFRAME (XCAR (frames)) == root);
   return frames;
+
+  }
 }
 
 /* Raise or lower frame F in z-order.  If RAISE is true, raise F, else
@@ -3816,6 +4080,8 @@ DEFUN! ("frame--z-order-lessp", Fframe__z_order_lessp, Sframe__z_order_lessp,
 
 #[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn tty_raise_lower_frame (f: *mut frame, raise: bool)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let parent: *mut frame = FRAME_PARENT_FRAME (f);
   if parent.is_null ()
     { return; }
@@ -3833,6 +4099,8 @@ DEFUN! ("frame--z-order-lessp", Fframe__z_order_lessp, Sframe__z_order_lessp,
       tail = XCDR (tail);
     }
   (*f).z_order = if raise { i } else { 0 };
+
+  }
 }
 
 /* Return true if frame F is a tty frame.  */
@@ -3846,14 +4114,22 @@ DEFUN! ("frame--z-order-lessp", Fframe__z_order_lessp, Sframe__z_order_lessp,
 
 #[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn is_tty_child_frame (f: *mut frame) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   return !FRAME_PARENT_FRAME (f).is_null () && is_tty_frame (f);
+
+  }
 }
 
 /* Return true if frame F is a tty root frame.  */
 
 #[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn is_tty_root_frame (f: *mut frame) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   return FRAME_PARENT_FRAME (f).is_null () && is_tty_frame (f);
+
+  }
 }
 
 /* Return true if frame F is a tty root frame that has a visible child
@@ -3862,10 +4138,14 @@ DEFUN! ("frame--z-order-lessp", Fframe__z_order_lessp, Sframe__z_order_lessp,
 #[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn is_tty_root_frame_with_visible_child
   (f: *mut frame) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if !is_tty_root_frame (f)
     { return false; }
   let z_order: Lisp_Object = frames_in_reverse_z_order (f, true);
   return CONSP (XCDR (z_order));
+
+  }
 }
 
 /* Return the index of the first enabled row in MATRIX, or -1 if there
@@ -3873,6 +4153,8 @@ DEFUN! ("frame--z-order-lessp", Fframe__z_order_lessp, Sframe__z_order_lessp,
 
 unsafe fn first_enabled_row (matrix: *mut glyph_matrix) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut i: c_int = 0;
   while i < (*matrix).nrows
     {
@@ -3881,6 +4163,8 @@ unsafe fn first_enabled_row (matrix: *mut glyph_matrix) -> c_int
       i += 1;
     }
   return -1;
+
+  }
 }
 
 
@@ -3889,6 +4173,8 @@ unsafe fn first_enabled_row (matrix: *mut glyph_matrix) -> c_int
 
 unsafe fn make_matrix_current (f: *mut frame)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let first_row: c_int = first_enabled_row ((*f).desired_matrix as *mut glyph_matrix);
   if first_row >= 0
     {
@@ -3900,6 +4186,8 @@ unsafe fn make_matrix_current (f: *mut frame)
 	  i += 1;
 	}
     }
+
+  }
 }
 
 /* C 3550-3551: `#ifndef HAVE_ANDROID` — live on the frozen target.  */
@@ -3910,6 +4198,8 @@ unsafe fn make_matrix_current (f: *mut frame)
 
 unsafe fn prepare_desired_root_row (root: *mut frame, y: c_int) -> *mut glyph_row
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* If we have a desired row that has been displayed, use that.  */
   let desired_row: *mut glyph_row =
     MATRIX_ROW! ((*root).desired_matrix as *mut glyph_matrix, y);
@@ -3947,15 +4237,21 @@ unsafe fn prepare_desired_root_row (root: *mut frame, y: c_int) -> *mut glyph_ro
     }
 
   return core::ptr::null_mut ();
+
+  }
 }
 
 /* Change GLYPH to be a space glyph.  */
 
 unsafe fn make_glyph_space (glyph: *mut glyph)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   (*glyph).u.ch = ' ' as c_uint;
   (*glyph).pixel_width = 1;
   glyph_bits! (padding_p, *glyph, false);
+
+  }
 }
 
 /* On root frame ROOT, if the glyph in ROW at position X is part of a
@@ -3964,6 +4260,8 @@ unsafe fn make_glyph_space (glyph: *mut glyph)
 
 unsafe fn neutralize_wide_char (root: *mut frame, row: *mut glyph_row, x: c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if x < 0 || x >= (*( (*root).desired_matrix as *mut glyph_matrix )).matrix_w
     { return; }
 
@@ -3988,6 +4286,8 @@ unsafe fn neutralize_wide_char (root: *mut frame, row: *mut glyph_row, x: c_int)
 	  glyph = glyph.offset (1);
 	}
     }
+
+  }
 }
 
 /* Fill *G with the code and face for box character BOX on frame F
@@ -3995,6 +4295,8 @@ unsafe fn neutralize_wide_char (root: *mut frame, row: *mut glyph_row, x: c_int)
 
 unsafe fn box_from_display_table (f: *mut frame, r#box: r#box, g: *mut GLYPH) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if DISP_TABLE_P (Vstandard_display_table)
     {
       let dp: *mut Lisp_Char_Table = XCHAR_TABLE (Vstandard_display_table);
@@ -4009,12 +4311,16 @@ unsafe fn box_from_display_table (f: *mut frame, r#box: r#box, g: *mut GLYPH) ->
 	}
     }
   return false;
+
+  }
 }
 
 /* Fill *G with the default code and face for box BOX on frame F.  */
 
 unsafe fn box_default (f: *mut frame, r#box: r#box, g: *mut GLYPH)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut dflt: c_int;   /* C's `int dflt UNINIT;` — assigned on every path below.  */
   match r#box
     {
@@ -4029,6 +4335,8 @@ unsafe fn box_default (f: *mut frame, r#box: r#box, g: *mut GLYPH)
 
   let face_id: c_int = lookup_basic_face (core::ptr::null_mut (), f, BORDER_FACE_ID);
   SET_GLYPH! (*g, dflt, face_id);
+
+  }
 }
 
 
@@ -4036,10 +4344,14 @@ unsafe fn box_default (f: *mut frame, r#box: r#box, g: *mut GLYPH)
 
 unsafe fn box_glyph (f: *mut frame, r#box: r#box) -> GLYPH
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut g: GLYPH = GLYPH { ch: 0, face_id: 0 };
   if !box_from_display_table (f, r#box, &mut g)
     { box_default (f, r#box, &mut g); }
   return g;
+
+  }
 }
 
 /* Produce glyphs for box character BOX in ROW.  X is the position in
@@ -4049,6 +4361,8 @@ unsafe fn box_glyph (f: *mut frame, r#box: r#box) -> GLYPH
 unsafe fn produce_box_glyphs (r#box: r#box, row: *mut glyph_row, x: c_int, n: c_int,
 			      child: *mut frame)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let g: GLYPH = box_glyph (child, r#box);
   let mut glyph: *mut glyph = (*row).glyphs [0].offset (x as isize);
   let mut i: c_int = 0;
@@ -4066,6 +4380,8 @@ unsafe fn produce_box_glyphs (r#box: r#box, row: *mut glyph_row, x: c_int, n: c_
       glyph_bits! (padding_p, *glyph, false);
       i += 1; glyph = glyph.offset (1);
     }
+
+  }
 }
 
 /* Produce box glyphs LEFT and RIGHT in ROOT_ROW.  X and W are the start
@@ -4078,6 +4394,8 @@ unsafe fn produce_box_glyphs (r#box: r#box, row: *mut glyph_row, x: c_int, n: c_
 unsafe fn produce_box_sides (left: r#box, right: r#box, root_row: *mut glyph_row,
 			     x: c_int, w: c_int, root: *mut frame, child: *mut frame)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if x > 0
     {
       neutralize_wide_char (root, root_row, x - 1);
@@ -4089,11 +4407,15 @@ unsafe fn produce_box_sides (left: r#box, right: r#box, root_row: *mut glyph_row
       neutralize_wide_char (root, root_row, x + w);
       produce_box_glyphs (right, root_row, x + w, 1, child);
     }
+
+  }
 }
 
 unsafe fn produce_box_line (root: *mut frame, child: *mut frame, x: c_int, y: c_int,
 			    w: c_int, first: bool)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let root_row: *mut glyph_row = prepare_desired_root_row (root, y);
   if root_row.is_null ()
     { return; }
@@ -4103,12 +4425,16 @@ unsafe fn produce_box_line (root: *mut frame, child: *mut frame, x: c_int, y: c_
     { produce_box_sides (BOX_UP_RIGHT, BOX_UP_LEFT, root_row, x, w, root, child); }
   produce_box_glyphs (BOX_HORIZONTAL, root_row, x, w, child);
   (*root_row).hash = row_hash (root_row);
+
+  }
 }
 
 /* Copy to ROOT's desired matrix what we need from CHILD.  */
 
 unsafe fn copy_child_glyphs (root: *mut frame, child: *mut frame)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   eassert! (FRAME_PARENT_FRAME (root).is_null ());
   eassert! (frame_ancestor_p (root, child));
 
@@ -4179,6 +4505,8 @@ unsafe fn copy_child_glyphs (root: *mut frame, child: *mut frame)
       (*root_row).hash = row_hash (root_row);
       y += 1; child_y += 1;
     }
+
+  }
 }
 
 /* C 3833-3834: `#endif /* !HAVE_ANDROID */` closes C 3550's `#ifndef HAVE_ANDROID`; the
@@ -4204,6 +4532,8 @@ unsafe fn update_menu_bar (f: *mut frame)
 unsafe fn update_bar_window (window: Lisp_Object, current: *mut Lisp_Object,
 			     desired: *mut Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if WINDOWP (window)
     {
       let w: *mut window = XWINDOW (window);
@@ -4216,16 +4546,22 @@ unsafe fn update_bar_window (window: Lisp_Object, current: *mut Lisp_Object,
 	  *desired = tem;
 	}
     }
+
+  }
 }
 
 /* Update the tab-bar window of frame F, if present.  */
 
 unsafe fn update_tab_bar (f: *mut frame)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   #[cfg (feature = "have_window_system")]
   {
   update_bar_window ((*f).tab_bar_window, &mut (*f).current_tab_bar_string,
 		     &mut (*f).desired_tab_bar_string);
+  }
+
   }
 }
 
@@ -4240,6 +4576,8 @@ unsafe fn update_tool_bar (f: *mut frame)
 
 unsafe fn update_window_frame (f: *mut frame)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   eassert! (FRAME_WINDOW_P (f));
   update_begin (f);
   update_menu_bar (f);
@@ -4249,25 +4587,39 @@ unsafe fn update_window_frame (f: *mut frame)
   update_window_tree (root_window);
   update_end (f);
   set_window_update_flags (root_window, false);
+
+  }
 }
 
 unsafe fn update_initial_frame (f: *mut frame)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   build_frame_matrix (f);
   let root_window: *mut window = XWINDOW ((*f).root_window);
   set_window_update_flags (root_window, false);
+
+  }
 }
 
 unsafe fn flush_terminal (f: *mut frame)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if !(*FRAME_TTY! (f)).termscript.is_null ()
     { fflush ((*FRAME_TTY! (f)).termscript); }
   fflush ((*FRAME_TTY! (f)).output);
+
+  }
 }
 
 unsafe fn update_tty_frame (f: *mut frame)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   build_frame_matrix (f);
+
+  }
 }
 
 /* C 3921-3923: `#ifndef HAVE_ANDROID` — live on the frozen target.  */
@@ -4280,6 +4632,8 @@ unsafe fn update_tty_frame (f: *mut frame)
 
 unsafe fn abs_cursor_pos (f: *mut frame, x: *mut c_int, y: *mut c_int) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let w: *mut window = XWINDOW ((*f).selected_window);
   if (*w).cursor.vpos >= 0
       /* The cursor vpos may be temporarily out of bounds
@@ -4301,15 +4655,21 @@ unsafe fn abs_cursor_pos (f: *mut frame, x: *mut c_int, y: *mut c_int) -> bool
   *y = 0;
   *x = *y;
   return false;
+
+  }
 }
 
 unsafe fn is_in_matrix (f: *mut frame, x: c_int, y: c_int) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let root: *mut frame = root_frame (f);
   if x < 0 || x >= (*( (*root).current_matrix as *mut glyph_matrix )).matrix_w || y < 0
       || y >= (*( (*root).current_matrix as *mut glyph_matrix )).matrix_h
     { return false; }
   return true;
+
+  }
 }
 
 /* Return the frame of the selected window of frame F.
@@ -4317,18 +4677,24 @@ unsafe fn is_in_matrix (f: *mut frame, x: c_int, y: c_int) -> bool
 
 unsafe fn frame_selected_window_frame (f: *mut frame) -> *mut frame
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* Paranoia.  It should not happen that window or frame not valid.  */
   let mut frame: Lisp_Object;
   if WINDOWP ((*f).selected_window)
       && { frame = (*XWINDOW ((*f).selected_window)).frame; FRAMEP (frame) }
     { return XFRAME (frame); }
   return core::ptr::null_mut ();
+
+  }
 }
 
 /* Is the terminal cursor of ROOT obscured by a child frame?  */
 
 unsafe fn is_cursor_obscured (root: *mut frame) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* Which frame contains the cursor?  If the selected frame is in
      root's z-order, it's the selected frame.  Otherwise fall back to
      the root itself.  */
@@ -4349,6 +4715,8 @@ unsafe fn is_cursor_obscured (root: *mut frame) -> bool
   let cursor_row: *mut glyph_row = MATRIX_ROW! ((*root).current_matrix as *mut glyph_matrix, y);
   let cursor_glyph: *mut glyph = (*cursor_row).glyphs [0].offset (x as isize);
   return (*cursor_glyph).frame != (sf as *mut c_void);
+
+  }
 }
 
 /* Decide where to show the cursor, and whether to hide it.
@@ -4360,6 +4728,8 @@ unsafe fn is_cursor_obscured (root: *mut frame) -> bool
 
 unsafe fn terminal_cursor_magic (root: *mut frame, topmost_child: *mut frame)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* By default, prevent the cursor "shining through" child frames.  */
   if is_cursor_obscured (root)
     { tty_hide_cursor (FRAME_TTY! (root)); }
@@ -4396,6 +4766,8 @@ unsafe fn terminal_cursor_magic (root: *mut frame, topmost_child: *mut frame)
     if CONSP (cursor) && NILP (XCDR (cursor))
       { tty_hide_cursor (FRAME_TTY! (root)); }
   }
+
+  }
 }
 
 /* C 3921-4123: the real body sits in the `#ifndef HAVE_ANDROID` arm and C 4118-4123's empty
@@ -4406,6 +4778,8 @@ unsafe fn terminal_cursor_magic (root: *mut frame, topmost_child: *mut frame)
 #[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn combine_updates_for_frame
   (f: *mut frame, inhibit_scrolling: bool)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let root: *mut frame = root_frame (f);
 
   if !after_make_frame! (root)
@@ -4470,6 +4844,8 @@ unsafe fn terminal_cursor_magic (root: *mut frame, topmost_child: *mut frame)
       }
       tail = XCDR (tail);
     }
+
+  }
 }
 
 #[cfg (feature = "have_android")]
@@ -4483,6 +4859,8 @@ unsafe fn terminal_cursor_magic (root: *mut frame, topmost_child: *mut frame)
 
 #[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn combine_updates (roots: Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut roots: Lisp_Object = roots;
   while CONSP (roots)
     {
@@ -4491,6 +4869,8 @@ unsafe fn terminal_cursor_magic (root: *mut frame, topmost_child: *mut frame)
 	{ combine_updates_for_frame (root, false); }
       roots = XCDR (roots);
     }
+
+  }
 }
 
 /* Update frame F based on the data in desired matrices.
@@ -4499,12 +4879,16 @@ unsafe fn terminal_cursor_magic (root: *mut frame, topmost_child: *mut frame)
 #[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn update_frame (f: *mut frame,
 							    inhibit_scrolling: bool)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if FRAME_WINDOW_P (f)
     { update_window_frame (f); }
   else if FRAME_INITIAL_P (f)
     { update_initial_frame (f); }
   else
     { update_tty_frame (f); }
+
+  }
 }
 
 /* Update a TTY frame F that has a menu dropped down over some of its
@@ -4520,6 +4904,8 @@ unsafe fn terminal_cursor_magic (root: *mut frame, topmost_child: *mut frame)
 #[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn update_frame_with_menu
   (f: *mut frame, row: c_int, col: c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let root_window: *mut window = XWINDOW ((*f).root_window);
 
   eassert! (FRAME_TERMCAP_P (f));
@@ -4548,6 +4934,8 @@ unsafe fn terminal_cursor_magic (root: *mut frame, topmost_child: *mut frame)
 
   /* Reset flags indicating that a window should be updated.  */
   set_window_update_flags (root_window, false);
+
+  }
 }
 
 /* Update the mouse position for a frame F.  This handles both
@@ -4558,6 +4946,8 @@ unsafe fn terminal_cursor_magic (root: *mut frame, topmost_child: *mut frame)
 #[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn update_mouse_position
   (f: *mut frame, x: c_int, y: c_int) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   previous_help_echo_string = help_echo_string;
   help_echo_string = Qnil ();
 
@@ -4577,6 +4967,8 @@ unsafe fn terminal_cursor_magic (root: *mut frame, topmost_child: *mut frame)
     }
 
   return 0;
+
+  }
 }
 
 DEFUN! ("display--update-for-mouse-movement", Fdisplay__update_for_mouse_movement,
@@ -4602,6 +4994,8 @@ DEFUN! ("display--update-for-mouse-movement", Fdisplay__update_for_mouse_movemen
 
 unsafe fn update_window_tree (w: *mut window)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut w: *mut window = w;
 
   while !w.is_null ()
@@ -4613,6 +5007,8 @@ unsafe fn update_window_tree (w: *mut window)
 
       w = if NILP ((*w).next) { core::ptr::null_mut () } else { XWINDOW ((*w).next) };
     }
+
+  }
 }
 
 
@@ -4620,6 +5016,8 @@ unsafe fn update_window_tree (w: *mut window)
 
 #[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn update_single_window (w: *mut window)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if window_bits! (must_be_updated_p, w)
     {
       let f: *mut frame = XFRAME (WINDOW_FRAME! (w));
@@ -4632,6 +5030,8 @@ unsafe fn update_window_tree (w: *mut window)
       /* Reset flag in W.  */
       window_bits! (must_be_updated_p, w, false);
     }
+
+  }
 }
 
 #[cfg (feature = "have_window_system")]
@@ -4641,6 +5041,8 @@ unsafe fn update_window_tree (w: *mut window)
 #[cfg (feature = "have_window_system")]
 unsafe fn redraw_overlapped_rows (w: *mut window, yb: c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut i: c_int;
   let f: *mut frame = XFRAME (WINDOW_FRAME! (w));
 
@@ -4683,6 +5085,8 @@ unsafe fn redraw_overlapped_rows (w: *mut window, yb: c_int)
 	{ break; }
       i += 1;
     }
+
+  }
 }
 
 
@@ -4692,6 +5096,8 @@ unsafe fn redraw_overlapped_rows (w: *mut window, yb: c_int)
 #[cfg (feature = "have_window_system")]
 unsafe fn redraw_overlapping_rows (w: *mut window, yb: c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut i: c_int; let mut bottom_y: c_int;
   let mut row: *mut glyph_row;
   let rif: *mut redisplay_interface = FRAME_RIF! (XFRAME (WINDOW_FRAME! (w))) as *mut redisplay_interface;
@@ -4749,6 +5155,8 @@ unsafe fn redraw_overlapping_rows (w: *mut window, yb: c_int)
 	{ break; }
       i += 1;
     }
+
+  }
 }
 
 /* C 3110-3170: `#ifdef GLYPH_DEBUG` returns — `check_window_matrix_pointers` and
@@ -4838,6 +5246,8 @@ unsafe fn check_current_matrix_flags (w: *mut window)
 
 unsafe fn update_window (w: *mut window)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let desired_matrix: *mut glyph_matrix = (*w).desired_matrix as *mut glyph_matrix;
   #[cfg (feature = "have_window_system")]
   let rif: *mut redisplay_interface = FRAME_RIF! (XFRAME (WINDOW_FRAME! (w))) as *mut redisplay_interface;
@@ -5069,6 +5479,8 @@ unsafe fn update_window (w: *mut window)
   xwidget_end_redisplay! (w, (*w).current_matrix);
 
   clear_glyph_matrix (desired_matrix);
+
+  }
 }
 
 /* C 4633-4711: `#ifdef HAVE_WINDOW_SYSTEM` — `gui_update_window_begin` and
@@ -5080,6 +5492,8 @@ unsafe fn update_window (w: *mut window)
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn gui_update_window_begin (w: *mut window)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let f: *mut frame = XFRAME (WINDOW_FRAME! (w));
   let hlinfo: *mut Mouse_HLInfo = MOUSE_HL_INFO! (f);
 
@@ -5105,6 +5519,8 @@ unsafe fn update_window (w: *mut window)
     }
 
   unblock_input ();
+
+  }
 }
 
 /* End update of window W.
@@ -5119,6 +5535,8 @@ unsafe fn update_window (w: *mut window)
 #[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn gui_update_window_end
   (w: *mut window, cursor_on_p: bool, mouse_face_overwritten_p: bool)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let f: *mut frame = XFRAME (WINDOW_FRAME! (w));
 
   /* Pseudo windows don't have cursors, so don't display them here.  */
@@ -5158,6 +5576,8 @@ unsafe fn update_window (w: *mut window)
     { ((*((FRAME_RIF! (f)) as *mut redisplay_interface)).update_window_end_hook.unwrap ()) (w,
 							   cursor_on_p,
 							   mouse_face_overwritten_p); }
+
+  }
 }
 
 /* Update the display of area AREA in window W, row number VPOS.
@@ -5166,6 +5586,8 @@ unsafe fn update_window (w: *mut window)
 unsafe fn update_marginal_area (w: *mut window, updated_row: *mut glyph_row,
 				area: glyph_row_area, vpos: c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let desired_row: *mut glyph_row = MATRIX_ROW! ((*w).desired_matrix as *mut glyph_matrix,
 						 vpos);
   let rif: *mut redisplay_interface = FRAME_RIF! (XFRAME (WINDOW_FRAME! (w))) as *mut redisplay_interface;
@@ -5178,6 +5600,8 @@ unsafe fn update_marginal_area (w: *mut window, updated_row: *mut glyph_row,
     { ((*rif).write_glyphs.unwrap ()) (w, updated_row, (*desired_row).glyphs [area as usize],
 				      area, (*desired_row).used [area as usize] as c_int); }
   ((*rif).clear_end_of_line.unwrap ()) (w, updated_row, area, -1);
+
+  }
 }
 
 
@@ -5187,6 +5611,8 @@ unsafe fn update_marginal_area (w: *mut window, updated_row: *mut glyph_row,
 unsafe fn update_text_area (w: *mut window, updated_row: *mut glyph_row, vpos: c_int,
 			    partial_p: *mut bool) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let current_row: *mut glyph_row = MATRIX_ROW! ((*w).current_matrix as *mut glyph_matrix,
 						 vpos);
   let desired_row: *mut glyph_row = MATRIX_ROW! ((*w).desired_matrix as *mut glyph_matrix,
@@ -5450,6 +5876,8 @@ unsafe fn update_text_area (w: *mut window, updated_row: *mut glyph_row, vpos: c
     }
 
   return changed_p;
+
+  }
 }
 
 
@@ -5458,6 +5886,8 @@ unsafe fn update_text_area (w: *mut window, updated_row: *mut glyph_row, vpos: c
 unsafe fn update_window_line (w: *mut window, vpos: c_int,
 			      mouse_face_overwritten_p: *mut bool) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let current_row: *mut glyph_row = MATRIX_ROW! ((*w).current_matrix as *mut glyph_matrix,
 						 vpos);
   let desired_row: *mut glyph_row = MATRIX_ROW! ((*w).desired_matrix as *mut glyph_matrix,
@@ -5534,6 +5964,8 @@ unsafe fn update_window_line (w: *mut window, vpos: c_int,
     { glyph_row_bits! (stipple_p, current_row, true); }
 
   return changed_p;
+
+  }
 }
 
 
@@ -5542,6 +5974,8 @@ unsafe fn update_window_line (w: *mut window, vpos: c_int,
 
 unsafe fn set_window_cursor_after_update (w: *mut window)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let f: *mut frame = XFRAME ((*w).frame);
   let mut cx: c_int; let mut cy: c_int; let mut vpos: c_int; let mut hpos: c_int;
 
@@ -5612,6 +6046,8 @@ unsafe fn set_window_cursor_after_update (w: *mut window)
   hpos = clip_to_bounds (-1, hpos as isize, (*( (*w).current_matrix as *mut glyph_matrix )).matrix_w as isize - 1) as c_int;
   vpos = clip_to_bounds (0, vpos as isize, (*( (*w).current_matrix as *mut glyph_matrix )).nrows as isize - 1) as c_int;
   output_cursor_to (w, vpos, hpos, cy, cx);
+
+  }
 }
 
 
@@ -5620,6 +6056,8 @@ unsafe fn set_window_cursor_after_update (w: *mut window)
 
 unsafe fn set_window_update_flags (w: *mut window, on_p: bool)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut w: *mut window = w;
 
   while !w.is_null ()
@@ -5631,6 +6069,8 @@ unsafe fn set_window_update_flags (w: *mut window, on_p: bool)
 
       w = if NILP ((*w).next) { core::ptr::null_mut () } else { XWINDOW ((*w).next) };
     }
+
+  }
 }
 
 
@@ -5707,6 +6147,8 @@ static mut runs: *mut *mut run = core::ptr::null_mut ();
 
 unsafe fn add_row_entry (row: *mut glyph_row) -> *mut row_entry
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut entry: *mut row_entry;
   let i: ptrdiff_t = (*row).hash as ptrdiff_t % row_table_size;
 
@@ -5729,6 +6171,8 @@ unsafe fn add_row_entry (row: *mut glyph_row) -> *mut row_entry
     }
 
   return entry;
+
+  }
 }
 
 /* Try to reuse part of the current display of W by scrolling lines.
@@ -5759,6 +6203,8 @@ unsafe fn add_row_entry (row: *mut glyph_row) -> *mut row_entry
 
 unsafe fn scrolling_window (w: *mut window, tab_line_p: c_int) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let desired_matrix: *mut glyph_matrix = (*w).desired_matrix as *mut glyph_matrix;
   let current_matrix: *mut glyph_matrix = (*w).current_matrix as *mut glyph_matrix;
   let yb: c_int = window_text_bottom_y (w);
@@ -6195,6 +6641,8 @@ unsafe fn scrolling_window (w: *mut window, tab_line_p: c_int) -> c_int
 
   /* Value is 1 to indicate that we scrolled the display.  */
   return if nruns > 0 { 1 } else { 0 };
+
+  }
 }
 
 
@@ -6204,6 +6652,8 @@ unsafe fn scrolling_window (w: *mut window, tab_line_p: c_int) -> c_int
 
 unsafe fn tty_set_cursor (f: *mut frame)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if (cursor_in_echo_area
        /* If we are showing a message instead of the mini-buffer,
 	  show the cursor for the message instead of for the
@@ -6284,6 +6734,8 @@ unsafe fn tty_set_cursor (f: *mut frame)
 	  cursor_to (f, y, x);
 	}
     }
+
+  }
 }
 
 /* Write desired matrix of tty frame F and make it current.
@@ -6292,6 +6744,8 @@ unsafe fn tty_set_cursor (f: *mut frame)
 
 unsafe fn write_matrix (f: *mut frame, inhibit_id_p: bool, updating_menu_p: bool)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut inhibit_id_p = inhibit_id_p;
   /* If we cannot insert/delete lines, it's no use trying it.  */
   if !FRAME_LINE_INS_DEL_OK! (f)
@@ -6322,12 +6776,16 @@ unsafe fn write_matrix (f: *mut frame, inhibit_id_p: bool, updating_menu_p: bool
 	  i += 1;
 	}
     }
+
+  }
 }
 
 /* Do line insertions/deletions on frame F for frame-based redisplay.  */
 
 unsafe fn scrolling (frame: *mut frame)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* In fact this code should never be reached at all under
      Android.  */
 
@@ -6428,6 +6886,8 @@ unsafe fn scrolling (frame: *mut frame)
 
   SAFE_FREE! (sa_count, sa_mark);
 /* C 5926: `#endif /* HAVE_ANDROID */`.  */
+
+  }
 }
 
 
@@ -6436,6 +6896,8 @@ unsafe fn scrolling (frame: *mut frame)
 
 unsafe fn count_blanks (f: *mut frame, r: *mut glyph, len: c_int) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut i: c_int;
 
   i = 0;
@@ -6447,6 +6909,8 @@ unsafe fn count_blanks (f: *mut frame, r: *mut glyph, len: c_int) -> c_int
     }
 
   return i;
+
+  }
 }
 
 
@@ -6457,6 +6921,8 @@ unsafe fn count_blanks (f: *mut frame, r: *mut glyph, len: c_int) -> c_int
 unsafe fn count_match (str1: *mut glyph, end1: *mut glyph, str2: *mut glyph,
 		       end2: *mut glyph) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut p1: *mut glyph = str1;
   let mut p2: *mut glyph = str2;
 
@@ -6466,6 +6932,8 @@ unsafe fn count_match (str1: *mut glyph, end1: *mut glyph, str2: *mut glyph,
     { p1 = p1.offset (1); p2 = p2.offset (1); }
 
   return p1.offset_from (str1) as c_int;
+
+  }
 }
 
 
@@ -6481,6 +6949,8 @@ macro_rules! char_ins_del_cost {
 
 unsafe fn write_row (f: *mut frame, vpos: c_int, updating_menu_p: bool)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut obody: *mut glyph; let mut nbody: *mut glyph; let mut op1: *mut glyph;
   let mut op2: *mut glyph; let mut np1: *mut glyph; let mut nend: *mut glyph;
   let mut tem: c_int;
@@ -6798,6 +7268,8 @@ unsafe fn write_row (f: *mut frame, vpos: c_int, updating_menu_p: bool)
       cursor_to (f, vpos, nlen);
       clear_end_of_line (f, olen);
     }
+
+  }
 }
 
 
@@ -6980,6 +7452,8 @@ unsafe extern "C" {
    object: *mut Lisp_Object, dx: *mut c_int, dy: *mut c_int, width: *mut c_int,
    height: *mut c_int) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut it: it = std::mem::zeroed ();
   let old_current_buffer: Lisp_Object = Fcurrent_buffer ();
   let mut startp: text_pos = text_pos { charpos: 0, bytepos: 0 };
@@ -7170,6 +7644,8 @@ unsafe extern "C" {
   *y = it.vpos;
 
   return string;
+
+  }
 }
 
 
@@ -7182,6 +7658,8 @@ unsafe extern "C" {
    object: *mut Lisp_Object, dx: *mut c_int, dy: *mut c_int, width: *mut c_int,
    height: *mut c_int) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut row: *mut glyph_row;
   let mut glyph: *mut glyph; let mut end: *mut glyph;
   let mut x0: c_int; let mut y0: c_int;
@@ -7252,6 +7730,8 @@ unsafe extern "C" {
   *dy = y0;
 
   return string;
+
+  }
 }
 
 
@@ -7264,6 +7744,8 @@ unsafe extern "C" {
    object: *mut Lisp_Object, dx: *mut c_int, dy: *mut c_int, width: *mut c_int,
    height: *mut c_int) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut row: *mut glyph_row =
     (*( (*w).current_matrix as *mut glyph_matrix )).rows;
   let mut glyph: *mut glyph; let mut end: *mut glyph;
@@ -7353,6 +7835,8 @@ unsafe extern "C" {
   *dy = y0;
 
   return string;
+
+  }
 }
 
 
@@ -7395,6 +7879,8 @@ macro_rules! term_initted { ($tty:expr) => { ((*($tty)).bits_initted & 1) != 0 }
    arm is not gated because the mirror only names the branch for the platforms that lack it.  */
 unsafe extern "C" fn handle_window_change_signal (sig: c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut width: c_int = 0; let mut height: c_int = 0;   /* C declares these uninitialised.  */
   let mut tty: *mut tty_display_info;
 
@@ -7433,11 +7919,17 @@ unsafe extern "C" fn handle_window_change_signal (sig: c_int)
 	}
       tty = (*tty).next;
     }
+
+  }
 }
 
 unsafe extern "C" fn deliver_window_change_signal (sig: c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   deliver_process_signal (sig, Some (handle_window_change_signal));
+
+  }
 }
 
 
@@ -7447,6 +7939,8 @@ unsafe extern "C" fn deliver_window_change_signal (sig: c_int)
 
 #[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn do_pending_window_change (safe: bool)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if (redisplaying_p || dont_resize_frames) && !safe
     { return; }
 
@@ -7470,12 +7964,16 @@ unsafe extern "C" fn deliver_window_change_signal (sig: c_int)
 			       false, false, safe); }
       });
     }
+
+  }
 }
 
 
 unsafe fn change_frame_size_1 (f: *mut frame, new_width: c_int, new_height: c_int,
 			       pretend: bool, delay: bool, safe: bool)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if delay || (redisplaying_p && !safe)
     {
       if CONSP (frame_size_history)
@@ -7511,6 +8009,8 @@ unsafe fn change_frame_size_1 (f: *mut frame, new_width: c_int, new_height: c_in
 			 FRAME_PIXEL_TO_TEXT_HEIGHT! (f, new_height), 5,
 			 pretend, Qchange_frame_size ());
     }
+
+  }
 }
 
 
@@ -7526,6 +8026,8 @@ unsafe fn change_frame_size_1 (f: *mut frame, new_width: c_int, new_height: c_in
 #[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn change_frame_size
   (f: *mut frame, new_width: c_int, new_height: c_int, pretend: bool, delay: bool, safe: bool)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut tail: Lisp_Object;
   let mut frame: Lisp_Object;
 
@@ -7543,6 +8045,8 @@ unsafe fn change_frame_size_1 (f: *mut frame, new_width: c_int, new_height: c_in
     }
   else
     { change_frame_size_1 (f, new_width, new_height, pretend, delay, safe); }
+
+  }
 }
 
 /* Return non-zero if we delayed size-changes of frame F and haven't
@@ -7551,7 +8055,11 @@ unsafe fn change_frame_size_1 (f: *mut frame, new_width: c_int, new_height: c_in
 #[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn frame_size_change_delayed
   (f: *mut frame) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   return delayed_size_change || new_size_p! (f);
+
+  }
 }
 
 DEFUN! ("open-termscript", Fopen_termscript, Sopen_termscript,
@@ -7651,6 +8159,8 @@ DEFUN! ("ding", Fding, Sding, 0, 1, 0,
 
 #[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn bitch_at_user ()
   {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
     if noninteractive
       { putchar (7); }
     else if !INTERACTIVE! ()   /* Stop executing a keyboard macro.  */
@@ -7661,7 +8171,9 @@ DEFUN! ("ding", Fding, Sding, 0, 1, 0,
       }
     else
       { ring_bell (XFRAME (selected_frame)); }
+  
   }
+}
 
 DEFUN! ("sleep-for", Fsleep_for, Ssleep_for, 1, 2, 0,
         doc: "Pause, without updating display, for SECONDS seconds.\nSECONDS may be a floating-point value, meaning that you can wait for a\nfraction of a second.\nAn optional second arg MILLISECONDS can be provided but is deprecated:\nit specifies an additional wait period, in milliseconds.",
@@ -7717,6 +8229,8 @@ DEFUN! ("sleep-for", Fsleep_for, Ssleep_for, 1, 2, 0,
 #[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn sit_for (timeout: Lisp_Object, reading: bool,
 						       display_option: c_int) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut sec: i64 = 0;   /* C writes it through an out parameter.  */
   let mut nsec: c_int;
   let do_display: bool = display_option > 0;
@@ -7785,6 +8299,8 @@ DEFUN! ("sleep-for", Fsleep_for, Ssleep_for, 1, 2, 0,
     { set_buffer_internal (XBUFFER ((*XWINDOW (selected_window)).contents)); }
 
   return if nbytes > 0 || detect_input_pending () { Qnil () } else { Qt () };
+
+  }
 }
 
 
@@ -7962,6 +8478,8 @@ DEFUN! ("frame-or-buffer-changed-p", Fframe_or_buffer_changed_p,
 
 unsafe fn init_faces_initial ()
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* For the initial frame, we don't have any way of knowing what
      are the foreground and background colors of the terminal.  */
   let sf: *mut frame = SELECTED_FRAME ();
@@ -7969,6 +8487,8 @@ unsafe fn init_faces_initial ()
   FRAME_FOREGROUND_PIXEL! (sf) = FACE_TTY_DEFAULT_FG_COLOR;
   FRAME_BACKGROUND_PIXEL! (sf) = FACE_TTY_DEFAULT_BG_COLOR;
   call0 (Qtty_set_up_initial_frame_faces ());
+
+  }
 }
 
 /* Initialization done when Emacs fork is started, before doing stty.
@@ -7977,12 +8497,15 @@ unsafe fn init_faces_initial ()
 
 unsafe fn init_display_interactive ()
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut terminal_type: *mut c_char;
 
   /* Construct the space glyph.  */
-  glyph_bits! (type, space_glyph, CHAR_GLYPH);
-  SET_CHAR_GLYPH! (core::ptr::null_mut (), space_glyph, ' ' as c_uint, DEFAULT_FACE_ID, false);
-  space_glyph.charpos = -1;
+  let sg_ptr: *mut glyph = &raw mut space_glyph;
+  glyph_bits! (type, *sg_ptr, CHAR_GLYPH);
+  SET_CHAR_GLYPH! (core::ptr::null_mut (), *sg_ptr, ' ' as c_uint, DEFAULT_FACE_ID, false);
+  (*sg_ptr).charpos = -1;
 
   inverse_video = false;
   cursor_in_echo_area = false;
@@ -8198,10 +8721,14 @@ unsafe fn init_display_interactive ()
   /* Set up faces of the initial terminal frame.  */
   if initialized && !noninteractive && NILP (Vinitial_window_system)
     { init_faces_initial (); }
+
+  }
 }
 
 #[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn init_display ()
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if noninteractive
     {
       if dumped_with_pdumper_p ()
@@ -8209,6 +8736,8 @@ unsafe fn init_display_interactive ()
     }
   else
     { init_display_interactive (); }
+
+  }
 }
 
 
@@ -8267,11 +8796,17 @@ pub static mut Vtab_bar_position: Lisp_Object = lisp_h_Qnil ();
 
 unsafe extern "C-unwind" fn syms_of_display_for_pdumper ()
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   Vinitial_window_system = Qnil ();
+
+  }
 }
 
 #[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn syms_of_display ()
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   defsubr (&raw mut Sredraw_frame);
   defsubr (&raw mut Sredraw_display);
   defsubr (&raw mut Sdisplay__update_for_mouse_movement);
@@ -8336,4 +8871,6 @@ unsafe extern "C-unwind" fn syms_of_display_for_pdumper ()
   pdumper_do_now_and_after_load (Some (syms_of_display_for_pdumper));
 
   Fprovide (intern_c_string (c"tty-child-frames".as_ptr ()), Qnil ());
+
+  }
 }

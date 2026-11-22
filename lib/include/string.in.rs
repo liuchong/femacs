@@ -135,7 +135,11 @@ macro_rules! memchr {
 #[inline(always)]
 pub unsafe fn memeq (__s1: *const c_void, __s2: *const c_void, __n: usize) -> bool
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   return memcmp (__s1, __s2, __n) == 0;
+
+  }
 }
 
 /* C 436: `#  define GNULIB_defined_memeq 1` - this arm is live in the frozen configuration.  */
@@ -209,7 +213,11 @@ macro_rules! strdup {
 #[inline(always)]
 pub unsafe fn streq (__s1: *const c_char, __s2: *const c_char) -> bool
 {
+  // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
+  unsafe {
   return strcmp (__s1, __s2) == 0;
+
+  }
 }
 
 /* C 828: `#  define GNULIB_defined_streq 1` - this arm is live in the frozen configuration.  */

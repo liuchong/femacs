@@ -69,11 +69,7 @@
 // `static` prototypes have no Rust counterpart (Rust is order-independent and a declaration
 // plus a definition is `E0428`); the definitions stay at C's positions.
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
-         unsafe_op_in_unsafe_fn, unused_assignments, unreachable_code, while_true,
-         unused_parens, unused_mut, unused_labels, unused_comparisons, overflowing_literals,
-         unnecessary_cast, dropping_copy_types, unused_must_use, clashing_extern_declarations)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe, unused_assignments, unreachable_code, while_true, unused_parens, unused_mut, unused_labels, unused_comparisons, overflowing_literals, unnecessary_cast, dropping_copy_types, unused_must_use, clashing_extern_declarations)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -359,9 +355,13 @@ static mut keyboard_init_hook: Option<unsafe extern "C-unwind" fn ()> = None;
 /* C 414-419: `next_kbd_event`.  */
 unsafe fn next_kbd_event (ptr: *mut buffered_input_event) -> *mut buffered_input_event
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   return if ptr == (&raw mut kbd_buffer as *mut buffered_input_event)
               .add (KBD_BUFFER_SIZE as usize - 1) { &raw mut kbd_buffer as *mut buffered_input_event }
          else { ptr.add (1) };
+
+  }
 }
 
 /* C 421-428: `xevent_start`.  */
@@ -371,30 +371,74 @@ unsafe fn xevent_start (event: Lisp_Object) -> Lisp_Object
 }
 
 /* C 430-479: the `kset_*` setters.  */
-unsafe fn kset_echo_string (kb: *mut kboard, val: Lisp_Object) { (*kb).echo_string_ = val; }
-unsafe fn kset_echo_prompt (kb: *mut kboard, val: Lisp_Object) { (*kb).echo_prompt_ = val; }
-unsafe fn kset_kbd_queue (kb: *mut kboard, val: Lisp_Object) { (*kb).kbd_queue_ = val; }
+unsafe fn kset_echo_string (kb: *mut kboard, val: Lisp_Object) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe { (*kb).echo_string_ = val; 
+  }
+}
+unsafe fn kset_echo_prompt (kb: *mut kboard, val: Lisp_Object) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe { (*kb).echo_prompt_ = val; 
+  }
+}
+unsafe fn kset_kbd_queue (kb: *mut kboard, val: Lisp_Object) {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe { (*kb).kbd_queue_ = val; 
+  }
+}
 unsafe fn kset_keyboard_translate_table (kb: *mut kboard, val: Lisp_Object)
-{ (*kb).Vkeyboard_translate_table_ = val; }
+{
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe { (*kb).Vkeyboard_translate_table_ = val; 
+  }
+}
 unsafe fn kset_last_prefix_arg (kb: *mut kboard, val: Lisp_Object)
-{ (*kb).Vlast_prefix_arg_ = val; }
+{
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe { (*kb).Vlast_prefix_arg_ = val; 
+  }
+}
 unsafe fn kset_last_repeatable_command (kb: *mut kboard, val: Lisp_Object)
-{ (*kb).Vlast_repeatable_command_ = val; }
+{
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe { (*kb).Vlast_repeatable_command_ = val; 
+  }
+}
 unsafe fn kset_local_function_key_map (kb: *mut kboard, val: Lisp_Object)
-{ (*kb).Vlocal_function_key_map_ = val; }
+{
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe { (*kb).Vlocal_function_key_map_ = val; 
+  }
+}
 unsafe fn kset_overriding_terminal_local_map (kb: *mut kboard, val: Lisp_Object)
-{ (*kb).Voverriding_terminal_local_map_ = val; }
+{
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe { (*kb).Voverriding_terminal_local_map_ = val; 
+  }
+}
 unsafe fn kset_real_last_command (kb: *mut kboard, val: Lisp_Object)
-{ (*kb).Vreal_last_command_ = val; }
+{
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe { (*kb).Vreal_last_command_ = val; 
+  }
+}
 unsafe fn kset_system_key_syms (kb: *mut kboard, val: Lisp_Object)
-{ (*kb).system_key_syms_ = val; }
+{
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe { (*kb).system_key_syms_ = val; 
+  }
+}
 
 /* C 481-487: `echo_keystrokes_p`.  */
 unsafe fn echo_keystrokes_p () -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   return if FLOATP (Vecho_keystrokes) { XFLOAT_DATA (Vecho_keystrokes) > 0.0 }
          else if FIXNUMP (Vecho_keystrokes) { XFIXNUM (Vecho_keystrokes) > 0 }
          else { false };
+
+  }
 }
 
 /* gnulib's `INT_STRLEN_BOUND (t)` (intprops.h 88-108) is
@@ -730,6 +774,8 @@ macro_rules! kboard_bits {
 /* C 491-500.  */
 unsafe fn echo_add_key (mut c: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut initbuf: [c_char; (KEY_DESCRIPTION_SIZE + 100) as usize] =
     [0; (KEY_DESCRIPTION_SIZE + 100) as usize];
   let mut size: ptrdiff_t = std::mem::size_of_val (&initbuf) as ptrdiff_t;
@@ -780,11 +826,15 @@ unsafe fn echo_add_key (mut c: Lisp_Object)
 
   kset_echo_string (current_kboard, concat2 (echo_string, new_string));
   SAFE_FREE! (sa_count, sa_mark);
+
+  }
 }
 
 /* C 538-596.  */
 unsafe fn echo_dash ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* Do nothing if not echoing at all.  */
   if NILP (KVAR! (current_kboard, echo_string))
     { return; }
@@ -829,11 +879,15 @@ unsafe fn echo_dash ()
 			calln! (Qhelp__append_keystrokes_help (), KVAR! (current_kboard, echo_string))); }
 
   echo_now ();
+
+  }
 }
 
 /* C 598-621.  */
 unsafe fn echo_update ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if kboard_bits! (immediate_echo, current_kboard)
     {
       let mut i: ptrdiff_t;
@@ -856,11 +910,15 @@ unsafe fn echo_update ()
 
       echo_now ();
     }
+
+  }
 }
 
 /* C 623-655.  */
 unsafe fn echo_now ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if !kboard_bits! (immediate_echo, current_kboard)
       /* This test breaks calls that use `echo_now' to display the echo_prompt.
          && echo_keystrokes_p () */
@@ -882,54 +940,74 @@ unsafe fn echo_now ()
 
   if waiting_for_input! () && !NILP (Vquit_flag)
     { quit_throw_to_read_char (false); }
+
+  }
 }
 
 /* C 657-665.  */
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn cancel_echoing ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   kboard_bits! (immediate_echo, current_kboard, false);
   kset_echo_prompt (current_kboard, Qnil ());
   kset_echo_string (current_kboard, Qnil ());
   ok_to_echo_at_next_pause = std::ptr::null_mut ();
   echo_kboard = std::ptr::null_mut ();
   echo_message_buffer = Qnil ();
+
+  }
 }
 
 /* C 667-674.  */
 unsafe fn echo_length () -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   return if STRINGP (KVAR! (current_kboard, echo_string))
 	 { SCHARS (KVAR! (current_kboard, echo_string)) }
 	 else { 0 };
+
+  }
 }
 
 /* C 676-688.  */
 unsafe fn echo_truncate (nchars: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let es: Lisp_Object = KVAR! (current_kboard, echo_string);
   if STRINGP (es) && SCHARS (es) > nchars
     { kset_echo_string (current_kboard,
 			Fsubstring (KVAR! (current_kboard, echo_string),
 				    make_fixnum (0), make_fixnum (nchars))); }
   truncate_echo_area (nchars);
+
+  }
 }
 
 /* Functions for manipulating this_command_keys.  */
 /* C 693-706.  */
 unsafe fn add_command_key (key: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if this_command_key_count >= ASIZE (this_command_keys)
     { this_command_keys = larger_vector (this_command_keys, 1, -1); }
 
   ASET (this_command_keys, this_command_key_count, key);
   this_command_key_count += 1;
+
+  }
 }
 
 /* C 708-763.  */
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn recursive_edit_1 () -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let count: specpdl_ref = SPECPDL_INDEX ();
   let mut val: Lisp_Object;
 
@@ -978,6 +1056,8 @@ pub unsafe extern "C-unwind" fn recursive_edit_1 () -> Lisp_Object
     { call0 (val); }
 
   return unbind_to (count, Qnil ());
+
+  }
 }
 
 /* When an auto-save happens, record the "time", and don't do again soon.  */
@@ -985,7 +1065,11 @@ pub unsafe extern "C-unwind" fn recursive_edit_1 () -> Lisp_Object
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn record_auto_save ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   last_auto_save = num_nonmacro_input_events as intmax_t;
+
+  }
 }
 
 /* Make an auto save happen as soon as possible at command level.  */
@@ -1039,19 +1123,27 @@ DEFUN! ("recursive-edit", Frecursive_edit, Srecursive_edit, 0, 0, "",
    definition internal linkage (command_loop above says why).  */
 unsafe extern "C-unwind" fn recursive_edit_unwind (buffer: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if BUFFERP (buffer)
     { Fset_buffer (buffer); }
 
   command_loop_level -= 1;
   update_mode_lines = 18;
+
+  }
 }
 
 /* C 824-831: `not_single_kboard_state`.  */
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn not_single_kboard_state (kboard: *mut KBOARD)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if kboard == current_kboard
     { single_kboard = false; }
+
+  }
 }
 
 /* C 833-841: the kboard stack record.  */
@@ -1070,6 +1162,8 @@ static mut kboard_stack: *mut kboard_stack = std::ptr::null_mut ();
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn push_kboard (k: *mut kboard)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let p: *mut kboard_stack = xmalloc (std::mem::size_of::<kboard_stack> ()) as *mut kboard_stack;
 
   (*p).next = kboard_stack;
@@ -1077,12 +1171,16 @@ pub unsafe extern "C-unwind" fn push_kboard (k: *mut kboard)
   kboard_stack = p;
 
   current_kboard = k;
+
+  }
 }
 
 /* C 860-887.  */
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn pop_kboard ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut t: *mut terminal;
   let p: *mut kboard_stack = kboard_stack;
   let mut found: bool = false;
@@ -1105,6 +1203,8 @@ pub unsafe extern "C-unwind" fn pop_kboard ()
     }
   kboard_stack = (*p).next;
   xfree (p as *mut c_void);
+
+  }
 }
 
 /* Switch to single_kboard mode, making current_kboard the only KBOARD
@@ -1126,6 +1226,8 @@ pub unsafe extern "C-unwind" fn pop_kboard ()
   #[unsafe(no_mangle)]
   pub unsafe extern "C-unwind" fn temporarily_switch_to_single_kboard (f: *mut frame)
   {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
     let was_locked: bool = single_kboard;
     if was_locked
       {
@@ -1149,11 +1251,15 @@ pub unsafe extern "C-unwind" fn pop_kboard ()
       { current_kboard = FRAME_KBOARD (f) as *mut KBOARD; }
     single_kboard = true;
     record_unwind_protect_int (Some (restore_kboard_configuration), was_locked as c_int);
+  
   }
+}
 
 /* C 927-938.  */
 unsafe extern "C-unwind" fn restore_kboard_configuration (was_locked: c_int)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   single_kboard = was_locked != 0;
   if single_kboard
     {
@@ -1163,6 +1269,8 @@ unsafe extern "C-unwind" fn restore_kboard_configuration (was_locked: c_int)
       if single_kboard && current_kboard != prev
 	{ emacs_abort (); }
     }
+
+  }
 }
 
 /* Handle errors that are not handled at inner levels
@@ -1170,6 +1278,8 @@ unsafe extern "C-unwind" fn restore_kboard_configuration (was_locked: c_int)
 /* C 944-1001.  */
 unsafe extern "C-unwind" fn cmd_error (data: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut old_level: Lisp_Object;
   let mut old_length: Lisp_Object;
   let count: specpdl_ref = SPECPDL_INDEX ();
@@ -1228,6 +1338,8 @@ unsafe extern "C-unwind" fn cmd_error (data: Lisp_Object) -> Lisp_Object
 
   unbind_to (count, Qnil ());
   return make_fixnum (0);
+
+  }
 }
 
 /* Take actions on handling an error.  DATA is the data that describes
@@ -1241,6 +1353,8 @@ unsafe extern "C-unwind" fn cmd_error (data: Lisp_Object) -> Lisp_Object
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn cmd_error_internal (data: Lisp_Object, context: *const c_char)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* The immediate context is not interesting for Quits,
      since they are asynchronous.  */
   if signal_quit_p (data)
@@ -1256,6 +1370,8 @@ pub unsafe extern "C-unwind" fn cmd_error_internal (data: Lisp_Object, context: 
 	      Vsignaling_function); }
 
   Vsignaling_function = Qnil ();
+
+  }
 }
 
 /* C 1034-1087: `DEFUN ("command-error-default-function", …)`.  */
@@ -1323,6 +1439,8 @@ DEFUN! ("command-error-default-function", Fcommand_error_default_function, Scomm
    `linkage` row to add to docs/ports/excluded-macros.txt is in this lane's report).  */
 unsafe extern "C-unwind" fn command_loop () -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* C 1093-1107: `#ifdef HAVE_STACK_OVERFLOW_HANDLING` is live (macro table 1).  */
   /* At least on GNU/Linux, saving signal mask is important here.  */
   // SAFETY (U3 boundary audit): `return_to_command_loop` is solely the OS hardware `SIGSEGV`
@@ -1361,6 +1479,8 @@ unsafe extern "C-unwind" fn command_loop () -> Lisp_Object
 	    { Fkill_emacs (Qt (), Qnil ()); }
 	}
     }
+
+  }
 }
 
 /* Here we catch errors in execution of commands within the
@@ -1373,6 +1493,8 @@ unsafe extern "C-unwind" fn command_loop () -> Lisp_Object
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn command_loop_2 (handlers: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut val: Lisp_Object;
 
   loop
@@ -1382,11 +1504,15 @@ pub unsafe extern "C-unwind" fn command_loop_2 (handlers: Lisp_Object) -> Lisp_O
     }
 
   return Qnil ();
+
+  }
 }
 
 /* C 1170-1185.  */
 unsafe extern "C-unwind" fn top_level_2 () -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* If we're in batch mode, print a backtrace unconditionally when
      encountering an error, to help with debugging.  */
   let setup_handler: bool = noninteractive;
@@ -1399,11 +1525,15 @@ unsafe extern "C-unwind" fn top_level_2 () -> Lisp_Object
   if setup_handler
     { pop_handler (); }
   return res;
+
+  }
 }
 
 /* C 1187-1197.  */
 unsafe extern "C-unwind" fn top_level_1 (ignore: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* On entry to the outer level, run the startup file.  */
   if !NILP (Vtop_level)
     { internal_condition_case (top_level_2, Qerror (), cmd_error); }
@@ -1412,6 +1542,8 @@ unsafe extern "C-unwind" fn top_level_1 (ignore: Lisp_Object) -> Lisp_Object
   else
     { message1 (c"Bare Emacs (standard Lisp code not loaded)".as_ptr ()); }
   return Qnil ();
+
+  }
 }
 
 /* C 1199-1216: `DEFUN ("top-level", …)`.  */
@@ -1435,7 +1567,11 @@ DEFUN! ("top-level", Ftop_level, Stop_level, 0, 0, "",
 /* C 1218-1221.  */
 unsafe fn user_error (msg: *const c_char) -> !
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   xsignal1 (Quser_error (), build_string (msg));
+
+  }
 }
 
 /* C 1223-1232: `DEFUN ("exit-recursive-edit", …)`.  */
@@ -1467,6 +1603,8 @@ DEFUN! ("abort-recursive-edit", Fabort_recursive_edit, Sabort_recursive_edit, 0,
 /* C 1253-1265.  */
 unsafe extern "C-unwind" fn tracking_off (old_track_mouse: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   track_mouse = old_track_mouse;
   if NILP (old_track_mouse)
     {
@@ -1481,6 +1619,8 @@ unsafe extern "C-unwind" fn tracking_off (old_track_mouse: Lisp_Object)
 	  get_input_pending (READABLE_EVENTS_DO_TIMERS_NOW);
 	}
     }
+
+  }
 }
 
 /* C 1267-1284: `DEFUN ("internal--track-mouse", …)`.  */
@@ -1507,6 +1647,8 @@ DEFUN! ("internal--track-mouse", Finternal_track_mouse, Sinternal_track_mouse, 1
 /* C 1292-1308.  */
 unsafe fn some_mouse_moved () -> *mut frame
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut tail: Lisp_Object;
   let mut frame_: Lisp_Object;
 
@@ -1520,6 +1662,8 @@ unsafe fn some_mouse_moved () -> *mut frame
     });
 
   return std::ptr::null_mut ();
+
+  }
 }
 
 /* This is the actual command reading loop,
@@ -1530,6 +1674,8 @@ pub const READ_KEY_ELTS: c_int = 30;
 /* C 1328-1690.  */
 unsafe extern "C-unwind" fn command_loop_1 () -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut prev_modiff: modiff_count = 0;
   /* C 1324's local `prev_buffer` shadows the file-scope `prev_buffer` (C 269); Rust forbids a
      `let` binding named the same as a static (`E0530`), so the port keeps the name with the
@@ -1893,12 +2039,16 @@ unsafe extern "C-unwind" fn command_loop_1 () -> Lisp_Object
 	  && NILP (KVAR! (current_kboard, Vprefix_arg))
 	{ finalize_kbd_macro_chars (); }
     }
+
+  }
 }
 
 /* C 1690-1712.  */
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn read_menu_command () -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let count: specpdl_ref = SPECPDL_INDEX ();
 
   /* We don't want to echo the keystrokes while navigating the
@@ -1917,6 +2067,8 @@ pub unsafe extern "C-unwind" fn read_menu_command () -> Lisp_Object
     { return Qt (); }
 
   return read_key_sequence_cmd;
+
+  }
 }
 
 /* Adjust point to a boundary of a region that has such a property
@@ -1926,6 +2078,8 @@ pub unsafe extern "C-unwind" fn read_menu_command () -> Lisp_Object
 /* C 1719-1896.  */
 unsafe fn adjust_point_for_property (last_pt: ptrdiff_t, modified: bool)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* C's uninitialised locals are zero-initialised (PORTING.md 1.5): rustc's definite
      assignment cannot see the `&&` chain's ordering.  */
   let mut beg: ptrdiff_t = 0;
@@ -2093,6 +2247,8 @@ unsafe fn adjust_point_for_property (last_pt: ptrdiff_t, modified: bool)
 	}
       check_invisible = false;
     }
+
+  }
 }
 
 /* Subroutine for safe_run_hooks: run the hook's function.
@@ -2101,8 +2257,12 @@ unsafe fn adjust_point_for_property (last_pt: ptrdiff_t, modified: bool)
 /* C 1903-1908.  */
 unsafe extern "C-unwind" fn safe_run_hooks_1 (nargs: ptrdiff_t, args: *mut Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   eassert! (nargs >= 2);
   return Ffuncall (nargs - 1, args.offset (1));
+
+  }
 }
 
 /* Subroutine for safe_run_hooks: handle an error by clearing out the function
@@ -2111,6 +2271,8 @@ unsafe extern "C-unwind" fn safe_run_hooks_1 (nargs: ptrdiff_t, args: *mut Lisp_
 unsafe extern "C-unwind" fn safe_run_hooks_error (error: Lisp_Object, nargs: ptrdiff_t,
                                            args: *mut Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   eassert! (nargs >= 2);
   AUTO_STRING! (format, c"Error in %s (%S): %S".as_ptr ());
   let hook: Lisp_Object = *args.offset (0);
@@ -2144,11 +2306,15 @@ unsafe extern "C-unwind" fn safe_run_hooks_error (error: Lisp_Object, nargs: ptr
 	{ return Fset_default (hook, Fnreverse (newval)); }
     }
   return Qnil ();
+
+  }
 }
 
 /* C 1947-1960.  */
 unsafe extern "C-unwind" fn safe_run_hook_funcall (nargs: ptrdiff_t, args: *mut Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* We need to swap args[0] and args[1] here or in `safe_run_hooks_1`.
      It's more convenient to do it here.  */
   eassert! (nargs >= 2);
@@ -2169,6 +2335,8 @@ unsafe extern "C-unwind" fn safe_run_hook_funcall (nargs: ptrdiff_t, args: *mut 
                              Qt (), safe_run_hooks_error);
   SAFE_FREE! (sa_count, sa_mark);
   return Qnil ();
+
+  }
 }
 
 /* If we get an error while running the hook, cause the hook variable
@@ -2178,17 +2346,23 @@ unsafe extern "C-unwind" fn safe_run_hook_funcall (nargs: ptrdiff_t, args: *mut 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn safe_run_hooks (hook: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let count: specpdl_ref = SPECPDL_INDEX ();
 
   specbind (Qinhibit_quit (), Qt ());
   run_hook_with_args (2, [hook, hook].as_mut_ptr (),
                       safe_run_hook_funcall);
   unbind_to (count, Qnil ());
+
+  }
 }
 
 /* C 1976-2006.  */
 unsafe fn safe_run_hooks_maybe_narrowed (hook: Lisp_Object, w: *mut window)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let count: specpdl_ref = SPECPDL_INDEX ();
 
   specbind (Qinhibit_quit (), Qt ());
@@ -2206,18 +2380,24 @@ unsafe fn safe_run_hooks_maybe_narrowed (hook: Lisp_Object, w: *mut window)
   run_hook_with_args (2, [hook, hook].as_mut_ptr (),
                       safe_run_hook_funcall);
   unbind_to (count, Qnil ());
+
+  }
 }
 
 /* C 2008-2017.  */
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn safe_run_hooks_2 (hook: Lisp_Object, arg1: Lisp_Object, arg2: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let count: specpdl_ref = SPECPDL_INDEX ();
 
   specbind (Qinhibit_quit (), Qt ());
   run_hook_with_args (4, [hook, hook, arg1, arg2].as_mut_ptr (),
 		      safe_run_hook_funcall);
   unbind_to (count, Qnil ());
+
+  }
 }
 
 /* Nonzero means polling for input is temporarily suppressed.  */
@@ -2244,8 +2424,12 @@ pub unsafe extern "C-unwind" fn poll_for_input_1 ()
 #[cfg (feature = "poll_for_input")]
 unsafe extern "C-unwind" fn poll_for_input (timer: *mut atimer)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if poll_suppress_count == 0
     { pending_signals = true; }
+
+  }
 }
 
 /* Begin signals to poll for input, if they are appropriate.
@@ -2254,6 +2438,8 @@ unsafe extern "C-unwind" fn poll_for_input (timer: *mut atimer)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn start_polling ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* C 2054-2081: `#ifdef POLL_FOR_INPUT` (carried per P-51).  */
   #[cfg (feature = "poll_for_input")]
   {
@@ -2287,6 +2473,8 @@ pub unsafe extern "C-unwind" fn start_polling ()
 	poll_suppress_count -= 1;
       }
   }
+
+  }
 }
 
 /* C 2084-2096: `#if defined CYGWIN || defined DOS_NT`'s `input_polling_used` (carried).  */
@@ -2308,6 +2496,8 @@ pub unsafe extern "C-unwind" fn input_polling_used () -> bool
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn stop_polling ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   #[cfg (feature = "poll_for_input")]
   {
     /* XXX This condition was (read_socket_hook && !interrupt_input),
@@ -2315,6 +2505,8 @@ pub unsafe extern "C-unwind" fn stop_polling ()
        it's always set.  */
     if !interrupt_input
       { poll_suppress_count += 1; }
+  }
+
   }
 }
 
@@ -2324,6 +2516,8 @@ pub unsafe extern "C-unwind" fn stop_polling ()
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn set_poll_suppress_count (count: c_int)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   #[cfg (feature = "poll_for_input")]
   {
     if count == 0 && poll_suppress_count != 0
@@ -2337,6 +2531,8 @@ pub unsafe extern "C-unwind" fn set_poll_suppress_count (count: c_int)
       }
     poll_suppress_count = count;
   }
+
+  }
 }
 
 /* Bind polling_period to a value at least N.
@@ -2345,6 +2541,8 @@ pub unsafe extern "C-unwind" fn set_poll_suppress_count (count: c_int)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn bind_polling_period (n: c_int)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   #[cfg (feature = "poll_for_input")]
   {
     if FIXNUMP (Vpolling_period)
@@ -2373,6 +2571,8 @@ pub unsafe extern "C-unwind" fn bind_polling_period (n: c_int)
 
     /* Start a new alarm with the new period.  */
     start_polling ();
+  }
+
   }
 }
 
@@ -2421,6 +2621,8 @@ pub unsafe extern "C-unwind" fn make_ctrl_char (c: c_int) -> c_int
 /* C 2194-2205.  */
 unsafe fn help_echo_substitute_command_keys (help: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if STRINGP (help)
       && SCHARS (help) > 0
       && !NILP (Fget_text_property (make_fixnum (0),
@@ -2429,6 +2631,8 @@ unsafe fn help_echo_substitute_command_keys (help: Lisp_Object) -> Lisp_Object
     { return help; }
 
   return calln! (Qsubstitute_command_keys (), help);
+
+  }
 }
 
 /* Display the help-echo property of the character after the mouse pointer.
@@ -2462,6 +2666,8 @@ unsafe fn help_echo_substitute_command_keys (help: Lisp_Object) -> Lisp_Object
 pub unsafe extern "C-unwind" fn show_help_echo (mut help: Lisp_Object, window: Lisp_Object,
                                          object: Lisp_Object, pos: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if !NILP (help) && !STRINGP (help)
     {
       if FUNCTIONP (help)
@@ -2493,6 +2699,8 @@ pub unsafe extern "C-unwind" fn show_help_echo (mut help: Lisp_Object, window: L
 	{ calln! (Vshow_help_function, help_echo_substitute_command_keys (help)); }
       help_echo_showing_p = STRINGP (help);
     }
+
+  }
 }
 
 /* Input of single characters from keyboard.  */
@@ -2501,10 +2709,14 @@ pub unsafe extern "C-unwind" fn show_help_echo (mut help: Lisp_Object, window: L
 static mut help_form_saved_window_configs: Lisp_Object = lisp_h_Qnil ();
 unsafe extern "C-unwind" fn read_char_help_form_unwind ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let window_config: Lisp_Object = XCAR (help_form_saved_window_configs);
   help_form_saved_window_configs = XCDR (help_form_saved_window_configs);
   if !NILP (window_config)
     { Fset_window_configuration (window_config, Qnil (), Qnil ()); }
+
+  }
 }
 
 /* C 2305-2312: `STOP_POLLING`/`RESUME_POLLING` are `do { … } while (0)` macros; the port's
@@ -2527,6 +2739,8 @@ unsafe fn read_event_from_main_queue (end_time: *mut timespec,
                                       local_getcjmp: sys_jmp_buf,
                                       used_mouse_menu: *mut bool) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut c: Lisp_Object = Qnil ();
   let mut save_jump: sys_jmp_buf = unsafe { core::mem::zeroed () };
   /* C passes `local_getcjmp` by value; the port takes its address, which needs a local
@@ -2618,6 +2832,8 @@ unsafe fn read_event_from_main_queue (end_time: *mut timespec,
 
   return c;
  }
+
+  }
 }
 
 /* Like `read_event_from_main_queue' but applies keyboard-coding-system
@@ -2628,6 +2844,8 @@ unsafe fn read_decoded_event_from_main_queue (end_time: *mut timespec,
                                               prev_event: Lisp_Object,
                                               used_mouse_menu: *mut bool) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* C 2437-2441: `#ifndef WINDOWSNT` is live (`WINDOWSNT` is `#undef`).  */
   /* #define MAX_ENCODED_BYTES 16 */
   let mut events: [Lisp_Object; MAX_ENCODED_BYTES as usize] =
@@ -2747,6 +2965,8 @@ unsafe fn read_decoded_event_from_main_queue (end_time: *mut timespec,
 	  }
       }
     }
+
+  }
 }
 
 /* C 2421: `#define MAX_ENCODED_BYTES 16` (the `#ifndef WINDOWSNT` arm's macro, hoisted to
@@ -2759,6 +2979,8 @@ pub const MAX_ENCODED_BYTES: c_int = 16;
 unsafe fn read_char (commandflag: c_int, map: Lisp_Object, prev_event: Lisp_Object,
 		     used_mouse_menu: *mut bool, end_time: *mut timespec) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut c: Lisp_Object;
   let mut local_getcjmp: sys_jmp_buf = unsafe { core::mem::zeroed () };
   let mut save_jump: sys_jmp_buf = unsafe { core::mem::zeroed () };
@@ -3375,7 +3597,7 @@ unsafe fn read_char (commandflag: c_int, map: Lisp_Object, prev_event: Lisp_Obje
       last_input_event = c;
 
       calln! (Qcommand_execute (), tem, Qnil (),
-	      Fvector (1, &mut last_input_event), Qt ());
+	      Fvector (1, &raw mut last_input_event), Qt ());
 
       if (CONSP (c) && !NILP (Fmemq (XCAR (c), Vwhile_no_input_ignore_events))
 	  && end_time.is_null ())
@@ -3708,11 +3930,15 @@ unsafe fn read_char (commandflag: c_int, map: Lisp_Object, prev_event: Lisp_Obje
   input_was_pending = input_pending;
   return c;
  } /* 'retry (C 2574) */
+
+  }
 }
 
 /* C 3435-3456: `record_menu_key`.  */
 unsafe fn record_menu_key (c: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* Wipe the echo area.  */
   clear_message (true, false);
 
@@ -3729,6 +3955,8 @@ unsafe fn record_menu_key (c: Lisp_Object)
   /* Re-reading in the middle of a command.  */
   last_input_event = c;
   num_input_events += 1;
+
+  }
 }
 
 /* Return true if should recognize C as "the help character".  */
@@ -3736,6 +3964,8 @@ unsafe fn record_menu_key (c: Lisp_Object)
 /* C 3460-3471: `help_char_p`.  */
 unsafe fn help_char_p (c: Lisp_Object) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if EQ (c, Vhelp_char)
     { return true; }
   let mut tail: Lisp_Object = Vhelp_event_list;
@@ -3744,6 +3974,8 @@ unsafe fn help_char_p (c: Lisp_Object) -> bool
       { return true; }
   });
   return false;
+
+  }
 }
 
 /* Record the input event C in various ways.  */
@@ -3751,6 +3983,8 @@ unsafe fn help_char_p (c: Lisp_Object) -> bool
 /* C 3474-3620: `record_char`.  */
 unsafe fn record_char (c: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* subr.el/read-passwd binds inhibit_record_char to avoid recording
      passwords.  */
   if !record_all_keys && inhibit_record_char
@@ -3906,6 +4140,8 @@ unsafe fn record_char (c: Lisp_Object)
       fflush (dribble);
       unblock_input ();
     }
+
+  }
 }
 
 /* Copy out or in the info on where C-g should throw to.
@@ -3917,15 +4153,23 @@ unsafe fn record_char (c: Lisp_Object)
    to a pointer, and the body writes into the caller's buffer).  */
 unsafe fn save_getcjmp (temp: *mut sys_jmp_buf)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   memcpy (temp as *mut c_void, (&raw const getcjmp! ()) as *const c_void,
 	  std::mem::size_of_val (&getcjmp! ()));
+
+  }
 }
 
 /* C 3632-3636: `restore_getcjmp` — C hands its address to `record_unwind_protect_ptr`, so
    the port defines it `unsafe extern "C-unwind" fn` (PORTING.md 1.4).  */
 unsafe extern "C-unwind" fn restore_getcjmp (temp: *mut c_void)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   memcpy ((&raw mut getcjmp! ()) as *mut c_void, temp, std::mem::size_of_val (&getcjmp! ()));
+
+  }
 }
 
 /* termhooks.h 373-412: `enum event_kind kind : 16` and `enum scroll_bar_part part : 16` share
@@ -3950,6 +4194,8 @@ macro_rules! input_event_bits {
 /* C 3641-3722: `readable_events`.  */
 unsafe fn readable_events (flags: c_int) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if (flags & READABLE_EVENTS_DO_TIMERS_NOW) != 0
     { timer_check (); }
 
@@ -4037,6 +4283,8 @@ unsafe fn readable_events (flags: c_int) -> bool
 	}
     }
   return false;
+
+  }
 }
 
 /* window.h: `WINDOW_FRAME` is the window's `frame` field and the mirror carries it
@@ -4050,6 +4298,8 @@ pub static mut stop_character: c_int = 0;
 /* C 3728-3746: `event_to_kboard`.  */
 unsafe fn event_to_kboard (event: *mut input_event) -> *mut KBOARD
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* Not applicable for these special events.  */
   if input_event_bits! (kind, event) == SELECTION_REQUEST_EVENT
       || input_event_bits! (kind, event) == SELECTION_CLEAR_EVENT
@@ -4064,6 +4314,8 @@ unsafe fn event_to_kboard (event: *mut input_event) -> *mut KBOARD
       return if FRAMEP (obj) && FRAME_LIVE_P (XFRAME (obj))
 	     { FRAME_KBOARD (XFRAME (obj)) as *mut KBOARD } else { std::ptr::null_mut () };
     }
+
+  }
 }
 
 /* C 3748-3757: `#ifdef subprocesses` (the macro is 1 on this target, so the body is live).  */
@@ -4071,8 +4323,12 @@ unsafe fn event_to_kboard (event: *mut input_event) -> *mut KBOARD
 
 unsafe fn kbd_buffer_nr_stored () -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let n: c_int = kbd_store_ptr.offset_from (kbd_fetch_ptr) as c_int;
   return n + (if n < 0 { KBD_BUFFER_SIZE } else { 0 });
+
+  }
 }
 
 /* `keyboard.h` 498 and 499 declare `kbd_buffer_store_event` and
@@ -4103,6 +4359,8 @@ pub unsafe extern "C-unwind" fn kbd_buffer_store_event (event: *mut input_event)
 pub unsafe extern "C-unwind" fn kbd_buffer_store_buffered_event (event: *mut buffered_input_event,
 							 hold_quit: *mut input_event)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if (*event).kind == NO_EVENT as u16
     { emacs_abort (); }
 
@@ -4209,6 +4467,8 @@ pub unsafe extern "C-unwind" fn kbd_buffer_store_buffered_event (event: *mut buf
   if !NILP (Vthrow_on_input)
       && !is_ignored_event (event)
     { Vquit_flag = Vthrow_on_input; }
+
+  }
 }
 
 /* Limit help event positions to this range, to avoid overflow problems.  */
@@ -4239,12 +4499,16 @@ unsafe fn position_to_Time (pos: ptrdiff_t) -> Time
 /* C 3901-3912: `Time_to_position`.  */
 unsafe fn Time_to_position (encoded_pos: Time) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if (encoded_pos as ptrdiff_t) <= INPUT_EVENT_POS_MAX
     { return encoded_pos as ptrdiff_t; }
   let encoded_pos_min: Time = position_to_Time (INPUT_EVENT_POS_MIN);
   eassert! (encoded_pos_min <= encoded_pos);
   let notpos: ptrdiff_t = -1 - encoded_pos as ptrdiff_t;
   return -1 - notpos;
+
+  }
 }
 
 /* Generate a HELP_EVENT input_event and store it in the keyboard
@@ -4263,6 +4527,8 @@ unsafe fn Time_to_position (encoded_pos: Time) -> ptrdiff_t
 pub unsafe extern "C-unwind" fn gen_help_event (help: Lisp_Object, frame: Lisp_Object, window: Lisp_Object,
 					 object: Lisp_Object, pos: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut event: input_event = std::mem::zeroed ();
   EVENT_INIT (&raw mut event);
 
@@ -4273,6 +4539,8 @@ pub unsafe extern "C-unwind" fn gen_help_event (help: Lisp_Object, frame: Lisp_O
   event.y = help;
   event.timestamp = position_to_Time (pos);
   kbd_buffer_store_event (&raw mut event);
+
+  }
 }
 
 
@@ -4282,6 +4550,8 @@ pub unsafe extern "C-unwind" fn gen_help_event (help: Lisp_Object, frame: Lisp_O
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn kbd_buffer_store_help_event (frame: Lisp_Object, help: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut event: input_event = std::mem::zeroed ();
   EVENT_INIT (&raw mut event);
 
@@ -4292,6 +4562,8 @@ pub unsafe extern "C-unwind" fn kbd_buffer_store_help_event (frame: Lisp_Object,
   event.y = help;
   event.timestamp = 0;
   kbd_buffer_store_event (&raw mut event);
+
+  }
 }
 
 /* Discard any mouse events in the event buffer by setting them to
@@ -4300,6 +4572,8 @@ pub unsafe extern "C-unwind" fn kbd_buffer_store_help_event (frame: Lisp_Object,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn discard_mouse_events ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut sp: *mut buffered_input_event = kbd_fetch_ptr;
   while sp != kbd_store_ptr
     {
@@ -4313,6 +4587,8 @@ pub unsafe extern "C-unwind" fn discard_mouse_events ()
 	}
       sp = next_kbd_event (sp);
     }
+
+  }
 }
 
 
@@ -4326,6 +4602,8 @@ pub unsafe extern "C-unwind" fn discard_mouse_events ()
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn kbd_buffer_events_waiting () -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut sp: *mut buffered_input_event = kbd_fetch_ptr;
   loop
     {
@@ -4336,6 +4614,8 @@ pub unsafe extern "C-unwind" fn kbd_buffer_events_waiting () -> bool
 	}
       sp = next_kbd_event (sp);
     }
+
+  }
 }
 
 /* termchar.h 217: `bool_bf showing_menu : 1` is packed into the mirror's
@@ -4359,13 +4639,19 @@ macro_rules! tty_bits {
 /* C 3999-4003: `clear_event`.  */
 unsafe fn clear_event (event: *mut input_event)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   input_event_bits! (kind, event, NO_EVENT);
+
+  }
 }
 
 /* C 4005-4018: `kbd_buffer_get_event_1` (C hands its address to
    `internal_condition_case_1`, so the port defines it `unsafe extern "C-unwind" fn`).  */
 unsafe extern "C-unwind" fn kbd_buffer_get_event_1 (arg: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let coding_system: Lisp_Object = Fget_text_property (make_fixnum (0),
 						       Qcoding (), arg);
 
@@ -4376,6 +4662,8 @@ unsafe extern "C-unwind" fn kbd_buffer_get_event_1 (arg: Lisp_Object) -> Lisp_Ob
 				   { coding_system }
 				   else { Vlocale_coding_system },
 			      Qnil (), false, false, 0);
+
+  }
 }
 
 /* C 4020-4023: `kbd_buffer_get_event_2`.  */
@@ -4397,6 +4685,8 @@ unsafe fn kbd_buffer_get_event (kbp: *mut *mut KBOARD,
                                 event_frame: *mut *mut frame,
                                 end_time: *mut timespec) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* C's uninitialised locals are zero-initialised (PORTING.md 1.5).  */
   let mut obj: Lisp_Object = Qnil ();
   let mut str: Lisp_Object = Qnil ();
@@ -5009,11 +5299,15 @@ unsafe fn kbd_buffer_get_event (kbp: *mut *mut KBOARD,
   Vlast_event_frame = internal_last_event_frame;
 
   return (obj);
+
+  }
 }
 
 /* C 4594-4675: `process_special_events`.  */
 unsafe fn process_special_events ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut event: *mut buffered_input_event;
 
   event = kbd_fetch_ptr;
@@ -5119,6 +5413,8 @@ unsafe fn process_special_events ()
 	}
       event = next_kbd_event (event);
     }
+
+  }
 }
 
 /* Process any events that are not user-visible, run timer events that
@@ -5128,6 +5424,8 @@ unsafe fn process_special_events ()
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn swallow_events (do_display: bool)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let old_timers_run: c_uint;
 
   process_special_events ();
@@ -5137,6 +5435,8 @@ pub unsafe extern "C-unwind" fn swallow_events (do_display: bool)
 
   if !input_pending && timers_run != old_timers_run && do_display
     { redisplay_preserve_echo_area (7); }
+
+  }
 }
 
 /* Record the start of when Emacs is idle,
@@ -5145,6 +5445,8 @@ pub unsafe extern "C-unwind" fn swallow_events (do_display: bool)
 /* C 4695-4707: `timer_start_idle`.  */
 unsafe fn timer_start_idle ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* If we are already in the idle state, do nothing.  */
   if timespec_valid_p (timer_idleness_start_time)
     { return; }
@@ -5154,6 +5456,8 @@ unsafe fn timer_start_idle ()
 
   /* Mark all idle-time timers as once again candidates for running.  */
   call0 (Qinternal_timer_start_idle ());
+
+  }
 }
 
 /* Record that Emacs is no longer idle, so stop running idle-time timers.  */
@@ -5161,7 +5465,11 @@ unsafe fn timer_start_idle ()
 /* C 4711-4714: `timer_stop_idle`.  */
 unsafe fn timer_stop_idle ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   timer_idleness_start_time = invalid_timespec ();
+
+  }
 }
 
 /* Resume idle timer from last idle start time.  */
@@ -5169,10 +5477,14 @@ unsafe fn timer_stop_idle ()
 /* C 4719-4726: `timer_resume_idle`.  */
 unsafe fn timer_resume_idle ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if timespec_valid_p (timer_idleness_start_time)
     { return; }
 
   timer_idleness_start_time = timer_last_idleness_start_time;
+
+  }
 }
 
 /* List of elisp functions to call, delayed because they were generated in
@@ -5188,6 +5500,8 @@ pub static mut pending_funcalls: Lisp_Object = lisp_h_Qnil ();
 /* C 4737-4752: `decode_timer`.  */
 unsafe fn decode_timer (timer: Lisp_Object) -> timespec
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let vec: *mut Lisp_Object;
 
   if ! (VECTORP (timer) && ASIZE (timer) == 10)
@@ -5199,6 +5513,8 @@ unsafe fn decode_timer (timer: Lisp_Object) -> timespec
     { return invalid_timespec (); }
   return list4_to_timespec (*vec.offset (1), *vec.offset (2), *vec.offset (3),
 			    *vec.offset (8));
+
+  }
 }
 
 /* Check whether a timer has fired.  To prevent larger problems we simply
@@ -5216,6 +5532,8 @@ unsafe fn decode_timer (timer: Lisp_Object) -> timespec
 /* C 4763-4905: `timer_check_2`.  */
 unsafe fn timer_check_2 (timers: Lisp_Object, idle_timers: Lisp_Object) -> timespec
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* C's `timers` and `idle_timers` are the arguments themselves and both are reassigned; the
      port shadows them (PORTING.md: parameters are immutable).  */
   let mut timers = timers;
@@ -5364,6 +5682,8 @@ unsafe fn timer_check_2 (timers: Lisp_Object, idle_timers: Lisp_Object) -> times
 
   /* No timers are pending in the future.  */
   return invalid_timespec ();
+
+  }
 }
 
 /* Check whether a timer has fired.  To prevent larger problems we simply
@@ -5379,6 +5699,8 @@ unsafe fn timer_check_2 (timers: Lisp_Object, idle_timers: Lisp_Object) -> times
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn timer_check () -> timespec
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut nexttime: timespec;
   let mut timers: Lisp_Object;
   let mut idle_timers: Lisp_Object;
@@ -5411,6 +5733,8 @@ pub unsafe extern "C-unwind" fn timer_check () -> timespec
     }
 
   return nexttime;
+
+  }
 }
 
 DEFUN! ("current-idle-time", Fcurrent_idle_time, Scurrent_idle_time, 0, 0, 0,
@@ -6173,6 +6497,8 @@ unsafe fn make_lispy_tty_position (r: *mut frame, mx: c_int, my: c_int,
 				   window_or_frame: *mut Lisp_Object, posn: *mut Lisp_Object)
   -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut side: frame_border_side = ON_NONE;
   let mut f: *mut frame = std::ptr::null_mut ();
   let mut tail: Lisp_Object;
@@ -6234,6 +6560,8 @@ unsafe fn make_lispy_tty_position (r: *mut frame, mx: c_int, my: c_int,
     }
 
   return 0;
+
+  }
 }
 /* C: dispextern.h 287: `#define CHARPOS(POS)	(POS).charpos` — the mirror does not carry it,
    and `make_lispy_position` is the only ported text that names it.  */
@@ -6250,6 +6578,8 @@ macro_rules! CHARPOS { ($pos:expr) => { ($pos).charpos }; }
 unsafe fn make_lispy_position (f: *mut frame, x: Lisp_Object, y: Lisp_Object, t: Time)
   -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* C's uninitialised `part` is zero-initialised (PORTING.md 1.5); the call below fills it in
      whenever F is non-NULL.  */
   let mut part: window_part = 0;
@@ -6598,6 +6928,8 @@ unsafe fn make_lispy_position (f: *mut frame, x: Lisp_Object, y: Lisp_Object, t:
 				     make_fixnum (yret as EMACS_INT)),
 			      Fcons (INT_TO_INTEGER (t as EMACS_INT),
 				     extra_info))));
+
+  }
 }
 
 /* Return non-zero if F is a GUI frame that uses some toolkit-managed
@@ -6628,9 +6960,13 @@ unsafe fn toolkit_menubar_in_use (f: *mut frame) -> bool
 /* C 6116-6122: `make_scroll_bar_position`.  */
 unsafe fn make_scroll_bar_position (ev: *mut input_event, r#type: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   return list5 ((*ev).frame_or_window, r#type, Fcons ((*ev).x, (*ev).y),
 		INT_TO_INTEGER ((*ev).timestamp as EMACS_INT),
 		builtin_lisp_symbol (scroll_bar_parts[input_event_bits! (part, ev) as usize] as usize));
+
+  }
 }
 
 /* C 6124-6145: `#if defined HAVE_WINDOW_SYSTEM && !defined HAVE_EXT_MENU_BAR` — `HAVE_WINDOW_SYSTEM`
@@ -6660,6 +6996,8 @@ unsafe fn coords_in_menu_bar_window (f: *mut frame, x: c_int, y: c_int) -> bool
    tab-bar window of the given frame F.  */
 unsafe fn coords_in_tab_bar_window (f: *mut frame, x: c_int, y: c_int) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut window: *mut window;
 
   if !WINDOWP ((*f).tab_bar_window)
@@ -6671,11 +7009,15 @@ unsafe fn coords_in_tab_bar_window (f: *mut frame, x: c_int, y: c_int) -> bool
 	 && x >= WINDOW_LEFT_EDGE_X! (window)
 	 && y <= WINDOW_BOTTOM_EDGE_Y! (window)
 	 && x <= WINDOW_RIGHT_EDGE_X! (window);
+
+  }
 }
 
 /* C 6170-6183: `save_line_number_display_width`.  */
 unsafe fn save_line_number_display_width (event: *mut input_event)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut w: *mut window;
   /* C's uninitialised `pixel_width` is zero-initialised (PORTING.md 1.5); it is the callee's
      out-parameter.  */
@@ -6688,6 +7030,8 @@ unsafe fn save_line_number_display_width (event: *mut input_event)
   else
     { w = XWINDOW (selected_window); }
   line_number_display_width (w, &raw mut down_mouse_line_number_width, &raw mut pixel_width);
+
+  }
 }
 
 /* Return non-zero if the change of position from START_POS to END_POS
@@ -6699,6 +7043,8 @@ unsafe fn save_line_number_display_width (event: *mut input_event)
 /* C 6191-6219: `line_number_mode_hscroll`.  */
 unsafe fn line_number_mode_hscroll (start_pos: Lisp_Object, end_pos: Lisp_Object) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if !EQ (Fcar (start_pos), Fcar (end_pos)) /* different window */
       || list_length (start_pos) < 7	/* no COL/ROW info */
       || list_length (end_pos) < 7
@@ -6728,6 +7074,8 @@ unsafe fn line_number_mode_hscroll (start_pos: Lisp_Object, end_pos: Lisp_Object
   return EQ (start_col, end_col)
 	 && down_mouse_line_number_width >= 0
 	 && col_width != down_mouse_line_number_width;
+
+  }
 }
 /* dispextern.h 3407-3430: `enum tab_bar_item_idx` — `TAB_BAR_ITEM_KEY` … `TAB_BAR_ITEM_NSLOTS`
    — has no mirror, and `make_lispy_event`'s two carried `HAVE_WINDOW_SYSTEM` arms are the only
@@ -6761,6 +7109,8 @@ pub const TAB_BAR_ITEM_NSLOTS: tab_bar_item_idx = 6;
    live — the macro is defined at C 5597 in this file, not by the frozen table.  */
 unsafe fn make_lispy_event (event: *mut input_event) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* C 6230-7309 is one `switch (event->kind)` whose every `case` is an arm below and whose
      `default` is the trailing `_`; C's one `continue` (the touchscreen-update loop's
      menu-bar skip) is the `if` that wraps the rest of that loop's body.  */
@@ -7999,6 +8349,8 @@ unsafe fn make_lispy_event (event: *mut input_event) -> Lisp_Object
       emacs_abort ();
     }
     }
+
+  }
 }
 
 /* C 7309-7333: `make_lispy_movement`.  */
@@ -8006,6 +8358,8 @@ unsafe fn make_lispy_movement (frame: *mut frame, bar_window: Lisp_Object,
 			       part: scroll_bar_part, x: Lisp_Object, y: Lisp_Object, t: Time)
   -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* Is it a scroll bar movement?  */
   if !frame.is_null () && !NILP (bar_window)
     {
@@ -8026,25 +8380,39 @@ unsafe fn make_lispy_movement (frame: *mut frame, bar_window: Lisp_Object,
       position = make_lispy_position (frame, x, y, t);
       return list2 (Qmouse_movement (), position);
     }
+
+  }
 }
 
 /* Construct a switch frame event.  */
 /* C 7335-7340: `make_lispy_switch_frame`.  */
 unsafe fn make_lispy_switch_frame (frame: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   return list2 (Qswitch_frame (), frame);
+
+  }
 }
 
 /* C 7342-7346: `make_lispy_focus_in`.  */
 unsafe fn make_lispy_focus_in (frame: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   return list2 (Qfocus_in (), frame);
+
+  }
 }
 
 /* C 7348-7352: `make_lispy_focus_out`.  */
 unsafe fn make_lispy_focus_out (frame: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   return list2 (Qfocus_out (), frame);
+
+  }
 }
 
 /* Manipulating modifiers.  */
@@ -8053,6 +8421,8 @@ unsafe fn make_lispy_focus_out (frame: Lisp_Object) -> Lisp_Object
 /* C 7365-7476: `static int parse_modifiers_uncached (Lisp_Object symbol, ptrdiff_t *modifier_end);`  */
 unsafe fn parse_modifiers_uncached (symbol: Lisp_Object, modifier_end: *mut ptrdiff_t) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut name: Lisp_Object;
   let mut i: ptrdiff_t;
   let mut modifiers: c_int;
@@ -8154,6 +8524,8 @@ unsafe fn parse_modifiers_uncached (symbol: Lisp_Object, modifier_end: *mut ptrd
     { *modifier_end = i; }
 
   return modifiers;
+
+  }
 }
 
 /* C 7478-7483: `apply_modifiers_uncached`'s own comment, above its definition.  */
@@ -8162,6 +8534,8 @@ unsafe fn parse_modifiers_uncached (symbol: Lisp_Object, modifier_end: *mut ptrd
 unsafe fn apply_modifiers_uncached (modifiers: c_int, base: *mut c_char, base_len: c_int,
 				    base_len_byte: c_int) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* Since BASE could contain nulls, we can't use intern here; we have
      to use Fintern, which expects a genuine Lisp_String, and keeps a
      reference to it.  */
@@ -8219,6 +8593,8 @@ unsafe fn apply_modifiers_uncached (modifiers: c_int, base: *mut c_char, base_le
 
     return Fintern (new_name, Qnil ());
   }
+
+  }
 }
 
 
@@ -8248,6 +8624,8 @@ static mut modifier_symbols: Lisp_Object = lisp_h_Qnil ();
 /* C 7541-7553: `static Lisp_Object lispy_modifier_list (int modifiers);`  */
 unsafe fn lispy_modifier_list (modifiers: c_int) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut modifier_list: Lisp_Object;
   let mut i: c_int;
 
@@ -8261,6 +8639,8 @@ unsafe fn lispy_modifier_list (modifiers: c_int) -> Lisp_Object
     }
 
   return modifier_list;
+
+  }
 }
 
 
@@ -8272,6 +8652,8 @@ macro_rules! KEY_TO_CHAR { ($k:expr) => { XFIXNUM ($k) & ((1 << CHARACTERBITS) -
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn parse_modifiers (symbol: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut elements: Lisp_Object;
 
   if FIXNUMP (symbol)
@@ -8312,6 +8694,8 @@ pub unsafe extern "C-unwind" fn parse_modifiers (symbol: Lisp_Object) -> Lisp_Ob
 
       return elements;
     }
+
+  }
 }
 
 /* C 7609-7620: `DEFUN ("internal-event-symbol-parse-modifiers", …)`.  */
@@ -8332,6 +8716,8 @@ DEFUN! ("internal-event-symbol-parse-modifiers", Fevent_symbol_parse_modifiers,
 /* C 7631-7680: `static Lisp_Object apply_modifiers (int modifiers, Lisp_Object base);`  */
 unsafe fn apply_modifiers (mut modifiers: c_int, base: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* C's uninitialised locals are zero-initialised (PORTING.md 1.5).  */
   let mut cache: Lisp_Object = Qnil ();
   let mut idx: Lisp_Object = Qnil ();
@@ -8390,6 +8776,8 @@ unsafe fn apply_modifiers (mut modifiers: c_int, base: Lisp_Object) -> Lisp_Obje
     }
 
   return new_symbol;
+
+  }
 }
 
 
@@ -8398,6 +8786,8 @@ unsafe fn apply_modifiers (mut modifiers: c_int, base: Lisp_Object) -> Lisp_Obje
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn reorder_modifiers (symbol: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* It's hopefully okay to write the code this way, since everything
      will soon be in caches, and no consing will be done at all.  */
   let mut parsed: Lisp_Object;
@@ -8405,6 +8795,8 @@ pub unsafe extern "C-unwind" fn reorder_modifiers (symbol: Lisp_Object) -> Lisp_
   parsed = parse_modifiers (symbol);
   return apply_modifiers (XFIXNAT (XCAR (XCDR (parsed))) as c_int,
 			  XCAR (parsed));
+
+  }
 }
 
 
@@ -8457,6 +8849,8 @@ unsafe fn modify_event_symbol (symbol_num: ptrdiff_t, modifiers: c_int, symbol_k
 			       symbol_table: *mut Lisp_Object, table_size: ptrdiff_t)
   -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* C's uninitialised locals are zero-initialised (PORTING.md 1.5).  */
   let mut value: Lisp_Object = Qnil ();
   let mut symbol_int: Lisp_Object = Qnil ();
@@ -8541,6 +8935,8 @@ unsafe fn modify_event_symbol (symbol_num: ptrdiff_t, modifiers: c_int, symbol_k
 
   /* Apply modifiers to that symbol.  */
   return apply_modifiers (modifiers, value);
+
+  }
 }
 
 
@@ -8635,6 +9031,8 @@ DEFUN! ("internal-handle-focus-in", Finternal_handle_focus_in,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn parse_solitary_modifier (symbol: Lisp_Object) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut name: Lisp_Object;
 
   if !SYMBOLP (symbol)
@@ -8705,6 +9103,8 @@ pub unsafe extern "C-unwind" fn parse_solitary_modifier (symbol: Lisp_Object) ->
     }
 
   return 0;
+
+  }
 }
 
 /* Return true if EVENT is a list whose elements are all integers or symbols.
@@ -8757,6 +9157,8 @@ pub unsafe extern "C-unwind" fn lucid_event_type_list_p (mut object: Lisp_Object
 /* C 8052-8066: `static bool get_input_pending (int flags);`  */
 unsafe fn get_input_pending (flags: c_int) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* First of all, have we already counted some input?  */
   input_pending = !NILP (Vquit_flag) || readable_events (flags);
 
@@ -8769,6 +9171,8 @@ unsafe fn get_input_pending (flags: c_int) -> bool
     }
 
   return input_pending;
+
+  }
 }
 
 /* Read any terminal input already buffered up by the system
@@ -8781,6 +9185,8 @@ unsafe fn get_input_pending (flags: c_int) -> bool
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn gobble_input () -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* C's uninitialised locals are zero-initialised (PORTING.md 1.5).  */
   let mut nread: c_int = 0;
   let mut err: bool = false;
@@ -8867,6 +9273,8 @@ pub unsafe extern "C-unwind" fn gobble_input () -> c_int
     { nread = -1; }
 
   return nread;
+
+  }
 }
 
 
@@ -8890,6 +9298,8 @@ macro_rules! term_initted { ($tty:expr) => { ((*($tty)).bits_initted & 1) != 0 }
 pub unsafe extern "C-unwind" fn tty_read_avail_input (terminal: *mut terminal,
 					       hold_quit: *mut input_event) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* Using KBD_BUFFER_SIZE - 1 here avoids reading more than
      the kbd_buffer can really hold.  That may prevent loss
      of characters on some systems when input is stuffed at us.  */
@@ -9076,12 +9486,16 @@ pub unsafe extern "C-unwind" fn tty_read_avail_input (terminal: *mut terminal,
     }
 
   return nread;
+
+  }
 }
 
 
 /* C 8345-8367: `static void handle_async_input (void);`  */
 unsafe fn handle_async_input ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* C 8348-8354: `#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY` (both undefined on
      this target; carried per P-51).  */
   #[cfg (feature = "have_android")]
@@ -9103,15 +9517,21 @@ unsafe fn handle_async_input ()
       if nread <= 0
 	{ break; }
     }
+
+  }
 }
 
 /* C 8369-8375: `void process_pending_signals (void);`  */
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn process_pending_signals ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   pending_signals = false;
   handle_async_input ();
   do_pending_atimers ();
+
+  }
 }
 
 /* `blockinput.h` 57-59 declare `unblock_input`, `totally_unblock_input` and `unblock_input_to`
@@ -9127,6 +9547,8 @@ pub unsafe extern "C-unwind" fn process_pending_signals ()
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn unblock_input_to (level: c_int)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   interrupt_input_blocked = level;
   if level == 0
     {
@@ -9135,6 +9557,8 @@ pub unsafe extern "C-unwind" fn unblock_input_to (level: c_int)
     }
   else if level < 0
     { emacs_abort (); }
+
+  }
 }
 
 /* End critical section.
@@ -9151,7 +9575,11 @@ pub unsafe extern "C-unwind" fn unblock_input_to (level: c_int)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn unblock_input ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   unblock_input_to (interrupt_input_blocked - 1);
+
+  }
 }
 
 /* Undo any number of BLOCK_INPUT calls,
@@ -9161,7 +9589,11 @@ pub unsafe extern "C-unwind" fn unblock_input ()
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn totally_unblock_input ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   unblock_input_to (0);
+
+  }
 }
 
 
@@ -9174,6 +9606,8 @@ pub unsafe extern "C-unwind" fn totally_unblock_input ()
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn handle_input_available_signal (sig: c_int)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* C 8424-8433: `#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY` (dead; carried per
      P-51, with C 8428-8432's `#if defined __aarch64__` inside it — that one is *live* here
      (`__aarch64__` is 1 in the frozen configuration), so its arm is not gated and its `#else`
@@ -9183,7 +9617,7 @@ pub unsafe extern "C" fn handle_input_available_signal (sig: c_int)
   /* Make all writes from the Android UI thread visible.  If
      `android_urgent_query' has been set, preceding writes to query
      related variables should become observable here on as well.  */
-  unsafe { core::arch::asm! ("dmb ishst") };   // C 9203's `__asm__`
+  /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { core::arch::asm! ("dmb ishst") };   // C 9203's `__asm__`
   #[cfg (feature = "not_aarch64")]
   {
   __atomic_thread_fence (__ATOMIC_SEQ_CST);
@@ -9193,12 +9627,18 @@ pub unsafe extern "C" fn handle_input_available_signal (sig: c_int)
 
   if !input_available_clear_time.is_null ()
     { *input_available_clear_time = make_timespec (0, 0); }
+
+  }
 }
 
 /* C 8440-8444: `static void deliver_input_available_signal (int sig);`  */
 unsafe extern "C" fn deliver_input_available_signal (sig: c_int)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   deliver_process_signal (sig, Some (handle_input_available_signal));
+
+  }
 }
 /* C 8445: the `#endif` of `#if defined (USABLE_SIGIO) || defined (USABLE_SIGPOLL)`.  */
 
@@ -9236,6 +9676,8 @@ static mut user_signals: *mut user_signal_info = std::ptr::null_mut ();
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn add_user_signal (sig: c_int, name: *const c_char)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut action: sigaction = std::mem::zeroed ();
   let mut p: *mut user_signal_info;
 
@@ -9257,11 +9699,15 @@ pub unsafe extern "C-unwind" fn add_user_signal (sig: c_int, name: *const c_char
 
   emacs_sigaction_init (&raw mut action, Some (deliver_user_signal));
   sigaction (sig, &raw const action, std::ptr::null_mut ());
+
+  }
 }
 
 /* C 8489-8528: `static void handle_user_signal (int sig);`  */
 unsafe extern "C" fn handle_user_signal (sig: c_int)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut p: *mut user_signal_info;
   let mut special_event_name: *const c_char = std::ptr::null ();
 
@@ -9302,17 +9748,25 @@ unsafe extern "C" fn handle_user_signal (sig: c_int)
 	}
       p = (*p).next;
     }
+
+  }
 }
 
 /* C 8530-8534: `static void deliver_user_signal (int sig);`  */
 unsafe extern "C" fn deliver_user_signal (sig: c_int)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   deliver_process_signal (sig, Some (handle_user_signal));
+
+  }
 }
 
 /* C 8536-8546: `static char *find_user_signal_name (int sig);`  */
 unsafe fn find_user_signal_name (sig: c_int) -> *mut c_char
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut p: *mut user_signal_info;
 
   p = user_signals;
@@ -9324,11 +9778,15 @@ unsafe fn find_user_signal_name (sig: c_int) -> *mut c_char
     }
 
   return std::ptr::null_mut ();
+
+  }
 }
 
 /* C 8548-8574: `static void store_user_signal_events (void);`  */
 unsafe fn store_user_signal_events ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut p: *mut user_signal_info;
   let mut buf: input_event = std::mem::zeroed ();
   let mut buf_initialized: bool = false;
@@ -9358,6 +9816,8 @@ unsafe fn store_user_signal_events ()
 	}
       p = (*p).next;
     }
+
+  }
 }
 
 
@@ -9402,6 +9862,8 @@ static mut separator_names: [*const c_char; 15] = [
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn menu_separator_name_p (mut label: *const c_char) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if label.is_null ()
     { return false; }
   else if strnlen (label, 4) == 4
@@ -9427,6 +9889,8 @@ pub unsafe extern "C-unwind" fn menu_separator_name_p (mut label: *const c_char)
     }
 
   return false;
+
+  }
 }
 
 
@@ -9440,6 +9904,8 @@ pub unsafe extern "C-unwind" fn menu_separator_name_p (mut label: *const c_char)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn menu_bar_items (old: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* The number of keymaps we're scanning right now, and the number of
      keymaps we have allocated space for.  */
   let mut nmaps: ptrdiff_t;
@@ -9593,6 +10059,8 @@ pub unsafe extern "C-unwind" fn menu_bar_items (old: Lisp_Object) -> Lisp_Object
   Vinhibit_quit = oquit;
   SAFE_FREE! (sa_count, sa_mark);
   return menu_bar_items_vector;
+
+  }
 }
 
 
@@ -9604,6 +10072,8 @@ pub unsafe extern "C-unwind" fn menu_bar_items (old: Lisp_Object) -> Lisp_Object
 unsafe extern "C-unwind" fn menu_bar_item (key: Lisp_Object, mut item: Lisp_Object,
 				    dummy1: Lisp_Object, dummy2: *mut c_void)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* C's uninitialised locals are zero-initialised (PORTING.md 1.5).  */
   let mut i: c_int = 0;
   let mut parsed: bool = false;
@@ -9680,24 +10150,34 @@ unsafe extern "C-unwind" fn menu_bar_item (key: Lisp_Object, mut item: Lisp_Obje
       item = Fcons (item, if KEYMAPP! (item) && KEYMAPP! (XCAR (old)) { old } else { Qnil () });
       ASET (menu_bar_items_vector, (i + 2) as isize, item);
     }
+
+  }
 }
 
  /* This is used as the handler when calling menu_item_eval_property.  */
 /* C 8859-8868: `static Lisp_Object menu_item_eval_property_1 (Lisp_Object arg);`  */
 unsafe extern "C-unwind" fn menu_item_eval_property_1 (arg: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* If we got a quit from within the menu computation,
      quit all the way out of it.  This takes care of C-] in the debugger.  */
   if signal_quit_p (arg)
     { quit (); }
 
   return Qnil ();
+
+  }
 }
 
 /* C 8870-8874: `static Lisp_Object eval_dyn (Lisp_Object form);`  */
 unsafe extern "C-unwind" fn eval_dyn (form: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   return Feval (form, Qnil ());
+
+  }
 }
 
 /* Evaluate an expression and return the result (or nil if something
@@ -9706,12 +10186,16 @@ unsafe extern "C-unwind" fn eval_dyn (form: Lisp_Object) -> Lisp_Object
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn menu_item_eval_property (sexpr: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let count: specpdl_ref = SPECPDL_INDEX ();
   let mut val: Lisp_Object;
   specbind (Qinhibit_redisplay (), Qt ());
   val = internal_condition_case_1 (eval_dyn, sexpr, Qerror (),
 				   menu_item_eval_property_1);
   return unbind_to (count, val);
+
+  }
 }
 
 
@@ -9728,6 +10212,8 @@ pub unsafe extern "C-unwind" fn menu_item_eval_property (sexpr: Lisp_Object) -> 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn parse_menu_item (mut item: Lisp_Object, inmenubar: c_int) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut def: Lisp_Object;
   let mut tem: Lisp_Object;
   let mut item_string: Lisp_Object;
@@ -10006,6 +10492,8 @@ pub unsafe extern "C-unwind" fn parse_menu_item (mut item: Lisp_Object, inmenuba
 	    menu_item_eval_property (tem)); }
 
   return true;
+
+  }
 }
 
 
@@ -10045,6 +10533,8 @@ static mut ntab_bar_items: c_int = 0;
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn tab_bar_items (reuse: Lisp_Object, nitems: *mut c_int) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut maps: *mut Lisp_Object = std::ptr::null_mut ();
   let mut mapsbuf: [Lisp_Object; 3] = [Qnil (); 3];
   let mut nmaps: ptrdiff_t;
@@ -10135,6 +10625,8 @@ pub unsafe extern "C-unwind" fn tab_bar_items (reuse: Lisp_Object, nitems: *mut 
   *nitems = ntab_bar_items / TAB_BAR_ITEM_NSLOTS;
   SAFE_FREE! (sa_count, sa_mark);
   return tab_bar_items_vector;
+
+  }
 }
 
 
@@ -10145,6 +10637,8 @@ pub unsafe extern "C-unwind" fn tab_bar_items (reuse: Lisp_Object, nitems: *mut 
 unsafe extern "C-unwind" fn process_tab_bar_item (key: Lisp_Object, def: Lisp_Object,
 					   data: Lisp_Object, args: *mut c_void)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut i: c_int;
 
   if EQ (def, Qundefined ())
@@ -10173,6 +10667,8 @@ unsafe extern "C-unwind" fn process_tab_bar_item (key: Lisp_Object, def: Lisp_Ob
     /* Append a new tab bar item to tab_bar_items_vector.  Accept
        more than one definition for the same key.  */
     { append_tab_bar_item (); }
+
+  }
 }
 
 /* Access slot with index IDX of vector tab_bar_item_properties.  */
@@ -10184,7 +10680,11 @@ unsafe extern "C-unwind" fn process_tab_bar_item (key: Lisp_Object, def: Lisp_Ob
 /* C 9328-9332: `static void set_prop_tab_bar (ptrdiff_t idx, Lisp_Object val);`  */
 unsafe fn set_prop_tab_bar (idx: ptrdiff_t, val: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   ASET (tab_bar_item_properties, idx, val);
+
+  }
 }
 
 
@@ -10237,6 +10737,8 @@ unsafe fn set_prop_tab_bar (idx: ptrdiff_t, val: Lisp_Object)
 /* C 9381-9520: `static bool parse_tab_bar_item (Lisp_Object key, Lisp_Object item);`  */
 unsafe fn parse_tab_bar_item (key: Lisp_Object, mut item: Lisp_Object) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut filter: Lisp_Object = Qnil ();
   let mut caption: Lisp_Object;
   let mut i: c_int;
@@ -10379,6 +10881,8 @@ unsafe fn parse_tab_bar_item (key: Lisp_Object, mut item: Lisp_Object) -> bool
 
   return true;
   /* C 9519: `#undef PROP`.  */
+
+  }
 }
 
 
@@ -10388,11 +10892,15 @@ unsafe fn parse_tab_bar_item (key: Lisp_Object, mut item: Lisp_Object) -> bool
 /* C 9526-9534: `static void init_tab_bar_items (Lisp_Object reuse);`  */
 unsafe fn init_tab_bar_items (reuse: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if VECTORP (reuse)
     { tab_bar_items_vector = reuse; }
   else
     { tab_bar_items_vector = make_nil_vector (64); }
   ntab_bar_items = 0;
+
+  }
 }
 
 
@@ -10402,6 +10910,8 @@ unsafe fn init_tab_bar_items (reuse: Lisp_Object)
 /* C 9540-9556: `static void append_tab_bar_item (void);`  */
 unsafe fn append_tab_bar_item ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let incr: ptrdiff_t
     = (ntab_bar_items as isize
        - (ASIZE (tab_bar_items_vector) - TAB_BAR_ITEM_NSLOTS as isize));
@@ -10416,6 +10926,8 @@ unsafe fn append_tab_bar_item ()
 	 xvector_contents (tab_bar_item_properties) as *const Lisp_Object,
 	 TAB_BAR_ITEM_NSLOTS as isize);
   ntab_bar_items += TAB_BAR_ITEM_NSLOTS;
+
+  }
 }
 
 
@@ -10474,6 +10986,8 @@ pub const TOOL_BAR_ITEM_NSLOTS: tool_bar_item_idx = 12;
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn tool_bar_items (reuse: Lisp_Object, nitems: *mut c_int) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut maps: *mut Lisp_Object = std::ptr::null_mut ();
   let mut mapsbuf: [Lisp_Object; 3] = [Qnil (); 3];
   let mut nmaps: ptrdiff_t;
@@ -10564,6 +11078,8 @@ pub unsafe extern "C-unwind" fn tool_bar_items (reuse: Lisp_Object, nitems: *mut
   *nitems = ntool_bar_items / TOOL_BAR_ITEM_NSLOTS;
   SAFE_FREE! (sa_count, sa_mark);
   return tool_bar_items_vector;
+
+  }
 }
 
 
@@ -10574,6 +11090,8 @@ pub unsafe extern "C-unwind" fn tool_bar_items (reuse: Lisp_Object, nitems: *mut
 unsafe extern "C-unwind" fn process_tool_bar_item (key: Lisp_Object, def: Lisp_Object,
 					    data: Lisp_Object, args: *mut c_void)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut i: c_int;
 
   if EQ (def, Qundefined ())
@@ -10602,6 +11120,8 @@ unsafe extern "C-unwind" fn process_tool_bar_item (key: Lisp_Object, def: Lisp_O
     /* Append a new tool bar item to tool_bar_items_vector.  Accept
        more than one definition for the same key.  */
     { append_tool_bar_item (); }
+
+  }
 }
 
 /* Access slot with index IDX of vector tool_bar_item_properties.  */
@@ -10611,7 +11131,11 @@ unsafe extern "C-unwind" fn process_tool_bar_item (key: Lisp_Object, def: Lisp_O
 /* C 9712-9716: `static void set_prop (ptrdiff_t idx, Lisp_Object val);`  */
 unsafe fn set_prop (idx: ptrdiff_t, val: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   ASET (tool_bar_item_properties, idx, val);
+
+  }
 }
 
 
@@ -10670,6 +11194,8 @@ unsafe fn set_prop (idx: ptrdiff_t, val: Lisp_Object)
 /* C 9771-10034: `static bool parse_tool_bar_item (Lisp_Object key, Lisp_Object item);`  */
 unsafe fn parse_tool_bar_item (key: Lisp_Object, mut item: Lisp_Object) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut filter: Lisp_Object = Qnil ();
   let mut caption: Lisp_Object;
   let mut i: c_int;
@@ -10940,6 +11466,8 @@ unsafe fn parse_tool_bar_item (key: Lisp_Object, mut item: Lisp_Object) -> bool
 
   return true;
   /* C 10033: `#undef PROP`.  */
+
+  }
 }
 
 
@@ -10949,11 +11477,15 @@ unsafe fn parse_tool_bar_item (key: Lisp_Object, mut item: Lisp_Object) -> bool
 /* C 10040-10048: `static void init_tool_bar_items (Lisp_Object reuse);`  */
 unsafe fn init_tool_bar_items (reuse: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if VECTORP (reuse)
     { tool_bar_items_vector = reuse; }
   else
     { tool_bar_items_vector = make_nil_vector (64); }
   ntool_bar_items = 0;
+
+  }
 }
 
 
@@ -10963,6 +11495,8 @@ unsafe fn init_tool_bar_items (reuse: Lisp_Object)
 /* C 10054-10070: `static void append_tool_bar_item (void);`  */
 unsafe fn append_tool_bar_item ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let incr: ptrdiff_t
     = (ntool_bar_items as isize
        - (ASIZE (tool_bar_items_vector) - TOOL_BAR_ITEM_NSLOTS as isize));
@@ -10977,6 +11511,8 @@ unsafe fn append_tool_bar_item ()
 	 xvector_contents (tool_bar_item_properties) as *const Lisp_Object,
 	 TOOL_BAR_ITEM_NSLOTS as isize);
   ntool_bar_items += TOOL_BAR_ITEM_NSLOTS;
+
+  }
 }
 
 
@@ -11005,6 +11541,8 @@ unsafe fn append_tool_bar_item ()
 unsafe fn read_char_x_menu_prompt (map: Lisp_Object, prev_event: Lisp_Object,
 				   used_mouse_menu: *mut bool) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if !used_mouse_menu.is_null ()
     { *used_mouse_menu = false; }
 
@@ -11062,13 +11600,19 @@ unsafe fn read_char_x_menu_prompt (map: Lisp_Object, prev_event: Lisp_Object,
       return value;
     }
   return Qnil ();
+
+  }
 }
 
 /* C 10157-10162: `static Lisp_Object follow_key (Lisp_Object keymap, Lisp_Object key);`  */
 unsafe fn follow_key (keymap: Lisp_Object, key: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   return access_keymap (get_keymap (keymap, false, true),
 			key, true, false);
+
+  }
 }
 
 /* C 10164-10386: `static Lisp_Object read_char_minibuf_menu_prompt (int commandflag,
@@ -11076,6 +11620,8 @@ unsafe fn follow_key (keymap: Lisp_Object, key: Lisp_Object) -> Lisp_Object
 unsafe fn read_char_minibuf_menu_prompt (commandflag: c_int, mut map: Lisp_Object)
   -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut name: Lisp_Object;
   let mut nlength: ptrdiff_t;
   /* FIXME: Use the minibuffer's frame width.  */
@@ -11304,6 +11850,8 @@ unsafe fn read_char_minibuf_menu_prompt (commandflag: c_int, mut map: Lisp_Objec
 	}
       /* Help char - go round again.  */
     }
+
+  }
 }
 
 
@@ -11311,6 +11859,8 @@ unsafe fn read_char_minibuf_menu_prompt (commandflag: c_int, mut map: Lisp_Objec
    active_maps (Lisp_Object first_event, Lisp_Object second_event);`  */
 unsafe fn active_maps (first_event: Lisp_Object, second_event: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut position: Lisp_Object
     = if EVENT_HAS_PARAMETERS (first_event) { EVENT_START (first_event) } else { Qnil () };
   /* The position of a click can be in the second event if the first event
@@ -11323,6 +11873,8 @@ unsafe fn active_maps (first_event: Lisp_Object, second_event: Lisp_Object) -> L
       position = EVENT_START (second_event);
     }
   return Fcons (Qkeymap (), Fcurrent_active_maps (Qt (), position));
+
+  }
 }
 
 /* Structure used to keep track of partial application of key remapping
@@ -11368,6 +11920,8 @@ unsafe fn access_keymap_keyremap (map: Lisp_Object, key: Lisp_Object, prompt: Li
 				  do_funcall: bool, start: c_uint, end: c_uint,
 				  keybuf: *mut Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut next: Lisp_Object;
   let mut count: specpdl_ref;
 
@@ -11404,6 +11958,8 @@ unsafe fn access_keymap_keyremap (map: Lisp_Object, key: Lisp_Object, prompt: Li
 	{ signal_error (c"Function returns invalid key sequence".as_ptr (), tem); }
     }
   return next;
+
+  }
 }
 
 /* Do one step of the key remapping used for function-key-map and
@@ -11423,6 +11979,8 @@ unsafe fn access_keymap_keyremap (map: Lisp_Object, key: Lisp_Object, prompt: Li
 unsafe fn keyremap_step (keybuf: *mut Lisp_Object, fkey: *mut keyremap,
 			 input: c_int, doit: bool, diff: *mut c_int, prompt: Lisp_Object) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut next: Lisp_Object;
   let mut key: Lisp_Object;
   let mut buf_start: ptrdiff_t;
@@ -11505,22 +12063,32 @@ unsafe fn keyremap_step (keybuf: *mut Lisp_Object, fkey: *mut keyremap,
       (*fkey).map = (*fkey).parent;
     }
   return false;
+
+  }
 }
 
 /* C 10548-10555: `static bool test_undefined (Lisp_Object binding);`  */
 unsafe fn test_undefined (binding: Lisp_Object) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   return NILP (binding)
 	 || EQ (binding, Qundefined ())
 	 || (SYMBOLP (binding)
 	     && EQ (Fcommand_remapping (binding, Qnil (), Qnil ()), Qundefined ()));
+
+  }
 }
 
 /* C 10557-10560: `void init_raw_keybuf_count (void);`  */
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn init_raw_keybuf_count ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   raw_keybuf_count = 0;
+
+  }
 }
 
 
@@ -11557,6 +12125,8 @@ unsafe fn read_filtered_event (no_switch_frame: bool, ascii_required: bool,
 			       error_nonascii: bool, input_method: bool,
 			       seconds: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* C's uninitialised locals are zero-initialised (PORTING.md 1.5).  */
   let mut val: Lisp_Object = Qnil ();
   let mut delayed_switch_frame: Lisp_Object = Qnil ();
@@ -11671,6 +12241,8 @@ unsafe fn read_filtered_event (no_switch_frame: bool, ascii_required: bool,
       { return unbind_to (count, val); }
       return val;
     }
+
+  }
 }
 
 /* C 10700-10747: `DEFUN ("read-char", …)`.  */
@@ -11752,9 +12324,13 @@ unsafe extern "C-unwind" fn restore_reading_key_sequence (old_reading_key_sequen
 /* C 10849-10855: `static bool requeued_events_pending_p (void);`  */
 unsafe fn requeued_events_pending_p () -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   return requeued_command_events_pending_p ()
 	 || !NILP (Vunread_post_input_method_events)
 	 || !NILP (Vunread_input_method_events);
+
+  }
 }
 
 /* C 10857-10899: `read_key_sequence`'s own doc comment, above its definition.  */
@@ -11771,6 +12347,8 @@ unsafe fn read_key_sequence (keybuf: *mut Lisp_Object, prompt: Lisp_Object,
 			     fix_current_buffer: bool, prevent_redisplay: bool,
 			     disable_text_conversion_p: bool) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let count: specpdl_ref = SPECPDL_INDEX ();
 
   /* How many keys there are in the current key sequence.  */
@@ -12820,6 +13398,8 @@ unsafe fn read_key_sequence (keybuf: *mut Lisp_Object, prompt: Lisp_Object,
   echo_update ();
 
   return t;
+
+  }
 }
 
 /* ============================================================================
@@ -12847,6 +13427,8 @@ unsafe fn read_key_sequence_vs (prompt: Lisp_Object, continue_echo: Lisp_Object,
 				cmd_loop: Lisp_Object, allow_string: bool,
 				disable_text_conversion: bool) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let count: specpdl_ref = SPECPDL_INDEX ();
 
   if !NILP (prompt)
@@ -12889,6 +13471,8 @@ unsafe fn read_key_sequence_vs (prompt: Lisp_Object, continue_echo: Lisp_Object,
 		    if allow_string
 		      { make_event_array (i as ptrdiff_t, keybuf.as_mut_ptr ()) }
 		    else { Fvector (i as ptrdiff_t, keybuf.as_mut_ptr ()) });
+
+  }
 }
 
 DEFUN! ("read-key-sequence", Fread_key_sequence, Sread_key_sequence, 1, 6, 0,
@@ -12920,7 +13504,11 @@ DEFUN! ("read-key-sequence-vector", Fread_key_sequence_vector, Sread_key_sequenc
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn detect_input_pending () -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   return input_pending || get_input_pending (0);
+
+  }
 }
 
 /* Return true if input events are pending, and run any pending timers.  */
@@ -12929,6 +13517,8 @@ pub unsafe extern "C-unwind" fn detect_input_pending () -> bool
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn detect_input_pending_run_timers (do_display: bool) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let old_timers_run: c_uint = timers_run;
 
   if !input_pending
@@ -12938,6 +13528,8 @@ pub unsafe extern "C-unwind" fn detect_input_pending_run_timers (do_display: boo
     { redisplay_preserve_echo_area (8); }
 
   return input_pending;
+
+  }
 }
 
 /* This is called in some cases before a possible quit.
@@ -12948,7 +13540,11 @@ pub unsafe extern "C-unwind" fn detect_input_pending_run_timers (do_display: boo
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn clear_input_pending ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   input_pending = false;
+
+  }
 }
 
 /* Return true if there are pending requeued command events.  */
@@ -12957,7 +13553,11 @@ pub unsafe extern "C-unwind" fn clear_input_pending ()
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn requeued_command_events_pending_p () -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   return CONSP (Vunread_command_events);
+
+  }
 }
 
 DEFUN! ("input-pending-p", Finput_pending_p, Sinput_pending_p, 0, 1, 0,
@@ -13051,6 +13651,8 @@ DEFUN! ("insert-special-event", Finsert_special_event, Sinsert_special_event, 1,
 /* C 12151-12171: `static void update_recent_keys (int new_size, int kept_keys);`  */
 unsafe fn update_recent_keys (new_size: c_int, kept_keys: c_int)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let osize: c_int = ASIZE (recent_keys) as c_int;
   eassert! (recent_keys_index < osize);
   eassert! (kept_keys <= min! (osize, new_size));
@@ -13070,6 +13672,8 @@ unsafe fn update_recent_keys (new_size: c_int, kept_keys: c_int)
   total_keys = kept_keys;
   recent_keys_index = total_keys % new_size;
   lossage_limit = new_size;
+
+  }
 }
 
 DEFUN! ("lossage-size", Flossage_size, Slossage_size, 0, 1,
@@ -13350,6 +13954,8 @@ DEFUN! ("suspend-emacs", Fsuspend_emacs, Ssuspend_emacs, 0, 1, "",
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn stuff_buffered_input (stuffstring: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut bad_stuff: c_int = 0;
 
   if STRINGP (stuffstring)
@@ -13382,12 +13988,16 @@ pub unsafe extern "C-unwind" fn stuff_buffered_input (stuffstring: Lisp_Object)
     }
 
   input_pending = false;
+
+  }
 }
 
 /* C 12510-12522: `void set_waiting_for_input (struct timespec *time_to_clear);`  */
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn set_waiting_for_input (time_to_clear: *mut timespec)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   input_available_clear_time = time_to_clear;
 
   /* Tell handle_interrupt to throw back to read_char.  */
@@ -13397,15 +14007,21 @@ pub unsafe extern "C-unwind" fn set_waiting_for_input (time_to_clear: *mut times
      make it run again now, to avoid timing error.  */
   if !NILP (Vquit_flag)
     { quit_throw_to_read_char (false); }
+
+  }
 }
 
 /* C 12524-12530: `void clear_waiting_for_input (void);`  */
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn clear_waiting_for_input ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* Tell handle_interrupt not to throw back to read_char,  */
   waiting_for_input! () = false;
   input_available_clear_time = std::ptr::null_mut ();
+
+  }
 }
 /* frame.h 1387-1391: `CHECK_LIVE_FRAME` is the mirror's (`include/frame.rs` 983, which this
    unit includes); the unit's body-identical copy was redundancy (P-26).  */
@@ -13433,6 +14049,8 @@ pub unsafe extern "C-unwind" fn clear_waiting_for_input ()
    the `handle_user_signal` shape).  */
 unsafe extern "C" fn handle_interrupt_signal (sig: c_int)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* See if we have an active terminal on our controlling tty.  */
   let terminal: *mut terminal = get_named_terminal (dev_tty);
   if terminal.is_null ()
@@ -13462,13 +14080,19 @@ unsafe extern "C" fn handle_interrupt_signal (sig: c_int)
 
       handle_interrupt (true);
     }
+
+  }
 }
 
 /* C 12571-12575: `static void deliver_interrupt_signal (int sig);` — C hands its address to
    `emacs_sigaction_init` (C 13262), so the port defines it `unsafe extern "C-unwind" fn`.  */
 unsafe extern "C" fn deliver_interrupt_signal (sig: c_int)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   deliver_process_signal (sig, Some (handle_interrupt_signal));
+
+  }
 }
 
 /* Output MSG directly to standard output, without buffering.  Ignore
@@ -13476,16 +14100,24 @@ unsafe extern "C" fn deliver_interrupt_signal (sig: c_int)
 /* C 12579-12583: `static void write_stdout (char const *msg);`  */
 unsafe fn write_stdout (msg: *const c_char)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   ignore_value! (write (STDOUT_FILENO, msg as *const c_void, strlen (msg)));
+
+  }
 }
 
 /* Read a byte from stdin, without buffering.  Safe in signal handlers.  */
 /* C 12586-12591: `static int read_stdin (void);`  */
 unsafe fn read_stdin () -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* C's `char c;` is uninitialised; the port zero-initialises it (PORTING.md 1.5).  */
   let mut c: c_char = 0;
   return if read (STDIN_FILENO, &raw mut c as *mut c_void, 1) == 1 { c as c_int } else { EOF };
+
+  }
 }
 
 /* If Emacs is stuck because `inhibit-quit' is true, then keep track
@@ -13510,6 +14142,8 @@ static mut force_quit_count: c_int = 0;
 /* C 12609-12745: `static void handle_interrupt (bool in_signal_handler);`  */
 unsafe fn handle_interrupt (in_signal_handler: bool)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* C's `char c;` is uninitialised; the port zero-initialises it (PORTING.md 1.5).  */
   let mut c: c_char = 0;
 
@@ -13640,6 +14274,8 @@ unsafe fn handle_interrupt (in_signal_handler: bool)
   }
   if waiting_for_input! () && !echoing
     { quit_throw_to_read_char (in_signal_handler); }
+
+  }
 }
 
 /* Handle a C-g by making read_char return C-g.  */
@@ -13648,6 +14284,8 @@ unsafe fn handle_interrupt (in_signal_handler: bool)
    makes it `_Noreturn`, which the port spells `-> !` (the scaffold entry's reading).  */
 unsafe fn quit_throw_to_read_char (from_signal: bool) -> !
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* When not called from a signal handler it is safe to call
      Lisp.  */
   if !from_signal && EQ (Vquit_flag, Qkill_emacs ())
@@ -13667,6 +14305,8 @@ unsafe fn quit_throw_to_read_char (from_signal: bool) -> !
   /* `sys_longjmp` takes `*mut jmp_buf`, which is the port's `[u8; 192]` alias while
      `getcjmp! ()` is a `sys_jmp_buf` (the `sys_setjmp` call site's cast).  */
   sys_longjmp (&raw mut getcjmp! () as *mut jmp_buf, 1);
+
+  }
 }
 
 DEFUN! ("set-input-interrupt-mode", Fset_input_interrupt_mode, Sset_input_interrupt_mode, 1, 1, 0,
@@ -13963,6 +14603,8 @@ DEFUN! ("posn-point", Fposn_point, Sposn_point, 1, 1, 0,
 /* C 13125-13152: `static void init_kboard (KBOARD *kb, Lisp_Object type);`  */
 unsafe fn init_kboard (kb: *mut KBOARD, r#type: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   kset_overriding_terminal_local_map (kb, Qnil ());
   kset_last_command (kb, Qnil ());
   kset_real_last_command (kb, Qnil ());
@@ -13987,6 +14629,8 @@ unsafe fn init_kboard (kb: *mut KBOARD, r#type: Lisp_Object)
   kset_local_function_key_map (kb, Fmake_sparse_keymap (Qnil ()));
   Fset_keymap_parent (KVAR! (kb, Vlocal_function_key_map), Vfunction_key_map);
   kset_default_minibuffer_frame (kb, Qnil ());
+
+  }
 }
 
 /* Allocate and basically initialize keyboard
@@ -13997,12 +14641,16 @@ unsafe fn init_kboard (kb: *mut KBOARD, r#type: Lisp_Object)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn allocate_kboard (r#type: Lisp_Object) -> *mut KBOARD
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut kb: *mut KBOARD = xmalloc (std::mem::size_of::<KBOARD> ()) as *mut KBOARD;
 
   init_kboard (kb, r#type);
   (*kb).next_kboard = all_kboards;
   all_kboards = kb;
   return kb;
+
+  }
 }
 /* lisp.h 803's `declared_special` bit (`bool_bf declared_special : 1`) is one bit of `Lisp_Symbol`'s `bits` unit; the
    mirror keeps the storage unit, so the port writes the member through a member-named accessor
@@ -14030,7 +14678,11 @@ macro_rules! set_symbol_bits {
 /* C 13173-13177: `static void wipe_kboard (KBOARD *kb);`  */
 unsafe fn wipe_kboard (kb: *mut KBOARD)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   xfree ((*kb).kbd_macro_buffer as *mut c_void);
+
+  }
 }
 
 /* Free KB and memory referenced from it.  */
@@ -14040,6 +14692,8 @@ unsafe fn wipe_kboard (kb: *mut KBOARD)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn delete_kboard (kb: *mut KBOARD)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut kbp: *mut *mut KBOARD;
   let mut thread: *mut thread_state;
 
@@ -14085,6 +14739,8 @@ pub unsafe extern "C-unwind" fn delete_kboard (kb: *mut KBOARD)
 
   wipe_kboard (kb);
   xfree (kb as *mut c_void);
+
+  }
 }
 
 /* C 13222-13306: `void init_keyboard (void);` — C's non-`static` definition is an exported
@@ -14092,6 +14748,8 @@ pub unsafe extern "C-unwind" fn delete_kboard (kb: *mut KBOARD)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn init_keyboard ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* This is correct before outermost invocation of the editor loop.  */
   command_loop_level = -1;
   quit_char = Ctl! (b'g' as c_int);
@@ -14175,8 +14833,8 @@ pub unsafe extern "C-unwind" fn init_keyboard ()
   pthread_sigmask (SIG_SETMASK, &raw const empty_mask, std::ptr::null_mut ());
   dribble = std::ptr::null_mut ();
 
-  if keyboard_init_hook.is_some ()
-    { (keyboard_init_hook.unwrap ()) (); }
+  if let Some (hook) = keyboard_init_hook
+    { hook (); }
 
   /* C 13301-13305: `#ifdef POLL_FOR_INPUT` (dead; carried per P-51).  */
   #[cfg (feature = "poll_for_input")]
@@ -14184,6 +14842,8 @@ pub unsafe extern "C-unwind" fn init_keyboard ()
   poll_timer = std::ptr::null_mut ();
   poll_suppress_count = 1;
   start_polling ();
+  }
+
   }
 }
 
@@ -14233,6 +14893,8 @@ static head_table: [event_head; 12] =
 /* C 13337-13358: `static Lisp_Object init_while_no_input_ignore_events (void);`  */
 unsafe fn init_while_no_input_ignore_events () -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut events: Lisp_Object = list! (Qselect_window (), Qhelp_echo (), Qmove_frame (),
 				       Qiconify_frame (), Qmake_frame_visible (),
 				       Qfocus_in (), Qfocus_out (), Qconfig_changed_event (),
@@ -14249,12 +14911,16 @@ unsafe fn init_while_no_input_ignore_events () -> Lisp_Object
   events = Fcons (Qsleep_event (), events);
 
   return events;
+
+  }
 }
 
 /* C 13360-13409: `static bool is_ignored_event (union buffered_input_event *event);` —
    this is the last scaffold entry the file was carrying, and it lands here in C's order.  */
 unsafe fn is_ignored_event (event: *mut buffered_input_event) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut ignore_event: Lisp_Object = Qnil ();
 
   /* C's `switch (event->kind)` becomes the port's `match` on the same arms in the same order,
@@ -14317,6 +14983,8 @@ unsafe fn is_ignored_event (event: *mut buffered_input_event) -> bool
   }
 
   return !NILP (Fmemq (ignore_event, Vwhile_no_input_ignore_events));
+
+  }
 }
 /* The `DEFVAR_*` variables this C file owns: C's storage is `globals.f_<vname>`
    (lisp.h 3495-3530), and `struct emacs_globals globals` is defined once, in `src/alloc.c`;
@@ -14411,6 +15079,8 @@ unsafe fn is_ignored_event (event: *mut buffered_input_event) -> bool
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_keyboard ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   pending_funcalls = Qnil ();
   staticpro (&raw const pending_funcalls);
 
@@ -15144,6 +15814,8 @@ pub unsafe extern "C-unwind" fn syms_of_keyboard ()
   DEFSYM! (Qcommand_error_default_function, "command-error-default-function");
   DEFSYM! (Qsigusr2, "sigusr2");
   DEFSYM! (Qascii_character, "ascii-character");
+
+  }
 }
 
 /* C 14516-14545: `static void syms_of_keyboard_for_pdumper (void);` — C hands its address to
@@ -15151,6 +15823,8 @@ pub unsafe extern "C-unwind" fn syms_of_keyboard ()
    (PORTING.md 1.4).  The forward declaration at C 13411 is dropped (PORTING.md 0.1-12).  */
 unsafe extern "C-unwind" fn syms_of_keyboard_for_pdumper ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* Make sure input state is pristine when restoring from a dump.
      init_keyboard() also resets some of these, but the duplication
      doesn't hurt and makes sure that allocate_kboard and subsequent
@@ -15177,6 +15851,8 @@ unsafe extern "C-unwind" fn syms_of_keyboard_for_pdumper ()
   /* Create the initial keyboard.  Qt means 'unset'.  */
   eassert! (initial_kboard.is_null ());
   initial_kboard = allocate_kboard (Qt ());
+
+  }
 }
 
 /* C 14547-14629: `void keys_of_keyboard (void);` — C's non-`static` definition is an exported
@@ -15184,6 +15860,8 @@ unsafe extern "C-unwind" fn syms_of_keyboard_for_pdumper ()
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn keys_of_keyboard ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   initial_define_lispy_key (Vspecial_event_map, c"delete-frame".as_ptr (),
 			    c"handle-delete-frame".as_ptr ());
   /* C 14552-14561: `#ifdef HAVE_NTGUI` and `#ifdef HAVE_NS` (dead; carried per P-51).  */
@@ -15269,6 +15947,8 @@ pub unsafe extern "C-unwind" fn keys_of_keyboard ()
 			    c"handle-move-frame".as_ptr ());
   initial_define_lispy_key (Vspecial_event_map, c"sleep-event".as_ptr (),
 			    c"ignore".as_ptr ());
+
+  }
 }
 
 /* C 14632-14682: `void mark_kboards (void);` — C's non-`static` definition is an exported
@@ -15276,6 +15956,8 @@ pub unsafe extern "C-unwind" fn keys_of_keyboard ()
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mark_kboards ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut kb: *mut KBOARD = all_kboards;
   while !kb.is_null ()
     {
@@ -15324,4 +16006,6 @@ pub unsafe extern "C-unwind" fn mark_kboards ()
 	}
       event = next_kbd_event (event);
     }
+
+  }
 }

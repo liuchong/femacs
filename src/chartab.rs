@@ -27,9 +27,7 @@
 // WORD-LIST table C's own comment says it does not need); it is recorded in
 // docs/ports/chartab.md rather than transcribed (P-08).
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
-         unsafe_op_in_unsafe_fn)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -207,10 +205,14 @@ macro_rules! CHARSET_ENCODER {
 /// it here until the mirror exists.
 unsafe fn charset_attributes_getter (charset: *mut charset) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   eassert! (ASIZE (charset_table.attributes_table) == charset_table.size as isize);
   let attrs: Lisp_Object = AREF (charset_table.attributes_table, (*charset).id as isize);
   eassert! (XFIXNUM (CHARSET_ATTR_ID! (attrs)) == (*charset).id as isize);
   return attrs;
+
+  }
 }
 
 /// C: charset.h 449-480 (`ENCODE_CHAR`), the macro the live `map_sub_char_table_for_charset`
@@ -318,11 +320,19 @@ unsafe fn CHECK_CHAR_TABLE (x: Lisp_Object)
 
 unsafe fn set_char_table_ascii (table: Lisp_Object, val: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   (*XCHAR_TABLE (table)).ascii = val;
+
+  }
 }
 unsafe fn set_char_table_parent (table: Lisp_Object, val: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   (*XCHAR_TABLE (table)).parent = val;
+
+  }
 }
 
 DEFUN! ("make-char-table", Fmake_char_table, Smake_char_table, 1, 2, 0,
@@ -356,6 +366,8 @@ DEFUN! ("make-char-table", Fmake_char_table, Smake_char_table, 1, 2, 0,
 unsafe fn make_sub_char_table (depth: c_int, min_char: c_int, defalt: Lisp_Object)
   -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut i: c_int;
   let table: Lisp_Object = make_uninit_sub_char_table (depth, min_char);
 
@@ -366,10 +378,14 @@ unsafe fn make_sub_char_table (depth: c_int, min_char: c_int, defalt: Lisp_Objec
       i += 1;
     }
   return table;
+
+  }
 }
 
 unsafe fn char_table_ascii (table: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut sub: Lisp_Object;
   let mut val: Lisp_Object;
 
@@ -383,10 +399,14 @@ unsafe fn char_table_ascii (table: Lisp_Object) -> Lisp_Object
   if UNIPROP_TABLE_P! (table) && UNIPROP_COMPRESSED_FORM_P! (val)
     { val = uniprop_table_uncompress (sub, 0); }
   return val;
+
+  }
 }
 
 unsafe fn copy_sub_char_table (table: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let depth: c_int = (*XSUB_CHAR_TABLE (table)).depth;
   let min_char: c_int = (*XSUB_CHAR_TABLE (table)).min_char;
   let copy: Lisp_Object = make_sub_char_table (depth, min_char, Qnil ());
@@ -404,12 +424,16 @@ unsafe fn copy_sub_char_table (table: Lisp_Object) -> Lisp_Object
     }
 
   return copy;
+
+  }
 }
 
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn copy_char_table (table: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut size: c_int = PVSIZE (table) as c_int;
   let mut copy: Lisp_Object = make_nil_vector (size as isize);
   XSETPVECTYPE! (XVECTOR (copy), pvec_type::PVEC_CHAR_TABLE);
@@ -438,10 +462,14 @@ pub unsafe extern "C-unwind" fn copy_char_table (table: Lisp_Object) -> Lisp_Obj
 
   XSETCHAR_TABLE! (copy, XCHAR_TABLE (copy));
   return copy;
+
+  }
 }
 
 unsafe fn sub_char_table_ref (table: Lisp_Object, c: c_int, is_uniprop: bool) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let tbl: *mut Lisp_Sub_Char_Table = XSUB_CHAR_TABLE (table);
   let mut val: Lisp_Object;
   let idx: c_int = CHARTAB_IDX! (c, (*tbl).depth, (*tbl).min_char);
@@ -452,11 +480,15 @@ unsafe fn sub_char_table_ref (table: Lisp_Object, c: c_int, is_uniprop: bool) ->
   if SUB_CHAR_TABLE_P (val)
     { val = sub_char_table_ref (val, c, is_uniprop); }
   return val;
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn char_table_ref (table: Lisp_Object, c: c_int) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let tbl: *mut Lisp_Char_Table = XCHAR_TABLE (table);
   let mut val: Lisp_Object;
 
@@ -479,6 +511,8 @@ pub unsafe extern "C-unwind" fn char_table_ref (table: Lisp_Object, c: c_int) ->
 	{ val = char_table_ref ((*tbl).parent, c); }
     }
   return val;
+
+  }
 }
 
 unsafe fn char_table_ref_simple (table: Lisp_Object, idx: c_int, c: c_int,
@@ -486,6 +520,8 @@ unsafe fn char_table_ref_simple (table: Lisp_Object, idx: c_int, c: c_int,
 				 defalt: Lisp_Object, is_uniprop: bool,
 				 is_subtable: bool) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut val: Lisp_Object =
     if is_subtable
       { FAM_ELEM! ((*XSUB_CHAR_TABLE (table)).contents, idx) }
@@ -498,12 +534,16 @@ unsafe fn char_table_ref_simple (table: Lisp_Object, idx: c_int, c: c_int,
   else if NILP (val)
     { val = defalt; }
   return val;
+
+  }
 }
 
 unsafe fn sub_char_table_ref_and_range (table: Lisp_Object, c: c_int, from: *mut c_int,
 					to: *mut c_int, defalt: Lisp_Object,
 					is_uniprop: bool) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut c: c_int = c;
   let tbl: *mut Lisp_Sub_Char_Table = XSUB_CHAR_TABLE (table);
   let depth: c_int = (*tbl).depth;
@@ -546,6 +586,8 @@ unsafe fn sub_char_table_ref_and_range (table: Lisp_Object, c: c_int, from: *mut
     }
 
   return val;
+
+  }
 }
 
 #[unsafe(no_mangle)]
@@ -553,6 +595,8 @@ pub unsafe extern "C-unwind" fn char_table_ref_and_range (table: Lisp_Object, c:
 						   from: *mut c_int, to: *mut c_int)
   -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut c: c_int = c;
   let tbl: *mut Lisp_Char_Table = XCHAR_TABLE (table);
   let mut chartab_idx: c_int = CHARTAB_IDX! (c, 0, 0);
@@ -598,12 +642,16 @@ pub unsafe extern "C-unwind" fn char_table_ref_and_range (table: Lisp_Object, c:
     }
 
   return val;
+
+  }
 }
 
 
 unsafe fn sub_char_table_set (table: Lisp_Object, c: c_int, val: Lisp_Object,
 			      is_uniprop: bool)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let tbl: *mut Lisp_Sub_Char_Table = XSUB_CHAR_TABLE (table);
   let depth: c_int = (*tbl).depth;
   let min_char: c_int = (*tbl).min_char;
@@ -629,11 +677,15 @@ unsafe fn sub_char_table_set (table: Lisp_Object, c: c_int, val: Lisp_Object,
 	}
       sub_char_table_set (sub, c, val, is_uniprop);
     }
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn char_table_set (table: Lisp_Object, c: c_int, val: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let tbl: *mut Lisp_Char_Table = XCHAR_TABLE (table);
 
   if ASCII_CHAR_P (c as isize)
@@ -654,11 +706,15 @@ pub unsafe extern "C-unwind" fn char_table_set (table: Lisp_Object, c: c_int, va
       if ASCII_CHAR_P (c as isize)
 	{ set_char_table_ascii (table, char_table_ascii (table)); }
     }
+
+  }
 }
 
 unsafe fn sub_char_table_set_range (table: Lisp_Object, from: c_int, to: c_int,
 				    val: Lisp_Object, is_uniprop: bool)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut from: c_int = from;
   let tbl: *mut Lisp_Sub_Char_Table = XSUB_CHAR_TABLE (table);
   let depth: c_int = (*tbl).depth;
@@ -696,6 +752,8 @@ unsafe fn sub_char_table_set_range (table: Lisp_Object, from: c_int, to: c_int,
       i += 1;
       c += chars_in_block;
     }
+
+  }
 }
 
 
@@ -703,6 +761,8 @@ unsafe fn sub_char_table_set_range (table: Lisp_Object, from: c_int, to: c_int,
 pub unsafe extern "C-unwind" fn char_table_set_range (table: Lisp_Object, from: c_int, to: c_int,
 					       val: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let tbl: *mut Lisp_Char_Table = XCHAR_TABLE (table);
 
   if from == to
@@ -738,6 +798,8 @@ pub unsafe extern "C-unwind" fn char_table_set_range (table: Lisp_Object, from: 
       if ASCII_CHAR_P (from as isize)
 	{ set_char_table_ascii (table, char_table_ascii (table)); }
     }
+
+  }
 }
 
 DEFUN! ("char-table-subtype", Fchar_table_subtype, Schar_table_subtype,
@@ -884,6 +946,8 @@ DEFUN! ("set-char-table-range", Fset_char_table_range, Sset_char_table_range,
 
 unsafe fn optimize_sub_char_table (table: Lisp_Object, test: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let tbl: *mut Lisp_Sub_Char_Table = XSUB_CHAR_TABLE (table);
   let mut i: c_int;
   let depth: c_int = (*tbl).depth;
@@ -916,6 +980,8 @@ unsafe fn optimize_sub_char_table (table: Lisp_Object, test: Lisp_Object) -> Lis
     }
 
   return if optimizable { elt } else { table };
+
+  }
 }
 
 DEFUN! ("optimize-char-table", Foptimize_char_table, Soptimize_char_table,
@@ -964,6 +1030,8 @@ unsafe fn map_sub_char_table (c_function: Option<unsafe extern "C-unwind" fn (Li
 			      mut val: Lisp_Object, range: Lisp_Object, top: Lisp_Object)
   -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* Depth of TABLE.  */
   let mut depth: c_int;
   /* Minimum and maximum characters covered by TABLE. */
@@ -1083,6 +1151,8 @@ unsafe fn map_sub_char_table (c_function: Option<unsafe extern "C-unwind" fn (Li
       c += chars_in_block;
     }
   return val;
+
+  }
 }
 
 
@@ -1096,6 +1166,8 @@ pub unsafe extern "C-unwind" fn map_char_table (c_function: Option<unsafe extern
 					 function: Lisp_Object, mut table: Lisp_Object,
 					 arg: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut range: Lisp_Object;
   let mut val: Lisp_Object;
   let mut parent: Lisp_Object;
@@ -1154,6 +1226,8 @@ pub unsafe extern "C-unwind" fn map_char_table (c_function: Option<unsafe extern
 	    }
 	}
     }
+
+  }
 }
 
 DEFUN! ("map-char-table", Fmap_char_table, Smap_char_table,
@@ -1174,6 +1248,8 @@ unsafe fn map_sub_char_table_for_charset (c_function: Option<unsafe extern "C-un
 					   charset: *mut charset,
 					   from: c_uint, to: c_uint)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let tbl: *mut Lisp_Sub_Char_Table = XSUB_CHAR_TABLE (table);
   let mut i: c_int;
   let mut c: c_int = (*tbl).min_char;
@@ -1239,6 +1315,8 @@ unsafe fn map_sub_char_table_for_charset (c_function: Option<unsafe extern "C-un
 	  c += 1;
 	}
     }
+
+  }
 }
 
 
@@ -1270,6 +1348,8 @@ pub unsafe extern "C-unwind" fn map_char_table_for_charset (c_function: Option<u
 						     charset: *mut charset,
 						     from: c_uint, to: c_uint)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut range: Lisp_Object;
   let mut c: c_int;
   let mut i: c_int;
@@ -1309,6 +1389,8 @@ pub unsafe extern "C-unwind" fn map_char_table_for_charset (c_function: Option<u
       else
 	{ calln! (function, range, arg); }
     }
+
+  }
 }
 
 
@@ -1359,6 +1441,8 @@ pub unsafe extern "C-unwind" fn map_char_table_for_charset (c_function: Option<u
 
 unsafe fn uniprop_table_uncompress (table: Lisp_Object, idx: c_int) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut idx: c_int = idx;
   let val: Lisp_Object = FAM_ELEM! ((*XSUB_CHAR_TABLE (table)).contents, idx);
   let min_char: c_int = (*XSUB_CHAR_TABLE (table)).min_char + chartab_chars[2] * idx;
@@ -1416,6 +1500,8 @@ unsafe fn uniprop_table_uncompress (table: Lisp_Object, idx: c_int) -> Lisp_Obje
 /* C 1139-1144's `#if 0` arm (the WORD-LIST table) is dead in the frozen configuration and
    is recorded in docs/ports/chartab.md instead of transcribed (P-08).  */
   return sub;
+
+  }
 }
 
 
@@ -1425,6 +1511,8 @@ unsafe extern "C-unwind" fn uniprop_decode_value_run_length (table: Lisp_Object,
 						      mut value: Lisp_Object)
   -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if VECTORP (FAM_ELEM! ((*XCHAR_TABLE (table)).extras, 4))
     {
       let valvec: Lisp_Object = FAM_ELEM! ((*XCHAR_TABLE (table)).extras, 4);
@@ -1433,6 +1521,8 @@ unsafe extern "C-unwind" fn uniprop_decode_value_run_length (table: Lisp_Object,
 	{ value = AREF (valvec, XFIXNUM (value)); }
     }
   return value;
+
+  }
 }
 
 static uniprop_decoder: [uniprop_decoder_t; 1] =
@@ -1444,6 +1534,8 @@ static uniprop_decoder_count: c_int = countof! (uniprop_decoder) as c_int;
 
 unsafe fn uniprop_get_decoder (table: Lisp_Object) -> uniprop_decoder_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut i: EMACS_INT;
 
   if ! FIXNUMP (FAM_ELEM! ((*XCHAR_TABLE (table)).extras, 1))
@@ -1452,6 +1544,8 @@ unsafe fn uniprop_get_decoder (table: Lisp_Object) -> uniprop_decoder_t
   if i < 0 || i >= uniprop_decoder_count as EMACS_INT
     { return None; }
   return uniprop_decoder[i as usize];
+
+  }
 }
 
 
@@ -1461,9 +1555,13 @@ unsafe fn uniprop_get_decoder (table: Lisp_Object) -> uniprop_decoder_t
 unsafe extern "C-unwind" fn uniprop_encode_value_character (table: Lisp_Object, value: Lisp_Object)
   -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if ! NILP (value) && ! CHARACTERP (value)
     { wrong_type_argument (Qintegerp (), value); }
   return value;
+
+  }
 }
 
 
@@ -1474,6 +1572,8 @@ unsafe extern "C-unwind" fn uniprop_encode_value_run_length (table: Lisp_Object,
 						      mut value: Lisp_Object)
   -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let value_table: *mut Lisp_Object =
     fam_base (std::ptr::addr_of_mut! ((*XVECTOR (FAM_ELEM! ((*XCHAR_TABLE (table)).extras,
 							     4))).contents));
@@ -1490,6 +1590,8 @@ unsafe extern "C-unwind" fn uniprop_encode_value_run_length (table: Lisp_Object,
   if i == size
     { wrong_type_argument (build_string (c"Unicode property value".as_ptr ()), value); }
   return make_fixnum (i as EMACS_INT);
+
+  }
 }
 
 
@@ -1500,6 +1602,8 @@ unsafe extern "C-unwind" fn uniprop_encode_value_numeric (table: Lisp_Object,
 						   mut value: Lisp_Object)
   -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let value_table: *mut Lisp_Object =
     fam_base (std::ptr::addr_of_mut! ((*XVECTOR (FAM_ELEM! ((*XCHAR_TABLE (table)).extras,
 							     4))).contents));
@@ -1521,6 +1625,8 @@ unsafe extern "C-unwind" fn uniprop_encode_value_numeric (table: Lisp_Object,
 				     FAM_ELEM! ((*XCHAR_TABLE (table)).extras, 4),
 				     make_vector (1, value))); }
   return make_fixnum (i as EMACS_INT);
+
+  }
 }
 
 static uniprop_encoder: [uniprop_encoder_t; 3] =
@@ -1534,6 +1640,8 @@ static uniprop_encoder_count: c_int = countof! (uniprop_encoder) as c_int;
 
 unsafe fn uniprop_get_encoder (table: Lisp_Object) -> uniprop_decoder_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut i: EMACS_INT;
 
   if ! FIXNUMP (FAM_ELEM! ((*XCHAR_TABLE (table)).extras, 2))
@@ -1542,6 +1650,8 @@ unsafe fn uniprop_get_encoder (table: Lisp_Object) -> uniprop_decoder_t
   if i < 0 || i >= uniprop_encoder_count as EMACS_INT
     { return None; }
   return uniprop_encoder[i as usize];
+
+  }
 }
 
 /* Return a char-table for Unicode character property PROP.  This
@@ -1551,6 +1661,8 @@ unsafe fn uniprop_get_encoder (table: Lisp_Object) -> uniprop_decoder_t
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn uniprop_table (prop: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut val: Lisp_Object;
   let mut table: Lisp_Object;
   let mut result: Lisp_Object;
@@ -1588,6 +1700,8 @@ pub unsafe extern "C-unwind" fn uniprop_table (prop: Lisp_Object) -> Lisp_Object
   /* Prepare ASCII values in advance for CHAR_TABLE_REF.  */
   set_char_table_ascii (table, char_table_ascii (table));
   return table;
+
+  }
 }
 
 DEFUN! ("unicode-property-table-internal", Funicode_property_table_internal,
@@ -1606,9 +1720,13 @@ DEFUN! ("unicode-property-table-internal", Funicode_property_table_internal,
 pub unsafe extern "C-unwind" fn get_unicode_property (char_table: Lisp_Object, ch: c_int)
   -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let val: Lisp_Object = CHAR_TABLE_REF (char_table, ch as isize);
   let decoder: uniprop_decoder_t = uniprop_get_decoder (char_table);
   return if let Some (decoder) = decoder { decoder (char_table, val) } else { val };
+
+  }
 }
 
 DEFUN! ("get-unicode-property-internal", Fget_unicode_property_internal,
@@ -1652,6 +1770,8 @@ pub static mut Vchar_code_property_alist: Lisp_Object = lisp_h_Qnil ();
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_chartab ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* Purpose of uniprop tables. */
   DEFSYM! (Qchar_code_property_table, c"char-code-property-table");
 
@@ -1680,4 +1800,6 @@ pub unsafe extern "C-unwind" fn syms_of_chartab ()
 		"Alist of character property name vs char-table containing property values.\nInternal use only.");
   Vchar_code_property_alist = Qnil ();
   DEFSYM! (Qcoding_system_for_read, c"coding-system-for-read");
+
+  }
 }

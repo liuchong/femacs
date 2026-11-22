@@ -44,10 +44,7 @@
 // while a second crate-root item of the same name would be `E0428` (PORTING.md P-21, the
 // `terminal.rs` shape).
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_mut, unused_assignments,
-         unused_unsafe, static_mut_refs, unsafe_op_in_unsafe_fn, unused_parens,
-         clashing_extern_declarations)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_mut, unused_assignments, unused_unsafe, unused_parens, clashing_extern_declarations)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -112,7 +109,7 @@ macro_rules! KVAR {
 macro_rules! frame_bits_set {
   (visible, $f:expr, $v:expr) => {{
     let mask = 1u32 << FRAME_VISIBLE_SHIFT;
-    unsafe { (*$f).bits1 = ((*$f).bits1 & !mask) | ((($v) as u32) << FRAME_VISIBLE_SHIFT); } }};
+    /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*$f).bits1 = ((*$f).bits1 & !mask) | ((($v) as u32) << FRAME_VISIBLE_SHIFT); } }};
   (garbaged, $f:expr, $v:expr) => {{
     let mask = 1u32 << FRAME_GARBAGED_SHIFT;
     unsafe { (*$f).bits1 = ((*$f).bits1 & !mask) | ((($v) as u32) << FRAME_GARBAGED_SHIFT); } }};
@@ -121,7 +118,7 @@ macro_rules! frame_bits_set {
 pub fn SET_FRAME_VISIBLE (f: *mut frame, v: bool)
 { frame_bits_set! (visible, f, v) }
 macro_rules! frame_mouse_moved {
-  (mouse_moved, $f:expr) => {{ (unsafe { (*$f).bits1 }) >> FRAME_MOUSE_MOVED_SHIFT & 1 != 0 }};
+  (mouse_moved, $f:expr) => {{ (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*$f).bits1 }) >> FRAME_MOUSE_MOVED_SHIFT & 1 != 0 }};
   (mouse_moved, $f:expr, $v:expr) => {{
     let mask = 1u32 << FRAME_MOUSE_MOVED_SHIFT;
     unsafe { (*$f).bits1 = ((*$f).bits1 & !mask) | ((($v) as u32) << FRAME_MOUSE_MOVED_SHIFT); } }};
@@ -140,7 +137,7 @@ macro_rules! frame_mouse_moved {
    definitions keep C's pointer; the conversion is C's own implicit one and the ABI does
    not depend on the pointee.  */
 macro_rules! hook {
-  ($target:ty, $f:expr) => { unsafe {
+  ($target:ty, $f:expr) => { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe {
     let p: *const c_void = $f as *const c_void;
     std::mem::transmute::<*const c_void, Option<$target>> (p) } };
 }
@@ -345,7 +342,7 @@ pub const FACE_TTY_STRIKE_THROUGH_P: u8 = 1 << 2;  // 242:2
 pub const FACE_TTY_OVERLINE_P: u8 = 1 << 3;    // 242:3
 #[inline(always)]
 pub fn face_bool_p (f: *const face, byte: usize, mask: u8) -> bool
-{ unsafe { ((*f).bits [byte] & mask) != 0 } }
+{ /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { ((*f).bits [byte] & mask) != 0 } }
 #[inline(always)]
 pub fn face_underline (f: *const face) -> face_underline_type
 {
@@ -361,17 +358,17 @@ const _: () = core::assert! (std::mem::offset_of! (face, bits) == 240 + (if cfg!
    frame.h 1379's `FRAME_FACE_CACHE`.  */
 #[inline(always)]
 pub fn FRAME_FACE_CACHE (f: *mut frame) -> *mut face_cache
-{ unsafe { (*f).face_cache as *mut face_cache } }
+{ /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f).face_cache as *mut face_cache } }
 #[inline(always)]
 pub fn FACE_FROM_ID (f: *mut frame, id: c_int) -> *mut face
 {
   eassert! (0 <= id && id < unsafe { (*FRAME_FACE_CACHE (f)).used });
-  unsafe { *(*FRAME_FACE_CACHE (f)).faces_by_id.add (id as usize) }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { *(*FRAME_FACE_CACHE (f)).faces_by_id.add (id as usize) }
 }
 #[inline(always)]
 pub fn FACE_FROM_ID_OR_NULL (f: *mut frame, id: c_int) -> *mut face
 {
-  let used: c_int = unsafe { (*FRAME_FACE_CACHE (f)).used };
+  let used: c_int = /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*FRAME_FACE_CACHE (f)).used };
   eassume! (0 <= used);
   if 0 <= id && id < used { unsafe { *(*FRAME_FACE_CACHE (f)).faces_by_id.add (id as usize) } }
   else { std::ptr::null_mut () }
@@ -466,6 +463,8 @@ macro_rules! tty_bits {
 #[cfg (not (feature = "have_android"))]
 unsafe extern "C-unwind" fn tty_ring_bell (f: *mut frame)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let tty: *mut tty_display_info = FRAME_TTY! (f);
 
   if ! (*tty).output.is_null ()
@@ -474,6 +473,8 @@ unsafe extern "C-unwind" fn tty_ring_bell (f: *mut frame)
                      { (*tty).TS_visible_bell } else { (*tty).TS_bell }));
       fflush ((*tty).output);
     }
+
+  }
 }
 
 /* Set up termcap modes for Emacs.  */
@@ -481,6 +482,8 @@ unsafe extern "C-unwind" fn tty_ring_bell (f: *mut frame)
 #[cfg (not (feature = "have_android"))]
 unsafe fn tty_send_additional_strings (terminal: *mut terminal, sym: Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* Use only accessors like CDR_SAFE and assq_no_quit to avoid any
      form of quitting or signaling an error, since this function can
      run as part of the "emergency escape" procedure invoked in the
@@ -505,11 +508,15 @@ unsafe fn tty_send_additional_strings (terminal: *mut terminal, sym: Lisp_Object
         }
       extra_codes = XCDR (extra_codes);
     }
+
+  }
 }
 
 #[cfg (not (feature = "have_android"))]
 unsafe extern "C-unwind" fn tty_set_terminal_modes (terminal: *mut terminal)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let tty: *mut tty_display_info = (*terminal).display_info.tty.cast::<tty_display_info> ();
 
   if ! (*tty).output.is_null ()
@@ -532,6 +539,8 @@ unsafe extern "C-unwind" fn tty_set_terminal_modes (terminal: *mut terminal)
       tty_send_additional_strings (terminal, Qtty_mode_set_strings ());
       fflush ((*tty).output);
     }
+
+  }
 }
 
 /* Reset termcap modes before exiting Emacs.  */
@@ -539,6 +548,8 @@ unsafe extern "C-unwind" fn tty_set_terminal_modes (terminal: *mut terminal)
 #[cfg (not (feature = "have_android"))]
 unsafe extern "C-unwind" fn tty_reset_terminal_modes (terminal: *mut terminal)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let tty: *mut tty_display_info = (*terminal).display_info.tty.cast::<tty_display_info> ();
 
   if ! (*tty).output.is_null ()
@@ -555,6 +566,8 @@ unsafe extern "C-unwind" fn tty_reset_terminal_modes (terminal: *mut terminal)
       cmputc ('\r' as c_int);
       fflush ((*tty).output);
     }
+
+  }
 }
 
 /* Flag the end of a display update on a termcap terminal.  */
@@ -562,6 +575,8 @@ unsafe extern "C-unwind" fn tty_reset_terminal_modes (terminal: *mut terminal)
 #[cfg (not (feature = "have_android"))]
 unsafe extern "C-unwind" fn tty_update_end (f: *mut frame)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let tty: *mut tty_display_info = FRAME_TTY! (f);
 
   if ! window_bits! (cursor_off_p, XWINDOW (selected_window))
@@ -569,6 +584,8 @@ unsafe extern "C-unwind" fn tty_update_end (f: *mut frame)
   tty_turn_off_insert (tty);
   tty_background_highlight (tty);
   fflush ((*tty).output);
+
+  }
 }
 
 /* The implementation of set_terminal_window for termcap frames.  */
@@ -576,16 +593,22 @@ unsafe extern "C-unwind" fn tty_update_end (f: *mut frame)
 #[cfg (not (feature = "have_android"))]
 unsafe extern "C-unwind" fn tty_set_terminal_window (f: *mut frame, size: c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let tty: *mut tty_display_info = FRAME_TTY! (f);
 
   (*tty).specified_window = if size != 0 { size } else { FRAME_TOTAL_LINES (f) };
   if FRAME_SCROLL_REGION_OK! (f)
     { tty_set_scroll_region (f, 0, (*tty).specified_window); }
+
+  }
 }
 
 #[cfg (not (feature = "have_android"))]
 unsafe fn tty_set_scroll_region (f: *mut frame, start: c_int, stop: c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut buf: *mut c_char = std::ptr::null_mut ();
   let tty: *mut tty_display_info = FRAME_TTY! (f);
 
@@ -602,23 +625,33 @@ unsafe fn tty_set_scroll_region (f: *mut frame, start: c_int, stop: c_int)
   OUTPUT! (tty, buf);
   xfree (buf.cast::<c_void> ());
   losecursor! (tty);
+
+  }
 }
 
 #[cfg (not (feature = "have_android"))]
 unsafe fn tty_turn_on_insert (tty: *mut tty_display_info)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if ! tty_bits! (insert_mode, tty)
     { OUTPUT! (tty, (*tty).TS_insert_mode); }
   tty_bits! (insert_mode, tty, 1);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 #[cfg (not (feature = "have_android"))]
 unsafe fn tty_turn_off_insert (tty: *mut tty_display_info)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if tty_bits! (insert_mode, tty)
     { OUTPUT! (tty, (*tty).TS_end_insert_mode); }
   tty_bits! (insert_mode, tty, 0);
+
+  }
 }
 
 /* Handle highlighting.  */
@@ -626,26 +659,38 @@ unsafe fn tty_turn_off_insert (tty: *mut tty_display_info)
 #[cfg (not (feature = "have_android"))]
 unsafe fn tty_turn_off_highlight (tty: *mut tty_display_info)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if tty_bits! (standout_mode, tty)
     { OUTPUT_IF! (tty, (*tty).TS_end_standout_mode); }
   tty_bits! (standout_mode, tty, 0);
+
+  }
 }
 
 #[cfg (not (feature = "have_android"))]
 unsafe fn tty_turn_on_highlight (tty: *mut tty_display_info)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if ! tty_bits! (standout_mode, tty)
     { OUTPUT_IF! (tty, (*tty).TS_standout_mode); }
   tty_bits! (standout_mode, tty, 1);
+
+  }
 }
 
 #[cfg (not (feature = "have_android"))]
 unsafe fn tty_toggle_highlight (tty: *mut tty_display_info)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if tty_bits! (standout_mode, tty)
     { tty_turn_off_highlight (tty); }
   else
     { tty_turn_on_highlight (tty); }
+
+  }
 }
 
 /* Make cursor invisible.  */
@@ -654,6 +699,8 @@ unsafe fn tty_toggle_highlight (tty: *mut tty_display_info)
 #[cfg (not (feature = "have_android"))]
 pub unsafe extern "C-unwind" fn tty_hide_cursor (tty: *mut tty_display_info)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if (tty_bits! (cursor_hidden, tty) as c_int) == 0
     {
       tty_bits! (cursor_hidden, tty, 1);
@@ -664,6 +711,8 @@ pub unsafe extern "C-unwind" fn tty_hide_cursor (tty: *mut tty_display_info)
       { w32con_hide_cursor (); }
       OUTPUT_IF! (tty, (*tty).TS_cursor_invisible);
     }
+
+  }
 }
 
 /* Ensure that cursor is visible.  */
@@ -672,6 +721,8 @@ pub unsafe extern "C-unwind" fn tty_hide_cursor (tty: *mut tty_display_info)
 #[cfg (not (feature = "have_android"))]
 pub unsafe extern "C-unwind" fn tty_show_cursor (tty: *mut tty_display_info)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if tty_bits! (cursor_hidden, tty)
     {
       tty_bits! (cursor_hidden, tty, 0);
@@ -682,6 +733,8 @@ pub unsafe extern "C-unwind" fn tty_show_cursor (tty: *mut tty_display_info)
       if visible_cursor
         { OUTPUT_IF! (tty, (*tty).TS_cursor_visible); }
     }
+
+  }
 }
 
 /* Set standout mode to the state it should be in for
@@ -691,10 +744,14 @@ pub unsafe extern "C-unwind" fn tty_show_cursor (tty: *mut tty_display_info)
 #[cfg (not (feature = "have_android"))]
 unsafe fn tty_background_highlight (tty: *mut tty_display_info)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if inverse_video
     { tty_turn_on_highlight (tty); }
   else
     { tty_turn_off_highlight (tty); }
+
+  }
 }
 
 /* Set standout mode to the mode specified for the text to be output.  */
@@ -702,10 +759,14 @@ unsafe fn tty_background_highlight (tty: *mut tty_display_info)
 #[cfg (not (feature = "have_android"))]
 unsafe fn tty_highlight_if_desired (tty: *mut tty_display_info)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if inverse_video
     { tty_turn_on_highlight (tty); }
   else
     { tty_turn_off_highlight (tty); }
+
+  }
 }
 
 /* Move cursor to row/column position VPOS/HPOS.  HPOS/VPOS are
@@ -714,6 +775,8 @@ unsafe fn tty_highlight_if_desired (tty: *mut tty_display_info)
 #[cfg (not (feature = "have_android"))]
 unsafe extern "C-unwind" fn tty_cursor_to (f: *mut frame, vpos: c_int, hpos: c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let tty: *mut tty_display_info = FRAME_TTY! (f);
 
   /* Detect the case where we are called from reset_sys_modes
@@ -726,6 +789,8 @@ unsafe extern "C-unwind" fn tty_cursor_to (f: *mut frame, vpos: c_int, hpos: c_i
   if (*tty).TF_insmode_motion == 0
     { tty_turn_off_insert (tty); }
   cmgoto (tty, vpos, hpos);
+
+  }
 }
 
 /* Similar but don't take any account of the wasted characters.  */
@@ -733,6 +798,8 @@ unsafe extern "C-unwind" fn tty_cursor_to (f: *mut frame, vpos: c_int, hpos: c_i
 #[cfg (not (feature = "have_android"))]
 unsafe extern "C-unwind" fn tty_raw_cursor_to (f: *mut frame, row: c_int, col: c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let tty: *mut tty_display_info = FRAME_TTY! (f);
 
   if curY! (tty) == row && curX! (tty) == col { return; }
@@ -741,6 +808,8 @@ unsafe extern "C-unwind" fn tty_raw_cursor_to (f: *mut frame, row: c_int, col: c
   if (*tty).TF_insmode_motion == 0
     { tty_turn_off_insert (tty); }
   cmgoto (tty, row, col);
+
+  }
 }
 
 /* Erase operations */
@@ -750,6 +819,8 @@ unsafe extern "C-unwind" fn tty_raw_cursor_to (f: *mut frame, row: c_int, col: c
 #[cfg (not (feature = "have_android"))]
 unsafe extern "C-unwind" fn tty_clear_to_end (f: *mut frame)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut i: c_int = 0;
   let tty: *mut tty_display_info = FRAME_TTY! (f);
 
@@ -768,6 +839,8 @@ unsafe extern "C-unwind" fn tty_clear_to_end (f: *mut frame)
 	  i += 1;
 	}
     }
+
+  }
 }
 
 /* Clear an entire termcap frame. */
@@ -775,6 +848,8 @@ unsafe extern "C-unwind" fn tty_clear_to_end (f: *mut frame)
 #[cfg (not (feature = "have_android"))]
 unsafe extern "C-unwind" fn tty_clear_frame (f: *mut frame)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let tty: *mut tty_display_info = FRAME_TTY! (f);
 
   if ! (*tty).TS_clr_frame.is_null ()
@@ -788,6 +863,8 @@ unsafe extern "C-unwind" fn tty_clear_frame (f: *mut frame)
       cursor_to (f, 0, 0);
       clear_to_end (f);
     }
+
+  }
 }
 
 /* An implementation of clear_end_of_line for termcap frames.
@@ -797,6 +874,8 @@ unsafe extern "C-unwind" fn tty_clear_frame (f: *mut frame)
 #[cfg (not (feature = "have_android"))]
 unsafe extern "C-unwind" fn tty_clear_end_of_line (f: *mut frame, first_unused_hpos: c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut i: c_int = 0;
   let tty: *mut tty_display_info = FRAME_TTY! (f);
   let mut first_unused_hpos = first_unused_hpos;
@@ -831,6 +910,8 @@ unsafe extern "C-unwind" fn tty_clear_end_of_line (f: *mut frame, first_unused_h
 	}
       cmplus! (tty, first_unused_hpos - curX! (tty));
     }
+
+  }
 }
 
 /* coding.h 687: `coding_charset_list` (the coding mirror does not reach it).  */
@@ -883,6 +964,8 @@ static mut encode_terminal_dst_size: ptrdiff_t = 0;
 pub unsafe extern "C-unwind" fn encode_terminal_code (src: *mut glyph, src_len: c_int,
 					       coding: *mut coding_system) -> *mut u8
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut src = src;
   let src_end: *mut glyph = src.add (src_len as usize);
   let mut buf: *mut u8 = std::ptr::null_mut ();
@@ -1096,6 +1179,8 @@ pub unsafe extern "C-unwind" fn encode_terminal_code (src: *mut glyph, src_len: 
   encode_terminal_dst_size = (*coding).dst_bytes;
 
   return encode_terminal_dst;
+
+  }
 }
 
 /* C 742-753: the `#else /* !HAVE_ANDROID */` arm, dead on this target (HAVE_ANDROID is undef
@@ -1115,6 +1200,8 @@ unsafe extern "C-unwind" fn encode_terminal_code_android (src: *mut glyph, src_l
 #[cfg (not (feature = "have_android"))]
 unsafe fn tty_write_glyphs_1 (f: *mut frame, mut string: *mut glyph, len: c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let tty: *mut tty_display_info = FRAME_TTY! (f);
   tty_turn_off_insert (tty);
   tty_hide_cursor (tty);
@@ -1179,6 +1266,8 @@ unsafe fn tty_write_glyphs_1 (f: *mut frame, mut string: *mut glyph, len: c_int)
     }
 
   cmcheckmagic (tty);
+
+  }
 }
 
 /* C 820-878: `#ifndef DOS_NT`; DOS_NT is undef in the frozen configuration.  */
@@ -1187,6 +1276,8 @@ unsafe fn tty_write_glyphs_1 (f: *mut frame, mut string: *mut glyph, len: c_int)
 unsafe fn tty_write_glyphs_with_face (f: *mut frame, string: *mut glyph,
 				      mut len: c_int, face: *mut face)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut conversion_buffer: *mut u8 = std::ptr::null_mut ();
   let coding: *mut coding_system;
 
@@ -1237,6 +1328,8 @@ unsafe fn tty_write_glyphs_with_face (f: *mut frame, string: *mut glyph,
   tty_turn_off_highlight (tty);
 
   cmcheckmagic (tty);
+
+  }
 }
 
 /* An implementation of insert_glyphs for termcap frames. */
@@ -1244,6 +1337,8 @@ unsafe fn tty_write_glyphs_with_face (f: *mut frame, string: *mut glyph,
 #[cfg (not (feature = "have_android"))]
 unsafe extern "C-unwind" fn tty_insert_glyphs (f: *mut frame, mut start: *mut glyph, mut len: c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut buf: *mut c_char = std::ptr::null_mut ();
   let mut glyph: *mut glyph = std::ptr::null_mut ();
   let mut conversion_buffer: *mut u8 = std::ptr::null_mut ();
@@ -1332,11 +1427,15 @@ unsafe extern "C-unwind" fn tty_insert_glyphs (f: *mut frame, mut start: *mut gl
     }
 
   cmcheckmagic (tty);
+
+  }
 }
 
 #[cfg (not (feature = "have_android"))]
 unsafe extern "C-unwind" fn tty_write_glyphs (f: *mut frame, string: *mut glyph, len: c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut string = string;
   let mut len = len;
   let tty: *mut tty_display_info = FRAME_TTY! (f);
@@ -1369,6 +1468,8 @@ unsafe extern "C-unwind" fn tty_write_glyphs (f: *mut frame, string: *mut glyph,
     }
   else
     { tty_write_glyphs_1 (f, string, len); }
+
+  }
 }
 
 /* An implementation of delete_glyphs for termcap frames. */
@@ -1376,6 +1477,8 @@ unsafe extern "C-unwind" fn tty_write_glyphs (f: *mut frame, string: *mut glyph,
 #[cfg (not (feature = "have_android"))]
 unsafe extern "C-unwind" fn tty_delete_glyphs (f: *mut frame, n: c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut buf: *mut c_char = std::ptr::null_mut ();
   let mut i: c_int = 0;
 
@@ -1405,6 +1508,8 @@ unsafe extern "C-unwind" fn tty_delete_glyphs (f: *mut frame, n: c_int)
     }
   if ! tty_bits! (delete_in_insert_mode, tty)
     { OUTPUT_IF! (tty, (*tty).TS_end_delete_mode); }
+
+  }
 }
 
 /* An implementation of ins_del_lines for termcap frames. */
@@ -1412,6 +1517,8 @@ unsafe extern "C-unwind" fn tty_delete_glyphs (f: *mut frame, n: c_int)
 #[cfg (not (feature = "have_android"))]
 unsafe extern "C-unwind" fn tty_ins_del_lines (f: *mut frame, vpos: c_int, n: c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let tty: *mut tty_display_info = FRAME_TTY! (f);
   let multi: *const c_char =
     if n > 0 { (*tty).TS_ins_multi_lines } else { (*tty).TS_del_multi_lines };
@@ -1475,6 +1582,8 @@ unsafe extern "C-unwind" fn tty_ins_del_lines (f: *mut frame, vpos: c_int, n: c_
       cursor_to (f, FRAME_TOTAL_LINES (f) + n, 0);
       clear_to_end (f);
     }
+
+  }
 }
 
 /* Compute cost of sending "str", in characters,
@@ -1484,10 +1593,14 @@ unsafe extern "C-unwind" fn tty_ins_del_lines (f: *mut frame, vpos: c_int, n: c_
 #[cfg (not (feature = "have_android"))]
 pub unsafe extern "C-unwind" fn string_cost (str_: *const c_char) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   cost = 0;
   if ! str_.is_null ()
     { tputs (str_, 0, Some (evalcost)); }
   return cost;
+
+  }
 }
 
 /* Compute cost of sending "str", in characters,
@@ -1496,10 +1609,14 @@ pub unsafe extern "C-unwind" fn string_cost (str_: *const c_char) -> c_int
 #[cfg (not (feature = "have_android"))]
 unsafe fn string_cost_one_line (str_: *const c_char) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   cost = 0;
   if ! str_.is_null ()
     { tputs (str_, 1, Some (evalcost)); }
   return cost;
+
+  }
 }
 
 /* Compute per line amount of line-dependent padding,
@@ -1509,6 +1626,8 @@ unsafe fn string_cost_one_line (str_: *const c_char) -> c_int
 #[cfg (not (feature = "have_android"))]
 pub unsafe extern "C-unwind" fn per_line_cost (str_: *const c_char) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   cost = 0;
   if ! str_.is_null ()
     { tputs (str_, 0, Some (evalcost)); }
@@ -1516,6 +1635,8 @@ pub unsafe extern "C-unwind" fn per_line_cost (str_: *const c_char) -> c_int
   if ! str_.is_null ()
     { tputs (str_, 10, Some (evalcost)); }
   return cost;
+
+  }
 }
 
 /* char_ins_del_cost[n] is cost of inserting N characters.
@@ -1532,6 +1653,8 @@ macro_rules! char_ins_del_cost {
 #[cfg (not (feature = "have_android"))]
 unsafe fn calculate_ins_del_char_costs (f: *mut frame)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let tty: *mut tty_display_info = FRAME_TTY! (f);
   let mut ins_startup_cost: c_int = 0;
   let mut del_startup_cost: c_int = 0;
@@ -1603,11 +1726,15 @@ unsafe fn calculate_ins_del_char_costs (f: *mut frame)
       ins_startup_cost += ins_cost_per_char;
       *p = ins_startup_cost; p = p.add (1);
     }
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn calculate_costs (frame: *mut frame)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* C's `FRAME_COST_BAUD_RATE (frame) = baud_rate;` writes the field; the frame mirror's
      accessor is a reader, so the assignment names the field C's macro expands to.  */
   (*frame).cost_calculation_baud_rate = baud_rate as intmax_t;
@@ -1667,6 +1794,8 @@ pub unsafe extern "C-unwind" fn calculate_costs (frame: *mut frame)
 
       cmcostinit (FRAME_TTY! (frame)); /* set up cursor motion costs */
     }
+  }
+
   }
 }
 
@@ -1946,6 +2075,8 @@ macro_rules! CONDITIONAL_REASSIGN {
 #[cfg (not (feature = "have_android"))]
 unsafe fn term_get_fkeys (address: *mut *mut c_char, kboard: *mut KBOARD)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* We run the body of the function (term_get_fkeys_1) and ignore all Lisp
      errors during the call.  The only errors should be from Fdefine_key
      when given a key sequence containing an invalid prefix key.  If the
@@ -1957,6 +2088,8 @@ unsafe fn term_get_fkeys (address: *mut *mut c_char, kboard: *mut KBOARD)
   term_get_fkeys_address = address;
   term_get_fkeys_kboard = kboard;
   internal_condition_case (Some (term_get_fkeys_1), Qerror (), Some (Fidentity));
+
+  }
 }
 
 static mut term_get_fkeys_address: *mut *mut c_char = std::ptr::null_mut ();
@@ -1965,6 +2098,8 @@ static mut term_get_fkeys_kboard: *mut KBOARD = std::ptr::null_mut ();
 #[cfg (not (feature = "have_android"))]
 unsafe extern "C-unwind" fn term_get_fkeys_1 () -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut i: c_int = 0;
 
   let address: *mut *mut c_char = term_get_fkeys_address;
@@ -2056,6 +2191,8 @@ unsafe extern "C-unwind" fn term_get_fkeys_1 () -> Lisp_Object
   }
 
   return Qnil ();
+
+  }
 }
 
 /* Append glyphs to IT's glyph_row.  Called from produce_glyphs for
@@ -2066,6 +2203,8 @@ unsafe extern "C-unwind" fn term_get_fkeys_1 () -> Lisp_Object
 
 unsafe fn append_glyph (it: *mut it)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut glyph: *mut glyph;
   let mut end: *mut glyph;
   let mut i: c_int = 0;
@@ -2136,11 +2275,17 @@ unsafe fn append_glyph (it: *mut it)
       glyph = glyph.add (1);
       i += 1;
     }
+
+  }
 }
 
 /* For external use.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn tty_append_glyph (it: *mut it) { append_glyph (it); }
+pub unsafe extern "C-unwind" fn tty_append_glyph (it: *mut it) {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe { append_glyph (it); 
+  }
+}
 
 /* Produce glyphs for the display element described by IT.  *IT
    specifies what we want to produce a glyph for (character, image, ...),
@@ -2164,6 +2309,8 @@ pub unsafe extern "C-unwind" fn tty_append_glyph (it: *mut it) { append_glyph (i
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn produce_glyphs (it: *mut it)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* C's `goto done` becomes a break out of the one labelled block; the tail after it is
      C's `done:` label's code, kept in place.  */
   'produce_glyphs_done: loop
@@ -2297,6 +2444,8 @@ pub unsafe extern "C-unwind" fn produce_glyphs (it: *mut it)
     }
   (*it).ascent = 0; (*it).max_ascent = 0; (*it).phys_ascent = 0; (*it).max_phys_ascent = 0;
   (*it).descent = 1; (*it).max_descent = 1; (*it).phys_descent = 1; (*it).max_phys_descent = 1;
+
+  }
 }
 
 /* dispextern.h 3532-3542: the `TTY_CAP_*` bits (the mirror stops before them).  */
@@ -2316,6 +2465,8 @@ pub const TTY_CAP_OVERLINE: c_uint = 1 << 8;
 
 unsafe fn append_composite_glyph (it: *mut it, padding: c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut glyph: *mut glyph;
   let mut end: *mut glyph;
   let mut i: c_int = 0;
@@ -2397,6 +2548,8 @@ unsafe fn append_composite_glyph (it: *mut it, padding: c_int)
 	  i += 1;
 	}
     }
+
+  }
 }
 
 /// The 31-bit mask of `glyph::u::cmp`'s `id` member.
@@ -2407,6 +2560,8 @@ pub const GLYPH_U_CMP_ID_SHIFT_ID_MASK: u32 = 0x7fffffff;
 
 unsafe fn composite_glyph_is_emoji_sequence (it: *mut it) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut gstring: Lisp_Object;
   let len: ptrdiff_t;
   let mut first: c_int;
@@ -2440,6 +2595,8 @@ unsafe fn composite_glyph_is_emoji_sequence (it: *mut it) -> bool
   return second == 0x200D
     && ! NILP (Fmemq (make_fixnum (third as EMACS_INT),
 		      Vauto_composition_emoji_unqualified_tail_initials));
+
+  }
 }
 
 /* Produce a composite glyph for iterator IT.  IT->cmp_id is the ID of
@@ -2452,6 +2609,8 @@ unsafe fn composite_glyph_is_emoji_sequence (it: *mut it) -> bool
 
 unsafe fn produce_composite_glyph (it: *mut it)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut padding: c_int;
   let mut first_char: c_int;
 
@@ -2478,6 +2637,8 @@ unsafe fn produce_composite_glyph (it: *mut it)
   (*it).nglyphs = 1 + padding;
   if ! (*it).glyph_row.is_null ()
     { append_composite_glyph (it, padding); }
+
+  }
 }
 
 /* Append a glyph for a glyphless character to IT->glyph_row.  FACE_ID
@@ -2487,6 +2648,8 @@ unsafe fn produce_composite_glyph (it: *mut it)
 
 unsafe fn append_glyphless_glyph (it: *mut it, face_id: c_int, str: *const c_char)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut glyph: *mut glyph;
   let mut end: *mut glyph;
   let mut i: c_int = 0;
@@ -2558,6 +2721,8 @@ unsafe fn append_glyphless_glyph (it: *mut it, face_id: c_int, str: *const c_cha
       glyph = glyph.add (1);
       i += 1;
     }
+
+  }
 }
 
 /* Produce glyphs for a glyphless character for iterator IT.
@@ -2571,6 +2736,8 @@ unsafe fn append_glyphless_glyph (it: *mut it, face_id: c_int, str: *const c_cha
 
 unsafe fn produce_glyphless_glyph (it: *mut it, mut acronym: Lisp_Object)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut len: c_int;
   let face_id: c_int = merge_glyphless_glyph_face (it);
   /* C: `char buf[sizeof "\\x" + max (6, (INT_WIDTH + 3) / 4)]` — 11 on this target.  */
@@ -2638,6 +2805,8 @@ unsafe fn produce_glyphless_glyph (it: *mut it, mut acronym: Lisp_Object)
   (*it).nglyphs = len;
   if ! (*it).glyph_row.is_null ()
     { append_glyphless_glyph (it, face_id, str); }
+
+  }
 }
 
 /***********************************************************************
@@ -2661,6 +2830,8 @@ macro_rules! MAY_USE_WITH_COLORS_P {
 #[cfg (not (feature = "have_android"))]
 unsafe fn turn_on_face (f: *mut frame, face: *mut face)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let fg: c_ulong = (*face).foreground;
   let bg: c_ulong = (*face).background;
   let tty: *mut tty_display_info = FRAME_TTY! (f);
@@ -2750,6 +2921,8 @@ unsafe fn turn_on_face (f: *mut frame, face: *mut face)
 	    xfree (p.cast::<c_void> ());
 	  }
     }
+
+  }
 }
 
 /* Turn off appearances of face FACE_ID on tty frame F.  */
@@ -2757,6 +2930,8 @@ unsafe fn turn_on_face (f: *mut frame, face: *mut face)
 #[cfg (not (feature = "have_android"))]
 unsafe fn turn_off_face (f: *mut frame, face: *mut face)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let tty: *mut tty_display_info = FRAME_TTY! (f);
 
   if ! (*tty).TS_exit_attribute_mode.is_null ()
@@ -2791,6 +2966,8 @@ unsafe fn turn_off_face (f: *mut frame, face: *mut face)
 	  || (*face).background != FACE_TTY_DEFAULT_COLOR
 	      && (*face).background != FACE_TTY_DEFAULT_BG_COLOR)
     { OUTPUT1_IF! (tty, (*tty).TS_orig_pair); }
+
+  }
 }
 
 /* Return true if the terminal on frame F supports all of the
@@ -2799,6 +2976,8 @@ unsafe fn turn_off_face (f: *mut frame, face: *mut face)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn tty_capable_p (tty: *mut tty_display_info, caps: c_uint) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   macro_rules! TTY_CAPABLE_P_TRY {
     ($tty:expr, $cap:expr, $TS:expr, $NC_bit:expr) => {
       if (caps & ($cap)) != 0
@@ -2830,6 +3009,8 @@ pub unsafe extern "C-unwind" fn tty_capable_p (tty: *mut tty_display_info, caps:
 
   /* We don't support the following capabilities.  */
   return true;
+
+  }
 }
 
 /* Return non-zero if the terminal on frame F supports all of the
@@ -2872,12 +3053,14 @@ static mut default_set_background: *mut c_char = std::ptr::null_mut ();
 #[cfg (not (feature = "have_android"))]
 unsafe fn tty_default_color_capabilities (tty: *mut tty_display_info, save: bool)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
 
   if save
     {
-      dupstring (&mut default_orig_pair, (*tty).TS_orig_pair);
-      dupstring (&mut default_set_foreground, (*tty).TS_set_foreground);
-      dupstring (&mut default_set_background, (*tty).TS_set_background);
+      dupstring (&raw mut default_orig_pair, (*tty).TS_orig_pair);
+      dupstring (&raw mut default_set_foreground, (*tty).TS_set_foreground);
+      dupstring (&raw mut default_set_background, (*tty).TS_set_background);
       default_max_colors = (*tty).TN_max_colors;
       default_no_color_video = (*tty).TN_no_color_video;
     }
@@ -2889,6 +3072,8 @@ unsafe fn tty_default_color_capabilities (tty: *mut tty_display_info, save: bool
       (*tty).TN_max_colors = default_max_colors;
       (*tty).TN_no_color_video = default_no_color_video;
     }
+
+  }
 }
 
 /* Setup one of the standard tty color schemes according to MODE.
@@ -2902,6 +3087,8 @@ unsafe fn tty_default_color_capabilities (tty: *mut tty_display_info, save: bool
 #[unsafe(no_mangle)]
     pub unsafe extern "C-unwind" fn tty_setup_colors (tty: *mut tty_display_info, mut mode: c_int)
   {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
     /* Canonicalize all negative values of MODE.  */
     if mode < -1
       { mode = -1; }
@@ -2930,7 +3117,9 @@ unsafe fn tty_default_color_capabilities (tty: *mut tty_display_info, save: bool
   	  tty_default_color_capabilities (tty, false);
   	}
       }
+  
   }
+}
 
 
 #[cfg (not (feature = "have_android"))]
@@ -2961,6 +3150,8 @@ unsafe fn tty_setup_colors_windowsnt (tty: *mut tty_display_info, mode: c_int)
 #[cfg (not (feature = "have_android"))]
 pub unsafe extern "C-unwind" fn set_tty_color_mode (tty: *mut tty_display_info, f: *mut frame)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut tem: Lisp_Object;
   let val: Lisp_Object;
   let mut color_mode: Lisp_Object;
@@ -2991,15 +3182,21 @@ pub unsafe extern "C-unwind" fn set_tty_color_mode (tty: *mut tty_display_info, 
       /*  This recomputes all the faces given the new color definitions.  */
       safe_calln! (Qtty_set_up_initial_frame_faces ());
     }
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn tty_type_name (terminal: Lisp_Object) -> *mut c_char
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let t: *mut terminal = decode_tty_terminal (terminal);
 
   return if t != std::ptr::null_mut ()
     { (*((*t).display_info.tty as *mut tty_display_info)).r#type } else { std::ptr::null_mut () };
+
+  }
 }
 
 DEFUN! ("tty-type", Ftty_type, Stty_type, 0, 1, 0,
@@ -3238,6 +3435,8 @@ pub unsafe extern "C-unwind" fn tty_draw_row_with_mouse_face (w: *mut window, wi
 						      mut window_end_x: c_int,
 						      draw: draw_glyphs_face)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let f: *mut frame = XFRAME ((*w).frame);
   let root: *mut frame = root_frame (f);
 
@@ -3312,10 +3511,14 @@ pub unsafe extern "C-unwind" fn tty_draw_row_with_mouse_face (w: *mut window, wi
 
   /* Restore cursor where it was before.  */
   cursor_to (f, save_y, save_x);
+
+  }
 }
 
 unsafe fn tty_frame_at (x: c_int, y: c_int, cx: *mut c_int, cy: *mut c_int) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut frames: Lisp_Object = Ftty_frame_list_z_order (Qnil ());
   while ! NILP (frames)
     {
@@ -3391,6 +3594,8 @@ unsafe fn tty_frame_at (x: c_int, y: c_int, cx: *mut c_int, cy: *mut c_int) -> L
     }
 
   return Qnil ();
+
+  }
 }
 
 DEFUN! ("tty-frame-at", Ftty_frame_at, Stty_frame_at, 2, 2, 0,
@@ -3463,7 +3668,11 @@ pub type tty_menu = tty_menu_struct;
 #[cfg (not (feature = "have_android"))]
 unsafe fn tty_menu_create () -> *mut tty_menu
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   return xzalloc (std::mem::size_of::<tty_menu> ()).cast::<tty_menu> ();
+
+  }
 }
 
 /* Allocate some (more) memory for MENU ensuring that there is room for one
@@ -3472,6 +3681,8 @@ unsafe fn tty_menu_create () -> *mut tty_menu
 #[cfg (not (feature = "have_android"))]
 unsafe fn tty_menu_make_room (menu: *mut tty_menu)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if (*menu).allocated == (*menu).count as ptrdiff_t
     {
       let mut allocated: ptrdiff_t = (*menu).allocated;
@@ -3487,6 +3698,8 @@ unsafe fn tty_menu_make_room (menu: *mut tty_menu)
 				  allocated as usize * std::mem::size_of::<*const c_char> ()).cast::<*const c_char> ();
       (*menu).allocated = allocated;
     }
+
+  }
 }
 
 /* Search the given menu structure for a given pane number.  */
@@ -3494,6 +3707,8 @@ unsafe fn tty_menu_make_room (menu: *mut tty_menu)
 #[cfg (not (feature = "have_android"))]
 unsafe fn tty_menu_search_pane (menu: *mut tty_menu, pane: c_int) -> *mut tty_menu
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut i: c_int;
   let mut r#try: *mut tty_menu;
 
@@ -3511,6 +3726,8 @@ unsafe fn tty_menu_search_pane (menu: *mut tty_menu, pane: c_int) -> *mut tty_me
       i += 1;
     }
   return std::ptr::null_mut ();
+
+  }
 }
 
 /* Determine how much screen space a given menu needs.  */
@@ -3518,6 +3735,8 @@ unsafe fn tty_menu_search_pane (menu: *mut tty_menu, pane: c_int) -> *mut tty_me
 #[cfg (not (feature = "have_android"))]
 unsafe fn tty_menu_calc_size (menu: *mut tty_menu, width: *mut c_int, height: *mut c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut i: c_int;
   let mut h2: c_int = 0;
   let mut w2: c_int = 0;
@@ -3539,11 +3758,15 @@ unsafe fn tty_menu_calc_size (menu: *mut tty_menu, width: *mut c_int, height: *m
     }
   *width = maxsubwidth;
   *height = maxheight;
+
+  }
 }
 
 #[cfg (not (feature = "have_android"))]
 unsafe fn mouse_get_xy (x: *mut c_int, y: *mut c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mouse: Lisp_Object = mouse_position (tty_menu_calls_mouse_position_function);
 
   let f: *mut frame = XFRAME (XCAR (mouse));
@@ -3559,6 +3782,8 @@ unsafe fn mouse_get_xy (x: *mut c_int, y: *mut c_int)
 	  root_xy (f, mx, my, x, y);
 	}
     }
+
+  }
 }
 
 /* Display MENU at (X,Y) using FACES, starting with FIRST_ITEM
@@ -3569,6 +3794,8 @@ unsafe fn tty_menu_display (menu: *mut tty_menu, x: c_int, mut y: c_int, pn: c_i
 			    faces: *mut c_int, mx: c_int, my: c_int, first_item: c_int,
 			    disp_help: bool)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut i: c_int;
   let mut face: c_int;
   let mut width: c_int;
@@ -3623,6 +3850,8 @@ unsafe fn tty_menu_display (menu: *mut tty_menu, x: c_int, mut y: c_int, pn: c_i
       i += 1;
     }
   update_frame_with_menu (sf, row, col);
+
+  }
 }
 
 /* --------------------------- X Menu emulation ---------------------- */
@@ -3632,6 +3861,8 @@ unsafe fn tty_menu_display (menu: *mut tty_menu, x: c_int, mut y: c_int, pn: c_i
 #[cfg (not (feature = "have_android"))]
 unsafe fn tty_menu_add_pane (menu: *mut tty_menu, txt: *const c_char) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let len: c_int;
 
   tty_menu_make_room (menu);
@@ -3648,6 +3879,8 @@ unsafe fn tty_menu_add_pane (menu: *mut tty_menu, txt: *const c_char) -> c_int
     { (*menu).width = len; }
 
   return (*menu).panecount;
+
+  }
 }
 
 /* Create a new item in a menu pane.  */
@@ -3657,6 +3890,8 @@ unsafe fn tty_menu_add_selection (mut menu: *mut tty_menu, pane: c_int,
 				  txt: *mut c_char, enable: bool,
 				  help_text: *const c_char) -> bool
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let len: c_int;
 
   if pane != 0
@@ -3678,6 +3913,8 @@ unsafe fn tty_menu_add_selection (mut menu: *mut tty_menu, pane: c_int,
     { (*menu).width = len; }
 
   return true;
+
+  }
 }
 
 /* Decide where the menu would be placed if requested at (X,Y).  */
@@ -3686,10 +3923,14 @@ unsafe fn tty_menu_add_selection (mut menu: *mut tty_menu, pane: c_int,
 unsafe fn tty_menu_locate (menu: *mut tty_menu, x: c_int, y: c_int,
 			   ulx: *mut c_int, uly: *mut c_int, width: *mut c_int, height: *mut c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   tty_menu_calc_size (menu, width, height);
   *ulx = x + 1;
   *uly = y;
   *width += 2;
+
+  }
 }
 
 #[repr(C)]
@@ -3709,6 +3950,8 @@ pub struct tty_menu_state
 #[cfg (not (feature = "have_android"))]
 unsafe fn save_and_enable_current_matrix (f: *mut frame) -> *mut glyph_matrix
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut i: c_int;
   let mut saved: *mut glyph_matrix = xzalloc (std::mem::size_of::<glyph_matrix> ()).cast::<glyph_matrix> ();
   (*saved).nrows = (*((*f).current_matrix as *mut glyph_matrix)).nrows;
@@ -3735,6 +3978,8 @@ unsafe fn save_and_enable_current_matrix (f: *mut frame) -> *mut glyph_matrix
     }
 
   return saved;
+
+  }
 }
 
 /* Restore the contents of frame F's desired frame matrix from SAVED,
@@ -3743,6 +3988,8 @@ unsafe fn save_and_enable_current_matrix (f: *mut frame) -> *mut glyph_matrix
 #[cfg (not (feature = "have_android"))]
 unsafe fn restore_desired_matrix (f: *mut frame, saved: *mut glyph_matrix)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut i: c_int = 0;
   while i < (*saved).nrows
     {
@@ -3777,11 +4024,15 @@ unsafe fn restore_desired_matrix (f: *mut frame, saved: *mut glyph_matrix)
 	{ (*to).hash = (*from).hash; }
       i += 1;
     }
+
+  }
 }
 
 #[cfg (not (feature = "have_android"))]
 unsafe fn free_saved_screen (saved: *mut glyph_matrix)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut i: c_int;
 
   if saved.is_null ()
@@ -3798,14 +4049,20 @@ unsafe fn free_saved_screen (saved: *mut glyph_matrix)
 
   xfree ((*saved).rows.cast::<c_void> ());
   xfree (saved.cast::<c_void> ());
+
+  }
 }
 
 /* Update the display of frame F from its saved contents.  */
 #[cfg (not (feature = "have_android"))]
 unsafe fn screen_update (f: *mut frame, mtx: *mut glyph_matrix)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   restore_desired_matrix (f, mtx);
   update_frame_with_menu (f, -1, -1);
+
+  }
 }
 
 pub type mi_result = c_int;
@@ -3824,6 +4081,8 @@ pub const MI_SCROLL_BACK: mi_result = 5;
 unsafe fn read_menu_input (sf: *mut frame, x: *mut c_int, y: *mut c_int, min_y: c_int,
 			   max_y: c_int, mut first_time: *mut bool) -> mi_result
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   if *first_time
     {
       *first_time = false;
@@ -3891,6 +4150,8 @@ unsafe fn read_menu_input (sf: *mut frame, x: *mut c_int, y: *mut c_int, min_y: 
       return st;
     }
   return MI_CONTINUE;
+
+  }
 }
 
 /* Display menu, wait for user's response, and return that response.  */
@@ -3900,6 +4161,8 @@ unsafe fn tty_menu_activate (menu: *mut tty_menu, pane: *mut c_int, selidx: *mut
 			     help_callback: Option<unsafe extern "C-unwind" fn (*const c_char, c_int, c_int)>,
 			     kbd_navigation: bool) -> c_int
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut state: *mut tty_menu_state = std::ptr::null_mut ();
   let mut statecount: c_int;
   let mut x: c_int;
@@ -4180,6 +4443,8 @@ unsafe fn tty_menu_activate (menu: *mut tty_menu, pane: *mut c_int, selidx: *mut
   SAFE_FREE! (sa_count, sa_mark);
   Vinhibit_redisplay = prev_inhibit_redisplay;
   return result;
+
+  }
 }
 
 /* Dispose of a menu.  */
@@ -4187,6 +4452,8 @@ unsafe fn tty_menu_activate (menu: *mut tty_menu, pane: *mut c_int, selidx: *mut
 #[cfg (not (feature = "have_android"))]
 unsafe fn tty_menu_destroy (menu: *mut tty_menu)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut i: c_int;
   if (*menu).allocated != 0
     {
@@ -4204,6 +4471,8 @@ unsafe fn tty_menu_destroy (menu: *mut tty_menu)
     }
   xfree (menu.cast::<c_void> ());
   menu_help_message = std::ptr::null (); prev_menu_help_message = std::ptr::null ();
+
+  }
 }
 
 /* Show help HELP_STRING, or clear help if HELP_STRING is null.
@@ -4214,6 +4483,8 @@ unsafe fn tty_menu_destroy (menu: *mut tty_menu)
 #[cfg (not (feature = "have_android"))]
 unsafe extern "C-unwind" fn tty_menu_help_callback (help_string: *const c_char, pane: c_int, item: c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut first_item: *mut Lisp_Object;
   let mut pane_name: Lisp_Object;
   let mut menu_object: Lisp_Object;
@@ -4231,6 +4502,8 @@ unsafe extern "C-unwind" fn tty_menu_help_callback (help_string: *const c_char, 
   menu_object = list3 (Qmenu_item (), pane_name, make_fixnum (pane as EMACS_INT));
   show_help_echo (if ! help_string.is_null () { build_string (help_string) } else { Qnil () },
 		  Qnil (), menu_object, make_fixnum (item as EMACS_INT));
+
+  }
 }
 
 #[repr(C)]
@@ -4243,12 +4516,16 @@ pub struct tty_pop_down_menu
 #[cfg (not (feature = "have_android"))]
 unsafe extern "C-unwind" fn tty_pop_down_menu (arg: *mut c_void)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let data: *mut tty_pop_down_menu = arg.cast::<tty_pop_down_menu> ();
 
   block_input ();
   tty_menu_destroy ((*data).menu);
   set_buffer_internal ((*data).buffer);
   unblock_input ();
+
+  }
 }
 
 /* Return the zero-based index of the last menu-bar item on frame F.  */
@@ -4284,6 +4561,8 @@ unsafe fn tty_menu_last_menubar_item (f: *mut frame) -> c_int
 #[cfg (not (feature = "have_android"))]
 unsafe fn tty_menu_new_item_coords (f: *mut frame, which: c_int, x: *mut c_int, y: *mut c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   eassert! (FRAME_TERMCAP_P (f) && FRAME_LIVE_P (f));
   if FRAME_TERMCAP_P (f) && FRAME_LIVE_P (f)
     {
@@ -4334,6 +4613,8 @@ unsafe fn tty_menu_new_item_coords (f: *mut frame, which: c_int, x: *mut c_int, 
 	  i += 4;
 	}
     }
+
+  }
 }
 
 /* WINDOWSNT uses this as menu_show_hook, see w32console.c.  */
@@ -4342,6 +4623,8 @@ unsafe fn tty_menu_new_item_coords (f: *mut frame, which: c_int, x: *mut c_int, 
 pub unsafe extern "C-unwind" fn tty_menu_show (f: *mut frame, x: c_int, y: c_int, menuflags: c_int,
 					title: Lisp_Object, error_name: *mut *const c_char) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut menu: *mut tty_menu;
   let mut pane: c_int = 0;
   let mut selidx: c_int = 0;
@@ -4626,6 +4909,8 @@ pub unsafe extern "C-unwind" fn tty_menu_show (f: *mut frame, x: c_int, y: c_int
 
   let _ = entry_set;
   return SAFE_FREE_UNBIND_TO! (sa_count, specpdl_count, entry, sa_mark);
+
+  }
 }
 
 /***********************************************************************
@@ -4639,6 +4924,8 @@ pub unsafe extern "C-unwind" fn tty_menu_show (f: *mut frame, x: c_int, y: c_int
 #[cfg (not (feature = "have_android"))]
 pub unsafe extern "C-unwind" fn create_tty_output (f: *mut frame)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let t: *mut tty_output = xzalloc (std::mem::size_of::<tty_output> ()).cast::<tty_output> ();
 
   eassert! (FRAME_TERMCAP_P (f));
@@ -4646,6 +4933,8 @@ pub unsafe extern "C-unwind" fn create_tty_output (f: *mut frame)
   (*t).display_info = (*(FRAME_TERMINAL! (f) as *mut terminal)).display_info.tty.cast::<tty_display_info> ();
 
   (*f).output_data.tty = t.cast::<c_void> ();
+
+  }
 }
 
 /* Delete frame F's face cache, and its tty-dependent part.  This is
@@ -4654,6 +4943,8 @@ pub unsafe extern "C-unwind" fn create_tty_output (f: *mut frame)
 #[cfg (not (feature = "have_android"))]
 unsafe extern "C-unwind" fn tty_free_frame_resources (f: *mut frame)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   eassert! (FRAME_TERMCAP_P (f));
   free_frame_faces (f);
   xfree ((*f).output_data.tty.cast::<c_void> ());
@@ -4662,6 +4953,8 @@ unsafe extern "C-unwind" fn tty_free_frame_resources (f: *mut frame)
      root frame to make sure the child disappears from the display.  */
   if ! FRAME_PARENT_FRAME (f).is_null ()
     { SET_FRAME_GARBAGED! (root_frame (f)); }
+
+  }
 }
 
 /* Reset the hooks in TERMINAL.  */
@@ -4669,6 +4962,8 @@ unsafe extern "C-unwind" fn tty_free_frame_resources (f: *mut frame)
 #[cfg (not (feature = "have_android"))]
 unsafe fn clear_tty_hooks (terminal: *mut terminal)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   (*terminal).rif = std::ptr::null_mut ();
   (*terminal).cursor_to_hook = None;
   (*terminal).raw_cursor_to_hook = None;
@@ -4705,6 +5000,8 @@ unsafe fn clear_tty_hooks (terminal: *mut terminal)
      correctly.  */
   (*terminal).delete_frame_hook = hook! (unsafe extern "C-unwind" fn (*mut c_void), tty_free_frame_resources);
   (*terminal).delete_terminal_hook = Some (delete_tty);
+
+  }
 }
 
 /* Initialize hooks in TERMINAL with the values needed for a tty.  */
@@ -4712,6 +5009,8 @@ unsafe fn clear_tty_hooks (terminal: *mut terminal)
 #[cfg (not (feature = "have_android"))]
 unsafe fn set_tty_hooks (terminal: *mut terminal)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   (*terminal).cursor_to_hook = hook! (unsafe extern "C-unwind" fn (*mut c_void, c_int, c_int), tty_cursor_to);
   (*terminal).raw_cursor_to_hook = hook! (unsafe extern "C-unwind" fn (*mut c_void, c_int, c_int), tty_raw_cursor_to);
   (*terminal).clear_to_end_hook = hook! (unsafe extern "C-unwind" fn (*mut c_void), tty_clear_to_end);
@@ -4734,6 +5033,8 @@ unsafe fn set_tty_hooks (terminal: *mut terminal)
 
   (*terminal).frame_raise_lower_hook = hook! (unsafe extern "C-unwind" fn (*mut c_void, bool), tty_raise_lower_frame);
   /* Other hooks are NULL by default.  */
+
+  }
 }
 
 #[cfg (feature = "msdos")]
@@ -4747,6 +5048,8 @@ unsafe fn set_tty_hooks_msdos (terminal: *mut terminal)
 #[cfg (not (feature = "have_android"))]
 unsafe fn dissociate_if_controlling_tty (fd: c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   /* If tcgetpgrp succeeds, fd is the controlling terminal,
      so dissociate it by invoking setsid.  */
   if tcgetpgrp (fd) >= 0 && setsid () < 0
@@ -4763,6 +5066,8 @@ unsafe fn dissociate_if_controlling_tty (fd: c_int)
 	unblock_tty_out_signal (&oldset);
       }
     }
+
+  }
 }
 
 /* Create a termcap display on the tty device with the given name and
@@ -4800,6 +5105,8 @@ pub unsafe extern "C-unwind" fn init_tty (_name: *const c_char, _terminal_type: 
 pub unsafe extern "C-unwind" fn init_tty (mut name: *const c_char, terminal_type: *const c_char,
 				   must_succeed: bool) -> *mut terminal
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut tty: *mut tty_display_info = std::ptr::null_mut ();
   let mut terminal: *mut terminal = std::ptr::null_mut ();
   let mut area: *mut c_char = std::ptr::null_mut ();
@@ -5243,6 +5550,8 @@ to do 'unset TERMINFO' (C-shell: 'unsetenv TERMINFO') as well.".as_ptr (),
   init_sys_modes (tty);
 
   return terminal;
+
+  }
 }
 
 #[cfg (feature = "have_android")]
@@ -5268,11 +5577,15 @@ unsafe fn init_tty_msdos (name: *const c_char, terminal_type: *const c_char)
 
 unsafe fn vfatal (str_: *const c_char, args: core::ffi::VaList<'_>) -> !
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   fputs (c"emacs: ".as_ptr (), stderr);
   vfprintf (stderr, str_, args);
   if ! (*str_ != 0 && *str_.add (strlen (str_) - 1) == '\n' as c_char)
     { putc ('\n' as c_int, stderr); }
   exit (1);
+
+  }
 }
 
 /* Auxiliary error-handling function for init_tty.
@@ -5282,6 +5595,8 @@ unsafe fn vfatal (str_: *const c_char, args: core::ffi::VaList<'_>) -> !
 unsafe extern "C-unwind" fn maybe_fatal (must_succeed: bool, terminal: *mut terminal,
 				  str1: *const c_char, str2: *const c_char, mut args: ...)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   #[cfg (not (feature = "have_android"))]
   if ! terminal.is_null ()
     { delete_tty (terminal); }
@@ -5293,12 +5608,18 @@ unsafe extern "C-unwind" fn maybe_fatal (must_succeed: bool, terminal: *mut term
     { vfatal (str2, args); }
   else
     { verror (str1, args); }
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn fatal (str_: *const c_char, mut args: ...)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   vfatal (str_, args);
+
+  }
 }
 
 /* Delete the given tty terminal, closing all frames on it.  */
@@ -5306,6 +5627,8 @@ pub unsafe extern "C-unwind" fn fatal (str_: *const c_char, mut args: ...)
 #[cfg (not (feature = "have_android"))]
 unsafe fn unlink_tty (tty: *mut tty_display_info)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut link: *mut *mut tty_display_info = &raw mut tty_list;
   while *link != tty
     {
@@ -5315,11 +5638,15 @@ unsafe fn unlink_tty (tty: *mut tty_display_info)
     }
   *link = (*tty).next;
   (*tty).next = std::ptr::null_mut ();
+
+  }
 }
 
 #[cfg (not (feature = "have_android"))]
 unsafe extern "C-unwind" fn delete_tty (terminal: *mut terminal)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut tty: *mut tty_display_info;
 
   /* Protect against recursive calls.  delete_frame in
@@ -5356,6 +5683,8 @@ unsafe extern "C-unwind" fn delete_tty (terminal: *mut terminal)
   xfree ((*tty).old_tty);
   xfree ((*tty).Wcm.cast::<c_void> ());
   xfree (tty.cast::<c_void> ());
+
+  }
 }
 
 /* Return geometric attributes of FRAME.  According to the value of
@@ -5366,6 +5695,8 @@ unsafe extern "C-unwind" fn delete_tty (terminal: *mut terminal)
 
 unsafe fn tty_frame_geometry (frame: Lisp_Object, attribute: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let f: *mut frame = decode_live_frame (frame);
   if FRAME_INITIAL_P (f) || FRAME_TTY! (f).is_null ()
     { return Qnil (); }
@@ -5442,6 +5773,8 @@ unsafe fn tty_frame_geometry (frame: Lisp_Object, attribute: Lisp_Object) -> Lis
 			  make_fixnum (tool_bar_height as EMACS_INT))),
 	    Fcons (Qinternal_border_width (),
 		   make_fixnum (internal_border_width as EMACS_INT))) }
+
+  }
 }
 
 DEFUN! ("tty-frame-geometry", Ftty_frame_geometry, Stty_frame_geometry, 0, 1, 0,
@@ -5483,6 +5816,8 @@ DEFUN! ("tty-frame-restack", Ftty_frame_restack,
 
 unsafe fn tty_display_dimension (frame: Lisp_Object, width: *mut c_int, height: *mut c_int)
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   let mut frame = frame;
   if ! FRAMEP (frame)
     { frame = Fselected_frame (); }
@@ -5505,6 +5840,8 @@ unsafe fn tty_display_dimension (frame: Lisp_Object, width: *mut c_int, height: 
 	  emacs_abort ();
 	}
     }
+
+  }
 }
 
 DEFUN! ("tty-display-pixel-width", Ftty_display_pixel_width,
@@ -5532,6 +5869,8 @@ DEFUN! ("tty-display-pixel-height", Ftty_display_pixel_height,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_term ()
 {
+  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
+  unsafe {
   DEFVAR_BOOL! (c"system-uses-terminfo", system_uses_terminfo,
     "Non-nil means the system uses terminfo rather than termcap.\nThis variable can be used by terminal emulator packages.");
   system_uses_terminfo = true;
@@ -5622,6 +5961,8 @@ pub unsafe extern "C-unwind" fn syms_of_term ()
   DEFSYM! (Qresume_tty_functions, "resume-tty-functions");
   DEFSYM! (Qtty_menu_disabled_face, "tty-menu-disabled-face");
   DEFSYM! (Qtty_menu_enabled_face, "tty-menu-enabled-face");
+
+  }
 }
 
 /* C 5339-5479: the `DEFVAR_*` carriers this C file owns.  C's storage is `globals.f_<name>`

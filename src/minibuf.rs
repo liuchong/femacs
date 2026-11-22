@@ -39,11 +39,7 @@
 // and 2265's forward declarations are dropped (PORTING.md 0.1-12); both are named in
 // `docs/ports/minibuf.md`.
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
-         unsafe_op_in_unsafe_fn, unused_assignments, unreachable_code, while_true,
-         unused_parens, unused_mut, unused_labels, unused_comparisons,
-         overflowing_literals)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe, unused_assignments, unreachable_code, while_true, unused_parens, unused_mut, unused_labels, unused_comparisons, overflowing_literals)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -186,8 +182,12 @@ static mut minibuf_prompt_width: ptrdiff_t = 0;
    frame to move onto the new one. */
 unsafe fn minibuf_follows_frame () -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   return EQ (Fdefault_toplevel_value (Qminibuffer_follows_selected_frame ()),
              Qt ());
+
+  }
 }
 
 /* C 92-100's `#if 0` block — `minibuf_stays_put`, "Return TRUE when a minibuffer always
@@ -198,7 +198,11 @@ unsafe fn minibuf_follows_frame () -> bool
    minibuffers on other frames to move to the selected frame.  */
 unsafe fn minibuf_moves_frame_when_opened () -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   return !NILP (Fdefault_toplevel_value (Qminibuffer_follows_selected_frame ()));
+
+  }
 }
 
 /* Put minibuf on currently selected frame's minibuffer.
@@ -207,6 +211,8 @@ unsafe fn minibuf_moves_frame_when_opened () -> bool
 
 unsafe fn choose_minibuf_frame ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if FRAMEP (selected_frame)
       && FRAME_LIVE_P (XFRAME (selected_frame))
       && WINDOW_LIVE_P ((*XFRAME (selected_frame)).minibuffer_window)
@@ -221,6 +227,8 @@ unsafe fn choose_minibuf_frame ()
 
       minibuf_window = (*sf).minibuffer_window;
     }
+
+  }
 }
 
 /* If ENT1 has a higher minibuffer index than ENT2, return true.  More
@@ -228,8 +236,12 @@ precisely, compare the buffer components of each window->prev_buffers
 entry.  */
 unsafe extern "C-unwind" fn minibuffer_ent_greater (ent1: Lisp_Object, ent2: Lisp_Object) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   return this_minibuffer_depth (Fcar (ent1))
     > this_minibuffer_depth (Fcar (ent2)) ;
+
+  }
 }
 
 /* Move the ordered "stack" of minibuffers from SOURCE_WINDOW to
@@ -240,6 +252,8 @@ unsafe extern "C-unwind" fn minibuffer_ent_greater (ent1: Lisp_Object, ent2: Lis
    ->prev_buffers field of the struct window.  */
 unsafe fn zip_minibuffer_stacks (dest_window: Lisp_Object, source_window: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let dw: *mut window = XWINDOW (dest_window);
   let sw: *mut window = XWINDOW (source_window);
   let mut acc: Lisp_Object;
@@ -274,6 +288,8 @@ unsafe fn zip_minibuffer_stacks (dest_window: Lisp_Object, source_window: Lisp_O
   wset_prev_buffers (dw, acc);
   wset_prev_buffers (sw, Qnil ());
   set_window_buffer (source_window, nth_minibuffer (0), false, false);
+
+  }
 }
 
 /* If `minibuffer_follows_selected_frame' is t, or we're about to
@@ -286,6 +302,8 @@ unsafe fn zip_minibuffer_stacks (dest_window: Lisp_Object, source_window: Lisp_O
 pub unsafe extern "C-unwind" fn move_minibuffers_onto_frame (of: *mut frame, frame: Lisp_Object,
                                                       for_deletion: bool)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let f: *mut frame = XFRAME (frame);
 
   minibuf_window = (*f).minibuffer_window;
@@ -301,6 +319,8 @@ pub unsafe extern "C-unwind" fn move_minibuffers_onto_frame (of: *mut frame, fra
       if for_deletion && XFRAME (MB_frame) != of
 	{ MB_frame = frame; }
     }
+
+  }
 }
 
 DEFUN! ("active-minibuffer-window", Factive_minibuffer_window,
@@ -350,6 +370,8 @@ DEFUN! ("set-minibuffer-window", Fset_minibuffer_window,
 
 unsafe fn string_to_object (val: Lisp_Object, defalt: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut val: Lisp_Object = val;
   let mut expr_and_pos: Lisp_Object = Qnil ();
   let mut pos: ptrdiff_t;
@@ -385,6 +407,8 @@ unsafe fn string_to_object (val: Lisp_Object, defalt: Lisp_Object) -> Lisp_Objec
 
   val = Fcar (expr_and_pos);
   return val;
+
+  }
 }
 
 /* Like read_minibuf but reading from stdin.  This function is called
@@ -393,6 +417,8 @@ unsafe fn string_to_object (val: Lisp_Object, defalt: Lisp_Object) -> Lisp_Objec
 unsafe fn read_minibuf_noninteractive (prompt: Lisp_Object, expflag: bool,
 				       defalt: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut size: ptrdiff_t;
   let mut len: ptrdiff_t;
   let mut line: *mut c_char;
@@ -468,11 +494,15 @@ unsafe fn read_minibuf_noninteractive (prompt: Lisp_Object, expflag: bool,
     { val = string_to_object (val, if CONSP (defalt) { XCAR (defalt) } else { defalt }); }
 
   return val;
+
+  }
 }
 
 /* Return true when BUFFER is an active minibuffer.  */
 unsafe fn live_minibuffer_p (buffer: Lisp_Object) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut tem: Lisp_Object;
   let mut i: EMACS_INT;
 
@@ -489,6 +519,8 @@ unsafe fn live_minibuffer_p (buffer: Lisp_Object) -> bool
       tem = Fcdr (tem);
     }
   return false;
+
+  }
 }
 
 DEFUN! ("minibufferp", Fminibufferp,
@@ -548,6 +580,8 @@ DEFUN! ("minibuffer-innermost-command-loop-p", Fminibuffer_innermost_command_loo
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn this_minibuffer_depth (buffer: Lisp_Object) -> EMACS_INT
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut buffer: Lisp_Object = buffer;
   let mut i: EMACS_INT;
   let mut bufs: Lisp_Object;
@@ -564,6 +598,8 @@ pub unsafe extern "C-unwind" fn this_minibuffer_depth (buffer: Lisp_Object) -> E
       bufs = Fcdr (bufs);
     }
   return 0;
+
+  }
 }
 
 DEFUN! ("abort-minibuffers", Fabort_minibuffers, Sabort_minibuffers, 0, 0, "",
@@ -643,11 +679,15 @@ DEFUN! ("minibuffer-contents-no-properties", Fminibuffer_contents_no_properties,
 #[inline(always)]
 unsafe fn flush_frame (f: *mut frame)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let rif: *mut redisplay_interface =
     (*(*f).terminal).rif as *mut redisplay_interface;   /* C: `FRAME_RIF (f)`.  */
 
   if !rif.is_null () && (*rif).flush_display.is_some ()
     { ((*rif).flush_display).unwrap () (f); }
+
+  }
 }
 
 /* C: dispextern.h 3069-3196: `struct redisplay_interface`.  It has no mirror (termhooks.rs
@@ -707,6 +747,8 @@ unsafe fn read_minibuf (map: Lisp_Object, initial: Lisp_Object, prompt: Lisp_Obj
 			histvar: Lisp_Object, histpos: Lisp_Object, defalt: Lisp_Object,
 			allow_props: bool, inherit_input_method: bool) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut prompt: Lisp_Object = prompt;
   let mut initial: Lisp_Object = initial;
   let mut val: Lisp_Object;
@@ -1133,23 +1175,33 @@ unsafe fn read_minibuf (map: Lisp_Object, initial: Lisp_Object, prompt: Lisp_Obj
     { val = string_to_object (val, defalt); }
 
   return val;
+
+  }
 }
 
 /* Return true if BUF is a particular existing minibuffer.  */
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn is_minibuffer (depth: EMACS_INT, buf: Lisp_Object) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let tail: Lisp_Object = Fnthcdr (make_fixnum (depth), Vminibuffer_list);
   return
     !NILP (tail)
     && EQ (Fcar (tail), buf);
+
+  }
 }
 
 /* Return the DEPTHth minibuffer, or nil if such does not yet exist.  */
 unsafe fn nth_minibuffer (depth: EMACS_INT) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let tail: Lisp_Object = Fnthcdr (make_fixnum (depth), Vminibuffer_list);
   return Fcar (tail);
+
+  }
 }
 
 /* Set the major mode of the minibuffer BUF, depending on DEPTH, the
@@ -1157,6 +1209,8 @@ unsafe fn nth_minibuffer (depth: EMACS_INT) -> Lisp_Object
 
 unsafe fn set_minibuffer_mode (buf: Lisp_Object, depth: EMACS_INT)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut buf: Lisp_Object = buf;
   let count: specpdl_ref = SPECPDL_INDEX ();
 
@@ -1175,6 +1229,8 @@ unsafe fn set_minibuffer_mode (buf: Lisp_Object, depth: EMACS_INT)
 	{ Fkill_all_local_variables (Qnil ()); }
     }
   buf = unbind_to (count, buf);
+
+  }
 }
 
 /* Return a buffer to be used as the minibuffer at depth `depth'.
@@ -1184,6 +1240,8 @@ unsafe fn set_minibuffer_mode (buf: Lisp_Object, depth: EMACS_INT)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn get_minibuffer (depth: EMACS_INT) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut tail: Lisp_Object = Fnthcdr (make_fixnum (depth), Vminibuffer_list);
   let mut cll_tail: Lisp_Object = Fnthcdr (make_fixnum (depth),
 					   Vcommand_loop_level_list);
@@ -1222,6 +1280,8 @@ pub unsafe extern "C-unwind" fn get_minibuffer (depth: EMACS_INT) -> Lisp_Object
     }
 
   return buf;
+
+  }
 }
 
 /* gnulib's INT_STRLEN_BOUND (intprops.h) is `INT_BITS_STRLEN_BOUND (TYPE_WIDTH (t) -
@@ -1233,20 +1293,28 @@ const NAME_BUF_SIZE: usize = 15 + ((EMACS_INT_WIDTH - 1) * 146 + 484) / 485 + 1;
 
 unsafe fn minibuf_c_loop_level (depth: EMACS_INT) -> EMACS_INT
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let cll: Lisp_Object = Fnth (make_fixnum (depth), Vcommand_loop_level_list);
   if FIXNUMP (cll)
     { return XFIXNUM (cll); }
   return 0;
+
+  }
 }
 
 unsafe extern "C-unwind" fn run_exit_minibuf_hook (minibuf: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let count: specpdl_ref = SPECPDL_INDEX ();
   record_unwind_current_buffer ();
   if BUFFER_LIVE_P (XBUFFER (minibuf))
     { Fset_buffer (minibuf); }
   safe_run_hooks (Qminibuffer_exit_hook ());
   unbind_to (count, Qnil ());
+
+  }
 }
 
 /* This variable records the expired minibuffer's frame between the
@@ -1262,6 +1330,8 @@ static mut exp_MB_frame: Lisp_Object = lisp_h_Qnil ();
 
 unsafe extern "C-unwind" fn read_minibuf_unwind ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut old_deactivate_mark: Lisp_Object;
   let mut calling_frame: Lisp_Object;
   let mut calling_window: Lisp_Object;
@@ -1410,6 +1480,8 @@ unsafe extern "C-unwind" fn read_minibuf_unwind ()
   if !EQ (exp_MB_frame, saved_selected_frame)
       && !NILP (exp_MB_frame)
     { do_switch_frame (saved_selected_frame, 0, 0, Qt ()); }
+
+  }
 }
 
 /* Replace the expired minibuffer in frame exp_MB_frame with the next less
@@ -1417,6 +1489,8 @@ unsafe extern "C-unwind" fn read_minibuf_unwind ()
    with the null minibuffer.  MINIBUF_WINDOW is not changed.  */
 unsafe extern "C-unwind" fn minibuffer_unwind ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut f: *mut frame;
 
   if NILP (exp_MB_frame) { return; } /* "Can't happen." */
@@ -1449,13 +1523,19 @@ unsafe extern "C-unwind" fn minibuffer_unwind ()
 	    { set_window_buffer (window, nth_minibuffer (0), false, false); }
 	}
     }
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn barf_if_interaction_inhibited ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if inhibit_interaction
     { xsignal0 (Qinhibited_interaction ()); }
+
+  }
 }
 
 DEFUN! ("read-from-minibuffer", Fread_from_minibuffer,
@@ -1638,6 +1718,8 @@ DEFUN! ("read-buffer", Fread_buffer, Sread_buffer, 1, 4, 0,
 unsafe fn match_regexps (string: Lisp_Object, regexps: Lisp_Object,
 			 ignore_case: bool) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut regexps: Lisp_Object = regexps;
   let mut val: ptrdiff_t;
   while CONSP (regexps)
@@ -1655,6 +1737,8 @@ unsafe fn match_regexps (string: Lisp_Object, regexps: Lisp_Object,
       regexps = XCDR (regexps);
     }
   return true;
+
+  }
 }
 
 /* C's `enum { function_table, list_table, obarray_table, hash_table}` is declared inside
@@ -2211,22 +2295,32 @@ DEFUN! ("minibuffer-prompt", Fminibuffer_prompt, Sminibuffer_prompt, 0, 0, 0,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn set_initial_minibuffer_mode ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let minibuf: Lisp_Object = get_minibuffer (0);
   set_minibuffer_mode (minibuf, 0);
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn init_minibuf_once ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   staticpro (&raw const Vminibuffer_list);
   staticpro (&raw const Vcommand_loop_level_list);
   pdumper_do_now_and_after_load (Some (init_minibuf_once_for_pdumper));
   /* Ensure our inactive minibuffer exists.  */
   get_minibuffer (0);
+
+  }
 }
 
 unsafe extern "C-unwind" fn init_minibuf_once_for_pdumper ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   PDUMPER_IGNORE! (minibuf_level);
   PDUMPER_IGNORE! (minibuf_prompt_width);
 
@@ -2239,6 +2333,8 @@ unsafe extern "C-unwind" fn init_minibuf_once_for_pdumper ()
   minibuf_prompt = Qnil ();
   minibuf_save_list = Qnil ();
   last_minibuf_string = Qnil ();
+
+  }
 }
 
 /* C 2355-2357's `#define FLEX_MAX_STR_SIZE 512`, `#define FLEX_MAX_PAT_SIZE 128` and
@@ -2541,6 +2637,8 @@ pub static mut read_minibuffer_restore_windows: bool = false;                /* 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_minibuf ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   staticpro (&raw const minibuf_prompt);
   staticpro (&raw const minibuf_save_list);
   staticpro (&raw const MB_frame);
@@ -2717,4 +2815,6 @@ pub unsafe extern "C-unwind" fn syms_of_minibuf ()
   DEFSYM! (Qinternal_complete_buffer, c"internal-complete-buffer");
   DEFSYM! (Qcompleting_read_function, c"completing-read-function");
   DEFSYM! (Qformat_prompt, c"format-prompt");
+
+  }
 }

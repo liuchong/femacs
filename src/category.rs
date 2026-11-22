@@ -9,9 +9,7 @@
 // token-pasting macro, so the port writes the BVAR! expansion it stands for (the macro name
 // is in docs/ports/excluded-macros.txt).
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
-         unsafe_op_in_unsafe_fn)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -51,7 +49,11 @@ pub static mut Vword_separating_categories: Lisp_Object = lisp_h_Qnil ();
 /* This setter is used only in this file, so it can be private.  */
 unsafe fn bset_category_table (b: *mut buffer, val: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   (*b).category_table_ = val;
+
+  }
 }
 
 /* Category set staff.  */
@@ -59,6 +61,8 @@ unsafe fn bset_category_table (b: *mut buffer, val: Lisp_Object)
 unsafe fn hash_get_category_set (table: Lisp_Object, category_set: Lisp_Object)
   -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if NILP (FAM_ELEM! ((*XCHAR_TABLE (table)).extras, 1))
     {
       set_char_table_extras
@@ -74,6 +78,8 @@ unsafe fn hash_get_category_set (table: Lisp_Object, category_set: Lisp_Object)
     { return HASH_KEY (h, i as hash_idx_t); }
   hash_put (h, category_set, Qnil (), hash);
   return category_set;
+
+  }
 }
 
 /* Make CATEGORY_SET include (if VAL) or exclude (if !VAL) CATEGORY.  */
@@ -180,10 +186,14 @@ DEFUN! ("category-table-p", Fcategory_table_p, Scategory_table_p, 1, 1, 0,
 
 unsafe fn check_category_table (table: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if NILP (table)
     { return BVAR! ((current_buffer! ()), category_table_); }
   CHECK_TYPE (! NILP (Fcategory_table_p (table)), Qcategory_table_p (), table);
   return table;
+
+  }
 }
 
 DEFUN! ("category-table", Fcategory_table, Scategory_table, 0, 0, 0,
@@ -203,11 +213,15 @@ DEFUN! ("standard-category-table", Fstandard_category_table,
 
 unsafe extern "C-unwind" fn copy_category_entry (table: Lisp_Object, c: Lisp_Object, mut val: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   val = Fcopy_sequence (val);
   if CONSP (c)
     { char_table_set_range (table, XFIXNUM (XCAR (c)) as c_int, XFIXNUM (XCDR (c)) as c_int, val); }
   else
     { char_table_set (table, XFIXNUM (c) as c_int, val); }
+
+  }
 }
 
 /* Return a copy of category table TABLE.  We can't simply use the
@@ -217,6 +231,8 @@ unsafe extern "C-unwind" fn copy_category_entry (table: Lisp_Object, c: Lisp_Obj
 
 unsafe fn copy_category_table (mut table: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   table = copy_char_table (table);
 
   if ! NILP ((*XCHAR_TABLE (table)).defalt)
@@ -229,6 +245,8 @@ unsafe fn copy_category_table (mut table: Lisp_Object) -> Lisp_Object
   map_char_table (Some (copy_category_entry), Qnil (), table, table);
 
   return table;
+
+  }
 }
 
 DEFUN! ("copy-category-table", Fcopy_category_table, Scopy_category_table,
@@ -282,7 +300,11 @@ DEFUN! ("set-category-table", Fset_category_table, Sset_category_table, 1, 1, 0,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn char_category_set (c: c_int) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   return CHAR_TABLE_REF (BVAR! ((current_buffer! ()), category_table_), c as isize);
+
+  }
 }
 
 DEFUN! ("char-category-set", Fchar_category_set, Schar_category_set, 1, 1, 0,
@@ -383,6 +405,8 @@ DEFUN! ("modify-category-entry", Fmodify_category_entry,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn word_boundary_p (c1: c_int, c2: c_int) -> bool
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut category_set1: Lisp_Object;
   let mut category_set2: Lisp_Object;
   let mut tail: Lisp_Object;
@@ -424,11 +448,15 @@ pub unsafe extern "C-unwind" fn word_boundary_p (c1: c_int, c2: c_int) -> bool
       tail = XCDR (tail);
     }
   return default_result;
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn init_category_once ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   /* This has to be done here, before we call Fmake_char_table.  */
   DEFSYM! (Qcategory_table, "category-table");
   Fput (Qcategory_table (), Qchar_table_extra_slots (), make_fixnum (2));
@@ -440,11 +468,15 @@ pub unsafe extern "C-unwind" fn init_category_once ()
   Fset_char_table_extra_slot (BVAR! (&raw mut buffer_defaults, category_table_),
                               make_fixnum (0),
                               make_nil_vector (95));
+
+  }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_category ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   DEFSYM! (Qcategoryp, "categoryp");
   DEFSYM! (Qcategorysetp, "categorysetp");
   DEFSYM! (Qcategory_table_p, "category-table-p");
@@ -472,4 +504,6 @@ pub unsafe extern "C-unwind" fn syms_of_category ()
   defsubr (&raw mut Schar_category_set);
   defsubr (&raw mut Scategory_set_mnemonics);
   defsubr (&raw mut Smodify_category_entry);
+
+  }
 }

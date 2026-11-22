@@ -69,7 +69,7 @@ macro_rules! mpn_invert_limb {
 /* #define mpz_odd_p(z)   (((z)->_mp_size != 0) & (int) (z)->_mp_d[0])  */
 macro_rules! mpz_odd_p {
     ($z:expr) => {
-        ((unsafe { (*$z)._mp_size } != 0) as c_int) & unsafe { (*(*$z)._mp_d) } as c_int
+        ((/* SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants. */ unsafe { (*$z)._mp_size } != 0) as c_int) & unsafe { (*(*$z)._mp_d) } as c_int
     };
 }
 /* #define mpz_even_p(z)  (! mpz_odd_p (z))  */

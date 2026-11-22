@@ -49,10 +49,7 @@
 // Names no mirror carries are declared at their use site (the terminal.rs/filelock.rs
 // shape), each with C's own prototype above it.
 
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
-         unsafe_op_in_unsafe_fn, unused_assignments, unreachable_code, while_true,
-         unused_parens, unused_mut)]
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports, unused_macros, unused_variables, unused_unsafe, unused_assignments, unreachable_code, while_true, unused_parens, unused_mut)]
 // [U1-MODULE-UNIT]
 use crate::common::*;
 
@@ -141,12 +138,16 @@ macro_rules! check_markers { () => { {} } }
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn move_gap_both (charpos: ptrdiff_t, bytepos: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   eassert! (charpos == BYTE_TO_CHAR (bytepos)
 	    && bytepos == CHAR_TO_BYTE (charpos));
   if bytepos < GPT_BYTE! ()
     { gap_left (charpos, bytepos, false); }
   else if bytepos > GPT_BYTE! ()
     { gap_right (charpos, bytepos); }
+
+  }
 }
 
 /* Move the gap to a position less than the current GPT.
@@ -156,6 +157,8 @@ pub unsafe extern "C-unwind" fn move_gap_both (charpos: ptrdiff_t, bytepos: ptrd
 
 unsafe fn gap_left (charpos: ptrdiff_t, bytepos: ptrdiff_t, newgap: bool)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut charpos = charpos;
   let mut bytepos = bytepos;
   let mut to: *mut u8;
@@ -213,6 +216,8 @@ unsafe fn gap_left (charpos: ptrdiff_t, bytepos: ptrdiff_t, newgap: bool)
   eassert! (charpos <= bytepos);
   if GAP_SIZE! () > 0 { *GPT_ADDR! () = 0; } /* Put an anchor.  */
   maybe_quit ();
+
+  }
 }
 
 /* Move the gap to a position greater than the current GPT.
@@ -221,6 +226,8 @@ unsafe fn gap_left (charpos: ptrdiff_t, bytepos: ptrdiff_t, newgap: bool)
 
 unsafe fn gap_right (charpos: ptrdiff_t, bytepos: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut charpos = charpos;
   let mut bytepos = bytepos;
   let mut to: *mut u8;
@@ -269,6 +276,8 @@ unsafe fn gap_right (charpos: ptrdiff_t, bytepos: ptrdiff_t)
   eassert! (charpos <= bytepos);
   if GAP_SIZE! () > 0 { *GPT_ADDR! () = 0; } /* Put an anchor.  */
   maybe_quit ();
+
+  }
 }
 
 /* If the selected window's old pointm is adjacent or covered by the
@@ -276,6 +285,8 @@ unsafe fn gap_right (charpos: ptrdiff_t, bytepos: ptrdiff_t)
 
 unsafe fn adjust_suspend_auto_hscroll (from: ptrdiff_t, to: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if WINDOWP (selected_window)
     {
       let w: *mut window = XWINDOW (selected_window);
@@ -286,6 +297,8 @@ unsafe fn adjust_suspend_auto_hscroll (from: ptrdiff_t, to: ptrdiff_t)
 	  && (*XMARKER ((*w).old_pointm)).charpos <= to
 	{ (*w).bits &= ! (1 << WINDOW_SUSPEND_AUTO_HSCROLL_SHIFT); }
     }
+
+  }
 }
 
 
@@ -300,6 +313,8 @@ unsafe fn adjust_suspend_auto_hscroll (from: ptrdiff_t, to: ptrdiff_t)
 pub unsafe extern "C-unwind" fn adjust_markers_for_delete (from: ptrdiff_t, from_byte: ptrdiff_t,
 						    to: ptrdiff_t, to_byte: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut m: *mut Lisp_Marker;
   let mut charpos: ptrdiff_t;
 
@@ -326,6 +341,8 @@ pub unsafe extern "C-unwind" fn adjust_markers_for_delete (from: ptrdiff_t, from
       m = (*m).next;
     }
   adjust_overlays_for_delete (from, to - from);
+
+  }
 }
 
 
@@ -341,6 +358,8 @@ unsafe fn adjust_markers_for_insert (from: ptrdiff_t, from_byte: ptrdiff_t,
 				     to: ptrdiff_t, to_byte: ptrdiff_t,
 				     before_markers: bool)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut m: *mut Lisp_Marker;
   let nchars: ptrdiff_t = to - from;
   let nbytes: ptrdiff_t = to_byte - from_byte;
@@ -368,6 +387,8 @@ unsafe fn adjust_markers_for_insert (from: ptrdiff_t, from_byte: ptrdiff_t,
       m = (*m).next;
     }
   adjust_overlays_for_insert (from, to - from, before_markers);
+
+  }
 }
 
 /* Adjust point for an insertion of NBYTES bytes, which are NCHARS characters.
@@ -382,9 +403,13 @@ unsafe fn adjust_markers_for_insert (from: ptrdiff_t, from_byte: ptrdiff_t,
 
 unsafe fn adjust_point (nchars: ptrdiff_t, nbytes: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   SET_BUF_PT_BOTH ((current_buffer! ()), PT! () + nchars, PT_BYTE! () + nbytes);
   /* In a single-byte buffer, the two positions must be equal.  */
   eassert! (PT_BYTE! () >= PT! () && PT_BYTE! () - PT! () <= ZV_BYTE! () - ZV! ());
+
+  }
 }
 
 
@@ -397,6 +422,8 @@ unsafe fn adjust_markers_for_replace (from: ptrdiff_t, from_byte: ptrdiff_t,
 				      old_chars: ptrdiff_t, old_bytes: ptrdiff_t,
 				      new_chars: ptrdiff_t, new_bytes: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut m: *mut Lisp_Marker;
   let prev_to_byte: ptrdiff_t = from_byte + old_bytes;
   let diff_chars: ptrdiff_t = new_chars - old_chars;
@@ -436,12 +463,16 @@ unsafe fn adjust_markers_for_replace (from: ptrdiff_t, from_byte: ptrdiff_t,
 
   adjust_overlays_for_insert (from + old_chars, new_chars, true);
   adjust_overlays_for_delete (from, old_chars);
+
+  }
 }
 
 /* Starting at POS (BYTEPOS), find the byte position corresponding to
    ENDPOS, which could be either before or after POS.  */
 unsafe fn count_bytes (pos: ptrdiff_t, bytepos: ptrdiff_t, endpos: ptrdiff_t) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut pos = pos;
   let mut bytepos = bytepos;
 
@@ -454,6 +485,8 @@ unsafe fn count_bytes (pos: ptrdiff_t, bytepos: ptrdiff_t, endpos: ptrdiff_t) ->
     { while pos > endpos { bytepos -= prev_char_len (bytepos) as ptrdiff_t; pos -= 1; } }
 
   return bytepos;
+
+  }
 }
 
 /* Adjust byte positions of markers when their character positions
@@ -470,6 +503,8 @@ pub unsafe extern "C-unwind" fn adjust_markers_bytepos (from: ptrdiff_t, from_by
 						 to: ptrdiff_t, to_byte: ptrdiff_t,
 						 to_z: c_int)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut m: *mut Lisp_Marker;
   let mut beg: ptrdiff_t = from; let mut begbyte: ptrdiff_t = from_byte;
 
@@ -513,19 +548,27 @@ pub unsafe extern "C-unwind" fn adjust_markers_bytepos (from: ptrdiff_t, from_by
 
   /* Make sure cached charpos/bytepos is invalid.  */
   clear_charpos_cache ((current_buffer! ()));
+
+  }
 }
 
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn buffer_overflow ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   error (c"Maximum buffer size exceeded".as_ptr ());
+
+  }
 }
 
 /* Make the gap NBYTES_ADDED bytes longer.  */
 
 unsafe fn make_gap_larger (nbytes_added: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut nbytes_added = nbytes_added;
   let mut tem: Lisp_Object;
   let mut real_gap_loc: ptrdiff_t;
@@ -570,6 +613,8 @@ unsafe fn make_gap_larger (nbytes_added: ptrdiff_t)
   *Z_ADDR! () = 0;
 
   Vinhibit_quit = tem;
+
+  }
 }
 
 /* C 514-574's `static void make_gap_smaller (ptrdiff_t)` (under
@@ -581,6 +626,8 @@ unsafe fn make_gap_larger (nbytes_added: ptrdiff_t)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn make_gap (nbytes_added: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if nbytes_added >= 0
     /* With set-buffer-multibyte on a large buffer, we can end up growing the
      * buffer *many* times.  Avoid an O(N^2) behavior by increasing by an
@@ -601,6 +648,8 @@ pub unsafe extern "C-unwind" fn make_gap (nbytes_added: ptrdiff_t)
   /* C 597-599's `#else make_gap_smaller (-nbytes_added);` arm is dead in the frozen
      configuration (USE_MMAP_FOR_BUFFERS, REL_ALLOC and DOUG_LEA_MALLOC are all undefined)
      and is recorded in docs/ports/insdel.md rather than transcribed (P-08).  */
+
+  }
 }
 
 /* Add NBYTES to B's gap.  It's enough to temporarily
@@ -609,11 +658,15 @@ pub unsafe extern "C-unwind" fn make_gap (nbytes_added: ptrdiff_t)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn make_gap_1 (b: *mut buffer, nbytes: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let oldb: *mut buffer = (current_buffer! ());
 
   set_current_buffer! (b);
   make_gap (nbytes);
   set_current_buffer! (oldb);
+
+  }
 }
 
 /* Copy NBYTES bytes of text from FROM_ADDR to TO_ADDR.
@@ -628,6 +681,8 @@ pub unsafe extern "C-unwind" fn copy_text (from_addr: *const u8, to_addr: *mut u
 				    nbytes: ptrdiff_t, from_multibyte: bool,
 				    to_multibyte: bool) -> ptrdiff_t
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut to_addr = to_addr;
   let mut from_addr = from_addr;
   let mut nbytes = nbytes;
@@ -678,6 +733,8 @@ pub unsafe extern "C-unwind" fn copy_text (from_addr: *const u8, to_addr: *mut u
 	}
       return to_addr.offset_from (initial_to_addr);
     }
+
+  }
 }
 
 
@@ -692,6 +749,8 @@ pub unsafe extern "C-unwind" fn copy_text (from_addr: *const u8, to_addr: *mut u
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn insert (string: *const c_char, nbytes: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if nbytes > 0
     {
       let len: ptrdiff_t = chars_in_text (string as *const u8, nbytes);
@@ -701,6 +760,8 @@ pub unsafe extern "C-unwind" fn insert (string: *const c_char, nbytes: ptrdiff_t
       signal_after_change (opoint, 0, len);
       update_compositions (opoint, PT! (), CHECK_BORDER);
     }
+
+  }
 }
 
 /* Likewise, but inherit text properties from neighboring characters.  */
@@ -708,6 +769,8 @@ pub unsafe extern "C-unwind" fn insert (string: *const c_char, nbytes: ptrdiff_t
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn insert_and_inherit (string: *const c_char, nbytes: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if nbytes > 0
     {
       let len: ptrdiff_t = chars_in_text (string as *const u8, nbytes);
@@ -717,6 +780,8 @@ pub unsafe extern "C-unwind" fn insert_and_inherit (string: *const c_char, nbyte
       signal_after_change (opoint, 0, len);
       update_compositions (opoint, PT! (), CHECK_BORDER);
     }
+
+  }
 }
 
 /* Insert the character C before point.  Do not inherit text properties.  */
@@ -724,6 +789,8 @@ pub unsafe extern "C-unwind" fn insert_and_inherit (string: *const c_char, nbyte
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn insert_char (c: c_int)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut str_: [u8; MAX_MULTIBYTE_LENGTH as usize] = [0; MAX_MULTIBYTE_LENGTH as usize];
   let mut len: c_int;
 
@@ -736,6 +803,8 @@ pub unsafe extern "C-unwind" fn insert_char (c: c_int)
     }
 
   insert (str_.as_ptr () as *const c_char, len as ptrdiff_t);
+
+  }
 }
 
 /* Insert the null-terminated string S before point.  */
@@ -743,7 +812,11 @@ pub unsafe extern "C-unwind" fn insert_char (c: c_int)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn insert_string (s: *const c_char)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   insert (s, strlen (s) as ptrdiff_t);
+
+  }
 }
 
 /* Like `insert' except that all markers pointing at the place where
@@ -754,6 +827,8 @@ pub unsafe extern "C-unwind" fn insert_string (s: *const c_char)
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn insert_before_markers (string: *const c_char, nbytes: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if nbytes > 0
     {
       let len: ptrdiff_t = chars_in_text (string as *const u8, nbytes);
@@ -763,6 +838,8 @@ pub unsafe extern "C-unwind" fn insert_before_markers (string: *const c_char, nb
       signal_after_change (opoint, 0, len);
       update_compositions (opoint, PT! (), CHECK_BORDER);
     }
+
+  }
 }
 
 /* Likewise, but inherit text properties from neighboring characters.  */
@@ -771,6 +848,8 @@ pub unsafe extern "C-unwind" fn insert_before_markers (string: *const c_char, nb
 pub unsafe extern "C-unwind" fn insert_before_markers_and_inherit (string: *const c_char,
 							    nbytes: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if nbytes > 0
     {
       let len: ptrdiff_t = chars_in_text (string as *const u8, nbytes);
@@ -780,6 +859,8 @@ pub unsafe extern "C-unwind" fn insert_before_markers_and_inherit (string: *cons
       signal_after_change (opoint, 0, len);
       update_compositions (opoint, PT! (), CHECK_BORDER);
     }
+
+  }
 }
 
 /* C 766-880's `#ifdef BYTE_COMBINING_DEBUG` arm (`count_combining_before` and
@@ -802,6 +883,8 @@ pub unsafe extern "C-unwind" fn insert_1_both (string: *const c_char,
 				        inherit: bool, prepare: bool,
 				        before_markers: bool)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut nchars = nchars;
 
   if nchars == 0
@@ -868,6 +951,8 @@ pub unsafe extern "C-unwind" fn insert_1_both (string: *const c_char,
   adjust_point (nchars, nbytes);
 
   check_markers! ();
+
+  }
 }
 
 
@@ -885,6 +970,8 @@ pub unsafe extern "C-unwind" fn insert_from_string (string: Lisp_Object, pos: pt
 					     pos_byte: ptrdiff_t, length: ptrdiff_t,
 					     length_byte: ptrdiff_t, inherit: bool)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let opoint: ptrdiff_t = PT! ();
 
   if SCHARS (string) == 0
@@ -894,6 +981,8 @@ pub unsafe extern "C-unwind" fn insert_from_string (string: Lisp_Object, pos: pt
 			inherit, false);
   signal_after_change (opoint, 0, PT! () - opoint);
   update_compositions (opoint, PT! (), CHECK_BORDER);
+
+  }
 }
 
 /* Like `insert_from_string' except that all markers pointing
@@ -906,6 +995,8 @@ pub unsafe extern "C-unwind" fn insert_from_string_before_markers (string: Lisp_
 							    length_byte: ptrdiff_t,
 							    inherit: bool)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let opoint: ptrdiff_t = PT! ();
 
   if SCHARS (string) == 0
@@ -915,6 +1006,8 @@ pub unsafe extern "C-unwind" fn insert_from_string_before_markers (string: Lisp_
 			inherit, true);
   signal_after_change (opoint, 0, PT! () - opoint);
   update_compositions (opoint, PT! (), CHECK_BORDER);
+
+  }
 }
 
 /* Subroutine of the insertion functions above.  */
@@ -923,6 +1016,8 @@ unsafe fn insert_from_string_1 (string: Lisp_Object, pos: ptrdiff_t, pos_byte: p
 				nchars: ptrdiff_t, nbytes: ptrdiff_t,
 				inherit: bool, before_markers: bool)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut outgoing_nbytes: ptrdiff_t = nbytes;
   let mut intervals: INTERVAL = std::ptr::null_mut ();
 
@@ -997,6 +1092,8 @@ unsafe fn insert_from_string_1 (string: Lisp_Object, pos: ptrdiff_t, pos_byte: p
   adjust_point (nchars, outgoing_nbytes);
 
   check_markers! ();
+
+  }
 }
 
 
@@ -1011,6 +1108,8 @@ unsafe fn insert_from_string_1 (string: Lisp_Object, pos: ptrdiff_t, pos_byte: p
 pub unsafe extern "C-unwind" fn insert_from_gap_1 (nchars: ptrdiff_t, nbytes: ptrdiff_t,
 					    text_at_gap_tail: bool)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   eassert! (if NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
             { nchars == nbytes } else { nchars <= nbytes });
 
@@ -1037,6 +1136,8 @@ pub unsafe extern "C-unwind" fn insert_from_gap_1 (nchars: ptrdiff_t, nbytes: pt
   #[cfg(feature = "have_tree_sitter")]
   { eassert!(nbytes >= 0); eassert!(ins_bytepos >= 0);
     treesit_record_change(ins_bytepos, ins_bytepos, ins_bytepos+nbytes, start_linecol, start_linecol, ins_bytepos+nbytes); }
+
+  }
 }
 
 /* Insert a sequence of NCHARS chars which occupy NBYTES bytes
@@ -1050,6 +1151,8 @@ pub unsafe extern "C-unwind" fn insert_from_gap_1 (nchars: ptrdiff_t, nbytes: pt
 pub unsafe extern "C-unwind" fn insert_from_gap (nchars: ptrdiff_t, nbytes: ptrdiff_t,
 					  text_at_gap_tail: bool, before_markers: bool)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut nchars = nchars;
   let ins_charpos: ptrdiff_t = GPT! (); let ins_bytepos: ptrdiff_t = GPT_BYTE! ();
 
@@ -1082,6 +1185,8 @@ pub unsafe extern "C-unwind" fn insert_from_gap (nchars: ptrdiff_t, nbytes: ptrd
     { adjust_point (nchars, nbytes); }
 
   check_markers! ();
+
+  }
 }
 
 
@@ -1097,6 +1202,8 @@ pub unsafe extern "C-unwind" fn insert_from_buffer (buf: *mut buffer,
 					     charpos: ptrdiff_t, nchars: ptrdiff_t,
 					     inherit: bool)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let opoint: ptrdiff_t = PT! ();
 
   #[cfg(feature = "have_tree_sitter")]
@@ -1111,6 +1218,8 @@ pub unsafe extern "C-unwind" fn insert_from_buffer (buf: *mut buffer,
   #[cfg(feature = "have_tree_sitter")]
   { eassert!(PT_BYTE!() >= BEG_BYTE as ptrdiff_t); eassert!(obyte >= BEG_BYTE as ptrdiff_t); eassert!(PT_BYTE!() >= obyte);
     treesit_record_change(obyte, obyte, PT_BYTE!(), start_linecol, start_linecol, PT!()); }
+
+  }
 }
 
 /* NOTE: If we ever make insert_from_buffer_1 public, make sure to
@@ -1119,6 +1228,8 @@ pub unsafe extern "C-unwind" fn insert_from_buffer (buf: *mut buffer,
 unsafe fn insert_from_buffer_1 (buf: *mut buffer,
 				from: ptrdiff_t, nchars: ptrdiff_t, inherit: bool)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut from = from;
   let mut chunk: ptrdiff_t = 0; let mut chunk_expanded: ptrdiff_t = 0;
   let from_byte: ptrdiff_t = buf_charpos_to_bytepos (buf as *mut c_void, from);
@@ -1234,6 +1345,8 @@ unsafe fn insert_from_buffer_1 (buf: *mut buffer,
   graft_intervals_into_buffer (intervals, PT! (), nchars, (current_buffer! ()), inherit);
 
   adjust_point (nchars, outgoing_nbytes);
+
+  }
 }
 
 
@@ -1248,6 +1361,8 @@ unsafe fn adjust_after_replace (from: ptrdiff_t, from_byte: ptrdiff_t,
 				prev_text: Lisp_Object, len: ptrdiff_t,
 				len_byte: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut nchars_del: ptrdiff_t = 0; let mut nbytes_del: ptrdiff_t = 0;
 
   /* C 1381-1384's `#ifdef BYTE_COMBINING_DEBUG` arm is dead in the frozen configuration and
@@ -1290,6 +1405,8 @@ unsafe fn adjust_after_replace (from: ptrdiff_t, from_byte: ptrdiff_t,
 
   modiff_incr (&raw mut MODIFF! (), nchars_del + len);
   CHARS_MODIFF! () = MODIFF! ();
+
+  }
 }
 
 /* Record undo information, adjust markers and position keepers for an
@@ -1302,6 +1419,8 @@ pub unsafe extern "C-unwind" fn adjust_after_insert (from: ptrdiff_t, from_byte:
 					      to: ptrdiff_t, to_byte: ptrdiff_t,
 					      newlen: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let len: ptrdiff_t = to - from; let len_byte: ptrdiff_t = to_byte - from_byte;
 
   if GPT! () != to
@@ -1311,6 +1430,8 @@ pub unsafe extern "C-unwind" fn adjust_after_insert (from: ptrdiff_t, from_byte:
   ZV! () -= len; ZV_BYTE! () -= len_byte;
   Z! () -= len; Z_BYTE! () -= len_byte;
   adjust_after_replace (from, from_byte, Qnil (), newlen, len_byte);
+
+  }
 }
 
 
@@ -1335,6 +1456,8 @@ pub unsafe extern "C-unwind" fn replace_range (from: ptrdiff_t, to: ptrdiff_t, n
 					run_mod_hooks: bool, inherit: bool,
 					adjust_match_data: bool)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut from = from;
   let mut to = to;
   let mut inschars: ptrdiff_t;
@@ -1549,6 +1672,8 @@ pub unsafe extern "C-unwind" fn replace_range (from: ptrdiff_t, to: ptrdiff_t, n
       signal_after_change (from, nchars_del, GPT! () - from);
       update_compositions (from, GPT! (), CHECK_BORDER);
     }
+
+  }
 }
 
 
@@ -1574,6 +1699,8 @@ pub unsafe extern "C-unwind" fn replace_range_2 (from: ptrdiff_t, from_byte: ptr
 					  ins: *const c_char, inschars: ptrdiff_t,
 					  insbytes: ptrdiff_t, markers: bool)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut nbytes_del: ptrdiff_t; let mut nchars_del: ptrdiff_t;
 
   check_markers! ();
@@ -1660,6 +1787,8 @@ pub unsafe extern "C-unwind" fn replace_range_2 (from: ptrdiff_t, from_byte: ptr
 
   modiff_incr (&raw mut MODIFF! (), nchars_del + inschars);
   CHARS_MODIFF! () = MODIFF! ();
+
+  }
 }
 
 
@@ -1670,7 +1799,11 @@ pub unsafe extern "C-unwind" fn replace_range_2 (from: ptrdiff_t, from_byte: ptr
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn del_range (from: ptrdiff_t, to: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   del_range_1 (from, to, true, false);
+
+  }
 }
 
 #[repr(C)]
@@ -1683,11 +1816,15 @@ pub struct safe_del_range_context
 
 unsafe extern "C-unwind" fn safe_del_range_1 (ptr: *mut c_void) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut context: *mut safe_del_range_context;
 
   context = ptr as *mut safe_del_range_context;
   del_range ((*context).from, (*context).to);
   return Qnil ();
+
+  }
 }
 
 unsafe extern "C-unwind" fn safe_del_range_2 (type_: nonlocal_exit, value: Lisp_Object) -> Lisp_Object
@@ -1701,6 +1838,8 @@ unsafe extern "C-unwind" fn safe_del_range_2 (type_: nonlocal_exit, value: Lisp_
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn safe_del_range (from: ptrdiff_t, to: ptrdiff_t) -> c_int
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut context: safe_del_range_context
     = safe_del_range_context { from: 0, to: 0 };
 
@@ -1710,6 +1849,8 @@ pub unsafe extern "C-unwind" fn safe_del_range (from: ptrdiff_t, to: ptrdiff_t) 
   return !NILP (internal_catch_all (Some (safe_del_range_1),
 				    &raw mut context as *mut c_void,
 				    Some (safe_del_range_2))) as c_int;
+
+  }
 }
 
 /* Like del_range; PREPARE says whether to call prepare_to_modify_buffer.
@@ -1719,6 +1860,8 @@ pub unsafe extern "C-unwind" fn safe_del_range (from: ptrdiff_t, to: ptrdiff_t) 
 pub unsafe extern "C-unwind" fn del_range_1 (from: ptrdiff_t, to: ptrdiff_t, prepare: bool,
 				      ret_string: bool) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut from = from;
   let mut to = to;
   let mut from_byte: ptrdiff_t; let mut to_byte: ptrdiff_t;
@@ -1747,6 +1890,8 @@ pub unsafe extern "C-unwind" fn del_range_1 (from: ptrdiff_t, to: ptrdiff_t, pre
   signal_after_change (from, to - from, 0);
   update_compositions (from, from, CHECK_HEAD);
   return deletion;
+
+  }
 }
 
 /* Like del_range_1 but args are byte positions, not char positions.  */
@@ -1754,6 +1899,8 @@ pub unsafe extern "C-unwind" fn del_range_1 (from: ptrdiff_t, to: ptrdiff_t, pre
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn del_range_byte (from_byte: ptrdiff_t, to_byte: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut from_byte = from_byte;
   let mut to_byte = to_byte;
   let mut from: ptrdiff_t; let mut to: ptrdiff_t;
@@ -1790,6 +1937,8 @@ pub unsafe extern "C-unwind" fn del_range_byte (from_byte: ptrdiff_t, to_byte: p
   del_range_2 (from, from_byte, to, to_byte, false);
   signal_after_change (from, to - from, 0);
   update_compositions (from, from, CHECK_HEAD);
+
+  }
 }
 
 /* Like del_range_1, but positions are specified both as charpos
@@ -1800,6 +1949,8 @@ pub unsafe extern "C-unwind" fn del_range_both (from: ptrdiff_t, from_byte: ptrd
 					 to: ptrdiff_t, to_byte: ptrdiff_t,
 					 prepare: bool)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut from = from; let mut to = to;
   let mut from_byte = from_byte; let mut to_byte = to_byte;
 
@@ -1838,6 +1989,8 @@ pub unsafe extern "C-unwind" fn del_range_both (from: ptrdiff_t, from_byte: ptrd
   del_range_2 (from, from_byte, to, to_byte, false);
   signal_after_change (from, to - from, 0);
   update_compositions (from, from, CHECK_HEAD);
+
+  }
 }
 
 /* Delete a range of text, specified both as character positions
@@ -1850,6 +2003,8 @@ pub unsafe extern "C-unwind" fn del_range_2 (from: ptrdiff_t, from_byte: ptrdiff
 				      to: ptrdiff_t, to_byte: ptrdiff_t,
 				      ret_string: bool) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut nbytes_del: ptrdiff_t; let mut nchars_del: ptrdiff_t;
   let mut deletion: Lisp_Object;
 
@@ -1921,6 +2076,8 @@ pub unsafe extern "C-unwind" fn del_range_2 (from: ptrdiff_t, from_byte: ptrdiff
     treesit_record_change(from_byte, to_byte, from_byte, start_linecol, old_end_linecol, from); }
 
   return deletion;
+
+  }
 }
 
 
@@ -1933,6 +2090,8 @@ pub unsafe extern "C-unwind" fn del_range_2 (from: ptrdiff_t, from_byte: ptrdiff
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn modify_text (start: ptrdiff_t, end: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   prepare_to_modify_buffer (start, end, std::ptr::null_mut ());
 
   BUF_COMPUTE_UNCHANGED ((current_buffer! ()), start - 1, end);
@@ -1942,6 +2101,8 @@ pub unsafe extern "C-unwind" fn modify_text (start: ptrdiff_t, end: ptrdiff_t)
   CHARS_MODIFF! () = MODIFF! ();
 
   bset_point_before_scroll ((current_buffer! ()), Qnil ());
+
+  }
 }
 
 /* Signal that we are about to make a change that may result in new
@@ -1949,10 +2110,14 @@ pub unsafe extern "C-unwind" fn modify_text (start: ptrdiff_t, end: ptrdiff_t)
  */
 unsafe fn run_undoable_change ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if EQ (BVAR! ((current_buffer! ()), undo_list_), Qt ())
     { return; }
 
   call0 (Qundo_auto__undoable_change ());
+
+  }
 }
 
 /* Check that it is okay to modify the buffer between START and END,
@@ -1974,6 +2139,8 @@ unsafe fn run_undoable_change ()
 pub unsafe extern "C-unwind" fn prepare_to_modify_buffer_1 (start: ptrdiff_t, end: ptrdiff_t,
 						     preserve_ptr: *mut ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut base_buffer: *mut buffer;
   let mut temp: Lisp_Object;
 
@@ -2037,6 +2204,8 @@ pub unsafe extern "C-unwind" fn prepare_to_modify_buffer_1 (start: ptrdiff_t, en
 
   signal_before_change (start, end, preserve_ptr);
   Fset (Qdeactivate_mark (), Qt ());
+
+  }
 }
 
 /* Like above, but called when we know that the buffer text
@@ -2046,8 +2215,12 @@ pub unsafe extern "C-unwind" fn prepare_to_modify_buffer_1 (start: ptrdiff_t, en
 pub unsafe extern "C-unwind" fn prepare_to_modify_buffer (start: ptrdiff_t, end: ptrdiff_t,
 						   preserve_ptr: *mut ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   prepare_to_modify_buffer_1 (start, end, preserve_ptr);
   invalidate_buffer_caches ((current_buffer! ()), start, end);
+
+  }
 }
 
 /* Invalidate the caches maintained by the buffer BUF, if any, for the
@@ -2056,6 +2229,8 @@ pub unsafe extern "C-unwind" fn prepare_to_modify_buffer (start: ptrdiff_t, end:
 pub unsafe extern "C-unwind" fn invalidate_buffer_caches (buf: *mut buffer, start: ptrdiff_t,
 						   end: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut buf = buf;
   let mut start = start;
 
@@ -2106,6 +2281,8 @@ pub unsafe extern "C-unwind" fn invalidate_buffer_caches (buf: *mut buffer, star
     { invalidate_region_cache (buf,
 			       (*buf).width_run_cache,
 			       start - BUF_BEG (buf), BUF_Z! (buf) - end); }
+
+  }
 }
 
 /* These macros work with an argument named `preserve_ptr'
@@ -2118,8 +2295,12 @@ pub unsafe extern "C-unwind" fn invalidate_buffer_caches (buf: *mut buffer, star
    function; the call sites pass the two locals C's macro captures.  */
 unsafe fn PRESERVE_VALUE (preserve_ptr: *mut ptrdiff_t, preserve_marker: *mut Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if ! preserve_ptr.is_null () && NILP (*preserve_marker)
     { *preserve_marker = Fcopy_marker (make_fixnum (*preserve_ptr), Qnil ()); }
+
+  }
 }
 
 /* C: `#define RESTORE_VALUE						\
@@ -2130,11 +2311,15 @@ unsafe fn PRESERVE_VALUE (preserve_ptr: *mut ptrdiff_t, preserve_marker: *mut Li
        }`  */
 unsafe fn RESTORE_VALUE (preserve_ptr: *mut ptrdiff_t, preserve_marker: *mut Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if ! NILP (*preserve_marker)
     {
       *preserve_ptr = marker_position (*preserve_marker);
       unchain_marker (XMARKER (*preserve_marker) as *mut c_void);
     }
+
+  }
 }
 
 /* C: `#define PRESERVE_START_END			\
@@ -2145,24 +2330,36 @@ unsafe fn RESTORE_VALUE (preserve_ptr: *mut ptrdiff_t, preserve_marker: *mut Lis
 unsafe fn PRESERVE_START_END (start_marker: *mut Lisp_Object, end_marker: *mut Lisp_Object,
 			      start: Lisp_Object, end: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   if NILP (*start_marker)
     { *start_marker = Fcopy_marker (start, Qnil ()); }
   if NILP (*end_marker)
     { *end_marker = Fcopy_marker (end, Qnil ()); }
+
+  }
 }
 
 /* C: `#define FETCH_START				\
      (! NILP (start_marker) ? Fmarker_position (start_marker) : start)`  */
 unsafe fn FETCH_START (start_marker: Lisp_Object, start: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   return if ! NILP (start_marker) { Fmarker_position (start_marker) } else { start };
+
+  }
 }
 
 /* C: `#define FETCH_END				\
      (! NILP (end_marker) ? Fmarker_position (end_marker) : end)`  */
 unsafe fn FETCH_END (end_marker: Lisp_Object, end: Lisp_Object) -> Lisp_Object
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   return if ! NILP (end_marker) { Fmarker_position (end_marker) } else { end };
+
+  }
 }
 
 /* Set a variable to nil if an error occurred.
@@ -2180,9 +2377,13 @@ pub struct rvoe_arg
 
 unsafe extern "C-unwind" fn reset_var_on_error (ptr: *mut c_void)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let p: *mut rvoe_arg = ptr as *mut rvoe_arg;
   if (*p).errorp
     { *(*p).location = Qnil (); }
+
+  }
 }
 
 /* Signal a change to the buffer immediately before it happens.
@@ -2194,6 +2395,8 @@ unsafe extern "C-unwind" fn reset_var_on_error (ptr: *mut c_void)
 unsafe fn signal_before_change (start_int: ptrdiff_t, end_int: ptrdiff_t,
 				preserve_ptr: *mut ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let mut start: Lisp_Object; let mut end: Lisp_Object;
   let mut start_marker: Lisp_Object; let mut end_marker: Lisp_Object;
   let mut preserve_marker: Lisp_Object;
@@ -2255,6 +2458,8 @@ unsafe fn signal_before_change (start_int: ptrdiff_t, end_int: ptrdiff_t,
   RESTORE_VALUE (preserve_ptr, &raw mut preserve_marker);
 
   unbind_to (count, Qnil ());
+
+  }
 }
 
 /* Signal a change immediately after it happens.
@@ -2268,6 +2473,8 @@ unsafe fn signal_before_change (start_int: ptrdiff_t, end_int: ptrdiff_t,
 pub unsafe extern "C-unwind" fn signal_after_change (charpos: ptrdiff_t, lendel: ptrdiff_t,
 					      lenins: ptrdiff_t)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   let count: specpdl_ref = SPECPDL_INDEX ();
   let mut rvoe_arg: rvoe_arg = rvoe_arg { location: std::ptr::null_mut (), errorp: false };
   let mut tmp: Lisp_Object = Qnil ();
@@ -2357,11 +2564,17 @@ pub unsafe extern "C-unwind" fn signal_after_change (charpos: ptrdiff_t, lendel:
 				    make_fixnum (charpos + lenins)); }
 
   unbind_to (count, Qnil ());
+
+  }
 }
 
 unsafe extern "C-unwind" fn Fcombine_after_change_execute_1 (val: Lisp_Object)
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   Vcombine_after_change_calls = val;
+
+  }
 }
 
 DEFUN! ("combine-after-change-execute", Fcombine_after_change_execute,
@@ -2455,6 +2668,8 @@ DEFUN! ("combine-after-change-execute", Fcombine_after_change_execute,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_insdel ()
 {
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  unsafe {
   staticpro (&raw const combine_after_change_list);
   staticpro (&raw const combine_after_change_buffer);
   combine_after_change_list = Qnil ();
@@ -2473,4 +2688,6 @@ pub unsafe extern "C-unwind" fn syms_of_insdel ()
   DEFSYM! (Qinhibit_modification_hooks, c"inhibit-modification-hooks");
 
   defsubr (&raw mut Scombine_after_change_execute);
+
+  }
 }
