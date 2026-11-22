@@ -319,19 +319,19 @@ macro_rules! INTERVAL_VISIBLE_P {
    value of Vinhibit_read_only?  Replace later with cache access.  */
 macro_rules! INTERVAL_GENERALLY_WRITABLE_P {
   ($i:expr, $ro:expr) => { (NILP ($ro)
-			    || (! NILP (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*Vinhibit_read_only.as_mut_ptr ()) })
-				&& ! CONSP (unsafe { (*Vinhibit_read_only.as_mut_ptr ()) }))) };
+			    || (! NILP (Vinhibit_read_only.get ())
+				&& ! CONSP (Vinhibit_read_only.get ()))) };
 }
 
 /* Is this interval writable by virtue of its explicit
    'inhibit-read-only' property, or due to the presence of its
    'read-only' property (passed via RO) in Vinhibit_read_only list?  */
 macro_rules! INTERVAL_EXPRESSLY_WRITABLE_P {
-  ($i:expr, $ro:expr) => { (! NILP (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { textget (unsafe { (*(($i) as *mut interval)).plist },
-						     Qinhibit_read_only ()) })
+  ($i:expr, $ro:expr) => { (! NILP (textget (/* SAFETY: interval pointer verified by caller. */ unsafe { (*(($i) as *mut interval)).plist },
+						     Qinhibit_read_only ()))
 			    || (! NILP ($ro)
-				&& CONSP (unsafe { (*Vinhibit_read_only.as_mut_ptr ()) })
-				&& ! NILP (Fmemq ($ro, unsafe { (*Vinhibit_read_only.as_mut_ptr ()) })))) };
+				&& CONSP (Vinhibit_read_only.get ())
+				&& ! NILP (Fmemq ($ro, Vinhibit_read_only.get ())))) };
 }
 
 /* If PROP is the `invisible' property of a character,
@@ -345,8 +345,8 @@ macro_rules! INTERVAL_EXPRESSLY_WRITABLE_P {
 // parameter.  The arm is deleted; the metavariable arm below is the macro (status §3.56's
 // integrator-edit class, recorded in docs/ports/indent.md).
 macro_rules! TEXT_PROP_MEANS_INVISIBLE {
-  ($prop:expr) => { (if EQ (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { BVAR! ((current_buffer! ()), invisibility_spec_) }, Qt ()) { (! NILP ($prop)) as c_int }
-		     else { unsafe { invisible_prop ($prop, unsafe { BVAR! ((current_buffer! ()), invisibility_spec_) }) } }) };
+  ($prop:expr) => { (if EQ (/* SAFETY: reads live `current_buffer`. */ unsafe { BVAR! ((current_buffer! ()), invisibility_spec_) }, Qt ()) { (! NILP ($prop)) as c_int }
+		     else { invisible_prop ($prop, /* SAFETY: reads live `current_buffer`. */ unsafe { BVAR! ((current_buffer! ()), invisibility_spec_) }) }) };
 }
 
 
@@ -421,14 +421,14 @@ pub mod intervals_decls {
     /// C: intervals.h 274: `extern INTERVAL copy_intervals (INTERVAL, ptrdiff_t, ptrdiff_t);`
     pub fn copy_intervals (tree: INTERVAL, start: ptrdiff_t, length: ptrdiff_t) -> INTERVAL;
     /// C: intervals.h 275: `extern bool compare_string_intervals (Lisp_Object, Lisp_Object);`
-    pub fn compare_string_intervals (s1: Lisp_Object, s2: Lisp_Object) -> bool;
+    pub safe fn compare_string_intervals (s1: Lisp_Object, s2: Lisp_Object) -> bool;
     /// C: intervals.h 276: `extern Lisp_Object textget (Lisp_Object, Lisp_Object);`
-    pub fn textget (prop: Lisp_Object, object: Lisp_Object) -> Lisp_Object;
+    pub safe fn textget (prop: Lisp_Object, object: Lisp_Object) -> Lisp_Object;
     /// C: intervals.h 277: `extern Lisp_Object lookup_char_property (Lisp_Object, Lisp_Object,
     /// bool);`
-    pub fn lookup_char_property (plist: Lisp_Object, prop: Lisp_Object, textprop: bool) -> Lisp_Object;
+    pub safe fn lookup_char_property (plist: Lisp_Object, prop: Lisp_Object, textprop: bool) -> Lisp_Object;
     /// C: intervals.h 278: `extern void move_if_not_intangible (ptrdiff_t);`
-    pub fn move_if_not_intangible (position: ptrdiff_t);
+    pub safe fn move_if_not_intangible (position: ptrdiff_t);
     /// C: intervals.h 279-280: `extern bool get_property_and_range (ptrdiff_t, Lisp_Object,
     /// Lisp_Object *, ptrdiff_t *, ptrdiff_t *, Lisp_Object);`
     pub fn get_property_and_range (pos: ptrdiff_t, prop: Lisp_Object, val: *mut Lisp_Object,
@@ -440,7 +440,7 @@ pub mod intervals_decls {
     /// C: intervals.h 282: `extern INTERVAL update_interval (INTERVAL, ptrdiff_t);`
     pub fn update_interval (interval: INTERVAL, pos: ptrdiff_t) -> INTERVAL;
     /// C: intervals.h 283: `extern void set_intervals_multibyte (bool);`
-    pub fn set_intervals_multibyte (multibyte: bool);
+    pub safe fn set_intervals_multibyte (multibyte: bool);
     /// C: intervals.h 284-285: `extern INTERVAL validate_interval_range (Lisp_Object,
     /// Lisp_Object *, Lisp_Object *, bool);`
     pub fn validate_interval_range (object: Lisp_Object, begin: *mut Lisp_Object,
@@ -454,7 +454,7 @@ pub use self::intervals_decls::*;
 /* Defined in xdisp.c.  */
 unsafe extern "C-unwind" {
   /// C: intervals.h 289: `extern int invisible_prop (Lisp_Object, Lisp_Object);`
-  pub fn invisible_prop (prop: Lisp_Object, lookup_vector: Lisp_Object) -> c_int;
+  pub safe fn invisible_prop (prop: Lisp_Object, lookup_vector: Lisp_Object) -> c_int;
 }
 
 // The `Defined in textprop.c` block is in a module + glob import: src/textprop.c defines
@@ -469,11 +469,11 @@ pub mod textprop_decls {
   unsafe extern "C-unwind" {
     /// C: intervals.h 292-294: `extern Lisp_Object copy_text_properties (Lisp_Object,
     /// Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object);`
-    pub fn copy_text_properties (start: Lisp_Object, end: Lisp_Object, src: Lisp_Object,
+    pub safe fn copy_text_properties (start: Lisp_Object, end: Lisp_Object, src: Lisp_Object,
   			       pos: Lisp_Object, dest: Lisp_Object, prop: Lisp_Object) -> Lisp_Object;
     /// C: intervals.h 295-297: `extern Lisp_Object set_text_properties (Lisp_Object,
     /// Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object);`
-    pub fn set_text_properties (start: Lisp_Object, end: Lisp_Object, properties: Lisp_Object,
+    pub safe fn set_text_properties (start: Lisp_Object, end: Lisp_Object, properties: Lisp_Object,
   			      object: Lisp_Object, coherent_change: Lisp_Object) -> Lisp_Object;
     /// C: intervals.h 298-299: `extern void set_text_properties_1 (Lisp_Object, Lisp_Object,
     /// Lisp_Object, Lisp_Object, INTERVAL);`
@@ -481,25 +481,166 @@ pub mod textprop_decls {
   				object: Lisp_Object, i: INTERVAL);
     /// C: intervals.h 301-302: `Lisp_Object text_property_list (Lisp_Object, Lisp_Object,
     /// Lisp_Object, Lisp_Object);`
-    pub fn text_property_list (object: Lisp_Object, start: Lisp_Object, end: Lisp_Object,
+    pub safe fn text_property_list (object: Lisp_Object, start: Lisp_Object, end: Lisp_Object,
   			     prop: Lisp_Object) -> Lisp_Object;
     /// C: intervals.h 303: `void add_text_properties_from_list (Lisp_Object, Lisp_Object,
     /// Lisp_Object);`
-    pub fn add_text_properties_from_list (object: Lisp_Object, list: Lisp_Object, prop: Lisp_Object);
+    pub safe fn add_text_properties_from_list (object: Lisp_Object, list: Lisp_Object, prop: Lisp_Object);
     /// C: intervals.h 304: `Lisp_Object extend_property_ranges (Lisp_Object, Lisp_Object,
     /// Lisp_Object);`
-    pub fn extend_property_ranges (list: Lisp_Object, old: Lisp_Object, new: Lisp_Object) -> Lisp_Object;
+    pub safe fn extend_property_ranges (list: Lisp_Object, old: Lisp_Object, new: Lisp_Object) -> Lisp_Object;
     /// C: intervals.h 305-306: `Lisp_Object get_char_property_and_overlay (Lisp_Object,
     /// Lisp_Object, Lisp_Object, Lisp_Object *);`
     pub fn get_char_property_and_overlay (position: Lisp_Object, prop: Lisp_Object,
   					object: Lisp_Object, overlay: *mut Lisp_Object) -> Lisp_Object;
     /// C: intervals.h 307-308: `extern int text_property_stickiness (Lisp_Object prop,
     /// Lisp_Object pos, Lisp_Object buffer);`
-    pub fn text_property_stickiness (prop: Lisp_Object, pos: Lisp_Object, buffer: Lisp_Object) -> c_int;
+    pub safe fn text_property_stickiness (prop: Lisp_Object, pos: Lisp_Object, buffer: Lisp_Object) -> c_int;
     /// C: intervals.h 310: `extern void syms_of_textprop (void);`
-    pub fn syms_of_textprop ();
+    pub safe fn syms_of_textprop ();
   }
 }
 pub use self::textprop_decls::*;
+
+#[inline(always)]
+pub fn get_property_and_range_safe (
+  pos: ptrdiff_t,
+  prop: Lisp_Object,
+  object: Lisp_Object,
+) -> Option<(Lisp_Object, ptrdiff_t, ptrdiff_t)> {
+  let mut val = Qnil ();
+  let mut start: ptrdiff_t = 0;
+  let mut end: ptrdiff_t = 0;
+  /* SAFETY: `val`, `start`, and `end` are valid stack out-pointers on the owning Lisp thread. */
+  let found = unsafe {
+    get_property_and_range (pos, prop, &raw mut val, &raw mut start, &raw mut end, object)
+  };
+  if found { Some ((val, start, end)) } else { None }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub struct IntervalHandle(INTERVAL);
+
+#[inline(always)]
+pub fn validate_interval_range_handle (
+  object: Lisp_Object,
+  begin: Lisp_Object,
+  end: Lisp_Object,
+  force: bool,
+) -> (Option<IntervalHandle>, Lisp_Object, Lisp_Object) {
+  let mut b = begin;
+  let mut e = end;
+  /* SAFETY: `b` and `e` are valid stack in/out `Lisp_Object` slots on the owning Lisp thread. */
+  let raw = unsafe { validate_interval_range (object, &raw mut b, &raw mut e, force) };
+  let handle = if raw.is_null () { None } else { Some (IntervalHandle (raw)) };
+  (handle, b, e)
+}
+
+#[inline(always)]
+pub fn validate_interval_single_pos (
+  object: Lisp_Object,
+  position: Lisp_Object,
+  force: bool,
+) -> (Option<IntervalHandle>, Lisp_Object) {
+  let mut p = position;
+  /* SAFETY: `p` is passed for both `begin` and `end` exactly as C's `&position, &position` calls do. */
+  let raw = unsafe { validate_interval_range (object, &raw mut p, &raw mut p, force) };
+  let handle = if raw.is_null () { None } else { Some (IntervalHandle (raw)) };
+  (handle, p)
+}
+
+#[inline(always)]
+pub fn interval_handle_pos_and_len (h: IntervalHandle) -> (ptrdiff_t, ptrdiff_t) {
+  assert! (!h.0.is_null ());
+  /* SAFETY: `h.0` verified non-null live interval node on the owning Lisp thread. */
+  unsafe {
+    let ip = h.0 as *mut interval;
+    ((*ip).position, LENGTH! (h.0))
+  }
+}
+
+#[inline(always)]
+pub fn interval_handle_plist (h: IntervalHandle) -> Lisp_Object {
+  assert! (!h.0.is_null ());
+  /* SAFETY: `h.0` verified non-null live interval node on the owning Lisp thread. */
+  unsafe { (*(h.0 as *mut interval)).plist }
+}
+
+#[inline(always)]
+pub fn next_interval_handle (h: IntervalHandle) -> Option<IntervalHandle> {
+  assert! (!h.0.is_null ());
+  /* SAFETY: `h.0` verified non-null live interval node. */
+  let next = unsafe { next_interval (h.0) };
+  if next.is_null () { None } else { Some (IntervalHandle (next)) }
+}
+
+#[inline(always)]
+pub fn previous_interval_handle (h: IntervalHandle) -> Option<IntervalHandle> {
+  assert! (!h.0.is_null ());
+  /* SAFETY: `h.0` verified non-null live interval node. */
+  let prev = unsafe { previous_interval (h.0) };
+  if prev.is_null () { None } else { Some (IntervalHandle (prev)) }
+}
+
+#[inline(always)]
+pub fn intervals_equal_handle (a: IntervalHandle, b: IntervalHandle) -> bool {
+  assert! (!a.0.is_null () && !b.0.is_null ());
+  /* SAFETY: both `a.0` and `b.0` verified non-null live interval nodes. */
+  unsafe { intervals_equal (a.0, b.0) }
+}
+
+#[inline(always)]
+pub fn get_char_property_only (
+  position: Lisp_Object,
+  prop: Lisp_Object,
+  object: Lisp_Object,
+) -> Lisp_Object {
+  /* SAFETY: null `overlay` out-pointer requests property value only. */
+  unsafe { get_char_property_and_overlay (position, prop, object, core::ptr::null_mut ()) }
+}
+
+#[inline(always)]
+pub fn get_char_property_and_overlay_pair (
+  position: Lisp_Object,
+  prop: Lisp_Object,
+  object: Lisp_Object,
+) -> (Lisp_Object, Lisp_Object) {
+  let mut overlay = Qnil ();
+  /* SAFETY: `overlay` is a valid stack out-pointer on the owning Lisp thread. */
+  let val = unsafe { get_char_property_and_overlay (position, prop, object, &raw mut overlay) };
+  (val, overlay)
+}
+
+#[inline(always)]
+pub fn get_char_property_and_overlay_safe (
+  position: Lisp_Object,
+  prop: Lisp_Object,
+  object: Lisp_Object,
+  track_overlay: bool,
+) -> (Lisp_Object, Lisp_Object) {
+  let mut overlay = Qnil ();
+  /* SAFETY: `overlay` is a valid stack `Lisp_Object` out-pointer when `track_overlay` is true. */
+  let val = unsafe {
+    get_char_property_and_overlay (
+      position,
+      prop,
+      object,
+      if track_overlay { &raw mut overlay } else { core::ptr::null_mut () },
+    )
+  };
+  (val, overlay)
+}
+
+#[inline(always)]
+pub fn interval_plist_at (pos: ptrdiff_t, object: Lisp_Object) -> Lisp_Object {
+  /* SAFETY: `interval_of` validates `object` and `pos` and returns either null or a live `INTERVAL`. */
+  let i = unsafe { interval_of (pos, object) };
+  if i.is_null () {
+    Qnil ()
+  } else {
+    /* SAFETY: `i` verified non-null live `interval` above. */
+    unsafe { (*(i as *mut interval)).plist }
+  }
+}
 
 // INLINE_HEADER_END has no Rust counterpart (PORTING.md 0.1).

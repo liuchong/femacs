@@ -2608,7 +2608,7 @@ DEFUN! ("make-terminal-frame", Fmake_terminal_frame, Smake_terminal_frame,
    The value of NORECORD is passed as argument to Fselect_window.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn do_switch_frame (frame: Lisp_Object, track: c_int,
+pub extern "C-unwind" fn do_switch_frame (frame: Lisp_Object, track: c_int,
                                           for_deletion: c_int,
                                           norecord: Lisp_Object) -> Lisp_Object
 {
@@ -3833,7 +3833,7 @@ pub unsafe extern "C-unwind" fn mouse_position (call_mouse_position_function: bo
   if (*FRAME_TERMINAL! (f)).mouse_position_hook.is_some ()
     {
       let mut party_dummy: scroll_bar_part = 0;
-      let mut time_dummy: Time = /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { std::mem::zeroed () };
+      let mut time_dummy: Time = { std::mem::zeroed () };
       if let Some (mouse_position_hook) = (*FRAME_TERMINAL! (f)).mouse_position_hook
 	{ mouse_position_hook (&mut f as *mut *mut frame as *mut *mut c_void, -1,
 			       &mut lispy_dummy, &mut party_dummy,
@@ -3880,7 +3880,7 @@ DEFUN! ("mouse-pixel-position", Fmouse_pixel_position,
   if (*FRAME_TERMINAL! (f)).mouse_position_hook.is_some ()
     {
       let mut party_dummy: scroll_bar_part = 0;
-      let mut time_dummy: Time = /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { std::mem::zeroed () };
+      let mut time_dummy: Time = { std::mem::zeroed () };
       if let Some (mouse_position_hook) = (*FRAME_TERMINAL! (f)).mouse_position_hook
 	{ mouse_position_hook (&mut f as *mut *mut frame as *mut *mut c_void, -1,
 			       &mut lispy_dummy, &mut party_dummy,
@@ -4263,7 +4263,7 @@ DEFUN! ("frame-after-make-frame",
 /* Discard BUFFER from the buffer-list and buried-buffer-list of each frame.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn frames_discard_buffer (buffer: Lisp_Object)
+pub extern "C-unwind" fn frames_discard_buffer (buffer: Lisp_Object)
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {

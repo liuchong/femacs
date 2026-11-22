@@ -6367,2517 +6367,845 @@ unsafe extern "C" { pub static lispsym: VmGlobal<[Lisp_Symbol; lispsym_count]>; 
 pub mod variables {
     use super::*;
     unsafe extern "C" {
-        pub static V_comp_no_native_file_h: VmGlobal<Lisp_Object>; // comp-no-native-file-h
-        pub static Vafter_change_functions: VmGlobal<Lisp_Object>; // after-change-functions
-        pub static Vafter_delete_frame_functions: VmGlobal<Lisp_Object>; // after-delete-frame-functions
-        pub static Vafter_init_time: VmGlobal<Lisp_Object>; // after-init-time
-        pub static Vafter_insert_file_functions: VmGlobal<Lisp_Object>; // after-insert-file-functions
-        pub static Vafter_load_alist: VmGlobal<Lisp_Object>; // after-load-alist
-        pub static Valternate_fontname_alist: VmGlobal<Lisp_Object>; // alternate-fontname-alist
-        pub static Vambiguous_width_chars: VmGlobal<Lisp_Object>; // ambiguous-width-chars
-        pub static Vandroid_build_fingerprint: VmGlobal<Lisp_Object>; // android-build-fingerprint
-        pub static Vandroid_build_manufacturer: VmGlobal<Lisp_Object>; // android-build-manufacturer
-        pub static Vandroid_os_language: VmGlobal<Lisp_Object>; // android-os-language
-        pub static Vandroid_wait_for_event_timeout: VmGlobal<Lisp_Object>; // android-wait-for-event-timeout
-        pub static Vauto_composition_emoji_eligible_codepoints: VmGlobal<Lisp_Object>; // auto-composition-emoji-eligible-codepoints
-        pub static Vauto_composition_emoji_tty_eligible_codepoints: VmGlobal<Lisp_Object>; // auto-composition-emoji-tty-eligible-codepoints
-        pub static Vauto_composition_emoji_unqualified_tail_initials: VmGlobal<Lisp_Object>; // auto-composition-emoji-unqualified-tail-initials
-        pub static Vauto_composition_function: VmGlobal<Lisp_Object>; // auto-composition-function
-        pub static Vauto_composition_mode: VmGlobal<Lisp_Object>; // auto-composition-mode
-        pub static Vauto_fill_chars: VmGlobal<Lisp_Object>; // auto-fill-chars
-        pub static Vauto_resize_tab_bars: VmGlobal<Lisp_Object>; // auto-resize-tab-bars
-        pub static Vauto_resize_tool_bars: VmGlobal<Lisp_Object>; // auto-resize-tool-bars
-        pub static Vauto_save_include_big_deletions: VmGlobal<Lisp_Object>; // auto-save-include-big-deletions
-        pub static Vauto_save_list_file_name: VmGlobal<Lisp_Object>; // auto-save-list-file-name
-        pub static Vauto_save_timeout: VmGlobal<Lisp_Object>; // auto-save-timeout
-        pub static Vauto_save_visited_file_name: VmGlobal<Lisp_Object>; // auto-save-visited-file-name
-        pub static Vbefore_change_functions: VmGlobal<Lisp_Object>; // before-change-functions
-        pub static Vbefore_init_time: VmGlobal<Lisp_Object>; // before-init-time
-        pub static Vblink_cursor_alist: VmGlobal<Lisp_Object>; // blink-cursor-alist
-        pub static Vbuffer_access_fontified_property: VmGlobal<Lisp_Object>; // buffer-access-fontified-property
-        pub static Vbuffer_access_fontify_functions: VmGlobal<Lisp_Object>; // buffer-access-fontify-functions
-        pub static Vbuffer_list_update_hook: VmGlobal<Lisp_Object>; // buffer-list-update-hook
-        pub static Vbuild_files: VmGlobal<Lisp_Object>; // build-files
-        pub static Vbyte_boolean_vars: VmGlobal<Lisp_Object>; // byte-boolean-vars
-        pub static Vbyte_code_meter: VmGlobal<Lisp_Object>; // byte-code-meter
-        pub static Vbytecomp_version_regexp: VmGlobal<Lisp_Object>; // bytecomp-version-regexp
-        pub static Vcairo_version_string: VmGlobal<Lisp_Object>; // cairo-version-string
-        pub static Vcase_fold_search: VmGlobal<Lisp_Object>; // case-fold-search
-        pub static Vchange_major_mode_hook: VmGlobal<Lisp_Object>; // change-major-mode-hook
-        pub static Vchar_code_property_alist: VmGlobal<Lisp_Object>; // char-code-property-alist
-        pub static Vchar_property_alias_alist: VmGlobal<Lisp_Object>; // char-property-alias-alist
-        pub static Vchar_script_table: VmGlobal<Lisp_Object>; // char-script-table
-        pub static Vchar_width_table: VmGlobal<Lisp_Object>; // char-width-table
-        pub static Vcharset_list: VmGlobal<Lisp_Object>; // charset-list
-        pub static Vcharset_map_path: VmGlobal<Lisp_Object>; // charset-map-path
-        pub static Vcharset_revision_table: VmGlobal<Lisp_Object>; // charset-revision-table
-        pub static Vclear_message_function: VmGlobal<Lisp_Object>; // clear-message-function
-        pub static Vclone_indirect_buffer_hook: VmGlobal<Lisp_Object>; // clone-indirect-buffer-hook
-        pub static Vcode_conversion_map_vector: VmGlobal<Lisp_Object>; // code-conversion-map-vector
-        pub static Vcoding_category_list: VmGlobal<Lisp_Object>; // coding-category-list
-        pub static Vcoding_system_alist: VmGlobal<Lisp_Object>; // coding-system-alist
-        pub static Vcoding_system_for_read: VmGlobal<Lisp_Object>; // coding-system-for-read
-        pub static Vcoding_system_for_write: VmGlobal<Lisp_Object>; // coding-system-for-write
-        pub static Vcoding_system_list: VmGlobal<Lisp_Object>; // coding-system-list
-        pub static Vcombine_after_change_calls: VmGlobal<Lisp_Object>; // combine-after-change-calls
-        pub static Vcommand_debug_status: VmGlobal<Lisp_Object>; // command-debug-status
-        pub static Vcommand_error_function: VmGlobal<Lisp_Object>; // command-error-function
-        pub static Vcommand_history: VmGlobal<Lisp_Object>; // command-history
-        pub static Vcommand_line_args: VmGlobal<Lisp_Object>; // command-line-args
-        pub static Vcomment_use_syntax_ppss: VmGlobal<Lisp_Object>; // comment-use-syntax-ppss
-        pub static Vcomp__hashdollar: VmGlobal<Lisp_Object>; // comp--#$
-        pub static Vcomp_abi_hash: VmGlobal<Lisp_Object>; // comp-abi-hash
-        pub static Vcomp_ctxt: VmGlobal<Lisp_Object>; // comp-ctxt
-        pub static Vcomp_deferred_pending_h: VmGlobal<Lisp_Object>; // comp-deferred-pending-h
-        pub static Vcomp_eln_to_el_h: VmGlobal<Lisp_Object>; // comp-eln-to-el-h
-        pub static Vcomp_installed_trampolines_h: VmGlobal<Lisp_Object>; // comp-installed-trampolines-h
-        pub static Vcomp_loaded_comp_units_h: VmGlobal<Lisp_Object>; // comp-loaded-comp-units-h
-        pub static Vcomp_native_version_dir: VmGlobal<Lisp_Object>; // comp-native-version-dir
-        pub static Vcomp_subr_arities_h: VmGlobal<Lisp_Object>; // comp-subr-arities-h
-        pub static Vcomp_subr_list: VmGlobal<Lisp_Object>; // comp-subr-list
-        pub static Vcompletion_ignored_extensions: VmGlobal<Lisp_Object>; // completion-ignored-extensions
-        pub static Vcompletion_regexp_list: VmGlobal<Lisp_Object>; // completion-regexp-list
-        pub static Vcompose_chars_after_function: VmGlobal<Lisp_Object>; // compose-chars-after-function
-        pub static Vcomposition_function_table: VmGlobal<Lisp_Object>; // composition-function-table
-        pub static Vconfigure_info_directory: VmGlobal<Lisp_Object>; // configure-info-directory
-        pub static Vctags_program_name: VmGlobal<Lisp_Object>; // ctags-program-name
-        pub static Vcurrent_iso639_language: VmGlobal<Lisp_Object>; // current-iso639-language
-        pub static Vcurrent_key_remap_sequence: VmGlobal<Lisp_Object>; // current-key-remap-sequence
-        pub static Vcurrent_load_list: VmGlobal<Lisp_Object>; // current-load-list
-        pub static Vcurrent_minibuffer_command: VmGlobal<Lisp_Object>; // current-minibuffer-command
-        pub static Vcurrent_prefix_arg: VmGlobal<Lisp_Object>; // current-prefix-arg
-        pub static Vdata_directory: VmGlobal<Lisp_Object>; // data-directory
-        pub static Vdbus_compiled_version: VmGlobal<Lisp_Object>; // dbus-compiled-version
-        pub static Vdbus_debug: VmGlobal<Lisp_Object>; // dbus-debug
-        pub static Vdbus_message_type_error: VmGlobal<Lisp_Object>; // dbus-message-type-error
-        pub static Vdbus_message_type_invalid: VmGlobal<Lisp_Object>; // dbus-message-type-invalid
-        pub static Vdbus_message_type_method_call: VmGlobal<Lisp_Object>; // dbus-message-type-method-call
-        pub static Vdbus_message_type_method_return: VmGlobal<Lisp_Object>; // dbus-message-type-method-return
-        pub static Vdbus_message_type_signal: VmGlobal<Lisp_Object>; // dbus-message-type-signal
-        pub static Vdbus_registered_objects_table: VmGlobal<Lisp_Object>; // dbus-registered-objects-table
-        pub static Vdbus_runtime_version: VmGlobal<Lisp_Object>; // dbus-runtime-version
-        pub static Vdeactivate_mark: VmGlobal<Lisp_Object>; // deactivate-mark
-        pub static Vdebug_ignored_errors: VmGlobal<Lisp_Object>; // debug-ignored-errors
-        pub static Vdebug_on_error: VmGlobal<Lisp_Object>; // debug-on-error
-        pub static Vdebug_on_event: VmGlobal<Lisp_Object>; // debug-on-event
-        pub static Vdebug_on_message: VmGlobal<Lisp_Object>; // debug-on-message
-        pub static Vdebug_on_signal: VmGlobal<Lisp_Object>; // debug-on-signal
-        pub static Vdebugger: VmGlobal<Lisp_Object>; // debugger
-        pub static Vdefault_file_name_coding_system: VmGlobal<Lisp_Object>; // default-file-name-coding-system
-        pub static Vdefault_frame_alist: VmGlobal<Lisp_Object>; // default-frame-alist
-        pub static Vdefault_frame_scroll_bars: VmGlobal<Lisp_Object>; // default-frame-scroll-bars
-        pub static Vdefault_minibuffer_frame: VmGlobal<*mut c_void>; // default-minibuffer-frame
-        pub static Vdefault_process_coding_system: VmGlobal<Lisp_Object>; // default-process-coding-system
-        pub static Vdefault_text_properties: VmGlobal<Lisp_Object>; // default-text-properties
-        pub static Vdelayed_warnings_list: VmGlobal<Lisp_Object>; // delayed-warnings-list
-        pub static Vdelete_frame_functions: VmGlobal<Lisp_Object>; // delete-frame-functions
-        pub static Vdelete_terminal_functions: VmGlobal<Lisp_Object>; // delete-terminal-functions
-        pub static Vdescribe_bindings_check_shadowing_in_ranges: VmGlobal<Lisp_Object>; // describe-bindings-check-shadowing-in-ranges
-        pub static Vdisable_point_adjustment: VmGlobal<Lisp_Object>; // disable-point-adjustment
-        pub static Vdisplay_fill_column_indicator_character: VmGlobal<Lisp_Object>; // display-fill-column-indicator-character
-        pub static Vdisplay_fill_column_indicator_column: VmGlobal<Lisp_Object>; // display-fill-column-indicator-column
-        pub static Vdisplay_line_numbers: VmGlobal<Lisp_Object>; // display-line-numbers
-        pub static Vdisplay_line_numbers_current_absolute: VmGlobal<Lisp_Object>; // display-line-numbers-current-absolute
-        pub static Vdisplay_line_numbers_width: VmGlobal<Lisp_Object>; // display-line-numbers-width
-        pub static Vdisplay_monitors_changed_functions: VmGlobal<Lisp_Object>; // display-monitors-changed-functions
-        pub static Vdisplay_pixels_per_inch: VmGlobal<Lisp_Object>; // display-pixels-per-inch
-        pub static Vdoc_directory: VmGlobal<Lisp_Object>; // doc-directory
-        pub static Vdoc_file_name: VmGlobal<Lisp_Object>; // internal-doc-file-name
-        pub static Vdos_display_scancodes: VmGlobal<Lisp_Object>; // dos-display-scancodes
-        pub static Vdos_unsupported_char_glyph: VmGlobal<Lisp_Object>; // dos-unsupported-char-glyph
-        pub static Vdos_version: VmGlobal<Lisp_Object>; // dos-version
-        pub static Vdos_windows_version: VmGlobal<Lisp_Object>; // dos-windows-version
-        pub static Vdouble_click_time: VmGlobal<Lisp_Object>; // double-click-time
-        pub static Vdump_mode: VmGlobal<Lisp_Object>; // dump-mode
-        pub static Vdynamic_library_alist: VmGlobal<Lisp_Object>; // dynamic-library-alist
-        pub static Vdynamic_library_suffixes: VmGlobal<Lisp_Object>; // dynamic-library-suffixes
-        pub static Vebrowse_program_name: VmGlobal<Lisp_Object>; // ebrowse-program-name
-        pub static Vecho_keystrokes: VmGlobal<Lisp_Object>; // echo-keystrokes
-        pub static Vemacs_copyright: VmGlobal<Lisp_Object>; // emacs-copyright
-        pub static Vemacs_version: VmGlobal<Lisp_Object>; // emacs-version
-        pub static Vemacsclient_program_name: VmGlobal<Lisp_Object>; // emacsclient-program-name
-        pub static Vemulation_mode_map_alists: VmGlobal<Lisp_Object>; // emulation-mode-map-alists
-        pub static Venable_character_translation: VmGlobal<Lisp_Object>; // enable-character-translation
-        pub static Venable_disabled_menus_and_buttons: VmGlobal<Lisp_Object>; // enable-disabled-menus-and-buttons
-        pub static Vetags_program_name: VmGlobal<Lisp_Object>; // etags-program-name
-        pub static Veval_buffer_list: VmGlobal<Lisp_Object>; // eval-buffer-list
-        pub static Vexec_directory: VmGlobal<Lisp_Object>; // exec-directory
-        pub static Vexec_path: VmGlobal<Lisp_Object>; // exec-path
-        pub static Vexec_suffixes: VmGlobal<Lisp_Object>; // exec-suffixes
-        pub static Vexecuting_kbd_macro: VmGlobal<Lisp_Object>; // executing-kbd-macro
-        pub static Vface_default_stipple: VmGlobal<Lisp_Object>; // face-default-stipple
-        pub static Vface_font_lax_matched_attributes: VmGlobal<Lisp_Object>; // face-font-lax-matched-attributes
-        pub static Vface_font_rescale_alist: VmGlobal<Lisp_Object>; // face-font-rescale-alist
-        pub static Vface_ignored_fonts: VmGlobal<Lisp_Object>; // face-ignored-fonts
-        pub static Vface_new_frame_defaults: VmGlobal<Lisp_Object>; // face--new-frame-defaults
-        pub static Vface_remapping_alist: VmGlobal<Lisp_Object>; // face-remapping-alist
-        pub static Vfeatures: VmGlobal<Lisp_Object>; // features
-        pub static Vfile_coding_system_alist: VmGlobal<Lisp_Object>; // file-coding-system-alist
-        pub static Vfile_name_coding_system: VmGlobal<Lisp_Object>; // file-name-coding-system
-        pub static Vfile_name_handler_alist: VmGlobal<Lisp_Object>; // file-name-handler-alist
-        pub static Vfind_word_boundary_function_table: VmGlobal<Lisp_Object>; // find-word-boundary-function-table
-        pub static Vfirst_change_hook: VmGlobal<Lisp_Object>; // first-change-hook
-        pub static Vfloat_output_format: VmGlobal<Lisp_Object>; // float-output-format
-        pub static Vfont_encoding_alist: VmGlobal<Lisp_Object>; // font-encoding-alist
-        pub static Vfont_encoding_charset_alist: VmGlobal<Lisp_Object>; // font-encoding-charset-alist
-        pub static Vfont_log: VmGlobal<Lisp_Object>; // font-log
-        pub static Vfontification_functions: VmGlobal<Lisp_Object>; // fontification-functions
-        pub static Vfontset_alias_alist: VmGlobal<Lisp_Object>; // fontset-alias-alist
-        pub static Vforward_comment_function: VmGlobal<Lisp_Object>; // forward-comment-function
-        pub static Vframe_alpha_lower_limit: VmGlobal<Lisp_Object>; // frame-alpha-lower-limit
-        pub static Vframe_title_format: VmGlobal<Lisp_Object>; // frame-title-format
-        pub static Vfringe_bitmaps: VmGlobal<Lisp_Object>; // fringe-bitmaps
-        pub static Vfunction_key_map: VmGlobal<Lisp_Object>; // function-key-map
-        pub static Vgc_cons_percentage: VmGlobal<Lisp_Object>; // gc-cons-percentage
-        pub static Vgc_elapsed: VmGlobal<Lisp_Object>; // gc-elapsed
-        pub static Vglobal_disable_point_adjustment: VmGlobal<Lisp_Object>; // global-disable-point-adjustment
-        pub static Vglobal_mode_string: VmGlobal<Lisp_Object>; // global-mode-string
-        pub static Vglyph_table: VmGlobal<Lisp_Object>; // glyph-table
-        pub static Vglyphless_char_display: VmGlobal<Lisp_Object>; // glyphless-char-display
-        pub static Vgtk_version_string: VmGlobal<Lisp_Object>; // gtk-version-string
-        pub static Vhaiku_allowed_ui_colors: VmGlobal<Lisp_Object>; // haiku-allowed-ui-colors
-        pub static Vhaiku_control_keysym: VmGlobal<Lisp_Object>; // haiku-control-keysym
-        pub static Vhaiku_drag_track_function: VmGlobal<Lisp_Object>; // haiku-drag-track-function
-        pub static Vhaiku_drag_wheel_function: VmGlobal<Lisp_Object>; // haiku-drag-wheel-function
-        pub static Vhaiku_lost_selection_functions: VmGlobal<Lisp_Object>; // haiku-lost-selection-functions
-        pub static Vhaiku_meta_keysym: VmGlobal<Lisp_Object>; // haiku-meta-keysym
-        pub static Vhaiku_shift_keysym: VmGlobal<Lisp_Object>; // haiku-shift-keysym
-        pub static Vhaiku_super_keysym: VmGlobal<Lisp_Object>; // haiku-super-keysym
-        pub static Vhelp_char: VmGlobal<Lisp_Object>; // help-char
-        pub static Vhelp_event_list: VmGlobal<Lisp_Object>; // help-event-list
-        pub static Vhelp_form: VmGlobal<Lisp_Object>; // help-form
-        pub static Vhexl_program_name: VmGlobal<Lisp_Object>; // hexl-program-name
-        pub static Vhistory_add_new_input: VmGlobal<Lisp_Object>; // history-add-new-input
-        pub static Vhistory_length: VmGlobal<Lisp_Object>; // history-length
-        pub static Vhourglass_delay: VmGlobal<Lisp_Object>; // hourglass-delay
-        pub static Vhscroll_step: VmGlobal<Lisp_Object>; // hscroll-step
-        pub static Vicon_title_format: VmGlobal<Lisp_Object>; // icon-title-format
-        pub static Vignore_relative_composition: VmGlobal<Lisp_Object>; // ignore-relative-composition
-        pub static Vimage_cache_eviction_delay: VmGlobal<Lisp_Object>; // image-cache-eviction-delay
-        pub static Vimage_scaling_factor: VmGlobal<Lisp_Object>; // image-scaling-factor
-        pub static Vimage_types: VmGlobal<Lisp_Object>; // image-types
-        pub static Vinhibit_changing_match_data: VmGlobal<Lisp_Object>; // inhibit-changing-match-data
-        pub static Vinhibit_debugger: VmGlobal<Lisp_Object>; // inhibit-debugger
-        pub static Vinhibit_field_text_motion: VmGlobal<Lisp_Object>; // inhibit-field-text-motion
-        pub static Vinhibit_file_name_handlers: VmGlobal<Lisp_Object>; // inhibit-file-name-handlers
-        pub static Vinhibit_file_name_operation: VmGlobal<Lisp_Object>; // inhibit-file-name-operation
-        pub static Vinhibit_point_motion_hooks: VmGlobal<Lisp_Object>; // inhibit-point-motion-hooks
-        pub static Vinhibit_quit: VmGlobal<Lisp_Object>; // inhibit-quit
-        pub static Vinhibit_read_only: VmGlobal<Lisp_Object>; // inhibit-read-only
-        pub static Vinhibit_redisplay: VmGlobal<Lisp_Object>; // inhibit-redisplay
-        pub static Vinitial_environment: VmGlobal<Lisp_Object>; // initial-environment
-        pub static Vinitial_window_system: VmGlobal<Lisp_Object>; // initial-window-system
-        pub static Vinput_decode_map: VmGlobal<*mut c_void>; // input-decode-map
-        pub static Vinput_method_function: VmGlobal<Lisp_Object>; // input-method-function
-        pub static Vinput_method_previous_message: VmGlobal<Lisp_Object>; // input-method-previous-message
-        pub static Vinstallation_directory: VmGlobal<Lisp_Object>; // installation-directory
-        pub static Vinternal__daemon_sockname: VmGlobal<Lisp_Object>; // internal--daemon-sockname
-        pub static Vinternal__get_default_lexical_binding_function: VmGlobal<Lisp_Object>; // internal--get-default-lexical-binding-function
-        pub static Vinternal__top_level_message: VmGlobal<Lisp_Object>; // internal--top-level-message
-        pub static Vinternal_interpreter_environment: VmGlobal<Lisp_Object>; // internal-interpreter-environment
-        pub static Vinternal_make_interpreted_closure_function: VmGlobal<Lisp_Object>; // internal-make-interpreted-closure-function
-        pub static Vinterrupt_process_functions: VmGlobal<Lisp_Object>; // interrupt-process-functions
-        pub static Vinvocation_directory: VmGlobal<Lisp_Object>; // invocation-directory
-        pub static Vinvocation_name: VmGlobal<Lisp_Object>; // invocation-name
-        pub static Vkbd_macro_termination_hook: VmGlobal<Lisp_Object>; // kbd-macro-termination-hook
-        pub static Vkey_translation_map: VmGlobal<Lisp_Object>; // key-translation-map
-        pub static Vkeyboard_translate_table: VmGlobal<*mut c_void>; // keyboard-translate-table
-        pub static Vkill_buffer_query_functions: VmGlobal<Lisp_Object>; // kill-buffer-query-functions
-        pub static Vkill_emacs_hook: VmGlobal<Lisp_Object>; // kill-emacs-hook
-        pub static Vlast_code_conversion_error: VmGlobal<Lisp_Object>; // last-code-conversion-error
-        pub static Vlast_coding_system_used: VmGlobal<Lisp_Object>; // last-coding-system-used
-        pub static Vlast_command: VmGlobal<*mut c_void>; // last-command
-        pub static Vlast_event_device: VmGlobal<Lisp_Object>; // last-event-device
-        pub static Vlast_event_frame: VmGlobal<Lisp_Object>; // last-event-frame
-        pub static Vlast_kbd_macro: VmGlobal<*mut c_void>; // last-kbd-macro
-        pub static Vlast_prefix_arg: VmGlobal<*mut c_void>; // last-prefix-arg
-        pub static Vlast_repeatable_command: VmGlobal<*mut c_void>; // last-repeatable-command
-        pub static Vlatin_extra_code_table: VmGlobal<Lisp_Object>; // latin-extra-code-table
-        pub static Vlexical_binding: VmGlobal<Lisp_Object>; // lexical-binding
-        pub static Vlibgnutls_version: VmGlobal<Lisp_Object>; // libgnutls-version
-        pub static Vline_number_display_limit: VmGlobal<Lisp_Object>; // line-number-display-limit
-        pub static Vline_prefix: VmGlobal<Lisp_Object>; // line-prefix
-        pub static Vload_file_name: VmGlobal<Lisp_Object>; // load-file-name
-        pub static Vload_file_rep_suffixes: VmGlobal<Lisp_Object>; // load-file-rep-suffixes
-        pub static Vload_history: VmGlobal<Lisp_Object>; // load-history
-        pub static Vload_path: VmGlobal<Lisp_Object>; // load-path
-        pub static Vload_path_filter_function: VmGlobal<Lisp_Object>; // load-path-filter-function
-        pub static Vload_read_function: VmGlobal<Lisp_Object>; // load-read-function
-        pub static Vload_source_file_function: VmGlobal<Lisp_Object>; // load-source-file-function
-        pub static Vload_suffixes: VmGlobal<Lisp_Object>; // load-suffixes
-        pub static Vload_true_file_name: VmGlobal<Lisp_Object>; // load-true-file-name
-        pub static Vlocal_function_key_map: VmGlobal<*mut c_void>; // local-function-key-map
-        pub static Vlocale_coding_system: VmGlobal<Lisp_Object>; // locale-coding-system
-        pub static Vlong_line_threshold: VmGlobal<Lisp_Object>; // long-line-threshold
-        pub static Vlread_unescaped_character_literals: VmGlobal<Lisp_Object>; // lread--unescaped-character-literals
-        pub static Vmacroexp__dynvars: VmGlobal<Lisp_Object>; // macroexp--dynvars
-        pub static Vmain_thread: VmGlobal<Lisp_Object>; // main-thread
-        pub static Vmake_cursor_line_fully_visible: VmGlobal<Lisp_Object>; // make-cursor-line-fully-visible
-        pub static Vmake_pointer_invisible: VmGlobal<Lisp_Object>; // make-pointer-invisible
-        pub static Vmark_even_if_inactive: VmGlobal<Lisp_Object>; // mark-even-if-inactive
-        pub static Vmax_image_size: VmGlobal<Lisp_Object>; // max-image-size
-        pub static Vmax_mini_window_height: VmGlobal<Lisp_Object>; // max-mini-window-height
-        pub static Vmaximum_scroll_margin: VmGlobal<Lisp_Object>; // maximum-scroll-margin
-        pub static Vmemory_full: VmGlobal<Lisp_Object>; // memory-full
-        pub static Vmemory_signal_data: VmGlobal<Lisp_Object>; // memory-signal-data
-        pub static Vmenu_bar_final_items: VmGlobal<Lisp_Object>; // menu-bar-final-items
-        pub static Vmenu_bar_mode: VmGlobal<Lisp_Object>; // menu-bar-mode
-        pub static Vmenu_bar_update_hook: VmGlobal<Lisp_Object>; // menu-bar-update-hook
-        pub static Vmenu_updating_frame: VmGlobal<Lisp_Object>; // menu-updating-frame
-        pub static Vmessage_log_max: VmGlobal<Lisp_Object>; // message-log-max
-        pub static Vmessages_buffer_name: VmGlobal<Lisp_Object>; // messages-buffer-name
-        pub static Vminibuf_scroll_window: VmGlobal<Lisp_Object>; // minibuffer-scroll-window
-        pub static Vminibuffer_completing_file_name: VmGlobal<Lisp_Object>; // minibuffer-completing-file-name
-        pub static Vminibuffer_completion_confirm: VmGlobal<Lisp_Object>; // minibuffer-completion-confirm
-        pub static Vminibuffer_completion_predicate: VmGlobal<Lisp_Object>; // minibuffer-completion-predicate
-        pub static Vminibuffer_completion_table: VmGlobal<Lisp_Object>; // minibuffer-completion-table
-        pub static Vminibuffer_exit_hook: VmGlobal<Lisp_Object>; // minibuffer-exit-hook
-        pub static Vminibuffer_help_form: VmGlobal<Lisp_Object>; // minibuffer-help-form
-        pub static Vminibuffer_history_position: VmGlobal<Lisp_Object>; // minibuffer-history-position
-        pub static Vminibuffer_history_variable: VmGlobal<Lisp_Object>; // minibuffer-history-variable
-        pub static Vminibuffer_local_map: VmGlobal<Lisp_Object>; // minibuffer-local-map
-        pub static Vminibuffer_message_timeout: VmGlobal<Lisp_Object>; // minibuffer-message-timeout
-        pub static Vminibuffer_prompt_properties: VmGlobal<Lisp_Object>; // minibuffer-prompt-properties
-        pub static Vminibuffer_setup_hook: VmGlobal<Lisp_Object>; // minibuffer-setup-hook
-        pub static Vminor_mode_map_alist: VmGlobal<Lisp_Object>; // minor-mode-map-alist
-        pub static Vminor_mode_overriding_map_alist: VmGlobal<Lisp_Object>; // minor-mode-overriding-map-alist
-        pub static Vmode_line_compact: VmGlobal<Lisp_Object>; // mode-line-compact
-        pub static Vmodule_file_suffix: VmGlobal<Lisp_Object>; // module-file-suffix
-        pub static Vmost_negative_fixnum: VmGlobal<Lisp_Object>; // most-negative-fixnum
-        pub static Vmost_positive_fixnum: VmGlobal<Lisp_Object>; // most-positive-fixnum
-        pub static Vmotif_version_string: VmGlobal<Lisp_Object>; // motif-version-string
-        pub static Vmouse_autoselect_window: VmGlobal<Lisp_Object>; // mouse-autoselect-window
-        pub static Vmouse_highlight: VmGlobal<Lisp_Object>; // mouse-highlight
-        pub static Vmouse_leave_buffer_hook: VmGlobal<Lisp_Object>; // mouse-leave-buffer-hook
-        pub static Vmouse_position_function: VmGlobal<Lisp_Object>; // mouse-position-function
-        pub static Vmove_frame_functions: VmGlobal<Lisp_Object>; // move-frame-functions
-        pub static Vmovemail_program_name: VmGlobal<Lisp_Object>; // movemail-program-name
-        pub static Vnative_comp_eln_load_path: VmGlobal<Lisp_Object>; // native-comp-eln-load-path
-        pub static Vnative_comp_enable_subr_trampolines: VmGlobal<Lisp_Object>; // native-comp-enable-subr-trampolines
-        pub static Vnetwork_coding_system_alist: VmGlobal<Lisp_Object>; // network-coding-system-alist
-        pub static Vnext_selection_coding_system: VmGlobal<Lisp_Object>; // next-selection-coding-system
-        pub static Vnobreak_char_display: VmGlobal<Lisp_Object>; // nobreak-char-display
-        pub static Vobarray: VmGlobal<Lisp_Object>; // obarray
-        pub static Voperating_system_release: VmGlobal<Lisp_Object>; // operating-system-release
-        pub static Votf_script_alist: VmGlobal<Lisp_Object>; // otf-script-alist
-        pub static Vother_window_scroll_buffer: VmGlobal<Lisp_Object>; // other-window-scroll-buffer
-        pub static Vother_window_scroll_default: VmGlobal<Lisp_Object>; // other-window-scroll-default
-        pub static Voverflow_newline_into_fringe: VmGlobal<Lisp_Object>; // overflow-newline-into-fringe
-        pub static Voverlay_arrow_position: VmGlobal<Lisp_Object>; // overlay-arrow-position
-        pub static Voverlay_arrow_string: VmGlobal<Lisp_Object>; // overlay-arrow-string
-        pub static Voverlay_arrow_variable_list: VmGlobal<Lisp_Object>; // overlay-arrow-variable-list
-        pub static Voverriding_local_map: VmGlobal<Lisp_Object>; // overriding-local-map
-        pub static Voverriding_local_map_menu_flag: VmGlobal<Lisp_Object>; // overriding-local-map-menu-flag
-        pub static Voverriding_plist_environment: VmGlobal<Lisp_Object>; // overriding-plist-environment
-        pub static Voverriding_terminal_local_map: VmGlobal<*mut c_void>; // overriding-terminal-local-map
-        pub static Voverriding_text_conversion_style: VmGlobal<Lisp_Object>; // overriding-text-conversion-style
-        pub static Vpath_separator: VmGlobal<Lisp_Object>; // path-separator
-        pub static Vpdumper_fingerprint: VmGlobal<Lisp_Object>; // pdumper-fingerprint
-        pub static Vpgtk_keysym_table: VmGlobal<Lisp_Object>; // pgtk-keysym-table
-        pub static Vpgtk_lost_selection_functions: VmGlobal<Lisp_Object>; // pgtk-lost-selection-functions
-        pub static Vpgtk_selection_alias_alist: VmGlobal<Lisp_Object>; // pgtk-selection-alias-alist
-        pub static Vpgtk_sent_selection_functions: VmGlobal<Lisp_Object>; // pgtk-sent-selection-functions
-        pub static Vpgtk_sent_selection_hooks: VmGlobal<Lisp_Object>; // pgtk-sent-selection-hooks
-        pub static Vpgtk_use_im_context_on_new_connection: VmGlobal<Lisp_Object>; // pgtk-use-im-context-on-new-connection
-        pub static Vpgtk_wait_for_event_timeout: VmGlobal<Lisp_Object>; // pgtk-wait-for-event-timeout
-        pub static Vpolling_period: VmGlobal<Lisp_Object>; // polling-period
-        pub static Vpost_command_hook: VmGlobal<Lisp_Object>; // post-command-hook
-        pub static Vpost_gc_hook: VmGlobal<Lisp_Object>; // post-gc-hook
-        pub static Vpost_select_region_hook: VmGlobal<Lisp_Object>; // post-select-region-hook
-        pub static Vpost_self_insert_hook: VmGlobal<Lisp_Object>; // post-self-insert-hook
-        pub static Vpre_command_hook: VmGlobal<Lisp_Object>; // pre-command-hook
-        pub static Vpre_redisplay_function: VmGlobal<Lisp_Object>; // pre-redisplay-function
-        pub static Vprefix_arg: VmGlobal<*mut c_void>; // prefix-arg
-        pub static Vprefix_help_command: VmGlobal<Lisp_Object>; // prefix-help-command
-        pub static Vpreloaded_file_list: VmGlobal<Lisp_Object>; // preloaded-file-list
-        pub static Vprint__unreadable_callback_buffer: VmGlobal<Lisp_Object>; // print--unreadable-callback-buffer
-        pub static Vprint_charset_text_property: VmGlobal<Lisp_Object>; // print-charset-text-property
-        pub static Vprint_circle: VmGlobal<Lisp_Object>; // print-circle
-        pub static Vprint_continuous_numbering: VmGlobal<Lisp_Object>; // print-continuous-numbering
-        pub static Vprint_gensym: VmGlobal<Lisp_Object>; // print-gensym
-        pub static Vprint_length: VmGlobal<Lisp_Object>; // print-length
-        pub static Vprint_level: VmGlobal<Lisp_Object>; // print-level
-        pub static Vprint_number_table: VmGlobal<Lisp_Object>; // print-number-table
-        pub static Vprint_unreadable_function: VmGlobal<Lisp_Object>; // print-unreadable-function
-        pub static Vprintable_chars: VmGlobal<Lisp_Object>; // printable-chars
-        pub static Vprocess_adaptive_read_buffering: VmGlobal<Lisp_Object>; // process-adaptive-read-buffering
-        pub static Vprocess_coding_system_alist: VmGlobal<Lisp_Object>; // process-coding-system-alist
-        pub static Vprocess_connection_type: VmGlobal<Lisp_Object>; // process-connection-type
-        pub static Vprocess_environment: VmGlobal<Lisp_Object>; // process-environment
-        pub static Vpurify_flag: VmGlobal<Lisp_Object>; // purify-flag
-        pub static Vquit_flag: VmGlobal<Lisp_Object>; // quit-flag
-        pub static Vrcs2log_program_name: VmGlobal<Lisp_Object>; // rcs2log-program-name
-        pub static Vread_buffer_function: VmGlobal<Lisp_Object>; // read-buffer-function
-        pub static Vread_circle: VmGlobal<Lisp_Object>; // read-circle
-        pub static Vread_expression_history: VmGlobal<Lisp_Object>; // read-expression-history
-        pub static Vread_hide_char: VmGlobal<Lisp_Object>; // read-hide-char
-        pub static Vread_symbol_shorthands: VmGlobal<Lisp_Object>; // read-symbol-shorthands
-        pub static Vreal_last_command: VmGlobal<*mut c_void>; // real-last-command
-        pub static Vreal_this_command: VmGlobal<Lisp_Object>; // real-this-command
-        pub static Vrecenter_redisplay: VmGlobal<Lisp_Object>; // recenter-redisplay
-        pub static Vredisplay__all_windows_cause: VmGlobal<Lisp_Object>; // redisplay--all-windows-cause
-        pub static Vredisplay__mode_lines_cause: VmGlobal<Lisp_Object>; // redisplay--mode-lines-cause
-        pub static Vregion_extract_function: VmGlobal<Lisp_Object>; // region-extract-function
-        pub static Vreport_emacs_bug_address: VmGlobal<Lisp_Object>; // report-emacs-bug-address
-        pub static Vresize_mini_windows: VmGlobal<Lisp_Object>; // resize-mini-windows
-        pub static Vresume_tty_functions: VmGlobal<Lisp_Object>; // resume-tty-functions
-        pub static Vring_bell_function: VmGlobal<Lisp_Object>; // ring-bell-function
-        pub static Vsaved_region_selection: VmGlobal<Lisp_Object>; // saved-region-selection
-        pub static Vscalable_fonts_allowed: VmGlobal<Lisp_Object>; // scalable-fonts-allowed
-        pub static Vscript_representative_chars: VmGlobal<Lisp_Object>; // script-representative-chars
-        pub static Vscroll_preserve_screen_position: VmGlobal<Lisp_Object>; // scroll-preserve-screen-position
-        pub static Vsearch_spaces_regexp: VmGlobal<Lisp_Object>; // search-spaces-regexp
-        pub static Vselect_active_regions: VmGlobal<Lisp_Object>; // select-active-regions
-        pub static Vselect_safe_coding_system_function: VmGlobal<Lisp_Object>; // select-safe-coding-system-function
-        pub static Vselection_coding_system: VmGlobal<Lisp_Object>; // selection-coding-system
-        pub static Vselection_converter_alist: VmGlobal<Lisp_Object>; // selection-converter-alist
-        pub static Vselection_inhibit_update_commands: VmGlobal<Lisp_Object>; // selection-inhibit-update-commands
-        pub static Vset_auto_coding_function: VmGlobal<Lisp_Object>; // set-auto-coding-function
-        pub static Vset_message_function: VmGlobal<Lisp_Object>; // set-message-function
-        pub static Vsfnt_default_family_alist: VmGlobal<Lisp_Object>; // sfnt-default-family-alist
-        pub static Vsfnt_uninstructable_family_regexp: VmGlobal<Lisp_Object>; // sfnt-uninstructable-family-regexp
-        pub static Vshared_game_score_directory: VmGlobal<Lisp_Object>; // shared-game-score-directory
-        pub static Vshell_file_name: VmGlobal<Lisp_Object>; // shell-file-name
-        pub static Vshow_help_function: VmGlobal<Lisp_Object>; // show-help-function
-        pub static Vshow_trailing_whitespace: VmGlobal<Lisp_Object>; // show-trailing-whitespace
-        pub static Vsignal_hook_function: VmGlobal<Lisp_Object>; // signal-hook-function
-        pub static Vsignal_process_functions: VmGlobal<Lisp_Object>; // signal-process-functions
-        pub static Vsource_directory: VmGlobal<Lisp_Object>; // source-directory
-        pub static Vspecial_event_map: VmGlobal<Lisp_Object>; // special-event-map
-        pub static Vspecial_mirror_table: VmGlobal<Lisp_Object>; // special-mirror-table
-        pub static Vstandard_display_table: VmGlobal<Lisp_Object>; // standard-display-table
-        pub static Vstandard_input: VmGlobal<Lisp_Object>; // standard-input
-        pub static Vstandard_output: VmGlobal<Lisp_Object>; // standard-output
-        pub static Vstandard_translation_table_for_decode: VmGlobal<Lisp_Object>; // standard-translation-table-for-decode
-        pub static Vstandard_translation_table_for_encode: VmGlobal<Lisp_Object>; // standard-translation-table-for-encode
-        pub static Vsuspend_tty_functions: VmGlobal<Lisp_Object>; // suspend-tty-functions
-        pub static Vsystem_configuration: VmGlobal<Lisp_Object>; // system-configuration
-        pub static Vsystem_configuration_features: VmGlobal<Lisp_Object>; // system-configuration-features
-        pub static Vsystem_configuration_options: VmGlobal<Lisp_Object>; // system-configuration-options
-        pub static Vsystem_key_alist: VmGlobal<*mut c_void>; // system-key-alist
-        pub static Vsystem_messages_locale: VmGlobal<Lisp_Object>; // system-messages-locale
-        pub static Vsystem_name: VmGlobal<Lisp_Object>; // system-name
-        pub static Vsystem_time_locale: VmGlobal<Lisp_Object>; // system-time-locale
-        pub static Vsystem_type: VmGlobal<Lisp_Object>; // system-type
-        pub static Vtab_bar_border: VmGlobal<Lisp_Object>; // tab-bar-border
-        pub static Vtab_bar_button_margin: VmGlobal<Lisp_Object>; // tab-bar-button-margin
-        pub static Vtab_bar_mode: VmGlobal<Lisp_Object>; // tab-bar-mode
-        pub static Vtab_bar_position: VmGlobal<Lisp_Object>; // tab-bar-position
-        pub static Vtab_bar_separator_image_expression: VmGlobal<Lisp_Object>; // tab-bar-separator-image-expression
-        pub static Vtemp_buffer_show_function: VmGlobal<Lisp_Object>; // temp-buffer-show-function
-        pub static Vtemporary_file_directory: VmGlobal<Lisp_Object>; // temporary-file-directory
-        pub static Vterminal_frame: VmGlobal<Lisp_Object>; // terminal-frame
-        pub static Vtext_conversion_edits: VmGlobal<Lisp_Object>; // text-conversion-edits
-        pub static Vtext_conversion_face: VmGlobal<Lisp_Object>; // text-conversion-face
-        pub static Vtext_property_default_nonsticky: VmGlobal<Lisp_Object>; // text-property-default-nonsticky
-        pub static Vtext_quoting_style: VmGlobal<Lisp_Object>; // text-quoting-style
-        pub static Vthis_command: VmGlobal<Lisp_Object>; // this-command
-        pub static Vthis_command_keys_shift_translated: VmGlobal<Lisp_Object>; // this-command-keys-shift-translated
-        pub static Vthis_original_command: VmGlobal<Lisp_Object>; // this-original-command
-        pub static Vthrow_on_input: VmGlobal<Lisp_Object>; // throw-on-input
-        pub static Vtimer_idle_list: VmGlobal<Lisp_Object>; // timer-idle-list
-        pub static Vtimer_list: VmGlobal<Lisp_Object>; // timer-list
-        pub static Vtool_bar_border: VmGlobal<Lisp_Object>; // tool-bar-border
-        pub static Vtool_bar_button_margin: VmGlobal<Lisp_Object>; // tool-bar-button-margin
-        pub static Vtool_bar_mode: VmGlobal<Lisp_Object>; // tool-bar-mode
-        pub static Vtool_bar_separator_image_expression: VmGlobal<Lisp_Object>; // tool-bar-separator-image-expression
-        pub static Vtool_bar_style: VmGlobal<Lisp_Object>; // tool-bar-style
-        pub static Vtoolkit_theme: VmGlobal<Lisp_Object>; // toolkit-theme
-        pub static Vtop_level: VmGlobal<Lisp_Object>; // top-level
-        pub static Vtransient_mark_mode: VmGlobal<Lisp_Object>; // transient-mark-mode
-        pub static Vtranslation_hash_table_vector: VmGlobal<Lisp_Object>; // translation-hash-table-vector
-        pub static Vtranslation_table_for_input: VmGlobal<Lisp_Object>; // translation-table-for-input
-        pub static Vtranslation_table_vector: VmGlobal<Lisp_Object>; // translation-table-vector
-        pub static Vtreesit_extra_load_path: VmGlobal<Lisp_Object>; // treesit-extra-load-path
-        pub static Vtreesit_language_remap_alist: VmGlobal<Lisp_Object>; // treesit-language-remap-alist
-        pub static Vtreesit_languages_require_line_column_tracking: VmGlobal<Lisp_Object>; // treesit-languages-require-line-column-tracking
-        pub static Vtreesit_load_name_override_list: VmGlobal<Lisp_Object>; // treesit-load-name-override-list
-        pub static Vtreesit_major_mode_remap_alist: VmGlobal<Lisp_Object>; // treesit-major-mode-remap-alist
-        pub static Vtreesit_thing_settings: VmGlobal<Lisp_Object>; // treesit-thing-settings
-        pub static Vtruncate_partial_width_windows: VmGlobal<Lisp_Object>; // truncate-partial-width-windows
-        pub static Vtty_defined_color_alist: VmGlobal<Lisp_Object>; // tty-defined-color-alist
-        pub static Vtty_erase_char: VmGlobal<Lisp_Object>; // tty-erase-char
-        pub static Vundo_outer_limit: VmGlobal<Lisp_Object>; // undo-outer-limit
-        pub static Vundo_outer_limit_function: VmGlobal<Lisp_Object>; // undo-outer-limit-function
-        pub static Vunicode_category_table: VmGlobal<Lisp_Object>; // unicode-category-table
-        pub static Vunread_command_events: VmGlobal<Lisp_Object>; // unread-command-events
-        pub static Vunread_input_method_events: VmGlobal<Lisp_Object>; // unread-input-method-events
-        pub static Vunread_post_input_method_events: VmGlobal<Lisp_Object>; // unread-post-input-method-events
-        pub static Vuse_default_ascent: VmGlobal<Lisp_Object>; // use-default-ascent
-        pub static Vuser_full_name: VmGlobal<Lisp_Object>; // user-full-name
-        pub static Vuser_init_file: VmGlobal<Lisp_Object>; // user-init-file
-        pub static Vuser_login_name: VmGlobal<Lisp_Object>; // user-login-name
-        pub static Vuser_real_login_name: VmGlobal<Lisp_Object>; // user-real-login-name
-        pub static Vvalues: VmGlobal<Lisp_Object>; // values
-        pub static Vvertical_centering_font_regexp: VmGlobal<Lisp_Object>; // vertical-centering-font-regexp
-        pub static Vvoid_text_area_pointer: VmGlobal<Lisp_Object>; // void-text-area-pointer
-        pub static Vw32_alt_is_meta: VmGlobal<Lisp_Object>; // w32-alt-is-meta
-        pub static Vw32_apps_modifier: VmGlobal<Lisp_Object>; // w32-apps-modifier
-        pub static Vw32_capslock_is_shiftlock: VmGlobal<Lisp_Object>; // w32-capslock-is-shiftlock
-        pub static Vw32_charset_info_alist: VmGlobal<Lisp_Object>; // w32-charset-info-alist
-        pub static Vw32_collate_ignore_punctuation: VmGlobal<Lisp_Object>; // w32-collate-ignore-punctuation
-        pub static Vw32_color_map: VmGlobal<Lisp_Object>; // w32-color-map
-        pub static Vw32_downcase_file_names: VmGlobal<Lisp_Object>; // w32-downcase-file-names
-        pub static Vw32_enable_caps_lock: VmGlobal<Lisp_Object>; // w32-enable-caps-lock
-        pub static Vw32_enable_num_lock: VmGlobal<Lisp_Object>; // w32-enable-num-lock
-        pub static Vw32_enable_palette: VmGlobal<Lisp_Object>; // w32-enable-palette
-        pub static Vw32_generate_fake_inodes: VmGlobal<Lisp_Object>; // w32-generate-fake-inodes
-        pub static Vw32_get_true_file_attributes: VmGlobal<Lisp_Object>; // w32-get-true-file-attributes
-        pub static Vw32_grab_focus_on_raise: VmGlobal<Lisp_Object>; // w32-grab-focus-on-raise
-        pub static Vw32_lwindow_modifier: VmGlobal<Lisp_Object>; // w32-lwindow-modifier
-        pub static Vw32_pass_alt_to_system: VmGlobal<Lisp_Object>; // w32-pass-alt-to-system
-        pub static Vw32_pass_lwindow_to_system: VmGlobal<Lisp_Object>; // w32-pass-lwindow-to-system
-        pub static Vw32_pass_rwindow_to_system: VmGlobal<Lisp_Object>; // w32-pass-rwindow-to-system
-        pub static Vw32_phantom_key_code: VmGlobal<Lisp_Object>; // w32-phantom-key-code
-        pub static Vw32_quote_process_args: VmGlobal<Lisp_Object>; // w32-quote-process-args
-        pub static Vw32_recognize_altgr: VmGlobal<Lisp_Object>; // w32-recognize-altgr
-        pub static Vw32_rwindow_modifier: VmGlobal<Lisp_Object>; // w32-rwindow-modifier
-        pub static Vw32_scroll_lock_modifier: VmGlobal<Lisp_Object>; // w32-scroll-lock-modifier
-        pub static Vw32_start_process_inherit_error_mode: VmGlobal<Lisp_Object>; // w32-start-process-inherit-error-mode
-        pub static Vw32_start_process_share_console: VmGlobal<Lisp_Object>; // w32-start-process-share-console
-        pub static Vw32_start_process_show_window: VmGlobal<Lisp_Object>; // w32-start-process-show-window
-        pub static Vw32_swap_mouse_buttons: VmGlobal<Lisp_Object>; // w32-swap-mouse-buttons
-        pub static Vw32_tooltip_extra_pixels: VmGlobal<Lisp_Object>; // w32-tooltip-extra-pixels
-        pub static Vwhere_is_preferred_modifier: VmGlobal<Lisp_Object>; // where-is-preferred-modifier
-        pub static Vwhile_no_input_ignore_events: VmGlobal<Lisp_Object>; // while-no-input-ignore-events
-        pub static Vwindow_buffer_change_functions: VmGlobal<Lisp_Object>; // window-buffer-change-functions
-        pub static Vwindow_combination_limit: VmGlobal<Lisp_Object>; // window-combination-limit
-        pub static Vwindow_combination_resize: VmGlobal<Lisp_Object>; // window-combination-resize
-        pub static Vwindow_configuration_change_hook: VmGlobal<Lisp_Object>; // window-configuration-change-hook
-        pub static Vwindow_persistent_parameters: VmGlobal<Lisp_Object>; // window-persistent-parameters
-        pub static Vwindow_point_insertion_type: VmGlobal<Lisp_Object>; // window-point-insertion-type
-        pub static Vwindow_scroll_functions: VmGlobal<Lisp_Object>; // window-scroll-functions
-        pub static Vwindow_selection_change_functions: VmGlobal<Lisp_Object>; // window-selection-change-functions
-        pub static Vwindow_size_change_functions: VmGlobal<Lisp_Object>; // window-size-change-functions
-        pub static Vwindow_state_change_functions: VmGlobal<Lisp_Object>; // window-state-change-functions
-        pub static Vwindow_state_change_hook: VmGlobal<Lisp_Object>; // window-state-change-hook
-        pub static Vwindow_system: VmGlobal<*mut c_void>; // window-system
-        pub static Vword_combining_categories: VmGlobal<Lisp_Object>; // word-combining-categories
-        pub static Vword_separating_categories: VmGlobal<Lisp_Object>; // word-separating-categories
-        pub static Vwrap_prefix: VmGlobal<Lisp_Object>; // wrap-prefix
-        pub static Vwrite_region_annotate_functions: VmGlobal<Lisp_Object>; // write-region-annotate-functions
-        pub static Vwrite_region_annotations_so_far: VmGlobal<Lisp_Object>; // write-region-annotations-so-far
-        pub static Vwrite_region_post_annotation_function: VmGlobal<Lisp_Object>; // write-region-post-annotation-function
-        pub static Vx_allow_focus_stealing: VmGlobal<Lisp_Object>; // x-allow-focus-stealing
-        pub static Vx_alt_keysym: VmGlobal<Lisp_Object>; // x-alt-keysym
-        pub static Vx_auto_preserve_selections: VmGlobal<Lisp_Object>; // x-auto-preserve-selections
-        pub static Vx_bitmap_file_path: VmGlobal<Lisp_Object>; // x-bitmap-file-path
-        pub static Vx_ctrl_keysym: VmGlobal<Lisp_Object>; // x-ctrl-keysym
-        pub static Vx_cursor_fore_pixel: VmGlobal<Lisp_Object>; // x-cursor-fore-pixel
-        pub static Vx_detect_server_trust: VmGlobal<Lisp_Object>; // x-detect-server-trust
-        pub static Vx_dnd_movement_function: VmGlobal<Lisp_Object>; // x-dnd-movement-function
-        pub static Vx_dnd_native_test_function: VmGlobal<Lisp_Object>; // x-dnd-native-test-function
-        pub static Vx_dnd_targets_list: VmGlobal<Lisp_Object>; // x-dnd-targets-list
-        pub static Vx_dnd_unsupported_drop_function: VmGlobal<Lisp_Object>; // x-dnd-unsupported-drop-function
-        pub static Vx_dnd_wheel_function: VmGlobal<Lisp_Object>; // x-dnd-wheel-function
-        pub static Vx_fast_selection_list: VmGlobal<Lisp_Object>; // x-fast-selection-list
-        pub static Vx_hourglass_pointer_shape: VmGlobal<Lisp_Object>; // x-hourglass-pointer-shape
-        pub static Vx_hyper_keysym: VmGlobal<Lisp_Object>; // x-hyper-keysym
-        pub static Vx_input_coding_function: VmGlobal<Lisp_Object>; // x-input-coding-function
-        pub static Vx_input_coding_system: VmGlobal<Lisp_Object>; // x-input-coding-system
-        pub static Vx_keysym_table: VmGlobal<Lisp_Object>; // x-keysym-table
-        pub static Vx_lax_frame_positioning: VmGlobal<Lisp_Object>; // x-lax-frame-positioning
-        pub static Vx_lost_selection_functions: VmGlobal<Lisp_Object>; // x-lost-selection-functions
-        pub static Vx_max_tooltip_size: VmGlobal<Lisp_Object>; // x-max-tooltip-size
-        pub static Vx_meta_keysym: VmGlobal<Lisp_Object>; // x-meta-keysym
-        pub static Vx_mode_pointer_shape: VmGlobal<Lisp_Object>; // x-mode-pointer-shape
-        pub static Vx_no_window_manager: VmGlobal<Lisp_Object>; // x-no-window-manager
-        pub static Vx_nontext_pointer_shape: VmGlobal<Lisp_Object>; // x-nontext-pointer-shape
-        pub static Vx_pixel_size_width_font_regexp: VmGlobal<Lisp_Object>; // x-pixel-size-width-font-regexp
-        pub static Vx_pointer_shape: VmGlobal<Lisp_Object>; // x-pointer-shape
-        pub static Vx_popup_menu_function: VmGlobal<Lisp_Object>; // x-popup-menu-function
-        pub static Vx_pre_popup_menu_hook: VmGlobal<Lisp_Object>; // x-pre-popup-menu-hook
-        pub static Vx_quit_keysym: VmGlobal<Lisp_Object>; // x-quit-keysym
-        pub static Vx_resource_class: VmGlobal<Lisp_Object>; // x-resource-class
-        pub static Vx_resource_name: VmGlobal<Lisp_Object>; // x-resource-name
-        pub static Vx_scroll_event_delta_factor: VmGlobal<Lisp_Object>; // x-scroll-event-delta-factor
-        pub static Vx_select_enable_clipboard_manager: VmGlobal<Lisp_Object>; // x-select-enable-clipboard-manager
-        pub static Vx_selection_alias_alist: VmGlobal<Lisp_Object>; // x-selection-alias-alist
-        pub static Vx_sensitive_text_pointer_shape: VmGlobal<Lisp_Object>; // x-sensitive-text-pointer-shape
-        pub static Vx_sent_selection_functions: VmGlobal<Lisp_Object>; // x-sent-selection-functions
-        pub static Vx_session_id: VmGlobal<Lisp_Object>; // x-session-id
-        pub static Vx_session_previous_id: VmGlobal<Lisp_Object>; // x-session-previous-id
-        pub static Vx_show_tooltip_timeout: VmGlobal<Lisp_Object>; // x-show-tooltip-timeout
-        pub static Vx_super_keysym: VmGlobal<Lisp_Object>; // x-super-keysym
-        pub static Vx_toolkit_scroll_bars: VmGlobal<Lisp_Object>; // x-toolkit-scroll-bars
-        pub static Vx_treat_local_requests_remotely: VmGlobal<Lisp_Object>; // x-treat-local-requests-remotely
-        pub static Vx_use_fast_mouse_position: VmGlobal<Lisp_Object>; // x-use-fast-mouse-position
-        pub static Vx_wait_for_event_timeout: VmGlobal<Lisp_Object>; // x-wait-for-event-timeout
-        pub static Vx_window_bottom_edge_shape: VmGlobal<Lisp_Object>; // x-window-bottom-edge-cursor
-        pub static Vx_window_bottom_left_corner_shape: VmGlobal<Lisp_Object>; // x-window-bottom-left-corner-cursor
-        pub static Vx_window_bottom_right_corner_shape: VmGlobal<Lisp_Object>; // x-window-bottom-right-corner-cursor
-        pub static Vx_window_horizontal_drag_shape: VmGlobal<Lisp_Object>; // x-window-horizontal-drag-cursor
-        pub static Vx_window_left_edge_shape: VmGlobal<Lisp_Object>; // x-window-left-edge-cursor
-        pub static Vx_window_right_edge_shape: VmGlobal<Lisp_Object>; // x-window-right-edge-cursor
-        pub static Vx_window_top_edge_shape: VmGlobal<Lisp_Object>; // x-window-top-edge-cursor
-        pub static Vx_window_top_left_corner_shape: VmGlobal<Lisp_Object>; // x-window-top-left-corner-cursor
-        pub static Vx_window_top_right_corner_shape: VmGlobal<Lisp_Object>; // x-window-top-right-corner-cursor
-        pub static Vx_window_vertical_drag_shape: VmGlobal<Lisp_Object>; // x-window-vertical-drag-cursor
-        pub static Vxft_color_font_whitelist: VmGlobal<Lisp_Object>; // xft-color-font-whitelist
-        pub static Vxft_settings: VmGlobal<Lisp_Object>; // xft-settings
-        pub static Vxwidget_list: VmGlobal<Lisp_Object>; // xwidget-list
-        pub static Vxwidget_view_list: VmGlobal<Lisp_Object>; // xwidget-view-list
-        pub static Vyes_or_no_prompt: VmGlobal<Lisp_Object>; // yes-or-no-prompt
-        pub static alter_fullscreen_frames: VmGlobal<Lisp_Object>; // alter-fullscreen-frames
-        pub static android_display_planes: VmGlobal<EMACS_INT>; // android-display-planes
-        pub static android_intercept_control_space: VmGlobal<bool>; // android-intercept-control-space
-        pub static android_keyboard_bell_duration: VmGlobal<EMACS_INT>; // android-keyboard-bell-duration
-        pub static android_pass_multimedia_buttons_to_system: VmGlobal<bool>; // android-pass-multimedia-buttons-to-system
-        pub static android_quit_keycode: VmGlobal<EMACS_INT>; // android-quit-keycode
-        pub static android_use_exec_loader: VmGlobal<bool>; // android-use-exec-loader
-        pub static attempt_orderly_shutdown_on_fatal_signal: VmGlobal<bool>; // attempt-orderly-shutdown-on-fatal-signal
-        pub static attempt_stack_overflow_recovery: VmGlobal<bool>; // attempt-stack-overflow-recovery
-        pub static auto_raise_tab_bar_buttons_p: VmGlobal<bool>; // auto-raise-tab-bar-buttons
-        pub static auto_raise_tool_bar_buttons_p: VmGlobal<bool>; // auto-raise-tool-bar-buttons
-        pub static auto_save_interval: VmGlobal<EMACS_INT>; // auto-save-interval
-        pub static auto_save_no_message: VmGlobal<bool>; // auto-save-no-message
-        pub static auto_window_vscroll_p: VmGlobal<bool>; // auto-window-vscroll
-        pub static automatic_hscrolling: VmGlobal<Lisp_Object>; // auto-hscroll-mode
-        pub static backtrace_on_error_noninteractive: VmGlobal<bool>; // backtrace-on-error-noninteractive
-        pub static backtrace_on_redisplay_error: VmGlobal<bool>; // backtrace-on-redisplay-error
-        pub static baud_rate: VmGlobal<EMACS_INT>; // baud-rate
-        pub static bidi_inhibit_bpa: VmGlobal<bool>; // bidi-inhibit-bpa
-        pub static byte_metering_on: VmGlobal<bool>; // byte-metering-on
-        pub static cannot_suspend: VmGlobal<bool>; // cannot-suspend
-        pub static case_symbols_as_words: VmGlobal<bool>; // case-symbols-as-words
-        pub static coding_system_require_warning: VmGlobal<bool>; // coding-system-require-warning
-        pub static command_line_max_length: VmGlobal<EMACS_INT>; // command-line-max-length
-        pub static comment_end_can_be_escaped: VmGlobal<bool>; // comment-end-can-be-escaped
-        pub static comp_file_preloaded_p: VmGlobal<bool>; // comp-file-preloaded-p
-        pub static comp_sanitizer_active: VmGlobal<bool>; // comp-sanitizer-active
-        pub static completion_ignore_case: VmGlobal<bool>; // completion-ignore-case
-        pub static composition_break_at_point: VmGlobal<bool>; // composition-break-at-point
-        pub static cons_cells_consed: VmGlobal<EMACS_INT>; // cons-cells-consed
-        pub static create_lockfiles: VmGlobal<bool>; // create-lockfiles
-        pub static cross_disabled_images: VmGlobal<bool>; // cross-disabled-images
-        pub static current_time_list: VmGlobal<bool>; // current-time-list
-        pub static cursor_in_echo_area: VmGlobal<bool>; // cursor-in-echo-area
-        pub static debug_end_pos: VmGlobal<EMACS_INT>; // debug-end-pos
-        pub static debug_on_next_call: VmGlobal<bool>; // debug-on-next-call
-        pub static debug_on_quit: VmGlobal<bool>; // debug-on-quit
-        pub static debugger_may_continue: VmGlobal<bool>; // debugger-may-continue
-        pub static debugger_stack_frame_as_list: VmGlobal<bool>; // debugger-stack-frame-as-list
-        pub static defining_kbd_macro: VmGlobal<*mut c_void>; // defining-kbd-macro
-        pub static delete_auto_save_files: VmGlobal<bool>; // delete-auto-save-files
-        pub static delete_by_moving_to_trash: VmGlobal<bool>; // delete-by-moving-to-trash
-        pub static delete_exited_processes: VmGlobal<bool>; // delete-exited-processes
-        pub static delete_frame_choose_selected: VmGlobal<Lisp_Object>; // delete-frame-choose-selected
-        pub static disable_ascii_optimization: VmGlobal<bool>; // disable-ascii-optimization
-        pub static disable_inhibit_text_conversion: VmGlobal<bool>; // disable-inhibit-text-conversion
-        pub static display_fill_column_indicator: VmGlobal<bool>; // display-fill-column-indicator
-        pub static display_hourglass_p: VmGlobal<bool>; // display-hourglass
-        pub static display_line_numbers_major_tick: VmGlobal<EMACS_INT>; // display-line-numbers-major-tick
-        pub static display_line_numbers_minor_tick: VmGlobal<EMACS_INT>; // display-line-numbers-minor-tick
-        pub static display_line_numbers_offset: VmGlobal<EMACS_INT>; // display-line-numbers-offset
-        pub static display_line_numbers_widen: VmGlobal<bool>; // display-line-numbers-widen
-        pub static display_raw_bytes_as_hex: VmGlobal<bool>; // display-raw-bytes-as-hex
-        pub static documentation_dynamic_reload: VmGlobal<bool>; // documentation-dynamic-reload
-        pub static dos_codepage: VmGlobal<EMACS_INT>; // dos-codepage
-        pub static dos_country_code: VmGlobal<EMACS_INT>; // dos-country-code
-        pub static dos_decimal_point: VmGlobal<EMACS_INT>; // dos-decimal-point
-        pub static dos_hyper_key: VmGlobal<EMACS_INT>; // dos-hyper-key
-        pub static dos_keyboard_layout: VmGlobal<EMACS_INT>; // dos-keyboard-layout
-        pub static dos_keypad_mode: VmGlobal<EMACS_INT>; // dos-keypad-mode
-        pub static dos_super_key: VmGlobal<EMACS_INT>; // dos-super-key
-        pub static dos_timezone_offset: VmGlobal<EMACS_INT>; // dos-timezone-offset
-        pub static double_click_fuzz: VmGlobal<EMACS_INT>; // double-click-fuzz
-        pub static echo_keystrokes_help: VmGlobal<bool>; // echo-keystrokes-help
-        pub static emacs_scroll_step: VmGlobal<EMACS_INT>; // scroll-step
-        pub static enable_recursive_minibuffers: VmGlobal<bool>; // enable-recursive-minibuffers
-        pub static eol_mnemonic_dos: VmGlobal<Lisp_Object>; // eol-mnemonic-dos
-        pub static eol_mnemonic_mac: VmGlobal<Lisp_Object>; // eol-mnemonic-mac
-        pub static eol_mnemonic_undecided: VmGlobal<Lisp_Object>; // eol-mnemonic-undecided
-        pub static eol_mnemonic_unix: VmGlobal<Lisp_Object>; // eol-mnemonic-unix
-        pub static executing_kbd_macro_index: VmGlobal<EMACS_INT>; // executing-kbd-macro-index
-        pub static expose_hidden_buffer: VmGlobal<Lisp_Object>; // expose-hidden-buffer
-        pub static extra_keyboard_modifiers: VmGlobal<EMACS_INT>; // extra-keyboard-modifiers
-        pub static face_filters_always_match: VmGlobal<bool>; // face-filters-always-match
-        pub static face_near_same_color_threshold: VmGlobal<EMACS_INT>; // face-near-same-color-threshold
-        pub static fast_but_imprecise_scrolling: VmGlobal<bool>; // fast-but-imprecise-scrolling
-        pub static fast_read_process_output: VmGlobal<bool>; // fast-read-process-output
-        pub static floats_consed: VmGlobal<EMACS_INT>; // floats-consed
-        pub static focus_follows_mouse: VmGlobal<Lisp_Object>; // focus-follows-mouse
-        pub static force_load_messages: VmGlobal<bool>; // force-load-messages
-        pub static frame_inhibit_implied_resize: VmGlobal<Lisp_Object>; // frame-inhibit-implied-resize
-        pub static frame_internal_parameters: VmGlobal<Lisp_Object>; // frame-internal-parameters
-        pub static frame_resize_pixelwise: VmGlobal<bool>; // frame-resize-pixelwise
-        pub static frame_size_history: VmGlobal<Lisp_Object>; // frame-size-history
-        pub static garbage_collection_messages: VmGlobal<bool>; // garbage-collection-messages
-        pub static gc_cons_threshold: VmGlobal<EMACS_INT>; // gc-cons-threshold
-        pub static gcs_done: VmGlobal<EMACS_INT>; // gcs-done
-        pub static global_gnutls_log_level: VmGlobal<EMACS_INT>; // gnutls-log-level
-        pub static haiku_debug_on_fatal_error: VmGlobal<bool>; // haiku-debug-on-fatal-error
-        pub static haiku_initialized: VmGlobal<bool>; // haiku-initialized
-        pub static haiku_pass_control_tab_to_system: VmGlobal<bool>; // haiku-pass-control-tab-to-system
-        pub static haiku_signal_invalid_refs: VmGlobal<bool>; // haiku-signal-invalid-refs
-        pub static highlight_nonselected_windows: VmGlobal<bool>; // highlight-nonselected-windows
-        pub static history_delete_duplicates: VmGlobal<bool>; // history-delete-duplicates
-        pub static hscroll_margin: VmGlobal<EMACS_INT>; // hscroll-margin
-        pub static iconify_child_frame: VmGlobal<Lisp_Object>; // iconify-child-frame
-        pub static imagemagick_render_type: VmGlobal<EMACS_INT>; // imagemagick-render-type
-        pub static indent_tabs_mode: VmGlobal<bool>; // indent-tabs-mode
-        pub static inherit_process_coding_system: VmGlobal<bool>; // inherit-process-coding-system
-        pub static inhibit_bidi_mirroring: VmGlobal<bool>; // inhibit-bidi-mirroring
-        pub static inhibit_compacting_font_caches: VmGlobal<bool>; // inhibit-compacting-font-caches
-        pub static inhibit_eol_conversion: VmGlobal<bool>; // inhibit-eol-conversion
-        pub static inhibit_eval_during_redisplay: VmGlobal<bool>; // inhibit-eval-during-redisplay
-        pub static inhibit_free_realized_faces: VmGlobal<bool>; // inhibit-free-realized-faces
-        pub static inhibit_interaction: VmGlobal<bool>; // inhibit-interaction
-        pub static inhibit_iso_escape_detection: VmGlobal<bool>; // inhibit-iso-escape-detection
-        pub static inhibit_load_charset_map: VmGlobal<bool>; // inhibit-load-charset-map
-        pub static inhibit_menubar_update: VmGlobal<bool>; // inhibit-menubar-update
-        pub static inhibit_message: VmGlobal<bool>; // inhibit-message
-        pub static inhibit_modification_hooks: VmGlobal<bool>; // inhibit-modification-hooks
-        pub static inhibit_mouse_event_check: VmGlobal<bool>; // inhibit-mouse-event-check
-        pub static inhibit_null_byte_detection: VmGlobal<bool>; // inhibit-null-byte-detection
-        pub static inhibit_record_char: VmGlobal<bool>; // inhibit--record-char
-        pub static inhibit_try_cursor_movement: VmGlobal<bool>; // inhibit-try-cursor-movement
-        pub static inhibit_try_window_id: VmGlobal<bool>; // inhibit-try-window-id
-        pub static inhibit_try_window_reusing: VmGlobal<bool>; // inhibit-try-window-reusing
-        pub static inhibit_x_resources: VmGlobal<bool>; // inhibit-x-resources
-        pub static input_pending_p_filter_events: VmGlobal<bool>; // input-pending-p-filter-events
-        pub static integer_width: VmGlobal<EMACS_INT>; // integer-width
-        pub static intervals_consed: VmGlobal<EMACS_INT>; // intervals-consed
-        pub static inverse_video: VmGlobal<bool>; // inverse-video
-        pub static kill_buffer_delete_auto_save_files: VmGlobal<bool>; // kill-buffer-delete-auto-save-files
-        pub static kill_emacs_on_sigint: VmGlobal<bool>; // kill-emacs-on-sigint
-        pub static large_hscroll_threshold: VmGlobal<EMACS_INT>; // large-hscroll-threshold
-        pub static last_command_event: VmGlobal<Lisp_Object>; // last-command-event
-        pub static last_input_event: VmGlobal<Lisp_Object>; // last-input-event
-        pub static last_nonmenu_event: VmGlobal<Lisp_Object>; // last-nonmenu-event
-        pub static line_number_display_limit_width: VmGlobal<EMACS_INT>; // line-number-display-limit-width
-        pub static lisp_eval_depth_reserve: VmGlobal<EMACS_INT>; // lisp-eval-depth-reserve
-        pub static load_dangerous_libraries: VmGlobal<bool>; // load-dangerous-libraries
-        pub static load_force_doc_strings: VmGlobal<bool>; // load-force-doc-strings
-        pub static load_in_progress: VmGlobal<bool>; // load-in-progress
-        pub static load_no_native: VmGlobal<bool>; // load-no-native
-        pub static load_prefer_newer: VmGlobal<bool>; // load-prefer-newer
-        pub static long_line_optimizations_bol_search_limit: VmGlobal<EMACS_INT>; // long-line-optimizations-bol-search-limit
-        pub static long_line_optimizations_region_size: VmGlobal<EMACS_INT>; // long-line-optimizations-region-size
-        pub static lucid__menu_grab_keyboard: VmGlobal<bool>; // lucid--menu-grab-keyboard
-        pub static make_window_start_visible: VmGlobal<bool>; // make-window-start-visible
-        pub static max_lisp_eval_depth: VmGlobal<EMACS_INT>; // max-lisp-eval-depth
-        pub static max_redisplay_ticks: VmGlobal<EMACS_INT>; // max-redisplay-ticks
-        pub static menu_prompt_more_char: VmGlobal<Lisp_Object>; // menu-prompt-more-char
-        pub static menu_prompting: VmGlobal<bool>; // menu-prompting
-        pub static message_truncate_lines: VmGlobal<bool>; // message-truncate-lines
-        pub static meta_prefix_char: VmGlobal<Lisp_Object>; // meta-prefix-char
-        pub static minibuffer_allow_text_properties: VmGlobal<bool>; // minibuffer-allow-text-properties
-        pub static minibuffer_auto_raise: VmGlobal<bool>; // minibuffer-auto-raise
-        pub static minibuffer_follows_selected_frame: VmGlobal<Lisp_Object>; // minibuffer-follows-selected-frame
-        pub static mode_line_in_non_selected_windows: VmGlobal<bool>; // mode-line-in-non-selected-windows
-        pub static mouse_fine_grained_tracking: VmGlobal<bool>; // mouse-fine-grained-tracking
-        pub static mouse_prefer_closest_glyph: VmGlobal<bool>; // mouse-prefer-closest-glyph
-        pub static multibyte_syntax_as_symbol: VmGlobal<bool>; // multibyte-syntax-as-symbol
-        pub static multiple_frames: VmGlobal<bool>; // multiple-frames
-        pub static multiple_terminals_merge_keyboards: VmGlobal<bool>; // multiple-terminals-merge-keyboards
-        pub static mwheel_coalesce_scroll_events: VmGlobal<bool>; // mwheel-coalesce-scroll-events
-        pub static native_comp_jit_compilation: VmGlobal<bool>; // native-comp-jit-compilation
-        pub static next_screen_context_lines: VmGlobal<EMACS_INT>; // next-screen-context-lines
-        pub static no_redraw_on_reenter: VmGlobal<bool>; // no-redraw-on-reenter
-        pub static nobreak_char_ascii_display: VmGlobal<bool>; // nobreak-char-ascii-display
-        pub static noninteractive1: VmGlobal<bool>; // noninteractive
-        pub static num_input_keys: VmGlobal<EMACS_INT>; // num-input-keys
-        pub static num_nonmacro_input_events: VmGlobal<EMACS_INT>; // num-nonmacro-input-events
-        pub static open_paren_in_column_0_is_defun_start: VmGlobal<bool>; // open-paren-in-column-0-is-defun-start
-        pub static overline_margin: VmGlobal<EMACS_INT>; // overline-margin
-        pub static parse_sexp_ignore_comments: VmGlobal<bool>; // parse-sexp-ignore-comments
-        pub static parse_sexp_lookup_properties: VmGlobal<bool>; // parse-sexp-lookup-properties
-        pub static pgtk_selection_timeout: VmGlobal<EMACS_INT>; // pgtk-selection-timeout
-        pub static print_escape_control_characters: VmGlobal<bool>; // print-escape-control-characters
-        pub static print_escape_multibyte: VmGlobal<bool>; // print-escape-multibyte
-        pub static print_escape_newlines: VmGlobal<bool>; // print-escape-newlines
-        pub static print_escape_nonascii: VmGlobal<bool>; // print-escape-nonascii
-        pub static print_integers_as_characters: VmGlobal<bool>; // print-integers-as-characters
-        pub static print_quoted: VmGlobal<bool>; // print-quoted
-        pub static print_symbols_bare: VmGlobal<bool>; // print-symbols-bare
-        pub static process_error_pause_time: VmGlobal<EMACS_INT>; // process-error-pause-time
-        pub static process_prioritize_lower_fds: VmGlobal<bool>; // process-prioritize-lower-fds
-        pub static profiler_log_size: VmGlobal<EMACS_INT>; // profiler-log-size
-        pub static profiler_max_stack_depth: VmGlobal<EMACS_INT>; // profiler-max-stack-depth
-        pub static pure_bytes_used: VmGlobal<EMACS_INT>; // pure-bytes-used
-        pub static query_all_font_backends: VmGlobal<bool>; // query-all-font-backends
-        pub static read_buffer_completion_ignore_case: VmGlobal<bool>; // read-buffer-completion-ignore-case
-        pub static read_minibuffer_restore_windows: VmGlobal<bool>; // read-minibuffer-restore-windows
-        pub static read_process_output_max: VmGlobal<EMACS_INT>; // read-process-output-max
-        pub static record_all_keys: VmGlobal<bool>; // record-all-keys
-        pub static redisplay__inhibit_bidi: VmGlobal<bool>; // redisplay--inhibit-bidi
-        pub static redisplay_adhoc_scroll_in_resize_mini_windows: VmGlobal<bool>; // redisplay-adhoc-scroll-in-resize-mini-windows
-        pub static redisplay_skip_fontification_on_input: VmGlobal<bool>; // redisplay-skip-fontification-on-input
-        pub static redisplay_skip_initial_frame: VmGlobal<bool>; // redisplay-skip-initial-frame
-        pub static resize_mini_frames: VmGlobal<Lisp_Object>; // resize-mini-frames
-        pub static scroll_bar_adjust_thumb_portion_p: VmGlobal<bool>; // scroll-bar-adjust-thumb-portion
-        pub static scroll_conservatively: VmGlobal<EMACS_INT>; // scroll-conservatively
-        pub static scroll_margin: VmGlobal<EMACS_INT>; // scroll-margin
-        pub static scroll_minibuffer_conservatively: VmGlobal<bool>; // scroll-minibuffer-conservatively
-        pub static sfnt_raster_glyphs_exactly: VmGlobal<bool>; // sfnt-raster-glyphs-exactly
-        pub static string_chars_consed: VmGlobal<EMACS_INT>; // string-chars-consed
-        pub static strings_consed: VmGlobal<EMACS_INT>; // strings-consed
-        pub static symbols_consed: VmGlobal<EMACS_INT>; // symbols-consed
-        pub static symbols_with_pos_enabled: VmGlobal<bool>; // symbols-with-pos-enabled
-        pub static syntax_propertize__done: VmGlobal<EMACS_INT>; // syntax-propertize--done
-        pub static system_uses_terminfo: VmGlobal<bool>; // system-uses-terminfo
-        pub static tab_bar__dragging_in_progress: VmGlobal<bool>; // tab-bar--dragging-in-progress
-        pub static tab_bar_button_relief: VmGlobal<EMACS_INT>; // tab-bar-button-relief
-        pub static tab_bar_truncate: VmGlobal<bool>; // tab-bar-truncate
-        pub static text_quoting_flag: VmGlobal<bool>; // internal--text-quoting-flag
-        pub static tool_bar_button_relief: VmGlobal<EMACS_INT>; // tool-bar-button-relief
-        pub static tool_bar_max_label_size: VmGlobal<EMACS_INT>; // tool-bar-max-label-size
-        pub static tooltip_reuse_hidden_frame: VmGlobal<bool>; // tooltip-reuse-hidden-frame
-        pub static track_mouse: VmGlobal<Lisp_Object>; // track-mouse
-        pub static translate_upper_case_key_bindings: VmGlobal<bool>; // translate-upper-case-key-bindings
-        pub static tty_cursor_movement_use_TAB: VmGlobal<bool>; // tty-cursor-movement-use-TAB
-        pub static tty_cursor_movement_use_TAB_BS: VmGlobal<bool>; // tty-cursor-movement-use-TAB-BS
-        pub static tty_display_emoji_force_wide: VmGlobal<bool>; // tty-display-emoji-force-wide
-        pub static tty_menu_calls_mouse_position_function: VmGlobal<bool>; // tty-menu-calls-mouse-position-function
-        pub static underline_minimum_offset: VmGlobal<EMACS_INT>; // underline-minimum-offset
-        pub static undo_inhibit_record_point: VmGlobal<bool>; // undo-inhibit-record-point
-        pub static undo_limit: VmGlobal<EMACS_INT>; // undo-limit
-        pub static undo_strong_limit: VmGlobal<EMACS_INT>; // undo-strong-limit
-        pub static unibyte_display_via_language_environment: VmGlobal<bool>; // unibyte-display-via-language-environment
-        pub static use_default_font_for_symbols: VmGlobal<bool>; // use-default-font-for-symbols
-        pub static use_dialog_box: VmGlobal<bool>; // use-dialog-box
-        pub static use_file_dialog: VmGlobal<bool>; // use-file-dialog
-        pub static use_short_answers: VmGlobal<bool>; // use-short-answers
-        pub static use_system_font: VmGlobal<bool>; // font-use-system-font
-        pub static use_system_tooltips: VmGlobal<bool>; // use-system-tooltips
-        pub static vector_cells_consed: VmGlobal<EMACS_INT>; // vector-cells-consed
-        pub static visible_bell: VmGlobal<bool>; // visible-bell
-        pub static visible_cursor: VmGlobal<bool>; // visible-cursor
-        pub static w32__terminal_is_conhost: VmGlobal<bool>; // w32--terminal-is-conhost
-        pub static w32_add_wrapped_menu_bar_lines: VmGlobal<bool>; // w32-add-wrapped-menu-bar-lines
-        pub static w32_ansi_code_page: VmGlobal<EMACS_INT>; // w32-ansi-code-page
-        pub static w32_disable_abort_dialog: VmGlobal<bool>; // w32-disable-abort-dialog
-        pub static w32_disable_double_buffering: VmGlobal<bool>; // w32-disable-double-buffering
-        pub static w32_disable_new_uniscribe_apis: VmGlobal<bool>; // w32-disable-new-uniscribe-apis
-        pub static w32_enable_synthesized_fonts: VmGlobal<bool>; // w32-enable-synthesized-fonts
-        pub static w32_follow_system_dark_mode: VmGlobal<bool>; // w32-follow-system-dark-mode
-        pub static w32_ignore_modifiers_on_IME_input: VmGlobal<bool>; // w32-ignore-modifiers-on-IME-input
-        pub static w32_inhibit_dwrite: VmGlobal<bool>; // w32-inhibit-dwrite
-        pub static w32_mouse_button_tolerance: VmGlobal<EMACS_INT>; // w32-mouse-button-tolerance
-        pub static w32_mouse_move_interval: VmGlobal<EMACS_INT>; // w32-mouse-move-interval
-        pub static w32_multibyte_code_page: VmGlobal<EMACS_INT>; // w32-multibyte-code-page
-        pub static w32_num_mouse_buttons: VmGlobal<EMACS_INT>; // w32-num-mouse-buttons
-        pub static w32_pass_extra_mouse_buttons_to_system: VmGlobal<bool>; // w32-pass-extra-mouse-buttons-to-system
-        pub static w32_pass_multimedia_buttons_to_system: VmGlobal<bool>; // w32-pass-multimedia-buttons-to-system
-        pub static w32_pipe_buffer_size: VmGlobal<EMACS_INT>; // w32-pipe-buffer-size
-        pub static w32_pipe_read_delay: VmGlobal<EMACS_INT>; // w32-pipe-read-delay
-        pub static w32_quit_key: VmGlobal<EMACS_INT>; // w32-quit-key
-        pub static w32_strict_painting: VmGlobal<bool>; // w32-strict-painting
-        pub static w32_unicode_filenames: VmGlobal<bool>; // w32-unicode-filenames
-        pub static w32_use_fallback_wm_chars_method: VmGlobal<bool>; // w32-use-fallback-wm-chars-method
-        pub static w32_use_full_screen_buffer: VmGlobal<bool>; // w32-use-full-screen-buffer
-        pub static w32_use_native_image_api: VmGlobal<bool>; // w32-use-native-image-API
-        pub static w32_use_visible_system_caret: VmGlobal<bool>; // w32-use-visible-system-caret
-        pub static w32_yes_no_dialog_show_cancel: VmGlobal<bool>; // w32-yes-no-dialog-show-cancel
-        pub static when_entered_debugger: VmGlobal<EMACS_INT>; // internal-when-entered-debugger
-        pub static window_auto_redraw_on_parameter_change: VmGlobal<bool>; // window-auto-redraw-on-parameter-change
-        pub static window_dead_windows_table: VmGlobal<Lisp_Object>; // window-dead-windows-table
-        pub static window_resize_pixelwise: VmGlobal<bool>; // window-resize-pixelwise
-        pub static window_restore_killed_buffer_windows: VmGlobal<Lisp_Object>; // window-restore-killed-buffer-windows
-        pub static word_wrap_by_category: VmGlobal<bool>; // word-wrap-by-category
-        pub static words_include_escapes: VmGlobal<bool>; // words-include-escapes
-        pub static write_region_inhibit_fsync: VmGlobal<bool>; // write-region-inhibit-fsync
-        pub static x_color_cache_bucket_size: VmGlobal<EMACS_INT>; // x-color-cache-bucket-size
-        pub static x_dnd_disable_motif_drag: VmGlobal<bool>; // x-dnd-disable-motif-drag
-        pub static x_dnd_disable_motif_protocol: VmGlobal<bool>; // x-dnd-disable-motif-protocol
-        pub static x_dnd_fix_motif_leave: VmGlobal<bool>; // x-dnd-fix-motif-leave
-        pub static x_dnd_preserve_selection_data: VmGlobal<bool>; // x-dnd-preserve-selection-data
-        pub static x_dnd_use_unsupported_drop: VmGlobal<bool>; // x-dnd-use-unsupported-drop
-        pub static x_fast_protocol_requests: VmGlobal<bool>; // x-fast-protocol-requests
-        pub static x_frame_normalize_before_maximize: VmGlobal<bool>; // x-frame-normalize-before-maximize
-        pub static x_gtk_file_dialog_help_text: VmGlobal<bool>; // x-gtk-file-dialog-help-text
-        pub static x_gtk_resize_child_frames: VmGlobal<Lisp_Object>; // x-gtk-resize-child-frames
-        pub static x_gtk_show_hidden_files: VmGlobal<bool>; // x-gtk-show-hidden-files
-        pub static x_gtk_use_native_input: VmGlobal<bool>; // x-gtk-use-native-input
-        pub static x_gtk_use_old_file_dialog: VmGlobal<bool>; // x-gtk-use-old-file-dialog
-        pub static x_gtk_use_window_move: VmGlobal<bool>; // x-gtk-use-window-move
-        pub static x_input_grab_touch_events: VmGlobal<bool>; // x-input-grab-touch-events
-        pub static x_mouse_click_focus_ignore_position: VmGlobal<bool>; // x-mouse-click-focus-ignore-position
-        pub static x_mouse_click_focus_ignore_time: VmGlobal<EMACS_INT>; // x-mouse-click-focus-ignore-time
-        pub static x_selection_timeout: VmGlobal<EMACS_INT>; // x-selection-timeout
-        pub static x_set_frame_visibility_more_laxly: VmGlobal<Lisp_Object>; // x-set-frame-visibility-more-laxly
-        pub static x_stretch_cursor_p: VmGlobal<bool>; // x-stretch-cursor
-        pub static x_underline_at_descent_line: VmGlobal<bool>; // x-underline-at-descent-line
-        pub static x_use_underline_position_properties: VmGlobal<bool>; // x-use-underline-position-properties
-        pub static xft_font_ascent_descent_override: VmGlobal<bool>; // xft-font-ascent-descent-override
-        pub static xft_ignore_color_fonts: VmGlobal<bool>; // xft-ignore-color-fonts
-        pub static xwidget_webkit_disable_javascript: VmGlobal<bool>; // xwidget-webkit-disable-javascript
+        pub safe static V_comp_no_native_file_h: VmGlobal<Lisp_Object>; // comp-no-native-file-h
+        pub safe static Vafter_change_functions: VmGlobal<Lisp_Object>; // after-change-functions
+        pub safe static Vafter_delete_frame_functions: VmGlobal<Lisp_Object>; // after-delete-frame-functions
+        pub safe static Vafter_init_time: VmGlobal<Lisp_Object>; // after-init-time
+        pub safe static Vafter_insert_file_functions: VmGlobal<Lisp_Object>; // after-insert-file-functions
+        pub safe static Vafter_load_alist: VmGlobal<Lisp_Object>; // after-load-alist
+        pub safe static Valternate_fontname_alist: VmGlobal<Lisp_Object>; // alternate-fontname-alist
+        pub safe static Vambiguous_width_chars: VmGlobal<Lisp_Object>; // ambiguous-width-chars
+        pub safe static Vandroid_build_fingerprint: VmGlobal<Lisp_Object>; // android-build-fingerprint
+        pub safe static Vandroid_build_manufacturer: VmGlobal<Lisp_Object>; // android-build-manufacturer
+        pub safe static Vandroid_os_language: VmGlobal<Lisp_Object>; // android-os-language
+        pub safe static Vandroid_wait_for_event_timeout: VmGlobal<Lisp_Object>; // android-wait-for-event-timeout
+        pub safe static Vauto_composition_emoji_eligible_codepoints: VmGlobal<Lisp_Object>; // auto-composition-emoji-eligible-codepoints
+        pub safe static Vauto_composition_emoji_tty_eligible_codepoints: VmGlobal<Lisp_Object>; // auto-composition-emoji-tty-eligible-codepoints
+        pub safe static Vauto_composition_emoji_unqualified_tail_initials: VmGlobal<Lisp_Object>; // auto-composition-emoji-unqualified-tail-initials
+        pub safe static Vauto_composition_function: VmGlobal<Lisp_Object>; // auto-composition-function
+        pub safe static Vauto_composition_mode: VmGlobal<Lisp_Object>; // auto-composition-mode
+        pub safe static Vauto_fill_chars: VmGlobal<Lisp_Object>; // auto-fill-chars
+        pub safe static Vauto_resize_tab_bars: VmGlobal<Lisp_Object>; // auto-resize-tab-bars
+        pub safe static Vauto_resize_tool_bars: VmGlobal<Lisp_Object>; // auto-resize-tool-bars
+        pub safe static Vauto_save_include_big_deletions: VmGlobal<Lisp_Object>; // auto-save-include-big-deletions
+        pub safe static Vauto_save_list_file_name: VmGlobal<Lisp_Object>; // auto-save-list-file-name
+        pub safe static Vauto_save_timeout: VmGlobal<Lisp_Object>; // auto-save-timeout
+        pub safe static Vauto_save_visited_file_name: VmGlobal<Lisp_Object>; // auto-save-visited-file-name
+        pub safe static Vbefore_change_functions: VmGlobal<Lisp_Object>; // before-change-functions
+        pub safe static Vbefore_init_time: VmGlobal<Lisp_Object>; // before-init-time
+        pub safe static Vblink_cursor_alist: VmGlobal<Lisp_Object>; // blink-cursor-alist
+        pub safe static Vbuffer_access_fontified_property: VmGlobal<Lisp_Object>; // buffer-access-fontified-property
+        pub safe static Vbuffer_access_fontify_functions: VmGlobal<Lisp_Object>; // buffer-access-fontify-functions
+        pub safe static Vbuffer_list_update_hook: VmGlobal<Lisp_Object>; // buffer-list-update-hook
+        pub safe static Vbuild_files: VmGlobal<Lisp_Object>; // build-files
+        pub safe static Vbyte_boolean_vars: VmGlobal<Lisp_Object>; // byte-boolean-vars
+        pub safe static Vbyte_code_meter: VmGlobal<Lisp_Object>; // byte-code-meter
+        pub safe static Vbytecomp_version_regexp: VmGlobal<Lisp_Object>; // bytecomp-version-regexp
+        pub safe static Vcairo_version_string: VmGlobal<Lisp_Object>; // cairo-version-string
+        pub safe static Vcase_fold_search: VmGlobal<Lisp_Object>; // case-fold-search
+        pub safe static Vchange_major_mode_hook: VmGlobal<Lisp_Object>; // change-major-mode-hook
+        pub safe static Vchar_code_property_alist: VmGlobal<Lisp_Object>; // char-code-property-alist
+        pub safe static Vchar_property_alias_alist: VmGlobal<Lisp_Object>; // char-property-alias-alist
+        pub safe static Vchar_script_table: VmGlobal<Lisp_Object>; // char-script-table
+        pub safe static Vchar_width_table: VmGlobal<Lisp_Object>; // char-width-table
+        pub safe static Vcharset_list: VmGlobal<Lisp_Object>; // charset-list
+        pub safe static Vcharset_map_path: VmGlobal<Lisp_Object>; // charset-map-path
+        pub safe static Vcharset_revision_table: VmGlobal<Lisp_Object>; // charset-revision-table
+        pub safe static Vclear_message_function: VmGlobal<Lisp_Object>; // clear-message-function
+        pub safe static Vclone_indirect_buffer_hook: VmGlobal<Lisp_Object>; // clone-indirect-buffer-hook
+        pub safe static Vcode_conversion_map_vector: VmGlobal<Lisp_Object>; // code-conversion-map-vector
+        pub safe static Vcoding_category_list: VmGlobal<Lisp_Object>; // coding-category-list
+        pub safe static Vcoding_system_alist: VmGlobal<Lisp_Object>; // coding-system-alist
+        pub safe static Vcoding_system_for_read: VmGlobal<Lisp_Object>; // coding-system-for-read
+        pub safe static Vcoding_system_for_write: VmGlobal<Lisp_Object>; // coding-system-for-write
+        pub safe static Vcoding_system_list: VmGlobal<Lisp_Object>; // coding-system-list
+        pub safe static Vcombine_after_change_calls: VmGlobal<Lisp_Object>; // combine-after-change-calls
+        pub safe static Vcommand_debug_status: VmGlobal<Lisp_Object>; // command-debug-status
+        pub safe static Vcommand_error_function: VmGlobal<Lisp_Object>; // command-error-function
+        pub safe static Vcommand_history: VmGlobal<Lisp_Object>; // command-history
+        pub safe static Vcommand_line_args: VmGlobal<Lisp_Object>; // command-line-args
+        pub safe static Vcomment_use_syntax_ppss: VmGlobal<Lisp_Object>; // comment-use-syntax-ppss
+        pub safe static Vcomp__hashdollar: VmGlobal<Lisp_Object>; // comp--#$
+        pub safe static Vcomp_abi_hash: VmGlobal<Lisp_Object>; // comp-abi-hash
+        pub safe static Vcomp_ctxt: VmGlobal<Lisp_Object>; // comp-ctxt
+        pub safe static Vcomp_deferred_pending_h: VmGlobal<Lisp_Object>; // comp-deferred-pending-h
+        pub safe static Vcomp_eln_to_el_h: VmGlobal<Lisp_Object>; // comp-eln-to-el-h
+        pub safe static Vcomp_installed_trampolines_h: VmGlobal<Lisp_Object>; // comp-installed-trampolines-h
+        pub safe static Vcomp_loaded_comp_units_h: VmGlobal<Lisp_Object>; // comp-loaded-comp-units-h
+        pub safe static Vcomp_native_version_dir: VmGlobal<Lisp_Object>; // comp-native-version-dir
+        pub safe static Vcomp_subr_arities_h: VmGlobal<Lisp_Object>; // comp-subr-arities-h
+        pub safe static Vcomp_subr_list: VmGlobal<Lisp_Object>; // comp-subr-list
+        pub safe static Vcompletion_ignored_extensions: VmGlobal<Lisp_Object>; // completion-ignored-extensions
+        pub safe static Vcompletion_regexp_list: VmGlobal<Lisp_Object>; // completion-regexp-list
+        pub safe static Vcompose_chars_after_function: VmGlobal<Lisp_Object>; // compose-chars-after-function
+        pub safe static Vcomposition_function_table: VmGlobal<Lisp_Object>; // composition-function-table
+        pub safe static Vconfigure_info_directory: VmGlobal<Lisp_Object>; // configure-info-directory
+        pub safe static Vctags_program_name: VmGlobal<Lisp_Object>; // ctags-program-name
+        pub safe static Vcurrent_iso639_language: VmGlobal<Lisp_Object>; // current-iso639-language
+        pub safe static Vcurrent_key_remap_sequence: VmGlobal<Lisp_Object>; // current-key-remap-sequence
+        pub safe static Vcurrent_load_list: VmGlobal<Lisp_Object>; // current-load-list
+        pub safe static Vcurrent_minibuffer_command: VmGlobal<Lisp_Object>; // current-minibuffer-command
+        pub safe static Vcurrent_prefix_arg: VmGlobal<Lisp_Object>; // current-prefix-arg
+        pub safe static Vdata_directory: VmGlobal<Lisp_Object>; // data-directory
+        pub safe static Vdbus_compiled_version: VmGlobal<Lisp_Object>; // dbus-compiled-version
+        pub safe static Vdbus_debug: VmGlobal<Lisp_Object>; // dbus-debug
+        pub safe static Vdbus_message_type_error: VmGlobal<Lisp_Object>; // dbus-message-type-error
+        pub safe static Vdbus_message_type_invalid: VmGlobal<Lisp_Object>; // dbus-message-type-invalid
+        pub safe static Vdbus_message_type_method_call: VmGlobal<Lisp_Object>; // dbus-message-type-method-call
+        pub safe static Vdbus_message_type_method_return: VmGlobal<Lisp_Object>; // dbus-message-type-method-return
+        pub safe static Vdbus_message_type_signal: VmGlobal<Lisp_Object>; // dbus-message-type-signal
+        pub safe static Vdbus_registered_objects_table: VmGlobal<Lisp_Object>; // dbus-registered-objects-table
+        pub safe static Vdbus_runtime_version: VmGlobal<Lisp_Object>; // dbus-runtime-version
+        pub safe static Vdeactivate_mark: VmGlobal<Lisp_Object>; // deactivate-mark
+        pub safe static Vdebug_ignored_errors: VmGlobal<Lisp_Object>; // debug-ignored-errors
+        pub safe static Vdebug_on_error: VmGlobal<Lisp_Object>; // debug-on-error
+        pub safe static Vdebug_on_event: VmGlobal<Lisp_Object>; // debug-on-event
+        pub safe static Vdebug_on_message: VmGlobal<Lisp_Object>; // debug-on-message
+        pub safe static Vdebug_on_signal: VmGlobal<Lisp_Object>; // debug-on-signal
+        pub safe static Vdebugger: VmGlobal<Lisp_Object>; // debugger
+        pub safe static Vdefault_file_name_coding_system: VmGlobal<Lisp_Object>; // default-file-name-coding-system
+        pub safe static Vdefault_frame_alist: VmGlobal<Lisp_Object>; // default-frame-alist
+        pub safe static Vdefault_frame_scroll_bars: VmGlobal<Lisp_Object>; // default-frame-scroll-bars
+        pub safe static Vdefault_minibuffer_frame: VmGlobal<*mut c_void>; // default-minibuffer-frame
+        pub safe static Vdefault_process_coding_system: VmGlobal<Lisp_Object>; // default-process-coding-system
+        pub safe static Vdefault_text_properties: VmGlobal<Lisp_Object>; // default-text-properties
+        pub safe static Vdelayed_warnings_list: VmGlobal<Lisp_Object>; // delayed-warnings-list
+        pub safe static Vdelete_frame_functions: VmGlobal<Lisp_Object>; // delete-frame-functions
+        pub safe static Vdelete_terminal_functions: VmGlobal<Lisp_Object>; // delete-terminal-functions
+        pub safe static Vdescribe_bindings_check_shadowing_in_ranges: VmGlobal<Lisp_Object>; // describe-bindings-check-shadowing-in-ranges
+        pub safe static Vdisable_point_adjustment: VmGlobal<Lisp_Object>; // disable-point-adjustment
+        pub safe static Vdisplay_fill_column_indicator_character: VmGlobal<Lisp_Object>; // display-fill-column-indicator-character
+        pub safe static Vdisplay_fill_column_indicator_column: VmGlobal<Lisp_Object>; // display-fill-column-indicator-column
+        pub safe static Vdisplay_line_numbers: VmGlobal<Lisp_Object>; // display-line-numbers
+        pub safe static Vdisplay_line_numbers_current_absolute: VmGlobal<Lisp_Object>; // display-line-numbers-current-absolute
+        pub safe static Vdisplay_line_numbers_width: VmGlobal<Lisp_Object>; // display-line-numbers-width
+        pub safe static Vdisplay_monitors_changed_functions: VmGlobal<Lisp_Object>; // display-monitors-changed-functions
+        pub safe static Vdisplay_pixels_per_inch: VmGlobal<Lisp_Object>; // display-pixels-per-inch
+        pub safe static Vdoc_directory: VmGlobal<Lisp_Object>; // doc-directory
+        pub safe static Vdoc_file_name: VmGlobal<Lisp_Object>; // internal-doc-file-name
+        pub safe static Vdos_display_scancodes: VmGlobal<Lisp_Object>; // dos-display-scancodes
+        pub safe static Vdos_unsupported_char_glyph: VmGlobal<Lisp_Object>; // dos-unsupported-char-glyph
+        pub safe static Vdos_version: VmGlobal<Lisp_Object>; // dos-version
+        pub safe static Vdos_windows_version: VmGlobal<Lisp_Object>; // dos-windows-version
+        pub safe static Vdouble_click_time: VmGlobal<Lisp_Object>; // double-click-time
+        pub safe static Vdump_mode: VmGlobal<Lisp_Object>; // dump-mode
+        pub safe static Vdynamic_library_alist: VmGlobal<Lisp_Object>; // dynamic-library-alist
+        pub safe static Vdynamic_library_suffixes: VmGlobal<Lisp_Object>; // dynamic-library-suffixes
+        pub safe static Vebrowse_program_name: VmGlobal<Lisp_Object>; // ebrowse-program-name
+        pub safe static Vecho_keystrokes: VmGlobal<Lisp_Object>; // echo-keystrokes
+        pub safe static Vemacs_copyright: VmGlobal<Lisp_Object>; // emacs-copyright
+        pub safe static Vemacs_version: VmGlobal<Lisp_Object>; // emacs-version
+        pub safe static Vemacsclient_program_name: VmGlobal<Lisp_Object>; // emacsclient-program-name
+        pub safe static Vemulation_mode_map_alists: VmGlobal<Lisp_Object>; // emulation-mode-map-alists
+        pub safe static Venable_character_translation: VmGlobal<Lisp_Object>; // enable-character-translation
+        pub safe static Venable_disabled_menus_and_buttons: VmGlobal<Lisp_Object>; // enable-disabled-menus-and-buttons
+        pub safe static Vetags_program_name: VmGlobal<Lisp_Object>; // etags-program-name
+        pub safe static Veval_buffer_list: VmGlobal<Lisp_Object>; // eval-buffer-list
+        pub safe static Vexec_directory: VmGlobal<Lisp_Object>; // exec-directory
+        pub safe static Vexec_path: VmGlobal<Lisp_Object>; // exec-path
+        pub safe static Vexec_suffixes: VmGlobal<Lisp_Object>; // exec-suffixes
+        pub safe static Vexecuting_kbd_macro: VmGlobal<Lisp_Object>; // executing-kbd-macro
+        pub safe static Vface_default_stipple: VmGlobal<Lisp_Object>; // face-default-stipple
+        pub safe static Vface_font_lax_matched_attributes: VmGlobal<Lisp_Object>; // face-font-lax-matched-attributes
+        pub safe static Vface_font_rescale_alist: VmGlobal<Lisp_Object>; // face-font-rescale-alist
+        pub safe static Vface_ignored_fonts: VmGlobal<Lisp_Object>; // face-ignored-fonts
+        pub safe static Vface_new_frame_defaults: VmGlobal<Lisp_Object>; // face--new-frame-defaults
+        pub safe static Vface_remapping_alist: VmGlobal<Lisp_Object>; // face-remapping-alist
+        pub safe static Vfeatures: VmGlobal<Lisp_Object>; // features
+        pub safe static Vfile_coding_system_alist: VmGlobal<Lisp_Object>; // file-coding-system-alist
+        pub safe static Vfile_name_coding_system: VmGlobal<Lisp_Object>; // file-name-coding-system
+        pub safe static Vfile_name_handler_alist: VmGlobal<Lisp_Object>; // file-name-handler-alist
+        pub safe static Vfind_word_boundary_function_table: VmGlobal<Lisp_Object>; // find-word-boundary-function-table
+        pub safe static Vfirst_change_hook: VmGlobal<Lisp_Object>; // first-change-hook
+        pub safe static Vfloat_output_format: VmGlobal<Lisp_Object>; // float-output-format
+        pub safe static Vfont_encoding_alist: VmGlobal<Lisp_Object>; // font-encoding-alist
+        pub safe static Vfont_encoding_charset_alist: VmGlobal<Lisp_Object>; // font-encoding-charset-alist
+        pub safe static Vfont_log: VmGlobal<Lisp_Object>; // font-log
+        pub safe static Vfontification_functions: VmGlobal<Lisp_Object>; // fontification-functions
+        pub safe static Vfontset_alias_alist: VmGlobal<Lisp_Object>; // fontset-alias-alist
+        pub safe static Vforward_comment_function: VmGlobal<Lisp_Object>; // forward-comment-function
+        pub safe static Vframe_alpha_lower_limit: VmGlobal<Lisp_Object>; // frame-alpha-lower-limit
+        pub safe static Vframe_title_format: VmGlobal<Lisp_Object>; // frame-title-format
+        pub safe static Vfringe_bitmaps: VmGlobal<Lisp_Object>; // fringe-bitmaps
+        pub safe static Vfunction_key_map: VmGlobal<Lisp_Object>; // function-key-map
+        pub safe static Vgc_cons_percentage: VmGlobal<Lisp_Object>; // gc-cons-percentage
+        pub safe static Vgc_elapsed: VmGlobal<Lisp_Object>; // gc-elapsed
+        pub safe static Vglobal_disable_point_adjustment: VmGlobal<Lisp_Object>; // global-disable-point-adjustment
+        pub safe static Vglobal_mode_string: VmGlobal<Lisp_Object>; // global-mode-string
+        pub safe static Vglyph_table: VmGlobal<Lisp_Object>; // glyph-table
+        pub safe static Vglyphless_char_display: VmGlobal<Lisp_Object>; // glyphless-char-display
+        pub safe static Vgtk_version_string: VmGlobal<Lisp_Object>; // gtk-version-string
+        pub safe static Vhaiku_allowed_ui_colors: VmGlobal<Lisp_Object>; // haiku-allowed-ui-colors
+        pub safe static Vhaiku_control_keysym: VmGlobal<Lisp_Object>; // haiku-control-keysym
+        pub safe static Vhaiku_drag_track_function: VmGlobal<Lisp_Object>; // haiku-drag-track-function
+        pub safe static Vhaiku_drag_wheel_function: VmGlobal<Lisp_Object>; // haiku-drag-wheel-function
+        pub safe static Vhaiku_lost_selection_functions: VmGlobal<Lisp_Object>; // haiku-lost-selection-functions
+        pub safe static Vhaiku_meta_keysym: VmGlobal<Lisp_Object>; // haiku-meta-keysym
+        pub safe static Vhaiku_shift_keysym: VmGlobal<Lisp_Object>; // haiku-shift-keysym
+        pub safe static Vhaiku_super_keysym: VmGlobal<Lisp_Object>; // haiku-super-keysym
+        pub safe static Vhelp_char: VmGlobal<Lisp_Object>; // help-char
+        pub safe static Vhelp_event_list: VmGlobal<Lisp_Object>; // help-event-list
+        pub safe static Vhelp_form: VmGlobal<Lisp_Object>; // help-form
+        pub safe static Vhexl_program_name: VmGlobal<Lisp_Object>; // hexl-program-name
+        pub safe static Vhistory_add_new_input: VmGlobal<Lisp_Object>; // history-add-new-input
+        pub safe static Vhistory_length: VmGlobal<Lisp_Object>; // history-length
+        pub safe static Vhourglass_delay: VmGlobal<Lisp_Object>; // hourglass-delay
+        pub safe static Vhscroll_step: VmGlobal<Lisp_Object>; // hscroll-step
+        pub safe static Vicon_title_format: VmGlobal<Lisp_Object>; // icon-title-format
+        pub safe static Vignore_relative_composition: VmGlobal<Lisp_Object>; // ignore-relative-composition
+        pub safe static Vimage_cache_eviction_delay: VmGlobal<Lisp_Object>; // image-cache-eviction-delay
+        pub safe static Vimage_scaling_factor: VmGlobal<Lisp_Object>; // image-scaling-factor
+        pub safe static Vimage_types: VmGlobal<Lisp_Object>; // image-types
+        pub safe static Vinhibit_changing_match_data: VmGlobal<Lisp_Object>; // inhibit-changing-match-data
+        pub safe static Vinhibit_debugger: VmGlobal<Lisp_Object>; // inhibit-debugger
+        pub safe static Vinhibit_field_text_motion: VmGlobal<Lisp_Object>; // inhibit-field-text-motion
+        pub safe static Vinhibit_file_name_handlers: VmGlobal<Lisp_Object>; // inhibit-file-name-handlers
+        pub safe static Vinhibit_file_name_operation: VmGlobal<Lisp_Object>; // inhibit-file-name-operation
+        pub safe static Vinhibit_point_motion_hooks: VmGlobal<Lisp_Object>; // inhibit-point-motion-hooks
+        pub safe static Vinhibit_quit: VmGlobal<Lisp_Object>; // inhibit-quit
+        pub safe static Vinhibit_read_only: VmGlobal<Lisp_Object>; // inhibit-read-only
+        pub safe static Vinhibit_redisplay: VmGlobal<Lisp_Object>; // inhibit-redisplay
+        pub safe static Vinitial_environment: VmGlobal<Lisp_Object>; // initial-environment
+        pub safe static Vinitial_window_system: VmGlobal<Lisp_Object>; // initial-window-system
+        pub safe static Vinput_decode_map: VmGlobal<*mut c_void>; // input-decode-map
+        pub safe static Vinput_method_function: VmGlobal<Lisp_Object>; // input-method-function
+        pub safe static Vinput_method_previous_message: VmGlobal<Lisp_Object>; // input-method-previous-message
+        pub safe static Vinstallation_directory: VmGlobal<Lisp_Object>; // installation-directory
+        pub safe static Vinternal__daemon_sockname: VmGlobal<Lisp_Object>; // internal--daemon-sockname
+        pub safe static Vinternal__get_default_lexical_binding_function: VmGlobal<Lisp_Object>; // internal--get-default-lexical-binding-function
+        pub safe static Vinternal__top_level_message: VmGlobal<Lisp_Object>; // internal--top-level-message
+        pub safe static Vinternal_interpreter_environment: VmGlobal<Lisp_Object>; // internal-interpreter-environment
+        pub safe static Vinternal_make_interpreted_closure_function: VmGlobal<Lisp_Object>; // internal-make-interpreted-closure-function
+        pub safe static Vinterrupt_process_functions: VmGlobal<Lisp_Object>; // interrupt-process-functions
+        pub safe static Vinvocation_directory: VmGlobal<Lisp_Object>; // invocation-directory
+        pub safe static Vinvocation_name: VmGlobal<Lisp_Object>; // invocation-name
+        pub safe static Vkbd_macro_termination_hook: VmGlobal<Lisp_Object>; // kbd-macro-termination-hook
+        pub safe static Vkey_translation_map: VmGlobal<Lisp_Object>; // key-translation-map
+        pub safe static Vkeyboard_translate_table: VmGlobal<*mut c_void>; // keyboard-translate-table
+        pub safe static Vkill_buffer_query_functions: VmGlobal<Lisp_Object>; // kill-buffer-query-functions
+        pub safe static Vkill_emacs_hook: VmGlobal<Lisp_Object>; // kill-emacs-hook
+        pub safe static Vlast_code_conversion_error: VmGlobal<Lisp_Object>; // last-code-conversion-error
+        pub safe static Vlast_coding_system_used: VmGlobal<Lisp_Object>; // last-coding-system-used
+        pub safe static Vlast_command: VmGlobal<*mut c_void>; // last-command
+        pub safe static Vlast_event_device: VmGlobal<Lisp_Object>; // last-event-device
+        pub safe static Vlast_event_frame: VmGlobal<Lisp_Object>; // last-event-frame
+        pub safe static Vlast_kbd_macro: VmGlobal<*mut c_void>; // last-kbd-macro
+        pub safe static Vlast_prefix_arg: VmGlobal<*mut c_void>; // last-prefix-arg
+        pub safe static Vlast_repeatable_command: VmGlobal<*mut c_void>; // last-repeatable-command
+        pub safe static Vlatin_extra_code_table: VmGlobal<Lisp_Object>; // latin-extra-code-table
+        pub safe static Vlexical_binding: VmGlobal<Lisp_Object>; // lexical-binding
+        pub safe static Vlibgnutls_version: VmGlobal<Lisp_Object>; // libgnutls-version
+        pub safe static Vline_number_display_limit: VmGlobal<Lisp_Object>; // line-number-display-limit
+        pub safe static Vline_prefix: VmGlobal<Lisp_Object>; // line-prefix
+        pub safe static Vload_file_name: VmGlobal<Lisp_Object>; // load-file-name
+        pub safe static Vload_file_rep_suffixes: VmGlobal<Lisp_Object>; // load-file-rep-suffixes
+        pub safe static Vload_history: VmGlobal<Lisp_Object>; // load-history
+        pub safe static Vload_path: VmGlobal<Lisp_Object>; // load-path
+        pub safe static Vload_path_filter_function: VmGlobal<Lisp_Object>; // load-path-filter-function
+        pub safe static Vload_read_function: VmGlobal<Lisp_Object>; // load-read-function
+        pub safe static Vload_source_file_function: VmGlobal<Lisp_Object>; // load-source-file-function
+        pub safe static Vload_suffixes: VmGlobal<Lisp_Object>; // load-suffixes
+        pub safe static Vload_true_file_name: VmGlobal<Lisp_Object>; // load-true-file-name
+        pub safe static Vlocal_function_key_map: VmGlobal<*mut c_void>; // local-function-key-map
+        pub safe static Vlocale_coding_system: VmGlobal<Lisp_Object>; // locale-coding-system
+        pub safe static Vlong_line_threshold: VmGlobal<Lisp_Object>; // long-line-threshold
+        pub safe static Vlread_unescaped_character_literals: VmGlobal<Lisp_Object>; // lread--unescaped-character-literals
+        pub safe static Vmacroexp__dynvars: VmGlobal<Lisp_Object>; // macroexp--dynvars
+        pub safe static Vmain_thread: VmGlobal<Lisp_Object>; // main-thread
+        pub safe static Vmake_cursor_line_fully_visible: VmGlobal<Lisp_Object>; // make-cursor-line-fully-visible
+        pub safe static Vmake_pointer_invisible: VmGlobal<Lisp_Object>; // make-pointer-invisible
+        pub safe static Vmark_even_if_inactive: VmGlobal<Lisp_Object>; // mark-even-if-inactive
+        pub safe static Vmax_image_size: VmGlobal<Lisp_Object>; // max-image-size
+        pub safe static Vmax_mini_window_height: VmGlobal<Lisp_Object>; // max-mini-window-height
+        pub safe static Vmaximum_scroll_margin: VmGlobal<Lisp_Object>; // maximum-scroll-margin
+        pub safe static Vmemory_full: VmGlobal<Lisp_Object>; // memory-full
+        pub safe static Vmemory_signal_data: VmGlobal<Lisp_Object>; // memory-signal-data
+        pub safe static Vmenu_bar_final_items: VmGlobal<Lisp_Object>; // menu-bar-final-items
+        pub safe static Vmenu_bar_mode: VmGlobal<Lisp_Object>; // menu-bar-mode
+        pub safe static Vmenu_bar_update_hook: VmGlobal<Lisp_Object>; // menu-bar-update-hook
+        pub safe static Vmenu_updating_frame: VmGlobal<Lisp_Object>; // menu-updating-frame
+        pub safe static Vmessage_log_max: VmGlobal<Lisp_Object>; // message-log-max
+        pub safe static Vmessages_buffer_name: VmGlobal<Lisp_Object>; // messages-buffer-name
+        pub safe static Vminibuf_scroll_window: VmGlobal<Lisp_Object>; // minibuffer-scroll-window
+        pub safe static Vminibuffer_completing_file_name: VmGlobal<Lisp_Object>; // minibuffer-completing-file-name
+        pub safe static Vminibuffer_completion_confirm: VmGlobal<Lisp_Object>; // minibuffer-completion-confirm
+        pub safe static Vminibuffer_completion_predicate: VmGlobal<Lisp_Object>; // minibuffer-completion-predicate
+        pub safe static Vminibuffer_completion_table: VmGlobal<Lisp_Object>; // minibuffer-completion-table
+        pub safe static Vminibuffer_exit_hook: VmGlobal<Lisp_Object>; // minibuffer-exit-hook
+        pub safe static Vminibuffer_help_form: VmGlobal<Lisp_Object>; // minibuffer-help-form
+        pub safe static Vminibuffer_history_position: VmGlobal<Lisp_Object>; // minibuffer-history-position
+        pub safe static Vminibuffer_history_variable: VmGlobal<Lisp_Object>; // minibuffer-history-variable
+        pub safe static Vminibuffer_local_map: VmGlobal<Lisp_Object>; // minibuffer-local-map
+        pub safe static Vminibuffer_message_timeout: VmGlobal<Lisp_Object>; // minibuffer-message-timeout
+        pub safe static Vminibuffer_prompt_properties: VmGlobal<Lisp_Object>; // minibuffer-prompt-properties
+        pub safe static Vminibuffer_setup_hook: VmGlobal<Lisp_Object>; // minibuffer-setup-hook
+        pub safe static Vminor_mode_map_alist: VmGlobal<Lisp_Object>; // minor-mode-map-alist
+        pub safe static Vminor_mode_overriding_map_alist: VmGlobal<Lisp_Object>; // minor-mode-overriding-map-alist
+        pub safe static Vmode_line_compact: VmGlobal<Lisp_Object>; // mode-line-compact
+        pub safe static Vmodule_file_suffix: VmGlobal<Lisp_Object>; // module-file-suffix
+        pub safe static Vmost_negative_fixnum: VmGlobal<Lisp_Object>; // most-negative-fixnum
+        pub safe static Vmost_positive_fixnum: VmGlobal<Lisp_Object>; // most-positive-fixnum
+        pub safe static Vmotif_version_string: VmGlobal<Lisp_Object>; // motif-version-string
+        pub safe static Vmouse_autoselect_window: VmGlobal<Lisp_Object>; // mouse-autoselect-window
+        pub safe static Vmouse_highlight: VmGlobal<Lisp_Object>; // mouse-highlight
+        pub safe static Vmouse_leave_buffer_hook: VmGlobal<Lisp_Object>; // mouse-leave-buffer-hook
+        pub safe static Vmouse_position_function: VmGlobal<Lisp_Object>; // mouse-position-function
+        pub safe static Vmove_frame_functions: VmGlobal<Lisp_Object>; // move-frame-functions
+        pub safe static Vmovemail_program_name: VmGlobal<Lisp_Object>; // movemail-program-name
+        pub safe static Vnative_comp_eln_load_path: VmGlobal<Lisp_Object>; // native-comp-eln-load-path
+        pub safe static Vnative_comp_enable_subr_trampolines: VmGlobal<Lisp_Object>; // native-comp-enable-subr-trampolines
+        pub safe static Vnetwork_coding_system_alist: VmGlobal<Lisp_Object>; // network-coding-system-alist
+        pub safe static Vnext_selection_coding_system: VmGlobal<Lisp_Object>; // next-selection-coding-system
+        pub safe static Vnobreak_char_display: VmGlobal<Lisp_Object>; // nobreak-char-display
+        pub safe static Vobarray: VmGlobal<Lisp_Object>; // obarray
+        pub safe static Voperating_system_release: VmGlobal<Lisp_Object>; // operating-system-release
+        pub safe static Votf_script_alist: VmGlobal<Lisp_Object>; // otf-script-alist
+        pub safe static Vother_window_scroll_buffer: VmGlobal<Lisp_Object>; // other-window-scroll-buffer
+        pub safe static Vother_window_scroll_default: VmGlobal<Lisp_Object>; // other-window-scroll-default
+        pub safe static Voverflow_newline_into_fringe: VmGlobal<Lisp_Object>; // overflow-newline-into-fringe
+        pub safe static Voverlay_arrow_position: VmGlobal<Lisp_Object>; // overlay-arrow-position
+        pub safe static Voverlay_arrow_string: VmGlobal<Lisp_Object>; // overlay-arrow-string
+        pub safe static Voverlay_arrow_variable_list: VmGlobal<Lisp_Object>; // overlay-arrow-variable-list
+        pub safe static Voverriding_local_map: VmGlobal<Lisp_Object>; // overriding-local-map
+        pub safe static Voverriding_local_map_menu_flag: VmGlobal<Lisp_Object>; // overriding-local-map-menu-flag
+        pub safe static Voverriding_plist_environment: VmGlobal<Lisp_Object>; // overriding-plist-environment
+        pub safe static Voverriding_terminal_local_map: VmGlobal<*mut c_void>; // overriding-terminal-local-map
+        pub safe static Voverriding_text_conversion_style: VmGlobal<Lisp_Object>; // overriding-text-conversion-style
+        pub safe static Vpath_separator: VmGlobal<Lisp_Object>; // path-separator
+        pub safe static Vpdumper_fingerprint: VmGlobal<Lisp_Object>; // pdumper-fingerprint
+        pub safe static Vpgtk_keysym_table: VmGlobal<Lisp_Object>; // pgtk-keysym-table
+        pub safe static Vpgtk_lost_selection_functions: VmGlobal<Lisp_Object>; // pgtk-lost-selection-functions
+        pub safe static Vpgtk_selection_alias_alist: VmGlobal<Lisp_Object>; // pgtk-selection-alias-alist
+        pub safe static Vpgtk_sent_selection_functions: VmGlobal<Lisp_Object>; // pgtk-sent-selection-functions
+        pub safe static Vpgtk_sent_selection_hooks: VmGlobal<Lisp_Object>; // pgtk-sent-selection-hooks
+        pub safe static Vpgtk_use_im_context_on_new_connection: VmGlobal<Lisp_Object>; // pgtk-use-im-context-on-new-connection
+        pub safe static Vpgtk_wait_for_event_timeout: VmGlobal<Lisp_Object>; // pgtk-wait-for-event-timeout
+        pub safe static Vpolling_period: VmGlobal<Lisp_Object>; // polling-period
+        pub safe static Vpost_command_hook: VmGlobal<Lisp_Object>; // post-command-hook
+        pub safe static Vpost_gc_hook: VmGlobal<Lisp_Object>; // post-gc-hook
+        pub safe static Vpost_select_region_hook: VmGlobal<Lisp_Object>; // post-select-region-hook
+        pub safe static Vpost_self_insert_hook: VmGlobal<Lisp_Object>; // post-self-insert-hook
+        pub safe static Vpre_command_hook: VmGlobal<Lisp_Object>; // pre-command-hook
+        pub safe static Vpre_redisplay_function: VmGlobal<Lisp_Object>; // pre-redisplay-function
+        pub safe static Vprefix_arg: VmGlobal<*mut c_void>; // prefix-arg
+        pub safe static Vprefix_help_command: VmGlobal<Lisp_Object>; // prefix-help-command
+        pub safe static Vpreloaded_file_list: VmGlobal<Lisp_Object>; // preloaded-file-list
+        pub safe static Vprint__unreadable_callback_buffer: VmGlobal<Lisp_Object>; // print--unreadable-callback-buffer
+        pub safe static Vprint_charset_text_property: VmGlobal<Lisp_Object>; // print-charset-text-property
+        pub safe static Vprint_circle: VmGlobal<Lisp_Object>; // print-circle
+        pub safe static Vprint_continuous_numbering: VmGlobal<Lisp_Object>; // print-continuous-numbering
+        pub safe static Vprint_gensym: VmGlobal<Lisp_Object>; // print-gensym
+        pub safe static Vprint_length: VmGlobal<Lisp_Object>; // print-length
+        pub safe static Vprint_level: VmGlobal<Lisp_Object>; // print-level
+        pub safe static Vprint_number_table: VmGlobal<Lisp_Object>; // print-number-table
+        pub safe static Vprint_unreadable_function: VmGlobal<Lisp_Object>; // print-unreadable-function
+        pub safe static Vprintable_chars: VmGlobal<Lisp_Object>; // printable-chars
+        pub safe static Vprocess_adaptive_read_buffering: VmGlobal<Lisp_Object>; // process-adaptive-read-buffering
+        pub safe static Vprocess_coding_system_alist: VmGlobal<Lisp_Object>; // process-coding-system-alist
+        pub safe static Vprocess_connection_type: VmGlobal<Lisp_Object>; // process-connection-type
+        pub safe static Vprocess_environment: VmGlobal<Lisp_Object>; // process-environment
+        pub safe static Vpurify_flag: VmGlobal<Lisp_Object>; // purify-flag
+        pub safe static Vquit_flag: VmGlobal<Lisp_Object>; // quit-flag
+        pub safe static Vrcs2log_program_name: VmGlobal<Lisp_Object>; // rcs2log-program-name
+        pub safe static Vread_buffer_function: VmGlobal<Lisp_Object>; // read-buffer-function
+        pub safe static Vread_circle: VmGlobal<Lisp_Object>; // read-circle
+        pub safe static Vread_expression_history: VmGlobal<Lisp_Object>; // read-expression-history
+        pub safe static Vread_hide_char: VmGlobal<Lisp_Object>; // read-hide-char
+        pub safe static Vread_symbol_shorthands: VmGlobal<Lisp_Object>; // read-symbol-shorthands
+        pub safe static Vreal_last_command: VmGlobal<*mut c_void>; // real-last-command
+        pub safe static Vreal_this_command: VmGlobal<Lisp_Object>; // real-this-command
+        pub safe static Vrecenter_redisplay: VmGlobal<Lisp_Object>; // recenter-redisplay
+        pub safe static Vredisplay__all_windows_cause: VmGlobal<Lisp_Object>; // redisplay--all-windows-cause
+        pub safe static Vredisplay__mode_lines_cause: VmGlobal<Lisp_Object>; // redisplay--mode-lines-cause
+        pub safe static Vregion_extract_function: VmGlobal<Lisp_Object>; // region-extract-function
+        pub safe static Vreport_emacs_bug_address: VmGlobal<Lisp_Object>; // report-emacs-bug-address
+        pub safe static Vresize_mini_windows: VmGlobal<Lisp_Object>; // resize-mini-windows
+        pub safe static Vresume_tty_functions: VmGlobal<Lisp_Object>; // resume-tty-functions
+        pub safe static Vring_bell_function: VmGlobal<Lisp_Object>; // ring-bell-function
+        pub safe static Vsaved_region_selection: VmGlobal<Lisp_Object>; // saved-region-selection
+        pub safe static Vscalable_fonts_allowed: VmGlobal<Lisp_Object>; // scalable-fonts-allowed
+        pub safe static Vscript_representative_chars: VmGlobal<Lisp_Object>; // script-representative-chars
+        pub safe static Vscroll_preserve_screen_position: VmGlobal<Lisp_Object>; // scroll-preserve-screen-position
+        pub safe static Vsearch_spaces_regexp: VmGlobal<Lisp_Object>; // search-spaces-regexp
+        pub safe static Vselect_active_regions: VmGlobal<Lisp_Object>; // select-active-regions
+        pub safe static Vselect_safe_coding_system_function: VmGlobal<Lisp_Object>; // select-safe-coding-system-function
+        pub safe static Vselection_coding_system: VmGlobal<Lisp_Object>; // selection-coding-system
+        pub safe static Vselection_converter_alist: VmGlobal<Lisp_Object>; // selection-converter-alist
+        pub safe static Vselection_inhibit_update_commands: VmGlobal<Lisp_Object>; // selection-inhibit-update-commands
+        pub safe static Vset_auto_coding_function: VmGlobal<Lisp_Object>; // set-auto-coding-function
+        pub safe static Vset_message_function: VmGlobal<Lisp_Object>; // set-message-function
+        pub safe static Vsfnt_default_family_alist: VmGlobal<Lisp_Object>; // sfnt-default-family-alist
+        pub safe static Vsfnt_uninstructable_family_regexp: VmGlobal<Lisp_Object>; // sfnt-uninstructable-family-regexp
+        pub safe static Vshared_game_score_directory: VmGlobal<Lisp_Object>; // shared-game-score-directory
+        pub safe static Vshell_file_name: VmGlobal<Lisp_Object>; // shell-file-name
+        pub safe static Vshow_help_function: VmGlobal<Lisp_Object>; // show-help-function
+        pub safe static Vshow_trailing_whitespace: VmGlobal<Lisp_Object>; // show-trailing-whitespace
+        pub safe static Vsignal_hook_function: VmGlobal<Lisp_Object>; // signal-hook-function
+        pub safe static Vsignal_process_functions: VmGlobal<Lisp_Object>; // signal-process-functions
+        pub safe static Vsource_directory: VmGlobal<Lisp_Object>; // source-directory
+        pub safe static Vspecial_event_map: VmGlobal<Lisp_Object>; // special-event-map
+        pub safe static Vspecial_mirror_table: VmGlobal<Lisp_Object>; // special-mirror-table
+        pub safe static Vstandard_display_table: VmGlobal<Lisp_Object>; // standard-display-table
+        pub safe static Vstandard_input: VmGlobal<Lisp_Object>; // standard-input
+        pub safe static Vstandard_output: VmGlobal<Lisp_Object>; // standard-output
+        pub safe static Vstandard_translation_table_for_decode: VmGlobal<Lisp_Object>; // standard-translation-table-for-decode
+        pub safe static Vstandard_translation_table_for_encode: VmGlobal<Lisp_Object>; // standard-translation-table-for-encode
+        pub safe static Vsuspend_tty_functions: VmGlobal<Lisp_Object>; // suspend-tty-functions
+        pub safe static Vsystem_configuration: VmGlobal<Lisp_Object>; // system-configuration
+        pub safe static Vsystem_configuration_features: VmGlobal<Lisp_Object>; // system-configuration-features
+        pub safe static Vsystem_configuration_options: VmGlobal<Lisp_Object>; // system-configuration-options
+        pub safe static Vsystem_key_alist: VmGlobal<*mut c_void>; // system-key-alist
+        pub safe static Vsystem_messages_locale: VmGlobal<Lisp_Object>; // system-messages-locale
+        pub safe static Vsystem_name: VmGlobal<Lisp_Object>; // system-name
+        pub safe static Vsystem_time_locale: VmGlobal<Lisp_Object>; // system-time-locale
+        pub safe static Vsystem_type: VmGlobal<Lisp_Object>; // system-type
+        pub safe static Vtab_bar_border: VmGlobal<Lisp_Object>; // tab-bar-border
+        pub safe static Vtab_bar_button_margin: VmGlobal<Lisp_Object>; // tab-bar-button-margin
+        pub safe static Vtab_bar_mode: VmGlobal<Lisp_Object>; // tab-bar-mode
+        pub safe static Vtab_bar_position: VmGlobal<Lisp_Object>; // tab-bar-position
+        pub safe static Vtab_bar_separator_image_expression: VmGlobal<Lisp_Object>; // tab-bar-separator-image-expression
+        pub safe static Vtemp_buffer_show_function: VmGlobal<Lisp_Object>; // temp-buffer-show-function
+        pub safe static Vtemporary_file_directory: VmGlobal<Lisp_Object>; // temporary-file-directory
+        pub safe static Vterminal_frame: VmGlobal<Lisp_Object>; // terminal-frame
+        pub safe static Vtext_conversion_edits: VmGlobal<Lisp_Object>; // text-conversion-edits
+        pub safe static Vtext_conversion_face: VmGlobal<Lisp_Object>; // text-conversion-face
+        pub safe static Vtext_property_default_nonsticky: VmGlobal<Lisp_Object>; // text-property-default-nonsticky
+        pub safe static Vtext_quoting_style: VmGlobal<Lisp_Object>; // text-quoting-style
+        pub safe static Vthis_command: VmGlobal<Lisp_Object>; // this-command
+        pub safe static Vthis_command_keys_shift_translated: VmGlobal<Lisp_Object>; // this-command-keys-shift-translated
+        pub safe static Vthis_original_command: VmGlobal<Lisp_Object>; // this-original-command
+        pub safe static Vthrow_on_input: VmGlobal<Lisp_Object>; // throw-on-input
+        pub safe static Vtimer_idle_list: VmGlobal<Lisp_Object>; // timer-idle-list
+        pub safe static Vtimer_list: VmGlobal<Lisp_Object>; // timer-list
+        pub safe static Vtool_bar_border: VmGlobal<Lisp_Object>; // tool-bar-border
+        pub safe static Vtool_bar_button_margin: VmGlobal<Lisp_Object>; // tool-bar-button-margin
+        pub safe static Vtool_bar_mode: VmGlobal<Lisp_Object>; // tool-bar-mode
+        pub safe static Vtool_bar_separator_image_expression: VmGlobal<Lisp_Object>; // tool-bar-separator-image-expression
+        pub safe static Vtool_bar_style: VmGlobal<Lisp_Object>; // tool-bar-style
+        pub safe static Vtoolkit_theme: VmGlobal<Lisp_Object>; // toolkit-theme
+        pub safe static Vtop_level: VmGlobal<Lisp_Object>; // top-level
+        pub safe static Vtransient_mark_mode: VmGlobal<Lisp_Object>; // transient-mark-mode
+        pub safe static Vtranslation_hash_table_vector: VmGlobal<Lisp_Object>; // translation-hash-table-vector
+        pub safe static Vtranslation_table_for_input: VmGlobal<Lisp_Object>; // translation-table-for-input
+        pub safe static Vtranslation_table_vector: VmGlobal<Lisp_Object>; // translation-table-vector
+        pub safe static Vtreesit_extra_load_path: VmGlobal<Lisp_Object>; // treesit-extra-load-path
+        pub safe static Vtreesit_language_remap_alist: VmGlobal<Lisp_Object>; // treesit-language-remap-alist
+        pub safe static Vtreesit_languages_require_line_column_tracking: VmGlobal<Lisp_Object>; // treesit-languages-require-line-column-tracking
+        pub safe static Vtreesit_load_name_override_list: VmGlobal<Lisp_Object>; // treesit-load-name-override-list
+        pub safe static Vtreesit_major_mode_remap_alist: VmGlobal<Lisp_Object>; // treesit-major-mode-remap-alist
+        pub safe static Vtreesit_thing_settings: VmGlobal<Lisp_Object>; // treesit-thing-settings
+        pub safe static Vtruncate_partial_width_windows: VmGlobal<Lisp_Object>; // truncate-partial-width-windows
+        pub safe static Vtty_defined_color_alist: VmGlobal<Lisp_Object>; // tty-defined-color-alist
+        pub safe static Vtty_erase_char: VmGlobal<Lisp_Object>; // tty-erase-char
+        pub safe static Vundo_outer_limit: VmGlobal<Lisp_Object>; // undo-outer-limit
+        pub safe static Vundo_outer_limit_function: VmGlobal<Lisp_Object>; // undo-outer-limit-function
+        pub safe static Vunicode_category_table: VmGlobal<Lisp_Object>; // unicode-category-table
+        pub safe static Vunread_command_events: VmGlobal<Lisp_Object>; // unread-command-events
+        pub safe static Vunread_input_method_events: VmGlobal<Lisp_Object>; // unread-input-method-events
+        pub safe static Vunread_post_input_method_events: VmGlobal<Lisp_Object>; // unread-post-input-method-events
+        pub safe static Vuse_default_ascent: VmGlobal<Lisp_Object>; // use-default-ascent
+        pub safe static Vuser_full_name: VmGlobal<Lisp_Object>; // user-full-name
+        pub safe static Vuser_init_file: VmGlobal<Lisp_Object>; // user-init-file
+        pub safe static Vuser_login_name: VmGlobal<Lisp_Object>; // user-login-name
+        pub safe static Vuser_real_login_name: VmGlobal<Lisp_Object>; // user-real-login-name
+        pub safe static Vvalues: VmGlobal<Lisp_Object>; // values
+        pub safe static Vvertical_centering_font_regexp: VmGlobal<Lisp_Object>; // vertical-centering-font-regexp
+        pub safe static Vvoid_text_area_pointer: VmGlobal<Lisp_Object>; // void-text-area-pointer
+        pub safe static Vw32_alt_is_meta: VmGlobal<Lisp_Object>; // w32-alt-is-meta
+        pub safe static Vw32_apps_modifier: VmGlobal<Lisp_Object>; // w32-apps-modifier
+        pub safe static Vw32_capslock_is_shiftlock: VmGlobal<Lisp_Object>; // w32-capslock-is-shiftlock
+        pub safe static Vw32_charset_info_alist: VmGlobal<Lisp_Object>; // w32-charset-info-alist
+        pub safe static Vw32_collate_ignore_punctuation: VmGlobal<Lisp_Object>; // w32-collate-ignore-punctuation
+        pub safe static Vw32_color_map: VmGlobal<Lisp_Object>; // w32-color-map
+        pub safe static Vw32_downcase_file_names: VmGlobal<Lisp_Object>; // w32-downcase-file-names
+        pub safe static Vw32_enable_caps_lock: VmGlobal<Lisp_Object>; // w32-enable-caps-lock
+        pub safe static Vw32_enable_num_lock: VmGlobal<Lisp_Object>; // w32-enable-num-lock
+        pub safe static Vw32_enable_palette: VmGlobal<Lisp_Object>; // w32-enable-palette
+        pub safe static Vw32_generate_fake_inodes: VmGlobal<Lisp_Object>; // w32-generate-fake-inodes
+        pub safe static Vw32_get_true_file_attributes: VmGlobal<Lisp_Object>; // w32-get-true-file-attributes
+        pub safe static Vw32_grab_focus_on_raise: VmGlobal<Lisp_Object>; // w32-grab-focus-on-raise
+        pub safe static Vw32_lwindow_modifier: VmGlobal<Lisp_Object>; // w32-lwindow-modifier
+        pub safe static Vw32_pass_alt_to_system: VmGlobal<Lisp_Object>; // w32-pass-alt-to-system
+        pub safe static Vw32_pass_lwindow_to_system: VmGlobal<Lisp_Object>; // w32-pass-lwindow-to-system
+        pub safe static Vw32_pass_rwindow_to_system: VmGlobal<Lisp_Object>; // w32-pass-rwindow-to-system
+        pub safe static Vw32_phantom_key_code: VmGlobal<Lisp_Object>; // w32-phantom-key-code
+        pub safe static Vw32_quote_process_args: VmGlobal<Lisp_Object>; // w32-quote-process-args
+        pub safe static Vw32_recognize_altgr: VmGlobal<Lisp_Object>; // w32-recognize-altgr
+        pub safe static Vw32_rwindow_modifier: VmGlobal<Lisp_Object>; // w32-rwindow-modifier
+        pub safe static Vw32_scroll_lock_modifier: VmGlobal<Lisp_Object>; // w32-scroll-lock-modifier
+        pub safe static Vw32_start_process_inherit_error_mode: VmGlobal<Lisp_Object>; // w32-start-process-inherit-error-mode
+        pub safe static Vw32_start_process_share_console: VmGlobal<Lisp_Object>; // w32-start-process-share-console
+        pub safe static Vw32_start_process_show_window: VmGlobal<Lisp_Object>; // w32-start-process-show-window
+        pub safe static Vw32_swap_mouse_buttons: VmGlobal<Lisp_Object>; // w32-swap-mouse-buttons
+        pub safe static Vw32_tooltip_extra_pixels: VmGlobal<Lisp_Object>; // w32-tooltip-extra-pixels
+        pub safe static Vwhere_is_preferred_modifier: VmGlobal<Lisp_Object>; // where-is-preferred-modifier
+        pub safe static Vwhile_no_input_ignore_events: VmGlobal<Lisp_Object>; // while-no-input-ignore-events
+        pub safe static Vwindow_buffer_change_functions: VmGlobal<Lisp_Object>; // window-buffer-change-functions
+        pub safe static Vwindow_combination_limit: VmGlobal<Lisp_Object>; // window-combination-limit
+        pub safe static Vwindow_combination_resize: VmGlobal<Lisp_Object>; // window-combination-resize
+        pub safe static Vwindow_configuration_change_hook: VmGlobal<Lisp_Object>; // window-configuration-change-hook
+        pub safe static Vwindow_persistent_parameters: VmGlobal<Lisp_Object>; // window-persistent-parameters
+        pub safe static Vwindow_point_insertion_type: VmGlobal<Lisp_Object>; // window-point-insertion-type
+        pub safe static Vwindow_scroll_functions: VmGlobal<Lisp_Object>; // window-scroll-functions
+        pub safe static Vwindow_selection_change_functions: VmGlobal<Lisp_Object>; // window-selection-change-functions
+        pub safe static Vwindow_size_change_functions: VmGlobal<Lisp_Object>; // window-size-change-functions
+        pub safe static Vwindow_state_change_functions: VmGlobal<Lisp_Object>; // window-state-change-functions
+        pub safe static Vwindow_state_change_hook: VmGlobal<Lisp_Object>; // window-state-change-hook
+        pub safe static Vwindow_system: VmGlobal<*mut c_void>; // window-system
+        pub safe static Vword_combining_categories: VmGlobal<Lisp_Object>; // word-combining-categories
+        pub safe static Vword_separating_categories: VmGlobal<Lisp_Object>; // word-separating-categories
+        pub safe static Vwrap_prefix: VmGlobal<Lisp_Object>; // wrap-prefix
+        pub safe static Vwrite_region_annotate_functions: VmGlobal<Lisp_Object>; // write-region-annotate-functions
+        pub safe static Vwrite_region_annotations_so_far: VmGlobal<Lisp_Object>; // write-region-annotations-so-far
+        pub safe static Vwrite_region_post_annotation_function: VmGlobal<Lisp_Object>; // write-region-post-annotation-function
+        pub safe static Vx_allow_focus_stealing: VmGlobal<Lisp_Object>; // x-allow-focus-stealing
+        pub safe static Vx_alt_keysym: VmGlobal<Lisp_Object>; // x-alt-keysym
+        pub safe static Vx_auto_preserve_selections: VmGlobal<Lisp_Object>; // x-auto-preserve-selections
+        pub safe static Vx_bitmap_file_path: VmGlobal<Lisp_Object>; // x-bitmap-file-path
+        pub safe static Vx_ctrl_keysym: VmGlobal<Lisp_Object>; // x-ctrl-keysym
+        pub safe static Vx_cursor_fore_pixel: VmGlobal<Lisp_Object>; // x-cursor-fore-pixel
+        pub safe static Vx_detect_server_trust: VmGlobal<Lisp_Object>; // x-detect-server-trust
+        pub safe static Vx_dnd_movement_function: VmGlobal<Lisp_Object>; // x-dnd-movement-function
+        pub safe static Vx_dnd_native_test_function: VmGlobal<Lisp_Object>; // x-dnd-native-test-function
+        pub safe static Vx_dnd_targets_list: VmGlobal<Lisp_Object>; // x-dnd-targets-list
+        pub safe static Vx_dnd_unsupported_drop_function: VmGlobal<Lisp_Object>; // x-dnd-unsupported-drop-function
+        pub safe static Vx_dnd_wheel_function: VmGlobal<Lisp_Object>; // x-dnd-wheel-function
+        pub safe static Vx_fast_selection_list: VmGlobal<Lisp_Object>; // x-fast-selection-list
+        pub safe static Vx_hourglass_pointer_shape: VmGlobal<Lisp_Object>; // x-hourglass-pointer-shape
+        pub safe static Vx_hyper_keysym: VmGlobal<Lisp_Object>; // x-hyper-keysym
+        pub safe static Vx_input_coding_function: VmGlobal<Lisp_Object>; // x-input-coding-function
+        pub safe static Vx_input_coding_system: VmGlobal<Lisp_Object>; // x-input-coding-system
+        pub safe static Vx_keysym_table: VmGlobal<Lisp_Object>; // x-keysym-table
+        pub safe static Vx_lax_frame_positioning: VmGlobal<Lisp_Object>; // x-lax-frame-positioning
+        pub safe static Vx_lost_selection_functions: VmGlobal<Lisp_Object>; // x-lost-selection-functions
+        pub safe static Vx_max_tooltip_size: VmGlobal<Lisp_Object>; // x-max-tooltip-size
+        pub safe static Vx_meta_keysym: VmGlobal<Lisp_Object>; // x-meta-keysym
+        pub safe static Vx_mode_pointer_shape: VmGlobal<Lisp_Object>; // x-mode-pointer-shape
+        pub safe static Vx_no_window_manager: VmGlobal<Lisp_Object>; // x-no-window-manager
+        pub safe static Vx_nontext_pointer_shape: VmGlobal<Lisp_Object>; // x-nontext-pointer-shape
+        pub safe static Vx_pixel_size_width_font_regexp: VmGlobal<Lisp_Object>; // x-pixel-size-width-font-regexp
+        pub safe static Vx_pointer_shape: VmGlobal<Lisp_Object>; // x-pointer-shape
+        pub safe static Vx_popup_menu_function: VmGlobal<Lisp_Object>; // x-popup-menu-function
+        pub safe static Vx_pre_popup_menu_hook: VmGlobal<Lisp_Object>; // x-pre-popup-menu-hook
+        pub safe static Vx_quit_keysym: VmGlobal<Lisp_Object>; // x-quit-keysym
+        pub safe static Vx_resource_class: VmGlobal<Lisp_Object>; // x-resource-class
+        pub safe static Vx_resource_name: VmGlobal<Lisp_Object>; // x-resource-name
+        pub safe static Vx_scroll_event_delta_factor: VmGlobal<Lisp_Object>; // x-scroll-event-delta-factor
+        pub safe static Vx_select_enable_clipboard_manager: VmGlobal<Lisp_Object>; // x-select-enable-clipboard-manager
+        pub safe static Vx_selection_alias_alist: VmGlobal<Lisp_Object>; // x-selection-alias-alist
+        pub safe static Vx_sensitive_text_pointer_shape: VmGlobal<Lisp_Object>; // x-sensitive-text-pointer-shape
+        pub safe static Vx_sent_selection_functions: VmGlobal<Lisp_Object>; // x-sent-selection-functions
+        pub safe static Vx_session_id: VmGlobal<Lisp_Object>; // x-session-id
+        pub safe static Vx_session_previous_id: VmGlobal<Lisp_Object>; // x-session-previous-id
+        pub safe static Vx_show_tooltip_timeout: VmGlobal<Lisp_Object>; // x-show-tooltip-timeout
+        pub safe static Vx_super_keysym: VmGlobal<Lisp_Object>; // x-super-keysym
+        pub safe static Vx_toolkit_scroll_bars: VmGlobal<Lisp_Object>; // x-toolkit-scroll-bars
+        pub safe static Vx_treat_local_requests_remotely: VmGlobal<Lisp_Object>; // x-treat-local-requests-remotely
+        pub safe static Vx_use_fast_mouse_position: VmGlobal<Lisp_Object>; // x-use-fast-mouse-position
+        pub safe static Vx_wait_for_event_timeout: VmGlobal<Lisp_Object>; // x-wait-for-event-timeout
+        pub safe static Vx_window_bottom_edge_shape: VmGlobal<Lisp_Object>; // x-window-bottom-edge-cursor
+        pub safe static Vx_window_bottom_left_corner_shape: VmGlobal<Lisp_Object>; // x-window-bottom-left-corner-cursor
+        pub safe static Vx_window_bottom_right_corner_shape: VmGlobal<Lisp_Object>; // x-window-bottom-right-corner-cursor
+        pub safe static Vx_window_horizontal_drag_shape: VmGlobal<Lisp_Object>; // x-window-horizontal-drag-cursor
+        pub safe static Vx_window_left_edge_shape: VmGlobal<Lisp_Object>; // x-window-left-edge-cursor
+        pub safe static Vx_window_right_edge_shape: VmGlobal<Lisp_Object>; // x-window-right-edge-cursor
+        pub safe static Vx_window_top_edge_shape: VmGlobal<Lisp_Object>; // x-window-top-edge-cursor
+        pub safe static Vx_window_top_left_corner_shape: VmGlobal<Lisp_Object>; // x-window-top-left-corner-cursor
+        pub safe static Vx_window_top_right_corner_shape: VmGlobal<Lisp_Object>; // x-window-top-right-corner-cursor
+        pub safe static Vx_window_vertical_drag_shape: VmGlobal<Lisp_Object>; // x-window-vertical-drag-cursor
+        pub safe static Vxft_color_font_whitelist: VmGlobal<Lisp_Object>; // xft-color-font-whitelist
+        pub safe static Vxft_settings: VmGlobal<Lisp_Object>; // xft-settings
+        pub safe static Vxwidget_list: VmGlobal<Lisp_Object>; // xwidget-list
+        pub safe static Vxwidget_view_list: VmGlobal<Lisp_Object>; // xwidget-view-list
+        pub safe static Vyes_or_no_prompt: VmGlobal<Lisp_Object>; // yes-or-no-prompt
+        pub safe static alter_fullscreen_frames: VmGlobal<Lisp_Object>; // alter-fullscreen-frames
+        pub safe static android_display_planes: VmGlobal<EMACS_INT>; // android-display-planes
+        pub safe static android_intercept_control_space: VmGlobal<bool>; // android-intercept-control-space
+        pub safe static android_keyboard_bell_duration: VmGlobal<EMACS_INT>; // android-keyboard-bell-duration
+        pub safe static android_pass_multimedia_buttons_to_system: VmGlobal<bool>; // android-pass-multimedia-buttons-to-system
+        pub safe static android_quit_keycode: VmGlobal<EMACS_INT>; // android-quit-keycode
+        pub safe static android_use_exec_loader: VmGlobal<bool>; // android-use-exec-loader
+        pub safe static attempt_orderly_shutdown_on_fatal_signal: VmGlobal<bool>; // attempt-orderly-shutdown-on-fatal-signal
+        pub safe static attempt_stack_overflow_recovery: VmGlobal<bool>; // attempt-stack-overflow-recovery
+        pub safe static auto_raise_tab_bar_buttons_p: VmGlobal<bool>; // auto-raise-tab-bar-buttons
+        pub safe static auto_raise_tool_bar_buttons_p: VmGlobal<bool>; // auto-raise-tool-bar-buttons
+        pub safe static auto_save_interval: VmGlobal<EMACS_INT>; // auto-save-interval
+        pub safe static auto_save_no_message: VmGlobal<bool>; // auto-save-no-message
+        pub safe static auto_window_vscroll_p: VmGlobal<bool>; // auto-window-vscroll
+        pub safe static automatic_hscrolling: VmGlobal<Lisp_Object>; // auto-hscroll-mode
+        pub safe static backtrace_on_error_noninteractive: VmGlobal<bool>; // backtrace-on-error-noninteractive
+        pub safe static backtrace_on_redisplay_error: VmGlobal<bool>; // backtrace-on-redisplay-error
+        pub safe static baud_rate: VmGlobal<EMACS_INT>; // baud-rate
+        pub safe static bidi_inhibit_bpa: VmGlobal<bool>; // bidi-inhibit-bpa
+        pub safe static byte_metering_on: VmGlobal<bool>; // byte-metering-on
+        pub safe static cannot_suspend: VmGlobal<bool>; // cannot-suspend
+        pub safe static case_symbols_as_words: VmGlobal<bool>; // case-symbols-as-words
+        pub safe static coding_system_require_warning: VmGlobal<bool>; // coding-system-require-warning
+        pub safe static command_line_max_length: VmGlobal<EMACS_INT>; // command-line-max-length
+        pub safe static comment_end_can_be_escaped: VmGlobal<bool>; // comment-end-can-be-escaped
+        pub safe static comp_file_preloaded_p: VmGlobal<bool>; // comp-file-preloaded-p
+        pub safe static comp_sanitizer_active: VmGlobal<bool>; // comp-sanitizer-active
+        pub safe static completion_ignore_case: VmGlobal<bool>; // completion-ignore-case
+        pub safe static composition_break_at_point: VmGlobal<bool>; // composition-break-at-point
+        pub safe static cons_cells_consed: VmGlobal<EMACS_INT>; // cons-cells-consed
+        pub safe static create_lockfiles: VmGlobal<bool>; // create-lockfiles
+        pub safe static cross_disabled_images: VmGlobal<bool>; // cross-disabled-images
+        pub safe static current_time_list: VmGlobal<bool>; // current-time-list
+        pub safe static cursor_in_echo_area: VmGlobal<bool>; // cursor-in-echo-area
+        pub safe static debug_end_pos: VmGlobal<EMACS_INT>; // debug-end-pos
+        pub safe static debug_on_next_call: VmGlobal<bool>; // debug-on-next-call
+        pub safe static debug_on_quit: VmGlobal<bool>; // debug-on-quit
+        pub safe static debugger_may_continue: VmGlobal<bool>; // debugger-may-continue
+        pub safe static debugger_stack_frame_as_list: VmGlobal<bool>; // debugger-stack-frame-as-list
+        pub safe static defining_kbd_macro: VmGlobal<*mut c_void>; // defining-kbd-macro
+        pub safe static delete_auto_save_files: VmGlobal<bool>; // delete-auto-save-files
+        pub safe static delete_by_moving_to_trash: VmGlobal<bool>; // delete-by-moving-to-trash
+        pub safe static delete_exited_processes: VmGlobal<bool>; // delete-exited-processes
+        pub safe static delete_frame_choose_selected: VmGlobal<Lisp_Object>; // delete-frame-choose-selected
+        pub safe static disable_ascii_optimization: VmGlobal<bool>; // disable-ascii-optimization
+        pub safe static disable_inhibit_text_conversion: VmGlobal<bool>; // disable-inhibit-text-conversion
+        pub safe static display_fill_column_indicator: VmGlobal<bool>; // display-fill-column-indicator
+        pub safe static display_hourglass_p: VmGlobal<bool>; // display-hourglass
+        pub safe static display_line_numbers_major_tick: VmGlobal<EMACS_INT>; // display-line-numbers-major-tick
+        pub safe static display_line_numbers_minor_tick: VmGlobal<EMACS_INT>; // display-line-numbers-minor-tick
+        pub safe static display_line_numbers_offset: VmGlobal<EMACS_INT>; // display-line-numbers-offset
+        pub safe static display_line_numbers_widen: VmGlobal<bool>; // display-line-numbers-widen
+        pub safe static display_raw_bytes_as_hex: VmGlobal<bool>; // display-raw-bytes-as-hex
+        pub safe static documentation_dynamic_reload: VmGlobal<bool>; // documentation-dynamic-reload
+        pub safe static dos_codepage: VmGlobal<EMACS_INT>; // dos-codepage
+        pub safe static dos_country_code: VmGlobal<EMACS_INT>; // dos-country-code
+        pub safe static dos_decimal_point: VmGlobal<EMACS_INT>; // dos-decimal-point
+        pub safe static dos_hyper_key: VmGlobal<EMACS_INT>; // dos-hyper-key
+        pub safe static dos_keyboard_layout: VmGlobal<EMACS_INT>; // dos-keyboard-layout
+        pub safe static dos_keypad_mode: VmGlobal<EMACS_INT>; // dos-keypad-mode
+        pub safe static dos_super_key: VmGlobal<EMACS_INT>; // dos-super-key
+        pub safe static dos_timezone_offset: VmGlobal<EMACS_INT>; // dos-timezone-offset
+        pub safe static double_click_fuzz: VmGlobal<EMACS_INT>; // double-click-fuzz
+        pub safe static echo_keystrokes_help: VmGlobal<bool>; // echo-keystrokes-help
+        pub safe static emacs_scroll_step: VmGlobal<EMACS_INT>; // scroll-step
+        pub safe static enable_recursive_minibuffers: VmGlobal<bool>; // enable-recursive-minibuffers
+        pub safe static eol_mnemonic_dos: VmGlobal<Lisp_Object>; // eol-mnemonic-dos
+        pub safe static eol_mnemonic_mac: VmGlobal<Lisp_Object>; // eol-mnemonic-mac
+        pub safe static eol_mnemonic_undecided: VmGlobal<Lisp_Object>; // eol-mnemonic-undecided
+        pub safe static eol_mnemonic_unix: VmGlobal<Lisp_Object>; // eol-mnemonic-unix
+        pub safe static executing_kbd_macro_index: VmGlobal<EMACS_INT>; // executing-kbd-macro-index
+        pub safe static expose_hidden_buffer: VmGlobal<Lisp_Object>; // expose-hidden-buffer
+        pub safe static extra_keyboard_modifiers: VmGlobal<EMACS_INT>; // extra-keyboard-modifiers
+        pub safe static face_filters_always_match: VmGlobal<bool>; // face-filters-always-match
+        pub safe static face_near_same_color_threshold: VmGlobal<EMACS_INT>; // face-near-same-color-threshold
+        pub safe static fast_but_imprecise_scrolling: VmGlobal<bool>; // fast-but-imprecise-scrolling
+        pub safe static fast_read_process_output: VmGlobal<bool>; // fast-read-process-output
+        pub safe static floats_consed: VmGlobal<EMACS_INT>; // floats-consed
+        pub safe static focus_follows_mouse: VmGlobal<Lisp_Object>; // focus-follows-mouse
+        pub safe static force_load_messages: VmGlobal<bool>; // force-load-messages
+        pub safe static frame_inhibit_implied_resize: VmGlobal<Lisp_Object>; // frame-inhibit-implied-resize
+        pub safe static frame_internal_parameters: VmGlobal<Lisp_Object>; // frame-internal-parameters
+        pub safe static frame_resize_pixelwise: VmGlobal<bool>; // frame-resize-pixelwise
+        pub safe static frame_size_history: VmGlobal<Lisp_Object>; // frame-size-history
+        pub safe static garbage_collection_messages: VmGlobal<bool>; // garbage-collection-messages
+        pub safe static gc_cons_threshold: VmGlobal<EMACS_INT>; // gc-cons-threshold
+        pub safe static gcs_done: VmGlobal<EMACS_INT>; // gcs-done
+        pub safe static global_gnutls_log_level: VmGlobal<EMACS_INT>; // gnutls-log-level
+        pub safe static haiku_debug_on_fatal_error: VmGlobal<bool>; // haiku-debug-on-fatal-error
+        pub safe static haiku_initialized: VmGlobal<bool>; // haiku-initialized
+        pub safe static haiku_pass_control_tab_to_system: VmGlobal<bool>; // haiku-pass-control-tab-to-system
+        pub safe static haiku_signal_invalid_refs: VmGlobal<bool>; // haiku-signal-invalid-refs
+        pub safe static highlight_nonselected_windows: VmGlobal<bool>; // highlight-nonselected-windows
+        pub safe static history_delete_duplicates: VmGlobal<bool>; // history-delete-duplicates
+        pub safe static hscroll_margin: VmGlobal<EMACS_INT>; // hscroll-margin
+        pub safe static iconify_child_frame: VmGlobal<Lisp_Object>; // iconify-child-frame
+        pub safe static imagemagick_render_type: VmGlobal<EMACS_INT>; // imagemagick-render-type
+        pub safe static indent_tabs_mode: VmGlobal<bool>; // indent-tabs-mode
+        pub safe static inherit_process_coding_system: VmGlobal<bool>; // inherit-process-coding-system
+        pub safe static inhibit_bidi_mirroring: VmGlobal<bool>; // inhibit-bidi-mirroring
+        pub safe static inhibit_compacting_font_caches: VmGlobal<bool>; // inhibit-compacting-font-caches
+        pub safe static inhibit_eol_conversion: VmGlobal<bool>; // inhibit-eol-conversion
+        pub safe static inhibit_eval_during_redisplay: VmGlobal<bool>; // inhibit-eval-during-redisplay
+        pub safe static inhibit_free_realized_faces: VmGlobal<bool>; // inhibit-free-realized-faces
+        pub safe static inhibit_interaction: VmGlobal<bool>; // inhibit-interaction
+        pub safe static inhibit_iso_escape_detection: VmGlobal<bool>; // inhibit-iso-escape-detection
+        pub safe static inhibit_load_charset_map: VmGlobal<bool>; // inhibit-load-charset-map
+        pub safe static inhibit_menubar_update: VmGlobal<bool>; // inhibit-menubar-update
+        pub safe static inhibit_message: VmGlobal<bool>; // inhibit-message
+        pub safe static inhibit_modification_hooks: VmGlobal<bool>; // inhibit-modification-hooks
+        pub safe static inhibit_mouse_event_check: VmGlobal<bool>; // inhibit-mouse-event-check
+        pub safe static inhibit_null_byte_detection: VmGlobal<bool>; // inhibit-null-byte-detection
+        pub safe static inhibit_record_char: VmGlobal<bool>; // inhibit--record-char
+        pub safe static inhibit_try_cursor_movement: VmGlobal<bool>; // inhibit-try-cursor-movement
+        pub safe static inhibit_try_window_id: VmGlobal<bool>; // inhibit-try-window-id
+        pub safe static inhibit_try_window_reusing: VmGlobal<bool>; // inhibit-try-window-reusing
+        pub safe static inhibit_x_resources: VmGlobal<bool>; // inhibit-x-resources
+        pub safe static input_pending_p_filter_events: VmGlobal<bool>; // input-pending-p-filter-events
+        pub safe static integer_width: VmGlobal<EMACS_INT>; // integer-width
+        pub safe static intervals_consed: VmGlobal<EMACS_INT>; // intervals-consed
+        pub safe static inverse_video: VmGlobal<bool>; // inverse-video
+        pub safe static kill_buffer_delete_auto_save_files: VmGlobal<bool>; // kill-buffer-delete-auto-save-files
+        pub safe static kill_emacs_on_sigint: VmGlobal<bool>; // kill-emacs-on-sigint
+        pub safe static large_hscroll_threshold: VmGlobal<EMACS_INT>; // large-hscroll-threshold
+        pub safe static last_command_event: VmGlobal<Lisp_Object>; // last-command-event
+        pub safe static last_input_event: VmGlobal<Lisp_Object>; // last-input-event
+        pub safe static last_nonmenu_event: VmGlobal<Lisp_Object>; // last-nonmenu-event
+        pub safe static line_number_display_limit_width: VmGlobal<EMACS_INT>; // line-number-display-limit-width
+        pub safe static lisp_eval_depth_reserve: VmGlobal<EMACS_INT>; // lisp-eval-depth-reserve
+        pub safe static load_dangerous_libraries: VmGlobal<bool>; // load-dangerous-libraries
+        pub safe static load_force_doc_strings: VmGlobal<bool>; // load-force-doc-strings
+        pub safe static load_in_progress: VmGlobal<bool>; // load-in-progress
+        pub safe static load_no_native: VmGlobal<bool>; // load-no-native
+        pub safe static load_prefer_newer: VmGlobal<bool>; // load-prefer-newer
+        pub safe static long_line_optimizations_bol_search_limit: VmGlobal<EMACS_INT>; // long-line-optimizations-bol-search-limit
+        pub safe static long_line_optimizations_region_size: VmGlobal<EMACS_INT>; // long-line-optimizations-region-size
+        pub safe static lucid__menu_grab_keyboard: VmGlobal<bool>; // lucid--menu-grab-keyboard
+        pub safe static make_window_start_visible: VmGlobal<bool>; // make-window-start-visible
+        pub safe static max_lisp_eval_depth: VmGlobal<EMACS_INT>; // max-lisp-eval-depth
+        pub safe static max_redisplay_ticks: VmGlobal<EMACS_INT>; // max-redisplay-ticks
+        pub safe static menu_prompt_more_char: VmGlobal<Lisp_Object>; // menu-prompt-more-char
+        pub safe static menu_prompting: VmGlobal<bool>; // menu-prompting
+        pub safe static message_truncate_lines: VmGlobal<bool>; // message-truncate-lines
+        pub safe static meta_prefix_char: VmGlobal<Lisp_Object>; // meta-prefix-char
+        pub safe static minibuffer_allow_text_properties: VmGlobal<bool>; // minibuffer-allow-text-properties
+        pub safe static minibuffer_auto_raise: VmGlobal<bool>; // minibuffer-auto-raise
+        pub safe static minibuffer_follows_selected_frame: VmGlobal<Lisp_Object>; // minibuffer-follows-selected-frame
+        pub safe static mode_line_in_non_selected_windows: VmGlobal<bool>; // mode-line-in-non-selected-windows
+        pub safe static mouse_fine_grained_tracking: VmGlobal<bool>; // mouse-fine-grained-tracking
+        pub safe static mouse_prefer_closest_glyph: VmGlobal<bool>; // mouse-prefer-closest-glyph
+        pub safe static multibyte_syntax_as_symbol: VmGlobal<bool>; // multibyte-syntax-as-symbol
+        pub safe static multiple_frames: VmGlobal<bool>; // multiple-frames
+        pub safe static multiple_terminals_merge_keyboards: VmGlobal<bool>; // multiple-terminals-merge-keyboards
+        pub safe static mwheel_coalesce_scroll_events: VmGlobal<bool>; // mwheel-coalesce-scroll-events
+        pub safe static native_comp_jit_compilation: VmGlobal<bool>; // native-comp-jit-compilation
+        pub safe static next_screen_context_lines: VmGlobal<EMACS_INT>; // next-screen-context-lines
+        pub safe static no_redraw_on_reenter: VmGlobal<bool>; // no-redraw-on-reenter
+        pub safe static nobreak_char_ascii_display: VmGlobal<bool>; // nobreak-char-ascii-display
+        pub safe static noninteractive1: VmGlobal<bool>; // noninteractive
+        pub safe static num_input_keys: VmGlobal<EMACS_INT>; // num-input-keys
+        pub safe static num_nonmacro_input_events: VmGlobal<EMACS_INT>; // num-nonmacro-input-events
+        pub safe static open_paren_in_column_0_is_defun_start: VmGlobal<bool>; // open-paren-in-column-0-is-defun-start
+        pub safe static overline_margin: VmGlobal<EMACS_INT>; // overline-margin
+        pub safe static parse_sexp_ignore_comments: VmGlobal<bool>; // parse-sexp-ignore-comments
+        pub safe static parse_sexp_lookup_properties: VmGlobal<bool>; // parse-sexp-lookup-properties
+        pub safe static pgtk_selection_timeout: VmGlobal<EMACS_INT>; // pgtk-selection-timeout
+        pub safe static print_escape_control_characters: VmGlobal<bool>; // print-escape-control-characters
+        pub safe static print_escape_multibyte: VmGlobal<bool>; // print-escape-multibyte
+        pub safe static print_escape_newlines: VmGlobal<bool>; // print-escape-newlines
+        pub safe static print_escape_nonascii: VmGlobal<bool>; // print-escape-nonascii
+        pub safe static print_integers_as_characters: VmGlobal<bool>; // print-integers-as-characters
+        pub safe static print_quoted: VmGlobal<bool>; // print-quoted
+        pub safe static print_symbols_bare: VmGlobal<bool>; // print-symbols-bare
+        pub safe static process_error_pause_time: VmGlobal<EMACS_INT>; // process-error-pause-time
+        pub safe static process_prioritize_lower_fds: VmGlobal<bool>; // process-prioritize-lower-fds
+        pub safe static profiler_log_size: VmGlobal<EMACS_INT>; // profiler-log-size
+        pub safe static profiler_max_stack_depth: VmGlobal<EMACS_INT>; // profiler-max-stack-depth
+        pub safe static pure_bytes_used: VmGlobal<EMACS_INT>; // pure-bytes-used
+        pub safe static query_all_font_backends: VmGlobal<bool>; // query-all-font-backends
+        pub safe static read_buffer_completion_ignore_case: VmGlobal<bool>; // read-buffer-completion-ignore-case
+        pub safe static read_minibuffer_restore_windows: VmGlobal<bool>; // read-minibuffer-restore-windows
+        pub safe static read_process_output_max: VmGlobal<EMACS_INT>; // read-process-output-max
+        pub safe static record_all_keys: VmGlobal<bool>; // record-all-keys
+        pub safe static redisplay__inhibit_bidi: VmGlobal<bool>; // redisplay--inhibit-bidi
+        pub safe static redisplay_adhoc_scroll_in_resize_mini_windows: VmGlobal<bool>; // redisplay-adhoc-scroll-in-resize-mini-windows
+        pub safe static redisplay_skip_fontification_on_input: VmGlobal<bool>; // redisplay-skip-fontification-on-input
+        pub safe static redisplay_skip_initial_frame: VmGlobal<bool>; // redisplay-skip-initial-frame
+        pub safe static resize_mini_frames: VmGlobal<Lisp_Object>; // resize-mini-frames
+        pub safe static scroll_bar_adjust_thumb_portion_p: VmGlobal<bool>; // scroll-bar-adjust-thumb-portion
+        pub safe static scroll_conservatively: VmGlobal<EMACS_INT>; // scroll-conservatively
+        pub safe static scroll_margin: VmGlobal<EMACS_INT>; // scroll-margin
+        pub safe static scroll_minibuffer_conservatively: VmGlobal<bool>; // scroll-minibuffer-conservatively
+        pub safe static sfnt_raster_glyphs_exactly: VmGlobal<bool>; // sfnt-raster-glyphs-exactly
+        pub safe static string_chars_consed: VmGlobal<EMACS_INT>; // string-chars-consed
+        pub safe static strings_consed: VmGlobal<EMACS_INT>; // strings-consed
+        pub safe static symbols_consed: VmGlobal<EMACS_INT>; // symbols-consed
+        pub safe static symbols_with_pos_enabled: VmGlobal<bool>; // symbols-with-pos-enabled
+        pub safe static syntax_propertize__done: VmGlobal<EMACS_INT>; // syntax-propertize--done
+        pub safe static system_uses_terminfo: VmGlobal<bool>; // system-uses-terminfo
+        pub safe static tab_bar__dragging_in_progress: VmGlobal<bool>; // tab-bar--dragging-in-progress
+        pub safe static tab_bar_button_relief: VmGlobal<EMACS_INT>; // tab-bar-button-relief
+        pub safe static tab_bar_truncate: VmGlobal<bool>; // tab-bar-truncate
+        pub safe static text_quoting_flag: VmGlobal<bool>; // internal--text-quoting-flag
+        pub safe static tool_bar_button_relief: VmGlobal<EMACS_INT>; // tool-bar-button-relief
+        pub safe static tool_bar_max_label_size: VmGlobal<EMACS_INT>; // tool-bar-max-label-size
+        pub safe static tooltip_reuse_hidden_frame: VmGlobal<bool>; // tooltip-reuse-hidden-frame
+        pub safe static track_mouse: VmGlobal<Lisp_Object>; // track-mouse
+        pub safe static translate_upper_case_key_bindings: VmGlobal<bool>; // translate-upper-case-key-bindings
+        pub safe static tty_cursor_movement_use_TAB: VmGlobal<bool>; // tty-cursor-movement-use-TAB
+        pub safe static tty_cursor_movement_use_TAB_BS: VmGlobal<bool>; // tty-cursor-movement-use-TAB-BS
+        pub safe static tty_display_emoji_force_wide: VmGlobal<bool>; // tty-display-emoji-force-wide
+        pub safe static tty_menu_calls_mouse_position_function: VmGlobal<bool>; // tty-menu-calls-mouse-position-function
+        pub safe static underline_minimum_offset: VmGlobal<EMACS_INT>; // underline-minimum-offset
+        pub safe static undo_inhibit_record_point: VmGlobal<bool>; // undo-inhibit-record-point
+        pub safe static undo_limit: VmGlobal<EMACS_INT>; // undo-limit
+        pub safe static undo_strong_limit: VmGlobal<EMACS_INT>; // undo-strong-limit
+        pub safe static unibyte_display_via_language_environment: VmGlobal<bool>; // unibyte-display-via-language-environment
+        pub safe static use_default_font_for_symbols: VmGlobal<bool>; // use-default-font-for-symbols
+        pub safe static use_dialog_box: VmGlobal<bool>; // use-dialog-box
+        pub safe static use_file_dialog: VmGlobal<bool>; // use-file-dialog
+        pub safe static use_short_answers: VmGlobal<bool>; // use-short-answers
+        pub safe static use_system_font: VmGlobal<bool>; // font-use-system-font
+        pub safe static use_system_tooltips: VmGlobal<bool>; // use-system-tooltips
+        pub safe static vector_cells_consed: VmGlobal<EMACS_INT>; // vector-cells-consed
+        pub safe static visible_bell: VmGlobal<bool>; // visible-bell
+        pub safe static visible_cursor: VmGlobal<bool>; // visible-cursor
+        pub safe static w32__terminal_is_conhost: VmGlobal<bool>; // w32--terminal-is-conhost
+        pub safe static w32_add_wrapped_menu_bar_lines: VmGlobal<bool>; // w32-add-wrapped-menu-bar-lines
+        pub safe static w32_ansi_code_page: VmGlobal<EMACS_INT>; // w32-ansi-code-page
+        pub safe static w32_disable_abort_dialog: VmGlobal<bool>; // w32-disable-abort-dialog
+        pub safe static w32_disable_double_buffering: VmGlobal<bool>; // w32-disable-double-buffering
+        pub safe static w32_disable_new_uniscribe_apis: VmGlobal<bool>; // w32-disable-new-uniscribe-apis
+        pub safe static w32_enable_synthesized_fonts: VmGlobal<bool>; // w32-enable-synthesized-fonts
+        pub safe static w32_follow_system_dark_mode: VmGlobal<bool>; // w32-follow-system-dark-mode
+        pub safe static w32_ignore_modifiers_on_IME_input: VmGlobal<bool>; // w32-ignore-modifiers-on-IME-input
+        pub safe static w32_inhibit_dwrite: VmGlobal<bool>; // w32-inhibit-dwrite
+        pub safe static w32_mouse_button_tolerance: VmGlobal<EMACS_INT>; // w32-mouse-button-tolerance
+        pub safe static w32_mouse_move_interval: VmGlobal<EMACS_INT>; // w32-mouse-move-interval
+        pub safe static w32_multibyte_code_page: VmGlobal<EMACS_INT>; // w32-multibyte-code-page
+        pub safe static w32_num_mouse_buttons: VmGlobal<EMACS_INT>; // w32-num-mouse-buttons
+        pub safe static w32_pass_extra_mouse_buttons_to_system: VmGlobal<bool>; // w32-pass-extra-mouse-buttons-to-system
+        pub safe static w32_pass_multimedia_buttons_to_system: VmGlobal<bool>; // w32-pass-multimedia-buttons-to-system
+        pub safe static w32_pipe_buffer_size: VmGlobal<EMACS_INT>; // w32-pipe-buffer-size
+        pub safe static w32_pipe_read_delay: VmGlobal<EMACS_INT>; // w32-pipe-read-delay
+        pub safe static w32_quit_key: VmGlobal<EMACS_INT>; // w32-quit-key
+        pub safe static w32_strict_painting: VmGlobal<bool>; // w32-strict-painting
+        pub safe static w32_unicode_filenames: VmGlobal<bool>; // w32-unicode-filenames
+        pub safe static w32_use_fallback_wm_chars_method: VmGlobal<bool>; // w32-use-fallback-wm-chars-method
+        pub safe static w32_use_full_screen_buffer: VmGlobal<bool>; // w32-use-full-screen-buffer
+        pub safe static w32_use_native_image_api: VmGlobal<bool>; // w32-use-native-image-API
+        pub safe static w32_use_visible_system_caret: VmGlobal<bool>; // w32-use-visible-system-caret
+        pub safe static w32_yes_no_dialog_show_cancel: VmGlobal<bool>; // w32-yes-no-dialog-show-cancel
+        pub safe static when_entered_debugger: VmGlobal<EMACS_INT>; // internal-when-entered-debugger
+        pub safe static window_auto_redraw_on_parameter_change: VmGlobal<bool>; // window-auto-redraw-on-parameter-change
+        pub safe static window_dead_windows_table: VmGlobal<Lisp_Object>; // window-dead-windows-table
+        pub safe static window_resize_pixelwise: VmGlobal<bool>; // window-resize-pixelwise
+        pub safe static window_restore_killed_buffer_windows: VmGlobal<Lisp_Object>; // window-restore-killed-buffer-windows
+        pub safe static word_wrap_by_category: VmGlobal<bool>; // word-wrap-by-category
+        pub safe static words_include_escapes: VmGlobal<bool>; // words-include-escapes
+        pub safe static write_region_inhibit_fsync: VmGlobal<bool>; // write-region-inhibit-fsync
+        pub safe static x_color_cache_bucket_size: VmGlobal<EMACS_INT>; // x-color-cache-bucket-size
+        pub safe static x_dnd_disable_motif_drag: VmGlobal<bool>; // x-dnd-disable-motif-drag
+        pub safe static x_dnd_disable_motif_protocol: VmGlobal<bool>; // x-dnd-disable-motif-protocol
+        pub safe static x_dnd_fix_motif_leave: VmGlobal<bool>; // x-dnd-fix-motif-leave
+        pub safe static x_dnd_preserve_selection_data: VmGlobal<bool>; // x-dnd-preserve-selection-data
+        pub safe static x_dnd_use_unsupported_drop: VmGlobal<bool>; // x-dnd-use-unsupported-drop
+        pub safe static x_fast_protocol_requests: VmGlobal<bool>; // x-fast-protocol-requests
+        pub safe static x_frame_normalize_before_maximize: VmGlobal<bool>; // x-frame-normalize-before-maximize
+        pub safe static x_gtk_file_dialog_help_text: VmGlobal<bool>; // x-gtk-file-dialog-help-text
+        pub safe static x_gtk_resize_child_frames: VmGlobal<Lisp_Object>; // x-gtk-resize-child-frames
+        pub safe static x_gtk_show_hidden_files: VmGlobal<bool>; // x-gtk-show-hidden-files
+        pub safe static x_gtk_use_native_input: VmGlobal<bool>; // x-gtk-use-native-input
+        pub safe static x_gtk_use_old_file_dialog: VmGlobal<bool>; // x-gtk-use-old-file-dialog
+        pub safe static x_gtk_use_window_move: VmGlobal<bool>; // x-gtk-use-window-move
+        pub safe static x_input_grab_touch_events: VmGlobal<bool>; // x-input-grab-touch-events
+        pub safe static x_mouse_click_focus_ignore_position: VmGlobal<bool>; // x-mouse-click-focus-ignore-position
+        pub safe static x_mouse_click_focus_ignore_time: VmGlobal<EMACS_INT>; // x-mouse-click-focus-ignore-time
+        pub safe static x_selection_timeout: VmGlobal<EMACS_INT>; // x-selection-timeout
+        pub safe static x_set_frame_visibility_more_laxly: VmGlobal<Lisp_Object>; // x-set-frame-visibility-more-laxly
+        pub safe static x_stretch_cursor_p: VmGlobal<bool>; // x-stretch-cursor
+        pub safe static x_underline_at_descent_line: VmGlobal<bool>; // x-underline-at-descent-line
+        pub safe static x_use_underline_position_properties: VmGlobal<bool>; // x-use-underline-position-properties
+        pub safe static xft_font_ascent_descent_override: VmGlobal<bool>; // xft-font-ascent-descent-override
+        pub safe static xft_ignore_color_fonts: VmGlobal<bool>; // xft-ignore-color-fonts
+        pub safe static xwidget_webkit_disable_javascript: VmGlobal<bool>; // xwidget-webkit-disable-javascript
     }
 }
 pub use self::variables::*;
-#[inline(always)] pub fn get_V_comp_no_native_file_h () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::V_comp_no_native_file_h.get () } }
-#[inline(always)] pub fn set_V_comp_no_native_file_h (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::V_comp_no_native_file_h.set (val) } }
-#[inline(always)] pub fn get_Vafter_change_functions () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vafter_change_functions.get () } }
-#[inline(always)] pub fn set_Vafter_change_functions (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vafter_change_functions.set (val) } }
-#[inline(always)] pub fn get_Vafter_delete_frame_functions () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vafter_delete_frame_functions.get () } }
-#[inline(always)] pub fn set_Vafter_delete_frame_functions (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vafter_delete_frame_functions.set (val) } }
-#[inline(always)] pub fn get_Vafter_init_time () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vafter_init_time.get () } }
-#[inline(always)] pub fn set_Vafter_init_time (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vafter_init_time.set (val) } }
-#[inline(always)] pub fn get_Vafter_insert_file_functions () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vafter_insert_file_functions.get () } }
-#[inline(always)] pub fn set_Vafter_insert_file_functions (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vafter_insert_file_functions.set (val) } }
-#[inline(always)] pub fn get_Vafter_load_alist () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vafter_load_alist.get () } }
-#[inline(always)] pub fn set_Vafter_load_alist (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vafter_load_alist.set (val) } }
-#[inline(always)] pub fn get_Valternate_fontname_alist () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Valternate_fontname_alist.get () } }
-#[inline(always)] pub fn set_Valternate_fontname_alist (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Valternate_fontname_alist.set (val) } }
-#[inline(always)] pub fn get_Vambiguous_width_chars () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vambiguous_width_chars.get () } }
-#[inline(always)] pub fn set_Vambiguous_width_chars (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vambiguous_width_chars.set (val) } }
-#[inline(always)] pub fn get_Vandroid_build_fingerprint () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vandroid_build_fingerprint.get () } }
-#[inline(always)] pub fn set_Vandroid_build_fingerprint (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vandroid_build_fingerprint.set (val) } }
-#[inline(always)] pub fn get_Vandroid_build_manufacturer () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vandroid_build_manufacturer.get () } }
-#[inline(always)] pub fn set_Vandroid_build_manufacturer (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vandroid_build_manufacturer.set (val) } }
-#[inline(always)] pub fn get_Vandroid_os_language () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vandroid_os_language.get () } }
-#[inline(always)] pub fn set_Vandroid_os_language (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vandroid_os_language.set (val) } }
-#[inline(always)] pub fn get_Vandroid_wait_for_event_timeout () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vandroid_wait_for_event_timeout.get () } }
-#[inline(always)] pub fn set_Vandroid_wait_for_event_timeout (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vandroid_wait_for_event_timeout.set (val) } }
-#[inline(always)] pub fn get_Vauto_composition_emoji_eligible_codepoints () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vauto_composition_emoji_eligible_codepoints.get () } }
-#[inline(always)] pub fn set_Vauto_composition_emoji_eligible_codepoints (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vauto_composition_emoji_eligible_codepoints.set (val) } }
-#[inline(always)] pub fn get_Vauto_composition_emoji_tty_eligible_codepoints () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vauto_composition_emoji_tty_eligible_codepoints.get () } }
-#[inline(always)] pub fn set_Vauto_composition_emoji_tty_eligible_codepoints (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vauto_composition_emoji_tty_eligible_codepoints.set (val) } }
-#[inline(always)] pub fn get_Vauto_composition_emoji_unqualified_tail_initials () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vauto_composition_emoji_unqualified_tail_initials.get () } }
-#[inline(always)] pub fn set_Vauto_composition_emoji_unqualified_tail_initials (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vauto_composition_emoji_unqualified_tail_initials.set (val) } }
-#[inline(always)] pub fn get_Vauto_composition_function () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vauto_composition_function.get () } }
-#[inline(always)] pub fn set_Vauto_composition_function (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vauto_composition_function.set (val) } }
-#[inline(always)] pub fn get_Vauto_composition_mode () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vauto_composition_mode.get () } }
-#[inline(always)] pub fn set_Vauto_composition_mode (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vauto_composition_mode.set (val) } }
-#[inline(always)] pub fn get_Vauto_fill_chars () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vauto_fill_chars.get () } }
-#[inline(always)] pub fn set_Vauto_fill_chars (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vauto_fill_chars.set (val) } }
-#[inline(always)] pub fn get_Vauto_resize_tab_bars () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vauto_resize_tab_bars.get () } }
-#[inline(always)] pub fn set_Vauto_resize_tab_bars (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vauto_resize_tab_bars.set (val) } }
-#[inline(always)] pub fn get_Vauto_resize_tool_bars () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vauto_resize_tool_bars.get () } }
-#[inline(always)] pub fn set_Vauto_resize_tool_bars (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vauto_resize_tool_bars.set (val) } }
-#[inline(always)] pub fn get_Vauto_save_include_big_deletions () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vauto_save_include_big_deletions.get () } }
-#[inline(always)] pub fn set_Vauto_save_include_big_deletions (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vauto_save_include_big_deletions.set (val) } }
-#[inline(always)] pub fn get_Vauto_save_list_file_name () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vauto_save_list_file_name.get () } }
-#[inline(always)] pub fn set_Vauto_save_list_file_name (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vauto_save_list_file_name.set (val) } }
-#[inline(always)] pub fn get_Vauto_save_timeout () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vauto_save_timeout.get () } }
-#[inline(always)] pub fn set_Vauto_save_timeout (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vauto_save_timeout.set (val) } }
-#[inline(always)] pub fn get_Vauto_save_visited_file_name () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vauto_save_visited_file_name.get () } }
-#[inline(always)] pub fn set_Vauto_save_visited_file_name (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vauto_save_visited_file_name.set (val) } }
-#[inline(always)] pub fn get_Vbefore_change_functions () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vbefore_change_functions.get () } }
-#[inline(always)] pub fn set_Vbefore_change_functions (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vbefore_change_functions.set (val) } }
-#[inline(always)] pub fn get_Vbefore_init_time () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vbefore_init_time.get () } }
-#[inline(always)] pub fn set_Vbefore_init_time (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vbefore_init_time.set (val) } }
-#[inline(always)] pub fn get_Vblink_cursor_alist () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vblink_cursor_alist.get () } }
-#[inline(always)] pub fn set_Vblink_cursor_alist (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vblink_cursor_alist.set (val) } }
-#[inline(always)] pub fn get_Vbuffer_access_fontified_property () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vbuffer_access_fontified_property.get () } }
-#[inline(always)] pub fn set_Vbuffer_access_fontified_property (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vbuffer_access_fontified_property.set (val) } }
-#[inline(always)] pub fn get_Vbuffer_access_fontify_functions () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vbuffer_access_fontify_functions.get () } }
-#[inline(always)] pub fn set_Vbuffer_access_fontify_functions (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vbuffer_access_fontify_functions.set (val) } }
-#[inline(always)] pub fn get_Vbuffer_list_update_hook () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vbuffer_list_update_hook.get () } }
-#[inline(always)] pub fn set_Vbuffer_list_update_hook (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vbuffer_list_update_hook.set (val) } }
-#[inline(always)] pub fn get_Vbuild_files () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vbuild_files.get () } }
-#[inline(always)] pub fn set_Vbuild_files (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vbuild_files.set (val) } }
-#[inline(always)] pub fn get_Vbyte_boolean_vars () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vbyte_boolean_vars.get () } }
-#[inline(always)] pub fn set_Vbyte_boolean_vars (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vbyte_boolean_vars.set (val) } }
-#[inline(always)] pub fn get_Vbyte_code_meter () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vbyte_code_meter.get () } }
-#[inline(always)] pub fn set_Vbyte_code_meter (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vbyte_code_meter.set (val) } }
-#[inline(always)] pub fn get_Vbytecomp_version_regexp () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vbytecomp_version_regexp.get () } }
-#[inline(always)] pub fn set_Vbytecomp_version_regexp (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vbytecomp_version_regexp.set (val) } }
-#[inline(always)] pub fn get_Vcairo_version_string () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vcairo_version_string.get () } }
-#[inline(always)] pub fn set_Vcairo_version_string (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vcairo_version_string.set (val) } }
-#[inline(always)] pub fn get_Vcase_fold_search () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vcase_fold_search.get () } }
-#[inline(always)] pub fn set_Vcase_fold_search (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vcase_fold_search.set (val) } }
-#[inline(always)] pub fn get_Vchange_major_mode_hook () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vchange_major_mode_hook.get () } }
-#[inline(always)] pub fn set_Vchange_major_mode_hook (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vchange_major_mode_hook.set (val) } }
-#[inline(always)] pub fn get_Vchar_code_property_alist () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vchar_code_property_alist.get () } }
-#[inline(always)] pub fn set_Vchar_code_property_alist (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vchar_code_property_alist.set (val) } }
-#[inline(always)] pub fn get_Vchar_property_alias_alist () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vchar_property_alias_alist.get () } }
-#[inline(always)] pub fn set_Vchar_property_alias_alist (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vchar_property_alias_alist.set (val) } }
-#[inline(always)] pub fn get_Vchar_script_table () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vchar_script_table.get () } }
-#[inline(always)] pub fn set_Vchar_script_table (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vchar_script_table.set (val) } }
-#[inline(always)] pub fn get_Vchar_width_table () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vchar_width_table.get () } }
-#[inline(always)] pub fn set_Vchar_width_table (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vchar_width_table.set (val) } }
-#[inline(always)] pub fn get_Vcharset_list () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vcharset_list.get () } }
-#[inline(always)] pub fn set_Vcharset_list (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vcharset_list.set (val) } }
-#[inline(always)] pub fn get_Vcharset_map_path () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vcharset_map_path.get () } }
-#[inline(always)] pub fn set_Vcharset_map_path (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vcharset_map_path.set (val) } }
-#[inline(always)] pub fn get_Vcharset_revision_table () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vcharset_revision_table.get () } }
-#[inline(always)] pub fn set_Vcharset_revision_table (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vcharset_revision_table.set (val) } }
-#[inline(always)] pub fn get_Vclear_message_function () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vclear_message_function.get () } }
-#[inline(always)] pub fn set_Vclear_message_function (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vclear_message_function.set (val) } }
-#[inline(always)] pub fn get_Vclone_indirect_buffer_hook () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vclone_indirect_buffer_hook.get () } }
-#[inline(always)] pub fn set_Vclone_indirect_buffer_hook (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vclone_indirect_buffer_hook.set (val) } }
-#[inline(always)] pub fn get_Vcode_conversion_map_vector () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vcode_conversion_map_vector.get () } }
-#[inline(always)] pub fn set_Vcode_conversion_map_vector (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vcode_conversion_map_vector.set (val) } }
-#[inline(always)] pub fn get_Vcoding_category_list () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vcoding_category_list.get () } }
-#[inline(always)] pub fn set_Vcoding_category_list (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vcoding_category_list.set (val) } }
-#[inline(always)] pub fn get_Vcoding_system_alist () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vcoding_system_alist.get () } }
-#[inline(always)] pub fn set_Vcoding_system_alist (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vcoding_system_alist.set (val) } }
-#[inline(always)] pub fn get_Vcoding_system_for_read () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vcoding_system_for_read.get () } }
-#[inline(always)] pub fn set_Vcoding_system_for_read (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vcoding_system_for_read.set (val) } }
-#[inline(always)] pub fn get_Vcoding_system_for_write () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vcoding_system_for_write.get () } }
-#[inline(always)] pub fn set_Vcoding_system_for_write (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vcoding_system_for_write.set (val) } }
-#[inline(always)] pub fn get_Vcoding_system_list () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vcoding_system_list.get () } }
-#[inline(always)] pub fn set_Vcoding_system_list (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vcoding_system_list.set (val) } }
-#[inline(always)] pub fn get_Vcombine_after_change_calls () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vcombine_after_change_calls.get () } }
-#[inline(always)] pub fn set_Vcombine_after_change_calls (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vcombine_after_change_calls.set (val) } }
-#[inline(always)] pub fn get_Vcommand_debug_status () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vcommand_debug_status.get () } }
-#[inline(always)] pub fn set_Vcommand_debug_status (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vcommand_debug_status.set (val) } }
-#[inline(always)] pub fn get_Vcommand_error_function () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vcommand_error_function.get () } }
-#[inline(always)] pub fn set_Vcommand_error_function (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vcommand_error_function.set (val) } }
-#[inline(always)] pub fn get_Vcommand_history () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vcommand_history.get () } }
-#[inline(always)] pub fn set_Vcommand_history (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vcommand_history.set (val) } }
-#[inline(always)] pub fn get_Vcommand_line_args () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vcommand_line_args.get () } }
-#[inline(always)] pub fn set_Vcommand_line_args (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vcommand_line_args.set (val) } }
-#[inline(always)] pub fn get_Vcomment_use_syntax_ppss () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vcomment_use_syntax_ppss.get () } }
-#[inline(always)] pub fn set_Vcomment_use_syntax_ppss (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vcomment_use_syntax_ppss.set (val) } }
-#[inline(always)] pub fn get_Vcomp__hashdollar () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vcomp__hashdollar.get () } }
-#[inline(always)] pub fn set_Vcomp__hashdollar (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vcomp__hashdollar.set (val) } }
-#[inline(always)] pub fn get_Vcomp_abi_hash () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vcomp_abi_hash.get () } }
-#[inline(always)] pub fn set_Vcomp_abi_hash (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vcomp_abi_hash.set (val) } }
-#[inline(always)] pub fn get_Vcomp_ctxt () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vcomp_ctxt.get () } }
-#[inline(always)] pub fn set_Vcomp_ctxt (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vcomp_ctxt.set (val) } }
-#[inline(always)] pub fn get_Vcomp_deferred_pending_h () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vcomp_deferred_pending_h.get () } }
-#[inline(always)] pub fn set_Vcomp_deferred_pending_h (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vcomp_deferred_pending_h.set (val) } }
-#[inline(always)] pub fn get_Vcomp_eln_to_el_h () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vcomp_eln_to_el_h.get () } }
-#[inline(always)] pub fn set_Vcomp_eln_to_el_h (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vcomp_eln_to_el_h.set (val) } }
-#[inline(always)] pub fn get_Vcomp_installed_trampolines_h () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vcomp_installed_trampolines_h.get () } }
-#[inline(always)] pub fn set_Vcomp_installed_trampolines_h (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vcomp_installed_trampolines_h.set (val) } }
-#[inline(always)] pub fn get_Vcomp_loaded_comp_units_h () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vcomp_loaded_comp_units_h.get () } }
-#[inline(always)] pub fn set_Vcomp_loaded_comp_units_h (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vcomp_loaded_comp_units_h.set (val) } }
-#[inline(always)] pub fn get_Vcomp_native_version_dir () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vcomp_native_version_dir.get () } }
-#[inline(always)] pub fn set_Vcomp_native_version_dir (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vcomp_native_version_dir.set (val) } }
-#[inline(always)] pub fn get_Vcomp_subr_arities_h () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vcomp_subr_arities_h.get () } }
-#[inline(always)] pub fn set_Vcomp_subr_arities_h (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vcomp_subr_arities_h.set (val) } }
-#[inline(always)] pub fn get_Vcomp_subr_list () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vcomp_subr_list.get () } }
-#[inline(always)] pub fn set_Vcomp_subr_list (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vcomp_subr_list.set (val) } }
-#[inline(always)] pub fn get_Vcompletion_ignored_extensions () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vcompletion_ignored_extensions.get () } }
-#[inline(always)] pub fn set_Vcompletion_ignored_extensions (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vcompletion_ignored_extensions.set (val) } }
-#[inline(always)] pub fn get_Vcompletion_regexp_list () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vcompletion_regexp_list.get () } }
-#[inline(always)] pub fn set_Vcompletion_regexp_list (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vcompletion_regexp_list.set (val) } }
-#[inline(always)] pub fn get_Vcompose_chars_after_function () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vcompose_chars_after_function.get () } }
-#[inline(always)] pub fn set_Vcompose_chars_after_function (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vcompose_chars_after_function.set (val) } }
-#[inline(always)] pub fn get_Vcomposition_function_table () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vcomposition_function_table.get () } }
-#[inline(always)] pub fn set_Vcomposition_function_table (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vcomposition_function_table.set (val) } }
-#[inline(always)] pub fn get_Vconfigure_info_directory () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vconfigure_info_directory.get () } }
-#[inline(always)] pub fn set_Vconfigure_info_directory (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vconfigure_info_directory.set (val) } }
-#[inline(always)] pub fn get_Vctags_program_name () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vctags_program_name.get () } }
-#[inline(always)] pub fn set_Vctags_program_name (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vctags_program_name.set (val) } }
-#[inline(always)] pub fn get_Vcurrent_iso639_language () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vcurrent_iso639_language.get () } }
-#[inline(always)] pub fn set_Vcurrent_iso639_language (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vcurrent_iso639_language.set (val) } }
-#[inline(always)] pub fn get_Vcurrent_key_remap_sequence () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vcurrent_key_remap_sequence.get () } }
-#[inline(always)] pub fn set_Vcurrent_key_remap_sequence (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vcurrent_key_remap_sequence.set (val) } }
-#[inline(always)] pub fn get_Vcurrent_load_list () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vcurrent_load_list.get () } }
-#[inline(always)] pub fn set_Vcurrent_load_list (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vcurrent_load_list.set (val) } }
-#[inline(always)] pub fn get_Vcurrent_minibuffer_command () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vcurrent_minibuffer_command.get () } }
-#[inline(always)] pub fn set_Vcurrent_minibuffer_command (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vcurrent_minibuffer_command.set (val) } }
-#[inline(always)] pub fn get_Vcurrent_prefix_arg () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vcurrent_prefix_arg.get () } }
-#[inline(always)] pub fn set_Vcurrent_prefix_arg (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vcurrent_prefix_arg.set (val) } }
-#[inline(always)] pub fn get_Vdata_directory () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vdata_directory.get () } }
-#[inline(always)] pub fn set_Vdata_directory (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vdata_directory.set (val) } }
-#[inline(always)] pub fn get_Vdbus_compiled_version () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vdbus_compiled_version.get () } }
-#[inline(always)] pub fn set_Vdbus_compiled_version (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vdbus_compiled_version.set (val) } }
-#[inline(always)] pub fn get_Vdbus_debug () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vdbus_debug.get () } }
-#[inline(always)] pub fn set_Vdbus_debug (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vdbus_debug.set (val) } }
-#[inline(always)] pub fn get_Vdbus_message_type_error () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vdbus_message_type_error.get () } }
-#[inline(always)] pub fn set_Vdbus_message_type_error (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vdbus_message_type_error.set (val) } }
-#[inline(always)] pub fn get_Vdbus_message_type_invalid () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vdbus_message_type_invalid.get () } }
-#[inline(always)] pub fn set_Vdbus_message_type_invalid (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vdbus_message_type_invalid.set (val) } }
-#[inline(always)] pub fn get_Vdbus_message_type_method_call () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vdbus_message_type_method_call.get () } }
-#[inline(always)] pub fn set_Vdbus_message_type_method_call (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vdbus_message_type_method_call.set (val) } }
-#[inline(always)] pub fn get_Vdbus_message_type_method_return () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vdbus_message_type_method_return.get () } }
-#[inline(always)] pub fn set_Vdbus_message_type_method_return (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vdbus_message_type_method_return.set (val) } }
-#[inline(always)] pub fn get_Vdbus_message_type_signal () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vdbus_message_type_signal.get () } }
-#[inline(always)] pub fn set_Vdbus_message_type_signal (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vdbus_message_type_signal.set (val) } }
-#[inline(always)] pub fn get_Vdbus_registered_objects_table () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vdbus_registered_objects_table.get () } }
-#[inline(always)] pub fn set_Vdbus_registered_objects_table (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vdbus_registered_objects_table.set (val) } }
-#[inline(always)] pub fn get_Vdbus_runtime_version () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vdbus_runtime_version.get () } }
-#[inline(always)] pub fn set_Vdbus_runtime_version (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vdbus_runtime_version.set (val) } }
-#[inline(always)] pub fn get_Vdeactivate_mark () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vdeactivate_mark.get () } }
-#[inline(always)] pub fn set_Vdeactivate_mark (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vdeactivate_mark.set (val) } }
-#[inline(always)] pub fn get_Vdebug_ignored_errors () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vdebug_ignored_errors.get () } }
-#[inline(always)] pub fn set_Vdebug_ignored_errors (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vdebug_ignored_errors.set (val) } }
-#[inline(always)] pub fn get_Vdebug_on_error () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vdebug_on_error.get () } }
-#[inline(always)] pub fn set_Vdebug_on_error (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vdebug_on_error.set (val) } }
-#[inline(always)] pub fn get_Vdebug_on_event () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vdebug_on_event.get () } }
-#[inline(always)] pub fn set_Vdebug_on_event (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vdebug_on_event.set (val) } }
-#[inline(always)] pub fn get_Vdebug_on_message () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vdebug_on_message.get () } }
-#[inline(always)] pub fn set_Vdebug_on_message (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vdebug_on_message.set (val) } }
-#[inline(always)] pub fn get_Vdebug_on_signal () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vdebug_on_signal.get () } }
-#[inline(always)] pub fn set_Vdebug_on_signal (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vdebug_on_signal.set (val) } }
-#[inline(always)] pub fn get_Vdebugger () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vdebugger.get () } }
-#[inline(always)] pub fn set_Vdebugger (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vdebugger.set (val) } }
-#[inline(always)] pub fn get_Vdefault_file_name_coding_system () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vdefault_file_name_coding_system.get () } }
-#[inline(always)] pub fn set_Vdefault_file_name_coding_system (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vdefault_file_name_coding_system.set (val) } }
-#[inline(always)] pub fn get_Vdefault_frame_alist () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vdefault_frame_alist.get () } }
-#[inline(always)] pub fn set_Vdefault_frame_alist (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vdefault_frame_alist.set (val) } }
-#[inline(always)] pub fn get_Vdefault_frame_scroll_bars () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vdefault_frame_scroll_bars.get () } }
-#[inline(always)] pub fn set_Vdefault_frame_scroll_bars (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vdefault_frame_scroll_bars.set (val) } }
-#[inline(always)] pub fn get_Vdefault_minibuffer_frame () -> *mut c_void { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vdefault_minibuffer_frame.get () } }
-#[inline(always)] pub fn set_Vdefault_minibuffer_frame (val: *mut c_void) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vdefault_minibuffer_frame.set (val) } }
-#[inline(always)] pub fn get_Vdefault_process_coding_system () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vdefault_process_coding_system.get () } }
-#[inline(always)] pub fn set_Vdefault_process_coding_system (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vdefault_process_coding_system.set (val) } }
-#[inline(always)] pub fn get_Vdefault_text_properties () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vdefault_text_properties.get () } }
-#[inline(always)] pub fn set_Vdefault_text_properties (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vdefault_text_properties.set (val) } }
-#[inline(always)] pub fn get_Vdelayed_warnings_list () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vdelayed_warnings_list.get () } }
-#[inline(always)] pub fn set_Vdelayed_warnings_list (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vdelayed_warnings_list.set (val) } }
-#[inline(always)] pub fn get_Vdelete_frame_functions () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vdelete_frame_functions.get () } }
-#[inline(always)] pub fn set_Vdelete_frame_functions (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vdelete_frame_functions.set (val) } }
-#[inline(always)] pub fn get_Vdelete_terminal_functions () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vdelete_terminal_functions.get () } }
-#[inline(always)] pub fn set_Vdelete_terminal_functions (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vdelete_terminal_functions.set (val) } }
-#[inline(always)] pub fn get_Vdescribe_bindings_check_shadowing_in_ranges () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vdescribe_bindings_check_shadowing_in_ranges.get () } }
-#[inline(always)] pub fn set_Vdescribe_bindings_check_shadowing_in_ranges (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vdescribe_bindings_check_shadowing_in_ranges.set (val) } }
-#[inline(always)] pub fn get_Vdisable_point_adjustment () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vdisable_point_adjustment.get () } }
-#[inline(always)] pub fn set_Vdisable_point_adjustment (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vdisable_point_adjustment.set (val) } }
-#[inline(always)] pub fn get_Vdisplay_fill_column_indicator_character () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vdisplay_fill_column_indicator_character.get () } }
-#[inline(always)] pub fn set_Vdisplay_fill_column_indicator_character (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vdisplay_fill_column_indicator_character.set (val) } }
-#[inline(always)] pub fn get_Vdisplay_fill_column_indicator_column () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vdisplay_fill_column_indicator_column.get () } }
-#[inline(always)] pub fn set_Vdisplay_fill_column_indicator_column (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vdisplay_fill_column_indicator_column.set (val) } }
-#[inline(always)] pub fn get_Vdisplay_line_numbers () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vdisplay_line_numbers.get () } }
-#[inline(always)] pub fn set_Vdisplay_line_numbers (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vdisplay_line_numbers.set (val) } }
-#[inline(always)] pub fn get_Vdisplay_line_numbers_current_absolute () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vdisplay_line_numbers_current_absolute.get () } }
-#[inline(always)] pub fn set_Vdisplay_line_numbers_current_absolute (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vdisplay_line_numbers_current_absolute.set (val) } }
-#[inline(always)] pub fn get_Vdisplay_line_numbers_width () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vdisplay_line_numbers_width.get () } }
-#[inline(always)] pub fn set_Vdisplay_line_numbers_width (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vdisplay_line_numbers_width.set (val) } }
-#[inline(always)] pub fn get_Vdisplay_monitors_changed_functions () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vdisplay_monitors_changed_functions.get () } }
-#[inline(always)] pub fn set_Vdisplay_monitors_changed_functions (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vdisplay_monitors_changed_functions.set (val) } }
-#[inline(always)] pub fn get_Vdisplay_pixels_per_inch () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vdisplay_pixels_per_inch.get () } }
-#[inline(always)] pub fn set_Vdisplay_pixels_per_inch (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vdisplay_pixels_per_inch.set (val) } }
-#[inline(always)] pub fn get_Vdoc_directory () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vdoc_directory.get () } }
-#[inline(always)] pub fn set_Vdoc_directory (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vdoc_directory.set (val) } }
-#[inline(always)] pub fn get_Vdoc_file_name () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vdoc_file_name.get () } }
-#[inline(always)] pub fn set_Vdoc_file_name (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vdoc_file_name.set (val) } }
-#[inline(always)] pub fn get_Vdos_display_scancodes () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vdos_display_scancodes.get () } }
-#[inline(always)] pub fn set_Vdos_display_scancodes (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vdos_display_scancodes.set (val) } }
-#[inline(always)] pub fn get_Vdos_unsupported_char_glyph () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vdos_unsupported_char_glyph.get () } }
-#[inline(always)] pub fn set_Vdos_unsupported_char_glyph (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vdos_unsupported_char_glyph.set (val) } }
-#[inline(always)] pub fn get_Vdos_version () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vdos_version.get () } }
-#[inline(always)] pub fn set_Vdos_version (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vdos_version.set (val) } }
-#[inline(always)] pub fn get_Vdos_windows_version () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vdos_windows_version.get () } }
-#[inline(always)] pub fn set_Vdos_windows_version (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vdos_windows_version.set (val) } }
-#[inline(always)] pub fn get_Vdouble_click_time () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vdouble_click_time.get () } }
-#[inline(always)] pub fn set_Vdouble_click_time (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vdouble_click_time.set (val) } }
-#[inline(always)] pub fn get_Vdump_mode () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vdump_mode.get () } }
-#[inline(always)] pub fn set_Vdump_mode (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vdump_mode.set (val) } }
-#[inline(always)] pub fn get_Vdynamic_library_alist () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vdynamic_library_alist.get () } }
-#[inline(always)] pub fn set_Vdynamic_library_alist (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vdynamic_library_alist.set (val) } }
-#[inline(always)] pub fn get_Vdynamic_library_suffixes () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vdynamic_library_suffixes.get () } }
-#[inline(always)] pub fn set_Vdynamic_library_suffixes (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vdynamic_library_suffixes.set (val) } }
-#[inline(always)] pub fn get_Vebrowse_program_name () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vebrowse_program_name.get () } }
-#[inline(always)] pub fn set_Vebrowse_program_name (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vebrowse_program_name.set (val) } }
-#[inline(always)] pub fn get_Vecho_keystrokes () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vecho_keystrokes.get () } }
-#[inline(always)] pub fn set_Vecho_keystrokes (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vecho_keystrokes.set (val) } }
-#[inline(always)] pub fn get_Vemacs_copyright () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vemacs_copyright.get () } }
-#[inline(always)] pub fn set_Vemacs_copyright (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vemacs_copyright.set (val) } }
-#[inline(always)] pub fn get_Vemacs_version () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vemacs_version.get () } }
-#[inline(always)] pub fn set_Vemacs_version (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vemacs_version.set (val) } }
-#[inline(always)] pub fn get_Vemacsclient_program_name () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vemacsclient_program_name.get () } }
-#[inline(always)] pub fn set_Vemacsclient_program_name (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vemacsclient_program_name.set (val) } }
-#[inline(always)] pub fn get_Vemulation_mode_map_alists () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vemulation_mode_map_alists.get () } }
-#[inline(always)] pub fn set_Vemulation_mode_map_alists (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vemulation_mode_map_alists.set (val) } }
-#[inline(always)] pub fn get_Venable_character_translation () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Venable_character_translation.get () } }
-#[inline(always)] pub fn set_Venable_character_translation (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Venable_character_translation.set (val) } }
-#[inline(always)] pub fn get_Venable_disabled_menus_and_buttons () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Venable_disabled_menus_and_buttons.get () } }
-#[inline(always)] pub fn set_Venable_disabled_menus_and_buttons (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Venable_disabled_menus_and_buttons.set (val) } }
-#[inline(always)] pub fn get_Vetags_program_name () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vetags_program_name.get () } }
-#[inline(always)] pub fn set_Vetags_program_name (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vetags_program_name.set (val) } }
-#[inline(always)] pub fn get_Veval_buffer_list () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Veval_buffer_list.get () } }
-#[inline(always)] pub fn set_Veval_buffer_list (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Veval_buffer_list.set (val) } }
-#[inline(always)] pub fn get_Vexec_directory () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vexec_directory.get () } }
-#[inline(always)] pub fn set_Vexec_directory (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vexec_directory.set (val) } }
-#[inline(always)] pub fn get_Vexec_path () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vexec_path.get () } }
-#[inline(always)] pub fn set_Vexec_path (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vexec_path.set (val) } }
-#[inline(always)] pub fn get_Vexec_suffixes () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vexec_suffixes.get () } }
-#[inline(always)] pub fn set_Vexec_suffixes (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vexec_suffixes.set (val) } }
-#[inline(always)] pub fn get_Vexecuting_kbd_macro () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vexecuting_kbd_macro.get () } }
-#[inline(always)] pub fn set_Vexecuting_kbd_macro (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vexecuting_kbd_macro.set (val) } }
-#[inline(always)] pub fn get_Vface_default_stipple () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vface_default_stipple.get () } }
-#[inline(always)] pub fn set_Vface_default_stipple (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vface_default_stipple.set (val) } }
-#[inline(always)] pub fn get_Vface_font_lax_matched_attributes () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vface_font_lax_matched_attributes.get () } }
-#[inline(always)] pub fn set_Vface_font_lax_matched_attributes (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vface_font_lax_matched_attributes.set (val) } }
-#[inline(always)] pub fn get_Vface_font_rescale_alist () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vface_font_rescale_alist.get () } }
-#[inline(always)] pub fn set_Vface_font_rescale_alist (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vface_font_rescale_alist.set (val) } }
-#[inline(always)] pub fn get_Vface_ignored_fonts () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vface_ignored_fonts.get () } }
-#[inline(always)] pub fn set_Vface_ignored_fonts (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vface_ignored_fonts.set (val) } }
-#[inline(always)] pub fn get_Vface_new_frame_defaults () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vface_new_frame_defaults.get () } }
-#[inline(always)] pub fn set_Vface_new_frame_defaults (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vface_new_frame_defaults.set (val) } }
-#[inline(always)] pub fn get_Vface_remapping_alist () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vface_remapping_alist.get () } }
-#[inline(always)] pub fn set_Vface_remapping_alist (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vface_remapping_alist.set (val) } }
-#[inline(always)] pub fn get_Vfeatures () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vfeatures.get () } }
-#[inline(always)] pub fn set_Vfeatures (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vfeatures.set (val) } }
-#[inline(always)] pub fn get_Vfile_coding_system_alist () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vfile_coding_system_alist.get () } }
-#[inline(always)] pub fn set_Vfile_coding_system_alist (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vfile_coding_system_alist.set (val) } }
-#[inline(always)] pub fn get_Vfile_name_coding_system () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vfile_name_coding_system.get () } }
-#[inline(always)] pub fn set_Vfile_name_coding_system (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vfile_name_coding_system.set (val) } }
-#[inline(always)] pub fn get_Vfile_name_handler_alist () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vfile_name_handler_alist.get () } }
-#[inline(always)] pub fn set_Vfile_name_handler_alist (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vfile_name_handler_alist.set (val) } }
-#[inline(always)] pub fn get_Vfind_word_boundary_function_table () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vfind_word_boundary_function_table.get () } }
-#[inline(always)] pub fn set_Vfind_word_boundary_function_table (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vfind_word_boundary_function_table.set (val) } }
-#[inline(always)] pub fn get_Vfirst_change_hook () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vfirst_change_hook.get () } }
-#[inline(always)] pub fn set_Vfirst_change_hook (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vfirst_change_hook.set (val) } }
-#[inline(always)] pub fn get_Vfloat_output_format () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vfloat_output_format.get () } }
-#[inline(always)] pub fn set_Vfloat_output_format (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vfloat_output_format.set (val) } }
-#[inline(always)] pub fn get_Vfont_encoding_alist () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vfont_encoding_alist.get () } }
-#[inline(always)] pub fn set_Vfont_encoding_alist (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vfont_encoding_alist.set (val) } }
-#[inline(always)] pub fn get_Vfont_encoding_charset_alist () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vfont_encoding_charset_alist.get () } }
-#[inline(always)] pub fn set_Vfont_encoding_charset_alist (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vfont_encoding_charset_alist.set (val) } }
-#[inline(always)] pub fn get_Vfont_log () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vfont_log.get () } }
-#[inline(always)] pub fn set_Vfont_log (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vfont_log.set (val) } }
-#[inline(always)] pub fn get_Vfontification_functions () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vfontification_functions.get () } }
-#[inline(always)] pub fn set_Vfontification_functions (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vfontification_functions.set (val) } }
-#[inline(always)] pub fn get_Vfontset_alias_alist () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vfontset_alias_alist.get () } }
-#[inline(always)] pub fn set_Vfontset_alias_alist (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vfontset_alias_alist.set (val) } }
-#[inline(always)] pub fn get_Vforward_comment_function () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vforward_comment_function.get () } }
-#[inline(always)] pub fn set_Vforward_comment_function (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vforward_comment_function.set (val) } }
-#[inline(always)] pub fn get_Vframe_alpha_lower_limit () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vframe_alpha_lower_limit.get () } }
-#[inline(always)] pub fn set_Vframe_alpha_lower_limit (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vframe_alpha_lower_limit.set (val) } }
-#[inline(always)] pub fn get_Vframe_title_format () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vframe_title_format.get () } }
-#[inline(always)] pub fn set_Vframe_title_format (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vframe_title_format.set (val) } }
-#[inline(always)] pub fn get_Vfringe_bitmaps () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vfringe_bitmaps.get () } }
-#[inline(always)] pub fn set_Vfringe_bitmaps (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vfringe_bitmaps.set (val) } }
-#[inline(always)] pub fn get_Vfunction_key_map () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vfunction_key_map.get () } }
-#[inline(always)] pub fn set_Vfunction_key_map (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vfunction_key_map.set (val) } }
-#[inline(always)] pub fn get_Vgc_cons_percentage () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vgc_cons_percentage.get () } }
-#[inline(always)] pub fn set_Vgc_cons_percentage (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vgc_cons_percentage.set (val) } }
-#[inline(always)] pub fn get_Vgc_elapsed () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vgc_elapsed.get () } }
-#[inline(always)] pub fn set_Vgc_elapsed (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vgc_elapsed.set (val) } }
-#[inline(always)] pub fn get_Vglobal_disable_point_adjustment () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vglobal_disable_point_adjustment.get () } }
-#[inline(always)] pub fn set_Vglobal_disable_point_adjustment (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vglobal_disable_point_adjustment.set (val) } }
-#[inline(always)] pub fn get_Vglobal_mode_string () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vglobal_mode_string.get () } }
-#[inline(always)] pub fn set_Vglobal_mode_string (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vglobal_mode_string.set (val) } }
-#[inline(always)] pub fn get_Vglyph_table () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vglyph_table.get () } }
-#[inline(always)] pub fn set_Vglyph_table (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vglyph_table.set (val) } }
-#[inline(always)] pub fn get_Vglyphless_char_display () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vglyphless_char_display.get () } }
-#[inline(always)] pub fn set_Vglyphless_char_display (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vglyphless_char_display.set (val) } }
-#[inline(always)] pub fn get_Vgtk_version_string () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vgtk_version_string.get () } }
-#[inline(always)] pub fn set_Vgtk_version_string (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vgtk_version_string.set (val) } }
-#[inline(always)] pub fn get_Vhaiku_allowed_ui_colors () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vhaiku_allowed_ui_colors.get () } }
-#[inline(always)] pub fn set_Vhaiku_allowed_ui_colors (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vhaiku_allowed_ui_colors.set (val) } }
-#[inline(always)] pub fn get_Vhaiku_control_keysym () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vhaiku_control_keysym.get () } }
-#[inline(always)] pub fn set_Vhaiku_control_keysym (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vhaiku_control_keysym.set (val) } }
-#[inline(always)] pub fn get_Vhaiku_drag_track_function () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vhaiku_drag_track_function.get () } }
-#[inline(always)] pub fn set_Vhaiku_drag_track_function (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vhaiku_drag_track_function.set (val) } }
-#[inline(always)] pub fn get_Vhaiku_drag_wheel_function () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vhaiku_drag_wheel_function.get () } }
-#[inline(always)] pub fn set_Vhaiku_drag_wheel_function (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vhaiku_drag_wheel_function.set (val) } }
-#[inline(always)] pub fn get_Vhaiku_lost_selection_functions () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vhaiku_lost_selection_functions.get () } }
-#[inline(always)] pub fn set_Vhaiku_lost_selection_functions (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vhaiku_lost_selection_functions.set (val) } }
-#[inline(always)] pub fn get_Vhaiku_meta_keysym () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vhaiku_meta_keysym.get () } }
-#[inline(always)] pub fn set_Vhaiku_meta_keysym (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vhaiku_meta_keysym.set (val) } }
-#[inline(always)] pub fn get_Vhaiku_shift_keysym () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vhaiku_shift_keysym.get () } }
-#[inline(always)] pub fn set_Vhaiku_shift_keysym (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vhaiku_shift_keysym.set (val) } }
-#[inline(always)] pub fn get_Vhaiku_super_keysym () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vhaiku_super_keysym.get () } }
-#[inline(always)] pub fn set_Vhaiku_super_keysym (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vhaiku_super_keysym.set (val) } }
-#[inline(always)] pub fn get_Vhelp_char () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vhelp_char.get () } }
-#[inline(always)] pub fn set_Vhelp_char (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vhelp_char.set (val) } }
-#[inline(always)] pub fn get_Vhelp_event_list () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vhelp_event_list.get () } }
-#[inline(always)] pub fn set_Vhelp_event_list (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vhelp_event_list.set (val) } }
-#[inline(always)] pub fn get_Vhelp_form () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vhelp_form.get () } }
-#[inline(always)] pub fn set_Vhelp_form (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vhelp_form.set (val) } }
-#[inline(always)] pub fn get_Vhexl_program_name () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vhexl_program_name.get () } }
-#[inline(always)] pub fn set_Vhexl_program_name (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vhexl_program_name.set (val) } }
-#[inline(always)] pub fn get_Vhistory_add_new_input () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vhistory_add_new_input.get () } }
-#[inline(always)] pub fn set_Vhistory_add_new_input (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vhistory_add_new_input.set (val) } }
-#[inline(always)] pub fn get_Vhistory_length () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vhistory_length.get () } }
-#[inline(always)] pub fn set_Vhistory_length (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vhistory_length.set (val) } }
-#[inline(always)] pub fn get_Vhourglass_delay () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vhourglass_delay.get () } }
-#[inline(always)] pub fn set_Vhourglass_delay (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vhourglass_delay.set (val) } }
-#[inline(always)] pub fn get_Vhscroll_step () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vhscroll_step.get () } }
-#[inline(always)] pub fn set_Vhscroll_step (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vhscroll_step.set (val) } }
-#[inline(always)] pub fn get_Vicon_title_format () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vicon_title_format.get () } }
-#[inline(always)] pub fn set_Vicon_title_format (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vicon_title_format.set (val) } }
-#[inline(always)] pub fn get_Vignore_relative_composition () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vignore_relative_composition.get () } }
-#[inline(always)] pub fn set_Vignore_relative_composition (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vignore_relative_composition.set (val) } }
-#[inline(always)] pub fn get_Vimage_cache_eviction_delay () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vimage_cache_eviction_delay.get () } }
-#[inline(always)] pub fn set_Vimage_cache_eviction_delay (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vimage_cache_eviction_delay.set (val) } }
-#[inline(always)] pub fn get_Vimage_scaling_factor () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vimage_scaling_factor.get () } }
-#[inline(always)] pub fn set_Vimage_scaling_factor (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vimage_scaling_factor.set (val) } }
-#[inline(always)] pub fn get_Vimage_types () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vimage_types.get () } }
-#[inline(always)] pub fn set_Vimage_types (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vimage_types.set (val) } }
-#[inline(always)] pub fn get_Vinhibit_changing_match_data () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vinhibit_changing_match_data.get () } }
-#[inline(always)] pub fn set_Vinhibit_changing_match_data (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vinhibit_changing_match_data.set (val) } }
-#[inline(always)] pub fn get_Vinhibit_debugger () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vinhibit_debugger.get () } }
-#[inline(always)] pub fn set_Vinhibit_debugger (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vinhibit_debugger.set (val) } }
-#[inline(always)] pub fn get_Vinhibit_field_text_motion () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vinhibit_field_text_motion.get () } }
-#[inline(always)] pub fn set_Vinhibit_field_text_motion (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vinhibit_field_text_motion.set (val) } }
-#[inline(always)] pub fn get_Vinhibit_file_name_handlers () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vinhibit_file_name_handlers.get () } }
-#[inline(always)] pub fn set_Vinhibit_file_name_handlers (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vinhibit_file_name_handlers.set (val) } }
-#[inline(always)] pub fn get_Vinhibit_file_name_operation () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vinhibit_file_name_operation.get () } }
-#[inline(always)] pub fn set_Vinhibit_file_name_operation (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vinhibit_file_name_operation.set (val) } }
-#[inline(always)] pub fn get_Vinhibit_point_motion_hooks () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vinhibit_point_motion_hooks.get () } }
-#[inline(always)] pub fn set_Vinhibit_point_motion_hooks (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vinhibit_point_motion_hooks.set (val) } }
-#[inline(always)] pub fn get_Vinhibit_quit () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vinhibit_quit.get () } }
-#[inline(always)] pub fn set_Vinhibit_quit (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vinhibit_quit.set (val) } }
-#[inline(always)] pub fn get_Vinhibit_read_only () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vinhibit_read_only.get () } }
-#[inline(always)] pub fn set_Vinhibit_read_only (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vinhibit_read_only.set (val) } }
-#[inline(always)] pub fn get_Vinhibit_redisplay () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vinhibit_redisplay.get () } }
-#[inline(always)] pub fn set_Vinhibit_redisplay (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vinhibit_redisplay.set (val) } }
-#[inline(always)] pub fn get_Vinitial_environment () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vinitial_environment.get () } }
-#[inline(always)] pub fn set_Vinitial_environment (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vinitial_environment.set (val) } }
-#[inline(always)] pub fn get_Vinitial_window_system () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vinitial_window_system.get () } }
-#[inline(always)] pub fn set_Vinitial_window_system (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vinitial_window_system.set (val) } }
-#[inline(always)] pub fn get_Vinput_decode_map () -> *mut c_void { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vinput_decode_map.get () } }
-#[inline(always)] pub fn set_Vinput_decode_map (val: *mut c_void) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vinput_decode_map.set (val) } }
-#[inline(always)] pub fn get_Vinput_method_function () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vinput_method_function.get () } }
-#[inline(always)] pub fn set_Vinput_method_function (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vinput_method_function.set (val) } }
-#[inline(always)] pub fn get_Vinput_method_previous_message () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vinput_method_previous_message.get () } }
-#[inline(always)] pub fn set_Vinput_method_previous_message (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vinput_method_previous_message.set (val) } }
-#[inline(always)] pub fn get_Vinstallation_directory () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vinstallation_directory.get () } }
-#[inline(always)] pub fn set_Vinstallation_directory (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vinstallation_directory.set (val) } }
-#[inline(always)] pub fn get_Vinternal__daemon_sockname () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vinternal__daemon_sockname.get () } }
-#[inline(always)] pub fn set_Vinternal__daemon_sockname (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vinternal__daemon_sockname.set (val) } }
-#[inline(always)] pub fn get_Vinternal__get_default_lexical_binding_function () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vinternal__get_default_lexical_binding_function.get () } }
-#[inline(always)] pub fn set_Vinternal__get_default_lexical_binding_function (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vinternal__get_default_lexical_binding_function.set (val) } }
-#[inline(always)] pub fn get_Vinternal__top_level_message () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vinternal__top_level_message.get () } }
-#[inline(always)] pub fn set_Vinternal__top_level_message (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vinternal__top_level_message.set (val) } }
-#[inline(always)] pub fn get_Vinternal_interpreter_environment () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vinternal_interpreter_environment.get () } }
-#[inline(always)] pub fn set_Vinternal_interpreter_environment (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vinternal_interpreter_environment.set (val) } }
-#[inline(always)] pub fn get_Vinternal_make_interpreted_closure_function () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vinternal_make_interpreted_closure_function.get () } }
-#[inline(always)] pub fn set_Vinternal_make_interpreted_closure_function (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vinternal_make_interpreted_closure_function.set (val) } }
-#[inline(always)] pub fn get_Vinterrupt_process_functions () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vinterrupt_process_functions.get () } }
-#[inline(always)] pub fn set_Vinterrupt_process_functions (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vinterrupt_process_functions.set (val) } }
-#[inline(always)] pub fn get_Vinvocation_directory () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vinvocation_directory.get () } }
-#[inline(always)] pub fn set_Vinvocation_directory (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vinvocation_directory.set (val) } }
-#[inline(always)] pub fn get_Vinvocation_name () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vinvocation_name.get () } }
-#[inline(always)] pub fn set_Vinvocation_name (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vinvocation_name.set (val) } }
-#[inline(always)] pub fn get_Vkbd_macro_termination_hook () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vkbd_macro_termination_hook.get () } }
-#[inline(always)] pub fn set_Vkbd_macro_termination_hook (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vkbd_macro_termination_hook.set (val) } }
-#[inline(always)] pub fn get_Vkey_translation_map () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vkey_translation_map.get () } }
-#[inline(always)] pub fn set_Vkey_translation_map (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vkey_translation_map.set (val) } }
-#[inline(always)] pub fn get_Vkeyboard_translate_table () -> *mut c_void { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vkeyboard_translate_table.get () } }
-#[inline(always)] pub fn set_Vkeyboard_translate_table (val: *mut c_void) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vkeyboard_translate_table.set (val) } }
-#[inline(always)] pub fn get_Vkill_buffer_query_functions () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vkill_buffer_query_functions.get () } }
-#[inline(always)] pub fn set_Vkill_buffer_query_functions (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vkill_buffer_query_functions.set (val) } }
-#[inline(always)] pub fn get_Vkill_emacs_hook () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vkill_emacs_hook.get () } }
-#[inline(always)] pub fn set_Vkill_emacs_hook (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vkill_emacs_hook.set (val) } }
-#[inline(always)] pub fn get_Vlast_code_conversion_error () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vlast_code_conversion_error.get () } }
-#[inline(always)] pub fn set_Vlast_code_conversion_error (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vlast_code_conversion_error.set (val) } }
-#[inline(always)] pub fn get_Vlast_coding_system_used () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vlast_coding_system_used.get () } }
-#[inline(always)] pub fn set_Vlast_coding_system_used (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vlast_coding_system_used.set (val) } }
-#[inline(always)] pub fn get_Vlast_command () -> *mut c_void { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vlast_command.get () } }
-#[inline(always)] pub fn set_Vlast_command (val: *mut c_void) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vlast_command.set (val) } }
-#[inline(always)] pub fn get_Vlast_event_device () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vlast_event_device.get () } }
-#[inline(always)] pub fn set_Vlast_event_device (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vlast_event_device.set (val) } }
-#[inline(always)] pub fn get_Vlast_event_frame () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vlast_event_frame.get () } }
-#[inline(always)] pub fn set_Vlast_event_frame (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vlast_event_frame.set (val) } }
-#[inline(always)] pub fn get_Vlast_kbd_macro () -> *mut c_void { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vlast_kbd_macro.get () } }
-#[inline(always)] pub fn set_Vlast_kbd_macro (val: *mut c_void) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vlast_kbd_macro.set (val) } }
-#[inline(always)] pub fn get_Vlast_prefix_arg () -> *mut c_void { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vlast_prefix_arg.get () } }
-#[inline(always)] pub fn set_Vlast_prefix_arg (val: *mut c_void) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vlast_prefix_arg.set (val) } }
-#[inline(always)] pub fn get_Vlast_repeatable_command () -> *mut c_void { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vlast_repeatable_command.get () } }
-#[inline(always)] pub fn set_Vlast_repeatable_command (val: *mut c_void) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vlast_repeatable_command.set (val) } }
-#[inline(always)] pub fn get_Vlatin_extra_code_table () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vlatin_extra_code_table.get () } }
-#[inline(always)] pub fn set_Vlatin_extra_code_table (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vlatin_extra_code_table.set (val) } }
-#[inline(always)] pub fn get_Vlexical_binding () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vlexical_binding.get () } }
-#[inline(always)] pub fn set_Vlexical_binding (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vlexical_binding.set (val) } }
-#[inline(always)] pub fn get_Vlibgnutls_version () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vlibgnutls_version.get () } }
-#[inline(always)] pub fn set_Vlibgnutls_version (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vlibgnutls_version.set (val) } }
-#[inline(always)] pub fn get_Vline_number_display_limit () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vline_number_display_limit.get () } }
-#[inline(always)] pub fn set_Vline_number_display_limit (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vline_number_display_limit.set (val) } }
-#[inline(always)] pub fn get_Vline_prefix () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vline_prefix.get () } }
-#[inline(always)] pub fn set_Vline_prefix (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vline_prefix.set (val) } }
-#[inline(always)] pub fn get_Vload_file_name () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vload_file_name.get () } }
-#[inline(always)] pub fn set_Vload_file_name (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vload_file_name.set (val) } }
-#[inline(always)] pub fn get_Vload_file_rep_suffixes () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vload_file_rep_suffixes.get () } }
-#[inline(always)] pub fn set_Vload_file_rep_suffixes (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vload_file_rep_suffixes.set (val) } }
-#[inline(always)] pub fn get_Vload_history () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vload_history.get () } }
-#[inline(always)] pub fn set_Vload_history (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vload_history.set (val) } }
-#[inline(always)] pub fn get_Vload_path () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vload_path.get () } }
-#[inline(always)] pub fn set_Vload_path (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vload_path.set (val) } }
-#[inline(always)] pub fn get_Vload_path_filter_function () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vload_path_filter_function.get () } }
-#[inline(always)] pub fn set_Vload_path_filter_function (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vload_path_filter_function.set (val) } }
-#[inline(always)] pub fn get_Vload_read_function () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vload_read_function.get () } }
-#[inline(always)] pub fn set_Vload_read_function (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vload_read_function.set (val) } }
-#[inline(always)] pub fn get_Vload_source_file_function () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vload_source_file_function.get () } }
-#[inline(always)] pub fn set_Vload_source_file_function (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vload_source_file_function.set (val) } }
-#[inline(always)] pub fn get_Vload_suffixes () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vload_suffixes.get () } }
-#[inline(always)] pub fn set_Vload_suffixes (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vload_suffixes.set (val) } }
-#[inline(always)] pub fn get_Vload_true_file_name () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vload_true_file_name.get () } }
-#[inline(always)] pub fn set_Vload_true_file_name (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vload_true_file_name.set (val) } }
-#[inline(always)] pub fn get_Vlocal_function_key_map () -> *mut c_void { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vlocal_function_key_map.get () } }
-#[inline(always)] pub fn set_Vlocal_function_key_map (val: *mut c_void) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vlocal_function_key_map.set (val) } }
-#[inline(always)] pub fn get_Vlocale_coding_system () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vlocale_coding_system.get () } }
-#[inline(always)] pub fn set_Vlocale_coding_system (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vlocale_coding_system.set (val) } }
-#[inline(always)] pub fn get_Vlong_line_threshold () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vlong_line_threshold.get () } }
-#[inline(always)] pub fn set_Vlong_line_threshold (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vlong_line_threshold.set (val) } }
-#[inline(always)] pub fn get_Vlread_unescaped_character_literals () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vlread_unescaped_character_literals.get () } }
-#[inline(always)] pub fn set_Vlread_unescaped_character_literals (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vlread_unescaped_character_literals.set (val) } }
-#[inline(always)] pub fn get_Vmacroexp__dynvars () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vmacroexp__dynvars.get () } }
-#[inline(always)] pub fn set_Vmacroexp__dynvars (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vmacroexp__dynvars.set (val) } }
-#[inline(always)] pub fn get_Vmain_thread () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vmain_thread.get () } }
-#[inline(always)] pub fn set_Vmain_thread (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vmain_thread.set (val) } }
-#[inline(always)] pub fn get_Vmake_cursor_line_fully_visible () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vmake_cursor_line_fully_visible.get () } }
-#[inline(always)] pub fn set_Vmake_cursor_line_fully_visible (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vmake_cursor_line_fully_visible.set (val) } }
-#[inline(always)] pub fn get_Vmake_pointer_invisible () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vmake_pointer_invisible.get () } }
-#[inline(always)] pub fn set_Vmake_pointer_invisible (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vmake_pointer_invisible.set (val) } }
-#[inline(always)] pub fn get_Vmark_even_if_inactive () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vmark_even_if_inactive.get () } }
-#[inline(always)] pub fn set_Vmark_even_if_inactive (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vmark_even_if_inactive.set (val) } }
-#[inline(always)] pub fn get_Vmax_image_size () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vmax_image_size.get () } }
-#[inline(always)] pub fn set_Vmax_image_size (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vmax_image_size.set (val) } }
-#[inline(always)] pub fn get_Vmax_mini_window_height () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vmax_mini_window_height.get () } }
-#[inline(always)] pub fn set_Vmax_mini_window_height (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vmax_mini_window_height.set (val) } }
-#[inline(always)] pub fn get_Vmaximum_scroll_margin () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vmaximum_scroll_margin.get () } }
-#[inline(always)] pub fn set_Vmaximum_scroll_margin (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vmaximum_scroll_margin.set (val) } }
-#[inline(always)] pub fn get_Vmemory_full () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vmemory_full.get () } }
-#[inline(always)] pub fn set_Vmemory_full (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vmemory_full.set (val) } }
-#[inline(always)] pub fn get_Vmemory_signal_data () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vmemory_signal_data.get () } }
-#[inline(always)] pub fn set_Vmemory_signal_data (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vmemory_signal_data.set (val) } }
-#[inline(always)] pub fn get_Vmenu_bar_final_items () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vmenu_bar_final_items.get () } }
-#[inline(always)] pub fn set_Vmenu_bar_final_items (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vmenu_bar_final_items.set (val) } }
-#[inline(always)] pub fn get_Vmenu_bar_mode () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vmenu_bar_mode.get () } }
-#[inline(always)] pub fn set_Vmenu_bar_mode (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vmenu_bar_mode.set (val) } }
-#[inline(always)] pub fn get_Vmenu_bar_update_hook () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vmenu_bar_update_hook.get () } }
-#[inline(always)] pub fn set_Vmenu_bar_update_hook (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vmenu_bar_update_hook.set (val) } }
-#[inline(always)] pub fn get_Vmenu_updating_frame () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vmenu_updating_frame.get () } }
-#[inline(always)] pub fn set_Vmenu_updating_frame (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vmenu_updating_frame.set (val) } }
-#[inline(always)] pub fn get_Vmessage_log_max () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vmessage_log_max.get () } }
-#[inline(always)] pub fn set_Vmessage_log_max (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vmessage_log_max.set (val) } }
-#[inline(always)] pub fn get_Vmessages_buffer_name () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vmessages_buffer_name.get () } }
-#[inline(always)] pub fn set_Vmessages_buffer_name (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vmessages_buffer_name.set (val) } }
-#[inline(always)] pub fn get_Vminibuf_scroll_window () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vminibuf_scroll_window.get () } }
-#[inline(always)] pub fn set_Vminibuf_scroll_window (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vminibuf_scroll_window.set (val) } }
-#[inline(always)] pub fn get_Vminibuffer_completing_file_name () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vminibuffer_completing_file_name.get () } }
-#[inline(always)] pub fn set_Vminibuffer_completing_file_name (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vminibuffer_completing_file_name.set (val) } }
-#[inline(always)] pub fn get_Vminibuffer_completion_confirm () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vminibuffer_completion_confirm.get () } }
-#[inline(always)] pub fn set_Vminibuffer_completion_confirm (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vminibuffer_completion_confirm.set (val) } }
-#[inline(always)] pub fn get_Vminibuffer_completion_predicate () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vminibuffer_completion_predicate.get () } }
-#[inline(always)] pub fn set_Vminibuffer_completion_predicate (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vminibuffer_completion_predicate.set (val) } }
-#[inline(always)] pub fn get_Vminibuffer_completion_table () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vminibuffer_completion_table.get () } }
-#[inline(always)] pub fn set_Vminibuffer_completion_table (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vminibuffer_completion_table.set (val) } }
-#[inline(always)] pub fn get_Vminibuffer_exit_hook () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vminibuffer_exit_hook.get () } }
-#[inline(always)] pub fn set_Vminibuffer_exit_hook (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vminibuffer_exit_hook.set (val) } }
-#[inline(always)] pub fn get_Vminibuffer_help_form () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vminibuffer_help_form.get () } }
-#[inline(always)] pub fn set_Vminibuffer_help_form (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vminibuffer_help_form.set (val) } }
-#[inline(always)] pub fn get_Vminibuffer_history_position () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vminibuffer_history_position.get () } }
-#[inline(always)] pub fn set_Vminibuffer_history_position (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vminibuffer_history_position.set (val) } }
-#[inline(always)] pub fn get_Vminibuffer_history_variable () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vminibuffer_history_variable.get () } }
-#[inline(always)] pub fn set_Vminibuffer_history_variable (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vminibuffer_history_variable.set (val) } }
-#[inline(always)] pub fn get_Vminibuffer_local_map () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vminibuffer_local_map.get () } }
-#[inline(always)] pub fn set_Vminibuffer_local_map (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vminibuffer_local_map.set (val) } }
-#[inline(always)] pub fn get_Vminibuffer_message_timeout () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vminibuffer_message_timeout.get () } }
-#[inline(always)] pub fn set_Vminibuffer_message_timeout (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vminibuffer_message_timeout.set (val) } }
-#[inline(always)] pub fn get_Vminibuffer_prompt_properties () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vminibuffer_prompt_properties.get () } }
-#[inline(always)] pub fn set_Vminibuffer_prompt_properties (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vminibuffer_prompt_properties.set (val) } }
-#[inline(always)] pub fn get_Vminibuffer_setup_hook () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vminibuffer_setup_hook.get () } }
-#[inline(always)] pub fn set_Vminibuffer_setup_hook (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vminibuffer_setup_hook.set (val) } }
-#[inline(always)] pub fn get_Vminor_mode_map_alist () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vminor_mode_map_alist.get () } }
-#[inline(always)] pub fn set_Vminor_mode_map_alist (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vminor_mode_map_alist.set (val) } }
-#[inline(always)] pub fn get_Vminor_mode_overriding_map_alist () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vminor_mode_overriding_map_alist.get () } }
-#[inline(always)] pub fn set_Vminor_mode_overriding_map_alist (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vminor_mode_overriding_map_alist.set (val) } }
-#[inline(always)] pub fn get_Vmode_line_compact () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vmode_line_compact.get () } }
-#[inline(always)] pub fn set_Vmode_line_compact (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vmode_line_compact.set (val) } }
-#[inline(always)] pub fn get_Vmodule_file_suffix () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vmodule_file_suffix.get () } }
-#[inline(always)] pub fn set_Vmodule_file_suffix (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vmodule_file_suffix.set (val) } }
-#[inline(always)] pub fn get_Vmost_negative_fixnum () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vmost_negative_fixnum.get () } }
-#[inline(always)] pub fn set_Vmost_negative_fixnum (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vmost_negative_fixnum.set (val) } }
-#[inline(always)] pub fn get_Vmost_positive_fixnum () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vmost_positive_fixnum.get () } }
-#[inline(always)] pub fn set_Vmost_positive_fixnum (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vmost_positive_fixnum.set (val) } }
-#[inline(always)] pub fn get_Vmotif_version_string () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vmotif_version_string.get () } }
-#[inline(always)] pub fn set_Vmotif_version_string (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vmotif_version_string.set (val) } }
-#[inline(always)] pub fn get_Vmouse_autoselect_window () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vmouse_autoselect_window.get () } }
-#[inline(always)] pub fn set_Vmouse_autoselect_window (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vmouse_autoselect_window.set (val) } }
-#[inline(always)] pub fn get_Vmouse_highlight () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vmouse_highlight.get () } }
-#[inline(always)] pub fn set_Vmouse_highlight (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vmouse_highlight.set (val) } }
-#[inline(always)] pub fn get_Vmouse_leave_buffer_hook () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vmouse_leave_buffer_hook.get () } }
-#[inline(always)] pub fn set_Vmouse_leave_buffer_hook (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vmouse_leave_buffer_hook.set (val) } }
-#[inline(always)] pub fn get_Vmouse_position_function () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vmouse_position_function.get () } }
-#[inline(always)] pub fn set_Vmouse_position_function (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vmouse_position_function.set (val) } }
-#[inline(always)] pub fn get_Vmove_frame_functions () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vmove_frame_functions.get () } }
-#[inline(always)] pub fn set_Vmove_frame_functions (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vmove_frame_functions.set (val) } }
-#[inline(always)] pub fn get_Vmovemail_program_name () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vmovemail_program_name.get () } }
-#[inline(always)] pub fn set_Vmovemail_program_name (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vmovemail_program_name.set (val) } }
-#[inline(always)] pub fn get_Vnative_comp_eln_load_path () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vnative_comp_eln_load_path.get () } }
-#[inline(always)] pub fn set_Vnative_comp_eln_load_path (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vnative_comp_eln_load_path.set (val) } }
-#[inline(always)] pub fn get_Vnative_comp_enable_subr_trampolines () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vnative_comp_enable_subr_trampolines.get () } }
-#[inline(always)] pub fn set_Vnative_comp_enable_subr_trampolines (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vnative_comp_enable_subr_trampolines.set (val) } }
-#[inline(always)] pub fn get_Vnetwork_coding_system_alist () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vnetwork_coding_system_alist.get () } }
-#[inline(always)] pub fn set_Vnetwork_coding_system_alist (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vnetwork_coding_system_alist.set (val) } }
-#[inline(always)] pub fn get_Vnext_selection_coding_system () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vnext_selection_coding_system.get () } }
-#[inline(always)] pub fn set_Vnext_selection_coding_system (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vnext_selection_coding_system.set (val) } }
-#[inline(always)] pub fn get_Vnobreak_char_display () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vnobreak_char_display.get () } }
-#[inline(always)] pub fn set_Vnobreak_char_display (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vnobreak_char_display.set (val) } }
-#[inline(always)] pub fn get_Vobarray () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vobarray.get () } }
-#[inline(always)] pub fn set_Vobarray (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vobarray.set (val) } }
-#[inline(always)] pub fn get_Voperating_system_release () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Voperating_system_release.get () } }
-#[inline(always)] pub fn set_Voperating_system_release (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Voperating_system_release.set (val) } }
-#[inline(always)] pub fn get_Votf_script_alist () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Votf_script_alist.get () } }
-#[inline(always)] pub fn set_Votf_script_alist (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Votf_script_alist.set (val) } }
-#[inline(always)] pub fn get_Vother_window_scroll_buffer () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vother_window_scroll_buffer.get () } }
-#[inline(always)] pub fn set_Vother_window_scroll_buffer (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vother_window_scroll_buffer.set (val) } }
-#[inline(always)] pub fn get_Vother_window_scroll_default () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vother_window_scroll_default.get () } }
-#[inline(always)] pub fn set_Vother_window_scroll_default (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vother_window_scroll_default.set (val) } }
-#[inline(always)] pub fn get_Voverflow_newline_into_fringe () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Voverflow_newline_into_fringe.get () } }
-#[inline(always)] pub fn set_Voverflow_newline_into_fringe (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Voverflow_newline_into_fringe.set (val) } }
-#[inline(always)] pub fn get_Voverlay_arrow_position () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Voverlay_arrow_position.get () } }
-#[inline(always)] pub fn set_Voverlay_arrow_position (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Voverlay_arrow_position.set (val) } }
-#[inline(always)] pub fn get_Voverlay_arrow_string () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Voverlay_arrow_string.get () } }
-#[inline(always)] pub fn set_Voverlay_arrow_string (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Voverlay_arrow_string.set (val) } }
-#[inline(always)] pub fn get_Voverlay_arrow_variable_list () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Voverlay_arrow_variable_list.get () } }
-#[inline(always)] pub fn set_Voverlay_arrow_variable_list (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Voverlay_arrow_variable_list.set (val) } }
-#[inline(always)] pub fn get_Voverriding_local_map () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Voverriding_local_map.get () } }
-#[inline(always)] pub fn set_Voverriding_local_map (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Voverriding_local_map.set (val) } }
-#[inline(always)] pub fn get_Voverriding_local_map_menu_flag () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Voverriding_local_map_menu_flag.get () } }
-#[inline(always)] pub fn set_Voverriding_local_map_menu_flag (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Voverriding_local_map_menu_flag.set (val) } }
-#[inline(always)] pub fn get_Voverriding_plist_environment () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Voverriding_plist_environment.get () } }
-#[inline(always)] pub fn set_Voverriding_plist_environment (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Voverriding_plist_environment.set (val) } }
-#[inline(always)] pub fn get_Voverriding_terminal_local_map () -> *mut c_void { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Voverriding_terminal_local_map.get () } }
-#[inline(always)] pub fn set_Voverriding_terminal_local_map (val: *mut c_void) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Voverriding_terminal_local_map.set (val) } }
-#[inline(always)] pub fn get_Voverriding_text_conversion_style () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Voverriding_text_conversion_style.get () } }
-#[inline(always)] pub fn set_Voverriding_text_conversion_style (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Voverriding_text_conversion_style.set (val) } }
-#[inline(always)] pub fn get_Vpath_separator () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vpath_separator.get () } }
-#[inline(always)] pub fn set_Vpath_separator (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vpath_separator.set (val) } }
-#[inline(always)] pub fn get_Vpdumper_fingerprint () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vpdumper_fingerprint.get () } }
-#[inline(always)] pub fn set_Vpdumper_fingerprint (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vpdumper_fingerprint.set (val) } }
-#[inline(always)] pub fn get_Vpgtk_keysym_table () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vpgtk_keysym_table.get () } }
-#[inline(always)] pub fn set_Vpgtk_keysym_table (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vpgtk_keysym_table.set (val) } }
-#[inline(always)] pub fn get_Vpgtk_lost_selection_functions () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vpgtk_lost_selection_functions.get () } }
-#[inline(always)] pub fn set_Vpgtk_lost_selection_functions (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vpgtk_lost_selection_functions.set (val) } }
-#[inline(always)] pub fn get_Vpgtk_selection_alias_alist () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vpgtk_selection_alias_alist.get () } }
-#[inline(always)] pub fn set_Vpgtk_selection_alias_alist (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vpgtk_selection_alias_alist.set (val) } }
-#[inline(always)] pub fn get_Vpgtk_sent_selection_functions () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vpgtk_sent_selection_functions.get () } }
-#[inline(always)] pub fn set_Vpgtk_sent_selection_functions (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vpgtk_sent_selection_functions.set (val) } }
-#[inline(always)] pub fn get_Vpgtk_sent_selection_hooks () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vpgtk_sent_selection_hooks.get () } }
-#[inline(always)] pub fn set_Vpgtk_sent_selection_hooks (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vpgtk_sent_selection_hooks.set (val) } }
-#[inline(always)] pub fn get_Vpgtk_use_im_context_on_new_connection () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vpgtk_use_im_context_on_new_connection.get () } }
-#[inline(always)] pub fn set_Vpgtk_use_im_context_on_new_connection (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vpgtk_use_im_context_on_new_connection.set (val) } }
-#[inline(always)] pub fn get_Vpgtk_wait_for_event_timeout () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vpgtk_wait_for_event_timeout.get () } }
-#[inline(always)] pub fn set_Vpgtk_wait_for_event_timeout (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vpgtk_wait_for_event_timeout.set (val) } }
-#[inline(always)] pub fn get_Vpolling_period () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vpolling_period.get () } }
-#[inline(always)] pub fn set_Vpolling_period (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vpolling_period.set (val) } }
-#[inline(always)] pub fn get_Vpost_command_hook () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vpost_command_hook.get () } }
-#[inline(always)] pub fn set_Vpost_command_hook (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vpost_command_hook.set (val) } }
-#[inline(always)] pub fn get_Vpost_gc_hook () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vpost_gc_hook.get () } }
-#[inline(always)] pub fn set_Vpost_gc_hook (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vpost_gc_hook.set (val) } }
-#[inline(always)] pub fn get_Vpost_select_region_hook () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vpost_select_region_hook.get () } }
-#[inline(always)] pub fn set_Vpost_select_region_hook (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vpost_select_region_hook.set (val) } }
-#[inline(always)] pub fn get_Vpost_self_insert_hook () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vpost_self_insert_hook.get () } }
-#[inline(always)] pub fn set_Vpost_self_insert_hook (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vpost_self_insert_hook.set (val) } }
-#[inline(always)] pub fn get_Vpre_command_hook () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vpre_command_hook.get () } }
-#[inline(always)] pub fn set_Vpre_command_hook (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vpre_command_hook.set (val) } }
-#[inline(always)] pub fn get_Vpre_redisplay_function () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vpre_redisplay_function.get () } }
-#[inline(always)] pub fn set_Vpre_redisplay_function (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vpre_redisplay_function.set (val) } }
-#[inline(always)] pub fn get_Vprefix_arg () -> *mut c_void { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vprefix_arg.get () } }
-#[inline(always)] pub fn set_Vprefix_arg (val: *mut c_void) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vprefix_arg.set (val) } }
-#[inline(always)] pub fn get_Vprefix_help_command () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vprefix_help_command.get () } }
-#[inline(always)] pub fn set_Vprefix_help_command (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vprefix_help_command.set (val) } }
-#[inline(always)] pub fn get_Vpreloaded_file_list () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vpreloaded_file_list.get () } }
-#[inline(always)] pub fn set_Vpreloaded_file_list (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vpreloaded_file_list.set (val) } }
-#[inline(always)] pub fn get_Vprint__unreadable_callback_buffer () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vprint__unreadable_callback_buffer.get () } }
-#[inline(always)] pub fn set_Vprint__unreadable_callback_buffer (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vprint__unreadable_callback_buffer.set (val) } }
-#[inline(always)] pub fn get_Vprint_charset_text_property () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vprint_charset_text_property.get () } }
-#[inline(always)] pub fn set_Vprint_charset_text_property (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vprint_charset_text_property.set (val) } }
-#[inline(always)] pub fn get_Vprint_circle () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vprint_circle.get () } }
-#[inline(always)] pub fn set_Vprint_circle (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vprint_circle.set (val) } }
-#[inline(always)] pub fn get_Vprint_continuous_numbering () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vprint_continuous_numbering.get () } }
-#[inline(always)] pub fn set_Vprint_continuous_numbering (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vprint_continuous_numbering.set (val) } }
-#[inline(always)] pub fn get_Vprint_gensym () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vprint_gensym.get () } }
-#[inline(always)] pub fn set_Vprint_gensym (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vprint_gensym.set (val) } }
-#[inline(always)] pub fn get_Vprint_length () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vprint_length.get () } }
-#[inline(always)] pub fn set_Vprint_length (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vprint_length.set (val) } }
-#[inline(always)] pub fn get_Vprint_level () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vprint_level.get () } }
-#[inline(always)] pub fn set_Vprint_level (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vprint_level.set (val) } }
-#[inline(always)] pub fn get_Vprint_number_table () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vprint_number_table.get () } }
-#[inline(always)] pub fn set_Vprint_number_table (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vprint_number_table.set (val) } }
-#[inline(always)] pub fn get_Vprint_unreadable_function () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vprint_unreadable_function.get () } }
-#[inline(always)] pub fn set_Vprint_unreadable_function (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vprint_unreadable_function.set (val) } }
-#[inline(always)] pub fn get_Vprintable_chars () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vprintable_chars.get () } }
-#[inline(always)] pub fn set_Vprintable_chars (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vprintable_chars.set (val) } }
-#[inline(always)] pub fn get_Vprocess_adaptive_read_buffering () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vprocess_adaptive_read_buffering.get () } }
-#[inline(always)] pub fn set_Vprocess_adaptive_read_buffering (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vprocess_adaptive_read_buffering.set (val) } }
-#[inline(always)] pub fn get_Vprocess_coding_system_alist () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vprocess_coding_system_alist.get () } }
-#[inline(always)] pub fn set_Vprocess_coding_system_alist (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vprocess_coding_system_alist.set (val) } }
-#[inline(always)] pub fn get_Vprocess_connection_type () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vprocess_connection_type.get () } }
-#[inline(always)] pub fn set_Vprocess_connection_type (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vprocess_connection_type.set (val) } }
-#[inline(always)] pub fn get_Vprocess_environment () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vprocess_environment.get () } }
-#[inline(always)] pub fn set_Vprocess_environment (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vprocess_environment.set (val) } }
-#[inline(always)] pub fn get_Vpurify_flag () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vpurify_flag.get () } }
-#[inline(always)] pub fn set_Vpurify_flag (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vpurify_flag.set (val) } }
-#[inline(always)] pub fn get_Vquit_flag () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vquit_flag.get () } }
-#[inline(always)] pub fn set_Vquit_flag (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vquit_flag.set (val) } }
-#[inline(always)] pub fn get_Vrcs2log_program_name () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vrcs2log_program_name.get () } }
-#[inline(always)] pub fn set_Vrcs2log_program_name (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vrcs2log_program_name.set (val) } }
-#[inline(always)] pub fn get_Vread_buffer_function () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vread_buffer_function.get () } }
-#[inline(always)] pub fn set_Vread_buffer_function (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vread_buffer_function.set (val) } }
-#[inline(always)] pub fn get_Vread_circle () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vread_circle.get () } }
-#[inline(always)] pub fn set_Vread_circle (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vread_circle.set (val) } }
-#[inline(always)] pub fn get_Vread_expression_history () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vread_expression_history.get () } }
-#[inline(always)] pub fn set_Vread_expression_history (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vread_expression_history.set (val) } }
-#[inline(always)] pub fn get_Vread_hide_char () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vread_hide_char.get () } }
-#[inline(always)] pub fn set_Vread_hide_char (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vread_hide_char.set (val) } }
-#[inline(always)] pub fn get_Vread_symbol_shorthands () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vread_symbol_shorthands.get () } }
-#[inline(always)] pub fn set_Vread_symbol_shorthands (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vread_symbol_shorthands.set (val) } }
-#[inline(always)] pub fn get_Vreal_last_command () -> *mut c_void { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vreal_last_command.get () } }
-#[inline(always)] pub fn set_Vreal_last_command (val: *mut c_void) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vreal_last_command.set (val) } }
-#[inline(always)] pub fn get_Vreal_this_command () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vreal_this_command.get () } }
-#[inline(always)] pub fn set_Vreal_this_command (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vreal_this_command.set (val) } }
-#[inline(always)] pub fn get_Vrecenter_redisplay () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vrecenter_redisplay.get () } }
-#[inline(always)] pub fn set_Vrecenter_redisplay (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vrecenter_redisplay.set (val) } }
-#[inline(always)] pub fn get_Vredisplay__all_windows_cause () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vredisplay__all_windows_cause.get () } }
-#[inline(always)] pub fn set_Vredisplay__all_windows_cause (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vredisplay__all_windows_cause.set (val) } }
-#[inline(always)] pub fn get_Vredisplay__mode_lines_cause () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vredisplay__mode_lines_cause.get () } }
-#[inline(always)] pub fn set_Vredisplay__mode_lines_cause (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vredisplay__mode_lines_cause.set (val) } }
-#[inline(always)] pub fn get_Vregion_extract_function () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vregion_extract_function.get () } }
-#[inline(always)] pub fn set_Vregion_extract_function (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vregion_extract_function.set (val) } }
-#[inline(always)] pub fn get_Vreport_emacs_bug_address () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vreport_emacs_bug_address.get () } }
-#[inline(always)] pub fn set_Vreport_emacs_bug_address (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vreport_emacs_bug_address.set (val) } }
-#[inline(always)] pub fn get_Vresize_mini_windows () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vresize_mini_windows.get () } }
-#[inline(always)] pub fn set_Vresize_mini_windows (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vresize_mini_windows.set (val) } }
-#[inline(always)] pub fn get_Vresume_tty_functions () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vresume_tty_functions.get () } }
-#[inline(always)] pub fn set_Vresume_tty_functions (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vresume_tty_functions.set (val) } }
-#[inline(always)] pub fn get_Vring_bell_function () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vring_bell_function.get () } }
-#[inline(always)] pub fn set_Vring_bell_function (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vring_bell_function.set (val) } }
-#[inline(always)] pub fn get_Vsaved_region_selection () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vsaved_region_selection.get () } }
-#[inline(always)] pub fn set_Vsaved_region_selection (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vsaved_region_selection.set (val) } }
-#[inline(always)] pub fn get_Vscalable_fonts_allowed () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vscalable_fonts_allowed.get () } }
-#[inline(always)] pub fn set_Vscalable_fonts_allowed (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vscalable_fonts_allowed.set (val) } }
-#[inline(always)] pub fn get_Vscript_representative_chars () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vscript_representative_chars.get () } }
-#[inline(always)] pub fn set_Vscript_representative_chars (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vscript_representative_chars.set (val) } }
-#[inline(always)] pub fn get_Vscroll_preserve_screen_position () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vscroll_preserve_screen_position.get () } }
-#[inline(always)] pub fn set_Vscroll_preserve_screen_position (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vscroll_preserve_screen_position.set (val) } }
-#[inline(always)] pub fn get_Vsearch_spaces_regexp () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vsearch_spaces_regexp.get () } }
-#[inline(always)] pub fn set_Vsearch_spaces_regexp (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vsearch_spaces_regexp.set (val) } }
-#[inline(always)] pub fn get_Vselect_active_regions () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vselect_active_regions.get () } }
-#[inline(always)] pub fn set_Vselect_active_regions (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vselect_active_regions.set (val) } }
-#[inline(always)] pub fn get_Vselect_safe_coding_system_function () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vselect_safe_coding_system_function.get () } }
-#[inline(always)] pub fn set_Vselect_safe_coding_system_function (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vselect_safe_coding_system_function.set (val) } }
-#[inline(always)] pub fn get_Vselection_coding_system () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vselection_coding_system.get () } }
-#[inline(always)] pub fn set_Vselection_coding_system (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vselection_coding_system.set (val) } }
-#[inline(always)] pub fn get_Vselection_converter_alist () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vselection_converter_alist.get () } }
-#[inline(always)] pub fn set_Vselection_converter_alist (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vselection_converter_alist.set (val) } }
-#[inline(always)] pub fn get_Vselection_inhibit_update_commands () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vselection_inhibit_update_commands.get () } }
-#[inline(always)] pub fn set_Vselection_inhibit_update_commands (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vselection_inhibit_update_commands.set (val) } }
-#[inline(always)] pub fn get_Vset_auto_coding_function () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vset_auto_coding_function.get () } }
-#[inline(always)] pub fn set_Vset_auto_coding_function (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vset_auto_coding_function.set (val) } }
-#[inline(always)] pub fn get_Vset_message_function () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vset_message_function.get () } }
-#[inline(always)] pub fn set_Vset_message_function (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vset_message_function.set (val) } }
-#[inline(always)] pub fn get_Vsfnt_default_family_alist () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vsfnt_default_family_alist.get () } }
-#[inline(always)] pub fn set_Vsfnt_default_family_alist (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vsfnt_default_family_alist.set (val) } }
-#[inline(always)] pub fn get_Vsfnt_uninstructable_family_regexp () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vsfnt_uninstructable_family_regexp.get () } }
-#[inline(always)] pub fn set_Vsfnt_uninstructable_family_regexp (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vsfnt_uninstructable_family_regexp.set (val) } }
-#[inline(always)] pub fn get_Vshared_game_score_directory () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vshared_game_score_directory.get () } }
-#[inline(always)] pub fn set_Vshared_game_score_directory (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vshared_game_score_directory.set (val) } }
-#[inline(always)] pub fn get_Vshell_file_name () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vshell_file_name.get () } }
-#[inline(always)] pub fn set_Vshell_file_name (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vshell_file_name.set (val) } }
-#[inline(always)] pub fn get_Vshow_help_function () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vshow_help_function.get () } }
-#[inline(always)] pub fn set_Vshow_help_function (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vshow_help_function.set (val) } }
-#[inline(always)] pub fn get_Vshow_trailing_whitespace () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vshow_trailing_whitespace.get () } }
-#[inline(always)] pub fn set_Vshow_trailing_whitespace (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vshow_trailing_whitespace.set (val) } }
-#[inline(always)] pub fn get_Vsignal_hook_function () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vsignal_hook_function.get () } }
-#[inline(always)] pub fn set_Vsignal_hook_function (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vsignal_hook_function.set (val) } }
-#[inline(always)] pub fn get_Vsignal_process_functions () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vsignal_process_functions.get () } }
-#[inline(always)] pub fn set_Vsignal_process_functions (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vsignal_process_functions.set (val) } }
-#[inline(always)] pub fn get_Vsource_directory () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vsource_directory.get () } }
-#[inline(always)] pub fn set_Vsource_directory (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vsource_directory.set (val) } }
-#[inline(always)] pub fn get_Vspecial_event_map () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vspecial_event_map.get () } }
-#[inline(always)] pub fn set_Vspecial_event_map (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vspecial_event_map.set (val) } }
-#[inline(always)] pub fn get_Vspecial_mirror_table () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vspecial_mirror_table.get () } }
-#[inline(always)] pub fn set_Vspecial_mirror_table (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vspecial_mirror_table.set (val) } }
-#[inline(always)] pub fn get_Vstandard_display_table () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vstandard_display_table.get () } }
-#[inline(always)] pub fn set_Vstandard_display_table (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vstandard_display_table.set (val) } }
-#[inline(always)] pub fn get_Vstandard_input () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vstandard_input.get () } }
-#[inline(always)] pub fn set_Vstandard_input (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vstandard_input.set (val) } }
-#[inline(always)] pub fn get_Vstandard_output () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vstandard_output.get () } }
-#[inline(always)] pub fn set_Vstandard_output (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vstandard_output.set (val) } }
-#[inline(always)] pub fn get_Vstandard_translation_table_for_decode () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vstandard_translation_table_for_decode.get () } }
-#[inline(always)] pub fn set_Vstandard_translation_table_for_decode (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vstandard_translation_table_for_decode.set (val) } }
-#[inline(always)] pub fn get_Vstandard_translation_table_for_encode () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vstandard_translation_table_for_encode.get () } }
-#[inline(always)] pub fn set_Vstandard_translation_table_for_encode (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vstandard_translation_table_for_encode.set (val) } }
-#[inline(always)] pub fn get_Vsuspend_tty_functions () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vsuspend_tty_functions.get () } }
-#[inline(always)] pub fn set_Vsuspend_tty_functions (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vsuspend_tty_functions.set (val) } }
-#[inline(always)] pub fn get_Vsystem_configuration () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vsystem_configuration.get () } }
-#[inline(always)] pub fn set_Vsystem_configuration (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vsystem_configuration.set (val) } }
-#[inline(always)] pub fn get_Vsystem_configuration_features () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vsystem_configuration_features.get () } }
-#[inline(always)] pub fn set_Vsystem_configuration_features (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vsystem_configuration_features.set (val) } }
-#[inline(always)] pub fn get_Vsystem_configuration_options () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vsystem_configuration_options.get () } }
-#[inline(always)] pub fn set_Vsystem_configuration_options (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vsystem_configuration_options.set (val) } }
-#[inline(always)] pub fn get_Vsystem_key_alist () -> *mut c_void { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vsystem_key_alist.get () } }
-#[inline(always)] pub fn set_Vsystem_key_alist (val: *mut c_void) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vsystem_key_alist.set (val) } }
-#[inline(always)] pub fn get_Vsystem_messages_locale () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vsystem_messages_locale.get () } }
-#[inline(always)] pub fn set_Vsystem_messages_locale (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vsystem_messages_locale.set (val) } }
-#[inline(always)] pub fn get_Vsystem_name () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vsystem_name.get () } }
-#[inline(always)] pub fn set_Vsystem_name (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vsystem_name.set (val) } }
-#[inline(always)] pub fn get_Vsystem_time_locale () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vsystem_time_locale.get () } }
-#[inline(always)] pub fn set_Vsystem_time_locale (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vsystem_time_locale.set (val) } }
-#[inline(always)] pub fn get_Vsystem_type () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vsystem_type.get () } }
-#[inline(always)] pub fn set_Vsystem_type (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vsystem_type.set (val) } }
-#[inline(always)] pub fn get_Vtab_bar_border () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vtab_bar_border.get () } }
-#[inline(always)] pub fn set_Vtab_bar_border (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vtab_bar_border.set (val) } }
-#[inline(always)] pub fn get_Vtab_bar_button_margin () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vtab_bar_button_margin.get () } }
-#[inline(always)] pub fn set_Vtab_bar_button_margin (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vtab_bar_button_margin.set (val) } }
-#[inline(always)] pub fn get_Vtab_bar_mode () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vtab_bar_mode.get () } }
-#[inline(always)] pub fn set_Vtab_bar_mode (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vtab_bar_mode.set (val) } }
-#[inline(always)] pub fn get_Vtab_bar_position () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vtab_bar_position.get () } }
-#[inline(always)] pub fn set_Vtab_bar_position (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vtab_bar_position.set (val) } }
-#[inline(always)] pub fn get_Vtab_bar_separator_image_expression () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vtab_bar_separator_image_expression.get () } }
-#[inline(always)] pub fn set_Vtab_bar_separator_image_expression (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vtab_bar_separator_image_expression.set (val) } }
-#[inline(always)] pub fn get_Vtemp_buffer_show_function () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vtemp_buffer_show_function.get () } }
-#[inline(always)] pub fn set_Vtemp_buffer_show_function (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vtemp_buffer_show_function.set (val) } }
-#[inline(always)] pub fn get_Vtemporary_file_directory () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vtemporary_file_directory.get () } }
-#[inline(always)] pub fn set_Vtemporary_file_directory (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vtemporary_file_directory.set (val) } }
-#[inline(always)] pub fn get_Vterminal_frame () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vterminal_frame.get () } }
-#[inline(always)] pub fn set_Vterminal_frame (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vterminal_frame.set (val) } }
-#[inline(always)] pub fn get_Vtext_conversion_edits () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vtext_conversion_edits.get () } }
-#[inline(always)] pub fn set_Vtext_conversion_edits (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vtext_conversion_edits.set (val) } }
-#[inline(always)] pub fn get_Vtext_conversion_face () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vtext_conversion_face.get () } }
-#[inline(always)] pub fn set_Vtext_conversion_face (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vtext_conversion_face.set (val) } }
-#[inline(always)] pub fn get_Vtext_property_default_nonsticky () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vtext_property_default_nonsticky.get () } }
-#[inline(always)] pub fn set_Vtext_property_default_nonsticky (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vtext_property_default_nonsticky.set (val) } }
-#[inline(always)] pub fn get_Vtext_quoting_style () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vtext_quoting_style.get () } }
-#[inline(always)] pub fn set_Vtext_quoting_style (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vtext_quoting_style.set (val) } }
-#[inline(always)] pub fn get_Vthis_command () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vthis_command.get () } }
-#[inline(always)] pub fn set_Vthis_command (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vthis_command.set (val) } }
-#[inline(always)] pub fn get_Vthis_command_keys_shift_translated () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vthis_command_keys_shift_translated.get () } }
-#[inline(always)] pub fn set_Vthis_command_keys_shift_translated (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vthis_command_keys_shift_translated.set (val) } }
-#[inline(always)] pub fn get_Vthis_original_command () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vthis_original_command.get () } }
-#[inline(always)] pub fn set_Vthis_original_command (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vthis_original_command.set (val) } }
-#[inline(always)] pub fn get_Vthrow_on_input () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vthrow_on_input.get () } }
-#[inline(always)] pub fn set_Vthrow_on_input (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vthrow_on_input.set (val) } }
-#[inline(always)] pub fn get_Vtimer_idle_list () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vtimer_idle_list.get () } }
-#[inline(always)] pub fn set_Vtimer_idle_list (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vtimer_idle_list.set (val) } }
-#[inline(always)] pub fn get_Vtimer_list () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vtimer_list.get () } }
-#[inline(always)] pub fn set_Vtimer_list (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vtimer_list.set (val) } }
-#[inline(always)] pub fn get_Vtool_bar_border () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vtool_bar_border.get () } }
-#[inline(always)] pub fn set_Vtool_bar_border (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vtool_bar_border.set (val) } }
-#[inline(always)] pub fn get_Vtool_bar_button_margin () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vtool_bar_button_margin.get () } }
-#[inline(always)] pub fn set_Vtool_bar_button_margin (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vtool_bar_button_margin.set (val) } }
-#[inline(always)] pub fn get_Vtool_bar_mode () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vtool_bar_mode.get () } }
-#[inline(always)] pub fn set_Vtool_bar_mode (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vtool_bar_mode.set (val) } }
-#[inline(always)] pub fn get_Vtool_bar_separator_image_expression () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vtool_bar_separator_image_expression.get () } }
-#[inline(always)] pub fn set_Vtool_bar_separator_image_expression (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vtool_bar_separator_image_expression.set (val) } }
-#[inline(always)] pub fn get_Vtool_bar_style () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vtool_bar_style.get () } }
-#[inline(always)] pub fn set_Vtool_bar_style (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vtool_bar_style.set (val) } }
-#[inline(always)] pub fn get_Vtoolkit_theme () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vtoolkit_theme.get () } }
-#[inline(always)] pub fn set_Vtoolkit_theme (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vtoolkit_theme.set (val) } }
-#[inline(always)] pub fn get_Vtop_level () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vtop_level.get () } }
-#[inline(always)] pub fn set_Vtop_level (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vtop_level.set (val) } }
-#[inline(always)] pub fn get_Vtransient_mark_mode () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vtransient_mark_mode.get () } }
-#[inline(always)] pub fn set_Vtransient_mark_mode (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vtransient_mark_mode.set (val) } }
-#[inline(always)] pub fn get_Vtranslation_hash_table_vector () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vtranslation_hash_table_vector.get () } }
-#[inline(always)] pub fn set_Vtranslation_hash_table_vector (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vtranslation_hash_table_vector.set (val) } }
-#[inline(always)] pub fn get_Vtranslation_table_for_input () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vtranslation_table_for_input.get () } }
-#[inline(always)] pub fn set_Vtranslation_table_for_input (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vtranslation_table_for_input.set (val) } }
-#[inline(always)] pub fn get_Vtranslation_table_vector () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vtranslation_table_vector.get () } }
-#[inline(always)] pub fn set_Vtranslation_table_vector (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vtranslation_table_vector.set (val) } }
-#[inline(always)] pub fn get_Vtreesit_extra_load_path () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vtreesit_extra_load_path.get () } }
-#[inline(always)] pub fn set_Vtreesit_extra_load_path (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vtreesit_extra_load_path.set (val) } }
-#[inline(always)] pub fn get_Vtreesit_language_remap_alist () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vtreesit_language_remap_alist.get () } }
-#[inline(always)] pub fn set_Vtreesit_language_remap_alist (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vtreesit_language_remap_alist.set (val) } }
-#[inline(always)] pub fn get_Vtreesit_languages_require_line_column_tracking () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vtreesit_languages_require_line_column_tracking.get () } }
-#[inline(always)] pub fn set_Vtreesit_languages_require_line_column_tracking (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vtreesit_languages_require_line_column_tracking.set (val) } }
-#[inline(always)] pub fn get_Vtreesit_load_name_override_list () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vtreesit_load_name_override_list.get () } }
-#[inline(always)] pub fn set_Vtreesit_load_name_override_list (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vtreesit_load_name_override_list.set (val) } }
-#[inline(always)] pub fn get_Vtreesit_major_mode_remap_alist () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vtreesit_major_mode_remap_alist.get () } }
-#[inline(always)] pub fn set_Vtreesit_major_mode_remap_alist (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vtreesit_major_mode_remap_alist.set (val) } }
-#[inline(always)] pub fn get_Vtreesit_thing_settings () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vtreesit_thing_settings.get () } }
-#[inline(always)] pub fn set_Vtreesit_thing_settings (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vtreesit_thing_settings.set (val) } }
-#[inline(always)] pub fn get_Vtruncate_partial_width_windows () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vtruncate_partial_width_windows.get () } }
-#[inline(always)] pub fn set_Vtruncate_partial_width_windows (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vtruncate_partial_width_windows.set (val) } }
-#[inline(always)] pub fn get_Vtty_defined_color_alist () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vtty_defined_color_alist.get () } }
-#[inline(always)] pub fn set_Vtty_defined_color_alist (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vtty_defined_color_alist.set (val) } }
-#[inline(always)] pub fn get_Vtty_erase_char () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vtty_erase_char.get () } }
-#[inline(always)] pub fn set_Vtty_erase_char (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vtty_erase_char.set (val) } }
-#[inline(always)] pub fn get_Vundo_outer_limit () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vundo_outer_limit.get () } }
-#[inline(always)] pub fn set_Vundo_outer_limit (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vundo_outer_limit.set (val) } }
-#[inline(always)] pub fn get_Vundo_outer_limit_function () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vundo_outer_limit_function.get () } }
-#[inline(always)] pub fn set_Vundo_outer_limit_function (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vundo_outer_limit_function.set (val) } }
-#[inline(always)] pub fn get_Vunicode_category_table () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vunicode_category_table.get () } }
-#[inline(always)] pub fn set_Vunicode_category_table (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vunicode_category_table.set (val) } }
-#[inline(always)] pub fn get_Vunread_command_events () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vunread_command_events.get () } }
-#[inline(always)] pub fn set_Vunread_command_events (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vunread_command_events.set (val) } }
-#[inline(always)] pub fn get_Vunread_input_method_events () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vunread_input_method_events.get () } }
-#[inline(always)] pub fn set_Vunread_input_method_events (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vunread_input_method_events.set (val) } }
-#[inline(always)] pub fn get_Vunread_post_input_method_events () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vunread_post_input_method_events.get () } }
-#[inline(always)] pub fn set_Vunread_post_input_method_events (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vunread_post_input_method_events.set (val) } }
-#[inline(always)] pub fn get_Vuse_default_ascent () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vuse_default_ascent.get () } }
-#[inline(always)] pub fn set_Vuse_default_ascent (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vuse_default_ascent.set (val) } }
-#[inline(always)] pub fn get_Vuser_full_name () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vuser_full_name.get () } }
-#[inline(always)] pub fn set_Vuser_full_name (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vuser_full_name.set (val) } }
-#[inline(always)] pub fn get_Vuser_init_file () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vuser_init_file.get () } }
-#[inline(always)] pub fn set_Vuser_init_file (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vuser_init_file.set (val) } }
-#[inline(always)] pub fn get_Vuser_login_name () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vuser_login_name.get () } }
-#[inline(always)] pub fn set_Vuser_login_name (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vuser_login_name.set (val) } }
-#[inline(always)] pub fn get_Vuser_real_login_name () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vuser_real_login_name.get () } }
-#[inline(always)] pub fn set_Vuser_real_login_name (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vuser_real_login_name.set (val) } }
-#[inline(always)] pub fn get_Vvalues () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vvalues.get () } }
-#[inline(always)] pub fn set_Vvalues (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vvalues.set (val) } }
-#[inline(always)] pub fn get_Vvertical_centering_font_regexp () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vvertical_centering_font_regexp.get () } }
-#[inline(always)] pub fn set_Vvertical_centering_font_regexp (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vvertical_centering_font_regexp.set (val) } }
-#[inline(always)] pub fn get_Vvoid_text_area_pointer () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vvoid_text_area_pointer.get () } }
-#[inline(always)] pub fn set_Vvoid_text_area_pointer (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vvoid_text_area_pointer.set (val) } }
-#[inline(always)] pub fn get_Vw32_alt_is_meta () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vw32_alt_is_meta.get () } }
-#[inline(always)] pub fn set_Vw32_alt_is_meta (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vw32_alt_is_meta.set (val) } }
-#[inline(always)] pub fn get_Vw32_apps_modifier () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vw32_apps_modifier.get () } }
-#[inline(always)] pub fn set_Vw32_apps_modifier (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vw32_apps_modifier.set (val) } }
-#[inline(always)] pub fn get_Vw32_capslock_is_shiftlock () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vw32_capslock_is_shiftlock.get () } }
-#[inline(always)] pub fn set_Vw32_capslock_is_shiftlock (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vw32_capslock_is_shiftlock.set (val) } }
-#[inline(always)] pub fn get_Vw32_charset_info_alist () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vw32_charset_info_alist.get () } }
-#[inline(always)] pub fn set_Vw32_charset_info_alist (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vw32_charset_info_alist.set (val) } }
-#[inline(always)] pub fn get_Vw32_collate_ignore_punctuation () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vw32_collate_ignore_punctuation.get () } }
-#[inline(always)] pub fn set_Vw32_collate_ignore_punctuation (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vw32_collate_ignore_punctuation.set (val) } }
-#[inline(always)] pub fn get_Vw32_color_map () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vw32_color_map.get () } }
-#[inline(always)] pub fn set_Vw32_color_map (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vw32_color_map.set (val) } }
-#[inline(always)] pub fn get_Vw32_downcase_file_names () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vw32_downcase_file_names.get () } }
-#[inline(always)] pub fn set_Vw32_downcase_file_names (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vw32_downcase_file_names.set (val) } }
-#[inline(always)] pub fn get_Vw32_enable_caps_lock () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vw32_enable_caps_lock.get () } }
-#[inline(always)] pub fn set_Vw32_enable_caps_lock (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vw32_enable_caps_lock.set (val) } }
-#[inline(always)] pub fn get_Vw32_enable_num_lock () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vw32_enable_num_lock.get () } }
-#[inline(always)] pub fn set_Vw32_enable_num_lock (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vw32_enable_num_lock.set (val) } }
-#[inline(always)] pub fn get_Vw32_enable_palette () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vw32_enable_palette.get () } }
-#[inline(always)] pub fn set_Vw32_enable_palette (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vw32_enable_palette.set (val) } }
-#[inline(always)] pub fn get_Vw32_generate_fake_inodes () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vw32_generate_fake_inodes.get () } }
-#[inline(always)] pub fn set_Vw32_generate_fake_inodes (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vw32_generate_fake_inodes.set (val) } }
-#[inline(always)] pub fn get_Vw32_get_true_file_attributes () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vw32_get_true_file_attributes.get () } }
-#[inline(always)] pub fn set_Vw32_get_true_file_attributes (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vw32_get_true_file_attributes.set (val) } }
-#[inline(always)] pub fn get_Vw32_grab_focus_on_raise () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vw32_grab_focus_on_raise.get () } }
-#[inline(always)] pub fn set_Vw32_grab_focus_on_raise (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vw32_grab_focus_on_raise.set (val) } }
-#[inline(always)] pub fn get_Vw32_lwindow_modifier () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vw32_lwindow_modifier.get () } }
-#[inline(always)] pub fn set_Vw32_lwindow_modifier (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vw32_lwindow_modifier.set (val) } }
-#[inline(always)] pub fn get_Vw32_pass_alt_to_system () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vw32_pass_alt_to_system.get () } }
-#[inline(always)] pub fn set_Vw32_pass_alt_to_system (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vw32_pass_alt_to_system.set (val) } }
-#[inline(always)] pub fn get_Vw32_pass_lwindow_to_system () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vw32_pass_lwindow_to_system.get () } }
-#[inline(always)] pub fn set_Vw32_pass_lwindow_to_system (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vw32_pass_lwindow_to_system.set (val) } }
-#[inline(always)] pub fn get_Vw32_pass_rwindow_to_system () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vw32_pass_rwindow_to_system.get () } }
-#[inline(always)] pub fn set_Vw32_pass_rwindow_to_system (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vw32_pass_rwindow_to_system.set (val) } }
-#[inline(always)] pub fn get_Vw32_phantom_key_code () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vw32_phantom_key_code.get () } }
-#[inline(always)] pub fn set_Vw32_phantom_key_code (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vw32_phantom_key_code.set (val) } }
-#[inline(always)] pub fn get_Vw32_quote_process_args () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vw32_quote_process_args.get () } }
-#[inline(always)] pub fn set_Vw32_quote_process_args (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vw32_quote_process_args.set (val) } }
-#[inline(always)] pub fn get_Vw32_recognize_altgr () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vw32_recognize_altgr.get () } }
-#[inline(always)] pub fn set_Vw32_recognize_altgr (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vw32_recognize_altgr.set (val) } }
-#[inline(always)] pub fn get_Vw32_rwindow_modifier () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vw32_rwindow_modifier.get () } }
-#[inline(always)] pub fn set_Vw32_rwindow_modifier (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vw32_rwindow_modifier.set (val) } }
-#[inline(always)] pub fn get_Vw32_scroll_lock_modifier () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vw32_scroll_lock_modifier.get () } }
-#[inline(always)] pub fn set_Vw32_scroll_lock_modifier (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vw32_scroll_lock_modifier.set (val) } }
-#[inline(always)] pub fn get_Vw32_start_process_inherit_error_mode () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vw32_start_process_inherit_error_mode.get () } }
-#[inline(always)] pub fn set_Vw32_start_process_inherit_error_mode (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vw32_start_process_inherit_error_mode.set (val) } }
-#[inline(always)] pub fn get_Vw32_start_process_share_console () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vw32_start_process_share_console.get () } }
-#[inline(always)] pub fn set_Vw32_start_process_share_console (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vw32_start_process_share_console.set (val) } }
-#[inline(always)] pub fn get_Vw32_start_process_show_window () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vw32_start_process_show_window.get () } }
-#[inline(always)] pub fn set_Vw32_start_process_show_window (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vw32_start_process_show_window.set (val) } }
-#[inline(always)] pub fn get_Vw32_swap_mouse_buttons () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vw32_swap_mouse_buttons.get () } }
-#[inline(always)] pub fn set_Vw32_swap_mouse_buttons (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vw32_swap_mouse_buttons.set (val) } }
-#[inline(always)] pub fn get_Vw32_tooltip_extra_pixels () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vw32_tooltip_extra_pixels.get () } }
-#[inline(always)] pub fn set_Vw32_tooltip_extra_pixels (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vw32_tooltip_extra_pixels.set (val) } }
-#[inline(always)] pub fn get_Vwhere_is_preferred_modifier () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vwhere_is_preferred_modifier.get () } }
-#[inline(always)] pub fn set_Vwhere_is_preferred_modifier (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vwhere_is_preferred_modifier.set (val) } }
-#[inline(always)] pub fn get_Vwhile_no_input_ignore_events () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vwhile_no_input_ignore_events.get () } }
-#[inline(always)] pub fn set_Vwhile_no_input_ignore_events (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vwhile_no_input_ignore_events.set (val) } }
-#[inline(always)] pub fn get_Vwindow_buffer_change_functions () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vwindow_buffer_change_functions.get () } }
-#[inline(always)] pub fn set_Vwindow_buffer_change_functions (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vwindow_buffer_change_functions.set (val) } }
-#[inline(always)] pub fn get_Vwindow_combination_limit () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vwindow_combination_limit.get () } }
-#[inline(always)] pub fn set_Vwindow_combination_limit (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vwindow_combination_limit.set (val) } }
-#[inline(always)] pub fn get_Vwindow_combination_resize () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vwindow_combination_resize.get () } }
-#[inline(always)] pub fn set_Vwindow_combination_resize (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vwindow_combination_resize.set (val) } }
-#[inline(always)] pub fn get_Vwindow_configuration_change_hook () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vwindow_configuration_change_hook.get () } }
-#[inline(always)] pub fn set_Vwindow_configuration_change_hook (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vwindow_configuration_change_hook.set (val) } }
-#[inline(always)] pub fn get_Vwindow_persistent_parameters () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vwindow_persistent_parameters.get () } }
-#[inline(always)] pub fn set_Vwindow_persistent_parameters (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vwindow_persistent_parameters.set (val) } }
-#[inline(always)] pub fn get_Vwindow_point_insertion_type () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vwindow_point_insertion_type.get () } }
-#[inline(always)] pub fn set_Vwindow_point_insertion_type (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vwindow_point_insertion_type.set (val) } }
-#[inline(always)] pub fn get_Vwindow_scroll_functions () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vwindow_scroll_functions.get () } }
-#[inline(always)] pub fn set_Vwindow_scroll_functions (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vwindow_scroll_functions.set (val) } }
-#[inline(always)] pub fn get_Vwindow_selection_change_functions () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vwindow_selection_change_functions.get () } }
-#[inline(always)] pub fn set_Vwindow_selection_change_functions (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vwindow_selection_change_functions.set (val) } }
-#[inline(always)] pub fn get_Vwindow_size_change_functions () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vwindow_size_change_functions.get () } }
-#[inline(always)] pub fn set_Vwindow_size_change_functions (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vwindow_size_change_functions.set (val) } }
-#[inline(always)] pub fn get_Vwindow_state_change_functions () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vwindow_state_change_functions.get () } }
-#[inline(always)] pub fn set_Vwindow_state_change_functions (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vwindow_state_change_functions.set (val) } }
-#[inline(always)] pub fn get_Vwindow_state_change_hook () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vwindow_state_change_hook.get () } }
-#[inline(always)] pub fn set_Vwindow_state_change_hook (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vwindow_state_change_hook.set (val) } }
-#[inline(always)] pub fn get_Vwindow_system () -> *mut c_void { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vwindow_system.get () } }
-#[inline(always)] pub fn set_Vwindow_system (val: *mut c_void) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vwindow_system.set (val) } }
-#[inline(always)] pub fn get_Vword_combining_categories () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vword_combining_categories.get () } }
-#[inline(always)] pub fn set_Vword_combining_categories (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vword_combining_categories.set (val) } }
-#[inline(always)] pub fn get_Vword_separating_categories () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vword_separating_categories.get () } }
-#[inline(always)] pub fn set_Vword_separating_categories (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vword_separating_categories.set (val) } }
-#[inline(always)] pub fn get_Vwrap_prefix () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vwrap_prefix.get () } }
-#[inline(always)] pub fn set_Vwrap_prefix (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vwrap_prefix.set (val) } }
-#[inline(always)] pub fn get_Vwrite_region_annotate_functions () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vwrite_region_annotate_functions.get () } }
-#[inline(always)] pub fn set_Vwrite_region_annotate_functions (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vwrite_region_annotate_functions.set (val) } }
-#[inline(always)] pub fn get_Vwrite_region_annotations_so_far () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vwrite_region_annotations_so_far.get () } }
-#[inline(always)] pub fn set_Vwrite_region_annotations_so_far (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vwrite_region_annotations_so_far.set (val) } }
-#[inline(always)] pub fn get_Vwrite_region_post_annotation_function () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vwrite_region_post_annotation_function.get () } }
-#[inline(always)] pub fn set_Vwrite_region_post_annotation_function (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vwrite_region_post_annotation_function.set (val) } }
-#[inline(always)] pub fn get_Vx_allow_focus_stealing () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vx_allow_focus_stealing.get () } }
-#[inline(always)] pub fn set_Vx_allow_focus_stealing (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vx_allow_focus_stealing.set (val) } }
-#[inline(always)] pub fn get_Vx_alt_keysym () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vx_alt_keysym.get () } }
-#[inline(always)] pub fn set_Vx_alt_keysym (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vx_alt_keysym.set (val) } }
-#[inline(always)] pub fn get_Vx_auto_preserve_selections () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vx_auto_preserve_selections.get () } }
-#[inline(always)] pub fn set_Vx_auto_preserve_selections (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vx_auto_preserve_selections.set (val) } }
-#[inline(always)] pub fn get_Vx_bitmap_file_path () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vx_bitmap_file_path.get () } }
-#[inline(always)] pub fn set_Vx_bitmap_file_path (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vx_bitmap_file_path.set (val) } }
-#[inline(always)] pub fn get_Vx_ctrl_keysym () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vx_ctrl_keysym.get () } }
-#[inline(always)] pub fn set_Vx_ctrl_keysym (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vx_ctrl_keysym.set (val) } }
-#[inline(always)] pub fn get_Vx_cursor_fore_pixel () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vx_cursor_fore_pixel.get () } }
-#[inline(always)] pub fn set_Vx_cursor_fore_pixel (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vx_cursor_fore_pixel.set (val) } }
-#[inline(always)] pub fn get_Vx_detect_server_trust () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vx_detect_server_trust.get () } }
-#[inline(always)] pub fn set_Vx_detect_server_trust (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vx_detect_server_trust.set (val) } }
-#[inline(always)] pub fn get_Vx_dnd_movement_function () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vx_dnd_movement_function.get () } }
-#[inline(always)] pub fn set_Vx_dnd_movement_function (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vx_dnd_movement_function.set (val) } }
-#[inline(always)] pub fn get_Vx_dnd_native_test_function () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vx_dnd_native_test_function.get () } }
-#[inline(always)] pub fn set_Vx_dnd_native_test_function (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vx_dnd_native_test_function.set (val) } }
-#[inline(always)] pub fn get_Vx_dnd_targets_list () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vx_dnd_targets_list.get () } }
-#[inline(always)] pub fn set_Vx_dnd_targets_list (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vx_dnd_targets_list.set (val) } }
-#[inline(always)] pub fn get_Vx_dnd_unsupported_drop_function () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vx_dnd_unsupported_drop_function.get () } }
-#[inline(always)] pub fn set_Vx_dnd_unsupported_drop_function (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vx_dnd_unsupported_drop_function.set (val) } }
-#[inline(always)] pub fn get_Vx_dnd_wheel_function () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vx_dnd_wheel_function.get () } }
-#[inline(always)] pub fn set_Vx_dnd_wheel_function (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vx_dnd_wheel_function.set (val) } }
-#[inline(always)] pub fn get_Vx_fast_selection_list () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vx_fast_selection_list.get () } }
-#[inline(always)] pub fn set_Vx_fast_selection_list (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vx_fast_selection_list.set (val) } }
-#[inline(always)] pub fn get_Vx_hourglass_pointer_shape () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vx_hourglass_pointer_shape.get () } }
-#[inline(always)] pub fn set_Vx_hourglass_pointer_shape (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vx_hourglass_pointer_shape.set (val) } }
-#[inline(always)] pub fn get_Vx_hyper_keysym () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vx_hyper_keysym.get () } }
-#[inline(always)] pub fn set_Vx_hyper_keysym (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vx_hyper_keysym.set (val) } }
-#[inline(always)] pub fn get_Vx_input_coding_function () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vx_input_coding_function.get () } }
-#[inline(always)] pub fn set_Vx_input_coding_function (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vx_input_coding_function.set (val) } }
-#[inline(always)] pub fn get_Vx_input_coding_system () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vx_input_coding_system.get () } }
-#[inline(always)] pub fn set_Vx_input_coding_system (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vx_input_coding_system.set (val) } }
-#[inline(always)] pub fn get_Vx_keysym_table () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vx_keysym_table.get () } }
-#[inline(always)] pub fn set_Vx_keysym_table (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vx_keysym_table.set (val) } }
-#[inline(always)] pub fn get_Vx_lax_frame_positioning () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vx_lax_frame_positioning.get () } }
-#[inline(always)] pub fn set_Vx_lax_frame_positioning (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vx_lax_frame_positioning.set (val) } }
-#[inline(always)] pub fn get_Vx_lost_selection_functions () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vx_lost_selection_functions.get () } }
-#[inline(always)] pub fn set_Vx_lost_selection_functions (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vx_lost_selection_functions.set (val) } }
-#[inline(always)] pub fn get_Vx_max_tooltip_size () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vx_max_tooltip_size.get () } }
-#[inline(always)] pub fn set_Vx_max_tooltip_size (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vx_max_tooltip_size.set (val) } }
-#[inline(always)] pub fn get_Vx_meta_keysym () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vx_meta_keysym.get () } }
-#[inline(always)] pub fn set_Vx_meta_keysym (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vx_meta_keysym.set (val) } }
-#[inline(always)] pub fn get_Vx_mode_pointer_shape () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vx_mode_pointer_shape.get () } }
-#[inline(always)] pub fn set_Vx_mode_pointer_shape (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vx_mode_pointer_shape.set (val) } }
-#[inline(always)] pub fn get_Vx_no_window_manager () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vx_no_window_manager.get () } }
-#[inline(always)] pub fn set_Vx_no_window_manager (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vx_no_window_manager.set (val) } }
-#[inline(always)] pub fn get_Vx_nontext_pointer_shape () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vx_nontext_pointer_shape.get () } }
-#[inline(always)] pub fn set_Vx_nontext_pointer_shape (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vx_nontext_pointer_shape.set (val) } }
-#[inline(always)] pub fn get_Vx_pixel_size_width_font_regexp () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vx_pixel_size_width_font_regexp.get () } }
-#[inline(always)] pub fn set_Vx_pixel_size_width_font_regexp (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vx_pixel_size_width_font_regexp.set (val) } }
-#[inline(always)] pub fn get_Vx_pointer_shape () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vx_pointer_shape.get () } }
-#[inline(always)] pub fn set_Vx_pointer_shape (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vx_pointer_shape.set (val) } }
-#[inline(always)] pub fn get_Vx_popup_menu_function () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vx_popup_menu_function.get () } }
-#[inline(always)] pub fn set_Vx_popup_menu_function (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vx_popup_menu_function.set (val) } }
-#[inline(always)] pub fn get_Vx_pre_popup_menu_hook () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vx_pre_popup_menu_hook.get () } }
-#[inline(always)] pub fn set_Vx_pre_popup_menu_hook (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vx_pre_popup_menu_hook.set (val) } }
-#[inline(always)] pub fn get_Vx_quit_keysym () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vx_quit_keysym.get () } }
-#[inline(always)] pub fn set_Vx_quit_keysym (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vx_quit_keysym.set (val) } }
-#[inline(always)] pub fn get_Vx_resource_class () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vx_resource_class.get () } }
-#[inline(always)] pub fn set_Vx_resource_class (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vx_resource_class.set (val) } }
-#[inline(always)] pub fn get_Vx_resource_name () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vx_resource_name.get () } }
-#[inline(always)] pub fn set_Vx_resource_name (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vx_resource_name.set (val) } }
-#[inline(always)] pub fn get_Vx_scroll_event_delta_factor () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vx_scroll_event_delta_factor.get () } }
-#[inline(always)] pub fn set_Vx_scroll_event_delta_factor (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vx_scroll_event_delta_factor.set (val) } }
-#[inline(always)] pub fn get_Vx_select_enable_clipboard_manager () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vx_select_enable_clipboard_manager.get () } }
-#[inline(always)] pub fn set_Vx_select_enable_clipboard_manager (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vx_select_enable_clipboard_manager.set (val) } }
-#[inline(always)] pub fn get_Vx_selection_alias_alist () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vx_selection_alias_alist.get () } }
-#[inline(always)] pub fn set_Vx_selection_alias_alist (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vx_selection_alias_alist.set (val) } }
-#[inline(always)] pub fn get_Vx_sensitive_text_pointer_shape () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vx_sensitive_text_pointer_shape.get () } }
-#[inline(always)] pub fn set_Vx_sensitive_text_pointer_shape (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vx_sensitive_text_pointer_shape.set (val) } }
-#[inline(always)] pub fn get_Vx_sent_selection_functions () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vx_sent_selection_functions.get () } }
-#[inline(always)] pub fn set_Vx_sent_selection_functions (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vx_sent_selection_functions.set (val) } }
-#[inline(always)] pub fn get_Vx_session_id () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vx_session_id.get () } }
-#[inline(always)] pub fn set_Vx_session_id (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vx_session_id.set (val) } }
-#[inline(always)] pub fn get_Vx_session_previous_id () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vx_session_previous_id.get () } }
-#[inline(always)] pub fn set_Vx_session_previous_id (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vx_session_previous_id.set (val) } }
-#[inline(always)] pub fn get_Vx_show_tooltip_timeout () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vx_show_tooltip_timeout.get () } }
-#[inline(always)] pub fn set_Vx_show_tooltip_timeout (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vx_show_tooltip_timeout.set (val) } }
-#[inline(always)] pub fn get_Vx_super_keysym () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vx_super_keysym.get () } }
-#[inline(always)] pub fn set_Vx_super_keysym (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vx_super_keysym.set (val) } }
-#[inline(always)] pub fn get_Vx_toolkit_scroll_bars () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vx_toolkit_scroll_bars.get () } }
-#[inline(always)] pub fn set_Vx_toolkit_scroll_bars (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vx_toolkit_scroll_bars.set (val) } }
-#[inline(always)] pub fn get_Vx_treat_local_requests_remotely () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vx_treat_local_requests_remotely.get () } }
-#[inline(always)] pub fn set_Vx_treat_local_requests_remotely (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vx_treat_local_requests_remotely.set (val) } }
-#[inline(always)] pub fn get_Vx_use_fast_mouse_position () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vx_use_fast_mouse_position.get () } }
-#[inline(always)] pub fn set_Vx_use_fast_mouse_position (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vx_use_fast_mouse_position.set (val) } }
-#[inline(always)] pub fn get_Vx_wait_for_event_timeout () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vx_wait_for_event_timeout.get () } }
-#[inline(always)] pub fn set_Vx_wait_for_event_timeout (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vx_wait_for_event_timeout.set (val) } }
-#[inline(always)] pub fn get_Vx_window_bottom_edge_shape () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vx_window_bottom_edge_shape.get () } }
-#[inline(always)] pub fn set_Vx_window_bottom_edge_shape (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vx_window_bottom_edge_shape.set (val) } }
-#[inline(always)] pub fn get_Vx_window_bottom_left_corner_shape () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vx_window_bottom_left_corner_shape.get () } }
-#[inline(always)] pub fn set_Vx_window_bottom_left_corner_shape (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vx_window_bottom_left_corner_shape.set (val) } }
-#[inline(always)] pub fn get_Vx_window_bottom_right_corner_shape () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vx_window_bottom_right_corner_shape.get () } }
-#[inline(always)] pub fn set_Vx_window_bottom_right_corner_shape (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vx_window_bottom_right_corner_shape.set (val) } }
-#[inline(always)] pub fn get_Vx_window_horizontal_drag_shape () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vx_window_horizontal_drag_shape.get () } }
-#[inline(always)] pub fn set_Vx_window_horizontal_drag_shape (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vx_window_horizontal_drag_shape.set (val) } }
-#[inline(always)] pub fn get_Vx_window_left_edge_shape () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vx_window_left_edge_shape.get () } }
-#[inline(always)] pub fn set_Vx_window_left_edge_shape (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vx_window_left_edge_shape.set (val) } }
-#[inline(always)] pub fn get_Vx_window_right_edge_shape () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vx_window_right_edge_shape.get () } }
-#[inline(always)] pub fn set_Vx_window_right_edge_shape (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vx_window_right_edge_shape.set (val) } }
-#[inline(always)] pub fn get_Vx_window_top_edge_shape () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vx_window_top_edge_shape.get () } }
-#[inline(always)] pub fn set_Vx_window_top_edge_shape (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vx_window_top_edge_shape.set (val) } }
-#[inline(always)] pub fn get_Vx_window_top_left_corner_shape () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vx_window_top_left_corner_shape.get () } }
-#[inline(always)] pub fn set_Vx_window_top_left_corner_shape (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vx_window_top_left_corner_shape.set (val) } }
-#[inline(always)] pub fn get_Vx_window_top_right_corner_shape () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vx_window_top_right_corner_shape.get () } }
-#[inline(always)] pub fn set_Vx_window_top_right_corner_shape (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vx_window_top_right_corner_shape.set (val) } }
-#[inline(always)] pub fn get_Vx_window_vertical_drag_shape () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vx_window_vertical_drag_shape.get () } }
-#[inline(always)] pub fn set_Vx_window_vertical_drag_shape (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vx_window_vertical_drag_shape.set (val) } }
-#[inline(always)] pub fn get_Vxft_color_font_whitelist () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vxft_color_font_whitelist.get () } }
-#[inline(always)] pub fn set_Vxft_color_font_whitelist (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vxft_color_font_whitelist.set (val) } }
-#[inline(always)] pub fn get_Vxft_settings () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vxft_settings.get () } }
-#[inline(always)] pub fn set_Vxft_settings (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vxft_settings.set (val) } }
-#[inline(always)] pub fn get_Vxwidget_list () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vxwidget_list.get () } }
-#[inline(always)] pub fn set_Vxwidget_list (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vxwidget_list.set (val) } }
-#[inline(always)] pub fn get_Vxwidget_view_list () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vxwidget_view_list.get () } }
-#[inline(always)] pub fn set_Vxwidget_view_list (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vxwidget_view_list.set (val) } }
-#[inline(always)] pub fn get_Vyes_or_no_prompt () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::Vyes_or_no_prompt.get () } }
-#[inline(always)] pub fn set_Vyes_or_no_prompt (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::Vyes_or_no_prompt.set (val) } }
-#[inline(always)] pub fn get_alter_fullscreen_frames () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::alter_fullscreen_frames.get () } }
-#[inline(always)] pub fn set_alter_fullscreen_frames (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::alter_fullscreen_frames.set (val) } }
-#[inline(always)] pub fn get_android_display_planes () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::android_display_planes.get () } }
-#[inline(always)] pub fn set_android_display_planes (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::android_display_planes.set (val) } }
-#[inline(always)] pub fn get_android_intercept_control_space () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::android_intercept_control_space.get () } }
-#[inline(always)] pub fn set_android_intercept_control_space (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::android_intercept_control_space.set (val) } }
-#[inline(always)] pub fn get_android_keyboard_bell_duration () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::android_keyboard_bell_duration.get () } }
-#[inline(always)] pub fn set_android_keyboard_bell_duration (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::android_keyboard_bell_duration.set (val) } }
-#[inline(always)] pub fn get_android_pass_multimedia_buttons_to_system () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::android_pass_multimedia_buttons_to_system.get () } }
-#[inline(always)] pub fn set_android_pass_multimedia_buttons_to_system (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::android_pass_multimedia_buttons_to_system.set (val) } }
-#[inline(always)] pub fn get_android_quit_keycode () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::android_quit_keycode.get () } }
-#[inline(always)] pub fn set_android_quit_keycode (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::android_quit_keycode.set (val) } }
-#[inline(always)] pub fn get_android_use_exec_loader () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::android_use_exec_loader.get () } }
-#[inline(always)] pub fn set_android_use_exec_loader (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::android_use_exec_loader.set (val) } }
-#[inline(always)] pub fn get_attempt_orderly_shutdown_on_fatal_signal () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::attempt_orderly_shutdown_on_fatal_signal.get () } }
-#[inline(always)] pub fn set_attempt_orderly_shutdown_on_fatal_signal (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::attempt_orderly_shutdown_on_fatal_signal.set (val) } }
-#[inline(always)] pub fn get_attempt_stack_overflow_recovery () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::attempt_stack_overflow_recovery.get () } }
-#[inline(always)] pub fn set_attempt_stack_overflow_recovery (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::attempt_stack_overflow_recovery.set (val) } }
-#[inline(always)] pub fn get_auto_raise_tab_bar_buttons_p () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::auto_raise_tab_bar_buttons_p.get () } }
-#[inline(always)] pub fn set_auto_raise_tab_bar_buttons_p (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::auto_raise_tab_bar_buttons_p.set (val) } }
-#[inline(always)] pub fn get_auto_raise_tool_bar_buttons_p () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::auto_raise_tool_bar_buttons_p.get () } }
-#[inline(always)] pub fn set_auto_raise_tool_bar_buttons_p (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::auto_raise_tool_bar_buttons_p.set (val) } }
-#[inline(always)] pub fn get_auto_save_interval () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::auto_save_interval.get () } }
-#[inline(always)] pub fn set_auto_save_interval (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::auto_save_interval.set (val) } }
-#[inline(always)] pub fn get_auto_save_no_message () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::auto_save_no_message.get () } }
-#[inline(always)] pub fn set_auto_save_no_message (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::auto_save_no_message.set (val) } }
-#[inline(always)] pub fn get_auto_window_vscroll_p () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::auto_window_vscroll_p.get () } }
-#[inline(always)] pub fn set_auto_window_vscroll_p (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::auto_window_vscroll_p.set (val) } }
-#[inline(always)] pub fn get_automatic_hscrolling () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::automatic_hscrolling.get () } }
-#[inline(always)] pub fn set_automatic_hscrolling (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::automatic_hscrolling.set (val) } }
-#[inline(always)] pub fn get_backtrace_on_error_noninteractive () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::backtrace_on_error_noninteractive.get () } }
-#[inline(always)] pub fn set_backtrace_on_error_noninteractive (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::backtrace_on_error_noninteractive.set (val) } }
-#[inline(always)] pub fn get_backtrace_on_redisplay_error () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::backtrace_on_redisplay_error.get () } }
-#[inline(always)] pub fn set_backtrace_on_redisplay_error (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::backtrace_on_redisplay_error.set (val) } }
-#[inline(always)] pub fn get_baud_rate () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::baud_rate.get () } }
-#[inline(always)] pub fn set_baud_rate (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::baud_rate.set (val) } }
-#[inline(always)] pub fn get_bidi_inhibit_bpa () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::bidi_inhibit_bpa.get () } }
-#[inline(always)] pub fn set_bidi_inhibit_bpa (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::bidi_inhibit_bpa.set (val) } }
-#[inline(always)] pub fn get_byte_metering_on () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::byte_metering_on.get () } }
-#[inline(always)] pub fn set_byte_metering_on (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::byte_metering_on.set (val) } }
-#[inline(always)] pub fn get_cannot_suspend () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::cannot_suspend.get () } }
-#[inline(always)] pub fn set_cannot_suspend (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::cannot_suspend.set (val) } }
-#[inline(always)] pub fn get_case_symbols_as_words () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::case_symbols_as_words.get () } }
-#[inline(always)] pub fn set_case_symbols_as_words (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::case_symbols_as_words.set (val) } }
-#[inline(always)] pub fn get_coding_system_require_warning () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::coding_system_require_warning.get () } }
-#[inline(always)] pub fn set_coding_system_require_warning (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::coding_system_require_warning.set (val) } }
-#[inline(always)] pub fn get_command_line_max_length () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::command_line_max_length.get () } }
-#[inline(always)] pub fn set_command_line_max_length (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::command_line_max_length.set (val) } }
-#[inline(always)] pub fn get_comment_end_can_be_escaped () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::comment_end_can_be_escaped.get () } }
-#[inline(always)] pub fn set_comment_end_can_be_escaped (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::comment_end_can_be_escaped.set (val) } }
-#[inline(always)] pub fn get_comp_file_preloaded_p () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::comp_file_preloaded_p.get () } }
-#[inline(always)] pub fn set_comp_file_preloaded_p (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::comp_file_preloaded_p.set (val) } }
-#[inline(always)] pub fn get_comp_sanitizer_active () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::comp_sanitizer_active.get () } }
-#[inline(always)] pub fn set_comp_sanitizer_active (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::comp_sanitizer_active.set (val) } }
-#[inline(always)] pub fn get_completion_ignore_case () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::completion_ignore_case.get () } }
-#[inline(always)] pub fn set_completion_ignore_case (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::completion_ignore_case.set (val) } }
-#[inline(always)] pub fn get_composition_break_at_point () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::composition_break_at_point.get () } }
-#[inline(always)] pub fn set_composition_break_at_point (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::composition_break_at_point.set (val) } }
-#[inline(always)] pub fn get_cons_cells_consed () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::cons_cells_consed.get () } }
-#[inline(always)] pub fn set_cons_cells_consed (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::cons_cells_consed.set (val) } }
-#[inline(always)] pub fn get_create_lockfiles () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::create_lockfiles.get () } }
-#[inline(always)] pub fn set_create_lockfiles (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::create_lockfiles.set (val) } }
-#[inline(always)] pub fn get_cross_disabled_images () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::cross_disabled_images.get () } }
-#[inline(always)] pub fn set_cross_disabled_images (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::cross_disabled_images.set (val) } }
-#[inline(always)] pub fn get_current_time_list () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::current_time_list.get () } }
-#[inline(always)] pub fn set_current_time_list (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::current_time_list.set (val) } }
-#[inline(always)] pub fn get_cursor_in_echo_area () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::cursor_in_echo_area.get () } }
-#[inline(always)] pub fn set_cursor_in_echo_area (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::cursor_in_echo_area.set (val) } }
-#[inline(always)] pub fn get_debug_end_pos () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::debug_end_pos.get () } }
-#[inline(always)] pub fn set_debug_end_pos (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::debug_end_pos.set (val) } }
-#[inline(always)] pub fn get_debug_on_next_call () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::debug_on_next_call.get () } }
-#[inline(always)] pub fn set_debug_on_next_call (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::debug_on_next_call.set (val) } }
-#[inline(always)] pub fn get_debug_on_quit () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::debug_on_quit.get () } }
-#[inline(always)] pub fn set_debug_on_quit (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::debug_on_quit.set (val) } }
-#[inline(always)] pub fn get_debugger_may_continue () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::debugger_may_continue.get () } }
-#[inline(always)] pub fn set_debugger_may_continue (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::debugger_may_continue.set (val) } }
-#[inline(always)] pub fn get_debugger_stack_frame_as_list () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::debugger_stack_frame_as_list.get () } }
-#[inline(always)] pub fn set_debugger_stack_frame_as_list (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::debugger_stack_frame_as_list.set (val) } }
-#[inline(always)] pub fn get_defining_kbd_macro () -> *mut c_void { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::defining_kbd_macro.get () } }
-#[inline(always)] pub fn set_defining_kbd_macro (val: *mut c_void) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::defining_kbd_macro.set (val) } }
-#[inline(always)] pub fn get_delete_auto_save_files () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::delete_auto_save_files.get () } }
-#[inline(always)] pub fn set_delete_auto_save_files (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::delete_auto_save_files.set (val) } }
-#[inline(always)] pub fn get_delete_by_moving_to_trash () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::delete_by_moving_to_trash.get () } }
-#[inline(always)] pub fn set_delete_by_moving_to_trash (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::delete_by_moving_to_trash.set (val) } }
-#[inline(always)] pub fn get_delete_exited_processes () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::delete_exited_processes.get () } }
-#[inline(always)] pub fn set_delete_exited_processes (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::delete_exited_processes.set (val) } }
-#[inline(always)] pub fn get_delete_frame_choose_selected () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::delete_frame_choose_selected.get () } }
-#[inline(always)] pub fn set_delete_frame_choose_selected (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::delete_frame_choose_selected.set (val) } }
-#[inline(always)] pub fn get_disable_ascii_optimization () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::disable_ascii_optimization.get () } }
-#[inline(always)] pub fn set_disable_ascii_optimization (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::disable_ascii_optimization.set (val) } }
-#[inline(always)] pub fn get_disable_inhibit_text_conversion () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::disable_inhibit_text_conversion.get () } }
-#[inline(always)] pub fn set_disable_inhibit_text_conversion (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::disable_inhibit_text_conversion.set (val) } }
-#[inline(always)] pub fn get_display_fill_column_indicator () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::display_fill_column_indicator.get () } }
-#[inline(always)] pub fn set_display_fill_column_indicator (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::display_fill_column_indicator.set (val) } }
-#[inline(always)] pub fn get_display_hourglass_p () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::display_hourglass_p.get () } }
-#[inline(always)] pub fn set_display_hourglass_p (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::display_hourglass_p.set (val) } }
-#[inline(always)] pub fn get_display_line_numbers_major_tick () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::display_line_numbers_major_tick.get () } }
-#[inline(always)] pub fn set_display_line_numbers_major_tick (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::display_line_numbers_major_tick.set (val) } }
-#[inline(always)] pub fn get_display_line_numbers_minor_tick () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::display_line_numbers_minor_tick.get () } }
-#[inline(always)] pub fn set_display_line_numbers_minor_tick (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::display_line_numbers_minor_tick.set (val) } }
-#[inline(always)] pub fn get_display_line_numbers_offset () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::display_line_numbers_offset.get () } }
-#[inline(always)] pub fn set_display_line_numbers_offset (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::display_line_numbers_offset.set (val) } }
-#[inline(always)] pub fn get_display_line_numbers_widen () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::display_line_numbers_widen.get () } }
-#[inline(always)] pub fn set_display_line_numbers_widen (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::display_line_numbers_widen.set (val) } }
-#[inline(always)] pub fn get_display_raw_bytes_as_hex () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::display_raw_bytes_as_hex.get () } }
-#[inline(always)] pub fn set_display_raw_bytes_as_hex (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::display_raw_bytes_as_hex.set (val) } }
-#[inline(always)] pub fn get_documentation_dynamic_reload () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::documentation_dynamic_reload.get () } }
-#[inline(always)] pub fn set_documentation_dynamic_reload (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::documentation_dynamic_reload.set (val) } }
-#[inline(always)] pub fn get_dos_codepage () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::dos_codepage.get () } }
-#[inline(always)] pub fn set_dos_codepage (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::dos_codepage.set (val) } }
-#[inline(always)] pub fn get_dos_country_code () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::dos_country_code.get () } }
-#[inline(always)] pub fn set_dos_country_code (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::dos_country_code.set (val) } }
-#[inline(always)] pub fn get_dos_decimal_point () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::dos_decimal_point.get () } }
-#[inline(always)] pub fn set_dos_decimal_point (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::dos_decimal_point.set (val) } }
-#[inline(always)] pub fn get_dos_hyper_key () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::dos_hyper_key.get () } }
-#[inline(always)] pub fn set_dos_hyper_key (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::dos_hyper_key.set (val) } }
-#[inline(always)] pub fn get_dos_keyboard_layout () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::dos_keyboard_layout.get () } }
-#[inline(always)] pub fn set_dos_keyboard_layout (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::dos_keyboard_layout.set (val) } }
-#[inline(always)] pub fn get_dos_keypad_mode () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::dos_keypad_mode.get () } }
-#[inline(always)] pub fn set_dos_keypad_mode (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::dos_keypad_mode.set (val) } }
-#[inline(always)] pub fn get_dos_super_key () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::dos_super_key.get () } }
-#[inline(always)] pub fn set_dos_super_key (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::dos_super_key.set (val) } }
-#[inline(always)] pub fn get_dos_timezone_offset () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::dos_timezone_offset.get () } }
-#[inline(always)] pub fn set_dos_timezone_offset (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::dos_timezone_offset.set (val) } }
-#[inline(always)] pub fn get_double_click_fuzz () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::double_click_fuzz.get () } }
-#[inline(always)] pub fn set_double_click_fuzz (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::double_click_fuzz.set (val) } }
-#[inline(always)] pub fn get_echo_keystrokes_help () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::echo_keystrokes_help.get () } }
-#[inline(always)] pub fn set_echo_keystrokes_help (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::echo_keystrokes_help.set (val) } }
-#[inline(always)] pub fn get_emacs_scroll_step () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::emacs_scroll_step.get () } }
-#[inline(always)] pub fn set_emacs_scroll_step (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::emacs_scroll_step.set (val) } }
-#[inline(always)] pub fn get_enable_recursive_minibuffers () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::enable_recursive_minibuffers.get () } }
-#[inline(always)] pub fn set_enable_recursive_minibuffers (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::enable_recursive_minibuffers.set (val) } }
-#[inline(always)] pub fn get_eol_mnemonic_dos () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::eol_mnemonic_dos.get () } }
-#[inline(always)] pub fn set_eol_mnemonic_dos (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::eol_mnemonic_dos.set (val) } }
-#[inline(always)] pub fn get_eol_mnemonic_mac () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::eol_mnemonic_mac.get () } }
-#[inline(always)] pub fn set_eol_mnemonic_mac (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::eol_mnemonic_mac.set (val) } }
-#[inline(always)] pub fn get_eol_mnemonic_undecided () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::eol_mnemonic_undecided.get () } }
-#[inline(always)] pub fn set_eol_mnemonic_undecided (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::eol_mnemonic_undecided.set (val) } }
-#[inline(always)] pub fn get_eol_mnemonic_unix () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::eol_mnemonic_unix.get () } }
-#[inline(always)] pub fn set_eol_mnemonic_unix (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::eol_mnemonic_unix.set (val) } }
-#[inline(always)] pub fn get_executing_kbd_macro_index () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::executing_kbd_macro_index.get () } }
-#[inline(always)] pub fn set_executing_kbd_macro_index (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::executing_kbd_macro_index.set (val) } }
-#[inline(always)] pub fn get_expose_hidden_buffer () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::expose_hidden_buffer.get () } }
-#[inline(always)] pub fn set_expose_hidden_buffer (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::expose_hidden_buffer.set (val) } }
-#[inline(always)] pub fn get_extra_keyboard_modifiers () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::extra_keyboard_modifiers.get () } }
-#[inline(always)] pub fn set_extra_keyboard_modifiers (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::extra_keyboard_modifiers.set (val) } }
-#[inline(always)] pub fn get_face_filters_always_match () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::face_filters_always_match.get () } }
-#[inline(always)] pub fn set_face_filters_always_match (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::face_filters_always_match.set (val) } }
-#[inline(always)] pub fn get_face_near_same_color_threshold () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::face_near_same_color_threshold.get () } }
-#[inline(always)] pub fn set_face_near_same_color_threshold (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::face_near_same_color_threshold.set (val) } }
-#[inline(always)] pub fn get_fast_but_imprecise_scrolling () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::fast_but_imprecise_scrolling.get () } }
-#[inline(always)] pub fn set_fast_but_imprecise_scrolling (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::fast_but_imprecise_scrolling.set (val) } }
-#[inline(always)] pub fn get_fast_read_process_output () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::fast_read_process_output.get () } }
-#[inline(always)] pub fn set_fast_read_process_output (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::fast_read_process_output.set (val) } }
-#[inline(always)] pub fn get_floats_consed () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::floats_consed.get () } }
-#[inline(always)] pub fn set_floats_consed (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::floats_consed.set (val) } }
-#[inline(always)] pub fn get_focus_follows_mouse () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::focus_follows_mouse.get () } }
-#[inline(always)] pub fn set_focus_follows_mouse (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::focus_follows_mouse.set (val) } }
-#[inline(always)] pub fn get_force_load_messages () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::force_load_messages.get () } }
-#[inline(always)] pub fn set_force_load_messages (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::force_load_messages.set (val) } }
-#[inline(always)] pub fn get_frame_inhibit_implied_resize () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::frame_inhibit_implied_resize.get () } }
-#[inline(always)] pub fn set_frame_inhibit_implied_resize (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::frame_inhibit_implied_resize.set (val) } }
-#[inline(always)] pub fn get_frame_internal_parameters () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::frame_internal_parameters.get () } }
-#[inline(always)] pub fn set_frame_internal_parameters (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::frame_internal_parameters.set (val) } }
-#[inline(always)] pub fn get_frame_resize_pixelwise () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::frame_resize_pixelwise.get () } }
-#[inline(always)] pub fn set_frame_resize_pixelwise (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::frame_resize_pixelwise.set (val) } }
-#[inline(always)] pub fn get_frame_size_history () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::frame_size_history.get () } }
-#[inline(always)] pub fn set_frame_size_history (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::frame_size_history.set (val) } }
-#[inline(always)] pub fn get_garbage_collection_messages () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::garbage_collection_messages.get () } }
-#[inline(always)] pub fn set_garbage_collection_messages (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::garbage_collection_messages.set (val) } }
-#[inline(always)] pub fn get_gc_cons_threshold () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::gc_cons_threshold.get () } }
-#[inline(always)] pub fn set_gc_cons_threshold (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::gc_cons_threshold.set (val) } }
-#[inline(always)] pub fn get_gcs_done () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::gcs_done.get () } }
-#[inline(always)] pub fn set_gcs_done (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::gcs_done.set (val) } }
-#[inline(always)] pub fn get_global_gnutls_log_level () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::global_gnutls_log_level.get () } }
-#[inline(always)] pub fn set_global_gnutls_log_level (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::global_gnutls_log_level.set (val) } }
-#[inline(always)] pub fn get_haiku_debug_on_fatal_error () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::haiku_debug_on_fatal_error.get () } }
-#[inline(always)] pub fn set_haiku_debug_on_fatal_error (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::haiku_debug_on_fatal_error.set (val) } }
-#[inline(always)] pub fn get_haiku_initialized () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::haiku_initialized.get () } }
-#[inline(always)] pub fn set_haiku_initialized (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::haiku_initialized.set (val) } }
-#[inline(always)] pub fn get_haiku_pass_control_tab_to_system () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::haiku_pass_control_tab_to_system.get () } }
-#[inline(always)] pub fn set_haiku_pass_control_tab_to_system (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::haiku_pass_control_tab_to_system.set (val) } }
-#[inline(always)] pub fn get_haiku_signal_invalid_refs () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::haiku_signal_invalid_refs.get () } }
-#[inline(always)] pub fn set_haiku_signal_invalid_refs (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::haiku_signal_invalid_refs.set (val) } }
-#[inline(always)] pub fn get_highlight_nonselected_windows () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::highlight_nonselected_windows.get () } }
-#[inline(always)] pub fn set_highlight_nonselected_windows (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::highlight_nonselected_windows.set (val) } }
-#[inline(always)] pub fn get_history_delete_duplicates () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::history_delete_duplicates.get () } }
-#[inline(always)] pub fn set_history_delete_duplicates (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::history_delete_duplicates.set (val) } }
-#[inline(always)] pub fn get_hscroll_margin () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::hscroll_margin.get () } }
-#[inline(always)] pub fn set_hscroll_margin (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::hscroll_margin.set (val) } }
-#[inline(always)] pub fn get_iconify_child_frame () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::iconify_child_frame.get () } }
-#[inline(always)] pub fn set_iconify_child_frame (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::iconify_child_frame.set (val) } }
-#[inline(always)] pub fn get_imagemagick_render_type () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::imagemagick_render_type.get () } }
-#[inline(always)] pub fn set_imagemagick_render_type (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::imagemagick_render_type.set (val) } }
-#[inline(always)] pub fn get_indent_tabs_mode () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::indent_tabs_mode.get () } }
-#[inline(always)] pub fn set_indent_tabs_mode (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::indent_tabs_mode.set (val) } }
-#[inline(always)] pub fn get_inherit_process_coding_system () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::inherit_process_coding_system.get () } }
-#[inline(always)] pub fn set_inherit_process_coding_system (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::inherit_process_coding_system.set (val) } }
-#[inline(always)] pub fn get_inhibit_bidi_mirroring () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::inhibit_bidi_mirroring.get () } }
-#[inline(always)] pub fn set_inhibit_bidi_mirroring (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::inhibit_bidi_mirroring.set (val) } }
-#[inline(always)] pub fn get_inhibit_compacting_font_caches () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::inhibit_compacting_font_caches.get () } }
-#[inline(always)] pub fn set_inhibit_compacting_font_caches (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::inhibit_compacting_font_caches.set (val) } }
-#[inline(always)] pub fn get_inhibit_eol_conversion () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::inhibit_eol_conversion.get () } }
-#[inline(always)] pub fn set_inhibit_eol_conversion (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::inhibit_eol_conversion.set (val) } }
-#[inline(always)] pub fn get_inhibit_eval_during_redisplay () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::inhibit_eval_during_redisplay.get () } }
-#[inline(always)] pub fn set_inhibit_eval_during_redisplay (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::inhibit_eval_during_redisplay.set (val) } }
-#[inline(always)] pub fn get_inhibit_free_realized_faces () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::inhibit_free_realized_faces.get () } }
-#[inline(always)] pub fn set_inhibit_free_realized_faces (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::inhibit_free_realized_faces.set (val) } }
-#[inline(always)] pub fn get_inhibit_interaction () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::inhibit_interaction.get () } }
-#[inline(always)] pub fn set_inhibit_interaction (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::inhibit_interaction.set (val) } }
-#[inline(always)] pub fn get_inhibit_iso_escape_detection () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::inhibit_iso_escape_detection.get () } }
-#[inline(always)] pub fn set_inhibit_iso_escape_detection (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::inhibit_iso_escape_detection.set (val) } }
-#[inline(always)] pub fn get_inhibit_load_charset_map () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::inhibit_load_charset_map.get () } }
-#[inline(always)] pub fn set_inhibit_load_charset_map (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::inhibit_load_charset_map.set (val) } }
-#[inline(always)] pub fn get_inhibit_menubar_update () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::inhibit_menubar_update.get () } }
-#[inline(always)] pub fn set_inhibit_menubar_update (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::inhibit_menubar_update.set (val) } }
-#[inline(always)] pub fn get_inhibit_message () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::inhibit_message.get () } }
-#[inline(always)] pub fn set_inhibit_message (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::inhibit_message.set (val) } }
-#[inline(always)] pub fn get_inhibit_modification_hooks () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::inhibit_modification_hooks.get () } }
-#[inline(always)] pub fn set_inhibit_modification_hooks (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::inhibit_modification_hooks.set (val) } }
-#[inline(always)] pub fn get_inhibit_mouse_event_check () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::inhibit_mouse_event_check.get () } }
-#[inline(always)] pub fn set_inhibit_mouse_event_check (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::inhibit_mouse_event_check.set (val) } }
-#[inline(always)] pub fn get_inhibit_null_byte_detection () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::inhibit_null_byte_detection.get () } }
-#[inline(always)] pub fn set_inhibit_null_byte_detection (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::inhibit_null_byte_detection.set (val) } }
-#[inline(always)] pub fn get_inhibit_record_char () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::inhibit_record_char.get () } }
-#[inline(always)] pub fn set_inhibit_record_char (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::inhibit_record_char.set (val) } }
-#[inline(always)] pub fn get_inhibit_try_cursor_movement () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::inhibit_try_cursor_movement.get () } }
-#[inline(always)] pub fn set_inhibit_try_cursor_movement (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::inhibit_try_cursor_movement.set (val) } }
-#[inline(always)] pub fn get_inhibit_try_window_id () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::inhibit_try_window_id.get () } }
-#[inline(always)] pub fn set_inhibit_try_window_id (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::inhibit_try_window_id.set (val) } }
-#[inline(always)] pub fn get_inhibit_try_window_reusing () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::inhibit_try_window_reusing.get () } }
-#[inline(always)] pub fn set_inhibit_try_window_reusing (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::inhibit_try_window_reusing.set (val) } }
-#[inline(always)] pub fn get_inhibit_x_resources () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::inhibit_x_resources.get () } }
-#[inline(always)] pub fn set_inhibit_x_resources (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::inhibit_x_resources.set (val) } }
-#[inline(always)] pub fn get_input_pending_p_filter_events () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::input_pending_p_filter_events.get () } }
-#[inline(always)] pub fn set_input_pending_p_filter_events (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::input_pending_p_filter_events.set (val) } }
-#[inline(always)] pub fn get_integer_width () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::integer_width.get () } }
-#[inline(always)] pub fn set_integer_width (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::integer_width.set (val) } }
-#[inline(always)] pub fn get_intervals_consed () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::intervals_consed.get () } }
-#[inline(always)] pub fn set_intervals_consed (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::intervals_consed.set (val) } }
-#[inline(always)] pub fn get_inverse_video () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::inverse_video.get () } }
-#[inline(always)] pub fn set_inverse_video (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::inverse_video.set (val) } }
-#[inline(always)] pub fn get_kill_buffer_delete_auto_save_files () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::kill_buffer_delete_auto_save_files.get () } }
-#[inline(always)] pub fn set_kill_buffer_delete_auto_save_files (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::kill_buffer_delete_auto_save_files.set (val) } }
-#[inline(always)] pub fn get_kill_emacs_on_sigint () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::kill_emacs_on_sigint.get () } }
-#[inline(always)] pub fn set_kill_emacs_on_sigint (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::kill_emacs_on_sigint.set (val) } }
-#[inline(always)] pub fn get_large_hscroll_threshold () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::large_hscroll_threshold.get () } }
-#[inline(always)] pub fn set_large_hscroll_threshold (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::large_hscroll_threshold.set (val) } }
-#[inline(always)] pub fn get_last_command_event () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::last_command_event.get () } }
-#[inline(always)] pub fn set_last_command_event (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::last_command_event.set (val) } }
-#[inline(always)] pub fn get_last_input_event () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::last_input_event.get () } }
-#[inline(always)] pub fn set_last_input_event (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::last_input_event.set (val) } }
-#[inline(always)] pub fn get_last_nonmenu_event () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::last_nonmenu_event.get () } }
-#[inline(always)] pub fn set_last_nonmenu_event (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::last_nonmenu_event.set (val) } }
-#[inline(always)] pub fn get_line_number_display_limit_width () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::line_number_display_limit_width.get () } }
-#[inline(always)] pub fn set_line_number_display_limit_width (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::line_number_display_limit_width.set (val) } }
-#[inline(always)] pub fn get_lisp_eval_depth_reserve () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::lisp_eval_depth_reserve.get () } }
-#[inline(always)] pub fn set_lisp_eval_depth_reserve (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::lisp_eval_depth_reserve.set (val) } }
-#[inline(always)] pub fn get_load_dangerous_libraries () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::load_dangerous_libraries.get () } }
-#[inline(always)] pub fn set_load_dangerous_libraries (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::load_dangerous_libraries.set (val) } }
-#[inline(always)] pub fn get_load_force_doc_strings () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::load_force_doc_strings.get () } }
-#[inline(always)] pub fn set_load_force_doc_strings (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::load_force_doc_strings.set (val) } }
-#[inline(always)] pub fn get_load_in_progress () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::load_in_progress.get () } }
-#[inline(always)] pub fn set_load_in_progress (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::load_in_progress.set (val) } }
-#[inline(always)] pub fn get_load_no_native () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::load_no_native.get () } }
-#[inline(always)] pub fn set_load_no_native (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::load_no_native.set (val) } }
-#[inline(always)] pub fn get_load_prefer_newer () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::load_prefer_newer.get () } }
-#[inline(always)] pub fn set_load_prefer_newer (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::load_prefer_newer.set (val) } }
-#[inline(always)] pub fn get_long_line_optimizations_bol_search_limit () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::long_line_optimizations_bol_search_limit.get () } }
-#[inline(always)] pub fn set_long_line_optimizations_bol_search_limit (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::long_line_optimizations_bol_search_limit.set (val) } }
-#[inline(always)] pub fn get_long_line_optimizations_region_size () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::long_line_optimizations_region_size.get () } }
-#[inline(always)] pub fn set_long_line_optimizations_region_size (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::long_line_optimizations_region_size.set (val) } }
-#[inline(always)] pub fn get_lucid__menu_grab_keyboard () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::lucid__menu_grab_keyboard.get () } }
-#[inline(always)] pub fn set_lucid__menu_grab_keyboard (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::lucid__menu_grab_keyboard.set (val) } }
-#[inline(always)] pub fn get_make_window_start_visible () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::make_window_start_visible.get () } }
-#[inline(always)] pub fn set_make_window_start_visible (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::make_window_start_visible.set (val) } }
-#[inline(always)] pub fn get_max_lisp_eval_depth () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::max_lisp_eval_depth.get () } }
-#[inline(always)] pub fn set_max_lisp_eval_depth (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::max_lisp_eval_depth.set (val) } }
-#[inline(always)] pub fn get_max_redisplay_ticks () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::max_redisplay_ticks.get () } }
-#[inline(always)] pub fn set_max_redisplay_ticks (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::max_redisplay_ticks.set (val) } }
-#[inline(always)] pub fn get_menu_prompt_more_char () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::menu_prompt_more_char.get () } }
-#[inline(always)] pub fn set_menu_prompt_more_char (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::menu_prompt_more_char.set (val) } }
-#[inline(always)] pub fn get_menu_prompting () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::menu_prompting.get () } }
-#[inline(always)] pub fn set_menu_prompting (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::menu_prompting.set (val) } }
-#[inline(always)] pub fn get_message_truncate_lines () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::message_truncate_lines.get () } }
-#[inline(always)] pub fn set_message_truncate_lines (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::message_truncate_lines.set (val) } }
-#[inline(always)] pub fn get_meta_prefix_char () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::meta_prefix_char.get () } }
-#[inline(always)] pub fn set_meta_prefix_char (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::meta_prefix_char.set (val) } }
-#[inline(always)] pub fn get_minibuffer_allow_text_properties () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::minibuffer_allow_text_properties.get () } }
-#[inline(always)] pub fn set_minibuffer_allow_text_properties (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::minibuffer_allow_text_properties.set (val) } }
-#[inline(always)] pub fn get_minibuffer_auto_raise () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::minibuffer_auto_raise.get () } }
-#[inline(always)] pub fn set_minibuffer_auto_raise (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::minibuffer_auto_raise.set (val) } }
-#[inline(always)] pub fn get_minibuffer_follows_selected_frame () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::minibuffer_follows_selected_frame.get () } }
-#[inline(always)] pub fn set_minibuffer_follows_selected_frame (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::minibuffer_follows_selected_frame.set (val) } }
-#[inline(always)] pub fn get_mode_line_in_non_selected_windows () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::mode_line_in_non_selected_windows.get () } }
-#[inline(always)] pub fn set_mode_line_in_non_selected_windows (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::mode_line_in_non_selected_windows.set (val) } }
-#[inline(always)] pub fn get_mouse_fine_grained_tracking () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::mouse_fine_grained_tracking.get () } }
-#[inline(always)] pub fn set_mouse_fine_grained_tracking (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::mouse_fine_grained_tracking.set (val) } }
-#[inline(always)] pub fn get_mouse_prefer_closest_glyph () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::mouse_prefer_closest_glyph.get () } }
-#[inline(always)] pub fn set_mouse_prefer_closest_glyph (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::mouse_prefer_closest_glyph.set (val) } }
-#[inline(always)] pub fn get_multibyte_syntax_as_symbol () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::multibyte_syntax_as_symbol.get () } }
-#[inline(always)] pub fn set_multibyte_syntax_as_symbol (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::multibyte_syntax_as_symbol.set (val) } }
-#[inline(always)] pub fn get_multiple_frames () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::multiple_frames.get () } }
-#[inline(always)] pub fn set_multiple_frames (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::multiple_frames.set (val) } }
-#[inline(always)] pub fn get_multiple_terminals_merge_keyboards () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::multiple_terminals_merge_keyboards.get () } }
-#[inline(always)] pub fn set_multiple_terminals_merge_keyboards (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::multiple_terminals_merge_keyboards.set (val) } }
-#[inline(always)] pub fn get_mwheel_coalesce_scroll_events () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::mwheel_coalesce_scroll_events.get () } }
-#[inline(always)] pub fn set_mwheel_coalesce_scroll_events (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::mwheel_coalesce_scroll_events.set (val) } }
-#[inline(always)] pub fn get_native_comp_jit_compilation () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::native_comp_jit_compilation.get () } }
-#[inline(always)] pub fn set_native_comp_jit_compilation (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::native_comp_jit_compilation.set (val) } }
-#[inline(always)] pub fn get_next_screen_context_lines () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::next_screen_context_lines.get () } }
-#[inline(always)] pub fn set_next_screen_context_lines (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::next_screen_context_lines.set (val) } }
-#[inline(always)] pub fn get_no_redraw_on_reenter () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::no_redraw_on_reenter.get () } }
-#[inline(always)] pub fn set_no_redraw_on_reenter (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::no_redraw_on_reenter.set (val) } }
-#[inline(always)] pub fn get_nobreak_char_ascii_display () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::nobreak_char_ascii_display.get () } }
-#[inline(always)] pub fn set_nobreak_char_ascii_display (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::nobreak_char_ascii_display.set (val) } }
-#[inline(always)] pub fn get_noninteractive1 () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::noninteractive1.get () } }
-#[inline(always)] pub fn set_noninteractive1 (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::noninteractive1.set (val) } }
-#[inline(always)] pub fn get_num_input_keys () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::num_input_keys.get () } }
-#[inline(always)] pub fn set_num_input_keys (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::num_input_keys.set (val) } }
-#[inline(always)] pub fn get_num_nonmacro_input_events () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::num_nonmacro_input_events.get () } }
-#[inline(always)] pub fn set_num_nonmacro_input_events (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::num_nonmacro_input_events.set (val) } }
-#[inline(always)] pub fn get_open_paren_in_column_0_is_defun_start () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::open_paren_in_column_0_is_defun_start.get () } }
-#[inline(always)] pub fn set_open_paren_in_column_0_is_defun_start (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::open_paren_in_column_0_is_defun_start.set (val) } }
-#[inline(always)] pub fn get_overline_margin () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::overline_margin.get () } }
-#[inline(always)] pub fn set_overline_margin (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::overline_margin.set (val) } }
-#[inline(always)] pub fn get_parse_sexp_ignore_comments () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::parse_sexp_ignore_comments.get () } }
-#[inline(always)] pub fn set_parse_sexp_ignore_comments (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::parse_sexp_ignore_comments.set (val) } }
-#[inline(always)] pub fn get_parse_sexp_lookup_properties () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::parse_sexp_lookup_properties.get () } }
-#[inline(always)] pub fn set_parse_sexp_lookup_properties (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::parse_sexp_lookup_properties.set (val) } }
-#[inline(always)] pub fn get_pgtk_selection_timeout () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::pgtk_selection_timeout.get () } }
-#[inline(always)] pub fn set_pgtk_selection_timeout (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::pgtk_selection_timeout.set (val) } }
-#[inline(always)] pub fn get_print_escape_control_characters () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::print_escape_control_characters.get () } }
-#[inline(always)] pub fn set_print_escape_control_characters (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::print_escape_control_characters.set (val) } }
-#[inline(always)] pub fn get_print_escape_multibyte () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::print_escape_multibyte.get () } }
-#[inline(always)] pub fn set_print_escape_multibyte (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::print_escape_multibyte.set (val) } }
-#[inline(always)] pub fn get_print_escape_newlines () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::print_escape_newlines.get () } }
-#[inline(always)] pub fn set_print_escape_newlines (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::print_escape_newlines.set (val) } }
-#[inline(always)] pub fn get_print_escape_nonascii () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::print_escape_nonascii.get () } }
-#[inline(always)] pub fn set_print_escape_nonascii (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::print_escape_nonascii.set (val) } }
-#[inline(always)] pub fn get_print_integers_as_characters () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::print_integers_as_characters.get () } }
-#[inline(always)] pub fn set_print_integers_as_characters (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::print_integers_as_characters.set (val) } }
-#[inline(always)] pub fn get_print_quoted () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::print_quoted.get () } }
-#[inline(always)] pub fn set_print_quoted (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::print_quoted.set (val) } }
-#[inline(always)] pub fn get_print_symbols_bare () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::print_symbols_bare.get () } }
-#[inline(always)] pub fn set_print_symbols_bare (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::print_symbols_bare.set (val) } }
-#[inline(always)] pub fn get_process_error_pause_time () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::process_error_pause_time.get () } }
-#[inline(always)] pub fn set_process_error_pause_time (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::process_error_pause_time.set (val) } }
-#[inline(always)] pub fn get_process_prioritize_lower_fds () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::process_prioritize_lower_fds.get () } }
-#[inline(always)] pub fn set_process_prioritize_lower_fds (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::process_prioritize_lower_fds.set (val) } }
-#[inline(always)] pub fn get_profiler_log_size () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::profiler_log_size.get () } }
-#[inline(always)] pub fn set_profiler_log_size (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::profiler_log_size.set (val) } }
-#[inline(always)] pub fn get_profiler_max_stack_depth () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::profiler_max_stack_depth.get () } }
-#[inline(always)] pub fn set_profiler_max_stack_depth (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::profiler_max_stack_depth.set (val) } }
-#[inline(always)] pub fn get_pure_bytes_used () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::pure_bytes_used.get () } }
-#[inline(always)] pub fn set_pure_bytes_used (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::pure_bytes_used.set (val) } }
-#[inline(always)] pub fn get_query_all_font_backends () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::query_all_font_backends.get () } }
-#[inline(always)] pub fn set_query_all_font_backends (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::query_all_font_backends.set (val) } }
-#[inline(always)] pub fn get_read_buffer_completion_ignore_case () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::read_buffer_completion_ignore_case.get () } }
-#[inline(always)] pub fn set_read_buffer_completion_ignore_case (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::read_buffer_completion_ignore_case.set (val) } }
-#[inline(always)] pub fn get_read_minibuffer_restore_windows () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::read_minibuffer_restore_windows.get () } }
-#[inline(always)] pub fn set_read_minibuffer_restore_windows (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::read_minibuffer_restore_windows.set (val) } }
-#[inline(always)] pub fn get_read_process_output_max () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::read_process_output_max.get () } }
-#[inline(always)] pub fn set_read_process_output_max (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::read_process_output_max.set (val) } }
-#[inline(always)] pub fn get_record_all_keys () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::record_all_keys.get () } }
-#[inline(always)] pub fn set_record_all_keys (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::record_all_keys.set (val) } }
-#[inline(always)] pub fn get_redisplay__inhibit_bidi () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::redisplay__inhibit_bidi.get () } }
-#[inline(always)] pub fn set_redisplay__inhibit_bidi (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::redisplay__inhibit_bidi.set (val) } }
-#[inline(always)] pub fn get_redisplay_adhoc_scroll_in_resize_mini_windows () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::redisplay_adhoc_scroll_in_resize_mini_windows.get () } }
-#[inline(always)] pub fn set_redisplay_adhoc_scroll_in_resize_mini_windows (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::redisplay_adhoc_scroll_in_resize_mini_windows.set (val) } }
-#[inline(always)] pub fn get_redisplay_skip_fontification_on_input () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::redisplay_skip_fontification_on_input.get () } }
-#[inline(always)] pub fn set_redisplay_skip_fontification_on_input (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::redisplay_skip_fontification_on_input.set (val) } }
-#[inline(always)] pub fn get_redisplay_skip_initial_frame () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::redisplay_skip_initial_frame.get () } }
-#[inline(always)] pub fn set_redisplay_skip_initial_frame (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::redisplay_skip_initial_frame.set (val) } }
-#[inline(always)] pub fn get_resize_mini_frames () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::resize_mini_frames.get () } }
-#[inline(always)] pub fn set_resize_mini_frames (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::resize_mini_frames.set (val) } }
-#[inline(always)] pub fn get_scroll_bar_adjust_thumb_portion_p () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::scroll_bar_adjust_thumb_portion_p.get () } }
-#[inline(always)] pub fn set_scroll_bar_adjust_thumb_portion_p (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::scroll_bar_adjust_thumb_portion_p.set (val) } }
-#[inline(always)] pub fn get_scroll_conservatively () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::scroll_conservatively.get () } }
-#[inline(always)] pub fn set_scroll_conservatively (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::scroll_conservatively.set (val) } }
-#[inline(always)] pub fn get_scroll_margin () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::scroll_margin.get () } }
-#[inline(always)] pub fn set_scroll_margin (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::scroll_margin.set (val) } }
-#[inline(always)] pub fn get_scroll_minibuffer_conservatively () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::scroll_minibuffer_conservatively.get () } }
-#[inline(always)] pub fn set_scroll_minibuffer_conservatively (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::scroll_minibuffer_conservatively.set (val) } }
-#[inline(always)] pub fn get_sfnt_raster_glyphs_exactly () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::sfnt_raster_glyphs_exactly.get () } }
-#[inline(always)] pub fn set_sfnt_raster_glyphs_exactly (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::sfnt_raster_glyphs_exactly.set (val) } }
-#[inline(always)] pub fn get_string_chars_consed () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::string_chars_consed.get () } }
-#[inline(always)] pub fn set_string_chars_consed (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::string_chars_consed.set (val) } }
-#[inline(always)] pub fn get_strings_consed () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::strings_consed.get () } }
-#[inline(always)] pub fn set_strings_consed (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::strings_consed.set (val) } }
-#[inline(always)] pub fn get_symbols_consed () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::symbols_consed.get () } }
-#[inline(always)] pub fn set_symbols_consed (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::symbols_consed.set (val) } }
-#[inline(always)] pub fn get_symbols_with_pos_enabled () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::symbols_with_pos_enabled.get () } }
-#[inline(always)] pub fn set_symbols_with_pos_enabled (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::symbols_with_pos_enabled.set (val) } }
-#[inline(always)] pub fn get_syntax_propertize__done () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::syntax_propertize__done.get () } }
-#[inline(always)] pub fn set_syntax_propertize__done (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::syntax_propertize__done.set (val) } }
-#[inline(always)] pub fn get_system_uses_terminfo () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::system_uses_terminfo.get () } }
-#[inline(always)] pub fn set_system_uses_terminfo (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::system_uses_terminfo.set (val) } }
-#[inline(always)] pub fn get_tab_bar__dragging_in_progress () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::tab_bar__dragging_in_progress.get () } }
-#[inline(always)] pub fn set_tab_bar__dragging_in_progress (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::tab_bar__dragging_in_progress.set (val) } }
-#[inline(always)] pub fn get_tab_bar_button_relief () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::tab_bar_button_relief.get () } }
-#[inline(always)] pub fn set_tab_bar_button_relief (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::tab_bar_button_relief.set (val) } }
-#[inline(always)] pub fn get_tab_bar_truncate () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::tab_bar_truncate.get () } }
-#[inline(always)] pub fn set_tab_bar_truncate (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::tab_bar_truncate.set (val) } }
-#[inline(always)] pub fn get_text_quoting_flag () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::text_quoting_flag.get () } }
-#[inline(always)] pub fn set_text_quoting_flag (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::text_quoting_flag.set (val) } }
-#[inline(always)] pub fn get_tool_bar_button_relief () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::tool_bar_button_relief.get () } }
-#[inline(always)] pub fn set_tool_bar_button_relief (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::tool_bar_button_relief.set (val) } }
-#[inline(always)] pub fn get_tool_bar_max_label_size () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::tool_bar_max_label_size.get () } }
-#[inline(always)] pub fn set_tool_bar_max_label_size (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::tool_bar_max_label_size.set (val) } }
-#[inline(always)] pub fn get_tooltip_reuse_hidden_frame () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::tooltip_reuse_hidden_frame.get () } }
-#[inline(always)] pub fn set_tooltip_reuse_hidden_frame (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::tooltip_reuse_hidden_frame.set (val) } }
-#[inline(always)] pub fn get_track_mouse () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::track_mouse.get () } }
-#[inline(always)] pub fn set_track_mouse (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::track_mouse.set (val) } }
-#[inline(always)] pub fn get_translate_upper_case_key_bindings () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::translate_upper_case_key_bindings.get () } }
-#[inline(always)] pub fn set_translate_upper_case_key_bindings (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::translate_upper_case_key_bindings.set (val) } }
-#[inline(always)] pub fn get_tty_cursor_movement_use_TAB () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::tty_cursor_movement_use_TAB.get () } }
-#[inline(always)] pub fn set_tty_cursor_movement_use_TAB (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::tty_cursor_movement_use_TAB.set (val) } }
-#[inline(always)] pub fn get_tty_cursor_movement_use_TAB_BS () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::tty_cursor_movement_use_TAB_BS.get () } }
-#[inline(always)] pub fn set_tty_cursor_movement_use_TAB_BS (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::tty_cursor_movement_use_TAB_BS.set (val) } }
-#[inline(always)] pub fn get_tty_display_emoji_force_wide () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::tty_display_emoji_force_wide.get () } }
-#[inline(always)] pub fn set_tty_display_emoji_force_wide (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::tty_display_emoji_force_wide.set (val) } }
-#[inline(always)] pub fn get_tty_menu_calls_mouse_position_function () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::tty_menu_calls_mouse_position_function.get () } }
-#[inline(always)] pub fn set_tty_menu_calls_mouse_position_function (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::tty_menu_calls_mouse_position_function.set (val) } }
-#[inline(always)] pub fn get_underline_minimum_offset () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::underline_minimum_offset.get () } }
-#[inline(always)] pub fn set_underline_minimum_offset (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::underline_minimum_offset.set (val) } }
-#[inline(always)] pub fn get_undo_inhibit_record_point () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::undo_inhibit_record_point.get () } }
-#[inline(always)] pub fn set_undo_inhibit_record_point (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::undo_inhibit_record_point.set (val) } }
-#[inline(always)] pub fn get_undo_limit () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::undo_limit.get () } }
-#[inline(always)] pub fn set_undo_limit (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::undo_limit.set (val) } }
-#[inline(always)] pub fn get_undo_strong_limit () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::undo_strong_limit.get () } }
-#[inline(always)] pub fn set_undo_strong_limit (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::undo_strong_limit.set (val) } }
-#[inline(always)] pub fn get_unibyte_display_via_language_environment () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::unibyte_display_via_language_environment.get () } }
-#[inline(always)] pub fn set_unibyte_display_via_language_environment (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::unibyte_display_via_language_environment.set (val) } }
-#[inline(always)] pub fn get_use_default_font_for_symbols () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::use_default_font_for_symbols.get () } }
-#[inline(always)] pub fn set_use_default_font_for_symbols (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::use_default_font_for_symbols.set (val) } }
-#[inline(always)] pub fn get_use_dialog_box () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::use_dialog_box.get () } }
-#[inline(always)] pub fn set_use_dialog_box (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::use_dialog_box.set (val) } }
-#[inline(always)] pub fn get_use_file_dialog () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::use_file_dialog.get () } }
-#[inline(always)] pub fn set_use_file_dialog (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::use_file_dialog.set (val) } }
-#[inline(always)] pub fn get_use_short_answers () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::use_short_answers.get () } }
-#[inline(always)] pub fn set_use_short_answers (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::use_short_answers.set (val) } }
-#[inline(always)] pub fn get_use_system_font () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::use_system_font.get () } }
-#[inline(always)] pub fn set_use_system_font (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::use_system_font.set (val) } }
-#[inline(always)] pub fn get_use_system_tooltips () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::use_system_tooltips.get () } }
-#[inline(always)] pub fn set_use_system_tooltips (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::use_system_tooltips.set (val) } }
-#[inline(always)] pub fn get_vector_cells_consed () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::vector_cells_consed.get () } }
-#[inline(always)] pub fn set_vector_cells_consed (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::vector_cells_consed.set (val) } }
-#[inline(always)] pub fn get_visible_bell () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::visible_bell.get () } }
-#[inline(always)] pub fn set_visible_bell (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::visible_bell.set (val) } }
-#[inline(always)] pub fn get_visible_cursor () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::visible_cursor.get () } }
-#[inline(always)] pub fn set_visible_cursor (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::visible_cursor.set (val) } }
-#[inline(always)] pub fn get_w32__terminal_is_conhost () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::w32__terminal_is_conhost.get () } }
-#[inline(always)] pub fn set_w32__terminal_is_conhost (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::w32__terminal_is_conhost.set (val) } }
-#[inline(always)] pub fn get_w32_add_wrapped_menu_bar_lines () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::w32_add_wrapped_menu_bar_lines.get () } }
-#[inline(always)] pub fn set_w32_add_wrapped_menu_bar_lines (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::w32_add_wrapped_menu_bar_lines.set (val) } }
-#[inline(always)] pub fn get_w32_ansi_code_page () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::w32_ansi_code_page.get () } }
-#[inline(always)] pub fn set_w32_ansi_code_page (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::w32_ansi_code_page.set (val) } }
-#[inline(always)] pub fn get_w32_disable_abort_dialog () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::w32_disable_abort_dialog.get () } }
-#[inline(always)] pub fn set_w32_disable_abort_dialog (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::w32_disable_abort_dialog.set (val) } }
-#[inline(always)] pub fn get_w32_disable_double_buffering () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::w32_disable_double_buffering.get () } }
-#[inline(always)] pub fn set_w32_disable_double_buffering (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::w32_disable_double_buffering.set (val) } }
-#[inline(always)] pub fn get_w32_disable_new_uniscribe_apis () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::w32_disable_new_uniscribe_apis.get () } }
-#[inline(always)] pub fn set_w32_disable_new_uniscribe_apis (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::w32_disable_new_uniscribe_apis.set (val) } }
-#[inline(always)] pub fn get_w32_enable_synthesized_fonts () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::w32_enable_synthesized_fonts.get () } }
-#[inline(always)] pub fn set_w32_enable_synthesized_fonts (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::w32_enable_synthesized_fonts.set (val) } }
-#[inline(always)] pub fn get_w32_follow_system_dark_mode () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::w32_follow_system_dark_mode.get () } }
-#[inline(always)] pub fn set_w32_follow_system_dark_mode (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::w32_follow_system_dark_mode.set (val) } }
-#[inline(always)] pub fn get_w32_ignore_modifiers_on_IME_input () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::w32_ignore_modifiers_on_IME_input.get () } }
-#[inline(always)] pub fn set_w32_ignore_modifiers_on_IME_input (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::w32_ignore_modifiers_on_IME_input.set (val) } }
-#[inline(always)] pub fn get_w32_inhibit_dwrite () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::w32_inhibit_dwrite.get () } }
-#[inline(always)] pub fn set_w32_inhibit_dwrite (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::w32_inhibit_dwrite.set (val) } }
-#[inline(always)] pub fn get_w32_mouse_button_tolerance () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::w32_mouse_button_tolerance.get () } }
-#[inline(always)] pub fn set_w32_mouse_button_tolerance (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::w32_mouse_button_tolerance.set (val) } }
-#[inline(always)] pub fn get_w32_mouse_move_interval () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::w32_mouse_move_interval.get () } }
-#[inline(always)] pub fn set_w32_mouse_move_interval (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::w32_mouse_move_interval.set (val) } }
-#[inline(always)] pub fn get_w32_multibyte_code_page () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::w32_multibyte_code_page.get () } }
-#[inline(always)] pub fn set_w32_multibyte_code_page (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::w32_multibyte_code_page.set (val) } }
-#[inline(always)] pub fn get_w32_num_mouse_buttons () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::w32_num_mouse_buttons.get () } }
-#[inline(always)] pub fn set_w32_num_mouse_buttons (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::w32_num_mouse_buttons.set (val) } }
-#[inline(always)] pub fn get_w32_pass_extra_mouse_buttons_to_system () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::w32_pass_extra_mouse_buttons_to_system.get () } }
-#[inline(always)] pub fn set_w32_pass_extra_mouse_buttons_to_system (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::w32_pass_extra_mouse_buttons_to_system.set (val) } }
-#[inline(always)] pub fn get_w32_pass_multimedia_buttons_to_system () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::w32_pass_multimedia_buttons_to_system.get () } }
-#[inline(always)] pub fn set_w32_pass_multimedia_buttons_to_system (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::w32_pass_multimedia_buttons_to_system.set (val) } }
-#[inline(always)] pub fn get_w32_pipe_buffer_size () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::w32_pipe_buffer_size.get () } }
-#[inline(always)] pub fn set_w32_pipe_buffer_size (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::w32_pipe_buffer_size.set (val) } }
-#[inline(always)] pub fn get_w32_pipe_read_delay () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::w32_pipe_read_delay.get () } }
-#[inline(always)] pub fn set_w32_pipe_read_delay (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::w32_pipe_read_delay.set (val) } }
-#[inline(always)] pub fn get_w32_quit_key () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::w32_quit_key.get () } }
-#[inline(always)] pub fn set_w32_quit_key (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::w32_quit_key.set (val) } }
-#[inline(always)] pub fn get_w32_strict_painting () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::w32_strict_painting.get () } }
-#[inline(always)] pub fn set_w32_strict_painting (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::w32_strict_painting.set (val) } }
-#[inline(always)] pub fn get_w32_unicode_filenames () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::w32_unicode_filenames.get () } }
-#[inline(always)] pub fn set_w32_unicode_filenames (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::w32_unicode_filenames.set (val) } }
-#[inline(always)] pub fn get_w32_use_fallback_wm_chars_method () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::w32_use_fallback_wm_chars_method.get () } }
-#[inline(always)] pub fn set_w32_use_fallback_wm_chars_method (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::w32_use_fallback_wm_chars_method.set (val) } }
-#[inline(always)] pub fn get_w32_use_full_screen_buffer () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::w32_use_full_screen_buffer.get () } }
-#[inline(always)] pub fn set_w32_use_full_screen_buffer (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::w32_use_full_screen_buffer.set (val) } }
-#[inline(always)] pub fn get_w32_use_native_image_api () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::w32_use_native_image_api.get () } }
-#[inline(always)] pub fn set_w32_use_native_image_api (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::w32_use_native_image_api.set (val) } }
-#[inline(always)] pub fn get_w32_use_visible_system_caret () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::w32_use_visible_system_caret.get () } }
-#[inline(always)] pub fn set_w32_use_visible_system_caret (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::w32_use_visible_system_caret.set (val) } }
-#[inline(always)] pub fn get_w32_yes_no_dialog_show_cancel () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::w32_yes_no_dialog_show_cancel.get () } }
-#[inline(always)] pub fn set_w32_yes_no_dialog_show_cancel (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::w32_yes_no_dialog_show_cancel.set (val) } }
-#[inline(always)] pub fn get_when_entered_debugger () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::when_entered_debugger.get () } }
-#[inline(always)] pub fn set_when_entered_debugger (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::when_entered_debugger.set (val) } }
-#[inline(always)] pub fn get_window_auto_redraw_on_parameter_change () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::window_auto_redraw_on_parameter_change.get () } }
-#[inline(always)] pub fn set_window_auto_redraw_on_parameter_change (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::window_auto_redraw_on_parameter_change.set (val) } }
-#[inline(always)] pub fn get_window_dead_windows_table () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::window_dead_windows_table.get () } }
-#[inline(always)] pub fn set_window_dead_windows_table (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::window_dead_windows_table.set (val) } }
-#[inline(always)] pub fn get_window_resize_pixelwise () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::window_resize_pixelwise.get () } }
-#[inline(always)] pub fn set_window_resize_pixelwise (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::window_resize_pixelwise.set (val) } }
-#[inline(always)] pub fn get_window_restore_killed_buffer_windows () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::window_restore_killed_buffer_windows.get () } }
-#[inline(always)] pub fn set_window_restore_killed_buffer_windows (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::window_restore_killed_buffer_windows.set (val) } }
-#[inline(always)] pub fn get_word_wrap_by_category () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::word_wrap_by_category.get () } }
-#[inline(always)] pub fn set_word_wrap_by_category (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::word_wrap_by_category.set (val) } }
-#[inline(always)] pub fn get_words_include_escapes () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::words_include_escapes.get () } }
-#[inline(always)] pub fn set_words_include_escapes (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::words_include_escapes.set (val) } }
-#[inline(always)] pub fn get_write_region_inhibit_fsync () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::write_region_inhibit_fsync.get () } }
-#[inline(always)] pub fn set_write_region_inhibit_fsync (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::write_region_inhibit_fsync.set (val) } }
-#[inline(always)] pub fn get_x_color_cache_bucket_size () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::x_color_cache_bucket_size.get () } }
-#[inline(always)] pub fn set_x_color_cache_bucket_size (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::x_color_cache_bucket_size.set (val) } }
-#[inline(always)] pub fn get_x_dnd_disable_motif_drag () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::x_dnd_disable_motif_drag.get () } }
-#[inline(always)] pub fn set_x_dnd_disable_motif_drag (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::x_dnd_disable_motif_drag.set (val) } }
-#[inline(always)] pub fn get_x_dnd_disable_motif_protocol () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::x_dnd_disable_motif_protocol.get () } }
-#[inline(always)] pub fn set_x_dnd_disable_motif_protocol (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::x_dnd_disable_motif_protocol.set (val) } }
-#[inline(always)] pub fn get_x_dnd_fix_motif_leave () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::x_dnd_fix_motif_leave.get () } }
-#[inline(always)] pub fn set_x_dnd_fix_motif_leave (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::x_dnd_fix_motif_leave.set (val) } }
-#[inline(always)] pub fn get_x_dnd_preserve_selection_data () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::x_dnd_preserve_selection_data.get () } }
-#[inline(always)] pub fn set_x_dnd_preserve_selection_data (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::x_dnd_preserve_selection_data.set (val) } }
-#[inline(always)] pub fn get_x_dnd_use_unsupported_drop () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::x_dnd_use_unsupported_drop.get () } }
-#[inline(always)] pub fn set_x_dnd_use_unsupported_drop (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::x_dnd_use_unsupported_drop.set (val) } }
-#[inline(always)] pub fn get_x_fast_protocol_requests () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::x_fast_protocol_requests.get () } }
-#[inline(always)] pub fn set_x_fast_protocol_requests (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::x_fast_protocol_requests.set (val) } }
-#[inline(always)] pub fn get_x_frame_normalize_before_maximize () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::x_frame_normalize_before_maximize.get () } }
-#[inline(always)] pub fn set_x_frame_normalize_before_maximize (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::x_frame_normalize_before_maximize.set (val) } }
-#[inline(always)] pub fn get_x_gtk_file_dialog_help_text () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::x_gtk_file_dialog_help_text.get () } }
-#[inline(always)] pub fn set_x_gtk_file_dialog_help_text (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::x_gtk_file_dialog_help_text.set (val) } }
-#[inline(always)] pub fn get_x_gtk_resize_child_frames () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::x_gtk_resize_child_frames.get () } }
-#[inline(always)] pub fn set_x_gtk_resize_child_frames (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::x_gtk_resize_child_frames.set (val) } }
-#[inline(always)] pub fn get_x_gtk_show_hidden_files () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::x_gtk_show_hidden_files.get () } }
-#[inline(always)] pub fn set_x_gtk_show_hidden_files (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::x_gtk_show_hidden_files.set (val) } }
-#[inline(always)] pub fn get_x_gtk_use_native_input () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::x_gtk_use_native_input.get () } }
-#[inline(always)] pub fn set_x_gtk_use_native_input (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::x_gtk_use_native_input.set (val) } }
-#[inline(always)] pub fn get_x_gtk_use_old_file_dialog () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::x_gtk_use_old_file_dialog.get () } }
-#[inline(always)] pub fn set_x_gtk_use_old_file_dialog (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::x_gtk_use_old_file_dialog.set (val) } }
-#[inline(always)] pub fn get_x_gtk_use_window_move () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::x_gtk_use_window_move.get () } }
-#[inline(always)] pub fn set_x_gtk_use_window_move (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::x_gtk_use_window_move.set (val) } }
-#[inline(always)] pub fn get_x_input_grab_touch_events () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::x_input_grab_touch_events.get () } }
-#[inline(always)] pub fn set_x_input_grab_touch_events (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::x_input_grab_touch_events.set (val) } }
-#[inline(always)] pub fn get_x_mouse_click_focus_ignore_position () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::x_mouse_click_focus_ignore_position.get () } }
-#[inline(always)] pub fn set_x_mouse_click_focus_ignore_position (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::x_mouse_click_focus_ignore_position.set (val) } }
-#[inline(always)] pub fn get_x_mouse_click_focus_ignore_time () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::x_mouse_click_focus_ignore_time.get () } }
-#[inline(always)] pub fn set_x_mouse_click_focus_ignore_time (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::x_mouse_click_focus_ignore_time.set (val) } }
-#[inline(always)] pub fn get_x_selection_timeout () -> EMACS_INT { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::x_selection_timeout.get () } }
-#[inline(always)] pub fn set_x_selection_timeout (val: EMACS_INT) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::x_selection_timeout.set (val) } }
-#[inline(always)] pub fn get_x_set_frame_visibility_more_laxly () -> Lisp_Object { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::x_set_frame_visibility_more_laxly.get () } }
-#[inline(always)] pub fn set_x_set_frame_visibility_more_laxly (val: Lisp_Object) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::x_set_frame_visibility_more_laxly.set (val) } }
-#[inline(always)] pub fn get_x_stretch_cursor_p () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::x_stretch_cursor_p.get () } }
-#[inline(always)] pub fn set_x_stretch_cursor_p (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::x_stretch_cursor_p.set (val) } }
-#[inline(always)] pub fn get_x_underline_at_descent_line () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::x_underline_at_descent_line.get () } }
-#[inline(always)] pub fn set_x_underline_at_descent_line (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::x_underline_at_descent_line.set (val) } }
-#[inline(always)] pub fn get_x_use_underline_position_properties () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::x_use_underline_position_properties.get () } }
-#[inline(always)] pub fn set_x_use_underline_position_properties (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::x_use_underline_position_properties.set (val) } }
-#[inline(always)] pub fn get_xft_font_ascent_descent_override () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::xft_font_ascent_descent_override.get () } }
-#[inline(always)] pub fn set_xft_font_ascent_descent_override (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::xft_font_ascent_descent_override.set (val) } }
-#[inline(always)] pub fn get_xft_ignore_color_fonts () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::xft_ignore_color_fonts.get () } }
-#[inline(always)] pub fn set_xft_ignore_color_fonts (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::xft_ignore_color_fonts.set (val) } }
-#[inline(always)] pub fn get_xwidget_webkit_disable_javascript () -> bool { /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe { self::variables::xwidget_webkit_disable_javascript.get () } }
-#[inline(always)] pub fn set_xwidget_webkit_disable_javascript (val: bool) { /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe { self::variables::xwidget_webkit_disable_javascript.set (val) } }
 
 // --- EXFUN prototypes for every DEFUN (generated from subrs.tsv) ---
 // C: globals.h writes `EXFUN (Ffoo, maxargs)`; lisp.h includes <globals.h>,

@@ -48,36 +48,44 @@ pub mod math_decls {
   use super::*;
 
   unsafe extern "C" {
-  pub fn acos (x: c_double) -> c_double;
-  pub fn asin (x: c_double) -> c_double;
-  pub fn atan (x: c_double) -> c_double;
-  pub fn atan2 (y: c_double, x: c_double) -> c_double;
+  pub safe fn acos (x: c_double) -> c_double;
+  pub safe fn asin (x: c_double) -> c_double;
+  pub safe fn atan (x: c_double) -> c_double;
+  pub safe fn atan2 (y: c_double, x: c_double) -> c_double;
   /// C: math.h 455: `extern double cbrt(double);`
-  pub fn cbrt (x: c_double) -> c_double;
-  pub fn cos (x: c_double) -> c_double;
-  pub fn sin (x: c_double) -> c_double;
-  pub fn tan (x: c_double) -> c_double;
-  pub fn ceil (x: c_double) -> c_double;
-  pub fn floor (x: c_double) -> c_double;
-  pub fn fmod (x: c_double, y: c_double) -> c_double;
+  pub safe fn cbrt (x: c_double) -> c_double;
+  pub safe fn cos (x: c_double) -> c_double;
+  pub safe fn sin (x: c_double) -> c_double;
+  pub safe fn tan (x: c_double) -> c_double;
+  pub safe fn ceil (x: c_double) -> c_double;
+  pub safe fn floor (x: c_double) -> c_double;
+  pub safe fn fmod (x: c_double, y: c_double) -> c_double;
   pub fn frexp (x: c_double, e: *mut c_int) -> c_double;
   /// C: math.h 459: `extern double hypot(double, double);`
-  pub fn hypot (x: c_double, y: c_double) -> c_double;
-  pub fn ldexp (x: c_double, e: c_int) -> c_double;
-  pub fn exp (x: c_double) -> c_double;
-  pub fn pow (x: c_double, y: c_double) -> c_double;
-  pub fn log (x: c_double) -> c_double;
-  pub fn log10 (x: c_double) -> c_double;
-  pub fn log2 (x: c_double) -> c_double;
-  pub fn sqrt (x: c_double) -> c_double;
-  pub fn scalbn (x: c_double, n: c_int) -> c_double;
-  pub fn ilogb (x: c_double) -> c_int;
-  pub fn rint (x: c_double) -> c_double;
+  pub safe fn hypot (x: c_double, y: c_double) -> c_double;
+  pub safe fn ldexp (x: c_double, e: c_int) -> c_double;
+  pub safe fn exp (x: c_double) -> c_double;
+  pub safe fn pow (x: c_double, y: c_double) -> c_double;
+  pub safe fn log (x: c_double) -> c_double;
+  pub safe fn log10 (x: c_double) -> c_double;
+  pub safe fn log2 (x: c_double) -> c_double;
+  pub safe fn sqrt (x: c_double) -> c_double;
+  pub safe fn scalbn (x: c_double, n: c_int) -> c_double;
+  pub safe fn ilogb (x: c_double) -> c_int;
+  pub safe fn rint (x: c_double) -> c_double;
   /* C defines its own `trunc` in floatfns.c when the target has none (HAVE_TRUNC); the
      declaration is here in **both** configurations, the way C's gnulib `<math.h>` declares
      it, and `floatfns.rs`'s own definition shadows it through this module's glob import
      (PORTING.md 0.1-10; status 3.104).  */
-  pub fn trunc (x: c_double) -> c_double;
+  pub safe fn trunc (x: c_double) -> c_double;
   }
 }
 pub use self::math_decls::*;
+
+#[inline(always)]
+pub fn frexp_safe (x: c_double) -> (c_double, c_int) {
+    let mut e: c_int = 0;
+    /* SAFETY: `e` is a valid stack `c_int` out-pointer for libc `frexp`. */
+    let s = unsafe { frexp (x, &raw mut e) };
+    (s, e)
+}

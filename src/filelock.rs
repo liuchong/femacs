@@ -759,7 +759,7 @@ pub static Vtemporary_file_directory: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Ob
 pub static create_lockfiles: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn unlock_all_files ()
+pub extern "C-unwind" fn unlock_all_files ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {

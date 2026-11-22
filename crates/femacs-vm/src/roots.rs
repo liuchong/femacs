@@ -177,6 +177,8 @@ static RAW_SPANS_PUSHED: AtomicUsize = AtomicUsize::new(0);
 static RAW_SPANS_POPPED: AtomicUsize = AtomicUsize::new(0);
 static PERSISTENT_CREATED: AtomicUsize = AtomicUsize::new(0);
 static PERSISTENT_RELEASED: AtomicUsize = AtomicUsize::new(0);
+static NARROWED_STACK_ENTRIES: AtomicUsize = AtomicUsize::new(0);
+static NARROWED_STACK_RESTORES: AtomicUsize = AtomicUsize::new(0);
 
 #[inline]
 pub(crate) fn current_thread_key() -> usize {
@@ -393,6 +395,140 @@ impl ScopedRawSpan {
                 }
             });
         }
+    }
+
+    #[inline]
+    fn update_ptr_and_len(&mut self, new_ptr: *const Lisp_Object, new_len: usize) {
+        if self.span_index != usize::MAX && self.thread_key != 0 {
+            let idx = self.span_index;
+            with_thread_slab(self.thread_key, |slab| {
+                if let Some(span) = slab.raw_spans.get_mut(idx) {
+                    span.ptr = new_ptr as usize;
+                    span.len = new_len;
+                }
+            });
+        }
+    }
+}
+
+/// Safe heap-backed `Vec<Lisp_Object>` whose active slice is registered as a LIFO GC root span on
+/// the owning Lisp thread (`U7` / `P-486`), replacing `SAFE_NALLOCA!` + manual `mark_objects` in
+/// `#![forbid(unsafe_code)]` subsystems (`safe_callint`, `safe_sort`, `safe_json`).
+pub struct RootedVec {
+    items: Vec<Lisp_Object>,
+    span: ScopedRawSpan,
+}
+
+impl RootedVec {
+    #[inline]
+    pub fn new() -> Self {
+        Self::with_capacity(0)
+    }
+
+    #[inline]
+    pub fn with_capacity(cap: usize) -> Self {
+        let items = Vec::with_capacity(cap);
+        let ptr = items.as_ptr();
+        // SAFETY: `items` has length 0; `span` tracks `(items.as_ptr(), items.len())` across all
+        // mutations and truncates the LIFO slot before `items` drops.
+        let span = unsafe { ScopedRawSpan::new(ptr, 0) };
+        Self { items, span }
+    }
+
+    #[inline]
+    pub fn from_slice(slice: &[Lisp_Object]) -> Self {
+        let items = slice.to_vec();
+        let ptr = items.as_ptr();
+        // SAFETY: `items` holds `slice.len()` initialized `Lisp_Object` elements until `Self` drops.
+        let span = unsafe { ScopedRawSpan::new(ptr, items.len()) };
+        Self { items, span }
+    }
+
+    #[inline]
+    pub fn filled(len: usize, init: Lisp_Object) -> Self {
+        let items = vec![init; len];
+        let ptr = items.as_ptr();
+        // SAFETY: `items` holds `len` initialized `Lisp_Object` elements until `Self` drops, and
+        // field drop order drops `items` only after `span` or keeps `items` valid while `span` is
+        // registered (explicit `Drop` below truncates `span` first).
+        let span = unsafe { ScopedRawSpan::new(ptr, len) };
+        Self { items, span }
+    }
+
+    #[inline]
+    pub fn len(&self) -> usize {
+        self.items.len()
+    }
+
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.items.is_empty()
+    }
+
+    #[inline]
+    pub fn push(&mut self, value: Lisp_Object) {
+        self.items.push(value);
+        self.span
+            .update_ptr_and_len(self.items.as_ptr(), self.items.len());
+    }
+
+    #[inline]
+    pub fn truncate(&mut self, len: usize) {
+        self.items.truncate(len);
+        self.span
+            .update_ptr_and_len(self.items.as_ptr(), self.items.len());
+    }
+
+    #[inline]
+    pub fn clear(&mut self) {
+        self.truncate(0);
+    }
+
+    #[inline]
+    pub fn resize(&mut self, new_len: usize, value: Lisp_Object) {
+        self.items.resize(new_len, value);
+        self.span
+            .update_ptr_and_len(self.items.as_ptr(), self.items.len());
+    }
+
+    #[inline]
+    pub fn as_slice(&self) -> &[Lisp_Object] {
+        &self.items
+    }
+
+    #[inline]
+    pub fn as_mut_slice(&mut self) -> &mut [Lisp_Object] {
+        &mut self.items
+    }
+}
+
+impl core::ops::Deref for RootedVec {
+    type Target = [Lisp_Object];
+
+    #[inline]
+    fn deref(&self) -> &Self::Target {
+        &self.items
+    }
+}
+
+impl core::ops::DerefMut for RootedVec {
+    #[inline]
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.items
+    }
+}
+
+impl Default for RootedVec {
+    #[inline]
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Drop for RootedVec {
+    #[inline]
+    fn drop(&mut self) {
+        self.span.update_ptr_and_len(self.items.as_ptr(), 0);
     }
 }
 
@@ -674,4 +810,67 @@ pub extern "C" fn femacs_vm_persistent_root_get(index: usize, generation: u64) -
 #[unsafe(no_mangle)]
 pub extern "C" fn femacs_vm_persistent_root_release(index: usize, generation: u64) -> bool {
     release_persistent_raw(index, generation)
+}
+
+struct NarrowedStackScanGuard {
+    thread_ptr: *mut crate::common::thread_state,
+    saved_bottom: *const core::ffi::c_char,
+    active: bool,
+}
+
+impl Drop for NarrowedStackScanGuard {
+    #[inline]
+    fn drop(&mut self) {
+        if self.active && !self.thread_ptr.is_null() {
+            // SAFETY: restores `m_stack_bottom` on the owning Lisp thread on normal return or
+            // `NonLocalExit` unwind.
+            unsafe {
+                (*self.thread_ptr).m_stack_bottom = self.saved_bottom;
+            }
+            NARROWED_STACK_RESTORES.fetch_add(1, Ordering::Relaxed);
+        }
+    }
+}
+
+/// Execute `body` with `(*current_thread).m_stack_bottom` narrowed to this `#![forbid(unsafe_code)]`
+/// entry boundary (`U7` / `P-486`), excluding outer host/Rust frames that hold only explicit
+/// `Rooted`/`PersistentRoot`/`RootedVec` handles from conservative `mark_c_stack` scanning.
+#[inline(never)]
+pub fn with_narrowed_stack_bottom<R>(body: impl FnOnce() -> R) -> R {
+    let anchor: usize = 0;
+    let anchor_ptr = (&raw const anchor) as *const core::ffi::c_char;
+    // SAFETY: reads/updates `m_stack_bottom` on the active Lisp thread when initialized.
+    let guard = unsafe {
+        let ct = current_thread.get();
+        if ct.is_null() || (*ct).m_stack_bottom.is_null() {
+            NarrowedStackScanGuard {
+                thread_ptr: core::ptr::null_mut(),
+                saved_bottom: core::ptr::null(),
+                active: false,
+            }
+        } else {
+            let saved = (*ct).m_stack_bottom;
+            let should_narrow = (anchor_ptr as usize) < (saved as usize);
+            if should_narrow {
+                (*ct).m_stack_bottom = anchor_ptr;
+                NARROWED_STACK_ENTRIES.fetch_add(1, Ordering::Relaxed);
+            }
+            NarrowedStackScanGuard {
+                thread_ptr: ct,
+                saved_bottom: saved,
+                active: should_narrow,
+            }
+        }
+    };
+    let result = body();
+    drop(guard);
+    core::hint::black_box(anchor);
+    result
+}
+
+pub fn narrowed_stack_counts() -> (usize, usize) {
+    (
+        NARROWED_STACK_ENTRIES.load(Ordering::Relaxed),
+        NARROWED_STACK_RESTORES.load(Ordering::Relaxed),
+    )
 }

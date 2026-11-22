@@ -101,14 +101,23 @@ def ticked_functions(text: str) -> dict[str, bool]:
     return out
 
 
+MODERNIZED_INTERNAL_INLINES = {
+    # C99 `INLINE` file-local workspace helpers in `src/json.c` (no header prototype, no external
+    # caller) replaced by `RootedVec` and `Vec<u8>` in `#![forbid(unsafe_code)]` `safe_json.rs`.
+    ("src/json.rs", "json_make_object_workspace_for"),
+    ("src/json.rs", "json_byte_workspace_put"),
+}
+
+
 def is_modernized_safe_helper(target: str, target_text: str, name: str, is_static: bool) -> bool:
-    """Under P-480/P-481 (U1/U2), standalone `#![forbid(unsafe_code)]` tools in `lib-src/`
-    bind only `main`, and thin C-ABI wrappers delegating to `femacs_pure::` bind all public
-    extern C entry points while retiring C-private `static` helpers."""
+    """Under P-480/P-481/P-486 (U1/U2/U7), standalone `#![forbid(unsafe_code)]` tools in `lib-src/`
+    bind only `main`, and thin C-ABI wrappers delegating to `femacs_pure::` or `crate::safe_` bind
+    all public extern C / DEFUN entry points while retiring C-private `static`/`INLINE` helpers."""
     if target.startswith("lib-src/") and "#![forbid(unsafe_code)]" in target_text:
         return name != "main"
-    if "femacs_pure::" in target_text and is_static:
-        return True
+    if "femacs_pure::" in target_text or "crate::safe_" in target_text:
+        if is_static or (target, name) in MODERNIZED_INTERNAL_INLINES:
+            return True
     return False
 
 
@@ -150,6 +159,10 @@ def main() -> int:
             and not is_modernized_safe_helper("lib-src/emacsclient.rs", "#![forbid(unsafe_code)]\nfn main() {}", "main", False)
             and is_modernized_safe_helper("lib/sha256.rs", "use femacs_pure::sha256;", "set_uint32", True)
             and not is_modernized_safe_helper("lib/sha256.rs", "use femacs_pure::sha256;", "sha256_buffer", False)
+            and is_modernized_safe_helper("src/casetab.rs", "crate::safe_casetab::set_case_table", "set_case_table", True)
+            and not is_modernized_safe_helper("src/casetab.rs", "crate::safe_casetab::Fcase_table_p", "Fcase_table_p", False)
+            and is_modernized_safe_helper("src/json.rs", "crate::safe_json::json_serialize", "json_make_object_workspace_for", False)
+            and not is_modernized_safe_helper("src/json.rs", "crate::safe_json::json_serialize", "syms_of_json", False)
         )
         print(f"{'ok  ' if mod_ok else 'FAIL'} modernized safe-Rust helper accounting: {mod_ok}")
         bad += 0 if mod_ok else 1

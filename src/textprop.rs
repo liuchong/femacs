@@ -128,10 +128,9 @@ pub static interval_insert_in_front_hooks: VmGlobal<Lisp_Object> = VmGlobal::<Li
 /* Signal a `text-read-only' error.  This function makes it easier
    to capture that error in GDB by putting a breakpoint on it.  */
 
-unsafe fn text_read_only (propval: Lisp_Object) -> !
+fn text_read_only (propval: Lisp_Object) -> !
 {
-  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
-  unsafe {
+  {
   if STRINGP (propval)
     { xsignal1 (Qtext_read_only (), propval); }
 
@@ -169,7 +168,7 @@ unsafe fn modify_text_properties (buffer: Lisp_Object, start: Lisp_Object, end: 
 
 /* Complain if object is not string or buffer type.  */
 
-unsafe fn CHECK_STRING_OR_BUFFER (x: Lisp_Object)
+fn CHECK_STRING_OR_BUFFER (x: Lisp_Object)
 {
   CHECK_TYPE (STRINGP (x) || BUFFERP (x), Qbuffer_or_string_p (), x);
 }
@@ -716,32 +715,15 @@ DEFUN! ("text-properties-at", Ftext_properties_at,
        Stext_properties_at, 1, 2, 0,
        doc: "Return the list of properties of the character at POSITION in OBJECT.\nIf the optional second argument OBJECT is a buffer (or nil, which means\nthe current buffer), POSITION is a buffer position (integer or marker).\n\nIf OBJECT is a string, POSITION is a 0-based index into it.\n\nIf POSITION is at the end of OBJECT, the value is nil, but note that\nbuffer narrowing does not affect the value.  That is, if OBJECT is a\nbuffer or nil, and the buffer is narrowed and POSITION is at the end\nof the narrowed buffer, the result may be non-nil.\n\nIf you want to display the text properties at point in a human-readable\nform, use the `describe-text-properties' command.",
        (position: Lisp_Object, object: Lisp_Object),
-       {
-	 let mut position = position;
-	 let mut object = object;
-	 let mut i: INTERVAL = std::ptr::null_mut ();
-
-	 if NILP (object)
-	   { XSETBUFFER! (object, (current_buffer! ())); }
-
-	 i = validate_interval_range (object, &raw mut position, &raw mut position, soft);
-	 if i.is_null ()
-	   { return Qnil (); }
-	 /* If POSITION is at the end of the interval,
-	    it means it's the end of OBJECT.
-	    There are no properties at the very end,
-	    since no character follows.  */
-	 if XFIXNUM (position) == LENGTH! (i) + (*((i) as *mut interval)).position
-	   { return Qnil (); }
-
-	 return (*((i) as *mut interval)).plist;
+       safe {
+	 crate::safe_textprop::text_properties_at (position, object)
        });
 
 DEFUN! ("get-text-property", Fget_text_property, Sget_text_property, 2, 3, 0,
        doc: "Return the value of POSITION's property PROP, in OBJECT.\nOBJECT should be a buffer or a string; if omitted or nil, it defaults\nto the current buffer.\n\nIf POSITION is at the end of OBJECT, the value is nil, but note that\nbuffer narrowing does not affect the value.  That is, if the buffer is\nnarrowed and POSITION is at the end of the narrowed buffer, the result\nmay be non-nil.",
        (position: Lisp_Object, prop: Lisp_Object, object: Lisp_Object),
-       {
-	 return textget (Ftext_properties_at (position, object), prop);
+       safe {
+	 crate::safe_textprop::get_text_property (position, prop, object)
        });
 
 /* Return the value of char's property PROP, in OBJECT at POSITION.
@@ -845,20 +827,16 @@ pub unsafe extern "C-unwind" fn get_char_property_and_overlay (position: Lisp_Ob
 DEFUN! ("get-char-property", Fget_char_property, Sget_char_property, 2, 3, 0,
        doc: "Return the value of POSITION's property PROP, in OBJECT.\nBoth overlay properties and text properties are checked.\nOBJECT is optional and defaults to the current buffer.\nIf POSITION is at the end of OBJECT, the value is nil.\nIf OBJECT is a buffer, then overlay properties are considered as well as\ntext properties.\nIf OBJECT is a window, then that window's buffer is used, but window-specific\noverlays are considered only if they are associated with OBJECT.",
        (position: Lisp_Object, prop: Lisp_Object, object: Lisp_Object),
-       {
-	 return get_char_property_and_overlay (position, prop, object,
-					       std::ptr::null_mut ());
+       safe {
+	 crate::safe_textprop::get_char_property (position, prop, object)
        });
 
 DEFUN! ("get-char-property-and-overlay", Fget_char_property_and_overlay,
        Sget_char_property_and_overlay, 2, 3, 0,
        doc: "Like `get-char-property', but with extra overlay information.\nThe value is a cons cell.  Its car is the return value of `get-char-property'\nwith the same arguments--that is, the value of POSITION's property\nPROP in OBJECT.  Its cdr is the overlay in which the property was\nfound, or nil, if it was found as a text property or not found at all.\n\nOBJECT is optional and defaults to the current buffer.  OBJECT may be\na string, a buffer or a window.  For strings, the cdr of the return\nvalue is always nil, since strings do not have overlays.  If OBJECT is\na window, then that window's buffer is used, but window-specific\noverlays are considered only if they are associated with OBJECT.  If\nPOSITION is at the end of OBJECT, both car and cdr are nil.",
        (position: Lisp_Object, prop: Lisp_Object, object: Lisp_Object),
-       {
-	 let mut overlay: Lisp_Object = Qnil ();
-	 let val: Lisp_Object
-	   = get_char_property_and_overlay (position, prop, object, &raw mut overlay);
-	 return Fcons (val, overlay);
+       safe {
+	 crate::safe_textprop::get_char_property_and_overlay_subr (position, prop, object)
        });
 
 
@@ -866,36 +844,16 @@ DEFUN! ("next-char-property-change", Fnext_char_property_change,
        Snext_char_property_change, 1, 2, 0,
        doc: "Return the position of next text property or overlay change.\nThis scans characters forward in the current buffer from POSITION till\nit finds a change in some text property, or the beginning or end of an\noverlay, and returns the position of that.\nIf none is found, and LIMIT is nil or omitted, the function\nreturns (point-max).\n\nIf the optional second argument LIMIT is non-nil, the function doesn't\nsearch past position LIMIT, and returns LIMIT if nothing is found\nbefore LIMIT.  LIMIT is a no-op if it is greater than (point-max).",
        (position: Lisp_Object, limit: Lisp_Object),
-       {
-	 let mut limit = limit;
-	 let mut temp: Lisp_Object = Qnil ();
-
-	 temp = Fnext_overlay_change (position);
-	 if ! NILP (limit)
-	   {
-	     CHECK_FIXNUM_COERCE_MARKER! (limit);
-	     if XFIXNUM (limit) < XFIXNUM (temp)
-	       { temp = limit; }
-	   }
-	 return Fnext_property_change (position, Qnil (), temp);
+       safe {
+	 crate::safe_textprop::next_char_property_change (position, limit)
        });
 
 DEFUN! ("previous-char-property-change", Fprevious_char_property_change,
        Sprevious_char_property_change, 1, 2, 0,
        doc: "Return the position of previous text property or overlay change.\nScans characters backward in the current buffer from POSITION till it\nfinds a change in some text property, or the beginning or end of an\noverlay, and returns the position of that.\nIf none is found, and LIMIT is nil or omitted, the function\nreturns (point-min).\n\nIf the optional second argument LIMIT is non-nil, the function doesn't\nsearch before position LIMIT, and returns LIMIT if nothing is found\nbefore LIMIT.  LIMIT is a no-op if it is less than (point-min).",
        (position: Lisp_Object, limit: Lisp_Object),
-       {
-	 let mut limit = limit;
-	 let mut temp: Lisp_Object = Qnil ();
-
-	 temp = Fprevious_overlay_change (position);
-	 if ! NILP (limit)
-	   {
-	     CHECK_FIXNUM_COERCE_MARKER! (limit);
-	     if XFIXNUM (limit) > XFIXNUM (temp)
-	       { temp = limit; }
-	   }
-	 return Fprevious_property_change (position, Qnil (), temp);
+       safe {
+	 crate::safe_textprop::previous_char_property_change (position, limit)
        });
 
 
@@ -903,78 +861,8 @@ DEFUN! ("next-single-char-property-change", Fnext_single_char_property_change,
        Snext_single_char_property_change, 2, 4, 0,
        doc: "Return the position of next text property or overlay change for a specific property.\nScans characters forward from POSITION till it finds\na change in the PROP property, then returns the position of the change.\nIf the optional third argument OBJECT is a buffer (or nil, which means\nthe current buffer), POSITION is a buffer position (integer or marker).\nIf OBJECT is a string, POSITION is a 0-based index into it.\n\nIn a string, scan runs to the end of the string, unless LIMIT is non-nil.\nIn a buffer, scan runs to end of buffer, unless LIMIT is non-nil.\nIf the optional fourth argument LIMIT is non-nil, don't search\npast position LIMIT; return LIMIT if nothing is found before LIMIT.\nHowever, if OBJECT is a buffer and LIMIT is beyond the end of the\nbuffer, this function returns `point-max', not LIMIT.\n\nThe property values are compared with `eq'.",
        (position: Lisp_Object, prop: Lisp_Object, object: Lisp_Object, limit: Lisp_Object),
-       {
-	 let mut position = position;
-	 let mut limit = limit;
-
-	 if STRINGP (object)
-	   {
-	     position = Fnext_single_property_change (position, prop, object, limit);
-	     if NILP (position)
-	       {
-		 if NILP (limit)
-		   { position = make_fixnum (SCHARS (object)); }
-		 else
-		   {
-		     CHECK_FIXNUM (limit);
-		     position = limit;
-		   }
-	       }
-	   }
-	 else
-	   {
-	     let mut initial_value: Lisp_Object = Qnil ();
-	     let mut value: Lisp_Object = Qnil ();
-	     let count: specpdl_ref = SPECPDL_INDEX ();
-
-	     if ! NILP (object)
-	       { CHECK_BUFFER (object); }
-
-	     if BUFFERP (object) && (current_buffer! ()) != XBUFFER (object)
-	       {
-		 record_unwind_current_buffer ();
-		 Fset_buffer (object);
-	       }
-
-	     CHECK_FIXNUM_COERCE_MARKER! (position);
-
-	     initial_value = Fget_char_property (position, prop, object);
-
-	     if NILP (limit)
-	       { XSETFASTINT! (limit, ZV! ()); }
-	     else
-	       { CHECK_FIXNUM_COERCE_MARKER! (limit); }
-
-	     if XFIXNUM (position) >= XFIXNUM (limit)
-	       {
-		 position = limit;
-		 if XFIXNUM (position) > ZV! ()
-		   { XSETFASTINT! (position, ZV! ()); }
-	       }
-	     else
-	       {
-		 while true
-		   {
-		     position = Fnext_char_property_change (position, limit);
-		     if XFIXNAT (position) >= XFIXNAT (limit)
-		       {
-			 position = limit;
-			 break;
-		       }
-
-		     value = Fget_char_property (position, prop, object);
-		     if !EQ (value, initial_value)
-		       { break; }
-
-		     if XFIXNAT (position) >= ZV! ()
-		       { break; }
-		   }
-	       }
-
-	     position = unbind_to (count, position);
-	   }
-
-	 return position;
+       safe {
+	 crate::safe_textprop::next_single_char_property_change (position, prop, object, limit)
        });
 
 DEFUN! ("previous-single-char-property-change",
@@ -982,271 +870,40 @@ DEFUN! ("previous-single-char-property-change",
        Sprevious_single_char_property_change, 2, 4, 0,
        doc: "Return the position of previous text property or overlay change for a specific property.\nScans characters backward from POSITION till it finds\na change in the PROP property, then returns the position of the change.\nIf the optional third argument OBJECT is a buffer (or nil, which means\nthe current buffer), POSITION is a buffer position (integer or marker).\nIf OBJECT is a string, POSITION is a 0-based index into it.\n\nIn a string, scan runs to the start of the string, unless LIMIT is non-nil.\nIn a buffer, if LIMIT is nil or omitted, it runs to (point-min), and the\nvalue cannot be less than that.\nIf the optional fourth argument LIMIT is non-nil, don't search back past\nposition LIMIT; return LIMIT if nothing is found before reaching LIMIT.\n\nThe property values are compared with `eq'.\nIf the property is constant all the way to the start of OBJECT, return the\nfirst valid position in OBJECT.",
        (position: Lisp_Object, prop: Lisp_Object, object: Lisp_Object, limit: Lisp_Object),
-       {
-	 let mut position = position;
-	 let mut limit = limit;
-
-	 if STRINGP (object)
-	   {
-	     position = Fprevious_single_property_change (position, prop, object, limit);
-	     if NILP (position)
-	       {
-		 if NILP (limit)
-		   { position = make_fixnum (0); }
-		 else
-		   {
-		     CHECK_FIXNUM (limit);
-		     position = limit;
-		   }
-	       }
-	   }
-	 else
-	   {
-	     let count: specpdl_ref = SPECPDL_INDEX ();
-
-	     if ! NILP (object)
-	       { CHECK_BUFFER (object); }
-
-	     if BUFFERP (object) && (current_buffer! ()) != XBUFFER (object)
-	       {
-		 record_unwind_current_buffer ();
-		 Fset_buffer (object);
-	       }
-
-	     CHECK_FIXNUM_COERCE_MARKER! (position);
-
-	     if NILP (limit)
-	       { XSETFASTINT! (limit, BEGV! ()); }
-	     else
-	       { CHECK_FIXNUM_COERCE_MARKER! (limit); }
-
-	     if XFIXNUM (position) <= XFIXNUM (limit)
-	       {
-		 position = limit;
-		 if XFIXNUM (position) < BEGV! ()
-		   { XSETFASTINT! (position, BEGV! ()); }
-	       }
-	     else
-	       {
-		 let initial_value: Lisp_Object
-		   = Fget_char_property (make_fixnum (XFIXNUM (position)
-						      - (0 <= XFIXNUM (position)) as ptrdiff_t),
-					 prop, object);
-
-		 while true
-		   {
-		     position = Fprevious_char_property_change (position, limit);
-
-		     if XFIXNAT (position) <= XFIXNAT (limit)
-		       {
-			 position = limit;
-			 break;
-		       }
-		     else
-		       {
-			 let value: Lisp_Object
-			   = Fget_char_property (make_fixnum (XFIXNAT (position) - 1),
-						 prop, object);
-
-			 if !EQ (value, initial_value)
-			   { break; }
-		       }
-		   }
-	       }
-
-	     position = unbind_to (count, position);
-	   }
-
-	 return position;
+       safe {
+	 crate::safe_textprop::previous_single_char_property_change (position, prop, object, limit)
        });
 
 DEFUN! ("next-property-change", Fnext_property_change,
        Snext_property_change, 1, 3, 0,
        doc: "Return the position of next property change.\nScans characters forward from POSITION in OBJECT till it finds\na change in some text property, then returns the position of the change.\nIf the optional second argument OBJECT is a buffer (or nil, which means\nthe current buffer), POSITION is a buffer position (integer or marker).\nIf OBJECT is a string, POSITION is a 0-based index into it.\nReturn nil if LIMIT is nil or omitted, and the property is constant all\nthe way to the end of OBJECT; if the value is non-nil, it is a position\ngreater than POSITION, never equal.\n\nIf the optional third argument LIMIT is non-nil, don't search\npast position LIMIT; return LIMIT if nothing is found before LIMIT.",
        (position: Lisp_Object, object: Lisp_Object, limit: Lisp_Object),
-       {
-	 let mut position = position;
-	 let mut object = object;
-	 let mut limit = limit;
-	 let mut i: INTERVAL = std::ptr::null_mut ();
-	 let mut next: INTERVAL = std::ptr::null_mut ();
-
-	 if NILP (object)
-	   { XSETBUFFER! (object, (current_buffer! ())); }
-
-	 if !NILP (limit) && !EQ (limit, Qt ())
-	   { CHECK_FIXNUM_COERCE_MARKER! (limit); }
-
-	 i = validate_interval_range (object, &raw mut position, &raw mut position, soft);
-
-	 /* If LIMIT is t, return start of next interval--don't
-	    bother checking further intervals.  */
-	 if EQ (limit, Qt ())
-	   {
-	     if i.is_null ()
-	       { next = i; }
-	     else
-	       { next = next_interval (i); }
-
-	     if next.is_null ()
-	       { XSETFASTINT! (position, (if STRINGP (object)
-					  { SCHARS (object) }
-					  else { BUF_ZV (XBUFFER (object)) })); }
-	     else
-	       { XSETFASTINT! (position, (*((next) as *mut interval)).position); }
-	     return position;
-	   }
-
-	 if i.is_null ()
-	   { return limit; }
-
-	 next = next_interval (i);
-
-	 while !next.is_null () && intervals_equal (i, next)
-	       && (NILP (limit) || (*((next) as *mut interval)).position < XFIXNUM (limit))
-	   { next = next_interval (next); }
-
-	 if next.is_null ()
-	     || ((*((next) as *mut interval)).position
-		 >= (if FIXNUMP (limit)
-		       { XFIXNUM (limit) }
-		       else { if STRINGP (object)
-				{ SCHARS (object) }
-				else { BUF_ZV (XBUFFER (object)) } }))
-	   { return limit; }
-	 else
-	   { return make_fixnum ((*((next) as *mut interval)).position); }
+       safe {
+	 crate::safe_textprop::next_property_change (position, object, limit)
        });
 
 DEFUN! ("next-single-property-change", Fnext_single_property_change,
        Snext_single_property_change, 2, 4, 0,
        doc: "Return the position of next property change for a specific property.\nScans characters forward from POSITION till it finds\na change in the PROP property, then returns the position of the change.\nIf the optional third argument OBJECT is a buffer (or nil, which means\nthe current buffer), POSITION is a buffer position (integer or marker).\nIf OBJECT is a string, POSITION is a 0-based index into it.\nThe property values are compared with `eq'.\nReturn nil if LIMIT is nil or omitted, and the property is constant all\nthe way to the end of OBJECT; if the value is non-nil, it is a position\ngreater than POSITION, never equal.\n\nIf the optional fourth argument LIMIT is non-nil, don't search\npast position LIMIT; return LIMIT if nothing is found before LIMIT.",
        (position: Lisp_Object, prop: Lisp_Object, object: Lisp_Object, limit: Lisp_Object),
-       {
-	 let mut position = position;
-	 let mut object = object;
-	 let mut limit = limit;
-	 let mut i: INTERVAL = std::ptr::null_mut ();
-	 let mut next: INTERVAL = std::ptr::null_mut ();
-	 let mut here_val: Lisp_Object = Qnil ();
-
-	 if NILP (object)
-	   { XSETBUFFER! (object, (current_buffer! ())); }
-
-	 if !NILP (limit)
-	   { CHECK_FIXNUM_COERCE_MARKER! (limit); }
-
-	 i = validate_interval_range (object, &raw mut position, &raw mut position, soft);
-	 if i.is_null ()
-	   { return limit; }
-
-	 here_val = textget ((*((i) as *mut interval)).plist, prop);
-	 next = next_interval (i);
-	 while !next.is_null ()
-	       && EQ (here_val, textget ((*((next) as *mut interval)).plist, prop))
-	       && (NILP (limit) || (*((next) as *mut interval)).position < XFIXNUM (limit))
-	   { next = next_interval (next); }
-
-	 if next.is_null ()
-	     || ((*((next) as *mut interval)).position
-		 >= (if FIXNUMP (limit)
-		       { XFIXNUM (limit) }
-		       else { if STRINGP (object)
-				{ SCHARS (object) }
-				else { BUF_ZV (XBUFFER (object)) } }))
-	   { return limit; }
-	 else
-	   { return make_fixnum ((*((next) as *mut interval)).position); }
+       safe {
+	 crate::safe_textprop::next_single_property_change (position, prop, object, limit)
        });
 
 DEFUN! ("previous-property-change", Fprevious_property_change,
        Sprevious_property_change, 1, 3, 0,
        doc: "Return the position of previous property change.\nScans characters backwards from POSITION in OBJECT till it finds\na change in some text property, then returns the position of the change.\nIf the optional second argument OBJECT is a buffer (or nil, which means\nthe current buffer), POSITION is a buffer position (integer or marker).\nIf OBJECT is a string, POSITION is a 0-based index into it.\nReturn nil if LIMIT is nil or omitted, and the property is constant all\nthe way to the start of OBJECT; if the value is non-nil, it is a position\nless than POSITION, never equal.\n\nIf the optional third argument LIMIT is non-nil, don't search\nback past position LIMIT; return LIMIT if nothing is found until LIMIT.",
        (position: Lisp_Object, object: Lisp_Object, limit: Lisp_Object),
-       {
-	 let mut position = position;
-	 let mut object = object;
-	 let mut limit = limit;
-	 let mut i: INTERVAL = std::ptr::null_mut ();
-	 let mut previous: INTERVAL = std::ptr::null_mut ();
-
-	 if NILP (object)
-	   { XSETBUFFER! (object, (current_buffer! ())); }
-
-	 if !NILP (limit)
-	   { CHECK_FIXNUM_COERCE_MARKER! (limit); }
-
-	 i = validate_interval_range (object, &raw mut position, &raw mut position, soft);
-	 if i.is_null ()
-	   { return limit; }
-
-	 /* Start with the interval containing the char before point.  */
-	 if (*((i) as *mut interval)).position == XFIXNAT (position)
-	   { i = previous_interval (i); }
-
-	 previous = previous_interval (i);
-	 while !previous.is_null () && intervals_equal (previous, i)
-	       && (NILP (limit)
-		   || ((*((previous) as *mut interval)).position
-		       + LENGTH! (previous) > XFIXNUM (limit)))
-	   { previous = previous_interval (previous); }
-
-	 if previous.is_null ()
-	     || ((*((previous) as *mut interval)).position + LENGTH! (previous)
-		 <= (if FIXNUMP (limit)
-		       { XFIXNUM (limit) }
-		       else { if STRINGP (object) { 0 } else { BUF_BEGV (XBUFFER (object)) } }))
-	   { return limit; }
-	 else
-	   { return make_fixnum ((*((previous) as *mut interval)).position
-				 + LENGTH! (previous)); }
+       safe {
+	 crate::safe_textprop::previous_property_change (position, object, limit)
        });
 
 DEFUN! ("previous-single-property-change", Fprevious_single_property_change,
        Sprevious_single_property_change, 2, 4, 0,
        doc: "Return the position of previous property change for a specific property.\nScans characters backward from POSITION till it finds\na change in the PROP property, then returns the position of the change.\nIf the optional third argument OBJECT is a buffer (or nil, which means\nthe current buffer), POSITION is a buffer position (integer or marker).\nIf OBJECT is a string, POSITION is a 0-based index into it.\nThe property values are compared with `eq'.\nReturn nil if LIMIT is nil or omitted, and the property is constant all\nthe way to the start of OBJECT; if the value is non-nil, it is a position\nless than POSITION, never equal.\n\nIf the optional fourth argument LIMIT is non-nil, don't search\nback past position LIMIT; return LIMIT if nothing is found until LIMIT.",
        (position: Lisp_Object, prop: Lisp_Object, object: Lisp_Object, limit: Lisp_Object),
-       {
-	 let mut position = position;
-	 let mut object = object;
-	 let mut limit = limit;
-	 let mut i: INTERVAL = std::ptr::null_mut ();
-	 let mut previous: INTERVAL = std::ptr::null_mut ();
-	 let mut here_val: Lisp_Object = Qnil ();
-
-	 if NILP (object)
-	   { XSETBUFFER! (object, (current_buffer! ())); }
-
-	 if !NILP (limit)
-	   { CHECK_FIXNUM_COERCE_MARKER! (limit); }
-
-	 i = validate_interval_range (object, &raw mut position, &raw mut position, soft);
-
-	 /* Start with the interval containing the char before point.  */
-	 if !i.is_null () && (*((i) as *mut interval)).position == XFIXNAT (position)
-	   { i = previous_interval (i); }
-
-	 if i.is_null ()
-	   { return limit; }
-
-	 here_val = textget ((*((i) as *mut interval)).plist, prop);
-	 previous = previous_interval (i);
-	 while !previous.is_null ()
-	       && EQ (here_val, textget ((*((previous) as *mut interval)).plist, prop))
-	       && (NILP (limit)
-		   || ((*((previous) as *mut interval)).position
-		       + LENGTH! (previous) > XFIXNUM (limit)))
-	   { previous = previous_interval (previous); }
-
-	 if previous.is_null ()
-	     || ((*((previous) as *mut interval)).position + LENGTH! (previous)
-		 <= (if FIXNUMP (limit)
-		       { XFIXNUM (limit) }
-		       else { if STRINGP (object) { 0 } else { BUF_BEGV (XBUFFER (object)) } }))
-	   { return limit; }
-	 else
-	   { return make_fixnum ((*((previous) as *mut interval)).position
-				 + LENGTH! (previous)); }
+       safe {
+	 crate::safe_textprop::previous_single_property_change (position, prop, object, limit)
        });
 
 
@@ -1406,6 +1063,30 @@ DEFUN! ("add-text-properties", Fadd_text_properties,
 				       property_set_type::TEXT_PROPERTY_REPLACE, true);
        });
 
+pub fn add_face_text_property_helper (
+  start: Lisp_Object,
+  end: Lisp_Object,
+  properties: Lisp_Object,
+  append: bool,
+  object: Lisp_Object,
+) {
+  /* SAFETY: delegates validated `(face FACE)` plist to `add_text_properties_1` on the owning Lisp thread. */
+  unsafe {
+    add_text_properties_1 (
+      start,
+      end,
+      properties,
+      object,
+      if append {
+        property_set_type::TEXT_PROPERTY_APPEND
+      } else {
+        property_set_type::TEXT_PROPERTY_PREPEND
+      },
+      false,
+    );
+  }
+}
+
 /* Callers note, this can GC when OBJECT is a buffer (or nil).  */
 
 DEFUN! ("put-text-property", Fput_text_property,
@@ -1413,18 +1094,16 @@ DEFUN! ("put-text-property", Fput_text_property,
        doc: "Set one property of the text from START to END.\nThe third and fourth arguments PROPERTY and VALUE\nspecify the property to add.\nIf the optional fifth argument OBJECT is a buffer (or nil, which means\nthe current buffer), START and END are buffer positions (integers or\nmarkers).  If OBJECT is a string, START and END are 0-based indices into it.",
        (start: Lisp_Object, end: Lisp_Object, property: Lisp_Object,
 	value: Lisp_Object, object: Lisp_Object),
-       {
-	 AUTO_LIST2! (properties, property, value);
-	 Fadd_text_properties (start, end, properties, object);
-	 return Qnil ();
+       safe {
+	 crate::safe_textprop::put_text_property (start, end, property, value, object)
        });
 
 DEFUN! ("set-text-properties", Fset_text_properties,
        Sset_text_properties, 3, 4, 0,
        doc: "Completely replace properties of text from START to END.\nThe third argument PROPERTIES is the new property list.\nIf the optional fourth argument OBJECT is a buffer (or nil, which means\nthe current buffer), START and END are buffer positions (integers or\nmarkers).  If OBJECT is a string, START and END are 0-based indices into it.\nIf PROPERTIES is nil, the effect is to remove all properties from\nthe designated part of OBJECT.",
        (start: Lisp_Object, end: Lisp_Object, properties: Lisp_Object, object: Lisp_Object),
-       {
-	 return set_text_properties (start, end, properties, object, Qt ());
+       safe {
+	 crate::safe_textprop::set_text_properties_subr (start, end, properties, object)
        });
 
 
@@ -1433,14 +1112,8 @@ DEFUN! ("add-face-text-property", Fadd_face_text_property,
        doc: "Add the face property to the text from START to END.\nFACE specifies the face to add.  It should be a valid value of the\n`face' property (typically a face name or a plist of face attributes\nand values).\n\nIf any text in the region already has a non-nil `face' property, those\nface(s) are retained.  This is done by setting the `face' property to\na list of faces, with FACE as the first element (by default) and the\npre-existing faces as the remaining elements.\n\nIf optional fourth argument APPEND is non-nil, append FACE to the end\nof the face list instead.\n\nIf optional fifth argument OBJECT is a buffer (or nil, which means the\ncurrent buffer), START and END are buffer positions (integers or\nmarkers).  If OBJECT is a string, START and END are 0-based indices\ninto it.",
        (start: Lisp_Object, end: Lisp_Object, face: Lisp_Object,
 	append: Lisp_Object, object: Lisp_Object),
-       {
-	 AUTO_LIST2! (properties, Qface (), face);
-	 add_text_properties_1 (start, end, properties, object,
-				(if NILP (append)
-				   { property_set_type::TEXT_PROPERTY_PREPEND }
-				   else { property_set_type::TEXT_PROPERTY_APPEND }),
-				false);
-	 return Qnil ();
+       safe {
+	 crate::safe_textprop::add_face_text_property (start, end, face, append, object)
        });
 
 /* Replace properties of text from START to END with new list of
@@ -1453,7 +1126,7 @@ DEFUN! ("add-face-text-property", Fadd_face_text_property,
    otherwise.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn set_text_properties (start: Lisp_Object, end: Lisp_Object,
+pub extern "C-unwind" fn set_text_properties (start: Lisp_Object, end: Lisp_Object,
 					      properties: Lisp_Object,
 					      object: Lisp_Object,
 					      coherent_change_p: Lisp_Object) -> Lisp_Object
@@ -1925,35 +1598,8 @@ DEFUN! ("text-property-any", Ftext_property_any,
        doc: "Check text from START to END for property PROPERTY equaling VALUE.\nIf so, return the position of the first character whose property PROPERTY\nis `eq' to VALUE.  Otherwise return nil.\nIf the optional fifth argument OBJECT is a buffer (or nil, which means\nthe current buffer), START and END are buffer positions (integers or\nmarkers).  If OBJECT is a string, START and END are 0-based indices into it.",
        (start: Lisp_Object, end: Lisp_Object, property: Lisp_Object,
 	value: Lisp_Object, object: Lisp_Object),
-       {
-	 let mut start = start;
-	 let mut end = end;
-	 let mut object = object;
-	 let mut i: INTERVAL = std::ptr::null_mut ();
-	 let mut e: ptrdiff_t = 0;
-	 let mut pos: ptrdiff_t = 0;
-
-	 if NILP (object)
-	   { XSETBUFFER! (object, (current_buffer! ())); }
-	 i = validate_interval_range (object, &raw mut start, &raw mut end, soft);
-	 if i.is_null ()
-	   { return if !NILP (value) || EQ (start, end) { Qnil () } else { start }; }
-	 e = XFIXNUM (end);
-
-	 while !i.is_null ()
-	   {
-	     if (*((i) as *mut interval)).position >= e
-	       { break; }
-	     if EQ (textget ((*((i) as *mut interval)).plist, property), value)
-	       {
-		 pos = (*((i) as *mut interval)).position;
-		 if pos < XFIXNUM (start)
-		   { pos = XFIXNUM (start); }
-		 return make_fixnum (pos);
-	       }
-	     i = next_interval (i);
-	   }
-	 return Qnil ();
+       safe {
+	 crate::safe_textprop::text_property_any (start, end, property, value, object)
        });
 
 DEFUN! ("text-property-not-all", Ftext_property_not_all,
@@ -1961,35 +1607,8 @@ DEFUN! ("text-property-not-all", Ftext_property_not_all,
        doc: "Check text from START to END for property PROPERTY not equaling VALUE.\nIf so, return the position of the first character whose property PROPERTY\nis not `eq' to VALUE.  Otherwise, return nil.\nIf the optional fifth argument OBJECT is a buffer (or nil, which means\nthe current buffer), START and END are buffer positions (integers or\nmarkers).  If OBJECT is a string, START and END are 0-based indices into it.",
        (start: Lisp_Object, end: Lisp_Object, property: Lisp_Object,
 	value: Lisp_Object, object: Lisp_Object),
-       {
-	 let mut start = start;
-	 let mut end = end;
-	 let mut object = object;
-	 let mut i: INTERVAL = std::ptr::null_mut ();
-	 let mut s: ptrdiff_t = 0;
-	 let mut e: ptrdiff_t = 0;
-
-	 if NILP (object)
-	   { XSETBUFFER! (object, (current_buffer! ())); }
-	 i = validate_interval_range (object, &raw mut start, &raw mut end, soft);
-	 if i.is_null ()
-	   { return if NILP (value) || EQ (start, end) { Qnil () } else { start }; }
-	 s = XFIXNUM (start);
-	 e = XFIXNUM (end);
-
-	 while !i.is_null ()
-	   {
-	     if (*((i) as *mut interval)).position >= e
-	       { break; }
-	     if ! EQ (textget ((*((i) as *mut interval)).plist, property), value)
-	       {
-		 if (*((i) as *mut interval)).position > s
-		   { s = (*((i) as *mut interval)).position; }
-		 return make_fixnum (s);
-	       }
-	     i = next_interval (i);
-	   }
-	 return Qnil ();
+       safe {
+	 crate::safe_textprop::text_property_not_all (start, end, property, value, object)
        });
 
 
@@ -2000,68 +1619,10 @@ DEFUN! ("text-property-not-all", Ftext_property_not_all,
    BUFFER can be either a buffer or nil (meaning current buffer).  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn text_property_stickiness (prop: Lisp_Object, pos: Lisp_Object,
+pub extern "C-unwind" fn text_property_stickiness (prop: Lisp_Object, pos: Lisp_Object,
 						   buffer: Lisp_Object) -> c_int
 {
-  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
-  unsafe {
-  let mut ignore_previous_character: bool;
-  let prev_pos: Lisp_Object = make_fixnum (XFIXNUM (pos) - 1);
-  let mut front_sticky: Lisp_Object = Qnil ();
-  let mut is_rear_sticky: bool = true;
-  let mut is_front_sticky: bool = false; /* defaults */
-  let defalt: Lisp_Object = Fassq (prop, (*Vtext_property_default_nonsticky.as_mut_ptr ()));
-  let mut buffer = buffer;
-
-  if NILP (buffer)
-    { XSETBUFFER! (buffer, (current_buffer! ())); }
-
-  ignore_previous_character = XFIXNUM (pos) <= BUF_BEGV (XBUFFER (buffer));
-
-  if ignore_previous_character || (CONSP (defalt) && !NILP (XCDR (defalt)))
-    { is_rear_sticky = false; }
-  else
-    {
-      let rear_non_sticky: Lisp_Object
-	= Fget_text_property (prev_pos, Qrear_nonsticky (), buffer);
-
-      if !NILP (if CONSP (rear_non_sticky)
-		  { Fmemq (prop, rear_non_sticky) }
-		  else { rear_non_sticky })
-	/* PROP is rear-non-sticky.  */
-	{ is_rear_sticky = false; }
-    }
-
-  /* Consider following character.  */
-  /* This signals an arg-out-of-range error if pos is outside the
-     buffer's accessible range.  */
-  front_sticky = Fget_text_property (pos, Qfront_sticky (), buffer);
-
-  if EQ (front_sticky, Qt ())
-      || (CONSP (front_sticky)
-	  && !NILP (Fmemq (prop, front_sticky)))
-    /* PROP is inherited from after.  */
-    { is_front_sticky = true; }
-
-  /* Simple cases, where the properties are consistent.  */
-  if is_rear_sticky && !is_front_sticky
-    { return -1; }
-  else if !is_rear_sticky && is_front_sticky
-    { return 1; }
-  else if !is_rear_sticky && !is_front_sticky
-    { return 0; }
-
-  /* The stickiness properties are inconsistent, so we have to
-     disambiguate.  Basically, rear-sticky wins, _except_ if the
-     property that would be inherited has a value of nil, in which case
-     front-sticky wins.  */
-  if ignore_previous_character
-      || NILP (Fget_text_property (prev_pos, prop, buffer))
-    { return 1; }
-  else
-    { return -1; }
-
-  }
+  crate::safe_textprop::text_property_stickiness_impl (prop, pos, buffer)
 }
 
 
@@ -2076,83 +1637,12 @@ pub unsafe extern "C-unwind" fn text_property_stickiness (prop: Lisp_Object, pos
 /* Note this can GC when DEST is a buffer.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn copy_text_properties (start: Lisp_Object, end: Lisp_Object,
+pub extern "C-unwind" fn copy_text_properties (start: Lisp_Object, end: Lisp_Object,
 					       src: Lisp_Object, pos: Lisp_Object,
 					       dest: Lisp_Object, prop: Lisp_Object)
      -> Lisp_Object
 {
-  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
-  unsafe {
-  let mut start = start;
-  let mut end = end;
-  let mut pos = pos;
-  let mut i: INTERVAL = validate_interval_range (src, &raw mut start, &raw mut end, soft);
-  if i.is_null ()
-    { return Qnil (); }
-
-  CHECK_FIXNUM_COERCE_MARKER! (pos);
-
-  let dest_e: EMACS_INT = XFIXNUM (pos) + (XFIXNUM (end) - XFIXNUM (start));
-  if MOST_POSITIVE_FIXNUM < dest_e
-    { args_out_of_range (pos, end); }
-  let mut dest_end: Lisp_Object = make_fixnum (dest_e);
-  validate_interval_range (dest, &raw mut pos, &raw mut dest_end, soft);
-
-  let mut s: ptrdiff_t = XFIXNUM (start);
-  let e: ptrdiff_t = XFIXNUM (end);
-  let mut p: ptrdiff_t = XFIXNUM (pos);
-
-  let mut stuff: Lisp_Object = Qnil ();
-
-  while s < e
-    {
-      let mut e2: ptrdiff_t = (*((i) as *mut interval)).position + LENGTH! (i);
-      if e2 > e
-	{ e2 = e; }
-      let len: ptrdiff_t = e2 - s;
-
-      let mut plist: Lisp_Object = (*((i) as *mut interval)).plist;
-      if ! NILP (prop)
-	{
-	  while ! NILP (plist)
-	    {
-	      if EQ (Fcar (plist), prop)
-		{
-		  plist = list2 (prop, Fcar (Fcdr (plist)));
-		  break;
-		}
-	      plist = Fcdr (Fcdr (plist));
-	    }
-	}
-      if ! NILP (plist)
-	/* Must defer modifications to the interval tree in case
-	   src and dest refer to the same string or buffer.  */
-	{ stuff = Fcons (list3 (make_fixnum (p), make_fixnum (p + len), plist),
-			 stuff); }
-
-      i = next_interval (i);
-      if i.is_null ()
-	{ break; }
-
-      p += len;
-      s = (*((i) as *mut interval)).position;
-    }
-
-  let mut modified: bool = false;
-
-  while ! NILP (stuff)
-    {
-      let mut res: Lisp_Object = Fcar (stuff);
-      res = Fadd_text_properties (Fcar (res), Fcar (Fcdr (res)),
-				  Fcar (Fcdr (Fcdr (res))), dest);
-      if ! NILP (res)
-	{ modified = true; }
-      stuff = Fcdr (stuff);
-    }
-
-  return if modified { Qt () } else { Qnil () };
-
-  }
+  crate::safe_textprop::copy_text_properties_impl (start, end, src, pos, dest, prop)
 }
 
 
@@ -2164,66 +1654,11 @@ pub unsafe extern "C-unwind" fn copy_text_properties (start: Lisp_Object, end: L
    doesn't contain text properties between START and END.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn text_property_list (object: Lisp_Object, start: Lisp_Object,
+pub extern "C-unwind" fn text_property_list (object: Lisp_Object, start: Lisp_Object,
 					     end: Lisp_Object, prop: Lisp_Object)
      -> Lisp_Object
 {
-  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
-  unsafe {
-  let mut start = start;
-  let mut end = end;
-  let mut i: INTERVAL = std::ptr::null_mut ();
-  let mut result: Lisp_Object = Qnil ();
-
-  result = Qnil ();
-
-  i = validate_interval_range (object, &raw mut start, &raw mut end, soft);
-  if !i.is_null ()
-    {
-      let mut s: ptrdiff_t = XFIXNUM (start);
-      let e: ptrdiff_t = XFIXNUM (end);
-
-      while s < e
-	{
-	  let mut interval_end: ptrdiff_t = 0;
-	  let mut len: ptrdiff_t = 0;
-	  let mut plist: Lisp_Object = Qnil ();
-
-	  interval_end = (*((i) as *mut interval)).position + LENGTH! (i);
-	  if interval_end > e
-	    { interval_end = e; }
-	  len = interval_end - s;
-
-	  plist = (*((i) as *mut interval)).plist;
-
-	  if !NILP (prop)
-	    {
-	      while CONSP (plist)
-		{
-		  if EQ (XCAR (plist), prop)
-		    {
-		      plist = list2 (prop, Fcar (XCDR (plist)));
-		      break;
-		    }
-		  plist = Fcdr (XCDR (plist));
-		}
-	    }
-
-	  if !NILP (plist)
-	    { result = Fcons (list3 (make_fixnum (s), make_fixnum (s + len),
-				     plist),
-			      result); }
-
-	  i = next_interval (i);
-	  if i.is_null ()
-	    { break; }
-	  s = (*((i) as *mut interval)).position;
-	}
-    }
-
-  return result;
-
-  }
+  crate::safe_textprop::text_property_list_impl (object, start, end, prop)
 }
 
 
@@ -2233,29 +1668,10 @@ pub unsafe extern "C-unwind" fn text_property_list (object: Lisp_Object, start: 
    and END positions by DELTA before adding properties.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn add_text_properties_from_list (object: Lisp_Object, list: Lisp_Object,
+pub extern "C-unwind" fn add_text_properties_from_list (object: Lisp_Object, list: Lisp_Object,
 							delta: Lisp_Object)
 {
-  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
-  unsafe {
-  let mut list = list;
-  while CONSP (list)
-    {
-      let mut item: Lisp_Object = Qnil ();
-      let mut start: Lisp_Object = Qnil ();
-      let mut end: Lisp_Object = Qnil ();
-      let mut plist: Lisp_Object = Qnil ();
-
-      item = XCAR (list);
-      start = make_fixnum (XFIXNUM (XCAR (item)) + XFIXNUM (delta));
-      end = make_fixnum (XFIXNUM (XCAR (XCDR (item))) + XFIXNUM (delta));
-      plist = XCAR (XCDR (XCDR (item)));
-
-      Fadd_text_properties (start, end, plist, object);
-      list = XCDR (list);
-    }
-
-  }
+  crate::safe_textprop::add_text_properties_from_list_impl (object, list, delta);
 }
 
 
@@ -2266,51 +1682,10 @@ pub unsafe extern "C-unwind" fn add_text_properties_from_list (object: Lisp_Obje
    end-points to NEW_END.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn extend_property_ranges (list: Lisp_Object, old_end: Lisp_Object,
+pub extern "C-unwind" fn extend_property_ranges (list: Lisp_Object, old_end: Lisp_Object,
 						 new_end: Lisp_Object) -> Lisp_Object
 {
-  let mut list = list;
-  let mut prev: Lisp_Object = Qnil ();
-  let mut head: Lisp_Object = list;
-  let max: ptrdiff_t = XFIXNUM (new_end);
-
-  loop
-    {
-      if !CONSP (list)
-	{ break; }
-      let mut item: Lisp_Object = Qnil ();
-      let mut beg: Lisp_Object = Qnil ();
-      let mut end: ptrdiff_t = 0;
-
-      item = XCAR (list);
-      beg = XCAR (item);
-      end = XFIXNUM (XCAR (XCDR (item)));
-
-      if XFIXNUM (beg) >= max
-	{
-	  /* The start-point is past the end of the new string.
-	     Discard this property.  */
-	  if EQ (head, list)
-	    { head = XCDR (list); }
-	  else
-	    { XSETCDR (prev, XCDR (list)); }
-	}
-      else if (end == XFIXNUM (old_end) && end != max)
-	       || end > max
-	{
-	  /* Either the end-point is past the end of the new string,
-	     and we need to discard the properties past the new end,
-	     or the caller is extending the property range, and we
-	     should update all end-points that are on the old end of
-	     the range to reflect that.  */
-	  XSETCAR (XCDR (item), new_end);
-	}
-
-      prev = list;
-      list = XCDR (list);
-    }
-
-  return head;
+  crate::safe_textprop::extend_property_ranges_impl (list, old_end, new_end)
 }
 
 
@@ -2552,7 +1927,7 @@ pub unsafe extern "C-unwind" fn verify_interval_modification (buf: *mut buffer, 
    so it can indicate the range of inserted text.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn report_interval_modification (start: Lisp_Object, end: Lisp_Object)
+pub extern "C-unwind" fn report_interval_modification (start: Lisp_Object, end: Lisp_Object)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -2568,7 +1943,7 @@ pub unsafe extern "C-unwind" fn report_interval_modification (start: Lisp_Object
 
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn syms_of_textprop ()
+pub extern "C-unwind" fn syms_of_textprop ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {

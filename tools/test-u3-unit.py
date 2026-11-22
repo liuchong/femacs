@@ -28,6 +28,7 @@ RUST_UNIT_HARNESS = r"""
 
 pub mod common {
     use core::ffi::{c_int, c_void};
+    use std::sync::atomic::{AtomicUsize, Ordering};
 
     pub type Lisp_Object = *mut c_void;
     pub type nonlocal_exit = c_int;
@@ -39,7 +40,19 @@ pub mod common {
         pub dummy: usize,
     }
 
-    pub static mut current_thread: *mut c_void = core::ptr::null_mut();
+    pub struct ThreadGlobal;
+    static THREAD_PTR: AtomicUsize = AtomicUsize::new(0);
+
+    impl ThreadGlobal {
+        pub fn get(&self) -> *mut c_void {
+            THREAD_PTR.load(Ordering::Relaxed) as *mut c_void
+        }
+        pub fn set(&self, v: *mut c_void) {
+            THREAD_PTR.store(v as usize, Ordering::Relaxed);
+        }
+    }
+
+    pub static current_thread: ThreadGlobal = ThreadGlobal;
 
     #[inline]
     pub const fn lisp_h_Qnil() -> Lisp_Object {
@@ -95,7 +108,7 @@ mod tests {
     fn catch_vm_nonlocal_catches_signal_and_throw_and_clears_inflight() {
         let _lock = SERIAL.lock().unwrap();
         let thread = 0x1000usize as *mut c_void;
-        unsafe { current_thread = thread };
+        current_thread.set(thread);
 
         let mut h1 = handler { dummy: 1 };
         let mut h2 = handler { dummy: 2 };
@@ -132,14 +145,14 @@ mod tests {
         assert!(collect_marked(thread).is_empty());
 
         cleanup_thread_state(thread);
-        unsafe { current_thread = core::ptr::null_mut() };
+        current_thread.set(core::ptr::null_mut());
     }
 
     #[test]
     fn catch_vm_nonlocal_repropagates_genuine_rust_panic() {
         let _lock = SERIAL.lock().unwrap();
         let thread = 0x2000usize as *mut c_void;
-        unsafe { current_thread = thread };
+        current_thread.set(thread);
 
         let outer = catch_unwind(AssertUnwindSafe(|| {
             let _ = catch_vm_nonlocal(|| -> usize {
@@ -154,14 +167,14 @@ mod tests {
         assert_eq!(msg, "genuine-rust-bug-not-lisp-signal");
 
         cleanup_thread_state(thread);
-        unsafe { current_thread = core::ptr::null_mut() };
+        current_thread.set(core::ptr::null_mut());
     }
 
     #[test]
     fn scoped_lisp_root_lifo_and_unwind_truncation() {
         let _lock = SERIAL.lock().unwrap();
         let thread = 0x3000usize as *mut c_void;
-        unsafe { current_thread = thread };
+        current_thread.set(thread);
         let mut h = handler { dummy: 3 };
         let (rc0, rd0) = scoped_root_counts();
 
@@ -190,14 +203,14 @@ mod tests {
         assert_eq!(rd1 - rd0, 2);
 
         cleanup_thread_state(thread);
-        unsafe { current_thread = core::ptr::null_mut() };
+        current_thread.set(core::ptr::null_mut());
     }
 
     #[test]
     fn host_drop_guard_exact_once_across_reexit_and_c_probe() {
         let _lock = SERIAL.lock().unwrap();
         let thread = 0x4000usize as *mut c_void;
-        unsafe { current_thread = thread };
+        current_thread.set(thread);
         let mut h_inner = handler { dummy: 4 };
         let mut h_outer = handler { dummy: 5 };
         let (hc0, hd0) = host_drop_counts();
@@ -232,14 +245,14 @@ mod tests {
         assert_eq!(rc1, rd1);
 
         cleanup_thread_state(thread);
-        unsafe { current_thread = core::ptr::null_mut() };
+        current_thread.set(core::ptr::null_mut());
     }
 
     #[test]
     fn comp_native_pending_exit_matching_propagation_and_thread_cleanup() {
         let _lock = SERIAL.lock().unwrap();
         let thread = 0x5000usize as *mut c_void;
-        unsafe { current_thread = thread };
+        current_thread.set(thread);
         let mut h_target = handler { dummy: 10 };
         let mut h_other = handler { dummy: 20 };
 
@@ -277,18 +290,18 @@ mod tests {
 
         // Finalizing a thread with an active pending exit decrements global counter cleanly.
         let dying_thread = 0x6000usize as *mut c_void;
-        unsafe { current_thread = dying_thread };
+        current_thread.set(dying_thread);
         set_comp_native_exit(NonLocalExit {
             kind: NonLocalExitKind::Signal,
             target: &raw mut h_target,
             value: fake_obj(0xDEAD),
         });
         cleanup_thread_state(dying_thread);
-        unsafe { current_thread = thread };
+        current_thread.set(thread);
         assert_eq!(comp_native_exit_pending_for_current_thread(), 0);
 
         cleanup_thread_state(thread);
-        unsafe { current_thread = core::ptr::null_mut() };
+        current_thread.set(core::ptr::null_mut());
     }
 }
 """
@@ -401,7 +414,7 @@ def main() -> int:
         for guard in ("NestedPrintDepthGuard", "PpStackGuard", "PrintStackGuard"):
             if f"impl Drop for {guard}" not in print_rs:
                 raise AssertionError(f"src/print.rs missing `impl Drop for {guard}`")
-        if "prstack.stack.offset (entry_idx)" not in print_rs:
+        if "prstack.stack.offset (entry_idx)" not in print_rs and "(*prstack.as_mut_ptr ()).stack.offset (entry_idx)" not in print_rs:
             raise AssertionError("src/print.rs must re-derive `prstack.stack.offset(entry_idx)`")
         return {"guards_verified": 5}
 

@@ -272,7 +272,7 @@ unsafe fn compile_pattern_1 (cp: *mut regexp_cache, pattern: Lisp_Object,   // C
    This is called from garbage collection.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn shrink_regexp_cache ()              // C 142-158
+pub extern "C-unwind" fn shrink_regexp_cache ()              // C 142-158
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -300,7 +300,7 @@ pub unsafe extern "C-unwind" fn shrink_regexp_cache ()              // C 142-158
    based on its `allocated' and `buffer' values.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn clear_regexp_cache ()               // C 160-171
+pub extern "C-unwind" fn clear_regexp_cache ()               // C 160-171
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -696,7 +696,7 @@ DEFUN! ("posix-string-match", Fposix_string_match, Sposix_string_match, 2, 4, 0,
    or negative on failure.  This does not clobber the match data.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn fast_string_match_internal (regexp: Lisp_Object,   // C 483-500
+pub extern "C-unwind" fn fast_string_match_internal (regexp: Lisp_Object,   // C 483-500
 						    string: Lisp_Object,
 						    table: Lisp_Object)
   -> ptrdiff_t
@@ -1237,7 +1237,7 @@ pub unsafe extern "C-unwind" fn find_newline (start: ptrdiff_t, start_byte: ptrd
    except in special cases.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn scan_newline (start: ptrdiff_t, start_byte: ptrdiff_t,   // C 968-984
+pub extern "C-unwind" fn scan_newline (start: ptrdiff_t, start_byte: ptrdiff_t,   // C 968-984
 				       limit: ptrdiff_t, limit_byte: ptrdiff_t,
 				       count: ptrdiff_t, allow_quit: bool)
 {
@@ -1323,76 +1323,139 @@ pub unsafe extern "C-unwind" fn find_before_next_newline (from: ptrdiff_t, to: p
 
 /* Subroutines of Lisp buffer search functions. */
 
-unsafe fn search_command (string: Lisp_Object, bound: Lisp_Object, noerror: Lisp_Object,   // C 1033-1107
-			  count: Lisp_Object, direction: c_int, RE: bool, posix: bool)
+pub fn search_buffer_safe (
+  string: Lisp_Object,
+  pos: ptrdiff_t,
+  pos_byte: ptrdiff_t,
+  lim: ptrdiff_t,
+  lim_byte: ptrdiff_t,
+  n: EMACS_INT,
+  re: bool,
+  trt: Lisp_Object,
+  inverse_trt: Lisp_Object,
+  posix: bool,
+) -> EMACS_INT {
+  /* SAFETY: caller validated `STRINGP(string)` and `[BEGV, ZV]` bounds on `current_buffer`. */
+  unsafe { search_buffer (string, pos, pos_byte, lim, lim_byte, n, re, trt, inverse_trt, posix) }
+}
+
+pub fn search_regs_num_regs () -> ptrdiff_t {
+  /* SAFETY: reads current thread's `search_regs.num_regs` on the owning Lisp thread. */
+  unsafe { search_regs! ().num_regs }
+}
+
+pub fn search_regs_pair (idx: ptrdiff_t) -> (ptrdiff_t, ptrdiff_t) {
+  let n = search_regs_num_regs ();
+  assert! (0 <= idx && idx < n);
+  /* SAFETY: `0 <= idx < search_regs.num_regs` verified above. */
+  unsafe {
+    (
+      *search_regs! ().start.offset (idx as isize),
+      *search_regs! ().end.offset (idx as isize),
+    )
+  }
+}
+
+pub fn search_regs_ensure_capacity (length: ptrdiff_t) {
+  /* SAFETY: grows `search_regs` via `xpalloc`/`xrealloc` and initializes new `start` slots to `-1`. */
+  unsafe {
+    if length > search_regs! ().num_regs {
+      let mut num_regs: ptrdiff_t = search_regs! ().num_regs;
+      search_regs! ().start = xpalloc (
+        search_regs! ().start as *mut c_void,
+        &raw mut num_regs,
+        length - num_regs,
+        min (PTRDIFF_MAX, UINT_MAX as isize),
+        std::mem::size_of::<ptrdiff_t> () as ptrdiff_t,
+      ) as *mut ptrdiff_t;
+      search_regs! ().end = xrealloc (
+        search_regs! ().end as *mut c_void,
+        num_regs as usize * std::mem::size_of::<ptrdiff_t> (),
+      ) as *mut ptrdiff_t;
+      let mut i = search_regs! ().num_regs;
+      while i < num_regs {
+        *search_regs! ().start.offset (i as isize) = -1;
+        i += 1;
+      }
+      search_regs! ().num_regs = num_regs;
+    }
+  }
+}
+
+pub fn search_regs_set_pair (idx: ptrdiff_t, start: ptrdiff_t, end: ptrdiff_t) {
+  let n = search_regs_num_regs ();
+  assert! (0 <= idx && idx < n);
+  /* SAFETY: `0 <= idx < search_regs.num_regs` verified above. */
+  unsafe {
+    *search_regs! ().start.offset (idx as isize) = start;
+    *search_regs! ().end.offset (idx as isize) = end;
+  }
+}
+
+pub fn search_regs_set_unmatched (idx: ptrdiff_t) {
+  let n = search_regs_num_regs ();
+  assert! (0 <= idx && idx < n);
+  /* SAFETY: `0 <= idx < search_regs.num_regs` verified above. */
+  unsafe {
+    *search_regs! ().start.offset (idx as isize) = -1;
+  }
+}
+
+pub fn search_regs_clear_from (from: ptrdiff_t) {
+  let n = search_regs_num_regs ();
+  assert! (0 <= from);
+  /* SAFETY: `0 <= from` verified above; loop bounded by `search_regs.num_regs`. */
+  unsafe {
+    let mut i = from;
+    while i < n {
+      *search_regs! ().start.offset (i as isize) = -1;
+      i += 1;
+    }
+  }
+}
+
+pub fn search_regs_translate_all (delta: EMACS_INT) {
+  let n = search_regs_num_regs ();
+  /* SAFETY: iterates `[0, search_regs.num_regs)` on the owning Lisp thread. */
+  unsafe {
+    let mut i: ptrdiff_t = 0;
+    while i < n {
+      if *search_regs! ().start.offset (i as isize) >= 0 {
+        *search_regs! ().start.offset (i as isize) =
+          max (0, *search_regs! ().start.offset (i as isize) + delta);
+        *search_regs! ().end.offset (i as isize) =
+          max (0, *search_regs! ().end.offset (i as isize) + delta);
+      }
+      i += 1;
+    }
+  }
+}
+
+pub fn last_thing_searched_get () -> Lisp_Object {
+  /* SAFETY: reads current thread's `last_thing_searched` slot on the owning Lisp thread. */
+  unsafe { last_thing_searched! () }
+}
+
+pub fn last_thing_searched_set (val: Lisp_Object) {
+  /* SAFETY: writes current thread's `last_thing_searched` slot on the owning Lisp thread. */
+  unsafe { last_thing_searched! () = val; }
+}
+
+pub fn maybe_save_search_regs_for_async () {
+  /* SAFETY: snapshots `search_regs` into `saved_search_regs` on the owning Lisp thread. */
+  unsafe { save_search_regs (); }
+}
+
+pub fn error_no_match_data () -> ! {
+  /* SAFETY: static NUL-terminated error message with zero format arguments. */
+  unsafe { error (c"No match data, because no search succeeded".as_ptr ()) }
+}
+
+fn search_command (string: Lisp_Object, bound: Lisp_Object, noerror: Lisp_Object,   // C 1033-1107
+		   count: Lisp_Object, direction: c_int, RE: bool, posix: bool)
   -> Lisp_Object
 {
-  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
-  unsafe {
-  let mut np: EMACS_INT;
-  let mut lim: EMACS_INT;
-  let mut lim_byte: ptrdiff_t;
-  let mut n: EMACS_INT = direction as EMACS_INT;
-
-  if !NILP (count)
-    {
-      CHECK_FIXNUM (count);
-      n *= XFIXNUM (count);
-    }
-
-  CHECK_STRING (string);
-  if NILP (bound)
-    {
-      if n > 0
-	{ lim = ZV! (); lim_byte = ZV_BYTE! (); }
-      else
-	{ lim = BEGV! (); lim_byte = BEGV_BYTE! (); }
-    }
-  else
-    {
-      lim = fix_position (bound);
-      if if n > 0 { lim < PT! () } else { lim > PT! () }
-	{ error (c"Invalid search bound (wrong side of point)".as_ptr ()); }
-      if lim > ZV! ()
-	{ lim = ZV! (); lim_byte = ZV_BYTE! (); }
-      else if lim < BEGV! ()
-	{ lim = BEGV! (); lim_byte = BEGV_BYTE! (); }
-      else
-	{ lim_byte = CHAR_TO_BYTE (lim); }
-    }
-
-  /* This is so set_image_of_range_1 in regex-emacs.c can find the EQV
-     table.  */
-  set_char_table_extras (BVAR! ((current_buffer! ()), case_canon_table_), 2,
-			 BVAR! ((current_buffer! ()), case_eqv_table_));
-
-  np = search_buffer (string, PT! (), PT_BYTE! (), lim, lim_byte, n, RE,
-		      if !NILP ((*Vcase_fold_search.as_mut_ptr ())) { BVAR! ((current_buffer! ()), case_canon_table_) } else { Qnil () },
-		      if !NILP ((*Vcase_fold_search.as_mut_ptr ())) { BVAR! ((current_buffer! ()), case_eqv_table_) } else { Qnil () },
-		      posix);
-  if np <= 0
-    {
-      if NILP (noerror)
-	{ xsignal1 (Qsearch_failed (), string); }
-
-      if !EQ (noerror, Qt ())
-	{
-	  eassert! (BEGV! () <= lim && lim <= ZV! ());
-	  SET_PT_BOTH (lim, lim_byte);
-	  return Qnil ();
-	  /* C 1091-1094: `#if 0` - `np = lim;` - is dead text in every configuration
-	     (P-08); docs/ports/search.md records it.  */
-	}
-      else
-	{ return Qnil (); }
-    }
-
-  eassert! (BEGV! () <= np && np <= ZV! ());
-  SET_PT (np);
-
-  return make_fixnum (np);
-
-  }
+  crate::safe_search::search_command (string, bound, noerror, count, direction, RE, posix)
 }
 
 /* Return true if REGEXP it matches just one constant string.  */
@@ -2606,48 +2669,48 @@ DEFUN! ("search-backward", Fsearch_backward, Ssearch_backward, 1, 4,      // C 2
        "MSearch backward: ",
        doc: "Search backward from point for STRING.\nThis function is almost identical to `search-forward', except that\nby default it searches backward instead of forward, and the sign of\nCOUNT also indicates exactly the opposite searching direction.\nSee `search-forward' for details.",
        (string: Lisp_Object, bound: Lisp_Object, noerror: Lisp_Object, count: Lisp_Object),
-       {
-	 return search_command (string, bound, noerror, count, -1, false, false);
+       safe {
+	 crate::safe_search::search_backward (string, bound, noerror, count)
        });
 
 DEFUN! ("search-forward", Fsearch_forward, Ssearch_forward, 1, 4,         // C 2218-2246
        "MSearch: ",
        doc: "Search forward from point for STRING.\nSet point to the end of the occurrence found, and return point.\nThe optional second argument BOUND is a buffer position that bounds\n  the search.  The match found must not end after that position.  A\n  value of nil means search to the end of the accessible portion of\n  the buffer.\nThe optional third argument NOERROR indicates how errors are handled\n  when the search fails: if it is nil or omitted, emit an error; if\n  it is t, simply return nil and do nothing; if it is neither nil nor\n  t, move to the limit of search and return nil.\nThe optional fourth argument COUNT is a number that indicates the\n  search direction and the number of occurrences to search for.  If it\n  is positive, search forward for COUNT successive occurrences; if it\n  is negative, search backward, instead of forward, for -COUNT\n  occurrences.  A value of nil means the same as 1.\nWith COUNT positive/negative, the match found is the COUNTth/-COUNTth\n  one in the buffer located entirely after/before the origin of the\n  search.\n\nSearch case-sensitivity is determined by the value of the variable\n`case-fold-search', which see.\n\nSee also the functions `match-beginning', `match-end', `match-string',\nand `replace-match'.",
        (string: Lisp_Object, bound: Lisp_Object, noerror: Lisp_Object, count: Lisp_Object),
-       {
-	 return search_command (string, bound, noerror, count, 1, false, false);
+       safe {
+	 crate::safe_search::search_forward (string, bound, noerror, count)
        });
 
 DEFUN! ("re-search-backward", Fre_search_backward, Sre_search_backward, 1, 4,   // C 2248-2262
        "sRE search backward: ",
        doc: "Search backward from point for regular expression REGEXP.\nThis function is almost identical to `re-search-forward', except that\nby default it searches backward instead of forward, and the sign of\nCOUNT also indicates exactly the opposite searching direction.\nSee `re-search-forward' for details.\n\nNote that searching backwards may give a shorter match than expected,\nbecause REGEXP is still matched in the forward direction.  See Info\nanchor `(elisp) re-search-backward' for details.",
        (regexp: Lisp_Object, bound: Lisp_Object, noerror: Lisp_Object, count: Lisp_Object),
-       {
-	 return search_command (regexp, bound, noerror, count, -1, true, false);
+       safe {
+	 crate::safe_search::re_search_backward (regexp, bound, noerror, count)
        });
 
 DEFUN! ("re-search-forward", Fre_search_forward, Sre_search_forward, 1, 4,   // C 2264-2293
        "sRE search: ",
        doc: "Search forward from point for regular expression REGEXP.\nSet point to the end of the occurrence found, and return point.\nThe optional second argument BOUND is a buffer position that bounds\n  the search.  The match found must not end after that position.  A\n  value of nil means search to the end of the accessible portion of\n  the buffer.\nThe optional third argument NOERROR indicates how errors are handled\n  when the search fails: if it is nil or omitted, emit an error; if\n  it is t, simply return nil and do nothing; if it is neither nil nor\n  t, move to the limit of search and return nil.\nThe optional fourth argument COUNT is a number that indicates the\n  search direction and the number of occurrences to search for.  If it\n  is positive, search forward for COUNT successive occurrences; if it\n  is negative, search backward, instead of forward, for -COUNT\n  occurrences.  A value of nil means the same as 1.\nWith COUNT positive/negative, the match found is the COUNTth/-COUNTth\n  one in the buffer located entirely after/before the origin of the\n  search.\n\nSearch case-sensitivity is determined by the value of the variable\n`case-fold-search', which see.\n\nSee also the functions `match-beginning', `match-end', `match-string',\nand `replace-match'.",
        (regexp: Lisp_Object, bound: Lisp_Object, noerror: Lisp_Object, count: Lisp_Object),
-       {
-	 return search_command (regexp, bound, noerror, count, 1, true, false);
+       safe {
+	 crate::safe_search::re_search_forward (regexp, bound, noerror, count)
        });
 
 DEFUN! ("posix-search-backward", Fposix_search_backward, Sposix_search_backward, 1, 4,  // C 2295-2310
        "sPosix search backward: ",
        doc: "Search backward from point for match for REGEXP according to Posix rules.\nFind the longest match in accord with Posix regular expression rules.\nThis function is almost identical to `posix-search-forward', except that\nby default it searches backward instead of forward, and the sign of\nCOUNT also indicates exactly the opposite searching direction.\nSee `posix-search-forward' for details.\n\nNote that searching backwards may give a shorter match than expected,\nbecause REGEXP is still matched in the forward direction.  See Info\nanchor `(elisp) re-search-backward' for details.",
        (regexp: Lisp_Object, bound: Lisp_Object, noerror: Lisp_Object, count: Lisp_Object),
-       {
-	 return search_command (regexp, bound, noerror, count, -1, true, true);
+       safe {
+	 crate::safe_search::posix_search_backward (regexp, bound, noerror, count)
        });
 
 DEFUN! ("posix-search-forward", Fposix_search_forward, Sposix_search_forward, 1, 4,  // C 2312-2342
        "sPosix search: ",
        doc: "Search forward from point for REGEXP according to Posix rules.\nFind the longest match in accord with Posix regular expression rules.\nSet point to the end of the occurrence found, and return point.\nThe optional second argument BOUND is a buffer position that bounds\n  the search.  The match found must not end after that position.  A\n  value of nil means search to the end of the accessible portion of\n  the buffer.\nThe optional third argument NOERROR indicates how errors are handled\n  when the search fails: if it is nil or omitted, emit an error; if\n  it is t, simply return nil and do nothing; if it is neither nil nor\n  t, move to the limit of search and return nil.\nThe optional fourth argument COUNT is a number that indicates the\n  search direction and the number of occurrences to search for.  If it\n  is positive, search forward for COUNT successive occurrences; if it\n  is negative, search backward, instead of forward, for -COUNT\n  occurrences.  A value of nil means the same as 1.\nWith COUNT positive/negative, the match found is the COUNTth/-COUNTth\n  one in the buffer located entirely after/before the origin of the\n  search.\n\nSearch case-sensitivity is determined by the value of the variable\n`case-fold-search', which see.\n\nSee also the functions `match-beginning', `match-end', `match-string',\nand `replace-match'.",
        (regexp: Lisp_Object, bound: Lisp_Object, noerror: Lisp_Object, count: Lisp_Object),
-       {
-	 return search_command (regexp, bound, noerror, count, 1, true, true);
+       safe {
+	 crate::safe_search::posix_search_forward (regexp, bound, noerror, count)
        });
 
 /* C 2344-2767: `enum { nochange, all_caps, cap_initial }` is a function-local enum in C; the
@@ -3066,306 +3129,45 @@ DEFUN! ("replace-match", Freplace_match, Sreplace_match, 1, 5, 0,        // C 23
 	 return Qnil ();
        });
 
-unsafe fn match_limit (num: Lisp_Object, beginningp: bool) -> Lisp_Object   // C 2769-2784
+fn match_limit (num: Lisp_Object, beginningp: bool) -> Lisp_Object   // C 2769-2784
 {
-  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
-  unsafe {
-  let mut n: EMACS_INT;
-
-  CHECK_FIXNUM (num);
-  n = XFIXNUM (num);
-  if n < 0
-    { args_out_of_range (num, make_fixnum (0)); }
-  if search_regs! ().num_regs <= 0
-    { error (c"No match data, because no search succeeded".as_ptr ()); }
-  if n >= search_regs! ().num_regs
-      || *search_regs! ().start.offset (n as isize) < 0
-    { return Qnil (); }
-  return make_fixnum (if beginningp { *search_regs! ().start.offset (n as isize) }
-		      else { *search_regs! ().end.offset (n as isize) });
-
-  }
+  crate::safe_search::match_limit (num, beginningp)
 }
 
 DEFUN! ("match-beginning", Fmatch_beginning, Smatch_beginning, 1, 1, 0,    // C 2786-2799
        doc: "Return position of start of text matched by last search.\nSUBEXP, a number, specifies the parenthesized subexpression in the last\n  regexp for which to return the start position.\nValue is nil if SUBEXPth subexpression didn't match, or there were fewer\n  than SUBEXP subexpressions.\nSUBEXP zero means the entire text matched by the whole regexp or whole\n  string.\n\nReturn value is undefined if the last search failed.",
        (subexp: Lisp_Object),
-       {
-	 return match_limit (subexp, true);
+       safe {
+	 crate::safe_search::match_beginning (subexp)
        });
 
 DEFUN! ("match-end", Fmatch_end, Smatch_end, 1, 1, 0,          // C 2801-2814
        doc: "Return position of end of text matched by last search.\nSUBEXP, a number, specifies the parenthesized subexpression in the last\n  regexp for which to return the end position.\nValue is nil if SUBEXPth subexpression didn't match, or there were fewer\n  than SUBEXP subexpressions.\nSUBEXP zero means the entire text matched by the whole regexp or whole\n  string.\n\nReturn value is undefined if the last search failed.",
        (subexp: Lisp_Object),
-       {
-	 return match_limit (subexp, false);
+       safe {
+	 crate::safe_search::match_end (subexp)
        });
 
 DEFUN! ("match-data", Fmatch_data, Smatch_data, 0, 3, 0,       // C 2816-2947
        doc: "Return a list of positions that record text matched by the last search.\nElement 2N of the returned list is the position of the beginning of the\nmatch of the Nth subexpression; it corresponds to `(match-beginning N)';\nelement 2N + 1 is the position of the end of the match of the Nth\nsubexpression; it corresponds to `(match-end N)'.  See `match-beginning'\nand `match-end'.\nIf the last search was on a buffer, all the elements are by default\nmarkers or nil (nil when the Nth pair didn't match); they are integers\nor nil if the search was on a string.  But if the optional argument\nINTEGERS is non-nil, the elements that represent buffer positions are\nalways integers, not markers, and (if the search was on a buffer) the\nbuffer itself is appended to the list as one additional element.\n\nUse `set-match-data' to reinstate the match data from the elements of\nthis list.\n\nNote that non-matching optional groups at the end of the regexp are\nelided instead of being represented with two `nil's each.  For instance:\n\n  (progn\n    (string-match \"^\\(a\\)?\\(b\\)\\(c\\)?$\" \"b\")\n    (match-data))\n  => (0 1 nil nil 0 1)\n\nIf REUSE is a list, store the value in REUSE by destructively modifying it.\nIf REUSE is long enough to hold all the values, its length remains the\nsame, and any unused elements are set to nil.  If REUSE is not long\nenough, it is extended.  Note that if REUSE is long enough and INTEGERS\nis non-nil, no consing is done to make the return value; this minimizes GC.\n\nIf optional third argument RESEAT is non-nil, any previous markers on the\nREUSE list will be modified to point to nowhere.\n\nReturn value is undefined if the last search failed.",
        (integers: Lisp_Object, reuse: Lisp_Object, reseat: Lisp_Object),
-       {
-	 let mut tail: Lisp_Object;
-	 let mut prev: Lisp_Object;
-	 let mut data: *mut Lisp_Object = std::ptr::null_mut ();
-	 let mut i: ptrdiff_t;
-	 let mut len: ptrdiff_t;
-	 let mut reuse: Lisp_Object = reuse;
-
-	 if !NILP (reseat)
-	   {
-	     tail = reuse;
-	     while CONSP (tail)
-	       {
-		 if MARKERP (XCAR (tail))
-		   {
-		     unchain_marker (XMARKER (XCAR (tail)) as *mut c_void);
-		     XSETCAR (tail, Qnil ());
-		   }
-		 tail = XCDR (tail);
-	       }
-	   }
-
-	 if NILP (last_thing_searched! ())
-	   { return Qnil (); }
-
-	 prev = Qnil ();
-
-	 USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
-	 SAFE_NALLOCA! (sa_avail, data, 1, 2 * search_regs! ().num_regs + 1);
-
-	 len = 0;
-	 i = 0;
-	 while i < search_regs! ().num_regs
-	   {
-	     let start: ptrdiff_t = *search_regs! ().start.offset (i as isize);
-	     if start >= 0
-	       {
-		 if BASE_EQ (last_thing_searched! (), Qt ())
-		     || ! NILP (integers)
-		   {
-		     XSETFASTINT! (*data.offset ((2 * i) as isize), start);
-		     XSETFASTINT! (*data.offset ((2 * i + 1) as isize), *search_regs! ().end.offset (i as isize));
-		   }
-		 else if BUFFERP (last_thing_searched! ())
-		   {
-		     *data.offset ((2 * i) as isize) = Fmake_marker ();
-		     Fset_marker (*data.offset ((2 * i) as isize),
-				  make_fixnum (start),
-				  last_thing_searched! ());
-		     *data.offset ((2 * i + 1) as isize) = Fmake_marker ();
-		     Fset_marker (*data.offset ((2 * i + 1) as isize),
-				  make_fixnum (*search_regs! ().end.offset (i as isize)),
-				  last_thing_searched! ());
-		   }
-		 else
-		   /* last_thing_searched must always be Qt, a buffer, or Qnil.  */
-		   { emacs_abort (); }
-
-		 len = 2 * i + 2;
-	       }
-	     else
-	       {
-		 *data.offset ((2 * i) as isize) = Qnil ();
-		 *data.offset ((2 * i + 1) as isize) = Qnil ();
-	       }
-	     i += 1;
-	   }
-
-	 if BUFFERP (last_thing_searched! ()) && !NILP (integers)
-	   {
-	     *data.offset (len as isize) = last_thing_searched! ();
-	     len += 1;
-	   }
-
-	 /* If REUSE is not usable, cons up the values and return them.  */
-	 if ! CONSP (reuse)
-	   { reuse = Flist (len, data); }
-	 else
-	   {
-	     /* If REUSE is a list, store as many value elements as will fit
-		into the elements of REUSE.  */
-	     i = 0;
-	     tail = reuse;
-	     while CONSP (tail)
-	       {
-		 if i < len
-		   { XSETCAR (tail, *data.offset (i as isize)); }
-		 else
-		   { XSETCAR (tail, Qnil ()); }
-		 prev = tail;
-		 i += 1;
-		 tail = XCDR (tail);
-	       }
-
-	     /* If we couldn't fit all value elements into REUSE,
-		cons up the rest of them and add them to the end of REUSE.  */
-	     if i < len
-	       { XSETCDR (prev, Flist (len - i, data.offset (i as isize))); }
-	   }
-
-	 SAFE_FREE! (sa_count, sa_mark);
-	 return reuse;
+       safe {
+	 crate::safe_search::match_data (integers, reuse, reseat)
        });
-
-/* We used to have an internal use variant of `reseat' described as:
-
-      If RESEAT is `evaporate', put the markers back on the free list
-      immediately.  No other references to the markers must exist in this
-      case, so it is used only internally on the unwind stack and
-      save-match-data from Lisp.
-
-   But it was ill-conceived: those supposedly-internal markers get exposed via
-   the undo-list, so freeing them here is unsafe.  */
 
 DEFUN! ("set-match-data", Fset_match_data, Sset_match_data, 1, 2, 0,   // C 2949-3060
        doc: "Set internal data on last search match from elements of LIST.\nLIST should have been created by calling `match-data' previously.\n\nIf optional arg RESEAT is non-nil, make markers on LIST point nowhere.",
        (list: Lisp_Object, reseat: Lisp_Object),
-       {
-	 let mut i: ptrdiff_t;
-	 let mut marker: Lisp_Object;
-	 let mut list: Lisp_Object = list;
-
-	 if (*running_asynch_code.as_mut_ptr ())
-	   { save_search_regs (); }
-
-	 CHECK_LIST (list);
-
-	 /* Unless we find a marker with a buffer or an explicit buffer
-	    in LIST, assume that this match data came from a string.  */
-	 last_thing_searched! () = Qt ();
-
-	 /* Allocate registers if they don't already exist.  */
-	 {
-	   let length: ptrdiff_t = list_length (list) / 2;
-
-	   if length > search_regs! ().num_regs
-	     {
-	       let mut num_regs: ptrdiff_t = search_regs! ().num_regs;
-	       search_regs! ().start =
-		 xpalloc (search_regs! ().start as *mut c_void, &raw mut num_regs,
-			  length - num_regs,
-			  min (PTRDIFF_MAX, UINT_MAX as isize),
-			  std::mem::size_of::<ptrdiff_t> () as ptrdiff_t) as *mut ptrdiff_t;
-	       search_regs! ().end =
-		 xrealloc (search_regs! ().end as *mut c_void,
-			   num_regs as usize * std::mem::size_of::<ptrdiff_t> ()) as *mut ptrdiff_t;
-
-	       i = search_regs! ().num_regs;
-	       while i < num_regs
-		 {
-		   *search_regs! ().start.offset (i as isize) = -1;
-		   i += 1;
-		 }
-
-	       search_regs! ().num_regs = num_regs;
-	     }
-
-	   i = 0;
-	   while CONSP (list)
-	     {
-	       marker = XCAR (list);
-	       if BUFFERP (marker)
-		 {
-		   last_thing_searched! () = marker;
-		   break;
-		 }
-	       if i >= length
-		 { break; }
-	       if NILP (marker)
-		 {
-		   *search_regs! ().start.offset (i as isize) = -1;
-		   list = XCDR (list);
-		 }
-	       else
-		 {
-		   let mut from: Lisp_Object;
-		   let mut m: Lisp_Object;
-
-		   m = marker;
-		   if MARKERP (marker)
-		     {
-		       if (*XMARKER (marker)).buffer.is_null ()
-			 { XSETFASTINT! (marker, 0); }
-		       else
-			 { XSETBUFFER! (last_thing_searched! (), (*XMARKER (marker)).buffer); }
-		     }
-
-		   CHECK_FIXNUM_COERCE_MARKER! (marker);
-		   from = marker;
-
-		   if !NILP (reseat) && MARKERP (m)
-		     {
-		       unchain_marker (XMARKER (m) as *mut c_void);
-		       XSETCAR (list, Qnil ());
-		     }
-
-		   list = XCDR (list);
-		   if !CONSP (list)
-		     { break; }
-
-		   marker = XCAR (list);
-		   m = marker;
-
-		   if MARKERP (marker) && (*XMARKER (marker)).buffer.is_null ()
-		     { XSETFASTINT! (marker, 0); }
-
-		   CHECK_FIXNUM_COERCE_MARKER! (marker);
-		   if PTRDIFF_MIN <= XFIXNUM (from) && XFIXNUM (from) <= PTRDIFF_MAX
-		       && PTRDIFF_MIN <= XFIXNUM (marker)
-		       && XFIXNUM (marker) <= PTRDIFF_MAX
-		     {
-		       *search_regs! ().start.offset (i as isize) = XFIXNUM (from);
-		       *search_regs! ().end.offset (i as isize) = XFIXNUM (marker);
-		     }
-		   else
-		     {
-		       *search_regs! ().start.offset (i as isize) = -1;
-		     }
-
-		   if !NILP (reseat) && MARKERP (m)
-		     {
-		       unchain_marker (XMARKER (m) as *mut c_void);
-		       XSETCAR (list, Qnil ());
-		     }
-		 }
-	       list = XCDR (list);
-	       i += 1;
-	     }
-
-	   while i < search_regs! ().num_regs
-	     {
-	       *search_regs! ().start.offset (i as isize) = -1;
-	       i += 1;
-	     }
-	 }
-
-	 return Qnil ();
+       safe {
+	 crate::safe_search::set_match_data (list, reseat)
        });
 
 DEFUN! ("match-data--translate", Fmatch_data__translate, Smatch_data__translate,   // C 3062-3079
        1, 1, 0,
        doc: "Add N to all positions in the match data.  Internal.",
        (n: Lisp_Object),
-       {
-	 CHECK_FIXNUM (n);
-	 let delta: EMACS_INT = XFIXNUM (n);
-	 if !NILP (last_thing_searched! ())
-	   {
-	     let mut i: ptrdiff_t = 0;
-	     while i < search_regs! ().num_regs
-	       {
-		 if *search_regs! ().start.offset (i as isize) >= 0
-		   {
-		     *search_regs! ().start.offset (i as isize)
-		       = max (0, *search_regs! ().start.offset (i as isize) + delta);
-		     *search_regs! ().end.offset (i as isize)
-		       = max (0, *search_regs! ().end.offset (i as isize) + delta);
-		   }
-		 i += 1;
-	       }
-	   }
-	 return Qnil ();
+       safe {
+	 crate::safe_search::match_data_translate (n)
        });
 
 /* Called from Flooking_at, Fstring_match, search_buffer, Fstore_match_data
@@ -3389,7 +3191,7 @@ unsafe fn save_search_regs ()                                 // C 3082-3095
 
 /* Called upon exit from filters and sentinels. */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn restore_search_regs ()               // C 3097-3113
+pub extern "C-unwind" fn restore_search_regs ()               // C 3097-3113
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -3411,7 +3213,7 @@ pub unsafe extern "C-unwind" fn restore_search_regs ()               // C 3097-3
 
 /* Called from replace-match via replace_range.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn update_search_regs (oldstart: ptrdiff_t, oldend: ptrdiff_t,   // C 3115-3147
+pub extern "C-unwind" fn update_search_regs (oldstart: ptrdiff_t, oldend: ptrdiff_t,   // C 3115-3147
 					     newend: ptrdiff_t)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
@@ -3453,8 +3255,7 @@ pub unsafe extern "C-unwind" fn update_search_regs (oldstart: ptrdiff_t, oldend:
 
 unsafe extern "C-unwind" fn unwind_set_match_data (list: Lisp_Object)   // C 3149-3154
 {
-  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
-  unsafe {
+  {
   /* It is NOT ALWAYS safe to free (evaporate) the markers immediately.  */
   Fset_match_data (list, Qt ());
 
@@ -3463,7 +3264,7 @@ unsafe extern "C-unwind" fn unwind_set_match_data (list: Lisp_Object)   // C 314
 
 /* Called to unwind protect the match data.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn record_unwind_save_match_data ()      // C 3157-3162
+pub extern "C-unwind" fn record_unwind_save_match_data ()      // C 3157-3162
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -3478,51 +3279,8 @@ pub unsafe extern "C-unwind" fn record_unwind_save_match_data ()      // C 3157-
 DEFUN! ("regexp-quote", Fregexp_quote, Sregexp_quote, 1, 1, 0,   // C 3165-3205
        doc: "Return a regexp string which matches exactly STRING and nothing else.",
        (string: Lisp_Object),
-       {
-	 let mut in_: *mut c_char;
-	 let mut out: *mut c_char;
-	 let end: *mut c_char;
-	 let mut temp: *mut c_char = std::ptr::null_mut ();
-	 let mut backslashes_added: ptrdiff_t = 0;
-
-	 CHECK_STRING (string);
-
-	 USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
-	 SAFE_NALLOCA! (sa_avail, temp, 2, SBYTES (string));
-
-	 /* Now copy the data into the new string, inserting escapes. */
-
-	 in_ = SSDATA (string);
-	 end = in_.offset (SBYTES (string));
-	 out = temp;
-
-	 while in_ != end
-	   {
-	     if *in_ as c_int == b'[' as c_int
-		 || *in_ as c_int == b'*' as c_int || *in_ as c_int == b'.' as c_int
-		 || *in_ as c_int == b'\\' as c_int
-		 || *in_ as c_int == b'?' as c_int || *in_ as c_int == b'+' as c_int
-		 || *in_ as c_int == b'^' as c_int || *in_ as c_int == b'$' as c_int
-	       {
-		 *out = b'\\' as c_char;
-		 out = out.offset (1);
-		 backslashes_added += 1;
-	       }
-	     *out = *in_;
-	     out = out.offset (1);
-	     in_ = in_.offset (1);
-	   }
-
-	 let result: Lisp_Object
-	   = if backslashes_added > 0
-	   { make_specified_string (temp,
-				    SCHARS (string) + backslashes_added,
-				    out.offset_from (temp),
-				    STRING_MULTIBYTE (string)) }
-	   else
-	   { string };
-	 SAFE_FREE! (sa_count, sa_mark);
-	 return result;
+       safe {
+	 crate::safe_search::regexp_quote (string)
        });
 
 /* Like find_newline, but doesn't use the cache, and only searches forward.  */

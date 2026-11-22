@@ -283,7 +283,7 @@ unsafe extern "C-unwind" {
 
 /* C 89: `static Lisp_Object old_selected_window;` — the value of selected_window at the last
    time window change functions were run.  */
-static old_selected_window: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+pub(crate) static old_selected_window: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* C 97: `static bool window_change_record_frames;` — true means `window_change_record` has to
    record all live frames.  */
@@ -568,30 +568,30 @@ unsafe fn wset_old_buffer (w: *mut window, val: Lisp_Object)
 DEFUN! ("windowp", Fwindowp, Swindowp, 1, 1, 0,
        doc: "Return t if OBJECT is a window and nil otherwise.  ",
        (object: Lisp_Object),
-       {
-  return if WINDOWP (object) { Qt () } else { Qnil () };
+       safe {
+  crate::safe_window::windowp (object)
 });
 
 DEFUN! ("window-valid-p", Fwindow_valid_p, Swindow_valid_p, 1, 1, 0,
        doc: "Return t if OBJECT is a valid window and nil otherwise.\nA valid window is either a window that displays a buffer or an internal\nwindow.  Windows that have been deleted are not valid.  ",
        (object: Lisp_Object),
-       {
-  return if WINDOW_VALID_P (object) { Qt () } else { Qnil () };
+       safe {
+  crate::safe_window::window_valid_p (object)
 });
 
 DEFUN! ("window-live-p", Fwindow_live_p, Swindow_live_p, 1, 1, 0,
        doc: "Return t if OBJECT is a live window and nil otherwise.\nA live window is a window that displays a buffer.\nInternal windows and deleted windows are not live.  ",
        (object: Lisp_Object),
-       {
-  return if WINDOW_LIVE_P (object) { Qt () } else { Qnil () };
+       safe {
+  crate::safe_window::window_live_p (object)
 });
 
 /* Frames and windows.  */
 DEFUN! ("window-frame", Fwindow_frame, Swindow_frame, 0, 1, 0,
        doc: "Return the frame that window WINDOW is on.\nWINDOW must be a valid window and defaults to the selected one.  ",
        (window: Lisp_Object),
-       {
-  return (*decode_valid_window (window)).frame;
+       safe {
+  crate::safe_window::window_frame (window)
 });
 
 DEFUN! ("frame-root-window", Fframe_root_window, Sframe_root_window, 0, 1, 0,
@@ -616,16 +616,16 @@ DEFUN! ("frame-root-window", Fframe_root_window, Sframe_root_window, 0, 1, 0,
 DEFUN! ("minibuffer-window", Fminibuffer_window, Sminibuffer_window, 0, 1, 0,
        doc: "Return the minibuffer window for frame FRAME.\nIf FRAME is omitted or nil, it defaults to the selected frame.  ",
        (frame: Lisp_Object),
-       {
-  return FRAME_MINIBUF_WINDOW (decode_live_frame (frame));
+       safe {
+  crate::safe_window::minibuffer_window (frame)
 });
 
 DEFUN! ("window-minibuffer-p", Fwindow_minibuffer_p,
        Swindow_minibuffer_p, 0, 1, 0,
        doc: "Return t if WINDOW is a minibuffer window.\nWINDOW must be a valid window and defaults to the selected one.  ",
        (window: Lisp_Object),
-       {
-  return if MINI_WINDOW_P (decode_valid_window (window)) { Qt () } else { Qnil () };
+       safe {
+  crate::safe_window::window_minibuffer_p (window)
 });
 
 /* Don't move this to window.el - this must be a safe routine.  */
@@ -712,16 +712,16 @@ DEFUN! ("set-frame-selected-window", Fset_frame_selected_window,
 DEFUN! ("selected-window", Fselected_window, Sselected_window, 0, 0, 0,
        doc: "Return the selected window.\nThe selected window is the window in which the standard cursor for\nselected windows appears and to which many commands apply.\n\nAlso see `old-selected-window' and `minibuffer-selected-window'.  ",
        (),
-       {
-  return (*selected_window.as_mut_ptr ());
+       safe {
+  crate::safe_window::selected_window_subr ()
 });
 
 DEFUN! ("old-selected-window", Fold_selected_window,
        Sold_selected_window, 0, 0, 0,
        doc: "Return the old selected window.\nThe return value is the window selected the last time window change\nfunctions were run.  ",
        (),
-       {
-  return (*old_selected_window.as_mut_ptr ());
+       safe {
+  crate::safe_window::old_selected_window_subr ()
 });
 
 /* If select_window is called with inhibit_point_swap true it will
@@ -849,10 +849,8 @@ DEFUN! ("select-window", Fselect_window, Sselect_window, 1, 2, 0,
 DEFUN! ("window-buffer", Fwindow_buffer, Swindow_buffer, 0, 1, 0,
        doc: "Return the buffer displayed in window WINDOW.\nIf WINDOW is omitted or nil, it defaults to the selected window.\nReturn nil for an internal window or a deleted window.  ",
        (window: Lisp_Object),
-       {
-  let w: *mut window = decode_any_window (window);
-
-  return if WINDOW_LEAF_P (w) { (*w).contents } else { Qnil () };
+       safe {
+  crate::safe_window::window_buffer (window)
 });
 
 DEFUN! ("window-old-buffer", Fwindow_old_buffer, Swindow_old_buffer, 0, 1, 0,
@@ -875,72 +873,57 @@ DEFUN! ("window-old-buffer", Fwindow_old_buffer, Swindow_old_buffer, 0, 1, 0,
 DEFUN! ("window-parent", Fwindow_parent, Swindow_parent, 0, 1, 0,
        doc: "Return the parent window of window WINDOW.\nWINDOW must be a valid window and defaults to the selected one.\nReturn nil for a window with no parent (e.g. a root window).  ",
        (window: Lisp_Object),
-       {
-  return (*decode_valid_window (window)).parent;
+       safe {
+  crate::safe_window::window_parent (window)
 });
 
 DEFUN! ("window-top-child", Fwindow_top_child, Swindow_top_child, 0, 1, 0,
        doc: "Return the topmost child window of window WINDOW.\nWINDOW must be a valid window and defaults to the selected one.\nReturn nil if WINDOW is a live window (live windows have no children).\nReturn nil if WINDOW is an internal window whose children form a\nhorizontal combination.  ",
        (window: Lisp_Object),
-       {
-  let w: *mut window = decode_valid_window (window);
-  return if WINDOW_VERTICAL_COMBINATION_P (w) { (*w).contents } else { Qnil () };
+       safe {
+  crate::safe_window::window_top_child (window)
 });
 
 DEFUN! ("window-left-child", Fwindow_left_child, Swindow_left_child, 0, 1, 0,
        doc: "Return the leftmost child window of window WINDOW.\nWINDOW must be a valid window and defaults to the selected one.\nReturn nil if WINDOW is a live window (live windows have no children).\nReturn nil if WINDOW is an internal window whose children form a\nvertical combination.  ",
        (window: Lisp_Object),
-       {
-  let w: *mut window = decode_valid_window (window);
-  return if WINDOW_HORIZONTAL_COMBINATION_P (w) { (*w).contents } else { Qnil () };
+       safe {
+  crate::safe_window::window_left_child (window)
 });
 
 DEFUN! ("window-next-sibling", Fwindow_next_sibling, Swindow_next_sibling, 0, 1, 0,
        doc: "Return the next sibling window of window WINDOW.\nWINDOW must be a valid window and defaults to the selected one.\nReturn nil if WINDOW has no next sibling.  ",
        (window: Lisp_Object),
-       {
-  return (*decode_valid_window (window)).next;
+       safe {
+  crate::safe_window::window_next_sibling (window)
 });
 
 DEFUN! ("window-prev-sibling", Fwindow_prev_sibling, Swindow_prev_sibling, 0, 1, 0,
        doc: "Return the previous sibling window of window WINDOW.\nWINDOW must be a valid window and defaults to the selected one.\nReturn nil if WINDOW has no previous sibling.  ",
        (window: Lisp_Object),
-       {
-  return (*decode_valid_window (window)).prev;
+       safe {
+  crate::safe_window::window_prev_sibling (window)
 });
 
 DEFUN! ("window-combination-limit", Fwindow_combination_limit, Swindow_combination_limit, 1, 1, 0,
        doc: "Return combination limit of window WINDOW.\nWINDOW must be a valid window used in horizontal or vertical combination.\nIf the return value is nil, child windows of WINDOW can be recombined with\nWINDOW's siblings.  A return value of t means that child windows of\nWINDOW are never (re-)combined with WINDOW's siblings.  ",
        (window: Lisp_Object),
-       {
-  let w: *mut window;
-
-  CHECK_VALID_WINDOW (window);
-  w = XWINDOW (window);
-  if WINDOW_LEAF_P (w)
-    { error (c"Combination limit is meaningful for internal windows only".as_ptr ()); }
-  return (*w).combination_limit;
+       safe {
+  crate::safe_window::window_combination_limit (window)
 });
 
 DEFUN! ("set-window-combination-limit", Fset_window_combination_limit, Sset_window_combination_limit, 2, 2, 0,
        doc: "Set combination limit of window WINDOW to LIMIT; return LIMIT.\nWINDOW must be a valid window used in horizontal or vertical combination.\nIf LIMIT is nil, child windows of WINDOW can be recombined with WINDOW's\nsiblings.  LIMIT t means that child windows of WINDOW are never\n(re-)combined with WINDOW's siblings.  Other values are reserved for\nfuture use.  ",
        (window: Lisp_Object, limit: Lisp_Object),
-       {
-  let w: *mut window;
-
-  CHECK_VALID_WINDOW (window);
-  w = XWINDOW (window);
-  if WINDOW_LEAF_P (w)
-    { error (c"Combination limit is meaningful for internal windows only".as_ptr ()); }
-  wset_combination_limit (w, limit);
-  return limit;
+       safe {
+  crate::safe_window::set_window_combination_limit (window, limit)
 });
 
 DEFUN! ("window-use-time", Fwindow_use_time, Swindow_use_time, 0, 1, 0,
        doc: "Return the use time of window WINDOW.\nWINDOW must specify a live window and defaults to the selected one.\n\nThe window with the highest use time is usually the one most recently\nselected by calling `select-window' with NORECORD nil.  The window with\nthe lowest use time is usually the least recently selected one chosen in\nsuch a way.\n\nNote that the use time of a window can be also changed by calling\n`window-bump-use-time' for that window.  ",
        (window: Lisp_Object),
-       {
-  return make_fixnum ((*decode_live_window (window)).use_time);
+       safe {
+  crate::safe_window::window_use_time (window)
 });
 
 DEFUN! ("window-bump-use-time", Fwindow_bump_use_time,
@@ -965,15 +948,15 @@ DEFUN! ("window-bump-use-time", Fwindow_bump_use_time,
 DEFUN! ("window-pixel-width", Fwindow_pixel_width, Swindow_pixel_width, 0, 1, 0,
        doc: "Return the width of window WINDOW in pixels.\nWINDOW must be a valid window and defaults to the selected one.\n\nThe return value includes the fringes and margins of WINDOW as well as\nany vertical dividers or scroll bars belonging to WINDOW.  If WINDOW is\nan internal window, its pixel width is the width of the screen areas\nspanned by its children.  ",
        (window: Lisp_Object),
-       {
-  return make_fixnum ((*decode_valid_window (window)).pixel_width as EMACS_INT);
+       safe {
+  crate::safe_window::window_pixel_width (window)
 });
 
 DEFUN! ("window-pixel-height", Fwindow_pixel_height, Swindow_pixel_height, 0, 1, 0,
        doc: "Return the height of window WINDOW in pixels.\nWINDOW must be a valid window and defaults to the selected one.\n\nThe return value includes the mode line and header line and the bottom\ndivider, if any.  If WINDOW is an internal window, its pixel height is\nthe height of the screen areas spanned by its children.  ",
        (window: Lisp_Object),
-       {
-  return make_fixnum ((*decode_valid_window (window)).pixel_height as EMACS_INT);
+       safe {
+  crate::safe_window::window_pixel_height (window)
 });
 
 /* C: `include/dispextern.rs` is the WIP mirror of `dispextern.h` and `include/font.rs` the WIP
@@ -1086,115 +1069,89 @@ DEFUN! ("window-old-pixel-width", Fwindow_old_pixel_width,
        Swindow_old_pixel_width, 0, 1, 0,
        doc: "Return old total pixel width of WINDOW.\nWINDOW must be a valid window and defaults to the selected one.\n\nThe return value is the total pixel width of WINDOW after the last\ntime window change functions found WINDOW live on its frame.  It is\nzero if WINDOW was created after that.  ",
        (window: Lisp_Object),
-       {
-  return (make_fixnum
-	  ((*decode_valid_window (window)).old_pixel_width as EMACS_INT));
+       safe {
+  crate::safe_window::window_old_pixel_width (window)
 });
 
 DEFUN! ("window-old-pixel-height", Fwindow_old_pixel_height,
        Swindow_old_pixel_height, 0, 1, 0,
        doc: "Return old total pixel height of WINDOW.\nWINDOW must be a valid window and defaults to the selected one.\n\nThe return value is the total pixel height of WINDOW after the last\ntime window change functions found WINDOW live on its frame.  It is\nzero if WINDOW was created after that.  ",
        (window: Lisp_Object),
-       {
-  return (make_fixnum
-	  ((*decode_valid_window (window)).old_pixel_height as EMACS_INT));
+       safe {
+  crate::safe_window::window_old_pixel_height (window)
 });
 
 DEFUN! ("window-total-height", Fwindow_total_height, Swindow_total_height, 0, 2, 0,
        doc: "Return the height of window WINDOW in canonical lines.\nWINDOW must be a valid window and defaults to the selected one.\n\nThe return value includes the heights of WINDOW's mode and header line\nand its bottom divider, if any.  If WINDOW is an internal window, the\ntotal height is the height of the screen areas spanned by its children.\n\nIf WINDOW's pixel height is not an integral multiple of its frame's\ncanonical character height, the number of lines occupied by WINDOW is\nrounded internally.  This is done in a way such that, if WINDOW is a\nparent window, the sum of the total heights of all its children\ninternally equals the total height of WINDOW.\n\nIf the optional argument ROUND is `ceiling', return the smallest integer\nlarger than WINDOW's pixel height divided by the canonical character\nheight of WINDOW's frame.  ROUND `floor' means to return the largest\ninteger smaller than WINDOW's pixel height divided by the canonical\ncharacter height of WINDOW's frame.  Any other value of ROUND means to\nreturn the internal total height of WINDOW.  ",
        (window: Lisp_Object, round: Lisp_Object),
-       {
-  let w: *mut window = decode_valid_window (window);
-
-  if ! EQ (round, Qfloor ()) && ! EQ (round, Qceiling ())
-    { return make_fixnum ((*w).total_lines as EMACS_INT); }
-  else
-    {
-      let unit: c_int = FRAME_LINE_HEIGHT (WINDOW_XFRAME! (w));
-
-      return make_fixnum ((if EQ (round, Qceiling ())
-			  { ((*w).pixel_height + unit - 1) / unit }
-			  else { (*w).pixel_height / unit }) as EMACS_INT);
-    }
+       safe {
+  crate::safe_window::window_total_height (window, round)
 });
 
 DEFUN! ("window-total-width", Fwindow_total_width, Swindow_total_width, 0, 2, 0,
        doc: "Return the total width of window WINDOW in canonical columns.\nWINDOW must be a valid window and defaults to the selected one.\n\nThe return value includes the widths of WINDOW's fringes, margins,\nscroll bars and its right divider, if any.  If WINDOW is an internal\nwindow, the total width is the width of the screen areas spanned by its\nchildren.\n\nIf WINDOW's pixel width is not an integral multiple of its frame's\ncanonical character width, the number of lines occupied by WINDOW is\nrounded internally.  This is done in a way such that, if WINDOW is a\nparent window, the sum of the total widths of all its children\ninternally equals the total width of WINDOW.\n\nIf the optional argument ROUND is `ceiling', return the smallest integer\nlarger than WINDOW's pixel width divided by the canonical character\nwidth of WINDOW's frame.  ROUND `floor' means to return the largest\ninteger smaller than WINDOW's pixel width divided by the canonical\ncharacter width of WINDOW's frame.  Any other value of ROUND means to\nreturn the internal total width of WINDOW.  ",
        (window: Lisp_Object, round: Lisp_Object),
-       {
-  let w: *mut window = decode_valid_window (window);
-
-  if ! EQ (round, Qfloor ()) && ! EQ (round, Qceiling ())
-    { return make_fixnum ((*w).total_cols as EMACS_INT); }
-  else
-    {
-      let unit: c_int = FRAME_COLUMN_WIDTH (WINDOW_XFRAME! (w));
-
-      return make_fixnum ((if EQ (round, Qceiling ())
-			  { ((*w).pixel_width + unit - 1) / unit }
-			  else { (*w).pixel_width / unit }) as EMACS_INT);
-    }
+       safe {
+  crate::safe_window::window_total_width (window, round)
 });
 
 DEFUN! ("window-new-total", Fwindow_new_total, Swindow_new_total, 0, 1, 0,
        doc: "Return the new total size of window WINDOW.\nWINDOW must be a valid window and defaults to the selected one.\n\nThe new total size of WINDOW is the value set by the last call of\n`set-window-new-total' for WINDOW.  If it is valid, it will be shortly\ninstalled as WINDOW's total height (see `window-total-height') or total\nwidth (see `window-total-width').  ",
        (window: Lisp_Object),
-       {
-  return (*decode_valid_window (window)).new_total;
+       safe {
+  crate::safe_window::window_new_total (window)
 });
 
 DEFUN! ("window-normal-size", Fwindow_normal_size, Swindow_normal_size, 0, 2, 0,
        doc: "Return the normal height of window WINDOW.\nWINDOW must be a valid window and defaults to the selected one.\nIf HORIZONTAL is non-nil, return the normal width of WINDOW.\n\nThe normal height of a frame's root window or a window that is\nhorizontally combined (a window that has a left or right sibling) is\n1.0.  The normal height of a window that is vertically combined (has a\nsibling above or below) is the fraction of the window's height with\nrespect to its parent.  The sum of the normal heights of all windows in a\nvertical combination equals 1.0.\n\nSimilarly, the normal width of a frame's root window or a window that is\nvertically combined equals 1.0.  The normal width of a window that is\nhorizontally combined is the fraction of the window's width with respect\nto its parent.  The sum of the normal widths of all windows in a\nhorizontal combination equals 1.0.\n\nThe normal sizes of windows are used to restore the proportional sizes\nof windows after they have been shrunk to their minimum sizes; for\nexample when a frame is temporarily made very small and afterwards gets\nre-enlarged to its previous size.  ",
        (window: Lisp_Object, horizontal: Lisp_Object),
-       {
-  let w: *mut window = decode_valid_window (window);
-
-  return if NILP (horizontal) { (*w).normal_lines } else { (*w).normal_cols };
+       safe {
+  crate::safe_window::window_normal_size (window, horizontal)
 });
 
 DEFUN! ("window-new-normal", Fwindow_new_normal, Swindow_new_normal, 0, 1, 0,
        doc: "Return new normal size of window WINDOW.\nWINDOW must be a valid window and defaults to the selected one.\n\nThe new normal size of WINDOW is the value set by the last call of\n`set-window-new-normal' for WINDOW.  If valid, it will be shortly\ninstalled as WINDOW's normal size (see `window-normal-size').  ",
        (window: Lisp_Object),
-       {
-  return (*decode_valid_window (window)).new_normal;
+       safe {
+  crate::safe_window::window_new_normal (window)
 });
 
 DEFUN! ("window-new-pixel", Fwindow_new_pixel, Swindow_new_pixel, 0, 1, 0,
        doc: "Return new pixel size of window WINDOW.\nWINDOW must be a valid window and defaults to the selected one.\n\nThe new pixel size of WINDOW is the value set by the last call of\n`set-window-new-pixel' for WINDOW.  If it is valid, it will be shortly\ninstalled as WINDOW's pixel height (see `window-pixel-height') or pixel\nwidth (see `window-pixel-width').  ",
        (window: Lisp_Object),
-       {
-  return (*decode_valid_window (window)).new_pixel;
+       safe {
+  crate::safe_window::window_new_pixel (window)
 });
 
 DEFUN! ("window-pixel-left", Fwindow_pixel_left, Swindow_pixel_left, 0, 1, 0,
        doc: "Return left pixel edge of window WINDOW.\nWINDOW must be a valid window and defaults to the selected one.  ",
        (window: Lisp_Object),
-       {
-  return make_fixnum ((*decode_valid_window (window)).pixel_left as EMACS_INT);
+       safe {
+  crate::safe_window::window_pixel_left (window)
 });
 
 DEFUN! ("window-pixel-top", Fwindow_pixel_top, Swindow_pixel_top, 0, 1, 0,
        doc: "Return top pixel edge of window WINDOW.\nWINDOW must be a valid window and defaults to the selected one.  ",
        (window: Lisp_Object),
-       {
-  return make_fixnum ((*decode_valid_window (window)).pixel_top as EMACS_INT);
+       safe {
+  crate::safe_window::window_pixel_top (window)
 });
 
 DEFUN! ("window-left-column", Fwindow_left_column, Swindow_left_column, 0, 1, 0,
        doc: "Return left column of window WINDOW.\nThis is the distance, in columns, between the left edge of WINDOW and\nthe left edge of the frame's window area.  For instance, the return\nvalue is 0 if there is no window to the left of WINDOW.\n\nWINDOW must be a valid window and defaults to the selected one.  ",
        (window: Lisp_Object),
-       {
-  return make_fixnum ((*decode_valid_window (window)).left_col as EMACS_INT);
+       safe {
+  crate::safe_window::window_left_column (window)
 });
 
 DEFUN! ("window-top-line", Fwindow_top_line, Swindow_top_line, 0, 1, 0,
        doc: "Return top line of window WINDOW.\nThis is the distance, in lines, between the top of WINDOW and the top\nof the frame's window area.  For instance, the return value is 0 if\nthere is no window above WINDOW.\n\nWINDOW must be a valid window and defaults to the selected one.  ",
        (window: Lisp_Object),
-       {
-  return make_fixnum ((*decode_valid_window (window)).top_line as EMACS_INT);
+       safe {
+  crate::safe_window::window_top_line (window)
 });
 
-unsafe fn window_body_unit_from_symbol (unit: Lisp_Object) -> window_body_unit
+fn window_body_unit_from_symbol (unit: Lisp_Object) -> window_body_unit
 {
   return
     if EQ (unit, Qremap ()) { window_body_unit::WINDOW_BODY_IN_REMAPPED_CHARS }
@@ -1398,8 +1355,8 @@ DEFUN! ("window-scroll-bar-height", Fwindow_scroll_bar_height,
 DEFUN! ("window-hscroll", Fwindow_hscroll, Swindow_hscroll, 0, 1, 0,
        doc: "Return the number of columns by which WINDOW is scrolled from left margin.\nWINDOW must be a live window and defaults to the selected one.  ",
        (window: Lisp_Object),
-       {
-  return make_fixnum ((*decode_live_window (window)).hscroll);
+       safe {
+  crate::safe_window::window_hscroll (window)
 });
 
 /* Set W's horizontal scroll amount to HSCROLL clipped to a reasonable
@@ -2060,22 +2017,22 @@ pub unsafe extern "C-unwind" fn window_point (w: *mut window) -> ptrdiff_t
 DEFUN! ("window-point", Fwindow_point, Swindow_point, 0, 1, 0,
        doc: "Return current value of point in WINDOW.\nWINDOW must be a live window and defaults to the selected one.\n\nFor a nonselected window, this is the value point would have if that\nwindow were selected.\n\nNote that, when WINDOW is selected, the value returned is the same as\nthat returned by `point' for WINDOW's buffer.  It would be more strictly\ncorrect to return the top-level value of `point', outside of any\n`save-excursion' forms.  But that is hard to define.",
        (window: Lisp_Object),
-       {
-  return make_fixnum (window_point (decode_live_window (window)));
+       safe {
+  crate::safe_window::window_point_subr (window)
 });
 
 DEFUN! ("window-old-point", Fwindow_old_point, Swindow_old_point, 0, 1, 0,
        doc: "Return old value of point in WINDOW.\nWINDOW must be a live window and defaults to the selected one.",
        (window: Lisp_Object),
-       {
-  return Fmarker_position ((*decode_live_window (window)).old_pointm);
+       safe {
+  crate::safe_window::window_old_point (window)
 });
 
 DEFUN! ("window-start", Fwindow_start, Swindow_start, 0, 1, 0,
        doc: "Return position at which display currently starts in WINDOW.\nWINDOW must be a live window and defaults to the selected one.\nThis is updated by redisplay or by calling `set-window-start'.",
        (window: Lisp_Object),
-       {
-  return Fmarker_position ((*decode_live_window (window)).start);
+       safe {
+  crate::safe_window::window_start (window)
 });
 
 /* This is text temporarily removed from the doc string below.
@@ -2213,7 +2170,7 @@ DEFUN! ("pos-visible-in-window-p", Fpos_visible_in_window_p,
   let w: *mut window;
   let mut posint: EMACS_INT;
   let buf: *mut buffer;
-  let mut top: text_pos = /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { std::mem::zeroed () };
+  let mut top: text_pos = { std::mem::zeroed () };
   let mut in_window: Lisp_Object = Qnil ();
   let mut rtop: c_int = 0;
   let mut rbot: c_int = 0;
@@ -2444,59 +2401,56 @@ DEFUN! ("window-dedicated-p", Fwindow_dedicated_p, Swindow_dedicated_p,
        0, 1, 0,
        doc: "Return non-nil when WINDOW is dedicated to its buffer.\nMore precisely, return the value assigned by the last call of\n`set-window-dedicated-p' for WINDOW.  Return nil if that function was\nnever called with WINDOW as its argument, or the value set by that\nfunction was internally reset since its last call.  WINDOW must be a\nlive window and defaults to the selected one.\n\nWhen a window is dedicated to its buffer, `display-buffer' will refrain\nfrom displaying another buffer in it.  `get-lru-window' and\n`get-largest-window' treat dedicated windows specially.\n`delete-windows-on', `replace-buffer-in-windows', `quit-window' and\n`kill-buffer' can delete a dedicated window and the containing frame.\n\nFunctions like `set-window-buffer' may change the buffer displayed by a\nwindow, unless that window is \"strongly\" dedicated to its buffer, that\nis the value returned by `window-dedicated-p' is t.  ",
        (window: Lisp_Object),
-       {
-  return (*decode_live_window (window)).dedicated;
+       safe {
+  crate::safe_window::window_dedicated_p (window)
 });
 
 DEFUN! ("set-window-dedicated-p", Fset_window_dedicated_p,
        Sset_window_dedicated_p, 2, 2, 0,
        doc: "Mark WINDOW as dedicated according to FLAG.\nWINDOW must be a live window and defaults to the selected one.  FLAG\nnon-nil means mark WINDOW as dedicated to its buffer.  FLAG nil means\nmark WINDOW as non-dedicated.  Return FLAG.\n\nWhen a window is dedicated to its buffer, `display-buffer' will refrain\nfrom displaying another buffer in it.  `get-lru-window' and\n`get-largest-window' treat dedicated windows specially.\n`delete-windows-on', `replace-buffer-in-windows', `quit-window',\n`quit-restore-window' and `kill-buffer' can delete a dedicated window\nand the containing frame.\n\nAs a special case, if FLAG is t, mark WINDOW as \"strongly\" dedicated to\nits buffer.  Functions like `set-window-buffer' may change the buffer\ndisplayed by a window, unless that window is strongly dedicated to its\nbuffer.  If and when `set-window-buffer' displays another buffer in a\nwindow, it also makes sure that the window is no more dedicated.  ",
        (window: Lisp_Object, flag: Lisp_Object),
-       {
-  wset_dedicated (decode_live_window (window), flag);
-  return flag;
+       safe {
+  crate::safe_window::set_window_dedicated_p (window, flag)
 });
 
 DEFUN! ("window-prev-buffers", Fwindow_prev_buffers, Swindow_prev_buffers,
        0, 1, 0,
        doc: "Return buffers previously shown in WINDOW.\nWINDOW must be a live window and defaults to the selected one.\n\nThe return value is a list of elements (BUFFER WINDOW-START POS),\nwhere BUFFER is a buffer, WINDOW-START is the start position of the\nwindow for that buffer, and POS is a window-specific point value.\n\nIn rare occasions BUFFER may have been already killed.  It's therefore\nadvisable to always check the return value for the occurrence of dead\nbuffers before using it.  ",
        (window: Lisp_Object),
-       {
-  return (*decode_live_window (window)).prev_buffers;
+       safe {
+  crate::safe_window::window_prev_buffers (window)
 });
 
 DEFUN! ("set-window-prev-buffers", Fset_window_prev_buffers,
        Sset_window_prev_buffers, 2, 2, 0,
        doc: "Set WINDOW's previous buffers to PREV-BUFFERS.\nWINDOW must be a live window and defaults to the selected one.\n\nPREV-BUFFERS should be a list of elements (BUFFER WINDOW-START POS),\nwhere BUFFER is a buffer, WINDOW-START is the start position of the\nwindow for that buffer, and POS is a window-specific point value.  ",
        (window: Lisp_Object, prev_buffers: Lisp_Object),
-       {
-  wset_prev_buffers (decode_live_window (window), prev_buffers);
-  return prev_buffers;
+       safe {
+  crate::safe_window::set_window_prev_buffers (window, prev_buffers)
 });
 
 DEFUN! ("window-next-buffers", Fwindow_next_buffers, Swindow_next_buffers,
        0, 1, 0,
        doc: "Return list of buffers recently re-shown in WINDOW.\nWINDOW must be a live window and defaults to the selected one.  ",
        (window: Lisp_Object),
-       {
-  return (*decode_live_window (window)).next_buffers;
+       safe {
+  crate::safe_window::window_next_buffers (window)
 });
 
 DEFUN! ("set-window-next-buffers", Fset_window_next_buffers,
        Sset_window_next_buffers, 2, 2, 0,
        doc: "Set WINDOW's next buffers to NEXT-BUFFERS.\nWINDOW must be a live window and defaults to the selected one.\nNEXT-BUFFERS should be a list of buffers.  ",
        (window: Lisp_Object, next_buffers: Lisp_Object),
-       {
-  wset_next_buffers (decode_live_window (window), next_buffers);
-  return next_buffers;
+       safe {
+  crate::safe_window::set_window_next_buffers (window, next_buffers)
 });
 
 DEFUN! ("window-parameters", Fwindow_parameters, Swindow_parameters,
        0, 1, 0,
        doc: "Return the parameters of WINDOW and their values.\nWINDOW must be a valid window and defaults to the selected one.  The\nreturn value is a list of elements of the form (PARAMETER . VALUE).  ",
        (window: Lisp_Object),
-       {
-  return Fcopy_alist ((*decode_valid_window (window)).window_parameters);
+       safe {
+  crate::safe_window::window_parameters (window)
 });
 
 #[unsafe(no_mangle)]
@@ -2515,68 +2469,24 @@ DEFUN! ("window-parameter", Fwindow_parameter, Swindow_parameter,
        2, 2, 0,
        doc: "Return WINDOW's value for PARAMETER.\nWINDOW can be any window and defaults to the selected one.  ",
        (window: Lisp_Object, parameter: Lisp_Object),
-       {
-  let w: *mut window = decode_any_window (window);
-
-  return window_parameter (w, parameter);
+       safe {
+  crate::safe_window::window_parameter_subr (window, parameter)
 });
 
 DEFUN! ("set-window-parameter", Fset_window_parameter,
        Sset_window_parameter, 3, 3, 0,
        doc: "Set WINDOW's value of PARAMETER to VALUE.\nWINDOW can be any window and defaults to the selected one.\nReturn VALUE.  ",
        (window: Lisp_Object, parameter: Lisp_Object, value: Lisp_Object),
-       {
-  let w: *mut window = decode_any_window (window);
-  let old_alist_elt: Lisp_Object;
-  let mut f: *mut frame;
-
-  old_alist_elt = Fassq (parameter, (*w).window_parameters);
-
-  /* If this window parameter has been used in a face remapping filter
-     expression anywhere at any time and we changed its value, force a
-     from-scratch redisplay to make sure that everything that depends on
-     a face filtered on the window parameter value is up-to-date.
-
-     We compare with Qt here instead of using !NILP so that users can
-     set this property to a non-nil, non-t value to inhibit this
-     mechanism for a specific window parameter.
-
-     FIXME: instead of taking a sledgehammer to redisplay, we could be
-     more precise in tracking which display bits depend on which
-     remapped faces.  In particular, 1) if a window parameter named in a
-     face filter affects only faces used in drawing fringes, we don't
-     need to redraw TTY frames, but if the filter is ever used in a
-     non-fringe context (e.g. the 'face' text property), we need to
-     redraw TTY frames too.  2) In the fringe case, we should limit the
-     redraw damage to the fringes of the affected window and not the
-     whole frame containing the window.  Today, we seldom change window
-     parameters named in face filters.  We should implement the
-     optimizations above when this assumption no longer holds.  */
-  if SYMBOLP (parameter)
-      && WINDOW_LIVE_P (window)
-      && EQ (Fget (parameter, QCfiltered ()), Qt ())
-      && FRAME_WINDOW_P ({ f = WINDOW_XFRAME! (w); f })
-      && !EQ (CDR_SAFE (old_alist_elt), value)
-      && (*window_auto_redraw_on_parameter_change.as_mut_ptr ())
-    {
-      face_change! (f, 1);
-      fset_redisplay (f as *mut c_void);
-    }
-
-  if NILP (old_alist_elt)
-    { wset_window_parameters
-      (w, Fcons (Fcons (parameter, value), (*w).window_parameters)); }
-  else
-    { Fsetcdr (old_alist_elt, value); }
-  return value;
+       safe {
+  crate::safe_window::set_window_parameter (window, parameter, value)
 });
 
 DEFUN! ("window-display-table", Fwindow_display_table, Swindow_display_table,
        0, 1, 0,
        doc: "Return the display-table that WINDOW is using.\nWINDOW must be a live window and defaults to the selected one.  ",
        (window: Lisp_Object),
-       {
-  return (*decode_live_window (window)).display_table;
+       safe {
+  crate::safe_window::window_display_table_subr (window)
 });
 
 /* Get the display table for use on window W.  This is either W's
@@ -2619,9 +2529,8 @@ use window_defined_decls::*;
 DEFUN! ("set-window-display-table", Fset_window_display_table, Sset_window_display_table, 2, 2, 0,
        doc: "Set WINDOW's display-table to TABLE.\nWINDOW must be a live window and defaults to the selected one.  ",
        (window: Lisp_Object, table: Lisp_Object),
-       {
-  wset_display_table (decode_live_window (window), table);
-  return table;
+       safe {
+  crate::safe_window::set_window_display_table (window, table)
 });
 
 /* Record info on buffer window W is displaying
@@ -2848,7 +2757,7 @@ unsafe extern "C-unwind" fn add_window_to_list (w: *mut window, user_data: *mut 
    list, cache it in Vwindow_list, and return that.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn window_list () -> Lisp_Object
+pub extern "C-unwind" fn window_list () -> Lisp_Object
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
@@ -2882,21 +2791,58 @@ pub unsafe extern "C-unwind" fn window_list () -> Lisp_Object
   }
 }
 
-/* Value is true if WINDOW satisfies the constraints given by
-   OWINDOW, MINIBUF and ALL_FRAMES.
+#[inline(always)]
+pub fn window_list_safe () -> Lisp_Object
+{
+  window_list ()
+}
 
-   MINIBUF	t means WINDOW may be minibuffer windows.
-		`lambda' means WINDOW may not be a minibuffer window.
-		a window means a specific minibuffer window
+pub fn candidate_window_p_safe (
+  window: Lisp_Object,
+  owindow: Lisp_Object,
+  minibuf: Lisp_Object,
+  all_frames: Lisp_Object,
+) -> bool
+{
+  CHECK_WINDOW (window);
+  // SAFETY: `window` is a valid `Lisp_Window` from `Vwindow_list` and `owindow` is verified `WINDOWP` when `NILP(all_frames)`.
+  unsafe { candidate_window_p (window, owindow, minibuf, all_frames) }
+}
 
-   ALL_FRAMES	t means search all frames,
-		nil means search just current frame,
-		`visible' means search just visible frames on the
-                current terminal,
-		0 means search visible and iconified frames on the
-                current terminal,
-		a window means search the frame that window belongs to,
-		a frame means consider windows on that frame, only.  */
+pub fn decode_next_window_args_safe (
+  mut window: Lisp_Object,
+  mut minibuf: Lisp_Object,
+  mut all_frames: Lisp_Object,
+) -> (Lisp_Object, Lisp_Object, Lisp_Object)
+{
+  // SAFETY: `decode_next_window_args` validates `window` via `decode_live_window` and normalizes `minibuf`/`all_frames`.
+  unsafe {
+    decode_next_window_args (&mut window, &mut minibuf, &mut all_frames);
+  }
+  (window, minibuf, all_frames)
+}
+
+#[inline(always)]
+pub fn window_raw_frame_obj (window: Lisp_Object) -> Lisp_Object
+{
+  CHECK_WINDOW (window);
+  // SAFETY: `window` is verified `WINDOWP`.
+  unsafe { (*XWINDOW (window)).frame }
+}
+
+#[inline(always)]
+pub fn frame_selected_window_obj (frame: Lisp_Object) -> Lisp_Object
+{
+  eassert! (FRAMEP (frame));
+  // SAFETY: `frame` is verified `FRAMEP`.
+  unsafe { (*XFRAME (frame)).selected_window }
+}
+
+pub fn error_window_different_frame () -> !
+{
+  // SAFETY: static NUL-terminated ASCII diagnostic passed to `error`.
+  unsafe { error (c"Window is on a different frame".as_ptr ()); }
+}
 
 unsafe fn candidate_window_p (window: Lisp_Object, owindow: Lisp_Object,
 		    minibuf: Lisp_Object, all_frames: Lisp_Object) -> bool
@@ -3001,177 +2947,49 @@ unsafe fn decode_next_window_args (window: *mut Lisp_Object, minibuf: *mut Lisp_
   }
 }
 
-/* Return the next or previous window of WINDOW in cyclic ordering
-   of windows.  NEXT_P means return the next window.  See the
-   documentation string of next-window for the meaning of MINIBUF and
-   ALL_FRAMES.  */
-
-unsafe fn next_window (window: Lisp_Object, minibuf: Lisp_Object, all_frames: Lisp_Object,
+#[inline(always)]
+fn next_window (window: Lisp_Object, minibuf: Lisp_Object, all_frames: Lisp_Object,
 	     next_p: bool) -> Lisp_Object
 {
-  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
-  unsafe {
-  let mut window = window;
-  let mut minibuf = minibuf;
-  let mut all_frames = all_frames;
-  let count: specpdl_ref = SPECPDL_INDEX ();
-
-  decode_next_window_args (&mut window, &mut minibuf, &mut all_frames);
-
-  /* If ALL_FRAMES is a frame, and WINDOW isn't on that frame, just
-     return the first window on the frame.  */
-  if FRAMEP (all_frames)
-      && !EQ (all_frames, (*XWINDOW (window)).frame)
-    { return Fframe_first_window (all_frames); }
-
-  /*  Don't allow quitting in Fmemq.  */
-  specbind (Qinhibit_quit (), Qt ());
-
-  if next_p
-    {
-      let mut list: Lisp_Object;
-
-      /* Find WINDOW in the list of all windows.  */
-      list = Fmemq (window, window_list ());
-
-      /* Scan forward from WINDOW to the end of the window list.  */
-      if CONSP (list)
-	{ list = XCDR (list);
-	  while CONSP (list)
-	    { if candidate_window_p (XCAR (list), window, minibuf, all_frames)
-		{ break; }
-	      list = XCDR (list); } }
-
-      /* Scan from the start of the window list up to WINDOW.  */
-      if !CONSP (list)
-	{ list = (*Vwindow_list.as_mut_ptr ());
-	  while CONSP (list) && !EQ (XCAR (list), window)
-	    { if candidate_window_p (XCAR (list), window, minibuf, all_frames)
-		{ break; }
-	      list = XCDR (list); } }
-
-      if CONSP (list)
-	{ window = XCAR (list); }
-    }
-  else
-    {
-      let mut candidate: Lisp_Object;
-      let mut list: Lisp_Object;
-
-      /* Scan through the list of windows for candidates.  If there are
-	 candidate windows in front of WINDOW, the last one of these
-	 is the one we want.  If there are candidates following WINDOW
-	 in the list, again the last one of these is the one we want.  */
-      candidate = Qnil ();
-      list = window_list ();
-      while CONSP (list)
-	{
-	  if EQ (XCAR (list), window)
-	    {
-	      if WINDOWP (candidate)
-		{ break; }
-	    }
-	  else if candidate_window_p (XCAR (list), window, minibuf,
-				       all_frames)
-	    { candidate = XCAR (list); }
-	  list = XCDR (list);
-	}
-
-      if WINDOWP (candidate)
-	{ window = candidate; }
-    }
-
-  unbind_to (count, Qnil ());
-
-  return window;
-
-  }
+  crate::safe_window::next_window_impl (window, minibuf, all_frames, next_p)
 }
 
 DEFUN! ("next-window", Fnext_window, Snext_window, 0, 3, 0,
        doc: "Return live window after WINDOW in the cyclic ordering of windows.\nWINDOW must be a live window and defaults to the selected one.  The\noptional arguments MINIBUF and ALL-FRAMES specify the set of windows to\nconsider.\n\nMINIBUF nil or omitted means consider the minibuffer window only if the\nminibuffer is active.  MINIBUF t means consider the minibuffer window\neven if the minibuffer is not active.  Any other value means do not\nconsider the minibuffer window even if the minibuffer is active.\n\nALL-FRAMES nil or omitted means consider all windows on WINDOW's frame,\nplus the minibuffer window if specified by the MINIBUF argument.  If the\nminibuffer counts, consider all windows on all frames that share that\nminibuffer too.  The following non-nil values of ALL-FRAMES have special\nmeanings:\n\n- t means consider all windows on all existing frames.\n\n- `visible' means consider all windows on all visible frames.\n\n- 0 (the number zero) means consider all windows on all visible and\n  iconified frames.\n\n- A frame means consider all windows on that frame only.\n\nAnything else means consider all windows on WINDOW's frame and no\nothers.\n\nIf you use consistent values for MINIBUF and ALL-FRAMES, you can use\n`next-window' to iterate through the entire cycle of acceptable\nwindows, eventually ending up back at the window you started with.\n`previous-window' traverses the same cycle, in the reverse order.  ",
        (window: Lisp_Object, minibuf: Lisp_Object, all_frames: Lisp_Object),
-       {
-  return next_window (window, minibuf, all_frames, true);
+       safe {
+  crate::safe_window::next_window_subr (window, minibuf, all_frames)
 });
 
 DEFUN! ("previous-window", Fprevious_window, Sprevious_window, 0, 3, 0,
        doc: "Return live window before WINDOW in the cyclic ordering of windows.\nWINDOW must be a live window and defaults to the selected one.  The\noptional arguments MINIBUF and ALL-FRAMES specify the set of windows to\nconsider.\n\nMINIBUF nil or omitted means consider the minibuffer window only if the\nminibuffer is active.  MINIBUF t means consider the minibuffer window\neven if the minibuffer is not active.  Any other value means do not\nconsider the minibuffer window even if the minibuffer is active.\n\nALL-FRAMES nil or omitted means consider all windows on WINDOW's frame,\nplus the minibuffer window if specified by the MINIBUF argument.  If the\nminibuffer counts, consider all windows on all frames that share that\nminibuffer too.  The following non-nil values of ALL-FRAMES have special\nmeanings:\n\n- t means consider all windows on all existing frames.\n\n- `visible' means consider all windows on all visible frames.\n\n- 0 (the number zero) means consider all windows on all visible and\n  iconified frames.\n\n- A frame means consider all windows on that frame only.\n\nAnything else means consider all windows on WINDOW's frame and no\nothers.\n\nIf you use consistent values for MINIBUF and ALL-FRAMES, you can\nuse `previous-window' to iterate through the entire cycle of\nacceptable windows, eventually ending up back at the window you\nstarted with.  `next-window' traverses the same cycle, in the\nreverse order.  ",
        (window: Lisp_Object, minibuf: Lisp_Object, all_frames: Lisp_Object),
-       {
-  return next_window (window, minibuf, all_frames, false);
+       safe {
+  crate::safe_window::previous_window_subr (window, minibuf, all_frames)
 });
 
 /* Return a list of windows in cyclic ordering.  Arguments are like
    for `next-window'.  */
 
-unsafe fn window_list_1 (window: Lisp_Object, minibuf: Lisp_Object,
+#[inline(always)]
+fn window_list_1 (window: Lisp_Object, minibuf: Lisp_Object,
                          all_frames: Lisp_Object) -> Lisp_Object
 {
-  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
-  unsafe {
-  let mut window = window;
-  let mut minibuf = minibuf;
-  let mut all_frames = all_frames;
-  let mut tail: Lisp_Object;
-  let mut list: Lisp_Object;
-  let mut rest: Lisp_Object;
-  let count: specpdl_ref = SPECPDL_INDEX ();
-
-  decode_next_window_args (&mut window, &mut minibuf, &mut all_frames);
-  list = Qnil ();
-
-  /*  Don't allow quitting in Fmemq and Fnconc.  */
-  specbind (Qinhibit_quit (), Qt ());
-
-  tail = window_list ();
-  while CONSP (tail)
-    { if candidate_window_p (XCAR (tail), window, minibuf, all_frames)
-	{ list = Fcons (XCAR (tail), list); }
-      tail = XCDR (tail); }
-
-  /* Rotate the list to start with WINDOW.  */
-  list = Fnreverse (list);
-  rest = Fmemq (window, list);
-  if !NILP (rest) && !EQ (rest, list)
-    {
-      tail = list;
-      while !EQ (XCDR (tail), rest)
-	{ tail = XCDR (tail); }
-      XSETCDR (tail, Qnil ());
-      list = nconc2 (rest, list);
-    }
-
-  unbind_to (count, Qnil ());
-
-  return list;
-
-  }
+  crate::safe_window::window_list_1_safe (window, minibuf, all_frames)
 }
 
 DEFUN! ("window-list", Fwindow_list, Swindow_list, 0, 3, 0,
        doc: "Return a list of windows on FRAME, starting with WINDOW.\nFRAME nil or omitted means use the selected frame.\nWINDOW nil or omitted means use the window selected within FRAME.\nMINIBUF t means include the minibuffer window, even if it isn't active.\nMINIBUF nil or omitted means include the minibuffer window only\nif it's active.\nMINIBUF neither nil nor t means never include the minibuffer window.  ",
        (frame: Lisp_Object, minibuf: Lisp_Object, window: Lisp_Object),
-       {
-  let mut frame = frame;
-  let mut window = window;
-  if NILP (window)
-    { window = if FRAMEP (frame) { (*XFRAME (frame)).selected_window } else { (*selected_window.as_mut_ptr ()) }; }
-  CHECK_WINDOW (window);
-  if NILP (frame)
-    { frame = (*selected_frame.as_mut_ptr ()); }
-
-  if !EQ (frame, (*XWINDOW (window)).frame)
-    { error (c"Window is on a different frame".as_ptr ()); }
-
-  return window_list_1 (window, minibuf, frame);
+       safe {
+  crate::safe_window::window_list_subr (frame, minibuf, window)
 });
 
 DEFUN! ("window-list-1", Fwindow_list_1, Swindow_list_1, 0, 3, 0,
        doc: "Return a list of all live windows.\nWINDOW specifies the first window to list and defaults to the selected\nwindow.\n\nOptional argument MINIBUF nil or omitted means consider the minibuffer\nwindow only if the minibuffer is active.  MINIBUF t means consider the\nminibuffer window even if the minibuffer is not active.  Any other value\nmeans do not consider the minibuffer window even if the minibuffer is\nactive.\n\nOptional argument ALL-FRAMES nil or omitted means consider all windows\non WINDOW's frame, plus the minibuffer window if specified by the\nMINIBUF argument.  If the minibuffer counts, consider all windows on all\nframes that share that minibuffer too.  The following non-nil values of\nALL-FRAMES have special meanings:\n\n- t means consider all windows on all existing frames.\n\n- `visible' means consider all windows on all visible frames.\n\n- 0 (the number zero) means consider all windows on all visible and\n  iconified frames.\n\n- A frame means consider all windows on that frame only.\n\nAnything else means consider all windows on WINDOW's frame and no\nothers.\n\nIf WINDOW is not on the list of windows returned, some other window will\nbe listed first but no error is signaled.  ",
        (window: Lisp_Object, minibuf: Lisp_Object, all_frames: Lisp_Object),
-       {
-  return window_list_1 (window, minibuf, all_frames);
+       safe {
+  crate::safe_window::window_list_1_safe (window, minibuf, all_frames)
 });
 
 /** Return most recently selected frame that has the same root as a
@@ -3507,7 +3325,7 @@ unsafe fn window_discard_buffer_from_window (buffer: Lisp_Object, window: Lisp_O
     `quit-restore' and `quit-restore-prev' parameters of any dead
     WINDOW.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn window_discard_buffer_from_dead_windows (buffer: Lisp_Object)
+pub extern "C-unwind" fn window_discard_buffer_from_dead_windows (buffer: Lisp_Object)
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
@@ -3786,7 +3604,7 @@ DEFUN! ("delete-other-windows-internal", Fdelete_other_windows_internal,
 });
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn replace_buffer_in_windows (buffer: Lisp_Object)
+pub extern "C-unwind" fn replace_buffer_in_windows (buffer: Lisp_Object)
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
@@ -3810,7 +3628,7 @@ pub unsafe extern "C-unwind" fn replace_buffer_in_windows (buffer: Lisp_Object)
     parameters.
 */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn replace_buffer_in_windows_safely (buffer: Lisp_Object)
+pub extern "C-unwind" fn replace_buffer_in_windows_safely (buffer: Lisp_Object)
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
@@ -3843,8 +3661,7 @@ unsafe fn run_funs (funs: Lisp_Object)
 
 unsafe extern "C-unwind" fn select_window_norecord (window: Lisp_Object)
 {
-  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
-  unsafe {
+  {
   if WINDOW_LIVE_P (window)
     { Fselect_window (window, Qt ()); }
 
@@ -3853,8 +3670,7 @@ unsafe extern "C-unwind" fn select_window_norecord (window: Lisp_Object)
 
 unsafe extern "C-unwind" fn select_frame_norecord (frame: Lisp_Object)
 {
-  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
-  unsafe {
+  {
   if FRAME_LIVE_P (XFRAME (frame))
     { Fselect_frame (frame, Qt ()); }
 
@@ -4616,7 +4432,7 @@ DEFUN! ("force-window-update", Fforce_window_update, Sforce_window_update,
 
 /* Obsolete since 24.3.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn temp_output_buffer_show (buf: Lisp_Object)
+pub extern "C-unwind" fn temp_output_buffer_show (buf: Lisp_Object)
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
@@ -4663,7 +4479,7 @@ pub unsafe extern "C-unwind" fn temp_output_buffer_show (buf: Lisp_Object)
            Note: Both Fselect_window and select_window_norecord may
            set-buffer to the buffer displayed in the window,
            so we need to save the current buffer.  --stef  */
-        record_unwind_protect (Some (restore_buffer), prev_buffer_);
+        record_unwind_protect (Some (restore_buffer as _), prev_buffer_);
         record_unwind_protect (Some (select_window_norecord), prev_window);
         Fselect_window (window, Qt ());
         Fset_buffer ((*w).contents);
@@ -4684,7 +4500,7 @@ unsafe fn allocate_window () -> *mut window
 
 /* Make new window from scratch.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn make_window () -> Lisp_Object
+pub extern "C-unwind" fn make_window () -> Lisp_Object
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
@@ -8283,10 +8099,9 @@ DEFUN! ("set-window-configuration", Fset_window_configuration,
 });
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn restore_window_configuration (configuration: Lisp_Object)
+pub extern "C-unwind" fn restore_window_configuration (configuration: Lisp_Object)
 {
-  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
-  unsafe {
+  {
   if CONSP (configuration)
     { Fset_window_configuration (XCAR (configuration),
 			       Fcar_safe (XCDR (configuration)),
@@ -8308,7 +8123,7 @@ macro_rules! VECSIZE {
 
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn restore_focus_frame (frame_and_focus_frame: Lisp_Object)
+pub extern "C-unwind" fn restore_focus_frame (frame_and_focus_frame: Lisp_Object)
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
@@ -8337,7 +8152,7 @@ pub unsafe extern "C-unwind" fn restore_focus_frame (frame_and_focus_frame: Lisp
    WINDOW to not show any buffer.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn delete_all_child_windows (window: Lisp_Object)
+pub extern "C-unwind" fn delete_all_child_windows (window: Lisp_Object)
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
@@ -8682,10 +8497,9 @@ unsafe fn apply_window_adjustment (w: *mut window)
 			    Marginal Areas
  ***********************************************************************/
 
-unsafe fn extract_dimension (dimension: Lisp_Object) -> c_int
+fn extract_dimension (dimension: Lisp_Object) -> c_int
 {
-  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
-  unsafe {
+  {
   if NILP (dimension)
     { return -1; }
   return check_integer_range (dimension, 0, INT_MAX as intmax_t) as c_int;
@@ -9393,7 +9207,7 @@ pub unsafe extern "C-unwind" fn init_window ()
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn syms_of_window ()
+pub extern "C-unwind" fn syms_of_window ()
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {

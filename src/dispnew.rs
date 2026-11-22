@@ -714,7 +714,7 @@ unsafe fn adjust_glyph_matrix (w: *mut window, matrix: *mut glyph_matrix,
       /* A diagnostic switch (PORTING.md P-115's shape): the two operands of the clear below and
 	 the element size, so a size disagreement between this call site and the allocator is
 	 visible in one line.  Off unless the variable is set.  */
-      if /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { !getenv (c"FEMACS_XPALLOC_TRACE".as_ptr ()).is_null () }
+      if { !getenv (c"FEMACS_XPALLOC_TRACE".as_ptr ()).is_null () }
 	{
 	  fprintf ((*stderr.as_mut_ptr ()), c"adjust_glyph_matrix: sizeof(glyph_row)=%d old_alloc=%d rows_allocated=%d dim.height=%d\n".as_ptr (),
 		   core::mem::size_of::<glyph_row> () as c_int, old_alloc,
@@ -8225,7 +8225,7 @@ DEFUN! ("sleep-for", Fsleep_for, Ssleep_for, 1, 2, 0,
    more (i.e. until either there's pending input events or the timeout
    expired).  */
 
-#[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn sit_for (timeout: Lisp_Object, reading: bool,
+#[unsafe(no_mangle)] pub extern "C-unwind" fn sit_for (timeout: Lisp_Object, reading: bool,
 						       display_option: c_int) -> Lisp_Object
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.

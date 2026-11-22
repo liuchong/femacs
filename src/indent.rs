@@ -748,7 +748,7 @@ DEFUN! ("current-column", Fcurrent_column, Scurrent_column, 0, 0, 0,
 /* Cancel any recorded value of the horizontal position.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn invalidate_current_column ()
+pub extern "C-unwind" fn invalidate_current_column ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -758,7 +758,7 @@ pub unsafe extern "C-unwind" fn invalidate_current_column ()
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn current_column () -> ptrdiff_t
+pub extern "C-unwind" fn current_column () -> ptrdiff_t
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -1507,7 +1507,7 @@ unsafe fn position_indentation (pos_byte: ptrdiff_t) -> ptrdiff_t
    preceding line.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn indented_beyond_p (pos: ptrdiff_t, pos_byte: ptrdiff_t,
+pub extern "C-unwind" fn indented_beyond_p (pos: ptrdiff_t, pos_byte: ptrdiff_t,
 					     column: EMACS_INT) -> bool
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.

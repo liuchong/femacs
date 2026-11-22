@@ -2181,8 +2181,8 @@
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
       "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "c1510c887fcd29260b722353ca02f7d88ce2a5b4eb0b20e819f0390edb70fec2",
-      "current_bytes": 5191
+      "current_sha256": "8b6e2aa21f211e63b31b18994898dee36917259f4f51d8b65fea284ebb061b2e",
+      "current_bytes": 5203
     },
     {
       "path": "tools/check-defvar-values.py",
@@ -2474,8 +2474,8 @@
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
       "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "9ca81e84c0378f971577651eabc35e5466ae1e68fda585dfa4125b099bd501ab",
-      "current_bytes": 11043
+      "current_sha256": "76b7e1919256a3ff75c0caee67bf86c11137a75945a12ba1a03d19ac6ba64d1f",
+      "current_bytes": 12018
     },
     {
       "path": "tools/check-libshadows.py",
@@ -3175,8 +3175,8 @@
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
       "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "ff82af68c533c777c7de085ecdbe4c95dcb7d68fa68aa9d9ee098185cb4b7565",
-      "current_bytes": 144983
+      "current_sha256": "3332f7dc4ca9edad29a395f97affbc3a66fec16b2e0992c27ac8ea8c7b20e878",
+      "current_bytes": 144995
     },
     {
       "path": "tools/feature-coverage.py",
@@ -3492,7 +3492,9 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively",
+      "current_sha256": "6c289c3a21610533711d493a821de91b7eb92c4435dd9e5f655439bc7e8563b2",
+      "current_bytes": 2219
     },
     {
       "path": "tools/gen-cdefs-mirror.py",
@@ -3818,8 +3820,8 @@
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
       "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "696e49221272adaf74823209c1c8e038237748edb4381c744b37664674eed18a",
-      "current_bytes": 22665
+      "current_sha256": "7224de37caa7f0dc35cbb0a5894e8974ef810eda9ffb6f53223c51fbee0810f2",
+      "current_bytes": 22741
     },
     {
       "path": "tools/gen-loaddefs.py",
@@ -8297,8 +8299,8 @@
     },
     {
       "path": "tools/test-u3-unit.py",
-      "sha256": "af52f9c48e4465daf90fc60051859ce76dbef468bde9d1902bd08f6f55b1f572",
-      "bytes": 19016,
+      "sha256": "5c39f87906688db9d943ce367d3d9288677a8f00af420b3d06245d1db3b86e52",
+      "bytes": 19381,
       "family": "test",
       "decision": "retain",
       "replacement": null,
@@ -8331,8 +8333,8 @@
     },
     {
       "path": "tools/test-u4-unit.py",
-      "sha256": "c5eb338d1428630e6b3ad2a8570afdf7f2de7999cfb8eb649af70ae37b2fff2b",
-      "bytes": 15385,
+      "sha256": "4b8c4e879ec4508bd2e11d09c8f7b69c974b1d98d741f9d03000ee871bdd1fcc",
+      "bytes": 15836,
       "family": "test",
       "decision": "retain",
       "replacement": null,
@@ -8375,6 +8377,23 @@
         {
           "path": "docs/testing-strategy.md",
           "anchor": "D-09",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/test-u7-safe-subsystems.py",
+      "sha256": "08b0be4f7b35ff9d134ecbeba400206399d4929315b37f6615c1dadcd119d564",
+      "bytes": 28018,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned U7/AU7 #![forbid(unsafe_code)] editor/primitive subsystem, RootedVec, and narrowed stack-scan verification runner; explicit reader retained",
+      "readers": [
+        {
+          "path": "docs/testing-strategy.md",
+          "anchor": "D-10",
           "kind": "current explicit dispatch/import/documented invocation"
         }
       ],
@@ -8460,8 +8479,8 @@
     },
     {
       "path": "tools/unsafe-boundary-manifest.json",
-      "sha256": "2c3833363b2691a0891a149c7524f346cfb2ac45735cf2457e1347ff6c8146d8",
-      "bytes": 144113,
+      "sha256": "151b5047c2d7ec52cdd61040e5fe8de6f553892bfaddd9e1376d87c3061ce963",
+      "bytes": 145109,
       "family": "fixture",
       "decision": "retain",
       "replacement": null,

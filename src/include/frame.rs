@@ -853,14 +853,14 @@ pub fn SELECTED_FRAME () -> *mut frame
 {
   if FRAMEP (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*selected_frame.as_mut_ptr ()) }) && FRAME_LIVE_P (XFRAME (unsafe { (*selected_frame.as_mut_ptr ()) }))
     { XFRAME (unsafe { (*selected_frame.as_mut_ptr ()) }) }
-  else { unsafe { emacs_abort () }; std::ptr::null_mut () }
+  else { { emacs_abort () }; std::ptr::null_mut () }
 }
 
 // frame.h 833-880: the frame's own fields (the accessors C writes as macros).  Every one reads a
 // field the layout gate asserts the offset of.
 #[inline(always)]
 pub fn FRAME_KBOARD (f: *mut frame) -> *mut c_void
-{ /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*unsafe { (*f).terminal }).kboard } }   /// C: `struct kboard *((f)->terminal->kboard)`
+{ /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*{ (*f).terminal }).kboard } }   /// C: `struct kboard *((f)->terminal->kboard)`
 
 #[inline(always)]
 pub fn FRAME_PARENT_FRAME (f: *mut frame) -> *mut frame
@@ -1065,7 +1065,7 @@ pub fn FRAME_MINIBUF_ONLY_P (f: *mut frame) -> bool
 pub fn FRAME_HAS_MINIBUF_P (f: *mut frame) -> bool
 {
   WINDOWP (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*f).minibuffer_window })
-    && std::ptr::eq (XFRAME (unsafe { (*XWINDOW (unsafe { (*f).minibuffer_window })).frame }), f)
+    && std::ptr::eq (XFRAME (unsafe { (*XWINDOW ({ (*f).minibuffer_window })).frame }), f)
 }
 
 #[inline(always)]
@@ -1445,7 +1445,7 @@ pub fn FRAME_BOTTOM_DIVIDER_WIDTH (f: *mut frame) -> c_int
 // frame.h 896-920: the two `NUMVAL` helpers (the inline plus the two defaults it feeds).
 #[inline(always)]
 pub fn NUMVAL (x: Lisp_Object) -> c_double
-{ if NUMBERP (x) { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { XFLOATINT (x) } } else { -1.0 } }
+{ if NUMBERP (x) { { XFLOATINT (x) } } else { -1.0 } }
 
 #[inline(always)]
 pub unsafe fn default_pixels_per_inch_x () -> c_double
@@ -1549,7 +1549,7 @@ pub fn frame_set_field (f: *mut frame, unit: u32, shift: u32, mask: u32, v: u32)
 // frame.h 1428-1521: the file-scope objects (the .c files define them).
 unsafe extern "C-unwind" { pub static frame_next_id: VmGlobal<EMACS_UINT>; }              // 1428
 unsafe extern "C-unwind" { pub static frame_garbaged: VmGlobal<bool>; }                   // 1433
-unsafe extern "C-unwind" { pub static selected_frame: VmGlobal<Lisp_Object>; }            // 1459
+unsafe extern "C-unwind" { pub safe static selected_frame: VmGlobal<Lisp_Object>; }            // 1459
 unsafe extern "C-unwind" { pub static old_selected_frame: VmGlobal<Lisp_Object>; }        // 1460
 unsafe extern "C-unwind" { pub static frame_default_tab_bar_height: VmGlobal<c_int>; }    // 1462
 unsafe extern "C-unwind" { pub static frame_default_tool_bar_height: VmGlobal<c_int>; }   // 1465
@@ -1909,10 +1909,8 @@ macro_rules! SET_FRAME_VISIBLE {
         let f = $f;
         let v: bool = $v;
         unsafe extern "C-unwind" {
-            fn redisplay_other_windows();
             fn is_tty_child_frame(f: *mut c_void) -> bool;
             fn mru_rooted_frame(f: *mut c_void) -> Lisp_Object;
-            fn do_switch_frame(frame: Lisp_Object, track: c_int, deletion: c_int, norecord: Lisp_Object) -> Lisp_Object;
         }
         if v {
             if !frame_flag(f, FRAME_VISIBLE_UNIT, FRAME_VISIBLE_SHIFT) { redisplay_other_windows(); }
@@ -1941,7 +1939,7 @@ pub fn FRAME_PIXEL_Y_FROM_CANON_Y (f: *mut frame, y: Lisp_Object) -> c_int
 pub fn FRAME_CANON_X_FROM_PIXEL_X (f: *mut frame, x: c_int) -> Lisp_Object
 {
   if x % FRAME_COLUMN_WIDTH (f) != 0
-    { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { make_float (x as c_double / FRAME_COLUMN_WIDTH (f) as c_double) } }
+    { { make_float (x as c_double / FRAME_COLUMN_WIDTH (f) as c_double) } }
   else { make_fixnum ((x / FRAME_COLUMN_WIDTH (f)) as EMACS_INT) }
 }
 
@@ -1950,7 +1948,7 @@ pub fn FRAME_CANON_X_FROM_PIXEL_X (f: *mut frame, x: c_int) -> Lisp_Object
 pub fn FRAME_CANON_Y_FROM_PIXEL_Y (f: *mut frame, y: c_int) -> Lisp_Object
 {
   if y % FRAME_LINE_HEIGHT (f) != 0
-    { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { make_float (y as c_double / FRAME_LINE_HEIGHT (f) as c_double) } }
+    { { make_float (y as c_double / FRAME_LINE_HEIGHT (f) as c_double) } }
   else { make_fixnum ((y / FRAME_LINE_HEIGHT (f)) as EMACS_INT) }
 }
 

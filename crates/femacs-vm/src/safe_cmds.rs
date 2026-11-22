@@ -136,9 +136,9 @@ pub fn self_insert_command(n: Lisp_Object, mut c: Lisp_Object) -> Lisp_Object {
     CHECK_FIXNUM(n);
 
     if NILP(c) {
-        c = get_last_command_event();
+        c = crate::keyboard::last_command_event.get();
     } else {
-        set_last_command_event(c);
+        crate::keyboard::last_command_event.set(c);
     }
 
     if XFIXNUM(n) < 0 {
@@ -152,7 +152,10 @@ pub fn self_insert_command(n: Lisp_Object, mut c: Lisp_Object) -> Lisp_Object {
     if !CHARACTERP(c) {
         bitch_at_user_safe();
     } else {
-        let character = translate_char_safe(get_Vtranslation_table_for_input(), XFIXNUM(c) as c_int);
+        let character = translate_char_safe(
+            crate::coding::Vtranslation_table_for_input.get(),
+            XFIXNUM(c) as c_int,
+        );
         let val = internal_self_insert(character, XFIXNAT(n));
         if val == 2 {
             Fset(Qundo_auto__this_command_amalgamating(), Qnil());
@@ -170,7 +173,9 @@ pub fn internal_self_insert(mut c: c_int, n: EMACS_INT) -> c_int {
     let mut spaces_to_insert: ptrdiff_t = 0;
 
     let overwrite = current_buffer_overwrite_mode();
-    if !NILP(get_Vbefore_change_functions()) || !NILP(get_Vafter_change_functions()) {
+    if !NILP(crate::buffer::Vbefore_change_functions.get())
+        || !NILP(crate::buffer::Vafter_change_functions.get())
+    {
         hairy = 1;
     }
 
@@ -288,7 +293,7 @@ pub fn internal_self_insert(mut c: c_int, n: EMACS_INT) -> c_int {
         insert_and_inherit_bytes(&str_buf[..len]);
     }
 
-    let auto_fill_chars = get_Vauto_fill_chars();
+    let auto_fill_chars = crate::character::Vauto_fill_chars.get();
     let auto_fill_char_p = if CHAR_TABLE_P(auto_fill_chars) {
         !NILP(CHAR_TABLE_REF(auto_fill_chars, c as isize))
     } else {

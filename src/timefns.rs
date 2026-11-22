@@ -331,10 +331,9 @@ unsafe fn emacs_localtime_rz (tz: timezone_t, t: *const time_t, tm: *mut tm) -> 
   }
 }
 
-unsafe fn invalid_time_zone_specification (zone: Lisp_Object) -> !
+fn invalid_time_zone_specification (zone: Lisp_Object) -> !
 {
-  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
-  unsafe {
+  {
   xsignal2 (Qerror (), build_string (c"Invalid time zone specification".as_ptr ()), zone);
 
   }
@@ -526,23 +525,22 @@ unsafe fn time_error (err: c_int) -> !
   }
 }
 
-unsafe fn invalid_hz (hz: Lisp_Object) -> !
+fn invalid_hz (hz: Lisp_Object) -> !
 {
-  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
-  unsafe {
+  {
   xsignal2 (Qerror (), build_string (c"Invalid time frequency".as_ptr ()), hz);
 
   }
 }
 
 /* Return the upper part of the time T (everything but the bottom 16 bits).  */
-unsafe fn hi_time (t: time_t) -> Lisp_Object
+fn hi_time (t: time_t) -> Lisp_Object
 {
   return INT_TO_INTEGER ((t >> LO_TIME_BITS) as EMACS_INT);
 }
 
 /* Return the bottom bits of the time T.  */
-unsafe fn lo_time (t: time_t) -> Lisp_Object
+fn lo_time (t: time_t) -> Lisp_Object
 {
   return make_fixnum ((t & ((1 << LO_TIME_BITS) - 1)) as EMACS_INT);
 }
@@ -682,7 +680,7 @@ unsafe fn mpz_time (z: *const __mpz_struct, t: *mut time_t) -> bool
 
 /* Return a valid timespec (S, N) if S is in time_t range,
    an invalid timespec otherwise.  */
-unsafe fn s_ns_to_timespec (s: intmax_t, ns: c_long) -> timespec
+fn s_ns_to_timespec (s: intmax_t, ns: c_long) -> timespec
 {
   let mut sec: time_t = 0;
   let (ckd_add_value, ckd_add_overflow) = s.overflowing_add (0);
@@ -964,7 +962,7 @@ unsafe fn timespec_ticks (t: timespec) -> Lisp_Object
 }
 
 /* Return greatest common divisor of positive A and B.  */
-unsafe fn emacs_gcd (mut a: EMACS_INT, mut b: EMACS_INT) -> EMACS_INT
+fn emacs_gcd (mut a: EMACS_INT, mut b: EMACS_INT) -> EMACS_INT
 {
   let mut r: EMACS_INT = 0;
   loop

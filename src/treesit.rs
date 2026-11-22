@@ -1508,7 +1508,7 @@ unsafe fn treesit_record_change_1(start_byte: ptrdiff_t, old_end_byte: ptrdiff_t
 
 #[cfg(feature = "have_tree_sitter")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn treesit_linecol_maybe(_pos: ptrdiff_t, pos_byte: ptrdiff_t,
+pub extern "C-unwind" fn treesit_linecol_maybe(_pos: ptrdiff_t, pos_byte: ptrdiff_t,
     cache: ts_linecol) -> ts_linecol {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -1522,7 +1522,7 @@ pub unsafe extern "C-unwind" fn treesit_linecol_maybe(_pos: ptrdiff_t, pos_byte:
 
 #[cfg(feature = "have_tree_sitter")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn treesit_record_change(start_byte: ptrdiff_t, old_end_byte: ptrdiff_t,
+pub extern "C-unwind" fn treesit_record_change(start_byte: ptrdiff_t, old_end_byte: ptrdiff_t,
     new_end_byte: ptrdiff_t, start_linecol: ts_linecol,
     old_end_linecol: ts_linecol, new_end: ptrdiff_t) {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
@@ -3435,7 +3435,7 @@ DEFUN! ("treesit-available-p", Ftreesit_available_p,
 
 /* Initialize the tree-sitter routines.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn syms_of_treesit ()
+pub extern "C-unwind" fn syms_of_treesit ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {

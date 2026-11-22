@@ -159,3 +159,15 @@ pub const NULL_GLYPH: c_int = 0;
 macro_rules! SET_GLYPH_FROM_CHAR {
   ($glyph:expr, $c:expr) => { SET_GLYPH! ($glyph, $c, DEFAULT_FACE_ID) };
 }
+
+#[inline(always)]
+pub fn buffer_display_table_char_vector (c: c_int) -> Option<Lisp_Object> {
+  /* SAFETY: `buffer_display_table` returns null or a live `Lisp_Char_Table *` on the owning Lisp thread. */
+  let dp = unsafe { buffer_display_table () };
+  if dp.is_null () {
+    None
+  } else {
+    Some (DISP_CHAR_VECTOR (dp, c))
+  }
+}
+

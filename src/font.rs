@@ -1408,8 +1408,7 @@ unsafe fn font_prop_validate (idx: c_int, prop: Lisp_Object, val: Lisp_Object)
 pub unsafe extern "C-unwind" fn font_put_extra (font: Lisp_Object, prop: Lisp_Object,
 					 val: Lisp_Object) -> Lisp_Object
 {
-  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
-  unsafe {
+  {
   let extra: Lisp_Object = AREF (font, FONT_EXTRA_INDEX as isize);
   let slot: Lisp_Object
     = if NILP (extra) { Qnil () } else { assq_no_quit (prop, extra) };

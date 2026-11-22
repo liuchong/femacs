@@ -461,15 +461,15 @@ pub fn CODING_SYSTEM_ID (coding_system_symbol: Lisp_Object) -> ptrdiff_t
 pub fn CODING_SYSTEM_P (coding_system_symbol: Lisp_Object) -> bool
 { CODING_SYSTEM_ID (coding_system_symbol) >= 0
   || (!NILP (coding_system_symbol)
-      && !NILP (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { Fcoding_system_p (coding_system_symbol) })) }
+      && !NILP ({ Fcoding_system_p (coding_system_symbol) })) }
 
 /* Check if X is a coding system or not.  */
 // coding.h 207-213.
 #[inline(always)]
 pub fn CHECK_CODING_SYSTEM (x: Lisp_Object)
 {
-  if CODING_SYSTEM_ID (x) < 0 && NILP (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { Fcheck_coding_system (x) })
-    { unsafe { wrong_type_argument (Qcoding_system_p (), x) }; }
+  if CODING_SYSTEM_ID (x) < 0 && NILP ({ Fcheck_coding_system (x) })
+    { { wrong_type_argument (Qcoding_system_p (), x) }; }
 }
 
 /* Check if X is a coding system or not.  If it is, set SPEC to the
@@ -482,10 +482,10 @@ pub fn CHECK_CODING_SYSTEM_GET_SPEC (x: Lisp_Object) -> Lisp_Object
   let mut spec = CODING_SYSTEM_SPEC (x);
   if NILP (spec)
     {
-      /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { Fcheck_coding_system (x) };
+      { Fcheck_coding_system (x) };
       spec = CODING_SYSTEM_SPEC (x);
     }
-  if NILP (spec) { unsafe { wrong_type_argument (Qcoding_system_p (), x) }; }
+  if NILP (spec) { { wrong_type_argument (Qcoding_system_p (), x) }; }
   spec
 }
 
@@ -498,10 +498,10 @@ pub fn CHECK_CODING_SYSTEM_GET_ID (x: Lisp_Object) -> ptrdiff_t
   let mut id = CODING_SYSTEM_ID (x);
   if id < 0
     {
-      /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { Fcheck_coding_system (x) };
+      { Fcheck_coding_system (x) };
       id = CODING_SYSTEM_ID (x);
     }
-  if id < 0 { unsafe { wrong_type_argument (Qcoding_system_p (), x) }; }
+  if id < 0 { { wrong_type_argument (Qcoding_system_p (), x) }; }
   id
 }
 

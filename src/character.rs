@@ -82,43 +82,9 @@ pub static Vchar_unify_table: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::n
    character code if possible.  Return the resulting code.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn char_resolve_modifier_mask (mut c: EMACS_INT) -> EMACS_INT
+pub extern "C-unwind" fn char_resolve_modifier_mask (c: EMACS_INT) -> EMACS_INT
 {
-  /* A non-ASCII character can't reflect modifier bits to the code.  */
-  if ! ASCII_CHAR_P ((c & !(CHAR_MODIFIER_MASK as EMACS_INT)) as isize)
-    { return c; }
-
-  /* For Meta, Shift, and Control modifiers, we need special care.  */
-  if (c & CHAR_SHIFT as EMACS_INT) != 0
-    {
-      /* Shift modifier is valid only with [A-Za-z].  */
-      if (c & 0o377) >= b'A' as EMACS_INT && (c & 0o377) <= b'Z' as EMACS_INT
-	{ c &= !(CHAR_SHIFT as EMACS_INT); }
-      else if (c & 0o377) >= b'a' as EMACS_INT && (c & 0o377) <= b'z' as EMACS_INT
-	{ c = (c & !(CHAR_SHIFT as EMACS_INT)) - (b'a' as EMACS_INT - b'A' as EMACS_INT); }
-      /* Shift modifier for control characters and SPC is ignored.  */
-      else if (c & !(CHAR_MODIFIER_MASK as EMACS_INT)) <= 0x20
-	{ c &= !(CHAR_SHIFT as EMACS_INT); }
-    }
-  if (c & CHAR_CTL as EMACS_INT) != 0
-    {
-      /* Simulate the code in lread.c.  */
-      /* Allow `\C- ' and `\C-?'.  */
-      if (c & 0o377) == b' ' as EMACS_INT
-	{ c &= !0o177 & !(CHAR_CTL as EMACS_INT); }
-      else if (c & 0o377) == b'?' as EMACS_INT
-	{ c = 0o177 | (c & !0o177 & !(CHAR_CTL as EMACS_INT)); }
-      /* ASCII control chars are made from letters (both cases),
-	 as well as the non-letters within 0100...0137.  */
-      else if (c & 0o137) >= 0o101 && (c & 0o137) <= 0o132
-	{ c &= 0o37 | (!0o177 & !(CHAR_CTL as EMACS_INT)); }
-      else if (c & 0o177) >= 0o100 && (c & 0o177) <= 0o137
-	{ c &= 0o37 | (!0o177 & !(CHAR_CTL as EMACS_INT)); }
-    }
-  /* C: `#if 0` (character.c 91-97): "This is outside the scope of this function.
-     (bug#4751)" — it never compiles, so it stays a comment.  */
-
-  return c;
+  crate::safe_character::char_resolve_modifier_mask_impl (c)
 }
 
 
@@ -180,46 +146,23 @@ pub unsafe extern "C-unwind" fn char_string (mut c: c_uint, p: *mut u8) -> c_int
    tables in the list.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn translate_char (mut table: Lisp_Object, mut c: c_int) -> c_int
+pub extern "C-unwind" fn translate_char (table: Lisp_Object, c: c_int) -> c_int
 {
-  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
-  unsafe {
-  if CHAR_TABLE_P (table)
-    {
-      let ch: Lisp_Object;
-
-      ch = CHAR_TABLE_REF (table, c as isize);
-      if CHARACTERP (ch)
-	{ c = XFIXNUM (ch) as c_int; }
-    }
-  else
-    {
-      while CONSP (table)
-	{
-	  c = translate_char (XCAR (table), c);
-	  table = XCDR (table);
-	}
-    }
-  return c;
-
-  }
+  crate::safe_character::translate_char_impl (table, c)
 }
 
 DEFUN! ("characterp", Fcharacterp, Scharacterp, 1, 2, 0,
        doc: "Return non-nil if OBJECT is a character.\nIn Emacs Lisp, characters are represented by character codes, which\nare non-negative integers.  The function `max-char' returns the\nmaximum character code.\nusage: (characterp OBJECT)",
        (object: Lisp_Object, ignore: Lisp_Object),
        {
-  return if CHARACTERP (object) { Qt () } else { Qnil () };
+  crate::safe_character::characterp (object, ignore)
 });
 
 DEFUN! ("max-char", Fmax_char, Smax_char, 0, 1, 0,
        doc: "Return the maximum character code.\nIf UNICODE is non-nil, return the maximum character code defined\nby the Unicode Standard.",
        (unicode: Lisp_Object),
        {
-  return if ! NILP (unicode)
-	 { make_fixnum (MAX_UNICODE_CHAR as EMACS_INT) }
-	 else
-	 { make_fixnum (MAX_CHAR as EMACS_INT) };
+  crate::safe_character::max_char (unicode)
 });
 
 DEFUN! ("unibyte-char-to-multibyte", Funibyte_char_to_multibyte,
@@ -227,13 +170,7 @@ DEFUN! ("unibyte-char-to-multibyte", Funibyte_char_to_multibyte,
        doc: "Convert the byte CH to multibyte character.",
        (ch: Lisp_Object),
        {
-  let mut c: c_int;
-
-  CHECK_CHARACTER (ch);
-  c = XFIXNAT (ch) as c_int;
-  if c >= 0x100
-    { error (c"Not a unibyte character: %d".as_ptr (), c); }
-  return make_fixnum (make_char_multibyte (c) as EMACS_INT);
+  crate::safe_character::unibyte_char_to_multibyte (ch)
 });
 
 DEFUN! ("multibyte-char-to-unibyte", Fmultibyte_char_to_unibyte,
@@ -241,63 +178,21 @@ DEFUN! ("multibyte-char-to-unibyte", Fmultibyte_char_to_unibyte,
        doc: "Convert the multibyte character CH to a byte.\nIf the multibyte character does not represent a byte, return -1.",
        (ch: Lisp_Object),
        {
-  let mut cm: c_int;
-
-  CHECK_CHARACTER (ch);
-  cm = XFIXNAT (ch) as c_int;
-  if cm < 256
-    /* Can't distinguish a byte read from a unibyte buffer from
-       a latin1 char, so let's let it slide.  */
-    { return ch; }
-  else
-    {
-      let cu: c_int = CHAR_TO_BYTE_SAFE (cm);
-      return make_fixnum (cu as EMACS_INT);
-    }
+  crate::safe_character::multibyte_char_to_unibyte (ch)
 });
 
 
 /* Return width (columns) of C considering the buffer display table DP. */
 
-unsafe fn char_width (c: c_int, dp: *mut Lisp_Char_Table) -> ptrdiff_t
+fn char_width (c: c_int, dp: *mut Lisp_Char_Table) -> ptrdiff_t
 {
-  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
-  unsafe {
-  let mut width: ptrdiff_t = CHARACTER_WIDTH (c) as ptrdiff_t;
-
-  if ! dp.is_null ()
-    {
-      let disp: Lisp_Object = DISP_CHAR_VECTOR (dp, c);
-      let mut ch: Lisp_Object;
-      let mut i: c_int;
-
-      if VECTORP (disp)
-	{
-	  i = 0;
-	  width = 0;
-	  while i < ASIZE (disp) as c_int
-	    {
-	      let mut c: c_int = -1;
-	      ch = AREF (disp, i as isize);
-	      if GLYPH_CODE_P (ch)
-		{ c = GLYPH_CODE_CHAR (ch); }
-	      else if CHARACTERP (ch)
-		{ c = XFIXNUM (ch) as c_int; }
-	      if c >= 0
-		{
-		  let w: c_int = CHARACTER_WIDTH (c);
-		  let (sum, over) = width.overflowing_add (w as ptrdiff_t);
-		  width = sum;
-		  if over
-		    { string_overflow (); }
-		}
-	      i += 1;
-	    }
-	}
-    }
-  return width;
-
-  }
+  let disp = if dp.is_null () {
+    None
+  } else {
+    // SAFETY: `dp` verified non-null `Lisp_Char_Table *` by caller (`buffer_display_table`).
+    Some ({ DISP_CHAR_VECTOR (dp, c) })
+  };
+  crate::safe_character::char_width_for_disp_vector (c, disp)
 }
 
 
@@ -305,13 +200,7 @@ DEFUN! ("char-width", Fchar_width, Schar_width, 1, 1, 0,
        doc: "Return width of CHAR in columns when displayed in the current buffer.\nThe width of CHAR is measured by how many columns it will occupy on the screen.\nThis is based on data in `char-width-table', and ignores the actual\nmetrics of the character's glyph as determined by its font.\nIf the display table in effect replaces CHAR on display with\nsomething else, the function returns the width of the replacement.\nTab is taken to occupy `tab-width' columns.\nusage: (char-width CHAR)",
        (ch: Lisp_Object),
        {
-  let mut c: c_int;
-  let width: ptrdiff_t;
-
-  CHECK_CHARACTER (ch);
-  c = XFIXNUM (ch) as c_int;
-  width = char_width (c, buffer_display_table ());
-  return make_fixnum (width as EMACS_INT);
+  crate::safe_character::char_width_subr (ch)
 });
 
 /* Return width of string STR of length LEN when displayed in the
@@ -535,19 +424,18 @@ pub unsafe extern "C-unwind" fn lisp_string_width (string: Lisp_Object, from: pt
   }
 }
 
+#[inline(always)]
+pub fn lisp_string_width_subr_safe (str_obj: Lisp_Object, ifrom: ptrdiff_t, ito: ptrdiff_t) -> ptrdiff_t
+{
+  let (w, _, _) = lisp_string_width_safe (str_obj, ifrom, ito, -1, true);
+  w
+}
+
 DEFUN! ("string-width", Fstring_width, Sstring_width, 1, 3, 0,
        doc: "Return width of STRING in columns when displayed in the current buffer.\nWidth of STRING is measured by how many columns it will occupy on the screen.\n\nOptional arguments FROM and TO specify the substring of STRING to\nconsider, and are interpreted as in `substring'.\n\nWidth of each character in STRING is generally taken according to\n`char-width', but character compositions and the display table in\neffect are taken into consideration.\nTabs in STRING are always assumed to occupy `tab-width' columns,\nalthough they might take fewer columns depending on the column where\nthey begin on display.\nThe effect of faces and fonts, including fonts used for non-Latin and\nother unusual characters, such as emoji, is ignored, as are display\nproperties and invisible text.\n\nFor these reasons, the results are just an approximation, especially\non GUI frames; for accurate dimensions of text as it will be\ndisplayed, use `string-pixel-width' or `window-text-pixel-size'\ninstead.\nusage: (string-width STRING &optional FROM TO)",
        (str: Lisp_Object, from: Lisp_Object, to: Lisp_Object),
        {
-  let mut val: Lisp_Object;
-  let mut ifrom: ptrdiff_t = 0;
-  let mut ito: ptrdiff_t = 0;
-
-  CHECK_STRING (str);
-  validate_subarray (str, from, to, SCHARS (str), &raw mut ifrom, &raw mut ito);
-  XSETFASTINT! (val, lisp_string_width (str, ifrom, ito, -1, std::ptr::null_mut (),
-					std::ptr::null_mut (), true) as EMACS_INT);
-  return val;
+  crate::safe_character::string_width_subr (str, from, to)
 });
 
 /* Return the number of characters in the NBYTES bytes at PTR.
@@ -897,7 +785,7 @@ unsafe fn string_count_byte8 (string: Lisp_Object) -> ptrdiff_t
 
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn string_escape_byte8 (string: Lisp_Object) -> Lisp_Object
+pub extern "C-unwind" fn string_escape_byte8 (string: Lisp_Object) -> Lisp_Object
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -998,43 +886,26 @@ DEFUN! ("string", Fstring, Sstring, 0, MANY, 0,
        doc: "Concatenate all the argument characters and make the result a string.\nusage: (string &rest CHARACTERS)",
        (nargs: isize, args: *mut Lisp_Object),
        {
-  let mut nbytes: ptrdiff_t = 0;
-  let mut i: ptrdiff_t = 0;
-  while i < nargs
-    {
-      CHECK_CHARACTER (*args.offset (i));
-      nbytes += CHAR_BYTES (XFIXNUM (*args.offset (i)) as c_int) as ptrdiff_t;
-      i += 1;
-    }
-  if nbytes == nargs
-    { return Funibyte_string (nargs, args); }
-  let str: Lisp_Object = make_uninit_multibyte_string (nargs, nbytes);
-  let mut p: *mut u8 = SDATA (str);
-  let mut i: ptrdiff_t = 0;
-  while i < nargs
-    {
-      eassume! (CHARACTERP (*args.offset (i)));
-      let c: c_int = XFIXNUM (*args.offset (i)) as c_int;
-      p = p.add (CHAR_STRING (c, p) as usize);
-      i += 1;
-    }
-  return str;
+  let slice = if nargs <= 0 {
+    &[][..]
+  } else {
+    // SAFETY: `MANY` subr entry supplies `nargs` rooted `Lisp_Object` arguments at `args`.
+    core::slice::from_raw_parts (args as *const Lisp_Object, nargs as usize)
+  };
+  crate::safe_character::string_slice (slice)
 });
 
 DEFUN! ("unibyte-string", Funibyte_string, Sunibyte_string, 0, MANY, 0,
        doc: "Concatenate all the argument bytes and make the result a unibyte string.\nusage: (unibyte-string &rest BYTES)",
        (nargs: isize, args: *mut Lisp_Object),
        {
-  let str: Lisp_Object = make_uninit_string (nargs);
-  let mut p: *mut u8 = SDATA (str);
-  let mut i: ptrdiff_t = 0;
-  while i < nargs
-    {
-      *p = check_integer_range (*args.offset (i), 0, 255) as u8;
-      p = p.add (1);
-      i += 1;
-    }
-  return str;
+  let slice = if nargs <= 0 {
+    &[][..]
+  } else {
+    // SAFETY: `MANY` subr entry supplies `nargs` rooted `Lisp_Object` arguments at `args`.
+    core::slice::from_raw_parts (args as *const Lisp_Object, nargs as usize)
+  };
+  crate::safe_character::unibyte_string_slice (slice)
 });
 
 DEFUN! ("char-resolve-modifiers", Fchar_resolve_modifiers,
@@ -1042,198 +913,58 @@ DEFUN! ("char-resolve-modifiers", Fchar_resolve_modifiers,
        doc: "Resolve modifiers in the character CHAR.\nThe value is a character with modifiers resolved into the character\ncode.  Unresolved modifiers are kept in the value.\nusage: (char-resolve-modifiers CHAR)",
        (character: Lisp_Object),
        {
-  let c: EMACS_INT;
-
-  CHECK_FIXNUM (character);
-  c = XFIXNUM (character);
-  return make_fixnum (char_resolve_modifier_mask (c));
+  crate::safe_character::char_resolve_modifiers (character)
 });
 
 DEFUN! ("get-byte", Fget_byte, Sget_byte, 0, 2, 0,
        doc: "Return a byte value of a character at point.\nOptional 1st arg POSITION, if non-nil, is a position of a character to get\na byte value.\nOptional 2nd arg STRING, if non-nil, is a string of which first\ncharacter is a target to get a byte value.  In this case, POSITION, if\nnon-nil, is an index of a target character in the string.\n\nIf the current buffer (or STRING) is multibyte, and the target\ncharacter is not ASCII nor 8-bit character, an error is signaled.",
        (position: Lisp_Object, string: Lisp_Object),
        {
-  let mut c: c_int;
-  let mut pos: ptrdiff_t;
-  let mut p: *mut u8;
-
-  if NILP (string)
-    {
-      if NILP (position)
-	{
-	  p = PT_ADDR! ();
-	}
-      else
-	{
-	  let fixed_pos: EMACS_INT = fix_position (position);
-	  if ! (BEGV! () <= fixed_pos && fixed_pos < ZV! ())
-	    { args_out_of_range_3 (position, make_fixnum (BEGV! ()), make_fixnum (ZV! ())); }
-	  pos = fixed_pos;
-	  p = CHAR_POS_ADDR (pos);
-	}
-      if NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
-	{ return make_fixnum (*p as EMACS_INT); }
-    }
-  else
-    {
-      CHECK_STRING (string);
-      if NILP (position)
-	{
-	  p = SDATA (string);
-	}
-      else
-	{
-	  CHECK_FIXNAT (position);
-	  if XFIXNUM (position) >= SCHARS (string)
-	    { args_out_of_range (string, position); }
-	  pos = XFIXNAT (position);
-	  p = SDATA (string).offset (string_char_to_byte (string, pos));
-	}
-      if ! STRING_MULTIBYTE (string)
-	{ return make_fixnum (*p as EMACS_INT); }
-    }
-  c = STRING_CHAR (p);
-  if CHAR_BYTE8_P (c)
-    { c = CHAR_TO_BYTE8 (c); }
-  else if ! ASCII_CHAR_P (c as isize)
-    { error (c"Not an ASCII nor an 8-bit character: %d".as_ptr (), c); }
-  return make_fixnum (c as EMACS_INT);
+  crate::safe_character::get_byte (position, string)
 });
 
 
 /* Return true if C is an alphabetic character.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn alphabeticp (c: c_int) -> bool
+pub extern "C-unwind" fn alphabeticp (c: c_int) -> bool
 {
-  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
-  unsafe {
-  let category: Lisp_Object = CHAR_TABLE_REF ((*Vunicode_category_table.as_mut_ptr ()), c as isize);
-  if ! FIXNUMP (category)
-    { return false; }
-  let gen_cat: EMACS_INT = XFIXNUM (category);
-
-  /* See UTS #18.  There are additional characters that should be
-     here, those designated as Other_uppercase, Other_lowercase,
-     and Other_alphabetic; FIXME.  */
-  return gen_cat == UNICODE_CATEGORY_Lu as EMACS_INT
-	 || gen_cat == UNICODE_CATEGORY_Ll as EMACS_INT
-	 || gen_cat == UNICODE_CATEGORY_Lt as EMACS_INT
-	 || gen_cat == UNICODE_CATEGORY_Lm as EMACS_INT
-	 || gen_cat == UNICODE_CATEGORY_Lo as EMACS_INT
-	 || gen_cat == UNICODE_CATEGORY_Mn as EMACS_INT
-	 || gen_cat == UNICODE_CATEGORY_Mc as EMACS_INT
-	 || gen_cat == UNICODE_CATEGORY_Me as EMACS_INT
-	 || gen_cat == UNICODE_CATEGORY_Nl as EMACS_INT;
-
-  }
+  crate::safe_character::alphabeticp_impl (c)
 }
 
 /* Return true if C is an alphabetic or decimal-number character.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn alphanumericp (c: c_int) -> bool
+pub extern "C-unwind" fn alphanumericp (c: c_int) -> bool
 {
-  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
-  unsafe {
-  let category: Lisp_Object = CHAR_TABLE_REF ((*Vunicode_category_table.as_mut_ptr ()), c as isize);
-  if ! FIXNUMP (category)
-    { return false; }
-  let gen_cat: EMACS_INT = XFIXNUM (category);
-
-  /* See UTS #18.  Same comment as for alphabeticp applies.  FIXME. */
-  return gen_cat == UNICODE_CATEGORY_Lu as EMACS_INT
-	 || gen_cat == UNICODE_CATEGORY_Ll as EMACS_INT
-	 || gen_cat == UNICODE_CATEGORY_Lt as EMACS_INT
-	 || gen_cat == UNICODE_CATEGORY_Lm as EMACS_INT
-	 || gen_cat == UNICODE_CATEGORY_Lo as EMACS_INT
-	 || gen_cat == UNICODE_CATEGORY_Mn as EMACS_INT
-	 || gen_cat == UNICODE_CATEGORY_Mc as EMACS_INT
-	 || gen_cat == UNICODE_CATEGORY_Me as EMACS_INT
-	 || gen_cat == UNICODE_CATEGORY_Nl as EMACS_INT
-	 || gen_cat == UNICODE_CATEGORY_Nd as EMACS_INT;
-
-  }
+  crate::safe_character::alphanumericp_impl (c)
 }
 
 /* Return true if C is a graphic character.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn graphicp (c: c_int) -> bool
+pub extern "C-unwind" fn graphicp (c: c_int) -> bool
 {
-  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
-  unsafe {
-  let category: Lisp_Object = CHAR_TABLE_REF ((*Vunicode_category_table.as_mut_ptr ()), c as isize);
-  if ! FIXNUMP (category)
-    { return false; }
-  let gen_cat: EMACS_INT = XFIXNUM (category);
-
-  /* See UTS #18.  */
-  return !(gen_cat == UNICODE_CATEGORY_Zs as EMACS_INT /* space separator */
-	   || gen_cat == UNICODE_CATEGORY_Zl as EMACS_INT /* line separator */
-	   || gen_cat == UNICODE_CATEGORY_Zp as EMACS_INT /* paragraph separator */
-	   || gen_cat == UNICODE_CATEGORY_Cc as EMACS_INT /* control */
-	   || gen_cat == UNICODE_CATEGORY_Cs as EMACS_INT /* surrogate */
-	   || gen_cat == UNICODE_CATEGORY_Cn as EMACS_INT); /* unassigned */
-
-  }
+  crate::safe_character::graphicp_impl (c)
 }
 
 /* Return true if C is a printable character.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn printablep (c: c_int) -> bool
+pub extern "C-unwind" fn printablep (c: c_int) -> bool
 {
-  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
-  unsafe {
-  let category: Lisp_Object = CHAR_TABLE_REF ((*Vunicode_category_table.as_mut_ptr ()), c as isize);
-  if ! FIXNUMP (category)
-    { return false; }
-  let gen_cat: EMACS_INT = XFIXNUM (category);
-
-  /* See UTS #18.  */
-  return !(gen_cat == UNICODE_CATEGORY_Cc as EMACS_INT /* control */
-	   || gen_cat == UNICODE_CATEGORY_Cs as EMACS_INT /* surrogate */
-	   || gen_cat == UNICODE_CATEGORY_Cn as EMACS_INT); /* unassigned */
-
-  }
+  crate::safe_character::printablep_impl (c)
 }
 
 /* Return true if C is graphic character that can be printed independently.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn graphic_base_p (c: c_int) -> bool
+pub extern "C-unwind" fn graphic_base_p (c: c_int) -> bool
 {
-  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
-  unsafe {
-  let category: Lisp_Object = CHAR_TABLE_REF ((*Vunicode_category_table.as_mut_ptr ()), c as isize);
-  if ! FIXNUMP (category)
-    { return false; }
-  let gen_cat: EMACS_INT = XFIXNUM (category);
-
-  return !(gen_cat == UNICODE_CATEGORY_Mn as EMACS_INT       /* mark, nonspacing */
-	   || gen_cat == UNICODE_CATEGORY_Mc as EMACS_INT    /* mark, combining */
-	   || gen_cat == UNICODE_CATEGORY_Me as EMACS_INT    /* mark, enclosing */
-	   || gen_cat == UNICODE_CATEGORY_Zs as EMACS_INT    /* separator, space */
-	   || gen_cat == UNICODE_CATEGORY_Zl as EMACS_INT    /* separator, line */
-	   || gen_cat == UNICODE_CATEGORY_Zp as EMACS_INT    /* separator, paragraph */
-	   || gen_cat == UNICODE_CATEGORY_Cc as EMACS_INT    /* other, control */
-	   || gen_cat == UNICODE_CATEGORY_Cs as EMACS_INT    /* other, surrogate */
-	   || gen_cat == UNICODE_CATEGORY_Cf as EMACS_INT    /* other, format */
-	   || gen_cat == UNICODE_CATEGORY_Cn as EMACS_INT);  /* other, unassigned */
-
-  }
+  crate::safe_character::graphic_base_p_impl (c)
 }
 
 /* Return true if C is a horizontal whitespace character, as defined
    by https://www.unicode.org/reports/tr18/tr18-19.html#blank.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn blankp (c: c_int) -> bool
+pub extern "C-unwind" fn blankp (c: c_int) -> bool
 {
-  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
-  unsafe {
-  let category: Lisp_Object = CHAR_TABLE_REF ((*Vunicode_category_table.as_mut_ptr ()), c as isize);
-  if ! FIXNUMP (category)
-    { return false; }
-
-  return XFIXNUM (category) == UNICODE_CATEGORY_Zs as EMACS_INT; /* separator, space */
-
-  }
+  crate::safe_character::blankp_impl (c)
 }
 
 /* hexdigit[C] is one greater than C's numeric value if C is a
@@ -1270,54 +1001,54 @@ pub static hexdigit: [c_char; 256] =
   };
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn syms_of_character ()
+pub extern "C-unwind" fn syms_of_character ()
 {
-  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
-  unsafe {
   DEFSYM! (Qcharacterp, "characterp");
   DEFSYM! (Qauto_fill_chars, "auto-fill-chars");
 
-  staticpro (Vchar_unify_table.as_ptr ());
-  (*Vchar_unify_table.as_mut_ptr ()) = Qnil ();
+  staticpro_global (&Vchar_unify_table);
+  Vchar_unify_table.set (Qnil ());
 
-  defsubr (Smax_char.as_mut_ptr ());
-  defsubr (Scharacterp.as_mut_ptr ());
-  defsubr (Sunibyte_char_to_multibyte.as_mut_ptr ());
-  defsubr (Smultibyte_char_to_unibyte.as_mut_ptr ());
-  defsubr (Schar_width.as_mut_ptr ());
-  defsubr (Sstring_width.as_mut_ptr ());
-  defsubr (Sstring.as_mut_ptr ());
-  defsubr (Sunibyte_string.as_mut_ptr ());
-  defsubr (Schar_resolve_modifiers.as_mut_ptr ());
-  defsubr (Sget_byte.as_mut_ptr ());
+  defsubr_global (&Smax_char);
+  defsubr_global (&Scharacterp);
+  defsubr_global (&Sunibyte_char_to_multibyte);
+  defsubr_global (&Smultibyte_char_to_unibyte);
+  defsubr_global (&Schar_width);
+  defsubr_global (&Sstring_width);
+  defsubr_global (&Sstring);
+  defsubr_global (&Sunibyte_string);
+  defsubr_global (&Schar_resolve_modifiers);
+  defsubr_global (&Sget_byte);
 
   DEFVAR_LISP! (c"translation-table-vector", Vtranslation_table_vector,
 		"Vector recording all translation tables ever defined.\nEach element is a pair (SYMBOL . TABLE) relating the table to the\nsymbol naming it.  The ID of a translation table is an index into this vector.");
-  (*Vtranslation_table_vector.as_mut_ptr ()) = make_nil_vector (16);
+  Vtranslation_table_vector.set (make_nil_vector (16));
 
   DEFVAR_LISP! (c"auto-fill-chars", Vauto_fill_chars,
 		"A char-table for characters which invoke auto-filling.\nSuch characters have the value t in this table.");
-  (*Vauto_fill_chars.as_mut_ptr ()) = Fmake_char_table (Qauto_fill_chars (), Qnil ());
-  CHAR_TABLE_SET ((*Vauto_fill_chars.as_mut_ptr ()), b' ' as isize, Qt ());
-  CHAR_TABLE_SET ((*Vauto_fill_chars.as_mut_ptr ()), b'\n' as isize, Qt ());
+  Vauto_fill_chars.set (Fmake_char_table (Qauto_fill_chars (), Qnil ()));
+  CHAR_TABLE_SET (Vauto_fill_chars.get (), b' ' as isize, Qt ());
+  CHAR_TABLE_SET (Vauto_fill_chars.get (), b'\n' as isize, Qt ());
 
   DEFVAR_LISP! (c"char-width-table", Vchar_width_table,
 		"A char-table for width (columns) of each character.");
-  (*Vchar_width_table.as_mut_ptr ()) = Fmake_char_table (Qnil (), make_fixnum (1));
-  char_table_set_range ((*Vchar_width_table.as_mut_ptr ()), 0x80, 0x9F, make_fixnum (4));
-  char_table_set_range ((*Vchar_width_table.as_mut_ptr ()), MAX_5_BYTE_CHAR + 1, MAX_CHAR,
-			make_fixnum (4));
+  Vchar_width_table.set (Fmake_char_table (Qnil (), make_fixnum (1)));
+  {
+    char_table_set_range (Vchar_width_table.get (), 0x80, 0x9F, make_fixnum (4));
+    char_table_set_range (Vchar_width_table.get (), MAX_5_BYTE_CHAR + 1, MAX_CHAR,
+			  make_fixnum (4));
+  }
 
   DEFVAR_LISP! (c"ambiguous-width-chars", Vambiguous_width_chars,
 		"A char-table for characters whose width (columns) can be 1 or 2.\n\nThe actual width depends on the language-environment and on the\nvalue of `cjk-ambiguous-chars-are-wide'.");
-  (*Vambiguous_width_chars.as_mut_ptr ()) = Fmake_char_table (Qnil (), Qnil ());
+  Vambiguous_width_chars.set (Fmake_char_table (Qnil (), Qnil ()));
 
   DEFVAR_LISP! (c"printable-chars", Vprintable_chars,
 		"A char-table for printable characters.\nSuch characters have the value t in this table.");
-  (*Vprintable_chars.as_mut_ptr ()) = Fmake_char_table (Qnil (), Qnil ());
-  Fset_char_table_range ((*Vprintable_chars.as_mut_ptr ()),
+  Vprintable_chars.set (Fmake_char_table (Qnil (), Qnil ()));
+  Fset_char_table_range (Vprintable_chars.get (),
 			 Fcons (make_fixnum (32), make_fixnum (126)), Qt ());
-  Fset_char_table_range ((*Vprintable_chars.as_mut_ptr ()),
+  Fset_char_table_range (Vprintable_chars.get (),
 			 Fcons (make_fixnum (160),
 				make_fixnum (MAX_5_BYTE_CHAR as EMACS_INT)), Qt ());
 
@@ -1326,16 +1057,14 @@ pub unsafe extern "C-unwind" fn syms_of_character ()
 
   DEFSYM! (Qchar_script_table, "char-script-table");
   Fput (Qchar_script_table (), Qchar_table_extra_slots (), make_fixnum (1));
-  (*Vchar_script_table.as_mut_ptr ()) = Fmake_char_table (Qchar_script_table (), Qnil ());
+  Vchar_script_table.set (Fmake_char_table (Qchar_script_table (), Qnil ()));
 
   DEFVAR_LISP! (c"script-representative-chars", Vscript_representative_chars,
 		"Alist of scripts vs the representative characters.\nEach element is a cons (SCRIPT . CHARS).\nSCRIPT is a symbol representing a script or a subgroup of a script.\nCHARS is a list or a vector of characters.\nIf it is a list, all characters in the list are necessary for supporting SCRIPT.\nIf it is a vector, one of the characters in the vector is necessary.\nThis variable is used to find a font for a specific script.");
-  (*Vscript_representative_chars.as_mut_ptr ()) = Qnil ();
+  Vscript_representative_chars.set (Qnil ());
 
   DEFVAR_LISP! (c"unicode-category-table", Vunicode_category_table,
 		"Char table of Unicode's \"General Category\".\nAll Unicode characters have one of the following values (symbol):\n  Lu, Ll, Lt, Lm, Lo, Mn, Mc, Me, Nd, Nl, No, Pc, Pd, Ps, Pe, Pi, Pf, Po,\n  Sm, Sc, Sk, So, Zs, Zl, Zp, Cc, Cf, Cs, Co, Cn\nSee The Unicode Standard for the meaning of those values.");
   /* The correct char-table is setup in characters.el.  */
-  (*Vunicode_category_table.as_mut_ptr ()) = Qnil ();
-
-  }
+  Vunicode_category_table.set (Qnil ());
 }

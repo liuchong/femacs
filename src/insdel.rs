@@ -136,7 +136,7 @@ macro_rules! check_markers { () => { {} } }
    Note that this can quit!  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn move_gap_both (charpos: ptrdiff_t, bytepos: ptrdiff_t)
+pub extern "C-unwind" fn move_gap_both (charpos: ptrdiff_t, bytepos: ptrdiff_t)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -310,7 +310,7 @@ unsafe fn adjust_suspend_auto_hscroll (from: ptrdiff_t, to: ptrdiff_t)
    or inside of the range being deleted.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn adjust_markers_for_delete (from: ptrdiff_t, from_byte: ptrdiff_t,
+pub extern "C-unwind" fn adjust_markers_for_delete (from: ptrdiff_t, from_byte: ptrdiff_t,
 						    to: ptrdiff_t, to_byte: ptrdiff_t)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
@@ -499,7 +499,7 @@ unsafe fn count_bytes (pos: ptrdiff_t, bytepos: ptrdiff_t, endpos: ptrdiff_t) ->
    changes have been done.  TO_Z, if non-zero, means all the markers
    whose positions are after TO should also be adjusted.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn adjust_markers_bytepos (from: ptrdiff_t, from_byte: ptrdiff_t,
+pub extern "C-unwind" fn adjust_markers_bytepos (from: ptrdiff_t, from_byte: ptrdiff_t,
 						 to: ptrdiff_t, to_byte: ptrdiff_t,
 						 to_z: c_int)
 {
@@ -624,7 +624,7 @@ unsafe fn make_gap_larger (nbytes_added: ptrdiff_t)
    transcribed (P-08).  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn make_gap (nbytes_added: ptrdiff_t)
+pub extern "C-unwind" fn make_gap (nbytes_added: ptrdiff_t)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -787,7 +787,7 @@ pub unsafe extern "C-unwind" fn insert_and_inherit (string: *const c_char, nbyte
 /* Insert the character C before point.  Do not inherit text properties.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn insert_char (c: c_int)
+pub extern "C-unwind" fn insert_char (c: c_int)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -1105,7 +1105,7 @@ unsafe fn insert_from_string_1 (string: Lisp_Object, pos: ptrdiff_t, pos_byte: p
    of any sort, with the single exception of notifying tree-sitter and
    updating tree-sitter linecol cache.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn insert_from_gap_1 (nchars: ptrdiff_t, nbytes: ptrdiff_t,
+pub extern "C-unwind" fn insert_from_gap_1 (nchars: ptrdiff_t, nbytes: ptrdiff_t,
 					    text_at_gap_tail: bool)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
@@ -1148,7 +1148,7 @@ pub unsafe extern "C-unwind" fn insert_from_gap_1 (nchars: ptrdiff_t, nbytes: pt
   read_and_insert_process_output in process.c sets this to true.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn insert_from_gap (nchars: ptrdiff_t, nbytes: ptrdiff_t,
+pub extern "C-unwind" fn insert_from_gap (nchars: ptrdiff_t, nbytes: ptrdiff_t,
 					  text_at_gap_tail: bool, before_markers: bool)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
@@ -1415,7 +1415,7 @@ unsafe fn adjust_after_replace (from: ptrdiff_t, from_byte: ptrdiff_t,
    - FROM) may be incorrect, the correct length is NEWLEN.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn adjust_after_insert (from: ptrdiff_t, from_byte: ptrdiff_t,
+pub extern "C-unwind" fn adjust_after_insert (from: ptrdiff_t, from_byte: ptrdiff_t,
 					      to: ptrdiff_t, to_byte: ptrdiff_t,
 					      newlen: ptrdiff_t)
 {
@@ -1452,7 +1452,7 @@ pub unsafe extern "C-unwind" fn adjust_after_insert (from: ptrdiff_t, from_byte:
    That way, undo will also handle markers properly.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn replace_range (from: ptrdiff_t, to: ptrdiff_t, new: Lisp_Object,
+pub extern "C-unwind" fn replace_range (from: ptrdiff_t, to: ptrdiff_t, new: Lisp_Object,
 					run_mod_hooks: bool, inherit: bool,
 					adjust_match_data: bool)
 {
@@ -1797,10 +1797,9 @@ pub unsafe extern "C-unwind" fn replace_range_2 (from: ptrdiff_t, from_byte: ptr
    If TO comes before FROM, we delete nothing.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn del_range (from: ptrdiff_t, to: ptrdiff_t)
+pub extern "C-unwind" fn del_range (from: ptrdiff_t, to: ptrdiff_t)
 {
-  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
-  unsafe {
+  {
   del_range_1 (from, to, true, false);
 
   }
@@ -1836,7 +1835,7 @@ unsafe extern "C-unwind" fn safe_del_range_2 (type_: nonlocal_exit, value: Lisp_
    the buffer contents were really deleted.  Otherwise, it is 1.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn safe_del_range (from: ptrdiff_t, to: ptrdiff_t) -> c_int
+pub extern "C-unwind" fn safe_del_range (from: ptrdiff_t, to: ptrdiff_t) -> c_int
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -1857,7 +1856,7 @@ pub unsafe extern "C-unwind" fn safe_del_range (from: ptrdiff_t, to: ptrdiff_t) 
    RET_STRING says to return the deleted text. */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn del_range_1 (from: ptrdiff_t, to: ptrdiff_t, prepare: bool,
+pub extern "C-unwind" fn del_range_1 (from: ptrdiff_t, to: ptrdiff_t, prepare: bool,
 				      ret_string: bool) -> Lisp_Object
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
@@ -1897,7 +1896,7 @@ pub unsafe extern "C-unwind" fn del_range_1 (from: ptrdiff_t, to: ptrdiff_t, pre
 /* Like del_range_1 but args are byte positions, not char positions.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn del_range_byte (from_byte: ptrdiff_t, to_byte: ptrdiff_t)
+pub extern "C-unwind" fn del_range_byte (from_byte: ptrdiff_t, to_byte: ptrdiff_t)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -1945,7 +1944,7 @@ pub unsafe extern "C-unwind" fn del_range_byte (from_byte: ptrdiff_t, to_byte: p
    and bytepos.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn del_range_both (from: ptrdiff_t, from_byte: ptrdiff_t,
+pub extern "C-unwind" fn del_range_both (from: ptrdiff_t, from_byte: ptrdiff_t,
 					 to: ptrdiff_t, to_byte: ptrdiff_t,
 					 prepare: bool)
 {
@@ -2088,7 +2087,7 @@ pub unsafe extern "C-unwind" fn del_range_2 (from: ptrdiff_t, from_byte: ptrdiff
    area.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn modify_text (start: ptrdiff_t, end: ptrdiff_t)
+pub extern "C-unwind" fn modify_text (start: ptrdiff_t, end: ptrdiff_t)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -2470,7 +2469,7 @@ unsafe fn signal_before_change (start_int: ptrdiff_t, end_int: ptrdiff_t,
    after the change.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn signal_after_change (charpos: ptrdiff_t, lendel: ptrdiff_t,
+pub extern "C-unwind" fn signal_after_change (charpos: ptrdiff_t, lendel: ptrdiff_t,
 					      lenins: ptrdiff_t)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.

@@ -111,15 +111,15 @@ pub unsafe fn CHECK_TS_COMPILED_QUERY(query: Lisp_Object) {
 pub mod treesit_declarations {
     use super::*;
     unsafe extern "C-unwind" {
-        pub fn syms_of_treesit();
+        pub safe fn syms_of_treesit();
         #[cfg(feature = "have_tree_sitter")]
         pub static TREESIT_EMPTY_LINECOL: ts_linecol;
         #[cfg(feature = "have_tree_sitter")]
-        pub fn linecol_offset(linecol: ts_linecol, offset: ts_linecol) -> ts_linecol;
+        pub safe fn linecol_offset(linecol: ts_linecol, offset: ts_linecol) -> ts_linecol;
         #[cfg(feature = "have_tree_sitter")]
-        pub fn treesit_linecol_maybe(pos: ptrdiff_t, bytepos: ptrdiff_t, cache: ts_linecol) -> ts_linecol;
+        pub safe fn treesit_linecol_maybe(pos: ptrdiff_t, bytepos: ptrdiff_t, cache: ts_linecol) -> ts_linecol;
         #[cfg(feature = "have_tree_sitter")]
-        pub fn treesit_record_change(start: ptrdiff_t, old_end: ptrdiff_t, new_end: ptrdiff_t,
+        pub safe fn treesit_record_change(start: ptrdiff_t, old_end: ptrdiff_t, new_end: ptrdiff_t,
                                     start_linecol: ts_linecol, old_end_linecol: ts_linecol,
                                     new_len: ptrdiff_t);
         #[cfg(feature = "have_tree_sitter")]

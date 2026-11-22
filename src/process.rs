@@ -1362,10 +1362,9 @@ unsafe fn update_status (p: *mut Lisp_Process)
 }
 
 /* C 762-776: `status_convert` — Unix status word to the internal list.  */
-unsafe fn status_convert (w: c_int) -> Lisp_Object
+fn status_convert (w: c_int) -> Lisp_Object
 {
-  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
-  unsafe {
+  {
   if (WIFSTOPPED (w))
     { return Fcons (Qstop (), Fcons (make_fixnum (WSTOPSIG (w) as EMACS_INT), Qnil ())); }
   else if (WIFEXITED (w))
@@ -1380,7 +1379,7 @@ unsafe fn status_convert (w: c_int) -> Lisp_Object
 }
 
 /* C 778-785: `connecting_status`.  */
-unsafe fn connecting_status (status: Lisp_Object) -> bool
+fn connecting_status (status: Lisp_Object) -> bool
 {
   return CONSP (status) && EQ (XCAR (status), Qconnect ());
 }
@@ -1810,7 +1809,7 @@ pub unsafe fn update_processes_for_thread_death (dying_thread: Lisp_Object)
 /* C 1035-1049: `free_dns_request` — the `HAVE_GETADDRINFO_A` arm (dead; there is no
    `dns_request` member on this target).  */
 #[cfg (feature = "have_getaddrinfo_a")]
-unsafe fn free_dns_request (proc_: Lisp_Object)
+fn free_dns_request (proc_: Lisp_Object)
 {
   /* C 1039: `struct Lisp_Process *p = XPROCESS (proc);`  */
   let p: *mut Lisp_Process = XPROCESS (proc_);
@@ -2303,9 +2302,6 @@ DEFUN! ("set-process-window-size", Fset_process_window_size, Sset_process_window
 unsafe extern "C-unwind" {
   /// C: Lisp_Object plist_put (Lisp_Object, Lisp_Object, Lisp_Object)   (lisp.h 4281)
   fn plist_put (plist: Lisp_Object, prop: Lisp_Object, val: Lisp_Object) -> Lisp_Object;
-  /// C: uintmax_t check_uinteger_max (Lisp_Object, uintmax_t)   (lisp.h 612)
-  fn check_uinteger_max (x: Lisp_Object, max: u64) -> u64;
-
 }
 
 DEFUN! ("set-process-inherit-coding-system-flag", Fset_process_inherit_coding_system_flag,
@@ -5937,7 +5933,7 @@ unsafe extern "C-unwind" fn active_process_waiter_unwind (ptr: *mut c_void)
 
 /* This is here so breakpoints can be put on it.  */
 /* C 5295-5297: `wait_reading_process_output_1`.  */
-unsafe fn wait_reading_process_output_1 ()
+fn wait_reading_process_output_1 ()
 {
 }
 
@@ -7006,8 +7002,7 @@ unsafe extern "C" {
    `internal_condition_case_1`, so it is `unsafe extern "C-unwind" fn` (PORTING.md 1.4).  */
 unsafe extern "C-unwind" fn read_process_output_call (fun_and_args: Lisp_Object) -> Lisp_Object
 {
-  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
-  unsafe {
+  {
   return apply1 (XCAR (fun_and_args), XCDR (fun_and_args));
 
   }
@@ -8948,13 +8943,13 @@ DEFUN! ("process-coding-system", Fprocess_coding_system, Sprocess_coding_system,
    carried text (feature `have_gpm`).  */
 #[cfg (feature = "have_gpm")]
 #[unsafe(no_mangle)]
-pub unsafe fn add_gpm_wait_descriptor (desc: c_int)
+pub fn add_gpm_wait_descriptor (desc: c_int)
 {
   add_keyboard_wait_descriptor (desc);
 }
 #[cfg (feature = "have_gpm")]
 #[unsafe(no_mangle)]
-pub unsafe fn delete_gpm_wait_descriptor (desc: c_int)
+pub fn delete_gpm_wait_descriptor (desc: c_int)
 {
   delete_keyboard_wait_descriptor (desc);
 }
@@ -9003,7 +8998,7 @@ pub mod no_subprocesses
   /* This is referenced in thread.c:run_thread (which is never actually called, since
      threads are not enabled for this configuration.  */
   #[unsafe(no_mangle)]
-  pub unsafe fn update_processes_for_thread_death (dying_thread: Lisp_Object)
+  pub fn update_processes_for_thread_death (dying_thread: Lisp_Object)
   {
     let _ = dying_thread;
   }
@@ -9515,7 +9510,7 @@ pub unsafe fn catch_child_signal ()
   sigaction (SIGCHLD, &raw const action, &raw mut old_action);
   /* C: `old_action.sa_handler` is the `sigaction` union's `__sa_handler` member (P-27's
      `Option` shape); `<signal.h>`'s `SIG_DFL` is the zero handler and `SIG_IGN` the one.  */
-  let sig_ign: signal_handler_t = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { std::mem::transmute (SIG_IGN as usize) };
+  let sig_ign: signal_handler_t = { std::mem::transmute (SIG_IGN as usize) };
   eassert! (old_action.__sigaction_u.__sa_handler == SIG_DFL
 	    || old_action.__sigaction_u.__sa_handler == sig_ign
 	    || (old_action.sa_flags & SA_SIGINFO) == 0);
@@ -9586,7 +9581,7 @@ static FEMACS_CHILD_TRACE: core::sync::atomic::AtomicBool =
 
 /* C has no counterpart: P-122/P-125's instruments ask this instead of `getenv`.  */
 #[inline]
-unsafe fn femacs_child_trace () -> bool {
+fn femacs_child_trace () -> bool {
   return FEMACS_CHILD_TRACE.load (core::sync::atomic::Ordering::Relaxed);
 }
 

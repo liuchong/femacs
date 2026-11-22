@@ -20,16 +20,16 @@ pub mod macros_externs {
 
   unsafe extern "C-unwind" {
     /* macros.h 30: `extern EMACS_INT executing_kbd_macro_iterations;` */
-    pub static executing_kbd_macro_iterations: VmGlobal<EMACS_INT>;
+    pub safe static executing_kbd_macro_iterations: VmGlobal<EMACS_INT>;
     /* macros.h 32: `extern Lisp_Object executing_kbd_macro;` */
-    pub static executing_kbd_macro: VmGlobal<Lisp_Object>;
+    pub safe static executing_kbd_macro: VmGlobal<Lisp_Object>;
 
     /* macros.h 36, 41, 46: the three kbd-macro entry points keyboard.c calls.  */
-    pub fn end_kbd_macro ();
-    pub fn finalize_kbd_macro_chars ();
-    pub fn store_kbd_macro_char (c: Lisp_Object);
+    pub safe fn end_kbd_macro ();
+    pub safe fn finalize_kbd_macro_chars ();
+    pub safe fn store_kbd_macro_char (c: Lisp_Object);
     /* macros.h 51: `extern bool at_end_of_macro_p (void);` */
-    pub fn at_end_of_macro_p () -> bool;
+    pub safe fn at_end_of_macro_p () -> bool;
   }
 }
 

@@ -180,10 +180,9 @@ static minibuf_prompt_width: VmGlobal<ptrdiff_t> = VmGlobal::<ptrdiff_t>::new (0
 
 /* Return TRUE when a frame switch causes a minibuffer on the old
    frame to move onto the new one. */
-unsafe fn minibuf_follows_frame () -> bool
+fn minibuf_follows_frame () -> bool
 {
-  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
-  unsafe {
+  {
   return EQ (Fdefault_toplevel_value (Qminibuffer_follows_selected_frame ()),
              Qt ());
 
@@ -879,21 +878,21 @@ unsafe fn read_minibuf (map: Lisp_Object, initial: Lisp_Object, prompt: Lisp_Obj
   record_unwind_protect_void (Some (minibuffer_unwind));
   if (*read_minibuffer_restore_windows.as_mut_ptr ())
     {
-      record_unwind_protect (Some (restore_window_configuration),
+      record_unwind_protect (Some (restore_window_configuration as _),
 			     list3 (Fcurrent_window_configuration (Qnil ()), Qt (), Qt ()));
 
       /* If the minibuffer window is on a different frame, save that
 	 frame's configuration too.  */
       if !EQ (mini_frame, (*selected_frame.as_mut_ptr ()))
 	{
-	  record_unwind_protect (Some (restore_window_configuration),
+	  record_unwind_protect (Some (restore_window_configuration as _),
 				 list3 (Fcurrent_window_configuration (mini_frame), Qnil (), Qt ()));
 	}
     }
   else if !EQ (mini_frame, (*selected_frame.as_mut_ptr ()))
     {
       record_unwind_protect
-	(Some (restore_focus_frame),
+	(Some (restore_focus_frame as _),
 	 Fcons ((*selected_frame.as_mut_ptr ()), (*XFRAME ((*selected_frame.as_mut_ptr ()))).focus_frame));
     }
 
@@ -1181,7 +1180,7 @@ unsafe fn read_minibuf (map: Lisp_Object, initial: Lisp_Object, prompt: Lisp_Obj
 
 /* Return true if BUF is a particular existing minibuffer.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn is_minibuffer (depth: EMACS_INT, buf: Lisp_Object) -> bool
+pub extern "C-unwind" fn is_minibuffer (depth: EMACS_INT, buf: Lisp_Object) -> bool
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -1305,8 +1304,7 @@ unsafe fn minibuf_c_loop_level (depth: EMACS_INT) -> EMACS_INT
 
 unsafe extern "C-unwind" fn run_exit_minibuf_hook (minibuf: Lisp_Object)
 {
-  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
-  unsafe {
+  {
   let count: specpdl_ref = SPECPDL_INDEX ();
   record_unwind_current_buffer ();
   if BUFFER_LIVE_P (XBUFFER (minibuf))
@@ -1530,7 +1528,7 @@ unsafe extern "C-unwind" fn minibuffer_unwind ()
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn barf_if_interaction_inhibited ()
+pub extern "C-unwind" fn barf_if_interaction_inhibited ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {

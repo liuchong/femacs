@@ -262,7 +262,7 @@ pub mod buffer_point_decls {
   pub fn temp_set_point (buffer: *mut buffer, charpos: ptrdiff_t);
   pub fn set_point_both (charpos: ptrdiff_t, bytepos: ptrdiff_t);
   pub fn temp_set_point_both (buffer: *mut buffer, charpos: ptrdiff_t, bytepos: ptrdiff_t);
-  pub fn set_point_from_marker (marker: Lisp_Object);
+  pub safe fn set_point_from_marker (marker: Lisp_Object);
   pub fn enlarge_buffer_text (b: *mut buffer, delta: ptrdiff_t);
   }
 }
@@ -1329,8 +1329,8 @@ pub fn SET_BUF_TS_LINECOL_ZV (buf: *mut buffer, linecol: ts_linecol)
 pub mod textprop_objs {
   use super::*;
 
-  unsafe extern "C-unwind" { pub static interval_insert_behind_hooks: VmGlobal<Lisp_Object>; }
-  unsafe extern "C-unwind" { pub static interval_insert_in_front_hooks: VmGlobal<Lisp_Object>; }
+  unsafe extern "C-unwind" { pub safe static interval_insert_behind_hooks: VmGlobal<Lisp_Object>; }
+  unsafe extern "C-unwind" { pub safe static interval_insert_in_front_hooks: VmGlobal<Lisp_Object>; }
 }
 pub use self::textprop_objs::*;
 
@@ -1355,7 +1355,7 @@ pub mod buffer_decls {
   pub fn compact_buffer (buffer: *mut buffer);
   pub fn overlays_at (pos: ptrdiff_t, extend: bool, vec_ptr: *mut *mut Lisp_Object,
                       len_ptr: *mut ptrdiff_t, next_ptr: *mut ptrdiff_t) -> ptrdiff_t;
-  pub fn next_overlay_change (pos: ptrdiff_t) -> ptrdiff_t;
+  pub safe fn next_overlay_change (pos: ptrdiff_t) -> ptrdiff_t;
   // `struct window` is incomplete in this header, so the port keeps C's pointee
   // opaque and spells the type in the comment (PORTING.md 0.1-2).
   pub fn sort_overlays (overlay_vec: *mut Lisp_Object, noverlays: ptrdiff_t,
@@ -1366,13 +1366,13 @@ pub mod buffer_decls {
   pub fn set_buffer_internal_1 (b: *mut buffer);
   pub fn set_buffer_internal_2 (b: *mut buffer);
   pub fn set_buffer_temp (b: *mut buffer);
-  pub fn buffer_local_value (variable: Lisp_Object, buffer: Lisp_Object) -> Lisp_Object;
-  pub fn record_buffer (buffer: Lisp_Object);
-  pub fn restore_buffer (buffer_or_name: Lisp_Object);
-  pub fn set_buffer_if_live (buffer: Lisp_Object);
-  pub fn fix_position (pos: Lisp_Object) -> EMACS_INT;
-  pub fn advance_to_char_boundary (byte_pos: ptrdiff_t) -> ptrdiff_t;
-  pub fn valid_per_buffer_idx (idx: c_int) -> bool;
+  pub safe fn buffer_local_value (variable: Lisp_Object, buffer: Lisp_Object) -> Lisp_Object;
+  pub safe fn record_buffer (buffer: Lisp_Object);
+  pub safe fn restore_buffer (buffer_or_name: Lisp_Object);
+  pub safe fn set_buffer_if_live (buffer: Lisp_Object);
+  pub safe fn fix_position (pos: Lisp_Object) -> EMACS_INT;
+  pub safe fn advance_to_char_boundary (byte_pos: ptrdiff_t) -> ptrdiff_t;
+  pub safe fn valid_per_buffer_idx (idx: c_int) -> bool;
   pub fn compare_overlays (v1: *const c_void, v2: *const c_void) -> c_int;
   pub fn make_sortvec_item (item: *mut sortvec, overlay: Lisp_Object);
   }
@@ -1381,7 +1381,7 @@ pub mod buffer_decls {
   pub static buffer_defaults: VmGlobal<buffer>;
   pub static buffer_local_flags: VmGlobal<buffer>;
   pub static buffer_local_symbols: VmGlobal<buffer>;
-  pub static Vbuffer_alist: VmGlobal<Lisp_Object>;
+  pub safe static Vbuffer_alist: VmGlobal<Lisp_Object>;
   }
 }
 pub use self::buffer_decls::*;
@@ -1392,10 +1392,10 @@ pub use self::buffer_decls::*;
 // macro cannot be an l-value, so this is a statement macro (C never uses the value).
 #[macro_export]
 macro_rules! CHECK_FIXNUM_COERCE_MARKER {
-    ($x:ident) => { $x = make_fixnum (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { fix_position ($x) }); };
+    ($x:ident) => { $x = make_fixnum (fix_position ($x)); };
     // C's `CHECK_FIXNUM_COERCE_MARKER (*begin)` (textprop.c 136-137 passes a pointer's
     // pointee): the same assignment with a deref place expression on the left.
-    ($x:expr) => { $x = make_fixnum (unsafe { fix_position ($x) }); };
+    ($x:expr) => { $x = make_fixnum (fix_position ($x)); };
 }
 
 /* The four prototypes of that block whose definitions live in *other* units - intervals.c's
@@ -1410,9 +1410,9 @@ pub mod buffer_other_decls {
   unsafe extern "C-unwind" {
     pub fn recenter_overlay_lists (buf: *mut buffer, pos: ptrdiff_t);
     pub fn fix_overlays_before (bp: *mut buffer, prev: ptrdiff_t, pos: ptrdiff_t);
-    pub fn mmap_set_vars (on: bool);
-    pub fn build_overlay (front_advance: bool, rear_advance: bool,
-                          plist: Lisp_Object) -> Lisp_Object;
+    pub safe fn mmap_set_vars (on: bool);
+    pub safe fn build_overlay (front_advance: bool, rear_advance: bool,
+                               plist: Lisp_Object) -> Lisp_Object;
   }
 }
 pub use self::buffer_other_decls::*;
@@ -1450,7 +1450,7 @@ pub fn set_buffer_internal (b: *mut buffer)
 #[inline(always)]
 pub fn record_unwind_current_buffer ()
 {
-  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { record_unwind_protect (Some (set_buffer_if_live), Fcurrent_buffer ()); }
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { record_unwind_protect (Some (set_buffer_if_live as _), Fcurrent_buffer ()); }
 }
 
 /* Get overlays at POSN into array OVERLAYS with NOVERLAYS elements.
@@ -2056,8 +2056,7 @@ pub fn dec_both (charpos: *mut ptrdiff_t, bytepos: *mut ptrdiff_t)
 
 #[inline(always)]
 pub fn current_buffer_alist () -> Lisp_Object {
-    /* SAFETY: single-VM `Vbuffer_alist` atomic load. */
-    unsafe { Vbuffer_alist.get () }
+    { Vbuffer_alist.get () }
 }
 
 #[inline(always)]
@@ -2094,8 +2093,8 @@ pub fn current_buffer_zv_byte () -> ptrdiff_t {
 
 #[inline(always)]
 pub fn current_buffer_fetch_byte (bytepos: ptrdiff_t) -> u8 {
-    assert! (current_buffer_begv_byte () <= bytepos && bytepos < current_buffer_zv_byte ());
-    /* SAFETY: `bytepos` verified within accessible `[begv_byte, zv_byte)` of live `current_buffer`. */
+    assert! ((BEG_BYTE as ptrdiff_t) <= bytepos && bytepos <= current_buffer_z_byte ());
+    /* SAFETY: `bytepos` verified within `[BEG_BYTE, Z_BYTE]` (including trailing anchor NUL at `Z_BYTE`). */
     unsafe { FETCH_BYTE! (bytepos) }
 }
 
@@ -2155,8 +2154,7 @@ pub fn bitch_at_user_safe () {
 
 #[inline(always)]
 pub fn translate_char_safe (table: Lisp_Object, c: c_int) -> c_int {
-    /* SAFETY: `translate_char` checks `CHAR_TABLE_P(table)` before reading it. */
-    unsafe { translate_char (table, c) }
+    { translate_char (table, c) }
 }
 
 #[inline(always)]
@@ -2173,4 +2171,911 @@ pub fn encode_char_bytes (c: c_int, buf: &mut [u8; MAX_MULTIBYTE_LENGTH as usize
     /* SAFETY: `buf` has exact `MAX_MULTIBYTE_LENGTH` capacity required by `CHAR_STRING`. */
     CHAR_STRING (c, buf.as_mut_ptr ()) as usize
 }
+
+// --- U7 safe buffer boundary primitives (P-486) ----------------------------
+
+#[inline(always)]
+pub fn current_buffer_object () -> Lisp_Object {
+    let cb = /* SAFETY: reads active `current_buffer` pointer. */ unsafe { current_buffer! () };
+    assert! (!cb.is_null ());
+    make_lisp_ptr (cb as *mut c_void, Lisp_Type::Lisp_Vectorlike)
+}
+
+#[inline(always)]
+pub fn current_buffer_z () -> ptrdiff_t {
+    let cb = /* SAFETY: reads active `current_buffer` pointer. */ unsafe { current_buffer! () };
+    assert! (!cb.is_null ());
+    /* SAFETY: `cb` and `(*cb).text` are non-null for every live buffer. */
+    unsafe { (*(*cb).text).z }
+}
+
+#[inline(always)]
+pub fn current_buffer_z_byte () -> ptrdiff_t {
+    let cb = /* SAFETY: reads active `current_buffer` pointer. */ unsafe { current_buffer! () };
+    assert! (!cb.is_null ());
+    /* SAFETY: `cb` and `(*cb).text` are non-null for every live buffer. */
+    unsafe { (*(*cb).text).z_byte }
+}
+
+#[inline(always)]
+pub fn current_buffer_gpt () -> ptrdiff_t {
+    let cb = /* SAFETY: reads active `current_buffer` pointer. */ unsafe { current_buffer! () };
+    assert! (!cb.is_null ());
+    /* SAFETY: `cb` and `(*cb).text` are non-null for every live buffer. */
+    unsafe { (*(*cb).text).gpt }
+}
+
+#[inline(always)]
+pub fn current_buffer_gpt_byte () -> ptrdiff_t {
+    let cb = /* SAFETY: reads active `current_buffer` pointer. */ unsafe { current_buffer! () };
+    assert! (!cb.is_null ());
+    /* SAFETY: `cb` and `(*cb).text` are non-null for every live buffer. */
+    unsafe { (*(*cb).text).gpt_byte }
+}
+
+#[inline(always)]
+pub fn current_buffer_gap_size () -> ptrdiff_t {
+    let cb = /* SAFETY: reads active `current_buffer` pointer. */ unsafe { current_buffer! () };
+    assert! (!cb.is_null ());
+    /* SAFETY: `cb` and `(*cb).text` are non-null for every live buffer. */
+    unsafe { (*(*cb).text).gap_size }
+}
+
+#[inline(always)]
+pub fn current_buffer_save_modiff () -> modiff_count {
+    let cb = /* SAFETY: reads active `current_buffer` pointer. */ unsafe { current_buffer! () };
+    assert! (!cb.is_null ());
+    /* SAFETY: `cb` and `(*cb).text` are non-null for every live buffer. */
+    unsafe { (*(*cb).text).save_modiff }
+}
+
+#[inline(always)]
+pub fn current_buffer_chars_modiff () -> modiff_count {
+    let cb = /* SAFETY: reads active `current_buffer` pointer. */ unsafe { current_buffer! () };
+    assert! (!cb.is_null ());
+    /* SAFETY: `cb` and `(*cb).text` are non-null for every live buffer. */
+    unsafe { (*(*cb).text).chars_modiff }
+}
+
+#[inline(always)]
+pub fn current_buffer_is_indirect () -> bool {
+    let cb = /* SAFETY: reads active `current_buffer` pointer. */ unsafe { current_buffer! () };
+    assert! (!cb.is_null ());
+    /* SAFETY: `cb` verified non-null live buffer. */
+    unsafe { !(*cb).base_buffer.is_null () }
+}
+
+#[inline(always)]
+pub fn current_buffer_base_or_self_object () -> Lisp_Object {
+    let cb = /* SAFETY: reads active `current_buffer` pointer. */ unsafe { current_buffer! () };
+    assert! (!cb.is_null ());
+    /* SAFETY: `cb` verified non-null live buffer. */
+    let target = unsafe {
+        if (*cb).base_buffer.is_null () {
+            cb
+        } else {
+            (*cb).base_buffer
+        }
+    };
+    make_lisp_ptr (target as *mut c_void, Lisp_Type::Lisp_Vectorlike)
+}
+
+#[inline(always)]
+pub fn current_buffer_undo_list () -> Lisp_Object {
+    let cb = /* SAFETY: reads active `current_buffer` pointer. */ unsafe { current_buffer! () };
+    assert! (!cb.is_null ());
+    /* SAFETY: `cb` verified non-null live buffer. */
+    unsafe { BVAR! (cb, undo_list_) }
+}
+
+#[inline(always)]
+pub fn set_current_buffer_undo_list (val: Lisp_Object) {
+    let cb = /* SAFETY: reads active `current_buffer` pointer. */ unsafe { current_buffer! () };
+    assert! (!cb.is_null ());
+    bset_undo_list (cb, val);
+}
+
+#[inline(always)]
+pub fn buffer_undo_list_of (buf_obj: Lisp_Object) -> Lisp_Object {
+    assert! (BUFFERP (buf_obj));
+    /* SAFETY: `BUFFERP(buf_obj)` verified above. */
+    unsafe { BVAR! (XBUFFER (buf_obj), undo_list_) }
+}
+
+#[inline(always)]
+pub fn set_buffer_undo_list_of (buf_obj: Lisp_Object, val: Lisp_Object) {
+    assert! (BUFFERP (buf_obj));
+    bset_undo_list (XBUFFER (buf_obj), val);
+}
+
+#[inline(always)]
+pub fn current_buffer_visited_file_modtime () -> Lisp_Object {
+    let cb = /* SAFETY: reads active `current_buffer` pointer. */ unsafe { current_buffer! () };
+    assert! (!cb.is_null ());
+    /* SAFETY: `cb` verified non-null live buffer. */
+    unsafe { buffer_visited_file_modtime (cb as *mut c_void) }
+}
+
+#[inline(always)]
+pub fn current_buffer_file_truename () -> Lisp_Object {
+    let cb = /* SAFETY: reads active `current_buffer` pointer. */ unsafe { current_buffer! () };
+    assert! (!cb.is_null ());
+    /* SAFETY: `cb` verified non-null live buffer. */
+    unsafe { BVAR! (cb, file_truename_) }
+}
+
+#[inline(always)]
+pub fn current_buffer_name () -> Lisp_Object {
+    let cb = /* SAFETY: reads active `current_buffer` pointer. */ unsafe { current_buffer! () };
+    assert! (!cb.is_null ());
+    /* SAFETY: `cb` verified non-null live buffer. */
+    unsafe { BVAR! (cb, name_) }
+}
+
+#[inline(always)]
+pub fn current_buffer_local_map () -> Lisp_Object {
+    let cb = /* SAFETY: reads active `current_buffer` pointer. */ unsafe { current_buffer! () };
+    assert! (!cb.is_null ());
+    /* SAFETY: `cb` verified non-null live buffer. */
+    unsafe { BVAR! (cb, keymap_) }
+}
+
+#[inline(always)]
+pub fn set_current_buffer_local_map (map: Lisp_Object) {
+    let cb = /* SAFETY: reads active `current_buffer` pointer. */ unsafe { current_buffer! () };
+    assert! (!cb.is_null ());
+    bset_keymap (cb, map);
+}
+
+#[inline(always)]
+pub fn current_buffer_mark () -> Lisp_Object {
+    let cb = /* SAFETY: reads active `current_buffer` pointer. */ unsafe { current_buffer! () };
+    assert! (!cb.is_null ());
+    /* SAFETY: `cb` verified non-null live buffer. */
+    unsafe { BVAR! (cb, mark_) }
+}
+
+#[inline(always)]
+pub fn current_buffer_mark_active () -> Lisp_Object {
+    let cb = /* SAFETY: reads active `current_buffer` pointer. */ unsafe { current_buffer! () };
+    assert! (!cb.is_null ());
+    /* SAFETY: `cb` verified non-null live buffer. */
+    unsafe { BVAR! (cb, mark_active_) }
+}
+
+#[inline(always)]
+pub fn current_buffer_point_before_scroll () -> Lisp_Object {
+    let cb = /* SAFETY: reads active `current_buffer` pointer. */ unsafe { current_buffer! () };
+    assert! (!cb.is_null ());
+    /* SAFETY: `cb` verified non-null live buffer. */
+    unsafe { BVAR! (cb, point_before_scroll_) }
+}
+
+#[inline(always)]
+pub fn set_current_buffer_point_before_scroll (val: Lisp_Object) {
+    let cb = /* SAFETY: reads active `current_buffer` pointer. */ unsafe { current_buffer! () };
+    assert! (!cb.is_null ());
+    bset_point_before_scroll (cb, val);
+}
+
+#[inline(always)]
+pub fn current_buffer_category_table () -> Lisp_Object {
+    let cb = /* SAFETY: reads active `current_buffer` pointer. */ unsafe { current_buffer! () };
+    assert! (!cb.is_null ());
+    /* SAFETY: `cb` verified non-null live buffer. */
+    unsafe { BVAR! (cb, category_table_) }
+}
+
+#[inline(always)]
+pub fn set_current_buffer_category_table (val: Lisp_Object) {
+    let cb = /* SAFETY: reads active `current_buffer` pointer. */ unsafe { current_buffer! () };
+    assert! (!cb.is_null ());
+    /* SAFETY: `cb` verified non-null live buffer. */
+    unsafe { (*cb).category_table_ = val; }
+    SET_PER_BUFFER_VALUE_P (cb, PER_BUFFER_VAR_IDX! (category_table_), true);
+}
+
+#[inline(always)]
+pub fn standard_category_table () -> Lisp_Object {
+    /* SAFETY: `buffer_defaults` is static VM storage owned by the single Lisp thread. */
+    unsafe { BVAR! (buffer_defaults.as_mut_ptr (), category_table_) }
+}
+
+#[inline(always)]
+pub fn set_standard_category_table (val: Lisp_Object) {
+    /* SAFETY: `buffer_defaults` is static VM storage owned by the single Lisp thread. */
+    unsafe { (*buffer_defaults.as_mut_ptr ()).category_table_ = val; }
+}
+
+#[inline(always)]
+pub fn current_buffer_downcase_table () -> Lisp_Object {
+    let cb = /* SAFETY: reads active `current_buffer` pointer. */ unsafe { current_buffer! () };
+    assert! (!cb.is_null ());
+    /* SAFETY: `cb` verified non-null live buffer. */
+    unsafe { BVAR! (cb, downcase_table_) }
+}
+
+#[inline(always)]
+pub fn current_buffer_upcase_table () -> Lisp_Object {
+    let cb = /* SAFETY: reads active `current_buffer` pointer. */ unsafe { current_buffer! () };
+    assert! (!cb.is_null ());
+    /* SAFETY: `cb` verified non-null live buffer. */
+    unsafe { BVAR! (cb, upcase_table_) }
+}
+
+#[inline(always)]
+pub fn current_buffer_case_canon_table () -> Lisp_Object {
+    let cb = /* SAFETY: reads active `current_buffer` pointer. */ unsafe { current_buffer! () };
+    assert! (!cb.is_null ());
+    /* SAFETY: `cb` verified non-null live buffer. */
+    unsafe { BVAR! (cb, case_canon_table_) }
+}
+
+#[inline(always)]
+pub fn current_buffer_case_eqv_table () -> Lisp_Object {
+    let cb = /* SAFETY: reads active `current_buffer` pointer. */ unsafe { current_buffer! () };
+    assert! (!cb.is_null ());
+    /* SAFETY: `cb` verified non-null live buffer. */
+    unsafe { BVAR! (cb, case_eqv_table_) }
+}
+
+#[inline(always)]
+pub fn set_case_tables_on_buffer_or_defaults (
+    standard: bool,
+    downcase: Lisp_Object,
+    upcase: Lisp_Object,
+    canon: Lisp_Object,
+    eqv: Lisp_Object,
+) {
+    let buf = if standard {
+        /* SAFETY: `buffer_defaults` is static VM storage owned by the single Lisp thread. */
+        unsafe { buffer_defaults.as_mut_ptr () }
+    } else {
+        let cb = /* SAFETY: reads active `current_buffer` pointer. */ unsafe { current_buffer! () };
+        assert! (!cb.is_null ());
+        cb
+    };
+    bset_downcase_table (buf, downcase);
+    bset_upcase_table (buf, upcase);
+    bset_case_canon_table (buf, canon);
+    bset_case_eqv_table (buf, eqv);
+}
+
+#[inline(always)]
+pub fn standard_downcase_table () -> Lisp_Object {
+    /* SAFETY: `buffer_defaults` is static VM storage owned by the single Lisp thread. */
+    unsafe { BVAR! (buffer_defaults.as_mut_ptr (), downcase_table_) }
+}
+
+#[inline(always)]
+pub fn fetch_char_advance_current_safe (
+    charidx: &mut ptrdiff_t,
+    byteidx: &mut ptrdiff_t,
+) -> c_int {
+    assert! (current_buffer_begv_byte () <= *byteidx && *byteidx < current_buffer_zv_byte ());
+    fetch_char_advance (&raw mut *charidx, &raw mut *byteidx)
+}
+
+#[inline(always)]
+pub fn fetch_char_advance_no_check_current_safe (
+    charidx: &mut ptrdiff_t,
+    byteidx: &mut ptrdiff_t,
+) -> c_int {
+    assert! (current_buffer_multibyte_p ());
+    assert! (current_buffer_begv_byte () <= *byteidx && *byteidx < current_buffer_zv_byte ());
+    fetch_char_advance_no_check (&raw mut *charidx, &raw mut *byteidx)
+}
+
+#[inline(always)]
+pub fn current_buffer_copy_bytes_to_vec (from_byte: ptrdiff_t, to_byte: ptrdiff_t) -> Vec<u8> {
+    assert! (BEG_BYTE as ptrdiff_t <= from_byte && from_byte <= to_byte && to_byte <= current_buffer_z_byte ());
+    let total = (to_byte - from_byte) as usize;
+    if total == 0 {
+        return Vec::new ();
+    }
+    let mut out = Vec::with_capacity (total);
+    let gpt_byte = current_buffer_gpt_byte ();
+    /* SAFETY: `from_byte..to_byte` verified within `[BEG_BYTE, Z_BYTE]`; copies around the buffer gap without triggering GC. */
+    unsafe {
+        if to_byte <= gpt_byte || from_byte >= gpt_byte {
+            let p = BYTE_POS_ADDR (from_byte);
+            out.extend_from_slice (core::slice::from_raw_parts (p, total));
+        } else {
+            let first_len = (gpt_byte - from_byte) as usize;
+            let second_len = (to_byte - gpt_byte) as usize;
+            out.extend_from_slice (core::slice::from_raw_parts (
+                BYTE_POS_ADDR (from_byte),
+                first_len,
+            ));
+            out.extend_from_slice (core::slice::from_raw_parts (
+                BYTE_POS_ADDR (gpt_byte),
+                second_len,
+            ));
+        }
+    }
+    out
+}
+
+#[inline(always)]
+pub fn replace_range_2_bytes (
+    from: ptrdiff_t,
+    from_byte: ptrdiff_t,
+    to: ptrdiff_t,
+    to_byte: ptrdiff_t,
+    bytes: &[u8],
+    inschars: ptrdiff_t,
+    markers: bool,
+) {
+    /* SAFETY: `bytes` is a valid slice for `bytes.len()` bytes; `replace_range_2` copies from it before returning. */
+    unsafe {
+        replace_range_2 (
+            from,
+            from_byte,
+            to,
+            to_byte,
+            bytes.as_ptr () as *const c_char,
+            inschars,
+            bytes.len () as ptrdiff_t,
+            markers,
+        )
+    }
+}
+
+#[inline(always)]
+pub fn prepare_to_modify_buffer_simple (start: ptrdiff_t, end: ptrdiff_t) {
+    /* SAFETY: null `preserve_ptr` means caller does not request position preservation across before-change hooks. */
+    unsafe { prepare_to_modify_buffer (start, end, core::ptr::null_mut ()) }
+}
+
+#[inline(always)]
+pub fn prepare_to_modify_buffer_preserve (start: ptrdiff_t, end: ptrdiff_t, mut pos: ptrdiff_t) -> ptrdiff_t {
+    /* SAFETY: `pos` is a valid stack in/out pointer. */
+    unsafe { prepare_to_modify_buffer (start, end, &raw mut pos) };
+    pos
+}
+
+#[inline(always)]
+pub fn invalidate_current_buffer_caches (start: ptrdiff_t, end: ptrdiff_t) {
+    let cb = /* SAFETY: reads active `current_buffer` pointer. */ unsafe { current_buffer! () };
+    assert! (!cb.is_null ());
+    /* SAFETY: `cb` verified non-null live buffer. */
+    unsafe { invalidate_buffer_caches (cb as *mut c_void, start, end) }
+}
+
+#[inline(always)]
+pub fn write_into_current_buffer_gap (bytes: &[u8]) {
+    if bytes.is_empty () {
+        return;
+    }
+    if current_buffer_gap_size () < bytes.len () as ptrdiff_t {
+        make_gap (bytes.len () as ptrdiff_t - current_buffer_gap_size ());
+    }
+    assert! (current_buffer_gap_size () >= bytes.len () as ptrdiff_t);
+    /* SAFETY: `gap_size >= bytes.len()` verified above; copies `bytes` into `GPT_ADDR` of live `current_buffer`. */
+    unsafe {
+        let cb = current_buffer! ();
+        core::ptr::copy_nonoverlapping (bytes.as_ptr (), BUF_GPT_ADDR (cb), bytes.len ());
+    }
+}
+
+#[inline(always)]
+pub fn validate_region_safe (b: Lisp_Object, e: Lisp_Object) -> (Lisp_Object, Lisp_Object) {
+    let mut b_out = b;
+    let mut e_out = e;
+    /* SAFETY: `b_out` and `e_out` are valid stack in/out `Lisp_Object` slots. */
+    unsafe { validate_region (&raw mut b_out, &raw mut e_out) };
+    (b_out, e_out)
+}
+
+#[inline(always)]
+pub fn make_current_buffer_point_marker () -> Lisp_Object {
+    let cb = /* SAFETY: reads active `current_buffer` pointer. */ unsafe { current_buffer! () };
+    assert! (!cb.is_null ());
+    /* SAFETY: `cb` verified non-null live buffer; `PT` and `PT_BYTE` are synchronized point positions. */
+    unsafe { build_marker (cb as *mut c_void, PT! (), PT_BYTE! ()) }
+}
+
+#[inline(always)]
+pub fn make_current_buffer_marker_at (charpos: ptrdiff_t, bytepos: ptrdiff_t) -> Lisp_Object {
+    let cb = /* SAFETY: reads active `current_buffer` pointer. */ unsafe { current_buffer! () };
+    assert! (!cb.is_null ());
+    /* SAFETY: `cb` verified non-null live buffer. */
+    unsafe { build_marker (cb as *mut c_void, charpos, bytepos) }
+}
+
+#[inline(always)]
+pub fn buffer_live_p_obj (obj: Lisp_Object) -> bool {
+    BUFFERP (obj) && BUFFER_LIVE_P (XBUFFER (obj))
+}
+
+#[inline(always)]
+pub fn buffer_base_buffer_obj (obj: Lisp_Object) -> Lisp_Object {
+    assert! (BUFFERP (obj));
+    /* SAFETY: `BUFFERP(obj)` verified above. */
+    unsafe {
+        let base = (*XBUFFER (obj)).base_buffer;
+        if base.is_null () {
+            Qnil ()
+        } else {
+            make_lisp_ptr (base as *mut c_void, Lisp_Type::Lisp_Vectorlike)
+        }
+    }
+}
+
+#[inline(always)]
+pub fn buffer_name_obj (obj: Lisp_Object) -> Lisp_Object {
+    let b = decode_buffer (obj);
+    /* SAFETY: `decode_buffer` returns a valid `buffer` pointer. */
+    unsafe { BVAR! (b, name_) }
+}
+
+#[inline(always)]
+pub fn buffer_file_name_obj (obj: Lisp_Object) -> Lisp_Object {
+    let b = decode_buffer (obj);
+    /* SAFETY: `decode_buffer` returns a valid `buffer` pointer. */
+    unsafe { BVAR! (b, filename_) }
+}
+
+#[inline(always)]
+pub fn buffer_modified_p_obj (obj: Lisp_Object) -> Lisp_Object {
+    let b = decode_buffer (obj);
+    /* SAFETY: `decode_buffer` returns a valid `buffer` pointer with live `text`. */
+    unsafe {
+        if (*(*b).text).save_modiff < (*(*b).text).modiff {
+            if (*b).auto_save_modified == (*(*b).text).modiff {
+                Qautosaved ()
+            } else {
+                Qt ()
+            }
+        } else {
+            Qnil ()
+        }
+    }
+}
+
+#[inline(always)]
+pub fn buffer_modified_tick_obj (obj: Lisp_Object) -> EMACS_INT {
+    let b = decode_buffer (obj);
+    /* SAFETY: `decode_buffer` returns a valid `buffer` pointer with live `text`. */
+    unsafe { (*(*b).text).modiff as EMACS_INT }
+}
+
+#[inline(always)]
+pub fn buffer_chars_modified_tick_obj (obj: Lisp_Object) -> EMACS_INT {
+    let b = decode_buffer (obj);
+    /* SAFETY: `decode_buffer` returns a valid `buffer` pointer with live `text`. */
+    unsafe { (*(*b).text).chars_modiff as EMACS_INT }
+}
+
+#[inline(always)]
+pub fn fix_position_safe (pos: Lisp_Object) -> ptrdiff_t {
+    fix_position (pos)
+}
+
+#[inline(always)]
+pub fn current_buffer_char_to_byte (charpos: ptrdiff_t) -> ptrdiff_t {
+    buffer_charpos_to_bytepos_checked (Qnil (), charpos)
+}
+
+#[inline(always)]
+pub fn current_buffer_byte_to_char (bytepos: ptrdiff_t) -> ptrdiff_t {
+    buffer_bytepos_to_charpos_checked (Qnil (), bytepos)
+}
+
+#[inline(always)]
+pub fn buffer_size_chars_obj (obj: Lisp_Object) -> ptrdiff_t {
+    let b = decode_buffer (obj);
+    BUF_ZV (b) - BUF_BEGV (b)
+}
+
+#[inline(always)]
+pub fn buffer_charpos_to_bytepos_checked (buf_obj: Lisp_Object, charpos: ptrdiff_t) -> ptrdiff_t {
+    let b = decode_buffer (buf_obj);
+    let beg = BUF_BEG (b);
+    let z = /* SAFETY: `b` verified valid buffer. */ unsafe { (*(*b).text).z };
+    assert! (beg <= charpos && charpos <= z);
+    /* SAFETY: `b` verified valid buffer and `charpos` clamped/verified within `[BEG, Z]`. */
+    unsafe { buf_charpos_to_bytepos (b as *mut c_void, charpos) }
+}
+
+#[inline(always)]
+pub fn buffer_bytepos_to_charpos_checked (buf_obj: Lisp_Object, bytepos: ptrdiff_t) -> ptrdiff_t {
+    let b = decode_buffer (buf_obj);
+    let beg_byte = BUF_BEG_BYTE (b);
+    let z_byte = /* SAFETY: `b` verified valid buffer. */ unsafe { (*(*b).text).z_byte };
+    assert! (beg_byte <= bytepos && bytepos <= z_byte);
+    /* SAFETY: `b` verified valid buffer and `bytepos` verified within `[BEG_BYTE, Z_BYTE]`. */
+    unsafe { buf_bytepos_to_charpos (b as *mut c_void, bytepos) }
+}
+
+#[inline(always)]
+pub fn collect_current_buffer_marker_adjustments (
+    from: ptrdiff_t,
+    to: ptrdiff_t,
+    markers_out: &mut crate::roots::RootedVec,
+    adjustments_out: &mut Vec<ptrdiff_t>,
+) {
+    let cb = /* SAFETY: reads active `current_buffer` pointer. */ unsafe { current_buffer! () };
+    assert! (!cb.is_null ());
+    /* SAFETY: walks `BUF_MARKERS(cb)` without triggering GC or mutating the marker chain. */
+    unsafe {
+        let mut m: *mut Lisp_Marker = BUF_MARKERS! (cb);
+        while !m.is_null () {
+            let charpos = (*m).charpos;
+            eassert! (charpos <= (*(*cb).text).z);
+            if from <= charpos && charpos <= to {
+                let adjustment = (if MARKER_INSERTION_TYPE_P (m) { to } else { from }) - charpos;
+                if adjustment != 0 {
+                    let marker = make_lisp_ptr (m as *mut c_void, Lisp_Type::Lisp_Vectorlike);
+                    markers_out.push (marker);
+                    adjustments_out.push (adjustment);
+                }
+            }
+            m = (*m).next;
+        }
+    }
+}
+
+#[inline(always)]
+pub fn record_unwind_current_buffer_safe () {
+    record_unwind_current_buffer ();
+}
+
+#[inline(always)]
+pub fn set_buffer_internal_obj (buf_obj: Lisp_Object) {
+    assert! (BUFFERP (buf_obj));
+    set_buffer_internal (XBUFFER (buf_obj));
+}
+
+#[inline(always)]
+pub fn current_buffer_directory () -> Lisp_Object {
+    let cb = /* SAFETY: reads active `current_buffer` pointer. */ unsafe { current_buffer! () };
+    assert! (!cb.is_null ());
+    /* SAFETY: `cb` verified non-null live buffer. */
+    unsafe { BVAR! (cb, directory_) }
+}
+
+#[inline(always)]
+pub fn current_buffer_is_same_obj (buf_obj: Lisp_Object) -> bool {
+    BUFFERP (buf_obj) && XBUFFER (buf_obj) == /* SAFETY: reads active `current_buffer` pointer. */ unsafe { current_buffer! () }
+}
+
+#[inline(always)]
+pub fn current_buffer_set_byte_at (bytepos: ptrdiff_t, val: u8) {
+    assert! (BEG_BYTE as ptrdiff_t <= bytepos && bytepos < current_buffer_z_byte ());
+    /* SAFETY: `bytepos` verified within `[BEG_BYTE, Z_BYTE)` of live `current_buffer`. */
+    unsafe { FETCH_BYTE! (bytepos) = val; }
+}
+
+#[inline(always)]
+pub fn current_buffer_char_len_and_next_at (
+    pos_byte: ptrdiff_t,
+    has_next: bool,
+) -> (c_int, usize, Option<c_int>) {
+    let z_byte = current_buffer_z_byte ();
+    assert! (BEG_BYTE as ptrdiff_t <= pos_byte && pos_byte < z_byte);
+    let mut len: c_int = 0;
+    /* SAFETY: `pos_byte` verified within `[BEG_BYTE, Z_BYTE)` of live `current_buffer`. */
+    let ch = { string_char_and_length (BYTE_POS_ADDR (pos_byte), &raw mut len) };
+    let step = len.max (1) as ptrdiff_t;
+    let next_ch = if has_next && pos_byte + step < z_byte {
+        /* SAFETY: `pos_byte + step < Z_BYTE` verified above. */
+        Some ({ STRING_CHAR (BYTE_POS_ADDR (pos_byte + step)) })
+    } else {
+        None
+    };
+    (ch, len as usize, next_ch)
+}
+
+#[inline(always)]
+pub fn current_buffer_write_same_len_bytes_at (pos_byte: ptrdiff_t, bytes: &[u8]) {
+    if bytes.is_empty () {
+        return;
+    }
+    let end_byte = pos_byte + bytes.len () as ptrdiff_t;
+    assert! (BEG_BYTE as ptrdiff_t <= pos_byte && end_byte <= current_buffer_z_byte ());
+    let gpt_byte = current_buffer_gpt_byte ();
+    /* SAFETY: `pos_byte..end_byte` verified within `[BEG_BYTE, Z_BYTE]`; handles gap boundary safely. */
+    unsafe {
+        if end_byte <= gpt_byte || pos_byte >= gpt_byte {
+            core::ptr::copy_nonoverlapping (bytes.as_ptr (), BYTE_POS_ADDR (pos_byte), bytes.len ());
+        } else {
+            let first = (gpt_byte - pos_byte) as usize;
+            core::ptr::copy_nonoverlapping (bytes.as_ptr (), BYTE_POS_ADDR (pos_byte), first);
+            core::ptr::copy_nonoverlapping (
+                bytes.as_ptr ().add (first),
+                BYTE_POS_ADDR (gpt_byte),
+                bytes.len () - first,
+            );
+        }
+    }
+}
+
+#[cfg(feature = "have_tree_sitter")]
+#[inline(always)]
+pub fn current_buffer_ts_linecol_point () -> ts_linecol {
+    let cb = /* SAFETY: reads active `current_buffer` pointer. */ unsafe { current_buffer! () };
+    assert! (!cb.is_null ());
+    BUF_TS_LINECOL_POINT (cb)
+}
+
+#[inline(always)]
+pub fn current_buffer_markers_in_range (ibeg: ptrdiff_t, iend: ptrdiff_t) -> Lisp_Object {
+    let mut markers = crate::roots::RootedVec::new ();
+    let cb = /* SAFETY: reads active `current_buffer` pointer. */ unsafe { current_buffer! () };
+    assert! (!cb.is_null ());
+    /* SAFETY: walks `BUF_MARKERS(cb)` without allocating or mutating the chain, rooting hits in `markers`. */
+    unsafe {
+        let mut tail: *mut Lisp_Marker = BUF_MARKERS! (cb);
+        while !tail.is_null () {
+            if ibeg <= (*tail).charpos && (*tail).charpos <= iend {
+                markers.push (make_lisp_ptr (tail as *mut c_void, Lisp_Type::Lisp_Vectorlike));
+            }
+            tail = (*tail).next;
+        }
+    }
+    let mut res = Qnil ();
+    for i in 0..markers.len () {
+        res = Fcons (markers[i], res);
+    }
+    res
+}
+
+#[inline(always)]
+pub fn current_buffer_copy_chunk (
+    from_byte: ptrdiff_t,
+    limit_byte: ptrdiff_t,
+    dst: &mut [u8],
+) -> usize {
+    if from_byte >= limit_byte || dst.is_empty () {
+        return 0;
+    }
+    let z_byte = current_buffer_z_byte ();
+    let clamped_limit = limit_byte.min (z_byte);
+    if from_byte >= clamped_limit {
+        return 0;
+    }
+    assert! (BEG_BYTE as ptrdiff_t <= from_byte);
+    let want = ((clamped_limit - from_byte) as usize).min (dst.len ());
+    let end_byte = from_byte + want as ptrdiff_t;
+    let gpt_byte = current_buffer_gpt_byte ();
+    /* SAFETY: `from_byte..end_byte` verified within `[BEG_BYTE, Z_BYTE]`; copies around gap without GC. */
+    unsafe {
+        if end_byte <= gpt_byte || from_byte >= gpt_byte {
+            core::ptr::copy_nonoverlapping (BYTE_POS_ADDR (from_byte), dst.as_mut_ptr (), want);
+        } else {
+            let first = (gpt_byte - from_byte) as usize;
+            core::ptr::copy_nonoverlapping (BYTE_POS_ADDR (from_byte), dst.as_mut_ptr (), first);
+            core::ptr::copy_nonoverlapping (
+                BYTE_POS_ADDR (gpt_byte),
+                dst.as_mut_ptr ().add (first),
+                want - first,
+            );
+        }
+    }
+    want
+}
+
+#[inline(always)]
+pub fn current_buffer_count_newlines (from_byte: ptrdiff_t, to_byte: ptrdiff_t) -> ptrdiff_t {
+    if from_byte >= to_byte {
+        return 0;
+    }
+    assert! (BEG_BYTE as ptrdiff_t <= from_byte && to_byte <= current_buffer_z_byte ());
+    let gpt_byte = current_buffer_gpt_byte ();
+    let mut count: ptrdiff_t = 0;
+    /* SAFETY: `from_byte..to_byte` verified within `[BEG_BYTE, Z_BYTE]`; scans around gap without GC. */
+    unsafe {
+        if to_byte <= gpt_byte || from_byte >= gpt_byte {
+            let s = core::slice::from_raw_parts (
+                BYTE_POS_ADDR (from_byte),
+                (to_byte - from_byte) as usize,
+            );
+            for &b in s {
+                if b == b'\n' {
+                    count += 1;
+                }
+            }
+        } else {
+            let s1 = core::slice::from_raw_parts (
+                BYTE_POS_ADDR (from_byte),
+                (gpt_byte - from_byte) as usize,
+            );
+            let s2 = core::slice::from_raw_parts (
+                BYTE_POS_ADDR (gpt_byte),
+                (to_byte - gpt_byte) as usize,
+            );
+            for &b in s1 {
+                if b == b'\n' {
+                    count += 1;
+                }
+            }
+            for &b in s2 {
+                if b == b'\n' {
+                    count += 1;
+                }
+            }
+        }
+    }
+    count
+}
+
+#[inline(always)]
+pub fn buffer_file_truename_obj (obj: Lisp_Object) -> Lisp_Object {
+    assert! (BUFFERP (obj));
+    /* SAFETY: `BUFFERP(obj)` verified above. */
+    unsafe { BVAR! (XBUFFER (obj), file_truename_) }
+}
+
+#[inline(always)]
+pub fn buffer_filename_slot_obj (obj: Lisp_Object) -> Lisp_Object {
+    assert! (BUFFERP (obj));
+    /* SAFETY: `BUFFERP(obj)` verified above. */
+    unsafe { BVAR! (XBUFFER (obj), filename_) }
+}
+
+#[inline(always)]
+pub fn buffer_total_chars_obj (obj: Lisp_Object) -> ptrdiff_t {
+    CHECK_BUFFER (obj);
+    let b = XBUFFER (obj);
+    /* SAFETY: `CHECK_BUFFER(obj)` verified above. */
+    unsafe { BUF_Z! (b) - BUF_BEG (b) }
+}
+
+#[inline(always)]
+pub fn buffer_begv_obj (obj: Lisp_Object) -> ptrdiff_t {
+    assert! (BUFFERP (obj));
+    BUF_BEGV (XBUFFER (obj))
+}
+
+#[inline(always)]
+pub fn buffer_zv_obj (obj: Lisp_Object) -> ptrdiff_t {
+    assert! (BUFFERP (obj));
+    BUF_ZV (XBUFFER (obj))
+}
+
+#[inline(always)]
+pub fn current_buffer_total_chars () -> ptrdiff_t {
+    current_buffer_z () - BEG as ptrdiff_t
+}
+
+#[inline(always)]
+pub fn current_buffer_fetch_char (bytepos: ptrdiff_t) -> c_int {
+    assert! ((BEG_BYTE as ptrdiff_t) <= bytepos && bytepos < current_buffer_z_byte ());
+    FETCH_CHAR (bytepos)
+}
+
+#[inline(always)]
+pub fn current_buffer_prev_char_len (bytepos: ptrdiff_t) -> c_int {
+    assert! ((BEG_BYTE as ptrdiff_t) < bytepos && bytepos <= current_buffer_z_byte ());
+    prev_char_len (bytepos)
+}
+
+#[inline(always)]
+pub fn current_buffer_read_only_val () -> Lisp_Object {
+    let cb = /* SAFETY: reads active `current_buffer` pointer. */ unsafe { current_buffer! () };
+    assert! (!cb.is_null ());
+    /* SAFETY: `cb` verified non-null live buffer. */
+    unsafe { BVAR! (cb, read_only_) }
+}
+
+#[inline(always)]
+pub fn current_buffer_mark_obj () -> Lisp_Object {
+    let cb = /* SAFETY: reads active `current_buffer` pointer. */ unsafe { current_buffer! () };
+    assert! (!cb.is_null ());
+    /* SAFETY: `cb` verified non-null live buffer. */
+    unsafe { BVAR! (cb, mark_) }
+}
+
+#[inline(always)]
+pub fn current_buffer_mark_active_obj () -> Lisp_Object {
+    let cb = /* SAFETY: reads active `current_buffer` pointer. */ unsafe { current_buffer! () };
+    assert! (!cb.is_null ());
+    /* SAFETY: `cb` verified non-null live buffer. */
+    unsafe { BVAR! (cb, mark_active_) }
+}
+
+#[inline(always)]
+pub fn current_buffer_keymap_obj () -> Lisp_Object {
+    let cb = /* SAFETY: reads active `current_buffer` pointer. */ unsafe { current_buffer! () };
+    assert! (!cb.is_null ());
+    /* SAFETY: `cb` verified non-null live buffer. */
+    unsafe { BVAR! (cb, keymap_) }
+}
+
+#[inline(always)]
+pub fn set_current_buffer_keymap_obj (keymap: Lisp_Object) {
+    let cb = /* SAFETY: reads active `current_buffer` pointer. */ unsafe { current_buffer! () };
+    assert! (!cb.is_null ());
+    { bset_keymap (cb, keymap); }
+}
+
+#[inline(always)]
+pub fn current_buffer_case_tables () -> (Lisp_Object, Lisp_Object) {
+    let cb = /* SAFETY: reads active `current_buffer` pointer. */ unsafe { current_buffer! () };
+    assert! (!cb.is_null ());
+    /* SAFETY: `cb` verified non-null live buffer. */
+    unsafe { (BVAR! (cb, case_canon_table_), BVAR! (cb, case_eqv_table_)) }
+}
+
+#[inline(always)]
+pub fn frame_buffer_lists_safe (frame: Lisp_Object) -> (Lisp_Object, Lisp_Object) {
+    assert! (FRAMEP (frame));
+    /* SAFETY: `FRAMEP(frame)` verified above. */
+    unsafe {
+        let f = XFRAME (frame);
+        (BVAR! (f, buffer_list), BVAR! (f, buried_buffer_list))
+    }
+}
+
+#[inline(always)]
+pub fn error_selecting_deleted_buffer () -> ! {
+    /* SAFETY: static NUL-terminated format string with zero format arguments. */
+    unsafe { error (c"Selecting deleted buffer".as_ptr ()) }
+}
+
+#[inline(always)]
+pub fn error_invalid_search_bound () -> ! {
+    /* SAFETY: static NUL-terminated format string with zero format arguments. */
+    unsafe { error (c"Invalid search bound (wrong side of point)".as_ptr ()) }
+}
+
+#[inline(always)]
+pub fn scan_newline_from_point_safe (count: ptrdiff_t) -> (ptrdiff_t, ptrdiff_t) {
+    let mut charpos: ptrdiff_t = 0;
+    let mut bytepos: ptrdiff_t = 0;
+    /* SAFETY: `charpos` and `bytepos` are valid stack out-pointers on the owning Lisp thread. */
+    unsafe { scan_newline_from_point (count, &raw mut charpos, &raw mut bytepos); }
+    (charpos, bytepos)
+}
+
+#[inline(always)]
+pub fn find_before_next_newline_safe (from: ptrdiff_t, to: ptrdiff_t, cnt: ptrdiff_t) -> ptrdiff_t {
+    /* SAFETY: null `shortage` out-pointer is explicitly supported by `find_before_next_newline`. */
+    unsafe { find_before_next_newline (from, to, cnt, core::ptr::null_mut ()) }
+}
+
+#[inline(always)]
+pub fn find_newline_counted_safe (
+    start: ptrdiff_t,
+    end: ptrdiff_t,
+    count: ptrdiff_t,
+) -> ptrdiff_t {
+    let mut counted: ptrdiff_t = 0;
+    /* SAFETY: `counted` is a valid stack out-pointer; `-1` byte positions request char-to-byte computation. */
+    unsafe {
+        find_newline (
+            start,
+            -1,
+            end,
+            -1,
+            count,
+            &raw mut counted,
+            core::ptr::null_mut (),
+            true,
+        );
+    }
+    counted
+}
+
+#[inline(always)]
+pub fn insert_ascii_bytes_safe (bytes: &[u8]) {
+    if bytes.is_empty () {
+        return;
+    }
+    /* SAFETY: `bytes` is a valid slice of `bytes.len()` bytes inserted into `current_buffer`. */
+    unsafe { insert (bytes.as_ptr () as *const c_char, bytes.len () as ptrdiff_t) }
+}
+
+#[inline(always)]
+pub fn insert_char_safe (ch: c_int) {
+    { insert_char (ch) }
+}
+
+#[inline(always)]
+pub fn insert1_safe (arg: Lisp_Object) {
+    { insert1 (arg) }
+}
+
+
 

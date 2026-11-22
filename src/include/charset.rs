@@ -333,7 +333,7 @@ pub unsafe fn charset_attributes_getter (charset: *mut charset) -> Lisp_Object
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
   eassert! (ASIZE ((*charset_table.as_mut_ptr ()).attributes_table) == (*charset_table.as_mut_ptr ()).size as isize);
-  let attrs: Lisp_Object = AREF ((*charset_table.as_mut_ptr ()).attributes_table, unsafe { (*charset).id } as isize);
+  let attrs: Lisp_Object = AREF ((*charset_table.as_mut_ptr ()).attributes_table, { (*charset).id } as isize);
   eassert! (XFIXNUM (CHARSET_ATTR_ID! (attrs)) == unsafe { (*charset).id } as isize);
   return attrs;
 

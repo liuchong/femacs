@@ -393,7 +393,7 @@ pub fn lookup_xwidget (obj: Lisp_Object) -> *mut c_void
   /* C's function has no `return` statement: `eassume (0)` says the tail is unreachable, and the
      value below is the one C never produces (the `include/frame.rs` 240 `emacs_abort ()` shape;
      `unreachable! ()` reads as a port stub to the checker).  */
-  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { emacs_abort () };
+  { emacs_abort () };
   std::ptr::null_mut ()
 }
 /// C 238: `INLINE void xwidget_end_redisplay (struct window *w, struct glyph_matrix *m) {}`

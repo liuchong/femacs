@@ -671,7 +671,6 @@ fn gen_globals() -> i32 {
         // reader of a DEFVAR'd table would then dereference (review A, F4).
         rs.push_str("\n// --- variables declared by DEFVAR_* (generated) ---\n\
                      pub mod variables {\n    use super::*;\n    unsafe extern \"C\" {\n");
-        let mut var_accessors = String::new();
         for line in text.lines().skip(1) {
             let f: Vec<&str> = line.split('\t').collect();
             if f.len() < 3 {
@@ -685,15 +684,10 @@ fn gen_globals() -> i32 {
                 "KBOARD" => "*mut c_void",
                 _ => continue,
             };
-            rs.push_str(&format!("        pub static {name}: VmGlobal<{ty}>; // {}\n", f[2]));
-            var_accessors.push_str(&format!(
-                "#[inline(always)] pub fn get_{name} () -> {ty} {{ /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe {{ self::variables::{name}.get () }} }}\n\
-                 #[inline(always)] pub fn set_{name} (val: {ty}) {{ /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe {{ self::variables::{name}.set (val) }} }}\n"
-            ));
+            rs.push_str(&format!("        pub safe static {name}: VmGlobal<{ty}>; // {}\n", f[2]));
             n_vars += 1;
         }
         rs.push_str("    }\n}\npub use self::variables::*;\n");
-        rs.push_str(&var_accessors);
     }
 
     // The other generated half of the reference's globals.h: make-docfile writes
@@ -851,12 +845,14 @@ fn declared_object_types() -> std::collections::BTreeMap<String, String> {
             let code = strip_comments_and_strings(&text);
             for line in code.lines() {
                 let line = line.trim();
-                let rest = match line.strip_prefix("pub static ") {
-                    Some(r) => r,
-                    None => match line.strip_prefix("static ") {
-                        Some(r) => r,
-                        None => continue,
-                    },
+                let rest = if let Some(r) = line.strip_prefix("pub safe static ") {
+                    r
+                } else if let Some(r) = line.strip_prefix("pub static ") {
+                    r
+                } else if let Some(r) = line.strip_prefix("static ") {
+                    r
+                } else {
+                    continue;
                 };
                 let rest = rest.strip_prefix("mut ").unwrap_or(rest);
                 let Some((name, tail)) = rest.split_once(':') else { continue };

@@ -31,7 +31,7 @@ compile_error!("libxml2 delayed loading is not connected for this target");
 // The non-Windows reference branch is directly linked and returns true;
 // the actual parser entry points below are resolved from the system library.
 #[cfg(feature = "have_libxml2")]
-unsafe fn init_libxml2_functions() -> bool { true }
+fn init_libxml2_functions() -> bool { true }
 
 #[cfg(feature = "have_libxml2")]
 unsafe fn make_dom(node: *mut xmlNode) -> Lisp_Object {

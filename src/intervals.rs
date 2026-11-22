@@ -1940,17 +1940,16 @@ unsafe extern "C" {
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn textget (plist: Lisp_Object, prop: Lisp_Object) -> Lisp_Object
+pub extern "C-unwind" fn textget (plist: Lisp_Object, prop: Lisp_Object) -> Lisp_Object
 {
-  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
-  unsafe {
+  {
   return lookup_char_property (plist, prop, true);
 
   }
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn lookup_char_property (plist: Lisp_Object, prop: Lisp_Object,
+pub extern "C-unwind" fn lookup_char_property (plist: Lisp_Object, prop: Lisp_Object,
 					       textprop: bool) -> Lisp_Object
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
@@ -2041,7 +2040,7 @@ pub unsafe extern "C-unwind" fn set_point (charpos: ptrdiff_t)
 /* Set PT from MARKER's clipped position.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn set_point_from_marker (marker: Lisp_Object)
+pub extern "C-unwind" fn set_point_from_marker (marker: Lisp_Object)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -2346,7 +2345,7 @@ pub unsafe extern "C-unwind" fn set_point_both (mut charpos: ptrdiff_t, mut byte
    segment that reaches all the way to point.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn move_if_not_intangible (mut position: ptrdiff_t)
+pub extern "C-unwind" fn move_if_not_intangible (mut position: ptrdiff_t)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -2599,7 +2598,7 @@ pub unsafe extern "C-unwind" fn copy_intervals_to_string (string: Lisp_Object, b
    Assume they have identical characters.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn compare_string_intervals (s1: Lisp_Object, s2: Lisp_Object) -> bool
+pub extern "C-unwind" fn compare_string_intervals (s1: Lisp_Object, s2: Lisp_Object) -> bool
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -2737,7 +2736,7 @@ unsafe fn set_intervals_multibyte_1 (i: INTERVAL, multi_flag: bool,
    or to fit them as non-multibyte (if not MULTI_FLAG).  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn set_intervals_multibyte (multi_flag: bool)
+pub extern "C-unwind" fn set_intervals_multibyte (multi_flag: bool)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {

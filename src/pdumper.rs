@@ -969,7 +969,7 @@ fn dump_ptr_referrer (label: *const c_char, address: *const c_void) -> Lisp_Obje
                 c"...".as_ptr ());
       }
     }
-  return /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { build_string (buf.as_ptr ()) };
+  return { build_string (buf.as_ptr ()) };
 }
 
 /* C 697's `static AVOID error_unsupported_dump_object (...)`: `AVOID` is
@@ -985,7 +985,7 @@ fn error_unsupported_dump_object (ctx: *mut dump_context, object: Lisp_Object,
 
 fn emacs_basis () -> uintptr_t
 {
-  return /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { (Vpurify_flag.as_ptr ()) as uintptr_t };
+  return { (Vpurify_flag.as_ptr ()) as uintptr_t };
 }
 
 fn emacs_ptr_at (offset: ptrdiff_t) -> *mut c_void
@@ -1014,7 +1014,7 @@ fn dump_builtin_symbol_p (object: Lisp_Object) -> bool
      them avoids producing references to unrelocated Lisp_Objects in
      fixup processing or depending on the value of
      symbols_with_pos_enabled.  */
-  /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { return BARE_SYMBOL_P (object) && c_symbol_p (XSYMBOL (object)); }
+  { return BARE_SYMBOL_P (object) && c_symbol_p (XSYMBOL (object)); }
 }
 
 /* Return whether OBJECT has the same bit pattern in all Emacs
@@ -1029,7 +1029,7 @@ fn dump_object_self_representing_p (object: Lisp_Object) -> bool
 fn intmax_t_from_lisp (value: Lisp_Object) -> intmax_t
 {
   let mut n: intmax_t = 0;
-  let ok: bool = /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { integer_to_intmax (value, &mut n) };
+  let ok: bool = { integer_to_intmax (value, &mut n) };
   eassert! (ok);
   return n;
 }
@@ -1192,7 +1192,7 @@ fn dump_object_finish (ctx: *mut dump_context, out: *const c_void, sz: dump_off)
 fn dump_recall_object (ctx: *mut dump_context, object: Lisp_Object) -> dump_off
 {
   let dumped: Lisp_Object = /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { (*ctx).objects_dumped };
-  return dump_off_from_lisp (unsafe {
+  return dump_off_from_lisp ({
     Fgethash (object, dumped, make_fixnum (dump_object_special_offset::DUMP_OBJECT_NOT_SEEN as isize))
   });
 }
@@ -1389,13 +1389,13 @@ fn dump_queue_compute_score (dump_queue: *mut dump_queue, object: Lisp_Object,
   let mut score: c_float = 0 as c_float;
   let mut object_link_weights: Lisp_Object =
     /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { Fgethash (object, (*dump_queue).link_weights, Qnil ()) };
-  if unsafe { EQ (object_link_weights, Qt ()) }
+  if { EQ (object_link_weights, Qt ()) }
     { object_link_weights = Qnil (); }
-  while !unsafe { NILP (object_link_weights) }
+  while !{ NILP (object_link_weights) }
     {
       let basis_weight_pair: Lisp_Object = dump_pop (&mut object_link_weights);
-      let link_basis: dump_off = dump_off_from_lisp (/* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { XCAR (basis_weight_pair) });
-      let link_weight: dump_off = dump_off_from_lisp (unsafe { XCDR (basis_weight_pair) });
+      let link_basis: dump_off = dump_off_from_lisp ({ XCAR (basis_weight_pair) });
+      let link_weight: dump_off = dump_off_from_lisp ({ XCDR (basis_weight_pair) });
       score += dump_calc_link_score (basis, link_basis, link_weight);
     }
   return score;
@@ -1512,11 +1512,11 @@ fn dump_queue_dequeue (dump_queue: *mut dump_queue, basis: dump_off) -> Lisp_Obj
               " zero=%", PRIdPTR! (), " normal=%", PRIdPTR! (), " strong=%", PRIdPTR! (),
               " hash=%", PRIdHASH_IDX! (), "\n", "\0" ).as_ptr () as *const c_char,
      basis,
-     dump_tailq_length (/* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { &raw const (*dump_queue).fancy_weight_objects }) as c_long,
-     dump_tailq_length (unsafe { &raw const (*dump_queue).zero_weight_objects }) as c_long,
-     dump_tailq_length (unsafe { &raw const (*dump_queue).one_weight_normal_objects }) as c_long,
-     dump_tailq_length (unsafe { &raw const (*dump_queue).one_weight_strong_objects }) as c_long,
-     unsafe { (*XHASH_TABLE ((*dump_queue).link_weights)).count } as c_long); }
+     dump_tailq_length ({ &raw const (*dump_queue).fancy_weight_objects }) as c_long,
+     dump_tailq_length ({ &raw const (*dump_queue).zero_weight_objects }) as c_long,
+     dump_tailq_length ({ &raw const (*dump_queue).one_weight_normal_objects }) as c_long,
+     dump_tailq_length ({ &raw const (*dump_queue).one_weight_strong_objects }) as c_long,
+     { (*XHASH_TABLE ((*dump_queue).link_weights)).count } as c_long); }
 
   /* C 1250's `#define nr_candidates 3` (a function-local macro; PORTING.md 2.1 keeps the
      name as a same-named constant, P-57's textual-scope rule does not apply to a `const`).  */
@@ -1726,10 +1726,10 @@ fn dump_reloc_dump_to_dump_lv (ctx: *mut dump_context, dump_offset: dump_off,
       | Lisp_Type::Lisp_Cons
       | Lisp_Type::Lisp_Float
         => { reloc_type = dump_reloc_type::RELOC_DUMP_TO_DUMP_LV as c_int + type_ as c_int; }
-      _ => /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { emacs_abort (); }
+      _ => { emacs_abort (); }
     }
 
-  unsafe {
+  /* SAFETY: pdumper_relocation_boundary — Validated dump header magic/fingerprint; runs while single-threaded or holding VM lock. */ unsafe {
     dump_push (&raw mut (*ctx).dump_relocs[reloc_phase::EARLY_RELOCS as usize],
                list2 (make_fixnum (reloc_type as isize),
                       dump_off_to_lisp (dump_offset)));
@@ -1773,10 +1773,10 @@ fn dump_reloc_dump_to_emacs_lv (ctx: *mut dump_context, dump_offset: dump_off,
       | Lisp_Type::Lisp_Cons
       | Lisp_Type::Lisp_Float
         => { reloc_type = dump_reloc_type::RELOC_DUMP_TO_EMACS_LV as c_int + type_ as c_int; }
-      _ => /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { emacs_abort (); }
+      _ => { emacs_abort (); }
     }
 
-  unsafe {
+  /* SAFETY: pdumper_relocation_boundary — Validated dump header magic/fingerprint; runs while single-threaded or holding VM lock. */ unsafe {
     dump_push (&raw mut (*ctx).dump_relocs[reloc_phase::EARLY_RELOCS as usize],
                list2 (make_fixnum (reloc_type as isize),
                       dump_off_to_lisp (dump_offset)));
@@ -2105,7 +2105,7 @@ fn dump_field_lv_or_rawptr (ctx: *mut dump_context, out: *mut c_void,
           | Lisp_Type::Lisp_Cons
           | Lisp_Type::Lisp_Float
             => { value = make_lisp_ptr (ptrval, /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { *ptr_raw_type }); }
-          _ => { unsafe { emacs_abort (); } }
+          _ => { { emacs_abort (); } }
         }
     }
 
@@ -2646,7 +2646,7 @@ fn dump_field_fwd (ctx: *mut dump_context, out: *mut c_void, in_start: *const c_
       => { return; }
       _ => {}
     }
-  /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { emacs_abort (); }
+  { emacs_abort (); }
 }
 
 fn dump_blv (ctx: *mut dump_context, blv: *const Lisp_Buffer_Local_Value) -> dump_off
@@ -2681,7 +2681,7 @@ fn dump_recall_symbol_aux (ctx: *mut dump_context, symbol: Lisp_Object) -> dump_
   let symbol_aux: Lisp_Object = /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { (*ctx).symbol_aux };
   if NILP (symbol_aux)
     { return 0; }
-  return dump_off_from_lisp (unsafe { Fgethash (symbol, symbol_aux, make_fixnum (0)) });
+  return dump_off_from_lisp ({ Fgethash (symbol, symbol_aux, make_fixnum (0)) });
 }
 
 fn dump_remember_symbol_aux (ctx: *mut dump_context, symbol: Lisp_Object, offset: dump_off)
@@ -2743,11 +2743,11 @@ fn dump_symbol (ctx: *mut dump_context, object: Lisp_Object, offset: dump_off) -
       return offset;
     }
 
-  let symbol: *mut Lisp_Symbol = /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { XSYMBOL (object) };
-  let mut out: Lisp_Symbol = unsafe { core::mem::zeroed () };
+  let symbol: *mut Lisp_Symbol = { XSYMBOL (object) };
+  let mut out: Lisp_Symbol = /* SAFETY: pdumper_relocation_boundary — Validated dump header magic/fingerprint; runs while single-threaded or holding VM lock. */ unsafe { core::mem::zeroed () };
   dump_object_start (ctx, (&raw mut out) as *mut c_void,
                      core::mem::size_of_val (&out) as dump_off);
-  unsafe {
+  /* SAFETY: pdumper_relocation_boundary — Validated dump header magic/fingerprint; runs while single-threaded or holding VM lock. */ unsafe {
     eassert! (((*symbol).u.s.bits & SYMBOL_GC_MARK_BIT) == 0);
     /* C 2417-2420's four bitfield copies (`redirect`, `trapped_write`, `interned`,
        `declared_special`), one mask each.  */
@@ -2820,7 +2820,7 @@ fn dump_vectorlike_generic (ctx: *mut dump_context, header: *const vectorlike_he
 {
   let v: *const Lisp_Vector = header as *const Lisp_Vector;
   let mut size: ptrdiff_t = /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { (*header).size as ptrdiff_t };
-  let pvectype: pvec_type = unsafe { PSEUDOVECTOR_TYPE (v as *mut Lisp_Vector) };
+  let pvectype: pvec_type = { PSEUDOVECTOR_TYPE (v as *mut Lisp_Vector) };
   let offset: dump_off;
 
   if size & PSEUDOVECTOR_FLAG as ptrdiff_t != 0
@@ -3004,10 +3004,10 @@ fn dump_hash_table_contents (ctx: *mut dump_context, h: *mut Lisp_Hash_Table) ->
 
 fn dump_hash_table (ctx: *mut dump_context, object: Lisp_Object) -> dump_off
 {
-  let hash_in: *const Lisp_Hash_Table = /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { XHASH_TABLE (object) };
+  let hash_in: *const Lisp_Hash_Table = { XHASH_TABLE (object) };
   /* C's `struct Lisp_Hash_Table hash_munged = *hash_in;` — a struct copy of a type that
      is not `Copy`; `ptr::read` is the port's spelling (PORTING.md, status 3.51).  */
-  let mut hash_munged: Lisp_Hash_Table = unsafe { core::ptr::read (hash_in) };
+  let mut hash_munged: Lisp_Hash_Table = /* SAFETY: pdumper_relocation_boundary — Validated dump header magic/fingerprint; runs while single-threaded or holding VM lock. */ unsafe { core::ptr::read (hash_in) };
   let hash: *mut Lisp_Hash_Table = &mut hash_munged;
 
   hash_table_freeze (hash);
@@ -3042,7 +3042,7 @@ fn dump_obarray_buckets (ctx: *mut dump_context, o: *const Lisp_Obarray) -> dump
 {
   dump_align_output (ctx, DUMP_ALIGNMENT);
   let start_offset: dump_off = /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { (*ctx).offset };
-  let n: ptrdiff_t = unsafe { obarray_size (o as *mut Lisp_Obarray) };
+  let n: ptrdiff_t = { obarray_size (o as *mut Lisp_Obarray) };
 
   let old_flags: dump_flags = unsafe { (*ctx).flags };
   unsafe { set_flag! ((*ctx).flags.bits, DUMP_FLAGS_PACK_OBJECTS, true); }
@@ -3067,8 +3067,8 @@ fn dump_obarray_buckets (ctx: *mut dump_context, o: *const Lisp_Obarray) -> dump
 
 fn dump_obarray (ctx: *mut dump_context, object: Lisp_Object) -> dump_off
 {
-  let in_oa: *const Lisp_Obarray = /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { XOBARRAY (object) };
-  let mut munged_oa: Lisp_Obarray = unsafe { core::ptr::read (in_oa) };
+  let in_oa: *const Lisp_Obarray = { XOBARRAY (object) };
+  let mut munged_oa: Lisp_Obarray = /* SAFETY: pdumper_relocation_boundary — Validated dump header magic/fingerprint; runs while single-threaded or holding VM lock. */ unsafe { core::ptr::read (in_oa) };
   let oa: *mut Lisp_Obarray = &mut munged_oa;
   START_DUMP_PVEC! (ctx, (&raw const (*oa).header), Lisp_Obarray, out);
   dump_pseudovector_lisp_fields (ctx, unsafe { &raw mut (*out).header },
@@ -3247,7 +3247,7 @@ fn dump_bool_vector (ctx: *mut dump_context, v: *const Lisp_Vector) -> dump_off
   dump_align_output (ctx, DUMP_ALIGNMENT);
   eassert! (/* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { (*ctx).offset } >= unsafe { (*ctx).header.cold_start });
   let offset: dump_off = unsafe { (*ctx).offset };
-  let nbytes: ptrdiff_t = unsafe { vector_nbytes (v as *mut Lisp_Vector) };
+  let nbytes: ptrdiff_t = { vector_nbytes (v as *mut Lisp_Vector) };
   if nbytes > DUMP_OFF_MAX as ptrdiff_t
     { unsafe { error (c"vector too large".as_ptr ()); } }
   dump_write (ctx, v as *const c_void, ptrdiff_t_to_dump_off (nbytes));
@@ -3396,8 +3396,8 @@ fn dump_nilled_pseudovec (ctx: *mut dump_context, in_: *const vectorlike_header)
 
 fn dump_vectorlike (ctx: *mut dump_context, lv: Lisp_Object, offset: dump_off) -> dump_off
 {
-  let v: *const Lisp_Vector = /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { XVECTOR (lv) };
-  let ptype: pvec_type = unsafe { PSEUDOVECTOR_TYPE (v as *mut Lisp_Vector) };
+  let v: *const Lisp_Vector = { XVECTOR (lv) };
+  let ptype: pvec_type = { PSEUDOVECTOR_TYPE (v as *mut Lisp_Vector) };
   /* C's `break` arms leave the `switch` for the `error_unsupported_dump_object` tail below;
      a Rust `match` arm has nothing to break out of, so the `switch` is a labelled block
      (PORTING.md 2.2).  */
@@ -3431,20 +3431,20 @@ fn dump_vectorlike (ctx: *mut dump_context, lv: Lisp_Object, offset: dump_off) -
       pvec_type::PVEC_OBARRAY
         => { return dump_obarray (ctx, lv); }
       pvec_type::PVEC_BUFFER
-        => { return dump_buffer (ctx, /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { XBUFFER (lv) }); }
+        => { return dump_buffer (ctx, { XBUFFER (lv) }); }
       pvec_type::PVEC_SUBR
-        => { return dump_subr (ctx, unsafe { XSUBR (lv) }); }
+        => { return dump_subr (ctx, { XSUBR (lv) }); }
       pvec_type::PVEC_FRAME
       | pvec_type::PVEC_WINDOW
       | pvec_type::PVEC_PROCESS
       | pvec_type::PVEC_TERMINAL
         => { return dump_nilled_pseudovec (ctx, /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { &raw const (*v).header }); }
       pvec_type::PVEC_MARKER
-        => { return dump_marker (ctx, unsafe { XMARKER (lv) }); }
+        => { return dump_marker (ctx, { XMARKER (lv) }); }
       pvec_type::PVEC_OVERLAY
-        => { return dump_overlay (ctx, unsafe { XOVERLAY (lv) }); }
+        => { return dump_overlay (ctx, { XOVERLAY (lv) }); }
       pvec_type::PVEC_FINALIZER
-        => { return dump_finalizer (ctx, /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { XFINALIZER (lv) }); }
+        => { return dump_finalizer (ctx, { XFINALIZER (lv) }); }
       pvec_type::PVEC_BIGNUM
         => { return dump_bignum (ctx, lv); }
       pvec_type::PVEC_NATIVE_COMP_UNIT
@@ -3577,22 +3577,22 @@ fn dump_object (ctx: *mut dump_context, object: Lisp_Object) -> dump_off
   match XTYPE (object)
     {
       Lisp_Type::Lisp_String
-        => { offset = dump_string (ctx, unsafe { XSTRING (object) }); }
+        => { offset = dump_string (ctx, { XSTRING (object) }); }
       Lisp_Type::Lisp_Vectorlike
         => { offset = dump_vectorlike (ctx, object, offset); }
       Lisp_Type::Lisp_Symbol
         => { offset = dump_symbol (ctx, object, offset); }
       Lisp_Type::Lisp_Cons
-        => { offset = dump_cons (ctx, /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { XCONS (object) }); }
+        => { offset = dump_cons (ctx, { XCONS (object) }); }
       Lisp_Type::Lisp_Float
-        => { offset = dump_float (ctx, unsafe { XFLOAT (object) }); }
+        => { offset = dump_float (ctx, { XFLOAT (object) }); }
       Lisp_Type::Lisp_Int0
       | Lisp_Type::Lisp_Int1
         => {
           eassert! (false && 0 != 0);   /* `should not be dumping int: is self-representing' */
           /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { abort (); }
         }
-      _ => { unsafe { emacs_abort (); } }
+      _ => { { emacs_abort (); } }
     }
   dump_clear_referrer (ctx);
 
@@ -3675,7 +3675,7 @@ fn dump_charset (ctx: *mut dump_context, cs_i: c_int) -> dump_off
                                              core::mem::size_of_val (&out) as dump_off);
   if cs_i < /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { (*charset_table.as_mut_ptr ()).used }
     && !unsafe { (*cs).code_space_mask.is_null () }
-    { unsafe {
+    { {
         dump_remember_cold_op (ctx, cold_op::COLD_OP_CHARSET,
                                Fcons (dump_off_to_lisp (cs_i),
                                       dump_off_to_lisp (offset))); } }
@@ -3775,7 +3775,7 @@ fn dump_hot_parts_of_discardable_objects (ctx: *mut dump_context)
       if SYMBOLP (copied)
         {
           eassert! (dump_builtin_symbol_p (copied));
-          dump_pre_dump_symbol (ctx, /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { XSYMBOL (copied) });
+          dump_pre_dump_symbol (ctx, { XSYMBOL (copied) });
         }
     }
 }
@@ -3846,8 +3846,8 @@ fn dump_cold_string (ctx: *mut dump_context, string: Lisp_Object)
 fn dump_cold_charset (ctx: *mut dump_context, data: Lisp_Object)
 {
   /* Dump charset lookup tables.  */
-  let cs_i: c_int = /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { XFIXNUM (unsafe { XCAR (data) }) } as c_int;
-  let cs_dump_offset: dump_off = dump_off_from_lisp (unsafe { XCDR (data) });
+  let cs_i: c_int = { XFIXNUM ({ XCAR (data) }) } as c_int;
+  let cs_dump_offset: dump_off = dump_off_from_lisp ({ XCDR (data) });
   dump_remember_fixup_ptr_raw
     (ctx,
      cs_dump_offset + dump_offsetof! (charset, code_space_mask) as dump_off,
@@ -3861,8 +3861,8 @@ fn dump_cold_buffer (ctx: *mut dump_context, data: Lisp_Object)
   /* Dump buffer text.  */
   let buffer_offset: dump_off = dump_recall_object (ctx, data);
   eassert! (buffer_offset > 0);
-  let b: *mut buffer = /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { XBUFFER (data) };
-  eassert! (unsafe { (*b).text == (&raw mut (*b).own_text) });
+  let b: *mut buffer = { XBUFFER (data) };
+  eassert! (/* SAFETY: pdumper_relocation_boundary — Validated dump header magic/fingerprint; runs while single-threaded or holding VM lock. */ unsafe { (*b).text == (&raw mut (*b).own_text) });
   /* Zero the gap so we don't dump uninitialized bytes.  */
   unsafe { memset (BUF_GPT_ADDR (b) as *mut c_void, 0, BUF_GAP_SIZE! (b) as usize); }
   /* See buffer.c for this calculation.  */
@@ -4066,7 +4066,7 @@ fn dump_drain_user_remembered_data_cold (ctx: *mut dump_context)
             /* We can't just ignore NULL: the variable might have
                transitioned from non-NULL to NULL, and we want to
                record this fact.  */
-            { /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { dump_emacs_reloc_immediate_ptrdiff_t (ctx, mem as *const ptrdiff_t,
+            { { dump_emacs_reloc_immediate_ptrdiff_t (ctx, mem as *const ptrdiff_t,
                                                              0); } }
           else
             {
@@ -4192,7 +4192,7 @@ fn decode_emacs_reloc (ctx: *mut dump_context, lreloc: Lisp_Object) -> emacs_rel
   let mut lreloc = lreloc;
   let mut reloc: emacs_reloc = /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { core::mem::zeroed () };
   /* C's `int type = XFIXNUM (dump_pop (&lreloc));` (PORTING.md 0.2's raw identifier).  */
-  let r#type: c_int = unsafe { XFIXNUM (dump_pop (&mut lreloc)) } as c_int;
+  let r#type: c_int = { XFIXNUM (dump_pop (&mut lreloc)) } as c_int;
   reloc.emacs_offset = dump_off_from_lisp (dump_pop (&mut lreloc));
   dump_check_emacs_off (reloc.emacs_offset);
   match r#type
@@ -4201,7 +4201,7 @@ fn decode_emacs_reloc (ctx: *mut dump_context, lreloc: Lisp_Object) -> emacs_rel
       => {
         emacs_reloc_set_type (&mut reloc,
                               /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { core::mem::transmute::<c_int, emacs_reloc_type> (r#type) });
-        unsafe { reloc.u.dump_offset = dump_off_from_lisp (dump_pop (&mut lreloc)); }
+        { reloc.u.dump_offset = dump_off_from_lisp (dump_pop (&mut lreloc)); }
         dump_check_dump_off (ctx, unsafe { reloc.u.dump_offset });
         let length: dump_off = dump_off_from_lisp (dump_pop (&mut lreloc));
         emacs_reloc_set_length! (reloc, length);
@@ -4214,7 +4214,7 @@ fn decode_emacs_reloc (ctx: *mut dump_context, lreloc: Lisp_Object) -> emacs_rel
                               /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { core::mem::transmute::<c_int, emacs_reloc_type> (r#type) });
         let value: intmax_t = intmax_t_from_lisp (dump_pop (&mut lreloc));
         let size: dump_off = dump_off_from_lisp (dump_pop (&mut lreloc));
-        unsafe { reloc.u.immediate = value; }
+        { reloc.u.immediate = value; }
         emacs_reloc_set_length! (reloc, size);
         eassert! (emacs_reloc_length! (reloc) == size);
       }
@@ -4222,14 +4222,14 @@ fn decode_emacs_reloc (ctx: *mut dump_context, lreloc: Lisp_Object) -> emacs_rel
       => {
         emacs_reloc_set_type (&mut reloc,
                               /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { core::mem::transmute::<c_int, emacs_reloc_type> (r#type) });
-        unsafe { reloc.u.emacs_offset2 = dump_off_from_lisp (dump_pop (&mut lreloc)); }
+        { reloc.u.emacs_offset2 = dump_off_from_lisp (dump_pop (&mut lreloc)); }
         dump_check_emacs_off (unsafe { reloc.u.emacs_offset2 });
       }
       x if x == emacs_reloc_type::RELOC_EMACS_DUMP_PTR_RAW as c_int
       => {
         emacs_reloc_set_type (&mut reloc,
                               /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { core::mem::transmute::<c_int, emacs_reloc_type> (r#type) });
-        unsafe { reloc.u.dump_offset = dump_off_from_lisp (dump_pop (&mut lreloc)); }
+        { reloc.u.dump_offset = dump_off_from_lisp (dump_pop (&mut lreloc)); }
         dump_check_dump_off (ctx, unsafe { reloc.u.dump_offset });
       }
       x if x == emacs_reloc_type::RELOC_EMACS_DUMP_LV as c_int
@@ -4251,16 +4251,16 @@ fn decode_emacs_reloc (ctx: *mut dump_context, lreloc: Lisp_Object) -> emacs_rel
           {
             let obj_in_emacs: *mut c_void = dump_object_emacs_ptr (target_value);
             eassert! (!obj_in_emacs.is_null ());
-            /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { reloc.u.emacs_offset2 = emacs_offset (obj_in_emacs); }
+            { reloc.u.emacs_offset2 = emacs_offset (obj_in_emacs); }
           }
         else
           {
 	    eassume! (!ctx.is_null ()); /* Pacify GCC 9.2.1 -O3 -Wnull-dereference.  */
             eassert! (dump_object_emacs_ptr (target_value).is_null ());
-            /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { reloc.u.dump_offset = dump_recall_object (ctx, target_value); }
-            if unsafe { reloc.u.dump_offset } <= 0
+            { reloc.u.dump_offset = dump_recall_object (ctx, target_value); }
+            if /* SAFETY: pdumper_relocation_boundary — Validated dump header magic/fingerprint; runs while single-threaded or holding VM lock. */ unsafe { reloc.u.dump_offset } <= 0
               {
-                let repr: Lisp_Object = unsafe { Fprin1_to_string (target_value, Qnil (), Qnil ()) };
+                let repr: Lisp_Object = { Fprin1_to_string (target_value, Qnil (), Qnil ()) };
                 unsafe { error (c"relocation target was not dumped: %s".as_ptr (),
                                 SDATA (repr)); }
               }
@@ -4300,8 +4300,8 @@ fn dump_merge_emacs_relocs (lreloc_a: Lisp_Object, lreloc_b: Lisp_Object) -> Lis
     eassert! (off_a < off_b);  /* Catch duplicate relocations.  */
   }
 
-  if /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { XFIXNUM (XCAR (lreloc_a)) } != emacs_reloc_type::RELOC_EMACS_COPY_FROM_DUMP as isize
-      || unsafe { XFIXNUM (XCAR (lreloc_b)) }
+  if { XFIXNUM (XCAR (lreloc_a)) } != emacs_reloc_type::RELOC_EMACS_COPY_FROM_DUMP as isize
+      || { XFIXNUM (XCAR (lreloc_b)) }
          != emacs_reloc_type::RELOC_EMACS_COPY_FROM_DUMP as isize
     { return Qnil (); }
 
@@ -4364,16 +4364,16 @@ fn drain_reloc_list (ctx: *mut dump_context, handler: drain_reloc_handler,
         {
           if merger.is_none () || NILP (relocs)
             { break; }
-          let merged: Lisp_Object = /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { merger.unwrap () (reloc, XCAR (relocs)) };
+          let merged: Lisp_Object = { merger.unwrap () (reloc, XCAR (relocs)) };
           if NILP (merged)
             { break; }
           reloc = merged;
-          relocs = unsafe { XCDR (relocs) };
+          relocs = { XCDR (relocs) };
         }
-      /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { handler.unwrap () (ctx, reloc); }
+      { handler.unwrap () (ctx, reloc); }
       locator.nr_entries += 1;
     }
-  unsafe { *out_locator = locator; (*ctx).flags = old_flags; }
+  /* SAFETY: pdumper_relocation_boundary — Validated dump header magic/fingerprint; runs while single-threaded or holding VM lock. */ unsafe { *out_locator = locator; (*ctx).flags = old_flags; }
 }
 
 fn dump_do_fixup (ctx: *mut dump_context, fixup: Lisp_Object, prev_fixup: Lisp_Object)
@@ -4406,11 +4406,11 @@ fn dump_do_fixup (ctx: *mut dump_context, fixup: Lisp_Object, prev_fixup: Lisp_O
            the dump; otherwise, a Lisp_Object.  */
         if SUBRP (arg) && !NATIVE_COMP_FUNCTIONP (arg)
           {
-            dump_value = emacs_offset (/* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { XSUBR (arg) } as *const c_void) as intptr_t;
+            dump_value = emacs_offset ({ XSUBR (arg) } as *const c_void) as intptr_t;
             if type_ == dump_fixup_type::DUMP_FIXUP_LISP_OBJECT
-              { dump_reloc_dump_to_emacs_lv (ctx, unsafe { (*ctx).offset }, XTYPE (arg)); }
+              { dump_reloc_dump_to_emacs_lv (ctx, /* SAFETY: pdumper_relocation_boundary — Validated dump header magic/fingerprint; runs while single-threaded or holding VM lock. */ unsafe { (*ctx).offset }, XTYPE (arg)); }
             else
-              { dump_reloc_dump_to_emacs_ptr_raw (ctx, unsafe { (*ctx).offset }); }
+              { dump_reloc_dump_to_emacs_ptr_raw (ctx, /* SAFETY: pdumper_relocation_boundary — Validated dump header magic/fingerprint; runs while single-threaded or holding VM lock. */ unsafe { (*ctx).offset }); }
           }
         else if dump_builtin_symbol_p (arg)
           {
@@ -4426,8 +4426,8 @@ fn dump_do_fixup (ctx: *mut dump_context, fixup: Lisp_Object, prev_fixup: Lisp_O
               }
             else
               {
-                dump_value = emacs_offset (/* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { XSYMBOL (arg) } as *const c_void) as intptr_t;
-                dump_reloc_dump_to_emacs_ptr_raw (ctx, unsafe { (*ctx).offset });
+                dump_value = emacs_offset ({ XSYMBOL (arg) } as *const c_void) as intptr_t;
+                dump_reloc_dump_to_emacs_ptr_raw (ctx, /* SAFETY: pdumper_relocation_boundary — Validated dump header magic/fingerprint; runs while single-threaded or holding VM lock. */ unsafe { (*ctx).offset });
               }
           }
         else
@@ -4464,7 +4464,7 @@ fn dump_do_fixup (ctx: *mut dump_context, fixup: Lisp_Object, prev_fixup: Lisp_O
                     core::mem::size_of_val (&reload_info) as dump_off);
         do_write = false;
       }
-      _ => { /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { emacs_abort (); } }
+      _ => { { emacs_abort (); } }
     }
   if do_write
     { dump_write (ctx, (&raw const dump_value) as *const c_void,
@@ -4533,19 +4533,19 @@ DEFUN! ("dump-emacs-portable",
 
 	 /* C 4081-4087's `#ifndef HAVE_ANDROID` is live (`HAVE_ANDROID` is undef); the
 	    `HAVE_ANDROID` arm is carried under its `#[cfg]` (P-51).  */
-	 if !unsafe { (*noninteractive.as_mut_ptr ()) }
-	   { /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe {
+	 if !{ (*noninteractive.as_mut_ptr ()) }
+	   { {
 	       /* C 4083-4086 spells the message as three adjacent literals; the port keeps one
 	          literal with the same bytes (C's concatenation has no newlines).  */
 	       error (c"Dumping Emacs currently works only in batch mode.  If you'd like it to work interactively, please consider contributing a patch to Emacs.".as_ptr ()); } }
 	 #[cfg (feature = "have_android")]
 	 { }
 
-	 if !/* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { main_thread_p ((*current_thread.as_mut_ptr ()) as *const c_void) }
-	   { unsafe { error (c"This function can be called only in the main thread".as_ptr ()); } }
+	 if !{ main_thread_p ((*current_thread.as_mut_ptr ()) as *const c_void) }
+	   { { error (c"This function can be called only in the main thread".as_ptr ()); } }
 
-	 if !NILP (unsafe { XCDR (Fall_threads ()) })
-	   { unsafe { error (c"No other Lisp threads can be running when this function is called".as_ptr ()); } }
+	 if !NILP ({ XCDR (Fall_threads ()) })
+	   { { error (c"No other Lisp threads can be running when this function is called".as_ptr ()); } }
 
 	 /* C 4096-4098's `#ifdef HAVE_NATIVE_COMP` call is dead; carried (P-51).  */
 	 #[cfg (feature = "have_native_comp")]
@@ -4554,9 +4554,9 @@ DEFUN! ("dump-emacs-portable",
 	 /* Clear out any detritus in memory.  */
 	 loop
 	   {
-	     /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { (*number_finalizers_run.as_mut_ptr ()) = 0; }
-	     unsafe { garbage_collect (); }
-	     if !(unsafe { (*number_finalizers_run.as_mut_ptr ()) } != 0)
+	     { (*number_finalizers_run.as_mut_ptr ()) = 0; }
+	     { garbage_collect (); }
+	     if !({ (*number_finalizers_run.as_mut_ptr ()) } != 0)
 	       { break; }
 	   }
 
@@ -4572,11 +4572,11 @@ DEFUN! ("dump-emacs-portable",
 	 let mut filename: Lisp_Object = Fexpand_file_name (filename, Qnil ());
 	 filename = ENCODE_FILE (filename);
 
-	 let mut ctx_buf: dump_context = /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { core::mem::zeroed () };
+	 let mut ctx_buf: dump_context = { core::mem::zeroed () };
 	 let ctx: *mut dump_context = &mut ctx_buf;
-	 unsafe { (*ctx).fd = -1; }
+	 { (*ctx).fd = -1; }
 
-	 unsafe {
+	 /* SAFETY: pdumper_relocation_boundary — Validated dump header magic/fingerprint; runs while single-threaded or holding VM lock. */ unsafe {
 	   (*ctx).objects_dumped = make_eq_hash_table ();
 	   dump_queue_init (&raw mut (*ctx).dump_queue);
 	   (*ctx).deferred_hash_tables = Qnil ();
@@ -4630,7 +4630,7 @@ DEFUN! ("dump-emacs-portable",
 	   (*ctx).blocked_ralloc = true;
 	 }
 
-	 /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe {
+	 {
 	   (*ctx).old_purify_flag = (*Vpurify_flag.as_mut_ptr ());
 	   (*Vpurify_flag.as_mut_ptr ()) = Qnil ();
 
@@ -4662,16 +4662,16 @@ DEFUN! ("dump-emacs-portable",
 		 filename = DECODE_FILE (build_unibyte_string (filename_1));
 	       }
 	   }
-	   /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe {
+	   {
 	     (*ctx).fd = emacs_open (filename_1, O_RDWR | O_TRUNC | O_CREAT, 0o666);
 	   }
 	   SAFE_FREE! (sa_count, sa_mark);
 	 }
-	 if /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { (*ctx).fd } < 0
+	 if { (*ctx).fd } < 0
 	   { report_file_error (c"Opening dump output".as_ptr (), filename); }
 	 static_assert! (core::mem::size_of::<[c_char; 16]> ()
 			 == core::mem::size_of_val (&dump_magic));
-	 unsafe {
+	 {
 	   memcpy ((&raw mut (*ctx).header.magic) as *mut c_void,
 		   (&raw const dump_magic) as *const c_void,
 		   core::mem::size_of_val (&dump_magic));
@@ -4684,24 +4684,24 @@ DEFUN! ("dump-emacs-portable",
 	 let mut i: c_int = 0;
 	 while (i as usize) < femacs_sizeof_ptr (fingerprint.as_ptr ())
 	   {
-	     /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { (*ctx).header.fingerprint[i as usize] = (*fingerprint.as_mut_ptr ())[i as usize]; }
+	     { (*ctx).header.fingerprint[i as usize] = (*fingerprint.as_mut_ptr ())[i as usize]; }
 	     i += 1;
 	   }
 
-	 let header_start: dump_off = unsafe { (*ctx).offset };
+	 let header_start: dump_off = { (*ctx).offset };
 	 dump_fingerprint ((*stderr.as_mut_ptr ()), c"Dumping fingerprint".as_ptr (),
-			   /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { (&raw const (*ctx).header.fingerprint) } as *const c_uchar);
-	 dump_write (ctx, unsafe { (&raw const (*ctx).header) } as *const c_void,
-		     core::mem::size_of_val (unsafe { &(*ctx).header }) as dump_off);
-	 let header_end: dump_off = unsafe { (*ctx).offset };
+			   { (&raw const (*ctx).header.fingerprint) } as *const c_uchar);
+	 dump_write (ctx, { (&raw const (*ctx).header) } as *const c_void,
+		     core::mem::size_of_val ({ &(*ctx).header }) as dump_off);
+	 let header_end: dump_off = { (*ctx).offset };
 
-	 let hot_start: dump_off = /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { (*ctx).offset };
+	 let hot_start: dump_off = { (*ctx).offset };
 	 /* Start the dump process by processing the static roots and
 	    queuing up the objects to which they refer.   */
 	 dump_roots (ctx);
 
 	 dump_charset_table (ctx);
-	 /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe {
+	 {
 	   dump_finalizer_list_head_ptr (ctx, &raw mut (*finalizers.as_mut_ptr ()).prev);
 	   dump_finalizer_list_head_ptr (ctx, &raw mut (*finalizers.as_mut_ptr ()).next);
 	   dump_finalizer_list_head_ptr (ctx, &raw mut (*doomed_finalizers.as_mut_ptr ()).prev);
@@ -4713,14 +4713,14 @@ DEFUN! ("dump-emacs-portable",
 	    but we have to manually save the list of GC roots itself.  */
 	 dump_metadata_for_pdumper (ctx);
 	 let mut i: c_int = 0;
-	 while i < /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { (*staticidx.as_mut_ptr ()) }
+	 while i < { (*staticidx.as_mut_ptr ()) }
 	   {
 	     dump_emacs_reloc_to_emacs_ptr_raw (ctx,
 						(&raw mut (*staticvec.as_mut_ptr ())[i as usize]) as *mut c_void,
-						unsafe { (*staticvec.as_mut_ptr ())[i as usize] } as *const c_void);
+						{ (*staticvec.as_mut_ptr ())[i as usize] } as *const c_void);
 	     i += 1;
 	   }
-	 /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { dump_emacs_reloc_immediate_int (ctx, staticidx.as_ptr (), (*staticidx.as_mut_ptr ())); }
+	 { dump_emacs_reloc_immediate_int (ctx, staticidx.as_ptr (), (*staticidx.as_mut_ptr ())); }
 
 	 /* Dump while we keep finding objects to dump.  We add new
 	    objects to the queue by side effect during dumping.
@@ -4731,13 +4731,13 @@ DEFUN! ("dump-emacs-portable",
 	     dump_drain_deferred_hash_tables (ctx);
 	     dump_drain_deferred_symbols (ctx);
 	     dump_drain_normal_queue (ctx);
-	     if !(!(dump_queue_empty_p (/* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { &raw mut (*ctx).dump_queue })
-		    && unsafe { NILP ((*ctx).deferred_hash_tables) }
-		    && unsafe { NILP ((*ctx).deferred_symbols) }))
+	     if !(!(dump_queue_empty_p ({ &raw mut (*ctx).dump_queue })
+		    && { NILP ((*ctx).deferred_hash_tables) }
+		    && { NILP ((*ctx).deferred_symbols) }))
 	       { break; }
 	   }
 
-	 /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { (*ctx).header.hash_list = (*ctx).offset; }
+	 { (*ctx).header.hash_list = (*ctx).offset; }
 	 dump_hash_table_list (ctx);
 
 	 /* dump_hash_table_list just adds a new vector to the dump but all
@@ -4754,7 +4754,7 @@ DEFUN! ("dump-emacs-portable",
 	    in the dump; we stick these auxiliary data structures at the end
 	    of the hot section and use a special hash table to remember them.
 	    The actual symbol dump will pick them up below.  */
-	 /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { (*ctx).symbol_aux = make_eq_hash_table (); }
+	 { (*ctx).symbol_aux = make_eq_hash_table (); }
 	 dump_hot_parts_of_discardable_objects (ctx);
 
 	 /* Emacs, after initial dump loading, can forget about the portion
@@ -4765,15 +4765,15 @@ DEFUN! ("dump-emacs-portable",
 	    We don't need to align hot_end: the loader knows to actually
 	    start discarding only at the next page boundary if the loader
 	    implements discarding using page manipulation.  */
-	 let hot_end: dump_off = /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { (*ctx).offset };
-	 unsafe { (*ctx).header.discardable_start = hot_end; }
+	 let hot_end: dump_off = { (*ctx).offset };
+	 { (*ctx).header.discardable_start = hot_end; }
 
 	 dump_drain_copied_objects (ctx);
-	 eassert! (dump_queue_empty_p (unsafe { &raw mut (*ctx).dump_queue }));
+	 eassert! (dump_queue_empty_p (/* SAFETY: pdumper_relocation_boundary — Validated dump header magic/fingerprint; runs while single-threaded or holding VM lock. */ unsafe { &raw mut (*ctx).dump_queue }));
 
-	 let discardable_end: dump_off = /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { (*ctx).offset };
+	 let discardable_end: dump_off = { (*ctx).offset };
 	 dump_align_output (ctx, dump_get_max_page_size ());
-	 unsafe { (*ctx).header.cold_start = (*ctx).offset; }
+	 { (*ctx).header.cold_start = (*ctx).offset; }
 
 	 /* Start the cold section.  This section contains bytes that should
 	    never change and so can be direct-mapped from the dump without
@@ -4788,7 +4788,7 @@ DEFUN! ("dump-emacs-portable",
 
 	 /* After this point, the dump file contains no data that can be part
 	    of the Lisp heap.  */
-	 /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { (*ctx).end_heap = (*ctx).offset; }
+	 { (*ctx).end_heap = (*ctx).offset; }
 
 	 /* Make remembered modifications to the dump file itself.  */
 	 dump_do_fixups (ctx);
@@ -4806,23 +4806,23 @@ DEFUN! ("dump-emacs-portable",
 	 while i < reloc_phase::RELOC_NUM_PHASES as c_int
 	   {
 	     drain_reloc_list (ctx, Some (dump_emit_dump_reloc), emacs_reloc_merger,
-			       /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { &raw mut (*ctx).dump_relocs[i as usize] },
-			       unsafe { &raw mut (*ctx).header.dump_relocs[i as usize] });
+			       { &raw mut (*ctx).dump_relocs[i as usize] },
+			       { &raw mut (*ctx).header.dump_relocs[i as usize] });
 	     i += 1;
 	   }
-	 let number_hot_relocations: dump_off = unsafe { (*ctx).number_hot_relocations };
-	 /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { (*ctx).number_hot_relocations = 0; }
+	 let number_hot_relocations: dump_off = { (*ctx).number_hot_relocations };
+	 { (*ctx).number_hot_relocations = 0; }
 	 let number_discardable_relocations: dump_off =
-	   unsafe { (*ctx).number_discardable_relocations };
-	 unsafe { (*ctx).number_discardable_relocations = 0; }
+	   { (*ctx).number_discardable_relocations };
+	 { (*ctx).number_discardable_relocations = 0; }
 	 drain_reloc_list (ctx, Some (dump_emit_dump_reloc), emacs_reloc_merger,
-			   /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { &raw mut (*ctx).object_starts },
-			   unsafe { &raw mut (*ctx).header.object_starts });
+			   { &raw mut (*ctx).object_starts },
+			   { &raw mut (*ctx).header.object_starts });
 	 drain_reloc_list (ctx, Some (dump_emit_emacs_reloc), Some (dump_merge_emacs_relocs),
-			   unsafe { &raw mut (*ctx).emacs_relocs },
-			   unsafe { &raw mut (*ctx).header.emacs_relocs });
+			   { &raw mut (*ctx).emacs_relocs },
+			   { &raw mut (*ctx).header.emacs_relocs });
 
-	 let cold_end: dump_off = /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { (*ctx).offset };
+	 let cold_end: dump_off = { (*ctx).offset };
 
 	 eassert! (dump_queue_empty_p (unsafe { &raw mut (*ctx).dump_queue }));
 	 eassert! (unsafe { NILP ((*ctx).copied_queue) });
@@ -4840,15 +4840,15 @@ DEFUN! ("dump-emacs-portable",
 
 	 /* Dump is complete.  Go back to the header and write the magic
 	    indicating that the dump is complete and can be loaded.  */
-	 /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { (*ctx).header.magic[0] = dump_magic[0]; }
+	 { (*ctx).header.magic[0] = dump_magic[0]; }
 	 dump_seek (ctx, 0);
-	 dump_write (ctx, unsafe { (&raw const (*ctx).header) } as *const c_void,
-		     core::mem::size_of_val (unsafe { &(*ctx).header }) as dump_off);
-	 if unsafe { emacs_write ((*ctx).fd, (*ctx).buf, (*ctx).max_offset as ptrdiff_t) }
-	    < /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { (*ctx).max_offset } as ptrdiff_t
+	 dump_write (ctx, { (&raw const (*ctx).header) } as *const c_void,
+		     core::mem::size_of_val ({ &(*ctx).header }) as dump_off);
+	 if { emacs_write ((*ctx).fd, (*ctx).buf, (*ctx).max_offset as ptrdiff_t) }
+	    < { (*ctx).max_offset } as ptrdiff_t
 	   { report_file_error (c"Could not write to dump file".as_ptr (),
-				unsafe { (*ctx).dump_filename }); }
-	 unsafe {
+				{ (*ctx).dump_filename }); }
+	 {
 	   xfree ((*ctx).buf);
 	   (*ctx).buf = core::ptr::null_mut ();
 	   (*ctx).buf_size = 0;
@@ -4858,11 +4858,11 @@ DEFUN! ("dump-emacs-portable",
 	 let header_bytes: dump_off = header_end - header_start;
 	 let hot_bytes: dump_off = hot_end - hot_start;
 	 let discardable_bytes: dump_off =
-	   discardable_end - /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { (*ctx).header.discardable_start };
-	 let cold_bytes: dump_off = cold_end - unsafe { (*ctx).header.cold_start };
+	   discardable_end - { (*ctx).header.discardable_start };
+	 let cold_bytes: dump_off = cold_end - { (*ctx).header.cold_start };
 	 /* C 4343-4350's adjacent literals become one `concat!`; the `PRIdDUMP_OFF` pieces are
 	    the same macros C splices between them (`docs/ports/macro-body-notes.tsv`).  */
-	 unsafe { fprintf ((*stderr.as_mut_ptr ()),
+	 /* SAFETY: pdumper_relocation_boundary — Validated dump header magic/fingerprint; runs while single-threaded or holding VM lock. */ unsafe { fprintf ((*stderr.as_mut_ptr ()),
 			   concat! ("Dump complete\n",
 			            "Byte counts: header=%", PRIdDUMP_OFF! (), " hot=%", PRIdDUMP_OFF! (),
 			            " discardable=%", PRIdDUMP_OFF! (), " cold=%", PRIdDUMP_OFF! (),
@@ -4884,8 +4884,8 @@ DEFUN! ("dump-emacs-portable--sort-predicate",
        doc: "Internal relocation sorting function.  ",
        (a: Lisp_Object, b: Lisp_Object),
        {
-	 let a_offset: dump_off = dump_off_from_lisp (/* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { XCAR (XCDR (a)) });
-	 let b_offset: dump_off = dump_off_from_lisp (unsafe { XCAR (XCDR (b)) });
+	 let a_offset: dump_off = dump_off_from_lisp ({ XCAR (XCDR (a)) });
+	 let b_offset: dump_off = dump_off_from_lisp ({ XCAR (XCDR (b)) });
 	 return if a_offset < b_offset { Qt () } else { Qnil () };
        });
 
@@ -5069,7 +5069,7 @@ fn dump_anonymous_allocate_posix (base: *mut c_void, size: size_t,
         => { mem_prot = PROT_READ; }
       dump_memory_protection::DUMP_MEMORY_ACCESS_READWRITE
         => { mem_prot = PROT_READ | PROT_WRITE; }
-      _ => /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { emacs_abort () }
+      _ => { emacs_abort () }
     }
 
   let mut mem_flags: c_int = MAP_PRIVATE | MAP_ANONYMOUS;
@@ -5115,7 +5115,7 @@ fn dump_anonymous_release (addr: *mut c_void, size: size_t)
   { let _ = addr; let _ = size; unsafe { emacs_abort () } }
   #[cfg (not (any (feature = "vm_ms_windows", feature = "no_vm_supported")))]
   { if /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { munmap (addr, size) } < 0
-      { unsafe { emacs_abort () } } }
+      { { emacs_abort () } } }
 }
 
 /* Perform anonymous memory allocation.  */
@@ -5207,7 +5207,7 @@ fn dump_map_file_posix (base: *mut c_void, fd: c_int, offset: off_t, size: size_
         => { mem_prot = PROT_READ; mem_flags = MAP_SHARED; }
       dump_memory_protection::DUMP_MEMORY_ACCESS_READWRITE
         => { mem_prot = PROT_READ | PROT_WRITE; mem_flags = MAP_PRIVATE; }
-      _ => /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { emacs_abort () }
+      _ => { emacs_abort () }
     }
 
   if !base.is_null ()
@@ -5245,7 +5245,7 @@ fn dump_unmap_file (addr: *mut c_void, size: size_t)
   #[cfg (all (feature = "windowsnt", not (feature = "no_vm_supported")))]
   { let _ = size; if unsafe { UnmapViewOfFile (addr) } == 0 { unsafe { emacs_abort () } } }
   #[cfg (not (any (feature = "no_vm_supported", feature = "windowsnt")))]
-  { if unsafe { munmap (addr, size) } < 0 { unsafe { emacs_abort () } } }
+  { if unsafe { munmap (addr, size) } < 0 { { emacs_abort () } } }
 }
 
 #[repr(C)]
@@ -5384,7 +5384,7 @@ fn dump_mmap_contiguous_heap (maps: *mut dump_memory_map, nr_maps: c_int,
     as *mut dump_memory_map_heap_control_block;
   if cb.is_null ()
     { /* goto out */
-      /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { dump_mm_heap_cb_release (cb); }
+      { dump_mm_heap_cb_release (cb); }
       if !ret
         {
           let mut i: c_int = 0;
@@ -5393,7 +5393,7 @@ fn dump_mmap_contiguous_heap (maps: *mut dump_memory_map, nr_maps: c_int,
         }
       return ret;
     }
-  unsafe { __lsan_ignore_object (cb as *const c_void); }
+  { __lsan_ignore_object (cb as *const c_void); }
 
   /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe {
     (*cb).refcount = 1;
@@ -5401,7 +5401,7 @@ fn dump_mmap_contiguous_heap (maps: *mut dump_memory_map, nr_maps: c_int,
   }
   if unsafe { (*cb).mem.is_null () }
     { /* goto out */
-      /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { dump_mm_heap_cb_release (cb); }
+      { dump_mm_heap_cb_release (cb); }
       if !ret
         {
           let mut i: c_int = 0;
@@ -5431,7 +5431,7 @@ fn dump_mmap_contiguous_heap (maps: *mut dump_memory_map, nr_maps: c_int,
             {
               if unsafe { lseek (spec.fd, spec.offset, SEEK_SET) } < 0
                 { /* goto out */
-                  /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { dump_mm_heap_cb_release (cb); }
+                  { dump_mm_heap_cb_release (cb); }
                   if !ret
                     {
                       let mut i: c_int = 0;
@@ -5446,7 +5446,7 @@ fn dump_mmap_contiguous_heap (maps: *mut dump_memory_map, nr_maps: c_int,
                 { /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { *errno () = EIO; } }
               if nb as size_t != spec.size
                 { /* goto out */
-                  unsafe { dump_mm_heap_cb_release (cb); }
+                  { dump_mm_heap_cb_release (cb); }
                   if !ret
                     {
                       let mut i: c_int = 0;
@@ -5462,7 +5462,7 @@ fn dump_mmap_contiguous_heap (maps: *mut dump_memory_map, nr_maps: c_int,
 
   ret = true;
   /* out: */
-  /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { dump_mm_heap_cb_release (cb); }
+  { dump_mm_heap_cb_release (cb); }
   if !ret
     {
       let mut i: c_int = 0;
@@ -6413,7 +6413,7 @@ pub enum dump_section
   }
 
 /* Pointer to a stack variable to avoid having to staticpro it.  */
-static pdumper_hashes: VmGlobal<*mut Lisp_Object> = VmGlobal::<*mut Lisp_Object>::new ((/* SAFETY: `zero_vector` is the static empty vector header address. */ unsafe { zero_vector.as_mut_ptr () }) as *mut Lisp_Object);
+static pdumper_hashes: VmGlobal<*mut Lisp_Object> = VmGlobal::<*mut Lisp_Object>::new (({ zero_vector.as_mut_ptr () }) as *mut Lisp_Object);
 
 /* Load a dump from DUMP_FILENAME.  Return an error code.
 
@@ -6425,7 +6425,7 @@ pub unsafe extern "C-unwind" fn pdumper_load (dump_filename: *const c_char, argv
   // SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state.
   unsafe {
   let mut dump_size: intptr_t = 0;
-  let mut stat: stat = unsafe { core::mem::zeroed () };
+  let mut stat: stat = { core::mem::zeroed () };
   let dump_base: uintptr_t;
   let dump_page_size: c_int;
   let mut adj_discardable_start: dump_off;
@@ -6434,7 +6434,7 @@ pub unsafe extern "C-unwind" fn pdumper_load (dump_filename: *const c_char, argv
     [dump_bitset { bits: core::ptr::null_mut (), number_words: 0 }; 2];
   let mark_bits_needed: size_t;
 
-  let mut header_buf: dump_header = /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { core::mem::zeroed () };
+  let mut header_buf: dump_header = { core::mem::zeroed () };
   let header: *mut dump_header = &mut header_buf;
   let mut sections: [dump_memory_map; dump_section::NUMBER_DUMP_SECTIONS as usize] =
     [dump_memory_map {
@@ -6445,24 +6445,24 @@ pub unsafe extern "C-unwind" fn pdumper_load (dump_filename: *const c_char, argv
        private: core::ptr::null_mut () };
      dump_section::NUMBER_DUMP_SECTIONS as usize];
 
-  let start_time: timespec = /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { current_timespec () };
+  let start_time: timespec = { current_timespec () };
   let mut dump_filename_copy: *mut c_char;
 
   /* Overwriting an initialized Lisp universe will not go well.  */
-  eassert! (!unsafe { (*initialized.as_mut_ptr ()) });
+  eassert! (!/* SAFETY: pdumper_relocation_boundary — Validated dump header magic/fingerprint; runs while single-threaded or holding VM lock. */ unsafe { (*initialized.as_mut_ptr ()) });
 
   /* We can load only one dump.  */
   eassert! (!dump_loaded_p ());
 
   let mut err: c_int;
-  let dump_fd: c_int = /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { emacs_open_noquit (dump_filename, O_RDONLY, 0) };
+  let dump_fd: c_int = { emacs_open_noquit (dump_filename, O_RDONLY, 0) };
   /* C's `goto out` targets become `break 'out` of the single `'out` block below, which
      holds C's cleanup statements; the failure paths keep their order and their `err`
      assignments (PORTING.md 2.2).  */
   'out: {
   if dump_fd < 0
     {
-      /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe {
+      {
         err = if *errno () == ENOENT || *errno () == ENOTDIR
 	        { pdumper_load_result::PDUMPER_LOAD_FILE_NOT_FOUND as c_int }
 	        else { pdumper_load_result::PDUMPER_LOAD_ERROR as c_int + *errno () };
@@ -6471,32 +6471,32 @@ pub unsafe extern "C-unwind" fn pdumper_load (dump_filename: *const c_char, argv
     }
 
   err = pdumper_load_result::PDUMPER_LOAD_FILE_NOT_FOUND as c_int;
-  if /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { sys_fstat (dump_fd, &mut stat) } < 0
+  if { sys_fstat (dump_fd, &mut stat) } < 0
     { break 'out; }
 
   err = pdumper_load_result::PDUMPER_LOAD_BAD_FILE_TYPE as c_int;
-  if unsafe { stat.st_size } > INTPTR_MAX as off_t
+  if { stat.st_size } > INTPTR_MAX as off_t
     { break 'out; }
-  dump_size = /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { stat.st_size } as intptr_t;
+  dump_size = { stat.st_size } as intptr_t;
 
   err = pdumper_load_result::PDUMPER_LOAD_BAD_FILE_TYPE as c_int;
-  if dump_size < core::mem::size_of_val (unsafe { &*header }) as intptr_t
+  if dump_size < core::mem::size_of_val ({ &*header }) as intptr_t
     { break 'out; }
 
   err = pdumper_load_result::PDUMPER_LOAD_BAD_FILE_TYPE as c_int;
-  let header_read: i64 = /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { dump_read_all (dump_fd, header as *mut c_void,
+  let header_read: i64 = { dump_read_all (dump_fd, header as *mut c_void,
                                                  core::mem::size_of_val (&*header)) } as i64;
-  if header_read < core::mem::size_of_val (unsafe { &*header }) as i64
+  if header_read < core::mem::size_of_val ({ &*header }) as i64
     { break 'out; }
 
-  let magic_differs: bool = /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe {
+  let magic_differs: bool = {
     memcmp ((*header).magic.as_ptr () as *const c_void,
             (&raw const dump_magic) as *const c_void,
             core::mem::size_of_val (&dump_magic))
   } != 0;
   if magic_differs
     {
-      let magic_ok_after_patch: bool = /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe {
+      let magic_ok_after_patch: bool = {
         (*header).magic[0] == b'!' as c_char
           && { (*header).magic[0] = dump_magic[0];
                memcmp ((*header).magic.as_ptr () as *const c_void,
@@ -6521,15 +6521,15 @@ pub unsafe extern "C-unwind" fn pdumper_load (dump_filename: *const c_char, argv
   let mut i: c_int = 0;
   while (i as usize) < femacs_sizeof_ptr (fingerprint.as_ptr ())
     {
-      desired[i as usize] = /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { (*fingerprint.as_mut_ptr ())[i as usize] };
+      desired[i as usize] = { (*fingerprint.as_mut_ptr ())[i as usize] };
       i += 1;
     }
-  if unsafe {
+  if {
        memcmp ((*header).fingerprint.as_ptr () as *const c_void,
                desired.as_ptr () as *const c_void, core::mem::size_of_val (&desired))
      } != 0
     {
-      /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe {
+      {
         dump_fingerprint ((*stderr.as_mut_ptr ()), c"desired fingerprint".as_ptr (),
                           (&raw const desired) as *const c_uchar);
         dump_fingerprint ((*stderr.as_mut_ptr ()), c"found fingerprint".as_ptr (),
@@ -6541,11 +6541,11 @@ pub unsafe extern "C-unwind" fn pdumper_load (dump_filename: *const c_char, argv
   /* FIXME: The comment at the start of this function says it should
      not use xmalloc, but xstrdup calls xmalloc.  Either fix the
      comment or fix the following code.  */
-  dump_filename_copy = /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { xstrdup (dump_filename) };
+  dump_filename_copy = { xstrdup (dump_filename) };
 
   err = pdumper_load_result::PDUMPER_LOAD_OOM as c_int;
 
-  adj_discardable_start = unsafe { (*header).discardable_start };
+  adj_discardable_start = { (*header).discardable_start };
   dump_page_size = dump_get_max_page_size ();
   /* Snap to next page boundary.  */
   adj_discardable_start = ROUNDUP (adj_discardable_start as isize,
@@ -6562,15 +6562,15 @@ pub unsafe extern "C-unwind" fn pdumper_load (dump_filename: *const c_char, argv
 
   sections[dump_section::DS_DISCARDABLE as usize].spec = dump_memory_map_spec {
      fd: dump_fd,
-     size: (/* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { (*header).cold_start } - adj_discardable_start) as size_t,
+     size: ({ (*header).cold_start } - adj_discardable_start) as size_t,
      offset: adj_discardable_start as off_t,
      protection: dump_memory_protection::DUMP_MEMORY_ACCESS_READWRITE,
     };
 
   sections[dump_section::DS_COLD as usize].spec = dump_memory_map_spec {
      fd: dump_fd,
-     size: (dump_size - /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { (*header).cold_start } as intptr_t) as size_t,
-     offset: unsafe { (*header).cold_start } as off_t,
+     size: (dump_size - { (*header).cold_start } as intptr_t) as size_t,
+     offset: { (*header).cold_start } as off_t,
      protection: dump_memory_protection::DUMP_MEMORY_ACCESS_READWRITE,
     };
 
@@ -6599,18 +6599,18 @@ pub unsafe extern "C-unwind" fn pdumper_load (dump_filename: *const c_char, argv
   }
 
   mark_bits_needed
-    = divide_round_up (/* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { (*header).discardable_start } as size_t,
+    = divide_round_up ({ (*header).discardable_start } as size_t,
                        DUMP_ALIGNMENT as size_t);
   if !dump_bitsets_init (mark_bits.as_mut_ptr (), mark_bits_needed)
     { break 'out; }
 
   /* Point of no return.  */
   err = pdumper_load_result::PDUMPER_LOAD_SUCCESS as c_int;
-  /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { (*gflags.as_mut_ptr ()).dumped_with_pdumper = true; }
-  unsafe { (*dump_private.as_mut_ptr ()).header = *header; }
-  unsafe { (*dump_private.as_mut_ptr ()).mark_bits = mark_bits[0]; }
-  unsafe { (*dump_private.as_mut_ptr ()).last_mark_bits = mark_bits[1]; }
-  unsafe {
+  { (*gflags.as_mut_ptr ()).dumped_with_pdumper = true; }
+  { (*dump_private.as_mut_ptr ()).header = *header; }
+  { (*dump_private.as_mut_ptr ()).mark_bits = mark_bits[0]; }
+  { (*dump_private.as_mut_ptr ()).last_mark_bits = mark_bits[1]; }
+  {
     (*dump_public.as_mut_ptr ()).start = dump_base;
     (*dump_public.as_mut_ptr ()).end = (*dump_public.as_mut_ptr ()).start + dump_size as uintptr_t;
   }
@@ -6618,30 +6618,30 @@ pub unsafe extern "C-unwind" fn pdumper_load (dump_filename: *const c_char, argv
   dump_do_all_dump_reloc_for_phase (header, dump_base, reloc_phase::EARLY_RELOCS);
   dump_do_all_emacs_relocations (header, dump_base);
 
-  dump_mmap_discard_contents (/* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { &raw mut sections[dump_section::DS_DISCARDABLE as usize] });
+  dump_mmap_discard_contents ({ &raw mut sections[dump_section::DS_DISCARDABLE as usize] });
   let mut i: c_int = 0;
   while i < dump_section::NUMBER_DUMP_SECTIONS as c_int
     {
-      dump_mmap_reset (unsafe { &raw mut sections[i as usize] });
+      dump_mmap_reset ({ &raw mut sections[i as usize] });
       i += 1;
     }
 
-  let mut hashes: Lisp_Object = /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { (*zero_vector.as_mut_ptr ()) };
-  if unsafe { (*header).hash_list } != 0
+  let mut hashes: Lisp_Object = { (*zero_vector.as_mut_ptr ()) };
+  if { (*header).hash_list } != 0
     {
       let hash_tables: *mut Lisp_Vector =
-	(unsafe { dump_base } + unsafe { (*header).hash_list } as uintptr_t)
+	({ dump_base } + { (*header).hash_list } as uintptr_t)
 	  as *mut Lisp_Vector;
       hashes = make_lisp_ptr (hash_tables as *mut c_void, Lisp_Type::Lisp_Vectorlike);
     }
 
-  /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { (*pdumper_hashes.as_mut_ptr ()) = &raw mut hashes; }
+  { (*pdumper_hashes.as_mut_ptr ()) = &raw mut hashes; }
   /* Run the functions Emacs registered for doing post-dump-load
      initialization.  */
   let mut i: c_int = 0;
-  while i < unsafe { (*nr_dump_hooks.as_mut_ptr ()) }
+  while i < { (*nr_dump_hooks.as_mut_ptr ()) }
     {
-      /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { (*dump_hooks.as_mut_ptr ())[i as usize].unwrap () () };
+      { (*dump_hooks.as_mut_ptr ())[i as usize].unwrap () () };
       i += 1;
     }
 
@@ -6658,29 +6658,29 @@ pub unsafe extern "C-unwind" fn pdumper_load (dump_filename: *const c_char, argv
   /* Run the functions Emacs registered for doing post-dump-load
      initialization.  */
   let mut i: c_int = 0;
-  while i < /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { (*nr_dump_late_hooks.as_mut_ptr ()) }
+  while i < { (*nr_dump_late_hooks.as_mut_ptr ()) }
     {
-      unsafe { (*dump_late_hooks.as_mut_ptr ())[i as usize].unwrap () () };
+      { (*dump_late_hooks.as_mut_ptr ())[i as usize].unwrap () () };
       i += 1;
     }
 
-  /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { (*initialized.as_mut_ptr ()) = true; }
+  { (*initialized.as_mut_ptr ()) = true; }
 
   let load_timespec: timespec =
-    timespec_sub (unsafe { current_timespec () }, start_time);
-  unsafe { (*dump_private.as_mut_ptr ()).load_time = timespectod (load_timespec); }
-  /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { (*dump_private.as_mut_ptr ()).dump_filename = dump_filename_copy; }
+    timespec_sub ({ current_timespec () }, start_time);
+  { (*dump_private.as_mut_ptr ()).load_time = timespectod (load_timespec); }
+  { (*dump_private.as_mut_ptr ()).dump_filename = dump_filename_copy; }
 
   }
 
   let mut i: c_int = 0;
   while i < dump_section::NUMBER_DUMP_SECTIONS as c_int
     {
-      dump_mmap_release (/* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { &raw mut sections[i as usize] });
+      dump_mmap_release ({ &raw mut sections[i as usize] });
       i += 1;
     }
   if dump_fd >= 0
-    { unsafe { emacs_close (dump_fd) }; }
+    { { emacs_close (dump_fd) }; }
   return err;
 
   }

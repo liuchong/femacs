@@ -18,6 +18,14 @@
 
 ## 0. 总则
 
+### P-486：U7 编辑器高层与核心原语批量去 `unsafe`、`RootedVec`/收敛机器栈扫描与 AU7 验收（2026-11-22）
+
+按去 `unsafe` 先行计划 U7/AU7，将编辑器高层与核心原语（字符、大小写、分类、浮点与大整数舍入、撤销、键盘宏、文档、交互式调用、Timsort 排序、JSON 编解码、标记、语法、键映射、文本属性、搜索与匹配替换、数据类型/符号/数组/布尔向量/字符串/列表、缓冲区与窗口高层原语）成批迁入 `#![forbid(unsafe_code)]` 安全模块，进一步消减 `src/*.rs` 机械 `unsafe` 包装并收窄保守机器栈扫描边界：
+
+1. **新增 20 个 `#![forbid(unsafe_code)]` 活跃模块（共 `143` 份文件，其中 `crates/femacs-vm/src/` 下达 `21` 个）**：新增 `crates/femacs-vm/src/safe_{casetab,category,floatfns,undo,macros,doc,casefiddle,callint,sort,json,marker,character,syntax,keymap,textprop,search,data,buffer,window}.rs` 及 `src/include/buildobj.rs`（同步更新 `tools/gen-buildobj.py`），与 `src/{casetab,category,floatfns,undo,macros,doc,casefiddle,callint,sort,json,marker,character,chartab,syntax,keymap,textprop,search,data,fns,buffer,editfns,window}.rs` 成对接线。`xtask gen-globals` 将全部 `836` 个 `DEFVAR_*` 外部静态升级为 Rust 2024 `pub safe static {name}: VmGlobal<{ty}>;`；`DEFUN!` 新增 `safe { ... }` 语法臂，使 `rustc` 直接在定长（`0..=8`）与 `UNEVALLED` 原语体内拒绝任何 `unsafe` 操作（同步更新 `tools/{extract-abi,check-defvar-carriers,check-ledger-ticks,gen-lisp-abi-probe}.py`）。
+2. **`RootedVec`、收敛机器栈扫描与编译器实测消减机械 `unsafe`（`crates/femacs-vm/src/{roots,safe_domain,state}.rs`、`src/emacs.rs`）**：在 `roots.rs` 实现基于 `ScopedRawSpan` 的动态重分配 GC 根向量 `RootedVec`（替代 `safe_callint`/`safe_sort`/`safe_json`/`safe_search` 中的 `SAFE_NALLOCA!` 裸切片）及 `NarrowedStackScanGuard` / `with_narrowed_stack_bottom`（进入 `#![forbid(unsafe_code)]` 顶层域时收窄 `(*current_thread).m_stack_bottom`，正常返回与 `NonLocalExit` 展开均确定性恢复）。对齐 `src/*.rs` 中已具安全契约的 `pub extern "C-unwind" fn` 定义与纯安全内部函数，并用 `rustc --force-warn unused-unsafe` 剥离跨目标无关的冗余机械包装块：活动产品 `#![forbid(unsafe_code)]` 文件增至 **`143`**（较 `U6` `+20`、较 `U4` `+111`），活动 `unsafe` 块降至 **`6,242`**（较 `U6` `8,650` **`-2,408` / `-27.8%`**，较 `U4` `7,162` **`-920` / `-12.8%`**），活动 `unsafe fn` 降至 **`4,333`**（较 `U6` `4,912` **`-579`**，较 `U4` `4,925` **`-592`**），`static mut = 0`，`SAFETY:` 契约覆盖 **`6,242 / 6,242`（`100.0%`）**。
+3. **AU7 四组集成验收与保护性单测**：修复首次自举 dump 暴露的 `validate_subarray` ↔ `validate_subarray_safe` 互调递归（将 `validate_subarray_safe` 直接内联为纯安全实现并全仓复核零互调环）后，`tools/test-u7-safe-subsystems.py` 四组全部通过：静态与 `nm` 门禁（`28.45s`）、19 子系统端到端功能探针（`0.09s`）、20 组官方核心 ERT（`5.70s`：`buffer`/`callint`/`casefiddle`/`character`/`chartab`/`cmds`/`data`/`doc`/`editfns`/`eval`/`floatfns`/`fns`/`json`/`keymap`/`marker`/`search`/`syntax`/`textprop`/`undo`/`sort` 零失败）以及 `FEMACS_GC_SKIP_STACK_SCAN=1` + `gc-cons-threshold=1` 强制 GC 与比较器异常展开压力测试（`0.19s`，`gcs=72`），配套 `roots.rs` 隔离 `rustc --test` 单测与工具自测全部通过（AU7）。
+
 ### P-485：U6 `VmGlobal<T>` 全产品消除 `static mut`、安全 `DEFVAR_*`/`DEFUN!` 与带边界检查的内核原语（2026-11-22）
 
 按去 `unsafe` 先行计划 U6/AU6，将活跃 Cargo 产品闭包（`femacs-sys`、`femacs-vm`、`femacs-host` 共 `417` 份文件）中的 `2,507` 个 `static mut` 条目 **`100.0%` 归零**，升级 `xtask gen-globals`、`DEFVAR_*`、`DEFUN!` 与内核边界原语，并以 `#![forbid(unsafe_code)]` 的 `safe_cmds.rs` 打通高层子系统零 `unsafe` 样板：

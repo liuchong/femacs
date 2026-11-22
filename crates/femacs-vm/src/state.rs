@@ -201,7 +201,7 @@ pub fn snapshot_vm_root_inventory() -> VmRootInventory {
             tail = XCDR(tail);
         }
         #[cfg(feature = "have_native_comp")]
-        let comp_ok = crate::common::HASH_TABLE_P(crate::common::get_Vcomp_loaded_comp_units_h());
+        let comp_ok = crate::common::HASH_TABLE_P(crate::common::Vcomp_loaded_comp_units_h.get());
         #[cfg(not(feature = "have_native_comp"))]
         let comp_ok = false;
         (nbufs, comp_ok)

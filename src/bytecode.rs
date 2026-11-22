@@ -396,7 +396,7 @@ unsafe extern "C-unwind" fn bcall0 (f: Lisp_Object)
 
 #[cold]
 #[inline(never)]
-unsafe fn bc_periodic_gc_and_quit ()
+fn bc_periodic_gc_and_quit ()
 {
   maybe_gc ();
   maybe_quit ();
@@ -713,10 +713,9 @@ const EXIT: c_int = 8;
 
 #[cold]
 #[inline(never)]
-unsafe fn bc_varref_slow (sym: Lisp_Object) -> Lisp_Object
+fn bc_varref_slow (sym: Lisp_Object) -> Lisp_Object
 {
-  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
-  unsafe {
+  {
   return Fsymbol_value (sym);
 
   }
@@ -735,10 +734,9 @@ unsafe fn bc_varset_slow (sym: Lisp_Object, val: Lisp_Object)
 
 #[cold]
 #[inline(never)]
-unsafe fn bc_varbind_slow (sym: Lisp_Object, val: Lisp_Object)
+fn bc_varbind_slow (sym: Lisp_Object, val: Lisp_Object)
 {
-  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
-  unsafe {
+  {
   specbind (sym, val);
 
   }
@@ -746,10 +744,9 @@ unsafe fn bc_varbind_slow (sym: Lisp_Object, val: Lisp_Object)
 
 #[cold]
 #[inline(never)]
-unsafe fn bc_grow_specpdl ()
+fn bc_grow_specpdl ()
 {
-  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
-  unsafe {
+  {
   grow_specpdl_allocation ();
 
   }
@@ -770,10 +767,9 @@ unsafe fn bc_unbind_slow (ct: *mut thread_state, target_ptr: *mut specbinding)
 
 #[cold]
 #[inline(never)]
-unsafe fn bc_debug_on_exit (val: Lisp_Object) -> Lisp_Object
+fn bc_debug_on_exit (val: Lisp_Object) -> Lisp_Object
 {
-  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
-  unsafe {
+  {
   return call_debugger (list2 (Qexit (), val));
 
   }
@@ -1870,7 +1866,7 @@ pub unsafe extern "C-unwind" fn exec_byte_code (mut fun: Lisp_Object, mut args_t
 	CASE! (Bsave_window_excursion) => /* Obsolete since 24.1.  */
 	  {
 	    let count1: specpdl_ref = SPECPDL_INDEX ();
-	    record_unwind_protect (Some (restore_window_configuration),
+	    record_unwind_protect (Some (restore_window_configuration as _),
 				   Fcurrent_window_configuration (Qnil ()));
 	    *top = Fprogn (TOP! ());
 	    unbind_to (count1, TOP! ());
@@ -1885,7 +1881,7 @@ pub unsafe extern "C-unwind" fn exec_byte_code (mut fun: Lisp_Object, mut args_t
 	CASE! (Bcatch) =>		/* Obsolete since 25.  */
 	  {
 	    let v1: Lisp_Object = POP! ();
-	    *top = internal_catch (TOP! (), Some (eval_sub), v1);
+	    *top = internal_catch (TOP! (), Some (eval_sub as _), v1);
 	    NEXT! ();
 	  }
 	CASE! (Bpushcatch)
@@ -3243,7 +3239,7 @@ pub unsafe extern "C-unwind" fn exec_byte_code (mut fun: Lisp_Object, mut args_t
 
 /* `args_template' has the same meaning as in exec_byte_code() above.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn get_byte_code_arity (args_template: Lisp_Object) -> Lisp_Object
+pub extern "C-unwind" fn get_byte_code_arity (args_template: Lisp_Object) -> Lisp_Object
 {
   // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
   unsafe {

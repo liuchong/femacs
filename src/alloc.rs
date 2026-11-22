@@ -518,7 +518,7 @@ pub enum mem_type
   MEM_TYPE_SPARE
 }
 
-unsafe fn deadp (x: Lisp_Object) -> bool
+fn deadp (x: Lisp_Object) -> bool
 {
   return BASE_EQ (x, dead_object ());
 }
@@ -661,13 +661,13 @@ unsafe fn tally_consing (nbytes: ptrdiff_t)
 
 /* C 536-548 (`#ifdef DOUG_LEA_MALLOC`) is dead on this target.  */
 #[cfg (feature = "doug_lea_malloc")]
-unsafe fn pointers_fit_in_lispobj_p () -> bool
+fn pointers_fit_in_lispobj_p () -> bool
 {
   return (UINTPTR_MAX <= VAL_MAX as uintptr_t) || USE_LSB_TAG;
 }
 
 #[cfg (feature = "doug_lea_malloc")]
-unsafe fn mmap_lisp_allowed_p () -> bool
+fn mmap_lisp_allowed_p () -> bool
 {
   /* If we can't store all memory addresses in our lisp objects, it's
      risky to let the heap use mmap and give us addresses from all
@@ -707,7 +707,7 @@ pub unsafe extern "C-unwind" fn malloc_warning (str: *const c_char)
 /* Display an already-pending malloc warning.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn display_malloc_warning ()
+pub extern "C-unwind" fn display_malloc_warning ()
 {
   // SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers.
   unsafe {
@@ -1014,7 +1014,7 @@ pub unsafe extern "C-unwind" fn xpalloc (mut pa: *mut c_void, nitems: *mut ptrdi
   /* A diagnostic switch, in the shape of `FEMACS_GC_TRACE` (docs/status.md 4.402): one line per
      call, so a caller whose `item_size` and whose own `sizeof` disagree can be seen at once.
      It is off unless the variable is set, and it prints to stderr only.  */
-  if /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { !getenv (c"FEMACS_XPALLOC_TRACE".as_ptr ()).is_null () }
+  if { !getenv (c"FEMACS_XPALLOC_TRACE".as_ptr ()).is_null () }
     {
       fprintf ((*stderr.as_mut_ptr ()), c"xpalloc: item_size=%d n0=%d incr_min=%d max=%d -> n=%d nbytes=%d\n".as_ptr (),
 	       item_size as c_int, n0 as c_int, nitems_incr_min as c_int,
@@ -2610,7 +2610,7 @@ unsafe fn compact_small_strings ()
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn string_overflow ()
+pub extern "C-unwind" fn string_overflow ()
 {
   // SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers.
   unsafe {
@@ -2683,7 +2683,7 @@ DEFUN! ("make-string", Fmake_string, Smake_string, 2, 3, 0,
    Return A.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn bool_vector_fill (a: Lisp_Object, init: Lisp_Object) -> Lisp_Object
+pub extern "C-unwind" fn bool_vector_fill (a: Lisp_Object, init: Lisp_Object) -> Lisp_Object
 {
   // SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers.
   unsafe {
@@ -2709,7 +2709,7 @@ pub unsafe extern "C-unwind" fn bool_vector_fill (a: Lisp_Object, init: Lisp_Obj
    clear its slots; otherwise the vector's slots are uninitialized.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn make_clear_bool_vector (nbits: EMACS_INT, clearit: bool) -> Lisp_Object
+pub extern "C-unwind" fn make_clear_bool_vector (nbits: EMACS_INT, clearit: bool) -> Lisp_Object
 {
   // SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers.
   unsafe {
@@ -2737,10 +2737,9 @@ pub unsafe extern "C-unwind" fn make_clear_bool_vector (nbits: EMACS_INT, cleari
 /* Return a newly allocated, uninitialized bool vector of size NBITS.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn make_uninit_bool_vector (nbits: EMACS_INT) -> Lisp_Object
+pub extern "C-unwind" fn make_uninit_bool_vector (nbits: EMACS_INT) -> Lisp_Object
 {
-  // SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers.
-  unsafe {
+  {
   return make_clear_bool_vector (nbits, false);
 
   }
@@ -2911,7 +2910,7 @@ unsafe fn make_clear_string (length: EMACS_INT, clearit: bool) -> Lisp_Object
    occupying LENGTH bytes.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn make_uninit_string (length: EMACS_INT) -> Lisp_Object
+pub extern "C-unwind" fn make_uninit_string (length: EMACS_INT) -> Lisp_Object
 {
   // SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers.
   unsafe {
@@ -2952,7 +2951,7 @@ unsafe fn make_clear_multibyte_string (nchars: EMACS_INT, nbytes: EMACS_INT, cle
    which occupy NBYTES bytes.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn make_uninit_multibyte_string (nchars: EMACS_INT, nbytes: EMACS_INT)
+pub extern "C-unwind" fn make_uninit_multibyte_string (nchars: EMACS_INT, nbytes: EMACS_INT)
 						       -> Lisp_Object
 {
   // SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers.
@@ -2988,7 +2987,7 @@ pub unsafe extern "C-unwind" fn make_formatted_string (format: *const c_char, mu
 
 /* Pin a unibyte string in place so that it won't move during GC.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn pin_string (string: Lisp_Object)
+pub extern "C-unwind" fn pin_string (string: Lisp_Object)
 {
   // SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers.
   unsafe {
@@ -3119,7 +3118,7 @@ static float_free_list: VmGlobal<*mut Lisp_Float> = VmGlobal::<*mut Lisp_Float>:
 /* Return a new float object with value FLOAT_VALUE.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn make_float (float_value: f64) -> Lisp_Object
+pub extern "C-unwind" fn make_float (float_value: f64) -> Lisp_Object
 {
   // SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers.
   unsafe {
@@ -3383,20 +3382,18 @@ DEFUN! ("cons", Fcons, Scons, 2, 2, 0,
 /* Make a list of 1, 2, 3, 4 or 5 specified objects.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn list1 (arg1: Lisp_Object) -> Lisp_Object
+pub extern "C-unwind" fn list1 (arg1: Lisp_Object) -> Lisp_Object
 {
-  // SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers.
-  unsafe {
+  {
   return Fcons (arg1, Qnil ());
 
   }
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn list2 (arg1: Lisp_Object, arg2: Lisp_Object) -> Lisp_Object
+pub extern "C-unwind" fn list2 (arg1: Lisp_Object, arg2: Lisp_Object) -> Lisp_Object
 {
-  // SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers.
-  unsafe {
+  {
   return Fcons (arg1, Fcons (arg2, Qnil ()));
 
   }
@@ -3404,33 +3401,30 @@ pub unsafe extern "C-unwind" fn list2 (arg1: Lisp_Object, arg2: Lisp_Object) -> 
 
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn list3 (arg1: Lisp_Object, arg2: Lisp_Object, arg3: Lisp_Object)
+pub extern "C-unwind" fn list3 (arg1: Lisp_Object, arg2: Lisp_Object, arg3: Lisp_Object)
 				 -> Lisp_Object
 {
-  // SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers.
-  unsafe {
+  {
   return Fcons (arg1, Fcons (arg2, Fcons (arg3, Qnil ())));
 
   }
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn list4 (arg1: Lisp_Object, arg2: Lisp_Object, arg3: Lisp_Object,
+pub extern "C-unwind" fn list4 (arg1: Lisp_Object, arg2: Lisp_Object, arg3: Lisp_Object,
 				arg4: Lisp_Object) -> Lisp_Object
 {
-  // SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers.
-  unsafe {
+  {
   return Fcons (arg1, Fcons (arg2, Fcons (arg3, Fcons (arg4, Qnil ()))));
 
   }
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn list5 (arg1: Lisp_Object, arg2: Lisp_Object, arg3: Lisp_Object,
+pub extern "C-unwind" fn list5 (arg1: Lisp_Object, arg2: Lisp_Object, arg3: Lisp_Object,
 				arg4: Lisp_Object, arg5: Lisp_Object) -> Lisp_Object
 {
-  // SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers.
-  unsafe {
+  {
   return Fcons (arg1, Fcons (arg2, Fcons (arg3, Fcons (arg4,
 						       Fcons (arg5, Qnil ())))));
 
@@ -4440,7 +4434,7 @@ DEFUN! ("make-vector", Fmake_vector, Smake_vector, 2, 2, 0,
 /* Return a new vector of length LENGTH with each element being INIT.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn make_vector (length: ptrdiff_t, init: Lisp_Object) -> Lisp_Object
+pub extern "C-unwind" fn make_vector (length: ptrdiff_t, init: Lisp_Object) -> Lisp_Object
 {
   // SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers.
   unsafe {
@@ -4616,7 +4610,7 @@ unsafe fn set_symbol_name (sym: Lisp_Object, name: Lisp_Object)
    (lisp.rs's `SYMBOL_*_MASK`/`_SHIFT`, PORTING.md 1.3); `set_symbol_bits!` is lread.rs's
    private macro, so each write below spells the mask.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn init_symbol (val: Lisp_Object, name: Lisp_Object)
+pub extern "C-unwind" fn init_symbol (val: Lisp_Object, name: Lisp_Object)
 {
   // SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers.
   unsafe {
@@ -4692,7 +4686,7 @@ pub unsafe extern "C-unwind" fn make_misc_ptr (a: *mut c_void) -> Lisp_Object
 
 /* Return a new symbol with position with the specified SYMBOL and POSITION. */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn build_symbol_with_pos (symbol: Lisp_Object, position: Lisp_Object)
+pub extern "C-unwind" fn build_symbol_with_pos (symbol: Lisp_Object, position: Lisp_Object)
 						-> Lisp_Object
 {
   // SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers.
@@ -4712,7 +4706,7 @@ pub unsafe extern "C-unwind" fn build_symbol_with_pos (symbol: Lisp_Object, posi
 /* Return a new (deleted) overlay with PLIST.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn build_overlay (front_advance: bool, rear_advance: bool,
+pub extern "C-unwind" fn build_overlay (front_advance: bool, rear_advance: bool,
 					plist: Lisp_Object) -> Lisp_Object
 {
   // SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers.
@@ -5226,7 +5220,7 @@ pub unsafe extern "C-unwind" fn memory_full (nbytes: size_t)
    resulting pointer had problems fitting into a tagged EMACS_INT.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn memory_full_up () -> !
+pub extern "C-unwind" fn memory_full_up () -> !
 {
   // SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers.
   unsafe {
@@ -6427,12 +6421,12 @@ pub unsafe extern "C-unwind" fn mark_c_stack (bottom: *const c_char, end: *const
   /* An *instrument*, not a behaviour: with the variable set, nothing on the C stack is marked.
      It answers one question - whether the retention `spikes/gc-retention-probe.el` shows comes
      from values that only the conservative scan can see (P-115's shape; status 4.431).  */
-  if ! unsafe { getenv (c"FEMACS_GC_SKIP_STACK_SCAN".as_ptr ()).is_null () }
+  if ! { getenv (c"FEMACS_GC_SKIP_STACK_SCAN".as_ptr ()).is_null () }
     { return; }
 
   /* The instrument also reports the *span* it scans (P-115's shape): if the port scans far more
      of the stack than its live frames, stale values are roots (status 4.432).  */
-  if ! /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { getenv (c"FEMACS_GC_TRACE".as_ptr ()).is_null () }
+  if ! { getenv (c"FEMACS_GC_TRACE".as_ptr ()).is_null () }
     {
       fprintf ((*stderr.as_mut_ptr ()), c"stack scan: bottom=%p end=%p span=%ld\n".as_ptr (),
 	       bottom as *const c_void, end as *const c_void,
@@ -6444,7 +6438,7 @@ pub unsafe extern "C-unwind" fn mark_c_stack (bottom: *const c_char, end: *const
      over the stack segments.  */
   let span_bytes = (bottom as usize).abs_diff (end as usize);
   crate::state::note_gc_conservative_stack_span (span_bytes);
-  /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { mark_memory (bottom as *const c_void, end as *const c_void) };
+  { mark_memory (bottom as *const c_void, end as *const c_void) };
 
   /* Allow for marking a secondary stack, like the register stack on the
      ia64.  */
@@ -6546,7 +6540,7 @@ unsafe fn valid_pointer_p (p: *mut c_void) -> c_int
    only in debugging.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn valid_lisp_object_p (obj: Lisp_Object) -> c_int
+pub extern "C-unwind" fn valid_lisp_object_p (obj: Lisp_Object) -> c_int
 {
   // SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers.
   unsafe {
@@ -6690,7 +6684,7 @@ unsafe extern "C-unwind" fn allow_garbage_collection (consing: intmax_t)
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn inhibit_garbage_collection () -> specpdl_ref
+pub extern "C-unwind" fn inhibit_garbage_collection () -> specpdl_ref
 {
   // SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers.
   unsafe {
@@ -6706,7 +6700,7 @@ pub unsafe extern "C-unwind" fn inhibit_garbage_collection () -> specpdl_ref
 /* Return the number of bytes in N objects each of size S, guarding
    against overflow if ptrdiff_t is narrower than byte_ct.  */
 
-unsafe fn object_bytes (n: object_ct, s: ptrdiff_t) -> byte_ct
+fn object_bytes (n: object_ct, s: ptrdiff_t) -> byte_ct
 {
   let b: byte_ct = s as byte_ct;
   return (n as byte_ct) * b;
@@ -7152,7 +7146,7 @@ unsafe extern "C-unwind" fn watch_gc_cons_percentage (symbol: Lisp_Object, newva
    since it might depend on current usage, and do the garbage
    collection if the recalculation says so.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn maybe_garbage_collect ()
+pub extern "C-unwind" fn maybe_garbage_collect ()
 {
   // SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers.
   unsafe {
@@ -7267,21 +7261,21 @@ unsafe fn garbage_collect_impl(request: GcRequest)
     {
       fprintf ((*stderr.as_mut_ptr ()), c"gc: n=%d specpdl_bytes=%ld mark_sp=%ld mark_size=%ld\n".as_ptr (),
 	       (*gcs_done.as_mut_ptr ()) as c_int, unwrap_specpdl_ref (count) as c_long,
-	       /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (*mark_stk.as_mut_ptr ()).sp } as c_long, unsafe { (*mark_stk.as_mut_ptr ()).size } as c_long);
+	       { (*mark_stk.as_mut_ptr ()).sp } as c_long, { (*mark_stk.as_mut_ptr ()).size } as c_long);
       let mut handlers: c_int = 0;
-      let mut h: *mut handler = unsafe { handlerlist! () };
+      let mut h: *mut handler = /* SAFETY: gc_heap_and_root_boundary — Executed on owning Lisp thread under VM global lock; tagged Lisp_Object pointers valid or pdumper-backed. */ unsafe { handlerlist! () };
       while ! h.is_null () && handlers < 1000000
 	{
-	  h = /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (*h).next };
+	  h = { (*h).next };
 	  handlers += 1;
 	}
       let mut blocks: c_int = 0;
       let mut bytes: c_long = 0;
-      let mut b: *mut sa_stack_block = /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (*sa_stack_top.as_mut_ptr ()) };
+      let mut b: *mut sa_stack_block = { (*sa_stack_top.as_mut_ptr ()) };
       while ! b.is_null () && blocks < 1000000
 	{
-	  bytes += unsafe { (*b).used } as c_long;
-	  b = unsafe { (*b).next };
+	  bytes += { (*b).used } as c_long;
+	  b = { (*b).next };
 	  blocks += 1;
 	}
       fprintf ((*stderr.as_mut_ptr ()), c"gc-h: handlers=%d sa_blocks=%d sa_bytes=%ld\n".as_ptr (),
@@ -7417,7 +7411,7 @@ unsafe fn garbage_collect_impl(request: GcRequest)
   let mut persistent_marked = 0usize;
   crate::roots::mark_persistent_roots (|obj| {
     persistent_marked += 1;
-    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { mark_object (obj) };
+    { mark_object (obj) };
   });
   crate::state::note_gc_persistent_marked (persistent_marked);
   gc_observe_end!(observation_cycle, 4);
@@ -8671,7 +8665,7 @@ unsafe fn process_mark_stack (base_sp: ptrdiff_t)
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn mark_object (obj: Lisp_Object)
+pub extern "C-unwind" fn mark_object (obj: Lisp_Object)
 {
   // SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers.
   unsafe {
@@ -8718,7 +8712,7 @@ unsafe fn mark_terminals ()
    either marked or does not need to be marked to survive.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn survives_gc_p (obj: Lisp_Object) -> bool
+pub extern "C-unwind" fn survives_gc_p (obj: Lisp_Object) -> bool
 {
   // SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers.
   unsafe {

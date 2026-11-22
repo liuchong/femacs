@@ -44,20 +44,20 @@ pub mod keymap_decls {
   use super::*;
 
   unsafe extern "C-unwind" {
-  pub static current_global_map: VmGlobal<Lisp_Object>;
+  pub safe static current_global_map: VmGlobal<Lisp_Object>;
 
   // Parameter names come from the definitions in keymap.c (keymap.h names no parameter
   // except `map_keymap_canonical`'s).
   pub fn push_key_description (ch: EMACS_INT, p: *mut c_char) -> *mut c_char;
-  pub fn access_keymap (map: Lisp_Object, idx: Lisp_Object, t_ok: bool,
-                        noinherit: bool) -> Lisp_Object;
-  pub fn get_keymap (object: Lisp_Object, error_if_not_keymap: bool,
-                     autoload: bool) -> Lisp_Object;
+  pub safe fn access_keymap (map: Lisp_Object, idx: Lisp_Object, t_ok: bool,
+                             noinherit: bool) -> Lisp_Object;
+  pub safe fn get_keymap (object: Lisp_Object, error_if_not_keymap: bool,
+                          autoload: bool) -> Lisp_Object;
   pub fn current_minor_maps (modeptr: *mut *mut Lisp_Object,
                              mapptr: *mut *mut Lisp_Object) -> ptrdiff_t;
   pub fn initial_define_lispy_key (keymap: Lisp_Object, keyname: *const c_char,
                                    defname: *const c_char);
-  pub fn syms_of_keymap ();
+  pub safe fn syms_of_keymap ();
   pub fn map_keymap (map: Lisp_Object, fun: map_keymap_function_t, args: Lisp_Object,
                      data: *mut c_void, autoload: bool);
   pub fn map_keymap_canonical (map: Lisp_Object, fun: map_keymap_function_t,
@@ -65,4 +65,23 @@ pub mod keymap_decls {
   }
 }
 pub use self::keymap_decls::*;
+
+#[inline(always)]
+pub fn push_key_description_str (ch: EMACS_INT) -> Lisp_Object {
+  let mut tem: [c_char; KEY_DESCRIPTION_SIZE as usize] = [0; KEY_DESCRIPTION_SIZE as usize];
+  /* SAFETY: `tem` has `KEY_DESCRIPTION_SIZE` bytes as required by `push_key_description`. */
+  unsafe {
+    let p = push_key_description (ch, tem.as_mut_ptr ());
+    *p = 0;
+    let nbytes = p.offset_from (tem.as_ptr ());
+    crate::alloc::make_specified_string (tem.as_ptr (), -1, nbytes, true)
+  }
+}
+
+#[inline(always)]
+pub fn error_single_key_description_type () -> ! {
+  /* SAFETY: static NUL-terminated message with zero format arguments. */
+  unsafe { error (c"KEY must be an integer, cons, symbol, or string".as_ptr ()) }
+}
+
 

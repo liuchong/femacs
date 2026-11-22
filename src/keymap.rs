@@ -127,9 +127,21 @@ static where_is_cache_keymaps: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::
 
 // C 75-84's forward declarations are dropped (PORTING.md 0.1-12).
 
-unsafe extern "C-unwind" fn CHECK_VECTOR_OR_CHAR_TABLE (x: Lisp_Object)
+fn CHECK_VECTOR_OR_CHAR_TABLE (x: Lisp_Object)
 {
   CHECK_TYPE (VECTORP (x) || CHAR_TABLE_P (x), Qvector_or_char_table_p (), x);
+}
+
+pub fn flush_where_is_cache_for_parent_safe ()
+{
+  where_is_cache.set (Qnil ());
+  where_is_cache_keymaps.set (Qt ());
+}
+
+pub fn error_cyclic_keymap_inheritance () -> !
+{
+  /* SAFETY: static NUL-terminated error message with zero format arguments. */
+  unsafe { error (c"Cyclic keymap inheritance".as_ptr ()) }
 }
 
 /* Keymap object support - constructors and predicates.			*/
@@ -137,21 +149,15 @@ unsafe extern "C-unwind" fn CHECK_VECTOR_OR_CHAR_TABLE (x: Lisp_Object)
 DEFUN! ("make-keymap", Fmake_keymap, Smake_keymap, 0, 1, 0,
        doc: "Construct and return a new keymap, of the form (keymap CHARTABLE . ALIST).\nCHARTABLE is a char-table that holds the bindings for all characters\nwithout modifiers.  All entries in it are initially nil, meaning\n\"command undefined\".  ALIST is an assoc-list which holds bindings for\nfunction keys, mouse events, and any other things that appear in the\ninput stream.  Initially, ALIST is nil.\n\nThe optional arg STRING supplies a menu name for the keymap\nin case you use it as a menu with `x-popup-menu'.",
        (string: Lisp_Object),
-       {
-  let tail = if !NILP (string) { list1 (string) } else { Qnil () };
-  return Fcons (Qkeymap (),
-		Fcons (Fmake_char_table (Qkeymap (), Qnil ()), tail));
+       safe {
+  crate::safe_keymap::make_keymap (string)
 });
 
 DEFUN! ("make-sparse-keymap", Fmake_sparse_keymap, Smake_sparse_keymap, 0, 1, 0,
        doc: "Construct and return a new sparse keymap.\nIts car is `keymap' and its cdr is an alist of (CHAR . DEFINITION),\nwhich binds the character CHAR to DEFINITION, or (SYMBOL . DEFINITION),\nwhich binds the function key or mouse event SYMBOL to DEFINITION.\nInitially the alist is nil.\n\nThe optional arg STRING supplies a menu name for the keymap\nin case you use it as a menu with `x-popup-menu'.",
        (string: Lisp_Object),
-       {
-  if !NILP (string)
-    {
-      return list2 (Qkeymap (), string);
-    }
-  return list1 (Qkeymap ());
+       safe {
+  crate::safe_keymap::make_sparse_keymap (string)
 });
 
 #[unsafe(no_mangle)]
@@ -170,30 +176,15 @@ pub unsafe extern "C-unwind" fn initial_define_lispy_key (keymap: Lisp_Object,
 DEFUN! ("keymapp", Fkeymapp, Skeymapp, 1, 1, 0,
        doc: "Return t if OBJECT is a keymap.\n\nA keymap is a list (keymap . ALIST),\nor a symbol whose function definition is itself a keymap.\nALIST elements look like (CHAR . DEFN) or (SYMBOL . DEFN);\na vector of densely packed bindings for small character codes\nis also allowed as an element.",
        (object: Lisp_Object),
-       {
-  return if KEYMAPP! (object) { Qt () } else { Qnil () };
+       safe {
+  crate::safe_keymap::keymapp (object)
 });
 
 DEFUN! ("keymap-prompt", Fkeymap_prompt, Skeymap_prompt, 1, 1, 0,
        doc: "Return the prompt-string of a keymap MAP.\nIf non-nil, the prompt is shown in the echo-area\nwhen reading a key-sequence to be looked-up in this keymap.",
        (map: Lisp_Object),
-       {
-  let mut map = map;
-  map = get_keymap (map, false, false);
-  while CONSP (map)
-    {
-      let mut tem = XCAR (map);
-      if STRINGP (tem)
-	{ return tem; }
-      else if KEYMAPP! (tem)
-	{
-	  tem = Fkeymap_prompt (tem);
-	  if !NILP (tem)
-	    { return tem; }
-	}
-      map = XCDR (map);
-    }
-  return Qnil ();
+       safe {
+  crate::safe_keymap::keymap_prompt (map)
 });
 
 /* Check that OBJECT is a keymap (after dereferencing through any
@@ -217,12 +208,11 @@ DEFUN! ("keymap-prompt", Fkeymap_prompt, Skeymap_prompt, 1, 1, 0,
    Fautoload_do_load which can GC.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn get_keymap (mut object: Lisp_Object,
+pub extern "C-unwind" fn get_keymap (mut object: Lisp_Object,
                                      error_if_not_keymap: bool,
                                      autoload: bool) -> Lisp_Object
 {
-  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
-  unsafe {
+  {
  /* C's two labels (`autoload_retry:` for the back edge and `end:` for the forward exit) are
     both kept by name: the loop is the back edge and the labelled block is the exit
     (PORTING.md 2.2 - the ccl.rs/bytecode.rs shape for C's `goto`).  */
@@ -274,45 +264,22 @@ pub unsafe extern "C-unwind" fn get_keymap (mut object: Lisp_Object,
 /* Return the parent map of KEYMAP, or nil if it has none.
    We assume that KEYMAP is a valid keymap.  */
 
-unsafe fn keymap_parent (mut keymap: Lisp_Object, autoload: bool) -> Lisp_Object
+fn keymap_parent (keymap: Lisp_Object, autoload: bool) -> Lisp_Object
 {
-  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
-  unsafe {
-  keymap = get_keymap (keymap, true, autoload);
-
-  /* Skip past the initial element `keymap'.  */
-  let mut list = XCDR (keymap);
-  while CONSP (list)
-    {
-      /* See if there is another `keymap'.  */
-      if KEYMAPP! (list)
-	{ return list; }
-      list = XCDR (list);
-    }
-
-  return get_keymap (list, false, autoload);
-
-  }
+  crate::safe_keymap::keymap_parent_impl (keymap, autoload)
 }
 
 DEFUN! ("keymap-parent", Fkeymap_parent, Skeymap_parent, 1, 1, 0,
        doc: "Return the parent keymap of KEYMAP.\nIf KEYMAP has no parent, return nil.",
        (keymap: Lisp_Object),
-       {
-  return keymap_parent (keymap, true);
+       safe {
+  crate::safe_keymap::keymap_parent (keymap)
 });
 
 /* Check whether MAP is one of MAPS parents.  */
-unsafe fn keymap_memberp (map: Lisp_Object, mut maps: Lisp_Object) -> bool
+fn keymap_memberp (map: Lisp_Object, maps: Lisp_Object) -> bool
 {
-  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
-  unsafe {
-  if NILP (map) { return false; }
-  while KEYMAPP! (maps) && !EQ (map, maps)
-    { maps = keymap_parent (maps, false); }
-  return EQ (map, maps);
-
-  }
+  crate::safe_keymap::keymap_memberp (map, maps)
 }
 
 /* Set the parent keymap of MAP to PARENT.  */
@@ -320,37 +287,8 @@ unsafe fn keymap_memberp (map: Lisp_Object, mut maps: Lisp_Object) -> bool
 DEFUN! ("set-keymap-parent", Fset_keymap_parent, Sset_keymap_parent, 2, 2, 0,
        doc: "Modify KEYMAP to set its parent map to PARENT.\nReturn PARENT.  PARENT should be nil or another keymap.",
        (keymap: Lisp_Object, parent: Lisp_Object),
-       {
-  let mut keymap = keymap;
-  let mut parent = parent;
-  /* Flush any reverse-map cache.  */
-  (*where_is_cache.as_mut_ptr ()) = Qnil (); (*where_is_cache_keymaps.as_mut_ptr ()) = Qt ();
-
-  keymap = get_keymap (keymap, true, true);
-
-  if !NILP (parent)
-    {
-      parent = get_keymap (parent, true, false);
-
-      /* Check for cycles.  */
-      if keymap_memberp (keymap, parent)
-	{ error (c"Cyclic keymap inheritance".as_ptr ()); }
-    }
-
-  /* Skip past the initial element `keymap'.  */
-  let mut prev = keymap;
-  loop
-    {
-      let list = XCDR (prev);
-      /* If there is a parent keymap here, replace it.
-	 If we came to the end, add the parent in PREV.  */
-      if !CONSP (list) || KEYMAPP! (list)
-	{
-	  XSETCDR (prev, parent);
-	  return parent;
-	}
-      prev = list;
-    }
+       safe {
+  crate::safe_keymap::set_keymap_parent (keymap, parent)
 });
 
 /* Look up IDX in MAP.  IDX may be any sort of event.
@@ -542,7 +480,7 @@ unsafe fn access_keymap_1 (map: Lisp_Object, idx: Lisp_Object,
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn access_keymap (map: Lisp_Object, idx: Lisp_Object,
+pub extern "C-unwind" fn access_keymap (map: Lisp_Object, idx: Lisp_Object,
 				        t_ok: bool, noinherit: bool) -> Lisp_Object
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
@@ -1860,45 +1798,8 @@ DEFUN! ("current-active-maps", Fcurrent_active_maps, Scurrent_active_maps,
 DEFUN! ("key-binding", Fkey_binding, Skey_binding, 1, 4, 0,
        doc: "Return the binding for command KEY in current keymaps.\nKEY is a string or vector, a sequence of keystrokes.\nThe binding is probably a symbol with a function definition.\n\nNormally, `key-binding' ignores bindings for t, which act as default\nbindings, used when nothing else in the keymap applies; this makes it\nusable as a general function for probing keymaps.  However, if the\noptional second argument ACCEPT-DEFAULT is non-nil, `key-binding' does\nrecognize the default bindings, just as `read-key-sequence' does.\n\nLike the normal command loop, `key-binding' will remap the command\nresulting from looking up KEY by looking up the command in the\ncurrent keymaps.  However, if the optional third argument NO-REMAP\nis non-nil, `key-binding' returns the unmapped command.\n\nIf KEY is a key sequence initiated with the mouse, the used keymaps\nwill depend on the clicked mouse position with regard to the buffer\nand possible local keymaps on strings.\n\nIf the optional argument POSITION is non-nil, it specifies a mouse\nposition as returned by `event-start' and `event-end', and the lookup\noccurs in the keymaps associated with it instead of KEY.  It can also\nbe a number or marker, in which case the keymap properties at the\nspecified buffer position instead of point are used.",
        (key: Lisp_Object, accept_default: Lisp_Object, no_remap: Lisp_Object, position: Lisp_Object),
-       {
-  let mut position = position;
-  if NILP (position) && VECTORP (key)
-    {
-      if ASIZE (key) == 0
-	{ return Qnil (); }
-
-      /* mouse events may have a symbolic prefix indicating the
-	 scrollbar or mode line */
-      let event
-	= AREF (key, if SYMBOLP (AREF (key, 0)) && ASIZE (key) > 1 { 1 } else { 0 });
-
-      /* We are not interested in locations without event data */
-
-      if EVENT_HAS_PARAMETERS (event) && CONSP (XCDR (event))
-	{
-	  let kind = EVENT_HEAD_KIND (EVENT_HEAD (event));
-	  if EQ (kind, Qmouse_click ())
-	    { position = EVENT_START (event); }
-	}
-    }
-
-  let mut value = Flookup_key (Fcurrent_active_maps (Qt (), position),
-			   key, accept_default);
-
-  if NILP (value) || FIXNUMP (value)
-    { return Qnil (); }
-
-  /* If the result of the ordinary keymap lookup is an interactive
-     command, look for a key binding (ie. remapping) for that command.  */
-
-  if NILP (no_remap) && SYMBOLP (value)
-    {
-      let value1: Lisp_Object;
-      if { value1 = Fcommand_remapping (value, position, Qnil ()); !NILP (value1) }
-	{ value = value1; }
-    }
-
-  return value;
+       safe {
+  crate::safe_keymap::key_binding (key, accept_default, no_remap, position)
 });
 
 /* GC is possible in this function if it autoloads a keymap.  */
@@ -1938,36 +1839,29 @@ DEFUN! ("minor-mode-key-binding", Fminor_mode_key_binding, Sminor_mode_key_bindi
 DEFUN! ("use-global-map", Fuse_global_map, Suse_global_map, 1, 1, 0,
        doc: "Select KEYMAP as the global keymap.",
        (keymap: Lisp_Object),
-       {
-  let keymap = get_keymap (keymap, true, true);
-  (*current_global_map.as_mut_ptr ()) = keymap;
-
-  return Qnil ();
+       safe {
+  crate::safe_keymap::use_global_map (keymap)
 });
 
 DEFUN! ("use-local-map", Fuse_local_map, Suse_local_map, 1, 1, 0,
        doc: "Select KEYMAP as the local keymap.\nIf KEYMAP is nil, that means no local keymap.",
        (keymap: Lisp_Object),
-       {
-  let keymap = if !NILP (keymap) { get_keymap (keymap, true, true) } else { keymap };
-
-  bset_keymap ((current_buffer! ()), keymap);
-
-  return Qnil ();
+       safe {
+  crate::safe_keymap::use_local_map (keymap)
 });
 
 DEFUN! ("current-local-map", Fcurrent_local_map, Scurrent_local_map, 0, 0, 0,
        doc: "Return current buffer's local keymap, or nil if it has none.\nNormally the local keymap is set by the major mode with `use-local-map'.",
        (),
-       {
-  return BVAR! ((current_buffer! ()), keymap_);
+       safe {
+  crate::safe_keymap::current_local_map ()
 });
 
 DEFUN! ("current-global-map", Fcurrent_global_map, Scurrent_global_map, 0, 0, 0,
        doc: "Return the current global keymap.",
        (),
-       {
-  return (*current_global_map.as_mut_ptr ());
+       safe {
+  crate::safe_keymap::current_global_map_subr ()
 });
 
 DEFUN! ("current-minor-mode-maps", Fcurrent_minor_mode_maps, Scurrent_minor_mode_maps, 0, 0, 0,
@@ -2157,104 +2051,8 @@ DEFUN! ("accessible-keymaps", Faccessible_keymaps, Saccessible_keymaps,
 DEFUN! ("key-description", Fkey_description, Skey_description, 1, 2, 0,
        doc: "Return a pretty description of key-sequence KEYS.\nOptional arg PREFIX is the sequence of keys leading up to KEYS.\nFor example, [?\\C-x ?l] is converted into the string \"C-x l\".\n\nFor an approximate inverse of this, see `kbd'.",
        (keys: Lisp_Object, prefix: Lisp_Object),
-       {
-  let mut len: ptrdiff_t = 0;
-  let args: *mut Lisp_Object;
-  let nkeys: EMACS_INT = XFIXNUM (Flength (keys));
-  let nprefix: EMACS_INT = XFIXNUM (Flength (prefix));
-  let sep = build_string (c" ".as_ptr ());
-  let mut add_meta = false;
-  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
-
-  /* This has one extra element at the end that we don't pass to Fconcat.  */
-  let (size4_prod, size4_overflowed) = (nkeys + nprefix).overflowing_mul (4);
-  let size4 = size4_prod;
-  if size4_overflowed
-    { memory_full_up (); }
-  SAFE_ALLOCA_LISP! (sa_avail, args, size4);
-
-  /* In effect, this computes
-     (mapconcat 'single-key-description keys " ")
-     but we shouldn't use mapconcat because it can do GC.  */
-
-  let lists: [Lisp_Object; 2] = [ prefix, keys ];
-  let listlens: [ptrdiff_t; 2] = [ nprefix, nkeys ];
-  let mut li: c_int = 0;
-  while (li as usize) < countof! (lists)
-    {
-      let mut list = lists[li as usize];
-      let listlen = listlens[li as usize];
-      let mut i_byte: ptrdiff_t = 0;
-
-      if ! (NILP (list) || STRINGP (list) || VECTORP (list) || CONSP (list))
-	{ wrong_type_argument (Qarrayp (), list); }
-
-      let mut i: ptrdiff_t = 0;
-      while i < listlen
-	{
-	  let mut key: Lisp_Object;
-	  if STRINGP (list)
-	    {
-	      let mut c = fetch_string_char_advance (list, &mut i, &mut i_byte);
-	      if !STRING_MULTIBYTE (list) && (c & 0o200) != 0
-		{ c ^= 0o200 | meta_modifier; }
-	      key = make_fixnum (c as EMACS_INT);
-	    }
-	  else if VECTORP (list)
-	    {
-	      key = AREF (list, i);
-	      i += 1;
-	    }
-	  else
-	    {
-	      key = XCAR (list);
-	      list = XCDR (list);
-	      i += 1;
-	    }
-
-	  if add_meta
-	    {
-	      if !FIXNUMP (key)
-		  || EQ (key, (*meta_prefix_char.as_mut_ptr ()))
-		  || (XFIXNUM (key) & meta_modifier as EMACS_INT) != 0
-		{
-		  *args.offset (len) = Fsingle_key_description ((*meta_prefix_char.as_mut_ptr ()),
-							 Qnil ());
-		  len += 1;
-		  *args.offset (len) = sep;
-		  len += 1;
-		  if EQ (key, (*meta_prefix_char.as_mut_ptr ()))
-		    { continue; }
-		}
-	      else
-		{ key = make_fixnum (XFIXNUM (key) | meta_modifier as EMACS_INT); }
-	      add_meta = false;
-	    }
-	  else if EQ (key, (*meta_prefix_char.as_mut_ptr ()))
-	    {
-	      add_meta = true;
-	      continue;
-	    }
-	  *args.offset (len) = Fsingle_key_description (key, Qnil ());
-	  len += 1;
-	  *args.offset (len) = sep;
-	  len += 1;
-	}
-      li += 1;
-    }
-
-  let result: Lisp_Object;
-  if add_meta
-    {
-      *args.offset (len) = Fsingle_key_description ((*meta_prefix_char.as_mut_ptr ()), Qnil ());
-      result = Fconcat (len + 1, args);
-    }
-  else if len == 0
-    { result = (*empty_unibyte_string.as_mut_ptr ()); }
-  else
-    { result = Fconcat (len - 1, args); }
-  SAFE_FREE! (sa_count, sa_mark);
-  return result;
+       safe {
+  crate::safe_keymap::key_description (keys, prefix)
 });
 
 #[unsafe(no_mangle)]
@@ -2383,106 +2181,15 @@ DEFUN! ("single-key-description", Fsingle_key_description,
        Ssingle_key_description, 1, 2, 0,
        doc: "Return a pretty description of a character event KEY.\nControl characters turn into C-whatever, etc.\nOptional argument NO-ANGLES non-nil means don't put angle brackets\naround function keys and event symbols.\n\nSee `text-char-description' for describing character codes.",
        (key: Lisp_Object, no_angles: Lisp_Object),
-       {
-  let mut key = key;
-  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
-
-  if CONSP (key) && lucid_event_type_list_p (key)
-    { key = Fevent_convert_list (key); }
-
-  if CONSP (key) && FIXNUMP (XCAR (key)) && FIXNUMP (XCDR (key))
-    /* An interval from a map-char-table.  */
-    {
-      AUTO_STRING! (dot_dot, c"..".as_ptr ());
-      return concat3 (Fsingle_key_description (XCAR (key), no_angles),
-		      dot_dot,
-		      Fsingle_key_description (XCDR (key), no_angles));
-    }
-
-  key = EVENT_HEAD (key);
-
-  if FIXNUMP (key)		/* Normal character.  */
-    {
-      let mut tem: [c_char; KEY_DESCRIPTION_SIZE as usize] = [0; KEY_DESCRIPTION_SIZE as usize];
-      let p = push_key_description (XFIXNUM (key), tem.as_mut_ptr ());
-      *p = 0;
-      return make_specified_string (tem.as_ptr (), -1, p.offset_from (tem.as_ptr ()), true);
-    }
-  else if SYMBOLP (key)	/* Function key or event-symbol.  */
-    {
-      if NILP (no_angles)
-	{
-	  let namestr = SYMBOL_NAME (key);
-	  let sym = SSDATA (namestr);
-	  let len = SBYTES (namestr);
-	  /* Find the extent of the modifier prefix, like "C-M-". */
-	  let mut i: c_int = 0;
-	  while (i as ptrdiff_t) < len - 3 && *sym.offset ((i + 1) as isize) == b'-' as c_char && !strchr (c"CMSsHA".as_ptr (), *sym.offset (i as isize) as c_int).is_null ()
-	    { i += 2; }
-	  /* First I bytes of SYM are modifiers; put <> around the rest. */
-	  let buffer = SAFE_ALLOCA! (sa_avail, (len + 3) as usize) as *mut c_char;
-	  memcpy (buffer as *mut c_void, sym as *const c_void, i as usize);
-	  *buffer.offset (i as isize) = b'<' as c_char;
-	  memcpy (buffer.offset (i as isize + 1) as *mut c_void, sym.offset (i as isize) as *const c_void, (len - i as ptrdiff_t) as usize);
-	  *buffer.offset (len as isize + 1) = b'>' as c_char;
-	  *buffer.offset (len as isize + 2) = b'\0' as c_char;
-	  let result = build_string (buffer);
-	  SAFE_FREE! (sa_count, sa_mark);
-	  return result;
-	}
-      else
-	{ return Fsymbol_name (key); }
-    }
-  else if STRINGP (key)	/* Buffer names in the menubar.  */
-    { return Fcopy_sequence (key); }
-  else
-    { error (c"KEY must be an integer, cons, symbol, or string".as_ptr ()); }
+       safe {
+  crate::safe_keymap::single_key_description (key, no_angles)
 });
-
-unsafe fn push_text_char_description (c: c_uint, p: *mut c_char) -> *mut c_char
-{
-  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
-  unsafe {
-  let mut p = p;
-  if c < 0o40
-    {
-      *p = b'^' as c_char; p = p.add (1);
-      *p = (c + 64) as c_char; p = p.add (1);		/* 'A' - 1 */
-    }
-  else if c == 0o177
-    {
-      *p = b'^' as c_char; p = p.add (1);
-      *p = b'?' as c_char; p = p.add (1);
-    }
-  else
-    { *p = c as c_char; p = p.add (1); }
-  return p;
-
-  }
-}
-
-/* This function cannot GC.  */
 
 DEFUN! ("text-char-description", Ftext_char_description, Stext_char_description, 1, 1, 0,
        doc: "Return the description of CHARACTER in standard Emacs notation.\nCHARACTER must be a valid character code that passes the `characterp' test.\nControl characters turn into \"^char\", and characters with Meta and other\nmodifiers signal an error, as they are not valid character codes.\nThis differs from `single-key-description' which accepts character events,\nand thus doesn't enforce the `characterp' condition, turns control\ncharacters into \"C-char\", and uses the 2**27 bit for Meta.\nSee Info node `(elisp)Describing Characters' for examples.",
        (character: Lisp_Object),
-       {
-  CHECK_CHARACTER (character);
-
-  let c = XFIXNUM (character) as c_int;
-  if !ASCII_CHAR_P (c as isize)
-    {
-      let mut str_: [c_char; MAX_MULTIBYTE_LENGTH as usize] = [0; MAX_MULTIBYTE_LENGTH as usize];
-      let len = CHAR_STRING (c, str_.as_mut_ptr () as *mut u8);
-
-      return make_multibyte_string (str_.as_ptr (), 1, len as ptrdiff_t);
-    }
-  else
-    {
-      let mut desc: [c_char; 4] = [0; 4];
-      let len = push_text_char_description (c as c_uint, desc.as_mut_ptr ()).offset_from (desc.as_ptr ());
-      return make_string (desc.as_ptr (), len);
-    }
+       safe {
+  crate::safe_keymap::text_char_description (character)
 });
 
 static where_is_preferred_modifier: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
@@ -2490,39 +2197,9 @@ static where_is_preferred_modifier: VmGlobal<c_int> = VmGlobal::<c_int>::new (0)
 /* Return 0 if SEQ uses non-preferred modifiers or non-char events.
    Else, return 2 if SEQ uses the where_is_preferred_modifier,
    and 1 otherwise.  */
-unsafe fn preferred_sequence_p (seq: Lisp_Object) -> c_int
+fn preferred_sequence_p (seq: Lisp_Object) -> c_int
 {
-  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
-  unsafe {
-  let mut i: EMACS_INT;
-  let len: EMACS_INT = XFIXNAT (Flength (seq));
-  let mut result: c_int = 1;
-
-  i = 0;
-  while i < len
-    {
-      let mut ii: Lisp_Object;
-      let elt: Lisp_Object;
-
-      XSETFASTINT! (ii, i);
-      elt = Faref (seq, ii);
-
-      if !FIXNUMP (elt)
-	{ return 0; }
-      else
-	{
-	  let modifiers = (XFIXNUM (elt) & ((CHAR_MODIFIER_MASK & !CHAR_META) as EMACS_INT)) as c_int;
-	  if modifiers == (*where_is_preferred_modifier.as_mut_ptr ())
-	    { result = 2; }
-	  else if modifiers != 0
-	    { return 0; }
-	}
-      i += 1;
-    }
-
-  return result;
-
-  }
+  crate::safe_keymap::preferred_sequence_p_impl (seq, where_is_preferred_modifier.get ())
 }
 
 /* where-is - finding a command in a set of keymaps.			*/
@@ -3447,7 +3124,7 @@ pub static Vwhere_is_preferred_modifier: VmGlobal<Lisp_Object> = VmGlobal::<Lisp
 pub static Vdescribe_bindings_check_shadowing_in_ranges: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn syms_of_keymap ()
+pub extern "C-unwind" fn syms_of_keymap ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {

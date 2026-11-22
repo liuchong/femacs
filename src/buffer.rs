@@ -141,7 +141,7 @@ unsafe extern "C" {
 /// xwidget.h has no mirror, so the port keeps C's per-unit `static inline` copy here.
 /// docs/ports/buffer.md reports the gap.
 #[inline(always)]
-unsafe fn kill_buffer_xwidgets (_buf: Lisp_Object) {}
+fn kill_buffer_xwidgets (_buf: Lisp_Object) {}
 
 /* This structure holds the default values of the buffer-local variables
    defined with DEFVAR_PER_BUFFER, that have special slots in each buffer.
@@ -230,7 +230,7 @@ static QSFundamental: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp
 // are dropped for the same reason; the definitions stay at C 4620, 4689, 698, 3689, 1425
 // and 1460.
 
-unsafe fn CHECK_OVERLAY (x: Lisp_Object)
+fn CHECK_OVERLAY (x: Lisp_Object)
 {
   CHECK_TYPE (OVERLAYP (x), Qoverlayp (), x);
 }
@@ -242,7 +242,7 @@ unsafe fn CHECK_OVERLAY (x: Lisp_Object)
    Signal an error if POS is not of the proper form.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn fix_position (pos: Lisp_Object) -> EMACS_INT
+pub extern "C-unwind" fn fix_position (pos: Lisp_Object) -> EMACS_INT
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -664,152 +664,51 @@ pub unsafe extern "C-unwind" fn nsberror (spec: Lisp_Object)
 DEFUN! ("buffer-live-p", Fbuffer_live_p, Sbuffer_live_p, 1, 1, 0,
        doc: "Return t if OBJECT is a buffer which has not been killed.\nValue is nil if OBJECT is not a buffer or if it has been killed.",
        (object: Lisp_Object),
-       {
-  return if BUFFERP (object) && BUFFER_LIVE_P (XBUFFER (object)) { Qt () } else { Qnil () };
+       safe {
+  crate::safe_buffer::buffer_live_p (object)
 });
 
 DEFUN! ("buffer-list", Fbuffer_list, Sbuffer_list, 0, 1, 0,
        doc: "Return a list of all live buffers.\nIf the optional arg FRAME is a frame, return the buffer list in the\nproper order for that frame: the buffers shown in FRAME come first,\nfollowed by the rest of the buffers.",
        (frame: Lisp_Object),
-       {
-  let mut general: Lisp_Object = Qnil ();
-  general = Fmapcar (Qcdr (), (*Vbuffer_alist.as_mut_ptr ()));
-
-  if FRAMEP (frame)
-    {
-      let mut framelist: Lisp_Object = Qnil ();
-      let mut prevlist: Lisp_Object = Qnil ();
-      let mut tail: Lisp_Object = Qnil ();
-
-      framelist = Fcopy_sequence (BVAR! (XFRAME (frame), buffer_list));
-      prevlist = Fnreverse (Fcopy_sequence (BVAR! (XFRAME (frame), buried_buffer_list)));
-
-      /* Remove from GENERAL any buffer that duplicates one in
-         FRAMELIST or PREVLIST.  */
-      tail = framelist;
-      while CONSP (tail)
-	{
-	  general = Fdelq (XCAR (tail), general);
-	  tail = XCDR (tail);
-	}
-      tail = prevlist;
-      while CONSP (tail)
-	{
-	  general = Fdelq (XCAR (tail), general);
-	  tail = XCDR (tail);
-	}
-
-      return CALLN! (Fnconc, framelist, general, prevlist);
-    }
-  else
-    { return general; }
+       safe {
+  crate::safe_buffer::buffer_list (frame)
 });
 
 /* Like Fassoc, but use Fstring_equal to compare
    (which ignores text properties), and don't ever quit.  */
 
-unsafe fn assoc_ignore_text_properties (key: Lisp_Object, list: Lisp_Object) -> Lisp_Object
+fn assoc_ignore_text_properties (key: Lisp_Object, list: Lisp_Object) -> Lisp_Object
 {
-  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
-  unsafe {
-  let mut tail: Lisp_Object = Qnil ();
-  tail = list;
-  while CONSP (tail)
-    {
-      let elt: Lisp_Object = XCAR (tail);
-      if ! NILP (Fstring_equal (Fcar (elt), key))
-	{ return elt; }
-      tail = XCDR (tail);
-    }
-  return Qnil ();
-
-  }
+  crate::safe_buffer::assoc_ignore_text_properties (key, list)
 }
 
 DEFUN! ("get-buffer", Fget_buffer, Sget_buffer, 1, 1, 0,
        doc: "Return the buffer named BUFFER-OR-NAME.\nBUFFER-OR-NAME must be either a string or a buffer.  If BUFFER-OR-NAME\nis a string and there is no buffer with that name, return nil.  If\nBUFFER-OR-NAME is a buffer, return it as given.",
        (buffer_or_name: Lisp_Object),
-       {
-  if BUFFERP (buffer_or_name)
-    { return buffer_or_name; }
-  CHECK_STRING (buffer_or_name);
-
-  return Fcdr (assoc_ignore_text_properties (buffer_or_name, (*Vbuffer_alist.as_mut_ptr ())));
+       safe {
+  crate::safe_buffer::get_buffer (buffer_or_name)
 });
 
 DEFUN! ("get-file-buffer", Fget_file_buffer, Sget_file_buffer, 1, 1, 0,
        doc: "Return the buffer visiting file FILENAME (a string).\nThe buffer's `buffer-file-name' must match exactly the expansion of FILENAME.\nIf there is no such live buffer, return nil.\nSee also `find-buffer-visiting'.",
        (filename: Lisp_Object),
-       {
-  /* C's `filename = Fexpand_file_name (...)` below rebinds the argument.  */
-  let mut filename = filename;
-  let mut tail: Lisp_Object = Qnil ();
-  let mut buf: Lisp_Object = Qnil ();
-  let mut handler: Lisp_Object = Qnil ();
-
-  CHECK_STRING (filename);
-  filename = Fexpand_file_name (filename, Qnil ());
-
-  /* If the file name has special constructs in it,
-     call the corresponding file name handler.  */
-  handler = Ffind_file_name_handler (filename, Qget_file_buffer ());
-  if ! NILP (handler)
-    {
-      let handled_buf: Lisp_Object = calln! (handler, Qget_file_buffer (), filename);
-      return if BUFFERP (handled_buf) { handled_buf } else { Qnil () };
-    }
-
-  /* C: `FOR_EACH_LIVE_BUFFER (tail, buf)`, i.e. `FOR_EACH_ALIST_VALUE (Vbuffer_alist, tail,
-     buf)`; the loop macro has no Rust counterpart (P-22,
-     docs/ports/excluded-macros.txt), so the expansion is written here (the unlock_all_files
-     shape).  C's `continue` becomes the `if`'s condition, since the loop's increment runs
-     after the body on every path.  */
-  tail = (*Vbuffer_alist.as_mut_ptr ());
-  while CONSP (tail) && { buf = XCDR (XCAR (tail)); true }
-    {
-      if STRINGP (BVAR! (XBUFFER (buf), filename_))
-	&& ! NILP (Fstring_equal (BVAR! (XBUFFER (buf), filename_), filename))
-	{ return buf; }
-      tail = XCDR (tail);
-    }
-  return Qnil ();
+       safe {
+  crate::safe_buffer::get_file_buffer (filename)
 });
 
 DEFUN! ("get-truename-buffer", Fget_truename_buffer, Sget_truename_buffer, 1, 1, 0,
        doc: "Return the buffer with `file-truename' equal to FILENAME (a string).\nIf there is no such live buffer, return nil.\nSee also `find-buffer-visiting'.",
        (filename: Lisp_Object),
-       {
-  let mut tail: Lisp_Object = Qnil ();
-  let mut buf: Lisp_Object = Qnil ();
-
-  /* C 521-522.  */
-  tail = (*Vbuffer_alist.as_mut_ptr ());
-  while CONSP (tail) && { buf = XCDR (XCAR (tail)); true }
-    {
-      if STRINGP (BVAR! (XBUFFER (buf), file_truename_))
-	&& ! NILP (Fstring_equal (BVAR! (XBUFFER (buf), file_truename_), filename))
-	{ return buf; }
-      tail = XCDR (tail);
-    }
-  return Qnil ();
+       safe {
+  crate::safe_buffer::get_truename_buffer (filename)
 });
 
 DEFUN! ("find-buffer", Ffind_buffer, Sfind_buffer, 2, 2, 0,
        doc: "Return the buffer with buffer-local VARIABLE `equal' to VALUE.\nIf there is no such live buffer, return nil.\nSee also `find-buffer-visiting'.",
        (variable: Lisp_Object, value: Lisp_Object),
-       {
-  let mut tail: Lisp_Object = Qnil ();
-  let mut buf: Lisp_Object = Qnil ();
-
-  /* C 549-552.  */
-  tail = (*Vbuffer_alist.as_mut_ptr ());
-  while CONSP (tail) && { buf = XCDR (XCAR (tail)); true }
-    {
-      if ! NILP (Fequal (value, Fbuffer_local_value (variable, buf)))
-	{ return buf; }
-      tail = XCDR (tail);
-    }
-  return Qnil ();
+       safe {
+  crate::safe_buffer::find_buffer (variable, value)
 });
 
 /* Run buffer-list-update-hook if Vrun_hooks is non-nil and BUF does
@@ -990,7 +889,7 @@ unsafe fn copy_overlays (from: *mut buffer, to: *mut buffer)
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn valid_per_buffer_idx (idx: c_int) -> bool
+pub extern "C-unwind" fn valid_per_buffer_idx (idx: c_int) -> bool
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -1669,35 +1568,119 @@ DEFUN! ("generate-new-buffer-name", Fgenerate_new_buffer_name,
     }
 });
 
+pub fn buffer_last_name_obj (buffer: Lisp_Object) -> Lisp_Object
+{
+  // SAFETY: `decode_buffer` validates `buffer` (or selects `current_buffer`) and returns a live `struct buffer *`.
+  unsafe { BVAR! (decode_buffer (buffer), last_name_) }
+}
+
+pub fn decode_buffer_base_or_nil (mut buffer: Lisp_Object) -> Lisp_Object
+{
+  // SAFETY: `decode_buffer` returns a valid `struct buffer *`; `base_buffer` is either null or a live `struct buffer *`.
+  unsafe {
+    let base: *mut buffer = (*decode_buffer (buffer)).base_buffer;
+    if !base.is_null () { XSETBUFFER! (buffer, base); buffer } else { Qnil () }
+  }
+}
+
+pub fn buffer_modified_p_decoded (buffer: Lisp_Object) -> Lisp_Object
+{
+  // SAFETY: `decode_buffer` returns a valid `struct buffer *`.
+  unsafe {
+    let buf: *mut buffer = decode_buffer (buffer);
+    if BUF_SAVE_MODIFF! (buf) < BUF_MODIFF! (buf)
+      {
+        if BUF_AUTOSAVE_MODIFF! (buf) == BUF_MODIFF! (buf)
+          { Qautosaved () }
+        else
+          { Qt () }
+      }
+    else
+      { Qnil () }
+  }
+}
+
+pub fn buffer_modified_tick_integer (buffer: Lisp_Object) -> Lisp_Object
+{
+  // SAFETY: `decode_buffer` returns a valid `struct buffer *`.
+  unsafe { modiff_to_integer (BUF_MODIFF! (decode_buffer (buffer))) }
+}
+
+pub fn set_buffer_modified_tick_safe (buffer: Lisp_Object, tick: EMACS_INT)
+{
+  // SAFETY: `decode_buffer` returns a valid `struct buffer *`.
+  unsafe { BUF_MODIFF! (decode_buffer (buffer)) = tick as modiff_count; }
+}
+
+pub fn buffer_chars_modified_tick_integer (buffer: Lisp_Object) -> Lisp_Object
+{
+  // SAFETY: `decode_buffer` returns a valid `struct buffer *`.
+  unsafe { modiff_to_integer (BUF_CHARS_MODIFF! (decode_buffer (buffer))) }
+}
+
+pub fn frame_buffer_list_and_pred_safe (frame: Lisp_Object) -> (Lisp_Object, Lisp_Object)
+{
+  // SAFETY: `decode_live_frame` validates `frame` (or selects `selected_frame`) and returns a live `struct frame *`.
+  unsafe {
+    let f: *mut frame = decode_live_frame (frame) as *mut frame;
+    ((*f).buffer_list, (*f).buffer_predicate)
+  }
+}
+
+#[inline(always)]
+pub fn candidate_buffer_safe (b: Lisp_Object, buffer: Lisp_Object) -> bool
+{
+  BUFFERP (b) && ! BASE_EQ (b, buffer)
+    && BUFFER_LIVE_P (XBUFFER (b))
+    && ! BUFFER_HIDDEN_P (XBUFFER (b))
+}
+
+pub fn enable_buffer_undo_obj (real_buffer: Lisp_Object)
+{
+  CHECK_BUFFER (real_buffer);
+  // SAFETY: `real_buffer` is verified `BUFFERP`.
+  unsafe {
+    if EQ (BVAR! (XBUFFER (real_buffer), undo_list_), Qt ())
+      { bset_undo_list (XBUFFER (real_buffer), Qnil ()); }
+  }
+}
+
+#[inline(always)]
+pub fn current_buffer_object_safe () -> Lisp_Object
+{
+  let mut buf: Lisp_Object = Qnil ();
+  // SAFETY: `current_buffer` is valid on the active Lisp thread.
+  unsafe { XSETBUFFER! (buf, (current_buffer! ())); }
+  buf
+}
+
 DEFUN! ("buffer-name", Fbuffer_name, Sbuffer_name, 0, 1, 0,
        doc: "Return the name of BUFFER, as a string.\nBUFFER defaults to the current buffer.\nReturn nil if BUFFER has been killed.",
        (buffer: Lisp_Object),
-       {
-  return BVAR! (decode_buffer (buffer), name_);
+       safe {
+  crate::safe_buffer::buffer_name (buffer)
 });
 
 DEFUN! ("buffer-last-name", Fbuffer_last_name, Sbuffer_last_name, 0, 1, 0,
        doc: "Return last name of BUFFER, as a string.\nBUFFER defaults to the current buffer.\n\nThis is the name BUFFER had before the last time it was renamed or\nimmediately before it was killed.",
        (buffer: Lisp_Object),
-       {
-  return BVAR! (decode_buffer (buffer), last_name_);
+       safe {
+  crate::safe_buffer::buffer_last_name (buffer)
 });
 
 DEFUN! ("buffer-file-name", Fbuffer_file_name, Sbuffer_file_name, 0, 1, 0,
        doc: "Return absolute name of file BUFFER is visiting, or nil if none.\nNo argument or nil as argument means use the current buffer.",
        (buffer: Lisp_Object),
-       {
-  return BVAR! (decode_buffer (buffer), filename_);
+       safe {
+  crate::safe_buffer::buffer_file_name (buffer)
 });
 
 DEFUN! ("buffer-base-buffer", Fbuffer_base_buffer, Sbuffer_base_buffer,
        0, 1, 0,
        doc: "Return the base buffer of indirect buffer BUFFER.\nIf BUFFER is not indirect, return nil.\nBUFFER defaults to the current buffer.",
        (buffer: Lisp_Object),
-       {
-  let base: *mut buffer = (*decode_buffer (buffer)).base_buffer;
-  let mut buffer = buffer;   /* C's `XSETBUFFER (buffer, base)` rebinds the argument.  */
-  return if ! base.is_null () { XSETBUFFER! (buffer, base); buffer } else { Qnil () };
+       safe {
+  crate::safe_buffer::buffer_base_buffer (buffer)
 });
 
 DEFUN! ("buffer-local-value", Fbuffer_local_value,
@@ -1717,7 +1700,7 @@ DEFUN! ("buffer-local-value", Fbuffer_local_value,
    locally unbound.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn buffer_local_value (variable: Lisp_Object, buffer: Lisp_Object)
+pub extern "C-unwind" fn buffer_local_value (variable: Lisp_Object, buffer: Lisp_Object)
   -> Lisp_Object
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
@@ -1880,17 +1863,8 @@ DEFUN! ("buffer-modified-p", Fbuffer_modified_p, Sbuffer_modified_p,
        0, 1, 0,
        doc: "Return non-nil if BUFFER was modified since its file was last read or saved.\nNo argument or nil as argument means use current buffer as BUFFER.\n\nIf BUFFER was autosaved since it was last modified, this function\nreturns the symbol `autosaved'.",
        (buffer: Lisp_Object),
-       {
-  let buf: *mut buffer = decode_buffer (buffer);
-  if BUF_SAVE_MODIFF! (buf) < BUF_MODIFF! (buf)
-    {
-      if BUF_AUTOSAVE_MODIFF! (buf) == BUF_MODIFF! (buf)
-	{ return Qautosaved (); }
-      else
-	{ return Qt (); }
-    }
-  else
-    { return Qnil (); }
+       safe {
+  crate::safe_buffer::buffer_modified_p (buffer)
 });
 
 DEFUN! ("force-mode-line-update", Fforce_mode_line_update,
@@ -1917,21 +1891,8 @@ DEFUN! ("set-buffer-modified-p", Fset_buffer_modified_p, Sset_buffer_modified_p,
        1, 1, 0,
        doc: "Mark current buffer as modified or unmodified according to FLAG.\nA non-nil FLAG means mark the buffer modified.\nIn addition, this function unconditionally forces redisplay of the\nmode lines of the windows that display the current buffer, and also\nlocks or unlocks the file visited by the buffer, depending on whether\nthe function's argument is non-nil, but only if both `buffer-file-name'\nand `buffer-file-truename' are non-nil.",
        (flag: Lisp_Object),
-       {
-  Frestore_buffer_modified_p (flag);
-
-  /* Set update_mode_lines only if buffer is displayed in some window.
-     Packages like jit-lock or lazy-lock preserve a buffer's modified
-     state by recording/restoring the state around blocks of code.
-     Setting update_mode_lines makes redisplay consider all windows
-     (on all frames).  Stealth fontification of buffers not displayed
-     would incur additional redisplay costs if we'd set
-     update_modes_lines unconditionally.
-
-     Ideally, I think there should be another mechanism for fontifying
-     buffers without "modifying" buffers, or redisplay should be
-     smarter about updating the `*' in mode lines.  --gerd  */
-  return Fforce_mode_line_update (Qnil ());
+       safe {
+  crate::safe_buffer::set_buffer_modified_p (flag)
 });
 
 DEFUN! ("restore-buffer-modified-p", Frestore_buffer_modified_p,
@@ -2000,8 +1961,8 @@ DEFUN! ("buffer-modified-tick", Fbuffer_modified_tick, Sbuffer_modified_tick,
        0, 1, 0,
        doc: "Return BUFFER's tick counter, incremented for each change in text.\nEach buffer has a tick counter which is incremented each time the\ntext in that buffer is changed.  No argument or nil as argument means\nuse current buffer as BUFFER.",
        (buffer: Lisp_Object),
-       {
-  return modiff_to_integer (BUF_MODIFF! (decode_buffer (buffer)));
+       safe {
+  crate::safe_buffer::buffer_modified_tick (buffer)
 });
 
 DEFUN! ("internal--set-buffer-modified-tick",
@@ -2009,18 +1970,16 @@ DEFUN! ("internal--set-buffer-modified-tick",
        1, 2, 0,
        doc: "Set BUFFER's tick counter to TICK.\nNo argument or nil as argument means use current buffer as BUFFER.",
        (tick: Lisp_Object, buffer: Lisp_Object),
-       {
-  CHECK_FIXNUM (tick);
-  BUF_MODIFF! (decode_buffer (buffer)) = XFIXNUM (tick) as modiff_count;
-  return Qnil ();
+       safe {
+  crate::safe_buffer::internal_set_buffer_modified_tick (tick, buffer)
 });
 
 DEFUN! ("buffer-chars-modified-tick", Fbuffer_chars_modified_tick,
        Sbuffer_chars_modified_tick, 0, 1, 0,
        doc: "Return BUFFER's character-change tick counter.\nEach buffer has a character-change tick counter, which is set to the\nvalue of the buffer's tick counter (see `buffer-modified-tick'), each\ntime text in that buffer is inserted or deleted.  By comparing the\nvalues returned by two individual calls of `buffer-chars-modified-tick',\nyou can tell whether a character change occurred in that buffer in\nbetween these calls.  No argument or nil as argument means use current\nbuffer as BUFFER.",
        (buffer: Lisp_Object),
-       {
-  return modiff_to_integer (BUF_CHARS_MODIFF! (decode_buffer (buffer)));
+       safe {
+  crate::safe_buffer::buffer_chars_modified_tick (buffer)
 });
 
 DEFUN! ("rename-buffer", Frename_buffer, Srename_buffer, 1, 2,
@@ -2079,64 +2038,16 @@ DEFUN! ("rename-buffer", Frename_buffer, Srename_buffer, 1, 2,
 
 /* True if B can be used as 'other-than-BUFFER' buffer.  */
 
-unsafe fn candidate_buffer (b: Lisp_Object, buffer: Lisp_Object) -> bool
+fn candidate_buffer (b: Lisp_Object, buffer: Lisp_Object) -> bool
 {
-  return BUFFERP (b) && ! BASE_EQ (b, buffer)
-    && BUFFER_LIVE_P (XBUFFER (b))
-    && ! BUFFER_HIDDEN_P (XBUFFER (b));
+  candidate_buffer_safe (b, buffer)
 }
 
 DEFUN! ("other-buffer", Fother_buffer, Sother_buffer, 0, 3, 0,
        doc: "Return most recently selected buffer other than BUFFER.\nBuffers not visible in windows are preferred to visible buffers, unless\noptional second argument VISIBLE-OK is non-nil.  Ignore the argument\nBUFFER unless it denotes a live buffer.  If the optional third argument\nFRAME specifies a live frame, then use that frame's buffer list instead\nof the selected frame's buffer list.  Do not return a hidden buffer --\na buffer whose name starts with a space.\n\nThe buffer is found by scanning the selected or specified frame's buffer\nlist first, followed by the list of all buffers.  If no other buffer\nexists, return the buffer `*scratch*' (creating it if necessary).",
        (buffer: Lisp_Object, visible_ok: Lisp_Object, frame: Lisp_Object),
-       {
-  let f: *mut frame = decode_live_frame (frame) as *mut frame;
-  let mut tail: Lisp_Object = (*f).buffer_list;
-  let pred: Lisp_Object = (*f).buffer_predicate;
-  let mut buf: Lisp_Object = Qnil ();
-  let mut notsogood: Lisp_Object = Qnil ();
-
-  /* Consider buffers that have been seen in the frame first.  */
-  while CONSP (tail)
-    {
-      buf = XCAR (tail);
-      if candidate_buffer (buf, buffer)
-	  /* If the frame has a buffer_predicate, disregard buffers that
-	     don't fit the predicate.  */
-	  && (NILP (pred) || ! NILP (calln! (pred, buf)))
-	{
-	  if ! NILP (visible_ok)
-	      || NILP (Fget_buffer_window (buf, Qvisible ()))
-	    { return buf; }
-	  else if NILP (notsogood)
-	    { notsogood = buf; }
-	}
-      tail = XCDR (tail);
-    }
-
-  /* Consider alist of all buffers next.  */
-  /* C: `FOR_EACH_LIVE_BUFFER (tail, buf)` (P-22: the expansion, as above).  */
-  tail = (*Vbuffer_alist.as_mut_ptr ());
-  while CONSP (tail) && { buf = XCDR (XCAR (tail)); true }
-    {
-      if candidate_buffer (buf, buffer)
-	  /* If the frame has a buffer_predicate, disregard buffers that
-	     don't fit the predicate.  */
-	  && (NILP (pred) || ! NILP (calln! (pred, buf)))
-	{
-	  if ! NILP (visible_ok)
-	      || NILP (Fget_buffer_window (buf, Qvisible ()))
-	    { return buf; }
-	  else if NILP (notsogood)
-	    { notsogood = buf; }
-	}
-      tail = XCDR (tail);
-    }
-
-  if ! NILP (notsogood)
-    { return notsogood; }
-  else
-    { return safe_calln! (Qget_scratch_buffer_create ()); }
+       safe {
+  crate::safe_buffer::other_buffer (buffer, visible_ok, frame)
 });
 
 /* The following function is a safe variant of Fother_buffer: It doesn't
@@ -2144,60 +2055,17 @@ DEFUN! ("other-buffer", Fother_buffer, Sother_buffer, 0, 3, 0,
    visibility of buffers, and doesn't evaluate any frame predicates.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn other_buffer_safely (buffer: Lisp_Object) -> Lisp_Object
+pub extern "C-unwind" fn other_buffer_safely (buffer: Lisp_Object) -> Lisp_Object
 {
-  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
-  unsafe {
-  let mut tail: Lisp_Object = Qnil ();
-  let mut buf: Lisp_Object = Qnil ();
-
-  /* C: `FOR_EACH_LIVE_BUFFER (tail, buf)` followed by a body without braces; the port
-     writes the macro's expansion (P-22, docs/ports/excluded-macros.txt).  */
-  tail = (*Vbuffer_alist.as_mut_ptr ());
-  while CONSP (tail) && { buf = XCDR (XCAR (tail)); true }
-    {
-      if candidate_buffer (buf, buffer)
-	{ return buf; }
-      tail = XCDR (tail);
-    }
-
-  /* This function must return a valid buffer, since it is frequently
-     our last line of defense in the face of the expected buffers
-     becoming dead under our feet.  safe_call below could return nil
-     if recreating *scratch* in Lisp, which does some fancy stuff,
-     signals an error in some weird use case.  */
-  buf = safe_calln! (Qget_scratch_buffer_create ());
-  if NILP (buf)
-    {
-      AUTO_STRING! (scratch, c"*scratch*".as_ptr ());
-      buf = Fget_buffer_create (scratch, Qnil ());
-      Fset_buffer_major_mode (buf);
-    }
-  return buf;
-
-  }
+  crate::safe_buffer::other_buffer_safely_impl (buffer)
 }
 
 DEFUN! ("buffer-enable-undo", Fbuffer_enable_undo, Sbuffer_enable_undo,
        0, 1, "",
        doc: "Start keeping undo information for buffer BUFFER.\nNo argument or nil as argument means do this for the current buffer.",
        (buffer: Lisp_Object),
-       {
-  let mut real_buffer: Lisp_Object = Qnil ();
-
-  if NILP (buffer)
-    { XSETBUFFER! (real_buffer, (current_buffer! ())); }
-  else
-    {
-      real_buffer = Fget_buffer (buffer);
-      if NILP (real_buffer)
-	{ nsberror (buffer); }
-    }
-
-  if EQ (BVAR! (XBUFFER (real_buffer), undo_list_), Qt ())
-    { bset_undo_list (XBUFFER (real_buffer), Qnil ()); }
-
-  return Qnil ();
+       safe {
+  crate::safe_buffer::buffer_enable_undo (buffer)
 });
 
 /* Truncate undo list and shrink the gap of BUFFER.  */
@@ -2547,7 +2415,7 @@ DEFUN! ("kill-buffer", Fkill_buffer, Skill_buffer, 0, 1, "bKill buffer: ",
    window when calling us.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn record_buffer (buffer: Lisp_Object)
+pub extern "C-unwind" fn record_buffer (buffer: Lisp_Object)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -2662,10 +2530,8 @@ DEFUN! ("set-buffer-major-mode", Fset_buffer_major_mode, Sset_buffer_major_mode,
 DEFUN! ("current-buffer", Fcurrent_buffer, Scurrent_buffer, 0, 0, 0,
        doc: "Return the current buffer as a Lisp object.",
        (),
-       {
-  let mut buf: Lisp_Object = Qnil ();
-  XSETBUFFER! (buf, (current_buffer! ()));
-  return buf;
+       safe {
+  crate::safe_buffer::current_buffer_subr ()
 });
 
 /* Set the current buffer to B, and do not set windows_or_buffers_changed.
@@ -2787,52 +2653,33 @@ pub unsafe extern "C-unwind" fn set_buffer_temp (b: *mut buffer)
 DEFUN! ("set-buffer", Fset_buffer, Sset_buffer, 1, 1, 0,
        doc: "Make buffer BUFFER-OR-NAME current for editing operations.\nBUFFER-OR-NAME may be a buffer or the name of an existing buffer.\nSee also `with-current-buffer' when you want to make a buffer current\ntemporarily.  This function does not display the buffer, so its effect\nends when the current command terminates.  Use `switch-to-buffer' or\n`pop-to-buffer' to switch buffers permanently.\nThe return value is the buffer made current.",
        (buffer_or_name: Lisp_Object),
-       {
-  let mut buffer: Lisp_Object = Qnil ();
-  buffer = Fget_buffer (buffer_or_name);
-  if NILP (buffer)
-    { nsberror (buffer_or_name); }
-  if ! BUFFER_LIVE_P (XBUFFER (buffer))
-    { error (c"Selecting deleted buffer".as_ptr ()); }
-  set_buffer_internal (XBUFFER (buffer));
-  return buffer;
+       safe {
+  crate::safe_buffer::set_buffer_subr (buffer_or_name)
 });
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn restore_buffer (buffer_or_name: Lisp_Object)
+pub extern "C-unwind" fn restore_buffer (buffer_or_name: Lisp_Object)
 {
-  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
-  unsafe {
   Fset_buffer (buffer_or_name);
-
-  }
 }
 
 /* Set the current buffer to BUFFER provided if it is alive.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn set_buffer_if_live (buffer: Lisp_Object)
+pub extern "C-unwind" fn set_buffer_if_live (buffer: Lisp_Object)
 {
   if BUFFER_LIVE_P (XBUFFER (buffer))
-    { set_buffer_internal (XBUFFER (buffer)); }
+    {
+      { set_buffer_internal (XBUFFER (buffer)); }
+    }
 }
 
 DEFUN! ("barf-if-buffer-read-only", Fbarf_if_buffer_read_only,
 				   Sbarf_if_buffer_read_only, 0, 1, 0,
        doc: "Signal a `buffer-read-only' error if the current buffer is read-only.\nIf the text under POSITION (which defaults to point) has the\n`inhibit-read-only' text property set, the error will not be raised.",
        (position: Lisp_Object),
-       {
-  let mut position = position;   /* C's `XSETFASTINT (position, PT)` rebinds it.  */
-  if NILP (position)
-    { XSETFASTINT! (position, PT! ()); }
-  else
-    { CHECK_FIXNUM (position); }
-
-  if ! NILP (BVAR! ((current_buffer! ()), read_only_))
-      && NILP ((*Vinhibit_read_only.as_mut_ptr ()))
-      && NILP (Fget_text_property (position, Qinhibit_read_only (), Qnil ()))
-    { xsignal1 (Qbuffer_read_only (), Fcurrent_buffer ()); }
-  return Qnil ();
+       safe {
+  crate::safe_buffer::barf_if_buffer_read_only (position)
 });
 
 DEFUN! ("erase-buffer", Ferase_buffer, Serase_buffer, 0, 0, "*",
@@ -2880,7 +2727,7 @@ pub unsafe extern "C-unwind" fn validate_region (b: *mut Lisp_Object, e: *mut Li
    and return the adjusted position.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn advance_to_char_boundary (byte_pos: ptrdiff_t) -> ptrdiff_t
+pub extern "C-unwind" fn advance_to_char_boundary (byte_pos: ptrdiff_t) -> ptrdiff_t
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -3603,7 +3450,7 @@ pub unsafe extern "C-unwind" fn overlays_at (pos: ptrdiff_t, extend: bool,
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn next_overlay_change (pos: ptrdiff_t) -> ptrdiff_t
+pub extern "C-unwind" fn next_overlay_change (pos: ptrdiff_t) -> ptrdiff_t
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -3677,7 +3524,7 @@ unsafe fn previous_overlay_change (pos: ptrdiff_t) -> ptrdiff_t
    `mouse-face' property overlapping OVERLAY.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn mouse_face_overlay_overlaps (overlay: Lisp_Object) -> bool
+pub extern "C-unwind" fn mouse_face_overlay_overlaps (overlay: Lisp_Object) -> bool
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -3713,7 +3560,7 @@ pub unsafe extern "C-unwind" fn mouse_face_overlay_overlaps (overlay: Lisp_Objec
 /* Return the value of the 'display-line-numbers-disable' property at
    EOB, if there's an overlay at ZV with a non-nil value of that property.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn disable_line_numbers_overlay_at_eob () -> bool
+pub extern "C-unwind" fn disable_line_numbers_overlay_at_eob () -> bool
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -3746,7 +3593,7 @@ pub unsafe extern "C-unwind" fn disable_line_numbers_overlay_at_eob () -> bool
    Returns true if some overlay starts or ends (or both) at POS,
 */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn overlay_touches_p (pos: ptrdiff_t) -> bool
+pub extern "C-unwind" fn overlay_touches_p (pos: ptrdiff_t) -> bool
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -4131,7 +3978,7 @@ pub unsafe extern "C-unwind" fn overlay_strings (pos: ptrdiff_t, w: *mut c_void,
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn adjust_overlays_for_insert (pos: ptrdiff_t, length: ptrdiff_t,
+pub extern "C-unwind" fn adjust_overlays_for_insert (pos: ptrdiff_t, length: ptrdiff_t,
 						    before_markers: bool)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
@@ -4203,7 +4050,7 @@ unsafe fn adjust_overlays_for_delete_in_buffer (buf: *mut buffer,
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn adjust_overlays_for_delete (pos: ptrdiff_t, length: ptrdiff_t)
+pub extern "C-unwind" fn adjust_overlays_for_delete (pos: ptrdiff_t, length: ptrdiff_t)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -4740,7 +4587,7 @@ unsafe fn add_overlay_mod_hooklist (functionlist: Lisp_Object, overlay: Lisp_Obj
    and the length of deleted or replaced old text.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn report_overlay_modification (start: Lisp_Object, end: Lisp_Object,
+pub extern "C-unwind" fn report_overlay_modification (start: Lisp_Object, end: Lisp_Object,
 						     after: bool, arg1: Lisp_Object,
 						     arg2: Lisp_Object, arg3: Lisp_Object)
 {

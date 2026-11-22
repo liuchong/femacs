@@ -730,7 +730,7 @@ R_DEFUN_DEF = re.compile(
     r"\s*(?P<min>[^,]+?)\s*,\s*(?P<max>[^,]+?)\s*,\s*(?P<n>[^,]+?)\s*,"
     r"\s*doc\s*:\s*\"(?:[^\"\\]|\\.)*\"\s*,"
     r"(?P<attrs>\s*attributes\s*:\s*noreturn\s*,)?"
-    r"\s*\((?P<params>[^)]*)\)\s*,\s*\{", re.S)
+    r"\s*\((?P<params>[^)]*)\)\s*,\s*(?:safe\s*)?\{", re.S)
 R_DOC_COMMENT = re.compile(r"doc\s*:\s*/\*(?P<doc>.*?)\*/", re.S)
 STUB_RE = re.compile(r"(unimplemented!|todo!|unreachable!\(\s*\)\s*$)")
 

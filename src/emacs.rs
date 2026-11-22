@@ -2487,12 +2487,27 @@ unsafe fn emacs_init_body (mut argc: c_int, argv: *mut *mut c_char,
   /* Allow code to be run (mostly useful after redumping). */
   safe_run_hooks (Qafter_pdump_load_hook ());
 
-  /* Enter editor command loop.  This never returns.  */
+  /* Enter editor command loop with narrowed `m_stack_bottom` excluding startup frames (`U7`).
+     This never returns.  */
   set_initial_minibuffer_mode ();
-  Frecursive_edit ();
-  eassume! (false);
-  std::hint::unreachable_unchecked ()
+  enter_top_level_recursive_edit ();
 
+  }
+}
+
+#[inline(never)]
+fn enter_top_level_recursive_edit () -> !
+{
+  let mut top_level_stack_anchor: *mut c_void = std::ptr::null_mut ();
+  // SAFETY: `emacs_init_body` holds zero live unrooted `Lisp_Object` stack locals at handoff to
+  // `Frecursive_edit` (which never returns), so re-anchoring `m_stack_bottom` here excludes the
+  // entire `main` + `emacs_init_body` startup frame from `mark_c_stack` (`U7` / `P-486`).
+  unsafe {
+    stack_bottom! () = (&raw mut top_level_stack_anchor) as *const c_char;
+    Frecursive_edit ();
+    core::hint::black_box (top_level_stack_anchor);
+    eassume! (false);
+    std::hint::unreachable_unchecked ()
   }
 }
 

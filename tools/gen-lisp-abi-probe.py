@@ -238,7 +238,7 @@ def split_top_level(args: str) -> list:
     return out
 
 
-OBJECT_RE = re.compile(r"pub static (?:mut )?(\w+)\s*:\s*([^;]+);")
+OBJECT_RE = re.compile(r"pub (?:safe )?static (?:mut )?(\w+)\s*:\s*([^;]+);")
 
 
 def frozen_macros(path: str) -> dict:
@@ -304,7 +304,7 @@ def extern_blocks(text: str) -> list:
     Returns `(gates, body)` pairs, GATES being the attribute lines written above the block.
     """
     out = []
-    for m in re.finditer(r"unsafe extern \"C\"\s*\{", text):
+    for m in re.finditer(r"unsafe extern \"C(?:-unwind)?\"\s*\{", text):
         depth, i = 0, m.end() - 1
         while i < len(text):
             if text[i] == "{":
@@ -394,7 +394,7 @@ def main() -> int:
     for gates, block in extern_blocks(text):
         reason = block_gate_reason(gates, macros)
         for annotation, decl in logical_lines(block):
-            name_m = re.match(r"(?:#\[[^\]]*\]\s*)*pub fn (\w+)", decl)
+            name_m = re.match(r"(?:#\[[^\]]*\]\s*)*pub (?:safe |unsafe )?fn (\w+)", decl)
             if reason and name_m:
                 # Dead text in this configuration: skip it *by name*, so an addition to the
                 # gated list is visible in the probe's own output (status 4.682).
@@ -410,11 +410,11 @@ def main() -> int:
                                      + ("false" if v is False else "undecided") + " here")
                 decl = attrs.group(2)
                 if inner:
-                    name_m = re.match(r"pub fn (\w+)", decl)
+                    name_m = re.match(r"pub (?:safe |unsafe )?fn (\w+)", decl)
                     if name_m:
                         gated[name_m.group(1)] = "; ".join(inner)
                         continue
-            m = re.match(r"pub fn (\w+)\s*\((.*)\)\s*(?:->\s*([^;]+?))?;\s*$", decl)
+            m = re.match(r"pub (?:safe |unsafe )?fn (\w+)\s*\((.*)\)\s*(?:->\s*([^;]+?))?;\s*$", decl)
             if not m:
                 continue
             name, args, ret = m.group(1), m.group(2).strip(), (m.group(3) or "()").strip()

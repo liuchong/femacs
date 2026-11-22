@@ -233,11 +233,11 @@ pub fn EVENT_END (event: Lisp_Object) -> Lisp_Object
 
 #[inline(always)]
 pub fn EVENT_CLICK_COUNT (event: Lisp_Object) -> Lisp_Object
-{ /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { Fnth (make_fixnum (2), event) } }
+{ { Fnth (make_fixnum (2), event) } }
 
 #[inline(always)]
 pub fn EVENT_HEAD_KIND (event_head: Lisp_Object) -> Lisp_Object
-{ unsafe { Fget (event_head, Qevent_kind ()) } }
+{ { Fget (event_head, Qevent_kind ()) } }
 
 #[inline(always)]
 pub fn POSN_WINDOW (posn: Lisp_Object) -> Lisp_Object { CAR_SAFE (posn) }
@@ -253,15 +253,15 @@ pub fn POSN_TIMESTAMP (posn: Lisp_Object) -> Lisp_Object
 { CAR_SAFE (CDR_SAFE (CDR_SAFE (CDR_SAFE (posn)))) }
 #[inline(always)]
 pub fn POSN_SCROLLBAR_PART (posn: Lisp_Object) -> Lisp_Object
-{ /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { Fnth (make_fixnum (4), posn) } }
+{ Fnth (make_fixnum (4), posn) }
 #[inline(always)]
 pub fn POSN_STRING (posn: Lisp_Object) -> Lisp_Object
-{ unsafe { Fnth (make_fixnum (4), posn) } }
+{ Fnth (make_fixnum (4), posn) }
 #[inline(always)]
 pub fn POSN_INBUFFER_P (posn: Lisp_Object) -> bool { NILP (POSN_STRING (posn)) }
 #[inline(always)]
 pub fn POSN_BUFFER_POSN (posn: Lisp_Object) -> Lisp_Object
-{ /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { Fnth (make_fixnum (5), posn) } }
+{ Fnth (make_fixnum (5), posn) }
 
 // keyboard.h 238-470: the file-scope objects (the C files define them).
 unsafe extern "C-unwind" { pub static initial_kboard: VmGlobal<*mut KBOARD>; }                        // 238
@@ -269,15 +269,15 @@ unsafe extern "C-unwind" { pub static initial_kboard: VmGlobal<*mut KBOARD>; }  
 // (the tag is incomplete in a unit that includes only lisp.h — PORTING.md P-72); this comment
 // records where the definition it points at lives.
 unsafe extern "C-unwind" { pub static current_kboard: VmGlobal<*mut KBOARD>; }                        // 246
-unsafe extern "C-unwind" { pub static num_input_events: VmGlobal<uintmax_t>; }                        // 257
-unsafe extern "C-unwind" { pub static point_before_last_command_or_undo: VmGlobal<ptrdiff_t>; }       // 262
+unsafe extern "C-unwind" { pub safe static num_input_events: VmGlobal<uintmax_t>; }                   // 257
+unsafe extern "C-unwind" { pub safe static point_before_last_command_or_undo: VmGlobal<ptrdiff_t>; }  // 262
 unsafe extern "C-unwind" { pub static buffer_before_last_command_or_undo: VmGlobal<*mut buffer>; }    // 267
 unsafe extern "C-unwind" { pub static prev_buffer: VmGlobal<*mut buffer>; }                           // 269
-unsafe extern "C-unwind" { pub static poll_suppress_count: VmGlobal<c_int>; }                         // 272
-unsafe extern "C-unwind" { pub static this_command_keys: VmGlobal<Lisp_Object>; }                     // 278
-unsafe extern "C-unwind" { pub static this_command_key_count: VmGlobal<ptrdiff_t>; }                  // 279
-unsafe extern "C-unwind" { pub static internal_last_event_frame: VmGlobal<Lisp_Object>; }             // 286
-unsafe extern "C-unwind" { pub static item_properties: VmGlobal<Lisp_Object>; }                       // 292
+unsafe extern "C-unwind" { pub safe static poll_suppress_count: VmGlobal<c_int>; }                    // 272
+unsafe extern "C-unwind" { pub safe static this_command_keys: VmGlobal<Lisp_Object>; }                // 278
+unsafe extern "C-unwind" { pub safe static this_command_key_count: VmGlobal<ptrdiff_t>; }             // 279
+unsafe extern "C-unwind" { pub safe static internal_last_event_frame: VmGlobal<Lisp_Object>; }        // 286
+unsafe extern "C-unwind" { pub safe static item_properties: VmGlobal<Lisp_Object>; }                  // 292
 // keyboard.h 344-358's five menu objects are `src/menu.c`'s own definitions (its ledger's
 // file-scope objects), so they sit in `pub mod keyboard_objs` + glob import: the owning
 // unit's `#[unsafe(no_mangle)] pub static mut` shadows the glob (PORTING.md 0.1-10/P-21,
@@ -285,14 +285,14 @@ unsafe extern "C-unwind" { pub static item_properties: VmGlobal<Lisp_Object>; } 
 pub mod keyboard_objs {
   use super::*;
   unsafe extern "C-unwind" {
-    pub static menu_items: VmGlobal<Lisp_Object>;                            // 344
-    pub static menu_items_inuse: VmGlobal<bool>;                             // 348
-    pub static menu_items_allocated: VmGlobal<c_int>;                        // 351
-    pub static menu_items_used: VmGlobal<c_int>;                             // 354
-    pub static menu_items_n_panes: VmGlobal<c_int>;                          // 358
+    pub safe static menu_items: VmGlobal<Lisp_Object>;                       // 344
+    pub safe static menu_items_inuse: VmGlobal<bool>;                        // 348
+    pub safe static menu_items_allocated: VmGlobal<c_int>;                   // 351
+    pub safe static menu_items_used: VmGlobal<c_int>;                        // 354
+    pub safe static menu_items_n_panes: VmGlobal<c_int>;                     // 358
     /* C 471 and C 531, keyboard.c's own definitions (`keyboard.rs`'s crate root, status 3.155).  */
-    pub static timers_run: VmGlobal<c_uint>;                                 // 471
-    pub static DEV_TTY: [c_char; 9];                                   // 531
+    pub safe static timers_run: VmGlobal<c_uint>;                            // 471
+    pub safe static DEV_TTY: [c_char; 9];                                    // 531
   }
 }
 pub use self::keyboard_objs::*;
@@ -300,10 +300,10 @@ unsafe extern "C-unwind" { pub static input_available_clear_time: VmGlobal<*mut 
 unsafe extern "C-unwind" { pub static kbd_buffer: VmGlobal<[buffered_input_event; KBD_BUFFER_SIZE as usize]>; }  // 455
 unsafe extern "C-unwind" { pub static kbd_fetch_ptr: VmGlobal<*mut buffered_input_event>; }            // 456
 unsafe extern "C-unwind" { pub static kbd_store_ptr: VmGlobal<*mut buffered_input_event>; }            // 457
-unsafe extern "C-unwind" { pub static ignore_mouse_drag_p: VmGlobal<bool>; }                           // 459
-unsafe extern "C-unwind" { pub static real_this_command: VmGlobal<Lisp_Object>; }                      // 467
-unsafe extern "C-unwind" { pub static quit_char: VmGlobal<c_int>; }                                    // 469
-unsafe extern "C-unwind" { pub static input_was_pending: VmGlobal<bool>; }                             // 470
+unsafe extern "C-unwind" { pub safe static ignore_mouse_drag_p: VmGlobal<bool>; }                      // 459
+unsafe extern "C-unwind" { pub safe static real_this_command: VmGlobal<Lisp_Object>; }                 // 467
+unsafe extern "C-unwind" { pub safe static quit_char: VmGlobal<c_int>; }                               // 469
+unsafe extern "C-unwind" { pub safe static input_was_pending: VmGlobal<bool>; }                        // 470
 unsafe extern "C-unwind" { pub static dev_tty: VmGlobal<*mut c_char>; }                                // 529
 
 // C: keyboard.h 511-529's prototypes — (not mirrored yet; they land with keyboard.c, batch E).
@@ -348,15 +348,15 @@ pub mod keyboard_fn_decls {
     /// C: keyboard.h 387: `extern void unuse_menu_items (void);`
     pub fn unuse_menu_items ();
     /// C: keyboard.h 463: `extern Lisp_Object parse_modifiers (Lisp_Object);`
-    pub fn parse_modifiers (item: Lisp_Object) -> Lisp_Object;
+    pub safe fn parse_modifiers (item: Lisp_Object) -> Lisp_Object;
     /// C: keyboard.h 464: `extern Lisp_Object reorder_modifiers (Lisp_Object);`
-    pub fn reorder_modifiers (event: Lisp_Object) -> Lisp_Object;
+    pub safe fn reorder_modifiers (event: Lisp_Object) -> Lisp_Object;
     /// C: keyboard.h 465: `extern int parse_solitary_modifier (Lisp_Object symbol);`
-    pub fn parse_solitary_modifier (symbol: Lisp_Object) -> c_int;
+    pub safe fn parse_solitary_modifier (symbol: Lisp_Object) -> c_int;
     /// C: keyboard.h 476: `extern bool parse_menu_item (Lisp_Object, int);`
-    pub fn parse_menu_item (item: Lisp_Object, in_menubar: c_int) -> bool;
+    pub safe fn parse_menu_item (item: Lisp_Object, in_menubar: c_int) -> bool;
     /// C: keyboard.h 478: `extern void init_raw_keybuf_count (void);`
-    pub fn init_raw_keybuf_count ();
+    pub safe fn init_raw_keybuf_count ();
     /// C: keyboard.h 479: `extern KBOARD *allocate_kboard (Lisp_Object);`
     pub fn allocate_kboard (type_: Lisp_Object) -> *mut kboard;
     /// C: keyboard.h 480: `extern void delete_kboard (KBOARD *);`
@@ -366,47 +366,327 @@ pub mod keyboard_fn_decls {
     /// C: keyboard.h 482: `extern void push_kboard (struct kboard *);`
     pub fn push_kboard (k: *mut kboard);
     /// C: keyboard.h 484: `extern void pop_kboard (void);`
-    pub fn pop_kboard ();
+    pub safe fn pop_kboard ();
     /// C: keyboard.h 487: `extern void start_polling (void);`
-    pub fn start_polling ();
+    pub safe fn start_polling ();
     /// C: keyboard.h 488: `extern void stop_polling (void);`
-    pub fn stop_polling ();
+    pub safe fn stop_polling ();
     /// C: keyboard.h 489: `extern void set_poll_suppress_count (int);`
-    pub fn set_poll_suppress_count (count: c_int);
+    pub safe fn set_poll_suppress_count (count: c_int);
     /// C: keyboard.h 490: `extern int gobble_input (void);`
-    pub fn gobble_input () -> c_int;
+    pub safe fn gobble_input () -> c_int;
     /// C: keyboard.h 491: `extern bool input_polling_used (void);`
-    pub fn input_polling_used () -> bool;
+    pub safe fn input_polling_used () -> bool;
     /// C: keyboard.h 492: `extern void clear_input_pending (void);`
-    pub fn clear_input_pending ();
+    pub safe fn clear_input_pending ();
     /// C: keyboard.h 493: `extern bool requeued_command_events_pending_p (void);`
-    pub fn requeued_command_events_pending_p () -> bool;
+    pub safe fn requeued_command_events_pending_p () -> bool;
     /// C: keyboard.h 494: `extern void bind_polling_period (int);`
-    pub fn bind_polling_period (n: c_int);
+    pub safe fn bind_polling_period (n: c_int);
     /// C: keyboard.h 495: `extern int make_ctrl_char (int) ATTRIBUTE_CONST;`
-    pub fn make_ctrl_char (c: c_int) -> c_int;
+    pub safe fn make_ctrl_char (c: c_int) -> c_int;
     /// C: keyboard.h 496: `extern void stuff_buffered_input (Lisp_Object);`
-    pub fn stuff_buffered_input (stuff: Lisp_Object);
+    pub safe fn stuff_buffered_input (stuff: Lisp_Object);
     /// C: keyboard.h 497: `extern void clear_waiting_for_input (void);`
-    pub fn clear_waiting_for_input ();
+    pub safe fn clear_waiting_for_input ();
     /// C: keyboard.h 498: `extern void swallow_events (bool);`
-    pub fn swallow_events (do_display: bool);
+    pub safe fn swallow_events (do_display: bool);
     /// C: keyboard.h 499: `extern bool lucid_event_type_list_p (Lisp_Object);`
-    pub fn lucid_event_type_list_p (object: Lisp_Object) -> bool;
+    pub safe fn lucid_event_type_list_p (object: Lisp_Object) -> bool;
     /// C: keyboard.h 512: `extern void poll_for_input_1 (void);`
-    pub fn poll_for_input_1 ();
+    pub safe fn poll_for_input_1 ();
     /// C: keyboard.h 513: `extern void show_help_echo (Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object);`
-    pub fn show_help_echo (string: Lisp_Object, window: Lisp_Object, object: Lisp_Object, object_pos: Lisp_Object);
+    pub safe fn show_help_echo (string: Lisp_Object, window: Lisp_Object, object: Lisp_Object, object_pos: Lisp_Object);
     /// C: keyboard.h 515: `extern void gen_help_event (Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, ptrdiff_t);`
-    pub fn gen_help_event (help: Lisp_Object, frame: Lisp_Object, window: Lisp_Object, object: Lisp_Object, pos: ptrdiff_t);
+    pub safe fn gen_help_event (help: Lisp_Object, frame: Lisp_Object, window: Lisp_Object, object: Lisp_Object, pos: ptrdiff_t);
     /// C: keyboard.h 517: `extern void kbd_buffer_store_help_event (Lisp_Object, Lisp_Object);`
-    pub fn kbd_buffer_store_help_event (frame: Lisp_Object, help: Lisp_Object);
+    pub safe fn kbd_buffer_store_help_event (frame: Lisp_Object, help: Lisp_Object);
     /// C: keyboard.h 518: `extern Lisp_Object menu_item_eval_property (Lisp_Object);`
-    pub fn menu_item_eval_property (sexpr: Lisp_Object) -> Lisp_Object;
+    pub safe fn menu_item_eval_property (sexpr: Lisp_Object) -> Lisp_Object;
     /// C: keyboard.h 519: `extern bool kbd_buffer_events_waiting (void);`
-    pub fn kbd_buffer_events_waiting () -> bool;
+    pub safe fn kbd_buffer_events_waiting () -> bool;
     /// C: keyboard.h 524: `extern void mark_kboards (void);`
     pub fn mark_kboards ();
   }
 }
 pub use self::keyboard_fn_decls::*;
+
+#[inline(always)]
+pub fn current_kboard_defining_kbd_macro () -> Lisp_Object {
+  /* SAFETY: `current_kboard` is a live `KBOARD` pointer on the owning Lisp thread. */
+  unsafe { (**current_kboard.as_ptr ()).defining_kbd_macro_ }
+}
+
+#[inline(always)]
+pub fn set_current_kboard_defining_kbd_macro (val: Lisp_Object) {
+  /* SAFETY: `current_kboard` is a live `KBOARD` pointer on the owning Lisp thread. */
+  unsafe { kset_defining_kbd_macro (*current_kboard.as_mut_ptr (), val); }
+}
+
+#[inline(always)]
+pub fn current_kboard_last_kbd_macro () -> Lisp_Object {
+  /* SAFETY: `current_kboard` is a live `KBOARD` pointer on the owning Lisp thread. */
+  unsafe { (**current_kboard.as_ptr ()).Vlast_kbd_macro_ }
+}
+
+#[inline(always)]
+pub fn set_current_kboard_last_kbd_macro (val: Lisp_Object) {
+  /* SAFETY: `current_kboard` is a live `KBOARD` pointer on the owning Lisp thread. */
+  unsafe { kset_last_kbd_macro (*current_kboard.as_mut_ptr (), val); }
+}
+
+#[inline(always)]
+pub fn current_kboard_prefix_arg () -> Lisp_Object {
+  /* SAFETY: `current_kboard` is a live `KBOARD` pointer on the owning Lisp thread. */
+  unsafe { (**current_kboard.as_ptr ()).Vprefix_arg_ }
+}
+
+#[inline(always)]
+pub fn set_current_kboard_prefix_arg (val: Lisp_Object) {
+  /* SAFETY: `current_kboard` is a live `KBOARD` pointer on the owning Lisp thread. */
+  unsafe { kset_prefix_arg (*current_kboard.as_mut_ptr (), val); }
+}
+
+#[inline(always)]
+pub fn current_kboard_last_prefix_arg () -> Lisp_Object {
+  /* SAFETY: `current_kboard` is a live `KBOARD` pointer on the owning Lisp thread. */
+  unsafe { (**current_kboard.as_ptr ()).Vlast_prefix_arg_ }
+}
+
+#[inline(always)]
+pub fn current_kboard_overriding_terminal_local_map () -> Lisp_Object {
+  /* SAFETY: `current_kboard` is a live `KBOARD` pointer on the owning Lisp thread. */
+  unsafe { (**current_kboard.as_ptr ()).Voverriding_terminal_local_map_ }
+}
+
+#[inline(always)]
+pub fn current_kboard_begin_kbd_macro (append: bool) -> bool {
+  /* SAFETY: `current_kboard` is a live `KBOARD` pointer; `kbd_macro_buffer` is initialized lazily via `xnmalloc`. */
+  unsafe {
+    let kb = *current_kboard.as_mut_ptr ();
+    if (*kb).kbd_macro_buffer.is_null () {
+      if append {
+        return false;
+      }
+      (*kb).kbd_macro_bufsize = 30;
+      (*kb).kbd_macro_buffer = xnmalloc (
+        30,
+        core::mem::size_of::<Lisp_Object> () as ptrdiff_t,
+      ) as *mut Lisp_Object;
+    }
+    if !append {
+      (*kb).kbd_macro_ptr = (*kb).kbd_macro_buffer;
+      (*kb).kbd_macro_end = (*kb).kbd_macro_buffer;
+    } else {
+      (*kb).kbd_macro_ptr = (*kb).kbd_macro_end;
+    }
+    true
+  }
+}
+
+#[inline(always)]
+pub fn current_kboard_finalize_kbd_macro () {
+  /* SAFETY: `kbd_macro_ptr` lies within `kbd_macro_buffer` on live `current_kboard`. */
+  unsafe {
+    let kb = *current_kboard.as_mut_ptr ();
+    (*kb).kbd_macro_end = (*kb).kbd_macro_ptr;
+  }
+}
+
+#[inline(always)]
+pub fn current_kboard_store_kbd_macro_char (c: Lisp_Object) {
+  /* SAFETY: grows `kbd_macro_buffer` via `xpalloc` when full and writes `c` at `kbd_macro_ptr`. */
+  unsafe {
+    let kb = *current_kboard.as_mut_ptr ();
+    if !NILP ((*kb).defining_kbd_macro_) {
+      if (*kb).kbd_macro_ptr.offset_from ((*kb).kbd_macro_buffer) == (*kb).kbd_macro_bufsize {
+        let ptr_offset = (*kb).kbd_macro_ptr.offset_from ((*kb).kbd_macro_buffer);
+        let end_offset = (*kb).kbd_macro_end.offset_from ((*kb).kbd_macro_buffer);
+        (*kb).kbd_macro_buffer = xpalloc (
+          (*kb).kbd_macro_buffer as *mut c_void,
+          &raw mut (*kb).kbd_macro_bufsize,
+          1,
+          -1,
+          core::mem::size_of::<Lisp_Object> () as ptrdiff_t,
+        ) as *mut Lisp_Object;
+        (*kb).kbd_macro_ptr = (*kb).kbd_macro_buffer.offset (ptr_offset);
+        (*kb).kbd_macro_end = (*kb).kbd_macro_buffer.offset (end_offset);
+      }
+      *(*kb).kbd_macro_ptr = c;
+      (*kb).kbd_macro_ptr = (*kb).kbd_macro_ptr.offset (1);
+    }
+  }
+}
+
+#[inline(always)]
+pub fn current_kboard_kbd_macro_end_len () -> ptrdiff_t {
+  /* SAFETY: `kbd_macro_end` and `kbd_macro_buffer` belong to the same allocation on live `current_kboard`. */
+  unsafe {
+    let kb = *current_kboard.as_ptr ();
+    if (*kb).kbd_macro_buffer.is_null () {
+      0
+    } else {
+      (*kb).kbd_macro_end.offset_from ((*kb).kbd_macro_buffer)
+    }
+  }
+}
+
+#[inline(always)]
+pub fn current_kboard_set_kbd_macro_end_from_start (len: ptrdiff_t) {
+  assert! (0 <= len);
+  /* SAFETY: `0 <= len <= kbd_macro_bufsize` on live `current_kboard`. */
+  unsafe {
+    let kb = *current_kboard.as_mut_ptr ();
+    assert! (len <= (*kb).kbd_macro_bufsize);
+    (*kb).kbd_macro_end = (*kb).kbd_macro_buffer.offset (len);
+  }
+}
+
+#[inline(always)]
+pub fn current_kboard_kbd_macro_to_vector () -> Lisp_Object {
+  /* SAFETY: copies `kbd_macro_buffer..kbd_macro_end` into a freshly allocated Lisp vector. */
+  unsafe {
+    let kb = *current_kboard.as_ptr ();
+    let len = if (*kb).kbd_macro_buffer.is_null () {
+      0
+    } else {
+      (*kb).kbd_macro_end.offset_from ((*kb).kbd_macro_buffer)
+    };
+    let vec = make_vector (len, Qnil ());
+    if len > 0 {
+      core::ptr::copy_nonoverlapping (
+        (*kb).kbd_macro_buffer,
+        XVECTOR (vec).cast::<u8> ().add (header_size as usize).cast::<Lisp_Object> (),
+        len as usize,
+      );
+    }
+    vec
+  }
+}
+
+#[inline(always)]
+pub fn temporarily_switch_to_single_kboard_selected () {
+  let sf = SELECTED_FRAME ();
+  if !sf.is_null () {
+    /* SAFETY: `sf` is the live selected frame pointer checked non-null. */
+    unsafe { temporarily_switch_to_single_kboard (sf as *mut c_void); }
+  }
+}
+
+#[inline(always)]
+pub fn undo_last_command_changed_buffer_or_point () -> bool {
+  /* SAFETY: compares live `current_buffer` and `PT` against `buffer_before_last_command_or_undo` / `point_before_last_command_or_undo`. */
+  unsafe {
+    let cb = current_buffer! ();
+    cb != *buffer_before_last_command_or_undo.as_ptr ()
+      || PT! () != point_before_last_command_or_undo.get ()
+  }
+}
+
+#[inline(always)]
+pub fn set_buffer_before_last_command_or_undo_current () {
+  /* SAFETY: stores live `current_buffer` into `buffer_before_last_command_or_undo` on the owning Lisp thread. */
+  unsafe {
+    *buffer_before_last_command_or_undo.as_mut_ptr () = current_buffer! ();
+  }
+}
+
+#[inline(always)]
+pub fn current_kboard_last_command () -> Lisp_Object {
+  /* SAFETY: `current_kboard` is a live `KBOARD` pointer on the owning Lisp thread. */
+  unsafe { (**current_kboard.as_ptr ()).Vlast_command_ }
+}
+
+#[inline(always)]
+pub fn current_kboard_reset_macro_buffer_for_start () {
+  /* SAFETY: `current_kboard` is a live `KBOARD` pointer; allocates or shrinks `kbd_macro_buffer` to 30 slots. */
+  unsafe {
+    let kb = *current_kboard.as_mut_ptr ();
+    if (*kb).kbd_macro_buffer.is_null () {
+      (*kb).kbd_macro_buffer = xmalloc ((30 * word_size) as usize) as *mut Lisp_Object;
+      (*kb).kbd_macro_bufsize = 30;
+    } else if (*kb).kbd_macro_bufsize > 200 {
+      (*kb).kbd_macro_buffer = xrealloc (
+        (*kb).kbd_macro_buffer as *mut c_void,
+        (30 * word_size) as usize,
+      ) as *mut Lisp_Object;
+      (*kb).kbd_macro_bufsize = 30;
+    }
+    (*kb).kbd_macro_ptr = (*kb).kbd_macro_buffer;
+    (*kb).kbd_macro_end = (*kb).kbd_macro_buffer;
+  }
+}
+
+#[inline(always)]
+pub fn current_kboard_prepare_append_macro_buffer (len: ptrdiff_t) {
+  assert! (0 <= len);
+  /* SAFETY: ensures `kbd_macro_buffer` on live `current_kboard` has at least `len + 30` slots. */
+  unsafe {
+    let kb = *current_kboard.as_mut_ptr ();
+    if (*kb).kbd_macro_buffer.is_null () {
+      (*kb).kbd_macro_buffer = xmalloc ((30 * word_size) as usize) as *mut Lisp_Object;
+      (*kb).kbd_macro_bufsize = 30;
+      (*kb).kbd_macro_ptr = (*kb).kbd_macro_buffer;
+      (*kb).kbd_macro_end = (*kb).kbd_macro_buffer;
+    }
+    let incr: ptrdiff_t = 30;
+    if ((*kb).kbd_macro_bufsize - incr) < len {
+      (*kb).kbd_macro_buffer = xpalloc (
+        (*kb).kbd_macro_buffer as *mut c_void,
+        &raw mut (*kb).kbd_macro_bufsize,
+        len - (*kb).kbd_macro_bufsize + incr,
+        -1,
+        core::mem::size_of::<Lisp_Object> () as ptrdiff_t,
+      ) as *mut Lisp_Object;
+    }
+  }
+}
+
+#[inline(always)]
+pub fn current_kboard_write_macro_slot (idx: ptrdiff_t, val: Lisp_Object) {
+  /* SAFETY: caller ensures `0 <= idx < kbd_macro_bufsize` on live `current_kboard`. */
+  unsafe {
+    let kb = *current_kboard.as_mut_ptr ();
+    assert! (0 <= idx && idx < (*kb).kbd_macro_bufsize);
+    *(*kb).kbd_macro_buffer.offset (idx) = val;
+  }
+}
+
+#[inline(always)]
+pub fn current_kboard_finish_append_macro_copy (len: ptrdiff_t) {
+  /* SAFETY: caller ensures `0 <= len <= kbd_macro_bufsize` on live `current_kboard`. */
+  unsafe {
+    let kb = *current_kboard.as_mut_ptr ();
+    assert! (0 <= len && len <= (*kb).kbd_macro_bufsize);
+    (*kb).kbd_macro_ptr = (*kb).kbd_macro_buffer.offset (len);
+    (*kb).kbd_macro_end = (*kb).kbd_macro_ptr;
+  }
+}
+
+#[inline(always)]
+pub fn current_kboard_cancel_macro_events () {
+  /* SAFETY: resets `kbd_macro_ptr = kbd_macro_end` on live `current_kboard`. */
+  unsafe {
+    let kb = *current_kboard.as_mut_ptr ();
+    (*kb).kbd_macro_ptr = (*kb).kbd_macro_end;
+  }
+}
+
+#[inline(always)]
+pub fn same_buffer_as_last_command () -> bool {
+  /* SAFETY: compares live `current_buffer` pointer against `buffer_before_last_command_or_undo`. */
+  unsafe { *buffer_before_last_command_or_undo.as_ptr () == current_buffer! () }
+}
+
+#[inline(always)]
+pub fn set_current_kboard_last_command (val: Lisp_Object) {
+  /* SAFETY: `current_kboard` is a live `KBOARD` pointer on the owning Lisp thread. */
+  unsafe { kset_last_command (*current_kboard.as_mut_ptr (), val); }
+}
+
+#[inline(always)]
+pub fn temporarily_switch_to_single_kboard_null () {
+  /* SAFETY: null frame argument tells `temporarily_switch_to_single_kboard` to lock `current_kboard`. */
+  unsafe { temporarily_switch_to_single_kboard (core::ptr::null_mut ()); }
+}
+

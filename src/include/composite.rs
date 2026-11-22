@@ -423,9 +423,9 @@ pub mod composite_decls {
     pub fn find_composition (pos: ptrdiff_t, limit: ptrdiff_t, start: *mut ptrdiff_t,
 			     end: *mut ptrdiff_t, prop: *mut Lisp_Object,
 			     string: Lisp_Object) -> bool;
-    pub fn update_compositions (from: ptrdiff_t, to: ptrdiff_t, check_mask: c_int);
-    pub fn make_composition_value_copy (list: Lisp_Object);
-    pub fn syms_of_composite ();
+    pub safe fn update_compositions (from: ptrdiff_t, to: ptrdiff_t, check_mask: c_int);
+    pub safe fn make_composition_value_copy (list: Lisp_Object);
+    pub safe fn syms_of_composite ();
     pub fn mark_composite ();
     pub fn compose_text (start: ptrdiff_t, end: ptrdiff_t, components: Lisp_Object,
 			 modification_func: Lisp_Object, string: Lisp_Object);

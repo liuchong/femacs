@@ -1159,7 +1159,7 @@ unsafe fn FACE_FROM_ID_OR_NULL (f: *mut frame, id: c_int) -> *mut face
 
 /// C: xwidget.h 234: `INLINE bool valid_xwidget_spec_p (Lisp_Object obj) { return false; }`.
 #[inline(always)]
-unsafe fn valid_xwidget_spec_p (obj: Lisp_Object) -> bool
+fn valid_xwidget_spec_p (obj: Lisp_Object) -> bool
 {
   let _ = obj;
   false
@@ -2664,7 +2664,7 @@ pub const REDISPLAY_SOME: c_int = 2;	/* Arbitrary choice.  */
    (PORTING.md 0.1-12).  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn redisplay_other_windows ()
+pub extern "C-unwind" fn redisplay_other_windows ()
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
@@ -3285,8 +3285,8 @@ DEFUN! ("line-pixel-height", Fline_pixel_height,
        {
   /* C's `struct it it;` is uninitialised and `start_display` fills it in; Rust needs a
      value to take its address (PORTING.md 1.5).  */
-  let mut it: it = /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { core::mem::zeroed () };
-  let mut pt: text_pos = unsafe { core::mem::zeroed () };
+  let mut it: it = { core::mem::zeroed () };
+  let mut pt: text_pos = { core::mem::zeroed () };
   let w: *mut window = XWINDOW ((*selected_window.as_mut_ptr ()));
   let mut old_buffer: *mut buffer = core::ptr::null_mut ();
   let result: Lisp_Object;
@@ -3368,7 +3368,7 @@ pub unsafe extern "C-unwind" fn default_line_pixel_height (w: *mut window) -> c_
 /* Subroutine of pos_visible_p below.  Extracts a display string, if
    any, from the display spec given as its argument.  (C 1594-1613)  */
 
-unsafe fn string_from_display_spec (spec: Lisp_Object) -> Lisp_Object
+fn string_from_display_spec (spec: Lisp_Object) -> Lisp_Object
 {
   if VECTORP (spec)
     {
@@ -14213,7 +14213,7 @@ pub unsafe extern "C-unwind" fn vadd_to_log (format: *const c_char, mut ap: VaLi
 /* Output a newline in the *Messages* buffer if "needs" one.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn message_log_maybe_newline ()
+pub extern "C-unwind" fn message_log_maybe_newline ()
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
@@ -14228,7 +14228,7 @@ pub unsafe extern "C-unwind" fn message_log_maybe_newline ()
    them.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn reset_message_log_need_newline ()
+pub extern "C-unwind" fn reset_message_log_need_newline ()
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
@@ -14533,7 +14533,7 @@ unsafe fn log_message (m: Lisp_Object)
    This function cancels echoing.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn message3 (m: Lisp_Object)
+pub extern "C-unwind" fn message3 (m: Lisp_Object)
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
@@ -14596,7 +14596,7 @@ unsafe fn message_to_stderr (m: Lisp_Object)
    and make this cancel echoing.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn message3_nolog (m: Lisp_Object)
+pub extern "C-unwind" fn message3_nolog (m: Lisp_Object)
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
@@ -14867,7 +14867,7 @@ pub unsafe extern "C-unwind" fn message (m: *const c_char, mut args: ...)
    critical.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn update_echo_area ()
+pub extern "C-unwind" fn update_echo_area ()
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
@@ -15124,7 +15124,7 @@ unsafe extern "C-unwind" fn unwind_with_echo_area_buffer (vector: Lisp_Object)
    means we will print multibyte.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn setup_echo_area_for_printing (multibyte_p: bool)
+pub extern "C-unwind" fn setup_echo_area_for_printing (multibyte_p: bool)
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
@@ -15498,7 +15498,7 @@ pub unsafe extern "C-unwind" fn resize_mini_window (w: *mut window, exact_p: boo
    current message.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn current_message () -> Lisp_Object
+pub extern "C-unwind" fn current_message () -> Lisp_Object
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
@@ -15543,7 +15543,7 @@ unsafe extern "C-unwind" fn current_message_1 (a1: *mut c_void, a2: Lisp_Object)
    worth optimizing.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn push_message () -> bool
+pub extern "C-unwind" fn push_message () -> bool
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
@@ -15557,7 +15557,7 @@ pub unsafe extern "C-unwind" fn push_message () -> bool
 /* Restore message display from the top of Vmessage_stack.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn restore_message ()
+pub extern "C-unwind" fn restore_message ()
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
@@ -15586,7 +15586,7 @@ pub unsafe extern "C-unwind" fn pop_message_unwind ()
    pop_message_unwind somewhere.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn check_message_stack ()
+pub extern "C-unwind" fn check_message_stack ()
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
@@ -15597,7 +15597,7 @@ pub unsafe extern "C-unwind" fn check_message_stack ()
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn clear_message_stack ()
+pub extern "C-unwind" fn clear_message_stack ()
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
@@ -15610,7 +15610,7 @@ pub unsafe extern "C-unwind" fn clear_message_stack ()
    time we display it---but don't redisplay it now.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn truncate_echo_area (nchars: ptrdiff_t)
+pub extern "C-unwind" fn truncate_echo_area (nchars: ptrdiff_t)
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
@@ -15744,7 +15744,7 @@ unsafe extern "C-unwind" fn set_message_1 (a1: *mut c_void, string: Lisp_Object)
    LAST_DISPLAYED_P means clear the message last displayed.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn clear_message (current_p: bool, last_displayed_p: bool)
+pub extern "C-unwind" fn clear_message (current_p: bool, last_displayed_p: bool)
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
@@ -25411,12 +25411,12 @@ display_count_lines_visually (it: *mut it) -> ptrdiff_t
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  let mut tem_it: it = unsafe { core::mem::zeroed () };
+  let mut tem_it: it = { core::mem::zeroed () };
   let to: ptrdiff_t;
   /* C assigns `from` with `SET_TEXT_POS`, which writes both members; Rust cannot see the
      macro's writes as an initialisation, so the port zero-initialises it (deviation 1's
      rule).  */
-  let mut from: text_pos = /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { core::mem::zeroed () };
+  let mut from: text_pos = { core::mem::zeroed () };
 
   /* If we already calculated a relative line number, use that.  This
      trick relies on the fact that visual lines (a.k.a. "glyph rows")
@@ -25553,7 +25553,7 @@ maybe_produce_line_number (it: *mut it)
     }
 
   /* Produce the glyphs for the line number.  */
-  let mut tem_it: it = /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { core::mem::zeroed () };
+  let mut tem_it: it = { core::mem::zeroed () };
   let beyond_zv: bool = IT_BYTEPOS! (*it) >= ZV_BYTE! ();
   let mut lnum_offset: ptrdiff_t = -1; /* to produce 1-based line numbers */
   let lnum_face_id: c_int = merge_faces ((*it).w, Qline_number (), 0, DEFAULT_FACE_ID);
@@ -28542,11 +28542,10 @@ display_mode_line (w: *mut window, face_id: face_id, format: Lisp_Object) -> c_i
 /* Move element ELT in LIST to the front of LIST.
    Return the updated list.  */
 
-unsafe fn
+fn
 move_elt_to_front (elt: Lisp_Object, list: Lisp_Object) -> Lisp_Object
 {
-  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
-  unsafe {
+  {
   let mut tail: Lisp_Object;
   let mut prev: Lisp_Object;
   let mut tem: Lisp_Object;
@@ -29673,7 +29672,7 @@ decode_mode_spec_coding (coding_system: Lisp_Object, buf: *mut c_char,
 /* Return the approximate percentage N is of D (rounding upward), or 99,
    whichever is less.  Assume 0 < D and 0 <= N <= D * INT_MAX / 100.  (C 29414-29416)  */
 
-unsafe fn
+fn
 percent99 (n: ptrdiff_t, d: ptrdiff_t) -> c_int
 {
   let percent: c_int = (((d - 1) as f64 + 100.0 * n as f64) / d as f64) as c_int;
@@ -30230,7 +30229,7 @@ decode_mode_spec (w: *mut window, c: c_int, field_width: c_int,
    current buffer. (C 29894-29896)  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn count_lines (start_byte: ptrdiff_t, end_byte: ptrdiff_t) -> ptrdiff_t
+pub extern "C-unwind" fn count_lines (start_byte: ptrdiff_t, end_byte: ptrdiff_t) -> ptrdiff_t
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
@@ -30699,7 +30698,7 @@ display_string (string: *const c_char, lisp_string: Lisp_Object, face_string: Li
    deviation 285).  The symbol is the one C defines.  */
 
 #[unsafe(no_mangle)]
-  pub unsafe extern "C-unwind" fn invisible_prop (propval: Lisp_Object, list: Lisp_Object) -> c_int
+  pub extern "C-unwind" fn invisible_prop (propval: Lisp_Object, list: Lisp_Object) -> c_int
   {
     let mut tail: Lisp_Object;
     let mut proptail: Lisp_Object;

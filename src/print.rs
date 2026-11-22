@@ -2522,7 +2522,7 @@ unsafe fn print_vectorlike_unreadable (obj: Lisp_Object, printcharfun: Lisp_Obje
   }
 }
 
-unsafe fn named_escape (i: c_int) -> c_char
+fn named_escape (i: c_int) -> c_char
 {
   match i
     {

@@ -1450,10 +1450,9 @@ pub unsafe extern "C-unwind" fn re_iswctype (ch: c_int, cc: re_wctype_t) -> bool
 
 /* Return a bit-pattern to use in the range-table bits to match multibyte
    chars of class CC.  */
-unsafe fn re_wctype_to_bit (cc: re_wctype_t) -> c_int
+fn re_wctype_to_bit (cc: re_wctype_t) -> c_int
 {
-  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
-  unsafe {
+  {
   match cc
     {
       RECC_NONASCII | RECC_MULTIBYTE => BIT_MULTIBYTE,
@@ -4630,7 +4629,7 @@ unsafe fn re_match_2_internal (bufp: *mut re_pattern_buffer,
   let sa_count: specpdl_ref = SPECPDL_INDEX ();
   /* The port's third name (PORTING.md P-05/P-117 ⑧): this function captures the pool's height
      the way `USE_SAFE_ALLOCA!` does, so `SAFE_FREE!` below releases the scope's own requests.  */
-  let sa_mark: usize = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { sa_stack_mark () };
+  let sa_mark: usize = { sa_stack_mark () };
   let count: specpdl_ref = SPECPDL_INDEX ();
 
   /* Failure-stack and matching macros (C 911-1160, 3658-3681): every one of them names a
@@ -5285,7 +5284,7 @@ unsafe fn re_match_2_internal (bufp: *mut re_pattern_buffer,
                    (end2 as isize) - (string1 as isize));
         }
       /* Otherwise match next pattern command.  */
-      /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { if (*REG_TRACE_ON.as_mut_ptr ()) != 0 { (*PREV_OP_SAVE.as_mut_ptr ()) = *p as c_int; } }
+      { if (*REG_TRACE_ON.as_mut_ptr ()) != 0 { (*PREV_OP_SAVE.as_mut_ptr ()) = *p as c_int; } }
       match { let op = *p as re_opcode_t; p = p.offset (1); op }
 	{
 	/* Ignore these.  Used to ignore the n of succeed_n's which

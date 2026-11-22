@@ -963,7 +963,7 @@ unsafe extern "C" fn run_thread (state: *mut c_void) -> *mut c_void
   (*handlerlist_sentinel! ()).next = std::ptr::null_mut ();
 
   /* It might be nice to do something with errors here.  */
-  let _ = crate::nonlocal::catch_vm_nonlocal (|| /* SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership. */ unsafe {
+  let _ = crate::nonlocal::catch_vm_nonlocal (|| {
     internal_condition_case (Some (invoke_thread_function), Qt (), Some (record_thread_error));
     update_processes_for_thread_death (Fcurrent_thread ());
   });

@@ -290,20 +290,20 @@ pub fn output_cursor_to (w: *mut window, vpos: c_int, hpos: c_int, y: c_int, x: 
 pub fn overlay_matches_window (w: *const window, ov: Lisp_Object) -> bool
 {
   eassert! (OVERLAYP (ov));
-  let window_ = /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { Foverlay_get (ov, Qwindow ()) };
-  !WINDOWP (window_) || std::ptr::eq (unsafe { XWINDOW (window_) }, w as *mut window)
+  let window_ = Foverlay_get (ov, Qwindow ());
+  !WINDOWP (window_) || std::ptr::eq ({ XWINDOW (window_) }, w as *mut window)
 }
 
 // window.h 1100-1206: the file-scope objects (the .c files define them).
-unsafe extern "C-unwind" { pub static selected_window: VmGlobal<Lisp_Object>; }             // 1100
-unsafe extern "C-unwind" { pub static window_select_count: VmGlobal<EMACS_INT>; }           // 1106
-unsafe extern "C-unwind" { pub static minibuf_window: VmGlobal<Lisp_Object>; }              // 1112
-unsafe extern "C-unwind" { pub static minibuf_selected_window: VmGlobal<Lisp_Object>; }     // 1117
-unsafe extern "C-unwind" { pub static last_mouse_window: VmGlobal<Lisp_Object>; }           // 1121
-unsafe extern "C-unwind" { pub static echo_area_window: VmGlobal<Lisp_Object>; }            // 1146
-unsafe extern "C-unwind" { pub static update_mode_lines: VmGlobal<c_int>; }                 // 1154
-unsafe extern "C-unwind" { pub static windows_or_buffers_changed: VmGlobal<c_int>; }        // 1161
-unsafe extern "C-unwind" { pub static Vwindow_list: VmGlobal<Lisp_Object>; }                // 1206
+unsafe extern "C-unwind" { pub safe static selected_window: VmGlobal<Lisp_Object>; }        // 1100
+unsafe extern "C-unwind" { pub safe static window_select_count: VmGlobal<EMACS_INT>; }      // 1106
+unsafe extern "C-unwind" { pub safe static minibuf_window: VmGlobal<Lisp_Object>; }         // 1112
+unsafe extern "C-unwind" { pub safe static minibuf_selected_window: VmGlobal<Lisp_Object>; } // 1117
+unsafe extern "C-unwind" { pub safe static last_mouse_window: VmGlobal<Lisp_Object>; }      // 1121
+unsafe extern "C-unwind" { pub safe static echo_area_window: VmGlobal<Lisp_Object>; }       // 1146
+unsafe extern "C-unwind" { pub safe static update_mode_lines: VmGlobal<c_int>; }            // 1154
+unsafe extern "C-unwind" { pub safe static windows_or_buffers_changed: VmGlobal<c_int>; }   // 1161
+unsafe extern "C-unwind" { pub safe static Vwindow_list: VmGlobal<Lisp_Object>; }           // 1206
 
 // window.h 1123-1238: the header's 29 function prototypes.  Declared in a module with a glob
 // import (the `window_redisplay_decls` shape below) because nine of them are *defined* in this
@@ -327,18 +327,18 @@ pub mod window_fn_decls {
 
   unsafe extern "C-unwind" {
     /// C: window.h 1123: `make_window` - `Lisp_Object make_window (void)`
-    pub fn make_window () -> Lisp_Object;
+    pub safe fn make_window () -> Lisp_Object;
     /// C: window.h 1124: `window_from_coordinates` - `Lisp_Object window_from_coordinates (struct frame *, int, int, enum window_part *, bool, bool, bool)`
     pub fn window_from_coordinates (f: *mut c_void, x: c_int, y: c_int, part: *mut c_int,
                               menu_bar_p: bool, tab_bar_p: bool, tool_bar_p: bool) -> Lisp_Object;
     /// C: window.h 1126: `resize_frame_windows` - `void resize_frame_windows (struct frame *, int, bool)`
     pub fn resize_frame_windows (f: *mut c_void, size: c_int, horflag: bool);
     /// C: window.h 1127: `restore_window_configuration` - `void restore_window_configuration (Lisp_Object)`
-    pub fn restore_window_configuration (configuration: Lisp_Object);
+    pub safe fn restore_window_configuration (configuration: Lisp_Object);
     /// C: window.h 1128: `restore_focus_frame` - `void restore_focus_frame (Lisp_Object)`
-    pub fn restore_focus_frame (frame_and_focus_frame: Lisp_Object);
+    pub safe fn restore_focus_frame (frame_and_focus_frame: Lisp_Object);
     /// C: window.h 1129: `delete_all_child_windows` - `void delete_all_child_windows (Lisp_Object)`
-    pub fn delete_all_child_windows (window: Lisp_Object);
+    pub safe fn delete_all_child_windows (window: Lisp_Object);
     /// C: window.h 1130: `grow_mini_window` - `void grow_mini_window (struct window *, int, int)`
     pub fn grow_mini_window (w: *mut window, delta: c_int, unit: c_int);
     /// C: window.h 1131: `shrink_mini_window` - `void shrink_mini_window (struct window *, int)`
@@ -350,9 +350,9 @@ pub mod window_fn_decls {
     /// C: window.h 1176: `wset_update_mode_line` - `void wset_update_mode_line (struct window *)`
     pub fn wset_update_mode_line (w: *mut window);
     /// C: window.h 1180: `redisplay_other_windows` - `void redisplay_other_windows (void)`
-    pub fn redisplay_other_windows ();
+    pub safe fn redisplay_other_windows ();
     /// C: window.h 1208: `window_list` - `Lisp_Object window_list (void)`
-    pub fn window_list () -> Lisp_Object;
+    pub safe fn window_list () -> Lisp_Object;
     /// C: window.h 1209: `window_parameter` - `Lisp_Object window_parameter (struct window *, Lisp_Object parameter)`
     pub fn window_parameter (w: *mut window, parameter: Lisp_Object) -> Lisp_Object;
     /// C: window.h 1210: `*decode_live_window` - `struct window *decode_live_window (Lisp_Object)`
@@ -364,11 +364,11 @@ pub mod window_fn_decls {
     /// C: window.h 1216: `window_internal_height` - `int window_internal_height (struct window *)`
     pub fn window_internal_height (w: *mut window) -> c_int;
     /// C: window.h 1227: `temp_output_buffer_show` - `void temp_output_buffer_show (Lisp_Object)`
-    pub fn temp_output_buffer_show (buf: Lisp_Object);
+    pub safe fn temp_output_buffer_show (buf: Lisp_Object);
     /// C: window.h 1228: `replace_buffer_in_windows` - `void replace_buffer_in_windows (Lisp_Object)`
-    pub fn replace_buffer_in_windows (buffer: Lisp_Object);
+    pub safe fn replace_buffer_in_windows (buffer: Lisp_Object);
     /// C: window.h 1229: `replace_buffer_in_windows_safely` - `void replace_buffer_in_windows_safely (Lisp_Object)`
-    pub fn replace_buffer_in_windows_safely (buffer: Lisp_Object);
+    pub safe fn replace_buffer_in_windows_safely (buffer: Lisp_Object);
     /// C: window.h 1231: `wset_buffer` - `void wset_buffer (struct window *, Lisp_Object)`
     pub fn wset_buffer (w: *mut window, buf: Lisp_Object);
     /// C: window.h 1232: `window_outdated` - `bool window_outdated (struct window *)`
@@ -376,7 +376,7 @@ pub mod window_fn_decls {
     /// C: window.h 1233: `window_point` - `ptrdiff_t window_point (struct window *w)`
     pub fn window_point (w: *mut window) -> ptrdiff_t;
     /// C: window.h 1234: `window_discard_buffer_from_dead_windows` - `void window_discard_buffer_from_dead_windows (Lisp_Object)`
-    pub fn window_discard_buffer_from_dead_windows (buffer: Lisp_Object);
+    pub safe fn window_discard_buffer_from_dead_windows (buffer: Lisp_Object);
     /// C: window.h 1235: `mru_rooted_frame` - `Lisp_Object mru_rooted_frame (struct frame *)`
     pub fn mru_rooted_frame (f: *mut c_void) -> Lisp_Object;
     /// C: window.h 1236: `init_window_once` - `void init_window_once (void)`
@@ -384,7 +384,7 @@ pub mod window_fn_decls {
     /// C: window.h 1237: `init_window` - `void init_window (void)`
     pub fn init_window ();
     /// C: window.h 1238: `syms_of_window` - `void syms_of_window (void)`
-    pub fn syms_of_window ();
+    pub safe fn syms_of_window ();
   }
 }
 pub use self::window_fn_decls::*;
@@ -939,3 +939,380 @@ const _: () = core::assert! (core::mem::size_of::<window> () == 544);
 const _: () = core::assert! (core::mem::offset_of! (window, last_mark) == 368);
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 const _: () = core::assert! (core::mem::offset_of! (window, window_end_bytepos) == 536);
+
+// --- U7 safe window boundary primitives (P-486) ----------------------------
+
+#[inline(always)]
+pub fn decode_any_window_object (win: Lisp_Object) -> Lisp_Object {
+  /* SAFETY: `decode_any_window` validates `win` (defaulting `nil` to `selected_window`) and returns a live `window *`. */
+  let w = unsafe { decode_any_window (win) };
+  assert! (!w.is_null ());
+  make_lisp_ptr (w as *mut c_void, Lisp_Type::Lisp_Vectorlike)
+}
+
+#[inline(always)]
+pub fn decode_valid_window_object (win: Lisp_Object) -> Lisp_Object {
+  let obj = if NILP (win) { selected_window.get () } else { win };
+  CHECK_VALID_WINDOW (obj);
+  obj
+}
+
+#[inline(always)]
+pub fn decode_live_window_object (win: Lisp_Object) -> Lisp_Object {
+  /* SAFETY: `decode_live_window` validates `win` (defaulting `nil` to `selected_window`) and returns a live leaf `window *`. */
+  let w = unsafe { decode_live_window (win) };
+  assert! (!w.is_null ());
+  make_lisp_ptr (w as *mut c_void, Lisp_Type::Lisp_Vectorlike)
+}
+
+#[inline(always)]
+pub fn window_frame_obj (win: Lisp_Object) -> Lisp_Object {
+  let obj = decode_valid_window_object (win);
+  /* SAFETY: `obj` verified `WINDOW_VALID_P`. */
+  unsafe { (*XWINDOW (obj)).frame }
+}
+
+#[inline(always)]
+pub fn window_buffer_obj (win: Lisp_Object) -> Lisp_Object {
+  let obj = decode_any_window_object (win);
+  let w = XWINDOW (obj);
+  if WINDOW_LEAF_P (w) {
+    /* SAFETY: `w` verified leaf window (`WINDOWP(obj)`). */
+    unsafe { (*w).contents }
+  } else {
+    Qnil ()
+  }
+}
+
+#[inline(always)]
+pub fn window_parent_obj (win: Lisp_Object) -> Lisp_Object {
+  let obj = decode_valid_window_object (win);
+  /* SAFETY: `obj` verified `WINDOW_VALID_P`. */
+  unsafe { (*XWINDOW (obj)).parent }
+}
+
+#[inline(always)]
+pub fn window_prev_sibling_obj (win: Lisp_Object) -> Lisp_Object {
+  let obj = decode_valid_window_object (win);
+  /* SAFETY: `obj` verified `WINDOW_VALID_P`. */
+  unsafe { (*XWINDOW (obj)).prev }
+}
+
+#[inline(always)]
+pub fn window_next_sibling_obj (win: Lisp_Object) -> Lisp_Object {
+  let obj = decode_valid_window_object (win);
+  /* SAFETY: `obj` verified `WINDOW_VALID_P`. */
+  unsafe { (*XWINDOW (obj)).next }
+}
+
+#[inline(always)]
+pub fn window_top_child_obj (win: Lisp_Object) -> Lisp_Object {
+  let obj = decode_valid_window_object (win);
+  let w = XWINDOW (obj);
+  if WINDOW_VERTICAL_COMBINATION_P (w) {
+    /* SAFETY: `w` verified vertical combination window. */
+    unsafe { (*w).contents }
+  } else {
+    Qnil ()
+  }
+}
+
+#[inline(always)]
+pub fn window_left_child_obj (win: Lisp_Object) -> Lisp_Object {
+  let obj = decode_valid_window_object (win);
+  let w = XWINDOW (obj);
+  if WINDOW_HORIZONTAL_COMBINATION_P (w) {
+    /* SAFETY: `w` verified horizontal combination window. */
+    unsafe { (*w).contents }
+  } else {
+    Qnil ()
+  }
+}
+
+#[inline(always)]
+pub fn window_minibuffer_p_safe (win: Lisp_Object) -> bool {
+  let obj = decode_valid_window_object (win);
+  MINI_WINDOW_P (XWINDOW (obj))
+}
+
+#[inline(always)]
+pub fn minibuffer_window_for_frame_obj (frame: Lisp_Object) -> Lisp_Object {
+  /* SAFETY: `decode_live_frame` validates `frame` (defaulting `nil` to `selected_frame`). */
+  unsafe { FRAME_MINIBUF_WINDOW (decode_live_frame (frame)) }
+}
+
+#[inline(always)]
+pub fn window_combination_limit_obj (win: Lisp_Object) -> Lisp_Object {
+  CHECK_VALID_WINDOW (win);
+  let w = XWINDOW (win);
+  if WINDOW_LEAF_P (w) {
+    /* SAFETY: static NUL-terminated message with zero format arguments. */
+    unsafe { error (c"Combination limit is meaningful for internal windows only".as_ptr ()) };
+  }
+  /* SAFETY: `w` verified internal valid window. */
+  unsafe { (*w).combination_limit }
+}
+
+#[inline(always)]
+pub fn set_window_combination_limit_obj (win: Lisp_Object, limit: Lisp_Object) -> Lisp_Object {
+  CHECK_VALID_WINDOW (win);
+  let w = XWINDOW (win);
+  if WINDOW_LEAF_P (w) {
+    /* SAFETY: static NUL-terminated message with zero format arguments. */
+    unsafe { error (c"Combination limit is meaningful for internal windows only".as_ptr ()) };
+  }
+  /* SAFETY: `w` verified internal valid window. */
+  unsafe { (*w).combination_limit = limit; }
+  limit
+}
+
+#[inline(always)]
+pub fn window_dedicated_p_obj (win: Lisp_Object) -> Lisp_Object {
+  let obj = decode_live_window_object (win);
+  /* SAFETY: `obj` verified live window. */
+  unsafe { (*XWINDOW (obj)).dedicated }
+}
+
+#[inline(always)]
+pub fn set_window_dedicated_p_obj (win: Lisp_Object, flag: Lisp_Object) -> Lisp_Object {
+  let obj = decode_live_window_object (win);
+  /* SAFETY: `obj` verified live window. */
+  unsafe { (*XWINDOW (obj)).dedicated = flag; }
+  flag
+}
+
+#[inline(always)]
+pub fn window_display_table_obj (win: Lisp_Object) -> Lisp_Object {
+  let obj = decode_live_window_object (win);
+  /* SAFETY: `obj` verified live window. */
+  unsafe { (*XWINDOW (obj)).display_table }
+}
+
+#[inline(always)]
+pub fn set_window_display_table_obj (win: Lisp_Object, table: Lisp_Object) -> Lisp_Object {
+  let obj = decode_live_window_object (win);
+  /* SAFETY: `obj` verified live window (`wset_display_table`). */
+  unsafe { (*XWINDOW (obj)).display_table = table; }
+  table
+}
+
+#[inline(always)]
+pub fn window_cursor_type_obj (win: Lisp_Object) -> Lisp_Object {
+  let obj = decode_live_window_object (win);
+  /* SAFETY: `obj` verified live window. */
+  unsafe { (*XWINDOW (obj)).cursor_type }
+}
+
+#[inline(always)]
+pub fn window_point_safe (win: Lisp_Object) -> ptrdiff_t {
+  let obj = decode_live_window_object (win);
+  /* SAFETY: `obj` verified live window. */
+  unsafe { window_point (XWINDOW (obj)) }
+}
+
+#[inline(always)]
+pub fn window_old_point_obj (win: Lisp_Object) -> Lisp_Object {
+  let obj = decode_live_window_object (win);
+  /* SAFETY: `obj` verified live window; returns `(marker-position w->old_pointm)`. */
+  unsafe { Fmarker_position ((*XWINDOW (obj)).old_pointm) }
+}
+
+#[inline(always)]
+pub fn window_start_pos_obj (win: Lisp_Object) -> Lisp_Object {
+  let obj = decode_live_window_object (win);
+  /* SAFETY: `obj` verified live window; returns `(marker-position w->start)`. */
+  unsafe { Fmarker_position ((*XWINDOW (obj)).start) }
+}
+
+#[inline(always)]
+pub fn window_hscroll_safe (win: Lisp_Object) -> ptrdiff_t {
+  let obj = decode_live_window_object (win);
+  /* SAFETY: `obj` verified live window. */
+  unsafe { (*XWINDOW (obj)).hscroll }
+}
+
+#[inline(always)]
+pub fn window_use_time_safe (win: Lisp_Object) -> EMACS_INT {
+  let obj = decode_live_window_object (win);
+  /* SAFETY: `obj` verified live window. */
+  unsafe { (*XWINDOW (obj)).use_time }
+}
+
+#[inline(always)]
+pub fn window_bump_use_time_for_select () -> EMACS_INT {
+  let next = window_select_count.get () + 1;
+  window_select_count.set (next);
+  next
+}
+
+#[inline(always)]
+pub fn window_sequence_number_safe (win: Lisp_Object) -> EMACS_INT {
+  let obj = decode_any_window_object (win);
+  /* SAFETY: `obj` verified `WINDOWP`. */
+  unsafe { (*XWINDOW (obj)).sequence_number }
+}
+
+#[inline(always)]
+pub fn window_new_total_obj (win: Lisp_Object) -> Lisp_Object {
+  let obj = decode_valid_window_object (win);
+  /* SAFETY: `obj` verified `WINDOW_VALID_P`. */
+  unsafe { (*XWINDOW (obj)).new_total }
+}
+
+#[inline(always)]
+pub fn window_new_normal_obj (win: Lisp_Object) -> Lisp_Object {
+  let obj = decode_valid_window_object (win);
+  /* SAFETY: `obj` verified `WINDOW_VALID_P`. */
+  unsafe { (*XWINDOW (obj)).new_normal }
+}
+
+#[inline(always)]
+pub fn window_new_pixel_obj (win: Lisp_Object) -> Lisp_Object {
+  let obj = decode_valid_window_object (win);
+  /* SAFETY: `obj` verified `WINDOW_VALID_P`. */
+  unsafe { (*XWINDOW (obj)).new_pixel }
+}
+
+#[inline(always)]
+pub fn window_normal_size_obj (win: Lisp_Object, horizontal: Lisp_Object) -> Lisp_Object {
+  let obj = decode_valid_window_object (win);
+  /* SAFETY: `obj` verified `WINDOW_VALID_P`. */
+  unsafe {
+    let w = XWINDOW (obj);
+    if NILP (horizontal) { (*w).normal_lines } else { (*w).normal_cols }
+  }
+}
+
+#[inline(always)]
+pub fn window_prev_buffers_obj (win: Lisp_Object) -> Lisp_Object {
+  let obj = decode_live_window_object (win);
+  /* SAFETY: `obj` verified live window. */
+  unsafe { (*XWINDOW (obj)).prev_buffers }
+}
+
+#[inline(always)]
+pub fn set_window_prev_buffers_obj (win: Lisp_Object, list: Lisp_Object) -> Lisp_Object {
+  let obj = decode_live_window_object (win);
+  /* SAFETY: `obj` verified live window. */
+  unsafe { (*XWINDOW (obj)).prev_buffers = list; }
+  list
+}
+
+#[inline(always)]
+pub fn window_next_buffers_obj (win: Lisp_Object) -> Lisp_Object {
+  let obj = decode_live_window_object (win);
+  /* SAFETY: `obj` verified live window. */
+  unsafe { (*XWINDOW (obj)).next_buffers }
+}
+
+#[inline(always)]
+pub fn set_window_next_buffers_obj (win: Lisp_Object, list: Lisp_Object) -> Lisp_Object {
+  let obj = decode_live_window_object (win);
+  /* SAFETY: `obj` verified live window. */
+  unsafe { (*XWINDOW (obj)).next_buffers = list; }
+  list
+}
+
+#[inline(always)]
+pub fn window_parameters_obj (win: Lisp_Object) -> Lisp_Object {
+  let obj = decode_valid_window_object (win);
+  /* SAFETY: `obj` verified `WINDOW_VALID_P`. */
+  unsafe { Fcopy_alist ((*XWINDOW (obj)).window_parameters) }
+}
+
+#[inline(always)]
+pub fn window_parameter_safe (win: Lisp_Object, parameter: Lisp_Object) -> Lisp_Object {
+  let obj = decode_any_window_object (win);
+  /* SAFETY: `obj` verified `WINDOWP`. */
+  unsafe { window_parameter (XWINDOW (obj), parameter) }
+}
+
+#[inline(always)]
+pub fn set_window_parameter_safe (
+  window: Lisp_Object,
+  parameter: Lisp_Object,
+  value: Lisp_Object,
+) -> Lisp_Object {
+  let obj = decode_any_window_object (window);
+  /* SAFETY: `obj` verified `WINDOWP`; preserves `:filtered` face-remapping redraw and alist update. */
+  unsafe {
+    let w = XWINDOW (obj);
+    let old_alist_elt = Fassq (parameter, (*w).window_parameters);
+    let f = WINDOW_XFRAME! (w);
+    if SYMBOLP (parameter)
+      && WINDOW_LIVE_P (window)
+      && EQ (Fget (parameter, QCfiltered ()), Qt ())
+      && FRAME_WINDOW_P (f)
+      && !EQ (CDR_SAFE (old_alist_elt), value)
+      && window_auto_redraw_on_parameter_change.get ()
+    {
+      frame_set_flag (f, 2, FRAME_FACE_CHANGE_SHIFT, 1);
+      fset_redisplay (f as *mut c_void);
+    }
+    if NILP (old_alist_elt) {
+      (*w).window_parameters = Fcons (Fcons (parameter, value), (*w).window_parameters);
+    } else {
+      Fsetcdr (old_alist_elt, value);
+    }
+  }
+  value
+}
+
+#[inline(always)]
+pub fn window_pixel_and_edge_dims_valid (
+  win: Lisp_Object,
+) -> (EMACS_INT, EMACS_INT, EMACS_INT, EMACS_INT, EMACS_INT, EMACS_INT, EMACS_INT, EMACS_INT) {
+  let obj = decode_valid_window_object (win);
+  /* SAFETY: `obj` verified `WINDOW_VALID_P`. */
+  unsafe {
+    let w = XWINDOW (obj);
+    (
+      (*w).pixel_width as EMACS_INT,
+      (*w).pixel_height as EMACS_INT,
+      (*w).old_pixel_width as EMACS_INT,
+      (*w).old_pixel_height as EMACS_INT,
+      (*w).pixel_left as EMACS_INT,
+      (*w).pixel_top as EMACS_INT,
+      (*w).left_col as EMACS_INT,
+      (*w).top_line as EMACS_INT,
+    )
+  }
+}
+
+#[inline(always)]
+pub fn window_total_height_safe (win: Lisp_Object, round: Lisp_Object) -> EMACS_INT {
+  let obj = decode_valid_window_object (win);
+  /* SAFETY: `obj` verified `WINDOW_VALID_P`. */
+  unsafe {
+    let w = XWINDOW (obj);
+    if !EQ (round, Qfloor ()) && !EQ (round, Qceiling ()) {
+      (*w).total_lines as EMACS_INT
+    } else {
+      let unit = FRAME_LINE_HEIGHT (WINDOW_XFRAME! (w));
+      (if EQ (round, Qceiling ()) {
+        ((*w).pixel_height + unit - 1) / unit
+      } else {
+        (*w).pixel_height / unit
+      }) as EMACS_INT
+    }
+  }
+}
+
+#[inline(always)]
+pub fn window_total_width_safe (win: Lisp_Object, round: Lisp_Object) -> EMACS_INT {
+  let obj = decode_valid_window_object (win);
+  /* SAFETY: `obj` verified `WINDOW_VALID_P`. */
+  unsafe {
+    let w = XWINDOW (obj);
+    if !EQ (round, Qfloor ()) && !EQ (round, Qceiling ()) {
+      (*w).total_cols as EMACS_INT
+    } else {
+      let unit = FRAME_COLUMN_WIDTH (WINDOW_XFRAME! (w));
+      (if EQ (round, Qceiling ()) {
+        ((*w).pixel_width + unit - 1) / unit
+      } else {
+        (*w).pixel_width / unit
+      }) as EMACS_INT
+    }
+  }
+}

@@ -11,6 +11,8 @@
 // port keeps the same array name and order, with `&CStr` elements so `build_string` can take
 // `buildobj[i].as_ptr ()` (C's `char const *`).
 
+#![forbid(unsafe_code)]
+
 pub static buildobj: [&core::ffi::CStr; 75] = [
     c"dispnew.o",
     c"frame.o",

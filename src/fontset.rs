@@ -511,7 +511,7 @@ macro_rules! FONTSET_ID {
   ($fontset:expr) => { FAM_ELEM! ((*XCHAR_TABLE ($fontset)).extras, 0) };  // C 190
 }
 #[cfg (feature = "have_window_system")]
-unsafe fn set_fontset_id (fontset: Lisp_Object, id: Lisp_Object)            // C 193
+fn set_fontset_id (fontset: Lisp_Object, id: Lisp_Object)            // C 193
 {
   set_char_table_extras (fontset, 0, id);
 }
@@ -523,7 +523,7 @@ macro_rules! FONTSET_NAME {
   ($fontset:expr) => { FAM_ELEM! ((*XCHAR_TABLE ($fontset)).extras, 1) };  // C 202
 }
 #[cfg (feature = "have_window_system")]
-unsafe fn set_fontset_name (fontset: Lisp_Object, name: Lisp_Object)        // C 202
+fn set_fontset_name (fontset: Lisp_Object, name: Lisp_Object)        // C 202
 {
   set_char_table_extras (fontset, 1, name);
 }
@@ -533,7 +533,7 @@ macro_rules! FONTSET_ASCII {
   ($fontset:expr) => { FAM_ELEM! ((*XCHAR_TABLE ($fontset)).extras, 2) };  // C 209
 }
 #[cfg (feature = "have_window_system")]
-unsafe fn set_fontset_ascii (fontset: Lisp_Object, ascii: Lisp_Object)      // C 209
+fn set_fontset_ascii (fontset: Lisp_Object, ascii: Lisp_Object)      // C 209
 {
   set_char_table_extras (fontset, 2, ascii);
 }
@@ -545,7 +545,7 @@ macro_rules! FONTSET_BASE {
   ($fontset:expr) => { FAM_ELEM! ((*XCHAR_TABLE ($fontset)).extras, 3) };  // C 218
 }
 #[cfg (feature = "have_window_system")]
-unsafe fn set_fontset_base (fontset: Lisp_Object, base: Lisp_Object)        // C 218
+fn set_fontset_base (fontset: Lisp_Object, base: Lisp_Object)        // C 218
 {
   set_char_table_extras (fontset, 3, base);
 }
@@ -555,7 +555,7 @@ macro_rules! FONTSET_FRAME {
   ($fontset:expr) => { FAM_ELEM! ((*XCHAR_TABLE ($fontset)).extras, 4) };  // C 225
 }
 #[cfg (feature = "have_window_system")]
-unsafe fn set_fontset_frame (fontset: Lisp_Object, frame: Lisp_Object)      // C 225
+fn set_fontset_frame (fontset: Lisp_Object, frame: Lisp_Object)      // C 225
 {
   set_char_table_extras (fontset, 4, frame);
 }
@@ -565,7 +565,7 @@ macro_rules! FONTSET_NOFONT_FACE {
   ($fontset:expr) => { FAM_ELEM! ((*XCHAR_TABLE ($fontset)).extras, 5) };  // C 232
 }
 #[cfg (feature = "have_window_system")]
-unsafe fn set_fontset_nofont_face (fontset: Lisp_Object, face: Lisp_Object) // C 232
+fn set_fontset_nofont_face (fontset: Lisp_Object, face: Lisp_Object) // C 232
 {
   set_char_table_extras (fontset, 5, face);
 }
@@ -575,7 +575,7 @@ macro_rules! FONTSET_DEFAULT {
   ($fontset:expr) => { FAM_ELEM! ((*XCHAR_TABLE ($fontset)).extras, 6) };  // C 239
 }
 #[cfg (feature = "have_window_system")]
-unsafe fn set_fontset_default (fontset: Lisp_Object, def: Lisp_Object)      // C 239
+fn set_fontset_default (fontset: Lisp_Object, def: Lisp_Object)      // C 239
 {
   set_char_table_extras (fontset, 6, def);
 }
@@ -587,7 +587,7 @@ macro_rules! FONTSET_FALLBACK {
   ($fontset:expr) => { FAM_ELEM! ((*XCHAR_TABLE ($fontset)).extras, 7) };  // C 248
 }
 #[cfg (feature = "have_window_system")]
-unsafe fn set_fontset_fallback (fontset: Lisp_Object, fallback: Lisp_Object) // C 248
+fn set_fontset_fallback (fontset: Lisp_Object, fallback: Lisp_Object) // C 248
 {
   set_char_table_extras (fontset, 7, fallback);
 }

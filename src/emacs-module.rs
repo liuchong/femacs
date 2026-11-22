@@ -269,10 +269,9 @@ unsafe fn module_decode_utf_8 (str_: *const c_char, len: ptrdiff_t) -> Lisp_Obje
 
 /* C 227-233: `module_memory_buffer_too_small`.  */
 #[cfg (feature = "have_modules")]
-unsafe fn module_memory_buffer_too_small (actual: ptrdiff_t, required: ptrdiff_t)
+fn module_memory_buffer_too_small (actual: ptrdiff_t, required: ptrdiff_t)
 {
-  // SAFETY: external C dynamic-module ABI boundary; validates `emacs_env` ownership and intercepts all `NonLocalExit`s into pending environment state before returning to C.
-  unsafe {
+  {
   xsignal2 (Qmemory_buffer_too_small (), INT_TO_INTEGER (actual),
             INT_TO_INTEGER (required));
 
@@ -360,14 +359,14 @@ macro_rules! MODULE_FUNCTION_BEGIN_NO_CATCH {
 
 /* C 352-356: `CHECK_MODULE_FUNCTION`.  */
 #[cfg (feature = "have_modules")]
-unsafe fn CHECK_MODULE_FUNCTION (obj: Lisp_Object)
+fn CHECK_MODULE_FUNCTION (obj: Lisp_Object)
 {
   CHECK_TYPE (MODULE_FUNCTIONP (obj), Qmodule_function_p (), obj);
 }
 
 /* C 358-362: `CHECK_USER_PTR`.  */
 #[cfg (feature = "have_modules")]
-unsafe fn CHECK_USER_PTR (obj: Lisp_Object)
+fn CHECK_USER_PTR (obj: Lisp_Object)
 {
   CHECK_TYPE (USER_PTRP (obj), Quser_ptrp (), obj);
 }
@@ -709,7 +708,7 @@ unsafe extern "C" fn module_get_function_finalizer (env: *mut emacs_env,
 {
   // SAFETY: external C dynamic-module ABI boundary; validates `emacs_env` ownership and intercepts all `NonLocalExit`s into pending environment state before returning to C.
   unsafe {
-  module_with_nonlocal_catch (env, None, || unsafe {
+  module_with_nonlocal_catch (env, None, || {
     let lisp: Lisp_Object = value_to_lisp (arg);
     CHECK_MODULE_FUNCTION (lisp);
     (*XMODULE_FUNCTION (lisp).cast::<lisp_module_function_def::Lisp_Module_Function> ()).finalizer
@@ -725,7 +724,7 @@ unsafe extern "C" fn module_set_function_finalizer (env: *mut emacs_env, arg: em
 {
   // SAFETY: external C dynamic-module ABI boundary; validates `emacs_env` ownership and intercepts all `NonLocalExit`s into pending environment state before returning to C.
   unsafe {
-  module_with_nonlocal_catch_void (env, || unsafe {
+  module_with_nonlocal_catch_void (env, || {
     let lisp: Lisp_Object = value_to_lisp (arg);
     CHECK_MODULE_FUNCTION (lisp);
     (*XMODULE_FUNCTION (lisp).cast::<lisp_module_function_def::Lisp_Module_Function> ()).finalizer = fin;
@@ -755,7 +754,7 @@ unsafe extern "C" fn module_make_interactive (env: *mut emacs_env, function: ema
 {
   // SAFETY: external C dynamic-module ABI boundary; validates `emacs_env` ownership and intercepts all `NonLocalExit`s into pending environment state before returning to C.
   unsafe {
-  module_with_nonlocal_catch_void (env, || unsafe {
+  module_with_nonlocal_catch_void (env, || {
     let lisp_fun: Lisp_Object = value_to_lisp (function);
     CHECK_MODULE_FUNCTION (lisp_fun);
     let lisp_spec: Lisp_Object = value_to_lisp (spec);
@@ -854,7 +853,7 @@ pub unsafe extern "C" fn femacs_vm_module_call0_with_host_guard (
 {
   // SAFETY: external C dynamic-module ABI boundary; validates `emacs_env` ownership and intercepts all `NonLocalExit`s into pending environment state before returning to C.
   unsafe {
-  module_with_nonlocal_catch (env, std::ptr::null_mut (), || unsafe {
+  module_with_nonlocal_catch (env, std::ptr::null_mut (), || {
     let res = call0_with_host_drop_guard_inner (value_to_lisp (func));
     lisp_to_value (env, res)
   })
@@ -884,7 +883,7 @@ pub unsafe extern "C" fn femacs_vm_u4_exercise_safe_domains (
 {
   // SAFETY: external C dynamic-module ABI boundary; validates `emacs_env` ownership and intercepts all `NonLocalExit`s into pending environment state before returning to C.
   unsafe {
-  module_with_nonlocal_catch (env, std::ptr::null_mut (), || unsafe {
+  module_with_nonlocal_catch (env, std::ptr::null_mut (), || {
     let raw_path = value_to_lisp (path_val);
     CHECK_STRING (raw_path);
     let len = SBYTES (raw_path).max (0) as usize;
@@ -906,7 +905,7 @@ unsafe extern "C" fn module_intern (env: *mut emacs_env, name: *const c_char) ->
 {
   // SAFETY: external C dynamic-module ABI boundary; validates `emacs_env` ownership and intercepts all `NonLocalExit`s into pending environment state before returning to C.
   unsafe {
-  module_with_nonlocal_catch (env, std::ptr::null_mut (), || unsafe {
+  module_with_nonlocal_catch (env, std::ptr::null_mut (), || {
     lisp_to_value (env, intern (name))
   })
 
@@ -919,7 +918,7 @@ unsafe extern "C" fn module_type_of (env: *mut emacs_env, arg: emacs_value) -> e
 {
   // SAFETY: external C dynamic-module ABI boundary; validates `emacs_env` ownership and intercepts all `NonLocalExit`s into pending environment state before returning to C.
   unsafe {
-  module_with_nonlocal_catch (env, std::ptr::null_mut (), || unsafe {
+  module_with_nonlocal_catch (env, std::ptr::null_mut (), || {
     lisp_to_value (env, Ftype_of (value_to_lisp (arg)))
   })
 
@@ -974,7 +973,7 @@ unsafe extern "C" fn module_make_integer (env: *mut emacs_env, n: intmax_t) -> e
 {
   // SAFETY: external C dynamic-module ABI boundary; validates `emacs_env` ownership and intercepts all `NonLocalExit`s into pending environment state before returning to C.
   unsafe {
-  module_with_nonlocal_catch (env, std::ptr::null_mut (), || unsafe {
+  module_with_nonlocal_catch (env, std::ptr::null_mut (), || {
     lisp_to_value (env, make_int (n))
   })
 
@@ -987,7 +986,7 @@ unsafe extern "C" fn module_extract_float (env: *mut emacs_env, arg: emacs_value
 {
   // SAFETY: external C dynamic-module ABI boundary; validates `emacs_env` ownership and intercepts all `NonLocalExit`s into pending environment state before returning to C.
   unsafe {
-  module_with_nonlocal_catch (env, 0.0, || unsafe {
+  module_with_nonlocal_catch (env, 0.0, || {
     let lisp: Lisp_Object = value_to_lisp (arg);
     CHECK_TYPE (FLOATP (lisp), Qfloatp (), lisp);
     XFLOAT_DATA (lisp)
@@ -1002,7 +1001,7 @@ unsafe extern "C" fn module_make_float (env: *mut emacs_env, d: c_double) -> ema
 {
   // SAFETY: external C dynamic-module ABI boundary; validates `emacs_env` ownership and intercepts all `NonLocalExit`s into pending environment state before returning to C.
   unsafe {
-  module_with_nonlocal_catch (env, std::ptr::null_mut (), || unsafe {
+  module_with_nonlocal_catch (env, std::ptr::null_mut (), || {
     lisp_to_value (env, make_float (d))
   })
 
@@ -1016,7 +1015,7 @@ unsafe extern "C" fn module_copy_string_contents (env: *mut emacs_env, value: em
 {
   // SAFETY: external C dynamic-module ABI boundary; validates `emacs_env` ownership and intercepts all `NonLocalExit`s into pending environment state before returning to C.
   unsafe {
-  module_with_nonlocal_catch (env, false, || unsafe {
+  module_with_nonlocal_catch (env, false, || {
     let lisp_str: Lisp_Object = value_to_lisp (value);
     CHECK_STRING (lisp_str);
 
@@ -1105,7 +1104,7 @@ unsafe extern "C" fn module_make_user_ptr (env: *mut emacs_env, fin: emacs_final
 {
   // SAFETY: external C dynamic-module ABI boundary; validates `emacs_env` ownership and intercepts all `NonLocalExit`s into pending environment state before returning to C.
   unsafe {
-  module_with_nonlocal_catch (env, std::ptr::null_mut (), || unsafe {
+  module_with_nonlocal_catch (env, std::ptr::null_mut (), || {
     lisp_to_value (env, make_user_ptr (fin, ptr))
   })
 
@@ -1118,7 +1117,7 @@ unsafe extern "C" fn module_get_user_ptr (env: *mut emacs_env, arg: emacs_value)
 {
   // SAFETY: external C dynamic-module ABI boundary; validates `emacs_env` ownership and intercepts all `NonLocalExit`s into pending environment state before returning to C.
   unsafe {
-  module_with_nonlocal_catch (env, std::ptr::null_mut (), || unsafe {
+  module_with_nonlocal_catch (env, std::ptr::null_mut (), || {
     let lisp: Lisp_Object = value_to_lisp (arg);
     CHECK_USER_PTR (lisp);
     (*XUSER_PTR (lisp)).p
@@ -1133,7 +1132,7 @@ unsafe extern "C" fn module_set_user_ptr (env: *mut emacs_env, arg: emacs_value,
 {
   // SAFETY: external C dynamic-module ABI boundary; validates `emacs_env` ownership and intercepts all `NonLocalExit`s into pending environment state before returning to C.
   unsafe {
-  module_with_nonlocal_catch_void (env, || unsafe {
+  module_with_nonlocal_catch_void (env, || {
     let lisp: Lisp_Object = value_to_lisp (arg);
     CHECK_USER_PTR (lisp);
     (*XUSER_PTR (lisp)).p = ptr;
@@ -1148,7 +1147,7 @@ unsafe extern "C" fn module_get_user_finalizer (env: *mut emacs_env, arg: emacs_
 {
   // SAFETY: external C dynamic-module ABI boundary; validates `emacs_env` ownership and intercepts all `NonLocalExit`s into pending environment state before returning to C.
   unsafe {
-  module_with_nonlocal_catch (env, None, || unsafe {
+  module_with_nonlocal_catch (env, None, || {
     let lisp: Lisp_Object = value_to_lisp (arg);
     CHECK_USER_PTR (lisp);
     (*XUSER_PTR (lisp)).finalizer
@@ -1164,7 +1163,7 @@ unsafe extern "C" fn module_set_user_finalizer (env: *mut emacs_env, arg: emacs_
 {
   // SAFETY: external C dynamic-module ABI boundary; validates `emacs_env` ownership and intercepts all `NonLocalExit`s into pending environment state before returning to C.
   unsafe {
-  module_with_nonlocal_catch_void (env, || unsafe {
+  module_with_nonlocal_catch_void (env, || {
     let lisp: Lisp_Object = value_to_lisp (arg);
     CHECK_USER_PTR (lisp);
     (*XUSER_PTR (lisp)).finalizer = fin;
@@ -1193,7 +1192,7 @@ unsafe extern "C" fn module_vec_set (env: *mut emacs_env, vector: emacs_value, i
 {
   // SAFETY: external C dynamic-module ABI boundary; validates `emacs_env` ownership and intercepts all `NonLocalExit`s into pending environment state before returning to C.
   unsafe {
-  module_with_nonlocal_catch_void (env, || unsafe {
+  module_with_nonlocal_catch_void (env, || {
     let lisp: Lisp_Object = value_to_lisp (vector);
     check_vec_index (lisp, index);
     ASET (lisp, index, value_to_lisp (value));
@@ -1209,7 +1208,7 @@ unsafe extern "C" fn module_vec_get (env: *mut emacs_env, vector: emacs_value,
 {
   // SAFETY: external C dynamic-module ABI boundary; validates `emacs_env` ownership and intercepts all `NonLocalExit`s into pending environment state before returning to C.
   unsafe {
-  module_with_nonlocal_catch (env, std::ptr::null_mut (), || unsafe {
+  module_with_nonlocal_catch (env, std::ptr::null_mut (), || {
     let lisp: Lisp_Object = value_to_lisp (vector);
     check_vec_index (lisp, index);
     lisp_to_value (env, AREF (lisp, index))
@@ -1224,7 +1223,7 @@ unsafe extern "C" fn module_vec_size (env: *mut emacs_env, vector: emacs_value) 
 {
   // SAFETY: external C dynamic-module ABI boundary; validates `emacs_env` ownership and intercepts all `NonLocalExit`s into pending environment state before returning to C.
   unsafe {
-  module_with_nonlocal_catch (env, 0, || unsafe {
+  module_with_nonlocal_catch (env, 0, || {
     let lisp: Lisp_Object = value_to_lisp (vector);
     CHECK_VECTOR (lisp);
     ASIZE (lisp)
@@ -1279,7 +1278,7 @@ unsafe extern "C" fn module_process_input (env: *mut emacs_env) -> emacs_process
 {
   // SAFETY: external C dynamic-module ABI boundary; validates `emacs_env` ownership and intercepts all `NonLocalExit`s into pending environment state before returning to C.
   unsafe {
-  module_with_nonlocal_catch (env, emacs_process_input_quit, || unsafe {
+  module_with_nonlocal_catch (env, emacs_process_input_quit, || {
     maybe_quit ();
     emacs_process_input_continue
   })
@@ -1293,7 +1292,7 @@ unsafe extern "C" fn module_extract_time (env: *mut emacs_env, arg: emacs_value)
 {
   // SAFETY: external C dynamic-module ABI boundary; validates `emacs_env` ownership and intercepts all `NonLocalExit`s into pending environment state before returning to C.
   unsafe {
-  module_with_nonlocal_catch (env, timespec { tv_sec: 0, tv_nsec: 0 }, || unsafe {
+  module_with_nonlocal_catch (env, timespec { tv_sec: 0, tv_nsec: 0 }, || {
     lisp_time_argument (value_to_lisp (arg))
   })
 
@@ -1306,7 +1305,7 @@ unsafe extern "C" fn module_make_time (env: *mut emacs_env, time: timespec) -> e
 {
   // SAFETY: external C dynamic-module ABI boundary; validates `emacs_env` ownership and intercepts all `NonLocalExit`s into pending environment state before returning to C.
   unsafe {
-  module_with_nonlocal_catch (env, std::ptr::null_mut (), || unsafe {
+  module_with_nonlocal_catch (env, std::ptr::null_mut (), || {
     lisp_to_value (env, timespec_to_lisp (time))
   })
 
@@ -1449,7 +1448,7 @@ unsafe extern "C" fn module_make_big_integer (env: *mut emacs_env, sign: c_int,
 {
   // SAFETY: external C dynamic-module ABI boundary; validates `emacs_env` ownership and intercepts all `NonLocalExit`s into pending environment state before returning to C.
   unsafe {
-  module_with_nonlocal_catch (env, std::ptr::null_mut (), || unsafe {
+  module_with_nonlocal_catch (env, std::ptr::null_mut (), || {
     if sign == 0
       {
         return lisp_to_value (env, make_fixed_natnum (0));
@@ -1481,7 +1480,7 @@ unsafe extern "C" fn module_open_channel (env: *mut emacs_env, pipe_process: ema
 {
   // SAFETY: external C dynamic-module ABI boundary; validates `emacs_env` ownership and intercepts all `NonLocalExit`s into pending environment state before returning to C.
   unsafe {
-  module_with_nonlocal_catch (env, -1, || unsafe {
+  module_with_nonlocal_catch (env, -1, || {
     open_channel_for_module (value_to_lisp (pipe_process))
   })
 
@@ -1513,12 +1512,6 @@ unsafe extern "C-unwind"
 unsafe extern "C-unwind"
 {
   pub fn memory_full (size: size_t) -> !;
-}
-// C: lisp.h 4436: extern void mark_object (Lisp_Object);
-#[cfg (feature = "have_modules")]
-unsafe extern "C-unwind"
-{
-  pub fn mark_object (obj: Lisp_Object);
 }
 // C: lisp.h 4892: extern Lisp_Object make_user_ptr (void (*finalizer) (void *), void *p);
 #[cfg (feature = "have_modules")]
@@ -1608,10 +1601,10 @@ DEFUN! ("module-load", Fmodule_load, Smodule_load, 1, 1, 0,
   if module_init.is_none ()
     { xsignal1 (Qmissing_module_init_function (), file); }
 
-  let mut rt_pub: emacs_runtime = /* SAFETY: external C dynamic-module ABI boundary; validates `emacs_env` ownership and intercepts all `NonLocalExit`s into pending environment state before returning to C. */ unsafe { std::mem::zeroed () };
-  let mut rt_priv: emacs_runtime_private = unsafe { std::mem::zeroed () };
-  let mut env_pub: emacs_env = unsafe { std::mem::zeroed () };
-  let mut env_priv: emacs_env_private = unsafe { std::mem::zeroed () };
+  let mut rt_pub: emacs_runtime = { std::mem::zeroed () };
+  let mut rt_priv: emacs_runtime_private = { std::mem::zeroed () };
+  let mut env_pub: emacs_env = { std::mem::zeroed () };
+  let mut env_priv: emacs_env_private = { std::mem::zeroed () };
   rt_priv.env = initialize_environment (&raw mut env_pub, &raw mut env_priv);
 
   /* If we should use module assertions, reallocate the runtime object
@@ -1664,8 +1657,8 @@ pub unsafe extern "C-unwind" fn funcall_module (function: Lisp_Object, nargs: pt
         && ((*func).max_arity < 0 || nargs <= (*func).max_arity))
     { xsignal2 (Qwrong_number_of_arguments (), function, make_fixnum (nargs)); }
 
-  let mut r#pub: emacs_env = /* SAFETY: external C dynamic-module ABI boundary; validates `emacs_env` ownership and intercepts all `NonLocalExit`s into pending environment state before returning to C. */ unsafe { std::mem::zeroed () };
-  let mut priv_: emacs_env_private = unsafe { std::mem::zeroed () };
+  let mut r#pub: emacs_env = { std::mem::zeroed () };
+  let mut priv_: emacs_env_private = { std::mem::zeroed () };
   let env: *mut emacs_env = initialize_environment (&raw mut r#pub, &raw mut priv_);
   let count: specpdl_ref = SPECPDL_INDEX ();
   record_unwind_protect_module (SPECPDL_MODULE_ENVIRONMENT, env as *mut c_void);

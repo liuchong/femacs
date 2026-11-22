@@ -1457,10 +1457,9 @@ fn IS_DEVICE_SEP (_c_: c_char) -> bool { _c_ == b':' as c_char }
 
 /// C: lisp.h 4xxx: `INLINE bool FUNCTIONP (Lisp_Object)`.  (lisp.rs does not carry it.)
 #[inline(always)]
-unsafe fn FUNCTIONP (a: Lisp_Object) -> bool
+fn FUNCTIONP (a: Lisp_Object) -> bool
 {
-  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
-  unsafe {
+  {
   if SYMBOLP (a) { !NILP (Fsymbol_function (a)) } else { SUBRP (a) || NATIVE_COMP_FUNCTIONP (a) }
 
   }
@@ -1477,7 +1476,7 @@ DEFUN! ("load", Fload, Sload, 1, 5, 0,
 	 /* C 1117 leaves `lread_fd fd;` indeterminate; on Android the type is
 	    `struct android_fd_or_asset`, so `-1` is not a value of it - a zeroed record is the
 	    port's defined stand-in (P-14), and every read of it is under the guard below.  */
-	 let mut fd: lread_fd = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { core::mem::zeroed () };
+	 let mut fd: lread_fd = { core::mem::zeroed () };
 	 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]   // C 69: `#define USE_ANDROID_ASSETS`
 	 let mut rc: c_int = 0;
 	 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]   // C 69: `#define USE_ANDROID_ASSETS`
@@ -1952,12 +1951,11 @@ DEFUN! ("load", Fload, Sload, 1, 5, 0,
        });
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn save_match_data_load (file: Lisp_Object, noerror: Lisp_Object,
+pub extern "C-unwind" fn save_match_data_load (file: Lisp_Object, noerror: Lisp_Object,
 				nomessage: Lisp_Object, nosuffix: Lisp_Object,
 				must_suffix: Lisp_Object) -> Lisp_Object
 {
-  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
-  unsafe {
+  {
   let count: specpdl_ref = SPECPDL_INDEX ();
   record_unwind_save_match_data ();
   let result: Lisp_Object = Fload (file, noerror, nomessage, nosuffix, must_suffix);
@@ -3248,7 +3246,7 @@ unsafe fn read_char_escape (source: *mut source, next_char: c_int) -> c_int
 /* Return the digit that CHARACTER stands for in the given BASE.
    Return -1 if CHARACTER is out of range for BASE,
    and -2 if CHARACTER is not valid for any supported BASE.  */
-unsafe fn digit_to_number (character: c_int, base: c_int) -> c_int
+fn digit_to_number (character: c_int, base: c_int) -> c_int
 {
   let digit: c_int;
 
@@ -3667,10 +3665,9 @@ unsafe fn hash_table_from_plist (plist: Lisp_Object) -> Lisp_Object
   }
 }
 
-unsafe fn record_from_list (elems: Lisp_Object) -> Lisp_Object
+fn record_from_list (elems: Lisp_Object) -> Lisp_Object
 {
-  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
-  unsafe {
+  {
   let size: ptrdiff_t = list_length (elems);
   let obj: Lisp_Object = Fmake_record (XCAR (elems),
 				       make_fixnum (size - 1),
@@ -5439,7 +5436,7 @@ macro_rules! DOOBARRAY {
 
 /* Slow path obarray check: return the obarray to use or signal an error.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn check_obarray_slow (obarray: Lisp_Object) -> Lisp_Object
+pub extern "C-unwind" fn check_obarray_slow (obarray: Lisp_Object) -> Lisp_Object
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -5504,7 +5501,7 @@ unsafe fn intern_sym (sym: Lisp_Object, obarray: Lisp_Object, index: Lisp_Object
 
 /* Intern a symbol with name STRING in OBARRAY using bucket INDEX.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn intern_driver (string: Lisp_Object, obarray: Lisp_Object,
+pub extern "C-unwind" fn intern_driver (string: Lisp_Object, obarray: Lisp_Object,
 					index: Lisp_Object) -> Lisp_Object
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.

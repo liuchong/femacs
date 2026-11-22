@@ -128,9 +128,6 @@ unsafe extern "C-unwind" {
 unsafe extern "C-unwind" {
   /// C: lisp.h 4799: `extern bool FUNCTIONP (Lisp_Object);` (eval.c).
   pub fn FUNCTIONP (object: Lisp_Object) -> bool;
-
-  /// C: lisp.h 5468: `extern void malloc_probe (size_t);` (profiler.c).
-  pub fn malloc_probe (size: usize);
 }
 
 /// insdel.c's two change recorders: lisp.h 4324 and 4330-4331 declare them and the mirror
@@ -283,122 +280,85 @@ pub unsafe extern "C-unwind" fn init_editfns ()
   }
 }
 
+pub fn error_invalid_byte () -> !
+{
+  // SAFETY: static NUL-terminated ASCII diagnostic passed to `error`.
+  unsafe { error (c"Invalid byte".as_ptr ()); }
+}
+
+pub fn error_mark_not_set () -> !
+{
+  // SAFETY: static NUL-terminated ASCII diagnostic passed to `error`.
+  unsafe { error (c"The mark is not set now, so there is no region".as_ptr ()); }
+}
+
 DEFUN! ("char-to-string", Fchar_to_string, Schar_to_string, 1, 1, 0,
        doc: "Convert arg CHAR to a string containing that character.\nusage: (char-to-string CHAR)",
        (character: Lisp_Object),
-       {
-  let mut c: c_int = 0;
-  let mut len: c_int = 0;
-  let mut str_: [u8; MAX_MULTIBYTE_LENGTH as usize] = std::mem::zeroed ();
-
-  CHECK_CHARACTER (character);
-  c = XFIXNAT (character) as c_int;
-
-  len = CHAR_STRING (c, str_.as_mut_ptr ());
-  return make_string_from_bytes (str_.as_ptr () as *const c_char, 1, len as ptrdiff_t);
+       safe {
+  crate::safe_buffer::char_to_string (character)
 });
 
 DEFUN! ("byte-to-string", Fbyte_to_string, Sbyte_to_string, 1, 1, 0,
        doc: "Convert arg BYTE to a unibyte string containing that byte.",
        (byte: Lisp_Object),
-       {
-  let mut b: u8 = 0;
-  CHECK_FIXNUM (byte);
-  if XFIXNUM (byte) < 0 || XFIXNUM (byte) > 255
-    { error (c"Invalid byte".as_ptr ()); }
-  b = XFIXNUM (byte) as u8;
-  return make_unibyte_string (&raw const b as *const c_char, 1);
+       safe {
+  crate::safe_buffer::byte_to_string (byte)
 });
 
 DEFUN! ("string-to-char", Fstring_to_char, Sstring_to_char, 1, 1, 0,
        doc: "Return the first character in STRING.",
        (string: Lisp_Object),
-       {
-  CHECK_STRING (string);
-
-  /* This returns zero if STRING is empty.  */
-  let ch: c_int = if STRING_MULTIBYTE (string)
-    { STRING_CHAR (SDATA (string)) }
-    else { SREF (string, 0) as c_int };
-  return make_fixnum (ch as EMACS_INT);
+       safe {
+  crate::safe_buffer::string_to_char (string)
 });
 
 DEFUN! ("point", Fpoint, Spoint, 0, 0, 0,
        doc: "Return value of point, as an integer.\nBeginning of buffer is position (point-min).",
        (),
-       {
-  let mut temp: Lisp_Object = Qnil ();
-  XSETFASTINT! (temp, PT! ());
-  return temp;
+       safe {
+  crate::safe_buffer::point_subr ()
 });
 
 DEFUN! ("point-marker", Fpoint_marker, Spoint_marker, 0, 0, 0,
        doc: "Return value of point, as a marker object.",
        (),
-       {
-  return build_marker ((current_buffer! ()) as *mut c_void, PT! (), PT_BYTE! ());
+       safe {
+  crate::safe_buffer::point_marker ()
 });
 
 DEFUN! ("goto-char", Fgoto_char, Sgoto_char, 1, 1,
        "(goto-char--read-natnum-interactive \"Go to char: \")",
        doc: "Set point to POSITION, a number or marker.\nBeginning of buffer is position (point-min), end is (point-max).\n\nThe return value is POSITION.\n\nIf called interactively, a numeric prefix argument specifies\nPOSITION; without a numeric prefix argument, read POSITION from the\nminibuffer.  The default value is the number at point (if any).",
        (position: Lisp_Object),
-       {
-  if MARKERP (position)
-    { set_point_from_marker (position); }
-  else if FIXNUMP (position)
-    { SET_PT (clip_to_bounds (BEGV! (), XFIXNUM (position), ZV! ())); }
-  else
-    { wrong_type_argument (Qinteger_or_marker_p (), position); }
-  return position;
+       safe {
+  crate::safe_buffer::goto_char (position)
 });
 
-/* Return the start or end position of the region.
-   BEGINNINGP means return the start.
-   If there is no region active, signal an error.  */
-
-unsafe fn region_limit (beginningp: bool) -> Lisp_Object
+fn region_limit (beginningp: bool) -> Lisp_Object
 {
-  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
-  unsafe {
-  let mut m: Lisp_Object = Qnil ();
-
-  if !NILP ((*Vtransient_mark_mode.as_mut_ptr ()))
-      && NILP ((*Vmark_even_if_inactive.as_mut_ptr ()))
-      && NILP (BVAR! ((current_buffer! ()), mark_active_))
-    { xsignal0 (Qmark_inactive ()); }
-
-  m = Fmarker_position (BVAR! ((current_buffer! ()), mark_));
-  if NILP (m)
-    { error (c"The mark is not set now, so there is no region".as_ptr ()); }
-
-  /* Clip to the current narrowing (bug#11770).  */
-  return make_fixnum (if (PT! () < XFIXNAT (m)) == beginningp
-                      { PT! () as EMACS_INT }
-                      else { clip_to_bounds (BEGV! (), XFIXNAT (m), ZV! ()) });
-
-  }
+  crate::safe_buffer::region_limit (beginningp)
 }
 
 DEFUN! ("region-beginning", Fregion_beginning, Sregion_beginning, 0, 0, 0,
        doc: "Return the integer value of point or mark, whichever is smaller.",
        (),
-       {
-  return region_limit (true);
+       safe {
+  crate::safe_buffer::region_beginning ()
 });
 
 DEFUN! ("region-end", Fregion_end, Sregion_end, 0, 0, 0,
        doc: "Return the integer value of point or mark, whichever is larger.",
        (),
-       {
-  return region_limit (false);
+       safe {
+  crate::safe_buffer::region_end ()
 });
 
 DEFUN! ("mark-marker", Fmark_marker, Smark_marker, 0, 0, 0,
        doc: "Return this buffer's mark, as a marker object.\nWatch out!  Moving this marker changes the mark position.\nIf you set the marker not to point anywhere, the buffer will have no mark.",
        (),
-       {
-  return BVAR! ((current_buffer! ()), mark_);
+       safe {
+  crate::safe_buffer::mark_marker ()
 });
 
 
@@ -514,340 +474,85 @@ pub unsafe extern "C-unwind" fn find_field (pos: Lisp_Object, merge_at_boundary:
                                      beg_limit: Lisp_Object, beg: *mut ptrdiff_t,
                                      end_limit: Lisp_Object, end: *mut ptrdiff_t)
 {
-  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
+  let (b, e) = crate::safe_buffer::find_field_safe (
+    pos, merge_at_boundary, beg_limit, !beg.is_null (), end_limit, !end.is_null ());
+  // SAFETY: non-null `beg` / `end` out-pointers supplied by C-style callers.
   unsafe {
-  /* Fields right before and after the point.  */
-  let mut before_field: Lisp_Object = Qnil ();
-  let mut after_field: Lisp_Object = Qnil ();
-  /* True if POS counts as the start of a field.  */
-  let mut at_field_start: bool = false;
-  /* True if POS counts as the end of a field.  */
-  let mut at_field_end: bool = false;
-
-  let mut pos: Lisp_Object = pos;
-
-  if NILP (pos)
-    { XSETFASTINT! (pos, PT! ()); }
-  else
-    { CHECK_FIXNUM_COERCE_MARKER! (pos); }
-
-  after_field
-    = get_char_property_and_overlay (pos, Qfield (), Qnil (), std::ptr::null_mut ());
-  before_field
-    = if XFIXNAT (pos) > BEGV! ()
-      { get_char_property_and_overlay (make_fixnum (XFIXNUM (pos) - 1),
-                                       Qfield (), Qnil (), std::ptr::null_mut ()) }
-      /* Using nil here would be a more obvious choice, but it would
-         fail when the buffer starts with a non-sticky field.  */
-      else { after_field };
-
-  /* See if we need to handle the case where MERGE_AT_BOUNDARY is nil
-     and POS is at beginning of a field, which can also be interpreted
-     as the end of the previous field.  Note that the case where if
-     MERGE_AT_BOUNDARY is non-nil (see function comment) is actually the
-     more natural one; then we avoid treating the beginning of a field
-     specially.  */
-  if NILP (merge_at_boundary)
-    {
-      let field: Lisp_Object = Fget_pos_property (pos, Qfield (), Qnil ());
-      if !EQ (field, after_field)
-        { at_field_end = true; }
-      if !EQ (field, before_field)
-        { at_field_start = true; }
-      if NILP (field) && at_field_start && at_field_end
-        /* If an inserted char would have a nil field while the surrounding
-           text is non-nil, we're probably not looking at a
-           zero-length field, but instead at a non-nil field that's
-           not intended for editing (such as comint's prompts).  */
-        { at_field_end = false; at_field_start = false; }
-    }
-
-  /* Note about special `boundary' fields:
-
-     Consider the case where the point (`.') is between the fields `x' and `y':
-
-	xxxx.yyyy
-
-     In this situation, if merge_at_boundary is non-nil, consider the
-     `x' and `y' fields as forming one big merged field, and so the end
-     of the field is the end of `y'.
-
-     However, if `x' and `y' are separated by a special `boundary' field
-     (a field with a `field' char-property of 'boundary), then ignore
-     this special field when merging adjacent fields.  Here's the same
-     situation, but with a `boundary' field between the `x' and `y' fields:
-
-	xxx.BBBByyyy
-
-     Here, if point is at the end of `x', the beginning of `y', or
-     anywhere in-between (within the `boundary' field), merge all
-     three fields and consider the beginning as being the beginning of
-     the `x' field, and the end as being the end of the `y' field.  */
-
-  if !beg.is_null ()
-    {
-      if at_field_start
-        /* POS is at the edge of a field, and we should consider it as
-           the beginning of the following field.  */
-        { *beg = XFIXNAT (pos); }
-      else
-        /* Find the previous field boundary.  */
-        {
-          let mut p: Lisp_Object = pos;
-          if !NILP (merge_at_boundary) && EQ (before_field, Qboundary ())
-            /* Skip a `boundary' field.  */
-            { p = Fprevious_single_char_property_change (p, Qfield (), Qnil (),
-                                                         beg_limit); }
-
-          p = Fprevious_single_char_property_change (p, Qfield (), Qnil (),
-                                                     beg_limit);
-          *beg = if NILP (p) { BEGV! () } else { XFIXNAT (p) };
-        }
-    }
-
-  if !end.is_null ()
-    {
-      if at_field_end
-        /* POS is at the edge of a field, and we should consider it as
-           the end of the previous field.  */
-        { *end = XFIXNAT (pos); }
-      else
-        /* Find the next field boundary.  */
-        {
-          if !NILP (merge_at_boundary) && EQ (after_field, Qboundary ())
-            /* Skip a `boundary' field.  */
-            { pos = Fnext_single_char_property_change (pos, Qfield (), Qnil (),
-                                                       end_limit); }
-
-          pos = Fnext_single_char_property_change (pos, Qfield (), Qnil (),
-                                                   end_limit);
-          *end = if NILP (pos) { ZV! () } else { XFIXNAT (pos) };
-        }
-    }
-
+    if !beg.is_null () { *beg = b; }
+    if !end.is_null () { *end = e; }
   }
 }
 
 DEFUN! ("delete-field", Fdelete_field, Sdelete_field, 0, 1, 0,
        doc: "Delete the field surrounding POS.\nA field is a region of text with the same `field' property.\nIf POS is nil, the value of point is used for POS.",
        (pos: Lisp_Object),
-       {
-  let mut beg: ptrdiff_t = 0;
-  let mut end: ptrdiff_t = 0;
-  find_field (pos, Qnil (), Qnil (), &mut beg, Qnil (), &mut end);
-  if beg != end
-    { del_range (beg, end); }
-  return Qnil ();
+       safe {
+  crate::safe_buffer::delete_field (pos)
 });
 
 DEFUN! ("field-string", Ffield_string, Sfield_string, 0, 1, 0,
        doc: "Return the contents of the field surrounding POS as a string.\nA field is a region of text with the same `field' property.\nIf POS is nil, the value of point is used for POS.",
        (pos: Lisp_Object),
-       {
-  let mut beg: ptrdiff_t = 0;
-  let mut end: ptrdiff_t = 0;
-  find_field (pos, Qnil (), Qnil (), &mut beg, Qnil (), &mut end);
-  return make_buffer_string (beg, end, true);
+       safe {
+  crate::safe_buffer::field_string (pos)
 });
 
 DEFUN! ("field-string-no-properties", Ffield_string_no_properties,
        Sfield_string_no_properties, 0, 1, 0,
        doc: "Return the contents of the field around POS, without text properties.\nA field is a region of text with the same `field' property.\nIf POS is nil, the value of point is used for POS.",
        (pos: Lisp_Object),
-       {
-  let mut beg: ptrdiff_t = 0;
-  let mut end: ptrdiff_t = 0;
-  find_field (pos, Qnil (), Qnil (), &mut beg, Qnil (), &mut end);
-  return make_buffer_string (beg, end, false);
+       safe {
+  crate::safe_buffer::field_string_no_properties (pos)
 });
 
 DEFUN! ("field-beginning", Ffield_beginning, Sfield_beginning, 0, 3, 0,
        doc: "Return the beginning of the field surrounding POS.\nA field is a region of text with the same `field' property.\nIf POS is nil, the value of point is used for POS.\nIf ESCAPE-FROM-EDGE is non-nil and POS is at the beginning of its\nfield, then the beginning of the *previous* field is returned.\nIf LIMIT is non-nil, it is a buffer position; if the beginning of the field\nis before LIMIT, then LIMIT will be returned instead.",
        (pos: Lisp_Object, escape_from_edge: Lisp_Object, limit: Lisp_Object),
-       {
-  let mut beg: ptrdiff_t = 0;
-  find_field (pos, escape_from_edge, limit, &mut beg, Qnil (), std::ptr::null_mut ());
-  return make_fixnum (beg);
+       safe {
+  crate::safe_buffer::field_beginning (pos, escape_from_edge, limit)
 });
 
 DEFUN! ("field-end", Ffield_end, Sfield_end, 0, 3, 0,
        doc: "Return the end of the field surrounding POS.\nA field is a region of text with the same `field' property.\nIf POS is nil, the value of point is used for POS.\nIf ESCAPE-FROM-EDGE is non-nil and POS is at the end of its field,\nthen the end of the *following* field is returned.\nIf LIMIT is non-nil, it is a buffer position; if the end of the field\nis after LIMIT, then LIMIT will be returned instead.",
        (pos: Lisp_Object, escape_from_edge: Lisp_Object, limit: Lisp_Object),
-       {
-  let mut end: ptrdiff_t = 0;
-  find_field (pos, escape_from_edge, Qnil (), std::ptr::null_mut (), limit, &mut end);
-  return make_fixnum (end);
+       safe {
+  crate::safe_buffer::field_end (pos, escape_from_edge, limit)
 });
 DEFUN! ("constrain-to-field", Fconstrain_to_field, Sconstrain_to_field, 2, 5, 0,
        doc: "Return the position closest to NEW-POS that is in the same field as OLD-POS.\nA field is a region of text with the same `field' property.\n\nIf NEW-POS is nil, then use the current point instead, and move point\nto the resulting constrained position, in addition to returning that\nposition.\n\nIf OLD-POS is at the boundary of two fields, then the allowable\npositions for NEW-POS depends on the value of the optional argument\nESCAPE-FROM-EDGE: If ESCAPE-FROM-EDGE is nil, then NEW-POS is\nconstrained to the field that has the same `field' char-property\nas any new characters inserted at OLD-POS, whereas if ESCAPE-FROM-EDGE\nis non-nil, NEW-POS is constrained to the union of the two adjacent\nfields.  Additionally, if two fields are separated by another field with\nthe special value `boundary', then any point within this special field is\nalso considered to be `on the boundary'.\n\nIf the optional argument ONLY-IN-LINE is non-nil and constraining\nNEW-POS would move it to a different line, NEW-POS is returned\nunconstrained.  This is useful for commands that move by line, like\n\\[next-line] or \\[beginning-of-line], which should generally respect field boundaries\nonly in the case where they can still move to the right line.\n\nIf the optional argument INHIBIT-CAPTURE-PROPERTY is non-nil, and OLD-POS has\na non-nil property of that name, then any field boundaries are ignored.\n\nField boundaries are not noticed if `inhibit-field-text-motion' is non-nil.",
        (new_pos: Lisp_Object, old_pos: Lisp_Object, escape_from_edge: Lisp_Object,
         only_in_line: Lisp_Object, inhibit_capture_property: Lisp_Object),
-       {
-  let mut new_pos: Lisp_Object = new_pos;
-  let mut old_pos: Lisp_Object = old_pos;
-
-  /* If non-zero, then the original point, before re-positioning.  */
-  let mut orig_point: ptrdiff_t = 0;
-  let mut fwd: bool = false;
-  let mut prev_old: Lisp_Object = Qnil ();
-  let mut prev_new: Lisp_Object = Qnil ();
-
-  if NILP (new_pos)
-    /* Use the current point, and afterwards, set it.  */
-    {
-      orig_point = PT! ();
-      XSETFASTINT! (new_pos, PT! ());
-    }
-
-  CHECK_FIXNUM_COERCE_MARKER! (new_pos);
-  CHECK_FIXNUM_COERCE_MARKER! (old_pos);
-
-  fwd = XFIXNUM (new_pos) > XFIXNUM (old_pos);
-
-  prev_old = make_fixnum (XFIXNUM (old_pos) - 1);
-  prev_new = make_fixnum (XFIXNUM (new_pos) - 1);
-
-  if NILP ((*Vinhibit_field_text_motion.as_mut_ptr ()))
-      && !BASE_EQ (new_pos, old_pos)
-      && (!NILP (Fget_char_property (new_pos, Qfield (), Qnil ()))
-          || !NILP (Fget_char_property (old_pos, Qfield (), Qnil ()))
-          /* To recognize field boundaries, we must also look at the
-             previous positions; we could use `Fget_pos_property'
-             instead, but in itself that would fail inside non-sticky
-             fields (like comint prompts).  */
-          || (XFIXNAT (new_pos) > BEGV! ()
-              && !NILP (Fget_char_property (prev_new, Qfield (), Qnil ())))
-          || (XFIXNAT (old_pos) > BEGV! ()
-              && !NILP (Fget_char_property (prev_old, Qfield (), Qnil ()))))
-      && (NILP (inhibit_capture_property)
-          /* Field boundaries are again a problem; but now we must
-             decide the case exactly, so we need to call
-             `get_pos_property' as well.  */
-          || (NILP (Fget_pos_property (old_pos, inhibit_capture_property, Qnil ()))
-              && (XFIXNAT (old_pos) <= BEGV! ()
-                  || NILP (Fget_char_property
-                           (old_pos, inhibit_capture_property, Qnil ()))
-                  || NILP (Fget_char_property
-                           (prev_old, inhibit_capture_property, Qnil ())))))
-    /* It is possible that NEW_POS is not within the same field as
-       OLD_POS; try to move NEW_POS so that it is.  */
-    {
-      let mut counted: ptrdiff_t = 0;
-      let mut field_bound: Lisp_Object = Qnil ();
-
-      if fwd
-        { field_bound = Ffield_end (old_pos, escape_from_edge, new_pos); }
-      else
-        { field_bound = Ffield_beginning (old_pos, escape_from_edge, new_pos); }
-
-      if /* See if ESCAPE_FROM_EDGE caused FIELD_BOUND to jump to the
-             other side of NEW_POS, which would mean that NEW_POS is
-             already acceptable, and it's not necessary to constrain it
-             to FIELD_BOUND.  */
-         (if XFIXNAT (field_bound) < XFIXNAT (new_pos) { fwd } else { !fwd })
-         /* NEW_POS should be constrained, but only if either
-            ONLY_IN_LINE is nil (in which case any constraint is OK),
-            or NEW_POS and FIELD_BOUND are on the same line (in which
-            case the constraint is OK even if ONLY_IN_LINE is non-nil).  */
-         && (NILP (only_in_line)
-             /* This is the ONLY_IN_LINE case, check that NEW_POS and
-                FIELD_BOUND are on the same line by seeing whether
-                there's an intervening newline or not.  */
-             || { find_newline (XFIXNAT (new_pos), -1,
-                                XFIXNAT (field_bound), -1,
-                                if fwd { -1 } else { 1 }, &mut counted,
-                                std::ptr::null_mut (), true);
-                  counted == 0 })
-        /* Constrain NEW_POS to FIELD_BOUND.  */
-        { new_pos = field_bound; }
-
-      if orig_point != 0 && XFIXNAT (new_pos) != orig_point
-        /* The NEW_POS argument was originally nil, so automatically set PT. */
-        { SET_PT (XFIXNAT (new_pos)); }
-    }
-
-  return new_pos;
+       safe {
+  crate::safe_buffer::constrain_to_field (new_pos, old_pos, escape_from_edge, only_in_line, inhibit_capture_property)
 });
-
-unsafe fn bol (n: Lisp_Object, out_count: *mut ptrdiff_t) -> ptrdiff_t
-{
-  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
-  unsafe {
-  let mut bytepos: ptrdiff_t = 0;
-  let mut charpos: ptrdiff_t = 0;
-  let mut count: ptrdiff_t = 0;
-
-  if NILP (n)
-    { count = 0; }
-  else if FIXNUMP (n)
-    { count = clip_to_bounds (-BUF_BYTES_MAX, XFIXNUM (n) - 1, BUF_BYTES_MAX); }
-  else
-    {
-      CHECK_INTEGER (n);
-      count = if NILP (Fnatnump (n)) { -BUF_BYTES_MAX } else { BUF_BYTES_MAX };
-    }
-  if !out_count.is_null ()
-    { *out_count = count; }
-  scan_newline_from_point (count, &mut charpos, &mut bytepos);
-  return charpos;
-
-  }
-}
 
 DEFUN! ("pos-bol", Fpos_bol, Spos_bol, 0, 1, 0,
        doc: "Return the position of the first character on the current line.\nWith optional argument N, scan forward N - 1 lines first.\nIf the scan reaches the end of the buffer, return that position.\n\nThis function ignores text display directionality; it returns the\nposition of the first character in logical order, i.e. the smallest\ncharacter position on the logical line.  See `vertical-motion' for\nmovement by screen lines.\n\nThis function does not move point.  Also see `line-beginning-position'.",
        (n: Lisp_Object),
-       {
-  return make_fixnum (bol (n, std::ptr::null_mut ()));
+       safe {
+  crate::safe_buffer::pos_bol (n)
 });
 
 DEFUN! ("line-beginning-position", Fline_beginning_position, Sline_beginning_position,
        0, 1, 0,
        doc: "Return the position of the first character in the current line/field.\nWith optional argument N non-nil, move forward N - 1 lines first.\nThis function is like `pos-bol' (which see), but respects fields.\n\nThis function constrains the returned position to the current field\nunless that position would be on a different line from the original,\nunconstrained result.  If N is nil or 1, and a front-sticky field\nstarts at point, the scan stops as soon as it starts.  To ignore field\nboundaries, bind `inhibit-field-text-motion' to t.\n\nThis function does not move point.",
        (n: Lisp_Object),
-       {
-  let mut count: ptrdiff_t = 0;
-  let charpos: ptrdiff_t = bol (n, &mut count);
-  /* Return END constrained to the current input field.  */
-  return Fconstrain_to_field (make_fixnum (charpos), make_fixnum (PT! ()),
-                              if count != 0 { Qt () } else { Qnil () }, Qt (), Qnil ());
+       safe {
+  crate::safe_buffer::line_beginning_position (n)
 });
-
-unsafe fn eol (n: Lisp_Object) -> ptrdiff_t
-{
-  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
-  unsafe {
-  let mut count: ptrdiff_t;
-
-  if NILP (n)
-    { count = 1; }
-  else if FIXNUMP (n)
-    { count = clip_to_bounds (-BUF_BYTES_MAX, XFIXNUM (n), BUF_BYTES_MAX); }
-  else
-    {
-      CHECK_INTEGER (n);
-      count = if NILP (Fnatnump (n)) { -BUF_BYTES_MAX } else { BUF_BYTES_MAX };
-    }
-  return find_before_next_newline (PT! (), 0, count - (count <= 0) as ptrdiff_t,
-                                   std::ptr::null_mut ());
-
-  }
-}
 
 DEFUN! ("pos-eol", Fpos_eol, Spos_eol, 0, 1, 0,
        doc: "Return the position of the last character on the current line.\nWith argument N not nil or 1, move forward N - 1 lines first.\nIf scan reaches end of buffer, return that position.\n\nThis function ignores text display directionality; it returns the\nposition of the last character in logical order, i.e. the largest\ncharacter position on the line.\n\nThis function does not move point.  Also see `line-end-position'.",
        (n: Lisp_Object),
-       {
-  return make_fixnum (eol (n));
+       safe {
+  crate::safe_buffer::pos_eol (n)
 });
 
 DEFUN! ("line-end-position", Fline_end_position, Sline_end_position, 0, 1, 0,
        doc: "Return the position of the last character in the current line/field.\nWith argument N not nil or 1, move forward N - 1 lines first.\nIf scan reaches end of buffer, return that position.\n\nThis function is like `pos-eol' (which see), but respects fields.\n\nThis function constrains the returned position to the current field\nunless that would be on a different line from the original,\nunconstrained result.  If N is nil or 1, and a rear-sticky field ends\nat point, the scan stops as soon as it starts.  To ignore field\nboundaries bind `inhibit-field-text-motion' to t.\n\nThis function does not move point.",
        (n: Lisp_Object),
-       {
-  /* Return END_POS constrained to the current input field.  */
-  return Fconstrain_to_field (make_fixnum (eol (n)), make_fixnum (PT! ()),
-                              Qnil (), Qt (), Qnil ());
+       safe {
+  crate::safe_buffer::line_end_position (n)
 });
 
 /* Save current buffer state for save-excursion special form.  */
@@ -870,7 +575,7 @@ pub unsafe extern "C-unwind" fn save_excursion_save (pdl: *mut specbinding)
 /* Restore saved buffer before leaving `save-excursion' special form.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn save_excursion_restore (marker: Lisp_Object, window: Lisp_Object)
+pub extern "C-unwind" fn save_excursion_restore (marker: Lisp_Object, window: Lisp_Object)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -903,257 +608,134 @@ pub unsafe extern "C-unwind" fn save_excursion_restore (marker: Lisp_Object, win
 DEFUN! ("save-excursion", Fsave_excursion, Ssave_excursion, 0, UNEVALLED, 0,
        doc: "Save point, and current buffer; execute BODY; restore those things.\nExecutes BODY just like `progn'.\nThe values of point and the current buffer are restored\neven in case of abnormal exit (throw or error).\n\nIf you only want to save the current buffer but not point,\nthen just use `save-current-buffer', or even `with-current-buffer'.\n\nBefore Emacs 25.1, `save-excursion' used to save the mark state.\nTo save the mark state as well as point and the current buffer, use\n`save-mark-and-excursion'.\n\nusage: (save-excursion &rest BODY)",
        (args: Lisp_Object),
-       {
-  let mut val: Lisp_Object = Qnil ();
-  let count: specpdl_ref = SPECPDL_INDEX ();
-
-  record_unwind_protect_excursion ();
-
-  val = Fprogn (args);
-  return unbind_to (count, val);
+       safe {
+  crate::safe_buffer::save_excursion (args)
 });
 
 DEFUN! ("save-current-buffer", Fsave_current_buffer, Ssave_current_buffer, 0, UNEVALLED, 0,
        doc: "Record which buffer is current; execute BODY; make that buffer current.\nBODY is executed just like `progn'.\nusage: (save-current-buffer &rest BODY)",
        (args: Lisp_Object),
-       {
-  let count: specpdl_ref = SPECPDL_INDEX ();
-
-  record_unwind_current_buffer ();
-  return unbind_to (count, Fprogn (args));
+       safe {
+  crate::safe_buffer::save_current_buffer (args)
 });
 
 DEFUN! ("buffer-size", Fbuffer_size, Sbuffer_size, 0, 1, 0,
        doc: "Return the number of characters in the current buffer.\nIf BUFFER is not nil, return the number of characters in that buffer\ninstead.\n\nThis does not take narrowing into account; to count the number of\ncharacters in the accessible portion of the current buffer, use\n`(- (point-max) (point-min))', and to count the number of characters\nin the accessible portion of some other BUFFER, use\n`(with-current-buffer BUFFER (- (point-max) (point-min)))'.",
        (buffer: Lisp_Object),
-       {
-  if NILP (buffer)
-    { return make_fixnum ((Z! () - BEG as ptrdiff_t) as EMACS_INT); }
-  else
-    {
-      CHECK_BUFFER (buffer);
-      return make_fixnum (BUF_Z! (XBUFFER (buffer)) - BUF_BEG (XBUFFER (buffer)));
-    }
+       safe {
+  crate::safe_buffer::buffer_size (buffer)
 });
 
 DEFUN! ("point-min", Fpoint_min, Spoint_min, 0, 0, 0,
        doc: "Return the minimum permissible value of point in the current buffer.\nThis is 1, unless narrowing (a buffer restriction) is in effect.",
        (),
-       {
-  let mut temp: Lisp_Object = Qnil ();
-  XSETFASTINT! (temp, BEGV! ());
-  return temp;
+       safe {
+  crate::safe_buffer::point_min ()
 });
 
 DEFUN! ("point-min-marker", Fpoint_min_marker, Spoint_min_marker, 0, 0, 0,
        doc: "Return a marker to the minimum permissible value of point in this buffer.\nThis is the beginning, unless narrowing (a buffer restriction) is in effect.",
        (),
-       {
-  return build_marker ((current_buffer! ()) as *mut c_void, BEGV! (), BEGV_BYTE! ());
+       safe {
+  crate::safe_buffer::point_min_marker ()
 });
 
 DEFUN! ("point-max", Fpoint_max, Spoint_max, 0, 0, 0,
        doc: "Return the maximum permissible value of point in the current buffer.\nThis is (1+ (buffer-size)), unless narrowing (a buffer restriction)\nis in effect, in which case it is less.",
        (),
-       {
-  let mut temp: Lisp_Object = Qnil ();
-  XSETFASTINT! (temp, ZV! ());
-  return temp;
+       safe {
+  crate::safe_buffer::point_max ()
 });
 
 DEFUN! ("point-max-marker", Fpoint_max_marker, Spoint_max_marker, 0, 0, 0,
        doc: "Return a marker to the maximum permissible value of point in this buffer.\nThis is (1+ (buffer-size)), unless narrowing (a buffer restriction)\nis in effect, in which case it is less.",
        (),
-       {
-  return build_marker ((current_buffer! ()) as *mut c_void, ZV! (), ZV_BYTE! ());
+       safe {
+  crate::safe_buffer::point_max_marker ()
 });
 
 DEFUN! ("gap-position", Fgap_position, Sgap_position, 0, 0, 0,
        doc: "Return the position of the gap, in the current buffer.\nSee also `gap-size'.",
        (),
-       {
-  let mut temp: Lisp_Object = Qnil ();
-  XSETFASTINT! (temp, GPT! ());
-  return temp;
+       safe {
+  crate::safe_buffer::gap_position ()
 });
 
 DEFUN! ("gap-size", Fgap_size, Sgap_size, 0, 0, 0,
        doc: "Return the size of the current buffer's gap.\nSee also `gap-position'.",
        (),
-       {
-  let mut temp: Lisp_Object = Qnil ();
-  XSETFASTINT! (temp, GAP_SIZE! ());
-  return temp;
+       safe {
+  crate::safe_buffer::gap_size ()
 });
 
 DEFUN! ("position-bytes", Fposition_bytes, Sposition_bytes, 1, 1, 0,
        doc: "Return the byte position for character position POSITION.\nIf POSITION is out of range, the value is nil.",
        (position: Lisp_Object),
-       {
-  let pos: EMACS_INT = fix_position (position);
-  if !((BEG as EMACS_INT) <= pos && pos <= (Z! () as EMACS_INT))
-    { return Qnil (); }
-  return make_fixnum (CHAR_TO_BYTE (pos));
+       safe {
+  crate::safe_buffer::position_bytes (position)
 });
 
 DEFUN! ("byte-to-position", Fbyte_to_position, Sbyte_to_position, 1, 1, 0,
        doc: "Return the character position for byte position BYTEPOS.\nIf BYTEPOS is out of range, the value is nil.",
        (bytepos: Lisp_Object),
-       {
-  let mut pos_byte: ptrdiff_t = 0;
-
-  CHECK_FIXNUM (bytepos);
-  pos_byte = XFIXNUM (bytepos);
-  if pos_byte < (BEG_BYTE as ptrdiff_t) || pos_byte > Z_BYTE! ()
-    { return Qnil (); }
-  if Z! () != Z_BYTE! ()
-    /* There are multibyte characters in the buffer.
-       The argument of BYTE_TO_CHAR must be a byte position at
-       a character boundary, so search for the start of the current
-       character.  */
-    { while !CHAR_HEAD_P (FETCH_BYTE! (pos_byte) as c_int)
-        { pos_byte -= 1; } }
-  return make_fixnum (BYTE_TO_CHAR (pos_byte));
+       safe {
+  crate::safe_buffer::byte_to_position (bytepos)
 });
 
 DEFUN! ("following-char", Ffollowing_char, Sfollowing_char, 0, 0, 0,
        doc: "Return the character following point, as a number.\nAt the end of the buffer or accessible region, return 0.",
        (),
-       {
-  let mut temp: Lisp_Object = Qnil ();
-  if PT! () >= ZV! ()
-    { XSETFASTINT! (temp, 0); }
-  else
-    { XSETFASTINT! (temp, FETCH_CHAR (PT_BYTE! ()) as EMACS_INT); }
-  return temp;
+       safe {
+  crate::safe_buffer::following_char ()
 });
 
 DEFUN! ("preceding-char", Fprevious_char, Sprevious_char, 0, 0, 0,
        doc: "Return the character preceding point, as a number.\nAt the beginning of the buffer or accessible region, return 0.",
        (),
-       {
-  let mut temp: Lisp_Object = Qnil ();
-  if PT! () <= BEGV! ()
-    { XSETFASTINT! (temp, 0); }
-  else if !NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
-    {
-      let mut pos: ptrdiff_t = PT_BYTE! ();
-      pos -= prev_char_len (pos) as ptrdiff_t;
-      XSETFASTINT! (temp, FETCH_CHAR (pos) as EMACS_INT);
-    }
-  else
-    { XSETFASTINT! (temp, FETCH_BYTE! (PT_BYTE! () - 1) as EMACS_INT); }
-  return temp;
+       safe {
+  crate::safe_buffer::previous_char ()
 });
 
 DEFUN! ("bobp", Fbobp, Sbobp, 0, 0, 0,
        doc: "Return t if point is at the beginning of the buffer.\nIf the buffer is narrowed, this means the beginning of the narrowed part.",
        (),
-       {
-  if PT! () == BEGV! ()
-    { return Qt (); }
-  return Qnil ();
+       safe {
+  crate::safe_buffer::bobp ()
 });
 
 DEFUN! ("eobp", Feobp, Seobp, 0, 0, 0,
        doc: "Return t if point is at the end of the buffer.\nIf the buffer is narrowed, this means the end of the narrowed part.",
        (),
-       {
-  if PT! () == ZV! ()
-    { return Qt (); }
-  return Qnil ();
+       safe {
+  crate::safe_buffer::eobp ()
 });
 
 DEFUN! ("bolp", Fbolp, Sbolp, 0, 0, 0,
        doc: "Return t if point is at the beginning of a line.",
        (),
-       {
-  if PT! () == BEGV! () || FETCH_BYTE! (PT_BYTE! () - 1) == b'\n'
-    { return Qt (); }
-  return Qnil ();
+       safe {
+  crate::safe_buffer::bolp ()
 });
 
 DEFUN! ("eolp", Feolp, Seolp, 0, 0, 0,
        doc: "Return t if point is at the end of a line.\n`End of a line' includes point being at the end of the buffer.",
        (),
-       {
-  if PT! () == ZV! () || FETCH_BYTE! (PT_BYTE! ()) == b'\n'
-    { return Qt (); }
-  return Qnil ();
+       safe {
+  crate::safe_buffer::eolp ()
 });
 
 DEFUN! ("char-after", Fchar_after, Schar_after, 0, 1, 0,
        doc: "Return character in current buffer at position POS.\nPOS is an integer or a marker and defaults to point.\nIf POS is out of range, the value is nil.",
        (pos: Lisp_Object),
-       {
-  let mut pos_byte: ptrdiff_t = 0;
-
-  if NILP (pos)
-    {
-      pos_byte = PT_BYTE! ();
-      if pos_byte < BEGV_BYTE! () || pos_byte >= ZV_BYTE! ()
-        { return Qnil (); }
-    }
-  else if MARKERP (pos)
-    {
-      pos_byte = marker_byte_position (pos);
-      if pos_byte < BEGV_BYTE! () || pos_byte >= ZV_BYTE! ()
-        { return Qnil (); }
-    }
-  else
-    {
-      let p: EMACS_INT = fix_position (pos);
-      if !((BEGV! () as EMACS_INT) <= p && p < (ZV! () as EMACS_INT))
-        { return Qnil (); }
-
-      pos_byte = CHAR_TO_BYTE (p);
-    }
-
-  return make_fixnum (FETCH_CHAR (pos_byte) as EMACS_INT);
+       safe {
+  crate::safe_buffer::char_after (pos)
 });
 
 DEFUN! ("char-before", Fchar_before, Schar_before, 0, 1, 0,
        doc: "Return character in current buffer preceding position POS.\nPOS is an integer or a marker and defaults to point.\nIf POS is out of range, the value is nil.",
        (pos: Lisp_Object),
-       {
-  let mut pos: Lisp_Object = pos;
-  let mut val: Lisp_Object = Qnil ();
-  let mut pos_byte: ptrdiff_t = 0;
-
-  if NILP (pos)
-    {
-      pos_byte = PT_BYTE! ();
-      XSETFASTINT! (pos, PT! ());
-    }
-
-  if MARKERP (pos)
-    {
-      pos_byte = marker_byte_position (pos);
-
-      if pos_byte <= BEGV_BYTE! () || pos_byte > ZV_BYTE! ()
-        { return Qnil (); }
-    }
-  else
-    {
-      let p: EMACS_INT = fix_position (pos);
-
-      if !((BEGV! () as EMACS_INT) < p && p <= (ZV! () as EMACS_INT))
-        { return Qnil (); }
-
-      pos_byte = CHAR_TO_BYTE (p);
-    }
-
-  if !NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
-    {
-      pos_byte -= prev_char_len (pos_byte) as ptrdiff_t;
-      XSETFASTINT! (val, FETCH_CHAR (pos_byte) as EMACS_INT);
-    }
-  else
-    {
-      pos_byte -= 1;
-      XSETFASTINT! (val, FETCH_BYTE! (pos_byte) as EMACS_INT);
-    }
-  return val;
+       safe {
+  crate::safe_buffer::char_before (pos)
 });
 
 DEFUN! ("user-login-name", Fuser_login_name, Suser_login_name, 0, 1, 0,
@@ -1377,7 +959,7 @@ unsafe fn general_insert_function (insert_func: unsafe extern "C-unwind" fn (*co
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn insert1 (arg: Lisp_Object)
+pub extern "C-unwind" fn insert1 (arg: Lisp_Object)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -1507,11 +1089,10 @@ DEFUN! ("insert-byte", Finsert_byte, Sinsert_byte, 2, 3, 0,
    buffer substrings.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn make_buffer_string (start: ptrdiff_t, end: ptrdiff_t,
+pub extern "C-unwind" fn make_buffer_string (start: ptrdiff_t, end: ptrdiff_t,
                                              props: bool) -> Lisp_Object
 {
-  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
-  unsafe {
+  {
   let start_byte: ptrdiff_t = CHAR_TO_BYTE (start);
   let end_byte: ptrdiff_t = CHAR_TO_BYTE (end);
 
@@ -1536,7 +1117,7 @@ pub unsafe extern "C-unwind" fn make_buffer_string (start: ptrdiff_t, end: ptrdi
    buffer substrings.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn make_buffer_string_both (start: ptrdiff_t, start_byte: ptrdiff_t,
+pub extern "C-unwind" fn make_buffer_string_both (start: ptrdiff_t, start_byte: ptrdiff_t,
                                                   end: ptrdiff_t, end_byte: ptrdiff_t,
                                                   props: bool) -> Lisp_Object
 {
@@ -3288,7 +2869,7 @@ unsafe fn labeled_restrictions_pop (buf: Lisp_Object)
 
 /* Unconditionally remove all labeled restrictions in current_buffer.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn labeled_restrictions_remove_in_current_buffer ()
+pub extern "C-unwind" fn labeled_restrictions_remove_in_current_buffer ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -3322,7 +2903,7 @@ unsafe extern "C-unwind" fn unwind_reset_outermost_restriction (buf: Lisp_Object
    (The reference's explanation of why this is necessary is
    editfns.c 2820-2830.)  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn reset_outermost_restrictions ()
+pub extern "C-unwind" fn reset_outermost_restrictions ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -3381,8 +2962,7 @@ unsafe extern "C-unwind" fn labeled_restrictions_restore (buf_and_restrictions: 
 
 unsafe extern "C-unwind" fn unwind_labeled_narrow_to_region (label: Lisp_Object)
 {
-  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
-  unsafe {
+  {
   Finternal__labeled_widen (label);
 
   }
@@ -3391,7 +2971,7 @@ unsafe extern "C-unwind" fn unwind_labeled_narrow_to_region (label: Lisp_Object)
 /* Narrow current_buffer to BEGV-ZV with a restriction labeled with
    LABEL.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn labeled_narrow_to_region (begv: Lisp_Object, zv: Lisp_Object,
+pub extern "C-unwind" fn labeled_narrow_to_region (begv: Lisp_Object, zv: Lisp_Object,
                                                    label: Lisp_Object)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
@@ -3620,7 +3200,7 @@ unsafe fn save_restriction_restore_1 (data: Lisp_Object)
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn save_restriction_save () -> Lisp_Object
+pub extern "C-unwind" fn save_restriction_save () -> Lisp_Object
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {

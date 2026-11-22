@@ -663,7 +663,7 @@ static coding_categories: VmGlobal<[coding_system; coding_category_max as usize]
 
 /* Encode a flag that can be nil, something else, or t as -1, 0, 1.  */
 
-unsafe fn encode_inhibit_flag (flag: Lisp_Object) -> c_int
+fn encode_inhibit_flag (flag: Lisp_Object) -> c_int
 {
   return if NILP (flag) { -1 } else { EQ (flag, Qt ()) as c_int };
 }
@@ -671,7 +671,7 @@ unsafe fn encode_inhibit_flag (flag: Lisp_Object) -> c_int
 /* True if the value of ENCODED_FLAG says a flag should be treated as set.
    1 means yes, -1 means no, 0 means ask the user variable VAR.  */
 
-unsafe fn inhibit_flag (encoded_flag: c_int, var: bool) -> bool
+fn inhibit_flag (encoded_flag: c_int, var: bool) -> bool
 {
   return 0 < encoded_flag + var as c_int;
 }
@@ -11171,7 +11171,7 @@ DEFUN! ("encode-coding-region", Fencode_coding_region, Sencode_coding_region,
 
 /* Whether STRING only contains chars in the 0..127 range.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn string_ascii_p (string: Lisp_Object) -> bool
+pub extern "C-unwind" fn string_ascii_p (string: Lisp_Object) -> bool
 {
   let nbytes: ptrdiff_t = SBYTES (string);
   let mut i: ptrdiff_t = 0;

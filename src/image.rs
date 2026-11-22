@@ -727,7 +727,7 @@ macro_rules! BLUE16_FROM_ULONG { ($color:expr) => { (BLUE_FROM_ULONG! ($color) *
 
 /// C: C 250-252: `static Emacs_Pix_Container image_create_pix_container (unsigned int width, unsigned int height, unsigned int depth)`
 #[cfg (all (feature = "have_window_system", feature = "use_cairo"))]
-unsafe fn image_create_pix_container (width: c_uint, height: c_uint, depth: c_uint)
+fn image_create_pix_container (width: c_uint, height: c_uint, depth: c_uint)
   -> Emacs_Pix_Container
 {
   let mut pimg: Emacs_Pix_Container;
@@ -748,7 +748,7 @@ unsafe fn image_create_pix_container (width: c_uint, height: c_uint, depth: c_ui
 
 /// C: C 269-271: `static void image_pix_container_put_pixel (Emacs_Pix_Container image, int x, int y, unsigned long pixel)`
 #[cfg (all (feature = "have_window_system", feature = "use_cairo"))]
-unsafe fn image_pix_container_put_pixel (image: Emacs_Pix_Container, x: c_int, y: c_int,
+fn image_pix_container_put_pixel (image: Emacs_Pix_Container, x: c_int, y: c_int,
                                          pixel: c_ulong)
 {
   if (*image).bits_per_pixel == 32
@@ -765,7 +765,7 @@ unsafe fn image_pix_container_put_pixel (image: Emacs_Pix_Container, x: c_int, y
 
 /// C: C 279-280: `static unsigned long image_pix_context_get_pixel (Emacs_Pix_Context image, int x, int y)`
 #[cfg (all (feature = "have_window_system", feature = "use_cairo"))]
-unsafe fn image_pix_context_get_pixel (image: Emacs_Pix_Context, x: c_int, y: c_int) -> c_ulong
+fn image_pix_context_get_pixel (image: Emacs_Pix_Context, x: c_int, y: c_int) -> c_ulong
 {
   if (*image).bits_per_pixel == 32
     {
@@ -10461,7 +10461,7 @@ pub const CT_SIZE: c_int = 101;
 /// C: C 7149-7150: `static unsigned ct_hash_rgb (unsigned r, unsigned g, unsigned b)`
 #[cfg (all (feature = "have_window_system", feature = "have_x_windows",
 	    not (any (feature = "have_ntgui", feature = "use_cairo", feature = "have_ns"))))]
-unsafe fn ct_hash_rgb (r: c_uint, g: c_uint, b: c_uint) -> c_uint
+fn ct_hash_rgb (r: c_uint, g: c_uint, b: c_uint) -> c_uint
 {
   return (r << 16) ^ (g << 8) ^ b;
 }
@@ -10492,7 +10492,7 @@ pub const ct_colors_allocated_max: c_int
 /// C: C 7171-7172: `static void init_color_table (void)`
 #[cfg (all (feature = "have_window_system", feature = "have_x_windows",
 	    not (any (feature = "have_ntgui", feature = "use_cairo", feature = "have_ns"))))]
-unsafe fn init_color_table ()
+fn init_color_table ()
 {
   let size: c_int = CT_SIZE * core::mem::size_of::<*mut ct_color> () as c_int;
   (*ct_table.as_mut_ptr ()) = xzalloc (size as usize) as *mut *mut ct_color;
@@ -10771,7 +10771,7 @@ unsafe fn lookup_rgb_color (f: *mut frame, r: c_int, g: c_int, b: c_int) -> c_ul
 	    not (all (feature = "have_x_windows",
 		      not (any (feature = "have_ntgui", feature = "use_cairo",
 				feature = "have_ns"))))))]
-unsafe fn init_color_table ()
+fn init_color_table ()
 {
 }
 

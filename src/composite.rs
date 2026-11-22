@@ -552,7 +552,7 @@ unsafe fn run_composition_function (mut from: ptrdiff_t, mut to: ptrdiff_t,
    change is deletion, FROM == TO.  Otherwise, FROM < TO.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn update_compositions (mut from: ptrdiff_t, mut to: ptrdiff_t,
+pub extern "C-unwind" fn update_compositions (mut from: ptrdiff_t, mut to: ptrdiff_t,
 					      check_mask: c_int)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
@@ -669,10 +669,9 @@ pub unsafe extern "C-unwind" fn update_compositions (mut from: ptrdiff_t, mut to
    top-level copies of them so that none of them are `eq'.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn make_composition_value_copy (mut list: Lisp_Object)
+pub extern "C-unwind" fn make_composition_value_copy (mut list: Lisp_Object)
 {
-  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
-  unsafe {
+  {
   let mut plist: Lisp_Object = lisp_h_Qnil ();
   let mut val: Lisp_Object = lisp_h_Qnil ();
 
@@ -704,8 +703,7 @@ pub unsafe extern "C-unwind" fn compose_text (start: ptrdiff_t, end: ptrdiff_t,
 				       modification_func: Lisp_Object,
 				       string: Lisp_Object)
 {
-  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
-  unsafe {
+  {
   let prop: Lisp_Object = Fcons (Fcons (make_fixnum (end - start), components),
 				 modification_func);
   Fput_text_property (make_fixnum (start), make_fixnum (end),
@@ -2351,7 +2349,7 @@ pub static Vauto_composition_emoji_eligible_codepoints: VmGlobal<Lisp_Object> = 
 
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn syms_of_composite ()
+pub extern "C-unwind" fn syms_of_composite ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {

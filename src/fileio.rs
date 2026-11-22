@@ -312,7 +312,7 @@ unsafe fn file_metadata_errno (action: *const c_char, file: Lisp_Object,
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn file_attribute_errno (file: Lisp_Object, err: c_int) -> Lisp_Object
+pub extern "C-unwind" fn file_attribute_errno (file: Lisp_Object, err: c_int) -> Lisp_Object
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -324,8 +324,7 @@ pub unsafe extern "C-unwind" fn file_attribute_errno (file: Lisp_Object, err: c_
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn close_file_unwind (fd: c_int)
 {
-  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
-  unsafe {
+  {
   emacs_close (fd);
 
   }
@@ -1549,7 +1548,7 @@ DEFUN! ("substitute-in-file-name", Fsubstitute_in_file_name,
    (directory-file-name (expand-file-name FOO)).  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn expand_and_dir_to_file (filename: Lisp_Object) -> Lisp_Object
+pub extern "C-unwind" fn expand_and_dir_to_file (filename: Lisp_Object) -> Lisp_Object
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -1640,7 +1639,7 @@ unsafe fn emacs_full_read (fd: emacs_fd, buf: *mut c_void, bufsize: ptrdiff_t)
 
 /* C 2242: `#ifndef WINDOWSNT` (undefined, so the text is live).  */
 /* Copy data to DEST from SOURCE if possible.  Return true if OK.  */
-unsafe fn clone_file (dest: c_int, source: c_int) -> bool
+fn clone_file (dest: c_int, source: c_int) -> bool
 {
   /* C 2245-2248: `#ifdef FICLONE` (undefined on the frozen target): recorded.  */
   return false;
@@ -2483,7 +2482,7 @@ DEFUN! ("file-directory-p", Ffile_directory_p, Sfile_directory_p, 1, 1, 0,
 /* Return true if FILE is a directory or a symlink to a directory.
    Otherwise return false and set errno.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn file_directory_p (file: Lisp_Object) -> bool
+pub extern "C-unwind" fn file_directory_p (file: Lisp_Object) -> bool
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -2567,7 +2566,7 @@ DEFUN! ("file-accessible-directory-p", Ffile_accessible_directory_p,
    searchable directory, return true.  Otherwise return
    false and set errno to an error number.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn file_accessible_directory_p (file: Lisp_Object) -> bool
+pub extern "C-unwind" fn file_accessible_directory_p (file: Lisp_Object) -> bool
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -3031,7 +3030,7 @@ unsafe fn file_offset (val: Lisp_Object) -> off_t
 }
 
 /* Return a special time value indicating the error number ERRNUM.  */
-unsafe fn time_error_value (errnum: c_int) -> timespec
+fn time_error_value (errnum: c_int) -> timespec
 {
   let mut ns: c_int = if errnum == ENOENT || errnum == ENOTDIR
     { NONEXISTENT_MODTIME_NSECS } else { UNKNOWN_MODTIME_NSECS };
@@ -3067,11 +3066,10 @@ unsafe fn get_window_points_and_markers () -> Lisp_Object
   }
 }
 
-unsafe fn restore_window_points (mut window_markers: Lisp_Object, inserted: ptrdiff_t,
+fn restore_window_points (mut window_markers: Lisp_Object, inserted: ptrdiff_t,
 					same_at_start: ptrdiff_t, same_at_end: ptrdiff_t)
 {
-  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
-  unsafe {
+  {
   while CONSP (window_markers)
     {
       if CONSP (XCAR (window_markers))
@@ -4634,7 +4632,7 @@ unsafe extern "C-unwind" {
    descriptor for FILENAME, so do not open or close FILENAME.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn write_region (start: Lisp_Object, end: Lisp_Object,
+pub extern "C-unwind" fn write_region (start: Lisp_Object, end: Lisp_Object,
 				       filename: Lisp_Object, append: Lisp_Object,
 				       visit: Lisp_Object, lockname: Lisp_Object,
 				       mustbenew: Lisp_Object, mut desc: c_int) -> Lisp_Object

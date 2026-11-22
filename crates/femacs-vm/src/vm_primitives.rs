@@ -90,8 +90,7 @@ pub fn with_current_buffer<R>(
     }
     let count_raw = current_specpdl_index();
     catch_vm_nonlocal(|| {
-        // SAFETY: `record_unwind_current_buffer` records the active buffer on `specpdl`.
-        unsafe {
+        {
             record_unwind_current_buffer();
         }
         crate::buffer::Fset_buffer(raw_buf);

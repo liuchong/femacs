@@ -383,14 +383,14 @@ DEFUN! ("lcms-cie-de2000", Flcms_cie_de2000, Slcms_cie_de2000, 2, 5, 0,
 
 /// C 155-159: `deg2rad`.
 #[cfg (feature = "have_lcms2")]
-unsafe fn deg2rad (degrees: c_double) -> c_double
+fn deg2rad (degrees: c_double) -> c_double
 {
   return M_PI * degrees / 180.0;
 }
 
 /// C 161-165: `rad2deg`.
 #[cfg (feature = "have_lcms2")]
-unsafe fn rad2deg (radians: c_double) -> c_double
+fn rad2deg (radians: c_double) -> c_double
 {
   return 180.0 * radians / M_PI;
 }

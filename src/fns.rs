@@ -145,8 +145,8 @@ pub const EQUAL_INCLUDING_PROPERTIES: equal_kind = 2;
 DEFUN! ("identity", Fidentity, Sidentity, 1, 1, 0,
        doc: "Return the ARGUMENT unchanged.",
        (argument: Lisp_Object),
-       {
-  return argument;
+       safe {
+  crate::safe_data::identity (argument)
 });
 
 /* Return a random Lisp fixnum I in the range 0 <= I < LIM,
@@ -207,585 +207,134 @@ DEFUN! ("random", Frandom, Srandom, 0, 1, 0,
 /* Return LIST's length.  Signal an error if LIST is not a proper list.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn list_length (mut list: Lisp_Object) -> ptrdiff_t
+pub extern "C-unwind" fn list_length (list: Lisp_Object) -> ptrdiff_t
 {
-  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
-  unsafe {
-  let mut i: ptrdiff_t = 0;
-  let orig: Lisp_Object = list;
-  while CONSP (list) && i < (FOR_EACH_TAIL_THRESHOLD as ptrdiff_t)
-    {
-      i += 1;
-      list = XCDR (list);
-    }
-  if NILP (list)
-    { return i; }
-  list = orig;
-  i = 0;
-  let mut tortoise: Lisp_Object = list;
-  while CONSP (list)
-    {
-      i += 1;
-      list = XCDR (list);
-      if BASE_EQ (list, tortoise)
-	{ circular_list (list); }
-      else if (i & (FOR_EACH_TAIL_THRESHOLD as ptrdiff_t - 1)) == 0
-	{
-	  maybe_quit ();
-	  if (i & (i - 1)) == 0
-	    { tortoise = list; }
-	}
-    }
-  CHECK_LIST_END (list, list);
-  return i;
-
-  }
+  crate::safe_data::list_length_impl (list)
 }
 
 
 DEFUN! ("length", Flength, Slength, 1, 1, 0,
        doc: "Return the length of vector, list or string SEQUENCE.\nA byte-code function object is also allowed.\n\nIf the string contains multibyte characters, this is not necessarily\nthe number of bytes in the string; it is the number of characters.\nTo get the number of bytes, use `string-bytes'.\n\nIf the length of a list is being computed to compare to a (small)\nnumber, the `length<', `length>' and `length=' functions may be more\nefficient.",
        (sequence: Lisp_Object),
-       {
-  let mut val: EMACS_INT;
-
-  if NILP (sequence)
-    { return make_fixnum (0); }
-  else if CONSP (sequence)
-    { val = list_length (sequence); }
-  else if STRINGP (sequence)
-    { val = SCHARS (sequence); }
-  else if VECTORP (sequence)
-    { val = ASIZE (sequence); }
-  else if CHAR_TABLE_P (sequence)
-    { val = (MAX_CHAR + 1) as EMACS_INT; }
-  else if BOOL_VECTOR_P (sequence)
-    { val = bool_vector_size (sequence); }
-  else if CLOSUREP (sequence) || RECORDP (sequence)
-    { val = PVSIZE (sequence); }
-  else
-    { wrong_type_argument (Qsequencep (), sequence); }
-
-  return make_fixnum (val);
+       safe {
+  crate::safe_data::length_subr (sequence)
 });
 
 DEFUN! ("safe-length", Fsafe_length, Ssafe_length, 1, 1, 0,
        doc: "Return the length of a list, but avoid error or infinite loop.\nThis function never gets an error.  If LIST is not really a list,\nit returns 0.  If LIST is circular, it returns an integer that is at\nleast the number of distinct elements.",
        (list: Lisp_Object),
-       {
-  /* C assigns to the parameter through `FOR_EACH_TAIL_SAFE`; Rust needs the binding declared
-     mutable, and a `DEFUN!` parameter list cannot carry `mut` (status 3.612).  */
-  let mut list = list;
-  let mut len: ptrdiff_t = 0;
-  FOR_EACH_TAIL_SAFE! (list, {
-    len += 1;
-  });
-  return make_fixnum (len);
+       safe {
+  crate::safe_data::safe_length (list)
 });
-
-/* C 176-194: `length_internal`.  */
-unsafe fn length_internal (sequence: Lisp_Object, len: c_int) -> EMACS_INT
-{
-  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
-  unsafe {
-  let mut sequence: Lisp_Object = sequence;
-  let mut len: c_int = len;
-  /* If LENGTH is short (arbitrarily chosen cut-off point), use a
-     fast loop that doesn't care about whether SEQUENCE is
-     circular or not. */
-  if len < 0xffff
-    {
-      while CONSP (sequence)
-	{
-	  len -= 1;
-	  if len <= 0
-	    { return -1; }
-	  sequence = XCDR (sequence);
-	}
-    }
-  /* Signal an error on circular lists. */
-  else
-    {
-      FOR_EACH_TAIL! (sequence, {
-	len -= 1;
-	if len <= 0
-	  { return -1; }
-      });
-    }
-  return len as EMACS_INT;
-
-  }
-}
 
 DEFUN! ("length<", Flength_less, Slength_less, 2, 2, 0,
        doc: "Return non-nil if SEQUENCE is shorter than LENGTH.\nSee `length' for allowed values of SEQUENCE and how elements are\ncounted.",
        (sequence: Lisp_Object, length: Lisp_Object),
-       {
-  CHECK_FIXNUM (length);
-  let len: EMACS_INT = XFIXNUM (length);
-
-  if CONSP (sequence)
-    { return if length_internal (sequence, len as c_int) == -1 { Qnil () } else { Qt () }; }
-  else
-    { return if XFIXNUM (Flength (sequence)) < len { Qt () } else { Qnil () }; }
+       safe {
+  crate::safe_data::length_less (sequence, length)
 });
 
 DEFUN! ("length>", Flength_greater, Slength_greater, 2, 2, 0,
        doc: "Return non-nil if SEQUENCE is longer than LENGTH.\nSee `length' for allowed values of SEQUENCE and how elements are\ncounted.",
        (sequence: Lisp_Object, length: Lisp_Object),
-       {
-  CHECK_FIXNUM (length);
-  let len: EMACS_INT = XFIXNUM (length);
-
-  if CONSP (sequence)
-    { return if length_internal (sequence, (len + 1) as c_int) == -1 { Qt () } else { Qnil () }; }
-  else
-    { return if XFIXNUM (Flength (sequence)) > len { Qt () } else { Qnil () }; }
+       safe {
+  crate::safe_data::length_greater (sequence, length)
 });
 
 DEFUN! ("length=", Flength_equal, Slength_equal, 2, 2, 0,
        doc: "Return non-nil if SEQUENCE has length equal to LENGTH.\nSee `length' for allowed values of SEQUENCE and how elements are\ncounted.",
        (sequence: Lisp_Object, length: Lisp_Object),
-       {
-  CHECK_FIXNUM (length);
-  let len: EMACS_INT = XFIXNUM (length);
-
-  if len < 0
-    { return Qnil (); }
-
-  if CONSP (sequence)
-    { return if length_internal (sequence, (len + 1) as c_int) == 1 { Qt () } else { Qnil () }; }
-  else
-    { return if XFIXNUM (Flength (sequence)) == len { Qt () } else { Qnil () }; }
+       safe {
+  crate::safe_data::length_equal (sequence, length)
 });
 
 DEFUN! ("proper-list-p", Fproper_list_p, Sproper_list_p, 1, 1, 0,
        doc: "Return OBJECT's length if it is a proper list, nil otherwise.\nA proper list is neither circular nor dotted (i.e., its last cdr is nil).",
        (object: Lisp_Object),
-       {
-  let mut len: ptrdiff_t = 0;
-  let mut last_tail: Lisp_Object = object;
-  let mut tail: Lisp_Object = object;
-  FOR_EACH_TAIL_SAFE! (tail, {
-      len += 1;
-      rarely_quit (len as u64);
-      last_tail = XCDR (tail);
-  });
-  if ! NILP (last_tail)
-    { return Qnil (); }
-  return make_fixnum (len);
+       safe {
+  crate::safe_data::proper_list_p (object)
 });
 
 DEFUN! ("string-bytes", Fstring_bytes, Sstring_bytes, 1, 1, 0,
        doc: "Return the number of bytes in STRING.\nIf STRING is multibyte, this may be greater than the length of STRING.",
        (string: Lisp_Object),
-       {
-  CHECK_STRING (string);
-  return make_fixnum (SBYTES (string));
+       safe {
+  crate::safe_data::string_bytes (string)
 });
 
 DEFUN! ("string-distance", Fstring_distance, Sstring_distance, 2, 3, 0,
        doc: "Return Levenshtein distance between STRING1 and STRING2.\nThe distance is the number of deletions, insertions, and substitutions\nrequired to transform STRING1 into STRING2.\nIf BYTECOMPARE is nil or omitted, compute distance in terms of characters.\nIf BYTECOMPARE is non-nil, compute distance in terms of bytes.\nLetter-case is significant, but text properties are ignored.",
        (string1: Lisp_Object, string2: Lisp_Object, bytecompare: Lisp_Object),
-       {
-  CHECK_STRING (string1);
-  CHECK_STRING (string2);
-
-  let use_byte_compare: bool =
-    !NILP (bytecompare)
-    || (!STRING_MULTIBYTE (string1) && !STRING_MULTIBYTE (string2));
-  let len1: ptrdiff_t = if use_byte_compare { SBYTES (string1) } else { SCHARS (string1) };
-  let len2: ptrdiff_t = if use_byte_compare { SBYTES (string2) } else { SCHARS (string2) };
-  let mut x: ptrdiff_t;
-  let mut y: ptrdiff_t;
-  let mut lastdiag: ptrdiff_t;
-  let mut olddiag: ptrdiff_t;
-
-  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
-  let mut column: *mut ptrdiff_t = std::ptr::null_mut ();
-  SAFE_NALLOCA! (sa_avail, column, 1, len1 + 1);
-  y = 0;
-  while y <= len1
-    {
-      *column.add (y as usize) = y;
-      y += 1;
-    }
-
-  if use_byte_compare
-    {
-      let s1: *mut c_char = SSDATA (string1);
-      let s2: *mut c_char = SSDATA (string2);
-
-      x = 1;
-      while x <= len2
-	{
-	  *column.add (0) = x;
-	  y = 1;
-	  lastdiag = x - 1;
-	  while y <= len1
-	    {
-	      olddiag = *column.add (y as usize);
-	      *column.add (y as usize) = min (min (*column.add (y as usize) + 1,
-						  *column.add ((y - 1) as usize) + 1),
-					      lastdiag
-					      + (if *s1.add ((y - 1) as usize) == *s2.add ((x - 1) as usize) { 0 } else { 1 }));
-	      lastdiag = olddiag;
-	      y += 1;
-	    }
-	  x += 1;
-	}
-    }
-  else
-    {
-      let mut c1: c_int;
-      let mut c2: c_int;
-      let mut i1: ptrdiff_t;
-      let mut i1_byte: ptrdiff_t;
-      let mut i2: ptrdiff_t = 0;
-      let mut i2_byte: ptrdiff_t = 0;
-      x = 1;
-      while x <= len2
-	{
-	  *column.add (0) = x;
-	  c2 = fetch_string_char_advance (string2, &raw mut i2, &raw mut i2_byte);
-	  i1 = 0;
-	  i1_byte = 0;
-	  y = 1;
-	  lastdiag = x - 1;
-	  while y <= len1
-	    {
-	      olddiag = *column.add (y as usize);
-	      c1 = fetch_string_char_advance (string1, &raw mut i1, &raw mut i1_byte);
-	      *column.add (y as usize) = min (min (*column.add (y as usize) + 1,
-						  *column.add ((y - 1) as usize) + 1),
-					      lastdiag + (if c1 == c2 { 0 } else { 1 }));
-	      lastdiag = olddiag;
-	      y += 1;
-	    }
-	  x += 1;
-	}
-    }
-
-  SAFE_FREE! (sa_count, sa_mark);
-  return make_fixnum (*column.add (len1 as usize));
+       safe {
+  crate::safe_data::string_distance (string1, string2, bytecompare)
 });
 
 DEFUN! ("string-equal", Fstring_equal, Sstring_equal, 2, 2, 0,
        doc: "Return t if two strings have identical contents.\nCase is significant, but text properties are ignored.\nSymbols are also allowed; their print names are used instead.\n\nSee also `string-equal-ignore-case'.",
        (s1: Lisp_Object, s2: Lisp_Object),
-       {
-  let mut s1: Lisp_Object = s1;
-  let mut s2: Lisp_Object = s2;
-  if SYMBOLP (s1)
-    { s1 = SYMBOL_NAME (s1); }
-  if SYMBOLP (s2)
-    { s2 = SYMBOL_NAME (s2); }
-  CHECK_STRING (s1);
-  CHECK_STRING (s2);
-
-  if SCHARS (s1) != SCHARS (s2)
-      || SBYTES (s1) != SBYTES (s2)
-      || memcmp (SDATA (s1) as *const c_void, SDATA (s2) as *const c_void,
-		 SBYTES (s1) as usize) != 0
-    { return Qnil (); }
-  return Qt ();
+       safe {
+  crate::safe_data::string_equal (s1, s2)
 });
 
 DEFUN! ("compare-strings", Fcompare_strings, Scompare_strings, 6, 7, 0,
        doc: "Compare the contents of two strings, converting to multibyte if needed.\nThe arguments START1, END1, START2, and END2, if non-nil, are\npositions specifying which parts of STR1 or STR2 to compare.  In\nstring STR1, compare the part between START1 (inclusive) and END1\n(exclusive).  If START1 is nil, it defaults to 0, the beginning of\nthe string; if END1 is nil, it defaults to the length of the string.\nLikewise, in string STR2, compare the part between START2 and END2.\nLike in `substring', negative values are counted from the end.\n\nThe strings are compared by the numeric values of their characters.\nFor instance, STR1 is \"less than\" STR2 if its first differing\ncharacter has a smaller numeric value.  If IGNORE-CASE is non-nil,\ncharacters are converted to upper-case before comparing them.  Unibyte\nstrings are converted to multibyte for comparison.\n\nThe value is t if the strings (or specified portions) match.\nIf string STR1 is less, the value is a negative number N;\n  - 1 - N is the number of characters that match at the beginning.\nIf string STR1 is greater, the value is a positive number N;\n  N - 1 is the number of characters that match at the beginning.",
        (str1: Lisp_Object, start1: Lisp_Object, end1: Lisp_Object, str2: Lisp_Object,
         start2: Lisp_Object, end2: Lisp_Object, ignore_case: Lisp_Object),
-       {
-  let mut end1: Lisp_Object = end1;
-  let mut end2: Lisp_Object = end2;
-  let mut from1: ptrdiff_t = 0;
-  let mut to1: ptrdiff_t = 0;
-  let mut from2: ptrdiff_t = 0;
-  let mut to2: ptrdiff_t = 0;
-  let mut i1: ptrdiff_t;
-  let mut i1_byte: ptrdiff_t;
-  let mut i2: ptrdiff_t;
-  let mut i2_byte: ptrdiff_t;
-
-  CHECK_STRING (str1);
-  CHECK_STRING (str2);
-
-  /* For backward compatibility, silently bring too-large positive end
-     values into range.  */
-  if FIXNUMP (end1) && SCHARS (str1) < XFIXNUM (end1)
-    { end1 = make_fixnum (SCHARS (str1)); }
-  if FIXNUMP (end2) && SCHARS (str2) < XFIXNUM (end2)
-    { end2 = make_fixnum (SCHARS (str2)); }
-
-  validate_subarray (str1, start1, end1, SCHARS (str1), &raw mut from1, &raw mut to1);
-  validate_subarray (str2, start2, end2, SCHARS (str2), &raw mut from2, &raw mut to2);
-
-  i1 = from1;
-  i2 = from2;
-
-  i1_byte = string_char_to_byte (str1, i1);
-  i2_byte = string_char_to_byte (str2, i2);
-
-  while i1 < to1 && i2 < to2
-    {
-      /* When we find a mismatch, we must compare the
-	 characters, not just the bytes.  */
-      let mut c1: c_int = fetch_string_char_as_multibyte_advance (str1, &raw mut i1, &raw mut i1_byte);
-      let mut c2: c_int = fetch_string_char_as_multibyte_advance (str2, &raw mut i2, &raw mut i2_byte);
-
-      if c1 == c2
-	{ continue; }
-
-      if ! NILP (ignore_case)
-	{
-	  c1 = XFIXNUM (Fupcase (make_fixnum (c1 as EMACS_INT))) as c_int;
-	  c2 = XFIXNUM (Fupcase (make_fixnum (c2 as EMACS_INT))) as c_int;
-	}
-
-      if c1 == c2
-	{ continue; }
-
-      /* Note that I1 has already been incremented
-	 past the character that we are comparing;
-	 hence we don't add or subtract 1 here.  */
-      if c1 < c2
-	{ return make_fixnum (- i1 + from1); }
-      else
-	{ return make_fixnum (i1 - from1); }
-    }
-
-  if i1 < to1
-    { return make_fixnum (i1 - from1 + 1); }
-  if i2 < to2
-    { return make_fixnum (- i1 + from1 - 1); }
-
-  return Qt ();
+       safe {
+  crate::safe_data::compare_strings (str1, start1, end1, str2, start2, end2, ignore_case)
 });
 
-/* Check whether the platform allows access to unaligned addresses for
-   size_t integers without trapping or undue penalty (a few cycles is OK),
-   and that a word-sized memcpy can be used to generate such an access.
-
-   This whitelist is incomplete but since it is only used to improve
-   performance, omitting cases is safe.  */
-/* C 448-458: `HAVE_FAST_UNALIGNED_ACCESS` is `#define`d in both arms of this `#if`.  The
-   frozen build's `CFLAGS` carry `-O2`, so `__OPTIMIZE__` is defined and the `#if` arm (`1`)
-   is the text compiled on this target; the `#else` arm (`0`) is carried (P-51).  */
 #[cfg (not (feature = "no_fast_unaligned_access"))]
 pub const HAVE_FAST_UNALIGNED_ACCESS: bool = true;
 #[cfg (feature = "no_fast_unaligned_access")]
 pub const HAVE_FAST_UNALIGNED_ACCESS: bool = false;
 
-/* Load a word from a possibly unaligned address.  */
-/* C 460-469: `load_unaligned_size_t`.  */
-unsafe fn load_unaligned_size_t (p: *const c_void) -> size_t
+#[inline(always)]
+fn string_cmp (string1: Lisp_Object, string2: Lisp_Object) -> c_int
 {
-  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
-  unsafe {
-  let mut x: size_t = 0;
-  std::ptr::copy_nonoverlapping (p, &raw mut x as *mut c_void,
-				 std::mem::size_of::<size_t> ());
-  return x;
-
-  }
+  crate::safe_data::string_cmp_safe (string1, string2)
 }
 
-/* Return -1/0/1 to indicate the relation </=/> between string1 and string2.  */
-/* C 471-556: `string_cmp`.  */
-unsafe fn string_cmp (string1: Lisp_Object, string2: Lisp_Object) -> c_int
+pub fn filenvercmp_strings_safe (string1: Lisp_Object, string2: Lisp_Object) -> c_int
 {
-  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
-  unsafe {
-  let n: ptrdiff_t = min (SCHARS (string1), SCHARS (string2));
-
-  if (!STRING_MULTIBYTE (string1) || SCHARS (string1) == SBYTES (string1))
-      && (!STRING_MULTIBYTE (string2) || SCHARS (string2) == SBYTES (string2))
-    {
-      /* Each argument is either unibyte or all-ASCII multibyte:
-	 we can compare bytewise.  */
-      let d: c_int = memcmp (SSDATA (string1) as *const c_void,
-			     SSDATA (string2) as *const c_void, n as usize);
-      if d != 0
-	{ return d; }
-      return if n < SCHARS (string2) { -1 } else { if n < SCHARS (string1) { 1 } else { 0 } };
-    }
-  else if STRING_MULTIBYTE (string1) && STRING_MULTIBYTE (string2)
-    {
-      /* Two arbitrary multibyte strings: we cannot use memcmp because
-	 the encoding for raw bytes would sort those between U+007F and U+0080
-	 which isn't where we want them.
-	 Instead, we skip the longest common prefix and look at
-	 what follows.  */
-      let nb1: ptrdiff_t = SBYTES (string1);
-      let nb2: ptrdiff_t = SBYTES (string2);
-      let nb: ptrdiff_t = min (nb1, nb2);
-      let mut b: ptrdiff_t = 0;
-
-      /* String data is normally allocated with word alignment, but
-	 there are exceptions (notably pure strings) so we restrict the
-	 wordwise skipping to safe architectures.  */
-      if HAVE_FAST_UNALIGNED_ACCESS
-	{
-	  /* First compare entire machine words.  */
-	  let ws: ptrdiff_t = std::mem::size_of::<size_t> () as ptrdiff_t;
-	  let w1: *const c_char = SSDATA (string1);
-	  let w2: *const c_char = SSDATA (string2);
-	  while b < nb - ws + 1
-		&& load_unaligned_size_t (w1.offset (b) as *const c_void)
-		   == load_unaligned_size_t (w2.offset (b) as *const c_void)
-	    { b += ws; }
-	}
-
-      /* Scan forward to the differing byte.  */
-      while b < nb && SREF (string1, b as usize) == SREF (string2, b as usize)
-	{ b += 1; }
-
-      if b >= nb
-	/* One string is a prefix of the other.  */
-	{ return if b < nb2 { -1 } else { if b < nb1 { 1 } else { 0 } }; }
-
-      /* Now back up to the start of the differing characters:
-	 it's the last byte not having the bit pattern 10xxxxxx.  */
-      while (SREF (string1, b as usize) & 0xc0) == 0x80
-	{ b -= 1; }
-
-      /* Compare the differing characters.  */
-      let mut i1: ptrdiff_t = 0;
-      let mut i2: ptrdiff_t = 0;
-      let mut i1_byte: ptrdiff_t = b;
-      let mut i2_byte: ptrdiff_t = b;
-      let c1: c_int = fetch_string_char_advance_no_check (string1, &raw mut i1, &raw mut i1_byte);
-      let c2: c_int = fetch_string_char_advance_no_check (string2, &raw mut i2, &raw mut i2_byte);
-      return if c1 < c2 { -1 } else { if c1 > c2 { 1 } else { 0 } };
-    }
-  else if STRING_MULTIBYTE (string1)
-    {
-      /* string1 multibyte, string2 unibyte */
-      let mut i1: ptrdiff_t = 0;
-      let mut i1_byte: ptrdiff_t = 0;
-      let mut i2: ptrdiff_t = 0;
-      while i1 < n
-	{
-	  let c1: c_int = fetch_string_char_advance_no_check (string1, &raw mut i1, &raw mut i1_byte);
-	  let c2: c_int = SREF (string2, i2 as usize) as c_int;
-	  i2 += 1;
-	  if c1 != c2
-	    { return if c1 < c2 { -1 } else { 1 }; }
-	}
-      return if i1 < SCHARS (string2) { -1 } else { if i1 < SCHARS (string1) { 1 } else { 0 } };
-    }
-  else
-    {
-      /* string1 unibyte, string2 multibyte */
-      let mut i1: ptrdiff_t = 0;
-      let mut i2: ptrdiff_t = 0;
-      let mut i2_byte: ptrdiff_t = 0;
-      while i1 < n
-	{
-	  let c1: c_int = SREF (string1, i1 as usize) as c_int;
-	  i1 += 1;
-	  let c2: c_int = fetch_string_char_advance_no_check (string2, &raw mut i2, &raw mut i2_byte);
-	  if c1 != c2
-	    { return if c1 < c2 { -1 } else { 1 }; }
-	}
-      return if i1 < SCHARS (string2) { -1 } else { if i1 < SCHARS (string1) { 1 } else { 0 } };
-    }
-
-  }
+  CHECK_STRING (string1);
+  CHECK_STRING (string2);
+  // SAFETY: `string1` and `string2` are live `Lisp_String`s; byte pointers and lengths match `SBYTES`.
+  unsafe { filenvercmp (SSDATA (string1), SBYTES (string1), SSDATA (string2), SBYTES (string2)) }
 }
 
 DEFUN! ("string-lessp", Fstring_lessp, Sstring_lessp, 2, 2, 0,
        doc: "Return non-nil if STRING1 is less than STRING2 in lexicographic order.\nCase is significant.\nSymbols are also allowed; their print names are used instead.",
        (string1: Lisp_Object, string2: Lisp_Object),
-       {
-  let mut string1: Lisp_Object = string1;
-  let mut string2: Lisp_Object = string2;
-  if SYMBOLP (string1)
-    { string1 = SYMBOL_NAME (string1); }
-  else
-    { CHECK_STRING (string1); }
-  if SYMBOLP (string2)
-    { string2 = SYMBOL_NAME (string2); }
-  else
-    { CHECK_STRING (string2); }
-
-  return if string_cmp (string1, string2) < 0 { Qt () } else { Qnil () };
+       safe {
+  crate::safe_data::string_lessp (string1, string2)
 });
 
 DEFUN! ("string-version-lessp", Fstring_version_lessp,
        Sstring_version_lessp, 2, 2, 0,
        doc: "Return non-nil if S1 is less than S2, as version strings.\n\nThis function compares version strings S1 and S2:\n   1) By prefix lexicographically.\n   2) Then by version (similarly to version comparison of Debian's dpkg).\n      Leading zeros in version numbers are ignored.\n   3) If both prefix and version are equal, compare as ordinary strings.\n\nFor example, \"foo2.png\" compares less than \"foo12.png\".\nCase is significant.\nSymbols are also allowed; their print names are used instead.",
        (string1: Lisp_Object, string2: Lisp_Object),
-       {
-  let mut string1: Lisp_Object = string1;
-  let mut string2: Lisp_Object = string2;
-  if SYMBOLP (string1)
-    { string1 = SYMBOL_NAME (string1); }
-  if SYMBOLP (string2)
-    { string2 = SYMBOL_NAME (string2); }
-  CHECK_STRING (string1);
-  CHECK_STRING (string2);
-  let cmp: c_int = filenvercmp (SSDATA (string1), SBYTES (string1),
-				SSDATA (string2), SBYTES (string2));
-  return if cmp < 0 { Qt () } else { Qnil () };
+       safe {
+  crate::safe_data::string_version_lessp (string1, string2)
 });
 
 DEFUN! ("string-collate-lessp", Fstring_collate_lessp, Sstring_collate_lessp, 2, 4, 0,
        doc: "Return t if first arg string is less than second in collation order.\nSymbols are also allowed; their print names are used instead.\n\nThis function obeys the conventions for collation order in your\nlocale settings.  For example, punctuation and whitespace characters\nmight be considered less significant for sorting:\n\n(sort \\='(\"11\" \"12\" \"1 1\" \"1 2\" \"1.1\" \"1.2\")\n      :lessp #\\='string-collate-lessp)\n  => (\"11\" \"1 1\" \"1.1\" \"12\" \"1 2\" \"1.2\")\n\nThe optional argument LOCALE, a string, overrides the setting of your\ncurrent locale identifier for collation.  The value is system\ndependent; a LOCALE \"en_US.UTF-8\" is applicable on POSIX systems,\nwhile it would be, e.g., \"enu_USA.1252\" on MS-Windows systems.\n\nIf IGNORE-CASE is non-nil, characters are converted to lower-case\nbefore comparing them.\n\nTo emulate Unicode-compliant collation on MS-Windows systems,\nbind `w32-collate-ignore-punctuation' to a non-nil value, since\nthe codeset part of the locale cannot be \"UTF-8\" on MS-Windows.\n\nSome operating systems do not implement correct collation (in specific\nlocale environments or at all).  Then, this functions falls back to\ncase-sensitive `string-lessp' and IGNORE-CASE argument is ignored.",
        (s1: Lisp_Object, s2: Lisp_Object, locale: Lisp_Object, ignore_case: Lisp_Object),
-       {
-  /* C 632-644: `#if defined __STDC_ISO_10646__ || defined WINDOWSNT`.  Neither macro is
-     defined on this target, so the `#else` arm below is the compiled text; this arm is the
-     carried text (feature `stdc_iso_10646`, P-51).  */
-  #[cfg (feature = "stdc_iso_10646")]
-  {
-    let mut s1: Lisp_Object = s1;
-    let mut s2: Lisp_Object = s2;
-    /* Check parameters.  */
-    if SYMBOLP (s1)
-      { s1 = SYMBOL_NAME (s1); }
-    if SYMBOLP (s2)
-      { s2 = SYMBOL_NAME (s2); }
-    CHECK_STRING (s1);
-    CHECK_STRING (s2);
-    if !NILP (locale)
-      { CHECK_STRING (locale); }
-
-    return if str_collate (s1, s2, locale, ignore_case) < 0 { Qt () } else { Qnil () };
-  }
-
-  return Fstring_lessp (s1, s2);
+       safe {
+  crate::safe_data::string_collate_lessp (s1, s2, locale, ignore_case)
 });
 
 DEFUN! ("string-collate-equalp", Fstring_collate_equalp, Sstring_collate_equalp, 2, 4, 0,
        doc: "Return t if two strings have identical contents.\nSymbols are also allowed; their print names are used instead.\n\nThis function obeys the conventions for collation order in your locale\nsettings.  For example, characters with different coding points but\nthe same meaning might be considered as equal, like different grave\naccent Unicode characters:\n\n(string-collate-equalp (string ?\\uFF40) (string ?\\u1FEF))\n  => t\n\nThe optional argument LOCALE, a string, overrides the setting of your\ncurrent locale identifier for collation.  The value is system\ndependent; a LOCALE \"en_US.UTF-8\" is applicable on POSIX systems,\nwhile it would be \"enu_USA.1252\" on MS Windows systems.\n\nIf IGNORE-CASE is non-nil, characters are converted to lower-case\nbefore comparing them.\n\nTo emulate Unicode-compliant collation on MS-Windows systems,\nbind `w32-collate-ignore-punctuation' to a non-nil value, since\nthe codeset part of the locale cannot be \"UTF-8\" on MS-Windows.\n\nIf your system does not support a locale environment, this function\nbehaves like `string-equal', and in that case the IGNORE-CASE argument\nis ignored.\n\nDo NOT use this function to compare file names for equality.",
        (s1: Lisp_Object, s2: Lisp_Object, locale: Lisp_Object, ignore_case: Lisp_Object),
-       {
-  /* C 681-693: the same `#if defined __STDC_ISO_10646__ || defined WINDOWSNT`; the `#else`
-     arm is live, this one is carried under `stdc_iso_10646`.  */
-  #[cfg (feature = "stdc_iso_10646")]
-  {
-    let mut s1: Lisp_Object = s1;
-    let mut s2: Lisp_Object = s2;
-    /* Check parameters.  */
-    if SYMBOLP (s1)
-      { s1 = SYMBOL_NAME (s1); }
-    if SYMBOLP (s2)
-      { s2 = SYMBOL_NAME (s2); }
-    CHECK_STRING (s1);
-    CHECK_STRING (s2);
-    if !NILP (locale)
-      { CHECK_STRING (locale); }
-
-    return if str_collate (s1, s2, locale, ignore_case) == 0 { Qt () } else { Qnil () };
-  }
-
-  return Fstring_equal (s1, s2);
+       safe {
+  crate::safe_data::string_collate_equalp (s1, s2, locale, ignore_case)
 });
 
 /* C 705-709: `concat2`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn concat2 (s1: Lisp_Object, s2: Lisp_Object) -> Lisp_Object
+pub extern "C-unwind" fn concat2 (s1: Lisp_Object, s2: Lisp_Object) -> Lisp_Object
 {
   // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
   unsafe {
@@ -797,7 +346,7 @@ pub unsafe extern "C-unwind" fn concat2 (s1: Lisp_Object, s2: Lisp_Object) -> Li
 
 /* C 711-715: `concat3`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn concat3 (s1: Lisp_Object, s2: Lisp_Object, s3: Lisp_Object) -> Lisp_Object
+pub extern "C-unwind" fn concat3 (s1: Lisp_Object, s2: Lisp_Object, s3: Lisp_Object) -> Lisp_Object
 {
   // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
   unsafe {
@@ -839,84 +388,67 @@ DEFUN! ("vconcat", Fvconcat, Svconcat, 0, MANY, 0,
   return concat_to_vector (nargs, args);
 });
 
+pub fn copy_sequence_string_safe (arg: Lisp_Object) -> Lisp_Object
+{
+  CHECK_STRING (arg);
+  // SAFETY: `arg` is verified `STRINGP`; allocates a fresh string of identical byte/char counts and copies intervals if present.
+  unsafe {
+    let bytes: ptrdiff_t = SBYTES (arg);
+    let chars: ptrdiff_t = SCHARS (arg);
+    let val: Lisp_Object = if STRING_MULTIBYTE (arg)
+      { make_uninit_multibyte_string (chars, bytes) }
+    else
+      { make_uninit_string (bytes) };
+    std::ptr::copy_nonoverlapping (SDATA (arg) as *const c_void,
+                                   SDATA (val) as *mut c_void, bytes as usize);
+    let ivs: INTERVAL = string_intervals (arg);
+    if !ivs.is_null ()
+      {
+        let copy: INTERVAL = copy_intervals (ivs, 0, chars);
+        set_interval_object (copy, val);
+        set_string_intervals (val, copy);
+      }
+    val
+  }
+}
+
+pub fn copy_sequence_vector_or_record_safe (arg: Lisp_Object, is_record: bool) -> Lisp_Object
+{
+  // SAFETY: `arg` is verified `VECTORP` (`!is_record`) or `RECORDP` (`is_record`) by caller.
+  unsafe {
+    if is_record
+      {
+        eassert! (RECORDP (arg));
+        Frecord (PVSIZE (arg), (*XVECTOR (arg)).contents.as_mut_ptr ())
+      }
+    else
+      {
+        eassert! (VECTORP (arg));
+        Fvector (ASIZE (arg), (*XVECTOR (arg)).contents.as_mut_ptr ())
+      }
+  }
+}
+
+pub fn copy_sequence_bool_vector_safe (arg: Lisp_Object) -> Lisp_Object
+{
+  CHECK_BOOL_VECTOR (arg);
+  // SAFETY: `arg` is verified `BOOL_VECTOR_P`; allocates a fresh bool-vector of identical bit/byte counts.
+  unsafe {
+    let nbits: EMACS_INT = bool_vector_size (arg);
+    let nbytes: ptrdiff_t = bool_vector_bytes (nbits);
+    let val: Lisp_Object = make_uninit_bool_vector (nbits);
+    std::ptr::copy_nonoverlapping (bool_vector_data (arg) as *const u8,
+                                   bool_vector_data (val) as *mut u8,
+                                   nbytes as usize);
+    val
+  }
+}
 
 DEFUN! ("copy-sequence", Fcopy_sequence, Scopy_sequence, 1, 1, 0,
        doc: "Return a copy of a list, vector, string, char-table or record.\nThe elements of a list, vector or record are not copied; they are\nshared with the original.  See Info node `(elisp) Sequence Functions'\nfor more details about this sharing and its effects.\nIf the original sequence is empty, this function may return\nthe same empty object instead of its copy.",
        (arg: Lisp_Object),
-       {
-  if NILP (arg) { return arg; }
-
-  if CONSP (arg)
-    {
-      let val: Lisp_Object = Fcons (XCAR (arg), Qnil ());
-      let mut tail: Lisp_Object = XCDR (arg);
-      if NILP (tail)
-	{ return val; }
-      let mut prev: Lisp_Object = val;
-      let mut fast_steps: c_int = 0;
-      while CONSP (tail) && fast_steps < 64
-	{
-	  let c: Lisp_Object = Fcons (XCAR (tail), Qnil ());
-	  XSETCDR (prev, c);
-	  prev = c;
-	  tail = XCDR (tail);
-	  fast_steps += 1;
-	}
-      if NILP (tail)
-	{ return val; }
-      FOR_EACH_TAIL! (tail, {
-	let c: Lisp_Object = Fcons (XCAR (tail), Qnil ());
-	XSETCDR (prev, c);
-	prev = c;
-      });
-      CHECK_LIST_END (tail, tail);
-      return val;
-    }
-
-  if STRINGP (arg)
-    {
-      let bytes: ptrdiff_t = SBYTES (arg);
-      let chars: ptrdiff_t = SCHARS (arg);
-      let val: Lisp_Object = if STRING_MULTIBYTE (arg)
-	{ make_uninit_multibyte_string (chars, bytes) }
-	else
-	{ make_uninit_string (bytes) };
-      std::ptr::copy_nonoverlapping (SDATA (arg) as *const c_void,
-				     SDATA (val) as *mut c_void, bytes as usize);
-      let ivs: INTERVAL = string_intervals (arg);
-      if !ivs.is_null ()
-	{
-	  let copy: INTERVAL = copy_intervals (ivs, 0, chars);
-	  set_interval_object (copy, val);
-	  set_string_intervals (val, copy);
-	}
-      return val;
-    }
-
-  if VECTORP (arg)
-    { return Fvector (ASIZE (arg), (*XVECTOR (arg)).contents.as_mut_ptr ()); }
-
-  if RECORDP (arg)
-    { return Frecord (PVSIZE (arg), (*XVECTOR (arg)).contents.as_mut_ptr ()); }
-
-  if CHAR_TABLE_P (arg)
-    { return copy_char_table (arg); }
-
-  if BOOL_VECTOR_P (arg)
-    {
-      let nbits: EMACS_INT = bool_vector_size (arg);
-      let nbytes: ptrdiff_t = bool_vector_bytes (nbits);
-      let val: Lisp_Object = make_uninit_bool_vector (nbits);
-      /* C's `memcpy (bool_vector_data (val), bool_vector_data (arg), nbytes)` counts *bytes*;
-	 `copy_nonoverlapping` counts `T`s, and `bits_word` is 8 bytes wide, so both pointers go
-	 through `u8` for the count to stay bytes (status 3.626; the 3.618 memcpy family).  */
-      std::ptr::copy_nonoverlapping (bool_vector_data (arg) as *const u8,
-				     bool_vector_data (val) as *mut u8,
-				     nbytes as usize);
-      return val;
-    }
-
-  wrong_type_argument (Qsequencep (), arg);
+       safe {
+  crate::safe_data::copy_sequence (arg)
 });
 
 /* This structure holds information of an argument of `concat_to_string'
@@ -1394,7 +926,7 @@ static string_char_byte_cache_bytepos: VmGlobal<ptrdiff_t> = VmGlobal::<ptrdiff_
 
 /* C 1196-1254: `string_char_to_byte`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn string_char_to_byte (string: Lisp_Object, char_index: ptrdiff_t) -> ptrdiff_t
+pub extern "C-unwind" fn string_char_to_byte (string: Lisp_Object, char_index: ptrdiff_t) -> ptrdiff_t
 {
   // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
   unsafe {
@@ -1462,7 +994,7 @@ pub unsafe extern "C-unwind" fn string_char_to_byte (string: Lisp_Object, char_i
 
 /* C 1256-1320: `string_byte_to_char`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn string_byte_to_char (string: Lisp_Object, byte_index: ptrdiff_t) -> ptrdiff_t
+pub extern "C-unwind" fn string_byte_to_char (string: Lisp_Object, byte_index: ptrdiff_t) -> ptrdiff_t
 {
   // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
   unsafe {
@@ -1537,7 +1069,7 @@ pub unsafe extern "C-unwind" fn string_byte_to_char (string: Lisp_Object, byte_i
 
 /* C 1322-1341: `string_to_multibyte`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn string_to_multibyte (string: Lisp_Object) -> Lisp_Object
+pub extern "C-unwind" fn string_to_multibyte (string: Lisp_Object) -> Lisp_Object
 {
   // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
   unsafe {
@@ -1717,46 +1249,8 @@ DEFUN! ("string-to-unibyte", Fstring_to_unibyte, Sstring_to_unibyte,
 DEFUN! ("copy-alist", Fcopy_alist, Scopy_alist, 1, 1, 0,
        doc: "Return a copy of ALIST.\nThis is an alist which represents the same mapping from objects to objects,\nbut does not share the alist structure with ALIST.\nThe objects mapped (cars and cdrs of elements of the alist)\nare shared, however.\nElements of ALIST that are not conses are also shared.",
        (alist: Lisp_Object),
-       {
-  let mut alist: Lisp_Object = alist;
-  if NILP (alist)
-    { return alist; }
-  CHECK_CONS (alist);
-  let first_car: Lisp_Object = XCAR (alist);
-  let first_elt: Lisp_Object = if CONSP (first_car)
-    { Fcons (XCAR (first_car), XCDR (first_car)) }
-  else
-    { first_car };
-  let val: Lisp_Object = Fcons (first_elt, Qnil ());
-  let mut prev: Lisp_Object = val;
-  let mut tail: Lisp_Object = XCDR (alist);
-  let mut fast_steps: c_int = 0;
-  while CONSP (tail) && fast_steps < 64
-    {
-      let car: Lisp_Object = XCAR (tail);
-      let elt: Lisp_Object = if CONSP (car)
-	{ Fcons (XCAR (car), XCDR (car)) }
-      else
-	{ car };
-      let c: Lisp_Object = Fcons (elt, Qnil ());
-      XSETCDR (prev, c);
-      prev = c;
-      tail = XCDR (tail);
-      fast_steps += 1;
-    }
-  if NILP (tail)
-    { return val; }
-  alist = Fcopy_sequence (tail);
-  let mut tem: Lisp_Object = alist;
-  while !NILP (tem)
-    {
-      let car: Lisp_Object = XCAR (tem);
-      if CONSP (car)
-	{ XSETCAR (tem, Fcons (XCAR (car), XCDR (car))); }
-      tem = XCDR (tem);
-    }
-  XSETCDR (prev, alist);
-  return val;
+       safe {
+  crate::safe_data::copy_alist (alist)
 });
 
 /* Check that ARRAY can have a valid subarray [FROM..TO),
@@ -1772,96 +1266,59 @@ pub unsafe extern "C-unwind" fn validate_subarray (array: Lisp_Object, from: Lis
 {
   // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
   unsafe {
-  let mut f: EMACS_INT;
-  let mut t: EMACS_INT;
-
-  if FIXNUMP (from)
-    {
-      f = XFIXNUM (from);
-      if f < 0
-	{ f += size; }
-    }
-  else if NILP (from)
-    { f = 0; }
-  else
-    { wrong_type_argument (Qintegerp (), from); }
-
-  if FIXNUMP (to)
-    {
-      t = XFIXNUM (to);
-      if t < 0
-	{ t += size; }
-    }
-  else if NILP (to)
-    { t = size; }
-  else
-    { wrong_type_argument (Qintegerp (), to); }
-
-  if ! (0 <= f && f <= t && t <= size)
-    { args_out_of_range_3 (array, from, to); }
-
+  let (f, t) = validate_subarray_safe (array, from, to, size);
   *ifrom = f;
   *ito = t;
-
   }
+}
+
+pub fn substring_string_bytes_safe (
+  string: Lisp_Object,
+  from_char: ptrdiff_t,
+  from_byte: ptrdiff_t,
+  to_char: ptrdiff_t,
+  to_byte: ptrdiff_t,
+  copy_props: bool,
+) -> Lisp_Object
+{
+  CHECK_STRING (string);
+  eassert! (0 <= from_char && from_char <= to_char && to_char <= SCHARS (string));
+  eassert! (0 <= from_byte && from_byte <= to_byte && to_byte <= SBYTES (string));
+  // SAFETY: `string` is a live `Lisp_String` and `from_byte..to_byte` is within `0..SBYTES(string)`.
+  unsafe {
+    let res = make_specified_string (SSDATA (string).offset (from_byte) as *const c_char,
+                                     to_char - from_char, to_byte - from_byte,
+                                     STRING_MULTIBYTE (string));
+    if copy_props && !string_intervals (string).is_null ()
+      {
+        copy_text_properties (make_fixnum (from_char), make_fixnum (to_char),
+                              string, make_fixnum (0), res, Qnil ());
+      }
+    res
+  }
+}
+
+pub fn subvector_safe (vec: Lisp_Object, from: ptrdiff_t, to: ptrdiff_t) -> Lisp_Object
+{
+  CHECK_VECTOR (vec);
+  eassert! (0 <= from && from <= to && to <= ASIZE (vec));
+  // SAFETY: `vec` is verified `VECTORP` and `from..to` is within `0..ASIZE(vec)`.
+  unsafe { Fvector (to - from, aref_addr (vec, from)) }
 }
 
 DEFUN! ("substring", Fsubstring, Ssubstring, 1, 3, 0,
        doc: "Return a new string whose contents are a substring of STRING.\nThe returned string consists of the characters between index FROM\n(inclusive) and index TO (exclusive) of STRING.  FROM and TO are\nzero-indexed: 0 means the first character of STRING.  Negative values\nare counted from the end of STRING.  If TO is nil, the substring runs\nto the end of STRING.\n\nThe STRING argument may also be a vector.  In that case, the return\nvalue is a new vector that contains the elements between index FROM\n(inclusive) and index TO (exclusive) of that vector argument.\n\nWith one argument, just copy STRING (with properties, if any).",
        (string: Lisp_Object, from: Lisp_Object, to: Lisp_Object),
-       {
-  let res: Lisp_Object;
-  let mut ifrom: ptrdiff_t = 0;
-  let mut ito: ptrdiff_t = 0;
-
-  let size: ptrdiff_t = CHECK_VECTOR_OR_STRING (string);
-  validate_subarray (string, from, to, size, &raw mut ifrom, &raw mut ito);
-
-  if STRINGP (string)
-    {
-      let same_len: bool = size == SBYTES (string);
-      let from_byte: ptrdiff_t
-	= if same_len || ifrom == 0 { ifrom } else { string_char_to_byte (string, ifrom) };
-      let to_byte: ptrdiff_t
-	= if same_len { ito } else if ito == size { SBYTES (string) } else { string_char_to_byte (string, ito) };
-      res = make_specified_string (SSDATA (string).offset (from_byte) as *const c_char,
-				   ito - ifrom, to_byte - from_byte,
-				   STRING_MULTIBYTE (string));
-      if !string_intervals (string).is_null ()
-	{
-	  copy_text_properties (make_fixnum (ifrom), make_fixnum (ito),
-				string, make_fixnum (0), res, Qnil ());
-	}
-    }
-  else
-    { res = Fvector (ito - ifrom, aref_addr (string, ifrom)); }
-
-  return res;
+       safe {
+  crate::safe_data::substring_subr (string, from, to)
 });
 
 
 DEFUN! ("substring-no-properties", Fsubstring_no_properties, Ssubstring_no_properties, 1, 3, 0,
        doc: "Return a substring of STRING, without text properties.\nIt starts at index FROM and ends before TO.\nTO may be nil or omitted; then the substring runs to the end of STRING.\nIf FROM is nil or omitted, the substring starts at the beginning of STRING.\nIf FROM or TO is negative, it counts from the end.\n\nWith one argument, just copy STRING without its properties.",
        (string: Lisp_Object, from: Lisp_Object, to: Lisp_Object),
-       {
-  let mut from_char: ptrdiff_t = 0;
-  let mut to_char: ptrdiff_t = 0;
-  let from_byte: ptrdiff_t;
-  let to_byte: ptrdiff_t;
-  let size: ptrdiff_t;
-
-  CHECK_STRING (string);
-
-  size = SCHARS (string);
-  validate_subarray (string, from, to, size, &raw mut from_char, &raw mut to_char);
-
-  let same_len: bool = size == SBYTES (string);
-  from_byte = if same_len || from_char == 0 { from_char } else { string_char_to_byte (string, from_char) };
-  to_byte =
-    if same_len { to_char } else if to_char == size { SBYTES (string) } else { string_char_to_byte (string, to_char) };
-  return make_specified_string (SSDATA (string).offset (from_byte) as *const c_char,
-				to_char - from_char, to_byte - from_byte,
-				STRING_MULTIBYTE (string));
+       safe {
+  crate::safe_data::substring_no_properties (string, from, to)
 });
 
 /* Extract a substring of STRING, giving start and end positions
@@ -1869,108 +1326,24 @@ DEFUN! ("substring-no-properties", Fsubstring_no_properties, Ssubstring_no_prope
 
 /* C 1648-1669: `substring_both`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn substring_both (string: Lisp_Object, from: ptrdiff_t, from_byte: ptrdiff_t,
+pub extern "C-unwind" fn substring_both (string: Lisp_Object, from: ptrdiff_t, from_byte: ptrdiff_t,
 			      to: ptrdiff_t, to_byte: ptrdiff_t) -> Lisp_Object
 {
-  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
-  unsafe {
-  let res: Lisp_Object;
-  let size: ptrdiff_t = CHECK_VECTOR_OR_STRING (string);
-
-  if !(0 <= from && from <= to && to <= size)
-    { args_out_of_range_3 (string, make_fixnum (from), make_fixnum (to)); }
-
-  if STRINGP (string)
-    {
-      res = make_specified_string (SSDATA (string).offset (from_byte) as *const c_char,
-				   to - from, to_byte - from_byte,
-				   STRING_MULTIBYTE (string));
-      if !string_intervals (string).is_null ()
-	{
-	  copy_text_properties (make_fixnum (from), make_fixnum (to),
-				string, make_fixnum (0), res, Qnil ());
-	}
-    }
-  else
-    { res = Fvector (to - from, aref_addr (string, from)); }
-
-  return res;
-
-  }
+  crate::safe_data::substring_both_impl (string, from, from_byte, to, to_byte)
 }
 
 DEFUN! ("take", Ftake, Stake, 2, 2, 0,
        doc: "Return the first N elements of LIST.\nIf N is zero or negative, return nil.\nIf N is greater or equal to the length of LIST, return LIST (or a copy).",
        (n: Lisp_Object, list: Lisp_Object),
-       {
-  let mut m: EMACS_INT;
-  if FIXNUMP (n)
-    {
-      m = XFIXNUM (n);
-      if m <= 0
-	{ return Qnil (); }
-    }
-  else if BIGNUMP (n)
-    {
-      if mpz_sgn (xbignum_val (n)) < 0
-	{ return Qnil (); }
-      m = MOST_POSITIVE_FIXNUM;
-    }
-  else
-    { wrong_type_argument (Qintegerp (), n); }
-  CHECK_LIST (list);
-  if NILP (list)
-    { return Qnil (); }
-  let mut list: Lisp_Object = list;
-  let ret: Lisp_Object = Fcons (XCAR (list), Qnil ());
-  let mut prev: Lisp_Object = ret;
-  m -= 1;
-  list = XCDR (list);
-  while m > 0 && CONSP (list)
-    {
-      let p: Lisp_Object = Fcons (XCAR (list), Qnil ());
-      XSETCDR (prev, p);
-      prev = p;
-      m -= 1;
-      list = XCDR (list);
-    }
-  if m > 0 && !NILP (list)
-    { wrong_type_argument (Qlistp (), list); }
-  return ret;
+       safe {
+  crate::safe_data::take_subr (n, list)
 });
 
 DEFUN! ("ntake", Fntake, Sntake, 2, 2, 0,
        doc: "Modify LIST to keep only the first N elements.\nIf N is zero or negative, return nil.\nIf N is greater or equal to the length of LIST, return LIST unmodified.\nOtherwise, return LIST after truncating it.",
        (n: Lisp_Object, list: Lisp_Object),
-       {
-  let mut m: EMACS_INT;
-  if FIXNUMP (n)
-    {
-      m = XFIXNUM (n);
-      if m <= 0
-	{ return Qnil (); }
-    }
-  else if BIGNUMP (n)
-    {
-      if mpz_sgn (xbignum_val (n)) < 0
-	{ return Qnil (); }
-      m = MOST_POSITIVE_FIXNUM;
-    }
-  else
-    { wrong_type_argument (Qintegerp (), n); }
-  CHECK_LIST (list);
-  let mut tail: Lisp_Object = list;
-  m -= 1;
-  while m > 0 && CONSP (tail)
-    {
-      tail = XCDR (tail);
-      m -= 1;
-    }
-  if CONSP (tail)
-    { XSETCDR (tail, Qnil ()); }
-  else if !NILP (tail)
-    { wrong_type_argument (Qlistp (), list); }
-  return list;
+       safe {
+  crate::safe_data::ntake_subr (n, list)
 });
 
 DEFUN! ("nthcdr", Fnthcdr, Snthcdr, 2, 2, 0,
@@ -2093,37 +1466,15 @@ DEFUN! ("nthcdr", Fnthcdr, Snthcdr, 2, 2, 0,
 DEFUN! ("nth", Fnth, Snth, 2, 2, 0,
        doc: "Return the Nth element of LIST.\nN counts from zero.  If LIST is not that long, nil is returned.",
        (n: Lisp_Object, list: Lisp_Object),
-       {
-  if FIXNUMP (n)
-    {
-      let mut num: EMACS_INT = XFIXNUM (n);
-      if num <= SMALL_LIST_LEN_MAX as EMACS_INT
-	{
-	  let mut tail: Lisp_Object = list;
-	  while 0 < num && CONSP (tail)
-	    {
-	      tail = XCDR (tail);
-	      num -= 1;
-	    }
-	  if CONSP (tail)
-	    { return XCAR (tail); }
-	  else if NILP (tail)
-	    { return Qnil (); }
-	}
-    }
-  return Fcar (Fnthcdr (n, list));
+       safe {
+  crate::safe_data::nth_subr (n, list)
 });
 
 DEFUN! ("elt", Felt, Selt, 2, 2, 0,
        doc: "Return element of SEQUENCE at index N.",
        (sequence: Lisp_Object, n: Lisp_Object),
-       {
-  if CONSP (sequence) || NILP (sequence)
-    { return Fcar (Fnthcdr (n, sequence)); }
-
-  /* Faref signals a "not array" error, so check here.  */
-  CHECK_ARRAY (sequence, Qsequencep ());
-  return Faref (sequence, n);
+       safe {
+  crate::safe_data::elt_subr (sequence, n)
 });
 
 /* C 1866-1876: the `double_and_words` union and its `WORDS_PER_DOUBLE` size.  */
@@ -2139,174 +1490,54 @@ pub union double_and_words
 }
 
 /* C 1877-1889: `same_float`.  */
-unsafe fn same_float (x: Lisp_Object, y: Lisp_Object) -> bool
+#[inline(always)]
+fn same_float (x: Lisp_Object, y: Lisp_Object) -> bool
 {
-  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
-  unsafe {
-  let xu: double_and_words = double_and_words { val: XFLOAT_DATA (x) };
-  let yu: double_and_words = double_and_words { val: XFLOAT_DATA (y) };
-  let mut neql: EMACS_UINT = 0;
-  let mut i: c_int = 0;
-  while i < WORDS_PER_DOUBLE as c_int
-    {
-      neql |= xu.word[i as usize] ^ yu.word[i as usize];
-      i += 1;
-    }
-  return neql == 0;
-
-  }
+  XFLOAT_DATA (x).to_bits () == XFLOAT_DATA (y).to_bits ()
 }
 
 /* True if X can be compared using `eq'.
    This predicate is approximative, for maximum speed.  */
 /* C 1891-1894: `eq_comparable_value`.  */
-unsafe fn eq_comparable_value (x: Lisp_Object) -> bool
+#[inline(always)]
+fn eq_comparable_value (x: Lisp_Object) -> bool
 {
-  return SYMBOLP (x) || FIXNUMP (x);
+  SYMBOLP (x) || FIXNUMP (x)
 }
 
 DEFUN! ("member", Fmember, Smember, 2, 2, 0,
        doc: "Return non-nil if ELT is an element of LIST.  Comparison done with `equal'.\nThe value is actually the tail of LIST whose car is ELT.",
        (elt: Lisp_Object, list: Lisp_Object),
-       {
-  if eq_comparable_value (elt)
-    { return Fmemq (elt, list); }
-  let mut tail: Lisp_Object = list;
-  /* C's FOR_EACH_TAIL leaves the terminating non-cons in TAIL; the port's macro cannot hand
-     it back, so the body records it (docs/ports/fns.md, Decisions).  */
-  FOR_EACH_TAIL! (tail, {
-    if ! NILP (Fequal (elt, XCAR (tail)))
-      { return tail; }
-  });
-  CHECK_LIST_END (tail, list);
-  return Qnil ();
+       safe {
+  crate::safe_data::member_subr (elt, list)
 });
-
-#[cold]
-#[inline(never)]
-unsafe fn memq_slow (elt: Lisp_Object, list: Lisp_Object) -> Lisp_Object
-{
-  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
-  unsafe {
-  let mut tail: Lisp_Object = list;
-  FOR_EACH_TAIL! (tail, {
-    if EQ (XCAR (tail), elt)
-      { return tail; }
-  });
-  CHECK_LIST_END (tail, list);
-  return Qnil ();
-
-  }
-}
 
 DEFUN! ("memq", Fmemq, Smemq, 2, 2, 0,
        doc: "Return non-nil if ELT is an element of LIST.  Comparison done with `eq'.\nThe value is actually the tail of LIST whose car is ELT.",
        (elt: Lisp_Object, list: Lisp_Object),
-       {
-  if NILP (list)
-    { return Qnil (); }
-  let mut tail: Lisp_Object = list;
-  if ! (*symbols_with_pos_enabled.as_mut_ptr ())
-    {
-      let mut steps: ptrdiff_t = 0;
-      while CONSP (tail) && steps < 4096
-	{
-	  if BASE_EQ (XCAR (tail), elt)
-	    { return tail; }
-	  tail = XCDR (tail);
-	  steps += 1;
-	}
-      if NILP (tail)
-	{ return Qnil (); }
-    }
-  return memq_slow (elt, list);
+       safe {
+  crate::safe_data::memq_subr (elt, list)
 });
 
 /* C 1925-1931: `memq_no_quit`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn memq_no_quit (elt: Lisp_Object, list: Lisp_Object) -> Lisp_Object
+pub extern "C-unwind" fn memq_no_quit (elt: Lisp_Object, list: Lisp_Object) -> Lisp_Object
 {
-  let mut list: Lisp_Object = list;
-  while CONSP (list)
-    {
-      if EQ (XCAR (list), elt)
-	{ return list; }
-      list = XCDR (list);
-    }
-  return Qnil ();
+  crate::safe_data::memq_no_quit_impl (elt, list)
 }
 
 DEFUN! ("memql", Fmemql, Smemql, 2, 2, 0,
        doc: "Return non-nil if ELT is an element of LIST.  Comparison done with `eql'.\nThe value is actually the tail of LIST whose car is ELT.",
        (elt: Lisp_Object, list: Lisp_Object),
-       {
-  let mut tail: Lisp_Object = list;
-  /* C's FOR_EACH_TAIL leaves the terminating non-cons in TAIL; the port's macro cannot hand
-     it back, so the body records it (docs/ports/fns.md, Decisions).  */
-
-  if FLOATP (elt)
-    {
-      FOR_EACH_TAIL! (tail, {
-	  let tem: Lisp_Object = XCAR (tail);
-	  if FLOATP (tem) && same_float (elt, tem)
-	    { return tail; }
-      });
-    }
-  else if BIGNUMP (elt)
-    {
-      FOR_EACH_TAIL! (tail, {
-	  let tem: Lisp_Object = XCAR (tail);
-	  if BIGNUMP (tem)
-	      && mpz_cmp (xbignum_val (elt), xbignum_val (tem)) == 0
-	    { return tail; }
-      });
-    }
-  else
-    { return Fmemq (elt, list); }
-
-  CHECK_LIST_END (tail, list);
-  return Qnil ();
+       safe {
+  crate::safe_data::memql_subr (elt, list)
 });
-
-#[cold]
-#[inline(never)]
-unsafe fn assq_slow (key: Lisp_Object, alist: Lisp_Object) -> Lisp_Object
-{
-  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
-  unsafe {
-  let mut tail: Lisp_Object = alist;
-  FOR_EACH_TAIL! (tail, {
-    if CONSP (XCAR (tail)) && EQ (XCAR (XCAR (tail)), key)
-      { return XCAR (tail); }
-  });
-  CHECK_LIST_END (tail, alist);
-  return Qnil ();
-
-  }
-}
 
 DEFUN! ("assq", Fassq, Sassq, 2, 2, 0,
        doc: "Return non-nil if KEY is `eq' to the car of an element of ALIST.\nThe value is actually the first element of ALIST whose car is KEY.\nElements of ALIST that are not conses are ignored.",
        (key: Lisp_Object, alist: Lisp_Object),
-       {
-  if NILP (alist)
-    { return Qnil (); }
-  let mut tail: Lisp_Object = alist;
-  if ! (*symbols_with_pos_enabled.as_mut_ptr ())
-    {
-      let mut steps: ptrdiff_t = 0;
-      while CONSP (tail) && steps < 4096
-	{
-	  let car: Lisp_Object = XCAR (tail);
-	  if CONSP (car) && BASE_EQ (XCAR (car), key)
-	    { return car; }
-	  tail = XCDR (tail);
-	  steps += 1;
-	}
-      if NILP (tail)
-	{ return Qnil (); }
-    }
-  return assq_slow (key, alist);
+       safe {
+  crate::safe_data::assq_subr (key, alist)
 });
 
 /* Like Fassq but never report an error and do not allow quits.
@@ -2314,16 +1545,9 @@ DEFUN! ("assq", Fassq, Sassq, 2, 2, 0,
 
 /* C 1984-1995: `assq_no_quit`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn assq_no_quit (key: Lisp_Object, alist: Lisp_Object) -> Lisp_Object
+pub extern "C-unwind" fn assq_no_quit (key: Lisp_Object, alist: Lisp_Object) -> Lisp_Object
 {
-  let mut alist: Lisp_Object = alist;
-  while ! NILP (alist)
-    {
-      if CONSP (XCAR (alist)) && EQ (XCAR (XCAR (alist)), key)
-	{ return XCAR (alist); }
-      alist = XCDR (alist);
-    }
-  return Qnil ();
+  crate::safe_data::assq_no_quit_impl (key, alist)
 }
 
 /* Assq but doesn't signal.  Unlike assq_no_quit, this function still
@@ -2332,39 +1556,16 @@ pub unsafe extern "C-unwind" fn assq_no_quit (key: Lisp_Object, alist: Lisp_Obje
    Qnil.  */
 /* C 1997-2011: `assq_no_signal`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn assq_no_signal (key: Lisp_Object, alist: Lisp_Object) -> Lisp_Object
+pub extern "C-unwind" fn assq_no_signal (key: Lisp_Object, alist: Lisp_Object) -> Lisp_Object
 {
-  let mut tail: Lisp_Object = alist;
-  let mut found: Lisp_Object = Qnil ();
-  FOR_EACH_TAIL_SAFE! (tail, {
-    if CONSP (XCAR (tail)) && EQ (XCAR (XCAR (tail)), key)
-      { found = XCAR (tail); }
-  });
-  return found;
+  crate::safe_data::assq_no_signal_impl (key, alist)
 }
 
 DEFUN! ("assoc", Fassoc, Sassoc, 2, 3, 0,
        doc: "Return non-nil if KEY is equal to the car of an element of ALIST.\nThe value is actually the first element of ALIST whose car equals KEY.\n\nEquality is defined by the function TESTFN, defaulting to `equal'.\nTESTFN is called with 2 arguments: a car of an alist element and KEY.  ",
        (key: Lisp_Object, alist: Lisp_Object, testfn: Lisp_Object),
-       {
-  if eq_comparable_value (key) && NILP (testfn)
-    { return Fassq (key, alist); }
-  let mut tail: Lisp_Object = alist;
-  FOR_EACH_TAIL! (tail, {
-      let car: Lisp_Object = XCAR (tail);
-      if !CONSP (car)
-	{ }
-      else
-	{
-	  if (if NILP (testfn)
-	        { EQ (XCAR (car), key) || !NILP (Fequal (XCAR (car), key)) }
-	      else
-	        { !NILP (calln! (testfn, XCAR (car), key)) })
-	    { return car; }
-	}
-  });
-  CHECK_LIST_END (tail, alist);
-  return Qnil ();
+       safe {
+  crate::safe_data::assoc_subr (key, alist, testfn)
 });
 
 /* Like Fassoc but never report an error and do not allow quits.
@@ -2373,10 +1574,8 @@ DEFUN! ("assoc", Fassoc, Sassoc, 2, 3, 0,
 
 /* C 2037-2047: `assoc_no_quit`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn assoc_no_quit (key: Lisp_Object, alist: Lisp_Object) -> Lisp_Object
+pub extern "C-unwind" fn assoc_no_quit (key: Lisp_Object, alist: Lisp_Object) -> Lisp_Object
 {
-  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
-  unsafe {
   let mut alist: Lisp_Object = alist;
   while ! NILP (alist)
     {
@@ -2387,441 +1586,149 @@ pub unsafe extern "C-unwind" fn assoc_no_quit (key: Lisp_Object, alist: Lisp_Obj
       alist = XCDR (alist);
     }
   return Qnil ();
-
-  }
 }
 
 DEFUN! ("rassq", Frassq, Srassq, 2, 2, 0,
        doc: "Return non-nil if KEY is `eq' to the cdr of an element of ALIST.\nThe value is actually the first element of ALIST whose cdr is KEY.",
        (key: Lisp_Object, alist: Lisp_Object),
-       {
-  if NILP (alist)
-    { return Qnil (); }
-  let mut tail: Lisp_Object = alist;
-  if ! (*symbols_with_pos_enabled.as_mut_ptr ())
-    {
-      let mut steps: ptrdiff_t = 0;
-      while CONSP (tail) && steps < 4096
-	{
-	  let car: Lisp_Object = XCAR (tail);
-	  if CONSP (car) && BASE_EQ (XCDR (car), key)
-	    { return car; }
-	  tail = XCDR (tail);
-	  steps += 1;
-	}
-      if NILP (tail)
-	{ return Qnil (); }
-      tail = alist;
-    }
-  FOR_EACH_TAIL! (tail, {
-    if CONSP (XCAR (tail)) && EQ (XCDR (XCAR (tail)), key)
-      { return XCAR (tail); }
-  });
-  CHECK_LIST_END (tail, alist);
-  return Qnil ();
+       safe {
+  crate::safe_data::rassq_subr (key, alist)
 });
 
 DEFUN! ("rassoc", Frassoc, Srassoc, 2, 2, 0,
        doc: "Return non-nil if KEY is `equal' to the cdr of an element of ALIST.\nThe value is actually the first element of ALIST whose cdr equals KEY.",
        (key: Lisp_Object, alist: Lisp_Object),
-       {
-  if eq_comparable_value (key)
-    { return Frassq (key, alist); }
-  let mut tail: Lisp_Object = alist;
-  FOR_EACH_TAIL! (tail, {
-      let car: Lisp_Object = XCAR (tail);
-      if CONSP (car)
-	  && (EQ (XCDR (car), key) || !NILP (Fequal (XCDR (car), key)))
-	{ return car; }
-  });
-  CHECK_LIST_END (tail, alist);
-  return Qnil ();
+       safe {
+  crate::safe_data::rassoc_subr (key, alist)
 });
 
 
 DEFUN! ("delq", Fdelq, Sdelq, 2, 2, 0,
        doc: "Delete members of LIST which are `eq' to ELT, and return the result.\nMore precisely, this function skips any members `eq' to ELT at the\nfront of LIST, then removes members `eq' to ELT from the remaining\nsublist by modifying its list structure, then returns the resulting\nlist.\n\nWrite `(setq foo (delq element foo))' to be sure of correctly changing\nthe value of a list `foo'.  See also `remq', which does not modify the\nargument.",
        (elt: Lisp_Object, list: Lisp_Object),
-       {
-  if NILP (list)
-    { return Qnil (); }
-  let mut prev: Lisp_Object = Qnil ();
-  let mut list: Lisp_Object = list;
-  let mut tail: Lisp_Object = list;
-
-  if ! (*symbols_with_pos_enabled.as_mut_ptr ())
-    {
-      let mut steps: ptrdiff_t = 0;
-      while CONSP (tail) && steps < 4096
-	{
-	  let next: Lisp_Object = XCDR (tail);
-	  if BASE_EQ (elt, XCAR (tail))
-	    {
-	      if NILP (prev)
-		{ list = next; }
-	      else
-		{ XSETCDR (prev, next); }
-	    }
-	  else
-	    { prev = tail; }
-	  tail = next;
-	  steps += 1;
-	}
-      if NILP (tail)
-	{ return list; }
-      prev = Qnil ();
-      tail = list;
-    }
-
-  FOR_EACH_TAIL! (tail, {
-      let tem: Lisp_Object = XCAR (tail);
-      if EQ (elt, tem)
-	{
-	  if NILP (prev)
-	    { list = XCDR (tail); }
-	  else
-	    { Fsetcdr (prev, XCDR (tail)); }
-	}
-      else
-	{ prev = tail; }
-  });
-  CHECK_LIST_END (tail, list);
-  return list;
+       safe {
+  crate::safe_data::delq_subr (elt, list)
 });
 
 /* Like Fdelq but do not report errors and neither quit nor process
    signals.  Use only on objects known to be non-circular lists.  */
 /* C 2115-2135: `delq_no_quit`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn delq_no_quit (elt: Lisp_Object, list: Lisp_Object) -> Lisp_Object
+pub extern "C-unwind" fn delq_no_quit (elt: Lisp_Object, list: Lisp_Object) -> Lisp_Object
 {
-  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  crate::safe_data::delq_no_quit_impl (elt, list)
+}
+
+pub fn delete_string_char_safe (seq: Lisp_Object, target_char: c_int) -> Lisp_Object
+{
+  CHECK_STRING (seq);
+  // SAFETY: `seq` is verified `STRINGP`; scans valid character boundaries and copies remaining bytes into a fresh string.
   unsafe {
-  let mut prev: Lisp_Object = Qnil ();
-  let mut list: Lisp_Object = list;
-  let mut tail: Lisp_Object = list;
+    let mut i: ptrdiff_t = 0;
+    let mut ibyte: ptrdiff_t = 0;
+    let mut nchars: ptrdiff_t = 0;
+    let mut nbytes: ptrdiff_t = 0;
+    let mut cbytes: ptrdiff_t;
+    let mut c: c_int;
 
-  while !NILP (tail)
-    {
-      let tem: Lisp_Object = XCAR (tail);
+    while i < SCHARS (seq)
+      {
+        if STRING_MULTIBYTE (seq)
+          {
+            c = STRING_CHAR (SDATA (seq).offset (ibyte)) as c_int;
+            cbytes = CHAR_BYTES (c) as ptrdiff_t;
+          }
+        else
+          {
+            c = SREF (seq, i as usize) as c_int;
+            cbytes = 1;
+          }
+        if c != target_char
+          {
+            nchars += 1;
+            nbytes += cbytes;
+          }
+        i += 1;
+        ibyte += cbytes;
+      }
 
-      if EQ (elt, tem)
-	{
-	  if NILP (prev)
-	    { list = XCDR (tail); }
-	  else
-	    { Fsetcdr (prev, XCDR (tail)); }
-	}
-      else
-	{ prev = tail; }
-      tail = XCDR (tail);
-    }
+    if nchars == SCHARS (seq)
+      { return seq; }
 
-  return list;
+    let mut tem: Lisp_Object = make_uninit_multibyte_string (nchars, nbytes);
+    if !STRING_MULTIBYTE (seq)
+      { STRING_SET_UNIBYTE (&raw mut tem); }
 
+    i = 0;
+    nbytes = 0;
+    ibyte = 0;
+    while i < SCHARS (seq)
+      {
+        if STRING_MULTIBYTE (seq)
+          {
+            c = STRING_CHAR (SDATA (seq).offset (ibyte)) as c_int;
+            cbytes = CHAR_BYTES (c) as ptrdiff_t;
+          }
+        else
+          {
+            c = SREF (seq, i as usize) as c_int;
+            cbytes = 1;
+          }
+        if c != target_char
+          {
+            std::ptr::copy_nonoverlapping (SDATA (seq).offset (ibyte),
+                                           SDATA (tem).offset (nbytes),
+                                           cbytes as usize);
+            nbytes += cbytes;
+          }
+        i += 1;
+        ibyte += cbytes;
+      }
+    tem
+  }
+}
+
+pub fn reverse_multibyte_string_safe (seq: Lisp_Object) -> Lisp_Object
+{
+  CHECK_STRING (seq);
+  let size: ptrdiff_t = SCHARS (seq);
+  let bytes: ptrdiff_t = SBYTES (seq);
+  // SAFETY: `seq` is verified multibyte `STRINGP`; reverses each internal multibyte codepoint into `new`.
+  unsafe {
+    let new: Lisp_Object = make_uninit_multibyte_string (size, bytes);
+    let mut p: *mut u8 = SDATA (seq);
+    let mut q: *mut u8 = SDATA (new).offset (bytes);
+    while q > SDATA (new)
+      {
+        let mut len: c_int = 0;
+        let ch: c_int = string_char_and_length (p, &raw mut len);
+        p = p.offset (len as isize);
+        q = q.offset (-(len as isize));
+        CHAR_STRING (ch, q);
+      }
+    new
   }
 }
 
 DEFUN! ("delete", Fdelete, Sdelete, 2, 2, 0,
        doc: "Delete members of SEQ which are `equal' to ELT, and return the result.\nSEQ must be a sequence (i.e. a list, a vector, or a string).\nThe return value is a sequence of the same type.\n\nIf SEQ is a list, this behaves like `delq', except that it compares\nwith `equal' instead of `eq'.  In particular, it may remove elements\nby altering the list structure.\n\nIf SEQ is not a list, deletion is never performed destructively;\ninstead this function creates and returns a new vector or string.\n\nWrite `(setq foo (delete element foo))' to be sure of correctly\nchanging the value of a sequence `foo'.  See also `remove', which\ndoes not modify the argument.",
        (elt: Lisp_Object, seq: Lisp_Object),
-       {
-  let mut seq: Lisp_Object = seq;
-  if NILP (seq)
-    { }
-  else if CONSP (seq)
-    {
-      let mut prev: Lisp_Object = Qnil ();
-      let mut tail: Lisp_Object = seq;
-
-      FOR_EACH_TAIL! (tail, {
-	  if !NILP (Fequal (elt, XCAR (tail)))
-	    {
-	      if NILP (prev)
-		{ seq = XCDR (tail); }
-	      else
-		{ Fsetcdr (prev, XCDR (tail)); }
-	    }
-	  else
-	    { prev = tail; }
-      });
-      CHECK_LIST_END (tail, seq);
-    }
-  else if VECTORP (seq)
-    {
-      let mut n: ptrdiff_t = 0;
-      let size: ptrdiff_t = ASIZE (seq);
-      USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
-      let mut kept: *mut Lisp_Object
-	= SAFE_ALLOCA! (sa_avail, size * std::mem::size_of::<Lisp_Object> () as ptrdiff_t)
-	  as *mut Lisp_Object;
-
-      let mut i: ptrdiff_t = 0;
-      while i < size
-	{
-	  *kept.offset (n) = AREF (seq, i);
-	  n += if NILP (Fequal (AREF (seq, i), elt)) { 1 } else { 0 };
-	  i += 1;
-	}
-
-      if n != size
-	{ seq = Fvector (n, kept); }
-
-      SAFE_FREE! (sa_count, sa_mark);
-    }
-  else if STRINGP (seq)
-    {
-      if !CHARACTERP (elt)
-	{ return seq; }
-
-      let mut i: ptrdiff_t;
-      let mut ibyte: ptrdiff_t;
-      let mut nchars: ptrdiff_t;
-      let mut nbytes: ptrdiff_t;
-      let mut cbytes: ptrdiff_t;
-      let mut c: c_int;
-
-      i = 0;
-      nchars = 0;
-      nbytes = 0;
-      ibyte = 0;
-      while i < SCHARS (seq)
-	{
-	  if STRING_MULTIBYTE (seq)
-	    {
-	      c = STRING_CHAR (SDATA (seq).offset (ibyte)) as c_int;
-	      cbytes = CHAR_BYTES (c) as ptrdiff_t;
-	    }
-	  else
-	    {
-	      c = SREF (seq, i as usize) as c_int;
-	      cbytes = 1;
-	    }
-
-	  if c != XFIXNUM (elt) as c_int
-	    {
-	      nchars += 1;
-	      nbytes += cbytes;
-	    }
-	  i += 1;
-	  ibyte += cbytes;
-	}
-
-      if nchars != SCHARS (seq)
-	{
-	  let mut tem: Lisp_Object;
-
-	  tem = make_uninit_multibyte_string (nchars, nbytes);
-	  if !STRING_MULTIBYTE (seq)
-	    { STRING_SET_UNIBYTE (&raw mut tem); }
-
-	  i = 0;
-	  nchars = 0;
-	  nbytes = 0;
-	  ibyte = 0;
-	  while i < SCHARS (seq)
-	    {
-	      if STRING_MULTIBYTE (seq)
-		{
-		  c = STRING_CHAR (SDATA (seq).offset (ibyte)) as c_int;
-		  cbytes = CHAR_BYTES (c) as ptrdiff_t;
-		}
-	      else
-		{
-		  c = SREF (seq, i as usize) as c_int;
-		  cbytes = 1;
-		}
-
-	      if c != XFIXNUM (elt) as c_int
-		{
-		  let mut from: *mut u8 = SDATA (seq).offset (ibyte);
-		  let mut to: *mut u8   = SDATA (tem).offset (nbytes);
-		  let mut n: ptrdiff_t;
-
-		  nchars += 1;
-		  nbytes += cbytes;
-
-		  n = cbytes;
-		  while n != 0
-		    {
-		      n -= 1;
-		      *to = *from;
-		      to = to.offset (1);
-		      from = from.offset (1);
-		    }
-		}
-	      i += 1;
-	      ibyte += cbytes;
-	    }
-
-	  seq = tem;
-	}
-    }
-  else
-    { wrong_type_argument (Qsequencep (), seq); }
-
-  return seq;
+       safe {
+  crate::safe_data::delete_subr (elt, seq)
 });
 
 DEFUN! ("nreverse", Fnreverse, Snreverse, 1, 1, 0,
        doc: "Reverse order of items in a list, vector or string SEQ.\nIf SEQ is a list, it should be nil-terminated.\nThis function may destructively modify SEQ to produce the value.",
        (seq: Lisp_Object),
-       {
-  let mut seq: Lisp_Object = seq;
-  if NILP (seq)
-    { return seq; }
-  else if CONSP (seq)
-    {
-      if NILP (XCDR (seq))
-	{ return seq; }
-      let mut prev: Lisp_Object;
-      let mut tail: Lisp_Object;
-      let mut next: Lisp_Object;
-
-      prev = Qnil ();
-      tail = seq;
-      while CONSP (tail)
-	{
-	  next = XCDR (tail);
-	  /* If SEQ contains a cycle, attempting to reverse it
-	     in-place will inevitably come back to SEQ.  */
-	  if BASE_EQ (next, seq)
-	    { circular_list (seq); }
-	  XSETCDR (tail, prev);
-	  prev = tail;
-	  tail = next;
-	}
-      CHECK_LIST_END (tail, seq);
-      seq = prev;
-    }
-  else if VECTORP (seq)
-    {
-      let mut i: ptrdiff_t;
-      let size: ptrdiff_t = ASIZE (seq);
-
-      i = 0;
-      while i < size / 2
-	{
-	  let tem: Lisp_Object = AREF (seq, i);
-	  ASET (seq, i, AREF (seq, size - i - 1));
-	  ASET (seq, size - i - 1, tem);
-	  i += 1;
-	}
-    }
-  else if BOOL_VECTOR_P (seq)
-    {
-      let mut i: ptrdiff_t;
-      let size: ptrdiff_t = bool_vector_size (seq);
-
-      i = 0;
-      while i < size / 2
-	{
-	  let tem: bool = bool_vector_bitref (seq, i);
-	  bool_vector_set (seq, i, bool_vector_bitref (seq, size - i - 1));
-	  bool_vector_set (seq, size - i - 1, tem);
-	  i += 1;
-	}
-    }
-  else if STRINGP (seq)
-    { return Freverse (seq); }
-  else
-    { wrong_type_argument (Qarrayp (), seq); }
-  return seq;
+       safe {
+  crate::safe_data::nreverse_subr (seq)
 });
 
 DEFUN! ("reverse", Freverse, Sreverse, 1, 1, 0,
        doc: "Return the reversed copy of list, vector, or string SEQ.\nSee also the function `nreverse', which is used more often.",
        (seq: Lisp_Object),
-       {
-  let mut new: Lisp_Object = Qnil ();
-
-  if NILP (seq)
-    { return Qnil (); }
-  else if CONSP (seq)
-    {
-      new = Qnil ();
-      let mut seq_loop: Lisp_Object = seq;
-      let mut fast_steps: c_int = 0;
-      while CONSP (seq_loop) && fast_steps < 64
-	{
-	  new = Fcons (XCAR (seq_loop), new);
-	  seq_loop = XCDR (seq_loop);
-	  fast_steps += 1;
-	}
-      if ! NILP (seq_loop)
-	{
-	  let mut seq_end: Lisp_Object = seq_loop;
-	  FOR_EACH_TAIL! (seq_loop, {
-	    new = Fcons (XCAR (seq_loop), new);
-	    seq_end = XCDR (seq_loop);
-	  });
-	  CHECK_LIST_END (seq_end, seq_end);
-	}
-    }
-  else if VECTORP (seq)
-    {
-      let mut i: ptrdiff_t;
-      let size: ptrdiff_t = ASIZE (seq);
-
-      new = make_uninit_vector (size);
-      i = 0;
-      while i < size
-	{
-	  ASET (new, i, AREF (seq, size - i - 1));
-	  i += 1;
-	}
-    }
-  else if BOOL_VECTOR_P (seq)
-    {
-      let nbits: EMACS_INT = bool_vector_size (seq);
-
-      new = make_clear_bool_vector (nbits, true);
-      let mut i: ptrdiff_t = 0;
-      while i < nbits
-	{
-	  if bool_vector_bitref (seq, nbits - i - 1)
-	    { bool_vector_set (new, i, true); }
-	  i += 1;
-	}
-    }
-  else if STRINGP (seq)
-    {
-      let size: ptrdiff_t = SCHARS (seq);
-      let bytes: ptrdiff_t = SBYTES (seq);
-
-      if size == bytes
-	{
-	  let mut i: ptrdiff_t;
-
-	  new = make_uninit_string (size);
-	  i = 0;
-	  while i < size
-	    {
-	      SSET (new, i as usize, SREF (seq, (size - i - 1) as usize));
-	      i += 1;
-	    }
-	}
-      else
-	{
-	  let mut p: *mut u8;
-	  let mut q: *mut u8;
-
-	  new = make_uninit_multibyte_string (size, bytes);
-	  p = SDATA (seq);
-	  q = SDATA (new).offset (bytes);
-	  while q > SDATA (new)
-	    {
-	      let mut len: c_int = 0;
-	      let ch: c_int = string_char_and_length (p, &raw mut len);
-	      p = p.offset (len as isize);
-	      q = q.offset (-(len as isize));
-	      CHAR_STRING (ch, q);
-	    }
-	}
-    }
-  else
-    { wrong_type_argument (Qsequencep (), seq); }
-  return new;
+       safe {
+  crate::safe_data::reverse_subr (seq)
 });
 
 
@@ -2999,7 +1906,7 @@ DEFUN! ("sort", Fsort, Ssort, 1, MANY, 0,
 
 /* C 2515-2558: `merge`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn merge (org_l1: Lisp_Object, org_l2: Lisp_Object,
+pub extern "C-unwind" fn merge (org_l1: Lisp_Object, org_l2: Lisp_Object,
 				pred: Lisp_Object) -> Lisp_Object
 {
   // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
@@ -3183,7 +2090,7 @@ unsafe fn plist_get_inline (plist: Lisp_Object, prop: Lisp_Object) -> Lisp_Objec
 /* Faster version of Fplist_get that works with EQ only.  */
 /* C 2639-2651: `plist_get`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn plist_get (plist: Lisp_Object, prop: Lisp_Object) -> Lisp_Object
+pub extern "C-unwind" fn plist_get (plist: Lisp_Object, prop: Lisp_Object) -> Lisp_Object
 {
   // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
   unsafe {
@@ -3342,7 +2249,7 @@ DEFUN! ("plist-member", Fplist_member, Splist_member, 2, 3, 0,
 /* Faster version of Fplist_member that works with EQ only.  */
 /* C 2775-2788: `plist_member`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn plist_member (plist: Lisp_Object, prop: Lisp_Object) -> Lisp_Object
+pub extern "C-unwind" fn plist_member (plist: Lisp_Object, prop: Lisp_Object) -> Lisp_Object
 {
   // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
   unsafe {
@@ -3401,7 +2308,7 @@ DEFUN! ("equal-including-properties", Fequal_including_properties, Sequal_includ
 
 /* C 2837-2841: `equal_no_quit`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn equal_no_quit (o1: Lisp_Object, o2: Lisp_Object) -> bool
+pub extern "C-unwind" fn equal_no_quit (o1: Lisp_Object, o2: Lisp_Object) -> bool
 {
   // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
   unsafe {
@@ -3757,7 +2664,7 @@ unsafe fn bool_vector_cmp (a: Lisp_Object, b: Lisp_Object) -> c_int
 
 /* Return -1 if a<b, 1 if a>b, 0 if a=b or if b is NaN (a must be a fixnum).  */
 /* C 3094-3114: `fixnum_float_cmp`.  */
-unsafe fn fixnum_float_cmp (a: EMACS_INT, b: f64) -> c_int
+fn fixnum_float_cmp (a: EMACS_INT, b: f64) -> c_int
 {
   let fa: f64 = a as f64;
   if fa == b
@@ -4088,7 +2995,7 @@ DEFUN! ("clear-string", Fclear_string, Sclear_string, 1, 1, 0,
 
 /* C 3384-3387: `nconc2`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn nconc2 (s1: Lisp_Object, s2: Lisp_Object) -> Lisp_Object
+pub extern "C-unwind" fn nconc2 (s1: Lisp_Object, s2: Lisp_Object) -> Lisp_Object
 {
   return CALLN! (Fnconc, s1, s2);
 }
@@ -4371,7 +3278,7 @@ DEFUN! ("mapcan", Fmapcan, Smapcan, 2, 2, 0,
 
 /* C 3607-3610: `do_yes_or_no_p`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn do_yes_or_no_p (prompt: Lisp_Object) -> Lisp_Object
+pub extern "C-unwind" fn do_yes_or_no_p (prompt: Lisp_Object) -> Lisp_Object
 {
   return calln! (Qyes_or_no_p (), prompt);
 }
@@ -5307,7 +4214,7 @@ unsafe fn base64_decode_1 (from: *const c_char, to: *mut c_char, length: ptrdiff
  ***********************************************************************/
 
 /* C 4613-4616: `CHECK_HASH_TABLE`.  */
-unsafe fn CHECK_HASH_TABLE (x: Lisp_Object)
+fn CHECK_HASH_TABLE (x: Lisp_Object)
 {
   CHECK_TYPE (HASH_TABLE_P (x), Qhash_table_p (), x);
 }
@@ -5364,7 +4271,7 @@ unsafe fn check_hash_table (obj: Lisp_Object) -> *mut Lisp_Hash_Table
 
 /* C 4653-4660: `next_almost_prime`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn next_almost_prime (n: EMACS_INT) -> EMACS_INT
+pub extern "C-unwind" fn next_almost_prime (n: EMACS_INT) -> EMACS_INT
 {
   let mut n: EMACS_INT = n;
   static_assert! (NEXT_ALMOST_PRIME_LIMIT == 11);
@@ -5384,7 +4291,7 @@ pub unsafe extern "C-unwind" fn next_almost_prime (n: EMACS_INT) -> EMACS_INT
 
 /* C 4667-4686: `larger_vector`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn larger_vector (vec: Lisp_Object, incr_min: ptrdiff_t,
+pub extern "C-unwind" fn larger_vector (vec: Lisp_Object, incr_min: ptrdiff_t,
 					nitems_max: ptrdiff_t) -> Lisp_Object
 {
   // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
@@ -5496,8 +4403,7 @@ unsafe fn hash_table_user_defined_call (nargs: ptrdiff_t, args: *mut Lisp_Object
 unsafe extern "C-unwind" fn cmpfn_eql (key1: Lisp_Object, key2: Lisp_Object,
 				h: *mut Lisp_Hash_Table) -> Lisp_Object
 {
-  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
-  unsafe {
+  {
   let _ = h;
   return Feql (key1, key2);
 
@@ -5511,8 +4417,7 @@ unsafe extern "C-unwind" fn cmpfn_eql (key1: Lisp_Object, key2: Lisp_Object,
 unsafe extern "C-unwind" fn cmpfn_equal (key1: Lisp_Object, key2: Lisp_Object,
 				  h: *mut Lisp_Hash_Table) -> Lisp_Object
 {
-  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
-  unsafe {
+  {
   let _ = h;
   return Fequal (key1, key2);
 
@@ -5536,7 +4441,7 @@ unsafe extern "C-unwind" fn cmpfn_user_defined (key1: Lisp_Object, key2: Lisp_Ob
 }
 
 /* C 4771-4776: `sxhash_eq`.  */
-unsafe fn sxhash_eq (key: Lisp_Object) -> EMACS_INT
+fn sxhash_eq (key: Lisp_Object) -> EMACS_INT
 {
   let k: Lisp_Object = maybe_remove_pos_from_symbol (key);
   return ((XHASH (k) as EMACS_INT) ^ (XTYPE (k) as EMACS_INT));
@@ -5570,8 +4475,7 @@ unsafe extern "C-unwind" fn hashfn_eq (key: Lisp_Object, h: *mut Lisp_Hash_Table
 /* C 4794-4798: `hashfn_equal`.  */
 unsafe extern "C-unwind" fn hashfn_equal (key: Lisp_Object, h: *mut Lisp_Hash_Table) -> hash_hash_t
 {
-  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
-  unsafe {
+  {
   let _ = h;
   return reduce_emacs_uint_to_hash_hash (sxhash (key) as EMACS_UINT);
 
@@ -5959,8 +4863,7 @@ unsafe fn maybe_resize_hash_table (h: *mut Lisp_Hash_Table)
 /* C 5032-5043: `hash_table_test_from_std`.  */
 unsafe fn hash_table_test_from_std (test: hash_table_std_test_t) -> *const hash_table_test
 {
-  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
-  unsafe {
+  {
   match test
     {
       Test_eq => { return hashtest_eq.as_ptr (); }
@@ -6307,11 +5210,10 @@ pub unsafe extern "C-unwind" fn hash_put (h: *mut Lisp_Hash_Table, key: Lisp_Obj
 /* Whether to keep an entry whose key and value are known to be retained
    if STRONG_KEY and STRONG_VALUE, respectively, are true.  */
 /* C 5238-5254: `keep_entry_p`.  */
-unsafe fn keep_entry_p (weakness: hash_table_weakness_t, strong_key: bool,
+fn keep_entry_p (weakness: hash_table_weakness_t, strong_key: bool,
 			strong_value: bool) -> bool
 {
-  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
-  unsafe {
+  {
   match weakness
     {
       Weak_None =>          { return true; }
@@ -6637,7 +5539,7 @@ unsafe fn sxhash_bignum (bignum: Lisp_Object) -> EMACS_UINT
 
 /* C 5498-5501: `sxhash`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn sxhash (obj: Lisp_Object) -> EMACS_UINT
+pub extern "C-unwind" fn sxhash (obj: Lisp_Object) -> EMACS_UINT
 {
   // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
   unsafe {
@@ -6770,7 +5672,7 @@ unsafe extern "C-unwind" fn collect_interval (interval: INTERVAL, arg: *mut c_vo
 
 /* Reduce the hash value X to a Lisp fixnum.  */
 /* C 5612-5615: `reduce_emacs_uint_to_fixnum`.  */
-unsafe fn reduce_emacs_uint_to_fixnum (x: EMACS_UINT) -> Lisp_Object
+fn reduce_emacs_uint_to_fixnum (x: EMACS_UINT) -> Lisp_Object
 {
   return make_ufixnum (SXHASH_REDUCE (x as EMACS_INT));
 }
@@ -6998,10 +5900,9 @@ DEFUN! ("hash-table-test", Fhash_table_test, Shash_table_test, 1, 1, 0,
 
 /* C 5873-5884: `hash_table_weakness_symbol`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn hash_table_weakness_symbol (weak: hash_table_weakness_t) -> Lisp_Object
+pub extern "C-unwind" fn hash_table_weakness_symbol (weak: hash_table_weakness_t) -> Lisp_Object
 {
-  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
-  unsafe {
+  {
   match weak
     {
       Weak_None =>          { return Qnil (); }

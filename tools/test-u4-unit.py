@@ -32,12 +32,30 @@ RUST_UNIT_HARNESS = r"""
 #![allow(non_camel_case_types, non_upper_case_globals)]
 
 pub mod common {
-    use core::ffi::c_void;
+    use core::ffi::{c_char, c_void};
+    use std::sync::atomic::{AtomicUsize, Ordering};
 
     pub type Lisp_Object = *mut c_void;
     pub type EMACS_INT = isize;
 
-    pub static mut current_thread: *mut c_void = core::ptr::null_mut();
+    #[repr(C)]
+    pub struct thread_state {
+        pub m_stack_bottom: *const c_char,
+    }
+
+    pub struct ThreadGlobal;
+    static THREAD_PTR: AtomicUsize = AtomicUsize::new(0);
+
+    impl ThreadGlobal {
+        pub fn get(&self) -> *mut thread_state {
+            THREAD_PTR.load(Ordering::Relaxed) as *mut thread_state
+        }
+        pub fn set(&self, v: *mut thread_state) {
+            THREAD_PTR.store(v as usize, Ordering::Relaxed);
+        }
+    }
+
+    pub static current_thread: ThreadGlobal = ThreadGlobal;
 
     #[inline]
     pub const fn lisp_h_Qnil() -> Lisp_Object {
@@ -45,17 +63,17 @@ pub mod common {
     }
 
     #[inline]
-    pub unsafe fn make_fixnum(n: EMACS_INT) -> Lisp_Object {
+    pub fn make_fixnum(n: EMACS_INT) -> Lisp_Object {
         (((n as usize) << 2) | 2) as Lisp_Object
     }
 
     #[inline]
-    pub unsafe fn FIXNUMP(x: Lisp_Object) -> bool {
+    pub fn FIXNUMP(x: Lisp_Object) -> bool {
         ((x as usize) & 3) == 2
     }
 
     #[inline]
-    pub unsafe fn XFIXNUM(x: Lisp_Object) -> EMACS_INT {
+    pub fn XFIXNUM(x: Lisp_Object) -> EMACS_INT {
         ((x as isize) >> 2) as EMACS_INT
     }
 }
@@ -92,8 +110,7 @@ mod tests {
 
     fn set_thread(id: usize) -> *mut c_void {
         let ptr = id as *mut c_void;
-        // SAFETY: serialized unit test stub owns `current_thread`.
-        unsafe { current_thread = ptr };
+        current_thread.set(ptr as *mut crate::common::thread_state);
         ptr
     }
 

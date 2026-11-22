@@ -312,7 +312,7 @@ macro_rules! UNIPROP_COMPRESSED_FORM_P {
        && ((SREF ($OBJ, 0) == 1 || (SREF ($OBJ, 0) == 2)))) };
 }
 
-unsafe fn CHECK_CHAR_TABLE (x: Lisp_Object)
+fn CHECK_CHAR_TABLE (x: Lisp_Object)
 {
   CHECK_TYPE (CHAR_TABLE_P (x), Qchar_table_p (), x);
 }
@@ -338,28 +338,7 @@ DEFUN! ("make-char-table", Fmake_char_table, Smake_char_table, 1, 2, 0,
        doc: "Return a newly created char-table, with purpose PURPOSE.\nEach element is initialized to INIT, which defaults to nil.\n\nPURPOSE should be a symbol.  If it has a `char-table-extra-slots'\nproperty, the property's value should be an integer between 0 and 10\nthat specifies how many extra slots the char-table has.  Otherwise,\nthe char-table has no extra slot.",
        (purpose: Lisp_Object, init: Lisp_Object),
        {
-  let mut vector: Lisp_Object;
-  let mut n: Lisp_Object;
-  let mut n_extras: c_int;
-  let mut size: c_int;
-
-  CHECK_SYMBOL (purpose);
-  n = Fget (purpose, Qchar_table_extra_slots ());
-  if NILP (n)
-    { n_extras = 0; }
-  else
-    {
-      CHECK_FIXNAT (n);
-      n_extras = XFIXNUM (n) as c_int;
-    }
-
-  size = CHAR_TABLE_STANDARD_SLOTS as c_int + n_extras;
-  vector = make_vector (size as isize, init);
-  XSETPVECTYPE! (XVECTOR (vector), pvec_type::PVEC_CHAR_TABLE);
-  set_char_table_parent (vector, Qnil ());
-  set_char_table_purpose (vector, purpose);
-  XSETCHAR_TABLE! (vector, XCHAR_TABLE (vector));
-  return vector;
+  crate::safe_character::make_char_table (purpose, init)
 });
 
 unsafe fn make_sub_char_table (depth: c_int, min_char: c_int, defalt: Lisp_Object)
@@ -429,7 +408,7 @@ unsafe fn copy_sub_char_table (table: Lisp_Object) -> Lisp_Object
 
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn copy_char_table (table: Lisp_Object) -> Lisp_Object
+pub extern "C-unwind" fn copy_char_table (table: Lisp_Object) -> Lisp_Object
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -484,7 +463,7 @@ unsafe fn sub_char_table_ref (table: Lisp_Object, c: c_int, is_uniprop: bool) ->
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn char_table_ref (table: Lisp_Object, c: c_int) -> Lisp_Object
+pub extern "C-unwind" fn char_table_ref (table: Lisp_Object, c: c_int) -> Lisp_Object
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -681,7 +660,7 @@ unsafe fn sub_char_table_set (table: Lisp_Object, c: c_int, val: Lisp_Object,
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn char_table_set (table: Lisp_Object, c: c_int, val: Lisp_Object)
+pub extern "C-unwind" fn char_table_set (table: Lisp_Object, c: c_int, val: Lisp_Object)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -757,7 +736,7 @@ unsafe fn sub_char_table_set_range (table: Lisp_Object, from: c_int, to: c_int,
 
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn char_table_set_range (table: Lisp_Object, from: c_int, to: c_int,
+pub extern "C-unwind" fn char_table_set_range (table: Lisp_Object, from: c_int, to: c_int,
 					       val: Lisp_Object)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
@@ -806,9 +785,7 @@ DEFUN! ("char-table-subtype", Fchar_table_subtype, Schar_table_subtype,
        doc: "Return the subtype of char-table CHAR-TABLE.  The value is a symbol.",
        (char_table: Lisp_Object),
        {
-  CHECK_CHAR_TABLE (char_table);
-
-  return (*XCHAR_TABLE (char_table)).purpose;
+  crate::safe_character::char_table_subtype (char_table)
 });
 
 DEFUN! ("char-table-parent", Fchar_table_parent, Schar_table_parent,
@@ -816,9 +793,7 @@ DEFUN! ("char-table-parent", Fchar_table_parent, Schar_table_parent,
        doc: "Return the parent char-table of CHAR-TABLE.\nThe value is either nil or another char-table.\nIf CHAR-TABLE holds nil for a given character,\nthen the actual applicable value is inherited from the parent char-table\n(or from its parents, if necessary).",
        (char_table: Lisp_Object),
        {
-  CHECK_CHAR_TABLE (char_table);
-
-  return (*XCHAR_TABLE (char_table)).parent;
+  crate::safe_character::char_table_parent (char_table)
 });
 
 DEFUN! ("set-char-table-parent", Fset_char_table_parent, Sset_char_table_parent,
@@ -826,26 +801,7 @@ DEFUN! ("set-char-table-parent", Fset_char_table_parent, Sset_char_table_parent,
        doc: "Set the parent char-table of CHAR-TABLE to PARENT.\nReturn PARENT.  PARENT must be either nil or another char-table.",
        (char_table: Lisp_Object, parent: Lisp_Object),
        {
-  let mut temp: Lisp_Object;
-
-  CHECK_CHAR_TABLE (char_table);
-
-  if !NILP (parent)
-    {
-      CHECK_CHAR_TABLE (parent);
-
-      temp = parent;
-      while !NILP (temp)
-	{
-	  if EQ (temp, char_table)
-	    { error (c"Attempt to make a chartable be its own parent".as_ptr ()); }
-	  temp = (*XCHAR_TABLE (temp)).parent;
-	}
-    }
-
-  set_char_table_parent (char_table, parent);
-
-  return parent;
+  crate::safe_character::set_char_table_parent_subr (char_table, parent)
 });
 
 DEFUN! ("char-table-extra-slot", Fchar_table_extra_slot, Schar_table_extra_slot,
@@ -853,13 +809,7 @@ DEFUN! ("char-table-extra-slot", Fchar_table_extra_slot, Schar_table_extra_slot,
        doc: "Return the value of CHAR-TABLE's extra-slot number N.",
        (char_table: Lisp_Object, n: Lisp_Object),
        {
-  CHECK_CHAR_TABLE (char_table);
-  CHECK_FIXNUM (n);
-  if XFIXNUM (n) < 0
-      || XFIXNUM (n) >= CHAR_TABLE_EXTRA_SLOTS (XCHAR_TABLE (char_table))
-    { args_out_of_range (char_table, n); }
-
-  return FAM_ELEM! ((*XCHAR_TABLE (char_table)).extras, XFIXNUM (n));
+  crate::safe_character::char_table_extra_slot (char_table, n)
 });
 
 DEFUN! ("set-char-table-extra-slot", Fset_char_table_extra_slot,
@@ -868,14 +818,7 @@ DEFUN! ("set-char-table-extra-slot", Fset_char_table_extra_slot,
        doc: "Set CHAR-TABLE's extra-slot number N to VALUE.",
        (char_table: Lisp_Object, n: Lisp_Object, value: Lisp_Object),
        {
-  CHECK_CHAR_TABLE (char_table);
-  CHECK_FIXNUM (n);
-  if XFIXNUM (n) < 0
-      || XFIXNUM (n) >= CHAR_TABLE_EXTRA_SLOTS (XCHAR_TABLE (char_table))
-    { args_out_of_range (char_table, n); }
-
-  set_char_table_extras (char_table, XFIXNUM (n), value);
-  return value;
+  crate::safe_character::set_char_table_extra_slot (char_table, n, value)
 });
 
 DEFUN! ("char-table-range", Fchar_table_range, Schar_table_range,
@@ -1229,15 +1172,20 @@ pub unsafe extern "C-unwind" fn map_char_table (c_function: Option<unsafe extern
   }
 }
 
+#[inline(always)]
+pub fn map_char_table_lisp_fn (function: Lisp_Object, char_table: Lisp_Object)
+{
+  assert! (CHAR_TABLE_P (char_table));
+  // SAFETY: `CHAR_TABLE_P(char_table)` verified above; `None` C callback invokes `function` via Lisp `calln!`.
+  unsafe { map_char_table (None, function, char_table, char_table); }
+}
+
 DEFUN! ("map-char-table", Fmap_char_table, Smap_char_table,
   2, 2, 0,
        doc: "Call FUNCTION for each character in CHAR-TABLE that has non-nil value.\nFUNCTION is called with two arguments, KEY and VALUE.\nKEY is a character code or a cons of character codes specifying a\nrange of characters that have the same value.\nVALUE is what (char-table-range CHAR-TABLE KEY) returns.",
        (function: Lisp_Object, char_table: Lisp_Object),
        {
-  CHECK_CHAR_TABLE (char_table);
-
-  map_char_table (None, function, char_table, char_table);
-  return Qnil ();
+  crate::safe_character::map_char_table_subr (function, char_table)
 });
 
 
@@ -1658,7 +1606,7 @@ unsafe fn uniprop_get_encoder (table: Lisp_Object) -> uniprop_decoder_t
    garbage-collection.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn uniprop_table (prop: Lisp_Object) -> Lisp_Object
+pub extern "C-unwind" fn uniprop_table (prop: Lisp_Object) -> Lisp_Object
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -1703,20 +1651,22 @@ pub unsafe extern "C-unwind" fn uniprop_table (prop: Lisp_Object) -> Lisp_Object
   }
 }
 
+#[inline(always)]
+pub fn uniprop_table_safe (prop: Lisp_Object) -> Lisp_Object
+{
+  { uniprop_table (prop) }
+}
+
 DEFUN! ("unicode-property-table-internal", Funicode_property_table_internal,
        Sunicode_property_table_internal, 1, 1, 0,
        doc: "Return a char-table for Unicode character property PROP.\nUse `get-unicode-property-internal' and\n`put-unicode-property-internal' instead of `aref' and `aset' to get\nand put an element value.",
        (prop: Lisp_Object),
        {
-  let table: Lisp_Object = uniprop_table (prop);
-
-  if CHAR_TABLE_P (table)
-    { return table; }
-  return Fcdr (Fassq (prop, (*Vchar_code_property_alist.as_mut_ptr ())));
+  crate::safe_character::unicode_property_table_internal (prop)
 });
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn get_unicode_property (char_table: Lisp_Object, ch: c_int)
+pub extern "C-unwind" fn get_unicode_property (char_table: Lisp_Object, ch: c_int)
   -> Lisp_Object
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
@@ -1728,16 +1678,19 @@ pub unsafe extern "C-unwind" fn get_unicode_property (char_table: Lisp_Object, c
   }
 }
 
+#[inline(always)]
+pub fn get_unicode_property_safe (char_table: Lisp_Object, ch: c_int) -> Lisp_Object
+{
+  assert! (CHAR_TABLE_P (char_table));
+  { get_unicode_property (char_table, ch) }
+}
+
 DEFUN! ("get-unicode-property-internal", Fget_unicode_property_internal,
        Sget_unicode_property_internal, 2, 2, 0,
        doc: "Return an element of CHAR-TABLE for character CH.\nCHAR-TABLE must be what returned by `unicode-property-table-internal'.",
        (char_table: Lisp_Object, ch: Lisp_Object),
        {
-  CHECK_CHAR_TABLE (char_table);
-  CHECK_CHARACTER (ch);
-  if ! UNIPROP_TABLE_P! (char_table)
-    { error (c"Invalid Unicode property table".as_ptr ()); }
-  return get_unicode_property (char_table, XFIXNUM (ch) as c_int);
+  crate::safe_character::get_unicode_property_internal (char_table, ch)
 });
 
 DEFUN! ("put-unicode-property-internal", Fput_unicode_property_internal,
@@ -1767,38 +1720,27 @@ DEFUN! ("put-unicode-property-internal", Fput_unicode_property_internal,
 pub static Vchar_code_property_alist: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn syms_of_chartab ()
+pub extern "C-unwind" fn syms_of_chartab ()
 {
-  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
-  unsafe {
   /* Purpose of uniprop tables. */
   DEFSYM! (Qchar_code_property_table, c"char-code-property-table");
 
-  defsubr (Smake_char_table.as_mut_ptr ());
-  defsubr (Schar_table_parent.as_mut_ptr ());
-  defsubr (Schar_table_subtype.as_mut_ptr ());
-  defsubr (Sset_char_table_parent.as_mut_ptr ());
-  defsubr (Schar_table_extra_slot.as_mut_ptr ());
-  defsubr (Sset_char_table_extra_slot.as_mut_ptr ());
-  defsubr (Schar_table_range.as_mut_ptr ());
-  defsubr (Sset_char_table_range.as_mut_ptr ());
-  defsubr (Soptimize_char_table.as_mut_ptr ());
-  defsubr (Smap_char_table.as_mut_ptr ());
-  defsubr (Sunicode_property_table_internal.as_mut_ptr ());
-  defsubr (Sget_unicode_property_internal.as_mut_ptr ());
-  defsubr (Sput_unicode_property_internal.as_mut_ptr ());
-
-  /* Each element has the form (PROP . TABLE).
-     PROP is a symbol representing a character property.
-     TABLE is a char-table containing the property value for each character.
-     TABLE may be a name of file to load to build a char-table.
-     This variable should be modified only through
-     `define-char-code-property'. */
+  defsubr_global (&Smake_char_table);
+  defsubr_global (&Schar_table_parent);
+  defsubr_global (&Schar_table_subtype);
+  defsubr_global (&Sset_char_table_parent);
+  defsubr_global (&Schar_table_extra_slot);
+  defsubr_global (&Sset_char_table_extra_slot);
+  defsubr_global (&Schar_table_range);
+  defsubr_global (&Sset_char_table_range);
+  defsubr_global (&Soptimize_char_table);
+  defsubr_global (&Smap_char_table);
+  defsubr_global (&Sunicode_property_table_internal);
+  defsubr_global (&Sget_unicode_property_internal);
+  defsubr_global (&Sput_unicode_property_internal);
 
   DEFVAR_LISP! (c"char-code-property-alist", Vchar_code_property_alist,
 		"Alist of character property name vs char-table containing property values.\nInternal use only.");
-  (*Vchar_code_property_alist.as_mut_ptr ()) = Qnil ();
+  Vchar_code_property_alist.set (Qnil ());
   DEFSYM! (Qcoding_system_for_read, c"coding-system-for-read");
-
-  }
 }

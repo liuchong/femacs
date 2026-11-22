@@ -1602,10 +1602,9 @@ unsafe fn push_named_merge_point (new_named_merge_point: *mut named_merge_point,
 
 /* C 2013-2050: resolve face name FACE_NAME.  */
 
-unsafe fn resolve_face_name (face_name: Lisp_Object, signal_p: bool) -> Lisp_Object
+fn resolve_face_name (face_name: Lisp_Object, signal_p: bool) -> Lisp_Object
 {
-  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
-  unsafe {
+  {
   let mut face_name = face_name;
   let mut orig_face: Lisp_Object;
   let mut tortoise: Lisp_Object;

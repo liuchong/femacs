@@ -719,7 +719,7 @@ DEFUN! ("profiler-memory-log",
 
 /* Record that the current backtrace allocated SIZE bytes.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn malloc_probe (size: usize)
+pub extern "C-unwind" fn malloc_probe (size: usize)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {

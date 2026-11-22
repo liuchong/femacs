@@ -34,7 +34,7 @@ MACROS = {
     "DEFVAR_LISP": ("Lisp_Fwd_Obj", {"Lisp_Object"}),
 }
 SITE = re.compile(r"\b(DEFVAR_INT|DEFVAR_BOOL|DEFVAR_LISP)!\s*\(\s*[^,]+,\s*([A-Za-z_][A-Za-z_0-9]*)")
-DECL = re.compile(r"(?:^|\n)\s*(?:pub\s+)?static\s+(?:mut\s+)?([A-Za-z_][A-Za-z_0-9]*)\s*:\s*([^;=]+)")
+DECL = re.compile(r"(?:^|\n)\s*(?:pub\s+(?:safe\s+)?)?static\s+(?:mut\s+)?([A-Za-z_][A-Za-z_0-9]*)\s*:\s*([^;=]+)")
 
 
 def declarations(text: str) -> dict[str, str]:

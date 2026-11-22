@@ -76,7 +76,7 @@ pub unsafe extern "C-unwind" fn init_bignum ()
 
 /* Return the value of the Lisp bignum N, as a double.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn bignum_to_double (n: Lisp_Object) -> c_double
+pub extern "C-unwind" fn bignum_to_double (n: Lisp_Object) -> c_double
 {
   // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
   unsafe {
@@ -88,7 +88,7 @@ pub unsafe extern "C-unwind" fn bignum_to_double (n: Lisp_Object) -> c_double
 /* Return D, converted to a Lisp integer.  Discard any fraction.
    Signal an error if D cannot be converted.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn double_to_integer (d: c_double) -> Lisp_Object
+pub extern "C-unwind" fn double_to_integer (d: c_double) -> Lisp_Object
 {
   // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
   unsafe {
@@ -135,7 +135,7 @@ unsafe fn make_bignum () -> Lisp_Object
 
 /* Return a Lisp integer equal to N, which must not be in fixnum range.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn make_bigint (n: intmax_t) -> Lisp_Object
+pub extern "C-unwind" fn make_bigint (n: intmax_t) -> Lisp_Object
 {
   // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
   unsafe {
@@ -147,7 +147,7 @@ pub unsafe extern "C-unwind" fn make_bigint (n: intmax_t) -> Lisp_Object
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn make_biguint (n: uintmax_t) -> Lisp_Object
+pub extern "C-unwind" fn make_biguint (n: uintmax_t) -> Lisp_Object
 {
   // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
   unsafe {
@@ -160,7 +160,7 @@ pub unsafe extern "C-unwind" fn make_biguint (n: uintmax_t) -> Lisp_Object
 
 /* Return a Lisp integer equal to -N, which must not be in fixnum range.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn make_neg_biguint (n: uintmax_t) -> Lisp_Object
+pub extern "C-unwind" fn make_neg_biguint (n: uintmax_t) -> Lisp_Object
 {
   // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
   unsafe {
@@ -355,7 +355,7 @@ pub unsafe extern "C-unwind" fn mpz_to_uintmax (z: *const __mpz_struct, pi: *mut
 /* Return the value of the bignum X if it fits, 0 otherwise.
    A bignum cannot be zero, so 0 indicates failure reliably.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn bignum_to_intmax (x: Lisp_Object) -> intmax_t
+pub extern "C-unwind" fn bignum_to_intmax (x: Lisp_Object) -> intmax_t
 {
   // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
   unsafe {
@@ -366,7 +366,7 @@ pub unsafe extern "C-unwind" fn bignum_to_intmax (x: Lisp_Object) -> intmax_t
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn bignum_to_uintmax (x: Lisp_Object) -> uintmax_t
+pub extern "C-unwind" fn bignum_to_uintmax (x: Lisp_Object) -> uintmax_t
 {
   // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
   unsafe {
@@ -492,7 +492,7 @@ unsafe fn mpz_bufsize (num: *const __mpz_struct, base: c_int) -> ptrdiff_t
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn bignum_bufsize (num: Lisp_Object, base: c_int) -> ptrdiff_t
+pub extern "C-unwind" fn bignum_bufsize (num: Lisp_Object, base: c_int) -> ptrdiff_t
 {
   // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
   unsafe {
@@ -551,7 +551,7 @@ pub unsafe extern "C-unwind" fn bignum_to_c_string (buf: *mut c_char, size: ptrd
    If BASE is negative, use upper-case digits in base -BASE.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn bignum_to_string (num: Lisp_Object, base: c_int) -> Lisp_Object
+pub extern "C-unwind" fn bignum_to_string (num: Lisp_Object, base: c_int) -> Lisp_Object
 {
   // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
   unsafe {
@@ -589,7 +589,7 @@ pub unsafe extern "C-unwind" fn make_bignum_str (num: *const c_char, base: c_int
    Return X's value as an intmax_t.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn check_integer_range (x: Lisp_Object, lo: intmax_t,
+pub extern "C-unwind" fn check_integer_range (x: Lisp_Object, lo: intmax_t,
 					      hi: intmax_t) -> intmax_t
 {
   // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
@@ -607,7 +607,7 @@ pub unsafe extern "C-unwind" fn check_integer_range (x: Lisp_Object, lo: intmax_
    Return X's value as an uintmax_t.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn check_uinteger_max (x: Lisp_Object, hi: uintmax_t) -> uintmax_t
+pub extern "C-unwind" fn check_uinteger_max (x: Lisp_Object, hi: uintmax_t) -> uintmax_t
 {
   // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
   unsafe {
@@ -624,10 +624,9 @@ pub unsafe extern "C-unwind" fn check_uinteger_max (x: Lisp_Object, hi: uintmax_
    and return its value or zero, whichever is greater.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn check_int_nonnegative (x: Lisp_Object) -> c_int
+pub extern "C-unwind" fn check_int_nonnegative (x: Lisp_Object) -> c_int
 {
-  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
-  unsafe {
+  {
   CHECK_INTEGER (x);
   return if NILP (Fnatnump (x)) { 0 } else { check_integer_range (x, 0, INT_MAX as intmax_t) as c_int };
 
@@ -636,10 +635,9 @@ pub unsafe extern "C-unwind" fn check_int_nonnegative (x: Lisp_Object) -> c_int
 
 /* Return a random mp_limb_t.  */
 
-unsafe fn get_random_limb () -> mp_limb_t
+fn get_random_limb () -> mp_limb_t
 {
-  // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
-  unsafe {
+  {
   if GMP_NUMB_BITS <= ULONG_WIDTH
     { return get_random_ulong (); }
 

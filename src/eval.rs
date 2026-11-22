@@ -81,8 +81,6 @@ unsafe extern "C-unwind" {
   pub fn memory_full (size: usize) -> !;
   /// C: lisp.h 4378: `extern void add_to_log (char const *, ...);`
   pub fn add_to_log (format: *const c_char, ...);
-  /// C: lisp.h 4392: `extern void message3 (Lisp_Object);`
-  pub fn message3 (m: Lisp_Object);
 
   /// C: emacs.c: `void fatal (const char *, ...) ATTRIBUTE_NORETURN;` (lisp.h's EXFUN group)
   pub fn fatal (format: *const c_char, ...) -> !;
@@ -91,8 +89,6 @@ unsafe extern "C-unwind" {
   pub fn evxprintf (buf: *mut *mut c_char, bufsize: *mut ptrdiff_t, nonheapbuf: *mut c_char,
                     bufsize_max: ptrdiff_t, format: *const c_char, ap: core::ffi::VaList<'_>)
     -> ptrdiff_t;
-  /// C: lisp.h 5468: `void malloc_probe (size_t);`
-  pub fn malloc_probe (size: usize);
 }
 unsafe extern "C" {
 
@@ -440,7 +436,7 @@ unsafe extern "C-unwind" fn max_ensure_room (b: intmax_t)
 /* Call the Lisp debugger, giving it argument ARG.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn call_debugger (arg: Lisp_Object) -> Lisp_Object
+pub extern "C-unwind" fn call_debugger (arg: Lisp_Object) -> Lisp_Object
 {
   // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
   unsafe {
@@ -502,7 +498,7 @@ pub unsafe extern "C-unwind" fn call_debugger (arg: Lisp_Object) -> Lisp_Object
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn do_debug_on_call (code: Lisp_Object, count: specpdl_ref)
+pub extern "C-unwind" fn do_debug_on_call (code: Lisp_Object, count: specpdl_ref)
 {
   // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
   unsafe {
@@ -609,8 +605,7 @@ DEFUN! ("progn", Fprogn, Sprogn, 0, UNEVALLED, 0,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn prog_ignore (body: Lisp_Object)
 {
-  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
-  unsafe {
+  {
   Fprogn (body);
 
   }
@@ -627,10 +622,9 @@ DEFUN! ("prog1", Fprog1, Sprog1, 1, UNEVALLED, 0,
 });
 
 #[inline(always)]
-unsafe fn assq_lexenv (key: Lisp_Object, alist: Lisp_Object) -> Lisp_Object
+fn assq_lexenv (key: Lisp_Object, alist: Lisp_Object) -> Lisp_Object
 {
-  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
-  unsafe {
+  {
   let mut tail: Lisp_Object = alist;
   let mut steps: ptrdiff_t = 0;
   while CONSP (tail) && steps < 64
@@ -649,10 +643,9 @@ unsafe fn assq_lexenv (key: Lisp_Object, alist: Lisp_Object) -> Lisp_Object
 }
 
 #[inline(always)]
-unsafe fn memq_lexenv (elt: Lisp_Object, list: Lisp_Object) -> Lisp_Object
+fn memq_lexenv (elt: Lisp_Object, list: Lisp_Object) -> Lisp_Object
 {
-  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
-  unsafe {
+  {
   let mut tail: Lisp_Object = list;
   let mut steps: ptrdiff_t = 0;
   while CONSP (tail) && steps < 64
@@ -670,10 +663,9 @@ unsafe fn memq_lexenv (elt: Lisp_Object, list: Lisp_Object) -> Lisp_Object
 }
 
 #[inline(always)]
-unsafe fn fast_list_length (list: Lisp_Object) -> ptrdiff_t
+fn fast_list_length (list: Lisp_Object) -> ptrdiff_t
 {
-  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
-  unsafe {
+  {
   let mut tail: Lisp_Object = list;
   let mut i: ptrdiff_t = 0;
   while CONSP (tail) && i < 64
@@ -1640,7 +1632,7 @@ macro_rules! clobbered_eassert {
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn pop_handler ()
+pub extern "C-unwind" fn pop_handler ()
 {
   // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
   unsafe {
@@ -1807,7 +1799,7 @@ DEFUN! ("condition-case", Fcondition_case, Scondition_case, 2, UNEVALLED, 0,
 });
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn push_handler_bind (conditions: Lisp_Object, handler: Lisp_Object,
+pub extern "C-unwind" fn push_handler_bind (conditions: Lisp_Object, handler: Lisp_Object,
                                             skip: c_int)
 {
   // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
@@ -1852,7 +1844,7 @@ DEFUN! ("handler-bind-1", Fhandler_bind_1, Shandler_bind_1, 1, MANY, 0,
    rather than passed in a list.  Used by Fbyte_code.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn internal_lisp_condition_case (var: Lisp_Object,
+pub extern "C-unwind" fn internal_lisp_condition_case (var: Lisp_Object,
                                                        bodyform: Lisp_Object,
                                                        handlers: Lisp_Object)
   -> Lisp_Object
@@ -2238,7 +2230,7 @@ unsafe fn process_quit_flag ()
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn probably_quit ()
+pub extern "C-unwind" fn probably_quit ()
 {
   // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
   unsafe {
@@ -2266,12 +2258,12 @@ DEFUN! ("signal", Fsignal, Ssignal, 1, 2, 0,
   /* C 1892-1893: this subr is declared `_Noreturn` (lisp.h's EXFUN), so the port's body
      must diverge; C's `eassume (false)` above is `__builtin_unreachable ()` here
      (lib/verify.h 389), which Rust spells out.  */
-  /* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { core::hint::unreachable_unchecked () }
+  { core::hint::unreachable_unchecked () }
 });
 
 /* Quit, in response to a keyboard quit request.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn quit () -> Lisp_Object
+pub extern "C-unwind" fn quit () -> Lisp_Object
 {
   // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
   unsafe {
@@ -2445,38 +2437,35 @@ unsafe fn signal_or_quit (error_symbol: Lisp_Object, data: Lisp_Object, continua
 /* Like xsignal, but takes 0, 1, 2, or 3 args instead of a list.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn xsignal0 (error_symbol: Lisp_Object) -> !
+pub extern "C-unwind" fn xsignal0 (error_symbol: Lisp_Object) -> !
 {
   xsignal (error_symbol, Qnil ());
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn xsignal1 (error_symbol: Lisp_Object, arg: Lisp_Object) -> !
+pub extern "C-unwind" fn xsignal1 (error_symbol: Lisp_Object, arg: Lisp_Object) -> !
 {
-  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
-  unsafe {
+  {
   xsignal (error_symbol, list1 (arg));
 
   }
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn xsignal2 (error_symbol: Lisp_Object, arg1: Lisp_Object,
+pub extern "C-unwind" fn xsignal2 (error_symbol: Lisp_Object, arg1: Lisp_Object,
                                    arg2: Lisp_Object) -> !
 {
-  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
-  unsafe {
+  {
   xsignal (error_symbol, list2 (arg1, arg2));
 
   }
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn xsignal3 (error_symbol: Lisp_Object, arg1: Lisp_Object,
+pub extern "C-unwind" fn xsignal3 (error_symbol: Lisp_Object, arg1: Lisp_Object,
                                    arg2: Lisp_Object, arg3: Lisp_Object) -> !
 {
-  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
-  unsafe {
+  {
   xsignal (error_symbol, list3 (arg1, arg2, arg3));
 
   }
@@ -2488,8 +2477,7 @@ pub unsafe extern "C-unwind" fn xsignal3 (error_symbol: Lisp_Object, arg1: Lisp_
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn signal_error (s: *const c_char, arg: Lisp_Object) -> !
 {
-  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
-  unsafe {
+  {
   let mut arg: Lisp_Object = arg;   // C assigns to its parameter
   if NILP (Fproper_list_p (arg))
     { arg = list1 (arg); }
@@ -2522,10 +2510,9 @@ pub unsafe extern "C-unwind" fn define_error (name: Lisp_Object, message: *const
 /* Use this for arithmetic overflow, e.g., when an integer result is
    too large even for a bignum.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn overflow_error ()
+pub extern "C-unwind" fn overflow_error ()
 {
-  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
-  unsafe {
+  {
   xsignal0 (Qoverflow_error ());
 
   }
@@ -2609,10 +2596,9 @@ unsafe fn skip_debugger (conditions: Lisp_Object, data: Lisp_Object) -> bool
 
 /* Say whether SIGNAL is a `quit' error (or inherits from it).  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn signal_quit_p (error: Lisp_Object) -> bool
+pub extern "C-unwind" fn signal_quit_p (error: Lisp_Object) -> bool
 {
-  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
-  unsafe {
+  {
   let signal: Lisp_Object = if CONSP (error) { XCAR (error) } else { Qnil () };
   let list: Lisp_Object;
 
@@ -2747,7 +2733,7 @@ DEFUN! ("eval", Feval, Seval, 1, 2, 0,
 });
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn grow_specpdl_allocation ()
+pub extern "C-unwind" fn grow_specpdl_allocation ()
 {
   // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
   unsafe {
@@ -2771,7 +2757,7 @@ pub unsafe extern "C-unwind" fn grow_specpdl_allocation ()
 /* Eval a sub-expression of the current expression (i.e. in the same
    lexical scope).  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn eval_sub (form: Lisp_Object) -> Lisp_Object
+pub extern "C-unwind" fn eval_sub (form: Lisp_Object) -> Lisp_Object
 {
   // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
   unsafe {
@@ -3361,7 +3347,7 @@ pub unsafe extern "C-unwind" fn run_hook_with_args (
 /* Run the hook HOOK, giving each function no args.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn run_hook (hook: Lisp_Object)
+pub extern "C-unwind" fn run_hook (hook: Lisp_Object)
 {
   // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
   unsafe {
@@ -3382,7 +3368,7 @@ pub unsafe extern "C-unwind" fn run_hook_with_args_2 (hook: Lisp_Object, arg1: L
 
 /* Apply fn to arg.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn apply1 (fn_: Lisp_Object, arg: Lisp_Object) -> Lisp_Object
+pub extern "C-unwind" fn apply1 (fn_: Lisp_Object, arg: Lisp_Object) -> Lisp_Object
 {
   // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
   unsafe {
@@ -3629,7 +3615,7 @@ pub unsafe extern "C-unwind" fn safe_funcall (nargs: ptrdiff_t, args: *mut Lisp_
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn safe_eval (sexp: Lisp_Object) -> Lisp_Object
+pub extern "C-unwind" fn safe_eval (sexp: Lisp_Object) -> Lisp_Object
 {
   // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
   unsafe {
@@ -4217,7 +4203,7 @@ unsafe fn do_specbind (sym: *mut Lisp_Symbol, bind: *mut specbinding, value: Lis
      buffer-local.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn specbind (symbol: Lisp_Object, value: Lisp_Object)
+pub extern "C-unwind" fn specbind (symbol: Lisp_Object, value: Lisp_Object)
 {
   // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
   unsafe {
@@ -4543,7 +4529,7 @@ unsafe extern "C-unwind" fn do_nothing ()
    set_unwind_protect_ptr can overwrite it later.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn record_unwind_protect_nothing ()
+pub extern "C-unwind" fn record_unwind_protect_nothing ()
 {
   // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
   unsafe {
@@ -4556,7 +4542,7 @@ pub unsafe extern "C-unwind" fn record_unwind_protect_nothing ()
    It need not be at the top of the stack.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn clear_unwind_protect (count: specpdl_ref)
+pub extern "C-unwind" fn clear_unwind_protect (count: specpdl_ref)
 {
   // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
   unsafe {
@@ -4606,7 +4592,7 @@ pub unsafe extern "C-unwind" fn set_unwind_protect_ptr (
    depth COUNT is reached.  Return VALUE.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn unbind_to (count: specpdl_ref, value: Lisp_Object) -> Lisp_Object
+pub extern "C-unwind" fn unbind_to (count: specpdl_ref, value: Lisp_Object) -> Lisp_Object
 {
   // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
   unsafe {
@@ -4871,7 +4857,7 @@ pub unsafe extern "C-unwind" fn specpdl_unrewind (pdl: *mut specbinding, mut dis
 	{
 	  if vars_only
 	    { distance -= 1; continue; }
-	  if (*tmp).unwind.func == Some (set_buffer_if_live)
+	  if (*tmp).unwind.func == Some (set_buffer_if_live as unsafe extern "C-unwind" fn (Lisp_Object))
 	    {
 	      let oldarg: Lisp_Object = (*tmp).unwind.arg;
 	      (*tmp).unwind.arg = Fcurrent_buffer ();
@@ -5150,7 +5136,7 @@ pub unsafe extern "C-unwind" fn get_backtrace (array: *mut Lisp_Object, size: pt
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn backtrace_top_function () -> Lisp_Object
+pub extern "C-unwind" fn backtrace_top_function () -> Lisp_Object
 {
   // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
   unsafe {
@@ -5556,7 +5542,7 @@ unsafe extern "C-unwind" fn un_autoload (oldqueue: Lisp_Object)
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn load_with_autoload_queue
+pub extern "C-unwind" fn load_with_autoload_queue
   (file: Lisp_Object, noerror: Lisp_Object, nomessage: Lisp_Object,
    nosuffix: Lisp_Object, must_suffix: Lisp_Object) -> Lisp_Object
 {

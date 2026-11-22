@@ -273,7 +273,7 @@ unsafe fn read_dirent (dir: *mut emacs_dir, dirname: Lisp_Object) -> *mut dirent
    In the latter case, pass ID_FORMAT to file_attributes.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn directory_files_internal (directory: Lisp_Object, full: Lisp_Object,
+pub extern "C-unwind" fn directory_files_internal (directory: Lisp_Object, full: Lisp_Object,
 			  r#match: Lisp_Object, nosort: Lisp_Object, attrs: bool,
 			  id_format: Lisp_Object, return_count: Lisp_Object) -> Lisp_Object
 {

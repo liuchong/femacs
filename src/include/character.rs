@@ -185,7 +185,7 @@ pub fn CHECK_CHARACTER_CDR (x: Lisp_Object)
 pub fn CHAR_PRINTABLE_P (c: c_int) -> bool
 {
   return (32 <= c && c < 127)
-	 || ! NILP (CHAR_TABLE_REF (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*Vprintable_chars.as_mut_ptr ()) }, c as isize));
+	 || ! NILP (CHAR_TABLE_REF (Vprintable_chars.get (), c as isize));
 }
 
 /* Return byte length of multibyte form for character C.  */
@@ -583,8 +583,8 @@ pub mod character_decls {
     unsafe extern "C-unwind" {
     // Parameter names come from the definitions in character.c (C's prototypes
     // often have none).
-    pub fn char_resolve_modifier_mask (c: EMACS_INT) -> EMACS_INT;
-    pub fn translate_char (table: Lisp_Object, c: c_int) -> c_int;
+    pub safe fn char_resolve_modifier_mask (c: EMACS_INT) -> EMACS_INT;
+    pub safe fn translate_char (table: Lisp_Object, c: c_int) -> c_int;
     pub fn count_size_as_multibyte (str: *const u8, len: ptrdiff_t) -> ptrdiff_t;
     pub fn str_as_multibyte (str: *mut u8, len: ptrdiff_t, nbytes: ptrdiff_t,
   			   nchars: *mut ptrdiff_t) -> ptrdiff_t;
@@ -597,19 +597,19 @@ pub mod character_decls {
   			    precision: ptrdiff_t, nchars: *mut ptrdiff_t,
   			    nbytes: *mut ptrdiff_t, auto_comp: bool) -> ptrdiff_t;
 
-    pub static Vchar_unify_table: VmGlobal<Lisp_Object>;
-    pub fn string_escape_byte8 (string: Lisp_Object) -> Lisp_Object;
+    pub safe static Vchar_unify_table: VmGlobal<Lisp_Object>;
+    pub safe fn string_escape_byte8 (string: Lisp_Object) -> Lisp_Object;
 
-    pub fn alphabeticp (c: c_int) -> bool;
-    pub fn alphanumericp (c: c_int) -> bool;
-    pub fn graphicp (c: c_int) -> bool;
-    pub fn printablep (c: c_int) -> bool;
-    pub fn blankp (c: c_int) -> bool;
-    pub fn graphic_base_p (c: c_int) -> bool;
+    pub safe fn alphabeticp (c: c_int) -> bool;
+    pub safe fn alphanumericp (c: c_int) -> bool;
+    pub safe fn graphicp (c: c_int) -> bool;
+    pub safe fn printablep (c: c_int) -> bool;
+    pub safe fn blankp (c: c_int) -> bool;
+    pub safe fn graphic_base_p (c: c_int) -> bool;
 
     /// C declares `extern signed char const hexdigit[];` (an incomplete array);
     /// the size is the definition's `hexdigit[UCHAR_MAX + 1]` in character.c.
-    pub static hexdigit: [c_char; 256];
+    pub safe static hexdigit: [c_char; 256];
     }
 }
 pub use self::character_decls::*;
@@ -634,6 +634,183 @@ pub fn char_table_translate (obj: Lisp_Object, ch: c_int) -> c_int
 #[inline(always)]
 pub fn char_hexdigit (c: c_int) -> c_int
 {
-  return if 0 <= c && c <= UCHAR_MAX { (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { hexdigit[c as usize] }) as c_int - 1 }
+  return if 0 <= c && c <= UCHAR_MAX { (hexdigit[c as usize]) as c_int - 1 }
 	 else { -1 };
 }
+
+#[inline(always)]
+pub fn multibyte_length_slice (bytes: &[u8], allow_8bit: bool) -> usize {
+  if bytes.is_empty () {
+    return 0;
+  }
+  /* SAFETY: `bytes.as_ptr()..bytes.as_ptr().add(bytes.len())` is a valid bounded slice with `check = true`. */
+  let pend = unsafe { bytes.as_ptr ().add (bytes.len ()) };
+  multibyte_length (bytes.as_ptr (), pend, true, allow_8bit) as usize
+}
+
+#[inline(always)]
+pub fn string_char_and_length_slice (bytes: &[u8]) -> (c_int, usize) {
+  assert! (!bytes.is_empty ());
+  let head_len = BYTES_BY_CHAR_HEAD (bytes[0] as c_int) as usize;
+  assert! (bytes.len () >= head_len);
+  let mut chlen: c_int = 0;
+  let c = string_char_and_length (bytes.as_ptr (), &raw mut chlen);
+  (c, chlen as usize)
+}
+
+#[inline(always)]
+pub fn fetch_string_char_advance_safe (
+  string: Lisp_Object,
+  charidx: &mut ptrdiff_t,
+  byteidx: &mut ptrdiff_t,
+) -> c_int {
+  assert! (STRINGP (string));
+  assert! (0 <= *byteidx && *byteidx < SBYTES (string));
+  fetch_string_char_advance (string, &raw mut *charidx, &raw mut *byteidx)
+}
+
+#[inline(always)]
+pub fn fetch_string_char_as_multibyte_advance_safe (
+  string: Lisp_Object,
+  charidx: &mut ptrdiff_t,
+  byteidx: &mut ptrdiff_t,
+) -> c_int {
+  assert! (STRINGP (string));
+  assert! (0 <= *byteidx && *byteidx < SBYTES (string));
+  fetch_string_char_as_multibyte_advance (string, &raw mut *charidx, &raw mut *byteidx)
+}
+
+#[inline(always)]
+pub fn fetch_string_char_advance_no_check_safe (
+  string: Lisp_Object,
+  charidx: &mut ptrdiff_t,
+  byteidx: &mut ptrdiff_t,
+) -> c_int {
+  assert! (STRINGP (string) && STRING_MULTIBYTE (string));
+  assert! (0 <= *byteidx && *byteidx < SBYTES (string));
+  fetch_string_char_advance_no_check (string, &raw mut *charidx, &raw mut *byteidx)
+}
+
+#[inline(always)]
+pub fn lisp_string_width_safe (
+  string: Lisp_Object,
+  from: ptrdiff_t,
+  to: ptrdiff_t,
+  precision: ptrdiff_t,
+  auto_comp: bool,
+) -> (ptrdiff_t, ptrdiff_t, ptrdiff_t) {
+  assert! (STRINGP (string));
+  let mut nchars: ptrdiff_t = 0;
+  let mut nbytes: ptrdiff_t = 0;
+  /* SAFETY: `STRINGP(string)` verified above; `nchars` and `nbytes` are valid stack out-pointers. */
+  let w = unsafe {
+    lisp_string_width (
+      string,
+      from,
+      to,
+      precision,
+      if precision > 0 { &raw mut nchars } else { core::ptr::null_mut () },
+      if precision > 0 { &raw mut nbytes } else { core::ptr::null_mut () },
+      auto_comp,
+    )
+  };
+  (w, nchars, nbytes)
+}
+
+#[inline(always)]
+pub fn str_as_unibyte_vec (buf: &mut Vec<u8>) {
+  if buf.is_empty () {
+    return;
+  }
+  /* SAFETY: `buf` is a contiguous mutable `u8` buffer of `buf.len()` bytes; `str_as_unibyte` shrinks in place (`new_len <= buf.len()`). */
+  let new_len = unsafe { str_as_unibyte (buf.as_mut_ptr (), buf.len () as ptrdiff_t) };
+  assert! (0 <= new_len && (new_len as usize) <= buf.len ());
+  buf.truncate (new_len as usize);
+}
+
+#[inline(always)]
+pub fn lisp_string_char_and_length_at (string: Lisp_Object, bytepos: ptrdiff_t) -> (c_int, ptrdiff_t) {
+  assert! (STRINGP (string) && 0 <= bytepos && bytepos < SBYTES (string));
+  let mut len: c_int = 0;
+  /* SAFETY: `STRINGP(string)` and `0 <= bytepos < SBYTES(string)` verified above; trailing NUL bounds `string_char_and_length`. */
+  let ch = unsafe { string_char_and_length (SDATA (string).add (bytepos as usize), &raw mut len) };
+  (ch, len as ptrdiff_t)
+}
+
+#[inline(always)]
+pub fn error_not_unibyte_char (c: c_int) -> ! {
+  /* SAFETY: fixed format string with scalar `c_int` argument. */
+  unsafe { error (c"Not a unibyte character: %d".as_ptr (), c) }
+}
+
+#[inline(always)]
+pub fn error_not_ascii_or_8bit_char (c: c_int) -> ! {
+  /* SAFETY: fixed format string with scalar `c_int` argument. */
+  unsafe { error (c"Not an ASCII nor an 8-bit character: %d".as_ptr (), c) }
+}
+
+#[inline(always)]
+pub fn error_chartab_self_parent () -> ! {
+  /* SAFETY: static NUL-terminated format string with zero format arguments. */
+  unsafe { error (c"Attempt to make a chartable be its own parent".as_ptr ()) }
+}
+
+#[inline(always)]
+pub fn error_invalid_chartab_range (setter: bool) -> ! {
+  /* SAFETY: static NUL-terminated format strings with zero format arguments. */
+  unsafe {
+    if setter {
+      error (c"Invalid RANGE argument to `set-char-table-range'".as_ptr ())
+    } else {
+      error (c"Invalid RANGE argument to `char-table-range'".as_ptr ())
+    }
+  }
+}
+
+#[inline(always)]
+pub fn error_invalid_uniprop_table () -> ! {
+  /* SAFETY: static NUL-terminated format string with zero format arguments. */
+  unsafe { error (c"Invalid Unicode property table".as_ptr ()) }
+}
+
+#[inline(always)]
+pub fn fetch_string_char_step (
+  string: Lisp_Object,
+  mut charidx: ptrdiff_t,
+  mut byteidx: ptrdiff_t,
+) -> (c_int, ptrdiff_t, ptrdiff_t) {
+  assert! (STRINGP (string) && 0 <= byteidx && byteidx < SBYTES (string));
+  let ch = fetch_string_char_advance (string, &raw mut charidx, &raw mut byteidx);
+  (ch, charidx, byteidx)
+}
+
+#[inline(always)]
+pub fn fetch_string_char_as_multibyte_step (
+  string: Lisp_Object,
+  mut charidx: ptrdiff_t,
+  mut byteidx: ptrdiff_t,
+) -> (c_int, ptrdiff_t, ptrdiff_t) {
+  assert! (STRINGP (string) && 0 <= byteidx && byteidx < SBYTES (string));
+  let ch = fetch_string_char_as_multibyte_advance (string, &raw mut charidx, &raw mut byteidx);
+  (ch, charidx, byteidx)
+}
+
+#[inline(always)]
+pub fn fetch_string_char_at (
+  string: Lisp_Object,
+  mut charidx: ptrdiff_t,
+  mut byteidx: ptrdiff_t,
+) -> (c_int, ptrdiff_t) {
+  assert! (STRINGP (string) && 0 <= byteidx && byteidx < SBYTES (string));
+  let ch = fetch_string_char_advance (string, &raw mut charidx, &raw mut byteidx);
+  (ch, byteidx)
+}
+
+#[inline(always)]
+pub fn encode_char_multibyte_buf (c: c_int) -> ([u8; MAX_MULTIBYTE_LENGTH as usize], usize) {
+  let mut buf = [0u8; MAX_MULTIBYTE_LENGTH as usize];
+  let len = CHAR_STRING (c, buf.as_mut_ptr ()) as usize;
+  assert! (len <= MAX_MULTIBYTE_LENGTH as usize);
+  (buf, len)
+}
+

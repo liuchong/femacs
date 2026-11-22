@@ -313,10 +313,9 @@ unsafe fn bidi_check_type (r#type: bidi_type_t)
 }
 
 /* Given a bidi TYPE of a character, return its category.  */
-unsafe fn bidi_get_category (r#type: bidi_type_t) -> bidi_category_t
+fn bidi_get_category (r#type: bidi_type_t) -> bidi_category_t
 {
-  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
-  unsafe {
+  {
   match r#type
     {
       UNKNOWN_BT => return UNKNOWN_BC,
@@ -330,7 +329,7 @@ unsafe fn bidi_get_category (r#type: bidi_type_t) -> bidi_category_t
   }
 }
 
-unsafe fn bidi_isolate_fmt_char (ch_type: bidi_type_t) -> bool
+fn bidi_isolate_fmt_char (ch_type: bidi_type_t) -> bool
 {
   return ch_type == LRI || ch_type == RLI || ch_type == PDI || ch_type == FSI;
 }
@@ -583,7 +582,7 @@ static bidi_cache_sp: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
    exactly as C names them; taking a shared reference to a `static mut` is the one thing
    that needs the `unsafe` const block (PORTING.md 0.2's `static_mut_refs` allowance).  */
 const bidi_shelve_header_size: usize
-  = const { /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe {
+  = const { {
       femacs_sizeof_ptr (bidi_cache_idx.as_ptr ())
       + femacs_sizeof_ptr (bidi_cache_start_stack.as_ptr ())
       + femacs_sizeof_ptr (bidi_cache_sp.as_ptr ())
@@ -2700,7 +2699,7 @@ unsafe fn bidi_resolve_weak (bidi_it: *mut bidi_it) -> bidi_type_t
 
 /* Resolve the type of a neutral character according to the type of
    surrounding strong text and the current embedding level.  */
-unsafe fn bidi_resolve_neutral_1 (mut prev_type: bidi_type_t, mut next_type: bidi_type_t,
+fn bidi_resolve_neutral_1 (mut prev_type: bidi_type_t, mut next_type: bidi_type_t,
 				  lev: c_int) -> bidi_type_t
 {
   /* N1: "European and Arabic numbers act as if they were R in terms

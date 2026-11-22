@@ -46,7 +46,11 @@ def main() -> int:
     if not names:
         print(f"{HEADER} has no object names", file=sys.stderr)
         return 1
-    body = [f"pub static buildobj: [&core::ffi::CStr; {len(names)}] = ["]
+    body = [
+        "#![forbid(unsafe_code)]",
+        "",
+        f"pub static buildobj: [&core::ffi::CStr; {len(names)}] = [",
+    ]
     body += [f'    c"{name}",' for name in names]
     body.append("];")
     OUTPUT.write_text(HEAD + "\n" + "\n".join(body) + "\n", encoding="utf-8")

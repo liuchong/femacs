@@ -190,7 +190,6 @@ unsafe extern "C-unwind" {
                                        ins_multi: *const c_char, del_line: *const c_char,
                                        del_multi: *const c_char, rev_scroll: *const c_char,
                                        fwd_scroll: *const c_char, n: c_int);
-  fn quit ();
   fn tty_raise_lower_frame (f: *mut frame, raise_: bool);
   fn tty_defined_color (f: *mut frame, color_name: *const c_char, color_def: *mut Emacs_Color,
                         alloc_p: bool, _default: bool) -> bool;
@@ -3306,7 +3305,7 @@ DEFUN! ("suspend-tty", Fsuspend_tty, Ssuspend_tty, 0, 1, 0,
 
 /* C 2594-2598: the `#else /* HAVE_ANDROID */` arm of `Fsuspend_tty`.  */
 #[cfg (feature = "have_android")]
-unsafe fn fsuspend_tty_android ()
+fn fsuspend_tty_android ()
 {
   /* Android doesn't support TTY terminal devices, so unconditionally signal.  */
   error (c"Attempt to suspend a non-text terminal device".as_ptr ());
@@ -3390,7 +3389,7 @@ DEFUN! ("resume-tty", Fresume_tty, Sresume_tty, 0, 1, 0,
 
 /* C 2686-2690: the `#else /* HAVE_ANDROID */` arm of `Fresume_tty`.  */
 #[cfg (feature = "have_android")]
-unsafe fn fresume_tty_android ()
+fn fresume_tty_android ()
 {
   /* Android doesn't support TTY terminal devices, so unconditionally signal.  */
   error (c"Attempt to suspend a non-text terminal device".as_ptr ());
@@ -5555,7 +5554,7 @@ to do 'unset TERMINFO' (C-shell: 'unsetenv TERMINFO') as well.".as_ptr (),
 }
 
 #[cfg (feature = "have_android")]
-unsafe fn init_tty_android (must_succeed: bool)
+fn init_tty_android (must_succeed: bool)
 {
   /* C 4483-4485: the `#ifdef HAVE_ANDROID` arm of init_tty.  */
   maybe_fatal (must_succeed, 0 as *mut terminal,

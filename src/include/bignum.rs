@@ -195,3 +195,199 @@ pub unsafe fn mpz_set_integer (result: *mut __mpz_struct, i: Lisp_Object)
 
   }
 }
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum RoundingDivMode {
+  Trunc,
+  Floor,
+  Ceiling,
+  Round,
+}
+
+#[inline(always)]
+pub fn bignum_negative_p (num: Lisp_Object) -> bool {
+  assert! (BIGNUMP (num));
+  /* SAFETY: `BIGNUMP(num)` verified above. */
+  unsafe { mpz_sgn (xbignum_val (num)) < 0 }
+}
+
+#[inline(always)]
+pub fn bignum_abs_val (num: Lisp_Object) -> Lisp_Object {
+  assert! (BIGNUMP (num));
+  /* SAFETY: `BIGNUMP(num)` verified above; `mpz[0]` is VM scratch bignum storage owned by the single Lisp thread. */
+  unsafe {
+    if mpz_sgn (xbignum_val (num)) < 0 {
+      mpz_neg ((*mpz.as_mut_ptr ())[0].as_mut_ptr (), xbignum_val (num));
+      make_integer_mpz ()
+    } else {
+      num
+    }
+  }
+}
+
+#[inline(always)]
+pub fn bignum_bit_logb (num: Lisp_Object) -> EMACS_INT {
+  assert! (BIGNUMP (num));
+  /* SAFETY: `BIGNUMP(num)` verified above; every Lisp bignum is non-zero (`mpz_sizeinbase(..., 2) >= 1`). */
+  unsafe { mpz_sizeinbase (xbignum_val (num), 2) as EMACS_INT - 1 }
+}
+
+pub fn bignum_ldexp_val (num: Lisp_Object, e: EMACS_INT) -> c_double {
+  assert! (BIGNUMP (num));
+  /* SAFETY: `BIGNUMP(num)` verified above; `mpz[0..1]` are VM scratch bignum slots owned by the single Lisp thread. */
+  unsafe {
+    let x = xbignum_val (num);
+    let neg = mpz_sgn (x) < 0;
+    let limb_bits = GMP_NUMB_BITS as usize;
+    let sig_bits = mpz_sizeinbase (x, 2);
+    let max_prec = DBL_MANT_DIG as usize;
+    let mut adj_e = e;
+    let abs_x = (*mpz.as_mut_ptr ())[1].as_mut_ptr ();
+    mpz_abs (abs_x, x);
+    let rounded: *const __mpz_struct;
+    if sig_bits > max_prec {
+      let shift = sig_bits - max_prec;
+      let t = (*mpz.as_mut_ptr ())[0].as_mut_ptr ();
+      mpz_fdiv_q_2exp (t, abs_x, shift as mp_bitcnt_t);
+      let top_idx = shift - 1;
+      let rem_top = ((mpz_getlimbn (abs_x, (top_idx / limb_bits) as mp_size_t)
+        >> (top_idx % limb_bits))
+        & 1)
+        != 0;
+      if rem_top {
+        let mut sticky = false;
+        if shift > 1 {
+          let scan = mpz_scan1 (abs_x, 0);
+          sticky = scan < (shift - 1) as mp_bitcnt_t;
+        }
+        let odd_q = (mpz_getlimbn (t, 0) & 1) != 0;
+        if sticky || odd_q {
+          mpz_add_ui (t, t, 1);
+        }
+      }
+      adj_e = adj_e.saturating_add (shift as EMACS_INT);
+      rounded = t;
+    } else {
+      rounded = abs_x;
+    }
+    let mut d = mpz_get_d (rounded);
+    if neg {
+      d = -d;
+    }
+    let clamped_e = adj_e.clamp (c_int::MIN as EMACS_INT, c_int::MAX as EMACS_INT) as c_int;
+    ldexp (d, clamped_e)
+  }
+}
+
+pub fn bignum_frexp_val (num: Lisp_Object) -> (c_double, EMACS_INT) {
+  assert! (BIGNUMP (num));
+  let exp = bignum_bit_logb (num) + 1;
+  let s = bignum_ldexp_val (num, -exp);
+  if s.abs () >= 1.0 {
+    (s * 0.5, exp + 1)
+  } else {
+    (s, exp)
+  }
+}
+
+pub fn float_pow_bignum (x: c_double, y: Lisp_Object) -> c_double {
+  assert! (BIGNUMP (y));
+  /* SAFETY: `BIGNUMP(y)` verified above; reads `xbignum_val(y)` without mutation. */
+  unsafe {
+    let yz = xbignum_val (y);
+    let y_neg = mpz_sgn (yz) < 0;
+    let y_odd = mpz_odd_p! (yz) != 0;
+    if x.is_nan () {
+      return x;
+    }
+    if x == 1.0 {
+      return 1.0;
+    }
+    if x == -1.0 {
+      return if y_odd { -1.0 } else { 1.0 };
+    }
+    if x == 0.0 {
+      if y_neg {
+        return if y_odd { 1.0 / x } else { c_double::INFINITY };
+      }
+      return if y_odd { x } else { 0.0 };
+    }
+    let abs_gt_1 = x.abs () > 1.0;
+    let mag = if abs_gt_1 != y_neg {
+      c_double::INFINITY
+    } else {
+      0.0
+    };
+    if x < 0.0 && y_odd { -mag } else { mag }
+  }
+}
+
+pub fn number_scaled_rounding_div (
+  n: Lisp_Object,
+  d: Lisp_Object,
+  nscale: c_int,
+  dscale: c_int,
+  mode: RoundingDivMode,
+) -> Lisp_Object {
+  assert! (NUMBERP (n) && NUMBERP (d));
+  /* SAFETY: `mpz[0..4]` are VM scratch bignums owned by the single Lisp thread; reproduces `rescale_for_division` + `rounddiv_q` exactly. */
+  unsafe {
+    unsafe fn rescale_one (
+      val: Lisp_Object,
+      slot: *mut mpz_t,
+      own_scale: c_int,
+      other_scale: c_int,
+    ) -> *const __mpz_struct {
+      /* SAFETY: caller passes valid `slot` from `mpz[0..1]` and verified `NUMBERP(val)`. */
+      unsafe {
+        let mut p: *const __mpz_struct;
+        if FLOATP (val) {
+          if DBL_MANT_DIG - DBL_MIN_EXP < own_scale {
+            overflow_error ();
+          }
+          mpz_set_d ((*slot).as_mut_ptr (), scalbn (XFLOAT_DATA (val), own_scale));
+          p = (*slot).as_ptr ();
+        } else {
+          p = bignum_integer (slot, val);
+        }
+        if own_scale < other_scale {
+          emacs_mpz_mul_2exp (
+            (*slot).as_mut_ptr (),
+            p,
+            ((other_scale - own_scale) * LOG2_FLT_RADIX) as EMACS_INT,
+          );
+          p = (*slot).as_ptr ();
+        }
+        p
+      }
+    }
+
+    let mpz_ptr = mpz.as_mut_ptr ();
+    let pn = rescale_one (n, &raw mut (*mpz_ptr)[0], nscale, dscale);
+    let pd = rescale_one (d, &raw mut (*mpz_ptr)[1], dscale, nscale);
+    let q = (*mpz_ptr)[0].as_mut_ptr ();
+    match mode {
+      RoundingDivMode::Trunc => mpz_tdiv_q (q, pn, pd),
+      RoundingDivMode::Floor => mpz_fdiv_q (q, pn, pd),
+      RoundingDivMode::Ceiling => mpz_cdiv_q (q, pn, pd),
+      RoundingDivMode::Round => {
+        let r = &raw mut (*mpz_ptr)[2];
+        let abs_r1 = &raw mut (*mpz_ptr)[3];
+        mpz_tdiv_qr (q, (*r).as_mut_ptr (), pn, pd);
+        let neg_d = mpz_sgn (pd) < 0;
+        let neg_r = mpz_sgn ((*r).as_ptr ()) < 0;
+        mpz_abs ((*r).as_mut_ptr (), (*r).as_ptr ());
+        mpz_abs ((*abs_r1).as_mut_ptr (), pd);
+        mpz_sub ((*abs_r1).as_mut_ptr (), (*abs_r1).as_ptr (), (*r).as_ptr ());
+        if mpz_cmp ((*abs_r1).as_ptr (), (*r).as_ptr ()) < (mpz_odd_p! (q) != 0) as c_int {
+          if neg_d == neg_r {
+            mpz_add_ui (q, q, 1);
+          } else {
+            mpz_sub_ui (q, q, 1);
+          }
+        }
+      }
+    }
+    make_integer_mpz ()
+  }
+}

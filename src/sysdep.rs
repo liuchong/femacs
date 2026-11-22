@@ -1518,7 +1518,7 @@ static FEMACS_CHILD_TRACE: core::sync::atomic::AtomicBool =
 
 /* C has no counterpart: P-122/P-125's instruments ask this instead of `getenv`.  */
 #[inline]
-unsafe fn femacs_child_trace () -> bool {
+fn femacs_child_trace () -> bool {
   return FEMACS_CHILD_TRACE.load (core::sync::atomic::Ordering::Relaxed);
 }
 
@@ -2577,7 +2577,7 @@ pub unsafe extern "C-unwind" fn init_sys_modes (tty_out: *mut tty_display_info) 
       });
     }
 
-  if tty_bits! (term_initted, tty_out) && get_no_redraw_on_reenter ()
+  if tty_bits! (term_initted, tty_out) && crate::dispnew::no_redraw_on_reenter.get ()
     {
       /* We used to call "direct_output_forward_char(0)" here,
 	 but it's not clear why, since it may not do anything anyway.  */
@@ -3612,13 +3612,13 @@ pub unsafe fn set_random_seed (arg: random_seed) {
 #[cfg (feature = "no_have_random")]
 pub type random_seed_lrand48 = c_long;
 #[cfg (feature = "no_have_random")]
-pub unsafe fn set_random_seed (arg: random_seed_lrand48) { srand48 (arg); }
+pub fn set_random_seed (arg: random_seed_lrand48) { srand48 (arg); }
 
 /// C 2209-2212: the `#else` arm (`typedef unsigned int random_seed; srand (arg)`).
 #[cfg (feature = "no_have_random_no_lrand48")]
 pub type random_seed_rand = c_uint;
 #[cfg (feature = "no_have_random_no_lrand48")]
-pub unsafe fn set_random_seed (arg: random_seed_rand) { srand (arg); }
+pub fn set_random_seed (arg: random_seed_rand) { srand (arg); }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn seed_random (seed: *mut c_void, seed_size: ptrdiff_t) {
@@ -3682,7 +3682,7 @@ pub unsafe extern "C-unwind" fn init_random () {
  * This suffices even for a 64-bit architecture with a 15-bit rand.
  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn get_random () -> EMACS_INT {
+pub extern "C-unwind" fn get_random () -> EMACS_INT {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
   let mut val: EMACS_UINT = 0;
@@ -3702,7 +3702,7 @@ pub unsafe extern "C-unwind" fn get_random () -> EMACS_INT {
 
 /* Return a random unsigned long.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn get_random_ulong () -> c_ulong {
+pub extern "C-unwind" fn get_random_ulong () -> c_ulong {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
   let mut r: c_ulong = 0;
@@ -3912,7 +3912,7 @@ pub const RENAME_EXCL: c_uint = 0x00000004;
 // C 2399-2406: `#if !defined HAVE_NTGUI && !(defined HAVE_ANDROID && !defined
 // ANDROID_STUBIFY)` is live.
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn emacs_abort () {
+pub extern "C-unwind" fn emacs_abort () {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
   terminate_due_to_signal (SIGABRT, 40);
@@ -4210,7 +4210,7 @@ unsafe fn posix_close (fd: c_int, flag: c_int) -> c_int {
    as that might close an innocent victim opened by some other thread.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn emacs_close (fd: c_int) -> c_int {
+pub extern "C-unwind" fn emacs_close (fd: c_int) -> c_int {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
   let mut r: c_int;
@@ -5145,13 +5145,13 @@ unsafe fn make_lisp_timeval (t: timeval) -> Lisp_Object {
 // C 3431-3810: `#if defined (GNU_LINUX) || defined (CYGWIN) || defined __ANDROID__` — dead;
 // carried in full.
 #[cfg (feature = "gnu_linux")]
-unsafe fn time_from_jiffies (ticks: c_ulonglong, hz: Lisp_Object, form: Lisp_Object)
+fn time_from_jiffies (ticks: c_ulonglong, hz: Lisp_Object, form: Lisp_Object)
   -> Lisp_Object {
   return Ftime_convert (Fcons (make_uint (ticks as uintmax_t), hz), form);
 }
 
 #[cfg (feature = "gnu_linux")]
-unsafe fn put_jiffies (attrs: Lisp_Object, propname: Lisp_Object, ticks: c_ulonglong,
+fn put_jiffies (attrs: Lisp_Object, propname: Lisp_Object, ticks: c_ulonglong,
 		       hz: Lisp_Object) -> Lisp_Object {
   return Fcons (Fcons (propname, time_from_jiffies (ticks, hz, Qnil ())), attrs);
 }
@@ -5160,7 +5160,7 @@ unsafe fn put_jiffies (attrs: Lisp_Object, propname: Lisp_Object, ticks: c_ulong
    Do not use get_boot_time, which returns a container's
    boot time instead of the underlying host's boot time.  */
 #[cfg (feature = "gnu_linux")]
-unsafe fn get_host_uptime (hz: Lisp_Object) -> Lisp_Object {
+fn get_host_uptime (hz: Lisp_Object) -> Lisp_Object {
   /* clock_gettime is available in glibc 2.14+, Android, and musl libc.  */
   /* C 3453's `# if !defined __GLIBC__ || 2 < __GLIBC__ + (14 <= __GLIBC_MINOR__)` is
      live (`__GLIBC__` is undefined, so `!defined` is true).  */
@@ -6611,7 +6611,7 @@ unsafe extern "C-unwind" fn emacs_towlower_l (wc: wint_t, loc: locale_t) -> wint
 
 #[cfg(feature = "stdc_iso_10646")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn str_collate (s1: Lisp_Object, s2: Lisp_Object, locale: Lisp_Object,
+pub extern "C-unwind" fn str_collate (s1: Lisp_Object, s2: Lisp_Object, locale: Lisp_Object,
 				      ignore_case: Lisp_Object) -> c_int {
   let mut res: c_int = 0;
   let mut err: c_int;
@@ -6709,7 +6709,7 @@ pub unsafe extern "C-unwind" fn str_collate (s1: Lisp_Object, s2: Lisp_Object, l
 // C 4743-4760: `#ifdef WINDOWSNT` — dead; carried.
 #[cfg (feature = "windowsnt")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn str_collate (s1: Lisp_Object, s2: Lisp_Object, locale: Lisp_Object,
+pub extern "C-unwind" fn str_collate (s1: Lisp_Object, s2: Lisp_Object, locale: Lisp_Object,
 				      ignore_case: Lisp_Object) -> c_int {
 
   let loc: *mut c_char = if STRINGP (locale) { SSDATA (locale) } else { std::ptr::null_mut () };

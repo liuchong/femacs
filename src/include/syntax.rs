@@ -90,19 +90,19 @@ pub struct gl_state_s
 pub mod syntax_h_own_definitions {
   use super::*;
   unsafe extern "C-unwind" {
-    pub static gl_state: VmGlobal<gl_state_s>;
+    pub safe static gl_state: VmGlobal<gl_state_s>;
     /// C: void update_syntax_table (ptrdiff_t, EMACS_INT, Lisp_Object)
-    pub fn update_syntax_table (charpos: ptrdiff_t, count: EMACS_INT, init: Lisp_Object);
+    pub safe fn update_syntax_table (charpos: ptrdiff_t, count: EMACS_INT, init: Lisp_Object);
     /// C: void update_syntax_table_forward (ptrdiff_t, Lisp_Object)
-    pub fn update_syntax_table_forward (charpos: ptrdiff_t, init: Lisp_Object);
+    pub safe fn update_syntax_table_forward (charpos: ptrdiff_t, init: Lisp_Object);
     /// C: bool syntax_prefix_flag_p (c_int)
-    pub fn syntax_prefix_flag_p (c: c_int) -> bool;
+    pub safe fn syntax_prefix_flag_p (c: c_int) -> bool;
     /// C: ptrdiff_t scan_words (ptrdiff_t, EMACS_INT)
-    pub fn scan_words (from: ptrdiff_t, count: EMACS_INT) -> ptrdiff_t;
+    pub safe fn scan_words (from: ptrdiff_t, count: EMACS_INT) -> ptrdiff_t;
     /// C: void RE_SETUP_SYNTAX_TABLE_FOR_OBJECT (Lisp_Object, ptrdiff_t)
-    pub fn RE_SETUP_SYNTAX_TABLE_FOR_OBJECT (object: Lisp_Object, pos: ptrdiff_t);
+    pub safe fn RE_SETUP_SYNTAX_TABLE_FOR_OBJECT (object: Lisp_Object, pos: ptrdiff_t);
     /// C: `extern unsigned char const syntax_spec_code[0400];` (syntax.h 101).
-    pub static syntax_spec_code: [u8; 256];
+    pub safe static syntax_spec_code: [u8; 256];
   }
 
   #[inline(always)]
@@ -130,6 +130,176 @@ pub mod syntax_h_own_definitions {
 // owning unit's own definitions shadow the declarations (PORTING.md P-39/P-21).
 pub use self::syntax_h_own_definitions::*;
 
+#[inline(always)]
+pub fn gl_state_get () -> gl_state_s {
+  /* SAFETY: `gl_state` is owned by the single Lisp VM thread. */
+  unsafe { *gl_state.as_ptr () }
+}
+
+#[inline(always)]
+pub fn gl_state_set (val: gl_state_s) {
+  /* SAFETY: `gl_state` is owned by the single Lisp VM thread. */
+  unsafe { *gl_state.as_mut_ptr () = val; }
+}
+
+#[inline(always)]
+pub fn gl_state_object () -> Lisp_Object { gl_state_get ().object }
+#[inline(always)]
+pub fn gl_state_set_object (v: Lisp_Object) {
+  /* SAFETY: `gl_state` is owned by the single Lisp VM thread. */
+  unsafe { (*gl_state.as_mut_ptr ()).object = v; }
+}
+#[inline(always)]
+pub fn gl_state_start () -> ptrdiff_t { gl_state_get ().start }
+#[inline(always)]
+pub fn gl_state_set_start (v: ptrdiff_t) {
+  /* SAFETY: `gl_state` is owned by the single Lisp VM thread. */
+  unsafe { (*gl_state.as_mut_ptr ()).start = v; }
+}
+#[inline(always)]
+pub fn gl_state_stop () -> ptrdiff_t { gl_state_get ().stop }
+#[inline(always)]
+pub fn gl_state_set_stop (v: ptrdiff_t) {
+  /* SAFETY: `gl_state` is owned by the single Lisp VM thread. */
+  unsafe { (*gl_state.as_mut_ptr ()).stop = v; }
+}
+#[inline(always)]
+pub fn gl_state_use_global () -> bool { gl_state_get ().use_global }
+#[inline(always)]
+pub fn gl_state_set_use_global (v: bool) {
+  /* SAFETY: `gl_state` is owned by the single Lisp VM thread. */
+  unsafe { (*gl_state.as_mut_ptr ()).use_global = v; }
+}
+#[inline(always)]
+pub fn gl_state_global_code () -> Lisp_Object { gl_state_get ().global_code }
+#[inline(always)]
+pub fn gl_state_set_global_code (v: Lisp_Object) {
+  /* SAFETY: `gl_state` is owned by the single Lisp VM thread. */
+  unsafe { (*gl_state.as_mut_ptr ()).global_code = v; }
+}
+#[inline(always)]
+pub fn gl_state_current_syntax_table () -> Lisp_Object { gl_state_get ().current_syntax_table }
+#[inline(always)]
+pub fn gl_state_set_current_syntax_table (v: Lisp_Object) {
+  /* SAFETY: `gl_state` is owned by the single Lisp VM thread. */
+  unsafe { (*gl_state.as_mut_ptr ()).current_syntax_table = v; }
+}
+#[inline(always)]
+pub fn gl_state_old_prop () -> Lisp_Object { gl_state_get ().old_prop }
+#[inline(always)]
+pub fn gl_state_set_old_prop (v: Lisp_Object) {
+  /* SAFETY: `gl_state` is owned by the single Lisp VM thread. */
+  unsafe { (*gl_state.as_mut_ptr ()).old_prop = v; }
+}
+#[inline(always)]
+pub fn gl_state_b_property () -> ptrdiff_t { gl_state_get ().b_property }
+#[inline(always)]
+pub fn gl_state_set_b_property (v: ptrdiff_t) {
+  /* SAFETY: `gl_state` is owned by the single Lisp VM thread. */
+  unsafe { (*gl_state.as_mut_ptr ()).b_property = v; }
+}
+#[inline(always)]
+pub fn gl_state_e_property () -> ptrdiff_t { gl_state_get ().e_property }
+#[inline(always)]
+pub fn gl_state_set_e_property (v: ptrdiff_t) {
+  /* SAFETY: `gl_state` is owned by the single Lisp VM thread. */
+  unsafe { (*gl_state.as_mut_ptr ()).e_property = v; }
+}
+#[inline(always)]
+pub fn gl_state_e_property_truncated () -> bool { gl_state_get ().e_property_truncated }
+#[inline(always)]
+pub fn gl_state_set_e_property_truncated (v: bool) {
+  /* SAFETY: `gl_state` is owned by the single Lisp VM thread. */
+  unsafe { (*gl_state.as_mut_ptr ()).e_property_truncated = v; }
+}
+#[inline(always)]
+pub fn gl_state_forward_i () -> INTERVAL { gl_state_get ().forward_i }
+#[inline(always)]
+pub fn gl_state_set_forward_i (v: INTERVAL) {
+  /* SAFETY: `gl_state` is owned by the single Lisp VM thread. */
+  unsafe { (*gl_state.as_mut_ptr ()).forward_i = v; }
+}
+#[inline(always)]
+pub fn gl_state_backward_i () -> INTERVAL { gl_state_get ().backward_i }
+#[inline(always)]
+pub fn gl_state_set_backward_i (v: INTERVAL) {
+  /* SAFETY: `gl_state` is owned by the single Lisp VM thread. */
+  unsafe { (*gl_state.as_mut_ptr ()).backward_i = v; }
+}
+
+#[inline(always)]
+pub fn SYNTAX_FLAGS_COMSTART_FIRST (flags: c_int) -> bool { ((flags >> 16) & 1) != 0 }
+#[inline(always)]
+pub fn SYNTAX_FLAGS_COMSTART_SECOND (flags: c_int) -> bool { ((flags >> 17) & 1) != 0 }
+#[inline(always)]
+pub fn SYNTAX_FLAGS_COMEND_FIRST (flags: c_int) -> bool { ((flags >> 18) & 1) != 0 }
+#[inline(always)]
+pub fn SYNTAX_FLAGS_COMEND_SECOND (flags: c_int) -> bool { ((flags >> 19) & 1) != 0 }
+#[inline(always)]
+pub fn SYNTAX_FLAGS_PREFIX (flags: c_int) -> bool { ((flags >> 20) & 1) != 0 }
+#[inline(always)]
+pub fn SYNTAX_FLAGS_COMMENT_STYLEB (flags: c_int) -> bool { ((flags >> 21) & 1) != 0 }
+#[inline(always)]
+pub fn SYNTAX_FLAGS_COMMENT_NESTED (flags: c_int) -> bool { ((flags >> 22) & 1) != 0 }
+#[inline(always)]
+pub fn SYNTAX_FLAGS_COMMENT_STYLEC (flags: c_int) -> bool { ((flags >> 23) & 1) != 0 }
+
+#[inline(always)]
+pub fn SET_RAW_SYNTAX_ENTRY (table: Lisp_Object, c: c_int, val: Lisp_Object) {
+  CHAR_TABLE_SET (table, c as isize, val);
+}
+
+#[inline(always)]
+pub fn SET_RAW_SYNTAX_ENTRY_RANGE (table: Lisp_Object, range: Lisp_Object, val: Lisp_Object) {
+  Fset_char_table_range (table, range, val);
+}
+
+#[inline(always)]
+pub fn set_current_buffer_syntax_table_local (table: Lisp_Object) {
+  let cb = /* SAFETY: reads active `current_buffer` pointer. */ unsafe { current_buffer! () };
+  assert! (!cb.is_null ());
+  /* SAFETY: `cb` verified non-null live buffer; sets syntax table and marks its per-buffer local bit. */
+  unsafe {
+    (*cb).syntax_table_ = table;
+    let idx = PER_BUFFER_VAR_IDX! (syntax_table_);
+    SET_PER_BUFFER_VALUE_P (cb, idx, true);
+  }
+}
+
+#[inline(always)]
+pub fn error_invalid_syntax_letter (ch: c_int) -> ! {
+  /* SAFETY: fixed format string with scalar `c_int` argument. */
+  unsafe { error (c"Invalid syntax description letter: %c".as_ptr (), ch) }
+}
+
+#[inline(always)]
+pub fn current_buffer_syntax_table () -> Lisp_Object {
+  let cb = /* SAFETY: reads active `current_buffer` pointer. */ unsafe { current_buffer! () };
+  assert! (!cb.is_null ());
+  /* SAFETY: `cb` verified non-null live buffer on the owning Lisp thread. */
+  unsafe { BVAR! (cb, syntax_table_) }
+}
+
+#[inline(always)]
+pub fn set_current_buffer_syntax_table (table: Lisp_Object) {
+  let cb = /* SAFETY: reads active `current_buffer` pointer. */ unsafe { current_buffer! () };
+  assert! (!cb.is_null ());
+  /* SAFETY: `cb` verified non-null live buffer on the owning Lisp thread. */
+  unsafe { (*cb).syntax_table_ = table; }
+}
+
+#[inline(always)]
+pub fn standard_syntax_table () -> Lisp_Object {
+  /* SAFETY: `buffer_defaults` is static VM storage owned by the single Lisp thread. */
+  unsafe { BVAR! (buffer_defaults.as_mut_ptr (), syntax_table_) }
+}
+
+#[inline(always)]
+pub fn set_standard_syntax_table (table: Lisp_Object) {
+  /* SAFETY: `buffer_defaults` is static VM storage owned by the single Lisp thread. */
+  unsafe { (*buffer_defaults.as_mut_ptr ()).syntax_table_ = table; }
+}
+
 /* Fetch the information from the entry for character C
    in the current buffer's syntax table,
    or (if VIA_PROPERTY) from globally kept data (gl_state).
@@ -139,10 +309,10 @@ pub use self::syntax_h_own_definitions::*;
 pub fn syntax_property_entry (c: c_int, via_property: bool) -> Lisp_Object
 {
   if via_property
-    { return if /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*gl_state.as_mut_ptr ()).use_global }
-	{ unsafe { (*gl_state.as_mut_ptr ()).global_code } }
-	else { CHAR_TABLE_REF (unsafe { (*gl_state.as_mut_ptr ()).current_syntax_table }, c as isize) }; }
-  return CHAR_TABLE_REF (unsafe { BVAR! ((current_buffer! ()), syntax_table_) }, c as isize);
+    { return if gl_state_use_global ()
+	{ gl_state_global_code () }
+	else { CHAR_TABLE_REF (gl_state_current_syntax_table (), c as isize) }; }
+  return CHAR_TABLE_REF (current_buffer_syntax_table (), c as isize);
 }
 /* Extract the information from the entry for character C
    in the current syntax table.  */
@@ -172,16 +342,25 @@ pub fn syntax_property (c: c_int, via_property: bool) -> syntaxcode
 #[inline(always)]
 pub fn RE_SYNTAX_TABLE_BYTE_TO_CHAR (byteoffset: ptrdiff_t) -> ptrdiff_t
 {
-  return if !/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*parse_sexp_lookup_properties.as_mut_ptr ()) }
-    { 0 }
-  else if STRINGP (unsafe { (*gl_state.as_mut_ptr ()).object })
-    { unsafe { string_byte_to_char ((*gl_state.as_mut_ptr ()).object, byteoffset) } }
-  else if BUFFERP (unsafe { (*gl_state.as_mut_ptr ()).object })
-    { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { buf_bytepos_to_charpos (XBUFFER ((*gl_state.as_mut_ptr ()).object) as *mut c_void,
-				       byteoffset + BUF_BEGV_BYTE (XBUFFER ((*gl_state.as_mut_ptr ()).object))) } }
-  else if NILP (unsafe { (*gl_state.as_mut_ptr ()).object })
-    { BYTE_TO_CHAR (byteoffset + unsafe { BEGV_BYTE! () }) }
-  else { byteoffset };
+  if !parse_sexp_lookup_properties.get () {
+    return 0;
+  }
+  let obj = gl_state_object ();
+  if STRINGP (obj) {
+    string_byte_to_char (obj, byteoffset)
+  } else if BUFFERP (obj) {
+    /* SAFETY: `BUFFERP(obj)` verified above. */
+    unsafe {
+      buf_bytepos_to_charpos (
+        XBUFFER (obj) as *mut c_void,
+        byteoffset + BUF_BEGV_BYTE (XBUFFER (obj)),
+      )
+    }
+  } else if NILP (obj) {
+    BYTE_TO_CHAR (byteoffset + current_buffer_begv_byte ())
+  } else {
+    byteoffset
+  }
 }
 
 /* Make syntax table state (gl_state) good for CHARPOS, assuming it is
@@ -190,8 +369,8 @@ pub fn RE_SYNTAX_TABLE_BYTE_TO_CHAR (byteoffset: ptrdiff_t) -> ptrdiff_t
 #[inline(always)]
 pub fn UPDATE_SYNTAX_TABLE_FORWARD (charpos: ptrdiff_t)
 { /* Performs just-in-time syntax-propertization.  */
-  if /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*parse_sexp_lookup_properties.as_mut_ptr ()) } && charpos >= unsafe { (*gl_state.as_mut_ptr ()).e_property }
-    { unsafe { update_syntax_table_forward (charpos, (*gl_state.as_mut_ptr ()).object) } }
+  if parse_sexp_lookup_properties.get () && charpos >= gl_state_e_property ()
+    { update_syntax_table_forward (charpos, gl_state_object ()) }
 }
 
 /* Make syntax table state (gl_state) good for CHARPOS, assuming it is
@@ -200,8 +379,8 @@ pub fn UPDATE_SYNTAX_TABLE_FORWARD (charpos: ptrdiff_t)
 #[inline(always)]
 pub fn UPDATE_SYNTAX_TABLE_BACKWARD (charpos: ptrdiff_t)
 {
-  if /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*parse_sexp_lookup_properties.as_mut_ptr ()) } && charpos < unsafe { (*gl_state.as_mut_ptr ()).b_property }
-    { unsafe { update_syntax_table (charpos, -1, (*gl_state.as_mut_ptr ()).object) } }
+  if parse_sexp_lookup_properties.get () && charpos < gl_state_b_property ()
+    { update_syntax_table (charpos, -1, gl_state_object ()) }
 }
 
 /* Make syntax table good for CHARPOS.  */
@@ -218,9 +397,9 @@ pub fn UPDATE_SYNTAX_TABLE (charpos: ptrdiff_t)
 #[inline(always)]
 pub fn SETUP_BUFFER_SYNTAX_TABLE ()
 {
-  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*gl_state.as_mut_ptr ()).use_global = false; }
-  unsafe { (*gl_state.as_mut_ptr ()).e_property_truncated = false; }
-  unsafe { (*gl_state.as_mut_ptr ()).current_syntax_table = BVAR! ((current_buffer! ()), syntax_table_) };
+  gl_state_set_use_global (false);
+  gl_state_set_e_property_truncated (false);
+  gl_state_set_current_syntax_table (current_buffer_syntax_table ());
 }
 
 // INLINE_HEADER_END has no Rust counterpart (PORTING.md 0.1).

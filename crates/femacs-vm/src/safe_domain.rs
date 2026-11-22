@@ -7,7 +7,7 @@
 #![forbid(unsafe_code)]
 
 use crate::nonlocal::VmResult;
-use crate::roots::{GcContext, LispVal, PersistentRoot, Rooted};
+use crate::roots::{GcContext, LispVal, PersistentRoot, Rooted, with_narrowed_stack_bottom};
 use crate::vm_primitives;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -129,31 +129,33 @@ pub fn inspect_selected_window(ctx: &mut GcContext) -> VmResult<WindowSummary> {
 }
 
 /// Run an end-to-end self-check across all four migrated high-level safe domains (Buffer, Reader,
-/// File I/O, and Window) on a live VM thread, returning a Lisp result string for `AU4`.
+/// File I/O, and Window) on a live VM thread, returning a Lisp result string for `AU4`/`AU7`.
 pub fn exercise_all_safe_domains(ctx: &mut GcContext, temp_file_path: &str) -> VmResult<LispVal> {
-    let buf_summary = write_and_read_named_buffer(
-        ctx,
-        " *u4-safe-buffer*",
-        "safe-buffer-αβγ",
-        true,
-    )?;
-    let kill_name = Rooted::new(vm_primitives::make_utf8_string(ctx, " *u4-safe-buffer*")?);
-    let kill_buf = Rooted::new(vm_primitives::get_buffer_create(ctx, kill_name.handle())?);
-    let _ = vm_primitives::kill_buffer_val(ctx, kill_buf.handle());
+    with_narrowed_stack_bottom(|| {
+        let buf_summary = write_and_read_named_buffer(
+            ctx,
+            " *u4-safe-buffer*",
+            "safe-buffer-αβγ",
+            true,
+        )?;
+        let kill_name = Rooted::new(vm_primitives::make_utf8_string(ctx, " *u4-safe-buffer*")?);
+        let kill_buf = Rooted::new(vm_primitives::get_buffer_create(ctx, kill_name.handle())?);
+        let _ = vm_primitives::kill_buffer_val(ctx, kill_buf.handle());
 
-    let eval_out = read_eval_and_format_utf8(ctx, "(mapcar (lambda (x) (* x x)) '(2 3 5 7))")?;
-    let io_out = roundtrip_utf8_file(ctx, temp_file_path, "u4-io-roundtrip-你好\n")?;
-    let win_out = inspect_selected_window(ctx)?;
+        let eval_out = read_eval_and_format_utf8(ctx, "(mapcar (lambda (x) (* x x)) '(2 3 5 7))")?;
+        let io_out = roundtrip_utf8_file(ctx, temp_file_path, "u4-io-roundtrip-你好\n")?;
+        let win_out = inspect_selected_window(ctx)?;
 
-    let report = format!(
-        "buf={}:{}:{};eval={};io_ok={};win={}:{}",
-        buf_summary.name,
-        buf_summary.chars,
-        buf_summary.bytes,
-        eval_out,
-        io_out == "u4-io-roundtrip-你好\n",
-        !win_out.selected_buffer_name.is_empty(),
-        win_out.live_window_count,
-    );
-    vm_primitives::make_utf8_string(ctx, &report)
+        let report = format!(
+            "buf={}:{}:{};eval={};io_ok={};win={}:{}",
+            buf_summary.name,
+            buf_summary.chars,
+            buf_summary.bytes,
+            eval_out,
+            io_out == "u4-io-roundtrip-你好\n",
+            !win_out.selected_buffer_name.is_empty(),
+            win_out.live_window_count,
+        );
+        vm_primitives::make_utf8_string(ctx, &report)
+    })
 }

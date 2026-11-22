@@ -546,7 +546,7 @@ pub fn TAGGEDP (a: Lisp_Object, tag: Lisp_Type) -> bool { lisp_h_TAGGEDP (a, tag
 #[inline(always)]
 pub fn lisp_h_CHECK_TYPE (ok: bool, predicate: Lisp_Object, x: Lisp_Object) {
     if !ok {
-        /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { wrong_type_argument (predicate, x) }
+        { wrong_type_argument (predicate, x) }
     }
 }
 
@@ -844,7 +844,7 @@ pub fn EQ (x: Lisp_Object, y: Lisp_Object) -> bool {
     } else if likely (! /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (*symbols_with_pos_enabled.as_mut_ptr ()) }) {
         false
     } else {
-        unsafe { slow_eq (x, y) }
+        { slow_eq (x, y) }
     }
 }
 
@@ -958,14 +958,14 @@ pub fn XSETCDR (c: Lisp_Object, n: Lisp_Object) {
 #[inline(always)]
 pub fn CAR (c: Lisp_Object) -> Lisp_Object {
     if CONSP (c) { return XCAR (c); }
-    if !NILP (c) { /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { wrong_type_argument (Qlistp(), c) } }
+    if !NILP (c) { { wrong_type_argument (Qlistp(), c) } }
     Qnil()
 }
 
 #[inline(always)]
 pub fn CDR (c: Lisp_Object) -> Lisp_Object {
     if CONSP (c) { return XCDR (c); }
-    if !NILP (c) { /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { wrong_type_argument (Qlistp(), c) } }
+    if !NILP (c) { { wrong_type_argument (Qlistp(), c) } }
     Qnil()
 }
 
@@ -1517,7 +1517,7 @@ pub fn CHAR_TABLE_REF (ct: Lisp_Object, idx: isize) -> Lisp_Object {
     if ASCII_CHAR_P (idx) {
         CHAR_TABLE_REF_ASCII (ct, idx)
     } else {
-        /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { char_table_ref (ct, idx as c_int) }
+        { char_table_ref (ct, idx as c_int) }
     }
 }
 
@@ -1526,7 +1526,7 @@ pub fn CHAR_TABLE_SET (ct: Lisp_Object, idx: isize, val: Lisp_Object) {
     if ASCII_CHAR_P (idx) && SUB_CHAR_TABLE_P (/* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (*XCHAR_TABLE (ct)).ascii }) {
         unsafe { set_sub_char_table_contents ((*XCHAR_TABLE (ct)).ascii, idx, val) };
     } else {
-        unsafe { char_table_set (ct, idx as c_int, val) }
+        { char_table_set (ct, idx as c_int, val) }
     }
 }
 
@@ -1873,7 +1873,7 @@ pub fn XFLOATINT (n: Lisp_Object) -> f64 {
     } else if FLOATP (n) {
         XFLOAT_DATA (n)
     } else {
-        /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { bignum_to_double (n) }
+        { bignum_to_double (n) }
     }
 }
 
@@ -1888,7 +1888,7 @@ pub fn CHECK_FIXNAT (x: Lisp_Object) { CHECK_TYPE (FIXNATP (x), Qwholenump (), x
 
 #[inline(always)]
 pub fn make_int (n: intmax_t) -> Lisp_Object {
-    if FIXNUM_OVERFLOW_P (n as EMACS_INT) { /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { make_bigint (n) } } else { make_fixnum (n as EMACS_INT) }
+    if FIXNUM_OVERFLOW_P (n as EMACS_INT) { { make_bigint (n) } } else { make_fixnum (n as EMACS_INT) }
 }
 
 #[inline(always)]
@@ -1898,7 +1898,7 @@ pub fn make_uint (n: uintmax_t) -> Lisp_Object {
     // helper is asked too, so the token stays and a value above i64::MAX (which truncates)
     // is caught by the unsigned bound (review A's A-4).
     if FIXNUM_OVERFLOW_P (n as EMACS_INT) || (MOST_POSITIVE_FIXNUM as uintmax_t) < n
-      { /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { make_biguint (n) } }
+      { { make_biguint (n) } }
     else { make_fixnum (n as EMACS_INT) }
 }
 
@@ -2221,21 +2221,21 @@ pub fn make_nil_vector (size: isize) -> Lisp_Object {
 }
 
 #[inline(always)]
-pub fn list1i (a: EMACS_INT) -> Lisp_Object { unsafe { list1 (make_int (a as intmax_t)) } }
+pub fn list1i (a: EMACS_INT) -> Lisp_Object { { list1 (make_int (a as intmax_t)) } }
 
 #[inline(always)]
 pub fn list2i (a: EMACS_INT, b: EMACS_INT) -> Lisp_Object {
-    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { list2 (make_int (a as intmax_t), make_int (b as intmax_t)) }
+    { list2 (make_int (a as intmax_t), make_int (b as intmax_t)) }
 }
 
 #[inline(always)]
 pub fn list3i (a: EMACS_INT, b: EMACS_INT, c: EMACS_INT) -> Lisp_Object {
-    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { list3 (make_int (a as intmax_t), make_int (b as intmax_t), make_int (c as intmax_t)) }
+    { list3 (make_int (a as intmax_t), make_int (b as intmax_t), make_int (c as intmax_t)) }
 }
 
 #[inline(always)]
 pub fn list4i (a: EMACS_INT, b: EMACS_INT, c: EMACS_INT, d: EMACS_INT) -> Lisp_Object {
-    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { list4 (make_int (a as intmax_t), make_int (b as intmax_t), make_int (c as intmax_t), make_int (d as intmax_t)) }
+    { list4 (make_int (a as intmax_t), make_int (b as intmax_t), make_int (c as intmax_t), make_int (d as intmax_t)) }
 }
 
 /// elogb: the smallest power of two exponent, from stdc_bit_width.
@@ -2251,7 +2251,7 @@ pub fn integer_to_intmax (num: Lisp_Object, n: *mut i64) -> bool {
         /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { *n = XFIXNUM (num) as i64 };
         true
     } else {
-        let i = unsafe { bignum_to_intmax (num) };
+        let i = { bignum_to_intmax (num) };
         unsafe { *n = i };
         // lisp.h 4109: `i != 0` is the whole test -- `bignum_to_intmax` answers 0 both for
         // a value out of intmax range and for an impossible zero bignum, and *that* zero is
@@ -2270,7 +2270,7 @@ pub fn integer_to_uintmax (num: Lisp_Object, n: *mut u64) -> bool {
         /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { *n = v as u64 };
         0 <= v
     } else {
-        let i = unsafe { bignum_to_uintmax (num) };
+        let i = { bignum_to_uintmax (num) };
         unsafe { *n = i };
         // lisp.h 4122: same test as integer_to_intmax (review A's D1).
         i != 0
@@ -2545,7 +2545,7 @@ pub fn obarray_size (o: *mut Lisp_Obarray) -> isize {
 
 #[inline(always)]
 pub fn check_obarray (obarray: Lisp_Object) -> Lisp_Object {
-    if OBARRAYP (obarray) { obarray } else { /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { check_obarray_slow (obarray) } }
+    if OBARRAYP (obarray) { obarray } else { { check_obarray_slow (obarray) } }
 }
 
 #[inline(always)]
@@ -2763,7 +2763,7 @@ pub fn CHECK_VECTOR_OR_STRING (x: Lisp_Object) -> isize {
     if STRINGP (x) {
         return SCHARS (x);
     }
-    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { wrong_type_argument (Qarrayp (), x) }
+    { wrong_type_argument (Qarrayp (), x) }
 }
 
 #[inline(always)]
@@ -2820,7 +2820,7 @@ pub const UNEVALLED: isize = -1;
 #[inline(always)]
 pub fn maybe_quit () {
     if !NILP (/* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (*Vquit_flag.as_mut_ptr ()) }) || unsafe { (*pending_signals.as_mut_ptr ()) } {
-        unsafe { probably_quit () }
+        { probably_quit () }
     }
 }
 
@@ -2834,7 +2834,7 @@ pub fn rarely_quit (count: u64) {
 #[inline(always)]
 pub fn maybe_gc () {
     if /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (*consing_until_gc.as_mut_ptr ()) } < 0 {
-        unsafe { maybe_garbage_collect () }
+        { maybe_garbage_collect () }
     } else {
         // Generational young cadence: allocation only arms a flag; the
         // collection itself stays on this existing safepoint.  Refuse while
@@ -2910,20 +2910,20 @@ pub fn intern_c_string (str_: *const c_char) -> Lisp_Object {
 
 #[inline(always)]
 pub fn xsignal (error_symbol: Lisp_Object, data: Lisp_Object) -> ! {
-    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { Fsignal (error_symbol, data) }
+    { Fsignal (error_symbol, data) }
 }
 
 #[inline(always)]
 pub fn CHECK_KEYWORD_ARGS (nargs: isize) {
     // A list of keyword/value pairs must not be missing a value.
     if nargs & 1 != 0 {
-        /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { xsignal0 (Qmalformed_keyword_arg_list ()) }
+        { xsignal0 (Qmalformed_keyword_arg_list ()) }
     }
 }
 
 #[inline(always)]
 pub fn fast_string_match (regexp: Lisp_Object, string: Lisp_Object) -> isize {
-    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { fast_string_match_internal (regexp, string, Qnil ()) }
+    { fast_string_match_internal (regexp, string, Qnil ()) }
 }
 
 #[inline(always)]
@@ -3015,7 +3015,7 @@ pub fn safe_free (sa_count: specpdl_ref) {
 #[inline(always)]
 pub fn safe_free_unbind_to (count: specpdl_ref, sa_count: specpdl_ref, val: Lisp_Object) -> Lisp_Object {
     eassert! (!specpdl_ref_lt (sa_count, count));
-    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { unbind_to (count, val) }
+    { unbind_to (count, val) }
 }
 
 // --- native compilation and modules (feature-disabled configurations) ------
@@ -3415,12 +3415,12 @@ pub fn INT_TO_INTEGER (expr: EMACS_INT) -> Lisp_Object { make_int (expr as intma
 
 #[inline(always)]
 pub fn CONS_TO_INTEGER_signed (cons: Lisp_Object, lo: i64, hi: i64) -> i64 {
-    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { cons_to_signed (cons, lo, hi) }
+    { cons_to_signed (cons, lo, hi) }
 }
 
 #[inline(always)]
 pub fn CONS_TO_INTEGER_unsigned (cons: Lisp_Object, hi: u64) -> u64 {
-    /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { cons_to_unsigned (cons, hi) }
+    { cons_to_unsigned (cons, hi) }
 }
 
 
@@ -3626,6 +3626,16 @@ macro_rules! __defun_body {
 macro_rules! DEFUN {
     // Entry: C's field order, with C's optional `attributes:` list.
     ($lname:literal, $cname:ident, $sname:ident, $minargs:expr, $maxargs:tt, $intspec:tt,
+     doc: $doc:literal, attributes: noreturn, ($($arg:ident : $ty:ty),* $(,)?), safe $body:block) => {
+        DEFUN! (@arity_safe $lname, $cname, $sname, $minargs, $maxargs, $intspec,
+                ($($arg : $ty),*), $body, !);
+    };
+    ($lname:literal, $cname:ident, $sname:ident, $minargs:expr, $maxargs:tt, $intspec:tt,
+     doc: $doc:literal, ($($arg:ident : $ty:ty),* $(,)?), safe $body:block) => {
+        DEFUN! (@arity_safe $lname, $cname, $sname, $minargs, $maxargs, $intspec,
+                ($($arg : $ty),*), $body, Lisp_Object);
+    };
+    ($lname:literal, $cname:ident, $sname:ident, $minargs:expr, $maxargs:tt, $intspec:tt,
      doc: $doc:literal, attributes: noreturn, ($($arg:ident : $ty:ty),* $(,)?), $body:block) => {
         DEFUN! (@arity $lname, $cname, $sname, $minargs, $maxargs, $intspec,
                 ($($arg : $ty),*), $body, !);
@@ -3635,6 +3645,46 @@ macro_rules! DEFUN {
         DEFUN! (@arity $lname, $cname, $sname, $minargs, $maxargs, $intspec,
                 ($($arg : $ty),*), $body, Lisp_Object);
     };
+    (@arity_safe $lname:literal, $cname:ident, $sname:ident, $minargs:expr, 0, $intspec:tt,
+     ($($arg:ident : $ty:ty),*), $body:block, $ret:tt) =>
+        { DEFUN! (@record_safe $lname, $cname, $sname, $minargs, 0, $intspec,
+                 ($($arg : $ty),*), $body, a0, $ret); };
+    (@arity_safe $lname:literal, $cname:ident, $sname:ident, $minargs:expr, 1, $intspec:tt,
+     ($($arg:ident : $ty:ty),*), $body:block, $ret:tt) =>
+        { DEFUN! (@record_safe $lname, $cname, $sname, $minargs, 1, $intspec,
+                 ($($arg : $ty),*), $body, a1, $ret); };
+    (@arity_safe $lname:literal, $cname:ident, $sname:ident, $minargs:expr, 2, $intspec:tt,
+     ($($arg:ident : $ty:ty),*), $body:block, $ret:tt) =>
+        { DEFUN! (@record_safe $lname, $cname, $sname, $minargs, 2, $intspec,
+                 ($($arg : $ty),*), $body, a2, $ret); };
+    (@arity_safe $lname:literal, $cname:ident, $sname:ident, $minargs:expr, 3, $intspec:tt,
+     ($($arg:ident : $ty:ty),*), $body:block, $ret:tt) =>
+        { DEFUN! (@record_safe $lname, $cname, $sname, $minargs, 3, $intspec,
+                 ($($arg : $ty),*), $body, a3, $ret); };
+    (@arity_safe $lname:literal, $cname:ident, $sname:ident, $minargs:expr, 4, $intspec:tt,
+     ($($arg:ident : $ty:ty),*), $body:block, $ret:tt) =>
+        { DEFUN! (@record_safe $lname, $cname, $sname, $minargs, 4, $intspec,
+                 ($($arg : $ty),*), $body, a4, $ret); };
+    (@arity_safe $lname:literal, $cname:ident, $sname:ident, $minargs:expr, 5, $intspec:tt,
+     ($($arg:ident : $ty:ty),*), $body:block, $ret:tt) =>
+        { DEFUN! (@record_safe $lname, $cname, $sname, $minargs, 5, $intspec,
+                 ($($arg : $ty),*), $body, a5, $ret); };
+    (@arity_safe $lname:literal, $cname:ident, $sname:ident, $minargs:expr, 6, $intspec:tt,
+     ($($arg:ident : $ty:ty),*), $body:block, $ret:tt) =>
+        { DEFUN! (@record_safe $lname, $cname, $sname, $minargs, 6, $intspec,
+                 ($($arg : $ty),*), $body, a6, $ret); };
+    (@arity_safe $lname:literal, $cname:ident, $sname:ident, $minargs:expr, 7, $intspec:tt,
+     ($($arg:ident : $ty:ty),*), $body:block, $ret:tt) =>
+        { DEFUN! (@record_safe $lname, $cname, $sname, $minargs, 7, $intspec,
+                 ($($arg : $ty),*), $body, a7, $ret); };
+    (@arity_safe $lname:literal, $cname:ident, $sname:ident, $minargs:expr, 8, $intspec:tt,
+     ($($arg:ident : $ty:ty),*), $body:block, $ret:tt) =>
+        { DEFUN! (@record_safe $lname, $cname, $sname, $minargs, 8, $intspec,
+                 ($($arg : $ty),*), $body, a8, $ret); };
+    (@arity_safe $lname:literal, $cname:ident, $sname:ident, $minargs:expr, UNEVALLED, $intspec:tt,
+     ($($arg:ident : $ty:ty),*), $body:block, $ret:tt) =>
+        { DEFUN! (@record_safe $lname, $cname, $sname, $minargs, UNEVALLED, $intspec,
+                 ($($arg : $ty),*), $body, aUNEVALLED, $ret); };
     (@arity $lname:literal, $cname:ident, $sname:ident, $minargs:expr, 0, $intspec:tt,
      ($($arg:ident : $ty:ty),*), $body:block, $ret:tt) =>
         { DEFUN! (@record $lname, $cname, $sname, $minargs, 0, $intspec,
@@ -3719,6 +3769,15 @@ macro_rules! DEFUN {
         pub extern "C-unwind" fn $cname ($($arg : $ty),*) -> $ret {
             __defun_body! ($body)
         }
+    };
+    (@record_safe $lname:literal, $cname:ident, $sname:ident, $minargs:expr, $maxargs:expr,
+     $intspec:tt, ($($arg:ident : $ty:ty),*), $body:block, $member:ident, $ret:tt) => {
+        DEFUN! (@subr_static $lname, $cname, $sname, $minargs, $maxargs, $intspec,
+                ($($ty),*), $member, $ret);
+
+        // Verified pure-safe fixed-arity (0..=8) / UNEVALLED subr body (P-486): `rustc` rejects any `unsafe` inside `$body`.
+        #[unsafe(no_mangle)]
+        pub extern "C-unwind" fn $cname ($($arg : $ty),*) -> $ret $body
     };
     (@record_many $lname:literal, $cname:ident, $sname:ident, $minargs:expr, $maxargs:expr,
      $intspec:tt, ($($arg:ident : $ty:ty),*), $body:block, $member:ident, $ret:tt) => {
@@ -4011,13 +4070,13 @@ pub trait ConsToInteger: Sized {
 
 impl ConsToInteger for i64 {
     fn cons_to_integer (cons: Lisp_Object) -> i64 {
-        /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { cons_to_signed (cons, i64::MIN, i64::MAX) }
+        { cons_to_signed (cons, i64::MIN, i64::MAX) }
     }
 }
 
 impl ConsToInteger for u64 {
     fn cons_to_integer (cons: Lisp_Object) -> u64 {
-        /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { cons_to_unsigned (cons, u64::MAX) }
+        { cons_to_unsigned (cons, u64::MAX) }
     }
 }
 
@@ -4070,7 +4129,7 @@ pub mod other_units {
        on this target.  */
     unsafe extern "C-unwind" {
       /// C: Lisp_Object plist_get (Lisp_Object, Lisp_Object)
-      pub fn plist_get (plist: Lisp_Object, prop: Lisp_Object) -> Lisp_Object;
+      pub safe fn plist_get (plist: Lisp_Object, prop: Lisp_Object) -> Lisp_Object;
     }
     /* C 5434-5436 (`#ifdef HAVE_WINDOW_SYSTEM`): `extern char *get_keysym_name (int);` - the
        definition is `src/xterm.c`/`nsterm.m`/`androidterm.c`'s, and `src/keyboard.c` 7796 calls
@@ -4107,30 +4166,30 @@ pub mod other_units {
     unsafe extern "C-unwind" {
         /* src/lisp.h 4268.  */
         /// C: Lisp_Object concat2 (Lisp_Object, Lisp_Object)
-        pub fn concat2 (s1: Lisp_Object, s2: Lisp_Object) -> Lisp_Object;
+        pub safe fn concat2 (s1: Lisp_Object, s2: Lisp_Object) -> Lisp_Object;
         /* src/lisp.h 4330.  */
         /* src/lisp.h 4338-4339 and 4919: the three emitters syntax.c's
            `internal-describe-syntax-value` calls.  */
         /// C: void insert_char (int)
-        pub fn insert_char (c: c_int);
+        pub safe fn insert_char (c: c_int);
         /// C: void insert_string (const char *)
         pub fn insert_string (str_: *const c_char);
         /// C: void insert1 (Lisp_Object)
-        pub fn insert1 (object: Lisp_Object);
+        pub safe fn insert1 (object: Lisp_Object);
         /// C: void insert_and_inherit (const char *, ptrdiff_t)
         pub fn insert_and_inherit (str_: *const c_char, nbytes: ptrdiff_t);
         /* src/lisp.h 4345.  */
         /// C: void insert (const char *, ptrdiff_t)
         pub fn insert (str_: *const c_char, nbytes: ptrdiff_t);
         /// C: void del_range (ptrdiff_t, ptrdiff_t)
-        pub fn del_range (from: ptrdiff_t, to: ptrdiff_t);
+        pub safe fn del_range (from: ptrdiff_t, to: ptrdiff_t);
         /* src/lisp.h 4363: the six parameters of the replacement.  */
         /// C: void replace_range (ptrdiff_t, ptrdiff_t, Lisp_Object, bool, bool, bool)
-        pub fn replace_range (from: ptrdiff_t, to: ptrdiff_t, new_: Lisp_Object,
+        pub safe fn replace_range (from: ptrdiff_t, to: ptrdiff_t, new_: Lisp_Object,
                               prepare: bool, inherit: bool, markers: bool);
         /* src/lisp.h 5037.  */
         /// C: void scan_newline (ptrdiff_t, ptrdiff_t, ptrdiff_t, ptrdiff_t, ptrdiff_t, bool)
-        pub fn scan_newline (from: ptrdiff_t, from_byte: ptrdiff_t, to: ptrdiff_t,
+        pub safe fn scan_newline (from: ptrdiff_t, from_byte: ptrdiff_t, to: ptrdiff_t,
                              to_byte: ptrdiff_t, count: ptrdiff_t, allow_quit: bool);
         /* src/lisp.h 5039.  */
         /// C: ptrdiff_t scan_newline_from_point (ptrdiff_t, ptrdiff_t *, ptrdiff_t *)
@@ -4138,7 +4197,7 @@ pub mod other_units {
                                         pos_byte: *mut ptrdiff_t) -> ptrdiff_t;
         /* src/lisp.h 5110.  */
         /// C: ptrdiff_t current_column (void)
-        pub fn current_column () -> ptrdiff_t;
+        pub safe fn current_column () -> ptrdiff_t;
         /* src/lisp.h 5546: `extern void *xnrealloc (void *, ptrdiff_t, ptrdiff_t)`.  */
         /// C: void *xnrealloc (void *, ptrdiff_t, ptrdiff_t)
         pub fn xnrealloc (block: *mut c_void, nitems: ptrdiff_t, item_size: ptrdiff_t)
@@ -4147,8 +4206,8 @@ pub mod other_units {
 
     // src/lisp.h 619, 5298, 5541: bignum.c's three remaining callees.
     unsafe extern "C-unwind" {
-        pub fn args_out_of_range_3 (a: Lisp_Object, b: Lisp_Object, c: Lisp_Object) -> !;
-        pub fn get_random_ulong () -> c_ulong;
+        pub safe fn args_out_of_range_3 (a: Lisp_Object, b: Lisp_Object, c: Lisp_Object) -> !;
+        pub safe fn get_random_ulong () -> c_ulong;
         pub fn xrealloc (block: *mut c_void, size: usize) -> *mut c_void;
     }
 
@@ -4157,16 +4216,16 @@ pub mod other_units {
     // entries (`string_overflow`, `make_uninit_string`, `make_uninit_multibyte_string`)
     // alloc.c's; `AVOID` is `-> !` (PORTING.md 5.2).
     unsafe extern "C-unwind" {
-        pub fn args_out_of_range (a: Lisp_Object, b: Lisp_Object) -> !;
+        pub safe fn args_out_of_range (a: Lisp_Object, b: Lisp_Object) -> !;
         pub fn validate_subarray (array: Lisp_Object, from: Lisp_Object, to: Lisp_Object,
                                   size: ptrdiff_t, ifrom: *mut ptrdiff_t,
                                   ito: *mut ptrdiff_t);
         /* src/lisp.h 608; bignum.c 480 defines it (bignum.rs already carries the
            definition, this unit only calls it).  */
-        pub fn check_integer_range (x: Lisp_Object, lo: intmax_t, hi: intmax_t) -> intmax_t;
-        pub fn string_overflow () -> !;
-        pub fn make_uninit_string (length: EMACS_INT) -> Lisp_Object;
-        pub fn make_uninit_multibyte_string (nchars: EMACS_INT, nbytes: EMACS_INT)
+        pub safe fn check_integer_range (x: Lisp_Object, lo: intmax_t, hi: intmax_t) -> intmax_t;
+        pub safe fn string_overflow () -> !;
+        pub safe fn make_uninit_string (length: EMACS_INT) -> Lisp_Object;
+        pub safe fn make_uninit_multibyte_string (nchars: EMACS_INT, nbytes: EMACS_INT)
           -> Lisp_Object;
     }
 
@@ -4176,16 +4235,16 @@ pub mod other_units {
     // (P-39's shape).  `AVOID` is `-> !`.
     // src/lisp.h 690, 4296, 4300: floatfns.c's three non-static definitions.
     unsafe extern "C-unwind" {
-        pub fn extract_float (num: Lisp_Object) -> c_double;              // floatfns.c
-        pub fn double_integer_scale (d: c_double) -> c_int;               // floatfns.c
-        pub fn fmod_float (x: Lisp_Object, y: Lisp_Object) -> Lisp_Object;  // floatfns.c
+        pub safe fn extract_float (num: Lisp_Object) -> c_double;              // floatfns.c
+        pub safe fn double_integer_scale (d: c_double) -> c_int;               // floatfns.c
+        pub safe fn fmod_float (x: Lisp_Object, y: Lisp_Object) -> Lisp_Object;  // floatfns.c
     }
 
     unsafe extern "C-unwind" {
-        pub fn double_to_integer (d: c_double) -> Lisp_Object;            // bignum.c
-        pub fn expt_integer (a: Lisp_Object, b: Lisp_Object) -> Lisp_Object;  // data.c
-        pub fn make_float (d: c_double) -> Lisp_Object;                    // alloc.c
-        pub fn overflow_error () -> !;                                     // bignum.c
+        pub safe fn double_to_integer (d: c_double) -> Lisp_Object;            // bignum.c
+        pub safe fn expt_integer (a: Lisp_Object, b: Lisp_Object) -> Lisp_Object;  // data.c
+        pub safe fn make_float (d: c_double) -> Lisp_Object;                    // alloc.c
+        pub safe fn overflow_error () -> !;                                     // bignum.c
     }
 
     // src/lisp.h 3919 (`alloc.c`) and 4689 (`chartab.c`); parameter names from those
@@ -4206,52 +4265,52 @@ pub mod other_units {
 
     unsafe extern "C-unwind" {
         pub fn die (msg: *const c_char, file: *const c_char, line: c_int) -> !;
-        pub static suppress_checking: VmGlobal<bool>;
+        pub safe static suppress_checking: VmGlobal<bool>;
 // [U1] pub fn strlen (s: *const c_char) -> usize; provided by lib/include/string.rs
         // lisp.h 5302: `extern AVOID emacs_abort (void) NO_INLINE;` (the port keeps `-> !`).
-        pub fn emacs_abort () -> !;
+        pub safe fn emacs_abort () -> !;
     }
     unsafe extern "C-unwind" {
         /// Set after Emacs has started up the first time (emacs.c).
-        pub static initialized: VmGlobal<bool>;
+        pub safe static initialized: VmGlobal<bool>;
         pub static gflags: VmGlobal<gflags>;
         }
     unsafe extern "C-unwind" {
-        pub fn wrong_type_argument (predicate: Lisp_Object, value: Lisp_Object) -> !;
+        pub safe fn wrong_type_argument (predicate: Lisp_Object, value: Lisp_Object) -> !;
     }
     unsafe extern "C-unwind" {
-        pub fn slow_eq (x: Lisp_Object, y: Lisp_Object) -> bool;
+        pub safe fn slow_eq (x: Lisp_Object, y: Lisp_Object) -> bool;
 // [U1] pub fn memchr (s: *const c_void, c: c_int, n: usize) -> *mut c_void; provided by lib/include/string.rs
     }
     unsafe extern "C-unwind" {
-        pub fn char_table_ref (table: Lisp_Object, idx: c_int) -> Lisp_Object;
-        pub fn char_table_set (table: Lisp_Object, idx: c_int, val: Lisp_Object);
+        pub safe fn char_table_ref (table: Lisp_Object, idx: c_int) -> Lisp_Object;
+        pub safe fn char_table_set (table: Lisp_Object, idx: c_int, val: Lisp_Object);
     }
     unsafe extern "C-unwind" {
     }
     unsafe extern "C-unwind" {
         pub fn make_misc_ptr (a: *mut c_void) -> Lisp_Object;
-        pub fn bignum_to_double (n: Lisp_Object) -> f64;
-        pub fn make_bigint (n: i64) -> Lisp_Object;
-        pub fn make_biguint (n: u64) -> Lisp_Object;
+        pub safe fn bignum_to_double (n: Lisp_Object) -> f64;
+        pub safe fn make_bigint (n: i64) -> Lisp_Object;
+        pub safe fn make_biguint (n: u64) -> Lisp_Object;
     }
     // The specpdl is per-thread state in C (`#define specpdl (current_thread->m_specpdl)`,
     // thread.h 131-139): `include/thread.rs` defines all three as the macros C has, so no storage
     // is declared here (the stopgap that did so is retired).
     unsafe extern "C-unwind" {
-        pub fn list1 (a: Lisp_Object) -> Lisp_Object;
-        pub fn list2 (a: Lisp_Object, b: Lisp_Object) -> Lisp_Object;
-        pub fn list3 (a: Lisp_Object, b: Lisp_Object, c: Lisp_Object) -> Lisp_Object;
-        pub fn list4 (a: Lisp_Object, b: Lisp_Object, c: Lisp_Object, d: Lisp_Object) -> Lisp_Object;
+        pub safe fn list1 (a: Lisp_Object) -> Lisp_Object;
+        pub safe fn list2 (a: Lisp_Object, b: Lisp_Object) -> Lisp_Object;
+        pub safe fn list3 (a: Lisp_Object, b: Lisp_Object, c: Lisp_Object) -> Lisp_Object;
+        pub safe fn list4 (a: Lisp_Object, b: Lisp_Object, c: Lisp_Object, d: Lisp_Object) -> Lisp_Object;
         pub fn allocate_nil_vector (size: isize) -> *mut Lisp_Vector;
         pub fn vectorlike_nbytes (h: *const vectorlike_header) -> isize;
-        pub fn bignum_to_intmax (num: Lisp_Object) -> i64;
-        pub fn bignum_to_uintmax (num: Lisp_Object) -> u64;
+        pub safe fn bignum_to_intmax (num: Lisp_Object) -> i64;
+        pub safe fn bignum_to_uintmax (num: Lisp_Object) -> u64;
         pub fn flush_stack_call_func1 (func: Option<unsafe extern "C-unwind" fn(*mut c_void)>, arg: *mut c_void);
         // lisp.h 4537-4538: alloc.c's two bool-vector constructors (data.c's
         // bool-vector drivers call the second).
-        pub fn make_clear_bool_vector (size: EMACS_INT, init: bool) -> Lisp_Object;
-        pub fn make_uninit_bool_vector (size: EMACS_INT) -> Lisp_Object;
+        pub safe fn make_clear_bool_vector (size: EMACS_INT, init: bool) -> Lisp_Object;
+        pub safe fn make_uninit_bool_vector (size: EMACS_INT) -> Lisp_Object;
     }
     unsafe extern "C-unwind" {
         // lisp.h 4541/4544 spell the length `ptrdiff_t`, not size_t.
@@ -4266,38 +4325,38 @@ pub mod other_units {
         // src/lisp.h 4090 and 622: bignum.c's and data.c's own exporters (`number-to-string`
         // calls `bignum_to_string`; print.c and friends call `fixnum_to_string`).  The two
         // cons converters are already declared further down with lisp.h 4187's prototypes.
-        pub fn bignum_to_string (num: Lisp_Object, base: c_int) -> Lisp_Object;
+        pub safe fn bignum_to_string (num: Lisp_Object, base: c_int) -> Lisp_Object;
         pub fn fixnum_to_string (number: EMACS_INT, buffer: *mut c_char,
                                  end: *mut c_char) -> *mut c_char;
         pub fn make_string (s: *const c_char, len: ptrdiff_t) -> Lisp_Object;
         pub fn allocate_vector (size: isize) -> *mut Lisp_Vector;
         pub fn intern_1 (s: *const c_char, len: ptrdiff_t) -> Lisp_Object;
         pub fn intern_c_string_1 (s: *const c_char, len: ptrdiff_t) -> Lisp_Object;
-        pub fn xsignal0 (error_symbol: Lisp_Object) -> !;
+        pub safe fn xsignal0 (error_symbol: Lisp_Object) -> !;
         // lisp.h 4793-4795: the signal helpers data.c calls (eval.c defines them).
-        pub fn xsignal1 (error_symbol: Lisp_Object, arg: Lisp_Object) -> !;
-        pub fn xsignal2 (error_symbol: Lisp_Object, a1: Lisp_Object, a2: Lisp_Object) -> !;
-        pub fn xsignal3 (error_symbol: Lisp_Object, a1: Lisp_Object, a2: Lisp_Object,
+        pub safe fn xsignal1 (error_symbol: Lisp_Object, arg: Lisp_Object) -> !;
+        pub safe fn xsignal2 (error_symbol: Lisp_Object, a1: Lisp_Object, a2: Lisp_Object) -> !;
+        pub safe fn xsignal3 (error_symbol: Lisp_Object, a1: Lisp_Object, a2: Lisp_Object,
                          a3: Lisp_Object) -> !;
-        pub fn fast_string_match_internal (regexp: Lisp_Object, string: Lisp_Object,
+        pub safe fn fast_string_match_internal (regexp: Lisp_Object, string: Lisp_Object,
                                            table: Lisp_Object) -> isize;
         pub fn fast_c_string_match_internal (regexp: Lisp_Object, string: *const c_char,
                                              len: ptrdiff_t, table: Lisp_Object) -> isize;
-        pub fn check_obarray_slow (obarray: Lisp_Object) -> Lisp_Object;
-        pub fn grow_specpdl_allocation ();
-        pub fn unbind_to (count: specpdl_ref, value: Lisp_Object) -> Lisp_Object;
-        pub fn maybe_garbage_collect ();
-        pub fn probably_quit ();   // src/lisp.h 3881: `extern void probably_quit (void);` (it returns)
+        pub safe fn check_obarray_slow (obarray: Lisp_Object) -> Lisp_Object;
+        pub safe fn grow_specpdl_allocation ();
+        pub safe fn unbind_to (count: specpdl_ref, value: Lisp_Object) -> Lisp_Object;
+        pub safe fn maybe_garbage_collect ();
+        pub safe fn probably_quit ();   // src/lisp.h 3881: `extern void probably_quit (void);` (it returns)
         pub fn xfree (p: *mut c_void);
         pub fn xmalloc (size: usize) -> *mut c_void;                     // src/lisp.h 5535
-        pub fn indirect_function (object: Lisp_Object) -> Lisp_Object;   // src/lisp.h 4167 (data.c)
+        pub safe fn indirect_function (object: Lisp_Object) -> Lisp_Object;   // src/lisp.h 4167 (data.c)
         // lisp.h 4164, 4168, 4197, 4198, 4212: data.c's exported helpers (the port
         // declares a unit's symbols in the same place C declares them).  `lispfwd` is
         // `const struct Lisp_Fwd *` (lisp.h 759), and `KBOARD` lives in keyboard.rs,
         // which this mirror cannot include (P-72 item 4), so that one carries the
         // reference prototype in a `/// C:` line (P-55) and the probe checks it there.
-        pub fn wrong_choice (choice: Lisp_Object, wrong: Lisp_Object) -> !;
-        pub fn find_symbol_value (symbol: Lisp_Object) -> Lisp_Object;
+        pub safe fn wrong_choice (choice: Lisp_Object, wrong: Lisp_Object) -> !;
+        pub safe fn find_symbol_value (symbol: Lisp_Object) -> Lisp_Object;
         /// C: KBOARD *kboard_for_bindings ()
         pub fn kboard_for_bindings () -> *mut c_void;
         pub fn do_symval_forwarding (valcontents: *const Lisp_Fwd) -> Lisp_Object;
@@ -4312,7 +4371,7 @@ pub mod other_units {
         // lisp.h 4857-4863: eval.c's exports that profiler.c's `record_backtrace` and
         // `add_sample` call (`get_backtrace` is `Lisp_Object *array, ptrdiff_t size`).
         pub fn get_backtrace (array: *mut Lisp_Object, size: ptrdiff_t);
-        pub fn backtrace_top_function () -> Lisp_Object;
+        pub safe fn backtrace_top_function () -> Lisp_Object;
         // lisp.h 4208-4209: data.c's `set_internal` calls this (it is data.c's too); the
         // fourth parameter is `KBOARD *`, unnameable from this mirror (P-72 item 4).
         /// C: void set_default_internal (Lisp_Object, Lisp_Object, enum Set_Internal_Bind, KBOARD *)
@@ -4322,20 +4381,20 @@ pub mod other_units {
         // lisp.h 4183: `arithcompare` is data.c's own export (bytecode.c and the
         // comparison subrs below call it); the definition in data.rs shadows this
         // declaration, P-39's shape.
-        pub fn arithcompare (num1: Lisp_Object, num2: Lisp_Object) -> cmp_bits_t;
+        pub safe fn arithcompare (num1: Lisp_Object, num2: Lisp_Object) -> cmp_bits_t;
         // lisp.h 4243, 4272, 4276: the list and string helpers data.c calls (fns.c
         // defines them; `string_char_to_byte` is `aref`/`aset`'s).
-        pub fn list_length (list: Lisp_Object) -> ptrdiff_t;
-        pub fn assq_no_quit (key: Lisp_Object, alist: Lisp_Object) -> Lisp_Object;
-        pub fn string_char_to_byte (string: Lisp_Object, char_index: ptrdiff_t) -> ptrdiff_t;
+        pub safe fn list_length (list: Lisp_Object) -> ptrdiff_t;
+        pub safe fn assq_no_quit (key: Lisp_Object, alist: Lisp_Object) -> Lisp_Object;
+        pub safe fn string_char_to_byte (string: Lisp_Object, char_index: ptrdiff_t) -> ptrdiff_t;
         // lisp.h 4655, 4661: the two object helpers data.c calls (alloc.c defines them).
-        pub fn build_symbol_with_pos (symbol: Lisp_Object, position: Lisp_Object) -> Lisp_Object;
-        pub fn valid_lisp_object_p (obj: Lisp_Object) -> c_int;
+        pub safe fn build_symbol_with_pos (symbol: Lisp_Object, position: Lisp_Object) -> Lisp_Object;
+        pub safe fn valid_lisp_object_p (obj: Lisp_Object) -> c_int;
         pub fn egetenv_internal (var: *const c_char, len: ptrdiff_t) -> *mut c_char;
-        pub static pending_signals: VmGlobal<bool>;
-        pub static Vascii_canon_table: VmGlobal<Lisp_Object>;
-        pub static consing_until_gc: VmGlobal<EMACS_INT>;
-        pub static chartab_size: VmGlobal<[c_int; 4]>;
+        pub safe static pending_signals: VmGlobal<bool>;
+        pub safe static Vascii_canon_table: VmGlobal<Lisp_Object>;
+        pub safe static consing_until_gc: VmGlobal<EMACS_INT>;
+        pub safe static chartab_size: VmGlobal<[c_int; 4]>;
     }
     unsafe extern "C-unwind" {
         /// Mark every object of an array (src/lisp.h 4437, alloc.c).
@@ -4343,60 +4402,60 @@ pub mod other_units {
     }
     unsafe extern "C-unwind" { pub static finalizers: VmGlobal<Lisp_Finalizer>; }
     unsafe extern "C-unwind" { pub static doomed_finalizers: VmGlobal<Lisp_Finalizer>; }
-    unsafe extern "C-unwind" { pub static memory_signal_data: VmGlobal<Lisp_Object>; }
-    unsafe extern "C-unwind" { pub static Vascii_downcase_table: VmGlobal<Lisp_Object>; }
+    unsafe extern "C-unwind" { pub safe static memory_signal_data: VmGlobal<Lisp_Object>; }
+    unsafe extern "C-unwind" { pub safe static Vascii_downcase_table: VmGlobal<Lisp_Object>; }
     unsafe extern "C-unwind" { pub static staticvec: VmGlobal<[*const Lisp_Object; NSTATICS as usize]>; }
-    unsafe extern "C-unwind" { pub static staticidx: VmGlobal<c_int>; }
+    unsafe extern "C-unwind" { pub safe static staticidx: VmGlobal<c_int>; }
     unsafe extern "C-unwind" { pub static hashtest_eq: VmGlobal<hash_table_test>; }
     unsafe extern "C-unwind" { pub static hashtest_eql: VmGlobal<hash_table_test>; }
     unsafe extern "C-unwind" { pub static hashtest_equal: VmGlobal<hash_table_test>; }
-    unsafe extern "C-unwind" { pub static noninteractive_need_newline: VmGlobal<bool>; }
-    unsafe extern "C-unwind" { pub static echo_area_buffer: VmGlobal<[Lisp_Object; 2]>; }
-    unsafe extern "C-unwind" { pub static garbage_collection_inhibited: VmGlobal<intptr_t>; }
+    unsafe extern "C-unwind" { pub safe static noninteractive_need_newline: VmGlobal<bool>; }
+    unsafe extern "C-unwind" { pub safe static echo_area_buffer: VmGlobal<[Lisp_Object; 2]>; }
+    unsafe extern "C-unwind" { pub safe static garbage_collection_inhibited: VmGlobal<intptr_t>; }
     unsafe extern "C-unwind" { pub static pending_malloc_warning: VmGlobal<*mut c_char>; }
-    unsafe extern "C-unwind" { pub static zero_vector: VmGlobal<Lisp_Object>; }
-    unsafe extern "C-unwind" { pub static number_finalizers_run: VmGlobal<c_int>; }
-    unsafe extern "C-unwind" { pub static gc_in_progress: VmGlobal<bool>; }
-    unsafe extern "C-unwind" { pub static __malloc_extra_blocks: VmGlobal<usize>; }
-    unsafe extern "C-unwind" { pub static Vprin1_to_string_buffer: VmGlobal<Lisp_Object>; }
-    unsafe extern "C-unwind" { pub static print_level: VmGlobal<c_int>; }
-    unsafe extern "C-unwind" { pub static Vautoload_queue: VmGlobal<Lisp_Object>; }
-    unsafe extern "C-unwind" { pub static Vrun_hooks: VmGlobal<Lisp_Object>; }
-    unsafe extern "C-unwind" { pub static Vsignaling_function: VmGlobal<Lisp_Object>; }
-    unsafe extern "C-unwind" { pub static Vminibuffer_list: VmGlobal<Lisp_Object>; }
-    unsafe extern "C-unwind" { pub static last_minibuf_string: VmGlobal<Lisp_Object>; }
-    unsafe extern "C-unwind" { pub static minibuf_level: VmGlobal<EMACS_INT>; }
-    unsafe extern "C-unwind" { pub static command_loop_level: VmGlobal<EMACS_INT>; }
-    unsafe extern "C-unwind" { pub static echo_message_buffer: VmGlobal<Lisp_Object>; }
+    unsafe extern "C-unwind" { pub safe static zero_vector: VmGlobal<Lisp_Object>; }
+    unsafe extern "C-unwind" { pub safe static number_finalizers_run: VmGlobal<c_int>; }
+    unsafe extern "C-unwind" { pub safe static gc_in_progress: VmGlobal<bool>; }
+    unsafe extern "C-unwind" { pub safe static __malloc_extra_blocks: VmGlobal<usize>; }
+    unsafe extern "C-unwind" { pub safe static Vprin1_to_string_buffer: VmGlobal<Lisp_Object>; }
+    unsafe extern "C-unwind" { pub safe static print_level: VmGlobal<c_int>; }
+    unsafe extern "C-unwind" { pub safe static Vautoload_queue: VmGlobal<Lisp_Object>; }
+    unsafe extern "C-unwind" { pub safe static Vrun_hooks: VmGlobal<Lisp_Object>; }
+    unsafe extern "C-unwind" { pub safe static Vsignaling_function: VmGlobal<Lisp_Object>; }
+    unsafe extern "C-unwind" { pub safe static Vminibuffer_list: VmGlobal<Lisp_Object>; }
+    unsafe extern "C-unwind" { pub safe static last_minibuf_string: VmGlobal<Lisp_Object>; }
+    unsafe extern "C-unwind" { pub safe static minibuf_level: VmGlobal<EMACS_INT>; }
+    unsafe extern "C-unwind" { pub safe static command_loop_level: VmGlobal<EMACS_INT>; }
+    unsafe extern "C-unwind" { pub safe static echo_message_buffer: VmGlobal<Lisp_Object>; }
     /// C: `extern struct kboard *echo_kboard;` (lisp.h 5081).  `struct kboard`'s definition is
     /// keyboard.h's and this mirror cannot name it (a unit that includes lisp.h need not include
     /// keyboard.h, exactly as in C, where the tag is incomplete here); the pointer is therefore
     /// the untyped one the port uses for incomplete targets, and `keyboard.rs` says where the
     /// definition is (PORTING.md P-72).
     unsafe extern "C-unwind" { pub static echo_kboard: VmGlobal<*mut c_void>; }
-    unsafe extern "C-unwind" { pub static input_pending: VmGlobal<bool>; }
+    unsafe extern "C-unwind" { pub safe static input_pending: VmGlobal<bool>; }
     unsafe extern "C-unwind" { pub static return_to_command_loop: VmGlobal<sigjmp_buf>; }
-    unsafe extern "C-unwind" { pub static pending_funcalls: VmGlobal<Lisp_Object>; }
+    unsafe extern "C-unwind" { pub safe static pending_funcalls: VmGlobal<Lisp_Object>; }
     unsafe extern "C-unwind" { pub static initial_argv: VmGlobal<*mut *mut c_char>; }
-    unsafe extern "C-unwind" { pub static initial_argc: VmGlobal<c_int>; }
+    unsafe extern "C-unwind" { pub safe static initial_argc: VmGlobal<c_int>; }
     unsafe extern "C-unwind" { pub static initial_argv0: VmGlobal<*mut c_char>; }
-    unsafe extern "C-unwind" { pub static display_arg: VmGlobal<bool>; }
-    unsafe extern "C-unwind" { pub static empty_unibyte_string: VmGlobal<Lisp_Object>; }
-    unsafe extern "C-unwind" { pub static empty_multibyte_string: VmGlobal<Lisp_Object>; }
-    unsafe extern "C-unwind" { pub static Vlibrary_cache: VmGlobal<Lisp_Object>; }
-    unsafe extern "C-unwind" { pub static noninteractive: VmGlobal<bool>; }
-    unsafe extern "C-unwind" { pub static no_site_lisp: VmGlobal<bool>; }
-    unsafe extern "C-unwind" { pub static build_details: VmGlobal<bool>; }
-    unsafe extern "C-unwind" { pub static daemon_type: VmGlobal<c_int>; }
+    unsafe extern "C-unwind" { pub safe static display_arg: VmGlobal<bool>; }
+    unsafe extern "C-unwind" { pub safe static empty_unibyte_string: VmGlobal<Lisp_Object>; }
+    unsafe extern "C-unwind" { pub safe static empty_multibyte_string: VmGlobal<Lisp_Object>; }
+    unsafe extern "C-unwind" { pub safe static Vlibrary_cache: VmGlobal<Lisp_Object>; }
+    unsafe extern "C-unwind" { pub safe static noninteractive: VmGlobal<bool>; }
+    unsafe extern "C-unwind" { pub safe static no_site_lisp: VmGlobal<bool>; }
+    unsafe extern "C-unwind" { pub safe static build_details: VmGlobal<bool>; }
+    unsafe extern "C-unwind" { pub safe static daemon_type: VmGlobal<c_int>; }
     unsafe extern "C-unwind" { pub static w32_daemon_event: VmGlobal<*mut c_void>; }
-    unsafe extern "C-unwind" { pub static fatal_error_in_progress: VmGlobal<bool>; }
-    unsafe extern "C-unwind" { pub static inhibit_window_system: VmGlobal<bool>; }
+    unsafe extern "C-unwind" { pub safe static fatal_error_in_progress: VmGlobal<bool>; }
+    unsafe extern "C-unwind" { pub safe static inhibit_window_system: VmGlobal<bool>; }
     unsafe extern "C-unwind" { pub static emacs_wd: VmGlobal<*const c_char>; }
-    unsafe extern "C-unwind" { pub static running_asynch_code: VmGlobal<bool>; }
+    unsafe extern "C-unwind" { pub safe static running_asynch_code: VmGlobal<bool>; }
     unsafe extern "C-unwind" { pub static char_ins_del_vector: VmGlobal<*mut c_int>; }
-    unsafe extern "C-unwind" { pub static Vface_alternative_font_family_alist: VmGlobal<Lisp_Object>; }
-    unsafe extern "C-unwind" { pub static Vface_alternative_font_registry_alist: VmGlobal<Lisp_Object>; }
-    unsafe extern "C-unwind" { pub static profiler_memory_running: VmGlobal<bool>; }
+    unsafe extern "C-unwind" { pub safe static Vface_alternative_font_family_alist: VmGlobal<Lisp_Object>; }
+    unsafe extern "C-unwind" { pub safe static Vface_alternative_font_registry_alist: VmGlobal<Lisp_Object>; }
+    unsafe extern "C-unwind" { pub safe static profiler_memory_running: VmGlobal<bool>; }
     unsafe extern "C-unwind" { pub static my_edata: VmGlobal<[c_char; 0]>; }
     unsafe extern "C-unwind" { pub static my_endbss: VmGlobal<[c_char; 0]>; }
     unsafe extern "C-unwind" { pub static my_endbss_static: VmGlobal<*mut c_char>; }
@@ -4430,9 +4489,9 @@ pub mod other_units {
         // lisp.h 4654, 4926, 4989: undo.c's three cross-unit calls.  `struct buffer` is
         // incomplete in lisp.h, so `buffer_visited_file_modtime` carries the reference
         // prototype and takes the untyped pointer (P-55/P-72).
-        pub fn inhibit_garbage_collection () -> specpdl_ref;
+        pub safe fn inhibit_garbage_collection () -> specpdl_ref;
         // lisp.h 5354: category.h's CATEGORY_SET macro calls it; category.c defines it.
-        pub fn char_category_set (c: c_int) -> Lisp_Object;
+        pub safe fn char_category_set (c: c_int) -> Lisp_Object;
         // lisp.h 4251-4256, 4685-4687: category.c's hash-table and char-table calls.
         // Their pointer parameters have pointees the probe's type table cannot spell, so
         // each carries the reference prototype and the probe checks it there (P-55).
@@ -4443,15 +4502,15 @@ pub mod other_units {
         pub fn hash_find_get_hash (h: *mut Lisp_Hash_Table, key: Lisp_Object,
                                    phash: *mut hash_hash_t) -> ptrdiff_t;
         /// C: Lisp_Object copy_char_table (Lisp_Object)
-        pub fn copy_char_table (table: Lisp_Object) -> Lisp_Object;
+        pub safe fn copy_char_table (table: Lisp_Object) -> Lisp_Object;
         /// C: Lisp_Object char_table_ref_and_range (Lisp_Object, int, int *, int *)
         pub fn char_table_ref_and_range (table: Lisp_Object, idx: c_int,
                                          from: *mut c_int, to: *mut c_int) -> Lisp_Object;
         /// C: void char_table_set_range (Lisp_Object, int, int, Lisp_Object)
-        pub fn char_table_set_range (table: Lisp_Object, from: c_int, to: c_int,
+        pub safe fn char_table_set_range (table: Lisp_Object, from: c_int, to: c_int,
                                      val: Lisp_Object);
 
-        pub fn make_buffer_string (start: ptrdiff_t, end: ptrdiff_t, nprops: bool)
+        pub safe fn make_buffer_string (start: ptrdiff_t, end: ptrdiff_t, nprops: bool)
                                    -> Lisp_Object;
         /// C: Lisp_Object buffer_visited_file_modtime (struct buffer *)
         pub fn buffer_visited_file_modtime (b: *mut c_void) -> Lisp_Object;
@@ -4461,8 +4520,8 @@ pub mod other_units {
            `read-char` arm calls.  */
         /// C: void message1_nolog (const char *)
         pub fn message1_nolog (s: *const c_char);
-        pub fn run_hook (hook: Lisp_Object);
-        pub fn command_loop_2 (arg: Lisp_Object) -> Lisp_Object;
+        pub safe fn run_hook (hook: Lisp_Object);
+        pub safe fn command_loop_2 (arg: Lisp_Object) -> Lisp_Object;
         // The second parameter's pointee has no spelling in the probe's type table, so
         // the reference prototype rides along and the probe checks it there (P-55).
         /// C: void *xpalloc (void *, ptrdiff_t *, ptrdiff_t, ptrdiff_t, ptrdiff_t)
@@ -4473,11 +4532,11 @@ pub mod other_units {
         pub fn record_unwind_protect_ptr_mark (function: Option<unsafe extern "C-unwind" fn(*mut c_void)>,
                                                arg: *mut c_void,
                                                mark: Option<unsafe extern "C-unwind" fn(*mut c_void)>);
-        pub fn memory_full_up () -> !;
+        pub safe fn memory_full_up () -> !;
     }
     unsafe extern "C-unwind" {
-        pub fn cons_to_signed (cons: Lisp_Object, lo: i64, hi: i64) -> i64;
-        pub fn cons_to_unsigned (cons: Lisp_Object, hi: u64) -> u64;
+        pub safe fn cons_to_signed (cons: Lisp_Object, lo: i64, hi: i64) -> i64;
+        pub safe fn cons_to_unsigned (cons: Lisp_Object, hi: u64) -> u64;
     }
     unsafe extern "C-unwind" {
         // src/lisp.h 4492: `Lisp_Object listn (ptrdiff_t, Lisp_Object, ...)`; the
@@ -4507,27 +4566,27 @@ pub mod other_units {
       /* src/lisp.h 5856-5857: `extern AVOID circular_list (Lisp_Object);` - the cycle
          handler the FOR_EACH_TAIL macro passes for a list that loops.  */
       /// C: void circular_list (Lisp_Object)
-      pub fn circular_list (x: Lisp_Object) -> !;
+      pub safe fn circular_list (x: Lisp_Object) -> !;
     }
 
     // src/lisp.h 4088-4089, 4321-4357, 4561-4817 (the json.c group).
     unsafe extern "C-unwind" {
       /* src/lisp.h 4088.  */
       /// C: ptrdiff_t bignum_bufsize (Lisp_Object, int)
-      pub fn bignum_bufsize (num: Lisp_Object, base: c_int) -> ptrdiff_t;
+      pub safe fn bignum_bufsize (num: Lisp_Object, base: c_int) -> ptrdiff_t;
       /* src/lisp.h 4089.  */
       /// C: ptrdiff_t bignum_to_c_string (char *, ptrdiff_t, Lisp_Object, int)
       pub fn bignum_to_c_string (buf: *mut c_char, size: ptrdiff_t, num: Lisp_Object,
                                  base: c_int) -> ptrdiff_t;
       /* src/lisp.h 4319.  */
       /// C: void move_gap_both (ptrdiff_t, ptrdiff_t)
-      pub fn move_gap_both (charpos: ptrdiff_t, bytepos: ptrdiff_t);
+      pub safe fn move_gap_both (charpos: ptrdiff_t, bytepos: ptrdiff_t);
       /* src/lisp.h 4321.  */
       /// C: void make_gap (ptrdiff_t)
-      pub fn make_gap (nbytes: ptrdiff_t);
+      pub safe fn make_gap (nbytes: ptrdiff_t);
       /* src/lisp.h 4333.  */
       /// C: void insert_from_gap_1 (ptrdiff_t, ptrdiff_t, bool)
-      pub fn insert_from_gap_1 (nchars: ptrdiff_t, nbytes: ptrdiff_t,
+      pub safe fn insert_from_gap_1 (nchars: ptrdiff_t, nbytes: ptrdiff_t,
                                 text_at_gap_tail: bool);
       /* src/lisp.h 4353.  */
       /// C: void prepare_to_modify_buffer (ptrdiff_t, ptrdiff_t, ptrdiff_t *)
@@ -4538,11 +4597,11 @@ pub mod other_units {
       pub fn invalidate_buffer_caches (buf: *mut c_void, start: ptrdiff_t, end: ptrdiff_t);
       /* src/lisp.h 4356.  */
       /// C: void signal_after_change (ptrdiff_t, ptrdiff_t, ptrdiff_t)
-      pub fn signal_after_change (charpos: ptrdiff_t, lendel: ptrdiff_t,
+      pub safe fn signal_after_change (charpos: ptrdiff_t, lendel: ptrdiff_t,
                                   lenins: ptrdiff_t);
       /* src/lisp.h 4357-4358.  */
       /// C: void adjust_after_insert (ptrdiff_t, ptrdiff_t, ptrdiff_t, ptrdiff_t, ptrdiff_t)
-      pub fn adjust_after_insert (from: ptrdiff_t, from_byte: ptrdiff_t, to: ptrdiff_t,
+      pub safe fn adjust_after_insert (from: ptrdiff_t, from_byte: ptrdiff_t, to: ptrdiff_t,
                                   newpos_byte: ptrdiff_t, newlen: ptrdiff_t);
       /* src/lisp.h 4561.  */
       /// C: Lisp_Object make_multibyte_string (const char *, ptrdiff_t, ptrdiff_t)
@@ -4550,7 +4609,7 @@ pub mod other_units {
                                     nbytes: ptrdiff_t) -> Lisp_Object;
       /* src/lisp.h 4579.  */
       /// C: Lisp_Object make_vector (ptrdiff_t, Lisp_Object)
-      pub fn make_vector (size: ptrdiff_t, init: Lisp_Object) -> Lisp_Object;
+      pub safe fn make_vector (size: ptrdiff_t, init: Lisp_Object) -> Lisp_Object;
       /* src/lisp.h 4730-4731.  */
       /// C: Lisp_Object intern_c_multibyte (const char *, ptrdiff_t, ptrdiff_t)
       pub fn intern_c_multibyte (str: *const c_char, nchars: ptrdiff_t,
@@ -4563,7 +4622,7 @@ pub mod other_units {
       pub fn define_error (name: Lisp_Object, message: *const c_char, parent: Lisp_Object);
       /* src/lisp.h 4817.  */
       /// C: void specbind (Lisp_Object, Lisp_Object)
-      pub fn specbind (symbol: Lisp_Object, value: Lisp_Object);
+      pub safe fn specbind (symbol: Lisp_Object, value: Lisp_Object);
     }
     // src/lisp.h 4952-4956 (the marker.c group).  `struct buffer` is an incomplete type
     // in C here (buffer.h owns the definition) and the port cannot name it in a mirror
@@ -4572,8 +4631,8 @@ pub mod other_units {
     // carries the reference prototype, which spikes/lisp-abi-probe.sh type-checks
     // against lisp.h (PORTING.md 0.1-2).
     unsafe extern "C-unwind" {
-      pub fn marker_position (marker: Lisp_Object) -> ptrdiff_t;
-      pub fn marker_byte_position (marker: Lisp_Object) -> ptrdiff_t;
+      pub safe fn marker_position (marker: Lisp_Object) -> ptrdiff_t;
+      pub safe fn marker_byte_position (marker: Lisp_Object) -> ptrdiff_t;
       /// C: ptrdiff_t buf_charpos_to_bytepos (struct buffer *, ptrdiff_t)
       pub fn buf_charpos_to_bytepos (b: *mut c_void, charpos: ptrdiff_t) -> ptrdiff_t;
       /// C: ptrdiff_t buf_bytepos_to_charpos (struct buffer *, ptrdiff_t)
@@ -4582,13 +4641,13 @@ pub mod other_units {
       /// C: void unchain_marker (struct Lisp_Marker *)
       pub fn unchain_marker (marker: *mut c_void);
       /// C: Lisp_Object set_marker_restricted (Lisp_Object, Lisp_Object, Lisp_Object)
-      pub fn set_marker_restricted (marker: Lisp_Object, position: Lisp_Object,
+      pub safe fn set_marker_restricted (marker: Lisp_Object, position: Lisp_Object,
                                     buffer: Lisp_Object) -> Lisp_Object;
       /// C: Lisp_Object set_marker_both (Lisp_Object, Lisp_Object, ptrdiff_t, ptrdiff_t)
-      pub fn set_marker_both (marker: Lisp_Object, buffer: Lisp_Object,
+      pub safe fn set_marker_both (marker: Lisp_Object, buffer: Lisp_Object,
                               charpos: ptrdiff_t, bytepos: ptrdiff_t) -> Lisp_Object;
       /// C: Lisp_Object set_marker_restricted_both (Lisp_Object, Lisp_Object, ptrdiff_t, ptrdiff_t)
-      pub fn set_marker_restricted_both (marker: Lisp_Object, buffer: Lisp_Object,
+      pub safe fn set_marker_restricted_both (marker: Lisp_Object, buffer: Lisp_Object,
                                          charpos: ptrdiff_t, bytepos: ptrdiff_t)
         -> Lisp_Object;
       /* src/lisp.h 4963.  */
@@ -4597,7 +4656,7 @@ pub mod other_units {
         -> Lisp_Object;
       /* src/lisp.h 4966.  */
       /// C: void syms_of_marker ()
-      pub fn syms_of_marker ();
+      pub safe fn syms_of_marker ();
 
       /* src/lisp.h 5551: the string allocator terminfo.c's tparam returns.  */
       /// C: char *xstrdup (char const *)
@@ -4605,7 +4664,7 @@ pub mod other_units {
 
       /* src/lisp.h 4490, 4982-4983, 5311-5314 (the kqueue.c group).  */
       /// C: Lisp_Object list5 (Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object)
-      pub fn list5 (a: Lisp_Object, b: Lisp_Object, c: Lisp_Object, d: Lisp_Object,
+      pub safe fn list5 (a: Lisp_Object, b: Lisp_Object, c: Lisp_Object, d: Lisp_Object,
                     e: Lisp_Object) -> Lisp_Object;
       /// C: void report_file_error (const char *, Lisp_Object)
       pub fn report_file_error (string: *const c_char, err: Lisp_Object) -> !;
@@ -4614,10 +4673,10 @@ pub mod other_units {
       /// C: int emacs_open (const char *, int, int)
       pub fn emacs_open (file: *const c_char, oflags: c_int, mode: c_int) -> c_int;
       /// C: int emacs_close (int)
-      pub fn emacs_close (fd: c_int) -> c_int;
+      pub safe fn emacs_close (fd: c_int) -> c_int;
       /* src/lisp.h 5362-5364.  */
       /// C: Lisp_Object directory_files_internal (Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, bool, Lisp_Object, Lisp_Object)
-      pub fn directory_files_internal (dir: Lisp_Object, full: Lisp_Object,
+      pub safe fn directory_files_internal (dir: Lisp_Object, full: Lisp_Object,
                                        match_: Lisp_Object, nosort: Lisp_Object,
                                        attr: bool, id: Lisp_Object, regexp: Lisp_Object)
         -> Lisp_Object;
@@ -4633,10 +4692,10 @@ pub mod other_units {
       pub fn multibyte_chars_in_text (str_: *const u8, nbytes: ptrdiff_t) -> ptrdiff_t;
       /* src/lisp.h 4277: syntax.h 161's RE_SYNTAX_TABLE_BYTE_TO_CHAR.  */
       /// C: ptrdiff_t string_byte_to_char (Lisp_Object, ptrdiff_t)
-      pub fn string_byte_to_char (string: Lisp_Object, bytepos: ptrdiff_t) -> ptrdiff_t;
+      pub safe fn string_byte_to_char (string: Lisp_Object, bytepos: ptrdiff_t) -> ptrdiff_t;
       /* src/lisp.h 4352.  */
       /// C: void modify_text (ptrdiff_t, ptrdiff_t)
-      pub fn modify_text (start: ptrdiff_t, end: ptrdiff_t);
+      pub safe fn modify_text (start: ptrdiff_t, end: ptrdiff_t);
       /* src/lisp.h 4364: the eight parameters of the replacement.  */
       /// C: void replace_range_2 (ptrdiff_t, ptrdiff_t, ptrdiff_t, ptrdiff_t, const char *, ptrdiff_t, ptrdiff_t, bool)
       pub fn replace_range_2 (from: ptrdiff_t, from_byte: ptrdiff_t, to: ptrdiff_t,
@@ -4651,14 +4710,14 @@ pub mod other_units {
                                      nbytes: ptrdiff_t) -> Lisp_Object;
       /* src/lisp.h 4696.  */
       /// C: Lisp_Object uniprop_table (Lisp_Object)
-      pub fn uniprop_table (prop: Lisp_Object) -> Lisp_Object;
+      pub safe fn uniprop_table (prop: Lisp_Object) -> Lisp_Object;
       /* src/lisp.h 4733.  */
       /// C: Lisp_Object oblookup (Lisp_Object, const char *, ptrdiff_t, ptrdiff_t)
       pub fn oblookup (obarray: Lisp_Object, str_: *const c_char, size: ptrdiff_t,
                        size_byte: ptrdiff_t) -> Lisp_Object;
       /* src/lisp.h 4741.  */
       /// C: Lisp_Object save_match_data_load (Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object)
-      pub fn save_match_data_load (file: Lisp_Object, noerror: Lisp_Object,
+      pub safe fn save_match_data_load (file: Lisp_Object, noerror: Lisp_Object,
                                    nomessage: Lisp_Object, nosuffix: Lisp_Object,
                                    must_suffix: Lisp_Object) -> Lisp_Object;
       /* src/lisp.h 4823: doc.c's get_doc_string/`Snarf-documentation` guard the DOC
@@ -4670,16 +4729,16 @@ pub mod other_units {
          (`#[unsafe(no_mangle)]`), which shadows this declaration the way a DEFUN
          definition shadows its prototype (PORTING.md 0.1-10).  */
       /// C: void record_insert (ptrdiff_t, ptrdiff_t)
-      pub fn record_insert (from: ptrdiff_t, nbytes: ptrdiff_t);
+      pub safe fn record_insert (from: ptrdiff_t, nbytes: ptrdiff_t);
       /// C: void record_delete (ptrdiff_t, Lisp_Object, bool)
-      pub fn record_delete (from: ptrdiff_t, del: Lisp_Object, record_markers: bool);
+      pub safe fn record_delete (from: ptrdiff_t, del: Lisp_Object, record_markers: bool);
       /* lisp.h 5254: `extern void record_first_change (void);` - undo.c defines it, and the
          name is declared at the use site by the units that had not opened this block yet.  */
       /// C: void record_first_change (void)
-      pub fn record_first_change ();
+      pub safe fn record_first_change ();
       /* src/lisp.h 4269: doc.c's three-piece "Cannot open doc string file" message.  */
       /// C: Lisp_Object concat3 (Lisp_Object, Lisp_Object, Lisp_Object)
-      pub fn concat3 (a: Lisp_Object, b: Lisp_Object, c: Lisp_Object) -> Lisp_Object;
+      pub safe fn concat3 (a: Lisp_Object, b: Lisp_Object, c: Lisp_Object) -> Lisp_Object;
       /* src/lisp.h 5332-5333: the interrupted-read pair; doc.c uses the `_quit` one.  */
       /// C: ptrdiff_t emacs_read (int, void *, ptrdiff_t)
       pub fn emacs_read (fd: c_int, buf: *mut c_void, nbyte: ptrdiff_t) -> ptrdiff_t;
@@ -4924,17 +4983,17 @@ pub mod lisp_fn_decls {
 
   unsafe extern "C-unwind" {
     /// C: int check_int_nonnegative (Lisp_Object)
-    pub fn check_int_nonnegative (x: Lisp_Object) -> c_int;
+    pub safe fn check_int_nonnegative (x: Lisp_Object) -> c_int;
     /// C: uintmax_t check_uinteger_max (Lisp_Object, uintmax_t)
-    pub fn check_uinteger_max (x: Lisp_Object, max: uintmax_t) -> uintmax_t;
+    pub safe fn check_uinteger_max (x: Lisp_Object, max: uintmax_t) -> uintmax_t;
     /// C: Lisp_Object default_value (Lisp_Object symbol)
-    pub fn default_value (symbol: Lisp_Object) -> Lisp_Object;
+    pub safe fn default_value (symbol: Lisp_Object) -> Lisp_Object;
     /// C: void process_pending_signals (void)
-    pub fn process_pending_signals ();
+    pub safe fn process_pending_signals ();
     /// C: Lisp_Object make_neg_biguint (uintmax_t)
-    pub fn make_neg_biguint (n: u64) -> Lisp_Object;
+    pub safe fn make_neg_biguint (n: u64) -> Lisp_Object;
     /// C: void notify_variable_watchers (Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object)
-    pub fn notify_variable_watchers (symbol: Lisp_Object, newval: Lisp_Object, operation: Lisp_Object, r#where: Lisp_Object);
+    pub safe fn notify_variable_watchers (symbol: Lisp_Object, newval: Lisp_Object, operation: Lisp_Object, r#where: Lisp_Object);
     /// C: void syms_of_data (void)
     pub fn syms_of_data ();
     /// C: void syms_of_cmds (void)
@@ -4944,7 +5003,7 @@ pub mod lisp_fn_decls {
     /// C: void syms_of_coding (void)
     pub fn syms_of_coding ();
     /// C: bool string_ascii_p (Lisp_Object)
-    pub fn string_ascii_p (string: Lisp_Object) -> bool;
+    pub safe fn string_ascii_p (string: Lisp_Object) -> bool;
     /// C: void syms_of_character (void)
     pub fn syms_of_character ();
     /// C: void init_charset (void)
@@ -4958,41 +5017,41 @@ pub mod lisp_fn_decls {
     /// C: void syms_of_syntax (void)
     pub fn syms_of_syntax ();
     /// C: EMACS_INT next_almost_prime (EMACS_INT)
-    pub fn next_almost_prime (n: EMACS_INT) -> EMACS_INT;
+    pub safe fn next_almost_prime (n: EMACS_INT) -> EMACS_INT;
     /// C: Lisp_Object larger_vector (Lisp_Object, ptrdiff_t, ptrdiff_t)
-    pub fn larger_vector (vec: Lisp_Object, elt_size: ptrdiff_t, new_size: ptrdiff_t) -> Lisp_Object;
+    pub safe fn larger_vector (vec: Lisp_Object, elt_size: ptrdiff_t, new_size: ptrdiff_t) -> Lisp_Object;
     /// C: bool sweep_weak_table (struct Lisp_Hash_Table *, bool)
     pub fn sweep_weak_table (h: *mut Lisp_Hash_Table, remove_entries_p: bool) -> bool;
     /// C: EMACS_UINT sxhash (Lisp_Object)
-    pub fn sxhash (obj: Lisp_Object) -> EMACS_UINT;
+    pub safe fn sxhash (obj: Lisp_Object) -> EMACS_UINT;
     /// C: Lisp_Object hash_table_weakness_symbol (hash_table_weakness_t weak)
-    pub fn hash_table_weakness_symbol (weak: hash_table_weakness_t) -> Lisp_Object;
+    pub safe fn hash_table_weakness_symbol (weak: hash_table_weakness_t) -> Lisp_Object;
     /// C: void hash_remove_from_table (struct Lisp_Hash_Table *, Lisp_Object)
     pub fn hash_remove_from_table (h: *mut Lisp_Hash_Table, key: Lisp_Object);
     /// C: Lisp_Object substring_both (Lisp_Object, ptrdiff_t, ptrdiff_t, ptrdiff_t, ptrdiff_t)
-    pub fn substring_both (string: Lisp_Object, from: ptrdiff_t, from_byte: ptrdiff_t, to: ptrdiff_t, to_byte: ptrdiff_t) -> Lisp_Object;
+    pub safe fn substring_both (string: Lisp_Object, from: ptrdiff_t, from_byte: ptrdiff_t, to: ptrdiff_t, to_byte: ptrdiff_t) -> Lisp_Object;
     /// C: Lisp_Object merge (Lisp_Object, Lisp_Object, Lisp_Object)
-    pub fn merge (org_l1: Lisp_Object, l2: Lisp_Object, pred: Lisp_Object) -> Lisp_Object;
+    pub safe fn merge (org_l1: Lisp_Object, l2: Lisp_Object, pred: Lisp_Object) -> Lisp_Object;
     /// C: Lisp_Object do_yes_or_no_p (Lisp_Object)
-    pub fn do_yes_or_no_p (prompt: Lisp_Object) -> Lisp_Object;
+    pub safe fn do_yes_or_no_p (prompt: Lisp_Object) -> Lisp_Object;
     /// C: bool equal_no_quit (Lisp_Object, Lisp_Object)
-    pub fn equal_no_quit (o1: Lisp_Object, o2: Lisp_Object) -> bool;
+    pub safe fn equal_no_quit (o1: Lisp_Object, o2: Lisp_Object) -> bool;
     /// C: Lisp_Object nconc2 (Lisp_Object, Lisp_Object)
-    pub fn nconc2 (a: Lisp_Object, b: Lisp_Object) -> Lisp_Object;
+    pub safe fn nconc2 (a: Lisp_Object, b: Lisp_Object) -> Lisp_Object;
     /// C: Lisp_Object assoc_no_quit (Lisp_Object, Lisp_Object)
-    pub fn assoc_no_quit (key: Lisp_Object, alist: Lisp_Object) -> Lisp_Object;
+    pub safe fn assoc_no_quit (key: Lisp_Object, alist: Lisp_Object) -> Lisp_Object;
     /// C: Lisp_Object delq_no_quit (Lisp_Object, Lisp_Object)
-    pub fn delq_no_quit (elt: Lisp_Object, list: Lisp_Object) -> Lisp_Object;
+    pub safe fn delq_no_quit (elt: Lisp_Object, list: Lisp_Object) -> Lisp_Object;
     /// C: Lisp_Object string_to_multibyte (Lisp_Object)
-    pub fn string_to_multibyte (string: Lisp_Object) -> Lisp_Object;
+    pub safe fn string_to_multibyte (string: Lisp_Object) -> Lisp_Object;
     /// C: Lisp_Object plist_member (Lisp_Object plist, Lisp_Object prop)
-    pub fn plist_member (plist: Lisp_Object, prop: Lisp_Object) -> Lisp_Object;
+    pub safe fn plist_member (plist: Lisp_Object, prop: Lisp_Object) -> Lisp_Object;
     /// C: void syms_of_fns (void)
     pub fn syms_of_fns ();
     /// C: void mark_fns (void)
     pub fn mark_fns ();
     /// C: Lisp_Object memq_no_quit (Lisp_Object elt, Lisp_Object list)
-    pub fn memq_no_quit (elt: Lisp_Object, list: Lisp_Object) -> Lisp_Object;
+    pub safe fn memq_no_quit (elt: Lisp_Object, list: Lisp_Object) -> Lisp_Object;
     /// C: void tim_sort (Lisp_Object, Lisp_Object, Lisp_Object *, const ptrdiff_t, bool)
     pub fn tim_sort (predicate: Lisp_Object, keyfunc: Lisp_Object, s: *mut Lisp_Object, size: ptrdiff_t, reverse: bool);
     /// C: void syms_of_floatfns (void)
@@ -5006,81 +5065,81 @@ pub mod lisp_fn_decls {
     /// C: void syms_of_json (void)
     pub fn syms_of_json ();
     /// C: void insert_from_gap (ptrdiff_t, ptrdiff_t, bool, bool)
-    pub fn insert_from_gap (nchars: ptrdiff_t, nbytes: ptrdiff_t, text_at_gap_tail: bool, before_markers: bool);
+    pub safe fn insert_from_gap (nchars: ptrdiff_t, nbytes: ptrdiff_t, text_at_gap_tail: bool, before_markers: bool);
     /// C: void insert_from_string (Lisp_Object, ptrdiff_t, ptrdiff_t, ptrdiff_t, ptrdiff_t, bool)
     pub fn insert_from_string (string: Lisp_Object, pos: ptrdiff_t, pos_byte: ptrdiff_t, length: ptrdiff_t, length_byte: ptrdiff_t, inherit: bool);
     /// C: void insert_from_string_before_markers (Lisp_Object, ptrdiff_t, ptrdiff_t, ptrdiff_t, ptrdiff_t, bool)
     pub fn insert_from_string_before_markers (string: Lisp_Object, pos: ptrdiff_t, pos_byte: ptrdiff_t, length: ptrdiff_t, length_byte: ptrdiff_t, inherit: bool);
     /// C: Lisp_Object del_range_1 (ptrdiff_t, ptrdiff_t, bool, bool)
-    pub fn del_range_1 (from: ptrdiff_t, to: ptrdiff_t, prepare: bool, retain_markers: bool) -> Lisp_Object;
+    pub safe fn del_range_1 (from: ptrdiff_t, to: ptrdiff_t, prepare: bool, retain_markers: bool) -> Lisp_Object;
     /// C: void del_range_byte (ptrdiff_t, ptrdiff_t)
-    pub fn del_range_byte (from: ptrdiff_t, to: ptrdiff_t);
+    pub safe fn del_range_byte (from: ptrdiff_t, to: ptrdiff_t);
     /// C: void del_range_both (ptrdiff_t, ptrdiff_t, ptrdiff_t, ptrdiff_t, bool)
-    pub fn del_range_both (from: ptrdiff_t, from_byte: ptrdiff_t, to: ptrdiff_t, to_byte: ptrdiff_t, prepare: bool);
+    pub safe fn del_range_both (from: ptrdiff_t, from_byte: ptrdiff_t, to: ptrdiff_t, to_byte: ptrdiff_t, prepare: bool);
     /// C: int safe_del_range (ptrdiff_t, ptrdiff_t)
-    pub fn safe_del_range (from: ptrdiff_t, to: ptrdiff_t) -> c_int;
+    pub safe fn safe_del_range (from: ptrdiff_t, to: ptrdiff_t) -> c_int;
     /// C: void prepare_to_modify_buffer_1 (ptrdiff_t, ptrdiff_t, ptrdiff_t *)
     pub fn prepare_to_modify_buffer_1 (start: ptrdiff_t, end: ptrdiff_t, preserve_ptr: *mut ptrdiff_t);
     /// C: void adjust_markers_for_delete (ptrdiff_t, ptrdiff_t, ptrdiff_t, ptrdiff_t)
-    pub fn adjust_markers_for_delete (from: ptrdiff_t, from_byte: ptrdiff_t, to: ptrdiff_t, to_byte: ptrdiff_t);
+    pub safe fn adjust_markers_for_delete (from: ptrdiff_t, from_byte: ptrdiff_t, to: ptrdiff_t, to_byte: ptrdiff_t);
     /// C: void adjust_markers_bytepos (ptrdiff_t, ptrdiff_t, ptrdiff_t, ptrdiff_t, int)
-    pub fn adjust_markers_bytepos (start: ptrdiff_t, start_byte: ptrdiff_t, end: ptrdiff_t, end_byte: ptrdiff_t, before_markers: c_int);
+    pub safe fn adjust_markers_bytepos (start: ptrdiff_t, start_byte: ptrdiff_t, end: ptrdiff_t, end_byte: ptrdiff_t, before_markers: c_int);
     /// C: void syms_of_insdel (void)
     pub fn syms_of_insdel ();
     /// C: Lisp_Object sit_for (Lisp_Object, bool, int)
-    pub fn sit_for (value: Lisp_Object, reading: bool, display: c_int) -> Lisp_Object;
+    pub safe fn sit_for (value: Lisp_Object, reading: bool, display: c_int) -> Lisp_Object;
     /// C: void check_message_stack (void)
-    pub fn check_message_stack ();
+    pub safe fn check_message_stack ();
     /// C: void clear_message_stack (void)
-    pub fn clear_message_stack ();
+    pub safe fn clear_message_stack ();
     /// C: void setup_echo_area_for_printing (bool)
-    pub fn setup_echo_area_for_printing (multibyte_p: bool);
+    pub safe fn setup_echo_area_for_printing (multibyte_p: bool);
     /// C: bool push_message (void)
-    pub fn push_message () -> bool;
+    pub safe fn push_message () -> bool;
     /// C: void pop_message_unwind (void)
     pub fn pop_message_unwind ();
     /// C: void restore_message (void)
-    pub fn restore_message ();
+    pub safe fn restore_message ();
     /// C: Lisp_Object current_message (void)
-    pub fn current_message () -> Lisp_Object;
+    pub safe fn current_message () -> Lisp_Object;
     /// C: void clear_message (bool, bool)
-    pub fn clear_message (current_echo_area: bool, last_displayed_p: bool);
+    pub safe fn clear_message (current_echo_area: bool, last_displayed_p: bool);
     /// C: void message3 (Lisp_Object)
-    pub fn message3 (m: Lisp_Object);
+    pub safe fn message3 (m: Lisp_Object);
     /// C: void message3_nolog (Lisp_Object)
-    pub fn message3_nolog (m: Lisp_Object);
+    pub safe fn message3_nolog (m: Lisp_Object);
     /// C: void message_log_maybe_newline (void)
-    pub fn message_log_maybe_newline ();
+    pub safe fn message_log_maybe_newline ();
     /// C: void reset_message_log_need_newline (void)
-    pub fn reset_message_log_need_newline ();
+    pub safe fn reset_message_log_need_newline ();
     /// C: void update_echo_area (void)
-    pub fn update_echo_area ();
+    pub safe fn update_echo_area ();
     /// C: void truncate_echo_area (ptrdiff_t)
-    pub fn truncate_echo_area (n: ptrdiff_t);
+    pub safe fn truncate_echo_area (n: ptrdiff_t);
     /// C: ptrdiff_t count_lines (ptrdiff_t start_byte, ptrdiff_t end_byte)
-    pub fn count_lines (start_byte: ptrdiff_t, end_byte: ptrdiff_t) -> ptrdiff_t;
+    pub safe fn count_lines (start_byte: ptrdiff_t, end_byte: ptrdiff_t) -> ptrdiff_t;
     /// C: void syms_of_xdisp (void)
     pub fn syms_of_xdisp ();
     /// C: void init_xdisp (void)
     pub fn init_xdisp ();
     /// C: Lisp_Object safe_eval (Lisp_Object)
-    pub fn safe_eval (form: Lisp_Object) -> Lisp_Object;
+    pub safe fn safe_eval (form: Lisp_Object) -> Lisp_Object;
     /// C: void syms_of_sqlite (void)
     pub fn syms_of_sqlite ();
     /// C: void syms_of_xsettings (void)
     pub fn syms_of_xsettings ();
     /// C: bool survives_gc_p (Lisp_Object)
-    pub fn survives_gc_p (obj: Lisp_Object) -> bool;
+    pub safe fn survives_gc_p (obj: Lisp_Object) -> bool;
     /// C: void mark_object (Lisp_Object)
-    pub fn mark_object (obj: Lisp_Object);
+    pub safe fn mark_object (obj: Lisp_Object);
     /// C: Lisp_Object bool_vector_fill (Lisp_Object, Lisp_Object)
-    pub fn bool_vector_fill (a: Lisp_Object, item: Lisp_Object) -> Lisp_Object;
+    pub safe fn bool_vector_fill (a: Lisp_Object, item: Lisp_Object) -> Lisp_Object;
     /// C: Lisp_Object make_event_array (ptrdiff_t, Lisp_Object *)
     pub fn make_event_array (nargs: ptrdiff_t, args: *mut Lisp_Object) -> Lisp_Object;
     /// C: void pin_string (Lisp_Object string)
-    pub fn pin_string (string: Lisp_Object);
+    pub safe fn pin_string (string: Lisp_Object);
     /// C: void display_malloc_warning (void)
-    pub fn display_malloc_warning ();
+    pub safe fn display_malloc_warning ();
     /// C: void free_cons (struct Lisp_Cons *)
     pub fn free_cons (cons: *mut Lisp_Cons);
     /// C: void init_alloc_once (void)
@@ -5092,7 +5151,7 @@ pub mod lisp_fn_decls {
     /// C: void hash_table_free_bytes (void *p, ptrdiff_t nbytes)
     pub fn hash_table_free_bytes (p: *mut c_void, nbytes: ptrdiff_t);
     /// C: Lisp_Object get_unicode_property (Lisp_Object, int)
-    pub fn get_unicode_property (table: Lisp_Object, ch: c_int) -> Lisp_Object;
+    pub safe fn get_unicode_property (table: Lisp_Object, ch: c_int) -> Lisp_Object;
     /// C: void syms_of_chartab (void)
     pub fn syms_of_chartab ();
     /// C: void init_print_once (void)
@@ -5100,9 +5159,9 @@ pub mod lisp_fn_decls {
     /// C: void syms_of_print (void)
     pub fn syms_of_print ();
     /// C: Lisp_Object intern_driver (Lisp_Object, Lisp_Object, Lisp_Object)
-    pub fn intern_driver (string: Lisp_Object, obarray: Lisp_Object, index: Lisp_Object) -> Lisp_Object;
+    pub safe fn intern_driver (string: Lisp_Object, obarray: Lisp_Object, index: Lisp_Object) -> Lisp_Object;
     /// C: void init_symbol (Lisp_Object, Lisp_Object)
-    pub fn init_symbol (symbol: Lisp_Object, name: Lisp_Object);
+    pub safe fn init_symbol (symbol: Lisp_Object, name: Lisp_Object);
     /// C: int openp (Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object *, Lisp_Object, bool, bool, void **)
     pub fn openp (path: Lisp_Object, str_: Lisp_Object, suffixes: Lisp_Object, storeptr: *mut Lisp_Object, predicate: Lisp_Object, newer: bool, no_native: bool, platform: *mut *mut c_void) -> c_int;
     /// C: void init_lread (void)
@@ -5112,29 +5171,29 @@ pub mod lisp_fn_decls {
     /// C: void mark_lread (void)
     pub fn mark_lread ();
     /// C: bool signal_quit_p (Lisp_Object)
-    pub fn signal_quit_p (x: Lisp_Object) -> bool;
+    pub safe fn signal_quit_p (x: Lisp_Object) -> bool;
     /// C: Lisp_Object quit (void)
-    pub fn quit () -> Lisp_Object;
+    pub safe fn quit () -> Lisp_Object;
     /// C: Lisp_Object eval_sub (Lisp_Object form)
-    pub fn eval_sub (form: Lisp_Object) -> Lisp_Object;
+    pub safe fn eval_sub (form: Lisp_Object) -> Lisp_Object;
     /// C: Lisp_Object apply1 (Lisp_Object, Lisp_Object)
-    pub fn apply1 (fn_: Lisp_Object, arg: Lisp_Object) -> Lisp_Object;
+    pub safe fn apply1 (fn_: Lisp_Object, arg: Lisp_Object) -> Lisp_Object;
     /// C: Lisp_Object internal_lisp_condition_case (Lisp_Object, Lisp_Object, Lisp_Object)
-    pub fn internal_lisp_condition_case (var: Lisp_Object, bodyform: Lisp_Object, handlers: Lisp_Object) -> Lisp_Object;
+    pub safe fn internal_lisp_condition_case (var: Lisp_Object, bodyform: Lisp_Object, handlers: Lisp_Object) -> Lisp_Object;
     /// C: void pop_handler (void)
-    pub fn pop_handler ();
+    pub safe fn pop_handler ();
     /// C: void push_handler_bind (Lisp_Object, Lisp_Object, int)
-    pub fn push_handler_bind (conditions: Lisp_Object, handler: Lisp_Object, var: c_int);
+    pub safe fn push_handler_bind (conditions: Lisp_Object, handler: Lisp_Object, var: c_int);
     /// C: void record_unwind_protect_nothing (void)
-    pub fn record_unwind_protect_nothing ();
+    pub safe fn record_unwind_protect_nothing ();
     /// C: void clear_unwind_protect (specpdl_ref)
-    pub fn clear_unwind_protect (count: specpdl_ref);
+    pub safe fn clear_unwind_protect (count: specpdl_ref);
     /// C: void specpdl_unrewind (union specbinding *pdl, int distance, bool vars_only)
     pub fn specpdl_unrewind (pdl: *mut specbinding, distance: c_int, vars_only: bool);
     /// C: Lisp_Object load_with_autoload_queue (Lisp_Object file, Lisp_Object noerror, Lisp_Object nomessage, Lisp_Object nosuffix, Lisp_Object must_suffix)
-    pub fn load_with_autoload_queue (file: Lisp_Object, noerror: Lisp_Object, nomessage: Lisp_Object, nosuffix: Lisp_Object, must_suffix: Lisp_Object) -> Lisp_Object;
+    pub safe fn load_with_autoload_queue (file: Lisp_Object, noerror: Lisp_Object, nomessage: Lisp_Object, nosuffix: Lisp_Object, must_suffix: Lisp_Object) -> Lisp_Object;
     /// C: Lisp_Object call_debugger (Lisp_Object arg)
-    pub fn call_debugger (arg: Lisp_Object) -> Lisp_Object;
+    pub safe fn call_debugger (arg: Lisp_Object) -> Lisp_Object;
     /// C: void init_eval_once (void)
     pub fn init_eval_once ();
     /// C: void syms_of_eval (void)
@@ -5144,7 +5203,7 @@ pub mod lisp_fn_decls {
     /// C: void mark_specpdl (union specbinding *first, union specbinding *ptr)
     pub fn mark_specpdl (first: *mut specbinding, ptr: *mut specbinding);
     /// C: void do_debug_on_call (Lisp_Object code, specpdl_ref count)
-    pub fn do_debug_on_call (code: Lisp_Object, count: specpdl_ref);
+    pub safe fn do_debug_on_call (code: Lisp_Object, count: specpdl_ref);
     /// C: Lisp_Object funcall_general (Lisp_Object fun, ptrdiff_t numargs, Lisp_Object *args)
     pub fn funcall_general (fun: Lisp_Object, numargs: ptrdiff_t, args: *mut Lisp_Object) -> Lisp_Object;
     /// C: void mark_threads (void)
@@ -5156,37 +5215,37 @@ pub mod lisp_fn_decls {
     /// C: void save_excursion_save (union specbinding *)
     pub fn save_excursion_save (p: *mut specbinding);
     /// C: void save_excursion_restore (Lisp_Object, Lisp_Object)
-    pub fn save_excursion_restore (marker: Lisp_Object, buffer: Lisp_Object);
+    pub safe fn save_excursion_restore (marker: Lisp_Object, buffer: Lisp_Object);
     /// C: Lisp_Object save_restriction_save (void)
-    pub fn save_restriction_save () -> Lisp_Object;
+    pub safe fn save_restriction_save () -> Lisp_Object;
     /// C: void save_restriction_restore (Lisp_Object)
     pub fn save_restriction_restore (data: Lisp_Object);
     /// C: Lisp_Object make_buffer_string_both (ptrdiff_t, ptrdiff_t, ptrdiff_t, ptrdiff_t, bool)
-    pub fn make_buffer_string_both (start: ptrdiff_t, start_byte: ptrdiff_t, end: ptrdiff_t, end_byte: ptrdiff_t, props: bool) -> Lisp_Object;
+    pub safe fn make_buffer_string_both (start: ptrdiff_t, start_byte: ptrdiff_t, end: ptrdiff_t, end_byte: ptrdiff_t, props: bool) -> Lisp_Object;
     /// C: void labeled_narrow_to_region (Lisp_Object, Lisp_Object, Lisp_Object)
-    pub fn labeled_narrow_to_region (start: Lisp_Object, end: Lisp_Object, label: Lisp_Object);
+    pub safe fn labeled_narrow_to_region (start: Lisp_Object, end: Lisp_Object, label: Lisp_Object);
     /// C: void reset_outermost_restrictions (void)
-    pub fn reset_outermost_restrictions ();
+    pub safe fn reset_outermost_restrictions ();
     /// C: void labeled_restrictions_remove_in_current_buffer (void)
-    pub fn labeled_restrictions_remove_in_current_buffer ();
+    pub safe fn labeled_restrictions_remove_in_current_buffer ();
     /// C: void init_editfns (void)
     pub fn init_editfns ();
     /// C: void syms_of_editfns (void)
     pub fn syms_of_editfns ();
     /// C: bool mouse_face_overlay_overlaps (Lisp_Object)
-    pub fn mouse_face_overlay_overlaps (overlay: Lisp_Object) -> bool;
+    pub safe fn mouse_face_overlay_overlaps (overlay: Lisp_Object) -> bool;
     /// C: bool disable_line_numbers_overlay_at_eob (void)
-    pub fn disable_line_numbers_overlay_at_eob () -> bool;
+    pub safe fn disable_line_numbers_overlay_at_eob () -> bool;
     /// C: void adjust_overlays_for_insert (ptrdiff_t, ptrdiff_t, bool)
-    pub fn adjust_overlays_for_insert (pos: ptrdiff_t, length: ptrdiff_t, before_markers: bool);
+    pub safe fn adjust_overlays_for_insert (pos: ptrdiff_t, length: ptrdiff_t, before_markers: bool);
     /// C: void adjust_overlays_for_delete (ptrdiff_t, ptrdiff_t)
-    pub fn adjust_overlays_for_delete (from: ptrdiff_t, to: ptrdiff_t);
+    pub safe fn adjust_overlays_for_delete (from: ptrdiff_t, to: ptrdiff_t);
     /// C: void report_overlay_modification (Lisp_Object, Lisp_Object, bool, Lisp_Object, Lisp_Object, Lisp_Object)
-    pub fn report_overlay_modification (start: Lisp_Object, end: Lisp_Object, after: bool, arg1: Lisp_Object, arg2: Lisp_Object, arg3: Lisp_Object);
+    pub safe fn report_overlay_modification (start: Lisp_Object, end: Lisp_Object, after: bool, arg1: Lisp_Object, arg2: Lisp_Object, arg3: Lisp_Object);
     /// C: bool overlay_touches_p (ptrdiff_t)
-    pub fn overlay_touches_p (pos: ptrdiff_t) -> bool;
+    pub safe fn overlay_touches_p (pos: ptrdiff_t) -> bool;
     /// C: Lisp_Object other_buffer_safely (Lisp_Object)
-    pub fn other_buffer_safely (buffer: Lisp_Object) -> Lisp_Object;
+    pub safe fn other_buffer_safely (buffer: Lisp_Object) -> Lisp_Object;
     /// C: void init_buffer_once (void)
     pub fn init_buffer_once ();
     /// C: void init_buffer (void)
@@ -5194,33 +5253,33 @@ pub mod lisp_fn_decls {
     /// C: void syms_of_buffer (void)
     pub fn syms_of_buffer ();
     /// C: void detach_marker (Lisp_Object)
-    pub fn detach_marker (marker: Lisp_Object);
+    pub safe fn detach_marker (marker: Lisp_Object);
     /// C: Lisp_Object expand_and_dir_to_file (Lisp_Object)
-    pub fn expand_and_dir_to_file (filename: Lisp_Object) -> Lisp_Object;
+    pub safe fn expand_and_dir_to_file (filename: Lisp_Object) -> Lisp_Object;
     /// C: Lisp_Object write_region (Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, int)
-    pub fn write_region (start: Lisp_Object, end: Lisp_Object, filename: Lisp_Object, append: Lisp_Object, visit: Lisp_Object, lockname: Lisp_Object, mustbenew: Lisp_Object, desc: c_int) -> Lisp_Object;
+    pub safe fn write_region (start: Lisp_Object, end: Lisp_Object, filename: Lisp_Object, append: Lisp_Object, visit: Lisp_Object, lockname: Lisp_Object, mustbenew: Lisp_Object, desc: c_int) -> Lisp_Object;
     /// C: void fclose_unwind (void *)
     pub fn fclose_unwind (arg: *mut c_void);
     /// C: void restore_point_unwind (Lisp_Object)
     pub fn restore_point_unwind (location: Lisp_Object);
     /// C: Lisp_Object file_attribute_errno (Lisp_Object, int)
-    pub fn file_attribute_errno (file: Lisp_Object, err: c_int) -> Lisp_Object;
+    pub safe fn file_attribute_errno (file: Lisp_Object, err: c_int) -> Lisp_Object;
     /// C: bool file_directory_p (Lisp_Object)
-    pub fn file_directory_p (path: Lisp_Object) -> bool;
+    pub safe fn file_directory_p (path: Lisp_Object) -> bool;
     /// C: bool file_accessible_directory_p (Lisp_Object)
-    pub fn file_accessible_directory_p (filename: Lisp_Object) -> bool;
+    pub safe fn file_accessible_directory_p (filename: Lisp_Object) -> bool;
     /// C: void init_fileio (void)
     pub fn init_fileio ();
     /// C: void syms_of_fileio (void)
     pub fn syms_of_fileio ();
     /// C: void shrink_regexp_cache (void)
-    pub fn shrink_regexp_cache ();
+    pub safe fn shrink_regexp_cache ();
     /// C: void restore_search_regs (void)
-    pub fn restore_search_regs ();
+    pub safe fn restore_search_regs ();
     /// C: void update_search_regs (ptrdiff_t oldstart, ptrdiff_t oldend, ptrdiff_t newend)
-    pub fn update_search_regs (oldstart: ptrdiff_t, oldend: ptrdiff_t, newend: ptrdiff_t);
+    pub safe fn update_search_regs (oldstart: ptrdiff_t, oldend: ptrdiff_t, newend: ptrdiff_t);
     /// C: void record_unwind_save_match_data (void)
-    pub fn record_unwind_save_match_data ();
+    pub safe fn record_unwind_save_match_data ();
     /// C: ptrdiff_t find_newline1 (ptrdiff_t, ptrdiff_t, ptrdiff_t, ptrdiff_t, ptrdiff_t, ptrdiff_t *, ptrdiff_t *, bool)
     pub fn find_newline1 (start: ptrdiff_t, start_byte: ptrdiff_t, end: ptrdiff_t, end_byte: ptrdiff_t, count: ptrdiff_t, shortage: *mut ptrdiff_t, shortage_byte: *mut ptrdiff_t, allow_quit: bool) -> ptrdiff_t;
     /// C: ptrdiff_t find_newline (ptrdiff_t, ptrdiff_t, ptrdiff_t, ptrdiff_t, ptrdiff_t, ptrdiff_t *, ptrdiff_t *, bool)
@@ -5232,9 +5291,9 @@ pub mod lisp_fn_decls {
     /// C: void syms_of_search (void)
     pub fn syms_of_search ();
     /// C: void clear_regexp_cache (void)
-    pub fn clear_regexp_cache ();
+    pub safe fn clear_regexp_cache ();
     /// C: bool is_minibuffer (EMACS_INT, Lisp_Object)
-    pub fn is_minibuffer (depth: EMACS_INT, window: Lisp_Object) -> bool;
+    pub safe fn is_minibuffer (depth: EMACS_INT, window: Lisp_Object) -> bool;
     /// C: void init_minibuf_once (void)
     pub fn init_minibuf_once ();
     /// C: void set_initial_minibuffer_mode (void)
@@ -5242,7 +5301,7 @@ pub mod lisp_fn_decls {
     /// C: void syms_of_minibuf (void)
     pub fn syms_of_minibuf ();
     /// C: void barf_if_interaction_inhibited (void)
-    pub fn barf_if_interaction_inhibited ();
+    pub safe fn barf_if_interaction_inhibited ();
     /// C: void syms_of_callint (void)
     pub fn syms_of_callint ();
     /// C: void syms_of_casefiddle (void)
@@ -5252,31 +5311,31 @@ pub mod lisp_fn_decls {
     /// C: void syms_of_casetab (void)
     pub fn syms_of_casetab ();
     /// C: void cancel_echoing (void)
-    pub fn cancel_echoing ();
+    pub safe fn cancel_echoing ();
     /// C: Lisp_Object menu_bar_items (Lisp_Object)
-    pub fn menu_bar_items (menu_bar_items: Lisp_Object) -> Lisp_Object;
+    pub safe fn menu_bar_items (menu_bar_items: Lisp_Object) -> Lisp_Object;
     /// C: Lisp_Object tab_bar_items (Lisp_Object, int *)
     pub fn tab_bar_items (tab_bar_items: Lisp_Object, ntab_bar_items: *mut c_int) -> Lisp_Object;
     /// C: void discard_mouse_events (void)
-    pub fn discard_mouse_events ();
+    pub safe fn discard_mouse_events ();
     /// C: void handle_input_available_signal (int)
     pub fn handle_input_available_signal (sig: c_int);
     /// C: bool detect_input_pending (void)
-    pub fn detect_input_pending () -> bool;
+    pub safe fn detect_input_pending () -> bool;
     /// C: bool detect_input_pending_run_timers (bool)
-    pub fn detect_input_pending_run_timers (do_display: bool) -> bool;
+    pub safe fn detect_input_pending_run_timers (do_display: bool) -> bool;
     /// C: void safe_run_hooks (Lisp_Object)
-    pub fn safe_run_hooks (hook: Lisp_Object);
+    pub safe fn safe_run_hooks (hook: Lisp_Object);
     /// C: void safe_run_hooks_2 (Lisp_Object, Lisp_Object, Lisp_Object)
-    pub fn safe_run_hooks_2 (hook: Lisp_Object, arg1: Lisp_Object, arg2: Lisp_Object);
+    pub safe fn safe_run_hooks_2 (hook: Lisp_Object, arg1: Lisp_Object, arg2: Lisp_Object);
     /// C: Lisp_Object read_menu_command (void)
-    pub fn read_menu_command () -> Lisp_Object;
+    pub safe fn read_menu_command () -> Lisp_Object;
     /// C: Lisp_Object recursive_edit_1 (void)
-    pub fn recursive_edit_1 () -> Lisp_Object;
+    pub safe fn recursive_edit_1 () -> Lisp_Object;
     /// C: void record_auto_save (void)
-    pub fn record_auto_save ();
+    pub safe fn record_auto_save ();
     /// C: void force_auto_save_soon (void)
-    pub fn force_auto_save_soon ();
+    pub safe fn force_auto_save_soon ();
     /// C: void init_keyboard (void)
     pub fn init_keyboard ();
     /// C: void syms_of_keyboard (void)
@@ -5284,17 +5343,17 @@ pub mod lisp_fn_decls {
     /// C: void keys_of_keyboard (void)
     pub fn keys_of_keyboard ();
     /// C: void invalidate_current_column (void)
-    pub fn invalidate_current_column ();
+    pub safe fn invalidate_current_column ();
     /// C: bool indented_beyond_p (ptrdiff_t, ptrdiff_t, EMACS_INT)
-    pub fn indented_beyond_p (pos: ptrdiff_t, pos_byte: ptrdiff_t, column: EMACS_INT) -> bool;
+    pub safe fn indented_beyond_p (pos: ptrdiff_t, pos_byte: ptrdiff_t, column: EMACS_INT) -> bool;
     /// C: void syms_of_indent (void)
     pub fn syms_of_indent ();
     /// C: void store_in_alist (Lisp_Object *, Lisp_Object, Lisp_Object)
     pub fn store_in_alist (alist: *mut Lisp_Object, prop: Lisp_Object, val: Lisp_Object);
     /// C: Lisp_Object do_switch_frame (Lisp_Object, int, int, Lisp_Object)
-    pub fn do_switch_frame (frame: Lisp_Object, for_deletion: c_int, track: c_int, norecord: Lisp_Object) -> Lisp_Object;
+    pub safe fn do_switch_frame (frame: Lisp_Object, for_deletion: c_int, track: c_int, norecord: Lisp_Object) -> Lisp_Object;
     /// C: void frames_discard_buffer (Lisp_Object)
-    pub fn frames_discard_buffer (buffer: Lisp_Object);
+    pub safe fn frames_discard_buffer (buffer: Lisp_Object);
     /// C: void init_frame_once (void)
     pub fn init_frame_once ();
     /// C: void syms_of_frame (void)
@@ -5310,7 +5369,7 @@ pub mod lisp_fn_decls {
     /// C: void child_signal_init (void)
     pub fn child_signal_init ();
     /// C: void kill_buffer_processes (Lisp_Object)
-    pub fn kill_buffer_processes (buffer: Lisp_Object);
+    pub safe fn kill_buffer_processes (buffer: Lisp_Object);
     /// C: int wait_reading_process_output (intmax_t, int, int, bool, Lisp_Object, struct Lisp_Process *, int)
     pub fn wait_reading_process_output (timeout: i64, nsecs: c_int, read_kbd: c_int, do_display: bool, wait_for_cell: Lisp_Object, wait_proc: *mut c_void, just_wait_proc: c_int) -> c_int;
     /// C: void add_keyboard_wait_descriptor (int)
@@ -5322,7 +5381,7 @@ pub mod lisp_fn_decls {
     /// C: void syms_of_process (void)
     pub fn syms_of_process ();
     /// C: void setup_process_coding_systems (Lisp_Object)
-    pub fn setup_process_coding_systems (process: Lisp_Object);
+    pub safe fn setup_process_coding_systems (process: Lisp_Object);
     /// C: char **make_environment_block (Lisp_Object)
     pub fn make_environment_block (current_dir: Lisp_Object) -> *mut *mut c_char;
     /// C: void init_callproc_1 (void)
@@ -5340,17 +5399,17 @@ pub mod lisp_fn_decls {
     /// C: Lisp_Object exec_byte_code (Lisp_Object, ptrdiff_t, ptrdiff_t, Lisp_Object *)
     pub fn exec_byte_code (fun: Lisp_Object, args_template: ptrdiff_t, nargs: ptrdiff_t, args: *mut Lisp_Object) -> Lisp_Object;
     /// C: Lisp_Object get_byte_code_arity (Lisp_Object)
-    pub fn get_byte_code_arity (args_template: Lisp_Object) -> Lisp_Object;
+    pub safe fn get_byte_code_arity (args_template: Lisp_Object) -> Lisp_Object;
     /// C: void syms_of_macros (void)
     pub fn syms_of_macros ();
     /// C: void record_change (ptrdiff_t, ptrdiff_t)
-    pub fn record_change (from: ptrdiff_t, to: ptrdiff_t);
+    pub safe fn record_change (from: ptrdiff_t, to: ptrdiff_t);
     /// C: void record_property_change (ptrdiff_t, ptrdiff_t, Lisp_Object, Lisp_Object, Lisp_Object)
-    pub fn record_property_change (beg: ptrdiff_t, len: ptrdiff_t, prop: Lisp_Object, value: Lisp_Object, buffer: Lisp_Object);
+    pub safe fn record_property_change (beg: ptrdiff_t, len: ptrdiff_t, prop: Lisp_Object, value: Lisp_Object, buffer: Lisp_Object);
     /// C: void syms_of_undo (void)
     pub fn syms_of_undo ();
     /// C: void report_interval_modification (Lisp_Object, Lisp_Object)
-    pub fn report_interval_modification (start: Lisp_Object, end: Lisp_Object);
+    pub safe fn report_interval_modification (start: Lisp_Object, end: Lisp_Object);
     /// C: void syms_of_menu (void)
     pub fn syms_of_menu ();
     /// C: void syms_of_xmenu (void)
@@ -5380,7 +5439,7 @@ pub mod lisp_fn_decls {
     /// C: int set_window_size (int, int, int)
     pub fn set_window_size (fd: c_int, height: c_int, width: c_int) -> c_int;
     /// C: EMACS_INT get_random (void)
-    pub fn get_random () -> EMACS_INT;
+    pub safe fn get_random () -> EMACS_INT;
     /// C: void seed_random (void *, ptrdiff_t)
     pub fn seed_random (seed: *mut c_void, seed_size: ptrdiff_t);
     /// C: void init_random (void)
@@ -5390,11 +5449,11 @@ pub mod lisp_fn_decls {
     /// C: int emacs_pipe (int[2])
     pub fn emacs_pipe (fd: *mut c_int) -> c_int;
     /// C: int str_collate (Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object)
-    pub fn str_collate (s1: Lisp_Object, s2: Lisp_Object, locale: Lisp_Object, ignore_case: Lisp_Object) -> c_int;
+    pub safe fn str_collate (s1: Lisp_Object, s2: Lisp_Object, locale: Lisp_Object, ignore_case: Lisp_Object) -> c_int;
     /// C: void syms_of_sysdep (void)
     pub fn syms_of_sysdep ();
     /// C: void unlock_all_files (void)
-    pub fn unlock_all_files ();
+    pub safe fn unlock_all_files ();
     /// C: void syms_of_filelock (void)
     pub fn syms_of_filelock ();
     /// C: void syms_of_sound (void)
@@ -5424,7 +5483,7 @@ pub mod lisp_fn_decls {
     /// C: void syms_of_xml (void)
     pub fn syms_of_xml ();
     /// C: void malloc_probe (size_t)
-    pub fn malloc_probe (size: size_t);
+    pub safe fn malloc_probe (size: size_t);
     /// C: void syms_of_profiler (void)
     pub fn syms_of_profiler ();
     /// C: void mark_profiler (void)
@@ -5476,20 +5535,17 @@ pub fn error_cstr (msg: &core::ffi::CStr) -> ! {
 
 #[inline(always)]
 pub fn xsignal0_safe (error_symbol: Lisp_Object) -> ! {
-    /* SAFETY: signals `error_symbol` with `nil` data via structured `NonLocalExit`. */
-    unsafe { xsignal0 (error_symbol) }
+    { xsignal0 (error_symbol) }
 }
 
 #[inline(always)]
 pub fn xsignal1_safe (error_symbol: Lisp_Object, arg: Lisp_Object) -> ! {
-    /* SAFETY: signals `error_symbol` with 1 `Lisp_Object` argument via structured `NonLocalExit`. */
-    unsafe { xsignal1 (error_symbol, arg) }
+    { xsignal1 (error_symbol, arg) }
 }
 
 #[inline(always)]
 pub fn xsignal2_safe (error_symbol: Lisp_Object, arg1: Lisp_Object, arg2: Lisp_Object) -> ! {
-    /* SAFETY: signals `error_symbol` with 2 `Lisp_Object` arguments via structured `NonLocalExit`. */
-    unsafe { xsignal2 (error_symbol, arg1, arg2) }
+    { xsignal2 (error_symbol, arg1, arg2) }
 }
 
 #[inline(always)]
@@ -5499,32 +5555,27 @@ pub fn xsignal3_safe (
     arg2: Lisp_Object,
     arg3: Lisp_Object,
 ) -> ! {
-    /* SAFETY: signals `error_symbol` with 3 `Lisp_Object` arguments via structured `NonLocalExit`. */
-    unsafe { xsignal3 (error_symbol, arg1, arg2, arg3) }
+    { xsignal3 (error_symbol, arg1, arg2, arg3) }
 }
 
 #[inline(always)]
 pub fn specbind_safe (symbol: Lisp_Object, value: Lisp_Object) {
-    /* SAFETY: dynamically binds `symbol` to `value` on the active Lisp thread's `specpdl`. */
-    unsafe { specbind (symbol, value) }
+    { specbind (symbol, value) }
 }
 
 #[inline(always)]
 pub fn unbind_to_safe (count: specpdl_ref, value: Lisp_Object) -> Lisp_Object {
-    /* SAFETY: unwinds active thread `specpdl` back to `count` and returns `value`. */
-    unsafe { unbind_to (count, value) }
+    { unbind_to (count, value) }
 }
 
 #[inline(always)]
 pub fn maybe_quit_safe () {
-    /* SAFETY: checks pending quit/signals on the active Lisp thread. */
-    unsafe { maybe_quit () }
+    { maybe_quit () }
 }
 
 #[inline(always)]
 pub fn run_hook_safe (hook: Lisp_Object) {
-    /* SAFETY: runs Lisp hook symbol `hook` on the active Lisp thread. */
-    unsafe { run_hook (hook) }
+    { run_hook (hook) }
 }
 
 #[inline(always)]
@@ -5568,8 +5619,7 @@ pub fn scan_newline_from_point_checked (count: ptrdiff_t) -> (ptrdiff_t, ptrdiff
 
 #[inline(always)]
 pub fn del_range_safe (from: ptrdiff_t, to: ptrdiff_t) {
-    /* SAFETY: `del_range` validates/clamps buffer bounds and signals read-only conditions cleanly. */
-    unsafe { del_range (from, to) }
+    { del_range (from, to) }
 }
 
 #[inline(always)]
@@ -5582,8 +5632,7 @@ pub fn replace_range_safe (
     markers: bool,
 ) {
     assert! (STRINGP (new_str));
-    /* SAFETY: `STRINGP(new_str)` verified above; `replace_range` operates on live `current_buffer`. */
-    unsafe { replace_range (from, to, new_str, prepare, inherit, markers) }
+    { replace_range (from, to, new_str, prepare, inherit, markers) }
 }
 
 #[inline(always)]
@@ -5597,8 +5646,7 @@ pub fn insert_and_inherit_bytes (bytes: &[u8]) {
 
 #[inline(always)]
 pub fn current_column_safe () -> ptrdiff_t {
-    /* SAFETY: computes column in live `current_buffer` on the active Lisp thread. */
-    unsafe { current_column () }
+    { current_column () }
 }
 
 #[inline(always)]
@@ -5611,8 +5659,7 @@ pub fn symbol_function_slot (sym: Lisp_Object) -> Lisp_Object {
 #[inline(always)]
 pub fn concat2_safe (s1: Lisp_Object, s2: Lisp_Object) -> Lisp_Object {
     assert! (STRINGP (s1) && STRINGP (s2));
-    /* SAFETY: both `s1` and `s2` verified `STRINGP` above. */
-    unsafe { concat2 (s1, s2) }
+    { concat2 (s1, s2) }
 }
 
 #[inline(always)]
@@ -5620,3 +5667,1279 @@ pub fn error_negative_repetition (val: EMACS_INT) -> ! {
     /* SAFETY: fixed NUL-terminated format `%td` matching `ptrdiff_t`/`EMACS_INT` argument `val`. */
     unsafe { error (c"Negative repetition argument %td".as_ptr (), val) }
 }
+
+// --- U7 safe kernel boundary primitives (P-486) ----------------------------
+
+#[inline(always)]
+pub fn define_error_cstr (name: Lisp_Object, message: &core::ffi::CStr, parent: Lisp_Object) {
+    /* SAFETY: `message` is a valid NUL-terminated `CStr`; `name` and `parent` are `Lisp_Object`s. */
+    unsafe { define_error (name, message.as_ptr (), parent) }
+}
+
+#[inline(always)]
+pub fn message1_cstr (msg: &core::ffi::CStr) {
+    /* SAFETY: `msg` is a valid NUL-terminated `CStr`. */
+    unsafe { message1 (msg.as_ptr ()) }
+}
+
+#[inline(always)]
+pub fn message1_nolog_cstr (msg: &core::ffi::CStr) {
+    /* SAFETY: `msg` is a valid NUL-terminated `CStr`. */
+    unsafe { message1_nolog (msg.as_ptr ()) }
+}
+
+#[inline(always)]
+pub fn insert_cstr (s: &core::ffi::CStr) {
+    /* SAFETY: `s` is a valid NUL-terminated `CStr`. */
+    unsafe { insert_string (s.as_ptr ()) }
+}
+
+#[inline(always)]
+pub fn insert_bytes (bytes: &[u8]) {
+    if bytes.is_empty () {
+        return;
+    }
+    /* SAFETY: `bytes` is a valid slice for `bytes.len()` bytes; copied into `current_buffer`. */
+    unsafe { insert (bytes.as_ptr () as *const c_char, bytes.len () as ptrdiff_t) }
+}
+
+#[inline(always)]
+pub fn egetenv_cstr_nonempty (var: &core::ffi::CStr) -> bool {
+    let bytes = var.to_bytes ();
+    /* SAFETY: `bytes` is a valid slice for `bytes.len()` bytes; returned pointer is NUL-terminated or null. */
+    unsafe {
+        let p = egetenv_internal (bytes.as_ptr () as *const c_char, bytes.len () as ptrdiff_t);
+        !p.is_null () && *p != 0
+    }
+}
+
+#[inline(always)]
+pub fn make_string_bytes (bytes: &[u8]) -> Lisp_Object {
+    /* SAFETY: `bytes` is a valid slice for `bytes.len()` bytes; copied into GC string storage. */
+    unsafe { make_string (bytes.as_ptr () as *const c_char, bytes.len () as ptrdiff_t) }
+}
+
+#[inline(always)]
+pub fn make_unibyte_string_bytes (bytes: &[u8]) -> Lisp_Object {
+    /* SAFETY: `bytes` is a valid slice for `bytes.len()` bytes; copied into GC string storage. */
+    unsafe { make_unibyte_string (bytes.as_ptr () as *const c_char, bytes.len () as ptrdiff_t) }
+}
+
+#[inline(always)]
+pub fn make_multibyte_string_bytes (bytes: &[u8], nchars: ptrdiff_t) -> Lisp_Object {
+    /* SAFETY: `bytes` is a valid slice for `bytes.len()` bytes; copied into GC string storage. */
+    unsafe {
+        make_multibyte_string (
+            bytes.as_ptr () as *const c_char,
+            nchars,
+            bytes.len () as ptrdiff_t,
+        )
+    }
+}
+
+#[inline(always)]
+pub fn make_string_from_bytes_safe (bytes: &[u8], nchars: ptrdiff_t) -> Lisp_Object {
+    /* SAFETY: `bytes` is a valid slice for `bytes.len()` bytes; copied into GC string storage. */
+    unsafe {
+        make_string_from_bytes (
+            bytes.as_ptr () as *const c_char,
+            nchars,
+            bytes.len () as ptrdiff_t,
+        )
+    }
+}
+
+#[inline(always)]
+pub fn copy_to_lisp_string_slice (dst: Lisp_Object, offset: usize, src: &[u8]) {
+    assert! (STRINGP (dst));
+    let cap = SBYTES (dst) as usize;
+    assert! (offset <= cap && src.len () <= cap - offset);
+    if src.is_empty () {
+        return;
+    }
+    /* SAFETY: `dst` verified `STRINGP` and `offset + src.len() <= SBYTES(dst)`; no GC runs during copy. */
+    unsafe {
+        core::ptr::copy_nonoverlapping (src.as_ptr (), SDATA (dst).add (offset), src.len ());
+    }
+}
+
+#[inline(always)]
+pub fn fill_lisp_string_byte (dst: Lisp_Object, byte: u8) {
+    assert! (STRINGP (dst));
+    let len = SBYTES (dst) as usize;
+    if len == 0 {
+        return;
+    }
+    /* SAFETY: `dst` verified `STRINGP`; fills `SBYTES(dst)` bytes in place without GC. */
+    unsafe {
+        core::ptr::write_bytes (SDATA (dst), byte, len);
+    }
+}
+
+#[inline(always)]
+pub fn lisp_string_bytes_vec (s: Lisp_Object) -> Vec<u8> {
+    assert! (STRINGP (s));
+    let len = SBYTES (s) as usize;
+    if len == 0 {
+        return Vec::new ();
+    }
+    /* SAFETY: `STRINGP(s)` verified above; copies `SBYTES(s)` bytes immediately before any GC can occur. */
+    unsafe { core::slice::from_raw_parts (SDATA (s), len).to_vec () }
+}
+
+#[inline(always)]
+pub fn lisp_string_eq_ascii (s: Lisp_Object, ascii: &[u8]) -> bool {
+    assert! (STRINGP (s));
+    let len = SBYTES (s) as usize;
+    if len != ascii.len () {
+        return false;
+    }
+    /* SAFETY: `STRINGP(s)` verified above and `SBYTES(s) == ascii.len()`. */
+    unsafe { core::slice::from_raw_parts (SDATA (s), len) == ascii }
+}
+
+#[inline(always)]
+pub fn multibyte_chars_in_slice (bytes: &[u8]) -> ptrdiff_t {
+    if bytes.is_empty () {
+        return 0;
+    }
+    /* SAFETY: `bytes` is a valid slice for `bytes.len()` bytes. */
+    unsafe { multibyte_chars_in_text (bytes.as_ptr (), bytes.len () as ptrdiff_t) }
+}
+
+#[inline(always)]
+pub fn bignum_append_decimal (num: Lisp_Object, out: &mut Vec<u8>) {
+    assert! (BIGNUMP (num));
+    let cap = bignum_bufsize (num, 10) as usize;
+    let start = out.len ();
+    out.resize (start + cap, 0);
+    /* SAFETY: `out[start..start+cap]` has `bignum_bufsize(num, 10)` writable bytes. */
+    let written = unsafe {
+        bignum_to_c_string (
+            out.as_mut_ptr ().add (start) as *mut c_char,
+            cap as ptrdiff_t,
+            num,
+            10,
+        )
+    };
+    assert! (0 <= written && (written as usize) <= cap);
+    out.truncate (start + written as usize);
+}
+
+#[inline(always)]
+pub fn float_append_decimal (val: c_double, out: &mut Vec<u8>) {
+    let mut buf = [0 as c_char; 350];
+    /* SAFETY: `buf` has >= `FLOAT_TO_STRING_BUFSIZE` (350) bytes required by `float_to_string`. */
+    let len = unsafe { float_to_string (buf.as_mut_ptr (), val) };
+    assert! (0 <= len && (len as usize) <= buf.len ());
+    for i in 0..(len as usize) {
+        out.push (buf[i] as u8);
+    }
+}
+
+#[inline(always)]
+pub fn string_to_number_bytes (bytes: &[u8], base: c_int) -> (Lisp_Object, usize) {
+    let mut nul_buf = Vec::with_capacity (bytes.len () + 1);
+    nul_buf.extend_from_slice (bytes);
+    nul_buf.push (0);
+    let mut parsed_len: ptrdiff_t = 0;
+    /* SAFETY: `nul_buf` is NUL-terminated and `parsed_len` is a valid stack out-pointer. */
+    let num = unsafe {
+        string_to_number (
+            nul_buf.as_ptr () as *const c_char,
+            base,
+            &raw mut parsed_len,
+        )
+    };
+    (num, parsed_len.max (0) as usize)
+}
+
+#[inline(always)]
+pub fn intern_cstr (s: &core::ffi::CStr) -> Lisp_Object {
+    let bytes = s.to_bytes ();
+    /* SAFETY: `bytes` is valid ASCII/UTF-8 symbol bytes of length `bytes.len()`. */
+    unsafe { intern_c_string_1 (bytes.as_ptr () as *const c_char, bytes.len () as ptrdiff_t) }
+}
+
+#[inline(always)]
+pub fn intern_utf8_bytes (bytes: &[u8]) -> Lisp_Object {
+    /* SAFETY: `bytes` is a valid byte slice of length `bytes.len()`. */
+    unsafe { intern_1 (bytes.as_ptr () as *const c_char, bytes.len () as ptrdiff_t) }
+}
+
+#[inline(always)]
+pub fn intern_multibyte_bytes (bytes: &[u8], nchars: ptrdiff_t) -> Lisp_Object {
+    /* SAFETY: `bytes` is a valid multibyte slice of `nchars` chars and `bytes.len()` bytes. */
+    unsafe {
+        intern_c_multibyte (
+            bytes.as_ptr () as *const c_char,
+            nchars,
+            bytes.len () as ptrdiff_t,
+        )
+    }
+}
+
+#[inline(always)]
+pub fn oblookup_lisp_string (obarray: Lisp_Object, name: Lisp_Object) -> Lisp_Object {
+    assert! (STRINGP (name));
+    /* SAFETY: `STRINGP(name)` verified above; `oblookup` does not allocate or trigger GC. */
+    unsafe {
+        oblookup (
+            obarray,
+            SDATA (name) as *const c_char,
+            SCHARS (name),
+            SBYTES (name),
+        )
+    }
+}
+
+#[inline(always)]
+pub fn funcall_general_slice (fun: Lisp_Object, args: &mut [Lisp_Object]) -> Lisp_Object {
+    let ptr = if args.is_empty () {
+        core::ptr::null_mut ()
+    } else {
+        args.as_mut_ptr ()
+    };
+    /* SAFETY: `args` is a valid contiguous slice of `args.len()` rooted `Lisp_Object`s. */
+    unsafe { funcall_general (fun, args.len () as ptrdiff_t, ptr) }
+}
+
+#[inline(always)]
+pub fn make_event_array_slice (args: &mut [Lisp_Object]) -> Lisp_Object {
+    let ptr = if args.is_empty () {
+        core::ptr::null_mut ()
+    } else {
+        args.as_mut_ptr ()
+    };
+    /* SAFETY: `args` is a valid contiguous slice of `args.len()` rooted `Lisp_Object`s. */
+    unsafe { make_event_array (args.len () as ptrdiff_t, ptr) }
+}
+
+#[inline(always)]
+pub fn validate_subarray_safe (
+    array: Lisp_Object,
+    from: Lisp_Object,
+    to: Lisp_Object,
+    size: ptrdiff_t,
+) -> (ptrdiff_t, ptrdiff_t) {
+    let f: EMACS_INT = if FIXNUMP (from) {
+        let v = XFIXNUM (from);
+        if v < 0 { v + size } else { v }
+    } else if NILP (from) {
+        0
+    } else {
+        wrong_type_argument (Qintegerp (), from)
+    };
+    let t: EMACS_INT = if FIXNUMP (to) {
+        let v = XFIXNUM (to);
+        if v < 0 { v + size } else { v }
+    } else if NILP (to) {
+        size
+    } else {
+        wrong_type_argument (Qintegerp (), to)
+    };
+    if !(0 <= f && f <= t && t <= size) {
+        args_out_of_range_3 (array, from, to);
+    }
+    (f, t)
+}
+
+#[inline(always)]
+pub fn char_table_purpose (table: Lisp_Object) -> Lisp_Object {
+    assert! (CHAR_TABLE_P (table));
+    /* SAFETY: `CHAR_TABLE_P(table)` verified above. */
+    unsafe { (*XCHAR_TABLE (table)).purpose }
+}
+
+#[inline(always)]
+pub fn char_table_parent (table: Lisp_Object) -> Lisp_Object {
+    assert! (CHAR_TABLE_P (table));
+    /* SAFETY: `CHAR_TABLE_P(table)` verified above. */
+    unsafe { (*XCHAR_TABLE (table)).parent }
+}
+
+#[inline(always)]
+pub fn set_char_table_parent_raw (table: Lisp_Object, parent: Lisp_Object) {
+    assert! (CHAR_TABLE_P (table));
+    /* SAFETY: `CHAR_TABLE_P(table)` verified above. */
+    unsafe { (*XCHAR_TABLE (table)).parent = parent; }
+}
+
+#[inline(always)]
+pub fn char_table_defalt (table: Lisp_Object) -> Lisp_Object {
+    assert! (CHAR_TABLE_P (table));
+    /* SAFETY: `CHAR_TABLE_P(table)` verified above. */
+    unsafe { (*XCHAR_TABLE (table)).defalt }
+}
+
+#[inline(always)]
+pub fn char_table_ascii (table: Lisp_Object) -> Lisp_Object {
+    assert! (CHAR_TABLE_P (table));
+    /* SAFETY: `CHAR_TABLE_P(table)` verified above. */
+    unsafe { (*XCHAR_TABLE (table)).ascii }
+}
+
+#[inline(always)]
+pub fn set_char_table_ascii_slot (table: Lisp_Object, val: Lisp_Object) {
+    assert! (CHAR_TABLE_P (table));
+    /* SAFETY: `CHAR_TABLE_P(table)` verified above. */
+    unsafe { (*XCHAR_TABLE (table)).ascii = val; }
+}
+
+#[inline(always)]
+pub fn char_table_extra_slots_count (table: Lisp_Object) -> isize {
+    assert! (CHAR_TABLE_P (table));
+    CHAR_TABLE_EXTRA_SLOTS (XCHAR_TABLE (table))
+}
+
+#[inline(always)]
+pub fn char_table_extra_slot_ref (table: Lisp_Object, idx: isize) -> Lisp_Object {
+    assert! (CHAR_TABLE_P (table));
+    let n = CHAR_TABLE_EXTRA_SLOTS (XCHAR_TABLE (table));
+    assert! (0 <= idx && idx < n);
+    /* SAFETY: `CHAR_TABLE_P(table)` and `0 <= idx < n` verified above. */
+    unsafe { FAM_ELEM! ((*XCHAR_TABLE (table)).extras, idx) }
+}
+
+#[inline(always)]
+pub fn char_table_top_contents (table: Lisp_Object, idx: usize) -> Lisp_Object {
+    assert! (CHAR_TABLE_P (table) && idx < (1 << CHARTAB_SIZE_BITS_0));
+    /* SAFETY: `CHAR_TABLE_P(table)` and `idx` in bounds verified above. */
+    unsafe { (*XCHAR_TABLE (table)).contents[idx] }
+}
+
+#[inline(always)]
+pub fn sub_char_table_depth_and_min (sub: Lisp_Object) -> (c_int, c_int) {
+    assert! (SUB_CHAR_TABLE_P (sub));
+    /* SAFETY: `SUB_CHAR_TABLE_P(sub)` verified above. */
+    unsafe { ((*XSUB_CHAR_TABLE (sub)).depth, (*XSUB_CHAR_TABLE (sub)).min_char) }
+}
+
+#[inline(always)]
+pub fn sub_char_table_contents_slot (sub: Lisp_Object, idx: usize) -> Lisp_Object {
+    assert! (SUB_CHAR_TABLE_P (sub));
+    /* SAFETY: `SUB_CHAR_TABLE_P(sub)` verified above; reads static `chartab_size` bounds and `contents[idx]`. */
+    unsafe {
+        let depth = (*XSUB_CHAR_TABLE (sub)).depth;
+        assert! ((1..=3).contains (&depth) && (idx as c_int) < (*chartab_size.as_ptr ())[depth as usize]);
+        FAM_ELEM! ((*XSUB_CHAR_TABLE (sub)).contents, idx as isize)
+    }
+}
+
+#[inline(always)]
+pub fn char_table_ref_and_range_safe (
+    table: Lisp_Object,
+    idx: c_int,
+    from: c_int,
+    to: c_int,
+) -> (Lisp_Object, c_int, c_int) {
+    assert! (CHAR_TABLE_P (table));
+    let mut f = from;
+    let mut t = to;
+    /* SAFETY: `CHAR_TABLE_P(table)` verified above; `f` and `t` are valid stack in/out pointers. */
+    let val = unsafe { char_table_ref_and_range (table, idx, &raw mut f, &raw mut t) };
+    (val, f, t)
+}
+
+#[inline(always)]
+pub fn make_equal_hash_table (size: EMACS_INT, weakness: hash_table_weakness_t) -> Lisp_Object {
+    /* SAFETY: `hashtest_equal` is static initialized VM descriptor storage. */
+    unsafe { make_hash_table (hashtest_equal.as_ptr (), size, weakness) }
+}
+
+#[inline(always)]
+pub fn hash_find_or_put_equal (
+    table: Lisp_Object,
+    key: Lisp_Object,
+    make_val: impl FnOnce () -> Lisp_Object,
+) -> Lisp_Object {
+    assert! (HASH_TABLE_P (table));
+    let mut hash: hash_hash_t = 0;
+    /* SAFETY: `HASH_TABLE_P(table)` verified above; re-fetches `XHASH_TABLE(table)` if `make_val` allocates. */
+    unsafe {
+        let h = XHASH_TABLE (table);
+        let i = hash_find_get_hash (h, key, &raw mut hash);
+        if i >= 0 {
+            return HASH_VALUE (h, i as hash_idx_t);
+        }
+        let val = make_val ();
+        let h2 = XHASH_TABLE (table);
+        let i2 = hash_find_get_hash (h2, key, &raw mut hash);
+        if i2 >= 0 {
+            set_hash_value_slot (h2, i2 as hash_idx_t, val);
+        } else {
+            hash_put (h2, key, val, hash);
+        }
+        val
+    }
+}
+
+#[inline(always)]
+pub fn hash_table_collect_pairs (table: Lisp_Object) -> Vec<(Lisp_Object, Lisp_Object)> {
+    assert! (HASH_TABLE_P (table));
+    /* SAFETY: `HASH_TABLE_P(table)` verified above; iterates without triggering GC or rehash. */
+    unsafe {
+        let h = XHASH_TABLE (table);
+        let mut pairs = Vec::with_capacity ((*h).count as usize);
+        DOHASH! (h, k, v, {
+            pairs.push ((k, v));
+        });
+        pairs
+    }
+}
+
+#[inline(always)]
+pub fn subr_doc_raw (subr: Lisp_Object) -> EMACS_INT {
+    assert! (SUBRP (subr));
+    /* SAFETY: `SUBRP(subr)` verified above. */
+    unsafe { (*XSUBR (subr)).doc }
+}
+
+#[inline(always)]
+pub fn subr_arity_pair (subr: Lisp_Object) -> (i16, i16) {
+    assert! (SUBRP (subr));
+    /* SAFETY: `SUBRP(subr)` verified above. */
+    unsafe { ((*XSUBR (subr)).min_args, (*XSUBR (subr)).max_args) }
+}
+
+#[inline(always)]
+pub fn subr_symbol_name_lisp_string (subr: Lisp_Object) -> Lisp_Object {
+    assert! (SUBRP (subr));
+    /* SAFETY: `SUBRP(subr)` verified above; `symbol_name` is a static NUL-terminated C string. */
+    unsafe {
+        let cname = (*XSUBR (subr)).symbol_name;
+        if cname.is_null () {
+            empty_unibyte_string.get ()
+        } else {
+            build_cstr (core::ffi::CStr::from_ptr (cname))
+        }
+    }
+}
+
+#[inline(always)]
+pub fn subr_native_comp_unit (subr: Lisp_Object) -> Lisp_Object {
+    assert! (SUBRP (subr));
+    #[cfg(feature = "have_native_comp")]
+    {
+        /* SAFETY: `SUBRP(subr)` verified above. */
+        unsafe { (*XSUBR (subr)).native_comp_u }
+    }
+    #[cfg(not(feature = "have_native_comp"))]
+    {
+        let _ = subr;
+        Qnil ()
+    }
+}
+
+#[inline(always)]
+pub fn set_closure_doc_slot_safe (closure: Lisp_Object, val: Lisp_Object) {
+    assert! (CLOSUREP (closure) && PVSIZE (closure) > CLOSURE_DOC_STRING as isize);
+    ASET (closure, CLOSURE_DOC_STRING as isize, val);
+}
+
+#[inline(always)]
+pub fn bool_vector_set_op (
+    op: c_int,
+    nr_bits: EMACS_INT,
+    dest: Lisp_Object,
+    a: Lisp_Object,
+    b: Lisp_Object,
+) {
+    assert! (BOOL_VECTOR_P (dest) && BOOL_VECTOR_P (a) && BOOL_VECTOR_P (b));
+    assert! (bool_vector_size (dest) == nr_bits && bool_vector_size (a) == nr_bits && bool_vector_size (b) == nr_bits);
+    let nw = bool_vector_words (nr_bits) as usize;
+    /* SAFETY: all three verified `BOOL_VECTOR_P` of equal `nr_bits` (`nw` `bits_word`s); no GC runs here. */
+    unsafe {
+        let dp = bool_vector_data (dest);
+        let ap = bool_vector_data (a);
+        let bp = bool_vector_data (b);
+        for i in 0..nw {
+            let aw = *ap.add (i);
+            let bw = *bp.add (i);
+            *dp.add (i) = match op {
+                0 => aw | bw,       // BoolVecOr
+                1 => aw & bw,       // BoolVecAnd
+                2 => aw & !bw,      // BoolVecDiff
+                _ => aw ^ bw,       // BoolVecXor
+            };
+        }
+        let extra = (nr_bits as usize) % (BITS_PER_BITS_WORD as usize);
+        if extra != 0 && nw > 0 {
+            *dp.add (nw - 1) &= ((1 as bits_word) << extra) - 1;
+        }
+    }
+}
+
+#[inline(always)]
+pub fn bool_vector_not_into (nr_bits: EMACS_INT, dest: Lisp_Object, a: Lisp_Object) {
+    assert! (BOOL_VECTOR_P (dest) && BOOL_VECTOR_P (a));
+    assert! (bool_vector_size (dest) == nr_bits && bool_vector_size (a) == nr_bits);
+    let nw = bool_vector_words (nr_bits) as usize;
+    /* SAFETY: both verified `BOOL_VECTOR_P` of equal `nr_bits` (`nw` `bits_word`s); no GC runs here. */
+    unsafe {
+        let dp = bool_vector_data (dest);
+        let ap = bool_vector_data (a);
+        for i in 0..nw {
+            *dp.add (i) = !*ap.add (i);
+        }
+        let extra = (nr_bits as usize) % (BITS_PER_BITS_WORD as usize);
+        if extra != 0 && nw > 0 {
+            *dp.add (nw - 1) &= ((1 as bits_word) << extra) - 1;
+        }
+    }
+}
+
+#[inline(always)]
+pub fn bool_vector_subset_words_p (nr_bits: EMACS_INT, a: Lisp_Object, b: Lisp_Object) -> bool {
+    assert! (BOOL_VECTOR_P (a) && BOOL_VECTOR_P (b));
+    assert! (bool_vector_size (a) == nr_bits && bool_vector_size (b) == nr_bits);
+    let nw = bool_vector_words (nr_bits) as usize;
+    /* SAFETY: both verified `BOOL_VECTOR_P` of equal `nr_bits`. */
+    unsafe {
+        let ap = bool_vector_data (a);
+        let bp = bool_vector_data (b);
+        for i in 0..nw {
+            if (*ap.add (i) & !*bp.add (i)) != 0 {
+                return false;
+            }
+        }
+    }
+    true
+}
+
+#[inline(always)]
+pub fn bool_vector_popcount (a: Lisp_Object, count_ones: bool) -> EMACS_INT {
+    assert! (BOOL_VECTOR_P (a));
+    let nr_bits = bool_vector_size (a);
+    let nw = bool_vector_words (nr_bits) as usize;
+    let mut ones: EMACS_INT = 0;
+    /* SAFETY: `BOOL_VECTOR_P(a)` verified above; reads `nw` `bits_word`s. */
+    unsafe {
+        let ap = bool_vector_data (a);
+        for i in 0..nw {
+            ones += (*ap.add (i)).count_ones () as EMACS_INT;
+        }
+    }
+    if count_ones { ones } else { nr_bits - ones }
+}
+
+#[inline(always)]
+pub fn make_detached_marker () -> Lisp_Object {
+    /* SAFETY: allocates a `PVEC_MARKER` pseudovector and initializes its fields to detached/zero state. */
+    unsafe {
+        let p = allocate_pseudovector (
+            VECSIZE (core::mem::size_of::<Lisp_Marker> ()) as c_int,
+            0,
+            0,
+            pvec_type::PVEC_MARKER,
+        ) as *mut Lisp_Marker;
+        (*p).buffer = core::ptr::null_mut ();
+        (*p).bits = 0;
+        (*p)._pad = 0;
+        (*p).next = core::ptr::null_mut ();
+        (*p).charpos = 0;
+        (*p).bytepos = 0;
+        make_lisp_ptr (p as *mut c_void, Lisp_Type::Lisp_Vectorlike)
+    }
+}
+
+#[inline(always)]
+pub fn marker_buffer_object (m: Lisp_Object) -> Lisp_Object {
+    assert! (MARKERP (m));
+    /* SAFETY: `MARKERP(m)` verified above; returns `nil` when detached, else tagged `PVEC_BUFFER`. */
+    unsafe {
+        let buf = (*XMARKER (m)).buffer;
+        if buf.is_null () {
+            Qnil ()
+        } else {
+            make_lisp_ptr (buf, Lisp_Type::Lisp_Vectorlike)
+        }
+    }
+}
+
+#[inline(always)]
+pub fn marker_has_buffer (m: Lisp_Object) -> bool {
+    assert! (MARKERP (m));
+    /* SAFETY: `MARKERP(m)` verified above. */
+    unsafe { !(*XMARKER (m)).buffer.is_null () }
+}
+
+#[inline(always)]
+pub fn marker_charpos_opt (m: Lisp_Object) -> Option<ptrdiff_t> {
+    assert! (MARKERP (m));
+    /* SAFETY: `MARKERP(m)` verified above. */
+    unsafe {
+        if (*XMARKER (m)).buffer.is_null () {
+            None
+        } else {
+            Some ((*XMARKER (m)).charpos)
+        }
+    }
+}
+
+#[inline(always)]
+pub fn marker_insertion_type_flag (m: Lisp_Object) -> bool {
+    assert! (MARKERP (m));
+    /* SAFETY: `MARKERP(m)` verified above. */
+    unsafe { ((*XMARKER (m)).bits & MARKER_INSERTION_TYPE) != 0 }
+}
+
+#[inline(always)]
+pub fn set_marker_insertion_type_flag (m: Lisp_Object, flag: bool) {
+    assert! (MARKERP (m));
+    /* SAFETY: `MARKERP(m)` verified above. */
+    unsafe {
+        if flag {
+            (*XMARKER (m)).bits |= MARKER_INSERTION_TYPE;
+        } else {
+            (*XMARKER (m)).bits &= !MARKER_INSERTION_TYPE;
+        }
+    }
+}
+
+#[inline(always)]
+pub fn open_doc_file_guarded (
+    path: Lisp_Object,
+    doc_name: Lisp_Object,
+) -> (c_int, Lisp_Object) {
+    let mut found = Qnil ();
+    /* SAFETY: `found` is a valid stack out-pointer; if `fd >= 0`, registers `close_file_unwind` immediately. */
+    let fd = unsafe {
+        let fd = openp (
+            path,
+            doc_name,
+            Qnil (),
+            &raw mut found,
+            Qnil (),
+            false,
+            false,
+            core::ptr::null_mut (),
+        );
+        if fd >= 0 {
+            record_unwind_protect_int (Some (close_file_unwind), fd);
+        }
+        fd
+    };
+    (fd, found)
+}
+
+#[inline(always)]
+pub fn emacs_read_quit_slice (fd: c_int, buf: &mut [u8]) -> ptrdiff_t {
+    if buf.is_empty () {
+        return 0;
+    }
+    /* SAFETY: `buf` is a writable slice of `buf.len()` bytes. */
+    unsafe { emacs_read_quit (fd, buf.as_mut_ptr () as *mut c_void, buf.len () as ptrdiff_t) }
+}
+
+#[inline(always)]
+pub fn lseek_set_offset (fd: c_int, offset: off_t) -> off_t {
+    unsafe extern "C" {
+        fn lseek (fd: c_int, offset: off_t, whence: c_int) -> off_t;
+    }
+    /* SAFETY: `lseek` with `SEEK_SET` on `fd` is a scalar OS syscall. */
+    unsafe { lseek (fd, offset, SEEK_SET) }
+}
+
+#[inline(always)]
+pub fn report_file_errno_cstr (msg: &core::ffi::CStr, file: Lisp_Object, errnum: c_int) -> ! {
+    /* SAFETY: `msg` is a valid NUL-terminated `CStr`. */
+    unsafe { report_file_errno (msg.as_ptr (), file, errnum) }
+}
+
+#[inline(always)]
+pub fn record_unwind_protect_lisp_fn (
+    func: extern "C-unwind" fn (Lisp_Object),
+    arg: Lisp_Object,
+) {
+    /* SAFETY: `extern "C-unwind" fn(Lisp_Object)` coerces safely to the C unwind callback signature on `specpdl`. */
+    let raw: unsafe extern "C-unwind" fn (Lisp_Object) = func;
+    unsafe { record_unwind_protect (Some (raw), arg) }
+}
+
+#[inline(always)]
+pub fn map_char_table_c_fn (
+    c_fn: extern "C-unwind" fn (Lisp_Object, Lisp_Object, Lisp_Object),
+    table: Lisp_Object,
+    arg: Lisp_Object,
+) {
+    let raw: unsafe extern "C-unwind" fn (Lisp_Object, Lisp_Object, Lisp_Object) = c_fn;
+    /* SAFETY: `table` is validated by `map_char_table` / caller; `raw` has exact `C-unwind` ABI. */
+    unsafe { map_char_table (Some (raw), Qnil (), table, arg) }
+}
+
+#[inline(always)]
+pub fn hash_intern_category_set (table: Lisp_Object, category_set: Lisp_Object) -> Lisp_Object {
+    assert! (CHAR_TABLE_P (table));
+    if NILP (char_table_extra_slot_ref (table, 1)) {
+        set_char_table_extras (
+            table,
+            1,
+            make_equal_hash_table (DEFAULT_HASH_SIZE as EMACS_INT, Weak_None),
+        );
+    }
+    let h_obj = char_table_extra_slot_ref (table, 1);
+    assert! (HASH_TABLE_P (h_obj));
+    let mut hash: hash_hash_t = 0;
+    /* SAFETY: `HASH_TABLE_P(h_obj)` verified above. */
+    unsafe {
+        let h = XHASH_TABLE (h_obj);
+        let i = hash_find_get_hash (h, category_set, &raw mut hash);
+        if i >= 0 {
+            return HASH_KEY (h, i as hash_idx_t);
+        }
+        hash_put (h, category_set, Qnil (), hash);
+        category_set
+    }
+}
+
+#[inline(always)]
+pub fn error_category_already_defined (cat: c_int) -> ! {
+    /* SAFETY: fixed format string with scalar `c_int` argument. */
+    unsafe { error (c"Category `%c' is already defined".as_ptr (), cat) }
+}
+
+#[inline(always)]
+pub fn error_undefined_category (cat: c_int) -> ! {
+    /* SAFETY: fixed format string with scalar `c_int` argument. */
+    unsafe { error (c"Undefined category: %c".as_ptr (), cat) }
+}
+
+#[inline(always)]
+pub fn integer_to_intmax_opt (num: Lisp_Object) -> Option<intmax_t> {
+    let mut out: intmax_t = 0;
+    /* SAFETY: `out` is a valid stack `intmax_t` out-pointer. */
+    if { integer_to_intmax (num, &raw mut out) } {
+        Some (out)
+    } else {
+        None
+    }
+}
+
+#[inline(always)]
+pub fn set_subr_doc_slot (subr: Lisp_Object, offset: EMACS_INT) {
+    assert! (SUBRP (subr) && offset >= 0);
+    /* SAFETY: `SUBRP(subr)` verified above. */
+    unsafe { (*XSUBR (subr)).doc = offset; }
+}
+
+#[inline(always)]
+pub fn native_or_module_subr_documentation (function: Lisp_Object) -> Option<Lisp_Object> {
+    #[cfg(feature = "have_native_comp")]
+    {
+        unsafe extern "C-unwind" {
+            fn native_function_doc (function: Lisp_Object) -> Lisp_Object;
+        }
+        if !NILP (Fnative_comp_function_p (function)) {
+            /* SAFETY: `Fnative_comp_function_p(function)` verified non-nil. */
+            return Some (unsafe { native_function_doc (function) });
+        }
+    }
+    #[cfg(feature = "have_modules")]
+    {
+        if MODULE_FUNCTIONP (function) {
+            /* SAFETY: `MODULE_FUNCTIONP(function)` verified above. */
+            return Some (unsafe {
+                module_function_documentation (XMODULE_FUNCTION (function) as *const c_void)
+            });
+        }
+    }
+    let _ = function;
+    None
+}
+
+#[inline(always)]
+pub fn emacs_open_ro_bytes (path: &[u8]) -> c_int {
+    let mut nul_path = Vec::with_capacity (path.len () + 1);
+    nul_path.extend_from_slice (path);
+    nul_path.push (0);
+    /* SAFETY: `nul_path` is a NUL-terminated path buffer opened read-only. */
+    unsafe { emacs_open (nul_path.as_ptr () as *const c_char, O_RDONLY, 0) }
+}
+
+#[inline(always)]
+pub fn current_errno () -> c_int {
+    /* SAFETY: reads thread-local `errno`. */
+    unsafe { *errno () }
+}
+
+#[inline(always)]
+pub fn report_file_error_cstr (msg: &core::ffi::CStr, file: Lisp_Object) -> ! {
+    /* SAFETY: `msg` is a valid NUL-terminated `CStr`. */
+    unsafe { report_file_error (msg.as_ptr (), file) }
+}
+
+#[inline(always)]
+pub fn record_close_file_unwind_safe (fd: c_int) {
+    /* SAFETY: registers `close_file_unwind` for open descriptor `fd` on `specpdl`. */
+    unsafe { record_unwind_protect_int (Some (close_file_unwind), fd) }
+}
+
+#[inline(always)]
+pub fn oblookup_bytes (obarray: Lisp_Object, bytes: &[u8]) -> Lisp_Object {
+    let nchars = multibyte_chars_in_slice (bytes);
+    /* SAFETY: `bytes` is a valid slice of `bytes.len()` bytes and `nchars` multibyte chars. */
+    unsafe {
+        oblookup (
+            obarray,
+            bytes.as_ptr () as *const c_char,
+            nchars,
+            bytes.len () as ptrdiff_t,
+        )
+    }
+}
+
+#[inline(always)]
+pub fn error_doc_position_out_of_range (position: EMACS_INT, name_bytes: &[u8]) -> ! {
+    let mut nul_name = Vec::with_capacity (name_bytes.len () + 1);
+    nul_name.extend_from_slice (name_bytes);
+    nul_name.push (0);
+    /* SAFETY: fixed format string with scalar `position` and NUL-terminated `nul_name`. */
+    unsafe {
+        error (
+            c"Position %ld out of range in doc string file \"%s\"".as_ptr (),
+            position,
+            nul_name.as_ptr () as *const c_char,
+        )
+    }
+}
+
+#[inline(always)]
+pub fn error_doc_invalid_escape (uc: u8) -> ! {
+    /* SAFETY: fixed format string with scalar `c_int` arguments. */
+    unsafe {
+        error (
+            c"Invalid data in documentation file -- %c followed by code %03o".as_ptr (),
+            1 as c_int,
+            uc as c_int,
+        )
+    }
+}
+
+#[inline(always)]
+pub fn error_doc_invalid_pos (pos: EMACS_INT) -> ! {
+    /* SAFETY: fixed format string with scalar `EMACS_INT` argument. */
+    unsafe { error (c"DOC file invalid at position %ld".as_ptr (), pos) }
+}
+
+#[inline(always)]
+pub fn Flist_slice (args: &mut [Lisp_Object]) -> Lisp_Object {
+    let ptr = if args.is_empty () {
+        core::ptr::null_mut ()
+    } else {
+        args.as_mut_ptr ()
+    };
+    /* SAFETY: `args` is a contiguous slice of `args.len()` rooted `Lisp_Object`s. */
+    unsafe { Flist (args.len () as ptrdiff_t, ptr) }
+}
+
+#[inline(always)]
+pub fn Ffuncall_slice (args: &mut [Lisp_Object]) -> Lisp_Object {
+    assert! (!args.is_empty ());
+    /* SAFETY: `args` is a non-empty contiguous slice of `args.len()` rooted `Lisp_Object`s. */
+    unsafe { Ffuncall (args.len () as ptrdiff_t, args.as_mut_ptr ()) }
+}
+
+#[inline(always)]
+pub fn Fformat_message_slice (args: &mut [Lisp_Object]) -> Lisp_Object {
+    assert! (!args.is_empty ());
+    /* SAFETY: `args` is a non-empty contiguous slice of `args.len()` rooted `Lisp_Object`s. */
+    unsafe { Fformat_message (args.len () as ptrdiff_t, args.as_mut_ptr ()) }
+}
+
+#[inline(always)]
+pub fn message1_nolog_clear () {
+    /* SAFETY: null pointer clears the echo area in `message1_nolog`. */
+    unsafe { message1_nolog (core::ptr::null ()) }
+}
+
+#[inline(always)]
+pub fn error_callint_plus_reserved () -> ! {
+    /* SAFETY: static NUL-terminated format string with zero format arguments. */
+    unsafe { error (c"`+' is not used in `interactive' for ordinary commands".as_ptr ()) }
+}
+
+#[inline(always)]
+pub fn error_callint_inactive_minibuf () -> ! {
+    /* SAFETY: static NUL-terminated format string with zero format arguments. */
+    unsafe { error (c"Attempt to select inactive minibuffer window".as_ptr ()) }
+}
+
+#[inline(always)]
+pub fn error_callint_non_char_event () -> ! {
+    /* SAFETY: static NUL-terminated format string with zero format arguments. */
+    unsafe { error (c"Non-character input-event".as_ptr ()) }
+}
+
+#[inline(always)]
+pub fn error_callint_event_params (function: Lisp_Object) -> ! {
+    /* SAFETY: passes either `SSDATA(SYMBOL_NAME(function))` (NUL-terminated) or `"command"`. */
+    unsafe {
+        let name = if SYMBOLP (function) {
+            SSDATA (SYMBOL_NAME (function))
+        } else {
+            c"command".as_ptr ()
+        };
+        error (c"%s must be bound to an event with parameters".as_ptr (), name)
+    }
+}
+
+#[inline(always)]
+pub fn error_callint_invalid_letter (letter: c_uint) -> ! {
+    /* SAFETY: fixed format string matching `(c_int, c_uint, c_uint)` scalar arguments. */
+    unsafe {
+        error (
+            c"Invalid control letter `%c' (#o%03o, #x%04x) in interactive calling string".as_ptr (),
+            letter as c_int,
+            letter,
+            letter,
+        )
+    }
+}
+
+#[inline(always)]
+pub fn error_mark_not_set (for_region: bool) -> ! {
+    /* SAFETY: static NUL-terminated format strings with zero format arguments. */
+    unsafe {
+        error (if for_region {
+            c"The mark is not set now, so there is no region".as_ptr ()
+        } else {
+            c"The mark is not set now".as_ptr ()
+        })
+    }
+}
+
+#[inline(always)]
+pub fn error_json_max_depth () -> ! {
+    /* SAFETY: static NUL-terminated format string with zero format arguments. */
+    unsafe { error (c"Maximum JSON serialization depth exceeded".as_ptr ()) }
+}
+
+#[inline(always)]
+pub fn signal_json_inf_or_nan (f: Lisp_Object) -> ! {
+    /* SAFETY: static NUL-terminated message string with `Lisp_Object` datum. */
+    unsafe { signal_error (c"JSON does not allow Inf or NaN".as_ptr (), f) }
+}
+
+#[inline(always)]
+pub fn fixnum_append_decimal (x: EMACS_INT, out: &mut Vec<u8>) {
+    const BOUND: usize = ((EMACS_INT_WIDTH - 1) * 146 + 484) / 485 + 2;
+    let mut buf = [0 as c_char; BOUND];
+    /* SAFETY: `buf` has `INT_BUFSIZE_BOUND` bytes; `fixnum_to_string` returns pointer inside `buf..=end`. */
+    unsafe {
+        let end = buf.as_mut_ptr ().add (BOUND);
+        let p = fixnum_to_string (x, buf.as_mut_ptr (), end);
+        let n = end.offset_from (p) as usize;
+        let slice = core::slice::from_raw_parts (p as *const u8, n);
+        out.extend_from_slice (slice);
+    }
+}
+
+#[inline(always)]
+pub fn strtod_bytes (bytes: &[u8]) -> (c_double, usize, bool) {
+    let mut nul_buf = Vec::with_capacity (bytes.len () + 1);
+    nul_buf.extend_from_slice (bytes);
+    nul_buf.push (0);
+    /* SAFETY: `nul_buf` is NUL-terminated; `endp` is a valid stack out-pointer; checks thread `errno`. */
+    unsafe {
+        *errno () = 0;
+        let mut endp: *mut c_char = core::ptr::null_mut ();
+        let start = nul_buf.as_ptr () as *const c_char;
+        let value = strtod (start, &raw mut endp);
+        let out_of_range = *errno () != 0 && (value == HUGE_VAL || value == -HUGE_VAL);
+        let parsed_len = if endp.is_null () {
+            0
+        } else {
+            (endp as usize).saturating_sub (start as usize)
+        };
+        (value, parsed_len, out_of_range)
+    }
+}
+
+#[inline(always)]
+pub fn classify_sort_subr_predicate (predicate: Lisp_Object) -> u8 {
+    if NILP (predicate) {
+        return 0;
+    }
+    if SUBRP (predicate) {
+        /* SAFETY: `SUBRP(predicate)` verified above. */
+        let f = unsafe { (*XSUBR (predicate)).function.aMANY };
+        if f == Some (Flss) {
+            return 1;
+        }
+        if f == Some (Fgtr) {
+            return 2;
+        }
+    }
+    3
+}
+
+#[inline(always)]
+pub fn set_vector_to_char_table (mut vector: Lisp_Object, purpose: Lisp_Object) -> Lisp_Object {
+    assert! (VECTORP (vector));
+    /* SAFETY: `vector` verified `VECTORP` of `CHAR_TABLE_STANDARD_SLOTS + n_extras` slots. */
+    unsafe {
+        XSETPVECTYPE! (XVECTOR (vector), pvec_type::PVEC_CHAR_TABLE);
+        (*XCHAR_TABLE (vector)).parent = Qnil ();
+        set_char_table_purpose (vector, purpose);
+        XSETCHAR_TABLE! (vector, XCHAR_TABLE (vector));
+    }
+    vector
+}
+
+#[inline(always)]
+pub fn char_table_purpose_ref (table: Lisp_Object) -> Lisp_Object {
+    assert! (CHAR_TABLE_P (table));
+    /* SAFETY: `CHAR_TABLE_P(table)` verified above. */
+    unsafe { (*XCHAR_TABLE (table)).purpose }
+}
+
+#[inline(always)]
+pub fn char_table_parent_ref (table: Lisp_Object) -> Lisp_Object {
+    assert! (CHAR_TABLE_P (table));
+    /* SAFETY: `CHAR_TABLE_P(table)` verified above. */
+    unsafe { (*XCHAR_TABLE (table)).parent }
+}
+
+#[inline(always)]
+pub fn set_char_table_parent_slot (table: Lisp_Object, val: Lisp_Object) {
+    assert! (CHAR_TABLE_P (table));
+    /* SAFETY: `CHAR_TABLE_P(table)` verified above. */
+    unsafe { (*XCHAR_TABLE (table)).parent = val; }
+}
+
+#[inline(always)]
+pub fn Fconcat_slice (args: &mut [Lisp_Object]) -> Lisp_Object {
+    let ptr = if args.is_empty () {
+        core::ptr::null_mut ()
+    } else {
+        args.as_mut_ptr ()
+    };
+    /* SAFETY: `args` is a contiguous slice of `args.len()` rooted `Lisp_Object`s. */
+    unsafe { Fconcat (args.len () as ptrdiff_t, ptr) }
+}
+
+#[inline(always)]
+pub fn Fvector_slice (args: &mut [Lisp_Object]) -> Lisp_Object {
+    let ptr = if args.is_empty () {
+        core::ptr::null_mut ()
+    } else {
+        args.as_mut_ptr ()
+    };
+    /* SAFETY: `args` is a contiguous slice of `args.len()` rooted `Lisp_Object`s. */
+    unsafe { Fvector (args.len () as ptrdiff_t, ptr) }
+}
+
+#[inline(always)]
+pub fn Frecord_slice (args: &mut [Lisp_Object]) -> Lisp_Object {
+    let ptr = if args.is_empty () {
+        core::ptr::null_mut ()
+    } else {
+        args.as_mut_ptr ()
+    };
+    /* SAFETY: `args` is a contiguous slice of `args.len()` rooted `Lisp_Object`s. */
+    unsafe { Frecord (args.len () as ptrdiff_t, ptr) }
+}
+
+#[inline(always)]
+pub fn Fnconc_slice (args: &mut [Lisp_Object]) -> Lisp_Object {
+    let ptr = if args.is_empty () {
+        core::ptr::null_mut ()
+    } else {
+        args.as_mut_ptr ()
+    };
+    /* SAFETY: `args` is a contiguous slice of `args.len()` rooted `Lisp_Object`s. */
+    unsafe { Fnconc (args.len () as ptrdiff_t, ptr) }
+}
+
+#[inline(always)]
+pub fn bool_vector_spare_mask (nr_bits: EMACS_INT) -> bits_word {
+    ((1 as bits_word) << (nr_bits as usize % BITS_PER_BITS_WORD)) - 1
+}
+
+#[inline(always)]
+pub fn make_specified_string_bytes (bytes: &[u8], nchars: ptrdiff_t, multibyte: bool) -> Lisp_Object {
+    /* SAFETY: `bytes` is a valid slice of `bytes.len()` bytes. */
+    unsafe {
+        crate::alloc::make_specified_string (
+            bytes.as_ptr () as *const c_char,
+            nchars,
+            bytes.len () as ptrdiff_t,
+            multibyte,
+        )
+    }
+}
+
+#[inline(always)]
+pub fn lisp_string_first_or_byte_at (string: Lisp_Object, bytepos: ptrdiff_t) -> u8 {
+    assert! (STRINGP (string));
+    let nbytes = SBYTES (string);
+    if bytepos == 0 && nbytes == 0 {
+        /* Trailing NUL byte of an empty Lisp string, matching `*SDATA("") == 0`. */
+        0
+    } else {
+        assert! (0 <= bytepos && bytepos < nbytes);
+        SREF (string, bytepos as usize)
+    }
+}
+
+#[inline(always)]
+pub fn lisp_string_first_char_or_zero (string: Lisp_Object) -> c_int {
+    assert! (STRINGP (string));
+    if SCHARS (string) == 0 {
+        0
+    } else if STRING_MULTIBYTE (string) {
+        let (ch, _) = fetch_string_char_at (string, 0, 0);
+        ch
+    } else {
+        SREF (string, 0) as c_int
+    }
+}
+
+#[inline(always)]
+pub fn lisp_string_memcmp_eq (s1: Lisp_Object, s2: Lisp_Object) -> bool {
+    assert! (STRINGP (s1) && STRINGP (s2));
+    if SCHARS (s1) != SCHARS (s2) || SBYTES (s1) != SBYTES (s2) {
+        return false;
+    }
+    let n = SBYTES (s1) as usize;
+    if n == 0 {
+        return true;
+    }
+    /* SAFETY: both verified `STRINGP` with `SBYTES == n > 0`. */
+    unsafe {
+        let a = core::slice::from_raw_parts (SDATA (s1) as *const u8, n);
+        let b = core::slice::from_raw_parts (SDATA (s2) as *const u8, n);
+        a == b
+    }
+}
+
+#[inline(always)]
+pub fn symbol_fbound_p_safe (symbol: Lisp_Object) -> bool {
+    if BARE_SYMBOL_P (symbol) {
+        /* SAFETY: `BARE_SYMBOL_P(symbol)` verified above. */
+        return !NILP (unsafe { (*XBARE_SYMBOL (symbol)).u.s.function });
+    }
+    CHECK_SYMBOL (symbol);
+    /* SAFETY: `CHECK_SYMBOL(symbol)` verified above. */
+    !NILP (unsafe { (*XSYMBOL (symbol)).u.s.function })
+}
+
+#[inline(always)]
+pub fn symbol_function_cell (symbol: Lisp_Object) -> Lisp_Object {
+    if BARE_SYMBOL_P (symbol) {
+        /* SAFETY: `BARE_SYMBOL_P(symbol)` verified above. */
+        return unsafe { (*XBARE_SYMBOL (symbol)).u.s.function };
+    }
+    CHECK_SYMBOL (symbol);
+    /* SAFETY: `CHECK_SYMBOL(symbol)` verified above. */
+    unsafe { (*XSYMBOL (symbol)).u.s.function }
+}
+
+#[inline(always)]
+pub fn symbol_plist_cell (symbol: Lisp_Object) -> Lisp_Object {
+    if BARE_SYMBOL_P (symbol) {
+        /* SAFETY: `BARE_SYMBOL_P(symbol)` verified above. */
+        return unsafe { (*XBARE_SYMBOL (symbol)).u.s.plist };
+    }
+    CHECK_SYMBOL (symbol);
+    /* SAFETY: `CHECK_SYMBOL(symbol)` verified above. */
+    unsafe { (*XSYMBOL (symbol)).u.s.plist }
+}
+
+#[inline(always)]
+pub fn symbol_name_cell (symbol: Lisp_Object) -> Lisp_Object {
+    if BARE_SYMBOL_P (symbol) {
+        /* SAFETY: `BARE_SYMBOL_P(symbol)` verified above. */
+        return unsafe { (*XBARE_SYMBOL (symbol)).u.s.name };
+    }
+    CHECK_SYMBOL (symbol);
+    SYMBOL_NAME (symbol)
+}
+
+#[inline(always)]
+pub fn number_to_string_safe (number: Lisp_Object) -> Lisp_Object {
+    const INT_BOUND: usize = ((EMACS_INT_WIDTH - 1) * 146 + 484) / 485 + 2;
+    const BUF_LEN: usize = if FLOAT_TO_STRING_BUFSIZE > INT_BOUND {
+        FLOAT_TO_STRING_BUFSIZE
+    } else {
+        INT_BOUND
+    };
+    let mut buffer = [0 as c_char; BUF_LEN];
+    if FIXNUMP (number) {
+        /* SAFETY: `buffer` has `BUF_LEN >= INT_BUFSIZE_BOUND(EMACS_INT)` bytes. */
+        return unsafe {
+            let base = buffer.as_mut_ptr ();
+            let end = base.add (BUF_LEN);
+            let p = fixnum_to_string (XFIXNUM (number), base, end);
+            make_unibyte_string (p, end.offset_from (p))
+        };
+    }
+    if BIGNUMP (number) {
+        /* SAFETY: `BIGNUMP(number)` verified above. */
+        return { bignum_to_string (number, 10) };
+    }
+    if FLOATP (number) {
+        /* SAFETY: `buffer` has `BUF_LEN >= FLOAT_TO_STRING_BUFSIZE` bytes. */
+        return unsafe {
+            let n = float_to_string (buffer.as_mut_ptr (), XFLOAT_DATA (number)) as ptrdiff_t;
+            make_unibyte_string (buffer.as_ptr (), n)
+        };
+    }
+    wrong_type_argument (Qnumberp (), number)
+}
+
+#[inline(always)]
+pub fn string_to_number_after_ws (string: Lisp_Object, base: c_int) -> Lisp_Object {
+    assert! (STRINGP (string));
+    /* SAFETY: `SSDATA(string)` is NUL-terminated (`SBYTES(string)` bytes followed by `'\0'`), so advancing past `' '` and `'\t'` stays within `[0, SBYTES(string)]`. */
+    unsafe {
+        let mut p: *const c_char = SSDATA (string);
+        while *p == b' ' as c_char || *p == b'\t' as c_char {
+            p = p.add (1);
+        }
+        string_to_number (p, base, core::ptr::null_mut ())
+    }
+}
+
+#[inline(always)]
+pub fn unchain_marker_obj (m: Lisp_Object) {
+    assert! (MARKERP (m));
+    /* SAFETY: `MARKERP(m)` verified above. */
+    unsafe { unchain_marker (XMARKER (m) as *mut c_void) }
+}
+
+#[inline(always)]
+pub fn record_unwind_protect_excursion_safe () {
+    /* SAFETY: pushes a `SPECPDL_UNWIND_EXCURSION` record onto `specpdl` on the owning Lisp thread. */
+    unsafe { crate::eval::record_unwind_protect_excursion () }
+}
+
+#[inline(always)]
+pub fn nsberror_safe (spec: Lisp_Object) -> ! {
+    unsafe extern "C-unwind" {
+        fn nsberror (spec: Lisp_Object) -> !;
+    }
+    /* SAFETY: `nsberror` signals via `NonLocalExit` on the owning Lisp thread. */
+    unsafe { nsberror (spec) }
+}
+
+#[inline(always)]
+pub fn str_collate_safe (
+    s1: Lisp_Object,
+    s2: Lisp_Object,
+    locale: Lisp_Object,
+    ignore_case: Lisp_Object,
+) -> ptrdiff_t {
+    #[cfg(feature = "stdc_iso_10646")]
+    {
+        str_collate (s1, s2, locale, ignore_case)
+    }
+    #[cfg(not(feature = "stdc_iso_10646"))]
+    {
+        let _ = (s1, s2, locale, ignore_case);
+        0
+    }
+}
+
+

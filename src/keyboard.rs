@@ -364,7 +364,7 @@ unsafe fn next_kbd_event (ptr: *mut buffered_input_event) -> *mut buffered_input
 }
 
 /* C 421-428: `xevent_start`.  */
-unsafe fn xevent_start (event: Lisp_Object) -> Lisp_Object
+fn xevent_start (event: Lisp_Object) -> Lisp_Object
 {
   return XCAR (XCDR (event));
 }
@@ -478,12 +478,6 @@ unsafe extern "C-unwind" {
   ///					      ptrdiff_t, bool, bool);`
   fn copy_text (from: *const u8, to: *mut u8, n: ptrdiff_t, from_multibyte: bool,
                 to_multibyte: bool) -> ptrdiff_t;
-
-
-  /// C: lisp.h 4786: `extern _Noreturn void quit (void);`
-  fn quit () -> !;
-
-
 
   /// C: print.c (lisp.h 5396's `extern void print_error_message (Lisp_Object, Lisp_Object, const char *, Lisp_Object);`)
   fn print_error_message (data: Lisp_Object, errname: Lisp_Object, errmsg: *const c_char,
@@ -945,7 +939,7 @@ unsafe fn echo_now ()
 
 /* C 657-665.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn cancel_echoing ()
+pub extern "C-unwind" fn cancel_echoing ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -1003,7 +997,7 @@ unsafe fn add_command_key (key: Lisp_Object)
 
 /* C 708-763.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn recursive_edit_1 () -> Lisp_Object
+pub extern "C-unwind" fn recursive_edit_1 () -> Lisp_Object
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -1062,7 +1056,7 @@ pub unsafe extern "C-unwind" fn recursive_edit_1 () -> Lisp_Object
 /* When an auto-save happens, record the "time", and don't do again soon.  */
 /* C 765-769.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn record_auto_save ()
+pub extern "C-unwind" fn record_auto_save ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -1076,7 +1070,7 @@ pub unsafe extern "C-unwind" fn record_auto_save ()
    (carried per PORTING.md P-51).  */
 #[cfg (feature = "sigdanger")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn force_auto_save_soon ()
+pub extern "C-unwind" fn force_auto_save_soon ()
 {
   (*last_auto_save.as_mut_ptr ()) = - (*auto_save_interval.as_mut_ptr ()) - 1;
 }
@@ -1176,7 +1170,7 @@ pub unsafe extern "C-unwind" fn push_kboard (k: *mut kboard)
 
 /* C 860-887.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn pop_kboard ()
+pub extern "C-unwind" fn pop_kboard ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -1490,7 +1484,7 @@ unsafe extern "C-unwind" fn command_loop () -> Lisp_Object
    list of condition names, passed to internal_condition_case.  */
 /* C 1155-1168.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn command_loop_2 (handlers: Lisp_Object) -> Lisp_Object
+pub extern "C-unwind" fn command_loop_2 (handlers: Lisp_Object) -> Lisp_Object
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -1566,8 +1560,7 @@ DEFUN! ("top-level", Ftop_level, Stop_level, 0, 0, "",
 /* C 1218-1221.  */
 unsafe fn user_error (msg: *const c_char) -> !
 {
-  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
-  unsafe {
+  {
   xsignal1 (Quser_error (), build_string (msg));
 
   }
@@ -2044,7 +2037,7 @@ unsafe extern "C-unwind" fn command_loop_1 () -> Lisp_Object
 
 /* C 1690-1712.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn read_menu_command () -> Lisp_Object
+pub extern "C-unwind" fn read_menu_command () -> Lisp_Object
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -2343,7 +2336,7 @@ unsafe extern "C-unwind" fn safe_run_hook_funcall (nargs: ptrdiff_t, args: *mut 
    to mysteriously evaporate.  */
 /* C 1966-1974.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn safe_run_hooks (hook: Lisp_Object)
+pub extern "C-unwind" fn safe_run_hooks (hook: Lisp_Object)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -2385,7 +2378,7 @@ unsafe fn safe_run_hooks_maybe_narrowed (hook: Lisp_Object, w: *mut window)
 
 /* C 2008-2017.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn safe_run_hooks_2 (hook: Lisp_Object, arg1: Lisp_Object, arg2: Lisp_Object)
+pub extern "C-unwind" fn safe_run_hooks_2 (hook: Lisp_Object, arg1: Lisp_Object, arg2: Lisp_Object)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -2410,7 +2403,7 @@ static poll_timer_time: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (li
    `#undef`; carried per P-51).  */
 #[cfg (feature = "cygwin_or_dos_nt")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn poll_for_input_1 ()
+pub extern "C-unwind" fn poll_for_input_1 ()
 {
   if !input_blocked_p ()
       && !waiting_for_input! ()
@@ -2435,7 +2428,7 @@ unsafe extern "C-unwind" fn poll_for_input (timer: *mut atimer)
    This function is called unconditionally from various places.  */
 /* C 2052-2082.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn start_polling ()
+pub extern "C-unwind" fn start_polling ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -2479,7 +2472,7 @@ pub unsafe extern "C-unwind" fn start_polling ()
 /* C 2084-2096: `#if defined CYGWIN || defined DOS_NT`'s `input_polling_used` (carried).  */
 #[cfg (feature = "cygwin_or_dos_nt")]
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn input_polling_used () -> bool
+pub extern "C-unwind" fn input_polling_used () -> bool
 {
   /* XXX This condition was (read_socket_hook && !interrupt_input),
      but read_socket_hook is not global anymore.  Let's pretend that
@@ -2493,7 +2486,7 @@ pub unsafe extern "C-unwind" fn input_polling_used () -> bool
 /* Turn off polling.  */
 /* C 2098-2108.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn stop_polling ()
+pub extern "C-unwind" fn stop_polling ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -2513,7 +2506,7 @@ pub unsafe extern "C-unwind" fn stop_polling ()
    and start or stop polling accordingly.  */
 /* C 2110-2125.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn set_poll_suppress_count (count: c_int)
+pub extern "C-unwind" fn set_poll_suppress_count (count: c_int)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -2538,7 +2531,7 @@ pub unsafe extern "C-unwind" fn set_poll_suppress_count (count: c_int)
    But don't decrease it.  */
 /* C 2127-2152.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn bind_polling_period (n: c_int)
+pub extern "C-unwind" fn bind_polling_period (n: c_int)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -2578,7 +2571,7 @@ pub unsafe extern "C-unwind" fn bind_polling_period (n: c_int)
 /* Apply the control modifier to CHARACTER.  */
 /* C 2154-2192.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn make_ctrl_char (c: c_int) -> c_int
+pub extern "C-unwind" fn make_ctrl_char (c: c_int) -> c_int
 {
   /* Save the upper bits here.  */
   let upper: c_int = c & !0o177;
@@ -2662,7 +2655,7 @@ unsafe fn help_echo_substitute_command_keys (help: Lisp_Object) -> Lisp_Object
    from X code running asynchronously.  */
 /* C 2233-2263.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn show_help_echo (mut help: Lisp_Object, window: Lisp_Object,
+pub extern "C-unwind" fn show_help_echo (mut help: Lisp_Object, window: Lisp_Object,
                                          object: Lisp_Object, pos: Lisp_Object)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
@@ -2741,7 +2734,7 @@ unsafe fn read_event_from_main_queue (end_time: *mut timespec,
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
   let mut c: Lisp_Object = Qnil ();
-  let mut save_jump: sys_jmp_buf = unsafe { core::mem::zeroed () };
+  let mut save_jump: sys_jmp_buf = { core::mem::zeroed () };
   /* C passes `local_getcjmp` by value; the port takes its address, which needs a local
      copy (Rust cannot take `&raw mut` of a parameter).  */
   let mut local_getcjmp_copy: sys_jmp_buf = local_getcjmp;
@@ -2981,8 +2974,8 @@ unsafe fn read_char (commandflag: c_int, map: Lisp_Object, prev_event: Lisp_Obje
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
   let mut c: Lisp_Object;
-  let mut local_getcjmp: sys_jmp_buf = unsafe { core::mem::zeroed () };
-  let mut save_jump: sys_jmp_buf = unsafe { core::mem::zeroed () };
+  let mut local_getcjmp: sys_jmp_buf = { core::mem::zeroed () };
+  let mut save_jump: sys_jmp_buf = { core::mem::zeroed () };
   /* C's uninitialised locals are zero-initialised (PORTING.md 1.5).  */
   let mut tem: Lisp_Object = Qnil ();
   let mut save: Lisp_Object = Qnil ();
@@ -4523,7 +4516,7 @@ unsafe fn Time_to_position (encoded_pos: Time) -> ptrdiff_t
 
 /* C 3923-3940: `gen_help_event`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn gen_help_event (help: Lisp_Object, frame: Lisp_Object, window: Lisp_Object,
+pub extern "C-unwind" fn gen_help_event (help: Lisp_Object, frame: Lisp_Object, window: Lisp_Object,
 					 object: Lisp_Object, pos: ptrdiff_t)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
@@ -4547,7 +4540,7 @@ pub unsafe extern "C-unwind" fn gen_help_event (help: Lisp_Object, frame: Lisp_O
 
 /* C 3942-3958: `kbd_buffer_store_help_event`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn kbd_buffer_store_help_event (frame: Lisp_Object, help: Lisp_Object)
+pub extern "C-unwind" fn kbd_buffer_store_help_event (frame: Lisp_Object, help: Lisp_Object)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -4569,7 +4562,7 @@ pub unsafe extern "C-unwind" fn kbd_buffer_store_help_event (frame: Lisp_Object,
    NO_EVENT.  */
 /* C 3960-3982: `discard_mouse_events`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn discard_mouse_events ()
+pub extern "C-unwind" fn discard_mouse_events ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -4599,7 +4592,7 @@ pub unsafe extern "C-unwind" fn discard_mouse_events ()
 
 /* C 3988-3998: `kbd_buffer_events_waiting`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn kbd_buffer_events_waiting () -> bool
+pub extern "C-unwind" fn kbd_buffer_events_waiting () -> bool
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -5421,7 +5414,7 @@ unsafe fn process_special_events ()
 
 /* C 4678-4689: `swallow_events`.  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn swallow_events (do_display: bool)
+pub extern "C-unwind" fn swallow_events (do_display: bool)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -8385,30 +8378,27 @@ unsafe fn make_lispy_movement (frame: *mut frame, bar_window: Lisp_Object,
 
 /* Construct a switch frame event.  */
 /* C 7335-7340: `make_lispy_switch_frame`.  */
-unsafe fn make_lispy_switch_frame (frame: Lisp_Object) -> Lisp_Object
+fn make_lispy_switch_frame (frame: Lisp_Object) -> Lisp_Object
 {
-  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
-  unsafe {
+  {
   return list2 (Qswitch_frame (), frame);
 
   }
 }
 
 /* C 7342-7346: `make_lispy_focus_in`.  */
-unsafe fn make_lispy_focus_in (frame: Lisp_Object) -> Lisp_Object
+fn make_lispy_focus_in (frame: Lisp_Object) -> Lisp_Object
 {
-  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
-  unsafe {
+  {
   return list2 (Qfocus_in (), frame);
 
   }
 }
 
 /* C 7348-7352: `make_lispy_focus_out`.  */
-unsafe fn make_lispy_focus_out (frame: Lisp_Object) -> Lisp_Object
+fn make_lispy_focus_out (frame: Lisp_Object) -> Lisp_Object
 {
-  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
-  unsafe {
+  {
   return list2 (Qfocus_out (), frame);
 
   }
@@ -8649,7 +8639,7 @@ macro_rules! KEY_TO_CHAR { ($k:expr) => { XFIXNUM ($k) & ((1 << CHARACTERBITS) -
 
 /* C 7565-7607: `Lisp_Object parse_modifiers (Lisp_Object symbol);`  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn parse_modifiers (symbol: Lisp_Object) -> Lisp_Object
+pub extern "C-unwind" fn parse_modifiers (symbol: Lisp_Object) -> Lisp_Object
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -8783,7 +8773,7 @@ unsafe fn apply_modifiers (mut modifiers: c_int, base: Lisp_Object) -> Lisp_Obje
 /* C 7682-7698: `reorder_modifiers`'s own comment, above its definition.  */
 /* C 7700-7705: `Lisp_Object reorder_modifiers (Lisp_Object symbol);`  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn reorder_modifiers (symbol: Lisp_Object) -> Lisp_Object
+pub extern "C-unwind" fn reorder_modifiers (symbol: Lisp_Object) -> Lisp_Object
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -9028,7 +9018,7 @@ DEFUN! ("internal-handle-focus-in", Finternal_handle_focus_in,
 
 /* C 7920-8008: `int parse_solitary_modifier (Lisp_Object symbol);`  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn parse_solitary_modifier (symbol: Lisp_Object) -> c_int
+pub extern "C-unwind" fn parse_solitary_modifier (symbol: Lisp_Object) -> c_int
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -9112,7 +9102,7 @@ pub unsafe extern "C-unwind" fn parse_solitary_modifier (symbol: Lisp_Object) ->
 
 /* C 8010-8040: `bool lucid_event_type_list_p (Lisp_Object object);`  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn lucid_event_type_list_p (mut object: Lisp_Object) -> bool
+pub extern "C-unwind" fn lucid_event_type_list_p (mut object: Lisp_Object) -> bool
 {
   if ! CONSP (object)
     { return false; }
@@ -9182,7 +9172,7 @@ unsafe fn get_input_pending (flags: c_int) -> bool
 
 /* C 8074-8161: `int gobble_input (void);`  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn gobble_input () -> c_int
+pub extern "C-unwind" fn gobble_input () -> c_int
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -9522,7 +9512,7 @@ unsafe fn handle_async_input ()
 
 /* C 8369-8375: `void process_pending_signals (void);`  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn process_pending_signals ()
+pub extern "C-unwind" fn process_pending_signals ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -9901,7 +9891,7 @@ pub unsafe extern "C-unwind" fn menu_separator_name_p (mut label: *const c_char)
 
 /* C 8640-8779: `Lisp_Object menu_bar_items (Lisp_Object old);`  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn menu_bar_items (old: Lisp_Object) -> Lisp_Object
+pub extern "C-unwind" fn menu_bar_items (old: Lisp_Object) -> Lisp_Object
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -10157,8 +10147,7 @@ unsafe extern "C-unwind" fn menu_bar_item (key: Lisp_Object, mut item: Lisp_Obje
 /* C 8859-8868: `static Lisp_Object menu_item_eval_property_1 (Lisp_Object arg);`  */
 unsafe extern "C-unwind" fn menu_item_eval_property_1 (arg: Lisp_Object) -> Lisp_Object
 {
-  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
-  unsafe {
+  {
   /* If we got a quit from within the menu computation,
      quit all the way out of it.  This takes care of C-] in the debugger.  */
   if signal_quit_p (arg)
@@ -10172,8 +10161,7 @@ unsafe extern "C-unwind" fn menu_item_eval_property_1 (arg: Lisp_Object) -> Lisp
 /* C 8870-8874: `static Lisp_Object eval_dyn (Lisp_Object form);`  */
 unsafe extern "C-unwind" fn eval_dyn (form: Lisp_Object) -> Lisp_Object
 {
-  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
-  unsafe {
+  {
   return Feval (form, Qnil ());
 
   }
@@ -10183,7 +10171,7 @@ unsafe extern "C-unwind" fn eval_dyn (form: Lisp_Object) -> Lisp_Object
    went wrong).  Used to evaluate dynamic parts of menu items.  */
 /* C 8878-8887: `Lisp_Object menu_item_eval_property (Lisp_Object sexpr);`  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn menu_item_eval_property (sexpr: Lisp_Object) -> Lisp_Object
+pub extern "C-unwind" fn menu_item_eval_property (sexpr: Lisp_Object) -> Lisp_Object
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -10209,7 +10197,7 @@ pub unsafe extern "C-unwind" fn menu_item_eval_property (sexpr: Lisp_Object) -> 
 
 /* C 8898-9174: `bool parse_menu_item (Lisp_Object item, int inmenubar);`  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn parse_menu_item (mut item: Lisp_Object, inmenubar: c_int) -> bool
+pub extern "C-unwind" fn parse_menu_item (mut item: Lisp_Object, inmenubar: c_int) -> bool
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -11604,10 +11592,9 @@ unsafe fn read_char_x_menu_prompt (map: Lisp_Object, prev_event: Lisp_Object,
 }
 
 /* C 10157-10162: `static Lisp_Object follow_key (Lisp_Object keymap, Lisp_Object key);`  */
-unsafe fn follow_key (keymap: Lisp_Object, key: Lisp_Object) -> Lisp_Object
+fn follow_key (keymap: Lisp_Object, key: Lisp_Object) -> Lisp_Object
 {
-  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
-  unsafe {
+  {
   return access_keymap (get_keymap (keymap, false, true),
 			key, true, false);
 
@@ -12067,10 +12054,9 @@ unsafe fn keyremap_step (keybuf: *mut Lisp_Object, fkey: *mut keyremap,
 }
 
 /* C 10548-10555: `static bool test_undefined (Lisp_Object binding);`  */
-unsafe fn test_undefined (binding: Lisp_Object) -> bool
+fn test_undefined (binding: Lisp_Object) -> bool
 {
-  // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
-  unsafe {
+  {
   return NILP (binding)
 	 || EQ (binding, Qundefined ())
 	 || (SYMBOLP (binding)
@@ -12081,7 +12067,7 @@ unsafe fn test_undefined (binding: Lisp_Object) -> bool
 
 /* C 10557-10560: `void init_raw_keybuf_count (void);`  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn init_raw_keybuf_count ()
+pub extern "C-unwind" fn init_raw_keybuf_count ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -13501,7 +13487,7 @@ DEFUN! ("read-key-sequence-vector", Fread_key_sequence_vector, Sread_key_sequenc
 /* C 12036-12040: `bool detect_input_pending (void);` — C's non-`static` definition is an
    exported symbol (PORTING.md 0.2).  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn detect_input_pending () -> bool
+pub extern "C-unwind" fn detect_input_pending () -> bool
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -13514,7 +13500,7 @@ pub unsafe extern "C-unwind" fn detect_input_pending () -> bool
 
 /* C 12044-12056: `bool detect_input_pending_run_timers (bool do_display);`  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn detect_input_pending_run_timers (do_display: bool) -> bool
+pub extern "C-unwind" fn detect_input_pending_run_timers (do_display: bool) -> bool
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -13537,7 +13523,7 @@ pub unsafe extern "C-unwind" fn detect_input_pending_run_timers (do_display: boo
 
 /* C 12062-12066: `void clear_input_pending (void);`  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn clear_input_pending ()
+pub extern "C-unwind" fn clear_input_pending ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -13550,7 +13536,7 @@ pub unsafe extern "C-unwind" fn clear_input_pending ()
 
 /* C 12070-12074: `bool requeued_command_events_pending_p (void);`  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn requeued_command_events_pending_p () -> bool
+pub extern "C-unwind" fn requeued_command_events_pending_p () -> bool
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -13951,7 +13937,7 @@ DEFUN! ("suspend-emacs", Fsuspend_emacs, Ssuspend_emacs, 0, 1, "",
 /* C 12474-12508: `void stuff_buffered_input (Lisp_Object stuffstring);` — the live
    `#ifdef SIGTSTP` arm (SIGTSTP is 18 in the frozen configuration).  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn stuff_buffered_input (stuffstring: Lisp_Object)
+pub extern "C-unwind" fn stuff_buffered_input (stuffstring: Lisp_Object)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
@@ -14012,7 +13998,7 @@ pub unsafe extern "C-unwind" fn set_waiting_for_input (time_to_clear: *mut times
 
 /* C 12524-12530: `void clear_waiting_for_input (void);`  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn clear_waiting_for_input ()
+pub extern "C-unwind" fn clear_waiting_for_input ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
