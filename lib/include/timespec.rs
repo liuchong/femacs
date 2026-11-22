@@ -29,13 +29,28 @@ pub fn timespectod(a: timespec) -> c_double {
     femacs_pure::timespec::timespectod(a.tv_sec, a.tv_nsec)
 }
 
+#[inline(always)]
+pub fn timespec_add(a: timespec, b: timespec) -> timespec {
+    let (s, ns) = femacs_pure::timespec::timespec_add(a.tv_sec, a.tv_nsec, b.tv_sec, b.tv_nsec);
+    make_timespec(s, ns as c_long)
+}
+
+#[inline(always)]
+pub fn timespec_sub(a: timespec, b: timespec) -> timespec {
+    let (s, ns) = femacs_pure::timespec::timespec_sub(a.tv_sec, a.tv_nsec, b.tv_sec, b.tv_nsec);
+    make_timespec(s, ns as c_long)
+}
+
+#[inline(always)]
+pub fn dtotimespec(sec: c_double) -> timespec {
+    let (s, ns) = femacs_pure::timespec::dtotimespec(sec);
+    make_timespec(s, ns as c_long)
+}
+
 pub mod timespec_decls {
     use super::*;
 
     unsafe extern "C" {
-        pub fn timespec_add(a: timespec, b: timespec) -> timespec;
-        pub fn timespec_sub(a: timespec, b: timespec) -> timespec;
-        pub fn dtotimespec(sec: c_double) -> timespec;
         pub fn gettime_res() -> c_long;
         pub fn current_timespec() -> timespec;
         pub fn gettime(ts: *mut timespec);

@@ -1,3 +1,4 @@
+#![forbid(unsafe_code)]
 use crate::DefaultMode;
 use std::{
     env,

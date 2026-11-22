@@ -1,4 +1,5 @@
 //! Owned manual generation, verified resource sets and atomic Info publication.
+#![forbid(unsafe_code)]
 use crate::{bundle, tooling};
 use serde_json::{Value, json};
 use std::{

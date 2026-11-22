@@ -239,6 +239,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--program', type=Path, required=True)
     parser.add_argument('--dump', type=Path, required=True)
+    parser.add_argument('--lisp-root', type=Path)
     parser.add_argument('--corpus', type=Path, required=True)
     parser.add_argument('--out', type=Path, required=True)
     parser.add_argument('--label', required=True)
@@ -388,6 +389,8 @@ def main(argv=None):
         return 0 if not unresolved else 1
 
     env = {'FEMACS_GC_OBSERVATION': 'off'}
+    if args.lisp_root is not None:
+        env['FEMACS_STABLE_PRODUCT_LISP'] = str(args.lisp_root.resolve())
     paths = suite._product_paths(args.program, ['--dump-file=' + str(args.dump.resolve())], env)
     library = paths['lisp_root']
     out = args.out.resolve()

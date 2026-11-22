@@ -60,7 +60,7 @@ unsafe fn normal_fstatat (fd: c_int, file: *const c_char, st: *mut stat, flag: c
 {
   // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
   unsafe {
-  return stat_time_normalize (orig_fstatat (fd, file, st, flag), st);
+  return stat_time_normalize (orig_fstatat (fd, file, st, flag), &mut *st, &mut *errno ());
 
   }
 }

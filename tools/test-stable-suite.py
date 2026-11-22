@@ -1225,7 +1225,7 @@ class RunnerHostHomeIsolationContracts(unittest.TestCase):
                 editor = candidate
                 break
         if editor is None:
-            self.skipTest("no executable batch Emacs/Femacs available for live Lisp guard check")
+            self.skipTest("no executable batch editor/Femacs available for live Lisp guard check")
 
         with tempfile.TemporaryDirectory(prefix="runner-home-guard-") as temp_dir:
             root = Path(temp_dir)

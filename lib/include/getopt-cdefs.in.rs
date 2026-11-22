@@ -1,4 +1,5 @@
 // femacs: WIP mirror of lib/getopt-cdefs.in.h @ fd7afced403 (the generated
+#![forbid(unsafe_code)]
 // `build/emacs-ref/lib/getopt-cdefs.h`; PORTING.md P-26).
 //
 // The header exists so that getopt-core.h and getopt-ext.h get the internal macros that

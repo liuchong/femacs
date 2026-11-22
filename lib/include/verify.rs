@@ -1,4 +1,5 @@
 // femacs: port of lib/verify.h @ fd7afced403.
+#![forbid(unsafe_code)]
 //
 // The header is a family of compile-time checks.  The frozen target is the C configuration
 // with clang and C23 (`__STDC_VERSION__` 202311L, `_GL_HAVE__STATIC_ASSERT` and
@@ -183,6 +184,6 @@ macro_rules! verify {
    */
 macro_rules! assume {
   ($r:expr) => {
-    if !($r) { /* SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure. */ unsafe { core::hint::unreachable_unchecked () } }
+    if !($r) { core::unreachable! () }
   };
 }

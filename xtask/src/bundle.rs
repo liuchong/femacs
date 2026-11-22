@@ -1,3 +1,4 @@
+#![forbid(unsafe_code)]
 //! Exclusive staging, verified atomic directory publication and owned backups.
 use std::{
     fs,
@@ -142,30 +143,8 @@ pub(crate) fn publish_directory(
     })
 }
 
-#[cfg(target_os = "macos")]
 fn exchange(left: &Path, right: &Path) -> Result<(), String> {
-    use std::{ffi::CString, os::unix::ffi::OsStrExt};
-    unsafe extern "C" {
-        fn renamex_np(
-            from: *const std::ffi::c_char,
-            to: *const std::ffi::c_char,
-            flags: u32,
-        ) -> i32;
-    }
-    let from = CString::new(left.as_os_str().as_bytes()).map_err(|_| "NUL in staging path")?;
-    let to = CString::new(right.as_os_str().as_bytes()).map_err(|_| "NUL in destination path")?;
-    // sys/stdio.h: RENAME_SWAP, available since macOS 10.12.
-    if /* SAFETY: `from` and `to` are NUL-terminated `CString` paths passed to macOS `renamex_np(RENAME_SWAP)`. */ unsafe { renamex_np(from.as_ptr(), to.as_ptr(), 0x00000002) } != 0 {
-        return Err(format!(
-            "atomic app exchange failed; old app retained: {}",
-            std::io::Error::last_os_error()
-        ));
-    }
-    Ok(())
-}
-#[cfg(not(target_os = "macos"))]
-fn exchange(_left: &Path, _right: &Path) -> Result<(), String> {
-    Err("application exchange requires macOS".into())
+    crate::os_ffi::exchange_dirs(left, right)
 }
 
 #[cfg(test)]

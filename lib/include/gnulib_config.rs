@@ -1,4 +1,5 @@
 // femacs: the gnulib configuration macros the port needs, in one place (PORTING.md 0.1-5).
+#![forbid(unsafe_code)]
 //
 // These are not in any reference header: the reference gets them from the configure-
 // generated config header (gnulib's `lib/config.h`, emitted from m4/gnulib-common.m4's

@@ -1,4 +1,5 @@
 // femacs: mirror of lib/intprops.h @ fd7afced403.
+#![forbid(unsafe_code)]
 //
 // Header mirror (PORTING.md 0.1, P-26): the public half of gnulib's integer-property
 // machinery - `TYPE_*`, `INT_*`, `EXPR_SIGNED` and the string/buffer bounds - built on the

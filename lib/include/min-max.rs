@@ -1,4 +1,5 @@
 // femacs: mirror of lib/min-max.h @ fd7afced403 ; PORTING.md 0.1.
+#![forbid(unsafe_code)]
 //
 // The header is two macros and their two `#ifndef` guards, nothing else - no include guard, no
 // types, no declarations.  `min-max.h` is not `lib/minmax.h` (which this tree also has, and

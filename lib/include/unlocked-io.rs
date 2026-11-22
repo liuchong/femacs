@@ -1,4 +1,5 @@
 // femacs: mirror of lib/unlocked-io.h @ fd7afced403.
+#![forbid(unsafe_code)]
 //
 // Header mirror (PORTING.md 0.1, P-26).  The header is one `#if` pair per stdio entry: an
 // entry whose host has the `*_unlocked` form is redefined to call it, and one whose host does

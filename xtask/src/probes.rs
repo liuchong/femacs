@@ -1,4 +1,5 @@
 //! Typed compiler/audit probes. Every invocation owns its materialization and evidence.
+#![forbid(unsafe_code)]
 use crate::tooling::{self, RunDirectory, StepPlan, StepReceipt};
 use serde::Serialize;
 use serde_json::json;

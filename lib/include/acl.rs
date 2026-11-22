@@ -55,11 +55,15 @@ const _: () = core::assert! (std::mem::offset_of! (aclinfo, u) == 28);
 #[cfg (not (feature = "use_linux_xattr"))]
 macro_rules! aclinfo_has_xattr { ($ai:expr, $xattr:expr) => { false }; }
 
+#[inline(always)]
+pub const fn acl_errno_valid(errnum: c_int) -> bool {
+  !matches!(errnum, EBUSY | EINVAL | ENOENT | ENOSYS | ENOTSUP | EOPNOTSUPP)
+}
+
 pub mod acl_decls {
   use super::*;
 
   unsafe extern "C" {
-    pub fn acl_errno_valid (err: c_int) -> bool;
     pub fn file_has_acl (name: *const c_char, sb: *const stat) -> c_int;
     pub fn file_has_aclinfo (name: *const c_char, ai: *mut aclinfo, flags: c_int) -> c_int;
     pub fn fdfile_has_aclinfo (fd: c_int, name: *const c_char, ai: *mut aclinfo, flags: c_int)

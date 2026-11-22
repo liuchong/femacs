@@ -1,4 +1,5 @@
 //! B-phase package validation/ordering cases. Do not execute before full G4 C.
+#![forbid(unsafe_code)]
 use super::*;
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};

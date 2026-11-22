@@ -1,4 +1,5 @@
 //! Independent Android target and typed compatibility routes.
+#![forbid(unsafe_code)]
 use crate::tooling::{self, RunDirectory, StepPlan, StepReceipt};
 use serde_json::{Value, json};
 use std::{

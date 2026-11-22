@@ -1,4 +1,5 @@
 // femacs: port of lib/min-eloop-threshold.h @ fd7afced403.
+#![forbid(unsafe_code)]
 //
 // One constant: the minimum number of symbolic links a path resolution must be able to
 // traverse before ELOOP is diagnosed (canonicalize-lgpl.c's loop counter compares against

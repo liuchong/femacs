@@ -1,4 +1,5 @@
 // femacs: port of lib/stdckdint.in.h @ fd7afced403 (gnulib's <stdckdint.h>; PORTING.md P-26).
+#![forbid(unsafe_code)]
 //
 // This target generates no such header.  gnulib substitutes the template only when
 // `GL_GENERATE_STDCKDINT_H_CONDITION` is non-empty and otherwise removes the file; the frozen

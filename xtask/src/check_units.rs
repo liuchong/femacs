@@ -1,4 +1,5 @@
 //! Explicit unit lists use the same normal/checking compiler as full builds.
+#![forbid(unsafe_code)]
 use super::*;
 
 pub(super) fn object_path(root: &Path, stem: &str, checking: bool, target: Option<&str>) -> PathBuf {

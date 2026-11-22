@@ -5,7 +5,7 @@
     {
       "path": "spikes/accessor-probe.sh",
       "sha256": "f3904a8cdc766fda66e6c6532280e5be076a05ba230ffe7b63b105f52c19bb9d",
-      "bytes": 1077,
+      "bytes": 153,
       "git_blob": "ae4a93e644560fc601d8bf7d5401e5eb96eb8813",
       "family": "compatibility-entry",
       "readers": [
@@ -173,7 +173,7 @@
     {
       "path": "spikes/fam-probe.sh",
       "sha256": "6813e7f4b6a464816fd07d5121ef2a4db44d66a1e396f8fe459519bb760614f7",
-      "bytes": 630,
+      "bytes": 148,
       "git_blob": "2b09949a2f882ab7e30d845cda6fb4ba034c76ac",
       "family": "compatibility-entry",
       "readers": [
@@ -246,7 +246,7 @@
     {
       "path": "spikes/gmp-abi-probe.sh",
       "sha256": "247675ddf55ced671854364410a3bccad64c9b20dd8696a10da0af1f67d6ec76",
-      "bytes": 1246,
+      "bytes": 152,
       "git_blob": "652c6666b6c8d3dfeaa803e355d36b9b4d84f6ac",
       "family": "compatibility-entry",
       "readers": [
@@ -299,7 +299,7 @@
     {
       "path": "spikes/inline-probe.sh",
       "sha256": "2fdfaa11967873344fd934c91568b473856ca0caf318b21c7134613af69255f6",
-      "bytes": 1293,
+      "bytes": 151,
       "git_blob": "30ea597918728c5f11366964081a603d4f7298e8",
       "family": "compatibility-entry",
       "readers": [
@@ -324,7 +324,7 @@
     {
       "path": "spikes/inline_probe.c",
       "sha256": "0122866df63ac95df25e86d6ee97aa1b991f0f8802504602dc0d3e95cc17c879",
-      "bytes": 1895,
+      "bytes": 1984,
       "git_blob": "61960720b28b0884c1bfca41dbb7a1dc7782676c",
       "family": "fixture",
       "readers": [],
@@ -356,7 +356,7 @@
     {
       "path": "spikes/jni-probe.sh",
       "sha256": "eba0e2aeac69f0b85fa378a48636fd01d25907740179ae929b10c4221352109f",
-      "bytes": 4018,
+      "bytes": 148,
       "git_blob": "7bfe10d573e95de485a25c5ed4c8c272c41b8ca1",
       "family": "compatibility-entry",
       "readers": [
@@ -399,7 +399,7 @@
     {
       "path": "spikes/kotlin-compile-probe.sh",
       "sha256": "9dfdc3df4467be4c429d6fbe0da449e16c75294033f93e6192c7b4bb68053f7c",
-      "bytes": 4623,
+      "bytes": 151,
       "git_blob": "604b1163f0658a660f50892a3f23f9e902901a41",
       "family": "compatibility-entry",
       "readers": [],
@@ -499,7 +499,7 @@
     {
       "path": "spikes/lisp-abi-probe.sh",
       "sha256": "af0140754245f44bbe06676d8903b8bdc339c39ffac3da68f1b5ef33441dbb0a",
-      "bytes": 1804,
+      "bytes": 153,
       "git_blob": "d4eed6ff765fdbde8fe208c68a1b0c531612f776",
       "family": "compatibility-entry",
       "readers": [
@@ -548,7 +548,7 @@
     {
       "path": "spikes/macro-probe.sh",
       "sha256": "a453ad0ae2da1671c618115ef7ab4e3d6eb69899d4185cf70fcc23f5a2c9f384",
-      "bytes": 542,
+      "bytes": 150,
       "git_blob": "2c59c0c2ecce325840f0dc36fa079319dffd427d",
       "family": "compatibility-entry",
       "readers": [
@@ -585,7 +585,7 @@
     {
       "path": "spikes/miri-probe.sh",
       "sha256": "e7a6b4bfe4ecb239e84a049665c2ba1d067f9192b5ac36909ed11cd358b2463e",
-      "bytes": 1275,
+      "bytes": 149,
       "git_blob": "7f4f0a64b36725990a6acdd3661a7891d95c7351",
       "family": "compatibility-entry",
       "readers": [],
@@ -676,7 +676,7 @@
     {
       "path": "spikes/pgo-probe/README.md",
       "sha256": "b97e9d13598be3680d0d7a452a51d41a39323861c96e27536f5c14effa08a3ff",
-      "bytes": 1057,
+      "bytes": 1180,
       "git_blob": "21aaa98ce3c57f2136f1d34b6a2179386c9b62ee",
       "family": "historical-recipe",
       "readers": [],
@@ -752,7 +752,7 @@
     {
       "path": "spikes/run.sh",
       "sha256": "078885c7cb8b239d01494fed8509c6ab383cb61e40ca847c01b0e85920f506cc",
-      "bytes": 2801,
+      "bytes": 152,
       "git_blob": "bc857e1897d17da581d05e10e8f882485f67a122",
       "family": "compatibility-entry",
       "readers": [],
@@ -802,7 +802,7 @@
     {
       "path": "spikes/shadow-probe.sh",
       "sha256": "0e1bac0b2b8d391bfa09c96c2ede0bb419553fcf65ebc0050c334c582b7fb85a",
-      "bytes": 489,
+      "bytes": 151,
       "git_blob": "2d245a847d0ee9e13d93df3b8fce13c40b0325e8",
       "family": "compatibility-entry",
       "readers": [
@@ -899,7 +899,7 @@
     {
       "path": "spikes/syshdrs-probe.sh",
       "sha256": "97147a781c1b13e235bb96725f07cce5093eef05e1df6dceea5f5fdea5603830",
-      "bytes": 1039,
+      "bytes": 152,
       "git_blob": "7a55bfd8a2fed67adb42c1a102a0fd43fb345cb7",
       "family": "compatibility-entry",
       "readers": [
@@ -960,7 +960,7 @@
     {
       "path": "spikes/va-probe.sh",
       "sha256": "b6ce70f394dcf9d06023bd44463a024e5313042f703a9e66bdcc11e1c7cfe447",
-      "bytes": 964,
+      "bytes": 147,
       "git_blob": "addd36251585b242f52d894f9b4ac5fd4de7e3d5",
       "family": "compatibility-entry",
       "readers": [
@@ -1057,7 +1057,7 @@
     {
       "path": "spikes/write-probe.sh",
       "sha256": "1690f901e30bbe8e81325b7e8cba127daa1e5a992704cc6edf7f94086c766ea0",
-      "bytes": 1098,
+      "bytes": 150,
       "git_blob": "76e21164aa3160ac7d91180a4acc22b1582d2a75",
       "family": "compatibility-entry",
       "readers": [
@@ -1411,7 +1411,7 @@
     {
       "path": "tools/android-accept.sh",
       "sha256": "8234b053443dafc851e4eef9a9560bf616b5e6de946045be8e5081dbb810d356",
-      "bytes": 3205,
+      "bytes": 148,
       "git_blob": "3c5bf8082106b26ec6a0b0795f2d1c7965cd3234",
       "family": "compatibility-entry",
       "readers": [
@@ -1441,7 +1441,7 @@
     {
       "path": "tools/android-batch-eval.sh",
       "sha256": "75e0482ed4701c09bf36092fe20322b9751ccff0e54bd5d3a080572d15543f6c",
-      "bytes": 2701,
+      "bytes": 147,
       "git_blob": "7a5e8063679e643341ebae36cfde2a80a83e1f78",
       "family": "compatibility-entry",
       "readers": [],
@@ -1455,7 +1455,7 @@
     {
       "path": "tools/android-gui-eval.sh",
       "sha256": "bcab3c5a98f3e735fe4895d7fe6aa42b1aa1408a9d7f1971bc657f4d57f9cc1e",
-      "bytes": 2916,
+      "bytes": 145,
       "git_blob": "1162fe4426493cd4c79213cdc1315947090e77ac",
       "family": "compatibility-entry",
       "readers": [],
@@ -1469,7 +1469,7 @@
     {
       "path": "tools/android-input-probe.sh",
       "sha256": "528553c19e731c0d19ba0ed0b6336f1fbe13f6950dd092c9d601413dbf5c37c6",
-      "bytes": 10954,
+      "bytes": 163,
       "git_blob": "d1593ae9baa3dd5cf446453f03cfa45ed7359514",
       "family": "compatibility-entry",
       "readers": [],
@@ -1483,7 +1483,7 @@
     {
       "path": "tools/android-readiness.py",
       "sha256": "f2243e8f4c7bba61e3eb61b92da634b5cf2fdb83ea7d566477c658cd84d31519",
-      "bytes": 4197,
+      "bytes": 1255,
       "git_blob": "7567653e5800b7ab47e6ef1c4694282d2da2b278",
       "family": "measurement",
       "readers": [
@@ -1515,7 +1515,7 @@
     {
       "path": "tools/bench.py",
       "sha256": "bb1d8792e6da8bf39277d516c3e462e542f4a9cd4dc802acb0eb3f44d4a9989b",
-      "bytes": 11903,
+      "bytes": 15261,
       "git_blob": "981a3b5eef14f8f42bfdfb0d14675519338311f8",
       "family": "measurement",
       "readers": [
@@ -1588,7 +1588,7 @@
     {
       "path": "tools/bootstrap-resources.py",
       "sha256": "66f3245dccc3b908d7145003632e700e512740fb0f27b49af851f3c072e45301",
-      "bytes": 13483,
+      "bytes": 17273,
       "git_blob": "dd728c3b33ad886b4f43220428d476799fcb3efa",
       "family": "measurement",
       "readers": [
@@ -1733,7 +1733,7 @@
     {
       "path": "tools/check-android-apk.py",
       "sha256": "646c20c199b5178b2b932f9054855addf1074470b4e897228c85a1ec3271a345",
-      "bytes": 4006,
+      "bytes": 1353,
       "git_blob": "e2eca034c52c50e8cda20bb0a12392d498ab401a",
       "family": "comparison-gate",
       "readers": [
@@ -1758,7 +1758,7 @@
     {
       "path": "tools/check-android-assertions.py",
       "sha256": "e95527247dd7b756a4457c0bb744d0b63209a05c0544e571309b6c4295d0199b",
-      "bytes": 13573,
+      "bytes": 13779,
       "git_blob": "d4e0e8474a516e1c7fcd0ed1cd5876cf61c58a4d",
       "family": "comparison-gate",
       "readers": [
@@ -1778,7 +1778,7 @@
     {
       "path": "tools/check-android-constants.py",
       "sha256": "e17a23891b36f5630d4f1a2e8be2d39ce04c06089cdf219bda66c2b224bac7ee",
-      "bytes": 4854,
+      "bytes": 9480,
       "git_blob": "7b0172d33dd708c719eb065cb52af2bb5cefb348",
       "family": "comparison-gate",
       "readers": [],
@@ -1792,7 +1792,7 @@
     {
       "path": "tools/check-android-imports.py",
       "sha256": "106bdf5300978096d4970983c618642b7fbd71166cb4c68298a079c14fff5a42",
-      "bytes": 14618,
+      "bytes": 15079,
       "git_blob": "370e472fb287a8fb71c2731628672c484b3032e6",
       "family": "comparison-gate",
       "readers": [
@@ -1837,7 +1837,7 @@
     {
       "path": "tools/check-android-kotlin.sh",
       "sha256": "d4ffc59f26281b5ad8a6c4704622241f0c52b30f3b0f68b6fe65c99665e276de",
-      "bytes": 15368,
+      "bytes": 146,
       "git_blob": "927686e9bf1907e0afed7fbdcf9e172e61ccaa8a",
       "family": "compatibility-entry",
       "readers": [
@@ -1867,7 +1867,7 @@
     {
       "path": "tools/check-android-layout.py",
       "sha256": "2b7d684871e0cf288aaff8434fb2f0210411c6e1fd4d26e4c809a2cf1a41159c",
-      "bytes": 7012,
+      "bytes": 8254,
       "git_blob": "e825eeaf539e64799933b90cb0a60f4123f4636a",
       "family": "comparison-gate",
       "readers": [
@@ -1892,7 +1892,7 @@
     {
       "path": "tools/check-authorized-platforms.sh",
       "sha256": "ae05874c59cf2ebeb40718f01c729de28ed48c87f38af81f70e62ec9af492628",
-      "bytes": 9265,
+      "bytes": 146,
       "git_blob": "041d35c3a17ee1075bd5267afb271025fc77c74c",
       "family": "compatibility-entry",
       "readers": [
@@ -2353,14 +2353,16 @@
     {
       "path": "tools/check-extern-decls.py",
       "sha256": "1c70d387545f37f3fd823fd2d853d62101b25b777920b084e180ee54463ef769",
-      "bytes": 3472,
+      "bytes": 3508,
       "git_blob": "342edde77f8ca80aaa22b3411fc350ba8fbe6769",
       "family": "comparison-gate",
       "readers": [],
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively",
+      "current_sha256": "58122c9c0aff6e2aebf72722e4571a2ba91b5a8a8ff909ffd91fb8ff992dff76",
+      "current_bytes": 3508
     },
     {
       "path": "tools/check-fault-injection.py",
@@ -2452,7 +2454,7 @@
     {
       "path": "tools/check-ledger-ticks.py",
       "sha256": "e3b90746a8b82e0f9be33cf76b51d5369c4506b31b75d71d677fae5cabf55d01",
-      "bytes": 9251,
+      "bytes": 11043,
       "git_blob": "5b28ca0ebc1f4fe0bba2efaba936b419a99a1962",
       "family": "comparison-gate",
       "readers": [
@@ -2465,12 +2467,14 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively",
+      "current_sha256": "9ca81e84c0378f971577651eabc35e5466ae1e68fda585dfa4125b099bd501ab",
+      "current_bytes": 11043
     },
     {
       "path": "tools/check-libshadows.py",
       "sha256": "b1f8b1bf551fdf3d580f6d832d7ef52c6e628234f2ff35bbe427237197c56b6f",
-      "bytes": 4741,
+      "bytes": 10071,
       "git_blob": "3cf84e9ca9727f817e3d812aae02b79cdc2bf424",
       "family": "comparison-gate",
       "readers": [
@@ -2480,10 +2484,12 @@
           "kind": "literal-location; not a call proof"
         }
       ],
-      "decision": "retain",
-      "replacement": null,
-      "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively"
+      "decision": "replace-body",
+      "replacement": "Cargo workspace crate exclusion + nm -g shadow check",
+      "reason": "retired pre-Cargo xtask build-tu and link-args.rsp dependency (U5)",
+      "uncertainty": "complete dynamic readers not proved; retained conservatively",
+      "current_sha256": "8fddc7a2e14c28eac280cd63743e684bfaf84b85bb2c35a53ede7dc111c0ec3a",
+      "current_bytes": 10071
     },
     {
       "path": "tools/check-link.py",
@@ -2546,7 +2552,7 @@
     {
       "path": "tools/check-mirror-dupes.py",
       "sha256": "c830bea0a29f36dfcdce58b2ac6fe9f8509769188a3532a1a33eae529ad22499",
-      "bytes": 20785,
+      "bytes": 20809,
       "git_blob": "8a6c334edb07b22bc4e7afaff9c5ebb50cad5207",
       "family": "comparison-gate",
       "readers": [
@@ -2569,7 +2575,9 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively",
+      "current_sha256": "77b40c9cd2942980f82c781652fdd2fa592ddc30e6fe84c4770fb64c8c4e63d7",
+      "current_bytes": 20809
     },
     {
       "path": "tools/check-octal-literals.py",
@@ -2586,7 +2594,7 @@
     {
       "path": "tools/check-own-voice.py",
       "sha256": "3bbbedb8c9cdb0b451c24ee8c91c0c94397836b721b9c76aa74ae2c66df9ccd3",
-      "bytes": 30614,
+      "bytes": 32809,
       "git_blob": "ba33ab2f049e49386c7dc6adcf41bf19bb0453c6",
       "family": "comparison-gate",
       "readers": [
@@ -2974,7 +2982,7 @@
     {
       "path": "tools/device-run.sh",
       "sha256": "1b9a6b2bab8fa0f5efa3f4a37326a4c42d133086a5f73216e6d3d48bf3d056bb",
-      "bytes": 10488,
+      "bytes": 163,
       "git_blob": "9fd10c18a066b3e1fdaa11bba2d4aa9ce4bee92c",
       "family": "compatibility-entry",
       "readers": [],
@@ -3062,7 +3070,7 @@
     {
       "path": "tools/extract-abi.py",
       "sha256": "23cbb5dbcf59f3575330e1ed0db38ff5df991196b13659384416613817782e61",
-      "bytes": 144971,
+      "bytes": 144983,
       "git_blob": "e416c9cd07ab5dbaaeabf2553363aa640010ae14",
       "family": "measurement",
       "readers": [
@@ -3160,7 +3168,9 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively",
+      "current_sha256": "ff82af68c533c777c7de085ecdbe4c95dcb7d68fa68aa9d9ee098185cb4b7565",
+      "current_bytes": 144983
     },
     {
       "path": "tools/feature-coverage.py",
@@ -3225,7 +3235,7 @@
     {
       "path": "tools/fixtures/macos-events.rs",
       "sha256": "0383dc0930ce774448c567f1be2782e4622b028f8be6b51bd34cbb9706e49218",
-      "bytes": 3610,
+      "bytes": 4648,
       "git_blob": "a417ab2c5bb1a663ea4cead376a49199453af526",
       "family": "fixture",
       "readers": [],
@@ -3257,7 +3267,7 @@
     {
       "path": "tools/fixtures/macos-input-source.rs",
       "sha256": "95a12d29f98f4062242dcac32bc1cd23fb944f7ad2f9e6cd369bae7715c0159f",
-      "bytes": 6153,
+      "bytes": 6879,
       "git_blob": "1f967322fbbf6d24f47a153bff837a2747ccc7e2",
       "family": "fixture",
       "readers": [],
@@ -3312,7 +3322,7 @@
     {
       "path": "tools/fixtures/runtime-profile.el",
       "sha256": "0c7ee611cc9470909de4a922df7c0084adfc3f9b608c086688333bbbd9762301",
-      "bytes": 4550,
+      "bytes": 7087,
       "git_blob": "f704dc2a71687c7870e95f9b031b8a59ed59e50a",
       "family": "fixture",
       "readers": [
@@ -3374,7 +3384,7 @@
     {
       "path": "tools/gen-android-assets.py",
       "sha256": "5dd8c0773855b1df49c42d8a7662e9dcb3825b671462f7e5a7ced5bc4f8bffc5",
-      "bytes": 7705,
+      "bytes": 7772,
       "git_blob": "5632aa659973768e5c1c1f2d6f065c5a9acf30b6",
       "family": "generator",
       "readers": [
@@ -3399,7 +3409,7 @@
     {
       "path": "tools/gen-android-config.sh",
       "sha256": "a84eb40f6efc140685e1cc4c5656a4e90ce99f8f99151c8bfa6cd2bf37976c5f",
-      "bytes": 11410,
+      "bytes": 146,
       "git_blob": "53a2934d89885eed5ec4e0dd5ddfa7ba86203d8f",
       "family": "compatibility-entry",
       "readers": [
@@ -3794,7 +3804,7 @@
     {
       "path": "tools/gen-lisp-abi-probe.py",
       "sha256": "ca40c697c99423457d1e1fdc3ad2e3c13f6563359a9d97aaaab16255bd1c61d7",
-      "bytes": 22513,
+      "bytes": 22665,
       "git_blob": "b49ee9c1c190071cf2d72a4a2ad438b040830887",
       "family": "generator",
       "readers": [],
@@ -3820,7 +3830,7 @@
     {
       "path": "tools/gen-macos-exports.py",
       "sha256": "9c2bbf8553bcab9884def8a60a08bf9ed5d774f65778fe955c4fca933b2f25d1",
-      "bytes": 17175,
+      "bytes": 17783,
       "git_blob": "41e3557f66dd7ca007f70463532c42ca8d4198bf",
       "family": "generator",
       "readers": [
@@ -3834,13 +3844,13 @@
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
       "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "62191a9bdc1a660f3c966494e756252cd444abcc047b4433b1878984fdae1c69",
-      "current_bytes": 17462
+      "current_sha256": "ca33fd37e978b1b4a855db0bbfaee92326987e3e68e1fc9a714d75d4b154f7b2",
+      "current_bytes": 17783
     },
     {
       "path": "tools/gen-macos-runtime.py",
       "sha256": "ef546e084dab90cacdfdd460ae43b711a58bb5ef3aa1f7e2b39ea754c75d99dc",
-      "bytes": 5042,
+      "bytes": 5063,
       "git_blob": "d86fbaadbc96b89f4fe4f3d2660b196a47063cc4",
       "family": "generator",
       "readers": [
@@ -3858,7 +3868,9 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively",
+      "current_sha256": "317031769ef1e1fc0440eccd2b4313820bd14239bd77453e4c5f07f85e25a26c",
+      "current_bytes": 5063
     },
     {
       "path": "tools/gen-platform-arms.py",
@@ -4018,7 +4030,7 @@
     {
       "path": "tools/l5-sweep.sh",
       "sha256": "44d2ef35f4650732ca77be1aa889fecfac30b9922702d64e5b03603e39bfb9a4",
-      "bytes": 1638,
+      "bytes": 136,
       "git_blob": "09c381f9372dbee5242692bb1721b4336186db04",
       "family": "compatibility-entry",
       "readers": [
@@ -4067,7 +4079,7 @@
     {
       "path": "tools/local-acceptance.py",
       "sha256": "91599a690554d3fa39db243eb92d500ee35385d9c7e6788db986683832f30d2b",
-      "bytes": 10168,
+      "bytes": 10603,
       "git_blob": "b42b3e8ad22bd1c7e0ef3cb0b0118849e9439042",
       "family": "measurement",
       "readers": [
@@ -4086,8 +4098,8 @@
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
       "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "2a82db2edfdf31612aa57db23bf5c170d329d00d08363ecab35510fbe9837471",
-      "current_bytes": 10339
+      "current_sha256": "474a0dea146576efa321c1009e234508675670406676977766bc1f2e92f0d8c7",
+      "current_bytes": 10603
     },
     {
       "path": "tools/pgo/eval.el",
@@ -4166,14 +4178,16 @@
     {
       "path": "tools/pgo_pipeline.py",
       "sha256": "1120174dca974890dff08fe8f5d8d4c7622c72e9d7e976869fef73b4ae902f40",
-      "bytes": 8386,
+      "bytes": 8324,
       "git_blob": "add41e771aeb312ea958e2acd2cf059b76ba1da2",
       "family": "measurement",
       "readers": [],
-      "decision": "retain",
-      "replacement": null,
-      "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively"
+      "decision": "replace-body",
+      "replacement": "xtask gate-load Cargo PGO pipeline without retired build-units",
+      "reason": "retired pre-Cargo xtask build-units and /tmp/xt-cargo calls (U5)",
+      "uncertainty": "complete dynamic readers not proved; retained conservatively",
+      "current_sha256": "f5b2628fa5078276a5fb1f3da9bcfa5893d5abf0740bf59df8c81ca7fe58aa5d",
+      "current_bytes": 8324
     },
     {
       "path": "tools/restore-verbatim.py",
@@ -4190,7 +4204,7 @@
     {
       "path": "tools/runtime-profile.py",
       "sha256": "54b6360b960e09c44af981f8edf4922e87487df858540448fd74a41f5c42e2f0",
-      "bytes": 11148,
+      "bytes": 18101,
       "git_blob": "ee7e403960b2dc703ad898b8c6e6af392189d671",
       "family": "measurement",
       "readers": [
@@ -4319,7 +4333,7 @@
     {
       "path": "tools/test-compiler-resources.py",
       "sha256": "a9cdce78726351846c09e408fb48bd9517baf9657e8bc6e794005fb126ac84fe",
-      "bytes": 3539,
+      "bytes": 6601,
       "git_blob": "1b4488ec6fbc902dbeec71599864a810f9cedf6b",
       "family": "test",
       "readers": [],
@@ -4333,7 +4347,7 @@
     {
       "path": "tools/test-ert-harness.py",
       "sha256": "4f5866f520d7fc895e86ef697ca4149e77bc2db576860e2aeefcfb3ddae6b1ed",
-      "bytes": 35023,
+      "bytes": 35242,
       "git_blob": "778d99c22d63794c8c1fcb49a76bc1e571b03498",
       "family": "test",
       "readers": [
@@ -4365,7 +4379,7 @@
     {
       "path": "tools/test-macos-delivery.py",
       "sha256": "cb1cf6efef4914862b68559361ecf4e03ace3964ee05045ebba8bc6caac2afd3",
-      "bytes": 24109,
+      "bytes": 24891,
       "git_blob": "99eda08faef940679c0f5cd76a7dd64255dc841c",
       "family": "test",
       "readers": [
@@ -4389,13 +4403,13 @@
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
       "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "ef8b084897a5f3f2f076a46a600633e0124be3e9ce3a3d336401871da5725e2c",
-      "current_bytes": 24843
+      "current_sha256": "ebe55b87e7d795dbaa26d1fa8366c3a34e25f94185571ae87badb7b6f830c8ff",
+      "current_bytes": 24891
     },
     {
       "path": "tools/test-macos-ime.py",
       "sha256": "fb7a23f9aa08c689b7851e1117c3cc85db3db4c578874004dcb9278d1b7f557e",
-      "bytes": 13125,
+      "bytes": 20912,
       "git_blob": "34804ae5a1bf2479228434980b7c40631ee5ad4d",
       "family": "test",
       "readers": [
@@ -4420,7 +4434,7 @@
     {
       "path": "tools/test-macos-stability.py",
       "sha256": "cf2aacb782e20a7ec84a8341ee291c11c4d2d7984aab6c18e50eedc3d223fc68",
-      "bytes": 3627,
+      "bytes": 6800,
       "git_blob": "f292c346d3c706aab932cf482e3227d088ed17b9",
       "family": "test",
       "readers": [
@@ -4452,7 +4466,7 @@
     {
       "path": "tools/test-modernization-tools.py",
       "sha256": "d1013bb933bf5080912dae0e5df4b2b864caba84d362813dc8788f717a1dedf6",
-      "bytes": 40359,
+      "bytes": 43102,
       "git_blob": "27465e9dce60c5d1f0003a17307350fd4cc141c9",
       "family": "test",
       "readers": [],
@@ -4466,7 +4480,7 @@
     {
       "path": "tools/test-release-baseline.py",
       "sha256": "af4b18264c59b37034887bb20fed8c33d2798bdd32f970881db5f35e153b14c9",
-      "bytes": 31198,
+      "bytes": 37911,
       "git_blob": "642c351f3611f8b237423ffdbdad29083b28d726",
       "family": "test",
       "readers": [
@@ -4486,7 +4500,7 @@
     {
       "path": "tools/test-repository-bootstrap.py",
       "sha256": "90eba0454de81cf6408e0046d59973e926eaddab1dee6f45b2f7b4da56d7d457",
-      "bytes": 4140,
+      "bytes": 4310,
       "git_blob": "4988ed61de7439b3dcb90b28b83be4de98ec1973",
       "family": "test",
       "readers": [
@@ -4504,7 +4518,9 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively",
+      "current_sha256": "96f05d6b3d050aa0c9a0f5424489b2be2d88443cad2a9ff622c710e6618399b2",
+      "current_bytes": 4310
     },
     {
       "path": "tools/test-stable-compat.py",
@@ -4533,7 +4549,7 @@
     {
       "path": "tools/try-android-emulator.sh",
       "sha256": "a49683af65ad3339f511113411d6adf376d5635fc8799eb6c1bd31e8aa698e9e",
-      "bytes": 15597,
+      "bytes": 147,
       "git_blob": "e0bffab33a28db1136c3655083464a8fd3d63b3c",
       "family": "compatibility-entry",
       "readers": [
@@ -4590,7 +4606,7 @@
     {
       "path": "tools/zig-linux-linker.sh",
       "sha256": "e01c23397c8d84736e69ef17d0896eb97fb9f250a3c65fd814933a40caafa026",
-      "bytes": 1016,
+      "bytes": 730,
       "git_blob": "2fa54050548fd0c0e0609a00502297ab8e88296a",
       "family": "linker-adaptor",
       "readers": [
@@ -4685,6 +4701,40 @@
         {
           "path": "xtask/src/manuals.rs",
           "anchor": "build subprocess argv",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/check-cli-options.py",
+      "sha256": "4d784f7b36a4288e286fb78aa9d8d31112ad6de932694b9a10ca5aab87648c7f",
+      "bytes": 3000,
+      "family": "comparison-gate",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned U1-U5 / Stage I-III verification or safety boundary input; explicit reader retained",
+      "readers": [
+        {
+          "path": "tools/test-repository-bootstrap.py",
+          "anchor": "tools/check-cli-options.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/check-unsafe-boundary.py",
+      "sha256": "0ad27d4aceffeeec59d7c620d018cd95e41a288fed315c4ded4d6fcc1005685e",
+      "bytes": 37580,
+      "family": "comparison-gate",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned U1-U5 / Stage I-III verification or safety boundary input; explicit reader retained",
+      "readers": [
+        {
+          "path": "xtask/src/main.rs",
+          "anchor": "tools/check-unsafe-boundary.py",
           "kind": "current explicit dispatch/import/documented invocation"
         }
       ],
@@ -4941,8 +4991,8 @@
     },
     {
       "path": "tools/fixtures/image-loader-protection.el",
-      "sha256": "796409d3ed2349e51bf779be4436e5636144b170357755190b1632b988d73fe2",
-      "bytes": 14784,
+      "sha256": "357de5bae14f71c89bac6aecc4e0266bc8b9d5fa90256c397e69f71350ab6327",
+      "bytes": 16366,
       "family": "fixture",
       "decision": "retain",
       "replacement": null,
@@ -5059,6 +5109,23 @@
         {
           "path": "maintenance/cleanup/reports/2026-11-20-270-consumed-stage1-delivery-and-probes.md",
           "anchor": "macos-background-gc",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/fixtures/macos-default-font.el",
+      "sha256": "0557b140e885b8824c66bf82a39f270e41bf8e5060c37e1b56f720172367aa4a",
+      "bytes": 2413,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned U1-U5 / Stage I-III verification or safety boundary input; explicit reader retained",
+      "readers": [
+        {
+          "path": "maintenance/cleanup/reports/2026-11-20-274-cocoa-default-font.md",
+          "anchor": "tools/fixtures/macos-default-font.el",
           "kind": "current explicit dispatch/import/documented invocation"
         }
       ],
@@ -6010,8 +6077,8 @@
     },
     {
       "path": "tools/fixtures/stable-suite-runner.el",
-      "sha256": "315a7f749e75d5259b88e08ad3ad0a5224767caa8dbf16e394619558093194ca",
-      "bytes": 36033,
+      "sha256": "a510c08b027a7e4144680eebc4a9565b0648ed8a0a3d716b152b1aebcee5fdad",
+      "bytes": 39824,
       "family": "fixture",
       "decision": "retain",
       "replacement": null,
@@ -6188,8 +6255,8 @@
     },
     {
       "path": "tools/functional-corpus.py",
-      "sha256": "06471180489870b035d33725d9f7bcc35adb0f9bde260f6bb88cc5c324e6ae8e",
-      "bytes": 26231,
+      "sha256": "cfc7fb7dfac5cd6807612a9bf928cd2e2d093cbc418fa111e44d701d11ca3de1",
+      "bytes": 26390,
       "family": "comparison-gate",
       "decision": "retain",
       "replacement": null,
@@ -7246,8 +7313,8 @@
     },
     {
       "path": "tools/test-cocoa-frame-flags.py",
-      "sha256": "9062a0ec9e557d62a9824fddf514d25e4d5396012d192c818f8a6f542b440d12",
-      "bytes": 7131,
+      "sha256": "87aad1ff56b3380e12cd7bd8c4a867c775a52ec8af9aca3a59a2da72b61c49eb",
+      "bytes": 7157,
       "family": "test",
       "decision": "retain",
       "replacement": null,
@@ -8119,8 +8186,8 @@
     },
     {
       "path": "tools/test-stable-suite.py",
-      "sha256": "c43bb2b9fbe05c981313d4cdcda8624479a49afde17a381294512161ab448d99",
-      "bytes": 55757,
+      "sha256": "1d4f8a7f8af7293170d62e0d8814487fb6d76afdb2d2b7d3188972633039f203",
+      "bytes": 60111,
       "family": "test",
       "decision": "retain",
       "replacement": null,
@@ -8183,6 +8250,108 @@
         {
           "path": "tools/g4-acceptance.py",
           "anchor": "components contract argv",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/test-u2-pure-and-tools.py",
+      "sha256": "19185f201f2611a33eccda4498e0dc5b51c99fbdc631c823ce05250fe588c6a0",
+      "bytes": 28366,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned U1-U5 / Stage I-III verification or safety boundary input; explicit reader retained",
+      "readers": [
+        {
+          "path": "PORTING.md",
+          "anchor": "tools/test-u2-pure-and-tools.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/test-u3-nonlocal-exit.py",
+      "sha256": "35d2bb7405fb59ba973f4bc8632e6674cb3184bee4589c5731c7b36eff67af36",
+      "bytes": 44248,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned U1-U5 / Stage I-III verification or safety boundary input; explicit reader retained",
+      "readers": [
+        {
+          "path": "docs/testing-strategy.md",
+          "anchor": "tools/test-u3-nonlocal-exit.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/test-u3-unit.py",
+      "sha256": "af52f9c48e4465daf90fc60051859ce76dbef468bde9d1902bd08f6f55b1f572",
+      "bytes": 19016,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned U1-U5 / Stage I-III verification or safety boundary input; explicit reader retained",
+      "readers": [
+        {
+          "path": "docs/testing-strategy.md",
+          "anchor": "tools/test-u3-unit.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/test-u4-gc-roots.py",
+      "sha256": "e615879d913551ba304ef7404b0e94d1b43b056ed0cdaa34f5d1596c59bc2277",
+      "bytes": 34365,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned U1-U5 / Stage I-III verification or safety boundary input; explicit reader retained",
+      "readers": [
+        {
+          "path": "docs/testing-strategy.md",
+          "anchor": "tools/test-u4-gc-roots.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/test-u4-unit.py",
+      "sha256": "c5eb338d1428630e6b3ad2a8570afdf7f2de7999cfb8eb649af70ae37b2fff2b",
+      "bytes": 15385,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned U1-U5 / Stage I-III verification or safety boundary input; explicit reader retained",
+      "readers": [
+        {
+          "path": "docs/testing-strategy.md",
+          "anchor": "tools/test-u4-unit.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/test-u5-au5-integration.py",
+      "sha256": "b5fa636478b746e46ff156b1c4c05aba0fbeba65d88395d8f0472415c9799c08",
+      "bytes": 58666,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned U1-U5 / Stage I-III verification or safety boundary input; explicit reader retained",
+      "readers": [
+        {
+          "path": "docs/testing-strategy.md",
+          "anchor": "D-07/D-08 U5/AU5 integration driver",
           "kind": "current explicit dispatch/import/documented invocation"
         }
       ],
@@ -8261,6 +8430,23 @@
         {
           "path": "maintenance/releases/2026-10-29-macos-treesit.md",
           "anchor": "tools/treesit-abi.py",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/unsafe-boundary-manifest.json",
+      "sha256": "7d0f345bb1484dca4785c5cc0514a44c5b5d6e116693f845a7018ec12430fbfe",
+      "bytes": 143473,
+      "family": "fixture",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned U1-U5 / Stage I-III verification or safety boundary input; explicit reader retained",
+      "readers": [
+        {
+          "path": "xtask/src/main.rs",
+          "anchor": "tools/unsafe-boundary-manifest.json",
           "kind": "current explicit dispatch/import/documented invocation"
         }
       ],

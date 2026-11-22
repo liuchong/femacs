@@ -3,6 +3,7 @@
 //! The existing seven app-publication tests in `bundle.rs` remain authoritative for the
 //! compatibility wrapper.  These cases bind the new generic directory interface, including
 //! explicit previous-set retention and failure-before-swap preservation.
+#![forbid(unsafe_code)]
 
 use super::*;
 

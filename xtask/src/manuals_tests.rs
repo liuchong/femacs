@@ -1,4 +1,5 @@
 //! Independent regressions for manual-cache provenance.
+#![forbid(unsafe_code)]
 use super::recipes_match;
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};

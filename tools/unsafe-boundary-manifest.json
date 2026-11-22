@@ -30,24 +30,111 @@
     }
   ],
   "forbid_unsafe_modules": [
-    "crates/femacs-pure",
-    "crates/femacs-vm/src/safe_domain.rs",
     "cli",
-    "packaging",
-    "lib/include/stdcountof.rs",
-    "src/include/macuvs.rs",
+    "crates/femacs-pure",
+    "crates/femacs-sys/build.rs",
+    "crates/femacs-vm/build.rs",
+    "crates/femacs-vm/src/safe_domain.rs",
     "lib-src/asset-directory-tool.rs",
     "lib-src/emacsclient.rs",
     "lib-src/hexl.rs",
     "lib-src/make-fingerprint.rs",
+    "lib/acl-errno-valid.rs",
+    "lib/byteswap.rs",
+    "lib/c-ctype.rs",
+    "lib/dtotimespec.rs",
+    "lib/endian.rs",
+    "lib/include/attribute.rs",
     "lib/include/byteswap.in.rs",
     "lib/include/c-ctype.rs",
+    "lib/include/dirent.in.rs",
+    "lib/include/dynarray.rs",
     "lib/include/endian.in.rs",
+    "lib/include/filename.rs",
+    "lib/include/flexmember.rs",
+    "lib/include/float.in.rs",
+    "lib/include/getopt-cdefs.in.rs",
+    "lib/include/getopt-pfx-core.rs",
+    "lib/include/getopt-pfx-ext.rs",
+    "lib/include/getopt.in.rs",
+    "lib/include/gettext.rs",
+    "lib/include/gnulib_config.rs",
+    "lib/include/idx.rs",
+    "lib/include/ieee754.in.rs",
+    "lib/include/ignore-value.rs",
+    "lib/include/intprops-internal.rs",
+    "lib/include/intprops.rs",
+    "lib/include/libc-config.rs",
+    "lib/include/limits.in.rs",
+    "lib/include/min-eloop-threshold.rs",
+    "lib/include/min-max.rs",
+    "lib/include/minmax.rs",
+    "lib/include/sig2str.rs",
+    "lib/include/stat-time.rs",
+    "lib/include/stdbit.in.rs",
+    "lib/include/stdbit.rs",
+    "lib/include/stdckdint.in.rs",
+    "lib/include/stdcountof.rs",
+    "lib/include/stddef.in.rs",
+    "lib/include/stdint.in.rs",
+    "lib/include/stdio-impl.rs",
+    "lib/include/sys-limits.rs",
+    "lib/include/sys_types.in.rs",
+    "lib/include/termios.rs",
     "lib/include/u64.rs",
+    "lib/include/unlocked-io.rs",
+    "lib/include/verify.rs",
     "lib/mini-gmp-gnulib.rs",
+    "lib/rawmemchr.rs",
     "lib/regex.rs",
+    "lib/stat-time.rs",
+    "lib/stdc_bit_width.rs",
+    "lib/stdc_count_ones.rs",
+    "lib/stdc_leading_zeros.rs",
+    "lib/stdc_memreverse8u.rs",
+    "lib/stdc_trailing_zeros.rs",
     "lib/stdlib.rs",
-    "lib/unistd.rs"
+    "lib/timespec-add.rs",
+    "lib/timespec-sub.rs",
+    "lib/timespec.rs",
+    "lib/u64.rs",
+    "lib/unistd.rs",
+    "lwlib/include/lwlib-widget.rs",
+    "packaging",
+    "src/include/gnutls-types.rs",
+    "src/include/macuvs.rs",
+    "src/include/nsgui.rs",
+    "xtask/src/android/audit.rs",
+    "xtask/src/android/config.rs",
+    "xtask/src/android/gate.rs",
+    "xtask/src/android/mod.rs",
+    "xtask/src/android/package.rs",
+    "xtask/src/android/package_tests.rs",
+    "xtask/src/android/review_tests.rs",
+    "xtask/src/android/tests.rs",
+    "xtask/src/android/toolchain.rs",
+    "xtask/src/bundle.rs",
+    "xtask/src/bundle_tests.rs",
+    "xtask/src/cargo_build.rs",
+    "xtask/src/check_units.rs",
+    "xtask/src/image.rs",
+    "xtask/src/lcms.rs",
+    "xtask/src/macos.rs",
+    "xtask/src/manuals.rs",
+    "xtask/src/manuals_tests.rs",
+    "xtask/src/owned_copy.rs",
+    "xtask/src/probes.rs",
+    "xtask/src/probes_tests.rs",
+    "xtask/src/product_sources.rs",
+    "xtask/src/runtime.rs",
+    "xtask/src/runtime_backend.rs",
+    "xtask/src/runtime_tests.rs",
+    "xtask/src/standalone.rs",
+    "xtask/src/test_support.rs",
+    "xtask/src/tls.rs",
+    "xtask/src/tooling.rs",
+    "xtask/src/tooling_tests.rs",
+    "xtask/src/treesit.rs"
   ],
   "isolated_unsafe_boundaries": {
     "crates/femacs-host/src/bin/temacs.rs": {
@@ -189,6 +276,13 @@
       "failure_path": "Propagates errno and negative/null C status codes to caller",
       "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
       "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
+    },
+    "lib/fingerprint.rs": {
+      "boundary_class": "pdump_fingerprint_abi",
+      "caller": "make-fingerprint build step and pdumper.rs dump-compatibility check",
+      "failure_path": "make-fingerprint exits non-zero if placeholder missing; pdumper rejects mismatched hash",
+      "invariant": "Exported unmangled 32-byte array matching pdumper.rs extern declaration",
+      "ownership": "Static 32-byte link-time placeholder patched in binary image before pdump"
     },
     "lib/fpending.rs": {
       "boundary_class": "posix_gnulib_sys_ffi",
@@ -435,13 +529,6 @@
       "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
       "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
     },
-    "lib/include/gettext.rs": {
-      "boundary_class": "posix_gnulib_sys_ffi",
-      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
-      "failure_path": "Propagates errno and negative/null C status codes to caller",
-      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
-      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
-    },
     "lib/include/grp.rs": {
       "boundary_class": "posix_gnulib_sys_ffi",
       "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
@@ -569,27 +656,6 @@
       "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
     },
     "lib/include/signal.rs": {
-      "boundary_class": "posix_gnulib_sys_ffi",
-      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
-      "failure_path": "Propagates errno and negative/null C status codes to caller",
-      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
-      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
-    },
-    "lib/include/stat-time.rs": {
-      "boundary_class": "posix_gnulib_sys_ffi",
-      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
-      "failure_path": "Propagates errno and negative/null C status codes to caller",
-      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
-      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
-    },
-    "lib/include/stdbit.in.rs": {
-      "boundary_class": "posix_gnulib_sys_ffi",
-      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
-      "failure_path": "Propagates errno and negative/null C status codes to caller",
-      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
-      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
-    },
-    "lib/include/stddef.in.rs": {
       "boundary_class": "posix_gnulib_sys_ffi",
       "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
       "failure_path": "Propagates errno and negative/null C status codes to caller",
@@ -751,13 +817,6 @@
       "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
     },
     "lib/include/utmpx.rs": {
-      "boundary_class": "posix_gnulib_sys_ffi",
-      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
-      "failure_path": "Propagates errno and negative/null C status codes to caller",
-      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
-      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
-    },
-    "lib/include/verify.rs": {
       "boundary_class": "posix_gnulib_sys_ffi",
       "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
       "failure_path": "Propagates errno and negative/null C status codes to caller",
@@ -960,13 +1019,6 @@
       "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
       "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
     },
-    "lib/rawmemchr.rs": {
-      "boundary_class": "posix_gnulib_sys_ffi",
-      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
-      "failure_path": "Propagates errno and negative/null C status codes to caller",
-      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
-      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
-    },
     "lib/save-cwd.rs": {
       "boundary_class": "posix_gnulib_sys_ffi",
       "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
@@ -1017,13 +1069,6 @@
       "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
     },
     "lib/sigdescr_np.rs": {
-      "boundary_class": "posix_gnulib_sys_ffi",
-      "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
-      "failure_path": "Propagates errno and negative/null C status codes to caller",
-      "invariant": "Pointers and buffer capacities satisfy POSIX/gnulib preconditions",
-      "ownership": "Caller-owned file descriptors, stat structs, and C byte buffers"
-    },
-    "lib/stat-time.rs": {
       "boundary_class": "posix_gnulib_sys_ffi",
       "caller": "femacs-sys C-ABI wrappers and femacs-vm OS primitives",
       "failure_path": "Propagates errno and negative/null C status codes to caller",
@@ -2080,26 +2125,12 @@
       "invariant": "Executed on active Lisp thread with valid tagged Lisp_Object values and live buffer/process pointers",
       "ownership": "VM-managed buffers, strings, vectors, hash tables, processes, and tagged Lisp_Object values"
     },
-    "xtask/src/android/tests.rs": {
-      "boundary_class": "serialized_test_env_ffi",
-      "caller": "xtask #[cfg(test)] single-threaded environment guards",
-      "failure_path": "Drop restores prior OsString or removes key even on test panic",
-      "invariant": "Serialized test scope holds exclusive mutation rights over guarded env keys",
-      "ownership": "Process environment variables restored by Drop guard before test exit"
-    },
-    "xtask/src/bundle.rs": {
-      "boundary_class": "os_packaging_ffi",
-      "caller": "xtask macOS app bundle staging swap",
-      "failure_path": "Returns Err with last_os_error() without modifying existing app bundle",
-      "invariant": "Both staging and destination paths are validated NUL-terminated UTF-8/Unix paths on macOS >= 10.12",
-      "ownership": "Temporary CString buffers borrowed for single syscall duration"
-    },
-    "xtask/src/runtime.rs": {
-      "boundary_class": "serialized_test_env_ffi",
-      "caller": "xtask #[cfg(test)] single-threaded environment guards",
-      "failure_path": "Drop restores prior OsString or removes key even on test panic",
-      "invariant": "Serialized test scope holds exclusive mutation rights over guarded env keys",
-      "ownership": "Process environment variables restored by Drop guard before test exit"
+    "xtask/src/os_ffi.rs": {
+      "boundary_class": "xtask_os_process_ffi",
+      "caller": "xtask bundle::exchange_dirs and serialized runtime/test environment setup",
+      "failure_path": "exchange_dirs returns formatted OS error preserving existing destination app",
+      "invariant": "renamex_np receives valid CStrings; set_var/remove_var run before worker threads or under env_lock()",
+      "ownership": "Temporary NUL-terminated CStrings and single-threaded/mutex-serialized process env"
     }
   },
   "root_categories": [

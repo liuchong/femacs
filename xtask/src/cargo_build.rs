@@ -4,6 +4,7 @@
 //! `LINK_DRIVER`, and `libgnu-port.a` archiving with workspace Cargo builds while
 //! preserving target-local generated configuration, Swift object inputs, and
 //! runtime artifact receipts.
+#![forbid(unsafe_code)]
 
 use std::fs;
 use std::path::{Path, PathBuf};

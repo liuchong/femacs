@@ -14,6 +14,7 @@ use std::process::{exit, Command};
 
 mod bundle;
 mod cargo_build;
+mod os_ffi;
 mod tls;
 mod image;
 mod lcms;
@@ -1475,10 +1476,17 @@ configuration (see PORTING.md 2.1's setup steps)");
     println!("== unsafe boundary gate ==");
     match Command::new("python3")
         .current_dir(REPO)
-        .args(["tools/check-unsafe-boundary.py"])
+        .args([
+            "tools/check-unsafe-boundary.py",
+            "--manifest",
+            "tools/unsafe-boundary-manifest.json",
+            "--require-no-file-allows",
+            "--require-zero-active-stitching",
+            "--require-100pct-safety-docs",
+        ])
         .status()
     {
-        Ok(s) if s.success() => println!("unsafe boundary: pure crates carry forbid(unsafe_code)"),
+        Ok(s) if s.success() => println!("unsafe boundary: pure crates, zero file-allows, and 100% SAFETY contracts verified"),
         Ok(_) => return fail("unsafe boundary check failed"),
         Err(e) => return fail(e),
     }

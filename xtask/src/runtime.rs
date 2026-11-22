@@ -1,3 +1,4 @@
+#![forbid(unsafe_code)]
 //! P-346 selected runtime-product configuration and identity ownership.
 //! This module's pure contracts are separate from actual build receipts.
 use serde_json::{Map, Value};
@@ -561,9 +562,13 @@ pub(crate) fn terminal_paths_source(repo: &Path, root: &Path) -> String {
     let mut code = String::from(r#"// Generated candidate-only terminal resource paths.
 mod runtime_terminal_paths {
 use super::*;
+use core::cell::UnsafeCell;
 use core::sync::atomic::{AtomicU8, Ordering};
+struct PathBuffers(UnsafeCell<[[c_char; 4096]; 8]>);
+// SAFETY: Each slot is written once by the CAS winner (state 0 -> 1 -> 2) and read after Acquire.
+unsafe impl Sync for PathBuffers {}
 static STATES: [AtomicU8; 8] = [const { AtomicU8::new(0) }; 8];
-static mut BUFFERS: [[c_char; 4096]; 8] = [[0; 4096]; 8];
+static BUFFERS: PathBuffers = PathBuffers(UnsafeCell::new([[0; 4096]; 8]));
 unsafe extern "C" {
     #[link_name="_NSGetExecutablePath"] fn executable_path(buffer: *mut c_char, size: *mut u32) -> c_int;
     #[link_name="realpath"] fn canonical_path(path: *const c_char, output: *mut c_char) -> *mut c_char;
@@ -582,7 +587,7 @@ unsafe fn live_path(slot: usize, suffix: &[u8]) -> *const c_char {
                 let length = resolved.iter().position(|value| *value == 0).unwrap_or(4096);
                 let Some(slash) = resolved[..length].iter().rposition(|value| *value == b'/' as c_char) else { resource_path_failure(); };
                 if slash + 1 + suffix.len() >= 4096 { resource_path_failure(); }
-                let output = (&raw mut BUFFERS).cast::<[c_char; 4096]>().add(slot).cast::<c_char>();
+                let output = BUFFERS.0.get().cast::<[c_char; 4096]>().add(slot).cast::<c_char>();
                 core::ptr::copy_nonoverlapping(resolved.as_ptr(), output, slash + 1);
                 for (index, byte) in suffix.iter().enumerate() { *output.add(slash + 1 + index) = *byte as c_char; }
                 *output.add(slash + 1 + suffix.len()) = 0;
@@ -591,7 +596,7 @@ unsafe fn live_path(slot: usize, suffix: &[u8]) -> *const c_char {
                 while STATES[slot].load(Ordering::Acquire) != 2 { core::hint::spin_loop(); }
             }
         }
-        (&raw const BUFFERS).cast::<[c_char; 4096]>().add(slot).cast::<c_char>()
+        BUFFERS.0.get().cast::<[c_char; 4096]>().add(slot).cast_const().cast::<c_char>()
     }
 }
 "#);
@@ -910,12 +915,10 @@ pub(crate) fn command(args: &[String]) -> i32 {
                                 ("FEMACS_RUNTIME_NATIVE_CACHE", "build-native-cache")] {
                 let path = root.join(name);
                 fs::create_dir_all(&path).map_err(|e| e.to_string())?;
-                /* SAFETY: Serialized test environment guard mutates process env vars without concurrent readers. */ unsafe { std::env::set_var(key, path); }
+                crate::os_ffi::set_process_env(key, path);
             }
-            /* SAFETY: Serialized test environment guard mutates process env vars without concurrent readers. */ unsafe {
-                std::env::set_var("RUSTUP_HOME", &rustup_home);
-                std::env::set_var("CARGO_HOME", &cargo_home);
-            }
+            crate::os_ffi::set_process_env("RUSTUP_HOME", &rustup_home);
+            crate::os_ffi::set_process_env("CARGO_HOME", &cargo_home);
             let preservation_required = std::env::var_os("FEMACS_RUNTIME_ARTIFACT_JOURNAL").is_some();
             let mut preservation_complete = false;
             let attempt = (|| -> Result<(), String> {

@@ -1,4 +1,5 @@
 //! Explicit optional reference-config measurement, never normal product input promotion.
+#![forbid(unsafe_code)]
 use super::*;
 use serde_json::json;
 use std::{fs, path::Path};

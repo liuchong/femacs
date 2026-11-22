@@ -1,4 +1,5 @@
 // femacs: port of lib/sys_types.in.h @ fd7afced403 (gnulib).
+#![forbid(unsafe_code)]
 //
 // gnulib template.  The frozen target's generated header is
 // build/emacs-ref/lib/sys/types.h, whose substitutions are the guard `_GL_SYS_TYPES_H`,

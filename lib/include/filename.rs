@@ -1,4 +1,5 @@
 // femacs: port of lib/filename.h @ fd7afced403.
+#![forbid(unsafe_code)]
 //
 // The header is two arms: the Windows/Cygwin/OS2/DOS spelling (C 55-91) and the Unix one
 // (C 93-104).  The frozen target is darwin-arm64, so the Unix arm is the live text; every

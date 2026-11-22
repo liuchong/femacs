@@ -15,6 +15,7 @@ from pathlib import Path
 import platform
 import pty
 import select
+import site
 import subprocess
 import struct
 import sys
@@ -144,7 +145,11 @@ def main():
         patch=subprocess.check_output(['git','diff','--no-ext-diff','--binary','HEAD'],cwd=ROOT)
         report['tracked_patch_sha256']=hashlib.sha256(patch).hexdigest()
         report['worktree_status']=subprocess.check_output(['git','status','--porcelain'],cwd=ROOT,text=True)
+        user_site=site.getusersitepackages()
         env=dict(os.environ,HOME=str(out/'home'),LC_ALL='C');(out/'home').mkdir()
+        if isinstance(user_site,str) and user_site and Path(user_site).is_dir():
+            prev_py=env.get('PYTHONPATH','')
+            env['PYTHONPATH']=f'{user_site}:{prev_py}' if prev_py else user_site
         def check(name,argv):rows.append(run_check(name,argv,out,env))
         check('root-inputs',[sys.executable,'tools/test-repository-bootstrap.py'])
         check('ert-components',[sys.executable,'tools/test-ert-harness.py','--json-out',out/'ert-components.json'])

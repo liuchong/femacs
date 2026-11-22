@@ -1,4 +1,5 @@
 // femacs: port of lib/dirent.in.h @ fd7afced403 (gnulib's <dirent.h>; PORTING.md P-26).
+#![forbid(unsafe_code)]
 //
 // The frozen substitution is build/emacs-ref/lib/dirent.h, and the configuration decides
 // almost every arm against the system header:

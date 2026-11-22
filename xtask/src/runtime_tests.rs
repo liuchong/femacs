@@ -1,5 +1,6 @@
 //! Stage B cases for runtime configuration ownership. Not executed before D.
 //! Included as a child module of runtime.rs; no environment mutation is needed.
+#![forbid(unsafe_code)]
 use super::*;
 
 #[test]

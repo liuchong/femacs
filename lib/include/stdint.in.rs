@@ -1,4 +1,5 @@
 // femacs: port of lib/stdint.in.h @ fd7afced403.
+#![forbid(unsafe_code)]
 //
 // The reference is a gnulib template: `@GUARD_PREFIX@`, `@PRAGMA_SYSTEM_HEADER@`,
 // `@PRAGMA_COLUMNS@`, `@INCLUDE_NEXT@`, `@NEXT_STDINT_H@`, `@HAVE_STDINT_H@`,

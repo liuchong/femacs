@@ -1,4 +1,5 @@
 //! Resource/Kotlin/dex/APK pipeline. Verification precedes candidate publication.
+#![forbid(unsafe_code)]
 use super::*;
 use serde_json::{Value, json};
 use std::{

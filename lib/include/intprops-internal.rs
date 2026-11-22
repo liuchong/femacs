@@ -1,4 +1,5 @@
 // femacs: mirror of lib/intprops-internal.h @ fd7afced403.
+#![forbid(unsafe_code)]
 //
 // Header mirror (PORTING.md 0.1, P-26).  The internal half of gnulib's integer-property
 // machinery: the `_GL_*` arithmetic macros `intprops.h` (the outer, public half) builds its

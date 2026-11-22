@@ -1838,8 +1838,8 @@ DEFUN! ("copy-file", Fcopy_file, Scopy_file, 2, 6,
   if !NILP (keep_time)
     {
       let mut ts: [timespec; 2] = std::mem::zeroed ();
-      ts[0] = get_stat_atime (&raw const st);
-      ts[1] = get_stat_mtime (&raw const st);
+      ts[0] = get_stat_atime (&st);
+      ts[1] = get_stat_mtime (&st);
       if futimens (ofd, ts.as_ptr ()) != 0
 	/* C 2532-2539: `#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY`
 	   (HAVE_ANDROID undef): recorded.  */
@@ -2867,7 +2867,7 @@ DEFUN! ("file-newer-than-file-p", Ffile_newer_than_file_p, Sfile_newer_than_file
   if err1 != 0
     { file_attribute_errno (absname1, err1); }
 
-  return if timespec_cmp (get_stat_mtime (&raw const st2), get_stat_mtime (&raw const st1)) < 0
+  return if timespec_cmp (get_stat_mtime (&st2), get_stat_mtime (&st1)) < 0
     { Qt () } else { Qnil () };
 });
 
@@ -3357,7 +3357,7 @@ DEFUN! ("insert-file-contents", Finsert_file_contents, Sinsert_file_contents,
 
 	mtime = if memory_object
 	  { make_timespec (0, UNKNOWN_MODTIME_NSECS as c_long) }
-	else { get_stat_mtime (&raw mut st) };
+	else { get_stat_mtime (&st) };
       }
 
       /* The REPLACE code will need to be changed in order to work on
@@ -4849,7 +4849,7 @@ pub unsafe extern "C-unwind" fn write_region (start: Lisp_Object, end: Lisp_Obje
   if visiting
     {
       if sys_fstat (desc, &raw mut st) == 0
-	{ modtime = get_stat_mtime (&raw mut st); }
+	{ modtime = get_stat_mtime (&st); }
       else
 	{ ok = false; save_errno = *errno (); }
     }
@@ -4911,7 +4911,7 @@ pub unsafe extern "C-unwind" fn write_region (start: Lisp_Object, end: Lisp_Obje
 	       && st.st_size != 0
 	       && modtime.tv_nsec % 100 != 0;
 
-	  let mut modtime1: timespec = get_stat_mtime (&raw mut st1);
+	  let mut modtime1: timespec = get_stat_mtime (&st1);
 	  if use_heuristic
 	      && timespec_cmp (modtime, modtime1) == 0
 	      && st.st_size == st1.st_size
@@ -5334,7 +5334,7 @@ DEFUN! ("verify-visited-file-modtime", Fverify_visited_file_modtime,
 
   filename = ENCODE_FILE (BVAR! (b, filename_));
   mtime = if emacs_fstatat (AT_FDCWD, SSDATA (filename), &raw mut st as *mut c_void, 0) == 0
-    { get_stat_mtime (&raw mut st) }
+    { get_stat_mtime (&st) }
     else { time_error_value (*errno ()) };
   if timespec_cmp (mtime, (*b).modtime) == 0
       && ((*b).modtime_size < 0
@@ -5406,7 +5406,7 @@ DEFUN! ("set-visited-file-modtime", Fset_visited_file_modtime,
       if emacs_fstatat (AT_FDCWD, SSDATA (encoded), &raw mut st as *mut c_void, 0)
 	  == 0
 	{
-	  (*(current_buffer! ())).modtime = get_stat_mtime (&raw mut st);
+	  (*(current_buffer! ())).modtime = get_stat_mtime (&st);
 	  (*(current_buffer! ())).modtime_size = st.st_size;
 	}
       else

@@ -1,4 +1,5 @@
 //! Owned TLS target configuration and relocatable library/license delivery.
+#![forbid(unsafe_code)]
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::fs;

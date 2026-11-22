@@ -205,12 +205,12 @@ unsafe extern "C" fn update_timespec (statbuf: *const stat, ts: *mut *mut timesp
     }
 
   if ((*timespec.offset (0)).tv_nsec == UTIME_OMIT)
-    { *timespec.offset (0) = get_stat_atime (statbuf); }
+    { *timespec.offset (0) = get_stat_atime (&*statbuf); }
   else if ((*timespec.offset (0)).tv_nsec == UTIME_NOW)
     { gettime (timespec.offset (0)); }
 
   if ((*timespec.offset (1)).tv_nsec == UTIME_OMIT)
-    { *timespec.offset (1) = get_stat_mtime (statbuf); }
+    { *timespec.offset (1) = get_stat_mtime (&*statbuf); }
   else if ((*timespec.offset (1)).tv_nsec == UTIME_NOW)
     { gettime (timespec.offset (1)); }
 

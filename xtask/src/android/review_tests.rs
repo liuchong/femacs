@@ -1,4 +1,5 @@
 //! Independent regressions for the Android import-report contract.
+#![forbid(unsafe_code)]
 use super::gate::validate_import_report;
 use serde_json::{Value, json};
 

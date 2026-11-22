@@ -1,4 +1,5 @@
 // femacs: mirror of lib/stddef.in.h @ fd7afced403.
+#![forbid(unsafe_code)]
 //
 // Header mirror (PORTING.md 0.1, P-26).  This is a gnulib *template*: its text carries 14
 // `@PLACEHOLDER@` substitutions and 34 conditions, and the extractor cannot decide the
@@ -120,7 +121,7 @@ pub use self::stddef_decls::*;
    `__builtin_unreachable` is PORTING.md 2.6's `core::hint::unreachable_unchecked`, the
    mapping `include/verify.rs`'s `assume` uses.  */
 macro_rules! gl_unreachable {
-  () => { /* SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure. */ unsafe { core::hint::unreachable_unchecked () } };
+  () => { core::unreachable! () };
 }
 
 /* C 237-244: `# if !defined __cplusplus && !@HAVE_C_UNREACHABLE@ / #  define unreachable()

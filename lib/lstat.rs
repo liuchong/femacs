@@ -70,7 +70,7 @@ pub unsafe extern "C" fn rpl_lstat (file: *const c_char, sbuf: *mut stat) -> c_i
   if result == 0
     {
       if S_ISDIR! ((*sbuf).st_mode) || *file.add (strlen (file) - 1) != b'/' as c_char
-        { result = stat_time_normalize (result, sbuf); }
+        { result = stat_time_normalize (result, &mut *sbuf, &mut *errno ()); }
       else
         {
           /* At this point, a trailing slash is permitted only on

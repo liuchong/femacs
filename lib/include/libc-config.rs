@@ -1,4 +1,5 @@
 // femacs: mirror of lib/libc-config.h @ fd7afced403.
+#![forbid(unsafe_code)]
 //
 // Header mirror (PORTING.md 0.1).  The file exists so that code shared with glibc can include it
 // as its first header: on this target it pulls `<config.h>` and `<errno.h>` (both are the units'

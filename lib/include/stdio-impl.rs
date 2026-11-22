@@ -1,4 +1,5 @@
 // femacs: port of lib/stdio-impl.h @ fd7afced403 (PORTING.md P-26).
+#![forbid(unsafe_code)]
 //
 // The header decides, from the platform macros, how a stream's fields are named, and carries
 // one arm per stdio implementation (glibc's private `_IO_*`, Haiku, the BSD family, DragonFly,

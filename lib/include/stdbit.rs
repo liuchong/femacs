@@ -1,4 +1,5 @@
 // femacs: mirror of the frozen target's <stdbit.h> (C23; gnulib header, P-26).
+#![forbid(unsafe_code)]
 //
 // The frozen configuration has HAVE_STDBIT_H **undefined** (`build/emacs-ref/src/config.h`
 // 1433 `/* #undef HAVE_STDBIT_H */`, `docs/baseline/config/darwin-arm64.macros.tsv` 1556

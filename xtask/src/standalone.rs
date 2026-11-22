@@ -1,4 +1,5 @@
 //! Independent Apple Silicon macOS bootstrap. No reference source or binary.
+#![forbid(unsafe_code)]
 use super::*;
 
 pub(super) fn check_host() -> Result<(), String> {

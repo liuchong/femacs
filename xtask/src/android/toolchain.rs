@@ -1,4 +1,5 @@
 //! One numeric SDK/NDK and current-LTS Java discovery policy; no old JBR fallback.
+#![forbid(unsafe_code)]
 use super::AndroidError;
 use serde::Serialize;
 use std::{

@@ -1,4 +1,5 @@
 //! Requested host/static/native legs have independent, explicit results.
+#![forbid(unsafe_code)]
 use super::*;
 use serde_json::json;
 use std::{collections::BTreeSet, fs, path::Path};

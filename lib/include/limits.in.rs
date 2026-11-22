@@ -1,4 +1,5 @@
 // femacs: port of lib/limits.in.h @ fd7afced403 (gnulib template).
+#![forbid(unsafe_code)]
 //
 // The reference is a gnulib template: `@GUARD_PREFIX@`, `@PRAGMA_SYSTEM_HEADER@`,
 // `@PRAGMA_COLUMNS@`, `@INCLUDE_NEXT@` and `@NEXT_LIMITS_H@` are configured in, and the

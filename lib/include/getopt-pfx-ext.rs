@@ -1,4 +1,5 @@
 // femacs: WIP mirror of lib/getopt-pfx-ext.h @ fd7afced403 (PORTING.md P-26).
+#![forbid(unsafe_code)]
 //
 // Same rename layer as getopt-pfx-core.rs, for the GNU extensions: C 28-33 rename
 // `getopt_long`, `getopt_long_only` and `_getopt_internal` to `rpl_getopt_long`,

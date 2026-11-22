@@ -1,4 +1,5 @@
 // femacs: port of lib/attribute.h @ fd7afced403.
+#![forbid(unsafe_code)]
 //
 // The header is a thin mapping: every `ATTRIBUTE_*`, `DEPRECATED`, `FALLTHROUGH`, … name
 // forwards to the private `_GL_ATTRIBUTE_*`/`_GL_UNNAMED` spelling, which gnulib's

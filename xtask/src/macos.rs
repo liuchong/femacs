@@ -1,4 +1,5 @@
 //! Isolated native Cocoa target. No reference object enters the product link.
+#![forbid(unsafe_code)]
 use super::*;
 
 fn object_dir(repo: &Path, root: &Path) -> Result<PathBuf, String> {

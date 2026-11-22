@@ -1,4 +1,5 @@
 // femacs: mirror of the frozen target's <float.h>.
+#![forbid(unsafe_code)]
 //
 // gnulib has no `float.in.h` wrapper, so this file mirrors a *system* header directly:
 // lisp.h includes <float.h> (lisp.h 31) and the reference reads FLT_RADIX, FLT_MANT_DIG,

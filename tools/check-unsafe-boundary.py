@@ -60,6 +60,8 @@ FN_SIG_RE = re.compile(
     r"(?P<extern>extern\s+)?fn\s+(?P<name>[A-Za-z_]\w*)\b"
 )
 UNSAFE_BLOCK_RE = re.compile(r"\bunsafe\s*\{")
+UNSAFE_ATTR_RE = re.compile(r"#\s*\[\s*unsafe\s*\(")
+UNSAFE_IMPL_TRAIT_RE = re.compile(r"\bunsafe\s+(?:impl|trait)\b")
 SAFETY_COMMENT_RE = re.compile(r"(?i)\bSAFETY\s*:")
 
 NATIVE_COMP_REQUIRED_EXPORTS = (
@@ -314,6 +316,8 @@ def analyze_rust_file(path: Path, rel: str) -> dict:
         "extern_c_fn_defs": extern_c_fn_defs,
         "extern_c_blocks": len(EXTERN_BLOCK_RE.findall(scrubbed)),
         "unsafe_blocks": unsafe_blocks,
+        "unsafe_attrs": len(UNSAFE_ATTR_RE.findall(scrubbed)),
+        "unsafe_impl_traits": len(UNSAFE_IMPL_TRAIT_RE.findall(scrubbed)),
         "safety_documented_blocks": safety_documented_blocks,
         "static_mut_items": len(STATIC_MUT_RE.findall(scrubbed)),
         "stitching_includes": len(stitching_includes),
@@ -347,6 +351,8 @@ def summarize_rows(rows: list[dict]) -> dict:
         "extern_c_fn_defs": sum(r["extern_c_fn_defs"] for r in rows),
         "extern_c_blocks": sum(r["extern_c_blocks"] for r in rows),
         "unsafe_blocks": sum(r["unsafe_blocks"] for r in rows),
+        "unsafe_attrs": sum(r["unsafe_attrs"] for r in rows),
+        "unsafe_impl_traits": sum(r["unsafe_impl_traits"] for r in rows),
         "safety_documented_blocks": sum(r["safety_documented_blocks"] for r in rows),
         "static_mut_items": sum(r["static_mut_items"] for r in rows),
         "stitching_includes": sum(r["stitching_includes"] for r in rows),
@@ -397,6 +403,7 @@ def discover_active_product_files(repo: Path, workspace_members: list[str]) -> s
 
 
 def collect_repo_metrics(repo: Path) -> dict:
+    repo = repo.resolve()
     workspace_members = parse_workspace_members(repo)
     active_set = discover_active_product_files(repo, workspace_members)
     files_data: list[dict] = []
@@ -540,7 +547,13 @@ def validate_manifest(repo: Path, report: dict, manifest_path: Path) -> list[str
         if not any(f["forbid_unsafe_code"] for f in matched):
             errors.append(f"manifest forbid_unsafe_modules entry lacks `#![forbid(unsafe_code)]`: {prefix}")
         for f in matched:
-            if f["unsafe_fn_defs"] > 0 or f["unsafe_blocks"] > 0 or f["extern_c_blocks"] > 0:
+            if (
+                f["unsafe_fn_defs"] > 0
+                or f["unsafe_blocks"] > 0
+                or f["extern_c_blocks"] > 0
+                or f["unsafe_attrs"] > 0
+                or f["unsafe_impl_traits"] > 0
+            ):
                 errors.append(f"manifest forbid_unsafe_modules entry contains unsafe/FFI items: {f['file']}")
 
     required_root_fields = (
@@ -587,7 +600,14 @@ def validate_manifest(repo: Path, report: dict, manifest_path: Path) -> list[str
     actual_unsafe_active = {
         r["file"]
         for r in report["files"]
-        if r["active_product"] and (r["unsafe_fn_defs"] > 0 or r["unsafe_blocks"] > 0 or r["extern_c_blocks"] > 0)
+        if r["active_product"]
+        and (
+            r["unsafe_fn_defs"] > 0
+            or r["unsafe_blocks"] > 0
+            or r["extern_c_blocks"] > 0
+            or r["unsafe_attrs"] > 0
+            or r["unsafe_impl_traits"] > 0
+        )
     }
     unlisted = sorted(actual_unsafe_active - set(isolated.keys()))
     if unlisted:
@@ -662,6 +682,16 @@ def run_selftest() -> int:
             assert res["forbid_unsafe_code"] is True, res
             assert res["unsafe_fn_defs"] == 0, res
             assert res["unsafe_blocks"] == 0, res
+            assert res["unsafe_attrs"] == 0, res
+            assert res["unsafe_impl_traits"] == 0, res
+
+            p_attr = Path(tmp) / "attr.rs"
+            p_attr.write_text(
+                "#![forbid(unsafe_code)]\n#[unsafe(no_mangle)]\npub extern \"C\" fn f() {}\n",
+                encoding="utf-8",
+            )
+            res_attr = analyze_rust_file(p_attr, "crates/attr.rs")
+            assert res_attr["unsafe_attrs"] == 1, res_attr
 
     def test_nm_singleton_and_abi() -> None:
         good_nm = [
@@ -857,7 +887,13 @@ def main() -> int:
         if not has_crate_forbid:
             errors.append(f"--require-forbid target lacks `#![forbid(unsafe_code)]`: {prefix}")
         for f in matched:
-            if f["unsafe_fn_defs"] > 0 or f["unsafe_blocks"] > 0 or f["extern_c_blocks"] > 0:
+            if (
+                f["unsafe_fn_defs"] > 0
+                or f["unsafe_blocks"] > 0
+                or f["extern_c_blocks"] > 0
+                or f["unsafe_attrs"] > 0
+                or f["unsafe_impl_traits"] > 0
+            ):
                 errors.append(f"--require-forbid target contains unsafe/FFI items: {f['file']}")
 
     if args.baseline:

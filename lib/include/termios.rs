@@ -1,4 +1,5 @@
 // femacs: mirror of the frozen target's <termios.h> (system header, P-26/P-50).
+#![forbid(unsafe_code)]
 //
 // gnulib has no `termios` wrapper in this build; the reference includes the system header, so
 // this carries the entries the ported units name.  The layout and the typedef widths are the

@@ -16,7 +16,6 @@ controlled-run executor in the centralized pass; this script only sequences them
 """
 import argparse
 import glob
-import glob
 import os
 import pwd
 import shutil
@@ -43,7 +42,8 @@ def run(cmd, cwd, env=None, timeout=None):
 
 def xtask(command, root=None, pgo=None):
     env = os.environ.copy()
-    env["CARGO_TARGET_DIR"] = "/tmp/xt-cargo"
+    target_base = os.path.abspath(root) if root is not None else O2_ROOT
+    env["CARGO_TARGET_DIR"] = os.path.join(target_base, "xt-cargo")
     if root is not None:
         env["FEMACS_BUILD_ROOT"] = os.path.abspath(root)
     if pgo is not None:
@@ -94,7 +94,6 @@ def llvm_profdata():
 
 
 def o2():
-    xtask("build-units", O2_ROOT)
     xtask("gate-load", O2_ROOT)
     xtask("dump", O2_ROOT)
 
@@ -102,7 +101,6 @@ def o2():
 def generate():
     raw = os.path.join(GENERATE_ROOT, "profiles", "raw")
     os.makedirs(raw, exist_ok=True)
-    xtask("build-units", GENERATE_ROOT, f"generate:{raw}")
     xtask("gate-load", GENERATE_ROOT, f"generate:{raw}")
     xtask("dump", GENERATE_ROOT, f"generate:{raw}")
     # gate and dump runs are instrumented too, but their profiles are evidence of the
@@ -160,7 +158,6 @@ def use():
     merged = os.path.join(USE_ROOT, "merged.profdata")
     if not os.path.isfile(merged):
         raise RuntimeError(f"missing merged profile: {merged}")
-    xtask("build-units", USE_ROOT, f"use:{merged}")
     xtask("gate-load", USE_ROOT, f"use:{merged}")
     xtask("dump", USE_ROOT, f"use:{merged}")
 

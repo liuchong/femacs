@@ -10,10 +10,12 @@ pub mod filemode;
 pub mod filevercmp;
 pub mod md5;
 pub mod memmem;
+pub mod mini_gmp;
 pub mod sha1;
 pub mod sha256;
 pub mod sha3;
 pub mod sha512;
+pub mod signal_names;
 pub mod strcase;
 pub mod timespec;
 
@@ -342,5 +344,26 @@ mod tests {
         assert_eq!(timespec::timespec_sub(i64::MIN, 0, 0, 1), (i64::MIN, 0));
         assert_eq!(timespec::dtotimespec(f64::NAN), (i64::MIN, 0));
         assert_eq!(timespec::dtotimespec(f64::INFINITY), (i64::MAX, 999_999_999));
+
+        // Reverse/forward byte search & signal table conversion
+        assert_eq!(memmem::memrchr_find(b"ab/cd/ef", b'/'), Some(5));
+        assert_eq!(memmem::memrchr_find(b"abcdef", b'/'), None);
+        assert_eq!(memmem::rawmemchr_find(b"ab/cd/ef", b'/'), Some(2));
+
+        let sig_tbl: &[(i32, &[u8])] = &[(1, b"HUP"), (2, b"INT"), (9, b"KILL"), (0, b"EXIT")];
+        assert_eq!(signal_names::str2signum_bytes(b"KILL", sig_tbl, 31, 0, -1), 9);
+        assert_eq!(signal_names::str2signum_bytes(b"15", sig_tbl, 31, 0, -1), 15);
+        assert_eq!(signal_names::str2signum_bytes(b"99", sig_tbl, 31, 0, -1), -1);
+        assert_eq!(signal_names::str2signum_bytes(b"RTMIN+3", sig_tbl, 64, 34, 64), 37);
+        assert_eq!(signal_names::str2signum_bytes(b"RTMAX-2", sig_tbl, 64, 34, 64), 62);
+        let mut out = [0u8; 16];
+        assert!(signal_names::sig2str_bytes(9, sig_tbl, 0, -1, &mut out));
+        assert_eq!(&out[..5], b"KILL\0");
+        assert!(signal_names::sig2str_bytes(37, sig_tbl, 34, 64, &mut out));
+        assert_eq!(&out[..8], b"RTMIN+3\0");
+        assert_eq!(
+            signal_names::sigdescr_lookup(9, &[(9, c"Killed")]),
+            Some(c"Killed")
+        );
     }
 }

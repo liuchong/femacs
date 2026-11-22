@@ -4,6 +4,7 @@
 //! It does not compile native code, load an ELN, prove relocation, or claim
 //! runtime acceptance.  All external commands run only when the build owner
 //! invokes capture/stage in D.
+#![forbid(unsafe_code)]
 
 use super::*;
 use sha2::{Digest, Sha256};

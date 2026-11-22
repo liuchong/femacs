@@ -1,4 +1,5 @@
 // femacs: port of src/nsgui.h @ fd7afced403.
+#![forbid(unsafe_code)]
 //
 // Header mirror (PORTING.md 0.1): declarations only.  `nsgui.h` is the NeXT/Open/GNUstep
 // window system's `gui.h`-shaped header: the X-compatibility names a plain (non-Objective-C)

@@ -1,4 +1,5 @@
 // femacs: mirror of lib/ieee754.in.h @ fd7afced403.
+#![forbid(unsafe_code)]
 //
 // Header mirror (PORTING.md 0.1).  The criterion is the generated header
 // (`build/emacs-ref/lib/ieee754.h`, 5,660 bytes): it spells the template's glibc arm

@@ -1,4 +1,5 @@
 // Shared opaque library handles and public process initialization states.
+#![forbid(unsafe_code)]
 // Pointer targets are library-owned; Rust never constructs or frees them.
 // [U1-MODULE-MIRROR]
 use super::*;

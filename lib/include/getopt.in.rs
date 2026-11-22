@@ -1,4 +1,5 @@
 // femacs: WIP mirror of lib/getopt.in.h @ fd7afced403, i.e. of the generated
+#![forbid(unsafe_code)]
 // `build/emacs-ref/lib/getopt.h` (PORTING.md P-26).
 //
 // The generated header's decisions, all measured in build/emacs-ref/lib/getopt.h:

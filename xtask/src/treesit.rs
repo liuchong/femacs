@@ -1,4 +1,5 @@
 //! Capture the selected Tree-sitter library and licenses before linking macOS products.
+#![forbid(unsafe_code)]
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::fs;

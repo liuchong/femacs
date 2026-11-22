@@ -1,4 +1,5 @@
 // femacs: mirror of lib/minmax.h @ fd7afced403 ; PORTING.md 0.1.
+#![forbid(unsafe_code)]
 //
 // The header is `MAX`/`MIN` and nothing else.  C's `#ifndef MAX` guards are dead here (the
 // system headers of this target do not define them), and the C bodies' arguments are each

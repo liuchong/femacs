@@ -3,6 +3,7 @@
 //! These tests do not compile or execute a probe.  They bind the declared inventory,
 //! dependency, path, ordering and metadata contracts; real compiler/audit execution belongs
 //! to the D integration cases.
+#![forbid(unsafe_code)]
 
 use super::*;
 

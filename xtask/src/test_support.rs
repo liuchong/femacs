@@ -1,4 +1,5 @@
 //! Test-only per-case elapsed time; included only by the final test build.
+#![forbid(unsafe_code)]
 pub(crate) struct CaseTimer {
     name: &'static str,
     started: std::time::Instant,

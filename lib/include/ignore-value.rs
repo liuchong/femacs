@@ -1,4 +1,5 @@
 // femacs: port of lib/ignore-value.h @ fd7afced403 (gnulib's <ignore-value.h>; PORTING.md P-26).
+#![forbid(unsafe_code)]
 //
 // The header is not a template (`_GL_IGNORE_VALUE_H` is the guard, there is no `.in.h`
 // substitution), so the criterion is the header itself as the frozen compiler reads it.  It

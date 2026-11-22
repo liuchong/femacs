@@ -1,4 +1,5 @@
 // femacs: mirror of lwlib/lwlib-widget.h @ fd7afced403.
+#![forbid(unsafe_code)]
 //
 // The toolkit-independent half of the widget protocol: `change_type`, `button_type` and the
 // `widget_value` tree the menus are described with.  C keeps it apart from `lwlib.h` because

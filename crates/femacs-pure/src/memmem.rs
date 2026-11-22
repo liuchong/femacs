@@ -121,3 +121,15 @@ pub fn memmem_find(haystack: &[u8], needle: &[u8]) -> Option<usize> {
         None
     }
 }
+
+/// Find the last occurrence of `byte` in `haystack` (`lib/memrchr.c`).
+#[inline]
+pub fn memrchr_find(haystack: &[u8], byte: u8) -> Option<usize> {
+    haystack.iter().rposition(|&b| b == byte)
+}
+
+/// Find the first occurrence of `byte` in `haystack` (`lib/rawmemchr.c` safe slice form).
+#[inline]
+pub fn rawmemchr_find(haystack: &[u8], byte: u8) -> Option<usize> {
+    haystack.iter().position(|&b| b == byte)
+}

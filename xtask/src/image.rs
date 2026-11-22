@@ -4,6 +4,7 @@
 //! libraries and their license texts are copied into the product; headers stay
 //! build inputs.  Every staged byte is recorded in a receipt the linker and the
 //! product receipt re-verify, and no library is ever taken from the system.
+#![forbid(unsafe_code)]
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::fs;

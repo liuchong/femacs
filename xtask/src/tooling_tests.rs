@@ -3,6 +3,7 @@
 //! These tests are compiled only after the C implementation includes this file from
 //! `tooling.rs`.  They never infer a product default and never hide a failed child as a
 //! successful receipt.
+#![forbid(unsafe_code)]
 
 use super::*;
 

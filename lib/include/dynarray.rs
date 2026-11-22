@@ -1,4 +1,5 @@
 // femacs: mirror of lib/dynarray.h @ fd7afced403.
+#![forbid(unsafe_code)]
 //
 // The reference header is the gnulib wrapper around the shared glibc definitions.  It has
 // two readings and the frozen build takes the `#else` one everywhere:

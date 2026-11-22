@@ -1,4 +1,5 @@
 //! Copy product data and permissions, never the source run's preservation flags.
+#![forbid(unsafe_code)]
 use std::fs::{self, File};
 use std::io::{Read, Write};
 use std::path::Path;

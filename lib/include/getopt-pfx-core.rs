@@ -1,4 +1,5 @@
 // femacs: WIP mirror of lib/getopt-pfx-core.h @ fd7afced403 (PORTING.md P-26).
+#![forbid(unsafe_code)]
 //
 // The whole header is the `__GETOPT_PREFIX` rename layer: the frozen configuration defines
 // __GETOPT_PREFIX as `rpl_` (docs/baseline/config/darwin-arm64.macros.tsv 4028), so C 45-49
