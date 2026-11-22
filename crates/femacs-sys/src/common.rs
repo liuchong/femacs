@@ -1,4 +1,5 @@
 pub use core::ffi::{c_char, c_double, c_float, c_int, c_long, c_longlong, c_schar, c_short, c_uchar, c_uint, c_ulong, c_ulonglong, c_ushort, c_void, CStr, VaList};
+pub use crate::globals_cell::VmGlobal;
 include!(env!("FEMACS_CONFIG_RS"));
 #[macro_use] #[path = "../../../lib/include/gnulib_config.rs"] pub mod h_lib_include_gnulib_config;
 pub use self::h_lib_include_gnulib_config::*;

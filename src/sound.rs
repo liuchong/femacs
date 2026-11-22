@@ -668,10 +668,10 @@ const _: () = core::assert! (core::mem::size_of::<sound> () == 40);
    (PORTING.md 1.5), so both start null - C leaves them uninitialized until C 1448-1449.  */
 // C 269: `static struct sound_device *current_sound_device;`
 #[cfg (all (feature = "have_sound", not (feature = "windowsnt")))]
-static mut current_sound_device: *mut sound_device = core::ptr::null_mut ();
+static current_sound_device: VmGlobal<*mut sound_device> = VmGlobal::<*mut sound_device>::new (core::ptr::null_mut ());
 // C 270: `static struct sound *current_sound;`
 #[cfg (all (feature = "have_sound", not (feature = "windowsnt")))]
-static mut current_sound: *mut sound = core::ptr::null_mut ();
+static current_sound: VmGlobal<*mut sound> = VmGlobal::<*mut sound>::new (core::ptr::null_mut ());
 
 /* C 272-278: `/* Function prototypes.  */` and the five `static` prototypes (`vox_write`,
    `wav_init`, `wav_play`, `au_init`, `au_play`).  PORTING.md 0.1-12 / P-91: a Rust item is not a
@@ -841,12 +841,12 @@ unsafe fn find_sound_type (s: *mut sound)
 #[cfg (all (feature = "have_sound", not (feature = "windowsnt")))]
 unsafe extern "C-unwind" fn sound_cleanup ()
 {
-  if (*current_sound_device).close.is_some ()                              // C 441
-    { ((*current_sound_device).close.unwrap ()) (current_sound_device); }  // C 442
-  if (*current_sound).fd > 0                                              // C 443
-    { emacs_close ((*current_sound).fd); }                                 // C 444
-  xfree (current_sound_device as *mut c_void);                             // C 445
-  xfree (current_sound as *mut c_void);                                    // C 446
+  if (*(*current_sound_device.as_mut_ptr ())).close.is_some ()                              // C 441
+    { ((*(*current_sound_device.as_mut_ptr ())).close.unwrap ()) ((*current_sound_device.as_mut_ptr ())); }  // C 442
+  if (*(*current_sound.as_mut_ptr ())).fd > 0                                              // C 443
+    { emacs_close ((*(*current_sound.as_mut_ptr ())).fd); }                                 // C 444
+  xfree ((*current_sound_device.as_mut_ptr ()) as *mut c_void);                             // C 445
+  xfree ((*current_sound.as_mut_ptr ()) as *mut c_void);                                    // C 446
 }
 
 /***********************************************************************
@@ -1716,7 +1716,7 @@ unsafe fn do_play_sound (psz_file_or_data: *const c_char, ui_volume: c_ulong,
       /* C 1268-1270: `/* Since UNICOWS.DLL includes only a stub for mciSendStringW, we
 	 need to encode the file in the ANSI codepage on Windows 9X even
 	 if w32_unicode_filenames is non-zero.  */`  */
-      if w32_major_version <= 4 || !w32_unicode_filenames              // C 1271
+      if w32_major_version <= 4 || !(*w32_unicode_filenames.as_mut_ptr ())              // C 1271
 	{
 	  let mut fname_a: [c_char; MAX_PATH] = [0; MAX_PATH];          // C 1273
 	  let mut shortname: [c_char; MAX_PATH] = [0; MAX_PATH];
@@ -1905,48 +1905,48 @@ DEFUN! ("play-sound-internal", Fplay_sound_internal, Splay_sound_internal, 1, 1,
   /* C 1447-1501: `#ifndef WINDOWSNT` - the non-Windows half.  */
   #[cfg (not (feature = "windowsnt"))]
   {
-    current_sound_device = xzalloc (core::mem::size_of::<sound_device> ()) as *mut sound_device;  // C 1448
-    current_sound = xzalloc (core::mem::size_of::<sound> ()) as *mut sound;                       // C 1449
+    (*current_sound_device.as_mut_ptr ()) = xzalloc (core::mem::size_of::<sound_device> ()) as *mut sound_device;  // C 1448
+    (*current_sound.as_mut_ptr ()) = xzalloc (core::mem::size_of::<sound> ()) as *mut sound;                       // C 1449
     record_unwind_protect_void (Some (sound_cleanup));                                            // C 1450
     let mut headerbuf: [c_char; MAX_SOUND_HEADER_BYTES] = [0; MAX_SOUND_HEADER_BYTES];            // C 1451
-    (*current_sound).header = headerbuf.as_mut_ptr ();                                            // C 1452
+    (*(*current_sound.as_mut_ptr ())).header = headerbuf.as_mut_ptr ();                                            // C 1452
 
     if STRINGP (attrs[SOUND_FILE])                                                                // C 1454
       {
         /* C 1456: `/* Open the sound file.  */`  */
-        (*current_sound).fd =
-          openp (list1 (Vdata_directory), attrs[SOUND_FILE], Qnil (), &raw mut file, Qnil (),
+        (*(*current_sound.as_mut_ptr ())).fd =
+          openp (list1 ((*Vdata_directory.as_mut_ptr ())), attrs[SOUND_FILE], Qnil (), &raw mut file, Qnil (),
                  false, false, core::ptr::null_mut ());                                           // C 1457-1459
-        if (*current_sound).fd < 0                                                                // C 1460
+        if (*(*current_sound.as_mut_ptr ())).fd < 0                                                                // C 1460
           { sound_perror (c"Could not open sound file".as_ptr ()); }                              // C 1461
 
         /* C 1463: `/* Read the first bytes from the file.  */`  */
-        (*current_sound).header_size
-          = emacs_read ((*current_sound).fd, (*current_sound).header as *mut c_void,
+        (*(*current_sound.as_mut_ptr ())).header_size
+          = emacs_read ((*(*current_sound.as_mut_ptr ())).fd, (*(*current_sound.as_mut_ptr ())).header as *mut c_void,
                         MAX_SOUND_HEADER_BYTES as ptrdiff_t) as c_int;                            // C 1464-1466
-        if (*current_sound).header_size < 0                                                       // C 1467
+        if (*(*current_sound.as_mut_ptr ())).header_size < 0                                                       // C 1467
           { sound_perror (c"Invalid sound file header".as_ptr ()); }                              // C 1468
       }
     else
       {
-        (*current_sound).data = attrs[SOUND_DATA];                                                // C 1472
-        (*current_sound).header_size
-          = min (MAX_SOUND_HEADER_BYTES as ptrdiff_t, SBYTES ((*current_sound).data)) as c_int;   // C 1473
-        memcpy ((*current_sound).header as *mut c_void,
-                SDATA ((*current_sound).data) as *const c_void,
-                (*current_sound).header_size as usize);                                           // C 1474-1475
+        (*(*current_sound.as_mut_ptr ())).data = attrs[SOUND_DATA];                                                // C 1472
+        (*(*current_sound.as_mut_ptr ())).header_size
+          = min (MAX_SOUND_HEADER_BYTES as ptrdiff_t, SBYTES ((*(*current_sound.as_mut_ptr ())).data)) as c_int;   // C 1473
+        memcpy ((*(*current_sound.as_mut_ptr ())).header as *mut c_void,
+                SDATA ((*(*current_sound.as_mut_ptr ())).data) as *const c_void,
+                (*(*current_sound.as_mut_ptr ())).header_size as usize);                                           // C 1474-1475
       }
 
     /* C 1478: `/* Find out the type of sound.  Give up if we can't tell.  */`  */
-    find_sound_type (current_sound);                                                              // C 1479
+    find_sound_type ((*current_sound.as_mut_ptr ()));                                                              // C 1479
 
     /* C 1481: `/* Set up a device.  */`  */
-    (*current_sound_device).file = attrs[SOUND_DEVICE];                                            // C 1482
+    (*(*current_sound_device.as_mut_ptr ())).file = attrs[SOUND_DEVICE];                                            // C 1482
 
     if FIXNUMP (attrs[SOUND_VOLUME])                                                               // C 1484
-      { (*current_sound_device).volume = XFIXNAT (attrs[SOUND_VOLUME]) as c_int; }                 // C 1485
+      { (*(*current_sound_device.as_mut_ptr ())).volume = XFIXNAT (attrs[SOUND_VOLUME]) as c_int; }                 // C 1485
     else if FLOATP (attrs[SOUND_VOLUME])                                                           // C 1486
-      { (*current_sound_device).volume = (XFLOAT_DATA (attrs[SOUND_VOLUME]) * 100.0) as c_int; }   // C 1487
+      { (*(*current_sound_device.as_mut_ptr ())).volume = (XFLOAT_DATA (attrs[SOUND_VOLUME]) * 100.0) as c_int; }   // C 1487
 
     CALLN! (Frun_hook_with_args, Qplay_sound_functions (), sound);                                  // C 1489
 
@@ -1954,18 +1954,18 @@ DEFUN! ("play-sound-internal", Fplay_sound_internal, Splay_sound_internal, 1, 1,
        `if (!vox_init (current_sound_device)) error ("No usable sound device driver found");` -
        the ALSA call is the outer `if`'s condition when the arm is on and absent when it is off.  */
     #[cfg (feature = "have_alsa")]
-    let driver_ok = alsa_init (current_sound_device);
+    let driver_ok = alsa_init ((*current_sound_device.as_mut_ptr ()));
     #[cfg (not (feature = "have_alsa"))]
     let driver_ok = false;
     if !driver_ok
-      { if !vox_init (current_sound_device)                                                        // C 1494
+      { if !vox_init ((*current_sound_device.as_mut_ptr ()))                                                        // C 1494
           { error (c"No usable sound device driver found".as_ptr ()); } }                          // C 1495
 
     /* C 1497: `/* Open the device.  */`  */
-    ((*current_sound_device).open.unwrap ()) (current_sound_device);                                // C 1498
+    ((*(*current_sound_device.as_mut_ptr ())).open.unwrap ()) ((*current_sound_device.as_mut_ptr ()));                                // C 1498
 
     /* C 1500: `/* Play the sound.  */`  */
-    ((*current_sound).play.unwrap ()) (current_sound, current_sound_device);                        // C 1501
+    ((*(*current_sound.as_mut_ptr ())).play.unwrap ()) ((*current_sound.as_mut_ptr ()), (*current_sound_device.as_mut_ptr ()));                        // C 1501
   }
 
   /* C 1503-1531: `#else /* WINDOWSNT */` - the Windows half.  */
@@ -1989,7 +1989,7 @@ DEFUN! ("play-sound-internal", Fplay_sound_internal, Splay_sound_internal, 1, 1,
 
     if STRINGP (attrs[SOUND_FILE])                                                                 // C 1522
       {
-        file = Fexpand_file_name (attrs[SOUND_FILE], Vdata_directory);                             // C 1524
+        file = Fexpand_file_name (attrs[SOUND_FILE], (*Vdata_directory.as_mut_ptr ()));                             // C 1524
         file = ENCODE_FILE (file);                                                                 // C 1525
         do_play_sound (SSDATA (file) as *const c_char, ui_volume, false);                          // C 1526
       }
@@ -2014,10 +2014,10 @@ pub unsafe extern "C-unwind" fn syms_of_sound ()
   DEFSYM! (Qsound, "sound");                                            // C 1545
   DEFSYM! (Qplay_sound_functions, "play-sound-functions");              // C 1546
 
-  defsubr (&raw mut Splay_sound_internal);                              // C 1548
+  defsubr (Splay_sound_internal.as_mut_ptr ());                              // C 1548
   /* C 1549-1551: `#ifdef WINDOWSNT` / `defsubr (&Sw32_sound_volume);` / `#endif`  */
   #[cfg (feature = "windowsnt")]
-  defsubr (&raw mut Sw32_sound_volume);                                 // C 1550
+  defsubr (Sw32_sound_volume.as_mut_ptr ());                                 // C 1550
 }
 
 /* C 1554: `#endif /* HAVE_SOUND */` - the file gate's own closing line.  Every item of this unit

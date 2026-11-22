@@ -236,7 +236,7 @@ pub struct emacs_runtime_private
    is dropped and each definition stands at its own C position (`## Deviations` 3).  */
 /* C 207: `static bool module_assertions = false;` */
 #[cfg (feature = "have_modules")]
-static mut module_assertions: bool = false;
+static module_assertions: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 /* C 210-233: the two small helpers.  */
 // C: coding.h 695-697: Lisp_Object decode_string_utf_8 (Lisp_Object, const char *, ptrdiff_t, Lisp_Object, bool, Lisp_Object, Lisp_Object)
@@ -389,7 +389,7 @@ unsafe extern "C" fn module_get_environment (runtime: *mut emacs_runtime) -> *mu
 /* C 376-381: `Vmodule_refs_hash` (C's `static` keeps C's internal linkage: not `pub`, no
    symbol - PORTING.md 0.2).  */
 #[cfg (feature = "have_modules")]
-static mut Vmodule_refs_hash: Lisp_Object = core::ptr::null_mut ();
+static Vmodule_refs_hash: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (core::ptr::null_mut ());
 
 /* C 383-397: `struct module_global_reference`.  */
 #[cfg (feature = "have_modules")]
@@ -423,7 +423,7 @@ unsafe fn module_global_reference_p (v: emacs_value, n: *mut ptrdiff_t) -> bool
 {
   // SAFETY: external C dynamic-module ABI boundary; validates `emacs_env` ownership and intercepts all `NonLocalExit`s into pending environment state before returning to C.
   unsafe {
-  let h: *mut Lisp_Hash_Table = XHASH_TABLE (Vmodule_refs_hash);
+  let h: *mut Lisp_Hash_Table = XHASH_TABLE ((*Vmodule_refs_hash.as_mut_ptr ()));
   /* Note that we can't use `hash_find' because V might be a local
      reference that's identical to some global reference.  */
   DOHASH! (h, k, val, {
@@ -449,7 +449,7 @@ unsafe extern "C" fn module_make_global_ref (env: *mut emacs_env, value: emacs_v
   // SAFETY: external C dynamic-module ABI boundary; validates `emacs_env` ownership and intercepts all `NonLocalExit`s into pending environment state before returning to C.
   unsafe {
   module_with_nonlocal_catch (env, std::ptr::null_mut (), || unsafe {
-    let h: *mut Lisp_Hash_Table = XHASH_TABLE (Vmodule_refs_hash);
+    let h: *mut Lisp_Hash_Table = XHASH_TABLE ((*Vmodule_refs_hash.as_mut_ptr ()));
     let new_obj: Lisp_Object = value_to_lisp (value);
     let mut hashcode: hash_hash_t = 0;
     let i: ptrdiff_t = hash_find_get_hash (h, new_obj, &mut hashcode);
@@ -494,11 +494,11 @@ unsafe extern "C" fn module_free_global_ref (env: *mut emacs_env, global_value: 
   /* FIXME: Wait a minute.  Shouldn't this function report an error if
      the hash lookup fails?  */
   module_with_nonlocal_catch_void (env, || unsafe {
-    let h: *mut Lisp_Hash_Table = XHASH_TABLE (Vmodule_refs_hash);
+    let h: *mut Lisp_Hash_Table = XHASH_TABLE ((*Vmodule_refs_hash.as_mut_ptr ()));
     let obj: Lisp_Object = value_to_lisp (global_value);
     let i: ptrdiff_t = hash_find (h, obj);
 
-    if module_assertions
+    if (*module_assertions.as_mut_ptr ())
       {
         let mut n: ptrdiff_t = 0;
         if ! module_global_reference_p (global_value, &mut n)
@@ -549,11 +549,9 @@ unsafe extern "C" fn module_non_local_exit_clear (env: *mut emacs_env)
 
 /* C 509-510: the two dedicated storage slots.  */
 #[cfg (feature = "have_modules")]
-static mut module_out_of_memory_symbol: emacs_value_tag
-  = emacs_value_tag { v: core::ptr::null_mut () };
+static module_out_of_memory_symbol: VmGlobal<emacs_value_tag> = VmGlobal::<emacs_value_tag>::new (emacs_value_tag { v: core::ptr::null_mut () });
 #[cfg (feature = "have_modules")]
-static mut module_out_of_memory_data: emacs_value_tag
-  = emacs_value_tag { v: core::ptr::null_mut () };
+static module_out_of_memory_data: VmGlobal<emacs_value_tag> = VmGlobal::<emacs_value_tag>::new (emacs_value_tag { v: core::ptr::null_mut () });
 
 /* C 512-536: `module_non_local_exit_get`.  */
 #[cfg (feature = "have_modules")]
@@ -575,8 +573,8 @@ unsafe extern "C" fn module_non_local_exit_get (env: *mut emacs_env,
         = allocate_emacs_value (env, (*p).non_local_exit_data);
       if sym.is_null () || dat.is_null ()
         {
-          sym = &raw mut module_out_of_memory_symbol as emacs_value;
-          dat = &raw mut module_out_of_memory_data as emacs_value;
+          sym = module_out_of_memory_symbol.as_mut_ptr () as emacs_value;
+          dat = module_out_of_memory_data.as_mut_ptr () as emacs_value;
           ret = emacs_funcall_exit_signal;
         }
       *symbol = sym;
@@ -868,7 +866,7 @@ pub unsafe extern "C" fn femacs_vm_module_call0_with_host_guard (
 pub(crate) fn u4_module_refs_table_live () -> bool
 {
   // SAFETY: reads `Vmodule_refs_hash` Lisp_Object word under the VM global lock.
-  unsafe { HASH_TABLE_P (Vmodule_refs_hash) }
+  unsafe { HASH_TABLE_P ((*Vmodule_refs_hash.as_mut_ptr ())) }
 }
 
 #[cfg (not (feature = "have_modules"))]
@@ -1074,7 +1072,7 @@ unsafe extern "C" fn module_make_string (env: *mut emacs_env, str_: *const c_cha
     if ! (0 <= len && len <= STRING_BYTES_BOUND)
       { overflow_error (); }
     let lstr: Lisp_Object
-      = if len == 0 { empty_multibyte_string } else { module_decode_utf_8 (str_, len) };
+      = if len == 0 { (*empty_multibyte_string.as_mut_ptr ()) } else { module_decode_utf_8 (str_, len) };
     lisp_to_value (env, lstr)
   })
 
@@ -1092,7 +1090,7 @@ unsafe extern "C" fn module_make_unibyte_string (env: *mut emacs_env, str_: *con
     if ! (0 <= length && length <= STRING_BYTES_BOUND)
       { overflow_error (); }
     let lstr: Lisp_Object
-      = if length == 0 { empty_unibyte_string }
+      = if length == 0 { (*empty_unibyte_string.as_mut_ptr ()) }
         else { make_unibyte_string (str_, length) };
     lisp_to_value (env, lstr)
   })
@@ -1460,10 +1458,10 @@ unsafe extern "C" fn module_make_big_integer (env: *mut emacs_env, sign: c_int,
     const size: usize = std::mem::size_of::<emacs_limb_t> ();
     const endian: c_int = 0;
     const nails: usize = 0;
-    mpz_import (mpz[0].as_mut_ptr (), count as usize, order, size, endian, nails,
+    mpz_import ((*mpz.as_mut_ptr ())[0].as_mut_ptr (), count as usize, order, size, endian, nails,
                 magnitude as *const c_void);
     if sign < 0
-      { mpz_neg (mpz[0].as_mut_ptr (), mpz[0].as_mut_ptr ()); }
+      { mpz_neg ((*mpz.as_mut_ptr ())[0].as_mut_ptr (), (*mpz.as_mut_ptr ())[0].as_mut_ptr ()); }
     lisp_to_value (env, make_integer_mpz ())
   })
 
@@ -1622,7 +1620,7 @@ DEFUN! ("module-load", Fmodule_load, Smodule_load, 1, 1, 0,
      which we can use for checking the liveness of runtime
      pointers.  */
   let rt: *mut emacs_runtime;
-  if module_assertions
+  if (*module_assertions.as_mut_ptr ())
     {
       rt = xmalloc (std::mem::size_of::<emacs_runtime> ()) as *mut emacs_runtime;
       __lsan_ignore_object (rt as *const c_void);
@@ -1778,11 +1776,11 @@ unsafe fn module_assert_thread ()
 {
   // SAFETY: external C dynamic-module ABI boundary; validates `emacs_env` ownership and intercepts all `NonLocalExit`s into pending environment state before returning to C.
   unsafe {
-  if !module_assertions
+  if !(*module_assertions.as_mut_ptr ())
     { return; }
   if !in_current_thread ()
     { module_abort (c"Module function called from outside the current Lisp thread".as_ptr ()); }
-  if gc_in_progress
+  if (*gc_in_progress.as_mut_ptr ())
     { module_abort (c"Module function called during garbage collection".as_ptr ()); }
 
   }
@@ -1794,7 +1792,7 @@ unsafe fn module_assert_runtime (runtime: *mut emacs_runtime)
 {
   // SAFETY: external C dynamic-module ABI boundary; validates `emacs_env` ownership and intercepts all `NonLocalExit`s into pending environment state before returning to C.
   unsafe {
-  if ! module_assertions
+  if ! (*module_assertions.as_mut_ptr ())
     { return; }
   let mut count: ptrdiff_t = 0;
   let mut pdl: *const specbinding = (specpdl! ());
@@ -1819,7 +1817,7 @@ unsafe fn module_assert_env (env: *mut emacs_env)
 {
   // SAFETY: external C dynamic-module ABI boundary; validates `emacs_env` ownership and intercepts all `NonLocalExit`s into pending environment state before returning to C.
   unsafe {
-  if ! module_assertions
+  if ! (*module_assertions.as_mut_ptr ())
     { return; }
   let mut count: ptrdiff_t = 0;
   let mut pdl: *const specbinding = (specpdl! ());
@@ -1882,8 +1880,8 @@ unsafe fn module_out_of_memory (env: *mut emacs_env)
   unsafe {
   /* TODO: Reimplement this so it works even if memory-signal-data has
      been modified.  */
-  module_non_local_exit_signal_1 (env, XCAR (Vmemory_signal_data),
-                                  XCDR (Vmemory_signal_data));
+  module_non_local_exit_signal_1 (env, XCAR ((*Vmemory_signal_data.as_mut_ptr ())),
+                                  XCDR ((*Vmemory_signal_data.as_mut_ptr ())));
 
   }
 }
@@ -1896,7 +1894,7 @@ unsafe fn value_to_lisp (v: emacs_value) -> Lisp_Object
 {
   // SAFETY: external C dynamic-module ABI boundary; validates `emacs_env` ownership and intercepts all `NonLocalExit`s into pending environment state before returning to C.
   unsafe {
-  if module_assertions
+  if (*module_assertions.as_mut_ptr ())
     {
       /* Check the liveness of the value by iterating over all live
          environments.  */
@@ -2053,7 +2051,7 @@ unsafe fn initialize_environment (mut env: *mut emacs_env,
 {
   // SAFETY: external C dynamic-module ABI boundary; validates `emacs_env` ownership and intercepts all `NonLocalExit`s into pending environment state before returning to C.
   unsafe {
-  if module_assertions
+  if (*module_assertions.as_mut_ptr ())
     {
       env = xmalloc (std::mem::size_of::<emacs_env> ()) as *mut emacs_env;
       __lsan_ignore_object (env as *const c_void);
@@ -2179,7 +2177,7 @@ pub unsafe extern "C-unwind" fn init_module_assertions (enable: bool)
 {
   // SAFETY: external C dynamic-module ABI boundary; validates `emacs_env` ownership and intercepts all `NonLocalExit`s into pending environment state before returning to C.
   unsafe {
-  module_assertions = enable;
+  (*module_assertions.as_mut_ptr ()) = enable;
 
   }
 }
@@ -2218,10 +2216,10 @@ unsafe extern "C" fn module_abort (format: *const c_char, mut args: ...)
 {
   // SAFETY: external C dynamic-module ABI boundary; validates `emacs_env` ownership and intercepts all `NonLocalExit`s into pending environment state before returning to C.
   unsafe {
-  fputs (c"Emacs module assertion: ".as_ptr (), stderr);
+  fputs (c"Emacs module assertion: ".as_ptr (), (*stderr.as_mut_ptr ()));
   let ap: VaList<'_> = args;
-  vfprintf (stderr, format, ap);
-  putc ('\n' as c_int, stderr);
+  vfprintf ((*stderr.as_mut_ptr ()), format, ap);
+  putc ('\n' as c_int, (*stderr.as_mut_ptr ()));
   fflush (std::ptr::null_mut () as *mut FILE);
   emacs_abort ();
 
@@ -2235,9 +2233,9 @@ pub unsafe extern "C-unwind" fn syms_of_module ()
 {
   // SAFETY: external C dynamic-module ABI boundary; validates `emacs_env` ownership and intercepts all `NonLocalExit`s into pending environment state before returning to C.
   unsafe {
-  staticpro (&raw mut Vmodule_refs_hash);
-  Vmodule_refs_hash
-    = make_hash_table (&raw const hashtest_eq, DEFAULT_HASH_SIZE as EMACS_INT, Weak_None);
+  staticpro (Vmodule_refs_hash.as_mut_ptr ());
+  (*Vmodule_refs_hash.as_mut_ptr ())
+    = make_hash_table (hashtest_eq.as_ptr (), DEFAULT_HASH_SIZE as EMACS_INT, Weak_None);
 
   DEFSYM! (Qmodule_out_of_memory, "module-out-of-memory");
   Fput (Qmodule_out_of_memory (), Qerror_conditions (),
@@ -2245,11 +2243,11 @@ pub unsafe extern "C-unwind" fn syms_of_module ()
   Fput (Qmodule_out_of_memory (), Qerror_message (),
         build_unibyte_string (c"Module out of memory".as_ptr ()));
 
-  staticpro (&raw mut module_out_of_memory_symbol.v);
-  module_out_of_memory_symbol.v = Qmodule_out_of_memory ();
+  staticpro (&raw mut (*module_out_of_memory_symbol.as_mut_ptr ()).v);
+  (*module_out_of_memory_symbol.as_mut_ptr ()).v = Qmodule_out_of_memory ();
 
-  staticpro (&raw mut module_out_of_memory_data.v);
-  module_out_of_memory_data.v = Qnil ();
+  staticpro (&raw mut (*module_out_of_memory_data.as_mut_ptr ()).v);
+  (*module_out_of_memory_data.as_mut_ptr ()).v = Qnil ();
 
   DEFSYM! (Qmodule_load_failed, "module-load-failed");
   Fput (Qmodule_load_failed (), Qerror_conditions (),
@@ -2304,7 +2302,7 @@ pub unsafe extern "C-unwind" fn syms_of_module ()
   core::hint::black_box (crate::roots::femacs_vm_persistent_root_release as *const ());
   core::hint::black_box (crate::state::femacs_vm_u4_root_stats as *const ());
 
-  defsubr (&raw mut Smodule_load);
+  defsubr (Smodule_load.as_mut_ptr ());
 
   }
 }

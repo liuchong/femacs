@@ -44,6 +44,7 @@ Rust 侧生命周期/内存模型、我们的优化路径）时，才新增自�
 | D-06 | 产品自有优化路径（原生编译、collector、tree-sitter 等） | `docs/modernization.md` | 对应语义/负面/dump/relocation 动作与 functional lane |
 | D-07 | Lisp 非局部退出改为显式 `Result<Value, NonLocalExit>`，`.eln` 改为 `i32` 状态返回协议并升级 `Vcomp_abi_hash`（P-482） | 去 `unsafe` 先行阶段 U3 | `tools/test-u3-nonlocal-exit.py` + `tools/test-u3-unit.py` |
 | D-08 | 单一所有者 `VmState`/`ThreadState`、`Rooted`/`PersistentRoot` 句柄、高层 `#![forbid(unsafe_code)]` 域与受控底层白名单（P-483） | 去 `unsafe` 先行阶段 U4 | `tools/test-u4-gc-roots.py` + `tools/test-u4-unit.py` + `tools/check-unsafe-boundary.py` |
+| D-09 | 全产品活跃单元 `static mut` 统一替换为 `#[repr(transparent)] VmGlobal<T>`，升级安全 `DEFVAR_*`/`DEFUN!` 与带边界检查的内核原语（P-485） | 去 `unsafe` 先行阶段 U6 | `tools/test-u6-globals-and-primitives.py` + `crates/femacs-sys/src/globals_cell.rs` 单测 + `tools/check-defvar-carriers.py` |
 
 新增或修改任何 D 项时，必须同批更新本表与对应测试；**禁止**为了让官方测试变绿而回退 D 项。
 

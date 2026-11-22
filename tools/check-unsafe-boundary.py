@@ -52,11 +52,11 @@ PATH_ATTR_RE = re.compile(r'#\s*\[\s*path\s*=\s*"([^"]+)"\s*\]')
 INNER_ALLOW_RE = re.compile(r"#!\s*\[\s*allow\s*\((.*?)\)\s*\]", re.DOTALL)
 FORBID_UNSAFE_RE = re.compile(r"#!?\s*\[\s*forbid\s*\(\s*unsafe_code\s*\)\s*\]")
 EXTERN_BLOCK_RE = re.compile(r"\b(?:unsafe\s+)?extern\s+\{")
-STATIC_MUT_RE = re.compile(r"\bstatic\s+mut\s+[A-Za-z_]\w*")
+STATIC_MUT_RE = re.compile(r"(?<!')\bstatic\s+mut\s+[A-Za-z_]\w*")
 INCLUDE_RE = re.compile(r'\binclude!\s*\(\s*"([^"]+)"\s*\)')
 FN_SIG_RE = re.compile(
     r"(?m)^[ \t]*(?:pub(?:\s*\([^)]*\))?\s+)?"
-    r"(?:const\s+|async\s+)*(?P<unsafe>unsafe\s+)?"
+    r"(?:const\s+|async\s+)*(?:(?P<unsafe>unsafe\s+)|safe\s+)?"
     r"(?P<extern>extern\s+)?fn\s+(?P<name>[A-Za-z_]\w*)\b"
 )
 UNSAFE_BLOCK_RE = re.compile(r"\bunsafe\s*\{")

@@ -211,7 +211,7 @@ pub struct lcmsJab_t
 macro_rules! DEF_DLL_FN {
   ($type:ty, $func:ident, $pfn:ident, $fnvar:ident, ($($arg:ty),* $(,)?)) => {
     pub type $pfn = Option<unsafe extern "C" fn ($($arg),*) -> $type>;
-    static mut $fnvar: $pfn = None;
+    static $fnvar: VmGlobal<$pfn> = VmGlobal::new(None);
   };
 }
 /// C: w32common.h 82-89: `#define LOAD_DLL_FN(lib, func)       do { fn_##func = (W32_PFN_##func)`
@@ -225,8 +225,8 @@ macro_rules! DEF_DLL_FN {
 macro_rules! LOAD_DLL_FN {
   ($lib:expr, $func:ident, $pfn:ident, $fnvar:ident, $name:expr) => {
     {
-      $fnvar = std::mem::transmute::<VOIDFNPTR, $pfn> (get_proc_addr ($lib, $name.as_ptr ()));
-      if $fnvar.is_none () { return false; }
+      (*$fnvar.as_mut_ptr ()) = std::mem::transmute::<VOIDFNPTR, $pfn> (get_proc_addr ($lib, $name.as_ptr ()));
+      if (*$fnvar.as_mut_ptr ()).is_none () { return false; }
     }
   };
 }
@@ -235,30 +235,30 @@ macro_rules! LOAD_DLL_FN {
    C's `CDECL` is the `__cdecl` attribute, which is empty on this target's ABI, so the pointer type
    is the plain `extern "C"` one.  */
 #[cfg (all (feature = "have_lcms2", feature = "windowsnt"))]
-DEF_DLL_FN! (cmsFloat64Number, cmsCIE2000DeltaE, W32_PFN_cmsCIE2000DeltaE, fn_cmsCIE2000DeltaE,
+DEF_DLL_FN! (cmsFloat64Number, cmsCIE2000DeltaE, W32_PFN_cmsCIE2000DeltaE, (*fn_cmsCIE2000DeltaE.as_mut_ptr ()),
              (*const cmsCIELab, *const cmsCIELab, cmsFloat64Number, cmsFloat64Number,
               cmsFloat64Number));
 #[cfg (all (feature = "have_lcms2", feature = "windowsnt"))]
-DEF_DLL_FN! (cmsHANDLE, cmsCIECAM02Init, W32_PFN_cmsCIECAM02Init, fn_cmsCIECAM02Init,
+DEF_DLL_FN! (cmsHANDLE, cmsCIECAM02Init, W32_PFN_cmsCIECAM02Init, (*fn_cmsCIECAM02Init.as_mut_ptr ()),
              (cmsContext, *const cmsViewingConditions));
 #[cfg (all (feature = "have_lcms2", feature = "windowsnt"))]
-DEF_DLL_FN! ((), cmsCIECAM02Forward, W32_PFN_cmsCIECAM02Forward, fn_cmsCIECAM02Forward,
+DEF_DLL_FN! ((), cmsCIECAM02Forward, W32_PFN_cmsCIECAM02Forward, (*fn_cmsCIECAM02Forward.as_mut_ptr ()),
              (cmsHANDLE, *const cmsCIEXYZ, *mut cmsJCh));
 #[cfg (all (feature = "have_lcms2", feature = "windowsnt"))]
-DEF_DLL_FN! ((), cmsCIECAM02Reverse, W32_PFN_cmsCIECAM02Reverse, fn_cmsCIECAM02Reverse,
+DEF_DLL_FN! ((), cmsCIECAM02Reverse, W32_PFN_cmsCIECAM02Reverse, (*fn_cmsCIECAM02Reverse.as_mut_ptr ()),
              (cmsHANDLE, *const cmsJCh, *mut cmsCIEXYZ));
 #[cfg (all (feature = "have_lcms2", feature = "windowsnt"))]
-DEF_DLL_FN! ((), cmsCIECAM02Done, W32_PFN_cmsCIECAM02Done, fn_cmsCIECAM02Done, (cmsHANDLE));
+DEF_DLL_FN! ((), cmsCIECAM02Done, W32_PFN_cmsCIECAM02Done, (*fn_cmsCIECAM02Done.as_mut_ptr ()), (cmsHANDLE));
 #[cfg (all (feature = "have_lcms2", feature = "windowsnt"))]
 DEF_DLL_FN! (cmsBool, cmsWhitePointFromTemp, W32_PFN_cmsWhitePointFromTemp,
-             fn_cmsWhitePointFromTemp, (*mut cmsCIExyY, cmsFloat64Number));
+             (*fn_cmsWhitePointFromTemp.as_mut_ptr ()), (*mut cmsCIExyY, cmsFloat64Number));
 #[cfg (all (feature = "have_lcms2", feature = "windowsnt"))]
-DEF_DLL_FN! ((), cmsxyY2XYZ, W32_PFN_cmsxyY2XYZ, fn_cmsxyY2XYZ,
+DEF_DLL_FN! ((), cmsxyY2XYZ, W32_PFN_cmsxyY2XYZ, (*fn_cmsxyY2XYZ.as_mut_ptr ()),
              (*mut cmsCIEXYZ, *const cmsCIExyY));
 
 /// C 54: `static bool lcms_initialized;` - C's tentative definition, i.e. zero (PORTING.md 0.1-13).
 #[cfg (all (feature = "have_lcms2", feature = "windowsnt"))]
-static mut lcms_initialized: bool = false;
+static lcms_initialized: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 /// C 56-72: `init_lcms_functions`.  `HMODULE` is a pointer; `w32_delayed_load` is the declaration
 /// `src/include/w32.rs` 313-314 carries for `w32.h` 197.
@@ -270,19 +270,19 @@ unsafe fn init_lcms_functions () -> bool
   if library.is_null ()
     { return false; }
 
-  LOAD_DLL_FN! (library, cmsCIE2000DeltaE, W32_PFN_cmsCIE2000DeltaE, fn_cmsCIE2000DeltaE,
+  LOAD_DLL_FN! (library, cmsCIE2000DeltaE, W32_PFN_cmsCIE2000DeltaE, (*fn_cmsCIE2000DeltaE.as_mut_ptr ()),
                 c"cmsCIE2000DeltaE");
-  LOAD_DLL_FN! (library, cmsCIECAM02Init, W32_PFN_cmsCIECAM02Init, fn_cmsCIECAM02Init,
+  LOAD_DLL_FN! (library, cmsCIECAM02Init, W32_PFN_cmsCIECAM02Init, (*fn_cmsCIECAM02Init.as_mut_ptr ()),
                 c"cmsCIECAM02Init");
-  LOAD_DLL_FN! (library, cmsCIECAM02Forward, W32_PFN_cmsCIECAM02Forward, fn_cmsCIECAM02Forward,
+  LOAD_DLL_FN! (library, cmsCIECAM02Forward, W32_PFN_cmsCIECAM02Forward, (*fn_cmsCIECAM02Forward.as_mut_ptr ()),
                 c"cmsCIECAM02Forward");
-  LOAD_DLL_FN! (library, cmsCIECAM02Reverse, W32_PFN_cmsCIECAM02Reverse, fn_cmsCIECAM02Reverse,
+  LOAD_DLL_FN! (library, cmsCIECAM02Reverse, W32_PFN_cmsCIECAM02Reverse, (*fn_cmsCIECAM02Reverse.as_mut_ptr ()),
                 c"cmsCIECAM02Reverse");
-  LOAD_DLL_FN! (library, cmsCIECAM02Done, W32_PFN_cmsCIECAM02Done, fn_cmsCIECAM02Done,
+  LOAD_DLL_FN! (library, cmsCIECAM02Done, W32_PFN_cmsCIECAM02Done, (*fn_cmsCIECAM02Done.as_mut_ptr ()),
                 c"cmsCIECAM02Done");
   LOAD_DLL_FN! (library, cmsWhitePointFromTemp, W32_PFN_cmsWhitePointFromTemp,
-                fn_cmsWhitePointFromTemp, c"cmsWhitePointFromTemp");
-  LOAD_DLL_FN! (library, cmsxyY2XYZ, W32_PFN_cmsxyY2XYZ, fn_cmsxyY2XYZ, c"cmsxyY2XYZ");
+                (*fn_cmsWhitePointFromTemp.as_mut_ptr ()), c"cmsWhitePointFromTemp");
+  LOAD_DLL_FN! (library, cmsxyY2XYZ, W32_PFN_cmsxyY2XYZ, (*fn_cmsxyY2XYZ.as_mut_ptr ()), c"cmsxyY2XYZ");
   return true;
 }
 
@@ -348,9 +348,9 @@ DEFUN! ("lcms-cie-de2000", Flcms_cie_de2000, Slcms_cie_de2000, 2, 5, 0,
 
   #[cfg (feature = "windowsnt")]
   {
-    if !lcms_initialized
-      { lcms_initialized = init_lcms_functions (); }
-    if !lcms_initialized
+    if !(*lcms_initialized.as_mut_ptr ())
+      { (*lcms_initialized.as_mut_ptr ()) = init_lcms_functions (); }
+    if !(*lcms_initialized.as_mut_ptr ())
       {
         message1 (c"lcms2 library not found".as_ptr ());
         return Qnil ();
@@ -398,8 +398,7 @@ unsafe fn rad2deg (radians: c_double) -> c_double
 /// C 167: `static cmsCIEXYZ illuminant_d65 = { .X = 95.0455, .Y = 100.0, .Z = 108.8753 };` - C's
 /// designated initializer is the struct literal.
 #[cfg (feature = "have_lcms2")]
-static mut illuminant_d65: cmsCIEXYZ
-  = cmsCIEXYZ { X: 95.0455, Y: 100.0, Z: 108.8753 };
+static illuminant_d65: VmGlobal<cmsCIEXYZ> = VmGlobal::<cmsCIEXYZ>::new (cmsCIEXYZ { X: 95.0455, Y: 100.0, Z: 108.8753 });
 
 /// C 169-179: `default_viewing_conditions`.  C's `vc->Yb = 20;`, `vc->La = 100;` and
 /// `vc->D_value = 1.0;` widen integer literals to `cmsFloat64Number`; the port writes the widened
@@ -644,9 +643,9 @@ DEFUN! ("lcms-xyz->jch", Flcms_xyz_to_jch, Slcms_xyz_to_jch, 1, 3, 0,
 
   #[cfg (feature = "windowsnt")]
   {
-    if !lcms_initialized
-      { lcms_initialized = init_lcms_functions (); }
-    if !lcms_initialized
+    if !(*lcms_initialized.as_mut_ptr ())
+      { (*lcms_initialized.as_mut_ptr ()) = init_lcms_functions (); }
+    if !(*lcms_initialized.as_mut_ptr ())
       {
         message1 (c"lcms2 library not found".as_ptr ());
         return Qnil ();
@@ -656,7 +655,7 @@ DEFUN! ("lcms-xyz->jch", Flcms_xyz_to_jch, Slcms_xyz_to_jch, 1, 3, 0,
   if !(CONSP (color) && parse_xyz_list (color, &raw mut xyz))
     { signal_error (c"Invalid color".as_ptr (), color); }
   if NILP (whitepoint)
-    { xyzw = illuminant_d65; }
+    { xyzw = (*illuminant_d65.as_mut_ptr ()); }
   else if !(CONSP (whitepoint) && parse_xyz_list (whitepoint, &raw mut xyzw))
     { signal_error (c"Invalid white point".as_ptr (), whitepoint); }
   if NILP (view)
@@ -680,9 +679,9 @@ DEFUN! ("lcms-jch->xyz", Flcms_jch_to_xyz, Slcms_jch_to_xyz, 1, 3, 0,
 
   #[cfg (feature = "windowsnt")]
   {
-    if !lcms_initialized
-      { lcms_initialized = init_lcms_functions (); }
-    if !lcms_initialized
+    if !(*lcms_initialized.as_mut_ptr ())
+      { (*lcms_initialized.as_mut_ptr ()) = init_lcms_functions (); }
+    if !(*lcms_initialized.as_mut_ptr ())
       {
         message1 (c"lcms2 library not found".as_ptr ());
         return Qnil ();
@@ -692,7 +691,7 @@ DEFUN! ("lcms-jch->xyz", Flcms_jch_to_xyz, Slcms_jch_to_xyz, 1, 3, 0,
   if !(CONSP (color) && parse_jch_list (color, &raw mut jch))
     { signal_error (c"Invalid color".as_ptr (), color); }
   if NILP (whitepoint)
-    { xyzw = illuminant_d65; }
+    { xyzw = (*illuminant_d65.as_mut_ptr ()); }
   else if !(CONSP (whitepoint) && parse_xyz_list (whitepoint, &raw mut xyzw))
     { signal_error (c"Invalid white point".as_ptr (), whitepoint); }
   if NILP (view)
@@ -722,9 +721,9 @@ DEFUN! ("lcms-jch->jab", Flcms_jch_to_jab, Slcms_jch_to_jab, 1, 3, 0,
 
   #[cfg (feature = "windowsnt")]
   {
-    if !lcms_initialized
-      { lcms_initialized = init_lcms_functions (); }
-    if !lcms_initialized
+    if !(*lcms_initialized.as_mut_ptr ())
+      { (*lcms_initialized.as_mut_ptr ()) = init_lcms_functions (); }
+    if !(*lcms_initialized.as_mut_ptr ())
       {
         message1 (c"lcms2 library not found".as_ptr ());
         return Qnil ();
@@ -734,7 +733,7 @@ DEFUN! ("lcms-jch->jab", Flcms_jch_to_jab, Slcms_jch_to_jab, 1, 3, 0,
   if !(CONSP (color) && parse_jch_list (color, &raw mut jch))
     { signal_error (c"Invalid color".as_ptr (), color); }
   if NILP (whitepoint)
-    { xyzw = illuminant_d65; }
+    { xyzw = (*illuminant_d65.as_mut_ptr ()); }
   else if !(CONSP (whitepoint) && parse_xyz_list (whitepoint, &raw mut xyzw))
     { signal_error (c"Invalid white point".as_ptr (), whitepoint); }
   if NILP (view)
@@ -764,9 +763,9 @@ DEFUN! ("lcms-jab->jch", Flcms_jab_to_jch, Slcms_jab_to_jch, 1, 3, 0,
 
   #[cfg (feature = "windowsnt")]
   {
-    if !lcms_initialized
-      { lcms_initialized = init_lcms_functions (); }
-    if !lcms_initialized
+    if !(*lcms_initialized.as_mut_ptr ())
+      { (*lcms_initialized.as_mut_ptr ()) = init_lcms_functions (); }
+    if !(*lcms_initialized.as_mut_ptr ())
       {
         message1 (c"lcms2 library not found".as_ptr ());
         return Qnil ();
@@ -776,7 +775,7 @@ DEFUN! ("lcms-jab->jch", Flcms_jab_to_jch, Slcms_jab_to_jch, 1, 3, 0,
   if !(CONSP (color) && parse_jab_list (color, &raw mut jab))
     { signal_error (c"Invalid color".as_ptr (), color); }
   if NILP (whitepoint)
-    { xyzw = illuminant_d65; }
+    { xyzw = (*illuminant_d65.as_mut_ptr ()); }
   else if !(CONSP (whitepoint) && parse_xyz_list (whitepoint, &raw mut xyzw))
     { signal_error (c"Invalid white point".as_ptr (), whitepoint); }
   if NILP (view)
@@ -817,9 +816,9 @@ DEFUN! ("lcms-cam02-ucs", Flcms_cam02_ucs, Slcms_cam02_ucs, 2, 4, 0,
 
   #[cfg (feature = "windowsnt")]
   {
-    if !lcms_initialized
-      { lcms_initialized = init_lcms_functions (); }
-    if !lcms_initialized
+    if !(*lcms_initialized.as_mut_ptr ())
+      { (*lcms_initialized.as_mut_ptr ()) = init_lcms_functions (); }
+    if !(*lcms_initialized.as_mut_ptr ())
       {
         message1 (c"lcms2 library not found".as_ptr ());
         return Qnil ();
@@ -831,7 +830,7 @@ DEFUN! ("lcms-cam02-ucs", Flcms_cam02_ucs, Slcms_cam02_ucs, 2, 4, 0,
   if !(CONSP (color2) && parse_xyz_list (color2, &raw mut xyz2))
     { signal_error (c"Invalid color".as_ptr (), color2); }
   if NILP (whitepoint)
-    { xyzw = illuminant_d65; }
+    { xyzw = (*illuminant_d65.as_mut_ptr ()); }
   else if !(CONSP (whitepoint) && parse_xyz_list (whitepoint, &raw mut xyzw))
     { signal_error (c"Invalid white point".as_ptr (), whitepoint); }
   if NILP (view)
@@ -863,9 +862,9 @@ DEFUN! ("lcms-temp->white-point", Flcms_temp_to_white_point, Slcms_temp_to_white
 
   #[cfg (feature = "windowsnt")]
   {
-    if !lcms_initialized
-      { lcms_initialized = init_lcms_functions (); }
-    if !lcms_initialized
+    if !(*lcms_initialized.as_mut_ptr ())
+      { (*lcms_initialized.as_mut_ptr ()) = init_lcms_functions (); }
+    if !(*lcms_initialized.as_mut_ptr ())
       {
         message1 (c"lcms2 library not found".as_ptr ());
         return Qnil ();
@@ -888,15 +887,15 @@ DEFUN! ("lcms2-available-p", Flcms2_available_p, Slcms2_available_p, 0, 0, 0,
        {
   #[cfg (feature = "windowsnt")]
   {
-    let mut found: Lisp_Object = Fassq (Qlcms2 (), Vlibrary_cache);
+    let mut found: Lisp_Object = Fassq (Qlcms2 (), (*Vlibrary_cache.as_mut_ptr ()));
     if CONSP (found)
       { return XCDR (found); }
     else
       {
         let mut status: Lisp_Object;
-        lcms_initialized = init_lcms_functions ();
-        status = if lcms_initialized { Qt () } else { Qnil () };
-        Vlibrary_cache = Fcons (Fcons (Qlcms2 (), status), Vlibrary_cache);
+        (*lcms_initialized.as_mut_ptr ()) = init_lcms_functions ();
+        status = if (*lcms_initialized.as_mut_ptr ()) { Qt () } else { Qnil () };
+        (*Vlibrary_cache.as_mut_ptr ()) = Fcons (Fcons (Qlcms2 (), status), (*Vlibrary_cache.as_mut_ptr ()));
         return status;
       }
   }
@@ -913,14 +912,14 @@ pub unsafe extern "C-unwind" fn syms_of_lcms2 ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  defsubr (&raw mut Slcms_cie_de2000);
-  defsubr (&raw mut Slcms_xyz_to_jch);
-  defsubr (&raw mut Slcms_jch_to_xyz);
-  defsubr (&raw mut Slcms_jch_to_jab);
-  defsubr (&raw mut Slcms_jab_to_jch);
-  defsubr (&raw mut Slcms_cam02_ucs);
-  defsubr (&raw mut Slcms2_available_p);
-  defsubr (&raw mut Slcms_temp_to_white_point);
+  defsubr (Slcms_cie_de2000.as_mut_ptr ());
+  defsubr (Slcms_xyz_to_jch.as_mut_ptr ());
+  defsubr (Slcms_jch_to_xyz.as_mut_ptr ());
+  defsubr (Slcms_jch_to_jab.as_mut_ptr ());
+  defsubr (Slcms_jab_to_jch.as_mut_ptr ());
+  defsubr (Slcms_cam02_ucs.as_mut_ptr ());
+  defsubr (Slcms2_available_p.as_mut_ptr ());
+  defsubr (Slcms_temp_to_white_point.as_mut_ptr ());
 
   Fprovide (intern_c_string (c"lcms2".as_ptr ()), Qnil ());
 

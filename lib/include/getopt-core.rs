@@ -21,16 +21,16 @@ pub mod getopt_core_decls {
   unsafe extern "C" {
     /* extern char *optarg;  */
     #[link_name = "rpl_optarg"]
-    pub static mut optarg: *mut c_char;
+    pub static optarg: VmGlobal<*mut c_char>;
     /* extern int optind;  */
     #[link_name = "rpl_optind"]
-    pub static mut optind: c_int;
+    pub static optind: VmGlobal<c_int>;
     /* extern int opterr;  */
     #[link_name = "rpl_opterr"]
-    pub static mut opterr: c_int;
+    pub static opterr: VmGlobal<c_int>;
     /* extern int optopt;  */
     #[link_name = "rpl_optopt"]
-    pub static mut optopt: c_int;
+    pub static optopt: VmGlobal<c_int>;
 
     /* extern int getopt (int ___argc, char *const *___argv, const char *__shortopts)
          __THROW _GL_ARG_NONNULL ((2, 3));  */

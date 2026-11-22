@@ -42,10 +42,10 @@ pub unsafe extern "C" fn getrandom (buffer: *mut c_void, length: usize, flags: c
   /* C 177-178's `#elif HAVE_GETRANDOM` arm is dead: this target has no system getrandom.  */
 
   /* C 181-192's `#else` arm, the live one.  */
-  static mut randfd: [c_int; 2] = [-1, -1];
+  static randfd: VmGlobal<[c_int; 2]> = VmGlobal::<[c_int; 2]>::new ([-1, -1]);
 
   let devrandom: bool = (flags & GRND_RANDOM as c_uint) != 0;
-  let mut fd: c_int = randfd[devrandom as usize];
+  let mut fd: c_int = (*randfd.as_mut_ptr ())[devrandom as usize];
 
   if fd < 0
     {
@@ -65,7 +65,7 @@ pub unsafe extern "C" fn getrandom (buffer: *mut c_void, length: usize, flags: c
             { *errno () = ENOSYS; }
           return -1;
         }
-      randfd[devrandom as usize] = fd;
+      (*randfd.as_mut_ptr ())[devrandom as usize] = fd;
     }
 
   return read (fd, buffer, length);

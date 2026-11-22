@@ -77,8 +77,8 @@ pub unsafe extern "C" fn openat_proc_name (buf: *mut c_char, fd: c_int, file: *c
       (std::mem::size_of_val (PROC_SELF_FD_FORMAT) - (std::mem::size_of_val (b"%d") - 1)
        + INT_STRLEN_BOUND! (c_int) as usize);
 
-    static mut proc_status: c_int = 0;
-    if proc_status == 0
+    static proc_status: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
+    if (*proc_status.as_mut_ptr ()) == 0
       {
         /* Set PROC_STATUS to a positive value if /proc/self/fd is
            reliable, and a negative value otherwise.  Solaris 10
@@ -92,7 +92,7 @@ pub unsafe extern "C" fn openat_proc_name (buf: *mut c_char, fd: c_int, file: *c
           open (c"/proc/self/fd".as_ptr (),
                 O_SEARCH | O_DIRECTORY | O_NOCTTY | O_NONBLOCK | O_CLOEXEC);
         if proc_self_fd < 0
-          { proc_status = -1; }
+          { (*proc_status.as_mut_ptr ()) = -1; }
         else
           {
             /* Detect whether /proc/self/fd/%i/../fd exists, where %i is the
@@ -104,12 +104,12 @@ pub unsafe extern "C" fn openat_proc_name (buf: *mut c_char, fd: c_int, file: *c
               [0; PROC_SELF_FD_DIR_SIZE_BOUND + 5];
             sprintf (dotdot_buf.as_mut_ptr (), c"/proc/self/fd/%d/../fd".as_ptr (),
                      proc_self_fd);
-            proc_status = if access (dotdot_buf.as_ptr (), F_OK) != 0 { -1 } else { 1 };
+            (*proc_status.as_mut_ptr ()) = if access (dotdot_buf.as_ptr (), F_OK) != 0 { -1 } else { 1 };
             close (proc_self_fd);
           }
       }
 
-    if proc_status < 0
+    if (*proc_status.as_mut_ptr ()) < 0
       { return std::ptr::null_mut (); }
     else
       {

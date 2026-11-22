@@ -151,7 +151,7 @@ unsafe fn kill_buffer_xwidgets (_buf: Lisp_Object) {}
    and stores into each buffer that does not say it has a local value.  */
 
 #[unsafe(no_mangle)]
-pub static mut buffer_defaults: buffer = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { std::mem::zeroed () };
+pub static buffer_defaults: VmGlobal<buffer> = VmGlobal::<buffer>::new (/* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { std::mem::zeroed () });
 
 /* This structure marks which slots in a buffer have corresponding
    default values in buffer_defaults.
@@ -171,13 +171,13 @@ pub static mut buffer_defaults: buffer = /* SAFETY: low-level VM/OS subsystem bo
    zero, that is a bug.  */
 
 #[unsafe(no_mangle)]
-pub static mut buffer_local_flags: buffer = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { std::mem::zeroed () };
+pub static buffer_local_flags: VmGlobal<buffer> = VmGlobal::<buffer>::new (/* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { std::mem::zeroed () });
 
 /* This structure holds the names of symbols whose values may be
    buffer-local.  It is indexed and accessed in the same way as the above.  */
 
 #[unsafe(no_mangle)]
-pub static mut buffer_local_symbols: buffer = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { std::mem::zeroed () };
+pub static buffer_local_symbols: VmGlobal<buffer> = VmGlobal::<buffer>::new (/* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { std::mem::zeroed () });
 
 /* Return the symbol of the per-buffer variable at offset OFFSET in
    the buffer structure.  */
@@ -188,7 +188,7 @@ pub static mut buffer_local_symbols: buffer = /* SAFETY: low-level VM/OS subsyst
 #[macro_export]
 macro_rules! PER_BUFFER_SYMBOL {
   ($offset:expr) => {
-    (*((($offset) as *mut u8).offset (&raw const buffer_local_symbols as *const c_char as isize)
+    (*((($offset) as *mut u8).offset (buffer_local_symbols.as_ptr () as *const c_char as isize)
        as *mut Lisp_Object))
   };
 }
@@ -205,12 +205,11 @@ macro_rules! OVERLAY_COUNT_MAX {
 
 /* Flags indicating which built-in buffer-local variables
    are permanent locals.  */
-static mut buffer_permanent_local_flags: [c_char; MAX_PER_BUFFER_VARS as usize]
-  = [0; MAX_PER_BUFFER_VARS as usize];
+static buffer_permanent_local_flags: VmGlobal<[c_char; MAX_PER_BUFFER_VARS as usize]> = VmGlobal::<[c_char; MAX_PER_BUFFER_VARS as usize]>::new ([0; MAX_PER_BUFFER_VARS as usize]);
 
 /* Number of per-buffer variables used.  */
 
-static mut last_per_buffer_idx: c_int = 0;
+static last_per_buffer_idx: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 
 // C 116-120's `static void call_overlay_mod_hooks (...)` and C 121's
 // `static void reset_buffer_local_variables (struct buffer *, int);` are forward
@@ -222,9 +221,9 @@ static mut last_per_buffer_idx: c_int = 0;
    a Lisp-visible variable, but is no longer, to prevent lossage
    due to user rplac'ing this alist or its elements.  */
 #[unsafe(no_mangle)]
-pub static mut Vbuffer_alist: Lisp_Object = lisp_h_Qnil ();
+pub static Vbuffer_alist: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
-static mut QSFundamental: Lisp_Object = lisp_h_Qnil ();	/* A string "Fundamental".  */
+static QSFundamental: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());	/* A string "Fundamental".  */
 
 // C 127-132's six `static` forward declarations (alloc_buffer_text, free_buffer_text,
 // copy_overlays, modify_overlay, buffer_lisp_local_variables, buffer_local_variables_1)
@@ -674,7 +673,7 @@ DEFUN! ("buffer-list", Fbuffer_list, Sbuffer_list, 0, 1, 0,
        (frame: Lisp_Object),
        {
   let mut general: Lisp_Object = Qnil ();
-  general = Fmapcar (Qcdr (), Vbuffer_alist);
+  general = Fmapcar (Qcdr (), (*Vbuffer_alist.as_mut_ptr ()));
 
   if FRAMEP (frame)
     {
@@ -735,7 +734,7 @@ DEFUN! ("get-buffer", Fget_buffer, Sget_buffer, 1, 1, 0,
     { return buffer_or_name; }
   CHECK_STRING (buffer_or_name);
 
-  return Fcdr (assoc_ignore_text_properties (buffer_or_name, Vbuffer_alist));
+  return Fcdr (assoc_ignore_text_properties (buffer_or_name, (*Vbuffer_alist.as_mut_ptr ())));
 });
 
 DEFUN! ("get-file-buffer", Fget_file_buffer, Sget_file_buffer, 1, 1, 0,
@@ -765,7 +764,7 @@ DEFUN! ("get-file-buffer", Fget_file_buffer, Sget_file_buffer, 1, 1, 0,
      docs/ports/excluded-macros.txt), so the expansion is written here (the unlock_all_files
      shape).  C's `continue` becomes the `if`'s condition, since the loop's increment runs
      after the body on every path.  */
-  tail = Vbuffer_alist;
+  tail = (*Vbuffer_alist.as_mut_ptr ());
   while CONSP (tail) && { buf = XCDR (XCAR (tail)); true }
     {
       if STRINGP (BVAR! (XBUFFER (buf), filename_))
@@ -784,7 +783,7 @@ DEFUN! ("get-truename-buffer", Fget_truename_buffer, Sget_truename_buffer, 1, 1,
   let mut buf: Lisp_Object = Qnil ();
 
   /* C 521-522.  */
-  tail = Vbuffer_alist;
+  tail = (*Vbuffer_alist.as_mut_ptr ());
   while CONSP (tail) && { buf = XCDR (XCAR (tail)); true }
     {
       if STRINGP (BVAR! (XBUFFER (buf), file_truename_))
@@ -803,7 +802,7 @@ DEFUN! ("find-buffer", Ffind_buffer, Sfind_buffer, 2, 2, 0,
   let mut buf: Lisp_Object = Qnil ();
 
   /* C 549-552.  */
-  tail = Vbuffer_alist;
+  tail = (*Vbuffer_alist.as_mut_ptr ());
   while CONSP (tail) && { buf = XCDR (XCAR (tail)); true }
     {
       if ! NILP (Fequal (value, Fbuffer_local_value (variable, buf)))
@@ -821,8 +820,8 @@ unsafe fn run_buffer_list_update_hook (buf: *mut buffer)
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
   eassert! (! buf.is_null ());
-  if ! (NILP (Vrun_hooks) || (*buf).bits & BUFFER_INHIBIT_BUFFER_HOOKS != 0)
-    { calln! (Vrun_hooks, Qbuffer_list_update_hook ()); }
+  if ! (NILP ((*Vrun_hooks.as_mut_ptr ())) || (*buf).bits & BUFFER_INHIBIT_BUFFER_HOOKS != 0)
+    { calln! ((*Vrun_hooks.as_mut_ptr ()), Qbuffer_list_update_hook ()); }
 
   }
 }
@@ -934,7 +933,7 @@ DEFUN! ("get-buffer-create", Fget_buffer_create, Sget_buffer_create, 1, 2, 0,
 
   /* Put this in the alist of all live buffers.  */
   XSETBUFFER! (buffer, b);
-  Vbuffer_alist = nconc2 (Vbuffer_alist, list1 (Fcons (name, buffer)));
+  (*Vbuffer_alist.as_mut_ptr ()) = nconc2 ((*Vbuffer_alist.as_mut_ptr ()), list1 (Fcons (name, buffer)));
 
   run_buffer_list_update_hook (b);
 
@@ -995,7 +994,7 @@ pub unsafe extern "C-unwind" fn valid_per_buffer_idx (idx: c_int) -> bool
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  return 0 <= idx && idx < last_per_buffer_idx;
+  return 0 <= idx && idx < (*last_per_buffer_idx.as_mut_ptr ());
 
   }
 }
@@ -1192,7 +1191,7 @@ DEFUN! ("make-indirect-buffer", Fmake_indirect_buffer, Smake_indirect_buffer,
 
   /* Put this in the alist of all live buffers.  */
   XSETBUFFER! (buf, b);
-  Vbuffer_alist = nconc2 (Vbuffer_alist, list1 (Fcons (name, buf)));
+  (*Vbuffer_alist.as_mut_ptr ()) = nconc2 ((*Vbuffer_alist.as_mut_ptr ()), list1 (Fcons (name, buf)));
 
   bset_mark (b, Fmake_marker ());
 
@@ -1456,9 +1455,9 @@ pub unsafe extern "C-unwind" fn reset_buffer (b: *mut buffer)
   bset_display_count (b, make_fixnum (0));
   bset_display_time (b, Qnil ());
   bset_enable_multibyte_characters
-    (b, BVAR! (&raw mut buffer_defaults, enable_multibyte_characters_));
-  bset_cursor_type (b, BVAR! (&raw mut buffer_defaults, cursor_type_));
-  bset_extra_line_spacing (b, BVAR! (&raw mut buffer_defaults, extra_line_spacing_));
+    (b, BVAR! (buffer_defaults.as_mut_ptr (), enable_multibyte_characters_));
+  bset_cursor_type (b, BVAR! (buffer_defaults.as_mut_ptr (), cursor_type_));
+  bset_extra_line_spacing (b, BVAR! (buffer_defaults.as_mut_ptr (), extra_line_spacing_));
   #[cfg(feature = "have_tree_sitter")]
   bset_ts_parser_list(b, Qnil());
 
@@ -1489,19 +1488,19 @@ unsafe fn reset_buffer_local_variables (b: *mut buffer, permanent_too: c_int)
      We ignore it here.  */
   bset_major_mode (b, Qfundamental_mode ());
   bset_keymap (b, Qnil ());
-  bset_mode_name (b, QSFundamental);
+  bset_mode_name (b, (*QSFundamental.as_mut_ptr ()));
 
   /* If the standard case table has been altered and invalidated,
      fix up its insides first.  */
-  if ! (CHAR_TABLE_P (FAM_ELEM! ((*XCHAR_TABLE (Vascii_downcase_table)).extras, 0))
-	&& CHAR_TABLE_P (FAM_ELEM! ((*XCHAR_TABLE (Vascii_downcase_table)).extras, 1))
-	&& CHAR_TABLE_P (FAM_ELEM! ((*XCHAR_TABLE (Vascii_downcase_table)).extras, 2)))
-    { Fset_standard_case_table (Vascii_downcase_table); }
+  if ! (CHAR_TABLE_P (FAM_ELEM! ((*XCHAR_TABLE ((*Vascii_downcase_table.as_mut_ptr ()))).extras, 0))
+	&& CHAR_TABLE_P (FAM_ELEM! ((*XCHAR_TABLE ((*Vascii_downcase_table.as_mut_ptr ()))).extras, 1))
+	&& CHAR_TABLE_P (FAM_ELEM! ((*XCHAR_TABLE ((*Vascii_downcase_table.as_mut_ptr ()))).extras, 2)))
+    { Fset_standard_case_table ((*Vascii_downcase_table.as_mut_ptr ())); }
 
-  bset_downcase_table (b, Vascii_downcase_table);
-  bset_upcase_table (b, FAM_ELEM! ((*XCHAR_TABLE (Vascii_downcase_table)).extras, 0));
-  bset_case_canon_table (b, FAM_ELEM! ((*XCHAR_TABLE (Vascii_downcase_table)).extras, 1));
-  bset_case_eqv_table (b, FAM_ELEM! ((*XCHAR_TABLE (Vascii_downcase_table)).extras, 2));
+  bset_downcase_table (b, (*Vascii_downcase_table.as_mut_ptr ()));
+  bset_upcase_table (b, FAM_ELEM! ((*XCHAR_TABLE ((*Vascii_downcase_table.as_mut_ptr ()))).extras, 0));
+  bset_case_canon_table (b, FAM_ELEM! ((*XCHAR_TABLE ((*Vascii_downcase_table.as_mut_ptr ()))).extras, 1));
+  bset_case_eqv_table (b, FAM_ELEM! ((*XCHAR_TABLE ((*Vascii_downcase_table.as_mut_ptr ()))).extras, 2));
   bset_invisibility_spec (b, Qt ());
 
   /* Reset all (or most) per-buffer variables to their defaults.  */
@@ -1590,9 +1589,9 @@ unsafe fn reset_buffer_local_variables (b: *mut buffer, permanent_too: c_int)
 	}
     }
 
-  while i < last_per_buffer_idx
+  while i < (*last_per_buffer_idx.as_mut_ptr ())
     {
-      if permanent_too != 0 || buffer_permanent_local_flags[i as usize] == 0
+      if permanent_too != 0 || (*buffer_permanent_local_flags.as_mut_ptr ())[i as usize] == 0
 	{ SET_PER_BUFFER_VALUE_P (b, i, false); }
       i += 1;
     }
@@ -1602,7 +1601,7 @@ unsafe fn reset_buffer_local_variables (b: *mut buffer, permanent_too: c_int)
       let idx: c_int = PER_BUFFER_IDX (offset);
       if idx > 0
 	&& (permanent_too != 0
-	    || buffer_permanent_local_flags[idx as usize] == 0)
+	    || (*buffer_permanent_local_flags.as_mut_ptr ())[idx as usize] == 0)
 	{ set_per_buffer_value (b, offset as c_int, per_buffer_default (offset as c_int)); }
     });
 
@@ -1901,7 +1900,7 @@ DEFUN! ("force-mode-line-update", Fforce_mode_line_update,
        {
   if ! NILP (all)
     {
-      update_mode_lines = 10;
+      (*update_mode_lines.as_mut_ptr ()) = 10;
       /* FIXME: This can't be right.  */
       // C: `current_buffer->prevent_redisplay_optimizations_p = true;`
       (*(current_buffer! ())).bits |= BUFFER_PREVENT_REDISPLAY_OPTIMIZATIONS_P;
@@ -1950,7 +1949,7 @@ DEFUN! ("restore-buffer-modified-p", Frestore_buffer_modified_p,
     { (*(current_buffer! ())).base_buffer }
     else { (current_buffer! ()) };
 
-  if ! inhibit_modification_hooks
+  if ! (*inhibit_modification_hooks.as_mut_ptr ())
     {
       let fn_: Lisp_Object = BVAR! (b, file_truename_);
       /* Test buffer-file-name so that binding it to nil is effective.  */
@@ -2065,7 +2064,7 @@ DEFUN! ("rename-buffer", Frename_buffer, Srename_buffer, 1, 2,
   bset_update_mode_line ((current_buffer! ()) as *mut c_void);
 
   XSETBUFFER! (buf, (current_buffer! ()));
-  Fsetcar (Frassq (buf, Vbuffer_alist), newname);
+  Fsetcar (Frassq (buf, (*Vbuffer_alist.as_mut_ptr ())), newname);
   if NILP (BVAR! ((current_buffer! ()), filename_))
       && ! NILP (BVAR! ((current_buffer! ()), auto_save_file_name_))
     { call0 (Qrename_auto_save_file ()); }
@@ -2117,7 +2116,7 @@ DEFUN! ("other-buffer", Fother_buffer, Sother_buffer, 0, 3, 0,
 
   /* Consider alist of all buffers next.  */
   /* C: `FOR_EACH_LIVE_BUFFER (tail, buf)` (P-22: the expansion, as above).  */
-  tail = Vbuffer_alist;
+  tail = (*Vbuffer_alist.as_mut_ptr ());
   while CONSP (tail) && { buf = XCDR (XCAR (tail)); true }
     {
       if candidate_buffer (buf, buffer)
@@ -2154,7 +2153,7 @@ pub unsafe extern "C-unwind" fn other_buffer_safely (buffer: Lisp_Object) -> Lis
 
   /* C: `FOR_EACH_LIVE_BUFFER (tail, buf)` followed by a body without braces; the port
      writes the macro's expansion (P-22, docs/ports/excluded-macros.txt).  */
-  tail = Vbuffer_alist;
+  tail = (*Vbuffer_alist.as_mut_ptr ());
   while CONSP (tail) && { buf = XCDR (XCAR (tail)); true }
     {
       if candidate_buffer (buf, buffer)
@@ -2301,8 +2300,8 @@ DEFUN! ("kill-buffer", Fkill_buffer, Skill_buffer, 0, 1, "bKill buffer: ",
 
     /* Delete the autosave file, if requested. */
     if modified
-	&& kill_buffer_delete_auto_save_files
-	&& delete_auto_save_files
+	&& (*kill_buffer_delete_auto_save_files.as_mut_ptr ())
+	&& (*delete_auto_save_files.as_mut_ptr ())
 	&& ! NILP (Frecent_auto_save_p ())
 	&& STRINGP (BVAR! (b, auto_save_file_name_))
 	&& ! NILP (Ffile_exists_p (BVAR! (b, auto_save_file_name_)))
@@ -2335,7 +2334,7 @@ DEFUN! ("kill-buffer", Fkill_buffer, Skill_buffer, 0, 1, "bKill buffer: ",
      since anything can happen within do_yes_or_no_p.  */
 
   /* Don't kill the minibuffer now current.  */
-  if BASE_EQ (buffer, (*XWINDOW (minibuf_window)).contents)
+  if BASE_EQ (buffer, (*XWINDOW ((*minibuf_window.as_mut_ptr ()))).contents)
     { return Qnil (); }
 
   /* When we kill an ordinary buffer which shares its buffer text
@@ -2348,7 +2347,7 @@ DEFUN! ("kill-buffer", Fkill_buffer, Skill_buffer, 0, 1, "bKill buffer: ",
       let mut other: Lisp_Object = Qnil ();
 
       /* C: `FOR_EACH_LIVE_BUFFER (tail, other)` (P-22: the expansion).  */
-      tail = Vbuffer_alist;
+      tail = (*Vbuffer_alist.as_mut_ptr ());
       while CONSP (tail) && { other = XCDR (XCAR (tail)); true }
 	{
 	  let obuf: *mut buffer = XBUFFER (other);
@@ -2404,7 +2403,7 @@ DEFUN! ("kill-buffer", Fkill_buffer, Skill_buffer, 0, 1, "bKill buffer: ",
   /* If the buffer now current is shown in the minibuffer and our buffer
      is the sole other buffer give up.  */
   XSETBUFFER! (tem, (current_buffer! ()));
-  if BASE_EQ (tem, (*XWINDOW (minibuf_window)).contents)
+  if BASE_EQ (tem, (*XWINDOW ((*minibuf_window.as_mut_ptr ()))).contents)
       && BASE_EQ (buffer, Fother_buffer (buffer, Qnil (), Qnil ()))
     { return Qnil (); }
 
@@ -2427,16 +2426,16 @@ DEFUN! ("kill-buffer", Fkill_buffer, Skill_buffer, 0, 1, "bKill buffer: ",
 
   clear_charpos_cache (b);
 
-  tem = Vinhibit_quit;
-  Vinhibit_quit = Qt ();
+  tem = (*Vinhibit_quit.as_mut_ptr ());
+  (*Vinhibit_quit.as_mut_ptr ()) = Qt ();
   /* Once the buffer is removed from Vbuffer_alist, its undo_list field is
      not traced by the GC in the same way.  So set it to nil early.  */
   bset_undo_list (b, Qnil ());
   /* Remove the buffer from the list of all buffers.  */
-  Vbuffer_alist = Fdelq (Frassq (buffer, Vbuffer_alist), Vbuffer_alist);
+  (*Vbuffer_alist.as_mut_ptr ()) = Fdelq (Frassq (buffer, (*Vbuffer_alist.as_mut_ptr ())), (*Vbuffer_alist.as_mut_ptr ()));
   /* If replace_buffer_in_windows didn't do its job fix that now.  */
   replace_buffer_in_windows_safely (buffer);
-  Vinhibit_quit = tem;
+  (*Vinhibit_quit.as_mut_ptr ()) = tem;
 
   if ! (*b).base_buffer.is_null ()
     {
@@ -2555,21 +2554,21 @@ pub unsafe extern "C-unwind" fn record_buffer (buffer: Lisp_Object)
   let mut aelt: Lisp_Object = Qnil ();
   let mut aelt_cons: Lisp_Object = Qnil ();
   let mut tem: Lisp_Object = Qnil ();
-  let f: *mut frame = XFRAME (selected_frame);
+  let f: *mut frame = XFRAME ((*selected_frame.as_mut_ptr ()));
 
   CHECK_BUFFER (buffer);
 
   /* Update Vbuffer_alist (we know that it has an entry for BUFFER).
      Don't allow quitting since this might leave the buffer list in an
      inconsistent state.  */
-  tem = Vinhibit_quit;
-  Vinhibit_quit = Qt ();
-  aelt = Frassq (buffer, Vbuffer_alist);
-  aelt_cons = Fmemq (aelt, Vbuffer_alist);
-  Vbuffer_alist = Fdelq (aelt, Vbuffer_alist);
-  XSETCDR (aelt_cons, Vbuffer_alist);
-  Vbuffer_alist = aelt_cons;
-  Vinhibit_quit = tem;
+  tem = (*Vinhibit_quit.as_mut_ptr ());
+  (*Vinhibit_quit.as_mut_ptr ()) = Qt ();
+  aelt = Frassq (buffer, (*Vbuffer_alist.as_mut_ptr ()));
+  aelt_cons = Fmemq (aelt, (*Vbuffer_alist.as_mut_ptr ()));
+  (*Vbuffer_alist.as_mut_ptr ()) = Fdelq (aelt, (*Vbuffer_alist.as_mut_ptr ()));
+  XSETCDR (aelt_cons, (*Vbuffer_alist.as_mut_ptr ()));
+  (*Vbuffer_alist.as_mut_ptr ()) = aelt_cons;
+  (*Vinhibit_quit.as_mut_ptr ()) = tem;
 
   /* Update buffer list of selected frame.  */
   fset_buffer_list (f, Fcons (buffer, Fdelq (buffer, (*f).buffer_list)));
@@ -2594,21 +2593,21 @@ DEFUN! ("bury-buffer-internal", Fbury_buffer_internal, Sbury_buffer_internal,
   let mut aelt: Lisp_Object = Qnil ();
   let mut aelt_cons: Lisp_Object = Qnil ();
   let mut tem: Lisp_Object = Qnil ();
-  let f: *mut frame = XFRAME (selected_frame);
+  let f: *mut frame = XFRAME ((*selected_frame.as_mut_ptr ()));
 
   CHECK_BUFFER (buffer);
 
   /* Update Vbuffer_alist (we know that it has an entry for BUFFER).
      Don't allow quitting since this might leave the buffer list in an
      inconsistent state.  */
-  tem = Vinhibit_quit;
-  Vinhibit_quit = Qt ();
-  aelt = Frassq (buffer, Vbuffer_alist);
-  aelt_cons = Fmemq (aelt, Vbuffer_alist);
-  Vbuffer_alist = Fdelq (aelt, Vbuffer_alist);
+  tem = (*Vinhibit_quit.as_mut_ptr ());
+  (*Vinhibit_quit.as_mut_ptr ()) = Qt ();
+  aelt = Frassq (buffer, (*Vbuffer_alist.as_mut_ptr ()));
+  aelt_cons = Fmemq (aelt, (*Vbuffer_alist.as_mut_ptr ()));
+  (*Vbuffer_alist.as_mut_ptr ()) = Fdelq (aelt, (*Vbuffer_alist.as_mut_ptr ()));
   XSETCDR (aelt_cons, Qnil ());
-  Vbuffer_alist = nconc2 (Vbuffer_alist, aelt_cons);
-  Vinhibit_quit = tem;
+  (*Vbuffer_alist.as_mut_ptr ()) = nconc2 ((*Vbuffer_alist.as_mut_ptr ()), aelt_cons);
+  (*Vinhibit_quit.as_mut_ptr ()) = tem;
 
   /* Update buffer lists of selected frame.  */
   fset_buffer_list (f, Fdelq (buffer, (*f).buffer_list));
@@ -2636,7 +2635,7 @@ DEFUN! ("set-buffer-major-mode", Fset_buffer_major_mode, Sset_buffer_major_mode,
     { function = find_symbol_value (Qinitial_major_mode ()); }
   else
     {
-      function = BVAR! (&raw mut buffer_defaults, major_mode_);
+      function = BVAR! (buffer_defaults.as_mut_ptr (), major_mode_);
       if NILP (function)
 	  && NILP (Fget (BVAR! ((current_buffer! ()), major_mode_), Qmode_class ()))
 	{ function = BVAR! ((current_buffer! ()), major_mode_); }
@@ -2704,7 +2703,7 @@ pub unsafe extern "C-unwind" fn set_buffer_internal_2 (b: *mut buffer)
 
   old_buf = (current_buffer! ());
   set_current_buffer! (b);
-  last_known_column_point = -1;   /* Invalidate indentation cache.  */
+  (*last_known_column_point.as_mut_ptr ()) = -1;   /* Invalidate indentation cache.  */
 
   if ! old_buf.is_null ()
     {
@@ -2830,7 +2829,7 @@ DEFUN! ("barf-if-buffer-read-only", Fbarf_if_buffer_read_only,
     { CHECK_FIXNUM (position); }
 
   if ! NILP (BVAR! ((current_buffer! ()), read_only_))
-      && NILP (Vinhibit_read_only)
+      && NILP ((*Vinhibit_read_only.as_mut_ptr ()))
       && NILP (Fget_text_property (position, Qinhibit_read_only (), Qnil ()))
     { xsignal1 (Qbuffer_read_only (), Fcurrent_buffer ()); }
   return Qnil ();
@@ -2985,7 +2984,7 @@ DEFUN! ("buffer-swap-text", Fbuffer_swap_text, Sbuffer_swap_text,
     let mut other: Lisp_Object = Qnil ();
     /* C: `FOR_EACH_LIVE_BUFFER (tail, other) if (...) error (...);` -- the loop macro
        (P-22) with C's brace-less body, written out.  */
-    tail = Vbuffer_alist;
+    tail = (*Vbuffer_alist.as_mut_ptr ());
     while CONSP (tail) && { other = XCDR (XCAR (tail)); true }
       {
 	if (*XBUFFER (other)).base_buffer == other_buffer
@@ -3109,7 +3108,7 @@ DEFUN! ("buffer-swap-text", Fbuffer_swap_text, Sbuffer_swap_text,
        live window points to that window's buffer.  So since we
        just swapped the markers between the two buffers, we need
        to undo the effect of this swap for window markers.  */
-    let mut w: Lisp_Object = selected_window;
+    let mut w: Lisp_Object = (*selected_window.as_mut_ptr ());
     let mut ws: Lisp_Object = Qnil ();
     let mut buf1: Lisp_Object = Qnil ();
     let mut buf2: Lisp_Object = Qnil ();
@@ -3425,12 +3424,12 @@ DEFUN! ("set-buffer-multibyte", Fset_buffer_multibyte, Sset_buffer_multibyte,
 
   /* If buffer is shown in a window, let redisplay consider other windows.  */
   if buffer_window_count ((current_buffer! ())) != 0
-    { windows_or_buffers_changed = 10; }
+    { (*windows_or_buffers_changed.as_mut_ptr ()) = 10; }
 
   /* Copy this buffer's new multibyte status
      into all of its indirect buffers.  */
   /* C: `FOR_EACH_LIVE_BUFFER (btail, other)` (P-22: the expansion).  */
-  btail = Vbuffer_alist;
+  btail = (*Vbuffer_alist.as_mut_ptr ());
   while CONSP (btail) && { other = XCDR (XCAR (btail)); true }
     {
       let o: *mut buffer = XBUFFER (other);
@@ -3924,14 +3923,14 @@ struct sortstrlist
    position.  These could be automatic variables in overlay_strings, but
    it's more efficient to hold onto the memory instead of repeatedly
    allocating and freeing it.  */
-static mut overlay_heads: sortstrlist = sortstrlist {
-  buf: std::ptr::null_mut (), size: 0, used: 0, bytes: 0 };
-static mut overlay_tails: sortstrlist = sortstrlist {
-  buf: std::ptr::null_mut (), size: 0, used: 0, bytes: 0 };
-static mut overlay_str_buf: *mut u8 = std::ptr::null_mut ();
+static overlay_heads: VmGlobal<sortstrlist> = VmGlobal::<sortstrlist>::new (sortstrlist {
+  buf: std::ptr::null_mut (), size: 0, used: 0, bytes: 0 });
+static overlay_tails: VmGlobal<sortstrlist> = VmGlobal::<sortstrlist>::new (sortstrlist {
+  buf: std::ptr::null_mut (), size: 0, used: 0, bytes: 0 });
+static overlay_str_buf: VmGlobal<*mut u8> = VmGlobal::<*mut u8>::new (std::ptr::null_mut ());
 
 /* Allocated length of overlay_str_buf.  */
-static mut overlay_str_len: ptrdiff_t = 0;
+static overlay_str_len: VmGlobal<ptrdiff_t> = VmGlobal::<ptrdiff_t>::new (0);
 
 /* A comparison function suitable for passing to qsort.  */
 unsafe extern "C" fn cmp_for_strings (as1: *const c_void, as2: *const c_void) -> c_int
@@ -4022,10 +4021,10 @@ pub unsafe extern "C-unwind" fn overlay_strings (pos: ptrdiff_t, w: *mut c_void,
   let multibyte: bool = ! NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_));
   let mut node: *mut itree_node;
 
-  overlay_heads.used = 0;
-  overlay_heads.bytes = 0;
-  overlay_tails.used = 0;
-  overlay_tails.bytes = 0;
+  (*overlay_heads.as_mut_ptr ()).used = 0;
+  (*overlay_heads.as_mut_ptr ()).bytes = 0;
+  (*overlay_tails.as_mut_ptr ()).used = 0;
+  (*overlay_tails.as_mut_ptr ()).bytes = 0;
 
   /* C: `ITREE_FOREACH (node, current_buffer->overlays, pos - 1, pos + 1, DESCENDING)`.  */
   if (*(current_buffer! ())).overlays.is_null ()
@@ -4054,7 +4053,7 @@ pub unsafe extern "C-unwind" fn overlay_strings (pos: ptrdiff_t, w: *mut c_void,
 	     never cause a non-local exit?  */
 	  if startpos == pos
 	      && { str_ = Foverlay_get (overlay, Qbefore_string ()); STRINGP (str_) }
-	    { record_overlay_string (&raw mut overlay_heads, str_,
+	    { record_overlay_string (overlay_heads.as_mut_ptr (), str_,
 				     if startpos == endpos
 				       { Foverlay_get (overlay, Qafter_string ()) }
 				       else { Qnil () },
@@ -4062,19 +4061,19 @@ pub unsafe extern "C-unwind" fn overlay_strings (pos: ptrdiff_t, w: *mut c_void,
 				     endpos - startpos); }
 	  else if endpos == pos
 	      && { str_ = Foverlay_get (overlay, Qafter_string ()); STRINGP (str_) }
-	    { record_overlay_string (&raw mut overlay_tails, str_, Qnil (),
+	    { record_overlay_string (overlay_tails.as_mut_ptr (), str_, Qnil (),
 				     Foverlay_get (overlay, Qpriority ()),
 				     endpos - startpos); }
 	}
     }
 
-  if overlay_tails.used > 1
-    { qsort (overlay_tails.buf as *mut c_void, overlay_tails.used as usize,
+  if (*overlay_tails.as_mut_ptr ()).used > 1
+    { qsort ((*overlay_tails.as_mut_ptr ()).buf as *mut c_void, (*overlay_tails.as_mut_ptr ()).used as usize,
 	     std::mem::size_of::<sortstr> (), Some (cmp_for_strings)); }
-  if overlay_heads.used > 1
-    { qsort (overlay_heads.buf as *mut c_void, overlay_heads.used as usize,
+  if (*overlay_heads.as_mut_ptr ()).used > 1
+    { qsort ((*overlay_heads.as_mut_ptr ()).buf as *mut c_void, (*overlay_heads.as_mut_ptr ()).used as usize,
 	     std::mem::size_of::<sortstr> (), Some (cmp_for_strings)); }
-  if overlay_heads.bytes != 0 || overlay_tails.bytes != 0
+  if (*overlay_heads.as_mut_ptr ()).bytes != 0 || (*overlay_tails.as_mut_ptr ()).bytes != 0
     {
       let mut tem: Lisp_Object;
       let mut i: ptrdiff_t;
@@ -4082,36 +4081,36 @@ pub unsafe extern "C-unwind" fn overlay_strings (pos: ptrdiff_t, w: *mut c_void,
       let mut total: ptrdiff_t;
 
       /* C: `if (ckd_add (&total, overlay_heads.bytes, overlay_tails.bytes)) memory_full_up ();` */
-      let (total_, add_overflow) = overlay_heads.bytes.overflowing_add (overlay_tails.bytes);
+      let (total_, add_overflow) = (*overlay_heads.as_mut_ptr ()).bytes.overflowing_add ((*overlay_tails.as_mut_ptr ()).bytes);
       total = total_;
       if add_overflow
 	{ memory_full_up (); }
-      if total > overlay_str_len
-	{ overlay_str_buf = xpalloc (overlay_str_buf as *mut c_void,
-				     &raw mut overlay_str_len,
-				     total - overlay_str_len, -1, 1) as *mut u8; }
+      if total > (*overlay_str_len.as_mut_ptr ())
+	{ (*overlay_str_buf.as_mut_ptr ()) = xpalloc ((*overlay_str_buf.as_mut_ptr ()) as *mut c_void,
+				     overlay_str_len.as_mut_ptr (),
+				     total - (*overlay_str_len.as_mut_ptr ()), -1, 1) as *mut u8; }
 
-      p = overlay_str_buf;
-      i = overlay_tails.used;
+      p = (*overlay_str_buf.as_mut_ptr ());
+      i = (*overlay_tails.as_mut_ptr ()).used;
       loop
 	{
 	  i -= 1;
 	  if ! (i >= 0) { break; }
 	  let nbytes: ptrdiff_t;
-	  tem = (*overlay_tails.buf.add (i as usize)).string;
+	  tem = (*(*overlay_tails.as_mut_ptr ()).buf.add (i as usize)).string;
 	  nbytes = copy_text (SDATA (tem), p, SBYTES (tem),
 			      STRING_MULTIBYTE (tem), multibyte);
 	  p = p.add (nbytes as usize);
 	}
       i = 0;
-      while i < overlay_heads.used
+      while i < (*overlay_heads.as_mut_ptr ()).used
 	{
 	  let mut nbytes: ptrdiff_t;
-	  tem = (*overlay_heads.buf.add (i as usize)).string;
+	  tem = (*(*overlay_heads.as_mut_ptr ()).buf.add (i as usize)).string;
 	  nbytes = copy_text (SDATA (tem), p, SBYTES (tem),
 			      STRING_MULTIBYTE (tem), multibyte);
 	  p = p.add (nbytes as usize);
-	  tem = (*overlay_heads.buf.add (i as usize)).string2;
+	  tem = (*(*overlay_heads.as_mut_ptr ()).buf.add (i as usize)).string2;
 	  if STRINGP (tem)
 	    {
 	      nbytes = copy_text (SDATA (tem), p, SBYTES (tem),
@@ -4120,10 +4119,10 @@ pub unsafe extern "C-unwind" fn overlay_strings (pos: ptrdiff_t, w: *mut c_void,
 	    }
 	  i += 1;
 	}
-      if p != overlay_str_buf.add (total as usize)
+      if p != (*overlay_str_buf.as_mut_ptr ()).add (total as usize)
 	{ emacs_abort (); }
       if ! pstr.is_null ()
-	{ *pstr = overlay_str_buf; }
+	{ *pstr = (*overlay_str_buf.as_mut_ptr ()); }
       return total;
     }
   return 0;
@@ -4149,7 +4148,7 @@ pub unsafe extern "C-unwind" fn adjust_overlays_for_insert (pos: ptrdiff_t, leng
       let mut other: Lisp_Object = Qnil ();
       itree_insert_gap ((*base).overlays, pos, length, before_markers);
       /* C: `FOR_EACH_LIVE_BUFFER (tail, other) if (...)` -- the expansion (P-22).  */
-      tail = Vbuffer_alist;
+      tail = (*Vbuffer_alist.as_mut_ptr ());
       while CONSP (tail) && { other = XCDR (XCAR (tail)); true }
 	{
 	  if (*XBUFFER (other)).base_buffer == base
@@ -4220,7 +4219,7 @@ pub unsafe extern "C-unwind" fn adjust_overlays_for_delete (pos: ptrdiff_t, leng
       let mut other: Lisp_Object = Qnil ();
       adjust_overlays_for_delete_in_buffer (base, pos, length);
       /* C: `FOR_EACH_LIVE_BUFFER (tail, other) if (...)` -- the expansion (P-22).  */
-      tail = Vbuffer_alist;
+      tail = (*Vbuffer_alist.as_mut_ptr ());
       while CONSP (tail) && { other = XCDR (XCAR (tail)); true }
 	{
 	  if (*XBUFFER (other)).base_buffer == base
@@ -4433,7 +4432,7 @@ DEFUN! ("delete-overlay", Fdelete_overlay, Sdelete_overlay, 1, 1, 0,
      display optimizations for the affected buffer, on the basis that
      these strings may contain newlines.  This is easier to do than to
      check for that situation during redisplay.  */
-  if windows_or_buffers_changed == 0
+  if (*windows_or_buffers_changed.as_mut_ptr ()) == 0
       && (! NILP (Foverlay_get (overlay, Qbefore_string ()))
 	  || ! NILP (Foverlay_get (overlay, Qafter_string ())))
     { (*b).bits |= BUFFER_PREVENT_REDISPLAY_OPTIMIZATIONS_P; }
@@ -4699,10 +4698,10 @@ DEFUN! ("overlay-put", Foverlay_put, Soverlay_put, 3, 3, 0,
    as we call overlay hook functions.
    After the buffer change, we get the functions to call from this vector.
    This way we always call the same functions before and after the change.  */
-static mut last_overlay_modification_hooks: Lisp_Object = lisp_h_Qnil ();
+static last_overlay_modification_hooks: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* Number of elements actually used in last_overlay_modification_hooks.  */
-static mut last_overlay_modification_hooks_used: ptrdiff_t = 0;
+static last_overlay_modification_hooks_used: VmGlobal<ptrdiff_t> = VmGlobal::<ptrdiff_t>::new (0);
 
 /* Add one functionlist/overlay pair
    to the end of last_overlay_modification_hooks.  */
@@ -4711,17 +4710,17 @@ unsafe fn add_overlay_mod_hooklist (functionlist: Lisp_Object, overlay: Lisp_Obj
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  let oldsize: ptrdiff_t = ASIZE (last_overlay_modification_hooks) as ptrdiff_t;
+  let oldsize: ptrdiff_t = ASIZE ((*last_overlay_modification_hooks.as_mut_ptr ())) as ptrdiff_t;
 
-  if oldsize - 1 <= last_overlay_modification_hooks_used
-    { last_overlay_modification_hooks
-	= larger_vector (last_overlay_modification_hooks, 2, -1); }
-  ASET (last_overlay_modification_hooks, last_overlay_modification_hooks_used,
+  if oldsize - 1 <= (*last_overlay_modification_hooks_used.as_mut_ptr ())
+    { (*last_overlay_modification_hooks.as_mut_ptr ())
+	= larger_vector ((*last_overlay_modification_hooks.as_mut_ptr ()), 2, -1); }
+  ASET ((*last_overlay_modification_hooks.as_mut_ptr ()), (*last_overlay_modification_hooks_used.as_mut_ptr ()),
 	functionlist);
-  last_overlay_modification_hooks_used += 1;
-  ASET (last_overlay_modification_hooks, last_overlay_modification_hooks_used,
+  (*last_overlay_modification_hooks_used.as_mut_ptr ()) += 1;
+  ASET ((*last_overlay_modification_hooks.as_mut_ptr ()), (*last_overlay_modification_hooks_used.as_mut_ptr ()),
 	overlay);
-  last_overlay_modification_hooks_used += 1;
+  (*last_overlay_modification_hooks_used.as_mut_ptr ()) += 1;
 
   }
 }
@@ -4765,7 +4764,7 @@ pub unsafe extern "C-unwind" fn report_overlay_modification (start: Lisp_Object,
       let end_arg: EMACS_INT = XFIXNUM (end);
       /* We are being called before a change.
 	 Scan the overlays to find the functions to call.  */
-      last_overlay_modification_hooks_used = 0;
+      (*last_overlay_modification_hooks_used.as_mut_ptr ()) = 0;
 
       if (*(current_buffer! ())).overlays.is_null ()
 	{ return; }
@@ -4813,14 +4812,14 @@ pub unsafe extern "C-unwind" fn report_overlay_modification (start: Lisp_Object,
     /* Call the functions recorded in last_overlay_modification_hooks.
        First copy the vector contents, in case some of these hooks
        do subsequent modification of the buffer.  */
-    let size: ptrdiff_t = last_overlay_modification_hooks_used;
+    let size: ptrdiff_t = (*last_overlay_modification_hooks_used.as_mut_ptr ());
     let mut copy: *mut Lisp_Object;
     let mut i: ptrdiff_t;
 
     USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
     SAFE_ALLOCA_LISP! (sa_avail, copy, size);
     memcpy (copy as *mut c_void,
-	    (*XVECTOR (last_overlay_modification_hooks)).contents.as_ptr () as *const c_void,
+	    (*XVECTOR ((*last_overlay_modification_hooks.as_mut_ptr ()))).contents.as_ptr () as *const c_void,
 	    (size * word_size) as usize);
 
     i = 0;
@@ -4985,194 +4984,194 @@ pub unsafe extern "C-unwind" fn init_buffer_once ()
 
   /* Items flagged permanent get an explicit permanent-local property
      added in bindings.el, for clarity.  */
-  PDUMPER_REMEMBER_SCALAR! (buffer_permanent_local_flags);
-  memset (femacs_array_mut_ptr (&raw mut buffer_permanent_local_flags) as *mut c_void, 0,
-	  femacs_sizeof_ptr (&raw const buffer_permanent_local_flags));
+  PDUMPER_REMEMBER_SCALAR! ((*buffer_permanent_local_flags.as_mut_ptr ()));
+  memset (femacs_array_mut_ptr (buffer_permanent_local_flags.as_mut_ptr ()) as *mut c_void, 0,
+	  femacs_sizeof_ptr (buffer_permanent_local_flags.as_ptr ()));
 
   /* 0 means not a lisp var, -1 means always local, else mask.  */
-  memset (&raw mut buffer_local_flags as *mut c_void, 0,
-	  femacs_sizeof_ptr (&raw const buffer_local_flags));
-  bset_filename (&raw mut buffer_local_flags, make_fixnum (-1));
-  bset_directory (&raw mut buffer_local_flags, make_fixnum (-1));
-  bset_backed_up (&raw mut buffer_local_flags, make_fixnum (-1));
-  bset_save_length (&raw mut buffer_local_flags, make_fixnum (-1));
-  bset_auto_save_file_name (&raw mut buffer_local_flags, make_fixnum (-1));
-  bset_read_only (&raw mut buffer_local_flags, make_fixnum (-1));
-  bset_major_mode (&raw mut buffer_local_flags, make_fixnum (-1));
-  bset_local_minor_modes (&raw mut buffer_local_flags, make_fixnum (-1));
-  bset_mode_name (&raw mut buffer_local_flags, make_fixnum (-1));
-  bset_undo_list (&raw mut buffer_local_flags, make_fixnum (-1));
-  bset_mark_active (&raw mut buffer_local_flags, make_fixnum (-1));
-  bset_point_before_scroll (&raw mut buffer_local_flags, make_fixnum (-1));
-  bset_file_truename (&raw mut buffer_local_flags, make_fixnum (-1));
-  bset_invisibility_spec (&raw mut buffer_local_flags, make_fixnum (-1));
-  bset_file_format (&raw mut buffer_local_flags, make_fixnum (-1));
-  bset_auto_save_file_format (&raw mut buffer_local_flags, make_fixnum (-1));
-  bset_display_count (&raw mut buffer_local_flags, make_fixnum (-1));
-  bset_display_time (&raw mut buffer_local_flags, make_fixnum (-1));
-  bset_enable_multibyte_characters (&raw mut buffer_local_flags, make_fixnum (-1));
+  memset (buffer_local_flags.as_mut_ptr () as *mut c_void, 0,
+	  femacs_sizeof_ptr (buffer_local_flags.as_ptr ()));
+  bset_filename (buffer_local_flags.as_mut_ptr (), make_fixnum (-1));
+  bset_directory (buffer_local_flags.as_mut_ptr (), make_fixnum (-1));
+  bset_backed_up (buffer_local_flags.as_mut_ptr (), make_fixnum (-1));
+  bset_save_length (buffer_local_flags.as_mut_ptr (), make_fixnum (-1));
+  bset_auto_save_file_name (buffer_local_flags.as_mut_ptr (), make_fixnum (-1));
+  bset_read_only (buffer_local_flags.as_mut_ptr (), make_fixnum (-1));
+  bset_major_mode (buffer_local_flags.as_mut_ptr (), make_fixnum (-1));
+  bset_local_minor_modes (buffer_local_flags.as_mut_ptr (), make_fixnum (-1));
+  bset_mode_name (buffer_local_flags.as_mut_ptr (), make_fixnum (-1));
+  bset_undo_list (buffer_local_flags.as_mut_ptr (), make_fixnum (-1));
+  bset_mark_active (buffer_local_flags.as_mut_ptr (), make_fixnum (-1));
+  bset_point_before_scroll (buffer_local_flags.as_mut_ptr (), make_fixnum (-1));
+  bset_file_truename (buffer_local_flags.as_mut_ptr (), make_fixnum (-1));
+  bset_invisibility_spec (buffer_local_flags.as_mut_ptr (), make_fixnum (-1));
+  bset_file_format (buffer_local_flags.as_mut_ptr (), make_fixnum (-1));
+  bset_auto_save_file_format (buffer_local_flags.as_mut_ptr (), make_fixnum (-1));
+  bset_display_count (buffer_local_flags.as_mut_ptr (), make_fixnum (-1));
+  bset_display_time (buffer_local_flags.as_mut_ptr (), make_fixnum (-1));
+  bset_enable_multibyte_characters (buffer_local_flags.as_mut_ptr (), make_fixnum (-1));
 
   /* These used to be stuck at 0 by default, but now that the all-zero value
      means Qnil, we have to initialize them explicitly.  */
-  bset_name (&raw mut buffer_local_flags, make_fixnum (0));
-  bset_last_name (&raw mut buffer_local_flags, make_fixnum (0));
-  bset_mark (&raw mut buffer_local_flags, make_fixnum (0));
-  bset_local_var_alist (&raw mut buffer_local_flags, make_fixnum (0));
-  bset_keymap (&raw mut buffer_local_flags, make_fixnum (0));
-  bset_downcase_table (&raw mut buffer_local_flags, make_fixnum (0));
-  bset_upcase_table (&raw mut buffer_local_flags, make_fixnum (0));
-  bset_case_canon_table (&raw mut buffer_local_flags, make_fixnum (0));
-  bset_case_eqv_table (&raw mut buffer_local_flags, make_fixnum (0));
-  bset_width_table (&raw mut buffer_local_flags, make_fixnum (0));
-  bset_pt_marker (&raw mut buffer_local_flags, make_fixnum (0));
-  bset_begv_marker (&raw mut buffer_local_flags, make_fixnum (0));
-  bset_zv_marker (&raw mut buffer_local_flags, make_fixnum (0));
-  bset_last_selected_window (&raw mut buffer_local_flags, make_fixnum (0));
+  bset_name (buffer_local_flags.as_mut_ptr (), make_fixnum (0));
+  bset_last_name (buffer_local_flags.as_mut_ptr (), make_fixnum (0));
+  bset_mark (buffer_local_flags.as_mut_ptr (), make_fixnum (0));
+  bset_local_var_alist (buffer_local_flags.as_mut_ptr (), make_fixnum (0));
+  bset_keymap (buffer_local_flags.as_mut_ptr (), make_fixnum (0));
+  bset_downcase_table (buffer_local_flags.as_mut_ptr (), make_fixnum (0));
+  bset_upcase_table (buffer_local_flags.as_mut_ptr (), make_fixnum (0));
+  bset_case_canon_table (buffer_local_flags.as_mut_ptr (), make_fixnum (0));
+  bset_case_eqv_table (buffer_local_flags.as_mut_ptr (), make_fixnum (0));
+  bset_width_table (buffer_local_flags.as_mut_ptr (), make_fixnum (0));
+  bset_pt_marker (buffer_local_flags.as_mut_ptr (), make_fixnum (0));
+  bset_begv_marker (buffer_local_flags.as_mut_ptr (), make_fixnum (0));
+  bset_zv_marker (buffer_local_flags.as_mut_ptr (), make_fixnum (0));
+  bset_last_selected_window (buffer_local_flags.as_mut_ptr (), make_fixnum (0));
 
   idx = 1;
-  XSETFASTINT! (BVAR! (&raw mut buffer_local_flags, mode_line_format_), idx as EMACS_INT); idx += 1;
-  XSETFASTINT! (BVAR! (&raw mut buffer_local_flags, abbrev_mode_), idx as EMACS_INT); idx += 1;
-  XSETFASTINT! (BVAR! (&raw mut buffer_local_flags, overwrite_mode_), idx as EMACS_INT); idx += 1;
-  XSETFASTINT! (BVAR! (&raw mut buffer_local_flags, auto_fill_function_), idx as EMACS_INT); idx += 1;
-  XSETFASTINT! (BVAR! (&raw mut buffer_local_flags, selective_display_), idx as EMACS_INT); idx += 1;
-  XSETFASTINT! (BVAR! (&raw mut buffer_local_flags, selective_display_ellipses_), idx as EMACS_INT); idx += 1;
-  XSETFASTINT! (BVAR! (&raw mut buffer_local_flags, tab_width_), idx as EMACS_INT); idx += 1;
-  XSETFASTINT! (BVAR! (&raw mut buffer_local_flags, truncate_lines_), idx as EMACS_INT);
+  XSETFASTINT! (BVAR! (buffer_local_flags.as_mut_ptr (), mode_line_format_), idx as EMACS_INT); idx += 1;
+  XSETFASTINT! (BVAR! (buffer_local_flags.as_mut_ptr (), abbrev_mode_), idx as EMACS_INT); idx += 1;
+  XSETFASTINT! (BVAR! (buffer_local_flags.as_mut_ptr (), overwrite_mode_), idx as EMACS_INT); idx += 1;
+  XSETFASTINT! (BVAR! (buffer_local_flags.as_mut_ptr (), auto_fill_function_), idx as EMACS_INT); idx += 1;
+  XSETFASTINT! (BVAR! (buffer_local_flags.as_mut_ptr (), selective_display_), idx as EMACS_INT); idx += 1;
+  XSETFASTINT! (BVAR! (buffer_local_flags.as_mut_ptr (), selective_display_ellipses_), idx as EMACS_INT); idx += 1;
+  XSETFASTINT! (BVAR! (buffer_local_flags.as_mut_ptr (), tab_width_), idx as EMACS_INT); idx += 1;
+  XSETFASTINT! (BVAR! (buffer_local_flags.as_mut_ptr (), truncate_lines_), idx as EMACS_INT);
   /* Make this one a permanent local.  */
-  buffer_permanent_local_flags[idx as usize] = 1 as c_char; idx += 1;
-  XSETFASTINT! (BVAR! (&raw mut buffer_local_flags, word_wrap_), idx as EMACS_INT); idx += 1;
-  XSETFASTINT! (BVAR! (&raw mut buffer_local_flags, ctl_arrow_), idx as EMACS_INT); idx += 1;
-  XSETFASTINT! (BVAR! (&raw mut buffer_local_flags, fill_column_), idx as EMACS_INT); idx += 1;
-  XSETFASTINT! (BVAR! (&raw mut buffer_local_flags, left_margin_), idx as EMACS_INT); idx += 1;
-  XSETFASTINT! (BVAR! (&raw mut buffer_local_flags, abbrev_table_), idx as EMACS_INT); idx += 1;
-  XSETFASTINT! (BVAR! (&raw mut buffer_local_flags, display_table_), idx as EMACS_INT); idx += 1;
-  XSETFASTINT! (BVAR! (&raw mut buffer_local_flags, syntax_table_), idx as EMACS_INT); idx += 1;
-  XSETFASTINT! (BVAR! (&raw mut buffer_local_flags, cache_long_scans_), idx as EMACS_INT); idx += 1;
-  XSETFASTINT! (BVAR! (&raw mut buffer_local_flags, category_table_), idx as EMACS_INT); idx += 1;
-  XSETFASTINT! (BVAR! (&raw mut buffer_local_flags, bidi_display_reordering_), idx as EMACS_INT); idx += 1;
-  XSETFASTINT! (BVAR! (&raw mut buffer_local_flags, bidi_paragraph_direction_), idx as EMACS_INT); idx += 1;
-  XSETFASTINT! (BVAR! (&raw mut buffer_local_flags, bidi_paragraph_separate_re_), idx as EMACS_INT); idx += 1;
-  XSETFASTINT! (BVAR! (&raw mut buffer_local_flags, bidi_paragraph_start_re_), idx as EMACS_INT); idx += 1;
-  XSETFASTINT! (BVAR! (&raw mut buffer_local_flags, buffer_file_coding_system_), idx as EMACS_INT);
+  (*buffer_permanent_local_flags.as_mut_ptr ())[idx as usize] = 1 as c_char; idx += 1;
+  XSETFASTINT! (BVAR! (buffer_local_flags.as_mut_ptr (), word_wrap_), idx as EMACS_INT); idx += 1;
+  XSETFASTINT! (BVAR! (buffer_local_flags.as_mut_ptr (), ctl_arrow_), idx as EMACS_INT); idx += 1;
+  XSETFASTINT! (BVAR! (buffer_local_flags.as_mut_ptr (), fill_column_), idx as EMACS_INT); idx += 1;
+  XSETFASTINT! (BVAR! (buffer_local_flags.as_mut_ptr (), left_margin_), idx as EMACS_INT); idx += 1;
+  XSETFASTINT! (BVAR! (buffer_local_flags.as_mut_ptr (), abbrev_table_), idx as EMACS_INT); idx += 1;
+  XSETFASTINT! (BVAR! (buffer_local_flags.as_mut_ptr (), display_table_), idx as EMACS_INT); idx += 1;
+  XSETFASTINT! (BVAR! (buffer_local_flags.as_mut_ptr (), syntax_table_), idx as EMACS_INT); idx += 1;
+  XSETFASTINT! (BVAR! (buffer_local_flags.as_mut_ptr (), cache_long_scans_), idx as EMACS_INT); idx += 1;
+  XSETFASTINT! (BVAR! (buffer_local_flags.as_mut_ptr (), category_table_), idx as EMACS_INT); idx += 1;
+  XSETFASTINT! (BVAR! (buffer_local_flags.as_mut_ptr (), bidi_display_reordering_), idx as EMACS_INT); idx += 1;
+  XSETFASTINT! (BVAR! (buffer_local_flags.as_mut_ptr (), bidi_paragraph_direction_), idx as EMACS_INT); idx += 1;
+  XSETFASTINT! (BVAR! (buffer_local_flags.as_mut_ptr (), bidi_paragraph_separate_re_), idx as EMACS_INT); idx += 1;
+  XSETFASTINT! (BVAR! (buffer_local_flags.as_mut_ptr (), bidi_paragraph_start_re_), idx as EMACS_INT); idx += 1;
+  XSETFASTINT! (BVAR! (buffer_local_flags.as_mut_ptr (), buffer_file_coding_system_), idx as EMACS_INT);
   /* Make this one a permanent local.  */
-  buffer_permanent_local_flags[idx as usize] = 1 as c_char; idx += 1;
-  XSETFASTINT! (BVAR! (&raw mut buffer_local_flags, left_margin_cols_), idx as EMACS_INT); idx += 1;
-  XSETFASTINT! (BVAR! (&raw mut buffer_local_flags, right_margin_cols_), idx as EMACS_INT); idx += 1;
-  XSETFASTINT! (BVAR! (&raw mut buffer_local_flags, left_fringe_width_), idx as EMACS_INT); idx += 1;
-  XSETFASTINT! (BVAR! (&raw mut buffer_local_flags, right_fringe_width_), idx as EMACS_INT); idx += 1;
-  XSETFASTINT! (BVAR! (&raw mut buffer_local_flags, fringes_outside_margins_), idx as EMACS_INT); idx += 1;
-  XSETFASTINT! (BVAR! (&raw mut buffer_local_flags, scroll_bar_width_), idx as EMACS_INT); idx += 1;
-  XSETFASTINT! (BVAR! (&raw mut buffer_local_flags, scroll_bar_height_), idx as EMACS_INT); idx += 1;
-  XSETFASTINT! (BVAR! (&raw mut buffer_local_flags, vertical_scroll_bar_type_), idx as EMACS_INT); idx += 1;
-  XSETFASTINT! (BVAR! (&raw mut buffer_local_flags, horizontal_scroll_bar_type_), idx as EMACS_INT); idx += 1;
-  XSETFASTINT! (BVAR! (&raw mut buffer_local_flags, indicate_empty_lines_), idx as EMACS_INT); idx += 1;
-  XSETFASTINT! (BVAR! (&raw mut buffer_local_flags, indicate_buffer_boundaries_), idx as EMACS_INT); idx += 1;
-  XSETFASTINT! (BVAR! (&raw mut buffer_local_flags, fringe_indicator_alist_), idx as EMACS_INT); idx += 1;
-  XSETFASTINT! (BVAR! (&raw mut buffer_local_flags, fringe_cursor_alist_), idx as EMACS_INT); idx += 1;
-  XSETFASTINT! (BVAR! (&raw mut buffer_local_flags, scroll_up_aggressively_), idx as EMACS_INT); idx += 1;
-  XSETFASTINT! (BVAR! (&raw mut buffer_local_flags, scroll_down_aggressively_), idx as EMACS_INT); idx += 1;
-  XSETFASTINT! (BVAR! (&raw mut buffer_local_flags, header_line_format_), idx as EMACS_INT); idx += 1;
-  XSETFASTINT! (BVAR! (&raw mut buffer_local_flags, tab_line_format_), idx as EMACS_INT); idx += 1;
-  XSETFASTINT! (BVAR! (&raw mut buffer_local_flags, cursor_type_), idx as EMACS_INT); idx += 1;
-  XSETFASTINT! (BVAR! (&raw mut buffer_local_flags, extra_line_spacing_), idx as EMACS_INT); idx += 1;
+  (*buffer_permanent_local_flags.as_mut_ptr ())[idx as usize] = 1 as c_char; idx += 1;
+  XSETFASTINT! (BVAR! (buffer_local_flags.as_mut_ptr (), left_margin_cols_), idx as EMACS_INT); idx += 1;
+  XSETFASTINT! (BVAR! (buffer_local_flags.as_mut_ptr (), right_margin_cols_), idx as EMACS_INT); idx += 1;
+  XSETFASTINT! (BVAR! (buffer_local_flags.as_mut_ptr (), left_fringe_width_), idx as EMACS_INT); idx += 1;
+  XSETFASTINT! (BVAR! (buffer_local_flags.as_mut_ptr (), right_fringe_width_), idx as EMACS_INT); idx += 1;
+  XSETFASTINT! (BVAR! (buffer_local_flags.as_mut_ptr (), fringes_outside_margins_), idx as EMACS_INT); idx += 1;
+  XSETFASTINT! (BVAR! (buffer_local_flags.as_mut_ptr (), scroll_bar_width_), idx as EMACS_INT); idx += 1;
+  XSETFASTINT! (BVAR! (buffer_local_flags.as_mut_ptr (), scroll_bar_height_), idx as EMACS_INT); idx += 1;
+  XSETFASTINT! (BVAR! (buffer_local_flags.as_mut_ptr (), vertical_scroll_bar_type_), idx as EMACS_INT); idx += 1;
+  XSETFASTINT! (BVAR! (buffer_local_flags.as_mut_ptr (), horizontal_scroll_bar_type_), idx as EMACS_INT); idx += 1;
+  XSETFASTINT! (BVAR! (buffer_local_flags.as_mut_ptr (), indicate_empty_lines_), idx as EMACS_INT); idx += 1;
+  XSETFASTINT! (BVAR! (buffer_local_flags.as_mut_ptr (), indicate_buffer_boundaries_), idx as EMACS_INT); idx += 1;
+  XSETFASTINT! (BVAR! (buffer_local_flags.as_mut_ptr (), fringe_indicator_alist_), idx as EMACS_INT); idx += 1;
+  XSETFASTINT! (BVAR! (buffer_local_flags.as_mut_ptr (), fringe_cursor_alist_), idx as EMACS_INT); idx += 1;
+  XSETFASTINT! (BVAR! (buffer_local_flags.as_mut_ptr (), scroll_up_aggressively_), idx as EMACS_INT); idx += 1;
+  XSETFASTINT! (BVAR! (buffer_local_flags.as_mut_ptr (), scroll_down_aggressively_), idx as EMACS_INT); idx += 1;
+  XSETFASTINT! (BVAR! (buffer_local_flags.as_mut_ptr (), header_line_format_), idx as EMACS_INT); idx += 1;
+  XSETFASTINT! (BVAR! (buffer_local_flags.as_mut_ptr (), tab_line_format_), idx as EMACS_INT); idx += 1;
+  XSETFASTINT! (BVAR! (buffer_local_flags.as_mut_ptr (), cursor_type_), idx as EMACS_INT); idx += 1;
+  XSETFASTINT! (BVAR! (buffer_local_flags.as_mut_ptr (), extra_line_spacing_), idx as EMACS_INT); idx += 1;
   #[cfg(feature = "have_tree_sitter")]
-  { XSETFASTINT!(BVAR!(&raw mut buffer_local_flags, ts_parser_list_), idx as EMACS_INT); idx += 1; }
-  XSETFASTINT! (BVAR! (&raw mut buffer_local_flags, text_conversion_style_), idx as EMACS_INT); idx += 1;
-  XSETFASTINT! (BVAR! (&raw mut buffer_local_flags, cursor_in_non_selected_windows_), idx as EMACS_INT); idx += 1;
+  { XSETFASTINT!(BVAR!(buffer_local_flags.as_mut_ptr (), ts_parser_list_), idx as EMACS_INT); idx += 1; }
+  XSETFASTINT! (BVAR! (buffer_local_flags.as_mut_ptr (), text_conversion_style_), idx as EMACS_INT); idx += 1;
+  XSETFASTINT! (BVAR! (buffer_local_flags.as_mut_ptr (), cursor_in_non_selected_windows_), idx as EMACS_INT); idx += 1;
 
   /* buffer_local_flags contains no pointers, so it's safe to treat it
      as a blob for pdumper.  */
-  PDUMPER_REMEMBER_SCALAR! (buffer_local_flags);
+  PDUMPER_REMEMBER_SCALAR! ((*buffer_local_flags.as_mut_ptr ()));
 
   /* Need more room? */
   if idx >= MAX_PER_BUFFER_VARS
     { emacs_abort (); }
-  last_per_buffer_idx = idx;
-  PDUMPER_REMEMBER_SCALAR! (last_per_buffer_idx);
+  (*last_per_buffer_idx.as_mut_ptr ()) = idx;
+  PDUMPER_REMEMBER_SCALAR! ((*last_per_buffer_idx.as_mut_ptr ()));
 
   /* Make sure all markable slots in buffer_defaults
      are initialized reasonably, so mark_buffer won't choke.  */
-  reset_buffer (&raw mut buffer_defaults);
-  eassert! (NILP (BVAR! (&raw mut buffer_defaults, name_)));
-  reset_buffer_local_variables (&raw mut buffer_defaults, 1);
-  eassert! (NILP (BVAR! (&raw mut buffer_local_symbols, name_)));
-  reset_buffer (&raw mut buffer_local_symbols);
-  reset_buffer_local_variables (&raw mut buffer_local_symbols, 1);
+  reset_buffer (buffer_defaults.as_mut_ptr ());
+  eassert! (NILP (BVAR! (buffer_defaults.as_mut_ptr (), name_)));
+  reset_buffer_local_variables (buffer_defaults.as_mut_ptr (), 1);
+  eassert! (NILP (BVAR! (buffer_local_symbols.as_mut_ptr (), name_)));
+  reset_buffer (buffer_local_symbols.as_mut_ptr ());
+  reset_buffer_local_variables (buffer_local_symbols.as_mut_ptr (), 1);
   /* Prevent GC from getting confused.  */
-  buffer_defaults.text = &raw mut buffer_defaults.own_text;
-  buffer_local_symbols.text = &raw mut buffer_local_symbols.own_text;
+  (*buffer_defaults.as_mut_ptr ()).text = &raw mut (*buffer_defaults.as_mut_ptr ()).own_text;
+  (*buffer_local_symbols.as_mut_ptr ()).text = &raw mut (*buffer_local_symbols.as_mut_ptr ()).own_text;
   /* No one will share the text with these buffers, but let's play it safe.  */
-  buffer_defaults.indirections = 0;
-  buffer_local_symbols.indirections = 0;
+  (*buffer_defaults.as_mut_ptr ()).indirections = 0;
+  (*buffer_local_symbols.as_mut_ptr ()).indirections = 0;
   /* Likewise no one will display them.  */
-  buffer_defaults.window_count = 0;
-  buffer_local_symbols.window_count = 0;
-  set_buffer_intervals (&raw mut buffer_defaults, std::ptr::null_mut ());
-  set_buffer_intervals (&raw mut buffer_local_symbols, std::ptr::null_mut ());
+  (*buffer_defaults.as_mut_ptr ()).window_count = 0;
+  (*buffer_local_symbols.as_mut_ptr ()).window_count = 0;
+  set_buffer_intervals (buffer_defaults.as_mut_ptr (), std::ptr::null_mut ());
+  set_buffer_intervals (buffer_local_symbols.as_mut_ptr (), std::ptr::null_mut ());
   /* This is not strictly necessary, but let's make them initialized.  */
-  bset_name (&raw mut buffer_defaults, build_string (c" *buffer-defaults*".as_ptr ()));
-  bset_name (&raw mut buffer_local_symbols, build_string (c" *buffer-local-symbols*".as_ptr ()));
-  BUFFER_PVEC_INIT (&raw mut buffer_defaults);
-  BUFFER_PVEC_INIT (&raw mut buffer_local_symbols);
+  bset_name (buffer_defaults.as_mut_ptr (), build_string (c" *buffer-defaults*".as_ptr ()));
+  bset_name (buffer_local_symbols.as_mut_ptr (), build_string (c" *buffer-local-symbols*".as_ptr ()));
+  BUFFER_PVEC_INIT (buffer_defaults.as_mut_ptr ());
+  BUFFER_PVEC_INIT (buffer_local_symbols.as_mut_ptr ());
 
   /* Set up the default values of various buffer slots.  */
   /* Must do these before making the first buffer! */
 
   /* real setup is done in bindings.el */
-  bset_mode_line_format (&raw mut buffer_defaults, build_string (c"%-".as_ptr ()));
-  bset_header_line_format (&raw mut buffer_defaults, Qnil ());
-  bset_tab_line_format (&raw mut buffer_defaults, Qnil ());
-  bset_abbrev_mode (&raw mut buffer_defaults, Qnil ());
-  bset_overwrite_mode (&raw mut buffer_defaults, Qnil ());
-  bset_auto_fill_function (&raw mut buffer_defaults, Qnil ());
-  bset_selective_display (&raw mut buffer_defaults, Qnil ());
-  bset_selective_display_ellipses (&raw mut buffer_defaults, Qt ());
-  bset_abbrev_table (&raw mut buffer_defaults, Qnil ());
-  bset_display_table (&raw mut buffer_defaults, Qnil ());
-  bset_undo_list (&raw mut buffer_defaults, Qnil ());
-  bset_mark_active (&raw mut buffer_defaults, Qnil ());
-  bset_file_format (&raw mut buffer_defaults, Qnil ());
-  bset_auto_save_file_format (&raw mut buffer_defaults, Qt ());
-  buffer_defaults.overlays = std::ptr::null_mut ();
+  bset_mode_line_format (buffer_defaults.as_mut_ptr (), build_string (c"%-".as_ptr ()));
+  bset_header_line_format (buffer_defaults.as_mut_ptr (), Qnil ());
+  bset_tab_line_format (buffer_defaults.as_mut_ptr (), Qnil ());
+  bset_abbrev_mode (buffer_defaults.as_mut_ptr (), Qnil ());
+  bset_overwrite_mode (buffer_defaults.as_mut_ptr (), Qnil ());
+  bset_auto_fill_function (buffer_defaults.as_mut_ptr (), Qnil ());
+  bset_selective_display (buffer_defaults.as_mut_ptr (), Qnil ());
+  bset_selective_display_ellipses (buffer_defaults.as_mut_ptr (), Qt ());
+  bset_abbrev_table (buffer_defaults.as_mut_ptr (), Qnil ());
+  bset_display_table (buffer_defaults.as_mut_ptr (), Qnil ());
+  bset_undo_list (buffer_defaults.as_mut_ptr (), Qnil ());
+  bset_mark_active (buffer_defaults.as_mut_ptr (), Qnil ());
+  bset_file_format (buffer_defaults.as_mut_ptr (), Qnil ());
+  bset_auto_save_file_format (buffer_defaults.as_mut_ptr (), Qt ());
+  (*buffer_defaults.as_mut_ptr ()).overlays = std::ptr::null_mut ();
 
-  XSETFASTINT! (BVAR! (&raw mut buffer_defaults, tab_width_), 8);
-  bset_truncate_lines (&raw mut buffer_defaults, Qnil ());
-  bset_word_wrap (&raw mut buffer_defaults, Qnil ());
-  bset_ctl_arrow (&raw mut buffer_defaults, Qt ());
-  bset_bidi_display_reordering (&raw mut buffer_defaults, Qt ());
-  bset_bidi_paragraph_direction (&raw mut buffer_defaults, Qnil ());
-  bset_bidi_paragraph_start_re (&raw mut buffer_defaults, Qnil ());
-  bset_bidi_paragraph_separate_re (&raw mut buffer_defaults, Qnil ());
-  bset_cursor_type (&raw mut buffer_defaults, Qt ());
-  bset_extra_line_spacing (&raw mut buffer_defaults, Qnil ());
+  XSETFASTINT! (BVAR! (buffer_defaults.as_mut_ptr (), tab_width_), 8);
+  bset_truncate_lines (buffer_defaults.as_mut_ptr (), Qnil ());
+  bset_word_wrap (buffer_defaults.as_mut_ptr (), Qnil ());
+  bset_ctl_arrow (buffer_defaults.as_mut_ptr (), Qt ());
+  bset_bidi_display_reordering (buffer_defaults.as_mut_ptr (), Qt ());
+  bset_bidi_paragraph_direction (buffer_defaults.as_mut_ptr (), Qnil ());
+  bset_bidi_paragraph_start_re (buffer_defaults.as_mut_ptr (), Qnil ());
+  bset_bidi_paragraph_separate_re (buffer_defaults.as_mut_ptr (), Qnil ());
+  bset_cursor_type (buffer_defaults.as_mut_ptr (), Qt ());
+  bset_extra_line_spacing (buffer_defaults.as_mut_ptr (), Qnil ());
   #[cfg(feature = "have_tree_sitter")]
-  bset_ts_parser_list(&raw mut buffer_defaults, Qnil());
-  bset_text_conversion_style (&raw mut buffer_defaults, Qnil ());
-  bset_cursor_in_non_selected_windows (&raw mut buffer_defaults, Qt ());
+  bset_ts_parser_list(buffer_defaults.as_mut_ptr (), Qnil());
+  bset_text_conversion_style (buffer_defaults.as_mut_ptr (), Qnil ());
+  bset_cursor_in_non_selected_windows (buffer_defaults.as_mut_ptr (), Qt ());
 
-  bset_enable_multibyte_characters (&raw mut buffer_defaults, Qt ());
-  bset_buffer_file_coding_system (&raw mut buffer_defaults, Qnil ());
-  XSETFASTINT! (BVAR! (&raw mut buffer_defaults, fill_column_), 70);
-  XSETFASTINT! (BVAR! (&raw mut buffer_defaults, left_margin_), 0);
-  bset_cache_long_scans (&raw mut buffer_defaults, Qt ());
-  bset_file_truename (&raw mut buffer_defaults, Qnil ());
-  XSETFASTINT! (BVAR! (&raw mut buffer_defaults, display_count_), 0);
-  XSETFASTINT! (BVAR! (&raw mut buffer_defaults, left_margin_cols_), 0);
-  XSETFASTINT! (BVAR! (&raw mut buffer_defaults, right_margin_cols_), 0);
-  bset_left_fringe_width (&raw mut buffer_defaults, Qnil ());
-  bset_right_fringe_width (&raw mut buffer_defaults, Qnil ());
-  bset_fringes_outside_margins (&raw mut buffer_defaults, Qnil ());
-  bset_scroll_bar_width (&raw mut buffer_defaults, Qnil ());
-  bset_scroll_bar_height (&raw mut buffer_defaults, Qnil ());
-  bset_vertical_scroll_bar_type (&raw mut buffer_defaults, Qt ());
-  bset_horizontal_scroll_bar_type (&raw mut buffer_defaults, Qt ());
-  bset_indicate_empty_lines (&raw mut buffer_defaults, Qnil ());
-  bset_indicate_buffer_boundaries (&raw mut buffer_defaults, Qnil ());
-  bset_fringe_indicator_alist (&raw mut buffer_defaults, Qnil ());
-  bset_fringe_cursor_alist (&raw mut buffer_defaults, Qnil ());
-  bset_scroll_up_aggressively (&raw mut buffer_defaults, Qnil ());
-  bset_scroll_down_aggressively (&raw mut buffer_defaults, Qnil ());
-  bset_display_time (&raw mut buffer_defaults, Qnil ());
+  bset_enable_multibyte_characters (buffer_defaults.as_mut_ptr (), Qt ());
+  bset_buffer_file_coding_system (buffer_defaults.as_mut_ptr (), Qnil ());
+  XSETFASTINT! (BVAR! (buffer_defaults.as_mut_ptr (), fill_column_), 70);
+  XSETFASTINT! (BVAR! (buffer_defaults.as_mut_ptr (), left_margin_), 0);
+  bset_cache_long_scans (buffer_defaults.as_mut_ptr (), Qt ());
+  bset_file_truename (buffer_defaults.as_mut_ptr (), Qnil ());
+  XSETFASTINT! (BVAR! (buffer_defaults.as_mut_ptr (), display_count_), 0);
+  XSETFASTINT! (BVAR! (buffer_defaults.as_mut_ptr (), left_margin_cols_), 0);
+  XSETFASTINT! (BVAR! (buffer_defaults.as_mut_ptr (), right_margin_cols_), 0);
+  bset_left_fringe_width (buffer_defaults.as_mut_ptr (), Qnil ());
+  bset_right_fringe_width (buffer_defaults.as_mut_ptr (), Qnil ());
+  bset_fringes_outside_margins (buffer_defaults.as_mut_ptr (), Qnil ());
+  bset_scroll_bar_width (buffer_defaults.as_mut_ptr (), Qnil ());
+  bset_scroll_bar_height (buffer_defaults.as_mut_ptr (), Qnil ());
+  bset_vertical_scroll_bar_type (buffer_defaults.as_mut_ptr (), Qt ());
+  bset_horizontal_scroll_bar_type (buffer_defaults.as_mut_ptr (), Qt ());
+  bset_indicate_empty_lines (buffer_defaults.as_mut_ptr (), Qnil ());
+  bset_indicate_buffer_boundaries (buffer_defaults.as_mut_ptr (), Qnil ());
+  bset_fringe_indicator_alist (buffer_defaults.as_mut_ptr (), Qnil ());
+  bset_fringe_cursor_alist (buffer_defaults.as_mut_ptr (), Qnil ());
+  bset_scroll_up_aggressively (buffer_defaults.as_mut_ptr (), Qnil ());
+  bset_scroll_down_aggressively (buffer_defaults.as_mut_ptr (), Qnil ());
+  bset_display_time (buffer_defaults.as_mut_ptr (), Qnil ());
 
   /* Assign the local-flags to the slots that have default values.
      The local flag is a bit that is used in the buffer
@@ -5182,15 +5181,15 @@ pub unsafe extern "C-unwind" fn init_buffer_once ()
   /* Nothing can work if this isn't true.  */
   { static_assert! (std::mem::size_of::<EMACS_INT> () == word_size as usize); }
 
-  Vbuffer_alist = Qnil ();
+  (*Vbuffer_alist.as_mut_ptr ()) = Qnil ();
   set_current_buffer! (std::ptr::null_mut ());                                            /* C 4929 */
-  pdumper_remember_lv_ptr_raw ((&raw mut (*current_thread).m_current_buffer) as *mut c_void,
+  pdumper_remember_lv_ptr_raw ((&raw mut (*(*current_thread.as_mut_ptr ())).m_current_buffer) as *mut c_void,
 			      Lisp_Type::Lisp_Vectorlike);
 
-  QSFundamental = build_string (c"Fundamental".as_ptr ());
+  (*QSFundamental.as_mut_ptr ()) = build_string (c"Fundamental".as_ptr ());
 
   DEFSYM! (Qfundamental_mode, c"fundamental-mode");
-  bset_major_mode (&raw mut buffer_defaults, Qfundamental_mode ());
+  bset_major_mode (buffer_defaults.as_mut_ptr (), Qfundamental_mode ());
 
   DEFSYM! (Qmode_class, c"mode-class");
   DEFSYM! (Qprotected_field, c"protected-field");
@@ -5200,13 +5199,13 @@ pub unsafe extern "C-unwind" fn init_buffer_once ()
   Fput (Qkill_buffer_hook (), Qpermanent_local (), Qt ());
 
   /* Super-magic invisible buffer.  */
-  Vprin1_to_string_buffer =
+  (*Vprin1_to_string_buffer.as_mut_ptr ()) =
     Fget_buffer_create (build_string (c" prin1".as_ptr ()), Qt ());
-  Vbuffer_alist = Qnil ();
+  (*Vbuffer_alist.as_mut_ptr ()) = Qnil ();
 
   Fset_buffer (Fget_buffer_create (build_string (c"*scratch*".as_ptr ()), Qnil ()));
 
-  inhibit_modification_hooks = false;
+  (*inhibit_modification_hooks.as_mut_ptr ()) = false;
 
   }
 }
@@ -5220,14 +5219,14 @@ pub unsafe extern "C-unwind" fn init_buffer ()
 
   AUTO_STRING! (scratch, c"*scratch*".as_ptr ());
   Fset_buffer (Fget_buffer_create (scratch, Qnil ()));
-  if NILP (BVAR! (&raw mut buffer_defaults, enable_multibyte_characters_))
+  if NILP (BVAR! (buffer_defaults.as_mut_ptr (), enable_multibyte_characters_))
     { Fset_buffer_multibyte (Qnil ()); }
 
-  let pwd: *const c_char = emacs_wd;
+  let pwd: *const c_char = (*emacs_wd.as_mut_ptr ());
 
   if pwd.is_null ()
     {
-      fprintf (stderr, c"Error getting directory: %s\n".as_ptr (),
+      fprintf ((*stderr.as_mut_ptr ()), c"Error getting directory: %s\n".as_ptr (),
 	       emacs_strerror (*errno ()));
       bset_directory ((current_buffer! ()), Qnil ());
     }
@@ -5298,17 +5297,17 @@ macro_rules! DEFVAR_PER_BUFFER {
        left `offset = 0` there - `store_symval_forwarding` then wrote every buffer-local
        variable's value into the *buffer's first word*, and `set_minibuffer_mode`'s
        `setq-local`s corrupted the minibuffer buffer's header (status 3.646).  */
-    static mut BO_FWD: Lisp_Fwd = Lisp_Fwd {
+    static BO_FWD: SyncLispFwd = SyncLispFwd (Lisp_Fwd {
       r#type: Lisp_Fwd_Buffer_Obj,
       u: Lisp_Fwd_u { buf: Lisp_Fwd_buf {
         offset: std::mem::offset_of! (buffer, $vname) as u16,
         predicate: FWDPRED! ($predicate) as u8,
         _pad: 0 } },
-    };
+    });
     static_assert! (std::mem::offset_of! (buffer, $vname)
                     < (1 << 8 * std::mem::size_of::<u16> ()));
     /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe {
-      defvar_per_buffer (&raw const BO_FWD, $lname.as_ptr () as *const c_char);
+      defvar_per_buffer (&raw const BO_FWD.0, $lname.as_ptr () as *const c_char);
     }
   }};
 }
@@ -5360,37 +5359,37 @@ unsafe fn defvar_per_buffer (fwd: *const Lisp_Fwd, namestring: *const c_char)
    the port's initialisers are `lisp_h_Qnil ()`/`false`/`0`; the values `syms_of_buffer` sets
    below are C's own.  */
 #[unsafe(no_mangle)]
-pub static mut Vbefore_change_functions: Lisp_Object = lisp_h_Qnil ();
+pub static Vbefore_change_functions: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vafter_change_functions: Lisp_Object = lisp_h_Qnil ();
+pub static Vafter_change_functions: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vfirst_change_hook: Lisp_Object = lisp_h_Qnil ();
+pub static Vfirst_change_hook: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vtransient_mark_mode: Lisp_Object = lisp_h_Qnil ();
+pub static Vtransient_mark_mode: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vinhibit_read_only: Lisp_Object = lisp_h_Qnil ();
+pub static Vinhibit_read_only: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vkill_buffer_query_functions: Lisp_Object = lisp_h_Qnil ();
+pub static Vkill_buffer_query_functions: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vchange_major_mode_hook: Lisp_Object = lisp_h_Qnil ();
+pub static Vchange_major_mode_hook: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vbuffer_list_update_hook: Lisp_Object = lisp_h_Qnil ();
+pub static Vbuffer_list_update_hook: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vcase_fold_search: Lisp_Object = lisp_h_Qnil ();
+pub static Vcase_fold_search: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vclone_indirect_buffer_hook: Lisp_Object = lisp_h_Qnil ();
+pub static Vclone_indirect_buffer_hook: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vlong_line_threshold: Lisp_Object = lisp_h_Qnil ();
+pub static Vlong_line_threshold: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut kill_buffer_delete_auto_save_files: bool = false;
+pub static kill_buffer_delete_auto_save_files: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut delete_auto_save_files: bool = false;
+pub static delete_auto_save_files: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut long_line_optimizations_region_size: EMACS_INT = 0;
+pub static long_line_optimizations_region_size: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);
 #[unsafe(no_mangle)]
-pub static mut long_line_optimizations_bol_search_limit: EMACS_INT = 0;
+pub static long_line_optimizations_bol_search_limit: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);
 #[unsafe(no_mangle)]
-pub static mut large_hscroll_threshold: EMACS_INT = 0;
+pub static large_hscroll_threshold: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);
 
 /* Initialize the buffer routines.  */
 #[unsafe(no_mangle)]
@@ -5398,10 +5397,10 @@ pub unsafe extern "C-unwind" fn syms_of_buffer ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  staticpro (&raw const last_overlay_modification_hooks);
-  last_overlay_modification_hooks = make_nil_vector (10);
-  staticpro (&raw const QSFundamental);
-  staticpro (&raw const Vbuffer_alist);
+  staticpro (last_overlay_modification_hooks.as_ptr ());
+  (*last_overlay_modification_hooks.as_mut_ptr ()) = make_nil_vector (10);
+  staticpro (QSFundamental.as_ptr ());
+  staticpro (Vbuffer_alist.as_ptr ());
   DEFSYM! (Qchoice, c"choice");
   DEFSYM! (Qleft, c"left");
   DEFSYM! (Qright, c"right");
@@ -5528,13 +5527,13 @@ pub unsafe extern "C-unwind" fn syms_of_buffer ()
 		     doc: "How far to scroll windows downward.\nIf you move point off the top, the window scrolls automatically.\nThis variable controls how far it scrolls.  The value nil, the default,\nmeans scroll to center point.  A fraction means scroll to put point\nthat fraction of the window's height from the top of the window.\nWhen the value is 0.0, point goes at the top line, which in the\nsimple case that you moved off with C-b means scrolling just one line.\n1.0 means point goes at the bottom, so that in that simple case, the\nwindow scrolls by a full window height.  Meaningful values are\nbetween 0.0 and 1.0, inclusive.");
   DEFVAR_LISP! (c"before-change-functions", Vbefore_change_functions,
 	      "List of functions to call before each text change.\nTwo arguments are passed to each function: the positions of\nthe beginning and end of the range of old text to be changed.\n(For an insertion, the beginning and end are at the same place.)\nNo information is given about the length of the text after the change.\n\nBuffer changes made while executing the `before-change-functions'\ndon't call any before-change or after-change functions.\nThat's because `inhibit-modification-hooks' is temporarily set non-nil.\n\nIf an unhandled error happens in running these functions,\nthe variable's value remains nil.  That prevents the error\nfrom happening repeatedly and making Emacs nonfunctional.");
-  Vbefore_change_functions = Qnil ();
+  (*Vbefore_change_functions.as_mut_ptr ()) = Qnil ();
   DEFVAR_LISP! (c"after-change-functions", Vafter_change_functions,
 	      "List of functions to call after each text change.\nThree arguments are passed to each function: the positions of\nthe beginning and end of the range of changed text,\nand the length in chars of the pre-change text replaced by that range.\n(For an insertion, the pre-change length is zero;\nfor a deletion, that length is the number of chars deleted,\nand the post-change beginning and end are at the same place.)\n\nBuffer changes made while executing the `after-change-functions'\ndon't call any before-change or after-change functions.\nThat's because `inhibit-modification-hooks' is temporarily set non-nil.\n\nIf an unhandled error happens in running these functions,\nthe variable's value remains nil.  That prevents the error\nfrom happening repeatedly and making Emacs nonfunctional.");
-  Vafter_change_functions = Qnil ();
+  (*Vafter_change_functions.as_mut_ptr ()) = Qnil ();
   DEFVAR_LISP! (c"first-change-hook", Vfirst_change_hook,
 	      "A list of functions to call before changing a buffer which is unmodified.\nThe functions are run using the `run-hooks' function.");
-  Vfirst_change_hook = Qnil ();
+  (*Vfirst_change_hook.as_mut_ptr ()) = Qnil ();
   DEFVAR_PER_BUFFER! (c"buffer-undo-list", undo_list_, Qnil,
 		     doc: "List of undo entries in current buffer.\nRecent changes come first; older changes follow newer.\n\nAn entry (BEG . END) represents an insertion which begins at\nposition BEG and ends at position END.\n\nAn entry (TEXT . POSITION) represents the deletion of the string TEXT\nfrom (abs POSITION).  If POSITION is positive, point was at the front\nof the text being deleted; if negative, point was at the end.\n\nAn entry (t . TIMESTAMP), where TIMESTAMP is in the style of\n`current-time', indicates that the buffer was previously unmodified;\nTIMESTAMP is the visited file's modification time, as of that time.\nIf the modification time of the most recent save is different, this\nentry is obsolete.\n\nAn entry (t . 0) means the buffer was previously unmodified but\nits time stamp was unknown because it was not associated with a file.\nAn entry (t . -1) is similar, except that it means the buffer's visited\nfile did not exist.\n\nAn entry (nil PROPERTY VALUE BEG . END) indicates that a text property\nwas modified between BEG and END.  PROPERTY is the property name,\nand VALUE is the old value.\n\nAn entry (apply FUN-NAME . ARGS) means undo the change with\n(apply FUN-NAME ARGS).\n\nAn entry (apply DELTA BEG END FUN-NAME . ARGS) supports selective undo\nin the active region.  BEG and END is the range affected by this entry\nand DELTA is the number of characters added or deleted in that range by\nthis change.\n\nAn entry (apply DELTA (BEG . END) FUN-NAME . ARGS) is similar to the\nprevious kind.  The difference is that Emacs invokes FUN-NAME with\n(apply FUN-NAME BEG2 END2 ARGS), where BEG2 and END2 are the adjusted\nvalues of BEG and END.  The function can use those arguments to compute\npositions relative to the adjusted region.\n\nAn entry (MARKER . DISTANCE) indicates that the marker MARKER\nwas adjusted in position by the offset DISTANCE (an integer).\n\nAn entry of the form POSITION indicates that point was at the buffer\nlocation given by the integer.  Undoing an entry of this form places\npoint at POSITION.\n\nEntries with value nil mark undo boundaries.  The undo command treats\nthe changes between two undo boundaries as a single step to be undone.\n\nIf the value of the variable is t, undo information is not recorded.");
   DEFVAR_PER_BUFFER! (c"mark-active", mark_active_, Qnil,
@@ -5555,10 +5554,10 @@ pub unsafe extern "C-unwind" fn syms_of_buffer ()
 		     doc: "Time stamp updated each time this buffer is displayed in a window.\nThe function `set-window-buffer' updates this variable\nto the value obtained by calling `current-time'.\nIf the buffer has never been shown in a window, the value is nil.");
   DEFVAR_LISP! (c"transient-mark-mode", Vtransient_mark_mode,
 	      "Non-nil if Transient Mark mode is enabled.\nSee the command `transient-mark-mode' for a description of this minor mode.\n\nNon-nil also enables highlighting of the region whenever the mark is active.\nThe region is highlighted with the `region' face.\nThe variable `highlight-nonselected-windows' controls whether to highlight\nall windows or just the selected window.\n\nLisp programs may give this variable certain special values:\n\n- The symbol `lambda' enables Transient Mark mode temporarily.\n  The mode is disabled again after any subsequent action that would\n  normally deactivate the mark (e.g. buffer modification).\n\n- The pair (only . OLDVAL) enables Transient Mark mode\n  temporarily.  After any subsequent point motion command that is\n  not shift-translated, or any other action that would normally\n  deactivate the mark (e.g. buffer modification), the value of\n  `transient-mark-mode' is set to OLDVAL.");
-  Vtransient_mark_mode = Qnil ();
+  (*Vtransient_mark_mode.as_mut_ptr ()) = Qnil ();
   DEFVAR_LISP! (c"inhibit-read-only", Vinhibit_read_only,
 	      "Non-nil means disregard read-only status of buffers or characters.\nA non-nil value that is a list means disregard `buffer-read-only' status,\nand disregard a `read-only' text property if the property value is a\nmember of the list.  Any other non-nil value means disregard `buffer-read-only'\nand all `read-only' text properties.");
-  Vinhibit_read_only = Qnil ();
+  (*Vinhibit_read_only.as_mut_ptr ()) = Qnil ();
   DEFVAR_PER_BUFFER! (c"cursor-type", cursor_type_, Qnil,
 		     doc: "Cursor to use when this buffer is in the selected window.\nValues are interpreted as follows:\n\n  t               use the cursor specified for the frame\n  nil             don't display a cursor\n  box             display a filled box cursor\n  (box . SIZE)    display a filled box cursor, but make it\n                  hollow if cursor is under masked image larger than\n                  SIZE pixels in either dimension.\n  hollow          display a hollow box cursor\n  bar             display a vertical bar cursor with default width\n  (bar . WIDTH)   display a vertical bar cursor with width WIDTH\n  hbar            display a horizontal bar cursor with default height\n  (hbar . HEIGHT) display a horizontal bar cursor with height HEIGHT\n  ANYTHING ELSE   display a hollow box cursor\n\nWIDTH and HEIGHT can't exceed the frame's canonical character size.\n\nWhen the buffer is displayed in a non-selected window, the\ncursor's appearance is instead controlled by the variable\n`cursor-in-non-selected-windows'.");
   DEFVAR_PER_BUFFER! (c"line-spacing", extra_line_spacing_, Qnil,
@@ -5569,93 +5568,93 @@ pub unsafe extern "C-unwind" fn syms_of_buffer ()
 		     doc: "How the on screen keyboard's input method should insert in this buffer.\n\nIf nil, the input method will be disabled and an ordinary keyboard\nwill be displayed in its place.\n\nIf the value is the symbol `action', the input method will insert text\ndirectly, but will send `return' key events instead of inserting new\nline characters.\n\nIf the value is the symbol `password', an input method capable of ASCII\ninput will be enabled, and will not save the entered text where it will\nbe retrieved for text suggestions or other features not suitable for\nhandling sensitive information, in addition to reporting `return' as\nwhen `action'.\n\nAny other value means that the input method will insert text directly.\n\nIf you need to make non-buffer local changes to this variable, use\n`overriding-text-conversion-style', which see.\n\nThis variable does not take immediate effect when set; rather, it\ntakes effect upon the next redisplay after the selected window or\nits buffer changes.");
   DEFVAR_LISP! (c"kill-buffer-query-functions", Vkill_buffer_query_functions,
 	      "List of functions called with no args to query before killing a buffer.\nThe buffer being killed will be current while the functions are running.\nSee `kill-buffer'.\n\nIf any of them returns nil, the buffer is not killed.  Functions run by\nthis hook are supposed to not change the current buffer.\n\nThis hook is not run for internal or temporary buffers created by\n`get-buffer-create' or `generate-new-buffer' with argument\nINHIBIT-BUFFER-HOOKS non-nil.");
-  Vkill_buffer_query_functions = Qnil ();
+  (*Vkill_buffer_query_functions.as_mut_ptr ()) = Qnil ();
   DEFVAR_LISP! (c"change-major-mode-hook", Vchange_major_mode_hook,
 	      "Normal hook run before changing the major mode of a buffer.\nThe function `kill-all-local-variables' runs this before doing anything else.");
-  Vchange_major_mode_hook = Qnil ();
+  (*Vchange_major_mode_hook.as_mut_ptr ()) = Qnil ();
   DEFSYM! (Qchange_major_mode_hook, c"change-major-mode-hook");
   DEFVAR_LISP! (c"buffer-list-update-hook", Vbuffer_list_update_hook,
 	      "Hook run when the buffer list changes.\nFunctions (implicitly) running this hook are `get-buffer-create',\n`make-indirect-buffer', `rename-buffer', `kill-buffer', `bury-buffer'\nand `select-window'.  This hook is not run for internal or temporary\nbuffers created by `get-buffer-create' or `generate-new-buffer' with\nargument INHIBIT-BUFFER-HOOKS non-nil.\n\nFunctions run by this hook should avoid calling `select-window' with a\nnil NORECORD argument since it may lead to infinite recursion.");
-  Vbuffer_list_update_hook = Qnil ();
+  (*Vbuffer_list_update_hook.as_mut_ptr ()) = Qnil ();
   DEFSYM! (Qbuffer_list_update_hook, c"buffer-list-update-hook");
   DEFVAR_BOOL! (c"kill-buffer-delete-auto-save-files", kill_buffer_delete_auto_save_files,
 	      "If non-nil, offer to delete any autosave file when killing a buffer.\n\nIf `delete-auto-save-files' is nil, any autosave deletion is inhibited.");
-  kill_buffer_delete_auto_save_files = false;
+  (*kill_buffer_delete_auto_save_files.as_mut_ptr ()) = false;
   DEFVAR_BOOL! (c"delete-auto-save-files", delete_auto_save_files,
 	      "Non-nil means delete auto-save file when a buffer is saved.\nThis is the default.  If nil, auto-save file deletion is inhibited.");
-  delete_auto_save_files = true;
+  (*delete_auto_save_files.as_mut_ptr ()) = true;
   DEFVAR_LISP! (c"case-fold-search", Vcase_fold_search,
 	      "Non-nil if searches and matches should ignore case.");
-  Vcase_fold_search = Qt ();
+  (*Vcase_fold_search.as_mut_ptr ()) = Qt ();
   DEFSYM! (Qcase_fold_search, c"case-fold-search");
   Fmake_variable_buffer_local (Qcase_fold_search ());
   DEFVAR_LISP! (c"clone-indirect-buffer-hook", Vclone_indirect_buffer_hook,
 	      "Normal hook to run in the new buffer at the end of `make-indirect-buffer'.\n\nSince `clone-indirect-buffer' calls `make-indirect-buffer', this hook\nwill run for `clone-indirect-buffer' calls as well.");
-  Vclone_indirect_buffer_hook = Qnil ();
+  (*Vclone_indirect_buffer_hook.as_mut_ptr ()) = Qnil ();
   DEFVAR_LISP! (c"long-line-threshold", Vlong_line_threshold,
 	      "Line length above which to use redisplay shortcuts.\n\nThe value should be a positive integer or nil.\nIf the value is an integer, shortcuts in the display code intended\nto speed up redisplay for long lines will automatically be enabled\nin buffers which contain one or more lines whose length is above\nthis threshold.\nIf nil, these display shortcuts will always remain disabled.\n\nThere is no reason to change that value except for debugging purposes.");
-  XSETFASTINT! (Vlong_line_threshold, 50000);
+  XSETFASTINT! ((*Vlong_line_threshold.as_mut_ptr ()), 50000);
   DEFVAR_INT! (c"long-line-optimizations-region-size", long_line_optimizations_region_size,
 	      "Region size for narrowing in buffers with long lines.\n\nThis variable has effect only in buffers in which\n`long-line-optimizations-p' is non-nil.  For performance reasons, in\nsuch buffers, the `fontification-functions', `pre-command-hook' and\n`post-command-hook' hooks are executed on a narrowed buffer around\npoint, as if they were called in a `with-restriction' form with a label.\nThis variable specifies the size of the narrowed region around point.\n\nTo disable that narrowing, set this variable to 0.\n\nSee also `long-line-optimizations-bol-search-limit'.\n\nThere is no reason to change that value except for debugging purposes.");
-  long_line_optimizations_region_size = 500000;
+  (*long_line_optimizations_region_size.as_mut_ptr ()) = 500000;
   DEFVAR_INT! (c"long-line-optimizations-bol-search-limit", long_line_optimizations_bol_search_limit,
 	      "Limit for beginning of line search in buffers with long lines.\n\nThis variable has effect only in buffers in which\n`long-line-optimizations-p' is non-nil.  For performance reasons, in\nsuch buffers, the `fontification-functions', `pre-command-hook' and\n`post-command-hook' hooks are executed on a narrowed buffer around\npoint, as if they were called in a `with-restriction' form with a label.\nThe variable `long-line-optimizations-region-size' specifies the\nsize of the narrowed region around point.  This variable, which should\nbe a small integer, specifies the number of characters by which that\nregion can be extended backwards to make it start at the beginning of\na line.\n\nThere is no reason to change that value except for debugging purposes.");
-  long_line_optimizations_bol_search_limit = 128;
+  (*long_line_optimizations_bol_search_limit.as_mut_ptr ()) = 128;
   DEFVAR_INT! (c"large-hscroll-threshold", large_hscroll_threshold,
 	      "Horizontal scroll of truncated lines above which to use redisplay shortcuts.\n\nThe value should be a positive integer.\n\nShortcuts in the display code intended to speed up redisplay for long\nand truncated lines will automatically be enabled when a line's\nhorizontal scroll amount is or about to become larger than the value\nof this variable.\n\nThis variable has effect only in buffers which contain one or more\nlines whose length is above `long-line-threshold', which see.\nTo disable redisplay shortcuts for long truncated line, set this\nvariable to `most-positive-fixnum'.\n\nThere is no reason to change that value except for debugging purposes.");
-  large_hscroll_threshold = 10000;
-  defsubr (&raw mut Sbuffer_live_p);
-  defsubr (&raw mut Sbuffer_list);
-  defsubr (&raw mut Sget_buffer);
-  defsubr (&raw mut Sget_file_buffer);
-  defsubr (&raw mut Sget_truename_buffer);
-  defsubr (&raw mut Sfind_buffer);
-  defsubr (&raw mut Sget_buffer_create);
-  defsubr (&raw mut Smake_indirect_buffer);
-  defsubr (&raw mut Sgenerate_new_buffer_name);
-  defsubr (&raw mut Sbuffer_name);
-  defsubr (&raw mut Sbuffer_last_name);
-  defsubr (&raw mut Sbuffer_file_name);
-  defsubr (&raw mut Sbuffer_base_buffer);
-  defsubr (&raw mut Sbuffer_local_value);
-  defsubr (&raw mut Sbuffer_local_variables);
-  defsubr (&raw mut Sbuffer_modified_p);
-  defsubr (&raw mut Sforce_mode_line_update);
-  defsubr (&raw mut Sset_buffer_modified_p);
-  defsubr (&raw mut Sbuffer_modified_tick);
-  defsubr (&raw mut Sinternal__set_buffer_modified_tick);
-  defsubr (&raw mut Sbuffer_chars_modified_tick);
-  defsubr (&raw mut Srename_buffer);
-  defsubr (&raw mut Sother_buffer);
-  defsubr (&raw mut Sbuffer_enable_undo);
-  defsubr (&raw mut Skill_buffer);
-  defsubr (&raw mut Sbury_buffer_internal);
-  defsubr (&raw mut Sset_buffer_major_mode);
-  defsubr (&raw mut Scurrent_buffer);
-  defsubr (&raw mut Sset_buffer);
-  defsubr (&raw mut Sbarf_if_buffer_read_only);
-  defsubr (&raw mut Serase_buffer);
-  defsubr (&raw mut Sbuffer_swap_text);
-  defsubr (&raw mut Sset_buffer_multibyte);
-  defsubr (&raw mut Skill_all_local_variables);
-  defsubr (&raw mut Soverlayp);
-  defsubr (&raw mut Smake_overlay);
-  defsubr (&raw mut Sdelete_overlay);
-  defsubr (&raw mut Sdelete_all_overlays);
-  defsubr (&raw mut Smove_overlay);
-  defsubr (&raw mut Soverlay_start);
-  defsubr (&raw mut Soverlay_end);
-  defsubr (&raw mut Soverlay_buffer);
-  defsubr (&raw mut Soverlay_properties);
-  defsubr (&raw mut Soverlays_at);
-  defsubr (&raw mut Soverlays_in);
-  defsubr (&raw mut Snext_overlay_change);
-  defsubr (&raw mut Sprevious_overlay_change);
-  defsubr (&raw mut Soverlay_recenter);
-  defsubr (&raw mut Soverlay_lists);
-  defsubr (&raw mut Soverlay_get);
-  defsubr (&raw mut Soverlay_put);
-  defsubr (&raw mut Srestore_buffer_modified_p);
+  (*large_hscroll_threshold.as_mut_ptr ()) = 10000;
+  defsubr (Sbuffer_live_p.as_mut_ptr ());
+  defsubr (Sbuffer_list.as_mut_ptr ());
+  defsubr (Sget_buffer.as_mut_ptr ());
+  defsubr (Sget_file_buffer.as_mut_ptr ());
+  defsubr (Sget_truename_buffer.as_mut_ptr ());
+  defsubr (Sfind_buffer.as_mut_ptr ());
+  defsubr (Sget_buffer_create.as_mut_ptr ());
+  defsubr (Smake_indirect_buffer.as_mut_ptr ());
+  defsubr (Sgenerate_new_buffer_name.as_mut_ptr ());
+  defsubr (Sbuffer_name.as_mut_ptr ());
+  defsubr (Sbuffer_last_name.as_mut_ptr ());
+  defsubr (Sbuffer_file_name.as_mut_ptr ());
+  defsubr (Sbuffer_base_buffer.as_mut_ptr ());
+  defsubr (Sbuffer_local_value.as_mut_ptr ());
+  defsubr (Sbuffer_local_variables.as_mut_ptr ());
+  defsubr (Sbuffer_modified_p.as_mut_ptr ());
+  defsubr (Sforce_mode_line_update.as_mut_ptr ());
+  defsubr (Sset_buffer_modified_p.as_mut_ptr ());
+  defsubr (Sbuffer_modified_tick.as_mut_ptr ());
+  defsubr (Sinternal__set_buffer_modified_tick.as_mut_ptr ());
+  defsubr (Sbuffer_chars_modified_tick.as_mut_ptr ());
+  defsubr (Srename_buffer.as_mut_ptr ());
+  defsubr (Sother_buffer.as_mut_ptr ());
+  defsubr (Sbuffer_enable_undo.as_mut_ptr ());
+  defsubr (Skill_buffer.as_mut_ptr ());
+  defsubr (Sbury_buffer_internal.as_mut_ptr ());
+  defsubr (Sset_buffer_major_mode.as_mut_ptr ());
+  defsubr (Scurrent_buffer.as_mut_ptr ());
+  defsubr (Sset_buffer.as_mut_ptr ());
+  defsubr (Sbarf_if_buffer_read_only.as_mut_ptr ());
+  defsubr (Serase_buffer.as_mut_ptr ());
+  defsubr (Sbuffer_swap_text.as_mut_ptr ());
+  defsubr (Sset_buffer_multibyte.as_mut_ptr ());
+  defsubr (Skill_all_local_variables.as_mut_ptr ());
+  defsubr (Soverlayp.as_mut_ptr ());
+  defsubr (Smake_overlay.as_mut_ptr ());
+  defsubr (Sdelete_overlay.as_mut_ptr ());
+  defsubr (Sdelete_all_overlays.as_mut_ptr ());
+  defsubr (Smove_overlay.as_mut_ptr ());
+  defsubr (Soverlay_start.as_mut_ptr ());
+  defsubr (Soverlay_end.as_mut_ptr ());
+  defsubr (Soverlay_buffer.as_mut_ptr ());
+  defsubr (Soverlay_properties.as_mut_ptr ());
+  defsubr (Soverlays_at.as_mut_ptr ());
+  defsubr (Soverlays_in.as_mut_ptr ());
+  defsubr (Snext_overlay_change.as_mut_ptr ());
+  defsubr (Sprevious_overlay_change.as_mut_ptr ());
+  defsubr (Soverlay_recenter.as_mut_ptr ());
+  defsubr (Soverlay_lists.as_mut_ptr ());
+  defsubr (Soverlay_get.as_mut_ptr ());
+  defsubr (Soverlay_put.as_mut_ptr ());
+  defsubr (Srestore_buffer_modified_p.as_mut_ptr ());
   DEFSYM! (Qautosaved, c"autosaved");
   // C 6145-6147 is `#ifdef ITREE_DEBUG` (undefined in the frozen
   // configuration): `defsubr (&Soverlay_tree);`.  Recorded in

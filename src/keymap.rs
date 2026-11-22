@@ -109,21 +109,21 @@ unsafe extern "C" {
 /* Actually allocate storage for these variables.  */
 
 #[unsafe(no_mangle)]
-pub static mut current_global_map: Lisp_Object = lisp_h_Qnil ();	/* Current global keymap.  */
+pub static current_global_map: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());	/* Current global keymap.  */
 
 /* Alist of elements like (DEL . "\d").  */
-static mut exclude_keys: Lisp_Object = lisp_h_Qnil ();
+static exclude_keys: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* Pre-allocated 2-element vector for Fcommand_remapping to use.  */
-static mut command_remapping_vector: Lisp_Object = lisp_h_Qnil ();
+static command_remapping_vector: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* Char table for the backwards-compatibility part in Flookup_key.  */
-static mut unicode_case_table: Lisp_Object = lisp_h_Qnil ();
+static unicode_case_table: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* Hash table used to cache a reverse-map to speed up calls to where-is.  */
-static mut where_is_cache: Lisp_Object = lisp_h_Qnil ();
+static where_is_cache: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 /* Which keymaps are reverse-stored in the cache.  */
-static mut where_is_cache_keymaps: Lisp_Object = lisp_h_Qnil ();
+static where_is_cache_keymaps: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 // C 75-84's forward declarations are dropped (PORTING.md 0.1-12).
 
@@ -324,7 +324,7 @@ DEFUN! ("set-keymap-parent", Fset_keymap_parent, Sset_keymap_parent, 2, 2, 0,
   let mut keymap = keymap;
   let mut parent = parent;
   /* Flush any reverse-map cache.  */
-  where_is_cache = Qnil (); where_is_cache_keymaps = Qt ();
+  (*where_is_cache.as_mut_ptr ()) = Qnil (); (*where_is_cache_keymaps.as_mut_ptr ()) = Qt ();
 
   keymap = get_keymap (keymap, true, true);
 
@@ -401,9 +401,9 @@ unsafe fn access_keymap_1 (map: Lisp_Object, idx: Lisp_Object,
       let event_meta_map: Lisp_Object;
       /* A strange value in which Meta is set would cause
 	 infinite recursion.  Protect against that.  */
-      if (XFIXNUM (meta_prefix_char) & CHAR_META as EMACS_INT) != 0
-	{ meta_prefix_char = make_fixnum (27); }
-      event_meta_binding = access_keymap_1 (map, meta_prefix_char, t_ok,
+      if (XFIXNUM ((*meta_prefix_char.as_mut_ptr ())) & CHAR_META as EMACS_INT) != 0
+	{ (*meta_prefix_char.as_mut_ptr ()) = make_fixnum (27); }
+      event_meta_binding = access_keymap_1 (map, (*meta_prefix_char.as_mut_ptr ()), t_ok,
 					    noinherit);
       event_meta_map = get_keymap (event_meta_binding, false, true);
       if CONSP (event_meta_map)
@@ -818,8 +818,8 @@ unsafe fn store_in_keymap (keymap: Lisp_Object, idx: Lisp_Object,
   let mut idx = idx;
   let mut def = def;
   /* Flush any reverse-map cache.  */
-  where_is_cache = Qnil ();
-  where_is_cache_keymaps = Qt ();
+  (*where_is_cache.as_mut_ptr ()) = Qnil ();
+  (*where_is_cache_keymaps.as_mut_ptr ()) = Qt ();
 
   if EQ (idx, Qkeymap ())
     { error (c"`keymap' is reserved for embedded parent maps".as_ptr ()); }
@@ -1230,7 +1230,7 @@ DEFUN! ("define-key", Fdefine_key, Sdefine_key, 3, 4, 0,
 	  && (XFIXNUM (c) & meta_bit as EMACS_INT) != 0
 	  && !metized
 	{
-	  c = meta_prefix_char;
+	  c = (*meta_prefix_char.as_mut_ptr ());
 	  metized = true;
 	}
       else
@@ -1259,7 +1259,7 @@ DEFUN! ("define-key", Fdefine_key, Sdefine_key, 3, 4, 0,
       keymap = get_keymap (cmd, false, true);
       if !CONSP (keymap)
 	{
-	  let trailing_esc: *const c_char = if EQ (c, meta_prefix_char) && metized
+	  let trailing_esc: *const c_char = if EQ (c, (*meta_prefix_char.as_mut_ptr ())) && metized
 				      { if idx == 0 { c"ESC".as_ptr () } else { c" ESC".as_ptr () } }
 				      else { c"".as_ptr () };
 
@@ -1285,12 +1285,12 @@ DEFUN! ("command-remapping", Fcommand_remapping, Scommand_remapping, 1, 3, 0,
   if !SYMBOLP (command)
     { return Qnil (); }
 
-  ASET (command_remapping_vector, 1, command);
+  ASET ((*command_remapping_vector.as_mut_ptr ()), 1, command);
 
   if NILP (keymaps)
-    { command = Fkey_binding (command_remapping_vector, Qnil (), Qt (), position); }
+    { command = Fkey_binding ((*command_remapping_vector.as_mut_ptr ()), Qnil (), Qt (), position); }
   else
-    { command = Flookup_key (keymaps, command_remapping_vector, Qnil ()); }
+    { command = Flookup_key (keymaps, (*command_remapping_vector.as_mut_ptr ()), Qnil ()); }
   return if FIXNUMP (command) { Qnil () } else { command };
 });
 
@@ -1362,13 +1362,13 @@ DEFUN! ("lookup-key", Flookup_key, Slookup_key, 2, 3, 0,
     { return found; }
 
   /* Initialize the unicode case table, if it wasn't already.  */
-  if NILP (unicode_case_table)
+  if NILP ((*unicode_case_table.as_mut_ptr ()))
     {
-      unicode_case_table = uniprop_table (Qlowercase ());
+      (*unicode_case_table.as_mut_ptr ()) = uniprop_table (Qlowercase ());
       /* uni-lowercase.el might be unavailable during bootstrap.  */
-      if NILP (unicode_case_table)
+      if NILP ((*unicode_case_table.as_mut_ptr ()))
 	{ return found; }
-      staticpro (&raw const unicode_case_table);
+      staticpro (unicode_case_table.as_ptr ());
     }
 
   let key_len: ptrdiff_t = ASIZE (key);
@@ -1377,7 +1377,7 @@ DEFUN! ("lookup-key", Flookup_key, Slookup_key, 2, 3, 0,
   /* Try both the Unicode case table, and the buffer local one.
      Otherwise, we will fail for e.g. the "Turkish" language
      environment where 'I' does not downcase to 'i'.  */
-  let tables: [Lisp_Object; 2] = [unicode_case_table, Fcurrent_case_table ()];
+  let tables: [Lisp_Object; 2] = [(*unicode_case_table.as_mut_ptr ()), Fcurrent_case_table ()];
   let mut tbl_num: c_int = 0;
   while tbl_num < 2
     {
@@ -1515,7 +1515,7 @@ unsafe extern "C-unwind" fn silly_event_symbol_error (c: Lisp_Object)
   let base = XCAR (parsed);
   let name = Fsymbol_name (base);
   /* This alist includes elements such as ("RET" . "\\r").  */
-  let assoc = Fassoc (name, exclude_keys, Qnil ());
+  let assoc = Fassoc (name, (*exclude_keys.as_mut_ptr ()), Qnil ());
 
   if ! NILP (assoc)
     {
@@ -1554,9 +1554,9 @@ unsafe extern "C-unwind" fn silly_event_symbol_error (c: Lisp_Object)
 /* We can't put these variables inside current_minor_maps, since under
    some systems, static gets macro-defined to be the empty string.
    Ickypoo.  */
-static mut cmm_modes: *mut Lisp_Object = std::ptr::null_mut ();
-static mut cmm_maps: *mut Lisp_Object = std::ptr::null_mut ();
-static mut cmm_size: ptrdiff_t = 0;
+static cmm_modes: VmGlobal<*mut Lisp_Object> = VmGlobal::<*mut Lisp_Object>::new (std::ptr::null_mut ());
+static cmm_maps: VmGlobal<*mut Lisp_Object> = VmGlobal::<*mut Lisp_Object>::new (std::ptr::null_mut ());
+static cmm_size: VmGlobal<ptrdiff_t> = VmGlobal::<ptrdiff_t>::new (0);
 
 /* Store a pointer to an array of the currently active minor modes in
    *modeptr, a pointer to an array of the keymaps of the currently
@@ -1586,12 +1586,12 @@ pub unsafe extern "C-unwind" fn current_minor_maps (modeptr: *mut *mut Lisp_Obje
   let mut assoc: Lisp_Object;
   let mut var: Lisp_Object;
   let mut val: Lisp_Object;
-  let mut emulation_alists = Vemulation_mode_map_alists;
+  let mut emulation_alists = (*Vemulation_mode_map_alists.as_mut_ptr ());
   /* C's `Lisp_Object lists[2];` is zero-initialised (PORTING.md 1.5).  */
   let mut lists: [Lisp_Object; 2] = [Qnil (); 2];
 
-  lists[0] = Vminor_mode_overriding_map_alist;
-  lists[1] = Vminor_mode_map_alist;
+  lists[0] = (*Vminor_mode_overriding_map_alist.as_mut_ptr ());
+  lists[1] = (*Vminor_mode_map_alist.as_mut_ptr ());
 
   let mut list_number: c_int = 0;
   while list_number < 2
@@ -1626,7 +1626,7 @@ pub unsafe extern "C-unwind" fn current_minor_maps (modeptr: *mut *mut Lisp_Obje
 		  { alist = XCDR (alist); continue; }
 	      }
 
-	    if i >= cmm_size
+	    if i >= (*cmm_size.as_mut_ptr ())
 	      {
 		let newsize: ptrdiff_t;
 		let allocsize: usize;
@@ -1637,10 +1637,10 @@ pub unsafe extern "C-unwind" fn current_minor_maps (modeptr: *mut *mut Lisp_Obje
 		   (e.g., read_key_sequence) adds 3 to the count
 		   later, so subtract 3 from the limit here.  */
 		if (PTRDIFF_MAX as usize).min (SIZE_MAX) / (2 * std::mem::size_of::<*mut Lisp_Object> ()) - 3
-		    < cmm_size as usize
+		    < (*cmm_size.as_mut_ptr ()) as usize
 		  { break; }
 
-		newsize = if cmm_size == 0 { 30 } else { cmm_size * 2 };
+		newsize = if (*cmm_size.as_mut_ptr ()) == 0 { 30 } else { (*cmm_size.as_mut_ptr ()) * 2 };
 		allocsize = newsize as usize * std::mem::size_of::<*mut Lisp_Object> ();
 
 		/* Use malloc here.  See the comment above this function.
@@ -1649,39 +1649,39 @@ pub unsafe extern "C-unwind" fn current_minor_maps (modeptr: *mut *mut Lisp_Obje
 		newmodes = malloc (allocsize) as *mut Lisp_Object;
 		if !newmodes.is_null ()
 		  {
-		    if !cmm_modes.is_null ()
+		    if !(*cmm_modes.as_mut_ptr ()).is_null ()
 		      {
-			memcpy (newmodes as *mut c_void, cmm_modes as *const c_void,
-				cmm_size as usize * std::mem::size_of::<*mut Lisp_Object> ());
-			free (cmm_modes as *mut c_void);
+			memcpy (newmodes as *mut c_void, (*cmm_modes.as_mut_ptr ()) as *const c_void,
+				(*cmm_size.as_mut_ptr ()) as usize * std::mem::size_of::<*mut Lisp_Object> ());
+			free ((*cmm_modes.as_mut_ptr ()) as *mut c_void);
 		      }
-		    cmm_modes = newmodes;
+		    (*cmm_modes.as_mut_ptr ()) = newmodes;
 		  }
 
 		newmaps = malloc (allocsize) as *mut Lisp_Object;
 		if !newmaps.is_null ()
 		  {
-		    if !cmm_maps.is_null ()
+		    if !(*cmm_maps.as_mut_ptr ()).is_null ()
 		      {
-			memcpy (newmaps as *mut c_void, cmm_maps as *const c_void,
-				cmm_size as usize * std::mem::size_of::<*mut Lisp_Object> ());
-			free (cmm_maps as *mut c_void);
+			memcpy (newmaps as *mut c_void, (*cmm_maps.as_mut_ptr ()) as *const c_void,
+				(*cmm_size.as_mut_ptr ()) as usize * std::mem::size_of::<*mut Lisp_Object> ());
+			free ((*cmm_maps.as_mut_ptr ()) as *mut c_void);
 		      }
-		    cmm_maps = newmaps;
+		    (*cmm_maps.as_mut_ptr ()) = newmaps;
 		  }
 		unblock_input ();
 
 		if newmodes.is_null () || newmaps.is_null ()
 		  { break; }
-		cmm_size = newsize;
+		(*cmm_size.as_mut_ptr ()) = newsize;
 	      }
 
 	    /* Get the keymap definition--or nil if it is not defined.  */
 	    temp = Findirect_function (XCDR (assoc), Qt ());
 	    if !NILP (temp)
 	      {
-		*cmm_modes.offset (i) = var;
-		*cmm_maps.offset (i) = temp;
+		*(*cmm_modes.as_mut_ptr ()).offset (i) = var;
+		*(*cmm_maps.as_mut_ptr ()).offset (i) = temp;
 		i += 1;
 	      }
 	  }
@@ -1690,8 +1690,8 @@ pub unsafe extern "C-unwind" fn current_minor_maps (modeptr: *mut *mut Lisp_Obje
       list_number += 1;
     }
 
-  if !modeptr.is_null () { *modeptr = cmm_modes; }
-  if !mapptr.is_null ()  { *mapptr  = cmm_maps; }
+  if !modeptr.is_null () { *modeptr = (*cmm_modes.as_mut_ptr ()); }
+  if !mapptr.is_null ()  { *mapptr  = (*cmm_maps.as_mut_ptr ()); }
   return i;
 
   }
@@ -1721,7 +1721,7 @@ DEFUN! ("current-active-maps", Fcurrent_active_maps, Scurrent_active_maps,
   let mut keymaps: Lisp_Object;
   let count = SPECPDL_INDEX ();
 
-  keymaps = list1 (current_global_map);
+  keymaps = list1 ((*current_global_map.as_mut_ptr ()));
 
   /* If a mouse click position is given, our variables are based on
      the buffer clicked on, not the current buffer.  So we may have to
@@ -1761,9 +1761,9 @@ DEFUN! ("current-active-maps", Fcurrent_active_maps, Scurrent_active_maps,
       /* The doc said that overriding-terminal-local-map should
 	 override overriding-local-map.  The code used them both,
 	 but it seems clearer to use just one.  rms, jan 2005.  */
-      && NILP ((*current_kboard).Voverriding_terminal_local_map_)
-      && !NILP (Voverriding_local_map)
-    { keymaps = Fcons (Voverriding_local_map, keymaps); }
+      && NILP ((*(*current_kboard.as_mut_ptr ())).Voverriding_terminal_local_map_)
+      && !NILP ((*Voverriding_local_map.as_mut_ptr ()))
+    { keymaps = Fcons ((*Voverriding_local_map.as_mut_ptr ()), keymaps); }
 
   if NILP (XCDR (keymaps))
     {
@@ -1777,7 +1777,7 @@ DEFUN! ("current-active-maps", Fcurrent_active_maps, Scurrent_active_maps,
       let mut local_map = get_local_map (pt, (current_buffer! ()), Qlocal_map ());
       /* This returns nil unless there is a `keymap' property.  */
       let mut keymap = get_local_map (pt, (current_buffer! ()), Qkeymap ());
-      let otlp = (*current_kboard).Voverriding_terminal_local_map_;
+      let otlp = (*(*current_kboard.as_mut_ptr ())).Voverriding_terminal_local_map_;
 
       if CONSP (position)
 	{
@@ -1940,7 +1940,7 @@ DEFUN! ("use-global-map", Fuse_global_map, Suse_global_map, 1, 1, 0,
        (keymap: Lisp_Object),
        {
   let keymap = get_keymap (keymap, true, true);
-  current_global_map = keymap;
+  (*current_global_map.as_mut_ptr ()) = keymap;
 
   return Qnil ();
 });
@@ -1967,7 +1967,7 @@ DEFUN! ("current-global-map", Fcurrent_global_map, Scurrent_global_map, 0, 0, 0,
        doc: "Return the current global keymap.",
        (),
        {
-  return current_global_map;
+  return (*current_global_map.as_mut_ptr ());
 });
 
 DEFUN! ("current-minor-mode-maps", Fcurrent_minor_mode_maps, Scurrent_minor_mode_maps, 0, 0, 0,
@@ -2116,7 +2116,7 @@ DEFUN! ("accessible-keymaps", Faccessible_keymaps, Saccessible_keymaps,
 	{ return Qnil (); }
     }
   else
-    { maps = list1 (Fcons (zero_vector, get_keymap (keymap, true, false))); }
+    { maps = list1 (Fcons ((*zero_vector.as_mut_ptr ()), get_keymap (keymap, true, false))); }
 
   /* For each map in the list maps,
      look at any other maps it points to,
@@ -2142,7 +2142,7 @@ DEFUN! ("accessible-keymaps", Faccessible_keymaps, Saccessible_keymaps,
       data.is_metized = (XFIXNUM (last) >= 0
 		    /* Don't metize the last char of PREFIX.  */
 		    && XFIXNUM (last) >= prefixlen
-		    && EQ (Faref (data.thisseq, last), meta_prefix_char));
+		    && EQ (Faref (data.thisseq, last), (*meta_prefix_char.as_mut_ptr ())));
 
       /* Since we can't run lisp code, we can't scan autoloaded maps.  */
       if CONSP (thismap)
@@ -2215,22 +2215,22 @@ DEFUN! ("key-description", Fkey_description, Skey_description, 1, 2, 0,
 	  if add_meta
 	    {
 	      if !FIXNUMP (key)
-		  || EQ (key, meta_prefix_char)
+		  || EQ (key, (*meta_prefix_char.as_mut_ptr ()))
 		  || (XFIXNUM (key) & meta_modifier as EMACS_INT) != 0
 		{
-		  *args.offset (len) = Fsingle_key_description (meta_prefix_char,
+		  *args.offset (len) = Fsingle_key_description ((*meta_prefix_char.as_mut_ptr ()),
 							 Qnil ());
 		  len += 1;
 		  *args.offset (len) = sep;
 		  len += 1;
-		  if EQ (key, meta_prefix_char)
+		  if EQ (key, (*meta_prefix_char.as_mut_ptr ()))
 		    { continue; }
 		}
 	      else
 		{ key = make_fixnum (XFIXNUM (key) | meta_modifier as EMACS_INT); }
 	      add_meta = false;
 	    }
-	  else if EQ (key, meta_prefix_char)
+	  else if EQ (key, (*meta_prefix_char.as_mut_ptr ()))
 	    {
 	      add_meta = true;
 	      continue;
@@ -2246,11 +2246,11 @@ DEFUN! ("key-description", Fkey_description, Skey_description, 1, 2, 0,
   let result: Lisp_Object;
   if add_meta
     {
-      *args.offset (len) = Fsingle_key_description (meta_prefix_char, Qnil ());
+      *args.offset (len) = Fsingle_key_description ((*meta_prefix_char.as_mut_ptr ()), Qnil ());
       result = Fconcat (len + 1, args);
     }
   else if len == 0
-    { result = empty_unibyte_string; }
+    { result = (*empty_unibyte_string.as_mut_ptr ()); }
   else
     { result = Fconcat (len - 1, args); }
   SAFE_FREE! (sa_count, sa_mark);
@@ -2485,7 +2485,7 @@ DEFUN! ("text-char-description", Ftext_char_description, Stext_char_description,
     }
 });
 
-static mut where_is_preferred_modifier: c_int = 0;
+static where_is_preferred_modifier: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 
 /* Return 0 if SEQ uses non-preferred modifiers or non-char events.
    Else, return 2 if SEQ uses the where_is_preferred_modifier,
@@ -2512,7 +2512,7 @@ unsafe fn preferred_sequence_p (seq: Lisp_Object) -> c_int
       else
 	{
 	  let modifiers = (XFIXNUM (elt) & ((CHAR_MODIFIER_MASK & !CHAR_META) as EMACS_INT)) as c_int;
-	  if modifiers == where_is_preferred_modifier
+	  if modifiers == (*where_is_preferred_modifier.as_mut_ptr ())
 	    { result = 2; }
 	  else if modifiers != 0
 	    { return 0; }
@@ -2554,7 +2554,7 @@ unsafe fn shadow_lookup (keymap: Lisp_Object, key: Lisp_Object, accept_default: 
   }
 }
 
-static mut Vmouse_events: Lisp_Object = lisp_h_Qnil ();
+static Vmouse_events: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /// C: `struct where_is_internal_data` (keymap.c 2482-2486).  clang measures the record on
 /// the frozen target: `sizeof` 40, `alignof` 8, `definition`@0, `this`@8, `last`@16,
@@ -2600,23 +2600,23 @@ unsafe fn where_is_internal (definition: Lisp_Object, keymaps: Lisp_Object,
   if nomenus && !noindirect
     {
       /* Check heuristic-consistency of the cache.  */
-      if NILP (Fequal (keymaps, where_is_cache_keymaps))
-	{ where_is_cache = Qnil (); }
+      if NILP (Fequal (keymaps, (*where_is_cache_keymaps.as_mut_ptr ())))
+	{ (*where_is_cache.as_mut_ptr ()) = Qnil (); }
 
-      if NILP (where_is_cache)
+      if NILP ((*where_is_cache.as_mut_ptr ()))
 	{
 	  /* We need to create the cache.  */
-	  where_is_cache = Fmake_hash_table (0, std::ptr::null_mut ());
-	  where_is_cache_keymaps = Qt ();
+	  (*where_is_cache.as_mut_ptr ()) = Fmake_hash_table (0, std::ptr::null_mut ());
+	  (*where_is_cache_keymaps.as_mut_ptr ()) = Qt ();
 	}
       else
 	/* We can reuse the cache.  */
-	{ return Fgethash (definition, where_is_cache, Qnil ()); }
+	{ return Fgethash (definition, (*where_is_cache.as_mut_ptr ()), Qnil ()); }
     }
   else
     /* Kill the cache so that where_is_internal_1 doesn't think
        we're filling it up.  */
-    { where_is_cache = Qnil (); }
+    { (*where_is_cache.as_mut_ptr ()) = Qnil (); }
 
   let mut found = keymaps;
   while CONSP (found)
@@ -2645,12 +2645,12 @@ unsafe fn where_is_internal (definition: Lisp_Object, keymaps: Lisp_Object,
       map  = Fcdr (XCAR (maps));
       last = make_fixnum (XFIXNUM (Flength (this)) - 1);
       last_is_meta = (XFIXNUM (last) >= 0
-		      && EQ (Faref (this, last), meta_prefix_char));
+		      && EQ (Faref (this, last), (*meta_prefix_char.as_mut_ptr ())));
 
       /* if (nomenus && !preferred_sequence_p (this)) */
       if nomenus && XFIXNUM (last) >= 0
 	  && SYMBOLP ({ tem = Faref (this, make_fixnum (0)); tem })
-	  && !NILP (Fmemq (XCAR (parse_modifiers (tem)), Vmouse_events))
+	  && !NILP (Fmemq (XCAR (parse_modifiers (tem)), (*Vmouse_events.as_mut_ptr ())))
 	/* If no menu entries should be returned, skip over the
 	   keymaps bound to `menu-bar' and `tool-bar' and other
 	   non-ascii prefixes like `C-down-mouse-2'.  */
@@ -2673,10 +2673,10 @@ unsafe fn where_is_internal (definition: Lisp_Object, keymaps: Lisp_Object,
     { /* Remember for which keymaps this cache was built.
 	 We do it here (late) because we want to keep where_is_cache_keymaps
 	 set to t while the cache isn't fully filled.  */
-      where_is_cache_keymaps = keymaps;
+      (*where_is_cache_keymaps.as_mut_ptr ()) = keymaps;
       /* During cache-filling, data.sequences is not filled by
 	 where_is_internal_1.  */
-      return Fgethash (definition, where_is_cache, Qnil ());
+      return Fgethash (definition, (*where_is_cache.as_mut_ptr ()), Qnil ());
     }
   else
     { return data.sequences; }
@@ -2709,14 +2709,14 @@ DEFUN! ("where-is-internal", Fwhere_is_internal, Swhere_is_internal, 1, 5, 0,
   let mut remapped = false;
 
   /* Refresh the C version of the modifier preference.  */
-  where_is_preferred_modifier
-    = parse_solitary_modifier (Vwhere_is_preferred_modifier);
+  (*where_is_preferred_modifier.as_mut_ptr ())
+    = parse_solitary_modifier ((*Vwhere_is_preferred_modifier.as_mut_ptr ()));
 
   /* Find the relevant keymaps.  */
   if CONSP (keymap) && KEYMAPP! (XCAR (keymap))
     { keymaps = keymap; }
   else if !NILP (keymap)
-    { keymaps = list2 (keymap, current_global_map); }
+    { keymaps = list2 (keymap, (*current_global_map.as_mut_ptr ())); }
   else
     { keymaps = Fcurrent_active_maps (Qnil (), Qnil ()); }
 
@@ -2841,7 +2841,7 @@ DEFUN! ("where-is-internal", Fwhere_is_internal, Swhere_is_internal, 1, 5, 0,
      return the best we could find.  */
   if NILP (firstonly)
     { return found; }
-  else if where_is_preferred_modifier == 0
+  else if (*where_is_preferred_modifier.as_mut_ptr ()) == 0
     { return Fcar (found); }
   else
     { /* Maybe we did not find a preferred_modifier binding, but we did find
@@ -2882,7 +2882,7 @@ unsafe extern "C-unwind" fn where_is_internal_1 (key: Lisp_Object, binding: Lisp
   /* End this iteration if this element does not match
      the target.  */
 
-  if !(!NILP (where_is_cache)	/* everything "matches" during cache-fill.  */
+  if !(!NILP ((*where_is_cache.as_mut_ptr ()))	/* everything "matches" during cache-fill.  */
 	|| EQ (binding, definition)
 	|| (CONSP (definition) && !NILP (Fequal (binding, definition))))
     /* Doesn't match.  */
@@ -2901,10 +2901,10 @@ unsafe extern "C-unwind" fn where_is_internal_1 (key: Lisp_Object, binding: Lisp
       sequence = append_key (this, key);
     }
 
-  if !NILP (where_is_cache)
+  if !NILP ((*where_is_cache.as_mut_ptr ()))
     {
-      let sequences = Fgethash (binding, where_is_cache, Qnil ());
-      Fputhash (binding, Fcons (sequence, sequences), where_is_cache);
+      let sequences = Fgethash (binding, (*where_is_cache.as_mut_ptr ()), Qnil ());
+      Fputhash (binding, Fcons (sequence, sequences), (*where_is_cache.as_mut_ptr ()));
     }
   else
     { (*d).sequences = Fcons (sequence, (*d).sequences); }
@@ -2936,10 +2936,10 @@ You type        Translation\n\
   let outbuf = Fcurrent_buffer ();
 
   /* Report on alternates for keys.  */
-  if STRINGP ((*current_kboard).Vkeyboard_translate_table_) && !NILP (prefix)
+  if STRINGP ((*(*current_kboard.as_mut_ptr ())).Vkeyboard_translate_table_) && !NILP (prefix)
     {
-      let mut translate = SDATA ((*current_kboard).Vkeyboard_translate_table_);
-      let translate_len = SCHARS ((*current_kboard).Vkeyboard_translate_table_) as c_int;
+      let mut translate = SDATA ((*(*current_kboard.as_mut_ptr ())).Vkeyboard_translate_table_);
+      let translate_len = SCHARS ((*(*current_kboard.as_mut_ptr ())).Vkeyboard_translate_table_) as c_int;
 
       let mut c: c_int = 0;
       while c < translate_len
@@ -2964,7 +2964,7 @@ You type        Translation\n\
 	      insert (c"\n".as_ptr (), 1);
 
 	      /* Insert calls signal_after_change which may GC.  */
-	      translate = SDATA ((*current_kboard).Vkeyboard_translate_table_);
+	      translate = SDATA ((*(*current_kboard.as_mut_ptr ())).Vkeyboard_translate_table_);
 	    }
 	  c += 1;
 	}
@@ -2972,16 +2972,16 @@ You type        Translation\n\
       insert (c"\n".as_ptr (), 1);
     }
 
-  if !NILP (Vkey_translation_map)
+  if !NILP ((*Vkey_translation_map.as_mut_ptr ()))
     {
       let msg = build_unibyte_string (c"Key translations".as_ptr ());
       calln! (Qhelp__describe_map_tree (),
-	     Vkey_translation_map, Qnil (), Qnil (), prefix,
+	     (*Vkey_translation_map.as_mut_ptr ()), Qnil (), Qnil (), prefix,
 	     msg, nomenu, Qt (), Qnil (), Qnil (), buffer);
     }
 
   /* Print the (major mode) local map.  */
-  let mut start1 = (*current_kboard).Voverriding_terminal_local_map_;
+  let mut start1 = (*(*current_kboard.as_mut_ptr ())).Voverriding_terminal_local_map_;
 
   if !NILP (start1)
     {
@@ -2992,8 +2992,8 @@ You type        Translation\n\
       shadow = Fcons (start1, shadow);
       start1 = Qnil ();
     }
-  else if !NILP (Voverriding_local_map)
-    { start1 = Voverriding_local_map; }
+  else if !NILP ((*Voverriding_local_map.as_mut_ptr ()))
+    { start1 = (*Voverriding_local_map.as_mut_ptr ()); }
 
   if !NILP (start1)
     {
@@ -3092,24 +3092,24 @@ You type        Translation\n\
 
   let msg = build_unibyte_string (c"\x0c\nGlobal Bindings".as_ptr ());
   calln! (Qhelp__describe_map_tree (),
-	 current_global_map, Qt (), shadow, prefix,
+	 (*current_global_map.as_mut_ptr ()), Qt (), shadow, prefix,
 	 msg, nomenu, Qnil (), Qt (), Qnil (), buffer);
 
   /* Print the function-key-map translations under this prefix.  */
-  if !NILP ((*current_kboard).Vlocal_function_key_map_)
+  if !NILP ((*(*current_kboard.as_mut_ptr ())).Vlocal_function_key_map_)
     {
       let msg = build_unibyte_string (c"\x0c\nFunction key map translations".as_ptr ());
       calln! (Qhelp__describe_map_tree (),
-	     (*current_kboard).Vlocal_function_key_map_, Qnil (), Qnil (), prefix,
+	     (*(*current_kboard.as_mut_ptr ())).Vlocal_function_key_map_, Qnil (), Qnil (), prefix,
 	     msg, nomenu, Qt (), Qnil (), Qnil (), buffer);
     }
 
   /* Print the input-decode-map translations under this prefix.  */
-  if !NILP ((*current_kboard).Vinput_decode_map_)
+  if !NILP ((*(*current_kboard.as_mut_ptr ())).Vinput_decode_map_)
     {
       let msg = build_unibyte_string (c"\x0c\nInput decoding map translations".as_ptr ());
       calln! (Qhelp__describe_map_tree (),
-	     (*current_kboard).Vinput_decode_map_, Qnil (), Qnil (), prefix,
+	     (*(*current_kboard.as_mut_ptr ())).Vinput_decode_map_, Qnil (), Qnil (), prefix,
 	     msg, nomenu, Qt (), Qnil (), Qnil (), buffer);
     }
   return Qnil ();
@@ -3147,7 +3147,7 @@ DEFUN! ("describe-vector", Fdescribe_vector, Sdescribe_vector, 1, 2, 0,
   return unbind_to (count, Qnil ());
 });
 
-static mut fontify_key_properties: Lisp_Object = lisp_h_Qnil ();
+static fontify_key_properties: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 unsafe fn describe_key_maybe_fontify (str_: Lisp_Object, prefix: Lisp_Object,
 				   keymap_p: bool) -> Lisp_Object
@@ -3158,7 +3158,7 @@ unsafe fn describe_key_maybe_fontify (str_: Lisp_Object, prefix: Lisp_Object,
   if keymap_p
     { Fadd_text_properties (make_fixnum (0),
 			  make_fixnum (SCHARS (key_desc)),
-			  fontify_key_properties,
+			  (*fontify_key_properties.as_mut_ptr ()),
 			  key_desc); }
   return key_desc;
 
@@ -3356,9 +3356,9 @@ unsafe fn describe_vector (vector: Lisp_Object, prefix: Lisp_Object, args: Lisp_
 
       /* Make sure found consecutive keys are either not shadowed or,
 	 if they are, that they are shadowed by the same command.  */
-      if !NILP (Vdescribe_bindings_check_shadowing_in_ranges)
+      if !NILP ((*Vdescribe_bindings_check_shadowing_in_ranges.as_mut_ptr ()))
 	  && CHAR_TABLE_P (vector) && i != starting_i
-	  && (!EQ (Vdescribe_bindings_check_shadowing_in_ranges,
+	  && (!EQ ((*Vdescribe_bindings_check_shadowing_in_ranges.as_mut_ptr ()),
 		   Qignore_self_insert ())
 	      || !EQ (definition, Qself_insert_command ()))
 	{
@@ -3434,17 +3434,17 @@ unsafe fn describe_vector (vector: Lisp_Object, prefix: Lisp_Object, args: Lisp_
    declares them, and a definition in the unit shadows that glob import (0.1-10).  A
    `DEFVAR_*` registration is `DEFVAR_*!` with C's Lisp name and the docstring.  */
 #[unsafe(no_mangle)]
-pub static mut Vminibuffer_local_map: Lisp_Object = lisp_h_Qnil ();
+pub static Vminibuffer_local_map: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vminor_mode_map_alist: Lisp_Object = lisp_h_Qnil ();
+pub static Vminor_mode_map_alist: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vminor_mode_overriding_map_alist: Lisp_Object = lisp_h_Qnil ();
+pub static Vminor_mode_overriding_map_alist: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vemulation_mode_map_alists: Lisp_Object = lisp_h_Qnil ();
+pub static Vemulation_mode_map_alists: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vwhere_is_preferred_modifier: Lisp_Object = lisp_h_Qnil ();
+pub static Vwhere_is_preferred_modifier: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vdescribe_bindings_check_shadowing_in_ranges: Lisp_Object = lisp_h_Qnil ();
+pub static Vdescribe_bindings_check_shadowing_in_ranges: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_keymap ()
@@ -3465,42 +3465,42 @@ pub unsafe extern "C-unwind" fn syms_of_keymap ()
      Each one is the value of a Lisp variable, and is also
      pointed to by a C variable */
 
-  current_global_map = Qnil ();
-  staticpro (&raw const current_global_map);
+  (*current_global_map.as_mut_ptr ()) = Qnil ();
+  staticpro (current_global_map.as_ptr ());
 
-  exclude_keys = list!
+  (*exclude_keys.as_mut_ptr ()) = list!
     (Fcons (build_string (c"DEL".as_ptr ()), build_string (c"\\d".as_ptr ())),
      Fcons (build_string (c"TAB".as_ptr ()), build_string (c"\\t".as_ptr ())),
      Fcons (build_string (c"RET".as_ptr ()), build_string (c"\\r".as_ptr ())),
      Fcons (build_string (c"ESC".as_ptr ()), build_string (c"\\e".as_ptr ())),
      Fcons (build_string (c"SPC".as_ptr ()), build_string (c" ".as_ptr ())));
-  staticpro (&raw const exclude_keys);
+  staticpro (exclude_keys.as_ptr ());
 
   DEFVAR_LISP! (c"minibuffer-local-map", Vminibuffer_local_map,
 	       "Default keymap to use when reading from the minibuffer.");
-  Vminibuffer_local_map = Fmake_sparse_keymap (Qnil ());
+  (*Vminibuffer_local_map.as_mut_ptr ()) = Fmake_sparse_keymap (Qnil ());
 
   DEFVAR_LISP! (c"minor-mode-map-alist", Vminor_mode_map_alist,
 	       "Alist of keymaps to use for minor modes.\nEach element looks like (VARIABLE . KEYMAP); KEYMAP is used to read\nkey sequences and look up bindings if VARIABLE's value is non-nil.\nIf two active keymaps bind the same key, the keymap appearing earlier\nin the list takes precedence.");
-  Vminor_mode_map_alist = Qnil ();
+  (*Vminor_mode_map_alist.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"minor-mode-overriding-map-alist", Vminor_mode_overriding_map_alist,
 	       "Alist of keymaps to use for minor modes, in current major mode.\nThis variable is an alist just like `minor-mode-map-alist', and it is\nused the same way (and before `minor-mode-map-alist'); however,\nit is provided for major modes to bind locally.");
-  Vminor_mode_overriding_map_alist = Qnil ();
+  (*Vminor_mode_overriding_map_alist.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"emulation-mode-map-alists", Vemulation_mode_map_alists,
 	       "List of keymap alists to use for emulation modes.\nIt is intended for modes or packages using multiple minor-mode keymaps.\nEach element is a keymap alist just like `minor-mode-map-alist', or a\nsymbol with a variable binding which is a keymap alist, and it is used\nthe same way.  The \"active\" keymaps in each alist are used before\n`minor-mode-map-alist' and `minor-mode-overriding-map-alist'.");
-  Vemulation_mode_map_alists = Qnil ();
+  (*Vemulation_mode_map_alists.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"where-is-preferred-modifier", Vwhere_is_preferred_modifier,
 	       "Preferred modifier key to use for `where-is'.\nWhen a single binding is requested, `where-is' will return one that\nuses this modifier key if possible.  If nil, or if no such binding\nexists, bindings using keys without modifiers (or only with meta) will\nbe preferred.");
-  Vwhere_is_preferred_modifier = Qnil ();
-  where_is_preferred_modifier = 0;
+  (*Vwhere_is_preferred_modifier.as_mut_ptr ()) = Qnil ();
+  (*where_is_preferred_modifier.as_mut_ptr ()) = 0;
 
   DEFVAR_LISP! (c"describe-bindings-check-shadowing-in-ranges",
 	       Vdescribe_bindings_check_shadowing_in_ranges,
 	       "If non-nil, consider command shadowing when describing ranges of keys.\nIf the value is t, describing bindings of consecutive keys will not\nreport them as a single range if they are shadowed by different\nminor-mode commands.\nIf the value is `ignore-self-insert', assume that consecutive keys\nbound to `self-insert-command' are not all shadowed; this speeds up\ncommands such as \\[describe-bindings] and \\[describe-mode], but could miss some shadowing.\nAny other non-nil value is treated is t.\n\nBeware: setting this non-nil could potentially slow down commands\nthat describe key bindings.  That is why the default is nil.");
-  Vdescribe_bindings_check_shadowing_in_ranges = Qnil ();
+  (*Vdescribe_bindings_check_shadowing_in_ranges.as_mut_ptr ()) = Qnil ();
 
   DEFSYM! (Qself_insert_command, "self-insert-command");
   DEFSYM! (Qignore_self_insert, "ignore-self-insert");
@@ -3508,8 +3508,8 @@ pub unsafe extern "C-unwind" fn syms_of_keymap ()
   DEFSYM! (Qmenu_bar, "menu-bar");
   DEFSYM! (Qmode_line, "mode-line");
 
-  staticpro (&raw const Vmouse_events);
-  Vmouse_events = list! (Qmenu_bar (), Qtab_bar (), Qtool_bar (), Qtab_line (),
+  staticpro (Vmouse_events.as_ptr ());
+  (*Vmouse_events.as_mut_ptr ()) = list! (Qmenu_bar (), Qtab_bar (), Qtool_bar (), Qtab_line (),
 			Qheader_line (), Qmode_line (),
 			intern_c_string (c"mouse-1".as_ptr ()),
 			intern_c_string (c"mouse-2".as_ptr ()),
@@ -3525,49 +3525,49 @@ pub unsafe extern "C-unwind" fn syms_of_keymap ()
   DEFSYM! (Qremap, "remap");
   DEFSYM! (QCadvertised_binding, ":advertised-binding");
 
-  command_remapping_vector = make_vector (2, Qremap ());
-  staticpro (&raw const command_remapping_vector);
+  (*command_remapping_vector.as_mut_ptr ()) = make_vector (2, Qremap ());
+  staticpro (command_remapping_vector.as_ptr ());
 
-  where_is_cache_keymaps = Qt ();
-  where_is_cache = Qnil ();
-  staticpro (&raw const where_is_cache);
-  staticpro (&raw const where_is_cache_keymaps);
+  (*where_is_cache_keymaps.as_mut_ptr ()) = Qt ();
+  (*where_is_cache.as_mut_ptr ()) = Qnil ();
+  staticpro (where_is_cache.as_ptr ());
+  staticpro (where_is_cache_keymaps.as_ptr ());
 
   DEFSYM! (Qfont_lock_face, "font-lock-face");
   DEFSYM! (Qhelp_key_binding, "help-key-binding");
-  staticpro (&raw const fontify_key_properties);
-  fontify_key_properties = Fcons (Qfont_lock_face (),
+  staticpro (fontify_key_properties.as_ptr ());
+  (*fontify_key_properties.as_mut_ptr ()) = Fcons (Qfont_lock_face (),
 				  Fcons (Qhelp_key_binding (), Qnil ()));
 
-  defsubr (&raw mut Skeymapp);
-  defsubr (&raw mut Skeymap_parent);
-  defsubr (&raw mut Skeymap_prompt);
-  defsubr (&raw mut Sset_keymap_parent);
-  defsubr (&raw mut Smake_keymap);
-  defsubr (&raw mut Smake_sparse_keymap);
-  defsubr (&raw mut Smap_keymap_internal);
-  defsubr (&raw mut Smap_keymap);
-  defsubr (&raw mut Scopy_keymap);
-  defsubr (&raw mut Scommand_remapping);
-  defsubr (&raw mut Skey_binding);
-  defsubr (&raw mut Sminor_mode_key_binding);
-  defsubr (&raw mut Sdefine_key);
-  defsubr (&raw mut Slookup_key);
-  defsubr (&raw mut Suse_global_map);
-  defsubr (&raw mut Suse_local_map);
-  defsubr (&raw mut Scurrent_local_map);
-  defsubr (&raw mut Scurrent_global_map);
-  defsubr (&raw mut Scurrent_minor_mode_maps);
-  defsubr (&raw mut Scurrent_active_maps);
-  defsubr (&raw mut Saccessible_keymaps);
-  defsubr (&raw mut Skey_description);
-  defsubr (&raw mut Skeymap__get_keyelt);
-  defsubr (&raw mut Shelp__describe_vector);
-  defsubr (&raw mut Sdescribe_vector);
-  defsubr (&raw mut Ssingle_key_description);
-  defsubr (&raw mut Stext_char_description);
-  defsubr (&raw mut Swhere_is_internal);
-  defsubr (&raw mut Sdescribe_buffer_bindings);
+  defsubr (Skeymapp.as_mut_ptr ());
+  defsubr (Skeymap_parent.as_mut_ptr ());
+  defsubr (Skeymap_prompt.as_mut_ptr ());
+  defsubr (Sset_keymap_parent.as_mut_ptr ());
+  defsubr (Smake_keymap.as_mut_ptr ());
+  defsubr (Smake_sparse_keymap.as_mut_ptr ());
+  defsubr (Smap_keymap_internal.as_mut_ptr ());
+  defsubr (Smap_keymap.as_mut_ptr ());
+  defsubr (Scopy_keymap.as_mut_ptr ());
+  defsubr (Scommand_remapping.as_mut_ptr ());
+  defsubr (Skey_binding.as_mut_ptr ());
+  defsubr (Sminor_mode_key_binding.as_mut_ptr ());
+  defsubr (Sdefine_key.as_mut_ptr ());
+  defsubr (Slookup_key.as_mut_ptr ());
+  defsubr (Suse_global_map.as_mut_ptr ());
+  defsubr (Suse_local_map.as_mut_ptr ());
+  defsubr (Scurrent_local_map.as_mut_ptr ());
+  defsubr (Scurrent_global_map.as_mut_ptr ());
+  defsubr (Scurrent_minor_mode_maps.as_mut_ptr ());
+  defsubr (Scurrent_active_maps.as_mut_ptr ());
+  defsubr (Saccessible_keymaps.as_mut_ptr ());
+  defsubr (Skey_description.as_mut_ptr ());
+  defsubr (Skeymap__get_keyelt.as_mut_ptr ());
+  defsubr (Shelp__describe_vector.as_mut_ptr ());
+  defsubr (Sdescribe_vector.as_mut_ptr ());
+  defsubr (Ssingle_key_description.as_mut_ptr ());
+  defsubr (Stext_char_description.as_mut_ptr ());
+  defsubr (Swhere_is_internal.as_mut_ptr ());
+  defsubr (Sdescribe_buffer_bindings.as_mut_ptr ());
 
   DEFSYM! (Qkey_parse, "key-parse");
   DEFSYM! (Qkey_valid_p, "key-valid-p");

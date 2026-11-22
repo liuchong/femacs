@@ -17,11 +17,11 @@ const _: () = ();
 // [U1] include/buffer.rs imported via common
 
 #[unsafe(no_mangle)]
-pub static mut Vascii_downcase_table: Lisp_Object = lisp_h_Qnil ();
-static mut Vascii_upcase_table: Lisp_Object = lisp_h_Qnil ();
+pub static Vascii_downcase_table: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+static Vascii_upcase_table: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vascii_canon_table: Lisp_Object = lisp_h_Qnil ();
-static mut Vascii_eqv_table: Lisp_Object = lisp_h_Qnil ();
+pub static Vascii_canon_table: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+static Vascii_eqv_table: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 // C's forward declarations of the callbacks (casetab.c 33-35) have no counterpart here;
 // the callbacks are private `unsafe extern "C" fn`s so map_char_table can take their address.
@@ -66,7 +66,7 @@ DEFUN! ("standard-case-table", Fstandard_case_table, Sstandard_case_table, 0, 0,
        doc: "Return the standard case table.\nThis is the one used for new buffers.",
        (),
        {
-  return /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { Vascii_downcase_table };
+  return /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { (*Vascii_downcase_table.as_mut_ptr ()) };
 });
 
 DEFUN! ("set-case-table", Fset_case_table, Sset_case_table, 1, 1, 0,
@@ -125,10 +125,10 @@ fn set_case_table (table: Lisp_Object, standard: bool) -> Lisp_Object
   if standard
     {
       /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe {
-        Vascii_downcase_table = table;
-        Vascii_upcase_table = up;
-        Vascii_canon_table = canon;
-        Vascii_eqv_table = eqv;
+        (*Vascii_downcase_table.as_mut_ptr ()) = table;
+        (*Vascii_upcase_table.as_mut_ptr ()) = up;
+        (*Vascii_canon_table.as_mut_ptr ()) = canon;
+        (*Vascii_eqv_table.as_mut_ptr ()) = eqv;
       }
     }
   else
@@ -242,7 +242,7 @@ pub unsafe extern "C-unwind" fn init_casetab_once ()
   Fput (Qcase_table (), Qchar_table_extra_slots (), make_fixnum (3));
 
   down = Fmake_char_table (Qcase_table (), Qnil ());
-  Vascii_downcase_table = down;
+  (*Vascii_downcase_table.as_mut_ptr ()) = down;
   set_char_table_purpose (down, Qcase_table ());
 
   i = 0;
@@ -297,16 +297,16 @@ pub unsafe extern "C-unwind" fn syms_of_casetab ()
   unsafe {
   DEFSYM! (Qcase_table_p, "case-table-p");
 
-  staticpro (&raw const Vascii_canon_table);
-  staticpro (&raw const Vascii_downcase_table);
-  staticpro (&raw const Vascii_eqv_table);
-  staticpro (&raw const Vascii_upcase_table);
+  staticpro (Vascii_canon_table.as_ptr ());
+  staticpro (Vascii_downcase_table.as_ptr ());
+  staticpro (Vascii_eqv_table.as_ptr ());
+  staticpro (Vascii_upcase_table.as_ptr ());
 
-  defsubr (&raw mut Scase_table_p);
-  defsubr (&raw mut Scurrent_case_table);
-  defsubr (&raw mut Sstandard_case_table);
-  defsubr (&raw mut Sset_case_table);
-  defsubr (&raw mut Sset_standard_case_table);
+  defsubr (Scase_table_p.as_mut_ptr ());
+  defsubr (Scurrent_case_table.as_mut_ptr ());
+  defsubr (Sstandard_case_table.as_mut_ptr ());
+  defsubr (Sset_case_table.as_mut_ptr ());
+  defsubr (Sset_standard_case_table.as_mut_ptr ());
 
   }
 }

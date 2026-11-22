@@ -534,66 +534,65 @@ pub static RCS_Id: &CStr = c"$Id: femacs 32.0.50 (aarch64-apple-darwin25.6.0 PDU
 /// C 169-170: `Lisp_Object empty_unibyte_string, empty_multibyte_string;` -- the two empty
 /// Lisp strings `make_unibyte_string`/`make_multibyte_string` build any others from.
 #[unsafe(no_mangle)]
-pub static mut empty_unibyte_string: Lisp_Object = lisp_h_Qnil ();
+pub static empty_unibyte_string: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut empty_multibyte_string: Lisp_Object = lisp_h_Qnil ();
+pub static empty_multibyte_string: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /// C 181: `struct gflags gflags;` (lisp.h 634-646's record).
 #[unsafe(no_mangle)]
-pub static mut gflags: gflags =
-  gflags { will_dump: false, will_bootstrap: false, will_dump_with_pdumper: false,
-           dumped_with_pdumper: false };
+pub static gflags: VmGlobal<gflags> = VmGlobal::<gflags>::new (gflags { will_dump: false, will_bootstrap: false, will_dump_with_pdumper: false,
+           dumped_with_pdumper: false });
 
 /// C 182: `bool initialized;`
 #[unsafe(no_mangle)]
-pub static mut initialized: bool = false;
+pub static initialized: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 /// C 186: `bool inhibit_window_system;`
 #[unsafe(no_mangle)]
-pub static mut inhibit_window_system: bool = false;
+pub static inhibit_window_system: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 /// C 190: `bool running_asynch_code;`
 #[unsafe(no_mangle)]
-pub static mut running_asynch_code: bool = false;
+pub static running_asynch_code: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 /// C 218: `bool noninteractive;`
 #[unsafe(no_mangle)]
-pub static mut noninteractive: bool = false;
+pub static noninteractive: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 /// C 221: `bool no_site_lisp;`
 #[unsafe(no_mangle)]
-pub static mut no_site_lisp: bool = false;
+pub static no_site_lisp: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 /// C 224: `bool build_details;`
 #[unsafe(no_mangle)]
-pub static mut build_details: bool = false;
+pub static build_details: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 /// C 227: `static char *daemon_name;`
-static mut daemon_name: *mut c_char = std::ptr::null_mut ();
+static daemon_name: VmGlobal<*mut c_char> = VmGlobal::<*mut c_char>::new (std::ptr::null_mut ());
 
 /// C 231: `int daemon_type;`
 #[unsafe(no_mangle)]
-pub static mut daemon_type: c_int = 0;
+pub static daemon_type: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 
 /// C 236: `static int daemon_pipe[2];`
-static mut daemon_pipe: [c_int; 2] = [0; 2];
+static daemon_pipe: VmGlobal<[c_int; 2]> = VmGlobal::<[c_int; 2]>::new ([0; 2]);
 
 /// C 255-256: `char **initial_argv;` / `int initial_argc;`
 #[unsafe(no_mangle)]
-pub static mut initial_argv: *mut *mut c_char = std::ptr::null_mut ();
+pub static initial_argv: VmGlobal<*mut *mut c_char> = VmGlobal::<*mut *mut c_char>::new (std::ptr::null_mut ());
 #[unsafe(no_mangle)]
-pub static mut initial_argc: c_int = 0;
+pub static initial_argc: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 
 /// C 258: `char *initial_argv0;`
 #[unsafe(no_mangle)]
-pub static mut initial_argv0: *mut c_char = std::ptr::null_mut ();
+pub static initial_argv0: VmGlobal<*mut c_char> = VmGlobal::<*mut c_char>::new (std::ptr::null_mut ());
 
 /// C 259: `static char *initial_emacs_executable = NULL;`
-static mut initial_emacs_executable: *mut c_char = std::ptr::null_mut ();
+static initial_emacs_executable: VmGlobal<*mut c_char> = VmGlobal::<*mut c_char>::new (std::ptr::null_mut ());
 
 /// C 262: `char const *emacs_wd;` (lisp.h 5131 declares it, this file defines it).
 #[unsafe(no_mangle)]
-pub static mut emacs_wd: *const c_char = std::ptr::null ();
+pub static emacs_wd: VmGlobal<*const c_char> = VmGlobal::<*const c_char>::new (std::ptr::null ());
 
 /// C 270-407: `static char const *const usage_message[]`.  The array's two `#if` elements
 /// (HAVE_MODULES at C 293-296, SECCOMP_USABLE at C 304-307) are dead here, so it holds C's
@@ -715,12 +714,12 @@ section of the Emacs manual or the file BUGS.
 
 /// C 411: `bool fatal_error_in_progress;`
 #[unsafe(no_mangle)]
-pub static mut fatal_error_in_progress: bool = false;
+pub static fatal_error_in_progress: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 /// C 3225: `static Lisp_Object Vprevious_system_time_locale;`
-static mut Vprevious_system_time_locale: Lisp_Object = lisp_h_Qnil ();
+static Vprevious_system_time_locale: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 /// C 3236: `static Lisp_Object Vprevious_system_messages_locale;` (`#ifdef LC_MESSAGES`).
-static mut Vprevious_system_messages_locale: Lisp_Object = lisp_h_Qnil ();
+static Vprevious_system_messages_locale: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* -----------------------------------------------------------------------------------------
    The `DEFVAR_*` storage this unit owns (status 3.29).  C's `V*` objects are fields of
@@ -732,67 +731,67 @@ static mut Vprevious_system_messages_locale: Lisp_Object = lisp_h_Qnil ();
 
 /// C 3496: `DEFVAR_LISP ("command-line-args", Vcommand_line_args, …)`
 #[unsafe(no_mangle)]
-pub static mut Vcommand_line_args: Lisp_Object = lisp_h_Qnil ();
+pub static Vcommand_line_args: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 /// C 3500: `DEFVAR_LISP ("system-type", Vsystem_type, …)`
 #[unsafe(no_mangle)]
-pub static mut Vsystem_type: Lisp_Object = lisp_h_Qnil ();
+pub static Vsystem_type: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 /// C 3517: `DEFVAR_LISP ("system-configuration", Vsystem_configuration, …)`
 #[unsafe(no_mangle)]
-pub static mut Vsystem_configuration: Lisp_Object = lisp_h_Qnil ();
+pub static Vsystem_configuration: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 /// C 3521: `DEFVAR_LISP ("system-configuration-options", Vsystem_configuration_options, …)`
 #[unsafe(no_mangle)]
-pub static mut Vsystem_configuration_options: Lisp_Object = lisp_h_Qnil ();
+pub static Vsystem_configuration_options: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 /// C 3525: `DEFVAR_LISP ("system-configuration-features", Vsystem_configuration_features, …)`
 #[unsafe(no_mangle)]
-pub static mut Vsystem_configuration_features: Lisp_Object = lisp_h_Qnil ();
+pub static Vsystem_configuration_features: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 /// C 3534: `DEFVAR_BOOL ("noninteractive", noninteractive1, …)`
 #[unsafe(no_mangle)]
-pub static mut noninteractive1: bool = false;
+pub static noninteractive1: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 /// C 3537: `DEFVAR_LISP ("kill-emacs-hook", Vkill_emacs_hook, …)`
 #[unsafe(no_mangle)]
-pub static mut Vkill_emacs_hook: Lisp_Object = lisp_h_Qnil ();
+pub static Vkill_emacs_hook: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 /// C 3548: `DEFVAR_LISP ("path-separator", Vpath_separator, …)`
 #[unsafe(no_mangle)]
-pub static mut Vpath_separator: Lisp_Object = lisp_h_Qnil ();
+pub static Vpath_separator: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 /// C 3556: `DEFVAR_LISP ("invocation-name", Vinvocation_name, …)`
 #[unsafe(no_mangle)]
-pub static mut Vinvocation_name: Lisp_Object = lisp_h_Qnil ();
+pub static Vinvocation_name: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 /// C 3560: `DEFVAR_LISP ("invocation-directory", Vinvocation_directory, …)`
 #[unsafe(no_mangle)]
-pub static mut Vinvocation_directory: Lisp_Object = lisp_h_Qnil ();
+pub static Vinvocation_directory: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 /// C 3564: `DEFVAR_LISP ("installation-directory", Vinstallation_directory, …)`
 #[unsafe(no_mangle)]
-pub static mut Vinstallation_directory: Lisp_Object = lisp_h_Qnil ();
+pub static Vinstallation_directory: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 /// C 3573: `DEFVAR_LISP ("system-messages-locale", Vsystem_messages_locale, …)`
 #[unsafe(no_mangle)]
-pub static mut Vsystem_messages_locale: Lisp_Object = lisp_h_Qnil ();
+pub static Vsystem_messages_locale: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 /// C 3581: `DEFVAR_LISP ("system-time-locale", Vsystem_time_locale, …)`
 #[unsafe(no_mangle)]
-pub static mut Vsystem_time_locale: Lisp_Object = lisp_h_Qnil ();
+pub static Vsystem_time_locale: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 /// C 3587: `DEFVAR_LISP ("before-init-time", Vbefore_init_time, …)`
 #[unsafe(no_mangle)]
-pub static mut Vbefore_init_time: Lisp_Object = lisp_h_Qnil ();
+pub static Vbefore_init_time: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 /// C 3591: `DEFVAR_LISP ("after-init-time", Vafter_init_time, …)`
 #[unsafe(no_mangle)]
-pub static mut Vafter_init_time: Lisp_Object = lisp_h_Qnil ();
+pub static Vafter_init_time: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 /// C 3596: `DEFVAR_BOOL ("inhibit-x-resources", inhibit_x_resources, …)`
 #[unsafe(no_mangle)]
-pub static mut inhibit_x_resources: bool = false;
+pub static inhibit_x_resources: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 /// C 3600: `DEFVAR_LISP ("emacs-copyright", Vemacs_copyright, …)`
 #[unsafe(no_mangle)]
-pub static mut Vemacs_copyright: Lisp_Object = lisp_h_Qnil ();
+pub static Vemacs_copyright: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 /// C 3604: `DEFVAR_LISP ("emacs-version", Vemacs_version, …)`
 #[unsafe(no_mangle)]
-pub static mut Vemacs_version: Lisp_Object = lisp_h_Qnil ();
+pub static Vemacs_version: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 /// C 3613: `DEFVAR_LISP ("report-emacs-bug-address", Vreport_emacs_bug_address, …)`
 #[unsafe(no_mangle)]
-pub static mut Vreport_emacs_bug_address: Lisp_Object = lisp_h_Qnil ();
+pub static Vreport_emacs_bug_address: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 /// C 3617: `DEFVAR_LISP ("dump-mode", Vdump_mode, …)`
 #[unsafe(no_mangle)]
-pub static mut Vdump_mode: Lisp_Object = lisp_h_Qnil ();
+pub static Vdump_mode: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 /// C 3620: `DEFVAR_LISP ("dynamic-library-alist", Vdynamic_library_alist, …)`
 #[unsafe(no_mangle)]
-pub static mut Vdynamic_library_alist: Lisp_Object = lisp_h_Qnil ();
+pub static Vdynamic_library_alist: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* The rest of what no mirror in this file's include chain declares: the other units'
    `syms_of_*`/`init_*` entry points and the four objects C declares in a header.  Each is
@@ -845,9 +844,9 @@ unsafe extern "C-unwind" {
   /// C: lisp.h 5044: `extern int waiting_for_input;` is thread.h 185's macro in this
   /// configuration, so no symbol is declared here (the port's `waiting_for_input!`).
   /// C: regex-emacs.h 53: `extern ptrdiff_t emacs_re_max_failures;`
-  pub static mut emacs_re_max_failures: ptrdiff_t;
+  pub static emacs_re_max_failures: VmGlobal<ptrdiff_t>;
   /// C: regex-emacs.h 56: `extern ptrdiff_t emacs_re_safe_alloca;`
-  pub static mut emacs_re_safe_alloca: ptrdiff_t;
+  pub static emacs_re_safe_alloca: VmGlobal<ptrdiff_t>;
 }
 
 /* C: `<unistd.h>` 263-268's three descriptor constants now come from the unistd.in.rs mirror
@@ -882,12 +881,12 @@ pub unsafe extern "C" fn terminate_due_to_signal (sig: c_int, backtrace_limit: c
   unsafe {
   signal (sig, SIG_DFL);
 
-  if attempt_orderly_shutdown_on_fatal_signal
+  if (*attempt_orderly_shutdown_on_fatal_signal.as_mut_ptr ())
     {
       /* If fatal error occurs in code below, avoid infinite recursion.  */
-      if ! fatal_error_in_progress
+      if ! (*fatal_error_in_progress.as_mut_ptr ())
         {
-          fatal_error_in_progress = true;            // C: `fatal_error_in_progress = 1;`
+          (*fatal_error_in_progress.as_mut_ptr ()) = true;            // C: `fatal_error_in_progress = 1;`
 
           totally_unblock_input ();
           if sig == SIGTERM || sig == SIGHUP || sig == SIGINT
@@ -895,7 +894,7 @@ pub unsafe extern "C" fn terminate_due_to_signal (sig: c_int, backtrace_limit: c
 	      /* Avoid abort in shut_down_emacs if we were interrupted
 		 in noninteractive usage, as in that case we don't
 		 care about the message stack.  */
-	      if noninteractive
+	      if (*noninteractive.as_mut_ptr ())
 		{ clear_message_stack (); }
 	      Fkill_emacs (make_fixnum (sig as EMACS_INT), Qnil ());
 	    }
@@ -950,15 +949,15 @@ unsafe fn init_cmdargs (argc: c_int, argv: *mut *mut c_char, skip_args: c_int,
   if ! NILP (handler)
     { raw_name = concat2 (slash_colon, raw_name); }
 
-  Vinvocation_name = Ffile_name_nondirectory (raw_name);
-  Vinvocation_directory = Ffile_name_directory (raw_name);
+  (*Vinvocation_name.as_mut_ptr ()) = Ffile_name_nondirectory (raw_name);
+  (*Vinvocation_directory.as_mut_ptr ()) = Ffile_name_directory (raw_name);
 
   /* If we got no directory in argv[0], search PATH to find where
      Emacs actually came from.  */
-  if NILP (Vinvocation_directory)
+  if NILP ((*Vinvocation_directory.as_mut_ptr ()))
     {
       let mut found: Lisp_Object = Qnil ();
-      let yes: c_int = openp (Vexec_path, Vinvocation_name, Vexec_suffixes,
+      let yes: c_int = openp ((*Vexec_path.as_mut_ptr ()), (*Vinvocation_name.as_mut_ptr ()), (*Vexec_suffixes.as_mut_ptr ()),
 			      &raw mut found, make_fixnum (X_OK as EMACS_INT), false, false,
 			      std::ptr::null_mut ());
       if yes == 1
@@ -968,27 +967,27 @@ unsafe fn init_cmdargs (argc: c_int, argv: *mut *mut c_char, skip_args: c_int,
 	  handler = Ffind_file_name_handler (found, Qt ());
 	  if ! NILP (handler)
 	    { found = concat2 (slash_colon, found); }
-	  Vinvocation_directory = Ffile_name_directory (found);
+	  (*Vinvocation_directory.as_mut_ptr ()) = Ffile_name_directory (found);
 	}
     }
 
-  if !NILP (Vinvocation_directory)
-      && NILP (Ffile_name_absolute_p (Vinvocation_directory))
+  if !NILP ((*Vinvocation_directory.as_mut_ptr ()))
+      && NILP (Ffile_name_absolute_p ((*Vinvocation_directory.as_mut_ptr ())))
     /* Emacs was started with relative path, like ./emacs.
        Make it absolute.  */
     {
       let odir: Lisp_Object =
 	if ! original_pwd.is_null () { build_unibyte_string (original_pwd) } else { Qnil () };
 
-      Vinvocation_directory = Fexpand_file_name (Vinvocation_directory, odir);
+      (*Vinvocation_directory.as_mut_ptr ()) = Fexpand_file_name ((*Vinvocation_directory.as_mut_ptr ()), odir);
     }
 
-  Vinstallation_directory = Qnil ();
+  (*Vinstallation_directory.as_mut_ptr ()) = Qnil ();
 
-  if !NILP (Vinvocation_directory)
+  if !NILP ((*Vinvocation_directory.as_mut_ptr ()))
     {
-      dir = Vinvocation_directory;
-      name = Fexpand_file_name (Vinvocation_name, dir);
+      dir = (*Vinvocation_directory.as_mut_ptr ());
+      name = Fexpand_file_name ((*Vinvocation_name.as_mut_ptr ()), dir);
       loop
 	{
 	  let mut tem: Lisp_Object = Qnil ();
@@ -1010,7 +1009,7 @@ unsafe fn init_cmdargs (argc: c_int, argv: *mut *mut c_char, skip_args: c_int,
 	      etc_exists = Ffile_exists_p (tem);
 	      if !NILP (etc_exists)
 		{
-                  Vinstallation_directory = Ffile_name_as_directory (dir);
+                  (*Vinstallation_directory.as_mut_ptr ()) = Ffile_name_as_directory (dir);
 		  break;
 		}
 	    }
@@ -1028,7 +1027,7 @@ unsafe fn init_cmdargs (argc: c_int, argv: *mut *mut c_char, skip_args: c_int,
 	      if !NILP (etc_exists)
 		{
 		  tem = Fexpand_file_name (build_string (c"..".as_ptr ()), dir);
-                  Vinstallation_directory = Ffile_name_as_directory (tem);
+                  (*Vinstallation_directory.as_mut_ptr ()) = Ffile_name_as_directory (tem);
 		  break;
 		}
 	    }
@@ -1046,7 +1045,7 @@ unsafe fn init_cmdargs (argc: c_int, argv: *mut *mut c_char, skip_args: c_int,
 	}
     }
 
-  Vcommand_line_args = Qnil ();
+  (*Vcommand_line_args.as_mut_ptr ()) = Qnil ();
 
   i = argc - 1;
   while 0 <= i
@@ -1055,8 +1054,8 @@ unsafe fn init_cmdargs (argc: c_int, argv: *mut *mut c_char, skip_args: c_int,
 	/* For the moment, we keep arguments as is in unibyte strings.
 	   They are decoded in the function command-line after we know
 	   locale-coding-system.  */
-	{ Vcommand_line_args = Fcons (build_unibyte_string (*argv.offset (i as isize)),
-				      Vcommand_line_args); }
+	{ (*Vcommand_line_args.as_mut_ptr ()) = Fcons (build_unibyte_string (*argv.offset (i as isize)),
+				      (*Vcommand_line_args.as_mut_ptr ())); }
       i -= 1;
     }
 
@@ -1069,14 +1068,14 @@ DEFUN! ("invocation-name", Finvocation_name, Sinvocation_name, 0, 0, 0,
        doc: "Return the program name that was used to run Emacs.\nAny directory names are omitted.",
        (),
        {
-  return Fcopy_sequence (Vinvocation_name);
+  return Fcopy_sequence ((*Vinvocation_name.as_mut_ptr ()));
 });
 
 DEFUN! ("invocation-directory", Finvocation_directory, Sinvocation_directory, 0, 0, 0,
        doc: "Return the directory name in which the Emacs executable was located.",
        (),
        {
-  return Fcopy_sequence (Vinvocation_directory);
+  return Fcopy_sequence ((*Vinvocation_directory.as_mut_ptr ()));
 });
 
 /* -----------------------------------------------------------------------------------------
@@ -1157,27 +1156,27 @@ unsafe fn default_PATH () -> *const c_char
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  static mut path: *const c_char = std::ptr::null ();
+  static path: VmGlobal<*const c_char> = VmGlobal::<*const c_char>::new (std::ptr::null ());
 
   /* A static buffer big enough so that confstr is called just once
      in GNU/Linux, where the default PATH is "${SYSTEM_BIN}:${SYSTEM_USR}/bin".
      If staticbuf[0], path is already initialized.  */
-  static mut staticbuf: [c_char; 16] = [0; 16];
+  static staticbuf: VmGlobal<[c_char; 16]> = VmGlobal::<[c_char; 16]>::new ([0; 16]);
 
-  if staticbuf[0] == 0
+  if (*staticbuf.as_mut_ptr ())[0] == 0
     {
       #[cfg (all (feature = "dos_nt", feature = "not__cs_path"))]
       {
 	/* C 776-780: `#elif defined DOS_NT` - `strcpy (staticbuf, ".")`, whose effect is the byte
 	   and its terminator: "This is not exactly what Windows does when there's no PATH (see
 	   documentation of CreateProcessW), but it's a good-enough approximation."  */
-	staticbuf[0] = b'.' as c_char;
-	staticbuf[1] = 0;
-	path = std::ptr::addr_of! (staticbuf) as *const c_char;
+	(*staticbuf.as_mut_ptr ())[0] = b'.' as c_char;
+	(*staticbuf.as_mut_ptr ())[1] = 0;
+	(*path.as_mut_ptr ()) = staticbuf.as_ptr () as *const c_char;
       }
       #[cfg (not (feature = "not__cs_path"))]
       {
-      let mut buf: *mut c_char = std::ptr::addr_of_mut! (staticbuf) as *mut c_char;
+      let mut buf: *mut c_char = staticbuf.as_mut_ptr () as *mut c_char;
       let mut bufsize: usize = 16;                 // C: `sizeof staticbuf`
 
       /* If necessary call confstr again with a bigger buffer.  */
@@ -1186,11 +1185,11 @@ unsafe fn default_PATH () -> *const c_char
 	  let s: usize = confstr (_CS_PATH, buf, bufsize);
 	  if ! (s == 0 || bufsize < s)
 	    { break; }
-	  if buf != std::ptr::addr_of_mut! (staticbuf) as *mut c_char
+	  if buf != staticbuf.as_mut_ptr () as *mut c_char
 	    { xfree (buf as *mut c_void); }
 	  if s == 0
 	    {
-	      staticbuf[0] = 1;
+	      (*staticbuf.as_mut_ptr ())[0] = 1;
 	      buf = std::ptr::null_mut ();
 	      break;
 	    }
@@ -1198,11 +1197,11 @@ unsafe fn default_PATH () -> *const c_char
 	  bufsize = s;
 	}
 
-      path = buf;
+      (*path.as_mut_ptr ()) = buf;
       }
     }
 
-  return path;
+  return (*path.as_mut_ptr ());
 
   }
 }
@@ -1459,7 +1458,7 @@ unsafe fn load_pdump (argc: c_int, argv: *mut *mut c_char,
      still works if the user copies and renames it.  */
   hexbuf_size = 2 * FINGERPRINT_SIZE as ptrdiff_t;
   hexbuf = xmalloc (hexbuf_size as usize + 1) as *mut c_char;
-  hexbuf_digest (hexbuf, (&raw const fingerprint) as *const c_void,
+  hexbuf_digest (hexbuf, (fingerprint.as_ptr ()) as *const c_void,
 		 FINGERPRINT_SIZE as c_int);
   *hexbuf.offset (hexbuf_size) = 0;
   needed = (strlen (path_exec) as ptrdiff_t
@@ -1619,14 +1618,14 @@ unsafe fn emacs_init_body (mut argc: c_int, argv: *mut *mut c_char,
 
   /* Look for this argument first, before any heap allocation, so we
      can set heap flags properly if we're going to dump.  */
-  if !initialized && ! temacs.is_null ()
+  if !(*initialized.as_mut_ptr ()) && ! temacs.is_null ()
     {
       if strcmp (temacs, c"pdump".as_ptr ()) == 0
 	  || strcmp (temacs, c"pbootstrap".as_ptr ()) == 0
-        { gflags.will_dump_with_pdumper = true; }
+        { (*gflags.as_mut_ptr ()).will_dump_with_pdumper = true; }
       if strcmp (temacs, c"pbootstrap".as_ptr ()) == 0
-	{ gflags.will_bootstrap = true; }
-      gflags.will_dump = will_dump_with_pdumper_p ();
+	{ (*gflags.as_mut_ptr ()).will_bootstrap = true; }
+      (*gflags.as_mut_ptr ()).will_dump = will_dump_with_pdumper_p ();
       if will_dump_p ()
         { dump_mode = temacs; }
       if dump_mode.is_null ()
@@ -1635,8 +1634,8 @@ unsafe fn emacs_init_body (mut argc: c_int, argv: *mut *mut c_char,
   else
     {
       eassert! (temacs.is_null ());
-      eassert! (! initialized);
-      if !initialized
+      eassert! (! (*initialized.as_mut_ptr ()));
+      if !(*initialized.as_mut_ptr ())
 	{ attempt_load_pdump = true; }
     }
 
@@ -1645,7 +1644,7 @@ unsafe fn emacs_init_body (mut argc: c_int, argv: *mut *mut c_char,
 
   if attempt_load_pdump
     {
-      initial_emacs_executable = load_pdump (argc, argv, dump_file);
+      (*initial_emacs_executable.as_mut_ptr ()) = load_pdump (argc, argv, dump_file);
     }
 
   argc = maybe_disable_address_randomization (argc, argv);
@@ -1654,7 +1653,7 @@ unsafe fn emacs_init_body (mut argc: c_int, argv: *mut *mut c_char,
   atexit (Some (close_output_streams));
 
   copy_args (argc, argv);
-  initial_argv0 = *argv.offset (0);
+  (*initial_argv0.as_mut_ptr ()) = *argv.offset (0);
 
   /* Command-line argument processing.  (C 1464-1495's commentary.)  */
   let mut only_version: bool = false;
@@ -1673,20 +1672,20 @@ unsafe fn emacs_init_body (mut argc: c_int, argv: *mut *mut c_char,
 	       std::ptr::null_mut (), &raw mut skip_args)
       && !only_version
     {
-      if initialized
+      if (*initialized.as_mut_ptr ())
         {
-          dump_fingerprint (stdout, c"".as_ptr (), (&raw mut fingerprint) as *mut c_uchar);
+          dump_fingerprint ((*stdout.as_mut_ptr ()), c"".as_ptr (), (fingerprint.as_mut_ptr ()) as *mut c_uchar);
           exit (0);
         }
       else
         {
-          fputs (c"Not initialized\n".as_ptr (), stderr);
+          fputs (c"Not initialized\n".as_ptr (), (*stderr.as_mut_ptr ()));
           exit (1);
         }
     }
-  emacs_wd = emacs_get_current_dir_name ();
+  (*emacs_wd.as_mut_ptr ()) = emacs_get_current_dir_name ();
   if dumped_with_pdumper_p ()
-    { pdumper_record_wd (emacs_wd); }
+    { pdumper_record_wd ((*emacs_wd.as_mut_ptr ())); }
 
   if argmatch (argv, argc, c"-chdir".as_ptr (), c"--chdir".as_ptr (), 4,
 	       &raw mut ch_to_dir, &raw mut skip_args)
@@ -1694,12 +1693,12 @@ unsafe fn emacs_init_body (mut argc: c_int, argv: *mut *mut c_char,
     {
       if chdir (ch_to_dir) != 0
         {
-          fprintf (stderr, c"%s: Can't chdir to %s: %s\n".as_ptr (),
+          fprintf ((*stderr.as_mut_ptr ()), c"%s: Can't chdir to %s: %s\n".as_ptr (),
                    *argv.offset (0), ch_to_dir, strerror (*errno ()));
           exit (1);
         }
-      original_pwd = emacs_wd;
-      emacs_wd = emacs_get_current_dir_name ();
+      original_pwd = (*emacs_wd.as_mut_ptr ());
+      (*emacs_wd.as_mut_ptr ()) = emacs_get_current_dir_name ();
     }
 
   /* Extend the stack space available.  Don't do that if dumping,
@@ -1726,11 +1725,11 @@ unsafe fn emacs_init_body (mut argc: c_int, argv: *mut *mut c_char,
          frames.  */
       let extra: c_int = (30 * 1000) * 50;
 
-      let try_to_grow_stack: bool = !noninteractive || initialized;
+      let try_to_grow_stack: bool = !(*noninteractive.as_mut_ptr ()) || (*initialized.as_mut_ptr ());
 
       if try_to_grow_stack
 	{
-	  let mut newlim: rlim_t = emacs_re_max_failures as rlim_t * ratio as rlim_t
+	  let mut newlim: rlim_t = (*emacs_re_max_failures.as_mut_ptr ()) as rlim_t * ratio as rlim_t
 				   + extra as rlim_t;
 
 	  /* Round the new limit to a page boundary; this is needed
@@ -1761,10 +1760,10 @@ unsafe fn emacs_init_body (mut argc: c_int, argv: *mut *mut c_char,
       let max_failures: ptrdiff_t
 	= min ((lim - extra as rlim_t) as isize,
 	       min (PTRDIFF_MAX as usize, SIZE_MAX) as isize) / ratio as ptrdiff_t;  /* P-127 */
-      emacs_re_safe_alloca = max (max_failures * min_ratio as ptrdiff_t, MAX_ALLOCA);
+      (*emacs_re_safe_alloca.as_mut_ptr ()) = max (max_failures * min_ratio as ptrdiff_t, MAX_ALLOCA);
     }
 
-  clearerr (stdin);
+  clearerr ((*stdin.as_mut_ptr ()));
 
   emacs_backtrace (-1);
 
@@ -1778,12 +1777,12 @@ unsafe fn emacs_init_body (mut argc: c_int, argv: *mut *mut c_char,
       setlocale (LC_ALL, c"".as_ptr ());
       fixup_locale ();
     }
-  text_quoting_flag = using_utf8 ();
+  (*text_quoting_flag.as_mut_ptr ()) = using_utf8 ();
 
-  inhibit_window_system = false;
+  (*inhibit_window_system.as_mut_ptr ()) = false;
 
   /* Handle the -t switch, which specifies filename to use as terminal.  */
-  dev_tty = xstrdup (std::ptr::addr_of! (DEV_TTY) as *const c_char);  /* the default terminal */
+  (*dev_tty.as_mut_ptr ()) = xstrdup (std::ptr::addr_of! (DEV_TTY) as *const c_char);  /* the default terminal */
   while !only_version
     {
       let mut term: *mut c_char = std::ptr::null_mut ();
@@ -1798,17 +1797,17 @@ unsafe fn emacs_init_body (mut argc: c_int, argv: *mut *mut c_char,
 		  != STDOUT_FILENO)
 	    {
 	      let errstring: *const c_char = strerror (*errno ());
-	      fprintf (stderr, c"%s: %s: %s\n".as_ptr (), *argv.offset (0), term, errstring);
+	      fprintf ((*stderr.as_mut_ptr ()), c"%s: %s: %s\n".as_ptr (), *argv.offset (0), term, errstring);
 	      exit (EXIT_FAILURE);
 	    }
 	  if isatty (STDIN_FILENO) == 0
 	    {
-	      fprintf (stderr, c"%s: %s: not a tty\n".as_ptr (), *argv.offset (0), term);
+	      fprintf ((*stderr.as_mut_ptr ()), c"%s: %s: not a tty\n".as_ptr (), *argv.offset (0), term);
 	      exit (EXIT_FAILURE);
 	    }
-	  fprintf (stderr, c"Using %s\n".as_ptr (), term);
-	  xfree (dev_tty as *mut c_void);
-	  dev_tty = xstrdup (term);
+	  fprintf ((*stderr.as_mut_ptr ()), c"Using %s\n".as_ptr (), term);
+	  xfree ((*dev_tty.as_mut_ptr ()) as *mut c_void);
+	  (*dev_tty.as_mut_ptr ()) = xstrdup (term);
 	}
       else
 	{ break; }
@@ -1820,21 +1819,21 @@ unsafe fn emacs_init_body (mut argc: c_int, argv: *mut *mut c_char,
 	       std::ptr::null_mut (), &raw mut skip_args)
       || argmatch (argv, argc, c"-nw".as_ptr (), c"--no-windows".as_ptr (), 6,
 		   std::ptr::null_mut (), &raw mut skip_args)
-    { inhibit_window_system = true; }
+    { (*inhibit_window_system.as_mut_ptr ()) = true; }
 
   /* Handle the -batch switch, which means don't do interactive display.  */
-  noninteractive = false;
+  (*noninteractive.as_mut_ptr ()) = false;
   if argmatch (argv, argc, c"-batch".as_ptr (), c"--batch".as_ptr (), 5,
 	       std::ptr::null_mut (), &raw mut skip_args)
       || only_version
     {
-      noninteractive = true;
-      Vundo_outer_limit = Qnil ();
+      (*noninteractive.as_mut_ptr ()) = true;
+      (*Vundo_outer_limit.as_mut_ptr ()) = Qnil ();
     }
   if argmatch (argv, argc, c"-script".as_ptr (), c"--script".as_ptr (), 3,
 	       &raw mut junk, &raw mut skip_args)
     {
-      noninteractive = true;	/* Set batch mode.  */
+      (*noninteractive.as_mut_ptr ()) = true;	/* Set batch mode.  */
       /* Convert --script to -scriptload, un-skip it, and sort again
 	 so that it will be handled in proper sequence.  */
       /* FIXME broken for --script=FILE - is that supposed to work?  */
@@ -1853,16 +1852,16 @@ unsafe fn emacs_init_body (mut argc: c_int, argv: *mut *mut c_char,
       printf (c"Usage: %s [OPTION-OR-FILENAME]...\n".as_ptr (), *argv.offset (0));
       while i < countof! (usage_message) as c_int
 	{
-	  fputs (usage_message[i as usize].as_ptr (), stdout);
+	  fputs (usage_message[i as usize].as_ptr (), (*stdout.as_mut_ptr ()));
 	  i += 1;
 	}
       exit (0);
     }
 
-  daemon_type = 0;
+  (*daemon_type.as_mut_ptr ()) = 0;
 
   /* Make sure IS_DAEMON starts up as false.  */
-  daemon_pipe[1] = 0;
+  (*daemon_pipe.as_mut_ptr ())[1] = 0;
 
   let mut sockfd: c_int = -1;
 
@@ -1873,7 +1872,7 @@ unsafe fn emacs_init_body (mut argc: c_int, argv: *mut *mut c_char,
 	  || argmatch (argv, argc, c"-fg-daemon".as_ptr (), c"--fg-daemon".as_ptr (), 10,
 		       &raw mut dname_arg, &raw mut skip_args)
 	{
-	  daemon_type = 1;           /* foreground */
+	  (*daemon_type.as_mut_ptr ()) = 1;           /* foreground */
 	}
       else if argmatch (argv, argc, c"-daemon".as_ptr (), c"--daemon".as_ptr (), 5,
 			std::ptr::null_mut (), &raw mut skip_args)
@@ -1884,21 +1883,21 @@ unsafe fn emacs_init_body (mut argc: c_int, argv: *mut *mut c_char,
 	       || argmatch (argv, argc, c"-bg-daemon".as_ptr (), c"--bg-daemon".as_ptr (), 10,
 			    &raw mut dname_arg, &raw mut skip_args)
 	{
-	  daemon_type = 2;          /* background */
+	  (*daemon_type.as_mut_ptr ()) = 2;          /* background */
 	}
     }
 
-  if daemon_type > 0
+  if (*daemon_type.as_mut_ptr ()) > 0
     {
-      if daemon_type == 2
+      if (*daemon_type.as_mut_ptr ()) == 2
         {
           /* Start as a background daemon: fork a new child process which
              will run the rest of the initialization code, then exit.
 
              (C 1765-1785's commentary on detaching a daemon.)  */
-          if emacs_pipe (std::ptr::addr_of_mut! (daemon_pipe) as *mut c_int) != 0
+          if emacs_pipe (daemon_pipe.as_mut_ptr () as *mut c_int) != 0
             {
-              fputs (c"Cannot pipe!\n".as_ptr (), stderr);
+              fputs (c"Cannot pipe!\n".as_ptr (), (*stderr.as_mut_ptr ()));
               exit (1);
             }
         } /* daemon_type == 2 */
@@ -1908,7 +1907,7 @@ unsafe fn emacs_init_body (mut argc: c_int, argv: *mut *mut c_char,
 
          (C 1808-1814's commentary; the PGTK/USE_GTK messages are dead.)  */
 
-      if daemon_type == 2
+      if (*daemon_type.as_mut_ptr ()) == 2
         {
           let f: pid_t;
           f = fork ();
@@ -1918,28 +1917,28 @@ unsafe fn emacs_init_body (mut argc: c_int, argv: *mut *mut c_char,
               let mut buf: [c_char; 1] = [0; 1];
 
               /* Close unused writing end of the pipe.  */
-              emacs_close (daemon_pipe[1]);
+              emacs_close ((*daemon_pipe.as_mut_ptr ())[1]);
 
               /* Just wait for the child to close its end of the pipe.  */
               loop
                 {
-                  retval = read (daemon_pipe[0], buf.as_mut_ptr () as *mut c_void, 1) as c_int;
+                  retval = read ((*daemon_pipe.as_mut_ptr ())[0], buf.as_mut_ptr () as *mut c_void, 1) as c_int;
                   if ! (retval == -1 && *errno () == EINTR)
 		    { break; }
                 }
 
               if retval < 0
                 {
-                  fputs (c"Error reading status from child\n".as_ptr (), stderr);
+                  fputs (c"Error reading status from child\n".as_ptr (), (*stderr.as_mut_ptr ()));
                   exit (1);
                 }
               else if retval == 0
                 {
-                  fputs (c"Error: server did not start correctly\n".as_ptr (), stderr);
+                  fputs (c"Error: server did not start correctly\n".as_ptr (), (*stderr.as_mut_ptr ()));
                   exit (1);
                 }
 
-              emacs_close (daemon_pipe[0]);
+              emacs_close ((*daemon_pipe.as_mut_ptr ())[0]);
               exit (0);
             }
           if f < 0
@@ -1949,21 +1948,21 @@ unsafe fn emacs_init_body (mut argc: c_int, argv: *mut *mut c_char,
             }
 
           /* Close unused reading end of the pipe.  */
-          emacs_close (daemon_pipe[0]);
+          emacs_close ((*daemon_pipe.as_mut_ptr ())[0]);
 
           setsid ();
         } /* daemon_type == 2 */
       if ! dname_arg.is_null ()
-	{ daemon_name = xstrdup (dname_arg); }
+	{ (*daemon_name.as_mut_ptr ()) = xstrdup (dname_arg); }
     }
 
   init_signals ();
 
-  noninteractive1 = noninteractive;
+  (*noninteractive1.as_mut_ptr ()) = (*noninteractive.as_mut_ptr ());
 
   /* Perform basic initializations (not merely interning symbols).  */
 
-  if !initialized
+  if !(*initialized.as_mut_ptr ())
     {
       init_alloc_once ();
       init_pdumper_once ();
@@ -2024,27 +2023,27 @@ unsafe fn emacs_init_body (mut argc: c_int, argv: *mut *mut c_char,
     femacs_gc_runtime_ready();
   }
   init_eval ();
-  running_asynch_code = false;
+  (*running_asynch_code.as_mut_ptr ()) = false;
   init_random ();
   init_xfaces ();
 
-  if !initialized
+  if !(*initialized.as_mut_ptr ())
     { syms_of_comp (); }
 
   /* Do less garbage collection in batch mode (since these tend to be
      more short-lived, and the memory is returned to the OS on exit
      anyway).  */
-  Vgc_cons_percentage = make_float (if noninteractive && initialized { 1.0 } else { 0.1 });
+  (*Vgc_cons_percentage.as_mut_ptr ()) = make_float (if (*noninteractive.as_mut_ptr ()) && (*initialized.as_mut_ptr ()) { 1.0 } else { 0.1 });
 
   no_loadup
     = argmatch (argv, argc, c"-nl".as_ptr (), c"--no-loadup".as_ptr (), 6,
 		std::ptr::null_mut (), &raw mut skip_args);
 
-  no_site_lisp
+  (*no_site_lisp.as_mut_ptr ())
     = argmatch (argv, argc, c"-nsl".as_ptr (), c"--no-site-lisp".as_ptr (), 11,
 		std::ptr::null_mut (), &raw mut skip_args);
 
-  build_details = ! argmatch (argv, argc, c"-no-build-details".as_ptr (),
+  (*build_details.as_mut_ptr ()) = ! argmatch (argv, argc, c"-no-build-details".as_ptr (),
 			      c"--no-build-details".as_ptr (), 7, std::ptr::null_mut (),
 			      &raw mut skip_args);
 
@@ -2055,16 +2054,16 @@ unsafe fn emacs_init_body (mut argc: c_int, argv: *mut *mut c_char,
                                      std::ptr::null_mut (), &raw mut skip_args);
     if will_dump_p () && module_assertions && !only_version
       {
-        fputs (c"Module assertions are not supported during dumping\n".as_ptr (), stderr);
+        fputs (c"Module assertions are not supported during dumping\n".as_ptr (), (*stderr.as_mut_ptr ()));
         exit (1);
       }
     init_module_assertions (module_assertions);
   }
 
   #[cfg(all(feature = "have_ns", feature = "ns_impl_cocoa"))]
-  if !noninteractive {
+  if !(*noninteractive.as_mut_ptr ()) {
     unsafe extern "C-unwind" { fn get_homedir() -> *const c_char; }
-    let mut go_home = ch_to_dir.is_null() && !inhibit_window_system && isatty(STDIN_FILENO) == 0;
+    let mut go_home = ch_to_dir.is_null() && !(*inhibit_window_system.as_mut_ptr ()) && isatty(STDIN_FILENO) == 0;
     if skip_args < argc {
       if strncmp(*argv.offset(skip_args as isize), c"-psn".as_ptr(), 4) == 0 {
         skip_args += 1;
@@ -2076,7 +2075,7 @@ unsafe fn emacs_init_body (mut argc: c_int, argv: *mut *mut c_char,
     }
     if go_home {
       let home = get_homedir();
-      if *home != 0 && chdir(home) == 0 { emacs_wd = emacs_get_current_dir_name(); }
+      if *home != 0 && chdir(home) == 0 { (*emacs_wd.as_mut_ptr ()) = emacs_get_current_dir_name(); }
     }
   }
 
@@ -2087,22 +2086,22 @@ unsafe fn emacs_init_body (mut argc: c_int, argv: *mut *mut c_char,
   {
     let count_before: c_int = skip_args;
 
-    if ! no_site_lisp
+    if ! (*no_site_lisp.as_mut_ptr ())
       {
 
 	if argmatch (argv, argc, c"-Q".as_ptr (), c"--quick".as_ptr (), 3,
 		     std::ptr::null_mut (), &raw mut skip_args)
             || argmatch (argv, argc, c"-quick".as_ptr (), std::ptr::null (), 2,
 			 std::ptr::null_mut (), &raw mut skip_args)
-	  { no_site_lisp = true; }
+	  { (*no_site_lisp.as_mut_ptr ()) = true; }
 
       }
 
     if argmatch (argv, argc, c"-x".as_ptr (), std::ptr::null (), 1, &raw mut junk,
 		 &raw mut skip_args)
       {
-	noninteractive = true;
-	no_site_lisp = true;
+	(*noninteractive.as_mut_ptr ()) = true;
+	(*no_site_lisp.as_mut_ptr ()) = true;
 	/* This is picked up in startup.el.  */
 	static scripteval_option: &CStr = c"-scripteval";
 	*argv.offset ((skip_args - 1) as isize) = scripteval_option.as_ptr () as *mut c_char;
@@ -2124,7 +2123,7 @@ unsafe fn emacs_init_body (mut argc: c_int, argv: *mut *mut c_char,
   /* Initialize and GC-protect Vinitial_environment and
      Vprocess_environment before set_initial_environment fills them
      in.  */
-  if !initialized
+  if !(*initialized.as_mut_ptr ())
     { syms_of_callproc (); }
   /* egetenv is a pretty low-level facility, which may get called in
      many circumstances; it seems flimsy to put off initializing it
@@ -2144,14 +2143,14 @@ unsafe fn emacs_init_body (mut argc: c_int, argv: *mut *mut c_char,
   /* Must precede init_lread.  */
   init_cmdargs (argc, argv, skip_args, original_pwd);
 
-  if initialized
+  if (*initialized.as_mut_ptr ())
     {
       /* Erase any pre-dump messages in the message log, to avoid confusion.  */
       let mut old_log_max: Lisp_Object = Qnil ();
-      old_log_max = Vmessage_log_max;
-      XSETFASTINT! (Vmessage_log_max, 0);
+      old_log_max = (*Vmessage_log_max.as_mut_ptr ());
+      XSETFASTINT! ((*Vmessage_log_max.as_mut_ptr ()), 0);
       message_dolog (c"".as_ptr (), 0, true, false);
-      Vmessage_log_max = old_log_max;
+      (*Vmessage_log_max.as_mut_ptr ()) = old_log_max;
     }
 
   init_callproc ();	/* Must follow init_cmdargs but not init_sys_modes.  */
@@ -2167,18 +2166,18 @@ unsafe fn emacs_init_body (mut argc: c_int, argv: *mut *mut c_char,
       let version: *const c_char;
       let copyright: *const c_char;
 
-      if initialized
+      if (*initialized.as_mut_ptr ())
 	{
 	  let tem: Lisp_Object = Fsymbol_value (intern_c_string (c"emacs-version".as_ptr ()));
 	  let tem2: Lisp_Object = Fsymbol_value (intern_c_string (c"emacs-copyright".as_ptr ()));
 	  if !STRINGP (tem)
 	    {
-	      fputs (c"Invalid value of 'emacs-version'\n".as_ptr (), stderr);
+	      fputs (c"Invalid value of 'emacs-version'\n".as_ptr (), (*stderr.as_mut_ptr ()));
 	      exit (1);
 	    }
 	  if !STRINGP (tem2)
 	    {
-	      fputs (c"Invalid value of 'emacs-copyright'\n".as_ptr (), stderr);
+	      fputs (c"Invalid value of 'emacs-copyright'\n".as_ptr (), (*stderr.as_mut_ptr ()));
 	      exit (1);
 	    }
 	  else
@@ -2194,7 +2193,7 @@ unsafe fn emacs_init_body (mut argc: c_int, argv: *mut *mut c_char,
 	}
       printf (c"%s %s\n".as_ptr (), PACKAGE_NAME.as_ptr (), version);
 
-      if initialized
+      if (*initialized.as_mut_ptr ())
 	{
 	  let mut rversion: Lisp_Object = Qnil ();
 	  let mut rbranch: Lisp_Object = Qnil ();
@@ -2224,7 +2223,7 @@ unsafe fn emacs_init_body (mut argc: c_int, argv: *mut *mut c_char,
   /* Intern the names of all standard functions and variables;
      define standard keys.  */
 
-  if !initialized
+  if !(*initialized.as_mut_ptr ())
     {
       /* The basic levels of Lisp must come first.  Note that
 	 syms_of_data and some others have already been called.  */
@@ -2437,7 +2436,7 @@ unsafe fn emacs_init_body (mut argc: c_int, argv: *mut *mut c_char,
   init_display ();	/* Determine terminal type.  Calls init_sys_modes.  */
   /* C 2540-2543: `#if HAVE_W32NOTIFY if (noninteractive) init_crit (); #endif`.  */
   #[cfg (feature = "have_w32notify")]
-  { if noninteractive { init_crit (); } }
+  { if (*noninteractive.as_mut_ptr ()) { init_crit (); } }
   init_xdisp ();
   /* C 2545-2547: `#ifdef HAVE_WINDOW_SYSTEM init_fringe (); #endif`.  */
   #[cfg (feature = "have_window_system")]
@@ -2457,33 +2456,33 @@ unsafe fn emacs_init_body (mut argc: c_int, argv: *mut *mut c_char,
     init_sfntfont_android ();
   }
 
-  if !initialized
+  if !(*initialized.as_mut_ptr ())
     {
       let mut file: *mut c_char = std::ptr::null_mut ();
       /* Handle -l loadup, args passed by Makefile.  */
       if argmatch (argv, argc, c"-l".as_ptr (), c"--load".as_ptr (), 3,
 		   &raw mut file, &raw mut skip_args)
 	{
-	  Vtop_level = list2 (Qload (), build_unibyte_string (file));
+	  (*Vtop_level.as_mut_ptr ()) = list2 (Qload (), build_unibyte_string (file));
 	}
       /* Unless next switch is -nl, load "loadup.el" first thing.  */
       if ! no_loadup
-	{ Vtop_level = list2 (Qload (), build_string (c"loadup.el".as_ptr ())); }
+	{ (*Vtop_level.as_mut_ptr ()) = list2 (Qload (), build_string (c"loadup.el".as_ptr ())); }
       #[cfg (feature = "have_native_comp")]
-      if !NILP (Vtop_level) && temacs.is_null ()
+      if !NILP ((*Vtop_level.as_mut_ptr ())) && temacs.is_null ()
         {
-          Vnative_comp_eln_load_path =
-            Fcons (Fexpand_file_name (XCAR (Vnative_comp_eln_load_path),
-                                     Vinvocation_directory), Qnil ());
+          (*Vnative_comp_eln_load_path.as_mut_ptr ()) =
+            Fcons (Fexpand_file_name (XCAR ((*Vnative_comp_eln_load_path.as_mut_ptr ())),
+                                     (*Vinvocation_directory.as_mut_ptr ())), Qnil ());
         }
     }
 
   /* Set up for profiling.  (C 2599-2602's commentary; `#ifdef PROFILING` is dead.)  */
 
-  initialized = true;
+  (*initialized.as_mut_ptr ()) = true;
 
   if ! dump_mode.is_null ()
-    { Vdump_mode = build_string (dump_mode); }
+    { (*Vdump_mode.as_mut_ptr ()) = build_string (dump_mode); }
 
   /* Allow code to be run (mostly useful after redumping). */
   safe_run_hooks (Qafter_pdump_load_hook ());
@@ -2523,7 +2522,7 @@ const _: () = core::assert! (std::mem::offset_of! (standard_args, nargs) == 20);
 /* C's array is `static const struct standard_args standard_args[]`; Rust's `static` demands
    `Sync` and a raw pointer is not `Sync`, so the port keeps it `static mut` (the
    callint.rs `callint_argfuns` shape: same object, the reads are the only access).  */
-static mut standard_args: [standard_args; 80 + cfg! (feature = "have_modules") as usize] = [
+static standard_args: VmGlobal<[standard_args; 80 + cfg! (feature = "have_modules") as usize]> = VmGlobal::<[standard_args; 80 + cfg! (feature = "have_modules") as usize]>::new ([
   standard_args { name: c"-version".as_ptr (), longname: c"--version".as_ptr (), priority: 150, nargs: 0 },
   standard_args { name: c"-fingerprint".as_ptr (), longname: c"--fingerprint".as_ptr (), priority: 140, nargs: 0 },
   standard_args { name: c"-chdir".as_ptr (), longname: c"--chdir".as_ptr (), priority: 130, nargs: 1 },
@@ -2606,7 +2605,7 @@ static mut standard_args: [standard_args; 80 + cfg! (feature = "have_modules") a
   standard_args { name: c"-file".as_ptr (), longname: c"--file".as_ptr (), priority: 0, nargs: 1 },
   standard_args { name: c"-insert".as_ptr (), longname: c"--insert".as_ptr (), priority: 0, nargs: 1 },
   standard_args { name: c"-kill".as_ptr (), longname: c"--kill".as_ptr (), priority: -10, nargs: 0 },
-];
+]);
 
 /* -----------------------------------------------------------------------------------------
    C 2774-2792.  `copy_args`, live inside `#ifndef WINDOWSNT`.
@@ -2625,8 +2624,8 @@ unsafe fn copy_args (argc: c_int, argv: *mut *mut c_char)
       i += 1;
     }
   *r#new.offset (argc as isize) = *argv.offset (argc as isize);
-  initial_argv = r#new;
-  initial_argc = argc;
+  (*initial_argv.as_mut_ptr ()) = r#new;
+  (*initial_argc.as_mut_ptr ()) = argc;
 
   }
 }
@@ -2686,16 +2685,16 @@ unsafe fn sort_args (argc: c_int, argv: *mut *mut c_char)
 	  'done: {
 	  /* Look for a match with a known old-fashioned option.  */
 	  i = 0;
-	  while i < countof! (standard_args) as c_int
+	  while i < countof! ((*standard_args.as_mut_ptr ())) as c_int
 	    {
-	      if strcmp (*argv.offset (from as isize), standard_args[i as usize].name) == 0
+	      if strcmp (*argv.offset (from as isize), (*standard_args.as_mut_ptr ())[i as usize].name) == 0
 		{
-		  *options.offset (from as isize) = standard_args[i as usize].nargs;
-		  *priority.offset (from as isize) = standard_args[i as usize].priority;
-		  if from + standard_args[i as usize].nargs >= argc
+		  *options.offset (from as isize) = (*standard_args.as_mut_ptr ())[i as usize].nargs;
+		  *priority.offset (from as isize) = (*standard_args.as_mut_ptr ())[i as usize].priority;
+		  if from + (*standard_args.as_mut_ptr ())[i as usize].nargs >= argc
 		    { fatal (c"Option '%s' requires an argument\n".as_ptr (),
 			     *argv.offset (from as isize)); }
-		  from += standard_args[i as usize].nargs;
+		  from += (*standard_args.as_mut_ptr ())[i as usize].nargs;
 		  break 'done;
 		}
 	      i += 1;
@@ -2717,11 +2716,11 @@ unsafe fn sort_args (argc: c_int, argv: *mut *mut c_char)
 	      r#match = -1;
 
 	      i = 0;
-	      while i < countof! (standard_args) as c_int
+	      while i < countof! ((*standard_args.as_mut_ptr ())) as c_int
 		{
-		  if ! standard_args[i as usize].longname.is_null ()
+		  if ! (*standard_args.as_mut_ptr ())[i as usize].longname.is_null ()
 		      && strncmp (*argv.offset (from as isize),
-				  standard_args[i as usize].longname,
+				  (*standard_args.as_mut_ptr ())[i as usize].longname,
 				  thislen as usize) == 0
 		    {
 		      if r#match == -1
@@ -2735,8 +2734,8 @@ unsafe fn sort_args (argc: c_int, argv: *mut *mut c_char)
 	      /* If we found exactly one match, use that.  */
 	      if r#match >= 0
 		{
-		  *options.offset (from as isize) = standard_args[r#match as usize].nargs;
-		  *priority.offset (from as isize) = standard_args[r#match as usize].priority;
+		  *options.offset (from as isize) = (*standard_args.as_mut_ptr ())[r#match as usize].nargs;
+		  *priority.offset (from as isize) = (*standard_args.as_mut_ptr ())[r#match as usize].priority;
 		  /* If --OPTION=VALUE syntax is used,
 		     this option uses just one argv element.  */
 		  if ! equals.is_null ()
@@ -2750,7 +2749,7 @@ unsafe fn sort_args (argc: c_int, argv: *mut *mut c_char)
 		{
 		  /* This is an internal error.
 		     Eg if one long option is a prefix of another.  */
-		  fprintf (stderr, c"Option '%s' matched multiple standard arguments\n".as_ptr (),
+		  fprintf ((*stderr.as_mut_ptr ()), c"Option '%s' matched multiple standard arguments\n".as_ptr (),
 			   *argv.offset (from as isize));
 		}
 	      /* Should we not also warn if there was no match?	 */
@@ -2845,15 +2844,15 @@ DEFUN! ("kill-emacs", Fkill_emacs, Skill_emacs, 0, 2, "P",
     {
       /* This is very unlikely, but it's possible to execute a binary
 	 (on some systems) with no argv.  */
-      if initial_argc < 1
+      if (*initial_argc.as_mut_ptr ()) < 1
 	{ error (c"No command line arguments known; unable to re-execute Emacs".as_ptr ()); }
 
       /* Check that the binary hasn't gone away.  */
-      if initial_emacs_executable.is_null ()
+      if (*initial_emacs_executable.as_mut_ptr ()).is_null ()
 	{ error (c"Unknown Emacs executable".as_ptr ()); }
 
-      if !file_access_p (initial_emacs_executable, F_OK)
-	{ error (c"Emacs executable \"%s\" can't be found".as_ptr (), initial_argv0); }
+      if !file_access_p ((*initial_emacs_executable.as_mut_ptr ()), F_OK)
+	{ error (c"Emacs executable \"%s\" can't be found".as_ptr (), (*initial_argv0.as_mut_ptr ())); }
     }
 
   /* Fsignal calls emacs_abort () if it sees that waiting_for_input is
@@ -2861,21 +2860,21 @@ DEFUN! ("kill-emacs", Fkill_emacs, Skill_emacs, 0, 2, "P",
   waiting_for_input! () = false;
   if !NILP (find_symbol_value (Qkill_emacs_hook ()))
     {
-      if noninteractive
+      if (*noninteractive.as_mut_ptr ())
 	{ safe_run_hooks (Qkill_emacs_hook ()); }
       else
 	{ calln! (Qrun_hook_query_error_with_timeout (), Qkill_emacs_hook ()); }
     }
 
-  shut_down_emacs (0, if STRINGP (arg) && feof (stdin) == 0 { arg } else { Qnil () });
+  shut_down_emacs (0, if STRINGP (arg) && feof ((*stdin.as_mut_ptr ())) == 0 { arg } else { Qnil () });
 
   /* If we have an auto-save list file,
      kill it because we are exiting Emacs deliberately (not crashing).
      Do it after shut_down_emacs, which does an auto-save.  */
-  if STRINGP (Vauto_save_list_file_name)
+  if STRINGP ((*Vauto_save_list_file_name.as_mut_ptr ()))
     {
       let mut listfile: Lisp_Object = Qnil ();
-      listfile = Fexpand_file_name (Vauto_save_list_file_name, Qnil ());
+      listfile = Fexpand_file_name ((*Vauto_save_list_file_name.as_mut_ptr ()), Qnil ());
       emacs_unlink (SSDATA (listfile));
     }
 
@@ -2885,8 +2884,8 @@ DEFUN! ("kill-emacs", Fkill_emacs, Skill_emacs, 0, 2, "P",
   if !NILP (restart)
     {
       turn_on_atimers (false);
-      initial_argv.offset (0).write (initial_emacs_executable);
-      if execvp (*initial_argv, initial_argv) < 1
+      (*initial_argv.as_mut_ptr ()).offset (0).write ((*initial_emacs_executable.as_mut_ptr ()));
+      if execvp (*(*initial_argv.as_mut_ptr ()), (*initial_argv.as_mut_ptr ())) < 1
 	{ emacs_perror (c"Unable to re-execute Emacs".as_ptr ()); }
     }
 
@@ -2911,10 +2910,10 @@ pub unsafe extern "C-unwind" fn shut_down_emacs (sig: c_int, stuff: Lisp_Object)
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
   /* Prevent running of hooks from now on.  */
-  Vrun_hooks = Qnil ();
+  (*Vrun_hooks.as_mut_ptr ()) = Qnil ();
 
   /* Don't update display from now on.  */
-  Vinhibit_redisplay = Qt ();
+  (*Vinhibit_redisplay.as_mut_ptr ()) = Qt ();
 
   /* If we are controlling the terminal, reset terminal modes.  */
   let tpgrp: pid_t = tcgetpgrp (STDIN_FILENO);
@@ -2969,7 +2968,7 @@ pub unsafe extern "C-unwind" fn shut_down_emacs (sig: c_int, stuff: Lisp_Object)
 
   stuff_buffered_input (stuff);
 
-  inhibit_sentinels = true;                      // C: `inhibit_sentinels = 1;`
+  (*inhibit_sentinels.as_mut_ptr ()) = true;                      // C: `inhibit_sentinels = 1;`
   kill_buffer_processes (Qnil ());
   Fdo_auto_save (Qt (), Qnil ());
 
@@ -3039,8 +3038,8 @@ pub unsafe extern "C-unwind" fn synchronize_system_time_locale ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  synchronize_locale (LC_TIME, &raw mut Vprevious_system_time_locale,
-		      Vsystem_time_locale);
+  synchronize_locale (LC_TIME, Vprevious_system_time_locale.as_mut_ptr (),
+		      (*Vsystem_time_locale.as_mut_ptr ()));
 
   }
 }
@@ -3050,8 +3049,8 @@ pub unsafe extern "C-unwind" fn synchronize_system_messages_locale ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  synchronize_locale (LC_MESSAGES, &raw mut Vprevious_system_messages_locale,
-		      Vsystem_messages_locale);
+  synchronize_locale (LC_MESSAGES, Vprevious_system_messages_locale.as_mut_ptr (),
+		      (*Vsystem_messages_locale.as_mut_ptr ()));
 
   }
 }
@@ -3157,8 +3156,8 @@ DEFUN! ("daemonp", Fdaemonp, Sdaemonp, 0, 0, 0,
        (),
        {
   if IS_DAEMON ()
-    { if ! daemon_name.is_null ()
-        { return build_string (daemon_name); }
+    { if ! (*daemon_name.as_mut_ptr ()).is_null ()
+        { return build_string ((*daemon_name.as_mut_ptr ())); }
       else
         { return Qt (); } }
   else
@@ -3177,14 +3176,14 @@ DEFUN! ("daemon-initialized", Fdaemon_initialized, Sdaemon_initialized, 0, 0, 0,
   if !DAEMON_RUNNING ()
     { error (c"The daemon has already been initialized".as_ptr ()); }
 
-  if NILP (Vafter_init_time)
+  if NILP ((*Vafter_init_time.as_mut_ptr ()))
     { error (c"This function can only be called after loading the init files".as_ptr ()); }
 
-  if daemon_type == 1
+  if (*daemon_type.as_mut_ptr ()) == 1
     {
     }
 
-  if daemon_type == 2
+  if (*daemon_type.as_mut_ptr ()) == 2
     {
       let mut nfd: c_int = 0;
 
@@ -3201,12 +3200,12 @@ DEFUN! ("daemon-initialized", Fdaemon_initialized, Sdaemon_initialized, 0, 0, 0,
 
       /* Closing the pipe will notify the parent that it can exit.
          (C 3450-3455's commentary.)  */
-      err |= write (daemon_pipe[1], c"\n".as_ptr () as *const c_void, 1) < 0;
-      err |= emacs_close (daemon_pipe[1]) != 0;
+      err |= write ((*daemon_pipe.as_mut_ptr ())[1], c"\n".as_ptr () as *const c_void, 1) < 0;
+      err |= emacs_close ((*daemon_pipe.as_mut_ptr ())[1]) != 0;
     }
 
   /* Set it to an invalid value so we know we've already run this function.  */
-  daemon_type = -daemon_type;
+  (*daemon_type.as_mut_ptr ()) = -(*daemon_type.as_mut_ptr ());
 
   if err
     { error (c"I/O error during daemon initialization".as_ptr ()); }
@@ -3235,45 +3234,45 @@ pub unsafe fn syms_of_emacs ()
   DEFSYM! (Qcommand_line_processed, "command-line-processed");
   DEFSYM! (Qsafe_magic, "safe-magic");
 
-  defsubr (&raw mut Skill_emacs);
+  defsubr (Skill_emacs.as_mut_ptr ());
 
-  defsubr (&raw mut Sinvocation_name);
-  defsubr (&raw mut Sinvocation_directory);
-  defsubr (&raw mut Sdaemonp);
-  defsubr (&raw mut Sdaemon_initialized);
+  defsubr (Sinvocation_name.as_mut_ptr ());
+  defsubr (Sinvocation_directory.as_mut_ptr ());
+  defsubr (Sdaemonp.as_mut_ptr ());
+  defsubr (Sdaemon_initialized.as_mut_ptr ());
 
   DEFVAR_LISP! (c"command-line-args", Vcommand_line_args,
 	       "Args passed by shell to Emacs, as a list of strings.\nMany arguments are deleted from the list as they are processed.  ");
 
   DEFVAR_LISP! (c"system-type", Vsystem_type,
 	       "The value is a symbol indicating the type of operating system you are using.\nSpecial values:\n  `gnu'          compiled for a GNU Hurd system.\n  `gnu/linux'    compiled for a GNU/Linux system.\n  `gnu/kfreebsd' compiled for a GNU system with a FreeBSD kernel.\n  `darwin'       compiled for Darwin (GNU-Darwin, macOS, ...).\n  `ms-dos'       compiled as an MS-DOS application.\n  `windows-nt'   compiled as a native W32 application.\n  `cygwin'       compiled using the Cygwin library.\n  `haiku'        compiled for a Haiku system.\n  `android'      compiled for Android.\nAnything else (in Emacs 26, the possibilities are: aix, berkeley-unix,\nhpux, usg-unix-v) indicates some sort of Unix system.  ");
-  Vsystem_type = intern_c_string (SYSTEM_TYPE.as_ptr ());
+  (*Vsystem_type.as_mut_ptr ()) = intern_c_string (SYSTEM_TYPE.as_ptr ());
   /* See configure.ac for the possible SYSTEM_TYPEs.  */
 
   DEFVAR_LISP! (c"system-configuration", Vsystem_configuration,
 	       "Value is string indicating configuration Emacs was built for.  ");
-  Vsystem_configuration = build_string (EMACS_CONFIGURATION.as_ptr ());
+  (*Vsystem_configuration.as_mut_ptr ()) = build_string (EMACS_CONFIGURATION.as_ptr ());
 
   DEFVAR_LISP! (c"system-configuration-options", Vsystem_configuration_options,
 	       "String containing the configuration options Emacs was built with.  ");
-  Vsystem_configuration_options = build_string (EMACS_CONFIG_OPTIONS.as_ptr ());
+  (*Vsystem_configuration_options.as_mut_ptr ()) = build_string (EMACS_CONFIG_OPTIONS.as_ptr ());
 
   DEFVAR_LISP! (c"system-configuration-features", Vsystem_configuration_features,
 	       "String listing some of the main features this Emacs was compiled with.\nAn element of the form \"FOO\" generally means that HAVE_FOO was\ndefined during the build.\n\nThis is mainly intended for diagnostic purposes in bug reports.\nDon't rely on it for testing whether a feature you want to use is available.  ");
-  Vsystem_configuration_features = build_string (EMACS_CONFIG_FEATURES.as_ptr ());
+  (*Vsystem_configuration_features.as_mut_ptr ()) = build_string (EMACS_CONFIG_FEATURES.as_ptr ());
 
   DEFVAR_BOOL! (c"noninteractive", noninteractive1,
                "Non-nil means Emacs is running without interactive terminal.  ");
 
   DEFVAR_LISP! (c"kill-emacs-hook", Vkill_emacs_hook,
 	       "Hook run when `kill-emacs' is called.\nSince `kill-emacs' may be invoked when the terminal is disconnected (or\nin other similar situations), functions placed on this hook should not\nexpect to be able to interact with the user.  To ask for confirmation,\nsee `kill-emacs-query-functions' instead.\n\nBefore Emacs 24.1, the hook was not run in batch mode, i.e., if\n`noninteractive' was non-nil.  ");
-  Vkill_emacs_hook = Qnil ();
+  (*Vkill_emacs_hook.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"path-separator", Vpath_separator,
 	       "String containing the character that separates directories in\nsearch paths, such as PATH and other similar environment variables.  ");
   {
     let mut c: c_char = SEPCHAR;
-    Vpath_separator = make_string (&raw mut c, 1);
+    (*Vpath_separator.as_mut_ptr ()) = make_string (&raw mut c, 1);
   }
 
   DEFVAR_LISP! (c"invocation-name", Vinvocation_name,
@@ -3284,50 +3283,50 @@ pub unsafe fn syms_of_emacs ()
 
   DEFVAR_LISP! (c"installation-directory", Vinstallation_directory,
 	       "A directory within which to look for the `lib-src' and `etc' directories.\nIn an installed Emacs, this is normally nil.  It is non-nil if\nboth `lib-src' (on MS-DOS, `info') and `etc' directories are found\nwithin the variable `invocation-directory' or its parent.  For example,\nthis is the case when running an uninstalled Emacs executable from its\nbuild directory.  ");
-  Vinstallation_directory = Qnil ();
+  (*Vinstallation_directory.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"system-messages-locale", Vsystem_messages_locale,
 	       "System locale for messages.  ");
-  Vsystem_messages_locale = Qnil ();
-  Vprevious_system_messages_locale = Qnil ();
-  staticpro (&raw const Vprevious_system_messages_locale);
+  (*Vsystem_messages_locale.as_mut_ptr ()) = Qnil ();
+  (*Vprevious_system_messages_locale.as_mut_ptr ()) = Qnil ();
+  staticpro (Vprevious_system_messages_locale.as_ptr ());
 
   DEFVAR_LISP! (c"system-time-locale", Vsystem_time_locale,
 	       "System locale for time.  ");
-  Vsystem_time_locale = Qnil ();
-  Vprevious_system_time_locale = Qnil ();
-  staticpro (&raw const Vprevious_system_time_locale);
+  (*Vsystem_time_locale.as_mut_ptr ()) = Qnil ();
+  (*Vprevious_system_time_locale.as_mut_ptr ()) = Qnil ();
+  staticpro (Vprevious_system_time_locale.as_ptr ());
 
   DEFVAR_LISP! (c"before-init-time", Vbefore_init_time,
 	       "Value of `current-time' before Emacs begins initialization.  ");
-  Vbefore_init_time = Qnil ();
+  (*Vbefore_init_time.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"after-init-time", Vafter_init_time,
 	       "Value of `current-time' after loading the init files.\nThis is nil during initialization.  ");
-  Vafter_init_time = Qnil ();
+  (*Vafter_init_time.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_BOOL! (c"inhibit-x-resources", inhibit_x_resources,
 	       "If non-nil, X resources, Windows Registry settings, and NS defaults are not used.  ");
-  inhibit_x_resources = false;                   // C: `inhibit_x_resources = 0;`
+  (*inhibit_x_resources.as_mut_ptr ()) = false;                   // C: `inhibit_x_resources = 0;`
 
   DEFVAR_LISP! (c"emacs-copyright", Vemacs_copyright,
 	       "Short copyright string for this version of Emacs.  ");
-  Vemacs_copyright = build_string (emacs_copyright.as_ptr ());
+  (*Vemacs_copyright.as_mut_ptr ()) = build_string (emacs_copyright.as_ptr ());
 
   DEFVAR_LISP! (c"emacs-version", Vemacs_version,
 	       "Version numbers of this version of Emacs.\nThis has the form: MAJOR.MINOR[.MICRO], where MAJOR/MINOR/MICRO are integers.\nMICRO is only present in unreleased development versions,\nand is not especially meaningful.  Prior to Emacs 26.1, an extra final\ncomponent .BUILD is present.  This is now stored separately in\n`emacs-build-number'.  ");
-  Vemacs_version = build_string (emacs_version.as_ptr ());
+  (*Vemacs_version.as_mut_ptr ()) = build_string (emacs_version.as_ptr ());
 
   DEFVAR_LISP! (c"report-emacs-bug-address", Vreport_emacs_bug_address,
 	       " Address of mailing list for GNU Emacs bugs.  ");
-  Vreport_emacs_bug_address = build_string (emacs_bugreport.as_ptr ());
+  (*Vreport_emacs_bug_address.as_mut_ptr ()) = build_string (emacs_bugreport.as_ptr ());
 
   DEFVAR_LISP! (c"dump-mode", Vdump_mode,
                "Non-nil when Emacs is dumping itself.  ");
 
   DEFVAR_LISP! (c"dynamic-library-alist", Vdynamic_library_alist,
     "Alist of dynamic libraries vs external files implementing them.\nEach element is a list (LIBRARY FILE...), where the car is a symbol\nrepresenting a supported external library, and the rest are strings giving\nalternate filenames for that library.\n\nEmacs tries to load the library from the files in the order they appear on\nthe list; if none is loaded, the running session of Emacs won't have access\nto that library.\n\nNote that image types `pbm' and `xbm' do not need entries in this variable\nbecause they do not depend on external libraries and are always available.\n\nAlso note that this is not a generic facility for accessing external\nlibraries; only those already known by Emacs will be loaded.  ");
-  Vdynamic_library_alist = Qnil ();
+  (*Vdynamic_library_alist.as_mut_ptr ()) = Qnil ();
   Fput (intern_c_string (c"dynamic-library-alist".as_ptr ()), Qrisky_local_variable (),
 	Qt ());
 

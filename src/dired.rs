@@ -134,7 +134,7 @@ macro_rules! IS_ANY_SEP { ($c:expr) => { IS_DIRECTORY_SEP! ($c) }; }
 unsafe extern "C-unwind" {
 
   /// C: regex-emacs.h 50: `extern Lisp_Object re_match_object;`
-  pub static mut re_match_object: Lisp_Object;
+  pub static re_match_object: VmGlobal<Lisp_Object>;
 
   /// C: lisp.h 5303: `int emacs_fstatat (int, char const *, void *, int)`
   pub fn emacs_fstatat (fd: c_int, name: *const c_char, buf: *mut c_void, flag: c_int) -> c_int;
@@ -326,7 +326,7 @@ pub unsafe extern "C-unwind" fn directory_files_internal (directory: Lisp_Object
     }
 
   let directory_nbytes: ptrdiff_t = SBYTES (directory);
-  re_match_object = Qt ();
+  (*re_match_object.as_mut_ptr ()) = Qt ();
 
   /* Decide whether we need to add a directory separator.  */
   let needsep: bool = (directory_nbytes == 0
@@ -560,9 +560,9 @@ unsafe fn file_name_completion (file: Lisp_Object, dirname: Lisp_Object, all_fla
   encoded_file = ENCODE_FILE (file);
   encoded_dir = ENCODE_FILE (Fdirectory_file_name (dirname));
 
-  let mut file_encoding: Lisp_Object = Vfile_name_coding_system;
-  if NILP (Vfile_name_coding_system)
-    { file_encoding = Vdefault_file_name_coding_system; }
+  let mut file_encoding: Lisp_Object = (*Vfile_name_coding_system.as_mut_ptr ());
+  if NILP ((*Vfile_name_coding_system.as_mut_ptr ()))
+    { file_encoding = (*Vdefault_file_name_coding_system.as_mut_ptr ()); }
   /* If the file-name encoding decomposes characters, as we do for
      HFS+ filesystems, we need to make an additional comparison of
      decoded names in order to filter false positives, such as "a"
@@ -602,7 +602,7 @@ unsafe fn file_name_completion (file: Lisp_Object, dirname: Lisp_Object, all_fla
       if len < enc_file_len
 	  /* scmp cannot reliably compare non-ASCII strings while
 	     ignoring letter-case.  */
-	  || (!completion_ignore_case
+	  || (!(*completion_ignore_case.as_mut_ptr ())
 	      && scmp ((*dp).d_name.as_ptr (), SSDATA (encoded_file), enc_file_len) >= 0)
 	{ continue; }
 
@@ -610,7 +610,7 @@ unsafe fn file_name_completion (file: Lisp_Object, dirname: Lisp_Object, all_fla
       name = DECODE_FILE (name);
       let name_blen: ptrdiff_t = SBYTES (name);
       let name_len: ptrdiff_t = SCHARS (name);
-      if completion_ignore_case
+      if (*completion_ignore_case.as_mut_ptr ())
 	  && !BASE_EQ (Fcompare_strings (name, zero, file_len, file, zero,
 					 file_len, Qt ()),
 		       Qt ())
@@ -657,7 +657,7 @@ unsafe fn file_name_completion (file: Lisp_Object, dirname: Lisp_Object, all_fla
 	      else if len > enc_file_len
 		/* Ignore directories if they match an element of
 		   completion-ignored-extensions which ends in a slash.  */
-		{ tem = Vcompletion_ignored_extensions;
+		{ tem = (*Vcompletion_ignored_extensions.as_mut_ptr ());
 		  /* C's `for (...; CONSP (tem); tem = XCDR (tem))`: Rust has no
 		     for-increment, and C's body ends in `break` (which skips it), so C's step is
 		     written before every `continue`, where C's for-loop would have run it (the
@@ -680,10 +680,10 @@ unsafe fn file_name_completion (file: Lisp_Object, dirname: Lisp_Object, all_fla
 		      if skip < 0
 			{ tem = XCDR (tem); continue; }
 
-		      if !completion_ignore_case
+		      if !(*completion_ignore_case.as_mut_ptr ())
 			  && scmp (SSDATA (name).offset (skip), p1, elt_len) >= 0
 			{ tem = XCDR (tem); continue; }
-		      if completion_ignore_case
+		      if (*completion_ignore_case.as_mut_ptr ())
 			{
 			  elt_len = SCHARS (elt) - 1;
 			  skip = name_len - elt_len;
@@ -707,7 +707,7 @@ unsafe fn file_name_completion (file: Lisp_Object, dirname: Lisp_Object, all_fla
 	      /* if name is not an exact match against specified string */
 	      if len > enc_file_len
 		/* and exit this for loop if a match is found */
-		{ tem = Vcompletion_ignored_extensions;
+		{ tem = (*Vcompletion_ignored_extensions.as_mut_ptr ());
 		  while CONSP (tem)
 		    {
 		      elt = XCAR (tem);
@@ -716,11 +716,11 @@ unsafe fn file_name_completion (file: Lisp_Object, dirname: Lisp_Object, all_fla
 		      skip = len - elt_len;
 		      if skip < 0 { tem = XCDR (tem); continue; }
 
-		      if !completion_ignore_case
+		      if !(*completion_ignore_case.as_mut_ptr ())
 			  && (scmp (SSDATA (name).offset (skip), SSDATA (elt), elt_len)
 			      >= 0)
 			{ tem = XCDR (tem); continue; }
-		      if completion_ignore_case
+		      if (*completion_ignore_case.as_mut_ptr ())
 			{
 			  elt_len = SCHARS (elt);
 			  skip = name_len - elt_len;
@@ -760,11 +760,11 @@ unsafe fn file_name_completion (file: Lisp_Object, dirname: Lisp_Object, all_fla
 	}
 
       let mut regexps: Lisp_Object;
-      let table: Lisp_Object = if completion_ignore_case
-				{ Vascii_canon_table } else { Qnil () };
+      let table: Lisp_Object = if (*completion_ignore_case.as_mut_ptr ())
+				{ (*Vascii_canon_table.as_mut_ptr ()) } else { Qnil () };
 
       /* Ignore this element if it fails to match all the regexps.  */
-      regexps = Vcompletion_regexp_list;
+      regexps = (*Vcompletion_regexp_list.as_mut_ptr ());
       while CONSP (regexps)
 	{
 	  if fast_string_match_internal (XCAR (regexps), name, table) < 0
@@ -794,7 +794,7 @@ unsafe fn file_name_completion (file: Lisp_Object, dirname: Lisp_Object, all_fla
 	  let cmp: Lisp_Object
 	    = Fcompare_strings (name, zero, make_fixnum (compare),
 				file, zero, make_fixnum (compare),
-				if completion_ignore_case { Qt () } else { Qnil () });
+				if (*completion_ignore_case.as_mut_ptr ()) { Qt () } else { Qnil () });
 	  if !BASE_EQ (cmp, Qt ())
 	    { continue; }
 	}
@@ -817,11 +817,11 @@ unsafe fn file_name_completion (file: Lisp_Object, dirname: Lisp_Object, all_fla
 	  let mut cmp: Lisp_Object
 	    = Fcompare_strings (bestmatch, zero, make_fixnum (compare),
 				name, zero, make_fixnum (compare),
-				if completion_ignore_case { Qt () } else { Qnil () });
+				if (*completion_ignore_case.as_mut_ptr ()) { Qt () } else { Qnil () });
 	  let matchsize: ptrdiff_t = if BASE_EQ (cmp, Qt ())
 	                        { compare } else { eabs! (XFIXNUM (cmp)) - 1 };
 
-	  if completion_ignore_case
+	  if (*completion_ignore_case.as_mut_ptr ())
 	    {
 	      /* If this is an exact match except for case,
 		 use it as the best match rather than one that is not
@@ -867,7 +867,7 @@ unsafe fn file_name_completion (file: Lisp_Object, dirname: Lisp_Object, all_fla
 	      /* If completion-ignore-case is non-nil, don't
 		 short-circuit because we want to find the best
 		 possible match *including* case differences.  */
-	      && (!completion_ignore_case || matchsize == 0)
+	      && (!(*completion_ignore_case.as_mut_ptr ()) || matchsize == 0)
 	      /* The return value depends on whether it's the sole match.  */
 	      && matchcount > 1
 	    { break; }
@@ -902,7 +902,7 @@ unsafe fn scmp (mut s1: *const c_char, mut s2: *const c_char, len: ptrdiff_t) ->
   unsafe {
   let mut l: ptrdiff_t = len;
 
-  if completion_ignore_case
+  if (*completion_ignore_case.as_mut_ptr ())
     {
       /* WARNING: This only works for pure ASCII strings, as we
 	 compare bytes, not characters!  Use Fcompare_strings for
@@ -984,8 +984,8 @@ DEFUN! ("file-attributes", Ffile_attributes, Sfile_attributes, 1, 2, 0,
   let encoded: Lisp_Object;
   let handler: Lisp_Object;
 
-  filename = internal_condition_case_2 (Some (Fexpand_file_name), filename, Qnil (),
-					Qt (), Some (Fidentity));
+  filename = internal_condition_case_2 (Some (Fexpand_file_name as _), filename, Qnil (),
+					Qt (), Some (Fidentity as _));
   if !STRINGP (filename)
     { return Qnil (); }
 
@@ -1125,7 +1125,7 @@ DEFUN! ("system-users", Fsystem_users, Ssystem_users, 0, 0, 0,
 
   if NILP (users)
     /* At least current user is always known. */
-    { users = list1 (Vuser_real_login_name); }
+    { users = list1 ((*Vuser_real_login_name.as_mut_ptr ())); }
   return users;
 });
 
@@ -1162,18 +1162,18 @@ pub unsafe extern "C-unwind" fn syms_of_dired ()
   DEFSYM! (Qdefault_directory, c"default-directory");
   DEFSYM! (Qdecomposed_characters, c"decomposed-characters");
 
-  defsubr (&raw mut Sdirectory_files);
-  defsubr (&raw mut Sdirectory_files_and_attributes);
-  defsubr (&raw mut Sfile_name_completion);
-  defsubr (&raw mut Sfile_name_all_completions);
-  defsubr (&raw mut Sfile_attributes);
-  defsubr (&raw mut Sfile_attributes_lessp);
-  defsubr (&raw mut Ssystem_users);
-  defsubr (&raw mut Ssystem_groups);
+  defsubr (Sdirectory_files.as_mut_ptr ());
+  defsubr (Sdirectory_files_and_attributes.as_mut_ptr ());
+  defsubr (Sfile_name_completion.as_mut_ptr ());
+  defsubr (Sfile_name_all_completions.as_mut_ptr ());
+  defsubr (Sfile_attributes.as_mut_ptr ());
+  defsubr (Sfile_attributes_lessp.as_mut_ptr ());
+  defsubr (Ssystem_users.as_mut_ptr ());
+  defsubr (Ssystem_groups.as_mut_ptr ());
 
   DEFVAR_LISP! (c"completion-ignored-extensions", Vcompletion_ignored_extensions,
 	       "Completion ignores file names ending in any string in this list.\nIt does not ignore them if all possible completions end in one of\nthese strings or when displaying a list of completions.\nIt ignores directory names if they match any string in this list which\nends in a slash.");
-  Vcompletion_ignored_extensions = Qnil ();
+  (*Vcompletion_ignored_extensions.as_mut_ptr ()) = Qnil ();
 
   }
 }
@@ -1181,4 +1181,4 @@ pub unsafe extern "C-unwind" fn syms_of_dired ()
 /* C's `DEFVAR_LISP` variable: defined here and shadowing the `globals.rs` declaration
    (P-21, the filelock.c/undo.rs shape).  */
 #[unsafe(no_mangle)]
-pub static mut Vcompletion_ignored_extensions: Lisp_Object = lisp_h_Qnil ();
+pub static Vcompletion_ignored_extensions: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());

@@ -99,8 +99,8 @@ static HOST_PROBES_DROPPED: AtomicUsize = AtomicUsize::new(0);
 
 #[inline]
 fn current_thread_key() -> usize {
-    // SAFETY: `current_thread` is updated only under the VM global lock on the active Lisp thread.
-    unsafe { current_thread as usize }
+    // SAFETY: `current_thread` is the single-VM active thread pointer `VmGlobal` extern slot.
+    unsafe { current_thread.get() as usize }
 }
 
 fn with_thread_state<R>(thread_key: usize, f: impl FnOnce(&mut ThreadNonLocalState) -> R) -> R {

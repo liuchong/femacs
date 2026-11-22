@@ -74,9 +74,9 @@ pub unsafe extern "C" fn nanosleep (requested_delay: *const timespec,
     /* C 92-95's `static bool initialized;` and `static double
        ticks_per_nanosecond;` (Number of performance counter increments per nanosecond, or
        zero if it could not be determined).  */
-    static mut initialized: bool = false;
-    static mut ticks_per_nanosecond: c_double = 0.0;
-    let _ = (initialized, ticks_per_nanosecond);
+    static initialized: VmGlobal<bool> = VmGlobal::<bool>::new (false);
+    static ticks_per_nanosecond: VmGlobal<c_double> = VmGlobal::<c_double>::new (0.0);
+    let _ = ((*initialized.as_mut_ptr ()), (*ticks_per_nanosecond.as_mut_ptr ()));
   }
 
   /* C 180-191's `#else` arm, kept as text (P-51; dead: HAVE_BUG_BIG_NANOSLEEP is 1).  */

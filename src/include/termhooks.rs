@@ -547,10 +547,10 @@ pub fn TERMINAL_KEYBOARD_CODING (d: *mut terminal) -> *mut c_void
 { unsafe { (*d).keyboard_coding } }
 
 /* Chain of all terminal devices currently in use.  */
-unsafe extern "C-unwind" { pub static mut terminal_list: *mut terminal; }        // termhooks.h 915
+unsafe extern "C-unwind" { pub static terminal_list: VmGlobal<*mut terminal>; }        // termhooks.h 915
 
 /* The initial terminal device, created by initial_term_init.  */
-unsafe extern "C-unwind" { pub static mut initial_terminal: *mut terminal; }     // termhooks.h 971
+unsafe extern "C-unwind" { pub static initial_terminal: VmGlobal<*mut terminal>; }     // termhooks.h 971
 // termhooks.h 920-921: both read the `tty_display_info` that `FRAME_TTY` (termchar.h 243) hands
 // back, so they stay macros — `FRAME_TTY` is one, and a `fn` cannot call it (PORTING.md P-33).
 // `scroll_region_ok` is the `bool_bf` in `tty_display_info.bits_caps` (the TTY_* masks), which

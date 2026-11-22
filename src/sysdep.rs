@@ -487,7 +487,7 @@ pub const SIG_ERR: usize = !0usize;
 /// neighbours in the header; `sysdep.c` is their owner for `interrupts_deferred` (C 790) and
 /// keyboard.c's for `interrupt_input`, so only the latter is declared here.
 unsafe extern "C" {
-  pub static mut interrupt_input: bool;
+  pub static interrupt_input: VmGlobal<bool>;
 }
 
 /* `"sysstdio.h"`'s three entries (C 60-62: `errputc`, `errwrite`, `close_output_streams`)
@@ -1047,7 +1047,7 @@ unsafe extern "C" {
 /// `fork` arm is the other configuration's).  `subshell` below keeps C's call spelling.
 
 /// `"termopts.h"`'s second object: keyboard.c owns the storage, so the unit only declares it.
-unsafe extern "C" { pub static mut interrupts_deferred: bool; }
+unsafe extern "C" { pub static interrupts_deferred: VmGlobal<bool>; }
 
 /// `<fcntl.h>`: `#define FASYNC O_ASYNC` — the frozen target's `O_ASYNC` is 0x0040
 /// (measured).
@@ -1174,7 +1174,7 @@ pub const ADDR_NO_RANDOMIZE: c_int = 0x0040000;
 
 /* If not -1, the personality that should be restored before exec.  */
 #[cfg (feature = "have_personality_addr_no_randomize")]
-static mut exec_personality: c_int = 0;
+static exec_personality: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 
 /// C 162-202's `maybe_disable_address_randomization`, carried: the frozen configuration
 /// leaves `HAVE_PERSONALITY_ADDR_NO_RANDOMIZE` undefined, so C compiles the `#ifdef`'s arm
@@ -1193,12 +1193,12 @@ pub unsafe extern "C-unwind" fn maybe_disable_address_randomization (argc: c_int
       /* C's `#ifdef __PPC64__` arm (`disable_aslr = true;`) is dead on this target.  */
       #[cfg (feature = "ppc64")]
       { disable_aslr = true; }
-      exec_personality =
+      (*exec_personality.as_mut_ptr ()) =
         if disable_aslr { personality (0xffffffff) } else { -1 };
-      if (exec_personality & ADDR_NO_RANDOMIZE) != 0
-	{ exec_personality = -1; }
-      if exec_personality != -1
-	  && personality ((exec_personality | ADDR_NO_RANDOMIZE) as c_ulong) != -1
+      if ((*exec_personality.as_mut_ptr ()) & ADDR_NO_RANDOMIZE) != 0
+	{ (*exec_personality.as_mut_ptr ()) = -1; }
+      if (*exec_personality.as_mut_ptr ()) != -1
+	  && personality (((*exec_personality.as_mut_ptr ()) | ADDR_NO_RANDOMIZE) as c_ulong) != -1
 	{
 	  let newargv: *mut *mut c_char =
 	    malloc (((argc + 2) as usize) * std::mem::size_of::<*mut c_char> ())
@@ -1242,8 +1242,8 @@ pub unsafe extern "C-unwind" fn emacs_exec_file (file: *const c_char, argv: *con
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
   #[cfg (feature = "have_personality_addr_no_randomize")]
-  if exec_personality != -1
-    { personality (exec_personality as c_ulong); }
+  if (*exec_personality.as_mut_ptr ()) != -1
+    { personality ((*exec_personality.as_mut_ptr ()) as c_ulong); }
 
   execve (file, argv, envp);
   return *errno ();
@@ -1270,7 +1270,7 @@ unsafe fn force_open (fd: c_int, flags: c_int) {
 
 /* A stream that is like stderr, except line buffered.  It is NULL
    during startup, or if line buffering is not in use.  */
-static mut buferr: *mut FILE = std::ptr::null_mut ();
+static buferr: VmGlobal<*mut FILE> = VmGlobal::<*mut FILE>::new (std::ptr::null_mut ());
 
 /* Make sure stdin, stdout, and stderr are open to something, so that
    their file descriptors are not hijacked by later system calls.  */
@@ -1289,9 +1289,9 @@ pub unsafe extern "C-unwind" fn init_standard_fds () {
   /* Set buferr if possible on platforms defining _PC_PIPE_BUF, as
      they support the notion of atomic writes to pipes.  */
   {
-    buferr = emacs_fdopen (STDERR_FILENO, c"w".as_ptr ());
-    if !buferr.is_null ()
-      { setvbuf (buferr, std::ptr::null_mut (), _IOLBF, 0); }
+    (*buferr.as_mut_ptr ()) = emacs_fdopen (STDERR_FILENO, c"w".as_ptr ());
+    if !(*buferr.as_mut_ptr ()).is_null ()
+      { setvbuf ((*buferr.as_mut_ptr ()), std::ptr::null_mut (), _IOLBF, 0); }
   }
 
   }
@@ -1412,7 +1412,7 @@ pub unsafe extern "C-unwind" fn discard_tty_input () {
   {
     let mut buf: emacs_tty = std::mem::zeroed ();
 
-    if noninteractive
+    if (*noninteractive.as_mut_ptr ())
       { return; }
 
     #[cfg (feature = "msdos")]
@@ -1424,7 +1424,7 @@ pub unsafe extern "C-unwind" fn discard_tty_input () {
     {
       let mut tty: *mut tty_display_info;
       {
-	let mut tty_: *mut tty_display_info = tty_list;
+	let mut tty_: *mut tty_display_info = (*tty_list.as_mut_ptr ());
 	loop
 	  {
 	    tty = tty_;
@@ -1460,9 +1460,9 @@ pub unsafe extern "C-unwind" fn stuff_char (mut c: c_char) -> c_int {
 /* Should perhaps error if in batch mode */
   /* C 402-407's `#ifdef TIOCSTI` is live.  */
   {
-    if FRAMEP (selected_frame)
-      && FRAME_LIVE_P (XFRAME (selected_frame))
-      && FRAME_TERMCAP_P (XFRAME (selected_frame))
+    if FRAMEP ((*selected_frame.as_mut_ptr ()))
+      && FRAME_LIVE_P (XFRAME ((*selected_frame.as_mut_ptr ())))
+      && FRAME_TERMCAP_P (XFRAME ((*selected_frame.as_mut_ptr ())))
       { return ioctl (fileno ((*CURTTY! ()).input), TIOCSTI, &mut c as *mut c_char); }
   }
 
@@ -1477,7 +1477,7 @@ pub unsafe extern "C-unwind" fn init_baud_rate (fd: c_int) {
   unsafe {
   let mut emacs_ospeed: c_int;
 
-  if noninteractive
+  if (*noninteractive.as_mut_ptr ())
     { emacs_ospeed = 0; }
   else
     {
@@ -1494,10 +1494,10 @@ pub unsafe extern "C-unwind" fn init_baud_rate (fd: c_int) {
       }
     }
 
-  baud_rate = if (emacs_ospeed as usize) < countof! (baud_convert)
+  (*baud_rate.as_mut_ptr ()) = if (emacs_ospeed as usize) < countof! (baud_convert)
 	      { baud_convert[emacs_ospeed as usize] as EMACS_INT } else { 9600 };
-  if baud_rate == 0
-    { baud_rate = 1200; }
+  if (*baud_rate.as_mut_ptr ()) == 0
+    { (*baud_rate.as_mut_ptr ()) = 1200; }
 
   }
 }
@@ -1539,7 +1539,7 @@ unsafe fn get_child_status (child: pid_t, status: *mut c_int, options: c_int,
      goes through here, so a missing line means the reap itself never happened.  */
   if femacs_child_trace ()
     {
-      fprintf (stderr, c"child-get: child=%d options=%d\n".as_ptr (), child as c_int, options);
+      fprintf ((*stderr.as_mut_ptr ()), c"child-get: child=%d options=%d\n".as_ptr (), child as c_int, options);
     }
 
   /* PORTING.md 1.5: C declares `pid_t pid;` and the loop below assigns it.  */
@@ -1574,14 +1574,14 @@ unsafe fn get_child_status (child: pid_t, status: *mut c_int, options: c_int,
 
   /* If successful and status is requested, tell wait_reading_process_output
      that it needs to wake up and look around.  */
-  if pid != 0 && !status.is_null () && !input_available_clear_time.is_null ()
-    { *input_available_clear_time = make_timespec (0, 0); }
+  if pid != 0 && !status.is_null () && !(*input_available_clear_time.as_mut_ptr ()).is_null ()
+    { *(*input_available_clear_time.as_mut_ptr ()) = make_timespec (0, 0); }
 
   /* PORTING.md P-122 ⑻'s instrument (FEMACS_CHILD_TRACE, P-115's shape): what waitpid
      answered - 0 means "no status available yet", which is the branch a missed reap takes.  */
   if femacs_child_trace ()
     {
-      fprintf (stderr, c"child-get-done: pid=%d errno=%d\n".as_ptr (),
+      fprintf ((*stderr.as_mut_ptr ()), c"child-get-done: pid=%d errno=%d\n".as_ptr (),
 	       pid as c_int, *errno ());
     }
 
@@ -1903,7 +1903,7 @@ unsafe extern "C-unwind" fn restore_signal_handlers (saved_handlers: *mut save_s
 }
 
 // C 779-781: `#ifdef USABLE_SIGIO` — live (USABLE_SIGIO is 1).
-static mut old_fcntl_flags: [c_int; FD_SETSIZE as usize] = [0; FD_SETSIZE as usize];
+static old_fcntl_flags: VmGlobal<[c_int; FD_SETSIZE as usize]> = VmGlobal::<[c_int; FD_SETSIZE as usize]>::new ([0; FD_SETSIZE as usize]);
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn init_sigio (fd: c_int) {
@@ -1911,9 +1911,9 @@ pub unsafe extern "C-unwind" fn init_sigio (fd: c_int) {
   unsafe {
   /* C 786-790: `#ifdef USABLE_SIGIO` is live.  */
   {
-    old_fcntl_flags[fd as usize] = fcntl (fd, F_GETFL, 0) & !FASYNC;
-    fcntl (fd, F_SETFL, old_fcntl_flags[fd as usize] | FASYNC);
-    interrupts_deferred = false;
+    (*old_fcntl_flags.as_mut_ptr ())[fd as usize] = fcntl (fd, F_GETFL, 0) & !FASYNC;
+    fcntl (fd, F_SETFL, (*old_fcntl_flags.as_mut_ptr ())[fd as usize] | FASYNC);
+    (*interrupts_deferred.as_mut_ptr ()) = false;
   }
 
   }
@@ -1925,7 +1925,7 @@ unsafe fn reset_sigio (fd: c_int) {
   unsafe {
   /* C 799-801: `#ifdef USABLE_SIGIO` is live.  */
   {
-    fcntl (fd, F_SETFL, old_fcntl_flags[fd as usize]);
+    fcntl (fd, F_SETFL, (*old_fcntl_flags.as_mut_ptr ())[fd as usize]);
   }
 
   }
@@ -1939,7 +1939,7 @@ pub unsafe extern "C-unwind" fn request_sigio () {
   {
     let mut unblocked: sigset_t = std::mem::zeroed ();
 
-    if noninteractive
+    if (*noninteractive.as_mut_ptr ())
       { return; }
 
     sigemptyset (&mut unblocked);
@@ -1959,7 +1959,7 @@ pub unsafe extern "C-unwind" fn request_sigio () {
     }
     pthread_sigmask (SIG_UNBLOCK, &unblocked, std::ptr::null_mut ());
 
-    interrupts_deferred = false;
+    (*interrupts_deferred.as_mut_ptr ()) = false;
   }
 
   }
@@ -1973,7 +1973,7 @@ pub unsafe extern "C-unwind" fn unrequest_sigio () {
   {
     let mut blocked: sigset_t = std::mem::zeroed ();
 
-    if noninteractive
+    if (*noninteractive.as_mut_ptr ())
       { return; }
 
     sigemptyset (&mut blocked);
@@ -1992,7 +1992,7 @@ pub unsafe extern "C-unwind" fn unrequest_sigio () {
     }
     }
     pthread_sigmask (SIG_BLOCK, &blocked, std::ptr::null_mut ());
-    interrupts_deferred = true;
+    (*interrupts_deferred.as_mut_ptr ()) = true;
   }
 
   }
@@ -2069,14 +2069,14 @@ pub unsafe extern "C-unwind" fn restore_signal_mask (oldset: *const sigset_t) {
    SIGTTmumble when we try to change the tty's pgroup, and a CONT if
    it goes foreground in the future, which is what should happen.  */
 
-static mut inherited_pgroup: pid_t = 0;
+static inherited_pgroup: VmGlobal<pid_t> = VmGlobal::<pid_t>::new (0);
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn init_foreground_group () {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
   let pgrp: pid_t = getpgrp ();
-  inherited_pgroup = if getpid () == pgrp { 0 } else { pgrp };
+  (*inherited_pgroup.as_mut_ptr ()) = if getpid () == pgrp { 0 } else { pgrp };
 
   }
 }
@@ -2140,7 +2140,7 @@ unsafe fn tcsetpgrp_without_stopping (fd: c_int, pgid: pid_t) {
 unsafe fn narrow_foreground_group (fd: c_int) {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  if inherited_pgroup != 0 && setpgid (0, 0) == 0
+  if (*inherited_pgroup.as_mut_ptr ()) != 0 && setpgid (0, 0) == 0
     { tcsetpgrp_without_stopping (fd, getpid ()); }
 
   }
@@ -2152,8 +2152,8 @@ unsafe fn narrow_foreground_group (fd: c_int) {
 unsafe fn widen_foreground_group (fd: c_int) {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  if inherited_pgroup != 0 && setpgid (0, inherited_pgroup) == 0
-    { tcsetpgrp_without_stopping (fd, inherited_pgroup); }
+  if (*inherited_pgroup.as_mut_ptr ()) != 0 && setpgid (0, (*inherited_pgroup.as_mut_ptr ())) == 0
+    { tcsetpgrp_without_stopping (fd, (*inherited_pgroup.as_mut_ptr ())); }
 
   }
 }
@@ -2276,7 +2276,7 @@ pub unsafe extern "C-unwind" fn emacs_set_tty (fd: c_int, settings: *mut emacs_t
 }
 
 // C 1088-1090: `#ifdef F_SETOWN` — live.
-static mut old_fcntl_owner: [c_int; FD_SETSIZE as usize] = [0; FD_SETSIZE as usize];
+static old_fcntl_owner: VmGlobal<[c_int; FD_SETSIZE as usize]> = VmGlobal::<[c_int; FD_SETSIZE as usize]>::new ([0; FD_SETSIZE as usize]);
 
 /// termchar.h 66 and 187-217's `bool_bf` runs, in P-80's member-name form: C's field names
 /// stay in the port's text and dispatch to the mask bytes the mirror declares
@@ -2304,7 +2304,7 @@ pub unsafe extern "C-unwind" fn init_all_sys_modes () {
   unsafe {
   let mut tty: *mut tty_display_info;
   {
-    let mut tty_: *mut tty_display_info = tty_list;
+    let mut tty_: *mut tty_display_info = (*tty_list.as_mut_ptr ());
     loop
       {
 	tty = tty_;
@@ -2329,9 +2329,9 @@ pub unsafe extern "C-unwind" fn init_sys_modes (tty_out: *mut tty_display_info) 
   // C 1109-1111: `#ifndef DOS_NT` — live.
   let mut terminal: Lisp_Object = Qnil ();
 
-  Vtty_erase_char = Qnil ();
+  (*Vtty_erase_char.as_mut_ptr ()) = Qnil ();
 
-  if noninteractive
+  if (*noninteractive.as_mut_ptr ())
     { return; }
 
   if (*tty_out).output.is_null ()
@@ -2348,7 +2348,7 @@ pub unsafe extern "C-unwind" fn init_sys_modes (tty_out: *mut tty_display_info) 
 
   // C 1130-1266: `#if !defined (DOS_NT)` — live.
   {
-    XSETINT! (Vtty_erase_char, tty.main.c_cc[VERASE] as EMACS_INT);
+    XSETINT! ((*Vtty_erase_char.as_mut_ptr ()), tty.main.c_cc[VERASE] as EMACS_INT);
 
     tty.main.c_iflag |= (IGNBRK);	/* Ignore break condition */
     tty.main.c_iflag &= !ICRNL;	/* Disable map of CR to NL on input */
@@ -2393,11 +2393,11 @@ pub unsafe extern "C-unwind" fn init_sys_modes (tty_out: *mut tty_display_info) 
     XSETTERMINAL! (terminal, (*tty_out).terminal);
     if !NILP (Fcontrolling_tty_p (terminal))
       {
-	tty.main.c_cc[VINTR] = quit_char as cc_t;	/* C-g (usually) gives SIGINT */
+	tty.main.c_cc[VINTR] = (*quit_char.as_mut_ptr ()) as cc_t;	/* C-g (usually) gives SIGINT */
 	/* Set up C-g for both SIGQUIT and SIGINT.
 	   We don't know which we will get, but we handle both alike
 	   so which one it really gives us does not matter.  */
-	tty.main.c_cc[VQUIT] = quit_char as cc_t;
+	tty.main.c_cc[VQUIT] = (*quit_char.as_mut_ptr ()) as cc_t;
       }
     else
       {
@@ -2537,9 +2537,9 @@ pub unsafe extern "C-unwind" fn init_sys_modes (tty_out: *mut tty_display_info) 
 
   /* C 1295-1312: `#ifdef F_GETOWN` is live.  */
   {
-    if interrupt_input
+    if (*interrupt_input.as_mut_ptr ())
       {
-	old_fcntl_owner[fileno ((*tty_out).input) as usize] =
+	(*old_fcntl_owner.as_mut_ptr ())[fileno ((*tty_out).input) as usize] =
 	  fcntl (fileno ((*tty_out).input), F_GETOWN, 0);
 	fcntl (fileno ((*tty_out).input), F_SETOWN, getpid ());
 	init_sigio (fileno ((*tty_out).input));
@@ -2577,7 +2577,7 @@ pub unsafe extern "C-unwind" fn init_sys_modes (tty_out: *mut tty_display_info) 
       });
     }
 
-  if tty_bits! (term_initted, tty_out) && no_redraw_on_reenter
+  if tty_bits! (term_initted, tty_out) && get_no_redraw_on_reenter ()
     {
       /* We used to call "direct_output_forward_char(0)" here,
 	 but it's not clear why, since it may not do anything anyway.  */
@@ -2586,7 +2586,7 @@ pub unsafe extern "C-unwind" fn init_sys_modes (tty_out: *mut tty_display_info) 
     {
       let mut tail: Lisp_Object = Qnil ();
       let mut frame: Lisp_Object = Qnil ();
-      frame_garbaged = true;
+      (*frame_garbaged.as_mut_ptr ()) = true;
       FOR_EACH_FRAME! (tail, frame, {
 	  if is_tty_frame (XFRAME (frame))
 	      && FRAME_TTY! (XFRAME (frame)) == tty_out
@@ -2764,7 +2764,7 @@ pub unsafe extern "C-unwind" fn reset_all_sys_modes () {
   unsafe {
   let mut tty: *mut tty_display_info;
   {
-    let mut tty_: *mut tty_display_info = tty_list;
+    let mut tty_: *mut tty_display_info = (*tty_list.as_mut_ptr ());
     loop
       {
 	tty = tty_;
@@ -2786,9 +2786,9 @@ pub unsafe extern "C-unwind" fn reset_all_sys_modes () {
 pub unsafe extern "C-unwind" fn reset_sys_modes (tty_out: *mut tty_display_info) {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  if noninteractive
+  if (*noninteractive.as_mut_ptr ())
     {
-      fflush (stdout);
+      fflush ((*stdout.as_mut_ptr ()));
       return;
     }
 
@@ -2837,11 +2837,11 @@ pub unsafe extern "C-unwind" fn reset_sys_modes (tty_out: *mut tty_display_info)
     {
       // C 1541-1548: `# ifdef F_SETOWN` is live.
       {
-	if interrupt_input
+	if (*interrupt_input.as_mut_ptr ())
 	  {
 	    reset_sigio (fileno ((*tty_out).input));
 	    fcntl (fileno ((*tty_out).input), F_SETOWN,
-		   old_fcntl_owner[fileno ((*tty_out).input) as usize]);
+		   (*old_fcntl_owner.as_mut_ptr ())[fileno ((*tty_out).input) as usize]);
 	  }
       }
       fcntl (fileno ((*tty_out).input), F_SETFL,
@@ -2909,10 +2909,10 @@ pub unsafe extern "C-unwind" fn setup_pty (fd: c_int) {
 pub unsafe extern "C-unwind" fn init_system_name () {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  if !build_details
+  if !(*build_details.as_mut_ptr ())
     {
       /* Set system-name to nil so that the build is deterministic.  */
-      Vsystem_name = Qnil ();
+      (*Vsystem_name.as_mut_ptr ()) = Qnil ();
       return;
     }
   let mut hostname_alloc: *mut c_char = std::ptr::null_mut ();
@@ -2967,9 +2967,9 @@ pub unsafe extern "C-unwind" fn init_system_name () {
 	{ *p = b'-' as c_char; }
       p = p.add (1);
     }
-  if ! (STRINGP (Vsystem_name) && SBYTES (Vsystem_name) == (p as isize - hostname as isize)
-	 && strcmp (SSDATA (Vsystem_name), hostname) == 0)
-    { Vsystem_name = build_string (hostname); }
+  if ! (STRINGP ((*Vsystem_name.as_mut_ptr ())) && SBYTES ((*Vsystem_name.as_mut_ptr ())) == (p as isize - hostname as isize)
+	 && strcmp (SSDATA ((*Vsystem_name.as_mut_ptr ())), hostname) == 0)
+    { (*Vsystem_name.as_mut_ptr ()) = build_string (hostname); }
   xfree (hostname_alloc as *mut c_void);
 
   }
@@ -2979,9 +2979,9 @@ pub unsafe extern "C-unwind" fn init_system_name () {
 // The declaration is `syssignal.h`'s (the mirror's `syssignal_decls` module); this unit
 // defines the object, as C does.
 #[unsafe(no_mangle)]
-pub static mut empty_mask: sigset_t = sigset_t { __val: 0 };
+pub static empty_mask: VmGlobal<sigset_t> = VmGlobal::<sigset_t>::new (sigset_t { __val: 0 });
 
-static mut process_fatal_action: sigaction = unsafe { std::mem::zeroed () };
+static process_fatal_action: VmGlobal<sigaction> = VmGlobal::<sigaction>::new (unsafe { std::mem::zeroed () });
 
 unsafe fn emacs_sigaction_flags () -> c_int {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
@@ -2997,7 +2997,7 @@ unsafe fn emacs_sigaction_flags () -> c_int {
 
        Non-interactive keyboard input goes through stdio, where we
        always want restartable system calls.  */
-    if noninteractive
+    if (*noninteractive.as_mut_ptr ())
       { return SA_RESTART; }
   }
   return 0;
@@ -3034,7 +3034,7 @@ pub unsafe extern "C-unwind" fn emacs_sigaction_init (action: *mut sigaction,
   {
     sigaddset (&mut (*action).sa_mask, SIGWINCH);
   }
-  if ! noninteractive
+  if ! (*noninteractive.as_mut_ptr ())
     {
       sigaddset (&mut (*action).sa_mask, SIGINT);
       sigaddset (&mut (*action).sa_mask, SIGQUIT);
@@ -3063,7 +3063,7 @@ pub unsafe extern "C-unwind" fn emacs_sigaction_init (action: *mut sigaction,
    `pthread_t` is an opaque pointer on the frozen target and `long` on Android
    (`include/systhread.rs` 62-70), so the initializer is written as a cast rather than as
    `null_mut` - the mirror's Android arm made the pointer spelling an E0308 (measured).  */
-static mut main_thread_id: pthread_t = 0 as pthread_t;
+static main_thread_id: VmGlobal<pthread_t> = VmGlobal::<pthread_t>::new (0 as pthread_t);
 
 /* SIG has arrived at the current process.  Deliver it to the main
    thread, which should handle it with HANDLER.  (Delivering the
@@ -3088,13 +3088,13 @@ pub unsafe extern "C-unwind" fn deliver_process_signal (sig: c_int, handler: sig
   let mut on_main_thread: bool = true;
   /* C 1738-1748: `#ifdef FORWARD_SIGNAL_TO_MAIN_THREAD` is live.  */
   {
-    if pthread_equal (pthread_self (), main_thread_id) == 0
+    if pthread_equal (pthread_self (), (*main_thread_id.as_mut_ptr ())) == 0
       {
 	let mut blocked: sigset_t = std::mem::zeroed ();
 	sigemptyset (&mut blocked);
 	sigaddset (&mut blocked, sig);
 	pthread_sigmask (SIG_BLOCK, &blocked, std::ptr::null_mut ());
-	pthread_kill (main_thread_id, sig);
+	pthread_kill ((*main_thread_id.as_mut_ptr ()), sig);
 	on_main_thread = false;
       }
   }
@@ -3111,9 +3111,8 @@ pub unsafe extern "C-unwind" fn deliver_process_signal (sig: c_int, handler: sig
    backtrace may be garbage.  */
 // C 1758: `enum { BACKTRACE_LIMIT_MAX = 500 };`
 pub const BACKTRACE_LIMIT_MAX: usize = 500;
-static mut thread_backtrace_buffer: [*mut c_void; BACKTRACE_LIMIT_MAX + 1] =
-  [std::ptr::null_mut (); BACKTRACE_LIMIT_MAX + 1];
-static mut thread_backtrace_npointers: c_int = 0;
+static thread_backtrace_buffer: VmGlobal<[*mut c_void; BACKTRACE_LIMIT_MAX + 1]> = VmGlobal::<[*mut c_void; BACKTRACE_LIMIT_MAX + 1]>::new ([std::ptr::null_mut (); BACKTRACE_LIMIT_MAX + 1]);
+static thread_backtrace_npointers: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 
 /* SIG has arrived at the current thread.
    If we are on the main thread, handle the signal SIG with HANDLER.
@@ -3128,16 +3127,16 @@ unsafe extern "C-unwind" fn deliver_thread_signal (sig: c_int, handler: signal_h
      link; C's macro is what C itself tests).  */
   #[cfg (feature = "forward_signal_to_main_thread")]
   {
-    if pthread_equal (pthread_self (), main_thread_id) == 0
+    if pthread_equal (pthread_self (), (*main_thread_id.as_mut_ptr ())) == 0
       {
-	thread_backtrace_npointers =
+	(*thread_backtrace_npointers.as_mut_ptr ()) =
 	  backtrace (thread_backtrace_buffer.as_mut_ptr (), BACKTRACE_LIMIT_MAX as c_int);
-	sigaction (sig, &process_fatal_action, std::ptr::null_mut ());
-	pthread_kill (main_thread_id, sig);
+	sigaction (sig, &(*process_fatal_action.as_mut_ptr ()), std::ptr::null_mut ());
+	pthread_kill ((*main_thread_id.as_mut_ptr ()), sig);
 
 	/* Avoid further damage while the main thread is exiting.  */
 	while true
-	  { sigsuspend (&empty_mask); }
+	  { sigsuspend (&(*empty_mask.as_mut_ptr ())); }
       }
   }
 
@@ -3176,7 +3175,7 @@ unsafe extern "C" fn handle_arith_signal (sig: c_int) -> ! {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
   let _ = sig;
-  pthread_sigmask (SIG_SETMASK, &raw const empty_mask, std::ptr::null_mut ());
+  pthread_sigmask (SIG_SETMASK, empty_mask.as_ptr (), std::ptr::null_mut ());
   xsignal0 (Qarith_error ());
 
   }
@@ -3227,18 +3226,19 @@ unsafe extern "C-unwind" fn init_sigbus () -> c_int {
    For example, libsigsegv 2.6 through 2.8 have a bug where some
    architectures use more than the Linux default of an 8 KiB alternate
    stack when deciding if a fault was caused by stack overflow.  */
-static mut sigsegv_stack: [max_align_t; (64 * 1024
+static sigsegv_stack: VmGlobal<[max_align_t; (64 * 1024
 					 + std::mem::size_of::<max_align_t> () - 1)
-					/ std::mem::size_of::<max_align_t> ()] =
-  [0; (64 * 1024 + std::mem::size_of::<max_align_t> () - 1)
-      / std::mem::size_of::<max_align_t> ()];
+					/ std::mem::size_of::<max_align_t> ()]> = VmGlobal::<[max_align_t; (64 * 1024
+					 + std::mem::size_of::<max_align_t> () - 1)
+					/ std::mem::size_of::<max_align_t> ()]>::new ([0; (64 * 1024 + std::mem::size_of::<max_align_t> () - 1)
+      / std::mem::size_of::<max_align_t> ()]);
 
 /* Return true if SIGINFO indicates a stack overflow.  */
 
 unsafe extern "C-unwind" fn stack_overflow (siginfo: *mut siginfo_t) -> bool {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  if !attempt_stack_overflow_recovery
+  if !(*attempt_stack_overflow_recovery.as_mut_ptr ())
     { return false; }
 
   /* In theory, a more-accurate heuristic can be obtained by using
@@ -3265,7 +3265,7 @@ unsafe extern "C-unwind" fn stack_overflow (siginfo: *mut siginfo_t) -> bool {
   /* The known top and bottom of the stack.  The actual stack may
      extend a bit beyond these boundaries.  */
   let bot: *const c_char = stack_bottom! ();
-  let top: *const c_char = (*current_thread).stack_top as *const c_char;
+  let top: *const c_char = (*(*current_thread.as_mut_ptr ())).stack_top as *const c_char;
 
   /* Log base 2 of the stack heuristic ratio.  This ratio is the size
      of the known stack divided by the size of the guard area past the
@@ -3288,7 +3288,7 @@ unsafe extern "C-unwind" fn stack_overflow (siginfo: *mut siginfo_t) -> bool {
 }
 
 /* Signal handler for SIGSEGV before our new handler was installed.  */
-static mut old_sigsegv_handler: sigaction = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { std::mem::zeroed () };
+static old_sigsegv_handler: VmGlobal<sigaction> = VmGlobal::<sigaction>::new (/* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { std::mem::zeroed () });
 
 /* Attempt to recover from SIGSEGV caused by C stack overflow.  */
 
@@ -3297,17 +3297,17 @@ unsafe extern "C" fn handle_sigsegv (sig: c_int, siginfo: *mut siginfo_t, arg: *
   unsafe {
   /* Hard GC error may lead to stack overflow caused by
      too nested calls to mark_object.  No way to survive.  */
-  let mut fatal: bool = gc_in_progress;
+  let mut fatal: bool = (*gc_in_progress.as_mut_ptr ());
 
   /* C 1924-1927: `#ifdef FORWARD_SIGNAL_TO_MAIN_THREAD` is live.  */
   {
-    if !fatal && pthread_equal (pthread_self (), main_thread_id) == 0
+    if !fatal && pthread_equal (pthread_self (), (*main_thread_id.as_mut_ptr ())) == 0
       { fatal = true; }
   }
 
   let _ = arg;
   if !fatal && stack_overflow (siginfo)
-    { siglongjmp (&raw mut return_to_command_loop, 1); }
+    { siglongjmp (return_to_command_loop.as_mut_ptr (), 1); }
 
   /* C 1932-1939: `#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY` is dead; carried.  */
   #[cfg (feature = "have_android")]
@@ -3316,7 +3316,7 @@ unsafe extern "C" fn handle_sigsegv (sig: c_int, siginfo: *mut siginfo_t, arg: *
        Android unless the original SIGSEGV handler is installed and the
        signal is resent, such as by returning from the first signal
        handler called.  */
-    sigaction (SIGSEGV, &old_sigsegv_handler, std::ptr::null_mut ());
+    sigaction (SIGSEGV, &(*old_sigsegv_handler.as_mut_ptr ()), std::ptr::null_mut ());
     return;
   }
 
@@ -3335,8 +3335,8 @@ unsafe extern "C-unwind" fn init_sigsegv () -> bool {
   let mut sa: sigaction = std::mem::zeroed ();
   let mut ss: stack_t = std::mem::zeroed ();
 
-  ss.ss_sp = femacs_array_mut_ptr (&raw mut sigsegv_stack) as *mut c_void;
-  ss.ss_size = femacs_sizeof_ptr (&raw const sigsegv_stack);
+  ss.ss_sp = femacs_array_mut_ptr (sigsegv_stack.as_mut_ptr ()) as *mut c_void;
+  ss.ss_size = femacs_sizeof_ptr (sigsegv_stack.as_ptr ());
   ss.ss_flags = 0;
   if sigaltstack (&ss, std::ptr::null_mut ()) < 0
     { return false; }
@@ -3350,7 +3350,7 @@ unsafe extern "C-unwind" fn init_sigsegv () -> bool {
 				unsafe extern "C" fn (c_int, *mut c_void, *mut c_void)>
 	    (handle_sigsegv));
   sa.sa_flags = SA_SIGINFO | SA_ONSTACK | emacs_sigaction_flags ();
-  if sigaction (SIGSEGV, &sa, &raw mut old_sigsegv_handler) < 0
+  if sigaction (SIGSEGV, &sa, old_sigsegv_handler.as_mut_ptr ()) < 0
     { return false; }
 
   return true;
@@ -3398,7 +3398,7 @@ unsafe extern "C-unwind" fn deliver_danger_signal (sig: c_int) {
 unsafe extern "C-unwind" fn maybe_fatal_sig (sig: c_int) {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  let mut catch_sig: bool = !noninteractive;
+  let mut catch_sig: bool = !(*noninteractive.as_mut_ptr ());
   if !catch_sig
     {
       let mut old_action: sigaction = std::mem::zeroed ();
@@ -3407,7 +3407,7 @@ unsafe extern "C-unwind" fn maybe_fatal_sig (sig: c_int) {
 		    (old_action.__sigaction_u.__sa_handler) != SIG_IGN;
     }
   if catch_sig
-    { sigaction (sig, &raw const process_fatal_action, std::ptr::null_mut ()); }
+    { sigaction (sig, process_fatal_action.as_ptr (), std::ptr::null_mut ()); }
 
   }
 }
@@ -3419,20 +3419,20 @@ pub unsafe extern "C-unwind" fn init_signals () {
   let mut thread_fatal_action: sigaction = std::mem::zeroed ();
   let mut action: sigaction = std::mem::zeroed ();
 
-  sigemptyset (&raw mut empty_mask);
+  sigemptyset (empty_mask.as_mut_ptr ());
 
   /* C 2028-2030: `#ifdef FORWARD_SIGNAL_TO_MAIN_THREAD` is live.  */
   {
-    main_thread_id = pthread_self ();
+    (*main_thread_id.as_mut_ptr ()) = pthread_self ();
   }
 
-  sigfillset (&raw mut process_fatal_action.sa_mask);
-  process_fatal_action.__sigaction_u.__sa_handler = Some (deliver_fatal_signal);
-  process_fatal_action.sa_flags = emacs_sigaction_flags ();
+  sigfillset (&raw mut (*process_fatal_action.as_mut_ptr ()).sa_mask);
+  (*process_fatal_action.as_mut_ptr ()).__sigaction_u.__sa_handler = Some (deliver_fatal_signal);
+  (*process_fatal_action.as_mut_ptr ()).sa_flags = emacs_sigaction_flags ();
 
   sigfillset (&mut thread_fatal_action.sa_mask);
   thread_fatal_action.__sigaction_u.__sa_handler = Some (deliver_fatal_thread_signal);
-  thread_fatal_action.sa_flags = process_fatal_action.sa_flags;
+  thread_fatal_action.sa_flags = (*process_fatal_action.as_mut_ptr ()).sa_flags;
 
   /* SIGINT may need special treatment on MS-Windows.  See
      https://lists.gnu.org/r/emacs-devel/2010-09/msg01062.html
@@ -3446,10 +3446,10 @@ pub unsafe extern "C-unwind" fn init_signals () {
   /* Emacs checks for write errors, so it can safely ignore SIGPIPE.
      However, in batch mode leave SIGPIPE alone, as that causes Emacs
      to behave more like typical batch applications do.  */
-  if ! noninteractive
+  if ! (*noninteractive.as_mut_ptr ())
     { signal (SIGPIPE, SIG_IGN); }
 
-  sigaction (SIGQUIT, &raw const process_fatal_action, std::ptr::null_mut ());
+  sigaction (SIGQUIT, process_fatal_action.as_ptr (), std::ptr::null_mut ());
   /* C 2056-2058: `#ifndef __vax__` is live.  */
   {
     sigaction (SIGILL, &thread_fatal_action, std::ptr::null_mut ());
@@ -3497,9 +3497,9 @@ pub unsafe extern "C-unwind" fn init_signals () {
   #[cfg (feature = "sigume")]
   { sigaction (SIGUME, &thread_fatal_action, std::ptr::null_mut ()); }
   #[cfg (feature = "sigdlk")]
-  { sigaction (SIGDLK, &process_fatal_action, std::ptr::null_mut ()); }
+  { sigaction (SIGDLK, &(*process_fatal_action.as_mut_ptr ()), std::ptr::null_mut ()); }
   #[cfg (feature = "sigcpulim")]
-  { sigaction (SIGCPULIM, &process_fatal_action, std::ptr::null_mut ()); }
+  { sigaction (SIGCPULIM, &(*process_fatal_action.as_mut_ptr ()), std::ptr::null_mut ()); }
   {
     sigaction (SIGIOT, &thread_fatal_action, std::ptr::null_mut ());
   }
@@ -3523,18 +3523,18 @@ pub unsafe extern "C-unwind" fn init_signals () {
   {
     sigaction (SIGSYS, &thread_fatal_action, std::ptr::null_mut ());
   }
-  sigaction (SIGTERM, &raw const process_fatal_action, std::ptr::null_mut ());
+  sigaction (SIGTERM, process_fatal_action.as_ptr (), std::ptr::null_mut ());
   {
     signal (SIGPROF, SIG_IGN);
   }
   {
-    sigaction (SIGVTALRM, &raw const process_fatal_action, std::ptr::null_mut ());
+    sigaction (SIGVTALRM, process_fatal_action.as_ptr (), std::ptr::null_mut ());
   }
   {
-    sigaction (SIGXCPU, &raw const process_fatal_action, std::ptr::null_mut ());
+    sigaction (SIGXCPU, process_fatal_action.as_ptr (), std::ptr::null_mut ());
   }
   {
-    sigaction (SIGXFSZ, &raw const process_fatal_action, std::ptr::null_mut ());
+    sigaction (SIGXFSZ, process_fatal_action.as_ptr (), std::ptr::null_mut ());
   }
 
   #[cfg (feature = "sigdanger")]
@@ -3546,17 +3546,17 @@ pub unsafe extern "C-unwind" fn init_signals () {
 
   /* AIX-specific signals.  */
   #[cfg (feature = "siggrant")]
-  { sigaction (SIGGRANT, &process_fatal_action, std::ptr::null_mut ()); }
+  { sigaction (SIGGRANT, &(*process_fatal_action.as_mut_ptr ()), std::ptr::null_mut ()); }
   #[cfg (feature = "sigmigrate")]
-  { sigaction (SIGMIGRATE, &process_fatal_action, std::ptr::null_mut ()); }
+  { sigaction (SIGMIGRATE, &(*process_fatal_action.as_mut_ptr ()), std::ptr::null_mut ()); }
   #[cfg (feature = "sigmsg")]
-  { sigaction (SIGMSG, &process_fatal_action, std::ptr::null_mut ()); }
+  { sigaction (SIGMSG, &(*process_fatal_action.as_mut_ptr ()), std::ptr::null_mut ()); }
   #[cfg (feature = "sigretract")]
-  { sigaction (SIGRETRACT, &process_fatal_action, std::ptr::null_mut ()); }
+  { sigaction (SIGRETRACT, &(*process_fatal_action.as_mut_ptr ()), std::ptr::null_mut ()); }
   #[cfg (feature = "sigsak")]
-  { sigaction (SIGSAK, &process_fatal_action, std::ptr::null_mut ()); }
+  { sigaction (SIGSAK, &(*process_fatal_action.as_mut_ptr ()), std::ptr::null_mut ()); }
   #[cfg (feature = "sigsound")]
-  { sigaction (SIGSOUND, &process_fatal_action, std::ptr::null_mut ()); }
+  { sigaction (SIGSOUND, &(*process_fatal_action.as_mut_ptr ()), std::ptr::null_mut ()); }
   #[cfg (feature = "sig_talrm")]
   { sigaction (SIGTALRM, &thread_fatal_action, std::ptr::null_mut ()); }
 
@@ -3789,10 +3789,10 @@ pub unsafe extern "C-unwind" fn emacs_backtrace (backtrace_limit: c_int) {
   let buffer: *mut *mut c_void;
   let npointers: c_int;
 
-  if thread_backtrace_npointers != 0
+  if (*thread_backtrace_npointers.as_mut_ptr ()) != 0
     {
-      buffer = femacs_array_mut_ptr (&raw mut thread_backtrace_buffer);
-      npointers = thread_backtrace_npointers;
+      buffer = femacs_array_mut_ptr (thread_backtrace_buffer.as_mut_ptr ());
+      npointers = (*thread_backtrace_npointers.as_mut_ptr ());
     }
   else
     {
@@ -4507,7 +4507,7 @@ unsafe fn emacs_full_write (fd: c_int, buf: *const c_char, mut nbyte: ptrdiff_t,
 	    {
 	      if 0 < interruptible
 		{ maybe_quit (); }
-	      if pending_signals
+	      if (*pending_signals.as_mut_ptr ())
 		{ process_pending_signals (); }
 	    }
 	}
@@ -4569,7 +4569,7 @@ pub unsafe extern "C-unwind" fn emacs_perror (message: *const c_char) {
   unsafe {
   let err: c_int = *errno ();
   let error_string: *const c_char = emacs_strerror (err);
-  let command: *const c_char = if !initial_argv0.is_null () { initial_argv0 }
+  let command: *const c_char = if !(*initial_argv0.as_mut_ptr ()).is_null () { (*initial_argv0.as_mut_ptr ()) }
 			       else { c"emacs".as_ptr () };
   /* Write it out all at once, if it's short; this is less likely to
      be interleaved with other output.  */
@@ -4619,10 +4619,10 @@ pub unsafe extern "C-unwind" fn safe_strsignal (code: c_int) -> *const c_char {
 unsafe fn errstream () -> *mut FILE {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  let err: *mut FILE = buferr;
+  let err: *mut FILE = (*buferr.as_mut_ptr ());
   if err.is_null ()
-    { return stderr; }
-  fflush_unlocked! (stderr);
+    { return (*stderr.as_mut_ptr ()); }
+  fflush_unlocked! ((*stderr.as_mut_ptr ()));
   return err;
 
   }
@@ -4649,7 +4649,7 @@ pub unsafe extern "C-unwind" fn errputc (c: c_int) {
     /* Flush stderr after outputting a newline since stderr is fully
        buffered when redirected to a pipe, contrary to POSIX.  */
     if c == b'\n' as c_int
-      { fflush_unlocked! (stderr); }
+      { fflush_unlocked! ((*stderr.as_mut_ptr ())); }
   }
 
   }
@@ -4680,12 +4680,12 @@ pub unsafe extern "C" fn close_output_streams () {
   // C 2958-2975: `#ifdef __ANDROID__` is dead; carried.
   #[cfg (feature = "have_android")]
   {
-    fflush (stderr);
-    fflush (stdout);
+    fflush ((*stderr.as_mut_ptr ()));
+    fflush ((*stdout.as_mut_ptr ()));
   }
   #[cfg (not (feature = "have_android"))]
   {
-    if close_stream (stdout) != 0
+    if close_stream ((*stdout.as_mut_ptr ())) != 0
       {
 	emacs_perror (c"Write error to standard output".as_ptr ());
 	_exit (EXIT_FAILURE);
@@ -4694,12 +4694,12 @@ pub unsafe extern "C" fn close_output_streams () {
     /* Do not close stderr if addresses are being sanitized, as the
        sanitizer might report to stderr after this function is invoked.  */
     let err: c_int =
-      (!buferr.is_null () && (fflush (buferr) != 0 || ferror (buferr) != 0)) as c_int;
+      (!(*buferr.as_mut_ptr ()).is_null () && (fflush ((*buferr.as_mut_ptr ())) != 0 || ferror ((*buferr.as_mut_ptr ())) != 0)) as c_int;
     let sanitizer_err: c_int =
       (if ADDRESS_SANITIZER
-	 { fflush (stderr) != 0 || ferror (stderr) != 0 }
+	 { fflush ((*stderr.as_mut_ptr ())) != 0 || ferror ((*stderr.as_mut_ptr ())) != 0 }
        else
-	 { close_stream (stderr) != 0 }) as c_int;
+	 { close_stream ((*stderr.as_mut_ptr ())) != 0 }) as c_int;
     if (err | sanitizer_err) != 0
       { _exit (EXIT_FAILURE); }
   }
@@ -5382,7 +5382,7 @@ pub unsafe extern "C-unwind" fn system_process_attributes (pid: Lisp_Object) -> 
 	{ q = std::ptr::null_mut (); }
       /* Command name is encoded in locale-coding-system; decode it.  */
       AUTO_STRING_WITH_LEN! (cmd_str, cmd, cmdsize as ptrdiff_t);
-      decoded_cmd = code_convert_string_norecord (cmd_str, Vlocale_coding_system, false);
+      decoded_cmd = code_convert_string_norecord (cmd_str, (*Vlocale_coding_system.as_mut_ptr ()), false);
       attrs = Fcons (Fcons (Qcomm (), decoded_cmd), attrs);
 
       /* state ppid pgrp sess tty tpgid . minflt cminflt majflt cmajflt
@@ -5543,7 +5543,7 @@ pub unsafe extern "C-unwind" fn system_process_attributes (pid: Lisp_Object) -> 
 	}
       /* Command line is encoded in locale-coding-system; decode it.  */
       AUTO_STRING_WITH_LEN! (cmd_str, q, nread as ptrdiff_t);
-      decoded_cmd = code_convert_string_norecord (cmd_str, Vlocale_coding_system, false);
+      decoded_cmd = code_convert_string_norecord (cmd_str, (*Vlocale_coding_system.as_mut_ptr ()), false);
       unbind_to (count, Qnil ());
       attrs = Fcons (Fcons (Qargs (), decoded_cmd), attrs);
     }
@@ -5665,10 +5665,10 @@ pub unsafe extern "C-unwind" fn system_process_attributes (pid: Lisp_Object) -> 
 		     attrs);
 
       AUTO_STRING! (fname, pinfo.pr_fname.as_ptr ());
-      decoded_cmd = code_convert_string_norecord (fname, Vlocale_coding_system, false);
+      decoded_cmd = code_convert_string_norecord (fname, (*Vlocale_coding_system.as_mut_ptr ()), false);
       attrs = Fcons (Fcons (Qcomm (), decoded_cmd), attrs);
       AUTO_STRING! (psargs, pinfo.pr_psargs.as_ptr ());
-      decoded_cmd = code_convert_string_norecord (psargs, Vlocale_coding_system, false);
+      decoded_cmd = code_convert_string_norecord (psargs, (*Vlocale_coding_system.as_mut_ptr ()), false);
       attrs = Fcons (Fcons (Qargs (), decoded_cmd), attrs);
     }
   return unbind_to (count, attrs);
@@ -5835,7 +5835,7 @@ pub unsafe extern "C-unwind" fn system_process_attributes (pid: Lisp_Object) -> 
     { attrs = Fcons (Fcons (Qgroup (), build_string ((*gr).gr_name)), attrs); }
 
   AUTO_STRING! (comm, proc.ki_comm.as_ptr ());
-  decoded_comm = code_convert_string_norecord (comm, Vlocale_coding_system, false);
+  decoded_comm = code_convert_string_norecord (comm, (*Vlocale_coding_system.as_mut_ptr ()), false);
 
   attrs = Fcons (Fcons (Qcomm (), decoded_comm), attrs);
   {
@@ -5936,7 +5936,7 @@ pub unsafe extern "C-unwind" fn system_process_attributes (pid: Lisp_Object) -> 
 	}
 
       AUTO_STRING! (comm, args.as_ptr ());
-      decoded_comm = code_convert_string_norecord (comm, Vlocale_coding_system, false);
+      decoded_comm = code_convert_string_norecord (comm, (*Vlocale_coding_system.as_mut_ptr ()), false);
 
       attrs = Fcons (Fcons (Qargs (), decoded_comm), attrs);
     }
@@ -6040,7 +6040,7 @@ pub unsafe extern "C-unwind" fn system_process_attributes (pid: Lisp_Object) -> 
     { attrs = Fcons (Fcons (Qgroup (), build_string ((*gr).gr_name)), attrs); }
 
   AUTO_STRING! (comm, proc.p_comm.as_ptr ());
-  decoded_comm = code_convert_string_norecord (comm, Vlocale_coding_system, false);
+  decoded_comm = code_convert_string_norecord (comm, (*Vlocale_coding_system.as_mut_ptr ()), false);
   attrs = Fcons (Fcons (Qcomm (), decoded_comm), attrs);
 
   {
@@ -6155,7 +6155,7 @@ pub unsafe extern "C-unwind" fn system_process_attributes (pid: Lisp_Object) -> 
 	}
 
       AUTO_STRING! (comm, *argv);
-      decoded_comm = code_convert_string_norecord (comm, Vlocale_coding_system, false);
+      decoded_comm = code_convert_string_norecord (comm, (*Vlocale_coding_system.as_mut_ptr ()), false);
       attrs = Fcons (Fcons (Qargs (), decoded_comm), attrs);
     }
 
@@ -6246,7 +6246,7 @@ pub unsafe extern "C-unwind" fn system_process_attributes (pid: Lisp_Object) -> 
     { comm = proc.kp_proc.p_comm.as_mut_ptr (); }
 
   decoded_comm = code_convert_string_norecord (build_unibyte_string (comm),
-					       Vlocale_coding_system, false);
+					       (*Vlocale_coding_system.as_mut_ptr ()), false);
   attrs = Fcons (Fcons (Qcomm (), decoded_comm), attrs);
 
   {
@@ -6290,11 +6290,11 @@ pub unsafe extern "C-unwind" fn system_process_attributes (pid: Lisp_Object) -> 
 	   timebase is 1:1 with nanoseconds, but on Apple Silicon it is
 	   125/3, so convert through 'mach_timebase_info' to get actual
 	   nanoseconds before exposing the values to Lisp.  */
-	static mut timebase: mach_timebase_info_data_t = mach_timebase_info_data_t { numer: 0, denom: 0 };
-	if timebase.denom == 0
-	  { mach_timebase_info (&raw mut timebase); }
-	let user_ns: u64 = ri.ri_user_time * timebase.numer as u64 / timebase.denom as u64;
-	let sys_ns: u64  = ri.ri_system_time * timebase.numer as u64 / timebase.denom as u64;
+	static timebase: VmGlobal<mach_timebase_info_data_t> = VmGlobal::<mach_timebase_info_data_t>::new (mach_timebase_info_data_t { numer: 0, denom: 0 });
+	if (*timebase.as_mut_ptr ()).denom == 0
+	  { mach_timebase_info (timebase.as_mut_ptr ()); }
+	let user_ns: u64 = ri.ri_user_time * (*timebase.as_mut_ptr ()).numer as u64 / (*timebase.as_mut_ptr ()).denom as u64;
+	let sys_ns: u64  = ri.ri_system_time * (*timebase.as_mut_ptr ()).numer as u64 / (*timebase.as_mut_ptr ()).denom as u64;
 
 	let utime: timespec = make_timespec ((user_ns / TIMESPEC_HZ as u64) as time_t,
 					     (user_ns % TIMESPEC_HZ as u64) as c_long);
@@ -6422,7 +6422,7 @@ pub unsafe extern "C-unwind" fn system_process_attributes (pid: Lisp_Object) -> 
 	  }
 
 	AUTO_STRING! (comm, start);
-	decoded_comm = code_convert_string_norecord (comm, Vlocale_coding_system, false);
+	decoded_comm = code_convert_string_norecord (comm, (*Vlocale_coding_system.as_mut_ptr ()), false);
 	attrs = Fcons (Fcons (Qargs (), decoded_comm), attrs);
       }
   }
@@ -6732,7 +6732,7 @@ pub unsafe extern "C-unwind" fn syms_of_sysdep () {
   /* PORTING.md P-126: sample the diagnostic switch here, where no handler can be running yet.  */
   FEMACS_CHILD_TRACE.store (! getenv (c"FEMACS_CHILD_TRACE".as_ptr ()).is_null (),
                             core::sync::atomic::Ordering::Relaxed);
-  defsubr (&raw mut Sget_internal_run_time);
+  defsubr (Sget_internal_run_time.as_mut_ptr ());
 
   }
 }

@@ -42,9 +42,9 @@ use crate::common::*;
 // port's `include/globals.rs` mirrors the names as declarations, so the unit that owns one
 // defines it here (status §3.29, the casetab.rs shape).
 #[unsafe(no_mangle)]
-pub static mut Vword_combining_categories: Lisp_Object = lisp_h_Qnil ();
+pub static Vword_combining_categories: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vword_separating_categories: Lisp_Object = lisp_h_Qnil ();
+pub static Vword_separating_categories: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* This setter is used only in this file, so it can be private.  */
 unsafe fn bset_category_table (b: *mut buffer, val: Lisp_Object)
@@ -67,7 +67,7 @@ unsafe fn hash_get_category_set (table: Lisp_Object, category_set: Lisp_Object)
     {
       set_char_table_extras
         (table, 1,
-         make_hash_table (&raw const hashtest_equal, DEFAULT_HASH_SIZE as EMACS_INT,
+         make_hash_table (hashtest_equal.as_ptr (), DEFAULT_HASH_SIZE as EMACS_INT,
                           Weak_None));
     }
   let h: *mut Lisp_Hash_Table =
@@ -208,7 +208,7 @@ DEFUN! ("standard-category-table", Fstandard_category_table,
        doc: "Return the standard category table.\nThis is the one used for new buffers.",
        (),
        {
-  return BVAR! (&raw mut buffer_defaults, category_table_);
+  return BVAR! (buffer_defaults.as_mut_ptr (), category_table_);
 });
 
 unsafe extern "C-unwind" fn copy_category_entry (table: Lisp_Object, c: Lisp_Object, mut val: Lisp_Object)
@@ -258,7 +258,7 @@ DEFUN! ("copy-category-table", Fcopy_category_table, Scopy_category_table,
   if ! NILP (table)
     { check_category_table (table); }
   else
-    { table = BVAR! (&raw mut buffer_defaults, category_table_); }
+    { table = BVAR! (buffer_defaults.as_mut_ptr (), category_table_); }
 
   return copy_category_table (table);
 });
@@ -412,15 +412,15 @@ pub unsafe extern "C-unwind" fn word_boundary_p (c1: c_int, c2: c_int) -> bool
   let mut tail: Lisp_Object;
   let mut default_result: bool;
 
-  if EQ (CHAR_TABLE_REF (Vchar_script_table, c1 as isize),
-         CHAR_TABLE_REF (Vchar_script_table, c2 as isize))
+  if EQ (CHAR_TABLE_REF ((*Vchar_script_table.as_mut_ptr ()), c1 as isize),
+         CHAR_TABLE_REF ((*Vchar_script_table.as_mut_ptr ()), c2 as isize))
     {
-      tail = Vword_separating_categories;
+      tail = (*Vword_separating_categories.as_mut_ptr ());
       default_result = false;
     }
   else
     {
-      tail = Vword_combining_categories;
+      tail = (*Vword_combining_categories.as_mut_ptr ());
       default_result = true;
     }
 
@@ -461,11 +461,11 @@ pub unsafe extern "C-unwind" fn init_category_once ()
   DEFSYM! (Qcategory_table, "category-table");
   Fput (Qcategory_table (), Qchar_table_extra_slots (), make_fixnum (2));
 
-  BVAR! (&raw mut buffer_defaults, category_table_) = Fmake_char_table (Qcategory_table (), Qnil ());
+  BVAR! (buffer_defaults.as_mut_ptr (), category_table_) = Fmake_char_table (Qcategory_table (), Qnil ());
   /* Set a category set which contains nothing to the default.  */
-  set_char_table_defalt (BVAR! (&raw mut buffer_defaults, category_table_),
+  set_char_table_defalt (BVAR! (buffer_defaults.as_mut_ptr (), category_table_),
                          MAKE_CATEGORY_SET ());
-  Fset_char_table_extra_slot (BVAR! (&raw mut buffer_defaults, category_table_),
+  Fset_char_table_extra_slot (BVAR! (buffer_defaults.as_mut_ptr (), category_table_),
                               make_fixnum (0),
                               make_nil_vector (95));
 
@@ -484,26 +484,26 @@ pub unsafe extern "C-unwind" fn syms_of_category ()
   DEFVAR_LISP! (c"word-combining-categories", Vword_combining_categories,
                 "List of pairs (cons cells) of categories to determine word boundary.\n\nEmacs treats a sequence of word constituent characters as a single\nword (i.e. finds no word boundary between them) only if they belong to\nthe same script (see `char-script-table').  Exceptions to this rule\nare allowed in the following cases.\n\n(1) The case that characters are in different scripts is controlled\nby the variable `word-combining-categories'.\n\nEmacs finds no word boundary between characters of different scripts\nif they have categories matching some element of this list.\n\nMore precisely, if an element of this list is a cons of category CAT1\nand CAT2, and a multibyte character C1 which has CAT1 (but not CAT2)\nis followed by C2 which has CAT2 (but not CAT1), there's no word\nboundary between C1 and C2.\n\nFor instance, to tell that Han characters followed by Hiragana\ncharacters can form a single word, the element `(?C . ?H)' should be\nin this list.\n\nCAT1 or CAT2 nil means that any character will do if it doesn't have\nthe other element of the cons in its category set.  For instance, to\ntell that ASCII characters can form a single word with non-ASCII\ncharacters, this list should have the elements `(nil . ?a)' and `(?a)'.\n\n(2) The case that character are in the same script is controlled by\nthe variable `word-separating-categories'.\n\nEmacs finds a word boundary between characters of the same script\nif they have categories matching some element of this list.\n\nMore precisely, if an element of this list is a cons of category CAT1\nand CAT2, and a multibyte character C1 which has CAT1 but not CAT2 is\nfollowed by C2 which has CAT2 but not CAT1, there's a word boundary\nbetween C1 and C2.\n\nFor instance, to tell that there's a word boundary between Hiragana\nand Katakana (both are in the same script `kana'),\nthe element `(?H . ?K)' should be in this list.");
 
-  Vword_combining_categories = Qnil ();
+  (*Vword_combining_categories.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"word-separating-categories", Vword_separating_categories,
                 "List of pairs (cons cells) of categories to determine word boundary.\nSee the documentation of the variable `word-combining-categories'.");
 
-  Vword_separating_categories = Qnil ();
+  (*Vword_separating_categories.as_mut_ptr ()) = Qnil ();
 
-  defsubr (&raw mut Smake_category_set);
-  defsubr (&raw mut Sdefine_category);
-  defsubr (&raw mut Scategory_docstring);
-  defsubr (&raw mut Sget_unused_category);
-  defsubr (&raw mut Scategory_table_p);
-  defsubr (&raw mut Scategory_table);
-  defsubr (&raw mut Sstandard_category_table);
-  defsubr (&raw mut Scopy_category_table);
-  defsubr (&raw mut Smake_category_table);
-  defsubr (&raw mut Sset_category_table);
-  defsubr (&raw mut Schar_category_set);
-  defsubr (&raw mut Scategory_set_mnemonics);
-  defsubr (&raw mut Smodify_category_entry);
+  defsubr (Smake_category_set.as_mut_ptr ());
+  defsubr (Sdefine_category.as_mut_ptr ());
+  defsubr (Scategory_docstring.as_mut_ptr ());
+  defsubr (Sget_unused_category.as_mut_ptr ());
+  defsubr (Scategory_table_p.as_mut_ptr ());
+  defsubr (Scategory_table.as_mut_ptr ());
+  defsubr (Sstandard_category_table.as_mut_ptr ());
+  defsubr (Scopy_category_table.as_mut_ptr ());
+  defsubr (Smake_category_table.as_mut_ptr ());
+  defsubr (Sset_category_table.as_mut_ptr ());
+  defsubr (Schar_category_set.as_mut_ptr ());
+  defsubr (Scategory_set_mnemonics.as_mut_ptr ());
+  defsubr (Smodify_category_entry.as_mut_ptr ());
 
   }
 }

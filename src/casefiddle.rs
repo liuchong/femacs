@@ -39,9 +39,9 @@ const _: () = ();
 // port's `include/globals.rs` mirrors the names as declarations, so the unit that owns one
 // defines it here (status §3.29, the casetab.rs shape).
 #[unsafe(no_mangle)]
-pub static mut Vregion_extract_function: Lisp_Object = lisp_h_Qnil ();
+pub static Vregion_extract_function: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut case_symbols_as_words: bool = false;
+pub static case_symbols_as_words: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 // casefiddle.c 30: `enum case_action {CASE_UP, CASE_DOWN, CASE_CAPITALIZE,
 // CASE_CAPITALIZE_UP};` (PORTING.md 1.3).
@@ -114,7 +114,7 @@ unsafe fn prepare_casing_context (ctx: *mut casing_context,
 
 fn case_ch_is_word (syntax: syntaxcode) -> bool
 {
-  return syntax == Sword || (/* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { case_symbols_as_words } && syntax == Ssymbol);
+  return syntax == Sword || (/* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { (*case_symbols_as_words.as_mut_ptr ()) } && syntax == Ssymbol);
 }
 
 #[repr(C)]
@@ -655,7 +655,7 @@ unsafe fn casify_pnc_region (flag: case_action, beg: Lisp_Object, end: Lisp_Obje
   unsafe {
   if !NILP (region_noncontiguous_p)
     {
-      let mut bounds: Lisp_Object = calln! (Vregion_extract_function, Qbounds ());
+      let mut bounds: Lisp_Object = calln! ((*Vregion_extract_function.as_mut_ptr ()), Qbounds ());
       FOR_EACH_TAIL! (bounds, {
 	  CHECK_CONS (XCAR (bounds));
 	  casify_region (flag, XCAR (XCAR (bounds)), XCDR (XCAR (bounds)));
@@ -757,25 +757,25 @@ pub unsafe extern "C-unwind" fn syms_of_casefiddle ()
 
   DEFVAR_LISP! (c"region-extract-function", Vregion_extract_function,
 	       "Function to get the region's content.\nCalled with one argument METHOD which can be:\n- nil: return the content as a string (list of strings for\n  non-contiguous regions).\n- `delete-only': delete the region; the return value is undefined.\n- `bounds': return the boundaries of the region as a list of one\n  or more cons cells of the form (START . END).\n- anything else: delete the region and return its content\n  as a string (or list of strings for non-contiguous regions),\n  after filtering it with `filter-buffer-substring', which\n  is called, for each contiguous sub-region, with METHOD as its\n  3rd argument.  ");
-  Vregion_extract_function = Qnil (); /* simple.el sets this.  */
+  (*Vregion_extract_function.as_mut_ptr ()) = Qnil (); /* simple.el sets this.  */
 
   DEFVAR_BOOL! (c"case-symbols-as-words", case_symbols_as_words,
     "If non-nil, case functions treat symbol syntax as part of words.\n\nFunctions such as `upcase-initials' and `replace-match' check or modify\nthe case pattern of sequences of characters.  Normally, these operate on\nsequences of characters whose syntax is word constituent.  If this\nvariable is non-nil, then they operate on sequences of characters whose\nsyntax is either word constituent or symbol constituent.\n\nThis is useful for programming languages and styles where only the first\nletter of a symbol's name is ever capitalized.");
-  case_symbols_as_words = false;
+  (*case_symbols_as_words.as_mut_ptr ()) = false;
   DEFSYM! (Qcase_symbols_as_words, "case-symbols-as-words");
   Fmake_variable_buffer_local (Qcase_symbols_as_words ());
 
-  defsubr (&raw mut Supcase);
-  defsubr (&raw mut Sdowncase);
-  defsubr (&raw mut Scapitalize);
-  defsubr (&raw mut Supcase_initials);
-  defsubr (&raw mut Supcase_region);
-  defsubr (&raw mut Sdowncase_region);
-  defsubr (&raw mut Scapitalize_region);
-  defsubr (&raw mut Supcase_initials_region);
-  defsubr (&raw mut Supcase_word);
-  defsubr (&raw mut Sdowncase_word);
-  defsubr (&raw mut Scapitalize_word);
+  defsubr (Supcase.as_mut_ptr ());
+  defsubr (Sdowncase.as_mut_ptr ());
+  defsubr (Scapitalize.as_mut_ptr ());
+  defsubr (Supcase_initials.as_mut_ptr ());
+  defsubr (Supcase_region.as_mut_ptr ());
+  defsubr (Sdowncase_region.as_mut_ptr ());
+  defsubr (Scapitalize_region.as_mut_ptr ());
+  defsubr (Supcase_initials_region.as_mut_ptr ());
+  defsubr (Supcase_word.as_mut_ptr ());
+  defsubr (Sdowncase_word.as_mut_ptr ());
+  defsubr (Scapitalize_word.as_mut_ptr ());
 
   }
 }

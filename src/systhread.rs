@@ -230,7 +230,7 @@ pub unsafe extern "C-unwind" fn sys_mutex_init (sys_mutex: *mut sys_mutex_t)
   /* We could get ENOMEM.  Can't do anything except aborting.  */
   if error != 0
     {
-      fprintf (stderr, c"\npthread_mutex_init failed: %s\n".as_ptr (), strerror (error));
+      fprintf ((*stderr.as_mut_ptr ()), c"\npthread_mutex_init failed: %s\n".as_ptr (), strerror (error));
       emacs_abort ();
     }
   #[cfg (feature = "enable_checking")]
@@ -279,7 +279,7 @@ pub unsafe extern "C-unwind" fn sys_cond_init (sys_cond: *mut sys_cond_t)
   /* We could get ENOMEM.  Can't do anything except aborting.  */
   if error != 0
     {
-      fprintf (stderr, c"\npthread_cond_init failed: %s\n".as_ptr (), strerror (error));
+      fprintf ((*stderr.as_mut_ptr ()), c"\npthread_cond_init failed: %s\n".as_ptr (), strerror (error));
       emacs_abort ();
     }
 
@@ -766,9 +766,9 @@ pub type MultiByteToWideChar_Proc = unsafe extern "system" fn (codepage: UINT, f
                                                               output_len: c_int) -> c_int;
 #[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
 unsafe extern "C" {
-  pub static mut is_debugger_present: IsDebuggerPresent_Proc;
-  pub static mut pMultiByteToWideChar: MultiByteToWideChar_Proc;
-  pub static mut set_thread_description: SetThreadDescription_Proc;
+  pub static is_debugger_present: VmGlobal<IsDebuggerPresent_Proc>;
+  pub static pMultiByteToWideChar: VmGlobal<MultiByteToWideChar_Proc>;
+  pub static set_thread_description: VmGlobal<SetThreadDescription_Proc>;
 }
 
 /* C 446-482: `w32_set_thread_name` (static).  */
@@ -779,7 +779,7 @@ unsafe fn w32_set_thread_name (thread_id: DWORD, name: *const c_char)
     { return; }
 
   /* Use the new API provided since Windows 10, if available.  */
-  if let Some (set_description) = set_thread_description
+  if let Some (set_description) = (*set_thread_description.as_mut_ptr ())
     {
       /* GDB pulls only the first 1024 characters of thread's name.  */
       let mut name_w: [c_ushort; 1025] = [0; 1025];
@@ -788,14 +788,14 @@ unsafe fn w32_set_thread_name (thread_id: DWORD, name: *const c_char)
       let mut codepage: c_int = _getmbcp ();
       if codepage == 0
         { codepage = GetACP () as c_int; }
-      let cnv_result = pMultiByteToWideChar (codepage as UINT, MB_ERR_INVALID_CHARS, name, -1,
+      let cnv_result = (*pMultiByteToWideChar.as_mut_ptr ()) (codepage as UINT, MB_ERR_INVALID_CHARS, name, -1,
                                              name_w.as_mut_ptr (), 1025);
       if cnv_result != 0
         && set_description (GetCurrentThread (), name_w.as_ptr ()) == S_OK
         { return; }
     }
   /* We can only support this fallback method when Emacs is being debugged.  */
-  let debugged = match is_debugger_present
+  let debugged = match (*is_debugger_present.as_mut_ptr ())
     {
       Some (f) => f () != 0,
       None => false,
@@ -817,7 +817,7 @@ unsafe fn w32_set_thread_name (thread_id: DWORD, name: *const c_char)
 
 /* C 484: `static thread_creation_function *thread_start_address;`  */
 #[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
-pub static mut thread_start_address: thread_creation_function = None;
+pub static thread_start_address: VmGlobal<thread_creation_function> = VmGlobal::<thread_creation_function>::new (None);
 
 /* C 486-490: `sys_thread_set_name`.  */
 #[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
@@ -832,7 +832,7 @@ pub unsafe extern "C-unwind" fn sys_thread_set_name (name: *const c_char)
 #[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
 unsafe extern "C" fn w32_beginthread_wrapper (arg: *mut c_void)
 {
-  match thread_start_address
+  match (*thread_start_address.as_mut_ptr ())
     {
       Some (f) => { f (arg); }
       None => {}
@@ -853,7 +853,7 @@ pub unsafe extern "C-unwind" fn sys_thread_create (thread_ptr: *mut sys_thread_t
   const stack_size: c_uint = 0;
   let thandle: usize;
 
-  thread_start_address = func;
+  (*thread_start_address.as_mut_ptr ()) = func;
 
   /* We use `_beginthread` rather than `CreateThread` because the former arranges for the thread
      handle to be automatically closed when the thread exits, thus preventing handle leaks and/or

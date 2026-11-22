@@ -193,10 +193,10 @@ pub unsafe extern "C" fn rpl_utimensat (fd: c_int, file: *const c_char,
 {
   // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
   unsafe {
-  static mut utimensat_works_really: c_int = 0;
+  static utimensat_works_really: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 
   /* See comments in utimens.c for details.  */
-  if 0 <= utimensat_works_really
+  if 0 <= (*utimensat_works_really.as_mut_ptr ())
     {
       /* macOS 10.13 and GNU Hurd do not reject invalid tv_nsec values
          either.  */
@@ -235,7 +235,7 @@ pub unsafe extern "C" fn rpl_utimensat (fd: c_int, file: *const c_char,
         { return result; }
       if result == 0 || (*errno () != ENOSYS && *errno () != EINVAL)
         {
-          utimensat_works_really = 1;
+          (*utimensat_works_really.as_mut_ptr ()) = 1;
           return result;
         }
     }
@@ -243,8 +243,8 @@ pub unsafe extern "C" fn rpl_utimensat (fd: c_int, file: *const c_char,
      implemented with the same syscall as utimensat.  Only avoid the
      native utimensat due to an ENOSYS failure; an EINVAL error was
      data-dependent, and the next caller may pass valid data.  */
-  if 0 <= utimensat_works_really && *errno () == ENOSYS
-    { utimensat_works_really = -1; }
+  if 0 <= (*utimensat_works_really.as_mut_ptr ()) && *errno () == ENOSYS
+    { (*utimensat_works_really.as_mut_ptr ()) = -1; }
   return local_utimensat (fd, file, times, flag);
 
   }

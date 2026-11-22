@@ -37,14 +37,14 @@ MIRROR_DIRS = ("src/include", "lib/include")
 INCLUDE = re.compile(r'include!\(\s*"([^"]+)"\s*\)')
 MODULE = re.compile(r"^\s*(?:pub\s+)?mod\s+([A-Za-z_]\w*)\s*\{")
 GLOB_USE = re.compile(r"^\s*use\s+([A-Za-z_]\w*)\s*::\s*\*;")
-FN_DECL = re.compile(r"^(?:pub\s+)?(?:unsafe\s+)?(?:extern\s+\"C(?:-unwind)?\"\s+)?fn\s+([A-Za-z_]\w*)\s*\(")
+FN_DECL = re.compile(r"^(?:pub\s+)?(?:(?:unsafe|safe)\s+)?(?:extern\s+\"C(?:-unwind)?\"\s+)?fn\s+([A-Za-z_]\w*)\s*\(")
 # Constants and statics are the other half of the same question, and nothing else looks for
 # them: a `const NAME` a unit keeps while a mirrored header declares it is an `E0428` the
 # moment the mirror lands (status 3.80's sweep missed `EDOM` in two units, and the whole-tree
 # build was what caught it; status 3.83 teaches this tool to see it first).
 # The name must start with a letter: `const _: () = assert!(…)` is the layout-assertion
 # shape every unit repeats on purpose, and it is not a declaration of anything.
-ITEM_DECL = re.compile(r"^(?:pub\s+)?(?:static\s+mut\s+|const\s+)([A-Za-z]\w*)\s*[:=]")
+ITEM_DECL = re.compile(r"^(?:pub\s+)?(?:static\s+(?:mut\s+)?|const\s+)([A-Za-z]\w*)\s*[:=]")
 # The third namespace, and the one this gate was blind to until xdisp.rs's twenty-fourth slice
 # taught it (status 3.325/3.326): a `macro_rules!` and a `fn` of the same name live in different
 # Rust namespaces, so a unit-side macro does not collide with a mirror's function - it *shadows*

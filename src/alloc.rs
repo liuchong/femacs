@@ -250,20 +250,20 @@ const _: () = core::assert! (! (MALLOC_ALIGNMENT % std::mem::size_of::<size_t> (
 #[cfg (feature = "doug_lea_malloc")]
 unsafe fn malloc_initialize_hook ()
 {
-  static mut malloc_using_checking: bool = false;
+  static malloc_using_checking: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
-  if !initialized
+  if !(*initialized.as_mut_ptr ())
     {
-      malloc_using_checking = getenv (c"MALLOC_CHECK_".as_ptr ()) != std::ptr::null_mut ();
+      (*malloc_using_checking.as_mut_ptr ()) = getenv (c"MALLOC_CHECK_".as_ptr ()) != std::ptr::null_mut ();
     }
   else
     {
-      if !malloc_using_checking
+      if !(*malloc_using_checking.as_mut_ptr ())
 	{
 	  /* Work around a bug in glibc's malloc.  MALLOC_CHECK_ must be
 	     ignored if the heap to be restored was constructed without
 	     malloc checking.  Can't use unsetenv, since that calls malloc.  */
-	  let mut p = environ;
+	  let mut p = (*environ.as_mut_ptr ());
 	  if !p.is_null ()
 	    {
 	      while *p != std::ptr::null_mut ()
@@ -295,7 +295,7 @@ macro_rules! __MALLOC_HOOK_VOLATILE {
 #[cfg (feature = "doug_lea_malloc")]
 #[unsafe(no_mangle)]
 #[used]
-pub static mut __malloc_initialize_hook: voidfuncptr = malloc_initialize_hook;
+pub static __malloc_initialize_hook: VmGlobal<voidfuncptr> = VmGlobal::<voidfuncptr>::new (malloc_initialize_hook);
 
 /* C 75-83: the `ENABLE_CHECKING && HAVE_VALGRIND_VALGRIND_H` guard is false and the `#elif`
    arms before it are false too, so C defines `USE_VALGRIND` to 1 in the *dead* arm and the
@@ -354,22 +354,22 @@ pub struct emacs_globals
   _private: [u8; 0],
 }
 #[unsafe(no_mangle)]
-pub static mut globals: emacs_globals = emacs_globals { _private: [] };
+pub static globals: VmGlobal<emacs_globals> = VmGlobal::<emacs_globals>::new (emacs_globals { _private: [] });
 
 /* maybe_gc collects garbage if this goes negative.  */
 
 #[unsafe(no_mangle)]
-pub static mut consing_until_gc: EMACS_INT = 0;
+pub static consing_until_gc: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);
 
 /* Number of finalizers run: used to loop over GC until we stop
    generating garbage.  */
 #[unsafe(no_mangle)]
-pub static mut number_finalizers_run: c_int = 0;
+pub static number_finalizers_run: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 
 /* True during GC.  */
 
 #[unsafe(no_mangle)]
-pub static mut gc_in_progress: bool = false;
+pub static gc_in_progress: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 /* System byte and object counts reported by GC.  */
 
@@ -408,7 +408,7 @@ pub struct gcstat
 const _: () = core::assert! (std::mem::size_of::<gcstat> () == 128);
 const _: () = core::assert! (std::mem::offset_of! (gcstat, total_hash_table_bytes) == 120);
 
-static mut gcstat: gcstat = gcstat {
+static gcstat: VmGlobal<gcstat> = VmGlobal::<gcstat>::new (gcstat {
   total_conses: 0, total_free_conses: 0,
   total_symbols: 0, total_free_symbols: 0,
   total_strings: 0, total_free_strings: 0,
@@ -418,17 +418,17 @@ static mut gcstat: gcstat = gcstat {
   total_intervals: 0, total_free_intervals: 0,
   total_buffers: 0,
   total_hash_table_bytes: 0,
-};
+});
 
 /* Total size of ancillary arrays of all allocated hash-table and obarray
    objects, both dead and alive.  This number is always kept up-to-date.  */
-static mut hash_table_allocated_bytes: ptrdiff_t = 0;
+static hash_table_allocated_bytes: VmGlobal<ptrdiff_t> = VmGlobal::<ptrdiff_t>::new (0);
 
 /* Points to memory space allocated as "spare", to be freed if we run
    out of memory.  We keep one large block, four cons-blocks, and
    two string blocks.  */
 
-static mut spare_memory: [*mut c_char; 7] = [std::ptr::null_mut (); 7];
+static spare_memory: VmGlobal<[*mut c_char; 7]> = VmGlobal::<[*mut c_char; 7]>::new ([std::ptr::null_mut (); 7]);
 
 /* Amount of spare memory to keep in large reserve block, or to see
    whether this much is available when malloc fails on a larger request.  */
@@ -440,17 +440,17 @@ macro_rules! SPARE_MEMORY {
 /* If positive, garbage collection is inhibited.  Otherwise, zero.  */
 
 #[unsafe(no_mangle)]
-pub static mut garbage_collection_inhibited: intptr_t = 0;
+pub static garbage_collection_inhibited: VmGlobal<intptr_t> = VmGlobal::<intptr_t>::new (0);
 
 /* The GC threshold in bytes, the last time it was calculated
    from gc-cons-threshold and gc-cons-percentage.  */
-static mut gc_threshold: EMACS_INT = 0;
+static gc_threshold: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);
 
 /* If nonzero, this is a warning delivered by malloc and not yet
    displayed.  */
 
 #[unsafe(no_mangle)]
-pub static mut pending_malloc_warning: *const c_char = std::ptr::null ();
+pub static pending_malloc_warning: VmGlobal<*const c_char> = VmGlobal::<*const c_char>::new (std::ptr::null ());
 
 /* Maximum amount of C stack to save when a GC happens.  */
 
@@ -458,8 +458,8 @@ const MAX_SAVE_STACK: c_int = 16000;
 
 /* Buffer in which we save a copy of the C stack at each GC.  */
 
-static mut stack_copy: *mut c_char = std::ptr::null_mut ();
-static mut stack_copy_size: ptrdiff_t = 0;
+static stack_copy: VmGlobal<*mut c_char> = VmGlobal::<*mut c_char>::new (std::ptr::null_mut ());
+static stack_copy_size: VmGlobal<ptrdiff_t> = VmGlobal::<ptrdiff_t>::new (0);
 
 /* Copy to DEST a block of memory from SRC of size SIZE bytes,
    avoiding any address sanitization.  */
@@ -527,7 +527,7 @@ unsafe fn deadp (x: Lisp_Object) -> bool
    target (`GC_MALLOC_CHECK` is `#undef`ed by C 131-133's `SYSTEM_MALLOC` arm).  */
 #[cfg (feature = "gc_malloc_check")]
 #[unsafe(no_mangle)]
-pub static mut allocated_mem_type: mem_type = mem_type::MEM_TYPE_NON_LISP;
+pub static allocated_mem_type: VmGlobal<mem_type> = VmGlobal::<mem_type>::new (mem_type::MEM_TYPE_NON_LISP);
 
 /* A node in the red-black tree describing allocated memory containing
    Lisp data.  Each such block is recorded with its start and end
@@ -590,36 +590,35 @@ const _: () = core::assert! (std::mem::offset_of! (mem_node, r#type) == 44);
 
 /* Root of the tree describing allocated Lisp memory.  */
 
-static mut mem_root: *mut mem_node = std::ptr::null_mut ();
+static mem_root: VmGlobal<*mut mem_node> = VmGlobal::<*mut mem_node>::new (std::ptr::null_mut ());
 
 /* Lowest and highest known address in the heap.  */
 
-static mut min_heap_address: *mut c_void = std::ptr::null_mut ();
-static mut max_heap_address: *mut c_void = std::ptr::null_mut ();
+static min_heap_address: VmGlobal<*mut c_void> = VmGlobal::<*mut c_void>::new (std::ptr::null_mut ());
+static max_heap_address: VmGlobal<*mut c_void> = VmGlobal::<*mut c_void>::new (std::ptr::null_mut ());
 
 /* Sentinel node of the tree.  */
 
-static mut mem_z: mem_node = mem_node {
+static mem_z: VmGlobal<mem_node> = VmGlobal::<mem_node>::new (mem_node {
   left: std::ptr::null_mut (), right: std::ptr::null_mut (),
   parent: std::ptr::null_mut (),
   start: std::ptr::null_mut (), end: std::ptr::null_mut (),
   MEM_BLACK: [],
   color: MEM_BLACK, r#type: mem_type::MEM_TYPE_NON_LISP,
-};
+});
 macro_rules! MEM_NIL {
-  () => { std::ptr::addr_of_mut! (mem_z) };
+  () => { mem_z.as_mut_ptr () };
 }
 
 /* Addresses of staticpro'd variables.  */
 
 #[unsafe(no_mangle)]
-pub static mut staticvec: [*const Lisp_Object; NSTATICS as usize] =
-  [std::ptr::null (); NSTATICS as usize];
+pub static staticvec: VmGlobal<[*const Lisp_Object; NSTATICS as usize]> = VmGlobal::<[*const Lisp_Object; NSTATICS as usize]>::new ([std::ptr::null (); NSTATICS as usize]);
 
 /* Index of next unused slot in staticvec.  */
 
 #[unsafe(no_mangle)]
-pub static mut staticidx: c_int = 0;
+pub static staticidx: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 
 /* Extract the pointer hidden within O.  */
 
@@ -628,7 +627,7 @@ unsafe fn XPNTR (a: Lisp_Object) -> *mut c_void
   // SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers.
   unsafe {
   return if BARE_SYMBOL_P (a)
-    { (std::ptr::addr_of_mut! (lispsym) as *mut c_char)
+    { (lispsym.as_mut_ptr () as *mut c_char)
 	.offset ((XLI (a) - LISP_WORD_TAG (Lisp_Type::Lisp_Symbol as Lisp_Word_tag) as EMACS_INT)
 		 as isize) as *mut c_void }
     else
@@ -655,7 +654,7 @@ unsafe fn tally_consing (nbytes: ptrdiff_t)
   unsafe {
   #[cfg(feature = "femacs_gc_generational")]
   if nbytes > 0 { gc_collector::note_allocation(nbytes as usize, false); }
-  consing_until_gc -= nbytes;
+  (*consing_until_gc.as_mut_ptr ()) -= nbytes;
 
   }
 }
@@ -678,18 +677,16 @@ unsafe fn mmap_lisp_allowed_p () -> bool
 
 /* Head of a circularly-linked list of extant finalizers. */
 #[unsafe(no_mangle)]
-pub static mut finalizers: Lisp_Finalizer =
-  Lisp_Finalizer { header: vectorlike_header { size: 0 }, next: std::ptr::null_mut (),
-		   function: std::ptr::null_mut (), prev: std::ptr::null_mut () };
+pub static finalizers: VmGlobal<Lisp_Finalizer> = VmGlobal::<Lisp_Finalizer>::new (Lisp_Finalizer { header: vectorlike_header { size: 0 }, next: std::ptr::null_mut (),
+		   function: std::ptr::null_mut (), prev: std::ptr::null_mut () });
 
 /* Head of a circularly-linked list of finalizers that must be invoked
    because we deemed them unreachable.  This list must be global, and
    not a local inside garbage_collect, in case we GC again while
    running finalizers.  */
 #[unsafe(no_mangle)]
-pub static mut doomed_finalizers: Lisp_Finalizer =
-  Lisp_Finalizer { header: vectorlike_header { size: 0 }, next: std::ptr::null_mut (),
-		   function: std::ptr::null_mut (), prev: std::ptr::null_mut () };
+pub static doomed_finalizers: VmGlobal<Lisp_Finalizer> = VmGlobal::<Lisp_Finalizer>::new (Lisp_Finalizer { header: vectorlike_header { size: 0 }, next: std::ptr::null_mut (),
+		   function: std::ptr::null_mut (), prev: std::ptr::null_mut () });
 
 /************************************************************************
 				Malloc
@@ -704,7 +701,7 @@ pub static mut doomed_finalizers: Lisp_Finalizer =
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn malloc_warning (str: *const c_char)
 {
-  pending_malloc_warning = str;
+  (*pending_malloc_warning.as_mut_ptr ()) = str;
 }
 
 /* Display an already-pending malloc warning.  */
@@ -715,8 +712,8 @@ pub unsafe extern "C-unwind" fn display_malloc_warning ()
   // SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers.
   unsafe {
   calln! (Qdisplay_warning (), Qalloc (),
-	  build_string (pending_malloc_warning), QCemergency ());
-  pending_malloc_warning = 0 as *const c_char;
+	  build_string ((*pending_malloc_warning.as_mut_ptr ())), QCemergency ());
+  (*pending_malloc_warning.as_mut_ptr ()) = 0 as *const c_char;
 
   }
 }
@@ -741,7 +738,7 @@ pub unsafe extern "C-unwind" fn buffer_memory_full (nbytes: ptrdiff_t)
   {
   /* This used to call error, but if we've run out of memory, we could
      get infinite recursion trying to build the string.  */
-  xsignal (Qnil (), Vmemory_signal_data);
+  xsignal (Qnil (), (*Vmemory_signal_data.as_mut_ptr ()));
   }
 
   }
@@ -794,7 +791,7 @@ const _: () = core::assert! (PTRDIFF_MAX as usize <= SIZE_MAX);
 
 macro_rules! MALLOC_PROBE {
   ($size:expr) => {
-    if profiler_memory_running
+    if (*profiler_memory_running.as_mut_ptr ())
       { malloc_probe ($size as usize); }
   };
 }
@@ -1019,7 +1016,7 @@ pub unsafe extern "C-unwind" fn xpalloc (mut pa: *mut c_void, nitems: *mut ptrdi
      It is off unless the variable is set, and it prints to stderr only.  */
   if /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { !getenv (c"FEMACS_XPALLOC_TRACE".as_ptr ()).is_null () }
     {
-      fprintf (stderr, c"xpalloc: item_size=%d n0=%d incr_min=%d max=%d -> n=%d nbytes=%d\n".as_ptr (),
+      fprintf ((*stderr.as_mut_ptr ()), c"xpalloc: item_size=%d n0=%d incr_min=%d max=%d -> n=%d nbytes=%d\n".as_ptr (),
 	       item_size as c_int, n0 as c_int, nitems_incr_min as c_int,
 	       nitems_max as c_int, n as c_int, nbytes as c_int);
     }
@@ -1142,13 +1139,13 @@ struct sa_stack_block
   next_free: *mut sa_stack_block,
 }
 
-static mut sa_stack_top: *mut sa_stack_block = std::ptr::null_mut ();
+static sa_stack_top: VmGlobal<*mut sa_stack_block> = VmGlobal::<*mut sa_stack_block>::new (std::ptr::null_mut ());
 /* Released blocks, awaiting the next request of their thread (P-172); never returned.  */
-static mut sa_stack_free: *mut sa_stack_block = std::ptr::null_mut ();
+static sa_stack_free: VmGlobal<*mut sa_stack_block> = VmGlobal::<*mut sa_stack_block>::new (std::ptr::null_mut ());
 
 /* How many blocks the chain holds.  `USE_SAFE_ALLOCA!` reads it into the frame, `SAFE_FREE!`
    hands that reading back - the scope's own height is the release's only input (P-117 ⑧).  */
-static mut sa_stack_count: usize = 0;
+static sa_stack_count: VmGlobal<usize> = VmGlobal::<usize>::new (0);
 
 /// C: `alloca`'s port - the allocator behind `AVAIL_ALLOCA!`, called with the byte count the
 /// macro has already charged to `sa_avail`.
@@ -1159,10 +1156,10 @@ pub unsafe extern "C-unwind" fn sa_stack_alloc (size: usize) -> *mut c_void
   unsafe {
   let bytes = (size + SA_STACK_ALIGN - 1) & !(SA_STACK_ALIGN - 1);
   /* Recycle a big-enough block of this thread, as C's stack reuses earlier frames' space.  */
-  let mut header: *mut sa_stack_block = sa_stack_free;
+  let mut header: *mut sa_stack_block = (*sa_stack_free.as_mut_ptr ());
   let mut prev: *mut sa_stack_block = std::ptr::null_mut ();
   while ! header.is_null ()
-    && ! ((*header).owner == current_thread as *mut c_void && (*header).used >= bytes)
+    && ! ((*header).owner == (*current_thread.as_mut_ptr ()) as *mut c_void && (*header).used >= bytes)
     {
       prev = header;
       header = (*header).next_free;
@@ -1170,23 +1167,23 @@ pub unsafe extern "C-unwind" fn sa_stack_alloc (size: usize) -> *mut c_void
   if ! header.is_null ()
     {
       if prev.is_null ()
-	{ sa_stack_free = (*header).next_free; }
+	{ (*sa_stack_free.as_mut_ptr ()) = (*header).next_free; }
       else
 	{ (*prev).next_free = (*header).next_free; }
       (*header).next_free = std::ptr::null_mut ();
-      (*header).next = sa_stack_top;
-      sa_stack_top = header;
-      sa_stack_count += 1;
+      (*header).next = (*sa_stack_top.as_mut_ptr ());
+      (*sa_stack_top.as_mut_ptr ()) = header;
+      (*sa_stack_count.as_mut_ptr ()) += 1;
       return (*header).base as *mut c_void;
     }
   let base = malloc (bytes) as *mut u8;
   if base.is_null ()
     { memory_full (bytes); }
   header = xmalloc (std::mem::size_of::<sa_stack_block> ()) as *mut sa_stack_block;
-  (*header) = sa_stack_block { base, used: bytes, owner: current_thread as *mut c_void,
-			       next: sa_stack_top, next_free: std::ptr::null_mut () };
-  sa_stack_top = header;
-  sa_stack_count += 1;
+  (*header) = sa_stack_block { base, used: bytes, owner: (*current_thread.as_mut_ptr ()) as *mut c_void,
+			       next: (*sa_stack_top.as_mut_ptr ()), next_free: std::ptr::null_mut () };
+  (*sa_stack_top.as_mut_ptr ()) = header;
+  (*sa_stack_count.as_mut_ptr ()) += 1;
   return base as *mut c_void;
 
   }
@@ -1199,7 +1196,7 @@ pub unsafe extern "C-unwind" fn sa_stack_mark () -> usize
 {
   // SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers.
   unsafe {
-  return sa_stack_count;
+  return (*sa_stack_count.as_mut_ptr ());
 
   }
 }
@@ -1214,15 +1211,15 @@ pub unsafe extern "C-unwind" fn sa_stack_mark () -> usize
 pub unsafe extern "C-unwind" fn sa_stack_release_to (mark: usize)
 {
   /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe {
-    while sa_stack_count > mark && !sa_stack_top.is_null ()
-      && (*sa_stack_top).owner == current_thread as *mut c_void
+    while (*sa_stack_count.as_mut_ptr ()) > mark && !(*sa_stack_top.as_mut_ptr ()).is_null ()
+      && (*(*sa_stack_top.as_mut_ptr ())).owner == (*current_thread.as_mut_ptr ()) as *mut c_void
       {
-        let header = sa_stack_top;
-        sa_stack_top = (*header).next;
-        sa_stack_count -= 1;
+        let header = (*sa_stack_top.as_mut_ptr ());
+        (*sa_stack_top.as_mut_ptr ()) = (*header).next;
+        (*sa_stack_count.as_mut_ptr ()) -= 1;
         /* P-172: recycle, do not free; C's alloca bytes stay readable within the active frame.  */
-        (*header).next_free = sa_stack_free;
-        sa_stack_free = header;
+        (*header).next_free = (*sa_stack_free.as_mut_ptr ());
+        (*sa_stack_free.as_mut_ptr ()) = header;
       }
   }
 }
@@ -1236,9 +1233,9 @@ pub unsafe extern "C-unwind" fn sa_stack_frame_exit (mark: usize)
   // retires dead-frame conservative scanning of recycled alloca blocks.
   unsafe {
     sa_stack_release_to (mark);
-    if mark == 0 && sa_stack_top.is_null () {
+    if mark == 0 && (*sa_stack_top.as_mut_ptr ()).is_null () {
       let mut scrubbed = 0usize;
-      let mut block = sa_stack_free;
+      let mut block = (*sa_stack_free.as_mut_ptr ());
       while !block.is_null () {
         if (*block).used != 0 {
           core::ptr::write_bytes ((*block).base as *mut u8, 0, (*block).used);
@@ -1260,7 +1257,7 @@ pub unsafe extern "C-unwind" fn sa_stack_frame_exit (mark: usize)
 #[cfg (feature = "no_use_lsb_tag")]
 #[unsafe(no_mangle)]
 #[used]
-pub static mut lisp_malloc_loser: *mut c_void = std::ptr::null_mut ();
+pub static lisp_malloc_loser: VmGlobal<*mut c_void> = VmGlobal::<*mut c_void>::new (std::ptr::null_mut ());
 
 /* Allocate memory for Lisp data.
    NBYTES is the number of bytes to allocate;
@@ -1283,7 +1280,7 @@ unsafe fn lisp_malloc (nbytes: ptrdiff_t, clearit: bool, r#type: mem_type) -> *m
 
   /* C 906-908 (`#ifdef GC_MALLOC_CHECK`) is dead on this target.  */
   #[cfg (feature = "gc_malloc_check")]
-  { allocated_mem_type = r#type; }
+  { (*allocated_mem_type.as_mut_ptr ()) = r#type; }
 
   val = if clearit { calloc (1, nbytes as size_t) } else { malloc (nbytes as size_t) };
 
@@ -1299,7 +1296,7 @@ unsafe fn lisp_malloc (nbytes: ptrdiff_t, clearit: bool, r#type: mem_type) -> *m
 	XSETCONS! (tem, (val as *mut c_char).offset (nbytes as isize - 1));
 	if lisp_h_XCONS_untracked (tem) as *mut c_char != (val as *mut c_char).offset (nbytes as isize - 1)
 	  {
-	    lisp_malloc_loser = val;
+	    (*lisp_malloc_loser.as_mut_ptr ()) = val;
 	    rpl_free (val);
 	    val = 0 as *mut c_void;
 	  }
@@ -1482,7 +1479,7 @@ macro_rules! ASAN_UNPOISON_ABLOCK {
 }
 
 /* The list of free ablock.   */
-static mut free_ablock: *mut ablock = std::ptr::null_mut ();
+static free_ablock: VmGlobal<*mut ablock> = VmGlobal::<*mut ablock>::new (std::ptr::null_mut ());
 
 /* C 1072-1079 (`#if !USE_ALIGNED_ALLOC`) is dead.  */
 #[cfg (feature = "no_use_aligned_alloc")]
@@ -1505,9 +1502,9 @@ unsafe fn lisp_align_malloc (nbytes: ptrdiff_t, r#type: mem_type) -> *mut c_void
 
   /* C 1093-1095 (`#ifdef GC_MALLOC_CHECK`) is dead on this target.  */
   #[cfg (feature = "gc_malloc_check")]
-  { allocated_mem_type = r#type; }
+  { (*allocated_mem_type.as_mut_ptr ()) = r#type; }
 
-  if free_ablock.is_null ()
+  if (*free_ablock.as_mut_ptr ()).is_null ()
     {
       let mut i: c_int;
       let mut aligned: bool;
@@ -1550,7 +1547,7 @@ unsafe fn lisp_align_malloc (nbytes: ptrdiff_t, r#type: mem_type) -> *mut c_void
 	    XSETCONS! (tem, end);
 	    if lisp_h_XCONS_untracked (tem) as *mut c_char != end
 	      {
-		lisp_malloc_loser = base;
+		(*lisp_malloc_loser.as_mut_ptr ()) = base;
 		rpl_free (base);
 		memory_full_up ();
 	      }
@@ -1563,9 +1560,9 @@ unsafe fn lisp_align_malloc (nbytes: ptrdiff_t, r#type: mem_type) -> *mut c_void
       while i < (if aligned { ABLOCKS_SIZE } else { ABLOCKS_SIZE - 1 })
 	{
 	  (*abase).blocks[i as usize].abase = abase;
-	  (*abase).blocks[i as usize].x.next_free = free_ablock;
+	  (*abase).blocks[i as usize].x.next_free = (*free_ablock.as_mut_ptr ());
 	  ASAN_POISON_ABLOCK! (&raw mut (*abase).blocks[i as usize]);
-	  free_ablock = &raw mut (*abase).blocks[i as usize];
+	  (*free_ablock.as_mut_ptr ()) = &raw mut (*abase).blocks[i as usize];
 	  i += 1;
 	}
       let ialigned: intptr_t = aligned as intptr_t;
@@ -1578,12 +1575,12 @@ unsafe fn lisp_align_malloc (nbytes: ptrdiff_t, r#type: mem_type) -> *mut c_void
       eassert! (ABLOCKS_BUSY! (abase) as intptr_t == aligned as intptr_t);
     }
 
-  ASAN_UNPOISON_ABLOCK! (free_ablock);
-  abase = ABLOCK_ABASE! (free_ablock);
+  ASAN_UNPOISON_ABLOCK! ((*free_ablock.as_mut_ptr ()));
+  abase = ABLOCK_ABASE! ((*free_ablock.as_mut_ptr ()));
   ABLOCKS_BUSY! (abase)
     = (2 + ABLOCKS_BUSY! (abase) as intptr_t) as *mut ablocks;
-  val = free_ablock as *mut c_void;
-  free_ablock = (*free_ablock).x.next_free;
+  val = (*free_ablock.as_mut_ptr ()) as *mut c_void;
+  (*free_ablock.as_mut_ptr ()) = (*(*free_ablock.as_mut_ptr ())).x.next_free;
 
   /* C 1171-1174 (`#ifndef GC_MALLOC_CHECK`) is live.  */
   if r#type != mem_type::MEM_TYPE_NON_LISP
@@ -1609,9 +1606,9 @@ unsafe fn lisp_align_free (block: *mut c_void)
   /* C 1188-1191 (`#ifndef GC_MALLOC_CHECK`) is live.  */
   mem_delete (mem_find (block));
   /* Put on free list.  */
-  (*ablock).x.next_free = free_ablock;
+  (*ablock).x.next_free = (*free_ablock.as_mut_ptr ());
   ASAN_POISON_ABLOCK! (ablock);
-  free_ablock = ablock;
+  (*free_ablock.as_mut_ptr ()) = ablock;
   /* Update busy count.  */
   let busy: intptr_t = ABLOCKS_BUSY! (abase) as intptr_t - 2;
   eassume! (0 <= busy && busy <= 2 * ABLOCKS_SIZE as intptr_t - 1);
@@ -1621,7 +1618,7 @@ unsafe fn lisp_align_free (block: *mut c_void)
     { /* All the blocks are free.  */
       let mut i: c_int = 0;
       let aligned: bool = busy != 0;
-      let mut tem: *mut *mut ablock = &raw mut free_ablock;
+      let mut tem: *mut *mut ablock = free_ablock.as_mut_ptr ();
       /* C's `&abase->blocks[aligned ? ABLOCKS_SIZE : ABLOCKS_SIZE - 1]` takes the address
 	 one past the end of the array when `aligned`; Rust spells that as an offset from the
 	 first block rather than an out-of-range subscript.  */
@@ -1681,16 +1678,16 @@ const _: () = core::assert! (std::mem::offset_of! (interval_block, next) == 1008
 /* Current interval block.  Its `next' pointer points to older
    blocks.  */
 
-static mut interval_block: *mut interval_block = std::ptr::null_mut ();
+static interval_block: VmGlobal<*mut interval_block> = VmGlobal::<*mut interval_block>::new (std::ptr::null_mut ());
 
 /* Index in interval_block above of the next unused interval
    structure.  */
 
-static mut interval_block_index: c_int = INTERVAL_BLOCK_SIZE as c_int;
+static interval_block_index: VmGlobal<c_int> = VmGlobal::<c_int>::new (INTERVAL_BLOCK_SIZE as c_int);
 
 /* List of free intervals.  */
 
-static mut interval_free_list: INTERVAL = std::ptr::null_mut ();
+static interval_free_list: VmGlobal<INTERVAL> = VmGlobal::<INTERVAL>::new (std::ptr::null_mut ());
 
 /* C 1264-1279: `#if GC_ASAN_POISON_OBJECTS` is dead; the `__asan_*` bodies are carried in
    docs/ports/alloc.md and the live `#else` arm's four macros are below.  */
@@ -1716,31 +1713,31 @@ pub unsafe extern "C-unwind" fn make_interval () -> INTERVAL
   unsafe {
   let mut val: INTERVAL;
 
-  if !interval_free_list.is_null ()
+  if !(*interval_free_list.as_mut_ptr ()).is_null ()
     {
-      val = interval_free_list;
+      val = (*interval_free_list.as_mut_ptr ());
       ASAN_UNPOISON_INTERVAL! (val);
-      interval_free_list = INTERVAL_PARENT! (interval_free_list) as INTERVAL;
+      (*interval_free_list.as_mut_ptr ()) = INTERVAL_PARENT! ((*interval_free_list.as_mut_ptr ())) as INTERVAL;
     }
   else
     {
-      if interval_block_index == INTERVAL_BLOCK_SIZE as c_int
+      if (*interval_block_index.as_mut_ptr ()) == INTERVAL_BLOCK_SIZE as c_int
 	{
 	  let newi = lisp_malloc (std::mem::size_of::<interval_block> () as ptrdiff_t, false,
 				  mem_type::MEM_TYPE_NON_LISP) as *mut interval_block;
 
-	  (*newi).next = interval_block;
+	  (*newi).next = (*interval_block.as_mut_ptr ());
 	  ASAN_POISON_INTERVAL_BLOCK! (newi);
-	  interval_block = newi;
-	  interval_block_index = 0;
+	  (*interval_block.as_mut_ptr ()) = newi;
+	  (*interval_block_index.as_mut_ptr ()) = 0;
 	}
-      val = &raw mut (*interval_block).intervals[interval_block_index as usize] as INTERVAL;
-      interval_block_index += 1;
+      val = &raw mut (*(*interval_block.as_mut_ptr ())).intervals[(*interval_block_index.as_mut_ptr ()) as usize] as INTERVAL;
+      (*interval_block_index.as_mut_ptr ()) += 1;
       ASAN_UNPOISON_INTERVAL! (val);
     }
 
   tally_consing (std::mem::size_of::<interval> () as ptrdiff_t);
-  intervals_consed += 1;
+  (*intervals_consed.as_mut_ptr ()) += 1;
   RESET_INTERVAL! (val);
   interval_bits! (gcmarkbit, val, false);
   return val;
@@ -1754,9 +1751,9 @@ pub unsafe extern "C-unwind" fn make_interval () -> INTERVAL
 
 // Opt-in GC diagnostics retain only raw identities, never Lisp objects or new
 // roots. Invalid-object reporting must not call the Lisp printer during GC.
-static mut gc_mark_trace_enabled: bool = false;
-static mut gc_mark_trace_interval: INTERVAL = std::ptr::null_mut ();
-static mut gc_mark_trace_plist: uintptr_t = 0;
+static gc_mark_trace_enabled: VmGlobal<bool> = VmGlobal::<bool>::new (false);
+static gc_mark_trace_interval: VmGlobal<INTERVAL> = VmGlobal::<INTERVAL>::new (std::ptr::null_mut ());
+static gc_mark_trace_plist: VmGlobal<uintptr_t> = VmGlobal::<uintptr_t>::new (0);
 
 unsafe extern "C-unwind" fn mark_interval_tree_1 (i: INTERVAL, dummy: *mut c_void)
 {
@@ -1766,18 +1763,18 @@ unsafe extern "C-unwind" fn mark_interval_tree_1 (i: INTERVAL, dummy: *mut c_voi
      enabled, GC aborts if it seems to have visited an interval twice.  */
   eassert! (!interval_marked_p (i));
   set_interval_marked (i);
-  let previous_interval = gc_mark_trace_interval;
-  let previous_plist = gc_mark_trace_plist;
-  if gc_mark_trace_enabled
+  let previous_interval = (*gc_mark_trace_interval.as_mut_ptr ());
+  let previous_plist = (*gc_mark_trace_plist.as_mut_ptr ());
+  if (*gc_mark_trace_enabled.as_mut_ptr ())
     {
-      gc_mark_trace_interval = i;
-      gc_mark_trace_plist = (*(i as *mut interval)).plist as uintptr_t;
+      (*gc_mark_trace_interval.as_mut_ptr ()) = i;
+      (*gc_mark_trace_plist.as_mut_ptr ()) = (*(i as *mut interval)).plist as uintptr_t;
     }
   mark_object ((*(i as *mut interval)).plist);
-  if gc_mark_trace_enabled
+  if (*gc_mark_trace_enabled.as_mut_ptr ())
     {
-      gc_mark_trace_interval = previous_interval;
-      gc_mark_trace_plist = previous_plist;
+      (*gc_mark_trace_interval.as_mut_ptr ()) = previous_interval;
+      (*gc_mark_trace_plist.as_mut_ptr ()) = previous_plist;
     }
 
   }
@@ -1949,20 +1946,20 @@ const _: () = core::assert! (std::mem::size_of::<string_block> () == 1000);
    data.  We always allocate from current_sblock.  The NEXT pointers
    in the sblock structures go from oldest_sblock to current_sblock.  */
 
-static mut oldest_sblock: *mut sblock = std::ptr::null_mut ();
-static mut current_sblock: *mut sblock = std::ptr::null_mut ();
+static oldest_sblock: VmGlobal<*mut sblock> = VmGlobal::<*mut sblock>::new (std::ptr::null_mut ());
+static current_sblock: VmGlobal<*mut sblock> = VmGlobal::<*mut sblock>::new (std::ptr::null_mut ());
 
 /* List of sblocks for large strings.  */
 
-static mut large_sblocks: *mut sblock = std::ptr::null_mut ();
+static large_sblocks: VmGlobal<*mut sblock> = VmGlobal::<*mut sblock>::new (std::ptr::null_mut ());
 
 /* List of string_block structures.  */
 
-static mut string_blocks: *mut string_block = std::ptr::null_mut ();
+static string_blocks: VmGlobal<*mut string_block> = VmGlobal::<*mut string_block>::new (std::ptr::null_mut ());
 
 /* Free-list of Lisp_Strings.  */
 
-static mut string_free_list: *mut Lisp_String = std::ptr::null_mut ();
+static string_free_list: VmGlobal<*mut Lisp_String> = VmGlobal::<*mut Lisp_String>::new (std::ptr::null_mut ());
 
 /* Given a pointer to a Lisp_String S which is on the free-list
    string_free_list, return a pointer to its successor in the
@@ -2039,10 +2036,10 @@ unsafe fn init_strings ()
   /* We can't use 'STRING_SET_UNIBYTE' because this one includes a hack
    * to redirect its arg to 'empty_unibyte_string' when nbytes == 0. */
   (*eus).u.s.size_byte = -1;
-  XSETSTRING! (empty_multibyte_string, ems);
-  XSETSTRING! (empty_unibyte_string, eus);
-  staticpro (&raw mut empty_unibyte_string);
-  staticpro (&raw mut empty_multibyte_string);
+  XSETSTRING! ((*empty_multibyte_string.as_mut_ptr ()), ems);
+  XSETSTRING! ((*empty_unibyte_string.as_mut_ptr ()), eus);
+  staticpro (empty_unibyte_string.as_mut_ptr ());
+  staticpro (empty_multibyte_string.as_mut_ptr ());
 
   }
 }
@@ -2076,7 +2073,7 @@ macro_rules! ASAN_UNPOISON_STRING {
    text is below (P-51).  */
 
 #[cfg (feature = "gc_check_string_bytes")]
-static mut check_string_bytes_count: c_int = 0;
+static check_string_bytes_count: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 
 /* Like STRING_BYTES, but with debugging check.  Can be
    called during GC, so pay attention to the mark bit.  */
@@ -2125,7 +2122,7 @@ unsafe fn check_string_bytes (all_p: bool)
     {
       let mut b: *mut sblock;
 
-      b = large_sblocks;
+      b = (*large_sblocks.as_mut_ptr ());
       while !b.is_null ()
 	{
 	  let s: *mut Lisp_String = (*(*b).data.as_mut_ptr ()).string;
@@ -2134,15 +2131,15 @@ unsafe fn check_string_bytes (all_p: bool)
 	  b = (*b).next;
 	}
 
-      b = oldest_sblock;
+      b = (*oldest_sblock.as_mut_ptr ());
       while !b.is_null ()
 	{
 	  check_sblock (b);
 	  b = (*b).next;
 	}
     }
-  else if !current_sblock.is_null ()
-    { check_sblock (current_sblock); }
+  else if !(*current_sblock.as_mut_ptr ()).is_null ()
+    { check_sblock ((*current_sblock.as_mut_ptr ())); }
 }
 
 /* C 1662-1664 is the live `#else` arm of `GC_CHECK_STRING_BYTES`: C defines the name as a
@@ -2164,7 +2161,7 @@ unsafe fn check_string_free_list ()
   let mut s: *mut Lisp_String;
 
   /* Pop a Lisp_String off the free-list.  */
-  s = string_free_list;
+  s = (*string_free_list.as_mut_ptr ());
   while !s.is_null ()
     {
       if (s as uintptr_t) < 1024
@@ -2187,14 +2184,14 @@ unsafe fn allocate_string () -> *mut Lisp_String
 
   /* If the free-list is empty, allocate a new string_block, and
      add all the Lisp_Strings in it to the free-list.  */
-  if string_free_list.is_null ()
+  if (*string_free_list.as_mut_ptr ()).is_null ()
     {
       let b = lisp_malloc (std::mem::size_of::<string_block> () as ptrdiff_t, false,
 			   mem_type::MEM_TYPE_STRING) as *mut string_block;
       let mut i: c_int;
 
-      (*b).next = string_blocks;
-      string_blocks = b;
+      (*b).next = (*string_blocks.as_mut_ptr ());
+      (*string_blocks.as_mut_ptr ()) = b;
 
       i = STRING_BLOCK_SIZE as c_int - 1;
       while i >= 0
@@ -2202,8 +2199,8 @@ unsafe fn allocate_string () -> *mut Lisp_String
 	  s = &raw mut (*b).strings[i as usize];
 	  /* Every string on a free list should have NULL data pointer.  */
 	  (*s).u.s.data = std::ptr::null_mut ();
-	  NEXT_FREE_LISP_STRING! (s) = string_free_list;
-	  string_free_list = s;
+	  NEXT_FREE_LISP_STRING! (s) = (*string_free_list.as_mut_ptr ());
+	  (*string_free_list.as_mut_ptr ()) = s;
 	  i -= 1;
 	}
       ASAN_POISON_STRING_BLOCK! (b);
@@ -2212,22 +2209,22 @@ unsafe fn allocate_string () -> *mut Lisp_String
   check_string_free_list! ();
 
   /* Pop a Lisp_String off the free-list.  */
-  s = string_free_list;
+  s = (*string_free_list.as_mut_ptr ());
   ASAN_UNPOISON_STRING! (s);
-  string_free_list = NEXT_FREE_LISP_STRING! (s);
+  (*string_free_list.as_mut_ptr ()) = NEXT_FREE_LISP_STRING! (s);
 
-  strings_consed += 1;
+  (*strings_consed.as_mut_ptr ()) += 1;
   tally_consing (std::mem::size_of::<Lisp_String> () as ptrdiff_t);
 
   /* C 1729-1739 (`#ifdef GC_CHECK_STRING_BYTES`) is dead.  */
   #[cfg (feature = "gc_check_string_bytes")]
   {
-    if !noninteractive
+    if !(*noninteractive.as_mut_ptr ())
       {
-	check_string_bytes_count += 1;
-	if check_string_bytes_count == 200
+	(*check_string_bytes_count.as_mut_ptr ()) += 1;
+	if (*check_string_bytes_count.as_mut_ptr ()) == 200
 	  {
-	    check_string_bytes_count = 0;
+	    (*check_string_bytes_count.as_mut_ptr ()) = 0;
 	    check_string_bytes (true);
 	  }
 	else
@@ -2281,13 +2278,13 @@ unsafe fn allocate_string_data (s: *mut Lisp_String,
       { if !mmap_lisp_allowed_p () { mallopt (M_MMAP_MAX, MMAP_MAX_AREAS); } }
 
       data = std::ptr::addr_of_mut! ((*b).data) as *mut sdata_union;
-      (*b).next = large_sblocks;
+      (*b).next = (*large_sblocks.as_mut_ptr ());
       (*b).next_free = data;
-      large_sblocks = b;
+      (*large_sblocks.as_mut_ptr ()) = b;
     }
   else
     {
-      b = current_sblock;
+      b = (*current_sblock.as_mut_ptr ());
 
       if b.is_null ()
 	 || ((SBLOCK_SIZE - GC_STRING_EXTRA as isize)
@@ -2302,11 +2299,11 @@ unsafe fn allocate_string_data (s: *mut Lisp_String,
 	  (*b).next = std::ptr::null_mut ();
 	  (*b).next_free = data;
 
-	  if !current_sblock.is_null ()
-	    { (*current_sblock).next = b; }
+	  if !(*current_sblock.as_mut_ptr ()).is_null ()
+	    { (*(*current_sblock.as_mut_ptr ())).next = b; }
 	  else
-	    { oldest_sblock = b; }
-	  current_sblock = b;
+	    { (*oldest_sblock.as_mut_ptr ()) = b; }
+	  (*current_sblock.as_mut_ptr ()) = b;
 	}
 
       data = (*b).next_free;
@@ -2361,16 +2358,16 @@ unsafe fn sweep_strings ()
   let mut b: *mut string_block; let mut next: *mut string_block;
   let mut live_blocks: *mut string_block = std::ptr::null_mut ();
 
-  string_free_list = std::ptr::null_mut ();
-  gcstat.total_strings = 0; gcstat.total_free_strings = 0;
-  gcstat.total_string_bytes = 0;
+  (*string_free_list.as_mut_ptr ()) = std::ptr::null_mut ();
+  (*gcstat.as_mut_ptr ()).total_strings = 0; (*gcstat.as_mut_ptr ()).total_free_strings = 0;
+  (*gcstat.as_mut_ptr ()).total_string_bytes = 0;
 
   /* Scan strings_blocks, free Lisp_Strings that aren't marked.  */
-  b = string_blocks;
+  b = (*string_blocks.as_mut_ptr ());
   while !b.is_null ()
     {
       let mut i: c_int; let mut nfree: c_int = 0;
-      let free_list_before = string_free_list;
+      let free_list_before = (*string_free_list.as_mut_ptr ());
 
       ASAN_UNPOISON_STRING_BLOCK! (b);
 
@@ -2395,8 +2392,8 @@ unsafe fn sweep_strings ()
 		  if !(*s).u.s.intervals.is_null ()
 		    { (*s).u.s.intervals = balance_intervals ((*s).u.s.intervals); }
 
-		  gcstat.total_strings += 1;
-		  gcstat.total_string_bytes += STRING_BYTES (s) as uintptr_t;
+		  (*gcstat.as_mut_ptr ()).total_strings += 1;
+		  (*gcstat.as_mut_ptr ()).total_string_bytes += STRING_BYTES (s) as uintptr_t;
 		}
 	      else
 		{
@@ -2422,20 +2419,20 @@ unsafe fn sweep_strings ()
 		  (*s).u.s.data = std::ptr::null_mut ();
 
 		  /* Put the string on the free-list.  */
-		  NEXT_FREE_LISP_STRING! (s) = string_free_list;
+		  NEXT_FREE_LISP_STRING! (s) = (*string_free_list.as_mut_ptr ());
 		  ASAN_POISON_STRING! (s);
 		  ASAN_PREPARE_DEAD_SDATA! (data, SDATA_NBYTES! (data));
-		  string_free_list = s;
+		  (*string_free_list.as_mut_ptr ()) = s;
 		  nfree += 1;
 		}
 	    }
 	  else
 	    {
 	      /* S was on the free-list before.  Put it there again.  */
-	      NEXT_FREE_LISP_STRING! (s) = string_free_list;
+	      NEXT_FREE_LISP_STRING! (s) = (*string_free_list.as_mut_ptr ());
 	      ASAN_POISON_STRING! (s);
 
-	      string_free_list = s;
+	      (*string_free_list.as_mut_ptr ()) = s;
 	      nfree += 1;
 	    }
 	  i += 1;
@@ -2444,14 +2441,14 @@ unsafe fn sweep_strings ()
       /* Free blocks that contain free Lisp_Strings only, except
 	 the first two of them.  */
       if nfree == STRING_BLOCK_SIZE as c_int
-	  && gcstat.total_free_strings > STRING_BLOCK_SIZE as intptr_t
+	  && (*gcstat.as_mut_ptr ()).total_free_strings > STRING_BLOCK_SIZE as intptr_t
 	{
 	  lisp_free (b as *mut c_void);
-	  string_free_list = free_list_before;
+	  (*string_free_list.as_mut_ptr ()) = free_list_before;
 	}
       else
 	{
-	  gcstat.total_free_strings += nfree as intptr_t;
+	  (*gcstat.as_mut_ptr ()).total_free_strings += nfree as intptr_t;
 	  (*b).next = live_blocks;
 	  live_blocks = b;
 	}
@@ -2460,7 +2457,7 @@ unsafe fn sweep_strings ()
 
   check_string_free_list! ();
 
-  string_blocks = live_blocks;
+  (*string_blocks.as_mut_ptr ()) = live_blocks;
   free_large_strings ();
   compact_small_strings ();
 
@@ -2479,7 +2476,7 @@ unsafe fn free_large_strings ()
   let mut b: *mut sblock; let mut next: *mut sblock;
   let mut live_blocks: *mut sblock = std::ptr::null_mut ();
 
-  b = large_sblocks;
+  b = (*large_sblocks.as_mut_ptr ());
   while !b.is_null ()
     {
       next = (*b).next;
@@ -2494,7 +2491,7 @@ unsafe fn free_large_strings ()
       b = next;
     }
 
-  large_sblocks = live_blocks;
+  (*large_sblocks.as_mut_ptr ()) = live_blocks;
 
   }
 }
@@ -2509,7 +2506,7 @@ unsafe fn compact_small_strings ()
   unsafe {
   /* TB is the sblock we copy to, TO is the sdata within TB we copy
      to, and TB_END is the end of TB.  */
-  let mut tb: *mut sblock = oldest_sblock;
+  let mut tb: *mut sblock = (*oldest_sblock.as_mut_ptr ());
   if !tb.is_null ()
     {
       let mut tb_end = (tb as *mut c_char).offset (SBLOCK_SIZE) as *mut sdata_union;
@@ -2607,7 +2604,7 @@ unsafe fn compact_small_strings ()
       (*tb).next = std::ptr::null_mut ();
     }
 
-  current_sblock = tb;
+  (*current_sblock.as_mut_ptr ()) = tb;
 
   }
 }
@@ -2902,7 +2899,7 @@ unsafe fn make_clear_string (length: EMACS_INT, clearit: bool) -> Lisp_Object
   let mut val: Lisp_Object;
 
   if length == 0
-    { return empty_unibyte_string; }
+    { return (*empty_unibyte_string.as_mut_ptr ()); }
   val = make_clear_multibyte_string (length, length, clearit);
   STRING_SET_UNIBYTE (&raw mut val);
   return val;
@@ -2939,13 +2936,13 @@ unsafe fn make_clear_multibyte_string (nchars: EMACS_INT, nbytes: EMACS_INT, cle
   if nchars < 0
     { emacs_abort (); }
   if nbytes == 0
-    { return empty_multibyte_string; }
+    { return (*empty_multibyte_string.as_mut_ptr ()); }
 
   s = allocate_string ();
   (*s).u.s.intervals = std::ptr::null_mut ();
   allocate_string_data (s, nchars, nbytes, clearit, false);
   XSETSTRING! (string, s);
-  string_chars_consed += nbytes;
+  (*string_chars_consed.as_mut_ptr ()) += nbytes;
   return string;
 
   }
@@ -3109,15 +3106,15 @@ macro_rules! ASAN_UNPOISON_FLOAT {
 
 /* Current float_block.  */
 
-static mut float_block: *mut float_block = std::ptr::null_mut ();
+static float_block: VmGlobal<*mut float_block> = VmGlobal::<*mut float_block>::new (std::ptr::null_mut ());
 
 /* Index of first unused Lisp_Float in the current float_block.  */
 
-static mut float_block_index: c_int = FLOAT_BLOCK_SIZE as c_int;
+static float_block_index: VmGlobal<c_int> = VmGlobal::<c_int>::new (FLOAT_BLOCK_SIZE as c_int);
 
 /* Free-list of Lisp_Floats.  */
 
-static mut float_free_list: *mut Lisp_Float = std::ptr::null_mut ();
+static float_free_list: VmGlobal<*mut Lisp_Float> = VmGlobal::<*mut Lisp_Float>::new (std::ptr::null_mut ());
 
 /* Return a new float object with value FLOAT_VALUE.  */
 
@@ -3128,34 +3125,34 @@ pub unsafe extern "C-unwind" fn make_float (float_value: f64) -> Lisp_Object
   unsafe {
   let mut val: Lisp_Object;
 
-  if !float_free_list.is_null ()
+  if !(*float_free_list.as_mut_ptr ()).is_null ()
     {
-      XSETFLOAT! (val, float_free_list);
-      ASAN_UNPOISON_FLOAT! (float_free_list);
-      float_free_list = (*float_free_list).u.chain;
+      XSETFLOAT! (val, (*float_free_list.as_mut_ptr ()));
+      ASAN_UNPOISON_FLOAT! ((*float_free_list.as_mut_ptr ()));
+      (*float_free_list.as_mut_ptr ()) = (*(*float_free_list.as_mut_ptr ())).u.chain;
     }
   else
     {
-      if float_block_index == FLOAT_BLOCK_SIZE as c_int
+      if (*float_block_index.as_mut_ptr ()) == FLOAT_BLOCK_SIZE as c_int
 	{
 	  let new = lisp_align_malloc (std::mem::size_of::<float_block> () as ptrdiff_t,
 				       mem_type::MEM_TYPE_FLOAT) as *mut float_block;
-	  (*new).next = float_block;
+	  (*new).next = (*float_block.as_mut_ptr ());
 	  memset ((*new).gcmarkbits.as_mut_ptr () as *mut c_void, 0,
 		  std::mem::size_of_val (&(*new).gcmarkbits));
 	  ASAN_POISON_FLOAT_BLOCK! (new);
-	  float_block = new;
-	  float_block_index = 0;
+	  (*float_block.as_mut_ptr ()) = new;
+	  (*float_block_index.as_mut_ptr ()) = 0;
 	}
-      ASAN_UNPOISON_FLOAT! (&raw mut (*float_block).floats[float_block_index as usize]);
-      XSETFLOAT! (val, &raw mut (*float_block).floats[float_block_index as usize]);
-      float_block_index += 1;
+      ASAN_UNPOISON_FLOAT! (&raw mut (*(*float_block.as_mut_ptr ())).floats[(*float_block_index.as_mut_ptr ()) as usize]);
+      XSETFLOAT! (val, &raw mut (*(*float_block.as_mut_ptr ())).floats[(*float_block_index.as_mut_ptr ()) as usize]);
+      (*float_block_index.as_mut_ptr ()) += 1;
     }
 
   XFLOAT_INIT (val, float_value);
   eassert! (!XFLOAT_MARKED_P! (XFLOAT (val)));
   tally_consing (std::mem::size_of::<Lisp_Float> () as ptrdiff_t);
-  floats_consed += 1;
+  (*floats_consed.as_mut_ptr ()) += 1;
   return val;
 
   }
@@ -3248,15 +3245,15 @@ const _: () = core::assert! (memory_full_cons_threshold == 32752);
 
 /* Current cons_block.  */
 
-static mut cons_block: *mut cons_block = std::ptr::null_mut ();
+static cons_block: VmGlobal<*mut cons_block> = VmGlobal::<*mut cons_block>::new (std::ptr::null_mut ());
 
 /* Index of first unused Lisp_Cons in the current block.  */
 
-static mut cons_block_index: c_int = CONS_BLOCK_SIZE as c_int;
+static cons_block_index: VmGlobal<c_int> = VmGlobal::<c_int>::new (CONS_BLOCK_SIZE as c_int);
 
 /* Free-list of Lisp_Cons structures.  */
 
-static mut cons_free_list: *mut Lisp_Cons = std::ptr::null_mut ();
+static cons_free_list: VmGlobal<*mut Lisp_Cons> = VmGlobal::<*mut Lisp_Cons>::new (std::ptr::null_mut ());
 
 /* C 2599-2611: `#if GC_ASAN_POISON_OBJECTS` is dead; the `__asan_*` bodies are carried in
    docs/ports/alloc.md, and the live `#else` arm's three macros are below.  */
@@ -3323,9 +3320,9 @@ pub unsafe extern "C-unwind" fn free_cons (ptr: *mut Lisp_Cons)
   { gc_collector::clear_cell(ptr); }
   #[cfg(feature = "femacs_gc_observer")]
   { gc_observation::cons_retire(ptr, true); }
-  (*ptr).u.s.u.chain = cons_free_list;
+  (*ptr).u.s.u.chain = (*cons_free_list.as_mut_ptr ());
   (*ptr).u.s.car = dead_object ();
-  cons_free_list = ptr;
+  (*cons_free_list.as_mut_ptr ()) = ptr;
   let nbytes: ptrdiff_t = std::mem::size_of::<Lisp_Cons> () as ptrdiff_t;
   tally_consing (- nbytes);
   ASAN_POISON_CONS! (ptr);
@@ -3339,15 +3336,15 @@ DEFUN! ("cons", Fcons, Scons, 2, 2, 0,
        {
   let mut val: Lisp_Object;
 
-  if !cons_free_list.is_null ()
+  if !(*cons_free_list.as_mut_ptr ()).is_null ()
     {
-      ASAN_UNPOISON_CONS! (cons_free_list);
-      XSETCONS! (val, cons_free_list);
-      cons_free_list = (*cons_free_list).u.s.u.chain;
+      ASAN_UNPOISON_CONS! ((*cons_free_list.as_mut_ptr ()));
+      XSETCONS! (val, (*cons_free_list.as_mut_ptr ()));
+      (*cons_free_list.as_mut_ptr ()) = (*(*cons_free_list.as_mut_ptr ())).u.s.u.chain;
     }
   else
     {
-      if cons_block_index == CONS_BLOCK_SIZE as c_int
+      if (*cons_block_index.as_mut_ptr ()) == CONS_BLOCK_SIZE as c_int
 	{
 	  let new = lisp_align_malloc (std::mem::size_of::<cons_block> () as ptrdiff_t,
 				       mem_type::MEM_TYPE_CONS) as *mut cons_block;
@@ -3359,13 +3356,13 @@ DEFUN! ("cons", Fcons, Scons, 2, 2, 0,
             (*new).raw_tainted = 0;
           }
 	  ASAN_POISON_CONS_BLOCK! (new);
-	  (*new).next = cons_block;
-	  cons_block = new;
-	  cons_block_index = 0;
+	  (*new).next = (*cons_block.as_mut_ptr ());
+	  (*cons_block.as_mut_ptr ()) = new;
+	  (*cons_block_index.as_mut_ptr ()) = 0;
 	}
-      ASAN_UNPOISON_CONS! (&raw mut (*cons_block).conses[cons_block_index as usize]);
-      XSETCONS! (val, &raw mut (*cons_block).conses[cons_block_index as usize]);
-      cons_block_index += 1;
+      ASAN_UNPOISON_CONS! (&raw mut (*(*cons_block.as_mut_ptr ())).conses[(*cons_block_index.as_mut_ptr ()) as usize]);
+      XSETCONS! (val, &raw mut (*(*cons_block.as_mut_ptr ())).conses[(*cons_block_index.as_mut_ptr ()) as usize]);
+      (*cons_block_index.as_mut_ptr ()) += 1;
     }
 
   let cell = lisp_h_XCONS_untracked(val);
@@ -3374,8 +3371,8 @@ DEFUN! ("cons", Fcons, Scons, 2, 2, 0,
   (*cell).u.s.car = car;
   (*cell).u.s.u.cdr = cdr;
   eassert! (!XCONS_MARKED_P! (cell));
-  consing_until_gc -= std::mem::size_of::<Lisp_Cons> () as EMACS_INT;
-  cons_cells_consed += 1;
+  (*consing_until_gc.as_mut_ptr ()) -= std::mem::size_of::<Lisp_Cons> () as EMACS_INT;
+  (*cons_cells_consed.as_mut_ptr ()) += 1;
   #[cfg(feature = "femacs_gc_generational")]
   { gc_collector::note_allocation(core::mem::size_of::<Lisp_Cons>(), true); }
   #[cfg(feature = "femacs_gc_observer")]
@@ -3659,7 +3656,7 @@ const _: () = core::assert! (std::mem::offset_of! (vector_block, next) == 4088);
 
 /* Chain of vector blocks.  */
 
-static mut vector_blocks: *mut vector_block = std::ptr::null_mut ();
+static vector_blocks: VmGlobal<*mut vector_block> = VmGlobal::<*mut vector_block>::new (std::ptr::null_mut ());
 
 /* Vector free lists, where NTH item points to a chain of free
    vectors of the same NBYTES size, so NTH == VINDEX (NBYTES),
@@ -3670,22 +3667,21 @@ static mut vector_blocks: *mut vector_block = std::ptr::null_mut ();
    - V's total size in bytes, BS(V) = PVSIZE(V) * word_size + header_size
    - For I < VECTOR_FREE_LIST_ARRAY_SIZE-1, VINDEX(BS(V)) = I
    - For I = VECTOR_FREE_LIST_ARRAY_SIZE-1, VINDEX(BS(V)) ≥ I */
-static mut vector_free_lists: [*mut Lisp_Vector; VECTOR_FREE_LIST_ARRAY_SIZE as usize] =
-  [std::ptr::null_mut (); VECTOR_FREE_LIST_ARRAY_SIZE as usize];
+static vector_free_lists: VmGlobal<[*mut Lisp_Vector; VECTOR_FREE_LIST_ARRAY_SIZE as usize]> = VmGlobal::<[*mut Lisp_Vector; VECTOR_FREE_LIST_ARRAY_SIZE as usize]>::new ([std::ptr::null_mut (); VECTOR_FREE_LIST_ARRAY_SIZE as usize]);
 
 /* Index to the bucket in vector_free_lists into which we last inserted
    or split a free vector.  We use this as a heuristic telling us where
    to start looking for free vectors when the exact-size bucket is empty.  */
-static mut last_inserted_vector_free_idx: ptrdiff_t = VECTOR_FREE_LIST_ARRAY_SIZE;
+static last_inserted_vector_free_idx: VmGlobal<ptrdiff_t> = VmGlobal::<ptrdiff_t>::new (VECTOR_FREE_LIST_ARRAY_SIZE);
 
 /* Singly-linked list of large vectors.  */
 
-static mut large_vectors: *mut large_vector = std::ptr::null_mut ();
+static large_vectors: VmGlobal<*mut large_vector> = VmGlobal::<*mut large_vector>::new (std::ptr::null_mut ());
 
 /* The only vector with 0 slots.  */
 
 #[unsafe(no_mangle)]
-pub static mut zero_vector: Lisp_Object = std::ptr::null_mut ();
+pub static zero_vector: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (std::ptr::null_mut ());
 
 /* C 2905-2915: `#if GC_ASAN_POISON_OBJECTS` is dead; the `__asan_*` bodies are carried in
    docs/ports/alloc.md, and the live `#else` arm's three macros are below.  */
@@ -3712,10 +3708,10 @@ unsafe fn setup_on_free_list (v: *mut Lisp_Vector, nbytes: ptrdiff_t)
   let mut vindex: ptrdiff_t = VINDEX (nbytes);
   /* Anything too large goes into the last slot (overflow bin).  */
   vindex = min! (vindex, VECTOR_FREE_LIST_ARRAY_SIZE - 1);
-  set_next_vector (v, vector_free_lists[vindex as usize]);
+  set_next_vector (v, (*vector_free_lists.as_mut_ptr ())[vindex as usize]);
   ASAN_POISON_VECTOR_CONTENTS! (v, nbytes - header_size);
-  vector_free_lists[vindex as usize] = v;
-  last_inserted_vector_free_idx = vindex;
+  (*vector_free_lists.as_mut_ptr ())[vindex as usize] = v;
+  (*last_inserted_vector_free_idx.as_mut_ptr ()) = vindex;
 
   }
 }
@@ -3734,8 +3730,8 @@ unsafe fn allocate_vector_block () -> *mut vector_block
 	      .offset (VECTOR_BLOCK_BYTES) as *mut c_void,
 	      mem_type::MEM_TYPE_VECTOR_BLOCK);
 
-  (*block).next = vector_blocks;
-  vector_blocks = block;
+  (*block).next = (*vector_blocks.as_mut_ptr ());
+  (*vector_blocks.as_mut_ptr ()) = block;
   return block;
 
   }
@@ -3780,8 +3776,8 @@ unsafe fn init_vectors ()
   eassert! ((restbytes as ptrdiff_t) % roundup_size == 0);
   setup_on_free_list (ADVANCE (zv, nbytes as ptrdiff_t), restbytes as ptrdiff_t);
 
-  zero_vector = make_lisp_ptr (zv as *mut c_void, Lisp_Type::Lisp_Vectorlike);
-  staticpro (&raw mut zero_vector);
+  (*zero_vector.as_mut_ptr ()) = make_lisp_ptr (zv as *mut c_void, Lisp_Type::Lisp_Vectorlike);
+  staticpro (zero_vector.as_mut_ptr ());
 
   }
 }
@@ -3803,28 +3799,28 @@ unsafe fn allocate_vector_from_block (nbytes: ptrdiff_t) -> *mut Lisp_Vector
   /* First, try to allocate from a free list
      containing vectors of the requested size.  */
   index = VINDEX (nbytes);
-  if !vector_free_lists[index as usize].is_null ()
+  if !(*vector_free_lists.as_mut_ptr ())[index as usize].is_null ()
     {
-      vector = vector_free_lists[index as usize];
+      vector = (*vector_free_lists.as_mut_ptr ())[index as usize];
       ASAN_UNPOISON_VECTOR_CONTENTS! (vector, nbytes - header_size);
-      vector_free_lists[index as usize] = next_vector (vector);
+      (*vector_free_lists.as_mut_ptr ())[index as usize] = next_vector (vector);
       return vector;
     }
 
   /* Next, check free lists containing larger vectors.  Since
      we will split the result, we should have remaining space
      large enough to use for one-slot vector at least.  */
-  index = max! (VINDEX (nbytes + VBLOCK_BYTES_MIN), last_inserted_vector_free_idx);
+  index = max! (VINDEX (nbytes + VBLOCK_BYTES_MIN), (*last_inserted_vector_free_idx.as_mut_ptr ()));
   while index < VECTOR_FREE_LIST_ARRAY_SIZE
     {
-      if !vector_free_lists[index as usize].is_null ()
+      if !(*vector_free_lists.as_mut_ptr ())[index as usize].is_null ()
 	{
 	  /* This vector is larger than requested.  */
-	  vector = vector_free_lists[index as usize];
+	  vector = (*vector_free_lists.as_mut_ptr ())[index as usize];
 	  let vector_nbytes: ptrdiff_t = pseudovector_nbytes (&raw const (*vector).header);
 	  eassert! (vector_nbytes > nbytes);
 	  ASAN_UNPOISON_VECTOR_CONTENTS! (vector, nbytes - header_size);
-	  vector_free_lists[index as usize] = next_vector (vector);
+	  (*vector_free_lists.as_mut_ptr ())[index as usize] = next_vector (vector);
 
 	  /* Excess bytes are used for the smaller vector,
 	     which should be set on an appropriate free list.  */
@@ -4111,7 +4107,7 @@ unsafe fn cleanup_vector (vector: *mut Lisp_Vector)
 				   * std::mem::size_of::<hash_idx_t> () as ptrdiff_t;
 	    /* C 3226: signed `-=`; C's ptrdiff_t wraps, so the counter may legitimately go
 	       negative (the obarray arm below has no matching add, C 3230-3235 vs C 5411).  */
-	    hash_table_allocated_bytes = hash_table_allocated_bytes.wrapping_sub (bytes);
+	    (*hash_table_allocated_bytes.as_mut_ptr ()) = (*hash_table_allocated_bytes.as_mut_ptr ()).wrapping_sub (bytes);
 	  }
       }
     pvec_type::PVEC_OBARRAY =>
@@ -4120,7 +4116,7 @@ unsafe fn cleanup_vector (vector: *mut Lisp_Vector)
 	xfree ((*o).buckets as *mut c_void);
 	let bytes: ptrdiff_t = obarray_size (o) * std::mem::size_of::<Lisp_Object> () as ptrdiff_t;
 	/* C 3235: as above - the obarray's free has no matching add in the reference either.  */
-	hash_table_allocated_bytes = hash_table_allocated_bytes.wrapping_sub (bytes);
+	(*hash_table_allocated_bytes.as_mut_ptr ()) = (*hash_table_allocated_bytes.as_mut_ptr ()).wrapping_sub (bytes);
       }
     /* Keep the switch exhaustive.  */
     pvec_type::PVEC_NORMAL_VECTOR | pvec_type::PVEC_FREE | pvec_type::PVEC_SYMBOL_WITH_POS
@@ -4144,20 +4140,20 @@ unsafe fn sweep_vectors ()
   // SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers.
   unsafe {
   let mut block: *mut vector_block;
-  let mut bprev: *mut *mut vector_block = &raw mut vector_blocks;
+  let mut bprev: *mut *mut vector_block = vector_blocks.as_mut_ptr ();
   let mut lv: *mut large_vector;
-  let mut lvprev: *mut *mut large_vector = &raw mut large_vectors;
+  let mut lvprev: *mut *mut large_vector = large_vectors.as_mut_ptr ();
   let mut vector: *mut Lisp_Vector; let mut next: *mut Lisp_Vector;
 
-  gcstat.total_vectors = 0;
-  gcstat.total_vector_slots = 0; gcstat.total_free_vector_slots = 0;
-  memset (femacs_array_mut_ptr (&raw mut vector_free_lists) as *mut c_void, 0,
-	  femacs_sizeof_ptr (&raw const vector_free_lists));
-  last_inserted_vector_free_idx = VECTOR_FREE_LIST_ARRAY_SIZE;
+  (*gcstat.as_mut_ptr ()).total_vectors = 0;
+  (*gcstat.as_mut_ptr ()).total_vector_slots = 0; (*gcstat.as_mut_ptr ()).total_free_vector_slots = 0;
+  memset (femacs_array_mut_ptr (vector_free_lists.as_mut_ptr ()) as *mut c_void, 0,
+	  femacs_sizeof_ptr (vector_free_lists.as_ptr ()));
+  (*last_inserted_vector_free_idx.as_mut_ptr ()) = VECTOR_FREE_LIST_ARRAY_SIZE;
 
   /* Looking through vector blocks.  */
 
-  block = vector_blocks;
+  block = (*vector_blocks.as_mut_ptr ());
   while !block.is_null ()
     {
       let mut free_this_block: bool = false;
@@ -4169,9 +4165,9 @@ unsafe fn sweep_vectors ()
 	  if XVECTOR_MARKED_P! (vector)
 	    {
 	      XUNMARK_VECTOR! (vector);
-	      gcstat.total_vectors += 1;
+	      (*gcstat.as_mut_ptr ()).total_vectors += 1;
 	      let nbytes: ptrdiff_t = vector_nbytes (vector);
-	      gcstat.total_vector_slots += nbytes / word_size;
+	      (*gcstat.as_mut_ptr ()).total_vector_slots += nbytes / word_size;
 	      next = ADVANCE (vector, nbytes);
 	    }
 	  else
@@ -4201,7 +4197,7 @@ unsafe fn sweep_vectors ()
 	      else
 		{
 		  setup_on_free_list (vector, total_bytes);
-		  gcstat.total_free_vector_slots += total_bytes / word_size;
+		  (*gcstat.as_mut_ptr ()).total_free_vector_slots += total_bytes / word_size;
 		}
 	    }
 	  vector = next;
@@ -4221,15 +4217,15 @@ unsafe fn sweep_vectors ()
 
   /* Sweep large vectors.  */
 
-  lv = large_vectors;
+  lv = (*large_vectors.as_mut_ptr ());
   while !lv.is_null ()
     {
       vector = large_vector_vec (lv);
       if XVECTOR_MARKED_P! (vector)
 	{
 	  XUNMARK_VECTOR! (vector);
-	  gcstat.total_vectors += 1;
-	  gcstat.total_vector_slots
+	  (*gcstat.as_mut_ptr ()).total_vectors += 1;
+	  (*gcstat.as_mut_ptr ()).total_vector_slots
 	    += (if (*vector).header.size & PSEUDOVECTOR_FLAG != 0
 		{ vector_nbytes (vector) / word_size }
 		else { header_size / word_size + (*vector).header.size });
@@ -4243,7 +4239,7 @@ unsafe fn sweep_vectors ()
       lv = *lvprev;
     }
 
-  gcstat.total_hash_table_bytes = hash_table_allocated_bytes as uintptr_t;
+  (*gcstat.as_mut_ptr ()).total_hash_table_bytes = (*hash_table_allocated_bytes.as_mut_ptr ()) as uintptr_t;
 
   }
 }
@@ -4284,8 +4280,8 @@ unsafe fn allocate_vectorlike (len: ptrdiff_t, clearit: bool) -> *mut Lisp_Vecto
     {
       let lv = lisp_malloc (large_vector_offset as ptrdiff_t + nbytes,
 			    clearit, mem_type::MEM_TYPE_VECTORLIKE) as *mut large_vector;
-      (*lv).next = large_vectors;
-      large_vectors = lv;
+      (*lv).next = (*large_vectors.as_mut_ptr ());
+      (*large_vectors.as_mut_ptr ()) = lv;
       p = large_vector_vec (lv);
     }
 
@@ -4294,7 +4290,7 @@ unsafe fn allocate_vectorlike (len: ptrdiff_t, clearit: bool) -> *mut Lisp_Vecto
   { if !mmap_lisp_allowed_p () { mallopt (M_MMAP_MAX, MMAP_MAX_AREAS); } }
 
   tally_consing (nbytes);
-  vector_cells_consed += len;
+  (*vector_cells_consed.as_mut_ptr ()) += len;
 
   return p;
 
@@ -4311,7 +4307,7 @@ unsafe fn allocate_clear_vector (len: ptrdiff_t, clearit: bool) -> *mut Lisp_Vec
   // SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers.
   unsafe {
   if len == 0
-    { return XVECTOR (zero_vector); }
+    { return XVECTOR ((*zero_vector.as_mut_ptr ())); }
   if VECTOR_ELTS_MAX < len
     { memory_full_up (); }
   let mut v: *mut Lisp_Vector = allocate_vectorlike (len, clearit);
@@ -4600,12 +4596,12 @@ macro_rules! ASAN_UNPOISON_SYMBOL {
 /* Current symbol block and index of first unused Lisp_Symbol
    structure in it.  */
 
-static mut symbol_block: *mut symbol_block = std::ptr::null_mut ();
-static mut symbol_block_index: c_int = SYMBOL_BLOCK_SIZE as c_int;
+static symbol_block: VmGlobal<*mut symbol_block> = VmGlobal::<*mut symbol_block>::new (std::ptr::null_mut ());
+static symbol_block_index: VmGlobal<c_int> = VmGlobal::<c_int>::new (SYMBOL_BLOCK_SIZE as c_int);
 
 /* List of free symbols.  */
 
-static mut symbol_free_list: *mut Lisp_Symbol = std::ptr::null_mut ();
+static symbol_free_list: VmGlobal<*mut Lisp_Symbol> = VmGlobal::<*mut Lisp_Symbol>::new (std::ptr::null_mut ());
 
 unsafe fn set_symbol_name (sym: Lisp_Object, name: Lisp_Object)
 {
@@ -4651,32 +4647,32 @@ DEFUN! ("make-symbol", Fmake_symbol, Smake_symbol, 1, 1, 0,
 
   CHECK_STRING (name);
 
-  if !symbol_free_list.is_null ()
+  if !(*symbol_free_list.as_mut_ptr ()).is_null ()
     {
-      ASAN_UNPOISON_SYMBOL! (symbol_free_list);
-      XSETSYMBOL! (val, symbol_free_list);
-      symbol_free_list = (*symbol_free_list).u.s.next;
+      ASAN_UNPOISON_SYMBOL! ((*symbol_free_list.as_mut_ptr ()));
+      XSETSYMBOL! (val, (*symbol_free_list.as_mut_ptr ()));
+      (*symbol_free_list.as_mut_ptr ()) = (*(*symbol_free_list.as_mut_ptr ())).u.s.next;
     }
   else
     {
-      if symbol_block_index == SYMBOL_BLOCK_SIZE as c_int
+      if (*symbol_block_index.as_mut_ptr ()) == SYMBOL_BLOCK_SIZE as c_int
 	{
 	  let new = lisp_malloc (std::mem::size_of::<symbol_block> () as ptrdiff_t, false,
 				 mem_type::MEM_TYPE_SYMBOL) as *mut symbol_block;
 	  ASAN_POISON_SYMBOL_BLOCK! (new);
-	  (*new).next = symbol_block;
-	  symbol_block = new;
-	  symbol_block_index = 0;
+	  (*new).next = (*symbol_block.as_mut_ptr ());
+	  (*symbol_block.as_mut_ptr ()) = new;
+	  (*symbol_block_index.as_mut_ptr ()) = 0;
 	}
 
-      ASAN_UNPOISON_SYMBOL! (&raw mut (*symbol_block).symbols[symbol_block_index as usize]);
-      XSETSYMBOL! (val, &raw mut (*symbol_block).symbols[symbol_block_index as usize]);
-      symbol_block_index += 1;
+      ASAN_UNPOISON_SYMBOL! (&raw mut (*(*symbol_block.as_mut_ptr ())).symbols[(*symbol_block_index.as_mut_ptr ()) as usize]);
+      XSETSYMBOL! (val, &raw mut (*(*symbol_block.as_mut_ptr ())).symbols[(*symbol_block_index.as_mut_ptr ()) as usize]);
+      (*symbol_block_index.as_mut_ptr ()) += 1;
     }
 
   init_symbol (val, name);
   tally_consing (std::mem::size_of::<Lisp_Symbol> () as ptrdiff_t);
-  symbols_consed += 1;
+  (*symbols_consed.as_mut_ptr ()) += 1;
   return val;
 });
 
@@ -4947,7 +4943,7 @@ unsafe fn run_finalizer_function (function: Lisp_Object)
   unsafe {
   let count: specpdl_ref = SPECPDL_INDEX ();
   /* C 3950-3952 (`#ifdef HAVE_PDUMPER`, live) is transcribed.  */
-  number_finalizers_run += 1;
+  (*number_finalizers_run.as_mut_ptr ()) += 1;
 
   specbind (Qinhibit_quit (), Qt ());
   internal_condition_case_1 (Some (call0_thunk), function, Qt (),
@@ -4990,7 +4986,7 @@ DEFUN! ("make-finalizer", Fmake_finalizer, Smake_finalizer, 1, 1, 0,
 		  as *mut Lisp_Finalizer;
   (*finalizer).function = function;
   (*finalizer).prev = std::ptr::null_mut (); (*finalizer).next = std::ptr::null_mut ();
-  finalizer_insert (&raw mut finalizers, finalizer);
+  finalizer_insert (finalizers.as_mut_ptr (), finalizer);
   return make_lisp_ptr (finalizer as *mut c_void, Lisp_Type::Lisp_Vectorlike);
 });
 
@@ -5180,7 +5176,7 @@ pub unsafe extern "C-unwind" fn memory_full (nbytes: size_t)
 {
   // SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers.
   unsafe {
-  if !initialized
+  if !(*initialized.as_mut_ptr ())
     { fatal (c"memory exhausted".as_ptr ()); }
 
   /* Do not go into hysterics merely because a large request failed.  */
@@ -5197,22 +5193,22 @@ pub unsafe extern "C-unwind" fn memory_full (nbytes: size_t)
 
   if !enough_free_memory
     {
-      Vmemory_full = Qt ();
-      consing_until_gc = min! (consing_until_gc, memory_full_cons_threshold as EMACS_INT);
+      (*Vmemory_full.as_mut_ptr ()) = Qt ();
+      (*consing_until_gc.as_mut_ptr ()) = min! ((*consing_until_gc.as_mut_ptr ()), memory_full_cons_threshold as EMACS_INT);
 
       /* The first time we get here, free the spare memory.  */
       let mut i: c_int = 0;
-      while i < countof! (spare_memory) as c_int
+      while i < countof! ((*spare_memory.as_mut_ptr ())) as c_int
 	{
-	  if !spare_memory[i as usize].is_null ()
+	  if !(*spare_memory.as_mut_ptr ())[i as usize].is_null ()
 	    {
 	      if i == 0
-		{ rpl_free (spare_memory[i as usize] as *mut c_void); }
+		{ rpl_free ((*spare_memory.as_mut_ptr ())[i as usize] as *mut c_void); }
 	      else if i >= 1 && i <= 4
-		{ lisp_align_free (spare_memory[i as usize] as *mut c_void); }
+		{ lisp_align_free ((*spare_memory.as_mut_ptr ())[i as usize] as *mut c_void); }
 	      else
-		{ lisp_free (spare_memory[i as usize] as *mut c_void); }
-	      spare_memory[i as usize] = std::ptr::null_mut ();
+		{ lisp_free ((*spare_memory.as_mut_ptr ())[i as usize] as *mut c_void); }
+	      (*spare_memory.as_mut_ptr ())[i as usize] = std::ptr::null_mut ();
 	    }
 	  i += 1;
 	}
@@ -5220,7 +5216,7 @@ pub unsafe extern "C-unwind" fn memory_full (nbytes: size_t)
 
   /* This used to call error, but if we've run out of memory, we could
      get infinite recursion trying to build the string.  */
-  xsignal (Qnil (), Vmemory_signal_data);
+  xsignal (Qnil (), (*Vmemory_signal_data.as_mut_ptr ()));
 
   }
 }
@@ -5260,28 +5256,28 @@ unsafe fn refill_memory_reserve ()
   /* C 4191-4213: `#if !defined SYSTEM_MALLOC` is dead on this target (SYSTEM_MALLOC is 1).  */
   #[cfg (feature = "no_system_malloc")]
   {
-    if spare_memory[0].is_null ()
-      { spare_memory[0] = malloc (SPARE_MEMORY! () as size_t) as *mut c_char; }
-    if spare_memory[1].is_null ()
-      { spare_memory[1] = lisp_align_malloc (std::mem::size_of::<cons_block> () as ptrdiff_t,
+    if (*spare_memory.as_mut_ptr ())[0].is_null ()
+      { (*spare_memory.as_mut_ptr ())[0] = malloc (SPARE_MEMORY! () as size_t) as *mut c_char; }
+    if (*spare_memory.as_mut_ptr ())[1].is_null ()
+      { (*spare_memory.as_mut_ptr ())[1] = lisp_align_malloc (std::mem::size_of::<cons_block> () as ptrdiff_t,
 					      mem_type::MEM_TYPE_SPARE) as *mut c_char; }
-    if spare_memory[2].is_null ()
-      { spare_memory[2] = lisp_align_malloc (std::mem::size_of::<cons_block> () as ptrdiff_t,
+    if (*spare_memory.as_mut_ptr ())[2].is_null ()
+      { (*spare_memory.as_mut_ptr ())[2] = lisp_align_malloc (std::mem::size_of::<cons_block> () as ptrdiff_t,
 					      mem_type::MEM_TYPE_SPARE) as *mut c_char; }
-    if spare_memory[3].is_null ()
-      { spare_memory[3] = lisp_align_malloc (std::mem::size_of::<cons_block> () as ptrdiff_t,
+    if (*spare_memory.as_mut_ptr ())[3].is_null ()
+      { (*spare_memory.as_mut_ptr ())[3] = lisp_align_malloc (std::mem::size_of::<cons_block> () as ptrdiff_t,
 					      mem_type::MEM_TYPE_SPARE) as *mut c_char; }
-    if spare_memory[4].is_null ()
-      { spare_memory[4] = lisp_align_malloc (std::mem::size_of::<cons_block> () as ptrdiff_t,
+    if (*spare_memory.as_mut_ptr ())[4].is_null ()
+      { (*spare_memory.as_mut_ptr ())[4] = lisp_align_malloc (std::mem::size_of::<cons_block> () as ptrdiff_t,
 					      mem_type::MEM_TYPE_SPARE) as *mut c_char; }
-    if spare_memory[5].is_null ()
-      { spare_memory[5] = lisp_malloc (std::mem::size_of::<string_block> () as ptrdiff_t,
+    if (*spare_memory.as_mut_ptr ())[5].is_null ()
+      { (*spare_memory.as_mut_ptr ())[5] = lisp_malloc (std::mem::size_of::<string_block> () as ptrdiff_t,
 				       false, mem_type::MEM_TYPE_SPARE) as *mut c_char; }
-    if spare_memory[6].is_null ()
-      { spare_memory[6] = lisp_malloc (std::mem::size_of::<string_block> () as ptrdiff_t,
+    if (*spare_memory.as_mut_ptr ())[6].is_null ()
+      { (*spare_memory.as_mut_ptr ())[6] = lisp_malloc (std::mem::size_of::<string_block> () as ptrdiff_t,
 				       false, mem_type::MEM_TYPE_SPARE) as *mut c_char; }
-    if !spare_memory[0].is_null () && !spare_memory[1].is_null () && !spare_memory[5].is_null ()
-      { Vmemory_full = Qnil (); }
+    if !(*spare_memory.as_mut_ptr ())[0].is_null () && !(*spare_memory.as_mut_ptr ())[1].is_null () && !(*spare_memory.as_mut_ptr ())[5].is_null ()
+      { (*Vmemory_full.as_mut_ptr ()) = Qnil (); }
   }
 }
 
@@ -5306,13 +5302,13 @@ unsafe fn mem_init ()
 {
   // SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers.
   unsafe {
-  (*std::ptr::addr_of_mut! (mem_z)).left = MEM_NIL! ();
-  (*std::ptr::addr_of_mut! (mem_z)).right = MEM_NIL! ();
-  (*std::ptr::addr_of_mut! (mem_z)).parent = std::ptr::null_mut ();
-  (*std::ptr::addr_of_mut! (mem_z)).color = MEM_BLACK;
-  (*std::ptr::addr_of_mut! (mem_z)).start = std::ptr::null_mut ();
-  (*std::ptr::addr_of_mut! (mem_z)).end = std::ptr::null_mut ();
-  mem_root = MEM_NIL! ();
+  (*mem_z.as_mut_ptr ()).left = MEM_NIL! ();
+  (*mem_z.as_mut_ptr ()).right = MEM_NIL! ();
+  (*mem_z.as_mut_ptr ()).parent = std::ptr::null_mut ();
+  (*mem_z.as_mut_ptr ()).color = MEM_BLACK;
+  (*mem_z.as_mut_ptr ()).start = std::ptr::null_mut ();
+  (*mem_z.as_mut_ptr ()).end = std::ptr::null_mut ();
+  (*mem_root.as_mut_ptr ()) = MEM_NIL! ();
 
   }
 }
@@ -5328,14 +5324,14 @@ unsafe fn mem_find (start: *mut c_void) -> *mut mem_node
   unsafe {
   let mut p: *mut mem_node;
 
-  if start < min_heap_address || start > max_heap_address
+  if start < (*min_heap_address.as_mut_ptr ()) || start > (*max_heap_address.as_mut_ptr ())
     { return MEM_NIL! (); }
 
   /* Make the search always successful to speed up the loop below.  */
-  (*std::ptr::addr_of_mut! (mem_z)).start = start;
-  (*std::ptr::addr_of_mut! (mem_z)).end = (start as *mut c_char).offset (1) as *mut c_void;
+  (*mem_z.as_mut_ptr ()).start = start;
+  (*mem_z.as_mut_ptr ()).end = (start as *mut c_char).offset (1) as *mut c_void;
 
-  p = mem_root;
+  p = (*mem_root.as_mut_ptr ());
   while start < (*p).start || start >= (*p).end
     { p = if start < (*p).start { (*p).left } else { (*p).right }; }
   return p;
@@ -5355,15 +5351,15 @@ unsafe fn mem_insert (start: *mut c_void, end: *mut c_void, r#type: mem_type)
   unsafe {
   let mut c: *mut mem_node; let mut parent: *mut mem_node; let x: *mut mem_node;
 
-  if min_heap_address.is_null () || start < min_heap_address
-    { min_heap_address = start; }
-  if max_heap_address.is_null () || end > max_heap_address
-    { max_heap_address = end; }
+  if (*min_heap_address.as_mut_ptr ()).is_null () || start < (*min_heap_address.as_mut_ptr ())
+    { (*min_heap_address.as_mut_ptr ()) = start; }
+  if (*max_heap_address.as_mut_ptr ()).is_null () || end > (*max_heap_address.as_mut_ptr ())
+    { (*max_heap_address.as_mut_ptr ()) = end; }
 
   /* See where in the tree a node for START belongs.  In this
      particular application, it shouldn't happen that a node is already
      present.  For debugging purposes, let's check that.  */
-  c = mem_root;
+  c = (*mem_root.as_mut_ptr ());
   parent = std::ptr::null_mut ();
 
   while c != MEM_NIL! ()
@@ -5398,7 +5394,7 @@ unsafe fn mem_insert (start: *mut c_void, end: *mut c_void, r#type: mem_type)
 	{ (*parent).right = x; }
     }
   else
-    { mem_root = x; }
+    { (*mem_root.as_mut_ptr ()) = x; }
 
   /* Re-establish red-black tree properties.  */
   mem_insert_fixup (x);
@@ -5416,7 +5412,7 @@ unsafe fn mem_insert_fixup (mut x: *mut mem_node)
 {
   // SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers.
   unsafe {
-  while x != mem_root && (*(*x).parent).color == MEM_RED
+  while x != (*mem_root.as_mut_ptr ()) && (*(*x).parent).color == MEM_RED
     {
       /* X is red and its parent is red.  This is a violation of
 	 red-black tree property #3.  */
@@ -5481,7 +5477,7 @@ unsafe fn mem_insert_fixup (mut x: *mut mem_node)
 
   /* The root may have been changed to red due to the algorithm.  Set
      it to black so that property #5 is satisfied.  */
-  (*mem_root).color = MEM_BLACK;
+  (*(*mem_root.as_mut_ptr ())).color = MEM_BLACK;
 
   }
 }
@@ -5518,7 +5514,7 @@ unsafe fn mem_rotate_left (x: *mut mem_node)
 	{ (*(*x).parent).right = y; }
     }
   else
-    { mem_root = y; }
+    { (*mem_root.as_mut_ptr ()) = y; }
 
   /* Put x on y's left.  */
   (*y).left = x;
@@ -5555,7 +5551,7 @@ unsafe fn mem_rotate_right (x: *mut mem_node)
 	{ (*(*x).parent).left = y; }
     }
   else
-    { mem_root = y; }
+    { (*mem_root.as_mut_ptr ()) = y; }
 
   (*y).right = x;
   if x != MEM_NIL! ()
@@ -5601,7 +5597,7 @@ unsafe fn mem_delete (z: *mut mem_node)
 	{ (*(*y).parent).right = x; }
     }
   else
-    { mem_root = x; }
+    { (*mem_root.as_mut_ptr ()) = x; }
 
   if y != z
     {
@@ -5630,7 +5626,7 @@ unsafe fn mem_delete_fixup (mut x: *mut mem_node)
 {
   // SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers.
   unsafe {
-  while x != mem_root && (*x).color == MEM_BLACK
+  while x != (*mem_root.as_mut_ptr ()) && (*x).color == MEM_BLACK
     {
       if x == (*(*x).parent).left
 	{
@@ -5662,7 +5658,7 @@ unsafe fn mem_delete_fixup (mut x: *mut mem_node)
 	      (*(*x).parent).color = MEM_BLACK;
 	      (*(*w).right).color = MEM_BLACK;
 	      mem_rotate_left ((*x).parent);
-	      x = mem_root;
+	      x = (*mem_root.as_mut_ptr ());
             }
         }
       else
@@ -5696,7 +5692,7 @@ unsafe fn mem_delete_fixup (mut x: *mut mem_node)
 	      (*(*x).parent).color = MEM_BLACK;
 	      (*(*w).left).color = MEM_BLACK;
 	      mem_rotate_right ((*x).parent);
-	      x = mem_root;
+	      x = (*mem_root.as_mut_ptr ());
             }
         }
     }
@@ -5796,9 +5792,9 @@ unsafe fn live_cons_holding (m: *mut mem_node, p: *mut c_void) -> *mut Lisp_Cons
      one of the unused cells in the current cons block,
      and not be on the free-list.  */
   if 0 <= offset && offset < std::mem::size_of_val (&(*b).conses) as ptrdiff_t
-      && (b != cons_block
+      && (b != (*cons_block.as_mut_ptr ())
 	  || (offset / std::mem::size_of_val (&(*b).conses[0]) as ptrdiff_t)
-	     < cons_block_index as ptrdiff_t)
+	     < (*cons_block_index.as_mut_ptr ()) as ptrdiff_t)
     {
       let off: ptrdiff_t = offset % std::mem::size_of_val (&(*b).conses[0]) as ptrdiff_t;
       if off == Lisp_Type::Lisp_Cons as ptrdiff_t
@@ -5855,9 +5851,9 @@ unsafe fn live_symbol_holding (m: *mut mem_node, p: *mut c_void) -> *mut Lisp_Sy
      one of the unused cells in the current symbol block,
      and not be on the free-list.  */
   if 0 <= offset && offset < std::mem::size_of_val (&(*b).symbols) as ptrdiff_t
-      && (b != symbol_block
+      && (b != (*symbol_block.as_mut_ptr ())
 	  || (offset / std::mem::size_of_val (&(*b).symbols[0]) as ptrdiff_t)
-	     < symbol_block_index as ptrdiff_t)
+	     < (*symbol_block_index.as_mut_ptr ()) as ptrdiff_t)
     {
       let off: ptrdiff_t = offset % std::mem::size_of_val (&(*b).symbols[0]) as ptrdiff_t;
       if off == Lisp_Type::Lisp_Symbol as ptrdiff_t
@@ -5926,9 +5922,9 @@ unsafe fn live_float_holding (m: *mut mem_node, p: *mut c_void) -> *mut Lisp_Flo
     {
       let off: c_int = (offset % std::mem::size_of_val (&(*b).floats[0]) as ptrdiff_t) as c_int;
       if (off == Lisp_Type::Lisp_Float as c_int || off == 0)
-	  && (b != float_block
+	  && (b != (*float_block.as_mut_ptr ())
 	      || (offset / std::mem::size_of_val (&(*b).floats[0]) as ptrdiff_t)
-		 < float_block_index as ptrdiff_t)
+		 < (*float_block_index.as_mut_ptr ()) as ptrdiff_t)
 	{
 	  let f = cp.offset (- off as isize) as *mut Lisp_Float;
 	  /* C 4789-4793 (`#if GC_ASAN_POISON_OBJECTS`) is dead.  */
@@ -6250,7 +6246,7 @@ pub unsafe extern "C-unwind" fn mark_memory (start: *const c_void, end: *const c
 	     non-adjacent words and P might be the low-order word's value.  */
 	  if (p as usize & (!VALMASK as usize)) == (Lisp_Type::Lisp_Symbol as usize)
 	    {
-	      let (ip_, add_overflow) = (p as intptr_t).overflowing_add (std::ptr::addr_of_mut! (lispsym) as intptr_t);
+	      let (ip_, add_overflow) = (p as intptr_t).overflowing_add (lispsym.as_mut_ptr () as intptr_t);
 	      ip = ip_;
 	      let _ = add_overflow;
 	      mark_maybe_pointer (ip as *mut c_void, true);
@@ -6278,9 +6274,9 @@ macro_rules! test_setjmp {
 }
 
 #[cfg (feature = "no_have_builtin_unwind_init")]
-static mut setjmp_tested_p: bool = false;
+static setjmp_tested_p: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[cfg (feature = "no_have_builtin_unwind_init")]
-static mut longjmps_done: c_int = 0;
+static longjmps_done: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 
 /* C 5095-5121: the two messages `test_setjmp` prints.
 
@@ -6311,9 +6307,9 @@ pub const SETJMP_WILL_NOT_WORK: &core::ffi::CStr =
 #[cfg (feature = "no_have_builtin_unwind_init")]
 unsafe fn test_setjmp ()
 {
-  if setjmp_tested_p
+  if (*setjmp_tested_p.as_mut_ptr ())
     { return; }
-  setjmp_tested_p = true;
+  (*setjmp_tested_p.as_mut_ptr ()) = true;
   let mut buf: [c_char; 10] = [0; 10];
   let mut x: c_int;
   let mut jbuf: sys_jmp_buf;
@@ -6324,7 +6320,7 @@ unsafe fn test_setjmp ()
   x = 2 * x - 1;
 
   sys_setjmp (&raw mut jbuf);
-  if longjmps_done == 1
+  if (*longjmps_done.as_mut_ptr ()) == 1
     {
       /* Came here after the longjmp at the end of the function.
 
@@ -6337,17 +6333,17 @@ unsafe fn test_setjmp ()
          taking place, or the setjmp just didn't save the register.  */
 
       if x == 1
-	{ fputs (SETJMP_WILL_LIKELY_WORK.as_ptr (), stderr); }
+	{ fputs (SETJMP_WILL_LIKELY_WORK.as_ptr (), (*stderr.as_mut_ptr ())); }
       else
 	{
-	  fputs (SETJMP_WILL_NOT_WORK.as_ptr (), stderr);
+	  fputs (SETJMP_WILL_NOT_WORK.as_ptr (), (*stderr.as_mut_ptr ()));
 	  exit (1);
 	}
     }
 
-  longjmps_done += 1;
+  (*longjmps_done.as_mut_ptr ()) += 1;
   x = 2;
-  if longjmps_done == 1
+  if (*longjmps_done.as_mut_ptr ()) == 1
     { sys_longjmp (&raw mut jbuf, 1); }
 }
 
@@ -6438,7 +6434,7 @@ pub unsafe extern "C-unwind" fn mark_c_stack (bottom: *const c_char, end: *const
      of the stack than its live frames, stale values are roots (status 4.432).  */
   if ! /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { getenv (c"FEMACS_GC_TRACE".as_ptr ()).is_null () }
     {
-      fprintf (stderr, c"stack scan: bottom=%p end=%p span=%ld\n".as_ptr (),
+      fprintf ((*stderr.as_mut_ptr ()), c"stack scan: bottom=%p end=%p span=%ld\n".as_ptr (),
 	       bottom as *const c_void, end as *const c_void,
 	       ((bottom as isize) - (end as isize)) as c_int);
     }
@@ -6495,11 +6491,11 @@ pub unsafe extern "C-unwind" fn flush_stack_call_func1 (func: Option<unsafe exte
   /* C leaves `end` for `SET_STACK_TOP_ADDRESS` to fill through its address; Rust has to
      give the binding a value before taking a raw pointer to it (PORTING.md 1.5).  */
   let mut end: *mut c_void = std::ptr::null_mut ();
-  let self_: *mut thread_state = current_thread;
+  let self_: *mut thread_state = (*current_thread.as_mut_ptr ());
   SET_STACK_TOP_ADDRESS! (&raw mut end);
   (*self_).stack_top = end;
   (func.unwrap ()) (arg);
-  eassert! (current_thread == self_);
+  eassert! ((*current_thread.as_mut_ptr ()) == self_);
 
   }
 }
@@ -6518,12 +6514,12 @@ unsafe fn valid_pointer_p (p: *mut c_void) -> c_int
       { return if !p.is_null () { -1 } else { 0 }; }
 
     let mut fd: [c_int; 2] = [0; 2];
-    static mut under_rr_state: c_int = 0;
+    static under_rr_state: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 
-    if under_rr_state == 0
-      { under_rr_state = if !getenv (c"RUNNING_UNDER_RR".as_ptr ()).is_null () { -1 } else { 1 }; }
-    if under_rr_state < 0
-      { return under_rr_state; }
+    if (*under_rr_state.as_mut_ptr ()) == 0
+      { (*under_rr_state.as_mut_ptr ()) = if !getenv (c"RUNNING_UNDER_RR".as_ptr ()).is_null () { -1 } else { 1 }; }
+    if (*under_rr_state.as_mut_ptr ()) < 0
+      { return (*under_rr_state.as_mut_ptr ()); }
 
     /* Obviously, we cannot just access it (we would SEGV trying), so we
        trick the o/s to tell us whether p is a valid pointer.
@@ -6561,12 +6557,12 @@ pub unsafe extern "C-unwind" fn valid_lisp_object_p (obj: Lisp_Object) -> c_int
 
   if BARE_SYMBOL_P (obj) && c_symbol_p (p as *mut Lisp_Symbol)
     {
-      return (((p as *mut c_char as isize) - (std::ptr::addr_of_mut! (lispsym) as isize))
-	      % std::mem::size_of_val (&lispsym[0]) as isize == 0) as c_int;
+      return (((p as *mut c_char as isize) - (lispsym.as_mut_ptr () as isize))
+	      % std::mem::size_of_val (&(*lispsym.as_mut_ptr ())[0]) as isize == 0) as c_int;
     }
 
-  if p == std::ptr::addr_of_mut! (buffer_defaults) as *mut c_void
-      || p == std::ptr::addr_of_mut! (buffer_local_symbols) as *mut c_void
+  if p == buffer_defaults.as_mut_ptr () as *mut c_void
+      || p == buffer_local_symbols.as_mut_ptr () as *mut c_void
     { return 2; }
 
   if pdumper_object_p (p)
@@ -6630,7 +6626,7 @@ pub unsafe extern "C-unwind" fn hash_table_alloc_bytes (nbytes: ptrdiff_t) -> *m
     { return std::ptr::null_mut (); }
   tally_consing (nbytes);
   /* C 5411: `hash_table_allocated_bytes += nbytes;` on a signed ptrdiff_t (wraps in C).  */
-  hash_table_allocated_bytes = hash_table_allocated_bytes.wrapping_add (nbytes);
+  (*hash_table_allocated_bytes.as_mut_ptr ()) = (*hash_table_allocated_bytes.as_mut_ptr ()).wrapping_add (nbytes);
   return xmalloc (nbytes as size_t);
 
   }
@@ -6644,7 +6640,7 @@ pub unsafe extern "C-unwind" fn hash_table_free_bytes (p: *mut c_void, nbytes: p
   unsafe {
   tally_consing (- nbytes);
   /* C 5420: `hash_table_allocated_bytes -= nbytes;` (signed, wraps in C).  */
-  hash_table_allocated_bytes = hash_table_allocated_bytes.wrapping_sub (nbytes);
+  (*hash_table_allocated_bytes.as_mut_ptr ()) = (*hash_table_allocated_bytes.as_mut_ptr ()).wrapping_sub (nbytes);
   xfree (p);
 
   }
@@ -6663,15 +6659,15 @@ pub unsafe extern "C-unwind" fn staticpro (varaddress: *const Lisp_Object)
   // SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers.
   unsafe {
   let mut i: c_int = 0;
-  while i < staticidx
+  while i < (*staticidx.as_mut_ptr ())
     {
-      eassert! (staticvec[i as usize] != varaddress);
+      eassert! ((*staticvec.as_mut_ptr ())[i as usize] != varaddress);
       i += 1;
     }
-  if staticidx >= NSTATICS
+  if (*staticidx.as_mut_ptr ()) >= NSTATICS
     { fatal (c"NSTATICS too small; try increasing and recompiling Emacs.".as_ptr ()); }
-  staticvec[staticidx as usize] = varaddress;
-  staticidx += 1;
+  (*staticvec.as_mut_ptr ())[(*staticidx.as_mut_ptr ()) as usize] = varaddress;
+  (*staticidx.as_mut_ptr ()) += 1;
 
   }
 }
@@ -6687,8 +6683,8 @@ unsafe extern "C-unwind" fn allow_garbage_collection (consing: intmax_t)
 {
   // SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers.
   unsafe {
-  consing_until_gc = consing as EMACS_INT - (HI_THRESHOLD! () - consing_until_gc);
-  garbage_collection_inhibited -= 1;
+  (*consing_until_gc.as_mut_ptr ()) = consing as EMACS_INT - (HI_THRESHOLD! () - (*consing_until_gc.as_mut_ptr ()));
+  (*garbage_collection_inhibited.as_mut_ptr ()) -= 1;
 
   }
 }
@@ -6699,9 +6695,9 @@ pub unsafe extern "C-unwind" fn inhibit_garbage_collection () -> specpdl_ref
   // SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers.
   unsafe {
   let count: specpdl_ref = SPECPDL_INDEX ();
-  record_unwind_protect_intmax (Some (allow_garbage_collection), consing_until_gc as intmax_t);
-  garbage_collection_inhibited += 1;
-  consing_until_gc = HI_THRESHOLD! ();
+  record_unwind_protect_intmax (Some (allow_garbage_collection), (*consing_until_gc.as_mut_ptr ()) as intmax_t);
+  (*garbage_collection_inhibited.as_mut_ptr ()) += 1;
+  (*consing_until_gc.as_mut_ptr ()) = HI_THRESHOLD! ();
   return count;
 
   }
@@ -6732,14 +6728,14 @@ unsafe fn total_bytes_of_live_objects () -> byte_ct
      `bindat.el`, and every later GC would abort the same way.  P-96's first half applies: the
      sites where C relies on the wrap are written `wrapping_add`, with C's own text kept.  */
   let mut tot: byte_ct = 0;
-  tot = tot.wrapping_add (object_bytes (gcstat.total_conses, std::mem::size_of::<Lisp_Cons> () as ptrdiff_t));
-  tot = tot.wrapping_add (object_bytes (gcstat.total_symbols, std::mem::size_of::<Lisp_Symbol> () as ptrdiff_t));
-  tot = tot.wrapping_add (gcstat.total_string_bytes);
-  tot = tot.wrapping_add (object_bytes (gcstat.total_vector_slots, word_size));
-  tot = tot.wrapping_add (object_bytes (gcstat.total_floats, std::mem::size_of::<Lisp_Float> () as ptrdiff_t));
-  tot = tot.wrapping_add (object_bytes (gcstat.total_intervals, std::mem::size_of::<interval> () as ptrdiff_t));
-  tot = tot.wrapping_add (object_bytes (gcstat.total_strings, std::mem::size_of::<Lisp_String> () as ptrdiff_t));
-  tot = tot.wrapping_add (gcstat.total_hash_table_bytes);
+  tot = tot.wrapping_add (object_bytes ((*gcstat.as_mut_ptr ()).total_conses, std::mem::size_of::<Lisp_Cons> () as ptrdiff_t));
+  tot = tot.wrapping_add (object_bytes ((*gcstat.as_mut_ptr ()).total_symbols, std::mem::size_of::<Lisp_Symbol> () as ptrdiff_t));
+  tot = tot.wrapping_add ((*gcstat.as_mut_ptr ()).total_string_bytes);
+  tot = tot.wrapping_add (object_bytes ((*gcstat.as_mut_ptr ()).total_vector_slots, word_size));
+  tot = tot.wrapping_add (object_bytes ((*gcstat.as_mut_ptr ()).total_floats, std::mem::size_of::<Lisp_Float> () as ptrdiff_t));
+  tot = tot.wrapping_add (object_bytes ((*gcstat.as_mut_ptr ()).total_intervals, std::mem::size_of::<interval> () as ptrdiff_t));
+  tot = tot.wrapping_add (object_bytes ((*gcstat.as_mut_ptr ()).total_strings, std::mem::size_of::<Lisp_String> () as ptrdiff_t));
+  tot = tot.wrapping_add ((*gcstat.as_mut_ptr ()).total_hash_table_bytes);
   return tot;
 
   }
@@ -6834,14 +6830,14 @@ unsafe fn compact_font_caches ()
   unsafe {
   let mut t: *mut terminal;
 
-  t = terminal_list;
+  t = (*terminal_list.as_mut_ptr ());
   while !t.is_null ()
     {
       let cache: Lisp_Object = TERMINAL_FONT_CACHE! (t);
       /* Inhibit compacting the caches if the user so wishes.  Some of
 	 the users don't mind a larger memory footprint, but do mind
 	 slower redisplay.  */
-      if !inhibit_compacting_font_caches
+      if !(*inhibit_compacting_font_caches.as_mut_ptr ())
 	  && CONSP (cache)
 	{
 	  let mut entry: Lisp_Object;
@@ -6909,7 +6905,7 @@ unsafe fn android_make_lisp_symbol (sym: *mut Lisp_Symbol) -> Lisp_Object
   /* C's `ckd_sub (&symoffset, symoffset, (intptr_t) &lispsym)` (the ckd_sub family,
      token-aliases.tsv).  */
   let (symoffset_, sub_overflow) = symoffset.overflowing_sub (
-    std::ptr::addr_of_mut! (lispsym) as intptr_t);
+    lispsym.as_mut_ptr () as intptr_t);
   symoffset = symoffset_;
   let _ = sub_overflow;
 
@@ -6976,31 +6972,31 @@ pub unsafe extern "C-unwind" fn visit_static_gc_roots (visitor: gc_root_visitor)
   // SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers.
   unsafe {
   visit_buffer_root (visitor,
-		     &raw mut buffer_defaults,
+		     buffer_defaults.as_mut_ptr (),
 		     GC_ROOT_BUFFER_LOCAL_DEFAULT);
   visit_buffer_root (visitor,
-		     &raw mut buffer_local_symbols,
+		     buffer_local_symbols.as_mut_ptr (),
 		     GC_ROOT_BUFFER_LOCAL_NAME);
 
   if visitor.visit == Some (mark_object_root_visitor)
     {
       let mut i: c_int = 0;
-      while i < countof! (lispsym) as c_int
+      while i < countof! ((*lispsym.as_mut_ptr ())) as c_int
 	{
 	  mark_object (builtin_lisp_symbol (i as usize));
 	  i += 1;
 	}
       i = 0;
-      while i < staticidx
+      while i < (*staticidx.as_mut_ptr ())
 	{
-	  mark_object (*staticvec[i as usize]);
+	  mark_object (*(*staticvec.as_mut_ptr ())[i as usize]);
 	  i += 1;
 	}
       return;
     }
 
   let mut i: c_int = 0;
-  while i < countof! (lispsym) as c_int
+  while i < countof! ((*lispsym.as_mut_ptr ())) as c_int
     {
       let mut sptr: Lisp_Object = builtin_lisp_symbol (i as usize);
       (visitor.visit.unwrap ()) (&raw const sptr, GC_ROOT_C_SYMBOL, visitor.data);
@@ -7008,9 +7004,9 @@ pub unsafe extern "C-unwind" fn visit_static_gc_roots (visitor: gc_root_visitor)
     }
 
   i = 0;
-  while i < staticidx
+  while i < (*staticidx.as_mut_ptr ())
     {
-      (visitor.visit.unwrap ()) (staticvec[i as usize], GC_ROOT_STATICPRO,
+      (visitor.visit.unwrap ()) ((*staticvec.as_mut_ptr ())[i as usize], GC_ROOT_STATICPRO,
 				 visitor.data);
       i += 1;
     }
@@ -7031,7 +7027,7 @@ unsafe extern "C-unwind" fn mark_object_root_visitor (root_ptr: *const Lisp_Obje
 
 /* List of weak hash tables we found during marking the Lisp heap.
    NULL on entry to garbage_collect and after it returns.  */
-static mut weak_hash_tables: *mut Lisp_Hash_Table = std::ptr::null_mut ();
+static weak_hash_tables: VmGlobal<*mut Lisp_Hash_Table> = VmGlobal::<*mut Lisp_Hash_Table>::new (std::ptr::null_mut ());
 
 /* `NO_INLINE` has no Rust counterpart (PORTING.md P-13).  */
 unsafe fn mark_and_sweep_weak_table_contents ()
@@ -7050,7 +7046,7 @@ unsafe fn mark_and_sweep_weak_table_contents ()
   loop
     {
       marked = false;
-      h = weak_hash_tables;
+      h = (*weak_hash_tables.as_mut_ptr ());
       while !h.is_null ()
         {
 	  marked |= sweep_weak_table (h, false);
@@ -7060,10 +7056,10 @@ unsafe fn mark_and_sweep_weak_table_contents ()
     }
 
   /* Remove hash table entries that aren't used.  */
-  while !weak_hash_tables.is_null ()
+  while !(*weak_hash_tables.as_mut_ptr ()).is_null ()
     {
-      h = weak_hash_tables;
-      weak_hash_tables = (*h).next_weak;
+      h = (*weak_hash_tables.as_mut_ptr ());
+      (*weak_hash_tables.as_mut_ptr ()) = (*h).next_weak;
       (*h).next_weak = std::ptr::null_mut ();
       sweep_weak_table (h, true);
     }
@@ -7080,7 +7076,7 @@ unsafe fn consing_threshold (mut threshold: intmax_t, percentage: Lisp_Object,
 {
   // SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers.
   unsafe {
-  if !NILP (Vmemory_full)
+  if !NILP ((*Vmemory_full.as_mut_ptr ()))
     { return memory_full_cons_threshold as EMACS_INT; }
   else
     {
@@ -7113,12 +7109,12 @@ unsafe fn bump_consing_until_gc (threshold: intmax_t, percentage: Lisp_Object)
   unsafe {
   /* Guesstimate that half the bytes allocated since the most
      recent GC are still in use.  */
-  let since_gc: EMACS_INT = (gc_threshold - consing_until_gc) >> 1;
+  let since_gc: EMACS_INT = ((*gc_threshold.as_mut_ptr ()) - (*consing_until_gc.as_mut_ptr ())) >> 1;
   let new_gc_threshold: EMACS_INT = consing_threshold (threshold, percentage,
 						      since_gc as intmax_t);
-  consing_until_gc += new_gc_threshold - gc_threshold;
-  gc_threshold = new_gc_threshold;
-  return consing_until_gc;
+  (*consing_until_gc.as_mut_ptr ()) += new_gc_threshold - (*gc_threshold.as_mut_ptr ());
+  (*gc_threshold.as_mut_ptr ()) = new_gc_threshold;
+  return (*consing_until_gc.as_mut_ptr ());
 
   }
 }
@@ -7133,7 +7129,7 @@ unsafe extern "C-unwind" fn watch_gc_cons_threshold (symbol: Lisp_Object, newval
   let mut threshold: intmax_t = 0;
   if !(INTEGERP (newval) && integer_to_intmax (newval, &raw mut threshold))
     { return Qnil (); }
-  bump_consing_until_gc (threshold, Vgc_cons_percentage);
+  bump_consing_until_gc (threshold, (*Vgc_cons_percentage.as_mut_ptr ()));
   return Qnil ();
 
   }
@@ -7146,7 +7142,7 @@ unsafe extern "C-unwind" fn watch_gc_cons_percentage (symbol: Lisp_Object, newva
 {
   // SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers.
   unsafe {
-  bump_consing_until_gc (gc_cons_threshold as intmax_t, newval);
+  bump_consing_until_gc ((*gc_cons_threshold.as_mut_ptr ()) as intmax_t, newval);
   return Qnil ();
 
   }
@@ -7169,14 +7165,14 @@ pub unsafe extern "C-unwind" fn maybe_garbage_collect ()
      garbage_collection_inhibited or gc_in_progress before entering
      garbage_collect_impl (which asserts weak tables before the inhibit check).  */
   #[cfg(feature = "femacs_gc_generational")]
-  if garbage_collection_inhibited == 0
-    && !gc_in_progress
+  if (*garbage_collection_inhibited.as_mut_ptr ()) == 0
+    && !(*gc_in_progress.as_mut_ptr ())
     && gc_collector::young_cadence_pending()
     {
       garbage_collect_impl(GcRequest::Automatic);
       return;
     }
-  if bump_consing_until_gc (gc_cons_threshold as intmax_t, Vgc_cons_percentage) < 0
+  if bump_consing_until_gc ((*gc_cons_threshold.as_mut_ptr ()) as intmax_t, (*Vgc_cons_percentage.as_mut_ptr ())) < 0
     { garbage_collect_impl(GcRequest::Automatic); }
 
   }
@@ -7262,16 +7258,16 @@ unsafe fn garbage_collect_impl(request: GcRequest)
   let count: specpdl_ref = SPECPDL_INDEX ();
   let mut start: timespec;
 
-  gc_mark_trace_enabled = !getenv (c"FEMACS_GC_TRACE".as_ptr ()).is_null ();
+  (*gc_mark_trace_enabled.as_mut_ptr ()) = !getenv (c"FEMACS_GC_TRACE".as_ptr ()).is_null ();
 
   /* P-115's shape: which root set is growing.  The GC runs but retains one discarded object per
      iteration in `spikes/gc-retention-probe.el`, and the specpdl is the prime suspect (status
      4.430).  Off unless the variable is set.  */
-  if gc_mark_trace_enabled
+  if (*gc_mark_trace_enabled.as_mut_ptr ())
     {
-      fprintf (stderr, c"gc: n=%d specpdl_bytes=%ld mark_sp=%ld mark_size=%ld\n".as_ptr (),
-	       gcs_done as c_int, unwrap_specpdl_ref (count) as c_long,
-	       /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { mark_stk.sp } as c_long, unsafe { mark_stk.size } as c_long);
+      fprintf ((*stderr.as_mut_ptr ()), c"gc: n=%d specpdl_bytes=%ld mark_sp=%ld mark_size=%ld\n".as_ptr (),
+	       (*gcs_done.as_mut_ptr ()) as c_int, unwrap_specpdl_ref (count) as c_long,
+	       /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (*mark_stk.as_mut_ptr ()).sp } as c_long, unsafe { (*mark_stk.as_mut_ptr ()).size } as c_long);
       let mut handlers: c_int = 0;
       let mut h: *mut handler = unsafe { handlerlist! () };
       while ! h.is_null () && handlers < 1000000
@@ -7281,20 +7277,20 @@ unsafe fn garbage_collect_impl(request: GcRequest)
 	}
       let mut blocks: c_int = 0;
       let mut bytes: c_long = 0;
-      let mut b: *mut sa_stack_block = /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { sa_stack_top };
+      let mut b: *mut sa_stack_block = /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (*sa_stack_top.as_mut_ptr ()) };
       while ! b.is_null () && blocks < 1000000
 	{
 	  bytes += unsafe { (*b).used } as c_long;
 	  b = unsafe { (*b).next };
 	  blocks += 1;
 	}
-      fprintf (stderr, c"gc-h: handlers=%d sa_blocks=%d sa_bytes=%ld\n".as_ptr (),
+      fprintf ((*stderr.as_mut_ptr ()), c"gc-h: handlers=%d sa_blocks=%d sa_bytes=%ld\n".as_ptr (),
 	       handlers, blocks, bytes);
     }
 
-  eassert! (weak_hash_tables.is_null ());
+  eassert! ((*weak_hash_tables.as_mut_ptr ()).is_null ());
 
-  if garbage_collection_inhibited != 0
+  if (*garbage_collection_inhibited.as_mut_ptr ()) != 0
     { return; }
 
   #[cfg(feature = "femacs_gc_generational")]
@@ -7322,14 +7318,14 @@ unsafe fn garbage_collect_impl(request: GcRequest)
      tail, buffer)`; the loop macro has no Rust counterpart (P-22,
      docs/ports/excluded-macros.txt), so the expansion is written here (the buffer.rs
      unlock_all_files shape).  */
-  tail = Vbuffer_alist;
+  tail = (*Vbuffer_alist.as_mut_ptr ());
   while CONSP (tail) && { buffer = XCDR (XCAR (tail)); true }
     {
       compact_buffer (XBUFFER (buffer));
       tail = XCDR (tail);
     }
 
-  let tot_before: byte_ct = if profiler_memory_running
+  let tot_before: byte_ct = if (*profiler_memory_running.as_mut_ptr ())
     { total_bytes_of_live_objects () }
     else { (-1 as isize) as byte_ct };
 
@@ -7339,12 +7335,12 @@ unsafe fn garbage_collect_impl(request: GcRequest)
 
   /* In case user calls debug_print during GC,
      don't let that cause a recursive GC.  */
-  consing_until_gc = HI_THRESHOLD! ();
+  (*consing_until_gc.as_mut_ptr ()) = HI_THRESHOLD! ();
 
   /* Save what's currently displayed in the echo area.  Don't do that
      if we are GC'ing because we've run out of memory, since
      push_message will cons, and we might have no memory for that.  */
-  if NILP (Vmemory_full)
+  if NILP ((*Vmemory_full.as_mut_ptr ()))
     {
       message_p = push_message ();
       record_unwind_protect_void (Some (pop_message_unwind));
@@ -7354,7 +7350,7 @@ unsafe fn garbage_collect_impl(request: GcRequest)
 
   /* Save a copy of the contents of the stack, for debugging.  */
   /* C 5860-5890 (`#if MAX_SAVE_STACK > 0`, live) is transcribed.  */
-  if NILP (Vpurify_flag)
+  if NILP ((*Vpurify_flag.as_mut_ptr ()))
     {
       let mut stack: *const c_char;
       let mut stack_size: ptrdiff_t;
@@ -7370,18 +7366,18 @@ unsafe fn garbage_collect_impl(request: GcRequest)
 	}
       if stack_size <= MAX_SAVE_STACK as ptrdiff_t
 	{
-	  if stack_copy_size < stack_size
+	  if (*stack_copy_size.as_mut_ptr ()) < stack_size
 	    {
-	      stack_copy = xrealloc (stack_copy as *mut c_void, stack_size as size_t)
+	      (*stack_copy.as_mut_ptr ()) = xrealloc ((*stack_copy.as_mut_ptr ()) as *mut c_void, stack_size as size_t)
 			   as *mut c_char;
-	      stack_copy_size = stack_size;
+	      (*stack_copy_size.as_mut_ptr ()) = stack_size;
 	    }
-	  no_sanitize_memcpy (stack_copy as *mut c_void, stack as *const c_void,
+	  no_sanitize_memcpy ((*stack_copy.as_mut_ptr ()) as *mut c_void, stack as *const c_void,
 			      stack_size as size_t);
 	}
     }
 
-  if garbage_collection_messages
+  if (*garbage_collection_messages.as_mut_ptr ())
     { message1_nolog (c"Garbage collecting...".as_ptr ()); }
 
   gc_observe_end!(observation_cycle, 2);
@@ -7390,7 +7386,7 @@ unsafe fn garbage_collect_impl(request: GcRequest)
 
   shrink_regexp_cache ();
 
-  gc_in_progress = true;
+  (*gc_in_progress.as_mut_ptr ()) = true;
   #[cfg(feature = "femacs_gc_generational")]
   let (collector_kind, collector_reason) = gc_collector::choose_cycle(request);
   #[cfg(feature = "femacs_gc_generational")]
@@ -7444,7 +7440,7 @@ unsafe fn garbage_collect_impl(request: GcRequest)
      of the same memory, and it runs with the other roots, before `process_mark_stack`.  */
   {
     let mut active_sa_blocks = 0usize;
-    let mut block: *mut sa_stack_block = sa_stack_top;
+    let mut block: *mut sa_stack_block = (*sa_stack_top.as_mut_ptr ());
     while !block.is_null ()
       {
 	active_sa_blocks += 1;
@@ -7457,7 +7453,7 @@ unsafe fn garbage_collect_impl(request: GcRequest)
     /* P-172 + U4: intra-frame post-`SAFE_FREE!` blocks retain `used > 0` until the enclosing
        lexical scope exits (`sa_stack_frame_exit`), which scrubs `used = 0` so dead frames are
        never conservatively scanned.  */
-    block = sa_stack_free;
+    block = (*sa_stack_free.as_mut_ptr ());
     while !block.is_null ()
       {
 	if (*block).used != 0
@@ -7524,7 +7520,7 @@ unsafe fn garbage_collect_impl(request: GcRequest)
   compact_font_caches! ();
 
   /* C: `FOR_EACH_LIVE_BUFFER (tail, buffer)` (P-22 expansion, see above).  */
-  tail = Vbuffer_alist;
+  tail = (*Vbuffer_alist.as_mut_ptr ());
   while CONSP (tail) && { buffer = XCDR (XCAR (tail)); true }
     {
       let nextb = XBUFFER (buffer);
@@ -7547,17 +7543,17 @@ unsafe fn garbage_collect_impl(request: GcRequest)
   gc_observe_begin!(observation_cycle, 7);
   #[cfg(feature = "femacs_gc_generational")]
   if collector_kind == gc_collector::GcKind::Young {
-    mark_finalizer_list(&raw mut finalizers);
+    mark_finalizer_list(finalizers.as_mut_ptr ());
   }
-  queue_doomed_finalizers (&raw mut doomed_finalizers, &raw mut finalizers);
-  mark_finalizer_list (&raw mut doomed_finalizers);
+  queue_doomed_finalizers (doomed_finalizers.as_mut_ptr (), finalizers.as_mut_ptr ());
+  mark_finalizer_list (doomed_finalizers.as_mut_ptr ());
   gc_observe_end!(observation_cycle, 7);
 
   /* Must happen after all other marking and before gc_sweep.  */
   gc_observe_begin!(observation_cycle, 8);
   mark_and_sweep_weak_table_contents ();
   gc_observe_end!(observation_cycle, 8);
-  eassert! (weak_hash_tables.is_null ());
+  eassert! ((*weak_hash_tables.as_mut_ptr ()).is_null ());
 
   eassert! (mark_stack_empty_p ());
 
@@ -7573,20 +7569,20 @@ unsafe fn garbage_collect_impl(request: GcRequest)
   #[cfg(feature = "femacs_gc_generational")]
   { gc_collector::commit_cycle(collector_kind, &mut collector_guard); }
 
-  gc_in_progress = false;
+  (*gc_in_progress.as_mut_ptr ()) = false;
   crate::state::finish_gc_root_cycle ();
 
-  consing_until_gc = consing_threshold (gc_cons_threshold as intmax_t, Vgc_cons_percentage, 0);
-  gc_threshold = consing_until_gc;
+  (*consing_until_gc.as_mut_ptr ()) = consing_threshold ((*gc_cons_threshold.as_mut_ptr ()) as intmax_t, (*Vgc_cons_percentage.as_mut_ptr ()), 0);
+  (*gc_threshold.as_mut_ptr ()) = (*consing_until_gc.as_mut_ptr ());
 
   /* Unblock *after* re-setting `consing_until_gc` in case `unblock_input`
      signals an error (see bug#43389).  */
   unblock_input ();
   gc_observe_end!(observation_cycle, 3);
 
-  if garbage_collection_messages && NILP (Vmemory_full)
+  if (*garbage_collection_messages.as_mut_ptr ()) && NILP ((*Vmemory_full.as_mut_ptr ()))
     {
-      if message_p || minibuf_level > 0
+      if message_p || (*minibuf_level.as_mut_ptr ()) > 0
 	{ restore_message (); }
       else
 	{ message1_nolog (c"Garbage collecting...done".as_ptr ()); }
@@ -7597,9 +7593,9 @@ unsafe fn garbage_collect_impl(request: GcRequest)
   /* GC is complete: now we can run our finalizer callbacks.  */
   gc_observe_begin!(observation_cycle, 17);
   #[cfg(feature = "femacs_gc_generational")]
-  if collector_kind == gc_collector::GcKind::Full { run_finalizers(&raw mut doomed_finalizers); }
+  if collector_kind == gc_collector::GcKind::Full { run_finalizers(doomed_finalizers.as_mut_ptr ()); }
   #[cfg(not(feature = "femacs_gc_generational"))]
-  { run_finalizers (&raw mut doomed_finalizers); }
+  { run_finalizers (doomed_finalizers.as_mut_ptr ()); }
   gc_observe_end!(observation_cycle, 17);
 
   /* C 5998-6001 (`#ifdef HAVE_WINDOW_SYSTEM`) is dead.  */
@@ -7610,15 +7606,15 @@ unsafe fn garbage_collect_impl(request: GcRequest)
   }
 
   /* Accumulate statistics.  */
-  if FLOATP (Vgc_elapsed)
+  if FLOATP ((*Vgc_elapsed.as_mut_ptr ()))
     {
-      static mut gc_elapsed: timespec = timespec { tv_sec: 0, tv_nsec: 0 };
-      gc_elapsed = timespec_add (gc_elapsed,
+      static gc_elapsed: VmGlobal<timespec> = VmGlobal::<timespec>::new (timespec { tv_sec: 0, tv_nsec: 0 });
+      (*gc_elapsed.as_mut_ptr ()) = timespec_add ((*gc_elapsed.as_mut_ptr ()),
 				 timespec_sub (current_timespec (), start));
-      Vgc_elapsed = make_float (timespectod (gc_elapsed));
+      (*Vgc_elapsed.as_mut_ptr ()) = make_float (timespectod ((*gc_elapsed.as_mut_ptr ())));
     }
 
-  gcs_done += 1;
+  (*gcs_done.as_mut_ptr ()) += 1;
 
   /* Collect profiling data.  */
   if tot_before != (-1 as isize) as byte_ct
@@ -7628,7 +7624,7 @@ unsafe fn garbage_collect_impl(request: GcRequest)
 	{ malloc_probe (min! (tot_before - tot_after, SIZE_MAX as uintptr_t)); }
     }
 
-  if !NILP (Vpost_gc_hook)
+  if !NILP ((*Vpost_gc_hook.as_mut_ptr ()))
     {
       gc_observe_begin!(observation_cycle, 18);
       let gc_count: specpdl_ref = inhibit_garbage_collection ();
@@ -7685,7 +7681,7 @@ DEFUN! ("garbage-collect", Fgarbage_collect, Sgarbage_collect, 0, 0, "",
        doc: "Reclaim storage for Lisp objects no longer needed.\nGarbage collection happens automatically if you cons more than\n`gc-cons-threshold' bytes of Lisp data since previous garbage collection.\nIt returns the same info as `garbage-collect-heapsize'.\n\nNote that calling this function does not guarantee that absolutely all\nunreachable objects will be garbage-collected.  Emacs uses a\nmark-and-sweep garbage collector, but is conservative when it comes to\ncollecting objects in some circumstances.\n\nFor further details, see Info node `(elisp)Garbage Collection'.",
        (),
        {
-  if garbage_collection_inhibited != 0
+  if (*garbage_collection_inhibited.as_mut_ptr ()) != 0
     { return Qnil (); }
 
   let count: specpdl_ref = SPECPDL_INDEX ();
@@ -7700,7 +7696,7 @@ DEFUN! ("garbage-collect-heapsize", Fgarbage_collect_heapsize,
        doc: "Return a list with info on amount of space in use.\nThis info may not be fully up to date unless it is called right after\na full garbage collection cycle.\nEach entry has the form (NAME SIZE USED FREE), where:\n- NAME is a symbol describing the kind of objects this entry represents,\n- SIZE is the number of bytes used by each one,\n- USED is the number of those objects that were found live in the heap,\n- FREE is the number of those objects that are not live but that Emacs\n  keeps around for future allocations (maybe because it does not know how\n  to return them to the OS).",
        (),
        {
-  let gcst: gcstat = gcstat;
+  let gcst: gcstat = (*gcstat.as_mut_ptr ());
 
   /* FIXME: Maybe we could/should add a field countaing the approximate
      amount of memory allocated since the last GC, such as
@@ -7779,8 +7775,8 @@ Sgarbage_collect_maybe, 1, 1, 0,
   CHECK_FIXNAT (factor);
   let fact: EMACS_INT = XFIXNAT (factor);
 
-  let since_gc: EMACS_INT = gc_threshold - consing_until_gc;
-  if fact >= 1 && since_gc > gc_threshold / fact
+  let since_gc: EMACS_INT = (*gc_threshold.as_mut_ptr ()) - (*consing_until_gc.as_mut_ptr ());
+  if fact >= 1 && since_gc > (*gc_threshold.as_mut_ptr ()) / fact
     {
       garbage_collect ();
       return Qt ();
@@ -7832,9 +7828,8 @@ unsafe fn mark_glyph_matrix (matrix: *mut glyph_matrix)
 pub const LAST_MARKED_SIZE: usize = 1 << 9;
 #[unsafe(no_mangle)]
 #[used]
-pub static mut last_marked: [Lisp_Object; LAST_MARKED_SIZE] =
-  [std::ptr::null_mut (); LAST_MARKED_SIZE];
-static mut last_marked_index: c_int = 0;
+pub static last_marked: VmGlobal<[Lisp_Object; LAST_MARKED_SIZE]> = VmGlobal::<[Lisp_Object; LAST_MARKED_SIZE]>::new ([std::ptr::null_mut (); LAST_MARKED_SIZE]);
+static last_marked_index: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 
 /* Whether to enable the mark_object_loop_halt debugging feature.  */
 pub const GC_CDR_COUNT: c_int = 0;
@@ -7847,7 +7842,7 @@ pub const GC_CHECK_MARKED_OBJECTS: c_int = if cfg! (enable_checking) { 1 } else 
 #[cfg (feature = "gc_cdr_count")]
 #[unsafe(no_mangle)]
 #[used]
-pub static mut mark_object_loop_halt: ptrdiff_t = 0;
+pub static mark_object_loop_halt: VmGlobal<ptrdiff_t> = VmGlobal::<ptrdiff_t>::new (0);
 
 #[inline(always)]
 unsafe fn mark_vectorlike (header: *mut vectorlike_header)
@@ -7897,7 +7892,7 @@ unsafe fn mark_char_table (ptr: *mut Lisp_Vector, pvectype: pvec_type)
       let val: Lisp_Object = FAM_ELEM! ((*ptr).contents, i);
 
       if FIXNUMP (val)
-          || (NILP (val) && (lispsym[0].u.s.bits & SYMBOL_GC_MARK_BIT) != 0)
+          || (NILP (val) && ((*lispsym.as_mut_ptr ())[0].u.s.bits & SYMBOL_GC_MARK_BIT) != 0)
           || (BARE_SYMBOL_P (val) && symbol_marked_p (XBARE_SYMBOL (val)))
 	{ i += 1; continue; }
       if SUB_CHAR_TABLE_P (val)
@@ -8105,14 +8100,14 @@ pub struct mark_stack
 }
 const _: () = core::assert! (std::mem::size_of::<mark_stack> () == 24);
 
-static mut mark_stk: mark_stack = mark_stack { stack: std::ptr::null_mut (), size: 0, sp: 0 };
+static mark_stk: VmGlobal<mark_stack> = VmGlobal::<mark_stack>::new (mark_stack { stack: std::ptr::null_mut (), size: 0, sp: 0 });
 
 #[inline(always)]
 unsafe fn mark_stack_empty_p () -> bool
 {
   // SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers.
   unsafe {
-  return mark_stk.sp <= 0;
+  return (*mark_stk.as_mut_ptr ()).sp <= 0;
 
   }
 }
@@ -8124,17 +8119,17 @@ unsafe fn mark_stack_pop () -> Lisp_Object
   // SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers.
   unsafe {
   eassume! (!mark_stack_empty_p ());
-  let e: *mut mark_entry = mark_stk.stack.offset ((mark_stk.sp - 1) as isize);
+  let e: *mut mark_entry = (*mark_stk.as_mut_ptr ()).stack.offset (((*mark_stk.as_mut_ptr ()).sp - 1) as isize);
   if (*e).n == 0		/* single value */
     {
-      mark_stk.sp -= 1;
+      (*mark_stk.as_mut_ptr ()).sp -= 1;
       return (*e).u.value;
     }
   /* Array of values: pop them left to right, which seems to be slightly
      faster than right to left.  */
   let mut n: ptrdiff_t = (*e).n;
   let mut p: *mut Lisp_Object = (*e).u.values;
-  let nil_marked: bool = (lispsym[0].u.s.bits & SYMBOL_GC_MARK_BIT) != 0;
+  let nil_marked: bool = ((*lispsym.as_mut_ptr ())[0].u.s.bits & SYMBOL_GC_MARK_BIT) != 0;
   loop
     {
       let v: Lisp_Object = *p;
@@ -8144,14 +8139,14 @@ unsafe fn mark_stack_pop () -> Lisp_Object
 	{
 	  (*e).n = n;
 	  if n == 0
-	    { mark_stk.sp -= 1; }
+	    { (*mark_stk.as_mut_ptr ()).sp -= 1; }
 	  else
 	    { (*e).u.values = p; }
 	  return v;
 	}
       if n == 0
 	{
-	  mark_stk.sp -= 1;
+	  (*mark_stk.as_mut_ptr ()).sp -= 1;
 	  return v;
 	}
     }
@@ -8164,7 +8159,7 @@ unsafe fn grow_mark_stack ()
 {
   // SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers.
   unsafe {
-  let ms: *mut mark_stack = &raw mut mark_stk;
+  let ms: *mut mark_stack = mark_stk.as_mut_ptr ();
   eassert! ((*ms).sp == (*ms).size);
   let min_incr: ptrdiff_t = if (*ms).sp == 0 { 8192 } else { 1 };
   (*ms).stack = xpalloc ((*ms).stack as *mut c_void, &raw mut (*ms).size, min_incr, -1,
@@ -8182,13 +8177,13 @@ unsafe fn mark_stack_push_value (value: Lisp_Object)
   unsafe {
   if FIXNUMP (value)
       || BASE_EQ (value, HASH_UNUSED_ENTRY_KEY ())
-      || (NILP (value) && (lispsym[0].u.s.bits & SYMBOL_GC_MARK_BIT) != 0)
+      || (NILP (value) && ((*lispsym.as_mut_ptr ())[0].u.s.bits & SYMBOL_GC_MARK_BIT) != 0)
     { return; }
-  if mark_stk.sp >= mark_stk.size
+  if (*mark_stk.as_mut_ptr ()).sp >= (*mark_stk.as_mut_ptr ()).size
     { grow_mark_stack (); }
-  *mark_stk.stack.offset (mark_stk.sp as isize) =
+  *(*mark_stk.as_mut_ptr ()).stack.offset ((*mark_stk.as_mut_ptr ()).sp as isize) =
     mark_entry { n: 0, u: mark_entry_u { value: value } };
-  mark_stk.sp += 1;
+  (*mark_stk.as_mut_ptr ()).sp += 1;
 
   }
 }
@@ -8202,11 +8197,11 @@ unsafe fn mark_stack_push_values (values: *mut Lisp_Object, n: ptrdiff_t)
   eassume! (n >= 0);
   if n == 0
     { return; }
-  if mark_stk.sp >= mark_stk.size
+  if (*mark_stk.as_mut_ptr ()).sp >= (*mark_stk.as_mut_ptr ()).size
     { grow_mark_stack (); }
-  *mark_stk.stack.offset (mark_stk.sp as isize) =
+  *(*mark_stk.as_mut_ptr ()).stack.offset ((*mark_stk.as_mut_ptr ()).sp as isize) =
     mark_entry { n: n, u: mark_entry_u { values: values } };
-  mark_stk.sp += 1;
+  (*mark_stk.as_mut_ptr ()).sp += 1;
 
   }
 }
@@ -8230,12 +8225,12 @@ unsafe fn check_live (livep: Option<unsafe extern "C-unwind" fn (*mut mem_node, 
 	{ return; }
       if !((*m).r#type == mtype && (livep.unwrap ()) (m, po))
 	{
-          if gc_mark_trace_enabled
+          if (*gc_mark_trace_enabled.as_mut_ptr ())
             {
-              fprintf (stderr,
+              fprintf ((*stderr.as_mut_ptr ()),
                 c"gc-invalid-live ptr=%p expected=%d actual=%d start=%p end=%p interval=%p plist=%p\n".as_ptr (),
                 po, mtype as c_int, (*m).r#type as c_int, (*m).start, (*m).end,
-                gc_mark_trace_interval, gc_mark_trace_plist as *mut c_void);
+                (*gc_mark_trace_interval.as_mut_ptr ()), (*gc_mark_trace_plist.as_mut_ptr ()) as *mut c_void);
             }
           emacs_abort ();
         }
@@ -8265,12 +8260,12 @@ unsafe fn check_allocated_and_live (livep: Option<unsafe extern "C-unwind" fn (*
       let m: *mut mem_node = mem_find (po);
       if m == MEM_NIL! ()
 	{
-          if gc_mark_trace_enabled
+          if (*gc_mark_trace_enabled.as_mut_ptr ())
             {
-              fprintf (stderr,
+              fprintf ((*stderr.as_mut_ptr ()),
                 c"gc-unallocated ptr=%p expected=%d interval=%p plist=%p\n".as_ptr (),
-                po, mtype as c_int, gc_mark_trace_interval,
-                gc_mark_trace_plist as *mut c_void);
+                po, mtype as c_int, (*gc_mark_trace_interval.as_mut_ptr ()),
+                (*gc_mark_trace_plist.as_mut_ptr ()) as *mut c_void);
             }
           emacs_abort ();
         }
@@ -8327,18 +8322,18 @@ unsafe fn process_mark_stack (base_sp: ptrdiff_t)
   unsafe {
   /* C 6521-6523 (`#if GC_CDR_COUNT`) declares `ptrdiff_t cdr_count = 0;`.  */
 
-  eassume! (mark_stk.sp >= base_sp && base_sp >= 0);
+  eassume! ((*mark_stk.as_mut_ptr ()).sp >= base_sp && base_sp >= 0);
 
-  while mark_stk.sp > base_sp
+  while (*mark_stk.as_mut_ptr ()).sp > base_sp
     {
       let mut obj: Lisp_Object = mark_stack_pop ();
     'mark_obj: loop
       {
       let mut po: *mut c_void = XPNTR (obj);
       /* C 6532-6535 (`#if GC_REMEMBER_LAST_MARKED`, live) is transcribed.  */
-      last_marked[last_marked_index as usize] = obj;
-      last_marked_index += 1;
-      last_marked_index &= LAST_MARKED_SIZE as c_int - 1;
+      (*last_marked.as_mut_ptr ())[(*last_marked_index.as_mut_ptr ()) as usize] = obj;
+      (*last_marked_index.as_mut_ptr ()) += 1;
+      (*last_marked_index.as_mut_ptr ()) &= LAST_MARKED_SIZE as c_int - 1;
 
       match XTYPE (obj)
 	{
@@ -8433,8 +8428,8 @@ unsafe fn process_mark_stack (base_sp: ptrdiff_t)
 		      /* For weak tables, don't mark the
 			 contents --- that's what makes it weak.  */
 		      eassert! ((*h).next_weak.is_null ());
-		      (*h).next_weak = weak_hash_tables;
-		      weak_hash_tables = h;
+		      (*h).next_weak = (*weak_hash_tables.as_mut_ptr ());
+		      (*weak_hash_tables.as_mut_ptr ()) = h;
 		    }
 		}
 	      pvec_type::PVEC_OBARRAY =>
@@ -8602,7 +8597,7 @@ unsafe fn process_mark_stack (base_sp: ptrdiff_t)
 	       In any case, make sure the car is expanded first.  */
 	    let car: Lisp_Object = (*ptr).u.s.car;
 	    let cdr: Lisp_Object = (*ptr).u.s.u.cdr;
-	    let nil_marked: bool = (lispsym[0].u.s.bits & SYMBOL_GC_MARK_BIT) != 0;
+	    let nil_marked: bool = ((*lispsym.as_mut_ptr ())[0].u.s.bits & SYMBOL_GC_MARK_BIT) != 0;
 	    if FIXNUMP (car) || (nil_marked && NILP (car))
 	      {
 		if FIXNUMP (cdr) || (nil_marked && NILP (cdr))
@@ -8630,7 +8625,7 @@ unsafe fn process_mark_stack (base_sp: ptrdiff_t)
 	       "cold" and do not have mark bits.  */
 	    if pdumper_object_p (f as *mut c_void)
 	      { eassert! (pdumper_cold_object_p (f as *const c_void)); }
-    else if gc_mark_trace_enabled
+    else if (*gc_mark_trace_enabled.as_mut_ptr ())
         && FLOAT_INDEX! (f) / BITS_PER_BITS_WORD as usize
            >= 1 + FLOAT_BLOCK_SIZE / BITS_PER_BITS_WORD as usize
       {
@@ -8638,18 +8633,18 @@ unsafe fn process_mark_stack (base_sp: ptrdiff_t)
         // clamp the bitmap index or silently discard an invalid Lisp object.
         let node = mem_find (f as *mut c_void);
         let node_type = if node == MEM_NIL! () { -1 } else { (*node).r#type as c_int };
-        fprintf (stderr,
+        fprintf ((*stderr.as_mut_ptr ()),
           c"gc-invalid-float obj=%p f=%p index=%zu block=%p current=%p used=%d mem_type=%d interval=%p plist=%p\n".as_ptr (),
           obj as *mut c_void, f as *mut c_void, FLOAT_INDEX! (f),
-          FLOAT_BLOCK! (f) as *mut c_void, float_block as *mut c_void,
-          float_block_index, node_type, gc_mark_trace_interval,
-          gc_mark_trace_plist as *mut c_void);
+          FLOAT_BLOCK! (f) as *mut c_void, (*float_block.as_mut_ptr ()) as *mut c_void,
+          (*float_block_index.as_mut_ptr ()), node_type, (*gc_mark_trace_interval.as_mut_ptr ()),
+          (*gc_mark_trace_plist.as_mut_ptr ()) as *mut c_void);
         for back in 0..16usize
           {
-            let index = (last_marked_index as usize + LAST_MARKED_SIZE - 1 - back)
+            let index = ((*last_marked_index.as_mut_ptr ()) as usize + LAST_MARKED_SIZE - 1 - back)
               & (LAST_MARKED_SIZE - 1);
-            fprintf (stderr, c"gc-recent back=%zu obj=%p\n".as_ptr (),
-                     back, last_marked[index] as *mut c_void);
+            fprintf ((*stderr.as_mut_ptr ()), c"gc-recent back=%zu obj=%p\n".as_ptr (),
+                     back, (*last_marked.as_mut_ptr ())[index] as *mut c_void);
           }
         emacs_abort ();
       }
@@ -8680,7 +8675,7 @@ pub unsafe extern "C-unwind" fn mark_object (obj: Lisp_Object)
 {
   // SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers.
   unsafe {
-  let sp: ptrdiff_t = mark_stk.sp;
+  let sp: ptrdiff_t = (*mark_stk.as_mut_ptr ()).sp;
   mark_stack_push_value (obj);
   process_mark_stack (sp);
 
@@ -8692,7 +8687,7 @@ pub unsafe extern "C-unwind" fn mark_objects (objs: *mut Lisp_Object, n: ptrdiff
 {
   // SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers.
   unsafe {
-  let sp: ptrdiff_t = mark_stk.sp;
+  let sp: ptrdiff_t = (*mark_stk.as_mut_ptr ()).sp;
   mark_stack_push_values (objs, n);
   process_mark_stack (sp);
 
@@ -8707,7 +8702,7 @@ unsafe fn mark_terminals ()
   // SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers.
   unsafe {
   let mut t: *mut terminal;
-  t = terminal_list;
+  t = (*terminal_list.as_mut_ptr ());
   while !t.is_null ()
     {
       eassert! (!(*t).name.is_null ());
@@ -8773,11 +8768,11 @@ unsafe fn sweep_conses ()
 {
   // SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers.
   unsafe {
-  let mut cprev: *mut *mut cons_block = &raw mut cons_block;
-  let mut lim: c_int = cons_block_index;
+  let mut cprev: *mut *mut cons_block = cons_block.as_mut_ptr ();
+  let mut lim: c_int = (*cons_block_index.as_mut_ptr ());
   let mut num_free: object_ct = 0; let mut num_used: object_ct = 0;
 
-  cons_free_list = std::ptr::null_mut ();
+  (*cons_free_list.as_mut_ptr ()) = std::ptr::null_mut ();
 
   loop
     {
@@ -8854,9 +8849,9 @@ unsafe fn sweep_conses ()
                       { gc_observation::cons_retire(acons, false); }
 		      ASAN_UNPOISON_CONS! (&raw mut (*cblk).conses[pos as usize]);
                       this_free += 1;
-                      (*cblk).conses[pos as usize].u.s.u.chain = cons_free_list;
-                      cons_free_list = &raw mut (*cblk).conses[pos as usize];
-                      (*cons_free_list).u.s.car = dead_object ();
+                      (*cblk).conses[pos as usize].u.s.u.chain = (*cons_free_list.as_mut_ptr ());
+                      (*cons_free_list.as_mut_ptr ()) = &raw mut (*cblk).conses[pos as usize];
+                      (*(*cons_free_list.as_mut_ptr ())).u.s.car = dead_object ();
 		      ASAN_POISON_CONS! (&raw mut (*cblk).conses[pos as usize]);
 		    }
                   else
@@ -8883,7 +8878,7 @@ unsafe fn sweep_conses ()
           *cprev = (*cblk).next;
           /* Unhook from the free list.  */
 	  ASAN_UNPOISON_CONS! (&raw mut (*cblk).conses[0]);
-          cons_free_list = (*cblk).conses[0].u.s.u.chain;
+          (*cons_free_list.as_mut_ptr ()) = (*cblk).conses[0].u.s.u.chain;
           lisp_align_free (cblk as *mut c_void);
         }
       else
@@ -8892,8 +8887,8 @@ unsafe fn sweep_conses ()
           cprev = &raw mut (*cblk).next;
         }
     }
-  gcstat.total_conses = num_used;
-  gcstat.total_free_conses = num_free;
+  (*gcstat.as_mut_ptr ()).total_conses = num_used;
+  (*gcstat.as_mut_ptr ()).total_free_conses = num_free;
 
   }
 }
@@ -8903,11 +8898,11 @@ unsafe fn sweep_floats ()
 {
   // SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers.
   unsafe {
-  let mut fprev: *mut *mut float_block = &raw mut float_block;
-  let mut lim: c_int = float_block_index;
+  let mut fprev: *mut *mut float_block = float_block.as_mut_ptr ();
+  let mut lim: c_int = (*float_block_index.as_mut_ptr ());
   let mut num_free: object_ct = 0; let mut num_used: object_ct = 0;
 
-  float_free_list = std::ptr::null_mut ();
+  (*float_free_list.as_mut_ptr ()) = std::ptr::null_mut ();
 
   loop
     {
@@ -8922,9 +8917,9 @@ unsafe fn sweep_floats ()
 	  if !XFLOAT_MARKED_P! (afloat)
 	    {
 	      this_free += 1;
-	      (*fblk).floats[i as usize].u.chain = float_free_list;
+	      (*fblk).floats[i as usize].u.chain = (*float_free_list.as_mut_ptr ());
 	      ASAN_POISON_FLOAT! (&raw mut (*fblk).floats[i as usize]);
-	      float_free_list = &raw mut (*fblk).floats[i as usize];
+	      (*float_free_list.as_mut_ptr ()) = &raw mut (*fblk).floats[i as usize];
 	    }
 	  else
 	    {
@@ -8942,7 +8937,7 @@ unsafe fn sweep_floats ()
           *fprev = (*fblk).next;
           /* Unhook from the free list.  */
 	  ASAN_UNPOISON_FLOAT! (&raw mut (*fblk).floats[0]);
-	  float_free_list = (*fblk).floats[0].u.chain;
+	  (*float_free_list.as_mut_ptr ()) = (*fblk).floats[0].u.chain;
           lisp_align_free (fblk as *mut c_void);
         }
       else
@@ -8951,8 +8946,8 @@ unsafe fn sweep_floats ()
           fprev = &raw mut (*fblk).next;
         }
     }
-  gcstat.total_floats = num_used;
-  gcstat.total_free_floats = num_free;
+  (*gcstat.as_mut_ptr ()).total_floats = num_used;
+  (*gcstat.as_mut_ptr ()).total_free_floats = num_free;
 
   }
 }
@@ -8962,11 +8957,11 @@ unsafe fn sweep_intervals ()
 {
   // SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers.
   unsafe {
-  let mut iprev: *mut *mut interval_block = &raw mut interval_block;
-  let mut lim: c_int = interval_block_index;
+  let mut iprev: *mut *mut interval_block = interval_block.as_mut_ptr ();
+  let mut lim: c_int = (*interval_block_index.as_mut_ptr ());
   let mut num_free: object_ct = 0; let mut num_used: object_ct = 0;
 
-  interval_free_list = std::ptr::null_mut ();
+  (*interval_free_list.as_mut_ptr ()) = std::ptr::null_mut ();
 
   loop
     {
@@ -8980,8 +8975,8 @@ unsafe fn sweep_intervals ()
           if !interval_bits! (gcmarkbit, &raw mut (*iblk).intervals[i as usize])
             {
               set_interval_parent (&raw mut (*iblk).intervals[i as usize] as INTERVAL,
-				   interval_free_list);
-              interval_free_list = &raw mut (*iblk).intervals[i as usize] as INTERVAL;
+				   (*interval_free_list.as_mut_ptr ()));
+              (*interval_free_list.as_mut_ptr ()) = &raw mut (*iblk).intervals[i as usize] as INTERVAL;
 	      ASAN_POISON_INTERVAL! (&raw mut (*iblk).intervals[i as usize]);
               this_free += 1;
             }
@@ -9001,7 +8996,7 @@ unsafe fn sweep_intervals ()
           *iprev = (*iblk).next;
           /* Unhook from the free list.  */
 	  ASAN_UNPOISON_INTERVAL! (&raw mut (*iblk).intervals[0]);
-          interval_free_list = INTERVAL_PARENT! (&raw mut (*iblk).intervals[0]) as INTERVAL;
+          (*interval_free_list.as_mut_ptr ()) = INTERVAL_PARENT! (&raw mut (*iblk).intervals[0]) as INTERVAL;
           lisp_free (iblk as *mut c_void);
         }
       else
@@ -9010,8 +9005,8 @@ unsafe fn sweep_intervals ()
           iprev = &raw mut (*iblk).next;
         }
     }
-  gcstat.total_intervals = num_used;
-  gcstat.total_free_intervals = num_free;
+  (*gcstat.as_mut_ptr ()).total_intervals = num_used;
+  (*gcstat.as_mut_ptr ()).total_free_intervals = num_free;
 
   }
 }
@@ -9022,20 +9017,20 @@ unsafe fn sweep_symbols ()
   // SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers.
   unsafe {
   let mut sblk: *mut symbol_block;
-  let mut sprev: *mut *mut symbol_block = &raw mut symbol_block;
-  let mut lim: c_int = symbol_block_index;
-  let mut num_free: object_ct = 0; let mut num_used: object_ct = countof! (lispsym) as object_ct;
+  let mut sprev: *mut *mut symbol_block = symbol_block.as_mut_ptr ();
+  let mut lim: c_int = (*symbol_block_index.as_mut_ptr ());
+  let mut num_free: object_ct = 0; let mut num_used: object_ct = countof! ((*lispsym.as_mut_ptr ())) as object_ct;
 
-  symbol_free_list = std::ptr::null_mut ();
+  (*symbol_free_list.as_mut_ptr ()) = std::ptr::null_mut ();
 
   let mut i: c_int = 0;
-  while i < countof! (lispsym) as c_int
+  while i < countof! ((*lispsym.as_mut_ptr ())) as c_int
     {
-      lispsym[i as usize].u.s.bits = lispsym[i as usize].u.s.bits & !SYMBOL_GC_MARK_BIT;
+      (*lispsym.as_mut_ptr ())[i as usize].u.s.bits = (*lispsym.as_mut_ptr ())[i as usize].u.s.bits & !SYMBOL_GC_MARK_BIT;
       i += 1;
     }
 
-  sblk = symbol_block;
+  sblk = (*symbol_block.as_mut_ptr ());
   while !sblk.is_null ()
     {
       ASAN_UNPOISON_SYMBOL_BLOCK! (sblk);
@@ -9061,9 +9056,9 @@ unsafe fn sweep_symbols ()
 				    | ((SYMBOL_PLAINVAL << SYMBOL_REDIRECT_SHIFT)
 				       & SYMBOL_REDIRECT_MASK);
                 }
-              (*sym).u.s.next = symbol_free_list;
-              symbol_free_list = sym;
-              (*symbol_free_list).u.s.function = dead_object ();
+              (*sym).u.s.next = (*symbol_free_list.as_mut_ptr ());
+              (*symbol_free_list.as_mut_ptr ()) = sym;
+              (*(*symbol_free_list.as_mut_ptr ())).u.s.function = dead_object ();
 	      ASAN_POISON_SYMBOL! (sym);
 	      this_free += 1;
             }
@@ -9086,7 +9081,7 @@ unsafe fn sweep_symbols ()
           *sprev = (*sblk).next;
           /* Unhook from the free list.  */
 	  ASAN_UNPOISON_SYMBOL! (&raw mut (*sblk).symbols[0]);
-          symbol_free_list = (*sblk).symbols[0].u.s.next;
+          (*symbol_free_list.as_mut_ptr ()) = (*sblk).symbols[0].u.s.next;
           lisp_free (sblk as *mut c_void);
         }
       else
@@ -9096,8 +9091,8 @@ unsafe fn sweep_symbols ()
         }
       sblk = *sprev;
     }
-  gcstat.total_symbols = num_used;
-  gcstat.total_free_symbols = num_free;
+  (*gcstat.as_mut_ptr ()).total_symbols = num_used;
+  (*gcstat.as_mut_ptr ()).total_free_symbols = num_free;
 
   }
 }
@@ -9134,9 +9129,9 @@ unsafe fn sweep_buffers ()
   unsafe {
   let mut tail: Lisp_Object; let mut buf: Lisp_Object;
 
-  gcstat.total_buffers = 0;
+  (*gcstat.as_mut_ptr ()).total_buffers = 0;
   /* C: `FOR_EACH_LIVE_BUFFER (tail, buf)` (P-22 expansion, see above).  */
-  tail = Vbuffer_alist;
+  tail = (*Vbuffer_alist.as_mut_ptr ());
   while CONSP (tail) && { buf = XCDR (XCAR (tail)); true }
     {
       let buffer = XBUFFER (buf);
@@ -9144,7 +9139,7 @@ unsafe fn sweep_buffers ()
       if !(*(*buffer).text).intervals.is_null ()
 	{ (*(*buffer).text).intervals = balance_intervals ((*(*buffer).text).intervals); }
       unchain_dead_markers (buffer);
-      gcstat.total_buffers += 1;
+      (*gcstat.as_mut_ptr ()).total_buffers += 1;
       tail = XCDR (tail);
     }
 
@@ -9162,7 +9157,7 @@ unsafe fn gc_sweep ()
   sweep_strings ();
   gc_observe_end!(observation_cycle, 9);
   gc_observe_begin!(observation_cycle, 19);
-  check_string_bytes! (!noninteractive);
+  check_string_bytes! (!(*noninteractive.as_mut_ptr ()));
   gc_observe_end!(observation_cycle, 19);
   gc_observe_begin!(observation_cycle, 10);
   sweep_conses ();
@@ -9186,7 +9181,7 @@ unsafe fn gc_sweep ()
   pdumper_clear_marks ();
   gc_observe_end!(observation_cycle, 16);
   gc_observe_begin!(observation_cycle, 20);
-  check_string_bytes! (!noninteractive);
+  check_string_bytes! (!(*noninteractive.as_mut_ptr ()));
   gc_observe_end!(observation_cycle, 20);
 
   }
@@ -9262,13 +9257,13 @@ DEFUN! ("memory-use-counts", Fmemory_use_counts, Smemory_use_counts, 0, 0, 0,
        doc: "Return a list of counters that measure how much consing there has been.\nEach of these counters increments for a certain kind of object.\nThe counters wrap around from the largest positive integer to zero.\nGarbage collection does not decrease them.\nThe elements of the value are as follows:\n  (CONSES FLOATS VECTOR-CELLS SYMBOLS STRING-CHARS INTERVALS STRINGS)\nAll are in units of 1 = one object consed\nexcept for VECTOR-CELLS and STRING-CHARS, which count the total length of\nobjects consed.\nFrames, windows, buffers, and subprocesses count as vectors\n  (but the contents of a buffer's text do not count here).",
        (),
        {
-  return list! (make_int (cons_cells_consed as intmax_t),
-	       make_int (floats_consed as intmax_t),
-	       make_int (vector_cells_consed as intmax_t),
-	       make_int (symbols_consed as intmax_t),
-	       make_int (string_chars_consed as intmax_t),
-	       make_int (intervals_consed as intmax_t),
-	       make_int (strings_consed as intmax_t));
+  return list! (make_int ((*cons_cells_consed.as_mut_ptr ()) as intmax_t),
+	       make_int ((*floats_consed.as_mut_ptr ()) as intmax_t),
+	       make_int ((*vector_cells_consed.as_mut_ptr ()) as intmax_t),
+	       make_int ((*symbols_consed.as_mut_ptr ()) as intmax_t),
+	       make_int ((*string_chars_consed.as_mut_ptr ()) as intmax_t),
+	       make_int ((*intervals_consed.as_mut_ptr ()) as intmax_t),
+	       make_int ((*strings_consed.as_mut_ptr ()) as intmax_t));
 });
 
 /* C 7235-7248 (`#if defined GNU_LINUX && defined __GLIBC__ && (...)`) is dead on this
@@ -9279,7 +9274,7 @@ DEFUN! ("malloc-info", Fmalloc_info, Smalloc_info, 0, 0, "",
        doc: "Report malloc information to stderr.\nThis function outputs to stderr an XML-formatted\ndescription of the current state of the memory-allocation\narenas.",
        (),
        {
-  if malloc_info (0, stderr) != 0
+  if malloc_info (0, (*stderr.as_mut_ptr ())) != 0
     { error (c"malloc_info failed: %s".as_ptr (), emacs_strerror (errno)); }
   return Qnil ();
 });
@@ -9340,7 +9335,7 @@ pub unsafe extern "C-unwind" fn which_symbols (obj: Lisp_Object, mut find_max: E
    if !deadp (obj)
      {
        let mut i: c_int = 0;
-       while i < countof! (lispsym) as c_int
+       while i < countof! ((*lispsym.as_mut_ptr ())) as c_int
 	 {
 	   let sym: Lisp_Object = builtin_lisp_symbol (i as usize);
 	   if symbol_uses_obj (sym, obj)
@@ -9354,7 +9349,7 @@ pub unsafe extern "C-unwind" fn which_symbols (obj: Lisp_Object, mut find_max: E
 	 }
        if find_max != 0
 	 {
-	   sblk = symbol_block;
+	   sblk = (*symbol_block.as_mut_ptr ());
 	   while !sblk.is_null ()
 	     {
 	       let mut asym: *mut Lisp_Symbol =
@@ -9364,7 +9359,7 @@ pub unsafe extern "C-unwind" fn which_symbols (obj: Lisp_Object, mut find_max: E
 	       bn = 0;
 	       while bn < SYMBOL_BLOCK_SIZE as c_int
 		 {
-		   if sblk == symbol_block && bn >= symbol_block_index
+		   if sblk == (*symbol_block.as_mut_ptr ()) && bn >= (*symbol_block_index.as_mut_ptr ())
 		     { break; }
 
 		   let sym: Lisp_Object = make_lisp_symbol (asym);
@@ -9398,7 +9393,7 @@ pub unsafe extern "C-unwind" fn which_symbols (obj: Lisp_Object, mut find_max: E
    See docs/ports/alloc.md for why no gate could see it.  */
 #[cfg (enable_checking)]
 #[unsafe(no_mangle)]
-pub static mut suppress_checking: bool = false;
+pub static suppress_checking: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 /* `die` (C 7346-7351) calls `terminate_due_to_signal`, which C declares in `lisp.h` 5137
    (`extern AVOID terminate_due_to_signal (int, int);`, defined in emacs.c) - a declaration
@@ -9418,7 +9413,7 @@ pub unsafe extern "C-unwind" fn die (msg: *const c_char, file: *const c_char, li
 {
   // SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers.
   unsafe {
-  fprintf (stderr, c"\r\n%s:%d: Emacs fatal error: assertion failed: %s\r\n".as_ptr (),
+  fprintf ((*stderr.as_mut_ptr ()), c"\r\n%s:%d: Emacs fatal error: assertion failed: %s\r\n".as_ptr (),
 	   file, line, msg);
   terminate_due_to_signal (SIGABRT, INT_MAX);
 
@@ -9474,12 +9469,12 @@ pub unsafe extern "C-unwind" fn init_alloc_once ()
 {
   // SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers.
   unsafe {
-  gc_cons_threshold = GC_DEFAULT_THRESHOLD! () as EMACS_INT;
+  (*gc_cons_threshold.as_mut_ptr ()) = GC_DEFAULT_THRESHOLD! () as EMACS_INT;
   /* Even though Qt's contents are not set up, its address is known.  */
-  Vpurify_flag = Qt ();
+  (*Vpurify_flag.as_mut_ptr ()) = Qt ();
 
-  PDUMPER_REMEMBER_SCALAR! (buffer_defaults.header);
-  PDUMPER_REMEMBER_SCALAR! (buffer_local_symbols.header);
+  PDUMPER_REMEMBER_SCALAR! ((*buffer_defaults.as_mut_ptr ()).header);
+  PDUMPER_REMEMBER_SCALAR! ((*buffer_local_symbols.as_mut_ptr ()).header);
 
   /* Call init_alloc_once_for_pdumper now so we run mem_init early.
      Keep in mind that when we reload from a dump, we'll run _only_
@@ -9509,8 +9504,8 @@ unsafe extern "C-unwind" fn init_alloc_once_for_pdumper ()
   }
 
 
-  init_finalizer_list (&raw mut finalizers);
-  init_finalizer_list (&raw mut doomed_finalizers);
+  init_finalizer_list (finalizers.as_mut_ptr ());
+  init_finalizer_list (doomed_finalizers.as_mut_ptr ());
   refill_memory_reserve ();
 
   }
@@ -9530,8 +9525,8 @@ pub unsafe extern "C-unwind" fn init_alloc ()
   }
   #[cfg(feature = "femacs_gc_observer")]
   { gc_observation::reset_process(); }
-  Vgc_elapsed = make_float (0.0);
-  gcs_done = 0;
+  (*Vgc_elapsed.as_mut_ptr ()) = make_float (0.0);
+  (*gcs_done.as_mut_ptr ()) = 0;
 
   }
 }
@@ -9542,41 +9537,41 @@ pub unsafe extern "C-unwind" fn init_alloc ()
    defines it here (docs/status.md 3.29, the casetab.rs shape).  C zero-initialises the
    `globals` object, so the port's initialisers are `lisp_h_Qnil ()`/`false`/`0`.  */
 #[unsafe(no_mangle)]
-pub static mut gc_cons_threshold: EMACS_INT = 0;
+pub static gc_cons_threshold: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);
 #[unsafe(no_mangle)]
-pub static mut Vgc_cons_percentage: Lisp_Object = lisp_h_Qnil ();
+pub static Vgc_cons_percentage: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut pure_bytes_used: EMACS_INT = 0;
+pub static pure_bytes_used: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);
 #[unsafe(no_mangle)]
-pub static mut cons_cells_consed: EMACS_INT = 0;
+pub static cons_cells_consed: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);
 #[unsafe(no_mangle)]
-pub static mut floats_consed: EMACS_INT = 0;
+pub static floats_consed: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);
 #[unsafe(no_mangle)]
-pub static mut vector_cells_consed: EMACS_INT = 0;
+pub static vector_cells_consed: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);
 #[unsafe(no_mangle)]
-pub static mut symbols_consed: EMACS_INT = 0;
+pub static symbols_consed: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);
 #[unsafe(no_mangle)]
-pub static mut string_chars_consed: EMACS_INT = 0;
+pub static string_chars_consed: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);
 #[unsafe(no_mangle)]
-pub static mut intervals_consed: EMACS_INT = 0;
+pub static intervals_consed: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);
 #[unsafe(no_mangle)]
-pub static mut strings_consed: EMACS_INT = 0;
+pub static strings_consed: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);
 #[unsafe(no_mangle)]
-pub static mut Vpurify_flag: Lisp_Object = lisp_h_Qnil ();
+pub static Vpurify_flag: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut garbage_collection_messages: bool = false;
+pub static garbage_collection_messages: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut Vpost_gc_hook: Lisp_Object = lisp_h_Qnil ();
+pub static Vpost_gc_hook: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vmemory_signal_data: Lisp_Object = lisp_h_Qnil ();
+pub static Vmemory_signal_data: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vmemory_full: Lisp_Object = lisp_h_Qnil ();
+pub static Vmemory_full: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vgc_elapsed: Lisp_Object = lisp_h_Qnil ();
+pub static Vgc_elapsed: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut gcs_done: EMACS_INT = 0;
+pub static gcs_done: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);
 #[unsafe(no_mangle)]
-pub static mut integer_width: EMACS_INT = 0;
+pub static integer_width: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_alloc ()
@@ -9588,7 +9583,7 @@ pub unsafe extern "C-unwind" fn syms_of_alloc ()
 
   DEFVAR_LISP! (c"gc-cons-percentage", Vgc_cons_percentage,
 	      " Portion of the heap used for allocation.\nGarbage collection can happen automatically once this portion of the heap\nhas been allocated since the last garbage collection.\n\nBy binding this temporarily to a large number, you can effectively\nprevent garbage collection during a part of the program.  But be\nsure to get back to the normal value soon enough, to avoid system-wide\nmemory pressure, and never use a too-high value for prolonged periods\nof time.\n\nIf this portion is smaller than `gc-cons-threshold', this is ignored.  ");
-  Vgc_cons_percentage = make_float (0.1);
+  (*Vgc_cons_percentage.as_mut_ptr ()) = make_float (0.1);
 
   DEFVAR_INT! (c"pure-bytes-used", pure_bytes_used,
 	      "No longer used.  ");
@@ -9604,7 +9599,7 @@ pub unsafe extern "C-unwind" fn syms_of_alloc ()
 
   DEFVAR_INT! (c"symbols-consed", symbols_consed,
 	      "Number of symbols that have been consed so far.  ");
-  symbols_consed += countof! (lispsym) as EMACS_INT;
+  (*symbols_consed.as_mut_ptr ()) += countof! ((*lispsym.as_mut_ptr ())) as EMACS_INT;
 
   DEFVAR_INT! (c"string-chars-consed", string_chars_consed,
 	      "Number of string characters that have been consed so far.  ");
@@ -9620,24 +9615,24 @@ pub unsafe extern "C-unwind" fn syms_of_alloc ()
 
   DEFVAR_BOOL! (c"garbage-collection-messages", garbage_collection_messages,
 	      "Non-nil means display messages at start and end of garbage collection.  ");
-  garbage_collection_messages = false;
+  (*garbage_collection_messages.as_mut_ptr ()) = false;
 
   DEFVAR_LISP! (c"post-gc-hook", Vpost_gc_hook,
 	      "Hook run after garbage collection has finished.  ");
-  Vpost_gc_hook = Qnil ();
+  (*Vpost_gc_hook.as_mut_ptr ()) = Qnil ();
   DEFSYM! (Qpost_gc_hook, "post-gc-hook");
 
   DEFVAR_LISP! (c"memory-signal-data", Vmemory_signal_data,
 	      "Precomputed `signal' argument for memory-full error.  ");
   /* We build this in advance because if we wait until we need it, we might
      not be able to allocate the memory to hold it.  */
-  Vmemory_signal_data
+  (*Vmemory_signal_data.as_mut_ptr ())
     = list! (Qerror (),
 	    build_string (c"Memory exhausted--use M-x save-some-buffers then exit and restart Emacs".as_ptr ()));
 
   DEFVAR_LISP! (c"memory-full", Vmemory_full,
 	      "Non-nil means Emacs cannot get much more Lisp memory.  ");
-  Vmemory_full = Qnil ();
+  (*Vmemory_full.as_mut_ptr ()) = Qnil ();
 
   DEFSYM! (Qmemory_info, "memory-info");
 
@@ -9665,36 +9660,36 @@ pub unsafe extern "C-unwind" fn syms_of_alloc ()
   DEFVAR_INT! (c"integer-width", integer_width,
 	      "Maximum number N of bits in safely-calculated integers.\nIntegers with absolute values less than 2**N do not signal a range error.\nN should be nonnegative.  ");
 
-  defsubr (&raw mut Scons);
-  defsubr (&raw mut Slist);
-  defsubr (&raw mut Svector);
-  defsubr (&raw mut Srecord);
-  defsubr (&raw mut Sbool_vector);
-  defsubr (&raw mut Smake_byte_code);
-  defsubr (&raw mut Smake_closure);
-  defsubr (&raw mut Smake_list);
-  defsubr (&raw mut Smake_vector);
-  defsubr (&raw mut Smake_record);
-  defsubr (&raw mut Smake_string);
-  defsubr (&raw mut Smake_bool_vector);
-  defsubr (&raw mut Smake_symbol);
-  defsubr (&raw mut Smake_marker);
-  defsubr (&raw mut Smake_finalizer);
-  defsubr (&raw mut Sgarbage_collect);
-  defsubr (&raw mut Sgarbage_collect_maybe);
-  defsubr (&raw mut Sgarbage_collect_heapsize);
-  defsubr (&raw mut Smemory_info);
-  defsubr (&raw mut Smemory_use_counts);
+  defsubr (Scons.as_mut_ptr ());
+  defsubr (Slist.as_mut_ptr ());
+  defsubr (Svector.as_mut_ptr ());
+  defsubr (Srecord.as_mut_ptr ());
+  defsubr (Sbool_vector.as_mut_ptr ());
+  defsubr (Smake_byte_code.as_mut_ptr ());
+  defsubr (Smake_closure.as_mut_ptr ());
+  defsubr (Smake_list.as_mut_ptr ());
+  defsubr (Smake_vector.as_mut_ptr ());
+  defsubr (Smake_record.as_mut_ptr ());
+  defsubr (Smake_string.as_mut_ptr ());
+  defsubr (Smake_bool_vector.as_mut_ptr ());
+  defsubr (Smake_symbol.as_mut_ptr ());
+  defsubr (Smake_marker.as_mut_ptr ());
+  defsubr (Smake_finalizer.as_mut_ptr ());
+  defsubr (Sgarbage_collect.as_mut_ptr ());
+  defsubr (Sgarbage_collect_maybe.as_mut_ptr ());
+  defsubr (Sgarbage_collect_heapsize.as_mut_ptr ());
+  defsubr (Smemory_info.as_mut_ptr ());
+  defsubr (Smemory_use_counts.as_mut_ptr ());
   #[cfg(feature = "femacs_gc_generational")]
-  { defsubr (&raw mut Sfemacs__gc_collector_status); }
+  { defsubr (Sfemacs__gc_collector_status.as_mut_ptr ()); }
   #[cfg(feature = "femacs_gc_observer")]
   {
-    defsubr (&raw mut Sfemacs__gc_snapshot);
-    defsubr (&raw mut Sfemacs__gc_reset);
-    defsubr (&raw mut Sfemacs__gc_observer_control);
+    defsubr (Sfemacs__gc_snapshot.as_mut_ptr ());
+    defsubr (Sfemacs__gc_reset.as_mut_ptr ());
+    defsubr (Sfemacs__gc_observer_control.as_mut_ptr ());
   }
   #[cfg(all(feature = "femacs_gc_observer", feature = "femacs_gc_observer_test_hooks"))]
-  { defsubr (&raw mut Sfemacs__gc_test_export); }
+  { defsubr (Sfemacs__gc_test_export.as_mut_ptr ()); }
   /* C 7567-7574: `#if defined GNU_LINUX && defined __GLIBC__ && (__GLIBC__ > 2 ||
      __GLIBC_MINOR__ >= 10)` registers `Smalloc_info` and `#ifdef HAVE_MALLOC_TRIM` registers
      `Smalloc_trim`; both arms are dead on this target, and `extract-abi.py` decides `defsubr`
@@ -9703,8 +9698,7 @@ pub unsafe extern "C-unwind" fn syms_of_alloc ()
 
   let mut watcher: Lisp_Object;
 
-  static mut Swatch_gc_cons_threshold: Aligned_Lisp_Subr =
-    Aligned_Lisp_Subr { s: Lisp_Subr {
+  static Swatch_gc_cons_threshold: VmGlobal<Aligned_Lisp_Subr> = VmGlobal::<Aligned_Lisp_Subr>::new (Aligned_Lisp_Subr { s: Lisp_Subr {
       header: vectorlike_header {
 	size: PSEUDOVECTOR_FLAG | ((pvec_type::PVEC_SUBR as isize) << PSEUDOVECTOR_AREA_BITS),
       },
@@ -9725,12 +9719,11 @@ pub unsafe extern "C-unwind" fn syms_of_alloc ()
       lambda_list: lisp_h_Qnil (),
       #[cfg (feature = "have_native_comp")]
       r#type: lisp_h_Qnil (),
-    } };
-  XSETSUBR! (watcher, &raw mut Swatch_gc_cons_threshold.s);
+    } });
+  XSETSUBR! (watcher, &raw mut (*Swatch_gc_cons_threshold.as_mut_ptr ()).s);
   Fadd_variable_watcher (Qgc_cons_threshold (), watcher);
 
-  static mut Swatch_gc_cons_percentage: Aligned_Lisp_Subr =
-    Aligned_Lisp_Subr { s: Lisp_Subr {
+  static Swatch_gc_cons_percentage: VmGlobal<Aligned_Lisp_Subr> = VmGlobal::<Aligned_Lisp_Subr>::new (Aligned_Lisp_Subr { s: Lisp_Subr {
       header: vectorlike_header {
 	size: PSEUDOVECTOR_FLAG | ((pvec_type::PVEC_SUBR as isize) << PSEUDOVECTOR_AREA_BITS),
       },
@@ -9751,8 +9744,8 @@ pub unsafe extern "C-unwind" fn syms_of_alloc ()
       lambda_list: lisp_h_Qnil (),
       #[cfg (feature = "have_native_comp")]
       r#type: lisp_h_Qnil (),
-    } };
-  XSETSUBR! (watcher, &raw mut Swatch_gc_cons_percentage.s);
+    } });
+  XSETSUBR! (watcher, &raw mut (*Swatch_gc_cons_percentage.as_mut_ptr ()).s);
   Fadd_variable_watcher (Qgc_cons_percentage (), watcher);
   DEFSYM! (Qalloc, "alloc");
   DEFSYM! (QCemergency, ":emergency");
@@ -9810,8 +9803,7 @@ pub union enums_for_gdb
 }
 #[unsafe(no_mangle)]
 #[used]
-pub static mut gdb_make_enums_visible: enums_for_gdb =
-  enums_for_gdb { MAX_ALLOCA: std::ptr::null_mut () };
+pub static gdb_make_enums_visible: VmGlobal<enums_for_gdb> = VmGlobal::<enums_for_gdb>::new (enums_for_gdb { MAX_ALLOCA: std::ptr::null_mut () });
 
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 const _: () = core::assert! (std::mem::offset_of! (face, font) == 232);

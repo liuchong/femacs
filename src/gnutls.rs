@@ -548,7 +548,7 @@ compile_error!("The enabled Windows TLS loader requires its own complete integra
 
 #[cfg(feature = "have_gnutls")]
 #[unsafe(no_mangle)]
-pub static mut global_gnutls_log_level: EMACS_INT = 0;
+pub static global_gnutls_log_level: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);
 
 #[cfg(all(feature = "have_gnutls3", not(feature = "windowsnt")))]
 unsafe extern "C-unwind" {
@@ -636,7 +636,7 @@ const _: () = ();
 /// C 90: `static bool gnutls_global_initialized;` -- C's tentative definition, i.e. zero
 /// (PORTING.md 0.1-13).
 #[cfg (feature = "have_gnutls")]
-static mut gnutls_global_initialized: bool = false;
+static gnutls_global_initialized: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 /// C 92-93: `static void gnutls_log_function (int, const char *);` /
 /// `static void gnutls_log_function2 (int, const char *, const char *);` -- the same dropped
 /// forward declarations (0.1-12); the definitions are at C 615-618 and C 622-626.
@@ -671,7 +671,7 @@ pub const CERTIFICATE_NOT_MATCHING: extra_peer_verification = 2;
 macro_rules! DEF_DLL_FN {
   ($type:ty, $func:ident, $pfn:ident, $fnvar:ident, ($($arg:ty),* $(,)?)) => {
     pub type $pfn = Option<unsafe extern "C" fn ($($arg),*) -> $type>;
-    static mut $fnvar: $pfn = None;
+    static $fnvar: VmGlobal<$pfn> = VmGlobal::new(None);
   };
 }
 /// C: w32common.h 82-89: `#define LOAD_DLL_FN(lib, func) do { fn_##func = (W32_PFN_##func)`
@@ -685,362 +685,362 @@ macro_rules! DEF_DLL_FN {
 macro_rules! LOAD_DLL_FN {
   ($lib:expr, $func:ident, $pfn:ident, $fnvar:ident, $name:expr) => {
     {
-      $fnvar = std::mem::transmute::<VOIDFNPTR, $pfn> (get_proc_addr ($lib, $name.as_ptr ()));
-      if $fnvar.is_none () { return false; }
+      (*$fnvar.as_mut_ptr ()) = std::mem::transmute::<VOIDFNPTR, $pfn> (get_proc_addr ($lib, $name.as_ptr ()));
+      if (*$fnvar.as_mut_ptr ()).is_none () { return false; }
     }
   };
 }
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
 DEF_DLL_FN! (gnutls_alert_description_t, gnutls_alert_get, W32_PFN_gnutls_alert_get,
-             fn_gnutls_alert_get, (gnutls_session_t));
+             (*fn_gnutls_alert_get.as_mut_ptr ()), (gnutls_session_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
 DEF_DLL_FN! (*const c_char, gnutls_alert_get_name, W32_PFN_gnutls_alert_get_name,
-             fn_gnutls_alert_get_name, (gnutls_alert_description_t));
+             (*fn_gnutls_alert_get_name.as_mut_ptr ()), (gnutls_alert_description_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
 DEF_DLL_FN! (c_int, gnutls_anon_allocate_client_credentials,
              W32_PFN_gnutls_anon_allocate_client_credentials,
-             fn_gnutls_anon_allocate_client_credentials,
+             (*fn_gnutls_anon_allocate_client_credentials.as_mut_ptr ()),
              (*mut gnutls_anon_client_credentials_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
 DEF_DLL_FN! ((), gnutls_anon_free_client_credentials,
              W32_PFN_gnutls_anon_free_client_credentials,
-             fn_gnutls_anon_free_client_credentials, (gnutls_anon_client_credentials_t));
+             (*fn_gnutls_anon_free_client_credentials.as_mut_ptr ()), (gnutls_anon_client_credentials_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
-DEF_DLL_FN! (c_int, gnutls_bye, W32_PFN_gnutls_bye, fn_gnutls_bye,
+DEF_DLL_FN! (c_int, gnutls_bye, W32_PFN_gnutls_bye, (*fn_gnutls_bye.as_mut_ptr ()),
              (gnutls_session_t, gnutls_close_request_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
 DEF_DLL_FN! (c_int, gnutls_certificate_allocate_credentials,
              W32_PFN_gnutls_certificate_allocate_credentials,
-             fn_gnutls_certificate_allocate_credentials,
+             (*fn_gnutls_certificate_allocate_credentials.as_mut_ptr ()),
              (*mut gnutls_certificate_credentials_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
 DEF_DLL_FN! ((), gnutls_certificate_free_credentials,
              W32_PFN_gnutls_certificate_free_credentials,
-             fn_gnutls_certificate_free_credentials, (gnutls_certificate_credentials_t));
+             (*fn_gnutls_certificate_free_credentials.as_mut_ptr ()), (gnutls_certificate_credentials_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
 DEF_DLL_FN! (*const gnutls_datum_t, gnutls_certificate_get_peers,
-             W32_PFN_gnutls_certificate_get_peers, fn_gnutls_certificate_get_peers,
+             W32_PFN_gnutls_certificate_get_peers, (*fn_gnutls_certificate_get_peers.as_mut_ptr ()),
              (gnutls_session_t, *mut c_uint));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
 DEF_DLL_FN! ((), gnutls_certificate_set_verify_flags,
              W32_PFN_gnutls_certificate_set_verify_flags,
-             fn_gnutls_certificate_set_verify_flags,
+             (*fn_gnutls_certificate_set_verify_flags.as_mut_ptr ()),
              (gnutls_certificate_credentials_t, c_uint));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
 DEF_DLL_FN! (c_int, gnutls_certificate_set_x509_crl_file,
              W32_PFN_gnutls_certificate_set_x509_crl_file,
-             fn_gnutls_certificate_set_x509_crl_file,
+             (*fn_gnutls_certificate_set_x509_crl_file.as_mut_ptr ()),
              (gnutls_certificate_credentials_t, *const c_char, gnutls_x509_crt_fmt_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
 DEF_DLL_FN! (c_int, gnutls_certificate_set_x509_key_file,
              W32_PFN_gnutls_certificate_set_x509_key_file,
-             fn_gnutls_certificate_set_x509_key_file,
+             (*fn_gnutls_certificate_set_x509_key_file.as_mut_ptr ()),
              (gnutls_certificate_credentials_t, *const c_char, *const c_char, gnutls_x509_crt_fmt_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt", feature = "have_gnutls_certificate_set_x509_key_file2"))]
 DEF_DLL_FN! (c_int, gnutls_certificate_set_x509_key_file2,
              W32_PFN_gnutls_certificate_set_x509_key_file2,
-             fn_gnutls_certificate_set_x509_key_file2,
+             (*fn_gnutls_certificate_set_x509_key_file2.as_mut_ptr ()),
              (gnutls_certificate_credentials_t, *const c_char, *const c_char, gnutls_x509_crt_fmt_t, *const c_char, c_uint));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt", feature = "have_gnutls_x509_system_trust"))]
 DEF_DLL_FN! (c_int, gnutls_certificate_set_x509_system_trust,
              W32_PFN_gnutls_certificate_set_x509_system_trust,
-             fn_gnutls_certificate_set_x509_system_trust, (gnutls_certificate_credentials_t));
+             (*fn_gnutls_certificate_set_x509_system_trust.as_mut_ptr ()), (gnutls_certificate_credentials_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
 DEF_DLL_FN! (c_int, gnutls_certificate_set_x509_trust_file,
              W32_PFN_gnutls_certificate_set_x509_trust_file,
-             fn_gnutls_certificate_set_x509_trust_file,
+             (*fn_gnutls_certificate_set_x509_trust_file.as_mut_ptr ()),
              (gnutls_certificate_credentials_t, *const c_char, gnutls_x509_crt_fmt_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
 DEF_DLL_FN! (gnutls_certificate_type_t, gnutls_certificate_type_get,
-             W32_PFN_gnutls_certificate_type_get, fn_gnutls_certificate_type_get,
+             W32_PFN_gnutls_certificate_type_get, (*fn_gnutls_certificate_type_get.as_mut_ptr ()),
              (gnutls_session_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
 DEF_DLL_FN! (c_int, gnutls_certificate_verify_peers2, W32_PFN_gnutls_certificate_verify_peers2,
-             fn_gnutls_certificate_verify_peers2, (gnutls_session_t, *mut c_uint));
+             (*fn_gnutls_certificate_verify_peers2.as_mut_ptr ()), (gnutls_session_t, *mut c_uint));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
 DEF_DLL_FN! (c_int, gnutls_credentials_set, W32_PFN_gnutls_credentials_set,
-             fn_gnutls_credentials_set,
+             (*fn_gnutls_credentials_set.as_mut_ptr ()),
              (gnutls_session_t, gnutls_credentials_type_t, *mut c_void));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
-DEF_DLL_FN! ((), gnutls_deinit, W32_PFN_gnutls_deinit, fn_gnutls_deinit, (gnutls_session_t));
+DEF_DLL_FN! ((), gnutls_deinit, W32_PFN_gnutls_deinit, (*fn_gnutls_deinit.as_mut_ptr ()), (gnutls_session_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
 DEF_DLL_FN! ((), gnutls_dh_set_prime_bits, W32_PFN_gnutls_dh_set_prime_bits,
-             fn_gnutls_dh_set_prime_bits, (gnutls_session_t, c_uint));
+             (*fn_gnutls_dh_set_prime_bits.as_mut_ptr ()), (gnutls_session_t, c_uint));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
 DEF_DLL_FN! (c_int, gnutls_dh_get_prime_bits, W32_PFN_gnutls_dh_get_prime_bits,
-             fn_gnutls_dh_get_prime_bits, (gnutls_session_t));
+             (*fn_gnutls_dh_get_prime_bits.as_mut_ptr ()), (gnutls_session_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
 DEF_DLL_FN! (c_int, gnutls_error_is_fatal, W32_PFN_gnutls_error_is_fatal,
-             fn_gnutls_error_is_fatal, (c_int));
+             (*fn_gnutls_error_is_fatal.as_mut_ptr ()), (c_int));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
-DEF_DLL_FN! (c_int, gnutls_global_init, W32_PFN_gnutls_global_init, fn_gnutls_global_init, ());
+DEF_DLL_FN! (c_int, gnutls_global_init, W32_PFN_gnutls_global_init, (*fn_gnutls_global_init.as_mut_ptr ()), ());
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
 DEF_DLL_FN! ((), gnutls_global_set_log_function, W32_PFN_gnutls_global_set_log_function,
-             fn_gnutls_global_set_log_function, (gnutls_log_func));
+             (*fn_gnutls_global_set_log_function.as_mut_ptr ()), (gnutls_log_func));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt", feature = "have_gnutls3"))]
 DEF_DLL_FN! ((), gnutls_global_set_audit_log_function,
              W32_PFN_gnutls_global_set_audit_log_function,
-             fn_gnutls_global_set_audit_log_function, (gnutls_audit_log_func));
+             (*fn_gnutls_global_set_audit_log_function.as_mut_ptr ()), (gnutls_audit_log_func));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
 DEF_DLL_FN! ((), gnutls_global_set_log_level, W32_PFN_gnutls_global_set_log_level,
-             fn_gnutls_global_set_log_level, (c_int));
+             (*fn_gnutls_global_set_log_level.as_mut_ptr ()), (c_int));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
-DEF_DLL_FN! (c_int, gnutls_handshake, W32_PFN_gnutls_handshake, fn_gnutls_handshake,
+DEF_DLL_FN! (c_int, gnutls_handshake, W32_PFN_gnutls_handshake, (*fn_gnutls_handshake.as_mut_ptr ()),
              (gnutls_session_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
-DEF_DLL_FN! (c_int, gnutls_init, W32_PFN_gnutls_init, fn_gnutls_init,
+DEF_DLL_FN! (c_int, gnutls_init, W32_PFN_gnutls_init, (*fn_gnutls_init.as_mut_ptr ()),
              (*mut gnutls_session_t, c_uint));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
 DEF_DLL_FN! (c_int, gnutls_priority_set_direct, W32_PFN_gnutls_priority_set_direct,
-             fn_gnutls_priority_set_direct,
+             (*fn_gnutls_priority_set_direct.as_mut_ptr ()),
              (gnutls_session_t, *const c_char, *mut *const c_char));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
 DEF_DLL_FN! (size_t, gnutls_record_check_pending, W32_PFN_gnutls_record_check_pending,
-             fn_gnutls_record_check_pending, (gnutls_session_t));
+             (*fn_gnutls_record_check_pending.as_mut_ptr ()), (gnutls_session_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
-DEF_DLL_FN! (ssize_t, gnutls_record_recv, W32_PFN_gnutls_record_recv, fn_gnutls_record_recv,
+DEF_DLL_FN! (ssize_t, gnutls_record_recv, W32_PFN_gnutls_record_recv, (*fn_gnutls_record_recv.as_mut_ptr ()),
              (gnutls_session_t, *mut c_void, size_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
-DEF_DLL_FN! (ssize_t, gnutls_record_send, W32_PFN_gnutls_record_send, fn_gnutls_record_send,
+DEF_DLL_FN! (ssize_t, gnutls_record_send, W32_PFN_gnutls_record_send, (*fn_gnutls_record_send.as_mut_ptr ()),
              (gnutls_session_t, *const c_void, size_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
-DEF_DLL_FN! (*const c_char, gnutls_strerror, W32_PFN_gnutls_strerror, fn_gnutls_strerror,
+DEF_DLL_FN! (*const c_char, gnutls_strerror, W32_PFN_gnutls_strerror, (*fn_gnutls_strerror.as_mut_ptr ()),
              (c_int));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
 DEF_DLL_FN! ((), gnutls_transport_set_errno, W32_PFN_gnutls_transport_set_errno,
-             fn_gnutls_transport_set_errno, (gnutls_session_t, c_int));
+             (*fn_gnutls_transport_set_errno.as_mut_ptr ()), (gnutls_session_t, c_int));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
 DEF_DLL_FN! ((), gnutls_transport_set_ptr2, W32_PFN_gnutls_transport_set_ptr2,
-             fn_gnutls_transport_set_ptr2,
+             (*fn_gnutls_transport_set_ptr2.as_mut_ptr ()),
              (gnutls_session_t, gnutls_transport_ptr_t, gnutls_transport_ptr_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
 DEF_DLL_FN! ((), gnutls_transport_set_pull_function, W32_PFN_gnutls_transport_set_pull_function,
-             fn_gnutls_transport_set_pull_function, (gnutls_session_t, gnutls_pull_func));
+             (*fn_gnutls_transport_set_pull_function.as_mut_ptr ()), (gnutls_session_t, gnutls_pull_func));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
 DEF_DLL_FN! ((), gnutls_transport_set_push_function, W32_PFN_gnutls_transport_set_push_function,
-             fn_gnutls_transport_set_push_function, (gnutls_session_t, gnutls_push_func));
+             (*fn_gnutls_transport_set_push_function.as_mut_ptr ()), (gnutls_session_t, gnutls_push_func));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
 DEF_DLL_FN! (c_int, gnutls_x509_crt_check_hostname, W32_PFN_gnutls_x509_crt_check_hostname,
-             fn_gnutls_x509_crt_check_hostname, (gnutls_x509_crt_t, *const c_char));
+             (*fn_gnutls_x509_crt_check_hostname.as_mut_ptr ()), (gnutls_x509_crt_t, *const c_char));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
 DEF_DLL_FN! (c_int, gnutls_x509_crt_check_issuer, W32_PFN_gnutls_x509_crt_check_issuer,
-             fn_gnutls_x509_crt_check_issuer, (gnutls_x509_crt_t, gnutls_x509_crt_t));
+             (*fn_gnutls_x509_crt_check_issuer.as_mut_ptr ()), (gnutls_x509_crt_t, gnutls_x509_crt_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
 DEF_DLL_FN! ((), gnutls_x509_crt_deinit, W32_PFN_gnutls_x509_crt_deinit,
-             fn_gnutls_x509_crt_deinit, (gnutls_x509_crt_t));
+             (*fn_gnutls_x509_crt_deinit.as_mut_ptr ()), (gnutls_x509_crt_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
 DEF_DLL_FN! (c_int, gnutls_x509_crt_export, W32_PFN_gnutls_x509_crt_export,
-             fn_gnutls_x509_crt_export,
+             (*fn_gnutls_x509_crt_export.as_mut_ptr ()),
              (gnutls_x509_crt_t, gnutls_x509_crt_fmt_t, *mut c_void, *mut size_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
 DEF_DLL_FN! (c_int, gnutls_x509_crt_import, W32_PFN_gnutls_x509_crt_import,
-             fn_gnutls_x509_crt_import,
+             (*fn_gnutls_x509_crt_import.as_mut_ptr ()),
              (gnutls_x509_crt_t, *const gnutls_datum_t, gnutls_x509_crt_fmt_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
-DEF_DLL_FN! (c_int, gnutls_x509_crt_init, W32_PFN_gnutls_x509_crt_init, fn_gnutls_x509_crt_init,
+DEF_DLL_FN! (c_int, gnutls_x509_crt_init, W32_PFN_gnutls_x509_crt_init, (*fn_gnutls_x509_crt_init.as_mut_ptr ()),
              (*mut gnutls_x509_crt_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
 DEF_DLL_FN! (c_int, gnutls_x509_crt_get_fingerprint, W32_PFN_gnutls_x509_crt_get_fingerprint,
-             fn_gnutls_x509_crt_get_fingerprint,
+             (*fn_gnutls_x509_crt_get_fingerprint.as_mut_ptr ()),
              (gnutls_x509_crt_t, gnutls_digest_algorithm_t, *mut c_void, *mut size_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
 DEF_DLL_FN! (c_int, gnutls_x509_crt_get_version, W32_PFN_gnutls_x509_crt_get_version,
-             fn_gnutls_x509_crt_get_version, (gnutls_x509_crt_t));
+             (*fn_gnutls_x509_crt_get_version.as_mut_ptr ()), (gnutls_x509_crt_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
 DEF_DLL_FN! (c_int, gnutls_x509_crt_get_serial, W32_PFN_gnutls_x509_crt_get_serial,
-             fn_gnutls_x509_crt_get_serial, (gnutls_x509_crt_t, *mut c_void, *mut size_t));
+             (*fn_gnutls_x509_crt_get_serial.as_mut_ptr ()), (gnutls_x509_crt_t, *mut c_void, *mut size_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
 DEF_DLL_FN! (c_int, gnutls_x509_crt_get_issuer_dn, W32_PFN_gnutls_x509_crt_get_issuer_dn,
-             fn_gnutls_x509_crt_get_issuer_dn, (gnutls_x509_crt_t, *mut c_char, *mut size_t));
+             (*fn_gnutls_x509_crt_get_issuer_dn.as_mut_ptr ()), (gnutls_x509_crt_t, *mut c_char, *mut size_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
 DEF_DLL_FN! (time_t, gnutls_x509_crt_get_activation_time,
              W32_PFN_gnutls_x509_crt_get_activation_time,
-             fn_gnutls_x509_crt_get_activation_time, (gnutls_x509_crt_t));
+             (*fn_gnutls_x509_crt_get_activation_time.as_mut_ptr ()), (gnutls_x509_crt_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
 DEF_DLL_FN! (time_t, gnutls_x509_crt_get_expiration_time,
              W32_PFN_gnutls_x509_crt_get_expiration_time,
-             fn_gnutls_x509_crt_get_expiration_time, (gnutls_x509_crt_t));
+             (*fn_gnutls_x509_crt_get_expiration_time.as_mut_ptr ()), (gnutls_x509_crt_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
 DEF_DLL_FN! (c_int, gnutls_x509_crt_get_dn, W32_PFN_gnutls_x509_crt_get_dn,
-             fn_gnutls_x509_crt_get_dn, (gnutls_x509_crt_t, *mut c_char, *mut size_t));
+             (*fn_gnutls_x509_crt_get_dn.as_mut_ptr ()), (gnutls_x509_crt_t, *mut c_char, *mut size_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
 DEF_DLL_FN! (c_int, gnutls_x509_crt_get_pk_algorithm, W32_PFN_gnutls_x509_crt_get_pk_algorithm,
-             fn_gnutls_x509_crt_get_pk_algorithm, (gnutls_x509_crt_t, *mut c_uint));
+             (*fn_gnutls_x509_crt_get_pk_algorithm.as_mut_ptr ()), (gnutls_x509_crt_t, *mut c_uint));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
 DEF_DLL_FN! (c_int, gnutls_x509_crt_print, W32_PFN_gnutls_x509_crt_print,
-             fn_gnutls_x509_crt_print,
+             (*fn_gnutls_x509_crt_print.as_mut_ptr ()),
              (gnutls_x509_crt_t, gnutls_certificate_print_formats_t, *mut gnutls_datum_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
 DEF_DLL_FN! (*const c_char, gnutls_pk_algorithm_get_name, W32_PFN_gnutls_pk_algorithm_get_name,
-             fn_gnutls_pk_algorithm_get_name, (gnutls_pk_algorithm_t));
+             (*fn_gnutls_pk_algorithm_get_name.as_mut_ptr ()), (gnutls_pk_algorithm_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
 DEF_DLL_FN! (gnutls_sec_param_t, gnutls_pk_bits_to_sec_param, W32_PFN_gnutls_pk_bits_to_sec_param,
-             fn_gnutls_pk_bits_to_sec_param, (gnutls_pk_algorithm_t, c_uint));
+             (*fn_gnutls_pk_bits_to_sec_param.as_mut_ptr ()), (gnutls_pk_algorithm_t, c_uint));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
 DEF_DLL_FN! (c_int, gnutls_x509_crt_get_issuer_unique_id,
              W32_PFN_gnutls_x509_crt_get_issuer_unique_id,
-             fn_gnutls_x509_crt_get_issuer_unique_id,
+             (*fn_gnutls_x509_crt_get_issuer_unique_id.as_mut_ptr ()),
              (gnutls_x509_crt_t, *mut c_char, *mut size_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
 DEF_DLL_FN! (c_int, gnutls_x509_crt_get_subject_unique_id,
              W32_PFN_gnutls_x509_crt_get_subject_unique_id,
-             fn_gnutls_x509_crt_get_subject_unique_id,
+             (*fn_gnutls_x509_crt_get_subject_unique_id.as_mut_ptr ()),
              (gnutls_x509_crt_t, *mut c_char, *mut size_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
 DEF_DLL_FN! (c_int, gnutls_x509_crt_get_signature_algorithm,
              W32_PFN_gnutls_x509_crt_get_signature_algorithm,
-             fn_gnutls_x509_crt_get_signature_algorithm, (gnutls_x509_crt_t));
+             (*fn_gnutls_x509_crt_get_signature_algorithm.as_mut_ptr ()), (gnutls_x509_crt_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
 DEF_DLL_FN! (c_int, gnutls_x509_crt_get_key_id, W32_PFN_gnutls_x509_crt_get_key_id,
-             fn_gnutls_x509_crt_get_key_id,
+             (*fn_gnutls_x509_crt_get_key_id.as_mut_ptr ()),
              (gnutls_x509_crt_t, c_uint, *mut c_uchar, *mut size_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
 DEF_DLL_FN! (*const c_char, gnutls_sec_param_get_name, W32_PFN_gnutls_sec_param_get_name,
-             fn_gnutls_sec_param_get_name, (gnutls_sec_param_t));
+             (*fn_gnutls_sec_param_get_name.as_mut_ptr ()), (gnutls_sec_param_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
 DEF_DLL_FN! (*const c_char, gnutls_sign_get_name, W32_PFN_gnutls_sign_get_name,
-             fn_gnutls_sign_get_name, (gnutls_sign_algorithm_t));
+             (*fn_gnutls_sign_get_name.as_mut_ptr ()), (gnutls_sign_algorithm_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
 DEF_DLL_FN! (c_int, gnutls_server_name_set, W32_PFN_gnutls_server_name_set,
-             fn_gnutls_server_name_set,
+             (*fn_gnutls_server_name_set.as_mut_ptr ()),
              (gnutls_session_t, gnutls_server_name_type_t, *const c_void, size_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
-DEF_DLL_FN! (gnutls_kx_algorithm_t, gnutls_kx_get, W32_PFN_gnutls_kx_get, fn_gnutls_kx_get,
+DEF_DLL_FN! (gnutls_kx_algorithm_t, gnutls_kx_get, W32_PFN_gnutls_kx_get, (*fn_gnutls_kx_get.as_mut_ptr ()),
              (gnutls_session_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
 DEF_DLL_FN! (*const c_char, gnutls_kx_get_name, W32_PFN_gnutls_kx_get_name,
-             fn_gnutls_kx_get_name, (gnutls_kx_algorithm_t));
+             (*fn_gnutls_kx_get_name.as_mut_ptr ()), (gnutls_kx_algorithm_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
 DEF_DLL_FN! (gnutls_protocol_t, gnutls_protocol_get_version,
-             W32_PFN_gnutls_protocol_get_version, fn_gnutls_protocol_get_version,
+             W32_PFN_gnutls_protocol_get_version, (*fn_gnutls_protocol_get_version.as_mut_ptr ()),
              (gnutls_session_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
 DEF_DLL_FN! (*const c_char, gnutls_protocol_get_name, W32_PFN_gnutls_protocol_get_name,
-             fn_gnutls_protocol_get_name, (gnutls_protocol_t));
+             (*fn_gnutls_protocol_get_name.as_mut_ptr ()), (gnutls_protocol_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
 DEF_DLL_FN! (gnutls_cipher_algorithm_t, gnutls_cipher_get, W32_PFN_gnutls_cipher_get,
-             fn_gnutls_cipher_get, (gnutls_session_t));
+             (*fn_gnutls_cipher_get.as_mut_ptr ()), (gnutls_session_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
 DEF_DLL_FN! (*const c_char, gnutls_cipher_get_name, W32_PFN_gnutls_cipher_get_name,
-             fn_gnutls_cipher_get_name, (gnutls_cipher_algorithm_t));
+             (*fn_gnutls_cipher_get_name.as_mut_ptr ()), (gnutls_cipher_algorithm_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
-DEF_DLL_FN! (gnutls_mac_algorithm_t, gnutls_mac_get, W32_PFN_gnutls_mac_get, fn_gnutls_mac_get,
+DEF_DLL_FN! (gnutls_mac_algorithm_t, gnutls_mac_get, W32_PFN_gnutls_mac_get, (*fn_gnutls_mac_get.as_mut_ptr ()),
              (gnutls_session_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
 DEF_DLL_FN! (*const c_char, gnutls_mac_get_name, W32_PFN_gnutls_mac_get_name,
-             fn_gnutls_mac_get_name, (gnutls_mac_algorithm_t));
+             (*fn_gnutls_mac_get_name.as_mut_ptr ()), (gnutls_mac_algorithm_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt", feature = "have_gnutls_compression_get"))]
 DEF_DLL_FN! (gnutls_compression_method_t, gnutls_compression_get,
-             W32_PFN_gnutls_compression_get, fn_gnutls_compression_get, (gnutls_session_t));
+             W32_PFN_gnutls_compression_get, (*fn_gnutls_compression_get.as_mut_ptr ()), (gnutls_session_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt", feature = "have_gnutls_compression_get"))]
 DEF_DLL_FN! (*const c_char, gnutls_compression_get_name, W32_PFN_gnutls_compression_get_name,
-             fn_gnutls_compression_get_name, (gnutls_compression_method_t));
+             (*fn_gnutls_compression_get_name.as_mut_ptr ()), (gnutls_compression_method_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
 DEF_DLL_FN! (c_uint, gnutls_safe_renegotiation_status, W32_PFN_gnutls_safe_renegotiation_status,
-             fn_gnutls_safe_renegotiation_status, (gnutls_session_t));
+             (*fn_gnutls_safe_renegotiation_status.as_mut_ptr ()), (gnutls_session_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt", feature = "have_gnutls3"))]
 DEF_DLL_FN! (*const gnutls_mac_algorithm_t, gnutls_mac_list, W32_PFN_gnutls_mac_list,
-             fn_gnutls_mac_list, ());
+             (*fn_gnutls_mac_list.as_mut_ptr ()), ());
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt", feature = "have_gnutls3", feature = "have_gnutls_mac_get_nonce_size"))]
 DEF_DLL_FN! (size_t, gnutls_mac_get_nonce_size, W32_PFN_gnutls_mac_get_nonce_size,
-             fn_gnutls_mac_get_nonce_size, (gnutls_mac_algorithm_t));
+             (*fn_gnutls_mac_get_nonce_size.as_mut_ptr ()), (gnutls_mac_algorithm_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt", feature = "have_gnutls3"))]
 DEF_DLL_FN! (size_t, gnutls_mac_get_key_size, W32_PFN_gnutls_mac_get_key_size,
-             fn_gnutls_mac_get_key_size, (gnutls_mac_algorithm_t));
+             (*fn_gnutls_mac_get_key_size.as_mut_ptr ()), (gnutls_mac_algorithm_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt", feature = "have_gnutls3", feature = "have_gnutls_digest_list"))]
 DEF_DLL_FN! (*const gnutls_digest_algorithm_t, gnutls_digest_list, W32_PFN_gnutls_digest_list,
-             fn_gnutls_digest_list, ());
+             (*fn_gnutls_digest_list.as_mut_ptr ()), ());
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt", feature = "have_gnutls3", feature = "have_gnutls_digest_list"))]
 DEF_DLL_FN! (*const c_char, gnutls_digest_get_name, W32_PFN_gnutls_digest_get_name,
-             fn_gnutls_digest_get_name, (gnutls_digest_algorithm_t));
+             (*fn_gnutls_digest_get_name.as_mut_ptr ()), (gnutls_digest_algorithm_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt", feature = "have_gnutls3"))]
 DEF_DLL_FN! (*mut gnutls_cipher_algorithm_t, gnutls_cipher_list, W32_PFN_gnutls_cipher_list,
-             fn_gnutls_cipher_list, ());
+             (*fn_gnutls_cipher_list.as_mut_ptr ()), ());
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt", feature = "have_gnutls3", feature = "have_gnutls_cipher_get_iv_size"))]
 DEF_DLL_FN! (c_int, gnutls_cipher_get_iv_size, W32_PFN_gnutls_cipher_get_iv_size,
-             fn_gnutls_cipher_get_iv_size, (gnutls_cipher_algorithm_t));
+             (*fn_gnutls_cipher_get_iv_size.as_mut_ptr ()), (gnutls_cipher_algorithm_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt", feature = "have_gnutls3"))]
 DEF_DLL_FN! (size_t, gnutls_cipher_get_key_size, W32_PFN_gnutls_cipher_get_key_size,
-             fn_gnutls_cipher_get_key_size, (gnutls_cipher_algorithm_t));
+             (*fn_gnutls_cipher_get_key_size.as_mut_ptr ()), (gnutls_cipher_algorithm_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt", feature = "have_gnutls3"))]
 DEF_DLL_FN! (c_int, gnutls_cipher_get_block_size, W32_PFN_gnutls_cipher_get_block_size,
-             fn_gnutls_cipher_get_block_size, (gnutls_cipher_algorithm_t));
+             (*fn_gnutls_cipher_get_block_size.as_mut_ptr ()), (gnutls_cipher_algorithm_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt", feature = "have_gnutls3", feature = "have_gnutls_cipher_get_tag_size"))]
 DEF_DLL_FN! (c_int, gnutls_cipher_get_tag_size, W32_PFN_gnutls_cipher_get_tag_size,
-             fn_gnutls_cipher_get_tag_size, (gnutls_cipher_algorithm_t));
+             (*fn_gnutls_cipher_get_tag_size.as_mut_ptr ()), (gnutls_cipher_algorithm_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt", feature = "have_gnutls3"))]
-DEF_DLL_FN! (c_int, gnutls_cipher_init, W32_PFN_gnutls_cipher_init, fn_gnutls_cipher_init,
+DEF_DLL_FN! (c_int, gnutls_cipher_init, W32_PFN_gnutls_cipher_init, (*fn_gnutls_cipher_init.as_mut_ptr ()),
              (*mut gnutls_cipher_hd_t, gnutls_cipher_algorithm_t, *const gnutls_datum_t, *const gnutls_datum_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt", feature = "have_gnutls3"))]
-DEF_DLL_FN! ((), gnutls_cipher_set_iv, W32_PFN_gnutls_cipher_set_iv, fn_gnutls_cipher_set_iv,
+DEF_DLL_FN! ((), gnutls_cipher_set_iv, W32_PFN_gnutls_cipher_set_iv, (*fn_gnutls_cipher_set_iv.as_mut_ptr ()),
              (gnutls_cipher_hd_t, *mut c_void, size_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt", feature = "have_gnutls3"))]
 DEF_DLL_FN! (c_int, gnutls_cipher_encrypt2, W32_PFN_gnutls_cipher_encrypt2,
-             fn_gnutls_cipher_encrypt2,
+             (*fn_gnutls_cipher_encrypt2.as_mut_ptr ()),
              (gnutls_cipher_hd_t, *const c_void, size_t, *mut c_void, size_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt", feature = "have_gnutls3"))]
-DEF_DLL_FN! ((), gnutls_cipher_deinit, W32_PFN_gnutls_cipher_deinit, fn_gnutls_cipher_deinit,
+DEF_DLL_FN! ((), gnutls_cipher_deinit, W32_PFN_gnutls_cipher_deinit, (*fn_gnutls_cipher_deinit.as_mut_ptr ()),
              (gnutls_cipher_hd_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt", feature = "have_gnutls3"))]
 DEF_DLL_FN! (c_int, gnutls_cipher_decrypt2, W32_PFN_gnutls_cipher_decrypt2,
-             fn_gnutls_cipher_decrypt2,
+             (*fn_gnutls_cipher_decrypt2.as_mut_ptr ()),
              (gnutls_cipher_hd_t, *const c_void, size_t, *mut c_void, size_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt", feature = "have_gnutls3", feature = "have_gnutls_aead"))]
 DEF_DLL_FN! (c_int, gnutls_aead_cipher_init, W32_PFN_gnutls_aead_cipher_init,
-             fn_gnutls_aead_cipher_init,
+             (*fn_gnutls_aead_cipher_init.as_mut_ptr ()),
              (*mut gnutls_aead_cipher_hd_t, gnutls_cipher_algorithm_t, *const gnutls_datum_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt", feature = "have_gnutls3", feature = "have_gnutls_aead"))]
 DEF_DLL_FN! ((), gnutls_aead_cipher_deinit, W32_PFN_gnutls_aead_cipher_deinit,
-             fn_gnutls_aead_cipher_deinit, (gnutls_aead_cipher_hd_t));
+             (*fn_gnutls_aead_cipher_deinit.as_mut_ptr ()), (gnutls_aead_cipher_hd_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt", feature = "have_gnutls3", feature = "have_gnutls_aead"))]
 DEF_DLL_FN! (c_int, gnutls_aead_cipher_encrypt, W32_PFN_gnutls_aead_cipher_encrypt,
-             fn_gnutls_aead_cipher_encrypt,
+             (*fn_gnutls_aead_cipher_encrypt.as_mut_ptr ()),
              (gnutls_aead_cipher_hd_t, *const c_void, size_t, *const c_void, size_t, size_t, *const c_void, size_t, *mut c_void, *mut size_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt", feature = "have_gnutls3", feature = "have_gnutls_aead"))]
 DEF_DLL_FN! (c_int, gnutls_aead_cipher_decrypt, W32_PFN_gnutls_aead_cipher_decrypt,
-             fn_gnutls_aead_cipher_decrypt,
+             (*fn_gnutls_aead_cipher_decrypt.as_mut_ptr ()),
              (gnutls_aead_cipher_hd_t, *const c_void, size_t, *const c_void, size_t, size_t, *const c_void, size_t, *mut c_void, *mut size_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt", feature = "have_gnutls3", feature = "have_gnutls_etm_status"))]
 DEF_DLL_FN! (c_uint, gnutls_session_etm_status, W32_PFN_gnutls_session_etm_status,
-             fn_gnutls_session_etm_status, (gnutls_session_t));
+             (*fn_gnutls_session_etm_status.as_mut_ptr ()), (gnutls_session_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt", feature = "have_gnutls3"))]
-DEF_DLL_FN! (c_int, gnutls_hmac_init, W32_PFN_gnutls_hmac_init, fn_gnutls_hmac_init,
+DEF_DLL_FN! (c_int, gnutls_hmac_init, W32_PFN_gnutls_hmac_init, (*fn_gnutls_hmac_init.as_mut_ptr ()),
              (*mut gnutls_hmac_hd_t, gnutls_mac_algorithm_t, *const c_void, size_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt", feature = "have_gnutls3"))]
-DEF_DLL_FN! (c_int, gnutls_hmac_get_len, W32_PFN_gnutls_hmac_get_len, fn_gnutls_hmac_get_len,
+DEF_DLL_FN! (c_int, gnutls_hmac_get_len, W32_PFN_gnutls_hmac_get_len, (*fn_gnutls_hmac_get_len.as_mut_ptr ()),
              (gnutls_mac_algorithm_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt", feature = "have_gnutls3"))]
-DEF_DLL_FN! (c_int, gnutls_hmac, W32_PFN_gnutls_hmac, fn_gnutls_hmac,
+DEF_DLL_FN! (c_int, gnutls_hmac, W32_PFN_gnutls_hmac, (*fn_gnutls_hmac.as_mut_ptr ()),
              (gnutls_hmac_hd_t, *const c_void, size_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt", feature = "have_gnutls3"))]
-DEF_DLL_FN! ((), gnutls_hmac_deinit, W32_PFN_gnutls_hmac_deinit, fn_gnutls_hmac_deinit,
+DEF_DLL_FN! ((), gnutls_hmac_deinit, W32_PFN_gnutls_hmac_deinit, (*fn_gnutls_hmac_deinit.as_mut_ptr ()),
              (gnutls_hmac_hd_t, *mut c_void));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt", feature = "have_gnutls3"))]
-DEF_DLL_FN! ((), gnutls_hmac_output, W32_PFN_gnutls_hmac_output, fn_gnutls_hmac_output,
+DEF_DLL_FN! ((), gnutls_hmac_output, W32_PFN_gnutls_hmac_output, (*fn_gnutls_hmac_output.as_mut_ptr ()),
              (gnutls_hmac_hd_t, *mut c_void));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt", feature = "have_gnutls3"))]
-DEF_DLL_FN! (c_int, gnutls_hash_init, W32_PFN_gnutls_hash_init, fn_gnutls_hash_init,
+DEF_DLL_FN! (c_int, gnutls_hash_init, W32_PFN_gnutls_hash_init, (*fn_gnutls_hash_init.as_mut_ptr ()),
              (*mut gnutls_hash_hd_t, gnutls_digest_algorithm_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt", feature = "have_gnutls3"))]
-DEF_DLL_FN! (c_int, gnutls_hash_get_len, W32_PFN_gnutls_hash_get_len, fn_gnutls_hash_get_len,
+DEF_DLL_FN! (c_int, gnutls_hash_get_len, W32_PFN_gnutls_hash_get_len, (*fn_gnutls_hash_get_len.as_mut_ptr ()),
              (gnutls_digest_algorithm_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt", feature = "have_gnutls3"))]
-DEF_DLL_FN! (c_int, gnutls_hash, W32_PFN_gnutls_hash, fn_gnutls_hash,
+DEF_DLL_FN! (c_int, gnutls_hash, W32_PFN_gnutls_hash, (*fn_gnutls_hash.as_mut_ptr ()),
              (gnutls_hash_hd_t, *const c_void, size_t));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt", feature = "have_gnutls3"))]
-DEF_DLL_FN! ((), gnutls_hash_deinit, W32_PFN_gnutls_hash_deinit, fn_gnutls_hash_deinit,
+DEF_DLL_FN! ((), gnutls_hash_deinit, W32_PFN_gnutls_hash_deinit, (*fn_gnutls_hash_deinit.as_mut_ptr ()),
              (gnutls_hash_hd_t, *mut c_void));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt", feature = "have_gnutls3"))]
-DEF_DLL_FN! ((), gnutls_hash_output, W32_PFN_gnutls_hash_output, fn_gnutls_hash_output,
+DEF_DLL_FN! ((), gnutls_hash_output, W32_PFN_gnutls_hash_output, (*fn_gnutls_hash_output.as_mut_ptr ()),
              (gnutls_hash_hd_t, *mut c_void));
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt", feature = "have_gnutls3", feature = "have_gnutls_ext_get_name"))]
 DEF_DLL_FN! (*const c_char, gnutls_ext_get_name, W32_PFN_gnutls_ext_get_name,
-             fn_gnutls_ext_get_name, (c_uint));
+             (*fn_gnutls_ext_get_name.as_mut_ptr ()), (c_uint));
 
 /// C 302: `static gnutls_free_function *gnutls_free_func;` -- C's tentative definition, i.e. a
 /// null pointer (PORTING.md 0.1-13).
 #[cfg (all (feature = "have_gnutls", feature = "windowsnt"))]
-static mut gnutls_free_func: *mut gnutls_free_function = std::ptr::null_mut ();
+static gnutls_free_func: VmGlobal<*mut gnutls_free_function> = VmGlobal::<*mut gnutls_free_function>::new (std::ptr::null_mut ());
 
 /// C 304-458: `init_gnutls_functions`.  `HMODULE` is C's `<windows.h>` handle, spelled
 /// `*mut c_void` (the region's note above); `w32_delayed_load` is the declaration
@@ -1059,153 +1059,153 @@ unsafe fn init_gnutls_functions () -> bool
       return false;
     }
 
-  LOAD_DLL_FN! (library, gnutls_alert_get, W32_PFN_gnutls_alert_get, fn_gnutls_alert_get, c"gnutls_alert_get");
-  LOAD_DLL_FN! (library, gnutls_alert_get_name, W32_PFN_gnutls_alert_get_name, fn_gnutls_alert_get_name, c"gnutls_alert_get_name");
-  LOAD_DLL_FN! (library, gnutls_anon_allocate_client_credentials, W32_PFN_gnutls_anon_allocate_client_credentials, fn_gnutls_anon_allocate_client_credentials, c"gnutls_anon_allocate_client_credentials");
-  LOAD_DLL_FN! (library, gnutls_anon_free_client_credentials, W32_PFN_gnutls_anon_free_client_credentials, fn_gnutls_anon_free_client_credentials, c"gnutls_anon_free_client_credentials");
-  LOAD_DLL_FN! (library, gnutls_bye, W32_PFN_gnutls_bye, fn_gnutls_bye, c"gnutls_bye");
-  LOAD_DLL_FN! (library, gnutls_certificate_allocate_credentials, W32_PFN_gnutls_certificate_allocate_credentials, fn_gnutls_certificate_allocate_credentials, c"gnutls_certificate_allocate_credentials");
-  LOAD_DLL_FN! (library, gnutls_certificate_free_credentials, W32_PFN_gnutls_certificate_free_credentials, fn_gnutls_certificate_free_credentials, c"gnutls_certificate_free_credentials");
-  LOAD_DLL_FN! (library, gnutls_certificate_get_peers, W32_PFN_gnutls_certificate_get_peers, fn_gnutls_certificate_get_peers, c"gnutls_certificate_get_peers");
-  LOAD_DLL_FN! (library, gnutls_certificate_set_verify_flags, W32_PFN_gnutls_certificate_set_verify_flags, fn_gnutls_certificate_set_verify_flags, c"gnutls_certificate_set_verify_flags");
-  LOAD_DLL_FN! (library, gnutls_certificate_set_x509_crl_file, W32_PFN_gnutls_certificate_set_x509_crl_file, fn_gnutls_certificate_set_x509_crl_file, c"gnutls_certificate_set_x509_crl_file");
-  LOAD_DLL_FN! (library, gnutls_certificate_set_x509_key_file, W32_PFN_gnutls_certificate_set_x509_key_file, fn_gnutls_certificate_set_x509_key_file, c"gnutls_certificate_set_x509_key_file");
+  LOAD_DLL_FN! (library, gnutls_alert_get, W32_PFN_gnutls_alert_get, (*fn_gnutls_alert_get.as_mut_ptr ()), c"gnutls_alert_get");
+  LOAD_DLL_FN! (library, gnutls_alert_get_name, W32_PFN_gnutls_alert_get_name, (*fn_gnutls_alert_get_name.as_mut_ptr ()), c"gnutls_alert_get_name");
+  LOAD_DLL_FN! (library, gnutls_anon_allocate_client_credentials, W32_PFN_gnutls_anon_allocate_client_credentials, (*fn_gnutls_anon_allocate_client_credentials.as_mut_ptr ()), c"gnutls_anon_allocate_client_credentials");
+  LOAD_DLL_FN! (library, gnutls_anon_free_client_credentials, W32_PFN_gnutls_anon_free_client_credentials, (*fn_gnutls_anon_free_client_credentials.as_mut_ptr ()), c"gnutls_anon_free_client_credentials");
+  LOAD_DLL_FN! (library, gnutls_bye, W32_PFN_gnutls_bye, (*fn_gnutls_bye.as_mut_ptr ()), c"gnutls_bye");
+  LOAD_DLL_FN! (library, gnutls_certificate_allocate_credentials, W32_PFN_gnutls_certificate_allocate_credentials, (*fn_gnutls_certificate_allocate_credentials.as_mut_ptr ()), c"gnutls_certificate_allocate_credentials");
+  LOAD_DLL_FN! (library, gnutls_certificate_free_credentials, W32_PFN_gnutls_certificate_free_credentials, (*fn_gnutls_certificate_free_credentials.as_mut_ptr ()), c"gnutls_certificate_free_credentials");
+  LOAD_DLL_FN! (library, gnutls_certificate_get_peers, W32_PFN_gnutls_certificate_get_peers, (*fn_gnutls_certificate_get_peers.as_mut_ptr ()), c"gnutls_certificate_get_peers");
+  LOAD_DLL_FN! (library, gnutls_certificate_set_verify_flags, W32_PFN_gnutls_certificate_set_verify_flags, (*fn_gnutls_certificate_set_verify_flags.as_mut_ptr ()), c"gnutls_certificate_set_verify_flags");
+  LOAD_DLL_FN! (library, gnutls_certificate_set_x509_crl_file, W32_PFN_gnutls_certificate_set_x509_crl_file, (*fn_gnutls_certificate_set_x509_crl_file.as_mut_ptr ()), c"gnutls_certificate_set_x509_crl_file");
+  LOAD_DLL_FN! (library, gnutls_certificate_set_x509_key_file, W32_PFN_gnutls_certificate_set_x509_key_file, (*fn_gnutls_certificate_set_x509_key_file.as_mut_ptr ()), c"gnutls_certificate_set_x509_key_file");
   #[cfg (feature = "have_gnutls_certificate_set_x509_key_file2")]
-  { LOAD_DLL_FN! (library, gnutls_certificate_set_x509_key_file2, W32_PFN_gnutls_certificate_set_x509_key_file2, fn_gnutls_certificate_set_x509_key_file2, c"gnutls_certificate_set_x509_key_file2"); }
+  { LOAD_DLL_FN! (library, gnutls_certificate_set_x509_key_file2, W32_PFN_gnutls_certificate_set_x509_key_file2, (*fn_gnutls_certificate_set_x509_key_file2.as_mut_ptr ()), c"gnutls_certificate_set_x509_key_file2"); }
   #[cfg (feature = "have_gnutls_x509_system_trust")]
-  { LOAD_DLL_FN! (library, gnutls_certificate_set_x509_system_trust, W32_PFN_gnutls_certificate_set_x509_system_trust, fn_gnutls_certificate_set_x509_system_trust, c"gnutls_certificate_set_x509_system_trust"); }
-  LOAD_DLL_FN! (library, gnutls_certificate_set_x509_trust_file, W32_PFN_gnutls_certificate_set_x509_trust_file, fn_gnutls_certificate_set_x509_trust_file, c"gnutls_certificate_set_x509_trust_file");
-  LOAD_DLL_FN! (library, gnutls_certificate_type_get, W32_PFN_gnutls_certificate_type_get, fn_gnutls_certificate_type_get, c"gnutls_certificate_type_get");
-  LOAD_DLL_FN! (library, gnutls_certificate_verify_peers2, W32_PFN_gnutls_certificate_verify_peers2, fn_gnutls_certificate_verify_peers2, c"gnutls_certificate_verify_peers2");
-  LOAD_DLL_FN! (library, gnutls_credentials_set, W32_PFN_gnutls_credentials_set, fn_gnutls_credentials_set, c"gnutls_credentials_set");
-  LOAD_DLL_FN! (library, gnutls_deinit, W32_PFN_gnutls_deinit, fn_gnutls_deinit, c"gnutls_deinit");
-  LOAD_DLL_FN! (library, gnutls_dh_set_prime_bits, W32_PFN_gnutls_dh_set_prime_bits, fn_gnutls_dh_set_prime_bits, c"gnutls_dh_set_prime_bits");
-  LOAD_DLL_FN! (library, gnutls_dh_get_prime_bits, W32_PFN_gnutls_dh_get_prime_bits, fn_gnutls_dh_get_prime_bits, c"gnutls_dh_get_prime_bits");
-  LOAD_DLL_FN! (library, gnutls_error_is_fatal, W32_PFN_gnutls_error_is_fatal, fn_gnutls_error_is_fatal, c"gnutls_error_is_fatal");
-  LOAD_DLL_FN! (library, gnutls_global_init, W32_PFN_gnutls_global_init, fn_gnutls_global_init, c"gnutls_global_init");
-  LOAD_DLL_FN! (library, gnutls_global_set_log_function, W32_PFN_gnutls_global_set_log_function, fn_gnutls_global_set_log_function, c"gnutls_global_set_log_function");
+  { LOAD_DLL_FN! (library, gnutls_certificate_set_x509_system_trust, W32_PFN_gnutls_certificate_set_x509_system_trust, (*fn_gnutls_certificate_set_x509_system_trust.as_mut_ptr ()), c"gnutls_certificate_set_x509_system_trust"); }
+  LOAD_DLL_FN! (library, gnutls_certificate_set_x509_trust_file, W32_PFN_gnutls_certificate_set_x509_trust_file, (*fn_gnutls_certificate_set_x509_trust_file.as_mut_ptr ()), c"gnutls_certificate_set_x509_trust_file");
+  LOAD_DLL_FN! (library, gnutls_certificate_type_get, W32_PFN_gnutls_certificate_type_get, (*fn_gnutls_certificate_type_get.as_mut_ptr ()), c"gnutls_certificate_type_get");
+  LOAD_DLL_FN! (library, gnutls_certificate_verify_peers2, W32_PFN_gnutls_certificate_verify_peers2, (*fn_gnutls_certificate_verify_peers2.as_mut_ptr ()), c"gnutls_certificate_verify_peers2");
+  LOAD_DLL_FN! (library, gnutls_credentials_set, W32_PFN_gnutls_credentials_set, (*fn_gnutls_credentials_set.as_mut_ptr ()), c"gnutls_credentials_set");
+  LOAD_DLL_FN! (library, gnutls_deinit, W32_PFN_gnutls_deinit, (*fn_gnutls_deinit.as_mut_ptr ()), c"gnutls_deinit");
+  LOAD_DLL_FN! (library, gnutls_dh_set_prime_bits, W32_PFN_gnutls_dh_set_prime_bits, (*fn_gnutls_dh_set_prime_bits.as_mut_ptr ()), c"gnutls_dh_set_prime_bits");
+  LOAD_DLL_FN! (library, gnutls_dh_get_prime_bits, W32_PFN_gnutls_dh_get_prime_bits, (*fn_gnutls_dh_get_prime_bits.as_mut_ptr ()), c"gnutls_dh_get_prime_bits");
+  LOAD_DLL_FN! (library, gnutls_error_is_fatal, W32_PFN_gnutls_error_is_fatal, (*fn_gnutls_error_is_fatal.as_mut_ptr ()), c"gnutls_error_is_fatal");
+  LOAD_DLL_FN! (library, gnutls_global_init, W32_PFN_gnutls_global_init, (*fn_gnutls_global_init.as_mut_ptr ()), c"gnutls_global_init");
+  LOAD_DLL_FN! (library, gnutls_global_set_log_function, W32_PFN_gnutls_global_set_log_function, (*fn_gnutls_global_set_log_function.as_mut_ptr ()), c"gnutls_global_set_log_function");
   #[cfg (feature = "have_gnutls3")]
-  { LOAD_DLL_FN! (library, gnutls_global_set_audit_log_function, W32_PFN_gnutls_global_set_audit_log_function, fn_gnutls_global_set_audit_log_function, c"gnutls_global_set_audit_log_function"); }
-  LOAD_DLL_FN! (library, gnutls_global_set_log_level, W32_PFN_gnutls_global_set_log_level, fn_gnutls_global_set_log_level, c"gnutls_global_set_log_level");
-  LOAD_DLL_FN! (library, gnutls_handshake, W32_PFN_gnutls_handshake, fn_gnutls_handshake, c"gnutls_handshake");
-  LOAD_DLL_FN! (library, gnutls_init, W32_PFN_gnutls_init, fn_gnutls_init, c"gnutls_init");
-  LOAD_DLL_FN! (library, gnutls_priority_set_direct, W32_PFN_gnutls_priority_set_direct, fn_gnutls_priority_set_direct, c"gnutls_priority_set_direct");
-  LOAD_DLL_FN! (library, gnutls_record_check_pending, W32_PFN_gnutls_record_check_pending, fn_gnutls_record_check_pending, c"gnutls_record_check_pending");
-  LOAD_DLL_FN! (library, gnutls_record_recv, W32_PFN_gnutls_record_recv, fn_gnutls_record_recv, c"gnutls_record_recv");
-  LOAD_DLL_FN! (library, gnutls_record_send, W32_PFN_gnutls_record_send, fn_gnutls_record_send, c"gnutls_record_send");
-  LOAD_DLL_FN! (library, gnutls_strerror, W32_PFN_gnutls_strerror, fn_gnutls_strerror, c"gnutls_strerror");
-  LOAD_DLL_FN! (library, gnutls_transport_set_errno, W32_PFN_gnutls_transport_set_errno, fn_gnutls_transport_set_errno, c"gnutls_transport_set_errno");
-  LOAD_DLL_FN! (library, gnutls_transport_set_ptr2, W32_PFN_gnutls_transport_set_ptr2, fn_gnutls_transport_set_ptr2, c"gnutls_transport_set_ptr2");
-  LOAD_DLL_FN! (library, gnutls_transport_set_pull_function, W32_PFN_gnutls_transport_set_pull_function, fn_gnutls_transport_set_pull_function, c"gnutls_transport_set_pull_function");
-  LOAD_DLL_FN! (library, gnutls_transport_set_push_function, W32_PFN_gnutls_transport_set_push_function, fn_gnutls_transport_set_push_function, c"gnutls_transport_set_push_function");
-  LOAD_DLL_FN! (library, gnutls_x509_crt_check_hostname, W32_PFN_gnutls_x509_crt_check_hostname, fn_gnutls_x509_crt_check_hostname, c"gnutls_x509_crt_check_hostname");
-  LOAD_DLL_FN! (library, gnutls_x509_crt_check_issuer, W32_PFN_gnutls_x509_crt_check_issuer, fn_gnutls_x509_crt_check_issuer, c"gnutls_x509_crt_check_issuer");
-  LOAD_DLL_FN! (library, gnutls_x509_crt_deinit, W32_PFN_gnutls_x509_crt_deinit, fn_gnutls_x509_crt_deinit, c"gnutls_x509_crt_deinit");
-  LOAD_DLL_FN! (library, gnutls_x509_crt_export, W32_PFN_gnutls_x509_crt_export, fn_gnutls_x509_crt_export, c"gnutls_x509_crt_export");
-  LOAD_DLL_FN! (library, gnutls_x509_crt_import, W32_PFN_gnutls_x509_crt_import, fn_gnutls_x509_crt_import, c"gnutls_x509_crt_import");
-  LOAD_DLL_FN! (library, gnutls_x509_crt_init, W32_PFN_gnutls_x509_crt_init, fn_gnutls_x509_crt_init, c"gnutls_x509_crt_init");
-  LOAD_DLL_FN! (library, gnutls_x509_crt_get_fingerprint, W32_PFN_gnutls_x509_crt_get_fingerprint, fn_gnutls_x509_crt_get_fingerprint, c"gnutls_x509_crt_get_fingerprint");
-  LOAD_DLL_FN! (library, gnutls_x509_crt_get_version, W32_PFN_gnutls_x509_crt_get_version, fn_gnutls_x509_crt_get_version, c"gnutls_x509_crt_get_version");
-  LOAD_DLL_FN! (library, gnutls_x509_crt_get_serial, W32_PFN_gnutls_x509_crt_get_serial, fn_gnutls_x509_crt_get_serial, c"gnutls_x509_crt_get_serial");
-  LOAD_DLL_FN! (library, gnutls_x509_crt_get_issuer_dn, W32_PFN_gnutls_x509_crt_get_issuer_dn, fn_gnutls_x509_crt_get_issuer_dn, c"gnutls_x509_crt_get_issuer_dn");
-  LOAD_DLL_FN! (library, gnutls_x509_crt_get_activation_time, W32_PFN_gnutls_x509_crt_get_activation_time, fn_gnutls_x509_crt_get_activation_time, c"gnutls_x509_crt_get_activation_time");
-  LOAD_DLL_FN! (library, gnutls_x509_crt_get_expiration_time, W32_PFN_gnutls_x509_crt_get_expiration_time, fn_gnutls_x509_crt_get_expiration_time, c"gnutls_x509_crt_get_expiration_time");
-  LOAD_DLL_FN! (library, gnutls_x509_crt_get_dn, W32_PFN_gnutls_x509_crt_get_dn, fn_gnutls_x509_crt_get_dn, c"gnutls_x509_crt_get_dn");
-  LOAD_DLL_FN! (library, gnutls_x509_crt_get_pk_algorithm, W32_PFN_gnutls_x509_crt_get_pk_algorithm, fn_gnutls_x509_crt_get_pk_algorithm, c"gnutls_x509_crt_get_pk_algorithm");
-  LOAD_DLL_FN! (library, gnutls_x509_crt_print, W32_PFN_gnutls_x509_crt_print, fn_gnutls_x509_crt_print, c"gnutls_x509_crt_print");
-  LOAD_DLL_FN! (library, gnutls_pk_algorithm_get_name, W32_PFN_gnutls_pk_algorithm_get_name, fn_gnutls_pk_algorithm_get_name, c"gnutls_pk_algorithm_get_name");
-  LOAD_DLL_FN! (library, gnutls_pk_bits_to_sec_param, W32_PFN_gnutls_pk_bits_to_sec_param, fn_gnutls_pk_bits_to_sec_param, c"gnutls_pk_bits_to_sec_param");
-  LOAD_DLL_FN! (library, gnutls_x509_crt_get_issuer_unique_id, W32_PFN_gnutls_x509_crt_get_issuer_unique_id, fn_gnutls_x509_crt_get_issuer_unique_id, c"gnutls_x509_crt_get_issuer_unique_id");
-  LOAD_DLL_FN! (library, gnutls_x509_crt_get_subject_unique_id, W32_PFN_gnutls_x509_crt_get_subject_unique_id, fn_gnutls_x509_crt_get_subject_unique_id, c"gnutls_x509_crt_get_subject_unique_id");
-  LOAD_DLL_FN! (library, gnutls_x509_crt_get_signature_algorithm, W32_PFN_gnutls_x509_crt_get_signature_algorithm, fn_gnutls_x509_crt_get_signature_algorithm, c"gnutls_x509_crt_get_signature_algorithm");
-  LOAD_DLL_FN! (library, gnutls_x509_crt_get_key_id, W32_PFN_gnutls_x509_crt_get_key_id, fn_gnutls_x509_crt_get_key_id, c"gnutls_x509_crt_get_key_id");
-  LOAD_DLL_FN! (library, gnutls_sec_param_get_name, W32_PFN_gnutls_sec_param_get_name, fn_gnutls_sec_param_get_name, c"gnutls_sec_param_get_name");
-  LOAD_DLL_FN! (library, gnutls_sign_get_name, W32_PFN_gnutls_sign_get_name, fn_gnutls_sign_get_name, c"gnutls_sign_get_name");
-  LOAD_DLL_FN! (library, gnutls_server_name_set, W32_PFN_gnutls_server_name_set, fn_gnutls_server_name_set, c"gnutls_server_name_set");
-  LOAD_DLL_FN! (library, gnutls_kx_get, W32_PFN_gnutls_kx_get, fn_gnutls_kx_get, c"gnutls_kx_get");
-  LOAD_DLL_FN! (library, gnutls_kx_get_name, W32_PFN_gnutls_kx_get_name, fn_gnutls_kx_get_name, c"gnutls_kx_get_name");
-  LOAD_DLL_FN! (library, gnutls_protocol_get_version, W32_PFN_gnutls_protocol_get_version, fn_gnutls_protocol_get_version, c"gnutls_protocol_get_version");
-  LOAD_DLL_FN! (library, gnutls_protocol_get_name, W32_PFN_gnutls_protocol_get_name, fn_gnutls_protocol_get_name, c"gnutls_protocol_get_name");
-  LOAD_DLL_FN! (library, gnutls_cipher_get, W32_PFN_gnutls_cipher_get, fn_gnutls_cipher_get, c"gnutls_cipher_get");
-  LOAD_DLL_FN! (library, gnutls_cipher_get_name, W32_PFN_gnutls_cipher_get_name, fn_gnutls_cipher_get_name, c"gnutls_cipher_get_name");
-  LOAD_DLL_FN! (library, gnutls_mac_get, W32_PFN_gnutls_mac_get, fn_gnutls_mac_get, c"gnutls_mac_get");
-  LOAD_DLL_FN! (library, gnutls_mac_get_name, W32_PFN_gnutls_mac_get_name, fn_gnutls_mac_get_name, c"gnutls_mac_get_name");
+  { LOAD_DLL_FN! (library, gnutls_global_set_audit_log_function, W32_PFN_gnutls_global_set_audit_log_function, (*fn_gnutls_global_set_audit_log_function.as_mut_ptr ()), c"gnutls_global_set_audit_log_function"); }
+  LOAD_DLL_FN! (library, gnutls_global_set_log_level, W32_PFN_gnutls_global_set_log_level, (*fn_gnutls_global_set_log_level.as_mut_ptr ()), c"gnutls_global_set_log_level");
+  LOAD_DLL_FN! (library, gnutls_handshake, W32_PFN_gnutls_handshake, (*fn_gnutls_handshake.as_mut_ptr ()), c"gnutls_handshake");
+  LOAD_DLL_FN! (library, gnutls_init, W32_PFN_gnutls_init, (*fn_gnutls_init.as_mut_ptr ()), c"gnutls_init");
+  LOAD_DLL_FN! (library, gnutls_priority_set_direct, W32_PFN_gnutls_priority_set_direct, (*fn_gnutls_priority_set_direct.as_mut_ptr ()), c"gnutls_priority_set_direct");
+  LOAD_DLL_FN! (library, gnutls_record_check_pending, W32_PFN_gnutls_record_check_pending, (*fn_gnutls_record_check_pending.as_mut_ptr ()), c"gnutls_record_check_pending");
+  LOAD_DLL_FN! (library, gnutls_record_recv, W32_PFN_gnutls_record_recv, (*fn_gnutls_record_recv.as_mut_ptr ()), c"gnutls_record_recv");
+  LOAD_DLL_FN! (library, gnutls_record_send, W32_PFN_gnutls_record_send, (*fn_gnutls_record_send.as_mut_ptr ()), c"gnutls_record_send");
+  LOAD_DLL_FN! (library, gnutls_strerror, W32_PFN_gnutls_strerror, (*fn_gnutls_strerror.as_mut_ptr ()), c"gnutls_strerror");
+  LOAD_DLL_FN! (library, gnutls_transport_set_errno, W32_PFN_gnutls_transport_set_errno, (*fn_gnutls_transport_set_errno.as_mut_ptr ()), c"gnutls_transport_set_errno");
+  LOAD_DLL_FN! (library, gnutls_transport_set_ptr2, W32_PFN_gnutls_transport_set_ptr2, (*fn_gnutls_transport_set_ptr2.as_mut_ptr ()), c"gnutls_transport_set_ptr2");
+  LOAD_DLL_FN! (library, gnutls_transport_set_pull_function, W32_PFN_gnutls_transport_set_pull_function, (*fn_gnutls_transport_set_pull_function.as_mut_ptr ()), c"gnutls_transport_set_pull_function");
+  LOAD_DLL_FN! (library, gnutls_transport_set_push_function, W32_PFN_gnutls_transport_set_push_function, (*fn_gnutls_transport_set_push_function.as_mut_ptr ()), c"gnutls_transport_set_push_function");
+  LOAD_DLL_FN! (library, gnutls_x509_crt_check_hostname, W32_PFN_gnutls_x509_crt_check_hostname, (*fn_gnutls_x509_crt_check_hostname.as_mut_ptr ()), c"gnutls_x509_crt_check_hostname");
+  LOAD_DLL_FN! (library, gnutls_x509_crt_check_issuer, W32_PFN_gnutls_x509_crt_check_issuer, (*fn_gnutls_x509_crt_check_issuer.as_mut_ptr ()), c"gnutls_x509_crt_check_issuer");
+  LOAD_DLL_FN! (library, gnutls_x509_crt_deinit, W32_PFN_gnutls_x509_crt_deinit, (*fn_gnutls_x509_crt_deinit.as_mut_ptr ()), c"gnutls_x509_crt_deinit");
+  LOAD_DLL_FN! (library, gnutls_x509_crt_export, W32_PFN_gnutls_x509_crt_export, (*fn_gnutls_x509_crt_export.as_mut_ptr ()), c"gnutls_x509_crt_export");
+  LOAD_DLL_FN! (library, gnutls_x509_crt_import, W32_PFN_gnutls_x509_crt_import, (*fn_gnutls_x509_crt_import.as_mut_ptr ()), c"gnutls_x509_crt_import");
+  LOAD_DLL_FN! (library, gnutls_x509_crt_init, W32_PFN_gnutls_x509_crt_init, (*fn_gnutls_x509_crt_init.as_mut_ptr ()), c"gnutls_x509_crt_init");
+  LOAD_DLL_FN! (library, gnutls_x509_crt_get_fingerprint, W32_PFN_gnutls_x509_crt_get_fingerprint, (*fn_gnutls_x509_crt_get_fingerprint.as_mut_ptr ()), c"gnutls_x509_crt_get_fingerprint");
+  LOAD_DLL_FN! (library, gnutls_x509_crt_get_version, W32_PFN_gnutls_x509_crt_get_version, (*fn_gnutls_x509_crt_get_version.as_mut_ptr ()), c"gnutls_x509_crt_get_version");
+  LOAD_DLL_FN! (library, gnutls_x509_crt_get_serial, W32_PFN_gnutls_x509_crt_get_serial, (*fn_gnutls_x509_crt_get_serial.as_mut_ptr ()), c"gnutls_x509_crt_get_serial");
+  LOAD_DLL_FN! (library, gnutls_x509_crt_get_issuer_dn, W32_PFN_gnutls_x509_crt_get_issuer_dn, (*fn_gnutls_x509_crt_get_issuer_dn.as_mut_ptr ()), c"gnutls_x509_crt_get_issuer_dn");
+  LOAD_DLL_FN! (library, gnutls_x509_crt_get_activation_time, W32_PFN_gnutls_x509_crt_get_activation_time, (*fn_gnutls_x509_crt_get_activation_time.as_mut_ptr ()), c"gnutls_x509_crt_get_activation_time");
+  LOAD_DLL_FN! (library, gnutls_x509_crt_get_expiration_time, W32_PFN_gnutls_x509_crt_get_expiration_time, (*fn_gnutls_x509_crt_get_expiration_time.as_mut_ptr ()), c"gnutls_x509_crt_get_expiration_time");
+  LOAD_DLL_FN! (library, gnutls_x509_crt_get_dn, W32_PFN_gnutls_x509_crt_get_dn, (*fn_gnutls_x509_crt_get_dn.as_mut_ptr ()), c"gnutls_x509_crt_get_dn");
+  LOAD_DLL_FN! (library, gnutls_x509_crt_get_pk_algorithm, W32_PFN_gnutls_x509_crt_get_pk_algorithm, (*fn_gnutls_x509_crt_get_pk_algorithm.as_mut_ptr ()), c"gnutls_x509_crt_get_pk_algorithm");
+  LOAD_DLL_FN! (library, gnutls_x509_crt_print, W32_PFN_gnutls_x509_crt_print, (*fn_gnutls_x509_crt_print.as_mut_ptr ()), c"gnutls_x509_crt_print");
+  LOAD_DLL_FN! (library, gnutls_pk_algorithm_get_name, W32_PFN_gnutls_pk_algorithm_get_name, (*fn_gnutls_pk_algorithm_get_name.as_mut_ptr ()), c"gnutls_pk_algorithm_get_name");
+  LOAD_DLL_FN! (library, gnutls_pk_bits_to_sec_param, W32_PFN_gnutls_pk_bits_to_sec_param, (*fn_gnutls_pk_bits_to_sec_param.as_mut_ptr ()), c"gnutls_pk_bits_to_sec_param");
+  LOAD_DLL_FN! (library, gnutls_x509_crt_get_issuer_unique_id, W32_PFN_gnutls_x509_crt_get_issuer_unique_id, (*fn_gnutls_x509_crt_get_issuer_unique_id.as_mut_ptr ()), c"gnutls_x509_crt_get_issuer_unique_id");
+  LOAD_DLL_FN! (library, gnutls_x509_crt_get_subject_unique_id, W32_PFN_gnutls_x509_crt_get_subject_unique_id, (*fn_gnutls_x509_crt_get_subject_unique_id.as_mut_ptr ()), c"gnutls_x509_crt_get_subject_unique_id");
+  LOAD_DLL_FN! (library, gnutls_x509_crt_get_signature_algorithm, W32_PFN_gnutls_x509_crt_get_signature_algorithm, (*fn_gnutls_x509_crt_get_signature_algorithm.as_mut_ptr ()), c"gnutls_x509_crt_get_signature_algorithm");
+  LOAD_DLL_FN! (library, gnutls_x509_crt_get_key_id, W32_PFN_gnutls_x509_crt_get_key_id, (*fn_gnutls_x509_crt_get_key_id.as_mut_ptr ()), c"gnutls_x509_crt_get_key_id");
+  LOAD_DLL_FN! (library, gnutls_sec_param_get_name, W32_PFN_gnutls_sec_param_get_name, (*fn_gnutls_sec_param_get_name.as_mut_ptr ()), c"gnutls_sec_param_get_name");
+  LOAD_DLL_FN! (library, gnutls_sign_get_name, W32_PFN_gnutls_sign_get_name, (*fn_gnutls_sign_get_name.as_mut_ptr ()), c"gnutls_sign_get_name");
+  LOAD_DLL_FN! (library, gnutls_server_name_set, W32_PFN_gnutls_server_name_set, (*fn_gnutls_server_name_set.as_mut_ptr ()), c"gnutls_server_name_set");
+  LOAD_DLL_FN! (library, gnutls_kx_get, W32_PFN_gnutls_kx_get, (*fn_gnutls_kx_get.as_mut_ptr ()), c"gnutls_kx_get");
+  LOAD_DLL_FN! (library, gnutls_kx_get_name, W32_PFN_gnutls_kx_get_name, (*fn_gnutls_kx_get_name.as_mut_ptr ()), c"gnutls_kx_get_name");
+  LOAD_DLL_FN! (library, gnutls_protocol_get_version, W32_PFN_gnutls_protocol_get_version, (*fn_gnutls_protocol_get_version.as_mut_ptr ()), c"gnutls_protocol_get_version");
+  LOAD_DLL_FN! (library, gnutls_protocol_get_name, W32_PFN_gnutls_protocol_get_name, (*fn_gnutls_protocol_get_name.as_mut_ptr ()), c"gnutls_protocol_get_name");
+  LOAD_DLL_FN! (library, gnutls_cipher_get, W32_PFN_gnutls_cipher_get, (*fn_gnutls_cipher_get.as_mut_ptr ()), c"gnutls_cipher_get");
+  LOAD_DLL_FN! (library, gnutls_cipher_get_name, W32_PFN_gnutls_cipher_get_name, (*fn_gnutls_cipher_get_name.as_mut_ptr ()), c"gnutls_cipher_get_name");
+  LOAD_DLL_FN! (library, gnutls_mac_get, W32_PFN_gnutls_mac_get, (*fn_gnutls_mac_get.as_mut_ptr ()), c"gnutls_mac_get");
+  LOAD_DLL_FN! (library, gnutls_mac_get_name, W32_PFN_gnutls_mac_get_name, (*fn_gnutls_mac_get_name.as_mut_ptr ()), c"gnutls_mac_get_name");
   #[cfg (feature = "have_gnutls_compression_get")]
-  { LOAD_DLL_FN! (library, gnutls_compression_get, W32_PFN_gnutls_compression_get, fn_gnutls_compression_get, c"gnutls_compression_get"); }
+  { LOAD_DLL_FN! (library, gnutls_compression_get, W32_PFN_gnutls_compression_get, (*fn_gnutls_compression_get.as_mut_ptr ()), c"gnutls_compression_get"); }
   #[cfg (feature = "have_gnutls_compression_get")]
-  { LOAD_DLL_FN! (library, gnutls_compression_get_name, W32_PFN_gnutls_compression_get_name, fn_gnutls_compression_get_name, c"gnutls_compression_get_name"); }
-  LOAD_DLL_FN! (library, gnutls_safe_renegotiation_status, W32_PFN_gnutls_safe_renegotiation_status, fn_gnutls_safe_renegotiation_status, c"gnutls_safe_renegotiation_status");
+  { LOAD_DLL_FN! (library, gnutls_compression_get_name, W32_PFN_gnutls_compression_get_name, (*fn_gnutls_compression_get_name.as_mut_ptr ()), c"gnutls_compression_get_name"); }
+  LOAD_DLL_FN! (library, gnutls_safe_renegotiation_status, W32_PFN_gnutls_safe_renegotiation_status, (*fn_gnutls_safe_renegotiation_status.as_mut_ptr ()), c"gnutls_safe_renegotiation_status");
   #[cfg (feature = "have_gnutls3")]
-  { LOAD_DLL_FN! (library, gnutls_mac_list, W32_PFN_gnutls_mac_list, fn_gnutls_mac_list, c"gnutls_mac_list"); }
+  { LOAD_DLL_FN! (library, gnutls_mac_list, W32_PFN_gnutls_mac_list, (*fn_gnutls_mac_list.as_mut_ptr ()), c"gnutls_mac_list"); }
   #[cfg (feature = "have_gnutls3", feature = "have_gnutls_mac_get_nonce_size")]
-  { LOAD_DLL_FN! (library, gnutls_mac_get_nonce_size, W32_PFN_gnutls_mac_get_nonce_size, fn_gnutls_mac_get_nonce_size, c"gnutls_mac_get_nonce_size"); }
+  { LOAD_DLL_FN! (library, gnutls_mac_get_nonce_size, W32_PFN_gnutls_mac_get_nonce_size, (*fn_gnutls_mac_get_nonce_size.as_mut_ptr ()), c"gnutls_mac_get_nonce_size"); }
   #[cfg (feature = "have_gnutls3")]
-  { LOAD_DLL_FN! (library, gnutls_mac_get_key_size, W32_PFN_gnutls_mac_get_key_size, fn_gnutls_mac_get_key_size, c"gnutls_mac_get_key_size"); }
+  { LOAD_DLL_FN! (library, gnutls_mac_get_key_size, W32_PFN_gnutls_mac_get_key_size, (*fn_gnutls_mac_get_key_size.as_mut_ptr ()), c"gnutls_mac_get_key_size"); }
   #[cfg (feature = "have_gnutls3", feature = "have_gnutls_digest_list")]
-  { LOAD_DLL_FN! (library, gnutls_digest_list, W32_PFN_gnutls_digest_list, fn_gnutls_digest_list, c"gnutls_digest_list"); }
+  { LOAD_DLL_FN! (library, gnutls_digest_list, W32_PFN_gnutls_digest_list, (*fn_gnutls_digest_list.as_mut_ptr ()), c"gnutls_digest_list"); }
   #[cfg (feature = "have_gnutls3", feature = "have_gnutls_digest_list")]
-  { LOAD_DLL_FN! (library, gnutls_digest_get_name, W32_PFN_gnutls_digest_get_name, fn_gnutls_digest_get_name, c"gnutls_digest_get_name"); }
+  { LOAD_DLL_FN! (library, gnutls_digest_get_name, W32_PFN_gnutls_digest_get_name, (*fn_gnutls_digest_get_name.as_mut_ptr ()), c"gnutls_digest_get_name"); }
   #[cfg (feature = "have_gnutls3")]
-  { LOAD_DLL_FN! (library, gnutls_cipher_list, W32_PFN_gnutls_cipher_list, fn_gnutls_cipher_list, c"gnutls_cipher_list"); }
+  { LOAD_DLL_FN! (library, gnutls_cipher_list, W32_PFN_gnutls_cipher_list, (*fn_gnutls_cipher_list.as_mut_ptr ()), c"gnutls_cipher_list"); }
   #[cfg (feature = "have_gnutls3", feature = "have_gnutls_cipher_get_iv_size")]
-  { LOAD_DLL_FN! (library, gnutls_cipher_get_iv_size, W32_PFN_gnutls_cipher_get_iv_size, fn_gnutls_cipher_get_iv_size, c"gnutls_cipher_get_iv_size"); }
+  { LOAD_DLL_FN! (library, gnutls_cipher_get_iv_size, W32_PFN_gnutls_cipher_get_iv_size, (*fn_gnutls_cipher_get_iv_size.as_mut_ptr ()), c"gnutls_cipher_get_iv_size"); }
   #[cfg (feature = "have_gnutls3")]
-  { LOAD_DLL_FN! (library, gnutls_cipher_get_key_size, W32_PFN_gnutls_cipher_get_key_size, fn_gnutls_cipher_get_key_size, c"gnutls_cipher_get_key_size"); }
+  { LOAD_DLL_FN! (library, gnutls_cipher_get_key_size, W32_PFN_gnutls_cipher_get_key_size, (*fn_gnutls_cipher_get_key_size.as_mut_ptr ()), c"gnutls_cipher_get_key_size"); }
   #[cfg (feature = "have_gnutls3")]
-  { LOAD_DLL_FN! (library, gnutls_cipher_get_block_size, W32_PFN_gnutls_cipher_get_block_size, fn_gnutls_cipher_get_block_size, c"gnutls_cipher_get_block_size"); }
+  { LOAD_DLL_FN! (library, gnutls_cipher_get_block_size, W32_PFN_gnutls_cipher_get_block_size, (*fn_gnutls_cipher_get_block_size.as_mut_ptr ()), c"gnutls_cipher_get_block_size"); }
   #[cfg (feature = "have_gnutls3", feature = "have_gnutls_cipher_get_tag_size")]
-  { LOAD_DLL_FN! (library, gnutls_cipher_get_tag_size, W32_PFN_gnutls_cipher_get_tag_size, fn_gnutls_cipher_get_tag_size, c"gnutls_cipher_get_tag_size"); }
+  { LOAD_DLL_FN! (library, gnutls_cipher_get_tag_size, W32_PFN_gnutls_cipher_get_tag_size, (*fn_gnutls_cipher_get_tag_size.as_mut_ptr ()), c"gnutls_cipher_get_tag_size"); }
   #[cfg (feature = "have_gnutls3")]
-  { LOAD_DLL_FN! (library, gnutls_cipher_init, W32_PFN_gnutls_cipher_init, fn_gnutls_cipher_init, c"gnutls_cipher_init"); }
+  { LOAD_DLL_FN! (library, gnutls_cipher_init, W32_PFN_gnutls_cipher_init, (*fn_gnutls_cipher_init.as_mut_ptr ()), c"gnutls_cipher_init"); }
   #[cfg (feature = "have_gnutls3")]
-  { LOAD_DLL_FN! (library, gnutls_cipher_set_iv, W32_PFN_gnutls_cipher_set_iv, fn_gnutls_cipher_set_iv, c"gnutls_cipher_set_iv"); }
+  { LOAD_DLL_FN! (library, gnutls_cipher_set_iv, W32_PFN_gnutls_cipher_set_iv, (*fn_gnutls_cipher_set_iv.as_mut_ptr ()), c"gnutls_cipher_set_iv"); }
   #[cfg (feature = "have_gnutls3")]
-  { LOAD_DLL_FN! (library, gnutls_cipher_encrypt2, W32_PFN_gnutls_cipher_encrypt2, fn_gnutls_cipher_encrypt2, c"gnutls_cipher_encrypt2"); }
+  { LOAD_DLL_FN! (library, gnutls_cipher_encrypt2, W32_PFN_gnutls_cipher_encrypt2, (*fn_gnutls_cipher_encrypt2.as_mut_ptr ()), c"gnutls_cipher_encrypt2"); }
   #[cfg (feature = "have_gnutls3")]
-  { LOAD_DLL_FN! (library, gnutls_cipher_deinit, W32_PFN_gnutls_cipher_deinit, fn_gnutls_cipher_deinit, c"gnutls_cipher_deinit"); }
+  { LOAD_DLL_FN! (library, gnutls_cipher_deinit, W32_PFN_gnutls_cipher_deinit, (*fn_gnutls_cipher_deinit.as_mut_ptr ()), c"gnutls_cipher_deinit"); }
   #[cfg (feature = "have_gnutls3")]
-  { LOAD_DLL_FN! (library, gnutls_cipher_decrypt2, W32_PFN_gnutls_cipher_decrypt2, fn_gnutls_cipher_decrypt2, c"gnutls_cipher_decrypt2"); }
+  { LOAD_DLL_FN! (library, gnutls_cipher_decrypt2, W32_PFN_gnutls_cipher_decrypt2, (*fn_gnutls_cipher_decrypt2.as_mut_ptr ()), c"gnutls_cipher_decrypt2"); }
   #[cfg (feature = "have_gnutls3", feature = "have_gnutls_aead")]
-  { LOAD_DLL_FN! (library, gnutls_aead_cipher_init, W32_PFN_gnutls_aead_cipher_init, fn_gnutls_aead_cipher_init, c"gnutls_aead_cipher_init"); }
+  { LOAD_DLL_FN! (library, gnutls_aead_cipher_init, W32_PFN_gnutls_aead_cipher_init, (*fn_gnutls_aead_cipher_init.as_mut_ptr ()), c"gnutls_aead_cipher_init"); }
   #[cfg (feature = "have_gnutls3", feature = "have_gnutls_aead")]
-  { LOAD_DLL_FN! (library, gnutls_aead_cipher_deinit, W32_PFN_gnutls_aead_cipher_deinit, fn_gnutls_aead_cipher_deinit, c"gnutls_aead_cipher_deinit"); }
+  { LOAD_DLL_FN! (library, gnutls_aead_cipher_deinit, W32_PFN_gnutls_aead_cipher_deinit, (*fn_gnutls_aead_cipher_deinit.as_mut_ptr ()), c"gnutls_aead_cipher_deinit"); }
   #[cfg (feature = "have_gnutls3", feature = "have_gnutls_aead")]
-  { LOAD_DLL_FN! (library, gnutls_aead_cipher_encrypt, W32_PFN_gnutls_aead_cipher_encrypt, fn_gnutls_aead_cipher_encrypt, c"gnutls_aead_cipher_encrypt"); }
+  { LOAD_DLL_FN! (library, gnutls_aead_cipher_encrypt, W32_PFN_gnutls_aead_cipher_encrypt, (*fn_gnutls_aead_cipher_encrypt.as_mut_ptr ()), c"gnutls_aead_cipher_encrypt"); }
   #[cfg (feature = "have_gnutls3", feature = "have_gnutls_aead")]
-  { LOAD_DLL_FN! (library, gnutls_aead_cipher_decrypt, W32_PFN_gnutls_aead_cipher_decrypt, fn_gnutls_aead_cipher_decrypt, c"gnutls_aead_cipher_decrypt"); }
+  { LOAD_DLL_FN! (library, gnutls_aead_cipher_decrypt, W32_PFN_gnutls_aead_cipher_decrypt, (*fn_gnutls_aead_cipher_decrypt.as_mut_ptr ()), c"gnutls_aead_cipher_decrypt"); }
   #[cfg (feature = "have_gnutls3", feature = "have_gnutls_etm_status")]
-  { LOAD_DLL_FN! (library, gnutls_session_etm_status, W32_PFN_gnutls_session_etm_status, fn_gnutls_session_etm_status, c"gnutls_session_etm_status"); }
+  { LOAD_DLL_FN! (library, gnutls_session_etm_status, W32_PFN_gnutls_session_etm_status, (*fn_gnutls_session_etm_status.as_mut_ptr ()), c"gnutls_session_etm_status"); }
   #[cfg (feature = "have_gnutls3")]
-  { LOAD_DLL_FN! (library, gnutls_hmac_init, W32_PFN_gnutls_hmac_init, fn_gnutls_hmac_init, c"gnutls_hmac_init"); }
+  { LOAD_DLL_FN! (library, gnutls_hmac_init, W32_PFN_gnutls_hmac_init, (*fn_gnutls_hmac_init.as_mut_ptr ()), c"gnutls_hmac_init"); }
   #[cfg (feature = "have_gnutls3")]
-  { LOAD_DLL_FN! (library, gnutls_hmac_get_len, W32_PFN_gnutls_hmac_get_len, fn_gnutls_hmac_get_len, c"gnutls_hmac_get_len"); }
+  { LOAD_DLL_FN! (library, gnutls_hmac_get_len, W32_PFN_gnutls_hmac_get_len, (*fn_gnutls_hmac_get_len.as_mut_ptr ()), c"gnutls_hmac_get_len"); }
   #[cfg (feature = "have_gnutls3")]
-  { LOAD_DLL_FN! (library, gnutls_hmac, W32_PFN_gnutls_hmac, fn_gnutls_hmac, c"gnutls_hmac"); }
+  { LOAD_DLL_FN! (library, gnutls_hmac, W32_PFN_gnutls_hmac, (*fn_gnutls_hmac.as_mut_ptr ()), c"gnutls_hmac"); }
   #[cfg (feature = "have_gnutls3")]
-  { LOAD_DLL_FN! (library, gnutls_hmac_deinit, W32_PFN_gnutls_hmac_deinit, fn_gnutls_hmac_deinit, c"gnutls_hmac_deinit"); }
+  { LOAD_DLL_FN! (library, gnutls_hmac_deinit, W32_PFN_gnutls_hmac_deinit, (*fn_gnutls_hmac_deinit.as_mut_ptr ()), c"gnutls_hmac_deinit"); }
   #[cfg (feature = "have_gnutls3")]
-  { LOAD_DLL_FN! (library, gnutls_hmac_output, W32_PFN_gnutls_hmac_output, fn_gnutls_hmac_output, c"gnutls_hmac_output"); }
+  { LOAD_DLL_FN! (library, gnutls_hmac_output, W32_PFN_gnutls_hmac_output, (*fn_gnutls_hmac_output.as_mut_ptr ()), c"gnutls_hmac_output"); }
   #[cfg (feature = "have_gnutls3")]
-  { LOAD_DLL_FN! (library, gnutls_hash_init, W32_PFN_gnutls_hash_init, fn_gnutls_hash_init, c"gnutls_hash_init"); }
+  { LOAD_DLL_FN! (library, gnutls_hash_init, W32_PFN_gnutls_hash_init, (*fn_gnutls_hash_init.as_mut_ptr ()), c"gnutls_hash_init"); }
   #[cfg (feature = "have_gnutls3")]
-  { LOAD_DLL_FN! (library, gnutls_hash_get_len, W32_PFN_gnutls_hash_get_len, fn_gnutls_hash_get_len, c"gnutls_hash_get_len"); }
+  { LOAD_DLL_FN! (library, gnutls_hash_get_len, W32_PFN_gnutls_hash_get_len, (*fn_gnutls_hash_get_len.as_mut_ptr ()), c"gnutls_hash_get_len"); }
   #[cfg (feature = "have_gnutls3")]
-  { LOAD_DLL_FN! (library, gnutls_hash, W32_PFN_gnutls_hash, fn_gnutls_hash, c"gnutls_hash"); }
+  { LOAD_DLL_FN! (library, gnutls_hash, W32_PFN_gnutls_hash, (*fn_gnutls_hash.as_mut_ptr ()), c"gnutls_hash"); }
   #[cfg (feature = "have_gnutls3")]
-  { LOAD_DLL_FN! (library, gnutls_hash_deinit, W32_PFN_gnutls_hash_deinit, fn_gnutls_hash_deinit, c"gnutls_hash_deinit"); }
+  { LOAD_DLL_FN! (library, gnutls_hash_deinit, W32_PFN_gnutls_hash_deinit, (*fn_gnutls_hash_deinit.as_mut_ptr ()), c"gnutls_hash_deinit"); }
   #[cfg (feature = "have_gnutls3")]
-  { LOAD_DLL_FN! (library, gnutls_hash_output, W32_PFN_gnutls_hash_output, fn_gnutls_hash_output, c"gnutls_hash_output"); }
+  { LOAD_DLL_FN! (library, gnutls_hash_output, W32_PFN_gnutls_hash_output, (*fn_gnutls_hash_output.as_mut_ptr ()), c"gnutls_hash_output"); }
   #[cfg (feature = "have_gnutls3", feature = "have_gnutls_ext_get_name")]
-  { LOAD_DLL_FN! (library, gnutls_ext_get_name, W32_PFN_gnutls_ext_get_name, fn_gnutls_ext_get_name, c"gnutls_ext_get_name"); }
+  { LOAD_DLL_FN! (library, gnutls_ext_get_name, W32_PFN_gnutls_ext_get_name, (*fn_gnutls_ext_get_name.as_mut_ptr ()), c"gnutls_ext_get_name"); }
 
   /* gnutls_free is a variable inside GnuTLS, whose value is the
      "free" function.  So it needs special handling.  */
-  gnutls_free_func
+  (*gnutls_free_func.as_mut_ptr ())
     = GetProcAddress (library, c"gnutls_free".as_ptr ()) as *mut gnutls_free_function;
-  if gnutls_free_func.is_null ()
+  if (*gnutls_free_func.as_mut_ptr ()).is_null ()
     { return false; }
 
-  max_log_level = clip_to_bounds (INT_MIN as isize, global_gnutls_log_level as isize,
+  max_log_level = clip_to_bounds (INT_MIN as isize, (*global_gnutls_log_level.as_mut_ptr ()) as isize,
                                   INT_MAX as isize) as c_int;
   {
     let name: Lisp_Object = CAR_SAFE (Fget (Qgnutls (), QCloaded_from ()));
@@ -1257,7 +1257,7 @@ unsafe extern "C" fn gnutls_audit_log_function (session: gnutls_session_t, strin
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  if global_gnutls_log_level >= 1
+  if (*global_gnutls_log_level.as_mut_ptr ()) >= 1
     {
       message (c"gnutls.c: [audit] %s".as_ptr (), string);
     }
@@ -1320,7 +1320,7 @@ pub unsafe extern "C-unwind" fn gnutls_try_handshake (proc_: *mut Lisp_Process) 
       #[cfg (not (feature = "windowsnt"))]
       { ret = gnutls_handshake (state); }
       #[cfg (feature = "windowsnt")]
-      { ret = (fn_gnutls_handshake.unwrap ()) (state); }
+      { ret = ((*fn_gnutls_handshake.as_mut_ptr ()).unwrap ()) (state); }
       if !(ret < 0)
 	{ break; }
       if emacs_gnutls_handle_error (state, ret) == 0   /* fatal */
@@ -1401,11 +1401,11 @@ unsafe fn emacs_gnutls_handshake (proc_: *mut Lisp_Process) -> c_int
 	/* On W32 we cannot transfer socket handles between different runtime
 	   libraries, so we tell GnuTLS to use our special push/pull
 	   functions.  */
-	(fn_gnutls_transport_set_ptr2.unwrap ()) (state,
+	((*fn_gnutls_transport_set_ptr2.as_mut_ptr ()).unwrap ()) (state,
 						  proc_ as gnutls_transport_ptr_t,
 						  proc_ as gnutls_transport_ptr_t);
-	(fn_gnutls_transport_set_push_function.unwrap ()) (state, Some (emacs_gnutls_push));
-	(fn_gnutls_transport_set_pull_function.unwrap ()) (state, Some (emacs_gnutls_pull));
+	((*fn_gnutls_transport_set_push_function.as_mut_ptr ()).unwrap ()) (state, Some (emacs_gnutls_push));
+	((*fn_gnutls_transport_set_pull_function.as_mut_ptr ()).unwrap ()) (state, Some (emacs_gnutls_pull));
       }
       #[cfg (not (feature = "windowsnt"))]
       {
@@ -1436,7 +1436,7 @@ pub unsafe extern "C-unwind" fn emacs_gnutls_record_check_pending (state: gnutls
   #[cfg (not (feature = "windowsnt"))]
   { return gnutls_record_check_pending (state) as ptrdiff_t; }
   #[cfg (feature = "windowsnt")]
-  { return (fn_gnutls_record_check_pending.unwrap ()) (state) as ptrdiff_t; }
+  { return ((*fn_gnutls_record_check_pending.as_mut_ptr ()).unwrap ()) (state) as ptrdiff_t; }
 
   }
 }
@@ -1447,7 +1447,7 @@ pub unsafe extern "C-unwind" fn emacs_gnutls_record_check_pending (state: gnutls
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn emacs_gnutls_transport_set_errno (state: gnutls_session_t, err: c_int)
 {
-  (fn_gnutls_transport_set_errno.unwrap ()) (state, err);
+  ((*fn_gnutls_transport_set_errno.as_mut_ptr ()).unwrap ()) (state, err);
 }
 
 /// C 743-770: `emacs_gnutls_write`.
@@ -1478,7 +1478,7 @@ pub unsafe extern "C-unwind" fn emacs_gnutls_write (proc_: *mut Lisp_Process, bu
 	  #[cfg (not (feature = "windowsnt"))]
 	  { rtnval = gnutls_record_send (state, buf_ as *const c_void, nbyte as size_t); }
 	  #[cfg (feature = "windowsnt")]
-	  { rtnval = (fn_gnutls_record_send.unwrap ()) (state, buf_ as *const c_void,
+	  { rtnval = ((*fn_gnutls_record_send.as_mut_ptr ()).unwrap ()) (state, buf_ as *const c_void,
 							nbyte as size_t); }
 	  if rtnval != GNUTLS_E_INTERRUPTED as ssize_t
 	    { break; }
@@ -1522,7 +1522,7 @@ pub unsafe extern "C-unwind" fn emacs_gnutls_read (proc_: *mut Lisp_Process, buf
       #[cfg (not (feature = "windowsnt"))]
       { rtnval = gnutls_record_recv (state, buf_ as *mut c_void, nbyte as size_t); }
       #[cfg (feature = "windowsnt")]
-      { rtnval = (fn_gnutls_record_recv.unwrap ()) (state, buf_ as *mut c_void, nbyte as size_t); }
+      { rtnval = ((*fn_gnutls_record_recv.as_mut_ptr ()).unwrap ()) (state, buf_ as *mut c_void, nbyte as size_t); }
       if rtnval != GNUTLS_E_INTERRUPTED as ssize_t
 	{ break; }
     }
@@ -1547,7 +1547,7 @@ unsafe fn emacs_gnutls_strerror (err: c_int) -> *const c_char
   #[cfg (not (feature = "windowsnt"))]
   let str_: *const c_char = gnutls_strerror (err);
   #[cfg (feature = "windowsnt")]
-  let str_: *const c_char = (fn_gnutls_strerror.unwrap ()) (err);
+  let str_: *const c_char = ((*fn_gnutls_strerror.as_mut_ptr ()).unwrap ()) (err);
   return if !str_.is_null () { str_ } else { c"unknown".as_ptr () };
 
   }
@@ -1574,7 +1574,7 @@ unsafe fn emacs_gnutls_handle_error (session: gnutls_session_t, err: c_int) -> c
   check_memory_full (err);
 
   let max_log_level: c_int
-    = clip_to_bounds (INT_MIN as isize, global_gnutls_log_level as isize,
+    = clip_to_bounds (INT_MIN as isize, (*global_gnutls_log_level.as_mut_ptr ()) as isize,
 		      INT_MAX as isize) as c_int;
 
   /* TODO: use gnutls-error-fatalp and gnutls-error-string.  */
@@ -1585,7 +1585,7 @@ unsafe fn emacs_gnutls_handle_error (session: gnutls_session_t, err: c_int) -> c
   #[cfg (not (feature = "windowsnt"))]
   let fatal: c_int = gnutls_error_is_fatal (err);
   #[cfg (feature = "windowsnt")]
-  let fatal: c_int = (fn_gnutls_error_is_fatal.unwrap ()) (err);
+  let fatal: c_int = ((*fn_gnutls_error_is_fatal.as_mut_ptr ()).unwrap ()) (err);
 
   if fatal != 0
     {
@@ -1648,12 +1648,12 @@ unsafe fn emacs_gnutls_handle_error (session: gnutls_session_t, err: c_int) -> c
       #[cfg (not (feature = "windowsnt"))]
       let alert: c_int = gnutls_alert_get (session) as c_int;
       #[cfg (feature = "windowsnt")]
-      let alert: c_int = (fn_gnutls_alert_get.unwrap ()) (session);
+      let alert: c_int = ((*fn_gnutls_alert_get.as_mut_ptr ()).unwrap ()) (session);
       let level: c_int = if err == GNUTLS_E_FATAL_ALERT_RECEIVED { 0 } else { 1 };
       #[cfg (not (feature = "windowsnt"))]
       { str_ = gnutls_alert_get_name (alert as gnutls_alert_description_t); }
       #[cfg (feature = "windowsnt")]
-      { str_ = (fn_gnutls_alert_get_name.unwrap ()) (alert); }
+      { str_ = ((*fn_gnutls_alert_get_name.as_mut_ptr ()).unwrap ()) (alert); }
       if str_.is_null ()
 	{ str_ = c"unknown".as_ptr (); }
 
@@ -1740,7 +1740,7 @@ pub unsafe extern "C-unwind" fn emacs_gnutls_deinit (proc_: Lisp_Object) -> Lisp
       #[cfg (not (feature = "windowsnt"))]
       { gnutls_certificate_free_credentials ((*XPROCESS (proc_)).gnutls_x509_cred); }
       #[cfg (feature = "windowsnt")]
-      { (fn_gnutls_certificate_free_credentials.unwrap ()) ((*XPROCESS (proc_)).gnutls_x509_cred); }
+      { ((*fn_gnutls_certificate_free_credentials.as_mut_ptr ()).unwrap ()) ((*XPROCESS (proc_)).gnutls_x509_cred); }
       (*XPROCESS (proc_)).gnutls_x509_cred = std::ptr::null_mut ();
     }
 
@@ -1750,7 +1750,7 @@ pub unsafe extern "C-unwind" fn emacs_gnutls_deinit (proc_: Lisp_Object) -> Lisp
       #[cfg (not (feature = "windowsnt"))]
       { gnutls_anon_free_client_credentials ((*XPROCESS (proc_)).gnutls_anon_cred); }
       #[cfg (feature = "windowsnt")]
-      { (fn_gnutls_anon_free_client_credentials.unwrap ()) ((*XPROCESS (proc_)).gnutls_anon_cred); }
+      { ((*fn_gnutls_anon_free_client_credentials.as_mut_ptr ()).unwrap ()) ((*XPROCESS (proc_)).gnutls_anon_cred); }
       (*XPROCESS (proc_)).gnutls_anon_cred = std::ptr::null_mut ();
     }
 
@@ -1759,7 +1759,7 @@ pub unsafe extern "C-unwind" fn emacs_gnutls_deinit (proc_: Lisp_Object) -> Lisp
       #[cfg (not (feature = "windowsnt"))]
       { gnutls_deinit ((*XPROCESS (proc_)).gnutls_state); }
       #[cfg (feature = "windowsnt")]
-      { (fn_gnutls_deinit.unwrap ()) ((*XPROCESS (proc_)).gnutls_state); }
+      { ((*fn_gnutls_deinit.as_mut_ptr ()).unwrap ()) ((*XPROCESS (proc_)).gnutls_state); }
       (*XPROCESS (proc_)).gnutls_state = std::ptr::null_mut ();
       if GNUTLS_INITSTAGE (proc_) >= GNUTLS_STAGE_INIT
 	{ (*XPROCESS (proc_)).gnutls_initstage = GNUTLS_STAGE_INIT - 1; }
@@ -1841,7 +1841,7 @@ DEFUN! ("gnutls-error-fatalp", Fgnutls_error_fatalp, Sgnutls_error_fatalp, 1, 1,
   #[cfg (not (feature = "windowsnt"))]
   let is_fatal: c_int = gnutls_error_is_fatal (XFIXNUM (err) as c_int);
   #[cfg (feature = "windowsnt")]
-  let is_fatal: c_int = (fn_gnutls_error_is_fatal.unwrap ()) (XFIXNUM (err) as c_int);
+  let is_fatal: c_int = ((*fn_gnutls_error_is_fatal.as_mut_ptr ()).unwrap ()) (XFIXNUM (err) as c_int);
   if 0 == is_fatal
     { return Qnil (); }
 
@@ -1941,7 +1941,7 @@ unsafe fn emacs_gnutls_certificate_export_pem (cert: gnutls_x509_crt_t) -> Lisp_
 					       std::ptr::null_mut (), &raw mut size);
   #[cfg (feature = "windowsnt")]
   let mut err: c_int
-    = (fn_gnutls_x509_crt_export.unwrap ()) (cert, GNUTLS_X509_FMT_PEM,
+    = ((*fn_gnutls_x509_crt_export.as_mut_ptr ()).unwrap ()) (cert, GNUTLS_X509_FMT_PEM,
 					     std::ptr::null_mut (), &raw mut size);
   check_memory_full (err);
 
@@ -1953,7 +1953,7 @@ unsafe fn emacs_gnutls_certificate_export_pem (cert: gnutls_x509_crt_t) -> Lisp_
       { err = gnutls_x509_crt_export (cert, GNUTLS_X509_FMT_PEM, buf as *mut c_void,
 				      &raw mut size); }
       #[cfg (feature = "windowsnt")]
-      { err = (fn_gnutls_x509_crt_export.unwrap ()) (cert, GNUTLS_X509_FMT_PEM,
+      { err = ((*fn_gnutls_x509_crt_export.as_mut_ptr ()).unwrap ()) (cert, GNUTLS_X509_FMT_PEM,
 						     buf as *mut c_void, &raw mut size); }
       check_memory_full (err);
 
@@ -2264,9 +2264,9 @@ unsafe fn emacs_gnutls_global_init() -> Lisp_Object {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
   let mut result = GNUTLS_E_SUCCESS;
-  if !gnutls_global_initialized {
+  if !(*gnutls_global_initialized.as_mut_ptr ()) {
     result = gnutls_global_init();
-    if result == GNUTLS_E_SUCCESS { gnutls_global_initialized = true; }
+    if result == GNUTLS_E_SUCCESS { (*gnutls_global_initialized.as_mut_ptr ()) = true; }
   }
   gnutls_make_error(result)
 
@@ -2307,7 +2307,7 @@ mod gnutls_allocator {
   // The library exports a data symbol containing its current non-null free
   // callback. It is not a directly exported function with this name.
   unsafe extern "C" {
-    pub static mut gnutls_free: unsafe extern "C" fn(*mut c_void);
+    pub static gnutls_free: VmGlobal<unsafe extern "C" fn(*mut c_void)>;
   }
 }
 
@@ -2338,7 +2338,7 @@ DEFUN! ("gnutls-format-certificate", Fgnutls_format_certificate,
     error(c"gnutls-format-certificate error: %s".as_ptr(), emacs_gnutls_strerror(err));
   }
   let result = make_unibyte_string(output.data.cast(), output.size as ptrdiff_t);
-  (gnutls_allocator::gnutls_free)(output.data.cast());
+  (*gnutls_allocator::gnutls_free.as_ptr())(output.data.cast());
   gnutls_x509_crt_deinit(crt);
   result
 });
@@ -2739,7 +2739,7 @@ unsafe fn gnutls_symmetric_aead(encrypting: bool, gca: gnutls_cipher_algorithm_t
 }
 
 #[cfg(all(feature = "have_gnutls3", not(feature = "windowsnt")))]
-static mut cipher_cache: Lisp_Object = lisp_h_Qnil();
+static cipher_cache: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil());
 
 // Original compatibility definitions for library versions predating these APIs.
 #[cfg(all(feature = "have_gnutls3", not(feature = "windowsnt"), not(feature = "have_gnutls_cipher_get_iv_size")))]
@@ -2770,8 +2770,8 @@ unsafe fn gnutls_symmetric(encrypting: bool, mut cipher: Lisp_Object,
   let mut info = Qnil();
   if STRINGP(cipher) { cipher = intern(SSDATA(cipher)); }
   if SYMBOLP(cipher) {
-    if NILP(cipher_cache) { cipher_cache = Fgnutls_ciphers(); }
-    info = Fassq(cipher, cipher_cache);
+    if NILP((*cipher_cache.as_mut_ptr ())) { (*cipher_cache.as_mut_ptr ()) = Fgnutls_ciphers(); }
+    info = Fassq(cipher, (*cipher_cache.as_mut_ptr ()));
     if !CONSP(info) { xsignal2(Qerror(), build_string(c"GnuTLS cipher is invalid or not found".as_ptr()), cipher); }
     info = XCDR(info);
   } else if TYPE_RANGED_FIXNUMP(c_int::MIN as EMACS_INT, cipher, c_int::MAX as EMACS_INT) {
@@ -2994,7 +2994,7 @@ DEFUN!("gnutls-hash-digest", Fgnutls_hash_digest, Sgnutls_hash_digest, 2, 2, 0,
 // `include/globals.rs` mirrors the names as declarations, so the unit that owns one defines it
 // here (status 3.29, the callint.rs shape).
 #[unsafe(no_mangle)]
-pub static mut Vlibgnutls_version: Lisp_Object = lisp_h_Qnil ();
+pub static Vlibgnutls_version: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 DEFUN! ("gnutls-available-p", Fgnutls_available_p, Sgnutls_available_p, 0, 0, 0,
        doc: "Return list of capabilities if GnuTLS is available in this instance of Emacs.\n\n...if supported         : then...\nGnuTLS 3 or higher      : the list will contain `gnutls3'.\nGnuTLS MACs             : the list will contain `macs'.\nGnuTLS digests          : the list will contain `digests'.\nGnuTLS symmetric ciphers: the list will contain `ciphers'.\nGnuTLS AEAD ciphers     : the list will contain `AEAD-ciphers'.\n%DUMBFW                 : the list will contain `ClientHello\\ Padding'.\nAny GnuTLS extension with ID up to 100\n                        : the list will contain its name.  ",
@@ -3037,12 +3037,12 @@ pub unsafe extern "C-unwind" fn syms_of_gnutls ()
   DEFVAR_LISP! (c"libgnutls-version", Vlibgnutls_version,
 		"The version of libgnutls that Emacs was compiled with.\nThe version number is encoded as an integer with the major version in\nthe ten thousands place, minor version in the hundreds, and patch\nlevel in the ones.  For builds without libgnutls, the value is -1.");
   #[cfg(feature = "have_gnutls")]
-  { Vlibgnutls_version = make_fixnum(GNUTLS_COMPILED_VERSION as EMACS_INT); }
+  { (*Vlibgnutls_version.as_mut_ptr ()) = make_fixnum(GNUTLS_COMPILED_VERSION as EMACS_INT); }
   #[cfg(not(feature = "have_gnutls"))]
-  { Vlibgnutls_version = make_fixnum(-1); }
+  { (*Vlibgnutls_version.as_mut_ptr ()) = make_fixnum(-1); }
   #[cfg(all(feature = "have_gnutls", not(feature = "windowsnt")))]
   {
-    gnutls_global_initialized = false;
+    (*gnutls_global_initialized.as_mut_ptr ()) = false;
     PDUMPER_IGNORE!(gnutls_global_initialized);
   DEFSYM!(Qgnutls_code, "gnutls-code");
   DEFSYM!(Qgnutls_anon, "gnutls-anon");
@@ -3104,35 +3104,35 @@ pub unsafe extern "C-unwind" fn syms_of_gnutls ()
     Fput(Qgnutls_e_invalid_session(), Qgnutls_code(), make_fixnum(GNUTLS_E_INVALID_SESSION as EMACS_INT));
     DEFSYM!(Qgnutls_e_not_ready_for_handshake, "gnutls-e-not-ready-for-handshake");
     Fput(Qgnutls_e_not_ready_for_handshake(), Qgnutls_code(), make_fixnum(GNUTLS_E_APPLICATION_ERROR_MIN as EMACS_INT));
-    defsubr(&raw mut Sgnutls_get_initstage);
-    defsubr(&raw mut Sgnutls_asynchronous_parameters);
-    defsubr(&raw mut Sgnutls_errorp);
-    defsubr(&raw mut Sgnutls_error_fatalp);
-    defsubr(&raw mut Sgnutls_error_string);
-    defsubr(&raw mut Sgnutls_boot);
-    defsubr(&raw mut Sgnutls_deinit);
-    defsubr(&raw mut Sgnutls_bye);
-    defsubr(&raw mut Sgnutls_peer_status);
-    defsubr(&raw mut Sgnutls_peer_status_warning_describe);
-    defsubr(&raw mut Sgnutls_format_certificate);
+    defsubr(Sgnutls_get_initstage.as_mut_ptr ());
+    defsubr(Sgnutls_asynchronous_parameters.as_mut_ptr ());
+    defsubr(Sgnutls_errorp.as_mut_ptr ());
+    defsubr(Sgnutls_error_fatalp.as_mut_ptr ());
+    defsubr(Sgnutls_error_string.as_mut_ptr ());
+    defsubr(Sgnutls_boot.as_mut_ptr ());
+    defsubr(Sgnutls_deinit.as_mut_ptr ());
+    defsubr(Sgnutls_bye.as_mut_ptr ());
+    defsubr(Sgnutls_peer_status.as_mut_ptr ());
+    defsubr(Sgnutls_peer_status_warning_describe.as_mut_ptr ());
+    defsubr(Sgnutls_format_certificate.as_mut_ptr ());
     #[cfg(feature = "have_gnutls3")]
     {
-      defsubr(&raw mut Sgnutls_ciphers);
-      defsubr(&raw mut Sgnutls_macs);
-      defsubr(&raw mut Sgnutls_digests);
-      defsubr(&raw mut Sgnutls_hash_mac);
-      defsubr(&raw mut Sgnutls_hash_digest);
-      defsubr(&raw mut Sgnutls_symmetric_encrypt);
-      defsubr(&raw mut Sgnutls_symmetric_decrypt);
-      cipher_cache = Qnil();
-      staticpro(&raw mut cipher_cache);
+      defsubr(Sgnutls_ciphers.as_mut_ptr ());
+      defsubr(Sgnutls_macs.as_mut_ptr ());
+      defsubr(Sgnutls_digests.as_mut_ptr ());
+      defsubr(Sgnutls_hash_mac.as_mut_ptr ());
+      defsubr(Sgnutls_hash_digest.as_mut_ptr ());
+      defsubr(Sgnutls_symmetric_encrypt.as_mut_ptr ());
+      defsubr(Sgnutls_symmetric_decrypt.as_mut_ptr ());
+      (*cipher_cache.as_mut_ptr ()) = Qnil();
+      staticpro(cipher_cache.as_mut_ptr ());
     }
     DEFVAR_INT!(c"gnutls-log-level", global_gnutls_log_level,
       "Logging level used by the GnuTLS functions.\nSet this larger than 0 to get debug output in the *Messages* buffer.\n1 is for important messages, 2 is for debug data, and higher numbers\nare as per the GnuTLS logging conventions.");
-    global_gnutls_log_level = 0;
+    (*global_gnutls_log_level.as_mut_ptr ()) = 0;
   }
 
-  defsubr (&raw mut Sgnutls_available_p);
+  defsubr (Sgnutls_available_p.as_mut_ptr ());
 
   DEFSYM! (QAEAD_ciphers, "AEAD-ciphers");
   DEFSYM! (QCcertificate, ":certificate");

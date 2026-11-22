@@ -286,9 +286,9 @@ pub mod cm_globals {
     pub fn evalcost (c: c_int) -> c_int;
   }
   unsafe extern "C-unwind" {
-    pub static mut cost: c_int;
+    pub static cost: VmGlobal<c_int>;
 
-    pub static mut current_tty: *mut tty_display_info;
+    pub static current_tty: VmGlobal<*mut tty_display_info>;
   }
 }
 
@@ -319,6 +319,6 @@ pub use self::cm_externs::*;
 // `tputs` (tparam.rs), so the expansion wraps it in `Some`.
 macro_rules! emacs_tputs {
   ($tty:expr, $str:expr, $affcnt:expr, $putc:expr) => {
-    { current_tty = ($tty); tputs ($str, $affcnt, Some ($putc)) }
+    { (*current_tty.as_mut_ptr ()) = ($tty); tputs ($str, $affcnt, Some ($putc)) }
   };
 }

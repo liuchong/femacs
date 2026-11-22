@@ -531,7 +531,7 @@ unsafe extern "C-unwind" {
 macro_rules! DEFAULT_ENCODING { () => { Qiso8859_1 () }; }
 
 /* Vector of Vfont_weight_table, Vfont_slant_table, and Vfont_width_table. */
-static mut font_style_table: Lisp_Object = lisp_h_Qnil ();
+static font_style_table: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* Structure used for tables mapping weight, slant, and width numeric
    values and their names.  */
@@ -620,12 +620,12 @@ static width_table: [table_entry; 9] =
 
    The latter form means that the information for REGISTRY couldn't be
    retrieved.  */
-static mut font_charset_alist: Lisp_Object = lisp_h_Qnil ();
+static font_charset_alist: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* List of all font drivers.  Each font-backend (XXXfont.c) calls
    register_font_driver in syms_of_XXXfont to register its font-driver
    here.  */
-static mut font_driver_list: *mut font_driver_list = std::ptr::null_mut ();
+static font_driver_list: VmGlobal<*mut font_driver_list> = VmGlobal::<*mut font_driver_list>::new (std::ptr::null_mut ());
 
 #[cfg (enable_checking)]
 
@@ -645,7 +645,7 @@ pub unsafe extern "C-unwind" fn valid_font_driver (drv: *const font_driver) -> b
   let mut frame: Lisp_Object;
   let mut fdl: *mut font_driver_list;
 
-  fdl = font_driver_list;
+  fdl = (*font_driver_list.as_mut_ptr ());
   while !fdl.is_null ()
     {
       if (*fdl).driver == drv
@@ -819,7 +819,7 @@ pub unsafe extern "C-unwind" fn font_build_object (vectorsize: c_int, r#type: Li
    dropped (PORTING.md 0.1-12); their definitions follow.  */
 
 /* Number of registered font drivers.  */
-static mut num_font_drivers: c_int = 0;
+static num_font_drivers: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 
 /* Return a Lispy value of a font property value at STR and LEN bytes.
    If STR is "*", return nil.  If FORCE_SYMBOL, or if STR does not
@@ -877,7 +877,7 @@ pub unsafe extern "C-unwind" fn font_intern_prop (str_: *const c_char, len: ptrd
     }
 
   /* This code is similar to intern function from lread.c.  */
-  obarray = check_obarray (Vobarray);
+  obarray = check_obarray ((*Vobarray.as_mut_ptr ()));
   parse_str_as_multibyte (str_ as *const c_uchar, len, &mut nchars, &mut nbytes);
   tem = oblookup (obarray, str_,
 		  if len == nchars || len != nbytes { len } else { nchars }, len);
@@ -935,7 +935,7 @@ pub unsafe extern "C-unwind" fn font_style_to_value (prop: font_property_index, 
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  let table: Lisp_Object = AREF (font_style_table, (prop - FONT_WEIGHT_INDEX) as isize);
+  let table: Lisp_Object = AREF ((*font_style_table.as_mut_ptr ()), (prop - FONT_WEIGHT_INDEX) as isize);
   let mut len: c_int;
 
   CHECK_VECTOR (table);
@@ -995,12 +995,12 @@ pub unsafe extern "C-unwind" fn font_style_to_value (prop: font_property_index, 
 	 modified slot of font_style_table.  */
       match prop
 	{
-	  FONT_WEIGHT_INDEX => { Vfont_weight_table = new_table; }
-	  FONT_SLANT_INDEX => { Vfont_slant_table = new_table; }
-	  FONT_WIDTH_INDEX => { Vfont_width_table = new_table; }
+	  FONT_WEIGHT_INDEX => { (*Vfont_weight_table.as_mut_ptr ()) = new_table; }
+	  FONT_SLANT_INDEX => { (*Vfont_slant_table.as_mut_ptr ()) = new_table; }
+	  FONT_WIDTH_INDEX => { (*Vfont_width_table.as_mut_ptr ()) = new_table; }
 	  _ => { }
 	}
-      ASET (font_style_table, (prop - FONT_WEIGHT_INDEX) as isize, new_table);
+      ASET ((*font_style_table.as_mut_ptr ()), (prop - FONT_WEIGHT_INDEX) as isize, new_table);
       return (100 << 8) | (i << 4);
     }
   else
@@ -1051,7 +1051,7 @@ pub unsafe extern "C-unwind" fn font_style_symbolic (font: Lisp_Object, prop: fo
 
   if NILP (val)
     { return Qnil (); }
-  table = AREF (font_style_table, (prop - FONT_WEIGHT_INDEX) as isize);
+  table = AREF ((*font_style_table.as_mut_ptr ()), (prop - FONT_WEIGHT_INDEX) as isize);
   CHECK_VECTOR (table);
   i = XFIXNUM (val) as c_int & 0xFF;
   eassert! (((i >> 4) & 0xF) < ASIZE (table) as c_int);
@@ -1077,7 +1077,7 @@ pub unsafe extern "C-unwind" fn find_font_encoding (fontname: Lisp_Object) -> Li
   let mut tail: Lisp_Object;
   let mut elt: Lisp_Object;
 
-  tail = Vfont_encoding_alist;
+  tail = (*Vfont_encoding_alist.as_mut_ptr ());
   while CONSP (tail)
     {
       elt = XCAR (tail);
@@ -1112,7 +1112,7 @@ pub unsafe extern "C-unwind" fn font_registry_charsets (registry: Lisp_Object,
   let mut repertory_id: c_int;
 
   'block: {
-  val = Fassoc_string (registry, font_charset_alist, Qt ());
+  val = Fassoc_string (registry, (*font_charset_alist.as_mut_ptr ()), Qt ());
   if ! NILP (val)
     {
       val = XCDR (val);
@@ -1147,8 +1147,8 @@ pub unsafe extern "C-unwind" fn font_registry_charsets (registry: Lisp_Object,
 	{ break 'block; }
       val = Fcons (make_fixnum (encoding_id as EMACS_INT),
 		   make_fixnum (repertory_id as EMACS_INT));
-      font_charset_alist
-	= nconc2 (font_charset_alist, list1 (Fcons (registry, val)));
+      (*font_charset_alist.as_mut_ptr ())
+	= nconc2 ((*font_charset_alist.as_mut_ptr ()), list1 (Fcons (registry, val)));
     }
 
   if !encoding.is_null ()
@@ -1160,8 +1160,8 @@ pub unsafe extern "C-unwind" fn font_registry_charsets (registry: Lisp_Object,
   }
 
   /* invalid_entry: C's forward `goto` lands here (PORTING.md 2.2).  */
-  font_charset_alist
-    = nconc2 (font_charset_alist, list1 (Fcons (registry, Qnil ())));
+  (*font_charset_alist.as_mut_ptr ())
+    = nconc2 ((*font_charset_alist.as_mut_ptr ()), list1 (Fcons (registry, Qnil ())));
   return -1;
 
   }
@@ -1199,14 +1199,14 @@ unsafe extern "C-unwind" fn font_prop_validate_style (style: Lisp_Object, val: L
   if FIXNUMP (val)
     {
       let n: EMACS_INT = XFIXNUM (val);
-      CHECK_VECTOR (AREF (font_style_table, (prop - FONT_WEIGHT_INDEX) as isize));
+      CHECK_VECTOR (AREF ((*font_style_table.as_mut_ptr ()), (prop - FONT_WEIGHT_INDEX) as isize));
       if (((n >> 4) & 0xF) as isize
-	  >= ASIZE (AREF (font_style_table, (prop - FONT_WEIGHT_INDEX) as isize)))
+	  >= ASIZE (AREF ((*font_style_table.as_mut_ptr ()), (prop - FONT_WEIGHT_INDEX) as isize)))
 	{ val = Qerror (); }
       else
 	{
 	  let mut elt: Lisp_Object
-	    = AREF (AREF (font_style_table, (prop - FONT_WEIGHT_INDEX) as isize),
+	    = AREF (AREF ((*font_style_table.as_mut_ptr ()), (prop - FONT_WEIGHT_INDEX) as isize),
 		    ((n >> 4) & 0xF) as isize);
 
 	  CHECK_VECTOR (elt);
@@ -2701,7 +2701,7 @@ unsafe fn font_parse_fcname (name: *mut c_char, len: ptrdiff_t, font: Lisp_Objec
 
       if ! NILP (extra_props)
 	{
-	  let mut driver_list: *mut font_driver_list = font_driver_list;
+	  let mut driver_list: *mut font_driver_list = (*font_driver_list.as_mut_ptr ());
 	  while !driver_list.is_null ()
 	    {
 	      if (*((*driver_list).driver)).filter_properties.is_some ()
@@ -3053,7 +3053,7 @@ unsafe fn font_rescale_ratio (font_entity: Lisp_Object) -> c_double
   let mut elt: Lisp_Object;
   let mut name: Lisp_Object = Qnil ();
 
-  tail = Vface_font_rescale_alist;
+  tail = (*Vface_font_rescale_alist.as_mut_ptr ());
   while CONSP (tail)
     {
       elt = XCAR (tail);
@@ -3096,8 +3096,7 @@ unsafe fn font_rescale_ratio (font_entity: Lisp_Object) -> c_double
 /* How many bits to shift to store the difference value of each font
    property in a score.  Note that floats for FONT_TYPE_INDEX and
    FONT_REGISTRY_INDEX are not used.  */
-static mut sort_shift_bits: [c_int; FONT_SIZE_INDEX as usize + 1]
-  = [0; FONT_SIZE_INDEX as usize + 1];
+static sort_shift_bits: VmGlobal<[c_int; FONT_SIZE_INDEX as usize + 1]> = VmGlobal::<[c_int; FONT_SIZE_INDEX as usize + 1]>::new ([0; FONT_SIZE_INDEX as usize + 1]);
 
 /* Score font-entity ENTITY against properties of font-spec SPEC_PROP.
    The return value indicates how different ENTITY is compared with
@@ -3120,7 +3119,7 @@ unsafe fn font_score (entity: Lisp_Object, spec_prop: *mut Lisp_Object) -> c_uin
 	{
 	  let diff: EMACS_INT = (XFIXNUM (AREF (entity, i as isize)) >> 8)
 				- (XFIXNUM (*spec_prop.offset (i as isize)) >> 8);
-	  score |= (min (eabs! (diff), 127) as c_uint) << sort_shift_bits[i as usize];
+	  score |= (min (eabs! (diff), 127) as c_uint) << (*sort_shift_bits.as_mut_ptr ())[i as usize];
 	}
       i += 1;
     }
@@ -3135,7 +3134,7 @@ unsafe fn font_score (entity: Lisp_Object, spec_prop: *mut Lisp_Object) -> c_uin
       let mut pixel_size: EMACS_INT = XFIXNUM (*spec_prop.offset (FONT_SIZE_INDEX as isize));
       let entity_size: EMACS_INT = XFIXNUM (AREF (entity, FONT_SIZE_INDEX as isize));
 
-      if CONSP (Vface_font_rescale_alist)
+      if CONSP ((*Vface_font_rescale_alist.as_mut_ptr ()))
 	{ pixel_size *= font_rescale_ratio (entity) as EMACS_INT; }
       if pixel_size * 2 < entity_size || entity_size * 2 < pixel_size
 	/* This size is wrong by more than a factor 2: reject it!  */
@@ -3149,7 +3148,7 @@ unsafe fn font_score (entity: Lisp_Object, spec_prop: *mut Lisp_Object) -> c_uin
 	  && ! EQ (*spec_prop.offset (FONT_AVGWIDTH_INDEX as isize),
 		   AREF (entity, FONT_AVGWIDTH_INDEX as isize))
 	{ diff |= 1; }
-      score |= (min (diff, 127) as c_uint) << sort_shift_bits[FONT_SIZE_INDEX as usize];
+      score |= (min (diff, 127) as c_uint) << (*sort_shift_bits.as_mut_ptr ())[FONT_SIZE_INDEX as usize];
     }
 
   return score;
@@ -3376,13 +3375,13 @@ pub unsafe extern "C-unwind" fn font_update_sort_order (order: *mut c_int)
       let xlfd_idx: c_int = *order.offset (i as isize);
 
       if xlfd_idx == XLFD_WEIGHT_INDEX
-	{ sort_shift_bits[FONT_WEIGHT_INDEX as usize] = shift_bits; }
+	{ (*sort_shift_bits.as_mut_ptr ())[FONT_WEIGHT_INDEX as usize] = shift_bits; }
       else if xlfd_idx == XLFD_SLANT_INDEX
-	{ sort_shift_bits[FONT_SLANT_INDEX as usize] = shift_bits; }
+	{ (*sort_shift_bits.as_mut_ptr ())[FONT_SLANT_INDEX as usize] = shift_bits; }
       else if xlfd_idx == XLFD_SWIDTH_INDEX
-	{ sort_shift_bits[FONT_WIDTH_INDEX as usize] = shift_bits; }
+	{ (*sort_shift_bits.as_mut_ptr ())[FONT_WIDTH_INDEX as usize] = shift_bits; }
       else
-	{ sort_shift_bits[FONT_SIZE_INDEX as usize] = shift_bits; }
+	{ (*sort_shift_bits.as_mut_ptr ())[FONT_SIZE_INDEX as usize] = shift_bits; }
       i += 1;
       shift_bits -= 7;
     }
@@ -3511,7 +3510,7 @@ pub unsafe extern "C-unwind" fn font_match_p (spec: Lisp_Object, font: Lisp_Obje
 	  i += 1;
 	}
       prop[FONT_SIZE_INDEX as usize]
-	= make_fixnum (font_pixel_size (XFRAME (selected_frame), spec) as EMACS_INT);
+	= make_fixnum (font_pixel_size (XFRAME ((*selected_frame.as_mut_ptr ())), spec) as EMACS_INT);
       props = prop.as_mut_ptr ();
     }
 
@@ -3550,7 +3549,7 @@ pub unsafe extern "C-unwind" fn font_match_p (spec: Lisp_Object, font: Lisp_Obje
 	}
       else if EQ (key, QCscript ())
 	{
-	  val2 = assq_no_quit (val, Vscript_representative_chars);
+	  val2 = assq_no_quit (val, (*Vscript_representative_chars.as_mut_ptr ()));
 	  if CONSP (val2)
 	    {
 	      val2 = XCDR (val2);
@@ -3785,7 +3784,7 @@ pub unsafe extern "C-unwind" fn font_is_ignored (name: *const c_char, namelen: p
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  let mut tail: Lisp_Object = Vface_ignored_fonts;
+  let mut tail: Lisp_Object = (*Vface_ignored_fonts.as_mut_ptr ());
   let mut regexp: Lisp_Object;
 
   FOR_EACH_TAIL_SAFE! (tail, {
@@ -3798,8 +3797,8 @@ pub unsafe extern "C-unwind" fn font_is_ignored (name: *const c_char, namelen: p
 
   }
 }
-static mut scratch_font_spec: Lisp_Object = lisp_h_Qnil ();
-static mut scratch_font_prefer: Lisp_Object = lisp_h_Qnil ();
+static scratch_font_spec: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+static scratch_font_prefer: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* Check each font-entity in VEC, and return a list of font-entities
    that satisfy these conditions:
@@ -3822,7 +3821,7 @@ unsafe fn font_delete_unmatched (vec: Lisp_Object, spec: Lisp_Object, size: c_in
   while i >= 0
     {
       entity = AREF (vec, i);
-      if ! NILP (Vface_ignored_fonts)
+      if ! NILP ((*Vface_ignored_fonts.as_mut_ptr ()))
 	{
 	  let mut name: [c_char; 256] = [0; 256];
 	  let mut xlfd: *mut c_char;
@@ -3962,7 +3961,7 @@ pub unsafe extern "C-unwind" fn font_list_entities (f: *mut frame, spec: Lisp_Ob
   i = FONT_FOUNDRY_INDEX;
   while i <= FONT_REGISTRY_INDEX
     {
-      ASET (scratch_font_spec, i as isize, AREF (spec, i as isize));
+      ASET ((*scratch_font_spec.as_mut_ptr ()), i as isize, AREF (spec, i as isize));
       i += 1;
     }
   i = FONT_WEIGHT_INDEX;
@@ -3970,15 +3969,15 @@ pub unsafe extern "C-unwind" fn font_list_entities (f: *mut frame, spec: Lisp_Ob
     {
       if i != FONT_SPACING_INDEX
 	{
-	  ASET (scratch_font_spec, i as isize, Qnil ());
+	  ASET ((*scratch_font_spec.as_mut_ptr ()), i as isize, Qnil ());
 	  if ! NILP (AREF (spec, i as isize))
 	    { need_filtering = true; }
 	}
       i += 1;
     }
-  ASET (scratch_font_spec, FONT_SPACING_INDEX as isize,
+  ASET ((*scratch_font_spec.as_mut_ptr ()), FONT_SPACING_INDEX as isize,
 	AREF (spec, FONT_SPACING_INDEX as isize));
-  ASET (scratch_font_spec, FONT_EXTRA_INDEX as isize,
+  ASET ((*scratch_font_spec.as_mut_ptr ()), FONT_EXTRA_INDEX as isize,
 	AREF (spec, FONT_EXTRA_INDEX as isize));
 
   while !driver_list.is_null ()
@@ -3988,32 +3987,32 @@ pub unsafe extern "C-unwind" fn font_list_entities (f: *mut frame, spec: Lisp_Ob
 	{
 	  let cache: Lisp_Object = font_get_cache (f, (*driver_list).driver);
 
-	  ASET (scratch_font_spec, FONT_TYPE_INDEX as isize,
+	  ASET ((*scratch_font_spec.as_mut_ptr ()), FONT_TYPE_INDEX as isize,
 		(*((*driver_list).driver)).r#type);
-	  val = assoc_no_quit (scratch_font_spec, XCDR (cache));
+	  val = assoc_no_quit ((*scratch_font_spec.as_mut_ptr ()), XCDR (cache));
 	  if CONSP (val)
 	    { val = XCDR (val); }
 	  else
 	    {
 	      let copy: Lisp_Object;
 
-	      val = (((*(*driver_list).driver)).list.unwrap ()) (f as *mut c_void, scratch_font_spec);
+	      val = (((*(*driver_list).driver)).list.unwrap ()) (f as *mut c_void, (*scratch_font_spec.as_mut_ptr ()));
 	      /* We put zero_vector in the font-cache to indicate that
 		 no fonts matching SPEC were found on the system.
 		 Failure to have this indication in the font cache can
 		 cause severe performance degradation in some rare
 		 cases, see bug#21028.  */
 	      if NILP (val)
-		{ val = zero_vector; }
+		{ val = (*zero_vector.as_mut_ptr ()); }
 	      else
 		{ val = Fvconcat (1, &mut val); }
-	      copy = copy_font_spec (scratch_font_spec);
+	      copy = copy_font_spec ((*scratch_font_spec.as_mut_ptr ()));
 	      ASET (copy, FONT_TYPE_INDEX as isize, (*((*driver_list).driver)).r#type);
 	      XSETCDR (cache, Fcons (Fcons (copy, val), XCDR (cache)));
 	    }
 	  if ASIZE (val) > 0
 	      && (need_filtering
-		  || ! NILP (Vface_ignored_fonts))
+		  || ! NILP ((*Vface_ignored_fonts.as_mut_ptr ())))
 	    { val = font_delete_unmatched (val, if need_filtering { spec } else { Qnil () },
 					   size); }
 	  if ASIZE (val) > 0
@@ -4021,7 +4020,7 @@ pub unsafe extern "C-unwind" fn font_list_entities (f: *mut frame, spec: Lisp_Ob
 	      list = Fcons (val, list);
 	      /* Querying further backends can be very slow, so we only do
 		 it if the user has explicitly requested it (Bug#43177).  */
-	      if query_all_font_backends == false
+	      if (*query_all_font_backends.as_mut_ptr ()) == false
 		{ break; }
 	    }
 	}
@@ -4406,7 +4405,7 @@ unsafe fn font_select_entity (f: *mut frame, entities: Lisp_Object,
      them by properties specified in ATTRS.  Style attributes (weight,
      slant, width, and size) are taken from the font spec in ATTRS (if
      that is non-nil), or from ATTRS, or left as nil.  */
-  prefer = scratch_font_prefer;
+  prefer = (*scratch_font_prefer.as_mut_ptr ());
 
   i = FONT_WEIGHT_INDEX;
   while i <= FONT_SIZE_INDEX
@@ -4469,10 +4468,10 @@ pub unsafe extern "C-unwind" fn font_find_for_lface (f: *mut frame, attrs: *mut 
     {
       registry[0] = DEFAULT_ENCODING! ();
       registry[1] = Qascii_0 ();
-      registry[2] = zero_vector;
+      registry[2] = (*zero_vector.as_mut_ptr ());
     }
   else
-    { registry[1] = zero_vector; }
+    { registry[1] = (*zero_vector.as_mut_ptr ()); }
 
   if c >= 0 && ! NILP (AREF (spec, FONT_REGISTRY_INDEX as isize))
     {
@@ -4507,25 +4506,25 @@ pub unsafe extern "C-unwind" fn font_find_for_lface (f: *mut frame, attrs: *mut 
      least specific and finally an unspecified one.  */
   foundry[0] = AREF (work, FONT_FOUNDRY_INDEX as isize);
   if ! NILP (foundry[0])
-    { foundry[1] = zero_vector; }
+    { foundry[1] = (*zero_vector.as_mut_ptr ()); }
   else if STRINGP (*attrs.offset (LFACE_FOUNDRY_INDEX as isize))
     {
       val = *attrs.offset (LFACE_FOUNDRY_INDEX as isize);
       foundry[0] = font_intern_prop (SSDATA (val), SBYTES (val), true);
       foundry[1] = Qnil ();
-      foundry[2] = zero_vector;
+      foundry[2] = (*zero_vector.as_mut_ptr ());
     }
   else
     {
       foundry[0] = Qnil ();
-      foundry[1] = zero_vector;
+      foundry[1] = (*zero_vector.as_mut_ptr ());
     }
 
   /* Additional style specification alternatives: from the most
      specific to the least specific and finally an unspecified one.  */
   adstyle[0] = AREF (work, FONT_ADSTYLE_INDEX as isize);
   if ! NILP (adstyle[0])
-    { adstyle[1] = zero_vector; }
+    { adstyle[1] = (*zero_vector.as_mut_ptr ()); }
   else if FONTP (*attrs.offset (LFACE_FONT_INDEX as isize))
     {
       let face_font: Lisp_Object = *attrs.offset (LFACE_FONT_INDEX as isize);
@@ -4534,18 +4533,18 @@ pub unsafe extern "C-unwind" fn font_find_for_lface (f: *mut frame, attrs: *mut 
 	{
 	  adstyle[0] = AREF (face_font, FONT_ADSTYLE_INDEX as isize);
 	  adstyle[1] = Qnil ();
-	  adstyle[2] = zero_vector;
+	  adstyle[2] = (*zero_vector.as_mut_ptr ());
 	}
       else
 	{
 	  adstyle[0] = Qnil ();
-	  adstyle[1] = zero_vector;
+	  adstyle[1] = (*zero_vector.as_mut_ptr ());
 	}
     }
   else
     {
       adstyle[0] = Qnil ();
-      adstyle[1] = zero_vector;
+      adstyle[1] = (*zero_vector.as_mut_ptr ());
     }
 
 
@@ -4562,12 +4561,12 @@ pub unsafe extern "C-unwind" fn font_find_for_lface (f: *mut frame, attrs: *mut 
     {
       family = familybuf.as_mut_ptr ();
       *family.offset (0) = Qnil ();
-      *family.offset (1) = zero_vector;	/* terminator.  */
+      *family.offset (1) = (*zero_vector.as_mut_ptr ());	/* terminator.  */
     }
   else
     {
       let alters: Lisp_Object
-	= Fassoc_string (val, Vface_alternative_font_family_alist, Qt ());
+	= Fassoc_string (val, (*Vface_alternative_font_family_alist.as_mut_ptr ()), Qt ());
 
       if ! NILP (alters)
 	{
@@ -4587,7 +4586,7 @@ pub unsafe extern "C-unwind" fn font_find_for_lface (f: *mut frame, attrs: *mut 
 	      *family.offset (i as isize) = Qnil ();
 	      i += 1;
 	    }
-	  *family.offset (i as isize) = zero_vector;
+	  *family.offset (i as isize) = (*zero_vector.as_mut_ptr ());
 	}
       else
 	{
@@ -4600,7 +4599,7 @@ pub unsafe extern "C-unwind" fn font_find_for_lface (f: *mut frame, attrs: *mut 
 	      *family.offset (i as isize) = Qnil ();
 	      i += 1;
 	    }
-	  *family.offset (i as isize) = zero_vector;
+	  *family.offset (i as isize) = (*zero_vector.as_mut_ptr ());
 	}
     }
 
@@ -4887,7 +4886,7 @@ pub unsafe extern "C-unwind" fn register_font_driver (driver: *const font_driver
   unsafe {
   let root: *mut font_driver_list = if !f.is_null ()
 				    { (*f).font_driver_list as *mut font_driver_list }
-				    else { font_driver_list };
+				    else { (*font_driver_list.as_mut_ptr ()) };
   let mut prev: *mut font_driver_list;
   let mut list: *mut font_driver_list;
 
@@ -4919,9 +4918,9 @@ pub unsafe extern "C-unwind" fn register_font_driver (driver: *const font_driver
   else if !f.is_null ()
     { (*f).font_driver_list = list as *mut c_void; }
   else
-    { font_driver_list = list; }
+    { (*font_driver_list.as_mut_ptr ()) = list; }
   if f.is_null ()
-    { num_font_drivers += 1; }
+    { (*num_font_drivers.as_mut_ptr ()) += 1; }
 
   }
 }
@@ -5036,7 +5035,7 @@ pub unsafe extern "C-unwind" fn font_update_drivers (f: *mut frame,
       let mut i: c_int;
       USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
-      SAFE_NALLOCA! (sa_avail, list_table, 1, num_font_drivers + 1);
+      SAFE_NALLOCA! (sa_avail, list_table, 1, (*num_font_drivers.as_mut_ptr ()) + 1);
       i = 0;
       tail = new_drivers;
       while ! NILP (tail)
@@ -5327,11 +5326,11 @@ unsafe fn codepoint_is_emoji_eligible (ch: c_int) -> bool
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  if EQ (CHAR_TABLE_REF (Vchar_script_table, ch as isize), Qemoji ())
+  if EQ (CHAR_TABLE_REF ((*Vchar_script_table.as_mut_ptr ()), ch as isize), Qemoji ())
     { return true; }
 
   if ! NILP (Fmemq (make_fixnum (ch as EMACS_INT),
-		    Vauto_composition_emoji_eligible_codepoints))
+		    (*Vauto_composition_emoji_eligible_codepoints.as_mut_ptr ())))
     { return true; }
 
   return false;
@@ -5380,7 +5379,7 @@ pub unsafe extern "C-unwind" fn font_range (pos: ptrdiff_t, pos_byte: ptrdiff_t,
       else
 	{
 	  face_id =
-	    if NILP (Vface_remapping_alist)
+	    if NILP ((*Vface_remapping_alist.as_mut_ptr ()))
 	    { DEFAULT_FACE_ID }
 	    else { lookup_basic_face (w, f, DEFAULT_FACE_ID) };
 
@@ -5395,7 +5394,7 @@ pub unsafe extern "C-unwind" fn font_range (pos: ptrdiff_t, pos_byte: ptrdiff_t,
      character in the string, to determine the font to use.  */
   if codepoint_is_emoji_eligible (ch)
     {
-      let mut val: Lisp_Object = assq_no_quit (Qemoji (), Vscript_representative_chars);
+      let mut val: Lisp_Object = assq_no_quit (Qemoji (), (*Vscript_representative_chars.as_mut_ptr ()));
       if CONSP (val)
 	{
 	  val = XCDR (val);
@@ -5412,7 +5411,7 @@ pub unsafe extern "C-unwind" fn font_range (pos: ptrdiff_t, pos_byte: ptrdiff_t,
       c = if NILP (string)
 	  { fetch_char_advance_no_check (&mut pos, &mut pos_byte) }
 	  else { fetch_string_char_advance_no_check (string, &mut pos, &mut pos_byte) };
-      let category: Lisp_Object = CHAR_TABLE_REF (Vunicode_category_table, c as isize);
+      let category: Lisp_Object = CHAR_TABLE_REF ((*Vunicode_category_table.as_mut_ptr ()), c as isize);
       if FIXNUMP (category)
 	  && (XFIXNUM (category) == unicode_category_t::UNICODE_CATEGORY_Cf as EMACS_INT
 	      || CHAR_VARIATION_SELECTOR_P (c) != 0)
@@ -6161,7 +6160,7 @@ DEFUN! ("internal-char-font", Finternal_char_font, Sinternal_char_font, 1, 2, 0,
     {
       CHECK_CHARACTER (ch);
       c = XFIXNUM (ch) as c_int;
-      f = XFRAME (selected_frame);
+      f = XFRAME ((*selected_frame.as_mut_ptr ()));
       face_id = lookup_basic_face (std::ptr::null_mut (), f, DEFAULT_FACE_ID);
       pos = -1;
     }
@@ -6283,7 +6282,7 @@ DEFUN! ("font-has-char-p", Ffont_has_char_p, Sfont_has_char_p, 2, 3, 0,
   CHECK_CHARACTER (ch);
 
   if NILP (frame)
-    { f = XFRAME (selected_frame); }
+    { f = XFRAME ((*selected_frame.as_mut_ptr ())); }
   else
     {
       CHECK_FRAME (frame);
@@ -6596,7 +6595,7 @@ unsafe fn build_style_table (entry: *const table_entry, nelement: c_int) -> Lisp
 /* The deferred font-log data of the form [ACTION ARG RESULT].
    If ACTION is not nil, that is added to the log when font_add_log is
    called next time.  At that time, ACTION is set back to nil.  */
-static mut Vfont_log_deferred: Lisp_Object = lisp_h_Qnil ();
+static Vfont_log_deferred: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* Prepend the font-related logging data in Vfont_log if it is not
    t.  ACTION describes a kind of font-related action (e.g. listing,
@@ -6613,15 +6612,15 @@ pub unsafe extern "C-unwind" fn font_add_log (action: *const c_char, arg: Lisp_O
   let mut arg: Lisp_Object = arg;
   let mut result: Lisp_Object = result;
 
-  if EQ (Vfont_log, Qt ())
+  if EQ ((*Vfont_log.as_mut_ptr ()), Qt ())
     { return; }
-  if STRINGP (AREF (Vfont_log_deferred, 0))
+  if STRINGP (AREF ((*Vfont_log_deferred.as_mut_ptr ()), 0))
     {
-      let str_: *mut c_char = SSDATA (AREF (Vfont_log_deferred, 0));
+      let str_: *mut c_char = SSDATA (AREF ((*Vfont_log_deferred.as_mut_ptr ()), 0));
 
-      ASET (Vfont_log_deferred, 0, Qnil ());
-      font_add_log (str_, AREF (Vfont_log_deferred, 1),
-		    AREF (Vfont_log_deferred, 2));
+      ASET ((*Vfont_log_deferred.as_mut_ptr ()), 0, Qnil ());
+      font_add_log (str_, AREF ((*Vfont_log_deferred.as_mut_ptr ()), 1),
+		    AREF ((*Vfont_log_deferred.as_mut_ptr ()), 2));
     }
 
   if FONTP (arg)
@@ -6695,7 +6694,7 @@ pub unsafe extern "C-unwind" fn font_add_log (action: *const c_char, arg: Lisp_O
 	  i += 1;
 	}
     }
-  Vfont_log = Fcons (list3 (intern (action), arg, result), Vfont_log);
+  (*Vfont_log.as_mut_ptr ()) = Fcons (list3 (intern (action), arg, result), (*Vfont_log.as_mut_ptr ()));
 
   }
 }
@@ -6710,11 +6709,11 @@ pub unsafe extern "C-unwind" fn font_deferred_log (action: *const c_char, arg: L
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  if EQ (Vfont_log, Qt ())
+  if EQ ((*Vfont_log.as_mut_ptr ()), Qt ())
     { return; }
-  ASET (Vfont_log_deferred, 0, build_string (action));
-  ASET (Vfont_log_deferred, 1, arg);
-  ASET (Vfont_log_deferred, 2, result);
+  ASET ((*Vfont_log_deferred.as_mut_ptr ()), 0, build_string (action));
+  ASET ((*Vfont_log_deferred.as_mut_ptr ()), 1, arg);
+  ASET ((*Vfont_log_deferred.as_mut_ptr ()), 2, result);
 
   }
 }
@@ -6745,35 +6744,35 @@ pub unsafe extern "C-unwind" fn font_drop_xrender_surfaces (f: *mut frame)
    owns the port's `static mut`).  `Vfont_weight_table`/`Vfont_slant_table`/
    `Vfont_width_table`/`Vfont_log` and the three `DEFVAR_BOOL`s are registered in
    `syms_of_font` below.  */
-pub static mut Vfont_encoding_alist: Lisp_Object = lisp_h_Qnil ();
-pub static mut Vfont_weight_table: Lisp_Object = lisp_h_Qnil ();
-pub static mut Vfont_slant_table: Lisp_Object = lisp_h_Qnil ();
-pub static mut Vfont_width_table: Lisp_Object = lisp_h_Qnil ();
+pub static Vfont_encoding_alist: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+pub static Vfont_weight_table: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+pub static Vfont_slant_table: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+pub static Vfont_width_table: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 /* C's `DEFVAR_LISP` in `syms_of_font` expands to the *definition* of the global plus its
    registration; `fontset.rs` references it from another unit, so the C symbol has to exist
    (`globals.rs` only declares it - status 4.721).  */
 #[unsafe(no_mangle)]
-pub static mut Vfont_log: Lisp_Object = lisp_h_Qnil ();
+pub static Vfont_log: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut inhibit_compacting_font_caches: bool = false;
-pub static mut xft_ignore_color_fonts: bool = false;
-pub static mut query_all_font_backends: bool = false;
+pub static inhibit_compacting_font_caches: VmGlobal<bool> = VmGlobal::<bool>::new (false);
+pub static xft_ignore_color_fonts: VmGlobal<bool> = VmGlobal::<bool>::new (false);
+pub static query_all_font_backends: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_font ()
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  sort_shift_bits[FONT_TYPE_INDEX as usize] = 0;
-  sort_shift_bits[FONT_SLANT_INDEX as usize] = 2;
-  sort_shift_bits[FONT_WEIGHT_INDEX as usize] = 9;
-  sort_shift_bits[FONT_SIZE_INDEX as usize] = 16;
-  sort_shift_bits[FONT_WIDTH_INDEX as usize] = 23;
+  (*sort_shift_bits.as_mut_ptr ())[FONT_TYPE_INDEX as usize] = 0;
+  (*sort_shift_bits.as_mut_ptr ())[FONT_SLANT_INDEX as usize] = 2;
+  (*sort_shift_bits.as_mut_ptr ())[FONT_WEIGHT_INDEX as usize] = 9;
+  (*sort_shift_bits.as_mut_ptr ())[FONT_SIZE_INDEX as usize] = 16;
+  (*sort_shift_bits.as_mut_ptr ())[FONT_WIDTH_INDEX as usize] = 23;
   /* Note that the other elements in sort_shift_bits are not used.  */
-  PDUMPER_REMEMBER_SCALAR! (sort_shift_bits);
+  PDUMPER_REMEMBER_SCALAR! ((*sort_shift_bits.as_mut_ptr ()));
 
-  font_charset_alist = Qnil ();
-  staticpro (&raw const font_charset_alist);
+  (*font_charset_alist.as_mut_ptr ()) = Qnil ();
+  staticpro (font_charset_alist.as_ptr ());
 
   DEFSYM! (Qopentype, c"opentype");
 
@@ -6823,53 +6822,53 @@ pub unsafe extern "C-unwind" fn syms_of_font ()
   DEFSYM! (Qfont_extra_type, c"font-extra-type");
   DEFSYM! (Qfont_driver_superseded_by, c"font-driver-superseded-by");
 
-  scratch_font_spec = Ffont_spec (0, std::ptr::null_mut ());
-  staticpro (&raw const scratch_font_spec);
-  scratch_font_prefer = Ffont_spec (0, std::ptr::null_mut ());
-  staticpro (&raw const scratch_font_prefer);
+  (*scratch_font_spec.as_mut_ptr ()) = Ffont_spec (0, std::ptr::null_mut ());
+  staticpro (scratch_font_spec.as_ptr ());
+  (*scratch_font_prefer.as_mut_ptr ()) = Ffont_spec (0, std::ptr::null_mut ());
+  staticpro (scratch_font_prefer.as_ptr ());
 
-  Vfont_log_deferred = make_nil_vector (3);
-  staticpro (&raw const Vfont_log_deferred);
+  (*Vfont_log_deferred.as_mut_ptr ()) = make_nil_vector (3);
+  staticpro (Vfont_log_deferred.as_ptr ());
 
   /* C 5911-5915: `#if 0` (the `otf_list` staticpro).  Recorded in docs/ports/font.md.  */
 
-  defsubr (&raw mut Sfontp);
-  defsubr (&raw mut Sfont_spec);
-  defsubr (&raw mut Sfont_get);
+  defsubr (Sfontp.as_mut_ptr ());
+  defsubr (Sfont_spec.as_mut_ptr ());
+  defsubr (Sfont_get.as_mut_ptr ());
   /* C 5921-5923: `#ifdef HAVE_WINDOW_SYSTEM` (undef in the frozen configuration), carried;
      its `defsubr (&Sfont_face_attributes)` is recorded, since the subr it names is defined
      only under that feature too.  */
-  defsubr (&raw mut Sfont_put);
-  defsubr (&raw mut Slist_fonts);
-  defsubr (&raw mut Sfont_family_list);
-  defsubr (&raw mut Sfind_font);
-  defsubr (&raw mut Sfont_xlfd_name);
-  defsubr (&raw mut Sclear_font_cache);
-  defsubr (&raw mut Sfont_shape_gstring);
-  defsubr (&raw mut Sfont_variation_glyphs);
-  defsubr (&raw mut Sinternal_char_font);
+  defsubr (Sfont_put.as_mut_ptr ());
+  defsubr (Slist_fonts.as_mut_ptr ());
+  defsubr (Sfont_family_list.as_mut_ptr ());
+  defsubr (Sfind_font.as_mut_ptr ());
+  defsubr (Sfont_xlfd_name.as_mut_ptr ());
+  defsubr (Sclear_font_cache.as_mut_ptr ());
+  defsubr (Sfont_shape_gstring.as_mut_ptr ());
+  defsubr (Sfont_variation_glyphs.as_mut_ptr ());
+  defsubr (Sinternal_char_font.as_mut_ptr ());
   /* C 5933-5936: `#if 0` (Sfont_drive_otf, Sfont_otf_alternates).  Recorded in
      docs/ports/font.md.  */
 
   /* C 5938-5949: `#ifdef FONT_DEBUG`.  Live text: `font.h` 997-998 defines the macro and the
      row is measured in `docs/baseline/config/source-header-macros.tsv` (status 3.76), so
      `tools/extract-abi.py`'s `c_defsubr_live` demands these eight registrations too.  */
-  defsubr (&raw mut Sopen_font);
-  defsubr (&raw mut Sclose_font);
-  defsubr (&raw mut Squery_font);
-  defsubr (&raw mut Sfont_get_glyphs);
-  defsubr (&raw mut Sfont_has_char_p);
-  defsubr (&raw mut Sfont_match_p);
-  defsubr (&raw mut Sfont_at);
+  defsubr (Sopen_font.as_mut_ptr ());
+  defsubr (Sclose_font.as_mut_ptr ());
+  defsubr (Squery_font.as_mut_ptr ());
+  defsubr (Sfont_get_glyphs.as_mut_ptr ());
+  defsubr (Sfont_has_char_p.as_mut_ptr ());
+  defsubr (Sfont_match_p.as_mut_ptr ());
+  defsubr (Sfont_at.as_mut_ptr ());
   /* C 5946-5948: `#if 0` (`defsubr (&Sdraw_string)`).  Recorded in docs/ports/font.md.  */
-  defsubr (&raw mut Sframe_font_cache);
+  defsubr (Sframe_font_cache.as_mut_ptr ());
 
   #[cfg(feature = "have_window_system")]
-  defsubr (&raw mut Sfont_info);
+  defsubr (Sfont_info.as_mut_ptr ());
 
   DEFVAR_LISP! (c"font-encoding-alist", Vfont_encoding_alist,
 	       "\nAlist of fontname patterns vs the corresponding encoding and repertory info.\nEach element looks like (REGEXP . (ENCODING . REPERTORY)),\nwhere ENCODING is a charset or a char-table,\nand REPERTORY is a charset, a char-table, or nil.\n\nIf ENCODING and REPERTORY are the same, the element can have the form\n(REGEXP . ENCODING).\n\nENCODING is for converting a character to a glyph code of the font.\nIf ENCODING is a charset, encoding a character by the charset gives\nthe corresponding glyph code.  If ENCODING is a char-table, looking up\nthe table by a character gives the corresponding glyph code.\n\nREPERTORY specifies a repertory of characters supported by the font.\nIf REPERTORY is a charset, all characters belonging to the charset are\nsupported.  If REPERTORY is a char-table, all characters who have a\nnon-nil value in the table are supported.  If REPERTORY is nil, Emacs\ngets the repertory information by an opened font and ENCODING.  ");
-  Vfont_encoding_alist = Qnil ();
+  (*Vfont_encoding_alist.as_mut_ptr ()) = Qnil ();
 
   /* FIXME: These 3 vars are not quite what they appear: setq on them
      won't have any effect other than disconnect them from the style
@@ -6878,29 +6877,29 @@ pub unsafe extern "C-unwind" fn syms_of_font ()
 
   DEFVAR_LISP_NOPRO! (c"font-weight-table", Vfont_weight_table,
 	       "Vector of valid font weight values.\nEach element has the form:\n    [NUMERIC-VALUE SYMBOLIC-NAME ALIAS-NAME ...]\nNUMERIC-VALUE is an integer, and SYMBOLIC-NAME and ALIAS-NAME are symbols.\nThis variable cannot be set; trying to do so will signal an error.");
-  Vfont_weight_table = BUILD_STYLE_TABLE! (weight_table);
+  (*Vfont_weight_table.as_mut_ptr ()) = BUILD_STYLE_TABLE! (weight_table);
   make_symbol_constant (intern_c_string (c"font-weight-table".as_ptr ()));
 
   DEFVAR_LISP_NOPRO! (c"font-slant-table", Vfont_slant_table,
 	       "Vector of font slant symbols vs the corresponding numeric values.\nSee `font-weight-table' for the format of the vector.\nThis variable cannot be set; trying to do so will signal an error.");
-  Vfont_slant_table = BUILD_STYLE_TABLE! (slant_table);
+  (*Vfont_slant_table.as_mut_ptr ()) = BUILD_STYLE_TABLE! (slant_table);
   make_symbol_constant (intern_c_string (c"font-slant-table".as_ptr ()));
 
   DEFVAR_LISP_NOPRO! (c"font-width-table", Vfont_width_table,
 	       "Alist of font width symbols vs the corresponding numeric values.\nSee `font-weight-table' for the format of the vector.\nThis variable cannot be set; trying to do so will signal an error.");
-  Vfont_width_table = BUILD_STYLE_TABLE! (width_table);
+  (*Vfont_width_table.as_mut_ptr ()) = BUILD_STYLE_TABLE! (width_table);
   make_symbol_constant (intern_c_string (c"font-width-table".as_ptr ()));
 
   /* Because the above 3 variables are slots in the vector we create
      below, and because that vector is staticpro'd, we don't explicitly
      staticpro the variables, to avoid wasting slots in staticvec[].  */
-  staticpro (&raw const font_style_table);
-  font_style_table = CALLN! (Fvector, Vfont_weight_table, Vfont_slant_table,
-			     Vfont_width_table);
+  staticpro (font_style_table.as_ptr ());
+  (*font_style_table.as_mut_ptr ()) = CALLN! (Fvector, (*Vfont_weight_table.as_mut_ptr ()), (*Vfont_slant_table.as_mut_ptr ()),
+			     (*Vfont_width_table.as_mut_ptr ()));
 
   DEFVAR_LISP! (c"font-log", Vfont_log,
 	       "A list that logs font-related actions and results, for debugging.\nThe default value is t, which means to suppress logging.\nSet it to nil to enable logging.  If the environment variable\nEMACS_FONT_LOG is set at startup, it defaults to nil.");
-  Vfont_log = Qnil ();
+  (*Vfont_log.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_BOOL! (c"inhibit-compacting-font-caches", inhibit_compacting_font_caches,
 	       "If non-nil, don't compact font caches during GC.\nSome large fonts cause lots of consing and trigger GC.  If they\nare removed from the font caches, they will need to be opened\nagain during redisplay, which slows down redisplay.  If you\nsee font-related delays in displaying some special characters,\nand cannot switch to a smaller font for those characters, set\nthis variable non-nil.\nDisabling compaction of font caches might enlarge the Emacs memory\nfootprint in sessions that use lots of different fonts.");
@@ -6909,19 +6908,19 @@ pub unsafe extern "C-unwind" fn syms_of_font ()
   {
     /* Compacting font caches causes slow redisplay on Windows with many
        large fonts, so we disable it by default.  */
-    inhibit_compacting_font_caches = true;
+    (*inhibit_compacting_font_caches.as_mut_ptr ()) = true;
   }
   #[cfg(not (feature = "windowsnt"))]
-  { inhibit_compacting_font_caches = false; }
+  { (*inhibit_compacting_font_caches.as_mut_ptr ()) = false; }
 
   DEFVAR_BOOL! (c"xft-ignore-color-fonts",
 	       xft_ignore_color_fonts,
 	       "Non-nil means don't query fontconfig for color fonts, since they often\ncause Xft crashes.  Only has an effect in Xft builds.");
-  xft_ignore_color_fonts = true;
+  (*xft_ignore_color_fonts.as_mut_ptr ()) = true;
 
   DEFVAR_BOOL! (c"query-all-font-backends", query_all_font_backends,
                "If non-nil, attempt to query all available font backends.\nBy default Emacs will stop searching for a matching font at the first\nmatch.");
-  query_all_font_backends = false;
+  (*query_all_font_backends.as_mut_ptr ()) = false;
 
   /* C 6053-6083: `#ifdef HAVE_WINDOW_SYSTEM` (undef in the frozen configuration), carried;
      the whole `syms_of_*font` chain is C's.  */
@@ -6968,7 +6967,7 @@ pub unsafe extern "C-unwind" fn init_font ()
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  Vfont_log = if !egetenv (c"EMACS_FONT_LOG".as_ptr ()).is_null () { Qnil () } else { Qt () };
+  (*Vfont_log.as_mut_ptr ()) = if !egetenv (c"EMACS_FONT_LOG".as_ptr ()).is_null () { Qnil () } else { Qt () };
 
   }
 }

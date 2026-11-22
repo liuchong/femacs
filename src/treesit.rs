@@ -89,7 +89,7 @@ const _: () = ();
 macro_rules! DEF_DLL_FN {
   ($type:ty, $func:ident, $pfn:ident, $fnvar:ident, ($($arg:ty),* $(,)?)) => {
     pub type $pfn = Option<unsafe extern "C" fn ($($arg),*) -> $type>;
-    static mut $fnvar: $pfn = None;
+    static $fnvar: VmGlobal<$pfn> = VmGlobal::new(None);
   };
 }
 /* C: w32common.h 82-89: `#define LOAD_DLL_FN(lib, func)       do { fn_##func = (W32_PFN_##func)`
@@ -103,8 +103,8 @@ macro_rules! DEF_DLL_FN {
 macro_rules! LOAD_DLL_FN {
   ($lib:expr, $func:ident, $pfn:ident, $fnvar:ident, $name:expr) => {
     {
-      $fnvar = std::mem::transmute::<VOIDFNPTR, $pfn> (get_proc_addr ($lib, $name.as_ptr ()));
-      if $fnvar.is_none () { return false; }
+      (*$fnvar.as_mut_ptr ()) = std::mem::transmute::<VOIDFNPTR, $pfn> (get_proc_addr ($lib, $name.as_ptr ()));
+      if (*$fnvar.as_mut_ptr ()).is_none () { return false; }
     }
   };
 }
@@ -117,174 +117,174 @@ macro_rules! LOAD_DLL_FN {
 #[cfg (all (feature = "have_tree_sitter", feature = "windowsnt",
             feature = "treesit_language_version_ge_15"))]
 DEF_DLL_FN! (u32, ts_language_abi_version, W32_PFN_ts_language_abi_version,
-             fn_ts_language_abi_version, (const TSLanguage *));
+             (*fn_ts_language_abi_version.as_mut_ptr ()), (const TSLanguage *));
 #[cfg (all (feature = "have_tree_sitter", feature = "windowsnt",
             not (feature = "treesit_language_version_ge_15")))]
 DEF_DLL_FN! (u32, ts_language_version, W32_PFN_ts_language_version,
-             fn_ts_language_version, (const TSLanguage *));
+             (*fn_ts_language_version.as_mut_ptr ()), (const TSLanguage *));
 #[cfg (all (feature = "have_tree_sitter", feature = "windowsnt"))]
-DEF_DLL_FN! (TSNode, ts_node_child, W32_PFN_ts_node_child, fn_ts_node_child, (TSNode, u32));
+DEF_DLL_FN! (TSNode, ts_node_child, W32_PFN_ts_node_child, (*fn_ts_node_child.as_mut_ptr ()), (TSNode, u32));
 #[cfg (all (feature = "have_tree_sitter", feature = "windowsnt"))]
 DEF_DLL_FN! (TSNode, ts_node_child_by_field_name, W32_PFN_ts_node_child_by_field_name,
-             fn_ts_node_child_by_field_name, (TSNode, *const c_char, u32));
+             (*fn_ts_node_child_by_field_name.as_mut_ptr ()), (TSNode, *const c_char, u32));
 #[cfg (all (feature = "have_tree_sitter", feature = "windowsnt"))]
-DEF_DLL_FN! (u32, ts_node_child_count, W32_PFN_ts_node_child_count, fn_ts_node_child_count,
+DEF_DLL_FN! (u32, ts_node_child_count, W32_PFN_ts_node_child_count, (*fn_ts_node_child_count.as_mut_ptr ()),
              (TSNode));
 #[cfg (all (feature = "have_tree_sitter", feature = "windowsnt"))]
 DEF_DLL_FN! (TSNode, ts_node_descendant_for_byte_range,
-             W32_PFN_ts_node_descendant_for_byte_range, fn_ts_node_descendant_for_byte_range,
+             W32_PFN_ts_node_descendant_for_byte_range, (*fn_ts_node_descendant_for_byte_range.as_mut_ptr ()),
              (TSNode, u32, u32));
 #[cfg (all (feature = "have_tree_sitter", feature = "windowsnt"))]
-DEF_DLL_FN! (u32, ts_node_end_byte, W32_PFN_ts_node_end_byte, fn_ts_node_end_byte, (TSNode));
+DEF_DLL_FN! (u32, ts_node_end_byte, W32_PFN_ts_node_end_byte, (*fn_ts_node_end_byte.as_mut_ptr ()), (TSNode));
 #[cfg (all (feature = "have_tree_sitter", feature = "windowsnt"))]
-DEF_DLL_FN! (bool, ts_node_eq, W32_PFN_ts_node_eq, fn_ts_node_eq, (TSNode, TSNode));
+DEF_DLL_FN! (bool, ts_node_eq, W32_PFN_ts_node_eq, (*fn_ts_node_eq.as_mut_ptr ()), (TSNode, TSNode));
 #[cfg (all (feature = "have_tree_sitter", feature = "windowsnt"))]
 DEF_DLL_FN! (*const c_char, ts_node_field_name_for_child,
-             W32_PFN_ts_node_field_name_for_child, fn_ts_node_field_name_for_child,
+             W32_PFN_ts_node_field_name_for_child, (*fn_ts_node_field_name_for_child.as_mut_ptr ()),
              (TSNode, u32));
 #[cfg (all (feature = "have_tree_sitter", feature = "windowsnt"))]
-DEF_DLL_FN! (bool, ts_node_has_error, W32_PFN_ts_node_has_error, fn_ts_node_has_error, (TSNode));
+DEF_DLL_FN! (bool, ts_node_has_error, W32_PFN_ts_node_has_error, (*fn_ts_node_has_error.as_mut_ptr ()), (TSNode));
 #[cfg (all (feature = "have_tree_sitter", feature = "windowsnt"))]
-DEF_DLL_FN! (bool, ts_node_is_extra, W32_PFN_ts_node_is_extra, fn_ts_node_is_extra, (TSNode));
+DEF_DLL_FN! (bool, ts_node_is_extra, W32_PFN_ts_node_is_extra, (*fn_ts_node_is_extra.as_mut_ptr ()), (TSNode));
 #[cfg (all (feature = "have_tree_sitter", feature = "windowsnt"))]
-DEF_DLL_FN! (bool, ts_node_is_missing, W32_PFN_ts_node_is_missing, fn_ts_node_is_missing,
+DEF_DLL_FN! (bool, ts_node_is_missing, W32_PFN_ts_node_is_missing, (*fn_ts_node_is_missing.as_mut_ptr ()),
              (TSNode));
 #[cfg (all (feature = "have_tree_sitter", feature = "windowsnt"))]
-DEF_DLL_FN! (bool, ts_node_is_named, W32_PFN_ts_node_is_named, fn_ts_node_is_named, (TSNode));
+DEF_DLL_FN! (bool, ts_node_is_named, W32_PFN_ts_node_is_named, (*fn_ts_node_is_named.as_mut_ptr ()), (TSNode));
 #[cfg (all (feature = "have_tree_sitter", feature = "windowsnt"))]
-DEF_DLL_FN! (bool, ts_node_is_null, W32_PFN_ts_node_is_null, fn_ts_node_is_null, (TSNode));
+DEF_DLL_FN! (bool, ts_node_is_null, W32_PFN_ts_node_is_null, (*fn_ts_node_is_null.as_mut_ptr ()), (TSNode));
 #[cfg (all (feature = "have_tree_sitter", feature = "windowsnt"))]
-DEF_DLL_FN! (TSNode, ts_node_named_child, W32_PFN_ts_node_named_child, fn_ts_node_named_child,
+DEF_DLL_FN! (TSNode, ts_node_named_child, W32_PFN_ts_node_named_child, (*fn_ts_node_named_child.as_mut_ptr ()),
              (TSNode, u32));
 #[cfg (all (feature = "have_tree_sitter", feature = "windowsnt"))]
 DEF_DLL_FN! (u32, ts_node_named_child_count, W32_PFN_ts_node_named_child_count,
-             fn_ts_node_named_child_count, (TSNode));
+             (*fn_ts_node_named_child_count.as_mut_ptr ()), (TSNode));
 #[cfg (all (feature = "have_tree_sitter", feature = "windowsnt"))]
 DEF_DLL_FN! (TSNode, ts_node_named_descendant_for_byte_range,
              W32_PFN_ts_node_named_descendant_for_byte_range,
-             fn_ts_node_named_descendant_for_byte_range, (TSNode, u32, u32));
+             (*fn_ts_node_named_descendant_for_byte_range.as_mut_ptr ()), (TSNode, u32, u32));
 #[cfg (all (feature = "have_tree_sitter", feature = "windowsnt"))]
 DEF_DLL_FN! (TSNode, ts_node_next_named_sibling, W32_PFN_ts_node_next_named_sibling,
-             fn_ts_node_next_named_sibling, (TSNode));
+             (*fn_ts_node_next_named_sibling.as_mut_ptr ()), (TSNode));
 #[cfg (all (feature = "have_tree_sitter", feature = "windowsnt"))]
-DEF_DLL_FN! (TSNode, ts_node_next_sibling, W32_PFN_ts_node_next_sibling, fn_ts_node_next_sibling,
+DEF_DLL_FN! (TSNode, ts_node_next_sibling, W32_PFN_ts_node_next_sibling, (*fn_ts_node_next_sibling.as_mut_ptr ()),
              (TSNode));
 #[cfg (all (feature = "have_tree_sitter", feature = "windowsnt"))]
 DEF_DLL_FN! (TSNode, ts_node_prev_named_sibling, W32_PFN_ts_node_prev_named_sibling,
-             fn_ts_node_prev_named_sibling, (TSNode));
+             (*fn_ts_node_prev_named_sibling.as_mut_ptr ()), (TSNode));
 #[cfg (all (feature = "have_tree_sitter", feature = "windowsnt"))]
-DEF_DLL_FN! (TSNode, ts_node_prev_sibling, W32_PFN_ts_node_prev_sibling, fn_ts_node_prev_sibling,
+DEF_DLL_FN! (TSNode, ts_node_prev_sibling, W32_PFN_ts_node_prev_sibling, (*fn_ts_node_prev_sibling.as_mut_ptr ()),
              (TSNode));
 #[cfg (all (feature = "have_tree_sitter", feature = "windowsnt"))]
-DEF_DLL_FN! (u32, ts_node_start_byte, W32_PFN_ts_node_start_byte, fn_ts_node_start_byte, (TSNode));
+DEF_DLL_FN! (u32, ts_node_start_byte, W32_PFN_ts_node_start_byte, (*fn_ts_node_start_byte.as_mut_ptr ()), (TSNode));
 #[cfg (all (feature = "have_tree_sitter", feature = "windowsnt"))]
-DEF_DLL_FN! (*mut c_char, ts_node_string, W32_PFN_ts_node_string, fn_ts_node_string, (TSNode));
+DEF_DLL_FN! (*mut c_char, ts_node_string, W32_PFN_ts_node_string, (*fn_ts_node_string.as_mut_ptr ()), (TSNode));
 #[cfg (all (feature = "have_tree_sitter", feature = "windowsnt"))]
-DEF_DLL_FN! (*const c_char, ts_node_type, W32_PFN_ts_node_type, fn_ts_node_type, (TSNode));
+DEF_DLL_FN! (*const c_char, ts_node_type, W32_PFN_ts_node_type, (*fn_ts_node_type.as_mut_ptr ()), (TSNode));
 #[cfg (all (feature = "have_tree_sitter", feature = "windowsnt"))]
-DEF_DLL_FN! ((), ts_parser_delete, W32_PFN_ts_parser_delete, fn_ts_parser_delete, (*mut TSParser));
+DEF_DLL_FN! ((), ts_parser_delete, W32_PFN_ts_parser_delete, (*fn_ts_parser_delete.as_mut_ptr ()), (*mut TSParser));
 #[cfg (all (feature = "have_tree_sitter", feature = "windowsnt"))]
 DEF_DLL_FN! (*const TSRange, ts_parser_included_ranges, W32_PFN_ts_parser_included_ranges,
-             fn_ts_parser_included_ranges, (*const TSParser, *mut u32));
+             (*fn_ts_parser_included_ranges.as_mut_ptr ()), (*const TSParser, *mut u32));
 #[cfg (all (feature = "have_tree_sitter", feature = "windowsnt"))]
 DEF_DLL_FN! (*const TSLanguage, ts_parser_language, W32_PFN_ts_parser_language,
-             fn_ts_parser_language, (*const TSParser));
+             (*fn_ts_parser_language.as_mut_ptr ()), (*const TSParser));
 #[cfg (all (feature = "have_tree_sitter", feature = "windowsnt"))]
-DEF_DLL_FN! (*mut TSParser, ts_parser_new, W32_PFN_ts_parser_new, fn_ts_parser_new, ());
+DEF_DLL_FN! (*mut TSParser, ts_parser_new, W32_PFN_ts_parser_new, (*fn_ts_parser_new.as_mut_ptr ()), ());
 #[cfg (all (feature = "have_tree_sitter", feature = "windowsnt"))]
-DEF_DLL_FN! (*mut TSTree, ts_parser_parse, W32_PFN_ts_parser_parse, fn_ts_parser_parse,
+DEF_DLL_FN! (*mut TSTree, ts_parser_parse, W32_PFN_ts_parser_parse, (*fn_ts_parser_parse.as_mut_ptr ()),
              (*mut TSParser, *const TSTree, TSInput));
 #[cfg (all (feature = "have_tree_sitter", feature = "windowsnt"))]
 DEF_DLL_FN! (bool, ts_parser_set_included_ranges, W32_PFN_ts_parser_set_included_ranges,
-             fn_ts_parser_set_included_ranges, (*mut TSParser, *const TSRange, u32));
+             (*fn_ts_parser_set_included_ranges.as_mut_ptr ()), (*mut TSParser, *const TSRange, u32));
 #[cfg (all (feature = "have_tree_sitter", feature = "windowsnt"))]
 DEF_DLL_FN! (bool, ts_parser_set_language, W32_PFN_ts_parser_set_language,
-             fn_ts_parser_set_language, (*mut TSParser, *const TSLanguage));
+             (*fn_ts_parser_set_language.as_mut_ptr ()), (*mut TSParser, *const TSLanguage));
 #[cfg (all (feature = "have_tree_sitter", feature = "windowsnt"))]
 DEF_DLL_FN! (*const c_char, ts_query_capture_name_for_id,
-             W32_PFN_ts_query_capture_name_for_id, fn_ts_query_capture_name_for_id,
+             W32_PFN_ts_query_capture_name_for_id, (*fn_ts_query_capture_name_for_id.as_mut_ptr ()),
              (*const TSQuery, u32, *mut u32));
 #[cfg (all (feature = "have_tree_sitter", feature = "windowsnt"))]
 DEF_DLL_FN! ((), ts_query_cursor_delete, W32_PFN_ts_query_cursor_delete,
-             fn_ts_query_cursor_delete, (*mut TSQueryCursor));
+             (*fn_ts_query_cursor_delete.as_mut_ptr ()), (*mut TSQueryCursor));
 #[cfg (all (feature = "have_tree_sitter", feature = "windowsnt"))]
-DEF_DLL_FN! ((), ts_query_cursor_exec, W32_PFN_ts_query_cursor_exec, fn_ts_query_cursor_exec,
+DEF_DLL_FN! ((), ts_query_cursor_exec, W32_PFN_ts_query_cursor_exec, (*fn_ts_query_cursor_exec.as_mut_ptr ()),
              (*mut TSQueryCursor, *const TSQuery, TSNode));
 #[cfg (all (feature = "have_tree_sitter", feature = "windowsnt"))]
 DEF_DLL_FN! (*mut TSQueryCursor, ts_query_cursor_new, W32_PFN_ts_query_cursor_new,
-             fn_ts_query_cursor_new, ());
+             (*fn_ts_query_cursor_new.as_mut_ptr ()), ());
 #[cfg (all (feature = "have_tree_sitter", feature = "windowsnt"))]
 DEF_DLL_FN! (bool, ts_query_cursor_next_match, W32_PFN_ts_query_cursor_next_match,
-             fn_ts_query_cursor_next_match, (*mut TSQueryCursor, *mut TSQueryMatch));
+             (*fn_ts_query_cursor_next_match.as_mut_ptr ()), (*mut TSQueryCursor, *mut TSQueryMatch));
 #[cfg (all (feature = "have_tree_sitter", feature = "windowsnt"))]
 DEF_DLL_FN! ((), ts_query_cursor_set_byte_range, W32_PFN_ts_query_cursor_set_byte_range,
-             fn_ts_query_cursor_set_byte_range, (*mut TSQueryCursor, u32, u32));
+             (*fn_ts_query_cursor_set_byte_range.as_mut_ptr ()), (*mut TSQueryCursor, u32, u32));
 #[cfg (all (feature = "have_tree_sitter", feature = "windowsnt"))]
-DEF_DLL_FN! ((), ts_query_delete, W32_PFN_ts_query_delete, fn_ts_query_delete, (*mut TSQuery));
+DEF_DLL_FN! ((), ts_query_delete, W32_PFN_ts_query_delete, (*fn_ts_query_delete.as_mut_ptr ()), (*mut TSQuery));
 #[cfg (all (feature = "have_tree_sitter", feature = "windowsnt"))]
-DEF_DLL_FN! (*mut TSQuery, ts_query_new, W32_PFN_ts_query_new, fn_ts_query_new,
+DEF_DLL_FN! (*mut TSQuery, ts_query_new, W32_PFN_ts_query_new, (*fn_ts_query_new.as_mut_ptr ()),
              (*const TSLanguage, *const c_char, u32, *mut u32, *mut TSQueryError));
 #[cfg (all (feature = "have_tree_sitter", feature = "windowsnt"))]
 DEF_DLL_FN! (u32, ts_query_pattern_count, W32_PFN_ts_query_pattern_count,
-             fn_ts_query_pattern_count, (*const TSQuery));
+             (*fn_ts_query_pattern_count.as_mut_ptr ()), (*const TSQuery));
 #[cfg (all (feature = "have_tree_sitter", feature = "windowsnt"))]
 DEF_DLL_FN! (*const TSQueryPredicateStep, ts_query_predicates_for_pattern,
-             W32_PFN_ts_query_predicates_for_pattern, fn_ts_query_predicates_for_pattern,
+             W32_PFN_ts_query_predicates_for_pattern, (*fn_ts_query_predicates_for_pattern.as_mut_ptr ()),
              (*const TSQuery, u32, *mut u32));
 #[cfg (all (feature = "have_tree_sitter", feature = "windowsnt"))]
 DEF_DLL_FN! (*const c_char, ts_query_string_value_for_id,
-             W32_PFN_ts_query_string_value_for_id, fn_ts_query_string_value_for_id,
+             W32_PFN_ts_query_string_value_for_id, (*fn_ts_query_string_value_for_id.as_mut_ptr ()),
              (*const TSQuery, u32, *mut u32));
 /* C 158-159: C's four allocator parameters are the four function-pointer types below, in that
    order (C writes `void *(*)(size_t)`, `void *(*)(size_t, size_t)`, `void *(*)(void *, size_t)`
    and `void (*)(void *)`).  */
 #[cfg (all (feature = "have_tree_sitter", feature = "windowsnt"))]
-DEF_DLL_FN! ((), ts_set_allocator, W32_PFN_ts_set_allocator, fn_ts_set_allocator,
+DEF_DLL_FN! ((), ts_set_allocator, W32_PFN_ts_set_allocator, (*fn_ts_set_allocator.as_mut_ptr ()),
              (Option<unsafe extern "C-unwind" fn (size_t) -> *mut c_void>,
               Option<unsafe extern "C-unwind" fn (size_t, size_t) -> *mut c_void>,
               Option<unsafe extern "C-unwind" fn (*mut c_void, size_t) -> *mut c_void>,
               Option<unsafe extern "C-unwind" fn (*mut c_void)>));
 #[cfg (all (feature = "have_tree_sitter", feature = "windowsnt"))]
 DEF_DLL_FN! (TSNode, ts_tree_cursor_current_node, W32_PFN_ts_tree_cursor_current_node,
-             fn_ts_tree_cursor_current_node, (*const TSTreeCursor));
+             (*fn_ts_tree_cursor_current_node.as_mut_ptr ()), (*const TSTreeCursor));
 #[cfg (all (feature = "have_tree_sitter", feature = "windowsnt"))]
-DEF_DLL_FN! ((), ts_tree_cursor_delete, W32_PFN_ts_tree_cursor_delete, fn_ts_tree_cursor_delete,
+DEF_DLL_FN! ((), ts_tree_cursor_delete, W32_PFN_ts_tree_cursor_delete, (*fn_ts_tree_cursor_delete.as_mut_ptr ()),
              (*const TSTreeCursor));
 #[cfg (all (feature = "have_tree_sitter", feature = "windowsnt"))]
 DEF_DLL_FN! (bool, ts_tree_cursor_goto_first_child, W32_PFN_ts_tree_cursor_goto_first_child,
-             fn_ts_tree_cursor_goto_first_child, (*mut TSTreeCursor));
+             (*fn_ts_tree_cursor_goto_first_child.as_mut_ptr ()), (*mut TSTreeCursor));
 #[cfg (all (feature = "have_tree_sitter", feature = "windowsnt"))]
 DEF_DLL_FN! (i64, ts_tree_cursor_goto_first_child_for_byte,
              W32_PFN_ts_tree_cursor_goto_first_child_for_byte,
-             fn_ts_tree_cursor_goto_first_child_for_byte, (*mut TSTreeCursor, u32));
+             (*fn_ts_tree_cursor_goto_first_child_for_byte.as_mut_ptr ()), (*mut TSTreeCursor, u32));
 #[cfg (all (feature = "have_tree_sitter", feature = "windowsnt"))]
 DEF_DLL_FN! (bool, ts_tree_cursor_goto_next_sibling, W32_PFN_ts_tree_cursor_goto_next_sibling,
-             fn_ts_tree_cursor_goto_next_sibling, (*mut TSTreeCursor));
+             (*fn_ts_tree_cursor_goto_next_sibling.as_mut_ptr ()), (*mut TSTreeCursor));
 #[cfg (all (feature = "have_tree_sitter", feature = "windowsnt",
             feature = "have_ts_tree_cursor_goto_previous_sibling"))]
 DEF_DLL_FN! (bool, ts_tree_cursor_goto_previous_sibling,
-             W32_PFN_ts_tree_cursor_goto_previous_sibling, fn_ts_tree_cursor_goto_previous_sibling,
+             W32_PFN_ts_tree_cursor_goto_previous_sibling, (*fn_ts_tree_cursor_goto_previous_sibling.as_mut_ptr ()),
              (*mut TSTreeCursor));
 #[cfg (all (feature = "have_tree_sitter", feature = "windowsnt",
             not (feature = "have_ts_tree_cursor_goto_previous_sibling")))]
-DEF_DLL_FN! (TSTreeCursor, ts_tree_cursor_copy, W32_PFN_ts_tree_cursor_copy, fn_ts_tree_cursor_copy,
+DEF_DLL_FN! (TSTreeCursor, ts_tree_cursor_copy, W32_PFN_ts_tree_cursor_copy, (*fn_ts_tree_cursor_copy.as_mut_ptr ()),
              (*const TSTreeCursor));
 #[cfg (all (feature = "have_tree_sitter", feature = "windowsnt"))]
 DEF_DLL_FN! (bool, ts_tree_cursor_goto_parent, W32_PFN_ts_tree_cursor_goto_parent,
-             fn_ts_tree_cursor_goto_parent, (*mut TSTreeCursor));
+             (*fn_ts_tree_cursor_goto_parent.as_mut_ptr ()), (*mut TSTreeCursor));
 #[cfg (all (feature = "have_tree_sitter", feature = "windowsnt"))]
-DEF_DLL_FN! (TSTreeCursor, ts_tree_cursor_new, W32_PFN_ts_tree_cursor_new, fn_ts_tree_cursor_new,
+DEF_DLL_FN! (TSTreeCursor, ts_tree_cursor_new, W32_PFN_ts_tree_cursor_new, (*fn_ts_tree_cursor_new.as_mut_ptr ()),
              (TSNode));
 #[cfg (all (feature = "have_tree_sitter", feature = "windowsnt"))]
-DEF_DLL_FN! ((), ts_tree_delete, W32_PFN_ts_tree_delete, fn_ts_tree_delete, (*mut TSTree));
+DEF_DLL_FN! ((), ts_tree_delete, W32_PFN_ts_tree_delete, (*fn_ts_tree_delete.as_mut_ptr ()), (*mut TSTree));
 #[cfg (all (feature = "have_tree_sitter", feature = "windowsnt"))]
-DEF_DLL_FN! ((), ts_tree_edit, W32_PFN_ts_tree_edit, fn_ts_tree_edit,
+DEF_DLL_FN! ((), ts_tree_edit, W32_PFN_ts_tree_edit, (*fn_ts_tree_edit.as_mut_ptr ()),
              (*mut TSTree, *const TSInputEdit));
 #[cfg (all (feature = "have_tree_sitter", feature = "windowsnt"))]
 DEF_DLL_FN! (*mut TSRange, ts_tree_get_changed_ranges, W32_PFN_ts_tree_get_changed_ranges,
-             fn_ts_tree_get_changed_ranges, (*const TSTree, *const TSTree, *mut u32));
+             (*fn_ts_tree_get_changed_ranges.as_mut_ptr ()), (*const TSTree, *const TSTree, *mut u32));
 #[cfg (all (feature = "have_tree_sitter", feature = "windowsnt"))]
-DEF_DLL_FN! (TSNode, ts_tree_root_node, W32_PFN_ts_tree_root_node, fn_ts_tree_root_node,
+DEF_DLL_FN! (TSNode, ts_tree_root_node, W32_PFN_ts_tree_root_node, (*fn_ts_tree_root_node.as_mut_ptr ()),
              (*const TSTree));
 
 /* C 178-250: `init_treesit_functions`.  `HMODULE` is the platform's module handle, a pointer at
@@ -302,129 +302,129 @@ unsafe fn init_treesit_functions () -> bool
 
   #[cfg (feature = "treesit_language_version_ge_15")]
   LOAD_DLL_FN! (library, ts_language_abi_version, W32_PFN_ts_language_abi_version,
-                fn_ts_language_abi_version, c"ts_language_abi_version");
+                (*fn_ts_language_abi_version.as_mut_ptr ()), c"ts_language_abi_version");
   #[cfg (not (feature = "treesit_language_version_ge_15"))]
   LOAD_DLL_FN! (library, ts_language_version, W32_PFN_ts_language_version,
-                fn_ts_language_version, c"ts_language_version");
-  LOAD_DLL_FN! (library, ts_node_child, W32_PFN_ts_node_child, fn_ts_node_child,
+                (*fn_ts_language_version.as_mut_ptr ()), c"ts_language_version");
+  LOAD_DLL_FN! (library, ts_node_child, W32_PFN_ts_node_child, (*fn_ts_node_child.as_mut_ptr ()),
                 c"ts_node_child");
   LOAD_DLL_FN! (library, ts_node_child_by_field_name, W32_PFN_ts_node_child_by_field_name,
-                fn_ts_node_child_by_field_name, c"ts_node_child_by_field_name");
+                (*fn_ts_node_child_by_field_name.as_mut_ptr ()), c"ts_node_child_by_field_name");
   LOAD_DLL_FN! (library, ts_node_child_count, W32_PFN_ts_node_child_count,
-                fn_ts_node_child_count, c"ts_node_child_count");
+                (*fn_ts_node_child_count.as_mut_ptr ()), c"ts_node_child_count");
   LOAD_DLL_FN! (library, ts_node_descendant_for_byte_range,
                 W32_PFN_ts_node_descendant_for_byte_range,
-                fn_ts_node_descendant_for_byte_range, c"ts_node_descendant_for_byte_range");
-  LOAD_DLL_FN! (library, ts_node_end_byte, W32_PFN_ts_node_end_byte, fn_ts_node_end_byte,
+                (*fn_ts_node_descendant_for_byte_range.as_mut_ptr ()), c"ts_node_descendant_for_byte_range");
+  LOAD_DLL_FN! (library, ts_node_end_byte, W32_PFN_ts_node_end_byte, (*fn_ts_node_end_byte.as_mut_ptr ()),
                 c"ts_node_end_byte");
-  LOAD_DLL_FN! (library, ts_node_eq, W32_PFN_ts_node_eq, fn_ts_node_eq, c"ts_node_eq");
+  LOAD_DLL_FN! (library, ts_node_eq, W32_PFN_ts_node_eq, (*fn_ts_node_eq.as_mut_ptr ()), c"ts_node_eq");
   LOAD_DLL_FN! (library, ts_node_field_name_for_child,
-                W32_PFN_ts_node_field_name_for_child, fn_ts_node_field_name_for_child,
+                W32_PFN_ts_node_field_name_for_child, (*fn_ts_node_field_name_for_child.as_mut_ptr ()),
                 c"ts_node_field_name_for_child");
-  LOAD_DLL_FN! (library, ts_node_has_error, W32_PFN_ts_node_has_error, fn_ts_node_has_error,
+  LOAD_DLL_FN! (library, ts_node_has_error, W32_PFN_ts_node_has_error, (*fn_ts_node_has_error.as_mut_ptr ()),
                 c"ts_node_has_error");
-  LOAD_DLL_FN! (library, ts_node_is_extra, W32_PFN_ts_node_is_extra, fn_ts_node_is_extra,
+  LOAD_DLL_FN! (library, ts_node_is_extra, W32_PFN_ts_node_is_extra, (*fn_ts_node_is_extra.as_mut_ptr ()),
                 c"ts_node_is_extra");
-  LOAD_DLL_FN! (library, ts_node_is_missing, W32_PFN_ts_node_is_missing, fn_ts_node_is_missing,
+  LOAD_DLL_FN! (library, ts_node_is_missing, W32_PFN_ts_node_is_missing, (*fn_ts_node_is_missing.as_mut_ptr ()),
                 c"ts_node_is_missing");
-  LOAD_DLL_FN! (library, ts_node_is_named, W32_PFN_ts_node_is_named, fn_ts_node_is_named,
+  LOAD_DLL_FN! (library, ts_node_is_named, W32_PFN_ts_node_is_named, (*fn_ts_node_is_named.as_mut_ptr ()),
                 c"ts_node_is_named");
-  LOAD_DLL_FN! (library, ts_node_is_null, W32_PFN_ts_node_is_null, fn_ts_node_is_null,
+  LOAD_DLL_FN! (library, ts_node_is_null, W32_PFN_ts_node_is_null, (*fn_ts_node_is_null.as_mut_ptr ()),
                 c"ts_node_is_null");
   LOAD_DLL_FN! (library, ts_node_named_child, W32_PFN_ts_node_named_child,
-                fn_ts_node_named_child, c"ts_node_named_child");
+                (*fn_ts_node_named_child.as_mut_ptr ()), c"ts_node_named_child");
   LOAD_DLL_FN! (library, ts_node_named_child_count, W32_PFN_ts_node_named_child_count,
-                fn_ts_node_named_child_count, c"ts_node_named_child_count");
+                (*fn_ts_node_named_child_count.as_mut_ptr ()), c"ts_node_named_child_count");
   LOAD_DLL_FN! (library, ts_node_named_descendant_for_byte_range,
                 W32_PFN_ts_node_named_descendant_for_byte_range,
-                fn_ts_node_named_descendant_for_byte_range,
+                (*fn_ts_node_named_descendant_for_byte_range.as_mut_ptr ()),
                 c"ts_node_named_descendant_for_byte_range");
   LOAD_DLL_FN! (library, ts_node_next_named_sibling, W32_PFN_ts_node_next_named_sibling,
-                fn_ts_node_next_named_sibling, c"ts_node_next_named_sibling");
+                (*fn_ts_node_next_named_sibling.as_mut_ptr ()), c"ts_node_next_named_sibling");
   LOAD_DLL_FN! (library, ts_node_next_sibling, W32_PFN_ts_node_next_sibling,
-                fn_ts_node_next_sibling, c"ts_node_next_sibling");
+                (*fn_ts_node_next_sibling.as_mut_ptr ()), c"ts_node_next_sibling");
   LOAD_DLL_FN! (library, ts_node_prev_named_sibling, W32_PFN_ts_node_prev_named_sibling,
-                fn_ts_node_prev_named_sibling, c"ts_node_prev_named_sibling");
+                (*fn_ts_node_prev_named_sibling.as_mut_ptr ()), c"ts_node_prev_named_sibling");
   LOAD_DLL_FN! (library, ts_node_prev_sibling, W32_PFN_ts_node_prev_sibling,
-                fn_ts_node_prev_sibling, c"ts_node_prev_sibling");
-  LOAD_DLL_FN! (library, ts_node_start_byte, W32_PFN_ts_node_start_byte, fn_ts_node_start_byte,
+                (*fn_ts_node_prev_sibling.as_mut_ptr ()), c"ts_node_prev_sibling");
+  LOAD_DLL_FN! (library, ts_node_start_byte, W32_PFN_ts_node_start_byte, (*fn_ts_node_start_byte.as_mut_ptr ()),
                 c"ts_node_start_byte");
-  LOAD_DLL_FN! (library, ts_node_string, W32_PFN_ts_node_string, fn_ts_node_string,
+  LOAD_DLL_FN! (library, ts_node_string, W32_PFN_ts_node_string, (*fn_ts_node_string.as_mut_ptr ()),
                 c"ts_node_string");
-  LOAD_DLL_FN! (library, ts_node_type, W32_PFN_ts_node_type, fn_ts_node_type, c"ts_node_type");
-  LOAD_DLL_FN! (library, ts_parser_delete, W32_PFN_ts_parser_delete, fn_ts_parser_delete,
+  LOAD_DLL_FN! (library, ts_node_type, W32_PFN_ts_node_type, (*fn_ts_node_type.as_mut_ptr ()), c"ts_node_type");
+  LOAD_DLL_FN! (library, ts_parser_delete, W32_PFN_ts_parser_delete, (*fn_ts_parser_delete.as_mut_ptr ()),
                 c"ts_parser_delete");
   LOAD_DLL_FN! (library, ts_parser_included_ranges, W32_PFN_ts_parser_included_ranges,
-                fn_ts_parser_included_ranges, c"ts_parser_included_ranges");
-  LOAD_DLL_FN! (library, ts_parser_language, W32_PFN_ts_parser_language, fn_ts_parser_language,
+                (*fn_ts_parser_included_ranges.as_mut_ptr ()), c"ts_parser_included_ranges");
+  LOAD_DLL_FN! (library, ts_parser_language, W32_PFN_ts_parser_language, (*fn_ts_parser_language.as_mut_ptr ()),
                 c"ts_parser_language");
-  LOAD_DLL_FN! (library, ts_parser_new, W32_PFN_ts_parser_new, fn_ts_parser_new, c"ts_parser_new");
-  LOAD_DLL_FN! (library, ts_parser_parse, W32_PFN_ts_parser_parse, fn_ts_parser_parse,
+  LOAD_DLL_FN! (library, ts_parser_new, W32_PFN_ts_parser_new, (*fn_ts_parser_new.as_mut_ptr ()), c"ts_parser_new");
+  LOAD_DLL_FN! (library, ts_parser_parse, W32_PFN_ts_parser_parse, (*fn_ts_parser_parse.as_mut_ptr ()),
                 c"ts_parser_parse");
   LOAD_DLL_FN! (library, ts_parser_set_included_ranges,
-                W32_PFN_ts_parser_set_included_ranges, fn_ts_parser_set_included_ranges,
+                W32_PFN_ts_parser_set_included_ranges, (*fn_ts_parser_set_included_ranges.as_mut_ptr ()),
                 c"ts_parser_set_included_ranges");
   LOAD_DLL_FN! (library, ts_parser_set_language, W32_PFN_ts_parser_set_language,
-                fn_ts_parser_set_language, c"ts_parser_set_language");
+                (*fn_ts_parser_set_language.as_mut_ptr ()), c"ts_parser_set_language");
   LOAD_DLL_FN! (library, ts_query_capture_name_for_id,
-                W32_PFN_ts_query_capture_name_for_id, fn_ts_query_capture_name_for_id,
+                W32_PFN_ts_query_capture_name_for_id, (*fn_ts_query_capture_name_for_id.as_mut_ptr ()),
                 c"ts_query_capture_name_for_id");
   LOAD_DLL_FN! (library, ts_query_cursor_delete, W32_PFN_ts_query_cursor_delete,
-                fn_ts_query_cursor_delete, c"ts_query_cursor_delete");
+                (*fn_ts_query_cursor_delete.as_mut_ptr ()), c"ts_query_cursor_delete");
   LOAD_DLL_FN! (library, ts_query_cursor_exec, W32_PFN_ts_query_cursor_exec,
-                fn_ts_query_cursor_exec, c"ts_query_cursor_exec");
-  LOAD_DLL_FN! (library, ts_query_cursor_new, W32_PFN_ts_query_cursor_new, fn_ts_query_cursor_new,
+                (*fn_ts_query_cursor_exec.as_mut_ptr ()), c"ts_query_cursor_exec");
+  LOAD_DLL_FN! (library, ts_query_cursor_new, W32_PFN_ts_query_cursor_new, (*fn_ts_query_cursor_new.as_mut_ptr ()),
                 c"ts_query_cursor_new");
   LOAD_DLL_FN! (library, ts_query_cursor_next_match, W32_PFN_ts_query_cursor_next_match,
-                fn_ts_query_cursor_next_match, c"ts_query_cursor_next_match");
+                (*fn_ts_query_cursor_next_match.as_mut_ptr ()), c"ts_query_cursor_next_match");
   LOAD_DLL_FN! (library, ts_query_cursor_set_byte_range,
-                W32_PFN_ts_query_cursor_set_byte_range, fn_ts_query_cursor_set_byte_range,
+                W32_PFN_ts_query_cursor_set_byte_range, (*fn_ts_query_cursor_set_byte_range.as_mut_ptr ()),
                 c"ts_query_cursor_set_byte_range");
-  LOAD_DLL_FN! (library, ts_query_delete, W32_PFN_ts_query_delete, fn_ts_query_delete,
+  LOAD_DLL_FN! (library, ts_query_delete, W32_PFN_ts_query_delete, (*fn_ts_query_delete.as_mut_ptr ()),
                 c"ts_query_delete");
-  LOAD_DLL_FN! (library, ts_query_new, W32_PFN_ts_query_new, fn_ts_query_new, c"ts_query_new");
+  LOAD_DLL_FN! (library, ts_query_new, W32_PFN_ts_query_new, (*fn_ts_query_new.as_mut_ptr ()), c"ts_query_new");
   LOAD_DLL_FN! (library, ts_query_pattern_count, W32_PFN_ts_query_pattern_count,
-                fn_ts_query_pattern_count, c"ts_query_pattern_count");
+                (*fn_ts_query_pattern_count.as_mut_ptr ()), c"ts_query_pattern_count");
   LOAD_DLL_FN! (library, ts_query_predicates_for_pattern,
-                W32_PFN_ts_query_predicates_for_pattern, fn_ts_query_predicates_for_pattern,
+                W32_PFN_ts_query_predicates_for_pattern, (*fn_ts_query_predicates_for_pattern.as_mut_ptr ()),
                 c"ts_query_predicates_for_pattern");
   LOAD_DLL_FN! (library, ts_query_string_value_for_id,
-                W32_PFN_ts_query_string_value_for_id, fn_ts_query_string_value_for_id,
+                W32_PFN_ts_query_string_value_for_id, (*fn_ts_query_string_value_for_id.as_mut_ptr ()),
                 c"ts_query_string_value_for_id");
-  LOAD_DLL_FN! (library, ts_set_allocator, W32_PFN_ts_set_allocator, fn_ts_set_allocator,
+  LOAD_DLL_FN! (library, ts_set_allocator, W32_PFN_ts_set_allocator, (*fn_ts_set_allocator.as_mut_ptr ()),
                 c"ts_set_allocator");
   LOAD_DLL_FN! (library, ts_tree_cursor_current_node, W32_PFN_ts_tree_cursor_current_node,
-                fn_ts_tree_cursor_current_node, c"ts_tree_cursor_current_node");
+                (*fn_ts_tree_cursor_current_node.as_mut_ptr ()), c"ts_tree_cursor_current_node");
   LOAD_DLL_FN! (library, ts_tree_cursor_delete, W32_PFN_ts_tree_cursor_delete,
-                fn_ts_tree_cursor_delete, c"ts_tree_cursor_delete");
+                (*fn_ts_tree_cursor_delete.as_mut_ptr ()), c"ts_tree_cursor_delete");
   LOAD_DLL_FN! (library, ts_tree_cursor_goto_first_child,
-                W32_PFN_ts_tree_cursor_goto_first_child, fn_ts_tree_cursor_goto_first_child,
+                W32_PFN_ts_tree_cursor_goto_first_child, (*fn_ts_tree_cursor_goto_first_child.as_mut_ptr ()),
                 c"ts_tree_cursor_goto_first_child");
   LOAD_DLL_FN! (library, ts_tree_cursor_goto_first_child_for_byte,
                 W32_PFN_ts_tree_cursor_goto_first_child_for_byte,
-                fn_ts_tree_cursor_goto_first_child_for_byte,
+                (*fn_ts_tree_cursor_goto_first_child_for_byte.as_mut_ptr ()),
                 c"ts_tree_cursor_goto_first_child_for_byte");
   LOAD_DLL_FN! (library, ts_tree_cursor_goto_next_sibling,
-                W32_PFN_ts_tree_cursor_goto_next_sibling, fn_ts_tree_cursor_goto_next_sibling,
+                W32_PFN_ts_tree_cursor_goto_next_sibling, (*fn_ts_tree_cursor_goto_next_sibling.as_mut_ptr ()),
                 c"ts_tree_cursor_goto_next_sibling");
   #[cfg (feature = "have_ts_tree_cursor_goto_previous_sibling")]
   LOAD_DLL_FN! (library, ts_tree_cursor_goto_previous_sibling,
                 W32_PFN_ts_tree_cursor_goto_previous_sibling,
-                fn_ts_tree_cursor_goto_previous_sibling,
+                (*fn_ts_tree_cursor_goto_previous_sibling.as_mut_ptr ()),
                 c"ts_tree_cursor_goto_previous_sibling");
   #[cfg (not (feature = "have_ts_tree_cursor_goto_previous_sibling"))]
   LOAD_DLL_FN! (library, ts_tree_cursor_copy, W32_PFN_ts_tree_cursor_copy,
-                fn_ts_tree_cursor_copy, c"ts_tree_cursor_copy");
+                (*fn_ts_tree_cursor_copy.as_mut_ptr ()), c"ts_tree_cursor_copy");
   LOAD_DLL_FN! (library, ts_tree_cursor_goto_parent, W32_PFN_ts_tree_cursor_goto_parent,
-                fn_ts_tree_cursor_goto_parent, c"ts_tree_cursor_goto_parent");
-  LOAD_DLL_FN! (library, ts_tree_cursor_new, W32_PFN_ts_tree_cursor_new, fn_ts_tree_cursor_new,
+                (*fn_ts_tree_cursor_goto_parent.as_mut_ptr ()), c"ts_tree_cursor_goto_parent");
+  LOAD_DLL_FN! (library, ts_tree_cursor_new, W32_PFN_ts_tree_cursor_new, (*fn_ts_tree_cursor_new.as_mut_ptr ()),
                 c"ts_tree_cursor_new");
-  LOAD_DLL_FN! (library, ts_tree_delete, W32_PFN_ts_tree_delete, fn_ts_tree_delete,
+  LOAD_DLL_FN! (library, ts_tree_delete, W32_PFN_ts_tree_delete, (*fn_ts_tree_delete.as_mut_ptr ()),
                 c"ts_tree_delete");
-  LOAD_DLL_FN! (library, ts_tree_edit, W32_PFN_ts_tree_edit, fn_ts_tree_edit, c"ts_tree_edit");
+  LOAD_DLL_FN! (library, ts_tree_edit, W32_PFN_ts_tree_edit, (*fn_ts_tree_edit.as_mut_ptr ()), c"ts_tree_edit");
   LOAD_DLL_FN! (library, ts_tree_get_changed_ranges, W32_PFN_ts_tree_get_changed_ranges,
-                fn_ts_tree_get_changed_ranges, c"ts_tree_get_changed_ranges");
-  LOAD_DLL_FN! (library, ts_tree_root_node, W32_PFN_ts_tree_root_node, fn_ts_tree_root_node,
+                (*fn_ts_tree_get_changed_ranges.as_mut_ptr ()), c"ts_tree_get_changed_ranges");
+  LOAD_DLL_FN! (library, ts_tree_root_node, W32_PFN_ts_tree_root_node, (*fn_ts_tree_root_node.as_mut_ptr ()),
                 c"ts_tree_root_node");
 
   return true;
@@ -634,43 +634,43 @@ static TREESIT_TS_POINT_1_0: TSPoint = TSPoint { row: 1, column: 0 };
    the port's `lisp_h_Qnil ()` shape, PORTING.md 1.5).  C 502-504's `#ifndef WINDOWSNT` guards the
    one of them only the Posix arm builds.  */
 #[cfg (feature = "have_tree_sitter")]
-static mut Vtreesit_str_libtree_sitter: Lisp_Object = lisp_h_Qnil ();
+static Vtreesit_str_libtree_sitter: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[cfg (feature = "have_tree_sitter")]
-static mut Vtreesit_str_tree_sitter: Lisp_Object = lisp_h_Qnil ();
+static Vtreesit_str_tree_sitter: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[cfg (all (feature = "have_tree_sitter", not (feature = "windowsnt")))]
-static mut Vtreesit_str_dot_0: Lisp_Object = lisp_h_Qnil ();
+static Vtreesit_str_dot_0: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[cfg (feature = "have_tree_sitter")]
-static mut Vtreesit_str_dot: Lisp_Object = lisp_h_Qnil ();
+static Vtreesit_str_dot: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[cfg (feature = "have_tree_sitter")]
-static mut Vtreesit_str_question_mark: Lisp_Object = lisp_h_Qnil ();
+static Vtreesit_str_question_mark: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[cfg (feature = "have_tree_sitter")]
-static mut Vtreesit_str_star: Lisp_Object = lisp_h_Qnil ();
+static Vtreesit_str_star: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[cfg (feature = "have_tree_sitter")]
-static mut Vtreesit_str_plus: Lisp_Object = lisp_h_Qnil ();
+static Vtreesit_str_plus: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[cfg (feature = "have_tree_sitter")]
-static mut Vtreesit_str_pound_eq_question_mark: Lisp_Object = lisp_h_Qnil ();
+static Vtreesit_str_pound_eq_question_mark: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[cfg (feature = "have_tree_sitter")]
-static mut Vtreesit_str_pound_match_question_mark: Lisp_Object = lisp_h_Qnil ();
+static Vtreesit_str_pound_match_question_mark: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[cfg (feature = "have_tree_sitter")]
-static mut Vtreesit_str_pound_pred_question_mark: Lisp_Object = lisp_h_Qnil ();
+static Vtreesit_str_pound_pred_question_mark: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[cfg (feature = "have_tree_sitter")]
-static mut Vtreesit_str_open_bracket: Lisp_Object = lisp_h_Qnil ();
+static Vtreesit_str_open_bracket: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[cfg (feature = "have_tree_sitter")]
-static mut Vtreesit_str_close_bracket: Lisp_Object = lisp_h_Qnil ();
+static Vtreesit_str_close_bracket: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[cfg (feature = "have_tree_sitter")]
-static mut Vtreesit_str_open_paren: Lisp_Object = lisp_h_Qnil ();
+static Vtreesit_str_open_paren: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[cfg (feature = "have_tree_sitter")]
-static mut Vtreesit_str_close_paren: Lisp_Object = lisp_h_Qnil ();
+static Vtreesit_str_close_paren: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[cfg (feature = "have_tree_sitter")]
-static mut Vtreesit_str_space: Lisp_Object = lisp_h_Qnil ();
+static Vtreesit_str_space: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[cfg (feature = "have_tree_sitter")]
-static mut Vtreesit_str_eq_question_mark: Lisp_Object = lisp_h_Qnil ();
+static Vtreesit_str_eq_question_mark: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[cfg (feature = "have_tree_sitter")]
-static mut Vtreesit_str_match_question_mark: Lisp_Object = lisp_h_Qnil ();
+static Vtreesit_str_match_question_mark: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[cfg (feature = "have_tree_sitter")]
-static mut Vtreesit_str_pred_question_mark: Lisp_Object = lisp_h_Qnil ();
+static Vtreesit_str_pred_question_mark: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[cfg (feature = "have_tree_sitter")]
-static mut Vtreesit_str_empty: Lisp_Object = lisp_h_Qnil ();
+static Vtreesit_str_empty: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* This is the limit on recursion levels for some tree-sitter
    functions.  Remember to update docstrings when changing this value.
@@ -685,7 +685,7 @@ static mut Vtreesit_str_empty: Lisp_Object = lisp_h_Qnil ();
 const TREESIT_RECURSION_LIMIT: c_int = 1000;
 
 #[cfg (feature = "have_tree_sitter")]
-static mut treesit_initialized: bool = false;
+static treesit_initialized: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 /* C 535-561: `load_tree_sitter_if_necessary`.  C's two function-local `static bool`s are the
    block-scoped `static mut`s below, and the `#else` arm (C 559-560) is the non-Windows one.  */
@@ -694,24 +694,24 @@ unsafe fn load_tree_sitter_if_necessary (required: bool) -> bool
 {
   #[cfg (feature = "windowsnt")]
   {
-    static mut tried_to_initialize_once: bool = false;
-    static mut tree_sitter_initialized: bool = false;
+    static tried_to_initialize_once: VmGlobal<bool> = VmGlobal::<bool>::new (false);
+    static tree_sitter_initialized: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
-    if !tried_to_initialize_once
+    if !(*tried_to_initialize_once.as_mut_ptr ())
       {
         let status: Lisp_Object;
 
-        tried_to_initialize_once = true;
-        tree_sitter_initialized = init_treesit_functions ();
-        status = if tree_sitter_initialized { Qt () } else { Qnil () };
-        Vlibrary_cache = Fcons (Fcons (Qtree_sitter (), status), Vlibrary_cache);
+        (*tried_to_initialize_once.as_mut_ptr ()) = true;
+        (*tree_sitter_initialized.as_mut_ptr ()) = init_treesit_functions ();
+        status = if (*tree_sitter_initialized.as_mut_ptr ()) { Qt () } else { Qnil () };
+        (*Vlibrary_cache.as_mut_ptr ()) = Fcons (Fcons (Qtree_sitter (), status), (*Vlibrary_cache.as_mut_ptr ()));
       }
 
-    if required && !tree_sitter_initialized
+    if required && !(*tree_sitter_initialized.as_mut_ptr ())
       { xsignal1 (Qtreesit_error (),
 		  build_string (c"tree-sitter library not found or failed to load".as_ptr ())); }
 
-    return tree_sitter_initialized;
+    return (*tree_sitter_initialized.as_mut_ptr ());
   }
   #[cfg (not (feature = "windowsnt"))]
   {
@@ -754,14 +754,14 @@ unsafe fn treesit_initialize ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  if !treesit_initialized
+  if !(*treesit_initialized.as_mut_ptr ())
     {
       load_tree_sitter_if_necessary (true);
       #[cfg (not (feature = "windowsnt"))]
       { ts_set_allocator (Some (treesit_malloc_wrapper), Some (treesit_calloc_wrapper), Some (treesit_realloc_wrapper), Some (treesit_free_wrapper)); }
       #[cfg (feature = "windowsnt")]
-      { (fn_ts_set_allocator.unwrap ()) (Some (treesit_malloc_wrapper), Some (treesit_calloc_wrapper), Some (treesit_realloc_wrapper), Some (treesit_free_wrapper)); }
-      treesit_initialized = true;
+      { ((*fn_ts_set_allocator.as_mut_ptr ()).unwrap ()) (Some (treesit_malloc_wrapper), Some (treesit_calloc_wrapper), Some (treesit_realloc_wrapper), Some (treesit_free_wrapper)); }
+      (*treesit_initialized.as_mut_ptr ()) = true;
     }
 
   }
@@ -785,7 +785,7 @@ pub unsafe extern "C-unwind" fn treesit_debug_print_parser_list (msg: *mut c_cha
   let buf_name: *mut c_char = SSDATA (BVAR! (buf, name_));
   printf (c"%s (%s) [%s] <%s>: %td(%td)-(%td)%td {\n".as_ptr (),
 	  if msg.is_null () { c"".as_ptr () } else { msg },
-	  SSDATA (SYMBOL_NAME (Vthis_command)),
+	  SSDATA (SYMBOL_NAME ((*Vthis_command.as_mut_ptr ()))),
 	  SSDATA (SYMBOL_NAME ((*XTS_PARSER (parser)).language_symbol)),
 	  buf_name, BUF_BEG (buf),
 	  BUF_BEGV (buf), BUF_ZV (buf), BUF_Z! (buf));
@@ -805,7 +805,7 @@ pub unsafe extern "C-unwind" fn treesit_debug_print_parser_list (msg: *mut c_cha
       let ranges: *const TSRange = ts_parser_included_ranges ((*parser).parser, &raw mut len);
       #[cfg (feature = "windowsnt")]
       let ranges: *const TSRange
-	= (fn_ts_parser_included_ranges.unwrap ()) ((*parser).parser, &raw mut len);
+	= ((*fn_ts_parser_included_ranges.as_mut_ptr ()).unwrap ()) ((*parser).parser, &raw mut len);
 
       /* C's `-1` in this `uint32_t` comparison is the all-ones value; Rust spells the conversion
 	 `u32::MAX` (a bare `-1` is not even a `u32` expression).  */
@@ -884,7 +884,7 @@ unsafe fn resolve_language_symbol (lang: Lisp_Object) -> Lisp_Object
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  let res: Lisp_Object = Fassoc (lang, Vtreesit_language_remap_alist, Qeq ());
+  let res: Lisp_Object = Fassoc (lang, (*Vtreesit_language_remap_alist.as_mut_ptr ()), Qeq ());
   if NILP (res)
     { return lang; }
   return Fcdr (res);
@@ -906,8 +906,8 @@ unsafe fn treesit_find_override_name (language_symbol: Lisp_Object, name: *mut L
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  CHECK_LIST (Vtreesit_load_name_override_list);
-  let mut tail: Lisp_Object = Vtreesit_load_name_override_list;
+  CHECK_LIST ((*Vtreesit_load_name_override_list.as_mut_ptr ()));
+  let mut tail: Lisp_Object = (*Vtreesit_load_name_override_list.as_mut_ptr ());
 
   FOR_EACH_TAIL! (tail, {
       let entry: Lisp_Object = XCAR (tail);
@@ -926,7 +926,7 @@ unsafe fn treesit_find_override_name (language_symbol: Lisp_Object, name: *mut L
 	}
   });
 
-  CHECK_LIST_END (tail, Vtreesit_load_name_override_list);
+  CHECK_LIST_END (tail, (*Vtreesit_load_name_override_list.as_mut_ptr ()));
 
   return false;
 
@@ -949,7 +949,7 @@ unsafe fn treesit_load_language_push_for_each_suffix (lib_base_name: Lisp_Object
   unsafe {
   let mut suffixes: Lisp_Object;
 
-  suffixes = Vdynamic_library_suffixes;
+  suffixes = (*Vdynamic_library_suffixes.as_mut_ptr ());
 
   FOR_EACH_TAIL! (suffixes, {
       let candidate1: Lisp_Object = concat2 (lib_base_name, XCAR (suffixes));
@@ -959,8 +959,8 @@ unsafe fn treesit_load_language_push_for_each_suffix (lib_base_name: Lisp_Object
 	   numbers.  Originally tree-sitter grammars are always versioned
 	   at 0.0, so we first try that.  For more details, see
 	   https://lists.gnu.org/archive/html/emacs-devel/2023-04/msg00386.html.  */
-	let candidate2: Lisp_Object = concat2 (candidate1, Vtreesit_str_dot_0);
-	let candidate3: Lisp_Object = concat2 (candidate2, Vtreesit_str_dot_0);
+	let candidate2: Lisp_Object = concat2 (candidate1, (*Vtreesit_str_dot_0.as_mut_ptr ()));
+	let candidate3: Lisp_Object = concat2 (candidate2, (*Vtreesit_str_dot_0.as_mut_ptr ()));
 
 	*path_candidates = Fcons (candidate3, *path_candidates);
 	*path_candidates = Fcons (candidate2, *path_candidates);
@@ -1002,11 +1002,11 @@ unsafe fn treesit_language_abi_version (ts_lang: *const TSLanguage) -> u32
   #[cfg (all (feature = "treesit_language_version_ge_15", not (feature = "windowsnt")))]
   { return ts_language_abi_version (ts_lang); }
   #[cfg (all (feature = "treesit_language_version_ge_15", feature = "windowsnt"))]
-  { return (fn_ts_language_abi_version.unwrap ()) (ts_lang); }
+  { return ((*fn_ts_language_abi_version.as_mut_ptr ()).unwrap ()) (ts_lang); }
   #[cfg (all (not (feature = "treesit_language_version_ge_15"), not (feature = "windowsnt")))]
   { return ts_language_version (ts_lang); }
   #[cfg (all (not (feature = "treesit_language_version_ge_15"), feature = "windowsnt"))]
-  { return (fn_ts_language_version.unwrap ()) (ts_lang); }
+  { return ((*fn_ts_language_version.as_mut_ptr ()).unwrap ()) (ts_lang); }
 
   }
 }
@@ -1033,11 +1033,11 @@ unsafe fn treesit_load_language (language_symbol: Lisp_Object, signal_symbol: *m
   unsafe {
   let symbol_name: Lisp_Object = Fsymbol_name (language_symbol);
 
-  CHECK_LIST (Vtreesit_extra_load_path);
+  CHECK_LIST ((*Vtreesit_extra_load_path.as_mut_ptr ()));
 
   /* Figure out the library name and C name.  */
-  let mut lib_base_name: Lisp_Object = concat2 (Vtreesit_str_libtree_sitter, symbol_name);
-  let base_name: Lisp_Object = concat2 (Vtreesit_str_tree_sitter, symbol_name);
+  let mut lib_base_name: Lisp_Object = concat2 ((*Vtreesit_str_libtree_sitter.as_mut_ptr ()), symbol_name);
+  let base_name: Lisp_Object = concat2 ((*Vtreesit_str_tree_sitter.as_mut_ptr ()), symbol_name);
 
   /* Override the library name and C name, if appropriate.  */
   let mut override_name: Lisp_Object = Qnil ();
@@ -1061,7 +1061,7 @@ unsafe fn treesit_load_language (language_symbol: Lisp_Object, signal_symbol: *m
   /* Then push paths from treesit-extra-load-path.  */
   let mut tail: Lisp_Object;
 
-  tail = Freverse (Vtreesit_extra_load_path);
+  tail = Freverse ((*Vtreesit_extra_load_path.as_mut_ptr ()));
 
   FOR_EACH_TAIL! (tail, {
       let expanded_lib: Lisp_Object = Fexpand_file_name (lib_base_name, XCAR (tail));
@@ -1134,15 +1134,15 @@ unsafe fn treesit_load_language (language_symbol: Lisp_Object, signal_symbol: *m
   #[cfg (not (feature = "windowsnt"))]
   let parser: *mut TSParser = ts_parser_new ();
   #[cfg (feature = "windowsnt")]
-  let parser: *mut TSParser = (fn_ts_parser_new.unwrap ()) ();
+  let parser: *mut TSParser = ((*fn_ts_parser_new.as_mut_ptr ()).unwrap ()) ();
   #[cfg (not (feature = "windowsnt"))]
   let success: bool = ts_parser_set_language (parser, lang);
   #[cfg (feature = "windowsnt")]
-  let success: bool = (fn_ts_parser_set_language.unwrap ()) (parser, lang);
+  let success: bool = ((*fn_ts_parser_set_language.as_mut_ptr ()).unwrap ()) (parser, lang);
   #[cfg (not (feature = "windowsnt"))]
   { ts_parser_delete (parser); }
   #[cfg (feature = "windowsnt")]
-  { (fn_ts_parser_delete.unwrap ()) (parser); }
+  { ((*fn_ts_parser_delete.as_mut_ptr ()).unwrap ()) (parser); }
   if !success
     {
       let fmt: Lisp_Object
@@ -1360,22 +1360,22 @@ return if (*XTS_PARSER(parser)).visi_beg_linecol.bytepos==0 { Qnil() } else { Qt
 
 #[cfg(feature = "have_tree_sitter")]
 #[unsafe(no_mangle)]
-pub static mut Vtreesit_load_name_override_list: Lisp_Object = lisp_h_Qnil();
+pub static Vtreesit_load_name_override_list: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil());
 #[cfg(feature = "have_tree_sitter")]
 #[unsafe(no_mangle)]
-pub static mut Vtreesit_extra_load_path: Lisp_Object = lisp_h_Qnil();
+pub static Vtreesit_extra_load_path: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil());
 #[cfg(feature = "have_tree_sitter")]
 #[unsafe(no_mangle)]
-pub static mut Vtreesit_thing_settings: Lisp_Object = lisp_h_Qnil();
+pub static Vtreesit_thing_settings: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil());
 #[cfg(feature = "have_tree_sitter")]
 #[unsafe(no_mangle)]
-pub static mut Vtreesit_language_remap_alist: Lisp_Object = lisp_h_Qnil();
+pub static Vtreesit_language_remap_alist: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil());
 #[cfg(feature = "have_tree_sitter")]
 #[unsafe(no_mangle)]
-pub static mut Vtreesit_languages_require_line_column_tracking: Lisp_Object = lisp_h_Qnil();
+pub static Vtreesit_languages_require_line_column_tracking: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil());
 #[cfg(feature = "have_tree_sitter")]
 #[unsafe(no_mangle)]
-pub static mut Vtreesit_major_mode_remap_alist: Lisp_Object = lisp_h_Qnil();
+pub static Vtreesit_major_mode_remap_alist: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil());
 
 // P430 stable parsing/edit path. A tree records the parser's previous visible
 // interval; edits update it before the next lazy parse reconciles narrowing.
@@ -2228,7 +2228,7 @@ let mut signal_symbol=Qnil();let mut signal_data=Qnil();let parser=ts_parser_new
 let loaded_lang=treesit_load_language(remapped_lang,&raw mut signal_symbol,&raw mut signal_data);
 let lang=loaded_lang.lang;if lang.is_null() { xsignal(signal_symbol,signal_data); }
 ts_parser_set_language(parser,lang);
-let lang_need_linecol_tracking=!NILP(Fmemq(remapped_lang,Vtreesit_languages_require_line_column_tracking));
+let lang_need_linecol_tracking=!NILP(Fmemq(remapped_lang,(*Vtreesit_languages_require_line_column_tracking.as_mut_ptr ())));
 let lisp_parser=make_treesit_parser(buf_orig,parser,core::ptr::null_mut(),language,tag,lang_need_linecol_tracking);
 if lang_need_linecol_tracking && !treesit_buf_tracks_linecol_p(buf) {
  SET_BUF_TS_LINECOL_BEGV(buf,TREESIT_BOB_LINECOL);SET_BUF_TS_LINECOL_POINT(buf,TREESIT_BOB_LINECOL);SET_BUF_TS_LINECOL_ZV(buf,TREESIT_BOB_LINECOL);
@@ -2419,7 +2419,7 @@ DEFUN! ("treesit-node-type", Ftreesit_node_type, Streesit_node_type, 1, 1, 0,
   {
 if NILP(node) { return Qnil(); }treesit_check_node(node);treesit_initialize();
 let treesit_node=(*XTS_NODE(node)).node;let type_=ts_node_type(treesit_node);
-return if type_.is_null() { Vtreesit_str_empty } else { build_string(type_) };
+return if type_.is_null() { (*Vtreesit_str_empty.as_mut_ptr ()) } else { build_string(type_) };
 });
 
 
@@ -2814,11 +2814,11 @@ unsafe fn treesit_eval_predicates(captures: capture_range, predicates: Lisp_Obje
         let predicate = XCAR(tail);
         let fn_ = XCAR(predicate);
         let args = XCDR(predicate);
-        if !NILP(Fstring_equal(fn_, Vtreesit_str_eq_question_mark)) {
+        if !NILP(Fstring_equal(fn_, (*Vtreesit_str_eq_question_mark.as_mut_ptr ()))) {
             pass &= treesit_predicate_equal(args, captures, signal_data);
-        } else if !NILP(Fstring_equal(fn_, Vtreesit_str_match_question_mark)) {
+        } else if !NILP(Fstring_equal(fn_, (*Vtreesit_str_match_question_mark.as_mut_ptr ()))) {
             pass &= treesit_predicate_match(args, captures, signal_data);
-        } else if !NILP(Fstring_equal(fn_, Vtreesit_str_pred_question_mark)) {
+        } else if !NILP(Fstring_equal(fn_, (*Vtreesit_str_pred_question_mark.as_mut_ptr ()))) {
             pass &= treesit_predicate_pred(args, captures, signal_data, parser);
         } else {
             *signal_data = list3(build_string(c"Invalid predicate".as_ptr()), fn_,
@@ -3007,7 +3007,7 @@ unsafe fn treesit_traverse_child_helper(cursor: *mut TSTreeCursor, forward: bool
 unsafe fn treesit_traverse_get_predicate(thing: Lisp_Object, language: Lisp_Object) -> Lisp_Object {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-    let cons = assq_no_signal(language, Vtreesit_thing_settings);
+    let cons = assq_no_signal(language, (*Vtreesit_thing_settings.as_mut_ptr ()));
     if NILP(cons) { return Qnil(); }
     let definitions = XCDR(cons);
     let entry = assq_no_signal(thing, definitions);
@@ -3200,16 +3200,16 @@ DEFUN! ("treesit-pattern-expand", Ftreesit_pattern_expand, Streesit_pattern_expa
   doc: "Expand PATTERN to its string form.\n\nPATTERN can be\n\n    :anchor\n    :?\n    :*\n    :+\n    :equal\n    :match\n    (TYPE PATTERN...)\n    [PATTERN...]\n    FIELD-NAME:\n    @CAPTURE-NAME\n    (_)\n    _\n    \"TYPE\"\n\nSee Info node `(elisp)Pattern Matching' for detailed explanation.",
   (pattern: Lisp_Object),
   {
-if BASE_EQ(pattern,QCanchor()) { return Vtreesit_str_dot; }
-if BASE_EQ(pattern,QCquestion()) { return Vtreesit_str_question_mark; }
-if BASE_EQ(pattern,QCstar()) { return Vtreesit_str_star; }
-if BASE_EQ(pattern,QCplus()) { return Vtreesit_str_plus; }
-if BASE_EQ(pattern,QCequal())||BASE_EQ(pattern,QCeq_q()) { return Vtreesit_str_pound_eq_question_mark; }
-if BASE_EQ(pattern,QCmatch())||BASE_EQ(pattern,QCmatch_q()) { return Vtreesit_str_pound_match_question_mark; }
-if BASE_EQ(pattern,QCpred())||BASE_EQ(pattern,QCpred_q()) { return Vtreesit_str_pound_pred_question_mark; }
-let opening_delimeter=if VECTORP(pattern) { Vtreesit_str_open_bracket } else { Vtreesit_str_open_paren };
-let closing_delimiter=if VECTORP(pattern) { Vtreesit_str_close_bracket } else { Vtreesit_str_close_paren };
-if VECTORP(pattern)||CONSP(pattern) { return concat3(opening_delimeter,Fmapconcat(Qtreesit_pattern_expand(),pattern,Vtreesit_str_space),closing_delimiter); }
+if BASE_EQ(pattern,QCanchor()) { return (*Vtreesit_str_dot.as_mut_ptr ()); }
+if BASE_EQ(pattern,QCquestion()) { return (*Vtreesit_str_question_mark.as_mut_ptr ()); }
+if BASE_EQ(pattern,QCstar()) { return (*Vtreesit_str_star.as_mut_ptr ()); }
+if BASE_EQ(pattern,QCplus()) { return (*Vtreesit_str_plus.as_mut_ptr ()); }
+if BASE_EQ(pattern,QCequal())||BASE_EQ(pattern,QCeq_q()) { return (*Vtreesit_str_pound_eq_question_mark.as_mut_ptr ()); }
+if BASE_EQ(pattern,QCmatch())||BASE_EQ(pattern,QCmatch_q()) { return (*Vtreesit_str_pound_match_question_mark.as_mut_ptr ()); }
+if BASE_EQ(pattern,QCpred())||BASE_EQ(pattern,QCpred_q()) { return (*Vtreesit_str_pound_pred_question_mark.as_mut_ptr ()); }
+let opening_delimeter=if VECTORP(pattern) { (*Vtreesit_str_open_bracket.as_mut_ptr ()) } else { (*Vtreesit_str_open_paren.as_mut_ptr ()) };
+let closing_delimiter=if VECTORP(pattern) { (*Vtreesit_str_close_bracket.as_mut_ptr ()) } else { (*Vtreesit_str_close_paren.as_mut_ptr ()) };
+if VECTORP(pattern)||CONSP(pattern) { return concat3(opening_delimeter,Fmapconcat(Qtreesit_pattern_expand(),pattern,(*Vtreesit_str_space.as_mut_ptr ())),closing_delimiter); }
 if STRINGP(pattern) { return treesit_query_string_string(pattern); }return Fprin1_to_string(pattern,Qnil(),Qt());
 });
 
@@ -3219,7 +3219,7 @@ DEFUN! ("treesit-query-expand", Ftreesit_query_expand, Streesit_query_expand, 1,
   doc: "Expand sexp QUERY to its string form.\n\nA PATTERN in QUERY can be\n\n    :anchor\n    :?\n    :*\n    :+\n    :equal\n    :eq?\n    :match\n    :match?\n    (TYPE PATTERN...)\n    [PATTERN...]\n    FIELD-NAME:\n    @CAPTURE-NAME\n    (_)\n    _\n    \"TYPE\"\n\nSee Info node `(elisp)Pattern Matching' for detailed explanation.",
   (query: Lisp_Object),
   {
-return Fmapconcat(Qtreesit_pattern_expand(),query,Vtreesit_str_space);
+return Fmapconcat(Qtreesit_pattern_expand(),query,(*Vtreesit_str_space.as_mut_ptr ()));
 });
 
 
@@ -3521,137 +3521,137 @@ pub unsafe extern "C-unwind" fn syms_of_treesit ()
   define_error(Qtreesit_invalid_predicate(), c"Invalid predicate, see `treesit-thing-settings' for valid forms for a predicate".as_ptr(), Qtreesit_error());
 
   DEFVAR_LISP!(c"treesit-load-name-override-list", Vtreesit_load_name_override_list, "An override list for unconventional tree-sitter libraries.\n\nBy default, Emacs assumes the dynamic library for LANG is\nlibtree-sitter-LANG.EXT, where EXT is the OS specific extension for\ndynamic libraries.  Emacs also assumes that the name of the C function\nthe library provides is tree_sitter_LANG.  If that is not the case,\nyou can add an entry\n\n    (LANG LIBRARY-BASE-NAME FUNCTION-NAME)\n\nto this list, where LIBRARY-BASE-NAME is the filename of the dynamic\nlibrary without the file-name extension, and FUNCTION-NAME is the\nfunction provided by the library.");
-  Vtreesit_load_name_override_list = Qnil();
+  (*Vtreesit_load_name_override_list.as_mut_ptr ()) = Qnil();
 
   DEFVAR_LISP!(c"treesit-extra-load-path", Vtreesit_extra_load_path, "Additional directories to look for tree-sitter language definitions.\nThe value should be a list of directories.\nWhen trying to load a tree-sitter language definition,\nEmacs first looks in the directories mentioned in this variable,\nthen in the `tree-sitter' subdirectory of `user-emacs-directory', and\nthen in the system default locations for dynamic libraries, in that order.\nThe first writeable directory in the list is special: it's used as the\ndefault directory when automatically installing the language grammar\nusing `treesit-ensure-installed'.");
-  Vtreesit_extra_load_path = Qnil();
+  (*Vtreesit_extra_load_path.as_mut_ptr ()) = Qnil();
 
   DEFVAR_LISP!(c"treesit-thing-settings", Vtreesit_thing_settings, "A list defining things.\n\nThe value should be defined by the major mode, and should be an alist\nof the form (LANGUAGE . DEFINITIONS), where LANGUAGE is a language\nsymbol and DEFINITIONS is a list whose elements are of the form\n\n    (THING PRED)\n\nTHING is a symbol representing the thing, like `defun', `defclass',\n`sexp', `sentence', `comment', or any other symbol that is meaningful\nfor the major mode; PRED defines what kind of node can be qualified\nas THING.\n\nPRED can be a regexp string that matches the type of the node; it can\nbe a predicate function that takes the node as the sole argument and\nreturns t if the node is the thing, and nil otherwise; it can be a\ncons (REGEXP . FN), which is a combination of a regexp and a predicate\nfunction, and the node has to match both to qualify as the thing.\n\nPRED can also be recursively defined.  It can be:\n\n (or PRED...), meaning satisfying any of the inner PREDs qualifies the node;\n (and PRED...) meaning satisfying all of the inner PREDs qualifies the node;\n (not PRED), meaning not satisfying the inner PRED qualifies the node.\n\nThere are two pre-defined predicates, `named' and `anonymous'.  They\nmatch named nodes and anonymous nodes, respectively.\n\nFinally, PRED can refer to other THINGs defined in this list by using\nthe symbol of that THING.  For example, (or sexp sentence).");
-  Vtreesit_thing_settings = Qnil();
+  (*Vtreesit_thing_settings.as_mut_ptr ()) = Qnil();
 
   DEFVAR_LISP!(c"treesit-language-remap-alist", Vtreesit_language_remap_alist, "An alist remapping language symbols.\n\nThe value should be an alist of (LANGUAGE-A . LANGUAGE-B).  When such\npair exists in the alist, creating a parser for LANGUAGE-A actually\ncreates a parser for LANGUAGE-B.  Basically, anything that requires or\napplies to LANGUAGE-A will be redirected to LANGUAGE-B instead.");
-  Vtreesit_language_remap_alist = Qnil();
+  (*Vtreesit_language_remap_alist.as_mut_ptr ()) = Qnil();
   DEFSYM!(Qtreesit_language_remap_alist, "treesit-language-remap-alist");
   Fmake_variable_buffer_local (Qtreesit_language_remap_alist());
 
   DEFVAR_LISP!(c"treesit-languages-require-line-column-tracking", Vtreesit_languages_require_line_column_tracking, "A list of languages that need line-column tracking.\n\nMost tree-sitter language grammars don't require line and column\ntracking to work, but some languages do.  When creating a parser, if the\nlanguage is in this list, Emacs enables line-column tracking for the\nbuffer.");
-  Vtreesit_languages_require_line_column_tracking = list1 (Qhaskell());
+  (*Vtreesit_languages_require_line_column_tracking.as_mut_ptr ()) = list1 (Qhaskell());
 
   DEFVAR_LISP!(c"treesit-major-mode-remap-alist", Vtreesit_major_mode_remap_alist, "Alist mapping file-specified modes to ts-modes.\n\nThe value should be an alist of (MODE . TS-MODE).\nThis alist is used to modify the value of `major-mode-remap-alist'\ndepending on customization of `treesit-enabled-modes'.");
-  Vtreesit_major_mode_remap_alist = Qnil();
+  (*Vtreesit_major_mode_remap_alist.as_mut_ptr ()) = Qnil();
 
-  staticpro(&raw mut Vtreesit_str_libtree_sitter);
-  Vtreesit_str_libtree_sitter = build_string(c"libtree-sitter-".as_ptr());
-  staticpro(&raw mut Vtreesit_str_tree_sitter);
-  Vtreesit_str_tree_sitter = build_string(c"tree-sitter-".as_ptr());
+  staticpro(Vtreesit_str_libtree_sitter.as_mut_ptr ());
+  (*Vtreesit_str_libtree_sitter.as_mut_ptr ()) = build_string(c"libtree-sitter-".as_ptr());
+  staticpro(Vtreesit_str_tree_sitter.as_mut_ptr ());
+  (*Vtreesit_str_tree_sitter.as_mut_ptr ()) = build_string(c"tree-sitter-".as_ptr());
 #[cfg(not(feature = "windowsnt"))]
-  staticpro(&raw mut Vtreesit_str_dot_0);
-  Vtreesit_str_dot_0 = build_string(c".0".as_ptr());
+  staticpro(Vtreesit_str_dot_0.as_mut_ptr ());
+  (*Vtreesit_str_dot_0.as_mut_ptr ()) = build_string(c".0".as_ptr());
 
-  staticpro(&raw mut Vtreesit_str_dot);
-  Vtreesit_str_dot = build_string(c".".as_ptr());
-  staticpro(&raw mut Vtreesit_str_question_mark);
-  Vtreesit_str_question_mark = build_string(c"?".as_ptr());
-  staticpro(&raw mut Vtreesit_str_star);
-  Vtreesit_str_star = build_string(c"*".as_ptr());
-  staticpro(&raw mut Vtreesit_str_plus);
-  Vtreesit_str_plus = build_string(c"+".as_ptr());
-  staticpro(&raw mut Vtreesit_str_pound_eq_question_mark);
-  Vtreesit_str_pound_eq_question_mark = build_string(c"#eq?".as_ptr());
-  staticpro(&raw mut Vtreesit_str_pound_match_question_mark);
-  Vtreesit_str_pound_match_question_mark = build_string(c"#match?".as_ptr());
-  staticpro(&raw mut Vtreesit_str_pound_pred_question_mark);
-  Vtreesit_str_pound_pred_question_mark = build_string(c"#pred?".as_ptr());
-  staticpro(&raw mut Vtreesit_str_open_bracket);
-  Vtreesit_str_open_bracket = build_string(c"[".as_ptr());
-  staticpro(&raw mut Vtreesit_str_close_bracket);
-  Vtreesit_str_close_bracket = build_string(c"]".as_ptr());
-  staticpro(&raw mut Vtreesit_str_open_paren);
-  Vtreesit_str_open_paren = build_string(c"(".as_ptr());
-  staticpro(&raw mut Vtreesit_str_close_paren);
-  Vtreesit_str_close_paren = build_string(c")".as_ptr());
-  staticpro(&raw mut Vtreesit_str_space);
-  Vtreesit_str_space = build_string(c" ".as_ptr());
-  staticpro(&raw mut Vtreesit_str_eq_question_mark);
-  Vtreesit_str_eq_question_mark = build_string(c"eq?".as_ptr());
-  staticpro(&raw mut Vtreesit_str_match_question_mark);
-  Vtreesit_str_match_question_mark = build_string(c"match?".as_ptr());
-  staticpro(&raw mut Vtreesit_str_pred_question_mark);
-  Vtreesit_str_pred_question_mark = build_string(c"pred?".as_ptr());
-  staticpro(&raw mut Vtreesit_str_empty);
-  Vtreesit_str_empty = build_string(c"".as_ptr());
+  staticpro(Vtreesit_str_dot.as_mut_ptr ());
+  (*Vtreesit_str_dot.as_mut_ptr ()) = build_string(c".".as_ptr());
+  staticpro(Vtreesit_str_question_mark.as_mut_ptr ());
+  (*Vtreesit_str_question_mark.as_mut_ptr ()) = build_string(c"?".as_ptr());
+  staticpro(Vtreesit_str_star.as_mut_ptr ());
+  (*Vtreesit_str_star.as_mut_ptr ()) = build_string(c"*".as_ptr());
+  staticpro(Vtreesit_str_plus.as_mut_ptr ());
+  (*Vtreesit_str_plus.as_mut_ptr ()) = build_string(c"+".as_ptr());
+  staticpro(Vtreesit_str_pound_eq_question_mark.as_mut_ptr ());
+  (*Vtreesit_str_pound_eq_question_mark.as_mut_ptr ()) = build_string(c"#eq?".as_ptr());
+  staticpro(Vtreesit_str_pound_match_question_mark.as_mut_ptr ());
+  (*Vtreesit_str_pound_match_question_mark.as_mut_ptr ()) = build_string(c"#match?".as_ptr());
+  staticpro(Vtreesit_str_pound_pred_question_mark.as_mut_ptr ());
+  (*Vtreesit_str_pound_pred_question_mark.as_mut_ptr ()) = build_string(c"#pred?".as_ptr());
+  staticpro(Vtreesit_str_open_bracket.as_mut_ptr ());
+  (*Vtreesit_str_open_bracket.as_mut_ptr ()) = build_string(c"[".as_ptr());
+  staticpro(Vtreesit_str_close_bracket.as_mut_ptr ());
+  (*Vtreesit_str_close_bracket.as_mut_ptr ()) = build_string(c"]".as_ptr());
+  staticpro(Vtreesit_str_open_paren.as_mut_ptr ());
+  (*Vtreesit_str_open_paren.as_mut_ptr ()) = build_string(c"(".as_ptr());
+  staticpro(Vtreesit_str_close_paren.as_mut_ptr ());
+  (*Vtreesit_str_close_paren.as_mut_ptr ()) = build_string(c")".as_ptr());
+  staticpro(Vtreesit_str_space.as_mut_ptr ());
+  (*Vtreesit_str_space.as_mut_ptr ()) = build_string(c" ".as_ptr());
+  staticpro(Vtreesit_str_eq_question_mark.as_mut_ptr ());
+  (*Vtreesit_str_eq_question_mark.as_mut_ptr ()) = build_string(c"eq?".as_ptr());
+  staticpro(Vtreesit_str_match_question_mark.as_mut_ptr ());
+  (*Vtreesit_str_match_question_mark.as_mut_ptr ()) = build_string(c"match?".as_ptr());
+  staticpro(Vtreesit_str_pred_question_mark.as_mut_ptr ());
+  (*Vtreesit_str_pred_question_mark.as_mut_ptr ()) = build_string(c"pred?".as_ptr());
+  staticpro(Vtreesit_str_empty.as_mut_ptr ());
+  (*Vtreesit_str_empty.as_mut_ptr ()) = build_string(c"".as_ptr());
 
-  defsubr(&raw mut Streesit_language_available_p);
-  defsubr(&raw mut Streesit_library_abi_version);
-  defsubr(&raw mut Streesit_language_abi_version);
-  defsubr(&raw mut Streesit_grammar_location);
+  defsubr(Streesit_language_available_p.as_mut_ptr ());
+  defsubr(Streesit_library_abi_version.as_mut_ptr ());
+  defsubr(Streesit_language_abi_version.as_mut_ptr ());
+  defsubr(Streesit_grammar_location.as_mut_ptr ());
 
-  defsubr(&raw mut Streesit_parser_tracking_line_column_p);
-  defsubr(&raw mut Streesit_tracking_line_column_p);
+  defsubr(Streesit_parser_tracking_line_column_p.as_mut_ptr ());
+  defsubr(Streesit_tracking_line_column_p.as_mut_ptr ());
 
-  defsubr(&raw mut Streesit_parser_p);
-  defsubr(&raw mut Streesit_node_p);
-  defsubr(&raw mut Streesit_compiled_query_p);
-  defsubr(&raw mut Streesit_query_p);
-  defsubr(&raw mut Streesit_query_eagerly_compiled_p);
-  defsubr(&raw mut Streesit_query_language);
-  defsubr(&raw mut Streesit_query_source);
+  defsubr(Streesit_parser_p.as_mut_ptr ());
+  defsubr(Streesit_node_p.as_mut_ptr ());
+  defsubr(Streesit_compiled_query_p.as_mut_ptr ());
+  defsubr(Streesit_query_p.as_mut_ptr ());
+  defsubr(Streesit_query_eagerly_compiled_p.as_mut_ptr ());
+  defsubr(Streesit_query_language.as_mut_ptr ());
+  defsubr(Streesit_query_source.as_mut_ptr ());
 
-  defsubr(&raw mut Streesit_node_parser);
+  defsubr(Streesit_node_parser.as_mut_ptr ());
 
-  defsubr(&raw mut Streesit_parser_create);
-  defsubr(&raw mut Streesit_parser_delete);
-  defsubr(&raw mut Streesit_parser_list);
-  defsubr(&raw mut Streesit_parser_buffer);
-  defsubr(&raw mut Streesit_parser_language);
-  defsubr(&raw mut Streesit_parser_tag);
-  defsubr(&raw mut Streesit_parser_embed_level);
-  defsubr(&raw mut Streesit_parser_set_embed_level);
-  defsubr(&raw mut Streesit_parser_changed_regions);
+  defsubr(Streesit_parser_create.as_mut_ptr ());
+  defsubr(Streesit_parser_delete.as_mut_ptr ());
+  defsubr(Streesit_parser_list.as_mut_ptr ());
+  defsubr(Streesit_parser_buffer.as_mut_ptr ());
+  defsubr(Streesit_parser_language.as_mut_ptr ());
+  defsubr(Streesit_parser_tag.as_mut_ptr ());
+  defsubr(Streesit_parser_embed_level.as_mut_ptr ());
+  defsubr(Streesit_parser_set_embed_level.as_mut_ptr ());
+  defsubr(Streesit_parser_changed_regions.as_mut_ptr ());
 
-  defsubr(&raw mut Streesit_parser_root_node);
-  defsubr(&raw mut Streesit_parse_string);
+  defsubr(Streesit_parser_root_node.as_mut_ptr ());
+  defsubr(Streesit_parse_string.as_mut_ptr ());
 
-  defsubr(&raw mut Streesit_parser_set_included_ranges);
-  defsubr(&raw mut Streesit_parser_included_ranges);
+  defsubr(Streesit_parser_set_included_ranges.as_mut_ptr ());
+  defsubr(Streesit_parser_included_ranges.as_mut_ptr ());
 
-  defsubr(&raw mut Streesit_parser_notifiers);
-  defsubr(&raw mut Streesit_parser_add_notifier);
-  defsubr(&raw mut Streesit_parser_remove_notifier);
+  defsubr(Streesit_parser_notifiers.as_mut_ptr ());
+  defsubr(Streesit_parser_add_notifier.as_mut_ptr ());
+  defsubr(Streesit_parser_remove_notifier.as_mut_ptr ());
 
-  defsubr(&raw mut Streesit_node_type);
-  defsubr(&raw mut Streesit_node_start);
-  defsubr(&raw mut Streesit_node_end);
-  defsubr(&raw mut Streesit_node_string);
-  defsubr(&raw mut Streesit_node_parent);
-  defsubr(&raw mut Streesit_node_child);
-  defsubr(&raw mut Streesit_node_check);
-  defsubr(&raw mut Streesit_node_field_name_for_child);
-  defsubr(&raw mut Streesit_node_child_count);
-  defsubr(&raw mut Streesit_node_child_by_field_name);
-  defsubr(&raw mut Streesit_node_next_sibling);
-  defsubr(&raw mut Streesit_node_prev_sibling);
-  defsubr(&raw mut Streesit_node_first_child_for_pos);
-  defsubr(&raw mut Streesit_node_descendant_for_range);
-  defsubr(&raw mut Streesit_node_eq);
+  defsubr(Streesit_node_type.as_mut_ptr ());
+  defsubr(Streesit_node_start.as_mut_ptr ());
+  defsubr(Streesit_node_end.as_mut_ptr ());
+  defsubr(Streesit_node_string.as_mut_ptr ());
+  defsubr(Streesit_node_parent.as_mut_ptr ());
+  defsubr(Streesit_node_child.as_mut_ptr ());
+  defsubr(Streesit_node_check.as_mut_ptr ());
+  defsubr(Streesit_node_field_name_for_child.as_mut_ptr ());
+  defsubr(Streesit_node_child_count.as_mut_ptr ());
+  defsubr(Streesit_node_child_by_field_name.as_mut_ptr ());
+  defsubr(Streesit_node_next_sibling.as_mut_ptr ());
+  defsubr(Streesit_node_prev_sibling.as_mut_ptr ());
+  defsubr(Streesit_node_first_child_for_pos.as_mut_ptr ());
+  defsubr(Streesit_node_descendant_for_range.as_mut_ptr ());
+  defsubr(Streesit_node_eq.as_mut_ptr ());
 
-  defsubr(&raw mut Streesit_pattern_expand);
-  defsubr(&raw mut Streesit_query_expand);
-  defsubr(&raw mut Streesit_query_compile);
-  defsubr(&raw mut Streesit_query_capture);
+  defsubr(Streesit_pattern_expand.as_mut_ptr ());
+  defsubr(Streesit_query_expand.as_mut_ptr ());
+  defsubr(Streesit_query_compile.as_mut_ptr ());
+  defsubr(Streesit_query_capture.as_mut_ptr ());
 
-  defsubr(&raw mut Streesit_search_subtree);
-  defsubr(&raw mut Streesit_search_forward);
-  defsubr(&raw mut Streesit_induce_sparse_tree);
-  defsubr(&raw mut Streesit_node_match_p);
-  defsubr(&raw mut Streesit_subtree_stat);
+  defsubr(Streesit_search_subtree.as_mut_ptr ());
+  defsubr(Streesit_search_forward.as_mut_ptr ());
+  defsubr(Streesit_induce_sparse_tree.as_mut_ptr ());
+  defsubr(Streesit_node_match_p.as_mut_ptr ());
+  defsubr(Streesit_subtree_stat.as_mut_ptr ());
 
-  defsubr(&raw mut Streesit__linecol_at);
-  defsubr(&raw mut Streesit__linecol_cache);
-  defsubr(&raw mut Streesit__linecol_cache_set);
+  defsubr(Streesit__linecol_at.as_mut_ptr ());
+  defsubr(Streesit__linecol_cache.as_mut_ptr ());
+  defsubr(Streesit__linecol_cache_set.as_mut_ptr ());
 
   }
-  defsubr(&raw mut Streesit_available_p);
+  defsubr(Streesit_available_p.as_mut_ptr ());
   #[cfg(feature = "windowsnt")]
   {
     DEFSYM!(Qtree_sitter__library_abi, "tree-sitter--library-abi");

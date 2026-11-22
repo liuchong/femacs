@@ -42,7 +42,7 @@ pub mod syssignal_decls {
   }
 
   unsafe extern "C-unwind" {
-    pub static mut empty_mask: sigset_t;                                           // 54
+    pub static empty_mask: VmGlobal<sigset_t>;                                           // 54
   }
 
   unsafe extern "C-unwind" {

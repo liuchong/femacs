@@ -196,7 +196,7 @@ macro_rules! inflateInit2 {
 #[cfg (all (feature = "have_zlib", feature = "windowsnt"))]
 macro_rules! inflateInit2 {
   ($strm:expr, $windowBits:expr) => {
-    (fn_inflateInit2_.unwrap ()) ($strm, $windowBits, ZLIB_VERSION,
+    ((*fn_inflateInit2_.as_mut_ptr ()).unwrap ()) ($strm, $windowBits, ZLIB_VERSION,
                                   size_of::<z_stream> () as c_int)
   };
 }
@@ -218,7 +218,7 @@ macro_rules! inflateInit2 {
 macro_rules! DEF_DLL_FN {
   ($type:ty, $func:ident, $pfn:ident, $fnvar:ident, ($($arg:ty),* $(,)?)) => {
     pub type $pfn = Option<unsafe extern "C" fn ($($arg),*) -> $type>;
-    static mut $fnvar: $pfn = None;
+    static $fnvar: VmGlobal<$pfn> = VmGlobal::new(None);
   };
 }
 /// C: w32common.h 82-89: `#define LOAD_DLL_FN(lib, func)       do { fn_##func = (W32_PFN_##func)`
@@ -232,8 +232,8 @@ macro_rules! DEF_DLL_FN {
 macro_rules! LOAD_DLL_FN {
   ($lib:expr, $func:ident, $pfn:ident, $fnvar:ident, $name:expr) => {
     {
-      $fnvar = std::mem::transmute::<VOIDFNPTR, $pfn> (get_proc_addr ($lib, $name.as_ptr ()));
-      if $fnvar.is_none () { return false; }
+      (*$fnvar.as_mut_ptr ()) = std::mem::transmute::<VOIDFNPTR, $pfn> (get_proc_addr ($lib, $name.as_ptr ()));
+      if (*$fnvar.as_mut_ptr ()).is_none () { return false; }
     }
   };
 }
@@ -243,16 +243,16 @@ macro_rules! LOAD_DLL_FN {
    `W32_PFN_inflateEnd`/`fn_inflateEnd`.  C's `CDECL` is the `__cdecl` attribute, which is empty on
    this target's ABI, so the pointer type is the plain `extern "C"` one.  */
 #[cfg (all (feature = "have_zlib", feature = "windowsnt"))]
-DEF_DLL_FN! (c_int, inflateInit2_, W32_PFN_inflateInit2_, fn_inflateInit2_,
+DEF_DLL_FN! (c_int, inflateInit2_, W32_PFN_inflateInit2_, (*fn_inflateInit2_.as_mut_ptr ()),
              (z_streamp, c_int, *const c_char, c_int));
 #[cfg (all (feature = "have_zlib", feature = "windowsnt"))]
-DEF_DLL_FN! (c_int, inflate, W32_PFN_inflate, fn_inflate, (z_streamp, c_int));
+DEF_DLL_FN! (c_int, inflate, W32_PFN_inflate, (*fn_inflate.as_mut_ptr ()), (z_streamp, c_int));
 #[cfg (all (feature = "have_zlib", feature = "windowsnt"))]
-DEF_DLL_FN! (c_int, inflateEnd, W32_PFN_inflateEnd, fn_inflateEnd, (z_streamp));
+DEF_DLL_FN! (c_int, inflateEnd, W32_PFN_inflateEnd, (*fn_inflateEnd.as_mut_ptr ()), (z_streamp));
 
 /// C 41: `static bool zlib_initialized;` - C's tentative definition, i.e. zero (PORTING.md 0.1-13).
 #[cfg (all (feature = "have_zlib", feature = "windowsnt"))]
-static mut zlib_initialized: bool = false;
+static zlib_initialized: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 /// C 43-55: `init_zlib_functions`.  `HMODULE` is a pointer; `w32_delayed_load` is the declaration
 /// `src/include/w32.rs` 313-314 carries for `w32.h` 197.
@@ -264,9 +264,9 @@ unsafe fn init_zlib_functions () -> bool
   if library.is_null ()
     { return false; }
 
-  LOAD_DLL_FN! (library, inflateInit2_, W32_PFN_inflateInit2_, fn_inflateInit2_, c"inflateInit2_");
-  LOAD_DLL_FN! (library, inflate, W32_PFN_inflate, fn_inflate, c"inflate");
-  LOAD_DLL_FN! (library, inflateEnd, W32_PFN_inflateEnd, fn_inflateEnd, c"inflateEnd");
+  LOAD_DLL_FN! (library, inflateInit2_, W32_PFN_inflateInit2_, (*fn_inflateInit2_.as_mut_ptr ()), c"inflateInit2_");
+  LOAD_DLL_FN! (library, inflate, W32_PFN_inflate, (*fn_inflate.as_mut_ptr ()), c"inflate");
+  LOAD_DLL_FN! (library, inflateEnd, W32_PFN_inflateEnd, (*fn_inflateEnd.as_mut_ptr ()), c"inflateEnd");
   return true;
 }
 
@@ -291,9 +291,9 @@ const MD5_BLOCKSIZE: usize = 32768;
 /// C 72-73: `static char acc_buff[2 * MD5_BLOCKSIZE];` and `static ptrdiff_t acc_size;` - both
 /// C tentative definitions, i.e. zeroed.
 #[cfg (all (feature = "have_zlib", feature = "have_native_comp"))]
-static mut acc_buff: [c_char; 2 * MD5_BLOCKSIZE] = [0; 2 * MD5_BLOCKSIZE];
+static acc_buff: VmGlobal<[c_char; 2 * MD5_BLOCKSIZE]> = VmGlobal::<[c_char; 2 * MD5_BLOCKSIZE]>::new ([0; 2 * MD5_BLOCKSIZE]);
 #[cfg (all (feature = "have_zlib", feature = "have_native_comp"))]
-static mut acc_size: ptrdiff_t = 0;
+static acc_size: VmGlobal<ptrdiff_t> = VmGlobal::<ptrdiff_t>::new (0);
 
 /// C 75-89: `accumulate_and_process_md5`.
 #[cfg (all (feature = "have_zlib", feature = "have_native_comp"))]
@@ -304,16 +304,16 @@ unsafe fn accumulate_and_process_md5 (data: *mut c_void, len: ptrdiff_t, ctxt: *
   eassert! (len <= MD5_BLOCKSIZE as ptrdiff_t);
   /* We may optimize this saving some of these memcpy/move using
      directly the outer buffers but so far don't bother.  */
-  let buf_ptr: *mut c_uchar = (&raw mut acc_buff).cast::<c_uchar> ();
-  memcpy (buf_ptr.offset (acc_size) as *mut c_void, data, len as usize);
-  acc_size += len;
-  if acc_size >= MD5_BLOCKSIZE as ptrdiff_t
+  let buf_ptr: *mut c_uchar = (acc_buff.as_mut_ptr ()).cast::<c_uchar> ();
+  memcpy (buf_ptr.offset ((*acc_size.as_mut_ptr ())) as *mut c_void, data, len as usize);
+  (*acc_size.as_mut_ptr ()) += len;
+  if (*acc_size.as_mut_ptr ()) >= MD5_BLOCKSIZE as ptrdiff_t
     {
-      acc_size -= MD5_BLOCKSIZE as ptrdiff_t;
+      (*acc_size.as_mut_ptr ()) -= MD5_BLOCKSIZE as ptrdiff_t;
       md5_process_block (buf_ptr as *const c_void, MD5_BLOCKSIZE, ctxt);
       memmove (buf_ptr as *mut c_void,
                buf_ptr.offset (MD5_BLOCKSIZE as isize) as *const c_void,
-               acc_size as usize);
+               (*acc_size.as_mut_ptr ()) as usize);
     }
   }
 }
@@ -324,10 +324,10 @@ unsafe fn final_process_md5 (ctxt: *mut md5_ctx)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  if acc_size != 0
+  if (*acc_size.as_mut_ptr ()) != 0
     {
-      md5_process_bytes ((&raw const acc_buff).cast::<c_void> (), acc_size as usize, ctxt);
-      acc_size = 0;
+      md5_process_bytes ((acc_buff.as_ptr ()).cast::<c_void> (), (*acc_size.as_mut_ptr ()) as usize, ctxt);
+      (*acc_size.as_mut_ptr ()) = 0;
     }
   }
 }
@@ -347,16 +347,16 @@ pub unsafe extern "C-unwind" fn md5_gz_stream (source: *mut FILE, resblock: *mut
 
   #[cfg (feature = "windowsnt")]
   {
-    if !zlib_initialized
-      { zlib_initialized = init_zlib_functions (); }
-    if !zlib_initialized
+    if !(*zlib_initialized.as_mut_ptr ())
+      { (*zlib_initialized.as_mut_ptr ()) = init_zlib_functions (); }
+    if !(*zlib_initialized.as_mut_ptr ())
       {
         message1 (c"zlib library not found".as_ptr ());
         return -1;
       }
   }
 
-  eassert! (acc_size == 0);
+  eassert! ((*acc_size.as_mut_ptr ()) == 0);
 
   let mut ctx: md5_ctx = std::mem::zeroed ();
   md5_init_ctx (&mut ctx);
@@ -377,7 +377,7 @@ pub unsafe extern "C-unwind" fn md5_gz_stream (source: *mut FILE, resblock: *mut
       #[cfg (not (feature = "windowsnt"))]
       { inflateEnd (&mut stream); }
       #[cfg (feature = "windowsnt")]
-      { (fn_inflateEnd.unwrap ()) (&mut stream); }
+      { ((*fn_inflateEnd.as_mut_ptr ()).unwrap ()) (&mut stream); }
       return -1;
     }
     if stream.avail_in == 0
@@ -390,7 +390,7 @@ pub unsafe extern "C-unwind" fn md5_gz_stream (source: *mut FILE, resblock: *mut
       #[cfg (not (feature = "windowsnt"))]
       { res = inflate (&mut stream, Z_NO_FLUSH); }
       #[cfg (feature = "windowsnt")]
-      { res = (fn_inflate.unwrap ()) (&mut stream, Z_NO_FLUSH); }
+      { res = ((*fn_inflate.as_mut_ptr ()).unwrap ()) (&mut stream, Z_NO_FLUSH); }
 
       if res != Z_OK && res != Z_STREAM_END
 	{ return -1; }
@@ -410,7 +410,7 @@ pub unsafe extern "C-unwind" fn md5_gz_stream (source: *mut FILE, resblock: *mut
   #[cfg (not (feature = "windowsnt"))]
   { inflateEnd (&mut stream); }
   #[cfg (feature = "windowsnt")]
-  { (fn_inflateEnd.unwrap ()) (&mut stream); }
+  { ((*fn_inflateEnd.as_mut_ptr ()).unwrap ()) (&mut stream); }
 
   if res != Z_STREAM_END
     { return -1; }
@@ -447,7 +447,7 @@ unsafe extern "C-unwind" fn unwind_decompress (ddata: *mut c_void)
   #[cfg (not (feature = "windowsnt"))]
   { inflateEnd ((*data).stream); }
   #[cfg (feature = "windowsnt")]
-  { (fn_inflateEnd.unwrap ()) ((*data).stream); }
+  { ((*fn_inflateEnd.as_mut_ptr ()).unwrap ()) ((*data).stream); }
 
   /* Delete any uncompressed data already inserted on error, but
      without calling the change hooks.  */
@@ -477,15 +477,15 @@ DEFUN! ("zlib-available-p", Fzlib_available_p, Szlib_available_p, 0, 0, 0,
        {
   #[cfg (feature = "windowsnt")]
   {
-    let mut found: Lisp_Object = Fassq (Qzlib (), Vlibrary_cache);
+    let mut found: Lisp_Object = Fassq (Qzlib (), (*Vlibrary_cache.as_mut_ptr ()));
     if CONSP (found)
       { return XCDR (found); }
     else
       {
         let mut status: Lisp_Object;
-        zlib_initialized = init_zlib_functions ();
-        status = if zlib_initialized { Qt () } else { Qnil () };
-        Vlibrary_cache = Fcons (Fcons (Qzlib (), status), Vlibrary_cache);
+        (*zlib_initialized.as_mut_ptr ()) = init_zlib_functions ();
+        status = if (*zlib_initialized.as_mut_ptr ()) { Qt () } else { Qnil () };
+        (*Vlibrary_cache.as_mut_ptr ()) = Fcons (Fcons (Qzlib (), status), (*Vlibrary_cache.as_mut_ptr ()));
         return status;
       }
   }
@@ -519,9 +519,9 @@ DEFUN! ("zlib-decompress-region", Fzlib_decompress_region, Szlib_decompress_regi
 
   #[cfg (feature = "windowsnt")]
   {
-    if !zlib_initialized
-      { zlib_initialized = init_zlib_functions (); }
-    if !zlib_initialized
+    if !(*zlib_initialized.as_mut_ptr ())
+      { (*zlib_initialized.as_mut_ptr ()) = init_zlib_functions (); }
+    if !(*zlib_initialized.as_mut_ptr ())
       {
         message1 (c"zlib library not found".as_ptr ());
         return Qnil ();
@@ -580,7 +580,7 @@ DEFUN! ("zlib-decompress-region", Fzlib_decompress_region, Szlib_decompress_regi
       #[cfg (not (feature = "windowsnt"))]
       { inflate_status = inflate (&mut stream, Z_NO_FLUSH); }
       #[cfg (feature = "windowsnt")]
-      { inflate_status = (fn_inflate.unwrap ()) (&mut stream, Z_NO_FLUSH); }
+      { inflate_status = ((*fn_inflate.as_mut_ptr ()).unwrap ()) (&mut stream, Z_NO_FLUSH); }
       pos_byte += avail_in - stream.avail_in as ptrdiff_t;
       decompressed = avail_out - stream.avail_out as c_int;
       insert_from_gap (decompressed as ptrdiff_t, decompressed as ptrdiff_t, false, false);
@@ -634,8 +634,8 @@ pub unsafe extern "C-unwind" fn syms_of_decompress ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  defsubr (&raw mut Szlib_decompress_region);
-  defsubr (&raw mut Szlib_available_p);
+  defsubr (Szlib_decompress_region.as_mut_ptr ());
+  defsubr (Szlib_available_p.as_mut_ptr ());
 
   }
 }

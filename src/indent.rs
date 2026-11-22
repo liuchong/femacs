@@ -103,7 +103,7 @@ unsafe extern "C-unwind" {
   fn move_it_in_display_line (it: *mut it, to_charpos: ptrdiff_t, to_x: c_int,
                               op: move_operation_enum);
   /// C: dispextern.h 3610: `extern bool display_working_on_window_p;`
-  static mut display_working_on_window_p: bool;
+  static display_working_on_window_p: VmGlobal<bool>;
 
   /// C: dispextern.h 3619: `extern void reseat_at_previous_visible_line_start (struct
   /// it *);`
@@ -447,23 +447,23 @@ pub const CR: c_int = 13;
    Some things in set last_known_column_point to -1
    to mark the memorized value as invalid.  */
 
-static mut last_known_column: ptrdiff_t = 0;
+static last_known_column: VmGlobal<ptrdiff_t> = VmGlobal::<ptrdiff_t>::new (0);
 
 /* Value of point when current_column was called.  */
 
 #[unsafe(no_mangle)]
-pub static mut last_known_column_point: ptrdiff_t = 0;
+pub static last_known_column_point: VmGlobal<ptrdiff_t> = VmGlobal::<ptrdiff_t>::new (0);
 
 /* Value of MODIFF when current_column was called.  */
 
-static mut last_known_column_modified: modiff_count = 0;
+static last_known_column_modified: VmGlobal<modiff_count> = VmGlobal::<modiff_count>::new (0);
 
 /* The `DEFVAR_BOOL` variable this unit owns (`syms_of_indent`): C's storage is
    `globals.f_indent_tabs_mode` (lisp.h 3512-3515) and the unit that owns it defines it
    (status §3.29, the casetab.rs/insdel.rs shape); `include/globals.rs`'s `variables`
    module declares the name, so this definition shadows the glob import.  */
 #[unsafe(no_mangle)]
-pub static mut indent_tabs_mode: bool = false;
+pub static indent_tabs_mode: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 /* C 53-54's forward declarations of `current_column_1` and `position_indentation` are
    dropped: Rust's items are order-independent and a declaration plus the definition is
@@ -481,8 +481,8 @@ pub unsafe extern "C-unwind" fn buffer_display_table () -> *mut Lisp_Char_Table
   thisbuf = BVAR! ((current_buffer! ()), display_table_);
   if DISP_TABLE_P (thisbuf)
     { return XCHAR_TABLE (thisbuf); }
-  if DISP_TABLE_P (Vstandard_display_table)
-    { return XCHAR_TABLE (Vstandard_display_table); }
+  if DISP_TABLE_P ((*Vstandard_display_table.as_mut_ptr ()))
+    { return XCHAR_TABLE ((*Vstandard_display_table.as_mut_ptr ())); }
   return 0 as *mut Lisp_Char_Table;
 
   }
@@ -752,7 +752,7 @@ pub unsafe extern "C-unwind" fn invalidate_current_column ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  last_known_column_point = 0;
+  (*last_known_column_point.as_mut_ptr ()) = 0;
 
   }
 }
@@ -772,9 +772,9 @@ pub unsafe extern "C-unwind" fn current_column () -> ptrdiff_t
   let ctl_arrow: bool = !NILP (BVAR! ((current_buffer! ()), ctl_arrow_));
   let dp: *mut Lisp_Char_Table = buffer_display_table ();
 
-  if PT! () == last_known_column_point
-      && MODIFF! () == last_known_column_modified
-    { return last_known_column; }
+  if PT! () == (*last_known_column_point.as_mut_ptr ())
+      && MODIFF! () == (*last_known_column_modified.as_mut_ptr ())
+    { return (*last_known_column.as_mut_ptr ()); }
 
   let mut line_beg: ptrdiff_t = find_newline (PT! (), PT_BYTE! (), BEGV! (), BEGV_BYTE! (),
 					      -1, std::ptr::null_mut (),
@@ -782,8 +782,8 @@ pub unsafe extern "C-unwind" fn current_column () -> ptrdiff_t
 
   /* Avoid becoming abysmally slow for very long lines.  */
   if (*(current_buffer! ())).bits & BUFFER_LONG_LINE_OPTIMIZATIONS_P != 0
-      && !NILP (Vlong_line_threshold)
-      && PT! () - line_beg > XFIXNUM (Vlong_line_threshold)
+      && !NILP ((*Vlong_line_threshold.as_mut_ptr ()))
+      && PT! () - line_beg > XFIXNUM ((*Vlong_line_threshold.as_mut_ptr ()))
     { return PT! () - line_beg; }	/* this is an approximation! */
   /* If the buffer has overlays, text properties,
      or multibyte characters, use a more general algorithm.  */
@@ -901,9 +901,9 @@ pub unsafe extern "C-unwind" fn current_column () -> ptrdiff_t
       col += post_tab;
     }
 
-  last_known_column = col;
-  last_known_column_point = PT! ();
-  last_known_column_modified = MODIFF! ();
+  (*last_known_column.as_mut_ptr ()) = col;
+  (*last_known_column_point.as_mut_ptr ()) = PT! ();
+  (*last_known_column_modified.as_mut_ptr ()) = MODIFF! ();
 
   return col;
 
@@ -994,7 +994,7 @@ unsafe fn check_display_width (window: Lisp_Object,
 	      SET_TEXT_POS! (startpos, pos, pos_byte);
 	      let itdata: *mut c_void = bidi_shelve_cache ();
 	      record_unwind_protect_void (Some (unwind_display_working_on_window));
-	      display_working_on_window_p = true;
+	      (*display_working_on_window_p.as_mut_ptr ()) = true;
 	      start_display (&raw mut it, w, startpos);
 	      it.last_visible_x = 1000000; /* prevent image clipping */
 	      /* Forcing HPOS non-zero prevents the display code from
@@ -1098,12 +1098,12 @@ unsafe fn scan_for_column (endpos: *mut ptrdiff_t, goalcol: *mut EMACS_INT,
 
       if !NILP (BVAR! ((current_buffer! ()), truncate_lines_))
 	{ lines_truncated = true; }
-      else if !NILP (Vtruncate_partial_width_windows) && !w.is_null ()
+      else if !NILP ((*Vtruncate_partial_width_windows.as_mut_ptr ())) && !w.is_null ()
 	       && (*w).total_cols < FRAME_COLS (XFRAME (WINDOW_FRAME! (w)))
 	{
-	  if FIXNUMP (Vtruncate_partial_width_windows)
+	  if FIXNUMP ((*Vtruncate_partial_width_windows.as_mut_ptr ()))
 	    { lines_truncated =
-		(*w).total_cols < XFIXNAT (Vtruncate_partial_width_windows) as c_int; }
+		(*w).total_cols < XFIXNAT ((*Vtruncate_partial_width_windows.as_mut_ptr ())) as c_int; }
 	  else
 	    { lines_truncated = true; }
 	}
@@ -1123,7 +1123,7 @@ unsafe fn scan_for_column (endpos: *mut ptrdiff_t, goalcol: *mut EMACS_INT,
 	  if scan > eolpos
 	    { scan = if eolpos == ZV! () { ZV! () } else { eolpos - 1 }; }
 	  col = scan - bolpos;
-	  if col > large_hscroll_threshold
+	  if col > (*large_hscroll_threshold.as_mut_ptr ())
 	    {
 	      prev_col = col - 1;
 	      prev_pos = scan - 1;
@@ -1307,9 +1307,9 @@ unsafe fn scan_for_column (endpos: *mut ptrdiff_t, goalcol: *mut EMACS_INT,
     }
   }
 
-  last_known_column = col;
-  last_known_column_point = PT! ();
-  last_known_column_modified = MODIFF! ();
+  (*last_known_column.as_mut_ptr ()) = col;
+  (*last_known_column_point.as_mut_ptr ()) = PT! ();
+  (*last_known_column_modified.as_mut_ptr ()) = MODIFF! ();
 
   if !goalcol.is_null ()
     { *goalcol = col as EMACS_INT; }
@@ -1373,7 +1373,7 @@ DEFUN! ("indent-to", Findent_to, Sindent_to, 1, 2, "NIndent to column: ",
   if fromcol == mincol
     { return make_fixnum (mincol); }
 
-  if indent_tabs_mode
+  if (*indent_tabs_mode.as_mut_ptr ())
     {
       let mut n: Lisp_Object = Qnil ();
       XSETFASTINT! (n, mincol / tab_width as EMACS_INT - fromcol / tab_width as ptrdiff_t);
@@ -1388,9 +1388,9 @@ DEFUN! ("indent-to", Findent_to, Sindent_to, 1, 2, "NIndent to column: ",
   XSETFASTINT! (column, mincol - fromcol);
   Finsert_char (make_fixnum (b' ' as EMACS_INT), column, Qt ());
 
-  last_known_column = mincol;
-  last_known_column_point = PT! ();
-  last_known_column_modified = MODIFF! ();
+  (*last_known_column.as_mut_ptr ()) = mincol;
+  (*last_known_column_point.as_mut_ptr ()) = PT! ();
+  (*last_known_column_modified.as_mut_ptr ()) = MODIFF! ();
 
   XSETINT! (column, mincol);
   return column;
@@ -1583,18 +1583,18 @@ DEFUN! ("move-to-column", Fmove_to_column, Smove_to_column, 1, 2,
   if col < goal && EQ (force, Qt ())
     { Findent_to (make_fixnum ({ col = goal; col }), Qnil ()); }
 
-  last_known_column = col;
-  last_known_column_point = PT! ();
-  last_known_column_modified = MODIFF! ();
+  (*last_known_column.as_mut_ptr ()) = col;
+  (*last_known_column_point.as_mut_ptr ()) = PT! ();
+  (*last_known_column_modified.as_mut_ptr ()) = MODIFF! ();
 
   return make_fixnum (col);
 });
 
 /* compute_motion: compute buffer posn given screen posn and vice versa */
 
-static mut val_compute_motion: position = position {
+static val_compute_motion: VmGlobal<position> = VmGlobal::<position>::new (position {
   bufpos: 0, bytepos: 0, hpos: 0, vpos: 0, prevhpos: 0, contin: 0,
-};
+});
 
 /* Scan the current buffer forward from offset FROM, pretending that
    this is at line FROMVPOS, column FROMHPOS, until reaching buffer
@@ -1906,12 +1906,12 @@ pub unsafe extern "C-unwind" fn compute_motion (from: ptrdiff_t, frombyte: ptrdi
 	  let total_width: EMACS_INT = width + continuation_glyph_width as EMACS_INT;
 	  let mut truncate: bool = false;
 
-	  if !NILP (Vtruncate_partial_width_windows)
+	  if !NILP ((*Vtruncate_partial_width_windows.as_mut_ptr ()))
 	      && (total_width < FRAME_COLS (XFRAME (WINDOW_FRAME! (win))) as EMACS_INT)
 	    {
-	      if FIXNUMP (Vtruncate_partial_width_windows)
+	      if FIXNUMP ((*Vtruncate_partial_width_windows.as_mut_ptr ()))
 		{ truncate
-		    = total_width < XFIXNAT (Vtruncate_partial_width_windows); }
+		    = total_width < XFIXNAT ((*Vtruncate_partial_width_windows.as_mut_ptr ())); }
 	      else
 		{ truncate = true; }
 	    }
@@ -2266,19 +2266,19 @@ pub unsafe extern "C-unwind" fn compute_motion (from: ptrdiff_t, frombyte: ptrdi
       && width_run_start < width_run_end
     { know_region_cache (cache_buffer, width_cache, width_run_start, width_run_end); }
 
-  val_compute_motion.bufpos = pos;
-  val_compute_motion.bytepos = pos_byte;
-  val_compute_motion.hpos = hpos;
-  val_compute_motion.vpos = vpos;
+  (*val_compute_motion.as_mut_ptr ()).bufpos = pos;
+  (*val_compute_motion.as_mut_ptr ()).bytepos = pos_byte;
+  (*val_compute_motion.as_mut_ptr ()).hpos = hpos;
+  (*val_compute_motion.as_mut_ptr ()).vpos = vpos;
   if contin_hpos != 0 && prev_hpos == 0
-    { val_compute_motion.prevhpos = contin_hpos; }
+    { (*val_compute_motion.as_mut_ptr ()).prevhpos = contin_hpos; }
   else
-    { val_compute_motion.prevhpos = prev_hpos; }
+    { (*val_compute_motion.as_mut_ptr ()).prevhpos = prev_hpos; }
 
   /* Nonzero if have just continued a line */
-  val_compute_motion.contin = (contin_hpos != 0 && prev_hpos == 0) as c_int;
+  (*val_compute_motion.as_mut_ptr ()).contin = (contin_hpos != 0 && prev_hpos == 0) as c_int;
 
-  return &raw mut val_compute_motion;
+  return val_compute_motion.as_mut_ptr ();
 
   }
 }
@@ -2364,9 +2364,9 @@ DEFUN! ("compute-motion", Fcompute_motion, Scompute_motion, 7, 7, 0,
 
 /* Fvertical_motion and vmotion.  */
 
-static mut val_vmotion: position = position {
+static val_vmotion: VmGlobal<position> = VmGlobal::<position>::new (position {
   bufpos: 0, bytepos: 0, hpos: 0, vpos: 0, prevhpos: 0, contin: 0,
-};
+});
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn vmotion (from: ptrdiff_t, from_byte: ptrdiff_t,
@@ -2447,13 +2447,13 @@ pub unsafe extern "C-unwind" fn vmotion (from: ptrdiff_t, from_byte: ptrdiff_t,
 	 if we hit beginning of buffer, return point found.  */
       if vpos >= vtarget
 	{
-	  val_vmotion.bufpos = from;
-	  val_vmotion.bytepos = from_byte;
-	  val_vmotion.vpos = vpos;
-	  val_vmotion.hpos = lmargin;
-	  val_vmotion.contin = 0;
-	  val_vmotion.prevhpos = 0;
-	  return &raw mut val_vmotion;
+	  (*val_vmotion.as_mut_ptr ()).bufpos = from;
+	  (*val_vmotion.as_mut_ptr ()).bytepos = from_byte;
+	  (*val_vmotion.as_mut_ptr ()).vpos = vpos;
+	  (*val_vmotion.as_mut_ptr ()).hpos = lmargin;
+	  (*val_vmotion.as_mut_ptr ()).contin = 0;
+	  (*val_vmotion.as_mut_ptr ()).prevhpos = 0;
+	  return val_vmotion.as_mut_ptr ();
 	}
 
       /* Otherwise find the correct spot by moving down.  */
@@ -2509,7 +2509,7 @@ pub unsafe extern "C-unwind" fn line_number_display_width (w: *mut window, width
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  if NILP (Vdisplay_line_numbers)
+  if NILP ((*Vdisplay_line_numbers.as_mut_ptr ()))
     {
       *width = 0;
       *pixel_width = 0;
@@ -2569,7 +2569,7 @@ DEFUN! ("line-number-display-width", Fline_number_display_width,
        {
   let mut width: c_int = 0;
   let mut pixel_width: c_int = 0;
-  let w: *mut window = XWINDOW (selected_window);
+  let w: *mut window = XWINDOW ((*selected_window.as_mut_ptr ()));
   line_number_display_width (w, &raw mut width, &raw mut pixel_width);
   if EQ (pixelwise, Qcolumns ())
     {
@@ -2656,7 +2656,7 @@ DEFUN! ("vertical-motion", Fvertical_motion, Svertical_motion, 1, 3, 0,
 		       BUF_PT ((current_buffer! ())), BUF_PT_BYTE ((current_buffer! ())));
     }
 
-  if noninteractive
+  if (*noninteractive.as_mut_ptr ())
     {
       let mut pos: position = std::mem::zeroed ();
       pos = *vmotion (PT! (), PT_BYTE! (), XFIXNUM (lines), w);
@@ -2690,12 +2690,12 @@ DEFUN! ("vertical-motion", Fvertical_motion, Svertical_motion, 1, 3, 0,
 	 will sometimes err by one column.  */
       let mut lnum_width: c_int = 0;
       let mut lnum_pixel_width: c_int = 0;
-      if !NILP (Vdisplay_line_numbers)
+      if !NILP ((*Vdisplay_line_numbers.as_mut_ptr ()))
 	{ line_number_display_width (w, &raw mut lnum_width, &raw mut lnum_pixel_width); }
       SET_TEXT_POS! (pt, PT! (), PT_BYTE! ());
       itdata = bidi_shelve_cache ();
       record_unwind_protect_void (Some (unwind_display_working_on_window));
-      display_working_on_window_p = true;
+      (*display_working_on_window_p.as_mut_ptr ()) = true;
       start_display (&raw mut it, w, pt);
       it.lnum_width = lnum_width;
       first_x = it.first_visible_x;
@@ -2963,17 +2963,17 @@ pub unsafe extern "C-unwind" fn syms_of_indent ()
   unsafe {
   DEFVAR_BOOL! (c"indent-tabs-mode", indent_tabs_mode,
 	       "Indentation can insert tabs if this is non-nil.  ");
-  indent_tabs_mode = true;
+  (*indent_tabs_mode.as_mut_ptr ()) = true;
 
   DEFSYM! (Qcolumns, c"columns");
 
-  defsubr (&raw mut Scurrent_indentation);
-  defsubr (&raw mut Sindent_to);
-  defsubr (&raw mut Scurrent_column);
-  defsubr (&raw mut Smove_to_column);
-  defsubr (&raw mut Sline_number_display_width);
-  defsubr (&raw mut Svertical_motion);
-  defsubr (&raw mut Scompute_motion);
+  defsubr (Scurrent_indentation.as_mut_ptr ());
+  defsubr (Sindent_to.as_mut_ptr ());
+  defsubr (Scurrent_column.as_mut_ptr ());
+  defsubr (Smove_to_column.as_mut_ptr ());
+  defsubr (Sline_number_display_width.as_mut_ptr ());
+  defsubr (Svertical_motion.as_mut_ptr ());
+  defsubr (Scompute_motion.as_mut_ptr ());
 
   }
 }

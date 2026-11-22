@@ -248,7 +248,7 @@ pub const TTY_SCROLL_REGION_OK: u8 = 1 << 6;       // termchar.h 216
 pub const TTY_MEMORY_BELOW_FRAME: u8 = 1 << 7;     // termchar.h 219
 
 /* A chain of structures for all tty devices currently in use. */
-unsafe extern "C-unwind" { pub static mut tty_list: *mut tty_display_info; }     // termchar.h 227
+unsafe extern "C-unwind" { pub static tty_list: VmGlobal<*mut tty_display_info>; }     // termchar.h 227
 
 // termchar.h 230-233: `FRAME_TTY (f)`.  It is a macro in C and stays one here: it names
 // `frame`'s `output_method` and `struct terminal`'s `display_info.tty`, which the including

@@ -143,12 +143,12 @@ unsafe fn num_processors_available (query: nproc_query) -> c_ulong   /* C 236-23
   {
     let mut nprocs: c_int = 0;                                /* C 329 */
     let mut len: usize = std::mem::size_of_val (&nprocs);     /* C 330 */
-    static mut mib: [[c_int; 2]; 1] = [[CTL_HW, HW_NCPU]];    /* C 331-336 */
+    static mib: VmGlobal<[[c_int; 2]; 1]> = VmGlobal::<[[c_int; 2]; 1]>::new ([[CTL_HW, HW_NCPU]]);    /* C 331-336 */
     let mut i: c_int = 0;                                     /* C 337 */
-    while i < countof! (mib) as c_int
+    while i < countof! ((*mib.as_mut_ptr ())) as c_int
       {
-        if sysctl ((*std::ptr::addr_of_mut! (mib[i as usize])).as_mut_ptr (),
-                   countof! (mib[i as usize]) as c_uint,
+        if sysctl ((*std::ptr::addr_of_mut! ((*mib.as_mut_ptr ())[i as usize])).as_mut_ptr (),
+                   countof! ((*mib.as_mut_ptr ())[i as usize]) as c_uint,
                    &mut nprocs as *mut c_int as *mut c_void, &mut len,
                    std::ptr::null_mut (), 0) == 0
             && len == std::mem::size_of_val (&nprocs)

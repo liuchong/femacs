@@ -378,11 +378,10 @@ use core::sync::atomic::{AtomicBool, AtomicU64, AtomicU8, Ordering};
     static MODE: AtomicU8 = AtomicU8::new(0);
     static READY: AtomicBool = AtomicBool::new(false);
     static OWNER_ERRORS: AtomicU64 = AtomicU64::new(0);
-    static mut RECORDER: numeric::Recorder = numeric::Recorder::new();
-    static mut DETACHED_RECORDS: [numeric::GcPhaseRecord; numeric::CAPACITY] =
-        [numeric::GcPhaseRecord::ZERO; numeric::CAPACITY];
-    static mut DETACHED_TOTALS: [u64; 21] = [0; 21];
-    static mut DETACHED_AGES: [[u64; 5]; 2] = [[0; 5]; 2];
+    static RECORDER: VmGlobal<numeric::Recorder> = VmGlobal::<numeric::Recorder>::new (numeric::Recorder::new());
+    static DETACHED_RECORDS: VmGlobal<[numeric::GcPhaseRecord; numeric::CAPACITY]> = VmGlobal::<[numeric::GcPhaseRecord; numeric::CAPACITY]>::new ([numeric::GcPhaseRecord::ZERO; numeric::CAPACITY]);
+    static DETACHED_TOTALS: VmGlobal<[u64; 21]> = VmGlobal::<[u64; 21]>::new ([0; 21]);
+    static DETACHED_AGES: VmGlobal<[[u64; 5]; 2]> = VmGlobal::<[[u64; 5]; 2]>::new ([[0; 5]; 2]);
 
     unsafe extern "C" {
         fn in_current_thread() -> bool;
@@ -405,7 +404,7 @@ use core::sync::atomic::{AtomicBool, AtomicU64, AtomicU8, Ordering};
     #[inline]
     unsafe fn state() -> &'static mut numeric::Recorder {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
-  unsafe { &mut *(&raw mut RECORDER) 
+  unsafe { &mut *(RECORDER.as_mut_ptr ()) 
   }
 }
     unsafe fn now() -> Option<u64> {
@@ -611,11 +610,11 @@ use core::sync::atomic::{AtomicBool, AtomicU64, AtomicU8, Ordering};
         if fault == 1 { error(c"GC observer test error before ownership".as_ptr()); }
         let Some(token) = state().acquire_export() else { error(c"GC observer export unavailable".as_ptr()); };
         roots.owner_token = token;
-        DETACHED_TOTALS = state().export_totals(OWNER_ERRORS.load(Ordering::Relaxed));
+        (*DETACHED_TOTALS.as_mut_ptr ()) = state().export_totals(OWNER_ERRORS.load(Ordering::Relaxed));
         let length = state().count;
-        for index in 0..length { DETACHED_RECORDS[index] = state().records[index]; }
-        DETACHED_AGES[0] = state().live_ages();
-        DETACHED_AGES[1] = state().dead;
+        for index in 0..length { (*DETACHED_RECORDS.as_mut_ptr ())[index] = state().records[index]; }
+        (*DETACHED_AGES.as_mut_ptr ())[0] = state().live_ages();
+        (*DETACHED_AGES.as_mut_ptr ())[1] = state().dead;
         // Every Lisp intermediate has a guard-traced field or is already
         // reachable through the result before the next allocating operation.
         roots.result = make_vector(4, Qnil());
@@ -632,12 +631,12 @@ use core::sync::atomic::{AtomicBool, AtomicU64, AtomicU8, Ordering};
             if fault == 3 { error(c"GC observer test error after ownership".as_ptr()); }
         }
         for index in 0..21 {
-            let value = DETACHED_TOTALS[index];
+            let value = (*DETACHED_TOTALS.as_mut_ptr ())[index];
             roots.current = make_uint(value as uintmax_t);
             ASET(roots.totals, index as isize, roots.current);
         }
         for index in 0..length {
-            let record = DETACHED_RECORDS[index];
+            let record = (*DETACHED_RECORDS.as_mut_ptr ())[index];
             roots.current = make_vector(6, Qnil());
             ASET(roots.records, index as isize, roots.current);
             let values = [record.cycle, record.parent_cycle, record.phase as u64,
@@ -652,7 +651,7 @@ use core::sync::atomic::{AtomicBool, AtomicU64, AtomicU8, Ordering};
             roots.current = make_vector(5, Qnil());
             ASET(roots.ages, family as isize, roots.current);
             for bucket in 0..5 {
-                roots.current = make_uint(DETACHED_AGES[family][bucket] as uintmax_t);
+                roots.current = make_uint((*DETACHED_AGES.as_mut_ptr ())[family][bucket] as uintmax_t);
                 ASET(AREF(roots.ages, family as isize), bucket as isize, roots.current);
             }
         }

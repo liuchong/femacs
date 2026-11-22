@@ -52,19 +52,15 @@ impl LispVal {
 
     #[inline]
     pub fn from_fixnum(n: isize) -> Self {
-        // SAFETY: `make_fixnum` is a pure tagged-integer bit shift on the valid fixnum range.
-        Self(unsafe { make_fixnum(n as EMACS_INT) })
+        Self(make_fixnum(n as EMACS_INT))
     }
 
     #[inline]
     pub fn as_fixnum(self) -> Option<isize> {
-        // SAFETY: `FIXNUMP` and `XFIXNUM` inspect tag bits of the word without dereferencing memory.
-        unsafe {
-            if FIXNUMP(self.0) {
-                Some(XFIXNUM(self.0) as isize)
-            } else {
-                None
-            }
+        if FIXNUMP(self.0) {
+            Some(XFIXNUM(self.0) as isize)
+        } else {
+            None
         }
     }
 }
@@ -184,8 +180,8 @@ static PERSISTENT_RELEASED: AtomicUsize = AtomicUsize::new(0);
 
 #[inline]
 pub(crate) fn current_thread_key() -> usize {
-    // SAFETY: `current_thread` is mutated only on the thread holding the VM global lock.
-    unsafe { current_thread as usize }
+    // SAFETY: `current_thread` is the single-VM active thread pointer `VmGlobal` extern slot.
+    unsafe { current_thread.get() as usize }
 }
 
 fn with_thread_slab<R>(thread_key: usize, f: impl FnOnce(&mut ThreadRootSlab) -> R) -> R {

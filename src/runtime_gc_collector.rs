@@ -126,14 +126,14 @@ use core::sync::atomic::{AtomicBool, AtomicU8, Ordering};
             }
         }
     }
-    static mut STATE: State = State::new();
-    static mut DETACHED_TOTALS: [u64; 24] = [0; 24];
-    static mut DETACHED_REASONS: [u64; 13] = [0; 13];
+    static STATE: VmGlobal<State> = VmGlobal::<State>::new (State::new());
+    static DETACHED_TOTALS: VmGlobal<[u64; 24]> = VmGlobal::<[u64; 24]>::new ([0; 24]);
+    static DETACHED_REASONS: VmGlobal<[u64; 13]> = VmGlobal::<[u64; 13]>::new ([0; 13]);
     unsafe extern "C" { fn in_current_thread() -> bool; }
     #[inline]
     unsafe fn state() -> &'static mut State {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
-  unsafe { &mut *(&raw mut STATE) 
+  unsafe { &mut *(STATE.as_mut_ptr ()) 
   }
 }
     #[inline]
@@ -173,7 +173,7 @@ use core::sync::atomic::{AtomicBool, AtomicU8, Ordering};
         s.totals[23] = CONS_BLOCK_SIZE as u64;
         s.invalid_reason = 1; s.counters_exhausted = false;
         s.cycle_valid = false;
-        LAST_MAJOR_BYTES = 0;
+        (*LAST_MAJOR_BYTES.as_mut_ptr ()) = 0;
         s.export_owner = 0; s.next_export_owner = 0;
         s.cadence_cons_base = 0; s.cadence_bytes_base = 0;
         // Normal process startup follows dump relocation. Cons age bitmaps
@@ -224,7 +224,7 @@ use core::sync::atomic::{AtomicBool, AtomicU8, Ordering};
     unsafe fn retention_bytes_cap() -> u64 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-        LAST_MAJOR_BYTES.max(memory_full_cons_threshold as u64)
+        (*LAST_MAJOR_BYTES.as_mut_ptr ()).max(memory_full_cons_threshold as u64)
     
   }
 }
@@ -240,11 +240,11 @@ use core::sync::atomic::{AtomicBool, AtomicU8, Ordering};
         if MODE.load(Ordering::Relaxed) != 2 || !READY.load(Ordering::Relaxed) || !owner() {
             return false;
         }
-        if garbage_collection_inhibited != 0 || gc_in_progress {
+        if (*garbage_collection_inhibited.as_mut_ptr ()) != 0 || (*gc_in_progress.as_mut_ptr ()) {
             return false;
         }
-        if !(*(&raw mut doomed_finalizers)).next.is_null()
-            && (*(&raw mut doomed_finalizers)).next != &raw mut doomed_finalizers
+        if !(*(doomed_finalizers.as_mut_ptr ())).next.is_null()
+            && (*(doomed_finalizers.as_mut_ptr ())).next != doomed_finalizers.as_mut_ptr ()
         {
             return false;
         }
@@ -254,7 +254,7 @@ use core::sync::atomic::{AtomicBool, AtomicU8, Ordering};
         if state().counters_exhausted || state().next_token == u64::MAX {
             return false;
         }
-        if !NILP(Vmemory_full) || !NILP(Vpurify_flag) {
+        if !NILP((*Vmemory_full.as_mut_ptr ())) || !NILP((*Vpurify_flag.as_mut_ptr ())) {
             return false;
         }
         if !state().registry.valid {
@@ -334,28 +334,28 @@ use core::sync::atomic::{AtomicBool, AtomicU8, Ordering};
   unsafe {
         if MODE.load(Ordering::Relaxed) == 0 || !READY.load(Ordering::Relaxed) { return (GcKind::Full, 1); }
         if !owner() { return (GcKind::Full, 7); }
-        let reason = if !(*(&raw mut doomed_finalizers)).next.is_null()
-                && (*(&raw mut doomed_finalizers)).next != &raw mut doomed_finalizers { 12 }
+        let reason = if !(*(doomed_finalizers.as_mut_ptr ())).next.is_null()
+                && (*(doomed_finalizers.as_mut_ptr ())).next != doomed_finalizers.as_mut_ptr () { 12 }
             else if matches!(request, GcRequest::Full) { 2 }
             else if MODE.load(Ordering::Relaxed) == 1 { 3 }
             else if FOREIGN.load(Ordering::Relaxed) { 7 }
             else if UNKNOWN_PRODUCER.load(Ordering::Relaxed) { 8 }
             else if state().counters_exhausted || state().next_token == u64::MAX { 11 }
-            else if !NILP(Vmemory_full) || !NILP(Vpurify_flag) { 9 }
+            else if !NILP((*Vmemory_full.as_mut_ptr ())) || !NILP((*Vpurify_flag.as_mut_ptr ())) { 9 }
             else if !state().registry.valid { state().invalid_reason }
             else if state().totals[5] >= 3 { 4 }
             else {
                 let cons_cap = state().totals[6].checked_add(CONS_BLOCK_SIZE as u64);
                 if cons_cap.is_none() { 11 }
                 else if state().totals[15] > cons_cap.unwrap()
-                    || state().totals[16] > LAST_MAJOR_BYTES.max(memory_full_cons_threshold as u64) { 5 }
+                    || state().totals[16] > (*LAST_MAJOR_BYTES.as_mut_ptr ()).max(memory_full_cons_threshold as u64) { 5 }
                 else { 0 }
             };
         (if reason == 0 { GcKind::Young } else { GcKind::Full }, reason)
     
   }
 }
-    static mut LAST_MAJOR_BYTES: u64 = 0;
+    static LAST_MAJOR_BYTES: VmGlobal<u64> = VmGlobal::<u64>::new (0);
 
     pub(super) unsafe fn prepare_cycle(kind: GcKind, reason: u32, guard: &mut CollectorCycleGuard) {
         // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
@@ -499,7 +499,7 @@ use core::sync::atomic::{AtomicBool, AtomicU8, Ordering};
         if kind == GcKind::Full {
             state().count(3, 1); state().totals[5] = 0;
             state().totals[6] = gcstat.total_conses as u64;
-            LAST_MAJOR_BYTES = total_bytes_of_live_objects() as u64;
+            (*LAST_MAJOR_BYTES.as_mut_ptr ()) = total_bytes_of_live_objects() as u64;
             state().totals[15] = 0; state().totals[16] = 0;
             state().cadence_cons_base = 0; state().cadence_bytes_base = 0;
         } else {
@@ -750,22 +750,22 @@ use core::sync::atomic::{AtomicBool, AtomicU8, Ordering};
             error(c"GC collector status identity exhausted".as_ptr());
         };
         roots.token = token; state().next_export_owner = token; state().export_owner = token;
-        DETACHED_TOTALS = state().totals;
-        DETACHED_TOTALS[1] = u64::from(state().registry.valid
+        (*DETACHED_TOTALS.as_mut_ptr ()) = state().totals;
+        (*DETACHED_TOTALS.as_mut_ptr ())[1] = u64::from(state().registry.valid
             && !FOREIGN.load(Ordering::Relaxed) && !UNKNOWN_PRODUCER.load(Ordering::Relaxed));
-        DETACHED_TOTALS[11] = state().registry.len as u64;
-        DETACHED_TOTALS[14] = u64::from(UNKNOWN_PRODUCER.load(Ordering::Relaxed));
-        DETACHED_REASONS = state().reasons;
+        (*DETACHED_TOTALS.as_mut_ptr ())[11] = state().registry.len as u64;
+        (*DETACHED_TOTALS.as_mut_ptr ())[14] = u64::from(UNKNOWN_PRODUCER.load(Ordering::Relaxed));
+        (*DETACHED_REASONS.as_mut_ptr ()) = state().reasons;
         roots.result = make_vector(3, Qnil());
         ASET(roots.result, 0, make_fixnum(1));
         roots.totals = make_vector(24, Qnil()); ASET(roots.result, 1, roots.totals);
         roots.reasons = make_vector(13, Qnil()); ASET(roots.result, 2, roots.reasons);
         for index in 0..24 {
-            roots.current = make_uint(DETACHED_TOTALS[index]);
+            roots.current = make_uint((*DETACHED_TOTALS.as_mut_ptr ())[index]);
             ASET(roots.totals, index as isize, roots.current);
         }
         for index in 0..13 {
-            roots.current = make_uint(DETACHED_REASONS[index]);
+            roots.current = make_uint((*DETACHED_REASONS.as_mut_ptr ())[index]);
             ASET(roots.reasons, index as isize, roots.current);
         }
         unbind_to(count, roots.result)

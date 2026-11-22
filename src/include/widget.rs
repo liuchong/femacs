@@ -140,7 +140,7 @@ pub const XtCInitialGeometry: &core::ffi::CStr = c"InitialGeometry";
 /// with the pointee untyped (P-55).
 /// C: extern struct _DisplayContext *display_context;
 unsafe extern "C-unwind" {
-  pub static mut display_context: *mut c_void;
+  pub static display_context: VmGlobal<*mut c_void>;
 }
 
 /// C 88-90: the Xaw half - the two opaque widget typedefs, the class accessor and the three

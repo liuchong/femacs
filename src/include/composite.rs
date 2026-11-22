@@ -193,7 +193,7 @@ pub fn COMPOSITION_ENCODE_RULE (gref: c_int, nref: c_int) -> c_int { return gref
 pub fn composition_method (prop: Lisp_Object) -> composition_method
 {
   if composition_registered_p (prop)
-    { return /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (**composition_table.add (COMPOSITION_ID (prop) as usize)).method }; }
+    { return /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (**(*composition_table.as_mut_ptr ()).add (COMPOSITION_ID (prop) as usize)).method }; }
   else
     {
       let temp = XCDR (XCAR (prop));
@@ -214,7 +214,7 @@ pub fn composition_valid_p (start: ptrdiff_t, end: ptrdiff_t, prop: Lisp_Object)
   return (CONSP (prop)
 	  && (if composition_registered_p (prop)
 	      { (COMPOSITION_ID (prop) >= 0
-		 && COMPOSITION_ID (prop) <= /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { n_compositions }
+		 && COMPOSITION_ID (prop) <= /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*n_compositions.as_mut_ptr ()) }
 		 && CONSP (XCDR (prop))) }
 	      else { (CONSP (XCAR (prop))
 		      && (NILP (XCDR (XCAR (prop)))
@@ -406,8 +406,8 @@ pub mod composite_objs {
 
     // composite.h 180-184.
     unsafe extern "C-unwind" {
-    pub static mut composition_table: *mut *mut composition;
-    pub static mut n_compositions: ptrdiff_t;
+    pub static composition_table: VmGlobal<*mut *mut composition>;
+    pub static n_compositions: VmGlobal<ptrdiff_t>;
     }
 }
 pub use self::composite_objs::*;

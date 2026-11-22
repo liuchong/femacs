@@ -244,11 +244,11 @@ macro_rules! INT_PROMOTE {
   ($e:expr) => { ($e) as c_int };
 }
 
-static mut bidi_initialized: bool = false;
+static bidi_initialized: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
-static mut bidi_type_table: Lisp_Object = std::ptr::null_mut ();
-static mut bidi_mirror_table: Lisp_Object = std::ptr::null_mut ();
-static mut bidi_brackets_table: Lisp_Object = std::ptr::null_mut ();
+static bidi_type_table: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (std::ptr::null_mut ());
+static bidi_mirror_table: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (std::ptr::null_mut ());
+static bidi_brackets_table: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (std::ptr::null_mut ());
 
 const BIDI_EOB: c_int = -1;
 
@@ -260,8 +260,8 @@ pub const WEAK: bidi_category_t = 2;
 pub const STRONG: bidi_category_t = 3;
 pub const EXPLICIT_FORMATTING: bidi_category_t = 4;
 
-static mut paragraph_start_re: Lisp_Object = std::ptr::null_mut ();
-static mut paragraph_separate_re: Lisp_Object = std::ptr::null_mut ();
+static paragraph_start_re: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (std::ptr::null_mut ());
+static paragraph_separate_re: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (std::ptr::null_mut ());
 
 /***********************************************************************
 				Utilities
@@ -280,7 +280,7 @@ unsafe fn bidi_get_type (ch: c_int, r#override: bidi_dir_t) -> bidi_type_t
   if ch < 0 || ch > MAX_CHAR
     { emacs_abort (); }
 
-  default_type = XFIXNUM (CHAR_TABLE_REF (bidi_type_table, ch as isize)) as bidi_type_t;
+  default_type = XFIXNUM (CHAR_TABLE_REF ((*bidi_type_table.as_mut_ptr ()), ch as isize)) as bidi_type_t;
   /* Every valid character code, even those that are unassigned by the
      UCD, have some bidi-class property, according to
      DerivedBidiClass.txt file.  Therefore, if we ever get UNKNOWN_BT
@@ -355,11 +355,11 @@ pub unsafe extern "C-unwind" fn bidi_mirror_char (c: c_int) -> c_int
      produce_special_glyphs, and the first such call in a session might
      happen when the bidi-mirroring table was not yet initialized.  Make
      sure we do this now.  */
-  if !CHAR_TABLE_P (bidi_mirror_table)
-    && !bidi_initialized
+  if !CHAR_TABLE_P ((*bidi_mirror_table.as_mut_ptr ()))
+    && !(*bidi_initialized.as_mut_ptr ())
     { bidi_initialize (); }
 
-  val = CHAR_TABLE_REF (bidi_mirror_table, c as isize);
+  val = CHAR_TABLE_REF ((*bidi_mirror_table.as_mut_ptr ()), c as isize);
   if FIXNUMP (val)
     {
       let mut v: c_int;
@@ -388,12 +388,12 @@ unsafe fn bidi_paired_bracket_type (c: c_int) -> bidi_bracket_type_t
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  if c == BIDI_EOB || bidi_inhibit_bpa
+  if c == BIDI_EOB || (*bidi_inhibit_bpa.as_mut_ptr ())
     { return BIDI_BRACKET_NONE; }
   if c < 0 || c > MAX_CHAR
     { emacs_abort (); }
 
-  return XFIXNUM (CHAR_TABLE_REF (bidi_brackets_table, c as isize))
+  return XFIXNUM (CHAR_TABLE_REF ((*bidi_brackets_table.as_mut_ptr ()), c as isize))
 	 as bidi_bracket_type_t;
 
   }
@@ -563,21 +563,20 @@ const BIDI_CACHE_CHUNK: ptrdiff_t = 200;
    in units of struct bidi_it size.  ... [C 561-579's comment] */
 const BIDI_CACHE_MAX_ELTS_PER_SLOT: ptrdiff_t = 50000;
 static_assert! (BIDI_CACHE_CHUNK < BIDI_CACHE_MAX_ELTS_PER_SLOT);
-static mut bidi_cache_max_elts: ptrdiff_t = BIDI_CACHE_MAX_ELTS_PER_SLOT;
-static mut bidi_cache: *mut bidi_it = std::ptr::null_mut ();
-static mut bidi_cache_size: ptrdiff_t = 0;
+static bidi_cache_max_elts: VmGlobal<ptrdiff_t> = VmGlobal::<ptrdiff_t>::new (BIDI_CACHE_MAX_ELTS_PER_SLOT);
+static bidi_cache: VmGlobal<*mut bidi_it> = VmGlobal::<*mut bidi_it>::new (std::ptr::null_mut ());
+static bidi_cache_size: VmGlobal<ptrdiff_t> = VmGlobal::<ptrdiff_t>::new (0);
 const elsz: usize = std::mem::size_of::<bidi_it> ();
-static mut bidi_cache_idx: ptrdiff_t = 0;	/* next unused cache slot */
-static mut bidi_cache_last_idx: ptrdiff_t = 0;	/* slot of last cache hit */
-static mut bidi_cache_start: ptrdiff_t = 0;	/* start of cache for this
+static bidi_cache_idx: VmGlobal<ptrdiff_t> = VmGlobal::<ptrdiff_t>::new (0);	/* next unused cache slot */
+static bidi_cache_last_idx: VmGlobal<ptrdiff_t> = VmGlobal::<ptrdiff_t>::new (0);	/* slot of last cache hit */
+static bidi_cache_start: VmGlobal<ptrdiff_t> = VmGlobal::<ptrdiff_t>::new (0);	/* start of cache for this
 						   "stack" level */
 
 /* 5-slot stack for saving the start of the previous level of the
    cache.  xdisp.c maintains a 5-slot stack for its iterator state,
    and we need the same size of our stack.  */
-static mut bidi_cache_start_stack: [ptrdiff_t; IT_STACK_SIZE as usize]
-  = [0; IT_STACK_SIZE as usize];
-static mut bidi_cache_sp: c_int = 0;
+static bidi_cache_start_stack: VmGlobal<[ptrdiff_t; IT_STACK_SIZE as usize]> = VmGlobal::<[ptrdiff_t; IT_STACK_SIZE as usize]>::new ([0; IT_STACK_SIZE as usize]);
+static bidi_cache_sp: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 
 /* Size of header used by bidi_shelve_cache.  C's `sizeof OBJECT` is Rust's
    `size_of_val (&OBJECT)` (the `sizeof` token family), so C's six operands are named here
@@ -585,12 +584,12 @@ static mut bidi_cache_sp: c_int = 0;
    that needs the `unsafe` const block (PORTING.md 0.2's `static_mut_refs` allowance).  */
 const bidi_shelve_header_size: usize
   = const { /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe {
-      femacs_sizeof_ptr (&raw const bidi_cache_idx)
-      + femacs_sizeof_ptr (&raw const bidi_cache_start_stack)
-      + femacs_sizeof_ptr (&raw const bidi_cache_sp)
-      + femacs_sizeof_ptr (&raw const bidi_cache_start)
-      + femacs_sizeof_ptr (&raw const bidi_cache_last_idx)
-      + femacs_sizeof_ptr (&raw const bidi_cache_max_elts)
+      femacs_sizeof_ptr (bidi_cache_idx.as_ptr ())
+      + femacs_sizeof_ptr (bidi_cache_start_stack.as_ptr ())
+      + femacs_sizeof_ptr (bidi_cache_sp.as_ptr ())
+      + femacs_sizeof_ptr (bidi_cache_start.as_ptr ())
+      + femacs_sizeof_ptr (bidi_cache_last_idx.as_ptr ())
+      + femacs_sizeof_ptr (bidi_cache_max_elts.as_ptr ())
     } };
 
 /* Effectively remove the cached states beyond the Nth state from the
@@ -600,8 +599,8 @@ unsafe fn bidi_cache_reset_to (n: c_int)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  bidi_cache_idx = bidi_cache_start + n as ptrdiff_t;
-  bidi_cache_last_idx = -1;
+  (*bidi_cache_idx.as_mut_ptr ()) = (*bidi_cache_start.as_mut_ptr ()) + n as ptrdiff_t;
+  (*bidi_cache_last_idx.as_mut_ptr ()) = -1;
 
   }
 }
@@ -629,14 +628,14 @@ unsafe fn bidi_cache_shrink ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  if bidi_cache_size > BIDI_CACHE_CHUNK
+  if (*bidi_cache_size.as_mut_ptr ()) > BIDI_CACHE_CHUNK
     {
-      bidi_cache = xrealloc (bidi_cache as *mut c_void,
+      (*bidi_cache.as_mut_ptr ()) = xrealloc ((*bidi_cache.as_mut_ptr ()) as *mut c_void,
 			     BIDI_CACHE_CHUNK as usize * elsz) as *mut bidi_it;
-      bidi_cache_size = BIDI_CACHE_CHUNK;
+      (*bidi_cache_size.as_mut_ptr ()) = BIDI_CACHE_CHUNK;
     }
   bidi_cache_reset ();
-  bidi_cache_max_elts = BIDI_CACHE_MAX_ELTS_PER_SLOT;
+  (*bidi_cache_max_elts.as_mut_ptr ()) = BIDI_CACHE_MAX_ELTS_PER_SLOT;
 
   }
 }
@@ -647,12 +646,12 @@ unsafe fn bidi_cache_fetch_state (idx: ptrdiff_t, bidi_it: *mut bidi_it)
   unsafe {
   let current_scan_dir: c_int = (*bidi_it).scan_dir;
 
-  if idx < bidi_cache_start || idx >= bidi_cache_idx
+  if idx < (*bidi_cache_start.as_mut_ptr ()) || idx >= (*bidi_cache_idx.as_mut_ptr ())
     { emacs_abort (); }
 
-  bidi_copy_it (bidi_it, bidi_cache.offset (idx));
+  bidi_copy_it (bidi_it, (*bidi_cache.as_mut_ptr ()).offset (idx));
   (*bidi_it).scan_dir = current_scan_dir;
-  bidi_cache_last_idx = idx;
+  (*bidi_cache_last_idx.as_mut_ptr ()) = idx;
 
   }
 }
@@ -671,40 +670,40 @@ unsafe fn bidi_cache_search (charpos: ptrdiff_t, level: c_int, mut dir: c_int)
   let mut i: ptrdiff_t;
   let mut i_start: ptrdiff_t;
 
-  if bidi_cache_idx > bidi_cache_start
+  if (*bidi_cache_idx.as_mut_ptr ()) > (*bidi_cache_start.as_mut_ptr ())
     {
-      if bidi_cache_last_idx == -1
-	{ bidi_cache_last_idx = bidi_cache_idx - 1; }
-      if charpos < (*bidi_cache.offset (bidi_cache_last_idx)).charpos
+      if (*bidi_cache_last_idx.as_mut_ptr ()) == -1
+	{ (*bidi_cache_last_idx.as_mut_ptr ()) = (*bidi_cache_idx.as_mut_ptr ()) - 1; }
+      if charpos < (*(*bidi_cache.as_mut_ptr ()).offset ((*bidi_cache_last_idx.as_mut_ptr ()))).charpos
 	{
 	  dir = -1;
-	  i_start = bidi_cache_last_idx - 1;
+	  i_start = (*bidi_cache_last_idx.as_mut_ptr ()) - 1;
 	}
-      else if charpos > (*bidi_cache.offset (bidi_cache_last_idx)).charpos
-			  + (*bidi_cache.offset (bidi_cache_last_idx)).nchars - 1
+      else if charpos > (*(*bidi_cache.as_mut_ptr ()).offset ((*bidi_cache_last_idx.as_mut_ptr ()))).charpos
+			  + (*(*bidi_cache.as_mut_ptr ()).offset ((*bidi_cache_last_idx.as_mut_ptr ()))).nchars - 1
 	{
 	  dir = 1;
-	  i_start = bidi_cache_last_idx + 1;
+	  i_start = (*bidi_cache_last_idx.as_mut_ptr ()) + 1;
 	}
       else if dir != 0
-	{ i_start = bidi_cache_last_idx; }
+	{ i_start = (*bidi_cache_last_idx.as_mut_ptr ()); }
       else
 	{
 	  dir = -1;
-	  i_start = bidi_cache_idx - 1;
+	  i_start = (*bidi_cache_idx.as_mut_ptr ()) - 1;
 	}
 
       if dir < 0
 	{
 	  /* Linear search for now; FIXME!  */
 	  i = i_start;
-	  while i >= bidi_cache_start
+	  while i >= (*bidi_cache_start.as_mut_ptr ())
 	    {
-	      if (*bidi_cache.offset (i)).charpos <= charpos
-		  && charpos < (*bidi_cache.offset (i)).charpos
-			       + (*bidi_cache.offset (i)).nchars
+	      if (*(*bidi_cache.as_mut_ptr ()).offset (i)).charpos <= charpos
+		  && charpos < (*(*bidi_cache.as_mut_ptr ()).offset (i)).charpos
+			       + (*(*bidi_cache.as_mut_ptr ()).offset (i)).nchars
 		  && (level == -1
-		      || (*bidi_cache.offset (i)).resolved_level as c_int <= level)
+		      || (*(*bidi_cache.as_mut_ptr ()).offset (i)).resolved_level as c_int <= level)
 		{ return i; }
 	      i -= 1;
 	    }
@@ -712,13 +711,13 @@ unsafe fn bidi_cache_search (charpos: ptrdiff_t, level: c_int, mut dir: c_int)
       else
 	{
 	  i = i_start;
-	  while i < bidi_cache_idx
+	  while i < (*bidi_cache_idx.as_mut_ptr ())
 	    {
-	      if (*bidi_cache.offset (i)).charpos <= charpos
-		  && charpos < (*bidi_cache.offset (i)).charpos
-			       + (*bidi_cache.offset (i)).nchars
+	      if (*(*bidi_cache.as_mut_ptr ()).offset (i)).charpos <= charpos
+		  && charpos < (*(*bidi_cache.as_mut_ptr ()).offset (i)).charpos
+			       + (*(*bidi_cache.as_mut_ptr ()).offset (i)).nchars
 		  && (level == -1
-		      || (*bidi_cache.offset (i)).resolved_level as c_int <= level)
+		      || (*(*bidi_cache.as_mut_ptr ()).offset (i)).resolved_level as c_int <= level)
 		{ return i; }
 	      i += 1;
 	    }
@@ -741,10 +740,10 @@ unsafe fn bidi_cache_find_level_change (level: c_int, mut dir: c_int, before: bo
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  if bidi_cache_idx != 0
+  if (*bidi_cache_idx.as_mut_ptr ()) != 0
     {
-      let mut i: ptrdiff_t = if dir != 0 { bidi_cache_last_idx }
-			     else { bidi_cache_idx - 1 };
+      let mut i: ptrdiff_t = if dir != 0 { (*bidi_cache_last_idx.as_mut_ptr ()) }
+			     else { (*bidi_cache_idx.as_mut_ptr ()) - 1 };
       let incr: c_int = if before { 1 } else { 0 };
 
       if i < 0  /* cache overflowed? */
@@ -757,10 +756,10 @@ unsafe fn bidi_cache_find_level_change (level: c_int, mut dir: c_int, before: bo
 
       if dir < 0
 	{
-	  while i >= bidi_cache_start + incr as ptrdiff_t
+	  while i >= (*bidi_cache_start.as_mut_ptr ()) + incr as ptrdiff_t
 	    {
-	      if (*bidi_cache.offset (i - incr as ptrdiff_t)).resolved_level >= 0
-		  && ((*bidi_cache.offset (i - incr as ptrdiff_t)).resolved_level as c_int)
+	      if (*(*bidi_cache.as_mut_ptr ()).offset (i - incr as ptrdiff_t)).resolved_level >= 0
+		  && ((*(*bidi_cache.as_mut_ptr ()).offset (i - incr as ptrdiff_t)).resolved_level as c_int)
 		     < level
 		{ return i; }
 	      i -= 1;
@@ -768,10 +767,10 @@ unsafe fn bidi_cache_find_level_change (level: c_int, mut dir: c_int, before: bo
 	}
       else
 	{
-	  while i < bidi_cache_idx - incr as ptrdiff_t
+	  while i < (*bidi_cache_idx.as_mut_ptr ()) - incr as ptrdiff_t
 	    {
-	      if (*bidi_cache.offset (i + incr as ptrdiff_t)).resolved_level >= 0
-		  && ((*bidi_cache.offset (i + incr as ptrdiff_t)).resolved_level as c_int)
+	      if (*(*bidi_cache.as_mut_ptr ()).offset (i + incr as ptrdiff_t)).resolved_level >= 0
+		  && ((*(*bidi_cache.as_mut_ptr ()).offset (i + incr as ptrdiff_t)).resolved_level as c_int)
 		     < level
 		{ return i; }
 	      i += 1;
@@ -795,7 +794,7 @@ pub unsafe extern "C-unwind" fn bidi_level_start (level: c_int) -> ptrdiff_t
   let slot: ptrdiff_t = bidi_cache_find_level_change (level, -1, true);
 
   if slot >= 0
-    { return (*bidi_cache.offset (slot)).charpos; }
+    { return (*(*bidi_cache.as_mut_ptr ()).offset (slot)).charpos; }
   return -1;
 
   }
@@ -806,14 +805,14 @@ unsafe fn bidi_cache_ensure_space (idx: ptrdiff_t)
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
   /* Enlarge the cache as needed.  */
-  if idx >= bidi_cache_size
+  if idx >= (*bidi_cache_size.as_mut_ptr ())
     {
       let mut chunk_size: ptrdiff_t = BIDI_CACHE_CHUNK;
 
-      if bidi_cache_size > bidi_cache_max_elts - chunk_size
-	{ chunk_size = bidi_cache_max_elts - bidi_cache_size; }
+      if (*bidi_cache_size.as_mut_ptr ()) > (*bidi_cache_max_elts.as_mut_ptr ()) - chunk_size
+	{ chunk_size = (*bidi_cache_max_elts.as_mut_ptr ()) - (*bidi_cache_size.as_mut_ptr ()); }
 
-      if max (idx + 1, bidi_cache_size + chunk_size) <= bidi_cache_max_elts
+      if max (idx + 1, (*bidi_cache_size.as_mut_ptr ()) + chunk_size) <= (*bidi_cache_max_elts.as_mut_ptr ())
 	{
 	  /* The bidi cache cannot be larger than the largest Lisp
 	     string or buffer.  */
@@ -823,16 +822,16 @@ unsafe fn bidi_cache_ensure_space (idx: ptrdiff_t)
 	  let c_bound: ptrdiff_t
 	    = ((PTRDIFF_MAX as usize).min (SIZE_MAX) as ptrdiff_t
 	       - bidi_shelve_header_size as ptrdiff_t) / elsz as ptrdiff_t;
-	  let mut max_elts: ptrdiff_t = bidi_cache_max_elts;
+	  let mut max_elts: ptrdiff_t = (*bidi_cache_max_elts.as_mut_ptr ());
 
 	  max_elts = min (max_elts, min (string_or_buffer_bound, c_bound));
 
 	  /* Force xpalloc not to over-allocate by passing it MAX_ELTS
 	     as its 4th argument.  */
-	  bidi_cache = xpalloc (bidi_cache as *mut c_void, &raw mut bidi_cache_size,
-				max (chunk_size, idx - bidi_cache_size + 1),
+	  (*bidi_cache.as_mut_ptr ()) = xpalloc ((*bidi_cache.as_mut_ptr ()) as *mut c_void, bidi_cache_size.as_mut_ptr (),
+				max (chunk_size, idx - (*bidi_cache_size.as_mut_ptr ()) + 1),
 				max_elts, elsz as ptrdiff_t) as *mut bidi_it;
-	  eassert! (bidi_cache_size > idx);
+	  eassert! ((*bidi_cache_size.as_mut_ptr ()) > idx);
 	}
     }
 
@@ -856,61 +855,61 @@ unsafe fn bidi_cache_iterator_state (bidi_it: *mut bidi_it, resolved: bool,
 
   if idx < 0
     {
-      idx = bidi_cache_idx;
+      idx = (*bidi_cache_idx.as_mut_ptr ());
       bidi_cache_ensure_space (idx);
       /* Character positions should correspond to cache positions 1:1.
 	 If we are outside the range of cached positions, the cache is
 	 useless and must be reset.  */
-      if bidi_cache_start < idx && idx < bidi_cache_size
-	  && ((*bidi_it).charpos > (*bidi_cache.offset (idx - 1)).charpos
-				      + (*bidi_cache.offset (idx - 1)).nchars
-	      || (*bidi_it).charpos < (*bidi_cache.offset (bidi_cache_start)).charpos)
+      if (*bidi_cache_start.as_mut_ptr ()) < idx && idx < (*bidi_cache_size.as_mut_ptr ())
+	  && ((*bidi_it).charpos > (*(*bidi_cache.as_mut_ptr ()).offset (idx - 1)).charpos
+				      + (*(*bidi_cache.as_mut_ptr ()).offset (idx - 1)).nchars
+	      || (*bidi_it).charpos < (*(*bidi_cache.as_mut_ptr ()).offset ((*bidi_cache_start.as_mut_ptr ()))).charpos)
 	{
 	  bidi_cache_reset ();
-	  idx = bidi_cache_start;
+	  idx = (*bidi_cache_start.as_mut_ptr ());
 	}
       if (*bidi_it).nchars <= 0
 	{ emacs_abort (); }
       /* Don't cache if no available space in the cache.  */
-      if bidi_cache_size > idx
+      if (*bidi_cache_size.as_mut_ptr ()) > idx
 	{
-	  bidi_copy_it (bidi_cache.offset (idx), bidi_it);
+	  bidi_copy_it ((*bidi_cache.as_mut_ptr ()).offset (idx), bidi_it);
 	  if !resolved
-	    { (*bidi_cache.offset (idx)).resolved_level = -1; }
+	    { (*(*bidi_cache.as_mut_ptr ()).offset (idx)).resolved_level = -1; }
 	}
     }
   else
     {
       /* Copy only the members which could have changed, to avoid
 	 costly copying of the entire struct.  */
-      (*bidi_cache.offset (idx)).r#type = (*bidi_it).r#type;
+      (*(*bidi_cache.as_mut_ptr ()).offset (idx)).r#type = (*bidi_it).r#type;
       bidi_check_type ((*bidi_it).r#type);
-      (*bidi_cache.offset (idx)).type_after_wn = (*bidi_it).type_after_wn;
+      (*(*bidi_cache.as_mut_ptr ()).offset (idx)).type_after_wn = (*bidi_it).type_after_wn;
       bidi_check_type ((*bidi_it).type_after_wn);
       if resolved
-	{ (*bidi_cache.offset (idx)).resolved_level = (*bidi_it).resolved_level; }
+	{ (*(*bidi_cache.as_mut_ptr ()).offset (idx)).resolved_level = (*bidi_it).resolved_level; }
       else
-	{ (*bidi_cache.offset (idx)).resolved_level = -1; }
-      (*bidi_cache.offset (idx)).invalid_levels = (*bidi_it).invalid_levels;
-      (*bidi_cache.offset (idx)).next_for_neutral = (*bidi_it).next_for_neutral;
-      (*bidi_cache.offset (idx)).next_for_ws = (*bidi_it).next_for_ws;
-      (*bidi_cache.offset (idx)).disp_pos = (*bidi_it).disp_pos;
-      (*bidi_cache.offset (idx)).disp_prop = (*bidi_it).disp_prop;
-      (*bidi_cache.offset (idx)).bracket_pairing_pos = (*bidi_it).bracket_pairing_pos;
-      (*bidi_cache.offset (idx)).bracket_enclosed_type = (*bidi_it).bracket_enclosed_type;
+	{ (*(*bidi_cache.as_mut_ptr ()).offset (idx)).resolved_level = -1; }
+      (*(*bidi_cache.as_mut_ptr ()).offset (idx)).invalid_levels = (*bidi_it).invalid_levels;
+      (*(*bidi_cache.as_mut_ptr ()).offset (idx)).next_for_neutral = (*bidi_it).next_for_neutral;
+      (*(*bidi_cache.as_mut_ptr ()).offset (idx)).next_for_ws = (*bidi_it).next_for_ws;
+      (*(*bidi_cache.as_mut_ptr ()).offset (idx)).disp_pos = (*bidi_it).disp_pos;
+      (*(*bidi_cache.as_mut_ptr ()).offset (idx)).disp_prop = (*bidi_it).disp_prop;
+      (*(*bidi_cache.as_mut_ptr ()).offset (idx)).bracket_pairing_pos = (*bidi_it).bracket_pairing_pos;
+      (*(*bidi_cache.as_mut_ptr ()).offset (idx)).bracket_enclosed_type = (*bidi_it).bracket_enclosed_type;
     }
 
-  if bidi_cache_size > idx
+  if (*bidi_cache_size.as_mut_ptr ()) > idx
     {
-      bidi_cache_last_idx = idx;
-      if idx >= bidi_cache_idx
-	{ bidi_cache_idx = idx + 1; }
+      (*bidi_cache_last_idx.as_mut_ptr ()) = idx;
+      if idx >= (*bidi_cache_idx.as_mut_ptr ())
+	{ (*bidi_cache_idx.as_mut_ptr ()) = idx + 1; }
       return 1;
     }
   else
     {
       /* The cache overflowed.  */
-      bidi_cache_last_idx = -1;
+      (*bidi_cache_last_idx.as_mut_ptr ()) = -1;
       return 0;
     }
 
@@ -930,18 +929,18 @@ unsafe fn bidi_cache_find (charpos: ptrdiff_t, resolved_only: bool,
   unsafe {
   let i: ptrdiff_t = bidi_cache_search (charpos, -1, (*bidi_it).scan_dir);
 
-  if i >= bidi_cache_start
+  if i >= (*bidi_cache_start.as_mut_ptr ())
       && (!resolved_only
 	  /* Callers that want only fully resolved states (and set
 	     resolved_only = true) need to be sure that there's enough
 	     info in the cached state to return the state as final,
 	     and if not, they don't want the cached state.  */
-	  || (*bidi_cache.offset (i)).resolved_level >= 0)
+	  || (*(*bidi_cache.as_mut_ptr ()).offset (i)).resolved_level >= 0)
     {
       let current_scan_dir: bidi_dir_t = (*bidi_it).scan_dir as bidi_dir_t;
 
-      bidi_copy_it (bidi_it, bidi_cache.offset (i));
-      bidi_cache_last_idx = i;
+      bidi_copy_it (bidi_it, (*bidi_cache.as_mut_ptr ()).offset (i));
+      (*bidi_cache_last_idx.as_mut_ptr ()) = i;
       /* Don't let scan direction from the cached state override
 	 the current scan direction.  */
       (*bidi_it).scan_dir = current_scan_dir;
@@ -957,14 +956,14 @@ unsafe fn bidi_peek_at_next_level (bidi_it: *mut bidi_it) -> c_int
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  if bidi_cache_idx == bidi_cache_start
+  if (*bidi_cache_idx.as_mut_ptr ()) == (*bidi_cache_start.as_mut_ptr ())
     { emacs_abort (); }
   /* If the cache overflowed, return the level of the last cached
      character.  */
-  if bidi_cache_last_idx == -1
-      || (bidi_cache_last_idx >= bidi_cache_idx - 1 && (*bidi_it).scan_dir > 0)
-    { return (*bidi_cache.offset (bidi_cache_idx - 1)).resolved_level as c_int; }
-  return (*bidi_cache.offset (bidi_cache_last_idx + (*bidi_it).scan_dir as ptrdiff_t))
+  if (*bidi_cache_last_idx.as_mut_ptr ()) == -1
+      || ((*bidi_cache_last_idx.as_mut_ptr ()) >= (*bidi_cache_idx.as_mut_ptr ()) - 1 && (*bidi_it).scan_dir > 0)
+    { return (*(*bidi_cache.as_mut_ptr ()).offset ((*bidi_cache_idx.as_mut_ptr ()) - 1)).resolved_level as c_int; }
+  return (*(*bidi_cache.as_mut_ptr ()).offset ((*bidi_cache_last_idx.as_mut_ptr ()) + (*bidi_it).scan_dir as ptrdiff_t))
 	 .resolved_level as c_int;
 
   }
@@ -985,21 +984,21 @@ pub unsafe extern "C-unwind" fn bidi_push_it (bidi_it: *mut bidi_it)
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
   /* Give this stack slot its cache room.  */
-  bidi_cache_max_elts += BIDI_CACHE_MAX_ELTS_PER_SLOT;
+  (*bidi_cache_max_elts.as_mut_ptr ()) += BIDI_CACHE_MAX_ELTS_PER_SLOT;
   /* Save the current iterator state in its entirety after the last
      used cache slot.  */
-  bidi_cache_ensure_space (bidi_cache_idx);
-  *bidi_cache.offset (bidi_cache_idx) = *bidi_it;
-  bidi_cache_idx += 1;
+  bidi_cache_ensure_space ((*bidi_cache_idx.as_mut_ptr ()));
+  *(*bidi_cache.as_mut_ptr ()).offset ((*bidi_cache_idx.as_mut_ptr ())) = *bidi_it;
+  (*bidi_cache_idx.as_mut_ptr ()) += 1;
 
   /* Push the current cache start onto the stack.  */
-  eassert! (bidi_cache_sp < IT_STACK_SIZE);
-  bidi_cache_start_stack[bidi_cache_sp as usize] = bidi_cache_start;
-  bidi_cache_sp += 1;
+  eassert! ((*bidi_cache_sp.as_mut_ptr ()) < IT_STACK_SIZE);
+  (*bidi_cache_start_stack.as_mut_ptr ())[(*bidi_cache_sp.as_mut_ptr ()) as usize] = (*bidi_cache_start.as_mut_ptr ());
+  (*bidi_cache_sp.as_mut_ptr ()) += 1;
 
   /* Start a new level of cache, and make it empty.  */
-  bidi_cache_start = bidi_cache_idx;
-  bidi_cache_last_idx = -1;
+  (*bidi_cache_start.as_mut_ptr ()) = (*bidi_cache_idx.as_mut_ptr ());
+  (*bidi_cache_last_idx.as_mut_ptr ()) = -1;
 
   }
 }
@@ -1011,32 +1010,32 @@ pub unsafe extern "C-unwind" fn bidi_pop_it (bidi_it: *mut bidi_it)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  if bidi_cache_start <= 0
+  if (*bidi_cache_start.as_mut_ptr ()) <= 0
     { emacs_abort (); }
 
   /* Reset the next free cache slot index to what it was before the
      call to bidi_push_it.  */
-  bidi_cache_idx = bidi_cache_start - 1;
+  (*bidi_cache_idx.as_mut_ptr ()) = (*bidi_cache_start.as_mut_ptr ()) - 1;
 
   /* Restore the bidi iterator state saved in the cache.  */
-  *bidi_it = *bidi_cache.offset (bidi_cache_idx);
+  *bidi_it = *(*bidi_cache.as_mut_ptr ()).offset ((*bidi_cache_idx.as_mut_ptr ()));
 
   /* Pop the previous cache start from the stack.  */
-  if bidi_cache_sp <= 0
+  if (*bidi_cache_sp.as_mut_ptr ()) <= 0
     { emacs_abort (); }
-  bidi_cache_sp -= 1;
-  bidi_cache_start = bidi_cache_start_stack[bidi_cache_sp as usize];
+  (*bidi_cache_sp.as_mut_ptr ()) -= 1;
+  (*bidi_cache_start.as_mut_ptr ()) = (*bidi_cache_start_stack.as_mut_ptr ())[(*bidi_cache_sp.as_mut_ptr ()) as usize];
 
   /* Invalidate the last-used cache slot data.  */
-  bidi_cache_last_idx = -1;
+  (*bidi_cache_last_idx.as_mut_ptr ()) = -1;
 
-  bidi_cache_max_elts -= BIDI_CACHE_MAX_ELTS_PER_SLOT;
-  eassert! (bidi_cache_max_elts > 0);
+  (*bidi_cache_max_elts.as_mut_ptr ()) -= BIDI_CACHE_MAX_ELTS_PER_SLOT;
+  eassert! ((*bidi_cache_max_elts.as_mut_ptr ()) > 0);
 
   }
 }
 
-static mut bidi_cache_total_alloc: ptrdiff_t = 0;
+static bidi_cache_total_alloc: VmGlobal<ptrdiff_t> = VmGlobal::<ptrdiff_t>::new (0);
 
 /* Stash away a copy of the cache and its control variables.  */
 #[unsafe(no_mangle)]
@@ -1048,51 +1047,51 @@ pub unsafe extern "C-unwind" fn bidi_shelve_cache () -> *mut c_void
   let mut alloc: ptrdiff_t;
 
   /* Empty cache.  */
-  if bidi_cache_idx == 0
+  if (*bidi_cache_idx.as_mut_ptr ()) == 0
     { return std::ptr::null_mut (); }
 
   alloc = (bidi_shelve_header_size
-	   + bidi_cache_idx as usize * std::mem::size_of::<bidi_it> ()) as ptrdiff_t;
+	   + (*bidi_cache_idx.as_mut_ptr ()) as usize * std::mem::size_of::<bidi_it> ()) as ptrdiff_t;
   databuf = xmalloc (alloc as usize) as *mut u8;
-  bidi_cache_total_alloc += alloc;
+  (*bidi_cache_total_alloc.as_mut_ptr ()) += alloc;
 
-  memcpy (databuf as *mut c_void, &raw const bidi_cache_idx as *const c_void,
+  memcpy (databuf as *mut c_void, bidi_cache_idx.as_ptr () as *const c_void,
 	  std::mem::size_of::<ptrdiff_t> ());
   memcpy (databuf.offset (std::mem::size_of::<ptrdiff_t> () as ptrdiff_t) as *mut c_void,
-	  bidi_cache as *const c_void,
-	  bidi_cache_idx as usize * std::mem::size_of::<bidi_it> ());
+	  (*bidi_cache.as_mut_ptr ()) as *const c_void,
+	  (*bidi_cache_idx.as_mut_ptr ()) as usize * std::mem::size_of::<bidi_it> ());
   memcpy (databuf.offset (std::mem::size_of::<ptrdiff_t> () as ptrdiff_t
-			  + bidi_cache_idx * std::mem::size_of::<bidi_it> () as ptrdiff_t)
+			  + (*bidi_cache_idx.as_mut_ptr ()) * std::mem::size_of::<bidi_it> () as ptrdiff_t)
 	  as *mut c_void,
-	  &raw const bidi_cache_start_stack as *const c_void,
+	  bidi_cache_start_stack.as_ptr () as *const c_void,
 	  std::mem::size_of::<[ptrdiff_t; IT_STACK_SIZE as usize]> ());
   memcpy (databuf.offset (std::mem::size_of::<ptrdiff_t> () as ptrdiff_t
-			  + bidi_cache_idx * std::mem::size_of::<bidi_it> () as ptrdiff_t
+			  + (*bidi_cache_idx.as_mut_ptr ()) * std::mem::size_of::<bidi_it> () as ptrdiff_t
 			  + std::mem::size_of::<[ptrdiff_t; IT_STACK_SIZE as usize]> ()
 			    as ptrdiff_t) as *mut c_void,
-	  &raw const bidi_cache_sp as *const c_void, std::mem::size_of::<c_int> ());
+	  bidi_cache_sp.as_ptr () as *const c_void, std::mem::size_of::<c_int> ());
   memcpy (databuf.offset (std::mem::size_of::<ptrdiff_t> () as ptrdiff_t
-			  + bidi_cache_idx * std::mem::size_of::<bidi_it> () as ptrdiff_t
+			  + (*bidi_cache_idx.as_mut_ptr ()) * std::mem::size_of::<bidi_it> () as ptrdiff_t
 			  + std::mem::size_of::<[ptrdiff_t; IT_STACK_SIZE as usize]> ()
 			    as ptrdiff_t
 			  + std::mem::size_of::<c_int> () as ptrdiff_t) as *mut c_void,
-	  &raw const bidi_cache_start as *const c_void, std::mem::size_of::<ptrdiff_t> ());
+	  bidi_cache_start.as_ptr () as *const c_void, std::mem::size_of::<ptrdiff_t> ());
   memcpy (databuf.offset (std::mem::size_of::<ptrdiff_t> () as ptrdiff_t
-			  + bidi_cache_idx * std::mem::size_of::<bidi_it> () as ptrdiff_t
+			  + (*bidi_cache_idx.as_mut_ptr ()) * std::mem::size_of::<bidi_it> () as ptrdiff_t
 			  + std::mem::size_of::<[ptrdiff_t; IT_STACK_SIZE as usize]> ()
 			    as ptrdiff_t
 			  + std::mem::size_of::<c_int> () as ptrdiff_t
 			  + std::mem::size_of::<ptrdiff_t> () as ptrdiff_t) as *mut c_void,
-	  &raw const bidi_cache_last_idx as *const c_void,
+	  bidi_cache_last_idx.as_ptr () as *const c_void,
 	  std::mem::size_of::<ptrdiff_t> ());
   memcpy (databuf.offset (std::mem::size_of::<ptrdiff_t> () as ptrdiff_t
-			  + bidi_cache_idx * std::mem::size_of::<bidi_it> () as ptrdiff_t
+			  + (*bidi_cache_idx.as_mut_ptr ()) * std::mem::size_of::<bidi_it> () as ptrdiff_t
 			  + std::mem::size_of::<[ptrdiff_t; IT_STACK_SIZE as usize]> ()
 			    as ptrdiff_t
 			  + std::mem::size_of::<c_int> () as ptrdiff_t
 			  + std::mem::size_of::<ptrdiff_t> () as ptrdiff_t
 			  + std::mem::size_of::<ptrdiff_t> () as ptrdiff_t) as *mut c_void,
-	  &raw const bidi_cache_max_elts as *const c_void,
+	  bidi_cache_max_elts.as_ptr () as *const c_void,
 	  std::mem::size_of::<ptrdiff_t> ());
 
   return databuf as *mut c_void;
@@ -1117,9 +1116,9 @@ pub unsafe extern "C-unwind" fn bidi_unshelve_cache (databuf: *mut c_void, just_
       if !just_free
 	{
 	  /* A NULL pointer means an empty cache.  */
-	  bidi_cache_start = 0;
-	  bidi_cache_sp = 0;
-	  bidi_cache_max_elts = BIDI_CACHE_MAX_ELTS_PER_SLOT;
+	  (*bidi_cache_start.as_mut_ptr ()) = 0;
+	  (*bidi_cache_sp.as_mut_ptr ()) = 0;
+	  (*bidi_cache_max_elts.as_mut_ptr ()) = BIDI_CACHE_MAX_ELTS_PER_SLOT;
 	  bidi_cache_reset ();
 	}
     }
@@ -1131,56 +1130,56 @@ pub unsafe extern "C-unwind" fn bidi_unshelve_cache (databuf: *mut c_void, just_
 
 	  memcpy (&raw mut idx as *mut c_void, p as *const c_void,
 		  std::mem::size_of::<ptrdiff_t> ());
-	  bidi_cache_total_alloc
+	  (*bidi_cache_total_alloc.as_mut_ptr ())
 	    -= (bidi_shelve_header_size
 		+ idx as usize * std::mem::size_of::<bidi_it> ()) as ptrdiff_t;
 	}
       else
 	{
-	  memcpy (&raw mut bidi_cache_idx as *mut c_void, p as *const c_void,
+	  memcpy (bidi_cache_idx.as_mut_ptr () as *mut c_void, p as *const c_void,
 		  std::mem::size_of::<ptrdiff_t> ());
-	  bidi_cache_ensure_space (bidi_cache_idx);
-	  memcpy (bidi_cache as *mut c_void,
+	  bidi_cache_ensure_space ((*bidi_cache_idx.as_mut_ptr ()));
+	  memcpy ((*bidi_cache.as_mut_ptr ()) as *mut c_void,
 		  p.offset (std::mem::size_of::<ptrdiff_t> () as ptrdiff_t) as *const c_void,
-		  bidi_cache_idx as usize * std::mem::size_of::<bidi_it> ());
-	  memcpy (&raw mut bidi_cache_start_stack as *mut c_void,
+		  (*bidi_cache_idx.as_mut_ptr ()) as usize * std::mem::size_of::<bidi_it> ());
+	  memcpy (bidi_cache_start_stack.as_mut_ptr () as *mut c_void,
 		  p.offset (std::mem::size_of::<ptrdiff_t> () as ptrdiff_t
-			    + bidi_cache_idx * std::mem::size_of::<bidi_it> () as ptrdiff_t)
+			    + (*bidi_cache_idx.as_mut_ptr ()) * std::mem::size_of::<bidi_it> () as ptrdiff_t)
 		   as *const c_void,
 		  std::mem::size_of::<[ptrdiff_t; IT_STACK_SIZE as usize]> ());
-	  memcpy (&raw mut bidi_cache_sp as *mut c_void,
+	  memcpy (bidi_cache_sp.as_mut_ptr () as *mut c_void,
 		  p.offset (std::mem::size_of::<ptrdiff_t> () as ptrdiff_t
-			    + bidi_cache_idx * std::mem::size_of::<bidi_it> () as ptrdiff_t
+			    + (*bidi_cache_idx.as_mut_ptr ()) * std::mem::size_of::<bidi_it> () as ptrdiff_t
 			    + std::mem::size_of::<[ptrdiff_t; IT_STACK_SIZE as usize]> ()
 			      as ptrdiff_t) as *const c_void,
 		  std::mem::size_of::<c_int> ());
-	  memcpy (&raw mut bidi_cache_start as *mut c_void,
+	  memcpy (bidi_cache_start.as_mut_ptr () as *mut c_void,
 		  p.offset (std::mem::size_of::<ptrdiff_t> () as ptrdiff_t
-			    + bidi_cache_idx * std::mem::size_of::<bidi_it> () as ptrdiff_t
+			    + (*bidi_cache_idx.as_mut_ptr ()) * std::mem::size_of::<bidi_it> () as ptrdiff_t
 			    + std::mem::size_of::<[ptrdiff_t; IT_STACK_SIZE as usize]> ()
 			      as ptrdiff_t
 			    + std::mem::size_of::<c_int> () as ptrdiff_t) as *const c_void,
 		  std::mem::size_of::<ptrdiff_t> ());
-	  memcpy (&raw mut bidi_cache_last_idx as *mut c_void,
+	  memcpy (bidi_cache_last_idx.as_mut_ptr () as *mut c_void,
 		  p.offset (std::mem::size_of::<ptrdiff_t> () as ptrdiff_t
-			    + bidi_cache_idx * std::mem::size_of::<bidi_it> () as ptrdiff_t
+			    + (*bidi_cache_idx.as_mut_ptr ()) * std::mem::size_of::<bidi_it> () as ptrdiff_t
 			    + std::mem::size_of::<[ptrdiff_t; IT_STACK_SIZE as usize]> ()
 			      as ptrdiff_t
 			    + std::mem::size_of::<c_int> () as ptrdiff_t
 			    + std::mem::size_of::<ptrdiff_t> () as ptrdiff_t) as *const c_void,
 		  std::mem::size_of::<ptrdiff_t> ());
-	  memcpy (&raw mut bidi_cache_max_elts as *mut c_void,
+	  memcpy (bidi_cache_max_elts.as_mut_ptr () as *mut c_void,
 		  p.offset (std::mem::size_of::<ptrdiff_t> () as ptrdiff_t
-			    + bidi_cache_idx * std::mem::size_of::<bidi_it> () as ptrdiff_t
+			    + (*bidi_cache_idx.as_mut_ptr ()) * std::mem::size_of::<bidi_it> () as ptrdiff_t
 			    + std::mem::size_of::<[ptrdiff_t; IT_STACK_SIZE as usize]> ()
 			      as ptrdiff_t
 			    + std::mem::size_of::<c_int> () as ptrdiff_t
 			    + std::mem::size_of::<ptrdiff_t> () as ptrdiff_t
 			    + std::mem::size_of::<ptrdiff_t> () as ptrdiff_t) as *const c_void,
 		  std::mem::size_of::<ptrdiff_t> ());
-	  bidi_cache_total_alloc
+	  (*bidi_cache_total_alloc.as_mut_ptr ())
 	    -= (bidi_shelve_header_size
-		+ bidi_cache_idx as usize * std::mem::size_of::<bidi_it> ()) as ptrdiff_t;
+		+ (*bidi_cache_idx.as_mut_ptr ()) as usize * std::mem::size_of::<bidi_it> ()) as ptrdiff_t;
 	}
 
       xfree (p as *mut c_void);
@@ -1196,31 +1195,31 @@ unsafe fn bidi_initialize ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  bidi_type_table = uniprop_table (intern (c"bidi-class".as_ptr ()));
-  if NILP (bidi_type_table)
+  (*bidi_type_table.as_mut_ptr ()) = uniprop_table (intern (c"bidi-class".as_ptr ()));
+  if NILP ((*bidi_type_table.as_mut_ptr ()))
     { emacs_abort (); }
-  staticpro (&raw const bidi_type_table);
+  staticpro (bidi_type_table.as_ptr ());
 
-  bidi_mirror_table = uniprop_table (intern (c"mirroring".as_ptr ()));
-  if NILP (bidi_mirror_table)
+  (*bidi_mirror_table.as_mut_ptr ()) = uniprop_table (intern (c"mirroring".as_ptr ()));
+  if NILP ((*bidi_mirror_table.as_mut_ptr ()))
     { emacs_abort (); }
-  staticpro (&raw const bidi_mirror_table);
+  staticpro (bidi_mirror_table.as_ptr ());
 
-  bidi_brackets_table = uniprop_table (intern (c"bracket-type".as_ptr ()));
-  if NILP (bidi_brackets_table)
+  (*bidi_brackets_table.as_mut_ptr ()) = uniprop_table (intern (c"bracket-type".as_ptr ()));
+  if NILP ((*bidi_brackets_table.as_mut_ptr ()))
     { emacs_abort (); }
-  staticpro (&raw const bidi_brackets_table);
+  staticpro (bidi_brackets_table.as_ptr ());
 
-  paragraph_start_re = build_string (c"^\\(\u{c}\\|[ \t]*\\)$".as_ptr ());
-  staticpro (&raw const paragraph_start_re);
-  paragraph_separate_re = build_string (c"^[ \t\u{c}]*$".as_ptr ());
-  staticpro (&raw const paragraph_separate_re);
+  (*paragraph_start_re.as_mut_ptr ()) = build_string (c"^\\(\u{c}\\|[ \t]*\\)$".as_ptr ());
+  staticpro (paragraph_start_re.as_ptr ());
+  (*paragraph_separate_re.as_mut_ptr ()) = build_string (c"^[ \t\u{c}]*$".as_ptr ());
+  staticpro (paragraph_separate_re.as_ptr ());
 
-  bidi_cache_sp = 0;
-  bidi_cache_total_alloc = 0;
-  bidi_cache_max_elts = BIDI_CACHE_MAX_ELTS_PER_SLOT;
+  (*bidi_cache_sp.as_mut_ptr ()) = 0;
+  (*bidi_cache_total_alloc.as_mut_ptr ()) = 0;
+  (*bidi_cache_max_elts.as_mut_ptr ()) = BIDI_CACHE_MAX_ELTS_PER_SLOT;
 
-  bidi_initialized = true;
+  (*bidi_initialized.as_mut_ptr ()) = true;
 
   }
 }
@@ -1247,7 +1246,7 @@ pub unsafe extern "C-unwind" fn bidi_init_it (charpos: ptrdiff_t, bytepos: ptrdi
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  if !bidi_initialized
+  if !(*bidi_initialized.as_mut_ptr ())
     { bidi_initialize (); }
   if charpos >= 0
     { (*bidi_it).charpos = charpos; }
@@ -1279,7 +1278,7 @@ pub unsafe extern "C-unwind" fn bidi_init_it (charpos: ptrdiff_t, bytepos: ptrdi
   (*bidi_it).disp_prop = 0;
   /* We can only shrink the cache if we are at the bottom level of its
      "stack".  */
-  if bidi_cache_start == 0
+  if (*bidi_cache_start.as_mut_ptr ()) == 0
     { bidi_cache_shrink (); }
   else
     { bidi_cache_reset (); }
@@ -1404,7 +1403,7 @@ unsafe fn bidi_fetch_char (charpos: ptrdiff_t, bytepos: ptrdiff_t,
 	 tuned.  It means we consider 100 buffer positions examined by
 	 the above call roughly equivalent to the display engine
 	 iterating over a single buffer position.  */
-      if max_redisplay_ticks > 0 && *disp_pos > charpos
+      if (*max_redisplay_ticks.as_mut_ptr ()) > 0 && *disp_pos > charpos
 	{ update_redisplay_ticks (((*disp_pos - charpos) / 100 + 1) as c_int, w); }
     }
 
@@ -1525,7 +1524,7 @@ unsafe fn bidi_fetch_char (charpos: ptrdiff_t, bytepos: ptrdiff_t,
       SET_TEXT_POS! (pos, charpos + *nchars, bytepos + *ch_len);
       *disp_pos = compute_display_string_pos (&raw mut pos, string, w, frame_window_p,
 					      disp_prop);
-      if max_redisplay_ticks > 0 && *disp_pos > charpos + *nchars
+      if (*max_redisplay_ticks.as_mut_ptr ()) > 0 && *disp_pos > charpos + *nchars
 	{ update_redisplay_ticks (((*disp_pos - charpos - *nchars) / 100 + 1) as c_int, w); }
     }
 
@@ -1605,11 +1604,11 @@ unsafe fn bidi_at_paragraph_end (charpos: ptrdiff_t, bytepos: ptrdiff_t) -> ptrd
   if STRINGP (BVAR! ((current_buffer! ()), bidi_paragraph_separate_re_))
     { sep_re = BVAR! ((current_buffer! ()), bidi_paragraph_separate_re_); }
   else
-    { sep_re = paragraph_separate_re; }
+    { sep_re = (*paragraph_separate_re.as_mut_ptr ()); }
   if STRINGP (BVAR! ((current_buffer! ()), bidi_paragraph_start_re_))
     { start_re = BVAR! ((current_buffer! ()), bidi_paragraph_start_re_); }
   else
-    { start_re = paragraph_start_re; }
+    { start_re = (*paragraph_start_re.as_mut_ptr ()); }
 
   /* Prevent quitting inside re_match_2, as redisplay_window could
      have temporarily moved point.  */
@@ -1701,7 +1700,7 @@ unsafe fn bidi_find_paragraph_start (pos: ptrdiff_t, pos_byte: ptrdiff_t)
   let re: Lisp_Object
     = if STRINGP (BVAR! ((current_buffer! ()), bidi_paragraph_start_re_))
       { BVAR! ((current_buffer! ()), bidi_paragraph_start_re_) }
-      else { paragraph_start_re };
+      else { (*paragraph_start_re.as_mut_ptr ()) };
   let limit: ptrdiff_t = ZV! ();
   let limit_byte: ptrdiff_t = ZV_BYTE! ();
   let bpc: *mut c_void = bidi_paragraph_cache_on_off ();
@@ -1758,7 +1757,7 @@ unsafe fn bidi_find_paragraph_start (pos: ptrdiff_t, pos_byte: ptrdiff_t)
 }
 
 /* This tracks how far we needed to search for first strong character.  */
-static mut nsearch_for_strong: ptrdiff_t = 0;
+static nsearch_for_strong: VmGlobal<ptrdiff_t> = VmGlobal::<ptrdiff_t>::new (0);
 
 /* On a 3.4 GHz machine, searching forward for a strong directional
    character in a long paragraph full of weaks or neutrals takes about
@@ -1842,7 +1841,7 @@ unsafe fn find_first_strong_char (pos: ptrdiff_t, bytepos: ptrdiff_t,
       r#type = bidi_get_type (ch, NEUTRAL_DIR);
     }
 
-  nsearch_for_strong += pos - pos1;
+  (*nsearch_for_strong.as_mut_ptr ()) += pos - pos1;
   return r#type;
 
   }
@@ -1868,7 +1867,7 @@ pub unsafe extern "C-unwind" fn bidi_paragraph_init (dir: bidi_dir_t, bidi_it: *
   let mut pos: ptrdiff_t = (*bidi_it).charpos;
   let mut dir: bidi_dir_t = dir;
 
-  nsearch_for_strong = 0;
+  (*nsearch_for_strong.as_mut_ptr ()) = 0;
 
   /* Special case for an empty buffer. */
   if bytepos == begbyte && (*bidi_it).charpos == end
@@ -1896,7 +1895,7 @@ pub unsafe extern "C-unwind" fn bidi_paragraph_init (dir: bidi_dir_t, bidi_it: *
       let mut r#type: bidi_type_t = UNKNOWN_BT;
       let s: *const u8;
 
-      if !bidi_initialized
+      if !(*bidi_initialized.as_mut_ptr ())
 	{ bidi_initialize (); }
 
       /* If we are inside a paragraph separator, we are just waiting
@@ -1998,8 +1997,8 @@ pub unsafe extern "C-unwind" fn bidi_paragraph_init (dir: bidi_dir_t, bidi_it: *
      means we consider 50 buffer positions examined by this function
      roughly equivalent to the display engine iterating over a single
      buffer position.  */
-  let nexamined: ptrdiff_t = (*bidi_it).charpos - pos + nsearch_for_strong;
-  if max_redisplay_ticks > 0 && nexamined > 0
+  let nexamined: ptrdiff_t = (*bidi_it).charpos - pos + (*nsearch_for_strong.as_mut_ptr ());
+  if (*max_redisplay_ticks.as_mut_ptr ()) > 0 && nexamined > 0
     { update_redisplay_ticks ((nexamined / 50) as c_int, (*bidi_it).w); }
 
   }
@@ -2016,14 +2015,14 @@ unsafe fn bidi_explicit_dir_char (ch: c_int) -> bool
   unsafe {
   let ch_type: bidi_type_t;
 
-  if !bidi_initialized
+  if !(*bidi_initialized.as_mut_ptr ())
     { emacs_abort (); }
   if ch < 0
     {
       eassert! (ch == BIDI_EOB);
       return false;
     }
-  ch_type = XFIXNUM (CHAR_TABLE_REF (bidi_type_table, ch as isize)) as bidi_type_t;
+  ch_type = XFIXNUM (CHAR_TABLE_REF ((*bidi_type_table.as_mut_ptr ()), ch as isize)) as bidi_type_t;
   return ch_type == LRE || ch_type == LRO
 	 || ch_type == RLE || ch_type == RLO
 	 || ch_type == PDF;
@@ -2827,7 +2826,7 @@ unsafe fn bidi_find_bracket_pairs (bidi_it: *mut bidi_it) -> bool
 	let mut l2r_seen: bool = false;
 	let mut r2l_seen: bool = false;
 	let mut pairing_pos: ptrdiff_t = 0;
-	let idx_at_entry: ptrdiff_t = bidi_cache_idx;
+	let idx_at_entry: ptrdiff_t = (*bidi_cache_idx.as_mut_ptr ());
 
 	/* `bpa_stack` is the `bpa_stack_entry` array, `bpa_sp` its index and `bidi_it`
 	   the parameter the two C statement macros capture, so `PUSH_BPA_STACK` and
@@ -2846,12 +2845,12 @@ unsafe fn bidi_find_bracket_pairs (bidi_it: *mut bidi_it) -> bool
 	  () => {
 	    {
 	      let mut ch: c_int;
-	      if bpa_sp < MAX_BPA_STACK - 1 && bidi_cache_last_idx <= INT_MAX as ptrdiff_t
+	      if bpa_sp < MAX_BPA_STACK - 1 && (*bidi_cache_last_idx.as_mut_ptr ()) <= INT_MAX as ptrdiff_t
 		{
 		  bpa_sp += 1;
 		  ch = CANONICAL_EQU! ((*bidi_it).ch);
 		  bpa_stack[bpa_sp as usize].close_bracket_char = bidi_mirror_char (ch);
-		  bpa_stack[bpa_sp as usize].open_bracket_idx = bidi_cache_last_idx as c_int;
+		  bpa_stack[bpa_sp as usize].open_bracket_idx = (*bidi_cache_last_idx.as_mut_ptr ()) as c_int;
 		  bpa_stack[bpa_sp as usize].flags = 0;
 		  STORE_BRACKET_CHARPOS! ();
 		}
@@ -2889,7 +2888,7 @@ unsafe fn bidi_find_bracket_pairs (bidi_it: *mut bidi_it) -> bool
 		/* No more space in cache -- give up and let the opening
 		   bracket that started this be processed as a
 		   NEUTRAL_ON.  */
-		bidi_cache_reset_to ((idx_at_entry - bidi_cache_start) as c_int);
+		bidi_cache_reset_to ((idx_at_entry - (*bidi_cache_start.as_mut_ptr ())) as c_int);
 		bidi_copy_it (bidi_it, &raw mut saved_it);
 		break 'give_up;
 	      }
@@ -2991,7 +2990,7 @@ unsafe fn bidi_find_bracket_pairs (bidi_it: *mut bidi_it) -> bool
 			/* No more space in cache -- give up and let the
 			   opening bracket that started this be
 			   processed as any other NEUTRAL_ON.  */
-			bidi_cache_reset_to ((idx_at_entry - bidi_cache_start) as c_int);
+			bidi_cache_reset_to ((idx_at_entry - (*bidi_cache_start.as_mut_ptr ())) as c_int);
 			bidi_copy_it (bidi_it, &raw mut saved_it);
 			break 'give_up;
 		      }
@@ -3062,7 +3061,7 @@ unsafe fn bidi_find_bracket_pairs (bidi_it: *mut bidi_it) -> bool
 	       That state describes the outermost opening bracket, the
 	       one with which we entered this function.  Force the cache
 	       to "forget" all the cached states starting from that state.  */
-	    bidi_cache_reset_to ((bidi_cache_last_idx - bidi_cache_start) as c_int);
+	    bidi_cache_reset_to (((*bidi_cache_last_idx.as_mut_ptr ()) - (*bidi_cache_start.as_mut_ptr ())) as c_int);
 	    /* Set up the next_for_neutral member, to help
 	       bidi_resolve_neutral.  */
 	    (*bidi_it).next_for_neutral.r#type = embedding_type;
@@ -3077,7 +3076,7 @@ unsafe fn bidi_find_bracket_pairs (bidi_it: *mut bidi_it) -> bool
      means we consider 20 buffer positions examined by this function
      roughly equivalent to the display engine iterating over a single
      buffer position.  */
-  if max_redisplay_ticks > 0 && n > 0
+  if (*max_redisplay_ticks.as_mut_ptr ()) > 0 && n > 0
     { update_redisplay_ticks ((n / 20 + 1) as c_int, (*bidi_it).w); }
   return retval;
 
@@ -3091,19 +3090,19 @@ unsafe fn bidi_record_type_for_neutral (info: *mut bidi_saved_info, level: c_int
   unsafe {
   let mut idx: c_int;
 
-  idx = bidi_cache_last_idx as c_int + 1;
-  while idx < bidi_cache_idx as c_int
+  idx = (*bidi_cache_last_idx.as_mut_ptr ()) as c_int + 1;
+  while idx < (*bidi_cache_idx.as_mut_ptr ()) as c_int
     {
       let lev: c_int
-	= (*bidi_cache.offset (idx as ptrdiff_t)).level_stack[(*bidi_cache.offset (idx as ptrdiff_t)).stack_idx as usize].level as c_int;
+	= (*(*bidi_cache.as_mut_ptr ()).offset (idx as ptrdiff_t)).level_stack[(*(*bidi_cache.as_mut_ptr ()).offset (idx as ptrdiff_t)).stack_idx as usize].level as c_int;
 
       if lev <= level
 	{
 	  eassert! (lev == level);
 	  if nextp
-	    { (*bidi_cache.offset (idx as ptrdiff_t)).next_for_neutral = *info; }
+	    { (*(*bidi_cache.as_mut_ptr ()).offset (idx as ptrdiff_t)).next_for_neutral = *info; }
 	  else
-	    { (*bidi_cache.offset (idx as ptrdiff_t)).prev_for_neutral = *info; }
+	    { (*(*bidi_cache.as_mut_ptr ()).offset (idx as ptrdiff_t)).prev_for_neutral = *info; }
 	  break;
 	}
       idx += 1;
@@ -3262,9 +3261,9 @@ unsafe fn bidi_resolve_brackets (bidi_it: *mut bidi_it) -> bidi_type_t
 	  let idx: ptrdiff_t = bidi_cache_search ((*bidi_it).bracket_pairing_pos,
 						  -1, 1);
 
-	  if idx < bidi_cache_start
+	  if idx < (*bidi_cache_start.as_mut_ptr ())
 	    { emacs_abort (); }
-	  (*bidi_cache.offset (idx)).r#type = r#type;
+	  (*(*bidi_cache.as_mut_ptr ()).offset (idx)).r#type = r#type;
 	}
     }
 
@@ -3523,7 +3522,7 @@ unsafe fn bidi_level_of_next_char (bidi_it: *mut bidi_it) -> c_int
   /* Perhaps the character we want is already cached as fully resolved.
      If it is, the call to bidi_cache_find below will return a type
      other than UNKNOWN_BT.  */
-  if bidi_cache_idx > bidi_cache_start && !bidi_it_bits! (first_elt, bidi_it)
+  if (*bidi_cache_idx.as_mut_ptr ()) > (*bidi_cache_start.as_mut_ptr ()) && !bidi_it_bits! (first_elt, bidi_it)
     {
       let bob: c_int
 	= if !(*bidi_it).string.s.is_null () || STRINGP ((*bidi_it).string.lstring)
@@ -3662,7 +3661,7 @@ unsafe fn bidi_find_other_level_edge (bidi_it: *mut bidi_it, level: c_int,
 
   /* Try the cache first.  */
   idx = bidi_cache_find_level_change (level, dir, end_flag);
-  if idx >= bidi_cache_start
+  if idx >= (*bidi_cache_start.as_mut_ptr ())
     { bidi_cache_fetch_state (idx, bidi_it); }
   else
     {
@@ -3698,7 +3697,7 @@ unsafe fn bidi_find_other_level_edge (bidi_it: *mut bidi_it, level: c_int,
 	       previous character by fetching the last cached state,
 	       and force the resolved level of that character be the
 	       base embedding level.  */
-	    bidi_cache_fetch_state (bidi_cache_idx - 1, bidi_it);
+	    bidi_cache_fetch_state ((*bidi_cache_idx.as_mut_ptr ()) - 1, bidi_it);
 	    (*bidi_it).resolved_level = new_level as i8;
 	    bidi_cache_iterator_state (bidi_it, true, true);
 	  }
@@ -3709,7 +3708,7 @@ unsafe fn bidi_find_other_level_edge (bidi_it: *mut bidi_it, level: c_int,
 	 tuned.  It means we consider 50 buffer positions examined by
 	 the above call roughly equivalent to the display engine
 	 iterating over a single buffer position.  */
-      if max_redisplay_ticks > 0 && (*bidi_it).charpos > pos0
+      if (*max_redisplay_ticks.as_mut_ptr ()) > 0 && (*bidi_it).charpos > pos0
 	{ update_redisplay_ticks ((((*bidi_it).charpos - pos0) / 50 + 1) as c_int,
 				 (*bidi_it).w); }
     }
@@ -3743,7 +3742,7 @@ pub unsafe extern "C-unwind" fn bidi_move_to_visually_next (bidi_it: *mut bidi_i
   /* Prepare the sentinel iterator state, and cache it.  When we bump
      into it, scanning backwards, we'll know that the last non-base
      level is exhausted.  */
-  if bidi_cache_idx == bidi_cache_start
+  if (*bidi_cache_idx.as_mut_ptr ()) == (*bidi_cache_start.as_mut_ptr ())
     {
       bidi_copy_it (&raw mut sentinel, bidi_it);
       if bidi_it_bits! (first_elt, bidi_it)
@@ -3836,21 +3835,21 @@ pub unsafe extern "C-unwind" fn bidi_move_to_visually_next (bidi_it: *mut bidi_i
 	}
     }
 
-  if (*bidi_it).scan_dir == 1 && bidi_cache_idx > bidi_cache_start
+  if (*bidi_it).scan_dir == 1 && (*bidi_cache_idx.as_mut_ptr ()) > (*bidi_cache_start.as_mut_ptr ())
     {
       /* If we are at paragraph's base embedding level and beyond the
 	 last cached position, the cache's job is done and we can
 	 discard it.  */
       if (*bidi_it).resolved_level == (*bidi_it).level_stack[0].level as i8
 	  && (*bidi_it).charpos
-	       > (*bidi_cache.offset (bidi_cache_idx - 1)).charpos
-		 + (*bidi_cache.offset (bidi_cache_idx - 1)).nchars - 1
+	       > (*(*bidi_cache.as_mut_ptr ()).offset ((*bidi_cache_idx.as_mut_ptr ()) - 1)).charpos
+		 + (*(*bidi_cache.as_mut_ptr ()).offset ((*bidi_cache_idx.as_mut_ptr ()) - 1)).nchars - 1
 	{ bidi_cache_reset (); }
       /* Also reset the cache if it overflowed and we have just
 	 emergency-exited using Plan B.  */
       else if (*bidi_it).resolved_level == (*bidi_it).level_stack[0].level as i8
-	       && bidi_cache_idx >= bidi_cache_size
-	       && (*bidi_it).charpos == (*bidi_cache.offset (bidi_cache_idx - 1)).charpos
+	       && (*bidi_cache_idx.as_mut_ptr ()) >= (*bidi_cache_size.as_mut_ptr ())
+	       && (*bidi_it).charpos == (*(*bidi_cache.as_mut_ptr ()).offset ((*bidi_cache_idx.as_mut_ptr ()) - 1)).charpos
 	{ bidi_cache_reset (); }
 	/* But as long as we are caching during forward scan, we must
 	   cache each state, or else the cache integrity will be
@@ -3937,44 +3936,44 @@ pub unsafe extern "C-unwind" fn bidi_dump_cached_states ()
   let mut i: ptrdiff_t;
   let mut ndigits: c_int = 1;
 
-  if bidi_cache_idx == 0
+  if (*bidi_cache_idx.as_mut_ptr ()) == 0
     {
-      fputs (c"The cache is empty.\n".as_ptr (), stderr);
+      fputs (c"The cache is empty.\n".as_ptr (), (*stderr.as_mut_ptr ()));
       return;
     }
-  fprintf (stderr, c"Total of  %td state%s in cache:\n".as_ptr (),
-	   bidi_cache_idx, if bidi_cache_idx == 1 { c"".as_ptr () } else { c"s".as_ptr () });
+  fprintf ((*stderr.as_mut_ptr ()), c"Total of  %td state%s in cache:\n".as_ptr (),
+	   (*bidi_cache_idx.as_mut_ptr ()), if (*bidi_cache_idx.as_mut_ptr ()) == 1 { c"".as_ptr () } else { c"s".as_ptr () });
 
-  i = (*bidi_cache.offset (bidi_cache_idx - 1)).charpos;
+  i = (*(*bidi_cache.as_mut_ptr ()).offset ((*bidi_cache_idx.as_mut_ptr ()) - 1)).charpos;
   while i > 0
     {
       ndigits += 1;
       i /= 10;
     }
-  fputs (c"ch  ".as_ptr (), stderr);
+  fputs (c"ch  ".as_ptr (), (*stderr.as_mut_ptr ()));
   i = 0;
-  while i < bidi_cache_idx
+  while i < (*bidi_cache_idx.as_mut_ptr ())
     {
-      fprintf (stderr, c"%*c".as_ptr (), ndigits, (*bidi_cache.offset (i)).ch);
+      fprintf ((*stderr.as_mut_ptr ()), c"%*c".as_ptr (), ndigits, (*(*bidi_cache.as_mut_ptr ()).offset (i)).ch);
       i += 1;
     }
-  fputs (c"\nlvl ".as_ptr (), stderr);
+  fputs (c"\nlvl ".as_ptr (), (*stderr.as_mut_ptr ()));
   i = 0;
-  while i < bidi_cache_idx
+  while i < (*bidi_cache_idx.as_mut_ptr ())
     {
-      fprintf (stderr, c"%*d".as_ptr (), ndigits,
-	       (*bidi_cache.offset (i)).resolved_level as c_int);
+      fprintf ((*stderr.as_mut_ptr ()), c"%*d".as_ptr (), ndigits,
+	       (*(*bidi_cache.as_mut_ptr ()).offset (i)).resolved_level as c_int);
       i += 1;
     }
-  fputs (c"\npos ".as_ptr (), stderr);
+  fputs (c"\npos ".as_ptr (), (*stderr.as_mut_ptr ()));
   i = 0;
-  while i < bidi_cache_idx
+  while i < (*bidi_cache_idx.as_mut_ptr ())
     {
-      fprintf (stderr, c"%*td".as_ptr (), ndigits,
-	       (*bidi_cache.offset (i)).charpos);
+      fprintf ((*stderr.as_mut_ptr ()), c"%*td".as_ptr (), ndigits,
+	       (*(*bidi_cache.as_mut_ptr ()).offset (i)).charpos);
       i += 1;
     }
-  putc ('\n' as c_int, stderr);
+  putc ('\n' as c_int, (*stderr.as_mut_ptr ()));
 
   }
 }

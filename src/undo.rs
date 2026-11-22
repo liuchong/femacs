@@ -36,15 +36,15 @@ const _: () = ();
 // port's `include/globals.rs` mirrors the names as declarations, so the unit that owns one
 // defines it here (status §3.29, the casetab.rs shape).
 #[unsafe(no_mangle)]
-pub static mut undo_limit: EMACS_INT = 0;
+pub static undo_limit: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);
 #[unsafe(no_mangle)]
-pub static mut undo_strong_limit: EMACS_INT = 0;
+pub static undo_strong_limit: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);
 #[unsafe(no_mangle)]
-pub static mut Vundo_outer_limit: Lisp_Object = lisp_h_Qnil ();
+pub static Vundo_outer_limit: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vundo_outer_limit_function: Lisp_Object = lisp_h_Qnil ();
+pub static Vundo_outer_limit_function: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut undo_inhibit_record_point: bool = false;
+pub static undo_inhibit_record_point: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 /* The first time a command records something for undo.
    it also allocates the undo-boundary object
@@ -53,7 +53,7 @@ pub static mut undo_inhibit_record_point: bool = false;
    an undo-boundary.  */
 // undo.c 32: `static Lisp_Object pending_boundary;` - a bss object, and the port's
 // NIL_IS_ZERO makes its zero the same word as C's (the established UNINIT class).
-static mut pending_boundary: Lisp_Object = lisp_h_Qnil ();
+static pending_boundary: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* Prepare the undo info for recording a change. */
 unsafe fn prepare_record ()
@@ -61,8 +61,8 @@ unsafe fn prepare_record ()
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
   /* Allocate a cons cell to be the undo boundary after this command.  */
-  if NILP (pending_boundary)
-    { pending_boundary = Fcons (Qnil (), Qnil ()); }
+  if NILP ((*pending_boundary.as_mut_ptr ()))
+    { (*pending_boundary.as_mut_ptr ()) = Fcons (Qnil (), Qnil ()); }
 
   }
 }
@@ -76,7 +76,7 @@ unsafe fn record_point (beg: ptrdiff_t)
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
   /* Don't record position of pt when undo_inhibit_record_point holds.  */
-  if undo_inhibit_record_point
+  if (*undo_inhibit_record_point.as_mut_ptr ())
     { return; }
 
   let at_boundary: bool;
@@ -99,11 +99,11 @@ unsafe fn record_point (beg: ptrdiff_t)
      this if the buffer has changed since the last command, since the
      value of point that we have will be for that buffer, not this.*/
   if at_boundary
-      && point_before_last_command_or_undo != beg
-      && buffer_before_last_command_or_undo == (current_buffer! ())
+      && (*point_before_last_command_or_undo.as_mut_ptr ()) != beg
+      && (*buffer_before_last_command_or_undo.as_mut_ptr ()) == (current_buffer! ())
     {
       bset_undo_list ((current_buffer! ()),
-                      Fcons (make_fixnum (point_before_last_command_or_undo),
+                      Fcons (make_fixnum ((*point_before_last_command_or_undo.as_mut_ptr ())),
                              BVAR! ((current_buffer! ()), undo_list_)));
     }
 
@@ -316,13 +316,13 @@ DEFUN! ("undo-boundary", Fundo_boundary, Sundo_boundary, 0, 0, 0,
   if ! NILP (tem)
     {
       /* One way or another, cons nil onto the front of the undo list.  */
-      if ! NILP (pending_boundary)
+      if ! NILP ((*pending_boundary.as_mut_ptr ()))
         {
           /* If we have preallocated the cons cell to use here,
              use that one.  */
-          XSETCDR (pending_boundary, BVAR! ((current_buffer! ()), undo_list_));
-          bset_undo_list ((current_buffer! ()), pending_boundary);
-          pending_boundary = Qnil ();
+          XSETCDR ((*pending_boundary.as_mut_ptr ()), BVAR! ((current_buffer! ()), undo_list_));
+          bset_undo_list ((current_buffer! ()), (*pending_boundary.as_mut_ptr ()));
+          (*pending_boundary.as_mut_ptr ()) = Qnil ();
         }
       else
         { bset_undo_list ((current_buffer! ()),
@@ -330,8 +330,8 @@ DEFUN! ("undo-boundary", Fundo_boundary, Sundo_boundary, 0, 0, 0,
     }
 
   Fset (Qundo_auto__last_boundary_cause (), Qexplicit ());
-  point_before_last_command_or_undo = PT! () as ptrdiff_t;
-  buffer_before_last_command_or_undo = (current_buffer! ());
+  (*point_before_last_command_or_undo.as_mut_ptr ()) = PT! () as ptrdiff_t;
+  (*buffer_before_last_command_or_undo.as_mut_ptr ()) = (current_buffer! ());
 
   return Qnil ();
 });
@@ -410,19 +410,19 @@ pub unsafe extern "C-unwind" fn truncate_undo_list (b: *mut buffer)
      we're heading for memory full, so offer to clear out the list.  */
   /* C's `intmax_t undo_outer_limit;` is filled only by the `integer_to_intmax` below.  */
   let mut undo_outer_limit: intmax_t = 0;
-  if (if INTEGERP (Vundo_outer_limit)
+  if (if INTEGERP ((*Vundo_outer_limit.as_mut_ptr ()))
         {
-          (if integer_to_intmax (Vundo_outer_limit, &raw mut undo_outer_limit)
+          (if integer_to_intmax ((*Vundo_outer_limit.as_mut_ptr ()), &raw mut undo_outer_limit)
              { undo_outer_limit < size_so_far }
-             else { NILP (Fnatnump (Vundo_outer_limit)) })
+             else { NILP (Fnatnump ((*Vundo_outer_limit.as_mut_ptr ()))) })
         }
         else { false })
-      && ! NILP (Vundo_outer_limit_function)
+      && ! NILP ((*Vundo_outer_limit_function.as_mut_ptr ()))
     {
       let tem: Lisp_Object;
 
       /* Normally the function this calls is undo-outer-limit-truncate.  */
-      tem = calln! (Vundo_outer_limit_function, make_int (size_so_far));
+      tem = calln! ((*Vundo_outer_limit_function.as_mut_ptr ()), make_int (size_so_far));
       if ! NILP (tem)
         {
           /* The function is responsible for making
@@ -446,10 +446,10 @@ pub unsafe extern "C-unwind" fn truncate_undo_list (b: *mut buffer)
 	 the higher threshold undo_strong_limit, we truncate before it.  */
       if NILP (elt)
         {
-          if size_so_far > undo_strong_limit as intmax_t
+          if size_so_far > (*undo_strong_limit.as_mut_ptr ()) as intmax_t
             { break; }
           last_boundary = prev;
-          if size_so_far > undo_limit as intmax_t
+          if size_so_far > (*undo_limit.as_mut_ptr ()) as intmax_t
             { break; }
         }
 
@@ -497,30 +497,30 @@ pub unsafe extern "C-unwind" fn syms_of_undo ()
   /* Marker for function call undo list elements.  */
   DEFSYM! (Qapply, "apply");
 
-  pending_boundary = Qnil ();
-  staticpro (&raw const pending_boundary);
+  (*pending_boundary.as_mut_ptr ()) = Qnil ();
+  staticpro (pending_boundary.as_ptr ());
 
-  defsubr (&raw mut Sundo_boundary);
+  defsubr (Sundo_boundary.as_mut_ptr ());
 
   DEFVAR_INT! (c"undo-limit", undo_limit,
                "Keep no more undo information once it exceeds this size.\nThis limit is applied when garbage collection happens.\nWhen a previous command increases the total undo list size past this\nvalue, the earlier commands that came before it are forgotten.\n\nThe size is counted as the number of bytes occupied,\nwhich includes both saved text and other data.");
-  undo_limit = 160000;
+  (*undo_limit.as_mut_ptr ()) = 160000;
 
   DEFVAR_INT! (c"undo-strong-limit", undo_strong_limit,
                "Don't keep more than this much size of undo information.\nThis limit is applied when garbage collection happens.\nWhen a previous command increases the total undo list size past this\nvalue, that command and the earlier commands that came before it are forgotten.\nHowever, the most recent buffer-modifying command's undo info\nis never discarded for this reason.\n\nThe size is counted as the number of bytes occupied,\nwhich includes both saved text and other data.");
-  undo_strong_limit = 240000;
+  (*undo_strong_limit.as_mut_ptr ()) = 240000;
 
   DEFVAR_LISP! (c"undo-outer-limit", Vundo_outer_limit,
                 "Outer limit on size of undo information for one command.\nAt garbage collection time, if the current command has produced\nmore than this much undo information, it discards the info and displays\na warning.  This is a last-ditch limit to prevent memory overflow.\n\nThe size is counted as the number of bytes occupied, which includes\nboth saved text and other data.  A value of nil means no limit.  In\nthis case, accumulating one huge undo entry could make Emacs crash as\na result of memory overflow.\n\nIn fact, this calls the function which is the value of\n`undo-outer-limit-function' with one argument, the size.\nThe text above describes the behavior of the function\nthat variable usually specifies.");
-  Vundo_outer_limit = make_fixnum (24000000);
+  (*Vundo_outer_limit.as_mut_ptr ()) = make_fixnum (24000000);
 
   DEFVAR_LISP! (c"undo-outer-limit-function", Vundo_outer_limit_function,
                 "Function to call when an undo list exceeds `undo-outer-limit'.\nThis function is called with one argument, the current undo list size\nfor the most recent command (since the last undo boundary).\nIf the function returns t, that means truncation has been fully handled.\nIf it returns nil, the other forms of truncation are done.\n\nGarbage collection is inhibited around the call to this function,\nso it must make sure not to do a lot of consing.");
-  Vundo_outer_limit_function = Qnil ();
+  (*Vundo_outer_limit_function.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_BOOL! (c"undo-inhibit-record-point", undo_inhibit_record_point,
                 "Non-nil means do not record `point' in `buffer-undo-list'.");
-  undo_inhibit_record_point = false;
+  (*undo_inhibit_record_point.as_mut_ptr ()) = false;
 
   }
 }

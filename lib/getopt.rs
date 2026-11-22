@@ -106,7 +106,7 @@ macro_rules! alloca {
    each non-option ARGV-element is returned here.  */
 
 #[unsafe(export_name = "rpl_optarg")]
-pub static mut optarg: *mut c_char = std::ptr::null_mut ();
+pub static optarg: VmGlobal<*mut c_char> = VmGlobal::<*mut c_char>::new (std::ptr::null_mut ());
 
 /* C 100-104: `int optind = 1;`
 
@@ -125,7 +125,7 @@ pub static mut optarg: *mut c_char = std::ptr::null_mut ();
    1003.2 says this must be 1 before any call.  */
 
 #[unsafe(export_name = "rpl_optind")]
-pub static mut optind: c_int = 1;
+pub static optind: VmGlobal<c_int> = VmGlobal::<c_int>::new (1);
 
 /* C 106-109: `int opterr = 1;`
 
@@ -133,7 +133,7 @@ pub static mut optind: c_int = 1;
    for unrecognized options.  */
 
 #[unsafe(export_name = "rpl_opterr")]
-pub static mut opterr: c_int = 1;
+pub static opterr: VmGlobal<c_int> = VmGlobal::<c_int>::new (1);
 
 /* C 111-115: `int optopt = '?';`
 
@@ -142,14 +142,14 @@ pub static mut opterr: c_int = 1;
    system's own getopt implementation.  */
 
 #[unsafe(export_name = "rpl_optopt")]
-pub static mut optopt: c_int = '?' as c_int;
+pub static optopt: VmGlobal<c_int> = VmGlobal::<c_int>::new ('?' as c_int);
 
 /* C 117-119: `static struct _getopt_data getopt_data;`
 
    Keep a global copy of all internal members of getopt_data.  C zero-initialises the static;
    the port writes that value out (PORTING.md 0.1-13).  */
 
-static mut getopt_data: _getopt_data = _getopt_data {
+static getopt_data: VmGlobal<_getopt_data> = VmGlobal::<_getopt_data>::new (_getopt_data {
   optind: 0,
   opterr: 0,
   optopt: 0,
@@ -159,7 +159,7 @@ static mut getopt_data: _getopt_data = _getopt_data {
   __ordering: __ord::REQUIRE_ORDER,
   __first_nonopt: 0,
   __last_nonopt: 0,
-};
+});
 
 /* Exchange two adjacent subsequences of ARGV.
    One subsequence is elements [first_nonopt,last_nonopt)
@@ -350,12 +350,12 @@ unsafe fn process_long_option (argc: c_int, argv: *mut *mut c_char, optstring: *
           if print_errors != 0
             {
               if ambig_set == &raw mut ambig_fallback
-                { fprintf (stderr, c"%s: option '%s%s' is ambiguous\n".as_ptr (),
+                { fprintf ((*stderr.as_mut_ptr ()), c"%s: option '%s%s' is ambiguous\n".as_ptr (),
                            *argv, prefix, (*d).__nextchar); }
               else
                 {
-                  flockfile (stderr);
-                  fprintf (stderr,
+                  flockfile ((*stderr.as_mut_ptr ()));
+                  fprintf ((*stderr.as_mut_ptr ()),
                            c"%s: option '%s%s' is ambiguous; possibilities:".as_ptr (),
                            *argv, prefix, (*d).__nextchar);
 
@@ -363,7 +363,7 @@ unsafe fn process_long_option (argc: c_int, argv: *mut *mut c_char, optstring: *
                   while option_index < n_options
                     {
                       if *ambig_set.offset (option_index as isize) != 0
-                        { fprintf (stderr, c" '%s%s'".as_ptr (),
+                        { fprintf ((*stderr.as_mut_ptr ()), c" '%s%s'".as_ptr (),
                                    prefix, (*longopts.offset (option_index as isize)).name); }
                       option_index += 1;
                     }
@@ -371,8 +371,8 @@ unsafe fn process_long_option (argc: c_int, argv: *mut *mut c_char, optstring: *
                   /* This must use 'fprintf' even though it's only
                      printing a single character, so that it goes through
                      __fxprintf_nocancel when compiled as part of glibc.  */
-                  fprintf (stderr, c"\n".as_ptr ());
-                  funlockfile (stderr);
+                  fprintf ((*stderr.as_mut_ptr ()), c"\n".as_ptr ());
+                  funlockfile ((*stderr.as_mut_ptr ()));
                 }
             }
           free (ambig_malloced);
@@ -394,7 +394,7 @@ unsafe fn process_long_option (argc: c_int, argv: *mut *mut c_char, optstring: *
         || strchr (optstring, *(*d).__nextchar as c_int).is_null ()
         {
           if print_errors != 0
-            { fprintf (stderr, c"%s: unrecognized option '%s%s'\n".as_ptr (),
+            { fprintf ((*stderr.as_mut_ptr ()), c"%s: unrecognized option '%s%s'\n".as_ptr (),
                        *argv, prefix, (*d).__nextchar); }
 
           (*d).__nextchar = std::ptr::null_mut ();
@@ -419,7 +419,7 @@ unsafe fn process_long_option (argc: c_int, argv: *mut *mut c_char, optstring: *
       else
         {
           if print_errors != 0
-            { fprintf (stderr, c"%s: option '%s%s' doesn't allow an argument\n".as_ptr (),
+            { fprintf ((*stderr.as_mut_ptr ()), c"%s: option '%s%s' doesn't allow an argument\n".as_ptr (),
                        *argv, prefix, (*pfound).name); }
 
           (*d).optopt = (*pfound).val;
@@ -436,7 +436,7 @@ unsafe fn process_long_option (argc: c_int, argv: *mut *mut c_char, optstring: *
       else
         {
           if print_errors != 0
-            { fprintf (stderr, c"%s: option '%s%s' requires an argument\n".as_ptr (),
+            { fprintf ((*stderr.as_mut_ptr ()), c"%s: option '%s%s' requires an argument\n".as_ptr (),
                        *argv, prefix, (*pfound).name); }
 
           (*d).optopt = (*pfound).val;
@@ -722,7 +722,7 @@ pub unsafe extern "C" fn _getopt_internal_r (argc: c_int, argv: *mut *mut c_char
     if temp.is_null () || c == b':' as c_char || c == b';' as c_char
       {
 	if print_errors != 0
-	  { fprintf (stderr, c"%s: invalid option -- '%c'\n".as_ptr (), *argv, c as c_int); }
+	  { fprintf ((*stderr.as_mut_ptr ()), c"%s: invalid option -- '%c'\n".as_ptr (), *argv, c as c_int); }
 	(*d).optopt = c as c_int;
 	return '?' as c_int;
       }
@@ -736,7 +736,7 @@ pub unsafe extern "C" fn _getopt_internal_r (argc: c_int, argv: *mut *mut c_char
 	else if (*d).optind == argc
 	  {
 	    if print_errors != 0
-	      { fprintf (stderr, c"%s: option requires an argument -- '%c'\n".as_ptr (),
+	      { fprintf ((*stderr.as_mut_ptr ()), c"%s: option requires an argument -- '%c'\n".as_ptr (),
 			 *argv, c as c_int); }
 
 	    (*d).optopt = c as c_int;
@@ -781,7 +781,7 @@ pub unsafe extern "C" fn _getopt_internal_r (argc: c_int, argv: *mut *mut c_char
 	    else if (*d).optind == argc
 	      {
 		if print_errors != 0
-		  { fprintf (stderr, c"%s: option requires an argument -- '%c'\n".as_ptr (),
+		  { fprintf ((*stderr.as_mut_ptr ()), c"%s: option requires an argument -- '%c'\n".as_ptr (),
 			     *argv, c as c_int); }
 
 		(*d).optopt = c as c_int;
@@ -817,16 +817,16 @@ pub unsafe extern "C" fn _getopt_internal (argc: c_int, argv: *mut *mut c_char,
 {
   // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
   unsafe {
-  getopt_data.optind = optind;
-  getopt_data.opterr = opterr;
+  (*getopt_data.as_mut_ptr ()).optind = (*optind.as_mut_ptr ());
+  (*getopt_data.as_mut_ptr ()).opterr = (*opterr.as_mut_ptr ());
 
   let result: c_int = _getopt_internal_r (argc, argv, optstring, longopts,
-					  longind, long_only, &raw mut getopt_data,
+					  longind, long_only, getopt_data.as_mut_ptr (),
 					  posixly_correct);
 
-  optind = getopt_data.optind;
-  optarg = getopt_data.optarg;
-  optopt = getopt_data.optopt;
+  (*optind.as_mut_ptr ()) = (*getopt_data.as_mut_ptr ()).optind;
+  (*optarg.as_mut_ptr ()) = (*getopt_data.as_mut_ptr ()).optarg;
+  (*optopt.as_mut_ptr ()) = (*getopt_data.as_mut_ptr ()).optopt;
 
   return result;
 

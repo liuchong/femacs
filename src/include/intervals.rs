@@ -319,8 +319,8 @@ macro_rules! INTERVAL_VISIBLE_P {
    value of Vinhibit_read_only?  Replace later with cache access.  */
 macro_rules! INTERVAL_GENERALLY_WRITABLE_P {
   ($i:expr, $ro:expr) => { (NILP ($ro)
-			    || (! NILP (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { Vinhibit_read_only })
-				&& ! CONSP (unsafe { Vinhibit_read_only }))) };
+			    || (! NILP (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*Vinhibit_read_only.as_mut_ptr ()) })
+				&& ! CONSP (unsafe { (*Vinhibit_read_only.as_mut_ptr ()) }))) };
 }
 
 /* Is this interval writable by virtue of its explicit
@@ -330,8 +330,8 @@ macro_rules! INTERVAL_EXPRESSLY_WRITABLE_P {
   ($i:expr, $ro:expr) => { (! NILP (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { textget (unsafe { (*(($i) as *mut interval)).plist },
 						     Qinhibit_read_only ()) })
 			    || (! NILP ($ro)
-				&& CONSP (unsafe { Vinhibit_read_only })
-				&& ! NILP (Fmemq ($ro, unsafe { Vinhibit_read_only })))) };
+				&& CONSP (unsafe { (*Vinhibit_read_only.as_mut_ptr ()) })
+				&& ! NILP (Fmemq ($ro, unsafe { (*Vinhibit_read_only.as_mut_ptr ()) })))) };
 }
 
 /* If PROP is the `invisible' property of a character,

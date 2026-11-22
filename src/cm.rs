@@ -61,14 +61,14 @@ const BIG: c_int = 9999;
 
 /* cm.c 32: sums up costs */
 #[unsafe(no_mangle)]
-pub static mut cost: c_int = 0;
+pub static cost: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn evalcost (c: c_int) -> c_int
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  cost += 1;
+  (*cost.as_mut_ptr ()) += 1;
   return c;
 
   }
@@ -76,16 +76,16 @@ pub unsafe extern "C" fn evalcost (c: c_int) -> c_int
 
 /* The terminal to use for low-level output. */
 #[unsafe(no_mangle)]
-pub static mut current_tty: *mut tty_display_info = std::ptr::null_mut ();
+pub static current_tty: VmGlobal<*mut tty_display_info> = VmGlobal::<*mut tty_display_info>::new (std::ptr::null_mut ());
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn cmputc (c: c_int) -> c_int
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  if ! (*current_tty).termscript.is_null ()
-    { putc (c & 0o177, (*current_tty).termscript); }
-  putc (c & 0o177, (*current_tty).output);
+  if ! (*(*current_tty.as_mut_ptr ())).termscript.is_null ()
+    { putc (c & 0o177, (*(*current_tty.as_mut_ptr ())).termscript); }
+  putc (c & 0o177, (*(*current_tty.as_mut_ptr ())).output);
   return c;
 
   }
@@ -204,7 +204,7 @@ pub unsafe extern "C-unwind" fn cmcostinit (tty: *mut tty_display_info)
      `#undef`s have no counterpart to write).  */
   macro_rules! COST {
     ($x:expr, $e:expr) => {
-      if ! ($x).is_null () { cost = 0; tputs ($x, 1, Some ($e)); cost } else { BIG }
+      if ! ($x).is_null () { (*cost.as_mut_ptr ()) = 0; tputs ($x, 1, Some ($e)); (*cost.as_mut_ptr ()) } else { BIG }
     };
   }
   macro_rules! CMCOST {
@@ -293,7 +293,7 @@ unsafe fn calccost (tty: *mut tty_display_info,
 	  if c == BIG
 	    {		/* caint get thar from here */
 	      if doit != 0
-		{ fputs (c"OOPS".as_ptr (), stdout); }
+		{ fputs (c"OOPS".as_ptr (), (*stdout.as_mut_ptr ())); }
 	      return c;
 	    }
 	  totalcost = c * deltay;
@@ -320,7 +320,7 @@ unsafe fn calccost (tty: *mut tty_display_info,
       else
 	{
 	  /* Tabs (the toughie) */
-	  if ! tty_cursor_movement_use_TAB
+	  if ! (*tty_cursor_movement_use_TAB.as_mut_ptr ())
 	    || (*(*tty).Wcm).cc_tab >= BIG || ((*(*tty).Wcm).bits & CM_USETABS) == 0
 	    { newdelta = false; }	/* C: `goto olddelta` */
 	  else
@@ -334,7 +334,7 @@ unsafe fn calccost (tty: *mut tty_display_info,
 		      / (*(*tty).Wcm).cm_tabwidth;
 	      tabx = (srcx / (*(*tty).Wcm).cm_tabwidth + ntabs) * (*(*tty).Wcm).cm_tabwidth;
 
-	      if tty_cursor_movement_use_TAB_BS
+	      if (*tty_cursor_movement_use_TAB_BS.as_mut_ptr ())
 		{
 		  /*
 		   * n2tabs is one more tab than ntabs (i.e. past dstx), but this is
@@ -367,7 +367,7 @@ unsafe fn calccost (tty: *mut tty_display_info,
 			  { BIG };
 
 	      /* Is it allowed and cheaper to overshoot & back up? */
-	      if tty_cursor_movement_use_TAB_BS && (c < tabcost)
+	      if (*tty_cursor_movement_use_TAB_BS.as_mut_ptr ()) && (c < tabcost)
 		{ ntabs = n2tabs; tabcost = c; tabx = tab2x; }
 
 	      if tabcost >= BIG		/* caint use tabs */
@@ -419,7 +419,7 @@ unsafe fn calccost (tty: *mut tty_display_info,
 	    {		/* caint get thar from here */
 	      /* fail: */
 	      if doit != 0
-		{ fputs (c"OOPS".as_ptr (), stdout); }
+		{ fputs (c"OOPS".as_ptr (), (*stdout.as_mut_ptr ())); }
 	      return BIG;
 	    }
 	  totalcost += c * deltax;
@@ -441,7 +441,7 @@ unsafe fn calccost (tty: *mut tty_display_info,
 	 print and `return BIG` are the same two statements, reached without the `c == BIG`
 	 test.  */
       if doit != 0
-	{ fputs (c"OOPS".as_ptr (), stdout); }
+	{ fputs (c"OOPS".as_ptr (), (*stdout.as_mut_ptr ())); }
       return BIG;
     }
 
@@ -543,13 +543,13 @@ pub unsafe extern "C-unwind" fn cmgoto (tty: *mut tty_display_info, row: c_int, 
   if directcost <= relcost
     {
       /* compute REAL direct cost */
-      cost = 0;
+      (*cost.as_mut_ptr ()) = 0;
       p = if dcm == (*(*tty).Wcm).cm_habs
 	    { tgoto (dcm, row, col) }
 	  else
 	    { tgoto (dcm, col, row) };
       emacs_tputs! (tty, p, 1, evalcost);
-      if cost <= relcost
+      if (*cost.as_mut_ptr ()) <= relcost
 	{	/* really is cheaper */
 	  emacs_tputs! (tty, p, 1, cmputc);
 	  curY! (tty) = row; curX! (tty) = col;
@@ -602,8 +602,8 @@ pub unsafe extern "C-unwind" fn Wcm_clear (tty: *mut tty_display_info)
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
   memset ((*tty).Wcm.cast (), 0, size_of::<cm> ());
-  UP = std::ptr::null_mut ();
-  BC = std::ptr::null_mut ();
+  (*UP.as_mut_ptr ()) = std::ptr::null_mut ();
+  (*BC.as_mut_ptr ()) = std::ptr::null_mut ();
 
   }
 }

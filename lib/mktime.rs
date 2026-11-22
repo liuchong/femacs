@@ -518,8 +518,8 @@ pub unsafe extern "C" fn __mktime64 (tp: *mut tm) -> __time64_t
 
   /* C 544-550: `#if defined _LIBC || NEED_MKTIME_WORKING` is live (the `#else` arm's
      `mktime (tp)` belongs to the NEED_MKTIME_WINDOWS-only build).  */
-  static mut localtime_offset: mktime_offset_t = 0;
-  let result: __time64_t = __mktime_internal (tp, true, &raw mut localtime_offset);
+  static localtime_offset: VmGlobal<mktime_offset_t> = VmGlobal::<mktime_offset_t>::new (0);
+  let result: __time64_t = __mktime_internal (tp, true, localtime_offset.as_mut_ptr ());
 
   __libc_lock_unlock! (__tzset_lock);
   return result;

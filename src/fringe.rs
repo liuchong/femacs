@@ -289,9 +289,9 @@ macro_rules! fringe_bitmap_bits {
 */
 /* C 106-107: `static unsigned short question_mark_bits[]` (`10` elements).  */
 #[cfg (feature = "have_window_system")]
-static mut question_mark_bits: [c_ushort; 10] = [
+static question_mark_bits: VmGlobal<[c_ushort; 10]> = VmGlobal::<[c_ushort; 10]>::new ([
   0x3c, 0x7e, 0xc3, 0xc3, 0x0c, 0x18, 0x18, 0x00, 0x18, 0x18
-];
+]);
 
 /* An exclamation mark.  */
 /*
@@ -308,9 +308,9 @@ static mut question_mark_bits: [c_ushort; 10] = [
 */
 /* C 122-123: `static unsigned short exclamation_mark_bits[]` (`10` elements).  */
 #[cfg (feature = "have_window_system")]
-static mut exclamation_mark_bits: [c_ushort; 10] = [
+static exclamation_mark_bits: VmGlobal<[c_ushort; 10]> = VmGlobal::<[c_ushort; 10]>::new ([
   0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x00, 0x18, 0x18
-];
+]);
 
 /* An arrow like this: `<-'.  */
 /*
@@ -325,9 +325,9 @@ static mut exclamation_mark_bits: [c_ushort; 10] = [
 */
 /* C 136-137: `static unsigned short left_arrow_bits[]` (`8` elements).  */
 #[cfg (feature = "have_window_system")]
-static mut left_arrow_bits: [c_ushort; 8] = [
+static left_arrow_bits: VmGlobal<[c_ushort; 8]> = VmGlobal::<[c_ushort; 8]>::new ([
   0x18, 0x30, 0x60, 0xfc, 0xfc, 0x60, 0x30, 0x18
-];
+]);
 
 
 /* Right truncation arrow bitmap `->'.  */
@@ -343,9 +343,9 @@ static mut left_arrow_bits: [c_ushort; 8] = [
 */
 /* C 151-152: `static unsigned short right_arrow_bits[]` (`8` elements).  */
 #[cfg (feature = "have_window_system")]
-static mut right_arrow_bits: [c_ushort; 8] = [
+static right_arrow_bits: VmGlobal<[c_ushort; 8]> = VmGlobal::<[c_ushort; 8]>::new ([
   0x18, 0x0c, 0x06, 0x3f, 0x3f, 0x06, 0x0c, 0x18
-];
+]);
 
 
 /* Up arrow bitmap.  */
@@ -361,9 +361,9 @@ static mut right_arrow_bits: [c_ushort; 8] = [
 */
 /* C 166-167: `static unsigned short up_arrow_bits[]` (`8` elements).  */
 #[cfg (feature = "have_window_system")]
-static mut up_arrow_bits: [c_ushort; 8] = [
+static up_arrow_bits: VmGlobal<[c_ushort; 8]> = VmGlobal::<[c_ushort; 8]>::new ([
   0x18, 0x3c, 0x7e, 0xff, 0x18, 0x18, 0x18, 0x18
-];
+]);
 
 
 /* Down arrow bitmap.  */
@@ -379,9 +379,9 @@ static mut up_arrow_bits: [c_ushort; 8] = [
 */
 /* C 181-182: `static unsigned short down_arrow_bits[]` (`8` elements).  */
 #[cfg (feature = "have_window_system")]
-static mut down_arrow_bits: [c_ushort; 8] = [
+static down_arrow_bits: VmGlobal<[c_ushort; 8]> = VmGlobal::<[c_ushort; 8]>::new ([
   0x18, 0x18, 0x18, 0x18, 0xff, 0x7e, 0x3c, 0x18
-];
+]);
 
 /* Marker for continuation lines.  */
 /*
@@ -396,9 +396,9 @@ static mut down_arrow_bits: [c_ushort; 8] = [
 */
 /* C 195-196: `static unsigned short left_curly_arrow_bits[]` (`8` elements).  */
 #[cfg (feature = "have_window_system")]
-static mut left_curly_arrow_bits: [c_ushort; 8] = [
+static left_curly_arrow_bits: VmGlobal<[c_ushort; 8]> = VmGlobal::<[c_ushort; 8]>::new ([
   0x3c, 0x7c, 0xc0, 0xe4, 0xfc, 0x7c, 0x3c, 0x7c
-];
+]);
 
 /* Marker for continued lines.  */
 /*
@@ -413,9 +413,9 @@ static mut left_curly_arrow_bits: [c_ushort; 8] = [
 */
 /* C 209-210: `static unsigned short right_curly_arrow_bits[]` (`8` elements).  */
 #[cfg (feature = "have_window_system")]
-static mut right_curly_arrow_bits: [c_ushort; 8] = [
+static right_curly_arrow_bits: VmGlobal<[c_ushort; 8]> = VmGlobal::<[c_ushort; 8]>::new ([
   0x3c, 0x3e, 0x03, 0x27, 0x3f, 0x3e, 0x3c, 0x3e
-];
+]);
 
 /* Large circle bitmap.  */
 /*
@@ -430,9 +430,9 @@ static mut right_curly_arrow_bits: [c_ushort; 8] = [
 */
 /* C 223-224: `static unsigned short large_circle_bits[]` (`8` elements).  */
 #[cfg (feature = "have_window_system")]
-static mut large_circle_bits: [c_ushort; 8] = [
+static large_circle_bits: VmGlobal<[c_ushort; 8]> = VmGlobal::<[c_ushort; 8]>::new ([
   0x3c, 0x7e, 0xff, 0xff, 0xff, 0xff, 0x7e, 0x3c
-];
+]);
 
 /* Reverse Overlay arrow bitmap.  A triangular arrow.  */
 /*
@@ -447,9 +447,9 @@ static mut large_circle_bits: [c_ushort; 8] = [
 */
 /* C 237-238: `static unsigned short left_triangle_bits[]` (`8` elements).  */
 #[cfg (feature = "have_window_system")]
-static mut left_triangle_bits: [c_ushort; 8] = [
+static left_triangle_bits: VmGlobal<[c_ushort; 8]> = VmGlobal::<[c_ushort; 8]>::new ([
   0x03, 0x0f, 0x1f, 0x3f, 0x3f, 0x1f, 0x0f, 0x03
-];
+]);
 
 /* Overlay arrow bitmap.  A triangular arrow.  */
 /*
@@ -464,9 +464,9 @@ static mut left_triangle_bits: [c_ushort; 8] = [
 */
 /* C 251-252: `static unsigned short right_triangle_bits[]` (`8` elements).  */
 #[cfg (feature = "have_window_system")]
-static mut right_triangle_bits: [c_ushort; 8] = [
+static right_triangle_bits: VmGlobal<[c_ushort; 8]> = VmGlobal::<[c_ushort; 8]>::new ([
   0xc0, 0xf0, 0xf8, 0xfc, 0xfc, 0xf8, 0xf0, 0xc0
-];
+]);
 
 /* First line bitmap.  An top-left angle.  */
 /*
@@ -481,9 +481,9 @@ static mut right_triangle_bits: [c_ushort; 8] = [
 */
 /* C 265-266: `static unsigned short top_left_angle_bits[]` (`8` elements).  */
 #[cfg (feature = "have_window_system")]
-static mut top_left_angle_bits: [c_ushort; 8] = [
+static top_left_angle_bits: VmGlobal<[c_ushort; 8]> = VmGlobal::<[c_ushort; 8]>::new ([
   0xfc, 0xfc, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0x00
-];
+]);
 
 /* First line bitmap.  An right-up angle.  */
 /*
@@ -498,9 +498,9 @@ static mut top_left_angle_bits: [c_ushort; 8] = [
 */
 /* C 279-280: `static unsigned short top_right_angle_bits[]` (`8` elements).  */
 #[cfg (feature = "have_window_system")]
-static mut top_right_angle_bits: [c_ushort; 8] = [
+static top_right_angle_bits: VmGlobal<[c_ushort; 8]> = VmGlobal::<[c_ushort; 8]>::new ([
   0x3f, 0x3f, 0x03, 0x03, 0x03, 0x03, 0x03, 0x00
-];
+]);
 
 /* Last line bitmap.  An left-down angle.  */
 /*
@@ -515,9 +515,9 @@ static mut top_right_angle_bits: [c_ushort; 8] = [
 */
 /* C 293-294: `static unsigned short bottom_left_angle_bits[]` (`8` elements).  */
 #[cfg (feature = "have_window_system")]
-static mut bottom_left_angle_bits: [c_ushort; 8] = [
+static bottom_left_angle_bits: VmGlobal<[c_ushort; 8]> = VmGlobal::<[c_ushort; 8]>::new ([
   0x00, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xfc, 0xfc
-];
+]);
 
 /* Last line bitmap.  An right-down angle.  */
 /*
@@ -532,9 +532,9 @@ static mut bottom_left_angle_bits: [c_ushort; 8] = [
 */
 /* C 307-308: `static unsigned short bottom_right_angle_bits[]` (`8` elements).  */
 #[cfg (feature = "have_window_system")]
-static mut bottom_right_angle_bits: [c_ushort; 8] = [
+static bottom_right_angle_bits: VmGlobal<[c_ushort; 8]> = VmGlobal::<[c_ushort; 8]>::new ([
   0x00, 0x03, 0x03, 0x03, 0x03, 0x03, 0x3f, 0x3f
-];
+]);
 
 /* First/last line bitmap.  An left bracket.  */
 /*
@@ -551,9 +551,9 @@ static mut bottom_right_angle_bits: [c_ushort; 8] = [
 */
 /* C 323-324: `static unsigned short left_bracket_bits[]` (`10` elements).  */
 #[cfg (feature = "have_window_system")]
-static mut left_bracket_bits: [c_ushort; 10] = [
+static left_bracket_bits: VmGlobal<[c_ushort; 10]> = VmGlobal::<[c_ushort; 10]>::new ([
   0xfc, 0xfc, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xfc, 0xfc
-];
+]);
 
 /* First/last line bitmap.  An right bracket.  */
 /*
@@ -570,9 +570,9 @@ static mut left_bracket_bits: [c_ushort; 10] = [
 */
 /* C 339-340: `static unsigned short right_bracket_bits[]` (`10` elements).  */
 #[cfg (feature = "have_window_system")]
-static mut right_bracket_bits: [c_ushort; 10] = [
+static right_bracket_bits: VmGlobal<[c_ushort; 10]> = VmGlobal::<[c_ushort; 10]>::new ([
   0x3f, 0x3f, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x3f, 0x3f
-];
+]);
 
 /* Filled box cursor bitmap.  A filled box; max 13 pixels high.  */
 /*
@@ -592,10 +592,10 @@ static mut right_bracket_bits: [c_ushort; 10] = [
 */
 /* C 358-359: `static unsigned short filled_rectangle_bits[]` (`13` elements).  */
 #[cfg (feature = "have_window_system")]
-static mut filled_rectangle_bits: [c_ushort; 13] = [
+static filled_rectangle_bits: VmGlobal<[c_ushort; 13]> = VmGlobal::<[c_ushort; 13]>::new ([
   0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe, 0xfe,
   0xfe, 0xfe, 0xfe
-];
+]);
 
 /* Hollow box cursor bitmap.  A hollow box; max 13 pixels high.  */
 /*
@@ -615,10 +615,10 @@ static mut filled_rectangle_bits: [c_ushort; 13] = [
 */
 /* C 377-378: `static unsigned short hollow_rectangle_bits[]` (`13` elements).  */
 #[cfg (feature = "have_window_system")]
-static mut hollow_rectangle_bits: [c_ushort; 13] = [
+static hollow_rectangle_bits: VmGlobal<[c_ushort; 13]> = VmGlobal::<[c_ushort; 13]>::new ([
   0xfe, 0x82, 0x82, 0x82, 0x82, 0x82, 0x82, 0x82, 0x82, 0x82,
   0x82, 0x82, 0xfe
-];
+]);
 
 /* Hollow square bitmap.  */
 /*
@@ -631,9 +631,9 @@ static mut hollow_rectangle_bits: [c_ushort; 13] = [
 */
 /* C 389-390: `static unsigned short hollow_square_bits[]` (`6` elements).  */
 #[cfg (feature = "have_window_system")]
-static mut hollow_square_bits: [c_ushort; 6] = [
+static hollow_square_bits: VmGlobal<[c_ushort; 6]> = VmGlobal::<[c_ushort; 6]>::new ([
   0x7e, 0x42, 0x42, 0x42, 0x42, 0x7e
-];
+]);
 
 /* Filled square bitmap.  */
 /*
@@ -646,9 +646,9 @@ static mut hollow_square_bits: [c_ushort; 6] = [
 */
 /* C 401-402: `static unsigned short filled_square_bits[]` (`6` elements).  */
 #[cfg (feature = "have_window_system")]
-static mut filled_square_bits: [c_ushort; 6] = [
+static filled_square_bits: VmGlobal<[c_ushort; 6]> = VmGlobal::<[c_ushort; 6]>::new ([
   0x7e, 0x7e, 0x7e, 0x7e, 0x7e, 0x7e
-];
+]);
 
 /* Bar cursor bitmap.  A vertical bar; max 13 pixels high.  */
 /*
@@ -668,10 +668,10 @@ static mut filled_square_bits: [c_ushort; 6] = [
 */
 /* C 420-421: `static unsigned short vertical_bar_bits[]` (`13` elements).  */
 #[cfg (feature = "have_window_system")]
-static mut vertical_bar_bits: [c_ushort; 13] = [
+static vertical_bar_bits: VmGlobal<[c_ushort; 13]> = VmGlobal::<[c_ushort; 13]>::new ([
   0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0,
   0xc0, 0xc0, 0xc0
-];
+]);
 
 /* HBar cursor bitmap.  A horizontal bar; 2 pixels high.  */
 /*
@@ -680,9 +680,9 @@ static mut vertical_bar_bits: [c_ushort; 13] = [
 */
 /* C 428-429: `static unsigned short horizontal_bar_bits[]` (`2` elements).  */
 #[cfg (feature = "have_window_system")]
-static mut horizontal_bar_bits: [c_ushort; 2] = [
+static horizontal_bar_bits: VmGlobal<[c_ushort; 2]> = VmGlobal::<[c_ushort; 2]>::new ([
   0xfe, 0xfe
-];
+]);
 
 
 /* Bitmap drawn to indicate lines not displaying text if
@@ -697,7 +697,7 @@ static mut horizontal_bar_bits: [c_ushort; 2] = [
 */
 /* C 442-450: `static unsigned short empty_line_bits[]` (`72` elements).  */
 #[cfg (feature = "have_window_system")]
-static mut empty_line_bits: [c_ushort; 72] = [
+static empty_line_bits: VmGlobal<[c_ushort; 72]> = VmGlobal::<[c_ushort; 72]>::new ([
   0x00, 0x3c, 0x00, 0x00, 0x3c, 0x00, 0x00, 0x3c, 0x00, 0x00,
   0x3c, 0x00, 0x00, 0x3c, 0x00, 0x00, 0x3c, 0x00, 0x00, 0x3c,
   0x00, 0x00, 0x3c, 0x00, 0x00, 0x3c, 0x00, 0x00, 0x3c, 0x00,
@@ -706,7 +706,7 @@ static mut empty_line_bits: [c_ushort; 72] = [
   0x00, 0x00, 0x3c, 0x00, 0x00, 0x3c, 0x00, 0x00, 0x3c, 0x00,
   0x00, 0x3c, 0x00, 0x00, 0x3c, 0x00, 0x00, 0x3c, 0x00, 0x00,
   0x3c, 0x00
-];
+]);
 
 
 /* C 453-455: the three macros the table below is built with.  `BYTES_PER_BITMAP_ROW` is C's
@@ -766,35 +766,34 @@ macro_rules! FRBITS {
 /// entries (`NO_FRINGE_BITMAP`'s all-zero record plus twenty-four bitmaps), which is the count
 /// `MAX_STANDARD_FRINGE_BITMAPS` below is `countof` of.
 #[cfg (feature = "have_window_system")]
-static mut standard_bitmaps: [fringe_bitmap; MAX_STANDARD_FRINGE_BITMAPS as usize] =
-[
+static standard_bitmaps: VmGlobal<[fringe_bitmap; MAX_STANDARD_FRINGE_BITMAPS as usize]> = VmGlobal::<[fringe_bitmap; MAX_STANDARD_FRINGE_BITMAPS as usize]>::new ([
   fringe_bitmap { bits: core::ptr::null_mut (),
                   flags: fringe_bitmap_run (0, 0, 0, 0, 0) }, /* NO_FRINGE_BITMAP */
-  FRBITS! (question_mark_bits,      8, 0, ALIGN_BITMAP_CENTER, 0),
-  FRBITS! (exclamation_mark_bits,   8, 0, ALIGN_BITMAP_CENTER, 0),
-  FRBITS! (left_arrow_bits,         8, 0, ALIGN_BITMAP_CENTER, 0),
-  FRBITS! (right_arrow_bits,        8, 0, ALIGN_BITMAP_CENTER, 0),
-  FRBITS! (up_arrow_bits,           8, 0, ALIGN_BITMAP_TOP,    0),
-  FRBITS! (down_arrow_bits,         8, 0, ALIGN_BITMAP_BOTTOM, 0),
-  FRBITS! (left_curly_arrow_bits,   8, 0, ALIGN_BITMAP_CENTER, 0),
-  FRBITS! (right_curly_arrow_bits,  8, 0, ALIGN_BITMAP_CENTER, 0),
-  FRBITS! (large_circle_bits,       8, 0, ALIGN_BITMAP_CENTER, 0),
-  FRBITS! (left_triangle_bits,      8, 0, ALIGN_BITMAP_CENTER, 0),
-  FRBITS! (right_triangle_bits,     8, 0, ALIGN_BITMAP_CENTER, 0),
-  FRBITS! (top_left_angle_bits,     8, 0, ALIGN_BITMAP_TOP,    0),
-  FRBITS! (top_right_angle_bits,    8, 0, ALIGN_BITMAP_TOP,    0),
-  FRBITS! (bottom_left_angle_bits,  8, 0, ALIGN_BITMAP_BOTTOM, 0),
-  FRBITS! (bottom_right_angle_bits, 8, 0, ALIGN_BITMAP_BOTTOM, 0),
-  FRBITS! (left_bracket_bits,       8, 0, ALIGN_BITMAP_CENTER, 0),
-  FRBITS! (right_bracket_bits,      8, 0, ALIGN_BITMAP_CENTER, 0),
-  FRBITS! (filled_rectangle_bits,   8, 0, ALIGN_BITMAP_CENTER, 0),
-  FRBITS! (hollow_rectangle_bits,   8, 0, ALIGN_BITMAP_CENTER, 0),
-  FRBITS! (filled_square_bits,      8, 0, ALIGN_BITMAP_CENTER, 0),
-  FRBITS! (hollow_square_bits,      8, 0, ALIGN_BITMAP_CENTER, 0),
-  FRBITS! (vertical_bar_bits,       8, 0, ALIGN_BITMAP_CENTER, 0),
-  FRBITS! (horizontal_bar_bits,     8, 0, ALIGN_BITMAP_BOTTOM, 0),
-  FRBITS! (empty_line_bits,         8, 3, ALIGN_BITMAP_TOP,    0),
-];
+  FRBITS! ((*question_mark_bits.as_mut_ptr ()),      8, 0, ALIGN_BITMAP_CENTER, 0),
+  FRBITS! ((*exclamation_mark_bits.as_mut_ptr ()),   8, 0, ALIGN_BITMAP_CENTER, 0),
+  FRBITS! ((*left_arrow_bits.as_mut_ptr ()),         8, 0, ALIGN_BITMAP_CENTER, 0),
+  FRBITS! ((*right_arrow_bits.as_mut_ptr ()),        8, 0, ALIGN_BITMAP_CENTER, 0),
+  FRBITS! ((*up_arrow_bits.as_mut_ptr ()),           8, 0, ALIGN_BITMAP_TOP,    0),
+  FRBITS! ((*down_arrow_bits.as_mut_ptr ()),         8, 0, ALIGN_BITMAP_BOTTOM, 0),
+  FRBITS! ((*left_curly_arrow_bits.as_mut_ptr ()),   8, 0, ALIGN_BITMAP_CENTER, 0),
+  FRBITS! ((*right_curly_arrow_bits.as_mut_ptr ()),  8, 0, ALIGN_BITMAP_CENTER, 0),
+  FRBITS! ((*large_circle_bits.as_mut_ptr ()),       8, 0, ALIGN_BITMAP_CENTER, 0),
+  FRBITS! ((*left_triangle_bits.as_mut_ptr ()),      8, 0, ALIGN_BITMAP_CENTER, 0),
+  FRBITS! ((*right_triangle_bits.as_mut_ptr ()),     8, 0, ALIGN_BITMAP_CENTER, 0),
+  FRBITS! ((*top_left_angle_bits.as_mut_ptr ()),     8, 0, ALIGN_BITMAP_TOP,    0),
+  FRBITS! ((*top_right_angle_bits.as_mut_ptr ()),    8, 0, ALIGN_BITMAP_TOP,    0),
+  FRBITS! ((*bottom_left_angle_bits.as_mut_ptr ()),  8, 0, ALIGN_BITMAP_BOTTOM, 0),
+  FRBITS! ((*bottom_right_angle_bits.as_mut_ptr ()), 8, 0, ALIGN_BITMAP_BOTTOM, 0),
+  FRBITS! ((*left_bracket_bits.as_mut_ptr ()),       8, 0, ALIGN_BITMAP_CENTER, 0),
+  FRBITS! ((*right_bracket_bits.as_mut_ptr ()),      8, 0, ALIGN_BITMAP_CENTER, 0),
+  FRBITS! ((*filled_rectangle_bits.as_mut_ptr ()),   8, 0, ALIGN_BITMAP_CENTER, 0),
+  FRBITS! ((*hollow_rectangle_bits.as_mut_ptr ()),   8, 0, ALIGN_BITMAP_CENTER, 0),
+  FRBITS! ((*filled_square_bits.as_mut_ptr ()),      8, 0, ALIGN_BITMAP_CENTER, 0),
+  FRBITS! ((*hollow_square_bits.as_mut_ptr ()),      8, 0, ALIGN_BITMAP_CENTER, 0),
+  FRBITS! ((*vertical_bar_bits.as_mut_ptr ()),       8, 0, ALIGN_BITMAP_CENTER, 0),
+  FRBITS! ((*horizontal_bar_bits.as_mut_ptr ()),     8, 0, ALIGN_BITMAP_BOTTOM, 0),
+  FRBITS! ((*empty_line_bits.as_mut_ptr ()),         8, 3, ALIGN_BITMAP_TOP,    0),
+]);
 
 /// C: 489: `#define NO_FRINGE_BITMAP 0`
 #[cfg (feature = "have_window_system")]
@@ -812,17 +811,17 @@ pub const MAX_STANDARD_FRINGE_BITMAPS: c_int = 25;
 /// and `static int max_fringe_bitmaps;` - three `static`s, zero-initialised, and none of them is
 /// exported.
 #[cfg (feature = "have_window_system")]
-static mut fringe_bitmaps: *mut *mut fringe_bitmap = core::ptr::null_mut ();
+static fringe_bitmaps: VmGlobal<*mut *mut fringe_bitmap> = VmGlobal::<*mut *mut fringe_bitmap>::new (core::ptr::null_mut ());
 #[cfg (feature = "have_window_system")]
-static mut fringe_faces: *mut Lisp_Object = core::ptr::null_mut ();
+static fringe_faces: VmGlobal<*mut Lisp_Object> = VmGlobal::<*mut Lisp_Object>::new (core::ptr::null_mut ());
 #[cfg (feature = "have_window_system")]
-static mut max_fringe_bitmaps: c_int = 0;
+static max_fringe_bitmaps: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 
 /// C: 497: `int max_used_fringe_bitmap = MAX_STANDARD_FRINGE_BITMAPS;` - a non-`static` object (its
 /// own declaration is dispextern.h 3710), so it is exported.
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub static mut max_used_fringe_bitmap: c_int = MAX_STANDARD_FRINGE_BITMAPS;
+pub static max_used_fringe_bitmap: VmGlobal<c_int> = VmGlobal::<c_int>::new (MAX_STANDARD_FRINGE_BITMAPS);
 
 
 /* `include/dispextern.rs` carries the records a unit that includes it declares itself - the two
@@ -1216,9 +1215,9 @@ pub unsafe extern "C-unwind" fn lookup_fringe_bitmap (mut bitmap: Lisp_Object) -
 
   bn = XFIXNUM (bitmap);
   if bn > NO_FRINGE_BITMAP as EMACS_INT
-     && bn < max_used_fringe_bitmap as EMACS_INT
+     && bn < (*max_used_fringe_bitmap.as_mut_ptr ()) as EMACS_INT
      && (bn < MAX_STANDARD_FRINGE_BITMAPS as EMACS_INT
-	 || !(*fringe_bitmaps.add (bn as usize)).is_null ())
+	 || !(*(*fringe_bitmaps.as_mut_ptr ()).add (bn as usize)).is_null ())
     { return bn as c_int; }
 
   return 0;
@@ -1246,7 +1245,7 @@ unsafe fn get_fringe_bitmap_name (bn: c_int) -> Lisp_Object
   if bn <= 0
     { return Qnil (); }
 
-  bitmaps = Vfringe_bitmaps;
+  bitmaps = (*Vfringe_bitmaps.as_mut_ptr ());
   num = make_fixnum (bn as EMACS_INT);
 
   while CONSP (bitmaps)
@@ -1272,9 +1271,9 @@ unsafe fn get_fringe_bitmap_data (bn: c_int) -> *mut fringe_bitmap
   unsafe {
   let mut fb: *mut fringe_bitmap;
 
-  fb = *fringe_bitmaps.add (bn as usize);
+  fb = *(*fringe_bitmaps.as_mut_ptr ()).add (bn as usize);
   if fb.is_null ()
-    { fb = core::ptr::addr_of_mut! (standard_bitmaps [if bn < MAX_STANDARD_FRINGE_BITMAPS
+    { fb = core::ptr::addr_of_mut! ((*standard_bitmaps.as_mut_ptr ()) [if bn < MAX_STANDARD_FRINGE_BITMAPS
 						       { bn } else { UNDEF_FRINGE_BITMAP }
 						       as usize]); }
 
@@ -1333,7 +1332,7 @@ unsafe fn draw_fringe_bitmap_1 (w: *mut window, row: *mut glyph_row, left_p: c_i
 
   if face_id == DEFAULT_FACE_ID
     {
-      let face: Lisp_Object = *fringe_faces.add (which as usize);
+      let face: Lisp_Object = *(*fringe_faces.as_mut_ptr ()).add (which as usize);
       face_id = if NILP (face) { lookup_named_face (w, f, Qfringe (), false) }
 		else { lookup_derived_face (w, f, face, FRINGE_FACE_ID, false) };
       if face_id < 0
@@ -1464,9 +1463,9 @@ unsafe fn get_logical_cursor_bitmap (w: *mut window, cursor: Lisp_Object) -> c_i
 	  return lookup_fringe_bitmap (bm);
 	}
     }
-  if EQ (cmap, BVAR! (&raw mut buffer_defaults, fringe_cursor_alist_))
+  if EQ (cmap, BVAR! (buffer_defaults.as_mut_ptr (), fringe_cursor_alist_))
     { return NO_FRINGE_BITMAP; }
-  bm = Fassq (cursor, BVAR! (&raw mut buffer_defaults, fringe_cursor_alist_));
+  bm = Fassq (cursor, BVAR! (buffer_defaults.as_mut_ptr (), fringe_cursor_alist_));
   if !CONSP (bm) || { bm = XCDR (bm); NILP (bm) }
     { return NO_FRINGE_BITMAP; }
   return lookup_fringe_bitmap (bm);
@@ -1545,10 +1544,10 @@ unsafe fn get_logical_fringe_bitmap (w: *mut window, bitmap: Lisp_Object, right_
 	}
     }
 
-  if !EQ (cmap, BVAR! (&raw mut buffer_defaults, fringe_indicator_alist_))
-     && !NILP (BVAR! (&raw mut buffer_defaults, fringe_indicator_alist_))
+  if !EQ (cmap, BVAR! (buffer_defaults.as_mut_ptr (), fringe_indicator_alist_))
+     && !NILP (BVAR! (buffer_defaults.as_mut_ptr (), fringe_indicator_alist_))
     {
-      bm2 = Fassq (bitmap, BVAR! (&raw mut buffer_defaults, fringe_indicator_alist_));
+      bm2 = Fassq (bitmap, BVAR! (buffer_defaults.as_mut_ptr (), fringe_indicator_alist_));
       if CONSP (bm2)
 	{
 	  bm2 = XCDR (bm2);
@@ -1617,7 +1616,7 @@ pub unsafe extern "C-unwind" fn draw_fringe_bitmap (w: *mut window, row: *mut gl
       match (*w).phys_cursor_type
 	{
 	  HOLLOW_BOX_CURSOR => {
-	    if (*row).visible_height as usize >= STANDARD_BITMAP_HEIGHT! (hollow_rectangle_bits)
+	    if (*row).visible_height as usize >= STANDARD_BITMAP_HEIGHT! ((*hollow_rectangle_bits.as_mut_ptr ()))
 	      { cursor = Qhollow (); }
 	    else
 	      { cursor = Qhollow_small (); }
@@ -2269,9 +2268,9 @@ unsafe fn destroy_fringe_bitmap (mut n: c_int)
   unsafe {
   let mut fbp: *mut *mut fringe_bitmap;
 
-  *fringe_faces.add (n as usize) = Qnil ();
+  *(*fringe_faces.as_mut_ptr ()).add (n as usize) = Qnil ();
 
-  fbp = fringe_bitmaps.add (n as usize);
+  fbp = (*fringe_bitmaps.as_mut_ptr ()).add (n as usize);
   if !(*fbp).is_null () && fringe_bitmap_bits! (dynamic, *fbp)
     {
       /* XXX Is SELECTED_FRAME OK here?  */
@@ -2283,9 +2282,9 @@ unsafe fn destroy_fringe_bitmap (mut n: c_int)
       *fbp = core::ptr::null_mut ();
     }
 
-  while max_used_fringe_bitmap > MAX_STANDARD_FRINGE_BITMAPS
-	 && (*fringe_bitmaps.add ((max_used_fringe_bitmap - 1) as usize)).is_null ()
-    { max_used_fringe_bitmap -= 1; }
+  while (*max_used_fringe_bitmap.as_mut_ptr ()) > MAX_STANDARD_FRINGE_BITMAPS
+	 && (*(*fringe_bitmaps.as_mut_ptr ()).add (((*max_used_fringe_bitmap.as_mut_ptr ()) - 1) as usize)).is_null ()
+    { (*max_used_fringe_bitmap.as_mut_ptr ()) -= 1; }
 
   }
 }
@@ -2308,7 +2307,7 @@ DEFUN! ("destroy-fringe-bitmap", Fdestroy_fringe_bitmap, Sdestroy_fringe_bitmap,
 
   if n >= MAX_STANDARD_FRINGE_BITMAPS
     {
-      Vfringe_bitmaps = Fdelq (bitmap, Vfringe_bitmaps);
+      (*Vfringe_bitmaps.as_mut_ptr ()) = Fdelq (bitmap, (*Vfringe_bitmaps.as_mut_ptr ()));
       /* It would be better to remove the fringe property.  */
       Fput (bitmap, Qfringe (), Qnil ());
     }
@@ -2475,9 +2474,9 @@ unsafe fn init_fringe_bitmap (which: c_int, fb: *mut fringe_bitmap, once_p: c_in
 						      fringe_bitmap_bits! (height, fb) as c_int,
 						      fringe_bitmap_bits! (width, fb) as c_int); }
 
-      *fringe_bitmaps.add (which as usize) = fb;
-      if which >= max_used_fringe_bitmap
-	{ max_used_fringe_bitmap = which + 1; }
+      *(*fringe_bitmaps.as_mut_ptr ()).add (which as usize) = fb;
+      if which >= (*max_used_fringe_bitmap.as_mut_ptr ())
+	{ (*max_used_fringe_bitmap.as_mut_ptr ()) = which + 1; }
     }
 
   }
@@ -2561,45 +2560,45 @@ DEFUN! ("define-fringe-bitmap", Fdefine_fringe_bitmap, Sdefine_fringe_bitmap, 2,
   n = lookup_fringe_bitmap (bitmap);
   if n == 0
     {
-      if max_used_fringe_bitmap < max_fringe_bitmaps
-	{ n = max_used_fringe_bitmap; max_used_fringe_bitmap += 1; }
+      if (*max_used_fringe_bitmap.as_mut_ptr ()) < (*max_fringe_bitmaps.as_mut_ptr ())
+	{ n = (*max_used_fringe_bitmap.as_mut_ptr ()); (*max_used_fringe_bitmap.as_mut_ptr ()) += 1; }
       else
 	{
 	  n = MAX_STANDARD_FRINGE_BITMAPS;
-	  while n < max_fringe_bitmaps
+	  while n < (*max_fringe_bitmaps.as_mut_ptr ())
 	    {
-	      if (*fringe_bitmaps.add (n as usize)).is_null ()
+	      if (*(*fringe_bitmaps.as_mut_ptr ()).add (n as usize)).is_null ()
 		{ break; }
 	      n += 1;
 	    }
 
-	  if n == max_fringe_bitmaps
+	  if n == (*max_fringe_bitmaps.as_mut_ptr ())
 	    {
-	      let mut bitmaps: c_int = max_fringe_bitmaps + 20;
+	      let mut bitmaps: c_int = (*max_fringe_bitmaps.as_mut_ptr ()) + 20;
 	      if MAX_FRINGE_BITMAPS < bitmaps
 		{ error (c"No free fringe bitmap slots".as_ptr ()); }
 
-	      i = max_fringe_bitmaps;
-	      fringe_bitmaps = xrealloc (fringe_bitmaps as *mut c_void,
+	      i = (*max_fringe_bitmaps.as_mut_ptr ());
+	      (*fringe_bitmaps.as_mut_ptr ()) = xrealloc ((*fringe_bitmaps.as_mut_ptr ()) as *mut c_void,
 					 bitmaps as usize
 					 * core::mem::size_of::<*mut fringe_bitmap> ())
 			      as *mut *mut fringe_bitmap;
-	      fringe_faces = xrealloc (fringe_faces as *mut c_void,
+	      (*fringe_faces.as_mut_ptr ()) = xrealloc ((*fringe_faces.as_mut_ptr ()) as *mut c_void,
 				       bitmaps as usize * core::mem::size_of::<Lisp_Object> ())
 			     as *mut Lisp_Object;
 
 	      while i < bitmaps
 		{
-		  *fringe_bitmaps.add (i as usize) = core::ptr::null_mut ();
-		  *fringe_faces.add (i as usize) = Qnil ();
+		  *(*fringe_bitmaps.as_mut_ptr ()).add (i as usize) = core::ptr::null_mut ();
+		  *(*fringe_faces.as_mut_ptr ()).add (i as usize) = Qnil ();
 		  i += 1;
 		}
 
-	      max_fringe_bitmaps = bitmaps;
+	      (*max_fringe_bitmaps.as_mut_ptr ()) = bitmaps;
 	    }
 	}
 
-      Vfringe_bitmaps = Fcons (bitmap, Vfringe_bitmaps);
+      (*Vfringe_bitmaps.as_mut_ptr ()) = Fcons (bitmap, (*Vfringe_bitmaps.as_mut_ptr ()));
       Fput (bitmap, Qfringe (), make_fixnum (n as EMACS_INT));
     }
 
@@ -2655,7 +2654,7 @@ DEFUN! ("set-fringe-bitmap-face", Fset_fringe_bitmap_face, Sset_fringe_bitmap_fa
      validity here, but since validity can depend on the specific
      _window_ in which this buffer is being displayed, defer the check
      to redisplay, which can cope with bad face specifications.  */
-  *fringe_faces.add (n as usize) = face;
+  *(*fringe_faces.as_mut_ptr ()).add (n as usize) = face;
   return Qnil ();
 });
 
@@ -2685,7 +2684,7 @@ DEFUN! ("fringe-bitmaps-at-pos", Ffringe_bitmaps_at_pos, Sfringe_bitmaps_at_pos,
 	{ args_out_of_range (window, pos); }
       textpos = p as ptrdiff_t;
     }
-  else if w == XWINDOW (selected_window)
+  else if w == XWINDOW ((*selected_window.as_mut_ptr ()))
     { textpos = PT! () as ptrdiff_t; }
   else
     { textpos = marker_position ((*w).pointm) as ptrdiff_t; }
@@ -2713,10 +2712,10 @@ DEFUN! ("fringe-bitmaps-at-pos", Ffringe_bitmaps_at_pos, Sfringe_bitmaps_at_pos,
    489-492 row and the `src/image.rs` block shape).  */
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub static mut Voverflow_newline_into_fringe: Lisp_Object = lisp_h_Qnil ();  // C 1770
+pub static Voverflow_newline_into_fringe: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());  // C 1770
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub static mut Vfringe_bitmaps: Lisp_Object = lisp_h_Qnil ();                // C 1779
+pub static Vfringe_bitmaps: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());                // C 1779
 
 /// C: 1755-1756: `void` / `syms_of_fringe (void)` - non-`static`, so exported.
 #[cfg (feature = "have_window_system")]
@@ -2732,18 +2731,18 @@ pub unsafe extern "C-unwind" fn syms_of_fringe ()
   DEFSYM! (Qtop_bottom, c"top-bottom");
   DEFSYM! (Qhollow_small, c"hollow-small");
 
-  defsubr (&raw mut Sdestroy_fringe_bitmap);
-  defsubr (&raw mut Sdefine_fringe_bitmap);
-  defsubr (&raw mut Sfringe_bitmaps_at_pos);
-  defsubr (&raw mut Sset_fringe_bitmap_face);
+  defsubr (Sdestroy_fringe_bitmap.as_mut_ptr ());
+  defsubr (Sdefine_fringe_bitmap.as_mut_ptr ());
+  defsubr (Sfringe_bitmaps_at_pos.as_mut_ptr ());
+  defsubr (Sset_fringe_bitmap_face.as_mut_ptr ());
 
   DEFVAR_LISP! (c"overflow-newline-into-fringe", Voverflow_newline_into_fringe,
     " Non-nil means that newline may flow into the right fringe.\nThis means that display lines that are exactly as wide as the window\n(not counting the final newline) will occupy only one screen line, by\nshowing (or hiding) the final newline in the right fringe; when point\nis at the final newline, the cursor is shown in the right fringe.\nIf nil, also continue lines which are exactly as wide as the window.  ");
-  Voverflow_newline_into_fringe = Qt ();
+  (*Voverflow_newline_into_fringe.as_mut_ptr ()) = Qt ();
 
   DEFVAR_LISP! (c"fringe-bitmaps", Vfringe_bitmaps,
     "List of fringe bitmap symbols.");
-  Vfringe_bitmaps = Qnil ();
+  (*Vfringe_bitmaps.as_mut_ptr ()) = Qnil ();
 
   }
 }
@@ -2757,7 +2756,7 @@ pub unsafe extern "C-unwind" fn mark_fringe_data ()
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  mark_objects (fringe_faces, max_fringe_bitmaps as ptrdiff_t);
+  mark_objects ((*fringe_faces.as_mut_ptr ()), (*max_fringe_bitmaps.as_mut_ptr ()) as ptrdiff_t);
 
   }
 }
@@ -2788,7 +2787,7 @@ unsafe extern "C-unwind" fn init_fringe_once_for_pdumper ()
   let mut bt: c_int = NO_FRINGE_BITMAP + 1;
   while bt < MAX_STANDARD_FRINGE_BITMAPS
     {
-      init_fringe_bitmap (bt, core::ptr::addr_of_mut! (standard_bitmaps [bt as usize]), 1);
+      init_fringe_bitmap (bt, core::ptr::addr_of_mut! ((*standard_bitmaps.as_mut_ptr ()) [bt as usize]), 1);
       bt += 1;
     }
 
@@ -2802,14 +2801,14 @@ pub unsafe extern "C-unwind" fn init_fringe ()
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  max_fringe_bitmaps = MAX_STANDARD_FRINGE_BITMAPS + 20;
+  (*max_fringe_bitmaps.as_mut_ptr ()) = MAX_STANDARD_FRINGE_BITMAPS + 20;
 
-  fringe_bitmaps = xzalloc (max_fringe_bitmaps as usize
+  (*fringe_bitmaps.as_mut_ptr ()) = xzalloc ((*max_fringe_bitmaps.as_mut_ptr ()) as usize
 			    * core::mem::size_of::<*mut fringe_bitmap> ())
 		   as *mut *mut fringe_bitmap;
 
   static_assert! (NIL_IS_ZERO);
-  fringe_faces = xzalloc (max_fringe_bitmaps as usize * core::mem::size_of::<Lisp_Object> ())
+  (*fringe_faces.as_mut_ptr ()) = xzalloc ((*max_fringe_bitmaps.as_mut_ptr ()) as usize * core::mem::size_of::<Lisp_Object> ())
 		 as *mut Lisp_Object;
 
   }
@@ -2831,8 +2830,8 @@ pub unsafe extern "C-unwind" fn gui_init_fringe (rif: *mut redisplay_interface)
   bt = NO_FRINGE_BITMAP + 1;
   while bt < MAX_STANDARD_FRINGE_BITMAPS
     {
-      let fb: *mut fringe_bitmap = core::ptr::addr_of_mut! (standard_bitmaps [bt as usize]);
-      if (*fringe_bitmaps.add (bt as usize)).is_null ()
+      let fb: *mut fringe_bitmap = core::ptr::addr_of_mut! ((*standard_bitmaps.as_mut_ptr ()) [bt as usize]);
+      if (*(*fringe_bitmaps.as_mut_ptr ()).add (bt as usize)).is_null ()
         { ((((*rif).define_fringe_bitmap)).unwrap ()) (bt, (*fb).bits,
 						       fringe_bitmap_bits! (height, fb) as c_int,
 						       fringe_bitmap_bits! (width, fb) as c_int); }
@@ -2844,9 +2843,9 @@ pub unsafe extern "C-unwind" fn gui_init_fringe (rif: *mut redisplay_interface)
      if Emacs is started as a daemon and the init files define fringe
      bitmaps.  */
   bt = NO_FRINGE_BITMAP + 1;
-  while bt < max_used_fringe_bitmap
+  while bt < (*max_used_fringe_bitmap.as_mut_ptr ())
     {
-      let fb: *mut fringe_bitmap = *fringe_bitmaps.add (bt as usize);
+      let fb: *mut fringe_bitmap = *(*fringe_bitmaps.as_mut_ptr ()).add (bt as usize);
       if !fb.is_null ()
 	{ ((((*rif).define_fringe_bitmap)).unwrap ()) (bt, (*fb).bits,
 						       fringe_bitmap_bits! (height, fb) as c_int,
@@ -2871,10 +2870,10 @@ pub unsafe extern "C-unwind" fn gui_define_fringe_bitmap (f: *mut frame, n: c_in
   unsafe {
   let rif: *mut redisplay_interface = FRAME_RIF! (f) as *mut redisplay_interface;
 
-  if rif.is_null () || ((*rif).define_fringe_bitmap).is_none () || n >= max_used_fringe_bitmap
+  if rif.is_null () || ((*rif).define_fringe_bitmap).is_none () || n >= (*max_used_fringe_bitmap.as_mut_ptr ())
     { return; }
 
-  let fb: *mut fringe_bitmap = *fringe_bitmaps.add (n as usize);
+  let fb: *mut fringe_bitmap = *(*fringe_bitmaps.as_mut_ptr ()).add (n as usize);
   if !fb.is_null ()
     { ((((*rif).define_fringe_bitmap)).unwrap ()) (n, (*fb).bits,
 						   fringe_bitmap_bits! (height, fb) as c_int,
@@ -2897,7 +2896,7 @@ pub unsafe extern "C-unwind" fn w32_reset_fringes ()
     { return; }
 
   bt = NO_FRINGE_BITMAP + 1;
-  while bt < max_used_fringe_bitmap
+  while bt < (*max_used_fringe_bitmap.as_mut_ptr ())
     {
       ((((*rif).destroy_fringe_bitmap)).unwrap ()) (bt);
       bt += 1;

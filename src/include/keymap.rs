@@ -44,7 +44,7 @@ pub mod keymap_decls {
   use super::*;
 
   unsafe extern "C-unwind" {
-  pub static mut current_global_map: Lisp_Object;
+  pub static current_global_map: VmGlobal<Lisp_Object>;
 
   // Parameter names come from the definitions in keymap.c (keymap.h names no parameter
   // except `map_keymap_canonical`'s).

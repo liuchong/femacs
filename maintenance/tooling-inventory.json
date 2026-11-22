@@ -2180,7 +2180,9 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively",
+      "current_sha256": "c1510c887fcd29260b722353ca02f7d88ce2a5b4eb0b20e819f0390edb70fec2",
+      "current_bytes": 5191
     },
     {
       "path": "tools/check-defvar-values.py",
@@ -2198,7 +2200,9 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively",
+      "current_sha256": "aa9c991fd4a5f99ecb5a638aac97e2b3bd60a8b3322d0be9b735dc06da34994d",
+      "current_bytes": 4713
     },
     {
       "path": "tools/check-diff-fuzz.py",
@@ -2449,7 +2453,9 @@
       "decision": "retain",
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
-      "uncertainty": "complete dynamic readers not proved; retained conservatively"
+      "uncertainty": "complete dynamic readers not proved; retained conservatively",
+      "current_sha256": "a9974a19f7f82f136704ed94db2df3e533935c8c464f32dc8c5ec8abd6ca48d7",
+      "current_bytes": 4078
     },
     {
       "path": "tools/check-ledger-ticks.py",
@@ -2576,8 +2582,8 @@
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
       "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "77b40c9cd2942980f82c781652fdd2fa592ddc30e6fe84c4770fb64c8c4e63d7",
-      "current_bytes": 20809
+      "current_sha256": "44b12ba15bca4aaa3ce6296bdd22a8768f6b17367e47c25dc418c9bc061087f5",
+      "current_bytes": 20823
     },
     {
       "path": "tools/check-octal-literals.py",
@@ -3869,8 +3875,8 @@
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
       "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "317031769ef1e1fc0440eccd2b4313820bd14239bd77453e4c5f07f85e25a26c",
-      "current_bytes": 5063
+      "current_sha256": "bc9ea6e4e9514bc0770dedc060e649d0a0a487c04f977839a9040de8221bd377",
+      "current_bytes": 5174
     },
     {
       "path": "tools/gen-platform-arms.py",
@@ -4725,8 +4731,8 @@
     },
     {
       "path": "tools/check-unsafe-boundary.py",
-      "sha256": "0ad27d4aceffeeec59d7c620d018cd95e41a288fed315c4ded4d6fcc1005685e",
-      "bytes": 37580,
+      "sha256": "389ec26edfc7e8b482efa6bf7afba6ea844dd330c4687c33f0c6b43acec87c8d",
+      "bytes": 37598,
       "family": "comparison-gate",
       "decision": "retain",
       "replacement": null,
@@ -8358,6 +8364,23 @@
       "uncertainty": null
     },
     {
+      "path": "tools/test-u6-globals-and-primitives.py",
+      "sha256": "9d0795e19b59fbf7ef07d1876b8f9ee2084256cefad0e8702b18a714b699934c",
+      "bytes": 18746,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned U6/AU6 VmGlobal, DEFVAR/DEFUN, pdumper relocation, and safe kernel primitive verification runner; explicit reader retained",
+      "readers": [
+        {
+          "path": "docs/testing-strategy.md",
+          "anchor": "D-09",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
       "path": "tools/tls-abi.py",
       "sha256": "ea5f040324118f3b1539732aba079d4a30bfddec94dbfad63545ea261452ce78",
       "bytes": 18697,
@@ -8437,8 +8460,8 @@
     },
     {
       "path": "tools/unsafe-boundary-manifest.json",
-      "sha256": "7d0f345bb1484dca4785c5cc0514a44c5b5d6e116693f845a7018ec12430fbfe",
-      "bytes": 143473,
+      "sha256": "2c3833363b2691a0891a149c7524f346cfb2ac45735cf2457e1347ff6c8146d8",
+      "bytes": 144113,
       "family": "fixture",
       "decision": "retain",
       "replacement": null,

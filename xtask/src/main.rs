@@ -650,7 +650,7 @@ fn gen_globals() -> i32 {
     }
     rs.push_str(&format!(
         "\npub const lispsym_count: usize = {};\n\
-         unsafe extern \"C\" {{ pub static mut lispsym: [Lisp_Symbol; lispsym_count]; }}\n",
+         unsafe extern \"C\" {{ pub static lispsym: VmGlobal<[Lisp_Symbol; lispsym_count]>; }}\n",
         rows.len()
     ));
     // The other half of the generated globals: the V* variables that the DEFVAR_*
@@ -664,13 +664,14 @@ fn gen_globals() -> i32 {
         // The reference keeps them inside struct emacs_globals (`globals.f_Vfoo`) so a
         // debugger can list them; the port declares each as an extern global in a
         // glob-imported module, and the unit that owns it defines it
-        // `#[unsafe(no_mangle)] pub static mut` — a definition shadows the glob
-        // import, exactly as a DEFUN shadows its generated prototype (PORTING.md
-        // 0.1-10/0.1-3, P-21).  Defining them here instead would give every
-        // translation unit its own NULL copy, which the first inlined reader of a
-        // DEFVAR'd table would then dereference (review A, F4).
+        // `#[unsafe(no_mangle)] pub static Vfoo: VmGlobal<T>` — a definition shadows
+        // the glob import, exactly as a DEFUN shadows its generated prototype
+        // (PORTING.md 0.1-10/0.1-3, P-21, P-485).  Defining them here instead would
+        // give every translation unit its own NULL copy, which the first inlined
+        // reader of a DEFVAR'd table would then dereference (review A, F4).
         rs.push_str("\n// --- variables declared by DEFVAR_* (generated) ---\n\
                      pub mod variables {\n    use super::*;\n    unsafe extern \"C\" {\n");
+        let mut var_accessors = String::new();
         for line in text.lines().skip(1) {
             let f: Vec<&str> = line.split('\t').collect();
             if f.len() < 3 {
@@ -684,10 +685,15 @@ fn gen_globals() -> i32 {
                 "KBOARD" => "*mut c_void",
                 _ => continue,
             };
-            rs.push_str(&format!("        pub static mut {name}: {ty}; // {}\n", f[2]));
+            rs.push_str(&format!("        pub static {name}: VmGlobal<{ty}>; // {}\n", f[2]));
+            var_accessors.push_str(&format!(
+                "#[inline(always)] pub fn get_{name} () -> {ty} {{ /* SAFETY: single-VM DEFVAR VmGlobal atomic load. */ unsafe {{ self::variables::{name}.get () }} }}\n\
+                 #[inline(always)] pub fn set_{name} (val: {ty}) {{ /* SAFETY: single-VM DEFVAR VmGlobal atomic store. */ unsafe {{ self::variables::{name}.set (val) }} }}\n"
+            ));
             n_vars += 1;
         }
         rs.push_str("    }\n}\npub use self::variables::*;\n");
+        rs.push_str(&var_accessors);
     }
 
     // The other generated half of the reference's globals.h: make-docfile writes
@@ -751,11 +757,12 @@ fn gen_globals() -> i32 {
              // so the prototype is visible in every translation unit.\n\
              pub mod subrs {\n    use super::*;\n    unsafe extern \"C-unwind\" {\n",
         );
-        for (name, (args, noreturn, _)) in &protos {
+        for (name, (args, noreturn, max_arity)) in &protos {
             // C's globals.h writes `_Noreturn` before the EXFUN; Rust spells that
             // "never returns" as the return type `!` (PORTING.md 5.2).
             let ret = if *noreturn { "!" } else { "Lisp_Object" };
-            rs.push_str(&format!("        pub fn {name} ({args}) -> {ret};\n"));
+            let safety = if max_arity == "MANY" { "unsafe" } else { "safe" };
+            rs.push_str(&format!("        pub {safety} fn {name} ({args}) -> {ret};\n"));
             n_subrs += 1;
         }
         rs.push_str("    }\n}\npub use self::subrs::*;\n");
@@ -857,6 +864,11 @@ fn declared_object_types() -> std::collections::BTreeMap<String, String> {
                 // (`[mpz_t; 5];`), and splitting on it truncated the type.
                 let ty = tail.trim_end().trim_end_matches(';').split('=').next()
                     .unwrap_or("").trim();
+                let ty = ty
+                    .strip_prefix("VmGlobal<")
+                    .and_then(|s| s.strip_suffix('>'))
+                    .map(str::trim)
+                    .unwrap_or(ty);
                 if !name.trim().is_empty() && !ty.is_empty() {
                     map.insert(name.trim().to_string(), ty.to_string());
                 }

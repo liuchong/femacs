@@ -17,7 +17,7 @@ pub const EMACS_BLOCKINPUT_H: bool = true;
 /* Emacs should avoid doing anything hairy in a signal handler, because
    so many system functions are non-reentrant. … */
 
-unsafe extern "C-unwind" { pub static mut interrupt_input_blocked: c_int; }        // blockinput.h 50
+unsafe extern "C-unwind" { pub static interrupt_input_blocked: VmGlobal<c_int>; }        // blockinput.h 50
 
 /* Begin critical section. */
 
@@ -27,7 +27,7 @@ pub unsafe fn block_input ()
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  interrupt_input_blocked += 1;
+  (*interrupt_input_blocked.as_mut_ptr ()) += 1;
 
   }
 }
@@ -46,7 +46,7 @@ pub unsafe fn input_blocked_p () -> bool
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  return interrupt_input_blocked > 0;
+  return (*interrupt_input_blocked.as_mut_ptr ()) > 0;
 
   }
 }

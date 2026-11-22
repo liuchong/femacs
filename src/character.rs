@@ -51,21 +51,21 @@ use crate::common::*;
 // port's `include/globals.rs` mirrors the names as declarations, so the unit that owns one
 // defines it here (status §3.29, the casetab.rs shape).
 #[unsafe(no_mangle)]
-pub static mut Vtranslation_table_vector: Lisp_Object = lisp_h_Qnil ();
+pub static Vtranslation_table_vector: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vauto_fill_chars: Lisp_Object = lisp_h_Qnil ();
+pub static Vauto_fill_chars: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vchar_width_table: Lisp_Object = lisp_h_Qnil ();
+pub static Vchar_width_table: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vambiguous_width_chars: Lisp_Object = lisp_h_Qnil ();
+pub static Vambiguous_width_chars: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vprintable_chars: Lisp_Object = lisp_h_Qnil ();
+pub static Vprintable_chars: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vchar_script_table: Lisp_Object = lisp_h_Qnil ();
+pub static Vchar_script_table: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vscript_representative_chars: Lisp_Object = lisp_h_Qnil ();
+pub static Vscript_representative_chars: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vunicode_category_table: Lisp_Object = lisp_h_Qnil ();
+pub static Vunicode_category_table: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 // C spells unicode_category_t's members unqualified (they are an `enum`); Rust names an
 // enum's variants through the enum, so the port imports them (character.rs mirror 549-582).
@@ -74,7 +74,7 @@ use unicode_category_t::*;
 /* Char-table of information about which character to unify to which
    Unicode character.  Mainly used by the macro MAYBE_UNIFY_CHAR.  */
 #[unsafe(no_mangle)]
-pub static mut Vchar_unify_table: Lisp_Object = lisp_h_Qnil ();
+pub static Vchar_unify_table: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 
 
@@ -407,8 +407,8 @@ pub unsafe extern "C-unwind" fn lisp_string_width (string: Lisp_Object, from: pt
   let mut width: ptrdiff_t = 0;
   let dp: *mut Lisp_Char_Table = buffer_display_table ();
   let f: *mut frame =
-    if FRAMEP (selected_frame) && FRAME_LIVE_P (XFRAME (selected_frame))
-    { XFRAME (selected_frame) }
+    if FRAMEP ((*selected_frame.as_mut_ptr ())) && FRAME_LIVE_P (XFRAME ((*selected_frame.as_mut_ptr ())))
+    { XFRAME ((*selected_frame.as_mut_ptr ())) }
     else
     { std::ptr::null_mut () };
   let mut font_width: c_int = -1;
@@ -434,7 +434,7 @@ pub unsafe extern "C-unwind" fn lisp_string_width (string: Lisp_Object, from: pt
       if find_composition (i, -1, &raw mut ignore, &raw mut end, &raw mut val, string)
 	 && { cmp_id = get_composition_id (i, i_byte, end - i, val, string); cmp_id >= 0 }
 	{
-	  thiswidth = (**composition_table.add (cmp_id as usize)).width as ptrdiff_t;
+	  thiswidth = (**(*composition_table.as_mut_ptr ()).add (cmp_id as usize)).width as ptrdiff_t;
 	  chars = end - i;
 	  bytes = string_char_to_byte (string, end) - i_byte;
 	}
@@ -1107,7 +1107,7 @@ pub unsafe extern "C-unwind" fn alphabeticp (c: c_int) -> bool
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  let category: Lisp_Object = CHAR_TABLE_REF (Vunicode_category_table, c as isize);
+  let category: Lisp_Object = CHAR_TABLE_REF ((*Vunicode_category_table.as_mut_ptr ()), c as isize);
   if ! FIXNUMP (category)
     { return false; }
   let gen_cat: EMACS_INT = XFIXNUM (category);
@@ -1134,7 +1134,7 @@ pub unsafe extern "C-unwind" fn alphanumericp (c: c_int) -> bool
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  let category: Lisp_Object = CHAR_TABLE_REF (Vunicode_category_table, c as isize);
+  let category: Lisp_Object = CHAR_TABLE_REF ((*Vunicode_category_table.as_mut_ptr ()), c as isize);
   if ! FIXNUMP (category)
     { return false; }
   let gen_cat: EMACS_INT = XFIXNUM (category);
@@ -1160,7 +1160,7 @@ pub unsafe extern "C-unwind" fn graphicp (c: c_int) -> bool
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  let category: Lisp_Object = CHAR_TABLE_REF (Vunicode_category_table, c as isize);
+  let category: Lisp_Object = CHAR_TABLE_REF ((*Vunicode_category_table.as_mut_ptr ()), c as isize);
   if ! FIXNUMP (category)
     { return false; }
   let gen_cat: EMACS_INT = XFIXNUM (category);
@@ -1182,7 +1182,7 @@ pub unsafe extern "C-unwind" fn printablep (c: c_int) -> bool
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  let category: Lisp_Object = CHAR_TABLE_REF (Vunicode_category_table, c as isize);
+  let category: Lisp_Object = CHAR_TABLE_REF ((*Vunicode_category_table.as_mut_ptr ()), c as isize);
   if ! FIXNUMP (category)
     { return false; }
   let gen_cat: EMACS_INT = XFIXNUM (category);
@@ -1201,7 +1201,7 @@ pub unsafe extern "C-unwind" fn graphic_base_p (c: c_int) -> bool
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  let category: Lisp_Object = CHAR_TABLE_REF (Vunicode_category_table, c as isize);
+  let category: Lisp_Object = CHAR_TABLE_REF ((*Vunicode_category_table.as_mut_ptr ()), c as isize);
   if ! FIXNUMP (category)
     { return false; }
   let gen_cat: EMACS_INT = XFIXNUM (category);
@@ -1227,7 +1227,7 @@ pub unsafe extern "C-unwind" fn blankp (c: c_int) -> bool
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  let category: Lisp_Object = CHAR_TABLE_REF (Vunicode_category_table, c as isize);
+  let category: Lisp_Object = CHAR_TABLE_REF ((*Vunicode_category_table.as_mut_ptr ()), c as isize);
   if ! FIXNUMP (category)
     { return false; }
 
@@ -1277,47 +1277,47 @@ pub unsafe extern "C-unwind" fn syms_of_character ()
   DEFSYM! (Qcharacterp, "characterp");
   DEFSYM! (Qauto_fill_chars, "auto-fill-chars");
 
-  staticpro (&raw const Vchar_unify_table);
-  Vchar_unify_table = Qnil ();
+  staticpro (Vchar_unify_table.as_ptr ());
+  (*Vchar_unify_table.as_mut_ptr ()) = Qnil ();
 
-  defsubr (&raw mut Smax_char);
-  defsubr (&raw mut Scharacterp);
-  defsubr (&raw mut Sunibyte_char_to_multibyte);
-  defsubr (&raw mut Smultibyte_char_to_unibyte);
-  defsubr (&raw mut Schar_width);
-  defsubr (&raw mut Sstring_width);
-  defsubr (&raw mut Sstring);
-  defsubr (&raw mut Sunibyte_string);
-  defsubr (&raw mut Schar_resolve_modifiers);
-  defsubr (&raw mut Sget_byte);
+  defsubr (Smax_char.as_mut_ptr ());
+  defsubr (Scharacterp.as_mut_ptr ());
+  defsubr (Sunibyte_char_to_multibyte.as_mut_ptr ());
+  defsubr (Smultibyte_char_to_unibyte.as_mut_ptr ());
+  defsubr (Schar_width.as_mut_ptr ());
+  defsubr (Sstring_width.as_mut_ptr ());
+  defsubr (Sstring.as_mut_ptr ());
+  defsubr (Sunibyte_string.as_mut_ptr ());
+  defsubr (Schar_resolve_modifiers.as_mut_ptr ());
+  defsubr (Sget_byte.as_mut_ptr ());
 
   DEFVAR_LISP! (c"translation-table-vector", Vtranslation_table_vector,
 		"Vector recording all translation tables ever defined.\nEach element is a pair (SYMBOL . TABLE) relating the table to the\nsymbol naming it.  The ID of a translation table is an index into this vector.");
-  Vtranslation_table_vector = make_nil_vector (16);
+  (*Vtranslation_table_vector.as_mut_ptr ()) = make_nil_vector (16);
 
   DEFVAR_LISP! (c"auto-fill-chars", Vauto_fill_chars,
 		"A char-table for characters which invoke auto-filling.\nSuch characters have the value t in this table.");
-  Vauto_fill_chars = Fmake_char_table (Qauto_fill_chars (), Qnil ());
-  CHAR_TABLE_SET (Vauto_fill_chars, b' ' as isize, Qt ());
-  CHAR_TABLE_SET (Vauto_fill_chars, b'\n' as isize, Qt ());
+  (*Vauto_fill_chars.as_mut_ptr ()) = Fmake_char_table (Qauto_fill_chars (), Qnil ());
+  CHAR_TABLE_SET ((*Vauto_fill_chars.as_mut_ptr ()), b' ' as isize, Qt ());
+  CHAR_TABLE_SET ((*Vauto_fill_chars.as_mut_ptr ()), b'\n' as isize, Qt ());
 
   DEFVAR_LISP! (c"char-width-table", Vchar_width_table,
 		"A char-table for width (columns) of each character.");
-  Vchar_width_table = Fmake_char_table (Qnil (), make_fixnum (1));
-  char_table_set_range (Vchar_width_table, 0x80, 0x9F, make_fixnum (4));
-  char_table_set_range (Vchar_width_table, MAX_5_BYTE_CHAR + 1, MAX_CHAR,
+  (*Vchar_width_table.as_mut_ptr ()) = Fmake_char_table (Qnil (), make_fixnum (1));
+  char_table_set_range ((*Vchar_width_table.as_mut_ptr ()), 0x80, 0x9F, make_fixnum (4));
+  char_table_set_range ((*Vchar_width_table.as_mut_ptr ()), MAX_5_BYTE_CHAR + 1, MAX_CHAR,
 			make_fixnum (4));
 
   DEFVAR_LISP! (c"ambiguous-width-chars", Vambiguous_width_chars,
 		"A char-table for characters whose width (columns) can be 1 or 2.\n\nThe actual width depends on the language-environment and on the\nvalue of `cjk-ambiguous-chars-are-wide'.");
-  Vambiguous_width_chars = Fmake_char_table (Qnil (), Qnil ());
+  (*Vambiguous_width_chars.as_mut_ptr ()) = Fmake_char_table (Qnil (), Qnil ());
 
   DEFVAR_LISP! (c"printable-chars", Vprintable_chars,
 		"A char-table for printable characters.\nSuch characters have the value t in this table.");
-  Vprintable_chars = Fmake_char_table (Qnil (), Qnil ());
-  Fset_char_table_range (Vprintable_chars,
+  (*Vprintable_chars.as_mut_ptr ()) = Fmake_char_table (Qnil (), Qnil ());
+  Fset_char_table_range ((*Vprintable_chars.as_mut_ptr ()),
 			 Fcons (make_fixnum (32), make_fixnum (126)), Qt ());
-  Fset_char_table_range (Vprintable_chars,
+  Fset_char_table_range ((*Vprintable_chars.as_mut_ptr ()),
 			 Fcons (make_fixnum (160),
 				make_fixnum (MAX_5_BYTE_CHAR as EMACS_INT)), Qt ());
 
@@ -1326,16 +1326,16 @@ pub unsafe extern "C-unwind" fn syms_of_character ()
 
   DEFSYM! (Qchar_script_table, "char-script-table");
   Fput (Qchar_script_table (), Qchar_table_extra_slots (), make_fixnum (1));
-  Vchar_script_table = Fmake_char_table (Qchar_script_table (), Qnil ());
+  (*Vchar_script_table.as_mut_ptr ()) = Fmake_char_table (Qchar_script_table (), Qnil ());
 
   DEFVAR_LISP! (c"script-representative-chars", Vscript_representative_chars,
 		"Alist of scripts vs the representative characters.\nEach element is a cons (SCRIPT . CHARS).\nSCRIPT is a symbol representing a script or a subgroup of a script.\nCHARS is a list or a vector of characters.\nIf it is a list, all characters in the list are necessary for supporting SCRIPT.\nIf it is a vector, one of the characters in the vector is necessary.\nThis variable is used to find a font for a specific script.");
-  Vscript_representative_chars = Qnil ();
+  (*Vscript_representative_chars.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"unicode-category-table", Vunicode_category_table,
 		"Char table of Unicode's \"General Category\".\nAll Unicode characters have one of the following values (symbol):\n  Lu, Ll, Lt, Lm, Lo, Mn, Mc, Me, Nd, Nl, No, Pc, Pd, Ps, Pe, Pi, Pf, Po,\n  Sm, Sc, Sk, So, Zs, Zl, Zp, Cc, Cf, Cs, Co, Cn\nSee The Unicode Standard for the meaning of those values.");
   /* The correct char-table is setup in characters.el.  */
-  Vunicode_category_table = Qnil ();
+  (*Vunicode_category_table.as_mut_ptr ()) = Qnil ();
 
   }
 }

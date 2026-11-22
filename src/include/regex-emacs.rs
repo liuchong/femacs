@@ -255,9 +255,9 @@ pub mod regex_emacs_decls {
   use super::*;
 
   unsafe extern "C-unwind" {
-    pub static mut re_match_object: Lisp_Object;        // regex-emacs.h 50
-    pub static mut emacs_re_max_failures: ptrdiff_t;    // regex-emacs.h 53
-    pub static mut emacs_re_safe_alloca: ptrdiff_t;     // regex-emacs.h 56
+    pub static re_match_object: VmGlobal<Lisp_Object>;        // regex-emacs.h 50
+    pub static emacs_re_max_failures: VmGlobal<ptrdiff_t>;    // regex-emacs.h 53
+    pub static emacs_re_safe_alloca: VmGlobal<ptrdiff_t>;     // regex-emacs.h 56
 
     /// C: regex-emacs.h 128-131: `extern const char *re_compile_pattern (const char
     /// *pattern, ptrdiff_t length, bool posix_backtracking, const char

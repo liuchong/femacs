@@ -140,38 +140,38 @@ macro_rules! DOOBARRAY {
    minibuffer recursions are encountered.  */
 
 #[unsafe(no_mangle)]
-pub static mut Vminibuffer_list: Lisp_Object = lisp_h_Qnil ();
+pub static Vminibuffer_list: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
-static mut Vcommand_loop_level_list: Lisp_Object = lisp_h_Qnil ();
+static Vcommand_loop_level_list: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* Data to remember during recursive minibuffer invocations.  */
 
-static mut minibuf_save_list: Lisp_Object = lisp_h_Qnil ();
+static minibuf_save_list: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* Depth in minibuffer invocations.  */
 
 #[unsafe(no_mangle)]
-pub static mut minibuf_level: EMACS_INT = 0;
+pub static minibuf_level: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);
 
 /* Fread_minibuffer leaves the input here as a string.  */
 
 #[unsafe(no_mangle)]
-pub static mut last_minibuf_string: Lisp_Object = lisp_h_Qnil ();
+pub static last_minibuf_string: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* Prompt to display in front of the mini-buffer contents.  */
 
-static mut minibuf_prompt: Lisp_Object = lisp_h_Qnil ();
+static minibuf_prompt: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* The frame containing the most recently opened minibuffer.  This is
    used only when `minibuffer-follows-selected-frame' is neither nil
    nor t.  */
 
-static mut MB_frame: Lisp_Object = lisp_h_Qnil ();
+static MB_frame: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* Width of current mini-buffer prompt.  Only set after display_line
    of the line that contains the prompt.  */
 
-static mut minibuf_prompt_width: ptrdiff_t = 0;
+static minibuf_prompt_width: VmGlobal<ptrdiff_t> = VmGlobal::<ptrdiff_t>::new (0);
 
 /* C 77-80's forward declarations (`nth_minibuffer`, `minibuf_c_loop_level`,
    `set_minibuffer_mode`, `live_minibuffer_p`) and C 260-262's three are dropped: Rust's
@@ -213,19 +213,19 @@ unsafe fn choose_minibuf_frame ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  if FRAMEP (selected_frame)
-      && FRAME_LIVE_P (XFRAME (selected_frame))
-      && WINDOW_LIVE_P ((*XFRAME (selected_frame)).minibuffer_window)
-      && !EQ (minibuf_window, (*XFRAME (selected_frame)).minibuffer_window)
+  if FRAMEP ((*selected_frame.as_mut_ptr ()))
+      && FRAME_LIVE_P (XFRAME ((*selected_frame.as_mut_ptr ())))
+      && WINDOW_LIVE_P ((*XFRAME ((*selected_frame.as_mut_ptr ()))).minibuffer_window)
+      && !EQ ((*minibuf_window.as_mut_ptr ()), (*XFRAME ((*selected_frame.as_mut_ptr ()))).minibuffer_window)
     {
-      let sf: *mut frame = XFRAME (selected_frame);
+      let sf: *mut frame = XFRAME ((*selected_frame.as_mut_ptr ()));
       /* I don't think that any frames may validly have a null
 	 minibuffer window anymore.  (2021-04-15): Tooltip frames have
 	 a null MB.  Comment out the following.  */
       /* if (NILP (sf->minibuffer_window)) */
       /* 	emacs_abort (); */
 
-      minibuf_window = (*sf).minibuffer_window;
+      (*minibuf_window.as_mut_ptr ()) = (*sf).minibuffer_window;
     }
 
   }
@@ -306,8 +306,8 @@ pub unsafe extern "C-unwind" fn move_minibuffers_onto_frame (of: *mut frame, fra
   unsafe {
   let f: *mut frame = XFRAME (frame);
 
-  minibuf_window = (*f).minibuffer_window;
-  if !(minibuf_level != 0
+  (*minibuf_window.as_mut_ptr ()) = (*f).minibuffer_window;
+  if !((*minibuf_level.as_mut_ptr ()) != 0
 	&& (for_deletion || minibuf_follows_frame () || FRAME_INITIAL_P (of)))
     { return; }
   if FRAME_LIVE_P (f)
@@ -316,8 +316,8 @@ pub unsafe extern "C-unwind" fn move_minibuffers_onto_frame (of: *mut frame, fra
       && WINDOW_LIVE_P ((*of).minibuffer_window)
     {
       zip_minibuffer_stacks ((*f).minibuffer_window, (*of).minibuffer_window);
-      if for_deletion && XFRAME (MB_frame) != of
-	{ MB_frame = frame; }
+      if for_deletion && XFRAME ((*MB_frame.as_mut_ptr ())) != of
+	{ (*MB_frame.as_mut_ptr ()) = frame; }
     }
 
   }
@@ -333,10 +333,10 @@ DEFUN! ("active-minibuffer-window", Factive_minibuffer_window,
   let mut f: *mut frame;
   let mut innermost_MB: Lisp_Object;
 
-  if minibuf_level == 0
+  if (*minibuf_level.as_mut_ptr ()) == 0
     { return Qnil (); }
 
-  innermost_MB = nth_minibuffer (minibuf_level);
+  innermost_MB = nth_minibuffer ((*minibuf_level.as_mut_ptr ()));
   if NILP (innermost_MB)
     { emacs_abort (); }
   FOR_EACH_FRAME! (frames, frame, {
@@ -346,7 +346,7 @@ DEFUN! ("active-minibuffer-window", Factive_minibuffer_window,
 	  && EQ ((*XWINDOW ((*f).minibuffer_window)).contents, innermost_MB)
 	{ return (*f).minibuffer_window; }
   });
-  return minibuf_window;	/* "Can't happen." */
+  return (*minibuf_window.as_mut_ptr ());	/* "Can't happen." */
 });
 
 DEFUN! ("set-minibuffer-window", Fset_minibuffer_window,
@@ -358,7 +358,7 @@ DEFUN! ("set-minibuffer-window", Fset_minibuffer_window,
   if ! MINI_WINDOW_P (XWINDOW (window))
     { error (c"Window is not a minibuffer window".as_ptr ()); }
 
-  minibuf_window = window;
+  (*minibuf_window.as_mut_ptr ()) = window;
 
   return window;
 });
@@ -429,8 +429,8 @@ unsafe fn read_minibuf_noninteractive (prompt: Lisp_Object, expflag: bool,
   let mut etty_valid: bool = false;                /* C's `bool etty_valid UNINIT;`.  */
 
   /* Check, whether we need to suppress echoing.  */
-  if CHARACTERP (Vread_hide_char)
-    { hide_char = XFIXNAT (Vread_hide_char) as c_uchar; }
+  if CHARACTERP ((*Vread_hide_char.as_mut_ptr ()))
+    { hide_char = XFIXNAT ((*Vread_hide_char.as_mut_ptr ())) as c_uchar; }
 
   /* Manipulate tty.  */
   if hide_char != 0
@@ -441,8 +441,8 @@ unsafe fn read_minibuf_noninteractive (prompt: Lisp_Object, expflag: bool,
       suppress_echo_on_tty (STDIN_FILENO);
     }
 
-  fwrite (SDATA (prompt) as *const c_void, 1, SBYTES (prompt) as usize, stdout);
-  fflush (stdout);
+  fwrite (SDATA (prompt) as *const c_void, 1, SBYTES (prompt) as usize, (*stdout.as_mut_ptr ()));
+  fflush ((*stdout.as_mut_ptr ()));
 
   val = Qnil ();
   size = 100;
@@ -470,7 +470,7 @@ unsafe fn read_minibuf_noninteractive (prompt: Lisp_Object, expflag: bool,
   /* Reset tty.  */
   if hide_char != 0
     {
-      putc (b'\n' as c_int, stdout);
+      putc (b'\n' as c_int, (*stdout.as_mut_ptr ()));
       if etty_valid
 	{
 	  emacs_set_tty (STDIN_FILENO, &raw mut etty, false);
@@ -506,12 +506,12 @@ unsafe fn live_minibuffer_p (buffer: Lisp_Object) -> bool
   let mut tem: Lisp_Object;
   let mut i: EMACS_INT;
 
-  if EQ (buffer, Fcar (Vminibuffer_list))
+  if EQ (buffer, Fcar ((*Vminibuffer_list.as_mut_ptr ())))
     /*  *Minibuf-0* is never active.  */
     { return false; }
-  tem = Fcdr (Vminibuffer_list);
+  tem = Fcdr ((*Vminibuffer_list.as_mut_ptr ()));
   i = 1;
-  while i <= minibuf_level
+  while i <= (*minibuf_level.as_mut_ptr ())
     {
       if EQ (Fcar (tem), buffer)
 	{ return true; }
@@ -537,7 +537,7 @@ DEFUN! ("minibufferp", Fminibufferp,
     { CHECK_BUFFER (buffer); }
 
   let found: bool = if NILP (live)
-    { !NILP (Fmemq (buffer, Vminibuffer_list)) }
+    { !NILP (Fmemq (buffer, (*Vminibuffer_list.as_mut_ptr ()))) }
     else
     { live_minibuffer_p (buffer) };
   return if found { Qt () } else { Qnil () };
@@ -551,8 +551,8 @@ DEFUN! ("innermost-minibuffer-p", Finnermost_minibuffer_p,
   let mut buffer: Lisp_Object = buffer;
   if NILP (buffer)
     { buffer = Fcurrent_buffer (); }
-  return if BASE_EQ (buffer, Fcar (Fnthcdr (make_fixnum (minibuf_level),
-					    Vminibuffer_list)))
+  return if BASE_EQ (buffer, Fcar (Fnthcdr (make_fixnum ((*minibuf_level.as_mut_ptr ())),
+					    (*Vminibuffer_list.as_mut_ptr ()))))
     { Qt () }
     else
     { Qnil () };
@@ -568,7 +568,7 @@ DEFUN! ("minibuffer-innermost-command-loop-p", Fminibuffer_innermost_command_loo
   if NILP (buffer)
     { buffer = Fcurrent_buffer (); }
   depth = this_minibuffer_depth (buffer);
-  return if depth != 0 && minibuf_c_loop_level (depth) == command_loop_level
+  return if depth != 0 && minibuf_c_loop_level (depth) == (*command_loop_level.as_mut_ptr ())
     { Qt () }
     else
     { Qnil () };
@@ -589,8 +589,8 @@ pub unsafe extern "C-unwind" fn this_minibuffer_depth (buffer: Lisp_Object) -> E
   if NILP (buffer)
     { buffer = Fcurrent_buffer (); }
   i = 1;
-  bufs = Fcdr (Vminibuffer_list);
-  while i <= minibuf_level
+  bufs = Fcdr ((*Vminibuffer_list.as_mut_ptr ()));
+  while i <= (*minibuf_level.as_mut_ptr ())
     {
       if EQ (Fcar (bufs), buffer)
 	{ return i; }
@@ -614,10 +614,10 @@ DEFUN! ("abort-minibuffers", Fabort_minibuffers, Sabort_minibuffers, 0, 0, "",
     { error (c"Not in a minibuffer".as_ptr ()); }
   if NILP (Fminibuffer_innermost_command_loop_p (Qnil ()))
     { error (c"Not in most nested command loop".as_ptr ()); }
-  if minibuf_depth < minibuf_level
+  if minibuf_depth < (*minibuf_level.as_mut_ptr ())
     {
       array[0] = fmt;
-      array[1] = make_fixnum (minibuf_level - minibuf_depth + 1);
+      array[1] = make_fixnum ((*minibuf_level.as_mut_ptr ()) - minibuf_depth + 1);
       if !NILP (Fyes_or_no_p (Fformat (2, array.as_mut_ptr ())))
 	{
 	  /* Due to the above check, the current minibuffer is in the
@@ -644,7 +644,7 @@ DEFUN! ("minibuffer-prompt-end", Fminibuffer_prompt_end,
   let mut tem: Lisp_Object;
   beg = make_fixnum (BEGV! ());
 
-  tem = Fmemq (Fcurrent_buffer (), Vminibuffer_list);
+  tem = Fmemq (Fcurrent_buffer (), (*Vminibuffer_list.as_mut_ptr ()));
   if NILP (tem)
     { return beg; }
 
@@ -757,8 +757,8 @@ unsafe fn read_minibuf (map: Lisp_Object, initial: Lisp_Object, prompt: Lisp_Obj
   let mut ambient_dir: Lisp_Object;
   let mut minibuffer: Lisp_Object;
   let mut input_method: Lisp_Object;
-  let calling_frame: Lisp_Object = selected_frame;
-  let calling_window: Lisp_Object = selected_window;
+  let calling_frame: Lisp_Object = (*selected_frame.as_mut_ptr ());
+  let calling_window: Lisp_Object = (*selected_window.as_mut_ptr ());
   let mut enable_multibyte: Lisp_Object;
   let mut pos: EMACS_INT = 0;
   /* String to add to the history.  */
@@ -772,16 +772,16 @@ unsafe fn read_minibuf (map: Lisp_Object, initial: Lisp_Object, prompt: Lisp_Obj
   /* Bound recursively so that code can check the current command from
      code running from minibuffer hooks (and the like), without being
      overwritten by subsequent minibuffer calls.  */
-  specbind (Qcurrent_minibuffer_command (), Vthis_command);
+  specbind (Qcurrent_minibuffer_command (), (*Vthis_command.as_mut_ptr ()));
 
   /* If Vminibuffer_completing_file_name is `lambda' on entry, it was t
      in previous recursive minibuffer, but was not set explicitly
      to t for this invocation, so set it to nil in this minibuffer.
      Save the old value now, before we change it.  */
   specbind (Qminibuffer_completing_file_name (),
-	    Vminibuffer_completing_file_name);
-  if EQ (Vminibuffer_completing_file_name, Qlambda ())
-    { Vminibuffer_completing_file_name = Qnil (); }
+	    (*Vminibuffer_completing_file_name.as_mut_ptr ()));
+  if EQ ((*Vminibuffer_completing_file_name.as_mut_ptr ()), Qlambda ())
+    { (*Vminibuffer_completing_file_name.as_mut_ptr ()) = Qnil (); }
 
   /* C 607-610's `#ifdef HAVE_WINDOW_SYSTEM` arm (`if (display_hourglass_p)
      cancel_hourglass ();`) is dead in the frozen configuration (macros.tsv 1647) and is
@@ -814,25 +814,25 @@ unsafe fn read_minibuf (map: Lisp_Object, initial: Lisp_Object, prompt: Lisp_Obj
   enable_multibyte = Qnil ();
 
   if !STRINGP (prompt)
-    { prompt = empty_unibyte_string; }
+    { prompt = (*empty_unibyte_string.as_mut_ptr ()); }
 
-  if !enable_recursive_minibuffers
-      && minibuf_level > 0
+  if !(*enable_recursive_minibuffers.as_mut_ptr ())
+      && (*minibuf_level.as_mut_ptr ()) > 0
     {
       let str: Lisp_Object
 	= build_string (c"Command attempted to use minibuffer while in minibuffer".as_ptr ());
-      if EQ (selected_window, minibuf_window)
+      if EQ ((*selected_window.as_mut_ptr ()), (*minibuf_window.as_mut_ptr ()))
 	{ Fsignal (Quser_error (), list1 (str)); }
       else
 	/* If we're in another window, cancel the minibuffer that's active.  */
 	{ Fthrow (Qexit (), str); }
     }
 
-  if (noninteractive
+  if ((*noninteractive.as_mut_ptr ())
        /* In case we are running as a daemon, only do this before
 	  detaching from the terminal.  */
        || (IS_DAEMON () && DAEMON_RUNNING ()))
-      && NILP (Vexecuting_kbd_macro)
+      && NILP ((*Vexecuting_kbd_macro.as_mut_ptr ()))
     {
       val = read_minibuf_noninteractive (prompt, expflag, defalt);
       return unbind_to (count, val);
@@ -842,8 +842,8 @@ unsafe fn read_minibuf (map: Lisp_Object, initial: Lisp_Object, prompt: Lisp_Obj
      onto Vminibuffer_list before incrementing minibuf_level, in case
      a hook called during the minibuffer creation calls
      Factive_minibuffer_window.  */
-  minibuffer = get_minibuffer (minibuf_level + 1);
-  minibuf_level += 1;		/* Before calling choose_minibuf_frame.  */
+  minibuffer = get_minibuffer ((*minibuf_level.as_mut_ptr ()) + 1);
+  (*minibuf_level.as_mut_ptr ()) += 1;		/* Before calling choose_minibuf_frame.  */
 
   /* Choose the minibuffer window and frame, and take action on them.  */
 
@@ -853,58 +853,58 @@ unsafe fn read_minibuf (map: Lisp_Object, initial: Lisp_Object, prompt: Lisp_Obj
   record_unwind_current_buffer ();
 
   choose_minibuf_frame ();
-  mini_frame = WINDOW_FRAME! (XWINDOW (minibuf_window));
+  mini_frame = WINDOW_FRAME! (XWINDOW ((*minibuf_window.as_mut_ptr ())));
 
-  if minibuf_level > 1
-      && WINDOW_LIVE_P ((*XFRAME (MB_frame)).minibuffer_window)
-      && !EQ ((*XWINDOW ((*XFRAME (selected_frame)).minibuffer_window)).frame,
-	      MB_frame)
+  if (*minibuf_level.as_mut_ptr ()) > 1
+      && WINDOW_LIVE_P ((*XFRAME ((*MB_frame.as_mut_ptr ()))).minibuffer_window)
+      && !EQ ((*XWINDOW ((*XFRAME ((*selected_frame.as_mut_ptr ()))).minibuffer_window)).frame,
+	      (*MB_frame.as_mut_ptr ()))
       && minibuf_moves_frame_when_opened ()
       && (!minibuf_follows_frame ())
     {
-      let of: *mut frame = XFRAME (MB_frame);
+      let of: *mut frame = XFRAME ((*MB_frame.as_mut_ptr ()));
 
-      zip_minibuffer_stacks (minibuf_window, (*of).minibuffer_window);
+      zip_minibuffer_stacks ((*minibuf_window.as_mut_ptr ()), (*of).minibuffer_window);
       /* MB_frame's minibuffer can be on a different frame.  */
       if MINI_WINDOW_P (XWINDOW (FRAME_SELECTED_WINDOW (of)))
 	{
-	  Fset_frame_selected_window (MB_frame,
-				      Fframe_first_window (MB_frame), Qnil ());
+	  Fset_frame_selected_window ((*MB_frame.as_mut_ptr ()),
+				      Fframe_first_window ((*MB_frame.as_mut_ptr ())), Qnil ());
 	}
     }
-  MB_frame = (*XWINDOW ((*XFRAME (selected_frame)).minibuffer_window)).frame;
+  (*MB_frame.as_mut_ptr ()) = (*XWINDOW ((*XFRAME ((*selected_frame.as_mut_ptr ()))).minibuffer_window)).frame;
 
-  calln! (Qrecord_window_buffer (), minibuf_window);
+  calln! (Qrecord_window_buffer (), (*minibuf_window.as_mut_ptr ()));
 
   record_unwind_protect_void (Some (minibuffer_unwind));
-  if read_minibuffer_restore_windows
+  if (*read_minibuffer_restore_windows.as_mut_ptr ())
     {
       record_unwind_protect (Some (restore_window_configuration),
 			     list3 (Fcurrent_window_configuration (Qnil ()), Qt (), Qt ()));
 
       /* If the minibuffer window is on a different frame, save that
 	 frame's configuration too.  */
-      if !EQ (mini_frame, selected_frame)
+      if !EQ (mini_frame, (*selected_frame.as_mut_ptr ()))
 	{
 	  record_unwind_protect (Some (restore_window_configuration),
 				 list3 (Fcurrent_window_configuration (mini_frame), Qnil (), Qt ()));
 	}
     }
-  else if !EQ (mini_frame, selected_frame)
+  else if !EQ (mini_frame, (*selected_frame.as_mut_ptr ()))
     {
       record_unwind_protect
 	(Some (restore_focus_frame),
-	 Fcons (selected_frame, (*XFRAME (selected_frame)).focus_frame));
+	 Fcons ((*selected_frame.as_mut_ptr ()), (*XFRAME ((*selected_frame.as_mut_ptr ()))).focus_frame));
     }
 
   /* If the minibuffer is on an iconified or invisible frame,
      make it visible now.  */
   Fmake_frame_visible (mini_frame);
 
-  if minibuffer_auto_raise
+  if (*minibuffer_auto_raise.as_mut_ptr ())
     { Fraise_frame (mini_frame); }
 
-  if !multiple_terminals_merge_keyboards
+  if !(*multiple_terminals_merge_keyboards.as_mut_ptr ())
     { temporarily_switch_to_single_kboard (XFRAME (mini_frame) as *mut c_void); }
 
   /* We have to do this after saving the window configuration
@@ -913,22 +913,22 @@ unsafe fn read_minibuf (map: Lisp_Object, initial: Lisp_Object, prompt: Lisp_Obj
   /* Arrange to restore a number of minibuffer-related variables.
      We could bind each variable separately, but that would use lots of
      specpdl slots.  */
-  minibuf_save_list
-    = Fcons (Voverriding_local_map,
-	     Fcons (minibuf_window,
+  (*minibuf_save_list.as_mut_ptr ())
+    = Fcons ((*Voverriding_local_map.as_mut_ptr ()),
+	     Fcons ((*minibuf_window.as_mut_ptr ()),
 		    Fcons (calling_frame,
 			   Fcons (calling_window,
-				  minibuf_save_list))));
-  minibuf_save_list
-    = Fcons (minibuf_prompt,
-	     Fcons (make_fixnum (minibuf_prompt_width),
-		    Fcons (Vhelp_form,
-			   Fcons (Vcurrent_prefix_arg,
-				  Fcons (Vminibuffer_history_position,
-					 Fcons (Vminibuffer_history_variable,
-						minibuf_save_list))))));
-  minibuf_save_list
-    = Fcons (Fthis_command_keys_vector (), minibuf_save_list);
+				  (*minibuf_save_list.as_mut_ptr ())))));
+  (*minibuf_save_list.as_mut_ptr ())
+    = Fcons ((*minibuf_prompt.as_mut_ptr ()),
+	     Fcons (make_fixnum ((*minibuf_prompt_width.as_mut_ptr ())),
+		    Fcons ((*Vhelp_form.as_mut_ptr ()),
+			   Fcons ((*Vcurrent_prefix_arg.as_mut_ptr ()),
+				  Fcons ((*Vminibuffer_history_position.as_mut_ptr ()),
+					 Fcons ((*Vminibuffer_history_variable.as_mut_ptr ()),
+						(*minibuf_save_list.as_mut_ptr ())))))));
+  (*minibuf_save_list.as_mut_ptr ())
+    = Fcons (Fthis_command_keys_vector (), (*minibuf_save_list.as_mut_ptr ()));
 
   record_unwind_protect_void (Some (read_minibuf_unwind));
   /* We are exiting the minibuffer one way or the other, so run the hook.
@@ -940,18 +940,18 @@ unsafe fn read_minibuf (map: Lisp_Object, initial: Lisp_Object, prompt: Lisp_Obj
 
   /* Now that we can restore all those variables, start changing them.  */
 
-  minibuf_prompt_width = 0;
-  minibuf_prompt = Fcopy_sequence (prompt);
-  Vminibuffer_history_position = histpos;
-  Vminibuffer_history_variable = histvar;
-  Vhelp_form = Vminibuffer_help_form;
+  (*minibuf_prompt_width.as_mut_ptr ()) = 0;
+  (*minibuf_prompt.as_mut_ptr ()) = Fcopy_sequence (prompt);
+  (*Vminibuffer_history_position.as_mut_ptr ()) = histpos;
+  (*Vminibuffer_history_variable.as_mut_ptr ()) = histvar;
+  (*Vhelp_form.as_mut_ptr ()) = (*Vminibuffer_help_form.as_mut_ptr ());
   /* If this minibuffer is reading a file name, that doesn't mean
      recursive ones are.  But we cannot set it to nil, because
      completion code still need to know the minibuffer is completing a
      file name.  So use `lambda' as intermediate value meaning
      "t" in this minibuffer, but "nil" in next minibuffer.  */
-  if !NILP (Vminibuffer_completing_file_name)
-    { Vminibuffer_completing_file_name = Qlambda (); }
+  if !NILP ((*Vminibuffer_completing_file_name.as_mut_ptr ()))
+    { (*Vminibuffer_completing_file_name.as_mut_ptr ()) = Qlambda (); }
 
   /* If variable is unbound, make it nil.  */
   histval = find_symbol_value (histvar);
@@ -971,7 +971,7 @@ unsafe fn read_minibuf (map: Lisp_Object, initial: Lisp_Object, prompt: Lisp_Obj
 
   /* Switch to the minibuffer.  */
 
-  set_minibuffer_mode (minibuffer, minibuf_level);
+  set_minibuffer_mode (minibuffer, (*minibuf_level.as_mut_ptr ()));
   Fset_buffer (minibuffer);
 
   /* Defeat (setq-default truncate-lines t), since truncated lines do
@@ -997,7 +997,7 @@ unsafe fn read_minibuf (map: Lisp_Object, initial: Lisp_Object, prompt: Lisp_Obj
 	 buffer.rs mirror records it in docs/ports/excluded-macros.txt), so the port writes
 	 FOR_EACH_ALIST_VALUE's own loop with C's `tail`/`buf` names, the same way
 	 unlock_all_files and store_symval_forwarding do.  */
-      tail = Vbuffer_alist;
+      tail = (*Vbuffer_alist.as_mut_ptr ());
       while CONSP (tail) && { buf = XCAR (tail); true }
 	{
 	  if STRINGP (BVAR! (XBUFFER (buf), directory_))
@@ -1010,12 +1010,12 @@ unsafe fn read_minibuf (map: Lisp_Object, initial: Lisp_Object, prompt: Lisp_Obj
 	}
     }
 
-  if !EQ (mini_frame, selected_frame)
-    { Fredirect_frame_focus (selected_frame, mini_frame); }
+  if !EQ (mini_frame, (*selected_frame.as_mut_ptr ()))
+    { Fredirect_frame_focus ((*selected_frame.as_mut_ptr ()), mini_frame); }
 
-  Vminibuf_scroll_window = selected_window;
-  if minibuf_level == 1 || !EQ (minibuf_window, selected_window)
-    { minibuf_selected_window = selected_window; }
+  (*Vminibuf_scroll_window.as_mut_ptr ()) = (*selected_window.as_mut_ptr ());
+  if (*minibuf_level.as_mut_ptr ()) == 1 || !EQ ((*minibuf_window.as_mut_ptr ()), (*selected_window.as_mut_ptr ()))
+    { (*minibuf_selected_window.as_mut_ptr ()) = (*selected_window.as_mut_ptr ()); }
 
   /* Empty out the minibuffers of all frames, except those frames
      where there is an active minibuffer.
@@ -1026,10 +1026,10 @@ unsafe fn read_minibuf (map: Lisp_Object, initial: Lisp_Object, prompt: Lisp_Obj
   /* Display this minibuffer in the proper window.  */
   /* Use set_window_buffer instead of Fset_window_buffer (see
      discussion of bug#11984, bug#12025, bug#12026).  */
-  set_window_buffer (minibuf_window, Fcurrent_buffer (), false, false);
-  Fselect_window (minibuf_window, Qnil ());
-  (*XWINDOW (minibuf_window)).hscroll = 0;
-  (*XWINDOW (minibuf_window)).bits &= ! (1 << WINDOW_SUSPEND_AUTO_HSCROLL_SHIFT);
+  set_window_buffer ((*minibuf_window.as_mut_ptr ()), Fcurrent_buffer (), false, false);
+  Fselect_window ((*minibuf_window.as_mut_ptr ()), Qnil ());
+  (*XWINDOW ((*minibuf_window.as_mut_ptr ()))).hscroll = 0;
+  (*XWINDOW ((*minibuf_window.as_mut_ptr ()))).bits &= ! (1 << WINDOW_SUSPEND_AUTO_HSCROLL_SHIFT);
 
   /* Erase the buffer.  */
   {
@@ -1045,7 +1045,7 @@ unsafe fn read_minibuf (map: Lisp_Object, initial: Lisp_Object, prompt: Lisp_Obj
                                       else { Qt () });
 
     /* Insert the prompt, record where it ends.  */
-    Finsert (1, &raw mut minibuf_prompt);
+    Finsert (1, minibuf_prompt.as_mut_ptr ());
     if PT! () > BEG as ptrdiff_t
       {
 	Fput_text_property (make_fixnum (BEG as EMACS_INT), make_fixnum (PT! ()),
@@ -1054,14 +1054,14 @@ unsafe fn read_minibuf (map: Lisp_Object, initial: Lisp_Object, prompt: Lisp_Obj
 			    Qrear_nonsticky (), Qt (), Qnil ());
 	Fput_text_property (make_fixnum (BEG as EMACS_INT), make_fixnum (PT! ()),
 			    Qfield (), Qt (), Qnil ());
-	if CONSP (Vminibuffer_prompt_properties)
+	if CONSP ((*Vminibuffer_prompt_properties.as_mut_ptr ()))
 	  {
 	    /* We want to apply all properties from
 	       `minibuffer-prompt-properties' to the region normally,
 	       but if the `face' property is present, add that
 	       property to the end of the face properties to avoid
 	       overwriting faces. */
-	    let mut list: Lisp_Object = Vminibuffer_prompt_properties;
+	    let mut list: Lisp_Object = (*Vminibuffer_prompt_properties.as_mut_ptr ());
 	    while CONSP (list)
 	      {
 		let key: Lisp_Object = XCAR (list);
@@ -1087,7 +1087,7 @@ unsafe fn read_minibuf (map: Lisp_Object, initial: Lisp_Object, prompt: Lisp_Obj
     unbind_to (count1, Qnil ());
   }
 
-  minibuf_prompt_width = current_column ();
+  (*minibuf_prompt_width.as_mut_ptr ()) = current_column ();
 
   /* Put in the initial input.  */
   if !NILP (initial)
@@ -1112,14 +1112,14 @@ unsafe fn read_minibuf (map: Lisp_Object, initial: Lisp_Object, prompt: Lisp_Obj
 
   /* If cursor is on the minibuffer line,
      show the user we have exited by putting it in column 0.  */
-  if (*XWINDOW (minibuf_window)).cursor.vpos >= 0
-      && !noninteractive
+  if (*XWINDOW ((*minibuf_window.as_mut_ptr ()))).cursor.vpos >= 0
+      && !(*noninteractive.as_mut_ptr ())
       && !FRAME_INITIAL_P (SELECTED_FRAME ())
     {
-      (*XWINDOW (minibuf_window)).cursor.hpos = 0;
-      (*XWINDOW (minibuf_window)).cursor.x = 0;
-      (*XWINDOW (minibuf_window)).bits |= 1 << WINDOW_MUST_BE_UPDATED_P_SHIFT;
-      let sf: *mut frame = XFRAME (selected_frame);
+      (*XWINDOW ((*minibuf_window.as_mut_ptr ()))).cursor.hpos = 0;
+      (*XWINDOW ((*minibuf_window.as_mut_ptr ()))).cursor.x = 0;
+      (*XWINDOW ((*minibuf_window.as_mut_ptr ()))).bits |= 1 << WINDOW_MUST_BE_UPDATED_P_SHIFT;
+      let sf: *mut frame = XFRAME ((*selected_frame.as_mut_ptr ()));
       update_frame (sf, true);
       if is_tty_frame (sf)
 	{ combine_updates_for_frame (sf, true); }
@@ -1127,19 +1127,19 @@ unsafe fn read_minibuf (map: Lisp_Object, initial: Lisp_Object, prompt: Lisp_Obj
       /* C's `#ifndef HAVE_NTGUI` arm is the live one (`HAVE_NTGUI` is undef, macros.tsv
 	 1451); its `#else` arm (`w32_flip_buffers_if_dirty`) is dead and is recorded in
 	 docs/ports/minibuf.md (P-08).  */
-      flush_frame (XFRAME ((*XWINDOW (minibuf_window)).frame));
+      flush_frame (XFRAME ((*XWINDOW ((*minibuf_window.as_mut_ptr ()))).frame));
     }
 
   /* Make minibuffer contents into a string.  */
   Fset_buffer (minibuffer);
-  if allow_props || minibuffer_allow_text_properties
+  if allow_props || (*minibuffer_allow_text_properties.as_mut_ptr ())
     { val = Fminibuffer_contents (); }
   else
     { val = Fminibuffer_contents_no_properties (); }
 
   /* VAL is the string of minibuffer text.  */
 
-  last_minibuf_string = val;
+  (*last_minibuf_string.as_mut_ptr ()) = val;
 
   /* Choose the string to add to the history.  */
   if SCHARS (val) != 0
@@ -1158,7 +1158,7 @@ unsafe fn read_minibuf (map: Lisp_Object, initial: Lisp_Object, prompt: Lisp_Obj
   /* Switch the frame back to the calling frame.  */
   if FRAMEP (calling_frame)
       && FRAME_LIVE_P (XFRAME (calling_frame))
-      && (!EQ (selected_frame, calling_frame)
+      && (!EQ ((*selected_frame.as_mut_ptr ()), calling_frame)
 	  || (WINDOW_LIVE_P ((*XFRAME (calling_frame)).minibuffer_window)
 	      && !EQ ((*XWINDOW ((*XFRAME (calling_frame)).minibuffer_window)).frame,
 		      calling_frame)))
@@ -1167,7 +1167,7 @@ unsafe fn read_minibuf (map: Lisp_Object, initial: Lisp_Object, prompt: Lisp_Obj
   /* Add the value to the appropriate history list, if any.  This is
      done after the previous buffer has been made current again, in
      case the history variable is buffer-local.  */
-  if ! (NILP (Vhistory_add_new_input) || NILP (histstring))
+  if ! (NILP ((*Vhistory_add_new_input.as_mut_ptr ())) || NILP (histstring))
     { calln! (Qadd_to_history (), histvar, histstring); }
 
   /* If Lisp form desired instead of string, parse it.  */
@@ -1185,7 +1185,7 @@ pub unsafe extern "C-unwind" fn is_minibuffer (depth: EMACS_INT, buf: Lisp_Objec
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  let tail: Lisp_Object = Fnthcdr (make_fixnum (depth), Vminibuffer_list);
+  let tail: Lisp_Object = Fnthcdr (make_fixnum (depth), (*Vminibuffer_list.as_mut_ptr ()));
   return
     !NILP (tail)
     && EQ (Fcar (tail), buf);
@@ -1198,7 +1198,7 @@ unsafe fn nth_minibuffer (depth: EMACS_INT) -> Lisp_Object
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  let tail: Lisp_Object = Fnthcdr (make_fixnum (depth), Vminibuffer_list);
+  let tail: Lisp_Object = Fnthcdr (make_fixnum (depth), (*Vminibuffer_list.as_mut_ptr ()));
   return Fcar (tail);
 
   }
@@ -1242,20 +1242,20 @@ pub unsafe extern "C-unwind" fn get_minibuffer (depth: EMACS_INT) -> Lisp_Object
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  let mut tail: Lisp_Object = Fnthcdr (make_fixnum (depth), Vminibuffer_list);
+  let mut tail: Lisp_Object = Fnthcdr (make_fixnum (depth), (*Vminibuffer_list.as_mut_ptr ()));
   let mut cll_tail: Lisp_Object = Fnthcdr (make_fixnum (depth),
-					   Vcommand_loop_level_list);
+					   (*Vcommand_loop_level_list.as_mut_ptr ()));
   if NILP (tail)
     {
       tail = list1 (Qnil ());
-      Vminibuffer_list = nconc2 (Vminibuffer_list, tail);
+      (*Vminibuffer_list.as_mut_ptr ()) = nconc2 ((*Vminibuffer_list.as_mut_ptr ()), tail);
       cll_tail = list1 (Qnil ());
-      Vcommand_loop_level_list = nconc2 (Vcommand_loop_level_list, cll_tail);
+      (*Vcommand_loop_level_list.as_mut_ptr ()) = nconc2 ((*Vcommand_loop_level_list.as_mut_ptr ()), cll_tail);
     }
   /* C 1054 writes `cll_tail` here, not `tail`: the port had `tail`, which overwrote the
      buffer-list slot with a fixnum and made the `Fcar` below dereference a fixnum as a buffer
      (the first run of the linked program stopped exactly there, status 3.611).  */
-  XSETCAR (cll_tail, make_fixnum (if depth != 0 { command_loop_level } else { 0 }));
+  XSETCAR (cll_tail, make_fixnum (if depth != 0 { (*command_loop_level.as_mut_ptr ()) } else { 0 }));
   let mut buf: Lisp_Object = Fcar (tail);
   if NILP (buf) || !BUFFER_LIVE_P (XBUFFER (buf))
     {
@@ -1295,7 +1295,7 @@ unsafe fn minibuf_c_loop_level (depth: EMACS_INT) -> EMACS_INT
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  let cll: Lisp_Object = Fnth (make_fixnum (depth), Vcommand_loop_level_list);
+  let cll: Lisp_Object = Fnth (make_fixnum (depth), (*Vcommand_loop_level_list.as_mut_ptr ()));
   if FIXNUMP (cll)
     { return XFIXNUM (cll); }
   return 0;
@@ -1323,7 +1323,7 @@ unsafe extern "C-unwind" fn run_exit_minibuf_hook (minibuf: Lisp_Object)
    method for the MB's frame won't always work in `minibuffer_unwind'
    because the intervening `restore-window-configuration' will have
    changed the buffer in the mini-window.  */
-static mut exp_MB_frame: Lisp_Object = lisp_h_Qnil ();
+static exp_MB_frame: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* This function is called on exiting minibuffer, whether normally or
    not, and it restores the current window, buffer, etc.  */
@@ -1336,10 +1336,10 @@ unsafe extern "C-unwind" fn read_minibuf_unwind ()
   let mut calling_frame: Lisp_Object;
   let mut calling_window: Lisp_Object;
   let mut future_mini_window: Lisp_Object;
-  let saved_selected_frame: Lisp_Object = selected_frame;
+  let saved_selected_frame: Lisp_Object = (*selected_frame.as_mut_ptr ());
   let mut window: Lisp_Object;
   let mut frames: Lisp_Object = Qnil ();   /* PORTING.md 1.5 (`Lisp_Object ... frames;`).  */
-  let expired_MB: Lisp_Object = nth_minibuffer (minibuf_level);
+  let expired_MB: Lisp_Object = nth_minibuffer ((*minibuf_level.as_mut_ptr ()));
   let mut w: *mut window;
   let mut f: *mut frame;
 
@@ -1349,23 +1349,25 @@ unsafe extern "C-unwind" fn read_minibuf_unwind ()
   /* Locate the expired minibuffer.  */
   /* C's `goto found` is the labeled block below (PORTING.md 2.2).  */
   'found: {
-    FOR_EACH_FRAME! (frames, exp_MB_frame, {
-	f = XFRAME (exp_MB_frame);
+    let mut exp_mb_frame_iter: Lisp_Object = Qnil ();
+    FOR_EACH_FRAME! (frames, exp_mb_frame_iter, {
+	(*exp_MB_frame.as_mut_ptr ()) = exp_mb_frame_iter;
+	f = XFRAME ((*exp_MB_frame.as_mut_ptr ()));
 	window = (*f).minibuffer_window;
 	if WINDOW_LIVE_P (window)
 	  {
 	    w = XWINDOW (window);
-	    if EQ ((*w).frame, exp_MB_frame)
+	    if EQ ((*w).frame, (*exp_MB_frame.as_mut_ptr ()))
 		&& EQ ((*w).contents, expired_MB)
 	      { break 'found; }
 	  }
     });
-    exp_MB_frame = Qnil ();		/* "Can't happen." */
+    (*exp_MB_frame.as_mut_ptr ()) = Qnil ();		/* "Can't happen." */
   }
 
-  if !EQ (exp_MB_frame, saved_selected_frame)
-      && !NILP (exp_MB_frame)
-    { do_switch_frame (exp_MB_frame, 0, 0, Qt ()); }	/* This also sets
+  if !EQ ((*exp_MB_frame.as_mut_ptr ()), saved_selected_frame)
+      && !NILP ((*exp_MB_frame.as_mut_ptr ()))
+    { do_switch_frame ((*exp_MB_frame.as_mut_ptr ()), 0, 0, Qt ()); }	/* This also sets
 							     minibuf_window */
 
   /* To keep things predictable, in case it matters, let's be in the
@@ -1373,35 +1375,35 @@ unsafe extern "C-unwind" fn read_minibuf_unwind ()
      `minibuf_window' here.  This could by now be the mini-window of any
      frame.  */
   Fset_buffer (expired_MB);
-  minibuf_level -= 1;
+  (*minibuf_level.as_mut_ptr ()) -= 1;
 
   /* Restore prompt, etc, from outer minibuffer level.  */
-  let key_vec: Lisp_Object = Fcar (minibuf_save_list);
-  this_command_key_count = ASIZE (key_vec);
-  this_command_keys = key_vec;
-  minibuf_save_list = Fcdr (minibuf_save_list);
-  minibuf_prompt = Fcar (minibuf_save_list);
-  minibuf_save_list = Fcdr (minibuf_save_list);
-  minibuf_prompt_width = XFIXNAT (Fcar (minibuf_save_list));
-  minibuf_save_list = Fcdr (minibuf_save_list);
-  Vhelp_form = Fcar (minibuf_save_list);
-  minibuf_save_list = Fcdr (minibuf_save_list);
-  Vcurrent_prefix_arg = Fcar (minibuf_save_list);
-  minibuf_save_list = Fcdr (minibuf_save_list);
-  Vminibuffer_history_position = Fcar (minibuf_save_list);
-  minibuf_save_list = Fcdr (minibuf_save_list);
-  Vminibuffer_history_variable = Fcar (minibuf_save_list);
-  minibuf_save_list = Fcdr (minibuf_save_list);
-  Voverriding_local_map = Fcar (minibuf_save_list);
-  minibuf_save_list = Fcdr (minibuf_save_list);
+  let key_vec: Lisp_Object = Fcar ((*minibuf_save_list.as_mut_ptr ()));
+  (*this_command_key_count.as_mut_ptr ()) = ASIZE (key_vec);
+  (*this_command_keys.as_mut_ptr ()) = key_vec;
+  (*minibuf_save_list.as_mut_ptr ()) = Fcdr ((*minibuf_save_list.as_mut_ptr ()));
+  (*minibuf_prompt.as_mut_ptr ()) = Fcar ((*minibuf_save_list.as_mut_ptr ()));
+  (*minibuf_save_list.as_mut_ptr ()) = Fcdr ((*minibuf_save_list.as_mut_ptr ()));
+  (*minibuf_prompt_width.as_mut_ptr ()) = XFIXNAT (Fcar ((*minibuf_save_list.as_mut_ptr ())));
+  (*minibuf_save_list.as_mut_ptr ()) = Fcdr ((*minibuf_save_list.as_mut_ptr ()));
+  (*Vhelp_form.as_mut_ptr ()) = Fcar ((*minibuf_save_list.as_mut_ptr ()));
+  (*minibuf_save_list.as_mut_ptr ()) = Fcdr ((*minibuf_save_list.as_mut_ptr ()));
+  (*Vcurrent_prefix_arg.as_mut_ptr ()) = Fcar ((*minibuf_save_list.as_mut_ptr ()));
+  (*minibuf_save_list.as_mut_ptr ()) = Fcdr ((*minibuf_save_list.as_mut_ptr ()));
+  (*Vminibuffer_history_position.as_mut_ptr ()) = Fcar ((*minibuf_save_list.as_mut_ptr ()));
+  (*minibuf_save_list.as_mut_ptr ()) = Fcdr ((*minibuf_save_list.as_mut_ptr ()));
+  (*Vminibuffer_history_variable.as_mut_ptr ()) = Fcar ((*minibuf_save_list.as_mut_ptr ()));
+  (*minibuf_save_list.as_mut_ptr ()) = Fcdr ((*minibuf_save_list.as_mut_ptr ()));
+  (*Voverriding_local_map.as_mut_ptr ()) = Fcar ((*minibuf_save_list.as_mut_ptr ()));
+  (*minibuf_save_list.as_mut_ptr ()) = Fcdr ((*minibuf_save_list.as_mut_ptr ()));
   /* C 1173-1177's `#if 0` arm (the `temp`/`minibuf_window` restore) is dead text and is
      recorded in docs/ports/minibuf.md rather than transcribed (P-08).  */
-  future_mini_window = Fcar (minibuf_save_list);
-  minibuf_save_list = Fcdr (minibuf_save_list);
-  calling_frame = Fcar (minibuf_save_list);
-  minibuf_save_list = Fcdr (minibuf_save_list);
-  calling_window = Fcar (minibuf_save_list);
-  minibuf_save_list = Fcdr (minibuf_save_list);
+  future_mini_window = Fcar ((*minibuf_save_list.as_mut_ptr ()));
+  (*minibuf_save_list.as_mut_ptr ()) = Fcdr ((*minibuf_save_list.as_mut_ptr ()));
+  calling_frame = Fcar ((*minibuf_save_list.as_mut_ptr ()));
+  (*minibuf_save_list.as_mut_ptr ()) = Fcdr ((*minibuf_save_list.as_mut_ptr ()));
+  calling_window = Fcar ((*minibuf_save_list.as_mut_ptr ()));
+  (*minibuf_save_list.as_mut_ptr ()) = Fcdr ((*minibuf_save_list.as_mut_ptr ()));
 
   /* Erase the minibuffer we were using at this level.  */
   {
@@ -1409,17 +1411,17 @@ unsafe extern "C-unwind" fn read_minibuf_unwind ()
     /* Prevent error in erase-buffer.  */
     specbind (Qinhibit_read_only (), Qt ());
     specbind (Qinhibit_modification_hooks (), Qt ());
-    old_deactivate_mark = Vdeactivate_mark;
+    old_deactivate_mark = (*Vdeactivate_mark.as_mut_ptr ());
     Ferase_buffer ();
-    Vdeactivate_mark = old_deactivate_mark;
+    (*Vdeactivate_mark.as_mut_ptr ()) = old_deactivate_mark;
     unbind_to (count, Qnil ());
   }
 
   /* When we get to the outmost level, make sure we resize the
      mini-window back to its normal size.  */
-  if minibuf_level == 0
-      || !EQ (selected_frame, WINDOW_FRAME! (XWINDOW (future_mini_window)))
-    { resize_mini_window (XWINDOW (minibuf_window), false); }
+  if (*minibuf_level.as_mut_ptr ()) == 0
+      || !EQ ((*selected_frame.as_mut_ptr ()), WINDOW_FRAME! (XWINDOW (future_mini_window)))
+    { resize_mini_window (XWINDOW ((*minibuf_window.as_mut_ptr ())), false); }
 
   /* Deal with frames that should be removed when exiting the
      minibuffer.  */
@@ -1459,26 +1461,26 @@ unsafe extern "C-unwind" fn read_minibuf_unwind ()
      away from the expired minibuffer window, both in the current
      minibuffer's frame and the original calling frame.  */
   choose_minibuf_frame ();
-  if NILP ((*XWINDOW (minibuf_window)).prev_buffers)
+  if NILP ((*XWINDOW ((*minibuf_window.as_mut_ptr ()))).prev_buffers)
     {
-      if !EQ (WINDOW_FRAME! (XWINDOW (minibuf_window)), calling_frame)
+      if !EQ (WINDOW_FRAME! (XWINDOW ((*minibuf_window.as_mut_ptr ()))), calling_frame)
 	{
-	  let prev: Lisp_Object = Fprevious_window (minibuf_window, Qnil (), Qnil ());
+	  let prev: Lisp_Object = Fprevious_window ((*minibuf_window.as_mut_ptr ()), Qnil (), Qnil ());
 	  /* PREV can be on a different frame when we have a minibuffer only
 	     frame, the other frame's minibuffer window is MINIBUF_WINDOW,
 	     and its "focus window" is also MINIBUF_WINDOW.  */
-	  if !EQ (prev, minibuf_window)
+	  if !EQ (prev, (*minibuf_window.as_mut_ptr ()))
 	      && EQ (WINDOW_FRAME! (XWINDOW (prev)),
-		     WINDOW_FRAME! (XWINDOW (minibuf_window)))
-	    { Fset_frame_selected_window (selected_frame, prev, Qnil ()); }
+		     WINDOW_FRAME! (XWINDOW ((*minibuf_window.as_mut_ptr ()))))
+	    { Fset_frame_selected_window ((*selected_frame.as_mut_ptr ()), prev, Qnil ()); }
 	}
       else if WINDOW_LIVE_P (calling_window)
 	{ Fset_frame_selected_window (calling_frame, calling_window, Qnil ()); }
     }
 
   /* Restore the selected frame. */
-  if !EQ (exp_MB_frame, saved_selected_frame)
-      && !NILP (exp_MB_frame)
+  if !EQ ((*exp_MB_frame.as_mut_ptr ()), saved_selected_frame)
+      && !NILP ((*exp_MB_frame.as_mut_ptr ()))
     { do_switch_frame (saved_selected_frame, 0, 0, Qt ()); }
 
   }
@@ -1493,8 +1495,8 @@ unsafe extern "C-unwind" fn minibuffer_unwind ()
   unsafe {
   let mut f: *mut frame;
 
-  if NILP (exp_MB_frame) { return; } /* "Can't happen." */
-  f = XFRAME (exp_MB_frame);
+  if NILP ((*exp_MB_frame.as_mut_ptr ())) { return; } /* "Can't happen." */
+  f = XFRAME ((*exp_MB_frame.as_mut_ptr ()));
   if FRAME_LIVE_P (f)
     {
       let window: Lisp_Object = (*f).minibuffer_window;
@@ -1532,7 +1534,7 @@ pub unsafe extern "C-unwind" fn barf_if_interaction_inhibited ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  if inhibit_interaction
+  if (*inhibit_interaction.as_mut_ptr ())
     { xsignal0 (Qinhibited_interaction ()); }
 
   }
@@ -1554,7 +1556,7 @@ DEFUN! ("read-from-minibuffer", Fread_from_minibuffer,
 
   CHECK_STRING (prompt);
   if NILP (keymap)
-    { keymap = Vminibuffer_local_map; }
+    { keymap = (*Vminibuffer_local_map.as_mut_ptr ()); }
   else
     { keymap = get_keymap (keymap, true, false); }
 
@@ -1580,7 +1582,7 @@ DEFUN! ("read-from-minibuffer", Fread_from_minibuffer,
   val = read_minibuf (keymap, initial_contents, prompt,
 		      !NILP (read),
 		      histvar, histpos, default_value,
-		      minibuffer_allow_text_properties,
+		      (*minibuffer_allow_text_properties.as_mut_ptr ()),
 		      !NILP (inherit_input_method));
   return val;
 });
@@ -1621,7 +1623,7 @@ DEFUN! ("read-command", Fread_command, Sread_command, 1, 2, 0,
   else
     { default_string = default_value; }
 
-  name = Fcompleting_read (prompt, Vobarray, Qcommandp (), Qt (),
+  name = Fcompleting_read (prompt, (*Vobarray.as_mut_ptr ()), Qcommandp (), Qt (),
 			   Qnil (), Qnil (), default_string, Qnil ());
   if NILP (name)
     { return name; }
@@ -1642,7 +1644,7 @@ DEFUN! ("read-variable", Fread_variable, Sread_variable, 1, 2, 0,
   else
     { default_string = default_value; }
 
-  name = Fcompleting_read (prompt, Vobarray,
+  name = Fcompleting_read (prompt, (*Vobarray.as_mut_ptr ()),
 			   Qcustom_variable_p (), Qt (),
 			   Qnil (), Qcustom_variable_history (),
 			   default_string, Qnil ());
@@ -1667,9 +1669,9 @@ DEFUN! ("read-buffer", Fread_buffer, Sread_buffer, 1, 4, 0,
     { def = BVAR! (XBUFFER (def), name_); }
 
   specbind (Qcompletion_ignore_case (),
-	    if read_buffer_completion_ignore_case { Qt () } else { Qnil () });
+	    if (*read_buffer_completion_ignore_case.as_mut_ptr ()) { Qt () } else { Qnil () });
 
-  if NILP (Vread_buffer_function)
+  if NILP ((*Vread_buffer_function.as_mut_ptr ()))
     {
       if !NILP (def)
 	{
@@ -1707,9 +1709,9 @@ DEFUN! ("read-buffer", Fread_buffer, Sread_buffer, 1, 4, 0,
       result = if NILP (predicate)
 		 /* Partial backward compatibility for older read_buffer_functions
 		    which don't expect a `predicate' argument.  */
-		 { calln! (Vread_buffer_function, prompt, def, require_match) }
+		 { calln! ((*Vread_buffer_function.as_mut_ptr ()), prompt, def, require_match) }
 	       else
-		 { calln! (Vread_buffer_function, prompt, def, require_match,
+		 { calln! ((*Vread_buffer_function.as_mut_ptr ()), prompt, def, require_match,
 			   predicate) };
     }
   return unbind_to (count, result);
@@ -1848,12 +1850,12 @@ DEFUN! ("try-completion", Ftry_completion, Stry_completion, 2, 3, 0,
 	  && { tem = Fcompare_strings (eltstring, zero,
 				       make_fixnum (SCHARS (string)),
 				       string, zero, Qnil (),
-				       if completion_ignore_case { Qt () } else { Qnil () });
+				       if (*completion_ignore_case.as_mut_ptr ()) { Qt () } else { Qnil () });
 	       EQ (Qt (), tem) }
 	{
 	  /* Ignore this element if it fails to match all the regexps.  */
-	  if !match_regexps (eltstring, Vcompletion_regexp_list,
-			     completion_ignore_case)
+	  if !match_regexps (eltstring, (*Vcompletion_regexp_list.as_mut_ptr ()),
+			     (*completion_ignore_case.as_mut_ptr ()))
 	    { continue; }
 
 	  /* Ignore this element if there is a predicate
@@ -1891,11 +1893,11 @@ DEFUN! ("try-completion", Ftry_completion, Stry_completion, 2, 3, 0,
 	      let lcompare: Lisp_Object = make_fixnum (compare);
 	      tem = Fcompare_strings (bestmatch, zero, lcompare,
 				      eltstring, zero, lcompare,
-				      if completion_ignore_case { Qt () } else { Qnil () });
+				      if (*completion_ignore_case.as_mut_ptr ()) { Qt () } else { Qnil () });
 	      matchsize = if EQ (tem, Qt ()) { compare } else { eabs! (XFIXNUM (tem)) - 1 };
 
 	      let old_bestmatch: Lisp_Object = bestmatch;
-	      if completion_ignore_case
+	      if (*completion_ignore_case.as_mut_ptr ())
 		{
 		  /* If this is an exact match except for case,
 		     use it as the best match rather than one that is not an
@@ -1929,7 +1931,7 @@ DEFUN! ("try-completion", Ftry_completion, Stry_completion, 2, 3, 0,
 		}
 	      if bestmatchsize != SCHARS (eltstring)
 		  || bestmatchsize != matchsize
-		  || (completion_ignore_case
+		  || ((*completion_ignore_case.as_mut_ptr ())
 		      && !BASE_EQ (Fcompare_strings (old_bestmatch, zero,
 						     lcompare, eltstring, zero,
 						     lcompare, Qnil ()),
@@ -1941,7 +1943,7 @@ DEFUN! ("try-completion", Ftry_completion, Stry_completion, 2, 3, 0,
 		  /* If completion-ignore-case is non-nil, don't
 		     short-circuit because we want to find the best
 		     possible match *including* case differences.  */
-		  && !completion_ignore_case
+		  && !(*completion_ignore_case.as_mut_ptr ())
 		  && matchcount > 1
 		/* No need to look any further.  */
 		{ break; }
@@ -2046,12 +2048,12 @@ DEFUN! ("all-completions", Fall_completions, Sall_completions, 2, 3, 0,
 				       make_fixnum (SCHARS (string)),
 				       string, zero,
 				       make_fixnum (SCHARS (string)),
-				       if completion_ignore_case { Qt () } else { Qnil () });
+				       if (*completion_ignore_case.as_mut_ptr ()) { Qt () } else { Qnil () });
 	       EQ (Qt (), tem) }
 	{
 	  /* Ignore this element if it fails to match all the regexps.  */
-	  if !match_regexps (eltstring, Vcompletion_regexp_list,
-			     completion_ignore_case)
+	  if !match_regexps (eltstring, (*Vcompletion_regexp_list.as_mut_ptr ()),
+			     (*completion_ignore_case.as_mut_ptr ()))
 	    { continue; }
 
 	  /* Ignore this element if there is a predicate
@@ -2106,7 +2108,7 @@ DEFUN! ("test-completion", Ftest_completion, Stest_completion, 2, 3, 0,
 
   if NILP (collection) || (CONSP (collection) && !FUNCTIONP (collection))
     {
-      tem = Fassoc_string (string, collection, if completion_ignore_case { Qt () } else { Qnil () });
+      tem = Fassoc_string (string, collection, if (*completion_ignore_case.as_mut_ptr ()) { Qt () } else { Qnil () });
       if NILP (tem)
 	{ return Qnil (); }
     }
@@ -2118,7 +2120,7 @@ DEFUN! ("test-completion", Ftest_completion, Stest_completion, 2, 3, 0,
 		      SSDATA (string),
 		      SCHARS (string),
 		      SBYTES (string));
-      if completion_ignore_case && !BARE_SYMBOL_P (tem)
+      if (*completion_ignore_case.as_mut_ptr ()) && !BARE_SYMBOL_P (tem)
 	{
 	  DOOBARRAY! (XOBARRAY (collection), it, {
 	      let obj: Lisp_Object = obarray_iter_symbol (&raw mut it);
@@ -2164,7 +2166,7 @@ DEFUN! ("test-completion", Ftest_completion, Stest_completion, 2, 3, 0,
 		  {
 		    if BASE_EQ (Fcompare_strings (string, Qnil (), Qnil (),
 						  strkey, Qnil (), Qnil (),
-						  if completion_ignore_case { Qt () } else { Qnil () }),
+						  if (*completion_ignore_case.as_mut_ptr ()) { Qt () } else { Qnil () }),
 				Qt ())
 		      {
 			arg = v;
@@ -2180,8 +2182,8 @@ DEFUN! ("test-completion", Ftest_completion, Stest_completion, 2, 3, 0,
     { return calln! (collection, string, predicate, Qlambda ()); }
 
   /* Reject this element if it fails to match all the regexps.  */
-  if !match_regexps (string, Vcompletion_regexp_list,
-		     completion_ignore_case)
+  if !match_regexps (string, (*Vcompletion_regexp_list.as_mut_ptr ()),
+		     (*completion_ignore_case.as_mut_ptr ()))
     { return Qnil (); }
 
   /* Finally, check the predicate.  */
@@ -2201,10 +2203,10 @@ DEFUN! ("internal-complete-buffer", Finternal_complete_buffer, Sinternal_complet
        (string: Lisp_Object, predicate: Lisp_Object, flag: Lisp_Object),
        {
   if NILP (flag)
-    { return Ftry_completion (string, Vbuffer_alist, predicate); }
+    { return Ftry_completion (string, (*Vbuffer_alist.as_mut_ptr ()), predicate); }
   else if EQ (flag, Qt ())
     {
-      let res: Lisp_Object = Fall_completions (string, Vbuffer_alist, predicate);
+      let res: Lisp_Object = Fall_completions (string, (*Vbuffer_alist.as_mut_ptr ()), predicate);
       if SCHARS (string) > 0
 	{ return res; }
       else
@@ -2216,7 +2218,7 @@ DEFUN! ("internal-complete-buffer", Finternal_complete_buffer, Sinternal_complet
 	    { bufs = XCDR (bufs); }
 	  if NILP (bufs)
 	    {
-	      return if list_length (res) == list_length (Vbuffer_alist)
+	      return if list_length (res) == list_length ((*Vbuffer_alist.as_mut_ptr ()))
 		       /* If all bufs are internal don't strip them out.  */
 		       { res } else { bufs };
 	    }
@@ -2232,7 +2234,7 @@ DEFUN! ("internal-complete-buffer", Finternal_complete_buffer, Sinternal_complet
 	}
     }
   else if EQ (flag, Qlambda ())
-    { return Ftest_completion (string, Vbuffer_alist, predicate); }
+    { return Ftest_completion (string, (*Vbuffer_alist.as_mut_ptr ()), predicate); }
   else if EQ (flag, Qmetadata ())
     {
       return list3 (Qmetadata (),
@@ -2282,14 +2284,14 @@ DEFUN! ("minibuffer-depth", Fminibuffer_depth, Sminibuffer_depth, 0, 0, 0,
        doc: "Return current depth of activations of minibuffer, a nonnegative integer.",
        (),
        {
-  return make_fixnum (minibuf_level);
+  return make_fixnum ((*minibuf_level.as_mut_ptr ()));
 });
 
 DEFUN! ("minibuffer-prompt", Fminibuffer_prompt, Sminibuffer_prompt, 0, 0, 0,
        doc: "Return the prompt string of the currently-active minibuffer.\nIf no minibuffer is active, return nil.",
        (),
        {
-  return Fcopy_sequence (minibuf_prompt);
+  return Fcopy_sequence ((*minibuf_prompt.as_mut_ptr ()));
 });
 
 #[unsafe(no_mangle)]
@@ -2308,8 +2310,8 @@ pub unsafe extern "C-unwind" fn init_minibuf_once ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  staticpro (&raw const Vminibuffer_list);
-  staticpro (&raw const Vcommand_loop_level_list);
+  staticpro (Vminibuffer_list.as_ptr ());
+  staticpro (Vcommand_loop_level_list.as_ptr ());
   pdumper_do_now_and_after_load (Some (init_minibuf_once_for_pdumper));
   /* Ensure our inactive minibuffer exists.  */
   get_minibuffer (0);
@@ -2327,12 +2329,12 @@ unsafe extern "C-unwind" fn init_minibuf_once_for_pdumper ()
   /* We run this function on first initialization and whenever we
      restore from a dump file.  pdumper doesn't try to preserve
      frames, windows, and so on, so reset everything related here.  */
-  Vminibuffer_list = Qnil ();
-  Vcommand_loop_level_list = Qnil ();
-  minibuf_level = 0;
-  minibuf_prompt = Qnil ();
-  minibuf_save_list = Qnil ();
-  last_minibuf_string = Qnil ();
+  (*Vminibuffer_list.as_mut_ptr ()) = Qnil ();
+  (*Vcommand_loop_level_list.as_mut_ptr ()) = Qnil ();
+  (*minibuf_level.as_mut_ptr ()) = 0;
+  (*minibuf_prompt.as_mut_ptr ()) = Qnil ();
+  (*minibuf_save_list.as_mut_ptr ()) = Qnil ();
+  (*last_minibuf_string.as_mut_ptr ()) = Qnil ();
 
   }
 }
@@ -2423,8 +2425,8 @@ DEFUN! ("completion--flex-cost-gotoh", Fcompletion__flex_cost_gotoh,
   let gap_open_cost: c_int = 10;
   let gap_extend_cost: c_int = 1;
   let pos_inf: c_int = INT_MAX / 2;
-  static mut M: [c_int; FLEX_MAX_MATRIX_SIZE as usize] = [0; FLEX_MAX_MATRIX_SIZE as usize];
-  static mut D: [c_int; FLEX_MAX_MATRIX_SIZE as usize] = [0; FLEX_MAX_MATRIX_SIZE as usize];
+  static M: VmGlobal<[c_int; FLEX_MAX_MATRIX_SIZE as usize]> = VmGlobal::<[c_int; FLEX_MAX_MATRIX_SIZE as usize]>::new ([0; FLEX_MAX_MATRIX_SIZE as usize]);
+  static D: VmGlobal<[c_int; FLEX_MAX_MATRIX_SIZE as usize]> = VmGlobal::<[c_int; FLEX_MAX_MATRIX_SIZE as usize]>::new ([0; FLEX_MAX_MATRIX_SIZE as usize]);
 
   /* Bail if strings are empty or matrix too large.  */
   if patlen == 0 || strlen == 0 || size > FLEX_MAX_MATRIX_SIZE as ptrdiff_t
@@ -2434,7 +2436,7 @@ DEFUN! ("completion--flex-cost-gotoh", Fcompletion__flex_cost_gotoh,
      before the O(N*M) DP algorithm.  Walking both strings
      byte-by-byte for this purpose (and only for case-sensitive common
      case) should be valid even for multibyte strings.  */
-  if !completion_ignore_case
+  if !(*completion_ignore_case.as_mut_ptr ())
     {
       let p: *const c_uchar = SDATA (pat) as *const c_uchar;
       let s: *const c_uchar = SDATA (str) as *const c_uchar;
@@ -2454,8 +2456,8 @@ DEFUN! ("completion--flex-cost-gotoh", Fcompletion__flex_cost_gotoh,
   let mut j: c_int = 0;
   while (j as ptrdiff_t) < size
     {
-      M[j as usize] = pos_inf;
-      D[j as usize] = pos_inf;
+      (*M.as_mut_ptr ())[j as usize] = pos_inf;
+      (*D.as_mut_ptr ())[j as usize] = pos_inf;
       j += 1;
     }
   /* ...except for D[-1,-1], which is 0 to promote matches at the
@@ -2464,10 +2466,10 @@ DEFUN! ("completion--flex-cost-gotoh", Fcompletion__flex_cost_gotoh,
   j = 0;
   while (j as ptrdiff_t) < width
     {
-      D[j as usize] = gap_open_cost / 2;
+      (*D.as_mut_ptr ())[j as usize] = gap_open_cost / 2;
       j += 1;
     }
-  D[0] = 0;
+  (*D.as_mut_ptr ())[0] = 0;
 
   /* Poor man's iterator type: cur char idx, next char idx, next byte idx.  */
   #[repr(C)]
@@ -2496,7 +2498,7 @@ DEFUN! ("completion--flex-cost-gotoh", Fcompletion__flex_cost_gotoh,
 
 	  /* Check if characters match (case-insensitive if needed).  */
 	  let cmatch: bool;
-	  if completion_ignore_case
+	  if (*completion_ignore_case.as_mut_ptr ())
 	    { cmatch = downcase (pat_char) == downcase (str_char); }
 	  else
 	    { cmatch = pat_char == str_char; }
@@ -2519,8 +2521,8 @@ DEFUN! ("completion--flex-cost-gotoh", Fcompletion__flex_cost_gotoh,
 		 regardless of whether the previous char also
 		 matched.  That is, it's better to arrive at this
 		 match from a gap.  */
-	      MAT! (M, i.x, jj.x) = min (MAT! (M, i.x - 1, jj.x - 1) as isize,
-					 MAT! (D, i.x - 1, jj.x - 1) as isize) as c_int;
+	      MAT! ((*M.as_mut_ptr ()), i.x, jj.x) = min (MAT! ((*M.as_mut_ptr ()), i.x - 1, jj.x - 1) as isize,
+					 MAT! ((*D.as_mut_ptr ()), i.x - 1, jj.x - 1) as isize) as c_int;
 	    }
 	  /* Regardless of a match here, compute D[i,j], the best
 	     accumulated gapping cost at this point, considering
@@ -2530,9 +2532,9 @@ DEFUN! ("completion--flex-cost-gotoh", Fcompletion__flex_cost_gotoh,
 	     sometime before.  The next iteration will take this
 	     into account, and so will the next row when analyzing a
 	     possible match for the j+1-th string character.  */
-	  MAT! (D, i.x, jj.x)
-	    = min ((MAT! (M, i.x, jj.x - 1) + gap_open_cost) as isize,
-		   (MAT! (D, i.x, jj.x - 1) + gap_extend_cost) as isize) as c_int;
+	  MAT! ((*D.as_mut_ptr ()), i.x, jj.x)
+	    = min ((MAT! ((*M.as_mut_ptr ()), i.x, jj.x - 1) + gap_open_cost) as isize,
+		   (MAT! ((*D.as_mut_ptr ()), i.x, jj.x - 1) + gap_extend_cost) as isize) as c_int;
 	  jj.x += 1;
 	}
       i.x += 1;
@@ -2543,7 +2545,7 @@ DEFUN! ("completion--flex-cost-gotoh", Fcompletion__flex_cost_gotoh,
   let mut j2: c_int = 0;
   while (j2 as ptrdiff_t) < strlen
     {
-      let cost: c_int = MAT! (M, patlen - 1, j2);
+      let cost: c_int = MAT! ((*M.as_mut_ptr ()), patlen - 1, j2);
       if cost < best_cost
 	{
 	  best_cost = cost;
@@ -2566,7 +2568,7 @@ DEFUN! ("completion--flex-cost-gotoh", Fcompletion__flex_cost_gotoh,
 	{
 	  l -= 1;
 	  if ! (l >= 0
-		&& MAT! (M, i2, l) >= MAT! (D, i2, l))
+		&& MAT! ((*M.as_mut_ptr ()), i2, l) >= MAT! ((*D.as_mut_ptr ()), i2, l))
 	    { break; }
 	}
       matches = Fcons (make_fixnum (l as EMACS_INT), matches);
@@ -2584,66 +2586,66 @@ DEFUN! ("completion--flex-cost-gotoh", Fcompletion__flex_cost_gotoh,
    `syms_of_minibuf` assign C's initial values.  */
 
 #[unsafe(no_mangle)]
-pub static mut Vread_expression_history: Lisp_Object = lisp_h_Qnil ();      /* DEFVAR_LISP */
+pub static Vread_expression_history: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());      /* DEFVAR_LISP */
 #[unsafe(no_mangle)]
-pub static mut Vread_buffer_function: Lisp_Object = lisp_h_Qnil ();          /* DEFVAR_LISP */
+pub static Vread_buffer_function: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());          /* DEFVAR_LISP */
 #[unsafe(no_mangle)]
-pub static mut minibuffer_follows_selected_frame: Lisp_Object = lisp_h_Qnil (); /* DEFVAR_LISP */
+pub static minibuffer_follows_selected_frame: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ()); /* DEFVAR_LISP */
 #[unsafe(no_mangle)]
-pub static mut read_buffer_completion_ignore_case: bool = false;             /* DEFVAR_BOOL */
+pub static read_buffer_completion_ignore_case: VmGlobal<bool> = VmGlobal::<bool>::new (false);             /* DEFVAR_BOOL */
 #[unsafe(no_mangle)]
-pub static mut Vminibuffer_setup_hook: Lisp_Object = lisp_h_Qnil ();         /* DEFVAR_LISP */
+pub static Vminibuffer_setup_hook: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());         /* DEFVAR_LISP */
 #[unsafe(no_mangle)]
-pub static mut Vminibuffer_exit_hook: Lisp_Object = lisp_h_Qnil ();          /* DEFVAR_LISP */
+pub static Vminibuffer_exit_hook: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());          /* DEFVAR_LISP */
 #[unsafe(no_mangle)]
-pub static mut Vhistory_length: Lisp_Object = lisp_h_Qnil ();                /* DEFVAR_LISP */
+pub static Vhistory_length: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());                /* DEFVAR_LISP */
 #[unsafe(no_mangle)]
-pub static mut history_delete_duplicates: bool = false;                      /* DEFVAR_BOOL */
+pub static history_delete_duplicates: VmGlobal<bool> = VmGlobal::<bool>::new (false);                      /* DEFVAR_BOOL */
 #[unsafe(no_mangle)]
-pub static mut Vhistory_add_new_input: Lisp_Object = lisp_h_Qnil ();         /* DEFVAR_LISP */
+pub static Vhistory_add_new_input: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());         /* DEFVAR_LISP */
 #[unsafe(no_mangle)]
-pub static mut completion_ignore_case: bool = false;                         /* DEFVAR_BOOL */
+pub static completion_ignore_case: VmGlobal<bool> = VmGlobal::<bool>::new (false);                         /* DEFVAR_BOOL */
 #[unsafe(no_mangle)]
-pub static mut enable_recursive_minibuffers: bool = false;                   /* DEFVAR_BOOL */
+pub static enable_recursive_minibuffers: VmGlobal<bool> = VmGlobal::<bool>::new (false);                   /* DEFVAR_BOOL */
 #[unsafe(no_mangle)]
-pub static mut Vminibuffer_completion_table: Lisp_Object = lisp_h_Qnil ();   /* DEFVAR_LISP */
+pub static Vminibuffer_completion_table: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());   /* DEFVAR_LISP */
 #[unsafe(no_mangle)]
-pub static mut Vminibuffer_completion_predicate: Lisp_Object = lisp_h_Qnil (); /* DEFVAR_LISP */
+pub static Vminibuffer_completion_predicate: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ()); /* DEFVAR_LISP */
 #[unsafe(no_mangle)]
-pub static mut Vminibuffer_completion_confirm: Lisp_Object = lisp_h_Qnil (); /* DEFVAR_LISP */
+pub static Vminibuffer_completion_confirm: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ()); /* DEFVAR_LISP */
 #[unsafe(no_mangle)]
-pub static mut Vminibuffer_completing_file_name: Lisp_Object = lisp_h_Qnil (); /* DEFVAR_LISP */
+pub static Vminibuffer_completing_file_name: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ()); /* DEFVAR_LISP */
 #[unsafe(no_mangle)]
-pub static mut Vminibuffer_help_form: Lisp_Object = lisp_h_Qnil ();          /* DEFVAR_LISP */
+pub static Vminibuffer_help_form: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());          /* DEFVAR_LISP */
 #[unsafe(no_mangle)]
-pub static mut Vminibuffer_history_variable: Lisp_Object = lisp_h_Qnil ();   /* DEFVAR_LISP */
+pub static Vminibuffer_history_variable: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());   /* DEFVAR_LISP */
 #[unsafe(no_mangle)]
-pub static mut Vminibuffer_history_position: Lisp_Object = lisp_h_Qnil ();   /* DEFVAR_LISP */
+pub static Vminibuffer_history_position: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());   /* DEFVAR_LISP */
 #[unsafe(no_mangle)]
-pub static mut minibuffer_auto_raise: bool = false;                          /* DEFVAR_BOOL */
+pub static minibuffer_auto_raise: VmGlobal<bool> = VmGlobal::<bool>::new (false);                          /* DEFVAR_BOOL */
 #[unsafe(no_mangle)]
-pub static mut Vcompletion_regexp_list: Lisp_Object = lisp_h_Qnil ();        /* DEFVAR_LISP */
+pub static Vcompletion_regexp_list: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());        /* DEFVAR_LISP */
 #[unsafe(no_mangle)]
-pub static mut minibuffer_allow_text_properties: bool = false;               /* DEFVAR_BOOL */
+pub static minibuffer_allow_text_properties: VmGlobal<bool> = VmGlobal::<bool>::new (false);               /* DEFVAR_BOOL */
 #[unsafe(no_mangle)]
-pub static mut Vminibuffer_prompt_properties: Lisp_Object = lisp_h_Qnil ();  /* DEFVAR_LISP */
+pub static Vminibuffer_prompt_properties: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());  /* DEFVAR_LISP */
 #[unsafe(no_mangle)]
-pub static mut Vread_hide_char: Lisp_Object = lisp_h_Qnil ();                /* DEFVAR_LISP */
+pub static Vread_hide_char: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());                /* DEFVAR_LISP */
 #[unsafe(no_mangle)]
-pub static mut inhibit_interaction: bool = false;                            /* DEFVAR_BOOL */
+pub static inhibit_interaction: VmGlobal<bool> = VmGlobal::<bool>::new (false);                            /* DEFVAR_BOOL */
 #[unsafe(no_mangle)]
-pub static mut read_minibuffer_restore_windows: bool = false;                /* DEFVAR_BOOL */
+pub static read_minibuffer_restore_windows: VmGlobal<bool> = VmGlobal::<bool>::new (false);                /* DEFVAR_BOOL */
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_minibuf ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  staticpro (&raw const minibuf_prompt);
-  staticpro (&raw const minibuf_save_list);
-  staticpro (&raw const MB_frame);
-  MB_frame = Qnil ();
-  staticpro (&raw const exp_MB_frame);
+  staticpro (minibuf_prompt.as_ptr ());
+  staticpro (minibuf_save_list.as_ptr ());
+  staticpro (MB_frame.as_ptr ());
+  (*MB_frame.as_mut_ptr ()) = Qnil ();
+  staticpro (exp_MB_frame.as_ptr ());
 
   DEFSYM! (Qminibuffer_follows_selected_frame, c"minibuffer-follows-selected-frame");
   DEFSYM! (Qcompletion_ignore_case, c"completion-ignore-case");
@@ -2652,7 +2654,7 @@ pub unsafe extern "C-unwind" fn syms_of_minibuf ()
 
   DEFSYM! (Qminibuffer_completion_table, c"minibuffer-completion-table");
 
-  staticpro (&raw const last_minibuf_string);
+  staticpro (last_minibuf_string.as_ptr ());
 
   DEFSYM! (Qcustom_variable_history, c"custom-variable-history");
   Fset (Qcustom_variable_history (), Qnil ());
@@ -2684,133 +2686,133 @@ pub unsafe extern "C-unwind" fn syms_of_minibuf ()
 
   DEFVAR_LISP! (c"read-expression-history", Vread_expression_history,
 	       "A history list for arguments that are Lisp expressions to evaluate.\nFor example, `eval-expression' uses this.");
-  Vread_expression_history = Qnil ();
+  (*Vread_expression_history.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"read-buffer-function", Vread_buffer_function,
 	       "If this is non-nil, `read-buffer' does its work by calling this function.\nThe function is called with the arguments passed to `read-buffer'.");
-  Vread_buffer_function = Qnil ();
+  (*Vread_buffer_function.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"minibuffer-follows-selected-frame", minibuffer_follows_selected_frame,
                "t means the active minibuffer always displays on the selected frame.\nNil means that a minibuffer will appear only in the frame which created it.\nAny other value means the minibuffer will move onto another frame, but\nonly when the user starts using a minibuffer there.\n\nAny buffer local or dynamic binding of this variable is ignored.  Only the\ndefault top level value is used.");
-  minibuffer_follows_selected_frame = Qt ();
+  (*minibuffer_follows_selected_frame.as_mut_ptr ()) = Qt ();
 
   DEFVAR_BOOL! (c"read-buffer-completion-ignore-case",
 	       read_buffer_completion_ignore_case,
 	       "Non-nil means completion ignores case when reading a buffer name.");
-  read_buffer_completion_ignore_case = false;
+  (*read_buffer_completion_ignore_case.as_mut_ptr ()) = false;
 
   DEFVAR_LISP! (c"minibuffer-setup-hook", Vminibuffer_setup_hook,
 	       "Normal hook run just after entry to minibuffer.");
-  Vminibuffer_setup_hook = Qnil ();
+  (*Vminibuffer_setup_hook.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"minibuffer-exit-hook", Vminibuffer_exit_hook,
 	       "Normal hook run whenever a minibuffer is exited.");
-  Vminibuffer_exit_hook = Qnil ();
+  (*Vminibuffer_exit_hook.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"history-length", Vhistory_length,
 	       "Maximum length of history lists before truncation takes place.\nA number means truncate to that length; truncation deletes old\nelements, and is done just after inserting a new element.\nA value of t means no truncation.\n\nThis variable only affects history lists that don't specify their own\nmaximum lengths.  Setting the `history-length' property of a history\nvariable overrides this default.");
-  XSETFASTINT! (Vhistory_length, 100);
+  XSETFASTINT! ((*Vhistory_length.as_mut_ptr ()), 100);
 
   DEFVAR_BOOL! (c"history-delete-duplicates", history_delete_duplicates,
 	       "Non-nil means to delete duplicates in history.\nIf set to t when adding a new history element, all previous identical\nelements are deleted from the history list.");
-  history_delete_duplicates = false;
+  (*history_delete_duplicates.as_mut_ptr ()) = false;
 
   DEFVAR_LISP! (c"history-add-new-input", Vhistory_add_new_input,
 	       "Non-nil means to add new elements in history.\nIf set to nil, minibuffer reading functions don't add new elements to the\nhistory list, so it is possible to do this afterwards by calling\n`add-to-history' explicitly.");
-  Vhistory_add_new_input = Qt ();
+  (*Vhistory_add_new_input.as_mut_ptr ()) = Qt ();
 
   DEFVAR_BOOL! (c"completion-ignore-case", completion_ignore_case,
 	       "Non-nil means don't consider case significant in completion.\nFor file-name completion, `read-file-name-completion-ignore-case'\ncontrols the behavior, rather than this variable.\nFor buffer name completion, `read-buffer-completion-ignore-case'\ncontrols the behavior, rather than this variable.");
-  completion_ignore_case = false;
+  (*completion_ignore_case.as_mut_ptr ()) = false;
 
   DEFVAR_BOOL! (c"enable-recursive-minibuffers", enable_recursive_minibuffers,
 	       "Non-nil means to allow minibuffer commands while in the minibuffer.\nThis variable makes a difference whenever the minibuffer window is active.\nAlso see `minibuffer-depth-indicate-mode', which may be handy if this\nvariable is non-nil.");
-  enable_recursive_minibuffers = false;
+  (*enable_recursive_minibuffers.as_mut_ptr ()) = false;
 
   DEFVAR_LISP! (c"minibuffer-completion-table", Vminibuffer_completion_table,
 	       "Alist or obarray used for completion in the minibuffer.\nThis becomes the ALIST argument to `try-completion' and `all-completions'.\nThe value can also be a list of strings or a hash table.\n\nThe value may alternatively be a function, which is given three arguments:\n  STRING, the current buffer contents;\n  PREDICATE, the predicate for filtering possible matches;\n  CODE, which says what kind of things to do.\nCODE can be nil, t or `lambda':\n  nil    -- return the best completion of STRING, or nil if there is none.\n  t      -- return a list of all possible completions of STRING.\n  lambda -- return t if STRING is a valid completion as it stands.");
-  Vminibuffer_completion_table = Qnil ();
+  (*Vminibuffer_completion_table.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"minibuffer-completion-predicate", Vminibuffer_completion_predicate,
 	       "Within call to `completing-read', this holds the PREDICATE argument.");
-  Vminibuffer_completion_predicate = Qnil ();
+  (*Vminibuffer_completion_predicate.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"minibuffer-completion-confirm", Vminibuffer_completion_confirm,
 	       "Whether to demand confirmation of completion before exiting minibuffer.\nIf nil, confirmation is not required.\nIf the value is `confirm', the user may exit with an input that is not\n a valid completion alternative, but Emacs asks for confirmation.\nIf the value is `confirm-after-completion', the user may exit with an\n input that is not a valid completion alternative, but Emacs asks for\n confirmation if the user submitted the input right after any of the\n completion commands listed in `minibuffer-confirm-exit-commands'.");
-  Vminibuffer_completion_confirm = Qnil ();
+  (*Vminibuffer_completion_confirm.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"minibuffer-completing-file-name",
 	       Vminibuffer_completing_file_name,
 	       "Non-nil means completing file names.");
-  Vminibuffer_completing_file_name = Qnil ();
+  (*Vminibuffer_completing_file_name.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"minibuffer-help-form", Vminibuffer_help_form,
 	       "Value that `help-form' takes on inside the minibuffer.");
-  Vminibuffer_help_form = Qnil ();
+  (*Vminibuffer_help_form.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"minibuffer-history-variable", Vminibuffer_history_variable,
 	       "History list symbol to add minibuffer values to.\nEach string of minibuffer input, as it appears on exit from the minibuffer,\nis added with\n\n  (set minibuffer-history-variable\n       (cons STRING (symbol-value minibuffer-history-variable)))\n\n If the variable is t, no history is recorded.");
-  XSETFASTINT! (Vminibuffer_history_variable, 0);
+  XSETFASTINT! ((*Vminibuffer_history_variable.as_mut_ptr ()), 0);
 
   DEFVAR_LISP! (c"minibuffer-history-position", Vminibuffer_history_position,
 	       "Current position of redoing in the history list.");
-  Vminibuffer_history_position = Qnil ();
+  (*Vminibuffer_history_position.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_BOOL! (c"minibuffer-auto-raise", minibuffer_auto_raise,
 	       "Non-nil means entering the minibuffer raises the minibuffer's frame.\nSome uses of the echo area also raise that frame (since they use it too).");
-  minibuffer_auto_raise = false;
+  (*minibuffer_auto_raise.as_mut_ptr ()) = false;
 
   DEFVAR_LISP! (c"completion-regexp-list", Vcompletion_regexp_list,
 	       "List of regexps that should restrict possible completions.\nThe basic completion functions only consider a completion acceptable\nif it matches all regular expressions in this list, with\n`case-fold-search' bound to the value of `completion-ignore-case'.\nSee Info node `(elisp)Basic Completion', for a description of these\nfunctions.\n\nDo not set this variable to a non-nil value globally, as that is not\nsafe and will probably cause errors in completion commands.  This\nvariable should be only let-bound to non-nil values around calls to\nbasic completion functions like `try-completion' and `all-completions'.");
-  Vcompletion_regexp_list = Qnil ();
+  (*Vcompletion_regexp_list.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_BOOL! (c"minibuffer-allow-text-properties",
 	       minibuffer_allow_text_properties,
 	       "Non-nil means `read-from-minibuffer' should not discard text properties.\nLisp code can let-bind this, or make it buffer-local in the minibuffer.\nThis also affects `read-string', or any of the functions that do\nminibuffer input with completion, but it does not affect `read-minibuffer'\nthat always discards text properties.");
-  minibuffer_allow_text_properties = false;
+  (*minibuffer_allow_text_properties.as_mut_ptr ()) = false;
 
   DEFVAR_LISP! (c"minibuffer-prompt-properties", Vminibuffer_prompt_properties,
 	       "Text properties that are added to minibuffer prompts.\nThese are in addition to the basic `field' property, and stickiness\nproperties.");
-  Vminibuffer_prompt_properties = list2 (Qread_only (), Qt ());
+  (*Vminibuffer_prompt_properties.as_mut_ptr ()) = list2 (Qread_only (), Qt ());
 
   DEFVAR_LISP! (c"read-hide-char", Vread_hide_char,
 	       "Whether to hide input characters in noninteractive mode.\nIf non-nil, it must be a character, which will be used to mask the\ninput characters.  This variable should never be set globally.\n\nThis variable also overrides the default character that `read-passwd'\nuses to hide passwords.");
-  Vread_hide_char = Qnil ();
+  (*Vread_hide_char.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_BOOL! (c"inhibit-interaction",
 	       inhibit_interaction,
 	       "Non-nil means any user interaction will signal an error.\nThis variable can be bound when user interaction can't be performed,\nfor instance when running a headless Emacs server.  Functions like\n`read-from-minibuffer' (and the like) will signal `inhibited-interaction'\ninstead.");
-  inhibit_interaction = false;
+  (*inhibit_interaction.as_mut_ptr ()) = false;
 
   DEFVAR_BOOL! (c"read-minibuffer-restore-windows", read_minibuffer_restore_windows,
 	       "Non-nil means restore window configurations on exit from minibuffer.\nIf this is non-nil (the default), reading input with the minibuffer will\nrestore, on exit, the window configurations of the frame where the\nminibuffer was entered from and, if it is different, the frame that owns\nthe associated minibuffer window.\n\nIf this is nil, window configurations are not restored upon exiting\nthe minibuffer.  However, if `minibuffer-restore-windows' is present\nin `minibuffer-exit-hook', exiting the minibuffer will remove the window\nshowing the *Completions* buffer, if any.");
-  read_minibuffer_restore_windows = true;
+  (*read_minibuffer_restore_windows.as_mut_ptr ()) = true;
 
-  defsubr (&raw mut Sactive_minibuffer_window);
-  defsubr (&raw mut Sset_minibuffer_window);
-  defsubr (&raw mut Sread_from_minibuffer);
-  defsubr (&raw mut Sread_string);
-  defsubr (&raw mut Sread_command);
-  defsubr (&raw mut Sread_variable);
-  defsubr (&raw mut Sinternal_complete_buffer);
-  defsubr (&raw mut Sread_buffer);
-  defsubr (&raw mut Sminibuffer_depth);
-  defsubr (&raw mut Sminibuffer_prompt);
+  defsubr (Sactive_minibuffer_window.as_mut_ptr ());
+  defsubr (Sset_minibuffer_window.as_mut_ptr ());
+  defsubr (Sread_from_minibuffer.as_mut_ptr ());
+  defsubr (Sread_string.as_mut_ptr ());
+  defsubr (Sread_command.as_mut_ptr ());
+  defsubr (Sread_variable.as_mut_ptr ());
+  defsubr (Sinternal_complete_buffer.as_mut_ptr ());
+  defsubr (Sread_buffer.as_mut_ptr ());
+  defsubr (Sminibuffer_depth.as_mut_ptr ());
+  defsubr (Sminibuffer_prompt.as_mut_ptr ());
 
-  defsubr (&raw mut Sminibufferp);
-  defsubr (&raw mut Sinnermost_minibuffer_p);
-  defsubr (&raw mut Sminibuffer_innermost_command_loop_p);
-  defsubr (&raw mut Sabort_minibuffers);
-  defsubr (&raw mut Sminibuffer_prompt_end);
-  defsubr (&raw mut Sminibuffer_contents);
-  defsubr (&raw mut Sminibuffer_contents_no_properties);
+  defsubr (Sminibufferp.as_mut_ptr ());
+  defsubr (Sinnermost_minibuffer_p.as_mut_ptr ());
+  defsubr (Sminibuffer_innermost_command_loop_p.as_mut_ptr ());
+  defsubr (Sabort_minibuffers.as_mut_ptr ());
+  defsubr (Sminibuffer_prompt_end.as_mut_ptr ());
+  defsubr (Sminibuffer_contents.as_mut_ptr ());
+  defsubr (Sminibuffer_contents_no_properties.as_mut_ptr ());
 
-  defsubr (&raw mut Stry_completion);
-  defsubr (&raw mut Sall_completions);
-  defsubr (&raw mut Stest_completion);
-  defsubr (&raw mut Sassoc_string);
-  defsubr (&raw mut Scompleting_read);
-  defsubr (&raw mut Scompletion__flex_cost_gotoh);
+  defsubr (Stry_completion.as_mut_ptr ());
+  defsubr (Sall_completions.as_mut_ptr ());
+  defsubr (Stest_completion.as_mut_ptr ());
+  defsubr (Sassoc_string.as_mut_ptr ());
+  defsubr (Scompleting_read.as_mut_ptr ());
+  defsubr (Scompletion__flex_cost_gotoh.as_mut_ptr ());
   DEFSYM! (Qminibuffer_quit_recursive_edit, c"minibuffer-quit-recursive-edit");
   DEFSYM! (Qinternal_complete_buffer, c"internal-complete-buffer");
   DEFSYM! (Qcompleting_read_function, c"completing-read-function");

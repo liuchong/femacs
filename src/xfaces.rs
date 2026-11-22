@@ -518,7 +518,7 @@ pub fn FRAME_FACE_CACHE (f: *mut frame) -> *mut face_cache
    unit writes it and no mirror carries a setter, so the member-named accessor lives here
    (the term.rs `frame_bits_set!` shape).  */
 macro_rules! frame_bits {
-  (face_change, $f:expr, $v:expr) => {{
+  ((*face_change.as_mut_ptr ()), $f:expr, $v:expr) => {{
     if $v { (*$f).bits2 |= 1u32 << FRAME_FACE_CHANGE_SHIFT; }
     else { (*$f).bits2 &= ! (1u32 << FRAME_FACE_CHANGE_SHIFT); } }};
 }
@@ -631,36 +631,36 @@ pub const FACE_CACHE_BUCKETS_SIZE: c_int = 1009;
 
 /* C 311: the two default-color names.  */
 #[unsafe(no_mangle)]
-pub static mut unspecified_fg: [c_char; 15] = [
+pub static unspecified_fg: VmGlobal<[c_char; 15]> = VmGlobal::<[c_char; 15]>::new ([
   b'u' as c_char, b'n' as c_char, b's' as c_char, b'p' as c_char, b'e' as c_char,
   b'c' as c_char, b'i' as c_char, b'f' as c_char, b'i' as c_char, b'e' as c_char,
-  b'd' as c_char, b'-' as c_char, b'f' as c_char, b'g' as c_char, 0];
+  b'd' as c_char, b'-' as c_char, b'f' as c_char, b'g' as c_char, 0]);
 #[unsafe(no_mangle)]
-pub static mut unspecified_bg: [c_char; 15] = [
+pub static unspecified_bg: VmGlobal<[c_char; 15]> = VmGlobal::<[c_char; 15]>::new ([
   b'u' as c_char, b'n' as c_char, b's' as c_char, b'p' as c_char, b'e' as c_char,
   b'c' as c_char, b'i' as c_char, b'f' as c_char, b'i' as c_char, b'e' as c_char,
-  b'd' as c_char, b'-' as c_char, b'b' as c_char, b'g' as c_char, 0];
+  b'd' as c_char, b'-' as c_char, b'b' as c_char, b'g' as c_char, 0]);
 
 /* C 317, 323: the two alternative-font alists this unit owns.  `globals.rs` declares both
    (`use variables::*`), and a crate-root definition shadows a glob import while a second
    glob of the same name would be ambiguous (PORTING.md P-21, the casetab.rs shape).  */
 #[unsafe(no_mangle)]
-pub static mut Vface_alternative_font_family_alist: Lisp_Object = lisp_h_Qnil ();
+pub static Vface_alternative_font_family_alist: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vface_alternative_font_registry_alist: Lisp_Object = lisp_h_Qnil ();
+pub static Vface_alternative_font_registry_alist: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* C 327-332.  */
-static mut next_lface_id: c_int = 0;
-static mut lface_id_to_name: *mut Lisp_Object = std::ptr::null_mut ();
-static mut lface_id_to_name_size: ptrdiff_t = 0;
+static next_lface_id: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
+static lface_id_to_name: VmGlobal<*mut Lisp_Object> = VmGlobal::<*mut Lisp_Object>::new (std::ptr::null_mut ());
+static lface_id_to_name_size: VmGlobal<ptrdiff_t> = VmGlobal::<ptrdiff_t>::new (0);
 
 /* C 349: exported.  */
 #[unsafe(no_mangle)]
-pub static mut face_change: bool = false;
+pub static face_change: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 /* C 356, 369.  */
-static mut tty_suppress_bold_inverse_default_colors_p: bool = false;
-static mut menu_face_changed_default: bool = false;
+static tty_suppress_bold_inverse_default_colors_p: VmGlobal<bool> = VmGlobal::<bool>::new (false);
+static menu_face_changed_default: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 /* C 371-389: `struct named_merge_point;` and the ten function prototypes are C forward
    declarations; Rust items are order-independent, so they are deleted and the definitions
@@ -788,7 +788,7 @@ pub unsafe extern "C-unwind" fn recompute_basic_faces (f: *mut frame)
          reference fontsets that are no longer in Vfontset_table.  We
          therefore must force complete regeneration of all frame faces.  */
       if non_basic_faces_cached
-	{ frame_bits! (face_change, f, true); }
+	{ frame_bits! ((*face_change.as_mut_ptr ()), f, true); }
     }
 
   }
@@ -809,8 +809,8 @@ DEFUN! ("clear-face-cache", Fclear_face_cache, Sclear_face_cache, 0, 1, 0,
        (thoroughly: Lisp_Object),
        {
   clear_face_cache (! NILP (thoroughly));
-  face_change = true;
-  windows_or_buffers_changed = 53;
+  (*face_change.as_mut_ptr ()) = true;
+  (*windows_or_buffers_changed.as_mut_ptr ()) = 53;
   return Qnil ();
 });
 
@@ -1236,9 +1236,9 @@ pub unsafe extern "C-unwind" fn tty_color_name (f: *mut frame, idx: c_int) -> Li
   /* C's MSDOS arm (`FRAME_MSDOS_P` / `msdos_stdcolor_name`) is dead.  */
 
   if idx == FACE_TTY_DEFAULT_FG_COLOR as c_int
-    { return build_string (femacs_array_ptr (&raw const unspecified_fg)); }
+    { return build_string (femacs_array_ptr (unspecified_fg.as_ptr ())); }
   if idx == FACE_TTY_DEFAULT_BG_COLOR as c_int
-    { return build_string (femacs_array_ptr (&raw const unspecified_bg)); }
+    { return build_string (femacs_array_ptr (unspecified_bg.as_ptr ())); }
 
   return Qunspecified ();
 
@@ -1434,10 +1434,10 @@ unsafe fn load_face_colors (f: *mut frame, face: *mut face, attrs: *mut Lisp_Obj
      "supported" as background because we are supposed to use stipple
      for them.  */
   if ! face_color_supported_p (f, SSDATA (bg), false)
-      && ! NILP (Fbitmap_spec_p (Vface_default_stipple))
+      && ! NILP (Fbitmap_spec_p ((*Vface_default_stipple.as_mut_ptr ())))
     {
       image_destroy_bitmap (f, (*face).stipple);
-      (*face).stipple = load_pixmap (f, Vface_default_stipple);
+      (*face).stipple = load_pixmap (f, (*Vface_default_stipple.as_mut_ptr ()));
     }
 
   (*face).background = load_color2 (f, face, bg, LFACE_BACKGROUND_INDEX, &mut xbg);
@@ -1445,7 +1445,7 @@ unsafe fn load_face_colors (f: *mut frame, face: *mut face, attrs: *mut Lisp_Obj
 
   dfg = *attrs.offset (LFACE_DISTANT_FOREGROUND_INDEX as isize);
   if ! NILP (dfg) && ! UNSPECIFIEDP! (dfg)
-      && color_distance (&mut xbg, &mut xfg) < face_near_same_color_threshold as c_int
+      && color_distance (&mut xbg, &mut xfg) < (*face_near_same_color_threshold.as_mut_ptr ()) as c_int
     {
       if EQ (*attrs.offset (LFACE_INVERSE_INDEX as isize), Qt ())
 	{ (*face).background = load_color (f, face, dfg, LFACE_BACKGROUND_INDEX); }
@@ -1480,7 +1480,7 @@ pub const XLFD_ENCODING: xlfd_field = 13;
 pub const XLFD_LAST: xlfd_field = 14;
 
 /* C 1534: order by which font selection chooses fonts.  */
-static mut font_sort_order: [c_int; 4] = [0; 4];
+static font_sort_order: VmGlobal<[c_int; 4]> = VmGlobal::<[c_int; 4]>::new ([0; 4]);
 
 /* C 1536-1792: the `HAVE_WINDOW_SYSTEM` block (`compare_fonts_by_sort_order`,
    `x-family-fonts`, `x-list-fonts`) is dead.  */
@@ -1523,8 +1523,7 @@ macro_rules! LFACEP {
 }
 
 /* C 1826: face attribute symbols for each value of LFACE_*_INDEX.  */
-static mut face_attr_sym: [Lisp_Object; LFACE_VECTOR_SIZE as usize] =
-  [lisp_h_Qnil (); LFACE_VECTOR_SIZE as usize];
+static face_attr_sym: VmGlobal<[Lisp_Object; LFACE_VECTOR_SIZE as usize]> = VmGlobal::<[Lisp_Object; LFACE_VECTOR_SIZE as usize]>::new ([lisp_h_Qnil (); LFACE_VECTOR_SIZE as usize]);
 
 /* C 1828-1949: the `GLYPH_DEBUG` block (`check_lface_attrs`'s checks,
    `check_lface`'s `XVECTOR` walk) is dead; the live `#else` arm spells the two macros as
@@ -1660,7 +1659,7 @@ unsafe fn lface_from_face_name_no_resolve (f: *mut frame, face_name: Lisp_Object
   if ! f.is_null ()
     { lface = Fgethash (face_name, (*f).face_hash_table, Qnil ()); }
   else
-    { lface = CDR (Fgethash (face_name, Vface_new_frame_defaults, Qnil ())); }
+    { lface = CDR (Fgethash (face_name, (*Vface_new_frame_defaults.as_mut_ptr ()), Qnil ())); }
 
   if signal_p && NILP (lface)
     { signal_error (c"Invalid face".as_ptr (), face_name); }
@@ -1723,7 +1722,7 @@ unsafe fn get_lface_attributes (w: *mut window, f: *mut frame, face_name: Lisp_O
      anyway.  */
   if ! f.is_null ()
     {
-      face_remapping = assq_no_quit (face_name, Vface_remapping_alist);
+      face_remapping = assq_no_quit (face_name, (*Vface_remapping_alist.as_mut_ptr ()));
       if CONSP (face_remapping)
 	{
 	  let mut named_merge_point: named_merge_point = std::mem::zeroed ();
@@ -1832,7 +1831,7 @@ unsafe fn font_maybe_unset_attribute (font_object: Lisp_Object,
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  let mut tail: Lisp_Object = Vface_font_lax_matched_attributes;
+  let mut tail: Lisp_Object = (*Vface_font_lax_matched_attributes.as_mut_ptr ());
   eassert! (CONSP (tail));
   'tail: loop
     {
@@ -2249,7 +2248,7 @@ unsafe fn evaluate_face_filter (filter: Lisp_Object, w: *mut window,
     if NILP (filter)
       { return true; }
 
-    if face_filters_always_match
+    if (*face_filters_always_match.as_mut_ptr ())
       { return true; }
 
     if ! CONSP (filter)
@@ -2412,7 +2411,7 @@ unsafe fn merge_face_ref (w: *mut window, f: *mut frame, face_ref: Lisp_Object,
 		  let keyword: Lisp_Object = XCAR (face_ref_tem);
 		  let value: Lisp_Object = XCAR (XCDR (face_ref_tem));
 
-		  if EQ (keyword, face_attr_sym[attr_filter as usize])
+		  if EQ (keyword, (*face_attr_sym.as_mut_ptr ())[attr_filter as usize])
 		    {
 		      attr_filter_seen = true;
 		      if NILP (value)
@@ -2712,22 +2711,22 @@ DEFUN! ("internal-make-lisp-face", Finternal_make_lisp_face,
 	 face id to Lisp face is given by the vector lface_id_to_name.
 	 The mapping from Lisp face to Lisp face id is given by the
 	 property `face' of the Lisp face name.  */
-      if next_lface_id as ptrdiff_t == lface_id_to_name_size
+      if (*next_lface_id.as_mut_ptr ()) as ptrdiff_t == (*lface_id_to_name_size.as_mut_ptr ())
 	{
-	  lface_id_to_name =
-	    xpalloc (lface_id_to_name as *mut c_void, &raw mut lface_id_to_name_size, 1,
+	  (*lface_id_to_name.as_mut_ptr ()) =
+	    xpalloc ((*lface_id_to_name.as_mut_ptr ()) as *mut c_void, lface_id_to_name_size.as_mut_ptr (), 1,
 		     MAX_FACE_ID, std::mem::size_of::<Lisp_Object> () as ptrdiff_t)
 	    as *mut Lisp_Object;
 	}
 
-      let face_id: Lisp_Object = make_fixnum (next_lface_id as isize);
-      *lface_id_to_name.offset (next_lface_id as isize) = face;
+      let face_id: Lisp_Object = make_fixnum ((*next_lface_id.as_mut_ptr ()) as isize);
+      *(*lface_id_to_name.as_mut_ptr ()).offset ((*next_lface_id.as_mut_ptr ()) as isize) = face;
       Fput (face, Qface (), face_id);
-      next_lface_id += 1;
+      (*next_lface_id.as_mut_ptr ()) += 1;
 
       global_lface = make_vector (LFACE_VECTOR_SIZE as ptrdiff_t, Qunspecified ());
       ASET (global_lface, 0, Qface ());
-      Fputhash (face, Fcons (face_id, global_lface), Vface_new_frame_defaults);
+      Fputhash (face, Fcons (face_id, global_lface), (*Vface_new_frame_defaults.as_mut_ptr ()));
     }
   else if f.is_null ()
     {
@@ -2762,13 +2761,13 @@ DEFUN! ("internal-make-lisp-face", Finternal_make_lisp_face,
     {
       if ! f.is_null ()
 	{
-	  frame_bits! (face_change, f, true);
+	  frame_bits! ((*face_change.as_mut_ptr ()), f, true);
 	  fset_redisplay (f as *mut c_void);
 	}
       else
 	{
-	  face_change = true;
-	  windows_or_buffers_changed = 54;
+	  (*face_change.as_mut_ptr ()) = true;
+	  (*windows_or_buffers_changed.as_mut_ptr ()) = 54;
 	}
     }
 
@@ -2842,13 +2841,13 @@ DEFUN! ("internal-copy-lisp-face", Finternal_copy_lisp_face,
     {
       if ! f.is_null ()
 	{
-	  frame_bits! (face_change, f, true);
+	  frame_bits! ((*face_change.as_mut_ptr ()), f, true);
 	  fset_redisplay (f as *mut c_void);
 	}
       else
 	{
-	  face_change = true;
-	  windows_or_buffers_changed = 55;
+	  (*face_change.as_mut_ptr ()) = true;
+	  (*windows_or_buffers_changed.as_mut_ptr ()) = 55;
 	}
     }
 
@@ -2920,7 +2919,7 @@ DEFUN! ("internal-set-lisp-face-attribute", Finternal_set_lisp_face_attribute,
   else
     {
       if NILP (frame)
-	{ frame = selected_frame; }
+	{ frame = (*selected_frame.as_mut_ptr ()); }
 
       CHECK_LIVE_FRAME! (frame);
       f = XFRAME (frame);
@@ -3317,7 +3316,7 @@ DEFUN! ("internal-set-lisp-face-attribute", Finternal_set_lisp_face_attribute,
 
 	      // New-frame defaults use the selected frame to resolve fonts. A
 	      // terminal frame cannot resolve a graphical font.
-	      let font_frame = if EQ (frame, Qt ()) { XFRAME (selected_frame) } else { f };
+	      let font_frame = if EQ (frame, Qt ()) { XFRAME ((*selected_frame.as_mut_ptr ())) } else { f };
 	      if FRAME_WINDOW_P (font_frame)
 		{
 		  if ! FONT_OBJECT_P (value)
@@ -3329,7 +3328,7 @@ DEFUN! ("internal-set-lisp-face-attribute", Finternal_set_lisp_face_attribute,
 		      value = font_object;
 		    }
 		  set_lface_from_font (font_frame, lface, value, true);
-		  frame_bits! (face_change, font_frame, true);
+		  frame_bits! ((*face_change.as_mut_ptr ()), font_frame, true);
 		}
 	    }
 	  else
@@ -3405,7 +3404,7 @@ DEFUN! ("internal-set-lisp-face-attribute", Finternal_set_lisp_face_attribute,
       && NILP (Fget (face, Qface_no_inherit ()))
       && NILP (Fequal (old_value, value))
     {
-      frame_bits! (face_change, f, true);
+      frame_bits! ((*face_change.as_mut_ptr ()), f, true);
       fset_redisplay (f as *mut c_void);
     }
 
@@ -3443,7 +3442,7 @@ DEFUN! ("internal-set-lisp-face-attribute", Finternal_set_lisp_face_attribute,
 	      (*FRAME_FACE_CACHE (f)).menu_face_changed_p = 1;
 	    }
 	  else
-	    { menu_face_changed_default = true; }
+	    { (*menu_face_changed_default.as_mut_ptr ()) = true; }
 	}
 
       if ! NILP (param)
@@ -3451,7 +3450,7 @@ DEFUN! ("internal-set-lisp-face-attribute", Finternal_set_lisp_face_attribute,
 	  if EQ (frame, Qt ())
 	    /* Update `default-frame-alist', which is used for new frames.  */
 	    {
-	      store_in_alist (&raw mut Vdefault_frame_alist, param, value);
+	      store_in_alist (Vdefault_frame_alist.as_mut_ptr (), param, value);
 	    }
 	  else
 	    /* Update the current frame's parameters.  */
@@ -3518,7 +3517,7 @@ pub unsafe extern "C-unwind" fn update_face_from_frame_parameter (f: *mut frame,
   if ! NILP (face)
       && NILP (Fget (face, Qface_no_inherit ()))
     {
-      frame_bits! (face_change, f, true);
+      frame_bits! ((*face_change.as_mut_ptr ()), f, true);
       fset_redisplay (f as *mut c_void);
     }
 
@@ -4222,7 +4221,7 @@ unsafe fn make_face_cache (f: *mut frame) -> *mut face_cache
   (*c).faces_by_id = xmalloc ((*c).size as usize
 			      * std::mem::size_of::<*mut face> ()) as *mut *mut face;
   (*c).f = f;
-  (*c).menu_face_changed_p = if menu_face_changed_default { 1 } else { 0 };
+  (*c).menu_face_changed_p = if (*menu_face_changed_default.as_mut_ptr ()) { 1 } else { 0 };
   return c;
 
   }
@@ -4289,7 +4288,7 @@ pub unsafe extern "C-unwind" fn free_all_realized_faces (frame: Lisp_Object)
       FOR_EACH_FRAME! (rest, frame, {
 	free_realized_faces (FRAME_FACE_CACHE (XFRAME (frame)));
       });
-      windows_or_buffers_changed = 58;
+      (*windows_or_buffers_changed.as_mut_ptr ()) = 58;
     }
   else
     { free_realized_faces (FRAME_FACE_CACHE (XFRAME (frame))); }
@@ -4551,7 +4550,7 @@ pub unsafe extern "C-unwind" fn lookup_basic_face (w: *mut window, f: *mut frame
   let mut mapping: Lisp_Object;
   let mut remapped_face_id: c_int;
 
-  if NILP (Vface_remapping_alist)
+  if NILP ((*Vface_remapping_alist.as_mut_ptr ()))
     { return face_id; }		/* Nothing to do.  */
 
   match face_id
@@ -4586,7 +4585,7 @@ pub unsafe extern "C-unwind" fn lookup_basic_face (w: *mut window, f: *mut frame
   /* Do a quick scan through Vface_remapping_alist, and return immediately
      if there is no remapping for face NAME.  This is just an optimization
      for the very common no-remapping case.  */
-  mapping = assq_no_quit (name, Vface_remapping_alist);
+  mapping = assq_no_quit (name, (*Vface_remapping_alist.as_mut_ptr ()));
   if NILP (mapping)
     {
       let mut face_attrs: [Lisp_Object; LFACE_VECTOR_SIZE as usize] =
@@ -4681,7 +4680,7 @@ DEFUN! ("face-attributes-as-vector", Fface_attributes_as_vector,
        (plist: Lisp_Object),
        {
   let lface: Lisp_Object = make_vector (LFACE_VECTOR_SIZE as ptrdiff_t, Qunspecified ());
-  merge_face_ref (std::ptr::null_mut (), XFRAME (selected_frame),
+  merge_face_ref (std::ptr::null_mut (), XFRAME ((*selected_frame.as_mut_ptr ())),
 		  plist, (*XVECTOR (lface)).contents.as_mut_ptr (),
 		  true, std::ptr::null_mut (), 0);
   return lface;
@@ -4931,14 +4930,14 @@ DEFUN! ("display-supports-face-attributes-p",
   let mut attrs: [Lisp_Object; LFACE_VECTOR_SIZE as usize] =
     [Qnil (); LFACE_VECTOR_SIZE as usize];
 
-  if noninteractive || ! initialized
+  if (*noninteractive.as_mut_ptr ()) || ! (*initialized.as_mut_ptr ())
     /* We may not be able to access low-level face information in batch
        mode, or before being dumped, and this function is not going to
        be very useful in those cases anyway, so just give up.  */
     { return Qnil (); }
 
   if NILP (display)
-    { frame = selected_frame; }
+    { frame = (*selected_frame.as_mut_ptr ()); }
   else if FRAMEP (display)
     { frame = display; }
   else
@@ -5026,23 +5025,23 @@ DEFUN! ("internal-set-font-selection-order",
 
   if ! NILP (list) || (i as usize) != countof! (indices)
     { signal_error (c"Invalid font sort order".as_ptr (), order); }
-  for i in 0 .. countof! (font_sort_order)
+  for i in 0 .. countof! ((*font_sort_order.as_mut_ptr ()))
     {
       if indices[i as usize] == 0
 	{ signal_error (c"Invalid font sort order".as_ptr (), order); }
     }
 
   if memcmp (indices.as_mut_ptr () as *const c_void,
-	     std::ptr::addr_of! (font_sort_order) as *const c_void,
+	     font_sort_order.as_ptr () as *const c_void,
 	     std::mem::size_of_val (&indices)) != 0
     {
-      memcpy (std::ptr::addr_of_mut! (font_sort_order) as *mut c_void,
+      memcpy (font_sort_order.as_mut_ptr () as *mut c_void,
 	      indices.as_mut_ptr () as *const c_void,
-	      femacs_sizeof_ptr (&raw const font_sort_order));
+	      femacs_sizeof_ptr (font_sort_order.as_ptr ()));
       free_all_realized_faces (Qnil ());
     }
 
-  font_update_sort_order (std::ptr::addr_of_mut! (font_sort_order) as *mut c_int);
+  font_update_sort_order (font_sort_order.as_mut_ptr () as *mut c_int);
 
   return Qnil ();
 });
@@ -5076,7 +5075,7 @@ DEFUN! ("internal-set-alternative-font-family-alist",
       tail = XCDR (tail);
     }
 
-  Vface_alternative_font_family_alist = alist;
+  (*Vface_alternative_font_family_alist.as_mut_ptr ()) = alist;
   free_all_realized_faces (Qnil ());
   return alist;
 });
@@ -5110,7 +5109,7 @@ DEFUN! ("internal-set-alternative-font-registry-alist",
       tail = XCDR (tail);
     }
 
-  Vface_alternative_font_registry_alist = alist;
+  (*Vface_alternative_font_registry_alist.as_mut_ptr ()) = alist;
   free_all_realized_faces (Qnil ());
   return alist;
 });
@@ -5270,7 +5269,7 @@ unsafe fn realize_default_face (f: *mut frame) -> bool
       else if FRAME_WINDOW_P (f)
 	{ return false; }
       else if FRAME_INITIAL_P (f) || is_tty_frame (f)
-	{ ASET (lface, LFACE_FOREGROUND_INDEX as isize, build_string (femacs_array_ptr (&raw const unspecified_fg))); }
+	{ ASET (lface, LFACE_FOREGROUND_INDEX as isize, build_string (femacs_array_ptr (unspecified_fg.as_ptr ()))); }
       else
 	{ emacs_abort (); }
     }
@@ -5285,7 +5284,7 @@ unsafe fn realize_default_face (f: *mut frame) -> bool
       else if FRAME_WINDOW_P (f)
 	{ return false; }
       else if FRAME_INITIAL_P (f) || is_tty_frame (f)
-	{ ASET (lface, LFACE_BACKGROUND_INDEX as isize, build_string (femacs_array_ptr (&raw const unspecified_bg))); }
+	{ ASET (lface, LFACE_BACKGROUND_INDEX as isize, build_string (femacs_array_ptr (unspecified_bg.as_ptr ()))); }
       else
 	{ emacs_abort (); }
     }
@@ -5465,13 +5464,13 @@ unsafe fn realize_gui_face (cache: *mut face_cache, attrs: *mut Lisp_Object) -> 
 	  let mut spec: Lisp_Object
 	    = copy_font_spec (*attrs.offset (LFACE_FONT_INDEX as isize));
 
-	  if EQ (Vface_font_lax_matched_attributes, Qt ())
+	  if EQ ((*Vface_font_lax_matched_attributes.as_mut_ptr ()), Qt ())
 	    {
 	      ASET (spec, FONT_WEIGHT_INDEX as isize, Qnil ());
 	      ASET (spec, FONT_SLANT_INDEX as isize, Qnil ());
 	      ASET (spec, FONT_WIDTH_INDEX as isize, Qnil ());
 	    }
-	  else if ! NILP (Vface_font_lax_matched_attributes)
+	  else if ! NILP ((*Vface_font_lax_matched_attributes.as_mut_ptr ()))
 	    {
 	      font_maybe_unset_attribute (spec, FONT_WEIGHT_INDEX, QCweight ());
 	      font_maybe_unset_attribute (spec, FONT_SLANT_INDEX, QCslant ());
@@ -5795,7 +5794,7 @@ unsafe fn map_tty_color (f: *mut frame, face: *mut face, color: Lisp_Object,
 
   if STRINGP (color)
       && SCHARS (color) != 0
-      && CONSP (Vtty_defined_color_alist)
+      && CONSP ((*Vtty_defined_color_alist.as_mut_ptr ()))
     {
       def = assoc_no_quit (color, calln! (Qtty_color_alist (), frame));
       if CONSP (def)
@@ -5945,7 +5944,7 @@ unsafe fn realize_tty_face (cache: *mut face_cache, attrs: *mut Lisp_Object) -> 
       (*face).background = tem;
     }
 
-  if tty_suppress_bold_inverse_default_colors_p
+  if (*tty_suppress_bold_inverse_default_colors_p.as_mut_ptr ())
       && face_bits! (tty_bold_p, face)
       && (*face).background == FACE_TTY_DEFAULT_FG_COLOR
       && (*face).foreground == FACE_TTY_DEFAULT_BG_COLOR
@@ -5962,8 +5961,8 @@ DEFUN! ("tty-suppress-bold-inverse-default-colors",
        doc: "Suppress/allow boldness of faces with inverse default colors.\nSUPPRESS non-nil means suppress it.\nThis affects bold faces on TTYs whose foreground is the default background\ncolor of the display and whose background is the default foreground color.\nFor such faces, the bold face attribute is ignored if this variable\nis non-nil.",
        (suppress: Lisp_Object),
        {
-  tty_suppress_bold_inverse_default_colors_p = ! NILP (suppress);
-  face_change = true;
+  (*tty_suppress_bold_inverse_default_colors_p.as_mut_ptr ()) = ! NILP (suppress);
+  (*face_change.as_mut_ptr ()) = true;
   return suppress;
 });
 
@@ -6071,7 +6070,7 @@ pub unsafe extern "C-unwind" fn face_at_buffer_position (w: *mut window, pos: pt
 
     if base_face_id >= 0
       { face_id = base_face_id; }
-    else if NILP (Vface_remapping_alist)
+    else if NILP ((*Vface_remapping_alist.as_mut_ptr ()))
       { face_id = DEFAULT_FACE_ID; }
     else
       { face_id = lookup_basic_face (w, f, DEFAULT_FACE_ID); }
@@ -6210,7 +6209,7 @@ pub unsafe extern "C-unwind" fn face_for_overlay_string (w: *mut window, pos: pt
 
   /* Optimize common case where we can use the default face.  */
   if NILP (prop)
-      && NILP (Vface_remapping_alist)
+      && NILP ((*Vface_remapping_alist.as_mut_ptr ()))
     { return DEFAULT_FACE_ID; }
 
   /* Begin with attributes from the default face.  */
@@ -6326,9 +6325,9 @@ pub unsafe extern "C-unwind" fn merge_faces (w: *mut window, face_name: Lisp_Obj
 
   if EQ (face_name, Qt ())
     {
-      if face_id < 0 || (face_id as ptrdiff_t) >= lface_id_to_name_size
+      if face_id < 0 || (face_id as ptrdiff_t) >= (*lface_id_to_name_size.as_mut_ptr ())
 	{ return base_face_id; }
-      let face_name: Lisp_Object = *lface_id_to_name.offset (face_id as isize);
+      let face_name: Lisp_Object = *(*lface_id_to_name.as_mut_ptr ()).offset (face_id as isize);
       /* When called during make-frame, lookup_derived_face may fail
 	 if the faces are uninitialized.  Don't signal an error.  */
       let face_id: c_int = lookup_derived_face (w, f, face_name, base_face_id, false);
@@ -6452,18 +6451,18 @@ pub unsafe extern "C-unwind" fn init_xfaces ()
 
   if dumped_with_pdumper_p ()
     {
-      nfaces = XFIXNAT (Fhash_table_count (Vface_new_frame_defaults)) as c_int;
+      nfaces = XFIXNAT (Fhash_table_count ((*Vface_new_frame_defaults.as_mut_ptr ()))) as c_int;
       if nfaces > 0
 	{
 	  /* Allocate the lface_id_to_name[] array.  */
-	  lface_id_to_name_size = nfaces as ptrdiff_t;
-	  next_lface_id = nfaces;
-	  lface_id_to_name = xnmalloc (next_lface_id as isize,
+	  (*lface_id_to_name_size.as_mut_ptr ()) = nfaces as ptrdiff_t;
+	  (*next_lface_id.as_mut_ptr ()) = nfaces;
+	  (*lface_id_to_name.as_mut_ptr ()) = xnmalloc ((*next_lface_id.as_mut_ptr ()) as isize,
 				       std::mem::size_of::<Lisp_Object> () as isize)
 	    as *mut Lisp_Object;
 
 	  /* Store the faces.  */
-	  let table: *mut Lisp_Hash_Table = XHASH_TABLE (Vface_new_frame_defaults);
+	  let table: *mut Lisp_Hash_Table = XHASH_TABLE ((*Vface_new_frame_defaults.as_mut_ptr ()));
 	  let mut idx: ptrdiff_t = 0;
 	  while idx < nfaces as ptrdiff_t
 	    {
@@ -6473,33 +6472,33 @@ pub unsafe extern "C-unwind" fn init_xfaces ()
 		{
 		  let id: c_int = XFIXNAT (face_id) as c_int;
 		  eassert! (id >= 0);
-		  *lface_id_to_name.offset (id as isize) = lface;
+		  *(*lface_id_to_name.as_mut_ptr ()).offset (id as isize) = lface;
 		}
 	      idx += 1;
 	    }
 	}
     }
 
-  face_attr_sym[0] = Qface ();
-  face_attr_sym[LFACE_FAMILY_INDEX as usize] = QCfamily ();
-  face_attr_sym[LFACE_FOUNDRY_INDEX as usize] = QCfoundry ();
-  face_attr_sym[LFACE_SWIDTH_INDEX as usize] = QCwidth ();
-  face_attr_sym[LFACE_HEIGHT_INDEX as usize] = QCheight ();
-  face_attr_sym[LFACE_WEIGHT_INDEX as usize] = QCweight ();
-  face_attr_sym[LFACE_SLANT_INDEX as usize] = QCslant ();
-  face_attr_sym[LFACE_UNDERLINE_INDEX as usize] = QCunderline ();
-  face_attr_sym[LFACE_INVERSE_INDEX as usize] = QCinverse_video ();
-  face_attr_sym[LFACE_FOREGROUND_INDEX as usize] = QCforeground ();
-  face_attr_sym[LFACE_BACKGROUND_INDEX as usize] = QCbackground ();
-  face_attr_sym[LFACE_STIPPLE_INDEX as usize] = QCstipple ();
-  face_attr_sym[LFACE_OVERLINE_INDEX as usize] = QCoverline ();
-  face_attr_sym[LFACE_STRIKE_THROUGH_INDEX as usize] = QCstrike_through ();
-  face_attr_sym[LFACE_BOX_INDEX as usize] = QCbox ();
-  face_attr_sym[LFACE_FONT_INDEX as usize] = QCfont ();
-  face_attr_sym[LFACE_INHERIT_INDEX as usize] = QCinherit ();
-  face_attr_sym[LFACE_FONTSET_INDEX as usize] = QCfontset ();
-  face_attr_sym[LFACE_DISTANT_FOREGROUND_INDEX as usize] = QCdistant_foreground ();
-  face_attr_sym[LFACE_EXTEND_INDEX as usize] = QCextend ();
+  (*face_attr_sym.as_mut_ptr ())[0] = Qface ();
+  (*face_attr_sym.as_mut_ptr ())[LFACE_FAMILY_INDEX as usize] = QCfamily ();
+  (*face_attr_sym.as_mut_ptr ())[LFACE_FOUNDRY_INDEX as usize] = QCfoundry ();
+  (*face_attr_sym.as_mut_ptr ())[LFACE_SWIDTH_INDEX as usize] = QCwidth ();
+  (*face_attr_sym.as_mut_ptr ())[LFACE_HEIGHT_INDEX as usize] = QCheight ();
+  (*face_attr_sym.as_mut_ptr ())[LFACE_WEIGHT_INDEX as usize] = QCweight ();
+  (*face_attr_sym.as_mut_ptr ())[LFACE_SLANT_INDEX as usize] = QCslant ();
+  (*face_attr_sym.as_mut_ptr ())[LFACE_UNDERLINE_INDEX as usize] = QCunderline ();
+  (*face_attr_sym.as_mut_ptr ())[LFACE_INVERSE_INDEX as usize] = QCinverse_video ();
+  (*face_attr_sym.as_mut_ptr ())[LFACE_FOREGROUND_INDEX as usize] = QCforeground ();
+  (*face_attr_sym.as_mut_ptr ())[LFACE_BACKGROUND_INDEX as usize] = QCbackground ();
+  (*face_attr_sym.as_mut_ptr ())[LFACE_STIPPLE_INDEX as usize] = QCstipple ();
+  (*face_attr_sym.as_mut_ptr ())[LFACE_OVERLINE_INDEX as usize] = QCoverline ();
+  (*face_attr_sym.as_mut_ptr ())[LFACE_STRIKE_THROUGH_INDEX as usize] = QCstrike_through ();
+  (*face_attr_sym.as_mut_ptr ())[LFACE_BOX_INDEX as usize] = QCbox ();
+  (*face_attr_sym.as_mut_ptr ())[LFACE_FONT_INDEX as usize] = QCfont ();
+  (*face_attr_sym.as_mut_ptr ())[LFACE_INHERIT_INDEX as usize] = QCinherit ();
+  (*face_attr_sym.as_mut_ptr ())[LFACE_FONTSET_INDEX as usize] = QCfontset ();
+  (*face_attr_sym.as_mut_ptr ())[LFACE_DISTANT_FOREGROUND_INDEX as usize] = QCdistant_foreground ();
+  (*face_attr_sym.as_mut_ptr ())[LFACE_EXTEND_INDEX as usize] = QCextend ();
 
   }
 }
@@ -6621,39 +6620,39 @@ pub unsafe extern "C-unwind" fn syms_of_xfaces ()
      variable is registered and `etc/DOC` carries no `V` record for either.  The two
      `DEFVAR_LISP_NOPRO` calls that stood here were this port's invention (found by
      `tools/gen-doc.py`, which read them as records the reference does not have).  */
-  Vface_alternative_font_family_alist = Qnil ();
-  staticpro (&raw const Vface_alternative_font_family_alist);
-  Vface_alternative_font_registry_alist = Qnil ();
-  staticpro (&raw const Vface_alternative_font_registry_alist);
+  (*Vface_alternative_font_family_alist.as_mut_ptr ()) = Qnil ();
+  staticpro (Vface_alternative_font_family_alist.as_ptr ());
+  (*Vface_alternative_font_registry_alist.as_mut_ptr ()) = Qnil ();
+  staticpro (Vface_alternative_font_registry_alist.as_ptr ());
 
-  defsubr (&raw mut Sinternal_make_lisp_face);
-  defsubr (&raw mut Sinternal_lisp_face_p);
-  defsubr (&raw mut Sinternal_set_lisp_face_attribute);
+  defsubr (Sinternal_make_lisp_face.as_mut_ptr ());
+  defsubr (Sinternal_lisp_face_p.as_mut_ptr ());
+  defsubr (Sinternal_set_lisp_face_attribute.as_mut_ptr ());
   /* C's `HAVE_WINDOW_SYSTEM` registration (`Sinternal_set_lisp_face_attribute_from_resource`)
      is dead.  */
-  defsubr (&raw mut Scolor_gray_p);
-  defsubr (&raw mut Scolor_supported_p);
+  defsubr (Scolor_gray_p.as_mut_ptr ());
+  defsubr (Scolor_supported_p.as_mut_ptr ());
   /* C's `#ifndef HAVE_X_WINDOWS` registration is live.  */
-  defsubr (&raw mut Sx_load_color_file);
-  defsubr (&raw mut Sface_attribute_relative_p);
-  defsubr (&raw mut Smerge_face_attribute);
-  defsubr (&raw mut Sinternal_get_lisp_face_attribute);
-  defsubr (&raw mut Sinternal_lisp_face_attribute_values);
-  defsubr (&raw mut Sinternal_lisp_face_equal_p);
-  defsubr (&raw mut Sinternal_lisp_face_empty_p);
-  defsubr (&raw mut Sinternal_copy_lisp_face);
-  defsubr (&raw mut Sinternal_merge_in_global_face);
-  defsubr (&raw mut Sface_font);
-  defsubr (&raw mut Sframe_face_hash_table);
-  defsubr (&raw mut Sdisplay_supports_face_attributes_p);
-  defsubr (&raw mut Scolor_distance);
-  defsubr (&raw mut Sinternal_set_font_selection_order);
-  defsubr (&raw mut Sinternal_set_alternative_font_family_alist);
-  defsubr (&raw mut Sinternal_set_alternative_font_registry_alist);
-  defsubr (&raw mut Sface_attributes_as_vector);
+  defsubr (Sx_load_color_file.as_mut_ptr ());
+  defsubr (Sface_attribute_relative_p.as_mut_ptr ());
+  defsubr (Smerge_face_attribute.as_mut_ptr ());
+  defsubr (Sinternal_get_lisp_face_attribute.as_mut_ptr ());
+  defsubr (Sinternal_lisp_face_attribute_values.as_mut_ptr ());
+  defsubr (Sinternal_lisp_face_equal_p.as_mut_ptr ());
+  defsubr (Sinternal_lisp_face_empty_p.as_mut_ptr ());
+  defsubr (Sinternal_copy_lisp_face.as_mut_ptr ());
+  defsubr (Sinternal_merge_in_global_face.as_mut_ptr ());
+  defsubr (Sface_font.as_mut_ptr ());
+  defsubr (Sframe_face_hash_table.as_mut_ptr ());
+  defsubr (Sdisplay_supports_face_attributes_p.as_mut_ptr ());
+  defsubr (Scolor_distance.as_mut_ptr ());
+  defsubr (Sinternal_set_font_selection_order.as_mut_ptr ());
+  defsubr (Sinternal_set_alternative_font_family_alist.as_mut_ptr ());
+  defsubr (Sinternal_set_alternative_font_registry_alist.as_mut_ptr ());
+  defsubr (Sface_attributes_as_vector.as_mut_ptr ());
   /* C's `GLYPH_DEBUG` registrations (`Sdump_face`, `Sshow_face_resources`) are dead.  */
-  defsubr (&raw mut Sclear_face_cache);
-  defsubr (&raw mut Stty_suppress_bold_inverse_default_colors);
+  defsubr (Sclear_face_cache.as_mut_ptr ());
+  defsubr (Stty_suppress_bold_inverse_default_colors.as_mut_ptr ());
 
   /* C's `DEBUG_X_COLORS && HAVE_X_WINDOWS` registration (`Sdump_colors`) is dead.  */
 
@@ -6662,48 +6661,48 @@ pub unsafe extern "C-unwind" fn syms_of_xfaces ()
 
   DEFVAR_LISP! (c"face--new-frame-defaults", Vface_new_frame_defaults,
     "Hash table of global face definitions (for internal use only.)");
-  Vface_new_frame_defaults =
+  (*Vface_new_frame_defaults.as_mut_ptr ()) =
     /* 33 entries is enough to fit all basic faces */
-    make_hash_table (&raw const hashtest_eq, 33, Weak_None);
+    make_hash_table (hashtest_eq.as_ptr (), 33, Weak_None);
 
   DEFVAR_LISP! (c"face-default-stipple", Vface_default_stipple,
     "Default stipple pattern used on monochrome displays.\nThis stipple pattern is used on monochrome displays\ninstead of shades of gray for a face background color.\nSee `set-face-stipple' for possible values for this variable.");
-  Vface_default_stipple = build_string (c"gray3".as_ptr ());
+  (*Vface_default_stipple.as_mut_ptr ()) = build_string (c"gray3".as_ptr ());
 
   DEFVAR_LISP! (c"tty-defined-color-alist", Vtty_defined_color_alist,
    "An alist of defined terminal colors and their RGB values.\nSee the docstring of `tty-color-alist' for the details.");
-  Vtty_defined_color_alist = Qnil ();
+  (*Vtty_defined_color_alist.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"scalable-fonts-allowed", Vscalable_fonts_allowed,
 	       "Allowed scalable fonts.\nA value of nil means don't allow any scalable fonts.\nA value of t means allow any scalable font.\nOtherwise, value must be a list of regular expressions.  A font may be\nscaled if its name matches a regular expression in the list.\nNote that if value is nil, a scalable font might still be used, if no\nother font of the appropriate family and registry is available.");
-  Vscalable_fonts_allowed = Qnil ();
+  (*Vscalable_fonts_allowed.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"face-ignored-fonts", Vface_ignored_fonts,
 	       "List of ignored fonts.\nEach element is a regular expression that matches names of fonts to\nignore.");
   /* C's `HAVE_XFT` and `HAVE_OTF_KANNADA_BUG` arms are dead.  */
-  Vface_ignored_fonts = Qnil ();
+  (*Vface_ignored_fonts.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"face-remapping-alist", Vface_remapping_alist,
 	       " Alist of face remappings.\nEach element is of the form:\n\n   (FACE . REPLACEMENT),\n\nwhich causes display of the face FACE to use REPLACEMENT instead.\nREPLACEMENT is a face specification, i.e. one of the following:\n\n  (1) a face name\n  (2) a property list of attribute/value pairs, or\n  (3) a list in which each element has one of the above forms.\n\nList values for REPLACEMENT are merged to form the final face\nspecification, with earlier entries taking precedence, in the same way\nas with the `face' text property.\n\nFace-name remapping cycles are suppressed; recursive references use\nthe underlying face instead of the remapped face.  So a remapping of\nthe form:\n\n   (FACE EXTRA-FACE... FACE)\n\nor:\n\n   (FACE (FACE-ATTR VAL ...) FACE)\n\ncauses EXTRA-FACE... or (FACE-ATTR VAL ...) to be _merged_ with the\nexisting definition of FACE.  Note that this isn't necessary for the\ndefault face, since every face inherits from the default face.\n\nAn entry in the list can also be a filtered face expression of the\nform:\n\n  (:filtered FILTER FACE-SPECIFICATION)\n\nThis construct applies FACE-SPECIFICATION (which can have any of the\nforms allowed for face specifications generally) only if FILTER\nmatches at the moment Emacs wants to draw text with the combined face.\n\nThe only filters currently defined are NIL (which always matches) and\n(:window PARAMETER VALUE), which matches only in the context of a\nwindow with a parameter EQ-equal to VALUE.\n\nAn entry in the face list can also be nil, which does nothing.\n\nIf `face-remapping-alist' is made buffer-local, the face remapping\ntakes effect only in that buffer.  For instance, the mode my-mode\ncould define a face `my-mode-default', and then in the mode setup\nfunction, do:\n\n   (set (make-local-variable \\='face-remapping-alist)\n        (copy-tree \\='((default my-mode-default)))).\n\nYou probably want to use the face-remap package included in Emacs\ninstead of manipulating face-remapping-alist directly.  Note that many\nof the functions in that package modify the list destructively, so make\nsure you set it to a fresh value (for instance, use `copy-tree' as in\nthe example above) before modifying.\n\nBecause Emacs normally only redraws screen areas when the underlying\nbuffer contents change, you may need to call `redraw-display' after\nchanging this variable for it to take effect.  ");
-  Vface_remapping_alist = Qnil ();
+  (*Vface_remapping_alist.as_mut_ptr ()) = Qnil ();
   DEFSYM! (Qface_remapping_alist,"face-remapping-alist");
 
   DEFVAR_LISP! (c"face-font-rescale-alist", Vface_font_rescale_alist,
 	       " Alist of fonts vs the rescaling factors.\nEach element is a cons (FONT-PATTERN . RESCALE-RATIO), where\nFONT-PATTERN is a font-spec or a regular expression matching a font name, and\nRESCALE-RATIO is a floating point number to specify how much larger\n(or smaller) font we should use.  For instance, if a face requests\na font of 10 point, we actually use a font of 10 * RESCALE-RATIO point.  ");
-  Vface_font_rescale_alist = Qnil ();
+  (*Vface_font_rescale_alist.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_INT! (c"face-near-same-color-threshold", face_near_same_color_threshold,
 	      "Threshold for using distant-foreground color instead of foreground.\n\nThe value should be an integer number providing the minimum distance\nbetween two colors that will still qualify them to be used as foreground\nand background.  If the value of `color-distance', invoked with a nil\nMETRIC argument, for the foreground and background colors of a face is\nless than this threshold, the distant-foreground color, if defined,\nwill be used for the face instead of the foreground color.\n\nLisp programs that change the value of this variable should also\nclear the face cache, see `clear-face-cache'.");
-  face_near_same_color_threshold = 30000;
+  (*face_near_same_color_threshold.as_mut_ptr ()) = 30000;
 
   DEFVAR_LISP! (c"face-font-lax-matched-attributes",
 	       Vface_font_lax_matched_attributes,
 	       "Whether to match some face attributes in lax manner when realizing faces.\n\nIf non-nil, some font-related face attributes will be matched in a lax\nmanner when looking for candidate fonts.\nIf the value is t, the default, the search for fonts will not insist\non exact match for 3 font attributes: weight, width, and slant.\nInstead, it will examine the available fonts with various values of\nthese attributes, and select the font that is the closest possible\nmatch.  (If an exact match is available, it will still be selected,\nas that is the closest match.)  For example, looking for a semi-bold\nfont might select a bold or a medium-weight font if no semi-bold font\nmatching other attributes can be found.  This is especially important\nwhen the `default' face specifies unusual values for one or more of\nthese 3 attributes, which other installed fonts don't support.\n\nThe value can also be a list of font-related face attribute symbols;\nsee `set-face-attribute' for the full list of attributes.  Then the\ncorresponding face attributes will be treated as \"soft\" constraints\nin the manner described above, instead of the default 3 attributes.\n\nIf the value is nil, candidate fonts might be rejected if the don't\nhave exactly the same values of attributes as the face requests.\n\nThis variable exists for debugging of the font-selection process,\nand we advise not to change it otherwise.");
-  Vface_font_lax_matched_attributes = Qt ();
+  (*Vface_font_lax_matched_attributes.as_mut_ptr ()) = Qt ();
 
   /* C's `HAVE_WINDOW_SYSTEM` registrations (`Sbitmap_spec_p`, `Sx_list_fonts`,
      `Sinternal_face_x_get_resource`, `Sx_family_fonts`) are dead.  */
-  defsubr (&raw mut Scolor_values_from_color_spec);
+  defsubr (Scolor_values_from_color_spec.as_mut_ptr ());
 
   }
 }
@@ -6713,25 +6712,25 @@ pub unsafe extern "C-unwind" fn syms_of_xfaces ()
    names as declarations, so the unit that owns one defines it here (docs/status.md 3.29,
    the casetab.rs/term.rs shape).  */
 #[unsafe(no_mangle)]
-pub static mut Vface_new_frame_defaults: Lisp_Object = lisp_h_Qnil ();
+pub static Vface_new_frame_defaults: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vface_default_stipple: Lisp_Object = lisp_h_Qnil ();
+pub static Vface_default_stipple: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vtty_defined_color_alist: Lisp_Object = lisp_h_Qnil ();
+pub static Vtty_defined_color_alist: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vscalable_fonts_allowed: Lisp_Object = lisp_h_Qnil ();
+pub static Vscalable_fonts_allowed: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vface_ignored_fonts: Lisp_Object = lisp_h_Qnil ();
+pub static Vface_ignored_fonts: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vface_remapping_alist: Lisp_Object = lisp_h_Qnil ();
+pub static Vface_remapping_alist: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vface_font_rescale_alist: Lisp_Object = lisp_h_Qnil ();
+pub static Vface_font_rescale_alist: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vface_font_lax_matched_attributes: Lisp_Object = lisp_h_Qnil ();
+pub static Vface_font_lax_matched_attributes: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut face_filters_always_match: bool = false;
+pub static face_filters_always_match: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut face_near_same_color_threshold: EMACS_INT = 0;
+pub static face_near_same_color_threshold: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);
 
 /* `struct face` on Android: NDK-measured 296 with these offsets (docs/ports/layout-gaps.md,
    status 4.813).  The 15 assertions above use `FACE_WS_SHIFT`, which only travels with

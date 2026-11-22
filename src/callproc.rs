@@ -279,7 +279,7 @@ const DIRECTORY_SEP: c_char = b'/' as c_char;
 #[inline(always)] fn IS_DIRECTORY_SEP (_c_: c_char) -> bool { _c_ == DIRECTORY_SEP }
 
 /* Pattern used by call-process-region to make temp files.  */
-static mut Vtemp_file_name_pattern: Lisp_Object = lisp_h_Qnil ();
+static Vtemp_file_name_pattern: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* The next two variables are used while record-unwind-protect is in place
    during call-process for a subprocess for which record_deleted_pid has
@@ -292,11 +292,11 @@ static mut Vtemp_file_name_pattern: Lisp_Object = lisp_h_Qnil ();
    code is never invoked reentrantly.  */
 
 /* If nonzero, a process-ID that has not been reaped.  */
-static mut synch_process_pid: pid_t = 0;
+static synch_process_pid: VmGlobal<pid_t> = VmGlobal::<pid_t>::new (0);
 
 /* If a string, the name of a temp file that has not been removed.  */
 #[cfg (feature = "msdos")]
-static mut synch_process_tempfile: Lisp_Object = lisp_h_Qnil ();
+static synch_process_tempfile: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 /// C 119-120: `#else # define synch_process_tempfile make_fixnum (0)` — the non-MSDOS arm,
 /// P-17's shape (a value-like macro is a same-named inline fn).
 #[inline(always)]
@@ -416,14 +416,14 @@ unsafe extern "C-unwind" fn call_process_kill (ptr: *mut c_void)
 	i += 1;
       } }
 
-  if synch_process_pid != 0
+  if (*synch_process_pid.as_mut_ptr ()) != 0
     {
       // PORTING.md 1.5: C declares `struct Lisp_Process proc;` uninitialized.
       let mut proc: Lisp_Process = std::mem::zeroed ();
       proc.bits2 |= 1 << PROCESS_ALIVE_SHIFT;   /* C: `proc.alive = 1;` */
-      proc.pid = synch_process_pid;
+      proc.pid = (*synch_process_pid.as_mut_ptr ());
       record_kill_process (&raw mut proc, synch_process_tempfile ());
-      synch_process_pid = 0;
+      (*synch_process_pid.as_mut_ptr ()) = 0;
     }
   else if STRINGP (synch_process_tempfile ())
     { delete_temp_file (synch_process_tempfile ()); }
@@ -440,14 +440,14 @@ unsafe extern "C-unwind" fn call_process_cleanup (buffer: Lisp_Object)
   unsafe {
   Fset_buffer (buffer);
 
-  if synch_process_pid != 0
+  if (*synch_process_pid.as_mut_ptr ()) != 0
     {
-      kill (- synch_process_pid, SIGINT);
+      kill (- (*synch_process_pid.as_mut_ptr ()), SIGINT);
       message1 (c"Waiting for process to die...(type C-g again to kill it instantly)".as_ptr ());
 
       /* This will quit on C-g.  */
-      let wait_ok: bool = wait_for_termination (synch_process_pid, std::ptr::null_mut (), true);
-      synch_process_pid = 0;
+      let wait_ok: bool = wait_for_termination ((*synch_process_pid.as_mut_ptr ()), std::ptr::null_mut (), true);
+      (*synch_process_pid.as_mut_ptr ()) = 0;
       message1 ((if wait_ok
 		 { c"Waiting for process to die...done" }
 		 else
@@ -542,7 +542,7 @@ unsafe fn call_process (nargs: ptrdiff_t, args: *mut Lisp_Object, filefd: c_int,
   let mut coding_systems: Lisp_Object;
   let discard_output: bool;
 
-  if synch_process_pid != 0
+  if (*synch_process_pid.as_mut_ptr ()) != 0
     { error (c"call-process invoked recursively".as_ptr ()); }
 
   /* Qt denotes that Ffind_operation_coding_system is not yet called.  */
@@ -585,8 +585,8 @@ unsafe fn call_process (nargs: ptrdiff_t, args: *mut Lisp_Object, filefd: c_int,
 	      i += 1;
 	    } }
 
-	if ! NILP (Vcoding_system_for_write)
-	  { val = Vcoding_system_for_write; }
+	if ! NILP ((*Vcoding_system_for_write.as_mut_ptr ()))
+	  { val = (*Vcoding_system_for_write.as_mut_ptr ()); }
 	else if ! must_encode
 	  { val = Qraw_text (); }
 	else
@@ -682,7 +682,7 @@ unsafe fn call_process (nargs: ptrdiff_t, args: *mut Lisp_Object, filefd: c_int,
     { callproc_fd[i as usize] = -1; i += 1; }
   /* C 514-516's `#ifdef MSDOS` arm.  */
   #[cfg (feature = "msdos")]
-  { synch_process_tempfile = make_fixnum (0); }
+  { (*synch_process_tempfile.as_mut_ptr ()) = make_fixnum (0); }
   record_unwind_protect_ptr (Some (call_process_kill),
 			     callproc_fd.as_mut_ptr () as *mut c_void);
 
@@ -690,7 +690,7 @@ unsafe fn call_process (nargs: ptrdiff_t, args: *mut Lisp_Object, filefd: c_int,
   {
     let ok: c_int;
 
-    ok = openp (Vexec_path, *args, Fdefault_value (Qexec_suffixes ()), &raw mut path,
+    ok = openp ((*Vexec_path.as_mut_ptr ()), *args, Fdefault_value (Qexec_suffixes ()), &raw mut path,
 		make_fixnum (X_OK as EMACS_INT), false, false, std::ptr::null_mut ());
     if ok < 0
       { report_file_error (c"Searching for program".as_ptr (), *args); }
@@ -751,7 +751,7 @@ unsafe fn call_process (nargs: ptrdiff_t, args: *mut Lisp_Object, filefd: c_int,
 	if *tempfile == 0
 	  { report_file_error (c"Opening process output file".as_ptr (), Qnil ()); }
 	output_file = build_string (tempfile);
-	synch_process_tempfile = output_file;
+	(*synch_process_tempfile.as_mut_ptr ()) = output_file;
       }
   }
 
@@ -821,7 +821,7 @@ unsafe fn call_process (nargs: ptrdiff_t, args: *mut Lisp_Object, filefd: c_int,
 	unbind_to (count, Qnil ());
 	synchronize_system_messages_locale ();
 	return code_convert_string_norecord (build_string (strerror (child_errno)),
-					     Vlocale_coding_system, false);
+					     (*Vlocale_coding_system.as_mut_ptr ()), false);
       }
 
     { let mut i: c_int = 0;
@@ -870,7 +870,7 @@ unsafe fn call_process (nargs: ptrdiff_t, args: *mut Lisp_Object, filefd: c_int,
 
   if pid > 0
     {
-      synch_process_pid = pid;
+      (*synch_process_pid.as_mut_ptr ()) = pid;
 
       if FIXNUMP (buffer)
 	{
@@ -882,7 +882,7 @@ unsafe fn call_process (nargs: ptrdiff_t, args: *mut Lisp_Object, filefd: c_int,
 	      record_deleted_pid (pid, *args.offset (1));
 	      clear_unwind_protect (tempfile_index);
 	    }
-	  synch_process_pid = 0;
+	  (*synch_process_pid.as_mut_ptr ()) = 0;
 	}
     }
 
@@ -923,8 +923,8 @@ unsafe fn call_process (nargs: ptrdiff_t, args: *mut Lisp_Object, filefd: c_int,
       let mut args2: *mut Lisp_Object = std::ptr::null_mut ();
 
       val = Qnil ();
-      if ! NILP (Vcoding_system_for_read)
-	{ val = Vcoding_system_for_read; }
+      if ! NILP ((*Vcoding_system_for_read.as_mut_ptr ()))
+	{ val = (*Vcoding_system_for_read.as_mut_ptr ()); }
       else
 	{
 	  if EQ (coding_systems, Qt ())
@@ -940,8 +940,8 @@ unsafe fn call_process (nargs: ptrdiff_t, args: *mut Lisp_Object, filefd: c_int,
 	    }
 	  if CONSP (coding_systems)
 	    { val = XCAR (coding_systems); }
-	  else if CONSP (Vdefault_process_coding_system)
-	    { val = XCAR (Vdefault_process_coding_system); }
+	  else if CONSP ((*Vdefault_process_coding_system.as_mut_ptr ()))
+	    { val = XCAR ((*Vdefault_process_coding_system.as_mut_ptr ())); }
 	  else
 	    { val = Qnil (); }
 	}
@@ -1123,10 +1123,10 @@ unsafe fn call_process (nargs: ptrdiff_t, args: *mut Lisp_Object, filefd: c_int,
 	}
       /* give_up: ; */
 
-      Vlast_coding_system_used = CODING_ID_NAME (process_coding.id as hash_idx_t);
+      (*Vlast_coding_system_used.as_mut_ptr ()) = CODING_ID_NAME (process_coding.id as hash_idx_t);
       /* If the caller required, let the buffer inherit the
 	 coding-system used to decode the process output.  */
-      if inherit_process_coding_system
+      if (*inherit_process_coding_system.as_mut_ptr ())
 	{ calln! (Qafter_insert_file_set_buffer_file_coding_system (),
 		  make_fixnum (total_read)); }
     }
@@ -1137,7 +1137,7 @@ unsafe fn call_process (nargs: ptrdiff_t, args: *mut Lisp_Object, filefd: c_int,
 
   /* Don't kill any children that the subprocess may have left behind
      when exiting.  */
-  synch_process_pid = 0;
+  (*synch_process_pid.as_mut_ptr ()) = 0;
 
   SAFE_FREE_UNBIND_TO! (sa_count, count, Qnil (), sa_mark);
 
@@ -1155,7 +1155,7 @@ unsafe fn call_process (nargs: ptrdiff_t, args: *mut Lisp_Object, filefd: c_int,
 	{ signame = c"unknown".as_ptr (); }
 
       return code_convert_string_norecord (build_string (signame),
-					   Vlocale_coding_system, false);
+					   (*Vlocale_coding_system.as_mut_ptr ()), false);
     }
 
   eassert! (WIFEXITED (status));
@@ -1184,8 +1184,8 @@ unsafe fn create_temp_file (nargs: ptrdiff_t, args: *mut Lisp_Object,
   let mut tmpdir: Lisp_Object;
   let mut outf: *const c_char;
 
-  if STRINGP (Vtemporary_file_directory)
-    { tmpdir = Vtemporary_file_directory; }
+  if STRINGP ((*Vtemporary_file_directory.as_mut_ptr ()))
+    { tmpdir = (*Vtemporary_file_directory.as_mut_ptr ()); }
   else
     {
       outf = getenv (c"TMPDIR".as_ptr ());
@@ -1203,7 +1203,7 @@ unsafe fn create_temp_file (nargs: ptrdiff_t, args: *mut Lisp_Object,
   }
 
   {
-    let mut pattern: Lisp_Object = Fexpand_file_name (Vtemp_file_name_pattern, tmpdir);
+    let mut pattern: Lisp_Object = Fexpand_file_name ((*Vtemp_file_name_pattern.as_mut_ptr ()), tmpdir);
     let tempfile: *mut c_char;
 
     /* C 992-1005's `#ifdef WINDOWSNT` arm.  */
@@ -1212,14 +1212,14 @@ unsafe fn create_temp_file (nargs: ptrdiff_t, args: *mut Lisp_Object,
       /* Cannot use the result of Fexpand_file_name, because it
 	 downcases the XXXXXX part of the pattern, and mktemp then
 	 doesn't recognize it.  */
-      if ! NILP (Vw32_downcase_file_names)
+      if ! NILP ((*Vw32_downcase_file_names.as_mut_ptr ()))
 	{
 	  let dirname: Lisp_Object = Ffile_name_directory (pattern);
 
 	  if NILP (dirname)
-	    { pattern = Vtemp_file_name_pattern; }
+	    { pattern = (*Vtemp_file_name_pattern.as_mut_ptr ()); }
 	  else
-	    { pattern = concat2 (dirname, Vtemp_file_name_pattern); }
+	    { pattern = concat2 (dirname, (*Vtemp_file_name_pattern.as_mut_ptr ())); }
 	}
     }
 
@@ -1239,8 +1239,8 @@ unsafe fn create_temp_file (nargs: ptrdiff_t, args: *mut Lisp_Object,
   start = *args;
   end = *args.offset (1);
   /* Decide coding-system of the contents of the temporary file.  */
-  if ! NILP (Vcoding_system_for_write)
-    { val = Vcoding_system_for_write; }
+  if ! NILP ((*Vcoding_system_for_write.as_mut_ptr ()))
+    { val = (*Vcoding_system_for_write.as_mut_ptr ()); }
   else if NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
     { val = Qraw_text (); }
   else
@@ -1499,7 +1499,7 @@ unsafe fn child_setup (in_: c_int, out: c_int, err: c_int, new_argv: *mut *mut c
      enabled does it look at any of them.  */
   let pg_result: c_int;
   let tty_result: c_int;
-  if SPAWN_DIAGNOSTIC_FD >= 0
+  if (*SPAWN_DIAGNOSTIC_FD.as_mut_ptr ()) >= 0
     {
       pg_result = setpgid (0, 0);
       let pg_error: c_int = if pg_result < 0 { *errno () } else { 0 };
@@ -1684,7 +1684,7 @@ unsafe fn emacs_posix_spawn_init_attributes (attributes: *mut posix_spawnattr_t,
    only carries the current call's descriptor to the forked child and is
    restored to the caller's value afterwards, so a nested spawn cannot lose
    the outer channel.  */
-static mut SPAWN_DIAGNOSTIC_FD: c_int = -1;
+static SPAWN_DIAGNOSTIC_FD: VmGlobal<c_int> = VmGlobal::<c_int>::new (-1);
 
 /// C: the parent-side branch that actually ran, so "no child line" is
 /// distinguishable from "the child path was never taken".
@@ -1776,7 +1776,7 @@ unsafe fn child_diagnostic_group_setup (pid: pid_t, setpgid_result: c_int,
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  let fd: c_int = SPAWN_DIAGNOSTIC_FD;
+  let fd: c_int = (*SPAWN_DIAGNOSTIC_FD.as_mut_ptr ());
   if fd < 0 { return; }
   let saved_errno: c_int = *errno ();
   spawn_diagnostic_write (fd, b"spawn-group", &[
@@ -1901,8 +1901,8 @@ pub unsafe extern "C-unwind" fn emacs_spawn (mut newpid: *mut pid_t, mut std_in:
 
   /* The forked child reads the channel through this static; the caller's
      value is put back after the fork so nested spawns cannot lose it.  */
-  let outer_diagnostic_fd: c_int = SPAWN_DIAGNOSTIC_FD;
-  SPAWN_DIAGNOSTIC_FD = diagnostic_fd;
+  let outer_diagnostic_fd: c_int = (*SPAWN_DIAGNOSTIC_FD.as_mut_ptr ());
+  (*SPAWN_DIAGNOSTIC_FD.as_mut_ptr ()) = diagnostic_fd;
 
   'fork_done: loop
     {
@@ -2074,7 +2074,7 @@ pub unsafe extern "C-unwind" fn emacs_spawn (mut newpid: *mut pid_t, mut std_in:
       break 'fork_done;
     }
 
-  SPAWN_DIAGNOSTIC_FD = outer_diagnostic_fd;
+  (*SPAWN_DIAGNOSTIC_FD.as_mut_ptr ()) = outer_diagnostic_fd;
 
   /* Record which branch actually ran, so an empty log is never mistaken for a
      successful measurement.  The parent writes this line, never the child.  */
@@ -2163,7 +2163,7 @@ unsafe fn getenv_internal (var: *const c_char, varlen: ptrdiff_t,
   unsafe {
   /* Try to find VAR in Vprocess_environment first.  */
   if getenv_internal_1 (var, varlen, value, valuelen,
-			Vprocess_environment)
+			(*Vprocess_environment.as_mut_ptr ()))
     { return ! (*value).is_null (); }
 
   /* C 1726-1735's `#ifdef WINDOWSNT` arm: on that target we make some modifications to
@@ -2188,7 +2188,7 @@ unsafe fn getenv_internal (var: *const c_char, varlen: ptrdiff_t,
     {
       /* C 1745-1754's `#ifndef HAVE_PGTK` arm (live: HAVE_PGTK is undefined).  */
       let display: Lisp_Object
-	= Fframe_parameter (if NILP (frame) { selected_frame } else { frame }, Qdisplay ());
+	= Fframe_parameter (if NILP (frame) { (*selected_frame.as_mut_ptr ()) } else { frame }, Qdisplay ());
       if STRINGP (display)
 	{
 	  *value    = SSDATA (display);
@@ -2197,7 +2197,7 @@ unsafe fn getenv_internal (var: *const c_char, varlen: ptrdiff_t,
 	}
       /* If still not found, Look for DISPLAY in Vinitial_environment.  */
       if getenv_internal_1 (var, varlen, value, valuelen,
-			    Vinitial_environment)
+			    (*Vinitial_environment.as_mut_ptr ()))
 	{ return ! (*value).is_null (); }
     }
 
@@ -2301,7 +2301,7 @@ pub unsafe extern "C-unwind" fn make_environment_block (current_dir: Lisp_Object
 
     new_length = 0;
 
-    tem = Vprocess_environment;
+    tem = (*Vprocess_environment.as_mut_ptr ());
     while CONSP (tem) && STRINGP (XCAR (tem))
       {
 	/* C 1863-1869's `#ifndef HAVE_ANDROID` arm (live).  */
@@ -2321,7 +2321,7 @@ pub unsafe extern "C-unwind" fn make_environment_block (current_dir: Lisp_Object
     /* If not provided yet, use the frame's DISPLAY.  */
     if NILP (display)
       {
-	let mut tmp: Lisp_Object = Fframe_parameter (selected_frame, Qdisplay ());
+	let mut tmp: Lisp_Object = Fframe_parameter ((*selected_frame.as_mut_ptr ()), Qdisplay ());
 
 	/* C 1882-1890's `#ifdef HAVE_PGTK` arm.  */
 	#[cfg (feature = "have_pgtk")]
@@ -2336,10 +2336,10 @@ pub unsafe extern "C-unwind" fn make_environment_block (current_dir: Lisp_Object
 	    { tmp = Qnil (); }
 	}
 
-	if ! STRINGP (tmp) && CONSP (Vinitial_environment)
+	if ! STRINGP (tmp) && CONSP ((*Vinitial_environment.as_mut_ptr ()))
 	  /* If still not found, Look for DISPLAY in Vinitial_environment.  */
 	  { tmp = Fgetenv_internal (build_string (c"DISPLAY".as_ptr ()),
-				    Vinitial_environment); }
+				    (*Vinitial_environment.as_mut_ptr ())); }
 	if STRINGP (tmp)
 	  {
 	    display = tmp;
@@ -2369,7 +2369,7 @@ pub unsafe extern "C-unwind" fn make_environment_block (current_dir: Lisp_Object
       }
 
     /* Overrides.  */
-    tem = Vprocess_environment;
+    tem = (*Vprocess_environment.as_mut_ptr ());
     while CONSP (tem) && STRINGP (XCAR (tem))
       {
 	new_env = add_env (env, new_env, SSDATA (XCAR (tem)));
@@ -2404,19 +2404,19 @@ pub unsafe extern "C-unwind" fn init_callproc_1 ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  Vdata_directory = decode_env_path (c"EMACSDATA".as_ptr (), PATH_DATA (), false);
-  Vdata_directory = Ffile_name_as_directory (Fcar (Vdata_directory));
+  (*Vdata_directory.as_mut_ptr ()) = decode_env_path (c"EMACSDATA".as_ptr (), PATH_DATA (), false);
+  (*Vdata_directory.as_mut_ptr ()) = Ffile_name_as_directory (Fcar ((*Vdata_directory.as_mut_ptr ())));
 
-  Vdoc_directory = decode_env_path (c"EMACSDOC".as_ptr (), PATH_DOC (), false);
-  Vdoc_directory = Ffile_name_as_directory (Fcar (Vdoc_directory));
+  (*Vdoc_directory.as_mut_ptr ()) = decode_env_path (c"EMACSDOC".as_ptr (), PATH_DOC (), false);
+  (*Vdoc_directory.as_mut_ptr ()) = Ffile_name_as_directory (Fcar ((*Vdoc_directory.as_mut_ptr ())));
 
   /* Check the EMACSPATH environment variable, defaulting to the
      PATH_EXEC path from epaths.h.  */
-  Vexec_path = decode_env_path (c"EMACSPATH".as_ptr (), PATH_EXEC (), false);
-  Vexec_directory = Ffile_name_as_directory (Fcar (Vexec_path));
+  (*Vexec_path.as_mut_ptr ()) = decode_env_path (c"EMACSPATH".as_ptr (), PATH_EXEC (), false);
+  (*Vexec_directory.as_mut_ptr ()) = Ffile_name_as_directory (Fcar ((*Vexec_path.as_mut_ptr ())));
   /* FIXME?  For ns, path_exec should go at the front?  */
-  Vexec_path = nconc2 (decode_env_path (c"PATH".as_ptr (), std::ptr::null (), false),
-		       Vexec_path);
+  (*Vexec_path.as_mut_ptr ()) = nconc2 (decode_env_path (c"PATH".as_ptr (), std::ptr::null (), false),
+		       (*Vexec_path.as_mut_ptr ()));
 
   }
 }
@@ -2434,30 +2434,30 @@ pub unsafe extern "C-unwind" fn init_callproc ()
   /* PORTING.md 1.5: C declares TEMPDIR uninitialized; it is assigned twice below.  */
   let mut tempdir: Lisp_Object = Qnil ();
 
-  if ! NILP (Vinstallation_directory)
+  if ! NILP ((*Vinstallation_directory.as_mut_ptr ()))
     {
       /* Add to the path the lib-src subdir of the installation dir.  */
       let mut tem: Lisp_Object;
       tem = Fexpand_file_name (build_string (c"lib-src".as_ptr ()),
-			       Vinstallation_directory);
+			       (*Vinstallation_directory.as_mut_ptr ()));
       /* C 1982-1992's `#ifndef MSDOS` arm (live).
 	 MSDOS uses wrapped binaries, so don't do this.  */
-      if NILP (Fmember (tem, Vexec_path))
+      if NILP (Fmember (tem, (*Vexec_path.as_mut_ptr ())))
 	{
 	  /* Running uninstalled, so default to tem rather than PATH_EXEC.  */
-	  Vexec_path = decode_env_path (c"EMACSPATH".as_ptr (), SSDATA (tem), false);
-	  Vexec_path = nconc2 (decode_env_path (c"PATH".as_ptr (), std::ptr::null (), false),
-			       Vexec_path);
+	  (*Vexec_path.as_mut_ptr ()) = decode_env_path (c"EMACSPATH".as_ptr (), SSDATA (tem), false);
+	  (*Vexec_path.as_mut_ptr ()) = nconc2 (decode_env_path (c"PATH".as_ptr (), std::ptr::null (), false),
+			       (*Vexec_path.as_mut_ptr ()));
 	}
 
-      Vexec_directory = Ffile_name_as_directory (tem);
+      (*Vexec_directory.as_mut_ptr ()) = Ffile_name_as_directory (tem);
 
       /* Maybe use ../etc as well as ../lib-src.  */
       if ! data_dir
 	{
 	  tem = Fexpand_file_name (build_string (c"etc".as_ptr ()),
-				   Vinstallation_directory);
-	  Vdoc_directory = Ffile_name_as_directory (tem);
+				   (*Vinstallation_directory.as_mut_ptr ()));
+	  (*Vdoc_directory.as_mut_ptr ()) = Ffile_name_as_directory (tem);
 	}
     }
 
@@ -2480,40 +2480,40 @@ pub unsafe extern "C-unwind" fn init_callproc ()
       AUTO_STRING! (news_in_data_dir, c"NEWS".as_ptr ());
       AUTO_STRING! (etc_rel, c"../etc/".as_ptr ());
       AUTO_STRING! (news_in_newdir, c"NEWS".as_ptr ());
-      if ! NILP (Vinstallation_directory)
+      if ! NILP ((*Vinstallation_directory.as_mut_ptr ()))
 	  || ! NILP (Fequal (Fexpand_file_name (src_rel, lispdir),
-			     Vinvocation_directory))
+			     (*Vinvocation_directory.as_mut_ptr ())))
 	  || NILP (Ffile_exists_p (Fexpand_file_name (news_in_data_dir,
-						      Vdata_directory)))
+						      (*Vdata_directory.as_mut_ptr ()))))
 	{
 	  let mut newdir: Lisp_Object;
 	  newdir = Fexpand_file_name (etc_rel, lispdir);
 	  if ! NILP (Ffile_exists_p (Fexpand_file_name (news_in_newdir,
 							newdir)))
-	    { Vdata_directory = newdir; }
+	    { (*Vdata_directory.as_mut_ptr ()) = newdir; }
 	}
     }
 
   if ! will_dump_p ()
     {
-      tempdir = Fdirectory_file_name (Vexec_directory);
+      tempdir = Fdirectory_file_name ((*Vexec_directory.as_mut_ptr ()));
       if ! file_accessible_directory_p (tempdir)
-	{ dir_warning (c"arch-dependent data dir".as_ptr (), Vexec_directory); }
+	{ dir_warning (c"arch-dependent data dir".as_ptr (), (*Vexec_directory.as_mut_ptr ())); }
     }
 
-  tempdir = Fdirectory_file_name (Vdata_directory);
+  tempdir = Fdirectory_file_name ((*Vdata_directory.as_mut_ptr ()));
   if ! file_accessible_directory_p (tempdir)
-    { dir_warning (c"arch-independent data dir".as_ptr (), Vdata_directory); }
+    { dir_warning (c"arch-independent data dir".as_ptr (), (*Vdata_directory.as_mut_ptr ())); }
 
   sh = getenv (c"SHELL".as_ptr ());
   /* C 2039-2043's `#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY` arm.  */
   #[cfg (feature = "have_android")]
   {
     /* The Android shell is found under /system/bin, not /bin.  */
-    Vshell_file_name = build_string (if ! sh.is_null () { sh } else { c"/system/bin/sh".as_ptr () });
+    (*Vshell_file_name.as_mut_ptr ()) = build_string (if ! sh.is_null () { sh } else { c"/system/bin/sh".as_ptr () });
   }
   #[cfg (not (feature = "have_android"))]
-  { Vshell_file_name = build_string (if ! sh.is_null () { sh } else { c"/bin/sh".as_ptr () }); }
+  { (*Vshell_file_name.as_mut_ptr ()) = build_string (if ! sh.is_null () { sh } else { c"/bin/sh".as_ptr () }); }
 
   let mut gamedir: Lisp_Object = Qnil ();
   if ! PATH_GAME ().is_null ()
@@ -2540,7 +2540,7 @@ pub unsafe extern "C-unwind" fn init_callproc ()
 		  }
 	{ dir_warning (c"game dir".as_ptr (), path_game); }
     }
-  Vshared_game_score_directory = gamedir;
+  (*Vshared_game_score_directory.as_mut_ptr ()) = gamedir;
 
   }
 }
@@ -2552,16 +2552,16 @@ pub unsafe extern "C-unwind" fn set_initial_environment ()
   unsafe {
   /* PORTING.md 1.5: C declares ENVP uninitialized; the loop assigns it first.  */
   let mut envp: *mut *mut c_char = std::ptr::null_mut ();
-  envp = environ;
+  envp = (*environ.as_mut_ptr ());
   while ! (*envp).is_null ()
     {
-      Vprocess_environment = Fcons (build_string (*envp),
-				    Vprocess_environment);
+      (*Vprocess_environment.as_mut_ptr ()) = Fcons (build_string (*envp),
+				    (*Vprocess_environment.as_mut_ptr ()));
       envp = envp.offset (1);
     }
   /* Ideally, the `copy' shouldn't be necessary, but it seems it's frequent
      to use `delete' and friends on process-environment.  */
-  Vinitial_environment = Fcopy_sequence (Vprocess_environment);
+  (*Vinitial_environment.as_mut_ptr ()) = Fcopy_sequence ((*Vprocess_environment.as_mut_ptr ()));
 
   }
 }
@@ -2570,41 +2570,41 @@ pub unsafe extern "C-unwind" fn set_initial_environment ()
    port's `include/globals.rs` mirrors the names as declarations, so the unit that owns one
    defines it here (status section 3.29, the casetab.rs shape).  */
 #[unsafe(no_mangle)]
-pub static mut Vshell_file_name: Lisp_Object = lisp_h_Qnil ();
+pub static Vshell_file_name: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vexec_path: Lisp_Object = lisp_h_Qnil ();
+pub static Vexec_path: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vexec_suffixes: Lisp_Object = lisp_h_Qnil ();
+pub static Vexec_suffixes: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vexec_directory: Lisp_Object = lisp_h_Qnil ();
+pub static Vexec_directory: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vdata_directory: Lisp_Object = lisp_h_Qnil ();
+pub static Vdata_directory: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vdoc_directory: Lisp_Object = lisp_h_Qnil ();
+pub static Vdoc_directory: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vconfigure_info_directory: Lisp_Object = lisp_h_Qnil ();
+pub static Vconfigure_info_directory: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vshared_game_score_directory: Lisp_Object = lisp_h_Qnil ();
+pub static Vshared_game_score_directory: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vinitial_environment: Lisp_Object = lisp_h_Qnil ();
+pub static Vinitial_environment: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vprocess_environment: Lisp_Object = lisp_h_Qnil ();
+pub static Vprocess_environment: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vctags_program_name: Lisp_Object = lisp_h_Qnil ();
+pub static Vctags_program_name: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vetags_program_name: Lisp_Object = lisp_h_Qnil ();
+pub static Vetags_program_name: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vhexl_program_name: Lisp_Object = lisp_h_Qnil ();
+pub static Vhexl_program_name: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vemacsclient_program_name: Lisp_Object = lisp_h_Qnil ();
+pub static Vemacsclient_program_name: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vmovemail_program_name: Lisp_Object = lisp_h_Qnil ();
+pub static Vmovemail_program_name: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vebrowse_program_name: Lisp_Object = lisp_h_Qnil ();
+pub static Vebrowse_program_name: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vrcs2log_program_name: Lisp_Object = lisp_h_Qnil ();
+pub static Vrcs2log_program_name: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut command_line_max_length: EMACS_INT = 0;
+pub static command_line_max_length: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_callproc ()
@@ -2612,16 +2612,16 @@ pub unsafe extern "C-unwind" fn syms_of_callproc ()
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
   /* C 2084-2088's `#ifndef DOS_NT` arm (live: DOS_NT is undefined).  */
-  Vtemp_file_name_pattern = build_string (c"emacsXXXXXX".as_ptr ());
+  (*Vtemp_file_name_pattern.as_mut_ptr ()) = build_string (c"emacsXXXXXX".as_ptr ());
   #[cfg (feature = "dos_nt")]
-  { Vtemp_file_name_pattern = build_string (c"emXXXXXX".as_ptr ()); }
-  staticpro (&raw const Vtemp_file_name_pattern);
+  { (*Vtemp_file_name_pattern.as_mut_ptr ()) = build_string (c"emXXXXXX".as_ptr ()); }
+  staticpro (Vtemp_file_name_pattern.as_ptr ());
 
   /* C 2091-2094's `#ifdef MSDOS` arm.  */
   #[cfg (feature = "msdos")]
   {
-    synch_process_tempfile = make_fixnum (0);
-    staticpro (&raw const synch_process_tempfile);
+    (*synch_process_tempfile.as_mut_ptr ()) = make_fixnum (0);
+    staticpro (synch_process_tempfile.as_ptr ());
   }
 
   DEFVAR_LISP! (c"shell-file-name", Vshell_file_name,
@@ -2632,7 +2632,7 @@ pub unsafe extern "C-unwind" fn syms_of_callproc ()
 
   DEFVAR_LISP! (c"exec-suffixes", Vexec_suffixes,
 	       "List of suffixes to try to find executable file names.\nEach element is a string.");
-  Vexec_suffixes = Qnil ();
+  (*Vexec_suffixes.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"exec-directory", Vexec_directory,
 	       "Directory for executables for Emacs to invoke.\nMore generally, this includes any architecture-dependent files\nthat are built and installed from the Emacs distribution.");
@@ -2645,77 +2645,77 @@ pub unsafe extern "C-unwind" fn syms_of_callproc ()
 
   DEFVAR_LISP! (c"configure-info-directory", Vconfigure_info_directory,
 	       "For internal use by the build procedure only.\nThis is the name of the directory in which the build procedure installed\nEmacs's info files; the default value for `Info-default-directory-list'\nincludes this.");
-  Vconfigure_info_directory = build_string (PATH_INFO ());
+  (*Vconfigure_info_directory.as_mut_ptr ()) = build_string (PATH_INFO ());
 
   DEFVAR_LISP! (c"shared-game-score-directory", Vshared_game_score_directory,
 	       " Directory of score files for games which come with GNU Emacs.\nIf this variable is nil, then Emacs is unable to use a shared directory.  ");
 
   DEFVAR_LISP! (c"initial-environment", Vinitial_environment,
 	       "List of environment variables inherited from the parent process.\nEach element should be a string of the form ENVVARNAME=VALUE.\nThe elements must normally be decoded (using `locale-coding-system') for use.");
-  Vinitial_environment = Qnil ();
+  (*Vinitial_environment.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"process-environment", Vprocess_environment,
 	       "List of overridden environment variables for subprocesses to inherit.\nEach element should be a string of the form ENVVARNAME=VALUE.\n\nEntries in this list take precedence to those in the frame-local\nenvironments.  Therefore, let-binding `process-environment' is an easy\nway to temporarily change the value of an environment variable,\nirrespective of where it comes from.  To use `process-environment' to\nremove an environment variable, include only its name in the list,\nwithout \"=VALUE\".\n\nThis variable is set to nil when Emacs starts.\n\nIf multiple entries define the same variable, the first one always\ntakes precedence.\n\nNon-ASCII characters are encoded according to the initial value of\n`locale-coding-system', i.e. the elements must normally be decoded for\nuse.\n\nSee `setenv' and `getenv'.");
-  Vprocess_environment = Qnil ();
+  (*Vprocess_environment.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"ctags-program-name", Vctags_program_name,
 	       "Name of the `ctags' program.\nUse this instead of calling `ctags' directly, as `ctags' may have been\nrenamed to comply with executable naming restrictions on the system.");
   /* C 2171: the initialiser the port had dropped (P-178).  */
-  Vctags_program_name = build_string (c"ctags".as_ptr ());
+  (*Vctags_program_name.as_mut_ptr ()) = build_string (c"ctags".as_ptr ());
 
   DEFVAR_LISP! (c"etags-program-name", Vetags_program_name,
 	       "Name of the `etags' program distributed with Emacs.\nUse this instead of calling `etags' directly, as `etags' may have been\nrenamed to comply with executable naming restrictions on the system.");
   /* C 2177-2180 android arm.  */
-  Vetags_program_name = build_string (c"etags".as_ptr ());
+  (*Vetags_program_name.as_mut_ptr ()) = build_string (c"etags".as_ptr ());
   #[cfg (feature = "have_android")]
-  { Vetags_program_name = build_string (c"libetags.so".as_ptr ()); }
+  { (*Vetags_program_name.as_mut_ptr ()) = build_string (c"libetags.so".as_ptr ()); }
 
   DEFVAR_LISP! (c"hexl-program-name", Vhexl_program_name,
 	       "Name of the `hexl' program distributed with Emacs.\nUse this instead of calling `hexl' directly, as `hexl' may have been\nrenamed to comply with executable naming restrictions on the system.");
   /* C 2187-2190 android arm.  */
-  Vhexl_program_name = build_string (c"hexl".as_ptr ());
+  (*Vhexl_program_name.as_mut_ptr ()) = build_string (c"hexl".as_ptr ());
   #[cfg (feature = "have_android")]
-  { Vhexl_program_name = build_string (c"libhexl.so".as_ptr ()); }
+  { (*Vhexl_program_name.as_mut_ptr ()) = build_string (c"libhexl.so".as_ptr ()); }
 
   DEFVAR_LISP! (c"emacsclient-program-name", Vemacsclient_program_name,
 	       "Name of the `emacsclient' program distributed with Emacs.\nUse this instead of calling `emacsclient' directly, as `emacsclient'\nmay have been renamed to comply with executable naming restrictions on\nthe system.");
   /* C 2198-2201 android arm.  */
-  Vemacsclient_program_name = build_string (c"emacsclient".as_ptr ());
+  (*Vemacsclient_program_name.as_mut_ptr ()) = build_string (c"emacsclient".as_ptr ());
   #[cfg (feature = "have_android")]
-  { Vemacsclient_program_name = build_string (c"libemacsclient.so".as_ptr ()); }
+  { (*Vemacsclient_program_name.as_mut_ptr ()) = build_string (c"libemacsclient.so".as_ptr ()); }
 
   DEFVAR_LISP! (c"movemail-program-name", Vmovemail_program_name,
 	       "Name of the `movemail' program distributed with Emacs.\nUse this instead of calling `movemail' directly, as `movemail'\nmay have been renamed to comply with executable naming restrictions on\nthe system.");
   /* C 2211-2215 android arm.  */
-  Vmovemail_program_name = build_string (c"movemail".as_ptr ());
+  (*Vmovemail_program_name.as_mut_ptr ()) = build_string (c"movemail".as_ptr ());
   #[cfg (feature = "have_android")]
-  { Vmovemail_program_name = build_string (c"libmovemail.so".as_ptr ()); }
+  { (*Vmovemail_program_name.as_mut_ptr ()) = build_string (c"libmovemail.so".as_ptr ()); }
 
   DEFVAR_LISP! (c"ebrowse-program-name", Vebrowse_program_name,
 	       "Name of the `ebrowse' program distributed with Emacs.\nUse this instead of calling `ebrowse' directly, as `ebrowse'\nmay have been renamed to comply with executable naming restrictions on\nthe system.");
   /* C 2223-2226 android arm.  */
-  Vebrowse_program_name = build_string (c"ebrowse".as_ptr ());
+  (*Vebrowse_program_name.as_mut_ptr ()) = build_string (c"ebrowse".as_ptr ());
   #[cfg (feature = "have_android")]
-  { Vebrowse_program_name = build_string (c"libebrowse.so".as_ptr ()); }
+  { (*Vebrowse_program_name.as_mut_ptr ()) = build_string (c"libebrowse.so".as_ptr ()); }
 
   DEFVAR_LISP! (c"rcs2log-program-name", Vrcs2log_program_name,
 	       "Name of the `rcs2log' program distributed with Emacs.\nUse this instead of calling `rcs2log' directly, as `rcs2log'\nmay have been renamed to comply with executable naming restrictions on\nthe system.");
   /* C 2234-2237 android arm.  */
-  Vrcs2log_program_name = build_string (c"rcs2log".as_ptr ());
+  (*Vrcs2log_program_name.as_mut_ptr ()) = build_string (c"rcs2log".as_ptr ());
   #[cfg (feature = "have_android")]
-  { Vrcs2log_program_name = build_string (c"librcs2log.so".as_ptr ()); }
+  { (*Vrcs2log_program_name.as_mut_ptr ()) = build_string (c"librcs2log.so".as_ptr ()); }
 
   DEFVAR_INT! (c"command-line-max-length", command_line_max_length,
     "Maximum length of a command and its arguments on this system.\nThis is measured in characters.\nUsed by `multiple-command-partition-arguments'.  Other code calls that\nfunction for cases in which it's known to be safe to run the command\nmultiple times on subsequent partitions of the list of arguments.\n(In a shell script, you might use the `xargs' utility.)");
   /* Divide it by 4 as a crude way to go bytes->characters.  */
-  command_line_max_length = sysconf (_SC_ARG_MAX) as EMACS_INT / 4;
+  (*command_line_max_length.as_mut_ptr ()) = sysconf (_SC_ARG_MAX) as EMACS_INT / 4;
   /* C 2250-2251's `#else` arm (feature `no_sc_arg_max`).  */
   #[cfg (feature = "no_sc_arg_max")]
-  { command_line_max_length = 4096; }
+  { (*command_line_max_length.as_mut_ptr ()) = 4096; }
 
-  defsubr (&raw mut Scall_process);
-  defsubr (&raw mut Sgetenv_internal);
-  defsubr (&raw mut Scall_process_region);
+  defsubr (Scall_process.as_mut_ptr ());
+  defsubr (Sgetenv_internal.as_mut_ptr ());
+  defsubr (Scall_process_region.as_mut_ptr ());
 
   DEFSYM! (Qafter_insert_file_set_buffer_file_coding_system,
 	  c"after-insert-file-set-buffer-file-coding-system");

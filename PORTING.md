@@ -18,6 +18,14 @@
 
 ## 0. 总则
 
+### P-485：U6 `VmGlobal<T>` 全产品消除 `static mut`、安全 `DEFVAR_*`/`DEFUN!` 与带边界检查的内核原语（2026-11-22）
+
+按去 `unsafe` 先行计划 U6/AU6，将活跃 Cargo 产品闭包（`femacs-sys`、`femacs-vm`、`femacs-host` 共 `417` 份文件）中的 `2,507` 个 `static mut` 条目 **`100.0%` 归零**，升级 `xtask gen-globals`、`DEFVAR_*`、`DEFUN!` 与内核边界原语，并以 `#![forbid(unsafe_code)]` 的 `safe_cmds.rs` 打通高层子系统零 `unsafe` 样板：
+
+1. **透明内部可变全局容器（`crates/femacs-sys/src/globals_cell.rs`）**：引入 `#[repr(transparent)] pub struct VmGlobal<T>(UnsafeCell<T>)`，提供 `const fn new`/`as_mut_ptr`/`as_ptr`，并为 `bool`、`i8..=u64`、`isize`、`usize`、`f64`（按 `AtomicU64` 保全 `-0.0` 与 `NaN` 位模式）、`*mut P`（含带 tag 的 `Lisp_Object`）及 `*const P` 实现硬件级 `Ordering::Relaxed` 原子 `.get()`/`.set()`/`.wrapping_add()`。因内存布局、对齐、符号地址及 `.data`/`.bss`/`__DATA,subrs` 段落点与原 C 全局完全一致，`.pdmp` 热冷区重定位、`.eln` 原生装载、`nm` 单例检查与 Cocoa Swift 桥接保持二进制等价，同时彻底消除 Rust `static mut` 的隐式 `&mut` 别名未定义行为风险。
+2. **`gen-globals`、`DEFVAR_*`、`DEFUN!` 与 `CALLN!` 切断 `unsafe` 传染（`xtask/src/main.rs`、`tools/gen-macos-runtime.py`、`src/include/{lisp,buffer,globals}.rs`）**：`gen-globals` 将 `lispsym` 与全部 `836` 个 `DEFVAR_*` 外部静态统一生成为 `VmGlobal<TY>` 并附带内联安全读写函数 `get_*()`/`set_*()`；`globals::subrs` 中全部定长参数（`0..=8`）与 `UNEVALLED` 原语声明升级为 Rust 2024 `pub safe fn Ffoo(...)`（仅 `MANY` 裸指针切片入口保留 `pub unsafe fn`）。`DEFVAR_LISP!`、`DEFVAR_LISP_NOPRO!`、`DEFVAR_INT!`、`DEFVAR_BOOL!`、`DEFVAR_KBOARD!` 与 `DEFVAR_PER_BUFFER!` 改用不可变 `static *_FWD: SyncLispFwd` 与安全注册辅助函数；`DEFUN!` 将 `$sname` 改为 `VmGlobal<Aligned_Lisp_Subr>`，定长与 `UNEVALLED` 臂生成非 `unsafe` 的 `pub extern "C-unwind" fn` 并支持模块级遮蔽 `__defun_body!` 拒绝函数体内出现 `unsafe`；`CALLN!` 与 `safe_calln!` 改调安全包装 `call_many_slice`，使 `#![forbid(unsafe_code)]` 模块可直接调用 `calln!`/`CALLN!`/`safe_calln!`。
+3. **带发布态断言的内核访问原语与 `safe_cmds.rs` 样板（`src/include/{lisp,buffer}.rs`、`crates/femacs-vm/src/safe_cmds.rs`、`src/cmds.rs`）**：在 `XCAR`/`XCDR`/`XSETCAR`/`XSETCDR`、`AREF`/`ASET`/`ASIZE`、`SCHARS`/`SBYTES`/`SREF`/`SSET`/`STRING_MULTIBYTE` 与 `XFLOAT_DATA` 中加入 release 常开的 tag 及下标边界 `assert!`，补齐安全缓冲区/信号/动态绑定/钩子原语（`current_buffer_pt/begv/zv/fetch_byte/...`、`scan_newline_from_point_checked`、`del_range_safe`、`replace_range_safe`、`insert_and_inherit_bytes`、`specbind_safe`、`unbind_to_safe`、`xsignal*`），并将 `src/cmds.rs` 全部编辑移动/插入/删除命令迁入 `#![forbid(unsafe_code)]` 的 `safe_cmds.rs`（`src/cmds.rs` 实现 `0` `unsafe` 块、`0` `unsafe fn`、`0` `static mut`）。`AU6`（`tools/test-u6-globals-and-primitives.py` 四组：静态门禁、`.pdmp` 往返与动态/局部/转发变量、安全原语与 6 组核心 ERT、`libgccjit` `.eln` 原生编译装载）及保护性单测全部通过（AU6）。
+
 ### P-484：U5 零 `unsafe` 模块锁门、`mini-gmp`/`stdbit`/`gettext`/`stat-time`/`signal` 纯逻辑安全化与 AU5 验收（2026-11-22）
 
 按去 `unsafe` 先行计划 U5/AU5，将 `lib/` 与 `lib/include/` 中剩余的纯逻辑与 C 直译裸指针层收敛为 `#![forbid(unsafe_code)]` 安全 Rust，把活动产品 `#![forbid(unsafe_code)]` 文件数从 `32` 扩展至 `122`，并通过编译、二进制、ERT 与端到端门禁闭合验证：

@@ -156,7 +156,7 @@ const _: () = core::assert! (std::mem::offset_of! (regexp_cache, posix) == 352);
 const _: () = core::assert! (std::mem::offset_of! (regexp_cache, busy) == 353);
 
 /* The instances of that struct.  */
-static mut searchbufs: [regexp_cache; REGEXP_CACHE_SIZE] =  // C 61
+static searchbufs: VmGlobal<[regexp_cache; REGEXP_CACHE_SIZE]> = VmGlobal::<[regexp_cache; REGEXP_CACHE_SIZE]>::new (// C 61
   [regexp_cache {
      next: std::ptr::null_mut (),
      regexp: std::ptr::null_mut (),
@@ -175,10 +175,10 @@ static mut searchbufs: [regexp_cache; REGEXP_CACHE_SIZE] =  // C 61
      fastmap: [0; 256],
      posix: false,
      busy: false,
-   }; REGEXP_CACHE_SIZE];
+   }; REGEXP_CACHE_SIZE]);
 
 /* The head of the linked list; points to the most recently used buffer.  */
-static mut searchbuf_head: *mut regexp_cache = std::ptr::null_mut ();   // C 64
+static searchbuf_head: VmGlobal<*mut regexp_cache> = VmGlobal::<*mut regexp_cache>::new (std::ptr::null_mut ());   // C 64
 
 // C 66-73: C's four forward declarations of `set_search_regs`, `save_search_regs`,
 // `simple_search` and `boyer_moore` are dropped (PORTING.md 0.1-12); the definitions stay
@@ -187,7 +187,7 @@ static mut searchbuf_head: *mut regexp_cache = std::ptr::null_mut ();   // C 64
 /// C 75: `Lisp_Object re_match_object;` - non-`static`, so this unit is the one that
 /// exports the symbol (regex-emacs.h 50 declares it; PORTING.md 0.2).
 #[unsafe(no_mangle)]
-pub static mut re_match_object: Lisp_Object = std::ptr::null_mut ();    // C 75
+pub static re_match_object: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (std::ptr::null_mut ());    // C 75
 
 /* The bit members of `struct re_pattern_buffer` this unit reads or writes are the mirror's
    accessors now: `src/include/regex-emacs.rs` carries `can_be_null_`/`regs_allocated_`/
@@ -242,14 +242,14 @@ unsafe fn compile_pattern_1 (cp: *mut regexp_cache, pattern: Lisp_Object,   // C
   (*cp).buf.translate = translate;
   (*cp).posix = posix;
   set_multibyte_ (&raw mut (*cp).buf, STRING_MULTIBYTE (pattern));
-  (*cp).buf.charset_unibyte = charset_unibyte;
-  if STRINGP (Vsearch_spaces_regexp)
-    { (*cp).f_whitespace_regexp = Vsearch_spaces_regexp; }
+  (*cp).buf.charset_unibyte = (*charset_unibyte.as_mut_ptr ());
+  if STRINGP ((*Vsearch_spaces_regexp.as_mut_ptr ()))
+    { (*cp).f_whitespace_regexp = (*Vsearch_spaces_regexp.as_mut_ptr ()); }
   else
     { (*cp).f_whitespace_regexp = Qnil (); }
 
-  whitespace_regexp = if STRINGP (Vsearch_spaces_regexp)
-    { SSDATA (Vsearch_spaces_regexp) } else { std::ptr::null () };
+  whitespace_regexp = if STRINGP ((*Vsearch_spaces_regexp.as_mut_ptr ()))
+    { SSDATA ((*Vsearch_spaces_regexp.as_mut_ptr ())) } else { std::ptr::null () };
 
   val = re_compile_pattern (SSDATA (pattern), SBYTES (pattern), posix,
 			    whitespace_regexp, &raw mut (*cp).buf) as *mut c_char;
@@ -278,7 +278,7 @@ pub unsafe extern "C-unwind" fn shrink_regexp_cache ()              // C 142-158
   unsafe {
   let mut cp: *mut regexp_cache;
 
-  cp = searchbuf_head;
+  cp = (*searchbuf_head.as_mut_ptr ());
   while ! cp.is_null ()
     {
       if !(*cp).busy
@@ -312,8 +312,8 @@ pub unsafe extern "C-unwind" fn clear_regexp_cache ()               // C 160-171
       /* It's tempting to compare with the syntax-table we've actually changed,
 	 but it's not sufficient because char-table inheritance means that
 	 modifying one syntax-table can change others at the same time.  */
-      if !searchbufs[i as usize].busy && !BASE_EQ (searchbufs[i as usize].syntax_table, Qt ())
-	{ searchbufs[i as usize].regexp = Qnil (); }
+      if !(*searchbufs.as_mut_ptr ())[i as usize].busy && !BASE_EQ ((*searchbufs.as_mut_ptr ())[i as usize].syntax_table, Qt ())
+	{ (*searchbufs.as_mut_ptr ())[i as usize].regexp = Qnil (); }
       i += 1;
     }
 
@@ -362,7 +362,7 @@ unsafe fn compile_pattern (pattern: Lisp_Object, regp: *mut re_registers,   // C
   let mut cpp: *mut *mut regexp_cache;
   let mut lru_nonbusy: *mut *mut regexp_cache;
 
-  cpp = &raw mut searchbuf_head;
+  cpp = searchbuf_head.as_mut_ptr ();
   lru_nonbusy = std::ptr::null_mut ();
   'search: loop
     {
@@ -386,8 +386,8 @@ unsafe fn compile_pattern (pattern: Lisp_Object, regp: *mut re_registers,   // C
 	      && (BASE_EQ ((*cp).syntax_table, Qt ())
 		  || BASE_EQ ((*cp).syntax_table,
 			      BVAR! ((current_buffer! ()), syntax_table_)))
-	      && !NILP (Fequal ((*cp).f_whitespace_regexp, Vsearch_spaces_regexp))
-	      && (*cp).buf.charset_unibyte == charset_unibyte
+	      && !NILP (Fequal ((*cp).f_whitespace_regexp, (*Vsearch_spaces_regexp.as_mut_ptr ())))
+	      && (*cp).buf.charset_unibyte == (*charset_unibyte.as_mut_ptr ())
 	    { break 'search; }
 
 	  /* If we're at the end of the cache, compile into the last
@@ -415,8 +415,8 @@ unsafe fn compile_pattern (pattern: Lisp_Object, regp: *mut re_registers,   // C
      either because we found it in the cache or because we just compiled it.
      Move it to the front of the queue to mark it as most recently used.  */
   *cpp = (*cp).next;
-  (*cp).next = searchbuf_head;
-  searchbuf_head = cp;
+  (*cp).next = (*searchbuf_head.as_mut_ptr ());
+  (*searchbuf_head.as_mut_ptr ()) = cp;
 
   /* Advise the searching functions about the space we have allocated
      for register data.  */
@@ -448,7 +448,7 @@ unsafe fn looking_at_1 (string: Lisp_Object, posix: bool, modify_data: bool)   /
   let mut s2: ptrdiff_t;
   let mut i: ptrdiff_t;
 
-  if running_asynch_code
+  if (*running_asynch_code.as_mut_ptr ())
     { save_search_regs (); }
 
   /* This is so set_image_of_range_1 in regex-emacs.c can find the EQV
@@ -459,12 +459,12 @@ unsafe fn looking_at_1 (string: Lisp_Object, posix: bool, modify_data: bool)   /
   CHECK_STRING (string);
 
   /* Snapshot in case Lisp changes the value.  */
-  let modify_match_data: bool = NILP (Vinhibit_changing_match_data) && modify_data;
+  let modify_match_data: bool = NILP ((*Vinhibit_changing_match_data.as_mut_ptr ())) && modify_data;
 
   let cache_entry: *mut regexp_cache = compile_pattern (
     string,
     if modify_match_data { std::ptr::addr_of_mut! (search_regs! ()) } else { std::ptr::null_mut () },
-    if !NILP (Vcase_fold_search) { BVAR! ((current_buffer! ()), case_canon_table_) } else { Qnil () },
+    if !NILP ((*Vcase_fold_search.as_mut_ptr ())) { BVAR! ((current_buffer! ()), case_canon_table_) } else { Qnil () },
     posix,
     !NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_)));
 
@@ -493,7 +493,7 @@ unsafe fn looking_at_1 (string: Lisp_Object, posix: bool, modify_data: bool)   /
   let count: specpdl_ref = SPECPDL_INDEX ();
   freeze_buffer_relocation ();
   freeze_pattern (cache_entry);
-  re_match_object = Qnil ();
+  (*re_match_object.as_mut_ptr ()) = Qnil ();
   i = re_match_2 (&raw mut (*cache_entry).buf, p1 as *const c_char, s1, p2 as *const c_char, s2,
 		  PT_BYTE! () - BEGV_BYTE! (),
 		  if modify_match_data { std::ptr::addr_of_mut! (search_regs! ()) } else { std::ptr::null_mut () },
@@ -510,38 +510,38 @@ unsafe fn looking_at_1 (string: Lisp_Object, posix: bool, modify_data: bool)   /
      pattern once.  Repetition, not buffer size, is what identifies the loop, so the load-time noise
      (which also has small buffers) does not hide it.  */
   /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe {
-    static mut LAST_POINT: ptrdiff_t = -1;
-    static mut LAST_PAT: Lisp_Object = std::ptr::null_mut ();
-    static mut SAME: c_int = 0;
+    static LAST_POINT: VmGlobal<ptrdiff_t> = VmGlobal::<ptrdiff_t>::new (-1);
+    static LAST_PAT: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (std::ptr::null_mut ());
+    static SAME: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
     /* Sampled once: the switch is read on the hottest path in the program, and `getenv` per call
        would be a real cost (P-126's "sample at startup" rule, applied to a diagnostic).  */
-    static mut TRACE: c_int = -1;
-    if TRACE < 0
-      { TRACE = if getenv (c"FEMACS_REG_TRACE".as_ptr ()).is_null () { 0 } else { 1 }; }
-    if TRACE != 0
+    static TRACE: VmGlobal<c_int> = VmGlobal::<c_int>::new (-1);
+    if (*TRACE.as_mut_ptr ()) < 0
+      { (*TRACE.as_mut_ptr ()) = if getenv (c"FEMACS_REG_TRACE".as_ptr ()).is_null () { 0 } else { 1 }; }
+    if (*TRACE.as_mut_ptr ()) != 0
       {
         let here: ptrdiff_t = PT! ();
-        if here == LAST_POINT && string == LAST_PAT
-          { SAME += 1; }
+        if here == (*LAST_POINT.as_mut_ptr ()) && string == (*LAST_PAT.as_mut_ptr ())
+          { (*SAME.as_mut_ptr ()) += 1; }
         else
-          { LAST_POINT = here; LAST_PAT = string; SAME = 1; }
-        if SAME == 200
+          { (*LAST_POINT.as_mut_ptr ()) = here; (*LAST_PAT.as_mut_ptr ()) = string; (*SAME.as_mut_ptr ()) = 1; }
+        if (*SAME.as_mut_ptr ()) == 200
           {
-            fprintf (stderr, c"REGTRACE loop point=%td i=%td text=".as_ptr (), here, i as isize);
+            fprintf ((*stderr.as_mut_ptr ()), c"REGTRACE loop point=%td i=%td text=".as_ptr (), here, i as isize);
             let total: ptrdiff_t = ZV! () - BEGV! ();
             let mut k: ptrdiff_t = 0;
             while k < total && k < 40
-              { fputc (FETCH_BYTE! (BEGV_BYTE! () + k) as c_int, stderr); k += 1; }
-            fprintf (stderr, c" pat=".as_ptr ());
+              { fputc (FETCH_BYTE! (BEGV_BYTE! () + k) as c_int, (*stderr.as_mut_ptr ())); k += 1; }
+            fprintf ((*stderr.as_mut_ptr ()), c" pat=".as_ptr ());
             if STRINGP (string)
               {
                 let d: *const c_char = SSDATA (string);
                 let n: ptrdiff_t = SBYTES (string);
                 let mut j: ptrdiff_t = 0;
                 while j < n && j < 160
-                  { fputc (*d.offset (j) as c_int, stderr); j += 1; }
+                  { fputc (*d.offset (j) as c_int, (*stderr.as_mut_ptr ())); j += 1; }
               }
-            fprintf (stderr, c"\n".as_ptr ());
+            fprintf ((*stderr.as_mut_ptr ()), c"\n".as_ptr ());
           }
       }
   }
@@ -594,9 +594,9 @@ unsafe fn string_match_1 (regexp: Lisp_Object, string: Lisp_Object,   // C 369-4
   let mut pos: EMACS_INT;
   let mut pos_byte: ptrdiff_t;
   let mut i: ptrdiff_t;
-  let modify_match_data: bool = NILP (Vinhibit_changing_match_data) && modify_data;
+  let modify_match_data: bool = NILP ((*Vinhibit_changing_match_data.as_mut_ptr ())) && modify_data;
 
-  if running_asynch_code
+  if (*running_asynch_code.as_mut_ptr ())
     { save_search_regs (); }
 
   CHECK_STRING (regexp);
@@ -629,11 +629,11 @@ unsafe fn string_match_1 (regexp: Lisp_Object, string: Lisp_Object,   // C 369-4
   let cache_entry: *mut regexp_cache
     = compile_pattern (regexp,
 		       if modify_match_data { std::ptr::addr_of_mut! (search_regs! ()) } else { std::ptr::null_mut () },
-		       if !NILP (Vcase_fold_search) { BVAR! ((current_buffer! ()), case_canon_table_) } else { Qnil () },
+		       if !NILP ((*Vcase_fold_search.as_mut_ptr ())) { BVAR! ((current_buffer! ()), case_canon_table_) } else { Qnil () },
 		       posix,
 		       STRING_MULTIBYTE (string));
   freeze_pattern (cache_entry);
-  re_match_object = string;
+  (*re_match_object.as_mut_ptr ()) = string;
   val = re_search (&raw mut (*cache_entry).buf, SSDATA (string),
 		   SBYTES (string), pos_byte,
 		   SBYTES (string) - pos_byte,
@@ -703,7 +703,7 @@ pub unsafe extern "C-unwind" fn fast_string_match_internal (regexp: Lisp_Object,
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  re_match_object = string;
+  (*re_match_object.as_mut_ptr ()) = string;
   let count: specpdl_ref = SPECPDL_INDEX ();
   let cache_entry: *mut regexp_cache
     = compile_pattern (regexp, std::ptr::null_mut (), table, false, STRING_MULTIBYTE (string));
@@ -743,7 +743,7 @@ pub unsafe extern "C-unwind" fn fast_c_string_match_internal (regexp: Lisp_Objec
   let cache_entry: *mut regexp_cache
     = compile_pattern (regexp, std::ptr::null_mut (), table, false, false);
   freeze_pattern (cache_entry);
-  re_match_object = Qt ();
+  (*re_match_object.as_mut_ptr ()) = Qt ();
   let val: ptrdiff_t = re_search (&raw mut (*cache_entry).buf, string, len, 0, len,
 				  std::ptr::null_mut ());
   unbind_to (count, Qnil ());
@@ -818,7 +818,7 @@ pub unsafe extern "C-unwind" fn fast_looking_at (regexp: Lisp_Object, pos: ptrdi
   let count: specpdl_ref = SPECPDL_INDEX ();
   freeze_buffer_relocation ();
   freeze_pattern (cache_entry);
-  re_match_object = if STRINGP (string) { string } else { Qnil () };
+  (*re_match_object.as_mut_ptr ()) = if STRINGP (string) { string } else { Qnil () };
   len = re_match_2 (&raw mut (*cache_entry).buf, p1 as *const c_char, s1,
 		    p2 as *const c_char, s2,
 		    pos_byte, std::ptr::null_mut (), limit_byte);
@@ -1367,8 +1367,8 @@ unsafe fn search_command (string: Lisp_Object, bound: Lisp_Object, noerror: Lisp
 			 BVAR! ((current_buffer! ()), case_eqv_table_));
 
   np = search_buffer (string, PT! (), PT_BYTE! (), lim, lim_byte, n, RE,
-		      if !NILP (Vcase_fold_search) { BVAR! ((current_buffer! ()), case_canon_table_) } else { Qnil () },
-		      if !NILP (Vcase_fold_search) { BVAR! ((current_buffer! ()), case_eqv_table_) } else { Qnil () },
+		      if !NILP ((*Vcase_fold_search.as_mut_ptr ())) { BVAR! ((current_buffer! ()), case_canon_table_) } else { Qnil () },
+		      if !NILP ((*Vcase_fold_search.as_mut_ptr ())) { BVAR! ((current_buffer! ()), case_eqv_table_) } else { Qnil () },
 		      posix);
   if np <= 0
     {
@@ -1455,8 +1455,8 @@ macro_rules! TRANSLATE {                                       // C 1137-1149
 /* Only used in search_buffer, to record the end position of the match
    when searching regexps and SEARCH_REGS should not be changed
    (i.e. Vinhibit_changing_match_data is non-nil).  */
-static mut search_regs_1: re_registers =                      // C 1155
-  re_registers { num_regs: 0, start: std::ptr::null_mut (), end: std::ptr::null_mut () };
+static search_regs_1: VmGlobal<re_registers> = VmGlobal::<re_registers>::new (// C 1155
+  re_registers { num_regs: 0, start: std::ptr::null_mut (), end: std::ptr::null_mut () });
 
 unsafe fn search_buffer_re (string: Lisp_Object, pos: ptrdiff_t, pos_byte: ptrdiff_t,   // C 1157-1296
 			    lim: ptrdiff_t, lim_byte: ptrdiff_t, n: EMACS_INT,
@@ -1474,11 +1474,11 @@ unsafe fn search_buffer_re (string: Lisp_Object, pos: ptrdiff_t, pos_byte: ptrdi
   let mut n = n;
 
   /* Snapshot in case Lisp changes the value.  */
-  let preserve_match_data: bool = NILP (Vinhibit_changing_match_data);
+  let preserve_match_data: bool = NILP ((*Vinhibit_changing_match_data.as_mut_ptr ()));
 
   let cache_entry: *mut regexp_cache =
     compile_pattern (string,
-		     if preserve_match_data { std::ptr::addr_of_mut! (search_regs! ()) } else { &raw mut search_regs_1 },
+		     if preserve_match_data { std::ptr::addr_of_mut! (search_regs! ()) } else { search_regs_1.as_mut_ptr () },
 		     trt, posix,
 		     !NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_)));
   let bufp: *mut re_pattern_buffer = &raw mut (*cache_entry).buf;
@@ -1512,10 +1512,10 @@ unsafe fn search_buffer_re (string: Lisp_Object, pos: ptrdiff_t, pos_byte: ptrdi
     {
       let mut val: ptrdiff_t;
 
-      re_match_object = Qnil ();
+      (*re_match_object.as_mut_ptr ()) = Qnil ();
       val = re_search_2 (bufp, p1 as *const c_char, s1, p2 as *const c_char, s2,
 			 pos_byte - BEGV_BYTE! (), lim_byte - pos_byte,
-			 if preserve_match_data { std::ptr::addr_of_mut! (search_regs! ()) } else { &raw mut search_regs_1 },
+			 if preserve_match_data { std::ptr::addr_of_mut! (search_regs! ()) } else { search_regs_1.as_mut_ptr () },
 			 /* Don't allow match past current point */
 			 pos_byte - BEGV_BYTE! ());
       if val == -2
@@ -1546,9 +1546,9 @@ unsafe fn search_buffer_re (string: Lisp_Object, pos: ptrdiff_t, pos_byte: ptrdi
 	    }
 	  else
 	    {
-	      pos_byte = *search_regs_1.start.offset (0) + BEGV_BYTE! ();
+	      pos_byte = *(*search_regs_1.as_mut_ptr ()).start.offset (0) + BEGV_BYTE! ();
 	      /* Set pos to the new position.  */
-	      pos = BYTE_TO_CHAR (*search_regs_1.start.offset (0) + BEGV_BYTE! ());
+	      pos = BYTE_TO_CHAR (*(*search_regs_1.as_mut_ptr ()).start.offset (0) + BEGV_BYTE! ());
 	    }
 	}
       else
@@ -1563,10 +1563,10 @@ unsafe fn search_buffer_re (string: Lisp_Object, pos: ptrdiff_t, pos_byte: ptrdi
     {
       let mut val: ptrdiff_t;
 
-      re_match_object = Qnil ();
+      (*re_match_object.as_mut_ptr ()) = Qnil ();
       val = re_search_2 (bufp, p1 as *const c_char, s1, p2 as *const c_char, s2,
 			 pos_byte - BEGV_BYTE! (), lim_byte - pos_byte,
-			 if preserve_match_data { std::ptr::addr_of_mut! (search_regs! ()) } else { &raw mut search_regs_1 },
+			 if preserve_match_data { std::ptr::addr_of_mut! (search_regs! ()) } else { search_regs_1.as_mut_ptr () },
 			 lim_byte - BEGV_BYTE! ());
       if val == -2
 	{
@@ -1595,8 +1595,8 @@ unsafe fn search_buffer_re (string: Lisp_Object, pos: ptrdiff_t, pos_byte: ptrdi
 	    }
 	  else
 	    {
-	      pos_byte = *search_regs_1.end.offset (0) + BEGV_BYTE! ();
-	      pos = BYTE_TO_CHAR (*search_regs_1.end.offset (0) + BEGV_BYTE! ());
+	      pos_byte = *(*search_regs_1.as_mut_ptr ()).end.offset (0) + BEGV_BYTE! ();
+	      pos = BYTE_TO_CHAR (*(*search_regs_1.as_mut_ptr ()).end.offset (0) + BEGV_BYTE! ());
 	    }
 	}
       else
@@ -1857,7 +1857,7 @@ pub unsafe extern "C-unwind" fn search_buffer (string: Lisp_Object, pos: ptrdiff
   unsafe {
   let mut pos = pos;
 
-  if running_asynch_code
+  if (*running_asynch_code.as_mut_ptr ())
     { save_search_regs (); }
 
   /* Searching 0 times means don't move.  */
@@ -1868,7 +1868,7 @@ pub unsafe extern "C-unwind" fn search_buffer (string: Lisp_Object, pos: ptrdiff
       return pos;
     }
 
-  if RE && !(trivial_regexp_p (string) && NILP (Vsearch_spaces_regexp))
+  if RE && !(trivial_regexp_p (string) && NILP ((*Vsearch_spaces_regexp.as_mut_ptr ())))
     { pos = search_buffer_re (string, pos, pos_byte, lim, lim_byte, n, trt, inverse_trt, posix); }
   else
     { pos = search_buffer_non_re (string, pos, pos_byte, lim, lim_byte, n, RE, trt, inverse_trt, posix); }
@@ -2431,7 +2431,7 @@ unsafe fn boyer_moore (n: EMACS_INT, base_pat: *mut u8, len_byte: ptrdiff_t,   /
 		    cursor = p2.offset (cursor_off);
 		  }
 
-		  if NILP (Vinhibit_changing_match_data)
+		  if NILP ((*Vinhibit_changing_match_data.as_mut_ptr ()))
 		    {
 		      start = *search_regs! ().start.offset (0);
 		      end = *search_regs! ().end.offset (0);
@@ -2531,7 +2531,7 @@ unsafe fn boyer_moore (n: EMACS_INT, base_pat: *mut u8, len_byte: ptrdiff_t,   /
 		  position = pos_byte + (if direction > 0 { 1 - len_byte } else { 0 });
 		  set_search_regs (position, len_byte);
 
-		  if NILP (Vinhibit_changing_match_data)
+		  if NILP ((*Vinhibit_changing_match_data.as_mut_ptr ()))
 		    {
 		      start = *search_regs! ().start.offset (0);
 		      end = *search_regs! ().end.offset (0);
@@ -2574,7 +2574,7 @@ unsafe fn set_search_regs (beg_byte: ptrdiff_t, nbytes: ptrdiff_t)   // C 2178-2
   unsafe {
   let mut i: ptrdiff_t;
 
-  if !NILP (Vinhibit_changing_match_data)
+  if !NILP ((*Vinhibit_changing_match_data.as_mut_ptr ()))
     { return; }
 
   /* Make sure we have registers in which to store
@@ -2752,7 +2752,7 @@ DEFUN! ("replace-match", Freplace_match, Sreplace_match, 1, 5, 0,        // C 23
 
 		     some_lowercase = true;
 		     if SYNTAX (prevc) != Sword
-			 && !(case_symbols_as_words && SYNTAX (prevc) == Ssymbol)
+			 && !((*case_symbols_as_words.as_mut_ptr ()) && SYNTAX (prevc) == Ssymbol)
 		       { some_nonuppercase_initial = true; }
 		     else
 		       { some_multiletter_word = true; }
@@ -2761,7 +2761,7 @@ DEFUN! ("replace-match", Freplace_match, Sreplace_match, 1, 5, 0,        // C 23
 		   {
 		     some_uppercase = true;
 		     if SYNTAX (prevc) != Sword
-			 && !(case_symbols_as_words && SYNTAX (prevc) == Ssymbol)
+			 && !((*case_symbols_as_words.as_mut_ptr ()) && SYNTAX (prevc) == Ssymbol)
 		       {}
 		     else
 		       { some_multiletter_word = true; }
@@ -2771,7 +2771,7 @@ DEFUN! ("replace-match", Freplace_match, Sreplace_match, 1, 5, 0,        // C 23
 		     /* If the initial is a caseless word constituent,
 			treat that like a lowercase initial.  */
 		     if SYNTAX (prevc) != Sword
-			 && !(case_symbols_as_words && SYNTAX (prevc) == Ssymbol)
+			 && !((*case_symbols_as_words.as_mut_ptr ()) && SYNTAX (prevc) == Ssymbol)
 		       { some_nonuppercase_initial = true; }
 		   }
 
@@ -3226,7 +3226,7 @@ DEFUN! ("set-match-data", Fset_match_data, Sset_match_data, 1, 2, 0,   // C 2949
 	 let mut marker: Lisp_Object;
 	 let mut list: Lisp_Object = list;
 
-	 if running_asynch_code
+	 if (*running_asynch_code.as_mut_ptr ())
 	   { save_search_regs (); }
 
 	 CHECK_LIST (list);
@@ -3736,7 +3736,7 @@ DEFUN! ("re--describe-compiled", Fre__describe_compiled, Sre__describe_compiled,
 	 CHECK_STRING (regexp);
 	 let cache_entry: *mut regexp_cache
 	   = compile_pattern (regexp, std::ptr::null_mut (),
-			      if !NILP (Vcase_fold_search) { BVAR! ((current_buffer! ()), case_canon_table_) } else { Qnil () },
+			      if !NILP ((*Vcase_fold_search.as_mut_ptr ())) { BVAR! ((current_buffer! ()), case_canon_table_) } else { Qnil () },
 			      false,
 			      !NILP (BVAR! ((current_buffer! ()),
 					    enable_multibyte_characters_)));
@@ -3766,7 +3766,7 @@ DEFUN! ("re--describe-compiled", Fre__describe_compiled, Sre__describe_compiled,
 	     }
 	     #[cfg (all (enable_checking, feature = "not_have_open_memstream"))]
 	     {
-	       print_compiled_pattern (stderr, &raw mut (*cache_entry).buf);
+	       print_compiled_pattern ((*stderr.as_mut_ptr ()), &raw mut (*cache_entry).buf);
 	       return build_string (c"Description was sent to standard error".as_ptr ());
 	     }
 	   }
@@ -3777,9 +3777,9 @@ DEFUN! ("re--describe-compiled", Fre__describe_compiled, Sre__describe_compiled,
    port's `include/globals.rs` mirrors the names as declarations, so the unit that owns one
    defines it here (docs/status.md 3.29, the callint.rs/syntax.rs shape).  */
 #[unsafe(no_mangle)]
-pub static mut Vsearch_spaces_regexp: Lisp_Object = lisp_h_Qnil ();
+pub static Vsearch_spaces_regexp: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vinhibit_changing_match_data: Lisp_Object = lisp_h_Qnil ();
+pub static Vinhibit_changing_match_data: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_search ()                 // C 3420-3498
@@ -3789,9 +3789,9 @@ pub unsafe extern "C-unwind" fn syms_of_search ()                 // C 3420-3498
   let mut i: c_int = 0;
   while i < REGEXP_CACHE_SIZE as c_int
     {
-      staticpro (&raw const searchbufs[i as usize].regexp);
-      staticpro (&raw const searchbufs[i as usize].f_whitespace_regexp);
-      staticpro (&raw const searchbufs[i as usize].syntax_table);
+      staticpro (&raw const (*searchbufs.as_mut_ptr ())[i as usize].regexp);
+      staticpro (&raw const (*searchbufs.as_mut_ptr ())[i as usize].f_whitespace_regexp);
+      staticpro (&raw const (*searchbufs.as_mut_ptr ())[i as usize].syntax_table);
       i += 1;
     }
 
@@ -3820,37 +3820,37 @@ pub unsafe extern "C-unwind" fn syms_of_search ()                 // C 3420-3498
   Fput (Qinvalid_regexp (), Qerror_message (),
 	build_string (c"Invalid regexp".as_ptr ()));
 
-  re_match_object = Qnil ();
-  staticpro (&raw const re_match_object);
+  (*re_match_object.as_mut_ptr ()) = Qnil ();
+  staticpro (re_match_object.as_ptr ());
 
   DEFVAR_LISP! (c"search-spaces-regexp", Vsearch_spaces_regexp,
       "Regexp to substitute for bunches of spaces in regexp search.\nSome commands use this for user-specified regexps.\nSpaces that occur inside character classes or repetition operators\nor other such regexp constructs are not replaced with this.\nA value of nil (which is the normal value) means treat spaces\nliterally.  Note that a value with capturing groups can change the\nnumbering of existing capture groups in unexpected ways.  ");
-  Vsearch_spaces_regexp = Qnil ();
+  (*Vsearch_spaces_regexp.as_mut_ptr ()) = Qnil ();
 
   DEFSYM! (Qinhibit_changing_match_data, c"inhibit-changing-match-data");
   DEFVAR_LISP! (c"inhibit-changing-match-data", Vinhibit_changing_match_data,
       "Internal use only.\nIf non-nil, the primitive searching and matching functions\nsuch as `looking-at', `string-match', `re-search-forward', etc.,\ndo not set the match data.  The proper way to use this variable\nis to bind it with `let' around a small expression.  ");
-  Vinhibit_changing_match_data = Qnil ();
+  (*Vinhibit_changing_match_data.as_mut_ptr ()) = Qnil ();
 
-  defsubr (&raw mut Slooking_at);
-  defsubr (&raw mut Sposix_looking_at);
-  defsubr (&raw mut Sstring_match);
-  defsubr (&raw mut Sposix_string_match);
-  defsubr (&raw mut Ssearch_forward);
-  defsubr (&raw mut Ssearch_backward);
-  defsubr (&raw mut Sre_search_forward);
-  defsubr (&raw mut Sre_search_backward);
-  defsubr (&raw mut Sposix_search_forward);
-  defsubr (&raw mut Sposix_search_backward);
-  defsubr (&raw mut Sreplace_match);
-  defsubr (&raw mut Smatch_beginning);
-  defsubr (&raw mut Smatch_end);
-  defsubr (&raw mut Smatch_data);
-  defsubr (&raw mut Sset_match_data);
-  defsubr (&raw mut Smatch_data__translate);
-  defsubr (&raw mut Sregexp_quote);
-  defsubr (&raw mut Snewline_cache_check);
-  defsubr (&raw mut Sre__describe_compiled);
+  defsubr (Slooking_at.as_mut_ptr ());
+  defsubr (Sposix_looking_at.as_mut_ptr ());
+  defsubr (Sstring_match.as_mut_ptr ());
+  defsubr (Sposix_string_match.as_mut_ptr ());
+  defsubr (Ssearch_forward.as_mut_ptr ());
+  defsubr (Ssearch_backward.as_mut_ptr ());
+  defsubr (Sre_search_forward.as_mut_ptr ());
+  defsubr (Sre_search_backward.as_mut_ptr ());
+  defsubr (Sposix_search_forward.as_mut_ptr ());
+  defsubr (Sposix_search_backward.as_mut_ptr ());
+  defsubr (Sreplace_match.as_mut_ptr ());
+  defsubr (Smatch_beginning.as_mut_ptr ());
+  defsubr (Smatch_end.as_mut_ptr ());
+  defsubr (Smatch_data.as_mut_ptr ());
+  defsubr (Sset_match_data.as_mut_ptr ());
+  defsubr (Smatch_data__translate.as_mut_ptr ());
+  defsubr (Sregexp_quote.as_mut_ptr ());
+  defsubr (Snewline_cache_check.as_mut_ptr ());
+  defsubr (Sre__describe_compiled.as_mut_ptr ());
 
   pdumper_do_now_and_after_load (Some (syms_of_search_for_pdumper));
 
@@ -3864,19 +3864,19 @@ unsafe extern "C-unwind" fn syms_of_search_for_pdumper ()         // C 3500-3515
   let mut i: c_int = 0;
   while i < REGEXP_CACHE_SIZE as c_int
     {
-      searchbufs[i as usize].buf.allocated = 100;
-      searchbufs[i as usize].buf.buffer = xmalloc (100) as *mut u8;
-      searchbufs[i as usize].buf.fastmap = searchbufs[i as usize].fastmap.as_mut_ptr ();
-      searchbufs[i as usize].regexp = Qnil ();
-      searchbufs[i as usize].f_whitespace_regexp = Qnil ();
-      searchbufs[i as usize].busy = false;
-      searchbufs[i as usize].syntax_table = Qnil ();
-      searchbufs[i as usize].next
+      (*searchbufs.as_mut_ptr ())[i as usize].buf.allocated = 100;
+      (*searchbufs.as_mut_ptr ())[i as usize].buf.buffer = xmalloc (100) as *mut u8;
+      (*searchbufs.as_mut_ptr ())[i as usize].buf.fastmap = (*searchbufs.as_mut_ptr ())[i as usize].fastmap.as_mut_ptr ();
+      (*searchbufs.as_mut_ptr ())[i as usize].regexp = Qnil ();
+      (*searchbufs.as_mut_ptr ())[i as usize].f_whitespace_regexp = Qnil ();
+      (*searchbufs.as_mut_ptr ())[i as usize].busy = false;
+      (*searchbufs.as_mut_ptr ())[i as usize].syntax_table = Qnil ();
+      (*searchbufs.as_mut_ptr ())[i as usize].next
 	= if i == REGEXP_CACHE_SIZE as c_int - 1
-	{ std::ptr::null_mut () } else { &raw mut searchbufs[(i + 1) as usize] };
+	{ std::ptr::null_mut () } else { &raw mut (*searchbufs.as_mut_ptr ())[(i + 1) as usize] };
       i += 1;
     }
-  searchbuf_head = &raw mut searchbufs[0];
+  (*searchbuf_head.as_mut_ptr ()) = &raw mut (*searchbufs.as_mut_ptr ())[0];
 
   }
 }

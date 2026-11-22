@@ -257,7 +257,7 @@ const _: () = core::assert! (std::mem::size_of::<charset_table> () == 24);
 /* Return the attribute vector of charset whose symbol is SYMBOL.  */
 // charset.h 282: `#define CHARSET_SYMBOL_ATTRIBUTES(symbol)`.
 macro_rules! CHARSET_SYMBOL_ATTRIBUTES {
-  ($symbol:expr) => { Fgethash ($symbol, Vcharset_hash_table, Qnil ()) };
+  ($symbol:expr) => { Fgethash ($symbol, (*Vcharset_hash_table.as_mut_ptr ()), Qnil ()) };
 }
 
 // charset.h 285-294: the ten attribute-vector accessors.
@@ -281,11 +281,11 @@ macro_rules! CHARSET_SYMBOL_ID {
    is SYMBOL.  */
 // charset.h 301: `#define CHARSET_SYMBOL_HASH_INDEX(symbol)`.
 macro_rules! CHARSET_SYMBOL_HASH_INDEX {
-  ($symbol:expr) => { hash_find (XHASH_TABLE (Vcharset_hash_table), $symbol) };
+  ($symbol:expr) => { hash_find (XHASH_TABLE ((*Vcharset_hash_table.as_mut_ptr ())), $symbol) };
 }
 
 // charset.h 265-267: `#define CHARSET_FROM_ID(id) (charset_table.start + (id))`.
-macro_rules! CHARSET_FROM_ID { ($id:expr) => { charset_table.start.offset (($id) as isize) }; }
+macro_rules! CHARSET_FROM_ID { ($id:expr) => { (*charset_table.as_mut_ptr ()).start.offset (($id) as isize) }; }
 
 /// The one storage byte `struct charset`'s six `bool_bf` members share, read and written
 /// by their C names: `charset_bits! (unified_p, cs)` reads and
@@ -332,8 +332,8 @@ pub unsafe fn charset_attributes_getter (charset: *mut charset) -> Lisp_Object
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  eassert! (ASIZE (charset_table.attributes_table) == charset_table.size as isize);
-  let attrs: Lisp_Object = AREF (charset_table.attributes_table, unsafe { (*charset).id } as isize);
+  eassert! (ASIZE ((*charset_table.as_mut_ptr ()).attributes_table) == (*charset_table.as_mut_ptr ()).size as isize);
+  let attrs: Lisp_Object = AREF ((*charset_table.as_mut_ptr ()).attributes_table, unsafe { (*charset).id } as isize);
   eassert! (XFIXNUM (CHARSET_ATTR_ID! (attrs)) == unsafe { (*charset).id } as isize);
   return attrs;
 
@@ -427,7 +427,7 @@ macro_rules! CHECK_CHARSET_GET_ID {
 
     if ! SYMBOLP ($x) || { idx = CHARSET_SYMBOL_HASH_INDEX! ($x); idx < 0 }
       { wrong_type_argument (Qcharsetp (), $x); }
-    $id = XFIXNUM (AREF (HASH_VALUE (XHASH_TABLE (Vcharset_hash_table), idx as hash_idx_t),
+    $id = XFIXNUM (AREF (HASH_VALUE (XHASH_TABLE ((*Vcharset_hash_table.as_mut_ptr ())), idx as hash_idx_t),
 		     charset_id as isize)) as _;
   } };
 }
@@ -457,7 +457,7 @@ macro_rules! CHECK_CHARSET_GET_CHARSET {
 // charset.h 404-406: `#define CHAR_CHARSET(c)`.
 macro_rules! CHAR_CHARSET {
   ($c:expr) => {
-    if ($c) < 0x80 { CHARSET_FROM_ID! (charset_ascii) }
+    if ($c) < 0x80 { CHARSET_FROM_ID! ((*charset_ascii.as_mut_ptr ())) }
     else { char_charset ($c, Qnil (), std::ptr::null_mut ()) }
   };
 }
@@ -529,9 +529,9 @@ macro_rules! ENCODE_CHAR {
        else if (*charset).method == CHARSET_METHOD_MAP
 	 { if (*charset).bits & CHARSET_COMPACT_CODES_P != 0
 	      && CHAR_TABLE_P (CHARSET_ENCODER! (charset))
-	     { charset_work = CHAR_TABLE_REF (CHARSET_ENCODER! (charset), c as isize);
-	       if NILP (charset_work) { (*charset).invalid_code }
-	       else { XFIXNAT (charset_work) as c_uint } }
+	     { (*charset_work.as_mut_ptr ()) = CHAR_TABLE_REF (CHARSET_ENCODER! (charset), c as isize);
+	       if NILP ((*charset_work.as_mut_ptr ())) { (*charset).invalid_code }
+	       else { XFIXNAT ((*charset_work.as_mut_ptr ())) as c_uint } }
 	   else { encode_char (charset, c) } }
        else
 	 { encode_char (charset, c) })
@@ -568,7 +568,7 @@ pub const ISO_MAX_FINAL: c_int = 0x80;	/* only 0x30..0xFF are used */
 // charset.h 499: `#define ISO_CHARSET_TABLE(dimension, chars_96, final)`.
 macro_rules! ISO_CHARSET_TABLE {
   ($dimension:expr, $chars_96:expr, $final:expr) => {
-    iso_charset_table[($dimension) as usize - 1][($chars_96) as usize][($final) as usize]
+    (*iso_charset_table.as_mut_ptr ())[($dimension) as usize - 1][($chars_96) as usize][($final) as usize]
   };
 }
 
@@ -636,45 +636,44 @@ pub mod charset_objs {
 
   unsafe extern "C-unwind" {
     /// C: charset.h 244: `extern Lisp_Object Vcharset_hash_table;`
-    pub static mut Vcharset_hash_table: Lisp_Object;
+    pub static Vcharset_hash_table: VmGlobal<Lisp_Object>;
     /// C: charset.h 265: `extern struct charset_table charset_table;`
-    pub static mut charset_table: charset_table;
+    pub static charset_table: VmGlobal<charset_table>;
     /// C: charset.h 269: `extern Lisp_Object Vcharset_ordered_list;`
-    pub static mut Vcharset_ordered_list: Lisp_Object;
+    pub static Vcharset_ordered_list: VmGlobal<Lisp_Object>;
     /// C: charset.h 270: `extern Lisp_Object Vcharset_non_preferred_head;`
-    pub static mut Vcharset_non_preferred_head: Lisp_Object;
+    pub static Vcharset_non_preferred_head: VmGlobal<Lisp_Object>;
     /// C: charset.h 272: `extern EMACS_UINT charset_ordered_list_tick;`
-    pub static mut charset_ordered_list_tick: EMACS_UINT;
+    pub static charset_ordered_list_tick: VmGlobal<EMACS_UINT>;
     /// C: charset.h 274: `extern Lisp_Object Viso_2022_charset_list;`
-    pub static mut Viso_2022_charset_list: Lisp_Object;
+    pub static Viso_2022_charset_list: VmGlobal<Lisp_Object>;
     /// C: charset.h 275: `extern Lisp_Object Vemacs_mule_charset_list;`
-    pub static mut Vemacs_mule_charset_list: Lisp_Object;
+    pub static Vemacs_mule_charset_list: VmGlobal<Lisp_Object>;
     /// C: charset.h 277: `extern int emacs_mule_charset[256];`
-    pub static mut emacs_mule_charset: [c_int; 256];
+    pub static emacs_mule_charset: VmGlobal<[c_int; 256]>;
     /// C: charset.h 446: `extern Lisp_Object charset_work;`
-    pub static mut charset_work: Lisp_Object;
+    pub static charset_work: VmGlobal<Lisp_Object>;
     /// C: charset.h 479: `extern bool charset_map_loaded;`
-    pub static mut charset_map_loaded: bool;
+    pub static charset_map_loaded: VmGlobal<bool>;
     /// C: charset.h 495: `extern int
     /// iso_charset_table[ISO_MAX_DIMENSION][ISO_MAX_CHARS][ISO_MAX_FINAL];`
-    pub static mut iso_charset_table:
-      [[[c_int; ISO_MAX_FINAL as usize]; ISO_MAX_CHARS as usize]; ISO_MAX_DIMENSION as usize];
+    pub static iso_charset_table: VmGlobal<[[[c_int; ISO_MAX_FINAL as usize]; ISO_MAX_CHARS as usize]; ISO_MAX_DIMENSION as usize]>;
     /// C: charset.h 545: `extern int charset_ascii, charset_eight_bit;`
-    pub static mut charset_ascii: c_int;
+    pub static charset_ascii: VmGlobal<c_int>;
     /// C: charset.h 545: `extern int charset_ascii, charset_eight_bit;`
-    pub static mut charset_eight_bit: c_int;
+    pub static charset_eight_bit: VmGlobal<c_int>;
     /// C: charset.h 546: `extern int charset_unicode;`
-    pub static mut charset_unicode: c_int;
+    pub static charset_unicode: VmGlobal<c_int>;
     /// C: charset.h 547: `extern int charset_jisx0201_roman;`
-    pub static mut charset_jisx0201_roman: c_int;
+    pub static charset_jisx0201_roman: VmGlobal<c_int>;
     /// C: charset.h 548: `extern int charset_jisx0208_1978;`
-    pub static mut charset_jisx0208_1978: c_int;
+    pub static charset_jisx0208_1978: VmGlobal<c_int>;
     /// C: charset.h 549: `extern int charset_jisx0208;`
-    pub static mut charset_jisx0208: c_int;
+    pub static charset_jisx0208: VmGlobal<c_int>;
     /// C: charset.h 550: `extern int charset_ksc5601;`
-    pub static mut charset_ksc5601: c_int;
+    pub static charset_ksc5601: VmGlobal<c_int>;
     /// C: charset.h 552: `extern int charset_unibyte;`
-    pub static mut charset_unibyte: c_int;
+    pub static charset_unibyte: VmGlobal<c_int>;
   }
 }
 pub use self::charset_objs::*;

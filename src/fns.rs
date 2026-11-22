@@ -1386,9 +1386,9 @@ unsafe fn concat_to_vector (nargs: ptrdiff_t, args: *mut Lisp_Object) -> Lisp_Ob
 }
 
 /* C 1189-1191: the three file-scope objects the cache below uses.  */
-static mut string_char_byte_cache_string: Lisp_Object = lisp_h_Qnil ();
-static mut string_char_byte_cache_charpos: ptrdiff_t = 0;
-static mut string_char_byte_cache_bytepos: ptrdiff_t = 0;
+static string_char_byte_cache_string: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+static string_char_byte_cache_charpos: VmGlobal<ptrdiff_t> = VmGlobal::<ptrdiff_t>::new (0);
+static string_char_byte_cache_bytepos: VmGlobal<ptrdiff_t> = VmGlobal::<ptrdiff_t>::new (0);
 
 /* Return the byte index corresponding to CHAR_INDEX in STRING.  */
 
@@ -1411,17 +1411,17 @@ pub unsafe extern "C-unwind" fn string_char_to_byte (string: Lisp_Object, char_i
   if best_above == best_above_byte
     { return char_index; }
 
-  if BASE_EQ (string, string_char_byte_cache_string)
+  if BASE_EQ (string, (*string_char_byte_cache_string.as_mut_ptr ()))
     {
-      if string_char_byte_cache_charpos < char_index
+      if (*string_char_byte_cache_charpos.as_mut_ptr ()) < char_index
 	{
-	  best_below = string_char_byte_cache_charpos;
-	  best_below_byte = string_char_byte_cache_bytepos;
+	  best_below = (*string_char_byte_cache_charpos.as_mut_ptr ());
+	  best_below_byte = (*string_char_byte_cache_bytepos.as_mut_ptr ());
 	}
       else
 	{
-	  best_above = string_char_byte_cache_charpos;
-	  best_above_byte = string_char_byte_cache_bytepos;
+	  best_above = (*string_char_byte_cache_charpos.as_mut_ptr ());
+	  best_above_byte = (*string_char_byte_cache_bytepos.as_mut_ptr ());
 	}
     }
 
@@ -1449,9 +1449,9 @@ pub unsafe extern "C-unwind" fn string_char_to_byte (string: Lisp_Object, char_i
       i_byte = p.offset_from (SDATA (string));
     }
 
-  string_char_byte_cache_bytepos = i_byte;
-  string_char_byte_cache_charpos = char_index;
-  string_char_byte_cache_string = string;
+  (*string_char_byte_cache_bytepos.as_mut_ptr ()) = i_byte;
+  (*string_char_byte_cache_charpos.as_mut_ptr ()) = char_index;
+  (*string_char_byte_cache_string.as_mut_ptr ()) = string;
 
   return i_byte;
 
@@ -1480,17 +1480,17 @@ pub unsafe extern "C-unwind" fn string_byte_to_char (string: Lisp_Object, byte_i
   if best_above == best_above_byte
     { return byte_index; }
 
-  if BASE_EQ (string, string_char_byte_cache_string)
+  if BASE_EQ (string, (*string_char_byte_cache_string.as_mut_ptr ()))
     {
-      if string_char_byte_cache_bytepos < byte_index
+      if (*string_char_byte_cache_bytepos.as_mut_ptr ()) < byte_index
 	{
-	  best_below = string_char_byte_cache_charpos;
-	  best_below_byte = string_char_byte_cache_bytepos;
+	  best_below = (*string_char_byte_cache_charpos.as_mut_ptr ());
+	  best_below_byte = (*string_char_byte_cache_bytepos.as_mut_ptr ());
 	}
       else
 	{
-	  best_above = string_char_byte_cache_charpos;
-	  best_above_byte = string_char_byte_cache_bytepos;
+	  best_above = (*string_char_byte_cache_charpos.as_mut_ptr ());
+	  best_above_byte = (*string_char_byte_cache_bytepos.as_mut_ptr ());
 	}
     }
 
@@ -1522,9 +1522,9 @@ pub unsafe extern "C-unwind" fn string_byte_to_char (string: Lisp_Object, byte_i
       i_byte = p.offset_from (SDATA (string));
     }
 
-  string_char_byte_cache_bytepos = i_byte;
-  string_char_byte_cache_charpos = i;
-  string_char_byte_cache_string = string;
+  (*string_char_byte_cache_bytepos.as_mut_ptr ()) = i_byte;
+  (*string_char_byte_cache_charpos.as_mut_ptr ()) = i;
+  (*string_char_byte_cache_string.as_mut_ptr ()) = string;
 
   return i;
 
@@ -2066,11 +2066,11 @@ DEFUN! ("nthcdr", Fnthcdr, Snthcdr, 2, 2, 0,
 	{ num += mpz_tdiv_ui (xbignum_val (n), cycle_length as c_ulong) as EMACS_INT; }
       else
 	{
-	  mpz_set_intmax (mpz[0].as_mut_ptr (), cycle_length as intmax_t);
-	  mpz_tdiv_r (mpz[0].as_mut_ptr (), xbignum_val (n), mpz[0].as_ptr ());
+	  mpz_set_intmax ((*mpz.as_mut_ptr ())[0].as_mut_ptr (), cycle_length as intmax_t);
+	  mpz_tdiv_r ((*mpz.as_mut_ptr ())[0].as_mut_ptr (), xbignum_val (n), (*mpz.as_mut_ptr ())[0].as_ptr ());
 	  let mut iz: intptr_t = 0;
 	  mpz_export (&raw mut iz as *mut c_void, std::ptr::null_mut (), -1,
-		      std::mem::size_of::<intptr_t> (), 0, 0, mpz[0].as_ptr ());
+		      std::mem::size_of::<intptr_t> (), 0, 0, (*mpz.as_mut_ptr ())[0].as_ptr ());
 	  num += iz;
 	}
       if num < cycle_length
@@ -2206,7 +2206,7 @@ DEFUN! ("memq", Fmemq, Smemq, 2, 2, 0,
   if NILP (list)
     { return Qnil (); }
   let mut tail: Lisp_Object = list;
-  if ! symbols_with_pos_enabled
+  if ! (*symbols_with_pos_enabled.as_mut_ptr ())
     {
       let mut steps: ptrdiff_t = 0;
       while CONSP (tail) && steps < 4096
@@ -2292,7 +2292,7 @@ DEFUN! ("assq", Fassq, Sassq, 2, 2, 0,
   if NILP (alist)
     { return Qnil (); }
   let mut tail: Lisp_Object = alist;
-  if ! symbols_with_pos_enabled
+  if ! (*symbols_with_pos_enabled.as_mut_ptr ())
     {
       let mut steps: ptrdiff_t = 0;
       while CONSP (tail) && steps < 4096
@@ -2398,7 +2398,7 @@ DEFUN! ("rassq", Frassq, Srassq, 2, 2, 0,
   if NILP (alist)
     { return Qnil (); }
   let mut tail: Lisp_Object = alist;
-  if ! symbols_with_pos_enabled
+  if ! (*symbols_with_pos_enabled.as_mut_ptr ())
     {
       let mut steps: ptrdiff_t = 0;
       while CONSP (tail) && steps < 4096
@@ -2449,7 +2449,7 @@ DEFUN! ("delq", Fdelq, Sdelq, 2, 2, 0,
   let mut list: Lisp_Object = list;
   let mut tail: Lisp_Object = list;
 
-  if ! symbols_with_pos_enabled
+  if ! (*symbols_with_pos_enabled.as_mut_ptr ())
     {
       let mut steps: ptrdiff_t = 0;
       while CONSP (tail) && steps < 4096
@@ -2840,7 +2840,7 @@ unsafe fn sort_list (list: Lisp_Object, predicate: Lisp_Object, keyfunc: Lisp_Ob
   let pred_resolved: Lisp_Object = if SYMBOLP (predicate)
     { (*XSYMBOL (predicate)).u.s.function }
     else { predicate };
-  if inplace && !reverse && !debug_on_next_call
+  if inplace && !reverse && !(*debug_on_next_call.as_mut_ptr ())
      && (NILP (keyfunc) || EQ (keyfunc, Qidentity ()))
      && (NILP (predicate) || EQ (predicate, Qvaluelt ())
 	 || (SUBRP (pred_resolved) && (*XSUBR (pred_resolved)).function.aMANY == Some (Flss)))
@@ -3159,7 +3159,7 @@ unsafe fn plist_get_inline (plist: Lisp_Object, prop: Lisp_Object) -> Lisp_Objec
   if NILP (plist)
     { return Qnil (); }
   let mut tail: Lisp_Object = plist;
-  if ! symbols_with_pos_enabled
+  if ! (*symbols_with_pos_enabled.as_mut_ptr ())
     {
       let mut steps: ptrdiff_t = 0;
       while CONSP (tail) && steps < 2048
@@ -3199,7 +3199,7 @@ unsafe fn fget_overriding_slow (symbol: Lisp_Object, propname: Lisp_Object) -> L
   // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
   unsafe {
   let propval: Lisp_Object = plist_get_inline (CDR (Fassq (symbol,
-							   Voverriding_plist_environment)),
+							   (*Voverriding_plist_environment.as_mut_ptr ()))),
 					       propname);
   if !NILP (propval)
     { return propval; }
@@ -3213,7 +3213,7 @@ DEFUN! ("get", Fget, Sget, 2, 2, 0,
        (symbol: Lisp_Object, propname: Lisp_Object),
        {
   CHECK_SYMBOL (symbol);
-  if ! NILP (Voverriding_plist_environment)
+  if ! NILP ((*Voverriding_plist_environment.as_mut_ptr ()))
     { return fget_overriding_slow (symbol, propname); }
   return plist_get_inline ((*XSYMBOL (symbol)).u.s.plist, propname);
 });
@@ -3258,7 +3258,7 @@ pub unsafe extern "C-unwind" fn plist_put (plist: Lisp_Object, prop: Lisp_Object
   unsafe {
   let mut prev: Lisp_Object = Qnil ();
   let mut tail: Lisp_Object = plist;
-  if ! symbols_with_pos_enabled
+  if ! (*symbols_with_pos_enabled.as_mut_ptr ())
     {
       let mut steps: ptrdiff_t = 0;
       while CONSP (tail) && steps < 2048
@@ -3380,7 +3380,7 @@ DEFUN! ("equal", Fequal, Sequal, 2, 2, 0,
        {
   if BASE_EQ (o1, o2)
     { return Qt (); }
-  if ! symbols_with_pos_enabled
+  if ! (*symbols_with_pos_enabled.as_mut_ptr ())
      && (BARE_SYMBOL_P (o1) || FIXNUMP (o1) || BARE_SYMBOL_P (o2) || FIXNUMP (o2)
 	 || XTYPE (o1) != XTYPE (o2))
     { return Qnil (); }
@@ -3465,7 +3465,7 @@ unsafe fn internal_equal_1 (o1: Lisp_Object, o2: Lisp_Object, equal_kind: equal_
      `equal' to the corresponding ordinary symbol.  */
   if BASE_EQ (o1, o2)
     { return true; }
-  if symbols_with_pos_enabled
+  if (*symbols_with_pos_enabled.as_mut_ptr ())
     {
       o1 = maybe_remove_pos_from_symbol (o1);
       o2 = maybe_remove_pos_from_symbol (o2);
@@ -3492,7 +3492,7 @@ unsafe fn internal_equal_1 (o1: Lisp_Object, o2: Lisp_Object, equal_kind: equal_
 	      let c2: Lisp_Object = XCAR (o2);
 	      if ! BASE_EQ (c1, c2)
 		{
-		  if ! symbols_with_pos_enabled
+		  if ! (*symbols_with_pos_enabled.as_mut_ptr ())
 		     && (BARE_SYMBOL_P (c1) || FIXNUMP (c1) || BARE_SYMBOL_P (c2) || FIXNUMP (c2)
 			 || XTYPE (c1) != XTYPE (c2))
 		    { return false; }
@@ -3520,7 +3520,7 @@ unsafe fn internal_equal_1 (o1: Lisp_Object, o2: Lisp_Object, equal_kind: equal_
 	      let c2: Lisp_Object = XCAR (o2);
 	      if ! BASE_EQ (c1, c2)
 		{
-		  if ! symbols_with_pos_enabled
+		  if ! (*symbols_with_pos_enabled.as_mut_ptr ())
 		     && (BARE_SYMBOL_P (c1) || FIXNUMP (c1) || BARE_SYMBOL_P (c2) || FIXNUMP (c2)
 			 || XTYPE (c1) != XTYPE (c2))
 		    { return false; }
@@ -3601,7 +3601,7 @@ unsafe fn internal_equal_1 (o1: Lisp_Object, o2: Lisp_Object, equal_kind: equal_
 
 	  pvec_type::PVEC_SYMBOL_WITH_POS =>
 	    {
-	    eassert! (!symbols_with_pos_enabled);
+	    eassert! (!(*symbols_with_pos_enabled.as_mut_ptr ()));
 	    return (BASE_EQ (XSYMBOL_WITH_POS_SYM (o1),
 			     XSYMBOL_WITH_POS_SYM (o2))
 		    && BASE_EQ (XSYMBOL_WITH_POS_POS (o1),
@@ -3950,7 +3950,7 @@ unsafe fn value_cmp (a: Lisp_Object, b: Lisp_Object, maxdepth: c_int) -> c_int
 	 forever (P-171).  */
       else if BIGNUMP (a)
 	{ return -value_cmp (b, a, maxdepth); }
-      else if SYMBOL_WITH_POS_P (a) && symbols_with_pos_enabled
+      else if SYMBOL_WITH_POS_P (a) && (*symbols_with_pos_enabled.as_mut_ptr ())
 	{
 	  a = XSYMBOL_WITH_POS_SYM (a);
 	  continue 'tail_recurse;
@@ -4237,7 +4237,7 @@ DEFUN! ("mapconcat", Fmapconcat, Smapconcat, 2, 3, 0,
     { wrong_type_argument (Qlistp (), sequence); }
   let args_alloc: EMACS_INT = 2 * leni - 1;
   if args_alloc < 0
-    { return empty_unibyte_string; }
+    { return (*empty_unibyte_string.as_mut_ptr ()); }
   let mut args: *mut Lisp_Object;
   SAFE_ALLOCA_LISP! (sa_avail, args, args_alloc);
   /* C's `goto concat` (the identity fast paths) skips the mapcar1 call; the port's
@@ -4386,12 +4386,12 @@ DEFUN! ("yes-or-no-p", Fyes_or_no_p, Syes_or_no_p, 1, 1, 0,
 
   CHECK_STRING (prompt);
 
-  if !NILP (last_input_event)
-      && (CONSP (last_nonmenu_event)
-	  || (NILP (last_nonmenu_event) && CONSP (last_input_event))
+  if !NILP ((*last_input_event.as_mut_ptr ()))
+      && (CONSP ((*last_nonmenu_event.as_mut_ptr ()))
+	  || (NILP ((*last_nonmenu_event.as_mut_ptr ())) && CONSP ((*last_input_event.as_mut_ptr ())))
 	  || { val = find_symbol_value (Qfrom__tty_menu_p ());
 	       !NILP (val) && !BASE_EQ (val, Qunbound ()) })
-      && use_dialog_box
+      && (*use_dialog_box.as_mut_ptr ())
     {
       let pane: Lisp_Object;
       let menu: Lisp_Object;
@@ -4404,7 +4404,7 @@ DEFUN! ("yes-or-no-p", Fyes_or_no_p, Syes_or_no_p, 1, 1, 0,
       return obj;
     }
 
-  if use_short_answers
+  if (*use_short_answers.as_mut_ptr ())
     { return calln! (Qy_or_n_p (), prompt); }
 
   let promptlen: ptrdiff_t = SCHARS (prompt);
@@ -4413,14 +4413,14 @@ DEFUN! ("yes-or-no-p", Fyes_or_no_p, Syes_or_no_p, 1, 1, 0,
        && !blankp (XFIXNAT (Faref (prompt, make_fixnum (promptlen - 1))) as c_int));
   AUTO_STRING! (space_string, c" ".as_ptr ());
   prompt = CALLN! (Fconcat, prompt,
-		   if prompt_ends_in_nonspace { space_string } else { empty_unibyte_string },
-		   Vyes_or_no_prompt);
+		   if prompt_ends_in_nonspace { space_string } else { (*empty_unibyte_string.as_mut_ptr ()) },
+		   (*Vyes_or_no_prompt.as_mut_ptr ()));
 
   let count: specpdl_ref = SPECPDL_INDEX ();
   specbind (Qenable_recursive_minibuffers (), Qt ());
   /* Preserve the actual command that eventually called `yes-or-no-p'
      (otherwise `repeat' will be repeating `exit-minibuffer').  */
-  specbind (Qreal_this_command (), Vreal_this_command);
+  specbind (Qreal_this_command (), (*Vreal_this_command.as_mut_ptr ()));
 
   loop
     {
@@ -4472,7 +4472,7 @@ DEFUN! ("featurep", Ffeaturep, Sfeaturep, 1, 2, 0,
        {
   let mut tem: Lisp_Object;
   CHECK_SYMBOL (feature);
-  tem = Fmemq (feature, Vfeatures);
+  tem = Fmemq (feature, (*Vfeatures.as_mut_ptr ()));
   if !NILP (tem) && !NILP (subfeature)
     { tem = Fmember (subfeature, Fget (feature, Qsubfeatures ())); }
   return if NILP (tem) { Qnil () } else { Qt () };
@@ -4485,18 +4485,18 @@ DEFUN! ("provide", Fprovide, Sprovide, 1, 2, 0,
   let mut tem: Lisp_Object;
   CHECK_SYMBOL (feature);
   CHECK_LIST (subfeatures);
-  if !NILP (Vautoload_queue)
-    { Vautoload_queue = Fcons (Fcons (make_fixnum (0), Vfeatures),
-			       Vautoload_queue); }
-  tem = Fmemq (feature, Vfeatures);
+  if !NILP ((*Vautoload_queue.as_mut_ptr ()))
+    { (*Vautoload_queue.as_mut_ptr ()) = Fcons (Fcons (make_fixnum (0), (*Vfeatures.as_mut_ptr ())),
+			       (*Vautoload_queue.as_mut_ptr ())); }
+  tem = Fmemq (feature, (*Vfeatures.as_mut_ptr ()));
   if NILP (tem)
-    { Vfeatures = Fcons (feature, Vfeatures); }
+    { (*Vfeatures.as_mut_ptr ()) = Fcons (feature, (*Vfeatures.as_mut_ptr ())); }
   if !NILP (subfeatures)
     { Fput (feature, Qsubfeatures (), subfeatures); }
   LOADHIST_ATTACH (Fcons (Qprovide (), feature));
 
   /* Run any load-hooks for this file.  */
-  tem = Fassq (feature, Vafter_load_alist);
+  tem = Fassq (feature, (*Vafter_load_alist.as_mut_ptr ()));
   if CONSP (tem)
     { Fmapc (Qfuncall (), XCDR (tem)); }
 
@@ -4508,14 +4508,14 @@ DEFUN! ("provide", Fprovide, Sprovide, 1, 2, 0,
 
 /* List of features currently being require'd, innermost first.  */
 
-static mut require_nesting_list: Lisp_Object = lisp_h_Qnil ();
+static require_nesting_list: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* C 3776-3779: `require_unwind`.  */
 unsafe extern "C-unwind" fn require_unwind (old_value: Lisp_Object)
 {
   // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
   unsafe {
-  require_nesting_list = old_value;
+  (*require_nesting_list.as_mut_ptr ()) = old_value;
 
   }
 }
@@ -4526,7 +4526,7 @@ DEFUN! ("require", Frequire, Srequire, 1, 3, 0,
        {
   let mut feature: Lisp_Object = feature;
   let mut tem: Lisp_Object;
-  let mut from_file: bool = load_in_progress;
+  let mut from_file: bool = (*load_in_progress.as_mut_ptr ());
 
   CHECK_SYMBOL (feature);
 
@@ -4536,7 +4536,7 @@ DEFUN! ("require", Frequire, Srequire, 1, 3, 0,
      and not when we aren't loading or reading from a file.  */
   if !from_file
     {
-      let mut tail: Lisp_Object = Vcurrent_load_list;
+      let mut tail: Lisp_Object = (*Vcurrent_load_list.as_mut_ptr ());
       FOR_EACH_TAIL_SAFE! (tail, {
 	if NILP (XCDR (tail)) && STRINGP (XCAR (tail))
 	  { from_file = true; }
@@ -4546,10 +4546,10 @@ DEFUN! ("require", Frequire, Srequire, 1, 3, 0,
   if from_file
     {
       tem = Fcons (Qrequire (), feature);
-      if NILP (Fmember (tem, Vcurrent_load_list))
+      if NILP (Fmember (tem, (*Vcurrent_load_list.as_mut_ptr ())))
 	{ LOADHIST_ATTACH (tem); }
     }
-  tem = Fmemq (feature, Vfeatures);
+  tem = Fmemq (feature, (*Vfeatures.as_mut_ptr ()));
 
   if NILP (tem)
     {
@@ -4562,7 +4562,7 @@ DEFUN! ("require", Frequire, Srequire, 1, 3, 0,
 	{
 	  /* Avoid landing here recursively while outputting the
 	     backtrace from the error.  */
-	  gflags.will_dump = false;
+	  (*gflags.as_mut_ptr ()).will_dump = false;
 	  error (c"(require %s) while preparing to dump".as_ptr (),
 		 SDATA (SYMBOL_NAME (feature)));
 	}
@@ -4570,7 +4570,7 @@ DEFUN! ("require", Frequire, Srequire, 1, 3, 0,
       /* A certain amount of recursive `require' is legitimate,
 	 but if we require the same feature recursively 3 times,
 	 signal an error.  */
-      tem = require_nesting_list;
+      tem = (*require_nesting_list.as_mut_ptr ());
       while ! NILP (tem)
 	{
 	  if ! NILP (Fequal (feature, XCAR (tem)))
@@ -4582,8 +4582,8 @@ DEFUN! ("require", Frequire, Srequire, 1, 3, 0,
 		 SDATA (SYMBOL_NAME (feature))); }
 
       /* Update the list for any nested `require's that occur.  */
-      record_unwind_protect (Some (require_unwind), require_nesting_list);
-      require_nesting_list = Fcons (feature, require_nesting_list);
+      record_unwind_protect (Some (require_unwind), (*require_nesting_list.as_mut_ptr ()));
+      (*require_nesting_list.as_mut_ptr ()) = Fcons (feature, (*require_nesting_list.as_mut_ptr ()));
 
       /* Load the file.  */
       tem = load_with_autoload_queue
@@ -4594,11 +4594,11 @@ DEFUN! ("require", Frequire, Srequire, 1, 3, 0,
       if NILP (tem)
 	{ return unbind_to (count, Qnil ()); }
 
-      tem = Fmemq (feature, Vfeatures);
+      tem = Fmemq (feature, (*Vfeatures.as_mut_ptr ()));
       if NILP (tem)
         {
           let tem2: *mut u8 = SDATA (SYMBOL_NAME (feature));
-          let tem3: Lisp_Object = Fcar (Fcar (Vload_history));
+          let tem3: Lisp_Object = Fcar (Fcar ((*Vload_history.as_mut_ptr ())));
 
           if NILP (tem3)
             { error (c"Required feature `%s' was not provided".as_ptr (), tem2); }
@@ -4651,7 +4651,7 @@ DEFUN! ("locale-info", Flocale_info, Slocale_info, 1, 1, 0,
 	  AUTO_STRING! (val, str_);
 	  /* Fixme: Is this coding system necessarily right, even if
 	     it is consistent with CODESET?  If not, what to do?  */
-	  ASET (v, i as ptrdiff_t, code_convert_string_norecord (val, Vlocale_coding_system,
+	  ASET (v, i as ptrdiff_t, code_convert_string_norecord (val, (*Vlocale_coding_system.as_mut_ptr ()),
 								 false));
 	  i += 1;
 	}
@@ -4669,7 +4669,7 @@ DEFUN! ("locale-info", Flocale_info, Slocale_info, 1, 1, 0,
 	{
 	  str_ = nl_langinfo (months[i as usize]);
 	  AUTO_STRING! (val, str_);
-	  ASET (v, i as ptrdiff_t, code_convert_string_norecord (val, Vlocale_coding_system,
+	  ASET (v, i as ptrdiff_t, code_convert_string_norecord (val, (*Vlocale_coding_system.as_mut_ptr ()),
 								 false));
 	  i += 1;
 	}
@@ -5618,16 +5618,16 @@ unsafe extern "C-unwind" fn hashfn_user_defined (key: Lisp_Object, h: *mut Lisp_
    C's `cmpfn` is a function pointer; the mirror types the field `Lisp_Object` (same size),
    so each is a function-pointer-to-Lisp_Object cast and `NILP` on it is the null test.  */
 #[unsafe(no_mangle)]
-pub static mut hashtest_eq: hash_table_test = hash_table_test {
+pub static hashtest_eq: VmGlobal<hash_table_test> = VmGlobal::<hash_table_test>::new (hash_table_test {
   hashfn: Some (hashfn_eq),
   cmpfn: std::ptr::null_mut (),
   user_hash_function: std::ptr::null_mut (),
   user_cmp_function: std::ptr::null_mut (),
   name: (((iQeq * std::mem::size_of::<Lisp_Symbol> ()) as EMACS_UINT
 	  + Lisp_Type::Lisp_Symbol as EMACS_UINT) as Lisp_Object),
-};
+});
 #[unsafe(no_mangle)]
-pub static mut hashtest_eql: hash_table_test = hash_table_test {
+pub static hashtest_eql: VmGlobal<hash_table_test> = VmGlobal::<hash_table_test>::new (hash_table_test {
   hashfn: Some (hashfn_eql),
   cmpfn: cmpfn_eql as unsafe extern "C-unwind" fn (Lisp_Object, Lisp_Object, *mut Lisp_Hash_Table)
     -> Lisp_Object as *const () as Lisp_Object,
@@ -5635,9 +5635,9 @@ pub static mut hashtest_eql: hash_table_test = hash_table_test {
   user_cmp_function: std::ptr::null_mut (),
   name: (((iQeql * std::mem::size_of::<Lisp_Symbol> ()) as EMACS_UINT
 	  + Lisp_Type::Lisp_Symbol as EMACS_UINT) as Lisp_Object),
-};
+});
 #[unsafe(no_mangle)]
-pub static mut hashtest_equal: hash_table_test = hash_table_test {
+pub static hashtest_equal: VmGlobal<hash_table_test> = VmGlobal::<hash_table_test>::new (hash_table_test {
   hashfn: Some (hashfn_equal),
   cmpfn: cmpfn_equal as unsafe extern "C-unwind" fn (Lisp_Object, Lisp_Object, *mut Lisp_Hash_Table)
     -> Lisp_Object as *const () as Lisp_Object,
@@ -5645,7 +5645,7 @@ pub static mut hashtest_equal: hash_table_test = hash_table_test {
   user_cmp_function: std::ptr::null_mut (),
   name: (((iQequal * std::mem::size_of::<Lisp_Symbol> ()) as EMACS_UINT
 	  + Lisp_Type::Lisp_Symbol as EMACS_UINT) as Lisp_Object),
-};
+});
 
 /* `<intprops.h>` has no mirror (PORTING.md P-26): C's `TYPE_MAXIMUM (t)` is the type's own
    maximum (the editfns.rs/doprnt.rs spelling).  */
@@ -5963,9 +5963,9 @@ unsafe fn hash_table_test_from_std (test: hash_table_std_test_t) -> *const hash_
   unsafe {
   match test
     {
-      Test_eq => { return &raw const hashtest_eq; }
-      Test_eql => { return &raw const hashtest_eql; }
-      Test_equal => { return &raw const hashtest_equal; }
+      Test_eq => { return hashtest_eq.as_ptr (); }
+      Test_eql => { return hashtest_eql.as_ptr (); }
+      Test_equal => { return hashtest_equal.as_ptr (); }
       _ => { }
     }
   emacs_abort ();
@@ -6048,9 +6048,9 @@ unsafe fn hash_find_with_hash (h: *mut Lisp_Hash_Table, key: Lisp_Object,
   let start_of_bucket: ptrdiff_t = hash_index_index (h, hash);
   let mut i: ptrdiff_t = HASH_INDEX (h, start_of_bucket);
   let cmpfn: Lisp_Object = (*(*h).test).cmpfn;
-  if ! symbols_with_pos_enabled
+  if ! (*symbols_with_pos_enabled.as_mut_ptr ())
      && (cmpfn.is_null ()
-	 || ((*h).test == &raw const hashtest_eql && ! (FLOATP (key) || BIGNUMP (key))))
+	 || ((*h).test == hashtest_eql.as_ptr () && ! (FLOATP (key) || BIGNUMP (key))))
     {
       let kv: *mut Lisp_Object = (*h).key_and_value;
       let next: *mut hash_idx_t = (*h).next;
@@ -6227,9 +6227,9 @@ unsafe fn hash_find_inline (h: *mut Lisp_Hash_Table, key: Lisp_Object) -> ptrdif
   // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
   unsafe {
   let test: *const hash_table_test = (*h).test;
-  if ! symbols_with_pos_enabled
-     && ((test == &raw const hashtest_eql && ! (FLOATP (key) || BIGNUMP (key)))
-	 || test == &raw const hashtest_eq)
+  if ! (*symbols_with_pos_enabled.as_mut_ptr ())
+     && ((test == hashtest_eql.as_ptr () && ! (FLOATP (key) || BIGNUMP (key)))
+	 || test == hashtest_eq.as_ptr ())
     {
       let hash: hash_hash_t = reduce_emacs_uint_to_hash_hash (
 	((XHASH (key) as EMACS_INT) ^ (XTYPE (key) as EMACS_INT)) as EMACS_UINT
@@ -6709,7 +6709,7 @@ unsafe fn sxhash_obj (obj: Lisp_Object, depth: c_int) -> EMACS_UINT
 	  }
 	else
 	  {
-	    if symbols_with_pos_enabled && pvec_type == pvec_type::PVEC_SYMBOL_WITH_POS
+	    if (*symbols_with_pos_enabled.as_mut_ptr ()) && pvec_type == pvec_type::PVEC_SYMBOL_WITH_POS
 	      { obj = XSYMBOL_WITH_POS_SYM (obj); }
 
 	    /* Others are 'equal' if they are 'eq', so take their
@@ -6820,7 +6820,7 @@ pub struct hash_table_user_test
   pub next: *mut hash_table_user_test,
 }
 
-static mut hash_table_user_tests: *mut hash_table_user_test = std::ptr::null_mut ();
+static hash_table_user_tests: VmGlobal<*mut hash_table_user_test> = VmGlobal::<*mut hash_table_user_test>::new (std::ptr::null_mut ());
 
 /* C 5679-5691: `mark_fns`.  */
 #[unsafe(no_mangle)]
@@ -6828,7 +6828,7 @@ pub unsafe extern "C-unwind" fn mark_fns ()
 {
   // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
   unsafe {
-  let mut ut: *mut hash_table_user_test = hash_table_user_tests;
+  let mut ut: *mut hash_table_user_test = (*hash_table_user_tests.as_mut_ptr ());
   while !ut.is_null ()
     {
       mark_object ((*ut).test.name);
@@ -6853,7 +6853,7 @@ unsafe fn get_hash_table_user_test (test: Lisp_Object) -> *mut hash_table_test
 
   let equal_fn: Lisp_Object = XCAR (prop);
   let hash_fn: Lisp_Object = XCAR (XCDR (prop));
-  let mut ut: *mut hash_table_user_test = hash_table_user_tests;
+  let mut ut: *mut hash_table_user_test = (*hash_table_user_tests.as_mut_ptr ());
   while !ut.is_null ()
     && !(BASE_EQ (test, (*ut).test.name)
 	 && EQ (equal_fn, (*ut).test.user_cmp_function)
@@ -6869,8 +6869,8 @@ unsafe fn get_hash_table_user_test (test: Lisp_Object) -> *mut hash_table_test
       (*ut).test.cmpfn = cmpfn_user_defined as unsafe extern "C-unwind" fn (Lisp_Object, Lisp_Object,
 								     *mut Lisp_Hash_Table)
 						     -> Lisp_Object as *const () as Lisp_Object;
-      (*ut).next = hash_table_user_tests;
-      hash_table_user_tests = ut;
+      (*ut).next = (*hash_table_user_tests.as_mut_ptr ());
+      (*hash_table_user_tests.as_mut_ptr ()) = ut;
     }
   return &raw mut (*ut).test;
 
@@ -6909,11 +6909,11 @@ DEFUN! ("make-hash-table", Fmake_hash_table, Smake_hash_table, 0, MANY, 0,
 
   let test: *const hash_table_test;
   if NILP (test_arg) || BASE_EQ (test_arg, Qeql ())
-    { test = &raw const hashtest_eql; }
+    { test = hashtest_eql.as_ptr (); }
   else if BASE_EQ (test_arg, Qeq ())
-    { test = &raw const hashtest_eq; }
+    { test = hashtest_eq.as_ptr (); }
   else if BASE_EQ (test_arg, Qequal ())
-    { test = &raw const hashtest_equal; }
+    { test = hashtest_equal.as_ptr (); }
   else
     { test = get_hash_table_user_test (test_arg); }
 
@@ -7064,9 +7064,9 @@ DEFUN! ("puthash", Fputhash, Sputhash, 3, 3, 0,
   check_mutable_hash_table (table, h);
 
   let test: *const hash_table_test = (*h).test;
-  if ! symbols_with_pos_enabled
-    && ((test == &raw const hashtest_eql && ! (FLOATP (key) || BIGNUMP (key)))
-	|| test == &raw const hashtest_eq)
+  if ! (*symbols_with_pos_enabled.as_mut_ptr ())
+    && ((test == hashtest_eql.as_ptr () && ! (FLOATP (key) || BIGNUMP (key)))
+	|| test == hashtest_eq.as_ptr ())
     {
       let hash: hash_hash_t = reduce_emacs_uint_to_hash_hash (
 	((XHASH (key) as EMACS_INT) ^ (XTYPE (key) as EMACS_INT)) as EMACS_UINT
@@ -7400,8 +7400,8 @@ pub unsafe extern "C-unwind" fn extract_data_from_object (spec: Lisp_Object,
 	  /* Decide the coding-system to encode the data with.
 	     See fileio.c:Fwrite-region */
 
-	  if !NILP (Vcoding_system_for_write)
-	    { coding_system = Vcoding_system_for_write; }
+	  if !NILP ((*Vcoding_system_for_write.as_mut_ptr ()))
+	    { coding_system = (*Vcoding_system_for_write.as_mut_ptr ()); }
 	  else
 	    {
 	      let mut force_raw_text: bool = false;
@@ -7435,9 +7435,9 @@ pub unsafe extern "C-unwind" fn extract_data_from_object (spec: Lisp_Object,
 		}
 
 	      if !force_raw_text
-		  && !NILP (Ffboundp (Vselect_safe_coding_system_function))
+		  && !NILP (Ffboundp ((*Vselect_safe_coding_system_function.as_mut_ptr ())))
 		/* Confirm that VAL can surely encode the current region.  */
-		{ coding_system = calln! (Vselect_safe_coding_system_function,
+		{ coding_system = calln! ((*Vselect_safe_coding_system_function.as_mut_ptr ()),
 					  make_fixnum (b), make_fixnum (e),
 					  coding_system, Qnil ()); }
 
@@ -7912,31 +7912,31 @@ pub unsafe extern "C-unwind" fn syms_of_fns ()
   DEFSYM! (Qhash_table_test, c"hash-table-test");
   DEFSYM! (Qkey_or_value, c"key-or-value");
   DEFSYM! (Qkey_and_value, c"key-and-value");
-  defsubr (&raw mut Ssxhash_eq);
-  defsubr (&raw mut Ssxhash_eql);
-  defsubr (&raw mut Ssxhash_equal);
-  defsubr (&raw mut Ssxhash_equal_including_properties);
-  defsubr (&raw mut Smake_hash_table);
-  defsubr (&raw mut Scopy_hash_table);
-  defsubr (&raw mut Shash_table_count);
-  defsubr (&raw mut Shash_table_rehash_size);
-  defsubr (&raw mut Shash_table_rehash_threshold);
-  defsubr (&raw mut Shash_table_size);
-  defsubr (&raw mut Shash_table_test);
-  defsubr (&raw mut Shash_table_weakness);
-  defsubr (&raw mut Shash_table_p);
-  defsubr (&raw mut Sclrhash);
-  defsubr (&raw mut Sgethash);
-  defsubr (&raw mut Sputhash);
-  defsubr (&raw mut Sremhash);
-  defsubr (&raw mut Smaphash);
-  defsubr (&raw mut Sdefine_hash_table_test);
-  defsubr (&raw mut Sinternal__hash_table_histogram);
-  defsubr (&raw mut Sinternal__hash_table_buckets);
-  defsubr (&raw mut Sinternal__hash_table_index_size);
-  defsubr (&raw mut Sstring_search);
-  defsubr (&raw mut Sobject_intervals);
-  defsubr (&raw mut Sline_number_at_pos);
+  defsubr (Ssxhash_eq.as_mut_ptr ());
+  defsubr (Ssxhash_eql.as_mut_ptr ());
+  defsubr (Ssxhash_equal.as_mut_ptr ());
+  defsubr (Ssxhash_equal_including_properties.as_mut_ptr ());
+  defsubr (Smake_hash_table.as_mut_ptr ());
+  defsubr (Scopy_hash_table.as_mut_ptr ());
+  defsubr (Shash_table_count.as_mut_ptr ());
+  defsubr (Shash_table_rehash_size.as_mut_ptr ());
+  defsubr (Shash_table_rehash_threshold.as_mut_ptr ());
+  defsubr (Shash_table_size.as_mut_ptr ());
+  defsubr (Shash_table_test.as_mut_ptr ());
+  defsubr (Shash_table_weakness.as_mut_ptr ());
+  defsubr (Shash_table_p.as_mut_ptr ());
+  defsubr (Sclrhash.as_mut_ptr ());
+  defsubr (Sgethash.as_mut_ptr ());
+  defsubr (Sputhash.as_mut_ptr ());
+  defsubr (Sremhash.as_mut_ptr ());
+  defsubr (Smaphash.as_mut_ptr ());
+  defsubr (Sdefine_hash_table_test.as_mut_ptr ());
+  defsubr (Sinternal__hash_table_histogram.as_mut_ptr ());
+  defsubr (Sinternal__hash_table_buckets.as_mut_ptr ());
+  defsubr (Sinternal__hash_table_index_size.as_mut_ptr ());
+  defsubr (Sstring_search.as_mut_ptr ());
+  defsubr (Sobject_intervals.as_mut_ptr ());
+  defsubr (Sline_number_at_pos.as_mut_ptr ());
   /* Crypto and hashing stuff.  */
   DEFSYM! (Qiv_auto, c"iv-auto");
   DEFSYM! (Qmd5, c"md5");
@@ -7958,16 +7958,16 @@ pub unsafe extern "C-unwind" fn syms_of_fns ()
   DEFSYM! (Qwidget_type, c"widget-type");
   DEFVAR_LISP! (c"overriding-plist-environment", Voverriding_plist_environment,
 	  " An alist that overrides the plists of the symbols which it lists.\nUsed by the byte-compiler to apply `define-symbol-prop' during\ncompilation.  ");
-  Voverriding_plist_environment = Qnil ();
+  (*Voverriding_plist_environment.as_mut_ptr ()) = Qnil ();
   DEFSYM! (Qoverriding_plist_environment, c"overriding-plist-environment");
-  staticpro (&raw mut string_char_byte_cache_string);
-  string_char_byte_cache_string = Qnil ();
-  require_nesting_list = Qnil ();
-  staticpro (&raw mut require_nesting_list);
+  staticpro (string_char_byte_cache_string.as_mut_ptr ());
+  (*string_char_byte_cache_string.as_mut_ptr ()) = Qnil ();
+  (*require_nesting_list.as_mut_ptr ()) = Qnil ();
+  staticpro (require_nesting_list.as_mut_ptr ());
   Fset (Qyes_or_no_p_history (), Qnil ());
   DEFVAR_LISP! (c"features", Vfeatures,
 	  " A list of symbols which are the features of the executing Emacs.\nUsed by `featurep' and `require', and altered by `provide'.  ");
-  Vfeatures = list1 (Qemacs ());
+  (*Vfeatures.as_mut_ptr ()) = list1 (Qemacs ());
   DEFSYM! (Qfeatures, c"features");
   /* Let people use lexically scoped vars named `features'.  */
   Fmake_var_non_special (Qfeatures ());
@@ -7983,95 +7983,95 @@ pub unsafe extern "C-unwind" fn syms_of_fns ()
   /* #endif	/* HAVE_LANGINFO_CODESET */ */
   DEFVAR_BOOL! (c"use-dialog-box", use_dialog_box,
 	  " Non-nil means mouse commands use dialog boxes to ask questions.\nThis applies to `y-or-n-p' and `yes-or-no-p' questions asked by commands\ninvoked by mouse clicks and mouse menu items.\n\nOn some platforms, file selection dialogs are also enabled if this is\nnon-nil.  ");
-  use_dialog_box = true;
+  (*use_dialog_box.as_mut_ptr ()) = true;
   DEFVAR_BOOL! (c"use-file-dialog", use_file_dialog,
 	  " Non-nil means mouse commands use a file dialog to ask for files.\nThis applies to commands from menus and tool bar buttons even when\nthey are initiated from the keyboard.  If `use-dialog-box' is nil,\nthat disables the use of a file dialog, regardless of the value of\nthis variable.  ");
-  use_file_dialog = true;
+  (*use_file_dialog.as_mut_ptr ()) = true;
   DEFVAR_BOOL! (c"use-short-answers", use_short_answers,
 	  " Non-nil means `yes-or-no-p' accepts single-key answers \"y\" or \"n\".\nWhen non-nil, `yes-or-no-p' will use `y-or-n-p' to read the answer.\nThis means the user will be able to press just one key to answer, whereas\nby default the user needs to type the full \"yes\" or \"no\" response\nand then press RET.\n\nWe recommend against setting this variable non-nil, because `yes-or-no-p'\nis intended to be used when users are expected not to respond too\nquickly, but to take their time and perhaps think about the answer.\nThe same variable also affects the function `read-answer'.  See also\n`yes-or-no-prompt'.  ");
-  use_short_answers = false;
+  (*use_short_answers.as_mut_ptr ()) = false;
   DEFVAR_LISP! (c"yes-or-no-prompt", Vyes_or_no_prompt,
 	  " String to append when `yes-or-no-p' asks a question.\nFor best results this should end in a space.  ");
-  Vyes_or_no_prompt = build_unibyte_string (c"(yes or no) ".as_ptr ());
-  defsubr (&raw mut Sidentity);
-  defsubr (&raw mut Srandom);
-  defsubr (&raw mut Slength);
-  defsubr (&raw mut Ssafe_length);
-  defsubr (&raw mut Slength_less);
-  defsubr (&raw mut Slength_greater);
-  defsubr (&raw mut Slength_equal);
-  defsubr (&raw mut Sproper_list_p);
-  defsubr (&raw mut Sstring_bytes);
-  defsubr (&raw mut Sstring_distance);
-  defsubr (&raw mut Sstring_equal);
-  defsubr (&raw mut Scompare_strings);
-  defsubr (&raw mut Sstring_lessp);
-  defsubr (&raw mut Sstring_version_lessp);
-  defsubr (&raw mut Sstring_collate_lessp);
-  defsubr (&raw mut Sstring_collate_equalp);
-  defsubr (&raw mut Sappend);
-  defsubr (&raw mut Sconcat);
-  defsubr (&raw mut Svconcat);
-  defsubr (&raw mut Scopy_sequence);
-  defsubr (&raw mut Sstring_make_multibyte);
-  defsubr (&raw mut Sstring_make_unibyte);
-  defsubr (&raw mut Sstring_as_multibyte);
-  defsubr (&raw mut Sstring_as_unibyte);
-  defsubr (&raw mut Sstring_to_multibyte);
-  defsubr (&raw mut Sstring_to_unibyte);
-  defsubr (&raw mut Scopy_alist);
-  defsubr (&raw mut Ssubstring);
-  defsubr (&raw mut Ssubstring_no_properties);
-  defsubr (&raw mut Stake);
-  defsubr (&raw mut Sntake);
-  defsubr (&raw mut Snthcdr);
-  defsubr (&raw mut Snth);
-  defsubr (&raw mut Selt);
-  defsubr (&raw mut Smember);
-  defsubr (&raw mut Smemq);
-  defsubr (&raw mut Smemql);
-  defsubr (&raw mut Sassq);
-  defsubr (&raw mut Sassoc);
-  defsubr (&raw mut Srassq);
-  defsubr (&raw mut Srassoc);
-  defsubr (&raw mut Sdelq);
-  defsubr (&raw mut Sdelete);
-  defsubr (&raw mut Snreverse);
-  defsubr (&raw mut Sreverse);
-  defsubr (&raw mut Ssort);
-  defsubr (&raw mut Splist_get);
-  defsubr (&raw mut Sget);
-  defsubr (&raw mut Splist_put);
-  defsubr (&raw mut Sput);
-  defsubr (&raw mut Seql);
-  defsubr (&raw mut Sequal);
-  defsubr (&raw mut Sequal_including_properties);
-  defsubr (&raw mut Svaluelt);
-  defsubr (&raw mut Sfillarray);
-  defsubr (&raw mut Sclear_string);
-  defsubr (&raw mut Snconc);
-  defsubr (&raw mut Smapcar);
-  defsubr (&raw mut Smapc);
-  defsubr (&raw mut Smapcan);
-  defsubr (&raw mut Smapconcat);
-  defsubr (&raw mut Syes_or_no_p);
-  defsubr (&raw mut Sload_average);
-  defsubr (&raw mut Sfeaturep);
-  defsubr (&raw mut Srequire);
-  defsubr (&raw mut Sprovide);
-  defsubr (&raw mut Splist_member);
-  defsubr (&raw mut Sbase64_encode_region);
-  defsubr (&raw mut Sbase64_decode_region);
-  defsubr (&raw mut Sbase64_encode_string);
-  defsubr (&raw mut Sbase64_decode_string);
-  defsubr (&raw mut Sbase64url_encode_region);
-  defsubr (&raw mut Sbase64url_encode_string);
-  defsubr (&raw mut Smd5);
-  defsubr (&raw mut Ssecure_hash_algorithms);
-  defsubr (&raw mut Ssecure_hash);
-  defsubr (&raw mut Sbuffer_hash);
-  defsubr (&raw mut Slocale_info);
-  defsubr (&raw mut Sbuffer_line_statistics);
+  (*Vyes_or_no_prompt.as_mut_ptr ()) = build_unibyte_string (c"(yes or no) ".as_ptr ());
+  defsubr (Sidentity.as_mut_ptr ());
+  defsubr (Srandom.as_mut_ptr ());
+  defsubr (Slength.as_mut_ptr ());
+  defsubr (Ssafe_length.as_mut_ptr ());
+  defsubr (Slength_less.as_mut_ptr ());
+  defsubr (Slength_greater.as_mut_ptr ());
+  defsubr (Slength_equal.as_mut_ptr ());
+  defsubr (Sproper_list_p.as_mut_ptr ());
+  defsubr (Sstring_bytes.as_mut_ptr ());
+  defsubr (Sstring_distance.as_mut_ptr ());
+  defsubr (Sstring_equal.as_mut_ptr ());
+  defsubr (Scompare_strings.as_mut_ptr ());
+  defsubr (Sstring_lessp.as_mut_ptr ());
+  defsubr (Sstring_version_lessp.as_mut_ptr ());
+  defsubr (Sstring_collate_lessp.as_mut_ptr ());
+  defsubr (Sstring_collate_equalp.as_mut_ptr ());
+  defsubr (Sappend.as_mut_ptr ());
+  defsubr (Sconcat.as_mut_ptr ());
+  defsubr (Svconcat.as_mut_ptr ());
+  defsubr (Scopy_sequence.as_mut_ptr ());
+  defsubr (Sstring_make_multibyte.as_mut_ptr ());
+  defsubr (Sstring_make_unibyte.as_mut_ptr ());
+  defsubr (Sstring_as_multibyte.as_mut_ptr ());
+  defsubr (Sstring_as_unibyte.as_mut_ptr ());
+  defsubr (Sstring_to_multibyte.as_mut_ptr ());
+  defsubr (Sstring_to_unibyte.as_mut_ptr ());
+  defsubr (Scopy_alist.as_mut_ptr ());
+  defsubr (Ssubstring.as_mut_ptr ());
+  defsubr (Ssubstring_no_properties.as_mut_ptr ());
+  defsubr (Stake.as_mut_ptr ());
+  defsubr (Sntake.as_mut_ptr ());
+  defsubr (Snthcdr.as_mut_ptr ());
+  defsubr (Snth.as_mut_ptr ());
+  defsubr (Selt.as_mut_ptr ());
+  defsubr (Smember.as_mut_ptr ());
+  defsubr (Smemq.as_mut_ptr ());
+  defsubr (Smemql.as_mut_ptr ());
+  defsubr (Sassq.as_mut_ptr ());
+  defsubr (Sassoc.as_mut_ptr ());
+  defsubr (Srassq.as_mut_ptr ());
+  defsubr (Srassoc.as_mut_ptr ());
+  defsubr (Sdelq.as_mut_ptr ());
+  defsubr (Sdelete.as_mut_ptr ());
+  defsubr (Snreverse.as_mut_ptr ());
+  defsubr (Sreverse.as_mut_ptr ());
+  defsubr (Ssort.as_mut_ptr ());
+  defsubr (Splist_get.as_mut_ptr ());
+  defsubr (Sget.as_mut_ptr ());
+  defsubr (Splist_put.as_mut_ptr ());
+  defsubr (Sput.as_mut_ptr ());
+  defsubr (Seql.as_mut_ptr ());
+  defsubr (Sequal.as_mut_ptr ());
+  defsubr (Sequal_including_properties.as_mut_ptr ());
+  defsubr (Svaluelt.as_mut_ptr ());
+  defsubr (Sfillarray.as_mut_ptr ());
+  defsubr (Sclear_string.as_mut_ptr ());
+  defsubr (Snconc.as_mut_ptr ());
+  defsubr (Smapcar.as_mut_ptr ());
+  defsubr (Smapc.as_mut_ptr ());
+  defsubr (Smapcan.as_mut_ptr ());
+  defsubr (Smapconcat.as_mut_ptr ());
+  defsubr (Syes_or_no_p.as_mut_ptr ());
+  defsubr (Sload_average.as_mut_ptr ());
+  defsubr (Sfeaturep.as_mut_ptr ());
+  defsubr (Srequire.as_mut_ptr ());
+  defsubr (Sprovide.as_mut_ptr ());
+  defsubr (Splist_member.as_mut_ptr ());
+  defsubr (Sbase64_encode_region.as_mut_ptr ());
+  defsubr (Sbase64_decode_region.as_mut_ptr ());
+  defsubr (Sbase64_encode_string.as_mut_ptr ());
+  defsubr (Sbase64_decode_string.as_mut_ptr ());
+  defsubr (Sbase64url_encode_region.as_mut_ptr ());
+  defsubr (Sbase64url_encode_string.as_mut_ptr ());
+  defsubr (Smd5.as_mut_ptr ());
+  defsubr (Ssecure_hash_algorithms.as_mut_ptr ());
+  defsubr (Ssecure_hash.as_mut_ptr ());
+  defsubr (Sbuffer_hash.as_mut_ptr ());
+  defsubr (Slocale_info.as_mut_ptr ());
+  defsubr (Sbuffer_line_statistics.as_mut_ptr ());
   DEFSYM! (Qreal_this_command, c"real-this-command");
   DEFSYM! (Qfrom__tty_menu_p, c"from--tty-menu-p");
   DEFSYM! (Qyes_or_no_p, c"yes-or-no-p");
@@ -8093,14 +8093,14 @@ pub unsafe extern "C-unwind" fn syms_of_fns ()
    port's `include/globals.rs` mirrors the names as declarations, so the unit that owns one
    defines it here (status 3.29, the casetab.rs/editfns.rs shape).  */
 #[unsafe(no_mangle)]
-pub static mut Voverriding_plist_environment: Lisp_Object = lisp_h_Qnil ();
+pub static Voverriding_plist_environment: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vfeatures: Lisp_Object = lisp_h_Qnil ();
+pub static Vfeatures: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vyes_or_no_prompt: Lisp_Object = lisp_h_Qnil ();
+pub static Vyes_or_no_prompt: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut use_dialog_box: bool = false;
+pub static use_dialog_box: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut use_file_dialog: bool = false;
+pub static use_file_dialog: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut use_short_answers: bool = false;
+pub static use_short_answers: VmGlobal<bool> = VmGlobal::<bool>::new (false);

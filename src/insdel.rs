@@ -105,9 +105,9 @@ unsafe extern "C-unwind" {
 // port's `include/globals.rs` mirrors the names as declarations, so the unit that owns one
 // defines it here (status §3.29, the casetab.rs shape).
 #[unsafe(no_mangle)]
-pub static mut Vcombine_after_change_calls: Lisp_Object = lisp_h_Qnil ();
+pub static Vcombine_after_change_calls: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut inhibit_modification_hooks: bool = false;
+pub static inhibit_modification_hooks: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 /* List of elements of the form (BEG-UNCHANGED END-UNCHANGED CHANGE-AMOUNT)
    describing changes which happened while combine_after_change_calls
@@ -119,10 +119,10 @@ pub static mut inhibit_modification_hooks: bool = false;
    END-UNCHANGED is the number of chars after the changed range,
    and CHANGE-AMOUNT is the number of characters inserted by the change
    (negative for a deletion).  */
-static mut combine_after_change_list: Lisp_Object = lisp_h_Qnil ();
+static combine_after_change_list: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* Buffer which combine_after_change_list is about.  */
-static mut combine_after_change_buffer: Lisp_Object = lisp_h_Qnil ();
+static combine_after_change_buffer: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* Also used in marker.c to enable expensive marker checks.  */
 
@@ -287,9 +287,9 @@ unsafe fn adjust_suspend_auto_hscroll (from: ptrdiff_t, to: ptrdiff_t)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  if WINDOWP (selected_window)
+  if WINDOWP ((*selected_window.as_mut_ptr ()))
     {
-      let w: *mut window = XWINDOW (selected_window);
+      let w: *mut window = XWINDOW ((*selected_window.as_mut_ptr ()));
 
       if BUFFERP ((*w).contents)
 	  && XBUFFER ((*w).contents) == (current_buffer! ())
@@ -589,8 +589,8 @@ unsafe fn make_gap_larger (nbytes_added: ptrdiff_t)
   /* Prevent quitting in gap_left.  We cannot allow a quit there,
      because that would leave the buffer text in an inconsistent
      state, with 2 gap holes instead of just one.  */
-  tem = Vinhibit_quit;
-  Vinhibit_quit = Qt ();
+  tem = (*Vinhibit_quit.as_mut_ptr ());
+  (*Vinhibit_quit.as_mut_ptr ()) = Qt ();
 
   real_gap_loc = GPT! ();
   real_gap_loc_byte = GPT_BYTE! ();
@@ -612,7 +612,7 @@ unsafe fn make_gap_larger (nbytes_added: ptrdiff_t)
   /* Put an anchor.  */
   *Z_ADDR! () = 0;
 
-  Vinhibit_quit = tem;
+  (*Vinhibit_quit.as_mut_ptr ()) = tem;
 
   }
 }
@@ -2180,7 +2180,7 @@ pub unsafe extern "C-unwind" fn prepare_to_modify_buffer_1 (start: ptrdiff_t, en
   else
     { base_buffer = (current_buffer! ()); }
 
-  if inhibit_modification_hooks
+  if (*inhibit_modification_hooks.as_mut_ptr ())
     { return; }
 
   if !NILP (BVAR! (base_buffer, file_truename_))
@@ -2193,14 +2193,14 @@ pub unsafe extern "C-unwind" fn prepare_to_modify_buffer_1 (start: ptrdiff_t, en
   /* FIXME: Move this to Elisp (via before-change-functions).  */
   if !NILP (BVAR! ((current_buffer! ()), mark_active_))
       && !(*XMARKER (BVAR! ((current_buffer! ()), mark_))).buffer.is_null ()
-      && NILP (Vsaved_region_selection)
-      && (if EQ (Vselect_active_regions, Qonly ())
-	  { EQ (CAR_SAFE (Vtransient_mark_mode), Qonly ()) }
+      && NILP ((*Vsaved_region_selection.as_mut_ptr ()))
+      && (if EQ ((*Vselect_active_regions.as_mut_ptr ()), Qonly ())
+	  { EQ (CAR_SAFE ((*Vtransient_mark_mode.as_mut_ptr ())), Qonly ()) }
 	  else
-	  { (!NILP (Vselect_active_regions)
-	     && !NILP (Vtransient_mark_mode)) })
-    { Vsaved_region_selection
-      = calln! (Vregion_extract_function, Qnil ()); }
+	  { (!NILP ((*Vselect_active_regions.as_mut_ptr ()))
+	     && !NILP ((*Vtransient_mark_mode.as_mut_ptr ()))) })
+    { (*Vsaved_region_selection.as_mut_ptr ())
+      = calln! ((*Vregion_extract_function.as_mut_ptr ()), Qnil ()); }
 
   signal_before_change (start, end, preserve_ptr);
   Fset (Qdeactivate_mark (), Qt ());
@@ -2414,7 +2414,7 @@ unsafe fn signal_before_change (start_int: ptrdiff_t, end_int: ptrdiff_t,
   /* If buffer is unmodified, run a special hook for that case.  The
      check for Vfirst_change_hook is just a minor optimization.  */
   if SAVE_MODIFF! () >= MODIFF! ()
-      && !NILP (Vfirst_change_hook)
+      && !NILP ((*Vfirst_change_hook.as_mut_ptr ()))
     {
       PRESERVE_VALUE (preserve_ptr, &raw mut preserve_marker);
       PRESERVE_START_END (&raw mut start_marker, &raw mut end_marker, start, end);
@@ -2422,9 +2422,9 @@ unsafe fn signal_before_change (start_int: ptrdiff_t, end_int: ptrdiff_t,
     }
 
   /* Now run the before-change-functions if any.  */
-  if !NILP (Vbefore_change_functions)
+  if !NILP ((*Vbefore_change_functions.as_mut_ptr ()))
     {
-      rvoe_arg.location = &raw mut Vbefore_change_functions;
+      rvoe_arg.location = Vbefore_change_functions.as_mut_ptr ();
       rvoe_arg.errorp = true;
 
       PRESERVE_VALUE (preserve_ptr, &raw mut preserve_marker);
@@ -2481,38 +2481,38 @@ pub unsafe extern "C-unwind" fn signal_after_change (charpos: ptrdiff_t, lendel:
   let mut save_insert_behind_hooks: Lisp_Object;
   let mut save_insert_in_from_hooks: Lisp_Object;
 
-  if inhibit_modification_hooks
+  if (*inhibit_modification_hooks.as_mut_ptr ())
     { return; }
 
   /* If we are deferring calls to the after-change functions
      and there are no before-change functions,
      just record the args that we were going to use.  */
-  if ! NILP (Vcombine_after_change_calls)
+  if ! NILP ((*Vcombine_after_change_calls.as_mut_ptr ()))
       /* It's OK to defer after-changes even if syntax-ppss-flush-cache
        * is on before-change-functions, which is common enough to be worth
        * adding a special case for it.  */
-      && (NILP (Vbefore_change_functions)
-          || (CONSP (Vbefore_change_functions)
-              && EQ (Qt (), XCAR (Vbefore_change_functions))
+      && (NILP ((*Vbefore_change_functions.as_mut_ptr ()))
+          || (CONSP ((*Vbefore_change_functions.as_mut_ptr ()))
+              && EQ (Qt (), XCAR ((*Vbefore_change_functions.as_mut_ptr ())))
               && NILP (Fdefault_value (Qbefore_change_functions ()))
               /* C 2406 assigns into `tmp' inside the condition; the port keeps the
                  assignment at the same point, as a block expression.  */
-              && { tmp = XCDR (Vbefore_change_functions); CONSP (tmp) }
+              && { tmp = XCDR ((*Vbefore_change_functions.as_mut_ptr ())); CONSP (tmp) }
               && NILP (XCDR (tmp))
               && EQ (XCAR (tmp), Qsyntax_ppss_flush_cache ())))
       && !buffer_has_overlays ()
     {
       let mut elt: Lisp_Object;
 
-      if !NILP (combine_after_change_list)
-	  && (current_buffer! ()) != XBUFFER (combine_after_change_buffer)
+      if !NILP ((*combine_after_change_list.as_mut_ptr ()))
+	  && (current_buffer! ()) != XBUFFER ((*combine_after_change_buffer.as_mut_ptr ()))
 	{ Fcombine_after_change_execute (); }
 
       elt = list3i (charpos - BEG as ptrdiff_t, Z! () - (charpos - lendel + lenins),
 		    lenins - lendel);
-      combine_after_change_list
-	= Fcons (elt, combine_after_change_list);
-      combine_after_change_buffer = Fcurrent_buffer ();
+      (*combine_after_change_list.as_mut_ptr ())
+	= Fcons (elt, (*combine_after_change_list.as_mut_ptr ()));
+      (*combine_after_change_buffer.as_mut_ptr ()) = Fcurrent_buffer ();
 
       return;
     }
@@ -2520,17 +2520,17 @@ pub unsafe extern "C-unwind" fn signal_after_change (charpos: ptrdiff_t, lendel:
   /* Save and restore the insert-*-hooks, because other hooks like
      after-change-functions, called below, could clobber them if they
      manipulate text properties.  */
-  save_insert_behind_hooks = interval_insert_behind_hooks;
-  save_insert_in_from_hooks = interval_insert_in_front_hooks;
+  save_insert_behind_hooks = (*interval_insert_behind_hooks.as_mut_ptr ());
+  save_insert_in_from_hooks = (*interval_insert_in_front_hooks.as_mut_ptr ());
 
-  if !NILP (combine_after_change_list)
+  if !NILP ((*combine_after_change_list.as_mut_ptr ()))
     { Fcombine_after_change_execute (); }
 
   specbind (Qinhibit_modification_hooks (), Qt ());
 
-  if !NILP (Vafter_change_functions)
+  if !NILP ((*Vafter_change_functions.as_mut_ptr ()))
     {
-      rvoe_arg.location = &raw mut Vafter_change_functions;
+      rvoe_arg.location = Vafter_change_functions.as_mut_ptr ();
       rvoe_arg.errorp = true;
 
       /* Mark after-change-functions to be reset to nil in case of error.  */
@@ -2546,8 +2546,8 @@ pub unsafe extern "C-unwind" fn signal_after_change (charpos: ptrdiff_t, lendel:
       rvoe_arg.errorp = false;
     }
 
-  interval_insert_behind_hooks = save_insert_behind_hooks;
-  interval_insert_in_front_hooks = save_insert_in_from_hooks;
+  (*interval_insert_behind_hooks.as_mut_ptr ()) = save_insert_behind_hooks;
+  (*interval_insert_in_front_hooks.as_mut_ptr ()) = save_insert_in_from_hooks;
 
   if buffer_has_overlays ()
     { report_overlay_modification (make_fixnum (charpos),
@@ -2572,7 +2572,7 @@ unsafe extern "C-unwind" fn Fcombine_after_change_execute_1 (val: Lisp_Object)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  Vcombine_after_change_calls = val;
+  (*Vcombine_after_change_calls.as_mut_ptr ()) = val;
 
   }
 }
@@ -2587,23 +2587,23 @@ DEFUN! ("combine-after-change-execute", Fcombine_after_change_execute,
   let mut begpos: ptrdiff_t; let mut endpos: ptrdiff_t;
   let mut tail: Lisp_Object;
 
-  if NILP (combine_after_change_list)
+  if NILP ((*combine_after_change_list.as_mut_ptr ()))
     { return Qnil (); }
 
   /* It is rare for combine_after_change_buffer to be invalid, but
      possible.  It can happen when combine-after-change-calls is
      non-nil, and insertion calls a file name handler (e.g. through
      lock_file) which scribbles into a temp file -- cyd  */
-  if !BUFFERP (combine_after_change_buffer)
-      || !BUFFER_LIVE_P (XBUFFER (combine_after_change_buffer))
+  if !BUFFERP ((*combine_after_change_buffer.as_mut_ptr ()))
+      || !BUFFER_LIVE_P (XBUFFER ((*combine_after_change_buffer.as_mut_ptr ())))
     {
-      combine_after_change_list = Qnil ();
+      (*combine_after_change_list.as_mut_ptr ()) = Qnil ();
       return Qnil ();
     }
 
   record_unwind_current_buffer ();
 
-  Fset_buffer (combine_after_change_buffer);
+  Fset_buffer ((*combine_after_change_buffer.as_mut_ptr ()));
 
   /* # chars unchanged at beginning of buffer.  */
   beg = Z! () - BEG as ptrdiff_t;
@@ -2614,7 +2614,7 @@ DEFUN! ("combine-after-change-execute", Fcombine_after_change_execute,
 
   /* Scan the various individual changes,
      accumulating the range info in BEG, END and CHANGE.  */
-  tail = combine_after_change_list;
+  tail = (*combine_after_change_list.as_mut_ptr ());
   while CONSP (tail)
     {
       let mut elt: Lisp_Object;
@@ -2652,12 +2652,12 @@ DEFUN! ("combine-after-change-execute", Fcombine_after_change_execute,
   endpos = Z! () - end;
 
   /* We are about to handle these, so discard them.  */
-  combine_after_change_list = Qnil ();
+  (*combine_after_change_list.as_mut_ptr ()) = Qnil ();
 
   /* Now run the after-change functions for real.
      Turn off the flag that defers them.  */
   record_unwind_protect (Some (Fcombine_after_change_execute_1),
-			 Vcombine_after_change_calls);
+			 (*Vcombine_after_change_calls.as_mut_ptr ()));
   signal_after_change (begpos, endpos - begpos - change, endpos - begpos);
   update_compositions (begpos, endpos, CHECK_ALL);
 
@@ -2670,24 +2670,24 @@ pub unsafe extern "C-unwind" fn syms_of_insdel ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  staticpro (&raw const combine_after_change_list);
-  staticpro (&raw const combine_after_change_buffer);
-  combine_after_change_list = Qnil ();
-  combine_after_change_buffer = Qnil ();
+  staticpro (combine_after_change_list.as_ptr ());
+  staticpro (combine_after_change_buffer.as_ptr ());
+  (*combine_after_change_list.as_mut_ptr ()) = Qnil ();
+  (*combine_after_change_buffer.as_mut_ptr ()) = Qnil ();
 
   DEFSYM! (Qundo_auto__undoable_change, c"undo-auto--undoable-change");
   DEFSYM! (Qsyntax_ppss_flush_cache, c"syntax-ppss-flush-cache");
 
   DEFVAR_LISP! (c"combine-after-change-calls", Vcombine_after_change_calls,
 		"Used internally by the function `combine-after-change-calls' macro.");
-  Vcombine_after_change_calls = Qnil ();
+  (*Vcombine_after_change_calls.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_BOOL! (c"inhibit-modification-hooks", inhibit_modification_hooks,
 		"Non-nil means don't run any of the hooks that respond to buffer changes.\nThis affects `before-change-functions' and `after-change-functions',\nas well as hooks attached to text properties and overlays.\nSetting this variable non-nil also inhibits file locks and checks\nwhether files are locked by another Emacs session, as well as\nhandling of the active region per `select-active-regions'.\n\nTo delay change hooks during a series of changes, use\n`combine-change-calls' or `combine-after-change-calls' instead of\nbinding this variable.\n\nSee also the info node `(elisp) Change Hooks'.");
-  inhibit_modification_hooks = false;
+  (*inhibit_modification_hooks.as_mut_ptr ()) = false;
   DEFSYM! (Qinhibit_modification_hooks, c"inhibit-modification-hooks");
 
-  defsubr (&raw mut Scombine_after_change_execute);
+  defsubr (Scombine_after_change_execute.as_mut_ptr ());
 
   }
 }

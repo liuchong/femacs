@@ -119,7 +119,7 @@ unsafe extern "C" {
      - is the declaration this mirror keeps so that a unit reading the variable itself (the
      2011 C source's `alloc.c` does, and the port's alloc.rs includes this mirror) resolves.  */
   pub fn _NSGetEnviron () -> *mut *mut *mut core::ffi::c_char;
-  pub static mut environ: *mut *mut core::ffi::c_char;
+  pub static environ: VmGlobal<*mut *mut core::ffi::c_char>;
 }
 
 /* <unistd.h>'s `access` mode flags (measured: F_OK 0, X_OK 1, W_OK 2, R_OK 4).  */
@@ -225,7 +225,8 @@ macro_rules! getpagesize { () => { _gl_getpagesize! () } }
 #[inline(always)]
 pub unsafe fn rpl_environ () -> *mut *mut *mut core::ffi::c_char
 {
-  return &raw mut environ;
+  // SAFETY: returns raw address of the POSIX `environ` extern static slot.
+  return unsafe { environ.as_mut_ptr () };
 }
 
 /* C 628: `#  define environ (*rpl_environ ())` is the POSIXCHECK spelling of the name; C 613

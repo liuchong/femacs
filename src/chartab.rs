@@ -184,9 +184,9 @@ pub struct charset_table
 
 unsafe extern "C-unwind" {
   /// C: charset.h 265: `extern struct charset_table charset_table;` (charset.c defines it).
-  pub static mut charset_table: charset_table;
+  pub static charset_table: VmGlobal<charset_table>;
   /// C: charset.h 446: `extern Lisp_Object charset_work;` (charset.c defines it).
-  pub static mut charset_work: Lisp_Object;
+  pub static charset_work: VmGlobal<Lisp_Object>;
   /// C: charset.h 558: `extern unsigned encode_char (struct charset *, int);`
   pub fn encode_char (charset: *mut charset, c: c_int) -> c_uint;
 
@@ -207,8 +207,8 @@ unsafe fn charset_attributes_getter (charset: *mut charset) -> Lisp_Object
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  eassert! (ASIZE (charset_table.attributes_table) == charset_table.size as isize);
-  let attrs: Lisp_Object = AREF (charset_table.attributes_table, (*charset).id as isize);
+  eassert! (ASIZE ((*charset_table.as_mut_ptr ()).attributes_table) == (*charset_table.as_mut_ptr ()).size as isize);
+  let attrs: Lisp_Object = AREF ((*charset_table.as_mut_ptr ()).attributes_table, (*charset).id as isize);
   eassert! (XFIXNUM (CHARSET_ATTR_ID! (attrs)) == (*charset).id as isize);
   return attrs;
 
@@ -238,9 +238,9 @@ macro_rules! ENCODE_CHAR {
      else if (*$charset).method == CHARSET_METHOD_MAP
        { if (*$charset).bits & CHARSET_COMPACT_CODES_P != 0
 	    && CHAR_TABLE_P (CHARSET_ENCODER! ($charset))
-	   { charset_work = CHAR_TABLE_REF (CHARSET_ENCODER! ($charset), $c as isize);
-	     if NILP (charset_work) { (*$charset).invalid_code }
-	     else { XFIXNAT (charset_work) as c_uint } }
+	   { (*charset_work.as_mut_ptr ()) = CHAR_TABLE_REF (CHARSET_ENCODER! ($charset), $c as isize);
+	     if NILP ((*charset_work.as_mut_ptr ())) { (*$charset).invalid_code }
+	     else { XFIXNAT ((*charset_work.as_mut_ptr ())) as c_uint } }
 	 else { encode_char ($charset, $c) } }
      else { encode_char ($charset, $c) })
   };
@@ -250,11 +250,10 @@ macro_rules! ENCODE_CHAR {
 
 /* Number of elements in Nth level char-table.  */
 #[unsafe(no_mangle)]
-pub static mut chartab_size: [c_int; 4] =
-  [ (1 << CHARTAB_SIZE_BITS_0),
+pub static chartab_size: VmGlobal<[c_int; 4]> = VmGlobal::<[c_int; 4]>::new ([ (1 << CHARTAB_SIZE_BITS_0),
     (1 << CHARTAB_SIZE_BITS_1),
     (1 << CHARTAB_SIZE_BITS_2),
-    (1 << CHARTAB_SIZE_BITS_3) ];
+    (1 << CHARTAB_SIZE_BITS_3) ]);
 
 /* Number of characters each element of Nth level char-table
    covers.  */
@@ -372,7 +371,7 @@ unsafe fn make_sub_char_table (depth: c_int, min_char: c_int, defalt: Lisp_Objec
   let table: Lisp_Object = make_uninit_sub_char_table (depth, min_char);
 
   i = 0;
-  while i < chartab_size[depth as usize]
+  while i < (*chartab_size.as_mut_ptr ())[depth as usize]
     {
       FAM_ELEM! ((*XSUB_CHAR_TABLE (table)).contents, i) = defalt;
       i += 1;
@@ -414,7 +413,7 @@ unsafe fn copy_sub_char_table (table: Lisp_Object) -> Lisp_Object
 
   /* Recursively copy any sub char-tables.  */
   i = 0;
-  while i < chartab_size[depth as usize]
+  while i < (*chartab_size.as_mut_ptr ())[depth as usize]
     {
       let val: Lisp_Object = FAM_ELEM! ((*XSUB_CHAR_TABLE (table)).contents, i);
       set_sub_char_table_contents
@@ -441,7 +440,7 @@ pub unsafe extern "C-unwind" fn copy_char_table (table: Lisp_Object) -> Lisp_Obj
   set_char_table_parent (copy, (*XCHAR_TABLE (table)).parent);
   set_char_table_purpose (copy, (*XCHAR_TABLE (table)).purpose);
   let mut i: c_int = 0;
-  while i < chartab_size[0]
+  while i < (*chartab_size.as_mut_ptr ())[0]
     {
       set_char_table_contents
 	(copy, i as isize,
@@ -722,7 +721,7 @@ unsafe fn sub_char_table_set_range (table: Lisp_Object, from: c_int, to: c_int,
   let chars_in_block: c_int = chartab_chars[depth as usize];
   let mut i: c_int;
   let mut c: c_int;
-  let lim: c_int = chartab_size[depth as usize];
+  let lim: c_int = (*chartab_size.as_mut_ptr ())[depth as usize];
 
   if from < min_char
     { from = min_char; }
@@ -920,7 +919,7 @@ DEFUN! ("set-char-table-range", Fset_char_table_range, Sset_char_table_range,
 
       set_char_table_ascii (char_table, value);
       i = 0;
-      while i < chartab_size[0]
+      while i < (*chartab_size.as_mut_ptr ())[0]
 	{
 	  set_char_table_contents (char_table, i as isize, value);
 	  i += 1;
@@ -963,7 +962,7 @@ unsafe fn optimize_sub_char_table (table: Lisp_Object, test: Lisp_Object) -> Lis
     }
   optimizable = if SUB_CHAR_TABLE_P (elt) { false } else { true };
   i = 1;
-  while i < chartab_size[depth as usize]
+  while i < (*chartab_size.as_mut_ptr ())[depth as usize]
     {
       this = FAM_ELEM! ((*XSUB_CHAR_TABLE (table)).contents, i);
       if SUB_CHAR_TABLE_P (this)
@@ -995,7 +994,7 @@ DEFUN! ("optimize-char-table", Foptimize_char_table, Soptimize_char_table,
   CHECK_CHAR_TABLE (char_table);
 
   i = 0;
-  while i < chartab_size[0]
+  while i < (*chartab_size.as_mut_ptr ())[0]
     {
       elt = FAM_ELEM! ((*XCHAR_TABLE (char_table)).contents, i);
       if SUB_CHAR_TABLE_P (elt)
@@ -1258,7 +1257,7 @@ unsafe fn map_sub_char_table_for_charset (c_function: Option<unsafe extern "C-un
   if depth < 3
     {
       i = 0;
-      while i < chartab_size[depth as usize]
+      while i < (*chartab_size.as_mut_ptr ())[depth as usize]
 	{
 	  let mut this: Lisp_Object;
 
@@ -1285,7 +1284,7 @@ unsafe fn map_sub_char_table_for_charset (c_function: Option<unsafe extern "C-un
   else
     {
       i = 0;
-      while i < chartab_size[depth as usize]
+      while i < (*chartab_size.as_mut_ptr ())[depth as usize]
 	{
 	  let mut this: Lisp_Object;
 	  let mut code: c_uint;
@@ -1358,7 +1357,7 @@ pub unsafe extern "C-unwind" fn map_char_table_for_charset (c_function: Option<u
 
   i = 0;
   c = 0;
-  while i < chartab_size[0]
+  while i < (*chartab_size.as_mut_ptr ())[0]
     {
       let mut this: Lisp_Object;
 
@@ -1667,7 +1666,7 @@ pub unsafe extern "C-unwind" fn uniprop_table (prop: Lisp_Object) -> Lisp_Object
   let mut table: Lisp_Object;
   let mut result: Lisp_Object;
 
-  val = Fassq (prop, Vchar_code_property_alist);
+  val = Fassq (prop, (*Vchar_code_property_alist.as_mut_ptr ()));
   if ! CONSP (val)
     { return Qnil (); }
   table = XCDR (val);
@@ -1713,7 +1712,7 @@ DEFUN! ("unicode-property-table-internal", Funicode_property_table_internal,
 
   if CHAR_TABLE_P (table)
     { return table; }
-  return Fcdr (Fassq (prop, Vchar_code_property_alist));
+  return Fcdr (Fassq (prop, (*Vchar_code_property_alist.as_mut_ptr ())));
 });
 
 #[unsafe(no_mangle)]
@@ -1765,7 +1764,7 @@ DEFUN! ("put-unicode-property-internal", Fput_unicode_property_internal,
 // 3495-3530), and `globals.rs` mirrors the name as a declaration, so the unit that owns it
 // defines it here and shadows that declaration (P-21, status 3.29).
 #[unsafe(no_mangle)]
-pub static mut Vchar_code_property_alist: Lisp_Object = lisp_h_Qnil ();
+pub static Vchar_code_property_alist: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_chartab ()
@@ -1775,19 +1774,19 @@ pub unsafe extern "C-unwind" fn syms_of_chartab ()
   /* Purpose of uniprop tables. */
   DEFSYM! (Qchar_code_property_table, c"char-code-property-table");
 
-  defsubr (&raw mut Smake_char_table);
-  defsubr (&raw mut Schar_table_parent);
-  defsubr (&raw mut Schar_table_subtype);
-  defsubr (&raw mut Sset_char_table_parent);
-  defsubr (&raw mut Schar_table_extra_slot);
-  defsubr (&raw mut Sset_char_table_extra_slot);
-  defsubr (&raw mut Schar_table_range);
-  defsubr (&raw mut Sset_char_table_range);
-  defsubr (&raw mut Soptimize_char_table);
-  defsubr (&raw mut Smap_char_table);
-  defsubr (&raw mut Sunicode_property_table_internal);
-  defsubr (&raw mut Sget_unicode_property_internal);
-  defsubr (&raw mut Sput_unicode_property_internal);
+  defsubr (Smake_char_table.as_mut_ptr ());
+  defsubr (Schar_table_parent.as_mut_ptr ());
+  defsubr (Schar_table_subtype.as_mut_ptr ());
+  defsubr (Sset_char_table_parent.as_mut_ptr ());
+  defsubr (Schar_table_extra_slot.as_mut_ptr ());
+  defsubr (Sset_char_table_extra_slot.as_mut_ptr ());
+  defsubr (Schar_table_range.as_mut_ptr ());
+  defsubr (Sset_char_table_range.as_mut_ptr ());
+  defsubr (Soptimize_char_table.as_mut_ptr ());
+  defsubr (Smap_char_table.as_mut_ptr ());
+  defsubr (Sunicode_property_table_internal.as_mut_ptr ());
+  defsubr (Sget_unicode_property_internal.as_mut_ptr ());
+  defsubr (Sput_unicode_property_internal.as_mut_ptr ());
 
   /* Each element has the form (PROP . TABLE).
      PROP is a symbol representing a character property.
@@ -1798,7 +1797,7 @@ pub unsafe extern "C-unwind" fn syms_of_chartab ()
 
   DEFVAR_LISP! (c"char-code-property-alist", Vchar_code_property_alist,
 		"Alist of character property name vs char-table containing property values.\nInternal use only.");
-  Vchar_code_property_alist = Qnil ();
+  (*Vchar_code_property_alist.as_mut_ptr ()) = Qnil ();
   DEFSYM! (Qcoding_system_for_read, c"coding-system-for-read");
 
   }

@@ -38,11 +38,11 @@ const _: () = ();
 // port's `include/globals.rs` mirrors the names as declarations, so the unit that owns one
 // defines it here (status §3.29, the casetab.rs shape).
 #[unsafe(no_mangle)]
-pub static mut Vkbd_macro_termination_hook: Lisp_Object = lisp_h_Qnil ();
+pub static Vkbd_macro_termination_hook: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vexecuting_kbd_macro: Lisp_Object = lisp_h_Qnil ();
+pub static Vexecuting_kbd_macro: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut executing_kbd_macro_index: EMACS_INT = 0;
+pub static executing_kbd_macro_index: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);
 
 /* Number of successful iterations so far
    for innermost keyboard macro.
@@ -52,7 +52,7 @@ pub static mut executing_kbd_macro_index: EMACS_INT = 0;
 // macros.c 37: `EMACS_INT executing_kbd_macro_iterations;` - a bss object, so the port's
 // zero is C's zero (the `UNINIT` class of the existing ledgers).
 #[unsafe(no_mangle)]
-pub static mut executing_kbd_macro_iterations: EMACS_INT = 0;
+pub static executing_kbd_macro_iterations: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);
 
 /* This is the macro that was executing.
    This is not bound at each level,
@@ -61,35 +61,35 @@ pub static mut executing_kbd_macro_iterations: EMACS_INT = 0;
    keep the string/vector around to aid debugging.  */
 
 #[unsafe(no_mangle)]
-pub static mut executing_kbd_macro: Lisp_Object = lisp_h_Qnil ();
+pub static executing_kbd_macro: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 DEFUN! ("start-kbd-macro", Fstart_kbd_macro, Sstart_kbd_macro, 1, 2, "P",
        doc: "Record subsequent keyboard input, defining a keyboard macro.\nThe commands are recorded even as they are executed.\nUse \\[end-kbd-macro] to finish recording and make the macro available.\nUse \\[name-last-kbd-macro] to give it a permanent name.\nNon-nil arg (prefix arg) means append to last macro defined;\nthis begins by re-executing that macro as if you typed it again.\nIf optional second arg, NO-EXEC, is non-nil, do not re-execute last\nmacro before appending to it.",
        (append: Lisp_Object, no_exec: Lisp_Object),
        {
-  if ! NILP ((*current_kboard).defining_kbd_macro_)
+  if ! NILP ((*(*current_kboard.as_mut_ptr ())).defining_kbd_macro_)
     { error (c"Already defining kbd macro".as_ptr ()); }
 
-  if (*current_kboard).kbd_macro_buffer.is_null ()
+  if (*(*current_kboard.as_mut_ptr ())).kbd_macro_buffer.is_null ()
     {
-      (*current_kboard).kbd_macro_buffer
+      (*(*current_kboard.as_mut_ptr ())).kbd_macro_buffer
         = xmalloc ((30 * word_size) as usize) as *mut Lisp_Object;
-      (*current_kboard).kbd_macro_bufsize = 30;
-      (*current_kboard).kbd_macro_ptr = (*current_kboard).kbd_macro_buffer;
-      (*current_kboard).kbd_macro_end = (*current_kboard).kbd_macro_buffer;
+      (*(*current_kboard.as_mut_ptr ())).kbd_macro_bufsize = 30;
+      (*(*current_kboard.as_mut_ptr ())).kbd_macro_ptr = (*(*current_kboard.as_mut_ptr ())).kbd_macro_buffer;
+      (*(*current_kboard.as_mut_ptr ())).kbd_macro_end = (*(*current_kboard.as_mut_ptr ())).kbd_macro_buffer;
     }
-  update_mode_lines = 19;
+  (*update_mode_lines.as_mut_ptr ()) = 19;
   if NILP (append)
     {
-      if (*current_kboard).kbd_macro_bufsize > 200
+      if (*(*current_kboard.as_mut_ptr ())).kbd_macro_bufsize > 200
         {
-          (*current_kboard).kbd_macro_buffer
-            = xrealloc ((*current_kboard).kbd_macro_buffer as *mut c_void,
+          (*(*current_kboard.as_mut_ptr ())).kbd_macro_buffer
+            = xrealloc ((*(*current_kboard.as_mut_ptr ())).kbd_macro_buffer as *mut c_void,
                         (30 * word_size) as usize) as *mut Lisp_Object;
-          (*current_kboard).kbd_macro_bufsize = 30;
+          (*(*current_kboard.as_mut_ptr ())).kbd_macro_bufsize = 30;
         }
-      (*current_kboard).kbd_macro_ptr = (*current_kboard).kbd_macro_buffer;
-      (*current_kboard).kbd_macro_end = (*current_kboard).kbd_macro_buffer;
+      (*(*current_kboard.as_mut_ptr ())).kbd_macro_ptr = (*(*current_kboard.as_mut_ptr ())).kbd_macro_buffer;
+      (*(*current_kboard.as_mut_ptr ())).kbd_macro_end = (*(*current_kboard.as_mut_ptr ())).kbd_macro_buffer;
       message1 (c"Defining kbd macro...".as_ptr ());
     }
   else
@@ -100,47 +100,47 @@ DEFUN! ("start-kbd-macro", Fstart_kbd_macro, Sstart_kbd_macro, 1, 2, "P",
       let mut cvt: bool;
 
       /* Check the type of last-kbd-macro in case Lisp code changed it.  */
-      len = CHECK_VECTOR_OR_STRING ((*current_kboard).Vlast_kbd_macro_);
+      len = CHECK_VECTOR_OR_STRING ((*(*current_kboard.as_mut_ptr ())).Vlast_kbd_macro_);
 
       /* Copy last-kbd-macro into the buffer, in case the Lisp code
 	 has put another macro there.  */
-      if ((*current_kboard).kbd_macro_bufsize - incr as ptrdiff_t) < len
+      if ((*(*current_kboard.as_mut_ptr ())).kbd_macro_bufsize - incr as ptrdiff_t) < len
         {
-          (*current_kboard).kbd_macro_buffer =
-            xpalloc ((*current_kboard).kbd_macro_buffer as *mut c_void,
-                     &raw mut (*current_kboard).kbd_macro_bufsize,
-                     len - (*current_kboard).kbd_macro_bufsize + incr as ptrdiff_t, -1,
+          (*(*current_kboard.as_mut_ptr ())).kbd_macro_buffer =
+            xpalloc ((*(*current_kboard.as_mut_ptr ())).kbd_macro_buffer as *mut c_void,
+                     &raw mut (*(*current_kboard.as_mut_ptr ())).kbd_macro_bufsize,
+                     len - (*(*current_kboard.as_mut_ptr ())).kbd_macro_bufsize + incr as ptrdiff_t, -1,
                      std::mem::size_of::<Lisp_Object> () as ptrdiff_t)
               as *mut Lisp_Object;
         }
 
       /* Must convert meta modifier when copying string to vector.  */
-      cvt = STRINGP ((*current_kboard).Vlast_kbd_macro_);
+      cvt = STRINGP ((*(*current_kboard.as_mut_ptr ())).Vlast_kbd_macro_);
       i = 0;
       while i < len
         {
           let mut c: Lisp_Object;
-          c = Faref ((*current_kboard).Vlast_kbd_macro_, make_fixnum (i));
+          c = Faref ((*(*current_kboard.as_mut_ptr ())).Vlast_kbd_macro_, make_fixnum (i));
           if cvt && FIXNATP (c) && (XFIXNAT (c) & 0x80) != 0
             { XSETFASTINT! (c, CHAR_META as EMACS_INT | (XFIXNAT (c) & ! 0x80)); }
-          /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { *(*current_kboard).kbd_macro_buffer.offset (i) = c };
+          /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { *(*(*current_kboard.as_mut_ptr ())).kbd_macro_buffer.offset (i) = c };
           i += 1;
         }
 
-      (*current_kboard).kbd_macro_ptr = (*current_kboard).kbd_macro_buffer.offset (len);
-      (*current_kboard).kbd_macro_end = (*current_kboard).kbd_macro_ptr;
+      (*(*current_kboard.as_mut_ptr ())).kbd_macro_ptr = (*(*current_kboard.as_mut_ptr ())).kbd_macro_buffer.offset (len);
+      (*(*current_kboard.as_mut_ptr ())).kbd_macro_end = (*(*current_kboard.as_mut_ptr ())).kbd_macro_ptr;
 
       /* Re-execute the macro we are appending to,
 	 for consistency of behavior.  */
       if NILP (no_exec)
         {
-          Fexecute_kbd_macro ((*current_kboard).Vlast_kbd_macro_,
+          Fexecute_kbd_macro ((*(*current_kboard.as_mut_ptr ())).Vlast_kbd_macro_,
                               make_fixnum (1), Qnil ());
         }
 
       message1 (c"Appending to kbd macro...".as_ptr ());
     }
-  kset_defining_kbd_macro (current_kboard, Qt ());
+  kset_defining_kbd_macro ((*current_kboard.as_mut_ptr ()), Qt ());
 
   return Qnil ();
 });
@@ -152,13 +152,13 @@ pub unsafe extern "C-unwind" fn end_kbd_macro ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  kset_defining_kbd_macro (current_kboard, Qnil ());
-  update_mode_lines = 20;
+  kset_defining_kbd_macro ((*current_kboard.as_mut_ptr ()), Qnil ());
+  (*update_mode_lines.as_mut_ptr ()) = 20;
   kset_last_kbd_macro
-    (current_kboard,
-     Fvector ((*current_kboard).kbd_macro_end
-                .offset_from ((*current_kboard).kbd_macro_buffer),
-              (*current_kboard).kbd_macro_buffer));
+    ((*current_kboard.as_mut_ptr ()),
+     Fvector ((*(*current_kboard.as_mut_ptr ())).kbd_macro_end
+                .offset_from ((*(*current_kboard.as_mut_ptr ())).kbd_macro_buffer),
+              (*(*current_kboard.as_mut_ptr ())).kbd_macro_buffer));
 
   }
 }
@@ -168,7 +168,7 @@ DEFUN! ("end-kbd-macro", Fend_kbd_macro, Send_kbd_macro, 0, 2, "p",
        (repeat: Lisp_Object, loopfunc: Lisp_Object),
        {
   let mut repeat: Lisp_Object = repeat;
-  if NILP ((*current_kboard).defining_kbd_macro_)
+  if NILP ((*(*current_kboard.as_mut_ptr ())).defining_kbd_macro_)
     { error (c"Not defining kbd macro".as_ptr ()); }
 
   if NILP (repeat)
@@ -176,18 +176,18 @@ DEFUN! ("end-kbd-macro", Fend_kbd_macro, Send_kbd_macro, 0, 2, "p",
   else
     { CHECK_FIXNUM (repeat); }
 
-  if ! NILP ((*current_kboard).defining_kbd_macro_)
+  if ! NILP ((*(*current_kboard.as_mut_ptr ())).defining_kbd_macro_)
     {
       end_kbd_macro ();
       message1 (c"Keyboard macro defined".as_ptr ());
     }
 
   if XFIXNAT (repeat) == 0
-    { Fexecute_kbd_macro ((*current_kboard).Vlast_kbd_macro_, repeat, loopfunc); }
+    { Fexecute_kbd_macro ((*(*current_kboard.as_mut_ptr ())).Vlast_kbd_macro_, repeat, loopfunc); }
   else if XFIXNUM (repeat) > 1
     {
       XSETINT! (repeat, XFIXNUM (repeat) - 1);
-      Fexecute_kbd_macro ((*current_kboard).Vlast_kbd_macro_, repeat, loopfunc);
+      Fexecute_kbd_macro ((*(*current_kboard.as_mut_ptr ())).Vlast_kbd_macro_, repeat, loopfunc);
     }
   return Qnil ();
 });
@@ -199,7 +199,7 @@ pub unsafe extern "C-unwind" fn store_kbd_macro_char (c: Lisp_Object)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  let kb: *mut kboard = current_kboard;
+  let kb: *mut kboard = (*current_kboard.as_mut_ptr ());
 
   if ! NILP ((*kb).defining_kbd_macro_)
     {
@@ -232,7 +232,7 @@ pub unsafe extern "C-unwind" fn finalize_kbd_macro_chars ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  (*current_kboard).kbd_macro_end = (*current_kboard).kbd_macro_ptr;
+  (*(*current_kboard.as_mut_ptr ())).kbd_macro_end = (*(*current_kboard.as_mut_ptr ())).kbd_macro_ptr;
 
   }
 }
@@ -242,7 +242,7 @@ DEFUN! ("cancel-kbd-macro-events", Fcancel_kbd_macro_events,
        doc: "Cancel the events added to a keyboard macro for this command.",
        (),
        {
-  (*current_kboard).kbd_macro_ptr = (*current_kboard).kbd_macro_end;
+  (*(*current_kboard.as_mut_ptr ())).kbd_macro_ptr = (*(*current_kboard.as_mut_ptr ())).kbd_macro_end;
   return Qnil ();
 });
 
@@ -262,21 +262,21 @@ DEFUN! ("call-last-kbd-macro", Fcall_last_kbd_macro, Scall_last_kbd_macro,
        {
   /* Don't interfere with recognition of the previous command
      from before this macro started.  */
-  Vthis_command = (*current_kboard).Vlast_command_;
+  (*Vthis_command.as_mut_ptr ()) = (*(*current_kboard.as_mut_ptr ())).Vlast_command_;
   /* C-x z after the macro should repeat the macro.  */
-  Vreal_this_command = (*current_kboard).Vlast_kbd_macro_;
+  (*Vreal_this_command.as_mut_ptr ()) = (*(*current_kboard.as_mut_ptr ())).Vlast_kbd_macro_;
 
-  if ! NILP ((*current_kboard).defining_kbd_macro_)
+  if ! NILP ((*(*current_kboard.as_mut_ptr ())).defining_kbd_macro_)
     { error (c"Can't execute anonymous macro while defining one".as_ptr ()); }
-  else if NILP ((*current_kboard).Vlast_kbd_macro_)
+  else if NILP ((*(*current_kboard.as_mut_ptr ())).Vlast_kbd_macro_)
     { error (c"No kbd macro has been defined".as_ptr ()); }
   else
-    { Fexecute_kbd_macro ((*current_kboard).Vlast_kbd_macro_, prefix, loopfunc); }
+    { Fexecute_kbd_macro ((*(*current_kboard.as_mut_ptr ())).Vlast_kbd_macro_, prefix, loopfunc); }
 
   /* command_loop_1 sets this to nil before it returns;
      get back the last command within the macro
      so that it can be last, again, after we return.  */
-  Vthis_command = (*current_kboard).Vlast_command_;
+  (*Vthis_command.as_mut_ptr ()) = (*(*current_kboard.as_mut_ptr ())).Vlast_command_;
 
   return Qnil ();
 });
@@ -289,12 +289,12 @@ unsafe extern "C-unwind" fn pop_kbd_macro (info: Lisp_Object)
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
   let mut tem: Lisp_Object;
-  Vexecuting_kbd_macro = XCAR (info);
+  (*Vexecuting_kbd_macro.as_mut_ptr ()) = XCAR (info);
   tem = XCDR (info);
   // C's `&executing_kbd_macro_index` is `EMACS_INT *`, and EMACS_INT is intmax_t there;
   // the port's EMACS_INT is isize, so the pointer is cast to the mirror's intmax_t.
-  integer_to_intmax (XCAR (tem), (&raw mut executing_kbd_macro_index) as *mut i64);
-  Vreal_this_command = XCDR (tem);
+  integer_to_intmax (XCAR (tem), (executing_kbd_macro_index.as_mut_ptr ()) as *mut i64);
+  (*Vreal_this_command.as_mut_ptr ()) = XCDR (tem);
   run_hook (Qkbd_macro_termination_hook ());
 
   }
@@ -311,7 +311,7 @@ DEFUN! ("execute-kbd-macro", Fexecute_kbd_macro, Sexecute_kbd_macro, 1, 3, 0,
   let mut repeat: EMACS_INT = 1;
   let mut success_count: EMACS_INT = 0;
 
-  executing_kbd_macro_iterations = 0;
+  (*executing_kbd_macro_iterations.as_mut_ptr ()) = 0;
 
   if ! NILP (count)
     {
@@ -323,9 +323,9 @@ DEFUN! ("execute-kbd-macro", Fexecute_kbd_macro, Sexecute_kbd_macro, 1, 3, 0,
   if ! STRINGP (final_) && ! VECTORP (final_)
     { error (c"Keyboard macros must be strings or vectors".as_ptr ()); }
 
-  tem = Fcons (Vexecuting_kbd_macro,
-               Fcons (make_int (executing_kbd_macro_index as intmax_t),
-                      Vreal_this_command));
+  tem = Fcons ((*Vexecuting_kbd_macro.as_mut_ptr ()),
+               Fcons (make_int ((*executing_kbd_macro_index.as_mut_ptr ()) as intmax_t),
+                      (*Vreal_this_command.as_mut_ptr ())));
   record_unwind_protect (Some (pop_kbd_macro), tem);
 
   /* The following loop starts the execution of possibly multiple
@@ -372,11 +372,11 @@ DEFUN! ("execute-kbd-macro", Fexecute_kbd_macro, Sexecute_kbd_macro, 1, 3, 0,
      change.  */
   loop
     {
-      Vexecuting_kbd_macro = final_;
-      executing_kbd_macro = final_;
-      executing_kbd_macro_index = 0;
+      (*Vexecuting_kbd_macro.as_mut_ptr ()) = final_;
+      (*executing_kbd_macro.as_mut_ptr ()) = final_;
+      (*executing_kbd_macro_index.as_mut_ptr ()) = 0;
 
-      kset_prefix_arg (current_kboard, Qnil ());
+      kset_prefix_arg ((*current_kboard.as_mut_ptr ()), Qnil ());
 
       if ! NILP (loopfunc)
         {
@@ -388,19 +388,19 @@ DEFUN! ("execute-kbd-macro", Fexecute_kbd_macro, Sexecute_kbd_macro, 1, 3, 0,
       command_loop_2 (list1 (Qminibuffer_quit ()));
 
       success_count += 1;
-      executing_kbd_macro_iterations = success_count;
+      (*executing_kbd_macro_iterations.as_mut_ptr ()) = success_count;
 
       maybe_quit ();
 
       repeat -= 1;
       if ! (repeat != 0
-            && (STRINGP (Vexecuting_kbd_macro) || VECTORP (Vexecuting_kbd_macro)))
+            && (STRINGP ((*Vexecuting_kbd_macro.as_mut_ptr ())) || VECTORP ((*Vexecuting_kbd_macro.as_mut_ptr ()))))
         { break; }
     }
 
-  executing_kbd_macro = Qnil ();
+  (*executing_kbd_macro.as_mut_ptr ()) = Qnil ();
 
-  Vreal_this_command = Vexecuting_kbd_macro;
+  (*Vreal_this_command.as_mut_ptr ()) = (*Vexecuting_kbd_macro.as_mut_ptr ());
 
   return unbind_to (pdlcount, Qnil ());
 });
@@ -410,8 +410,8 @@ pub unsafe extern "C-unwind" fn init_macros ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  Vexecuting_kbd_macro = Qnil ();
-  executing_kbd_macro = Qnil ();
+  (*Vexecuting_kbd_macro.as_mut_ptr ()) = Qnil ();
+  (*executing_kbd_macro.as_mut_ptr ()) = Qnil ();
 
   }
 }
@@ -424,10 +424,10 @@ pub unsafe extern "C-unwind" fn at_end_of_macro_p () -> bool
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  eassume! (! NILP (Vexecuting_kbd_macro));
+  eassume! (! NILP ((*Vexecuting_kbd_macro.as_mut_ptr ())));
   /* Some things replace the macro with t to force an early exit.  */
-  return EQ (Vexecuting_kbd_macro, Qt ())
-    || executing_kbd_macro_index >= XFIXNAT (Flength (Vexecuting_kbd_macro));
+  return EQ ((*Vexecuting_kbd_macro.as_mut_ptr ()), Qt ())
+    || (*executing_kbd_macro_index.as_mut_ptr ()) >= XFIXNAT (Flength ((*Vexecuting_kbd_macro.as_mut_ptr ())));
 
   }
 }
@@ -439,22 +439,22 @@ pub unsafe extern "C-unwind" fn syms_of_macros ()
   unsafe {
   DEFVAR_LISP! (c"kbd-macro-termination-hook", Vkbd_macro_termination_hook,
                 "Normal hook run whenever a keyboard macro terminates.\nThis is run whether the macro ends normally or prematurely due to an error.");
-  Vkbd_macro_termination_hook = Qnil ();
+  (*Vkbd_macro_termination_hook.as_mut_ptr ()) = Qnil ();
   DEFSYM! (Qkbd_macro_termination_hook, "kbd-macro-termination-hook");
 
-  defsubr (&raw mut Sstart_kbd_macro);
-  defsubr (&raw mut Send_kbd_macro);
-  defsubr (&raw mut Scall_last_kbd_macro);
-  defsubr (&raw mut Sexecute_kbd_macro);
-  defsubr (&raw mut Scancel_kbd_macro_events);
-  defsubr (&raw mut Sstore_kbd_macro_event);
+  defsubr (Sstart_kbd_macro.as_mut_ptr ());
+  defsubr (Send_kbd_macro.as_mut_ptr ());
+  defsubr (Scall_last_kbd_macro.as_mut_ptr ());
+  defsubr (Sexecute_kbd_macro.as_mut_ptr ());
+  defsubr (Scancel_kbd_macro_events.as_mut_ptr ());
+  defsubr (Sstore_kbd_macro_event.as_mut_ptr ());
 
   DEFVAR_KBOARD! (c"defining-kbd-macro",
                   std::mem::offset_of! (kboard, defining_kbd_macro_),
                   "Non-nil while a keyboard macro is being defined.  Don't set this!\nThe value is the symbol `append' while appending to the definition of\nan existing macro.");
 
-  executing_kbd_macro = Qnil ();
-  staticpro (&raw const executing_kbd_macro);
+  (*executing_kbd_macro.as_mut_ptr ()) = Qnil ();
+  staticpro (executing_kbd_macro.as_ptr ());
 
   DEFVAR_LISP! (c"executing-kbd-macro", Vexecuting_kbd_macro,
                 "Currently executing keyboard macro (string or vector).\nThis is nil when not executing a keyboard macro.");

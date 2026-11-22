@@ -89,11 +89,11 @@ pub mod stdio_objs {
 
   unsafe extern "C" {
     #[cfg_attr(target_os = "macos", link_name = "__stdoutp")]
-    pub static mut stdout: *mut FILE;
+    pub static stdout: VmGlobal<*mut FILE>;
     #[cfg_attr(target_os = "macos", link_name = "__stdinp")]
-    pub static mut stdin: *mut FILE;
+    pub static stdin: VmGlobal<*mut FILE>;
     #[cfg_attr(target_os = "macos", link_name = "__stderrp")]
-    pub static mut stderr: *mut FILE;
+    pub static stderr: VmGlobal<*mut FILE>;
   }
 }
 pub use self::stdio_objs::*;

@@ -264,20 +264,20 @@ pub fn POSN_BUFFER_POSN (posn: Lisp_Object) -> Lisp_Object
 { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { Fnth (make_fixnum (5), posn) } }
 
 // keyboard.h 238-470: the file-scope objects (the C files define them).
-unsafe extern "C-unwind" { pub static mut initial_kboard: *mut KBOARD; }                        // 238
+unsafe extern "C-unwind" { pub static initial_kboard: VmGlobal<*mut KBOARD>; }                        // 238
 // lisp.h 5081's `extern struct kboard *echo_kboard;` is declared in lisp.rs as `*mut c_void`
 // (the tag is incomplete in a unit that includes only lisp.h — PORTING.md P-72); this comment
 // records where the definition it points at lives.
-unsafe extern "C-unwind" { pub static mut current_kboard: *mut KBOARD; }                        // 246
-unsafe extern "C-unwind" { pub static mut num_input_events: uintmax_t; }                        // 257
-unsafe extern "C-unwind" { pub static mut point_before_last_command_or_undo: ptrdiff_t; }       // 262
-unsafe extern "C-unwind" { pub static mut buffer_before_last_command_or_undo: *mut buffer; }    // 267
-unsafe extern "C-unwind" { pub static mut prev_buffer: *mut buffer; }                           // 269
-unsafe extern "C-unwind" { pub static mut poll_suppress_count: c_int; }                         // 272
-unsafe extern "C-unwind" { pub static mut this_command_keys: Lisp_Object; }                     // 278
-unsafe extern "C-unwind" { pub static mut this_command_key_count: ptrdiff_t; }                  // 279
-unsafe extern "C-unwind" { pub static mut internal_last_event_frame: Lisp_Object; }             // 286
-unsafe extern "C-unwind" { pub static mut item_properties: Lisp_Object; }                       // 292
+unsafe extern "C-unwind" { pub static current_kboard: VmGlobal<*mut KBOARD>; }                        // 246
+unsafe extern "C-unwind" { pub static num_input_events: VmGlobal<uintmax_t>; }                        // 257
+unsafe extern "C-unwind" { pub static point_before_last_command_or_undo: VmGlobal<ptrdiff_t>; }       // 262
+unsafe extern "C-unwind" { pub static buffer_before_last_command_or_undo: VmGlobal<*mut buffer>; }    // 267
+unsafe extern "C-unwind" { pub static prev_buffer: VmGlobal<*mut buffer>; }                           // 269
+unsafe extern "C-unwind" { pub static poll_suppress_count: VmGlobal<c_int>; }                         // 272
+unsafe extern "C-unwind" { pub static this_command_keys: VmGlobal<Lisp_Object>; }                     // 278
+unsafe extern "C-unwind" { pub static this_command_key_count: VmGlobal<ptrdiff_t>; }                  // 279
+unsafe extern "C-unwind" { pub static internal_last_event_frame: VmGlobal<Lisp_Object>; }             // 286
+unsafe extern "C-unwind" { pub static item_properties: VmGlobal<Lisp_Object>; }                       // 292
 // keyboard.h 344-358's five menu objects are `src/menu.c`'s own definitions (its ledger's
 // file-scope objects), so they sit in `pub mod keyboard_objs` + glob import: the owning
 // unit's `#[unsafe(no_mangle)] pub static mut` shadows the glob (PORTING.md 0.1-10/P-21,
@@ -285,26 +285,26 @@ unsafe extern "C-unwind" { pub static mut item_properties: Lisp_Object; }       
 pub mod keyboard_objs {
   use super::*;
   unsafe extern "C-unwind" {
-    pub static mut menu_items: Lisp_Object;                            // 344
-    pub static mut menu_items_inuse: bool;                             // 348
-    pub static mut menu_items_allocated: c_int;                        // 351
-    pub static mut menu_items_used: c_int;                             // 354
-    pub static mut menu_items_n_panes: c_int;                          // 358
+    pub static menu_items: VmGlobal<Lisp_Object>;                            // 344
+    pub static menu_items_inuse: VmGlobal<bool>;                             // 348
+    pub static menu_items_allocated: VmGlobal<c_int>;                        // 351
+    pub static menu_items_used: VmGlobal<c_int>;                             // 354
+    pub static menu_items_n_panes: VmGlobal<c_int>;                          // 358
     /* C 471 and C 531, keyboard.c's own definitions (`keyboard.rs`'s crate root, status 3.155).  */
-    pub static mut timers_run: c_uint;                                 // 471
+    pub static timers_run: VmGlobal<c_uint>;                                 // 471
     pub static DEV_TTY: [c_char; 9];                                   // 531
   }
 }
 pub use self::keyboard_objs::*;
-unsafe extern "C-unwind" { pub static mut input_available_clear_time: *mut timespec; }           // 453
-unsafe extern "C-unwind" { pub static mut kbd_buffer: [buffered_input_event; KBD_BUFFER_SIZE as usize]; }  // 455
-unsafe extern "C-unwind" { pub static mut kbd_fetch_ptr: *mut buffered_input_event; }            // 456
-unsafe extern "C-unwind" { pub static mut kbd_store_ptr: *mut buffered_input_event; }            // 457
-unsafe extern "C-unwind" { pub static mut ignore_mouse_drag_p: bool; }                           // 459
-unsafe extern "C-unwind" { pub static mut real_this_command: Lisp_Object; }                      // 467
-unsafe extern "C-unwind" { pub static mut quit_char: c_int; }                                    // 469
-unsafe extern "C-unwind" { pub static mut input_was_pending: bool; }                             // 470
-unsafe extern "C-unwind" { pub static mut dev_tty: *mut c_char; }                                // 529
+unsafe extern "C-unwind" { pub static input_available_clear_time: VmGlobal<*mut timespec>; }           // 453
+unsafe extern "C-unwind" { pub static kbd_buffer: VmGlobal<[buffered_input_event; KBD_BUFFER_SIZE as usize]>; }  // 455
+unsafe extern "C-unwind" { pub static kbd_fetch_ptr: VmGlobal<*mut buffered_input_event>; }            // 456
+unsafe extern "C-unwind" { pub static kbd_store_ptr: VmGlobal<*mut buffered_input_event>; }            // 457
+unsafe extern "C-unwind" { pub static ignore_mouse_drag_p: VmGlobal<bool>; }                           // 459
+unsafe extern "C-unwind" { pub static real_this_command: VmGlobal<Lisp_Object>; }                      // 467
+unsafe extern "C-unwind" { pub static quit_char: VmGlobal<c_int>; }                                    // 469
+unsafe extern "C-unwind" { pub static input_was_pending: VmGlobal<bool>; }                             // 470
+unsafe extern "C-unwind" { pub static dev_tty: VmGlobal<*mut c_char>; }                                // 529
 
 // C: keyboard.h 511-529's prototypes — (not mirrored yet; they land with keyboard.c, batch E).
 

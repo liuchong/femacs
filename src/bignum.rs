@@ -25,8 +25,7 @@ const _: () = ();
    five.  */
 
 #[unsafe(no_mangle)]
-pub static mut mpz: [mpz_t; 5] =
-  [[__mpz_struct { _mp_alloc: 0, _mp_size: 0, _mp_d: std::ptr::null_mut () }; 1]; 5];
+pub static mpz: VmGlobal<[mpz_t; 5]> = VmGlobal::<[mpz_t; 5]>::new ([[__mpz_struct { _mp_alloc: 0, _mp_size: 0, _mp_d: std::ptr::null_mut () }; 1]; 5]);
 
 unsafe extern "C-unwind" fn xrealloc_for_gmp (ptr: *mut c_void, _ignore: usize, size: usize)
 				      -> *mut c_void
@@ -53,7 +52,7 @@ pub unsafe extern "C-unwind" fn init_bignum ()
   // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
   unsafe {
   eassert! (mp_bits_per_limb == GMP_NUMB_BITS);
-  integer_width = 1 << 16;
+  (*integer_width.as_mut_ptr ()) = 1 << 16;
 
   /* FIXME: The Info node `(gmp) Custom Allocation' states: "No error
      return is allowed from any of these functions, if they return
@@ -66,9 +65,9 @@ pub unsafe extern "C-unwind" fn init_bignum ()
   mp_set_memory_functions (xmalloc, xrealloc_for_gmp, xfree_for_gmp);
 
   let mut i = 0;
-  while i < countof! (mpz)
+  while i < countof! ((*mpz.as_mut_ptr ()))
     {
-      mpz_init (mpz[i].as_mut_ptr ());
+      mpz_init ((*mpz.as_mut_ptr ())[i].as_mut_ptr ());
       i += 1;
     }
 
@@ -95,7 +94,7 @@ pub unsafe extern "C-unwind" fn double_to_integer (d: c_double) -> Lisp_Object
   unsafe {
   if !isfinite! (d)
     { overflow_error (); }
-  mpz_set_d (mpz[0].as_mut_ptr (), d);
+  mpz_set_d ((*mpz.as_mut_ptr ())[0].as_mut_ptr (), d);
   return make_integer_mpz ();
 
   }
@@ -112,12 +111,12 @@ unsafe fn make_bignum_bits (bits: usize) -> Lisp_Object
      integer-width as if it were at least twice the machine integer width,
      so that timefns.c can safely use bignums for double-precision
      timestamps.  */
-  if (integer_width as usize) < bits && 2 * max (INTMAX_WIDTH as isize, UINTMAX_WIDTH as isize) < bits as isize
+  if ((*integer_width.as_mut_ptr ()) as usize) < bits && 2 * max (INTMAX_WIDTH as isize, UINTMAX_WIDTH as isize) < bits as isize
     { overflow_error (); }
 
   let b: *mut Lisp_Bignum = ALLOCATE_PLAIN_PSEUDOVECTOR! (Lisp_Bignum, pvec_type::PVEC_BIGNUM);
   mpz_init ((*b).value.as_mut_ptr ());
-  mpz_swap ((*b).value.as_mut_ptr (), mpz[0].as_mut_ptr ());
+  mpz_swap ((*b).value.as_mut_ptr (), (*mpz.as_mut_ptr ())[0].as_mut_ptr ());
   return make_lisp_ptr (b as *mut c_void, Lisp_Type::Lisp_Vectorlike);
 
   }
@@ -129,7 +128,7 @@ unsafe fn make_bignum () -> Lisp_Object
 {
   // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
   unsafe {
-  return make_bignum_bits (mpz_sizeinbase (mpz[0].as_ptr (), 2));
+  return make_bignum_bits (mpz_sizeinbase ((*mpz.as_mut_ptr ())[0].as_ptr (), 2));
 
   }
 }
@@ -141,7 +140,7 @@ pub unsafe extern "C-unwind" fn make_bigint (n: intmax_t) -> Lisp_Object
   // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
   unsafe {
   eassert! (FIXNUM_OVERFLOW_P (n as EMACS_INT));
-  mpz_set_intmax (mpz[0].as_mut_ptr (), n);
+  mpz_set_intmax ((*mpz.as_mut_ptr ())[0].as_mut_ptr (), n);
   return make_bignum ();
 
   }
@@ -153,7 +152,7 @@ pub unsafe extern "C-unwind" fn make_biguint (n: uintmax_t) -> Lisp_Object
   // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
   unsafe {
   eassert! (FIXNUM_OVERFLOW_P (n as EMACS_INT) || (MOST_POSITIVE_FIXNUM as uintmax_t) < n);
-  mpz_set_uintmax (mpz[0].as_mut_ptr (), n);
+  mpz_set_uintmax ((*mpz.as_mut_ptr ())[0].as_mut_ptr (), n);
   return make_bignum ();
 
   }
@@ -166,8 +165,8 @@ pub unsafe extern "C-unwind" fn make_neg_biguint (n: uintmax_t) -> Lisp_Object
   // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
   unsafe {
   eassert! (((-MOST_NEGATIVE_FIXNUM) as uintmax_t) < n);
-  mpz_set_uintmax (mpz[0].as_mut_ptr (), n);
-  mpz_neg (mpz[0].as_mut_ptr (), mpz[0].as_ptr ());
+  mpz_set_uintmax ((*mpz.as_mut_ptr ())[0].as_mut_ptr (), n);
+  mpz_neg ((*mpz.as_mut_ptr ())[0].as_mut_ptr (), (*mpz.as_mut_ptr ())[0].as_ptr ());
   return make_bignum ();
 
   }
@@ -180,14 +179,14 @@ pub unsafe extern "C-unwind" fn make_integer_mpz () -> Lisp_Object
 {
   // SAFETY: GMP/mini-gmp limb-array arithmetic boundary; caller guarantees valid limb pointers and non-negative limb counts matching `__mpz_struct` invariants.
   unsafe {
-  if FASTER_BIGNUM != 0 && mpz_fits_slong_p (mpz[0].as_ptr ()) != 0
+  if FASTER_BIGNUM != 0 && mpz_fits_slong_p ((*mpz.as_mut_ptr ())[0].as_ptr ()) != 0
     {
-      let v: c_long = mpz_get_si (mpz[0].as_ptr ());
+      let v: c_long = mpz_get_si ((*mpz.as_mut_ptr ())[0].as_ptr ());
       if !FIXNUM_OVERFLOW_P (v as EMACS_INT)
 	{ return make_fixnum (v as EMACS_INT); }
     }
 
-  let bits = mpz_sizeinbase (mpz[0].as_ptr (), 2);
+  let bits = mpz_sizeinbase ((*mpz.as_mut_ptr ())[0].as_ptr (), 2);
 
   if ! (FASTER_BIGNUM != 0
 	&& FIXNUM_OVERFLOW_P (LONG_MIN as EMACS_INT)
@@ -199,12 +198,12 @@ pub unsafe extern "C-unwind" fn make_integer_mpz () -> Lisp_Object
 
       loop
 	{
-	  let limb: EMACS_INT = mpz_getlimbn (mpz[0].as_ptr (), i as mp_size_t) as EMACS_INT; i += 1;
+	  let limb: EMACS_INT = mpz_getlimbn ((*mpz.as_mut_ptr ())[0].as_ptr (), i as mp_size_t) as EMACS_INT; i += 1;
 	  v += limb << shift; shift += GMP_NUMB_BITS;
 	  if shift >= bits as c_int { break; }
 	}
 
-      if mpz_sgn (mpz[0].as_ptr ()) < 0
+      if mpz_sgn ((*mpz.as_mut_ptr ())[0].as_ptr ()) < 0
 	{ v = -v; }
 
       if !FIXNUM_OVERFLOW_P (v)
@@ -699,7 +698,7 @@ pub unsafe extern "C-unwind" fn get_random_bignum (limit: *const Lisp_Bignum) ->
   let lim: *const __mpz_struct = bignum_val (limit);
   let nlimbs: mp_size_t = mpz_size (lim) as mp_size_t;
   eassume! (0 < nlimbs);
-  let r_limb: *mut mp_limb_t = mpz_limbs_write (mpz[0].as_mut_ptr (), nlimbs);
+  let r_limb: *mut mp_limb_t = mpz_limbs_write ((*mpz.as_mut_ptr ())[0].as_mut_ptr (), nlimbs);
   let lim_limb: *const mp_limb_t = mpz_limbs_read (lim);
   let limhi: mp_limb_t = *lim_limb.offset ((nlimbs - 1) as isize);
   eassert! (limhi != 0);
@@ -739,7 +738,7 @@ pub unsafe extern "C-unwind" fn get_random_bignum (limit: *const Lisp_Bignum) ->
       if !edgy { break; }
     }
 
-  mpz_limbs_finish (mpz[0].as_mut_ptr (), nlimbs);
+  mpz_limbs_finish ((*mpz.as_mut_ptr ())[0].as_mut_ptr (), nlimbs);
   return make_integer_mpz ();
 
   }

@@ -162,41 +162,41 @@ const fn max_usize (a: usize, b: usize) -> usize { if a > b { a } else { b } }
    deviation from C, and the gate counts it instead of failing on it (status 3.60).
    syms_of_print registers them and assigns the same initial values C does.  */
 #[unsafe(no_mangle)]
-pub static mut Vstandard_output: Lisp_Object = lisp_h_Qnil ();
+pub static Vstandard_output: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vfloat_output_format: Lisp_Object = lisp_h_Qnil ();
+pub static Vfloat_output_format: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut print_integers_as_characters: bool = false;
+pub static print_integers_as_characters: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut Vprint_length: Lisp_Object = lisp_h_Qnil ();
+pub static Vprint_length: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vprint_level: Lisp_Object = lisp_h_Qnil ();
+pub static Vprint_level: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut print_escape_newlines: bool = false;
+pub static print_escape_newlines: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut print_escape_control_characters: bool = false;
+pub static print_escape_control_characters: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut print_escape_nonascii: bool = false;
+pub static print_escape_nonascii: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut print_escape_multibyte: bool = false;
+pub static print_escape_multibyte: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut print_quoted: bool = false;
+pub static print_quoted: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut Vprint_gensym: Lisp_Object = lisp_h_Qnil ();
+pub static Vprint_gensym: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vprint_circle: Lisp_Object = lisp_h_Qnil ();
+pub static Vprint_circle: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vprint_continuous_numbering: Lisp_Object = lisp_h_Qnil ();
+pub static Vprint_continuous_numbering: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vprint_number_table: Lisp_Object = lisp_h_Qnil ();
+pub static Vprint_number_table: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vprint_charset_text_property: Lisp_Object = lisp_h_Qnil ();
+pub static Vprint_charset_text_property: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut print_symbols_bare: bool = false;
+pub static print_symbols_bare: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut Vprint_unreadable_function: Lisp_Object = lisp_h_Qnil ();
+pub static Vprint_unreadable_function: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vprint__unreadable_callback_buffer: Lisp_Object = lisp_h_Qnil ();
+pub static Vprint__unreadable_callback_buffer: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* gnulib's `<intprops.h>` (P-26) is `INT_STRLEN_BOUND (t)`, type-generic in C
    (`_GL_SIGNED_TYPE_OR_EXPR`); the two instantiations this file uses are `EMACS_INT`
@@ -210,15 +210,14 @@ const fn INT_STRLEN_BOUND (bits: usize, signed: usize) -> usize {
 
 /* C 57-60: the three file-scope counters and the cycle table.  */
 /* Avoid actual stack overflow in print.  */
-static mut print_depth: ptrdiff_t = 0;
+static print_depth: VmGlobal<ptrdiff_t> = VmGlobal::<ptrdiff_t>::new (0);
 /* Level of nesting inside outputting backquote in new style.  */
-static mut new_backquote_output: ptrdiff_t = 0;
+static new_backquote_output: VmGlobal<ptrdiff_t> = VmGlobal::<ptrdiff_t>::new (0);
 /* Detect most circularities to print finite output.  */
 pub const PRINT_CIRCLE: usize = 200;
-static mut being_printed: [Lisp_Object; PRINT_CIRCLE] =
-  [std::ptr::null_mut (); PRINT_CIRCLE];
+static being_printed: VmGlobal<[Lisp_Object; PRINT_CIRCLE]> = VmGlobal::<[Lisp_Object; PRINT_CIRCLE]>::new ([std::ptr::null_mut (); PRINT_CIRCLE]);
 /* Last char printed to stdout by printchar.  */
-static mut printchar_stdout_last: c_uint = 0;
+static printchar_stdout_last: VmGlobal<c_uint> = VmGlobal::<c_uint>::new (0);
 
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -239,12 +238,12 @@ const _: () = core::assert! (std::mem::offset_of! (print_buffer, pos_byte) == 24
 
 /* When printing into a buffer, first we put the text in this
    block, then insert it all at once.  */
-static mut print_buffer: print_buffer = print_buffer {
+static print_buffer: VmGlobal<print_buffer> = VmGlobal::<print_buffer>::new (print_buffer {
   buffer: std::ptr::null_mut (),
   size: 0,
   pos: 0,
   pos_byte: 0,
-};
+});
 
 /* Vprint_number_table is a table, that keeps objects that are going to
    be printed, to allow use of #n= and #n# to express sharing.
@@ -254,13 +253,13 @@ static mut print_buffer: print_buffer = print_buffer {
      N    the object has been printed so we can refer to it as #N#.
    print_number_index holds the largest N already used.
    N has to be strictly larger than 0 since we need to distinguish -N.  */
-static mut print_number_index: ptrdiff_t = 0;
+static print_number_index: VmGlobal<ptrdiff_t> = VmGlobal::<ptrdiff_t>::new (0);
 
 /* GDB resets this to zero on W32 to disable OutputDebugString calls.  */
 /* C 93: `extern bool print_output_debug_flag;`; C 94 adds EXTERNALLY_VISIBLE, which the
    port spells as the `#[unsafe(no_mangle)] pub` that makes the object visible at all.  */
 #[unsafe(no_mangle)]
-pub static mut print_output_debug_flag: bool = true;
+pub static print_output_debug_flag: VmGlobal<bool> = VmGlobal::<bool>::new (true);
 
 /* Low level output routines for characters and strings.  */
 
@@ -270,8 +269,8 @@ unsafe extern "C-unwind" fn print_free_buffer ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  xfree (print_buffer.buffer as *mut c_void);
-  print_buffer.buffer = std::ptr::null_mut ();
+  xfree ((*print_buffer.as_mut_ptr ()).buffer as *mut c_void);
+  (*print_buffer.as_mut_ptr ()).buffer = std::ptr::null_mut ();
 
   }
 }
@@ -282,7 +281,7 @@ unsafe extern "C-unwind" fn print_unwind (saved_text: Lisp_Object)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  memcpy (print_buffer.buffer as *mut c_void, SDATA (saved_text) as *const c_void,
+  memcpy ((*print_buffer.as_mut_ptr ()).buffer as *mut c_void, SDATA (saved_text) as *const c_void,
           SCHARS (saved_text) as usize);
 
   }
@@ -364,29 +363,29 @@ unsafe fn print_prepare (mut printcharfun: Lisp_Object) -> print_context
   if NILP (printcharfun)
     {
       if NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
-	  && ! print_escape_multibyte
+	  && ! (*print_escape_multibyte.as_mut_ptr ())
 	{ specbind (Qprint_escape_multibyte (), Qt ()); }
       if ! NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
-	  && ! print_escape_nonascii
+	  && ! (*print_escape_nonascii.as_mut_ptr ())
 	{ specbind (Qprint_escape_nonascii (), Qt ()); }
-      if ! print_buffer.buffer.is_null ()
+      if ! (*print_buffer.as_mut_ptr ()).buffer.is_null ()
 	{
-	  let string: Lisp_Object = make_string_from_bytes (print_buffer.buffer,
-							    print_buffer.pos,
-							    print_buffer.pos_byte);
+	  let string: Lisp_Object = make_string_from_bytes ((*print_buffer.as_mut_ptr ()).buffer,
+							    (*print_buffer.as_mut_ptr ()).pos,
+							    (*print_buffer.as_mut_ptr ()).pos_byte);
 	  record_unwind_protect (Some (print_unwind), string);
 	}
       else
 	{
 	  let new_size: c_int = 1000;
-	  print_buffer.buffer = xmalloc (new_size as usize) as *mut c_char;
-	  print_buffer.size = new_size as ptrdiff_t;
+	  (*print_buffer.as_mut_ptr ()).buffer = xmalloc (new_size as usize) as *mut c_char;
+	  (*print_buffer.as_mut_ptr ()).size = new_size as ptrdiff_t;
 	  record_unwind_protect_void (Some (print_free_buffer));
 	}
-      print_buffer.pos = 0;
-      print_buffer.pos_byte = 0;
+      (*print_buffer.as_mut_ptr ()).pos = 0;
+      (*print_buffer.as_mut_ptr ()).pos_byte = 0;
     }
-  if EQ (printcharfun, Qt ()) && ! noninteractive
+  if EQ (printcharfun, Qt ()) && ! (*noninteractive.as_mut_ptr ())
     { setup_echo_area_for_printing (multibyte); }
   pc.printcharfun = printcharfun;
   return pc;
@@ -400,21 +399,21 @@ unsafe fn print_finish (pc: *mut print_context)
   unsafe {
   if NILP ((*pc).printcharfun)
     {
-      if print_buffer.pos != print_buffer.pos_byte
+      if (*print_buffer.as_mut_ptr ()).pos != (*print_buffer.as_mut_ptr ()).pos_byte
 	  && NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
 	{
 	  USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
-	  let temp: *mut u8 = SAFE_ALLOCA! (sa_avail, print_buffer.pos + 1) as *mut u8;
-	  copy_text (print_buffer.buffer as *mut u8, temp,
-		     print_buffer.pos_byte, true, false);
-	  insert_1_both (temp as *mut c_char, print_buffer.pos,
-			 print_buffer.pos, false, true, false);
+	  let temp: *mut u8 = SAFE_ALLOCA! (sa_avail, (*print_buffer.as_mut_ptr ()).pos + 1) as *mut u8;
+	  copy_text ((*print_buffer.as_mut_ptr ()).buffer as *mut u8, temp,
+		     (*print_buffer.as_mut_ptr ()).pos_byte, true, false);
+	  insert_1_both (temp as *mut c_char, (*print_buffer.as_mut_ptr ()).pos,
+			 (*print_buffer.as_mut_ptr ()).pos, false, true, false);
 	  SAFE_FREE! (sa_count, sa_mark);
 	}
       else
-	{ insert_1_both (print_buffer.buffer, print_buffer.pos,
-			 print_buffer.pos_byte, false, true, false); }
-      signal_after_change (PT! () - print_buffer.pos, 0, print_buffer.pos);
+	{ insert_1_both ((*print_buffer.as_mut_ptr ()).buffer, (*print_buffer.as_mut_ptr ()).pos,
+			 (*print_buffer.as_mut_ptr ()).pos_byte, false, true, false); }
+      signal_after_change (PT! () - (*print_buffer.as_mut_ptr ()).pos, 0, (*print_buffer.as_mut_ptr ()).pos);
     }
   if MARKERP ((*pc).old_printcharfun)
     { set_marker_both ((*pc).old_printcharfun, Qnil (), PT! (), PT_BYTE! ()); }
@@ -439,18 +438,18 @@ unsafe fn printchar_to_stream (mut ch: c_uint, stream: *mut FILE)
   let mut dv: Lisp_Object = Qnil ();   /* C: `Lisp_Object dv UNINIT;` (PORTING.md 1.5) */
   let mut i: ptrdiff_t = 0;
   let mut n: ptrdiff_t = 1;
-  let mut coding_system: Lisp_Object = Vlocale_coding_system;
+  let mut coding_system: Lisp_Object = (*Vlocale_coding_system.as_mut_ptr ());
   let mut encode_p: bool = false;
 
-  if ! NILP (Vcoding_system_for_write)
-    { coding_system = Vcoding_system_for_write; }
+  if ! NILP ((*Vcoding_system_for_write.as_mut_ptr ()))
+    { coding_system = (*Vcoding_system_for_write.as_mut_ptr ()); }
   if ! NILP (coding_system)
     { encode_p = true; }
 
   let mut goto_next_char: bool = false;
-  if CHAR_VALID_P (ch as intmax_t) && DISP_TABLE_P (Vstandard_display_table)
+  if CHAR_VALID_P (ch as intmax_t) && DISP_TABLE_P ((*Vstandard_display_table.as_mut_ptr ()))
     {
-      dv = DISP_CHAR_VECTOR (XCHAR_TABLE (Vstandard_display_table), ch as c_int);
+      dv = DISP_CHAR_VECTOR (XCHAR_TABLE ((*Vstandard_display_table.as_mut_ptr ())), ch as c_int);
       if VECTORP (dv)
 	{
 	  n = ASIZE (dv);
@@ -470,7 +469,7 @@ unsafe fn printchar_to_stream (mut ch: c_uint, stream: *mut FILE)
 	      {
 		/* Send the output to a debugger (nothing happens if there
 		   isn't one).  */
-		if print_output_debug_flag && stream == stderr
+		if (*print_output_debug_flag.as_mut_ptr ()) && stream == (*stderr.as_mut_ptr ())
 		  { OutputDebugString ((&[ch as c_char, 0]).as_ptr ()); }
 	      }
 	    }
@@ -490,7 +489,7 @@ unsafe fn printchar_to_stream (mut ch: c_uint, stream: *mut FILE)
 	      /* C 282-285's `#ifdef WINDOWSNT` arm (feature `windowsnt`).  */
 	      #[cfg (feature = "windowsnt")]
 	      {
-		if print_output_debug_flag && stream == stderr
+		if (*print_output_debug_flag.as_mut_ptr ()) && stream == (*stderr.as_mut_ptr ())
 		  { OutputDebugString (SSDATA (encoded_ch)); }
 	      }
 	    }
@@ -523,11 +522,11 @@ unsafe fn printchar (ch: c_uint, fun: Lisp_Object)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  if NILP (fun) && ASCII_CHAR_P (ch as isize) && print_buffer.pos_byte < print_buffer.size
+  if NILP (fun) && ASCII_CHAR_P (ch as isize) && (*print_buffer.as_mut_ptr ()).pos_byte < (*print_buffer.as_mut_ptr ()).size
     {
-      *print_buffer.buffer.add (print_buffer.pos_byte as usize) = ch as c_char;
-      print_buffer.pos += 1;
-      print_buffer.pos_byte += 1;
+      *(*print_buffer.as_mut_ptr ()).buffer.add ((*print_buffer.as_mut_ptr ()).pos_byte as usize) = ch as c_char;
+      (*print_buffer.as_mut_ptr ()).pos += 1;
+      (*print_buffer.as_mut_ptr ()).pos_byte += 1;
       return;
     }
   if ! NILP (fun) && ! EQ (fun, Qt ())
@@ -541,24 +540,24 @@ unsafe fn printchar (ch: c_uint, fun: Lisp_Object)
 
       if NILP (fun)
 	{
-	  let incr: ptrdiff_t = len as ptrdiff_t - (print_buffer.size - print_buffer.pos_byte);
+	  let incr: ptrdiff_t = len as ptrdiff_t - ((*print_buffer.as_mut_ptr ()).size - (*print_buffer.as_mut_ptr ()).pos_byte);
 	  if incr > 0
-	    { print_buffer.buffer = xpalloc (print_buffer.buffer as *mut c_void,
-					     &raw mut print_buffer.size,
+	    { (*print_buffer.as_mut_ptr ()).buffer = xpalloc ((*print_buffer.as_mut_ptr ()).buffer as *mut c_void,
+					     &raw mut (*print_buffer.as_mut_ptr ()).size,
 					     incr, -1, 1) as *mut c_char; }
-	  memcpy (print_buffer.buffer.add (print_buffer.pos_byte as usize) as *mut c_void,
+	  memcpy ((*print_buffer.as_mut_ptr ()).buffer.add ((*print_buffer.as_mut_ptr ()).pos_byte as usize) as *mut c_void,
 		  str.as_ptr () as *const c_void, len as usize);
-	  print_buffer.pos += 1;
-	  print_buffer.pos_byte += len as ptrdiff_t;
+	  (*print_buffer.as_mut_ptr ()).pos += 1;
+	  (*print_buffer.as_mut_ptr ()).pos_byte += len as ptrdiff_t;
 	}
-      else if noninteractive
+      else if (*noninteractive.as_mut_ptr ())
 	{
-	  printchar_stdout_last = ch;
-	  if DISP_TABLE_P (Vstandard_display_table)
-	    { printchar_to_stream (ch, stdout); }
+	  (*printchar_stdout_last.as_mut_ptr ()) = ch;
+	  if DISP_TABLE_P ((*Vstandard_display_table.as_mut_ptr ()))
+	    { printchar_to_stream (ch, (*stdout.as_mut_ptr ())); }
 	  else
-	    { fwrite (str.as_ptr () as *const c_void, 1, len as usize, stdout); }
-	  noninteractive_need_newline = true;
+	    { fwrite (str.as_ptr () as *const c_void, 1, len as usize, (*stdout.as_mut_ptr ())); }
+	  (*noninteractive_need_newline.as_mut_ptr ()) = true;
 	}
       else
 	{
@@ -621,19 +620,19 @@ unsafe fn strout (ptr: *const c_char, size: ptrdiff_t, size_byte: ptrdiff_t,
   unsafe {
   if NILP (printcharfun)
     {
-      let incr: ptrdiff_t = size_byte - (print_buffer.size - print_buffer.pos_byte);
+      let incr: ptrdiff_t = size_byte - ((*print_buffer.as_mut_ptr ()).size - (*print_buffer.as_mut_ptr ()).pos_byte);
       if incr > 0
-	{ print_buffer.buffer = xpalloc (print_buffer.buffer as *mut c_void,
-					 &raw mut print_buffer.size,
+	{ (*print_buffer.as_mut_ptr ()).buffer = xpalloc ((*print_buffer.as_mut_ptr ()).buffer as *mut c_void,
+					 &raw mut (*print_buffer.as_mut_ptr ()).size,
 					 incr, -1, 1) as *mut c_char; }
-      memcpy (print_buffer.buffer.add (print_buffer.pos_byte as usize) as *mut c_void,
+      memcpy ((*print_buffer.as_mut_ptr ()).buffer.add ((*print_buffer.as_mut_ptr ()).pos_byte as usize) as *mut c_void,
 	      ptr as *const c_void, size_byte as usize);
-      print_buffer.pos += size;
-      print_buffer.pos_byte += size_byte;
+      (*print_buffer.as_mut_ptr ()).pos += size;
+      (*print_buffer.as_mut_ptr ()).pos_byte += size_byte;
     }
-  else if noninteractive && EQ (printcharfun, Qt ())
+  else if (*noninteractive.as_mut_ptr ()) && EQ (printcharfun, Qt ())
     {
-      if DISP_TABLE_P (Vstandard_display_table)
+      if DISP_TABLE_P ((*Vstandard_display_table.as_mut_ptr ()))
 	{
 	  let mut len: c_int = 0;
 	  let mut i: ptrdiff_t = 0;
@@ -641,14 +640,14 @@ unsafe fn strout (ptr: *const c_char, size: ptrdiff_t, size_byte: ptrdiff_t,
 	    {
 	      let ch: c_int = string_char_and_length (ptr.add (i as usize) as *const u8,
 						      &raw mut len);
-	      printchar_to_stream (ch as c_uint, stdout);
+	      printchar_to_stream (ch as c_uint, (*stdout.as_mut_ptr ()));
 	      i += len as ptrdiff_t;
 	    }
 	}
       else
-	{ fwrite (ptr as *const c_void, 1, size_byte as usize, stdout); }
+	{ fwrite (ptr as *const c_void, 1, size_byte as usize, (*stdout.as_mut_ptr ())); }
 
-      noninteractive_need_newline = true;
+      (*noninteractive_need_newline.as_mut_ptr ()) = true;
     }
   else if EQ (printcharfun, Qt ())
     {
@@ -737,7 +736,7 @@ unsafe fn print_string_1 (mut string: Lisp_Object, printcharfun: Lisp_Object,
 	{ chars = SCHARS (string); }
       else if ! escape_nonascii
 	       && (if EQ (printcharfun, Qt ())
-		     { ! NILP (BVAR! (&raw mut buffer_defaults, enable_multibyte_characters_)) }
+		     { ! NILP (BVAR! (buffer_defaults.as_mut_ptr (), enable_multibyte_characters_)) }
 		   else
 		     { ! NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_)) })
 	{
@@ -817,7 +816,7 @@ unsafe fn print_string (string: Lisp_Object, printcharfun: Lisp_Object)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  print_string_1 (string, printcharfun, print_escape_nonascii);
+  print_string_1 (string, printcharfun, (*print_escape_nonascii.as_mut_ptr ()));
 
   }
 }
@@ -828,7 +827,7 @@ DEFUN! ("write-char", Fwrite_char, Swrite_char, 1, 2, 0,
        {
   let mut printcharfun = printcharfun;   /* C 560 rebinds the parameter.  */
   if NILP (printcharfun)
-    { printcharfun = Vstandard_output; }
+    { printcharfun = (*Vstandard_output.as_mut_ptr ()); }
   CHECK_FIXNUM (character);
   let mut pc: print_context = print_prepare (printcharfun);
   printchar (XFIXNUM (character) as c_uint, pc.printcharfun);
@@ -885,7 +884,7 @@ pub unsafe extern "C-unwind" fn temp_output_buffer_setup (bufname: *const c_char
   bset_undo_list ((current_buffer! ()), Qt ());
   eassert! ((*(current_buffer! ())).overlays.is_null ());
   bset_enable_multibyte_characters
-    ((current_buffer! ()), BVAR! (&raw mut buffer_defaults, enable_multibyte_characters_));
+    ((current_buffer! ()), BVAR! (buffer_defaults.as_mut_ptr (), enable_multibyte_characters_));
   specbind (Qinhibit_read_only (), Qt ());
   specbind (Qinhibit_modification_hooks (), Qt ());
   Ferase_buffer ();
@@ -911,7 +910,7 @@ DEFUN! ("terpri", Fterpri, Sterpri, 0, 2, 0,
 
   let mut printcharfun = printcharfun;   /* C 634 rebinds the parameter.  */
   if NILP (printcharfun)
-    { printcharfun = Vstandard_output; }
+    { printcharfun = (*Vstandard_output.as_mut_ptr ()); }
   let mut pc: print_context = print_prepare (printcharfun);
 
   if NILP (ensure)
@@ -919,8 +918,8 @@ DEFUN! ("terpri", Fterpri, Sterpri, 0, 2, 0,
   /* Difficult to check if at line beginning so abort.  */
   else if FUNCTIONP (pc.printcharfun)
     { signal_error (c"Unsupported function argument".as_ptr (), pc.printcharfun); }
-  else if noninteractive && ! NILP (pc.printcharfun)
-    { val = if printchar_stdout_last == 10 { Qnil () } else { Qt () }; }
+  else if (*noninteractive.as_mut_ptr ()) && ! NILP (pc.printcharfun)
+    { val = if (*printchar_stdout_last.as_mut_ptr ()) == 10 { Qnil () } else { Qt () }; }
   else
     { val = if NILP (Fbolp ()) { Qt () } else { Qnil () }; }
 
@@ -930,13 +929,13 @@ DEFUN! ("terpri", Fterpri, Sterpri, 0, 2, 0,
   return val;
 });
 
-static mut Vprint_variable_mapping: Lisp_Object = std::ptr::null_mut ();
+static Vprint_variable_mapping: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (std::ptr::null_mut ());
 
 unsafe fn print_bind_all_defaults ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  let mut vars: Lisp_Object = Vprint_variable_mapping;
+  let mut vars: Lisp_Object = (*Vprint_variable_mapping.as_mut_ptr ());
   while ! NILP (vars)
     {
       let elem: Lisp_Object = XCDR (XCAR (vars));
@@ -983,7 +982,7 @@ unsafe fn print_create_variable_mapping ()
 	   Qnil ()),
   ];
 
-  Vprint_variable_mapping = CALLMANY! (Flist, total);
+  (*Vprint_variable_mapping.as_mut_ptr ()) = CALLMANY! (Flist, total);
 
   }
 }
@@ -992,7 +991,7 @@ unsafe fn print_bind_overrides (mut overrides: Lisp_Object)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  if NILP (Vprint_variable_mapping)
+  if NILP ((*Vprint_variable_mapping.as_mut_ptr ()))
     { print_create_variable_mapping (); }
 
   if EQ (overrides, Qt ())
@@ -1012,7 +1011,7 @@ unsafe fn print_bind_overrides (mut overrides: Lisp_Object)
 	    {
 	      let key: Lisp_Object = XCAR (setting);
 	      let value: Lisp_Object = XCDR (setting);
-	      let map: Lisp_Object = Fassq (key, Vprint_variable_mapping);
+	      let map: Lisp_Object = Fassq (key, (*Vprint_variable_mapping.as_mut_ptr ()));
 	      if NILP (map)
 		{ wrong_type_argument (Qsymbolp (), map); }
 	      specbind (XCAR (XCDR (map)), value);
@@ -1035,7 +1034,7 @@ DEFUN! ("prin1", Fprin1, Sprin1, 1, 3, 0,
 
   let mut printcharfun = printcharfun;   /* C 781 rebinds the parameter.  */
   if NILP (printcharfun)
-    { printcharfun = Vstandard_output; }
+    { printcharfun = (*Vstandard_output.as_mut_ptr ()); }
   if ! NILP (overrides)
     { print_bind_overrides (overrides); }
 
@@ -1048,7 +1047,7 @@ DEFUN! ("prin1", Fprin1, Sprin1, 1, 3, 0,
 
 /* A buffer which is used to hold output being built by prin1-to-string.  */
 #[unsafe(no_mangle)]
-pub static mut Vprin1_to_string_buffer: Lisp_Object = lisp_h_Qnil ();
+pub static Vprin1_to_string_buffer: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 DEFUN! ("prin1-to-string", Fprin1_to_string, Sprin1_to_string, 1, 3, 0,
        doc: "Return a string containing the printed representation of OBJECT.\nOBJECT can be any Lisp object.  This function outputs quoting characters\nwhen necessary to make output that `read' can handle, whenever possible,\nunless the optional second argument NOESCAPE is non-nil.  For complex objects,\nthe behavior is controlled by `print-level' and `print-length', which see.\n\nOBJECT is any of the Lisp data types: a number, a string, a symbol,\na list, a buffer, a window, a frame, etc.\n\nSee `prin1' for the meaning of OVERRIDES.\n\nA printed representation of an object is text which describes that object.",
@@ -1064,28 +1063,28 @@ DEFUN! ("prin1-to-string", Fprin1_to_string, Sprin1_to_string, 1, 3, 0,
   /* Save and restore this: we are altering a buffer
      but we don't want to deactivate the mark just for that.
      No need for specbind, since errors deactivate the mark.  */
-  let save_deactivate_mark: Lisp_Object = Vdeactivate_mark;
+  let save_deactivate_mark: Lisp_Object = (*Vdeactivate_mark.as_mut_ptr ());
 
-  let mut pc: print_context = print_prepare (Vprin1_to_string_buffer);
+  let mut pc: print_context = print_prepare ((*Vprin1_to_string_buffer.as_mut_ptr ()));
   let mut object = object;               /* C 831 reassigns the parameter.  */
   print (object, pc.printcharfun, NILP (noescape));
-  let pbuf: *mut buffer = XBUFFER (Vprin1_to_string_buffer);
+  let pbuf: *mut buffer = XBUFFER ((*Vprin1_to_string_buffer.as_mut_ptr ()));
   if NILP (pc.printcharfun)
      && BUF_Z_BYTE! (pbuf) == BUF_BEG_BYTE (pbuf)
      && ! NILP (BVAR! (pbuf, enable_multibyte_characters_))
     {
-      object = if print_buffer.pos == print_buffer.pos_byte
-	{ make_unibyte_string (print_buffer.buffer, print_buffer.pos_byte) }
+      object = if (*print_buffer.as_mut_ptr ()).pos == (*print_buffer.as_mut_ptr ()).pos_byte
+	{ make_unibyte_string ((*print_buffer.as_mut_ptr ()).buffer, (*print_buffer.as_mut_ptr ()).pos_byte) }
       else
-	{ make_multibyte_string (print_buffer.buffer, print_buffer.pos, print_buffer.pos_byte) };
-      Vdeactivate_mark = save_deactivate_mark;
+	{ make_multibyte_string ((*print_buffer.as_mut_ptr ()).buffer, (*print_buffer.as_mut_ptr ()).pos, (*print_buffer.as_mut_ptr ()).pos_byte) };
+      (*Vdeactivate_mark.as_mut_ptr ()) = save_deactivate_mark;
       return unbind_to (count, object);
     }
   /* Make Vprin1_to_string_buffer be the default buffer after print_finish */
   print_finish (&raw mut pc);
 
   let previous: *mut buffer = (current_buffer! ());
-  set_buffer_internal (XBUFFER (Vprin1_to_string_buffer));
+  set_buffer_internal (XBUFFER ((*Vprin1_to_string_buffer.as_mut_ptr ())));
   object = Fbuffer_string ();
   if SBYTES (object) == SCHARS (object)
     { STRING_SET_UNIBYTE (&raw mut object); }
@@ -1096,7 +1095,7 @@ DEFUN! ("prin1-to-string", Fprin1_to_string, Sprin1_to_string, 1, 3, 0,
   Ferase_buffer ();
   set_buffer_internal (previous);
 
-  Vdeactivate_mark = save_deactivate_mark;
+  (*Vdeactivate_mark.as_mut_ptr ()) = save_deactivate_mark;
 
   return unbind_to (count, object);
 });
@@ -1107,11 +1106,11 @@ DEFUN! ("princ", Fprinc, Sprinc, 1, 2, 0,
        {
   let mut printcharfun = printcharfun;   /* C 857 rebinds the parameter.  */
   if NILP (printcharfun)
-    { printcharfun = Vstandard_output; }
+    { printcharfun = (*Vstandard_output.as_mut_ptr ()); }
   let mut pc: print_context = print_prepare (printcharfun);
   if STRINGP (object)
       && string_intervals (object).is_null ()
-      && NILP (Vprint_continuous_numbering)
+      && NILP ((*Vprint_continuous_numbering.as_mut_ptr ()))
     /* fast path for plain strings */
     { print_string (object, pc.printcharfun); }
   else
@@ -1126,7 +1125,7 @@ DEFUN! ("print", Fprint, Sprint, 1, 2, 0,
        {
   let mut printcharfun = printcharfun;   /* C 897 rebinds the parameter.  */
   if NILP (printcharfun)
-    { printcharfun = Vstandard_output; }
+    { printcharfun = (*Vstandard_output.as_mut_ptr ()); }
   let mut pc: print_context = print_prepare (printcharfun);
   printchar (b'\n' as c_uint, pc.printcharfun);
   print (object, pc.printcharfun, true);
@@ -1140,7 +1139,7 @@ DEFUN! ("flush-standard-output", Fflush_standard_output, Sflush_standard_output,
        doc: "Flush standard-output.\nThis can be useful after using `princ' and the like in scripts.",
        (),
        {
-  fflush (stdout);
+  fflush ((*stdout.as_mut_ptr ()));
   return Qnil ();
 });
 
@@ -1149,7 +1148,7 @@ DEFUN! ("external-debugging-output", Fexternal_debugging_output, Sexternal_debug
        (character: Lisp_Object),
        {
   CHECK_FIXNUM (character);
-  printchar_to_stream (XFIXNUM (character) as c_uint, stderr);
+  printchar_to_stream (XFIXNUM (character) as c_uint, (*stderr.as_mut_ptr ()));
   return character;
 });
 
@@ -1162,7 +1161,7 @@ pub unsafe extern "C-unwind" fn debug_output_compilation_hack (x: bool)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  print_output_debug_flag = x;
+  (*print_output_debug_flag.as_mut_ptr ()) = x;
 
   }
 }
@@ -1175,20 +1174,20 @@ DEFUN! ("redirect-debugging-output", Fredirect_debugging_output, Sredirect_debug
        {
   /* If equal to STDERR_FILENO, stderr has not been duplicated and is OK as-is.
      Otherwise, this is a close-on-exec duplicate of the original stderr. */
-  static mut stderr_dup: c_int = STDERR_FILENO;
-  let mut fd: c_int = stderr_dup;
+  static stderr_dup: VmGlobal<c_int> = VmGlobal::<c_int>::new (STDERR_FILENO);
+  let mut fd: c_int = (*stderr_dup.as_mut_ptr ());
 
   let mut file = file;                   /* C 958 rebinds the parameter.  */
   if ! NILP (file)
     {
       file = Fexpand_file_name (file, Qnil ());
 
-      if stderr_dup == STDERR_FILENO
+      if (*stderr_dup.as_mut_ptr ()) == STDERR_FILENO
 	{
 	  let n: c_int = fcntl (STDERR_FILENO, F_DUPFD_CLOEXEC, STDERR_FILENO + 1);
 	  if n < 0
 	    { report_file_error (c"dup".as_ptr (), file); }
-	  stderr_dup = n;
+	  (*stderr_dup.as_mut_ptr ()) = n;
 	}
 
       fd = emacs_open (SSDATA (ENCODE_FILE (file)),
@@ -1199,10 +1198,10 @@ DEFUN! ("redirect-debugging-output", Fredirect_debugging_output, Sredirect_debug
 	{ report_file_error (c"Cannot open debugging output stream".as_ptr (), file); }
     }
 
-  fflush (stderr);
+  fflush ((*stderr.as_mut_ptr ()));
   if dup2 (fd, STDERR_FILENO) < 0
     { report_file_error (c"dup2".as_ptr (), file); }
-  if fd != stderr_dup
+  if fd != (*stderr_dup.as_mut_ptr ())
     { emacs_close (fd); }
   return Qnil ();
 });
@@ -1215,7 +1214,7 @@ pub unsafe extern "C-unwind" fn debug_print (arg: Lisp_Object)
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
   Fprin1 (arg, Qexternal_debugging_output (), Qnil ());
-  fputs (c"\r\n".as_ptr (), stderr);
+  fputs (c"\r\n".as_ptr (), (*stderr.as_mut_ptr ()));
 
   }
 }
@@ -1233,7 +1232,7 @@ pub unsafe extern "C-unwind" fn safe_debug_print (arg: Lisp_Object)
   else
     {
       let n: EMACS_UINT = XLI (arg) as EMACS_UINT;
-      fprintf (stderr, c"#<%s_LISP_OBJECT 0x%08jx>\r\n".as_ptr (),
+      fprintf ((*stderr.as_mut_ptr ()), c"#<%s_LISP_OBJECT 0x%08jx>\r\n".as_ptr (),
 	       if valid == 0 { c"INVALID".as_ptr () } else { c"SOME".as_ptr () },
 	       n);
     }
@@ -1257,7 +1256,7 @@ unsafe extern "C-unwind" fn erase_prin1_to_string_buffer ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  set_buffer_internal (XBUFFER (Vprin1_to_string_buffer));
+  set_buffer_internal (XBUFFER ((*Vprin1_to_string_buffer.as_mut_ptr ())));
   Ferase_buffer ();
 
   }
@@ -1282,9 +1281,9 @@ DEFUN! ("error-message-string", Ferror_message_string, Serror_message_string,
   let count: specpdl_ref = SPECPDL_INDEX ();
   record_unwind_current_buffer ();
   record_unwind_protect_void (Some (erase_prin1_to_string_buffer));
-  print_error_message (obj, Vprin1_to_string_buffer, std::ptr::null (), Qnil ());
+  print_error_message (obj, (*Vprin1_to_string_buffer.as_mut_ptr ()), std::ptr::null (), Qnil ());
 
-  set_buffer_internal (XBUFFER (Vprin1_to_string_buffer));
+  set_buffer_internal (XBUFFER ((*Vprin1_to_string_buffer.as_mut_ptr ())));
   return unbind_to (count, Fbuffer_string ());
 });
 
@@ -1443,15 +1442,15 @@ pub unsafe extern "C-unwind" fn float_to_string (buf: *mut c_char, data: c_doubl
 		      (hi << 31 << 1) + (ieee754_double_bits! (ieee_nan.mantissa1, u) as uintmax_t));
     }
 
-  if NILP (Vfloat_output_format)
-      || ! STRINGP (Vfloat_output_format)
+  if NILP ((*Vfloat_output_format.as_mut_ptr ()))
+      || ! STRINGP ((*Vfloat_output_format.as_mut_ptr ()))
     { lost = true; }
   else			/* oink oink */
     {
       /* Check that the spec we have is fully valid.
 	 This means not only valid for printf,
 	 but meant for floats, and reasonable.  */
-      cp = SSDATA (Vfloat_output_format);
+      cp = SSDATA ((*Vfloat_output_format.as_mut_ptr ()));
 
       'check: {
       if *cp != b'%' as c_char
@@ -1487,7 +1486,7 @@ pub unsafe extern "C-unwind" fn float_to_string (buf: *mut c_char, data: c_doubl
       if *cp.offset (1) != 0
 	{ lost = true; break 'check; }
 
-      len = sprintf (buf, SSDATA (Vfloat_output_format), data);
+      len = sprintf (buf, SSDATA ((*Vfloat_output_format.as_mut_ptr ())), data);
       }
     }
 
@@ -1542,33 +1541,33 @@ unsafe fn print (obj: Lisp_Object, printcharfun: Lisp_Object, escapeflag: bool)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  new_backquote_output = 0;
+  (*new_backquote_output.as_mut_ptr ()) = 0;
 
   /* Reset print_number_index and Vprint_number_table only when
      the variable Vprint_continuous_numbering is nil.  Otherwise,
      the values of these variables will be kept between several
      print functions.  */
-  if NILP (Vprint_continuous_numbering)
-      || NILP (Vprint_number_table)
+  if NILP ((*Vprint_continuous_numbering.as_mut_ptr ()))
+      || NILP ((*Vprint_number_table.as_mut_ptr ()))
     {
-      print_number_index = 0;
-      Vprint_number_table = Qnil ();
+      (*print_number_index.as_mut_ptr ()) = 0;
+      (*Vprint_number_table.as_mut_ptr ()) = Qnil ();
     }
 
   /* Construct Vprint_number_table for print-circle.  */
-  if ! NILP (Vprint_circle)
+  if ! NILP ((*Vprint_circle.as_mut_ptr ()))
     {
       /* Construct Vprint_number_table.
 	 This increments print_number_index for the objects added.  */
       print_preprocess (obj);
 
-      if HASH_TABLE_P (Vprint_number_table)
+      if HASH_TABLE_P ((*Vprint_number_table.as_mut_ptr ()))
 	{ /* Remove unnecessary objects, which appear only once in OBJ;
 	     that is, whose status is Qt.  */
-	  let h: *mut Lisp_Hash_Table = XHASH_TABLE (Vprint_number_table);
+	  let h: *mut Lisp_Hash_Table = XHASH_TABLE ((*Vprint_number_table.as_mut_ptr ()));
 	  DOHASH! (h, k, v, {
 	      if EQ (v, Qt ())
-		{ Fremhash (k, Vprint_number_table); }
+		{ Fremhash (k, (*Vprint_number_table.as_mut_ptr ())); }
 	    });
 	}
     }
@@ -1581,22 +1580,22 @@ unsafe fn print (obj: Lisp_Object, printcharfun: Lisp_Object, escapeflag: bool)
     fn drop (&mut self) {
       /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe {
         for (i, &obj) in self.saved_being.iter ().enumerate () {
-          being_printed[i] = obj;
+          (*being_printed.as_mut_ptr ())[i] = obj;
         }
-        print_depth = self.saved_depth;
+        (*print_depth.as_mut_ptr ()) = self.saved_depth;
       }
     }
   }
-  let _depth_guard = if print_depth > 0 {
-    let n = (print_depth as usize).min (PRINT_CIRCLE);
+  let _depth_guard = if (*print_depth.as_mut_ptr ()) > 0 {
+    let n = ((*print_depth.as_mut_ptr ()) as usize).min (PRINT_CIRCLE);
     Some (NestedPrintDepthGuard {
-      saved_depth: print_depth,
-      saved_being: being_printed[..n].to_vec (),
+      saved_depth: (*print_depth.as_mut_ptr ()),
+      saved_being: core::slice::from_raw_parts (being_printed.as_ptr () as *const Lisp_Object, n).to_vec (),
     })
   } else {
     None
   };
-  print_depth = 0;
+  (*print_depth.as_mut_ptr ()) = 0;
   print_object (obj, printcharfun, escapeflag);
 
   }
@@ -1611,7 +1610,7 @@ unsafe fn print_circle_candidate_p (obj: Lisp_Object) -> bool
   else if STRINGP (obj)
     { return SCHARS (obj) > 0; }
   else if SYMBOLP (obj)
-    { return ! NILP (Vprint_gensym) && ! SYMBOL_INTERNED_P (obj); }
+    { return ! NILP ((*Vprint_gensym.as_mut_ptr ())) && ! SYMBOL_INTERNED_P (obj); }
   else if VECTORLIKEP (obj)
     {
       if VECTORP (obj)
@@ -1663,17 +1662,17 @@ const _: () = core::assert! (std::mem::offset_of! (print_pp_stack, stack) == 0);
 const _: () = core::assert! (std::mem::offset_of! (print_pp_stack, size) == 8);
 const _: () = core::assert! (std::mem::offset_of! (print_pp_stack, sp) == 16);
 
-static mut ppstack: print_pp_stack = print_pp_stack {
+static ppstack: VmGlobal<print_pp_stack> = VmGlobal::<print_pp_stack>::new (print_pp_stack {
   stack: std::ptr::null_mut (),
   size: 0,
   sp: 0,
-};
+});
 
 unsafe fn grow_pp_stack ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  let ps: *mut print_pp_stack = &raw mut ppstack;
+  let ps: *mut print_pp_stack = ppstack.as_mut_ptr ();
   eassert! ((*ps).sp == (*ps).size);
   (*ps).stack = xpalloc ((*ps).stack as *mut c_void, &raw mut (*ps).size, 1, -1,
 			 std::mem::size_of::<print_pp_entry> () as ptrdiff_t)
@@ -1687,11 +1686,11 @@ unsafe fn pp_stack_push_value (value: Lisp_Object)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  if ppstack.sp >= ppstack.size
+  if (*ppstack.as_mut_ptr ()).sp >= (*ppstack.as_mut_ptr ()).size
     { grow_pp_stack (); }
-  *ppstack.stack.offset (ppstack.sp) = print_pp_entry {
+  *(*ppstack.as_mut_ptr ()).stack.offset ((*ppstack.as_mut_ptr ()).sp) = print_pp_entry {
     n: 0, u: print_pp_entry_u { value: value } };
-  ppstack.sp += 1;
+  (*ppstack.as_mut_ptr ()).sp += 1;
 
   }
 }
@@ -1703,11 +1702,11 @@ unsafe fn pp_stack_push_values (values: *mut Lisp_Object, n: ptrdiff_t)
   eassume! (n >= 0);
   if n == 0
     { return; }
-  if ppstack.sp >= ppstack.size
+  if (*ppstack.as_mut_ptr ()).sp >= (*ppstack.as_mut_ptr ()).size
     { grow_pp_stack (); }
-  *ppstack.stack.offset (ppstack.sp) = print_pp_entry {
+  *(*ppstack.as_mut_ptr ()).stack.offset ((*ppstack.as_mut_ptr ()).sp) = print_pp_entry {
     n: n, u: print_pp_entry_u { values: values } };
-  ppstack.sp += 1;
+  (*ppstack.as_mut_ptr ()).sp += 1;
 
   }
 }
@@ -1716,7 +1715,7 @@ unsafe fn pp_stack_empty_p () -> bool
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  return ppstack.sp <= 0;
+  return (*ppstack.as_mut_ptr ()).sp <= 0;
 
   }
 }
@@ -1726,17 +1725,17 @@ unsafe fn pp_stack_pop () -> Lisp_Object
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
   eassume! (! pp_stack_empty_p ());
-  let e: *mut print_pp_entry = ppstack.stack.offset (ppstack.sp - 1);
+  let e: *mut print_pp_entry = (*ppstack.as_mut_ptr ()).stack.offset ((*ppstack.as_mut_ptr ()).sp - 1);
   if (*e).n == 0		/* single value */
     {
-      ppstack.sp -= 1;
+      (*ppstack.as_mut_ptr ()).sp -= 1;
       return (*e).u.value;
     }
   /* Array of values: pop them left to right, which seems to be slightly
      faster than right to left.  */
   (*e).n -= 1;
   if (*e).n == 0
-    { ppstack.sp -= 1; }		/* last value consumed */
+    { (*ppstack.as_mut_ptr ()).sp -= 1; }		/* last value consumed */
   (*e).u.values = (*e).u.values.offset (1);
   return *(*e).u.values.offset (-1);
 
@@ -1755,14 +1754,14 @@ unsafe fn print_preprocess (mut obj: Lisp_Object)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  eassert! (! NILP (Vprint_circle));
+  eassert! (! NILP ((*Vprint_circle.as_mut_ptr ())));
   /* The ppstack may contain HASH_UNUSED_ENTRY_KEY which is an invalid
      Lisp value.  Make sure that our filter stops us from traversing it.  */
   eassert! (! print_circle_candidate_p (HASH_UNUSED_ENTRY_KEY ()));
-  let base_sp: ptrdiff_t = ppstack.sp;
+  let base_sp: ptrdiff_t = (*ppstack.as_mut_ptr ()).sp;
   struct PpStackGuard { base_sp: ptrdiff_t }
   impl Drop for PpStackGuard {
-    fn drop (&mut self) { /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { ppstack.sp = self.base_sp; } }
+    fn drop (&mut self) { /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { (*ppstack.as_mut_ptr ()).sp = self.base_sp; } }
   }
   let _pp_guard = PpStackGuard { base_sp };
 
@@ -1770,30 +1769,30 @@ unsafe fn print_preprocess (mut obj: Lisp_Object)
     {
       if print_circle_candidate_p (obj)
 	{
-	  if ! HASH_TABLE_P (Vprint_number_table)
-	    { Vprint_number_table = CALLN! (Fmake_hash_table, QCtest (), Qeq ()); }
+	  if ! HASH_TABLE_P ((*Vprint_number_table.as_mut_ptr ()))
+	    { (*Vprint_number_table.as_mut_ptr ()) = CALLN! (Fmake_hash_table, QCtest (), Qeq ()); }
 
-	  let num: Lisp_Object = Fgethash (obj, Vprint_number_table, Qnil ());
+	  let num: Lisp_Object = Fgethash (obj, (*Vprint_number_table.as_mut_ptr ()), Qnil ());
 	  if ! NILP (num)
 	      /* If Vprint_continuous_numbering is non-nil and OBJ is a gensym,
 		 always print the gensym with a number.  This is a special for
 		 the lisp function byte-compile-output-docform.  */
-	      || (! NILP (Vprint_continuous_numbering)
+	      || (! NILP ((*Vprint_continuous_numbering.as_mut_ptr ()))
 		  && SYMBOLP (obj)
 		  && ! SYMBOL_INTERNED_P (obj))
 	    { /* OBJ appears more than once.  Let's remember that.  */
 	      if SYMBOLP (num) /* In practice, nil or t.  */
 		{
-		  print_number_index += 1;
+		  (*print_number_index.as_mut_ptr ()) += 1;
 		  /* Negative number indicates it hasn't been printed yet.  */
-		  Fputhash (obj, make_fixnum (- print_number_index),
-			    Vprint_number_table);
+		  Fputhash (obj, make_fixnum (- (*print_number_index.as_mut_ptr ())),
+			    (*Vprint_number_table.as_mut_ptr ()));
 		}
 	    }
 	  else
 	    {
 	      /* OBJ is not yet recorded.  Let's add to the table.  */
-	      Fputhash (obj, Qt (), Vprint_number_table);
+	      Fputhash (obj, Qt (), (*Vprint_number_table.as_mut_ptr ()));
 
 	      match XTYPE (obj)
 		{
@@ -1833,7 +1832,7 @@ unsafe fn print_preprocess (mut obj: Lisp_Object)
 	    }
 	}
 
-      if ppstack.sp <= base_sp
+      if (*ppstack.as_mut_ptr ()).sp <= base_sp
 	{ break; }
       obj = pp_stack_pop ();
     }
@@ -1845,9 +1844,9 @@ DEFUN! ("print--preprocess", Fprint_preprocess, Sprint_preprocess, 1, 1, 0,
        doc: "Extract sharing info from OBJECT needed to print it.\nFills `print-number-table' if `print-circle' is non-nil.  Does nothing\nif `print-circle' is nil.",
        (object: Lisp_Object),
        {
-  if ! NILP (Vprint_circle)
+  if ! NILP ((*Vprint_circle.as_mut_ptr ()))
     {
-      print_number_index = 0;
+      (*print_number_index.as_mut_ptr ()) = 0;
       print_preprocess (object);
     }
   return Qnil ();
@@ -1869,7 +1868,7 @@ pub const PRINT_STRING_NON_CHARSET_FOUND: c_int = 1;
 pub const PRINT_STRING_UNSAFE_CHARSET_FOUND: c_int = 2;
 
 /* Bitwise or of the above macros.  */
-static mut print_check_string_result: c_int = 0;
+static print_check_string_result: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 
 unsafe extern "C-unwind" fn print_check_string_charset_prop (interval: INTERVAL, pstring: *mut c_void)
 {
@@ -1879,7 +1878,7 @@ unsafe extern "C-unwind" fn print_check_string_charset_prop (interval: INTERVAL,
   let mut val: Lisp_Object;
 
   if NILP ((*interval).plist)
-      || (print_check_string_result == (PRINT_STRING_NON_CHARSET_FOUND
+      || ((*print_check_string_result.as_mut_ptr ()) == (PRINT_STRING_NON_CHARSET_FOUND
 					| PRINT_STRING_UNSAFE_CHARSET_FOUND))
     { return; }
   val = (*interval).plist;
@@ -1887,16 +1886,16 @@ unsafe extern "C-unwind" fn print_check_string_charset_prop (interval: INTERVAL,
     { val = XCDR (XCDR (val)); }
   if ! CONSP (val)
     {
-      print_check_string_result |= PRINT_STRING_NON_CHARSET_FOUND;
+      (*print_check_string_result.as_mut_ptr ()) |= PRINT_STRING_NON_CHARSET_FOUND;
       return;
     }
-  if (print_check_string_result & PRINT_STRING_NON_CHARSET_FOUND) == 0
+  if ((*print_check_string_result.as_mut_ptr ()) & PRINT_STRING_NON_CHARSET_FOUND) == 0
     {
       if ! EQ (val, (*interval).plist)
 	  || CONSP (XCDR (XCDR (val)))
-	{ print_check_string_result |= PRINT_STRING_NON_CHARSET_FOUND; }
+	{ (*print_check_string_result.as_mut_ptr ()) |= PRINT_STRING_NON_CHARSET_FOUND; }
     }
-  if (print_check_string_result & PRINT_STRING_UNSAFE_CHARSET_FOUND) == 0
+  if ((*print_check_string_result.as_mut_ptr ()) & PRINT_STRING_UNSAFE_CHARSET_FOUND) == 0
     {
       let mut charpos: ptrdiff_t = (*interval).position;
       let string: Lisp_Object = *(pstring as *mut Lisp_Object);
@@ -1910,7 +1909,7 @@ unsafe extern "C-unwind" fn print_check_string_charset_prop (interval: INTERVAL,
 	  if ! ASCII_CHAR_P (c as isize)
 	      && ! EQ (CHARSET_NAME! (CHAR_CHARSET! (c)), charset)
 	    {
-	      print_check_string_result |= PRINT_STRING_UNSAFE_CHARSET_FOUND;
+	      (*print_check_string_result.as_mut_ptr ()) |= PRINT_STRING_UNSAFE_CHARSET_FOUND;
 	      break;
 	    }
 	  i += 1;
@@ -1921,26 +1920,26 @@ unsafe extern "C-unwind" fn print_check_string_charset_prop (interval: INTERVAL,
 }
 
 /* The value is (charset . nil).  */
-static mut print_prune_charset_plist: Lisp_Object = std::ptr::null_mut ();
+static print_prune_charset_plist: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (std::ptr::null_mut ());
 
 unsafe fn print_prune_string_charset (mut string: Lisp_Object) -> Lisp_Object
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  print_check_string_result = 0;
+  (*print_check_string_result.as_mut_ptr ()) = 0;
   traverse_intervals (string_intervals (string), 0,
 		      Some (print_check_string_charset_prop), &raw mut string as *mut c_void);
-  if NILP (Vprint_charset_text_property)
-      || (print_check_string_result & PRINT_STRING_UNSAFE_CHARSET_FOUND) == 0
+  if NILP ((*Vprint_charset_text_property.as_mut_ptr ()))
+      || ((*print_check_string_result.as_mut_ptr ()) & PRINT_STRING_UNSAFE_CHARSET_FOUND) == 0
     {
       string = Fcopy_sequence (string);
-      if (print_check_string_result & PRINT_STRING_NON_CHARSET_FOUND) != 0
+      if ((*print_check_string_result.as_mut_ptr ()) & PRINT_STRING_NON_CHARSET_FOUND) != 0
 	{
-	  if NILP (print_prune_charset_plist)
-	    { print_prune_charset_plist = list1 (Qcharset ()); }
+	  if NILP ((*print_prune_charset_plist.as_mut_ptr ()))
+	    { (*print_prune_charset_plist.as_mut_ptr ()) = list1 (Qcharset ()); }
 	  Fremove_text_properties (make_fixnum (0),
 				   make_fixnum (SCHARS (string)),
-				   print_prune_charset_plist, string);
+				   (*print_prune_charset_plist.as_mut_ptr ()), string);
 	}
       else
 	{ Fset_text_properties (make_fixnum (0), make_fixnum (SCHARS (string)),
@@ -2013,21 +2012,21 @@ unsafe fn print_bool_vector (obj: Lisp_Object, printcharfun: Lisp_Object)
   /* Don't print more bytes than the specified maximum.
      Negative values of print-length are invalid.  Treat them
      like a print-length of nil.  */
-  if FIXNATP (Vprint_length)
-      && XFIXNAT (Vprint_length) < size_in_bytes as EMACS_INT
-    { size_in_bytes = XFIXNAT (Vprint_length) as ptrdiff_t; }
+  if FIXNATP ((*Vprint_length.as_mut_ptr ()))
+      && XFIXNAT ((*Vprint_length.as_mut_ptr ())) < size_in_bytes as EMACS_INT
+    { size_in_bytes = XFIXNAT ((*Vprint_length.as_mut_ptr ())) as ptrdiff_t; }
 
   let mut i: ptrdiff_t = 0;
   while i < size_in_bytes
     {
       maybe_quit ();
       let c: u8 = *data.offset (i);
-      if c == b'\n' as u8 && print_escape_newlines
+      if c == b'\n' as u8 && (*print_escape_newlines.as_mut_ptr ())
 	{ print_c_string (c"\\n".as_ptr (), printcharfun); }
-      else if c == b'\x0c' as u8 && print_escape_newlines
+      else if c == b'\x0c' as u8 && (*print_escape_newlines.as_mut_ptr ())
 	{ print_c_string (c"\\f".as_ptr (), printcharfun); }
       else if c as c_int > 0o177
-	       || (print_escape_control_characters && c_iscntrl (c as c_int))
+	       || ((*print_escape_control_characters.as_mut_ptr ()) && c_iscntrl (c as c_int))
 	{
 	  /* Use octal escapes to avoid encoding issues.  */
 	  octalout (c, data, i + 1, size_in_bytes, printcharfun);
@@ -2055,24 +2054,24 @@ unsafe fn print_vectorlike_unreadable (obj: Lisp_Object, printcharfun: Lisp_Obje
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
   /* First check whether this is handled by `print-unreadable-function'.  */
-  if ! NILP (Vprint_unreadable_function)
-      && FUNCTIONP (Vprint_unreadable_function)
+  if ! NILP ((*Vprint_unreadable_function.as_mut_ptr ()))
+      && FUNCTIONP ((*Vprint_unreadable_function.as_mut_ptr ()))
     {
       let count: specpdl_ref = SPECPDL_INDEX ();
       /* Bind `print-unreadable-function' to nil to avoid accidental
 	 infinite recursion in the function called.  */
-      let func: Lisp_Object = Vprint_unreadable_function;
+      let func: Lisp_Object = (*Vprint_unreadable_function.as_mut_ptr ());
       specbind (Qprint_unreadable_function (), Qnil ());
 
       /* If we're being called from `prin1-to-string' or the like,
 	 we're now in the secret " prin1" buffer.  This can lead to
 	 problems if, for instance, the callback function switches a
 	 window to this buffer -- this will make Emacs segfault.  */
-      if ! NILP (Vprint__unreadable_callback_buffer)
-	  && ! NILP (Fbuffer_live_p (Vprint__unreadable_callback_buffer))
+      if ! NILP ((*Vprint__unreadable_callback_buffer.as_mut_ptr ()))
+	  && ! NILP (Fbuffer_live_p ((*Vprint__unreadable_callback_buffer.as_mut_ptr ())))
 	{
 	  record_unwind_current_buffer ();
-	  set_buffer_internal (XBUFFER (Vprint__unreadable_callback_buffer));
+	  set_buffer_internal (XBUFFER ((*Vprint__unreadable_callback_buffer.as_mut_ptr ())));
 	}
       let result: Lisp_Object = calln! (func, obj, if escapeflag { Qt () } else { Qnil () });
       unbind_to (count, Qnil ());
@@ -2108,7 +2107,7 @@ unsafe fn print_vectorlike_unreadable (obj: Lisp_Object, printcharfun: Lisp_Obje
 
     pvec_type::PVEC_SYMBOL_WITH_POS => {
       let sp: *mut Lisp_Symbol_With_Pos = XSYMBOL_WITH_POS (obj);
-      if print_symbols_bare
+      if (*print_symbols_bare.as_mut_ptr ())
 	{ print_object ((*sp).sym, printcharfun, escapeflag); }
       else
 	{
@@ -2649,17 +2648,17 @@ const _: () = core::assert! (std::mem::offset_of! (print_stack, stack) == 0);
 const _: () = core::assert! (std::mem::offset_of! (print_stack, size) == 8);
 const _: () = core::assert! (std::mem::offset_of! (print_stack, sp) == 16);
 
-static mut prstack: print_stack = print_stack {
+static prstack: VmGlobal<print_stack> = VmGlobal::<print_stack>::new (print_stack {
   stack: std::ptr::null_mut (),
   size: 0,
   sp: 0,
-};
+});
 
 unsafe fn grow_print_stack ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  let ps: *mut print_stack = &raw mut prstack;
+  let ps: *mut print_stack = prstack.as_mut_ptr ();
   eassert! ((*ps).sp == (*ps).size);
   (*ps).stack = xpalloc ((*ps).stack as *mut c_void, &raw mut (*ps).size, 1, -1,
 			 std::mem::size_of::<print_stack_entry> () as ptrdiff_t)
@@ -2673,10 +2672,10 @@ unsafe fn print_stack_push (e: print_stack_entry)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  if prstack.sp >= prstack.size
+  if (*prstack.as_mut_ptr ()).sp >= (*prstack.as_mut_ptr ()).size
     { grow_print_stack (); }
-  *prstack.stack.offset (prstack.sp) = e;
-  prstack.sp += 1;
+  *(*prstack.as_mut_ptr ()).stack.offset ((*prstack.as_mut_ptr ()).sp) = e;
+  (*prstack.as_mut_ptr ()).sp += 1;
 
   }
 }
@@ -2689,9 +2688,9 @@ unsafe fn print_stack_push_vector (lbrac: *const c_char, rbrac: *const c_char,
   unsafe {
   print_c_string (lbrac, printcharfun);
 
-  let print_size: ptrdiff_t = if FIXNATP (Vprint_length)
-				&& XFIXNAT (Vprint_length) < size as EMACS_INT
-    { XFIXNAT (Vprint_length) as ptrdiff_t } else { size };
+  let print_size: ptrdiff_t = if FIXNATP ((*Vprint_length.as_mut_ptr ()))
+				&& XFIXNAT ((*Vprint_length.as_mut_ptr ())) < size as EMACS_INT
+    { XFIXNAT ((*Vprint_length.as_mut_ptr ())) as ptrdiff_t } else { size };
   print_stack_push (print_stack_entry {
       r#type: print_entry_type::PE_vector,
       u: print_stack_entry_u { vector: print_stack_entry_vector {
@@ -2718,14 +2717,14 @@ unsafe fn print_object (mut obj: Lisp_Object, printcharfun: Lisp_Object, escapef
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  let base_depth: ptrdiff_t = print_depth;
-  let base_sp: ptrdiff_t = prstack.sp;
+  let base_depth: ptrdiff_t = (*print_depth.as_mut_ptr ());
+  let base_sp: ptrdiff_t = (*prstack.as_mut_ptr ()).sp;
   struct PrintStackGuard { base_sp: ptrdiff_t, base_depth: ptrdiff_t }
   impl Drop for PrintStackGuard {
     fn drop (&mut self) {
       /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe {
-        prstack.sp = self.base_sp;
-        print_depth = self.base_depth;
+        (*prstack.as_mut_ptr ()).sp = self.base_sp;
+        (*print_depth.as_mut_ptr ()) = self.base_depth;
       }
     }
   }
@@ -2742,7 +2741,7 @@ unsafe fn print_object (mut obj: Lisp_Object, printcharfun: Lisp_Object, escapef
     max_usize (5 + INT_STRLEN_BOUND (INTMAX_WIDTH as usize, 1),
 	       max_usize (14 + (UINTMAX_WIDTH as usize + 4 - 1) / 4, 40)));
   let mut buf: [c_char; BUF_SIZE] = [0; BUF_SIZE];
-  (*current_thread).stack_top = NEAR_STACK_TOP! (buf.as_mut_ptr () as *const c_void);
+  (*(*current_thread.as_mut_ptr ())).stack_top = NEAR_STACK_TOP! (buf.as_mut_ptr () as *const c_void);
 
   'print_obj: loop {
   maybe_quit ();
@@ -2750,10 +2749,10 @@ unsafe fn print_object (mut obj: Lisp_Object, printcharfun: Lisp_Object, escapef
   let mut to_next_obj: bool = false;
 
   /* Detect circularities and truncate them.  */
-  if NILP (Vprint_circle)
+  if NILP ((*Vprint_circle.as_mut_ptr ()))
     {
       /* Simple but incomplete way.  */
-      if print_depth >= PRINT_CIRCLE as ptrdiff_t
+      if (*print_depth.as_mut_ptr ()) >= PRINT_CIRCLE as ptrdiff_t
 	{
 	  error (c"Apparently circular structure being printed".as_ptr ());
         }
@@ -2763,9 +2762,9 @@ unsafe fn print_object (mut obj: Lisp_Object, printcharfun: Lisp_Object, escapef
          turned that same overrun - C's own undefined behaviour, which the guard above does not
          cover either - into a hard panic, so the access goes through the array's address
          (status 4.896).  */
-      let being: *mut Lisp_Object = (&raw mut being_printed) as *mut Lisp_Object;
+      let being: *mut Lisp_Object = (being_printed.as_mut_ptr ()) as *mut Lisp_Object;
       let mut i: c_int = 0;
-      while i < print_depth as c_int
+      while i < (*print_depth.as_mut_ptr ()) as c_int
 	{
 	  if BASE_EQ (obj, *being.offset (i as isize))
 	    {
@@ -2777,12 +2776,12 @@ unsafe fn print_object (mut obj: Lisp_Object, printcharfun: Lisp_Object, escapef
 	  i += 1;
 	}
       if ! to_next_obj
-	{ *being.offset (print_depth as isize) = obj; }
+	{ *being.offset ((*print_depth.as_mut_ptr ()) as isize) = obj; }
     }
   else if print_circle_candidate_p (obj)
     {
       /* With the print-circle feature.  */
-      let num: Lisp_Object = Fgethash (obj, Vprint_number_table, Qnil ());
+      let num: Lisp_Object = Fgethash (obj, (*Vprint_number_table.as_mut_ptr ()), Qnil ());
       if FIXNUMP (num)
 	{
 	  let n: EMACS_INT = XFIXNUM (num);
@@ -2792,7 +2791,7 @@ unsafe fn print_object (mut obj: Lisp_Object, printcharfun: Lisp_Object, escapef
 	      let len: c_int = sprintf (buf.as_mut_ptr (), c"#%ld=".as_ptr (), -n);
 	      strout (buf.as_ptr (), len as ptrdiff_t, len as ptrdiff_t, printcharfun);
 	      /* OBJ is going to be printed.  Remember that fact.  */
-	      Fputhash (obj, make_fixnum (- n), Vprint_number_table);
+	      Fputhash (obj, make_fixnum (- n), (*Vprint_number_table.as_mut_ptr ()));
 	    }
 	  else
 	    {
@@ -2810,7 +2809,7 @@ unsafe fn print_object (mut obj: Lisp_Object, printcharfun: Lisp_Object, escapef
     }
 
   if ! to_next_obj {
-  print_depth += 1;
+  (*print_depth.as_mut_ptr ()) += 1;
 
   match XTYPE (obj)
     {
@@ -2818,7 +2817,7 @@ unsafe fn print_object (mut obj: Lisp_Object, printcharfun: Lisp_Object, escapef
         let mut i: EMACS_INT = XFIXNUM (obj);
         let mut escaped_name: c_char = named_escape (i as c_int);
 
-	if print_integers_as_characters && i >= 0 && i <= MAX_UNICODE_CHAR as EMACS_INT
+	if (*print_integers_as_characters.as_mut_ptr ()) && i >= 0 && i <= MAX_UNICODE_CHAR as EMACS_INT
             && (escaped_name != 0 || graphic_base_p (i as c_int))
 	  {
 	    printchar (b'?' as c_uint, printcharfun);
@@ -2864,7 +2863,7 @@ unsafe fn print_object (mut obj: Lisp_Object, printcharfun: Lisp_Object, escapef
 	  let mut need_nonhex: bool = false;
 	  let multibyte: bool = STRING_MULTIBYTE (obj);
 
-	  if ! EQ (Vprint_charset_text_property, Qt ())
+	  if ! EQ ((*Vprint_charset_text_property.as_mut_ptr ()), Qt ())
 	    { obj = print_prune_string_charset (obj); }
 
 	  if ! string_intervals (obj).is_null ()
@@ -2888,7 +2887,7 @@ unsafe fn print_object (mut obj: Lisp_Object, printcharfun: Lisp_Object, escapef
 		   { CHAR_BYTE8_P (c) && { c = CHAR_TO_BYTE8 (c); true } }
 		 else
 		   { SINGLE_BYTE_CHAR_P (c as intmax_t) && ! ASCII_CHAR_P (c as isize)
-		       && print_escape_nonascii }
+		       && (*print_escape_nonascii.as_mut_ptr ()) }
 		{
 		  /* When printing a raw 8-bit byte in a multibyte buffer, or
 		     (when requested) a non-ASCII character in a unibyte buffer,
@@ -2898,7 +2897,7 @@ unsafe fn print_object (mut obj: Lisp_Object, printcharfun: Lisp_Object, escapef
 		  need_nonhex = false;
 		}
 	      else if multibyte
-		       && ! ASCII_CHAR_P (c as isize) && print_escape_multibyte
+		       && ! ASCII_CHAR_P (c as isize) && (*print_escape_multibyte.as_mut_ptr ())
 		{
 		  /* When requested, print multibyte chars using
 		     hex escapes.  */
@@ -2921,9 +2920,9 @@ unsafe fn print_object (mut obj: Lisp_Object, printcharfun: Lisp_Object, escapef
 			{ print_c_string (c"\\ ".as_ptr (), printcharfun); }
 		      printchar (c as c_uint, printcharfun);
 		    }
-		  else if if c == b'\n' as c_int && print_escape_newlines
+		  else if if c == b'\n' as c_int && (*print_escape_newlines.as_mut_ptr ())
 			    { c = b'n' as c_int; true }
-			    else if c == b'\x0c' as c_int && print_escape_newlines
+			    else if c == b'\x0c' as c_int && (*print_escape_newlines.as_mut_ptr ())
 			    { c = b'f' as c_int; true }
 			    else
 			    { c == b'\x22' as c_int || c == b'\\' as c_int }
@@ -2931,7 +2930,7 @@ unsafe fn print_object (mut obj: Lisp_Object, printcharfun: Lisp_Object, escapef
 		      printchar (b'\\' as c_uint, printcharfun);
 		      printchar (c as c_uint, printcharfun);
 		    }
-		  else if print_escape_control_characters && c_iscntrl (c)
+		  else if (*print_escape_control_characters.as_mut_ptr ()) && c_iscntrl (c)
 		    { octalout (c as u8, SDATA (obj), i_byte, size_byte, printcharfun); }
 		  else if ! multibyte
 			   && SINGLE_BYTE_CHAR_P (c as intmax_t)
@@ -2987,7 +2986,7 @@ unsafe fn print_object (mut obj: Lisp_Object, printcharfun: Lisp_Object, escapef
 	   `#1=#:<name>` labels (`map.elc` wanted `#1=#:missing`).  The flag stands in for C's
 	   `break` (the port's usual discipline for a switch `break`, PORTING.md 2.2).  */
 	let mut print_name: bool = true;
-	if ! NILP (Vprint_gensym)
+	if ! NILP ((*Vprint_gensym.as_mut_ptr ()))
 	    && ! SYMBOL_INTERNED_IN_INITIAL_OBARRAY_P (obj)
 	  { print_c_string (c"#:".as_ptr (), printcharfun); }
 	else if size_byte == 0
@@ -3028,54 +3027,54 @@ unsafe fn print_object (mut obj: Lisp_Object, printcharfun: Lisp_Object, escapef
 
     Lisp_Type::Lisp_Cons => {
       /* If deeper than spec'd depth, print placeholder.  */
-      if FIXNUMP (Vprint_level)
-	  && print_depth > XFIXNUM (Vprint_level)
+      if FIXNUMP ((*Vprint_level.as_mut_ptr ()))
+	  && (*print_depth.as_mut_ptr ()) > XFIXNUM ((*Vprint_level.as_mut_ptr ()))
 	{ print_c_string (c"...".as_ptr (), printcharfun); }
-      else if print_quoted && CONSP (XCDR (obj)) && NILP (XCDR (XCDR (obj)))
+      else if (*print_quoted.as_mut_ptr ()) && CONSP (XCDR (obj)) && NILP (XCDR (XCDR (obj)))
 	       && EQ (XCAR (obj), Qquote ())
 	{
 	  printchar (b'\'' as c_uint, printcharfun);
 	  obj = XCAR (XCDR (obj));
-	  print_depth -= 1;	/* tail recursion */
+	  (*print_depth.as_mut_ptr ()) -= 1;	/* tail recursion */
 	  continue 'print_obj;
 	}
-      else if print_quoted && CONSP (XCDR (obj)) && NILP (XCDR (XCDR (obj)))
+      else if (*print_quoted.as_mut_ptr ()) && CONSP (XCDR (obj)) && NILP (XCDR (XCDR (obj)))
 	       && EQ (XCAR (obj), Qfunction ())
 	{
 	  print_c_string (c"#'".as_ptr (), printcharfun);
 	  obj = XCAR (XCDR (obj));
-	  print_depth -= 1;	/* tail recursion */
+	  (*print_depth.as_mut_ptr ()) -= 1;	/* tail recursion */
 	  continue 'print_obj;
 	}
       /* FIXME: Do we really need the new_backquote_output gating of
 	 special syntax for comma and comma-at?  There is basically no
 	 benefit from it at all, and it would be nice to get rid of
 	 the recursion here without additional complexity.  */
-      else if print_quoted && CONSP (XCDR (obj)) && NILP (XCDR (XCDR (obj)))
+      else if (*print_quoted.as_mut_ptr ()) && CONSP (XCDR (obj)) && NILP (XCDR (XCDR (obj)))
 	       && EQ (XCAR (obj), Qbackquote ())
 	{
 	  printchar (b'`' as c_uint, printcharfun);
-	  new_backquote_output += 1;
+	  (*new_backquote_output.as_mut_ptr ()) += 1;
 	  print_object (XCAR (XCDR (obj)), printcharfun, escapeflag);
-	  new_backquote_output -= 1;
+	  (*new_backquote_output.as_mut_ptr ()) -= 1;
 	}
-      else if print_quoted && CONSP (XCDR (obj)) && NILP (XCDR (XCDR (obj)))
+      else if (*print_quoted.as_mut_ptr ()) && CONSP (XCDR (obj)) && NILP (XCDR (XCDR (obj)))
 	       && (EQ (XCAR (obj), Qcomma ())
 		   || EQ (XCAR (obj), Qcomma_at ()))
-	       && new_backquote_output != 0
+	       && (*new_backquote_output.as_mut_ptr ()) != 0
 	{
 	  print_object (XCAR (obj), printcharfun, false);
-	  new_backquote_output -= 1;
+	  (*new_backquote_output.as_mut_ptr ()) -= 1;
 	  print_object (XCAR (XCDR (obj)), printcharfun, escapeflag);
-	  new_backquote_output += 1;
+	  (*new_backquote_output.as_mut_ptr ()) += 1;
 	}
       else
 	{
 	  printchar (b'(' as c_uint, printcharfun);
 	  /* Negative values of print-length are invalid in CL.
 	     Treat them like nil, as CMUCL does.  */
-	  let print_length: intmax_t = if FIXNATP (Vprint_length)
-	    { XFIXNAT (Vprint_length) as intmax_t } else { INTMAX_MAX };
+	  let print_length: intmax_t = if FIXNATP ((*Vprint_length.as_mut_ptr ()))
+	    { XFIXNAT ((*Vprint_length.as_mut_ptr ())) as intmax_t } else { INTMAX_MAX };
 	  if print_length == 0
 	    { print_c_string (c"...)".as_ptr (), printcharfun); }
 	  else
@@ -3158,9 +3157,9 @@ unsafe fn print_object (mut obj: Lisp_Object, printcharfun: Lisp_Object, escapef
 		print_c_string (c" data (".as_ptr (), printcharfun);
 
 		/* Don't print more elements than the specified maximum.  */
-		if FIXNATP (Vprint_length)
-		    && XFIXNAT (Vprint_length) < size as EMACS_INT
-		  { size = XFIXNAT (Vprint_length) as ptrdiff_t; }
+		if FIXNATP ((*Vprint_length.as_mut_ptr ()))
+		    && XFIXNAT ((*Vprint_length.as_mut_ptr ())) < size as EMACS_INT
+		  { size = XFIXNAT ((*Vprint_length.as_mut_ptr ())) as ptrdiff_t; }
 
 		print_stack_push (print_stack_entry {
 		    r#type: print_entry_type::PE_hash,
@@ -3177,7 +3176,7 @@ unsafe fn print_object (mut obj: Lisp_Object, printcharfun: Lisp_Object, escapef
 	      {
 		/* Empty table: we can omit the data entirely.  */
 		printchar (b')' as c_uint, printcharfun);
-		print_depth -= 1;   /* Done with this.  */
+		(*print_depth.as_mut_ptr ()) -= 1;   /* Done with this.  */
 	      }
 	    to_next_obj = true;
 	}
@@ -3196,17 +3195,17 @@ unsafe fn print_object (mut obj: Lisp_Object, printcharfun: Lisp_Object, escapef
     _ => { emacs_abort (); }
     }
   if ! to_next_obj
-    { print_depth -= 1; }
+    { (*print_depth.as_mut_ptr ()) -= 1; }
   }
 
  'next_obj: loop {
-  if prstack.sp > base_sp
+  if (*prstack.as_mut_ptr ()).sp > base_sp
     {
       /* Handle a continuation on the print stack. Re-derive `e` from `prstack.stack`
          after any call (`printchar`, `print_c_string`, `strout`, `Fgethash`) that may
          re-enter `print_object` and reallocate `prstack.stack`.  */
-      let entry_idx: isize = prstack.sp - 1;
-      let mut e: *mut print_stack_entry = prstack.stack.offset (entry_idx);
+      let entry_idx: isize = (*prstack.as_mut_ptr ()).sp - 1;
+      let mut e: *mut print_stack_entry = (*prstack.as_mut_ptr ()).stack.offset (entry_idx);
       match (*e).r#type
 	{
 	print_entry_type::PE_list => {
@@ -3216,21 +3215,21 @@ unsafe fn print_object (mut obj: Lisp_Object, printcharfun: Lisp_Object, escapef
 	      {
 		/* end of list: print ")" */
 		printchar (b')' as c_uint, printcharfun);
-		prstack.sp -= 1;
-		print_depth -= 1;
+		(*prstack.as_mut_ptr ()).sp -= 1;
+		(*print_depth.as_mut_ptr ()) -= 1;
 		continue 'next_obj;
 	      }
 	    else if CONSP (next)
 	      {
-		if ! NILP (Vprint_circle)
+		if ! NILP ((*Vprint_circle.as_mut_ptr ()))
 		  {
 		    /* With the print-circle feature.  */
-		    let num: Lisp_Object = Fgethash (next, Vprint_number_table,
+		    let num: Lisp_Object = Fgethash (next, (*Vprint_number_table.as_mut_ptr ()),
 						     Qnil ());
 		    if ! (NILP (num) || EQ (num, Qt ()))
 		      {
 			print_c_string (c" . ".as_ptr (), printcharfun);
-			e = prstack.stack.offset (entry_idx);
+			e = (*prstack.as_mut_ptr ()).stack.offset (entry_idx);
 			obj = next;
 			(*e).r#type = print_entry_type::PE_rbrac;
 			continue 'print_obj;
@@ -3240,14 +3239,14 @@ unsafe fn print_object (mut obj: Lisp_Object, printcharfun: Lisp_Object, escapef
 		/* list continues: print " " ELEM ... */
 
 		printchar (b' ' as c_uint, printcharfun);
-		e = prstack.stack.offset (entry_idx);
+		e = (*prstack.as_mut_ptr ()).stack.offset (entry_idx);
 
 		(*e).u.list.maxlen -= 1;
 		if (*e).u.list.maxlen <= 0
 		  {
 		    print_c_string (c"...)".as_ptr (), printcharfun);
-		    prstack.sp -= 1;
-		    print_depth -= 1;
+		    (*prstack.as_mut_ptr ()).sp -= 1;
+		    (*print_depth.as_mut_ptr ()) -= 1;
 		    continue 'next_obj;
 		  }
 
@@ -3268,8 +3267,8 @@ unsafe fn print_object (mut obj: Lisp_Object, printcharfun: Lisp_Object, escapef
 		    let len: c_int = sprintf (buf.as_mut_ptr (), c". #%jd)".as_ptr (),
 					      (*e).u.list.tortoise_idx);
 		    strout (buf.as_ptr (), len as ptrdiff_t, len as ptrdiff_t, printcharfun);
-		    prstack.sp -= 1;
-		    print_depth -= 1;
+		    (*prstack.as_mut_ptr ()).sp -= 1;
+		    (*print_depth.as_mut_ptr ()) -= 1;
 		    continue 'next_obj;
 		  }
 		obj = XCAR (next);
@@ -3278,7 +3277,7 @@ unsafe fn print_object (mut obj: Lisp_Object, printcharfun: Lisp_Object, escapef
 	      {
 		/* non-nil ending: print " . " ELEM ")" */
 		print_c_string (c" . ".as_ptr (), printcharfun);
-		e = prstack.stack.offset (entry_idx);
+		e = (*prstack.as_mut_ptr ()).stack.offset (entry_idx);
 		obj = next;
 		(*e).r#type = print_entry_type::PE_rbrac;
 	      }
@@ -3286,8 +3285,8 @@ unsafe fn print_object (mut obj: Lisp_Object, printcharfun: Lisp_Object, escapef
 
 	print_entry_type::PE_rbrac => {
 	  printchar (b')' as c_uint, printcharfun);
-	  prstack.sp -= 1;
-	  print_depth -= 1;
+	  (*prstack.as_mut_ptr ()).sp -= 1;
+	  (*print_depth.as_mut_ptr ()) -= 1;
 	  continue 'next_obj;
 	}
 
@@ -3302,14 +3301,14 @@ unsafe fn print_object (mut obj: Lisp_Object, printcharfun: Lisp_Object, escapef
 		  print_c_string (c"...".as_ptr (), printcharfun);
 		}
 	      print_c_string (end_cstr, printcharfun);
-	      prstack.sp -= 1;
-	      print_depth -= 1;
+	      (*prstack.as_mut_ptr ()).sp -= 1;
+	      (*print_depth.as_mut_ptr ()) -= 1;
 	      continue 'next_obj;
 	    }
 	  if (*e).u.vector.idx > 0
 	    {
 	      printchar (b' ' as c_uint, printcharfun);
-	      e = prstack.stack.offset (entry_idx);
+	      e = (*prstack.as_mut_ptr ()).stack.offset (entry_idx);
 	    }
 	  obj = AREF ((*e).u.vector.obj, (*e).u.vector.idx);
 	  (*e).u.vector.idx += 1;
@@ -3325,15 +3324,15 @@ unsafe fn print_object (mut obj: Lisp_Object, printcharfun: Lisp_Object, escapef
 		  print_c_string (c"...".as_ptr (), printcharfun);
 		}
 	      print_c_string (c"))".as_ptr (), printcharfun);
-	      prstack.sp -= 1;
-	      print_depth -= 1;
+	      (*prstack.as_mut_ptr ()).sp -= 1;
+	      (*print_depth.as_mut_ptr ()) -= 1;
 	      continue 'next_obj;
 	    }
 
 	  if (*e).u.hash.printed != 0
 	    {
 	      printchar (b' ' as c_uint, printcharfun);
-	      e = prstack.stack.offset (entry_idx);
+	      e = (*prstack.as_mut_ptr ()).stack.offset (entry_idx);
 	    }
 
 	  let h: *mut Lisp_Hash_Table = XHASH_TABLE ((*e).u.hash.obj);
@@ -3368,7 +3367,7 @@ unsafe fn print_object (mut obj: Lisp_Object, printcharfun: Lisp_Object, escapef
   break 'print_obj;
   }
   }
-  eassert! (print_depth == base_depth);
+  eassert! ((*print_depth.as_mut_ptr ()) == base_depth);
 
   }
 }
@@ -3407,7 +3406,7 @@ pub unsafe extern "C-unwind" fn init_print_once ()
      for the convenience of the debugger.  */
   DEFSYM! (Qexternal_debugging_output, "external-debugging-output");
 
-  defsubr (&raw mut Sexternal_debugging_output);
+  defsubr (Sexternal_debugging_output.as_mut_ptr ());
 
   }
 }
@@ -3421,108 +3420,108 @@ pub unsafe extern "C-unwind" fn syms_of_print ()
 
   DEFVAR_LISP! (c"standard-output", Vstandard_output,
 	       "Output stream `print' uses by default for outputting a character.\nThis may be any function of one argument.\nIt may also be a buffer (output is inserted before point)\nor a marker (output is inserted and the marker is advanced)\nor the symbol t (output appears in the echo area).");
-  Vstandard_output = Qt ();
+  (*Vstandard_output.as_mut_ptr ()) = Qt ();
   DEFSYM! (Qstandard_output, "standard-output");
 
   DEFVAR_LISP! (c"float-output-format", Vfloat_output_format,
 	       "The format descriptor string used to print floats.\nThis is a %-spec like those accepted by `printf' in C,\nbut with some restrictions.  It must start with the two characters `%.'.\nAfter that comes an integer precision specification,\nand then a letter which controls the format.\nThe letters allowed are `e', `f' and `g'.\nUse `e' for exponential notation \"DIG.DIGITSeEXPT\"\nUse `f' for decimal point notation \"DIGITS.DIGITS\".\nUse `g' to choose the shorter of those two formats for the number at hand.\nThe precision in any of these cases is the number of digits following\nthe decimal point.  With `f', a precision of 0 means to omit the\ndecimal point.  0 is not allowed with `e' or `g'.\n\nA value of nil means to use the shortest notation\nthat represents the number without losing information.");
-  Vfloat_output_format = Qnil ();
+  (*Vfloat_output_format.as_mut_ptr ()) = Qnil ();
   DEFSYM! (Qfloat_output_format, "float-output-format");
 
   DEFVAR_BOOL! (c"print-integers-as-characters", print_integers_as_characters,
 	       "Non-nil means integers are printed using characters syntax.\nOnly independent graphic characters, and control characters with named\nescape sequences such as newline, are printed this way.  Other\nintegers, including those corresponding to raw bytes, are printed\nas numbers the usual way.");
-  print_integers_as_characters = false;
+  (*print_integers_as_characters.as_mut_ptr ()) = false;
 
   DEFVAR_LISP! (c"print-length", Vprint_length,
 	       "Maximum length of list to print before abbreviating.\nA value of nil means no limit.  See also `eval-expression-print-length'.");
-  Vprint_length = Qnil ();
+  (*Vprint_length.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"print-level", Vprint_level,
 	       "Maximum depth of list nesting to print before abbreviating.\nA value of nil means no limit.  See also `eval-expression-print-level'.");
-  Vprint_level = Qnil ();
+  (*Vprint_level.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_BOOL! (c"print-escape-newlines", print_escape_newlines,
 	       "Non-nil means print newlines in strings as `\\n'.\nAlso print formfeeds as `\\f'.");
-  print_escape_newlines = false;
+  (*print_escape_newlines.as_mut_ptr ()) = false;
 
   DEFVAR_BOOL! (c"print-escape-control-characters", print_escape_control_characters,
 	       "Non-nil means print control characters in strings as `\\OOO'.\n(OOO is the octal representation of the character code.)");
-  print_escape_control_characters = false;
+  (*print_escape_control_characters.as_mut_ptr ()) = false;
 
   DEFVAR_BOOL! (c"print-escape-nonascii", print_escape_nonascii,
 	       "Non-nil means print unibyte non-ASCII chars in strings as \\OOO.\n(OOO is the octal representation of the character code.)\nOnly single-byte characters are affected, and only in `prin1'.\nWhen the output goes in a multibyte buffer, this feature is\nenabled regardless of the value of the variable.");
-  print_escape_nonascii = false;
+  (*print_escape_nonascii.as_mut_ptr ()) = false;
 
   DEFVAR_BOOL! (c"print-escape-multibyte", print_escape_multibyte,
 	       "Non-nil means print multibyte characters in strings as \\xXXXX.\n(XXXX is the hex representation of the character code.)\nThis affects only `prin1'.");
-  print_escape_multibyte = false;
+  (*print_escape_multibyte.as_mut_ptr ()) = false;
 
   DEFVAR_BOOL! (c"print-quoted", print_quoted,
 	       "Non-nil means print quoted forms with reader syntax.\nI.e., (quote foo) prints as \\='foo, (function foo) as #\\='foo.");
-  print_quoted = true;
+  (*print_quoted.as_mut_ptr ()) = true;
 
   DEFVAR_LISP! (c"print-gensym", Vprint_gensym,
 	       "Non-nil means print uninterned symbols so they will read as uninterned.\nI.e., the value of (make-symbol \"foobar\") prints as #:foobar.\nWhen the uninterned symbol appears multiple times within the printed\nexpression, and `print-circle' is non-nil, in addition use the #N#\nand #N= constructs as needed, so that multiple references to the same\nsymbol are shared once again when the text is read back.");
-  Vprint_gensym = Qnil ();
+  (*Vprint_gensym.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"print-circle", Vprint_circle,
 	       "Non-nil means print recursive structures using #N= and #N# syntax.\nIf nil, printing proceeds recursively and may lead to\n`max-lisp-eval-depth' being exceeded or an error may occur:\n\"Apparently circular structure being printed.\"  Also see\n`print-length' and `print-level'.\nIf non-nil, shared substructures anywhere in the structure are printed\nwith `#N=' before the first occurrence (in the order of the print\nrepresentation) and `#N#' in place of each subsequent occurrence,\nwhere N is a positive decimal integer.");
-  Vprint_circle = Qnil ();
+  (*Vprint_circle.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"print-continuous-numbering", Vprint_continuous_numbering,
 	       "Non-nil means number continuously across print calls.\nThis affects the numbers printed for #N= labels and #M# references.\nSee also `print-circle', `print-gensym', and `print-number-table'.\nThis variable should not be set with `setq'; bind it with a `let' instead.");
-  Vprint_continuous_numbering = Qnil ();
+  (*Vprint_continuous_numbering.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"print-number-table", Vprint_number_table,
 	       "A vector used internally to produce `#N=' labels and `#N#' references.\nThe Lisp printer uses this vector to detect Lisp objects referenced more\nthan once.  If an entry contains a number, then the corresponding key is\nreferenced more than once: a positive sign indicates that it's already been\nprinted, and the absolute value indicates the number to use when printing.\nIf an entry contains a string, that string is printed instead.\n\nWhen you bind `print-continuous-numbering' to t, you should probably\nalso bind `print-number-table' to nil.  This ensures that the value of\n`print-number-table' can be garbage-collected once the printing is\ndone.  If all elements of `print-number-table' are nil, it means that\nthe printing done so far has not found any shared structure or objects\nthat need to be recorded in the table.");
-  Vprint_number_table = Qnil ();
+  (*Vprint_number_table.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"print-charset-text-property", Vprint_charset_text_property,
 	       "A flag to control printing of `charset' text property on printing a string.\nThe value should be nil, t, or `default'.\n\nIf the value is nil, don't print the text property `charset'.\n\nIf the value is t, always print the text property `charset'.\n\nIf the value is `default', print the text property `charset' only when\nthe value is different from what is guessed in the current charset\npriorities.  Values other than nil or t are also treated as\n`default'.");
-  Vprint_charset_text_property = Qdefault ();
+  (*Vprint_charset_text_property.as_mut_ptr ()) = Qdefault ();
 
   DEFVAR_BOOL! (c"print-symbols-bare", print_symbols_bare,
                "A flag to control printing of symbols with position.\nIf the value is nil, print these objects complete with position.\nOtherwise print just the bare symbol.");
-  print_symbols_bare = false;
+  (*print_symbols_bare.as_mut_ptr ()) = false;
   DEFSYM! (Qprint_symbols_bare, "print-symbols-bare");
 
   /* prin1_to_string_buffer initialized in init_buffer_once in buffer.c */
-  staticpro (&raw mut Vprin1_to_string_buffer);
+  staticpro (Vprin1_to_string_buffer.as_mut_ptr ());
 
-  defsubr (&raw mut Sprin1);
-  defsubr (&raw mut Sprin1_to_string);
-  defsubr (&raw mut Serror_message_string);
-  defsubr (&raw mut Sprinc);
-  defsubr (&raw mut Sprint);
-  defsubr (&raw mut Sterpri);
-  defsubr (&raw mut Swrite_char);
-  defsubr (&raw mut Sredirect_debugging_output);
-  defsubr (&raw mut Sprint_preprocess);
+  defsubr (Sprin1.as_mut_ptr ());
+  defsubr (Sprin1_to_string.as_mut_ptr ());
+  defsubr (Serror_message_string.as_mut_ptr ());
+  defsubr (Sprinc.as_mut_ptr ());
+  defsubr (Sprint.as_mut_ptr ());
+  defsubr (Sterpri.as_mut_ptr ());
+  defsubr (Swrite_char.as_mut_ptr ());
+  defsubr (Sredirect_debugging_output.as_mut_ptr ());
+  defsubr (Sprint_preprocess.as_mut_ptr ());
 
   DEFSYM! (Qprint_escape_multibyte, "print-escape-multibyte");
   DEFSYM! (Qprint_escape_nonascii, "print-escape-nonascii");
 
-  print_prune_charset_plist = Qnil ();
-  staticpro (&raw mut print_prune_charset_plist);
+  (*print_prune_charset_plist.as_mut_ptr ()) = Qnil ();
+  staticpro (print_prune_charset_plist.as_mut_ptr ());
 
   DEFVAR_LISP! (c"print-unreadable-function", Vprint_unreadable_function,
 	       "If non-nil, a function to call when printing unreadable objects.\nBy default, Emacs printing functions (like `prin1') print unreadable\nobjects as \"#<...>\", where \"...\" describes the object (for\ninstance, \"#<marker in no buffer>\").\n\nIf non-nil, it should be a function that will be called with two\narguments: the object to be printed, and the NOESCAPE flag (see\n`prin1-to-string').  If this function returns nil, the object will be\nprinted as usual.  If it returns a string, that string will then be\nprinted.  If the function returns anything else, the object will not\nbe printed.");
-  Vprint_unreadable_function = Qnil ();
+  (*Vprint_unreadable_function.as_mut_ptr ()) = Qnil ();
   DEFSYM! (Qprint_unreadable_function, "print-unreadable-function");
 
   DEFVAR_LISP! (c"print--unreadable-callback-buffer",
 	       Vprint__unreadable_callback_buffer,
 	       "Dynamically bound to indicate current buffer.");
-  Vprint__unreadable_callback_buffer = Qnil ();
+  (*Vprint__unreadable_callback_buffer.as_mut_ptr ()) = Qnil ();
   DEFSYM! (Qprint__unreadable_callback_buffer,
 	  "print--unreadable-callback-buffer");
   /* Don't export this variable to Elisp.  */
   Funintern (Qprint__unreadable_callback_buffer (), Qnil ());
 
-  defsubr (&raw mut Sflush_standard_output);
+  defsubr (Sflush_standard_output.as_mut_ptr ());
 
   /* Initialized in print_create_variable_mapping.  */
-  staticpro (&raw mut Vprint_variable_mapping);
+  staticpro (Vprint_variable_mapping.as_mut_ptr ());
 
   }
 }

@@ -710,7 +710,7 @@ unsafe fn json_serialize (jo: *mut json_out_t, object: Lisp_Object,
   record_unwind_protect_ptr (Some (cleanup_json_out), jo as *mut c_void);
 
   /* Make float conversion independent of float-output-format.  */
-  if !NILP (Vfloat_output_format)
+  if !NILP ((*Vfloat_output_format.as_mut_ptr ()))
     { specbind (Qfloat_output_format (), Qnil ()); }
 
   json_out_something (jo, object);
@@ -1713,7 +1713,7 @@ unsafe fn json_parse_object (parser: *mut json_parser) -> Lisp_Object
       {
 	let value: EMACS_INT
 	  = ((*parser).object_workspace_current - first) >> 1;
-	result = make_hash_table (&raw const hashtest_equal, value, Weak_None);
+	result = make_hash_table (hashtest_equal.as_ptr (), value, Weak_None);
 	let h: *mut Lisp_Hash_Table = XHASH_TABLE (result);
 	let mut i: ptrdiff_t = first;
 	while i < (*parser).object_workspace_current
@@ -2046,10 +2046,10 @@ pub unsafe extern "C-unwind" fn syms_of_json ()
   DEFSYM! (Qplist, "plist");
   DEFSYM! (Qarray, "array");
 
-  defsubr (&raw mut Sjson_serialize);
-  defsubr (&raw mut Sjson_insert);
-  defsubr (&raw mut Sjson_parse_string);
-  defsubr (&raw mut Sjson_parse_buffer);
+  defsubr (Sjson_serialize.as_mut_ptr ());
+  defsubr (Sjson_insert.as_mut_ptr ());
+  defsubr (Sjson_parse_string.as_mut_ptr ());
+  defsubr (Sjson_parse_buffer.as_mut_ptr ());
 
   }
 }

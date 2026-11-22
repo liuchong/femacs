@@ -308,11 +308,11 @@ pub use self::font_log_decls::*;
 /* C 1004-1011: the two logging macros.  */
 macro_rules! FONT_ADD_LOG {
   ($action:expr, $arg:expr, $result:expr) =>
-    { if ! EQ (Vfont_log, Qt ()) { font_add_log ($action, $arg, $result); } };
+    { if ! EQ ((*Vfont_log.as_mut_ptr ()), Qt ()) { font_add_log ($action, $arg, $result); } };
 }
 macro_rules! FONT_DEFERRED_LOG {
   ($action:expr, $arg:expr, $result:expr) =>
-    { if ! EQ (Vfont_log, Qt ()) { font_deferred_log ($action, $arg, $result); } };
+    { if ! EQ ((*Vfont_log.as_mut_ptr ()), Qt ()) { font_deferred_log ($action, $arg, $result); } };
 }
 
 /* font.h 249-256: `struct font_spec` - C 251-255's `union vectorlike_header header;
@@ -527,7 +527,7 @@ pub fn font_data_structures_may_be_ill_formed () -> bool
     /* C 1023-1026 reads the global bare; the port's is a `static mut` (the mirror's own
        declaration), so the read needs the `unsafe` block - without it the Cairo/pgtk arms read
        `E0133 use of mutable static` (measured on the `xsettings` pgtk-only arm, status 3.542).  */
-    /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { gc_in_progress }
+    /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*gc_in_progress.as_mut_ptr ()) }
   }
   #[cfg (not (any (feature = "use_cairo", feature = "use_be_cairo")))]
   {

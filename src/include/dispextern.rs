@@ -1325,19 +1325,19 @@ macro_rules! MATRIX_TAB_LINE_HEIGHT {
    window.  C's three arguments are SELW, MBW and SCRW.  */
 macro_rules! CURRENT_MODE_LINE_ACTIVE_FACE_ID_3 {
   ($selw:expr, $mbw:expr, $scrw:expr) => {
-    if !mode_line_in_non_selected_windows
-       || ($selw) == XWINDOW (selected_window)
-       || (minibuf_level > 0
-	   && !NILP (minibuf_selected_window)
-	   && ($mbw) == XWINDOW (minibuf_window)
-	   && ($scrw) == XWINDOW (minibuf_selected_window))
+    if !(*mode_line_in_non_selected_windows.as_mut_ptr ())
+       || ($selw) == XWINDOW ((*selected_window.as_mut_ptr ()))
+       || ((*minibuf_level.as_mut_ptr ()) > 0
+	   && !NILP ((*minibuf_selected_window.as_mut_ptr ()))
+	   && ($mbw) == XWINDOW ((*minibuf_window.as_mut_ptr ()))
+	   && ($scrw) == XWINDOW ((*minibuf_selected_window.as_mut_ptr ())))
       { MODE_LINE_ACTIVE_FACE_ID } else { MODE_LINE_INACTIVE_FACE_ID }
   };
 }
 
 /* Return the desired face id for the mode line of window W.  */
 macro_rules! CURRENT_MODE_LINE_ACTIVE_FACE_ID {
-  ($w:expr) => { CURRENT_MODE_LINE_ACTIVE_FACE_ID_3! ($w, XWINDOW (selected_window), $w) };
+  ($w:expr) => { CURRENT_MODE_LINE_ACTIVE_FACE_ID_3! ($w, XWINDOW ((*selected_window.as_mut_ptr ())), $w) };
 }
 
 /* Return the current height of the mode line of window W.  If not known from
@@ -1361,17 +1361,17 @@ macro_rules! CURRENT_MODE_LINE_HEIGHT {
 /* The same three for the header line.  */
 macro_rules! CURRENT_HEADER_LINE_ACTIVE_FACE_ID_3 {
   ($selw:expr, $mbw:expr, $scrw:expr) => {
-    if !mode_line_in_non_selected_windows
-       || ($selw) == XWINDOW (selected_window)
-       || (minibuf_level > 0
-	   && !NILP (minibuf_selected_window)
-	   && ($mbw) == XWINDOW (minibuf_window)
-	   && ($scrw) == XWINDOW (minibuf_selected_window))
+    if !(*mode_line_in_non_selected_windows.as_mut_ptr ())
+       || ($selw) == XWINDOW ((*selected_window.as_mut_ptr ()))
+       || ((*minibuf_level.as_mut_ptr ()) > 0
+	   && !NILP ((*minibuf_selected_window.as_mut_ptr ()))
+	   && ($mbw) == XWINDOW ((*minibuf_window.as_mut_ptr ()))
+	   && ($scrw) == XWINDOW ((*minibuf_selected_window.as_mut_ptr ())))
       { HEADER_LINE_ACTIVE_FACE_ID } else { HEADER_LINE_INACTIVE_FACE_ID }
   };
 }
 macro_rules! CURRENT_HEADER_LINE_ACTIVE_FACE_ID {
-  ($w:expr) => { CURRENT_HEADER_LINE_ACTIVE_FACE_ID_3! ($w, XWINDOW (selected_window), $w) };
+  ($w:expr) => { CURRENT_HEADER_LINE_ACTIVE_FACE_ID_3! ($w, XWINDOW ((*selected_window.as_mut_ptr ())), $w) };
 }
 macro_rules! CURRENT_HEADER_LINE_HEIGHT {
   ($w:expr) => {
@@ -1391,17 +1391,17 @@ macro_rules! CURRENT_HEADER_LINE_HEIGHT {
 /* The same three for the tab line.  */
 macro_rules! CURRENT_TAB_LINE_ACTIVE_FACE_ID_3 {
   ($selw:expr, $mbw:expr, $scrw:expr) => {
-    if !mode_line_in_non_selected_windows
-       || ($selw) == XWINDOW (selected_window)
-       || (minibuf_level > 0
-	   && !NILP (minibuf_selected_window)
-	   && ($mbw) == XWINDOW (minibuf_window)
-	   && ($scrw) == XWINDOW (minibuf_selected_window))
+    if !(*mode_line_in_non_selected_windows.as_mut_ptr ())
+       || ($selw) == XWINDOW ((*selected_window.as_mut_ptr ()))
+       || ((*minibuf_level.as_mut_ptr ()) > 0
+	   && !NILP ((*minibuf_selected_window.as_mut_ptr ()))
+	   && ($mbw) == XWINDOW ((*minibuf_window.as_mut_ptr ()))
+	   && ($scrw) == XWINDOW ((*minibuf_selected_window.as_mut_ptr ())))
       { TAB_LINE_ACTIVE_FACE_ID } else { TAB_LINE_INACTIVE_FACE_ID }
   };
 }
 macro_rules! CURRENT_TAB_LINE_ACTIVE_FACE_ID {
-  ($w:expr) => { CURRENT_TAB_LINE_ACTIVE_FACE_ID_3! ($w, XWINDOW (selected_window), $w) };
+  ($w:expr) => { CURRENT_TAB_LINE_ACTIVE_FACE_ID_3! ($w, XWINDOW ((*selected_window.as_mut_ptr ())), $w) };
 }
 macro_rules! CURRENT_TAB_LINE_HEIGHT {
   ($w:expr) => {
@@ -1588,7 +1588,7 @@ macro_rules! MATRIX_ROW_OVERLAPS_SUCC_P {
 }
 
 /* A glyph for a space.  */
-unsafe extern "C-unwind" { pub static mut space_glyph: glyph; }     // dispextern.h 1338
+unsafe extern "C-unwind" { pub static space_glyph: VmGlobal<glyph>; }     // dispextern.h 1338
 
 /* Display a warning message.  Used by cmds.c's self-insert-command path (dispextern.h
    3900; the definition is in keyboard.c's mirror).  */
@@ -2971,7 +2971,7 @@ pub mod dispextern_unit_names {
   /* C 2068: the global the redisplay path reads.  */
   unsafe extern "C-unwind" {
     /// C: extern bool face_change;
-    pub static mut face_change: bool;
+    pub static face_change: VmGlobal<bool>;
   }
 
   /* C 3617-3710: the three globals this header declares.  They are here rather than at the
@@ -2979,11 +2979,11 @@ pub mod dispextern_unit_names {
      (`src/fringe.c` 497, `keyboard.c`), so a top-level copy collides (status 3.505).  */
   unsafe extern "C-unwind" {
     /// C 3617: `extern int last_tab_bar_item;` (the unit that defines it is keyboard.c's).
-    pub static mut last_tab_bar_item: c_int;
+    pub static last_tab_bar_item: VmGlobal<c_int>;
     /// C 3618: `extern int last_tool_bar_item;`
-    pub static mut last_tool_bar_item: c_int;
+    pub static last_tool_bar_item: VmGlobal<c_int>;
     /// C 3710: `extern int max_used_fringe_bitmap;` (defined by `src/fringe.c` 497).
-    pub static mut max_used_fringe_bitmap: c_int;
+    pub static max_used_fringe_bitmap: VmGlobal<c_int>;
   }
 
   /* C 2204-2207: the base-embedding-level test.  */
@@ -3819,7 +3819,7 @@ const _: () = core::assert! (core::mem::offset_of! (it, min_width_start) == 4960
       else
         { produce_glyphs ($it); }
       if !(*$it).glyph_row.is_null ()
-        { inhibit_free_realized_faces = true; }
+        { (*inhibit_free_realized_faces.as_mut_ptr ()) = true; }
       reset_box_start_end_flags ($it);
     } };
   }
@@ -4041,27 +4041,27 @@ const _: () = core::assert! (core::mem::offset_of! (redisplay_interface, fix_ove
   /* C 3608-3616: the redisplay state the header exports.  */
   unsafe extern "C-unwind" {
     /// C: extern bool redisplaying_p;
-    pub static mut redisplaying_p: bool;
+    pub static redisplaying_p: VmGlobal<bool>;
     /// C: extern unsigned int redisplay_counter;
-    pub static mut redisplay_counter: c_uint;
+    pub static redisplay_counter: VmGlobal<c_uint>;
     /// C: extern bool display_working_on_window_p;
-    pub static mut display_working_on_window_p: bool;
+    pub static display_working_on_window_p: VmGlobal<bool>;
     /// C: extern int dont_resize_frames;
-    pub static mut dont_resize_frames: c_int;
+    pub static dont_resize_frames: VmGlobal<c_int>;
     /// C: extern bool help_echo_showing_p;
-    pub static mut help_echo_showing_p: bool;
+    pub static help_echo_showing_p: VmGlobal<bool>;
     /// C: extern Lisp_Object help_echo_string, help_echo_window;
-    pub static mut help_echo_string: Lisp_Object;
-    pub static mut help_echo_window: Lisp_Object;
+    pub static help_echo_string: VmGlobal<Lisp_Object>;
+    pub static help_echo_window: VmGlobal<Lisp_Object>;
     /// C: extern Lisp_Object help_echo_object, previous_help_echo_string;
-    pub static mut help_echo_object: Lisp_Object;
-    pub static mut previous_help_echo_string: Lisp_Object;
+    pub static help_echo_object: VmGlobal<Lisp_Object>;
+    pub static previous_help_echo_string: VmGlobal<Lisp_Object>;
     /// C: extern ptrdiff_t help_echo_pos;
-    pub static mut help_echo_pos: ptrdiff_t;
+    pub static help_echo_pos: VmGlobal<ptrdiff_t>;
     /// C 3834: `extern char unspecified_fg[], unspecified_bg[];` - the two arrays are
      // "possibly empty" (xfaces.c appends to them), so the port keeps C's array type.
-    pub static mut unspecified_fg: [c_char; 0];
-    pub static mut unspecified_bg: [c_char; 0];
+    pub static unspecified_fg: VmGlobal<[c_char; 0]>;
+    pub static unspecified_bg: VmGlobal<[c_char; 0]>;
   }
 }
 
@@ -4083,7 +4083,7 @@ pub mod dispextern_late_decls {
      around them belong to their neighbours), so the mirror declares them ungated too and the
      units carry no copy - the textual declaration gate reads both arms.  */
   unsafe extern "C-unwind" {
-    pub static mut face_change: bool;
+    pub static face_change: VmGlobal<bool>;
     pub fn do_pending_window_change (inhibit: bool);
   }
   #[cfg (feature = "have_window_system")]

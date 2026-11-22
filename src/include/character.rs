@@ -185,7 +185,7 @@ pub fn CHECK_CHARACTER_CDR (x: Lisp_Object)
 pub fn CHAR_PRINTABLE_P (c: c_int) -> bool
 {
   return (32 <= c && c < 127)
-	 || ! NILP (CHAR_TABLE_REF (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { Vprintable_chars }, c as isize));
+	 || ! NILP (CHAR_TABLE_REF (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*Vprintable_chars.as_mut_ptr ()) }, c as isize));
 }
 
 /* Return byte length of multibyte form for character C.  */
@@ -597,7 +597,7 @@ pub mod character_decls {
   			    precision: ptrdiff_t, nchars: *mut ptrdiff_t,
   			    nbytes: *mut ptrdiff_t, auto_comp: bool) -> ptrdiff_t;
 
-    pub static mut Vchar_unify_table: Lisp_Object;
+    pub static Vchar_unify_table: VmGlobal<Lisp_Object>;
     pub fn string_escape_byte8 (string: Lisp_Object) -> Lisp_Object;
 
     pub fn alphabeticp (c: c_int) -> bool;

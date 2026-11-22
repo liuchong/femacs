@@ -101,7 +101,7 @@ macro_rules! cm_bits {
 /* keyboard.h 38: `KVAR` is a token-pasting macro with no Rust counterpart; the port names
    the field it pastes (each ends in `_`), which keeps C's member token in the body.  */
 macro_rules! KVAR {
-  ($kb:expr, Vinput_decode_map) => { (*$kb).Vinput_decode_map_ };
+  ($kb:expr, (*Vinput_decode_map.as_mut_ptr ())) => { (*$kb).Vinput_decode_map_ };
 }
 
 /* frame.h 1437-1546: `SET_FRAME_VISIBLE`/`SET_FRAME_GARBAGED` (both write a `bits1` bit;
@@ -238,7 +238,7 @@ pub const NC_OVERLINE: no_color_bit = 1 << 8;
    C's macro `emacs_tputs` and the place-expression macro `curY` (PORTING.md P-33).  */
 macro_rules! OUTPUT {
   ($tty:expr, $a:expr) =>
-    { emacs_tputs! ($tty, $a, FRAME_TOTAL_LINES (XFRAME (selected_frame)) - curY! ($tty), cmputc) };
+    { emacs_tputs! ($tty, $a, FRAME_TOTAL_LINES (XFRAME ((*selected_frame.as_mut_ptr ()))) - curY! ($tty), cmputc) };
 }
 macro_rules! OUTPUT1 { ($tty:expr, $a:expr) => { emacs_tputs! ($tty, $a, 1, cmputc) }; }
 macro_rules! OUTPUTL { ($tty:expr, $a:expr, $lines:expr) => { emacs_tputs! ($tty, $a, $lines, cmputc) }; }
@@ -254,10 +254,10 @@ macro_rules! OUTPUT1_IF {
 
 /* Chain of all tty device parameters.  */
   #[unsafe(no_mangle)]
-  pub static mut tty_list: *mut tty_display_info = std::ptr::null_mut ();
+  pub static tty_list: VmGlobal<*mut tty_display_info> = VmGlobal::<*mut tty_display_info>::new (std::ptr::null_mut ());
 
 /* C 126-131.  */
-static mut max_frame_cols: c_int = 0;
+static max_frame_cols: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 
 // --- use-site declarations ---------------------------------------------------------------
 // The names below are declared by dispextern.h/frame.h/lisp.h at points this unit's mirrors
@@ -469,7 +469,7 @@ unsafe extern "C-unwind" fn tty_ring_bell (f: *mut frame)
 
   if ! (*tty).output.is_null ()
     {
-      OUTPUT! (tty, (if !(*tty).TS_visible_bell.is_null () && visible_bell
+      OUTPUT! (tty, (if !(*tty).TS_visible_bell.is_null () && (*visible_bell.as_mut_ptr ())
                      { (*tty).TS_visible_bell } else { (*tty).TS_bell }));
       fflush ((*tty).output);
     }
@@ -528,12 +528,12 @@ unsafe extern "C-unwind" fn tty_set_terminal_modes (terminal: *mut terminal)
           /* Output enough newlines to scroll all the old screen contents
              off the screen, so it won't be overwritten and lost.  */
           let mut i: c_int = 0;
-          current_tty = tty;
-          while i < FRAME_TOTAL_LINES (XFRAME (selected_frame))
+          (*current_tty.as_mut_ptr ()) = tty;
+          while i < FRAME_TOTAL_LINES (XFRAME ((*selected_frame.as_mut_ptr ())))
             { cmputc ('\n' as c_int); i += 1; }
         }
 
-      OUTPUT_IF! (tty, if visible_cursor { (*tty).TS_cursor_visible } else { (*tty).TS_cursor_normal });
+      OUTPUT_IF! (tty, if (*visible_cursor.as_mut_ptr ()) { (*tty).TS_cursor_visible } else { (*tty).TS_cursor_normal });
       OUTPUT_IF! (tty, (*tty).TS_keypad_mode);
       losecursor! (tty);
       tty_send_additional_strings (terminal, Qtty_mode_set_strings ());
@@ -562,7 +562,7 @@ unsafe extern "C-unwind" fn tty_reset_terminal_modes (terminal: *mut terminal)
       OUTPUT_IF! (tty, (*tty).TS_end_termcap_modes);
       OUTPUT_IF! (tty, (*tty).TS_orig_pair);
       /* Output raw CR so kernel can track the cursor hpos.  */
-      current_tty = tty;
+      (*current_tty.as_mut_ptr ()) = tty;
       cmputc ('\r' as c_int);
       fflush ((*tty).output);
     }
@@ -579,7 +579,7 @@ unsafe extern "C-unwind" fn tty_update_end (f: *mut frame)
   unsafe {
   let tty: *mut tty_display_info = FRAME_TTY! (f);
 
-  if ! window_bits! (cursor_off_p, XWINDOW (selected_window))
+  if ! window_bits! (cursor_off_p, XWINDOW ((*selected_window.as_mut_ptr ())))
     { tty_show_cursor (tty); }
   tty_turn_off_insert (tty);
   tty_background_highlight (tty);
@@ -730,7 +730,7 @@ pub unsafe extern "C-unwind" fn tty_show_cursor (tty: *mut tty_display_info)
       #[cfg (feature = "windowsnt")]
       { w32con_show_cursor (); }
       OUTPUT_IF! (tty, (*tty).TS_cursor_normal);
-      if visible_cursor
+      if (*visible_cursor.as_mut_ptr ())
         { OUTPUT_IF! (tty, (*tty).TS_cursor_visible); }
     }
 
@@ -746,7 +746,7 @@ unsafe fn tty_background_highlight (tty: *mut tty_display_info)
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  if inverse_video
+  if (*inverse_video.as_mut_ptr ())
     { tty_turn_on_highlight (tty); }
   else
     { tty_turn_off_highlight (tty); }
@@ -761,7 +761,7 @@ unsafe fn tty_highlight_if_desired (tty: *mut tty_display_info)
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  if inverse_video
+  if (*inverse_video.as_mut_ptr ())
     { tty_turn_on_highlight (tty); }
   else
     { tty_turn_off_highlight (tty); }
@@ -949,11 +949,11 @@ macro_rules! glyph_u_cmp_bits {
 }
 
 /* Buffers to store the source and result of code conversion for terminal.  */
-static mut encode_terminal_src: *mut u8 = std::ptr::null_mut ();
-static mut encode_terminal_dst: *mut u8 = std::ptr::null_mut ();
+static encode_terminal_src: VmGlobal<*mut u8> = VmGlobal::<*mut u8>::new (std::ptr::null_mut ());
+static encode_terminal_dst: VmGlobal<*mut u8> = VmGlobal::<*mut u8>::new (std::ptr::null_mut ());
 /* Allocated sizes of the above buffers.  */
-static mut encode_terminal_src_size: ptrdiff_t = 0;
-static mut encode_terminal_dst_size: ptrdiff_t = 0;
+static encode_terminal_src_size: VmGlobal<ptrdiff_t> = VmGlobal::<ptrdiff_t>::new (0);
+static encode_terminal_dst_size: VmGlobal<ptrdiff_t> = VmGlobal::<ptrdiff_t>::new (0);
 
 /* Encode SRC_LEN glyphs starting at SRC to terminal output codes.
    Set CODING->produced to the byte-length of the resulting byte
@@ -986,15 +986,15 @@ pub unsafe extern "C-unwind" fn encode_terminal_code (src: *mut glyph, src_len: 
     = (src_len as ptrdiff_t).overflowing_mul (MAX_MULTIBYTE_LENGTH as ptrdiff_t);
   if required_overflowed { memory_full_up (); }
   required = required_prod;
-  if encode_terminal_src_size < required
-    { encode_terminal_src = xpalloc (encode_terminal_src.cast::<c_void> (),
-				     &raw mut encode_terminal_src_size,
-				     required - encode_terminal_src_size, -1,
+  if (*encode_terminal_src_size.as_mut_ptr ()) < required
+    { (*encode_terminal_src.as_mut_ptr ()) = xpalloc ((*encode_terminal_src.as_mut_ptr ()).cast::<c_void> (),
+				     encode_terminal_src_size.as_mut_ptr (),
+				     required - (*encode_terminal_src_size.as_mut_ptr ()), -1,
 				     std::mem::size_of::<u8> () as ptrdiff_t).cast::<u8> (); }
 
   charset_list = coding_charset_list (coding);
 
-  buf = encode_terminal_src;
+  buf = (*encode_terminal_src.as_mut_ptr ());
   nchars = 0;
   while src < src_end
     {
@@ -1004,7 +1004,7 @@ pub unsafe extern "C-unwind" fn encode_terminal_code (src: *mut glyph, src_len: 
 	  let mut gstring: Lisp_Object = Qnil ();
 	  let mut i: c_int = 0;
 
-	  nbytes = buf.offset_from (encode_terminal_src);
+	  nbytes = buf.offset_from ((*encode_terminal_src.as_mut_ptr ()));
 	  if glyph_u_cmp_bits! (automatic, src)
 	    {
 	      cmp = std::ptr::null_mut ();
@@ -1013,18 +1013,18 @@ pub unsafe extern "C-unwind" fn encode_terminal_code (src: *mut glyph, src_len: 
 	    }
 	  else
 	    {
-	      cmp = *composition_table.add (glyph_u_cmp_bits! (id, src) as usize);
+	      cmp = *(*composition_table.as_mut_ptr ()).add (glyph_u_cmp_bits! (id, src) as usize);
 	      required = (*cmp).glyph_len as ptrdiff_t;
 	    }
 	  required *= MAX_MULTIBYTE_LENGTH as ptrdiff_t;
 
-	  if encode_terminal_src_size - nbytes < required
+	  if (*encode_terminal_src_size.as_mut_ptr ()) - nbytes < required
 	    {
-	      encode_terminal_src =
-		xpalloc (encode_terminal_src.cast::<c_void> (),
-			 &raw mut encode_terminal_src_size,
-			 required - (encode_terminal_src_size - nbytes), -1, 1).cast::<u8> ();
-	      buf = encode_terminal_src.offset (nbytes);
+	      (*encode_terminal_src.as_mut_ptr ()) =
+		xpalloc ((*encode_terminal_src.as_mut_ptr ()).cast::<c_void> (),
+			 encode_terminal_src_size.as_mut_ptr (),
+			 required - ((*encode_terminal_src_size.as_mut_ptr ()) - nbytes), -1, 1).cast::<u8> ();
+	      buf = (*encode_terminal_src.as_mut_ptr ()).offset (nbytes);
 	    }
 
 	  if cmp.is_null ()
@@ -1107,14 +1107,14 @@ pub unsafe extern "C-unwind" fn encode_terminal_code (src: *mut glyph, src_len: 
 
 	  if NILP (string)
 	    {
-	      nbytes = buf.offset_from (encode_terminal_src);
-	      if encode_terminal_src_size - nbytes < MAX_MULTIBYTE_LENGTH as ptrdiff_t
+	      nbytes = buf.offset_from ((*encode_terminal_src.as_mut_ptr ()));
+	      if (*encode_terminal_src_size.as_mut_ptr ()) - nbytes < MAX_MULTIBYTE_LENGTH as ptrdiff_t
 		{
-		  encode_terminal_src =
-		    xpalloc (encode_terminal_src.cast::<c_void> (),
-			     &raw mut encode_terminal_src_size,
+		  (*encode_terminal_src.as_mut_ptr ()) =
+		    xpalloc ((*encode_terminal_src.as_mut_ptr ()).cast::<c_void> (),
+			     encode_terminal_src_size.as_mut_ptr (),
 			     MAX_MULTIBYTE_LENGTH as ptrdiff_t, -1, 1).cast::<u8> ();
-		  buf = encode_terminal_src.offset (nbytes);
+		  buf = (*encode_terminal_src.as_mut_ptr ()).offset (nbytes);
 		}
 	      if CHAR_BYTE8_P (c)
 		  || ! char_charset (c, charset_list, std::ptr::null_mut ()).is_null ()
@@ -1140,14 +1140,14 @@ pub unsafe extern "C-unwind" fn encode_terminal_code (src: *mut glyph, src_len: 
 	    {
 	      if ! STRING_MULTIBYTE (string)
 		{ string = string_to_multibyte (string); }
-	      nbytes = buf.offset_from (encode_terminal_src);
-	      if encode_terminal_src_size - nbytes < SBYTES (string)
+	      nbytes = buf.offset_from ((*encode_terminal_src.as_mut_ptr ()));
+	      if (*encode_terminal_src_size.as_mut_ptr ()) - nbytes < SBYTES (string)
 		{
-		  encode_terminal_src =
-		    xpalloc (encode_terminal_src.cast::<c_void> (),
-			     &raw mut encode_terminal_src_size,
-			     SBYTES (string) - (encode_terminal_src_size - nbytes), -1, 1).cast::<u8> ();
-		  buf = encode_terminal_src.offset (nbytes);
+		  (*encode_terminal_src.as_mut_ptr ()) =
+		    xpalloc ((*encode_terminal_src.as_mut_ptr ()).cast::<c_void> (),
+			     encode_terminal_src_size.as_mut_ptr (),
+			     SBYTES (string) - ((*encode_terminal_src_size.as_mut_ptr ()) - nbytes), -1, 1).cast::<u8> ();
+		  buf = (*encode_terminal_src.as_mut_ptr ()).offset (nbytes);
 		}
 	      std::ptr::copy_nonoverlapping (SDATA (string), buf, SBYTES (string) as usize);
 	      buf = buf.add (SBYTES (string) as usize);
@@ -1163,22 +1163,22 @@ pub unsafe extern "C-unwind" fn encode_terminal_code (src: *mut glyph, src_len: 
       return std::ptr::null_mut ();
     }
 
-  nbytes = buf.offset_from (encode_terminal_src);
-  (*coding).source = encode_terminal_src;
-  if encode_terminal_dst_size == 0
+  nbytes = buf.offset_from ((*encode_terminal_src.as_mut_ptr ()));
+  (*coding).source = (*encode_terminal_src.as_mut_ptr ());
+  if (*encode_terminal_dst_size.as_mut_ptr ()) == 0
     {
-      encode_terminal_dst = xrealloc (encode_terminal_dst.cast::<c_void> (),
-				      encode_terminal_src_size as usize).cast::<u8> ();
-      encode_terminal_dst_size = encode_terminal_src_size;
+      (*encode_terminal_dst.as_mut_ptr ()) = xrealloc ((*encode_terminal_dst.as_mut_ptr ()).cast::<c_void> (),
+				      (*encode_terminal_src_size.as_mut_ptr ()) as usize).cast::<u8> ();
+      (*encode_terminal_dst_size.as_mut_ptr ()) = (*encode_terminal_src_size.as_mut_ptr ());
     }
-  (*coding).destination = encode_terminal_dst;
-  (*coding).dst_bytes = encode_terminal_dst_size;
+  (*coding).destination = (*encode_terminal_dst.as_mut_ptr ());
+  (*coding).dst_bytes = (*encode_terminal_dst_size.as_mut_ptr ());
   encode_coding_object (coding, Qnil (), 0, 0, nchars, nbytes, Qnil ());
   /* coding->destination may have been reallocated.  */
-  encode_terminal_dst = (*coding).destination;
-  encode_terminal_dst_size = (*coding).dst_bytes;
+  (*encode_terminal_dst.as_mut_ptr ()) = (*coding).destination;
+  (*encode_terminal_dst_size.as_mut_ptr ()) = (*coding).dst_bytes;
 
-  return encode_terminal_dst;
+  return (*encode_terminal_dst.as_mut_ptr ());
 
   }
 }
@@ -1216,7 +1216,7 @@ unsafe fn tty_write_glyphs_1 (f: *mut frame, mut string: *mut glyph, len: c_int)
   let coding: *mut coding_system
     = if coding_common_flags! (common_flags, (FRAME_TERMINAL_CODING! (f) as *mut coding_system))
       & CODING_REQUIRE_ENCODING_MASK as c_int != 0
-      { (FRAME_TERMINAL_CODING! (f) as *mut coding_system) } else { &raw mut safe_terminal_coding };
+      { (FRAME_TERMINAL_CODING! (f) as *mut coding_system) } else { safe_terminal_coding.as_mut_ptr () };
 
   /* The mode bit CODING_MODE_LAST_BLOCK should be set to 1 only at
      the tail.  */
@@ -1302,7 +1302,7 @@ unsafe fn tty_write_glyphs_with_face (f: *mut frame, string: *mut glyph,
      because it always return 1 if the member src_multibyte is 1.  */
   coding = if coding_common_flags! (common_flags, (FRAME_TERMINAL_CODING! (f) as *mut coding_system))
       & CODING_REQUIRE_ENCODING_MASK as c_int != 0
-    { (FRAME_TERMINAL_CODING! (f) as *mut coding_system) } else { &raw mut safe_terminal_coding };
+    { (FRAME_TERMINAL_CODING! (f) as *mut coding_system) } else { safe_terminal_coding.as_mut_ptr () };
   /* The mode bit CODING_MODE_LAST_BLOCK should be set to 1 only at
      the tail.  */
   coding_mode! (mode, coding, coding_mode! (mode, coding) & ! CODING_MODE_LAST_BLOCK);
@@ -1368,7 +1368,7 @@ unsafe extern "C-unwind" fn tty_insert_glyphs (f: *mut frame, mut start: *mut gl
      because it always return 1 if the member src_multibyte is 1.  */
   coding = if coding_common_flags! (common_flags, (FRAME_TERMINAL_CODING! (f) as *mut coding_system))
       & CODING_REQUIRE_ENCODING_MASK as c_int != 0
-    { (FRAME_TERMINAL_CODING! (f) as *mut coding_system) } else { &raw mut safe_terminal_coding };
+    { (FRAME_TERMINAL_CODING! (f) as *mut coding_system) } else { safe_terminal_coding.as_mut_ptr () };
   /* The mode bit CODING_MODE_LAST_BLOCK should be set to 1 only at
      the tail.  */
   coding_mode! (mode, coding, coding_mode! (mode, coding) & ! CODING_MODE_LAST_BLOCK);
@@ -1595,10 +1595,10 @@ pub unsafe extern "C-unwind" fn string_cost (str_: *const c_char) -> c_int
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  cost = 0;
+  (*cost.as_mut_ptr ()) = 0;
   if ! str_.is_null ()
     { tputs (str_, 0, Some (evalcost)); }
-  return cost;
+  return (*cost.as_mut_ptr ());
 
   }
 }
@@ -1611,10 +1611,10 @@ unsafe fn string_cost_one_line (str_: *const c_char) -> c_int
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  cost = 0;
+  (*cost.as_mut_ptr ()) = 0;
   if ! str_.is_null ()
     { tputs (str_, 1, Some (evalcost)); }
-  return cost;
+  return (*cost.as_mut_ptr ());
 
   }
 }
@@ -1628,13 +1628,13 @@ pub unsafe extern "C-unwind" fn per_line_cost (str_: *const c_char) -> c_int
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  cost = 0;
+  (*cost.as_mut_ptr ()) = 0;
   if ! str_.is_null ()
     { tputs (str_, 0, Some (evalcost)); }
-  cost = - cost;
+  (*cost.as_mut_ptr ()) = - (*cost.as_mut_ptr ());
   if ! str_.is_null ()
     { tputs (str_, 10, Some (evalcost)); }
-  return cost;
+  return (*cost.as_mut_ptr ());
 
   }
 }
@@ -1644,10 +1644,10 @@ pub unsafe extern "C-unwind" fn per_line_cost (str_: *const c_char) -> c_int
    The length of this vector is based on max_frame_cols.  */
 
 #[unsafe(no_mangle)]
-pub static mut char_ins_del_vector: *mut c_int = std::ptr::null_mut ();
+pub static char_ins_del_vector: VmGlobal<*mut c_int> = VmGlobal::<*mut c_int>::new (std::ptr::null_mut ());
 
 macro_rules! char_ins_del_cost {
-  ($f:expr) => { char_ins_del_vector.add (FRAME_COLS ($f) as usize) };
+  ($f:expr) => { (*char_ins_del_vector.as_mut_ptr ()).add (FRAME_COLS ($f) as usize) };
 }
 
 #[cfg (not (feature = "have_android"))]
@@ -1737,7 +1737,7 @@ pub unsafe extern "C-unwind" fn calculate_costs (frame: *mut frame)
   unsafe {
   /* C's `FRAME_COST_BAUD_RATE (frame) = baud_rate;` writes the field; the frame mirror's
      accessor is a reader, so the assignment names the field C's macro expands to.  */
-  (*frame).cost_calculation_baud_rate = baud_rate as intmax_t;
+  (*frame).cost_calculation_baud_rate = (*baud_rate.as_mut_ptr ()) as intmax_t;
 
   #[cfg (not (feature = "have_android"))]
   {
@@ -1758,18 +1758,18 @@ pub unsafe extern "C-unwind" fn calculate_costs (frame: *mut frame)
          char_ins_del_vector (i.e., char_ins_del_cost) isn't used because
          X turns off char_ins_del_ok. */
 
-      max_frame_cols = std::cmp::max (max_frame_cols, FRAME_COLS (frame));
+      (*max_frame_cols.as_mut_ptr ()) = std::cmp::max ((*max_frame_cols.as_mut_ptr ()), FRAME_COLS (frame));
       if (std::cmp::min (PTRDIFF_MAX as usize, SIZE_MAX) / std::mem::size_of::<c_int> () - 1) / 2
-	  < max_frame_cols as usize
+	  < (*max_frame_cols.as_mut_ptr ()) as usize
 	{ memory_full_up (); }
 
-      char_ins_del_vector =
-	xrealloc (char_ins_del_vector.cast::<c_void> (),
-		  std::mem::size_of::<c_int> () + 2 * std::mem::size_of::<c_int> () * max_frame_cols as usize).cast::<c_int> ();
+      (*char_ins_del_vector.as_mut_ptr ()) =
+	xrealloc ((*char_ins_del_vector.as_mut_ptr ()).cast::<c_void> (),
+		  std::mem::size_of::<c_int> () + 2 * std::mem::size_of::<c_int> () * (*max_frame_cols.as_mut_ptr ()) as usize).cast::<c_int> ();
 
       /* C 1255's `memset` counts bytes; through a `u8` pointer (PORTING.md P-114).  */
-      std::ptr::write_bytes (char_ins_del_vector as *mut u8, 0,
-			     std::mem::size_of::<c_int> () + 2 * std::mem::size_of::<c_int> () * max_frame_cols as usize);
+      std::ptr::write_bytes ((*char_ins_del_vector.as_mut_ptr ()) as *mut u8, 0,
+			     std::mem::size_of::<c_int> () + 2 * std::mem::size_of::<c_int> () * (*max_frame_cols.as_mut_ptr ()) as usize);
 
       if ! f.is_null () && (*tty).TS_ins_line.is_null () && (*tty).TS_del_line.is_null ()
         { do_line_insertion_deletion_costs (frame,
@@ -1786,8 +1786,8 @@ pub unsafe extern "C-unwind" fn calculate_costs (frame: *mut frame)
 
       /* Don't use TS_repeat if its padding is worse than sending the chars */
       if ! (*tty).TS_repeat.is_null ()
-	  && (baud_rate <= 0
-	      || per_line_cost ((*tty).TS_repeat) < 9000 / baud_rate as c_int)
+	  && ((*baud_rate.as_mut_ptr ()) <= 0
+	      || per_line_cost ((*tty).TS_repeat) < 9000 / (*baud_rate.as_mut_ptr ()) as c_int)
         { (*tty).RPov = string_cost ((*tty).TS_repeat); }
       else
         { (*tty).RPov = FRAME_COLS (frame) * 2; }
@@ -1809,7 +1809,7 @@ pub struct fkey_table
   pub name: *const c_char
 }
 
-static mut keys: [fkey_table; 58] = [
+static keys: VmGlobal<[fkey_table; 58]> = VmGlobal::<[fkey_table; 58]>::new ([
   fkey_table { cap: c"kh".as_ptr (), name: c"home".as_ptr () },
   fkey_table { cap: c"kl".as_ptr (), name: c"left".as_ptr () },
   fkey_table { cap: c"ku".as_ptr (), name: c"up".as_ptr () },
@@ -1868,7 +1868,7 @@ static mut keys: [fkey_table; 58] = [
   fkey_table { cap: c"%g".as_ptr (), name: c"S-redo".as_ptr () },
   fkey_table { cap: c"%i".as_ptr (), name: c"S-right".as_ptr () },
   fkey_table { cap: c"!3".as_ptr (), name: c"S-undo".as_ptr () },
-];
+]);
 
 /* dispextern.h 2285-2318: `enum display_element_type` (the mirror stops before it).  */
 pub type display_element_type = c_int;
@@ -2062,7 +2062,7 @@ macro_rules! CONDITIONAL_REASSIGN {
       {
 	let sequence: *mut c_char = tgetstr ($cap2, $address);
 	if ! sequence.is_null ()
-	  { Fdefine_key (KVAR! ($kboard, Vinput_decode_map), build_string (sequence),
+	  { Fdefine_key (KVAR! ($kboard, (*Vinput_decode_map.as_mut_ptr ())), build_string (sequence),
 			 make_vector (1, intern ($sym)), Qnil ()); }
       }
   }};
@@ -2085,15 +2085,15 @@ unsafe fn term_get_fkeys (address: *mut *mut c_char, kboard: *mut KBOARD)
      function key specification, rather than giving the user an error and
      refusing to run at all on such a terminal.  */
 
-  term_get_fkeys_address = address;
-  term_get_fkeys_kboard = kboard;
-  internal_condition_case (Some (term_get_fkeys_1), Qerror (), Some (Fidentity));
+  (*term_get_fkeys_address.as_mut_ptr ()) = address;
+  (*term_get_fkeys_kboard.as_mut_ptr ()) = kboard;
+  internal_condition_case (Some (term_get_fkeys_1), Qerror (), Some (Fidentity as _));
 
   }
 }
 
-static mut term_get_fkeys_address: *mut *mut c_char = std::ptr::null_mut ();
-static mut term_get_fkeys_kboard: *mut KBOARD = std::ptr::null_mut ();
+static term_get_fkeys_address: VmGlobal<*mut *mut c_char> = VmGlobal::<*mut *mut c_char>::new (std::ptr::null_mut ());
+static term_get_fkeys_kboard: VmGlobal<*mut KBOARD> = VmGlobal::<*mut KBOARD>::new (std::ptr::null_mut ());
 
 #[cfg (not (feature = "have_android"))]
 unsafe extern "C-unwind" fn term_get_fkeys_1 () -> Lisp_Object
@@ -2102,21 +2102,21 @@ unsafe extern "C-unwind" fn term_get_fkeys_1 () -> Lisp_Object
   unsafe {
   let mut i: c_int = 0;
 
-  let address: *mut *mut c_char = term_get_fkeys_address;
-  let kboard: *mut KBOARD = term_get_fkeys_kboard;
+  let address: *mut *mut c_char = (*term_get_fkeys_address.as_mut_ptr ());
+  let kboard: *mut KBOARD = (*term_get_fkeys_kboard.as_mut_ptr ());
 
   /* This can happen if Emacs is starting up from scratch, or with
      strange options.  */
-  if ! KEYMAPP! (KVAR! (kboard, Vinput_decode_map))
+  if ! KEYMAPP! (KVAR! (kboard, (*Vinput_decode_map.as_mut_ptr ())))
     { kset_input_decode_map (kboard, Fmake_sparse_keymap (Qnil ())); }
 
   i = 0;
-  while i < countof! (keys) as c_int
+  while i < countof! ((*keys.as_mut_ptr ())) as c_int
     {
-      let sequence: *mut c_char = tgetstr (keys [i as usize].cap, address);
+      let sequence: *mut c_char = tgetstr ((*keys.as_mut_ptr ()) [i as usize].cap, address);
       if ! sequence.is_null ()
-	{ Fdefine_key (KVAR! (kboard, Vinput_decode_map), build_string (sequence),
-		       make_vector (1, intern (keys [i as usize].name)), Qnil ()); }
+	{ Fdefine_key (KVAR! (kboard, (*Vinput_decode_map.as_mut_ptr ())), build_string (sequence),
+		       make_vector (1, intern ((*keys.as_mut_ptr ()) [i as usize].name)), Qnil ()); }
       i += 1;
     }
 
@@ -2135,13 +2135,13 @@ unsafe extern "C-unwind" fn term_get_fkeys_1 () -> Lisp_Object
 	if ! k0.is_null ()
 	  /* Define f0 first, so that f10 takes precedence in case the
 	     key sequences happens to be the same.  */
-	  { Fdefine_key (KVAR! (kboard, Vinput_decode_map), build_string (k0),
+	  { Fdefine_key (KVAR! (kboard, (*Vinput_decode_map.as_mut_ptr ())), build_string (k0),
 			 make_vector (1, Qf0 ()), Qnil ()); }
-	Fdefine_key (KVAR! (kboard, Vinput_decode_map), build_string (k_semi),
+	Fdefine_key (KVAR! (kboard, (*Vinput_decode_map.as_mut_ptr ())), build_string (k_semi),
 		     make_vector (1, Qf10 ()), Qnil ());
       }
     else if ! k0.is_null ()
-      { Fdefine_key (KVAR! (kboard, Vinput_decode_map), build_string (k0),
+      { Fdefine_key (KVAR! (kboard, (*Vinput_decode_map.as_mut_ptr ())), build_string (k0),
 		     make_vector (1, intern (k0_name)), Qnil ()); }
   }
 
@@ -2166,7 +2166,7 @@ unsafe extern "C-unwind" fn term_get_fkeys_1 () -> Lisp_Object
 	  if ! sequence.is_null ()
 	    {
 	      sprintf (fkey.as_mut_ptr (), c"f%d".as_ptr (), i);
-	      Fdefine_key (KVAR! (kboard, Vinput_decode_map),
+	      Fdefine_key (KVAR! (kboard, (*Vinput_decode_map.as_mut_ptr ())),
 			   build_string (sequence),
 			   make_vector (1, intern (fkey.as_ptr ())),
 			   Qnil ());
@@ -2366,11 +2366,11 @@ pub unsafe extern "C-unwind" fn produce_glyphs (it: *mut it)
       let mut absolute_x = absolute_x;
       let x0: c_int = absolute_x;
       /* Adjust for line numbers.  */
-      if ! NILP (Vdisplay_line_numbers) && it_bits! (line_number_produced_p, it)
+      if ! NILP ((*Vdisplay_line_numbers.as_mut_ptr ())) && it_bits! (line_number_produced_p, it)
 	{ absolute_x -= (*it).lnum_pixel_width; }
       let mut next_tab_x: c_int =
 	(((1 + absolute_x + (*it).tab_width as c_int - 1) / (*it).tab_width as c_int) * (*it).tab_width as c_int);
-      if ! NILP (Vdisplay_line_numbers) && it_bits! (line_number_produced_p, it)
+      if ! NILP ((*Vdisplay_line_numbers.as_mut_ptr ())) && it_bits! (line_number_produced_p, it)
 	{ next_tab_x += (*it).lnum_pixel_width; }
       let nspaces: c_int;
 
@@ -2583,7 +2583,7 @@ unsafe fn composite_glyph_is_emoji_sequence (it: *mut it) -> bool
 
   /* The rest two cases both require Base.  */
   if NILP (Fmemq (make_fixnum (first as EMACS_INT),
-		   Vauto_composition_emoji_tty_eligible_codepoints))
+		   (*Vauto_composition_emoji_tty_eligible_codepoints.as_mut_ptr ())))
     { return false; }
 
   /* Base + VS16/Modifier.  */
@@ -2594,7 +2594,7 @@ unsafe fn composite_glyph_is_emoji_sequence (it: *mut it) -> bool
   third = if len < 3 { 0 } else { XFIXNUM (LGSTRING_CHAR (gstring, 2)) as c_int };
   return second == 0x200D
     && ! NILP (Fmemq (make_fixnum (third as EMACS_INT),
-		      Vauto_composition_emoji_unqualified_tail_initials));
+		      (*Vauto_composition_emoji_unqualified_tail_initials.as_mut_ptr ())));
 
   }
 }
@@ -2616,7 +2616,7 @@ unsafe fn produce_composite_glyph (it: *mut it)
 
   if (*it).cmp_it.ch < 0
     {
-      let cmp: *mut composition = *composition_table.add ((*it).cmp_it.id as usize);
+      let cmp: *mut composition = *(*composition_table.as_mut_ptr ()).add ((*it).cmp_it.id as usize);
 
       (*it).pixel_width = (*cmp).width;
       first_char = (*it).c;
@@ -2632,7 +2632,7 @@ unsafe fn produce_composite_glyph (it: *mut it)
     }
 
   padding = (if (*it).pixel_width >= 2 && CHARACTER_WIDTH (first_char) >= 2 { 1 } else { 0 })
-    | (if tty_display_emoji_force_wide
+    | (if (*tty_display_emoji_force_wide.as_mut_ptr ())
 	  && composite_glyph_is_emoji_sequence (it) { 1 } else { 0 });
   (*it).nglyphs = 1 + padding;
   if ! (*it).glyph_row.is_null ()
@@ -2766,8 +2766,8 @@ unsafe fn produce_glyphless_glyph (it: *mut it, mut acronym: Lisp_Object)
     {
       if (*it).glyphless_method == GLYPHLESS_DISPLAY_ACRONYM
 	{
-	  if ! STRINGP (acronym) && CHAR_TABLE_P (Vglyphless_char_display)
-	    { acronym = CHAR_TABLE_REF (Vglyphless_char_display, (*it).c as isize); }
+	  if ! STRINGP (acronym) && CHAR_TABLE_P ((*Vglyphless_char_display.as_mut_ptr ()))
+	    { acronym = CHAR_TABLE_REF ((*Vglyphless_char_display.as_mut_ptr ()), (*it).c as isize); }
 	  if CONSP (acronym)
 	    { acronym = XCDR (acronym); }
 	  str = if STRINGP (acronym) { SSDATA (acronym) } else { c"".as_ptr () };
@@ -2840,7 +2840,7 @@ unsafe fn turn_on_face (f: *mut frame, face: *mut face)
      Do this first because TS_end_standout_mode may be the same
      as TS_exit_attribute_mode, which turns all appearances off. */
   if MAY_USE_WITH_COLORS_P! (tty, NC_REVERSE)
-      && (if inverse_video
+      && (if (*inverse_video.as_mut_ptr ())
 	  { fg == FACE_TTY_DEFAULT_FG_COLOR || bg == FACE_TTY_DEFAULT_BG_COLOR }
 	  else { fg == FACE_TTY_DEFAULT_BG_COLOR || bg == FACE_TTY_DEFAULT_FG_COLOR })
     { tty_toggle_highlight (tty); }
@@ -3042,11 +3042,11 @@ DEFUN! ("tty-display-color-cells", Ftty_display_color_cells, Stty_display_color_
 /* Declare here rather than in the function, as in the rest of Emacs,
    to work around an HPUX compiler bug (?). See
    https://lists.gnu.org/r/emacs-devel/2007-08/msg00410.html  */
-static mut default_max_colors: c_int = 0;
-static mut default_no_color_video: c_int = 0;
-static mut default_orig_pair: *mut c_char = std::ptr::null_mut ();
-static mut default_set_foreground: *mut c_char = std::ptr::null_mut ();
-static mut default_set_background: *mut c_char = std::ptr::null_mut ();
+static default_max_colors: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
+static default_no_color_video: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
+static default_orig_pair: VmGlobal<*mut c_char> = VmGlobal::<*mut c_char>::new (std::ptr::null_mut ());
+static default_set_foreground: VmGlobal<*mut c_char> = VmGlobal::<*mut c_char>::new (std::ptr::null_mut ());
+static default_set_background: VmGlobal<*mut c_char> = VmGlobal::<*mut c_char>::new (std::ptr::null_mut ());
 
 /* Save or restore the default color-related capabilities of this
    terminal.  */
@@ -3058,19 +3058,19 @@ unsafe fn tty_default_color_capabilities (tty: *mut tty_display_info, save: bool
 
   if save
     {
-      dupstring (&raw mut default_orig_pair, (*tty).TS_orig_pair);
-      dupstring (&raw mut default_set_foreground, (*tty).TS_set_foreground);
-      dupstring (&raw mut default_set_background, (*tty).TS_set_background);
-      default_max_colors = (*tty).TN_max_colors;
-      default_no_color_video = (*tty).TN_no_color_video;
+      dupstring (default_orig_pair.as_mut_ptr (), (*tty).TS_orig_pair);
+      dupstring (default_set_foreground.as_mut_ptr (), (*tty).TS_set_foreground);
+      dupstring (default_set_background.as_mut_ptr (), (*tty).TS_set_background);
+      (*default_max_colors.as_mut_ptr ()) = (*tty).TN_max_colors;
+      (*default_no_color_video.as_mut_ptr ()) = (*tty).TN_no_color_video;
     }
   else
     {
-      (*tty).TS_orig_pair = default_orig_pair;
-      (*tty).TS_set_foreground = default_set_foreground;
-      (*tty).TS_set_background = default_set_background;
-      (*tty).TN_max_colors = default_max_colors;
-      (*tty).TN_no_color_video = default_no_color_video;
+      (*tty).TS_orig_pair = (*default_orig_pair.as_mut_ptr ());
+      (*tty).TS_set_foreground = (*default_set_foreground.as_mut_ptr ());
+      (*tty).TS_set_background = (*default_set_background.as_mut_ptr ());
+      (*tty).TN_max_colors = (*default_max_colors.as_mut_ptr ());
+      (*tty).TN_no_color_video = (*default_no_color_video.as_mut_ptr ());
     }
 
   }
@@ -3215,7 +3215,7 @@ DEFUN! ("controlling-tty-p", Fcontrolling_tty_p, Scontrolling_tty_p, 0, 1, 0,
   let t: *mut terminal = decode_tty_terminal (terminal);
 
   return if t != std::ptr::null_mut ()
-	   && strcmp ((*((*t).display_info.tty as *mut tty_display_info)).name, dev_tty) == 0
+	   && strcmp ((*((*t).display_info.tty as *mut tty_display_info)).name, (*dev_tty.as_mut_ptr ())) == 0
     { Qt () } else { Qnil () };
 });
 
@@ -3348,7 +3348,7 @@ DEFUN! ("resume-tty", Fresume_tty, Sresume_tty, 0, 1, 0,
 			     open_errno);
 	}
 
-      if O_IGNORE_CTTY == 0 && strcmp ((*((*t).display_info.tty as *mut tty_display_info)).name, dev_tty) != 0
+      if O_IGNORE_CTTY == 0 && strcmp ((*((*t).display_info.tty as *mut tty_display_info)).name, (*dev_tty.as_mut_ptr ())) != 0
         { dissociate_if_controlling_tty (fd); }
 
       add_keyboard_wait_descriptor (fd);
@@ -3641,12 +3641,12 @@ pub const TTYM_NEXT: c_int = 4;
 pub const TTYM_PREV: c_int = 5;
 
 /* These hold text of the current and the previous menu help messages.  */
-static mut menu_help_message: *const c_char = std::ptr::null ();
-static mut prev_menu_help_message: *const c_char = std::ptr::null ();
+static menu_help_message: VmGlobal<*const c_char> = VmGlobal::<*const c_char>::new (std::ptr::null ());
+static prev_menu_help_message: VmGlobal<*const c_char> = VmGlobal::<*const c_char>::new (std::ptr::null ());
 /* Pane number and item number of the menu item which generated the
    last menu help message.  */
-static mut menu_help_paneno: c_int = 0;
-static mut menu_help_itemno: c_int = 0;
+static menu_help_paneno: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
+static menu_help_itemno: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 
 #[repr(C)]
 pub struct tty_menu_struct
@@ -3767,7 +3767,7 @@ unsafe fn mouse_get_xy (x: *mut c_int, y: *mut c_int)
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  let mouse: Lisp_Object = mouse_position (tty_menu_calls_mouse_position_function);
+  let mouse: Lisp_Object = mouse_position ((*tty_menu_calls_mouse_position_function.as_mut_ptr ()));
 
   let f: *mut frame = XFRAME (XCAR (mouse));
   let sf: *mut frame = SELECTED_FRAME ();
@@ -3811,7 +3811,7 @@ unsafe fn tty_menu_display (menu: *mut tty_menu, x: c_int, mut y: c_int, pn: c_i
   let max_items: c_int =
     std::cmp::min ((*menu).count - first_item, FRAME_TOTAL_LINES (sf) - 1 - y);
 
-  menu_help_message = std::ptr::null ();
+  (*menu_help_message.as_mut_ptr ()) = std::ptr::null ();
 
   width = (*menu).width;
   col = cursorX! (tty);
@@ -3834,9 +3834,9 @@ unsafe fn tty_menu_display (menu: *mut tty_menu, x: c_int, mut y: c_int, pn: c_i
 	 code does.  */
       if disp_help && enabled + mousehere * 2 >= 2
 	{
-	  menu_help_message = *(*menu).help_text.add (j as usize);
-	  menu_help_paneno = pn - 1;
-	  menu_help_itemno = j;
+	  (*menu_help_message.as_mut_ptr ()) = *(*menu).help_text.add (j as usize);
+	  (*menu_help_paneno.as_mut_ptr ()) = pn - 1;
+	  (*menu_help_itemno.as_mut_ptr ()) = j;
 	}
       /* Take note of the coordinates of the active menu item, to
 	 display the cursor there.  */
@@ -4094,20 +4094,20 @@ unsafe fn read_menu_input (sf: *mut frame, x: *mut c_int, y: *mut c_int, min_y: 
       let mut usable_input: bool = 1 != 0;
       let mut st: mi_result = MI_CONTINUE;
       let tty: *mut tty_display_info = FRAME_TTY! (sf);
-      let old_track_mouse: Lisp_Object = track_mouse;
+      let old_track_mouse: Lisp_Object = (*track_mouse.as_mut_ptr ());
 
       /* Signal the keyboard reading routines we are displaying a menu
 	 on this terminal.  */
       tty_bits! (showing_menu, tty, 1);
       /* We want mouse movements be reported by read_menu_command.  */
-      track_mouse = Qt ();
+      (*track_mouse.as_mut_ptr ()) = Qt ();
       loop
 	{
 	  cmd = read_menu_command ();
 	  if ! NILP (cmd) { break; }
 	}
       tty_bits! (showing_menu, tty, 0);
-      track_mouse = old_track_mouse;
+      (*track_mouse.as_mut_ptr ()) = old_track_mouse;
 
       if EQ (cmd, Qt ()) || EQ (cmd, Qtty_menu_exit ())
 	  /* If some input switched frames under our feet, exit the
@@ -4182,7 +4182,7 @@ unsafe fn tty_menu_activate (menu: *mut tty_menu, pane: *mut c_int, selidx: *mut
   let mut first_item: c_int = 0;
   let mut col: c_int;
   let mut row: c_int;
-  let prev_inhibit_redisplay: Lisp_Object = Vinhibit_redisplay;
+  let prev_inhibit_redisplay: Lisp_Object = (*Vinhibit_redisplay.as_mut_ptr ());
   USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
   /* Don't allow non-positive x0 and y0, lest the menu will wrap
@@ -4231,7 +4231,7 @@ unsafe fn tty_menu_activate (menu: *mut tty_menu, pane: *mut c_int, selidx: *mut
   /* Inhibit redisplay for as long as the menu is active, to avoid
      messing the screen if some timer calls sit-for or a similar
      function.  */
-  Vinhibit_redisplay = Qt ();
+  (*Vinhibit_redisplay.as_mut_ptr ()) = Qt ();
 
   /* Force update of the current frame, so that the desired and the
      current matrices are identical.  */
@@ -4403,16 +4403,16 @@ unsafe fn tty_menu_activate (menu: *mut tty_menu, pane: *mut c_int, selidx: *mut
 
       /* Display the help-echo message for the currently-selected menu
 	 item.  */
-      if (! menu_help_message.is_null () || ! prev_menu_help_message.is_null ())
-	  && menu_help_message != prev_menu_help_message
+      if (! (*menu_help_message.as_mut_ptr ()).is_null () || ! (*prev_menu_help_message.as_mut_ptr ()).is_null ())
+	  && (*menu_help_message.as_mut_ptr ()) != (*prev_menu_help_message.as_mut_ptr ())
 	{
-	  help_callback.unwrap () (menu_help_message,
-				   menu_help_paneno, menu_help_itemno);
+	  help_callback.unwrap () ((*menu_help_message.as_mut_ptr ()),
+				   (*menu_help_paneno.as_mut_ptr ()), (*menu_help_itemno.as_mut_ptr ()));
 	  /* Move the cursor to the beginning of the current menu
 	     item, so that screen readers and other accessibility aids
 	     know where the active region is.  */
 	  cursor_to (sf, row, col);
-	  prev_menu_help_message = menu_help_message;
+	  (*prev_menu_help_message.as_mut_ptr ()) = (*menu_help_message.as_mut_ptr ());
 	}
       /* Both tty_menu_display and help_callback invoke update_end,
 	 which calls tty_show_cursor.  Re-hide it, so it doesn't show
@@ -4441,7 +4441,7 @@ unsafe fn tty_menu_activate (menu: *mut tty_menu, pane: *mut c_int, selidx: *mut
   if ! kbd_buffer_events_waiting ()
     { clear_input_pending (); }
   SAFE_FREE! (sa_count, sa_mark);
-  Vinhibit_redisplay = prev_inhibit_redisplay;
+  (*Vinhibit_redisplay.as_mut_ptr ()) = prev_inhibit_redisplay;
   return result;
 
   }
@@ -4470,7 +4470,7 @@ unsafe fn tty_menu_destroy (menu: *mut tty_menu)
       xfree ((*menu).help_text.cast::<c_void> ());
     }
   xfree (menu.cast::<c_void> ());
-  menu_help_message = std::ptr::null (); prev_menu_help_message = std::ptr::null ();
+  (*menu_help_message.as_mut_ptr ()) = std::ptr::null (); (*prev_menu_help_message.as_mut_ptr ()) = std::ptr::null ();
 
   }
 }
@@ -4489,12 +4489,12 @@ unsafe extern "C-unwind" fn tty_menu_help_callback (help_string: *const c_char, 
   let mut pane_name: Lisp_Object;
   let mut menu_object: Lisp_Object;
 
-  first_item = (*XVECTOR (menu_items)).contents.as_mut_ptr ();
+  first_item = (*XVECTOR ((*menu_items.as_mut_ptr ()))).contents.as_mut_ptr ();
   if EQ (*first_item.add (0), Qt ())
     { pane_name = *first_item.add (MENU_ITEMS_PANE_NAME as usize); }
   else if EQ (*first_item.add (0), Qquote ())
     /* This shouldn't happen, see xmenu_show.  */
-    { pane_name = empty_unibyte_string; }
+    { pane_name = (*empty_unibyte_string.as_mut_ptr ()); }
   else
     { pane_name = *first_item.add (MENU_ITEMS_ITEM_NAME as usize); }
 
@@ -4653,10 +4653,10 @@ pub unsafe extern "C-unwind" fn tty_menu_show (f: *mut frame, x: c_int, y: c_int
   eassert! (FRAME_TERMCAP_P (f));
 
   *error_name = std::ptr::null ();
-  if menu_items_n_panes == 0
+  if (*menu_items_n_panes.as_mut_ptr ()) == 0
     { return Qnil (); }
 
-  if menu_items_used <= MENU_ITEMS_PANE_LENGTH || ! VECTORP (menu_items)
+  if (*menu_items_used.as_mut_ptr ()) <= MENU_ITEMS_PANE_LENGTH || ! VECTORP ((*menu_items.as_mut_ptr ()))
     {
       *error_name = c"Empty menu".as_ptr ();
       return Qnil ();
@@ -4683,9 +4683,9 @@ pub unsafe extern "C-unwind" fn tty_menu_show (f: *mut frame, x: c_int, y: c_int
   lpane = TTYM_FAILURE;
   let mut entry_set: bool = false;
   entry = Qnil ();
-  while i < menu_items_used
+  while i < (*menu_items_used.as_mut_ptr ())
     {
-      if EQ (AREF (menu_items, i as isize), Qt ())
+      if EQ (AREF ((*menu_items.as_mut_ptr ()), i as isize), Qt ())
 	{
 	  /* Create a new pane.  */
 	  let pane_name: Lisp_Object;
@@ -4694,8 +4694,8 @@ pub unsafe extern "C-unwind" fn tty_menu_show (f: *mut frame, x: c_int, y: c_int
 
           maxlines = std::cmp::max (maxlines, lines);
           lines = 0;
-	  pane_name = AREF (menu_items, i as isize + MENU_ITEMS_PANE_NAME as isize);
-	  prefix = AREF (menu_items, i as isize + MENU_ITEMS_PANE_PREFIX as isize);
+	  pane_name = AREF ((*menu_items.as_mut_ptr ()), i as isize + MENU_ITEMS_PANE_NAME as isize);
+	  prefix = AREF ((*menu_items.as_mut_ptr ()), i as isize + MENU_ITEMS_PANE_PREFIX as isize);
 	  pane_string = if NILP (pane_name) { c"".as_ptr () } else { SSDATA (pane_name) };
 	  if menuflags & MENU_KEYMAPS != 0 && ! NILP (prefix)
 	    { pane_string = pane_string.add (1); }
@@ -4712,10 +4712,10 @@ pub unsafe extern "C-unwind" fn tty_menu_show (f: *mut frame, x: c_int, y: c_int
 
 	  /* Find the width of the widest item in this pane.  */
 	  j = i;
-	  while j < menu_items_used
+	  while j < (*menu_items_used.as_mut_ptr ())
 	    {
 	      let item: Lisp_Object;
-	      item = AREF (menu_items, j as isize);
+	      item = AREF ((*menu_items.as_mut_ptr ()), j as isize);
 	      if EQ (item, Qt ())
 		{ break; }
 	      if NILP (item)
@@ -4732,7 +4732,7 @@ pub unsafe extern "C-unwind" fn tty_menu_show (f: *mut frame, x: c_int, y: c_int
 	}
       /* Ignore a nil in the item list.
 	 It's meaningful only for dialog boxes.  */
-      else if EQ (AREF (menu_items, i as isize), Qquote ())
+      else if EQ (AREF ((*menu_items.as_mut_ptr ()), i as isize), Qquote ())
 	{ i += 1; }
       else
 	{
@@ -4744,10 +4744,10 @@ pub unsafe extern "C-unwind" fn tty_menu_show (f: *mut frame, x: c_int, y: c_int
 	  let mut item_data: *mut c_char;
 	  let help_string: *const c_char;
 
-	  item_name = AREF (menu_items, i as isize + MENU_ITEMS_ITEM_NAME as isize);
-	  enable = AREF (menu_items, i as isize + MENU_ITEMS_ITEM_ENABLE as isize);
-	  descrip = AREF (menu_items, i as isize + MENU_ITEMS_ITEM_EQUIV_KEY as isize);
-	  help = AREF (menu_items, i as isize + MENU_ITEMS_ITEM_HELP as isize);
+	  item_name = AREF ((*menu_items.as_mut_ptr ()), i as isize + MENU_ITEMS_ITEM_NAME as isize);
+	  enable = AREF ((*menu_items.as_mut_ptr ()), i as isize + MENU_ITEMS_ITEM_ENABLE as isize);
+	  descrip = AREF ((*menu_items.as_mut_ptr ()), i as isize + MENU_ITEMS_ITEM_EQUIV_KEY as isize);
+	  help = AREF ((*menu_items.as_mut_ptr ()), i as isize + MENU_ITEMS_ITEM_HELP as isize);
 	  help_string = if STRINGP (help) { SSDATA (help) } else { std::ptr::null () };
 
 	  if ! NILP (descrip)
@@ -4805,10 +4805,10 @@ pub unsafe extern "C-unwind" fn tty_menu_show (f: *mut frame, x: c_int, y: c_int
     {
       /* Move the menu away of the echo area, to avoid overwriting the
 	 menu with help echo messages or vice versa.  */
-      if BUFFERP (echo_area_buffer [0]) && WINDOWP (echo_area_window)
+      if BUFFERP ((*echo_area_buffer.as_mut_ptr ()) [0]) && WINDOWP ((*echo_area_window.as_mut_ptr ()))
 	{
-	  y -= WINDOW_TOTAL_LINES (XWINDOW (echo_area_window)) + 1;
-	  uly -= WINDOW_TOTAL_LINES (XWINDOW (echo_area_window)) + 1;
+	  y -= WINDOW_TOTAL_LINES (XWINDOW ((*echo_area_window.as_mut_ptr ()))) + 1;
+	  uly -= WINDOW_TOTAL_LINES (XWINDOW ((*echo_area_window.as_mut_ptr ()))) + 1;
 	}
       else
 	{
@@ -4841,7 +4841,7 @@ pub unsafe extern "C-unwind" fn tty_menu_show (f: *mut frame, x: c_int, y: c_int
   status = tty_menu_activate (menu, &mut pane, &mut selidx, x, y, &mut datap,
 			      Some (tty_menu_help_callback),
 			      menuflags & MENU_KBD_NAVIGATION != 0);
-  if status == TTYM_SUCCESS && ! VECTORP (menu_items)
+  if status == TTYM_SUCCESS && ! VECTORP ((*menu_items.as_mut_ptr ()))
     { status = TTYM_IA_SELECT; }
 
   entry = Qnil (); pane_prefix = Qnil (); entry_set = true;
@@ -4852,12 +4852,12 @@ pub unsafe extern "C-unwind" fn tty_menu_show (f: *mut frame, x: c_int, y: c_int
 	{
 	  /* Find the item number SELIDX in pane number PANE.  */
 	  i = 0;
-	  while i < menu_items_used
+	  while i < (*menu_items_used.as_mut_ptr ())
 	    {
-	      if EQ (AREF (menu_items, i as isize), Qt ())
+	      if EQ (AREF ((*menu_items.as_mut_ptr ()), i as isize), Qt ())
 		{
 		  if pane == 0
-		    { pane_prefix = AREF (menu_items, i as isize + MENU_ITEMS_PANE_PREFIX as isize); }
+		    { pane_prefix = AREF ((*menu_items.as_mut_ptr ()), i as isize + MENU_ITEMS_PANE_PREFIX as isize); }
 		  pane -= 1;
 		  i += MENU_ITEMS_PANE_LENGTH;
 		}
@@ -4867,7 +4867,7 @@ pub unsafe extern "C-unwind" fn tty_menu_show (f: *mut frame, x: c_int, y: c_int
 		    {
 		      if selidx == 0
 			{
-			  entry = AREF (menu_items, i as isize + MENU_ITEMS_ITEM_VALUE as isize);
+			  entry = AREF ((*menu_items.as_mut_ptr ()), i as isize + MENU_ITEMS_ITEM_VALUE as isize);
 			  if menuflags & MENU_KEYMAPS != 0
 			    {
 			      entry = Fcons (entry, Qnil ());
@@ -5121,8 +5121,8 @@ pub unsafe extern "C-unwind" fn init_tty (mut name: *const c_char, terminal_type
                    c"Unknown terminal type".as_ptr ()); }
 
   if name.is_null ()
-    { name = dev_tty; }
-  if strcmp (name, dev_tty) == 0
+    { name = (*dev_tty.as_mut_ptr ()); }
+  if strcmp (name, (*dev_tty.as_mut_ptr ())) == 0
     { ctty = true; }
 
   /* If we already have a terminal on the given device, use that.  If
@@ -5137,8 +5137,8 @@ pub unsafe extern "C-unwind" fn init_tty (mut name: *const c_char, terminal_type
   terminal = create_terminal (output_termcap, std::ptr::null_mut ());
   tty = xzalloc (std::mem::size_of::<tty_display_info> ()).cast::<tty_display_info> ();
   (*tty).top_frame = Qnil ();
-  (*tty).next = tty_list;
-  tty_list = tty;
+  (*tty).next = (*tty_list.as_mut_ptr ());
+  (*tty_list.as_mut_ptr ()) = tty;
 
   (*terminal).display_info.tty = tty.cast::<c_void> ();
   (*tty).terminal = terminal;
@@ -5146,8 +5146,8 @@ pub unsafe extern "C-unwind" fn init_tty (mut name: *const c_char, terminal_type
   (*tty).Wcm = xmalloc (std::mem::size_of::<cm> ()).cast::<cm> ();
   Wcm_clear (tty);
 
-  encode_terminal_src_size = 0;
-  encode_terminal_dst_size = 0;
+  (*encode_terminal_src_size.as_mut_ptr ()) = 0;
+  (*encode_terminal_dst_size.as_mut_ptr ()) = 0;
 
   set_tty_hooks (terminal);
 
@@ -5415,8 +5415,8 @@ to do 'unset TERMINFO' (C-shell: 'unsetenv TERMINFO') as well.".as_ptr (),
   /* Don't let the initial kboard remain current longer than necessary.
      That would cause problems if a file loaded on startup tries to
      prompt in the mini-buffer.  */
-  if current_kboard == initial_kboard
-    { current_kboard = (*terminal).kboard as *mut KBOARD; }
+  if (*current_kboard.as_mut_ptr ()) == (*initial_kboard.as_mut_ptr ())
+    { (*current_kboard.as_mut_ptr ()) = (*terminal).kboard as *mut KBOARD; }
 
   term_get_fkeys (address, (*terminal).kboard as *mut KBOARD);
 
@@ -5448,7 +5448,7 @@ to do 'unset TERMINFO' (C-shell: 'unsetenv TERMINFO') as well.".as_ptr (),
   if (*tty).TS_fwd_scroll.is_null ()
     { (*tty).TS_fwd_scroll = Down! (tty); }
 
-  PC = if ! (*tty).TS_pad_char.is_null () { *(*tty).TS_pad_char } else { 0 };
+  (*PC.as_mut_ptr ()) = if ! (*tty).TS_pad_char.is_null () { *(*tty).TS_pad_char } else { 0 };
 
   if TabWidth! (tty) < 0
     { TabWidth! (tty) = 8; }
@@ -5579,10 +5579,10 @@ unsafe fn vfatal (str_: *const c_char, args: core::ffi::VaList<'_>) -> !
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  fputs (c"emacs: ".as_ptr (), stderr);
-  vfprintf (stderr, str_, args);
+  fputs (c"emacs: ".as_ptr (), (*stderr.as_mut_ptr ()));
+  vfprintf ((*stderr.as_mut_ptr ()), str_, args);
   if ! (*str_ != 0 && *str_.add (strlen (str_) - 1) == '\n' as c_char)
-    { putc ('\n' as c_int, stderr); }
+    { putc ('\n' as c_int, (*stderr.as_mut_ptr ())); }
   exit (1);
 
   }
@@ -5629,7 +5629,7 @@ unsafe fn unlink_tty (tty: *mut tty_display_info)
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  let mut link: *mut *mut tty_display_info = &raw mut tty_list;
+  let mut link: *mut *mut tty_display_info = tty_list.as_mut_ptr ();
   while *link != tty
     {
       if (*link).is_null ()
@@ -5672,10 +5672,10 @@ unsafe extern "C-unwind" fn delete_tty (terminal: *mut terminal)
   if ! (*tty).input.is_null ()
     {
       delete_keyboard_wait_descriptor (fileno ((*tty).input));
-      if (*tty).input != stdin
+      if (*tty).input != (*stdin.as_mut_ptr ())
         { emacs_fclose! ((*tty).input); }
     }
-  if ! (*tty).output.is_null () && (*tty).output != stdout && (*tty).output != (*tty).input
+  if ! (*tty).output.is_null () && (*tty).output != (*stdout.as_mut_ptr ()) && (*tty).output != (*tty).input
     { emacs_fclose! ((*tty).output); }
   if ! (*tty).termscript.is_null ()
     { emacs_fclose! ((*tty).termscript); }
@@ -5873,73 +5873,73 @@ pub unsafe extern "C-unwind" fn syms_of_term ()
   unsafe {
   DEFVAR_BOOL! (c"system-uses-terminfo", system_uses_terminfo,
     "Non-nil means the system uses terminfo rather than termcap.\nThis variable can be used by terminal emulator packages.");
-  system_uses_terminfo = true;
+  (*system_uses_terminfo.as_mut_ptr ()) = true;
 
   DEFVAR_LISP! (c"suspend-tty-functions", Vsuspend_tty_functions,
     "Functions run after suspending a tty.\nThe functions are run with one argument, the terminal object to be suspended.\nSee `suspend-tty'.");
-  Vsuspend_tty_functions = Qnil ();
+  (*Vsuspend_tty_functions.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"resume-tty-functions", Vresume_tty_functions,
     "Functions run after resuming a tty.\nThe functions are run with one argument, the terminal object that was revived.\nSee `resume-tty'.");
-  Vresume_tty_functions = Qnil ();
+  (*Vresume_tty_functions.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_BOOL! (c"visible-cursor", visible_cursor,
 	       "Non-nil means to make the cursor very visible.\nThis only has an effect when running in a text terminal.\nWhat means \"very visible\" is up to your terminal.  It may make the cursor\nbigger, or it may make it blink, or it may do nothing at all.");
-  visible_cursor = true;
+  (*visible_cursor.as_mut_ptr ()) = true;
 
   DEFVAR_BOOL! (c"tty-menu-calls-mouse-position-function",
                tty_menu_calls_mouse_position_function,
     "Non-nil means TTY menu code will call `mouse-position-function'.\nThis should be set if the function in `mouse-position-function' does not\ntrigger redisplay.");
-  tty_menu_calls_mouse_position_function = false;
+  (*tty_menu_calls_mouse_position_function.as_mut_ptr ()) = false;
 
   DEFVAR_BOOL! (c"tty-cursor-movement-use-TAB-BS", tty_cursor_movement_use_TAB_BS,
     "Whether TTY frames may use the combination TAB + BACKSPACE for moving around.\nOn TTY frames, as a display optimization, Emacs may move to a position\nby \"overshooting\" with TAB characters and one BACKSPACE character, when\nthis is more efficient.  This combination can interfere with the\nfunctioning of some software, such as screen readers.  Set this to\nnon-nil to enable this optimization.\nIf `tty-cursor-movement-use-TAB' is nil, this variable has no effect,\nas Emacs will never use TABs for cursor movement.");
-  tty_cursor_movement_use_TAB_BS = false;
+  (*tty_cursor_movement_use_TAB_BS.as_mut_ptr ()) = false;
 
   DEFVAR_BOOL! (c"tty-cursor-movement-use-TAB", tty_cursor_movement_use_TAB,
     "Whether TTY frames may use TAB for cursor motion.\nOn TTY frames, as a display optimization, Emacs may move cursor to a\nposition with TAB characters, when this is more efficient.  This might\nproduce wrong results if the hardware tabs of the terminal were set to\nbe of different width than Emacs expects.  Set this to nil to disable\nusing TABs for cursor motion.");
-  tty_cursor_movement_use_TAB = true;
+  (*tty_cursor_movement_use_TAB.as_mut_ptr ()) = true;
 
   DEFVAR_LISP! (c"auto-composition-emoji-tty-eligible-codepoints", Vauto_composition_emoji_tty_eligible_codepoints,
     "List of characters displayed as Emoji on TTY frames when followed by VS-16.\n\nThese are codepoints which have Emoji_Presentation = No, and thus by\ndefault are not displayed as Emoji.  When followed by U+FE0F (VS-16),\nthey may be considered as the beginning of an Emoji sequence instead.\n\nSome initial code points may have character width 1, and non-compliant\nterminals may render them narrow.  In that case, set\n`tty-display-emoji-force-wide' to nil.\n\nThis list is auto-generated, you should not need to modify it.");
-  Vauto_composition_emoji_tty_eligible_codepoints = Qnil ();
+  (*Vauto_composition_emoji_tty_eligible_codepoints.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"auto-composition-emoji-unqualified-tail-initials", Vauto_composition_emoji_unqualified_tail_initials,
     "List of characters that may begin the tail of an unqualified RGI sequence.\n\nAn unqualified RGI sequence begins with a codepoint in\n`auto-composition-emoji-tty-eligible-codepoints', followed by a\nZero-Width Joiner.  The first character after the first ZWJ must be in\nthis list to be recognized as an Emoji sequence.\n\nThis list is auto-generated, you should not need to modify it.");
-  Vauto_composition_emoji_unqualified_tail_initials = Qnil ();
+  (*Vauto_composition_emoji_unqualified_tail_initials.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_BOOL! (c"tty-display-emoji-force-wide", tty_display_emoji_force_wide,
     "Whether Emoji sequences on TTY frames should always be considered wide.\n\nOn TTY frames, an Emoji sequence considered for composition may begin\nwith any code point in `auto-composition-emoji-tty-eligible-codepoints',\nwhich does not necessarily has width 2.  A compliant terminal emulator\ntypically render an Emoji sequence as a wide glyph.\n\nWhen nil, an Emoji sequence whose first character's width is 1 may be\nconsidered as a narrow glyph to be compatible with some non-compliant\nterminal emulators.");
-  tty_display_emoji_force_wide = true;
+  (*tty_display_emoji_force_wide.as_mut_ptr ()) = true;
 
-  defsubr (&raw mut Stty_display_color_p);
-  defsubr (&raw mut Stty_display_color_cells);
-  defsubr (&raw mut Stty_no_underline);
-  defsubr (&raw mut Stty_enable_overline);
-  defsubr (&raw mut Stty_type);
-  defsubr (&raw mut Scontrolling_tty_p);
-  defsubr (&raw mut Stty_top_frame);
-  defsubr (&raw mut Ssuspend_tty);
-  defsubr (&raw mut Sresume_tty);
+  defsubr (Stty_display_color_p.as_mut_ptr ());
+  defsubr (Stty_display_color_cells.as_mut_ptr ());
+  defsubr (Stty_no_underline.as_mut_ptr ());
+  defsubr (Stty_enable_overline.as_mut_ptr ());
+  defsubr (Stty_type.as_mut_ptr ());
+  defsubr (Scontrolling_tty_p.as_mut_ptr ());
+  defsubr (Stty_top_frame.as_mut_ptr ());
+  defsubr (Ssuspend_tty.as_mut_ptr ());
+  defsubr (Sresume_tty.as_mut_ptr ());
   #[cfg (not (feature = "have_android"))]
-  defsubr (&raw mut Stty__set_output_buffer_size);
+  defsubr (Stty__set_output_buffer_size.as_mut_ptr ());
   #[cfg (not (feature = "have_android"))]
-  defsubr (&raw mut Stty__output_buffer_size);
-  defsubr (&raw mut Stty_frame_at);
+  defsubr (Stty__output_buffer_size.as_mut_ptr ());
+  defsubr (Stty_frame_at.as_mut_ptr ());
 
-  defsubr (&raw mut Stty_frame_geometry);
-  defsubr (&raw mut Stty_frame_edges);
-  defsubr (&raw mut Stty_frame_list_z_order);
-  defsubr (&raw mut Stty_frame_restack);
-  defsubr (&raw mut Stty_display_pixel_width);
-  defsubr (&raw mut Stty_display_pixel_height);
+  defsubr (Stty_frame_geometry.as_mut_ptr ());
+  defsubr (Stty_frame_edges.as_mut_ptr ());
+  defsubr (Stty_frame_list_z_order.as_mut_ptr ());
+  defsubr (Stty_frame_restack.as_mut_ptr ());
+  defsubr (Stty_display_pixel_width.as_mut_ptr ());
+  defsubr (Stty_display_pixel_height.as_mut_ptr ());
 
-  default_orig_pair = std::ptr::null_mut ();
-  default_set_foreground = std::ptr::null_mut ();
-  default_set_background = std::ptr::null_mut ();
+  (*default_orig_pair.as_mut_ptr ()) = std::ptr::null_mut ();
+  (*default_set_foreground.as_mut_ptr ()) = std::ptr::null_mut ();
+  (*default_set_background.as_mut_ptr ()) = std::ptr::null_mut ();
 
-  encode_terminal_src = std::ptr::null_mut ();
-  encode_terminal_dst = std::ptr::null_mut ();
+  (*encode_terminal_src.as_mut_ptr ()) = std::ptr::null_mut ();
+  (*encode_terminal_dst.as_mut_ptr ()) = std::ptr::null_mut ();
 
   DEFSYM! (Qtty_mode_set_strings, "tty-mode-set-strings");
   DEFSYM! (Qtty_mode_reset_strings, "tty-mode-reset-strings");
@@ -5969,22 +5969,22 @@ pub unsafe extern "C-unwind" fn syms_of_term ()
    (lisp.h 3495-3530) and the port's `include/globals.rs` mirrors the names as declarations,
    so the unit that owns one defines it here (docs/status.md 3.29, the casetab.rs shape).  */
 #[unsafe(no_mangle)]
-pub static mut Vsuspend_tty_functions: Lisp_Object = lisp_h_Qnil ();
+pub static Vsuspend_tty_functions: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vresume_tty_functions: Lisp_Object = lisp_h_Qnil ();
+pub static Vresume_tty_functions: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vauto_composition_emoji_tty_eligible_codepoints: Lisp_Object = lisp_h_Qnil ();
+pub static Vauto_composition_emoji_tty_eligible_codepoints: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vauto_composition_emoji_unqualified_tail_initials: Lisp_Object = lisp_h_Qnil ();
+pub static Vauto_composition_emoji_unqualified_tail_initials: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut system_uses_terminfo: bool = false;
+pub static system_uses_terminfo: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut visible_cursor: bool = false;
+pub static visible_cursor: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut tty_menu_calls_mouse_position_function: bool = false;
+pub static tty_menu_calls_mouse_position_function: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut tty_cursor_movement_use_TAB_BS: bool = false;
+pub static tty_cursor_movement_use_TAB_BS: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut tty_cursor_movement_use_TAB: bool = false;
+pub static tty_cursor_movement_use_TAB: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut tty_display_emoji_force_wide: bool = false;
+pub static tty_display_emoji_force_wide: VmGlobal<bool> = VmGlobal::<bool>::new (false);

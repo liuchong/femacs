@@ -491,7 +491,7 @@ const _: () = core::assert! (core::mem::size_of::<redisplay_interface> () == 104
 
 unsafe extern "C" {
   /// C: lisp.h 4260: `extern struct hash_table_test const hashtest_eq, hashtest_eql, hashtest_equal;` (fns.c defines it).
-  pub static mut hashtest_eq: hash_table_test;
+  pub static hashtest_eq: VmGlobal<hash_table_test>;
 }
 
 /* frame.h 34-45: `enum internal_border_part` is the mirror's item now - the frame.h mirror
@@ -599,8 +599,8 @@ unsafe extern "C-unwind" {
   pub fn tty_color_name (f: *mut frame, color: c_int) -> Lisp_Object;
   /// C: dispextern.h 3834: `extern char unspecified_fg[], unspecified_bg[];` (xfaces.c
   /// defines both; the mirror does not carry them).
-  pub static mut unspecified_fg: [c_char; 0];
-  pub static mut unspecified_bg: [c_char; 0];
+  pub static unspecified_fg: VmGlobal<[c_char; 0]>;
+  pub static unspecified_bg: VmGlobal<[c_char; 0]>;
   /// C: dispextern.h 3584-3585: `void pixel_to_glyph_coords (struct frame *, int, int,
   /// int *, int *, NativeRectangle *, bool);` — `NativeRectangle` is `int` on this target
   /// (dispextern.h 178-179's `#ifndef NativeRectangle #define NativeRectangle int`).
@@ -635,37 +635,37 @@ unsafe extern "C" {
 
 /* The currently selected frame.  */
   #[unsafe(no_mangle)]
-  pub static mut selected_frame: Lisp_Object = lisp_h_Qnil ();
+  pub static selected_frame: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
   /* The selected frame the last time window change functions were run.  */
   #[unsafe(no_mangle)]
-  pub static mut old_selected_frame: Lisp_Object = lisp_h_Qnil ();
+  pub static old_selected_frame: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
   /* False means there are no visible garbaged frames.  */
   #[unsafe(no_mangle)]
-  pub static mut frame_garbaged: bool = false;
+  pub static frame_garbaged: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
   /* The default tab bar height for future frames.  */
   #[unsafe(no_mangle)]
-  pub static mut frame_default_tab_bar_height: c_int = 0;
+  pub static frame_default_tab_bar_height: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 
   /* C 75-79: `#ifdef HAVE_EXT_TOOL_BAR` (dead, macros.tsv is undef), so C's live text is the
      `#else` arm's `int frame_default_tool_bar_height;`.  */
   #[unsafe(no_mangle)]
-  pub static mut frame_default_tool_bar_height: c_int = 0;
+  pub static frame_default_tool_bar_height: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 
   /* C 343: `EMACS_UINT frame_next_id = 1;` (0 indicates no id yet set).  */
   #[unsafe(no_mangle)]
-  pub static mut frame_next_id: EMACS_UINT = 1;
+  pub static frame_next_id: VmGlobal<EMACS_UINT> = VmGlobal::<EMACS_UINT>::new (1);
 
   /* C 284: `Lisp_Object Vframe_list;`  */
   #[unsafe(no_mangle)]
-  pub static mut Vframe_list: Lisp_Object = lisp_h_Qnil ();
+  pub static Vframe_list: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* A frame which is not just a mini-buffer, or NULL if there are no such
    frames.  This is usually the most recent such frame that was selected.  */
 
-static mut last_nonminibuf_frame: *mut frame = std::ptr::null_mut ();
+static last_nonminibuf_frame: VmGlobal<*mut frame> = VmGlobal::<*mut frame>::new (std::ptr::null_mut ());
 
 /* These setters are used only in this file, so they can be private.  */
 unsafe fn fset_buffer_predicate (f: *mut frame, val: Lisp_Object)
@@ -692,7 +692,7 @@ pub unsafe extern "C-unwind" fn decode_live_frame (frame: Lisp_Object) -> *mut f
   unsafe {
   let mut frame = frame;
   if NILP (frame)
-    { frame = selected_frame; }
+    { frame = (*selected_frame.as_mut_ptr ()); }
   CHECK_LIVE_FRAME! (frame);
   return XFRAME (frame);
 
@@ -706,7 +706,7 @@ pub unsafe extern "C-unwind" fn decode_any_frame (frame: Lisp_Object) -> *mut fr
   unsafe {
   let mut frame = frame;
   if NILP (frame)
-    { frame = selected_frame; }
+    { frame = (*selected_frame.as_mut_ptr ()); }
   CHECK_FRAME! (frame);
   return XFRAME (frame);
 
@@ -723,7 +723,7 @@ pub unsafe extern "C-unwind" fn display_available () -> bool
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  return ! x_display_list.is_null ();
+  return ! (*x_display_list.as_mut_ptr ()).is_null ();
 
   }
 }
@@ -783,7 +783,7 @@ unsafe fn check_tty (f: *mut frame)
      in batch mode, like xt-mouse-tests, test with the initial frame
      which is no tty frame.  It would be nicer if the test harness
      would allow testing with real tty frames.  */
-  if !f.is_null () && noninteractive
+  if !f.is_null () && (*noninteractive.as_mut_ptr ())
     { return; }
 
   if f.is_null () || !FRAME_TERMCAP_P (f)
@@ -854,11 +854,11 @@ pub unsafe extern "C-unwind" fn frame_inhibit_resize (f: *mut frame, horizontal:
   unsafe {
   let fullscreen: Lisp_Object = get_frame_param (f, Qfullscreen ());
 
-  return (EQ (frame_inhibit_implied_resize, Qforce ())
+  return (EQ ((*frame_inhibit_implied_resize.as_mut_ptr ()), Qforce ())
 	  || (after_make_frame! (f)
-	      && (EQ (frame_inhibit_implied_resize, Qt ())
-		  || (CONSP (frame_inhibit_implied_resize)
-		      && !NILP (Fmemq (parameter, frame_inhibit_implied_resize)))
+	      && (EQ ((*frame_inhibit_implied_resize.as_mut_ptr ()), Qt ())
+		  || (CONSP ((*frame_inhibit_implied_resize.as_mut_ptr ()))
+		      && !NILP (Fmemq (parameter, (*frame_inhibit_implied_resize.as_mut_ptr ()))))
 		  || (horizontal
 		      && !NILP (fullscreen) && !EQ (fullscreen, Qfullheight ()))
 		  || (!horizontal
@@ -897,7 +897,7 @@ unsafe fn set_menu_bar_lines (f: *mut frame, value: Lisp_Object, oldval: Lisp_Ob
 
 	  if FRAME_MENU_BAR_LINES! (f) != olines
 	    {
-	      windows_or_buffers_changed = 14;
+	      (*windows_or_buffers_changed.as_mut_ptr ()) = 14;
 	      change_frame_size
 		(f, FRAME_PIXEL_WIDTH! (f), FRAME_PIXEL_HEIGHT! (f),
 		 false, true, false);
@@ -910,7 +910,7 @@ unsafe fn set_menu_bar_lines (f: *mut frame, value: Lisp_Object, oldval: Lisp_Ob
      in or split the minibuffer window.  */
   else if !FRAME_MINIBUF_ONLY_P (f) && nlines != olines
     {
-      windows_or_buffers_changed = 14;
+      (*windows_or_buffers_changed.as_mut_ptr ()) = 14;
       FRAME_MENU_BAR_HEIGHT! (f) = nlines;
       FRAME_MENU_BAR_LINES! (f) = FRAME_MENU_BAR_HEIGHT! (f);
       change_frame_size (f, FRAME_PIXEL_WIDTH! (f), FRAME_PIXEL_HEIGHT! (f),
@@ -936,7 +936,7 @@ unsafe fn set_tab_bar_lines (f: *mut frame, value: Lisp_Object, oldval: Lisp_Obj
      in or split the minibuffer window.  */
   if !FRAME_MINIBUF_ONLY_P (f) && nlines != olines
     {
-      windows_or_buffers_changed = 14;
+      (*windows_or_buffers_changed.as_mut_ptr ()) = 14;
       FRAME_TAB_BAR_HEIGHT! (f) = nlines;
       FRAME_TAB_BAR_LINES! (f) = FRAME_TAB_BAR_HEIGHT! (f);
       change_frame_size (f, FRAME_PIXEL_WIDTH! (f), FRAME_PIXEL_HEIGHT! (f),
@@ -1005,12 +1005,12 @@ pub unsafe extern "C-unwind" fn frame_set_id (f: *mut frame, id: EMACS_UINT) -> 
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
   let mut id = id;
-  if id >= frame_next_id
+  if id >= (*frame_next_id.as_mut_ptr ())
     { error (c"Specified frame ID unassigned".as_ptr ()); }
 
   if id > 0
     {
-      eassume! (CONSP (Vframe_list));
+      eassume! (CONSP ((*Vframe_list.as_mut_ptr ())));
       let mut frame: Lisp_Object = Qnil ();
       let mut tail: Lisp_Object = Qnil ();
       FOR_EACH_FRAME! (tail, frame, {
@@ -1024,7 +1024,7 @@ pub unsafe extern "C-unwind" fn frame_set_id (f: *mut frame, id: EMACS_UINT) -> 
       if (*f).id != 0
 	{ return 0; }
       else
-	{ (*f).id = frame_next_id; frame_next_id += 1; }
+	{ (*f).id = (*frame_next_id.as_mut_ptr ()); (*frame_next_id.as_mut_ptr ()) += 1; }
     }
   else
     { (*f).id = id; }
@@ -1064,7 +1064,7 @@ DEFUN! ("window-system", Fwindow_system, Swindow_system, 0, 1, 0,
   let mut frame = frame;
   let r#type: Lisp_Object;
   if NILP (frame)
-    { frame = selected_frame; }
+    { frame = (*selected_frame.as_mut_ptr ()); }
 
   r#type = Fframep (frame);
 
@@ -1342,12 +1342,12 @@ unsafe fn frame_size_history_adjust (f: *mut frame, inhibit: c_int, parameter: L
   let mut frame: Lisp_Object = Qnil ();
 
   XSETFRAME! (frame, f);
-  if CONSP (frame_size_history)
-      && FIXNUMP (XCAR (frame_size_history))
-      && 0 < XFIXNUM (XCAR (frame_size_history))
+  if CONSP ((*frame_size_history.as_mut_ptr ()))
+      && FIXNUMP (XCAR ((*frame_size_history.as_mut_ptr ())))
+      && 0 < XFIXNUM (XCAR ((*frame_size_history.as_mut_ptr ())))
     {
-    frame_size_history =
-      Fcons (make_fixnum (XFIXNUM (XCAR (frame_size_history)) - 1),
+    (*frame_size_history.as_mut_ptr ()) =
+      Fcons (make_fixnum (XFIXNUM (XCAR ((*frame_size_history.as_mut_ptr ()))) - 1),
 	     Fcons (Fcons (list4 (frame, make_fixnum (5),
 				  make_fixnum (inhibit as EMACS_INT), parameter),
 			   list5 (list4i (old_text_width as EMACS_INT, old_text_height as EMACS_INT,
@@ -1362,7 +1362,7 @@ unsafe fn frame_size_history_adjust (f: *mut frame, inhibit: c_int, parameter: L
 					 make_fixnum (min_inner_height as EMACS_INT),
 					 if inhibit_horizontal { Qt () } else { Qnil () },
 					 if inhibit_vertical { Qt () } else { Qnil () }))),
-		    XCDR (frame_size_history)));
+		    XCDR ((*frame_size_history.as_mut_ptr ()))));
     }
 
   }
@@ -1376,14 +1376,14 @@ pub unsafe extern "C-unwind" fn frame_size_history_plain (f: *mut frame, paramet
   let mut frame: Lisp_Object = Qnil ();
 
   XSETFRAME! (frame, f);
-  if CONSP (frame_size_history)
-      && FIXNUMP (XCAR (frame_size_history))
-      && 0 < XFIXNUM (XCAR (frame_size_history))
+  if CONSP ((*frame_size_history.as_mut_ptr ()))
+      && FIXNUMP (XCAR ((*frame_size_history.as_mut_ptr ())))
+      && 0 < XFIXNUM (XCAR ((*frame_size_history.as_mut_ptr ())))
     {
-    frame_size_history =
-      Fcons (make_fixnum (XFIXNUM (XCAR (frame_size_history)) - 1),
+    (*frame_size_history.as_mut_ptr ()) =
+      Fcons (make_fixnum (XFIXNUM (XCAR ((*frame_size_history.as_mut_ptr ()))) - 1),
 	     Fcons (Fcons (list3 (frame, make_fixnum (1), parameter), Qt ()),
-		    XCDR (frame_size_history)));
+		    XCDR ((*frame_size_history.as_mut_ptr ()))));
     }
 
   }
@@ -1400,17 +1400,17 @@ pub unsafe extern "C-unwind" fn frame_size_history_extra (f: *mut frame, paramet
   let mut frame: Lisp_Object = Qnil ();
 
   XSETFRAME! (frame, f);
-  if CONSP (frame_size_history)
-      && FIXNUMP (XCAR (frame_size_history))
-      && 0 < XFIXNUM (XCAR (frame_size_history))
+  if CONSP ((*frame_size_history.as_mut_ptr ()))
+      && FIXNUMP (XCAR ((*frame_size_history.as_mut_ptr ())))
+      && 0 < XFIXNUM (XCAR ((*frame_size_history.as_mut_ptr ())))
     {
-    frame_size_history =
-      Fcons (make_fixnum (XFIXNUM (XCAR (frame_size_history)) - 1),
+    (*frame_size_history.as_mut_ptr ()) =
+      Fcons (make_fixnum (XFIXNUM (XCAR ((*frame_size_history.as_mut_ptr ()))) - 1),
 	     Fcons (Fcons (list3 (frame, make_fixnum (2), parameter),
 			   list2 (list4i (pixel_width as EMACS_INT, pixel_height as EMACS_INT,
 					  extra_width as EMACS_INT, extra_height as EMACS_INT),
 				  list2i (delayed_width as EMACS_INT, delayed_height as EMACS_INT))),
-		    XCDR (frame_size_history)));
+		    XCDR ((*frame_size_history.as_mut_ptr ()))));
     }
 
   }
@@ -1519,7 +1519,7 @@ pub unsafe extern "C-unwind" fn adjust_frame_size (f: *mut frame, new_text_width
     = frame_windows_min_size (frame, Qnil (), if inhibit == 5 { Qsafe () } else { Qnil () },
 			      Qt ());
 
-  if inhibit == 1 && !NILP (alter_fullscreen_frames)
+  if inhibit == 1 && !NILP ((*alter_fullscreen_frames.as_mut_ptr ()))
     {
       let fullscreen: Lisp_Object = get_frame_param (f, Qfullscreen ());
 
@@ -1529,11 +1529,11 @@ pub unsafe extern "C-unwind" fn adjust_frame_size (f: *mut frame, new_text_width
 	      && !NILP (fullscreen) && !EQ (fullscreen, Qfullwidth ()))
 
 	{
-	  if EQ (alter_fullscreen_frames, Qt ())
+	  if EQ ((*alter_fullscreen_frames.as_mut_ptr ()), Qt ())
 	    /* Reset fullscreen status and proceed.  */
 	    { Fmodify_frame_parameters
 		(frame, Fcons (Fcons (Qfullscreen (), Qnil ()), Qnil ())); }
-	  else if EQ (alter_fullscreen_frames, Qinhibit ())
+	  else if EQ ((*alter_fullscreen_frames.as_mut_ptr ()), Qinhibit ())
 	    /* Do nothing and return.  */
 	    { return; }
 	}
@@ -1614,7 +1614,7 @@ pub unsafe extern "C-unwind" fn adjust_frame_size (f: *mut frame, new_text_width
 	    { new_native_height = (*f).new_height; }
 	}
 
-      if CONSP (frame_size_history)
+      if CONSP ((*frame_size_history.as_mut_ptr ()))
 	{ frame_size_history_adjust (f, inhibit, parameter,
 				   old_text_width, old_text_height,
 				   new_text_width, new_text_height,
@@ -1655,7 +1655,7 @@ pub unsafe extern "C-unwind" fn adjust_frame_size (f: *mut frame, new_text_width
       return;
     }
 
-  if CONSP (frame_size_history)
+  if CONSP ((*frame_size_history.as_mut_ptr ()))
     { frame_size_history_adjust (f, inhibit, parameter,
 			       old_text_width, old_text_height,
 			       new_text_width, new_text_height,
@@ -1923,7 +1923,7 @@ pub unsafe extern "C-unwind" fn make_frame (mini_p: bool) -> *mut frame
   (*rw).pixel_height = (*rw).total_lines * FRAME_LINE_HEIGHT (f);
 
   fset_face_hash_table
-    (f, make_hash_table (&raw const hashtest_eq, DEFAULT_HASH_SIZE as EMACS_INT, Weak_None));
+    (f, make_hash_table (hashtest_eq.as_ptr (), DEFAULT_HASH_SIZE as EMACS_INT, Weak_None));
 
   if mini_p
     {
@@ -1941,7 +1941,7 @@ pub unsafe extern "C-unwind" fn make_frame (mini_p: bool) -> *mut frame
 
     /* If the current buffer is hidden and shall not be exposed, try to find
        another one.  */
-    if BUFFER_HIDDEN_P (XBUFFER (buf)) && NILP (expose_hidden_buffer)
+    if BUFFER_HIDDEN_P (XBUFFER (buf)) && NILP ((*expose_hidden_buffer.as_mut_ptr ()))
       { buf = other_buffer_safely (buf); }
 
     /* Use set_window_buffer, not Fset_window_buffer, and don't let
@@ -1956,15 +1956,15 @@ pub unsafe extern "C-unwind" fn make_frame (mini_p: bool) -> *mut frame
 
   if mini_p
     { set_window_buffer (mini_window,
-		       if NILP (Vminibuffer_list) { get_minibuffer (0) }
-		       else { Fcar (Vminibuffer_list) },
+		       if NILP ((*Vminibuffer_list.as_mut_ptr ())) { get_minibuffer (0) }
+		       else { Fcar ((*Vminibuffer_list.as_mut_ptr ())) },
 		       false, false); }
 
   fset_root_window (f, root_window);
   fset_selected_window (f, root_window);
   /* Make sure this window seems more recently used than
      a newly-created, never-selected window.  */
-  (*XWINDOW ((*f).selected_window)).use_time = { window_select_count += 1; window_select_count };
+  (*XWINDOW ((*f).selected_window)).use_time = { (*window_select_count.as_mut_ptr ()) += 1; (*window_select_count.as_mut_ptr ()) };
 
   return f;
 
@@ -2017,12 +2017,12 @@ pub unsafe extern "C-unwind" fn make_frame_without_minibuffer (mini_window: Lisp
 
   /* Make the chosen minibuffer window display the proper minibuffer,
      unless it is already showing a minibuffer.  */
-  if NILP (Fmemq ((*XWINDOW (mini_window)).contents, Vminibuffer_list))
+  if NILP (Fmemq ((*XWINDOW (mini_window)).contents, (*Vminibuffer_list.as_mut_ptr ())))
     /* Use set_window_buffer instead of Fset_window_buffer (see
        discussion of bug#11984, bug#12025, bug#12026).  */
     { set_window_buffer (mini_window,
-		       if NILP (Vminibuffer_list) { get_minibuffer (0) }
-		       else { Fcar (Vminibuffer_list) }, false, false); }
+		       if NILP ((*Vminibuffer_list.as_mut_ptr ())) { get_minibuffer (0) }
+		       else { Fcar ((*Vminibuffer_list.as_mut_ptr ())) }, false, false); }
   return f;
 
   }
@@ -2065,8 +2065,8 @@ pub unsafe extern "C-unwind" fn make_minibuffer_frame () -> *mut frame
   /* Use set_window_buffer instead of Fset_window_buffer (see
      discussion of bug#11984, bug#12025, bug#12026).  */
   set_window_buffer (mini_window,
-		     if NILP (Vminibuffer_list) { get_minibuffer (0) }
-		     else { Fcar (Vminibuffer_list) }, false, false);
+		     if NILP ((*Vminibuffer_list.as_mut_ptr ())) { get_minibuffer (0) }
+		     else { Fcar ((*Vminibuffer_list.as_mut_ptr ())) }, false, false);
   return f;
 
   }
@@ -2074,7 +2074,7 @@ pub unsafe extern "C-unwind" fn make_minibuffer_frame () -> *mut frame
 
 /* Construct a frame that refers to a terminal.  */
 
-static mut tty_frame_count: c_int = 0;
+static tty_frame_count: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 
 unsafe fn frame_next_F_name () -> Lisp_Object
 {
@@ -2086,7 +2086,7 @@ unsafe fn frame_next_F_name () -> Lisp_Object
 
  'next_name: loop {
   sprintf (&raw mut string_name as *mut c_char, c"F%jd".as_ptr (),
-	   { tty_frame_count += 1; tty_frame_count as intmax_t });
+	   { (*tty_frame_count.as_mut_ptr ()) += 1; (*tty_frame_count.as_mut_ptr ()) as intmax_t });
   FOR_EACH_FRAME! (list, frame, {
     if !NILP ((*XFRAME (frame)).name)
 	&& strcmp (&raw const string_name as *const c_char,
@@ -2115,8 +2115,8 @@ pub unsafe extern "C-unwind" fn make_initial_frame () -> *mut frame
   let terminal: *mut terminal;
   let mut frame: Lisp_Object = Qnil ();
 
-  eassert! (!initial_kboard.is_null ());
-  eassert! (NILP (Vframe_list) || CONSP (Vframe_list));
+  eassert! (!(*initial_kboard.as_mut_ptr ()).is_null ());
+  eassert! (NILP ((*Vframe_list.as_mut_ptr ())) || CONSP ((*Vframe_list.as_mut_ptr ())));
 
   terminal = init_initial_terminal ();
 
@@ -2124,9 +2124,9 @@ pub unsafe extern "C-unwind" fn make_initial_frame () -> *mut frame
   XSETFRAME! (frame, f);
   frame_set_id (f, 0);
 
-  Vframe_list = Fcons (frame, Vframe_list);
+  (*Vframe_list.as_mut_ptr ()) = Fcons (frame, (*Vframe_list.as_mut_ptr ()));
 
-  tty_frame_count = 1;
+  (*tty_frame_count.as_mut_ptr ()) = 1;
   fset_name (f, build_string (c"F1".as_ptr ()));
 
   SET_FRAME_VISIBLE! (f, true);
@@ -2157,10 +2157,10 @@ pub unsafe extern "C-unwind" fn make_initial_frame () -> *mut frame
   /* Allocate glyph matrices.  */
   adjust_frame_glyphs (f);
 
-  if !noninteractive
+  if !(*noninteractive.as_mut_ptr ())
     { init_frame_faces (f); }
 
-  last_nonminibuf_frame = f;
+  (*last_nonminibuf_frame.as_mut_ptr ()) = f;
 
   can_set_window_size! (f, true);
   after_make_frame! (f, true);
@@ -2254,7 +2254,7 @@ unsafe fn make_terminal_frame (terminal: *mut terminal, parent: Lisp_Object,
 
   let mut frame: Lisp_Object = Qnil ();
   XSETFRAME! (frame, f);
-  Vframe_list = Fcons (frame, Vframe_list);
+  (*Vframe_list.as_mut_ptr ()) = Fcons (frame, (*Vframe_list.as_mut_ptr ()));
 
   fset_name (f, frame_next_F_name ());
 
@@ -2292,11 +2292,11 @@ unsafe fn make_terminal_frame (terminal: *mut terminal, parent: Lisp_Object,
      child frames (info from Martin Rudalics).  This could be
      implemented in ttys, but it's unclear if it is worth it.  */
   if NILP (parent)
-    { FRAME_MENU_BAR_LINES! (f) = if NILP (Vmenu_bar_mode) { 0 } else { 1 }; }
+    { FRAME_MENU_BAR_LINES! (f) = if NILP ((*Vmenu_bar_mode.as_mut_ptr ())) { 0 } else { 1 }; }
   else
     { FRAME_MENU_BAR_LINES! (f) = 0; }
 
-  FRAME_TAB_BAR_LINES! (f) = if NILP (Vtab_bar_mode) { 0 } else { 1 };
+  FRAME_TAB_BAR_LINES! (f) = if NILP ((*Vtab_bar_mode.as_mut_ptr ())) { 0 } else { 1 };
   FRAME_LINES! (f) = FRAME_LINES! (f) - FRAME_MENU_BAR_LINES! (f)
     - FRAME_TAB_BAR_LINES! (f);
   FRAME_MENU_BAR_HEIGHT! (f) = FRAME_MENU_BAR_LINES! (f) * FRAME_LINE_HEIGHT (f);
@@ -2323,7 +2323,7 @@ unsafe fn get_future_frame_param (parameter: Lisp_Object,
 
   result = Fassq (parameter, supplied_parms);
   if NILP (result)
-    { result = Fassq (parameter, (*XFRAME (selected_frame)).param_alist); }
+    { result = Fassq (parameter, (*XFRAME ((*selected_frame.as_mut_ptr ()))).param_alist); }
   if NILP (result) && !current_value.is_null ()
     { result = build_string (current_value); }
   if !NILP (result) && !STRINGP (result)
@@ -2478,15 +2478,15 @@ DEFUN! ("make-terminal-frame", Fmake_terminal_frame, Smake_terminal_frame,
       USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
       tty = get_future_frame_param
-        (Qtty (), parms, if FRAME_TERMCAP_P (XFRAME (selected_frame))
-                       { (*FRAME_TTY! (XFRAME (selected_frame))).name }
+        (Qtty (), parms, if FRAME_TERMCAP_P (XFRAME ((*selected_frame.as_mut_ptr ())))
+                       { (*FRAME_TTY! (XFRAME ((*selected_frame.as_mut_ptr ())))).name }
                        else { std::ptr::null_mut () });
       if !NILP (tty)
 	{ SAFE_ALLOCA_STRING! (sa_avail, name, tty); }
 
       tty_type = get_future_frame_param
-        (Qtty_type (), parms, if FRAME_TERMCAP_P (XFRAME (selected_frame))
-                            { (*FRAME_TTY! (XFRAME (selected_frame))).r#type }
+        (Qtty_type (), parms, if FRAME_TERMCAP_P (XFRAME ((*selected_frame.as_mut_ptr ())))
+                            { (*FRAME_TTY! (XFRAME ((*selected_frame.as_mut_ptr ())))).r#type }
                             else { std::ptr::null_mut () });
       if !NILP (tty_type)
 	{ SAFE_ALLOCA_STRING! (sa_avail, r#type, tty_type); }
@@ -2502,7 +2502,7 @@ DEFUN! ("make-terminal-frame", Fmake_terminal_frame, Smake_terminal_frame,
   let f: *mut frame = make_terminal_frame (t, parent, parms);
   frame_set_id_from_params (f, parms);
 
-  if !noninteractive
+  if !(*noninteractive.as_mut_ptr ())
     { init_frame_faces (f); }
 
   /* Visibility of root frames cannot be set with a frame parameter.
@@ -2720,15 +2720,15 @@ pub unsafe extern "C-unwind" fn do_switch_frame (frame: Lisp_Object, track: c_in
      state where (selected-window) != (frame-selected-window).  Until this
      invariant is restored we should be very careful not to run any Lisp.
      (bug#58343)  */
-  selected_frame = frame;
+  (*selected_frame.as_mut_ptr ()) = frame;
 
   if select_mini_window_flag! (f)
       && !NILP (Fminibufferp ((*XWINDOW ((*f).minibuffer_window)).contents, Qt ()))
     { fset_selected_window (f, (*f).minibuffer_window); }
   select_mini_window_flag! (f, false);
 
-  if !FRAME_MINIBUF_ONLY_P (XFRAME (selected_frame))
-    { last_nonminibuf_frame = XFRAME (selected_frame); }
+  if !FRAME_MINIBUF_ONLY_P (XFRAME ((*selected_frame.as_mut_ptr ())))
+    { (*last_nonminibuf_frame.as_mut_ptr ()) = XFRAME ((*selected_frame.as_mut_ptr ())); }
 
   Fselect_window ((*f).selected_window, norecord);
 
@@ -2767,7 +2767,7 @@ pub unsafe extern "C-unwind" fn do_switch_frame (frame: Lisp_Object, track: c_in
      Let's not do that for now on ttys.  */
   if !is_tty_frame (f)
     { if !frame_ancestor_p (f, sf)
-      { internal_last_event_frame = Qnil (); } }
+      { (*internal_last_event_frame.as_mut_ptr ()) = Qnil (); } }
 
   return frame;
 
@@ -2796,7 +2796,7 @@ DEFUN! ("handle-switch-frame", Fhandle_switch_frame,
        (event: Lisp_Object),
        {
   /* Preserve prefix arg that the command loop just cleared.  */
-  kset_prefix_arg (current_kboard, Vcurrent_prefix_arg);
+  kset_prefix_arg ((*current_kboard.as_mut_ptr ()), (*Vcurrent_prefix_arg.as_mut_ptr ()));
   run_hook (Qmouse_leave_buffer_hook ());
 
   return do_switch_frame (event, 0, 0, Qnil ());
@@ -2806,7 +2806,7 @@ DEFUN! ("selected-frame", Fselected_frame, Sselected_frame, 0, 0, 0,
        doc: "Return the frame that is now selected.  ",
        (),
        {
-  return selected_frame;
+  return (*selected_frame.as_mut_ptr ());
 });
 
 DEFUN! ("old-selected-frame", Fold_selected_frame,
@@ -2814,7 +2814,7 @@ DEFUN! ("old-selected-frame", Fold_selected_frame,
        doc: "Return the old selected FRAME.\nFRAME must be a live frame and defaults to the selected one.\n\nThe return value is the frame selected the last time window change\nfunctions were run.  ",
        (),
        {
-  return old_selected_frame;
+  return (*old_selected_frame.as_mut_ptr ());
 });
 
 DEFUN! ("frame-list", Fframe_list, Sframe_list,
@@ -2836,7 +2836,7 @@ DEFUN! ("frame-list", Fframe_list, Sframe_list,
   }
   #[cfg(not(feature = "have_window_system"))]
   {
-    return Fcopy_sequence (Vframe_list);
+    return Fcopy_sequence ((*Vframe_list.as_mut_ptr ()));
   }
 });
 
@@ -2998,7 +2998,7 @@ unsafe fn next_frame (frame: Lisp_Object, minibuf: Lisp_Object) -> Lisp_Object
   let mut next: Lisp_Object = Qnil ();
   let mut passed: bool = false;
 
-  eassume! (CONSP (Vframe_list));
+  eassume! (CONSP ((*Vframe_list.as_mut_ptr ())));
 
   FOR_EACH_FRAME! (tail, f, {
       if EQ (f, frame)
@@ -3041,7 +3041,7 @@ unsafe fn prev_frame (frame: Lisp_Object, minibuf: Lisp_Object) -> Lisp_Object
   let mut tail: Lisp_Object = Qnil ();
   let mut prev: Lisp_Object = Qnil ();
 
-  eassume! (CONSP (Vframe_list));
+  eassume! (CONSP ((*Vframe_list.as_mut_ptr ())));
 
   FOR_EACH_FRAME! (tail, f, {
       if EQ (frame, f) && !NILP (prev)
@@ -3076,7 +3076,7 @@ DEFUN! ("next-frame", Fnext_frame, Snext_frame, 0, 2, 0,
        {
   let mut frame = frame;
   if NILP (frame)
-    { frame = selected_frame; }
+    { frame = (*selected_frame.as_mut_ptr ()); }
   CHECK_LIVE_FRAME! (frame);
   return next_frame (frame, miniframe);
 });
@@ -3087,7 +3087,7 @@ DEFUN! ("previous-frame", Fprevious_frame, Sprevious_frame, 0, 2, 0,
        {
   let mut frame = frame;
   if NILP (frame)
-    { frame = selected_frame; }
+    { frame = (*selected_frame.as_mut_ptr ()); }
   CHECK_LIVE_FRAME! (frame);
   return prev_frame (frame, miniframe);
 });
@@ -3099,8 +3099,8 @@ DEFUN! ("last-nonminibuffer-frame", Flast_nonminibuf_frame,
        {
   let mut frame: Lisp_Object = Qnil ();
 
-  if !last_nonminibuf_frame.is_null ()
-    { XSETFRAME! (frame, last_nonminibuf_frame); }
+  if !(*last_nonminibuf_frame.as_mut_ptr ()).is_null ()
+    { XSETFRAME! (frame, (*last_nonminibuf_frame.as_mut_ptr ())); }
 
   return frame;
 });
@@ -3316,12 +3316,12 @@ pub unsafe extern "C-unwind" fn delete_frame (frame: Lisp_Object, force: Lisp_Ob
      frame is a tooltip.  FORCE is set to `noelisp' when handling
      a disconnect from the terminal, so we don't dare call Lisp
      code.  */
-  if NILP (Vrun_hooks) || is_tooltip_frame != 0
+  if NILP ((*Vrun_hooks.as_mut_ptr ())) || is_tooltip_frame != 0
     { /* nothing: C's empty statement  */ }
   else if EQ (force, Qnoelisp ())
-    { pending_funcalls
+    { (*pending_funcalls.as_mut_ptr ())
       = Fcons (list3 (Qrun_hook_with_args (), Qdelete_frame_functions (), frame),
-	       pending_funcalls); }
+	       (*pending_funcalls.as_mut_ptr ())); }
   else
     {
       /* C 2716-2719's `#ifdef HAVE_X_WINDOWS` arm is dead (P-08).  */
@@ -3353,7 +3353,7 @@ pub unsafe extern "C-unwind" fn delete_frame (frame: Lisp_Object, force: Lisp_Ob
 	{
 	  frame1 = Qnil ();
 
-	  if EQ (delete_frame_choose_selected, Qmru ())
+	  if EQ ((*delete_frame_choose_selected.as_mut_ptr ()), Qmru ())
 	      && !EQ (force, Qnoelisp ())
 	    {
 	      /* Find the most recently used visible frame among all
@@ -3377,7 +3377,7 @@ pub unsafe extern "C-unwind" fn delete_frame (frame: Lisp_Object, force: Lisp_Ob
 	  if NILP (frame1)
 	    {
 	      let mut tail: Lisp_Object = Qnil ();
-	      eassume! (CONSP (Vframe_list));
+	      eassume! (CONSP ((*Vframe_list.as_mut_ptr ())));
 
 	      /* Look for another visible frame on the same terminal.
 		 Do not call next_frame here because it may loop forever.
@@ -3443,13 +3443,13 @@ pub unsafe extern "C-unwind" fn delete_frame (frame: Lisp_Object, force: Lisp_Ob
   else
     /* Ensure any minibuffers on FRAME are moved onto the selected
        frame.  */
-    { move_minibuffers_onto_frame (f, selected_frame, true); }
+    { move_minibuffers_onto_frame (f, (*selected_frame.as_mut_ptr ()), true); }
 
   /* At this point, we are committed to deleting the frame.
      There is no more chance for errors to prevent it.  */
   /* Don't let echo_area_window to remain on a deleted frame.  */
-  if EQ ((*f).minibuffer_window, echo_area_window)
-    { echo_area_window = (*sf).minibuffer_window; }
+  if EQ ((*f).minibuffer_window, (*echo_area_window.as_mut_ptr ()))
+    { (*echo_area_window.as_mut_ptr ()) = (*sf).minibuffer_window; }
 
   /* Clear any X selections for this frame.  */
   /* C 2852-2877's `#ifdef HAVE_X_WINDOWS`/`HAVE_PGTK` arms are dead (P-08).  */
@@ -3468,7 +3468,7 @@ pub unsafe extern "C-unwind" fn delete_frame (frame: Lisp_Object, force: Lisp_Ob
   delete_all_child_windows ((*f).root_window);
   fset_root_window (f, Qnil ());
 
-  Vframe_list = delq_no_quit (frame, Vframe_list);
+  (*Vframe_list.as_mut_ptr ()) = delq_no_quit (frame, (*Vframe_list.as_mut_ptr ()));
   SET_FRAME_VISIBLE! (f, false);
 
   /* Allow the vector of menu bar contents to be freed in the next
@@ -3550,16 +3550,16 @@ pub unsafe extern "C-unwind" fn delete_frame (frame: Lisp_Object, force: Lisp_Ob
 
   /* If we've deleted the last_nonminibuf_frame, then try to find
      another one.  */
-  if f == last_nonminibuf_frame
+  if f == (*last_nonminibuf_frame.as_mut_ptr ())
     {
-      last_nonminibuf_frame = std::ptr::null_mut ();
+      (*last_nonminibuf_frame.as_mut_ptr ()) = std::ptr::null_mut ();
 
       FOR_EACH_FRAME! (frames, frame1, {
 	  let f1: *mut frame = XFRAME (frame1);
 
 	  if !FRAME_MINIBUF_ONLY_P (f1)
 	    {
-	      last_nonminibuf_frame = f1;
+	      (*last_nonminibuf_frame.as_mut_ptr ()) = f1;
 	      break;
 	    }
       });
@@ -3640,15 +3640,15 @@ pub unsafe extern "C-unwind" fn delete_frame (frame: Lisp_Object, force: Lisp_Ob
   /* Cause frame titles to update--necessary if we now have just one
      frame.  */
   if is_tooltip_frame == 0
-    { update_mode_lines = 15; }
+    { (*update_mode_lines.as_mut_ptr ()) = 15; }
 
   /* Now run the post-deletion hooks.  */
-  if NILP (Vrun_hooks) || is_tooltip_frame != 0
+  if NILP ((*Vrun_hooks.as_mut_ptr ())) || is_tooltip_frame != 0
     { /* nothing: C's empty statement  */ }
   else if EQ (force, Qnoelisp ())
-    { pending_funcalls
+    { (*pending_funcalls.as_mut_ptr ())
       = Fcons (list3 (Qrun_hook_with_args (), Qafter_delete_frame_functions (), frame),
-	       pending_funcalls); }
+	       (*pending_funcalls.as_mut_ptr ())); }
   else
     { safe_calln! (Qrun_hook_with_args (), Qafter_delete_frame_functions (), frame); }
 
@@ -3854,8 +3854,8 @@ pub unsafe extern "C-unwind" fn mouse_position (call_mouse_position_function: bo
   else
     { lispy_dummy = Qnil (); }
   retval = Fcons (lispy_dummy, Fcons (x, y));
-  if call_mouse_position_function && !NILP (Vmouse_position_function)
-    { retval = calln! (Vmouse_position_function, retval); }
+  if call_mouse_position_function && !NILP ((*Vmouse_position_function.as_mut_ptr ()))
+    { retval = calln! ((*Vmouse_position_function.as_mut_ptr ()), retval); }
   return retval;
 
   }
@@ -3894,8 +3894,8 @@ DEFUN! ("mouse-pixel-position", Fmouse_pixel_position,
     { lispy_dummy = Qnil (); }
 
   retval = Fcons (lispy_dummy, Fcons (x, y));
-  if !NILP (Vmouse_position_function)
-    { retval = calln! (Vmouse_position_function, retval); }
+  if !NILP ((*Vmouse_position_function.as_mut_ptr ()))
+    { retval = calln! ((*Vmouse_position_function.as_mut_ptr ()), retval); }
   return retval;
 });
 
@@ -4075,7 +4075,7 @@ DEFUN! ("make-frame-invisible", Fmake_frame_invisible, Smake_frame_invisible,
   if is_tty_child_frame (f)
     {
       SET_FRAME_VISIBLE! (f, false);
-      if EQ (frame, selected_frame)
+      if EQ (frame, (*selected_frame.as_mut_ptr ()))
 	/* If FRAME is a tty child frame and the selected frame, we have
 	   to select another frame instead.  Use the first visible
 	   ancestor as returned by 'mru_rooted_frame'.  */
@@ -4083,7 +4083,7 @@ DEFUN! ("make-frame-invisible", Fmake_frame_invisible, Smake_frame_invisible,
     }
 
   /* Make menu bar update for the Buffers and Frames menus.  */
-  windows_or_buffers_changed = 16;
+  (*windows_or_buffers_changed.as_mut_ptr ()) = 16;
 
   return Qnil ();
 });
@@ -4097,11 +4097,11 @@ DEFUN! ("iconify-frame", Ficonify_frame, Siconify_frame,
 
   if !FRAME_PARENT_FRAME (f).is_null ()
     {
-      if NILP (iconify_child_frame)
+      if NILP ((*iconify_child_frame.as_mut_ptr ()))
 	/* Do nothing.  */
 	{ return Qnil (); }
       else if FRAME_WINDOW_P (f)
-	       && EQ (iconify_child_frame, Qiconify_top_level ())
+	       && EQ ((*iconify_child_frame.as_mut_ptr ()), Qiconify_top_level ())
 	{
 	  /* Iconify root frame (the default).  */
 	  let mut root: Lisp_Object = Qnil ();
@@ -4111,7 +4111,7 @@ DEFUN! ("iconify-frame", Ficonify_frame, Siconify_frame,
 
 	  return Qnil ();
 	}
-      else if EQ (iconify_child_frame, Qmake_invisible ())
+      else if EQ ((*iconify_child_frame.as_mut_ptr ()), Qmake_invisible ())
 	{
 	  /* Make frame invisible.  */
 	  Fmake_frame_invisible (frame, Qnil ());
@@ -4351,7 +4351,7 @@ unsafe fn set_term_frame_name (f: *mut frame, name: Lisp_Object)
     }
 
   fset_name (f, name);
-  update_mode_lines = 16;
+  (*update_mode_lines.as_mut_ptr ()) = 16;
 
   }
 }
@@ -4580,11 +4580,11 @@ unsafe fn frame_unspecified_color (f: *mut frame, unspec: Lisp_Object) -> Lisp_O
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
   return if strncmp (SSDATA (unspec),
-		     std::ptr::addr_of! (unspecified_bg) as *const c_char,
+		     unspecified_bg.as_ptr () as *const c_char,
 		     SBYTES (unspec) as usize) == 0
 	  { tty_color_name (f, FRAME_BACKGROUND_PIXEL! (f) as c_int) }
 	  else { if strncmp (SSDATA (unspec),
-			     std::ptr::addr_of! (unspecified_fg) as *const c_char,
+			     unspecified_fg.as_ptr () as *const c_char,
 			     SBYTES (unspec) as usize) == 0
 	     { tty_color_name (f, FRAME_FOREGROUND_PIXEL! (f) as c_int) }
 	     else { Qnil () } };
@@ -4871,7 +4871,7 @@ DEFUN! ("modify-frame-parameters", Fmodify_frame_parameters,
 	  if CONSP (visible)
 	    {
 	      if EQ (Fcdr (visible), Qicon ())
-		  && EQ (iconify_child_frame, Qmake_invisible ())
+		  && EQ ((*iconify_child_frame.as_mut_ptr ()), Qmake_invisible ())
 		{ SET_FRAME_VISIBLE! (f, false); }
 	      else
 		{ SET_FRAME_VISIBLE! (f, !NILP (Fcdr (visible))); }
@@ -5269,8 +5269,7 @@ const FRAME_PARMS_LEN: usize = 51
   + if cfg!(feature = "have_x_windows") { 1 } else { 0 }
   + if cfg!(feature = "ns_impl_cocoa") { 2 } else { 0 };
 
-static mut frame_parms: [frame_parm_table; FRAME_PARMS_LEN] =
-[
+static frame_parms: VmGlobal<[frame_parm_table; FRAME_PARMS_LEN]> = VmGlobal::<[frame_parm_table; FRAME_PARMS_LEN]>::new ([
   frame_parm_table { name: c"auto-raise".as_ptr (), sym: iQauto_raise as c_int },
   frame_parm_table { name: c"auto-lower".as_ptr (), sym: iQauto_lower as c_int },
   frame_parm_table { name: c"background-color".as_ptr (), sym: iQbackground_color as c_int },
@@ -5329,7 +5328,7 @@ static mut frame_parms: [frame_parm_table; FRAME_PARMS_LEN] =
   frame_parm_table { name: c"ns-appearance".as_ptr (), sym: iQns_appearance as c_int },
   #[cfg(feature = "ns_impl_cocoa")]
   frame_parm_table { name: c"ns-transparent-titlebar".as_ptr (), sym: iQns_transparent_titlebar as c_int },
-];
+]);
 
 
 /* ---------------------------------------------------------------------------------------------
@@ -5422,17 +5421,17 @@ const FRAME_FLOAT_TOP: frame_float_type = 3;                // C 4897
    the declarations move to file scope inside the same gate; C's storage duration is static and
    zero-initialised, which is what the initialisers spell.  */
 #[cfg (feature = "have_window_system")]
-static mut parent_width: c_uint = 0;
+static parent_width: VmGlobal<c_uint> = VmGlobal::<c_uint>::new (0);
 #[cfg (feature = "have_window_system")]
-static mut parent_height: c_uint = 0;
+static parent_height: VmGlobal<c_uint> = VmGlobal::<c_uint>::new (0);
 #[cfg (feature = "have_window_system")]
-static mut parent_left: c_int = 0;
+static parent_left: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 #[cfg (feature = "have_window_system")]
-static mut parent_top: c_int = 0;
+static parent_top: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 #[cfg (feature = "have_window_system")]
-static mut outer_minus_text_width: c_uint = 0;
+static outer_minus_text_width: VmGlobal<c_uint> = VmGlobal::<c_uint>::new (0);
 #[cfg (feature = "have_window_system")]
-static mut outer_minus_text_height: c_uint = 0;
+static outer_minus_text_height: VmGlobal<c_uint> = VmGlobal::<c_uint>::new (0);
 
 /**
  * frame_float:
@@ -5482,8 +5481,8 @@ unsafe fn frame_float (f: *mut frame, val: Lisp_Object, what: frame_float_type,
         { }                                    /* C 4939: the empty statement.  */
       else if !p.is_null ()
         {
-          parent_width = FRAME_PIXEL_WIDTH! (p) as c_uint;   // C 4937: `unsigned`
-          parent_height = FRAME_PIXEL_HEIGHT! (p) as c_uint;
+          (*parent_width.as_mut_ptr ()) = FRAME_PIXEL_WIDTH! (p) as c_uint;   // C 4937: `unsigned`
+          (*parent_height.as_mut_ptr ()) = FRAME_PIXEL_HEIGHT! (p) as c_uint;
           *parent_done = 1;
         }
       else
@@ -5517,10 +5516,10 @@ unsafe fn frame_float (f: *mut frame, val: Lisp_Object, what: frame_float_type,
                 }
 
               /* Workarea available.  */
-              parent_left = XFIXNUM (Fnth (make_fixnum (0), workarea)) as c_int;
-              parent_top = XFIXNUM (Fnth (make_fixnum (1), workarea)) as c_int;
-              parent_width = XFIXNUM (Fnth (make_fixnum (2), workarea)) as c_uint;
-              parent_height = XFIXNUM (Fnth (make_fixnum (3), workarea)) as c_uint;
+              (*parent_left.as_mut_ptr ()) = XFIXNUM (Fnth (make_fixnum (0), workarea)) as c_int;
+              (*parent_top.as_mut_ptr ()) = XFIXNUM (Fnth (make_fixnum (1), workarea)) as c_int;
+              (*parent_width.as_mut_ptr ()) = XFIXNUM (Fnth (make_fixnum (2), workarea)) as c_uint;
+              (*parent_height.as_mut_ptr ()) = XFIXNUM (Fnth (make_fixnum (3), workarea)) as c_uint;
               *parent_done = 1;
             }
         }
@@ -5529,9 +5528,9 @@ unsafe fn frame_float (f: *mut frame, val: Lisp_Object, what: frame_float_type,
         { }                                    /* C 4965: the empty statement.  */
       else if FRAME_UNDECORATED (f) != 0
         {
-          outer_minus_text_width
+          (*outer_minus_text_width.as_mut_ptr ())
             = (FRAME_PIXEL_WIDTH! (f) as isize - FRAME_TEXT_WIDTH! (f) as isize) as c_uint;
-          outer_minus_text_height
+          (*outer_minus_text_height.as_mut_ptr ())
             = (FRAME_PIXEL_HEIGHT! (f) as isize - FRAME_TEXT_HEIGHT! (f) as isize) as c_uint;
           *outer_done = 1;
         }
@@ -5548,11 +5547,11 @@ unsafe fn frame_float (f: *mut frame, val: Lisp_Object, what: frame_float_type,
 
           if !NILP (outer_edges)
             {
-              outer_minus_text_width
+              (*outer_minus_text_width.as_mut_ptr ())
                 = (XFIXNUM (Fnth (make_fixnum (2), outer_edges))
                    - XFIXNUM (Fnth (make_fixnum (0), outer_edges))
                    - FRAME_TEXT_WIDTH! (f) as isize) as c_uint;
-              outer_minus_text_height
+              (*outer_minus_text_height.as_mut_ptr ())
                 = (XFIXNUM (Fnth (make_fixnum (3), outer_edges))
                    - XFIXNUM (Fnth (make_fixnum (1), outer_edges))
                    - FRAME_TEXT_HEIGHT! (f) as isize) as c_uint;
@@ -5561,9 +5560,9 @@ unsafe fn frame_float (f: *mut frame, val: Lisp_Object, what: frame_float_type,
             {
               /* If we can't get any outer edges, proceed as if the frame
                  were undecorated.  */
-              outer_minus_text_width
+              (*outer_minus_text_width.as_mut_ptr ())
                 = (FRAME_PIXEL_WIDTH! (f) as isize - FRAME_TEXT_WIDTH! (f) as isize) as c_uint;
-              outer_minus_text_height
+              (*outer_minus_text_height.as_mut_ptr ())
                 = (FRAME_PIXEL_HEIGHT! (f) as isize - FRAME_TEXT_HEIGHT! (f) as isize) as c_uint;
             }
 
@@ -5573,36 +5572,36 @@ unsafe fn frame_float (f: *mut frame, val: Lisp_Object, what: frame_float_type,
       match what
         {
           FRAME_FLOAT_WIDTH =>
-            { return (parent_width as f64 * d_val - outer_minus_text_width as f64) as c_int; }
+            { return ((*parent_width.as_mut_ptr ()) as f64 * d_val - (*outer_minus_text_width.as_mut_ptr ()) as f64) as c_int; }
 
           FRAME_FLOAT_HEIGHT =>
-            { return (parent_height as f64 * d_val - outer_minus_text_height as f64) as c_int; }
+            { return ((*parent_height.as_mut_ptr ()) as f64 * d_val - (*outer_minus_text_height.as_mut_ptr ()) as f64) as c_int; }
 
           FRAME_FLOAT_LEFT =>
             {
-              let rest_width: c_int = (parent_width as c_int
+              let rest_width: c_int = ((*parent_width.as_mut_ptr ()) as c_int
                                        - FRAME_TEXT_WIDTH! (f)
-                                       - outer_minus_text_width as c_int);
+                                       - (*outer_minus_text_width.as_mut_ptr ()) as c_int);
 
               if !p.is_null ()
                 { return if rest_width <= 0 { 0 }
                          else { (d_val * rest_width as f64) as c_int }; }
               else
-                { return if rest_width <= 0 { parent_left }
-                         else { parent_left + (d_val * rest_width as f64) as c_int }; }
+                { return if rest_width <= 0 { (*parent_left.as_mut_ptr ()) }
+                         else { (*parent_left.as_mut_ptr ()) + (d_val * rest_width as f64) as c_int }; }
             }
           FRAME_FLOAT_TOP =>
             {
-              let rest_height: c_int = (parent_height as c_int
+              let rest_height: c_int = ((*parent_height.as_mut_ptr ()) as c_int
                                         - FRAME_TEXT_HEIGHT! (f)
-                                        - outer_minus_text_height as c_int);
+                                        - (*outer_minus_text_height.as_mut_ptr ()) as c_int);
 
               if !p.is_null ()
                 { return if rest_height <= 0 { 0 }
                          else { (d_val * rest_height as f64) as c_int }; }
               else
-                { return if rest_height <= 0 { parent_top }
-                         else { parent_top + (d_val * rest_height as f64) as c_int }; }
+                { return if rest_height <= 0 { (*parent_top.as_mut_ptr ()) }
+                         else { (*parent_top.as_mut_ptr ()) + (d_val * rest_height as f64) as c_int }; }
             }
           _ =>
             emacs_abort ()
@@ -5632,7 +5631,7 @@ unsafe fn handle_frame_param (f: *mut frame, prop: Lisp_Object, val: Lisp_Object
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
   let param_index: Lisp_Object = Fget (prop, Qx_frame_parameter ());
-  if FIXNATP (param_index) && XFIXNAT (param_index) < countof! (frame_parms) as EMACS_INT
+  if FIXNATP (param_index) && XFIXNAT (param_index) < countof! ((*frame_parms.as_mut_ptr ())) as EMACS_INT
     {
       if !FRAME_RIF! (f).is_null ()
         {
@@ -6463,8 +6462,8 @@ pub unsafe extern "C-unwind" fn gui_set_font_backend (f: *mut frame, new_value: 
       /* Reconsider default font after backend(s) change (Bug#23386).  */
       if let Some (default_font_parameter) = (*((FRAME_RIF! (f)) as *mut redisplay_interface)).default_font_parameter
 	{ default_font_parameter (f as *mut c_void, Qnil ()); }
-      face_change = true;
-      windows_or_buffers_changed = 18;
+      (*face_change.as_mut_ptr ()) = true;
+      (*windows_or_buffers_changed.as_mut_ptr ()) = 18;
     }
 
   }
@@ -6805,8 +6804,8 @@ pub unsafe extern "C-unwind" fn gui_set_vertical_scroll_bars (f: *mut frame, arg
                        (if NILP (arg) { vertical_scroll_bar_none }
 	  else if EQ (Qleft (), arg) { vertical_scroll_bar_left }
 	  else if EQ (Qright (), arg) { vertical_scroll_bar_right }
-	  else if EQ (Qleft (), Vdefault_frame_scroll_bars) { vertical_scroll_bar_left }
-	  else if EQ (Qright (), Vdefault_frame_scroll_bars) { vertical_scroll_bar_right }
+	  else if EQ (Qleft (), (*Vdefault_frame_scroll_bars.as_mut_ptr ())) { vertical_scroll_bar_left }
+	  else if EQ (Qright (), (*Vdefault_frame_scroll_bars.as_mut_ptr ())) { vertical_scroll_bar_right }
 	  else { vertical_scroll_bar_none }) as u32);
 
       /* We set this parameter before creating the native window for
@@ -7118,11 +7117,11 @@ pub unsafe extern "C-unwind" fn gui_redo_mouse_highlight (dpyinfo: *mut Display_
    the shared library could not be loaded (status 4.751).  `Vx_resource_name` (read by the same
    function) is carried here for the same reason.  */
 #[cfg (feature = "have_window_system")]
-#[unsafe(no_mangle)] pub static mut Vx_resource_class: Lisp_Object = lisp_h_Qnil ();
+#[unsafe(no_mangle)] pub static Vx_resource_class: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[cfg (feature = "have_window_system")]
-#[unsafe(no_mangle)] pub static mut Vx_resource_name: Lisp_Object = lisp_h_Qnil ();
+#[unsafe(no_mangle)] pub static Vx_resource_name: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[cfg(feature = "have_window_system")]
-#[unsafe(no_mangle)] pub static mut Vframe_alpha_lower_limit: Lisp_Object = lisp_h_Qnil ();
+#[unsafe(no_mangle)] pub static Vframe_alpha_lower_limit: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* Subroutines of creating an X frame.  */
 
@@ -7143,14 +7142,14 @@ pub unsafe extern "C-unwind" fn validate_x_resource_name ()
   let new: Lisp_Object;
   let mut i: ptrdiff_t;
 
-  if !STRINGP (Vx_resource_class)
-    { Vx_resource_class = build_string (EMACS_CLASS_C.as_ptr ()); }
+  if !STRINGP ((*Vx_resource_class.as_mut_ptr ()))
+    { (*Vx_resource_class.as_mut_ptr ()) = build_string (EMACS_CLASS_C.as_ptr ()); }
 
-  if STRINGP (Vx_resource_name)
+  if STRINGP ((*Vx_resource_name.as_mut_ptr ()))
     {
-      let p: *mut u8 = SDATA (Vx_resource_name);
+      let p: *mut u8 = SDATA ((*Vx_resource_name.as_mut_ptr ()));
 
-      len = SBYTES (Vx_resource_name);
+      len = SBYTES ((*Vx_resource_name.as_mut_ptr ()));
 
       /* Only letters, digits, - and _ are valid in resource names.
 	 Count the valid characters and count the invalid ones.  */
@@ -7180,15 +7179,15 @@ pub unsafe extern "C-unwind" fn validate_x_resource_name ()
      large that alloca might not work, use `emacs'.  */
   if good_count < 2 || MAX_ALLOCA - 16 < len /* C's `sizeof ".customization"` (15 bytes + NUL) */
     {
-      Vx_resource_name = build_string (c"emacs".as_ptr ());
+      (*Vx_resource_name.as_mut_ptr ()) = build_string (c"emacs".as_ptr ());
       return;
     }
 
   /* Name is partly valid.  Copy it and replace the invalid characters
      with underscores.  */
 
-  Vx_resource_name = Fcopy_sequence (Vx_resource_name);
-  new = Vx_resource_name;
+  (*Vx_resource_name.as_mut_ptr ()) = Fcopy_sequence ((*Vx_resource_name.as_mut_ptr ()));
+  new = (*Vx_resource_name.as_mut_ptr ());
 
   i = 0;
   while i < len
@@ -7233,12 +7232,12 @@ pub unsafe extern "C-unwind" fn gui_display_get_resource (dpyinfo: *mut Display_
 
   /* Allocate space for the components, the dots which separate them,
      and the final '\0'.  Make them big enough for the worst case.  */
-  let name_keysize: ptrdiff_t = SBYTES (Vx_resource_name)
+  let name_keysize: ptrdiff_t = SBYTES ((*Vx_resource_name.as_mut_ptr ()))
 			    + (if STRINGP (component) { SBYTES (component) } else { 0 })
 			    + SBYTES (attribute)
 			    + 3;
 
-  let class_keysize: ptrdiff_t = SBYTES (Vx_resource_class)
+  let class_keysize: ptrdiff_t = SBYTES ((*Vx_resource_class.as_mut_ptr ()))
 			     + SBYTES (class)
 			     + (if STRINGP (subclass) { SBYTES (subclass) } else { 0 })
 			     + 3;
@@ -7249,8 +7248,8 @@ pub unsafe extern "C-unwind" fn gui_display_get_resource (dpyinfo: *mut Display_
 
   /* Start with emacs.FRAMENAME for the name (the specific one)
      and with `Emacs' for the class key (the general one).  */
-  let mut nz: *mut c_char = lispstpcpy (name_key, Vx_resource_name);
-  let mut cz: *mut c_char = lispstpcpy (class_key, Vx_resource_class);
+  let mut nz: *mut c_char = lispstpcpy (name_key, (*Vx_resource_name.as_mut_ptr ()));
+  let mut cz: *mut c_char = lispstpcpy (class_key, (*Vx_resource_class.as_mut_ptr ()));
 
   *cz = b'.' as c_char;
   cz = cz.offset (1);
@@ -7324,7 +7323,7 @@ pub unsafe extern "C-unwind" fn x_get_resource_string (attribute: *const c_char,
 {
   let result: *const c_char;
   let sf: *mut frame = SELECTED_FRAME ();
-  let invocation_namelen: ptrdiff_t = SBYTES (Vinvocation_name);
+  let invocation_namelen: ptrdiff_t = SBYTES ((*Vinvocation_name.as_mut_ptr ()));
   USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
   /* Allocate space for the components, the dots which separate them,
@@ -7333,7 +7332,7 @@ pub unsafe extern "C-unwind" fn x_get_resource_string (attribute: *const c_char,
   let class_keysize: ptrdiff_t = EMACS_CLASS.len () as isize + strlen (class) as isize + 2;
   let name_key: *mut c_char = SAFE_ALLOCA! (sa_avail, name_keysize + class_keysize) as *mut c_char;
   let class_key: *mut c_char = name_key.offset (name_keysize as isize);
-  esprintf (name_key, c"%s.%s".as_ptr (), SSDATA (Vinvocation_name), attribute);
+  esprintf (name_key, c"%s.%s".as_ptr (), SSDATA ((*Vinvocation_name.as_mut_ptr ())), attribute);
   sprintf (class_key, c"%s.%s".as_ptr (), EMACS_CLASS_C.as_ptr (), class);
 
   result = x_get_string_resource (&raw mut (*FRAME_DISPLAY_INFO! (sf)).rdb as *mut c_void,
@@ -7386,7 +7385,7 @@ pub unsafe extern "C-unwind" fn gui_display_get_arg (dpyinfo: *mut Display_Info,
 	}
     }
   else
-    { tem = Fassq (param, Vdefault_frame_alist); }
+    { tem = Fassq (param, (*Vdefault_frame_alist.as_mut_ptr ())); }
 
   /* If it wasn't specified in ALIST or the Lisp-level defaults,
      look in the X resources.  */
@@ -7751,10 +7750,10 @@ pub unsafe extern "C-unwind" fn gui_figure_window_size (f: *mut frame, parms: Li
      to guess how tall the tab bar will get.  */
   if tabbar_p && FRAME_TAB_BAR_LINES! (f) != 0
     {
-      if frame_default_tab_bar_height != 0
+      if (*frame_default_tab_bar_height.as_mut_ptr ()) != 0
 	/* A default tab bar height was already set by the display code
 	   for some other frame, use that.  */
-	{ FRAME_TAB_BAR_HEIGHT! (f) = frame_default_tab_bar_height; }
+	{ FRAME_TAB_BAR_HEIGHT! (f) = (*frame_default_tab_bar_height.as_mut_ptr ()); }
       else
 	/* Calculate the height from various other settings.  For some
 	   reason, these are usually off by 2 hence of no use.  */
@@ -7762,15 +7761,15 @@ pub unsafe extern "C-unwind" fn gui_figure_window_size (f: *mut frame, parms: Li
 	  let margin: c_int;
 	  let relief: c_int;
 
-	  relief = if tab_bar_button_relief < 0
+	  relief = if (*tab_bar_button_relief.as_mut_ptr ()) < 0
 		   { DEFAULT_TAB_BAR_BUTTON_RELIEF }
-		   else { min (tab_bar_button_relief, 1000000) as c_int };
+		   else { min ((*tab_bar_button_relief.as_mut_ptr ()), 1000000) as c_int };
 
-	  if RANGED_FIXNUMP (1, Vtab_bar_button_margin, INT_MAX as EMACS_INT)
-	    { margin = XFIXNAT (Vtab_bar_button_margin) as c_int; }
-	  else if CONSP (Vtab_bar_button_margin)
-		   && RANGED_FIXNUMP (1, XCDR (Vtab_bar_button_margin), INT_MAX as EMACS_INT)
-	    { margin = XFIXNAT (XCDR (Vtab_bar_button_margin)) as c_int; }
+	  if RANGED_FIXNUMP (1, (*Vtab_bar_button_margin.as_mut_ptr ()), INT_MAX as EMACS_INT)
+	    { margin = XFIXNAT ((*Vtab_bar_button_margin.as_mut_ptr ())) as c_int; }
+	  else if CONSP ((*Vtab_bar_button_margin.as_mut_ptr ()))
+		   && RANGED_FIXNUMP (1, XCDR ((*Vtab_bar_button_margin.as_mut_ptr ())), INT_MAX as EMACS_INT)
+	    { margin = XFIXNAT (XCDR ((*Vtab_bar_button_margin.as_mut_ptr ()))) as c_int; }
 	  else
 	    { margin = 0; }
 
@@ -7786,22 +7785,22 @@ pub unsafe extern "C-unwind" fn gui_figure_window_size (f: *mut frame, parms: Li
      to guess how tall the tool bar will get.  */
   if toolbar_p && FRAME_TOOL_BAR_LINES (f) != 0
     {
-      if frame_default_tool_bar_height != 0
-	{ FRAME_TOOL_BAR_HEIGHT! (f) = frame_default_tool_bar_height; }
+      if (*frame_default_tool_bar_height.as_mut_ptr ()) != 0
+	{ FRAME_TOOL_BAR_HEIGHT! (f) = (*frame_default_tool_bar_height.as_mut_ptr ()); }
       else
 	{
 	  let margin: c_int;
 	  let relief: c_int;
 
-	  relief = if tool_bar_button_relief < 0
+	  relief = if (*tool_bar_button_relief.as_mut_ptr ()) < 0
 		   { DEFAULT_TOOL_BAR_BUTTON_RELIEF }
-		   else { min (tool_bar_button_relief, 1000000) as c_int };
+		   else { min ((*tool_bar_button_relief.as_mut_ptr ()), 1000000) as c_int };
 
-	  if RANGED_FIXNUMP (1, Vtool_bar_button_margin, INT_MAX as EMACS_INT)
-	    { margin = XFIXNAT (Vtool_bar_button_margin) as c_int; }
-	  else if CONSP (Vtool_bar_button_margin)
-		   && RANGED_FIXNUMP (1, XCDR (Vtool_bar_button_margin), INT_MAX as EMACS_INT)
-	    { margin = XFIXNAT (XCDR (Vtool_bar_button_margin)) as c_int; }
+	  if RANGED_FIXNUMP (1, (*Vtool_bar_button_margin.as_mut_ptr ()), INT_MAX as EMACS_INT)
+	    { margin = XFIXNAT ((*Vtool_bar_button_margin.as_mut_ptr ())) as c_int; }
+	  else if CONSP ((*Vtool_bar_button_margin.as_mut_ptr ()))
+		   && RANGED_FIXNUMP (1, XCDR ((*Vtool_bar_button_margin.as_mut_ptr ())), INT_MAX as EMACS_INT)
+	    { margin = XFIXNAT (XCDR ((*Vtool_bar_button_margin.as_mut_ptr ()))) as c_int; }
 	  else
 	    { margin = 0; }
 
@@ -8019,7 +8018,7 @@ pub mod frame_pointer_fns {
   {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-    if !NILP (Vmake_pointer_invisible)
+    if !NILP ((*Vmake_pointer_invisible.as_mut_ptr ()))
       {
         if !f.is_null () && FRAME_LIVE_P (f) && !pointer_invisible! (f)
             && (*FRAME_TERMINAL! (f)).toggle_invisible_pointer_hook.is_some ()
@@ -8262,11 +8261,11 @@ pub unsafe extern "C-unwind" fn init_frame_once ()
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  staticpro (&raw mut Vframe_list);
-  staticpro (&raw mut selected_frame);
+  staticpro (Vframe_list.as_mut_ptr ());
+  staticpro (selected_frame.as_mut_ptr ());
   PDUMPER_IGNORE! (last_nonminibuf_frame);
-  Vframe_list = Qnil ();
-  selected_frame = Qnil ();
+  (*Vframe_list.as_mut_ptr ()) = Qnil ();
+  (*selected_frame.as_mut_ptr ()) = Qnil ();
   pdumper_do_now_and_after_load (Some (init_frame_once_for_pdumper));
 
   }
@@ -8276,8 +8275,8 @@ unsafe extern "C-unwind" fn init_frame_once_for_pdumper ()
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  PDUMPER_RESET_LV! (Vframe_list, Qnil ());
-  PDUMPER_RESET_LV! (selected_frame, Qnil ());
+  PDUMPER_RESET_LV! ((*Vframe_list.as_mut_ptr ()), Qnil ());
+  PDUMPER_RESET_LV! ((*selected_frame.as_mut_ptr ()), Qnil ());
 
   }
 }
@@ -8286,57 +8285,57 @@ unsafe extern "C-unwind" fn init_frame_once_for_pdumper ()
    (lisp.h 3495-3530), and in the port the mirror (`include/globals.rs`) declares the names in
    its `variables` module while the owning unit defines them here (status §3.29).  */
 #[unsafe(no_mangle)]
-pub static mut Vdefault_frame_alist: Lisp_Object = lisp_h_Qnil ();
+pub static Vdefault_frame_alist: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vdefault_frame_scroll_bars: Lisp_Object = lisp_h_Qnil ();
+pub static Vdefault_frame_scroll_bars: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut scroll_bar_adjust_thumb_portion_p: bool = false;
+pub static scroll_bar_adjust_thumb_portion_p: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut Vterminal_frame: Lisp_Object = lisp_h_Qnil ();
+pub static Vterminal_frame: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vmouse_position_function: Lisp_Object = lisp_h_Qnil ();
+pub static Vmouse_position_function: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vmouse_highlight: Lisp_Object = lisp_h_Qnil ();
+pub static Vmouse_highlight: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vmake_pointer_invisible: Lisp_Object = lisp_h_Qnil ();
+pub static Vmake_pointer_invisible: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vmove_frame_functions: Lisp_Object = lisp_h_Qnil ();
+pub static Vmove_frame_functions: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vdelete_frame_functions: Lisp_Object = lisp_h_Qnil ();
+pub static Vdelete_frame_functions: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vafter_delete_frame_functions: Lisp_Object = lisp_h_Qnil ();
+pub static Vafter_delete_frame_functions: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vmenu_bar_mode: Lisp_Object = lisp_h_Qnil ();
+pub static Vmenu_bar_mode: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vtab_bar_mode: Lisp_Object = lisp_h_Qnil ();
+pub static Vtab_bar_mode: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vtool_bar_mode: Lisp_Object = lisp_h_Qnil ();
+pub static Vtool_bar_mode: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut resize_mini_frames: Lisp_Object = lisp_h_Qnil ();
+pub static resize_mini_frames: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut focus_follows_mouse: Lisp_Object = lisp_h_Qnil ();
+pub static focus_follows_mouse: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut frame_resize_pixelwise: bool = false;
+pub static frame_resize_pixelwise: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut frame_inhibit_implied_resize: Lisp_Object = lisp_h_Qnil ();
+pub static frame_inhibit_implied_resize: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut frame_size_history: Lisp_Object = lisp_h_Qnil ();
+pub static frame_size_history: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut tooltip_reuse_hidden_frame: bool = false;
+pub static tooltip_reuse_hidden_frame: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut use_system_tooltips: bool = false;
+pub static use_system_tooltips: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut iconify_child_frame: Lisp_Object = lisp_h_Qnil ();
+pub static iconify_child_frame: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut expose_hidden_buffer: Lisp_Object = lisp_h_Qnil ();
+pub static expose_hidden_buffer: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut frame_internal_parameters: Lisp_Object = lisp_h_Qnil ();
+pub static frame_internal_parameters: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut alter_fullscreen_frames: Lisp_Object = lisp_h_Qnil ();
+pub static alter_fullscreen_frames: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut delete_frame_choose_selected: Lisp_Object = lisp_h_Qnil ();
+pub static delete_frame_choose_selected: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vtoolkit_theme: Lisp_Object = lisp_h_Qnil ();
+pub static Vtoolkit_theme: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_frame ()
@@ -8512,10 +8511,10 @@ pub unsafe extern "C-unwind" fn syms_of_frame ()
 
   {
     let mut i: c_int = 0;
-    while i < countof! (frame_parms) as c_int
+    while i < countof! ((*frame_parms.as_mut_ptr ())) as c_int
     {
-      let sym: c_int = frame_parms[i as usize].sym;
-      eassert! (0 <= sym && sym < countof! (lispsym) as c_int);
+      let sym: c_int = (*frame_parms.as_mut_ptr ())[i as usize].sym;
+      eassert! (0 <= sym && sym < countof! ((*lispsym.as_mut_ptr ())) as c_int);
       let v: Lisp_Object = builtin_lisp_symbol (sym as usize);
       Fput (v, Qx_frame_parameter (), make_fixnum (i as EMACS_INT));
       i += 1;
@@ -8526,18 +8525,18 @@ pub unsafe extern "C-unwind" fn syms_of_frame ()
   {
     DEFVAR_LISP! (c"x-resource-name", Vx_resource_name,
       "The name Emacs uses to look up X resources.\n`x-get-resource' uses this as the first component of the instance name\nwhen requesting resource values.\nEmacs initially sets `x-resource-name' to the name under which Emacs\nwas invoked, or to the value specified with the `-name' or `-rn'\nswitches, if present.\n\nIt may be useful to bind this variable locally around a call\nto `x-get-resource'.  See also the variable `x-resource-class'.  ");
-    Vx_resource_name = Qnil ();
+    (*Vx_resource_name.as_mut_ptr ()) = Qnil ();
     DEFVAR_LISP! (c"x-resource-class", Vx_resource_class,
       "The class Emacs uses to look up X resources.\n`x-get-resource' uses this as the first component of the instance class\nwhen requesting resource values.\n\nEmacs initially sets `x-resource-class' to \"Emacs\".\n\nSetting this variable permanently is not a reasonable thing to do,\nbut binding this variable locally around a call to `x-get-resource'\nis a reasonable practice.  See also the variable `x-resource-name'.  ");
-    Vx_resource_class = build_string (EMACS_CLASS_C.as_ptr ());
+    (*Vx_resource_class.as_mut_ptr ()) = build_string (EMACS_CLASS_C.as_ptr ());
     DEFVAR_LISP! (c"frame-alpha-lower-limit", Vframe_alpha_lower_limit,
       "The lower limit of the frame opacity (alpha transparency).\nThe value should range from 0 (invisible) to 100 (completely opaque).\nYou can also use a floating number between 0.0 and 1.0.  ");
-    Vframe_alpha_lower_limit = make_fixnum (20);
+    (*Vframe_alpha_lower_limit.as_mut_ptr ()) = make_fixnum (20);
   }
 
   DEFVAR_LISP! (c"default-frame-alist", Vdefault_frame_alist,
     "Alist of default values of frame parameters for frame creation.\nThese may be set in your init file, like this:\n  (setq default-frame-alist \\='((width . 80) (height . 55) (menu-bar-lines . 1)))\n\nThese override values given in window system configuration data,\nincluding X Windows' defaults database.\n\nNote that many display-related modes (like `scroll-bar-mode' or\n`menu-bar-mode') alter `default-frame-alist', so if you set this\nvariable directly, you may be overriding other settings\nunintentionally.  Instead it's often better to use\n`modify-all-frames-parameters' or push new elements to the front of\nthis alist.\n\nFor values specific to the first Emacs frame, see `initial-frame-alist'.\n\nFor window-system specific values, see `window-system-default-frame-alist'.\n\nFor values specific to the separate minibuffer frame, see\n`minibuffer-frame-alist'.\n\nSetting this variable does not affect existing frames, only new ones.  ");
-  Vdefault_frame_alist = Qnil ();
+  (*Vdefault_frame_alist.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"default-frame-scroll-bars", Vdefault_frame_scroll_bars,
 	       "Default position of vertical scroll bars on this window-system.  ");
@@ -8545,63 +8544,63 @@ pub unsafe extern "C-unwind" fn syms_of_frame ()
   {
     #[cfg(any(feature = "have_ntgui", feature = "ns_impl_cocoa",
               all(feature = "use_gtk", feature = "use_toolkit_scroll_bars")))]
-    { Vdefault_frame_scroll_bars = Qright (); }
+    { (*Vdefault_frame_scroll_bars.as_mut_ptr ()) = Qright (); }
     #[cfg(not(any(feature = "have_ntgui", feature = "ns_impl_cocoa",
                   all(feature = "use_gtk", feature = "use_toolkit_scroll_bars"))))]
-    { Vdefault_frame_scroll_bars = Qleft (); }
+    { (*Vdefault_frame_scroll_bars.as_mut_ptr ()) = Qleft (); }
   }
   #[cfg(not(all(feature = "have_window_system", not(feature = "have_android"))))]
-  { Vdefault_frame_scroll_bars = Qnil (); }
+  { (*Vdefault_frame_scroll_bars.as_mut_ptr ()) = Qnil (); }
 
   DEFVAR_BOOL! (c"scroll-bar-adjust-thumb-portion",
                scroll_bar_adjust_thumb_portion_p,
                "Adjust scroll bars for overscrolling for Gtk+, Motif and Haiku.\nNon-nil means adjust the thumb in the scroll bar so it can be dragged downwards\neven if the end of the buffer is shown (i.e. overscrolling).\nSet to nil if you want the thumb to be at the bottom when the end of the buffer\nis shown.  Also, the thumb fills the whole scroll bar when the entire buffer\nis visible.  In this case you can not overscroll.  ");
-  scroll_bar_adjust_thumb_portion_p = true;
+  (*scroll_bar_adjust_thumb_portion_p.as_mut_ptr ()) = true;
 
   DEFVAR_LISP! (c"terminal-frame", Vterminal_frame,
                "The initial frame-object, which represents Emacs's stdout.  ");
 
   DEFVAR_LISP! (c"mouse-position-function", Vmouse_position_function,
 	       "If non-nil, function to transform normal value of `mouse-position'.\n`mouse-position' and `mouse-pixel-position' call this function, passing their\nusual return value as argument, and return whatever this function returns.\nThis abnormal hook exists for the benefit of packages like `xt-mouse.el'\nwhich need to do mouse handling at the Lisp level.  ");
-  Vmouse_position_function = Qnil ();
+  (*Vmouse_position_function.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"mouse-highlight", Vmouse_highlight,
 	       "If non-nil, clickable text is highlighted when mouse is over it.\nIf the value is an integer, highlighting is shown only after moving the\nmouse, while keyboard input turns off the highlight even when the mouse\nis over the clickable text.  However, the mouse shape still indicates\nwhen the mouse is over clickable text.  ");
-  Vmouse_highlight = Qt ();
+  (*Vmouse_highlight.as_mut_ptr ()) = Qt ();
 
   DEFVAR_LISP! (c"make-pointer-invisible", Vmake_pointer_invisible,
                "If non-nil, make mouse pointer invisible while typing.\nThe pointer becomes visible again when the mouse is moved.\n\nWhen using this, you might also want to disable highlighting of\nclickable text.  See `mouse-highlight'.  ");
-  Vmake_pointer_invisible = Qt ();
+  (*Vmake_pointer_invisible.as_mut_ptr ()) = Qt ();
 
   DEFVAR_LISP! (c"move-frame-functions", Vmove_frame_functions,
                "Functions run after a frame was moved.\nThe functions are run with one arg, the frame that moved.  ");
-  Vmove_frame_functions = Qnil ();
+  (*Vmove_frame_functions.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"delete-frame-functions", Vdelete_frame_functions,
 	       "Functions run before deleting a frame.\nThe functions are run with one arg, the frame to be deleted.\nSee `delete-frame'.\n\nNote that functions in this list may be called just before the frame is\nactually deleted, or some time later (or even both when an earlier function\nin `delete-frame-functions' (indirectly) calls `delete-frame'\nrecursively).  ");
-  Vdelete_frame_functions = Qnil ();
+  (*Vdelete_frame_functions.as_mut_ptr ()) = Qnil ();
   DEFSYM! (Qdelete_frame_functions, c"delete-frame-functions");
 
   DEFVAR_LISP! (c"after-delete-frame-functions",
                Vafter_delete_frame_functions,
                "Functions run after deleting a frame.\nThe functions are run with one arg, the frame that was deleted and\nwhich is now dead.  ");
-  Vafter_delete_frame_functions = Qnil ();
+  (*Vafter_delete_frame_functions.as_mut_ptr ()) = Qnil ();
   DEFSYM! (Qafter_delete_frame_functions, c"after-delete-frame-functions");
 
   DEFVAR_LISP! (c"menu-bar-mode", Vmenu_bar_mode,
                "Non-nil if Menu-Bar mode is enabled.\nSee the command `menu-bar-mode' for a description of this minor mode.\nSetting this variable directly does not take effect;\neither customize it (see the info node `Easy Customization')\nor call the function `menu-bar-mode'.  ");
-  Vmenu_bar_mode = Qt ();
+  (*Vmenu_bar_mode.as_mut_ptr ()) = Qt ();
 
   DEFVAR_LISP! (c"tab-bar-mode", Vtab_bar_mode,
                "Non-nil if Tab-Bar mode is enabled.\nSee the command `tab-bar-mode' for a description of this minor mode.\nSetting this variable directly does not take effect;\neither customize it (see the info node `Easy Customization')\nor call the function `tab-bar-mode'.  ");
-  Vtab_bar_mode = Qnil ();
+  (*Vtab_bar_mode.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"tool-bar-mode", Vtool_bar_mode,
                "Non-nil if Tool-Bar mode is enabled.\nSee the command `tool-bar-mode' for a description of this minor mode.\nSetting this variable directly does not take effect;\neither customize it (see the info node `Easy Customization')\nor call the function `tool-bar-mode'.  ");
   #[cfg(feature = "have_window_system")]
-  { Vtool_bar_mode = Qt (); }
+  { (*Vtool_bar_mode.as_mut_ptr ()) = Qt (); }
   #[cfg(not(feature = "have_window_system"))]
-  { Vtool_bar_mode = Qnil (); }
+  { (*Vtool_bar_mode.as_mut_ptr ()) = Qnil (); }
 
   DEFVAR_KBOARD! (c"default-minibuffer-frame",
 		  std::mem::offset_of! (kboard, Vdefault_minibuffer_frame_),
@@ -8609,47 +8608,47 @@ pub unsafe extern "C-unwind" fn syms_of_frame ()
 
   DEFVAR_LISP! (c"resize-mini-frames", resize_mini_frames,
     "Non-nil means resize minibuffer-only frames automatically.\nIf this is nil, do not resize minibuffer-only frames automatically.\n\nIf this is a function, call that function with the minibuffer-only\nframe that shall be resized as sole argument.  The buffer of the root\nwindow of that frame is the buffer whose text will be eventually shown\nin the minibuffer window.\n\nAny other non-nil value means to resize minibuffer-only frames by\ncalling `fit-mini-frame-to-buffer'.  ");
-  resize_mini_frames = Qnil ();
+  (*resize_mini_frames.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"focus-follows-mouse", focus_follows_mouse,
 	       "Non-nil if window system changes focus when you move the mouse.\nYou should set this variable to tell Emacs how your window manager\nhandles focus, since there is no way in general for Emacs to find out\nautomatically.\n\nThere are three meaningful values:\n\n- The default nil should be used when your window manager follows a\n  \"click-to-focus\" policy where you have to click the mouse inside of a\n  frame in order for that frame to get focus.\n\n- The value t should be used when your window manager has the focus\n  automatically follow the position of the mouse pointer but a window\n  that gains focus is not raised automatically.\n\n- The value `auto-raise' should be used when your window manager has the\n  focus automatically follow the position of the mouse pointer and a\n  window that gains focus is raised automatically.\n\nIf this option is non-nil, Emacs moves the mouse pointer to the frame\nselected by `select-frame-set-input-focus'.  This function is used by a\nnumber of commands like, for example, `other-frame' and `pop-to-buffer'.\nIf this option is nil and your focus follows mouse window manager does\nnot autonomously move the mouse pointer to the newly selected frame, the\npreviously selected window manager window might get reselected instead\nimmediately.\n\nThe distinction between the values t and `auto-raise' is not needed for\n\"normal\" frames because the window manager takes care of raising them.\nSetting this to `auto-raise' will, however, override the standard\nbehavior of a window manager that does not automatically raise the frame\nthat gets focus.  Setting this to `auto-raise' is also necessary to\nautomatically raise child frames which are usually left alone by the\nwindow manager.\n\nNote that this option does not distinguish \"sloppy\" focus (where the\nframe that previously had focus retains focus as long as the mouse\npointer does not move into another window manager window) from \"strict\"\nfocus (where a frame immediately loses focus when it's left by the mouse\npointer).\n\nIn order to extend a \"focus follows mouse\" policy to individual Emacs\nwindows, customize the variable `mouse-autoselect-window'.  ");
-  focus_follows_mouse = Qnil ();
+  (*focus_follows_mouse.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_BOOL! (c"frame-resize-pixelwise", frame_resize_pixelwise,
 	       "Non-nil means resize frames pixelwise.\nIf this option is nil, resizing a frame rounds its sizes to the frame's\ncurrent values of `frame-char-height' and `frame-char-width'.  If this\nis non-nil, no rounding occurs, hence frame sizes can increase/decrease\nby one pixel.\n\nWith some window managers you may have to set this to non-nil in order\nto set the size of a frame in pixels, to maximize frames or to make them\nfullscreen.  To resize your initial frame pixelwise, set this option to\na non-nil value in your init file.  ");
-  frame_resize_pixelwise = false;
+  (*frame_resize_pixelwise.as_mut_ptr ()) = false;
 
   DEFVAR_LISP! (c"frame-inhibit-implied-resize", frame_inhibit_implied_resize,
 	       "Whether frames should be resized implicitly.\nIf this option is nil, setting font, menu bar, tool bar, tab bar,\ninternal borders, fringes or scroll bars of a specific frame may resize\nthe frame in order to preserve the number of columns or lines it\ndisplays.\n\nIf this option is t, no such resizing happens once Emacs has agreed with\nthe window manager on the final initial size of a frame.  That size will\nhave taken into account the size of the text area requested by the user\nand the size of all decorations initially present on the frame.\n\nIf this is the symbol `force', no implicit resizing happens even before\na frame has obtained its final initial size.  As a consequence, the\ninitial frame size may not necessarily be the one requested by the user.\nThis value can be useful with tiling window managers where the initial\nsize of a frame is determined by external means.\n\nThe value of this option can be also a list of frame parameters.  In\nthis case, resizing is inhibited once a frame has obtained its final\ninitial size when changing a parameter that appears in that list.  The\nparameters currently handled by this option include `font',\n`font-backend', `internal-border-width', `menu-bar-lines',\n`tool-bar-lines' and `tab-bar-lines'.\n\nChanging any of the parameters `scroll-bar-width', `scroll-bar-height',\n`vertical-scroll-bars', `horizontal-scroll-bars', `left-fringe' and\n`right-fringe' is handled as if the frame contained just one live\nwindow.  This means, for example, that removing vertical scroll bars on\na frame containing several side by side windows will shrink the frame\nwidth by the width of one scroll bar provided this option is nil and\nkeep it unchanged if this option is either t or a list containing\n`vertical-scroll-bars'.\n\nIn GTK+ and NS that use the external tool bar, the default value is\n\\='(tab-bar-lines) which means that adding/removing a tab bar does\nnot change the frame height.  On all other types of GUI frames, the\ndefault value is \\='(tab-bar-lines tool-bar-lines) which means that\nadding/removing a tool bar or tab bar does not change the frame\nheight.  Otherwise it's t which means the frame size never changes\nimplicitly when there's no window system support.\n\nNote that the size of fullscreen and maximized frames, the height of\nfullheight frames and the width of fullwidth frames never change\nimplicitly.  Note also that when a frame is not large enough to\naccommodate a change of any of the parameters listed above, Emacs may\ntry to enlarge the frame even if this option is non-nil.  ");
   #[cfg(all(feature = "have_window_system", not(feature = "have_android")))]
   {
     #[cfg(any(feature = "use_gtk", feature = "have_ns"))]
-    { frame_inhibit_implied_resize = list1 (Qtab_bar_lines ()); }
+    { (*frame_inhibit_implied_resize.as_mut_ptr ()) = list1 (Qtab_bar_lines ()); }
     #[cfg(not(any(feature = "use_gtk", feature = "have_ns")))]
-    { frame_inhibit_implied_resize = list2 (Qtab_bar_lines (), Qtool_bar_lines ()); }
+    { (*frame_inhibit_implied_resize.as_mut_ptr ()) = list2 (Qtab_bar_lines (), Qtool_bar_lines ()); }
   }
   #[cfg(not(all(feature = "have_window_system", not(feature = "have_android"))))]
-  { frame_inhibit_implied_resize = Qt (); }
+  { (*frame_inhibit_implied_resize.as_mut_ptr ()) = Qt (); }
 
   DEFVAR_LISP! (c"frame-size-history", frame_size_history,
                "History of frame size adjustments.\nIf non-nil, list recording frame size adjustment.  Adjustments are\nrecorded only if the first element of this list is a positive number.\nAdding an adjustment decrements that number by one.\n\nThe remaining elements are the adjustments.  Each adjustment is a list\nof four elements `frame', `function', `sizes' and `more'.  `frame' is\nthe affected frame and `function' the invoking function.  `sizes' is\nusually a list of four elements `old-width', `old-height', `new-width'\nand `new-height' representing the old and new sizes recorded/requested\nby `function'.  `more' is a list with additional information.\n\nThe function `frame--size-history' displays the value of this variable\nin a more readable form.  ");
-    frame_size_history = Qnil ();
+    (*frame_size_history.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_BOOL! (c"tooltip-reuse-hidden-frame", tooltip_reuse_hidden_frame,
 	       "Non-nil means reuse hidden tooltip frames.\nWhen this is nil, delete a tooltip frame when hiding the associated\ntooltip.  When this is non-nil, make the tooltip frame invisible only,\nso it can be reused when the next tooltip is shown.\n\nSetting this to non-nil may drastically reduce the consing overhead\nincurred by creating new tooltip frames.  However, a value of non-nil\nmeans also that intermittent changes of faces or `default-frame-alist'\nare not applied when showing a tooltip in a reused frame.\n\nThis variable is effective only with the X toolkit (and there only when\nGtk+ tooltips are not used) and on Windows.  ");
-  tooltip_reuse_hidden_frame = false;
+  (*tooltip_reuse_hidden_frame.as_mut_ptr ()) = false;
 
   DEFVAR_BOOL! (c"use-system-tooltips", use_system_tooltips,
 	       "Whether to use the toolkit to display tooltips.\nThis option is only meaningful when Emacs is built with GTK+, NS or Haiku\nwindowing support, and, if it's non-nil (the default), it results in\ntooltips that look like those displayed by other GTK+/NS/Haiku programs,\nbut will not be able to display text properties inside tooltip text.  ");
-  use_system_tooltips = true;
+  (*use_system_tooltips.as_mut_ptr ()) = true;
 
   DEFVAR_LISP! (c"iconify-child-frame", iconify_child_frame,
 	       "How to handle iconification of child frames.\nThis variable tells Emacs how to proceed when it is asked to iconify a\nchild frame.  If it is nil, `iconify-frame' will do nothing when invoked\non a child frame.  If it is `iconify-top-level' and the child frame is\non a graphical terminal, Emacs will try to iconify the root frame of\nthis child frame.  If it is `make-invisible', Emacs will try to make\nthis child frame invisible instead.\n\nAny other value means to try iconifying the child frame on a graphical\nterminal.  Since such an attempt is not honored by all window managers\nand may even lead to making the child frame unresponsive to user\nactions, the default is to iconify the root frame instead.  ");
-  iconify_child_frame = Qiconify_top_level ();
+  (*iconify_child_frame.as_mut_ptr ()) = Qiconify_top_level ();
 
   DEFVAR_LISP! (c"expose-hidden-buffer", expose_hidden_buffer,
 	       "Non-nil means to make a hidden buffer more visible.\nA buffer is considered \"hidden\" if its name starts with a space.  By\ndefault, many functions disregard hidden buffers.  In particular,\n`make-frame' does not show the current buffer in the new frame's\nselected window if that buffer is hidden.  Rather, `make-frame' will\nshow a buffer that is not hidden instead.\n\nIf this variable is non-nil, it will override the default behavior and\nallow `make-frame' to show the current buffer even if its hidden.  ");
-  expose_hidden_buffer = Qnil ();
+  (*expose_hidden_buffer.as_mut_ptr ()) = Qnil ();
   DEFSYM! (Qexpose_hidden_buffer, c"expose-hidden-buffer");
   Fmake_variable_buffer_local (Qexpose_hidden_buffer ());
 
@@ -8657,96 +8656,96 @@ pub unsafe extern "C-unwind" fn syms_of_frame ()
 	       "Frame parameters specific to every frame.  ");
   #[cfg(feature = "have_x_windows")]
   {
-    frame_internal_parameters = list4 (Qname (), Qparent_id (), Qwindow_id (), Qouter_window_id ());
+    (*frame_internal_parameters.as_mut_ptr ()) = list4 (Qname (), Qparent_id (), Qwindow_id (), Qouter_window_id ());
   }
   #[cfg(not(feature = "have_x_windows"))]
   {
-    frame_internal_parameters = list3 (Qname (), Qparent_id (), Qwindow_id ());
+    (*frame_internal_parameters.as_mut_ptr ()) = list3 (Qname (), Qparent_id (), Qwindow_id ());
   }
-  frame_internal_parameters = Fcons (Qframe_id (), frame_internal_parameters);
-  frame_internal_parameters = Fcons (Qcloned_from (), frame_internal_parameters);
-  frame_internal_parameters = Fcons (Qundeleted (), frame_internal_parameters);
+  (*frame_internal_parameters.as_mut_ptr ()) = Fcons (Qframe_id (), (*frame_internal_parameters.as_mut_ptr ()));
+  (*frame_internal_parameters.as_mut_ptr ()) = Fcons (Qcloned_from (), (*frame_internal_parameters.as_mut_ptr ()));
+  (*frame_internal_parameters.as_mut_ptr ()) = Fcons (Qundeleted (), (*frame_internal_parameters.as_mut_ptr ()));
 
   DEFVAR_LISP! (c"alter-fullscreen-frames", alter_fullscreen_frames,
 	       "How to handle requests to resize fullscreen frames.\nEmacs consults this option when asked to resize a fullscreen frame via\nfunctions like `set-frame-size' or when setting the \\+`width' or \\+`height'\nparameter of a frame.  The following values are provided:\n\n- nil means to forward the resize request to the window manager and\n  leave it to the latter how to proceed.\n\n- t means to first reset the fullscreen status and then forward the\n  request to the window manager.\n\n- \\+`inhibit' means to reject the resize request and leave the fullscreen\n  status unchanged.\n\nThe default is \\+`inhibit' in NS builds and nil everywhere else.  ");
 
   #[cfg(feature = "ns_impl_cocoa")]
-  { alter_fullscreen_frames = Qinhibit (); }
+  { (*alter_fullscreen_frames.as_mut_ptr ()) = Qinhibit (); }
   #[cfg(not(feature = "ns_impl_cocoa"))]
-  { alter_fullscreen_frames = Qnil (); }
+  { (*alter_fullscreen_frames.as_mut_ptr ()) = Qnil (); }
 
   DEFVAR_LISP! (c"delete-frame-choose-selected",
 	       delete_frame_choose_selected,
 	       "What frame to select after frame deletion.\nThe value `mru' means `delete-frame' selects most recently used frame.\nIf this is nil, `delete-frame' will select the oldest visible frame on\nthe same terminal.  ");
-  delete_frame_choose_selected = Qmru ();
+  (*delete_frame_choose_selected.as_mut_ptr ()) = Qmru ();
 
-  defsubr (&raw mut Sframe_id);
-  defsubr (&raw mut Sframep);
-  defsubr (&raw mut Sframe_live_p);
-  defsubr (&raw mut Swindow_system);
-  defsubr (&raw mut Sframe_windows_min_size);
-  defsubr (&raw mut Smake_terminal_frame);
-  defsubr (&raw mut Sselect_frame);
-  defsubr (&raw mut Shandle_switch_frame);
-  defsubr (&raw mut Sselected_frame);
-  defsubr (&raw mut Sold_selected_frame);
-  defsubr (&raw mut Sframe_list);
-  defsubr (&raw mut Sframe_parent);
-  defsubr (&raw mut Sframe_ancestor_p);
-  defsubr (&raw mut Sframe_root_frame);
-  defsubr (&raw mut Snext_frame);
-  defsubr (&raw mut Sprevious_frame);
-  defsubr (&raw mut Slast_nonminibuf_frame);
-  defsubr (&raw mut Sdelete_frame);
-  defsubr (&raw mut Smouse_position);
-  defsubr (&raw mut Smouse_pixel_position);
-  defsubr (&raw mut Sset_mouse_position);
-  defsubr (&raw mut Sset_mouse_pixel_position);
+  defsubr (Sframe_id.as_mut_ptr ());
+  defsubr (Sframep.as_mut_ptr ());
+  defsubr (Sframe_live_p.as_mut_ptr ());
+  defsubr (Swindow_system.as_mut_ptr ());
+  defsubr (Sframe_windows_min_size.as_mut_ptr ());
+  defsubr (Smake_terminal_frame.as_mut_ptr ());
+  defsubr (Sselect_frame.as_mut_ptr ());
+  defsubr (Shandle_switch_frame.as_mut_ptr ());
+  defsubr (Sselected_frame.as_mut_ptr ());
+  defsubr (Sold_selected_frame.as_mut_ptr ());
+  defsubr (Sframe_list.as_mut_ptr ());
+  defsubr (Sframe_parent.as_mut_ptr ());
+  defsubr (Sframe_ancestor_p.as_mut_ptr ());
+  defsubr (Sframe_root_frame.as_mut_ptr ());
+  defsubr (Snext_frame.as_mut_ptr ());
+  defsubr (Sprevious_frame.as_mut_ptr ());
+  defsubr (Slast_nonminibuf_frame.as_mut_ptr ());
+  defsubr (Sdelete_frame.as_mut_ptr ());
+  defsubr (Smouse_position.as_mut_ptr ());
+  defsubr (Smouse_pixel_position.as_mut_ptr ());
+  defsubr (Sset_mouse_position.as_mut_ptr ());
+  defsubr (Sset_mouse_pixel_position.as_mut_ptr ());
   /* C 7828-7831's `#if 0` (a literal-false condition) arm is dead.  */
-  defsubr (&raw mut Smake_frame_visible);
-  defsubr (&raw mut Smake_frame_invisible);
-  defsubr (&raw mut Siconify_frame);
-  defsubr (&raw mut Sframe_visible_p);
-  defsubr (&raw mut Svisible_frame_list);
-  defsubr (&raw mut Sraise_frame);
-  defsubr (&raw mut Slower_frame);
-  defsubr (&raw mut Sx_focus_frame);
-  defsubr (&raw mut Sframe_after_make_frame);
-  defsubr (&raw mut Sredirect_frame_focus);
-  defsubr (&raw mut Sframe_focus);
-  defsubr (&raw mut Sframe_parameters);
-  defsubr (&raw mut Sframe_parameter);
-  defsubr (&raw mut Smodify_frame_parameters);
-  defsubr (&raw mut Sframe_char_height);
-  defsubr (&raw mut Sframe_char_width);
-  defsubr (&raw mut Sframe_native_height);
-  defsubr (&raw mut Sframe_native_width);
-  defsubr (&raw mut Sframe_text_cols);
-  defsubr (&raw mut Sframe_text_lines);
-  defsubr (&raw mut Sframe_total_cols);
-  defsubr (&raw mut Sframe_total_lines);
-  defsubr (&raw mut Sframe_text_width);
-  defsubr (&raw mut Sframe_text_height);
-  defsubr (&raw mut Sscroll_bar_width);
-  defsubr (&raw mut Sscroll_bar_height);
-  defsubr (&raw mut Sfringe_width);
-  defsubr (&raw mut Sframe_child_frame_border_width);
-  defsubr (&raw mut Sframe_internal_border_width);
-  defsubr (&raw mut Sright_divider_width);
-  defsubr (&raw mut Sbottom_divider_width);
-  defsubr (&raw mut Stool_bar_pixel_width);
-  defsubr (&raw mut Sset_frame_height);
-  defsubr (&raw mut Sset_frame_width);
-  defsubr (&raw mut Sset_frame_size);
-  defsubr (&raw mut Sframe_position);
-  defsubr (&raw mut Sset_frame_position);
-  defsubr (&raw mut Sset_frame_size_and_position_pixelwise);
-  defsubr (&raw mut Sframe_pointer_visible_p);
-  defsubr (&raw mut Smouse_position_in_root_frame);
-  defsubr (&raw mut Sframe__set_was_invisible);
-  defsubr (&raw mut Sframe_window_state_change);
-  defsubr (&raw mut Sset_frame_window_state_change);
-  defsubr (&raw mut Sframe_scale_factor);
+  defsubr (Smake_frame_visible.as_mut_ptr ());
+  defsubr (Smake_frame_invisible.as_mut_ptr ());
+  defsubr (Siconify_frame.as_mut_ptr ());
+  defsubr (Sframe_visible_p.as_mut_ptr ());
+  defsubr (Svisible_frame_list.as_mut_ptr ());
+  defsubr (Sraise_frame.as_mut_ptr ());
+  defsubr (Slower_frame.as_mut_ptr ());
+  defsubr (Sx_focus_frame.as_mut_ptr ());
+  defsubr (Sframe_after_make_frame.as_mut_ptr ());
+  defsubr (Sredirect_frame_focus.as_mut_ptr ());
+  defsubr (Sframe_focus.as_mut_ptr ());
+  defsubr (Sframe_parameters.as_mut_ptr ());
+  defsubr (Sframe_parameter.as_mut_ptr ());
+  defsubr (Smodify_frame_parameters.as_mut_ptr ());
+  defsubr (Sframe_char_height.as_mut_ptr ());
+  defsubr (Sframe_char_width.as_mut_ptr ());
+  defsubr (Sframe_native_height.as_mut_ptr ());
+  defsubr (Sframe_native_width.as_mut_ptr ());
+  defsubr (Sframe_text_cols.as_mut_ptr ());
+  defsubr (Sframe_text_lines.as_mut_ptr ());
+  defsubr (Sframe_total_cols.as_mut_ptr ());
+  defsubr (Sframe_total_lines.as_mut_ptr ());
+  defsubr (Sframe_text_width.as_mut_ptr ());
+  defsubr (Sframe_text_height.as_mut_ptr ());
+  defsubr (Sscroll_bar_width.as_mut_ptr ());
+  defsubr (Sscroll_bar_height.as_mut_ptr ());
+  defsubr (Sfringe_width.as_mut_ptr ());
+  defsubr (Sframe_child_frame_border_width.as_mut_ptr ());
+  defsubr (Sframe_internal_border_width.as_mut_ptr ());
+  defsubr (Sright_divider_width.as_mut_ptr ());
+  defsubr (Sbottom_divider_width.as_mut_ptr ());
+  defsubr (Stool_bar_pixel_width.as_mut_ptr ());
+  defsubr (Sset_frame_height.as_mut_ptr ());
+  defsubr (Sset_frame_width.as_mut_ptr ());
+  defsubr (Sset_frame_size.as_mut_ptr ());
+  defsubr (Sframe_position.as_mut_ptr ());
+  defsubr (Sset_frame_position.as_mut_ptr ());
+  defsubr (Sset_frame_size_and_position_pixelwise.as_mut_ptr ());
+  defsubr (Sframe_pointer_visible_p.as_mut_ptr ());
+  defsubr (Smouse_position_in_root_frame.as_mut_ptr ());
+  defsubr (Sframe__set_was_invisible.as_mut_ptr ());
+  defsubr (Sframe_window_state_change.as_mut_ptr ());
+  defsubr (Sset_frame_window_state_change.as_mut_ptr ());
+  defsubr (Sframe_scale_factor.as_mut_ptr ());
 
   /* C 7877-7881: live in every GUI configuration; the frozen terminal target has no window
      system, and the two functions' own `#[cfg (feature = "have_window_system")]` matches this
@@ -8754,9 +8753,9 @@ pub unsafe extern "C-unwind" fn syms_of_frame ()
      `x-parse-geometry` and `reconsider-frame-fonts` are void at startup (status 4.867).  */
   #[cfg (feature = "have_window_system")]
   {
-    defsubr (&raw mut Sx_get_resource);
-    defsubr (&raw mut Sx_parse_geometry);
-    defsubr (&raw mut Sreconsider_frame_fonts);
+    defsubr (Sx_get_resource.as_mut_ptr ());
+    defsubr (Sx_parse_geometry.as_mut_ptr ());
+    defsubr (Sreconsider_frame_fonts.as_mut_ptr ());
   }
 
   /* C 7883-7894: `Qmove_toolbar`'s DEFSYM is live in a GUI configuration; its nested
@@ -8769,7 +8768,7 @@ pub unsafe extern "C-unwind" fn syms_of_frame ()
 
   DEFVAR_LISP! (c"toolkit-theme", Vtoolkit_theme,
                "The current toolkit theme.\nEither the symbol `light' or the symbol `dark', reflecting the system's\ncurrent theme preference.  This variable is updated automatically when\nthe system theme changes.\n\nThis variable is only set on PGTK, Android, and MS-Windows builds.  ");
-  Vtoolkit_theme = Qnil ();
+  (*Vtoolkit_theme.as_mut_ptr ()) = Qnil ();
   DEFSYM! (Qlight, c"light");
   DEFSYM! (Qdark, c"dark");
   DEFSYM! (Qtoolkit_theme_set_functions, c"toolkit-theme-set-functions");

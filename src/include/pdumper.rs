@@ -78,7 +78,7 @@ pub mod pdumper_decls {
     pub fn pdumper_do_now_and_after_late_load_impl (hook: pdumper_hook);   // pdumper.h 76
     pub fn pdumper_load (dump_filename: *const c_char, argv0: *mut c_char)
       -> c_int;                                                     // pdumper.h 146
-    pub static mut dump_public: pdumper_loaded_dump;                // pdumper.h 154
+    pub static dump_public: VmGlobal<pdumper_loaded_dump>;                // pdumper.h 154
     pub fn pdumper_cold_object_p_impl (obj: *const c_void) -> bool;         // pdumper.h 168
     pub fn pdumper_find_object_type_impl (obj: *const c_void) -> c_int;     // pdumper.h 180
     pub fn pdumper_marked_p_impl (obj: *const c_void) -> bool;              // pdumper.h 213
@@ -173,7 +173,7 @@ pub struct pdumper_loaded_dump
 #[inline(always)]
 pub fn pdumper_object_p (obj: *const c_void) -> bool {
   let obj_addr = obj as uintptr_t;
-  /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { dump_public.start <= obj_addr && obj_addr < dump_public.end }
+  /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { (*dump_public.as_mut_ptr ()).start <= obj_addr && obj_addr < (*dump_public.as_mut_ptr ()).end }
 }
 
 /* Return whether the OBJ is in the cold section of the dump.
@@ -188,8 +188,8 @@ pub fn pdumper_cold_object_p (obj: *const c_void) -> bool {
   {
     unsafe extern "C-unwind" { static dump_private: [u8; 152]; }
     unsafe {
-      let offset = (obj as uintptr_t).wrapping_sub (dump_public.start) as i32;
-      let cold_start = *(&raw const dump_private as *const u8).add (92).cast::<i32> ();
+      let offset = (obj as uintptr_t).wrapping_sub ((*dump_public.as_mut_ptr ()).start) as i32;
+      let cold_start = *(dump_private.as_ptr () as *const u8).add (92).cast::<i32> ();
       offset >= cold_start
     }
   }
@@ -230,8 +230,8 @@ pub fn pdumper_marked_p (obj: *const c_void) -> bool {
   {
     unsafe extern "C-unwind" { static dump_private: [u8; 152]; }
     unsafe {
-      let bitno: usize = (obj as uintptr_t).wrapping_sub (dump_public.start) >> 3;
-      let bits = *(&raw const dump_private as *const u8).add (104).cast::<*const u32> ();
+      let bitno: usize = (obj as uintptr_t).wrapping_sub ((*dump_public.as_mut_ptr ()).start) >> 3;
+      let bits = *(dump_private.as_ptr () as *const u8).add (104).cast::<*const u32> ();
       (*bits.add (bitno >> 5) & (1u32 << (bitno & 31))) != 0
     }
   }
@@ -246,10 +246,10 @@ pub fn pdumper_set_marked (obj: *const c_void) {
   { /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe { pdumper_set_marked_impl (obj) } }
   #[cfg(not(enable_checking))]
   {
-    unsafe extern "C-unwind" { static mut dump_private: [u8; 152]; }
+    unsafe extern "C-unwind" { static dump_private: VmGlobal<[u8; 152]>; }
     unsafe {
-      let bitno: usize = (obj as uintptr_t).wrapping_sub (dump_public.start) >> 3;
-      let bits = *(&raw mut dump_private as *mut u8).add (104).cast::<*mut u32> ();
+      let bitno: usize = (obj as uintptr_t).wrapping_sub ((*dump_public.as_mut_ptr ()).start) >> 3;
+      let bits = *(dump_private.as_mut_ptr () as *mut u8).add (104).cast::<*mut u32> ();
       *bits.add (bitno >> 5) |= 1u32 << (bitno & 31);
     }
   }
@@ -265,10 +265,10 @@ pub fn pdumper_test_and_set_marked (obj: *const c_void) -> bool {
   }
   #[cfg(not(enable_checking))]
   {
-    unsafe extern "C-unwind" { static mut dump_private: [u8; 152]; }
+    unsafe extern "C-unwind" { static dump_private: VmGlobal<[u8; 152]>; }
     /* SAFETY: portable dumper relocation/serialization boundary; operates on validated dump section mappings, registered static roots, and pre-initialization or VM-locked heap state. */ unsafe {
-      let bitno: usize = (obj as uintptr_t).wrapping_sub (dump_public.start) >> 3;
-      let bits = *(&raw mut dump_private as *mut u8).add (104).cast::<*mut u32> ();
+      let bitno: usize = (obj as uintptr_t).wrapping_sub ((*dump_public.as_mut_ptr ()).start) >> 3;
+      let bits = *(dump_private.as_mut_ptr () as *mut u8).add (104).cast::<*mut u32> ();
       let slot = bits.add (bitno >> 5);
       let mask = 1u32 << (bitno & 31);
       let w = *slot;

@@ -676,7 +676,7 @@ unsafe fn lock_file (r#fn: Lisp_Object) -> Lisp_Object
     { return Qnil (); }
 
   let mut lfname: Lisp_Object = Qnil ();
-  if create_lockfiles
+  if (*create_lockfiles.as_mut_ptr ())
     {
       /* Create the name of the lock-file for file fn */
       lfname = make_lock_file_name (r#fn);
@@ -754,9 +754,9 @@ unsafe extern "C-unwind" fn unlock_file_handle_error (err: Lisp_Object) -> Lisp_
 /* C's two DEFVAR variables live in the generated globals.h in C; the port's globals.rs
    mirrors them as declarations and the owning unit defines them (P-21, the undo.rs shape).  */
 #[unsafe(no_mangle)]
-pub static mut Vtemporary_file_directory: Lisp_Object = lisp_h_Qnil ();
+pub static Vtemporary_file_directory: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut create_lockfiles: bool = false;
+pub static create_lockfiles: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn unlock_all_files ()
@@ -772,7 +772,7 @@ pub unsafe extern "C-unwind" fn unlock_all_files ()
      true)); (tail) = XCDR (tail))`.  The loop macro has no Rust counterpart yet (P-22), so
      the expansion is written here (the ITREE_FOREACH precedent, P-33); the `tail`/`buf` names
      and the statement order are C's, and the test's assignment is the `while` condition.  */
-  tail = Vbuffer_alist;
+  tail = (*Vbuffer_alist.as_mut_ptr ());
   while CONSP (tail) && { buf = XCDR (XCAR (tail)); true }
     {
       b = XBUFFER (buf);
@@ -917,11 +917,11 @@ pub unsafe extern "C-unwind" fn syms_of_filelock ()
   unsafe {
   DEFVAR_LISP! (c"temporary-file-directory", Vtemporary_file_directory,
 		"The directory for writing temporary files.");
-  Vtemporary_file_directory = Qnil ();
+  (*Vtemporary_file_directory.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_BOOL! (c"create-lockfiles", create_lockfiles,
 		"Non-nil means use lockfiles to avoid editing collisions.\nThe name of the (per-buffer) lockfile is constructed by prepending\n\".#\" to the name of the file being locked.  See also `lock-buffer' and\nInfo node `(emacs)Interlocking'.");
-  create_lockfiles = true;
+  (*create_lockfiles.as_mut_ptr ()) = true;
 
   DEFSYM! (Qlock_file, "lock-file");
   DEFSYM! (Qunlock_file, "unlock-file");
@@ -933,11 +933,11 @@ pub unsafe extern "C-unwind" fn syms_of_filelock ()
   DEFSYM! (Quserlock__ask_user_about_supersession_threat,
 	   "userlock--ask-user-about-supersession-threat");
 
-  defsubr (&raw mut Slock_file);
-  defsubr (&raw mut Sunlock_file);
-  defsubr (&raw mut Slock_buffer);
-  defsubr (&raw mut Sunlock_buffer);
-  defsubr (&raw mut Sfile_locked_p);
+  defsubr (Slock_file.as_mut_ptr ());
+  defsubr (Sunlock_file.as_mut_ptr ());
+  defsubr (Slock_buffer.as_mut_ptr ());
+  defsubr (Sunlock_buffer.as_mut_ptr ());
+  defsubr (Sfile_locked_p.as_mut_ptr ());
 
   }
 }

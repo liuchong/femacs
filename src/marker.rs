@@ -50,10 +50,10 @@ const _: () = ();
 /* Record one cached position found recently by
    buf_charpos_to_bytepos or buf_bytepos_to_charpos.  */
 
-static mut cached_charpos: ptrdiff_t = 0;
-static mut cached_bytepos: ptrdiff_t = 0;
-static mut cached_buffer: *mut buffer = std::ptr::null_mut ();
-static mut cached_modiff: modiff_count = 0;
+static cached_charpos: VmGlobal<ptrdiff_t> = VmGlobal::<ptrdiff_t>::new (0);
+static cached_bytepos: VmGlobal<ptrdiff_t> = VmGlobal::<ptrdiff_t>::new (0);
+static cached_buffer: VmGlobal<*mut buffer> = VmGlobal::<*mut buffer>::new (std::ptr::null_mut ());
+static cached_modiff: VmGlobal<modiff_count> = VmGlobal::<modiff_count>::new (0);
 
 /* Juanma Barranquero <lekktu@gmail.com> reported ~3x increased
    bootstrap time when byte_char_debug_check is enabled; so this
@@ -134,8 +134,8 @@ pub unsafe extern "C-unwind" fn clear_charpos_cache (b: *mut buffer)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  if cached_buffer == b
-    { cached_buffer = 0 as *mut buffer; }
+  if (*cached_buffer.as_mut_ptr ()) == b
+    { (*cached_buffer.as_mut_ptr ()) = 0 as *mut buffer; }
 
   }
 }
@@ -297,10 +297,10 @@ pub unsafe extern "C-unwind" fn buf_charpos_to_bytepos (b: *mut c_void, charpos:
 		      &mut best_below, &mut best_below_byte)
     { return value; }
 
-  if cached_buffer == b && BUF_MODIFF! (b) == cached_modiff
+  if (*cached_buffer.as_mut_ptr ()) == b && BUF_MODIFF! (b) == (*cached_modiff.as_mut_ptr ())
     {
       if let Some (value) =
-	consider_charpos (b, charpos, cached_charpos, || cached_bytepos,
+	consider_charpos (b, charpos, (*cached_charpos.as_mut_ptr ()), || (*cached_bytepos.as_mut_ptr ()),
 			  &mut best_above, &mut best_above_byte,
 			  &mut best_below, &mut best_below_byte)
 	{ return value; }
@@ -343,10 +343,10 @@ pub unsafe extern "C-unwind" fn buf_charpos_to_bytepos (b: *mut c_void, charpos:
 
       byte_char_debug_check! (b, best_below, best_below_byte);
 
-      cached_buffer = b;
-      cached_modiff = BUF_MODIFF! (b);
-      cached_charpos = best_below;
-      cached_bytepos = best_below_byte;
+      (*cached_buffer.as_mut_ptr ()) = b;
+      (*cached_modiff.as_mut_ptr ()) = BUF_MODIFF! (b);
+      (*cached_charpos.as_mut_ptr ()) = best_below;
+      (*cached_bytepos.as_mut_ptr ()) = best_below_byte;
 
       return best_below_byte;
     }
@@ -368,10 +368,10 @@ pub unsafe extern "C-unwind" fn buf_charpos_to_bytepos (b: *mut c_void, charpos:
 
       byte_char_debug_check! (b, best_above, best_above_byte);
 
-      cached_buffer = b;
-      cached_modiff = BUF_MODIFF! (b);
-      cached_charpos = best_above;
-      cached_bytepos = best_above_byte;
+      (*cached_buffer.as_mut_ptr ()) = b;
+      (*cached_modiff.as_mut_ptr ()) = BUF_MODIFF! (b);
+      (*cached_charpos.as_mut_ptr ()) = best_above;
+      (*cached_bytepos.as_mut_ptr ()) = best_above_byte;
 
       return best_above_byte;
     }
@@ -489,10 +489,10 @@ pub unsafe extern "C-unwind" fn buf_bytepos_to_charpos (b: *mut c_void, bytepos:
 		      &mut best_below, &mut best_below_byte)
     { return value; }
 
-  if cached_buffer == b && BUF_MODIFF! (b) == cached_modiff
+  if (*cached_buffer.as_mut_ptr ()) == b && BUF_MODIFF! (b) == (*cached_modiff.as_mut_ptr ())
     {
       if let Some (value) =
-	consider_bytepos (b, bytepos, cached_bytepos, || cached_charpos,
+	consider_bytepos (b, bytepos, (*cached_bytepos.as_mut_ptr ()), || (*cached_charpos.as_mut_ptr ()),
 			  &mut best_above, &mut best_above_byte,
 			  &mut best_below, &mut best_below_byte)
 	{ return value; }
@@ -536,10 +536,10 @@ pub unsafe extern "C-unwind" fn buf_bytepos_to_charpos (b: *mut c_void, bytepos:
 
       byte_char_debug_check! (b, best_below, best_below_byte);
 
-      cached_buffer = b;
-      cached_modiff = BUF_MODIFF! (b);
-      cached_charpos = best_below;
-      cached_bytepos = best_below_byte;
+      (*cached_buffer.as_mut_ptr ()) = b;
+      (*cached_modiff.as_mut_ptr ()) = BUF_MODIFF! (b);
+      (*cached_charpos.as_mut_ptr ()) = best_below;
+      (*cached_bytepos.as_mut_ptr ()) = best_below_byte;
 
       return best_below;
     }
@@ -563,10 +563,10 @@ pub unsafe extern "C-unwind" fn buf_bytepos_to_charpos (b: *mut c_void, bytepos:
 
       byte_char_debug_check! (b, best_above, best_above_byte);
 
-      cached_buffer = b;
-      cached_modiff = BUF_MODIFF! (b);
-      cached_charpos = best_above;
-      cached_bytepos = best_above_byte;
+      (*cached_buffer.as_mut_ptr ()) = b;
+      (*cached_modiff.as_mut_ptr ()) = BUF_MODIFF! (b);
+      (*cached_charpos.as_mut_ptr ()) = best_above;
+      (*cached_bytepos.as_mut_ptr ()) = best_above_byte;
 
       return best_above;
     }
@@ -1006,14 +1006,14 @@ pub unsafe extern "C-unwind" fn syms_of_marker ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  defsubr (&raw mut Smarker_position);
-  defsubr (&raw mut Smarker_last_position);
-  defsubr (&raw mut Smarker_buffer);
-  defsubr (&raw mut Sset_marker);
-  defsubr (&raw mut Scopy_marker);
-  defsubr (&raw mut Smarker_insertion_type);
-  defsubr (&raw mut Sset_marker_insertion_type);
-  defsubr (&raw mut Smarkers_in);
+  defsubr (Smarker_position.as_mut_ptr ());
+  defsubr (Smarker_last_position.as_mut_ptr ());
+  defsubr (Smarker_buffer.as_mut_ptr ());
+  defsubr (Sset_marker.as_mut_ptr ());
+  defsubr (Scopy_marker.as_mut_ptr ());
+  defsubr (Smarker_insertion_type.as_mut_ptr ());
+  defsubr (Sset_marker_insertion_type.as_mut_ptr ());
+  defsubr (Smarkers_in.as_mut_ptr ());
 
   }
 }

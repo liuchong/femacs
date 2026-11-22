@@ -343,20 +343,20 @@ pub unsafe extern "C" fn get_boot_time (p_boot_time: *mut timespec) -> c_int
   /* Cache the result from get_boot_time_uncached.  */
   /* C 278-279's `int volatile`/`struct timespec volatile` qualifiers have no Rust counterpart
      on a `static`; the reads and writes keep C's order (docs/ports/boot-time.md).  */
-  static mut cached_result: c_int = -1;
-  static mut cached_boot_time: timespec = timespec { tv_sec: 0, tv_nsec: 0 };
+  static cached_result: VmGlobal<c_int> = VmGlobal::<c_int>::new (-1);
+  static cached_boot_time: VmGlobal<timespec> = VmGlobal::<timespec>::new (timespec { tv_sec: 0, tv_nsec: 0 });
 
-  if cached_result < 0
+  if (*cached_result.as_mut_ptr ()) < 0
     {
       let mut boot_time: timespec = timespec { tv_sec: 0, tv_nsec: 0 };
       let result: c_int = get_boot_time_uncached (&mut boot_time);
-      cached_boot_time = boot_time;
-      cached_result = result;
+      (*cached_boot_time.as_mut_ptr ()) = boot_time;
+      (*cached_result.as_mut_ptr ()) = result;
     }
 
-  if cached_result == 0
+  if (*cached_result.as_mut_ptr ()) == 0
     {
-      *p_boot_time = cached_boot_time;
+      *p_boot_time = (*cached_boot_time.as_mut_ptr ());
       return 0;
     }
   else

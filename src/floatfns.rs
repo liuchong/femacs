@@ -277,7 +277,7 @@ DEFUN! ("abs", Fabs, Sabs, 1, 1, 0,
     {
       if mpz_sgn (xbignum_val (arg)) < 0
 	{
-	  mpz_neg (mpz[0].as_mut_ptr (), xbignum_val (arg));
+	  mpz_neg ((*mpz.as_mut_ptr ())[0].as_mut_ptr (), xbignum_val (arg));
 	  arg = make_integer_mpz ();
 	}
     }
@@ -448,9 +448,9 @@ unsafe fn rounding_driver (n: Lisp_Object, d: Lisp_Object,
   if dscale == DBL_MANT_DIG - DBL_MIN_EXP + 1 && nscale < dscale
     { return make_fixnum (0); }
 
-  int_divide (mpz[0].as_mut_ptr (),
-	      rescale_for_division (n, &raw mut mpz[0], nscale, dscale),
-	      rescale_for_division (d, &raw mut mpz[1], dscale, nscale));
+  int_divide ((*mpz.as_mut_ptr ())[0].as_mut_ptr (),
+	      rescale_for_division (n, &raw mut (*mpz.as_mut_ptr ())[0], nscale, dscale),
+	      rescale_for_division (d, &raw mut (*mpz.as_mut_ptr ())[1], dscale, nscale));
   return make_integer_mpz ();
 
   }
@@ -495,9 +495,9 @@ unsafe extern "C-unwind" fn rounddiv_q (q: *mut __mpz_struct, n: *const __mpz_st
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
   /* Mimic the source code of round2, using mpz_t instead of EMACS_INT.  */
-  let r: *mut mpz_t = &raw mut mpz[2];
+  let r: *mut mpz_t = &raw mut (*mpz.as_mut_ptr ())[2];
   let abs_r: *mut mpz_t = r;
-  let abs_r1: *mut mpz_t = &raw mut mpz[3];
+  let abs_r1: *mut mpz_t = &raw mut (*mpz.as_mut_ptr ())[3];
   mpz_tdiv_qr (q, (*r).as_mut_ptr (), n, d);
   let neg_d = mpz_sgn (d) < 0;
   let neg_r = mpz_sgn ((*r).as_ptr ()) < 0;
@@ -652,32 +652,32 @@ pub unsafe extern "C-unwind" fn syms_of_floatfns ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  defsubr (&raw mut Sacos);
-  defsubr (&raw mut Sasin);
-  defsubr (&raw mut Satan);
-  defsubr (&raw mut Scos);
-  defsubr (&raw mut Ssin);
-  defsubr (&raw mut Stan);
-  defsubr (&raw mut Sisnan);
-  defsubr (&raw mut Scopysign);
-  defsubr (&raw mut Sfrexp);
-  defsubr (&raw mut Sldexp);
-  defsubr (&raw mut Sfceiling);
-  defsubr (&raw mut Sffloor);
-  defsubr (&raw mut Sfround);
-  defsubr (&raw mut Sftruncate);
-  defsubr (&raw mut Sexp);
-  defsubr (&raw mut Sexpt);
-  defsubr (&raw mut Slog);
-  defsubr (&raw mut Ssqrt);
+  defsubr (Sacos.as_mut_ptr ());
+  defsubr (Sasin.as_mut_ptr ());
+  defsubr (Satan.as_mut_ptr ());
+  defsubr (Scos.as_mut_ptr ());
+  defsubr (Ssin.as_mut_ptr ());
+  defsubr (Stan.as_mut_ptr ());
+  defsubr (Sisnan.as_mut_ptr ());
+  defsubr (Scopysign.as_mut_ptr ());
+  defsubr (Sfrexp.as_mut_ptr ());
+  defsubr (Sldexp.as_mut_ptr ());
+  defsubr (Sfceiling.as_mut_ptr ());
+  defsubr (Sffloor.as_mut_ptr ());
+  defsubr (Sfround.as_mut_ptr ());
+  defsubr (Sftruncate.as_mut_ptr ());
+  defsubr (Sexp.as_mut_ptr ());
+  defsubr (Sexpt.as_mut_ptr ());
+  defsubr (Slog.as_mut_ptr ());
+  defsubr (Ssqrt.as_mut_ptr ());
 
-  defsubr (&raw mut Sabs);
-  defsubr (&raw mut Sfloat);
-  defsubr (&raw mut Slogb);
-  defsubr (&raw mut Sceiling);
-  defsubr (&raw mut Sfloor);
-  defsubr (&raw mut Sround);
-  defsubr (&raw mut Struncate);
+  defsubr (Sabs.as_mut_ptr ());
+  defsubr (Sfloat.as_mut_ptr ());
+  defsubr (Slogb.as_mut_ptr ());
+  defsubr (Sceiling.as_mut_ptr ());
+  defsubr (Sfloor.as_mut_ptr ());
+  defsubr (Sround.as_mut_ptr ());
+  defsubr (Struncate.as_mut_ptr ());
 
   }
 }

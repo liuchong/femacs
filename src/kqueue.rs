@@ -174,9 +174,9 @@ pub unsafe fn FUNCTIONP (a: Lisp_Object) -> bool
 /* C 35-39: the two file-scope objects.  `kqueuefd`'s `-1` and the tentative `watch_list` (i.e.
    zero, which is `Qnil`) are C's own initialisers.  */
 #[cfg (feature = "have_kqueue")]
-static mut kqueuefd: c_int = -1;
+static kqueuefd: VmGlobal<c_int> = VmGlobal::<c_int>::new (-1);
 #[cfg (feature = "have_kqueue")]
-static mut watch_list: Lisp_Object = lisp_h_Qnil ();
+static watch_list: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* C 41-68: `static Lisp_Object kqueue_directory_listing (Lisp_Object directory_files)`.  */
 #[cfg (feature = "have_kqueue")]
@@ -488,7 +488,7 @@ unsafe extern "C-unwind" fn kqueue_callback (fd: c_int, data: *mut c_void)
       let mut actions: Lisp_Object;
 
       /* Read one event.  */
-      let ret: c_int = kevent (kqueuefd, core::ptr::null (), 0, &raw mut kev, 1, &nullts);
+      let ret: c_int = kevent ((*kqueuefd.as_mut_ptr ()), core::ptr::null (), 0, &raw mut kev, 1, &nullts);
       if ret < 1
         {
           /* All events read.  */
@@ -497,7 +497,7 @@ unsafe extern "C-unwind" fn kqueue_callback (fd: c_int, data: *mut c_void)
 
       /* Determine descriptor and file name.  */
       descriptor = make_fixnum (kev.ident as isize);
-      watch_object = assq_no_quit (descriptor, watch_list);
+      watch_object = assq_no_quit (descriptor, (*watch_list.as_mut_ptr ()));
       if CONSP (watch_object)
         { file = XCAR (XCDR (watch_object)); }
       else
@@ -587,24 +587,24 @@ DEFUN! ("kqueue-add-watch", Fkqueue_add_watch, Skqueue_add_watch, 3, 3, 0,
   let _ = &mut maxfd;
 
   /* We assume 50 file descriptors are sufficient for the rest of Emacs.  */
-  let watch_list_len: isize = list_length (watch_list);
+  let watch_list_len: isize = list_length ((*watch_list.as_mut_ptr ()));
   if ((maxfd - 50) as isize) < watch_list_len
     { xsignal2
          (Qfile_notify_error (),
           build_string (c"File watching not possible, no file descriptor left".as_ptr ()),
           make_fixnum (watch_list_len)); }
 
-  if kqueuefd < 0
+  if (*kqueuefd.as_mut_ptr ()) < 0
     {
       /* Create kqueue descriptor.  */
-      kqueuefd = kqueue ();
-      if kqueuefd < 0
+      (*kqueuefd.as_mut_ptr ()) = kqueue ();
+      if (*kqueuefd.as_mut_ptr ()) < 0
         { report_file_notify_error (c"File watching is not available".as_ptr (), Qnil ()); }
 
       /* Start monitoring for possible I/O.  */
-      add_read_fd (kqueuefd, Some (kqueue_callback), core::ptr::null_mut ());
+      add_read_fd ((*kqueuefd.as_mut_ptr ()), Some (kqueue_callback), core::ptr::null_mut ());
 
-      watch_list = Qnil ();
+      (*watch_list.as_mut_ptr ()) = Qnil ();
     }
 
   /* Open file.  */
@@ -639,7 +639,7 @@ DEFUN! ("kqueue-add-watch", Fkqueue_add_watch, Skqueue_add_watch, 3, 3, 0,
                          | EV_CLEAR,
                   fflags: fflags as c_uint, data: 0, udata: core::ptr::null_mut () };
 
-  if kevent (kqueuefd, &raw const kev, 1, core::ptr::null_mut (), 0, core::ptr::null ()) < 0
+  if kevent ((*kqueuefd.as_mut_ptr ()), &raw const kev, 1, core::ptr::null_mut (), 0, core::ptr::null ()) < 0
     {
       emacs_close (fd);
       report_file_error (c"Cannot watch file".as_ptr (), file);
@@ -655,7 +655,7 @@ DEFUN! ("kqueue-add-watch", Fkqueue_add_watch, Skqueue_add_watch, 3, 3, 0,
                                           Qnil ());
       watch_object = list5 (watch_descriptor, file, flags, callback, dir_list);
     }
-  watch_list = Fcons (watch_object, watch_list);
+  (*watch_list.as_mut_ptr ()) = Fcons (watch_object, (*watch_list.as_mut_ptr ()));
 
   watch_descriptor
 });
@@ -666,7 +666,7 @@ DEFUN! ("kqueue-rm-watch", Fkqueue_rm_watch, Skqueue_rm_watch, 1, 1, 0,
        doc: "Remove an existing WATCH-DESCRIPTOR.\n\nWATCH-DESCRIPTOR should be an object returned by `kqueue-add-watch'.",
        (watch_descriptor: Lisp_Object),
        {
-  let watch_object: Lisp_Object = assq_no_quit (watch_descriptor, watch_list);
+  let watch_object: Lisp_Object = assq_no_quit (watch_descriptor, (*watch_list.as_mut_ptr ()));
 
   if !CONSP (watch_object)
     { xsignal2 (Qfile_notify_error (), build_string (c"Not a watch descriptor".as_ptr ()),
@@ -678,13 +678,13 @@ DEFUN! ("kqueue-rm-watch", Fkqueue_rm_watch, Skqueue_rm_watch, 1, 1, 0,
     { emacs_close (fd); }
 
   /* Remove watch descriptor from watch list.  */
-  watch_list = Fdelq (watch_object, watch_list);
+  (*watch_list.as_mut_ptr ()) = Fdelq (watch_object, (*watch_list.as_mut_ptr ()));
 
-  if NILP (watch_list) && kqueuefd >= 0
+  if NILP ((*watch_list.as_mut_ptr ())) && (*kqueuefd.as_mut_ptr ()) >= 0
     {
-      delete_read_fd (kqueuefd);
-      emacs_close (kqueuefd);
-      kqueuefd = -1;
+      delete_read_fd ((*kqueuefd.as_mut_ptr ()));
+      emacs_close ((*kqueuefd.as_mut_ptr ()));
+      (*kqueuefd.as_mut_ptr ()) = -1;
     }
 
   Qt ()
@@ -696,7 +696,7 @@ DEFUN! ("kqueue-valid-p", Fkqueue_valid_p, Skqueue_valid_p, 1, 1, 0,
        doc: "Check a watch specified by its WATCH-DESCRIPTOR.\n\nWATCH-DESCRIPTOR should be an object returned by `kqueue-add-watch'.\n\nA watch can become invalid if the file or directory it watches is\ndeleted, or if the watcher thread exits abnormally for any other\nreason.  Removing the watch by calling `kqueue-rm-watch' also makes it\ninvalid.",
        (watch_descriptor: Lisp_Object),
        {
-  if NILP (assq_no_quit (watch_descriptor, watch_list)) { Qnil () } else { Qt () }
+  if NILP (assq_no_quit (watch_descriptor, (*watch_list.as_mut_ptr ()))) { Qnil () } else { Qt () }
 });
 
 /* C 520-523: `void globals_of_kqueue (void)`.  */
@@ -706,7 +706,7 @@ pub unsafe extern "C-unwind" fn globals_of_kqueue ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  watch_list = Qnil ();
+  (*watch_list.as_mut_ptr ()) = Qnil ();
 
   }
 }
@@ -718,9 +718,9 @@ pub unsafe extern "C-unwind" fn syms_of_kqueue ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  defsubr (&raw mut Skqueue_add_watch);
-  defsubr (&raw mut Skqueue_rm_watch);
-  defsubr (&raw mut Skqueue_valid_p);
+  defsubr (Skqueue_add_watch.as_mut_ptr ());
+  defsubr (Skqueue_rm_watch.as_mut_ptr ());
+  defsubr (Skqueue_valid_p.as_mut_ptr ());
 
   /* Event types.  */
   DEFSYM! (Qcreate, "create");
@@ -732,7 +732,7 @@ pub unsafe extern "C-unwind" fn syms_of_kqueue ()
   DEFSYM! (Qrename, "rename");	/* NOTE_RENAME  */
   DEFSYM! (Qrevoke, "revoke");	/* NOTE_REVOKE  */
 
-  staticpro (&raw mut watch_list);
+  staticpro (watch_list.as_mut_ptr ());
 
   Fprovide (intern_c_string (c"kqueue".as_ptr ()), Qnil ());
 

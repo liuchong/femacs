@@ -152,7 +152,7 @@ unsafe fn calculate_scrolling (frame: *mut frame,
      Don't scroll nearly a full frame height unless it saves
      at least 1/4 second.  */
   let extra_cost: c_int
-    = clip_to_bounds (1, baud_rate / (10 * 4) / (frame_total_lines as isize),
+    = clip_to_bounds (1, (*baud_rate.as_mut_ptr ()) / (10 * 4) / (frame_total_lines as isize),
 		      (INT_MAX / 2) as isize) as c_int;
 
   /* initialize the top left corner of the matrix */
@@ -553,7 +553,7 @@ unsafe fn calculate_direct_scrolling (frame: *mut frame,
      Don't scroll nearly a full frame height unless it saves
      at least 1/4 second.  */
   let extra_cost: c_int
-    = clip_to_bounds (1, baud_rate / (10 * 4) / (frame_total_lines as isize),
+    = clip_to_bounds (1, (*baud_rate.as_mut_ptr ()) / (10 * 4) / (frame_total_lines as isize),
 		      (INT_MAX / 2) as isize) as c_int;
 
   /* Overhead of setting the scroll window, plus the extra

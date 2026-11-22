@@ -66,9 +66,9 @@ const _: () = ();
 unsafe extern "C-unwind" {
   /* src/dispextern.h 3608-3609: the two counters `call_debugger` reads and resets.  */
   /// C: dispextern.h 3608: `extern bool redisplaying_p;`
-  pub static mut redisplaying_p: bool;
+  pub static redisplaying_p: VmGlobal<bool>;
   /// C: dispextern.h 3609: `extern unsigned int redisplay_counter;`
-  pub static mut redisplay_counter: c_uint;
+  pub static redisplay_counter: VmGlobal<c_uint>;
   /// C: lisp.h 4206: `extern void set_internal (Lisp_Object, Lisp_Object, Lisp_Object, enum Set_Internal_Bind);`
   pub fn set_internal (symbol: Lisp_Object, newval: Lisp_Object, r#let: Lisp_Object,
                        bindflag: Set_Internal_Bind);
@@ -107,19 +107,19 @@ unsafe extern "C" {
    (FUN . ODEF) for a defun, (0 . OFEATURES) for a provide.  */
 
 #[unsafe(no_mangle)]
-pub static mut Vautoload_queue: Lisp_Object = lisp_h_Qnil ();
+pub static Vautoload_queue: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* This holds either the symbol `run-hooks' or nil.
    It is nil at an early stage of startup, and when Emacs
    is shutting down.  */
 #[unsafe(no_mangle)]
-pub static mut Vrun_hooks: Lisp_Object = lisp_h_Qnil ();
+pub static Vrun_hooks: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* The function from which the last `signal' was called.  Set in
    Fsignal.  */
 /* FIXME: We should probably get rid of this!  */
 #[unsafe(no_mangle)]
-pub static mut Vsignaling_function: Lisp_Object = lisp_h_Qnil ();
+pub static Vsignaling_function: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* These would ordinarily be static, but they need to be visible to GDB.  */
 /* C 58-61's declarations are dropped (PORTING.md 0.1-12); the definitions below carry the
@@ -276,7 +276,7 @@ pub unsafe extern "C-unwind" fn backtrace_p (pdl: *mut specbinding) -> bool
 {
   // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
   unsafe {
-  if !current_thread.is_null () && !specpdl! ().is_null () && !pdl.is_null ()
+  if !(*current_thread.as_mut_ptr ()).is_null () && !specpdl! ().is_null () && !pdl.is_null ()
     { return pdl >= specpdl! (); }
   return false;
 
@@ -298,7 +298,7 @@ pub unsafe extern "C-unwind" fn backtrace_top () -> *mut specbinding
   /* This is so "xbacktrace" doesn't crash in pdumped Emacs if they
      invoke the command before init_eval_once_for_pdumper initializes
      specpdl machinery.  See also backtrace_p above.  */
-  if current_thread.is_null () || specpdl! ().is_null ()
+  if (*current_thread.as_mut_ptr ()).is_null () || specpdl! ().is_null ()
     { return std::ptr::null_mut (); }
 
   let mut pdl: *mut specbinding = (specpdl_ptr! ()).offset (-1);
@@ -355,7 +355,7 @@ pub unsafe extern "C-unwind" fn init_eval_once ()
   // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
   unsafe {
   /* Don't forget to update docs (lispref node "Eval").  */
-  Vrun_hooks = Qnil ();
+  (*Vrun_hooks.as_mut_ptr ()) = Qnil ();
   pdumper_do_now_and_after_load (Some (init_eval_once_for_pdumper));
 
   }
@@ -392,11 +392,11 @@ pub unsafe extern "C-unwind" fn init_eval ()
     (*handlerlist_sentinel! ()).nextfree = std::ptr::null_mut ();
     (*handlerlist_sentinel! ()).next = std::ptr::null_mut ();
   }
-  Vquit_flag = Qnil ();
-  debug_on_next_call = false;
+  (*Vquit_flag.as_mut_ptr ()) = Qnil ();
+  (*debug_on_next_call.as_mut_ptr ()) = false;
   lisp_eval_depth! () = 0;
   /* This is less than the initial value of num_nonmacro_input_events.  */
-  when_entered_debugger = -1;
+  (*when_entered_debugger.as_mut_ptr ()) = -1;
 
   }
 }
@@ -407,8 +407,8 @@ unsafe extern "C-unwind" fn restore_stack_limits (data: Lisp_Object)
   unsafe {
   let mut old_depth: intmax_t = 0;
   integer_to_intmax (data, &mut old_depth);
-  lisp_eval_depth_reserve += max_lisp_eval_depth - old_depth as EMACS_INT;
-  max_lisp_eval_depth = old_depth as EMACS_INT;
+  (*lisp_eval_depth_reserve.as_mut_ptr ()) += (*max_lisp_eval_depth.as_mut_ptr ()) - old_depth as EMACS_INT;
+  (*max_lisp_eval_depth.as_mut_ptr ()) = old_depth as EMACS_INT;
 
   }
 }
@@ -424,13 +424,13 @@ unsafe extern "C-unwind" fn max_ensure_room (b: intmax_t)
   let mut sum = ckd_add_value;
   if ckd_add_overflow
     { sum = INTMAX_MAX; }
-  let diff = min ((sum - max_lisp_eval_depth as intmax_t) as isize,
-                      lisp_eval_depth_reserve as isize);
+  let diff = min ((sum - (*max_lisp_eval_depth.as_mut_ptr ()) as intmax_t) as isize,
+                      (*lisp_eval_depth_reserve.as_mut_ptr ()) as isize);
   if diff <= 0
     { return; }
-  let old_depth: intmax_t = max_lisp_eval_depth as intmax_t;
-  max_lisp_eval_depth += diff as EMACS_INT;
-  lisp_eval_depth_reserve -= diff as EMACS_INT;
+  let old_depth: intmax_t = (*max_lisp_eval_depth.as_mut_ptr ()) as intmax_t;
+  (*max_lisp_eval_depth.as_mut_ptr ()) += diff as EMACS_INT;
+  (*lisp_eval_depth_reserve.as_mut_ptr ()) -= diff as EMACS_INT;
   /* Restore limits after leaving the debugger.  */
   record_unwind_protect (Some (restore_stack_limits), make_int (old_depth));
 
@@ -458,20 +458,20 @@ pub unsafe extern "C-unwind" fn call_debugger (arg: Lisp_Object) -> Lisp_Object
   {
     unsafe extern "C" {
       /// C: dispextern.h 3073: `extern bool display_hourglass_p;`
-      pub static mut display_hourglass_p: bool;
+      pub static display_hourglass_p: VmGlobal<bool>;
     }
-    if display_hourglass_p
+    if (*display_hourglass_p.as_mut_ptr ())
       { cancel_hourglass (); }
   }
 
-  debug_on_next_call = false;
-  when_entered_debugger = num_nonmacro_input_events;
+  (*debug_on_next_call.as_mut_ptr ()) = false;
+  (*when_entered_debugger.as_mut_ptr ()) = (*num_nonmacro_input_events.as_mut_ptr ());
 
   /* Resetting redisplaying_p to 0 makes sure that debug output is
      displayed if the debugger is invoked during redisplay.  */
-  debug_while_redisplaying = redisplaying_p;
-  let redisplay_counter_before: c_int = redisplay_counter as c_int;
-  redisplaying_p = false;
+  debug_while_redisplaying = (*redisplaying_p.as_mut_ptr ());
+  let redisplay_counter_before: c_int = (*redisplay_counter.as_mut_ptr ()) as c_int;
+  (*redisplaying_p.as_mut_ptr ()) = false;
   specbind (Qdebugger_may_continue (), if debug_while_redisplaying { Qnil () } else { Qt () });
   specbind (Qinhibit_redisplay (), Qnil ());
   specbind (Qinhibit_debugger (), Qt ());
@@ -485,13 +485,13 @@ pub unsafe extern "C-unwind" fn call_debugger (arg: Lisp_Object) -> Lisp_Object
      `Qinhibit_eval_during_redisplay` around redisplay, which prevents Lisp execution during
      redisplay.  Recorded in docs/ports/eval.md, not transcribed.  */
 
-  val = apply1 (Vdebugger, arg);
+  val = apply1 ((*Vdebugger.as_mut_ptr ()), arg);
 
   /* Interrupting redisplay and resuming it later is not safe under
      all circumstances.  So, when the debugger returns, abort the
      interrupted redisplay by going back to the top-level.  */
   if debug_while_redisplaying
-    && redisplay_counter_before != redisplay_counter as c_int
+    && redisplay_counter_before != (*redisplay_counter.as_mut_ptr ()) as c_int
     /* FIXME: Rather than jump all the way to `top-level`
        we should exit only the current redisplay.  */
     { Ftop_level (); }
@@ -506,7 +506,7 @@ pub unsafe extern "C-unwind" fn do_debug_on_call (code: Lisp_Object, count: spec
 {
   // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
   unsafe {
-  debug_on_next_call = false;
+  (*debug_on_next_call.as_mut_ptr ()) = false;
   set_backtrace_debug_on_exit (specpdl_ref_to_ptr (count), true);
   call_debugger (list1 (code));
 
@@ -710,7 +710,7 @@ DEFUN! ("setq", Fsetq, Ssetq, 0, UNEVALLED, 0,
 	 it's been done when let-binding.  */
       let lex_binding: Lisp_Object
 	= if SYMBOLP (sym)
-	    { assq_lexenv (sym, Vinternal_interpreter_environment) }
+	    { assq_lexenv (sym, (*Vinternal_interpreter_environment.as_mut_ptr ())) }
 	  else
 	    { Qnil () };
       if !NILP (lex_binding)
@@ -816,16 +816,16 @@ DEFUN! ("function", Ffunction, Sfunction, 1, UNEVALLED, 0,
       if NILP (cdr)
         { cdr = Fcons (Qnil (), Qnil ()); } /* Make sure the body is never empty! */
 
-      if NILP (Vinternal_interpreter_environment)
-          || NILP (Vinternal_make_interpreted_closure_function)
+      if NILP ((*Vinternal_interpreter_environment.as_mut_ptr ()))
+          || NILP ((*Vinternal_make_interpreted_closure_function.as_mut_ptr ()))
         { return Fmake_interpreted_closure
-            (args, cdr, Vinternal_interpreter_environment, docstring, iform); }
+            (args, cdr, (*Vinternal_interpreter_environment.as_mut_ptr ()), docstring, iform); }
       else
         {
           /* The hook may be advised or redefined even when it names the
              standard converter.  Its call is part of closure creation.  */
-          return calln! (Vinternal_make_interpreted_closure_function,
-                         args, cdr, Vinternal_interpreter_environment,
+          return calln! ((*Vinternal_make_interpreted_closure_function.as_mut_ptr ()),
+                         args, cdr, (*Vinternal_interpreter_environment.as_mut_ptr ()),
                          docstring, iform);
         }
     }
@@ -1156,14 +1156,14 @@ DEFUN! ("defvar", Fdefvar, Sdefvar, 1, UNEVALLED, 0,
       tail = XCDR (tail);
       return defvar (sym, exp, CAR (tail), true);
     }
-  else if !NILP (Vinternal_interpreter_environment)
+  else if !NILP ((*Vinternal_interpreter_environment.as_mut_ptr ()))
 	   && (SYMBOLP (sym)
 	       && (*XSYMBOL (sym)).u.s.bits & SYMBOL_DECLARED_SPECIAL_BIT == 0)
     /* A simple (defvar foo) with lexical scoping does "nothing" except
        declare that var to be dynamically scoped *locally* (i.e. within
        the current file or let-block).  */
-    { Vinternal_interpreter_environment
-      = Fcons (sym, Vinternal_interpreter_environment); }
+    { (*Vinternal_interpreter_environment.as_mut_ptr ())
+      = Fcons (sym, (*Vinternal_interpreter_environment.as_mut_ptr ())); }
   else
     {
       /* Simple (defvar <var>) should not count as a definition at all.
@@ -1235,7 +1235,7 @@ DEFUN! ("let*", FletX, SletX, 1, UNEVALLED, 0,
   let mut lexenv: Lisp_Object;
   let count: specpdl_ref = SPECPDL_INDEX ();
 
-  lexenv = Vinternal_interpreter_environment;
+  lexenv = (*Vinternal_interpreter_environment.as_mut_ptr ());
 
   let mut varlist: Lisp_Object = XCAR (args);
   FOR_EACH_TAIL! (varlist, {
@@ -1257,19 +1257,19 @@ DEFUN! ("let*", FletX, SletX, 1, UNEVALLED, 0,
       CHECK_TYPE (BARE_SYMBOL_P (var), Qsymbolp (), var);
       if !NILP (lexenv)
 	  && (*XBARE_SYMBOL (var)).u.s.bits & SYMBOL_DECLARED_SPECIAL_BIT == 0
-	  && NILP (memq_lexenv (var, Vinternal_interpreter_environment))
+	  && NILP (memq_lexenv (var, (*Vinternal_interpreter_environment.as_mut_ptr ())))
 	/* Lexically bind VAR by adding it to the interpreter's binding
 	   alist.  */
 	{
 	  let newenv: Lisp_Object
-	    = Fcons (Fcons (var, val), Vinternal_interpreter_environment);
-	  if BASE_EQ (Vinternal_interpreter_environment, lexenv)
+	    = Fcons (Fcons (var, val), (*Vinternal_interpreter_environment.as_mut_ptr ()));
+	  if BASE_EQ ((*Vinternal_interpreter_environment.as_mut_ptr ()), lexenv)
 	    /* Save the old lexical environment on the specpdl stack,
 	       but only for the first lexical binding, since we'll never
 	       need to revert to one of the intermediate ones.  */
 	    { specbind (Qinternal_interpreter_environment (), newenv); }
 	  else
-	    { Vinternal_interpreter_environment = newenv; }
+	    { (*Vinternal_interpreter_environment.as_mut_ptr ()) = newenv; }
 	}
       else
 	{ specbind (var, val); }
@@ -1326,7 +1326,7 @@ DEFUN! ("let", Flet, Slet, 1, UNEVALLED, 0,
 	  var = maybe_remove_pos_from_symbol (Fcar (elt));
 	}
       CHECK_TYPE (BARE_SYMBOL_P (var), Qsymbolp (), var);
-      lexenv = Vinternal_interpreter_environment;
+      lexenv = (*Vinternal_interpreter_environment.as_mut_ptr ());
       if !NILP (lexenv)
 	  && (*XBARE_SYMBOL (var)).u.s.bits & SYMBOL_DECLARED_SPECIAL_BIT == 0
 	  && NILP (memq_lexenv (var, lexenv))
@@ -1362,7 +1362,7 @@ DEFUN! ("let", Flet, Slet, 1, UNEVALLED, 0,
 	  temps_span.set_len (argnum as usize);
 	}
       nvars = argnum;
-      lexenv = Vinternal_interpreter_environment;
+      lexenv = (*Vinternal_interpreter_environment.as_mut_ptr ());
       varlist = XCAR (args);
       argnum = 0;
       while argnum < nvars && CONSP (varlist)
@@ -1377,7 +1377,7 @@ DEFUN! ("let", Flet, Slet, 1, UNEVALLED, 0,
 
 	  if !NILP (lexenv)
 	      && (*XBARE_SYMBOL (var)).u.s.bits & SYMBOL_DECLARED_SPECIAL_BIT == 0
-	      && NILP (memq_lexenv (var, Vinternal_interpreter_environment))
+	      && NILP (memq_lexenv (var, (*Vinternal_interpreter_environment.as_mut_ptr ())))
 	    /* Lexically bind VAR by adding it to the lexenv alist.  */
 	    { lexenv = Fcons (Fcons (var, tem), lexenv); }
 	  else
@@ -1385,7 +1385,7 @@ DEFUN! ("let", Flet, Slet, 1, UNEVALLED, 0,
 	    { specbind (var, tem); }
 	  argnum += 1;
 	}
-      if !BASE_EQ (lexenv, Vinternal_interpreter_environment)
+      if !BASE_EQ (lexenv, (*Vinternal_interpreter_environment.as_mut_ptr ()))
 	/* Instantiate a new lexical environment.  */
 	{ specbind (Qinternal_interpreter_environment (), lexenv); }
 
@@ -1418,7 +1418,7 @@ DEFUN! ("let", Flet, Slet, 1, UNEVALLED, 0,
     }
   nvars = argnum;
 
-  lexenv = Vinternal_interpreter_environment;
+  lexenv = (*Vinternal_interpreter_environment.as_mut_ptr ());
 
   varlist = XCAR (args);
   argnum = 0;
@@ -1433,7 +1433,7 @@ DEFUN! ("let", Flet, Slet, 1, UNEVALLED, 0,
 
       if !NILP (lexenv)
 	  && (*XBARE_SYMBOL (var)).u.s.bits & SYMBOL_DECLARED_SPECIAL_BIT == 0
-	  && NILP (memq_lexenv (var, Vinternal_interpreter_environment))
+	  && NILP (memq_lexenv (var, (*Vinternal_interpreter_environment.as_mut_ptr ())))
 	/* Lexically bind VAR by adding it to the lexenv alist.  */
 	{ lexenv = Fcons (Fcons (var, tem), lexenv); }
       else
@@ -1442,7 +1442,7 @@ DEFUN! ("let", Flet, Slet, 1, UNEVALLED, 0,
       argnum += 1;
     }
 
-  if !BASE_EQ (lexenv, Vinternal_interpreter_environment)
+  if !BASE_EQ (lexenv, (*Vinternal_interpreter_environment.as_mut_ptr ()))
     /* Instantiate a new lexical environment.  */
     { specbind (Qinternal_interpreter_environment (), lexenv); }
 
@@ -1616,7 +1616,7 @@ DEFUN! ("catch", Fcatch, Scatch, 1, UNEVALLED, 0,
        (args: Lisp_Object),
        {
   let tag: Lisp_Object = eval_sub (XCAR (args));
-  return internal_catch (tag, Some (Fprogn), XCDR (args));
+  return internal_catch (tag, Some (Fprogn as _), XCDR (args));
 });
 
 /* Assert that E is true, but do not evaluate E.  Use this instead of
@@ -1717,9 +1717,9 @@ unsafe fn unwind_to_catch (catch: *mut handler, r#type: nonlocal_exit,
   (*catch).val = value;
 
   /* Restore certain special C variables.  */
-  if (*catch).poll_suppress_count != poll_suppress_count
+  if (*catch).poll_suppress_count != (*poll_suppress_count.as_mut_ptr ())
     { set_poll_suppress_count ((*catch).poll_suppress_count); }
-  if (*catch).interrupt_input_blocked != interrupt_input_blocked
+  if (*catch).interrupt_input_blocked != (*interrupt_input_blocked.as_mut_ptr ())
     { unblock_input_to ((*catch).interrupt_input_blocked); }
 
   /* C 1438-1443's `#ifdef HAVE_X_WINDOWS` arm (dead in the frozen configuration; P-51):
@@ -1750,7 +1750,7 @@ unsafe fn unwind_to_catch (catch: *mut handler, r#type: nonlocal_exit,
   eassert! (handlerlist! () == catch);
 
   lisp_eval_depth! () = (*catch).f_lisp_eval_depth;
-  set_act_rec (current_thread, (*catch).act_rec);
+  set_act_rec ((*current_thread.as_mut_ptr ()), (*catch).act_rec);
 
   crate::nonlocal::raise_vm_nonlocal (crate::nonlocal::NonLocalExit {
     kind: crate::nonlocal::NonLocalExitKind::from_raw (r#type),
@@ -1960,10 +1960,10 @@ pub unsafe extern "C-unwind" fn internal_lisp_condition_case (var: Lisp_Object,
   if NILP (var)
     { return Fprogn (handler_body); }
 
-  if !NILP (Vinternal_interpreter_environment)
+  if !NILP ((*Vinternal_interpreter_environment.as_mut_ptr ()))
     {
       val = Fcons (Fcons (var, val),
-		   Vinternal_interpreter_environment);
+		   (*Vinternal_interpreter_environment.as_mut_ptr ()));
       var = Qinternal_interpreter_environment ();
     }
 
@@ -2122,7 +2122,7 @@ pub unsafe extern "C-unwind" fn internal_condition_case_n (
   }
 }
 
-static mut Qcatch_all_memory_full: Lisp_Object = lisp_h_Qnil ();
+static Qcatch_all_memory_full: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* Like a combination of internal_condition_case_1 and internal_catch.
    Catches all signals and throws.  Never exits nonlocally; returns
@@ -2138,7 +2138,7 @@ pub unsafe extern "C-unwind" fn internal_catch_all (
   unsafe {
   let c: *mut handler = push_handler_nosignal (Qt (), CATCHER_ALL);
   if c.is_null ()
-    { return Qcatch_all_memory_full; }
+    { return (*Qcatch_all_memory_full.as_mut_ptr ()); }
 
   match crate::nonlocal::catch_vm_nonlocal (|| (function.unwrap ()) (argument))
     {
@@ -2191,7 +2191,7 @@ pub unsafe extern "C-unwind" fn push_handler_nosignal (tag_ch_val: Lisp_Object,
       c = malloc (std::mem::size_of::<handler> ()) as *mut handler;
       if c.is_null ()
 	{ return c; }
-      if profiler_memory_running
+      if (*profiler_memory_running.as_mut_ptr ())
 	{ malloc_probe (std::mem::size_of::<handler> ()); }
       (*c).nextfree = std::ptr::null_mut ();
       (*handlerlist! ()).nextfree = c;
@@ -2202,17 +2202,17 @@ pub unsafe extern "C-unwind" fn push_handler_nosignal (tag_ch_val: Lisp_Object,
   (*c).next = handlerlist! ();
   (*c).f_lisp_eval_depth = lisp_eval_depth! ();
   (*c).pdlcount = SPECPDL_INDEX ();
-  (*c).act_rec = get_act_rec (current_thread);
-  (*c).poll_suppress_count = poll_suppress_count;
-  (*c).interrupt_input_blocked = interrupt_input_blocked;
+  (*c).act_rec = get_act_rec ((*current_thread.as_mut_ptr ()));
+  (*c).poll_suppress_count = (*poll_suppress_count.as_mut_ptr ());
+  (*c).interrupt_input_blocked = (*interrupt_input_blocked.as_mut_ptr ());
   /* C 1862-1864's `#ifdef HAVE_X_WINDOWS` arm (dead in the frozen configuration).  */
   #[cfg (feature = "have_x_windows")]
   {
     unsafe extern "C" {
       /// C: xterm.h 2019: `extern int x_error_message_count;`
-      pub static mut x_error_message_count: c_int;
+      pub static x_error_message_count: VmGlobal<c_int>;
     }
-    (*c).x_error_handler_depth = x_error_message_count;
+    (*c).x_error_handler_depth = (*x_error_message_count.as_mut_ptr ());
   }
   handlerlist! () = c;
   return c;
@@ -2226,12 +2226,12 @@ unsafe fn process_quit_flag ()
 {
   // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
   unsafe {
-  let flag: Lisp_Object = Vquit_flag;
-  Vquit_flag = Qnil ();
+  let flag: Lisp_Object = (*Vquit_flag.as_mut_ptr ());
+  (*Vquit_flag.as_mut_ptr ()) = Qnil ();
   if EQ (flag, Qkill_emacs ())
     { Fkill_emacs (Qnil (), Qnil ()); }
-  if EQ (Vthrow_on_input, flag)
-    { Fthrow (Vthrow_on_input, Qt ()); }
+  if EQ ((*Vthrow_on_input.as_mut_ptr ()), flag)
+    { Fthrow ((*Vthrow_on_input.as_mut_ptr ()), Qt ()); }
   quit ();
 
   }
@@ -2243,9 +2243,9 @@ pub unsafe extern "C-unwind" fn probably_quit ()
   // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
   unsafe {
   let gc_count: specpdl_ref = inhibit_garbage_collection ();
-  if !NILP (Vquit_flag) && NILP (Vinhibit_quit)
+  if !NILP ((*Vquit_flag.as_mut_ptr ())) && NILP ((*Vinhibit_quit.as_mut_ptr ()))
     { process_quit_flag (); }
-  else if pending_signals
+  else if (*pending_signals.as_mut_ptr ())
     { process_pending_signals (); }
   unbind_to (gc_count, Qnil ());
 
@@ -2308,11 +2308,11 @@ unsafe fn signal_or_quit (error_symbol: Lisp_Object, data: Lisp_Object, continua
   let mut h: *mut handler;
   let mut skip: c_int;
 
-  if gc_in_progress || waiting_for_input! ()
+  if (*gc_in_progress.as_mut_ptr ()) || waiting_for_input! ()
     { emacs_abort (); }
 
   /* This hook is used by edebug.  */
-  if ! NILP (Vsignal_hook_function)
+  if ! NILP ((*Vsignal_hook_function.as_mut_ptr ()))
       && !oom
     {
       let count: specpdl_ref = SPECPDL_INDEX ();
@@ -2320,7 +2320,7 @@ unsafe fn signal_or_quit (error_symbol: Lisp_Object, data: Lisp_Object, continua
       /* FIXME: 'handler-bind' makes `signal-hook-function' obsolete?  */
       /* FIXME: Here we still "split" the error object
          into its error-symbol and its error-data?  */
-      calln! (Vsignal_hook_function, real_error_symbol,
+      calln! ((*Vsignal_hook_function.as_mut_ptr ()), real_error_symbol,
 	      if NILP (data) && CONSP (error) { XCDR (error) } else { data });
       unbind_to (count, Qnil ());
     }
@@ -2334,14 +2334,14 @@ unsafe fn signal_or_quit (error_symbol: Lisp_Object, data: Lisp_Object, continua
      `signal' itself.  If a frame for `error' follows, skip that,
      too.  Don't do this when ERROR_SYMBOL is nil, because that
      is a memory-full error.  */
-  Vsignaling_function = Qnil ();
+  (*Vsignaling_function.as_mut_ptr ()) = Qnil ();
   if !oom
     {
       let mut pdl: *mut specbinding = backtrace_next (backtrace_top ());
       if backtrace_p (pdl) && EQ ((backtrace_function.unwrap ()) (pdl), Qerror ())
 	{ pdl = backtrace_next (pdl); }
       if backtrace_p (pdl)
-	{ Vsignaling_function = (backtrace_function.unwrap ()) (pdl); }
+	{ (*Vsignaling_function.as_mut_ptr ()) = (backtrace_function.unwrap ()) (pdl); }
     }
 
   skip = 0;
@@ -2409,7 +2409,7 @@ unsafe fn signal_or_quit (error_symbol: Lisp_Object, data: Lisp_Object, continua
   if /* Don't run the debugger for a memory-full error.
 	 (There is no room in memory to do that!)  */
       !oom
-      && (!NILP (Vdebug_on_signal)
+      && (!NILP ((*Vdebug_on_signal.as_mut_ptr ()))
 	  /* If no handler is present now, try to run the debugger.  */
 	  || NILP (clause)
 	  /* A `debug' symbol in the handler list disables the normal
@@ -2573,7 +2573,7 @@ unsafe fn skip_debugger (conditions: Lisp_Object, data: Lisp_Object) -> bool
   let mut error_message: Lisp_Object;
 
   error_message = Qnil ();
-  tail = Vdebug_ignored_errors;
+  tail = (*Vdebug_ignored_errors.as_mut_ptr ());
   while CONSP (tail)
     {
       if STRINGP (XCAR (tail))
@@ -2637,16 +2637,16 @@ unsafe fn maybe_call_debugger (conditions: Lisp_Object, error: Lisp_Object) -> b
       /* Don't try to run the debugger with interrupts blocked.
 	 The editing loop would return anyway.  */
       ! input_blocked_p ()
-      && NILP (Vinhibit_debugger)
+      && NILP ((*Vinhibit_debugger.as_mut_ptr ()))
       /* Does user want to enter debugger for this kind of error?  */
       && (if signal_quit_p (error)
-	    { debug_on_quit }
+	    { (*debug_on_quit.as_mut_ptr ()) }
 	  else
-	    { wants_debugger (Vdebug_on_error, conditions) })
+	    { wants_debugger ((*Vdebug_on_error.as_mut_ptr ()), conditions) })
       && ! skip_debugger (conditions, error)
       /* See commentary on definition of
          `internal-when-entered-debugger'.  */
-      && when_entered_debugger < num_nonmacro_input_events
+      && (*when_entered_debugger.as_mut_ptr ()) < (*num_nonmacro_input_events.as_mut_ptr ())
     {
       call_debugger (list2 (Qerror (), error));
       return true;
@@ -2734,7 +2734,7 @@ pub unsafe extern "C-unwind" fn error (m: *const c_char, mut args: ...) -> !
   }
 }
 
-static mut list_of_t: Lisp_Object = lisp_h_Qnil ();  /* Never-modified constant containing (t).  */
+static list_of_t: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());  /* Never-modified constant containing (t).  */
 
 DEFUN! ("eval", Feval, Seval, 1, 2, 0,
        doc: "Evaluate FORM and return its value.\nIf LEXICAL is `t', evaluate using lexical binding by default.\nThis is the recommended value.\n\nIf absent or `nil', use dynamic scoping only.\n\nLEXICAL can also represent an actual lexical environment; see the Info\nnode `(elisp)Eval' for details.",
@@ -2742,7 +2742,7 @@ DEFUN! ("eval", Feval, Seval, 1, 2, 0,
        {
   let count: specpdl_ref = SPECPDL_INDEX ();
   specbind (Qinternal_interpreter_environment (),
-	    if CONSP (lexical) || NILP (lexical) { lexical } else { list_of_t });
+	    if CONSP (lexical) || NILP (lexical) { lexical } else { (*list_of_t.as_mut_ptr ()) });
   return unbind_to (count, eval_sub (form));
 });
 
@@ -2782,7 +2782,7 @@ pub unsafe extern "C-unwind" fn eval_sub (form: Lisp_Object) -> Lisp_Object
 	 We do not pay attention to the declared_special flag here, since we
 	 already did that when let-binding the variable.  */
       let lex_binding: Lisp_Object
-	= assq_lexenv (form, Vinternal_interpreter_environment);
+	= assq_lexenv (form, (*Vinternal_interpreter_environment.as_mut_ptr ()));
       return if !NILP (lex_binding) { XCDR (lex_binding) } else { Fsymbol_value (form) };
     }
 
@@ -2794,11 +2794,11 @@ pub unsafe extern "C-unwind" fn eval_sub (form: Lisp_Object) -> Lisp_Object
   maybe_gc ();
 
   lisp_eval_depth! () += 1;
-  if lisp_eval_depth! () as EMACS_INT > max_lisp_eval_depth
+  if lisp_eval_depth! () as EMACS_INT > (*max_lisp_eval_depth.as_mut_ptr ())
     {
-      if max_lisp_eval_depth < 100
-	{ max_lisp_eval_depth = 100; }
-      if lisp_eval_depth! () as EMACS_INT > max_lisp_eval_depth
+      if (*max_lisp_eval_depth.as_mut_ptr ()) < 100
+	{ (*max_lisp_eval_depth.as_mut_ptr ()) = 100; }
+      if lisp_eval_depth! () as EMACS_INT > (*max_lisp_eval_depth.as_mut_ptr ())
 	{ xsignal1 (Qexcessive_lisp_nesting (), make_fixnum (lisp_eval_depth! () as EMACS_INT)); }
     }
 
@@ -2808,7 +2808,7 @@ pub unsafe extern "C-unwind" fn eval_sub (form: Lisp_Object) -> Lisp_Object
 
   /* This also protects them from gc.  */
   let count: specpdl_ref = {
-    let ct = current_thread;
+    let ct = (*current_thread.as_mut_ptr ());
     let pdl: *mut specbinding = (*ct).m_specpdl_ptr;
     let c = wrap_specpdl_ref (pdl as isize - ((*ct).m_specpdl) as isize);
     (*pdl).bt.kind = SPECPDL_BACKTRACE as u8;
@@ -2823,7 +2823,7 @@ pub unsafe extern "C-unwind" fn eval_sub (form: Lisp_Object) -> Lisp_Object
     c
   };
 
-  if debug_on_next_call
+  if (*debug_on_next_call.as_mut_ptr ())
     { do_debug_on_call (Qt (), count); }
 
   let mut fun: Lisp_Object;
@@ -2836,7 +2836,7 @@ pub unsafe extern "C-unwind" fn eval_sub (form: Lisp_Object) -> Lisp_Object
   let argvals_ptr: *mut Lisp_Object = argvals_uninit.as_mut_ptr () as *mut Lisp_Object;
   /* The stack overflow detection probably isn't worth the effort any more
      but this may be the least bad spot to feed it.  */
-  (*current_thread).stack_top = argvals_ptr as *const c_void;
+  (*(*current_thread.as_mut_ptr ())).stack_top = argvals_ptr as *const c_void;
 
   'retry: loop
     {
@@ -3038,11 +3038,11 @@ pub unsafe extern "C-unwind" fn eval_sub (form: Lisp_Object) -> Lisp_Object
 		 macro can know reliably if the code it outputs will be
 		 interpreted using lexical-binding or not.  */
 	      specbind (Qlexical_binding (),
-			if NILP (Vinternal_interpreter_environment) { Qnil () } else { Qt () });
+			if NILP ((*Vinternal_interpreter_environment.as_mut_ptr ())) { Qnil () } else { Qt () });
 
 	      /* Make the macro aware of any defvar declarations in scope. */
-	      let mut dynvars: Lisp_Object = Vmacroexp__dynvars;
-	      let mut p: Lisp_Object = Vinternal_interpreter_environment;
+	      let mut dynvars: Lisp_Object = (*Vmacroexp__dynvars.as_mut_ptr ());
+	      let mut p: Lisp_Object = (*Vinternal_interpreter_environment.as_mut_ptr ());
 	      while !NILP (p)
 		{
 		  let e: Lisp_Object = XCAR (p);
@@ -3050,7 +3050,7 @@ pub unsafe extern "C-unwind" fn eval_sub (form: Lisp_Object) -> Lisp_Object
 		    { dynvars = Fcons (e, dynvars); }
 		  p = XCDR (p);
 		}
-	      if !EQ (dynvars, Vmacroexp__dynvars)
+	      if !EQ (dynvars, (*Vmacroexp__dynvars.as_mut_ptr ()))
 		{ specbind (Qmacroexp__dynvars (), dynvars); }
 
 	      exp = apply1 (Fcdr (fun), original_args);
@@ -3299,7 +3299,7 @@ pub unsafe extern "C-unwind" fn run_hook_with_args (
 
   /* If we are dying or still initializing,
      don't do anything--it would probably crash if we tried.  */
-  if NILP (Vrun_hooks)
+  if NILP ((*Vrun_hooks.as_mut_ptr ()))
     { return Qnil (); }
 
   sym = *args.offset (0);
@@ -3558,16 +3558,16 @@ DEFUN! ("funcall", Ffuncall, Sfuncall, 1, MANY, 0,
   maybe_quit ();
 
   lisp_eval_depth! () += 1;
-  if lisp_eval_depth! () as EMACS_INT > max_lisp_eval_depth
+  if lisp_eval_depth! () as EMACS_INT > (*max_lisp_eval_depth.as_mut_ptr ())
     {
-      if max_lisp_eval_depth < 100
-	{ max_lisp_eval_depth = 100; }
-      if lisp_eval_depth! () as EMACS_INT > max_lisp_eval_depth
+      if (*max_lisp_eval_depth.as_mut_ptr ()) < 100
+	{ (*max_lisp_eval_depth.as_mut_ptr ()) = 100; }
+      if lisp_eval_depth! () as EMACS_INT > (*max_lisp_eval_depth.as_mut_ptr ())
 	{ xsignal1 (Qexcessive_lisp_nesting (), make_fixnum (lisp_eval_depth! () as EMACS_INT)); }
     }
 
   count = {
-    let ct = current_thread;
+    let ct = (*current_thread.as_mut_ptr ());
     let pdl: *mut specbinding = (*ct).m_specpdl_ptr;
     let c = wrap_specpdl_ref (pdl as isize - ((*ct).m_specpdl) as isize);
     (*pdl).bt.kind = SPECPDL_BACKTRACE as u8;
@@ -3584,7 +3584,7 @@ DEFUN! ("funcall", Ffuncall, Sfuncall, 1, MANY, 0,
 
   maybe_gc ();
 
-  if debug_on_next_call
+  if (*debug_on_next_call.as_mut_ptr ())
     { do_debug_on_call (Qlambda (), count); }
 
   let mut val: Lisp_Object = funcall_general (*args.offset (0), nargs - 1, args.offset (1));
@@ -3954,7 +3954,7 @@ unsafe fn funcall_lambda (fun: Lisp_Object, nargs: ptrdiff_t, arg_vector: *mut L
   else if i < nargs
     { xsignal2 (Qwrong_number_of_arguments (), fun, make_fixnum (nargs)); }
 
-  if !BASE_EQ (lexenv, Vinternal_interpreter_environment)
+  if !BASE_EQ (lexenv, (*Vinternal_interpreter_environment.as_mut_ptr ()))
     /* Instantiate a new lexical environment.  */
     { specbind (Qinternal_interpreter_environment (), lexenv); }
 
@@ -4610,16 +4610,16 @@ pub unsafe extern "C-unwind" fn unbind_to (count: specpdl_ref, value: Lisp_Objec
 {
   // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
   unsafe {
-  let mut ct: *mut thread_state = current_thread;
+  let mut ct: *mut thread_state = (*current_thread.as_mut_ptr ());
   let mut target_ptr: *mut specbinding = ((*ct).m_specpdl as *mut u8)
     .offset (unwrap_specpdl_ref (count)) as *mut specbinding;
   if (*ct).m_specpdl_ptr == target_ptr
     { return value; }
 
-  let quitf: Lisp_Object = Vquit_flag;
+  let quitf: Lisp_Object = (*Vquit_flag.as_mut_ptr ());
   let mut unbind_roots = crate::nonlocal::ScopedLispRoot::new (&[value, quitf, Qnil ()]);
 
-  Vquit_flag = Qnil ();
+  (*Vquit_flag.as_mut_ptr ()) = Qnil ();
 
   while (*ct).m_specpdl_ptr != target_ptr
     {
@@ -4656,7 +4656,7 @@ pub unsafe extern "C-unwind" fn unbind_to (count: specpdl_ref, value: Lisp_Objec
 	  (*ct).m_lisp_eval_depth = depth;
 	  func (arg);
 	  unbind_roots.set (2, Qnil ());
-	  ct = current_thread;
+	  ct = (*current_thread.as_mut_ptr ());
 	  target_ptr = ((*ct).m_specpdl as *mut u8)
 	    .offset (unwrap_specpdl_ref (count)) as *mut specbinding;
 	  continue;
@@ -4665,13 +4665,13 @@ pub unsafe extern "C-unwind" fn unbind_to (count: specpdl_ref, value: Lisp_Objec
       let mut this_binding: specbinding = *p;
 
       do_one_unbind (&mut this_binding, true, SET_INTERNAL_UNBIND);
-      ct = current_thread;
+      ct = (*current_thread.as_mut_ptr ());
       target_ptr = ((*ct).m_specpdl as *mut u8)
 	.offset (unwrap_specpdl_ref (count)) as *mut specbinding;
     }
 
-  if NILP (Vquit_flag) && !NILP (quitf)
-    { Vquit_flag = quitf; }
+  if NILP ((*Vquit_flag.as_mut_ptr ())) && !NILP (quitf)
+    { (*Vquit_flag.as_mut_ptr ()) = quitf; }
 
   return value;
 
@@ -5165,43 +5165,43 @@ pub unsafe extern "C-unwind" fn backtrace_top_function () -> Lisp_Object
    defines each object here and the definition shadows the `globals.rs` declaration
    (PORTING.md P-21/P-39).  `tools/check-globals.py` is the gate.  */
 #[unsafe(no_mangle)]
-pub static mut max_lisp_eval_depth: EMACS_INT = 0;
+pub static max_lisp_eval_depth: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);
 #[unsafe(no_mangle)]
-pub static mut lisp_eval_depth_reserve: EMACS_INT = 0;
+pub static lisp_eval_depth_reserve: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);
 #[unsafe(no_mangle)]
-pub static mut Vquit_flag: Lisp_Object = lisp_h_Qnil ();
+pub static Vquit_flag: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vinhibit_quit: Lisp_Object = lisp_h_Qnil ();
+pub static Vinhibit_quit: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vinhibit_debugger: Lisp_Object = lisp_h_Qnil ();
+pub static Vinhibit_debugger: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vdebug_on_error: Lisp_Object = lisp_h_Qnil ();
+pub static Vdebug_on_error: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vdebug_ignored_errors: Lisp_Object = lisp_h_Qnil ();
+pub static Vdebug_ignored_errors: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut debug_on_quit: bool = false;
+pub static debug_on_quit: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut debug_on_next_call: bool = false;
+pub static debug_on_next_call: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut backtrace_on_redisplay_error: bool = false;
+pub static backtrace_on_redisplay_error: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut debugger_may_continue: bool = false;
+pub static debugger_may_continue: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut debugger_stack_frame_as_list: bool = false;
+pub static debugger_stack_frame_as_list: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut Vdebugger: Lisp_Object = lisp_h_Qnil ();
+pub static Vdebugger: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vsignal_hook_function: Lisp_Object = lisp_h_Qnil ();
+pub static Vsignal_hook_function: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vdebug_on_signal: Lisp_Object = lisp_h_Qnil ();
+pub static Vdebug_on_signal: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut backtrace_on_error_noninteractive: bool = false;
+pub static backtrace_on_error_noninteractive: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut when_entered_debugger: EMACS_INT = 0;
+pub static when_entered_debugger: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);
 #[unsafe(no_mangle)]
-pub static mut Vinternal_interpreter_environment: Lisp_Object = lisp_h_Qnil ();
+pub static Vinternal_interpreter_environment: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vinternal_make_interpreted_closure_function: Lisp_Object = lisp_h_Qnil ();
+pub static Vinternal_make_interpreted_closure_function: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_eval ()
@@ -5210,19 +5210,19 @@ pub unsafe extern "C-unwind" fn syms_of_eval ()
   unsafe {
   DEFVAR_INT! (c"max-lisp-eval-depth", max_lisp_eval_depth,
 	      "Limit on depth in `eval', `apply' and `funcall' before error.\n\nThis limit serves to catch infinite recursions for you before they cause\nactual stack overflow in C, which would be fatal for Emacs.\nYou can safely make it considerably larger than its default value,\nif that proves inconveniently small.  However, if you increase it too far,\nEmacs could overflow the real C stack, and crash.");
-  max_lisp_eval_depth = 1600;
+  (*max_lisp_eval_depth.as_mut_ptr ()) = 1600;
 
   DEFVAR_INT! (c"lisp-eval-depth-reserve", lisp_eval_depth_reserve,
 	      "Extra depth that can be allocated to handle errors.\nThis is the max depth that the system will add to `max-lisp-eval-depth'\nwhen calling debuggers or `handler-bind' handlers.");
-  lisp_eval_depth_reserve = 200;
+  (*lisp_eval_depth_reserve.as_mut_ptr ()) = 200;
 
   DEFVAR_LISP! (c"quit-flag", Vquit_flag,
 	       "Non-nil causes `eval' to abort, unless `inhibit-quit' is non-nil.\nIf the value is t, that means do an ordinary quit.\nIf the value equals `throw-on-input', that means quit by throwing\nto the tag specified in `throw-on-input'; it's for handling `while-no-input'.\nTyping C-g sets `quit-flag' to t, regardless of `inhibit-quit',\nbut `inhibit-quit' non-nil prevents anything from taking notice of that.");
-  Vquit_flag = Qnil ();
+  (*Vquit_flag.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"inhibit-quit", Vinhibit_quit,
 	       "Non-nil inhibits C-g quitting from happening immediately.\nNote that `quit-flag' will still be set by typing C-g,\nso a quit will be signaled as soon as `inhibit-quit' is nil.\nTo prevent this happening, set `quit-flag' to nil\nbefore making `inhibit-quit' nil.");
-  Vinhibit_quit = Qnil ();
+  (*Vinhibit_quit.as_mut_ptr ()) = Qnil ();
 
   DEFSYM! (Qsetq, "setq");
   DEFSYM! (Qinhibit_quit, "inhibit-quit");
@@ -5248,52 +5248,52 @@ pub unsafe extern "C-unwind" fn syms_of_eval ()
 
   DEFVAR_LISP! (c"inhibit-debugger", Vinhibit_debugger,
 	       "Non-nil means never enter the debugger.\nNormally set while the debugger is already active, to avoid recursive\ninvocations.");
-  Vinhibit_debugger = Qnil ();
+  (*Vinhibit_debugger.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"debug-on-error", Vdebug_on_error,
 	       "Non-nil means enter debugger if an error is signaled.\nDoes not apply to errors handled by `condition-case' or those\nmatched by `debug-ignored-errors'.\nIf the value is a list, an error only means to enter the debugger\nif one of its condition symbols appears in the list.\nWhen you evaluate an expression interactively, this variable\nis temporarily non-nil if `eval-expression-debug-on-error' is non-nil.\nThe command `toggle-debug-on-error' toggles this.\nSee also the variable `debug-on-quit' and `inhibit-debugger'.");
-  Vdebug_on_error = Qnil ();
+  (*Vdebug_on_error.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"debug-ignored-errors", Vdebug_ignored_errors,
     "List of errors for which the debugger should not be called.\nEach element may be a condition-name or a regexp that matches error messages.\nIf any element applies to a given error, that error skips the debugger\nand just returns to top level.\nIf you invoke Emacs with --debug-init, and want to remove some\nelements from the default value of this variable, use `setq' to\nchange the value of the variable to a new list, rather than `delq'\nto remove some errors from the list.\nThis overrides the variable `debug-on-error'.\nIt does not apply to errors handled by `condition-case'.");
-  Vdebug_ignored_errors = Qnil ();
+  (*Vdebug_ignored_errors.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_BOOL! (c"debug-on-quit", debug_on_quit,
     "Non-nil means enter debugger if quit is signaled (C-g, for example).\nDoes not apply if quit is handled by a `condition-case'.");
-  debug_on_quit = false;
+  (*debug_on_quit.as_mut_ptr ()) = false;
 
   DEFVAR_BOOL! (c"debug-on-next-call", debug_on_next_call,
 	       "Non-nil means enter debugger before next `eval', `apply' or `funcall'.");
 
   DEFVAR_BOOL! (c"backtrace-on-redisplay-error", backtrace_on_redisplay_error,
 	       "Non-nil means create a backtrace if a lisp error occurs in redisplay.\nThe backtrace is written to buffer *Redisplay-trace*.");
-  backtrace_on_redisplay_error = false;
+  (*backtrace_on_redisplay_error.as_mut_ptr ()) = false;
 
   DEFVAR_BOOL! (c"debugger-may-continue", debugger_may_continue,
 	       "Non-nil means debugger may continue execution.\nThis is nil when the debugger is called under circumstances where it\nmight not be safe to continue.");
-  debugger_may_continue = true;
+  (*debugger_may_continue.as_mut_ptr ()) = true;
 
   DEFVAR_BOOL! (c"debugger-stack-frame-as-list", debugger_stack_frame_as_list,
 	       "Non-nil means display call stack frames as lists.");
-  debugger_stack_frame_as_list = false;
+  (*debugger_stack_frame_as_list.as_mut_ptr ()) = false;
 
   DEFSYM! (Qdebugger, "debugger");
   DEFVAR_LISP! (c"debugger", Vdebugger,
 	       "Function to call to invoke debugger.\nIf due to frame exit, arguments are `exit' and the value being returned;\n this function's value will be returned instead of that.\nIf due to error, arguments are `error' and a list of arguments to `signal'.\nIf due to `apply' or `funcall' entry, one argument, `lambda'.\nIf due to `eval' entry, one argument, t.\nIF the desired entry point of the debugger is higher in the call stack,\nit can be specified with the keyword argument `:backtrace-base', whose\nformat should be the same as the BASE argument of `backtrace-frame'.");
-  Vdebugger = Qdebug_early ();
+  (*Vdebugger.as_mut_ptr ()) = Qdebug_early ();
 
   DEFVAR_LISP! (c"signal-hook-function", Vsignal_hook_function,
 	       "If non-nil, this is a function for `signal' to call.\nIt receives the same arguments that `signal' was given.\nThe Edebug package uses this to regain control.");
-  Vsignal_hook_function = Qnil ();
+  (*Vsignal_hook_function.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"debug-on-signal", Vdebug_on_signal,
 	       "Non-nil means call the debugger regardless of condition handlers.\nNote that `debug-on-error', `debug-on-quit' and friends\nstill determine whether to handle the particular condition.");
-  Vdebug_on_signal = Qnil ();
+  (*Vdebug_on_signal.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_BOOL! (c"backtrace-on-error-noninteractive",
                backtrace_on_error_noninteractive,
                "Non-nil means print backtrace on error in batch mode.\nIf this is nil, errors in batch mode will just print the error\nmessage upon encountering an unhandled error, without showing\nthe Lisp backtrace.");
-  backtrace_on_error_noninteractive = true;
+  (*backtrace_on_error_noninteractive.as_mut_ptr ()) = true;
 
   /* The value of num_nonmacro_input_events as of the last time we
    started to enter the debugger.  If we decide to enter the debugger
@@ -5318,7 +5318,7 @@ pub unsafe extern "C-unwind" fn syms_of_eval ()
   DEFVAR_LISP! (c"internal-interpreter-environment",
 		Vinternal_interpreter_environment,
 	       "If non-nil, the current lexical environment of the lisp interpreter.\nWhen lexical binding is not being used, this variable is nil.\nA value of `(t)' indicates an empty environment, otherwise it is an\nalist of active lexical bindings.");
-  Vinternal_interpreter_environment = Qnil ();
+  (*Vinternal_interpreter_environment.as_mut_ptr ()) = Qnil ();
   /* Don't export this variable to Elisp, so no one can mess with it
      (Just imagine if someone makes it buffer-local).  */
   Funintern (Qinternal_interpreter_environment (), Qnil ());
@@ -5326,84 +5326,84 @@ pub unsafe extern "C-unwind" fn syms_of_eval ()
   DEFVAR_LISP! (c"internal-make-interpreted-closure-function",
 	       Vinternal_make_interpreted_closure_function,
 	       "Function to filter the env when constructing a closure.");
-  Vinternal_make_interpreted_closure_function = Qnil ();
+  (*Vinternal_make_interpreted_closure_function.as_mut_ptr ()) = Qnil ();
 
-  Vrun_hooks = intern_c_string (c"run-hooks".as_ptr ());
-  staticpro (&raw mut Vrun_hooks);
+  (*Vrun_hooks.as_mut_ptr ()) = intern_c_string (c"run-hooks".as_ptr ());
+  staticpro (Vrun_hooks.as_mut_ptr ());
 
-  staticpro (&raw mut Vautoload_queue);
-  Vautoload_queue = Qnil ();
-  staticpro (&raw mut Vsignaling_function);
-  Vsignaling_function = Qnil ();
+  staticpro (Vautoload_queue.as_mut_ptr ());
+  (*Vautoload_queue.as_mut_ptr ()) = Qnil ();
+  staticpro (Vsignaling_function.as_mut_ptr ());
+  (*Vsignaling_function.as_mut_ptr ()) = Qnil ();
 
-  staticpro (&raw mut Qcatch_all_memory_full);
+  staticpro (Qcatch_all_memory_full.as_mut_ptr ());
   /* Make sure Qcatch_all_memory_full is a unique object.  We could
      also use something like Fcons (Qnil, Qnil), but json.c treats any
      cons cell as error data, so use an uninterned symbol instead.  */
-  Qcatch_all_memory_full
+  (*Qcatch_all_memory_full.as_mut_ptr ())
     = Fmake_symbol (build_string (c"catch-all-memory-full".as_ptr ()));
 
-  staticpro (&raw mut list_of_t);
-  list_of_t = list1 (Qt ());
+  staticpro (list_of_t.as_mut_ptr ());
+  (*list_of_t.as_mut_ptr ()) = list1 (Qt ());
 
-  defsubr (&raw mut Sor);
-  defsubr (&raw mut Sand);
-  defsubr (&raw mut Sif);
-  defsubr (&raw mut Scond);
-  defsubr (&raw mut Sprogn);
-  defsubr (&raw mut Sprog1);
-  defsubr (&raw mut Ssetq);
-  defsubr (&raw mut Squote);
-  defsubr (&raw mut Sfunction);
-  defsubr (&raw mut Smake_interpreted_closure);
-  defsubr (&raw mut Sdefault_toplevel_value);
-  defsubr (&raw mut Sset_default_toplevel_value);
-  defsubr (&raw mut Sbuffer_local_toplevel_value);
-  defsubr (&raw mut Sset_buffer_local_toplevel_value);
-  defsubr (&raw mut Sdefvar);
-  defsubr (&raw mut Sdefvar_1);
-  defsubr (&raw mut Sdefvaralias);
+  defsubr (Sor.as_mut_ptr ());
+  defsubr (Sand.as_mut_ptr ());
+  defsubr (Sif.as_mut_ptr ());
+  defsubr (Scond.as_mut_ptr ());
+  defsubr (Sprogn.as_mut_ptr ());
+  defsubr (Sprog1.as_mut_ptr ());
+  defsubr (Ssetq.as_mut_ptr ());
+  defsubr (Squote.as_mut_ptr ());
+  defsubr (Sfunction.as_mut_ptr ());
+  defsubr (Smake_interpreted_closure.as_mut_ptr ());
+  defsubr (Sdefault_toplevel_value.as_mut_ptr ());
+  defsubr (Sset_default_toplevel_value.as_mut_ptr ());
+  defsubr (Sbuffer_local_toplevel_value.as_mut_ptr ());
+  defsubr (Sset_buffer_local_toplevel_value.as_mut_ptr ());
+  defsubr (Sdefvar.as_mut_ptr ());
+  defsubr (Sdefvar_1.as_mut_ptr ());
+  defsubr (Sdefvaralias.as_mut_ptr ());
   DEFSYM! (Qdefvaralias, "defvaralias");
-  defsubr (&raw mut Sinternal_delete_indirect_variable);
-  defsubr (&raw mut Sdefconst);
-  defsubr (&raw mut Sdefconst_1);
-  defsubr (&raw mut Sinternal__define_uninitialized_variable);
-  defsubr (&raw mut Smake_var_non_special);
-  defsubr (&raw mut Slet);
-  defsubr (&raw mut SletX);
-  defsubr (&raw mut Swhile);
-  defsubr (&raw mut Sfuncall_with_delayed_message);
-  defsubr (&raw mut Smacroexpand);
-  defsubr (&raw mut Scatch);
-  defsubr (&raw mut Sthrow);
-  defsubr (&raw mut Sunwind_protect);
-  defsubr (&raw mut Scondition_case);
-  defsubr (&raw mut Shandler_bind_1);
+  defsubr (Sinternal_delete_indirect_variable.as_mut_ptr ());
+  defsubr (Sdefconst.as_mut_ptr ());
+  defsubr (Sdefconst_1.as_mut_ptr ());
+  defsubr (Sinternal__define_uninitialized_variable.as_mut_ptr ());
+  defsubr (Smake_var_non_special.as_mut_ptr ());
+  defsubr (Slet.as_mut_ptr ());
+  defsubr (SletX.as_mut_ptr ());
+  defsubr (Swhile.as_mut_ptr ());
+  defsubr (Sfuncall_with_delayed_message.as_mut_ptr ());
+  defsubr (Smacroexpand.as_mut_ptr ());
+  defsubr (Scatch.as_mut_ptr ());
+  defsubr (Sthrow.as_mut_ptr ());
+  defsubr (Sunwind_protect.as_mut_ptr ());
+  defsubr (Scondition_case.as_mut_ptr ());
+  defsubr (Shandler_bind_1.as_mut_ptr ());
   DEFSYM! (QCsuccess, ":success");
-  defsubr (&raw mut Ssignal);
-  defsubr (&raw mut Scommandp);
-  defsubr (&raw mut Sautoload);
-  defsubr (&raw mut Sautoload_do_load);
-  defsubr (&raw mut Seval);
-  defsubr (&raw mut Sapply);
-  defsubr (&raw mut Sfuncall);
-  defsubr (&raw mut Sfunc_arity);
-  defsubr (&raw mut Srun_hooks);
-  defsubr (&raw mut Srun_hook_with_args);
-  defsubr (&raw mut Srun_hook_with_args_until_success);
-  defsubr (&raw mut Srun_hook_with_args_until_failure);
-  defsubr (&raw mut Srun_hook_wrapped);
-  defsubr (&raw mut Sbacktrace_debug);
+  defsubr (Ssignal.as_mut_ptr ());
+  defsubr (Scommandp.as_mut_ptr ());
+  defsubr (Sautoload.as_mut_ptr ());
+  defsubr (Sautoload_do_load.as_mut_ptr ());
+  defsubr (Seval.as_mut_ptr ());
+  defsubr (Sapply.as_mut_ptr ());
+  defsubr (Sfuncall.as_mut_ptr ());
+  defsubr (Sfunc_arity.as_mut_ptr ());
+  defsubr (Srun_hooks.as_mut_ptr ());
+  defsubr (Srun_hook_with_args.as_mut_ptr ());
+  defsubr (Srun_hook_with_args_until_success.as_mut_ptr ());
+  defsubr (Srun_hook_with_args_until_failure.as_mut_ptr ());
+  defsubr (Srun_hook_wrapped.as_mut_ptr ());
+  defsubr (Sbacktrace_debug.as_mut_ptr ());
   DEFSYM! (QCdebug_on_exit, ":debug-on-exit");
-  defsubr (&raw mut Smapbacktrace);
-  defsubr (&raw mut Sbacktrace_frame_internal);
-  defsubr (&raw mut Sbacktrace_frames_from_thread);
-  defsubr (&raw mut Sbacktrace_eval);
-  defsubr (&raw mut Sbacktrace__locals);
-  defsubr (&raw mut Sspecial_variable_p);
+  defsubr (Smapbacktrace.as_mut_ptr ());
+  defsubr (Sbacktrace_frame_internal.as_mut_ptr ());
+  defsubr (Sbacktrace_frames_from_thread.as_mut_ptr ());
+  defsubr (Sbacktrace_eval.as_mut_ptr ());
+  defsubr (Sbacktrace__locals.as_mut_ptr ());
+  defsubr (Sspecial_variable_p.as_mut_ptr ());
   DEFSYM! (Qfunctionp, "functionp");
-  defsubr (&raw mut Sfunctionp);
-  defsubr (&raw mut Sdebugger_trap);
+  defsubr (Sfunctionp.as_mut_ptr ());
+  defsubr (Sdebugger_trap.as_mut_ptr ());
 
   }
 }
@@ -5540,13 +5540,13 @@ unsafe extern "C-unwind" fn un_autoload (oldqueue: Lisp_Object)
   unsafe {
   /* Queue to unwind is current value of Vautoload_queue.
      oldqueue is the shadowed value to leave in Vautoload_queue.  */
-  let mut queue: Lisp_Object = Vautoload_queue;
-  Vautoload_queue = oldqueue;
+  let mut queue: Lisp_Object = (*Vautoload_queue.as_mut_ptr ());
+  (*Vautoload_queue.as_mut_ptr ()) = oldqueue;
   while CONSP (queue)
     {
       let first: Lisp_Object = XCAR (queue);
       if CONSP (first) && BASE_EQ (XCAR (first), make_fixnum (0))
-	{ Vfeatures = XCDR (first); }
+	{ (*Vfeatures.as_mut_ptr ()) = XCDR (first); }
       else
 	{ Ffset (first, Fcar (Fcdr (Fget (first, Qfunction_history ())))); }
       queue = XCDR (queue);
@@ -5572,13 +5572,13 @@ pub unsafe extern "C-unwind" fn load_with_autoload_queue
      but rather a request to "call this function".
 
      The value saved here is to be restored into Vautoload_queue.  */
-  record_unwind_protect (Some (un_autoload), Vautoload_queue);
-  Vautoload_queue = Qt ();
+  record_unwind_protect (Some (un_autoload), (*Vautoload_queue.as_mut_ptr ()));
+  (*Vautoload_queue.as_mut_ptr ()) = Qt ();
   let tem: Lisp_Object
     = save_match_data_load (file, noerror, nomessage, nosuffix, must_suffix);
 
   /* Once loading finishes, don't undo it.  */
-  Vautoload_queue = Qt ();
+  (*Vautoload_queue.as_mut_ptr ()) = Qt ();
   unbind_to (count, Qnil ());
   return tem;
 
@@ -5607,7 +5607,7 @@ DEFUN! ("autoload-do-load", Fautoload_do_load, Sautoload_do_load, 1, 3, 0,
     {
       /* Avoid landing here recursively while outputting the
 	 backtrace from the error.  */
-      gflags.will_dump = false;
+      (*gflags.as_mut_ptr ()).will_dump = false;
       error (c"Attempt to autoload %s while preparing to dump".as_ptr (),
 	     SDATA (SYMBOL_NAME (funname)));
     }
@@ -5629,7 +5629,7 @@ DEFUN! ("autoload-do-load", Fautoload_do_load, Sautoload_do_load, 1, 3, 0,
 
       if !NILP (Fequal (fun, fundef))
 	{ error (c"Autoloading file %s failed to define function %s".as_ptr (),
-	         SDATA (Fcar (Fcar (Vload_history))),
+	         SDATA (Fcar (Fcar ((*Vload_history.as_mut_ptr ())))),
 	         SDATA (SYMBOL_NAME (funname))); }
       else
 	{ return fun; }

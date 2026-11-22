@@ -35,9 +35,9 @@ pub mod tparam_externs {
                    arg0: c_int, arg1: c_int, arg2: c_int, arg3: c_int) -> *mut c_char;
 
     /* tparam.h 43-45: the three termcap globals.  */
-    pub static mut PC: c_char;
-    pub static mut BC: *mut c_char;
-    pub static mut UP: *mut c_char;
+    pub static PC: VmGlobal<c_char>;
+    pub static BC: VmGlobal<*mut c_char>;
+    pub static UP: VmGlobal<*mut c_char>;
 
     /* tparam.h 48-49, the live `#ifdef TERMINFO` branch.  */
     pub fn tigetflag (id: *const c_char) -> c_int;

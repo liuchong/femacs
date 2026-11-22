@@ -238,7 +238,7 @@ unsafe extern "C-unwind" fn order_pred_lss (ms: *mut merge_state, a: Lisp_Object
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  if FIXNUMP (a) && FIXNUMP (b) && !debug_on_next_call
+  if FIXNUMP (a) && FIXNUMP (b) && !(*debug_on_next_call.as_mut_ptr ())
     {
       maybe_quit ();
       return XFIXNUM (a) < XFIXNUM (b);
@@ -252,7 +252,7 @@ unsafe extern "C-unwind" fn order_pred_gtr (ms: *mut merge_state, a: Lisp_Object
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  if FIXNUMP (a) && FIXNUMP (b) && !debug_on_next_call
+  if FIXNUMP (a) && FIXNUMP (b) && !(*debug_on_next_call.as_mut_ptr ())
     {
       maybe_quit ();
       return XFIXNUM (a) > XFIXNUM (b);
@@ -283,7 +283,7 @@ unsafe fn inorder (ms: *mut merge_state, a: Lisp_Object, b: Lisp_Object) -> bool
      port's `unwrap_unchecked` has exactly that precondition.  */
   let pred_fn = (*ms).pred_fun.unwrap_unchecked ();
   if pred_fn as usize == order_pred_lss as *const () as usize
-     && FIXNUMP (a) && FIXNUMP (b) && !debug_on_next_call
+     && FIXNUMP (a) && FIXNUMP (b) && !(*debug_on_next_call.as_mut_ptr ())
     {
       maybe_quit ();
       return XFIXNUM (a) < XFIXNUM (b);

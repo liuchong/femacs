@@ -25,7 +25,7 @@ pub const EMACS_SYNTAX_H: bool = true;
 // site spells the member with the `_` C's BVAR appends to it (PORTING.md P-37, the
 // buffer.rs BVAR! row), because `macro_rules!` cannot paste onto an identifier.
 macro_rules! Vstandard_syntax_table {
-    () => { BVAR! (&raw mut buffer_defaults, syntax_table_) };
+    () => { BVAR! (buffer_defaults.as_mut_ptr (), syntax_table_) };
 }
 
 /* A syntax table is a chartable whose elements are cons cells
@@ -90,7 +90,7 @@ pub struct gl_state_s
 pub mod syntax_h_own_definitions {
   use super::*;
   unsafe extern "C-unwind" {
-    pub static mut gl_state: gl_state_s;
+    pub static gl_state: VmGlobal<gl_state_s>;
     /// C: void update_syntax_table (ptrdiff_t, EMACS_INT, Lisp_Object)
     pub fn update_syntax_table (charpos: ptrdiff_t, count: EMACS_INT, init: Lisp_Object);
     /// C: void update_syntax_table_forward (ptrdiff_t, Lisp_Object)
@@ -139,9 +139,9 @@ pub use self::syntax_h_own_definitions::*;
 pub fn syntax_property_entry (c: c_int, via_property: bool) -> Lisp_Object
 {
   if via_property
-    { return if /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { gl_state.use_global }
-	{ unsafe { gl_state.global_code } }
-	else { CHAR_TABLE_REF (unsafe { gl_state.current_syntax_table }, c as isize) }; }
+    { return if /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*gl_state.as_mut_ptr ()).use_global }
+	{ unsafe { (*gl_state.as_mut_ptr ()).global_code } }
+	else { CHAR_TABLE_REF (unsafe { (*gl_state.as_mut_ptr ()).current_syntax_table }, c as isize) }; }
   return CHAR_TABLE_REF (unsafe { BVAR! ((current_buffer! ()), syntax_table_) }, c as isize);
 }
 /* Extract the information from the entry for character C
@@ -172,14 +172,14 @@ pub fn syntax_property (c: c_int, via_property: bool) -> syntaxcode
 #[inline(always)]
 pub fn RE_SYNTAX_TABLE_BYTE_TO_CHAR (byteoffset: ptrdiff_t) -> ptrdiff_t
 {
-  return if !/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { parse_sexp_lookup_properties }
+  return if !/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*parse_sexp_lookup_properties.as_mut_ptr ()) }
     { 0 }
-  else if STRINGP (unsafe { gl_state.object })
-    { unsafe { string_byte_to_char (gl_state.object, byteoffset) } }
-  else if BUFFERP (unsafe { gl_state.object })
-    { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { buf_bytepos_to_charpos (XBUFFER (gl_state.object) as *mut c_void,
-				       byteoffset + BUF_BEGV_BYTE (XBUFFER (gl_state.object))) } }
-  else if NILP (unsafe { gl_state.object })
+  else if STRINGP (unsafe { (*gl_state.as_mut_ptr ()).object })
+    { unsafe { string_byte_to_char ((*gl_state.as_mut_ptr ()).object, byteoffset) } }
+  else if BUFFERP (unsafe { (*gl_state.as_mut_ptr ()).object })
+    { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { buf_bytepos_to_charpos (XBUFFER ((*gl_state.as_mut_ptr ()).object) as *mut c_void,
+				       byteoffset + BUF_BEGV_BYTE (XBUFFER ((*gl_state.as_mut_ptr ()).object))) } }
+  else if NILP (unsafe { (*gl_state.as_mut_ptr ()).object })
     { BYTE_TO_CHAR (byteoffset + unsafe { BEGV_BYTE! () }) }
   else { byteoffset };
 }
@@ -190,8 +190,8 @@ pub fn RE_SYNTAX_TABLE_BYTE_TO_CHAR (byteoffset: ptrdiff_t) -> ptrdiff_t
 #[inline(always)]
 pub fn UPDATE_SYNTAX_TABLE_FORWARD (charpos: ptrdiff_t)
 { /* Performs just-in-time syntax-propertization.  */
-  if /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { parse_sexp_lookup_properties } && charpos >= unsafe { gl_state.e_property }
-    { unsafe { update_syntax_table_forward (charpos, gl_state.object) } }
+  if /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*parse_sexp_lookup_properties.as_mut_ptr ()) } && charpos >= unsafe { (*gl_state.as_mut_ptr ()).e_property }
+    { unsafe { update_syntax_table_forward (charpos, (*gl_state.as_mut_ptr ()).object) } }
 }
 
 /* Make syntax table state (gl_state) good for CHARPOS, assuming it is
@@ -200,8 +200,8 @@ pub fn UPDATE_SYNTAX_TABLE_FORWARD (charpos: ptrdiff_t)
 #[inline(always)]
 pub fn UPDATE_SYNTAX_TABLE_BACKWARD (charpos: ptrdiff_t)
 {
-  if /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { parse_sexp_lookup_properties } && charpos < unsafe { gl_state.b_property }
-    { unsafe { update_syntax_table (charpos, -1, gl_state.object) } }
+  if /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*parse_sexp_lookup_properties.as_mut_ptr ()) } && charpos < unsafe { (*gl_state.as_mut_ptr ()).b_property }
+    { unsafe { update_syntax_table (charpos, -1, (*gl_state.as_mut_ptr ()).object) } }
 }
 
 /* Make syntax table good for CHARPOS.  */
@@ -218,9 +218,9 @@ pub fn UPDATE_SYNTAX_TABLE (charpos: ptrdiff_t)
 #[inline(always)]
 pub fn SETUP_BUFFER_SYNTAX_TABLE ()
 {
-  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { gl_state.use_global = false; }
-  unsafe { gl_state.e_property_truncated = false; }
-  unsafe { gl_state.current_syntax_table = BVAR! ((current_buffer! ()), syntax_table_) };
+  /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*gl_state.as_mut_ptr ()).use_global = false; }
+  unsafe { (*gl_state.as_mut_ptr ()).e_property_truncated = false; }
+  unsafe { (*gl_state.as_mut_ptr ()).current_syntax_table = BVAR! ((current_buffer! ()), syntax_table_) };
 }
 
 // INLINE_HEADER_END has no Rust counterpart (PORTING.md 0.1).

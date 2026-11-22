@@ -22,8 +22,8 @@ pub unsafe extern "C" fn __timegm64 (tmp: *mut tm) -> __time64_t
   // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
   unsafe {
   /* C 32: `static mktime_offset_t gmtime_offset;` - C zero-initializes it.  */
-  static mut gmtime_offset: mktime_offset_t = 0;
-  return __mktime_internal! (tmp, false, &raw mut gmtime_offset);
+  static gmtime_offset: VmGlobal<mktime_offset_t> = VmGlobal::<mktime_offset_t>::new (0);
+  return __mktime_internal! (tmp, false, gmtime_offset.as_mut_ptr ());
 
   }
 }

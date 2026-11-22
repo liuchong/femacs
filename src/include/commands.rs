@@ -22,7 +22,7 @@ macro_rules! Ctl { ($c:expr) => { ($c) & 0o37 }; }
 // (docs/baseline/globals/variables.tsv 711, P-17), which the `INTERACTIVE` row of
 // docs/ports/macro-body-notes.tsv records.
 macro_rules! INTERACTIVE {
-    () => { NILP (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { Vexecuting_kbd_macro }) && !unsafe { noninteractive1 } };
+    () => { NILP (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*Vexecuting_kbd_macro.as_mut_ptr ()) }) && !unsafe { (*noninteractive1.as_mut_ptr ()) } };
 }
 
 // EMACS_COMMANDS_H's `#endif` has no Rust counterpart (PORTING.md 0.1).

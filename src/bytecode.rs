@@ -356,7 +356,7 @@ unsafe extern "C-unwind" fn bcall0 (f: Lisp_Object)
 {
   // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
   unsafe {
-  if CLOSUREP (f) && ! debug_on_next_call && ! BYTE_CODE_SAFE! ()
+  if CLOSUREP (f) && ! (*debug_on_next_call.as_mut_ptr ()) && ! BYTE_CODE_SAFE! ()
     {
       let template: Lisp_Object = AREF (f, CLOSURE_ARGLIST as isize);
       if FIXNUMP (template) && XFIXNUM (template) == 0
@@ -460,18 +460,18 @@ unsafe fn bc_call_housekeeping_slow (top: *mut Lisp_Object, call_nargs: ptrdiff_
   // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
   unsafe {
   maybe_quit ();
-  let ct = current_thread;
+  let ct = (*current_thread.as_mut_ptr ());
   (*ct).m_lisp_eval_depth += 1;
-  if (*ct).m_lisp_eval_depth as EMACS_INT > max_lisp_eval_depth
+  if (*ct).m_lisp_eval_depth as EMACS_INT > (*max_lisp_eval_depth.as_mut_ptr ())
     {
-      if max_lisp_eval_depth < 100
-	{ max_lisp_eval_depth = 100; }
-      if (*ct).m_lisp_eval_depth as EMACS_INT > max_lisp_eval_depth
+      if (*max_lisp_eval_depth.as_mut_ptr ()) < 100
+	{ (*max_lisp_eval_depth.as_mut_ptr ()) = 100; }
+      if (*ct).m_lisp_eval_depth as EMACS_INT > (*max_lisp_eval_depth.as_mut_ptr ())
 	{ error (c"Lisp nesting exceeds `max-lisp-eval-depth'".as_ptr ()); }
     }
   let count1: specpdl_ref = record_in_backtrace (*top, top.offset (1), call_nargs);
   maybe_gc ();
-  if debug_on_next_call
+  if (*debug_on_next_call.as_mut_ptr ())
     { do_debug_on_call (Qlambda (), count1); }
   call_nargs
 
@@ -661,7 +661,7 @@ DEFUN! ("internal-stack-stats", Finternal_stack_stats, Sinternal_stack_stats,
        doc: "internal",
        (),
        {
-  let mut bc: *mut bc_thread_state = &raw mut (*current_thread).bc;
+  let mut bc: *mut bc_thread_state = &raw mut (*(*current_thread.as_mut_ptr ())).bc;
   let mut nframes: c_int = 0;
   let mut nruns: c_int = 0;
   let mut fp: *mut bc_frame = (*bc).fp as *mut bc_frame;
@@ -672,7 +672,7 @@ DEFUN! ("internal-stack-stats", Finternal_stack_stats, Sinternal_stack_stats,
 	{ nruns += 1; }
       fp = (*fp).saved_fp;
     }
-  fprintf (stderr, c"%d stack frames, %d runs\n".as_ptr (), nframes, nruns);
+  fprintf ((*stderr.as_mut_ptr ()), c"%d stack frames, %d runs\n".as_ptr (), nframes, nruns);
   return Qnil ();
 });
 
@@ -809,7 +809,7 @@ pub unsafe extern "C-unwind" fn exec_byte_code (mut fun: Lisp_Object, mut args_t
   // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
   unsafe {
   let mut quitcounter: c_uchar = 1;
-  let mut bc: *mut bc_thread_state = &raw mut (*current_thread).bc;
+  let mut bc: *mut bc_thread_state = &raw mut (*(*current_thread.as_mut_ptr ())).bc;
 
   /* Values used for the first stack record when called from C.  */
   let mut top: *mut Lisp_Object = std::ptr::null_mut ();
@@ -1011,7 +1011,7 @@ pub unsafe extern "C-unwind" fn exec_byte_code (mut fun: Lisp_Object, mut args_t
 	  let sym: *mut Lisp_Symbol = XBARE_SYMBOL (sym_obj);
 	  if ((*sym).u.s.bits & (SYMBOL_REDIRECT_MASK | SYMBOL_TRAPPED_WRITE_MASK)) == 0
 	    {
-	      let ct = current_thread;
+	      let ct = (*current_thread.as_mut_ptr ());
 	      let pdl: *mut specbinding = (*ct).m_specpdl_ptr;
 	      (*pdl).r#let.kind = SPECPDL_LET as u8;
 	      (*pdl).r#let.symbol = sym_obj;
@@ -1032,7 +1032,7 @@ pub unsafe extern "C-unwind" fn exec_byte_code (mut fun: Lisp_Object, mut args_t
   macro_rules! do_unbind {
     ($count:expr) => {{
       let count_n: ptrdiff_t = $count;
-      let ct = current_thread;
+      let ct = (*current_thread.as_mut_ptr ());
       let mut ptr: *mut specbinding = (*ct).m_specpdl_ptr;
       let target_ptr: *mut specbinding = ptr.offset (-count_n);
       while ptr != target_ptr
@@ -1064,7 +1064,7 @@ pub unsafe extern "C-unwind" fn exec_byte_code (mut fun: Lisp_Object, mut args_t
     ($call_nargs:expr) => {{
       let mut call_nargs: ptrdiff_t = $call_nargs;
       DISCARD! (call_nargs);
-      let ct = current_thread;
+      let ct = (*current_thread.as_mut_ptr ());
       let depth = (*ct).m_lisp_eval_depth + 1;
       let pdl: *mut specbinding = (*ct).m_specpdl_ptr;
       let next_pdl = pdl.add (1);
@@ -1072,17 +1072,17 @@ pub unsafe extern "C-unwind" fn exec_byte_code (mut fun: Lisp_Object, mut args_t
 	 negative.  Bcall..Bcall5 must take the same housekeeping entry as a
 	 heap-threshold trip so Automatic young can run on byte-compiled call
 	 rings.  Bcall6/Bcall7 already always call bc_call_housekeeping_slow.  */
-      if !NILP (Vquit_flag) || pending_signals
-	 || (depth as EMACS_INT) > max_lisp_eval_depth
+      if !NILP ((*Vquit_flag.as_mut_ptr ())) || (*pending_signals.as_mut_ptr ())
+	 || (depth as EMACS_INT) > (*max_lisp_eval_depth.as_mut_ptr ())
 	 || next_pdl == (*ct).m_specpdl_end
-	 || consing_until_gc < 0
+	 || (*consing_until_gc.as_mut_ptr ()) < 0
 	 || {
 	      #[cfg(feature = "femacs_gc_generational")]
 	      { femacs_gc_young_cadence_pending () }
 	      #[cfg(not(feature = "femacs_gc_generational"))]
 	      { false }
 	    }
-	 || debug_on_next_call
+	 || (*debug_on_next_call.as_mut_ptr ())
 	{
 	  call_nargs = bc_call_housekeeping_slow (top, call_nargs);
 	}
@@ -1182,7 +1182,7 @@ pub unsafe extern "C-unwind" fn exec_byte_code (mut fun: Lisp_Object, mut args_t
       else
 	{ val = bc_funcall_general_slow (original_fun, call_nargs, call_args); }
 
-      let ct2 = current_thread;
+      let ct2 = (*current_thread.as_mut_ptr ());
       (*ct2).m_lisp_eval_depth -= 1;
       let pdl_after = (*ct2).m_specpdl_ptr.offset (-1);
       if backtrace_debug_on_exit (pdl_after)
@@ -1290,7 +1290,7 @@ pub unsafe extern "C-unwind" fn exec_byte_code (mut fun: Lisp_Object, mut args_t
 	  {
 	    let mut list: Lisp_Object = POP! ();
 	    let elt: Lisp_Object = TOP! ();
-	    if ! symbols_with_pos_enabled
+	    if ! (*symbols_with_pos_enabled.as_mut_ptr ())
 	      {
 		let mut steps: c_int = 0;
 		while CONSP (list) && steps < 64
@@ -1753,7 +1753,7 @@ pub unsafe extern "C-unwind" fn exec_byte_code (mut fun: Lisp_Object, mut args_t
 		  }
 	      }
 	    let mut val: Lisp_Object = funcall_general (original_fun, call_nargs, call_args);
-	    let ct2 = current_thread;
+	    let ct2 = (*current_thread.as_mut_ptr ());
 	    (*ct2).m_lisp_eval_depth -= 1;
 	    let pdl_after = (*ct2).m_specpdl_ptr.offset (-1);
 	    if backtrace_debug_on_exit (pdl_after)
@@ -1814,7 +1814,7 @@ pub unsafe extern "C-unwind" fn exec_byte_code (mut fun: Lisp_Object, mut args_t
 	    if ! saved_top.is_null ()
 	      {
 		let mut val: Lisp_Object = TOP! ();
-		let ct = current_thread;
+		let ct = (*current_thread.as_mut_ptr ());
 		(*ct).m_lisp_eval_depth -= 1;
 		let pdl_after = (*ct).m_specpdl_ptr.offset (-1);
 		if backtrace_debug_on_exit (pdl_after)
@@ -1905,7 +1905,7 @@ pub unsafe extern "C-unwind" fn exec_byte_code (mut fun: Lisp_Object, mut args_t
 	  {
 	    let handler: Lisp_Object = POP! ();
 	    /* Support for a function here is new in 24.4.  */
-	    let ct = current_thread;
+	    let ct = (*current_thread.as_mut_ptr ());
 	    let pdl: *mut specbinding = (*ct).m_specpdl_ptr;
 	    (*pdl).unwind.kind = SPECPDL_UNWIND as u8;
 	    (*pdl).unwind.func = if CLOSUREP (handler) || FUNCTIONP (handler)
@@ -1931,7 +1931,7 @@ pub unsafe extern "C-unwind" fn exec_byte_code (mut fun: Lisp_Object, mut args_t
 	  {
 	    CHECK_STRING (TOP! ());
 	    temp_output_buffer_setup (SSDATA (TOP! ()));
-	    *top = Vstandard_output;
+	    *top = (*Vstandard_output.as_mut_ptr ());
 	    NEXT! ();
 	  }
 	CASE! (Btemp_output_buffer_show) => /* Obsolete since 24.1.  */
@@ -2637,7 +2637,7 @@ pub unsafe extern "C-unwind" fn exec_byte_code (mut fun: Lisp_Object, mut args_t
 	  {
 	    let mut list: Lisp_Object = POP! ();
 	    let key: Lisp_Object = TOP! ();
-	    if ! symbols_with_pos_enabled
+	    if ! (*symbols_with_pos_enabled.as_mut_ptr ())
 	      {
 		let mut steps: c_int = 0;
 		while CONSP (list) && steps < 64
@@ -3111,7 +3111,7 @@ pub unsafe extern "C-unwind" fn exec_byte_code (mut fun: Lisp_Object, mut args_t
 	       (The table is assumed to be sized exactly; all entries are
 	       consecutive at the beginning.)
 	       FIXME: 5 is arbitrarily chosen.  */
-            if (*h).count <= 5 && NILP ((*(*h).test).cmpfn) && ! symbols_with_pos_enabled
+            if (*h).count <= 5 && NILP ((*(*h).test).cmpfn) && ! (*symbols_with_pos_enabled.as_mut_ptr ())
               {
 		eassume! ((*h).count >= 2);
 		let mut i: ptrdiff_t = ((*h).count - 1) as ptrdiff_t;
@@ -3215,7 +3215,7 @@ pub unsafe extern "C-unwind" fn exec_byte_code (mut fun: Lisp_Object, mut args_t
 	      handlerlist! () = (*c).next;
 	      top = (*c).bytecode_top;
 	      arg = (*c).bytecode_dest as ptrdiff_t;
-	      bc = &raw mut (*current_thread).bc;
+	      bc = &raw mut (*(*current_thread.as_mut_ptr ())).bc;
 	      let fp: *mut bc_frame = (*bc).fp as *mut bc_frame;
 	      fun = (*fp).fun;
 	      bytestr = AREF (fun, CLOSURE_CODE as isize);
@@ -3266,8 +3266,8 @@ pub unsafe extern "C-unwind" fn syms_of_bytecode ()
   unsafe {
   DEFSYM! (Qinteractive_p, c"interactive-p");
 
-  defsubr (&raw mut Sbyte_code);
-  defsubr (&raw mut Sinternal_stack_stats);
+  defsubr (Sbyte_code.as_mut_ptr ());
+  defsubr (Sinternal_stack_stats.as_mut_ptr ());
 
   /* C 1830-1851's `#ifdef BYTE_CODE_METER` arm (the `byte-code-meter` histogram and
      `byte-metering-on`) is dead in the frozen configuration and is recorded in

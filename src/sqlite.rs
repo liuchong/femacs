@@ -402,9 +402,9 @@ unsafe fn init_sqlite_functions () -> bool
   {
     /* C 202: `static bool sqlite3_initialized;` - C's function-local static; Rust keeps it at
        the same scope with C's zero value (`src/androidvfs.rs` 659's shape).  */
-    static mut sqlite3_initialized: bool = false;
+    static sqlite3_initialized: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
-    if ! sqlite3_initialized                                                      // C 204
+    if ! (*sqlite3_initialized.as_mut_ptr ())                                                      // C 204
       {
         /* C 206: `HMODULE library = w32_delayed_load (Qsqlite3);` (`HMODULE` is a `void *`).  */
         let library: *mut c_void = w32_delayed_load (Qsqlite3 ());
@@ -413,16 +413,16 @@ unsafe fn init_sqlite_functions () -> bool
           { message1 (c"sqlite3 library was not found".as_ptr ()); }              // C 209
         else if load_dll_functions (library)                                      // C 210
           {
-            sqlite3_initialized = true;                                           // C 212
-            Vlibrary_cache = Fcons (Fcons (Qsqlite3 (), Qt ()), Vlibrary_cache);  // C 213
+            (*sqlite3_initialized.as_mut_ptr ()) = true;                                           // C 212
+            (*Vlibrary_cache.as_mut_ptr ()) = Fcons (Fcons (Qsqlite3 (), Qt ()), (*Vlibrary_cache.as_mut_ptr ()));  // C 213
           }
         else
           {
             message1 (c"sqlite3 library was found, but could not be loaded successfully".as_ptr ()); // C 217
-            Vlibrary_cache = Fcons (Fcons (Qsqlite3 (), Qnil ()), Vlibrary_cache);                    // C 218
+            (*Vlibrary_cache.as_mut_ptr ()) = Fcons (Fcons (Qsqlite3 (), Qnil ()), (*Vlibrary_cache.as_mut_ptr ()));                    // C 218
           }
       }
-    return sqlite3_initialized;                                                   // C 221
+    return (*sqlite3_initialized.as_mut_ptr ());                                                   // C 221
   }
   /* C 222: `#else  /* !WINDOWSNT */` and C 223's `return true;`.  */
   #[cfg (not (feature = "windowsnt"))]
@@ -538,7 +538,7 @@ unsafe fn check_sqlite (db: Lisp_Object, is_statement: bool)
 /* C 278: `static int db_count = 0;` - C's `static` is internal linkage, so the item is not
    `pub` and exports no symbol (PORTING.md 0.2).  */
 #[cfg (feature = "have_sqlite3")]
-static mut db_count: c_int = 0;
+static db_count: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 /* C 279: blank.  */
 
 /* C 280: `DEFUN ("sqlite-open", Fsqlite_open, Ssqlite_open, 0, 3, 0, …)`.  */
@@ -580,8 +580,8 @@ DEFUN! ("sqlite-open", Fsqlite_open, Ssqlite_open, 0, 3, 0,
         /* C 312-313: `/* In-memory database.  These have to have different names to
            refer to different databases.  */`  */
         AUTO_STRING! (memory_fmt, c":memory:%d".as_ptr ());            // C 314
-        db_count += 1;                                                 // C 315's `++db_count`
-        name = CALLN! (Fformat, memory_fmt, make_int (db_count as intmax_t));  // C 315
+        (*db_count.as_mut_ptr ()) += 1;                                                 // C 315's `++db_count`
+        name = CALLN! (Fformat, memory_fmt, make_int ((*db_count.as_mut_ptr ()) as intmax_t));  // C 315
         flags |= SQLITE_OPEN_MEMORY;                                   // C 316
       }
       #[cfg (not (feature = "sqlite_open_memory"))]
@@ -1282,7 +1282,7 @@ DEFUN! ("sqlite-available-p", Fsqlite_available_p, Ssqlite_available_p, 0, 0, 0,
   {
     #[cfg (feature = "windowsnt")]
     {
-      let found: Lisp_Object = Fassq (Qsqlite3 (), Vlibrary_cache);     // C 875
+      let found: Lisp_Object = Fassq (Qsqlite3 (), (*Vlibrary_cache.as_mut_ptr ()));     // C 875
       if CONSP (found)                                                  // C 876
         { return XCDR (found); }                                        // C 877
       else
@@ -1307,29 +1307,29 @@ pub unsafe extern "C-unwind" fn syms_of_sqlite ()
      `#if HAVE_LOAD_EXTENSION` around `sqlite-load-extension`) and C 909-910's two `DEFSYM`s.  */
   #[cfg (feature = "have_sqlite3")]
   {
-    defsubr (&raw mut Ssqlite_open);                                    // C 892
-    defsubr (&raw mut Ssqlite_close);                                   // C 893
-    defsubr (&raw mut Ssqlite_execute);                                 // C 894
-    defsubr (&raw mut Ssqlite_select);                                  // C 895
-    defsubr (&raw mut Ssqlite_execute_batch);                           // C 896
-    defsubr (&raw mut Ssqlite_transaction);                             // C 897
-    defsubr (&raw mut Ssqlite_commit);                                  // C 898
-    defsubr (&raw mut Ssqlite_rollback);                                // C 899
-    defsubr (&raw mut Ssqlite_pragma);                                  // C 900
+    defsubr (Ssqlite_open.as_mut_ptr ());                                    // C 892
+    defsubr (Ssqlite_close.as_mut_ptr ());                                   // C 893
+    defsubr (Ssqlite_execute.as_mut_ptr ());                                 // C 894
+    defsubr (Ssqlite_select.as_mut_ptr ());                                  // C 895
+    defsubr (Ssqlite_execute_batch.as_mut_ptr ());                           // C 896
+    defsubr (Ssqlite_transaction.as_mut_ptr ());                             // C 897
+    defsubr (Ssqlite_commit.as_mut_ptr ());                                  // C 898
+    defsubr (Ssqlite_rollback.as_mut_ptr ());                                // C 899
+    defsubr (Ssqlite_pragma.as_mut_ptr ());                                  // C 900
     #[cfg (all (feature = "have_sqlite3_load_extension",
                 feature = "sqlite3_dbconfig_enable_load_extension"))]
-    defsubr (&raw mut Ssqlite_load_extension);                          // C 902
-    defsubr (&raw mut Ssqlite_next);                                    // C 904
-    defsubr (&raw mut Ssqlite_columns);                                 // C 905
-    defsubr (&raw mut Ssqlite_more_p);                                  // C 906
-    defsubr (&raw mut Ssqlite_finalize);                                // C 907
-    defsubr (&raw mut Ssqlite_version);                                 // C 908
+    defsubr (Ssqlite_load_extension.as_mut_ptr ());                          // C 902
+    defsubr (Ssqlite_next.as_mut_ptr ());                                    // C 904
+    defsubr (Ssqlite_columns.as_mut_ptr ());                                 // C 905
+    defsubr (Ssqlite_more_p.as_mut_ptr ());                                  // C 906
+    defsubr (Ssqlite_finalize.as_mut_ptr ());                                // C 907
+    defsubr (Ssqlite_version.as_mut_ptr ());                                 // C 908
     DEFSYM! (Qset, "set");                                              // C 909
     DEFSYM! (Qfull, "full");                                            // C 910
   }
   /* C 911: `#endif`.  */
-  defsubr (&raw mut Ssqlitep);                                          // C 912
-  defsubr (&raw mut Ssqlite_available_p);                               // C 913
+  defsubr (Ssqlitep.as_mut_ptr ());                                          // C 912
+  defsubr (Ssqlite_available_p.as_mut_ptr ());                               // C 913
   /* C 914: blank.  */
 
   DEFSYM! (Qsqlite_error, "sqlite-error");                              // C 915

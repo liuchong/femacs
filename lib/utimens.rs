@@ -115,8 +115,8 @@ pub const REPLACE_FUNC_STAT_FILE: c_int = 0;
    kernel 2.6.32 used with xfs or ntfs-3g fail to honor UTIME_OMIT
    utimensat completely works
    For each cache variable: 0 = unknown, 1 = yes, -1 = no.  */
-static mut utimensat_works_really: c_int = 0;
-static mut lutimensat_works_really: c_int = 0;
+static utimensat_works_really: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
+static lutimensat_works_really: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 
 unsafe extern "C" fn is_valid_timespec (timespec: *const timespec) -> bool
 {
@@ -278,7 +278,7 @@ pub unsafe extern "C" fn fdutimens (fd: c_int, file: *const c_char,
      a single syscall.  We provide a fallback for ENOSYS (for example,
      compiling against Linux 2.6.25 kernel headers and glibc 2.7, but
      running on Linux 2.6.18 kernel).  */
-  if (0 <= utimensat_works_really)
+  if (0 <= (*utimensat_works_really.as_mut_ptr ()))
     {
       let mut result: c_int;
       /* C 234-259's `# if defined __linux__ || defined __sun || defined __NetBSD__` arm
@@ -303,7 +303,7 @@ pub unsafe extern "C" fn fdutimens (fd: c_int, file: *const c_char,
           /* C 278-288's `#  ifdef __linux__` arm (utimensat's bogus 280 return) is dead.  */
           if (result == 0 || *errno () != ENOSYS)
             {
-              utimensat_works_really = 1;
+              (*utimensat_works_really.as_mut_ptr ()) = 1;
               return result;
             }
         }
@@ -313,13 +313,13 @@ pub unsafe extern "C" fn fdutimens (fd: c_int, file: *const c_char,
           /* C 300-304's `#  ifdef __linux__` arm is dead.  */
           if (result == 0 || *errno () != ENOSYS)
             {
-              utimensat_works_really = 1;
+              (*utimensat_works_really.as_mut_ptr ()) = 1;
               return result;
             }
         }
     }
-  utimensat_works_really = -1;
-  lutimensat_works_really = -1;
+  (*utimensat_works_really.as_mut_ptr ()) = -1;
+  (*lutimensat_works_really.as_mut_ptr ()) = -1;
 
   /* C 317-397's `#ifdef USE_SETFILETIME` arm (the Windows SetFileTime path) is dead:
      `EMACS_CONFIGURATION` is defined.  */
@@ -447,7 +447,7 @@ pub unsafe extern "C" fn lutimens (file: *const c_char, timespec: *const timespe
      fdutimens' worry about buggy NFS clients.  But we do have to
      worry about bogus return values.  */
 
-  if (0 <= lutimensat_works_really)
+  if (0 <= (*lutimensat_works_really.as_mut_ptr ()))
     {
       let result: c_int;
       /* C 590-613's `#  if defined __linux__ || defined __sun || defined __NetBSD__` arm
@@ -456,12 +456,12 @@ pub unsafe extern "C" fn lutimens (file: *const c_char, timespec: *const timespe
       /* C 616-626's `#  ifdef __linux__` arm is dead.  */
       if (result == 0 || *errno () != ENOSYS)
         {
-          utimensat_works_really = 1;
-          lutimensat_works_really = 1;
+          (*utimensat_works_really.as_mut_ptr ()) = 1;
+          (*lutimensat_works_really.as_mut_ptr ()) = 1;
           return result;
         }
     }
-  lutimensat_works_really = -1;
+  (*lutimensat_works_really.as_mut_ptr ()) = -1;
 
   /* The platform lacks an interface to set file timestamps with
      nanosecond resolution, so do the best we can, discarding any

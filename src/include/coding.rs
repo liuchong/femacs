@@ -335,9 +335,9 @@ pub fn build_string_from_utf8 (str: *const c_char) -> Lisp_Object
 }
 
 // coding.h 98/784/786: the file-scope objects (coding.c defines them).
-unsafe extern "C-unwind" { pub static mut Vcoding_system_hash_table: Lisp_Object; }
-unsafe extern "C-unwind" { pub static mut safe_terminal_coding: coding_system; }
-unsafe extern "C-unwind" { pub static mut emacs_mule_bytes: [c_char; 256]; }
+unsafe extern "C-unwind" { pub static Vcoding_system_hash_table: VmGlobal<Lisp_Object>; }
+unsafe extern "C-unwind" { pub static safe_terminal_coding: VmGlobal<coding_system>; }
+unsafe extern "C-unwind" { pub static emacs_mule_bytes: VmGlobal<[c_char; 256]>; }
 
 // coding.h 35-83: the six `enum define_coding_*_arg_index` sets (the argument indices of
 // `define-coding-system` and its per-type extensions).  C gives them no initialisers except
@@ -435,26 +435,26 @@ pub fn CODING_ATTR_SAFE_CHARSETS (attrs: Lisp_Object) -> Lisp_Object
 // coding.h 168-186: `id` is a hash index, so these take `hash_idx_t` as C passes it.
 #[inline(always)]
 pub fn CODING_ID_NAME (id: hash_idx_t) -> Lisp_Object
-{ HASH_KEY (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { XHASH_TABLE (Vcoding_system_hash_table) }, id) }
+{ HASH_KEY (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { XHASH_TABLE ((*Vcoding_system_hash_table.as_mut_ptr ())) }, id) }
 #[inline(always)]
 pub fn CODING_ID_ATTRS (id: hash_idx_t) -> Lisp_Object
-{ AREF (HASH_VALUE (unsafe { XHASH_TABLE (Vcoding_system_hash_table) }, id), 0) }
+{ AREF (HASH_VALUE (unsafe { XHASH_TABLE ((*Vcoding_system_hash_table.as_mut_ptr ())) }, id), 0) }
 #[inline(always)]
 pub fn CODING_ID_ALIASES (id: hash_idx_t) -> Lisp_Object
-{ AREF (HASH_VALUE (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { XHASH_TABLE (Vcoding_system_hash_table) }, id), 1) }
+{ AREF (HASH_VALUE (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { XHASH_TABLE ((*Vcoding_system_hash_table.as_mut_ptr ())) }, id), 1) }
 #[inline(always)]
 pub fn CODING_ID_EOL_TYPE (id: hash_idx_t) -> Lisp_Object
-{ AREF (HASH_VALUE (unsafe { XHASH_TABLE (Vcoding_system_hash_table) }, id), 2) }
+{ AREF (HASH_VALUE (unsafe { XHASH_TABLE ((*Vcoding_system_hash_table.as_mut_ptr ())) }, id), 2) }
 
 /* Return the spec vector of CODING_SYSTEM_SYMBOL.  */
 #[inline(always)]
 pub fn CODING_SYSTEM_SPEC (coding_system_symbol: Lisp_Object) -> Lisp_Object
-{ /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { Fgethash (coding_system_symbol, Vcoding_system_hash_table, lisp_h_Qnil ()) } }
+{ /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { Fgethash (coding_system_symbol, (*Vcoding_system_hash_table.as_mut_ptr ()), lisp_h_Qnil ()) } }
 
 /* Return the ID of CODING_SYSTEM_SYMBOL.  */
 #[inline(always)]
 pub fn CODING_SYSTEM_ID (coding_system_symbol: Lisp_Object) -> ptrdiff_t
-{ /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { hash_find (XHASH_TABLE (Vcoding_system_hash_table), coding_system_symbol) } }
+{ /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { hash_find (XHASH_TABLE ((*Vcoding_system_hash_table.as_mut_ptr ())), coding_system_symbol) } }
 
 /* Return true if CODING_SYSTEM_SYMBOL is a coding system.  */
 #[inline(always)]
@@ -534,16 +534,16 @@ pub fn DECODE_FILE (name: Lisp_Object) -> Lisp_Object { unsafe { decode_file_nam
 #[inline(always)]
 pub fn ENCODE_SYSTEM (str: Lisp_Object) -> Lisp_Object
 {
-  if !NILP (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { Vlocale_coding_system })
-    { unsafe { code_convert_string_norecord (str, Vlocale_coding_system, true) } }
+  if !NILP (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*Vlocale_coding_system.as_mut_ptr ()) })
+    { unsafe { code_convert_string_norecord (str, (*Vlocale_coding_system.as_mut_ptr ()), true) } }
   else { str }
 }
 
 #[inline(always)]
 pub fn DECODE_SYSTEM (str: Lisp_Object) -> Lisp_Object
 {
-  if !NILP (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { Vlocale_coding_system })
-    { unsafe { code_convert_string_norecord (str, Vlocale_coding_system, false) } }
+  if !NILP (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*Vlocale_coding_system.as_mut_ptr ()) })
+    { unsafe { code_convert_string_norecord (str, (*Vlocale_coding_system.as_mut_ptr ()), false) } }
   else { str }
 }
 

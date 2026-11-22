@@ -18,4 +18,4 @@ pub const EMACS_FINGERPRINT_H: bool = true;
 /* We generate fingerprint.c and fingerprint.o from all the sources in
    Emacs.  This way, we have a unique value that we can use to pair
    data files (like a dump file) with a specific build of Emacs.  */
-unsafe extern "C" { pub static mut fingerprint: [c_uchar; 32]; }             // 26
+unsafe extern "C" { pub static fingerprint: VmGlobal<[c_uchar; 32]>; }             // 26

@@ -812,7 +812,7 @@ pub unsafe fn pp_cache (c: *mut region_cache)
   let beg_u = (*c).buffer_beg + (*c).beg_unchanged;
   let end_u = (*c).buffer_end - (*c).end_unchanged;
 
-  fprintf (stderr,
+  fprintf ((*stderr.as_mut_ptr ()),
 	   c"basis: %td..%td    modified: %td..%td\n".as_ptr (),
 	   (*c).buffer_beg, (*c).buffer_end,
 	   beg_u, end_u);
@@ -822,7 +822,7 @@ pub unsafe fn pp_cache (c: *mut region_cache)
     {
       let pos = BOUNDARY_POS! (c, i);
 
-      fprintf (stderr, c"%c%c%td : %d\n".as_ptr (),
+      fprintf ((*stderr.as_mut_ptr ()), c"%c%c%td : %d\n".as_ptr (),
 	       if pos < beg_u { 'v' } else if pos == beg_u { '-' } else { ' ' } as c_int,
 	       if pos > end_u { '^' } else if pos == end_u { '-' } else { ' ' } as c_int,
 	       pos, BOUNDARY_VALUE! (c, i));

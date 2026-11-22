@@ -174,10 +174,10 @@ pub unsafe extern "C-unwind" fn syms_of_xml() {
   unsafe {
     #[cfg(feature = "have_libxml2")]
     {
-        defsubr(&raw mut Slibxml_parse_html_region);
-        defsubr(&raw mut Slibxml_parse_xml_region);
+        defsubr(Slibxml_parse_html_region.as_mut_ptr ());
+        defsubr(Slibxml_parse_xml_region.as_mut_ptr ());
     }
-    defsubr(&raw mut Slibxml_available_p);
+    defsubr(Slibxml_available_p.as_mut_ptr ());
     DEFSYM! (Qcomment, "comment");
 
   }

@@ -195,12 +195,12 @@ macro_rules! ISWORD { ($c:expr) => { (BUFFER_SYNTAX! ($c) == Sword) as c_int }; 
 
 /* This may be adjusted in main(), if the stack is successfully grown.  */
 #[unsafe(no_mangle)]
-pub static mut emacs_re_safe_alloca: ptrdiff_t = MAX_ALLOCA;
+pub static emacs_re_safe_alloca: VmGlobal<ptrdiff_t> = VmGlobal::<ptrdiff_t>::new (MAX_ALLOCA);
 /* Like USE_SAFE_ALLOCA, but use emacs_re_safe_alloca.  */
 macro_rules! REGEX_USE_SAFE_ALLOCA {
   ($sa_avail:ident, $sa_count:ident, $sa_mark:ident) => {
     USE_SAFE_ALLOCA! ($sa_avail, $sa_count, $sa_mark);
-    $sa_avail = emacs_re_safe_alloca;
+    $sa_avail = (*emacs_re_safe_alloca.as_mut_ptr ());
   };
 }
 
@@ -811,7 +811,7 @@ pub unsafe extern "C-unwind" fn print_compiled_pattern (dest: *mut FILE,
   let mut dest = dest;
   if dest.is_null ()
     {
-      dest = stderr;
+      dest = (*stderr.as_mut_ptr ());
     }
   let buffer = (*bufp).buffer as *const re_char;
 
@@ -840,7 +840,7 @@ pub unsafe extern "C-unwind" fn print_compiled_pattern (dest: *mut FILE,
 // arms carried, docs/status.md 3.49).
 
 #[cfg (regex_emacs_debug)]
-static mut regex_emacs_debug: c_int = -100000;
+static regex_emacs_debug: VmGlobal<c_int> = VmGlobal::<c_int>::new (-100000);
 
 #[cfg (regex_emacs_debug)]
 macro_rules! DEBUG_STATEMENT { ($e:expr) => { $e }; }
@@ -849,7 +849,7 @@ macro_rules! DEBUG_STATEMENT { ($e:expr) => { }; }
 #[cfg (regex_emacs_debug)]
 macro_rules! DEBUG_PRINT {
   ($($arg:tt)*) => {
-    if regex_emacs_debug > 0 { fprintf (stderr, $($arg)*); }
+    if (*regex_emacs_debug.as_mut_ptr ()) > 0 { fprintf ((*stderr.as_mut_ptr ()), $($arg)*); }
   };
 }
 #[cfg (not (regex_emacs_debug))]
@@ -863,7 +863,7 @@ macro_rules! DEBUG_COMPILES_ARGUMENTS { () => { }; }
 #[cfg (regex_emacs_debug)]
 macro_rules! DEBUG_PRINT_COMPILED_PATTERN {
   ($p:expr, $s:expr, $e:expr) => {
-    { if regex_emacs_debug > 0 { print_partial_compiled_pattern (stderr, $s, $e); } }
+    { if (*regex_emacs_debug.as_mut_ptr ()) > 0 { print_partial_compiled_pattern ((*stderr.as_mut_ptr ()), $s, $e); } }
   };
 }
 #[cfg (not (regex_emacs_debug))]
@@ -873,7 +873,7 @@ macro_rules! DEBUG_PRINT_COMPILED_PATTERN {
 #[cfg (regex_emacs_debug)]
 macro_rules! DEBUG_PRINT_DOUBLE_STRING {
   ($w:expr, $s1:expr, $sz1:expr, $s2:expr, $sz2:expr) => {
-    { if regex_emacs_debug > 0 { print_double_string ($w, $s1, $sz1, $s2, $sz2); } }
+    { if (*regex_emacs_debug.as_mut_ptr ()) > 0 { print_double_string ($w, $s1, $sz1, $s2, $sz2); } }
   };
 }
 #[cfg (not (regex_emacs_debug))]
@@ -887,7 +887,7 @@ unsafe fn print_double_string (w: *const re_char, mut string1: *const re_char, s
 {
   let mut where_ = w;
   if where_.is_null ()
-    { fputs (c"(null)".as_ptr (), stderr); }
+    { fputs (c"(null)".as_ptr (), (*stderr.as_mut_ptr ())); }
   else
     {
       let mut i: c_int;
@@ -895,13 +895,13 @@ unsafe fn print_double_string (w: *const re_char, mut string1: *const re_char, s
 	{
 	  i = 0;
 	  while i < string1.offset (size1).offset_from (where_) as c_int
-	    { debug_putchar (stderr, *where_.offset (i as isize) as c_int); i += 1; }
+	    { debug_putchar ((*stderr.as_mut_ptr ()), *where_.offset (i as isize) as c_int); i += 1; }
 	  where_ = string2;
 	}
 
       i = 0;
       while i < string2.offset (size2).offset_from (where_) as c_int
-        { debug_putchar (stderr, *where_.offset (i as isize) as c_int); i += 1; }
+        { debug_putchar ((*stderr.as_mut_ptr ()), *where_.offset (i as isize) as c_int); i += 1; }
     }
 }
 
@@ -937,8 +937,7 @@ pub const REG_ERPAREN: reg_errcode_t = 16;	/* Unmatched ) or \); not returned fr
 pub const REG_ERANGEX: reg_errcode_t = 17;	/* Range striding over charsets.  */
 pub const REG_ESIZEBR: reg_errcode_t = 18;           /* n or m too big in \{n,m\} */
 
-static mut re_error_msgid: [*const c_char; 19] =
-  [
+static re_error_msgid: VmGlobal<[*const c_char; 19]> = VmGlobal::<[*const c_char; 19]>::new ([
    c"Success".as_ptr (),                                  // [REG_NOERROR]
    c"No match".as_ptr (),                                 // [REG_NOMATCH]
    c"Invalid regular expression".as_ptr (),               // [REG_BADPAT]
@@ -958,7 +957,7 @@ static mut re_error_msgid: [*const c_char; 19] =
    c"Unmatched ) or \\)".as_ptr (),                       // [REG_ERPAREN]
    c"Range striding over charsets".as_ptr (),             // [REG_ERANGEX]
    c"Invalid content of \\\\{\\\\}".as_ptr (),             // [REG_ESIZEBR]
-  ];
+  ]);
 
 /* For 'regs_allocated'.  */
 pub const REGS_UNALLOCATED: c_int = 0;
@@ -994,7 +993,7 @@ pub const INIT_FAILURE_ALLOC: usize = 20;
    value to work reliably, you have to try to make it accord
    with the process stack limit.  */
 #[unsafe(no_mangle)]
-pub static mut emacs_re_max_failures: ptrdiff_t = 40000;
+pub static emacs_re_max_failures: VmGlobal<ptrdiff_t> = VmGlobal::<ptrdiff_t>::new (40000);
 
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -1880,17 +1879,17 @@ unsafe fn regex_compile (mut pattern: *const re_char, size: ptrdiff_t,
   // C 1770-1779: `#ifdef REGEX_EMACS_DEBUG` (the counter and the pattern dump).
   #[cfg (regex_emacs_debug)]
   {
-    regex_emacs_debug += 1;
+    (*regex_emacs_debug.as_mut_ptr ()) += 1;
     DEBUG_PRINT! (c"\nCompiling pattern: ".as_ptr ());
-    if regex_emacs_debug > 0
+    if (*regex_emacs_debug.as_mut_ptr ()) > 0
       {
 	let mut debug_count: ptrdiff_t = 0;
 	while debug_count < size
 	  {
-	    debug_putchar (stderr, *pattern.offset (debug_count) as c_int);
+	    debug_putchar ((*stderr.as_mut_ptr ()), *pattern.offset (debug_count) as c_int);
 	    debug_count += 1;
 	  }
-	putc ('\n' as c_int, stderr);
+	putc ('\n' as c_int, (*stderr.as_mut_ptr ()));
       }
   }
 
@@ -2860,13 +2859,13 @@ unsafe fn regex_compile (mut pattern: *const re_char, size: ptrdiff_t,
   // C 2691-2699: `#ifdef REGEX_EMACS_DEBUG`.
   #[cfg (regex_emacs_debug)]
   {
-    if regex_emacs_debug > 0
+    if (*regex_emacs_debug.as_mut_ptr ()) > 0
       {
 	re_compile_fastmap (bufp);
 	DEBUG_PRINT! (c"\nCompiled pattern:\n".as_ptr ());
-	print_compiled_pattern (stderr, bufp);
+	print_compiled_pattern ((*stderr.as_mut_ptr ()), bufp);
       }
-    regex_emacs_debug -= 1;
+    (*regex_emacs_debug.as_mut_ptr ()) -= 1;
   }
 
   FREE_STACK_RETURN! (REG_NOERROR);
@@ -3064,7 +3063,7 @@ unsafe fn forall_firstchar_1 (p: *const re_char, pend: *const re_char,
 	  // C 2858-2860: `#if ENABLE_CHECKING`.
 	  #[cfg (enable_checking)]
 	  {
-	    fprintf (stderr, c"FORALL_FIRSTCHAR: Broken assumption1!!\n".as_ptr ());
+	    fprintf ((*stderr.as_mut_ptr ()), c"FORALL_FIRSTCHAR: Broken assumption1!!\n".as_ptr ());
 	  }
           return false; /* FIXME: Broken assumption about the code shape.  */
         }
@@ -3202,7 +3201,7 @@ unsafe fn forall_firstchar_1 (p: *const re_char, pend: *const re_char,
 	      // C 3022-3026: `#if ENABLE_CHECKING`.
 	      #[cfg (enable_checking)]
 	      {
-		fprintf (stderr,
+		fprintf ((*stderr.as_mut_ptr ()),
 			 c"FORALL_FIRSTCHAR: Impossible case %d at position %p <= %p!!\n".as_ptr (),
 			 *p as c_int, p, pend);
 	      }
@@ -3223,7 +3222,7 @@ unsafe fn forall_firstchar_1 (p: *const re_char, pend: *const re_char,
 		  // C 2953-2955: `#if ENABLE_CHECKING`.
 		  #[cfg (enable_checking)]
 		  {
-		    fprintf (stderr, c"FORALL_FIRSTCHAR: Broken assumption2!!\n".as_ptr ());
+		    fprintf ((*stderr.as_mut_ptr ()), c"FORALL_FIRSTCHAR: Broken assumption2!!\n".as_ptr ());
 		  }
 		  return false;
 		}
@@ -3241,7 +3240,7 @@ unsafe fn forall_firstchar_1 (p: *const re_char, pend: *const re_char,
 		  // C 2968-2970: `#if ENABLE_CHECKING`.
 		  #[cfg (enable_checking)]
 		  {
-		    fprintf (stderr, c"FORALL_FIRSTCHAR: Broken assumption3!!\n".as_ptr ());
+		    fprintf ((*stderr.as_mut_ptr ()), c"FORALL_FIRSTCHAR: Broken assumption3!!\n".as_ptr ());
 		  }
 		  return false;
 		}
@@ -3818,7 +3817,7 @@ pub unsafe extern "C-unwind" fn re_search_2 (bufp: *mut re_pattern_buffer, str1:
   /* See whether the pattern is anchored.  */
   anchored_start = *(*bufp).buffer as re_opcode_t == begline;
 
-  RE_SETUP_SYNTAX_TABLE_FOR_OBJECT (re_match_object, startpos);
+  RE_SETUP_SYNTAX_TABLE_FOR_OBJECT ((*re_match_object.as_mut_ptr ()), startpos);
 
   /* Loop through the string, looking for a place to start matching.  */
   loop
@@ -4474,7 +4473,7 @@ pub unsafe extern "C-unwind" fn re_match_2 (bufp: *mut re_pattern_buffer,
   unsafe {
   let result: ptrdiff_t;
 
-  RE_SETUP_SYNTAX_TABLE_FOR_OBJECT (re_match_object, pos);
+  RE_SETUP_SYNTAX_TABLE_FOR_OBJECT ((*re_match_object.as_mut_ptr ()), pos);
 
   result = re_match_2_internal (bufp, string1 as *const re_char, size1,
 				string2 as *const re_char, size2,
@@ -4499,11 +4498,11 @@ unsafe extern "C-unwind" fn unwind_re_match (ptr: *mut c_void)
    afterwards.  */
 /// Diagnostic only (P-147): the opcode executed before the current one, so a report can name the
 /// instruction that left `d` in the gap instead of the one that noticed it.
-static mut PREV_OP_SAVE: c_int = -1;
+static PREV_OP_SAVE: VmGlobal<c_int> = VmGlobal::<c_int>::new (-1);
 /* The `FEMACS_REG_TRACE` gate is sampled once: the opcode loop and the failure-stack pop are the
    hottest paths in the matcher, and a `getenv` per iteration would be a real cost (P-115's shape
    with P-126's "sample at startup" rule).  -1 = not asked yet.  */
-static mut REG_TRACE_ON: c_int = -1;
+static REG_TRACE_ON: VmGlobal<c_int> = VmGlobal::<c_int>::new (-1);
 
 unsafe fn re_match_2_internal (bufp: *mut re_pattern_buffer,
 			       string1: *const re_char, size1: ptrdiff_t,
@@ -4666,18 +4665,18 @@ unsafe fn re_match_2_internal (bufp: *mut re_pattern_buffer,
 
   macro_rules! GROW_FAIL_STACK {
     ($fail_stack:expr, $destination:ident) => {
-      if ($fail_stack).size >= emacs_re_max_failures * TYPICAL_FAILURE_SIZE
+      if ($fail_stack).size >= (*emacs_re_max_failures.as_mut_ptr ()) * TYPICAL_FAILURE_SIZE
 	{ 0 }
       else
 	{
 	  REGEX_REALLOCATE! ($destination, ($fail_stack).stack,
 	    ($fail_stack).avail * std::mem::size_of::<fail_stack_elt_t> () as ptrdiff_t,
-	    std::cmp::min (emacs_re_max_failures * TYPICAL_FAILURE_SIZE,
+	    std::cmp::min ((*emacs_re_max_failures.as_mut_ptr ()) * TYPICAL_FAILURE_SIZE,
 			   ($fail_stack).size * FAIL_STACK_GROWTH_FACTOR)
 	    * (std::mem::size_of::<fail_stack_elt_t> () as ptrdiff_t));
 	  ($fail_stack).stack = $destination as *mut fail_stack_elt_t;
 	  ($fail_stack).size
-	    = std::cmp::min (emacs_re_max_failures * TYPICAL_FAILURE_SIZE,
+	    = std::cmp::min ((*emacs_re_max_failures.as_mut_ptr ()) * TYPICAL_FAILURE_SIZE,
 			     ($fail_stack).size * FAIL_STACK_GROWTH_FACTOR);
 	  1
 	}
@@ -5009,7 +5008,7 @@ unsafe fn re_match_2_internal (bufp: *mut re_pattern_buffer,
 
   DEBUG_PRINT! (c"\nEntering re_match_2.\n".as_ptr ());
 
-  sa_avail = emacs_re_safe_alloca;      /* C 4181's `REGEX_USE_SAFE_ALLOCA` tail.  */
+  sa_avail = (*emacs_re_safe_alloca.as_mut_ptr ());      /* C 4181's `REGEX_USE_SAFE_ALLOCA` tail.  */
 
   INIT_FAIL_STACK! ();                  /* C 4183.  */
 
@@ -5242,9 +5241,9 @@ unsafe fn re_match_2_internal (bufp: *mut re_pattern_buffer,
         {
           if ! getenv (c"FEMACS_REG_TRACE".as_ptr ()).is_null ()
             {
-              fprintf (stderr,
+              fprintf ((*stderr.as_mut_ptr ()),
                        c"REGTRACE crossed prev=%d opcode=%d d-s1=%td size1=%td dend-s1=%td\n".as_ptr (),
-                       PREV_OP_SAVE, *p.offset (-1) as c_int,
+                       (*PREV_OP_SAVE.as_mut_ptr ()), *p.offset (-1) as c_int,
                        (d as isize) - (string1 as isize),
                        (end1 as isize) - (string1 as isize),
                        (dend as isize) - (string1 as isize));
@@ -5258,9 +5257,9 @@ unsafe fn re_match_2_internal (bufp: *mut re_pattern_buffer,
         {
           if ! getenv (c"FEMACS_REG_TRACE".as_ptr ()).is_null ()
             {
-              fprintf (stderr,
+              fprintf ((*stderr.as_mut_ptr ()),
                        c"REGTRACE d-in-gap opcode=%d prev=%d pattern-offset=%td d-s1=%td size1=%td dend-s1=%td\n".as_ptr (),
-                       *p.offset (-1) as c_int, PREV_OP_SAVE,
+                       *p.offset (-1) as c_int, (*PREV_OP_SAVE.as_mut_ptr ()),
                        (p as isize) - ((*bufp).buffer as isize) - 1,
                        (d as isize) - (string1 as isize),
                        (end1 as isize) - (string1 as isize),
@@ -5270,11 +5269,11 @@ unsafe fn re_match_2_internal (bufp: *mut re_pattern_buffer,
 
       /* Instrument (P-170): a per-opcode step trace, so a two-string match can be read
          opcode by opcode.  `FEMACS_REG_TRACE` only, default off (P-115's shape).  */
-      if REG_TRACE_ON < 0
-        { REG_TRACE_ON = if getenv (c"FEMACS_REG_TRACE".as_ptr ()).is_null () { 0 } else { 1 }; }
-      if REG_TRACE_ON != 0
+      if (*REG_TRACE_ON.as_mut_ptr ()) < 0
+        { (*REG_TRACE_ON.as_mut_ptr ()) = if getenv (c"FEMACS_REG_TRACE".as_ptr ()).is_null () { 0 } else { 1 }; }
+      if (*REG_TRACE_ON.as_mut_ptr ()) != 0
         {
-          fprintf (stderr,
+          fprintf ((*stderr.as_mut_ptr ()),
                    c"REGTRACE step pat=%td op=%d d-s1=%td dend-s1=%td pos=%td size1=%td end1-s1=%td end2-s1=%td\n".as_ptr (),
                    (p as isize) - ((*bufp).buffer as isize),
                    *p as c_int,
@@ -5286,7 +5285,7 @@ unsafe fn re_match_2_internal (bufp: *mut re_pattern_buffer,
                    (end2 as isize) - (string1 as isize));
         }
       /* Otherwise match next pattern command.  */
-      /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { if REG_TRACE_ON != 0 { PREV_OP_SAVE = *p as c_int; } }
+      /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { if (*REG_TRACE_ON.as_mut_ptr ()) != 0 { (*PREV_OP_SAVE.as_mut_ptr ()) = *p as c_int; } }
       match { let op = *p as re_opcode_t; p = p.offset (1); op }
 	{
 	/* Ignore these.  Used to ignore the n of succeed_n's which
@@ -5711,7 +5710,7 @@ unsafe fn re_match_2_internal (bufp: *mut re_pattern_buffer,
 	    eassert! (skip_one_char (p1) == p2.offset (-3) as *const re_char);
 	    eassert! (*p2.offset (-3) as re_opcode_t == jump
 		      && p2.offset (mcnt as isize) as *const re_char == p);
-	    DEBUG_STATEMENT! (regex_emacs_debug += 2);
+	    DEBUG_STATEMENT! ((*regex_emacs_debug.as_mut_ptr ()) += 2);
 	    if mutually_exclusive_p (bufp, p1, p2 as *const re_char)
 	      {
 		/* Use a fast 'on_failure_keep_string_jump' loop.  */
@@ -5725,7 +5724,7 @@ unsafe fn re_match_2_internal (bufp: *mut re_pattern_buffer,
 		DEBUG_PRINT! (c"  smart default => slow loop.\n".as_ptr ());
 		*p3 = on_failure_jump as u8;
 	      }
-	    DEBUG_STATEMENT! (regex_emacs_debug -= 2);
+	    DEBUG_STATEMENT! ((*regex_emacs_debug.as_mut_ptr ()) -= 2);
 	  }
 	}
 
@@ -6163,11 +6162,11 @@ unsafe fn re_match_2_internal (bufp: *mut re_pattern_buffer,
 
 	  /* Instrument (P-170): what a popped frame restores, before the segment is recomputed
 	     (C 5286-5287).  `FEMACS_REG_TRACE` only.  */
-	  if REG_TRACE_ON < 0
-	    { REG_TRACE_ON = if getenv (c"FEMACS_REG_TRACE".as_ptr ()).is_null () { 0 } else { 1 }; }
-	  if REG_TRACE_ON != 0
+	  if (*REG_TRACE_ON.as_mut_ptr ()) < 0
+	    { (*REG_TRACE_ON.as_mut_ptr ()) = if getenv (c"FEMACS_REG_TRACE".as_ptr ()).is_null () { 0 } else { 1 }; }
+	  if (*REG_TRACE_ON.as_mut_ptr ()) != 0
 	    {
-	      fprintf (stderr,
+	      fprintf ((*stderr.as_mut_ptr ()),
 		       c"REGTRACE pop op=%d strnull=%d str-s1=%td d-s1=%td dend-s1=%td em1-s1=%td size1=%td\n".as_ptr (),
 		       *pat.offset (-1) as c_int,
 		       str.is_null () as c_int,
@@ -6196,7 +6195,7 @@ unsafe fn re_match_2_internal (bufp: *mut re_pattern_buffer,
 	    {
 	      if ! getenv (c"FEMACS_REG_TRACE".as_ptr ()).is_null ()
 		{
-		  fprintf (stderr,
+		  fprintf ((*stderr.as_mut_ptr ()),
 			   c"REGTRACE pop-mismatch str-s1=%td size1=%td d-s1=%td dend-s1=%td\n".as_ptr (),
 			   (str as isize) - (string1 as isize),
 			   (end1 as isize) - (string1 as isize),
@@ -6261,7 +6260,7 @@ unsafe fn re_match_2_internal (bufp: *mut re_pattern_buffer,
       {
         if ! getenv (c"FEMACS_REG_TRACE".as_ptr ()).is_null ()
           {
-            fprintf (stderr,
+            fprintf ((*stderr.as_mut_ptr ()),
                      c"REGTRACE accept-outside d-string1=%td pos=%td end1-string1=%td succ=%d restore=%d\n".as_ptr (),
                      (d as isize) - (string1 as isize), pos as c_int,
                      (end1 as isize) - (string1 as isize), do_succeed as c_int,
@@ -6347,7 +6346,7 @@ unsafe fn re_match_2_internal (bufp: *mut re_pattern_buffer,
 
     if dcnt < -1 && ! getenv (c"FEMACS_REG_TRACE".as_ptr ()).is_null ()
       {
-        fprintf (stderr,
+        fprintf ((*stderr.as_mut_ptr ()),
                  c"REGTRACE dcnt=%td d-s1=%td s1-s2=%td size1=%td pos=%td first=%d succ=%d restore=%d\n".as_ptr (),
                  dcnt as isize, (d as isize) - (string1 as isize),
                  (string1 as isize) - (string2 as isize),
@@ -6367,7 +6366,7 @@ unsafe fn re_match_2_internal (bufp: *mut re_pattern_buffer,
     {
       if ! getenv (c"FEMACS_REG_TRACE".as_ptr ()).is_null ()
         {
-          fprintf (stderr,
+          fprintf ((*stderr.as_mut_ptr ()),
                    c"REGTRACE bad-retval retval=%td pos=%td d-s1=%td s1-s2=%td end1-s2=%td end2-s2=%td\n".as_ptr (),
                    retval as isize, pos as isize,
                    (d as isize) - (string1 as isize),
@@ -6383,7 +6382,7 @@ unsafe fn re_match_2_internal (bufp: *mut re_pattern_buffer,
      It means we consider 50 buffer positions examined by this function
      roughly equivalent to the display engine iterating over a single
      buffer position.  */
-  if max_redisplay_ticks > 0 && nchars > 0
+  if (*max_redisplay_ticks.as_mut_ptr ()) > 0 && nchars > 0
     { update_redisplay_ticks ((nchars / 50 + 1) as c_int, std::ptr::null_mut ()); }
 
   retval
@@ -6483,7 +6482,7 @@ pub unsafe extern "C-unwind" fn re_compile_pattern (pattern: *const c_char, leng
 
   if ret == 0
     { return std::ptr::null (); }
-  re_error_msgid[ret as usize]
+  (*re_error_msgid.as_mut_ptr ())[ret as usize]
 
   }
 }

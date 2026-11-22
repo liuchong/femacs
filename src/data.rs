@@ -47,11 +47,11 @@ use crate::common::*;
 // port's `include/globals.rs` mirrors the names as declarations, so the unit that owns one
 // defines it here (status §3.29, the casetab.rs shape).
 #[unsafe(no_mangle)]
-pub static mut Vmost_positive_fixnum: Lisp_Object = lisp_h_Qnil ();
+pub static Vmost_positive_fixnum: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vmost_negative_fixnum: Lisp_Object = lisp_h_Qnil ();
+pub static Vmost_negative_fixnum: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut symbols_with_pos_enabled: bool = false;
+pub static symbols_with_pos_enabled: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 // data.c 41-78: the forwarded-variable accessors.
 #[inline(always)]
@@ -176,8 +176,8 @@ pub unsafe extern "C-unwind" fn slow_eq (x: Lisp_Object, y: Lisp_Object) -> bool
 {
   // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
   unsafe {
-  BASE_EQ (if symbols_with_pos_enabled && SYMBOL_WITH_POS_P (x) { XSYMBOL_WITH_POS_SYM (x) } else { x },
-           if symbols_with_pos_enabled && SYMBOL_WITH_POS_P (y) { XSYMBOL_WITH_POS_SYM (y) } else { y })
+  BASE_EQ (if (*symbols_with_pos_enabled.as_mut_ptr ()) && SYMBOL_WITH_POS_P (x) { XSYMBOL_WITH_POS_SYM (x) } else { x },
+           if (*symbols_with_pos_enabled.as_mut_ptr ()) && SYMBOL_WITH_POS_P (y) { XSYMBOL_WITH_POS_SYM (y) } else { y })
 
   }
 }
@@ -904,7 +904,7 @@ DEFUN! ("fset", Ffset, Sfset, 2, 2, 0,
   {
     let function = /* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { (*XSYMBOL (symbol)).u.s.function };
 
-    if ! NILP (unsafe { Vnative_comp_enable_subr_trampolines })
+    if ! NILP (unsafe { (*Vnative_comp_enable_subr_trampolines.as_mut_ptr ()) })
       && SUBRP (function)
       && ! NATIVE_COMP_FUNCTIONP (function)
       && ! EQ (definition, Fsymbol_function (symbol))
@@ -1410,12 +1410,12 @@ unsafe fn store_symval_forwarding (valcontents: lispfwd, newval: Lisp_Object,
            in the buffer itself, such as default-fill-column,
            find the buffers that don't have local values for it
            and update them.  */
-        if XOBJVAR (valcontents) > (std::ptr::addr_of_mut! (buffer_defaults) as *mut Lisp_Object)
-          && XOBJVAR (valcontents) < (std::ptr::addr_of_mut! (buffer_defaults).add (1)
+        if XOBJVAR (valcontents) > (buffer_defaults.as_mut_ptr () as *mut Lisp_Object)
+          && XOBJVAR (valcontents) < (buffer_defaults.as_mut_ptr ().add (1)
                                       as *mut Lisp_Object)
           {
             let offset: c_int = (XOBJVAR (valcontents) as *mut c_char)
-              .offset_from (std::ptr::addr_of_mut! (buffer_defaults) as *mut c_char) as c_int;
+              .offset_from (buffer_defaults.as_mut_ptr () as *mut c_char) as c_int;
             let idx = PER_BUFFER_IDX (offset as ptrdiff_t);
 
             /* C's `FOR_EACH_LIVE_BUFFER (tail, buf)` is a two-variable alist loop
@@ -1424,7 +1424,7 @@ unsafe fn store_symval_forwarding (valcontents: lispfwd, newval: Lisp_Object,
             if idx <= 0
               { break 'case; }
 
-            let mut list_var: Lisp_Object = Vbuffer_alist;
+            let mut list_var: Lisp_Object = (*Vbuffer_alist.as_mut_ptr ());
             while CONSP (list_var)
               {
                 let buf = XCDR (XCAR (list_var));
@@ -1857,7 +1857,7 @@ DEFUN! ("add-variable-watcher", Fadd_variable_watcher, Sadd_variable_watcher,
   symbol = Findirect_variable (symbol);
   CHECK_SYMBOL (symbol);
   set_symbol_trapped_write (symbol, SYMBOL_TRAPPED_WRITE);
-  map_obarray (Vobarray, Some (harmonize_variable_watchers), symbol);
+  map_obarray ((*Vobarray.as_mut_ptr ()), Some (harmonize_variable_watchers), symbol);
 
   let watchers = Fget (symbol, Qwatchers ());
   let member = Fmember (watch_function, watchers);
@@ -1878,7 +1878,7 @@ DEFUN! ("remove-variable-watcher", Fremove_variable_watcher, Sremove_variable_wa
   if NILP (watchers)
     {
       set_symbol_trapped_write (symbol, SYMBOL_UNTRAPPED_WRITE);
-      map_obarray (Vobarray, Some (harmonize_variable_watchers), symbol);
+      map_obarray ((*Vobarray.as_mut_ptr ()), Some (harmonize_variable_watchers), symbol);
     }
   Fput (symbol, Qwatchers (), watchers);
   return Qnil ();
@@ -2103,7 +2103,7 @@ pub unsafe extern "C-unwind" fn set_default_internal (symbol: Lisp_Object, value
                        loop macro the mirror does not carry (P-22,
                        docs/ports/excluded-macros.txt); the port writes the expansion
                        C's `FOR_EACH_ALIST_VALUE` gives it.  */
-                    let mut list_var: Lisp_Object = Vbuffer_alist;
+                    let mut list_var: Lisp_Object = (*Vbuffer_alist.as_mut_ptr ());
                     while CONSP (list_var)
                       {
                         let buf = XCDR (XCAR (list_var));
@@ -2547,7 +2547,7 @@ DEFUN! ("variable-binding-locus", Fvariable_binding_locus, Svariable_binding_loc
           {
             let valcontents: lispfwd = SYMBOL_FWD (sym) as lispfwd;
             if KBOARD_OBJFWDP (valcontents)
-              { return Fframe_terminal (selected_frame); }
+              { return Fframe_terminal ((*selected_frame.as_mut_ptr ())); }
             else if ! BUFFER_OBJFWDP (valcontents)
               { return Qnil (); }
             /* C's `FALLTHROUGH;` sends this arm on into the SYMBOL_LOCALIZED arm's
@@ -3331,11 +3331,11 @@ unsafe fn bignum_arith_driver (code: arithop, nargs: ptrdiff_t, args: *mut Lisp_
   // enters the loop's tail and skips the switch on the first pass.
   let mut skip_switch: bool = argnum == 0;
   if argnum == 0
-    { accum = bignum_integer (&raw mut mpz[0], val); }
+    { accum = bignum_integer (&raw mut (*mpz.as_mut_ptr ())[0], val); }
   else
     {
-      mpz_set_intmax (mpz[0].as_mut_ptr (), iaccum);
-      accum = &raw const mpz[0] as *const __mpz_struct;
+      mpz_set_intmax ((*mpz.as_mut_ptr ())[0].as_mut_ptr (), iaccum);
+      accum = &raw const (*mpz.as_mut_ptr ())[0] as *const __mpz_struct;
     }
 
   'next_arg: loop
@@ -3346,25 +3346,25 @@ unsafe fn bignum_arith_driver (code: arithop, nargs: ptrdiff_t, args: *mut Lisp_
              sits inside the loop but the `goto next_arg` entry skips it, so the port
              spells it on the fall-through path only.  `*next`/`*accum` are the port's
              already-decayed `mpz_t const *` (the floatfns.rs precedent).  */
-          let next: *const __mpz_struct = bignum_integer (&raw mut mpz[1], val);
+          let next: *const __mpz_struct = bignum_integer (&raw mut (*mpz.as_mut_ptr ())[1], val);
 
           match code
             {
-            Aadd   => {       mpz_add (mpz[0].as_mut_ptr (), accum, next); }
-            Asub   => {       mpz_sub (mpz[0].as_mut_ptr (), accum, next); }
-            Amult  => { emacs_mpz_mul (mpz[0].as_mut_ptr (), accum, next); }
-            Alogand => {      mpz_and (mpz[0].as_mut_ptr (), accum, next); }
-            Alogior => {      mpz_ior (mpz[0].as_mut_ptr (), accum, next); }
-            Alogxor => {      mpz_xor (mpz[0].as_mut_ptr (), accum, next); }
+            Aadd   => {       mpz_add ((*mpz.as_mut_ptr ())[0].as_mut_ptr (), accum, next); }
+            Asub   => {       mpz_sub ((*mpz.as_mut_ptr ())[0].as_mut_ptr (), accum, next); }
+            Amult  => { emacs_mpz_mul ((*mpz.as_mut_ptr ())[0].as_mut_ptr (), accum, next); }
+            Alogand => {      mpz_and ((*mpz.as_mut_ptr ())[0].as_mut_ptr (), accum, next); }
+            Alogior => {      mpz_ior ((*mpz.as_mut_ptr ())[0].as_mut_ptr (), accum, next); }
+            Alogxor => {      mpz_xor ((*mpz.as_mut_ptr ())[0].as_mut_ptr (), accum, next); }
             Adiv =>
               {
                 if mpz_sgn (next) == 0
                   { xsignal0 (Qarith_error ()); }
-                mpz_tdiv_q (mpz[0].as_mut_ptr (), accum, next);
+                mpz_tdiv_q ((*mpz.as_mut_ptr ())[0].as_mut_ptr (), accum, next);
               }
             _ => { eassume! (false); }
             };
-          accum = &raw const mpz[0] as *const __mpz_struct;
+          accum = &raw const (*mpz.as_mut_ptr ())[0] as *const __mpz_struct;
         }
       skip_switch = false;
 
@@ -3484,7 +3484,7 @@ DEFUN! ("-", Fminus, Sminus, 0, MANY, 0,
         { return make_int ((-XFIXNUM (a)) as intmax_t); }
       if FLOATP (a)
         { return make_float (-XFLOAT_DATA (a)); }
-      mpz_neg (mpz[0].as_mut_ptr (), xbignum_val (a));
+      mpz_neg ((*mpz.as_mut_ptr ())[0].as_mut_ptr (), xbignum_val (a));
       return make_integer_mpz ();
     }
   return arith_driver (Asub, nargs, args, a);
@@ -3583,9 +3583,9 @@ unsafe fn integer_remainder (num: Lisp_Object, den: Lisp_Object, modulo: bool)
         }
     }
 
-  let d: *const __mpz_struct = bignum_integer (&raw mut mpz[1], den);
-  let r: *mut mpz_t = &raw mut mpz[0];
-  mpz_tdiv_r ((*r).as_mut_ptr (), bignum_integer (&raw mut mpz[0], num), d);
+  let d: *const __mpz_struct = bignum_integer (&raw mut (*mpz.as_mut_ptr ())[1], den);
+  let r: *mut mpz_t = &raw mut (*mpz.as_mut_ptr ())[0];
+  mpz_tdiv_r ((*r).as_mut_ptr (), bignum_integer (&raw mut (*mpz.as_mut_ptr ())[0], num), d);
 
   if modulo
     {
@@ -3704,8 +3704,8 @@ DEFUN! ("logcount", Flogcount, Slogcount, 1, 1, 0,
       let mut nonneg: *const __mpz_struct = xbignum_val (value);
       if mpz_sgn (nonneg) < 0
         {
-          mpz_com (mpz[0].as_mut_ptr (), nonneg);
-          nonneg = &raw const mpz[0] as *const __mpz_struct;
+          mpz_com ((*mpz.as_mut_ptr ())[0].as_mut_ptr (), nonneg);
+          nonneg = &raw const (*mpz.as_mut_ptr ())[0] as *const __mpz_struct;
         }
       return make_fixnum (mpz_popcount (nonneg) as EMACS_INT);
     }
@@ -3761,17 +3761,17 @@ DEFUN! ("ash", Fash, Sash, 2, 2, 0,
         { return make_fixnum ((uv << c) as EMACS_INT); }
     }
 
-  let zval: *const __mpz_struct = bignum_integer (&raw mut mpz[0], value);
+  let zval: *const __mpz_struct = bignum_integer (&raw mut (*mpz.as_mut_ptr ())[0], value);
   if c < 0
     {
       // C's `TYPE_MAXIMUM (mp_bitcnt_t) < -c` is gnulib intprops.h's type maximum,
       // ULONG_MAX for mp_bitcnt_t (see docs/ports/macro-body-notes.tsv).
       if mp_bitcnt_t::MAX < (-c) as mp_bitcnt_t
         { return make_fixnum (if mpz_sgn (zval) < 0 { -1 } else { 0 }); }
-      mpz_fdiv_q_2exp (mpz[0].as_mut_ptr (), zval, (-c) as mp_bitcnt_t);
+      mpz_fdiv_q_2exp ((*mpz.as_mut_ptr ())[0].as_mut_ptr (), zval, (-c) as mp_bitcnt_t);
     }
   else
-    { emacs_mpz_mul_2exp (mpz[0].as_mut_ptr (), zval, c); }
+    { emacs_mpz_mul_2exp ((*mpz.as_mut_ptr ())[0].as_mut_ptr (), zval, c); }
   return make_integer_mpz ();
 });
 
@@ -3810,7 +3810,7 @@ pub unsafe extern "C-unwind" fn expt_integer (x: Lisp_Object, y: Lisp_Object) ->
       exp = mpz_get_ui (xbignum_val (y));
     }
 
-  emacs_mpz_pow_ui (mpz[0].as_mut_ptr (), bignum_integer (&raw mut mpz[0], x), exp);
+  emacs_mpz_pow_ui ((*mpz.as_mut_ptr ())[0].as_mut_ptr (), bignum_integer (&raw mut (*mpz.as_mut_ptr ())[0], x), exp);
   return make_integer_mpz ();
 
   }
@@ -3826,7 +3826,7 @@ DEFUN! ("1+", Fadd1, Sadd1, 1, 1, 0,
     { return make_int ((XFIXNUM (number) + 1) as intmax_t); }
   if FLOATP (number)
     { return make_float (1.0 + XFLOAT_DATA (number)); }
-  mpz_add_ui (mpz[0].as_mut_ptr (), xbignum_val (number), 1);
+  mpz_add_ui ((*mpz.as_mut_ptr ())[0].as_mut_ptr (), xbignum_val (number), 1);
   return make_integer_mpz ();
 });
 
@@ -3840,7 +3840,7 @@ DEFUN! ("1-", Fsub1, Ssub1, 1, 1, 0,
     { return make_int ((XFIXNUM (number) - 1) as intmax_t); }
   if FLOATP (number)
     { return make_float (-1.0 + XFLOAT_DATA (number)); }
-  mpz_sub_ui (mpz[0].as_mut_ptr (), xbignum_val (number), 1);
+  mpz_sub_ui ((*mpz.as_mut_ptr ())[0].as_mut_ptr (), xbignum_val (number), 1);
   return make_integer_mpz ();
 });
 
@@ -3851,7 +3851,7 @@ DEFUN! ("lognot", Flognot, Slognot, 1, 1, 0,
   CHECK_INTEGER (number);
   if FIXNUMP (number)
     { return make_fixnum (! XFIXNUM (number)); }
-  mpz_com (mpz[0].as_mut_ptr (), xbignum_val (number));
+  mpz_com ((*mpz.as_mut_ptr ())[0].as_mut_ptr (), xbignum_val (number));
   return make_integer_mpz ();
 });
 
@@ -4425,145 +4425,145 @@ pub unsafe extern "C-unwind" fn syms_of_data ()
   DEFSYM! (Qdefalias_fset_function, "defalias-fset-function");
   DEFSYM! (Qfunction_history, "function-history");
   DEFSYM! (Qbyte_code_function_p, "byte-code-function-p");
-  defsubr (&raw mut Sindirect_variable);
-  defsubr (&raw mut Sinteractive_form);
-  defsubr (&raw mut Scommand_modes);
-  defsubr (&raw mut Seq);
-  defsubr (&raw mut Snull);
-  defsubr (&raw mut Stype_of);
-  defsubr (&raw mut Scl_type_of);
-  defsubr (&raw mut Slistp);
-  defsubr (&raw mut Snlistp);
-  defsubr (&raw mut Sconsp);
-  defsubr (&raw mut Satom);
-  defsubr (&raw mut Sintegerp);
-  defsubr (&raw mut Sinteger_or_marker_p);
-  defsubr (&raw mut Snumberp);
-  defsubr (&raw mut Snumber_or_marker_p);
-  defsubr (&raw mut Sfloatp);
-  defsubr (&raw mut Snatnump);
-  defsubr (&raw mut Sbare_symbol_p);
-  defsubr (&raw mut Ssymbol_with_pos_p);
-  defsubr (&raw mut Ssymbolp);
-  defsubr (&raw mut Skeywordp);
-  defsubr (&raw mut Sstringp);
-  defsubr (&raw mut Smultibyte_string_p);
-  defsubr (&raw mut Svectorp);
-  defsubr (&raw mut Srecordp);
-  defsubr (&raw mut Schar_table_p);
-  defsubr (&raw mut Svector_or_char_table_p);
-  defsubr (&raw mut Sbool_vector_p);
-  defsubr (&raw mut Sarrayp);
-  defsubr (&raw mut Ssequencep);
-  defsubr (&raw mut Sbufferp);
-  defsubr (&raw mut Smarkerp);
-  defsubr (&raw mut Ssubrp);
-  defsubr (&raw mut Sbyte_code_function_p);
-  defsubr (&raw mut Sinterpreted_function_p);
-  defsubr (&raw mut Sclosurep);
-  defsubr (&raw mut Smodule_function_p);
-  defsubr (&raw mut Schar_or_string_p);
-  defsubr (&raw mut Sthreadp);
-  defsubr (&raw mut Smutexp);
-  defsubr (&raw mut Scondition_variable_p);
-  defsubr (&raw mut Scar);
-  defsubr (&raw mut Scdr);
-  defsubr (&raw mut Scar_safe);
-  defsubr (&raw mut Scdr_safe);
-  defsubr (&raw mut Ssetcar);
-  defsubr (&raw mut Ssetcdr);
-  defsubr (&raw mut Ssymbol_function);
-  defsubr (&raw mut Sindirect_function);
-  defsubr (&raw mut Ssymbol_plist);
-  defsubr (&raw mut Ssymbol_name);
-  defsubr (&raw mut Sbare_symbol);
-  defsubr (&raw mut Ssymbol_with_pos_pos);
-  defsubr (&raw mut Sremove_pos_from_symbol);
-  defsubr (&raw mut Sposition_symbol);
-  defsubr (&raw mut Smakunbound);
-  defsubr (&raw mut Sfmakunbound);
-  defsubr (&raw mut Sboundp);
-  defsubr (&raw mut Sfboundp);
-  defsubr (&raw mut Sfset);
-  defsubr (&raw mut Sdefalias);
-  defsubr (&raw mut Ssetplist);
-  defsubr (&raw mut Ssymbol_value);
-  defsubr (&raw mut Sset);
-  defsubr (&raw mut Sdefault_boundp);
-  defsubr (&raw mut Sdefault_value);
-  defsubr (&raw mut Sset_default);
-  defsubr (&raw mut Smake_variable_buffer_local);
-  defsubr (&raw mut Smake_local_variable);
-  defsubr (&raw mut Skill_local_variable);
-  defsubr (&raw mut Slocal_variable_p);
-  defsubr (&raw mut Slocal_variable_if_set_p);
-  defsubr (&raw mut Svariable_binding_locus);
-  defsubr (&raw mut Saref);
-  defsubr (&raw mut Saset);
-  defsubr (&raw mut Snumber_to_string);
-  defsubr (&raw mut Sstring_to_number);
-  defsubr (&raw mut Seqlsign);
-  defsubr (&raw mut Slss);
-  defsubr (&raw mut Sgtr);
-  defsubr (&raw mut Sleq);
-  defsubr (&raw mut Sgeq);
-  defsubr (&raw mut Sneq);
-  defsubr (&raw mut Splus);
-  defsubr (&raw mut Sminus);
-  defsubr (&raw mut Stimes);
-  defsubr (&raw mut Squo);
-  defsubr (&raw mut Srem);
-  defsubr (&raw mut Smod);
-  defsubr (&raw mut Smax);
-  defsubr (&raw mut Smin);
-  defsubr (&raw mut Slogand);
-  defsubr (&raw mut Slogior);
-  defsubr (&raw mut Slogxor);
-  defsubr (&raw mut Slogcount);
-  defsubr (&raw mut Sash);
-  defsubr (&raw mut Sadd1);
-  defsubr (&raw mut Ssub1);
-  defsubr (&raw mut Slognot);
-  defsubr (&raw mut Sbyteorder);
-  defsubr (&raw mut Ssubr_arity);
-  defsubr (&raw mut Ssubr_name);
-  defsubr (&raw mut Snative_comp_function_p);
-  defsubr (&raw mut Ssubr_native_lambda_list);
-  defsubr (&raw mut Ssubr_type);
+  defsubr (Sindirect_variable.as_mut_ptr ());
+  defsubr (Sinteractive_form.as_mut_ptr ());
+  defsubr (Scommand_modes.as_mut_ptr ());
+  defsubr (Seq.as_mut_ptr ());
+  defsubr (Snull.as_mut_ptr ());
+  defsubr (Stype_of.as_mut_ptr ());
+  defsubr (Scl_type_of.as_mut_ptr ());
+  defsubr (Slistp.as_mut_ptr ());
+  defsubr (Snlistp.as_mut_ptr ());
+  defsubr (Sconsp.as_mut_ptr ());
+  defsubr (Satom.as_mut_ptr ());
+  defsubr (Sintegerp.as_mut_ptr ());
+  defsubr (Sinteger_or_marker_p.as_mut_ptr ());
+  defsubr (Snumberp.as_mut_ptr ());
+  defsubr (Snumber_or_marker_p.as_mut_ptr ());
+  defsubr (Sfloatp.as_mut_ptr ());
+  defsubr (Snatnump.as_mut_ptr ());
+  defsubr (Sbare_symbol_p.as_mut_ptr ());
+  defsubr (Ssymbol_with_pos_p.as_mut_ptr ());
+  defsubr (Ssymbolp.as_mut_ptr ());
+  defsubr (Skeywordp.as_mut_ptr ());
+  defsubr (Sstringp.as_mut_ptr ());
+  defsubr (Smultibyte_string_p.as_mut_ptr ());
+  defsubr (Svectorp.as_mut_ptr ());
+  defsubr (Srecordp.as_mut_ptr ());
+  defsubr (Schar_table_p.as_mut_ptr ());
+  defsubr (Svector_or_char_table_p.as_mut_ptr ());
+  defsubr (Sbool_vector_p.as_mut_ptr ());
+  defsubr (Sarrayp.as_mut_ptr ());
+  defsubr (Ssequencep.as_mut_ptr ());
+  defsubr (Sbufferp.as_mut_ptr ());
+  defsubr (Smarkerp.as_mut_ptr ());
+  defsubr (Ssubrp.as_mut_ptr ());
+  defsubr (Sbyte_code_function_p.as_mut_ptr ());
+  defsubr (Sinterpreted_function_p.as_mut_ptr ());
+  defsubr (Sclosurep.as_mut_ptr ());
+  defsubr (Smodule_function_p.as_mut_ptr ());
+  defsubr (Schar_or_string_p.as_mut_ptr ());
+  defsubr (Sthreadp.as_mut_ptr ());
+  defsubr (Smutexp.as_mut_ptr ());
+  defsubr (Scondition_variable_p.as_mut_ptr ());
+  defsubr (Scar.as_mut_ptr ());
+  defsubr (Scdr.as_mut_ptr ());
+  defsubr (Scar_safe.as_mut_ptr ());
+  defsubr (Scdr_safe.as_mut_ptr ());
+  defsubr (Ssetcar.as_mut_ptr ());
+  defsubr (Ssetcdr.as_mut_ptr ());
+  defsubr (Ssymbol_function.as_mut_ptr ());
+  defsubr (Sindirect_function.as_mut_ptr ());
+  defsubr (Ssymbol_plist.as_mut_ptr ());
+  defsubr (Ssymbol_name.as_mut_ptr ());
+  defsubr (Sbare_symbol.as_mut_ptr ());
+  defsubr (Ssymbol_with_pos_pos.as_mut_ptr ());
+  defsubr (Sremove_pos_from_symbol.as_mut_ptr ());
+  defsubr (Sposition_symbol.as_mut_ptr ());
+  defsubr (Smakunbound.as_mut_ptr ());
+  defsubr (Sfmakunbound.as_mut_ptr ());
+  defsubr (Sboundp.as_mut_ptr ());
+  defsubr (Sfboundp.as_mut_ptr ());
+  defsubr (Sfset.as_mut_ptr ());
+  defsubr (Sdefalias.as_mut_ptr ());
+  defsubr (Ssetplist.as_mut_ptr ());
+  defsubr (Ssymbol_value.as_mut_ptr ());
+  defsubr (Sset.as_mut_ptr ());
+  defsubr (Sdefault_boundp.as_mut_ptr ());
+  defsubr (Sdefault_value.as_mut_ptr ());
+  defsubr (Sset_default.as_mut_ptr ());
+  defsubr (Smake_variable_buffer_local.as_mut_ptr ());
+  defsubr (Smake_local_variable.as_mut_ptr ());
+  defsubr (Skill_local_variable.as_mut_ptr ());
+  defsubr (Slocal_variable_p.as_mut_ptr ());
+  defsubr (Slocal_variable_if_set_p.as_mut_ptr ());
+  defsubr (Svariable_binding_locus.as_mut_ptr ());
+  defsubr (Saref.as_mut_ptr ());
+  defsubr (Saset.as_mut_ptr ());
+  defsubr (Snumber_to_string.as_mut_ptr ());
+  defsubr (Sstring_to_number.as_mut_ptr ());
+  defsubr (Seqlsign.as_mut_ptr ());
+  defsubr (Slss.as_mut_ptr ());
+  defsubr (Sgtr.as_mut_ptr ());
+  defsubr (Sleq.as_mut_ptr ());
+  defsubr (Sgeq.as_mut_ptr ());
+  defsubr (Sneq.as_mut_ptr ());
+  defsubr (Splus.as_mut_ptr ());
+  defsubr (Sminus.as_mut_ptr ());
+  defsubr (Stimes.as_mut_ptr ());
+  defsubr (Squo.as_mut_ptr ());
+  defsubr (Srem.as_mut_ptr ());
+  defsubr (Smod.as_mut_ptr ());
+  defsubr (Smax.as_mut_ptr ());
+  defsubr (Smin.as_mut_ptr ());
+  defsubr (Slogand.as_mut_ptr ());
+  defsubr (Slogior.as_mut_ptr ());
+  defsubr (Slogxor.as_mut_ptr ());
+  defsubr (Slogcount.as_mut_ptr ());
+  defsubr (Sash.as_mut_ptr ());
+  defsubr (Sadd1.as_mut_ptr ());
+  defsubr (Ssub1.as_mut_ptr ());
+  defsubr (Slognot.as_mut_ptr ());
+  defsubr (Sbyteorder.as_mut_ptr ());
+  defsubr (Ssubr_arity.as_mut_ptr ());
+  defsubr (Ssubr_name.as_mut_ptr ());
+  defsubr (Snative_comp_function_p.as_mut_ptr ());
+  defsubr (Ssubr_native_lambda_list.as_mut_ptr ());
+  defsubr (Ssubr_type.as_mut_ptr ());
   #[cfg(feature = "have_native_comp")]
   {
-    defsubr (&raw mut Ssubr_native_comp_unit);
-    defsubr (&raw mut Snative_comp_unit_file);
-    defsubr (&raw mut Snative_comp_unit_set_file);
+    defsubr (Ssubr_native_comp_unit.as_mut_ptr ());
+    defsubr (Snative_comp_unit_file.as_mut_ptr ());
+    defsubr (Snative_comp_unit_set_file.as_mut_ptr ());
   }
   #[cfg(feature = "have_modules")]
-  defsubr (&raw mut Suser_ptrp);
-  defsubr (&raw mut Sbool_vector_exclusive_or);
-  defsubr (&raw mut Sbool_vector_union);
-  defsubr (&raw mut Sbool_vector_intersection);
-  defsubr (&raw mut Sbool_vector_set_difference);
-  defsubr (&raw mut Sbool_vector_not);
-  defsubr (&raw mut Sbool_vector_subsetp);
-  defsubr (&raw mut Sbool_vector_count_consecutive);
-  defsubr (&raw mut Sbool_vector_count_population);
+  defsubr (Suser_ptrp.as_mut_ptr ());
+  defsubr (Sbool_vector_exclusive_or.as_mut_ptr ());
+  defsubr (Sbool_vector_union.as_mut_ptr ());
+  defsubr (Sbool_vector_intersection.as_mut_ptr ());
+  defsubr (Sbool_vector_set_difference.as_mut_ptr ());
+  defsubr (Sbool_vector_not.as_mut_ptr ());
+  defsubr (Sbool_vector_subsetp.as_mut_ptr ());
+  defsubr (Sbool_vector_count_consecutive.as_mut_ptr ());
+  defsubr (Sbool_vector_count_population.as_mut_ptr ());
   DEFVAR_LISP! (c"most-positive-fixnum", Vmost_positive_fixnum, "The greatest integer that is represented efficiently.\nThis variable cannot be set; trying to do so will signal an error.");
-  Vmost_positive_fixnum = make_fixnum (MOST_POSITIVE_FIXNUM);
+  (*Vmost_positive_fixnum.as_mut_ptr ()) = make_fixnum (MOST_POSITIVE_FIXNUM);
   make_symbol_constant (intern_c_string (c"most-positive-fixnum".as_ptr ()));
   DEFVAR_LISP! (c"most-negative-fixnum", Vmost_negative_fixnum, "The least integer that is represented efficiently.\nThis variable cannot be set; trying to do so will signal an error.");
-  Vmost_negative_fixnum = make_fixnum (MOST_NEGATIVE_FIXNUM);
+  (*Vmost_negative_fixnum.as_mut_ptr ()) = make_fixnum (MOST_NEGATIVE_FIXNUM);
   make_symbol_constant (intern_c_string (c"most-negative-fixnum".as_ptr ()));
   DEFSYM! (Qsymbols_with_pos_enabled, "symbols-with-pos-enabled");
   DEFVAR_BOOL! (c"symbols-with-pos-enabled", symbols_with_pos_enabled, "If non-nil, a symbol with position ordinarily behaves as its bare symbol.\nBind this to non-nil in applications such as the byte compiler.");
-  symbols_with_pos_enabled = false;
+  (*symbols_with_pos_enabled.as_mut_ptr ()) = false;
   DEFSYM! (Qwatchers, "watchers");
   DEFSYM! (Qmakunbound, "makunbound");
   DEFSYM! (Qunlet, "unlet");
   DEFSYM! (Qset, "set");
   DEFSYM! (Qset_default, "set-default");
   DEFSYM! (Qcommand_modes, "command-modes");
-  defsubr (&raw mut Sadd_variable_watcher);
-  defsubr (&raw mut Sremove_variable_watcher);
-  defsubr (&raw mut Sget_variable_watchers);
+  defsubr (Sadd_variable_watcher.as_mut_ptr ());
+  defsubr (Sremove_variable_watcher.as_mut_ptr ());
+  defsubr (Sget_variable_watchers.as_mut_ptr ());
 
 
   }
@@ -4581,7 +4581,7 @@ unsafe fn add_to_function_history (symbol: Lisp_Object, olddef: Lisp_Object)
   let mut file: Lisp_Object = Qnil ();
   /* FIXME: Sadly, `Vload_file_name` gives less precise information
      (it's sometimes non-nil when it should be nil).  */
-  let mut tail: Lisp_Object = Vcurrent_load_list;
+  let mut tail: Lisp_Object = (*Vcurrent_load_list.as_mut_ptr ());
   FOR_EACH_TAIL_SAFE! (tail, {
     if NILP (XCDR (tail)) && STRINGP (XCAR (tail))
       { file = XCAR (tail); }
@@ -4631,8 +4631,8 @@ pub unsafe extern "C-unwind" fn defalias (symbol: Lisp_Object, definition: Lisp_
     let olddef: Lisp_Object = /* SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`. */ unsafe { (*XSYMBOL (symbol)).u.s.function };
     if ! NILP (olddef)
       {
-        if ! NILP (Vautoload_queue)
-          { Vautoload_queue = Fcons (symbol, Vautoload_queue); }
+        if ! NILP ((*Vautoload_queue.as_mut_ptr ()))
+          { (*Vautoload_queue.as_mut_ptr ()) = Fcons (symbol, (*Vautoload_queue.as_mut_ptr ())); }
         add_to_function_history (symbol, olddef);
       }
   }

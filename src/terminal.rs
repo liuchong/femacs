@@ -74,26 +74,26 @@ use crate::common::*;
 
 /* Chain of all terminals currently in use.  */
   #[unsafe(no_mangle)]
-  pub static mut terminal_list: *mut terminal = std::ptr::null_mut ();
+  pub static terminal_list: VmGlobal<*mut terminal> = VmGlobal::<*mut terminal>::new (std::ptr::null_mut ());
 
   /* The initial terminal device, created by initial_term_init.  */
   #[unsafe(no_mangle)]
-  pub static mut initial_terminal: *mut terminal = std::ptr::null_mut ();
+  pub static initial_terminal: VmGlobal<*mut terminal> = VmGlobal::<*mut terminal>::new (std::ptr::null_mut ());
 
 /* The first unallocated terminal id.  */
 // C 39: `static int next_terminal_id;` — C's `static` is internal linkage, so the port
 // keeps it a plain unexported `static mut` (PORTING.md 0.2); unlike the two objects
 // above, nothing declares it in a mirror, so it needs no module.
-static mut next_terminal_id: c_int = 0;
+static next_terminal_id: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 
 // The `DEFVAR_*` variables this C file owns: C's storage is `globals.f_<vname>`
 // (lisp.h 3495-3530), and `struct emacs_globals globals` is defined once, in alloc.c; the
 // port's `include/globals.rs` mirrors the names as declarations, so the unit that owns one
 // defines it here (status §3.29, the casetab.rs shape).
 #[unsafe(no_mangle)]
-pub static mut Vring_bell_function: Lisp_Object = lisp_h_Qnil ();
+pub static Vring_bell_function: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vdelete_terminal_functions: Lisp_Object = lisp_h_Qnil ();
+pub static Vdelete_terminal_functions: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* This setter is used only in this file, so it can be private.  */
 // C: `static void tset_param_alist (struct terminal *t, Lisp_Object val)`
@@ -111,7 +111,7 @@ pub unsafe extern "C-unwind" fn ring_bell (f: *mut frame)
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  if ! NILP (Vring_bell_function)
+  if ! NILP ((*Vring_bell_function.as_mut_ptr ()))
     {
       let function: Lisp_Object;
 
@@ -123,12 +123,12 @@ pub unsafe extern "C-unwind" fn ring_bell (f: *mut frame)
 	 restore the bad value if there's an error
 	 and make the loop of errors happen anyway.  */
 
-      function = Vring_bell_function;
-      Vring_bell_function = Qnil ();
+      function = (*Vring_bell_function.as_mut_ptr ());
+      (*Vring_bell_function.as_mut_ptr ()) = Qnil ();
 
       call0 (function);
 
-      Vring_bell_function = function;
+      (*Vring_bell_function.as_mut_ptr ()) = function;
     }
   else if let Some (hook) = (*FRAME_TERMINAL! (f)).ring_bell_hook
     { hook (f as *mut c_void); }
@@ -348,7 +348,7 @@ unsafe fn decode_terminal (mut terminal: Lisp_Object) -> *mut terminal
   let t: *mut terminal;
 
   if NILP (terminal)
-    { terminal = selected_frame; }
+    { terminal = (*selected_frame.as_mut_ptr ()); }
   t = if TERMINALP (terminal)
       { XTERMINAL (terminal) }
       else if FRAMEP (terminal) { FRAME_TERMINAL! (XFRAME (terminal)) }
@@ -403,7 +403,7 @@ pub unsafe extern "C-unwind" fn get_named_terminal (name: *const c_char) -> *mut
 
   eassert! (! name.is_null ());
 
-  t = terminal_list;
+  t = (*terminal_list.as_mut_ptr ());
   while ! t.is_null ()
     {
       let tty: *mut tty_display_info = (*t).display_info.tty.cast::<tty_display_info> ();
@@ -440,13 +440,13 @@ pub unsafe extern "C-unwind" fn create_terminal (r#type: output_method, rif: *mu
   let mut terminal_coding: Lisp_Object;
   let mut keyboard_coding: Lisp_Object;
 
-  (*terminal).next_terminal = terminal_list;
-  terminal_list = terminal;
+  (*terminal).next_terminal = (*terminal_list.as_mut_ptr ());
+  (*terminal_list.as_mut_ptr ()) = terminal;
   (*terminal).r#type = r#type;
   (*terminal).rif = rif;
   // C's `next_terminal_id++` is the fetch-then-increment pair (C has no Rust spelling).
-  (*terminal).id = next_terminal_id;
-  next_terminal_id += 1;
+  (*terminal).id = (*next_terminal_id.as_mut_ptr ());
+  (*next_terminal_id.as_mut_ptr ()) += 1;
 
   (*terminal).keyboard_coding
     = xmalloc (std::mem::size_of::<coding_system> ()) as *mut c_void;
@@ -530,7 +530,7 @@ pub unsafe extern "C-unwind" fn delete_terminal_internal (terminal: *mut termina
   unsafe {
   let mut tp: *mut *mut terminal;
 
-  tp = &raw mut terminal_list;
+  tp = terminal_list.as_mut_ptr ();
   while *tp != terminal
     {
       if (*tp).is_null ()
@@ -575,7 +575,7 @@ DEFUN! ("delete-terminal", Fdelete_terminal, Sdelete_terminal, 0, 2, 0,
 
   if NILP (force)
     {
-      let mut p: *mut terminal = terminal_list;
+      let mut p: *mut terminal = (*terminal_list.as_mut_ptr ());
       while ! p.is_null () && (p == t || ! TERMINAL_ACTIVE_P! (p))
 	{ p = (*p).next_terminal; }
 
@@ -583,13 +583,13 @@ DEFUN! ("delete-terminal", Fdelete_terminal, Sdelete_terminal, 0, 2, 0,
 	{ error (c"Attempt to delete the sole active display terminal".as_ptr ()); }
     }
 
-  if NILP (Vrun_hooks)
+  if NILP ((*Vrun_hooks.as_mut_ptr ()))
     { }
   else if EQ (force, Qnoelisp ())
-    { pending_funcalls
+    { (*pending_funcalls.as_mut_ptr ())
 	= Fcons (list3 (Qrun_hook_with_args (), Qdelete_terminal_functions (),
 			terminal),
-		 pending_funcalls); }
+		 (*pending_funcalls.as_mut_ptr ())); }
   else
     { safe_calln! (Qrun_hook_with_args (), Qdelete_terminal_functions (), terminal); }
 
@@ -662,7 +662,7 @@ DEFUN! ("frame-initial-p", Fframe_initial_p, Sframe_initial_p, 0, 1, 0,
        {
   let mut frame: Lisp_Object = frame;
   if NILP (frame)
-    { frame = selected_frame; }
+    { frame = (*selected_frame.as_mut_ptr ()); }
   if FRAMEP (frame)
     {
       let f: *mut frame = XFRAME (frame);
@@ -681,7 +681,7 @@ DEFUN! ("terminal-list", Fterminal_list, Sterminal_list, 0, 0, 0,
   let mut terminals: Lisp_Object = Qnil ();
   let mut t: *mut terminal;
 
-  t = terminal_list;
+  t = (*terminal_list.as_mut_ptr ());
   while ! t.is_null ()
     {
       XSETTERMINAL! (terminal, t);
@@ -816,14 +816,14 @@ pub unsafe extern "C-unwind" fn init_initial_terminal () -> *mut terminal
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  if initialized || ! terminal_list.is_null () || ! tty_list.is_null ()
+  if (*initialized.as_mut_ptr ()) || ! (*terminal_list.as_mut_ptr ()).is_null () || ! (*tty_list.as_mut_ptr ()).is_null ()
     { emacs_abort (); }
 
-  initial_terminal = create_terminal (output_initial, std::ptr::null_mut ());
-  (*initial_terminal).name = xstrdup (c"initial_terminal".as_ptr ());
-  (*initial_terminal).kboard = initial_kboard as *mut c_void;
-  (*initial_terminal).delete_terminal_hook = Some (delete_initial_terminal);
-  (*initial_terminal).delete_frame_hook = Some (initial_free_frame_resources);
+  (*initial_terminal.as_mut_ptr ()) = create_terminal (output_initial, std::ptr::null_mut ());
+  (*(*initial_terminal.as_mut_ptr ())).name = xstrdup (c"initial_terminal".as_ptr ());
+  (*(*initial_terminal.as_mut_ptr ())).kboard = (*initial_kboard.as_mut_ptr ()) as *mut c_void;
+  (*(*initial_terminal.as_mut_ptr ())).delete_terminal_hook = Some (delete_initial_terminal);
+  (*(*initial_terminal.as_mut_ptr ())).delete_frame_hook = Some (initial_free_frame_resources);
   unsafe extern "C-unwind" {
     /// C: bool tty_defined_color (struct frame *f, const char *color_name,
     ///                            Emacs_Color *color_def, bool alloc, bool makeIndex)
@@ -832,10 +832,10 @@ pub unsafe extern "C-unwind" fn init_initial_terminal () -> *mut terminal
 			      color_def: *mut Emacs_Color, alloc: bool,
 			      makeIndex: bool) -> bool;
   }
-  (*initial_terminal).defined_color_hook = Some (tty_defined_color); /* xfaces.c */
+  (*(*initial_terminal.as_mut_ptr ())).defined_color_hook = Some (tty_defined_color); /* xfaces.c */
   /* Other hooks are NULL by default.  */
 
-  return initial_terminal;
+  return (*initial_terminal.as_mut_ptr ());
 
   }
 }
@@ -849,11 +849,11 @@ unsafe extern "C-unwind" fn delete_initial_terminal (terminal: *mut terminal)
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  if terminal != initial_terminal
+  if terminal != (*initial_terminal.as_mut_ptr ())
     { emacs_abort (); }
 
   delete_terminal (terminal);
-  initial_terminal = std::ptr::null_mut ();
+  (*initial_terminal.as_mut_ptr ()) = std::ptr::null_mut ();
 
   }
 }
@@ -865,26 +865,26 @@ pub unsafe extern "C-unwind" fn syms_of_terminal ()
   unsafe {
   DEFVAR_LISP! (c"ring-bell-function", Vring_bell_function,
     "Non-nil means call this function to ring the bell.\nThe function should accept no arguments.  ");
-  Vring_bell_function = Qnil ();
+  (*Vring_bell_function.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"delete-terminal-functions", Vdelete_terminal_functions,
     "Special hook run when a terminal is deleted.\nEach function is called with argument, the terminal.\nThis may be called just before actually deleting the terminal,\nor some time later.  ");
-  Vdelete_terminal_functions = Qnil ();
+  (*Vdelete_terminal_functions.as_mut_ptr ()) = Qnil ();
 
   DEFSYM! (Qterminal_live_p, "terminal-live-p");
   DEFSYM! (Qframe_initial_p, "frame-initial-p");
   DEFSYM! (Qdelete_terminal_functions, "delete-terminal-functions");
   DEFSYM! (Qrun_hook_with_args, "run-hook-with-args");
 
-  defsubr (&raw mut Sdelete_terminal);
-  defsubr (&raw mut Sframe_terminal);
-  defsubr (&raw mut Sterminal_live_p);
-  defsubr (&raw mut Sframe_initial_p);
-  defsubr (&raw mut Sterminal_list);
-  defsubr (&raw mut Sterminal_name);
-  defsubr (&raw mut Sterminal_parameters);
-  defsubr (&raw mut Sterminal_parameter);
-  defsubr (&raw mut Sset_terminal_parameter);
+  defsubr (Sdelete_terminal.as_mut_ptr ());
+  defsubr (Sframe_terminal.as_mut_ptr ());
+  defsubr (Sterminal_live_p.as_mut_ptr ());
+  defsubr (Sframe_initial_p.as_mut_ptr ());
+  defsubr (Sterminal_list.as_mut_ptr ());
+  defsubr (Sterminal_name.as_mut_ptr ());
+  defsubr (Sterminal_parameters.as_mut_ptr ());
+  defsubr (Sterminal_parameter.as_mut_ptr ());
+  defsubr (Sset_terminal_parameter.as_mut_ptr ());
 
   Fprovide (intern_c_string (c"multi-tty".as_ptr ()), Qnil ());
   DEFSYM! (Qdefault_keyboard_coding_system, "default-keyboard-coding-system");

@@ -108,52 +108,52 @@ fn have_boxes () -> bool
   // || defined (HAVE_NS) || defined (HAVE_HAIKU) || defined (HAVE_ANDROID)` arm is dead on
   // this target; C's live text is the `return 0` below (docs/ports/menu.md).
   #[cfg(feature = "have_ns")]
-  if /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { FRAME_WINDOW_P(XFRAME(Vmenu_updating_frame)) } { return true; }
+  if /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { FRAME_WINDOW_P(XFRAME((*Vmenu_updating_frame.as_mut_ptr ()))) } { return true; }
   return false;
 }
 
 #[unsafe(no_mangle)]
-pub static mut menu_items: Lisp_Object = lisp_h_Qnil ();
+pub static menu_items: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* Whether the global vars defined here are already in use.
    Used to detect cases where we try to re-enter this non-reentrant code.  */
 #[unsafe(no_mangle)]
-pub static mut menu_items_inuse: bool = false;
+pub static menu_items_inuse: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 /* Number of slots currently allocated in menu_items.  */
 #[unsafe(no_mangle)]
-pub static mut menu_items_allocated: c_int = 0;
+pub static menu_items_allocated: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 
 /* This is the index in menu_items of the first empty slot.  */
 #[unsafe(no_mangle)]
-pub static mut menu_items_used: c_int = 0;
+pub static menu_items_used: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 
 /* The number of panes currently recorded in menu_items,
    excluding those within submenus.  */
 #[unsafe(no_mangle)]
-pub static mut menu_items_n_panes: c_int = 0;
+pub static menu_items_n_panes: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 
 /* Current depth within submenus.  */
-static mut menu_items_submenu_depth: c_int = 0;
+static menu_items_submenu_depth: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn init_menu_items ()
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  if menu_items_inuse
+  if (*menu_items_inuse.as_mut_ptr ())
     { error (c"Trying to use a menu from within a menu-entry".as_ptr ()); }
 
-  if NILP (menu_items)
+  if NILP ((*menu_items.as_mut_ptr ()))
     {
-      menu_items_allocated = 60;
-      menu_items = make_nil_vector (menu_items_allocated as isize);
+      (*menu_items_allocated.as_mut_ptr ()) = 60;
+      (*menu_items.as_mut_ptr ()) = make_nil_vector ((*menu_items_allocated.as_mut_ptr ()) as isize);
     }
 
-  menu_items_inuse = true;
-  menu_items_used = 0;
-  menu_items_n_panes = 0;
-  menu_items_submenu_depth = 0;
+  (*menu_items_inuse.as_mut_ptr ()) = true;
+  (*menu_items_used.as_mut_ptr ()) = 0;
+  (*menu_items_n_panes.as_mut_ptr ()) = 0;
+  (*menu_items_submenu_depth.as_mut_ptr ()) = 0;
 
   }
 }
@@ -170,7 +170,7 @@ pub unsafe extern "C-unwind" fn unuse_menu_items ()
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  menu_items_inuse = false;
+  (*menu_items_inuse.as_mut_ptr ()) = false;
 
   }
 }
@@ -185,12 +185,12 @@ pub unsafe extern "C-unwind" fn discard_menu_items ()
   unsafe {
   /* Free the structure if it is especially large.
      Otherwise, hold on to it, to save time.  */
-  if menu_items_allocated > 200
+  if (*menu_items_allocated.as_mut_ptr ()) > 200
     {
-      menu_items = Qnil ();
-      menu_items_allocated = 0;
+      (*menu_items.as_mut_ptr ()) = Qnil ();
+      (*menu_items_allocated.as_mut_ptr ()) = 0;
     }
-  eassert! (!menu_items_inuse);
+  eassert! (!(*menu_items_inuse.as_mut_ptr ()));
 
   }
 }
@@ -202,15 +202,15 @@ unsafe extern "C-unwind" fn restore_menu_items (mut saved: Lisp_Object)
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  menu_items = XCAR (saved);
-  menu_items_inuse = ! NILP (menu_items);
-  menu_items_allocated = if VECTORP (menu_items) { ASIZE (menu_items) as c_int } else { 0 };
+  (*menu_items.as_mut_ptr ()) = XCAR (saved);
+  (*menu_items_inuse.as_mut_ptr ()) = ! NILP ((*menu_items.as_mut_ptr ()));
+  (*menu_items_allocated.as_mut_ptr ()) = if VECTORP ((*menu_items.as_mut_ptr ())) { ASIZE ((*menu_items.as_mut_ptr ())) as c_int } else { 0 };
   saved = XCDR (saved);
-  menu_items_used = XFIXNUM (XCAR (saved)) as c_int;
+  (*menu_items_used.as_mut_ptr ()) = XFIXNUM (XCAR (saved)) as c_int;
   saved = XCDR (saved);
-  menu_items_n_panes = XFIXNUM (XCAR (saved)) as c_int;
+  (*menu_items_n_panes.as_mut_ptr ()) = XFIXNUM (XCAR (saved)) as c_int;
   saved = XCDR (saved);
-  menu_items_submenu_depth = XFIXNUM (XCAR (saved)) as c_int;
+  (*menu_items_submenu_depth.as_mut_ptr ()) = XFIXNUM (XCAR (saved)) as c_int;
 
   }
 }
@@ -223,13 +223,13 @@ pub unsafe extern "C-unwind" fn save_menu_items ()
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  let saved: Lisp_Object = list4 (if menu_items_inuse { menu_items } else { Qnil () },
-				  make_fixnum (menu_items_used as EMACS_INT),
-				  make_fixnum (menu_items_n_panes as EMACS_INT),
-				  make_fixnum (menu_items_submenu_depth as EMACS_INT));
+  let saved: Lisp_Object = list4 (if (*menu_items_inuse.as_mut_ptr ()) { (*menu_items.as_mut_ptr ()) } else { Qnil () },
+				  make_fixnum ((*menu_items_used.as_mut_ptr ()) as EMACS_INT),
+				  make_fixnum ((*menu_items_n_panes.as_mut_ptr ()) as EMACS_INT),
+				  make_fixnum ((*menu_items_submenu_depth.as_mut_ptr ()) as EMACS_INT));
   record_unwind_protect (Some (restore_menu_items), saved);
-  menu_items_inuse = false;
-  menu_items = Qnil ();
+  (*menu_items_inuse.as_mut_ptr ()) = false;
+  (*menu_items.as_mut_ptr ()) = Qnil ();
 
   }
 }
@@ -240,11 +240,11 @@ unsafe fn ensure_menu_items (items: c_int)
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  let incr: c_int = items - (menu_items_allocated - menu_items_used);
+  let incr: c_int = items - ((*menu_items_allocated.as_mut_ptr ()) - (*menu_items_used.as_mut_ptr ()));
   if incr > 0
     {
-      menu_items = larger_vector (menu_items, incr as ptrdiff_t, INT_MAX as ptrdiff_t);
-      menu_items_allocated = ASIZE (menu_items) as c_int;
+      (*menu_items.as_mut_ptr ()) = larger_vector ((*menu_items.as_mut_ptr ()), incr as ptrdiff_t, INT_MAX as ptrdiff_t);
+      (*menu_items_allocated.as_mut_ptr ()) = ASIZE ((*menu_items.as_mut_ptr ())) as c_int;
     }
 
   }
@@ -262,8 +262,8 @@ unsafe fn push_left_right_boundary ()
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
   ensure_menu_items (1);
-  ASET (menu_items, menu_items_used as isize, Qquote ());
-  menu_items_used += 1;
+  ASET ((*menu_items.as_mut_ptr ()), (*menu_items_used.as_mut_ptr ()) as isize, Qquote ());
+  (*menu_items_used.as_mut_ptr ()) += 1;
 
   }
 }
@@ -276,14 +276,14 @@ unsafe fn push_menu_pane (name: Lisp_Object, prefix_vec: Lisp_Object)
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
   ensure_menu_items (MENU_ITEMS_PANE_LENGTH);
-  if menu_items_submenu_depth == 0
-    { menu_items_n_panes += 1; }
-  ASET (menu_items, menu_items_used as isize, Qt ());
-  menu_items_used += 1;
-  ASET (menu_items, menu_items_used as isize, name);
-  menu_items_used += 1;
-  ASET (menu_items, menu_items_used as isize, prefix_vec);
-  menu_items_used += 1;
+  if (*menu_items_submenu_depth.as_mut_ptr ()) == 0
+    { (*menu_items_n_panes.as_mut_ptr ()) += 1; }
+  ASET ((*menu_items.as_mut_ptr ()), (*menu_items_used.as_mut_ptr ()) as isize, Qt ());
+  (*menu_items_used.as_mut_ptr ()) += 1;
+  ASET ((*menu_items.as_mut_ptr ()), (*menu_items_used.as_mut_ptr ()) as isize, name);
+  (*menu_items_used.as_mut_ptr ()) += 1;
+  ASET ((*menu_items.as_mut_ptr ()), (*menu_items_used.as_mut_ptr ()) as isize, prefix_vec);
+  (*menu_items_used.as_mut_ptr ()) += 1;
 
   }
 }
@@ -304,16 +304,16 @@ unsafe fn push_menu_item (name: Lisp_Object, enable: Lisp_Object, key: Lisp_Obje
   unsafe {
   ensure_menu_items (MENU_ITEMS_ITEM_LENGTH);
 
-  ASET (menu_items, menu_items_used as isize + MENU_ITEMS_ITEM_NAME as isize,	name);
-  ASET (menu_items, menu_items_used as isize + MENU_ITEMS_ITEM_ENABLE as isize,	enable);
-  ASET (menu_items, menu_items_used as isize + MENU_ITEMS_ITEM_VALUE as isize,	key);
-  ASET (menu_items, menu_items_used as isize + MENU_ITEMS_ITEM_EQUIV_KEY as isize, equiv);
-  ASET (menu_items, menu_items_used as isize + MENU_ITEMS_ITEM_DEFINITION as isize, def);
-  ASET (menu_items, menu_items_used as isize + MENU_ITEMS_ITEM_TYPE as isize,	r#type);
-  ASET (menu_items, menu_items_used as isize + MENU_ITEMS_ITEM_SELECTED as isize, selected);
-  ASET (menu_items, menu_items_used as isize + MENU_ITEMS_ITEM_HELP as isize,	help);
+  ASET ((*menu_items.as_mut_ptr ()), (*menu_items_used.as_mut_ptr ()) as isize + MENU_ITEMS_ITEM_NAME as isize,	name);
+  ASET ((*menu_items.as_mut_ptr ()), (*menu_items_used.as_mut_ptr ()) as isize + MENU_ITEMS_ITEM_ENABLE as isize,	enable);
+  ASET ((*menu_items.as_mut_ptr ()), (*menu_items_used.as_mut_ptr ()) as isize + MENU_ITEMS_ITEM_VALUE as isize,	key);
+  ASET ((*menu_items.as_mut_ptr ()), (*menu_items_used.as_mut_ptr ()) as isize + MENU_ITEMS_ITEM_EQUIV_KEY as isize, equiv);
+  ASET ((*menu_items.as_mut_ptr ()), (*menu_items_used.as_mut_ptr ()) as isize + MENU_ITEMS_ITEM_DEFINITION as isize, def);
+  ASET ((*menu_items.as_mut_ptr ()), (*menu_items_used.as_mut_ptr ()) as isize + MENU_ITEMS_ITEM_TYPE as isize,	r#type);
+  ASET ((*menu_items.as_mut_ptr ()), (*menu_items_used.as_mut_ptr ()) as isize + MENU_ITEMS_ITEM_SELECTED as isize, selected);
+  ASET ((*menu_items.as_mut_ptr ()), (*menu_items_used.as_mut_ptr ()) as isize + MENU_ITEMS_ITEM_HELP as isize,	help);
 
-  menu_items_used += MENU_ITEMS_ITEM_LENGTH;
+  (*menu_items_used.as_mut_ptr ()) += MENU_ITEMS_ITEM_LENGTH;
 
   }
 }
@@ -360,7 +360,7 @@ unsafe fn single_keymap_panes (keymap: Lisp_Object, pane_name: Lisp_Object,
 	 and add a prefix when (if) we see the first button.  After
 	 that, notbuttons is set to 0, to mark that we have seen a
 	 button and all non button items need a prefix.  */
-      skp.notbuttons = menu_items_used;
+      skp.notbuttons = (*menu_items_used.as_mut_ptr ());
     }
 
   map_keymap_canonical (keymap, Some (single_menu_item), Qnil (),
@@ -407,10 +407,10 @@ unsafe extern "C-unwind" fn single_menu_item (key: Lisp_Object, item: Lisp_Objec
   if !res
     { return; }			/* Not a menu item.  */
 
-  map = AREF (item_properties, ITEM_PROPERTY_MAP as isize);
+  map = AREF ((*item_properties.as_mut_ptr ()), ITEM_PROPERTY_MAP as isize);
 
-  enabled = AREF (item_properties, ITEM_PROPERTY_ENABLE as isize);
-  item_string = AREF (item_properties, ITEM_PROPERTY_NAME as isize);
+  enabled = AREF ((*item_properties.as_mut_ptr ()), ITEM_PROPERTY_ENABLE as isize);
+  item_string = AREF ((*item_properties.as_mut_ptr ()), ITEM_PROPERTY_NAME as isize);
 
   if !NILP (map) && SREF (item_string, 0) == b'@'
     {
@@ -426,11 +426,11 @@ unsafe extern "C-unwind" fn single_menu_item (key: Lisp_Object, item: Lisp_Objec
   if !have_boxes ()
     {
       let mut prefix: *const c_char = std::ptr::null ();
-      let r#type: Lisp_Object = AREF (item_properties, ITEM_PROPERTY_TYPE as isize);
+      let r#type: Lisp_Object = AREF ((*item_properties.as_mut_ptr ()), ITEM_PROPERTY_TYPE as isize);
       if !NILP (r#type)
 	{
 	  let selected: Lisp_Object
-	    = AREF (item_properties, ITEM_PROPERTY_SELECTED as isize);
+	    = AREF ((*item_properties.as_mut_ptr ()), ITEM_PROPERTY_SELECTED as isize);
 
 	  if (*skp).notbuttons != 0
 	    /* The first button. Line up previous items in this menu.  */
@@ -438,10 +438,10 @@ unsafe extern "C-unwind" fn single_menu_item (key: Lisp_Object, item: Lisp_Objec
 	      let mut idx: c_int = (*skp).notbuttons; /* Index for first item this menu.  */
 	      let mut submenu: c_int = 0;
 	      let mut tem: Lisp_Object;
-	      while idx < menu_items_used
+	      while idx < (*menu_items_used.as_mut_ptr ())
 		{
 		  tem
-		    = AREF (menu_items, (idx + MENU_ITEMS_ITEM_NAME) as isize);
+		    = AREF ((*menu_items.as_mut_ptr ()), (idx + MENU_ITEMS_ITEM_NAME) as isize);
 		  if NILP (tem)
 		    {
 		      idx += 1;
@@ -462,7 +462,7 @@ unsafe extern "C-unwind" fn single_menu_item (key: Lisp_Object, item: Lisp_Objec
 			  && SREF (tem, 0) != b'-'
 			{
 			  AUTO_STRING! (spaces, c"    ".as_ptr ());
-			  ASET (menu_items, (idx + MENU_ITEMS_ITEM_NAME) as isize,
+			  ASET ((*menu_items.as_mut_ptr ()), (idx + MENU_ITEMS_ITEM_NAME) as isize,
 				concat2 (spaces, tem));
 			}
 		      idx += MENU_ITEMS_ITEM_LENGTH;
@@ -489,7 +489,7 @@ unsafe extern "C-unwind" fn single_menu_item (key: Lisp_Object, item: Lisp_Objec
 	}
     }
 
-  if is_tty_frame (XFRAME (Vmenu_updating_frame))
+  if is_tty_frame (XFRAME ((*Vmenu_updating_frame.as_mut_ptr ())))
       && !NILP (map)
     /* Indicate visually that this is a submenu.  */
     {
@@ -498,14 +498,14 @@ unsafe extern "C-unwind" fn single_menu_item (key: Lisp_Object, item: Lisp_Objec
     }
 
   push_menu_item (item_string, enabled, key,
-		  AREF (item_properties, ITEM_PROPERTY_DEF as isize),
-		  AREF (item_properties, ITEM_PROPERTY_KEYEQ as isize),
-		  AREF (item_properties, ITEM_PROPERTY_TYPE as isize),
-		  AREF (item_properties, ITEM_PROPERTY_SELECTED as isize),
-		  AREF (item_properties, ITEM_PROPERTY_HELP as isize));
+		  AREF ((*item_properties.as_mut_ptr ()), ITEM_PROPERTY_DEF as isize),
+		  AREF ((*item_properties.as_mut_ptr ()), ITEM_PROPERTY_KEYEQ as isize),
+		  AREF ((*item_properties.as_mut_ptr ()), ITEM_PROPERTY_TYPE as isize),
+		  AREF ((*item_properties.as_mut_ptr ()), ITEM_PROPERTY_SELECTED as isize),
+		  AREF ((*item_properties.as_mut_ptr ()), ITEM_PROPERTY_HELP as isize));
 
   #[cfg(feature = "have_ns")]
-  if FRAME_WINDOW_P(XFRAME(Vmenu_updating_frame)) && !(NILP(map) || NILP(enabled)) {
+  if FRAME_WINDOW_P(XFRAME((*Vmenu_updating_frame.as_mut_ptr ()))) && !(NILP(map) || NILP(enabled)) {
     push_submenu_start();
     single_keymap_panes(map, Qnil(), key, (*skp).maxdepth - 1);
     push_submenu_end();
@@ -548,7 +548,7 @@ unsafe fn encode_menu_string (str: Lisp_Object) -> Lisp_Object
   unsafe {
   /* TTY menu strings are encoded by write_glyphs, when they are
      delivered to the glass, so no need to encode them here.  */
-  if FRAME_TERMCAP_P (XFRAME (Vmenu_updating_frame))
+  if FRAME_TERMCAP_P (XFRAME ((*Vmenu_updating_frame.as_mut_ptr ())))
     { return str; }
   return ENCODE_MENU_STRING (str);
 
@@ -683,9 +683,9 @@ unsafe fn push_submenu_start() {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
   ensure_menu_items(1);
-  ASET(menu_items, menu_items_used as isize, Qnil());
-  menu_items_used += 1;
-  menu_items_submenu_depth += 1;
+  ASET((*menu_items.as_mut_ptr ()), (*menu_items_used.as_mut_ptr ()) as isize, Qnil());
+  (*menu_items_used.as_mut_ptr ()) += 1;
+  (*menu_items_submenu_depth.as_mut_ptr ()) += 1;
 
   }
 }
@@ -694,9 +694,9 @@ unsafe fn push_submenu_end() {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
   ensure_menu_items(1);
-  ASET(menu_items, menu_items_used as isize, Qlambda());
-  menu_items_used += 1;
-  menu_items_submenu_depth -= 1;
+  ASET((*menu_items.as_mut_ptr ()), (*menu_items_used.as_mut_ptr ()) as isize, Qlambda());
+  (*menu_items_used.as_mut_ptr ()) += 1;
+  (*menu_items_submenu_depth.as_mut_ptr ()) -= 1;
 
   }
 }
@@ -752,9 +752,9 @@ pub unsafe extern "C-unwind" fn digest_single_submenu(start: c_int, end: c_int, 
   let mut submenu_depth: c_int = 0;
   let mut submenu_stack: *mut *mut widget_value = core::ptr::null_mut();
   let mut panes_seen = false;
-  let f = XFRAME(Vmenu_updating_frame);
+  let f = XFRAME((*Vmenu_updating_frame.as_mut_ptr ()));
   USE_SAFE_ALLOCA!(sa_avail, sa_count, sa_mark);
-  SAFE_NALLOCA!(sa_avail, submenu_stack, 1, menu_items_used);
+  SAFE_NALLOCA!(sa_avail, submenu_stack, 1, (*menu_items_used.as_mut_ptr ()));
   let mut wv = make_widget_value(c"menu".as_ptr(), core::ptr::null_mut(), true, Qnil());
   (*wv).button_type = BUTTON_TYPE_NONE;
   let mut first_wv = wv;
@@ -762,30 +762,30 @@ pub unsafe extern "C-unwind" fn digest_single_submenu(start: c_int, end: c_int, 
   let mut prev_wv: *mut widget_value = core::ptr::null_mut();
   let mut i = start;
   while i < end {
-    if NILP(AREF(menu_items, i as isize)) {
+    if NILP(AREF((*menu_items.as_mut_ptr ()), i as isize)) {
       *submenu_stack.offset(submenu_depth as isize) = save_wv;
       submenu_depth += 1;
       save_wv = prev_wv;
       prev_wv = core::ptr::null_mut();
       i += 1;
-    } else if EQ(AREF(menu_items, i as isize), Qlambda()) {
+    } else if EQ(AREF((*menu_items.as_mut_ptr ()), i as isize), Qlambda()) {
       prev_wv = save_wv;
       submenu_depth -= 1;
       save_wv = *submenu_stack.offset(submenu_depth as isize);
       i += 1;
-    } else if EQ(AREF(menu_items, i as isize), Qt()) && submenu_depth != 0 {
+    } else if EQ(AREF((*menu_items.as_mut_ptr ()), i as isize), Qt()) && submenu_depth != 0 {
       i += MENU_ITEMS_PANE_LENGTH;
-    } else if EQ(AREF(menu_items, i as isize), Qquote()) {
+    } else if EQ(AREF((*menu_items.as_mut_ptr ()), i as isize), Qquote()) {
       i += 1;
-    } else if EQ(AREF(menu_items, i as isize), Qt()) {
+    } else if EQ(AREF((*menu_items.as_mut_ptr ()), i as isize), Qt()) {
       panes_seen = true;
-      let mut pane_name = AREF(menu_items, (i + MENU_ITEMS_PANE_NAME) as isize);
+      let mut pane_name = AREF((*menu_items.as_mut_ptr ()), (i + MENU_ITEMS_PANE_NAME) as isize);
       if !FRAME_TERMCAP_P(f) && STRINGP(pane_name) && STRING_MULTIBYTE(pane_name) {
         pane_name = ENCODE_MENU_STRING(pane_name);
-        ASET(menu_items, (i + MENU_ITEMS_PANE_NAME) as isize, pane_name);
+        ASET((*menu_items.as_mut_ptr ()), (i + MENU_ITEMS_PANE_NAME) as isize, pane_name);
       }
       let mut pane_string = if NILP(pane_name) { c"".as_ptr() } else { SSDATA(pane_name) };
-      if menu_items_n_panes == 1 { pane_string = c"".as_ptr(); }
+      if (*menu_items_n_panes.as_mut_ptr ()) == 1 { pane_string = c"".as_ptr(); }
       if strcmp(pane_string, c"".as_ptr()) != 0 {
         wv = make_widget_value(core::ptr::null(), 1usize as *mut c_char, true, Qnil());
         if !save_wv.is_null() { (*save_wv).next = wv; }
@@ -798,21 +798,21 @@ pub unsafe extern "C-unwind" fn digest_single_submenu(start: c_int, end: c_int, 
       i += MENU_ITEMS_PANE_LENGTH;
     } else {
       if !panes_seen { emacs_abort(); }
-      let mut item_name = AREF(menu_items, (i + MENU_ITEMS_ITEM_NAME) as isize);
-      let enable = AREF(menu_items, (i + MENU_ITEMS_ITEM_ENABLE) as isize);
-      let mut descrip = AREF(menu_items, (i + MENU_ITEMS_ITEM_EQUIV_KEY) as isize);
-      let def = AREF(menu_items, (i + MENU_ITEMS_ITEM_DEFINITION) as isize);
-      let typ = AREF(menu_items, (i + MENU_ITEMS_ITEM_TYPE) as isize);
-      let selected = AREF(menu_items, (i + MENU_ITEMS_ITEM_SELECTED) as isize);
-      let help = AREF(menu_items, (i + MENU_ITEMS_ITEM_HELP) as isize);
+      let mut item_name = AREF((*menu_items.as_mut_ptr ()), (i + MENU_ITEMS_ITEM_NAME) as isize);
+      let enable = AREF((*menu_items.as_mut_ptr ()), (i + MENU_ITEMS_ITEM_ENABLE) as isize);
+      let mut descrip = AREF((*menu_items.as_mut_ptr ()), (i + MENU_ITEMS_ITEM_EQUIV_KEY) as isize);
+      let def = AREF((*menu_items.as_mut_ptr ()), (i + MENU_ITEMS_ITEM_DEFINITION) as isize);
+      let typ = AREF((*menu_items.as_mut_ptr ()), (i + MENU_ITEMS_ITEM_TYPE) as isize);
+      let selected = AREF((*menu_items.as_mut_ptr ()), (i + MENU_ITEMS_ITEM_SELECTED) as isize);
+      let help = AREF((*menu_items.as_mut_ptr ()), (i + MENU_ITEMS_ITEM_HELP) as isize);
       if !FRAME_TERMCAP_P(f) {
         if STRING_MULTIBYTE(item_name) {
           item_name = ENCODE_MENU_STRING(item_name);
-          ASET(menu_items, (i + MENU_ITEMS_ITEM_NAME) as isize, item_name);
+          ASET((*menu_items.as_mut_ptr ()), (i + MENU_ITEMS_ITEM_NAME) as isize, item_name);
         }
         if STRINGP(descrip) && STRING_MULTIBYTE(descrip) {
           descrip = ENCODE_MENU_STRING(descrip);
-          ASET(menu_items, (i + MENU_ITEMS_ITEM_EQUIV_KEY) as isize, descrip);
+          ASET((*menu_items.as_mut_ptr ()), (i + MENU_ITEMS_ITEM_EQUIV_KEY) as isize, descrip);
         }
       }
       wv = make_widget_value(core::ptr::null(), core::ptr::null_mut(), !NILP(enable), if STRINGP(help) { help } else { Qnil() });
@@ -932,19 +932,19 @@ pub unsafe extern "C-unwind" fn find_and_return_menu_selection(_f: *mut frame, k
   let mut subprefix_stack: *mut Lisp_Object = core::ptr::null_mut();
   let mut submenu_depth: c_int = 0;
   USE_SAFE_ALLOCA!(sa_avail, sa_count, sa_mark);
-  SAFE_ALLOCA_LISP!(sa_avail, subprefix_stack, menu_items_used);
-  while i < menu_items_used {
-    if NILP(AREF(menu_items, i as isize)) {
+  SAFE_ALLOCA_LISP!(sa_avail, subprefix_stack, (*menu_items_used.as_mut_ptr ()));
+  while i < (*menu_items_used.as_mut_ptr ()) {
+    if NILP(AREF((*menu_items.as_mut_ptr ()), i as isize)) {
       *subprefix_stack.offset(submenu_depth as isize) = prefix;
       submenu_depth += 1; prefix = entry; i += 1;
-    } else if EQ(AREF(menu_items, i as isize), Qlambda()) {
+    } else if EQ(AREF((*menu_items.as_mut_ptr ()), i as isize), Qlambda()) {
       submenu_depth -= 1; prefix = *subprefix_stack.offset(submenu_depth as isize); i += 1;
-    } else if EQ(AREF(menu_items, i as isize), Qt()) {
-      prefix = AREF(menu_items, (i + MENU_ITEMS_PANE_PREFIX) as isize); i += MENU_ITEMS_PANE_LENGTH;
-    } else if EQ(AREF(menu_items, i as isize), Qquote()) { i += 1; }
+    } else if EQ(AREF((*menu_items.as_mut_ptr ()), i as isize), Qt()) {
+      prefix = AREF((*menu_items.as_mut_ptr ()), (i + MENU_ITEMS_PANE_PREFIX) as isize); i += MENU_ITEMS_PANE_LENGTH;
+    } else if EQ(AREF((*menu_items.as_mut_ptr ()), i as isize), Qquote()) { i += 1; }
     else {
-      entry = AREF(menu_items, (i + MENU_ITEMS_ITEM_VALUE) as isize);
-      if aref_addr(menu_items, i as isize).cast::<c_void>() == client_data {
+      entry = AREF((*menu_items.as_mut_ptr ()), (i + MENU_ITEMS_ITEM_VALUE) as isize);
+      if aref_addr((*menu_items.as_mut_ptr ()), i as isize).cast::<c_void>() == client_data {
         if keymaps {
           entry = list1(entry);
           if !NILP(prefix) { entry = Fcons(prefix, entry); }
@@ -1104,7 +1104,7 @@ pub unsafe extern "C-unwind" fn x_popup_menu_1 (position: Lisp_Object, mut menu:
 	       constructed POSITION by hand (in popup-menu, see
 	       menu-bar.el) to look like a mouse click on the menu bar
 	       event.  */
-	    if !EQ (POSN_POSN (last_nonmenu_event),
+	    if !EQ (POSN_POSN ((*last_nonmenu_event.as_mut_ptr ())),
 		    POSN_POSN (position))
 		&& CONSP (tem2) && EQ (XCAR (tem2), Qmenu_bar ())
 	      { menuflags |= MENU_KBD_NAVIGATION; }
@@ -1152,7 +1152,7 @@ pub unsafe extern "C-unwind" fn x_popup_menu_1 (position: Lisp_Object, mut menu:
 	  { XSETFRAME! (window, new_f); }
 	else
 	  {
-	    window = selected_window;
+	    window = (*selected_window.as_mut_ptr ());
 	    XSETFASTINT! (x, 0);
 	    XSETFASTINT! (y, 0);
 	  }
@@ -1206,7 +1206,7 @@ pub unsafe extern "C-unwind" fn x_popup_menu_1 (position: Lisp_Object, mut menu:
 				 (INT_MAX as EMACS_INT - ypos as EMACS_INT) as intmax_t)
       as c_int;
 
-    XSETFRAME! (Vmenu_updating_frame, f);
+    XSETFRAME! ((*Vmenu_updating_frame.as_mut_ptr ()), f);
   }
 
   /* Now parse the lisp menus.  */
@@ -1235,8 +1235,8 @@ pub unsafe extern "C-unwind" fn x_popup_menu_1 (position: Lisp_Object, mut menu:
 	{ title = prompt; }
 
       /* Make that be the pane title of the first pane.  */
-      if !NILP (prompt) && menu_items_n_panes >= 0
-	{ ASET (menu_items, MENU_ITEMS_PANE_NAME as isize, prompt); }
+      if !NILP (prompt) && (*menu_items_n_panes.as_mut_ptr ()) >= 0
+	{ ASET ((*menu_items.as_mut_ptr ()), MENU_ITEMS_PANE_NAME as isize, prompt); }
 
       menuflags |= MENU_KEYMAPS;
     }
@@ -1272,8 +1272,8 @@ pub unsafe extern "C-unwind" fn x_popup_menu_1 (position: Lisp_Object, mut menu:
       keymap_panes (maps, nmaps);
 
       /* Make the title be the pane title of the first pane.  */
-      if !NILP (title) && menu_items_n_panes >= 0
-	{ ASET (menu_items, MENU_ITEMS_PANE_NAME as isize, title); }
+      if !NILP (title) && (*menu_items_n_panes.as_mut_ptr ()) >= 0
+	{ ASET ((*menu_items.as_mut_ptr ()), MENU_ITEMS_PANE_NAME as isize, title); }
 
       menuflags |= MENU_KEYMAPS;
 
@@ -1306,8 +1306,8 @@ pub unsafe extern "C-unwind" fn x_popup_menu_1 (position: Lisp_Object, mut menu:
      such a frame cannot display menus.  */
   if !FRAME_INITIAL_P (f)
     {
-      if FRAME_TERMCAP_P (f) && !NILP (Vx_popup_menu_function)
-	{ selection = calln! (Vx_popup_menu_function, position, menu); }
+      if FRAME_TERMCAP_P (f) && !NILP ((*Vx_popup_menu_function.as_mut_ptr ()))
+	{ selection = calln! ((*Vx_popup_menu_function.as_mut_ptr ()), position, menu); }
       else if let Some (hook) = (*FRAME_TERMINAL! (f)).menu_show_hook
 	// C calls the hook unconditionally (`FRAME_TERMINAL (f)->menu_show_hook (...)`);
 	// the port's `Option` carries the same call and skips it only for the NULL hook C
@@ -1385,7 +1385,7 @@ DEFUN! ("x-popup-dialog", Fx_popup_dialog, Sx_popup_dialog, 2, 3, 0,
       || (CONSP (position) && (EQ (XCAR (position), Qmenu_bar ())
 			       || EQ (XCAR (position), Qtab_bar ())
 			       || EQ (XCAR (position), Qtool_bar ())))
-    { window = selected_window; }
+    { window = (*selected_window.as_mut_ptr ()); }
   else if CONSP (position)
     {
       let mut tem: Lisp_Object = XCAR (position);
@@ -1419,7 +1419,7 @@ DEFUN! ("x-popup-dialog", Fx_popup_dialog, Sx_popup_dialog, 2, 3, 0,
   /* Note that xw_popup_dialog can call menu code, so
      Vmenu_updating_frame should be set (Bug#17891).  */
   eassume! (!f.is_null () && FRAME_LIVE_P (f));
-  XSETFRAME! (Vmenu_updating_frame, f);
+  XSETFRAME! ((*Vmenu_updating_frame.as_mut_ptr ()), f);
 
   /* Force a redisplay before showing the dialog.  If a frame is created
      just before showing the dialog, its contents may not have been fully
@@ -1449,32 +1449,32 @@ DEFUN! ("x-popup-dialog", Fx_popup_dialog, Sx_popup_dialog, 2, 3, 0,
    globals.rs mirrors them as declarations and the owning unit defines them (P-21,
    status 3.29, the filelock.rs shape).  */
 #[unsafe(no_mangle)]
-pub static mut Vx_pre_popup_menu_hook: Lisp_Object = lisp_h_Qnil ();
+pub static Vx_pre_popup_menu_hook: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vx_popup_menu_function: Lisp_Object = lisp_h_Qnil ();
+pub static Vx_popup_menu_function: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_menu ()
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  menu_items = Qnil ();
-  staticpro (&raw const menu_items);
+  (*menu_items.as_mut_ptr ()) = Qnil ();
+  staticpro (menu_items.as_ptr ());
 
   DEFSYM! (Qhide, c"hide");
   DEFSYM! (Qx_pre_popup_menu_hook, c"x-pre-popup-menu-hook");
 
   DEFVAR_LISP! (c"x-pre-popup-menu-hook", Vx_pre_popup_menu_hook,
 		"Hook run before `x-popup-menu' displays a popup menu.\nIt is only run before the menu is really going to be displayed.  It\nwon't be run if `x-popup-menu' fails or returns for some other reason\n(such as the keymap is invalid).");
-  Vx_pre_popup_menu_hook = Qnil ();
+  (*Vx_pre_popup_menu_hook.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"x-popup-menu-function", Vx_popup_menu_function,
 		"Function to call to pop up a menu.\n The function is called like `x-popup-menu'.  This is currently only\n used for frames on text terminals.");
-  Vx_popup_menu_function = Qnil ();
+  (*Vx_popup_menu_function.as_mut_ptr ()) = Qnil ();
 
-  defsubr (&raw mut Sx_popup_menu);
-  defsubr (&raw mut Sx_popup_dialog);
-  defsubr (&raw mut Smenu_bar_menu_at_x_y);
+  defsubr (Sx_popup_menu.as_mut_ptr ());
+  defsubr (Sx_popup_dialog.as_mut_ptr ());
+  defsubr (Smenu_bar_menu_at_x_y.as_mut_ptr ());
 
   }
 }

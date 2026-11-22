@@ -29,20 +29,20 @@ def main():
  original=(ROOT/'src/include/globals.rs').read_text();tail=original[original.index('// --- variables declared by DEFVAR_*'):]
  header=['// Generated target-local Cocoa metadata; nil/t and existing baseline indices are preserved.']
  for i,(q,_) in enumerate(symbols):header += [f'pub const i{q}: usize = {i};',f'#[inline(always)] pub fn {q}() -> Lisp_Object {{ builtin_lisp_symbol({i}) }}']
- header += [f'pub const lispsym_count: usize = {len(symbols)};', 'unsafe extern "C" { pub static mut lispsym: [Lisp_Symbol; lispsym_count]; }',tail]
+ header += [f'pub const lispsym_count: usize = {len(symbols)};', 'unsafe extern "C" { pub static lispsym: VmGlobal<[Lisp_Symbol; lispsym_count]>; }',tail]
  (out/'globals.rs').write_text('\n'.join(header)+'\n')
  (out/'symbol-names.rs').write_text('[\n'+''.join(f'    {literal(name)}.as_ptr(),\n' for _,name in symbols)+']\n')
  code=['// Generated actual Cocoa DEFVAR storage and statically initialized forwarding records.', 'mod cocoa_runtime_exports {', 'use super::*;']
- for name,(ty,kind,member,zero) in sorted(variables.items()):code += ['#[unsafe(no_mangle)]',f'pub static mut {name}: {ty} = {zero};']
+ for name,(ty,kind,member,zero) in sorted(variables.items()):code += ['#[unsafe(no_mangle)]',f'pub static {name}: VmGlobal<{ty}> = VmGlobal::new({zero});']
  for name in sorted(forwards):
   if name not in variables:raise ValueError('forward has no Cocoa DEFVAR metadata: '+name)
-  ty,kind,member,_=variables[name];pointer=f'core::ptr::addr_of_mut!({name})'+(' as *mut i64' if ty=='EMACS_INT' else '')
-  code += ['#[unsafe(no_mangle)]',f'pub static mut femacs_fwd_{name}: Lisp_Fwd = Lisp_Fwd {{ r#type: {kind}, u: Lisp_Fwd_u {{ {member}: {pointer} }} }};']
+  ty,kind,member,_=variables[name];pointer=f'{name}.as_mut_ptr()'+(' as *mut i64' if ty=='EMACS_INT' else '')
+  code += ['#[unsafe(no_mangle)]',f'pub static femacs_fwd_{name}: SyncLispFwd = SyncLispFwd(Lisp_Fwd {{ r#type: {kind}, u: Lisp_Fwd_u {{ {member}: {pointer} }} }});']
  for q in sorted(extra):code += [f'#[unsafe(export_name="{q}")]', f'pub unsafe extern "C-unwind" fn export_{q}() -> Lisp_Object {{ {q}() }}']
- code += ['#[unsafe(no_mangle)]', 'pub static mut svcsMenu: *mut c_void = core::ptr::null_mut();']
+ code += ['#[unsafe(no_mangle)]', 'pub static svcsMenu: VmGlobal<*mut c_void> = VmGlobal::new(core::ptr::null_mut());']
  for name in ['ns_app_name','ns_send_types','ns_return_types','x_display_list']:
-  code += ['#[unsafe(no_mangle)]',f'pub static mut {name}: *mut c_void = core::ptr::null_mut();']
- code += ['#[unsafe(no_mangle)]','pub static mut context_menu_value: isize = 0;']
+  code += ['#[unsafe(no_mangle)]',f'pub static {name}: VmGlobal<*mut c_void> = VmGlobal::new(core::ptr::null_mut());']
+ code += ['#[unsafe(no_mangle)]','pub static context_menu_value: VmGlobal<isize> = VmGlobal::new(0);']
 
  handlers=(ROOT/'platform/macos/nsfns.swift').read_text().split('let ns_frame_parm_handlers: [frame_parm_handler?] = [',1)[1].split('\n]',1)[0]
  entries=[]
@@ -52,9 +52,9 @@ def main():
   elif line.startswith('{'):entries.append(re.search(r'in (\w+)\(',line)[1])
  code += ['type CocoaFrameParm = Option<unsafe extern "C-unwind" fn(*mut c_void, Lisp_Object, Lisp_Object)>;', 'unsafe extern "C-unwind" {']
  for name in sorted(set(entries)-{None}):code += [f'#[link_name="{name}"] fn handler_{name}(f: *mut c_void, value: Lisp_Object, old: Lisp_Object);']
- code += ['}', '#[unsafe(no_mangle)]', f'pub static mut ns_frame_parm_handlers: [CocoaFrameParm; {len(entries)}] = [']
+ code += ['}', '#[unsafe(no_mangle)]', f'pub static ns_frame_parm_handlers: VmGlobal<[CocoaFrameParm; {len(entries)}]> = VmGlobal::new([']
  code += ['None,' if name is None else f'Some(handler_{name}),' for name in entries]
- code += ['];']
+ code += [']);']
  code.append('}')
  (out/'runtime.rs').write_text('\n'.join(code)+'\n')
  (out/'runtime.json').write_text(json.dumps({'extra_symbols':extra,'target_name_overrides':overrides,'cocoa_variables':{k:v[0] for k,v in variables.items()},'forwards':forwards,'symbol_count':len(symbols)},indent=2)+'\n')

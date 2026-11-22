@@ -9,7 +9,7 @@
 
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
-use crate::common::{CONSP, Lisp_Object, Vbuffer_alist, XCDR, all_threads, current_thread};
+use crate::common::{CONSP, Lisp_Object, XCDR, all_threads, current_buffer_alist, current_thread};
 use crate::nonlocal::{host_drop_counts, scoped_root_counts};
 use crate::roots::{RootingCounters, rooting_counters};
 
@@ -67,8 +67,8 @@ pub struct ThreadState {
 impl VmState {
     #[inline]
     pub fn current() -> Option<Self> {
-        // SAFETY: `current_thread` is non-null iff the calling thread is initialized in the VM.
-        if unsafe { current_thread.is_null() } {
+        // SAFETY: `current_thread` is the single-VM active thread pointer `VmGlobal` extern slot.
+        if unsafe { current_thread.get() }.is_null() {
             None
         } else {
             Some(Self { _private: () })
@@ -144,12 +144,12 @@ fn snapshot_current_thread() -> ThreadStateSnapshot {
     // global lock on the Lisp thread.
     unsafe {
         let mut active_thread_count = 0usize;
-        let mut iter = all_threads;
+        let mut iter = all_threads.get();
         while !iter.is_null() {
             active_thread_count += 1;
             iter = (*iter).next_thread;
         }
-        let ct = current_thread;
+        let ct = current_thread.get();
         if ct.is_null() {
             return ThreadStateSnapshot {
                 active_thread_count,
@@ -193,16 +193,15 @@ pub fn snapshot_vm_root_inventory() -> VmRootInventory {
 
     let (pd_loaded, early_hooks, late_hooks) = crate::pdumper::u4_pdumper_counts();
     let mod_live = crate::emacs_module::u4_module_refs_table_live();
-    // SAFETY: inspects VM global root tables on the active Lisp thread under the global lock.
-    let (live_buffers, comp_live) = unsafe {
+    let (live_buffers, comp_live) = {
         let mut nbufs = 0usize;
-        let mut tail: Lisp_Object = Vbuffer_alist;
+        let mut tail: Lisp_Object = current_buffer_alist();
         while CONSP(tail) {
             nbufs += 1;
             tail = XCDR(tail);
         }
         #[cfg(feature = "have_native_comp")]
-        let comp_ok = crate::common::HASH_TABLE_P(crate::common::Vcomp_loaded_comp_units_h);
+        let comp_ok = crate::common::HASH_TABLE_P(crate::common::get_Vcomp_loaded_comp_units_h());
         #[cfg(not(feature = "have_native_comp"))]
         let comp_ok = false;
         (nbufs, comp_ok)

@@ -1668,7 +1668,7 @@ pub unsafe extern "C-unwind" fn image_create_bitmap_from_file (f: *mut frame, fi
       }
 
     /* Search bitmap-file-path for the file, if appropriate.  */
-    if openp (Vx_bitmap_file_path, file, Qnil (), &raw mut found,
+    if openp ((*Vx_bitmap_file_path.as_mut_ptr ()), file, Qnil (), &raw mut found,
               make_fixnum (R_OK as EMACS_INT), false, false, core::ptr::null_mut ()) < 0
       { return -1; }
 
@@ -1724,7 +1724,7 @@ pub unsafe extern "C-unwind" fn image_create_bitmap_from_file (f: *mut frame, fi
       }
 
     /* Search bitmap-file-path for the file, if appropriate.  */
-    if openp (Vx_bitmap_file_path, file, Qnil (), &raw mut found,
+    if openp ((*Vx_bitmap_file_path.as_mut_ptr ()), file, Qnil (), &raw mut found,
               make_fixnum (R_OK as EMACS_INT), false, false, core::ptr::null_mut ()) < 0
       { return -1; }
 
@@ -1826,11 +1826,11 @@ pub unsafe extern "C-unwind" fn image_create_bitmap_from_file (f: *mut frame, fi
     /* Search bitmap-file-path for the file, if appropriate.  If no file
        extension or directory is specified and no file by this name
        exists, append the extension ".xbm" and retry.  */
-    if (openp (Vx_bitmap_file_path, file, Qnil (), &raw mut found,
+    if (openp ((*Vx_bitmap_file_path.as_mut_ptr ()), file, Qnil (), &raw mut found,
                make_fixnum (R_OK as EMACS_INT), false, false, core::ptr::null_mut ()) < 0)
         && (!NILP (Fequal (Ffile_name_nondirectory (file), file))
             || !strrchr (SSDATA (file), b'.' as c_int).is_null ()
-            || (openp (Vx_bitmap_file_path,
+            || (openp ((*Vx_bitmap_file_path.as_mut_ptr ()),
                        CALLN! (Fconcat, file, build_string (c".xbm".as_ptr ())),
                        Qnil (), &raw mut found, make_fixnum (R_OK as EMACS_INT), false, false,
                        core::ptr::null_mut ()) < 0))
@@ -2264,7 +2264,7 @@ unsafe fn add_image_type (r#type: Lisp_Object)
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  Vimage_types = Fcons (r#type, Vimage_types);
+  (*Vimage_types.as_mut_ptr ()) = Fcons (r#type, (*Vimage_types.as_mut_ptr ()));
 
   }
 }
@@ -3002,10 +3002,10 @@ unsafe fn check_image_size (f: *mut frame, width: c_int, height: c_int) -> bool
   if width <= 0 || height <= 0
     { return false; }
 
-  if FIXNUMP (Vmax_image_size)
-    { return (width as EMACS_INT <= XFIXNUM (Vmax_image_size)
-	      && height as EMACS_INT <= XFIXNUM (Vmax_image_size)); }
-  else if FLOATP (Vmax_image_size)
+  if FIXNUMP ((*Vmax_image_size.as_mut_ptr ()))
+    { return (width as EMACS_INT <= XFIXNUM ((*Vmax_image_size.as_mut_ptr ()))
+	      && height as EMACS_INT <= XFIXNUM ((*Vmax_image_size.as_mut_ptr ()))); }
+  else if FLOATP ((*Vmax_image_size.as_mut_ptr ()))
     {
       if !f.is_null ()
 	{
@@ -3014,8 +3014,8 @@ unsafe fn check_image_size (f: *mut frame, width: c_int, height: c_int) -> bool
 	}
       else
 	{ w = 1024; h = 1024; }  /* Arbitrary size for unknown frame. */
-      return (width as c_double <= XFLOAT_DATA (Vmax_image_size) * w as c_double
-	      && height as c_double <= XFLOAT_DATA (Vmax_image_size) * h as c_double);
+      return (width as c_double <= XFLOAT_DATA ((*Vmax_image_size.as_mut_ptr ())) * w as c_double
+	      && height as c_double <= XFLOAT_DATA ((*Vmax_image_size.as_mut_ptr ())) * h as c_double);
     }
   else
     { return true; }
@@ -3743,7 +3743,7 @@ pub unsafe extern "C-unwind" fn clear_image_cache (f: *mut frame, filter: Lisp_O
 	      i += 1;
 	    }
 	}
-      else if FIXNUMP (Vimage_cache_eviction_delay)
+      else if FIXNUMP ((*Vimage_cache_eviction_delay.as_mut_ptr ()))
 	{
 	  /* Free cache based on timestamp.  */
 	  let mut old: timespec;
@@ -3761,7 +3761,7 @@ pub unsafe extern "C-unwind" fn clear_image_cache (f: *mut frame, filter: Lisp_O
 
 	  /* If the number of cached images has grown unusually large,
 	     decrease the cache eviction delay (Bug#6230).  */
-	  delay = XFIXNUM (Vimage_cache_eviction_delay) as c_double;
+	  delay = XFIXNUM ((*Vimage_cache_eviction_delay.as_mut_ptr ())) as c_double;
 	  if nimages > 40
 	    { delay = 1600 as c_double * delay / nimages as c_double / nimages as c_double; }
 	  /* C's `max (delay, 1)` is the ternary (`f64` is not `Ord`).  */
@@ -3798,7 +3798,7 @@ pub unsafe extern "C-unwind" fn clear_image_cache (f: *mut frame, filter: Lisp_O
 	      { clear_current_matrices (fr); }
 	  });
 
-	  windows_or_buffers_changed = 19;
+	  (*windows_or_buffers_changed.as_mut_ptr ()) = 19;
 	}
 
       unblock_input ();
@@ -4203,7 +4203,7 @@ unsafe fn image_compute_scale (f: *mut frame, spec: Lisp_Object, img: *mut image
 
   if EQ (value, Qdefault ())
     {
-      let mut sval: Lisp_Object = Vimage_scaling_factor;
+      let mut sval: Lisp_Object = (*Vimage_scaling_factor.as_mut_ptr ());
 
       /* C's `invalid_value:` label.  The label is the head of the block, so C's
 	 `goto invalid_value` is this loop's `continue` (the tree's `goto` shape, PORTING.md 2.2;
@@ -4232,7 +4232,7 @@ unsafe fn image_compute_scale (f: *mut frame, spec: Lisp_Object, img: *mut image
 	  else
 	    {
 	      image_error (c"Invalid `image-scaling-factor': %s".as_ptr (),
-			   Vimage_scaling_factor);
+			   (*Vimage_scaling_factor.as_mut_ptr ()));
 
 	      /* If Vimage_scaling_factor is set to an invalid value, treat
 		 it as though it were the default.  */
@@ -5593,7 +5593,7 @@ pub union anim_handle
 
 /// C: C 3790: `static struct anim_cache *anim_cache = NULL;`
 #[cfg (all (feature = "have_window_system", any (feature = "have_webp", feature = "have_gif")))]
-static mut anim_cache: *mut anim_cache = core::ptr::null_mut ();
+static anim_cache: VmGlobal<*mut anim_cache> = VmGlobal::<*mut anim_cache>::new (core::ptr::null_mut ());
 
 /* Return a new animation cache entry for image SPEC (which need not be
    an image specification, and is typically its cdr/plist).
@@ -5628,7 +5628,7 @@ unsafe fn anim_prune_animation_cache (clear: Lisp_Object)
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  let mut pcache: *mut *mut anim_cache = &raw mut anim_cache;
+  let mut pcache: *mut *mut anim_cache = anim_cache.as_mut_ptr ();
   let old: timespec = timespec_sub (current_timespec (), make_timespec (60, 0));
 
   while !(*pcache).is_null ()
@@ -5657,7 +5657,7 @@ unsafe fn anim_get_animation_cache (spec: Lisp_Object) -> *mut anim_cache
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
   let mut cache: *mut anim_cache;
-  let mut pcache: *mut *mut anim_cache = &raw mut anim_cache;
+  let mut pcache: *mut *mut anim_cache = anim_cache.as_mut_ptr ();
 
   anim_prune_animation_cache (Qnil ());
 
@@ -5724,7 +5724,7 @@ pub unsafe extern "C-unwind" fn mark_image_cache (c: *mut image_cache)
   /* C 3886-3889: `#if defined HAVE_WEBP || defined HAVE_GIF`.  */
   #[cfg (any (feature = "have_webp", feature = "have_gif"))]
   {
-    let mut cache: *mut anim_cache = anim_cache;
+    let mut cache: *mut anim_cache = (*anim_cache.as_mut_ptr ());
     while !cache.is_null ()
       {
 	mark_object ((*cache).spec);
@@ -6465,8 +6465,8 @@ unsafe fn image_find_image_fd (file: Lisp_Object, pfd: *mut image_fd) -> Lisp_Ob
 
   /* TODO I think this should use something like image-load-path
      instead.  Unfortunately, that can contain non-string elements.  */
-  search_path = Fcons (Fexpand_file_name (build_string (c"images".as_ptr ()), Vdata_directory),
-		       Vx_bitmap_file_path);
+  search_path = Fcons (Fexpand_file_name (build_string (c"images".as_ptr ()), (*Vdata_directory.as_mut_ptr ())),
+		       (*Vx_bitmap_file_path.as_mut_ptr ()));
 
   /* Try to find FILE in data-directory/images, then x-bitmap-file-path.  */
   platform = core::ptr::null_mut ();
@@ -7170,11 +7170,10 @@ unsafe fn w32_create_pixmap_from_bitmap_data (width: c_int, height: c_int, data:
   -> HBITMAP
 {
   #[cfg (all (feature = "have_window_system", feature = "have_ntgui"))]
-  static mut swap_nibble: [c_uchar; 16] =
-    [0x0, 0x8, 0x4, 0xc,    /* 0000 1000 0100 1100 */
+  static swap_nibble: VmGlobal<[c_uchar; 16]> = VmGlobal::<[c_uchar; 16]>::new ([0x0, 0x8, 0x4, 0xc,    /* 0000 1000 0100 1100 */
      0x2, 0xa, 0x6, 0xe,    /* 0010 1010 0110 1110 */
      0x1, 0x9, 0x5, 0xd,    /* 0001 1001 0101 1101 */
-     0x3, 0xb, 0x7, 0xf];   /* 0011 1011 0111 1111 */
+     0x3, 0xb, 0x7, 0xf]);   /* 0011 1011 0111 1111 */
   let mut i: c_int;
   let mut j: c_int;
   let mut w1: c_int;
@@ -7241,7 +7240,7 @@ unsafe fn convert_mono_to_color_image (f: *mut frame, img: *mut image, foregroun
   DeleteDC (new_img_dc);
   DeleteObject ((*img).pixmap as HGDIOBJ);
   if new_pixmap == 0
-    { fputs (c"Failed to convert image to color.\n".as_ptr (), stderr); }
+    { fputs (c"Failed to convert image to color.\n".as_ptr (), (*stderr.as_mut_ptr ())); }
   else
     { (*img).pixmap = new_pixmap as *mut c_void; }
 }
@@ -7866,13 +7865,13 @@ static canvas_format: [image_keyword; CANVAS_LAST as usize] =
 
 /* C 5502: `static Lisp_Object canvas_map;` - C's tentative definition, i.e. `Qnil` (0).  */
 #[cfg (feature = "have_window_system")]
-static mut canvas_map: Lisp_Object = core::ptr::null_mut ();
+static canvas_map: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (core::ptr::null_mut ());
 
 /* Linked list of all canvas objects.  */
 
 /* C 5506: `static struct canvas* canvas_list = 0;`  */
 #[cfg (feature = "have_window_system")]
-static mut canvas_list: *mut canvas = core::ptr::null_mut ();
+static canvas_list: VmGlobal<*mut canvas> = VmGlobal::<*mut canvas>::new (core::ptr::null_mut ());
 
 /* Parse canvas specification OBJECT and return true if valid.  */
 
@@ -7924,12 +7923,12 @@ unsafe fn canvas_free_unused ()
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
   /* Mark all referenced canvases as used (negative width).  */
-  DOHASH! (XHASH_TABLE (canvas_map), k, v, {
+  DOHASH! (XHASH_TABLE ((*canvas_map.as_mut_ptr ())), k, v, {
     (*(XFIXNUMPTR (v) as *mut canvas)).width *= -1;
   });
 
   /* Free unreferenced canvases and remove them from the list.  */
-  let mut p: *mut *mut canvas = &raw mut canvas_list;
+  let mut p: *mut *mut canvas = canvas_list.as_mut_ptr ();
   while !(*p).is_null ()
     {
       let c: *mut canvas = *p;
@@ -8112,7 +8111,7 @@ unsafe fn canvas_get (image: Lisp_Object, fmt: *mut image_keyword) -> *mut canva
       return core::ptr::null_mut ();
     }
 
-  let canvas_ptr: Lisp_Object = Fgethash (image, canvas_map, Qnil ());
+  let canvas_ptr: Lisp_Object = Fgethash (image, (*canvas_map.as_mut_ptr ()), Qnil ());
   let mut c: *mut canvas = if NILP (canvas_ptr) { core::ptr::null_mut () }
 			   else { XFIXNUMPTR (canvas_ptr) as *mut canvas };
   let width: c_int = XFIXNAT ((*fmt.offset (CANVAS_WIDTH as isize)).value) as c_int;
@@ -8131,9 +8130,9 @@ unsafe fn canvas_get (image: Lisp_Object, fmt: *mut image_keyword) -> *mut canva
       (*c).data = xzalloc ((4 * width * height) as usize) as *mut uint32_t;
 
       /* Register the canvas in the list and the map.  */
-      (*c).next = canvas_list;
-      canvas_list = c;
-      Fputhash (image, make_pointer_integer (c as *mut c_void), canvas_map);
+      (*c).next = (*canvas_list.as_mut_ptr ());
+      (*canvas_list.as_mut_ptr ()) = c;
+      Fputhash (image, make_pointer_integer (c as *mut c_void), (*canvas_map.as_mut_ptr ()));
 
       /* Initialize pixel buffer from :data or :file if supplied.  */
       canvas_apply_data (c, fmt);
@@ -8822,7 +8821,7 @@ pub const XPM_COLOR_CACHE_BUCKETS: c_int = 1009;
 /// C: C 6024: `static struct xpm_cached_color **xpm_color_cache;` - C's tentative definition.
 #[cfg (all (feature = "have_window_system", feature = "have_x_windows", not (feature = "use_cairo"),
 	    feature = "alloc_xpm_colors"))]
-static mut xpm_color_cache: *mut *mut xpm_cached_color = core::ptr::null_mut ();
+static xpm_color_cache: VmGlobal<*mut *mut xpm_cached_color> = VmGlobal::<*mut *mut xpm_cached_color>::new (core::ptr::null_mut ());
 
 /* Initialize the color cache.  */
 
@@ -8833,7 +8832,7 @@ unsafe fn xpm_init_color_cache (f: *mut frame, attrs: *mut XpmAttributes)
 {
   let nbytes: ptrdiff_t = XPM_COLOR_CACHE_BUCKETS as ptrdiff_t
 			  * core::mem::size_of::<*mut xpm_cached_color> () as ptrdiff_t;
-  xpm_color_cache = xzalloc (nbytes as usize) as *mut *mut xpm_cached_color;
+  (*xpm_color_cache.as_mut_ptr ()) = xzalloc (nbytes as usize) as *mut *mut xpm_cached_color;
   init_color_table ();
 
   if (*attrs).valuemask & XpmColorSymbols as c_ulong != 0
@@ -8872,7 +8871,7 @@ unsafe fn xpm_free_color_cache ()
   i = 0;
   while i < XPM_COLOR_CACHE_BUCKETS
     {
-      p = *xpm_color_cache.offset (i as isize);
+      p = *(*xpm_color_cache.as_mut_ptr ()).offset (i as isize);
       while !p.is_null ()
 	{
 	  next = (*p).next;
@@ -8882,8 +8881,8 @@ unsafe fn xpm_free_color_cache ()
       i += 1;
     }
 
-  xfree (xpm_color_cache as *mut c_void);
-  xpm_color_cache = core::ptr::null_mut ();
+  xfree ((*xpm_color_cache.as_mut_ptr ()) as *mut c_void);
+  (*xpm_color_cache.as_mut_ptr ()) = core::ptr::null_mut ();
   free_color_table ();
 }
 
@@ -8918,8 +8917,8 @@ unsafe fn xpm_cache_color (f: *mut frame, color_name: *mut c_char, color: *mut X
   memcpy (fam_base (core::ptr::addr_of_mut! ((*p).name)) as *mut c_void,
 	  color_name as *const c_void, len as usize);
   (*p).color = *color;
-  (*p).next = *xpm_color_cache.offset (bucket as isize);
-  *xpm_color_cache.offset (bucket as isize) = p;
+  (*p).next = *(*xpm_color_cache.as_mut_ptr ()).offset (bucket as isize);
+  *(*xpm_color_cache.as_mut_ptr ()).offset (bucket as isize) = p;
   return p;
 }
 
@@ -8936,7 +8935,7 @@ unsafe fn xpm_lookup_color (f: *mut frame, color_name: *mut c_char, color: *mut 
   let mut p: *mut xpm_cached_color;
   let h: c_int = xpm_color_bucket (color_name);
 
-  p = *xpm_color_cache.offset (h as isize);
+  p = *(*xpm_color_cache.as_mut_ptr ()).offset (h as isize);
   while !p.is_null ()
     {
       if strcmp (fam_base (core::ptr::addr_of_mut! ((*p).name)), color_name) == 0
@@ -9080,7 +9079,7 @@ unsafe extern "C" {
 macro_rules! DEF_DLL_FN {
   ($type:ty, $func:ident, $pfn:ident, $fnvar:ident, ($($arg:ty),* $(,)?)) => {
     pub type $pfn = Option<unsafe extern "C" fn ($($arg),*) -> $type>;
-    static mut $fnvar: $pfn = None;
+    static $fnvar: VmGlobal<$pfn> = VmGlobal::new(None);
   };
 }
 /// C: w32common.h 82-89: `#define LOAD_DLL_FN(lib, func)       do { fn_##func = (W32_PFN_##func) get_proc_addr (lib, #func); if (!fn_##func) return false; } while (false)` - C's `do { … } while (false)` is a block expression (PORTING.md 2.1) and its `#func` is the stringified name, a parameter here for the same reason as above.
@@ -9088,27 +9087,27 @@ macro_rules! DEF_DLL_FN {
 macro_rules! LOAD_DLL_FN {
   ($lib:expr, $func:ident, $pfn:ident, $fnvar:ident, $name:expr) => {
     {
-      $fnvar = std::mem::transmute::<VOIDFNPTR, $pfn> (get_proc_addr ($lib, $name.as_ptr ()));
-      if $fnvar.is_none () { return false; }
+      (*$fnvar.as_mut_ptr ()) = std::mem::transmute::<VOIDFNPTR, $pfn> (get_proc_addr ($lib, $name.as_ptr ()));
+      if (*$fnvar.as_mut_ptr ()).is_none () { return false; }
     }
   };
 }
 
 /* XPM library details.  */
 #[cfg (all (feature = "have_window_system", feature = "windowsnt"))]
-DEF_DLL_FN! ((), XpmFreeAttributes, W32_PFN_XpmFreeAttributes, fn_XpmFreeAttributes,
+DEF_DLL_FN! ((), XpmFreeAttributes, W32_PFN_XpmFreeAttributes, (*fn_XpmFreeAttributes.as_mut_ptr ()),
              (*mut XpmAttributes));
 #[cfg (all (feature = "have_window_system", feature = "windowsnt"))]
 DEF_DLL_FN! (c_int, XpmCreateImageFromBuffer, W32_PFN_XpmCreateImageFromBuffer,
-             fn_XpmCreateImageFromBuffer,
+             (*fn_XpmCreateImageFromBuffer.as_mut_ptr ()),
              (*mut Display, *mut c_char, *mut *mut xpm_XImage, *mut *mut xpm_XImage,
               *mut XpmAttributes));
 #[cfg (all (feature = "have_window_system", feature = "windowsnt"))]
-DEF_DLL_FN! (c_int, XpmReadFileToImage, W32_PFN_XpmReadFileToImage, fn_XpmReadFileToImage,
+DEF_DLL_FN! (c_int, XpmReadFileToImage, W32_PFN_XpmReadFileToImage, (*fn_XpmReadFileToImage.as_mut_ptr ()),
              (*mut Display, *mut c_char, *mut *mut xpm_XImage, *mut *mut xpm_XImage,
               *mut XpmAttributes));
 #[cfg (all (feature = "have_window_system", feature = "windowsnt"))]
-DEF_DLL_FN! ((), XImageFree, W32_PFN_XImageFree, fn_XImageFree, (*mut xpm_XImage));
+DEF_DLL_FN! ((), XImageFree, W32_PFN_XImageFree, (*fn_XImageFree.as_mut_ptr ()), (*mut xpm_XImage));
 
 /// C: C 6179-6180: `static bool init_xpm_functions (void)`.  C's `HMODULE library;` plus `if (!(library = w32_delayed_load (Qxpm))) return 0;` is the port's declaration-with-initialiser and null test (the `init_gccjit_functions` shape, `src/comp.rs` 279-364).
 #[cfg (all (feature = "have_window_system", feature = "windowsnt"))]
@@ -9120,16 +9119,16 @@ unsafe fn init_xpm_functions () -> bool
     { return false; }
 
   #[cfg (all (feature = "have_window_system", feature = "windowsnt"))]
-  LOAD_DLL_FN! (library, XpmFreeAttributes, W32_PFN_XpmFreeAttributes, fn_XpmFreeAttributes,
+  LOAD_DLL_FN! (library, XpmFreeAttributes, W32_PFN_XpmFreeAttributes, (*fn_XpmFreeAttributes.as_mut_ptr ()),
                 c"XpmFreeAttributes");
   #[cfg (all (feature = "have_window_system", feature = "windowsnt"))]
   LOAD_DLL_FN! (library, XpmCreateImageFromBuffer, W32_PFN_XpmCreateImageFromBuffer,
-                fn_XpmCreateImageFromBuffer, c"XpmCreateImageFromBuffer");
+                (*fn_XpmCreateImageFromBuffer.as_mut_ptr ()), c"XpmCreateImageFromBuffer");
   #[cfg (all (feature = "have_window_system", feature = "windowsnt"))]
   LOAD_DLL_FN! (library, XpmReadFileToImage, W32_PFN_XpmReadFileToImage,
-                fn_XpmReadFileToImage, c"XpmReadFileToImage");
+                (*fn_XpmReadFileToImage.as_mut_ptr ()), c"XpmReadFileToImage");
   #[cfg (all (feature = "have_window_system", feature = "windowsnt"))]
-  LOAD_DLL_FN! (library, XImageFree, W32_PFN_XImageFree, fn_XImageFree, c"XImageFree");
+  LOAD_DLL_FN! (library, XImageFree, W32_PFN_XImageFree, (*fn_XImageFree.as_mut_ptr ()), c"XImageFree");
   return true;
 }
 
@@ -9439,7 +9438,7 @@ unsafe extern "C-unwind" fn xpm_load (f: *mut frame, img: *mut image) -> bool
 	}
 	/* XpmReadFileToPixmap is not available in the Windows port of
 	   libxpm.  But XpmReadFileToImage almost does what we want.  */
-	rc = fn_XpmReadFileToImage (&raw mut hdc as *mut Display, SSDATA (file) as *mut c_char,
+	rc = (*fn_XpmReadFileToImage.as_mut_ptr ()) (&raw mut hdc as *mut Display, SSDATA (file) as *mut c_char,
 				    &raw mut xpm_image, &raw mut xpm_mask, &raw mut attrs);
       }
       #[cfg (all (feature = "have_window_system", not (feature = "have_ntgui")))]
@@ -9467,7 +9466,7 @@ unsafe extern "C-unwind" fn xpm_load (f: *mut frame, img: *mut image) -> bool
       {
 	/* XpmCreatePixmapFromBuffer is not available in the Windows port
 	   of libxpm.  But XpmCreateImageFromBuffer almost does what we want.  */
-	rc = fn_XpmCreateImageFromBuffer (&raw mut hdc as *mut Display,
+	rc = (*fn_XpmCreateImageFromBuffer.as_mut_ptr ()) (&raw mut hdc as *mut Display,
 					  SSDATA (buffer) as *mut c_char,
 					  &raw mut xpm_image, &raw mut xpm_mask, &raw mut attrs);
       }
@@ -9545,7 +9544,7 @@ unsafe extern "C-unwind" fn xpm_load (f: *mut frame, img: *mut image) -> bool
 	      (*img).pixmap = (*xpm_image).bitmap as *mut c_void;
 	      /* XImageFree in libXpm frees XImage struct without destroying
 		 the bitmap, which is what we want.  */
-	      fn_XImageFree (xpm_image);
+	      (*fn_XImageFree.as_mut_ptr ()) (xpm_image);
 	    }
 	  if !xpm_mask.is_null () && !(*xpm_mask).bitmap.is_null ()
 	    {
@@ -9559,7 +9558,7 @@ unsafe extern "C-unwind" fn xpm_load (f: *mut frame, img: *mut image) -> bool
 	      SelectObject (hdc, old_obj);
 
 	      (*img).mask = (*xpm_mask).bitmap as *mut c_void;
-	      fn_XImageFree (xpm_mask);
+	      (*fn_XImageFree.as_mut_ptr ()) (xpm_mask);
 	      DeleteDC (hdc);
 	    }
 
@@ -9586,7 +9585,7 @@ unsafe extern "C-unwind" fn xpm_load (f: *mut frame, img: *mut image) -> bool
 	 `# define XpmFreeAttributes fn_XpmFreeAttributes` renames it on the Windows side, where
 	 this same line is compiled for the other arm.  */
       #[cfg (feature = "have_ntgui")]
-      { fn_XpmFreeAttributes (&raw mut attrs); }
+      { (*fn_XpmFreeAttributes.as_mut_ptr ()) (&raw mut attrs); }
       #[cfg (not (feature = "have_ntgui"))]
       { XpmFreeAttributes (&raw mut attrs); }
 
@@ -9842,7 +9841,7 @@ unsafe fn xpm_make_color_table_h (put_func: *mut Option<unsafe extern "C-unwind"
   unsafe {
   *put_func = Some (xpm_put_color_table_h);
   *get_func = Some (xpm_get_color_table_h);
-  return make_hash_table (&raw const hashtest_equal, DEFAULT_HASH_SIZE as EMACS_INT, Weak_None);
+  return make_hash_table (hashtest_equal.as_ptr (), DEFAULT_HASH_SIZE as EMACS_INT, Weak_None);
 
   }
 }
@@ -10472,14 +10471,14 @@ unsafe fn ct_hash_rgb (r: c_uint, g: c_uint, b: c_uint) -> c_uint
 /// C: C 7157: `static struct ct_color **ct_table;` - C's tentative definition.
 #[cfg (all (feature = "have_window_system", feature = "have_x_windows",
 	    not (any (feature = "have_ntgui", feature = "use_cairo", feature = "have_ns"))))]
-static mut ct_table: *mut *mut ct_color = core::ptr::null_mut ();
+static ct_table: VmGlobal<*mut *mut ct_color> = VmGlobal::<*mut *mut ct_color>::new (core::ptr::null_mut ());
 
 /* Number of entries in the color table.  */
 
 /// C: C 7161: `static int ct_colors_allocated;` - C's tentative definition.
 #[cfg (all (feature = "have_window_system", feature = "have_x_windows",
 	    not (any (feature = "have_ntgui", feature = "use_cairo", feature = "have_ns"))))]
-static mut ct_colors_allocated: c_int = 0;
+static ct_colors_allocated: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 /// C: C 7162-7167: `enum { ct_colors_allocated_max = min (INT_MAX, min (PTRDIFF_MAX, SIZE_MAX) / sizeof (unsigned long)) };` - the value is derived from C's expression (the usual arithmetic conversions make the inner `min` a `usize` comparison, P-59's rule against hand-written numbers).
 #[cfg (all (feature = "have_window_system", feature = "have_x_windows",
 	    not (any (feature = "have_ntgui", feature = "use_cairo", feature = "have_ns"))))]
@@ -10496,8 +10495,8 @@ pub const ct_colors_allocated_max: c_int
 unsafe fn init_color_table ()
 {
   let size: c_int = CT_SIZE * core::mem::size_of::<*mut ct_color> () as c_int;
-  ct_table = xzalloc (size as usize) as *mut *mut ct_color;
-  ct_colors_allocated = 0;
+  (*ct_table.as_mut_ptr ()) = xzalloc (size as usize) as *mut *mut ct_color;
+  (*ct_colors_allocated.as_mut_ptr ()) = 0;
 }
 
 
@@ -10515,7 +10514,7 @@ unsafe fn free_color_table ()
   i = 0;
   while i < CT_SIZE
     {
-      p = *ct_table.offset (i as isize);
+      p = *(*ct_table.as_mut_ptr ()).offset (i as isize);
       while !p.is_null ()
 	{
 	  next = (*p).next;
@@ -10525,8 +10524,8 @@ unsafe fn free_color_table ()
       i += 1;
     }
 
-  xfree (ct_table as *mut c_void);
-  ct_table = core::ptr::null_mut ();
+  xfree ((*ct_table.as_mut_ptr ()) as *mut c_void);
+  (*ct_table.as_mut_ptr ()) = core::ptr::null_mut ();
 }
 
 
@@ -10568,7 +10567,7 @@ unsafe fn lookup_rgb_color (f: *mut frame, mut r: c_int, mut g: c_int, mut b: c_
       return x_make_truecolor_pixel (dpyinfo, r, g, b);
     }
 
-  p = *ct_table.offset (i as isize);
+  p = *(*ct_table.as_mut_ptr ()).offset (i as isize);
   while !p.is_null ()
     {
       if (*p).r == r && (*p).g == g && (*p).b == b
@@ -10584,7 +10583,7 @@ unsafe fn lookup_rgb_color (f: *mut frame, mut r: c_int, mut g: c_int, mut b: c_
 	let cmap: Colormap;
 	let mut rc: bool;
 
-	if ct_colors_allocated_max <= ct_colors_allocated
+	if ct_colors_allocated_max <= (*ct_colors_allocated.as_mut_ptr ())
 	  { return FRAME_FOREGROUND_PIXEL (f); }
 
 	color.red = r as c_ushort;
@@ -10595,14 +10594,14 @@ unsafe fn lookup_rgb_color (f: *mut frame, mut r: c_int, mut g: c_int, mut b: c_
 	rc = x_alloc_nearest_color (f, cmap, &raw mut color);
 	if rc
 	  {
-	    ct_colors_allocated += 1;
+	    (*ct_colors_allocated.as_mut_ptr ()) += 1;
 	    p = xmalloc (core::mem::size_of::<ct_color> ()) as *mut ct_color;
 	    (*p).r = r;
 	    (*p).g = g;
 	    (*p).b = b;
 	    (*p).pixel = color.pixel;
-	    (*p).next = *ct_table.offset (i as isize);
-	    *ct_table.offset (i as isize) = p;
+	    (*p).next = *(*ct_table.as_mut_ptr ()).offset (i as isize);
+	    *(*ct_table.as_mut_ptr ()).offset (i as isize) = p;
 	  }
 	else
 	  { return FRAME_FOREGROUND_PIXEL (f); }
@@ -10613,21 +10612,21 @@ unsafe fn lookup_rgb_color (f: *mut frame, mut r: c_int, mut g: c_int, mut b: c_
 	   `COLOR_TABLE_SUPPORT`, includes `HAVE_X_WINDOWS` - kept so the arm is carried).  */
 	let mut color: COLORREF;
 
-	if ct_colors_allocated_max <= ct_colors_allocated
+	if ct_colors_allocated_max <= (*ct_colors_allocated.as_mut_ptr ())
 	  { return FRAME_FOREGROUND_PIXEL (f); }
 
 	#[cfg (feature = "have_ntgui")]
 	{ color = PALETTERGB (r, g, b); }
 	#[cfg (not (feature = "have_ntgui"))]
 	{ color = RGB_TO_ULONG! (r, g, b) as COLORREF; }
-	ct_colors_allocated += 1;
+	(*ct_colors_allocated.as_mut_ptr ()) += 1;
 	p = xmalloc (core::mem::size_of::<ct_color> ()) as *mut ct_color;
 	(*p).r = r;
 	(*p).g = g;
 	(*p).b = b;
 	(*p).pixel = color as c_ulong;
-	(*p).next = *ct_table.offset (i as isize);
-	*ct_table.offset (i as isize) = p;
+	(*p).next = *(*ct_table.as_mut_ptr ()).offset (i as isize);
+	*(*ct_table.as_mut_ptr ()).offset (i as isize) = p;
       }
     }
 
@@ -10646,7 +10645,7 @@ unsafe fn lookup_pixel_color (f: *mut frame, pixel: c_ulong) -> c_ulong
   let i: c_int = (pixel % CT_SIZE as c_ulong) as c_int;
   let mut p: *mut ct_color;
 
-  p = *ct_table.offset (i as isize);
+  p = *(*ct_table.as_mut_ptr ()).offset (i as isize);
   while !p.is_null ()
     {
       if (*p).pixel == pixel
@@ -10660,7 +10659,7 @@ unsafe fn lookup_pixel_color (f: *mut frame, pixel: c_ulong) -> c_ulong
       let cmap: Colormap;
       let mut rc: bool;
 
-      if ct_colors_allocated >= ct_colors_allocated_max
+      if (*ct_colors_allocated.as_mut_ptr ()) >= ct_colors_allocated_max
 	{ return FRAME_FOREGROUND_PIXEL (f); }
 
       #[cfg (feature = "have_x_windows")]
@@ -10685,15 +10684,15 @@ unsafe fn lookup_pixel_color (f: *mut frame, pixel: c_ulong) -> c_ulong
 
       if rc
 	{
-	  ct_colors_allocated += 1;
+	  (*ct_colors_allocated.as_mut_ptr ()) += 1;
 
 	  p = xmalloc (core::mem::size_of::<ct_color> ()) as *mut ct_color;
 	  (*p).r = color.red as c_int;
 	  (*p).g = color.green as c_int;
 	  (*p).b = color.blue as c_int;
 	  (*p).pixel = pixel;
-	  (*p).next = *ct_table.offset (i as isize);
-	  *ct_table.offset (i as isize) = p;
+	  (*p).next = *(*ct_table.as_mut_ptr ()).offset (i as isize);
+	  *(*ct_table.as_mut_ptr ()).offset (i as isize) = p;
 	}
       else
 	{ return FRAME_FOREGROUND_PIXEL (f); }
@@ -10715,22 +10714,22 @@ unsafe fn colors_in_color_table (n: *mut c_int) -> *mut c_ulong
   let mut p: *mut ct_color;
   let mut colors: *mut c_ulong;
 
-  if ct_colors_allocated == 0
+  if (*ct_colors_allocated.as_mut_ptr ()) == 0
     {
       *n = 0;
       colors = core::ptr::null_mut ();
     }
   else
     {
-      colors = xmalloc (ct_colors_allocated as usize * core::mem::size_of::<c_ulong> ())
+      colors = xmalloc ((*ct_colors_allocated.as_mut_ptr ()) as usize * core::mem::size_of::<c_ulong> ())
 	as *mut c_ulong;
-      *n = ct_colors_allocated;
+      *n = (*ct_colors_allocated.as_mut_ptr ());
 
       i = 0;
       j = 0;
       while i < CT_SIZE
 	{
-	  p = *ct_table.offset (i as isize);
+	  p = *(*ct_table.as_mut_ptr ()).offset (i as isize);
 	  while !p.is_null ()
 	    {
 	      *colors.offset (j as isize) = (*p).pixel;
@@ -10784,23 +10783,21 @@ unsafe fn init_color_table ()
 
 /// C: C 7406: `static int emboss_matrix[9] = { ... };`
 #[cfg (feature = "have_window_system")]
-static mut emboss_matrix: [c_int; 9] =
-  [
+static emboss_matrix: VmGlobal<[c_int; 9]> = VmGlobal::<[c_int; 9]>::new ([
     /* x - 1	x	x + 1  */
     2,     -1,  	  0,		/* y - 1 */
     -1,      0,        1,		/* y     */
     0,      1,       -2		/* y + 1 */
-  ];
+  ]);
 
 /// C: C 7413: `static int laplace_matrix[9] = { ... };`
 #[cfg (feature = "have_window_system")]
-static mut laplace_matrix: [c_int; 9] =
-  [
+static laplace_matrix: VmGlobal<[c_int; 9]> = VmGlobal::<[c_int; 9]>::new ([
     /* x - 1	x	x + 1  */
     1,      0,  	  0,		/* y - 1 */
     0,      0,        0,		/* y     */
     0,      0,       -1		/* y + 1 */
-  ];
+  ]);
 
 /* Value is the intensity of the color whose red/green/blue values
    are R, G, and B.  */
@@ -11143,7 +11140,7 @@ unsafe fn image_emboss (f: *mut frame, img: *mut image)
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  image_detect_edges (f, img, &raw mut emboss_matrix as *mut c_int, 0xffff / 2);
+  image_detect_edges (f, img, emboss_matrix.as_mut_ptr () as *mut c_int, 0xffff / 2);
 
   }
 }
@@ -11158,7 +11155,7 @@ unsafe fn image_laplace (f: *mut frame, img: *mut image)
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  image_detect_edges (f, img, &raw mut laplace_matrix as *mut c_int, 45000);
+  image_detect_edges (f, img, laplace_matrix.as_mut_ptr () as *mut c_int, 45000);
 
   }
 }
@@ -11328,7 +11325,7 @@ unsafe fn image_disable_image (f: *mut frame, img: *mut image)
 
   /* Draw a cross over the disabled image, if we must or if we
      should.  */
-  if n_planes < 2 || cross_disabled_images
+  if n_planes < 2 || (*cross_disabled_images.as_mut_ptr ())
     {
       /* C 7801-7848: the `#ifndef HAVE_NTGUI` / `#else` pair.  */
       #[cfg (not (feature = "have_ntgui"))]
@@ -13418,7 +13415,7 @@ unsafe extern "C" fn our_common_term_source (cinfo: *mut jpeg_decompress_struct)
    so this only adds a fake end of input marker at the end.  */
 
 #[cfg (all (feature = "have_window_system", feature = "have_jpeg"))]
-static mut our_memory_buffer: [JOCTET; 2] = [0; 2];
+static our_memory_buffer: VmGlobal<[JOCTET; 2]> = VmGlobal::<[JOCTET; 2]>::new ([0; 2]);
 
 /// C: C 9301-9314: `static boolean our_memory_fill_input_buffer (j_decompress_ptr cinfo)`
 #[cfg (all (feature = "have_window_system", feature = "have_jpeg",
@@ -13430,10 +13427,10 @@ unsafe extern "C" fn our_memory_fill_input_buffer (cinfo: *mut jpeg_decompress_s
   /* Insert a fake EOI marker.  */
   let src: *mut jpeg_source_mgr = (*cinfo).src;
 
-  *(&raw mut our_memory_buffer as *mut JOCTET) = 0xFF;
-  *(&raw mut our_memory_buffer as *mut JOCTET).offset (1) = JPEG_EOI as JOCTET;
+  *(our_memory_buffer.as_mut_ptr () as *mut JOCTET) = 0xFF;
+  *(our_memory_buffer.as_mut_ptr () as *mut JOCTET).offset (1) = JPEG_EOI as JOCTET;
 
-  (*src).next_input_byte = (&raw const our_memory_buffer) as *const JOCTET;
+  (*src).next_input_byte = (our_memory_buffer.as_ptr ()) as *const JOCTET;
   (*src).bytes_in_buffer = 2;
   return 1;
 
@@ -14508,7 +14505,7 @@ DEFUN! ("image-cache-size", Fimage_cache_size, Simage_cache_size, 0, 0, 0,
   /* C 13378-13385: `#if defined (HAVE_WEBP) || defined (HAVE_GIF)`.  */
   #[cfg (any (feature = "have_webp", feature = "have_gif"))]
   {
-    let mut pcache: *mut anim_cache = anim_cache;
+    let mut pcache: *mut anim_cache = (*anim_cache.as_mut_ptr ());
     while !pcache.is_null ()
       {
 	total += (*pcache).byte_size;
@@ -14545,7 +14542,7 @@ unsafe fn initialize_image_type (r#type: *const image_type) -> bool
 	{ return true; }
     }
 
-    let tested: Lisp_Object = Fassq (typesym, Vlibrary_cache);
+    let tested: Lisp_Object = Fassq (typesym, (*Vlibrary_cache.as_mut_ptr ()));
     /* If we failed to load the library before, don't try again.  */
     if CONSP (tested)
       { return !NILP (XCDR (tested)); }
@@ -14555,8 +14552,8 @@ unsafe fn initialize_image_type (r#type: *const image_type) -> bool
     if init.is_some ()
       {
 	let type_valid: bool = init.unwrap () ();
-	Vlibrary_cache = Fcons (Fcons (typesym, if type_valid { Qt () } else { Qnil () }),
-				Vlibrary_cache);
+	(*Vlibrary_cache.as_mut_ptr ()) = Fcons (Fcons (typesym, if type_valid { Qt () } else { Qnil () }),
+				(*Vlibrary_cache.as_mut_ptr ()));
 	return type_valid;
       }
   }
@@ -14770,25 +14767,25 @@ const PATH_BITMAPS: &std::ffi::CStr = c"";
    `src/cmds.rs` row and the `src/alloc.rs` 8022-8025 note).  */
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub static mut Vimage_types: Lisp_Object = lisp_h_Qnil ();              // C 13521
+pub static Vimage_types: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());              // C 13521
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub static mut Vmax_image_size: Lisp_Object = lisp_h_Qnil ();           // C 13527
+pub static Vmax_image_size: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());           // C 13527
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub static mut cross_disabled_images: bool = false;                     // C 13759
+pub static cross_disabled_images: VmGlobal<bool> = VmGlobal::<bool>::new (false);                     // C 13759
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub static mut Vx_bitmap_file_path: Lisp_Object = lisp_h_Qnil ();       // C 13765
+pub static Vx_bitmap_file_path: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());       // C 13765
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub static mut Vimage_cache_eviction_delay: Lisp_Object = lisp_h_Qnil ();   // C 13769
+pub static Vimage_cache_eviction_delay: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());   // C 13769
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub static mut Vimage_scaling_factor: Lisp_Object = lisp_h_Qnil ();     // C 13779
+pub static Vimage_scaling_factor: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());     // C 13779
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub static mut imagemagick_render_type: EMACS_INT = 0;                  // C 13790
+pub static imagemagick_render_type: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);                  // C 13790
 
 /// C: C 13516-13805: `void syms_of_image (void)`
 #[cfg (feature = "have_window_system")]
@@ -14801,11 +14798,11 @@ pub unsafe extern "C-unwind" fn syms_of_image ()
      defining the supported image types.  */
   DEFVAR_LISP! (c"image-types", Vimage_types,
     "List of potentially supported image types.\nEach element of the list is a symbol for an image type, like `jpeg' or `png'.\nTo check whether it is really supported, use `image-type-available-p'.");
-  Vimage_types = Qnil ();
+  (*Vimage_types.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"max-image-size", Vmax_image_size,
     "Maximum size of images.\nEmacs will not load an image into memory if its pixel width or\npixel height exceeds this limit.\n\nIf the value is an integer, it directly specifies the maximum\nimage height and width, measured in pixels.  If it is a floating\npoint number, it specifies the maximum image height and width\nas a ratio to the frame height and width.  If the value is\nnon-numeric, there is no explicit limit on the size of images.");
-  Vmax_image_size = make_float (MAX_IMAGE_SIZE);
+  (*Vmax_image_size.as_mut_ptr ()) = make_float (MAX_IMAGE_SIZE);
 
   /* Other symbols.  */
   DEFSYM! (Qcount, "count");
@@ -14892,9 +14889,9 @@ pub unsafe extern "C-unwind" fn syms_of_image ()
   DEFSYM! (Qcanvas, "canvas");
   add_image_type (Qcanvas ());
 
-  canvas_map = make_hash_table (&raw const hashtest_eq, DEFAULT_HASH_SIZE as EMACS_INT, Weak_Key);
-  staticpro (&raw const canvas_map);
-  defsubr (&raw mut Scanvas_refresh);
+  (*canvas_map.as_mut_ptr ()) = make_hash_table (hashtest_eq.as_ptr (), DEFAULT_HASH_SIZE as EMACS_INT, Weak_Key);
+  staticpro (canvas_map.as_ptr ());
+  defsubr (Scanvas_refresh.as_mut_ptr ());
 
   DEFSYM! (Qpbm, "pbm");
   add_image_type (Qpbm ());
@@ -15037,43 +15034,43 @@ pub unsafe extern "C-unwind" fn syms_of_image ()
     }
   }
 
-  defsubr (&raw mut Sinit_image_library);
+  defsubr (Sinit_image_library.as_mut_ptr ());
   /* C 13757-13759: `#ifdef HAVE_IMAGEMAGICK`.  */
   #[cfg (feature = "have_imagemagick")]
   { defsubr (&raw mut Simagemagick_types); }
-  defsubr (&raw mut Sclear_image_cache);
-  defsubr (&raw mut Simage_flush);
-  defsubr (&raw mut Simage_size);
-  defsubr (&raw mut Simage_mask_p);
-  defsubr (&raw mut Simage_metadata);
-  defsubr (&raw mut Simage_cache_size);
-  defsubr (&raw mut Simagep);
+  defsubr (Sclear_image_cache.as_mut_ptr ());
+  defsubr (Simage_flush.as_mut_ptr ());
+  defsubr (Simage_size.as_mut_ptr ());
+  defsubr (Simage_mask_p.as_mut_ptr ());
+  defsubr (Simage_metadata.as_mut_ptr ());
+  defsubr (Simage_cache_size.as_mut_ptr ());
+  defsubr (Simagep.as_mut_ptr ());
 
   /* C 13767-13769: `#ifdef GLYPH_DEBUG`.  */
   #[cfg (feature = "glyph_debug")]
-  { defsubr (&raw mut Slookup_image); }
+  { defsubr (Slookup_image.as_mut_ptr ()); }
 
   DEFSYM! (QCanimate_buffer, ":animate-buffer");
   DEFSYM! (QCanimate_tardiness, ":animate-tardiness");
   DEFSYM! (QCanimate_position, ":animate-position");
 
-  defsubr (&raw mut Simage_transforms_p);
+  defsubr (Simage_transforms_p.as_mut_ptr ());
 
   DEFVAR_BOOL! (c"cross-disabled-images", cross_disabled_images,
     "Non-nil means always draw a cross over disabled images.\nDisabled images are those having a `:conversion disabled' property.\nA cross is always drawn on black & white displays.");
-  cross_disabled_images = false;
+  (*cross_disabled_images.as_mut_ptr ()) = false;
 
   DEFVAR_LISP! (c"x-bitmap-file-path", Vx_bitmap_file_path,
     "List of directories to search for window system bitmap files.");
-  Vx_bitmap_file_path = decode_env_path (core::ptr::null (), PATH_BITMAPS.as_ptr (), false);
+  (*Vx_bitmap_file_path.as_mut_ptr ()) = decode_env_path (core::ptr::null (), PATH_BITMAPS.as_ptr (), false);
 
   DEFVAR_LISP! (c"image-cache-eviction-delay", Vimage_cache_eviction_delay,
     "Maximum time after which images are removed from the cache.\nWhen an image has not been displayed this many seconds, Emacs\nautomatically removes it from the image cache.  If the cache contains\na large number of images, the actual eviction time may be shorter.\nThe value can also be nil, meaning the cache is never cleared.\n\nThe function `clear-image-cache' disregards this variable.");
-  Vimage_cache_eviction_delay = make_fixnum (300);
+  (*Vimage_cache_eviction_delay.as_mut_ptr ()) = make_fixnum (300);
 
   DEFVAR_LISP! (c"image-scaling-factor", Vimage_scaling_factor,
     "When displaying images, apply this scaling factor before displaying.\nThis is not supported for all image types, and is mostly useful\nwhen you have a high-resolution monitor.\nThe value is either a floating point number (where numbers higher\nthan 1 means to increase the size and lower means to shrink the\nsize), or the symbol `auto', which will compute a scaling factor\nbased on the font pixel size.");
-  Vimage_scaling_factor = Qauto ();
+  (*Vimage_scaling_factor.as_mut_ptr ()) = Qauto ();
 
   /* C 13788-13804: `#ifdef HAVE_IMAGEMAGICK`.  */
   #[cfg (feature = "have_imagemagick")]
@@ -15081,7 +15078,7 @@ pub unsafe extern "C-unwind" fn syms_of_image ()
     DEFVAR_INT! (c"imagemagick-render-type", imagemagick_render_type,
       "Integer indicating which ImageMagick rendering method to use.\nThe options are:\n  0 -- the default method (pixel pushing)\n  1 -- a newer method (\"MagickExportImagePixels\") that may perform\n       better (speed etc) in some cases, but has not been as thoroughly\n       tested with Emacs as the default method.  This method requires\n       ImageMagick version 6.4.6 (approximately) or later.");
     /* MagickExportImagePixels is in 6.4.6-9, but not 6.4.4-10.  */
-    imagemagick_render_type = 0;
+    (*imagemagick_render_type.as_mut_ptr ()) = 0;
 
     DEFSYM! (Qimage_format_suffixes, "image-format-suffixes");
     DEFSYM! (QCformat, ":format");

@@ -834,7 +834,7 @@ macro_rules! XSETFRAME {
 macro_rules! FOR_EACH_FRAME {
     ($list_var:ident, $frame_var:ident, $body:block) => {
         {
-            let mut for_each_frame_rest: Lisp_Object = /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { Vframe_list };
+            let mut for_each_frame_rest: Lisp_Object = /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*Vframe_list.as_mut_ptr ()) };
             while CONSP (for_each_frame_rest)
                 && { $list_var = for_each_frame_rest;
                      $frame_var = XCAR ($list_var);
@@ -851,8 +851,8 @@ macro_rules! FOR_EACH_FRAME {
 #[inline(always)]
 pub fn SELECTED_FRAME () -> *mut frame
 {
-  if FRAMEP (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { selected_frame }) && FRAME_LIVE_P (XFRAME (unsafe { selected_frame }))
-    { XFRAME (unsafe { selected_frame }) }
+  if FRAMEP (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*selected_frame.as_mut_ptr ()) }) && FRAME_LIVE_P (XFRAME (unsafe { (*selected_frame.as_mut_ptr ()) }))
+    { XFRAME (unsafe { (*selected_frame.as_mut_ptr ()) }) }
   else { unsafe { emacs_abort () }; std::ptr::null_mut () }
 }
 
@@ -1452,8 +1452,8 @@ pub unsafe fn default_pixels_per_inch_x () -> c_double
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  let v = if CONSP (Vdisplay_pixels_per_inch) { XCAR (Vdisplay_pixels_per_inch) }
-          else { Vdisplay_pixels_per_inch };
+  let v = if CONSP ((*Vdisplay_pixels_per_inch.as_mut_ptr ())) { XCAR ((*Vdisplay_pixels_per_inch.as_mut_ptr ())) }
+          else { (*Vdisplay_pixels_per_inch.as_mut_ptr ()) };
   if NUMVAL (v) > 0.0 { NUMVAL (v) } else { 72.0 }
 
   }
@@ -1464,8 +1464,8 @@ pub unsafe fn default_pixels_per_inch_y () -> c_double
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  let v = if CONSP (Vdisplay_pixels_per_inch) { XCDR (Vdisplay_pixels_per_inch) }
-          else { Vdisplay_pixels_per_inch };
+  let v = if CONSP ((*Vdisplay_pixels_per_inch.as_mut_ptr ())) { XCDR ((*Vdisplay_pixels_per_inch.as_mut_ptr ())) }
+          else { (*Vdisplay_pixels_per_inch.as_mut_ptr ()) };
   if NUMVAL (v) > 0.0 { NUMVAL (v) } else { 72.0 }
 
   }
@@ -1547,13 +1547,13 @@ pub fn frame_set_field (f: *mut frame, unit: u32, shift: u32, mask: u32, v: u32)
 }
 
 // frame.h 1428-1521: the file-scope objects (the .c files define them).
-unsafe extern "C-unwind" { pub static mut frame_next_id: EMACS_UINT; }              // 1428
-unsafe extern "C-unwind" { pub static mut frame_garbaged: bool; }                   // 1433
-unsafe extern "C-unwind" { pub static mut selected_frame: Lisp_Object; }            // 1459
-unsafe extern "C-unwind" { pub static mut old_selected_frame: Lisp_Object; }        // 1460
-unsafe extern "C-unwind" { pub static mut frame_default_tab_bar_height: c_int; }    // 1462
-unsafe extern "C-unwind" { pub static mut frame_default_tool_bar_height: c_int; }   // 1465
-unsafe extern "C-unwind" { pub static mut Vframe_list: Lisp_Object; }               // 1521
+unsafe extern "C-unwind" { pub static frame_next_id: VmGlobal<EMACS_UINT>; }              // 1428
+unsafe extern "C-unwind" { pub static frame_garbaged: VmGlobal<bool>; }                   // 1433
+unsafe extern "C-unwind" { pub static selected_frame: VmGlobal<Lisp_Object>; }            // 1459
+unsafe extern "C-unwind" { pub static old_selected_frame: VmGlobal<Lisp_Object>; }        // 1460
+unsafe extern "C-unwind" { pub static frame_default_tab_bar_height: VmGlobal<c_int>; }    // 1462
+unsafe extern "C-unwind" { pub static frame_default_tool_bar_height: VmGlobal<c_int>; }   // 1465
+unsafe extern "C-unwind" { pub static Vframe_list: VmGlobal<Lisp_Object>; }               // 1521
 
 // frame.h 1506: cmds.c's self-insert path hides the mouse pointer through this one.
 unsafe extern "C-unwind" { pub fn frame_make_pointer_invisible (f: *mut frame); }             // 1506
@@ -1750,7 +1750,7 @@ pub fn WINDOW_FRAME (w: *mut window) -> Lisp_Object { /* SAFETY: display/frame/g
    C: #define SET_FRAME_GARBAGED(f) (frame_garbaged = true, fset_redisplay (f), f->garbaged = true)  */
 macro_rules! SET_FRAME_GARBAGED {
   ($f:expr) => {{
-    frame_garbaged = true;
+    (*frame_garbaged.as_mut_ptr ()) = true;
     /* The cast is `as _`, not `as *mut c_void`: the callee's own spelling depends on the
        unit.  `xdisp.c` *defines* `fset_redisplay (struct frame *)`, so inside its unit the
        name resolves to that definition and takes `*mut frame`; every other unit sees only
@@ -1916,8 +1916,8 @@ macro_rules! SET_FRAME_VISIBLE {
         }
         if v {
             if !frame_flag(f, FRAME_VISIBLE_UNIT, FRAME_VISIBLE_SHIFT) { redisplay_other_windows(); }
-            if frame_flag(f, FRAME_GARBAGED_UNIT, FRAME_GARBAGED_SHIFT) { frame_garbaged = true; }
-        } else if is_tty_child_frame(f as *mut c_void) && f == XFRAME(selected_frame) {
+            if frame_flag(f, FRAME_GARBAGED_UNIT, FRAME_GARBAGED_SHIFT) { (*frame_garbaged.as_mut_ptr ()) = true; }
+        } else if is_tty_child_frame(f as *mut c_void) && f == XFRAME((*selected_frame.as_mut_ptr ())) {
             do_switch_frame(mru_rooted_frame(f as *mut c_void), 0, 0, Qnil());
         }
         frame_set_flag(f, FRAME_VISIBLE_UNIT, FRAME_VISIBLE_SHIFT, v as u32);

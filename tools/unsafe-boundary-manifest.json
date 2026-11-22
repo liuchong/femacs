@@ -15,7 +15,7 @@
       "symbol": "flush_stack_call_func"
     },
     {
-      "anchor_pattern": "let mut block: *mut sa_stack_block = sa_stack_top;",
+      "anchor_pattern": "let mut block: *mut sa_stack_block = (*sa_stack_top.as_mut_ptr ());",
       "file": "src/alloc.rs",
       "justification": "Conservatively marks only currently active USE_SAFE_ALLOCA! blocks [sa_stack_top, sa_stack_free), preserving intra-frame post-SAFE_FREE! reads required by P-172 (e.g. Fstring_distance).",
       "status": "retained_hybrid",
@@ -34,6 +34,7 @@
     "crates/femacs-pure",
     "crates/femacs-sys/build.rs",
     "crates/femacs-vm/build.rs",
+    "crates/femacs-vm/src/safe_cmds.rs",
     "crates/femacs-vm/src/safe_domain.rs",
     "lib-src/asset-directory-tool.rs",
     "lib-src/emacsclient.rs",
@@ -157,6 +158,13 @@
       "failure_path": "Converts negative libc return codes immediately into io::Error",
       "invariant": "Validates sockaddr, signal masks, and termios pointers before libc syscalls",
       "ownership": "Owned RawFd socket/tty descriptors closed via Drop/explicit close"
+    },
+    "crates/femacs-sys/src/globals_cell.rs": {
+      "boundary_class": "vm_global_static_storage_cell",
+      "caller": "femacs-sys and femacs-vm VmGlobal<T> statics, DEFVAR_* forwarders, and DEFUN! subr records",
+      "failure_path": "Compile-time size/alignment const assertions; pointer dereference still requires explicit unsafe",
+      "invariant": "Transparent UnsafeCell<T> representation; scalar/pointer get/set execute hardware-atomic Relaxed loads/stores",
+      "ownership": "Single-instance .data/.bss/__DATA,subrs static storage verified by nm gates"
     },
     "crates/femacs-vm/src/nonlocal.rs": {
       "boundary_class": "vm_eval_and_nonlocal_boundary",
@@ -2136,7 +2144,7 @@
   "root_categories": [
     {
       "anchor_file": "src/alloc.rs",
-      "anchor_pattern": "static mut staticvec:",
+      "anchor_pattern": "pub static staticvec: VmGlobal<",
       "id": "staticvec",
       "liveness": "Entire VM process lifetime including post-pdmp restore",
       "origin": "Process-global C-compatible Lisp_Object statics registered via staticpro",

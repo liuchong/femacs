@@ -39,7 +39,7 @@ pub mod allocator_decls {
   use super::*;
 
   unsafe extern "C-unwind" {
-    pub static mut stdlib_allocator: allocator;
+    pub static stdlib_allocator: allocator;
   }
 }
 pub use self::allocator_decls::*;

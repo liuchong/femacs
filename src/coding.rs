@@ -199,15 +199,15 @@ macro_rules! ckd_add {
    Reported as a mirror gap in docs/ports/coding.md; the mirror itself is not touched.  */
 
 #[unsafe(no_mangle)]
-  pub static mut Vcoding_system_hash_table: Lisp_Object = lisp_h_Qnil ();
+  pub static Vcoding_system_hash_table: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
   /* Coding system to be used to encode text for terminal display when
      terminal coding system is nil.  */
   #[unsafe(no_mangle)]
-  pub static mut safe_terminal_coding: coding_system = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { std::mem::zeroed () };
+  pub static safe_terminal_coding: VmGlobal<coding_system> = VmGlobal::<coding_system>::new (/* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { std::mem::zeroed () });
 
   #[unsafe(no_mangle)]
-  pub static mut emacs_mule_bytes: [c_char; 256] = [0; 256];
+  pub static emacs_mule_bytes: VmGlobal<[c_char; 256]> = VmGlobal::<[c_char; 256]>::new ([0; 256]);
 
 /* `preferred_coding_system` is declared in coding.h 780 and defined by this unit at C 8522,
    but `complement_process_encoding_system` (C 6016) calls it first.  The declaration sits in
@@ -232,7 +232,7 @@ use coding_fwd::*;
    declarations.  `Vlast_code_conversion_error` is `record_conversion_result`'s carrier
    (C 11999); the other twenty-eight arrive with `syms_of_coding`, where C defines them.  */
 #[unsafe(no_mangle)]
-pub static mut Vlast_code_conversion_error: Lisp_Object = lisp_h_Qnil ();
+pub static Vlast_code_conversion_error: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* The eight `DEFVAR_*` carriers the already-ported half of this unit reads.  C defines them
    at that half's own sites in `syms_of_coding` (C 11738+), which is not ported yet, so their
@@ -240,72 +240,72 @@ pub static mut Vlast_code_conversion_error: Lisp_Object = lisp_h_Qnil ();
    `syms_of_coding` will only register them; the remaining carriers arrive with it.  This is a
    placement deviation from C's order, recorded in docs/ports/coding.md.  */
 #[unsafe(no_mangle)]
-pub static mut Venable_character_translation: Lisp_Object = lisp_h_Qnil ();
+pub static Venable_character_translation: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vlatin_extra_code_table: Lisp_Object = lisp_h_Qnil ();
+pub static Vlatin_extra_code_table: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vstandard_translation_table_for_decode: Lisp_Object = lisp_h_Qnil ();
+pub static Vstandard_translation_table_for_decode: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vstandard_translation_table_for_encode: Lisp_Object = lisp_h_Qnil ();
+pub static Vstandard_translation_table_for_encode: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut disable_ascii_optimization: bool = false;
+pub static disable_ascii_optimization: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut inhibit_eol_conversion: bool = false;
+pub static inhibit_eol_conversion: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut inhibit_iso_escape_detection: bool = false;
+pub static inhibit_iso_escape_detection: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut inhibit_null_byte_detection: bool = false;
+pub static inhibit_null_byte_detection: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 /* The remaining `DEFVAR_*` carriers this unit owns (C defines their storage in
    `syms_of_coding`, C 11738+; the port keeps them here with the eight above, the same
    placement deviation, and `syms_of_coding` only registers them).  */
 #[unsafe(no_mangle)]
-pub static mut Vcoding_system_list: Lisp_Object = lisp_h_Qnil ();
+pub static Vcoding_system_list: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vcoding_system_alist: Lisp_Object = lisp_h_Qnil ();
+pub static Vcoding_system_alist: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vcoding_category_list: Lisp_Object = lisp_h_Qnil ();
+pub static Vcoding_category_list: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vcoding_system_for_read: Lisp_Object = lisp_h_Qnil ();
+pub static Vcoding_system_for_read: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vcoding_system_for_write: Lisp_Object = lisp_h_Qnil ();
+pub static Vcoding_system_for_write: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vlast_coding_system_used: Lisp_Object = lisp_h_Qnil ();
+pub static Vlast_coding_system_used: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut inherit_process_coding_system: bool = false;
+pub static inherit_process_coding_system: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut Vfile_coding_system_alist: Lisp_Object = lisp_h_Qnil ();
+pub static Vfile_coding_system_alist: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vprocess_coding_system_alist: Lisp_Object = lisp_h_Qnil ();
+pub static Vprocess_coding_system_alist: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vnetwork_coding_system_alist: Lisp_Object = lisp_h_Qnil ();
+pub static Vnetwork_coding_system_alist: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vlocale_coding_system: Lisp_Object = lisp_h_Qnil ();
+pub static Vlocale_coding_system: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut eol_mnemonic_unix: Lisp_Object = lisp_h_Qnil ();
+pub static eol_mnemonic_unix: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut eol_mnemonic_dos: Lisp_Object = lisp_h_Qnil ();
+pub static eol_mnemonic_dos: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut eol_mnemonic_mac: Lisp_Object = lisp_h_Qnil ();
+pub static eol_mnemonic_mac: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut eol_mnemonic_undecided: Lisp_Object = lisp_h_Qnil ();
+pub static eol_mnemonic_undecided: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vcharset_revision_table: Lisp_Object = lisp_h_Qnil ();
+pub static Vcharset_revision_table: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vdefault_process_coding_system: Lisp_Object = lisp_h_Qnil ();
+pub static Vdefault_process_coding_system: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vselect_safe_coding_system_function: Lisp_Object = lisp_h_Qnil ();
+pub static Vselect_safe_coding_system_function: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut coding_system_require_warning: bool = false;
+pub static coding_system_require_warning: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut Vtranslation_table_for_input: Lisp_Object = lisp_h_Qnil ();
+pub static Vtranslation_table_for_input: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* Coding-systems are handed between Emacs Lisp programs and C internal
    routines by the following three variables.  */
 
 /* Two special coding systems.  */
-static mut Vsjis_coding_system: Lisp_Object = lisp_h_Qnil ();
-static mut Vbig5_coding_system: Lisp_Object = lisp_h_Qnil ();
+static Vsjis_coding_system: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+static Vbig5_coding_system: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* ISO2022 section */
 
@@ -652,16 +652,14 @@ pub const CATEGORY_MASK_UTF_8: c_int =
 
 /* Table of coding categories (Lisp symbols).  This variable is for
    internal use only.  */
-static mut Vcoding_category_table: Lisp_Object = lisp_h_Qnil ();
+static Vcoding_category_table: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* Table of coding-categories ordered by priority.  */
-static mut coding_priorities: [coding_category; coding_category_max as usize]
-  = [0; coding_category_max as usize];
+static coding_priorities: VmGlobal<[coding_category; coding_category_max as usize]> = VmGlobal::<[coding_category; coding_category_max as usize]>::new ([0; coding_category_max as usize]);
 
 /* Nth element is a coding context for the coding system bound to the
    Nth coding category.  */
-static mut coding_categories: [coding_system; coding_category_max as usize]
-  = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { std::mem::zeroed () };
+static coding_categories: VmGlobal<[coding_system; coding_category_max as usize]> = VmGlobal::<[coding_system; coding_category_max as usize]>::new (/* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { std::mem::zeroed () });
 
 /* Encode a flag that can be nil, something else, or t as -1, 0, 1.  */
 
@@ -709,11 +707,11 @@ unsafe fn record_conversion_result (coding: *mut coding_system,
   match result
     {
     CODING_RESULT_INSUFFICIENT_SRC =>
-      Vlast_code_conversion_error = Qinsufficient_source (),
+      (*Vlast_code_conversion_error.as_mut_ptr ()) = Qinsufficient_source (),
     CODING_RESULT_INVALID_SRC =>
-      Vlast_code_conversion_error = Qinvalid_source (),
+      (*Vlast_code_conversion_error.as_mut_ptr ()) = Qinvalid_source (),
     CODING_RESULT_INTERRUPT =>
-      Vlast_code_conversion_error = Qinterrupted (),
+      (*Vlast_code_conversion_error.as_mut_ptr ()) = Qinterrupted (),
     CODING_RESULT_INSUFFICIENT_DST =>
       /* Don't record this error in Vlast_code_conversion_error
 	 because it happens just temporarily and is resolved when the
@@ -722,7 +720,7 @@ unsafe fn record_conversion_result (coding: *mut coding_system,
     CODING_RESULT_SUCCESS =>
       (),
     _ =>
-      Vlast_code_conversion_error = QUnknown_error (),
+      (*Vlast_code_conversion_error.as_mut_ptr ()) = QUnknown_error (),
     }
 
   }
@@ -1099,7 +1097,7 @@ unsafe extern "C-unwind" fn decode_coding_utf_8 (coding: *mut coding_system)
   let multibytep = src_multibyte_p (coding);
   let bom: utf_bom_type = CODING_UTF_8_BOM! (coding);
   let eol_dos
-    = !inhibit_eol_conversion && EQ (CODING_ID_EOL_TYPE ((*coding).id as hash_idx_t), Qdos ());
+    = !(*inhibit_eol_conversion.as_mut_ptr ()) && EQ (CODING_ID_EOL_TYPE ((*coding).id as hash_idx_t), Qdos ());
   let mut byte_after_cr: c_int = -1;
 
   'no_more_source: {
@@ -1604,7 +1602,7 @@ unsafe extern "C-unwind" fn decode_coding_utf_16 (coding: *mut coding_system)
   let endian: utf_16_endian_type = CODING_UTF_16_ENDIAN! (coding);
   let mut surrogate: c_int = CODING_UTF_16_SURROGATE! (coding);
   let eol_dos
-    = !inhibit_eol_conversion && EQ (CODING_ID_EOL_TYPE ((*coding).id as hash_idx_t), Qdos ());
+    = !(*inhibit_eol_conversion.as_mut_ptr ()) && EQ (CODING_ID_EOL_TYPE ((*coding).id as hash_idx_t), Qdos ());
   let mut byte_after_cr1: c_int = -1;
   let mut byte_after_cr2: c_int = -1;
 
@@ -2013,7 +2011,7 @@ unsafe extern "C-unwind" fn detect_coding_emacs_mule (coding: *mut coding_system
 	  }
 	else
 	  {
-	    let mut more_bytes: c_int = emacs_mule_bytes[c as usize] as c_int - 1;
+	    let mut more_bytes: c_int = (*emacs_mule_bytes.as_mut_ptr ())[c as usize] as c_int - 1;
 
 	    while more_bytes > 0
 	      {
@@ -2100,9 +2098,9 @@ unsafe fn emacs_mule_char (coding: *mut coding_system, src: *const c_uchar,
 	{
 	  let offset: ptrdiff_t;
 
-	  charset_map_loaded = false;
+	  (*charset_map_loaded.as_mut_ptr ()) = false;
 	  $c = DECODE_CHAR! ($charset, $code);
-	  if charset_map_loaded
+	  if (*charset_map_loaded.as_mut_ptr ())
 	      && { offset = coding_change_source ($coding); offset != 0 }
 	    {
 	      $src = $src.offset (offset);
@@ -2118,7 +2116,7 @@ unsafe fn emacs_mule_char (coding: *mut coding_system, src: *const c_uchar,
       if c < 0
 	{
 	  c = -c;
-	  charset_ID = emacs_mule_charset[0];
+	  charset_ID = (*emacs_mule_charset.as_mut_ptr ())[0];
 	}
       else
 	{
@@ -2151,11 +2149,11 @@ unsafe fn emacs_mule_char (coding: *mut coding_system, src: *const c_uchar,
 		{ break 'invalid_code; }
 	    }
 
-	  match emacs_mule_bytes[c as usize] as c_int
+	  match (*emacs_mule_bytes.as_mut_ptr ())[c as usize] as c_int
 	    {
 	    2 =>
 	      {
-		charset_ID = emacs_mule_charset[c as usize];
+		charset_ID = (*emacs_mule_charset.as_mut_ptr ())[c as usize];
 		if charset_ID < 0
 		  { break 'invalid_code; }
 		ONE_MORE_BYTE! (c);
@@ -2169,7 +2167,7 @@ unsafe fn emacs_mule_char (coding: *mut coding_system, src: *const c_uchar,
 		    || c == EMACS_MULE_LEADING_CODE_PRIVATE_12
 		  {
 		    ONE_MORE_BYTE! (c);
-		    charset_ID = emacs_mule_charset[c as usize];
+		    charset_ID = (*emacs_mule_charset.as_mut_ptr ())[c as usize];
 		    if c < 0xA0 || charset_ID < 0
 		      { break 'invalid_code; }
 		    ONE_MORE_BYTE! (c);
@@ -2179,7 +2177,7 @@ unsafe fn emacs_mule_char (coding: *mut coding_system, src: *const c_uchar,
 		  }
 		else
 		  {
-		    charset_ID = emacs_mule_charset[c as usize];
+		    charset_ID = (*emacs_mule_charset.as_mut_ptr ())[c as usize];
 		    if charset_ID < 0
 		      { break 'invalid_code; }
 		    ONE_MORE_BYTE! (c);
@@ -2195,7 +2193,7 @@ unsafe fn emacs_mule_char (coding: *mut coding_system, src: *const c_uchar,
 	    4 =>
 	      {
 		ONE_MORE_BYTE! (c);
-		charset_ID = emacs_mule_charset[c as usize];
+		charset_ID = (*emacs_mule_charset.as_mut_ptr ())[c as usize];
 		if c < 0 || charset_ID < 0
 		  { break 'invalid_code; }
 		ONE_MORE_BYTE! (c);
@@ -2210,7 +2208,7 @@ unsafe fn emacs_mule_char (coding: *mut coding_system, src: *const c_uchar,
 	    1 =>
 	      {
 		code = c as c_uint;
-		charset_ID = if ASCII_CHAR_P (code as isize) { charset_ascii } else { charset_eight_bit };
+		charset_ID = if ASCII_CHAR_P (code as isize) { (*charset_ascii.as_mut_ptr ()) } else { (*charset_eight_bit.as_mut_ptr ()) };
 	      }
 	    _ =>
 	      { emacs_abort (); }
@@ -2319,9 +2317,9 @@ unsafe extern "C-unwind" fn decode_coding_emacs_mule (coding: *mut coding_system
   let multibytep = src_multibyte_p (coding);
   let mut char_offset: ptrdiff_t = (*coding).produced_char;
   let mut last_offset: ptrdiff_t = char_offset;
-  let mut last_id: c_int = charset_ascii;
+  let mut last_id: c_int = (*charset_ascii.as_mut_ptr ());
   let eol_dos
-    = !inhibit_eol_conversion && EQ (CODING_ID_EOL_TYPE ((*coding).id as hash_idx_t), Qdos ());
+    = !(*inhibit_eol_conversion.as_mut_ptr ()) && EQ (CODING_ID_EOL_TYPE ((*coding).id as hash_idx_t), Qdos ());
   let mut byte_after_cr: c_int = -1;
   let cmp_status: *mut composition_status
     = &raw mut (*coding).spec.emacs_mule.cmp_status;
@@ -2577,7 +2575,7 @@ unsafe extern "C-unwind" fn decode_coding_emacs_mule (coding: *mut coding_system
 	    {
 	      if eol_dos && c == '\r' as c_int
 		{ ONE_MORE_BYTE! (byte_after_cr); }
-	      id = charset_ascii;
+	      id = (*charset_ascii.as_mut_ptr ());
 	      if (*cmp_status).state != COMPOSING_NO
 		{
 		  if (*cmp_status).old_form
@@ -2628,7 +2626,7 @@ unsafe extern "C-unwind" fn decode_coding_emacs_mule (coding: *mut coding_system
 	    {
 	      if last_id != id
 		{
-		  if last_id != charset_ascii
+		  if last_id != (*charset_ascii.as_mut_ptr ())
 		    { ADD_CHARSET_DATA! (charbuf, char_offset - last_offset, last_id); }
 		  last_id = id;
 		  last_offset = char_offset;
@@ -2748,7 +2746,7 @@ unsafe extern "C-unwind" fn decode_coding_emacs_mule (coding: *mut coding_system
 	    }
 	}
     }
-  if last_id != charset_ascii
+  if last_id != (*charset_ascii.as_mut_ptr ())
     { ADD_CHARSET_DATA! (charbuf, char_offset - last_offset, last_id); }
   (*coding).consumed_char += consumed_chars_base;
   (*coding).consumed = src_base.offset_from ((*coding).source);
@@ -2816,9 +2814,9 @@ unsafe extern "C-unwind" fn encode_coding_emacs_mule (coding: *mut coding_system
       {
 	let offset: ptrdiff_t;
 
-	charset_map_loaded = false;
+	(*charset_map_loaded.as_mut_ptr ()) = false;
 	$charset = char_charset ($c, $charset_list, $code_return);
-	if charset_map_loaded
+	if (*charset_map_loaded.as_mut_ptr ())
 	    && { offset = coding_change_destination ($coding); offset != 0 }
 	  {
 	    $dst = $dst.offset (offset);
@@ -2837,9 +2835,9 @@ unsafe extern "C-unwind" fn encode_coding_emacs_mule (coding: *mut coding_system
       {
 	let offset: ptrdiff_t;
 
-	charset_map_loaded = false;
+	(*charset_map_loaded.as_mut_ptr ()) = false;
 	$result = CHAR_CHARSET_P! ($c, $charset);
-	if charset_map_loaded
+	if (*charset_map_loaded.as_mut_ptr ())
 	    && { offset = coding_change_destination ($coding); offset != 0 }
 	  {
 	    $dst = $dst.offset (offset);
@@ -2866,9 +2864,9 @@ unsafe extern "C-unwind" fn encode_coding_emacs_mule (coding: *mut coding_system
   }
 
   CODING_GET_INFO! (coding, attrs, charset_list);
-  if ! EQ (charset_list, Vemacs_mule_charset_list)
+  if ! EQ (charset_list, (*Vemacs_mule_charset_list.as_mut_ptr ()))
     {
-      charset_list = Vemacs_mule_charset_list;
+      charset_list = (*Vemacs_mule_charset_list.as_mut_ptr ());
       ASET (attrs, coding_attr_charset_list as isize, charset_list);
     }
 
@@ -2967,7 +2965,7 @@ unsafe extern "C-unwind" fn encode_coding_emacs_mule (coding: *mut coding_system
 
 /*** 7. ISO2022 handlers ***/
 
-static mut iso_code_class: [iso_code_class_type; 256] = [0; 256];
+static iso_code_class: VmGlobal<[iso_code_class_type; 256]> = VmGlobal::<[iso_code_class_type; 256]>::new ([0; 256]);
 
 macro_rules! SAFE_CHARSET_P {
   ($coding:expr, $id:expr) => {
@@ -2992,9 +2990,9 @@ unsafe fn setup_iso_safe_charsets (attrs: Lisp_Object)
 
   charset_list = CODING_ATTR_CHARSET_LIST (attrs);
   if (flags as c_uint & CODING_ISO_FLAG_FULL_SUPPORT as c_uint) != 0
-      && ! EQ (charset_list, Viso_2022_charset_list)
+      && ! EQ (charset_list, (*Viso_2022_charset_list.as_mut_ptr ()))
     {
-      charset_list = Viso_2022_charset_list;
+      charset_list = (*Viso_2022_charset_list.as_mut_ptr ());
       ASET (attrs, coding_attr_charset_list as isize, charset_list);
       ASET (attrs, coding_attr_safe_charsets as isize, Qnil ());
     }
@@ -3077,7 +3075,7 @@ unsafe extern "C-unwind" fn detect_coding_iso_2022 (coding: *mut coding_system,
   i = coding_category_iso_7;
   while i <= coding_category_iso_8_else
     {
-      let this: *mut coding_system = &raw mut coding_categories[i as usize];
+      let this: *mut coding_system = &raw mut (*coding_categories.as_mut_ptr ())[i as usize];
       let mut attrs: Lisp_Object;
       let mut val: Lisp_Object;
 
@@ -3085,7 +3083,7 @@ unsafe extern "C-unwind" fn detect_coding_iso_2022 (coding: *mut coding_system,
 	{ i += 1; continue; }
       attrs = CODING_ID_ATTRS ((*this).id as hash_idx_t);
       if (CODING_ISO_FLAGS! (this) & CODING_ISO_FLAG_FULL_SUPPORT as c_uint) != 0
-	  && ! EQ (CODING_ATTR_CHARSET_LIST (attrs), Viso_2022_charset_list)
+	  && ! EQ (CODING_ATTR_CHARSET_LIST (attrs), (*Viso_2022_charset_list.as_mut_ptr ()))
 	{ setup_iso_safe_charsets (attrs); }
       val = CODING_ATTR_SAFE_CHARSETS (attrs);
       (*this).max_charset_id = SCHARS (val) as c_int - 1;
@@ -3133,7 +3131,7 @@ unsafe extern "C-unwind" fn detect_coding_iso_2022 (coding: *mut coding_system,
 	    {
 	    ISO_CODE_ESC =>
 	      {
-		if inhibit_iso_escape_detection
+		if (*inhibit_iso_escape_detection.as_mut_ptr ())
 		  { break 'check_extra_latin; }
 		single_shifting = false;
 		ONE_MORE_BYTE! (c);
@@ -3164,7 +3162,7 @@ unsafe extern "C-unwind" fn detect_coding_iso_2022 (coding: *mut coding_system,
 		      {
 			/* Designation sequence for a charset of dimension 1.  */
 			ONE_MORE_BYTE! (c1);
-			id = iso_charset_table[0][(c >= ',' as c_int) as usize][c1 as usize];
+			id = (*iso_charset_table.as_mut_ptr ())[0][(c >= ',' as c_int) as usize][c1 as usize];
 			if c1 < ' ' as c_int || c1 >= 0x80
 			    || id < 0
 			  {
@@ -3181,11 +3179,11 @@ unsafe extern "C-unwind" fn detect_coding_iso_2022 (coding: *mut coding_system,
 			ONE_MORE_BYTE! (c);
 			if c >= '@' as c_int && c <= 'B' as c_int
 			  /* Designation for JISX0208.1978, GB2312, or JISX0208.  */
-			  { id = iso_charset_table[1][0][c as usize]; }
+			  { id = (*iso_charset_table.as_mut_ptr ())[1][0][c as usize]; }
 			else if c >= '(' as c_int && c <= '/' as c_int
 			  {
 			    ONE_MORE_BYTE! (c1);
-			    id = iso_charset_table[1][(c >= ',' as c_int) as usize][c1 as usize];
+			    id = (*iso_charset_table.as_mut_ptr ())[1][(c >= ',' as c_int) as usize][c1 as usize];
 			    if c1 < ' ' as c_int || c1 >= 0x80
 				|| id < 0
 			      {
@@ -3216,22 +3214,22 @@ unsafe extern "C-unwind" fn detect_coding_iso_2022 (coding: *mut coding_system,
 
 		    /* We found a valid designation sequence for CHARSET.  */
 		    rejected |= CATEGORY_MASK_ISO_8BIT;
-		    if SAFE_CHARSET_P! (&raw mut coding_categories[coding_category_iso_7 as usize],
+		    if SAFE_CHARSET_P! (&raw mut (*coding_categories.as_mut_ptr ())[coding_category_iso_7 as usize],
 					id)
 		      { found |= CATEGORY_MASK_ISO_7; }
 		    else
 		      { rejected |= CATEGORY_MASK_ISO_7; }
-		    if SAFE_CHARSET_P! (&raw mut coding_categories[coding_category_iso_7_tight as usize],
+		    if SAFE_CHARSET_P! (&raw mut (*coding_categories.as_mut_ptr ())[coding_category_iso_7_tight as usize],
 					id)
 		      { found |= CATEGORY_MASK_ISO_7_TIGHT; }
 		    else
 		      { rejected |= CATEGORY_MASK_ISO_7_TIGHT; }
-		    if SAFE_CHARSET_P! (&raw mut coding_categories[coding_category_iso_7_else as usize],
+		    if SAFE_CHARSET_P! (&raw mut (*coding_categories.as_mut_ptr ())[coding_category_iso_7_else as usize],
 					id)
 		      { found |= CATEGORY_MASK_ISO_7_ELSE; }
 		    else
 		      { rejected |= CATEGORY_MASK_ISO_7_ELSE; }
-		    if SAFE_CHARSET_P! (&raw mut coding_categories[coding_category_iso_8_else as usize],
+		    if SAFE_CHARSET_P! (&raw mut (*coding_categories.as_mut_ptr ())[coding_category_iso_8_else as usize],
 					id)
 		      { found |= CATEGORY_MASK_ISO_8_ELSE; }
 		    else
@@ -3243,7 +3241,7 @@ unsafe extern "C-unwind" fn detect_coding_iso_2022 (coding: *mut coding_system,
 	    ISO_CODE_SO | ISO_CODE_SI =>
 	      {
 		/* Locking shift out/in.  */
-		if inhibit_iso_escape_detection
+		if (*inhibit_iso_escape_detection.as_mut_ptr ())
 		  { break 'check_extra_latin; }
 		single_shifting = false;
 		rejected |= CATEGORY_MASK_ISO_7BIT | CATEGORY_MASK_ISO_8BIT;
@@ -3262,17 +3260,17 @@ unsafe extern "C-unwind" fn detect_coding_iso_2022 (coding: *mut coding_system,
 	    ISO_CODE_SS2 | ISO_CODE_SS3 =>
 	      {
 		/* Single shift.   */
-		if inhibit_iso_escape_detection
+		if (*inhibit_iso_escape_detection.as_mut_ptr ())
 		  { break 'check_extra_latin; }
 		single_shifting = false;
 		rejected |= CATEGORY_MASK_ISO_7BIT | CATEGORY_MASK_ISO_7_ELSE;
-		if (CODING_ISO_FLAGS! (&raw mut coding_categories[coding_category_iso_8_1 as usize])
+		if (CODING_ISO_FLAGS! (&raw mut (*coding_categories.as_mut_ptr ())[coding_category_iso_8_1 as usize])
 		    & CODING_ISO_FLAG_SINGLE_SHIFT as c_uint) != 0
 		  {
 		    found |= CATEGORY_MASK_ISO_8_1;
 		    single_shifting = true;
 		  }
-		if (CODING_ISO_FLAGS! (&raw mut coding_categories[coding_category_iso_8_2 as usize])
+		if (CODING_ISO_FLAGS! (&raw mut (*coding_categories.as_mut_ptr ())[coding_category_iso_8_2 as usize])
 		    & CODING_ISO_FLAG_SINGLE_SHIFT as c_uint) != 0
 		  {
 		    found |= CATEGORY_MASK_ISO_8_2;
@@ -3334,13 +3332,13 @@ unsafe extern "C-unwind" fn detect_coding_iso_2022 (coding: *mut coding_system,
 		    break 'check_extra_latin;
 		  }
 		/* check_extra_latin: */
-		if ! VECTORP (Vlatin_extra_code_table)
-		    || NILP (AREF (Vlatin_extra_code_table, c as isize))
+		if ! VECTORP ((*Vlatin_extra_code_table.as_mut_ptr ()))
+		    || NILP (AREF ((*Vlatin_extra_code_table.as_mut_ptr ()), c as isize))
 		  {
 		    rejected = CATEGORY_MASK_ISO;
 		    break 'check_extra_latin;
 		  }
-		if (CODING_ISO_FLAGS! (&raw mut coding_categories[coding_category_iso_8_1 as usize])
+		if (CODING_ISO_FLAGS! (&raw mut (*coding_categories.as_mut_ptr ())[coding_category_iso_8_1 as usize])
 		    & CODING_ISO_FLAG_LATIN_EXTRA as c_uint) != 0
 		  { found |= CATEGORY_MASK_ISO_8_1; }
 		else
@@ -3460,9 +3458,9 @@ unsafe extern "C-unwind" fn decode_coding_iso_2022 (coding: *mut coding_system)
   let attrs: Lisp_Object = CODING_ID_ATTRS ((*coding).id as hash_idx_t);
   let mut char_offset: ptrdiff_t = (*coding).produced_char;
   let mut last_offset: ptrdiff_t = char_offset;
-  let mut last_id: c_int = charset_ascii;
+  let mut last_id: c_int = (*charset_ascii.as_mut_ptr ());
   let eol_dos
-    = !inhibit_eol_conversion && EQ (CODING_ID_EOL_TYPE ((*coding).id as hash_idx_t), Qdos ());
+    = !(*inhibit_eol_conversion.as_mut_ptr ()) && EQ (CODING_ID_EOL_TYPE ((*coding).id as hash_idx_t), Qdos ());
   let mut byte_after_cr: c_int = -1;
   let mut i: c_int;
 
@@ -3549,9 +3547,9 @@ unsafe extern "C-unwind" fn decode_coding_iso_2022 (coding: *mut coding_system)
 	{
 	  let offset: ptrdiff_t;
 
-	  charset_map_loaded = false;
+	  (*charset_map_loaded.as_mut_ptr ()) = false;
 	  $c = DECODE_CHAR! ($charset, $code);
-	  if charset_map_loaded
+	  if (*charset_map_loaded.as_mut_ptr ())
 	      && { offset = coding_change_source ($coding); offset != 0 }
 	    {
 	      $src = $src.offset (offset);
@@ -3588,21 +3586,21 @@ unsafe extern "C-unwind" fn decode_coding_iso_2022 (coding: *mut coding_system)
 		    break 'invalid_code;
 		  }
 		prev = CODING_ISO_DESIGNATION! (coding, $reg);
-		if id == charset_jisx0201_roman
+		if id == (*charset_jisx0201_roman.as_mut_ptr ())
 		  {
 		    if (CODING_ISO_FLAGS! (coding) & CODING_ISO_FLAG_USE_ROMAN as c_uint) != 0
-		      { id = charset_ascii; }
+		      { id = (*charset_ascii.as_mut_ptr ()); }
 		  }
-		else if id == charset_jisx0208_1978
+		else if id == (*charset_jisx0208_1978.as_mut_ptr ())
 		  {
 		    if (CODING_ISO_FLAGS! (coding) & CODING_ISO_FLAG_USE_OLDJIS as c_uint) != 0
-		      { id = charset_jisx0208; }
+		      { id = (*charset_jisx0208.as_mut_ptr ()); }
 		  }
 		CODING_ISO_DESIGNATION! (coding, $reg) = id;
 		/* If there was an invalid designation to REG previously, and this
 		   designation is ASCII to REG, we should keep this designation
 		   sequence.  */
-		if prev == -2 && id == charset_ascii
+		if prev == -2 && id == (*charset_ascii.as_mut_ptr ())
 		  { $chars_96 = -1; }
 	      }
 	    };
@@ -3782,14 +3780,14 @@ unsafe extern "C-unwind" fn decode_coding_iso_2022 (coding: *mut coding_system)
 	    }
 
 	  /* We produce at most one character.  */
-	  match iso_code_class[c1 as usize]
+	  match (*iso_code_class.as_mut_ptr ())[c1 as usize]
 	    {
 	    ISO_0x20_or_0x7F =>
 	      {
 		if charset_id_0 < 0
 		    || ! CHARSET_ISO_CHARS_96! (CHARSET_FROM_ID! (charset_id_0))
 		  /* This is SPACE or DEL.  */
-		  { charset = CHARSET_FROM_ID! (charset_ascii); }
+		  { charset = CHARSET_FROM_ID! ((*charset_ascii.as_mut_ptr ())); }
 		else
 		  { charset = CHARSET_FROM_ID! (charset_id_0); }
 	      }
@@ -3797,14 +3795,14 @@ unsafe extern "C-unwind" fn decode_coding_iso_2022 (coding: *mut coding_system)
 	    ISO_graphic_plane_0 =>
 	      {
 		if charset_id_0 < 0
-		  { charset = CHARSET_FROM_ID! (charset_ascii); }
+		  { charset = CHARSET_FROM_ID! ((*charset_ascii.as_mut_ptr ())); }
 		else
 		  { charset = CHARSET_FROM_ID! (charset_id_0); }
 	      }
 
 	    ISO_0xA0_or_0xFF | ISO_graphic_plane_1 =>
 	      {
-		if iso_code_class[c1 as usize] == ISO_0xA0_or_0xFF
+		if (*iso_code_class.as_mut_ptr ())[c1 as usize] == ISO_0xA0_or_0xFF
 		  {
 		    if charset_id_1 < 0
 			|| ! CHARSET_ISO_CHARS_96! (CHARSET_FROM_ID! (charset_id_1))
@@ -3822,7 +3820,7 @@ unsafe extern "C-unwind" fn decode_coding_iso_2022 (coding: *mut coding_system)
 		if eol_dos && c1 == '\r' as c_int
 		  { ONE_MORE_BYTE! (byte_after_cr); }
 		MAYBE_FINISH_COMPOSITION! ();
-		charset = CHARSET_FROM_ID! (charset_ascii);
+		charset = CHARSET_FROM_ID! ((*charset_ascii.as_mut_ptr ()));
 	      }
 
 	    ISO_control_1 =>
@@ -3849,7 +3847,7 @@ unsafe extern "C-unwind" fn decode_coding_iso_2022 (coding: *mut coding_system)
 
 	    ISO_single_shift_2_7 | ISO_single_shift_2 =>
 	      {
-		if iso_code_class[c1 as usize] == ISO_single_shift_2_7
+		if (*iso_code_class.as_mut_ptr ())[c1 as usize] == ISO_single_shift_2_7
 		  {
 		    if (CODING_ISO_FLAGS! (coding) & CODING_ISO_FLAG_SEVEN_BITS as c_uint) == 0
 		      { break 'invalid_code; }
@@ -3974,7 +3972,7 @@ unsafe extern "C-unwind" fn decode_coding_iso_2022 (coding: *mut coding_system)
 			  { break 'invalid_code; }
 			charset_id_2 = CODING_ISO_DESIGNATION! (coding, 2);
 			if charset_id_2 < 0
-			  { charset = CHARSET_FROM_ID! (charset_ascii); }
+			  { charset = CHARSET_FROM_ID! ((*charset_ascii.as_mut_ptr ())); }
 			else
 			  { charset = CHARSET_FROM_ID! (charset_id_2); }
 			ONE_MORE_BYTE! (c1);
@@ -3993,7 +3991,7 @@ unsafe extern "C-unwind" fn decode_coding_iso_2022 (coding: *mut coding_system)
 			  { break 'invalid_code; }
 			charset_id_3 = CODING_ISO_DESIGNATION! (coding, 3);
 			if charset_id_3 < 0
-			  { charset = CHARSET_FROM_ID! (charset_ascii); }
+			  { charset = CHARSET_FROM_ID! ((*charset_ascii.as_mut_ptr ())); }
 			else
 			  { charset = CHARSET_FROM_ID! (charset_id_3); }
 			ONE_MORE_BYTE! (c1);
@@ -4010,10 +4008,10 @@ unsafe extern "C-unwind" fn decode_coding_iso_2022 (coding: *mut coding_system)
 		      {
 			if (common_flags_of (coding) & CODING_ANNOTATE_COMPOSITION_MASK) == 0
 			  { break 'invalid_code; }
-			if last_id != charset_ascii
+			if last_id != (*charset_ascii.as_mut_ptr ())
 			  {
 			    ADD_CHARSET_DATA! (charbuf, char_offset - last_offset, last_id);
-			    last_id = charset_ascii;
+			    last_id = (*charset_ascii.as_mut_ptr ());
 			    last_offset = char_offset;
 			  }
 			DECODE_COMPOSITION_START! (c1);
@@ -4151,10 +4149,10 @@ unsafe extern "C-unwind" fn decode_coding_iso_2022 (coding: *mut coding_system)
 	    }
 
 	  if (*cmp_status).state == COMPOSING_NO
-	      && (*charset).id != charset_ascii
+	      && (*charset).id != (*charset_ascii.as_mut_ptr ())
 	      && last_id != (*charset).id
 	    {
-	      if last_id != charset_ascii
+	      if last_id != (*charset_ascii.as_mut_ptr ())
 		{ ADD_CHARSET_DATA! (charbuf, char_offset - last_offset, last_id); }
 	      last_id = (*charset).id;
 	      last_offset = char_offset;
@@ -4231,8 +4229,8 @@ unsafe extern "C-unwind" fn decode_coding_iso_2022 (coding: *mut coding_system)
 	   helps the case that a designation sequence for ASCII "ESC (
 	   B" is somehow broken (e.g. broken by a newline).  */
 	CODING_ISO_INVOCATION! (coding, 0) = 0;
-	CODING_ISO_DESIGNATION! (coding, 0) = charset_ascii;
-	charset_id_0 = charset_ascii;
+	CODING_ISO_DESIGNATION! (coding, 0) = (*charset_ascii.as_mut_ptr ());
+	charset_id_0 = (*charset_ascii.as_mut_ptr ());
 	continue 'decode_loop;
       }
   }
@@ -4252,7 +4250,7 @@ unsafe extern "C-unwind" fn decode_coding_iso_2022 (coding: *mut coding_system)
 	    }
 	}
     }
-  else if last_id != charset_ascii
+  else if last_id != (*charset_ascii.as_mut_ptr ())
     { ADD_CHARSET_DATA! (charbuf, char_offset - last_offset, last_id); }
   (*coding).consumed_char += consumed_chars_base;
   (*coding).consumed = src_base.offset_from ((*coding).source);
@@ -4576,7 +4574,7 @@ unsafe fn encode_designation_at_bol (coding: *mut coding_system,
   attrs = CODING_ID_ATTRS ((*coding).id as hash_idx_t);
   charset_list = CODING_ATTR_CHARSET_LIST (attrs);
   if EQ (charset_list, Qiso_2022 ())
-    { charset_list = Viso_2022_charset_list; }
+    { charset_list = (*Viso_2022_charset_list.as_mut_ptr ()); }
 
   reg = 0;
   while reg < 4
@@ -4716,9 +4714,9 @@ unsafe extern "C-unwind" fn encode_coding_iso_2022 (coding: *mut coding_system) 
       {
 	let offset: ptrdiff_t;
 
-	charset_map_loaded = false;
+	(*charset_map_loaded.as_mut_ptr ()) = false;
 	$code = ENCODE_CHAR! ($charset, $c);
-	if charset_map_loaded
+	if (*charset_map_loaded.as_mut_ptr ())
 	    && { offset = coding_change_destination ($coding); offset != 0 }
 	  {
 	    $dst = $dst.offset (offset);
@@ -4734,9 +4732,9 @@ unsafe extern "C-unwind" fn encode_coding_iso_2022 (coding: *mut coding_system) 
       {
 	let offset: ptrdiff_t;
 
-	charset_map_loaded = false;
+	(*charset_map_loaded.as_mut_ptr ()) = false;
 	$charset = char_charset ($c, $charset_list, $code_return);
-	if charset_map_loaded
+	if (*charset_map_loaded.as_mut_ptr ())
 	    && { offset = coding_change_destination ($coding); offset != 0 }
 	  {
 	    $dst = $dst.offset (offset);
@@ -4750,9 +4748,9 @@ unsafe extern "C-unwind" fn encode_coding_iso_2022 (coding: *mut coding_system) 
       {
 	let offset: ptrdiff_t;
 
-	charset_map_loaded = false;
+	(*charset_map_loaded.as_mut_ptr ()) = false;
 	$result = CHAR_CHARSET_P! ($c, $charset);
-	if charset_map_loaded
+	if (*charset_map_loaded.as_mut_ptr ())
 	    && { offset = coding_change_destination ($coding); offset != 0 }
 	  {
 	    $dst = $dst.offset (offset);
@@ -4889,9 +4887,9 @@ unsafe extern "C-unwind" fn encode_coding_iso_2022 (coding: *mut coding_system) 
 	let mut id: c_int = CHARSET_ID! ($charset);
 
 	if (CODING_ISO_FLAGS! (coding) & CODING_ISO_FLAG_USE_ROMAN as c_uint) != 0
-	    && id == charset_ascii
+	    && id == (*charset_ascii.as_mut_ptr ())
 	  {
-	    id = charset_jisx0201_roman;
+	    id = (*charset_jisx0201_roman.as_mut_ptr ());
 	    $charset = CHARSET_FROM_ID! (id);
 	  }
 
@@ -4933,9 +4931,9 @@ unsafe extern "C-unwind" fn encode_coding_iso_2022 (coding: *mut coding_system) 
 	let mut id: c_int = CHARSET_ID! ($charset);
 
 	if (CODING_ISO_FLAGS! (coding) & CODING_ISO_FLAG_USE_OLDJIS as c_uint) != 0
-	    && id == charset_jisx0208
+	    && id == (*charset_jisx0208.as_mut_ptr ())
 	  {
-	    id = charset_jisx0208_1978;
+	    id = (*charset_jisx0208_1978.as_mut_ptr ());
 	    $charset = CHARSET_FROM_ID! (id);
 	  }
 
@@ -4986,7 +4984,7 @@ unsafe extern "C-unwind" fn encode_coding_iso_2022 (coding: *mut coding_system) 
   }
 
   CODING_GET_INFO! (coding, attrs, charset_list);
-  eol_type = if inhibit_eol_conversion { Qunix () } else { CODING_ID_EOL_TYPE ((*coding).id as hash_idx_t) };
+  eol_type = if (*inhibit_eol_conversion.as_mut_ptr ()) { Qunix () } else { CODING_ID_EOL_TYPE ((*coding).id as hash_idx_t) };
   if VECTORP (eol_type)
     { eol_type = Qunix (); }
 
@@ -5011,10 +5009,10 @@ unsafe extern "C-unwind" fn encode_coding_iso_2022 (coding: *mut coding_system) 
 	  let mut nbytes: ptrdiff_t;
 	  let mut offset: ptrdiff_t;
 
-	  charset_map_loaded = false;
+	  (*charset_map_loaded.as_mut_ptr ()) = false;
 	  nbytes = encode_designation_at_bol (coding, charbuf, charbuf_end,
 					      desig_buf.as_mut_ptr ());
-	  if charset_map_loaded
+	  if (*charset_map_loaded.as_mut_ptr ())
 	      && { offset = coding_change_destination (coding); offset != 0 }
 	    {
 	      dst = dst.offset (offset);
@@ -5086,7 +5084,7 @@ unsafe extern "C-unwind" fn encode_coding_iso_2022 (coding: *mut coding_system) 
 	    { EMIT_ONE_ASCII_BYTE! (c); }
 	  else
 	    {
-	      let mut charset: *mut charset = CHARSET_FROM_ID! (charset_ascii);
+	      let mut charset: *mut charset = CHARSET_FROM_ID! ((*charset_ascii.as_mut_ptr ()));
 	      ENCODE_ISO_CHARACTER! (charset, c);
 	    }
 	}
@@ -5117,7 +5115,7 @@ unsafe extern "C-unwind" fn encode_coding_iso_2022 (coding: *mut coding_system) 
 	      if mode_of (coding) as c_int & CODING_MODE_SAFE_ENCODING != 0
 		{
 		  c = CODING_INHIBIT_CHARACTER_SUBSTITUTION as c_int;
-		  charset = CHARSET_FROM_ID! (charset_ascii);
+		  charset = CHARSET_FROM_ID! ((*charset_ascii.as_mut_ptr ()));
 		}
 	      else
 		{
@@ -5337,9 +5335,9 @@ unsafe extern "C-unwind" fn decode_coding_sjis (coding: *mut coding_system)
   let mut val: Lisp_Object;
   let mut char_offset: ptrdiff_t = (*coding).produced_char;
   let mut last_offset: ptrdiff_t = char_offset;
-  let mut last_id: c_int = charset_ascii;
+  let mut last_id: c_int = (*charset_ascii.as_mut_ptr ());
   let eol_dos
-    = !inhibit_eol_conversion && EQ (CODING_ID_EOL_TYPE ((*coding).id as hash_idx_t), Qdos ());
+    = !(*inhibit_eol_conversion.as_mut_ptr ()) && EQ (CODING_ID_EOL_TYPE ((*coding).id as hash_idx_t), Qdos ());
   let mut byte_after_cr: c_int = -1;
 
   /* `ADD_CHARSET_DATA` is used after `no_more_source` as well as inside the loop, so the
@@ -5404,9 +5402,9 @@ unsafe extern "C-unwind" fn decode_coding_sjis (coding: *mut coding_system)
 	{
 	  let offset: ptrdiff_t;
 
-	  charset_map_loaded = false;
+	  (*charset_map_loaded.as_mut_ptr ()) = false;
 	  $c = DECODE_CHAR! ($charset, $code);
-	  if charset_map_loaded
+	  if (*charset_map_loaded.as_mut_ptr ())
 	      && { offset = coding_change_source ($coding); offset != 0 }
 	    {
 	      $src = $src.offset (offset);
@@ -5475,10 +5473,10 @@ unsafe extern "C-unwind" fn decode_coding_sjis (coding: *mut coding_system)
 	    }
 	  else
 	    { break 'invalid_code; }
-	  if (*charset).id != charset_ascii
+	  if (*charset).id != (*charset_ascii.as_mut_ptr ())
 	      && last_id != (*charset).id
 	    {
-	      if last_id != charset_ascii
+	      if last_id != (*charset_ascii.as_mut_ptr ())
 		{ ADD_CHARSET_DATA! (charbuf, char_offset - last_offset, last_id); }
 	      last_id = (*charset).id;
 	      last_offset = char_offset;
@@ -5498,7 +5496,7 @@ unsafe extern "C-unwind" fn decode_coding_sjis (coding: *mut coding_system)
       }
   }
 
-  if last_id != charset_ascii
+  if last_id != (*charset_ascii.as_mut_ptr ())
     { ADD_CHARSET_DATA! (charbuf, char_offset - last_offset, last_id); }
   (*coding).consumed_char += consumed_chars_base;
   (*coding).consumed = src_base.offset_from ((*coding).source);
@@ -5529,9 +5527,9 @@ unsafe extern "C-unwind" fn decode_coding_big5 (coding: *mut coding_system)
   let mut val: Lisp_Object;
   let mut char_offset: ptrdiff_t = (*coding).produced_char;
   let mut last_offset: ptrdiff_t = char_offset;
-  let mut last_id: c_int = charset_ascii;
+  let mut last_id: c_int = (*charset_ascii.as_mut_ptr ());
   let eol_dos
-    = !inhibit_eol_conversion && EQ (CODING_ID_EOL_TYPE ((*coding).id as hash_idx_t), Qdos ());
+    = !(*inhibit_eol_conversion.as_mut_ptr ()) && EQ (CODING_ID_EOL_TYPE ((*coding).id as hash_idx_t), Qdos ());
   let mut byte_after_cr: c_int = -1;
 
   macro_rules! ADD_ANNOTATION_DATA {
@@ -5590,9 +5588,9 @@ unsafe extern "C-unwind" fn decode_coding_big5 (coding: *mut coding_system)
 	{
 	  let offset: ptrdiff_t;
 
-	  charset_map_loaded = false;
+	  (*charset_map_loaded.as_mut_ptr ()) = false;
 	  $c = DECODE_CHAR! ($charset, $code);
-	  if charset_map_loaded
+	  if (*charset_map_loaded.as_mut_ptr ())
 	      && { offset = coding_change_source ($coding); offset != 0 }
 	    {
 	      $src = $src.offset (offset);
@@ -5643,10 +5641,10 @@ unsafe extern "C-unwind" fn decode_coding_big5 (coding: *mut coding_system)
 	      c = c << 8 | c1;
 	      charset = charset_big5;
 	    }
-	  if (*charset).id != charset_ascii
+	  if (*charset).id != (*charset_ascii.as_mut_ptr ())
 	      && last_id != (*charset).id
 	    {
-	      if last_id != charset_ascii
+	      if last_id != (*charset_ascii.as_mut_ptr ())
 		{ ADD_CHARSET_DATA! (charbuf, char_offset - last_offset, last_id); }
 	      last_id = (*charset).id;
 	      last_offset = char_offset;
@@ -5666,7 +5664,7 @@ unsafe extern "C-unwind" fn decode_coding_big5 (coding: *mut coding_system)
       }
   }
 
-  if last_id != charset_ascii
+  if last_id != (*charset_ascii.as_mut_ptr ())
     { ADD_CHARSET_DATA! (charbuf, char_offset - last_offset, last_id); }
   (*coding).consumed_char += consumed_chars_base;
   (*coding).consumed = src_base.offset_from ((*coding).source);
@@ -5768,9 +5766,9 @@ unsafe extern "C-unwind" fn encode_coding_sjis (coding: *mut coding_system) -> b
       {
 	let offset: ptrdiff_t;
 
-	charset_map_loaded = false;
+	(*charset_map_loaded.as_mut_ptr ()) = false;
 	$charset = char_charset ($c, $charset_list, $code_return);
-	if charset_map_loaded
+	if (*charset_map_loaded.as_mut_ptr ())
 	    && { offset = coding_change_destination ($coding); offset != 0 }
 	  {
 	    $dst = $dst.offset (offset);
@@ -5812,7 +5810,7 @@ unsafe extern "C-unwind" fn encode_coding_sjis (coding: *mut coding_system) -> b
 	      if mode_of (coding) as c_int & CODING_MODE_SAFE_ENCODING != 0
 		{
 		  code = CODING_INHIBIT_CHARACTER_SUBSTITUTION as c_uint;
-		  charset = CHARSET_FROM_ID! (charset_ascii);
+		  charset = CHARSET_FROM_ID! ((*charset_ascii.as_mut_ptr ()));
 		}
 	      else
 		{
@@ -5945,9 +5943,9 @@ unsafe extern "C-unwind" fn encode_coding_big5 (coding: *mut coding_system) -> b
       {
 	let offset: ptrdiff_t;
 
-	charset_map_loaded = false;
+	(*charset_map_loaded.as_mut_ptr ()) = false;
 	$charset = char_charset ($c, $charset_list, $code_return);
-	if charset_map_loaded
+	if (*charset_map_loaded.as_mut_ptr ())
 	    && { offset = coding_change_destination ($coding); offset != 0 }
 	  {
 	    $dst = $dst.offset (offset);
@@ -5986,7 +5984,7 @@ unsafe extern "C-unwind" fn encode_coding_big5 (coding: *mut coding_system) -> b
 	      if mode_of (coding) as c_int & CODING_MODE_SAFE_ENCODING != 0
 		{
 		  code = CODING_INHIBIT_CHARACTER_SUBSTITUTION as c_uint;
-		  charset = CHARSET_FROM_ID! (charset_ascii);
+		  charset = CHARSET_FROM_ID! ((*charset_ascii.as_mut_ptr ()));
 		}
 	      else
 		{
@@ -6039,7 +6037,7 @@ unsafe extern "C-unwind" fn detect_coding_ccl (mut coding: *mut coding_system,
 
   (*detect_info).checked |= CATEGORY_MASK_CCL;
 
-  coding = &raw mut coding_categories[coding_category_ccl as usize];
+  coding = &raw mut (*coding_categories.as_mut_ptr ())[coding_category_ccl as usize];
   valids = CODING_CCL_VALIDS! (coding);
   attrs = CODING_ID_ATTRS ((*coding).id as hash_idx_t);
   if ! NILP (CODING_ATTR_ASCII_COMPAT (attrs))
@@ -6143,11 +6141,11 @@ unsafe extern "C-unwind" fn decode_coding_ccl (coding: *mut coding_system)
       if p == src_end && mode_of (coding) as c_int & CODING_MODE_LAST_BLOCK != 0
 	{ (*ccl).bits = (*ccl).bits | CCL_PROGRAM_LAST_BLOCK; }
       /* As ccl_driver calls DECODE_CHAR, buffer may be relocated.  */
-      charset_map_loaded = false;
+      (*charset_map_loaded.as_mut_ptr ()) = false;
       ccl_driver (ccl, source_charbuf.as_mut_ptr (), charbuf, i,
 		  charbuf_end.offset_from (charbuf) as c_int,
 		  charset_list);
-      if charset_map_loaded
+      if (*charset_map_loaded.as_mut_ptr ())
 	  && { offset = coding_change_source (coding); offset != 0 }
 	{
 	  p = p.offset (offset);
@@ -6237,10 +6235,10 @@ unsafe extern "C-unwind" fn encode_coding_ccl (coding: *mut coding_system) -> bo
       let mut offset: ptrdiff_t;
 
       /* As ccl_driver calls DECODE_CHAR, buffer may be relocated.  */
-      charset_map_loaded = false;
+      (*charset_map_loaded.as_mut_ptr ()) = false;
       ccl_driver (ccl, charbuf, destination_charbuf.as_mut_ptr (),
 		  charbuf_end.offset_from (charbuf) as c_int, 1024, charset_list);
-      if charset_map_loaded
+      if (*charset_map_loaded.as_mut_ptr ())
 	  && { offset = coding_change_destination (coding); offset != 0 }
 	{ dst = dst.offset (offset); }
       if multibytep
@@ -6301,7 +6299,7 @@ unsafe extern "C-unwind" fn decode_coding_raw_text (coding: *mut coding_system)
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
   let eol_dos
-    = !inhibit_eol_conversion && EQ (CODING_ID_EOL_TYPE ((*coding).id as hash_idx_t), Qdos ());
+    = !(*inhibit_eol_conversion.as_mut_ptr ()) && EQ (CODING_ID_EOL_TYPE ((*coding).id as hash_idx_t), Qdos ());
 
   coding_bits_set (coding, CODING_SYSTEM_CHARS_AT_SOURCE_SHIFT, 1, 1);
   (*coding).consumed_char = (*coding).src_chars;
@@ -6471,7 +6469,7 @@ unsafe extern "C-unwind" fn detect_coding_charset (mut coding: *mut coding_syste
 
   (*detect_info).checked |= CATEGORY_MASK_CHARSET;
 
-  coding = &raw mut coding_categories[coding_category_charset as usize];
+  coding = &raw mut (*coding_categories.as_mut_ptr ())[coding_category_charset as usize];
   attrs = CODING_ID_ATTRS ((*coding).id as hash_idx_t);
   valids = AREF (attrs, coding_attr_charset_valids as isize);
   name = CODING_ID_NAME ((*coding).id as hash_idx_t);
@@ -6534,8 +6532,8 @@ unsafe extern "C-unwind" fn detect_coding_charset (mut coding: *mut coding_syste
 	    {
 	      if c < 0xA0
 		  && check_latin_extra
-		  && (! VECTORP (Vlatin_extra_code_table)
-		      || NILP (AREF (Vlatin_extra_code_table, c as isize)))
+		  && (! VECTORP ((*Vlatin_extra_code_table.as_mut_ptr ()))
+		      || NILP (AREF ((*Vlatin_extra_code_table.as_mut_ptr ()), c as isize)))
 		{ break; }
 	      found = CATEGORY_MASK_CHARSET;
 	    }
@@ -6615,9 +6613,9 @@ unsafe extern "C-unwind" fn decode_coding_charset (coding: *mut coding_system)
   let mut valids: Lisp_Object;
   let mut char_offset: ptrdiff_t = (*coding).produced_char;
   let mut last_offset: ptrdiff_t = char_offset;
-  let mut last_id: c_int = charset_ascii;
+  let mut last_id: c_int = (*charset_ascii.as_mut_ptr ());
   let eol_dos
-    = !inhibit_eol_conversion && EQ (CODING_ID_EOL_TYPE ((*coding).id as hash_idx_t), Qdos ());
+    = !(*inhibit_eol_conversion.as_mut_ptr ()) && EQ (CODING_ID_EOL_TYPE ((*coding).id as hash_idx_t), Qdos ());
   let mut byte_after_cr: c_int = -1;
 
   valids = AREF (attrs, coding_attr_charset_valids as isize);
@@ -6673,9 +6671,9 @@ unsafe extern "C-unwind" fn decode_coding_charset (coding: *mut coding_system)
 	{
 	  let offset: ptrdiff_t;
 
-	  charset_map_loaded = false;
+	  (*charset_map_loaded.as_mut_ptr ()) = false;
 	  $c = DECODE_CHAR! ($charset, $code);
-	  if charset_map_loaded
+	  if (*charset_map_loaded.as_mut_ptr ())
 	      && { offset = coding_change_source ($coding); offset != 0 }
 	    {
 	      $src = $src.offset (offset);
@@ -6763,10 +6761,10 @@ unsafe extern "C-unwind" fn decode_coding_charset (coding: *mut coding_system)
 	    }
 	  if c < 0
 	    { break 'invalid_code; }
-	  if (*charset).id != charset_ascii
+	  if (*charset).id != (*charset_ascii.as_mut_ptr ())
 	      && last_id != (*charset).id
 	    {
-	      if last_id != charset_ascii
+	      if last_id != (*charset_ascii.as_mut_ptr ())
 		{ ADD_CHARSET_DATA! (charbuf, char_offset - last_offset, last_id); }
 	      last_id = (*charset).id;
 	      last_offset = char_offset;
@@ -6787,7 +6785,7 @@ unsafe extern "C-unwind" fn decode_coding_charset (coding: *mut coding_system)
       }
   }
 
-  if last_id != charset_ascii
+  if last_id != (*charset_ascii.as_mut_ptr ())
     { ADD_CHARSET_DATA! (charbuf, char_offset - last_offset, last_id); }
   (*coding).consumed_char += consumed_chars_base;
   (*coding).consumed = src_base.offset_from ((*coding).source);
@@ -6895,9 +6893,9 @@ unsafe extern "C-unwind" fn encode_coding_charset (coding: *mut coding_system) -
       {
 	let offset: ptrdiff_t;
 
-	charset_map_loaded = false;
+	(*charset_map_loaded.as_mut_ptr ()) = false;
 	$charset = char_charset ($c, $charset_list, $code_return);
-	if charset_map_loaded
+	if (*charset_map_loaded.as_mut_ptr ())
 	    && { offset = coding_change_destination ($coding); offset != 0 }
 	  {
 	    $dst = $dst.offset (offset);
@@ -6982,7 +6980,7 @@ pub unsafe extern "C-unwind" fn setup_coding_system (coding_system: Lisp_Object,
   (*coding).id = CHECK_CODING_SYSTEM_GET_ID (coding_system);
 
   attrs = CODING_ID_ATTRS ((*coding).id as hash_idx_t);
-  eol_type = if inhibit_eol_conversion { Qunix () } else { CODING_ID_EOL_TYPE ((*coding).id as hash_idx_t) };
+  eol_type = if (*inhibit_eol_conversion.as_mut_ptr ()) { Qunix () } else { CODING_ID_EOL_TYPE ((*coding).id as hash_idx_t) };
 
   coding_bits_set (coding, CODING_SYSTEM_MODE_SHIFT, CODING_SYSTEM_MODE_MASK, 0);
   if VECTORP (eol_type)
@@ -7127,13 +7125,13 @@ pub unsafe extern "C-unwind" fn setup_coding_system (coding_system: Lisp_Object,
       common_flags_set (coding, common_flags_of (coding)
 			| (CODING_REQUIRE_DECODING_MASK | CODING_REQUIRE_ENCODING_MASK));
       if ! NILP (AREF (attrs, coding_attr_emacs_mule_full as isize))
-	  && ! EQ (CODING_ATTR_CHARSET_LIST (attrs), Vemacs_mule_charset_list)
+	  && ! EQ (CODING_ATTR_CHARSET_LIST (attrs), (*Vemacs_mule_charset_list.as_mut_ptr ()))
 	{
 	  let mut tail: Lisp_Object;
 	  let mut safe_charsets: Lisp_Object;
 	  let mut max_charset_id: c_int = 0;
 
-	  tail = Vemacs_mule_charset_list;
+	  tail = (*Vemacs_mule_charset_list.as_mut_ptr ());
 	  while CONSP (tail)
 	    {
 	      if max_charset_id < XFIXNAT (XCAR (tail)) as c_int
@@ -7142,7 +7140,7 @@ pub unsafe extern "C-unwind" fn setup_coding_system (coding_system: Lisp_Object,
 	    }
 	  safe_charsets = make_uninit_string ((max_charset_id + 1) as EMACS_INT);
 	  memset (SDATA (safe_charsets) as *mut c_void, 255, (max_charset_id + 1) as usize);
-	  tail = Vemacs_mule_charset_list;
+	  tail = (*Vemacs_mule_charset_list.as_mut_ptr ());
 	  while CONSP (tail)
 	    {
 	      SSET (safe_charsets, XFIXNAT (XCAR (tail)) as usize, 0);
@@ -7205,11 +7203,11 @@ pub unsafe extern "C-unwind" fn coding_charset_list (coding: *mut coding_system)
       let flags: c_int = XFIXNUM (AREF (attrs, coding_attr_iso_flags as isize)) as c_int;
 
       if (flags & CODING_ISO_FLAG_FULL_SUPPORT) != 0
-	{ charset_list = Viso_2022_charset_list; }
+	{ charset_list = (*Viso_2022_charset_list.as_mut_ptr ()); }
     }
   else if EQ (CODING_ATTR_TYPE (attrs), Qemacs_mule ())
     {
-      charset_list = Vemacs_mule_charset_list;
+      charset_list = (*Vemacs_mule_charset_list.as_mut_ptr ());
     }
   return charset_list;
 
@@ -7236,13 +7234,13 @@ pub unsafe extern "C-unwind" fn coding_system_charset_list (coding_system: Lisp_
       let flags: c_int = XFIXNUM (AREF (attrs, coding_attr_iso_flags as isize)) as c_int;
 
       if (flags & CODING_ISO_FLAG_FULL_SUPPORT) != 0
-	{ charset_list = Viso_2022_charset_list; }
+	{ charset_list = (*Viso_2022_charset_list.as_mut_ptr ()); }
       else
 	{ charset_list = CODING_ATTR_CHARSET_LIST (attrs); }
     }
   else if EQ (CODING_ATTR_TYPE (attrs), Qemacs_mule ())
     {
-      charset_list = Vemacs_mule_charset_list;
+      charset_list = (*Vemacs_mule_charset_list.as_mut_ptr ());
     }
   else
     {
@@ -7363,7 +7361,7 @@ pub unsafe extern "C-unwind" fn complement_process_encoding_system (coding_syste
   while i < 3
     {
       if i == 1
-	{ coding_system = CDR_SAFE (Vdefault_process_coding_system); }
+	{ coding_system = CDR_SAFE ((*Vdefault_process_coding_system.as_mut_ptr ())); }
       else if i == 2
 	{ coding_system = preferred_coding_system (); }
       spec = CODING_SYSTEM_SPEC (coding_system);
@@ -7409,7 +7407,7 @@ unsafe fn check_ascii (coding: *mut coding_system) -> ptrdiff_t
   src = (*coding).source;
   end = src.offset ((*coding).src_bytes);
 
-  if inhibit_eol_conversion
+  if (*inhibit_eol_conversion.as_mut_ptr ())
       || SYMBOLP (eol_type)
     {
       /* We don't have to check EOL format.  */
@@ -7770,9 +7768,9 @@ unsafe fn detect_coding (coding: *mut coding_system)
       let mut null_byte_found: bool = false;
       let mut eight_bit_found: bool = false;
       let inhibit_nbd: bool = inhibit_flag ((*coding).spec.undecided.inhibit_nbd,
-					    inhibit_null_byte_detection);
+					    (*inhibit_null_byte_detection.as_mut_ptr ()));
       let inhibit_ied: bool = inhibit_flag ((*coding).spec.undecided.inhibit_ied,
-					    inhibit_iso_escape_detection);
+					    (*inhibit_iso_escape_detection.as_mut_ptr ()));
       let prefer_utf_8: bool = (*coding).spec.undecided.prefer_utf_8;
 
       (*coding).head_ascii = 0;
@@ -7814,8 +7812,8 @@ unsafe fn detect_coding (coding: *mut coding_system)
 		  if eight_bit_found
 		    { break; }
 		}
-	      else if ! disable_ascii_optimization
-		       && ! inhibit_eol_conversion
+	      else if ! (*disable_ascii_optimization.as_mut_ptr ())
+		       && ! (*inhibit_eol_conversion.as_mut_ptr ())
 		{
 		  if c == '\r' as c_int
 		    {
@@ -7857,8 +7855,8 @@ unsafe fn detect_coding (coding: *mut coding_system)
 	      i = 0;
 	      while i < coding_category_raw_text
 		{
-		  category = coding_priorities[i as usize];
-		  this = &raw mut coding_categories[category as usize];
+		  category = (*coding_priorities.as_mut_ptr ())[i as usize];
+		  this = &raw mut (*coding_categories.as_mut_ptr ())[category as usize];
 		  if (detect_info.found & (1 << category)) != 0
 		    { break; }
 		  i += 1;
@@ -7880,8 +7878,8 @@ unsafe fn detect_coding (coding: *mut coding_system)
 	      i = 0;
 	      while i < coding_category_raw_text
 		{
-		  category = coding_priorities[i as usize];
-		  this = &raw mut coding_categories[category as usize];
+		  category = (*coding_priorities.as_mut_ptr ())[i as usize];
+		  this = &raw mut (*coding_categories.as_mut_ptr ())[category as usize];
 		  /* Some of this->detector (e.g. detect_coding_sjis)
 		     require this information.  */
 		  (*coding).id = (*this).id;
@@ -7950,9 +7948,9 @@ unsafe fn detect_coding (coding: *mut coding_system)
 	      i = 0;
 	      while i < coding_category_raw_text
 		{
-		  if (detect_info.rejected & (1 << coding_priorities[i as usize])) == 0
+		  if (detect_info.rejected & (1 << (*coding_priorities.as_mut_ptr ())[i as usize])) == 0
 		    {
-		      this = &raw mut coding_categories[coding_priorities[i as usize] as usize];
+		      this = &raw mut (*coding_categories.as_mut_ptr ())[(*coding_priorities.as_mut_ptr ())[i as usize] as usize];
 		      found = CODING_ID_NAME ((*this).id as hash_idx_t);
 		      break;
 		    }
@@ -8031,7 +8029,7 @@ unsafe fn decode_eol (coding: *mut coding_system)
   let mut pend: *mut c_uchar;
 
   eol_type = CODING_ID_EOL_TYPE ((*coding).id as hash_idx_t);
-  if EQ (eol_type, Qunix ()) || inhibit_eol_conversion
+  if EQ (eol_type, Qunix ()) || (*inhibit_eol_conversion.as_mut_ptr ())
     { return; }
 
   if NILP ((*coding).dst_object)
@@ -8146,7 +8144,7 @@ unsafe fn get_translation_table (attrs: Lisp_Object, encodep: bool,
   let mut translation_table: Lisp_Object;
   let mut val: Lisp_Object;
 
-  if NILP (Venable_character_translation)
+  if NILP ((*Venable_character_translation.as_mut_ptr ()))
     {
       if ! max_lookup.is_null ()
 	{ *max_lookup = 0; }
@@ -8155,12 +8153,12 @@ unsafe fn get_translation_table (attrs: Lisp_Object, encodep: bool,
   if encodep
     {
       translation_table = CODING_ATTR_ENCODE_TBL (attrs);
-      standard = Vstandard_translation_table_for_encode;
+      standard = (*Vstandard_translation_table_for_encode.as_mut_ptr ());
     }
   else
     {
       translation_table = CODING_ATTR_DECODE_TBL (attrs);
-      standard = Vstandard_translation_table_for_decode;
+      standard = (*Vstandard_translation_table_for_decode.as_mut_ptr ());
     }
   if NILP (translation_table)
     { translation_table = standard; }
@@ -8896,7 +8894,7 @@ unsafe fn decode_coding (coding: *mut coding_system)
     }
 
   if ! EQ (CODING_ID_EOL_TYPE ((*coding).id as hash_idx_t), Qunix ())
-      && !inhibit_eol_conversion
+      && !(*inhibit_eol_conversion.as_mut_ptr ())
     { decode_eol (coding); }
   if BUFFERP ((*coding).dst_object)
     {
@@ -9114,7 +9112,7 @@ unsafe fn consume_chars (coding: *mut coding_system, translation_table: Lisp_Obj
   if ! NILP (translation_table)
     { lookup_buf = lookup_buf_store.as_mut_ptr (); }
 
-  eol_type = if inhibit_eol_conversion { Qunix () } else { CODING_ID_EOL_TYPE ((*coding).id as hash_idx_t) };
+  eol_type = if (*inhibit_eol_conversion.as_mut_ptr ()) { Qunix () } else { CODING_ID_EOL_TYPE ((*coding).id as hash_idx_t) };
   if VECTORP (eol_type)
     { eol_type = Qunix (); }
 
@@ -9388,13 +9386,13 @@ unsafe fn encode_coding (coding: *mut coding_system)
 
 /* A string that serves as name of the reusable work buffer, and as base
    name of temporary work buffers used for code-conversion operations.  */
-static mut Vcode_conversion_workbuf_name: Lisp_Object = lisp_h_Qnil ();
+static Vcode_conversion_workbuf_name: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* The reusable working buffer, created once and never killed.  */
-static mut Vcode_conversion_reused_workbuf: Lisp_Object = lisp_h_Qnil ();
+static Vcode_conversion_reused_workbuf: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* True iff Vcode_conversion_reused_workbuf is already in use.  */
-static mut reused_workbuf_in_use: bool = false;
+static reused_workbuf_in_use: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 unsafe extern "C-unwind" fn code_conversion_restore (arg: Lisp_Object)
 {
@@ -9407,8 +9405,8 @@ unsafe extern "C-unwind" fn code_conversion_restore (arg: Lisp_Object)
   workbuf = XCDR (arg);
   if ! NILP (workbuf)
     {
-      if EQ (workbuf, Vcode_conversion_reused_workbuf)
-	{ reused_workbuf_in_use = false; }
+      if EQ (workbuf, (*Vcode_conversion_reused_workbuf.as_mut_ptr ()))
+	{ (*reused_workbuf_in_use.as_mut_ptr ()) = false; }
       else
 	{ Fkill_buffer (workbuf); }
     }
@@ -9426,20 +9424,20 @@ pub unsafe extern "C-unwind" fn code_conversion_save (with_work_buf: bool, multi
 
   if with_work_buf
     {
-      if reused_workbuf_in_use
+      if (*reused_workbuf_in_use.as_mut_ptr ())
 	{
 	  let name: Lisp_Object
-	    = Fgenerate_new_buffer_name (Vcode_conversion_workbuf_name, Qnil ());
+	    = Fgenerate_new_buffer_name ((*Vcode_conversion_workbuf_name.as_mut_ptr ()), Qnil ());
 	  workbuf = Fget_buffer_create (name, Qt ());
 	}
       else
 	{
-	  if NILP (Fbuffer_live_p (Vcode_conversion_reused_workbuf))
+	  if NILP (Fbuffer_live_p ((*Vcode_conversion_reused_workbuf.as_mut_ptr ())))
 	    {
-	      Vcode_conversion_reused_workbuf
-		= Fget_buffer_create (Vcode_conversion_workbuf_name, Qt ());
+	      (*Vcode_conversion_reused_workbuf.as_mut_ptr ())
+		= Fget_buffer_create ((*Vcode_conversion_workbuf_name.as_mut_ptr ()), Qt ());
 	    }
-	  workbuf = Vcode_conversion_reused_workbuf;
+	  workbuf = (*Vcode_conversion_reused_workbuf.as_mut_ptr ());
 	}
     }
   record_unwind_protect (Some (code_conversion_restore),
@@ -9455,8 +9453,8 @@ pub unsafe extern "C-unwind" fn code_conversion_save (with_work_buf: bool, multi
       Ferase_buffer ();
       bset_undo_list ((current_buffer! ()), Qt ());
       bset_enable_multibyte_characters ((current_buffer! ()), if multibyte { Qt () } else { Qnil () });
-      if EQ (workbuf, Vcode_conversion_reused_workbuf)
-	{ reused_workbuf_in_use = true; }
+      if EQ (workbuf, (*Vcode_conversion_reused_workbuf.as_mut_ptr ()))
+	{ (*reused_workbuf_in_use.as_mut_ptr ()) = true; }
       /* FIXME: Maybe we should stay in the new workbuf, because we often
 	 switch right back to it anyway in order to initialize it further.  */
       set_buffer_internal (current);
@@ -9510,7 +9508,7 @@ pub unsafe extern "C-unwind" fn decode_coding_gap (coding: *mut coding_system, m
   if CODING_REQUIRE_DETECTION (coding) != 0
     { detect_coding (coding); }
   attrs = CODING_ID_ATTRS ((*coding).id as hash_idx_t);
-  if ! disable_ascii_optimization
+  if ! (*disable_ascii_optimization.as_mut_ptr ())
       && ! src_multibyte_p (coding)
       && ! NILP (CODING_ATTR_ASCII_COMPAT (attrs))
       && NILP (CODING_ATTR_POST_READ (attrs))
@@ -9675,7 +9673,7 @@ pub unsafe extern "C-unwind" fn decode_coding_object (coding: *mut coding_system
   let mut need_marker_adjustment: bool = false;
   let mut old_deactivate_mark: Lisp_Object;
 
-  old_deactivate_mark = Vdeactivate_mark;
+  old_deactivate_mark = (*Vdeactivate_mark.as_mut_ptr ());
 
   if NILP (dst_object)
     {
@@ -9871,7 +9869,7 @@ pub unsafe extern "C-unwind" fn decode_coding_object (coding: *mut coding_system
 	}
     }
 
-  Vdeactivate_mark = old_deactivate_mark;
+  (*Vdeactivate_mark.as_mut_ptr ()) = old_deactivate_mark;
   unbind_to (count, (*coding).dst_object);
 
   }
@@ -9931,7 +9929,7 @@ pub unsafe extern "C-unwind" fn encode_coding_object (coding: *mut coding_system
   let mut kill_src_buffer: bool = false;
   let mut old_deactivate_mark: Lisp_Object;
 
-  old_deactivate_mark = Vdeactivate_mark;
+  old_deactivate_mark = (*Vdeactivate_mark.as_mut_ptr ());
 
   (*coding).src_object = src_object;
   (*coding).src_chars = chars;
@@ -10152,7 +10150,7 @@ pub unsafe extern "C-unwind" fn encode_coding_object (coding: *mut coding_system
   if kill_src_buffer
     { Fkill_buffer ((*coding).src_object); }
 
-  Vdeactivate_mark = old_deactivate_mark;
+  (*Vdeactivate_mark.as_mut_ptr ()) = old_deactivate_mark;
   unbind_to (count, Qnil ());
 
   }
@@ -10165,7 +10163,7 @@ pub unsafe extern "C-unwind" fn preferred_coding_system () -> Lisp_Object
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  let id: c_int = coding_categories[coding_priorities[0] as usize].id as c_int;
+  let id: c_int = (*coding_categories.as_mut_ptr ())[(*coding_priorities.as_mut_ptr ())[0] as usize].id as c_int;
 
   return CODING_ID_NAME (id as hash_idx_t);
 
@@ -10262,7 +10260,7 @@ DEFUN! ("read-non-nil-coding-system", Fread_non_nil_coding_system,
 	    with the same test as its only exit is the same loop (PORTING.md 2.1).  */
 	 loop
 	   {
-	     val = Fcompleting_read (prompt, Vcoding_system_alist, Qnil (),
+	     val = Fcompleting_read (prompt, (*Vcoding_system_alist.as_mut_ptr ()), Qnil (),
 				     Qt (), Qnil (), Qcoding_system_history (), Qnil (), Qnil ());
 	     if ! (SCHARS (val) == 0) { break; }
 	   }
@@ -10280,7 +10278,7 @@ DEFUN! ("read-coding-system", Fread_coding_system, Sread_coding_system, 1, 2, 0,
 	 if SYMBOLP (default_coding_system)
 	   { default_coding_system = SYMBOL_NAME (default_coding_system); }
 	 specbind (Qcompletion_ignore_case (), Qt ());
-	 val = Fcompleting_read (prompt, Vcoding_system_alist, Qnil (),
+	 val = Fcompleting_read (prompt, (*Vcoding_system_alist.as_mut_ptr ()), Qnil (),
 				 Qt (), Qnil (), Qcoding_system_history (),
 				 default_coding_system, Qnil ());
 	 val = unbind_to (count, val);
@@ -10361,9 +10359,9 @@ pub unsafe extern "C-unwind" fn detect_coding_system (mut src: *const c_uchar,
       let mut this: *mut coding_system = std::ptr::null_mut ();
       let mut c: c_int = 0; let mut i: c_int = 0;
       let inhibit_nbd: bool = inhibit_flag (coding.spec.undecided.inhibit_nbd,
-					    inhibit_null_byte_detection);
+					    (*inhibit_null_byte_detection.as_mut_ptr ()));
       let inhibit_ied: bool = inhibit_flag (coding.spec.undecided.inhibit_ied,
-					    inhibit_iso_escape_detection);
+					    (*inhibit_iso_escape_detection.as_mut_ptr ()));
       let prefer_utf_8: bool = coding.spec.undecided.prefer_utf_8;
 
       /* Skip all ASCII bytes except for a few ISO2022 controls.  */
@@ -10423,8 +10421,8 @@ pub unsafe extern "C-unwind" fn detect_coding_system (mut src: *const c_uchar,
 	      i = 0;
 	      while i < coding_category_raw_text
 		{
-		  category = coding_priorities[i as usize];
-		  this = &raw mut coding_categories[category as usize];
+		  category = (*coding_priorities.as_mut_ptr ())[i as usize];
+		  this = &raw mut (*coding_categories.as_mut_ptr ())[category as usize];
 		  if (detect_info.found & (1 << category)) != 0
 		    { break; }
 		  i += 1;
@@ -10446,8 +10444,8 @@ pub unsafe extern "C-unwind" fn detect_coding_system (mut src: *const c_uchar,
 	      i = 0;
 	      while i < coding_category_raw_text
 		{
-		  category = coding_priorities[i as usize];
-		  this = &raw mut coding_categories[category as usize];
+		  category = (*coding_priorities.as_mut_ptr ())[i as usize];
+		  this = &raw mut (*coding_categories.as_mut_ptr ())[category as usize];
 
 		  if (*this).id < 0
 		    {
@@ -10490,7 +10488,7 @@ pub unsafe extern "C-unwind" fn detect_coding_system (mut src: *const c_uchar,
       else if detect_info.rejected == 0 && detect_info.found == 0
 	{
 	  detect_info.found = CATEGORY_MASK_ANY;
-	  id = coding_categories[coding_category_undecided as usize].id;
+	  id = (*coding_categories.as_mut_ptr ())[coding_category_undecided as usize].id;
 	  val = list1i (id as EMACS_INT);
 	}
       else if highest
@@ -10505,10 +10503,10 @@ pub unsafe extern "C-unwind" fn detect_coding_system (mut src: *const c_uchar,
 	      i = 0;
 	      while i < coding_category_raw_text
 		{
-		  if (detect_info.rejected & (1 << coding_priorities[i as usize])) == 0
+		  if (detect_info.rejected & (1 << (*coding_priorities.as_mut_ptr ())[i as usize])) == 0
 		    {
-		      detect_info.found = 1 << coding_priorities[i as usize];
-		      id = coding_categories[coding_priorities[i as usize] as usize].id;
+		      detect_info.found = 1 << (*coding_priorities.as_mut_ptr ())[i as usize];
+		      id = (*coding_categories.as_mut_ptr ())[(*coding_priorities.as_mut_ptr ())[i as usize] as usize].id;
 		      val = list1i (id as EMACS_INT);
 		      break;
 		    }
@@ -10524,11 +10522,11 @@ pub unsafe extern "C-unwind" fn detect_coding_system (mut src: *const c_uchar,
 	  i = coding_category_raw_text - 1;
 	  while i >= 0
 	    {
-	      category = coding_priorities[i as usize];
+	      category = (*coding_priorities.as_mut_ptr ())[i as usize];
 	      if (mask & (1 << category)) == 0
 		{
 		  found |= 1 << category;
-		  id = coding_categories[category as usize].id;
+		  id = (*coding_categories.as_mut_ptr ())[category as usize].id;
 		  if id >= 0
 		    { val = list1i (id as EMACS_INT); }
 		}
@@ -10537,10 +10535,10 @@ pub unsafe extern "C-unwind" fn detect_coding_system (mut src: *const c_uchar,
 	  i = coding_category_raw_text - 1;
 	  while i >= 0
 	    {
-	      category = coding_priorities[i as usize];
+	      category = (*coding_priorities.as_mut_ptr ())[i as usize];
 	      if (detect_info.found & (1 << category)) != 0
 		{
-		  id = coding_categories[category as usize].id;
+		  id = (*coding_categories.as_mut_ptr ())[category as usize].id;
 		  val = Fcons (make_fixnum (id as EMACS_INT), val);
 		}
 	      i -= 1;
@@ -10555,9 +10553,9 @@ pub unsafe extern "C-unwind" fn detect_coding_system (mut src: *const c_uchar,
 	  let mut this: *mut coding_system;
 
 	  if (detect_info.found & CATEGORY_MASK_UTF_8_SIG) != 0
-	    { this = &raw mut coding_categories[coding_category_utf_8_sig as usize]; }
+	    { this = &raw mut (*coding_categories.as_mut_ptr ())[coding_category_utf_8_sig as usize]; }
 	  else
-	    { this = &raw mut coding_categories[coding_category_utf_8_nosig as usize]; }
+	    { this = &raw mut (*coding_categories.as_mut_ptr ())[coding_category_utf_8_nosig as usize]; }
 	  val = list1i ((*this).id as EMACS_INT);
 	}
     }
@@ -10568,13 +10566,13 @@ pub unsafe extern "C-unwind" fn detect_coding_system (mut src: *const c_uchar,
 	  let mut this: *mut coding_system;
 
 	  if (detect_info.found & CATEGORY_MASK_UTF_16_LE) != 0
-	    { this = &raw mut coding_categories[coding_category_utf_16_le as usize]; }
+	    { this = &raw mut (*coding_categories.as_mut_ptr ())[coding_category_utf_16_le as usize]; }
 	  else if (detect_info.found & CATEGORY_MASK_UTF_16_BE) != 0
-	    { this = &raw mut coding_categories[coding_category_utf_16_be as usize]; }
+	    { this = &raw mut (*coding_categories.as_mut_ptr ())[coding_category_utf_16_be as usize]; }
 	  else if (detect_info.rejected & CATEGORY_MASK_UTF_16_LE_NOSIG) != 0
-	    { this = &raw mut coding_categories[coding_category_utf_16_be_nosig as usize]; }
+	    { this = &raw mut (*coding_categories.as_mut_ptr ())[coding_category_utf_16_be_nosig as usize]; }
 	  else
-	    { this = &raw mut coding_categories[coding_category_utf_16_le_nosig as usize]; }
+	    { this = &raw mut (*coding_categories.as_mut_ptr ())[coding_category_utf_16_le_nosig as usize]; }
 	  val = list1i ((*this).id as EMACS_INT);
 	}
     }
@@ -10782,7 +10780,7 @@ DEFUN! ("find-coding-systems-region-internal",
 	   }
 
 	 coding_attrs_list = Qnil ();
-	 tail = Vcoding_system_list;
+	 tail = (*Vcoding_system_list.as_mut_ptr ());
 	 while CONSP (tail)
 	   {
 	     if NILP (exclude)
@@ -10822,7 +10820,7 @@ DEFUN! ("find-coding-systems-region-internal",
 		   /* This character was already checked.  Ignore it.  */
 		   { continue; }
 
-		 charset_map_loaded = false;
+		 (*charset_map_loaded.as_mut_ptr ()) = false;
 		 tail = coding_attrs_list;
 		 while CONSP (tail)
 		   {
@@ -10842,7 +10840,7 @@ DEFUN! ("find-coding-systems-region-internal",
 			 tail = XCDR (tail);
 		       }
 		   }
-		 if charset_map_loaded
+		 if (*charset_map_loaded.as_mut_ptr ())
 		   {
 		     let p_offset: ptrdiff_t = p.offset_from (pbeg);
 		     let pend_offset: ptrdiff_t = pend.offset_from (pbeg);
@@ -10933,7 +10931,7 @@ DEFUN! ("unencodable-char-position", Funencodable_char_position,
 	   }
 
 	 positions = Qnil ();
-	 charset_map_loaded = false;
+	 (*charset_map_loaded.as_mut_ptr ()) = false;
 	 loop
 	   {
 	     let mut c: c_int;
@@ -10963,7 +10961,7 @@ DEFUN! ("unencodable-char-position", Funencodable_char_position,
 	       }
 
 	     from += 1;
-	     if charset_map_loaded && NILP (string)
+	     if (*charset_map_loaded.as_mut_ptr ()) && NILP (string)
 	       {
 		 p = CHAR_POS_ADDR (from) as *const c_uchar;
 		 pend = CHAR_POS_ADDR (to) as *const c_uchar;
@@ -10971,7 +10969,7 @@ DEFUN! ("unencodable-char-position", Funencodable_char_position,
 		   { stop = GPT_ADDR! () as *const c_uchar; }
 		 else
 		   { stop = pend; }
-		 charset_map_loaded = false;
+		 (*charset_map_loaded.as_mut_ptr ()) = false;
 	       }
 	   }
 
@@ -11058,7 +11056,7 @@ DEFUN! ("check-coding-systems-region", Fcheck_coding_systems_region,
 	       {
 		 c = string_char_advance (&raw mut p);
 
-		 charset_map_loaded = false;
+		 (*charset_map_loaded.as_mut_ptr ()) = false;
 		 tail = list;
 		 while CONSP (tail)
 		   {
@@ -11067,7 +11065,7 @@ DEFUN! ("check-coding-systems-region", Fcheck_coding_systems_region,
 		       { XSETCDR (elt, Fcons (make_fixnum (pos as EMACS_INT), XCDR (elt))); }
 		     tail = XCDR (tail);
 		   }
-		 if charset_map_loaded
+		 if (*charset_map_loaded.as_mut_ptr ())
 		   {
 		     let p_offset: ptrdiff_t = p.offset_from (pbeg);
 		     let pend_offset: ptrdiff_t = pend.offset_from (pbeg);
@@ -11143,7 +11141,7 @@ unsafe fn code_convert_region (mut start: Lisp_Object, mut end: Lisp_Object,
     { decode_coding_object (&raw mut coding, src_object, from, from_byte, to, to_byte,
 			    dst_object); }
   if ! norecord
-    { Vlast_coding_system_used = CODING_ID_NAME (coding.id as hash_idx_t); }
+    { (*Vlast_coding_system_used.as_mut_ptr ()) = CODING_ID_NAME (coding.id as hash_idx_t); }
 
   return if BUFFERP (dst_object)
 	   { make_fixnum (coding.produced_char as EMACS_INT) }
@@ -11202,7 +11200,7 @@ pub unsafe extern "C-unwind" fn code_convert_string (string: Lisp_Object,
   if NILP (coding_system)
     {
       if ! norecord
-	{ Vlast_coding_system_used = Qno_conversion (); }
+	{ (*Vlast_coding_system_used.as_mut_ptr ()) = Qno_conversion (); }
       if NILP (dst_object)
 	{ return if nocopy { string } else { Fcopy_sequence (string) }; }
     }
@@ -11230,13 +11228,13 @@ pub unsafe extern "C-unwind" fn code_convert_string (string: Lisp_Object,
 	  && (if STRING_MULTIBYTE (string)
 		{ chars == bytes } else { string_ascii_p (string) })
 	  && (EQ (CODING_ID_EOL_TYPE (coding.id as hash_idx_t), Qunix ())
-	      || inhibit_eol_conversion
+	      || (*inhibit_eol_conversion.as_mut_ptr ())
 	      || memchr (SDATA (string) as *const c_void,
 			 if encodep { '\n' as c_int } else { '\r' as c_int },
 			 bytes as usize).is_null ())
 	{
 	  if ! norecord
-	    { Vlast_coding_system_used = coding_system; }
+	    { (*Vlast_coding_system_used.as_mut_ptr ()) = coding_system; }
 	  return if nocopy
 		   { string }
 		 else if encodep
@@ -11257,7 +11255,7 @@ pub unsafe extern "C-unwind" fn code_convert_string (string: Lisp_Object,
   else
     { decode_coding_object (&raw mut coding, string, 0, 0, chars, bytes, dst_object); }
   if ! norecord
-    { Vlast_coding_system_used = CODING_ID_NAME (coding.id as hash_idx_t); }
+    { (*Vlast_coding_system_used.as_mut_ptr ()) = CODING_ID_NAME (coding.id as hash_idx_t); }
 
   return if BUFFERP (dst_object)
 	   { make_fixnum (coding.produced_char as EMACS_INT) }
@@ -11329,10 +11327,10 @@ unsafe fn get_buffer_gap_address (buffer: Lisp_Object, nbytes: ptrdiff_t) -> *mu
 mod get_char_bytes_caches {
   use super::*;
 
-  pub static mut chars: [c_int; 2] = [0; 2];
-  pub static mut bytes: [[c_uchar; 6]; 2] = [[0; 6]; 2];
-  pub static mut nbytes: [c_int; 2] = [0; 2];
-  pub static mut last_index: c_int = 0;
+  pub static chars: VmGlobal<[c_int; 2]> = VmGlobal::<[c_int; 2]>::new ([0; 2]);
+  pub static bytes: VmGlobal<[[c_uchar; 6]; 2]> = VmGlobal::<[[c_uchar; 6]; 2]>::new ([[0; 6]; 2]);
+  pub static nbytes: VmGlobal<[c_int; 2]> = VmGlobal::<[c_int; 2]>::new ([0; 2]);
+  pub static last_index: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 }
 
 unsafe fn get_char_bytes (c: c_int, len: *mut c_int) -> *mut c_uchar
@@ -11344,22 +11342,22 @@ unsafe fn get_char_bytes (c: c_int, len: *mut c_int) -> *mut c_uchar
   /* Use two caches, since encode/decode_string_utf_8 are called
      repeatedly with the same values for HANDLE_8_BIT and
      HANDLE_OVER_UNI arguments.  */
-  if chars[last_index as usize] == c
+  if (*chars.as_mut_ptr ())[(*last_index.as_mut_ptr ()) as usize] == c
     {
-      *len = nbytes[last_index as usize];
-      return bytes[last_index as usize].as_mut_ptr ();
+      *len = (*nbytes.as_mut_ptr ())[(*last_index.as_mut_ptr ()) as usize];
+      return (*bytes.as_mut_ptr ())[(*last_index.as_mut_ptr ()) as usize].as_mut_ptr ();
     }
-  if chars[(1 - last_index) as usize] == c
+  if (*chars.as_mut_ptr ())[(1 - (*last_index.as_mut_ptr ())) as usize] == c
     {
-      *len = nbytes[(1 - last_index) as usize];
-      return bytes[(1 - last_index) as usize].as_mut_ptr ();
+      *len = (*nbytes.as_mut_ptr ())[(1 - (*last_index.as_mut_ptr ())) as usize];
+      return (*bytes.as_mut_ptr ())[(1 - (*last_index.as_mut_ptr ())) as usize].as_mut_ptr ();
     }
-  last_index = 1 - last_index;
-  chars[last_index as usize] = c;
-  let n: c_int = CHAR_STRING (c, bytes[last_index as usize].as_mut_ptr ());
-  nbytes[last_index as usize] = n;
+  (*last_index.as_mut_ptr ()) = 1 - (*last_index.as_mut_ptr ());
+  (*chars.as_mut_ptr ())[(*last_index.as_mut_ptr ()) as usize] = c;
+  let n: c_int = CHAR_STRING (c, (*bytes.as_mut_ptr ())[(*last_index.as_mut_ptr ()) as usize].as_mut_ptr ());
+  (*nbytes.as_mut_ptr ())[(*last_index.as_mut_ptr ()) as usize] = n;
   *len = n;
-  return bytes[last_index as usize].as_mut_ptr ();
+  return (*bytes.as_mut_ptr ())[(*last_index.as_mut_ptr ()) as usize].as_mut_ptr ();
 
   }
 }
@@ -11390,10 +11388,10 @@ pub unsafe extern "C-unwind" fn decode_file_name (fname: Lisp_Object) -> Lisp_Ob
   unsafe {
   /* C 10432-10438 is `#ifdef WINDOWSNT`, dead in the frozen configuration; the `#else`
      arm below is live (docs/ports/coding.md).  */
-  if ! NILP (Vfile_name_coding_system)
-    { return convert_string_nocopy (fname, Vfile_name_coding_system, false); }
-  else if ! NILP (Vdefault_file_name_coding_system)
-    { return convert_string_nocopy (fname, Vdefault_file_name_coding_system, false); }
+  if ! NILP ((*Vfile_name_coding_system.as_mut_ptr ()))
+    { return convert_string_nocopy (fname, (*Vfile_name_coding_system.as_mut_ptr ()), false); }
+  else if ! NILP ((*Vdefault_file_name_coding_system.as_mut_ptr ()))
+    { return convert_string_nocopy (fname, (*Vdefault_file_name_coding_system.as_mut_ptr ()), false); }
   else
     { return fname; }
 
@@ -11414,10 +11412,10 @@ unsafe fn encode_file_name_1 (fname: Lisp_Object) -> Lisp_Object
     { return fname; }
   /* C 10458-10464 is `#ifdef WINDOWSNT`, dead in the frozen configuration; the `#else`
      arm below is live (docs/ports/coding.md).  */
-  if ! NILP (Vfile_name_coding_system)
-    { return convert_string_nocopy (fname, Vfile_name_coding_system, true); }
-  else if ! NILP (Vdefault_file_name_coding_system)
-    { return convert_string_nocopy (fname, Vdefault_file_name_coding_system, true); }
+  if ! NILP ((*Vfile_name_coding_system.as_mut_ptr ()))
+    { return convert_string_nocopy (fname, (*Vfile_name_coding_system.as_mut_ptr ()), true); }
+  else if ! NILP ((*Vdefault_file_name_coding_system.as_mut_ptr ()))
+    { return convert_string_nocopy (fname, (*Vdefault_file_name_coding_system.as_mut_ptr ()), true); }
   else
     { return fname; }
 
@@ -11481,7 +11479,7 @@ DEFUN! ("decode-sjis-char", Fdecode_sjis_char, Sdecode_sjis_char, 1, 1, 0,
 
 	 CHECK_FIXNAT (code);
 	 ch = XFIXNAT (code);
-	 spec = CHECK_CODING_SYSTEM_GET_SPEC (Vsjis_coding_system);
+	 spec = CHECK_CODING_SYSTEM_GET_SPEC ((*Vsjis_coding_system.as_mut_ptr ()));
 	 attrs = AREF (spec, 0);
 
 	 if ASCII_CHAR_P (ch) 
@@ -11534,7 +11532,7 @@ DEFUN! ("encode-sjis-char", Fencode_sjis_char, Sencode_sjis_char, 1, 1, 0,
 
 	 CHECK_CHARACTER (ch);
 	 c = XFIXNAT (ch) as c_int;
-	 spec = CHECK_CODING_SYSTEM_GET_SPEC (Vsjis_coding_system);
+	 spec = CHECK_CODING_SYSTEM_GET_SPEC ((*Vsjis_coding_system.as_mut_ptr ()));
 	 attrs = AREF (spec, 0);
 
 	 if ASCII_CHAR_P (c as isize)
@@ -11562,7 +11560,7 @@ DEFUN! ("decode-big5-char", Fdecode_big5_char, Sdecode_big5_char, 1, 1, 0,
 
 	 CHECK_FIXNAT (code);
 	 ch = XFIXNAT (code);
-	 spec = CHECK_CODING_SYSTEM_GET_SPEC (Vbig5_coding_system);
+	 spec = CHECK_CODING_SYSTEM_GET_SPEC ((*Vbig5_coding_system.as_mut_ptr ()));
 	 attrs = AREF (spec, 0);
 
 	 if ASCII_CHAR_P (ch)
@@ -11606,7 +11604,7 @@ DEFUN! ("encode-big5-char", Fencode_big5_char, Sencode_big5_char, 1, 1, 0,
 
 	 CHECK_CHARACTER (ch);
 	 c = XFIXNAT (ch) as c_int;
-	 spec = CHECK_CODING_SYSTEM_GET_SPEC (Vbig5_coding_system);
+	 spec = CHECK_CODING_SYSTEM_GET_SPEC ((*Vbig5_coding_system.as_mut_ptr ()));
 	 attrs = AREF (spec, 0);
 	 if ASCII_CHAR_P (c as isize)
 	     && ! NILP (CODING_ATTR_ASCII_COMPAT (attrs))
@@ -11645,7 +11643,7 @@ DEFUN! ("set-terminal-coding-system-internal", Fset_terminal_coding_system_inter
 				       CODING_SYSTEM_COMMON_FLAGS_MASK)
 		      & CODING_REQUIRE_ENCODING_MASK) != 0
 		  { coding_charset_list (terminal_coding) }
-		  else { list1i (charset_ascii as EMACS_INT) });
+		  else { list1i ((*charset_ascii.as_mut_ptr ()) as EMACS_INT) });
 	 return Qnil ();
        });
 
@@ -11657,17 +11655,17 @@ DEFUN! ("set-safe-terminal-coding-system-internal",
        {
 	 CHECK_SYMBOL (coding_system);
 	 setup_coding_system (Fcheck_coding_system (coding_system),
-			      &raw mut safe_terminal_coding);
+			      safe_terminal_coding.as_mut_ptr ());
 	 /* Character composition should be disabled.  */
-	 coding_bits_set (&raw mut safe_terminal_coding, CODING_SYSTEM_COMMON_FLAGS_SHIFT,
+	 coding_bits_set (safe_terminal_coding.as_mut_ptr (), CODING_SYSTEM_COMMON_FLAGS_SHIFT,
 			  CODING_SYSTEM_COMMON_FLAGS_MASK,
-			  (coding_bits_get (&raw mut safe_terminal_coding,
+			  (coding_bits_get (safe_terminal_coding.as_mut_ptr (),
 					    CODING_SYSTEM_COMMON_FLAGS_SHIFT,
 					    CODING_SYSTEM_COMMON_FLAGS_MASK)
 			   & ! CODING_ANNOTATE_COMPOSITION_MASK));
-	 coding_bits_set (&raw mut safe_terminal_coding, CODING_SYSTEM_SRC_MULTIBYTE_SHIFT,
+	 coding_bits_set (safe_terminal_coding.as_mut_ptr (), CODING_SYSTEM_SRC_MULTIBYTE_SHIFT,
 			  1, 1);
-	 coding_bits_set (&raw mut safe_terminal_coding, CODING_SYSTEM_DST_MULTIBYTE_SHIFT,
+	 coding_bits_set (safe_terminal_coding.as_mut_ptr (), CODING_SYSTEM_DST_MULTIBYTE_SHIFT,
 			  1, 0);
 	 return Qnil ();
        });
@@ -11750,10 +11748,10 @@ DEFUN! ("find-operation-coding-system", Ffind_operation_coding_system,
 
 	 chain = if EQ (operation, Qinsert_file_contents ())
 		    || EQ (operation, Qwrite_region ())
-		   { Vfile_coding_system_alist }
+		   { (*Vfile_coding_system_alist.as_mut_ptr ()) }
 		 else if EQ (operation, Qopen_network_stream ())
-		   { Vnetwork_coding_system_alist }
-		 else { Vprocess_coding_system_alist };
+		   { (*Vnetwork_coding_system_alist.as_mut_ptr ()) }
+		 else { (*Vprocess_coding_system_alist.as_mut_ptr ()) };
 	 if NILP (chain)
 	   { return Qnil (); }
 
@@ -11821,13 +11819,13 @@ DEFUN! ("set-coding-system-priority", Fset_coding_system_priority,
 	       { i += 1; continue; }
 	     changed[category as usize] = true;
 	     priorities[j as usize] = category; j += 1;
-	     if (*&raw const coding_categories[category as usize]).id >= 0
+	     if (*&raw const (*coding_categories.as_mut_ptr ())[category as usize]).id >= 0
 		 && ! EQ (*args.offset (i),
-			  CODING_ID_NAME ((*&raw const coding_categories
+			  CODING_ID_NAME ((*&raw const (*coding_categories.as_mut_ptr ())
 					   [category as usize]).id as hash_idx_t))
 	       { setup_coding_system (*args.offset (i),
-				      &raw mut coding_categories[category as usize]); }
-	     Fset (AREF (Vcoding_category_table, category as isize), *args.offset (i));
+				      &raw mut (*coding_categories.as_mut_ptr ())[category as usize]); }
+	     Fset (AREF ((*Vcoding_category_table.as_mut_ptr ()), category as isize), *args.offset (i));
 	     i += 1;
 	   }
 
@@ -11838,27 +11836,27 @@ DEFUN! ("set-coding-system-priority", Fset_coding_system_priority,
 	 while i < coding_category_max as ptrdiff_t
 	   {
 	     while j < coding_category_max as ptrdiff_t
-		   && changed[coding_priorities[j as usize] as usize]
+		   && changed[(*coding_priorities.as_mut_ptr ())[j as usize] as usize]
 	       { j += 1; }
 	     if j == coding_category_max as ptrdiff_t
 	       { emacs_abort (); }
-	     priorities[i as usize] = coding_priorities[j as usize];
+	     priorities[i as usize] = (*coding_priorities.as_mut_ptr ())[j as usize];
 	     i += 1; j += 1;
 	   }
 
-	 memcpy (femacs_array_mut_ptr (&raw mut coding_priorities) as *mut c_void,
+	 memcpy (femacs_array_mut_ptr (coding_priorities.as_mut_ptr ()) as *mut c_void,
 		 priorities.as_ptr () as *const c_void,
 		 std::mem::size_of_val (&priorities));
 
 	 /* Update `coding-category-list'.  */
-	 Vcoding_category_list = Qnil ();
+	 (*Vcoding_category_list.as_mut_ptr ()) = Qnil ();
 	 i = coding_category_max as ptrdiff_t;
 	 while i > 0
 	   {
 	     i -= 1;
-	     Vcoding_category_list
-	       = Fcons (AREF (Vcoding_category_table, priorities[i as usize] as isize),
-			Vcoding_category_list);
+	     (*Vcoding_category_list.as_mut_ptr ())
+	       = Fcons (AREF ((*Vcoding_category_table.as_mut_ptr ()), priorities[i as usize] as isize),
+			(*Vcoding_category_list.as_mut_ptr ()));
 	   }
 
 	 return Qnil ();
@@ -11875,8 +11873,8 @@ DEFUN! ("coding-system-priority-list", Fcoding_system_priority_list,
 	 i = 0; val = Qnil ();
 	 while i < coding_category_max
 	   {
-	     let category: coding_category = coding_priorities[i as usize];
-	     let id: c_int = coding_categories[category as usize].id as c_int;
+	     let category: coding_category = (*coding_priorities.as_mut_ptr ())[i as usize];
+	     let id: c_int = (*coding_categories.as_mut_ptr ())[category as usize].id as c_int;
 	     let mut attrs: Lisp_Object;
 
 	     if id < 0
@@ -12569,13 +12567,13 @@ DEFUN! ("define-coding-system-internal", Fdefine_coding_system_internal,
 	       {
 		 if ! EQ (coding_type, Qiso_2022 ())
 		   { error (c"Invalid charset-list".as_ptr ()); }
-		 charset_list = Viso_2022_charset_list;
+		 charset_list = (*Viso_2022_charset_list.as_mut_ptr ());
 	       }
 	     else if EQ (charset_list, Qemacs_mule ())
 	       {
 		 if ! EQ (coding_type, Qemacs_mule ())
 		   { error (c"Invalid charset-list".as_ptr ()); }
-		 charset_list = Vemacs_mule_charset_list;
+		 charset_list = (*Vemacs_mule_charset_list.as_mut_ptr ());
 	       }
 	     {
 	       let mut tail: Lisp_Object = charset_list;
@@ -12969,7 +12967,7 @@ DEFUN! ("define-coding-system-internal", Fdefine_coding_system_internal,
 	       }
 
 	     category = coding_category_sjis;
-	     Vsjis_coding_system = name;
+	     (*Vsjis_coding_system.as_mut_ptr ()) = name;
 	   }
 	 else if EQ (coding_type, Qbig5 ())
 	   {
@@ -12992,7 +12990,7 @@ DEFUN! ("define-coding-system-internal", Fdefine_coding_system_internal,
 			SDATA (SYMBOL_NAME (CHARSET_NAME! (charset)))); }
 
 	     category = coding_category_big5;
-	     Vbig5_coding_system = name;
+	     (*Vbig5_coding_system.as_mut_ptr ()) = name;
 	   }
 	 else if EQ (coding_type, Qraw_text ())
 	   {
@@ -13042,7 +13040,7 @@ DEFUN! ("define-coding-system-internal", Fdefine_coding_system_internal,
 	 ASET (attrs, coding_attr_category as isize, make_fixnum (category as EMACS_INT));
 	 ASET (attrs, coding_attr_plist as isize,
 	       Fcons (QCcategory (),
-		      Fcons (AREF (Vcoding_category_table, category as isize),
+		      Fcons (AREF ((*Vcoding_category_table.as_mut_ptr ()), category as isize),
 			     CODING_ATTR_PLIST (attrs))));
 	 ASET (attrs, coding_attr_plist as isize,
 	       Fcons (QCascii_compatible_p (),
@@ -13077,14 +13075,14 @@ DEFUN! ("define-coding-system-internal", Fdefine_coding_system_internal,
 		   ASET (this_spec, 0, attrs);
 		   ASET (this_spec, 1, this_aliases);
 		   ASET (this_spec, 2, this_eol_type);
-		   Fputhash (this_name, this_spec, Vcoding_system_hash_table);
-		   Vcoding_system_list = Fcons (this_name, Vcoding_system_list);
-		   val = Fassoc (Fsymbol_name (this_name), Vcoding_system_alist, Qnil ());
+		   Fputhash (this_name, this_spec, (*Vcoding_system_hash_table.as_mut_ptr ()));
+		   (*Vcoding_system_list.as_mut_ptr ()) = Fcons (this_name, (*Vcoding_system_list.as_mut_ptr ()));
+		   val = Fassoc (Fsymbol_name (this_name), (*Vcoding_system_alist.as_mut_ptr ()), Qnil ());
 		   if NILP (val)
 		     {
-		       Vcoding_system_alist
+		       (*Vcoding_system_alist.as_mut_ptr ())
 			 = Fcons (Fcons (Fsymbol_name (this_name), Qnil ()),
-				  Vcoding_system_alist);
+				  (*Vcoding_system_alist.as_mut_ptr ()));
 		     }
 		   i += 1;
 		 }
@@ -13096,18 +13094,18 @@ DEFUN! ("define-coding-system-internal", Fdefine_coding_system_internal,
 	 ASET (spec_vec, 1, aliases);
 	 ASET (spec_vec, 2, eol_type);
 
-	 Fputhash (name, spec_vec, Vcoding_system_hash_table);
-	 Vcoding_system_list = Fcons (name, Vcoding_system_list);
-	 val = Fassoc (Fsymbol_name (name), Vcoding_system_alist, Qnil ());
+	 Fputhash (name, spec_vec, (*Vcoding_system_hash_table.as_mut_ptr ()));
+	 (*Vcoding_system_list.as_mut_ptr ()) = Fcons (name, (*Vcoding_system_list.as_mut_ptr ()));
+	 val = Fassoc (Fsymbol_name (name), (*Vcoding_system_alist.as_mut_ptr ()), Qnil ());
 	 if NILP (val)
 	   {
-	     Vcoding_system_alist = Fcons (Fcons (Fsymbol_name (name), Qnil ()),
-					   Vcoding_system_alist);
+	     (*Vcoding_system_alist.as_mut_ptr ()) = Fcons (Fcons (Fsymbol_name (name), Qnil ()),
+					   (*Vcoding_system_alist.as_mut_ptr ()));
 	   }
 
-	 let id: c_int = coding_categories[category as usize].id as c_int;
+	 let id: c_int = (*coding_categories.as_mut_ptr ())[category as usize].id as c_int;
 	 if id < 0 || EQ (name, CODING_ID_NAME (id as hash_idx_t))
-	   { setup_coding_system (name, &raw mut coding_categories[category as usize]); }
+	   { setup_coding_system (name, &raw mut (*coding_categories.as_mut_ptr ())[category as usize]); }
 
 	 return Qnil ();
 
@@ -13213,13 +13211,13 @@ DEFUN! ("define-coding-system-alias", Fdefine_coding_system_alias,
 	       }
 	   }
 
-	 Fputhash (alias, spec, Vcoding_system_hash_table);
-	 Vcoding_system_list = Fcons (alias, Vcoding_system_list);
-	 val = Fassoc (Fsymbol_name (alias), Vcoding_system_alist, Qnil ());
+	 Fputhash (alias, spec, (*Vcoding_system_hash_table.as_mut_ptr ()));
+	 (*Vcoding_system_list.as_mut_ptr ()) = Fcons (alias, (*Vcoding_system_list.as_mut_ptr ()));
+	 val = Fassoc (Fsymbol_name (alias), (*Vcoding_system_alist.as_mut_ptr ()), Qnil ());
 	 if NILP (val)
 	   {
-	     Vcoding_system_alist = Fcons (Fcons (Fsymbol_name (alias), Qnil ()),
-					   Vcoding_system_alist);
+	     (*Vcoding_system_alist.as_mut_ptr ()) = Fcons (Fcons (Fsymbol_name (alias), Qnil ()),
+					   (*Vcoding_system_alist.as_mut_ptr ()));
 	   }
 
 	 return Qnil ();
@@ -13303,63 +13301,63 @@ pub unsafe extern "C-unwind" fn init_coding_once ()
   i = 0;
   while i < coding_category_max
     {
-      coding_categories[i as usize].id = -1;
-      coding_priorities[i as usize] = i;
+      (*coding_categories.as_mut_ptr ())[i as usize].id = -1;
+      (*coding_priorities.as_mut_ptr ())[i as usize] = i;
       i += 1;
     }
 
-  PDUMPER_REMEMBER_SCALAR! (coding_categories);
-  PDUMPER_REMEMBER_SCALAR! (coding_priorities);
+  PDUMPER_REMEMBER_SCALAR! ((*coding_categories.as_mut_ptr ()));
+  PDUMPER_REMEMBER_SCALAR! ((*coding_priorities.as_mut_ptr ()));
 
   /* ISO2022 specific initialize routine.  */
   i = 0;
   while i < 0x20
     {
-      iso_code_class[i as usize] = ISO_control_0;
+      (*iso_code_class.as_mut_ptr ())[i as usize] = ISO_control_0;
       i += 1;
     }
   i = 0x21;
   while i < 0x7F
     {
-      iso_code_class[i as usize] = ISO_graphic_plane_0;
+      (*iso_code_class.as_mut_ptr ())[i as usize] = ISO_graphic_plane_0;
       i += 1;
     }
   i = 0x80;
   while i < 0xA0
     {
-      iso_code_class[i as usize] = ISO_control_1;
+      (*iso_code_class.as_mut_ptr ())[i as usize] = ISO_control_1;
       i += 1;
     }
   i = 0xA1;
   while i < 0xFF
     {
-      iso_code_class[i as usize] = ISO_graphic_plane_1;
+      (*iso_code_class.as_mut_ptr ())[i as usize] = ISO_graphic_plane_1;
       i += 1;
     }
-  iso_code_class[0x20] = ISO_0x20_or_0x7F; iso_code_class[0x7F] = ISO_0x20_or_0x7F;
-  iso_code_class[0xA0] = ISO_0xA0_or_0xFF; iso_code_class[0xFF] = ISO_0xA0_or_0xFF;
-  iso_code_class[ISO_CODE_SO as usize] = ISO_shift_out;
-  iso_code_class[ISO_CODE_SI as usize] = ISO_shift_in;
-  iso_code_class[ISO_CODE_SS2_7 as usize] = ISO_single_shift_2_7;
-  iso_code_class[ISO_CODE_ESC as usize] = ISO_escape;
-  iso_code_class[ISO_CODE_SS2 as usize] = ISO_single_shift_2;
-  iso_code_class[ISO_CODE_SS3 as usize] = ISO_single_shift_3;
-  iso_code_class[ISO_CODE_CSI as usize] = ISO_control_sequence_introducer;
+  (*iso_code_class.as_mut_ptr ())[0x20] = ISO_0x20_or_0x7F; (*iso_code_class.as_mut_ptr ())[0x7F] = ISO_0x20_or_0x7F;
+  (*iso_code_class.as_mut_ptr ())[0xA0] = ISO_0xA0_or_0xFF; (*iso_code_class.as_mut_ptr ())[0xFF] = ISO_0xA0_or_0xFF;
+  (*iso_code_class.as_mut_ptr ())[ISO_CODE_SO as usize] = ISO_shift_out;
+  (*iso_code_class.as_mut_ptr ())[ISO_CODE_SI as usize] = ISO_shift_in;
+  (*iso_code_class.as_mut_ptr ())[ISO_CODE_SS2_7 as usize] = ISO_single_shift_2_7;
+  (*iso_code_class.as_mut_ptr ())[ISO_CODE_ESC as usize] = ISO_escape;
+  (*iso_code_class.as_mut_ptr ())[ISO_CODE_SS2 as usize] = ISO_single_shift_2;
+  (*iso_code_class.as_mut_ptr ())[ISO_CODE_SS3 as usize] = ISO_single_shift_3;
+  (*iso_code_class.as_mut_ptr ())[ISO_CODE_CSI as usize] = ISO_control_sequence_introducer;
 
-  PDUMPER_REMEMBER_SCALAR! (iso_code_class);
+  PDUMPER_REMEMBER_SCALAR! ((*iso_code_class.as_mut_ptr ()));
 
   i = 0;
   while i < 256
     {
-      emacs_mule_bytes[i as usize] = 1;
+      (*emacs_mule_bytes.as_mut_ptr ())[i as usize] = 1;
       i += 1;
     }
-  emacs_mule_bytes[EMACS_MULE_LEADING_CODE_PRIVATE_11 as usize] = 3;
-  emacs_mule_bytes[EMACS_MULE_LEADING_CODE_PRIVATE_12 as usize] = 3;
-  emacs_mule_bytes[EMACS_MULE_LEADING_CODE_PRIVATE_21 as usize] = 4;
-  emacs_mule_bytes[EMACS_MULE_LEADING_CODE_PRIVATE_22 as usize] = 4;
+  (*emacs_mule_bytes.as_mut_ptr ())[EMACS_MULE_LEADING_CODE_PRIVATE_11 as usize] = 3;
+  (*emacs_mule_bytes.as_mut_ptr ())[EMACS_MULE_LEADING_CODE_PRIVATE_12 as usize] = 3;
+  (*emacs_mule_bytes.as_mut_ptr ())[EMACS_MULE_LEADING_CODE_PRIVATE_21 as usize] = 4;
+  (*emacs_mule_bytes.as_mut_ptr ())[EMACS_MULE_LEADING_CODE_PRIVATE_22 as usize] = 4;
 
-  PDUMPER_REMEMBER_SCALAR! (emacs_mule_bytes);
+  PDUMPER_REMEMBER_SCALAR! ((*emacs_mule_bytes.as_mut_ptr ()));
 
   }
 }
@@ -13369,23 +13367,23 @@ pub unsafe extern "C-unwind" fn syms_of_coding ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  staticpro (&raw const Vcoding_system_hash_table);
-  Vcoding_system_hash_table = CALLN! (Fmake_hash_table, QCtest (), Qeq ());
+  staticpro (Vcoding_system_hash_table.as_ptr ());
+  (*Vcoding_system_hash_table.as_mut_ptr ()) = CALLN! (Fmake_hash_table, QCtest (), Qeq ());
 
-  staticpro (&raw const Vsjis_coding_system);
-  Vsjis_coding_system = Qnil ();
+  staticpro (Vsjis_coding_system.as_ptr ());
+  (*Vsjis_coding_system.as_mut_ptr ()) = Qnil ();
 
-  staticpro (&raw const Vbig5_coding_system);
-  Vbig5_coding_system = Qnil ();
+  staticpro (Vbig5_coding_system.as_ptr ());
+  (*Vbig5_coding_system.as_mut_ptr ()) = Qnil ();
 
-  staticpro (&raw const Vcode_conversion_reused_workbuf);
-  Vcode_conversion_reused_workbuf = Qnil ();
+  staticpro (Vcode_conversion_reused_workbuf.as_ptr ());
+  (*Vcode_conversion_reused_workbuf.as_mut_ptr ()) = Qnil ();
 
-  staticpro (&raw const Vcode_conversion_workbuf_name);
-  Vcode_conversion_workbuf_name = build_string (c" *code-conversion-work*".as_ptr ());
+  staticpro (Vcode_conversion_workbuf_name.as_ptr ());
+  (*Vcode_conversion_workbuf_name.as_mut_ptr ()) = build_string (c" *code-conversion-work*".as_ptr ());
 
-  reused_workbuf_in_use = false;
-  PDUMPER_REMEMBER_SCALAR! (reused_workbuf_in_use);
+  (*reused_workbuf_in_use.as_mut_ptr ()) = false;
+  PDUMPER_REMEMBER_SCALAR! ((*reused_workbuf_in_use.as_mut_ptr ()));
 
   DEFSYM! (Qcharset, c"charset");
   DEFSYM! (Qtarget_idx, c"target-idx");
@@ -13465,51 +13463,51 @@ pub unsafe extern "C-unwind" fn syms_of_coding ()
   DEFSYM! (QCpre_write_conversion, c":pre-write-conversion");
   DEFSYM! (QCascii_compatible_p, c":ascii-compatible-p");
 
-  Vcoding_category_table = make_nil_vector (coding_category_max as isize);
-  staticpro (&raw const Vcoding_category_table);
+  (*Vcoding_category_table.as_mut_ptr ()) = make_nil_vector (coding_category_max as isize);
+  staticpro (Vcoding_category_table.as_ptr ());
   /* Followings are target of code detection.  */
-  ASET (Vcoding_category_table, coding_category_iso_7 as isize,
+  ASET ((*Vcoding_category_table.as_mut_ptr ()), coding_category_iso_7 as isize,
 	intern_c_string (c"coding-category-iso-7".as_ptr ()));
-  ASET (Vcoding_category_table, coding_category_iso_7_tight as isize,
+  ASET ((*Vcoding_category_table.as_mut_ptr ()), coding_category_iso_7_tight as isize,
 	intern_c_string (c"coding-category-iso-7-tight".as_ptr ()));
-  ASET (Vcoding_category_table, coding_category_iso_8_1 as isize,
+  ASET ((*Vcoding_category_table.as_mut_ptr ()), coding_category_iso_8_1 as isize,
 	intern_c_string (c"coding-category-iso-8-1".as_ptr ()));
-  ASET (Vcoding_category_table, coding_category_iso_8_2 as isize,
+  ASET ((*Vcoding_category_table.as_mut_ptr ()), coding_category_iso_8_2 as isize,
 	intern_c_string (c"coding-category-iso-8-2".as_ptr ()));
-  ASET (Vcoding_category_table, coding_category_iso_7_else as isize,
+  ASET ((*Vcoding_category_table.as_mut_ptr ()), coding_category_iso_7_else as isize,
 	intern_c_string (c"coding-category-iso-7-else".as_ptr ()));
-  ASET (Vcoding_category_table, coding_category_iso_8_else as isize,
+  ASET ((*Vcoding_category_table.as_mut_ptr ()), coding_category_iso_8_else as isize,
 	intern_c_string (c"coding-category-iso-8-else".as_ptr ()));
-  ASET (Vcoding_category_table, coding_category_utf_8_auto as isize,
+  ASET ((*Vcoding_category_table.as_mut_ptr ()), coding_category_utf_8_auto as isize,
 	intern_c_string (c"coding-category-utf-8-auto".as_ptr ()));
-  ASET (Vcoding_category_table, coding_category_utf_8_nosig as isize,
+  ASET ((*Vcoding_category_table.as_mut_ptr ()), coding_category_utf_8_nosig as isize,
 	intern_c_string (c"coding-category-utf-8".as_ptr ()));
-  ASET (Vcoding_category_table, coding_category_utf_8_sig as isize,
+  ASET ((*Vcoding_category_table.as_mut_ptr ()), coding_category_utf_8_sig as isize,
 	intern_c_string (c"coding-category-utf-8-sig".as_ptr ()));
-  ASET (Vcoding_category_table, coding_category_utf_16_be as isize,
+  ASET ((*Vcoding_category_table.as_mut_ptr ()), coding_category_utf_16_be as isize,
 	intern_c_string (c"coding-category-utf-16-be".as_ptr ()));
-  ASET (Vcoding_category_table, coding_category_utf_16_auto as isize,
+  ASET ((*Vcoding_category_table.as_mut_ptr ()), coding_category_utf_16_auto as isize,
 	intern_c_string (c"coding-category-utf-16-auto".as_ptr ()));
-  ASET (Vcoding_category_table, coding_category_utf_16_le as isize,
+  ASET ((*Vcoding_category_table.as_mut_ptr ()), coding_category_utf_16_le as isize,
 	intern_c_string (c"coding-category-utf-16-le".as_ptr ()));
-  ASET (Vcoding_category_table, coding_category_utf_16_be_nosig as isize,
+  ASET ((*Vcoding_category_table.as_mut_ptr ()), coding_category_utf_16_be_nosig as isize,
 	intern_c_string (c"coding-category-utf-16-be-nosig".as_ptr ()));
-  ASET (Vcoding_category_table, coding_category_utf_16_le_nosig as isize,
+  ASET ((*Vcoding_category_table.as_mut_ptr ()), coding_category_utf_16_le_nosig as isize,
 	intern_c_string (c"coding-category-utf-16-le-nosig".as_ptr ()));
-  ASET (Vcoding_category_table, coding_category_charset as isize,
+  ASET ((*Vcoding_category_table.as_mut_ptr ()), coding_category_charset as isize,
 	intern_c_string (c"coding-category-charset".as_ptr ()));
-  ASET (Vcoding_category_table, coding_category_sjis as isize,
+  ASET ((*Vcoding_category_table.as_mut_ptr ()), coding_category_sjis as isize,
 	intern_c_string (c"coding-category-sjis".as_ptr ()));
-  ASET (Vcoding_category_table, coding_category_big5 as isize,
+  ASET ((*Vcoding_category_table.as_mut_ptr ()), coding_category_big5 as isize,
 	intern_c_string (c"coding-category-big5".as_ptr ()));
-  ASET (Vcoding_category_table, coding_category_ccl as isize,
+  ASET ((*Vcoding_category_table.as_mut_ptr ()), coding_category_ccl as isize,
 	intern_c_string (c"coding-category-ccl".as_ptr ()));
-  ASET (Vcoding_category_table, coding_category_emacs_mule as isize,
+  ASET ((*Vcoding_category_table.as_mut_ptr ()), coding_category_emacs_mule as isize,
 	intern_c_string (c"coding-category-emacs-mule".as_ptr ()));
   /* Followings are NOT target of code detection.  */
-  ASET (Vcoding_category_table, coding_category_raw_text as isize,
+  ASET ((*Vcoding_category_table.as_mut_ptr ()), coding_category_raw_text as isize,
 	intern_c_string (c"coding-category-raw-text".as_ptr ()));
-  ASET (Vcoding_category_table, coding_category_undecided as isize,
+  ASET ((*Vcoding_category_table.as_mut_ptr ()), coding_category_undecided as isize,
 	intern_c_string (c"coding-category-undecided".as_ptr ()));
 
   DEFSYM! (Qinsufficient_source, c"insufficient-source");
@@ -13525,169 +13523,169 @@ pub unsafe extern "C-unwind" fn syms_of_coding ()
   DEFSYM! (Qutf_8_string_p, c"utf-8-string-p");
   DEFSYM! (Qfilenamep, c"filenamep");
 
-  defsubr (&raw mut Scoding_system_p);
-  defsubr (&raw mut Sread_coding_system);
-  defsubr (&raw mut Sread_non_nil_coding_system);
-  defsubr (&raw mut Scheck_coding_system);
-  defsubr (&raw mut Sdetect_coding_region);
-  defsubr (&raw mut Sdetect_coding_string);
-  defsubr (&raw mut Sfind_coding_systems_region_internal);
-  defsubr (&raw mut Sunencodable_char_position);
-  defsubr (&raw mut Scheck_coding_systems_region);
-  defsubr (&raw mut Sdecode_coding_region);
-  defsubr (&raw mut Sencode_coding_region);
-  defsubr (&raw mut Sdecode_coding_string);
-  defsubr (&raw mut Sencode_coding_string);
+  defsubr (Scoding_system_p.as_mut_ptr ());
+  defsubr (Sread_coding_system.as_mut_ptr ());
+  defsubr (Sread_non_nil_coding_system.as_mut_ptr ());
+  defsubr (Scheck_coding_system.as_mut_ptr ());
+  defsubr (Sdetect_coding_region.as_mut_ptr ());
+  defsubr (Sdetect_coding_string.as_mut_ptr ());
+  defsubr (Sfind_coding_systems_region_internal.as_mut_ptr ());
+  defsubr (Sunencodable_char_position.as_mut_ptr ());
+  defsubr (Scheck_coding_systems_region.as_mut_ptr ());
+  defsubr (Sdecode_coding_region.as_mut_ptr ());
+  defsubr (Sencode_coding_region.as_mut_ptr ());
+  defsubr (Sdecode_coding_string.as_mut_ptr ());
+  defsubr (Sencode_coding_string.as_mut_ptr ());
   /* C 11911-11914 registers the two ENABLE_UTF_8_CONVERTER_TEST subrs, dead in the
      frozen configuration (docs/ports/coding.md).  */
-  defsubr (&raw mut Sdecode_sjis_char);
-  defsubr (&raw mut Sencode_sjis_char);
-  defsubr (&raw mut Sdecode_big5_char);
-  defsubr (&raw mut Sencode_big5_char);
-  defsubr (&raw mut Sset_terminal_coding_system_internal);
-  defsubr (&raw mut Sset_safe_terminal_coding_system_internal);
-  defsubr (&raw mut Sterminal_coding_system);
-  defsubr (&raw mut Sset_keyboard_coding_system_internal);
-  defsubr (&raw mut Skeyboard_coding_system);
-  defsubr (&raw mut Sfind_operation_coding_system);
-  defsubr (&raw mut Sset_coding_system_priority);
-  defsubr (&raw mut Sdefine_coding_system_internal);
-  defsubr (&raw mut Sdefine_coding_system_alias);
-  defsubr (&raw mut Scoding_system_put);
-  defsubr (&raw mut Scoding_system_base);
-  defsubr (&raw mut Scoding_system_plist);
-  defsubr (&raw mut Scoding_system_aliases);
-  defsubr (&raw mut Scoding_system_eol_type);
-  defsubr (&raw mut Scoding_system_priority_list);
+  defsubr (Sdecode_sjis_char.as_mut_ptr ());
+  defsubr (Sencode_sjis_char.as_mut_ptr ());
+  defsubr (Sdecode_big5_char.as_mut_ptr ());
+  defsubr (Sencode_big5_char.as_mut_ptr ());
+  defsubr (Sset_terminal_coding_system_internal.as_mut_ptr ());
+  defsubr (Sset_safe_terminal_coding_system_internal.as_mut_ptr ());
+  defsubr (Sterminal_coding_system.as_mut_ptr ());
+  defsubr (Sset_keyboard_coding_system_internal.as_mut_ptr ());
+  defsubr (Skeyboard_coding_system.as_mut_ptr ());
+  defsubr (Sfind_operation_coding_system.as_mut_ptr ());
+  defsubr (Sset_coding_system_priority.as_mut_ptr ());
+  defsubr (Sdefine_coding_system_internal.as_mut_ptr ());
+  defsubr (Sdefine_coding_system_alias.as_mut_ptr ());
+  defsubr (Scoding_system_put.as_mut_ptr ());
+  defsubr (Scoding_system_base.as_mut_ptr ());
+  defsubr (Scoding_system_plist.as_mut_ptr ());
+  defsubr (Scoding_system_aliases.as_mut_ptr ());
+  defsubr (Scoding_system_eol_type.as_mut_ptr ());
+  defsubr (Scoding_system_priority_list.as_mut_ptr ());
 
   DEFVAR_LISP! (c"coding-system-list", Vcoding_system_list,
 	       " List of coding systems.\n\nDo not alter the value of this variable manually.  This variable should be\nupdated by the functions `define-coding-system' and\n`define-coding-system-alias'.  ");
-  Vcoding_system_list = Qnil ();
+  (*Vcoding_system_list.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"coding-system-alist", Vcoding_system_alist,
 	       " Alist of coding system names.\nEach element is one element list of coding system name.\nThis variable is given to `completing-read' as COLLECTION argument.\n\nDo not alter the value of this variable manually.  This variable should be\nupdated by `define-coding-system-alias'.  ");
-  Vcoding_system_alist = Qnil ();
+  (*Vcoding_system_alist.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"coding-category-list", Vcoding_category_list,
 	       " List of coding-categories (symbols) ordered by priority.\n\nOn detecting a coding system, Emacs tries code detection algorithms\nassociated with each coding-category one by one in this order.  When\none algorithm agrees with a byte sequence of source text, the coding\nsystem bound to the corresponding coding-category is selected.\n\nDon't modify this variable directly, but use `set-coding-system-priority'.  ");
   {
     let mut i: c_int;
 
-    Vcoding_category_list = Qnil ();
+    (*Vcoding_category_list.as_mut_ptr ()) = Qnil ();
     i = coding_category_max - 1;
     while i >= 0
       {
-	Vcoding_category_list
-	  = Fcons (AREF (Vcoding_category_table, i as isize),
-		   Vcoding_category_list);
+	(*Vcoding_category_list.as_mut_ptr ())
+	  = Fcons (AREF ((*Vcoding_category_table.as_mut_ptr ()), i as isize),
+		   (*Vcoding_category_list.as_mut_ptr ()));
 	i -= 1;
       }
   }
 
   DEFVAR_LISP! (c"coding-system-for-read", Vcoding_system_for_read,
 	       " Specify the coding system for read operations.\nIt is useful to bind this variable with `let', but do not set it globally.\nIf the value is a coding system, it is used for decoding on read operation.\nIf not, an appropriate element is used from one of the coding system alists.\nThere are three such tables: `file-coding-system-alist',\n`process-coding-system-alist', and `network-coding-system-alist'.  ");
-  Vcoding_system_for_read = Qnil ();
+  (*Vcoding_system_for_read.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"coding-system-for-write", Vcoding_system_for_write,
 	       " Specify the coding system for write operations.\nPrograms bind this variable with `let', but you should not set it globally.\nIf the value is a coding system, it is used for encoding of output,\nwhen writing it to a file and when sending it to a file or subprocess.\n\nIf this does not specify a coding system, an appropriate element\nis used from one of the coding system alists.\nThere are three such tables: `file-coding-system-alist',\n`process-coding-system-alist', and `network-coding-system-alist'.\nFor output to files, if the above procedure does not specify a coding system,\nthe value of `buffer-file-coding-system' is used.  ");
-  Vcoding_system_for_write = Qnil ();
+  (*Vcoding_system_for_write.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"last-coding-system-used", Vlast_coding_system_used,
 	       "\nCoding system used in the latest file or process I/O.  ");
-  Vlast_coding_system_used = Qnil ();
+  (*Vlast_coding_system_used.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"last-code-conversion-error", Vlast_code_conversion_error,
 	       "\nError status of the last code conversion.\n\nWhen an error was detected in the last code conversion, this variable\nis set to one of the following symbols.\n  `insufficient-source'\n  `inconsistent-eol'\n  `invalid-source'\n  `interrupted'\n  `insufficient-memory'\nWhen no error was detected, the value doesn't change.  So, to check\nthe error status of a code conversion by this variable, you must\nexplicitly set this variable to nil before performing code\nconversion.  ");
-  Vlast_code_conversion_error = Qnil ();
+  (*Vlast_code_conversion_error.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_BOOL! (c"inhibit-eol-conversion", inhibit_eol_conversion,
 	       "\nNon-nil means always inhibit code conversion of end-of-line format.\nSee info node `Coding Systems' and info node `Text and Binary' concerning\nsuch conversion.  ");
-  inhibit_eol_conversion = false;
+  (*inhibit_eol_conversion.as_mut_ptr ()) = false;
 
   DEFVAR_BOOL! (c"inherit-process-coding-system", inherit_process_coding_system,
 	       "\nNon-nil means process buffer inherits coding system of process output.\nBind it to t if the process output is to be treated as if it were a file\nread from some filesystem.  ");
-  inherit_process_coding_system = false;
+  (*inherit_process_coding_system.as_mut_ptr ()) = false;
 
   DEFVAR_LISP! (c"file-coding-system-alist", Vfile_coding_system_alist,
 	       "\nAlist to decide a coding system to use for a file I/O operation.\nThe format is ((PATTERN . VAL) ...),\nwhere PATTERN is a regular expression matching a file name,\nVAL is a coding system, a cons of coding systems, or a function symbol.\nIf VAL is a coding system, it is used for both decoding and encoding\nthe file contents.\nIf VAL is a cons of coding systems, the car part is used for decoding,\nand the cdr part is used for encoding.\nIf VAL is a function symbol, the function must return a coding system\nor a cons of coding systems which are used as above.  The function is\ncalled with an argument that is a list of the arguments with which\n`find-operation-coding-system' was called.  If the function can't decide\na coding system, it can return `undecided' so that the normal\ncode-detection is performed.\n\nSee also the function `find-operation-coding-system'\nand the variable `auto-coding-alist'.  ");
-  Vfile_coding_system_alist = Qnil ();
+  (*Vfile_coding_system_alist.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"process-coding-system-alist", Vprocess_coding_system_alist,
 	       "\nAlist to decide a coding system to use for a process I/O operation.\nThe format is ((PATTERN . VAL) ...),\nwhere PATTERN is a regular expression matching a program name,\nVAL is a coding system, a cons of coding systems, or a function symbol.\nIf VAL is a coding system, it is used for both decoding what received\nfrom the program and encoding what sent to the program.\nIf VAL is a cons of coding systems, the car part is used for decoding,\nand the cdr part is used for encoding.\nIf VAL is a function symbol, the function must return a coding system\nor a cons of coding systems which are used as above.\n\nSee also the function `find-operation-coding-system'.  ");
-  Vprocess_coding_system_alist = Qnil ();
+  (*Vprocess_coding_system_alist.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"network-coding-system-alist", Vnetwork_coding_system_alist,
 	       "\nAlist to decide a coding system to use for a network I/O operation.\nThe format is ((PATTERN . VAL) ...),\nwhere PATTERN is a regular expression matching a network service name\nor is a port number to connect to,\nVAL is a coding system, a cons of coding systems, or a function symbol.\nIf VAL is a coding system, it is used for both decoding what received\nfrom the network stream and encoding what sent to the network stream.\nIf VAL is a cons of coding systems, the car part is used for decoding,\nand the cdr part is used for encoding.\nIf VAL is a function symbol, the function must return a coding system\nor a cons of coding systems which are used as above.\n\nSee also the function `find-operation-coding-system'.  ");
-  Vnetwork_coding_system_alist = Qnil ();
+  (*Vnetwork_coding_system_alist.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"locale-coding-system", Vlocale_coding_system,
 	       " Coding system to use with system messages.\nPotentially also used for decoding keyboard input on X Windows, and is\nused for encoding standard output and error streams.  ");
-  Vlocale_coding_system = Qnil ();
+  (*Vlocale_coding_system.as_mut_ptr ()) = Qnil ();
 
   /* The eol mnemonics are reset in startup.el system-dependently.  */
   DEFVAR_LISP! (c"eol-mnemonic-unix", eol_mnemonic_unix,
 	       "\nString displayed in mode line for UNIX-like (LF) end-of-line format.  ");
-  eol_mnemonic_unix = build_string (c":".as_ptr ());
+  (*eol_mnemonic_unix.as_mut_ptr ()) = build_string (c":".as_ptr ());
 
   DEFVAR_LISP! (c"eol-mnemonic-dos", eol_mnemonic_dos,
 	       "\nString displayed in mode line for DOS-like (CRLF) end-of-line format.  ");
-  eol_mnemonic_dos = build_string (c"\\".as_ptr ());
+  (*eol_mnemonic_dos.as_mut_ptr ()) = build_string (c"\\".as_ptr ());
 
   DEFVAR_LISP! (c"eol-mnemonic-mac", eol_mnemonic_mac,
 	       "\nString displayed in mode line for MAC-like (CR) end-of-line format.  ");
-  eol_mnemonic_mac = build_string (c"/".as_ptr ());
+  (*eol_mnemonic_mac.as_mut_ptr ()) = build_string (c"/".as_ptr ());
 
   DEFVAR_LISP! (c"eol-mnemonic-undecided", eol_mnemonic_undecided,
 	       "\nString displayed in mode line when end-of-line format is not yet determined.  ");
-  eol_mnemonic_undecided = build_string (c":".as_ptr ());
+  (*eol_mnemonic_undecided.as_mut_ptr ()) = build_string (c":".as_ptr ());
 
   DEFVAR_LISP! (c"enable-character-translation", Venable_character_translation,
 	       "\nNon-nil enables character translation while encoding and decoding.  ");
-  Venable_character_translation = Qt ();
+  (*Venable_character_translation.as_mut_ptr ()) = Qt ();
 
   DEFVAR_LISP! (c"standard-translation-table-for-decode", Vstandard_translation_table_for_decode,
 	       " Table for translating characters while decoding.  ");
-  Vstandard_translation_table_for_decode = Qnil ();
+  (*Vstandard_translation_table_for_decode.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"standard-translation-table-for-encode", Vstandard_translation_table_for_encode,
 	       " Table for translating characters while encoding.  ");
-  Vstandard_translation_table_for_encode = Qnil ();
+  (*Vstandard_translation_table_for_encode.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"charset-revision-table", Vcharset_revision_table,
 	       " Alist of charsets vs revision numbers.\nWhile encoding, if a charset (car part of an element) is found,\ndesignate it with the escape sequence identifying revision (cdr part\nof the element).  ");
-  Vcharset_revision_table = Qnil ();
+  (*Vcharset_revision_table.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"default-process-coding-system", Vdefault_process_coding_system,
 	       " Cons of coding systems used for process I/O by default.\nThe car part is used for decoding a process output,\nthe cdr part is used for encoding a text to be sent to a process.  ");
-  Vdefault_process_coding_system = Qnil ();
+  (*Vdefault_process_coding_system.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"latin-extra-code-table", Vlatin_extra_code_table,
 	       "\nTable of extra Latin codes in the range 128..159 (inclusive).\nThis is a vector of length 256.\nIf Nth element is non-nil, the existence of code N in a file\n(or output of subprocess) doesn't prevent it to be detected as\na coding system of ISO 2022 variant which has a flag\n`accept-latin-extra-code' t (e.g. iso-latin-1) on reading a file\nor reading output of a subprocess.\nOnly 128th through 159th elements have a meaning.  ");
-  Vlatin_extra_code_table = make_nil_vector (256);
+  (*Vlatin_extra_code_table.as_mut_ptr ()) = make_nil_vector (256);
 
   DEFVAR_LISP! (c"select-safe-coding-system-function", Vselect_safe_coding_system_function,
 	       "\nFunction to call to select safe coding system for encoding a text.\n\nIf set, this function is called to force a user to select a proper\ncoding system which can encode the text in the case that a default\ncoding system used in each operation can't encode the text.  The\nfunction should take care that the buffer is not modified while\nthe coding system is being selected.\n\nThe default value is `select-safe-coding-system' (which see).  ");
-  Vselect_safe_coding_system_function = Qnil ();
+  (*Vselect_safe_coding_system_function.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_BOOL! (c"coding-system-require-warning", coding_system_require_warning,
 	       " Internal use only.\nIf non-nil, on writing a file, `select-safe-coding-system-function' is\ncalled even if `coding-system-for-write' is non-nil.  The command\n`universal-coding-system-argument' binds this variable to t temporarily.  ");
-  coding_system_require_warning = false;
+  (*coding_system_require_warning.as_mut_ptr ()) = false;
 
   DEFVAR_BOOL! (c"inhibit-iso-escape-detection", inhibit_iso_escape_detection,
 	       "\nIf non-nil, Emacs ignores ISO-2022 escape sequences during code detection.\n\nWhen Emacs reads text, it tries to detect how the text is encoded.\nThis code detection is sensitive to escape sequences.  If Emacs sees\na valid ISO-2022 escape sequence, it assumes the text is encoded in one\nof the ISO2022 encodings, and decodes text by the corresponding coding\nsystem (e.g. `iso-2022-7bit').\n\nHowever, there may be a case that you want to read escape sequences in\na file as is.  In such a case, you can set this variable to non-nil.\nThen the code detection will ignore any escape sequences, and no text is\ndetected as encoded in some ISO-2022 encoding.  The result is that all\nescape sequences become visible in a buffer.\n\nThe default value is nil, and it is strongly recommended not to change\nit.  That is because many Emacs Lisp source files that contain\nnon-ASCII characters are encoded by the coding system `iso-2022-7bit'\nin Emacs's distribution, and they won't be decoded correctly on\nreading if you suppress escape sequence detection.\n\nThe other way to read escape sequences in a file without decoding is\nto explicitly specify some coding system that doesn't use ISO-2022\nescape sequence (e.g., `latin-1') on reading by \\[universal-coding-system-argument].  ");
-  inhibit_iso_escape_detection = false;
+  (*inhibit_iso_escape_detection.as_mut_ptr ()) = false;
 
   DEFVAR_BOOL! (c"inhibit-null-byte-detection", inhibit_null_byte_detection,
 	       " If non-nil, Emacs ignores null bytes on code detection.\nBy default, Emacs treats it as binary data, and does not attempt to\ndecode it.  The effect is as if you specified `no-conversion' for\nreading that text.\n\nSet this to non-nil when a regular text happens to include null bytes.\nExamples are Index nodes of Info files and null-byte delimited output\nfrom GNU Find and GNU Grep.  Emacs will then ignore the null bytes and\ndecode text as usual.  ");
-  inhibit_null_byte_detection = false;
+  (*inhibit_null_byte_detection.as_mut_ptr ()) = false;
 
   DEFVAR_BOOL! (c"disable-ascii-optimization", disable_ascii_optimization,
 	       " If non-nil, Emacs does not optimize code decoder for ASCII files.\nInternal use only.  Remove after the experimental optimizer becomes stable.  ");
-  disable_ascii_optimization = false;
+  (*disable_ascii_optimization.as_mut_ptr ()) = false;
 
   DEFVAR_LISP! (c"translation-table-for-input", Vtranslation_table_for_input,
 	       " Char table for translating self-inserting characters.\nThis is applied to the result of input methods, not their input.\nSee also `keyboard-translate-table'.\n\nUse of this variable for character code unification was rendered\nobsolete in Emacs 23.1 and later, since Unicode is now the basis of\ninternal character representation.  ");
-  Vtranslation_table_for_input = Qnil ();
+  (*Vtranslation_table_for_input.as_mut_ptr ()) = Qnil ();
 
   let mut args: [Lisp_Object; coding_arg_undecided_max as usize]
     = [lisp_h_Qnil (); coding_arg_undecided_max as usize];
@@ -13734,13 +13732,13 @@ pub unsafe extern "C-unwind" fn syms_of_coding ()
   args[coding_arg_undecided_inhibit_iso_escape_detection as usize] = make_fixnum (0);
   Fdefine_coding_system_internal (coding_arg_undecided_max as isize, args.as_mut_ptr ());
 
-  setup_coding_system (Qno_conversion (), &raw mut safe_terminal_coding);
+  setup_coding_system (Qno_conversion (), safe_terminal_coding.as_mut_ptr ());
 
   {
     let mut i: c_int = 0;
     while i < coding_category_max
       {
-	Fset (AREF (Vcoding_category_table, i as isize), Qno_conversion ());
+	Fset (AREF ((*Vcoding_category_table.as_mut_ptr ()), i as isize), Qno_conversion ());
 	i += 1;
       }
   }
@@ -13759,8 +13757,8 @@ unsafe extern "C-unwind" fn reset_coding_after_pdumper_load ()
   unsafe {
   if ! dumped_with_pdumper_p ()
     { return; }
-  let mut this: *mut coding_system = femacs_array_mut_ptr (&raw mut coding_categories);
-  while this < femacs_array_mut_ptr (&raw mut coding_categories).offset (coding_category_max as isize)
+  let mut this: *mut coding_system = femacs_array_mut_ptr (coding_categories.as_mut_ptr ());
+  while this < femacs_array_mut_ptr (coding_categories.as_mut_ptr ()).offset (coding_category_max as isize)
     {
       let id: c_int = (*this).id as c_int;
       if id >= 0

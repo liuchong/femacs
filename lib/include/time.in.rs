@@ -127,7 +127,7 @@ pub mod time_decls {
     pub fn localtime_rz (tz: timezone_t, t: *const time_t, tp: *mut tm) -> *mut tm;
     pub fn mktime_z (tz: timezone_t, tp: *mut tm) -> time_t;
     /* extern char *tzname[2];  */
-    pub static mut tzname: [*mut c_char; 2];
+    pub static tzname: VmGlobal<[*mut c_char; 2]>;
   }
 
   /* time.h 841-842 / 1144-1145 (the frozen build's *generated* replacement header): gnulib's

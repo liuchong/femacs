@@ -209,9 +209,9 @@ pub mod process_objs {
   use super::*;
 
   /* True means don't run process sentinels.  This is used when exiting.  */
-  unsafe extern "C-unwind" { pub static mut inhibit_sentinels: bool; }              // process.h 265
+  unsafe extern "C-unwind" { pub static inhibit_sentinels: VmGlobal<bool>; }              // process.h 265
   /* True means that Glib clobbers Emacs SIGCHLD handler.  */
-  unsafe extern "C-unwind" { pub static mut glib_installs_sigchld_handler: bool; }  // process.h 267
+  unsafe extern "C-unwind" { pub static glib_installs_sigchld_handler: VmGlobal<bool>; }  // process.h 267
 }
 pub use self::process_objs::*;
 

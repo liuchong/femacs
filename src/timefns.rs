@@ -171,7 +171,7 @@ pub const TM_YEAR_BASE: c_int = 1900;
 
 /* C 74-78: the live arm is C 75's object-like macro; the `#else` object is carried.  */
 #[cfg (feature = "no_fixnum_timespec_hz")]
-static mut timespec_hz: Lisp_Object = lisp_h_Qnil ();
+static timespec_hz: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[cfg (not (feature = "no_fixnum_timespec_hz"))]
 macro_rules! timespec_hz { () => { make_fixnum (TIMESPEC_HZ as EMACS_INT) } }
 
@@ -179,7 +179,7 @@ macro_rules! timespec_hz { () => { make_fixnum (TIMESPEC_HZ as EMACS_INT) } }
    `#else` object of C 84.  */
 pub const TRILLION: i64 = 1000000000000;
 #[cfg (feature = "no_fixnum_trillion")]
-static mut trillion: Lisp_Object = lisp_h_Qnil ();
+static trillion: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[cfg (not (feature = "no_fixnum_trillion"))]
 macro_rules! trillion { () => { make_fixnum (TRILLION as EMACS_INT) } }
 
@@ -189,8 +189,7 @@ macro_rules! trillion { () => { make_fixnum (TRILLION as EMACS_INT) } }
 #[cfg (feature = "ztrillion_bignum_val")]
 macro_rules! ztrillion { () => { xbignum_val (trillion! ()) } }
 #[cfg (feature = "ztrillion_mpz")]
-static mut ztrillion: mpz_t =
-  [__mpz_struct { _mp_alloc: 0, _mp_size: 0, _mp_d: std::ptr::null_mut () }];
+static ztrillion: VmGlobal<mpz_t> = VmGlobal::<mpz_t>::new ([__mpz_struct { _mp_alloc: 0, _mp_size: 0, _mp_d: std::ptr::null_mut () }]);
 #[cfg (feature = "ztrillion_mpz")]
 macro_rules! NEED_ZTRILLION_INIT { () => {} }
 
@@ -310,12 +309,12 @@ unsafe fn tm_diff (a: *mut tm, b: *mut tm) -> c_int
 pub const tzeqlen: c_int = (std::mem::size_of_val (&*b"TZ=\0") - 1) as c_int;
 
 /* Time zones equivalent to current local time and to UTC, respectively.  */
-static mut local_tz: timezone_t = std::ptr::null_mut ();
+static local_tz: VmGlobal<timezone_t> = VmGlobal::<timezone_t>::new (std::ptr::null_mut ());
 /* C: `static timezone_t const utc_tz = 0;` — the port's raw pointer cannot be a non-`mut`
    static (raw pointers are not `Sync`); the cell is never written, so the `mut` is Rust's
    spelling only.  The ledger does not list this object (cinventory omits `const`-initialised
    file-scope objects).  */
-static mut utc_tz: timezone_t = std::ptr::null_mut ();
+static utc_tz: VmGlobal<timezone_t> = VmGlobal::<timezone_t>::new (std::ptr::null_mut ());
 
 unsafe fn emacs_localtime_rz (tz: timezone_t, t: *const time_t, tm: *mut tm) -> *mut tm
 {
@@ -347,7 +346,7 @@ unsafe fn xtzfree (tz: timezone_t)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  if tz != local_tz
+  if tz != (*local_tz.as_mut_ptr ())
     { tzfree (tz); }
 
   }
@@ -371,11 +370,11 @@ unsafe fn tzlookup (mut zone: Lisp_Object, settz: bool) -> timezone_t
   let mut new_tz: timezone_t;
 
   if NILP (zone)
-    { return local_tz; }
+    { return (*local_tz.as_mut_ptr ()); }
   else if BASE_EQ (zone, make_fixnum (0)) || EQ (zone, Qt ())
     {
       zone_string = c"UTC0".as_ptr ();
-      new_tz = utc_tz;
+      new_tz = (*utc_tz.as_mut_ptr ());
     }
   else
     {
@@ -467,8 +466,8 @@ unsafe fn tzlookup (mut zone: Lisp_Object, settz: bool) -> timezone_t
       /* C 328-330's `#ifdef WINDOWSNT` arm, carried.  */
       #[cfg (feature = "windowsnt")]
       { w32_fix_tzset (); }
-      let old_tz: timezone_t = local_tz;
-      local_tz = new_tz;
+      let old_tz: timezone_t = (*local_tz.as_mut_ptr ());
+      (*local_tz.as_mut_ptr ()) = new_tz;
       tzfree (old_tz);
       unblock_input ();
     }
@@ -555,7 +554,7 @@ pub const flt_radix_power_size: c_int = DBL_MANT_DIG - DBL_MIN_EXP + 1;
 
 /* A integer vector of size flt_radix_power_size.  The Pth entry
    equals FLT_RADIX**P.  */
-static mut flt_radix_power: Lisp_Object = lisp_h_Qnil ();
+static flt_radix_power: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* Return NUMERATOR / DENOMINATOR, rounded to the nearest double.
    Arguments must be Lisp integers, and DENOMINATOR must be positive.  */
@@ -572,8 +571,8 @@ unsafe fn frac_to_double (numerator: Lisp_Object, denominator: Lisp_Object) -> c
     { return (intmax_numerator / intmax_denominator) as c_double; }
 
   /* Compute number of base-FLT_RADIX digits in numerator and denominator.  */
-  let mut n: *const __mpz_struct = bignum_integer (&raw mut mpz[0], numerator);
-  let mut d: *const __mpz_struct = bignum_integer (&raw mut mpz[1], denominator);
+  let mut n: *const __mpz_struct = bignum_integer (&raw mut (*mpz.as_mut_ptr ())[0], numerator);
+  let mut d: *const __mpz_struct = bignum_integer (&raw mut (*mpz.as_mut_ptr ())[1], denominator);
   let ndig: ptrdiff_t = mpz_sizeinbase (n, FLT_RADIX) as ptrdiff_t;
   let ddig: ptrdiff_t = mpz_sizeinbase (d, FLT_RADIX) as ptrdiff_t;
 
@@ -585,20 +584,20 @@ unsafe fn frac_to_double (numerator: Lisp_Object, denominator: Lisp_Object) -> c
   let mut scale: ptrdiff_t = ddig - ndig + DBL_MANT_DIG as ptrdiff_t;
   if scale < 0
     {
-      mpz_mul_2exp (mpz[1].as_mut_ptr (), d, (- (scale * LOG2_FLT_RADIX as ptrdiff_t)) as mp_bitcnt_t);
-      d = mpz[1].as_ptr ();
+      mpz_mul_2exp ((*mpz.as_mut_ptr ())[1].as_mut_ptr (), d, (- (scale * LOG2_FLT_RADIX as ptrdiff_t)) as mp_bitcnt_t);
+      d = (*mpz.as_mut_ptr ())[1].as_ptr ();
     }
   else
     {
       /* min so we don't scale tiny numbers as if they were normalized.  */
       scale = min (scale, (flt_radix_power_size - 1) as ptrdiff_t);
 
-      mpz_mul_2exp (mpz[0].as_mut_ptr (), n, (scale * LOG2_FLT_RADIX as ptrdiff_t) as mp_bitcnt_t);
-      n = mpz[0].as_ptr ();
+      mpz_mul_2exp ((*mpz.as_mut_ptr ())[0].as_mut_ptr (), n, (scale * LOG2_FLT_RADIX as ptrdiff_t) as mp_bitcnt_t);
+      n = (*mpz.as_mut_ptr ())[0].as_ptr ();
     }
   /* ... and then divide, with quotient Q and remainder R.  */
-  let q: *mut mpz_t = &raw mut mpz[2];
-  let r: *mut mpz_t = &raw mut mpz[3];
+  let q: *mut mpz_t = &raw mut (*mpz.as_mut_ptr ())[2];
+  let r: *mut mpz_t = &raw mut (*mpz.as_mut_ptr ())[3];
   mpz_tdiv_qr ((*q).as_mut_ptr (), (*r).as_mut_ptr (), n, d);
 
   /* The amount to add to the absolute value of Q so that truncating
@@ -712,7 +711,7 @@ unsafe fn ticks_hz_to_timespec (ticks: Lisp_Object, hz: Lisp_Object) -> timespec
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
   let mut ns: c_int = 0;
-  let q: *mut mpz_t = &raw mut mpz[0];
+  let q: *mut mpz_t = &raw mut (*mpz.as_mut_ptr ())[0];
   let mut qt: *const mpz_t = q;
 
   /* Floor-divide (TICKS * TIMESPEC_HZ) by HZ,
@@ -743,7 +742,7 @@ unsafe fn ticks_hz_to_timespec (ticks: Lisp_Object, hz: Lisp_Object) -> timespec
     {
       mpz_mul_ui ((*q).as_mut_ptr (), bignum_integer (q, ticks), TIMESPEC_HZ as c_ulong);
       mpz_fdiv_q ((*q).as_mut_ptr (), (*q).as_ptr (),
-		  bignum_integer (&raw mut mpz[1], hz));
+		  bignum_integer (&raw mut (*mpz.as_mut_ptr ())[1], hz));
       ns = mpz_fdiv_q_ui ((*q).as_mut_ptr (), (*q).as_ptr (),
 			  TIMESPEC_HZ as c_ulong) as c_int;
     }
@@ -846,12 +845,12 @@ unsafe fn decode_float_time (t: c_double, cform: cform) -> c_time
       let scaled: c_double = scalbn (t, scale);
       eassert! (trunc (scaled) == scaled);
       ticks = double_to_integer (scaled);
-      hz = AREF (flt_radix_power, scale as isize);
+      hz = AREF ((*flt_radix_power.as_mut_ptr ()), scale as isize);
       if NILP (hz)
 	{
-	  mpz_ui_pow_ui (mpz[0].as_mut_ptr (), FLT_RADIX as c_ulong, scale as c_ulong);
+	  mpz_ui_pow_ui ((*mpz.as_mut_ptr ())[0].as_mut_ptr (), FLT_RADIX as c_ulong, scale as c_ulong);
 	  hz = make_integer_mpz ();
-	  ASET (flt_radix_power, scale as isize, hz);
+	  ASET ((*flt_radix_power.as_mut_ptr ()), scale as isize, hz);
 	}
     }
   return decode_ticks_hz (ticks, hz, cform);
@@ -866,15 +865,15 @@ unsafe fn ticks_hz_list4 (ticks: Lisp_Object, hz: Lisp_Object) -> Lisp_Object
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
   /* mpz[0] = floor ((ticks * trillion) / hz).  */
-  let zticks: *const __mpz_struct = bignum_integer (&raw mut mpz[0], ticks);
+  let zticks: *const __mpz_struct = bignum_integer (&raw mut (*mpz.as_mut_ptr ())[0], ticks);
   /* C 667-671: the frozen build takes the `TRILLION <= ULONG_MAX` arm; the `ztrillion`
      arm is carried (P-51).  */
   #[cfg (feature = "no_trillion_shortcut")]
-  { mpz_mul (mpz[0].as_mut_ptr (), zticks, ztrillion.as_ptr ()); }
+  { mpz_mul ((*mpz.as_mut_ptr ())[0].as_mut_ptr (), zticks, ztrillion.as_ptr ()); }
   #[cfg (not (feature = "no_trillion_shortcut"))]
-  { mpz_mul_ui (mpz[0].as_mut_ptr (), zticks, TRILLION as c_ulong); }
-  mpz_fdiv_q (mpz[0].as_mut_ptr (), mpz[0].as_ptr (),
-	      bignum_integer (&raw mut mpz[1], hz));
+  { mpz_mul_ui ((*mpz.as_mut_ptr ())[0].as_mut_ptr (), zticks, TRILLION as c_ulong); }
+  mpz_fdiv_q ((*mpz.as_mut_ptr ())[0].as_mut_ptr (), (*mpz.as_mut_ptr ())[0].as_ptr (),
+	      bignum_integer (&raw mut (*mpz.as_mut_ptr ())[1], hz));
 
   /* mpz[0] = floor (mpz[0] / trillion), with US = the high six digits of the
      12-digit remainder, and PS = the low six digits.  */
@@ -883,24 +882,24 @@ unsafe fn ticks_hz_list4 (ticks: Lisp_Object, hz: Lisp_Object) -> Lisp_Object
   let mut ps: c_int = 0;
   #[cfg (not (feature = "no_trillion_shortcut"))]
   {
-    fullps = mpz_fdiv_q_ui (mpz[0].as_mut_ptr (), mpz[0].as_ptr (), TRILLION as c_ulong);
+    fullps = mpz_fdiv_q_ui ((*mpz.as_mut_ptr ())[0].as_mut_ptr (), (*mpz.as_mut_ptr ())[0].as_ptr (), TRILLION as c_ulong);
     us = (fullps / 1000000) as c_int;
     ps = (fullps % 1000000) as c_int;
   }
   #[cfg (feature = "no_trillion_shortcut")]
   {
-    mpz_fdiv_qr (mpz[0].as_mut_ptr (), mpz[1].as_mut_ptr (), mpz[0].as_ptr (),
+    mpz_fdiv_qr ((*mpz.as_mut_ptr ())[0].as_mut_ptr (), (*mpz.as_mut_ptr ())[1].as_mut_ptr (), (*mpz.as_mut_ptr ())[0].as_ptr (),
 		 ztrillion.as_ptr ());
-    ps = mpz_fdiv_q_ui (mpz[1].as_mut_ptr (), mpz[1].as_ptr (), 1000000) as c_int;
-    us = mpz_get_ui (mpz[1].as_ptr ()) as c_int;
+    ps = mpz_fdiv_q_ui ((*mpz.as_mut_ptr ())[1].as_mut_ptr (), (*mpz.as_mut_ptr ())[1].as_ptr (), 1000000) as c_int;
+    us = mpz_get_ui ((*mpz.as_mut_ptr ())[1].as_ptr ()) as c_int;
   }
 
   /* mpz[0] = floor (mpz[0] / (1 << LO_TIME_BITS)), with LO = remainder.  */
-  let mut ulo: c_ulong = mpz_get_ui (mpz[0].as_ptr ());
-  if mpz_sgn (mpz[0].as_ptr ()) < 0
+  let mut ulo: c_ulong = mpz_get_ui ((*mpz.as_mut_ptr ())[0].as_ptr ());
+  if mpz_sgn ((*mpz.as_mut_ptr ())[0].as_ptr ()) < 0
     { ulo = ulo.wrapping_neg (); }
   let lo: c_int = (ulo & ((1 << LO_TIME_BITS) - 1)) as c_int;
-  mpz_fdiv_q_2exp (mpz[0].as_mut_ptr (), mpz[0].as_ptr (), LO_TIME_BITS as mp_bitcnt_t);
+  mpz_fdiv_q_2exp ((*mpz.as_mut_ptr ())[0].as_mut_ptr (), (*mpz.as_mut_ptr ())[0].as_ptr (), LO_TIME_BITS as mp_bitcnt_t);
 
   return list4 (make_integer_mpz (), make_fixnum (lo as EMACS_INT),
 		make_fixnum (us as EMACS_INT), make_fixnum (ps as EMACS_INT));
@@ -928,9 +927,9 @@ unsafe fn timespec_mpz (t: timespec)
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
   /* mpz[0] = sec * TIMESPEC_HZ + nsec.  */
-  mpz_set_ui (mpz[0].as_mut_ptr (), t.tv_nsec as c_ulong);
-  mpz_set_time (mpz[1].as_mut_ptr (), t.tv_sec);
-  mpz_addmul_ui (mpz[0].as_mut_ptr (), mpz[1].as_ptr (), TIMESPEC_HZ as c_ulong);
+  mpz_set_ui ((*mpz.as_mut_ptr ())[0].as_mut_ptr (), t.tv_nsec as c_ulong);
+  mpz_set_time ((*mpz.as_mut_ptr ())[1].as_mut_ptr (), t.tv_sec);
+  mpz_addmul_ui ((*mpz.as_mut_ptr ())[0].as_mut_ptr (), (*mpz.as_mut_ptr ())[1].as_ptr (), TIMESPEC_HZ as c_ulong);
 
   }
 }
@@ -1028,16 +1027,16 @@ unsafe fn ticks_hz_hz_ticks (mut t: ticks_hz, mut hz: Lisp_Object) -> Lisp_Objec
     { invalid_hz (hz); }
 
   /* Fall back on bignum arithmetic.  */
-  let zticks: *const __mpz_struct = bignum_integer (&raw mut mpz[0], t.ticks);
+  let zticks: *const __mpz_struct = bignum_integer (&raw mut (*mpz.as_mut_ptr ())[0], t.ticks);
   if FASTER_TIMEFNS != 0 && FIXNUMP (hz) && (XFIXNUM (hz) as c_ulong) <= ULONG_MAX
-    { mpz_mul_ui (mpz[0].as_mut_ptr (), zticks, XFIXNUM (hz) as c_ulong); }
+    { mpz_mul_ui ((*mpz.as_mut_ptr ())[0].as_mut_ptr (), zticks, XFIXNUM (hz) as c_ulong); }
   else
-    { mpz_mul (mpz[0].as_mut_ptr (), zticks, bignum_integer (&raw mut mpz[1], hz)); }
+    { mpz_mul ((*mpz.as_mut_ptr ())[0].as_mut_ptr (), zticks, bignum_integer (&raw mut (*mpz.as_mut_ptr ())[1], hz)); }
   if FASTER_TIMEFNS != 0 && FIXNUMP (t.hz) && (XFIXNUM (t.hz) as c_ulong) <= ULONG_MAX
-    { mpz_fdiv_q_ui (mpz[0].as_mut_ptr (), mpz[0].as_ptr (), XFIXNUM (t.hz) as c_ulong); }
+    { mpz_fdiv_q_ui ((*mpz.as_mut_ptr ())[0].as_mut_ptr (), (*mpz.as_mut_ptr ())[0].as_ptr (), XFIXNUM (t.hz) as c_ulong); }
   else
-    { mpz_fdiv_q (mpz[0].as_mut_ptr (), mpz[0].as_ptr (),
-		  bignum_integer (&raw mut mpz[1], t.hz)); }
+    { mpz_fdiv_q ((*mpz.as_mut_ptr ())[0].as_mut_ptr (), (*mpz.as_mut_ptr ())[0].as_ptr (),
+		  bignum_integer (&raw mut (*mpz.as_mut_ptr ())[1], t.hz)); }
   return make_integer_mpz ();
 
   }
@@ -1059,9 +1058,9 @@ unsafe fn ticks_hz_seconds (t: ticks_hz) -> Lisp_Object
 			  - ((XFIXNUM (t.ticks) % XFIXNUM (t.hz) < 0) as EMACS_INT)); }
 
   /* For speed, inline what ticks_hz_hz_ticks would do.  */
-  mpz_fdiv_q (mpz[0].as_mut_ptr (),
-	      bignum_integer (&raw mut mpz[0], t.ticks),
-	      bignum_integer (&raw mut mpz[1], t.hz));
+  mpz_fdiv_q ((*mpz.as_mut_ptr ())[0].as_mut_ptr (),
+	      bignum_integer (&raw mut (*mpz.as_mut_ptr ())[0], t.ticks),
+	      bignum_integer (&raw mut (*mpz.as_mut_ptr ())[1], t.hz));
   return make_integer_mpz ();
 
   }
@@ -1073,7 +1072,7 @@ pub unsafe extern "C-unwind" fn make_lisp_time (t: timespec) -> Lisp_Object
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  if current_time_list
+  if (*current_time_list.as_mut_ptr ())
     {
       let s: time_t = t.tv_sec;
       let ns: c_int = t.tv_nsec as c_int;
@@ -1185,10 +1184,10 @@ unsafe fn decode_time_components (high: Lisp_Object, low: Lisp_Object,
   if ! (INTEGERP (high) && INTEGERP (low))
     { return err_time { err: EINVAL, time: std::mem::zeroed () }; }
 
-  let s: *mut mpz_t = &raw mut mpz[1];
+  let s: *mut mpz_t = &raw mut (*mpz.as_mut_ptr ())[1];
   mpz_set_intmax ((*s).as_mut_ptr (), s_from_us_ps as intmax_t);
-  mpz_add ((*s).as_mut_ptr (), (*s).as_ptr (), bignum_integer (&raw mut mpz[0], low));
-  mpz_addmul_ui ((*s).as_mut_ptr (), bignum_integer (&raw mut mpz[0], high),
+  mpz_add ((*s).as_mut_ptr (), (*s).as_ptr (), bignum_integer (&raw mut (*mpz.as_mut_ptr ())[0], low));
+  mpz_addmul_ui ((*s).as_mut_ptr (), bignum_integer (&raw mut (*mpz.as_mut_ptr ())[0], high),
 		 (1 << LO_TIME_BITS) as c_ulong);
 
   if BASE_EQ (hz, trillion! ())
@@ -1198,23 +1197,23 @@ unsafe fn decode_time_components (high: Lisp_Object, low: Lisp_Object,
       #[cfg (not (feature = "no_trillion_shortcut"))]
       {
 	let i: c_ulong = us as c_ulong;
-	mpz_set_ui (mpz[0].as_mut_ptr (), i * 1000000 + ps as c_ulong);
-	mpz_addmul_ui (mpz[0].as_mut_ptr (), (*s).as_ptr (), TRILLION as c_ulong);
+	mpz_set_ui ((*mpz.as_mut_ptr ())[0].as_mut_ptr (), i * 1000000 + ps as c_ulong);
+	mpz_addmul_ui ((*mpz.as_mut_ptr ())[0].as_mut_ptr (), (*s).as_ptr (), TRILLION as c_ulong);
       }
       #[cfg (feature = "no_trillion_shortcut")]
       {
 	let i: intmax_t = us as intmax_t;
-	mpz_set_intmax (mpz[0].as_mut_ptr (), i * 1000000 + ps as intmax_t);
-	mpz_addmul (mpz[0].as_mut_ptr (), (*s).as_ptr (), ztrillion.as_ptr ());
+	mpz_set_intmax ((*mpz.as_mut_ptr ())[0].as_mut_ptr (), i * 1000000 + ps as intmax_t);
+	mpz_addmul ((*mpz.as_mut_ptr ())[0].as_mut_ptr (), (*s).as_ptr (), ztrillion.as_ptr ());
       }
     }
   else if BASE_EQ (hz, make_fixnum (1000000))
     {
-      mpz_set_ui (mpz[0].as_mut_ptr (), us as c_ulong);
-      mpz_addmul_ui (mpz[0].as_mut_ptr (), (*s).as_ptr (), 1000000);
+      mpz_set_ui ((*mpz.as_mut_ptr ())[0].as_mut_ptr (), us as c_ulong);
+      mpz_addmul_ui ((*mpz.as_mut_ptr ())[0].as_mut_ptr (), (*s).as_ptr (), 1000000);
     }
   else
-    { mpz_swap (mpz[0].as_mut_ptr (), (*s).as_mut_ptr ()); }
+    { mpz_swap ((*mpz.as_mut_ptr ())[0].as_mut_ptr (), (*s).as_mut_ptr ()); }
 
   let ticks: Lisp_Object = make_integer_mpz ();
   return err_time { err: 0, time: decode_ticks_hz (ticks, hz, cform) };
@@ -1415,9 +1414,9 @@ unsafe fn lispint_arith (a: Lisp_Object, b: Lisp_Object, subtract: bool) -> Lisp
       if (eabs! (XFIXNUM (b)) as c_ulong) <= ULONG_MAX
 	{
 	  if (XFIXNUM (b) < 0) == subtract
-	    { mpz_add_ui (mpz[0].as_mut_ptr (), xbignum_val (a), eabs! (XFIXNUM (b)) as c_ulong); }
+	    { mpz_add_ui ((*mpz.as_mut_ptr ())[0].as_mut_ptr (), xbignum_val (a), eabs! (XFIXNUM (b)) as c_ulong); }
 	  else
-	    { mpz_sub_ui (mpz[0].as_mut_ptr (), xbignum_val (a), eabs! (XFIXNUM (b)) as c_ulong); }
+	    { mpz_sub_ui ((*mpz.as_mut_ptr ())[0].as_mut_ptr (), xbignum_val (a), eabs! (XFIXNUM (b)) as c_ulong); }
 	  mpz_done = true;
 	}
     }
@@ -1426,11 +1425,11 @@ unsafe fn lispint_arith (a: Lisp_Object, b: Lisp_Object, subtract: bool) -> Lisp
   if !mpz_done
     {
       if subtract
-	{ mpz_sub (mpz[0].as_mut_ptr (), bignum_integer (&raw mut mpz[0], a),
-		   bignum_integer (&raw mut mpz[1], b)); }
+	{ mpz_sub ((*mpz.as_mut_ptr ())[0].as_mut_ptr (), bignum_integer (&raw mut (*mpz.as_mut_ptr ())[0], a),
+		   bignum_integer (&raw mut (*mpz.as_mut_ptr ())[1], b)); }
       else
-	{ mpz_add (mpz[0].as_mut_ptr (), bignum_integer (&raw mut mpz[0], a),
-		   bignum_integer (&raw mut mpz[1], b)); }
+	{ mpz_add ((*mpz.as_mut_ptr ())[0].as_mut_ptr (), bignum_integer (&raw mut (*mpz.as_mut_ptr ())[0], a),
+		   bignum_integer (&raw mut (*mpz.as_mut_ptr ())[1], b)); }
     }
   return make_integer_mpz ();
 
@@ -1459,31 +1458,31 @@ unsafe fn time_arith (a: Lisp_Object, b: Lisp_Object, subtract: bool) -> Lisp_Ob
 	 Start by computing da and db, their minimum (which will be
 	 needed later) and the iticks temporary that will become
 	 available once only their minimum is needed.  */
-      let da: *const __mpz_struct = bignum_integer (&raw mut mpz[1], ta.hz);
-      let db: *const __mpz_struct = bignum_integer (&raw mut mpz[2], tb.hz);
+      let da: *const __mpz_struct = bignum_integer (&raw mut (*mpz.as_mut_ptr ())[1], ta.hz);
+      let db: *const __mpz_struct = bignum_integer (&raw mut (*mpz.as_mut_ptr ())[2], tb.hz);
       let da_lt_db: bool = mpz_cmp (da, db) < 0;
       let hzmin: *const __mpz_struct = if da_lt_db { da } else { db };
-      let iticks: *mut mpz_t = &raw mut mpz[if da_lt_db { 2 } else { 1 }];
+      let iticks: *mut mpz_t = &raw mut (*mpz.as_mut_ptr ())[if da_lt_db { 2 } else { 1 }];
 
       /* The plan is to compute (na * (db/g) + nb * (da/g)) / lcm (da, db)
 	 where g = gcd (da, db).  Start by computing g.  */
-      let g: *mut mpz_t = &raw mut mpz[3];
+      let g: *mut mpz_t = &raw mut (*mpz.as_mut_ptr ())[3];
       mpz_gcd ((*g).as_mut_ptr (), da, db);
 
       /* fa = da/g, fb = db/g.  */
-      let fa: *mut mpz_t = &raw mut mpz[4];
-      let fb: *mut mpz_t = &raw mut mpz[3];
+      let fa: *mut mpz_t = &raw mut (*mpz.as_mut_ptr ())[4];
+      let fb: *mut mpz_t = &raw mut (*mpz.as_mut_ptr ())[3];
       mpz_divexact ((*fa).as_mut_ptr (), da, (*g).as_ptr ());
       mpz_divexact ((*fb).as_mut_ptr (), db, (*g).as_ptr ());
 
       /* ihz = fa * db.  This is equal to lcm (da, db).  */
-      let ihz: *mut mpz_t = &raw mut mpz[0];
+      let ihz: *mut mpz_t = &raw mut (*mpz.as_mut_ptr ())[0];
       mpz_mul ((*ihz).as_mut_ptr (), (*fa).as_ptr (), db);
 
       /* iticks = (fb * na) OP (fa * nb), where OP is + or -.  */
       let na: *const __mpz_struct = bignum_integer (iticks, ta.ticks);
       mpz_mul ((*iticks).as_mut_ptr (), (*fb).as_ptr (), na);
-      let nb: *const __mpz_struct = bignum_integer (&raw mut mpz[3], tb.ticks);
+      let nb: *const __mpz_struct = bignum_integer (&raw mut (*mpz.as_mut_ptr ())[3], tb.ticks);
       if subtract
 	{ mpz_submul ((*iticks).as_mut_ptr (), (*fa).as_ptr (), nb); }
       else
@@ -1492,7 +1491,7 @@ unsafe fn time_arith (a: Lisp_Object, b: Lisp_Object, subtract: bool) -> Lisp_Ob
       /* Normalize iticks/ihz by dividing both numerator and
 	 denominator by ig = gcd (iticks, ihz).  For speed, though,
 	 skip this division if ihz = 1.  */
-      let ig: *mut mpz_t = &raw mut mpz[3];
+      let ig: *mut mpz_t = &raw mut (*mpz.as_mut_ptr ())[3];
       mpz_gcd ((*ig).as_mut_ptr (), (*iticks).as_ptr (), (*ihz).as_ptr ());
       if FASTER_TIMEFNS == 0 || mpz_cmp_ui ((*ig).as_ptr (), 1) > 0
 	{
@@ -1512,7 +1511,7 @@ unsafe fn time_arith (a: Lisp_Object, b: Lisp_Object, subtract: bool) -> Lisp_Ob
 		 value and is at least hzmin, calculating such a
 		 denominator would be too expensive because it would
 		 require testing multisets of factors of lcm (da, db).  */
-	      let rescale: *mut mpz_t = &raw mut mpz[3];
+	      let rescale: *mut mpz_t = &raw mut (*mpz.as_mut_ptr ())[3];
 	      mpz_cdiv_q ((*rescale).as_mut_ptr (), hzmin, (*ihz).as_ptr ());
 	      mpz_mul ((*iticks).as_mut_ptr (), (*iticks).as_ptr (), (*rescale).as_ptr ());
 	      mpz_mul ((*ihz).as_mut_ptr (), (*ihz).as_ptr (), (*rescale).as_ptr ());
@@ -1521,7 +1520,7 @@ unsafe fn time_arith (a: Lisp_Object, b: Lisp_Object, subtract: bool) -> Lisp_Ob
 
       /* mpz[0] and iticks now correspond to the (HZ . TICKS) pair.  */
       hz = make_integer_mpz ();
-      mpz_swap (mpz[0].as_mut_ptr (), (*iticks).as_mut_ptr ());
+      mpz_swap ((*mpz.as_mut_ptr ())[0].as_mut_ptr (), (*iticks).as_mut_ptr ());
       ticks = make_integer_mpz ();
     }
 
@@ -1532,7 +1531,7 @@ unsafe fn time_arith (a: Lisp_Object, b: Lisp_Object, subtract: bool) -> Lisp_Ob
      for backward compatibility.  */
   return if BASE_EQ (hz, make_fixnum (1))
     { ticks }
-    else if !current_time_list
+    else if !(*current_time_list.as_mut_ptr ())
 	 || (CONSP (a) && !CONSP (XCDR (a)))
 	 || (CONSP (b) && !CONSP (XCDR (b)))
 	 || !trillion_factor (hz)
@@ -1592,17 +1591,17 @@ unsafe fn time_cmp (a: Lisp_Object, b: Lisp_Object) -> EMACS_INT
      ATICKS * BHZ to BTICKS * AHZ.  */
   let ta: ticks_hz = decode_lisp_time (a, CFORM_TICKS_HZ).th;
   let tb: ticks_hz = decode_lisp_time (b, CFORM_TICKS_HZ).th;
-  let mut za: *const __mpz_struct = bignum_integer (&raw mut mpz[0], ta.ticks);
-  let mut zb: *const __mpz_struct = bignum_integer (&raw mut mpz[1], tb.ticks);
+  let mut za: *const __mpz_struct = bignum_integer (&raw mut (*mpz.as_mut_ptr ())[0], ta.ticks);
+  let mut zb: *const __mpz_struct = bignum_integer (&raw mut (*mpz.as_mut_ptr ())[1], tb.ticks);
   if ! (FASTER_TIMEFNS != 0 && BASE_EQ (ta.hz, tb.hz))
     {
       /* This could be sped up by looking at the signs, sizes, and
 	 number of bits of the two sides; see how GMP does mpq_cmp.
 	 It may not be worth the trouble here, though.  */
-      mpz_mul (mpz[0].as_mut_ptr (), za, bignum_integer (&raw mut mpz[2], tb.hz));
-      mpz_mul (mpz[1].as_mut_ptr (), zb, bignum_integer (&raw mut mpz[2], ta.hz));
-      za = mpz[0].as_ptr ();
-      zb = mpz[1].as_ptr ();
+      mpz_mul ((*mpz.as_mut_ptr ())[0].as_mut_ptr (), za, bignum_integer (&raw mut (*mpz.as_mut_ptr ())[2], tb.hz));
+      mpz_mul ((*mpz.as_mut_ptr ())[1].as_mut_ptr (), zb, bignum_integer (&raw mut (*mpz.as_mut_ptr ())[2], ta.hz));
+      za = (*mpz.as_mut_ptr ())[0].as_ptr ();
+      zb = (*mpz.as_mut_ptr ())[1].as_ptr ();
     }
   return mpz_cmp (za, zb) as EMACS_INT;
 
@@ -1730,7 +1729,7 @@ unsafe fn format_time_string (format: *const c_char, formatlen: ptrdiff_t,
     { time_error (*errno ()); }
   AUTO_STRING_WITH_LEN! (bufstring, buf, len);
   let result: Lisp_Object = code_convert_string_norecord (bufstring,
-							  Vlocale_coding_system, false);
+							  (*Vlocale_coding_system.as_mut_ptr ()), false);
   SAFE_FREE! (sa_count, sa_mark);
   return result;
 
@@ -1748,7 +1747,7 @@ DEFUN! ("format-time-string", Fformat_time_string, Sformat_time_string, 1, 3, 0,
   /* C reassigns its parameter; the port shadows it (the DEFUN! macro's parameters are
      immutable).  */
   let format_string: Lisp_Object = code_convert_string_norecord (format_string,
-								 Vlocale_coding_system, true);
+								 (*Vlocale_coding_system.as_mut_ptr ()), true);
   return format_time_string (SSDATA (format_string), SBYTES (format_string),
 			     t, zone, &mut tm);
 });
@@ -1799,8 +1798,8 @@ DEFUN! ("decode-time", Fdecode_time, Sdecode_time, 0, 3, 0,
     }
   else
     {
-      mpz_set_si (mpz[0].as_mut_ptr (), local_tm.tm_year as c_long);
-      mpz_add_ui (mpz[0].as_mut_ptr (), mpz[0].as_ptr (), TM_YEAR_BASE as c_ulong);
+      mpz_set_si ((*mpz.as_mut_ptr ())[0].as_mut_ptr (), local_tm.tm_year as c_long);
+      mpz_add_ui ((*mpz.as_mut_ptr ())[0].as_mut_ptr (), (*mpz.as_mut_ptr ())[0].as_ptr (), TM_YEAR_BASE as c_ulong);
       year = make_integer_mpz ();
     }
 
@@ -1834,10 +1833,10 @@ DEFUN! ("decode-time", Fdecode_time, Sdecode_time, 0, 3, 0,
 	{ ticks = make_int (n); }
       else
 	{
-	  mpz_fdiv_r (mpz[0].as_mut_ptr (),
-		      bignum_integer (&raw mut mpz[0], th.ticks),
-		      bignum_integer (&raw mut mpz[1], hz));
-	  mpz_addmul_ui (mpz[0].as_mut_ptr (), bignum_integer (&raw mut mpz[1], hz),
+	  mpz_fdiv_r ((*mpz.as_mut_ptr ())[0].as_mut_ptr (),
+		      bignum_integer (&raw mut (*mpz.as_mut_ptr ())[0], th.ticks),
+		      bignum_integer (&raw mut (*mpz.as_mut_ptr ())[1], hz));
+	  mpz_addmul_ui ((*mpz.as_mut_ptr ())[0].as_mut_ptr (), bignum_integer (&raw mut (*mpz.as_mut_ptr ())[1], hz),
 			 local_tm.tm_sec as c_ulong);
 	  ticks = make_integer_mpz ();
 	}
@@ -1883,11 +1882,11 @@ unsafe fn check_tm_member (obj: Lisp_Object, offset: c_int) -> c_int
   else
     {
       CHECK_INTEGER (obj);
-      mpz_sub_ui (mpz[0].as_mut_ptr (), bignum_integer (&raw mut mpz[0], obj),
+      mpz_sub_ui ((*mpz.as_mut_ptr ())[0].as_mut_ptr (), bignum_integer (&raw mut (*mpz.as_mut_ptr ())[0], obj),
 		  offset as c_ulong);
-      if mpz_fits_sint_p (mpz[0].as_ptr ()) == 0
+      if mpz_fits_sint_p ((*mpz.as_mut_ptr ())[0].as_ptr ()) == 0
 	{ time_overflow (); }
-      return mpz_get_si (mpz[0].as_ptr ()) as c_int;
+      return mpz_get_si ((*mpz.as_mut_ptr ())[0].as_ptr ()) as c_int;
     }
 
   }
@@ -1964,11 +1963,11 @@ DEFUN! ("encode-time", Fencode_time, Sencode_time, 1, MANY, 0,
     }
   else
     {
-      mpz_fdiv_qr (mpz[0].as_mut_ptr (), mpz[1].as_mut_ptr (),
-		   bignum_integer (&raw mut mpz[0], th.ticks),
-		   bignum_integer (&raw mut mpz[1], hz));
+      mpz_fdiv_qr ((*mpz.as_mut_ptr ())[0].as_mut_ptr (), (*mpz.as_mut_ptr ())[1].as_mut_ptr (),
+		   bignum_integer (&raw mut (*mpz.as_mut_ptr ())[0], th.ticks),
+		   bignum_integer (&raw mut (*mpz.as_mut_ptr ())[1], hz));
       sec = make_integer_mpz ();
-      mpz_swap (mpz[0].as_mut_ptr (), mpz[1].as_mut_ptr ());
+      mpz_swap ((*mpz.as_mut_ptr ())[0].as_mut_ptr (), (*mpz.as_mut_ptr ())[1].as_mut_ptr ());
       subsecticks = make_integer_mpz ();
     }
   tm.tm_sec  = check_tm_member (sec, 0);
@@ -1987,7 +1986,7 @@ DEFUN! ("encode-time", Fencode_time, Sencode_time, 1, MANY, 0,
     { time_error (*errno ()); }
 
   if BASE_EQ (hz, make_fixnum (1))
-    { return if current_time_list { list2 (hi_time (value), lo_time (value)) }
+    { return if (*current_time_list.as_mut_ptr ()) { list2 (hi_time (value), lo_time (value)) }
 	     else { INT_TO_INTEGER (value as EMACS_INT) }; }
   else
     {
@@ -2007,7 +2006,7 @@ DEFUN! ("time-convert", Ftime_convert, Stime_convert, 1, 2, 0,
      well, since we accept it as input?  */
   let t: ticks_hz = decode_lisp_time (time, CFORM_TICKS_HZ).th;
   let mut form: Lisp_Object = if !NILP (form) { maybe_remove_pos_from_symbol (form) }
-			      else if current_time_list { Qlist () } else { Qt () };
+			      else if (*current_time_list.as_mut_ptr ()) { Qlist () } else { Qt () };
   if BASE_EQ (form, Qlist ())
     { return ticks_hz_list4 (t.ticks, t.hz); }
   if BASE_EQ (form, Qinteger ())
@@ -2145,7 +2144,7 @@ DEFUN! ("set-time-zone-rule", Fset_time_zone_rule, Sset_time_zone_rule, 1, 1, 0,
 /* A buffer holding a string of the form "TZ=value", intended
    to be part of the environment.  If TZ is supposed to be unset,
    the buffer string is "tZ=".  */
-static mut tzvalbuf: *mut c_char = std::ptr::null_mut ();
+static tzvalbuf: VmGlobal<*mut c_char> = VmGlobal::<*mut c_char>::new (std::ptr::null_mut ());
 
 /* Get the local time zone rule.  */
 #[unsafe(no_mangle)]
@@ -2155,7 +2154,7 @@ pub unsafe extern "C-unwind" fn emacs_getenv_TZ () -> *mut c_char
   unsafe {
   /* C 1997-2001: the frozen build takes `#ifndef MSDOS`; the `#else` arm is carried.  */
   #[cfg (not (feature = "msdos"))]
-  { return if *tzvalbuf == b'T' as c_char { tzvalbuf.add (tzeqlen as usize) }
+  { return if *(*tzvalbuf.as_mut_ptr ()) == b'T' as c_char { (*tzvalbuf.as_mut_ptr ()).add (tzeqlen as usize) }
 	   else { std::ptr::null_mut () }; }
   #[cfg (feature = "msdos")]
   { return getenv (c"TZ".as_ptr ()); }
@@ -2179,20 +2178,20 @@ pub unsafe extern "C-unwind" fn emacs_setenv_TZ (tzstring: *const c_char) -> c_i
      carried.  */
   #[cfg (not (feature = "msdos"))]
   {
-    static mut tzvalbufsize: ptrdiff_t = 0;
+    static tzvalbufsize: VmGlobal<ptrdiff_t> = VmGlobal::<ptrdiff_t>::new (0);
     let tzstringlen: ptrdiff_t = if !tzstring.is_null () { strlen (tzstring) as ptrdiff_t } else { 0 };
-    let mut tzval: *mut c_char = tzvalbuf;
-    let new_tzvalbuf: bool = tzvalbufsize <= (tzeqlen as ptrdiff_t) + tzstringlen;
+    let mut tzval: *mut c_char = (*tzvalbuf.as_mut_ptr ());
+    let new_tzvalbuf: bool = (*tzvalbufsize.as_mut_ptr ()) <= (tzeqlen as ptrdiff_t) + tzstringlen;
 
     if new_tzvalbuf
       {
 	/* Do not attempt to free the old tzvalbuf, since another thread
 	   may be using it.  In practice, the first allocation is large
 	   enough and memory does not leak.  */
-	tzval = xpalloc (std::ptr::null_mut (), &raw mut tzvalbufsize,
-			 (tzeqlen as ptrdiff_t) + tzstringlen - tzvalbufsize + 1,
+	tzval = xpalloc (std::ptr::null_mut (), tzvalbufsize.as_mut_ptr (),
+			 (tzeqlen as ptrdiff_t) + tzstringlen - (*tzvalbufsize.as_mut_ptr ()) + 1,
 			 -1, 1) as *mut c_char;
-	tzvalbuf = tzval;
+	(*tzvalbuf.as_mut_ptr ()) = tzval;
 	*tzval.add (1) = b'Z' as c_char;
 	*tzval.add (2) = b'=' as c_char;
       }
@@ -2265,7 +2264,7 @@ unsafe extern "C-unwind" fn syms_of_timefns_for_pdumper ()
 /* C's DEFVAR_BOOL variable lives in the generated globals.h in C; the port's globals.rs
    mirrors it as a declaration and the owning unit defines it (P-21/§3.29).  */
 #[unsafe(no_mangle)]
-pub static mut current_time_list: bool = false;
+pub static current_time_list: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_timefns ()
@@ -2276,38 +2275,38 @@ pub unsafe extern "C-unwind" fn syms_of_timefns ()
      live arm); both are carried (P-51).  */
   #[cfg (feature = "no_fixnum_timespec_hz")]
   {
-    timespec_hz = make_int (TIMESPEC_HZ as intmax_t);
-    staticpro (&raw const timespec_hz);
+    (*timespec_hz.as_mut_ptr ()) = make_int (TIMESPEC_HZ as intmax_t);
+    staticpro (timespec_hz.as_ptr ());
   }
   #[cfg (feature = "no_fixnum_trillion")]
   {
-    trillion = make_int (1000000000000);
-    staticpro (&raw const trillion);
+    (*trillion.as_mut_ptr ()) = make_int (1000000000000);
+    staticpro (trillion.as_ptr ());
   }
 
   DEFSYM! (Qencode_time, c"encode-time");
 
   DEFVAR_BOOL! (c"current-time-list", current_time_list,
 		"Whether `current-time' should return list or (TICKS . HZ) form.\n\nThis boolean variable is a transition aid.  If nil (the default),\n`current-time' and related functions return timestamps in (TICKS . HZ)\nform.  If t, these functions return in list form, typically (HIGH LOW\nUSEC PSEC), for behavior compatible with previous Emacs versions.  As it\nis merely a transition aid, this variable is planned to be removed in\nsome future Emacs version.  ");
-  current_time_list = CURRENT_TIME_LIST;
+  (*current_time_list.as_mut_ptr ()) = CURRENT_TIME_LIST;
 
-  defsubr (&raw mut Scurrent_time);
-  defsubr (&raw mut Scurrent_cpu_time);
-  defsubr (&raw mut Stime_convert);
-  defsubr (&raw mut Stime_add);
-  defsubr (&raw mut Stime_subtract);
-  defsubr (&raw mut Stime_less_p);
-  defsubr (&raw mut Stime_equal_p);
-  defsubr (&raw mut Sformat_time_string);
-  defsubr (&raw mut Sfloat_time);
-  defsubr (&raw mut Sdecode_time);
-  defsubr (&raw mut Sencode_time);
-  defsubr (&raw mut Scurrent_time_string);
-  defsubr (&raw mut Scurrent_time_zone);
-  defsubr (&raw mut Sset_time_zone_rule);
+  defsubr (Scurrent_time.as_mut_ptr ());
+  defsubr (Scurrent_cpu_time.as_mut_ptr ());
+  defsubr (Stime_convert.as_mut_ptr ());
+  defsubr (Stime_add.as_mut_ptr ());
+  defsubr (Stime_subtract.as_mut_ptr ());
+  defsubr (Stime_less_p.as_mut_ptr ());
+  defsubr (Stime_equal_p.as_mut_ptr ());
+  defsubr (Sformat_time_string.as_mut_ptr ());
+  defsubr (Sfloat_time.as_mut_ptr ());
+  defsubr (Sdecode_time.as_mut_ptr ());
+  defsubr (Sencode_time.as_mut_ptr ());
+  defsubr (Scurrent_time_string.as_mut_ptr ());
+  defsubr (Scurrent_time_zone.as_mut_ptr ());
+  defsubr (Sset_time_zone_rule.as_mut_ptr ());
 
-  flt_radix_power = make_nil_vector (flt_radix_power_size as isize);
-  staticpro (&raw const flt_radix_power);
+  (*flt_radix_power.as_mut_ptr ()) = make_nil_vector (flt_radix_power_size as isize);
+  staticpro (flt_radix_power.as_ptr ());
 
   #[cfg (feature = "ztrillion_mpz")]
   pdumper_do_now_and_after_load (Some (syms_of_timefns_for_pdumper));

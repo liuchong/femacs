@@ -241,9 +241,9 @@ pub struct charset_table
 
 unsafe extern "C-unwind" {
   /// C: charset.h 265: `extern struct charset_table charset_table;` (charset.c defines it).
-  pub static mut charset_table: charset_table;
+  pub static charset_table: VmGlobal<charset_table>;
   /// C: charset.h 546: `extern int charset_unicode;` (charset.c defines it).
-  pub static mut charset_unicode: c_int;
+  pub static charset_unicode: VmGlobal<c_int>;
   /// C: charset.h 554: `extern struct charset *char_charset (int, Lisp_Object, unsigned *);`
   pub fn char_charset (c: c_int, charset_list: Lisp_Object, code: *mut c_uint)
                        -> *mut charset;
@@ -271,8 +271,8 @@ unsafe fn charset_attributes_getter (charset: *mut charset) -> Lisp_Object
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  eassert! (ASIZE (charset_table.attributes_table) == charset_table.size as isize);
-  let attrs: Lisp_Object = AREF (charset_table.attributes_table, (*charset).id as isize);
+  eassert! (ASIZE ((*charset_table.as_mut_ptr ()).attributes_table) == (*charset_table.as_mut_ptr ()).size as isize);
+  let attrs: Lisp_Object = AREF ((*charset_table.as_mut_ptr ()).attributes_table, (*charset).id as isize);
   eassert! (XFIXNUM (CHARSET_ATTR_ID! (attrs)) == (*charset).id as isize);
   return attrs;
 
@@ -280,7 +280,7 @@ unsafe fn charset_attributes_getter (charset: *mut charset) -> Lisp_Object
 }
 
 // charset.h 267: `#define CHARSET_FROM_ID(id) (charset_table.start + (id))`.
-macro_rules! CHARSET_FROM_ID { ($id:expr) => { charset_table.start.offset (($id) as isize) }; }
+macro_rules! CHARSET_FROM_ID { ($id:expr) => { (*charset_table.as_mut_ptr ()).start.offset (($id) as isize) }; }
 // charset.h 316: `#define CHARSET_ID(charset) ((charset)->id)`.
 macro_rules! CHARSET_ID { ($charset:expr) => { (*$charset).id }; }
 
@@ -333,11 +333,11 @@ macro_rules! INT_DIVIDE_OVERFLOW {
    CCL_PROG is already resolved to index numbers or not, UPDATEDP (t
    or nil) is the flat to tell if the CCL program is updated after it
    was once used.  */
-static mut Vccl_program_table: Lisp_Object = lisp_h_Qnil ();
+static Vccl_program_table: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* Return a hash table of id number ID.  */
 macro_rules! GET_HASH_TABLE {
-  ($id:expr) => { XHASH_TABLE (XCDR (AREF (Vtranslation_hash_table_vector, ($id) as isize))) };
+  ($id:expr) => { XHASH_TABLE (XCDR (AREF ((*Vtranslation_hash_table_vector.as_mut_ptr ()), ($id) as isize))) };
 }
 
 /* CCL (Code Conversion Language) is a simple language which has
@@ -883,13 +883,12 @@ pub struct tr_stack
   pub orig_val: c_int,
 }
 
-static mut mapping_stack: [tr_stack; MAX_MAP_SET_LEVEL as usize] =
-  [tr_stack { rest_length: 0, orig_val: 0 }; MAX_MAP_SET_LEVEL as usize];
-static mut mapping_stack_pointer: *mut tr_stack = std::ptr::null_mut ();
+static mapping_stack: VmGlobal<[tr_stack; MAX_MAP_SET_LEVEL as usize]> = VmGlobal::<[tr_stack; MAX_MAP_SET_LEVEL as usize]>::new ([tr_stack { rest_length: 0, orig_val: 0 }; MAX_MAP_SET_LEVEL as usize]);
+static mapping_stack_pointer: VmGlobal<*mut tr_stack> = VmGlobal::<*mut tr_stack>::new (std::ptr::null_mut ());
 
 /* If this variable is non-zero, it indicates the stack_idx
    of immediately called by CCL_MapMultiple. */
-static mut stack_idx_of_map_multiple: c_int = 0;
+static stack_idx_of_map_multiple: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 
 
 /* C 594-604's `PUSH_MAPPING_STACK (restlen, orig)`; C's `do { … } while (0)` is a block
@@ -898,9 +897,9 @@ static mut stack_idx_of_map_multiple: c_int = 0;
 macro_rules! PUSH_MAPPING_STACK {
   ($restlen:expr, $orig:expr) => {
     {
-      (*mapping_stack_pointer).rest_length = ($restlen);
-      (*mapping_stack_pointer).orig_val = ($orig);
-      mapping_stack_pointer = mapping_stack_pointer.offset (1);
+      (*(*mapping_stack_pointer.as_mut_ptr ())).rest_length = ($restlen);
+      (*(*mapping_stack_pointer.as_mut_ptr ())).orig_val = ($orig);
+      (*mapping_stack_pointer.as_mut_ptr ()) = (*mapping_stack_pointer.as_mut_ptr ()).offset (1);
     }
   };
 }
@@ -923,9 +922,9 @@ macro_rules! PUSH_MAPPING_STACK {
 macro_rules! POP_MAPPING_STACK {
   ($restlen:expr, $orig:expr) => {
     {
-      mapping_stack_pointer = mapping_stack_pointer.offset (-1);
-      ($restlen) = (*mapping_stack_pointer).rest_length;
-      ($orig) = (*mapping_stack_pointer).orig_val;
+      (*mapping_stack_pointer.as_mut_ptr ()) = (*mapping_stack_pointer.as_mut_ptr ()).offset (-1);
+      ($restlen) = (*(*mapping_stack_pointer.as_mut_ptr ())).rest_length;
+      ($orig) = (*(*mapping_stack_pointer.as_mut_ptr ())).orig_val;
     }
   };
 }
@@ -1062,12 +1061,11 @@ pub const CCL_DEBUG_BACKTRACE_LEN: c_int = 256;
 
 #[cfg (feature = "ccl_debug")]
 #[unsafe(no_mangle)]
-pub static mut ccl_backtrace_table: [c_int; CCL_DEBUG_BACKTRACE_LEN as usize] =
-  [0; CCL_DEBUG_BACKTRACE_LEN as usize];
+pub static ccl_backtrace_table: VmGlobal<[c_int; CCL_DEBUG_BACKTRACE_LEN as usize]> = VmGlobal::<[c_int; CCL_DEBUG_BACKTRACE_LEN as usize]>::new ([0; CCL_DEBUG_BACKTRACE_LEN as usize]);
 
 #[cfg (feature = "ccl_debug")]
 #[unsafe(no_mangle)]
-pub static mut ccl_backtrace_idx: c_int = 0;
+pub static ccl_backtrace_idx: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 
 /* C 849-853: `int ccl_debug_hook (int ic) { return ic; }`, C's non-`static` definition, so
    it carries `#[unsafe(no_mangle)]` (PORTING.md 0.2).  */
@@ -1098,8 +1096,7 @@ const _: () = core::assert! (std::mem::offset_of! (ccl_prog_stack, ic) == 8);
 const _: () = core::assert! (std::mem::offset_of! (ccl_prog_stack, eof_ic) == 12);
 
 /* For the moment, we only support depth 256 of stack.  */
-static mut ccl_prog_stack_struct: [ccl_prog_stack; 256] =
-  [ccl_prog_stack { ccl_prog: std::ptr::null_mut (), ic: 0, eof_ic: 0 }; 256];
+static ccl_prog_stack_struct: VmGlobal<[ccl_prog_stack; 256]> = VmGlobal::<[ccl_prog_stack; 256]>::new ([ccl_prog_stack { ccl_prog: std::ptr::null_mut (), ic: 0, eof_ic: 0 }; 256]);
 
 /* Return a translation table of id number ID.  */
 #[inline]
@@ -1107,7 +1104,7 @@ unsafe fn GET_TRANSLATION_TABLE (id: c_int) -> Lisp_Object
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  return XCDR (AREF (Vtranslation_table_vector, id as isize));
+  return XCDR (AREF ((*Vtranslation_table_vector.as_mut_ptr ()), id as isize));
 
   }
 }
@@ -1164,11 +1161,11 @@ pub unsafe extern "C-unwind" fn ccl_driver (ccl: *mut ccl_program, source: *mut 
     { dst = std::ptr::null_mut (); }
 
   /* Set mapping stack pointer. */
-  mapping_stack_pointer = (&raw mut mapping_stack) as *mut tr_stack;
+  (*mapping_stack_pointer.as_mut_ptr ()) = (mapping_stack.as_mut_ptr ()) as *mut tr_stack;
 
   /* C 898-900's `#ifdef CCL_DEBUG` arm (carried behind the feature, see above).  */
   #[cfg (feature = "ccl_debug")]
-  { ccl_backtrace_idx = 0; }
+  { (*ccl_backtrace_idx.as_mut_ptr ()) = 0; }
 
   /* C's `for (;;)` is this loop: `goto ccl_repeat` is `continue 'ccl_repeat`, the loop's
      own `break` (the quit test below) and `goto ccl_error_handler` leave with
@@ -1204,15 +1201,15 @@ pub unsafe extern "C-unwind" fn ccl_driver (ccl: *mut ccl_program, source: *mut 
 	      {
 		if stack_idx > 0
 		  {
-		    ccl_prog = ccl_prog_stack_struct[0].ccl_prog;
-		    ic = ccl_prog_stack_struct[0].ic;
-		    eof_ic = ccl_prog_stack_struct[0].eof_ic;
+		    ccl_prog = (*ccl_prog_stack_struct.as_mut_ptr ())[0].ccl_prog;
+		    ic = (*ccl_prog_stack_struct.as_mut_ptr ())[0].ic;
+		    eof_ic = (*ccl_prog_stack_struct.as_mut_ptr ())[0].eof_ic;
 		  }
 		CCL_INVALID_CMD! ();
 	      }
-	    ccl_prog_stack_struct[stack_idx as usize].ccl_prog = ccl_prog;
-	    ccl_prog_stack_struct[stack_idx as usize].ic = ($ret_ic);
-	    ccl_prog_stack_struct[stack_idx as usize].eof_ic = eof_ic;
+	    (*ccl_prog_stack_struct.as_mut_ptr ())[stack_idx as usize].ccl_prog = ccl_prog;
+	    (*ccl_prog_stack_struct.as_mut_ptr ())[stack_idx as usize].ic = ($ret_ic);
+	    (*ccl_prog_stack_struct.as_mut_ptr ())[stack_idx as usize].eof_ic = eof_ic;
 	    stack_idx += 1;
 	    ccl_prog = called_ccl.prog;
 	    ic = CCL_HEADER_MAIN;
@@ -1405,14 +1402,14 @@ pub unsafe extern "C-unwind" fn ccl_driver (ccl: *mut ccl_program, source: *mut 
        increment-second pair C's post-increment performs.  */
     #[cfg (feature = "ccl_debug")]
     {
-      ccl_backtrace_table[ccl_backtrace_idx as usize] = ic;
-      ccl_backtrace_idx += 1;
-      if ccl_backtrace_idx >= CCL_DEBUG_BACKTRACE_LEN
-	{ ccl_backtrace_idx = 0; }
-      ccl_backtrace_table[ccl_backtrace_idx as usize] = 0;
+      (*ccl_backtrace_table.as_mut_ptr ())[(*ccl_backtrace_idx.as_mut_ptr ()) as usize] = ic;
+      (*ccl_backtrace_idx.as_mut_ptr ()) += 1;
+      if (*ccl_backtrace_idx.as_mut_ptr ()) >= CCL_DEBUG_BACKTRACE_LEN
+	{ (*ccl_backtrace_idx.as_mut_ptr ()) = 0; }
+      (*ccl_backtrace_table.as_mut_ptr ())[(*ccl_backtrace_idx.as_mut_ptr ()) as usize] = 0;
     }
 
-      if !NILP (Vquit_flag) && NILP (Vinhibit_quit)
+      if !NILP ((*Vquit_flag.as_mut_ptr ())) && NILP ((*Vinhibit_quit.as_mut_ptr ()))
 	{
 	  /* We can't just signal Qquit, instead break the loop as if
              the whole data is processed.  Don't reset Vquit_flag, it
@@ -1613,22 +1610,22 @@ pub unsafe extern "C-unwind" fn ccl_driver (ccl: *mut ccl_program, source: *mut 
 
 	    if stack_idx >= 256
 		|| prog_id < 0
-		|| prog_id >= ASIZE (Vccl_program_table) as c_int
-		|| { slot = AREF (Vccl_program_table, prog_id as isize); !VECTORP (slot) }
+		|| prog_id >= ASIZE ((*Vccl_program_table.as_mut_ptr ())) as c_int
+		|| { slot = AREF ((*Vccl_program_table.as_mut_ptr ()), prog_id as isize); !VECTORP (slot) }
 		|| !VECTORP (AREF (slot, 1))
 	      {
 		if stack_idx > 0
 		  {
-		    ccl_prog = ccl_prog_stack_struct[0].ccl_prog;
-		    ic = ccl_prog_stack_struct[0].ic;
-		    eof_ic = ccl_prog_stack_struct[0].eof_ic;
+		    ccl_prog = (*ccl_prog_stack_struct.as_mut_ptr ())[0].ccl_prog;
+		    ic = (*ccl_prog_stack_struct.as_mut_ptr ())[0].ic;
+		    eof_ic = (*ccl_prog_stack_struct.as_mut_ptr ())[0].eof_ic;
 		  }
 		CCL_INVALID_CMD! ();
 	      }
 
-	    ccl_prog_stack_struct[stack_idx as usize].ccl_prog = ccl_prog;
-	    ccl_prog_stack_struct[stack_idx as usize].ic = ic;
-	    ccl_prog_stack_struct[stack_idx as usize].eof_ic = eof_ic;
+	    (*ccl_prog_stack_struct.as_mut_ptr ())[stack_idx as usize].ccl_prog = ccl_prog;
+	    (*ccl_prog_stack_struct.as_mut_ptr ())[stack_idx as usize].ic = ic;
+	    (*ccl_prog_stack_struct.as_mut_ptr ())[stack_idx as usize].eof_ic = eof_ic;
 	    stack_idx += 1;
 	    ccl_prog = (*XVECTOR (AREF (slot, 1))).contents.as_mut_ptr ();
 	    ic = CCL_HEADER_MAIN;
@@ -1662,9 +1659,9 @@ pub unsafe extern "C-unwind" fn ccl_driver (ccl: *mut ccl_program, source: *mut 
 	    if stack_idx > 0
 	      {
 		stack_idx -= 1;
-		ccl_prog = ccl_prog_stack_struct[stack_idx as usize].ccl_prog;
-		ic = ccl_prog_stack_struct[stack_idx as usize].ic;
-		eof_ic = ccl_prog_stack_struct[stack_idx as usize].eof_ic;
+		ccl_prog = (*ccl_prog_stack_struct.as_mut_ptr ())[stack_idx as usize].ccl_prog;
+		ic = (*ccl_prog_stack_struct.as_mut_ptr ())[stack_idx as usize].ic;
+		eof_ic = (*ccl_prog_stack_struct.as_mut_ptr ())[stack_idx as usize].eof_ic;
 		if eof_hit != 0
 		  { ic = eof_ic; }
 		continue 'ccl_repeat;   /* C's `break` leaves the switch and iterates.  */
@@ -1775,8 +1772,8 @@ pub unsafe extern "C-unwind" fn ccl_driver (ccl: *mut ccl_program, source: *mut 
 		/* PORTING.md 1.5: C declares `eop` uninitialised.  */
 		let mut eop: ptrdiff_t = 0;
 		GET_CCL_RANGE! (eop, ccl_prog, ic, 0,
-				(if VECTORP (Vtranslation_table_vector)
-				   { ASIZE (Vtranslation_table_vector) }
+				(if VECTORP ((*Vtranslation_table_vector.as_mut_ptr ()))
+				   { ASIZE ((*Vtranslation_table_vector.as_mut_ptr ())) }
 				 else { -1 }));
 		ic += 1;
 		i = CCL_DECODE_CHAR! (*reg.offset (RRR! () as isize),
@@ -1792,8 +1789,8 @@ pub unsafe extern "C-unwind" fn ccl_driver (ccl: *mut ccl_program, source: *mut 
 		let mut eop: ptrdiff_t = 0;
 		let mut h: *mut Lisp_Hash_Table = std::ptr::null_mut ();
 		GET_CCL_RANGE! (eop, ccl_prog, ic, 0,
-				(if VECTORP (Vtranslation_hash_table_vector)
-				   { ASIZE (Vtranslation_hash_table_vector) }
+				(if VECTORP ((*Vtranslation_hash_table_vector.as_mut_ptr ()))
+				   { ASIZE ((*Vtranslation_hash_table_vector.as_mut_ptr ())) }
 				 else { -1 }));
 		ic += 1;
 		h = GET_HASH_TABLE! (eop);
@@ -1810,7 +1807,7 @@ pub unsafe extern "C-unwind" fn ccl_driver (ccl: *mut ccl_program, source: *mut 
 		    opl = HASH_VALUE (h, eop as hash_idx_t);
 		    if ! (IN_INT_RANGE! (eop) && CHARACTERP (opl))
 		      { CCL_INVALID_CMD! (); }
-		    *reg.offset (RRR! () as isize) = charset_unicode;
+		    *reg.offset (RRR! () as isize) = (*charset_unicode.as_mut_ptr ());
 		    *reg.offset (rrr! () as isize) = XFIXNUM (opl) as c_int;
 		    *reg.offset (7) = 1; /* r7 true for success */
 		  }
@@ -1824,8 +1821,8 @@ pub unsafe extern "C-unwind" fn ccl_driver (ccl: *mut ccl_program, source: *mut 
 		let mut eop: ptrdiff_t = 0;
 		let mut h: *mut Lisp_Hash_Table = std::ptr::null_mut ();
 		GET_CCL_RANGE! (eop, ccl_prog, ic, 0,
-				(if VECTORP (Vtranslation_hash_table_vector)
-				   { ASIZE (Vtranslation_hash_table_vector) }
+				(if VECTORP ((*Vtranslation_hash_table_vector.as_mut_ptr ()))
+				   { ASIZE ((*Vtranslation_hash_table_vector.as_mut_ptr ())) }
 				 else { -1 }));
 		ic += 1;
 		i = CCL_DECODE_CHAR! (*reg.offset (RRR! () as isize),
@@ -1883,14 +1880,14 @@ pub unsafe extern "C-unwind" fn ccl_driver (ccl: *mut ccl_program, source: *mut 
 		   `continue` below advances `i` first (PORTING.md 2.2, the dired.rs shape).  */
 		while i < j
 		  {
-		    if !VECTORP (Vcode_conversion_map_vector)
+		    if !VECTORP ((*Vcode_conversion_map_vector.as_mut_ptr ()))
 		      { i += 1; continue; }
-		    size = ASIZE (Vcode_conversion_map_vector);
+		    size = ASIZE ((*Vcode_conversion_map_vector.as_mut_ptr ()));
 		    point = XFIXNUM (*ccl_prog.offset (ic as isize)) as EMACS_INT;
 		    ic += 1;
 		    if ! (0 <= point && point < size)
 		      { i += 1; continue; }
-		    map = AREF (Vcode_conversion_map_vector, point as isize);
+		    map = AREF ((*Vcode_conversion_map_vector.as_mut_ptr ()), point as isize);
 
 		    /* Check map validity.  */
 		    if !CONSP (map)
@@ -1982,18 +1979,18 @@ pub unsafe extern "C-unwind" fn ccl_driver (ccl: *mut ccl_program, source: *mut 
 		let mut current_ic: c_int = this_ic;
 
 		/* inhibit recursive call on MapMultiple. */
-		if stack_idx_of_map_multiple > 0
+		if (*stack_idx_of_map_multiple.as_mut_ptr ()) > 0
 		  {
-		    if stack_idx_of_map_multiple <= stack_idx
+		    if (*stack_idx_of_map_multiple.as_mut_ptr ()) <= stack_idx
 		      {
-			stack_idx_of_map_multiple = 0;
-			mapping_stack_pointer = femacs_array_mut_ptr (&raw mut mapping_stack);
+			(*stack_idx_of_map_multiple.as_mut_ptr ()) = 0;
+			(*mapping_stack_pointer.as_mut_ptr ()) = femacs_array_mut_ptr (mapping_stack.as_mut_ptr ());
 			CCL_INVALID_CMD! ();
 		      }
 		  }
 		else
-		  { mapping_stack_pointer = femacs_array_mut_ptr (&raw mut mapping_stack); }
-		stack_idx_of_map_multiple = 0;
+		  { (*mapping_stack_pointer.as_mut_ptr ()) = femacs_array_mut_ptr (mapping_stack.as_mut_ptr ()); }
+		(*stack_idx_of_map_multiple.as_mut_ptr ()) = 0;
 
 		/* Get number of maps and separators.  */
 		map_set_rest_length = XFIXNUM (*ccl_prog.offset (ic as isize)) as c_int;
@@ -2013,15 +2010,15 @@ pub unsafe extern "C-unwind" fn ccl_driver (ccl: *mut ccl_program, source: *mut 
 		  {
 		    ic = fin_ic;
 		    *reg.offset (RRR! () as isize) = -1;
-		    mapping_stack_pointer = femacs_array_mut_ptr (&raw mut mapping_stack);
+		    (*mapping_stack_pointer.as_mut_ptr ()) = femacs_array_mut_ptr (mapping_stack.as_mut_ptr ());
 		    /* C's `break` leaves both switches, so the `for (;;)` iterates.  */
 		    continue 'ccl_repeat;
 		  }
 
-		if mapping_stack_pointer <= femacs_array_mut_ptr (&raw mut mapping_stack).offset (1)
+		if (*mapping_stack_pointer.as_mut_ptr ()) <= femacs_array_mut_ptr (mapping_stack.as_mut_ptr ()).offset (1)
 		  {
 		    /* Set up initial state. */
-		    mapping_stack_pointer = femacs_array_mut_ptr (&raw mut mapping_stack);
+		    (*mapping_stack_pointer.as_mut_ptr ()) = femacs_array_mut_ptr (mapping_stack.as_mut_ptr ());
 		    PUSH_MAPPING_STACK! (0, op);
 		    *reg.offset (RRR! () as isize) = -1;
 		  }
@@ -2069,9 +2066,9 @@ pub unsafe extern "C-unwind" fn ccl_driver (ccl: *mut ccl_program, source: *mut 
 			}
 		      }
 		  }
-		if !VECTORP (Vcode_conversion_map_vector)
+		if !VECTORP ((*Vcode_conversion_map_vector.as_mut_ptr ()))
 		  { CCL_INVALID_CMD! (); }
-		map_vector_size = ASIZE (Vcode_conversion_map_vector);
+		map_vector_size = ASIZE ((*Vcode_conversion_map_vector.as_mut_ptr ()));
 
 		/* C's `do { … } while (1)`; the inner `for (;map_set_rest_length > 0;
 		   i++, ic++, map_set_rest_length--)` keeps C's three update steps, which
@@ -2085,8 +2082,8 @@ pub unsafe extern "C-unwind" fn ccl_driver (ccl: *mut ccl_program, source: *mut 
 			  {
 			    /* +1 is for including separator. */
 			    point = -point + 1;
-			    if mapping_stack_pointer
-				>= femacs_array_mut_ptr (&raw mut mapping_stack)
+			    if (*mapping_stack_pointer.as_mut_ptr ())
+				>= femacs_array_mut_ptr (mapping_stack.as_mut_ptr ())
 				   .offset (MAX_MAP_SET_LEVEL as isize)
 			      { CCL_INVALID_CMD! (); }
 			    PUSH_MAPPING_STACK! ((map_set_rest_length as EMACS_INT
@@ -2100,7 +2097,7 @@ pub unsafe extern "C-unwind" fn ccl_driver (ccl: *mut ccl_program, source: *mut 
 
 			if point >= map_vector_size
 			  { i += 1; ic += 1; map_set_rest_length -= 1; continue; }
-			map = AREF (Vcode_conversion_map_vector, point as isize);
+			map = AREF ((*Vcode_conversion_map_vector.as_mut_ptr ()), point as isize);
 
 			/* Check map validity.  */
 			if !CONSP (map)
@@ -2179,21 +2176,21 @@ pub unsafe extern "C-unwind" fn ccl_driver (ccl: *mut ccl_program, source: *mut 
 			  }
 			else if SYMBOLP (content)
 			  {
-			    if mapping_stack_pointer
-				>= femacs_array_mut_ptr (&raw mut mapping_stack)
+			    if (*mapping_stack_pointer.as_mut_ptr ())
+				>= femacs_array_mut_ptr (mapping_stack.as_mut_ptr ())
 				   .offset (MAX_MAP_SET_LEVEL as isize)
 			      { CCL_INVALID_CMD! (); }
 			    PUSH_MAPPING_STACK! (map_set_rest_length,
 						 *reg.offset (rrr! () as isize));
 			    PUSH_MAPPING_STACK! (map_set_rest_length, op);
-			    stack_idx_of_map_multiple = stack_idx + 1;
+			    (*stack_idx_of_map_multiple.as_mut_ptr ()) = stack_idx + 1;
 			    CCL_CALL_FOR_MAP_INSTRUCTION! (content, current_ic);
 			  }
 			else
 			  { CCL_INVALID_CMD! (); }
 			i += 1; ic += 1; map_set_rest_length -= 1;
 		      }
-		    if mapping_stack_pointer <= femacs_array_mut_ptr (&raw mut mapping_stack).offset (1)
+		    if (*mapping_stack_pointer.as_mut_ptr ()) <= femacs_array_mut_ptr (mapping_stack.as_mut_ptr ()).offset (1)
 		      { break; }
 		    POP_MAPPING_STACK! (map_set_rest_length, *reg.offset (rrr! () as isize));
 		    i += map_set_rest_length;
@@ -2218,14 +2215,14 @@ pub unsafe extern "C-unwind" fn ccl_driver (ccl: *mut ccl_program, source: *mut 
 		j = XFIXNUM (*ccl_prog.offset (ic as isize)) as c_int;
 		ic += 1;			/* map_id */
 		op = *reg.offset (rrr! () as isize);
-		if ! (VECTORP (Vcode_conversion_map_vector)
-		      && j < ASIZE (Vcode_conversion_map_vector) as c_int)
+		if ! (VECTORP ((*Vcode_conversion_map_vector.as_mut_ptr ()))
+		      && j < ASIZE ((*Vcode_conversion_map_vector.as_mut_ptr ())) as c_int)
 		  {
 		    *reg.offset (RRR! () as isize) = -1;
 		    /* C's `break` leaves both switches, so the `for (;;)` iterates.  */
 		    continue 'ccl_repeat;
 		  }
-		map = AREF (Vcode_conversion_map_vector, j as isize);
+		map = AREF ((*Vcode_conversion_map_vector.as_mut_ptr ()), j as isize);
 		if !CONSP (map)
 		  {
 		    *reg.offset (RRR! () as isize) = -1;
@@ -2547,7 +2544,7 @@ pub unsafe extern "C-unwind" fn ccl_driver (ccl: *mut ccl_program, source: *mut 
 	       `docs/ports/ccl.md` records the decision.  */
 	    #[cfg (feature = "ccl_debug")]
 	    {
-	      let mut i: c_int = ccl_backtrace_idx - 1;
+	      let mut i: c_int = (*ccl_backtrace_idx.as_mut_ptr ()) - 1;
 	      let mut j: c_int = 0;
 
 	      if dst.offset (msglen as isize) <= (if dst_bytes != 0 { dst_end } else { src })
@@ -2560,10 +2557,10 @@ pub unsafe extern "C-unwind" fn ccl_driver (ccl: *mut ccl_program, source: *mut 
 	      while j < CCL_DEBUG_BACKTRACE_LEN
 		{
 		  if i < 0 { i = CCL_DEBUG_BACKTRACE_LEN - 1; }
-		  if ccl_backtrace_table[i as usize] == 0
+		  if (*ccl_backtrace_table.as_mut_ptr ())[i as usize] == 0
 		    { break; }
 		  msglen = sprintf (msg.as_mut_ptr (), c" %d".as_ptr (),
-				    ccl_backtrace_table[i as usize]);
+				    (*ccl_backtrace_table.as_mut_ptr ())[i as usize]);
 		  if dst.offset (msglen as isize) > (if dst_bytes != 0 { dst_end } else { src })
 		    { break; }
 		  memcpy (dst as *mut c_void, msg.as_ptr () as *const c_void, msglen as usize);
@@ -2735,9 +2732,9 @@ unsafe fn ccl_get_compiled_code (ccl_prog: Lisp_Object, idx: *mut ptrdiff_t) -> 
 
   val = Fget (ccl_prog, Qccl_program_idx ());
   if ! FIXNATP (val)
-      || XFIXNUM (val) >= ASIZE (Vccl_program_table)
+      || XFIXNUM (val) >= ASIZE ((*Vccl_program_table.as_mut_ptr ()))
     { return Qnil (); }
-  slot = AREF (Vccl_program_table, XFIXNUM (val) as isize);
+  slot = AREF ((*Vccl_program_table.as_mut_ptr ()), XFIXNUM (val) as isize);
   if ! VECTORP (slot)
       || ASIZE (slot) != 4
       || ! VECTORP (AREF (slot, 1))
@@ -2788,7 +2785,7 @@ pub unsafe extern "C-unwind" fn setup_ccl_program (ccl: *mut ccl_program,
 	  /* PORTING.md 1.5: C declares `slot` and assigns it here.  */
 	  let mut slot: Lisp_Object = lisp_h_Qnil ();
 
-	  slot = AREF (Vccl_program_table, (*ccl).idx);
+	  slot = AREF ((*Vccl_program_table.as_mut_ptr ()), (*ccl).idx);
 	  ASET (slot, 3, Qnil ());
 	}
     }
@@ -2823,7 +2820,7 @@ DEFUN! ("ccl-program-p", Fccl_program_p, Sccl_program_p, 1, 1, 0,
 
   val = Fget (object, Qccl_program_idx ());
   return if ! FIXNATP (val)
-	    || XFIXNUM (val) >= ASIZE (Vccl_program_table)
+	    || XFIXNUM (val) >= ASIZE ((*Vccl_program_table.as_mut_ptr ()))
 	   { Qnil () } else { Qt () };
 });
 
@@ -3060,7 +3057,7 @@ DEFUN! ("register-ccl-program", Fregister_ccl_program, Sregister_ccl_program,
   let mut ccl_prog = ccl_prog;   // C assigns to the parameter below (C 2266).
   /* C's `len` is C's own initialiser; the other two are uninitialised in C
      (PORTING.md 1.5).  */
-  let len: ptrdiff_t = ASIZE (Vccl_program_table);
+  let len: ptrdiff_t = ASIZE ((*Vccl_program_table.as_mut_ptr ()));
   let mut idx: ptrdiff_t = 0;
   let mut resolved: Lisp_Object = lisp_h_Qnil ();
 
@@ -3087,7 +3084,7 @@ DEFUN! ("register-ccl-program", Fregister_ccl_program, Sregister_ccl_program,
       /* C declares `slot` and assigns it here.  */
       let mut slot: Lisp_Object = lisp_h_Qnil ();
 
-      slot = AREF (Vccl_program_table, idx);
+      slot = AREF ((*Vccl_program_table.as_mut_ptr ()), idx);
       if !VECTORP (slot)
 	/* This is the first unused slot.  Register NAME here.  */
 	{ break; }
@@ -3105,9 +3102,9 @@ DEFUN! ("register-ccl-program", Fregister_ccl_program, Sregister_ccl_program,
 
   if idx == len
     /* Extend the table.  */
-    { Vccl_program_table = larger_vector (Vccl_program_table, 1, -1); }
+    { (*Vccl_program_table.as_mut_ptr ()) = larger_vector ((*Vccl_program_table.as_mut_ptr ()), 1, -1); }
 
-  ASET (Vccl_program_table, idx,
+  ASET ((*Vccl_program_table.as_mut_ptr ()), idx,
 	CALLN! (Fvector, name, ccl_prog, resolved, Qt ()));
 
   Fput (name, Qccl_program_idx (), make_fixnum (idx));
@@ -3136,15 +3133,15 @@ DEFUN! ("register-code-conversion-map", Fregister_code_conversion_map,
 
   CHECK_SYMBOL (symbol);
   CHECK_VECTOR (map);
-  if ! VECTORP (Vcode_conversion_map_vector)
+  if ! VECTORP ((*Vcode_conversion_map_vector.as_mut_ptr ()))
     { error (c"Invalid code-conversion-map-vector".as_ptr ()); }
 
-  len = ASIZE (Vcode_conversion_map_vector);
+  len = ASIZE ((*Vcode_conversion_map_vector.as_mut_ptr ()));
 
   i = 0;
   while i < len
     {
-      let slot: Lisp_Object = AREF (Vcode_conversion_map_vector, i);
+      let slot: Lisp_Object = AREF ((*Vcode_conversion_map_vector.as_mut_ptr ()), i);
 
       if !CONSP (slot)
 	{ break; }
@@ -3161,13 +3158,13 @@ DEFUN! ("register-code-conversion-map", Fregister_code_conversion_map,
     }
 
   if i == len
-    { Vcode_conversion_map_vector = larger_vector (Vcode_conversion_map_vector,
+    { (*Vcode_conversion_map_vector.as_mut_ptr ()) = larger_vector ((*Vcode_conversion_map_vector.as_mut_ptr ()),
 						   1, -1); }
 
   idx = make_fixnum (i);
   Fput (symbol, Qcode_conversion_map (), map);
   Fput (symbol, Qcode_conversion_map_id (), idx);
-  ASET (Vcode_conversion_map_vector, i, Fcons (symbol, map));
+  ASET ((*Vcode_conversion_map_vector.as_mut_ptr ()), i, Fcons (symbol, map));
   return idx;
 });
 
@@ -3176,9 +3173,9 @@ DEFUN! ("register-code-conversion-map", Fregister_code_conversion_map,
    C's `DEFVAR_*` gives the storage to defines it, and the definition shadows the
    declaration `globals.rs`'s `variables` module carries).  */
 #[unsafe(no_mangle)]
-pub static mut Vcode_conversion_map_vector: Lisp_Object = lisp_h_Qnil ();
+pub static Vcode_conversion_map_vector: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vtranslation_hash_table_vector: Lisp_Object = lisp_h_Qnil ();
+pub static Vtranslation_hash_table_vector: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 
 #[unsafe(no_mangle)]
@@ -3186,8 +3183,8 @@ pub unsafe extern "C-unwind" fn syms_of_ccl ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  staticpro (&raw const Vccl_program_table);
-  Vccl_program_table = make_nil_vector (32);
+  staticpro (Vccl_program_table.as_ptr ());
+  (*Vccl_program_table.as_mut_ptr ()) = make_nil_vector (32);
 
   DEFSYM! (Qccl, c"ccl");
   DEFSYM! (Qcclp, c"cclp");
@@ -3203,17 +3200,17 @@ pub unsafe extern "C-unwind" fn syms_of_ccl ()
 
   DEFVAR_LISP! (c"code-conversion-map-vector", Vcode_conversion_map_vector,
 		"Vector of code conversion maps.");
-  Vcode_conversion_map_vector = make_nil_vector (16);
+  (*Vcode_conversion_map_vector.as_mut_ptr ()) = make_nil_vector (16);
 
   DEFVAR_LISP! (c"translation-hash-table-vector", Vtranslation_hash_table_vector,
 		"Vector containing all translation hash tables ever defined.\nComprises pairs (SYMBOL . TABLE) where SYMBOL and TABLE were set up by calls\nto `define-translation-hash-table'.  The vector is indexed by the table id\nused by CCL.");
-    Vtranslation_hash_table_vector = Qnil ();
+    (*Vtranslation_hash_table_vector.as_mut_ptr ()) = Qnil ();
 
-  defsubr (&raw mut Sccl_program_p);
-  defsubr (&raw mut Sccl_execute);
-  defsubr (&raw mut Sccl_execute_on_string);
-  defsubr (&raw mut Sregister_ccl_program);
-  defsubr (&raw mut Sregister_code_conversion_map);
+  defsubr (Sccl_program_p.as_mut_ptr ());
+  defsubr (Sccl_execute.as_mut_ptr ());
+  defsubr (Sccl_execute_on_string.as_mut_ptr ());
+  defsubr (Sregister_ccl_program.as_mut_ptr ());
+  defsubr (Sregister_code_conversion_map.as_mut_ptr ());
 
   }
 }

@@ -339,12 +339,12 @@ pub const ASYNC_RETRY_NSEC: c_long = 100000000;
    duplicated here.  C 151-153 is a `#pragma GCC diagnostic`, which has no counterpart.  */
 
 /* C 156-157: `static bool kbd_is_on_hold;`  */
-static mut kbd_is_on_hold: bool = false;
+static kbd_is_on_hold: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 /* C 161: `bool inhibit_sentinels;` — non-static, so it is this unit's exported object
    (`process.h` 265 mirrors the same name as a declaration).  */
 #[unsafe(no_mangle)]
-pub static mut inhibit_sentinels: bool = false;
+pub static inhibit_sentinels: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 /* C 163-8101: `#ifdef subprocesses` (live).  Its `#else` arm (C 8102-8325) is carried at the
    end of the region under `no_subprocesses`.  */
@@ -481,8 +481,8 @@ pub unsafe fn PIPECONN1_P (p: *mut Lisp_Process) -> bool {
 }
 
 /* C 230-232: the two tick counters.  */
-static mut process_tick: EMACS_INT = 0;
-static mut update_tick: EMACS_INT = 0;
+static process_tick: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);
+static update_tick: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);
 
 /* C 239-249: the datagram-socket capability macros.  `DATAGRAM_SOCKETS`'s own body is empty
    in C (`# define DATAGRAM_SOCKETS`, no value), so the port declares a unit constant with the
@@ -498,18 +498,18 @@ pub const READ_OUTPUT_DELAY_MAX: EMACS_INT = READ_OUTPUT_DELAY_INCREMENT * 5;
 pub const READ_OUTPUT_DELAY_MAX_MAX: EMACS_INT = READ_OUTPUT_DELAY_INCREMENT * 7;
 
 /* C 256-262.  */
-static mut process_output_delay_count: c_int = 0;
-static mut process_output_skip: bool = false;
+static process_output_delay_count: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
+static process_output_skip: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 /* C 264-296: C's forward declarations (`start_process_unwind`, `create_process`,
    `keyboard_bit_set`, `deactivate_process`, `status_notify`, `read_process_output`,
    `create_pty`, `exec_sentinel`, `network_lookup_address_info_1`) are dropped per PORTING.md
    0.1-12 (Rust has no forward declarations); the definitions keep C's positions.  */
-static mut num_pending_connects: c_int = 0;
-static mut max_desc: c_int = 0;
-static mut external_sock_fd: c_int = 0;
-static mut child_signal_read_fd: c_int = -1;
-static mut child_signal_write_fd: c_int = -1;
+static num_pending_connects: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
+static max_desc: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
+static external_sock_fd: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
+static child_signal_read_fd: VmGlobal<c_int> = VmGlobal::<c_int>::new (-1);
+static child_signal_write_fd: VmGlobal<c_int> = VmGlobal::<c_int>::new (-1);
 
 /* C 297-299: `#ifndef WINDOWSNT static void child_signal_read (int, void *); #endif` — the
    definition's prototype is needed before `child_signal_init` names it, and `child_signal_read`
@@ -518,14 +518,11 @@ static mut child_signal_write_fd: c_int = -1;
 /* C 303-319: the per-descriptor tables and the process alist.  C zero-initialises the two
    `Lisp_Object` tables; the port uses `Qnil` (the callproc.rs/print.rs shape — C sets every
    entry to `Qnil` in `syms_of_process` before the tables are read).  */
-static mut chan_process: [Lisp_Object; FD_SETSIZE as usize] =
-  [lisp_h_Qnil (); FD_SETSIZE as usize];
-static mut Vprocess_alist: Lisp_Object = lisp_h_Qnil ();
-static mut proc_buffered_char: [c_int; FD_SETSIZE as usize] = [-1; FD_SETSIZE as usize];
-static mut proc_decode_coding_system: [*mut coding_system; FD_SETSIZE as usize] =
-  [std::ptr::null_mut (); FD_SETSIZE as usize];
-static mut proc_encode_coding_system: [*mut coding_system; FD_SETSIZE as usize] =
-  [std::ptr::null_mut (); FD_SETSIZE as usize];
+static chan_process: VmGlobal<[Lisp_Object; FD_SETSIZE as usize]> = VmGlobal::<[Lisp_Object; FD_SETSIZE as usize]>::new ([lisp_h_Qnil (); FD_SETSIZE as usize]);
+static Vprocess_alist: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+static proc_buffered_char: VmGlobal<[c_int; FD_SETSIZE as usize]> = VmGlobal::<[c_int; FD_SETSIZE as usize]>::new ([-1; FD_SETSIZE as usize]);
+static proc_decode_coding_system: VmGlobal<[*mut coding_system; FD_SETSIZE as usize]> = VmGlobal::<[*mut coding_system; FD_SETSIZE as usize]>::new ([std::ptr::null_mut (); FD_SETSIZE as usize]);
+static proc_encode_coding_system: VmGlobal<[*mut coding_system; FD_SETSIZE as usize]> = VmGlobal::<[*mut coding_system; FD_SETSIZE as usize]>::new ([std::ptr::null_mut (); FD_SETSIZE as usize]);
 
 /* C 321-334: `#ifdef DATAGRAM_SOCKETS` (live).  */
 /* C 323-326: `static struct sockaddr_and_len { struct sockaddr *sa; ptrdiff_t len; }`, 16/8.  */
@@ -538,14 +535,13 @@ pub struct sockaddr_and_len
 }
 const _: () = core::assert! (std::mem::size_of::<sockaddr_and_len> () == 16);
 /* C 327.  */
-static mut datagram_address: [sockaddr_and_len; FD_SETSIZE as usize] =
-  [sockaddr_and_len { sa: std::ptr::null_mut (), len: 0 }; FD_SETSIZE as usize];
+static datagram_address: VmGlobal<[sockaddr_and_len; FD_SETSIZE as usize]> = VmGlobal::<[sockaddr_and_len; FD_SETSIZE as usize]>::new ([sockaddr_and_len { sa: std::ptr::null_mut (), len: 0 }; FD_SETSIZE as usize]);
 /// C 328: `#define DATAGRAM_CHAN_P(chan) (datagram_address[chan].sa != 0)`
 #[inline(always)]
 pub unsafe fn DATAGRAM_CHAN_P (chan: c_int) -> bool
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
-  unsafe { (datagram_address[chan as usize].sa as usize) != 0 
+  unsafe { ((*datagram_address.as_mut_ptr ())[chan as usize].sa as usize) != 0 
   }
 }
 /// C 329-332: `#define DATAGRAM_CONN_P(proc) (PROCESSP (proc) && XPROCESS (proc)->infd >= 0
@@ -557,7 +553,7 @@ pub unsafe fn DATAGRAM_CONN_P (proc_: Lisp_Object) -> bool
   unsafe {
   PROCESSP (proc_)
   && (*XPROCESS (proc_)).infd >= 0
-  && datagram_address[(*XPROCESS (proc_)).infd as usize].sa != std::ptr::null_mut ()
+  && (*datagram_address.as_mut_ptr ())[(*XPROCESS (proc_)).infd as usize].sa != std::ptr::null_mut ()
 
   }
 }
@@ -585,7 +581,7 @@ macro_rules! for_each_alist_value {
 /// (Vprocess_alist, list_var, proc_var)`
 macro_rules! FOR_EACH_PROCESS {
   ($list_var:ident, $proc_var:ident, $body:block) =>
-    { for_each_alist_value! (Vprocess_alist, $list_var, $proc_var, $body) }
+    { for_each_alist_value! ((*Vprocess_alist.as_mut_ptr ()), $list_var, $proc_var, $body) }
 }
 
 /* C 342-424: the private `pset_*` setters.  */
@@ -732,10 +728,9 @@ const _: () = core::assert! (std::mem::offset_of! (fd_callback_data, data) == 8)
 const _: () = core::assert! (std::mem::offset_of! (fd_callback_data, flags) == 16);
 const _: () = core::assert! (std::mem::offset_of! (fd_callback_data, thread) == 24);
 const _: () = core::assert! (std::mem::offset_of! (fd_callback_data, waiting_thread) == 32);
-static mut fd_callback_info: [fd_callback_data; FD_SETSIZE as usize] =
-  [fd_callback_data { func: None, data: std::ptr::null_mut (), flags: 0,
+static fd_callback_info: VmGlobal<[fd_callback_data; FD_SETSIZE as usize]> = VmGlobal::<[fd_callback_data; FD_SETSIZE as usize]>::new ([fd_callback_data { func: None, data: std::ptr::null_mut (), flags: 0,
                       thread: std::ptr::null_mut (), waiting_thread: std::ptr::null_mut () };
-   FD_SETSIZE as usize];
+   FD_SETSIZE as usize]);
 
 /* C 466-474: `clear_fd_callback_data`.  */
 unsafe fn clear_fd_callback_data (elem: *mut fd_callback_data)
@@ -799,8 +794,8 @@ pub unsafe fn add_read_fd (fd: c_int, func: fd_callback, data: *mut c_void)
   add_keyboard_wait_descriptor (fd);
 
   eassert! (0 <= fd && fd < FD_SETSIZE);
-  fd_callback_info[fd as usize].func = func;
-  fd_callback_info[fd as usize].data = data;
+  (*fd_callback_info.as_mut_ptr ())[fd as usize].func = func;
+  (*fd_callback_info.as_mut_ptr ())[fd as usize].data = data;
 
   }
 }
@@ -812,7 +807,7 @@ pub unsafe fn add_non_keyboard_read_fd (fd: c_int, func: fd_callback, data: *mut
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
   add_read_fd (fd, func, data);
-  fd_callback_info[fd as usize].flags &= !KEYBOARD_FD;
+  (*fd_callback_info.as_mut_ptr ())[fd as usize].flags &= !KEYBOARD_FD;
 
   }
 }
@@ -823,14 +818,14 @@ unsafe fn add_process_read_fd (fd: c_int)
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
   eassert! (fd >= 0 && fd < FD_SETSIZE);
-  eassert! (fd_callback_info[fd as usize].func.is_none ());
+  eassert! ((*fd_callback_info.as_mut_ptr ())[fd as usize].func.is_none ());
 
-  fd_callback_info[fd as usize].flags &= !KEYBOARD_FD;
-  fd_callback_info[fd as usize].flags |= FOR_READ;
-  if (fd > max_desc)
-    { max_desc = fd; }
+  (*fd_callback_info.as_mut_ptr ())[fd as usize].flags &= !KEYBOARD_FD;
+  (*fd_callback_info.as_mut_ptr ())[fd as usize].flags |= FOR_READ;
+  if (fd > (*max_desc.as_mut_ptr ()))
+    { (*max_desc.as_mut_ptr ()) = fd; }
   eassert! (0 <= fd && fd < FD_SETSIZE);
-  fd_callback_info[fd as usize].flags |= PROCESS_FD;
+  (*fd_callback_info.as_mut_ptr ())[fd as usize].flags |= PROCESS_FD;
 
   }
 }
@@ -854,11 +849,11 @@ pub unsafe fn add_write_fd (fd: c_int, func: fd_callback, data: *mut c_void)
   unsafe {
   eassert! (0 <= fd && fd < FD_SETSIZE);
 
-  fd_callback_info[fd as usize].func = func;
-  fd_callback_info[fd as usize].data = data;
-  fd_callback_info[fd as usize].flags |= FOR_WRITE;
-  if (fd > max_desc)
-    { max_desc = fd; }
+  (*fd_callback_info.as_mut_ptr ())[fd as usize].func = func;
+  (*fd_callback_info.as_mut_ptr ())[fd as usize].data = data;
+  (*fd_callback_info.as_mut_ptr ())[fd as usize].flags |= FOR_WRITE;
+  if (fd > (*max_desc.as_mut_ptr ()))
+    { (*max_desc.as_mut_ptr ()) = fd; }
 
   }
 }
@@ -967,12 +962,12 @@ unsafe fn add_non_blocking_write_fd (fd: c_int)
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
   eassert! (fd >= 0 && fd < FD_SETSIZE);
-  eassert! (fd_callback_info[fd as usize].func.is_none ());
+  eassert! ((*fd_callback_info.as_mut_ptr ())[fd as usize].func.is_none ());
 
-  fd_callback_info[fd as usize].flags |= FOR_WRITE | NON_BLOCKING_CONNECT_FD;
-  if (fd > max_desc)
-    { max_desc = fd; }
-  num_pending_connects += 1;
+  (*fd_callback_info.as_mut_ptr ())[fd as usize].flags |= FOR_WRITE | NON_BLOCKING_CONNECT_FD;
+  if (fd > (*max_desc.as_mut_ptr ()))
+    { (*max_desc.as_mut_ptr ()) = fd; }
+  (*num_pending_connects.as_mut_ptr ()) += 1;
 
   }
 }
@@ -984,18 +979,18 @@ unsafe fn recompute_max_desc ()
   unsafe {
   let mut fd: c_int;
 
-  eassert! (max_desc < FD_SETSIZE);
-  fd = max_desc;
+  eassert! ((*max_desc.as_mut_ptr ()) < FD_SETSIZE);
+  fd = (*max_desc.as_mut_ptr ());
   while fd >= 0
     {
-      if (fd_callback_info[fd as usize].flags != 0)
+      if ((*fd_callback_info.as_mut_ptr ())[fd as usize].flags != 0)
 	{
-	  max_desc = fd;
+	  (*max_desc.as_mut_ptr ()) = fd;
 	  break;
 	}
       fd -= 1;
     }
-  eassert! (max_desc < FD_SETSIZE);
+  eassert! ((*max_desc.as_mut_ptr ()) < FD_SETSIZE);
 
   }
 }
@@ -1007,18 +1002,18 @@ pub unsafe fn delete_write_fd (fd: c_int)
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
   eassert! (0 <= fd && fd < FD_SETSIZE);
-  if ((fd_callback_info[fd as usize].flags & NON_BLOCKING_CONNECT_FD) != 0)
+  if (((*fd_callback_info.as_mut_ptr ())[fd as usize].flags & NON_BLOCKING_CONNECT_FD) != 0)
     {
-      num_pending_connects -= 1;
-      if (num_pending_connects < 0)
+      (*num_pending_connects.as_mut_ptr ()) -= 1;
+      if ((*num_pending_connects.as_mut_ptr ()) < 0)
 	{ emacs_abort (); }
     }
-  fd_callback_info[fd as usize].flags &= !(FOR_WRITE | NON_BLOCKING_CONNECT_FD);
-  if (fd_callback_info[fd as usize].flags == 0)
+  (*fd_callback_info.as_mut_ptr ())[fd as usize].flags &= !(FOR_WRITE | NON_BLOCKING_CONNECT_FD);
+  if ((*fd_callback_info.as_mut_ptr ())[fd as usize].flags == 0)
     {
-      clear_fd_callback_data (&raw mut fd_callback_info[fd as usize]);
+      clear_fd_callback_data (&raw mut (*fd_callback_info.as_mut_ptr ())[fd as usize]);
 
-      if (fd == max_desc)
+      if (fd == (*max_desc.as_mut_ptr ()))
 	{ recompute_max_desc (); }
     }
 
@@ -1034,7 +1029,7 @@ struct ActiveProcessWaiter
   next: *mut ActiveProcessWaiter,
 }
 
-static mut active_process_waiters_head: *mut ActiveProcessWaiter = std::ptr::null_mut ();
+static active_process_waiters_head: VmGlobal<*mut ActiveProcessWaiter> = VmGlobal::<*mut ActiveProcessWaiter>::new (std::ptr::null_mut ());
 
 unsafe fn thread_is_live (target: *mut thread_state) -> bool
 {
@@ -1042,7 +1037,7 @@ unsafe fn thread_is_live (target: *mut thread_state) -> bool
   unsafe {
   if target.is_null ()
     { return false; }
-  let mut iter: *mut thread_state = all_threads;
+  let mut iter: *mut thread_state = (*all_threads.as_mut_ptr ());
   while !iter.is_null ()
     {
       if iter == target
@@ -1060,9 +1055,9 @@ unsafe fn link_active_process_waiter (node: *mut ActiveProcessWaiter)
   unsafe {
   if node.is_null () || (*node).linked
     { return; }
-  (*node).next = active_process_waiters_head;
+  (*node).next = (*active_process_waiters_head.as_mut_ptr ());
   (*node).linked = true;
-  active_process_waiters_head = node;
+  (*active_process_waiters_head.as_mut_ptr ()) = node;
 
   }
 }
@@ -1074,13 +1069,13 @@ unsafe fn unlink_active_process_waiter (node: *mut ActiveProcessWaiter)
   if node.is_null () || !(*node).linked
     { return; }
   let mut prev: *mut ActiveProcessWaiter = std::ptr::null_mut ();
-  let mut curr: *mut ActiveProcessWaiter = active_process_waiters_head;
+  let mut curr: *mut ActiveProcessWaiter = (*active_process_waiters_head.as_mut_ptr ());
   while !curr.is_null ()
     {
       if curr == node
 	{
 	  if prev.is_null ()
-	    { active_process_waiters_head = (*curr).next; }
+	    { (*active_process_waiters_head.as_mut_ptr ()) = (*curr).next; }
 	  else
 	    { (*prev).next = (*curr).next; }
 	  (*curr).next = std::ptr::null_mut ();
@@ -1115,7 +1110,7 @@ unsafe fn restore_thread_active_wait_procs (thread: *mut thread_state)
   unsafe {
   if thread.is_null () || !thread_is_live (thread)
     { return; }
-  let mut curr: *mut ActiveProcessWaiter = active_process_waiters_head;
+  let mut curr: *mut ActiveProcessWaiter = (*active_process_waiters_head.as_mut_ptr ());
   while !curr.is_null ()
     {
       let wp: *mut Lisp_Process = (*curr).proc;
@@ -1123,10 +1118,10 @@ unsafe fn restore_thread_active_wait_procs (thread: *mut thread_state)
 	{
 	  let infd: c_int = (*wp).infd;
 	  if (0 <= infd && infd < FD_SETSIZE
-	      && (fd_callback_info[infd as usize].flags & FOR_READ) != 0
-	      && fd_callback_info[infd as usize].waiting_thread.is_null ())
+	      && ((*fd_callback_info.as_mut_ptr ())[infd as usize].flags & FOR_READ) != 0
+	      && (*fd_callback_info.as_mut_ptr ())[infd as usize].waiting_thread.is_null ())
 	    {
-	      fd_callback_info[infd as usize].waiting_thread = thread;
+	      (*fd_callback_info.as_mut_ptr ())[infd as usize].waiting_thread = thread;
 	    }
 	}
       curr = (*curr).next;
@@ -1141,13 +1136,13 @@ unsafe fn other_thread_waiting_for_process (p: *mut Lisp_Process) -> bool
   unsafe {
   if p.is_null ()
     { return false; }
-  let mut curr: *mut ActiveProcessWaiter = active_process_waiters_head;
+  let mut curr: *mut ActiveProcessWaiter = (*active_process_waiters_head.as_mut_ptr ());
   while !curr.is_null ()
     {
       let thread: *mut thread_state = (*curr).thread;
       let wp: *mut Lisp_Process = (*curr).proc;
       curr = (*curr).next;
-      if wp.is_null () || thread == current_thread || !thread_is_live (thread)
+      if wp.is_null () || thread == (*current_thread.as_mut_ptr ()) || !thread_is_live (thread)
 	{ continue; }
       if wp == p
 	{ return true; }
@@ -1165,7 +1160,7 @@ unsafe fn fd_usable_for_wait_proc (fd: c_int, wait_proc: *mut Lisp_Process) -> b
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  if (!fd_callback_info[fd as usize].thread.is_null ())
+  if (!(*fd_callback_info.as_mut_ptr ())[fd as usize].thread.is_null ())
     { return true; }
   if (!wait_proc.is_null ())
     {
@@ -1178,7 +1173,7 @@ unsafe fn fd_usable_for_wait_proc (fd: c_int, wait_proc: *mut Lisp_Process) -> b
 	    { return true; }
 	}
     }
-  let proc: Lisp_Object = chan_process[fd as usize];
+  let proc: Lisp_Object = (*chan_process.as_mut_ptr ())[fd as usize];
   if (!NILP (proc) && PROCESSP (proc)
       && other_thread_waiting_for_process (XPROCESS (proc)))
     { return false; }
@@ -1195,23 +1190,23 @@ unsafe fn compute_input_wait_mask (mask: *mut fd_set, wait_proc: *mut Lisp_Proce
   let mut fd: c_int;
 
   FD_ZERO (mask);
-  eassert! (max_desc < FD_SETSIZE);
+  eassert! ((*max_desc.as_mut_ptr ()) < FD_SETSIZE);
   fd = 0;
-  while fd <= max_desc
+  while fd <= (*max_desc.as_mut_ptr ())
     {
-      if (fd_callback_info[fd as usize].thread != std::ptr::null_mut ()
-	  && fd_callback_info[fd as usize].thread != current_thread)
+      if ((*fd_callback_info.as_mut_ptr ())[fd as usize].thread != std::ptr::null_mut ()
+	  && (*fd_callback_info.as_mut_ptr ())[fd as usize].thread != (*current_thread.as_mut_ptr ()))
 	{ fd += 1; continue; }
-      if (fd_callback_info[fd as usize].waiting_thread != std::ptr::null_mut ()
-	  && fd_callback_info[fd as usize].waiting_thread != current_thread)
+      if ((*fd_callback_info.as_mut_ptr ())[fd as usize].waiting_thread != std::ptr::null_mut ()
+	  && (*fd_callback_info.as_mut_ptr ())[fd as usize].waiting_thread != (*current_thread.as_mut_ptr ()))
 	{ fd += 1; continue; }
       if (!fd_usable_for_wait_proc (fd, wait_proc))
 	{ fd += 1; continue; }
-      if ((fd_callback_info[fd as usize].flags & FOR_READ) != 0)
+      if (((*fd_callback_info.as_mut_ptr ())[fd as usize].flags & FOR_READ) != 0)
 	{
 	  FD_SET (fd, mask);
-	  if (fd != child_signal_read_fd)
-	    { fd_callback_info[fd as usize].waiting_thread = current_thread; }
+	  if (fd != (*child_signal_read_fd.as_mut_ptr ()))
+	    { (*fd_callback_info.as_mut_ptr ())[fd as usize].waiting_thread = (*current_thread.as_mut_ptr ()); }
 	}
       fd += 1;
     }
@@ -1227,22 +1222,22 @@ unsafe fn compute_non_process_wait_mask (mask: *mut fd_set)
   let mut fd: c_int;
 
   FD_ZERO (mask);
-  eassert! (max_desc < FD_SETSIZE);
+  eassert! ((*max_desc.as_mut_ptr ()) < FD_SETSIZE);
   fd = 0;
-  while fd <= max_desc
+  while fd <= (*max_desc.as_mut_ptr ())
     {
-      if (fd_callback_info[fd as usize].thread != std::ptr::null_mut ()
-	  && fd_callback_info[fd as usize].thread != current_thread)
+      if ((*fd_callback_info.as_mut_ptr ())[fd as usize].thread != std::ptr::null_mut ()
+	  && (*fd_callback_info.as_mut_ptr ())[fd as usize].thread != (*current_thread.as_mut_ptr ()))
 	{ fd += 1; continue; }
-      if (fd_callback_info[fd as usize].waiting_thread != std::ptr::null_mut ()
-	  && fd_callback_info[fd as usize].waiting_thread != current_thread)
+      if ((*fd_callback_info.as_mut_ptr ())[fd as usize].waiting_thread != std::ptr::null_mut ()
+	  && (*fd_callback_info.as_mut_ptr ())[fd as usize].waiting_thread != (*current_thread.as_mut_ptr ()))
 	{ fd += 1; continue; }
-      if ((fd_callback_info[fd as usize].flags & FOR_READ) != 0
-	  && (fd_callback_info[fd as usize].flags & PROCESS_FD) == 0)
+      if (((*fd_callback_info.as_mut_ptr ())[fd as usize].flags & FOR_READ) != 0
+	  && ((*fd_callback_info.as_mut_ptr ())[fd as usize].flags & PROCESS_FD) == 0)
 	{
 	  FD_SET (fd, mask);
-	  if (fd != child_signal_read_fd)
-	    { fd_callback_info[fd as usize].waiting_thread = current_thread; }
+	  if (fd != (*child_signal_read_fd.as_mut_ptr ()))
+	    { (*fd_callback_info.as_mut_ptr ())[fd as usize].waiting_thread = (*current_thread.as_mut_ptr ()); }
 	}
       fd += 1;
     }
@@ -1258,24 +1253,24 @@ unsafe fn compute_non_keyboard_wait_mask (mask: *mut fd_set, wait_proc: *mut Lis
   let mut fd: c_int;
 
   FD_ZERO (mask);
-  eassert! (max_desc < FD_SETSIZE);
+  eassert! ((*max_desc.as_mut_ptr ()) < FD_SETSIZE);
   fd = 0;
-  while fd <= max_desc
+  while fd <= (*max_desc.as_mut_ptr ())
     {
-      if (fd_callback_info[fd as usize].thread != std::ptr::null_mut ()
-	  && fd_callback_info[fd as usize].thread != current_thread)
+      if ((*fd_callback_info.as_mut_ptr ())[fd as usize].thread != std::ptr::null_mut ()
+	  && (*fd_callback_info.as_mut_ptr ())[fd as usize].thread != (*current_thread.as_mut_ptr ()))
 	{ fd += 1; continue; }
-      if (fd_callback_info[fd as usize].waiting_thread != std::ptr::null_mut ()
-	  && fd_callback_info[fd as usize].waiting_thread != current_thread)
+      if ((*fd_callback_info.as_mut_ptr ())[fd as usize].waiting_thread != std::ptr::null_mut ()
+	  && (*fd_callback_info.as_mut_ptr ())[fd as usize].waiting_thread != (*current_thread.as_mut_ptr ()))
 	{ fd += 1; continue; }
       if (!fd_usable_for_wait_proc (fd, wait_proc))
 	{ fd += 1; continue; }
-      if ((fd_callback_info[fd as usize].flags & FOR_READ) != 0
-	  && (fd_callback_info[fd as usize].flags & KEYBOARD_FD) == 0)
+      if (((*fd_callback_info.as_mut_ptr ())[fd as usize].flags & FOR_READ) != 0
+	  && ((*fd_callback_info.as_mut_ptr ())[fd as usize].flags & KEYBOARD_FD) == 0)
 	{
 	  FD_SET (fd, mask);
-	  if (fd != child_signal_read_fd)
-	    { fd_callback_info[fd as usize].waiting_thread = current_thread; }
+	  if (fd != (*child_signal_read_fd.as_mut_ptr ()))
+	    { (*fd_callback_info.as_mut_ptr ())[fd as usize].waiting_thread = (*current_thread.as_mut_ptr ()); }
 	}
       fd += 1;
     }
@@ -1291,22 +1286,22 @@ unsafe fn compute_write_mask (mask: *mut fd_set, wait_proc: *mut Lisp_Process)
   let mut fd: c_int;
 
   FD_ZERO (mask);
-  eassert! (max_desc < FD_SETSIZE);
+  eassert! ((*max_desc.as_mut_ptr ()) < FD_SETSIZE);
   fd = 0;
-  while fd <= max_desc
+  while fd <= (*max_desc.as_mut_ptr ())
     {
-      if (fd_callback_info[fd as usize].thread != std::ptr::null_mut ()
-	  && fd_callback_info[fd as usize].thread != current_thread)
+      if ((*fd_callback_info.as_mut_ptr ())[fd as usize].thread != std::ptr::null_mut ()
+	  && (*fd_callback_info.as_mut_ptr ())[fd as usize].thread != (*current_thread.as_mut_ptr ()))
 	{ fd += 1; continue; }
-      if (fd_callback_info[fd as usize].waiting_thread != std::ptr::null_mut ()
-	  && fd_callback_info[fd as usize].waiting_thread != current_thread)
+      if ((*fd_callback_info.as_mut_ptr ())[fd as usize].waiting_thread != std::ptr::null_mut ()
+	  && (*fd_callback_info.as_mut_ptr ())[fd as usize].waiting_thread != (*current_thread.as_mut_ptr ()))
 	{ fd += 1; continue; }
       if (!fd_usable_for_wait_proc (fd, wait_proc))
 	{ fd += 1; continue; }
-      if ((fd_callback_info[fd as usize].flags & FOR_WRITE) != 0)
+      if (((*fd_callback_info.as_mut_ptr ())[fd as usize].flags & FOR_WRITE) != 0)
 	{
 	  FD_SET (fd, mask);
-	  fd_callback_info[fd as usize].waiting_thread = current_thread;
+	  (*fd_callback_info.as_mut_ptr ())[fd as usize].waiting_thread = (*current_thread.as_mut_ptr ());
 	}
       fd += 1;
     }
@@ -1321,12 +1316,12 @@ unsafe fn clear_waiting_thread_info ()
   unsafe {
   let mut fd: c_int;
 
-  eassert! (max_desc < FD_SETSIZE);
+  eassert! ((*max_desc.as_mut_ptr ()) < FD_SETSIZE);
   fd = 0;
   while fd < FD_SETSIZE
     {
-      if (fd_callback_info[fd as usize].waiting_thread == current_thread)
-	{ fd_callback_info[fd as usize].waiting_thread = std::ptr::null_mut (); }
+      if ((*fd_callback_info.as_mut_ptr ())[fd as usize].waiting_thread == (*current_thread.as_mut_ptr ()))
+	{ (*fd_callback_info.as_mut_ptr ())[fd as usize].waiting_thread = std::ptr::null_mut (); }
       fd += 1;
     }
 
@@ -1340,11 +1335,11 @@ unsafe fn kbd_is_ours () -> bool
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
   let mut fd: c_int = 0;
-  while fd <= max_desc
+  while fd <= (*max_desc.as_mut_ptr ())
     {
-      if (fd_callback_info[fd as usize].waiting_thread != current_thread)
+      if ((*fd_callback_info.as_mut_ptr ())[fd as usize].waiting_thread != (*current_thread.as_mut_ptr ()))
 	{ fd += 1; continue; }
-      if ((fd_callback_info[fd as usize].flags & (FOR_READ | KEYBOARD_FD))
+      if (((*fd_callback_info.as_mut_ptr ())[fd as usize].flags & (FOR_READ | KEYBOARD_FD))
 	  == (FOR_READ | KEYBOARD_FD))
 	{ return true; }
       fd += 1;
@@ -1446,8 +1441,8 @@ unsafe fn status_message (p: *mut Lisp_Process) -> Lisp_Object
 	  let mut c2: c_int;
 
 	  string = build_unibyte_string (signame);
-	  if (! NILP (Vlocale_coding_system))
-	    { string = code_convert_string_norecord (string, Vlocale_coding_system, false); }
+	  if (! NILP ((*Vlocale_coding_system.as_mut_ptr ())))
+	    { string = code_convert_string_norecord (string, (*Vlocale_coding_system.as_mut_ptr ()), false); }
 	  c1 = STRING_CHAR (SDATA (string));
 	  c2 = downcase (c1);
 	  if (c1 != c2)
@@ -1734,7 +1729,7 @@ unsafe fn make_process (name: Lisp_Object) -> Lisp_Object
     eassert! (NILP ((*p).gnutls_boot_parameters));
   }
 
-  (*p).readmax = clip_to_bounds (1, read_process_output_max, INT_MAX as EMACS_INT);
+  (*p).readmax = clip_to_bounds (1, (*read_process_output_max.as_mut_ptr ()), INT_MAX as EMACS_INT);
 
   /* If name is already in use, modify it until it is unused.  */
 
@@ -1760,7 +1755,7 @@ unsafe fn make_process (name: Lisp_Object) -> Lisp_Object
   pset_filter (p, Qinternal_default_process_filter ());
   let mut val: Lisp_Object = lisp_h_Qnil ();
   XSETPROCESS! (val, p);
-  Vprocess_alist = Fcons (Fcons (name, val), Vprocess_alist);
+  (*Vprocess_alist.as_mut_ptr ()) = Fcons (Fcons (name, val), (*Vprocess_alist.as_mut_ptr ()));
   return val;
 
   }
@@ -1774,8 +1769,8 @@ unsafe extern "C-unwind" fn remove_process (proc: Lisp_Object)
   unsafe {
   let pair: Lisp_Object;
 
-  pair = Frassq (proc, Vprocess_alist);
-  Vprocess_alist = Fdelq (pair, Vprocess_alist);
+  pair = Frassq (proc, (*Vprocess_alist.as_mut_ptr ()));
+  (*Vprocess_alist.as_mut_ptr ()) = Fdelq (pair, (*Vprocess_alist.as_mut_ptr ()));
 
   deactivate_process (proc);
 
@@ -1790,7 +1785,7 @@ pub unsafe fn update_processes_for_thread_death (dying_thread: Lisp_Object)
   unsafe {
   let mut pair: Lisp_Object;
 
-  pair = Vprocess_alist;
+  pair = (*Vprocess_alist.as_mut_ptr ());
   while !NILP (pair)
     {
       let process: Lisp_Object = XCDR (XCAR (pair));
@@ -1801,10 +1796,10 @@ pub unsafe fn update_processes_for_thread_death (dying_thread: Lisp_Object)
 	  pset_thread (proc, Qnil ());
 	  eassert! ((*proc).infd < FD_SETSIZE);
 	  if ((*proc).infd >= 0)
-	    { fd_callback_info[(*proc).infd as usize].thread = std::ptr::null_mut (); }
+	    { (*fd_callback_info.as_mut_ptr ())[(*proc).infd as usize].thread = std::ptr::null_mut (); }
 	  eassert! ((*proc).outfd < FD_SETSIZE);
 	  if ((*proc).outfd >= 0)
-	    { fd_callback_info[(*proc).outfd as usize].thread = std::ptr::null_mut (); }
+	    { (*fd_callback_info.as_mut_ptr ())[(*proc).outfd as usize].thread = std::ptr::null_mut (); }
 	}
       pair = XCDR (pair);
     }
@@ -1840,7 +1835,7 @@ DEFUN! ("get-process", Fget_process, Sget_process, 1, 1, 0,
   if (PROCESSP (name))
     { return name; }
   CHECK_STRING (name);
-  return Fcdr (Fassoc (name, Vprocess_alist, Qnil ()));
+  return Fcdr (Fassoc (name, (*Vprocess_alist.as_mut_ptr ()), Qnil ()));
 });
 
 /* This is how commands for the user decode process arguments.  It accepts a process, a
@@ -1888,7 +1883,7 @@ unsafe fn get_process (name: Lisp_Object) -> Lisp_Object
 
 /* C 1108-1118: `deleted_pid_list` — C's static, zero-initialised; the port uses `Qnil` (the
    callproc.rs shape).  */
-static mut deleted_pid_list: Lisp_Object = lisp_h_Qnil ();
+static deleted_pid_list: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* C 1121-1127: `record_deleted_pid`.  */
 #[unsafe(no_mangle)]
@@ -1896,9 +1891,9 @@ pub unsafe fn record_deleted_pid (pid: pid_t, filename: Lisp_Object)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  deleted_pid_list = Fcons (Fcons (INT_TO_INTEGER (pid as EMACS_INT), filename),
+  (*deleted_pid_list.as_mut_ptr ()) = Fcons (Fcons (INT_TO_INTEGER (pid as EMACS_INT), filename),
 			    /* GC treated elements set to nil.  */
-			    Fdelq (Qnil (), deleted_pid_list));
+			    Fdelq (Qnil (), (*deleted_pid_list.as_mut_ptr ())));
 
   }
 }
@@ -1930,7 +1925,7 @@ DEFUN! ("delete-process", Fdelete_process, Sdelete_process, 0, 1, "(list 'messag
 	   request if completely canceled.  */
 
 	let mut canceled: bool = gai_cancel ((*p).dns_request) != EAI_NOTCANCELED;
-	if (!canceled && !inhibit_sentinels)
+	if (!canceled && !(*inhibit_sentinels.as_mut_ptr ()))
 	  {
 	    let req: *const gaicb = (*p).dns_request;
 	    while (gai_suspend (&raw const req, 1, std::ptr::null_mut ()) != 0)
@@ -1946,8 +1941,8 @@ DEFUN! ("delete-process", Fdelete_process, Sdelete_process, 0, 1, "(list 'messag
   if (NETCONN1_P (p) || SERIALCONN1_P (p) || PIPECONN1_P (p))
     {
       pset_status (p, list2 (Qexit (), make_fixnum (0)));
-      process_tick += 1;
-      (*p).tick = process_tick;
+      (*process_tick.as_mut_ptr ()) += 1;
+      (*p).tick = (*process_tick.as_mut_ptr ());
       status_notify (p, std::ptr::null_mut ());
       redisplay_preserve_echo_area (13);
     }
@@ -1967,8 +1962,8 @@ DEFUN! ("delete-process", Fdelete_process, Sdelete_process, 0, 1, "(list 'messag
 	  if (! (EQ (symbol, Qsignal ()) || EQ (symbol, Qexit ())))
 	    { pset_status (p, list2 (Qsignal (), make_fixnum (SIGKILL as EMACS_INT))); }
 
-	  process_tick += 1;
-      (*p).tick = process_tick;
+	  (*process_tick.as_mut_ptr ()) += 1;
+      (*p).tick = (*process_tick.as_mut_ptr ());
 	  status_notify (p, std::ptr::null_mut ());
 	  redisplay_preserve_echo_area (13);
 	}
@@ -2163,7 +2158,7 @@ unsafe fn is_pty_from_symbol (symbol: Lisp_Object) -> bool
   else if (EQ (symbol, Qpipe ()))
     { return false; }
   else if (NILP (symbol))
-    { return !NILP (Vprocess_connection_type); }
+    { return !NILP ((*Vprocess_connection_type.as_mut_ptr ())); }
   else
     { report_file_error (c"Unknown connection type".as_ptr (), symbol); }
 
@@ -2247,10 +2242,10 @@ unsafe fn set_proc_thread (proc: *mut Lisp_Process, thrd: *mut thread_state)
 	    || (THREADP ((*proc).thread) && XTHREAD ((*proc).thread) == thrd));
   eassert! ((*proc).infd < FD_SETSIZE);
   if ((*proc).infd >= 0)
-    { fd_callback_info[(*proc).infd as usize].thread = thrd; }
+    { (*fd_callback_info.as_mut_ptr ())[(*proc).infd as usize].thread = thrd; }
   eassert! ((*proc).outfd < FD_SETSIZE);
   if ((*proc).outfd >= 0)
-    { fd_callback_info[(*proc).outfd as usize].thread = thrd; }
+    { (*fd_callback_info.as_mut_ptr ())[(*proc).outfd as usize].thread = thrd; }
 
   }
 }
@@ -2490,7 +2485,7 @@ DEFUN! ("process-list", Fprocess_list, Sprocess_list, 0, 0, 0,
        doc: "Return a list of all processes that are Emacs sub-processes.",
        (),
        {
-  return Fmapcar (Qcdr (), Vprocess_alist);
+  return Fmapcar (Qcdr (), (*Vprocess_alist.as_mut_ptr ()));
 });
 
 /* C 1800-1811: `get_required_string_keyword_param`.  */
@@ -2637,8 +2632,8 @@ DEFUN! ("make-process", Fmake_process, Smake_process, 0, MANY, 0,
   }
 
   process_bits! (adaptive_read_buffering, XPROCESS (proc),
-		 (if NILP (Vprocess_adaptive_read_buffering) { 0 }
-		  else if EQ (Vprocess_adaptive_read_buffering, Qt ()) { 1 } else { 2 }));
+		 (if NILP ((*Vprocess_adaptive_read_buffering.as_mut_ptr ())) { 0 }
+		  else if EQ ((*Vprocess_adaptive_read_buffering.as_mut_ptr ()), Qt ()) { 1 } else { 2 }));
 
   /* Make the process marker point into the process buffer (if any).  */
   update_process_mark (XPROCESS (proc));
@@ -2663,7 +2658,7 @@ DEFUN! ("make-process", Fmake_process, Smake_process, 0, MANY, 0,
 	  { val = XCAR (val); }
       }
     else
-      { val = Vcoding_system_for_read; }
+      { val = (*Vcoding_system_for_read.as_mut_ptr ()); }
     if (NILP (val))
       {
 	let nargs2: ptrdiff_t = 3 + list_length (command);
@@ -2683,8 +2678,8 @@ DEFUN! ("make-process", Fmake_process, Smake_process, 0, MANY, 0,
 	  { coding_systems = Ffind_operation_coding_system (nargs2, args2); }
 	if (CONSP (coding_systems))
 	  { val = XCAR (coding_systems); }
-	else if (CONSP (Vdefault_process_coding_system))
-	  { val = XCAR (Vdefault_process_coding_system); }
+	else if (CONSP ((*Vdefault_process_coding_system.as_mut_ptr ())))
+	  { val = XCAR ((*Vdefault_process_coding_system.as_mut_ptr ())); }
       }
     pset_decode_coding_system (XPROCESS (proc), val);
 
@@ -2695,7 +2690,7 @@ DEFUN! ("make-process", Fmake_process, Smake_process, 0, MANY, 0,
 	  { val = XCDR (val); }
       }
     else
-      { val = Vcoding_system_for_write; }
+      { val = (*Vcoding_system_for_write.as_mut_ptr ()); }
     if (NILP (val))
       {
 	if (EQ (coding_systems, Qt ()))
@@ -2718,8 +2713,8 @@ DEFUN! ("make-process", Fmake_process, Smake_process, 0, MANY, 0,
 	  }
 	if (CONSP (coding_systems))
 	  { val = XCDR (coding_systems); }
-	else if (CONSP (Vdefault_process_coding_system))
-	  { val = XCDR (Vdefault_process_coding_system); }
+	else if (CONSP ((*Vdefault_process_coding_system.as_mut_ptr ())))
+	  { val = XCDR ((*Vdefault_process_coding_system.as_mut_ptr ())); }
       }
     pset_encode_coding_system (XPROCESS (proc), val);
     /* Note: At this moment, the above coding system may leave text-conversion or
@@ -2728,12 +2723,12 @@ DEFUN! ("make-process", Fmake_process, Smake_process, 0, MANY, 0,
        to the process.  */
   }
 
-  pset_decoding_buf (XPROCESS (proc), empty_unibyte_string);
+  pset_decoding_buf (XPROCESS (proc), (*empty_unibyte_string.as_mut_ptr ()));
   eassert! ((*XPROCESS (proc)).decoding_carryover == 0);
-  pset_encoding_buf (XPROCESS (proc), empty_unibyte_string);
+  pset_encoding_buf (XPROCESS (proc), (*empty_unibyte_string.as_mut_ptr ()));
 
   process_bits! (inherit_coding_system_flag, XPROCESS (proc),
-		 !(NILP (buffer) || !inherit_process_coding_system));
+		 !(NILP (buffer) || !(*inherit_process_coding_system.as_mut_ptr ())));
 
   if (!NILP (program))
     {
@@ -2746,7 +2741,7 @@ DEFUN! ("make-process", Fmake_process, Smake_process, 0, MANY, 0,
 	       && IS_DEVICE_SEP (SREF (program, 1) as c_char)))
 	{
 	  tem = Qnil ();
-	  openp (Vexec_path, program, Fdefault_value (Qexec_suffixes ()), &raw mut tem,
+	  openp ((*Vexec_path.as_mut_ptr ()), program, Fdefault_value (Qexec_suffixes ()), &raw mut tem,
 		 make_fixnum (X_OK as EMACS_INT), false, false, std::ptr::null_mut ());
 	  if (NILP (tem))
 	    { report_file_error (c"Searching for program".as_ptr (), program); }
@@ -2859,7 +2854,7 @@ pub unsafe fn dissociate_controlling_tty ()
 	 `docs/baseline/config/source-header-macros.tsv` row cannot carry `TIOCNOTTY` — it would
 	 make `src/term.c`'s condition disagree with clang.  See docs/ports/process.md, Decisions
 	 and the Final state.)  */
-      let ttyfd: c_int = emacs_open (dev_tty, O_RDWR, 0);
+      let ttyfd: c_int = emacs_open ((*dev_tty.as_mut_ptr ()), O_RDWR, 0);
       if (0 <= ttyfd)
 	{
 	  ioctl (ttyfd, TIOCNOTTY as c_ulong, 0);
@@ -2980,7 +2975,7 @@ unsafe fn create_process (process: Lisp_Object, new_argv: *mut *mut c_char,
 
   /* Record this as an active process, with its channels.  */
   eassert! (0 <= inchannel && inchannel < FD_SETSIZE);
-  chan_process[inchannel as usize] = process;
+  (*chan_process.as_mut_ptr ())[inchannel as usize] = process;
   (*p).infd = inchannel;
   (*p).outfd = outchannel;
 
@@ -2996,7 +2991,7 @@ unsafe fn create_process (process: Lisp_Object, new_argv: *mut *mut c_char,
       && !EQ ((*p).filter, Qt ()))
     { add_process_read_fd (inchannel); }
 
-  set_proc_thread (p, current_thread);
+  set_proc_thread (p, (*current_thread.as_mut_ptr ()));
 
   let count: specpdl_ref = SPECPDL_INDEX ();
 
@@ -3102,7 +3097,7 @@ unsafe fn create_pty (process: Lisp_Object)
       /* Record this as an active process, with its channels.  As a result, child_setup
 	 will close Emacs's side of the pipes.  */
       eassert! (0 <= pty_fd && pty_fd < FD_SETSIZE);
-      chan_process[pty_fd as usize] = process;
+      (*chan_process.as_mut_ptr ())[pty_fd as usize] = process;
       (*p).infd = pty_fd;
       (*p).outfd = pty_fd;
 
@@ -3192,12 +3187,12 @@ DEFUN! ("make-pipe-process", Fmake_pipe_process, Smake_pipe_process, 0, MANY, 0,
 
   /* Record this as an active process, with its channels.  */
   eassert! (0 <= inchannel && inchannel < FD_SETSIZE);
-  chan_process[inchannel as usize] = proc;
+  (*chan_process.as_mut_ptr ())[inchannel as usize] = proc;
   (*p).infd = inchannel;
   (*p).outfd = outchannel;
 
-  if (inchannel > max_desc)
-    { max_desc = inchannel; }
+  if (inchannel > (*max_desc.as_mut_ptr ()))
+    { (*max_desc.as_mut_ptr ()) = inchannel; }
 
   {
     let buffer_member: Lisp_Object = plist_member (contact, QCbuffer ());
@@ -3228,8 +3223,8 @@ DEFUN! ("make-pipe-process", Fmake_pipe_process, Smake_pipe_process, 0, MANY, 0,
       && !EQ ((*p).filter, Qt ()))
     { add_process_read_fd (inchannel); }
   process_bits! (adaptive_read_buffering, p,
-		 (if NILP (Vprocess_adaptive_read_buffering) { 0 }
-		  else if EQ (Vprocess_adaptive_read_buffering, Qt ()) { 1 } else { 2 }));
+		 (if NILP ((*Vprocess_adaptive_read_buffering.as_mut_ptr ())) { 0 }
+		  else if EQ ((*Vprocess_adaptive_read_buffering.as_mut_ptr ()), Qt ()) { 1 } else { 2 }));
 
   /* Make the process marker point into the process buffer (if any).  */
   update_process_mark (p);
@@ -3249,10 +3244,10 @@ DEFUN! ("make-pipe-process", Fmake_pipe_process, Smake_pipe_process, 0, MANY, 0,
 	if (CONSP (val))
 	  { val = XCAR (val); }
       }
-    else if (!NILP (Vcoding_system_for_read))
-      { val = Vcoding_system_for_read; }
+    else if (!NILP ((*Vcoding_system_for_read.as_mut_ptr ())))
+      { val = (*Vcoding_system_for_read.as_mut_ptr ()); }
     else if ((!NILP (buffer) && NILP (BVAR! (XBUFFER (buffer), enable_multibyte_characters_)))
-	     || (NILP (buffer) && NILP (BVAR! (&raw mut buffer_defaults, enable_multibyte_characters_))))
+	     || (NILP (buffer) && NILP (BVAR! (buffer_defaults.as_mut_ptr (), enable_multibyte_characters_))))
       /* We dare not decode end-of-line format by setting VAL to Qraw_text, because the
 	 existing Emacs Lisp libraries assume that they receive bare code including a
 	 sequence of CR LF.  */
@@ -3261,8 +3256,8 @@ DEFUN! ("make-pipe-process", Fmake_pipe_process, Smake_pipe_process, 0, MANY, 0,
       {
 	if (CONSP (coding_systems))
 	  { val = XCAR (coding_systems); }
-	else if (CONSP (Vdefault_process_coding_system))
-	  { val = XCAR (Vdefault_process_coding_system); }
+	else if (CONSP ((*Vdefault_process_coding_system.as_mut_ptr ())))
+	  { val = XCAR ((*Vdefault_process_coding_system.as_mut_ptr ())); }
 	else
 	  { val = Qnil (); }
       }
@@ -3274,16 +3269,16 @@ DEFUN! ("make-pipe-process", Fmake_pipe_process, Smake_pipe_process, 0, MANY, 0,
 	if (CONSP (val))
 	  { val = XCDR (val); }
       }
-    else if (!NILP (Vcoding_system_for_write))
-      { val = Vcoding_system_for_write; }
+    else if (!NILP ((*Vcoding_system_for_write.as_mut_ptr ())))
+      { val = (*Vcoding_system_for_write.as_mut_ptr ()); }
     else if (NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_)))
       { val = Qnil (); }
     else
       {
 	if (CONSP (coding_systems))
 	  { val = XCDR (coding_systems); }
-	else if (CONSP (Vdefault_process_coding_system))
-	  { val = XCDR (Vdefault_process_coding_system); }
+	else if (CONSP ((*Vdefault_process_coding_system.as_mut_ptr ())))
+	  { val = XCDR ((*Vdefault_process_coding_system.as_mut_ptr ())); }
 	else
 	  { val = Qnil (); }
       }
@@ -3292,9 +3287,9 @@ DEFUN! ("make-pipe-process", Fmake_pipe_process, Smake_pipe_process, 0, MANY, 0,
   /* This may signal an error.  */
   setup_process_coding_systems (proc);
 
-  pset_decoding_buf (p, empty_unibyte_string);
+  pset_decoding_buf (p, (*empty_unibyte_string.as_mut_ptr ()));
   eassert! ((*p).decoding_carryover == 0);
-  pset_encoding_buf (p, empty_unibyte_string);
+  pset_encoding_buf (p, (*empty_unibyte_string.as_mut_ptr ()));
 
   (specpdl_ptr! ()) = specpdl_ref_to_ptr (specpdl_count);
 
@@ -3317,7 +3312,7 @@ pub unsafe fn conv_sockaddr_to_lisp (sa: *mut sockaddr, len: ptrdiff_t) -> Lisp_
      are inaccessible; getsockname returns a zero length name.  */
   let mut len: ptrdiff_t = len;
   if (len < std::mem::offset_of! (sockaddr, sa_family) as ptrdiff_t + std::mem::size_of_val (&(*sa).sa_family) as ptrdiff_t)
-    { return empty_unibyte_string; }
+    { return (*empty_unibyte_string.as_mut_ptr ()); }
 
   match (*sa).sa_family as c_uint
     {
@@ -3561,8 +3556,8 @@ DEFUN! ("process-datagram-address", Fprocess_datagram_address, Sprocess_datagram
 
   channel = (*XPROCESS (process)).infd;
   eassert! (0 <= channel && channel < FD_SETSIZE);
-  return conv_sockaddr_to_lisp (datagram_address[channel as usize].sa,
-				datagram_address[channel as usize].len);
+  return conv_sockaddr_to_lisp ((*datagram_address.as_mut_ptr ())[channel as usize].sa,
+				(*datagram_address.as_mut_ptr ())[channel as usize].len);
 });
 
 DEFUN! ("set-process-datagram-address", Fset_process_datagram_address,
@@ -3586,9 +3581,9 @@ DEFUN! ("set-process-datagram-address", Fset_process_datagram_address,
 
   len = get_lisp_to_sockaddr_size (address, &raw mut family);
   eassert! (0 <= channel && channel < FD_SETSIZE);
-  if (len == 0 || datagram_address[channel as usize].len != len)
+  if (len == 0 || (*datagram_address.as_mut_ptr ())[channel as usize].len != len)
     { return Qnil (); }
-  conv_lisp_to_sockaddr (family, address, datagram_address[channel as usize].sa, len as c_int);
+  conv_lisp_to_sockaddr (family, address, (*datagram_address.as_mut_ptr ())[channel as usize].sa, len as c_int);
   return address;
 });
 
@@ -3616,7 +3611,7 @@ pub const OPIX_NONE: c_int = 0;
 pub const OPIX_MISC: c_int = 1;
 pub const OPIX_REUSEADDR: c_int = 2;
 /* The live entries (the `#ifdef`s of `SO_BINDTODEVICE` and `SO_PRIORITY` are dead here).  */
-static mut socket_options: [socket_options; 8] = [
+static socket_options: VmGlobal<[socket_options; 8]> = VmGlobal::<[socket_options; 8]>::new ([
   socket_options { name: c":broadcast".as_ptr (), optlevel: SOL_SOCKET, optnum: SO_BROADCAST, opttype: SOPT_BOOL, optbit: OPIX_MISC },
   socket_options { name: c":dontroute".as_ptr (), optlevel: SOL_SOCKET, optnum: SO_DONTROUTE, opttype: SOPT_BOOL, optbit: OPIX_MISC },
   socket_options { name: c":keepalive".as_ptr (), optlevel: SOL_SOCKET, optnum: SO_KEEPALIVE, opttype: SOPT_BOOL, optbit: OPIX_MISC },
@@ -3625,7 +3620,7 @@ static mut socket_options: [socket_options; 8] = [
   socket_options { name: c":reuseaddr".as_ptr (), optlevel: SOL_SOCKET, optnum: SO_REUSEADDR, opttype: SOPT_BOOL, optbit: OPIX_REUSEADDR },
   socket_options { name: c":nodelay".as_ptr (), optlevel: IPPROTO_TCP, optnum: TCP_NODELAY, opttype: SOPT_BOOL, optbit: OPIX_MISC },
   socket_options { name: std::ptr::null (), optlevel: 0, optnum: 0, opttype: SOPT_UNKNOWN, optbit: OPIX_NONE },
-];
+]);
 /* C 2892-2894's `#ifdef SO_BINDTODEVICE` arm.  */
 #[cfg (feature = "have_so_bindtodevice")]
 const SOCKET_OPTIONS_BINDTODEVICE: socket_options =
@@ -3651,7 +3646,7 @@ unsafe fn set_socket_option (s: c_int, opt: Lisp_Object, val: Lisp_Object) -> c_
   CHECK_SYMBOL (opt);
 
   name = SSDATA (SYMBOL_NAME (opt)) as *mut c_char;
-  sopt = (&raw const socket_options) as *const socket_options;
+  sopt = (socket_options.as_ptr ()) as *const socket_options;
   while !(*sopt).name.is_null ()
     {
       if (strcmp (name, (*sopt).name) == 0)
@@ -3879,10 +3874,10 @@ DEFUN! ("make-serial-process", Fmake_serial_process, Smake_serial_process, 0, MA
   (*p).open_fd[SUBPROCESS_STDIN as usize] = fd;
   (*p).infd = fd;
   (*p).outfd = fd;
-  if (fd > max_desc)
-    { max_desc = fd; }
+  if (fd > (*max_desc.as_mut_ptr ()))
+    { (*max_desc.as_mut_ptr ()) = fd; }
   eassert! (0 <= fd && fd < FD_SETSIZE);
-  chan_process[fd as usize] = proc;
+  (*chan_process.as_mut_ptr ())[fd as usize] = proc;
 
   buffer = plist_get (contact, QCbuffer ());
   if (NILP (buffer))
@@ -3919,10 +3914,10 @@ DEFUN! ("make-serial-process", Fmake_serial_process, Smake_serial_process, 0, MA
       if (CONSP (val))
 	{ val = XCAR (val); }
     }
-  else if (!NILP (Vcoding_system_for_read))
-    { val = Vcoding_system_for_read; }
+  else if (!NILP ((*Vcoding_system_for_read.as_mut_ptr ())))
+    { val = (*Vcoding_system_for_read.as_mut_ptr ()); }
   else if ((!NILP (buffer) && NILP (BVAR! (XBUFFER (buffer), enable_multibyte_characters_)))
-	   || (NILP (buffer) && NILP (BVAR! (&raw mut buffer_defaults, enable_multibyte_characters_))))
+	   || (NILP (buffer) && NILP (BVAR! (buffer_defaults.as_mut_ptr (), enable_multibyte_characters_))))
     { val = Qnil (); }
   pset_decode_coding_system (p, val);
 
@@ -3933,19 +3928,19 @@ DEFUN! ("make-serial-process", Fmake_serial_process, Smake_serial_process, 0, MA
       if (CONSP (val))
 	{ val = XCDR (val); }
     }
-  else if (!NILP (Vcoding_system_for_write))
-    { val = Vcoding_system_for_write; }
+  else if (!NILP ((*Vcoding_system_for_write.as_mut_ptr ())))
+    { val = (*Vcoding_system_for_write.as_mut_ptr ()); }
   else if ((!NILP (buffer) && NILP (BVAR! (XBUFFER (buffer), enable_multibyte_characters_)))
-	   || (NILP (buffer) && NILP (BVAR! (&raw mut buffer_defaults, enable_multibyte_characters_))))
+	   || (NILP (buffer) && NILP (BVAR! (buffer_defaults.as_mut_ptr (), enable_multibyte_characters_))))
     { val = Qnil (); }
   pset_encode_coding_system (p, val);
 
   setup_process_coding_systems (proc);
-  pset_decoding_buf (p, empty_unibyte_string);
+  pset_decoding_buf (p, (*empty_unibyte_string.as_mut_ptr ()));
   eassert! ((*p).decoding_carryover == 0);
-  pset_encoding_buf (p, empty_unibyte_string);
+  pset_encoding_buf (p, (*empty_unibyte_string.as_mut_ptr ()));
   process_bits! (inherit_coding_system_flag, p,
-		 !(!NILP (tem) || NILP (buffer) || !inherit_process_coding_system));
+		 !(!NILP (tem) || NILP (buffer) || !(*inherit_process_coding_system.as_mut_ptr ())));
 
   Fserial_process_configure (nargs, args);
 
@@ -3984,12 +3979,12 @@ unsafe fn set_network_socket_coding_system (proc_: Lisp_Object, host: Lisp_Objec
       if (CONSP (val))
 	{ val = XCAR (val); }
     }
-  else if (!NILP (Vcoding_system_for_read))
-    { val = Vcoding_system_for_read; }
+  else if (!NILP ((*Vcoding_system_for_read.as_mut_ptr ())))
+    { val = (*Vcoding_system_for_read.as_mut_ptr ()); }
   else if ((!NILP ((*p).buffer)
 	    && NILP (BVAR! (XBUFFER ((*p).buffer), enable_multibyte_characters_)))
 	   || (NILP ((*p).buffer)
-	       && NILP (BVAR! (&raw mut buffer_defaults, enable_multibyte_characters_))))
+	       && NILP (BVAR! (buffer_defaults.as_mut_ptr (), enable_multibyte_characters_))))
     /* We dare not decode end-of-line format by setting VAL to Qraw_text, because the
        existing Emacs Lisp libraries assume that they receive bare code including a
        sequence of CR LF.  */
@@ -4004,8 +3999,8 @@ unsafe fn set_network_socket_coding_system (proc_: Lisp_Object, host: Lisp_Objec
 				   host, service); }
       if (CONSP (coding_systems))
 	{ val = XCAR (coding_systems); }
-      else if (CONSP (Vdefault_process_coding_system))
-	{ val = XCAR (Vdefault_process_coding_system); }
+      else if (CONSP ((*Vdefault_process_coding_system.as_mut_ptr ())))
+	{ val = XCAR ((*Vdefault_process_coding_system.as_mut_ptr ())); }
       else
 	{ val = Qnil (); }
     }
@@ -4017,8 +4012,8 @@ unsafe fn set_network_socket_coding_system (proc_: Lisp_Object, host: Lisp_Objec
       if (CONSP (val))
 	{ val = XCDR (val); }
     }
-  else if (!NILP (Vcoding_system_for_write))
-    { val = Vcoding_system_for_write; }
+  else if (!NILP ((*Vcoding_system_for_write.as_mut_ptr ())))
+    { val = (*Vcoding_system_for_write.as_mut_ptr ()); }
   else if (NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_)))
     { val = Qnil (); }
   else
@@ -4034,19 +4029,19 @@ unsafe fn set_network_socket_coding_system (proc_: Lisp_Object, host: Lisp_Objec
 	}
       if (CONSP (coding_systems))
 	{ val = XCDR (coding_systems); }
-      else if (CONSP (Vdefault_process_coding_system))
-	{ val = XCDR (Vdefault_process_coding_system); }
+      else if (CONSP ((*Vdefault_process_coding_system.as_mut_ptr ())))
+	{ val = XCDR ((*Vdefault_process_coding_system.as_mut_ptr ())); }
       else
 	{ val = Qnil (); }
     }
   pset_encode_coding_system (p, val);
 
-  pset_decoding_buf (p, empty_unibyte_string);
+  pset_decoding_buf (p, (*empty_unibyte_string.as_mut_ptr ()));
   (*p).decoding_carryover = 0;
-  pset_encoding_buf (p, empty_unibyte_string);
+  pset_encoding_buf (p, (*empty_unibyte_string.as_mut_ptr ()));
 
   process_bits! (inherit_coding_system_flag, p,
-		 !(!NILP (tem) || NILP ((*p).buffer) || !inherit_process_coding_system));
+		 !(!NILP (tem) || NILP ((*p).buffer) || !(*inherit_process_coding_system.as_mut_ptr ())));
 
   }
 }
@@ -4081,7 +4076,7 @@ unsafe fn finish_after_tls_connection (proc_: Lisp_Object)
       pset_status (p, Qfailed ());
       deactivate_process (proc_);
     }
-  else if ((fd_callback_info[(*p).outfd as usize].flags & NON_BLOCKING_CONNECT_FD) == 0)
+  else if (((*fd_callback_info.as_mut_ptr ())[(*p).outfd as usize].flags & NON_BLOCKING_CONNECT_FD) == 0)
     {
       /* If we cleared the connection wait mask before we did the TLS setup, then we have
 	 to say that the process is finally "open" here.  */
@@ -4115,11 +4110,11 @@ unsafe fn connect_network_socket (proc_: Lisp_Object, addrinfos: Lisp_Object,
 
   if (!NILP (use_external_socket_p))
     {
-      socket_to_use = external_sock_fd;
+      socket_to_use = (*external_sock_fd.as_mut_ptr ());
       eassert! (socket_to_use < FD_SETSIZE);
 
       /* Ensure we don't consume the external socket twice.  */
-      external_sock_fd = -1;
+      (*external_sock_fd.as_mut_ptr ()) = -1;
     }
 
   /* Do this in case we never enter the while-loop below.  */
@@ -4322,15 +4317,15 @@ unsafe fn connect_network_socket (proc_: Lisp_Object, addrinfos: Lisp_Object,
       if ((*p).socktype == SOCK_DGRAM)
 	{
 	  eassert! (0 <= s && s < FD_SETSIZE);
-	  if (!datagram_address[s as usize].sa.is_null ())
+	  if (!(*datagram_address.as_mut_ptr ())[s as usize].sa.is_null ())
 	    { emacs_abort (); }
 
-	  datagram_address[s as usize].sa = xmalloc (addrlen as usize) as *mut sockaddr;
-	  datagram_address[s as usize].len = addrlen;
+	  (*datagram_address.as_mut_ptr ())[s as usize].sa = xmalloc (addrlen as usize) as *mut sockaddr;
+	  (*datagram_address.as_mut_ptr ())[s as usize].len = addrlen;
 	  if process_bits! (is_server, p)
 	    {
 	      let mut remote: Lisp_Object;
-	      memset (datagram_address[s as usize].sa as *mut c_void, 0, addrlen as usize);
+	      memset ((*datagram_address.as_mut_ptr ())[s as usize].sa as *mut c_void, 0, addrlen as usize);
 	      remote = plist_get (contact, QCremote ());
 	      if !NILP (remote)
 		{
@@ -4339,11 +4334,11 @@ unsafe fn connect_network_socket (proc_: Lisp_Object, addrinfos: Lisp_Object,
 		  if (rlen != 0 && rfamily == family
 		      && rlen == addrlen)
 		    { conv_lisp_to_sockaddr (rfamily, remote,
-					     datagram_address[s as usize].sa, rlen as c_int); }
+					     (*datagram_address.as_mut_ptr ())[s as usize].sa, rlen as c_int); }
 		}
 	    }
 	  else
-	    { memcpy (datagram_address[s as usize].sa as *mut c_void, sa as *const c_void, addrlen as usize); }
+	    { memcpy ((*datagram_address.as_mut_ptr ())[s as usize].sa as *mut c_void, sa as *const c_void, addrlen as usize); }
 	}
 
       contact = plist_put (contact, if process_bits! (is_server, p) { QClocal () } else { QCremote () },
@@ -4386,7 +4381,7 @@ unsafe fn connect_network_socket (proc_: Lisp_Object, addrinfos: Lisp_Object,
   outch = s;
 
   eassert! (0 <= inch && inch < FD_SETSIZE);
-  chan_process[inch as usize] = proc_;
+  (*chan_process.as_mut_ptr ())[inch as usize] = proc_;
 
   fcntl (inch, F_SETFL, O_NONBLOCK);
 
@@ -4412,7 +4407,7 @@ unsafe fn connect_network_socket (proc_: Lisp_Object, addrinfos: Lisp_Object,
 	     && EQ (XCDR ((*p).status), addrinfos)))
 	{ pset_status (p, Fcons (Qconnect (), addrinfos)); }
       eassert! (0 <= inch && inch < FD_SETSIZE);
-      if ((fd_callback_info[inch as usize].flags & NON_BLOCKING_CONNECT_FD) == 0)
+      if (((*fd_callback_info.as_mut_ptr ())[inch as usize].flags & NON_BLOCKING_CONNECT_FD) == 0)
 	{ add_non_blocking_write_fd (inch); }
     }
   else
@@ -4422,8 +4417,8 @@ unsafe fn connect_network_socket (proc_: Lisp_Object, addrinfos: Lisp_Object,
 	|| (EQ ((*p).status, Qlisten ()) && NILP ((*p).command)))
       { add_process_read_fd (inch); }
 
-  if (inch > max_desc)
-    { max_desc = inch; }
+  if (inch > (*max_desc.as_mut_ptr ()))
+    { (*max_desc.as_mut_ptr ()) = inch; }
 
   /* Set up the masks based on the process filter.  */
   set_process_filter_masks (p);
@@ -4996,7 +4991,7 @@ const _: () = core::assert! (std::mem::size_of::<ifflag_def> () == 16);
 
 /* C 4441-4509: `static const struct ifflag_def ifflag_table[]`.  The five `#ifdef`s that
    are dead on this target are carried as cfg-gated constants below.  */
-static mut ifflag_table: [ifflag_def; 17] = [
+static ifflag_table: VmGlobal<[ifflag_def; 17]> = VmGlobal::<[ifflag_def; 17]>::new ([
   ifflag_def { flag_bit: IFF_UP, flag_sym: c"up".as_ptr () },
   ifflag_def { flag_bit: IFF_BROADCAST, flag_sym: c"broadcast".as_ptr () },
   ifflag_def { flag_bit: IFF_DEBUG, flag_sym: c"debug".as_ptr () },
@@ -5016,7 +5011,7 @@ static mut ifflag_table: [ifflag_def; 17] = [
   ifflag_def { flag_bit: IFF_LINK1, flag_sym: c"link1".as_ptr () },
   ifflag_def { flag_bit: IFF_LINK2, flag_sym: c"link2".as_ptr () },
   ifflag_def { flag_bit: 0, flag_sym: std::ptr::null () },
-];
+]);
 /* C 4483-4485 (`IFF_MASTER`), C 4486-4488 (`IFF_SLAVE`), C 4492-4494 (`IFF_PORTSEL`),
    C 4495-4497 (`IFF_AUTOMEDIA`) and C 4498-4500 (`IFF_DYNAMIC`) are dead on this target.  */
 #[cfg (feature = "have_iff_master")]
@@ -5086,7 +5081,7 @@ unsafe fn network_interface_info (ifname: Lisp_Object) -> Lisp_Object
 	{ flags = rq.ifr_ifru.ifr_flags as c_ushort as c_int; }
 
       any = true;
-      fp = (&raw const ifflag_table) as *const ifflag_def;
+      fp = (ifflag_table.as_ptr ()) as *const ifflag_def;
       while flags != 0 && !(*fp).flag_sym.is_null ()
 	{
 	  if (flags & (*fp).flag_bit != 0)
@@ -5352,9 +5347,9 @@ unsafe fn network_lookup_address_info_1 (host: Lisp_Object, service: *const c_ch
       {
 	synchronize_system_messages_locale ();
 	let mut str_: *const c_char = gai_strerror (ret);
-	if (! NILP (Vlocale_coding_system))
+	if (! NILP ((*Vlocale_coding_system.as_mut_ptr ())))
 	  { str_ = SSDATA (code_convert_string_norecord
-			   (build_string (str_), Vlocale_coding_system, false)) as *const c_char; }
+			   (build_string (str_), (*Vlocale_coding_system.as_mut_ptr ()), false)) as *const c_char; }
 	AUTO_STRING! (format, c"%s/%s %s".as_ptr ());
 	msg = CALLN! (Fformat, format, host, build_string (service),
 		      build_string (str_));
@@ -5448,9 +5443,9 @@ unsafe fn deactivate_process (proc_: Lisp_Object)
 
   if ((*p).read_output_delay > 0)
     {
-      process_output_delay_count -= 1;
-      if (process_output_delay_count < 0)
-	{ process_output_delay_count = 0; }
+      (*process_output_delay_count.as_mut_ptr ()) -= 1;
+      if ((*process_output_delay_count.as_mut_ptr ()) < 0)
+	{ (*process_output_delay_count.as_mut_ptr ()) = 0; }
       (*p).read_output_delay = 0;
       process_bits! (read_output_skip, p, 0);
     }
@@ -5462,8 +5457,8 @@ unsafe fn deactivate_process (proc_: Lisp_Object)
     {
       if ((*p).open_fd[i as usize] >= 0)
 	{
-	  fd_callback_info[(*p).open_fd[i as usize] as usize].thread = std::ptr::null_mut ();
-	  fd_callback_info[(*p).open_fd[i as usize] as usize].waiting_thread = std::ptr::null_mut ();
+	  (*fd_callback_info.as_mut_ptr ())[(*p).open_fd[i as usize] as usize].thread = std::ptr::null_mut ();
+	  (*fd_callback_info.as_mut_ptr ())[(*p).open_fd[i as usize] as usize].waiting_thread = std::ptr::null_mut ();
 	}
       close_process_fd ((*p).open_fd.as_mut_ptr ().offset (i as isize));
       i += 1;
@@ -5478,13 +5473,13 @@ unsafe fn deactivate_process (proc_: Lisp_Object)
       /* `#ifdef DATAGRAM_SOCKETS` is live.  */
       if (DATAGRAM_CHAN_P (inchannel))
 	{
-	  xfree (datagram_address[inchannel as usize].sa as *mut c_void);
-	  datagram_address[inchannel as usize].sa = std::ptr::null_mut ();
-	  datagram_address[inchannel as usize].len = 0;
+	  xfree ((*datagram_address.as_mut_ptr ())[inchannel as usize].sa as *mut c_void);
+	  (*datagram_address.as_mut_ptr ())[inchannel as usize].sa = std::ptr::null_mut ();
+	  (*datagram_address.as_mut_ptr ())[inchannel as usize].len = 0;
 	}
-      chan_process[inchannel as usize] = Qnil ();
+      (*chan_process.as_mut_ptr ())[inchannel as usize] = Qnil ();
       delete_read_fd (inchannel);
-      if ((fd_callback_info[inchannel as usize].flags & NON_BLOCKING_CONNECT_FD) != 0)
+      if (((*fd_callback_info.as_mut_ptr ())[inchannel as usize].flags & NON_BLOCKING_CONNECT_FD) != 0)
 	{ delete_write_fd (inchannel); }
     }
 
@@ -5513,11 +5508,11 @@ DEFUN! ("accept-process-output", Faccept_process_output, Saccept_process_output,
 	just_this_one: Lisp_Object),
        {
   {
-    static mut apo_entered: bool = false;
-    if ! apo_entered && femacs_child_trace ()
+    static apo_entered: VmGlobal<bool> = VmGlobal::<bool>::new (false);
+    if ! (*apo_entered.as_mut_ptr ()) && femacs_child_trace ()
       {
-        apo_entered = true;
-        fprintf (stderr, c"accept-apo-enter\n".as_ptr ());
+        (*apo_entered.as_mut_ptr ()) = true;
+        fprintf ((*stderr.as_mut_ptr ()), c"accept-apo-enter\n".as_ptr ());
       }
   }
 
@@ -5600,7 +5595,7 @@ DEFUN! ("accept-process-output", Faccept_process_output, Saccept_process_output,
 /* Accept a connection for server process SERVER on CHANNEL.  */
 
 /* C 4998: `static EMACS_INT connect_counter = 0;`  */
-static mut connect_counter: EMACS_INT = 0;
+static connect_counter: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);
 
 /* C 5001-5204: `server_accept_connection`.  */
 unsafe fn server_accept_connection (server: Lisp_Object, channel: c_int)
@@ -5633,7 +5628,7 @@ unsafe fn server_accept_connection (server: Lisp_Object, channel: c_int)
   let count: specpdl_ref = SPECPDL_INDEX ();
   record_unwind_protect_int (Some (close_file_unwind), s);
 
-  connect_counter += 1;
+  (*connect_counter.as_mut_ptr ()) += 1;
 
   /* Setup a new process to handle the connection.  */
 
@@ -5694,7 +5689,7 @@ unsafe fn server_accept_connection (server: Lisp_Object, channel: c_int)
       {
 	args[nargs as usize] = procname_format_default; nargs += 1;
 	nargs += 1;
-	args[nargs as usize] = make_fixnum (connect_counter); nargs += 1;
+	args[nargs as usize] = make_fixnum ((*connect_counter.as_mut_ptr ())); nargs += 1;
       }
     }
 
@@ -5727,7 +5722,7 @@ unsafe fn server_accept_connection (server: Lisp_Object, channel: c_int)
   let proc_: Lisp_Object = make_process (name);
 
   eassert! (0 <= s && s < FD_SETSIZE);
-  chan_process[s as usize] = proc_;
+  (*chan_process.as_mut_ptr ())[s as usize] = proc_;
 
   fcntl (s, F_SETFL, O_NONBLOCK);
 
@@ -5772,20 +5767,20 @@ unsafe fn server_accept_connection (server: Lisp_Object, channel: c_int)
   /* Client processes for accepted connections are not stopped initially.  */
   if (!EQ ((*p).filter, Qt ()))
     { add_process_read_fd (s); }
-  if (s > max_desc)
-    { max_desc = s; }
+  if (s > (*max_desc.as_mut_ptr ()))
+    { (*max_desc.as_mut_ptr ()) = s; }
   /* If the server process is locked to this thread, lock the client process to the same
      thread, otherwise clear the thread of its I/O descriptors.  */
   if (NILP ((*ps).thread))
     {
-      eassert! (fd_callback_info[(*p).infd as usize].thread.is_null ());
+      eassert! ((*fd_callback_info.as_mut_ptr ())[(*p).infd as usize].thread.is_null ());
       set_proc_thread (p, std::ptr::null_mut ());
     }
   else
     {
-      eassert! (fd_callback_info[(*p).infd as usize].thread.is_null ()
-		|| fd_callback_info[(*p).infd as usize].thread == XTHREAD ((*ps).thread));
-      eassert! (XTHREAD ((*ps).thread) == current_thread);
+      eassert! ((*fd_callback_info.as_mut_ptr ())[(*p).infd as usize].thread.is_null ()
+		|| (*fd_callback_info.as_mut_ptr ())[(*p).infd as usize].thread == XTHREAD ((*ps).thread));
+      eassert! (XTHREAD ((*ps).thread) == (*current_thread.as_mut_ptr ()));
       set_proc_thread (p, XTHREAD ((*ps).thread));
     }
 
@@ -5797,9 +5792,9 @@ unsafe fn server_accept_connection (server: Lisp_Object, channel: c_int)
   pset_encode_coding_system (p, (*ps).encode_coding_system);
   setup_process_coding_systems (proc_);
 
-  pset_decoding_buf (p, empty_unibyte_string);
+  pset_decoding_buf (p, (*empty_unibyte_string.as_mut_ptr ()));
   eassert! ((*p).decoding_carryover == 0);
-  pset_encoding_buf (p, empty_unibyte_string);
+  pset_encoding_buf (p, (*empty_unibyte_string.as_mut_ptr ()));
 
   process_bits! (inherit_coding_system_flag, p,
 		 if NILP (buffer) { 0 } else { process_bits! (inherit_coding_system_flag, ps) as c_int });
@@ -5925,7 +5920,7 @@ unsafe extern "C-unwind" fn wait_reading_process_output_unwind (data: c_int)
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
   clear_waiting_thread_info ();
-  restore_thread_active_wait_procs (current_thread);
+  restore_thread_active_wait_procs ((*current_thread.as_mut_ptr ()));
   waiting_for_user_input_p! () = data;
 
   }
@@ -6002,16 +5997,16 @@ pub unsafe fn wait_reading_process_output (time_limit: i64, nsecs: c_int, read_k
   /* PORTING.md P-122 ⑷'s instrument: is this the path `accept-process-output` takes at all?
      Printed once per run, off unless FEMACS_CHILD_TRACE is set.  */
   {
-    static mut wait_entered: bool = false;
-    if ! wait_entered && femacs_child_trace ()
+    static wait_entered: VmGlobal<bool> = VmGlobal::<bool>::new (false);
+    if ! (*wait_entered.as_mut_ptr ()) && femacs_child_trace ()
       {
-        wait_entered = true;
-        fprintf (stderr, c"wait-enter: nsecs=%d read_kbd=%d wait_proc=%p\n".as_ptr (),
+        (*wait_entered.as_mut_ptr ()) = true;
+        fprintf ((*stderr.as_mut_ptr ()), c"wait-enter: nsecs=%d read_kbd=%d wait_proc=%p\n".as_ptr (),
                  nsecs, read_kbd, wait_proc as *const c_void);
       }
   }
 
-  static mut last_read_channel: c_int = -1;
+  static last_read_channel: VmGlobal<c_int> = VmGlobal::<c_int>::new (-1);
   let mut channel: c_int;
   let mut nfds: c_int;
   let mut Available: fd_set = std::mem::zeroed ();
@@ -6036,19 +6031,19 @@ pub unsafe fn wait_reading_process_output (time_limit: i64, nsecs: c_int, read_k
 
   eassert! (wait_proc.is_null ()
 	    || NILP ((*wait_proc).thread)
-	    || XTHREAD ((*wait_proc).thread) == current_thread);
+	    || XTHREAD ((*wait_proc).thread) == (*current_thread.as_mut_ptr ()));
 
   FD_ZERO (&raw mut Available);
   FD_ZERO (&raw mut Writeok);
 
-  if (time_limit == 0 && nsecs == 0 && !wait_proc.is_null () && !NILP (Vinhibit_quit)
+  if (time_limit == 0 && nsecs == 0 && !wait_proc.is_null () && !NILP ((*Vinhibit_quit.as_mut_ptr ()))
       && !(CONSP ((*wait_proc).status)
 	   && EQ (XCAR ((*wait_proc).status), Qexit ())))
     { message1 (c"Blocking call to accept-process-output with quit inhibited!!".as_ptr ()); }
 
   let mut waiter_node: ActiveProcessWaiter
     = ActiveProcessWaiter {
-	thread: current_thread,
+	thread: (*current_thread.as_mut_ptr ()),
 	proc: wait_proc,
 	linked: false,
 	next: std::ptr::null_mut (),
@@ -6062,10 +6057,10 @@ pub unsafe fn wait_reading_process_output (time_limit: i64, nsecs: c_int, read_k
   waiting_for_user_input_p! () = read_kbd;
   if (!wait_proc.is_null () && (*wait_proc).infd >= 0)
     {
-      let wt: *mut thread_state = fd_callback_info[(*wait_proc).infd as usize].waiting_thread;
+      let wt: *mut thread_state = (*fd_callback_info.as_mut_ptr ())[(*wait_proc).infd as usize].waiting_thread;
       if wt.is_null ()
-	{ fd_callback_info[(*wait_proc).infd as usize].waiting_thread = current_thread; }
-      else if wt != current_thread
+	{ (*fd_callback_info.as_mut_ptr ())[(*wait_proc).infd as usize].waiting_thread = (*current_thread.as_mut_ptr ()); }
+      else if wt != (*current_thread.as_mut_ptr ())
 	{ child_signal_notify (); }
     }
 
@@ -6094,14 +6089,14 @@ pub unsafe fn wait_reading_process_output (time_limit: i64, nsecs: c_int, read_k
 	 input character.  Otherwise, do pending quit if requested.  */
       if (read_kbd >= 0)
 	{ maybe_quit (); }
-      else if (pending_signals)
+      else if ((*pending_signals.as_mut_ptr ()))
 	{ process_pending_signals (); }
 
       /* Exit now if the cell we're waiting for became non-nil.  */
       if (! NILP (wait_for_cell) && ! NILP (XCAR (wait_for_cell)))
 	{ break; }
 
-      eassert! (max_desc < FD_SETSIZE);
+      eassert! ((*max_desc.as_mut_ptr ()) < FD_SETSIZE);
 
       /* C 5432-5486: asynchronous DNS and TLS have independent guards. */
       #[cfg (any (feature = "have_getaddrinfo_a", feature = "have_gnutls"))]
@@ -6130,7 +6125,7 @@ pub unsafe fn wait_reading_process_output (time_limit: i64, nsecs: c_int, read_k
 	      if ((*p).gnutls_initstage == GNUTLS_STAGE_HANDSHAKE_TRIED
 		  && process_bits! (is_non_blocking_client, p)
 		  /* Don't proceed until we have established a connection.  */
-		  && (fd_callback_info[(*p).outfd as usize].flags
+		  && ((*fd_callback_info.as_mut_ptr ())[(*p).outfd as usize].flags
 		      & NON_BLOCKING_CONNECT_FD) == 0)
 		{
 		  gnutls_try_handshake (p);
@@ -6177,11 +6172,11 @@ pub unsafe fn wait_reading_process_output (time_limit: i64, nsecs: c_int, read_k
 	{
 	  loop
 	    {
-	      let old_timers_run: c_uint = timers_run;
+	      let old_timers_run: c_uint = (*timers_run.as_mut_ptr ());
 
 	      timer_delay = timer_check ();
 
-	      if (timers_run != old_timers_run && do_display != 0)
+	      if ((*timers_run.as_mut_ptr ()) != old_timers_run && do_display != 0)
 		/* We must retry, since a timer may have requeued itself and that could
 		   alter the time_delay.  */
 		{ redisplay_preserve_echo_area (9); }
@@ -6210,7 +6205,7 @@ pub unsafe fn wait_reading_process_output (time_limit: i64, nsecs: c_int, read_k
       /* If status of something has changed, and no input is available, notify the user of
 	 the change right away.  After this explicit check, we'll let the SIGCHLD handler
 	 zap timeout to get our attention.  */
-      if (update_tick != process_tick)
+      if ((*update_tick.as_mut_ptr ()) != (*process_tick.as_mut_ptr ()))
 	{
 	  let mut Atemp: fd_set = std::mem::zeroed ();
 	  let mut Ctemp: fd_set = std::mem::zeroed ();
@@ -6224,15 +6219,15 @@ pub unsafe fn wait_reading_process_output (time_limit: i64, nsecs: c_int, read_k
 	  /* If a process status has changed, the child signal pipe will likely be
 	     readable.  We want to ignore it for now, because otherwise we wouldn't run
 	     into a timeout below.  */
-	  let fd: c_int = child_signal_read_fd;
+	  let fd: c_int = (*child_signal_read_fd.as_mut_ptr ());
 	  eassert! (fd < FD_SETSIZE);
 	  if (0 <= fd)
 	    { FD_CLR (fd, &raw mut Atemp); }
 
 	  timeout = make_timespec (0, 0);
-	  if (thread_select (Some (pselect), max_desc + 1,
+	  if (thread_select (Some (pselect), (*max_desc.as_mut_ptr ()) + 1,
 			     &raw mut Atemp,
-			     if num_pending_connects > 0 { &raw mut Ctemp }
+			     if (*num_pending_connects.as_mut_ptr ()) > 0 { &raw mut Ctemp }
 			     else { std::ptr::null_mut () },
 			     std::ptr::null_mut (), &raw mut timeout,
 			     std::ptr::null_mut ())
@@ -6249,11 +6244,11 @@ pub unsafe fn wait_reading_process_output (time_limit: i64, nsecs: c_int, read_k
       let wait_proc_busy_other_thread: bool
 	= !wait_proc.is_null ()
 	  && (((*wait_proc).infd >= 0
-	       && !fd_callback_info[(*wait_proc).infd as usize].waiting_thread.is_null ()
-	       && fd_callback_info[(*wait_proc).infd as usize].waiting_thread != current_thread)
+	       && !(*fd_callback_info.as_mut_ptr ())[(*wait_proc).infd as usize].waiting_thread.is_null ()
+	       && (*fd_callback_info.as_mut_ptr ())[(*wait_proc).infd as usize].waiting_thread != (*current_thread.as_mut_ptr ()))
 	      || ((*wait_proc).outfd >= 0
-		  && !fd_callback_info[(*wait_proc).outfd as usize].waiting_thread.is_null ()
-		  && fd_callback_info[(*wait_proc).outfd as usize].waiting_thread != current_thread));
+		  && !(*fd_callback_info.as_mut_ptr ())[(*wait_proc).outfd as usize].waiting_thread.is_null ()
+		  && (*fd_callback_info.as_mut_ptr ())[(*wait_proc).outfd as usize].waiting_thread != (*current_thread.as_mut_ptr ())));
 
       /* Don't wait for output from a non-running process.  Just read whatever data has
 	 already been received.  */
@@ -6317,7 +6312,7 @@ pub unsafe fn wait_reading_process_output (time_limit: i64, nsecs: c_int, read_k
 	  if (!wait_proc_busy_other_thread)
 	    {
 	      FD_SET ((*wait_proc).infd, &raw mut Available);
-	      fd_callback_info[(*wait_proc).infd as usize].waiting_thread = current_thread;
+	      (*fd_callback_info.as_mut_ptr ())[(*wait_proc).infd as usize].waiting_thread = (*current_thread.as_mut_ptr ());
 	    }
 	  else
 	    { child_signal_notify (); }
@@ -6337,7 +6332,7 @@ pub unsafe fn wait_reading_process_output (time_limit: i64, nsecs: c_int, read_k
 	  else
 	    { compute_input_wait_mask (&raw mut Available, wait_proc); }
 	  compute_write_mask (&raw mut Writeok, wait_proc);
-	  check_delay = if !wait_proc.is_null () { 0 } else { process_output_delay_count };
+	  check_delay = if !wait_proc.is_null () { 0 } else { (*process_output_delay_count.as_mut_ptr ()) };
 	  check_write = true;
 	}
 
@@ -6345,17 +6340,17 @@ pub unsafe fn wait_reading_process_output (time_limit: i64, nsecs: c_int, read_k
 	{
 	  let busy_now: bool
 	    = ((*wait_proc).infd >= 0
-	       && !fd_callback_info[(*wait_proc).infd as usize].waiting_thread.is_null ()
-	       && fd_callback_info[(*wait_proc).infd as usize].waiting_thread != current_thread)
+	       && !(*fd_callback_info.as_mut_ptr ())[(*wait_proc).infd as usize].waiting_thread.is_null ()
+	       && (*fd_callback_info.as_mut_ptr ())[(*wait_proc).infd as usize].waiting_thread != (*current_thread.as_mut_ptr ()))
 	      || ((*wait_proc).outfd >= 0
-		  && !fd_callback_info[(*wait_proc).outfd as usize].waiting_thread.is_null ()
-		  && fd_callback_info[(*wait_proc).outfd as usize].waiting_thread != current_thread);
+		  && !(*fd_callback_info.as_mut_ptr ())[(*wait_proc).outfd as usize].waiting_thread.is_null ()
+		  && (*fd_callback_info.as_mut_ptr ())[(*wait_proc).outfd as usize].waiting_thread != (*current_thread.as_mut_ptr ()));
 	  if busy_now
 	    { child_signal_notify (); }
 	  else
 	    {
 	      if ((*wait_proc).infd >= 0)
-		{ fd_callback_info[(*wait_proc).infd as usize].waiting_thread = current_thread; }
+		{ (*fd_callback_info.as_mut_ptr ())[(*wait_proc).infd as usize].waiting_thread = (*current_thread.as_mut_ptr ()); }
 	      if process_bits! (raw_status_new, wait_proc)
 		{ update_status (wait_proc); }
 	      if (! EQ ((*wait_proc).status, Qrun ())
@@ -6369,10 +6364,10 @@ pub unsafe fn wait_reading_process_output (time_limit: i64, nsecs: c_int, read_k
 	 child that is never reaped has to show up here.  */
       if femacs_child_trace ()
 	{
-	  static mut child_state_printed: bool = false;
-	  if ! child_state_printed
+	  static child_state_printed: VmGlobal<bool> = VmGlobal::<bool>::new (false);
+	  if ! (*child_state_printed.as_mut_ptr ())
 	    {
-	      child_state_printed = true;
+	      (*child_state_printed.as_mut_ptr ()) = true;
 	      let mut act: sigaction = std::mem::zeroed ();
 	      let mut cur: sigset_t = std::mem::zeroed ();
 	      sigaction (SIGCHLD, std::ptr::null (), &raw mut act);
@@ -6388,14 +6383,14 @@ pub unsafe fn wait_reading_process_output (time_limit: i64, nsecs: c_int, read_k
 		 (`SIGCHLD` - 1 = 19 here).  The instrument must not add a libc dependency the
 		 reference does not have: gate-fast's partial-link check flags exactly that.  */
 	      let blocked: c_int = ((cur.__val >> (SIGCHLD - 1)) & 1) as c_int;
-	      fprintf (stderr, c"child-state: handler=%p flags=%d blocked=%d\n".as_ptr (),
+	      fprintf ((*stderr.as_mut_ptr ()), c"child-state: handler=%p flags=%d blocked=%d\n".as_ptr (),
 		       handler, act.sa_flags, blocked);
 	    }
 	}
       /* We have to be informed when we receive a SIGCHLD signal for an asynchronous
 	 process.  Otherwise this might deadlock if we receive a SIGCHLD during
 	 `pselect'.  */
-      let child_fd: c_int = child_signal_read_fd;
+      let child_fd: c_int = (*child_signal_read_fd.as_mut_ptr ());
       eassert! (child_fd < FD_SETSIZE);
       if (0 <= child_fd)
 	{ FD_SET (child_fd, &raw mut Available); }
@@ -6404,7 +6399,7 @@ pub unsafe fn wait_reading_process_output (time_limit: i64, nsecs: c_int, read_k
 	 we start to wait.  There is a race condition here; if a SIGIO arrives between now
 	 and the select and indicates that a frame is trashed, the select may block
 	 displaying a trashed screen.  */
-      if (frame_garbaged && do_display != 0)
+      if ((*frame_garbaged.as_mut_ptr ()) && do_display != 0)
 	{
 	  clear_waiting_for_input ();
 	  redisplay_preserve_echo_area (11);
@@ -6433,15 +6428,15 @@ pub unsafe fn wait_reading_process_output (time_limit: i64, nsecs: c_int, read_k
 	     read_output_skip and non-zero read_output_delay, and we are not reading output
 	     for a specific process.  It is not executed if
 	     Vprocess_adaptive_read_buffering is nil.  */
-	  if (process_output_skip && check_delay > 0)
+	  if ((*process_output_skip.as_mut_ptr ()) && check_delay > 0)
 	    {
 	      let mut adaptive_nsecs: c_long = timeout.tv_nsec;
 	      if (timeout.tv_sec > 0 || adaptive_nsecs > READ_OUTPUT_DELAY_MAX as c_long)
 		{ adaptive_nsecs = READ_OUTPUT_DELAY_MAX as c_long; }
 	      channel = 0;
-	      while check_delay > 0 && channel <= max_desc
+	      while check_delay > 0 && channel <= (*max_desc.as_mut_ptr ())
 		{
-		  proc = chan_process[channel as usize];
+		  proc = (*chan_process.as_mut_ptr ())[channel as usize];
 		  if (NILP (proc))
 		    { channel += 1; continue; }
 		  /* Find minimum non-zero read_output_delay among the processes with
@@ -6460,7 +6455,7 @@ pub unsafe fn wait_reading_process_output (time_limit: i64, nsecs: c_int, read_k
 		  channel += 1;
 		}
 	      timeout = make_timespec (0, adaptive_nsecs);
-	      process_output_skip = false;
+	      (*process_output_skip.as_mut_ptr ()) = false;
 	    }
 
 	  /* If we've got some output and haven't limited our timeout with adaptive read
@@ -6504,10 +6499,10 @@ pub unsafe fn wait_reading_process_output (time_limit: i64, nsecs: c_int, read_k
 	    channel = 0;
 	    while channel < FD_SETSIZE
 	      {
-		if (! NILP (chan_process[channel as usize])
+		if (! NILP ((*chan_process.as_mut_ptr ())[channel as usize])
 		    && FD_ISSET (channel, &raw mut Available))
 		  {
-		    let p: *mut Lisp_Process = XPROCESS (chan_process[channel as usize]);
+		    let p: *mut Lisp_Process = XPROCESS ((*chan_process.as_mut_ptr ())[channel as usize]);
 		    if (!p.is_null ()
 			&& process_bits! (gnutls_p, p) && !(*p).gnutls_state.is_null ()
 			&& emacs_gnutls_record_check_pending ((*p).gnutls_state) > 0)
@@ -6561,11 +6556,11 @@ pub unsafe fn wait_reading_process_output (time_limit: i64, nsecs: c_int, read_k
 	  {
 	    /* `#ifndef THREADS_ENABLED`'s arm.  */
 	    #[cfg (not (feature = "threads_enabled"))]
-	    { nfds = android_select (max_desc + 1, &raw mut Available,
+	    { nfds = android_select ((*max_desc.as_mut_ptr ()) + 1, &raw mut Available,
 				     if check_write { &raw mut Writeok } else { std::ptr::null_mut () },
 				     std::ptr::null_mut (), &raw mut timeout); }
 	    #[cfg (feature = "threads_enabled")]
-	    { nfds = thread_select (Some (android_select_wrapper), max_desc + 1,
+	    { nfds = thread_select (Some (android_select_wrapper), (*max_desc.as_mut_ptr ()) + 1,
 				    &raw mut Available,
 				    if check_write { &raw mut Writeok } else { std::ptr::null_mut () },
 				    std::ptr::null_mut (), &raw mut timeout, std::ptr::null_mut ()); }
@@ -6573,17 +6568,17 @@ pub unsafe fn wait_reading_process_output (time_limit: i64, nsecs: c_int, read_k
 	  /* C 5820-5828's `#if defined HAVE_GLIB && !defined HAVE_NS` arm (`xg_select`) and
 	     its `#elif defined HAVE_NS` arm (`ns_select`).  */
 	  #[cfg (feature = "have_glib_and_not_ns")]
-	  { nfds = xg_select (max_desc + 1, &raw mut Available,
+	  { nfds = xg_select ((*max_desc.as_mut_ptr ()) + 1, &raw mut Available,
 			      if check_write { &raw mut Writeok } else { std::ptr::null_mut () },
 			      std::ptr::null_mut (), &raw mut timeout, std::ptr::null_mut ()); }
 	  #[cfg (feature = "have_ns")]
-	  { nfds = ns_select (max_desc + 1, &raw mut Available,
+	  { nfds = ns_select ((*max_desc.as_mut_ptr ()) + 1, &raw mut Available,
 			      if check_write { &raw mut Writeok } else { std::ptr::null_mut () },
 			      std::ptr::null_mut (), &raw mut timeout, std::ptr::null_mut ()); }
 	  #[cfg (not (any (feature = "have_android", feature = "have_glib_and_not_ns",
 			   feature = "have_ns")))]
 	  {
-	    nfds = thread_select (Some (pselect), max_desc + 1,
+	    nfds = thread_select (Some (pselect), (*max_desc.as_mut_ptr ()) + 1,
 				  &raw mut Available,
 				  if check_write { &raw mut Writeok } else { std::ptr::null_mut () },
 				  std::ptr::null_mut (), &raw mut timeout,
@@ -6627,7 +6622,7 @@ pub unsafe fn wait_reading_process_output (time_limit: i64, nsecs: c_int, read_k
 
       if (nfds == 0)
 	{
-	  if (read_kbd == 0 && update_tick != process_tick)
+	  if (read_kbd == 0 && (*update_tick.as_mut_ptr ()) != (*process_tick.as_mut_ptr ()))
 	    {
 	      /* This is for the case where we bypassed a similar call above, after the
 		 first thread_select, because some input was available, but later found
@@ -6719,8 +6714,8 @@ pub unsafe fn wait_reading_process_output (time_limit: i64, nsecs: c_int, read_k
       /* If we think we have keyboard input waiting, but didn't get SIGIO, go read it.
 	 This can happen with X on BSD after logging out.  In that case, there really is
 	 no input and no SIGIO, but select says there is input.  */
-      if (read_kbd != 0 && interrupt_input
-	  && keyboard_bit_set (&raw mut Available) && ! noninteractive)
+      if (read_kbd != 0 && (*interrupt_input.as_mut_ptr ())
+	  && keyboard_bit_set (&raw mut Available) && ! (*noninteractive.as_mut_ptr ()))
 	{
 	  /* C 5965-5969: `#ifdef USABLE_SIGIO` uses SIGIO, its `#else` uses SIGPOLL (which
 	     this target does not define).  */
@@ -6740,9 +6735,9 @@ pub unsafe fn wait_reading_process_output (time_limit: i64, nsecs: c_int, read_k
 	{ continue; }
 
       channel = 0;
-      while channel <= max_desc
+      while channel <= (*max_desc.as_mut_ptr ())
 	{
-	  let d: *mut fd_callback_data = &raw mut fd_callback_info[channel as usize];
+	  let d: *mut fd_callback_data = &raw mut (*fd_callback_info.as_mut_ptr ())[channel as usize];
 	  if ((*d).func.is_some ()
 	      && (((*d).flags & FOR_READ != 0
 		   && FD_ISSET (channel, &raw mut Available))
@@ -6754,14 +6749,14 @@ pub unsafe fn wait_reading_process_output (time_limit: i64, nsecs: c_int, read_k
 
       /* Do round robin if `process-pritoritize-lower-fds' is nil.  */
       channel_start
-	= if process_prioritize_lower_fds { 0 } else { last_read_channel + 1 };
+	= if (*process_prioritize_lower_fds.as_mut_ptr ()) { 0 } else { (*last_read_channel.as_mut_ptr ()) + 1 };
 
       channel = channel_start; wrapped = false;
       loop
 	{
-	  if (!(!wrapped || (channel < channel_start && channel <= max_desc)))
+	  if (!(!wrapped || (channel < channel_start && channel <= (*max_desc.as_mut_ptr ()))))
 	    { break; }
-	  if (channel > max_desc)
+	  if (channel > (*max_desc.as_mut_ptr ()))
 	    {
 	      wrapped = true;
 	      channel = -1;
@@ -6770,14 +6765,14 @@ pub unsafe fn wait_reading_process_output (time_limit: i64, nsecs: c_int, read_k
 	    }
 
 	  if (FD_ISSET (channel, &raw mut Available)
-	      && ((fd_callback_info[channel as usize].flags & (KEYBOARD_FD | PROCESS_FD))
+	      && (((*fd_callback_info.as_mut_ptr ())[channel as usize].flags & (KEYBOARD_FD | PROCESS_FD))
 		  == PROCESS_FD))
 	    {
 	      let mut nread: c_int;
 
 	      /* If waiting for this channel, arrange to return as soon as no more input
 		 to be processed.  No more waiting.  */
-	      proc = chan_process[channel as usize];
+	      proc = (*chan_process.as_mut_ptr ())[channel as usize];
 	      if (NILP (proc))
 		{ channel += 1; continue; }
 	      if (XPROCESS (proc) != wait_proc
@@ -6812,7 +6807,7 @@ pub unsafe fn wait_reading_process_output (time_limit: i64, nsecs: c_int, read_k
 		     accept-process-output, don't try to read from any other processes
 		     before doing the select again.  */
 		  FD_ZERO (&raw mut Available);
-		  last_read_channel = channel;
+		  (*last_read_channel.as_mut_ptr ()) = channel;
 
 		  if (do_display != 0)
 		    { redisplay_preserve_echo_area (12); }
@@ -6831,8 +6826,8 @@ pub unsafe fn wait_reading_process_output (time_limit: i64, nsecs: c_int, read_k
 		    {
 		      /* If the EIO occurs on a pty, the SIGCHLD handler's waitpid call
 			 will not find the process object to delete.  Do it here.  */
-		      process_tick += 1;
-		      (*p).tick = process_tick;
+		      (*process_tick.as_mut_ptr ()) += 1;
+		      (*p).tick = (*process_tick.as_mut_ptr ());
 		      pset_status (p, Qfailed ());
 		    }
 		}
@@ -6845,8 +6840,8 @@ pub unsafe fn wait_reading_process_output (time_limit: i64, nsecs: c_int, read_k
 	      else if (nread == 0 && PIPECONN_P (proc))
 		{
 		  /* Preserve status of processes already terminated.  */
-		  process_tick += 1;
-		  (*XPROCESS (proc)).tick = process_tick;
+		  (*process_tick.as_mut_ptr ()) += 1;
+		  (*XPROCESS (proc)).tick = (*process_tick.as_mut_ptr ());
 		  deactivate_process (proc);
 		  if (EQ ((*XPROCESS (proc)).status, Qrun ()))
 		    { pset_status (XPROCESS (proc),
@@ -6855,8 +6850,8 @@ pub unsafe fn wait_reading_process_output (time_limit: i64, nsecs: c_int, read_k
 	      else
 		{
 		  /* Preserve status of processes already terminated.  */
-		  process_tick += 1;
-		  (*XPROCESS (proc)).tick = process_tick;
+		  (*process_tick.as_mut_ptr ()) += 1;
+		  (*XPROCESS (proc)).tick = (*process_tick.as_mut_ptr ());
 		  deactivate_process (proc);
 		  if (process_bits! (raw_status_new, XPROCESS (proc)))
 		    { update_status (XPROCESS (proc)); }
@@ -6866,14 +6861,14 @@ pub unsafe fn wait_reading_process_output (time_limit: i64, nsecs: c_int, read_k
 		}
 	    }
 	  if (FD_ISSET (channel, &raw mut Writeok)
-	      && (fd_callback_info[channel as usize].flags
+	      && ((*fd_callback_info.as_mut_ptr ())[channel as usize].flags
 		  & NON_BLOCKING_CONNECT_FD) != 0)
 	    {
 	      let p: *mut Lisp_Process;
 
 	      delete_write_fd (channel);
 
-	      proc = chan_process[channel as usize];
+	      proc = (*chan_process.as_mut_ptr ())[channel as usize];
 	      if (NILP (proc))
 		{ channel += 1; continue; }
 
@@ -6911,8 +6906,8 @@ pub unsafe fn wait_reading_process_output (time_limit: i64, nsecs: c_int, read_k
 		    { XSETCDR ((*p).status, XCDR (addrinfos)); }
 		  else
 		    {
-		      process_tick += 1;
-		      (*p).tick = process_tick;
+		      (*process_tick.as_mut_ptr ()) += 1;
+		      (*p).tick = (*process_tick.as_mut_ptr ());
 		      pset_status (p, list2 (Qfailed (), make_fixnum (xerrno as EMACS_INT)));
 		    }
 		  deactivate_process (proc);
@@ -6997,13 +6992,13 @@ unsafe extern "C" {
 unsafe extern "C" {
 
   /// C: bool interrupt_input   (keyboard.c, keyboard.h 71)
-  static mut interrupt_input: bool;
+  static interrupt_input: VmGlobal<bool>;
   /// C: bool pending_signals   (keyboard.c, lisp.h 5176)
-  static mut pending_signals: bool;
+  static pending_signals: VmGlobal<bool>;
   /// C: bool noninteractive   (emacs.c, lisp.h's `noninteractive`)
-  static mut noninteractive: bool;
+  static noninteractive: VmGlobal<bool>;
   /// C: Lisp_Object Vinhibit_quit   (globals.h's DEFVAR, alloc.c)
-  static mut Vinhibit_quit: Lisp_Object;
+  static Vinhibit_quit: VmGlobal<Lisp_Object>;
 }
 
 /* Given a list (FUNCTION ARGS...), apply FUNCTION to the ARGS.  */
@@ -7025,10 +7020,10 @@ unsafe extern "C-unwind" fn read_process_output_error_handler (error_val: Lisp_O
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
   cmd_error_internal (error_val, c"error in process filter: ".as_ptr ());
-  Vinhibit_quit = Qt ();
+  (*Vinhibit_quit.as_mut_ptr ()) = Qt ();
   update_echo_area ();
-  if (process_error_pause_time > 0)
-    { Fsleep_for (make_fixnum (process_error_pause_time), Qnil ()); }
+  if ((*process_error_pause_time.as_mut_ptr ()) > 0)
+    { Fsleep_for (make_fixnum ((*process_error_pause_time.as_mut_ptr ())), Qnil ()); }
   return Qt ();
 
   }
@@ -7044,7 +7039,7 @@ unsafe extern "C-unwind" fn read_process_output_error_handler (error_val: Lisp_O
    misaligned-pointer panic of status 3.638 (`EMACS_INT` is the port's `intmax_t`, PORTING.md
    P-97).  */
 #[unsafe(no_mangle)]
-pub static mut process_error_pause_time: EMACS_INT = 0;
+pub static process_error_pause_time: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);
 
 /// coding.h 408-440's bitfield members this file assigns, in P-80's member-name form: C's
 /// field name stays in the port's text and dispatches to the `bits` unit the mirror declares
@@ -7101,7 +7096,7 @@ unsafe fn read_process_output (proc_: Lisp_Object, channel: c_int) -> c_int
   let mut nbytes: ptrdiff_t = 0;   /* PORTING.md 1.5: C's `ssize_t nbytes;` is written below.  */
   let p: *mut Lisp_Process = XPROCESS (proc_);
   eassert! (0 <= channel && channel < FD_SETSIZE);
-  let coding: *mut coding_system = proc_decode_coding_system[channel as usize];
+  let coding: *mut coding_system = (*proc_decode_coding_system.as_mut_ptr ())[channel as usize];
   let carryover: c_int = (*p).decoding_carryover;
   let readmax: ptrdiff_t = (*p).readmax;
   let count: specpdl_ref = SPECPDL_INDEX ();
@@ -7121,22 +7116,22 @@ unsafe fn read_process_output (proc_: Lisp_Object, channel: c_int) -> c_int
   /* We have a working select, so proc_buffered_char is always -1.  */
   if (DATAGRAM_CHAN_P (channel))
     {
-      let mut len: socklen_t = datagram_address[channel as usize].len as socklen_t;
+      let mut len: socklen_t = (*datagram_address.as_mut_ptr ())[channel as usize].len as socklen_t;
       loop
 	{
 	  nbytes = recvfrom (channel, chars.offset (carryover as isize) as *mut c_void,
 			     readmax as usize, 0,
-			     datagram_address[channel as usize].sa, &raw mut len) as ptrdiff_t;
+			     (*datagram_address.as_mut_ptr ())[channel as usize].sa, &raw mut len) as ptrdiff_t;
 	  if !(nbytes < 0 && *errno () == EINTR) { break; }
 	}
     }
   else
     {
-      let buffered: bool = proc_buffered_char[channel as usize] >= 0;
+      let buffered: bool = (*proc_buffered_char.as_mut_ptr ())[channel as usize] >= 0;
       if (buffered)
 	{
-	  *chars.offset (carryover as isize) = proc_buffered_char[channel as usize] as c_char;
-	  proc_buffered_char[channel as usize] = -1;
+	  *chars.offset (carryover as isize) = (*proc_buffered_char.as_mut_ptr ())[channel as usize] as c_char;
+	  (*proc_buffered_char.as_mut_ptr ())[channel as usize] = -1;
 	}
       let mut gnutls_read: bool = false;
       /* C 6297-6301's `#ifdef HAVE_GNUTLS` arm.  */
@@ -7162,7 +7157,7 @@ unsafe fn read_process_output (proc_: Lisp_Object, channel: c_int) -> c_int
 	      if (delay < READ_OUTPUT_DELAY_MAX_MAX as c_int)
 		{
 		  if (delay == 0)
-		    { process_output_delay_count += 1; }
+		    { (*process_output_delay_count.as_mut_ptr ()) += 1; }
 		  delay += (READ_OUTPUT_DELAY_INCREMENT * 2) as c_int;
 		}
 	    }
@@ -7170,13 +7165,13 @@ unsafe fn read_process_output (proc_: Lisp_Object, channel: c_int) -> c_int
 	    {
 	      delay -= READ_OUTPUT_DELAY_INCREMENT as c_int;
 	      if (delay == 0)
-		{ process_output_delay_count -= 1; }
+		{ (*process_output_delay_count.as_mut_ptr ()) -= 1; }
 	    }
 	  (*p).read_output_delay = delay;
 	  if (delay != 0)
 	    {
 	      process_bits! (read_output_skip, p, 1);
-	      process_output_skip = true;
+	      (*process_output_skip.as_mut_ptr ()) = true;
 	    }
 	}
       nbytes += buffered as ptrdiff_t;
@@ -7204,7 +7199,7 @@ unsafe fn read_process_output (proc_: Lisp_Object, channel: c_int) -> c_int
   /* Now set NBYTES how many bytes we must decode.  */
   nbytes += carryover as ptrdiff_t;
 
-  odeactivate = Vdeactivate_mark;
+  odeactivate = (*Vdeactivate_mark.as_mut_ptr ());
   /* There's no good reason to let process filters change the current buffer, and many
      callers of accept-process-output, sit-for, and friends don't expect current-buffer to
      be changed from under them.  */
@@ -7213,7 +7208,7 @@ unsafe fn read_process_output (proc_: Lisp_Object, channel: c_int) -> c_int
   read_and_dispose_of_process_output (p, chars, nbytes, coding);
 
   /* Handling the process output should not deactivate the mark.  */
-  Vdeactivate_mark = odeactivate;
+  (*Vdeactivate_mark.as_mut_ptr ()) = odeactivate;
 
   SAFE_FREE_UNBIND_TO! (sa_count, count, Qnil (), sa_mark);
   return nbytes as c_int;
@@ -7291,7 +7286,7 @@ unsafe fn read_process_output_after_insert (p: *mut Lisp_Process, old_read_only:
   else
     { set_marker_both ((*p).mark, (*p).buffer, PT! (), PT_BYTE! ()); }
 
-  update_mode_lines = 23;
+  (*update_mode_lines.as_mut_ptr ()) = 23;
 
   /* Make sure opoint and the old restrictions float ahead of any new text just as point
      would.  */
@@ -7321,11 +7316,11 @@ unsafe fn read_process_output_set_last_coding_system (p: *mut Lisp_Process,
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  Vlast_coding_system_used = CODING_ID_NAME ((*coding).id as c_int);
+  (*Vlast_coding_system_used.as_mut_ptr ()) = CODING_ID_NAME ((*coding).id as c_int);
   /* A new coding system might be found.  */
-  if (!EQ ((*p).decode_coding_system, Vlast_coding_system_used))
+  if (!EQ ((*p).decode_coding_system, (*Vlast_coding_system_used.as_mut_ptr ())))
     {
-      pset_decode_coding_system (p, Vlast_coding_system_used);
+      pset_decode_coding_system (p, (*Vlast_coding_system_used.as_mut_ptr ()));
 
       /* Don't call setup_coding_system for proc_decode_coding_system[channel] here.  It is
 	 done in detect_coding called via decode_coding above.  */
@@ -7334,12 +7329,12 @@ unsafe fn read_process_output_set_last_coding_system (p: *mut Lisp_Process,
 	 coding-system for decoding.  ...  */
       eassert! ((*p).outfd < FD_SETSIZE);
       if (NILP ((*p).encode_coding_system) && (*p).outfd >= 0
-	  && !proc_encode_coding_system[(*p).outfd as usize].is_null ())
+	  && !(*proc_encode_coding_system.as_mut_ptr ())[(*p).outfd as usize].is_null ())
 	{
 	  pset_encode_coding_system
-	    (p, coding_inherit_eol_type (Vlast_coding_system_used, Qnil ()));
+	    (p, coding_inherit_eol_type ((*Vlast_coding_system_used.as_mut_ptr ()), Qnil ()));
 	  setup_coding_system ((*p).encode_coding_system,
-			       proc_encode_coding_system[(*p).outfd as usize]);
+			       (*proc_encode_coding_system.as_mut_ptr ())[(*p).outfd as usize]);
 	}
     }
 
@@ -7440,7 +7435,7 @@ unsafe fn read_and_dispose_of_process_output (p: *mut Lisp_Process, chars: *mut 
   unsafe {
   let outstream: Lisp_Object = (*p).filter;
   let mut text: Lisp_Object;
-  let outer_running_asynch_code: bool = running_asynch_code;
+  let outer_running_asynch_code: bool = (*running_asynch_code.as_mut_ptr ());
   let waiting: c_int = waiting_for_user_input_p! ();
 
   /* We inhibit quit here instead of just catching it so that hitting ^G when a filter
@@ -7462,9 +7457,9 @@ unsafe fn read_and_dispose_of_process_output (p: *mut Lisp_Process, chars: *mut 
 
   /* For speed, if a search happens within this code, save the match data in a special
      nonrecursive fashion.  */
-  running_asynch_code = true;
+  (*running_asynch_code.as_mut_ptr ()) = true;
 
-  if (fast_read_process_output
+  if ((*fast_read_process_output.as_mut_ptr ())
       && EQ ((*p).filter, Qinternal_default_process_filter ()))
     { read_and_insert_process_output (p, chars, nbytes, coding); }
   else
@@ -7479,14 +7474,14 @@ unsafe fn read_and_dispose_of_process_output (p: *mut Lisp_Process, chars: *mut 
 	   simply wrong to wrap (e.g. when called from accept-process-output).  */
 	{ internal_condition_case_1 (Some (read_process_output_call),
 				     list3 (outstream, make_lisp_proc (p), text),
-				     if !NILP (Vdebug_on_error) { Qnil () } else { Qerror () },
+				     if !NILP ((*Vdebug_on_error.as_mut_ptr ())) { Qnil () } else { Qerror () },
 				     Some (read_process_output_error_handler)); }
 
     }
 
   /* If we saved the match data nonrecursively, restore it now.  */
   restore_search_regs ();
-  running_asynch_code = outer_running_asynch_code;
+  (*running_asynch_code.as_mut_ptr ()) = outer_running_asynch_code;
 
   /* Restore waiting_for_user_input_p as it was when we were called, in case the filter
      clobbered it.  */
@@ -7540,11 +7535,11 @@ DEFUN! ("internal-default-process-filter", Finternal_default_process_filter,
 
 /* The `DEFVAR_BOOL` carrier this file owns (C 9xxx, `fast-read-process-output`; status 3.29).  */
 #[unsafe(no_mangle)]
-pub static mut fast_read_process_output: bool = false;
+pub static fast_read_process_output: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 unsafe extern "C-unwind" {
   /// C: bool running_asynch_code   (search.c, lisp.h 5146)
-  static mut running_asynch_code: bool;
+  static running_asynch_code: VmGlobal<bool>;
 
 
   /// C: Lisp_Object internal_condition_case_1 (Lisp_Object (*) (Lisp_Object), Lisp_Object,
@@ -7652,8 +7647,8 @@ unsafe fn send_process (proc_: Lisp_Object, buf: *const c_char, len: ptrdiff_t,
     { error (c"Output file descriptor of %s is closed".as_ptr (), SDATA ((*p).name)); }
 
   eassert! ((*p).outfd < FD_SETSIZE);
-  coding = proc_encode_coding_system[(*p).outfd as usize];
-  Vlast_coding_system_used = CODING_ID_NAME ((*coding).id as c_int);
+  coding = (*proc_encode_coding_system.as_mut_ptr ())[(*p).outfd as usize];
+  (*Vlast_coding_system_used.as_mut_ptr ()) = CODING_ID_NAME ((*coding).id as c_int);
 
   if ((STRINGP (object) && STRING_MULTIBYTE (object))
       || (BUFFERP (object)
@@ -7662,14 +7657,14 @@ unsafe fn send_process (proc_: Lisp_Object, buf: *const c_char, len: ptrdiff_t,
     {
       pset_encode_coding_system
 	(p, complement_process_encoding_system ((*p).encode_coding_system));
-      if (!EQ (Vlast_coding_system_used, (*p).encode_coding_system))
+      if (!EQ ((*Vlast_coding_system_used.as_mut_ptr ()), (*p).encode_coding_system))
 	{
 	  /* The coding system for encoding was changed to raw-text because we sent a
 	     unibyte text previously.  Now we are sending a multibyte text, thus we must
 	     encode it by the original coding system specified for the current process.
 	     ...  */
 	  setup_coding_system ((*p).encode_coding_system, coding);
-	  Vlast_coding_system_used = (*p).encode_coding_system;
+	  (*Vlast_coding_system_used.as_mut_ptr ()) = (*p).encode_coding_system;
 	}
       coding_bits! (src_multibyte, coding, 1);
     }
@@ -7689,7 +7684,7 @@ unsafe fn send_process (proc_: Lisp_Object, buf: *const c_char, len: ptrdiff_t,
 	      coding_bits! (mode, coding, coding_bits! (mode, coding) & CODING_MODE_LAST_BLOCK);
 	    }
 	  setup_coding_system (raw_text_coding_system
-			       (Vlast_coding_system_used),
+			       ((*Vlast_coding_system_used.as_mut_ptr ())),
 			       coding);
 	  coding_bits! (src_multibyte, coding, 0);
 	}
@@ -7770,11 +7765,11 @@ unsafe fn send_process (proc_: Lisp_Object, buf: *const c_char, len: ptrdiff_t,
 	      loop
 		{
 		  rv = sendto (outfd, cur_buf as *const c_void, cur_len as usize, 0,
-			       datagram_address[outfd as usize].sa,
-			       datagram_address[outfd as usize].len as socklen_t);
+			       (*datagram_address.as_mut_ptr ())[outfd as usize].sa,
+			       (*datagram_address.as_mut_ptr ())[outfd as usize].len as socklen_t);
 		  if (! (rv < 0 && *errno () == EINTR))
 		    { break; }
-		  if (pending_signals)
+		  if ((*pending_signals.as_mut_ptr ()))
 		    { process_pending_signals (); }
 		}
 
@@ -7802,7 +7797,7 @@ unsafe fn send_process (proc_: Lisp_Object, buf: *const c_char, len: ptrdiff_t,
 		  && process_bits! (adaptive_read_buffering, p) == 1)
 		{
 		  (*p).read_output_delay = 0;
-		  process_output_delay_count -= 1;
+		  (*process_output_delay_count.as_mut_ptr ()) -= 1;
 		  process_bits! (read_output_skip, p, 0);
 		}
 	    }
@@ -8046,8 +8041,8 @@ unsafe fn process_send_signal (process: Lisp_Object, signo: c_int, current_group
     {
       process_bits! (raw_status_new, p, 0);
       pset_status (p, Qrun ());
-      process_tick += 1;
-      (*p).tick = process_tick;
+      (*process_tick.as_mut_ptr ()) += 1;
+      (*p).tick = (*process_tick.as_mut_ptr ());
       if (!nomsg)
 	{
 	  status_notify (std::ptr::null_mut (), std::ptr::null_mut ());
@@ -8360,7 +8355,7 @@ DEFUN! ("process-send-eof", Fprocess_send_eof, Sprocess_send_eof, 0, 1, 0,
   outfd = (*XPROCESS (proc_)).outfd;
   eassert! (outfd < FD_SETSIZE);
   if (outfd >= 0)
-    { coding = proc_encode_coding_system[outfd as usize]; }
+    { coding = (*proc_encode_coding_system.as_mut_ptr ())[outfd as usize]; }
 
   /* Make sure the process is really alive.  */
   if (process_bits! (raw_status_new, XPROCESS (proc_)))
@@ -8405,8 +8400,8 @@ DEFUN! ("process-send-eof", Fprocess_send_eof, Sprocess_send_eof, 0, 1, 0,
       (*p).outfd = new_outfd;
 
       eassert! (0 <= new_outfd && new_outfd < FD_SETSIZE);
-      if (proc_encode_coding_system[new_outfd as usize].is_null ())
-	{ proc_encode_coding_system[new_outfd as usize]
+      if ((*proc_encode_coding_system.as_mut_ptr ())[new_outfd as usize].is_null ())
+	{ (*proc_encode_coding_system.as_mut_ptr ())[new_outfd as usize]
 	    = xmalloc (std::mem::size_of::<coding_system> ()) as *mut coding_system; }
       if (old_outfd >= 0)
 	{
@@ -8414,14 +8409,14 @@ DEFUN! ("process-send-eof", Fprocess_send_eof, Sprocess_send_eof, 0, 1, 0,
 	  /* C assigns the whole `struct coding_system`; the port copies the bytes (the type
 	     has no `Copy` because of its union members, the same shape the coding.rs ledger
 	     records).  */
-	  std::ptr::copy_nonoverlapping (proc_encode_coding_system[old_outfd as usize],
-					 proc_encode_coding_system[new_outfd as usize], 1);
-	  memset (proc_encode_coding_system[old_outfd as usize] as *mut c_void, 0,
+	  std::ptr::copy_nonoverlapping ((*proc_encode_coding_system.as_mut_ptr ())[old_outfd as usize],
+					 (*proc_encode_coding_system.as_mut_ptr ())[new_outfd as usize], 1);
+	  memset ((*proc_encode_coding_system.as_mut_ptr ())[old_outfd as usize] as *mut c_void, 0,
 		  std::mem::size_of::<coding_system> ());
 	}
       else
 	{ setup_coding_system ((*p).encode_coding_system,
-			       proc_encode_coding_system[new_outfd as usize]); }
+			       (*proc_encode_coding_system.as_mut_ptr ())[new_outfd as usize]); }
     }
   return process;
 });
@@ -8443,10 +8438,10 @@ pub unsafe fn child_signal_init ()
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
   /* Either both are initialized, or both are uninitialized.  */
-  eassert! ((child_signal_read_fd < 0) == (child_signal_write_fd < 0));
+  eassert! (((*child_signal_read_fd.as_mut_ptr ()) < 0) == ((*child_signal_write_fd.as_mut_ptr ()) < 0));
 
   /* `#ifndef WINDOWSNT` is live.  */
-  if (0 <= child_signal_read_fd)
+  if (0 <= (*child_signal_read_fd.as_mut_ptr ()))
     { return; /* already done */ }
 
   let mut fds: [c_int; 2] = [-1; 2];
@@ -8461,9 +8456,9 @@ pub unsafe fn child_signal_init ()
   if (fcntl (fds[1], F_SETFL, O_NONBLOCK) != 0)
     { emacs_perror (c"fcntl".as_ptr ()); }
   add_read_fd (fds[0], Some (child_signal_read), std::ptr::null_mut ());
-  fd_callback_info[fds[0] as usize].flags &= !KEYBOARD_FD;
-  child_signal_read_fd = fds[0];
-  child_signal_write_fd = fds[1];
+  (*fd_callback_info.as_mut_ptr ())[fds[0] as usize].flags &= !KEYBOARD_FD;
+  (*child_signal_read_fd.as_mut_ptr ()) = fds[0];
+  (*child_signal_write_fd.as_mut_ptr ()) = fds[1];
 
   }
 }
@@ -8477,7 +8472,7 @@ unsafe extern "C-unwind" fn child_signal_read (fd: c_int, data: *mut c_void)
   unsafe {
   let _ = data;
   eassert! (0 <= fd);
-  eassert! (fd == child_signal_read_fd);
+  eassert! (fd == (*child_signal_read_fd.as_mut_ptr ()));
   let mut dummy: c_char = 0;
   if (emacs_read (fd, &raw mut dummy as *mut c_void, 1) < 0 && *errno () != EAGAIN)
     { emacs_perror (c"reading from child signal FD".as_ptr ()); }
@@ -8493,10 +8488,10 @@ unsafe fn child_signal_notify ()
   unsafe {
   if femacs_child_trace ()
     {
-      fprintf (stderr, c"child-notify: write_fd=%d\n".as_ptr (), child_signal_write_fd);
+      fprintf ((*stderr.as_mut_ptr ()), c"child-notify: write_fd=%d\n".as_ptr (), (*child_signal_write_fd.as_mut_ptr ()));
     }
   /* `#ifndef WINDOWSNT` is live.  */
-  let fd: c_int = child_signal_write_fd;
+  let fd: c_int = (*child_signal_write_fd.as_mut_ptr ());
   eassert! (0 <= fd);
   let dummy: c_char = 0;
   /* We used to error out here ... But this calls `emacs_perror', which in turn invokes a
@@ -8514,7 +8509,7 @@ unsafe fn child_signal_notify ()
 /* C 7667: `static void dummy_handler (int sig) {}`  */
 unsafe extern "C" fn dummy_handler (sig: c_int) { let _ = sig; let _ = dummy_handler; }
 /* C 7668: `static signal_handler_t volatile lib_child_handler;`  */
-static mut lib_child_handler: signal_handler_t = None;
+static lib_child_handler: VmGlobal<signal_handler_t> = VmGlobal::<signal_handler_t>::new (None);
 
 /* True if Glib installs its own SIGCHLD handler that Emacs must work around.  Determined
    once in init_process_emacs; consulted elsewhere (e.g. xwidget.c) to decide whether the
@@ -8522,7 +8517,7 @@ static mut lib_child_handler: signal_handler_t = None;
 /* C 7674: `bool glib_installs_sigchld_handler;` — non-static, so this unit's exported
    object (the `process.h` mirror declares the same name).  */
 #[unsafe(no_mangle)]
-pub static mut glib_installs_sigchld_handler: bool = false;
+pub static glib_installs_sigchld_handler: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 /* Handle a SIGCHLD signal by looking for known child processes of Emacs whose status have
    changed.  For each one found, record its new status.  ...  */
@@ -8532,7 +8527,7 @@ unsafe extern "C" fn handle_child_signal (sig: c_int)
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
   if femacs_child_trace ()
-    { fprintf (stderr, c"child-signal: sig=%d\n".as_ptr (), sig); }
+    { fprintf ((*stderr.as_mut_ptr ()), c"child-signal: sig=%d\n".as_ptr (), sig); }
   let mut tail: Lisp_Object;
   let mut proc_: Lisp_Object;
   let mut changed: bool = false;
@@ -8541,7 +8536,7 @@ unsafe extern "C" fn handle_child_signal (sig: c_int)
 
   /* The process can have been deleted by Fdelete_process, or have been started
      asynchronously by Fcall_process.  */
-  tail = deleted_pid_list;
+  tail = (*deleted_pid_list.as_mut_ptr ());
   while CONSP (tail)
     {
       let all_pids_are_fixnums: bool
@@ -8587,11 +8582,11 @@ unsafe extern "C" fn handle_child_signal (sig: c_int)
 	   signal handler reaped, and how.  Off unless the variable is set.  */
 	if femacs_child_trace ()
 	  {
-	    fprintf (stderr, c"child-reap: pid=%d status=%d WIFEXITED=%d\n".as_ptr (),
+	    fprintf ((*stderr.as_mut_ptr ()), c"child-reap: pid=%d status=%d WIFEXITED=%d\n".as_ptr (),
 		     (*p).pid as c_int, status, WIFEXITED (status) as c_int);
 	  }
-	process_tick += 1;
-	(*p).tick = process_tick;
+	(*process_tick.as_mut_ptr ()) += 1;
+	(*p).tick = (*process_tick.as_mut_ptr ());
 	(*p).raw_status = status;
 	process_bits! (raw_status_new, p, 1);
 
@@ -8614,7 +8609,7 @@ unsafe extern "C" fn handle_child_signal (sig: c_int)
     /* Wake up `wait_reading_process_output'.  */
     { child_signal_notify (); }
 
-  if let Some (handler) = lib_child_handler { handler (sig); }
+  if let Some (handler) = (*lib_child_handler.as_mut_ptr ()) { handler (sig); }
   /* C 7781-7784's `#ifdef NS_IMPL_GNUSTEP` arm: NSTask in GNUstep sets its child handler
      each time it is called, so we must re-set ours.  */
   #[cfg (feature = "ns_impl_gnustep")]
@@ -8661,10 +8656,10 @@ unsafe extern "C-unwind" fn exec_sentinel_error_handler (error_val: Lisp_Object)
   if (!CONSP (error_val))
     { error_val = Fcons (Qerror (), error_val); }
   cmd_error_internal (error_val, c"error in process sentinel: ".as_ptr ());
-  Vinhibit_quit = Qt ();
+  (*Vinhibit_quit.as_mut_ptr ()) = Qt ();
   update_echo_area ();
-  if (process_error_pause_time > 0)
-    { Fsleep_for (make_fixnum (process_error_pause_time), Qnil ()); }
+  if ((*process_error_pause_time.as_mut_ptr ()) > 0)
+    { Fsleep_for (make_fixnum ((*process_error_pause_time.as_mut_ptr ())), Qnil ()); }
   return Qt ();
 
   }
@@ -8680,13 +8675,13 @@ unsafe fn exec_sentinel (proc_: Lisp_Object, reason: Lisp_Object)
   let mut odeactivate: Lisp_Object;
   let p: *mut Lisp_Process = XPROCESS (proc_);
   let count: specpdl_ref = SPECPDL_INDEX ();
-  let outer_running_asynch_code: bool = running_asynch_code;
+  let outer_running_asynch_code: bool = (*running_asynch_code.as_mut_ptr ());
   let waiting: c_int = waiting_for_user_input_p! ();
 
-  if (inhibit_sentinels)
+  if ((*inhibit_sentinels.as_mut_ptr ()))
     { return; }
 
-  odeactivate = Vdeactivate_mark;
+  odeactivate = (*Vdeactivate_mark.as_mut_ptr ());
 
   /* There's no good reason to let sentinels change the current buffer, and many callers of
      accept-process-output, sit-for, and friends don't expect current-buffer to be changed
@@ -8712,18 +8707,18 @@ unsafe fn exec_sentinel (proc_: Lisp_Object, reason: Lisp_Object)
 
   /* For speed, if a search happens within this code, save the match data in a special
      nonrecursive fashion.  */
-  running_asynch_code = true;
+  (*running_asynch_code.as_mut_ptr ()) = true;
 
   internal_condition_case_1 (Some (read_process_output_call),
 			     list3 (sentinel, proc_, reason),
-			     if !NILP (Vdebug_on_error) { Qnil () } else { Qerror () },
+			     if !NILP ((*Vdebug_on_error.as_mut_ptr ())) { Qnil () } else { Qerror () },
 			     Some (exec_sentinel_error_handler));
 
   /* If we saved the match data nonrecursively, restore it now.  */
   restore_search_regs ();
-  running_asynch_code = outer_running_asynch_code;
+  (*running_asynch_code.as_mut_ptr ()) = outer_running_asynch_code;
 
-  Vdeactivate_mark = odeactivate;
+  (*Vdeactivate_mark.as_mut_ptr ()) = odeactivate;
 
   /* Restore waiting_for_user_input_p as it was when we were called, in case the filter
      clobbered it.  */
@@ -8752,12 +8747,12 @@ unsafe fn status_notify (deleting_process: *mut Lisp_Process,
   tail = Qnil ();
   msg = Qnil ();
 
-  let prev_update_tick: EMACS_INT = update_tick;
+  let prev_update_tick: EMACS_INT = (*update_tick.as_mut_ptr ());
   let mut skipped_other_thread: bool = false;
 
   /* Set this now, so that if new processes are created by sentinels that we run, we get
      called again to handle their status changes.  */
-  update_tick = process_tick;
+  (*update_tick.as_mut_ptr ()) = (*process_tick.as_mut_ptr ());
 
   FOR_EACH_PROCESS! (tail, proc_, {
     let mut symbol: Lisp_Object;
@@ -8766,13 +8761,13 @@ unsafe fn status_notify (deleting_process: *mut Lisp_Process,
     if ((*p).tick != (*p).update_tick)
       {
 	if (p != deleting_process
-	    && ((!NILP ((*p).thread) && XTHREAD ((*p).thread) != current_thread)
+	    && ((!NILP ((*p).thread) && XTHREAD ((*p).thread) != (*current_thread.as_mut_ptr ()))
 		|| ((*p).infd >= 0
-		    && !fd_callback_info[(*p).infd as usize].waiting_thread.is_null ()
-		    && fd_callback_info[(*p).infd as usize].waiting_thread != current_thread)
+		    && !(*fd_callback_info.as_mut_ptr ())[(*p).infd as usize].waiting_thread.is_null ()
+		    && (*fd_callback_info.as_mut_ptr ())[(*p).infd as usize].waiting_thread != (*current_thread.as_mut_ptr ()))
 		|| ((*p).outfd >= 0
-		    && !fd_callback_info[(*p).outfd as usize].waiting_thread.is_null ()
-		    && fd_callback_info[(*p).outfd as usize].waiting_thread != current_thread)
+		    && !(*fd_callback_info.as_mut_ptr ())[(*p).outfd as usize].waiting_thread.is_null ()
+		    && (*fd_callback_info.as_mut_ptr ())[(*p).outfd as usize].waiting_thread != (*current_thread.as_mut_ptr ()))
 		|| (p != wait_proc && other_thread_waiting_for_process (p))))
 	  {
 	    skipped_other_thread = true;
@@ -8811,7 +8806,7 @@ unsafe fn status_notify (deleting_process: *mut Lisp_Process,
 	    if (EQ (symbol, Qsignal ()) || EQ (symbol, Qexit ())
 		|| EQ (symbol, Qclosed ()))
 	      {
-		if (delete_exited_processes)
+		if ((*delete_exited_processes.as_mut_ptr ()))
 		  { remove_process (proc_); }
 		else
 		  { deactivate_process (proc_); }
@@ -8830,11 +8825,11 @@ unsafe fn status_notify (deleting_process: *mut Lisp_Process,
       }
   }); /* end for */
 
-  if (skipped_other_thread && update_tick == process_tick)
+  if (skipped_other_thread && (*update_tick.as_mut_ptr ()) == (*process_tick.as_mut_ptr ()))
     {
-      update_tick = prev_update_tick;
-      if (update_tick == process_tick)
-	{ update_tick = process_tick - 1; }
+      (*update_tick.as_mut_ptr ()) = prev_update_tick;
+      if ((*update_tick.as_mut_ptr ()) == (*process_tick.as_mut_ptr ()))
+	{ (*update_tick.as_mut_ptr ()) = (*process_tick.as_mut_ptr ()) - 1; }
     }
 
   return got_some_output;
@@ -8844,7 +8839,7 @@ unsafe fn status_notify (deleting_process: *mut Lisp_Process,
 
 /* The `DEFVAR_BOOL` carrier this file owns (C 9xxx, `delete-exited-processes`; status 3.29).  */
 #[unsafe(no_mangle)]
-pub static mut delete_exited_processes: bool = false;
+pub static delete_exited_processes: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 DEFUN! ("internal-default-process-sentinel", Finternal_default_process_sentinel,
        Sinternal_default_process_sentinel, 2, 2, 0,
@@ -8878,7 +8873,7 @@ DEFUN! ("internal-default-process-sentinel", Finternal_default_process_sentinel,
       Fset_buffer (buffer);
 
       if (NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_)))
-	{ msg = code_convert_string_norecord (msg, Vlocale_coding_system, true); }
+	{ msg = code_convert_string_norecord (msg, (*Vlocale_coding_system.as_mut_ptr ()), true); }
 
       opoint = PT! ();
       opoint_byte = PT_BYTE! ();
@@ -8974,12 +8969,12 @@ unsafe fn keyboard_bit_set (mask: *mut fd_set) -> bool
   unsafe {
   let mut fd: c_int;
 
-  eassert! (max_desc < FD_SETSIZE);
+  eassert! ((*max_desc.as_mut_ptr ()) < FD_SETSIZE);
   fd = 0;
-  while fd <= max_desc
+  while fd <= (*max_desc.as_mut_ptr ())
     {
       if (FD_ISSET (fd, mask)
-	  && ((fd_callback_info[fd as usize].flags & (FOR_READ | KEYBOARD_FD))
+	  && (((*fd_callback_info.as_mut_ptr ())[fd as usize].flags & (FOR_READ | KEYBOARD_FD))
 	      == (FOR_READ | KEYBOARD_FD)))
 	{ return true; }
       fd += 1;
@@ -9089,9 +9084,9 @@ pub mod no_subprocesses
 
 	    loop
 	      {
-		let old_timers_run: c_uint = timers_run;
+		let old_timers_run: c_uint = (*timers_run.as_mut_ptr ());
 		timer_delay = timer_check ();
-		if (timers_run != old_timers_run && do_display)
+		if ((*timers_run.as_mut_ptr ()) != old_timers_run && do_display)
 		  /* We must retry, since a timer may have requeued itself and that
 		     could alter the time delay.  */
 		  { redisplay_preserve_echo_area (14); }
@@ -9122,7 +9117,7 @@ pub mod no_subprocesses
 
 	/* If a frame has been newly mapped and needs updating, reprocess its display
 	   stuff.  */
-	if (frame_garbaged && do_display)
+	if ((*frame_garbaged.as_mut_ptr ()) && do_display)
 	  {
 	    clear_waiting_for_input ();
 	    redisplay_preserve_echo_area (15);
@@ -9209,7 +9204,7 @@ pub unsafe fn add_timer_wait_descriptor (fd: c_int)
 {
   eassert! (0 <= fd && fd < FD_SETSIZE);
   add_read_fd (fd, Some (timerfd_callback), std::ptr::null_mut ());
-  fd_callback_info[fd as usize].flags &= !KEYBOARD_FD;
+  (*fd_callback_info.as_mut_ptr ())[fd as usize].flags &= !KEYBOARD_FD;
 }
 
 /* If program file NAME starts with /: for quoting a magic name, remove that, preserving the
@@ -9240,10 +9235,10 @@ pub unsafe fn add_keyboard_wait_descriptor (desc: c_int)
   unsafe {
   /* `#ifdef subprocesses /* Actually means "not MSDOS".  */` is live.  */
   eassert! (desc >= 0 && desc < FD_SETSIZE);
-  fd_callback_info[desc as usize].flags &= !PROCESS_FD;
-  fd_callback_info[desc as usize].flags |= FOR_READ | KEYBOARD_FD;
-  if (desc > max_desc)
-    { max_desc = desc; }
+  (*fd_callback_info.as_mut_ptr ())[desc as usize].flags &= !PROCESS_FD;
+  (*fd_callback_info.as_mut_ptr ())[desc as usize].flags |= FOR_READ | KEYBOARD_FD;
+  if (desc > (*max_desc.as_mut_ptr ()))
+    { (*max_desc.as_mut_ptr ()) = desc; }
 
   }
 }
@@ -9258,22 +9253,22 @@ pub unsafe fn delete_keyboard_wait_descriptor (desc: c_int)
   /* `#ifdef subprocesses` is live.  */
   eassert! (desc >= 0 && desc < FD_SETSIZE);
 
-  let saved_thread: *mut thread_state = fd_callback_info[desc as usize].thread;
-  let saved_waiting: *mut thread_state = fd_callback_info[desc as usize].waiting_thread;
+  let saved_thread: *mut thread_state = (*fd_callback_info.as_mut_ptr ())[desc as usize].thread;
+  let saved_waiting: *mut thread_state = (*fd_callback_info.as_mut_ptr ())[desc as usize].waiting_thread;
   let saved_flags: c_int
-    = (fd_callback_info[desc as usize].flags & (FOR_WRITE | NON_BLOCKING_CONNECT_FD)) | PROCESS_FD;
-  let keep_proc_fd: bool = !NILP (chan_process[desc as usize]);
+    = ((*fd_callback_info.as_mut_ptr ())[desc as usize].flags & (FOR_WRITE | NON_BLOCKING_CONNECT_FD)) | PROCESS_FD;
+  let keep_proc_fd: bool = !NILP ((*chan_process.as_mut_ptr ())[desc as usize]);
 
-  clear_fd_callback_data (&raw mut fd_callback_info[desc as usize]);
+  clear_fd_callback_data (&raw mut (*fd_callback_info.as_mut_ptr ())[desc as usize]);
 
   if keep_proc_fd
     {
-      fd_callback_info[desc as usize].flags = saved_flags;
-      fd_callback_info[desc as usize].thread = saved_thread;
-      fd_callback_info[desc as usize].waiting_thread = saved_waiting;
+      (*fd_callback_info.as_mut_ptr ())[desc as usize].flags = saved_flags;
+      (*fd_callback_info.as_mut_ptr ())[desc as usize].thread = saved_thread;
+      (*fd_callback_info.as_mut_ptr ())[desc as usize].waiting_thread = saved_waiting;
     }
 
-  if (desc == max_desc)
+  if (desc == (*max_desc.as_mut_ptr ()))
     { recompute_max_desc (); }
 
   }
@@ -9296,8 +9291,8 @@ pub unsafe fn setup_process_coding_systems (process: Lisp_Object)
     { return; }
 
   eassert! (0 <= inch && inch < FD_SETSIZE);
-  if (proc_decode_coding_system[inch as usize].is_null ())
-    { proc_decode_coding_system[inch as usize]
+  if ((*proc_decode_coding_system.as_mut_ptr ())[inch as usize].is_null ())
+    { (*proc_decode_coding_system.as_mut_ptr ())[inch as usize]
 	= xmalloc (std::mem::size_of::<coding_system> ()) as *mut coding_system; }
   coding_system = (*p).decode_coding_system;
   if (EQ ((*p).filter, Qinternal_default_process_filter ())
@@ -9306,14 +9301,14 @@ pub unsafe fn setup_process_coding_systems (process: Lisp_Object)
       if (NILP (BVAR! (XBUFFER ((*p).buffer), enable_multibyte_characters_)))
 	{ coding_system = raw_text_coding_system (coding_system); }
     }
-  setup_coding_system (coding_system, proc_decode_coding_system[inch as usize]);
+  setup_coding_system (coding_system, (*proc_decode_coding_system.as_mut_ptr ())[inch as usize]);
 
   eassert! (0 <= outch && outch < FD_SETSIZE);
-  if (proc_encode_coding_system[outch as usize].is_null ())
-    { proc_encode_coding_system[outch as usize]
+  if ((*proc_encode_coding_system.as_mut_ptr ())[outch as usize].is_null ())
+    { (*proc_encode_coding_system.as_mut_ptr ())[outch as usize]
 	= xmalloc (std::mem::size_of::<coding_system> ()) as *mut coding_system; }
   setup_coding_system ((*p).encode_coding_system,
-		       proc_encode_coding_system[outch as usize]);
+		       (*proc_encode_coding_system.as_mut_ptr ())[outch as usize]);
 
   }
 }
@@ -9365,7 +9360,7 @@ DEFUN! ("process-inherit-coding-system-flag", Fprocess_inherit_coding_system_fla
   #[cfg (feature = "no_subprocesses")]
   {
     let _ = process;
-    return if inherit_process_coding_system { Qt () } else { Qnil () };
+    return if (*inherit_process_coding_system.as_mut_ptr ()) { Qt () } else { Qnil () };
   }
 });
 
@@ -9410,7 +9405,7 @@ pub unsafe fn hold_keyboard_input ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  kbd_is_on_hold = true;
+  (*kbd_is_on_hold.as_mut_ptr ()) = true;
 
   }
 }
@@ -9422,7 +9417,7 @@ pub unsafe fn unhold_keyboard_input ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  kbd_is_on_hold = false;
+  (*kbd_is_on_hold.as_mut_ptr ()) = false;
 
   }
 }
@@ -9434,7 +9429,7 @@ pub unsafe fn kbd_on_hold_p () -> bool
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  return kbd_is_on_hold;
+  return (*kbd_is_on_hold.as_mut_ptr ());
 
   }
 }
@@ -9511,7 +9506,7 @@ pub unsafe fn catch_child_signal ()
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
   if femacs_child_trace ()
-    { fprintf (stderr, c"child-catch: arming\n".as_ptr ()); }
+    { fprintf ((*stderr.as_mut_ptr ()), c"child-catch: arming\n".as_ptr ()); }
   let mut action: sigaction = std::mem::zeroed ();
   let mut old_action: sigaction = std::mem::zeroed ();
   let mut oldset: sigset_t = std::mem::zeroed ();
@@ -9527,7 +9522,7 @@ pub unsafe fn catch_child_signal ()
 
   if (old_action.__sigaction_u.__sa_handler != Some (deliver_child_signal))
     {
-      lib_child_handler
+      (*lib_child_handler.as_mut_ptr ())
 	= if (old_action.__sigaction_u.__sa_handler == SIG_DFL
 	      || old_action.__sigaction_u.__sa_handler == sig_ign)
 	{ Some (dummy_handler) }
@@ -9546,8 +9541,8 @@ pub unsafe fn restore_nofile_limit ()
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
   /* `#ifdef HAVE_SETRLIMIT` is live.  */
-  if ((FD_SETSIZE as rlim_t) < nofile_limit.rlim_cur)
-    { setrlimit (RLIMIT_NOFILE, &raw const nofile_limit); }
+  if ((FD_SETSIZE as rlim_t) < (*nofile_limit.as_mut_ptr ()).rlim_cur)
+    { setrlimit (RLIMIT_NOFILE, nofile_limit.as_ptr ()); }
 
   }
 }
@@ -9608,7 +9603,7 @@ pub unsafe fn init_process_emacs (sockfd: c_int)
   /* `#ifdef subprocesses` is live.  */
   let mut i: c_int;
 
-  inhibit_sentinels = false;
+  (*inhibit_sentinels.as_mut_ptr ()) = false;
 
   /* C 8713-8743's `#if defined HAVE_GLIB && !defined WINDOWSNT` arm: tickle Glib's
      child-handling code so `catch_child_signal` can copy its handler.  */
@@ -9622,14 +9617,14 @@ pub unsafe fn init_process_emacs (sockfd: c_int)
     catch_child_signal ();
     g_source_unref (source);
 
-    if (lib_child_handler != Some (dummy_handler))
+    if ((*lib_child_handler.as_mut_ptr ()) != Some (dummy_handler))
       {
 	/* The hacky workaround is needed on this platform.  */
-	glib_installs_sigchld_handler = true;
-	let lib_child_handler_glib: signal_handler_t = lib_child_handler;
+	(*glib_installs_sigchld_handler.as_mut_ptr ()) = true;
+	let lib_child_handler_glib: signal_handler_t = (*lib_child_handler.as_mut_ptr ());
 	catch_child_signal ();
-	eassert! (lib_child_handler == Some (dummy_handler));
-	lib_child_handler = lib_child_handler_glib;
+	eassert! ((*lib_child_handler.as_mut_ptr ()) == Some (dummy_handler));
+	(*lib_child_handler.as_mut_ptr ()) = lib_child_handler_glib;
       }
   }
   #[cfg (not (feature = "have_glib"))]
@@ -9637,17 +9632,17 @@ pub unsafe fn init_process_emacs (sockfd: c_int)
 
   /* `#ifdef HAVE_SETRLIMIT` is live.  */
   /* Don't allocate more than FD_SETSIZE file descriptors for Emacs itself.  ...  */
-  if (getrlimit (RLIMIT_NOFILE, &raw mut nofile_limit) != 0)
-    { nofile_limit.rlim_cur = 0; }
-  else if ((FD_SETSIZE as rlim_t) < nofile_limit.rlim_cur)
+  if (getrlimit (RLIMIT_NOFILE, nofile_limit.as_mut_ptr ()) != 0)
+    { (*nofile_limit.as_mut_ptr ()).rlim_cur = 0; }
+  else if ((FD_SETSIZE as rlim_t) < (*nofile_limit.as_mut_ptr ()).rlim_cur)
     {
-      let mut rlim: rlimit = nofile_limit;
+      let mut rlim: rlimit = (*nofile_limit.as_mut_ptr ());
       rlim.rlim_cur = FD_SETSIZE as rlim_t;
       if (setrlimit (RLIMIT_NOFILE, &raw const rlim) != 0)
-	{ nofile_limit.rlim_cur = 0; }
+	{ (*nofile_limit.as_mut_ptr ()).rlim_cur = 0; }
     }
 
-  external_sock_fd = sockfd;
+  (*external_sock_fd.as_mut_ptr ()) = sockfd;
   let mut sockname: Lisp_Object = Qnil ();
   /* `# if HAVE_GETSOCKNAME` is live.  */
   if (0 <= sockfd)
@@ -9657,39 +9652,39 @@ pub unsafe fn init_process_emacs (sockfd: c_int)
       if (getsockname (sockfd, &raw mut sa.sa, &raw mut salen) == 0)
 	{ sockname = conv_sockaddr_to_lisp (&raw mut sa.sa, salen as ptrdiff_t); }
     }
-  Vinternal__daemon_sockname = sockname;
+  (*Vinternal__daemon_sockname.as_mut_ptr ()) = sockname;
 
-  max_desc = -1;
-  memset (femacs_array_mut_ptr (&raw mut fd_callback_info) as *mut c_void, 0,
-	  femacs_sizeof_ptr (&raw const fd_callback_info));
+  (*max_desc.as_mut_ptr ()) = -1;
+  memset (femacs_array_mut_ptr (fd_callback_info.as_mut_ptr ()) as *mut c_void, 0,
+	  femacs_sizeof_ptr (fd_callback_info.as_ptr ()));
 
-  num_pending_connects = 0;
+  (*num_pending_connects.as_mut_ptr ()) = 0;
 
-  process_output_delay_count = 0;
-  process_output_skip = false;
+  (*process_output_delay_count.as_mut_ptr ()) = 0;
+  (*process_output_skip.as_mut_ptr ()) = false;
 
   /* Don't do this, it caused infinite select loops.  The display method should call
      add_keyboard_wait_descriptor on stdin if it needs that.  C's `#if 0` block is dead
      (P-08).  */
 
-  Vprocess_alist = Qnil ();
-  deleted_pid_list = Qnil ();
+  (*Vprocess_alist.as_mut_ptr ()) = Qnil ();
+  (*deleted_pid_list.as_mut_ptr ()) = Qnil ();
   i = 0;
   while i < FD_SETSIZE
     {
-      chan_process[i as usize] = Qnil ();
-      proc_buffered_char[i as usize] = -1;
+      (*chan_process.as_mut_ptr ())[i as usize] = Qnil ();
+      (*proc_buffered_char.as_mut_ptr ())[i as usize] = -1;
       i += 1;
     }
-  memset (femacs_array_mut_ptr (&raw mut proc_decode_coding_system) as *mut c_void, 0,
-	  femacs_sizeof_ptr (&raw const proc_decode_coding_system));
-  memset (femacs_array_mut_ptr (&raw mut proc_encode_coding_system) as *mut c_void, 0,
-	  femacs_sizeof_ptr (&raw const proc_encode_coding_system));
+  memset (femacs_array_mut_ptr (proc_decode_coding_system.as_mut_ptr ()) as *mut c_void, 0,
+	  femacs_sizeof_ptr (proc_decode_coding_system.as_ptr ()));
+  memset (femacs_array_mut_ptr (proc_encode_coding_system.as_mut_ptr ()) as *mut c_void, 0,
+	  femacs_sizeof_ptr (proc_encode_coding_system.as_ptr ()));
   /* `#ifdef DATAGRAM_SOCKETS` is live.  */
-  memset (femacs_array_mut_ptr (&raw mut datagram_address) as *mut c_void, 0,
-	  femacs_sizeof_ptr (&raw const datagram_address));
+  memset (femacs_array_mut_ptr (datagram_address.as_mut_ptr ()) as *mut c_void, 0,
+	  femacs_sizeof_ptr (datagram_address.as_ptr ()));
 
-  kbd_is_on_hold = false;
+  (*kbd_is_on_hold.as_mut_ptr ()) = false;
 
   }
 }
@@ -9705,7 +9700,7 @@ pub unsafe fn init_process_emacs (sockfd: c_int)
    `src/coding.c`'s unit lands and defines its carrier.  `tools/check-symbols.py` reports an
    object exported from here as *invented*, because the reference object defines no such
    symbol.  */
-static mut Vinternal__daemon_sockname: Lisp_Object = lisp_h_Qnil ();
+static Vinternal__daemon_sockname: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /// C: `<signal.h>`'s `#define SIG_DFL ((__sighandler_t) 0)` — the handler is the port's
 /// `signal_handler_t` (`Option<fn>`, P-27), so `SIG_DFL` is `None`.
@@ -9713,7 +9708,7 @@ pub const SIG_DFL: signal_handler_t = None;
 
 /* C 49-56: `#ifdef HAVE_SETRLIMIT`'s `static struct rlimit nofile_limit;` — the file's first
    file-scope object (its definition was owed since the first round).  */
-static mut nofile_limit: rlimit = rlimit { rlim_cur: 0, rlim_max: 0 };
+static nofile_limit: VmGlobal<rlimit> = VmGlobal::<rlimit>::new (rlimit { rlim_cur: 0, rlim_max: 0 });
 
 unsafe extern "C" {
 
@@ -9810,8 +9805,8 @@ pub unsafe fn syms_of_process ()
 
   DEFSYM! (Qlast_nonmenu_event, c"last-nonmenu-event");
 
-  staticpro (&raw mut Vprocess_alist);
-  staticpro (&raw mut deleted_pid_list);
+  staticpro (Vprocess_alist.as_mut_ptr ());
+  staticpro (deleted_pid_list.as_mut_ptr ());
 
   DEFSYM! (QCname, c":name");
   DEFSYM! (QCtype, c":type");
@@ -9855,43 +9850,43 @@ pub unsafe fn syms_of_process ()
   DEFVAR_BOOL! (c"delete-exited-processes", delete_exited_processes,
 	  "Non-nil means delete processes immediately when they exit.\nA value of nil means don't delete them until `list-processes' is run.");
 
-  delete_exited_processes = true;
+  (*delete_exited_processes.as_mut_ptr ()) = true;
 
   DEFVAR_LISP! (c"process-connection-type", Vprocess_connection_type,
 	  "Control type of device used to communicate with subprocesses.\nValues are nil to use a pipe, or t or `pty' to use a pty.\nThe value has no effect if the system has no ptys or if all ptys are busy:\nthen a pipe is used in any case.\nThe value takes effect when `start-process' is called.");
-  Vprocess_connection_type = Qt ();
+  (*Vprocess_connection_type.as_mut_ptr ()) = Qt ();
 
   DEFVAR_LISP! (c"process-adaptive-read-buffering", Vprocess_adaptive_read_buffering,
 	  "If non-nil, improve receive buffering by delaying after short reads.\nOn some systems, when Emacs reads the output from a subprocess, the output data\nis read in very small blocks, potentially resulting in very poor performance.\nThis behavior can be remedied to some extent by setting this variable to a\nnon-nil value, as it will automatically delay reading from such processes, to\nallow them to produce more output before Emacs tries to read it.\nIf the value is t, the delay is reset after each write to the process; any other\nnon-nil value means that the delay is not reset on write.\nThe variable takes effect when `start-process' is called.");
-  Vprocess_adaptive_read_buffering = Qnil ();
+  (*Vprocess_adaptive_read_buffering.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_BOOL! (c"process-prioritize-lower-fds", process_prioritize_lower_fds,
 	  "Whether to start checking for subprocess output from first file descriptor.\nEmacs loops through file descriptors to check for output from subprocesses.\nIf this variable is nil, the default, then after accepting output from a\nsubprocess, Emacs will continue checking the rest of descriptors, starting\nfrom the one following the descriptor it just read.  If this variable is\nnon-nil, Emacs will always restart the loop from the first file descriptor,\nthus favoring processes with lower descriptors.");
-  process_prioritize_lower_fds = false;
+  (*process_prioritize_lower_fds.as_mut_ptr ()) = false;
 
   DEFVAR_LISP! (c"interrupt-process-functions", Vinterrupt_process_functions,
 	  "List of functions to be called for `interrupt-process'.\nThe arguments of the functions are the same as for `interrupt-process'.\nThese functions are called in the order of the list, until one of them\nreturns non-nil.");
-  Vinterrupt_process_functions = list1 (Qinternal_default_interrupt_process ());
+  (*Vinterrupt_process_functions.as_mut_ptr ()) = list1 (Qinternal_default_interrupt_process ());
 
   DEFVAR_LISP! (c"signal-process-functions", Vsignal_process_functions,
 	  "List of functions to be called for `signal-process'.\nThe arguments of the functions are the same as for `signal-process'.\nThese functions are called in the order of the list, until one of them\nreturns non-nil.");
-  Vsignal_process_functions = list1 (Qinternal_default_signal_process ());
+  (*Vsignal_process_functions.as_mut_ptr ()) = list1 (Qinternal_default_signal_process ());
 
   DEFVAR_LISP! (c"internal--daemon-sockname", Vinternal__daemon_sockname,
 	  "Name of external socket passed to Emacs, or nil if none.");
-  Vinternal__daemon_sockname = Qnil ();
+  (*Vinternal__daemon_sockname.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_INT! (c"read-process-output-max", read_process_output_max,
 	  "Maximum number of bytes to read from subprocess in a single chunk.\nEnlarge the value only if the subprocess generates very large (megabytes)\namounts of data in one go.\n\nOn GNU/Linux systems, the value should not exceed\n/proc/sys/fs/pipe-max-size.  See pipe(7) manpage for details.");
-  read_process_output_max = 65536;
+  (*read_process_output_max.as_mut_ptr ()) = 65536;
 
   DEFVAR_BOOL! (c"fast-read-process-output", fast_read_process_output,
 	  "Non-nil to optimize the insertion of process output.\nWe skip calling `internal-default-process-filter' and don't allocate\nthe Lisp string that would be used as its argument.  Only affects the\ncase of asynchronous process with the default filter.");
-  fast_read_process_output = true;
+  (*fast_read_process_output.as_mut_ptr ()) = true;
 
   DEFVAR_INT! (c"process-error-pause-time", process_error_pause_time,
 	  "The number of seconds to pause after handling process errors.\nThis isn't used for all process-related errors, but is used when a\nsentinel or a process filter function has an error.");
-  process_error_pause_time = 1;
+  (*process_error_pause_time.as_mut_ptr ()) = 1;
 
   DEFSYM! (Qinternal_default_interrupt_process, c"internal-default-interrupt-process");
   DEFSYM! (Qinterrupt_process_functions, c"interrupt-process-functions");
@@ -9903,63 +9898,63 @@ pub unsafe fn syms_of_process ()
   DEFSYM! (Qpipe_process_p, c"pipe-process-p");
   DEFSYM! (Qmessage, c"message");
 
-  defsubr (&raw mut Sprocessp);
-  defsubr (&raw mut Sget_process);
-  defsubr (&raw mut Sdelete_process);
-  defsubr (&raw mut Sprocess_status);
-  defsubr (&raw mut Sprocess_exit_status);
-  defsubr (&raw mut Sprocess_id);
-  defsubr (&raw mut Sprocess_name);
-  defsubr (&raw mut Sprocess_tty_name);
-  defsubr (&raw mut Sprocess_command);
-  defsubr (&raw mut Sset_process_buffer);
-  defsubr (&raw mut Sprocess_buffer);
-  defsubr (&raw mut Sprocess_mark);
-  defsubr (&raw mut Sset_process_filter);
-  defsubr (&raw mut Sprocess_filter);
-  defsubr (&raw mut Sset_process_sentinel);
-  defsubr (&raw mut Sprocess_sentinel);
-  defsubr (&raw mut Sset_process_thread);
-  defsubr (&raw mut Sprocess_thread);
-  defsubr (&raw mut Sset_process_window_size);
-  defsubr (&raw mut Sset_process_inherit_coding_system_flag);
-  defsubr (&raw mut Sset_process_query_on_exit_flag);
-  defsubr (&raw mut Sprocess_query_on_exit_flag);
-  defsubr (&raw mut Sprocess_contact);
-  defsubr (&raw mut Sprocess_plist);
-  defsubr (&raw mut Sset_process_plist);
-  defsubr (&raw mut Sprocess_list);
-  defsubr (&raw mut Smake_process);
-  defsubr (&raw mut Smake_pipe_process);
-  defsubr (&raw mut Sserial_process_configure);
-  defsubr (&raw mut Smake_serial_process);
-  defsubr (&raw mut Sset_network_process_option);
-  defsubr (&raw mut Smake_network_process);
-  defsubr (&raw mut Sformat_network_address);
-  defsubr (&raw mut Snetwork_lookup_address_info);
-  defsubr (&raw mut Snetwork_interface_list);
-  defsubr (&raw mut Snetwork_interface_info);
-  defsubr (&raw mut Sprocess_datagram_address);
-  defsubr (&raw mut Sset_process_datagram_address);
-  defsubr (&raw mut Saccept_process_output);
-  defsubr (&raw mut Sprocess_send_region);
-  defsubr (&raw mut Sprocess_send_string);
-  defsubr (&raw mut Sinternal_default_interrupt_process);
-  defsubr (&raw mut Sinterrupt_process);
-  defsubr (&raw mut Skill_process);
-  defsubr (&raw mut Squit_process);
-  defsubr (&raw mut Sstop_process);
-  defsubr (&raw mut Scontinue_process);
-  defsubr (&raw mut Sprocess_running_child_p);
-  defsubr (&raw mut Sprocess_send_eof);
-  defsubr (&raw mut Sinternal_default_signal_process);
-  defsubr (&raw mut Ssignal_process);
-  defsubr (&raw mut Swaiting_for_user_input_p);
-  defsubr (&raw mut Sprocess_type);
-  defsubr (&raw mut Sinternal_default_process_sentinel);
-  defsubr (&raw mut Sinternal_default_process_filter);
-  defsubr (&raw mut Sset_process_coding_system);
-  defsubr (&raw mut Sprocess_coding_system);
+  defsubr (Sprocessp.as_mut_ptr ());
+  defsubr (Sget_process.as_mut_ptr ());
+  defsubr (Sdelete_process.as_mut_ptr ());
+  defsubr (Sprocess_status.as_mut_ptr ());
+  defsubr (Sprocess_exit_status.as_mut_ptr ());
+  defsubr (Sprocess_id.as_mut_ptr ());
+  defsubr (Sprocess_name.as_mut_ptr ());
+  defsubr (Sprocess_tty_name.as_mut_ptr ());
+  defsubr (Sprocess_command.as_mut_ptr ());
+  defsubr (Sset_process_buffer.as_mut_ptr ());
+  defsubr (Sprocess_buffer.as_mut_ptr ());
+  defsubr (Sprocess_mark.as_mut_ptr ());
+  defsubr (Sset_process_filter.as_mut_ptr ());
+  defsubr (Sprocess_filter.as_mut_ptr ());
+  defsubr (Sset_process_sentinel.as_mut_ptr ());
+  defsubr (Sprocess_sentinel.as_mut_ptr ());
+  defsubr (Sset_process_thread.as_mut_ptr ());
+  defsubr (Sprocess_thread.as_mut_ptr ());
+  defsubr (Sset_process_window_size.as_mut_ptr ());
+  defsubr (Sset_process_inherit_coding_system_flag.as_mut_ptr ());
+  defsubr (Sset_process_query_on_exit_flag.as_mut_ptr ());
+  defsubr (Sprocess_query_on_exit_flag.as_mut_ptr ());
+  defsubr (Sprocess_contact.as_mut_ptr ());
+  defsubr (Sprocess_plist.as_mut_ptr ());
+  defsubr (Sset_process_plist.as_mut_ptr ());
+  defsubr (Sprocess_list.as_mut_ptr ());
+  defsubr (Smake_process.as_mut_ptr ());
+  defsubr (Smake_pipe_process.as_mut_ptr ());
+  defsubr (Sserial_process_configure.as_mut_ptr ());
+  defsubr (Smake_serial_process.as_mut_ptr ());
+  defsubr (Sset_network_process_option.as_mut_ptr ());
+  defsubr (Smake_network_process.as_mut_ptr ());
+  defsubr (Sformat_network_address.as_mut_ptr ());
+  defsubr (Snetwork_lookup_address_info.as_mut_ptr ());
+  defsubr (Snetwork_interface_list.as_mut_ptr ());
+  defsubr (Snetwork_interface_info.as_mut_ptr ());
+  defsubr (Sprocess_datagram_address.as_mut_ptr ());
+  defsubr (Sset_process_datagram_address.as_mut_ptr ());
+  defsubr (Saccept_process_output.as_mut_ptr ());
+  defsubr (Sprocess_send_region.as_mut_ptr ());
+  defsubr (Sprocess_send_string.as_mut_ptr ());
+  defsubr (Sinternal_default_interrupt_process.as_mut_ptr ());
+  defsubr (Sinterrupt_process.as_mut_ptr ());
+  defsubr (Skill_process.as_mut_ptr ());
+  defsubr (Squit_process.as_mut_ptr ());
+  defsubr (Sstop_process.as_mut_ptr ());
+  defsubr (Scontinue_process.as_mut_ptr ());
+  defsubr (Sprocess_running_child_p.as_mut_ptr ());
+  defsubr (Sprocess_send_eof.as_mut_ptr ());
+  defsubr (Sinternal_default_signal_process.as_mut_ptr ());
+  defsubr (Ssignal_process.as_mut_ptr ());
+  defsubr (Swaiting_for_user_input_p.as_mut_ptr ());
+  defsubr (Sprocess_type.as_mut_ptr ());
+  defsubr (Sinternal_default_process_sentinel.as_mut_ptr ());
+  defsubr (Sinternal_default_process_filter.as_mut_ptr ());
+  defsubr (Sset_process_coding_system.as_mut_ptr ());
+  defsubr (Sprocess_coding_system.as_mut_ptr ());
 
  {
    let mut subfeatures: Lisp_Object = Qnil ();
@@ -9976,7 +9971,7 @@ pub unsafe fn syms_of_process ()
 
    /* C's `for (sopt = socket_options; sopt->name; sopt++) subfeatures = Fcons
       (intern_c_string (sopt->name), subfeatures);`.  */
-   sopt = (&raw const socket_options) as *const socket_options;
+   sopt = (socket_options.as_ptr ()) as *const socket_options;
    while !(*sopt).name.is_null ()
      {
        subfeatures = Fcons (intern_c_string ((*sopt).name), subfeatures);
@@ -9986,12 +9981,12 @@ pub unsafe fn syms_of_process ()
    Fprovide (intern_c_string (c"make-network-process".as_ptr ()), subfeatures);
  }
 
-  defsubr (&raw mut Sget_buffer_process);
-  defsubr (&raw mut Sprocess_inherit_coding_system_flag);
-  defsubr (&raw mut Slist_system_processes);
-  defsubr (&raw mut Sprocess_attributes);
-  defsubr (&raw mut Snum_processors);
-  defsubr (&raw mut Ssignal_names);
+  defsubr (Sget_buffer_process.as_mut_ptr ());
+  defsubr (Sprocess_inherit_coding_system_flag.as_mut_ptr ());
+  defsubr (Slist_system_processes.as_mut_ptr ());
+  defsubr (Sprocess_attributes.as_mut_ptr ());
+  defsubr (Snum_processors.as_mut_ptr ());
+  defsubr (Ssignal_names.as_mut_ptr ());
 
   }
 }
@@ -10001,14 +9996,14 @@ pub unsafe fn syms_of_process ()
    port's `include/globals.rs` mirrors the names as declarations, so the unit that owns one
    defines it here (status 3.29, the casetab.rs shape).  */
 #[unsafe(no_mangle)]
-pub static mut Vprocess_connection_type: Lisp_Object = lisp_h_Qnil ();
+pub static Vprocess_connection_type: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vprocess_adaptive_read_buffering: Lisp_Object = lisp_h_Qnil ();
+pub static Vprocess_adaptive_read_buffering: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vinterrupt_process_functions: Lisp_Object = lisp_h_Qnil ();
+pub static Vinterrupt_process_functions: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vsignal_process_functions: Lisp_Object = lisp_h_Qnil ();
+pub static Vsignal_process_functions: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut read_process_output_max: EMACS_INT = 0;
+pub static read_process_output_max: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);
 #[unsafe(no_mangle)]
-pub static mut process_prioritize_lower_fds: bool = false;
+pub static process_prioritize_lower_fds: VmGlobal<bool> = VmGlobal::<bool>::new (false);

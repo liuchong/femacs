@@ -58,7 +58,7 @@ pub mod bignum_externs {
   use super::*;
 
   unsafe extern "C-unwind" {
-    pub static mut mpz: [mpz_t; 5];
+    pub static mpz: VmGlobal<[mpz_t; 5]>;
 
     /* extern void init_bignum (void);  */
     pub fn init_bignum ();

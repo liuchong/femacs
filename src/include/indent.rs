@@ -92,7 +92,7 @@ pub mod indent_objs {
 
   unsafe extern "C-unwind" {
     /// C: indent.h 46: `extern ptrdiff_t last_known_column_point;`
-    pub static mut last_known_column_point: ptrdiff_t;
+    pub static last_known_column_point: VmGlobal<ptrdiff_t>;
   }
 }
 pub use self::indent_objs::*;

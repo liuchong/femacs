@@ -104,9 +104,9 @@ pub const NS_USE_NSPasteboardTypeFileURL: c_int = 0;
 /// C: extern volatile int nstrace_enabled_global;
 #[cfg (feature = "have_ns")]
 unsafe extern "C-unwind" {
-  pub static mut nstrace_num: c_int;
-  pub static mut nstrace_depth: c_int;
-  pub static mut nstrace_enabled_global: c_int;
+  pub static nstrace_num: VmGlobal<c_int>;
+  pub static nstrace_depth: VmGlobal<c_int>;
+  pub static nstrace_enabled_global: VmGlobal<c_int>;
 
   /// C 180-182: `void nstrace_leave(int *); void nstrace_restore_global_trace_state(int *);
   /// char const * nstrace_fullscreen_type_name (int);`
@@ -222,10 +222,10 @@ pub const RETURN_FRAME_NOW: ns_return_frame_mode = 2;
 /// C: nsterm.h 776: `extern EmacsMenu *svcsMenu;`
 #[cfg (feature = "have_ns")]
 unsafe extern "C-unwind" {
-  pub static mut ns_send_types: *mut c_void;
-  pub static mut ns_return_types: *mut c_void;
-  pub static mut ns_app_name: *mut c_void;
-  pub static mut svcsMenu: *mut c_void;
+  pub static ns_send_types: VmGlobal<*mut c_void>;
+  pub static ns_return_types: VmGlobal<*mut c_void>;
+  pub static ns_app_name: VmGlobal<*mut c_void>;
+  pub static svcsMenu: VmGlobal<*mut c_void>;
 }
 
 /* C 795-806: "Special keycodes that we pass down the event chain."  C's implicit type is `int`
@@ -404,8 +404,8 @@ pub struct ns_display_info
 /// C: extern long context_menu_value;
 #[cfg (feature = "have_ns")]
 unsafe extern "C-unwind" {
-  pub static mut x_display_list: *mut ns_display_info;
-  pub static mut context_menu_value: c_long;
+  pub static x_display_list: VmGlobal<*mut ns_display_info>;
+  pub static context_menu_value: VmGlobal<c_long>;
 }
 
 /* C 935-1023: `struct ns_output`.  The nine leading members have an `#ifdef __OBJC__` pair; C's
@@ -904,7 +904,7 @@ unsafe extern "C-unwind" {
   /// C 1264-1266: `#ifdef NS_IMPL_GNUSTEP / extern char gnustep_base_version[]; / #endif`
   /// ("version tracking").
   #[cfg (feature = "ns_impl_gnustep")]
-  pub static mut gnustep_base_version: *mut c_char;
+  pub static gnustep_base_version: VmGlobal<*mut c_char>;
 
   /// C 1393: `extern void mark_nsterm (void);` - the file's last declaration, after the
   /// GNUstep/old-SDK fallback macros.
@@ -958,8 +958,8 @@ macro_rules! SCREENMAXBOUND {
 /// C: extern frame_parm_handler ns_frame_parm_handlers[];
 #[cfg (feature = "have_ns")]
 unsafe extern "C-unwind" {
-  pub static mut ns_antialias_threshold: core::ffi::c_float;
-  pub static mut ns_frame_parm_handlers: [*mut c_void; 0];
+  pub static ns_antialias_threshold: VmGlobal<core::ffi::c_float>;
+  pub static ns_frame_parm_handlers: VmGlobal<[*mut c_void; 0]>;
 }
 
 /* C 1288-1297: the two AppKit version constants, each behind `#ifndef` because a recent SDK

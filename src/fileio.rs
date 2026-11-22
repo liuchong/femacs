@@ -103,29 +103,29 @@ macro_rules! emacs_fd_valid_p { ($fd:expr) => { ($fd) >= 0 }; }
 macro_rules! emacs_fd_to_int { ($fds:expr) => { ($fds) }; }
 
 /* True during writing of auto-save files.  */
-static mut auto_saving: bool = false;
+static auto_saving: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 /* The port's real umask.  */
-static mut realmask: mode_t = 0;
+static realmask: VmGlobal<mode_t> = VmGlobal::<mode_t>::new (0);
 
 /* Nonzero umask during creation of auto-save directories.  */
-static mut auto_saving_dir_umask: mode_t = 0;
+static auto_saving_dir_umask: VmGlobal<mode_t> = VmGlobal::<mode_t>::new (0);
 
 /* Set by auto_save_1 to mode of original file so Fwrite_region will create
    a new file with the same mode as the original.  */
-static mut auto_save_mode_bits: mode_t = 0;
+static auto_save_mode_bits: VmGlobal<mode_t> = VmGlobal::<mode_t>::new (0);
 
 /* Set by auto_save_1 if an error occurred during the last auto-save.  */
-static mut auto_save_error_occurred: bool = false;
+static auto_save_error_occurred: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 /* If VALID_TIMESTAMP_FILE_SYSTEM, then TIMESTAMP_FILE_SYSTEM is the device
    number of a file system where time stamps were observed to work.  */
-static mut valid_timestamp_file_system: bool = false;
-static mut timestamp_file_system: dev_t = 0;
+static valid_timestamp_file_system: VmGlobal<bool> = VmGlobal::<bool>::new (false);
+static timestamp_file_system: VmGlobal<dev_t> = VmGlobal::<dev_t>::new (0);
 
 /* Each time an annotation function changes the buffer, the new buffer
    is added here.  */
-static mut Vwrite_region_annotation_buffers: Lisp_Object = lisp_h_Qnil ();
+static Vwrite_region_annotation_buffers: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* The `DEFVAR_LISP`/`DEFVAR_BOOL` storage this unit owns (status 3.29): C keeps every
    DEFVAR_* variable in `struct emacs_globals` (alloc.c's `globals`), so the unit that
@@ -133,35 +133,35 @@ static mut Vwrite_region_annotation_buffers: Lisp_Object = lisp_h_Qnil ();
    variable that only the declaration reaches is an object no gate can see (check-globals.py
    is that gate).  The names, types and initial values are `syms_of_fileio`'s by C's order.  */
 #[unsafe(no_mangle)]
-pub static mut Vfile_name_coding_system: Lisp_Object = lisp_h_Qnil ();
+pub static Vfile_name_coding_system: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vdefault_file_name_coding_system: Lisp_Object = lisp_h_Qnil ();
+pub static Vdefault_file_name_coding_system: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vfile_name_handler_alist: Lisp_Object = lisp_h_Qnil ();
+pub static Vfile_name_handler_alist: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vset_auto_coding_function: Lisp_Object = lisp_h_Qnil ();
+pub static Vset_auto_coding_function: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vafter_insert_file_functions: Lisp_Object = lisp_h_Qnil ();
+pub static Vafter_insert_file_functions: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vwrite_region_annotate_functions: Lisp_Object = lisp_h_Qnil ();
+pub static Vwrite_region_annotate_functions: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vwrite_region_post_annotation_function: Lisp_Object = lisp_h_Qnil ();
+pub static Vwrite_region_post_annotation_function: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vwrite_region_annotations_so_far: Lisp_Object = lisp_h_Qnil ();
+pub static Vwrite_region_annotations_so_far: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vinhibit_file_name_handlers: Lisp_Object = lisp_h_Qnil ();
+pub static Vinhibit_file_name_handlers: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vinhibit_file_name_operation: Lisp_Object = lisp_h_Qnil ();
+pub static Vinhibit_file_name_operation: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vauto_save_list_file_name: Lisp_Object = lisp_h_Qnil ();
+pub static Vauto_save_list_file_name: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vauto_save_visited_file_name: Lisp_Object = lisp_h_Qnil ();
+pub static Vauto_save_visited_file_name: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vauto_save_include_big_deletions: Lisp_Object = lisp_h_Qnil ();
+pub static Vauto_save_include_big_deletions: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut write_region_inhibit_fsync: bool = false;
+pub static write_region_inhibit_fsync: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut delete_by_moving_to_trash: bool = false;
+pub static delete_by_moving_to_trash: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 /* C 177-181's three forward declarations (`emacs_readlinkat`, `a_write`, `e_write`) are
    dropped (PORTING.md 0.1-12).  */
@@ -228,7 +228,7 @@ pub unsafe extern "C-unwind" fn get_file_errno_data (string: *const c_char, name
   let mut str_: *mut c_char = emacs_strerror (errorno);
   AUTO_STRING! (unibyte_str, str_);
   let mut errstring: Lisp_Object
-    = code_convert_string_norecord (unibyte_str, Vlocale_coding_system, false);
+    = code_convert_string_norecord (unibyte_str, (*Vlocale_coding_system.as_mut_ptr ()), false);
   let mut errdata: Lisp_Object = Fcons (errstring, data);
 
   if errorno == EEXIST
@@ -286,7 +286,7 @@ pub unsafe extern "C-unwind" fn report_file_notify_error (string: *const c_char,
   let mut str_: *mut c_char = emacs_strerror (*errno ());
   AUTO_STRING! (unibyte_str, str_);
   let mut errstring: Lisp_Object
-    = code_convert_string_norecord (unibyte_str, Vlocale_coding_system, false);
+    = code_convert_string_norecord (unibyte_str, (*Vlocale_coding_system.as_mut_ptr ()), false);
   let mut data: Lisp_Object = if CONSP (name) || NILP (name) { name } else { list1 (name) };
   let mut errdata: Lisp_Object = Fcons (errstring, data);
 
@@ -400,12 +400,12 @@ DEFUN! ("find-file-name-handler", Ffind_file_name_handler,
   result = Qnil ();
   CHECK_STRING (filename);
 
-  if EQ (operation, Vinhibit_file_name_operation)
-    { inhibited_handlers = Vinhibit_file_name_handlers; }
+  if EQ (operation, (*Vinhibit_file_name_operation.as_mut_ptr ()))
+    { inhibited_handlers = (*Vinhibit_file_name_handlers.as_mut_ptr ()); }
   else
     { inhibited_handlers = Qnil (); }
 
-  chain = Vfile_name_handler_alist;
+  chain = (*Vfile_name_handler_alist.as_mut_ptr ());
   while CONSP (chain)
     {
       let mut elt: Lisp_Object;
@@ -748,7 +748,7 @@ DEFUN! ("make-temp-name", Fmake_temp_name, Smake_temp_name, 1, 1, 0,
        (prefix: Lisp_Object),
        {
   return Fmake_temp_file_internal (prefix, make_fixnum (0),
-				   empty_unibyte_string, Qnil ());
+				   (*empty_unibyte_string.as_mut_ptr ()), Qnil ());
 });
 
 DEFUN! ("file-name-concat", Ffile_name_concat, Sfile_name_concat, 1, MANY, 0,
@@ -977,9 +977,9 @@ DEFUN! ("expand-file-name", Fexpand_file_name, Sexpand_file_name, 1, 2, 0,
 	  else
 	    {
 	      let mut absdir: Lisp_Object
-		= if STRINGP (Vinvocation_directory)
-		  && file_name_absolute_no_tilde_p (Vinvocation_directory)
-		  { Vinvocation_directory } else { root };
+		= if STRINGP ((*Vinvocation_directory.as_mut_ptr ()))
+		  && file_name_absolute_no_tilde_p ((*Vinvocation_directory.as_mut_ptr ()))
+		  { (*Vinvocation_directory.as_mut_ptr ()) } else { root };
 	      default_directory = Fexpand_file_name (dir, absdir);
 	    }
 	}
@@ -1353,7 +1353,7 @@ unsafe extern "C-unwind" {
   /// C: lisp.h 5131: `extern char const *emacs_wd;` - emacs.c defines it, and `lisp.rs` does
   /// not carry the declaration (the buffer.rs note; same type as that file's declaration of
   /// the emacs.rs definition).
-  pub static mut emacs_wd: *const c_char;
+  pub static emacs_wd: VmGlobal<*const c_char>;
 }
 
 /* Put into BUF the concatenation of DIR and FILE, with an intervening
@@ -1388,12 +1388,12 @@ pub unsafe extern "C-unwind" fn get_homedir () -> *const c_char
 
   if home.is_null ()
     {
-      static mut userenv: [*const c_char; 2] = [c"LOGNAME".as_ptr (), c"USER".as_ptr ()];
+      static userenv: VmGlobal<[*const c_char; 2]> = VmGlobal::<[*const c_char; 2]>::new ([c"LOGNAME".as_ptr (), c"USER".as_ptr ()]);
       let mut pw: *mut passwd = std::ptr::null_mut ();
       let mut i: c_int = 0;
-      while i < countof! (userenv) as c_int
+      while i < countof! ((*userenv.as_mut_ptr ())) as c_int
 	{
-	  let mut user: *mut c_char = egetenv (userenv[i as usize]);
+	  let mut user: *mut c_char = egetenv ((*userenv.as_mut_ptr ())[i as usize]);
 	  if !user.is_null ()
 	    {
 	      pw = getpwnam (user);
@@ -1415,17 +1415,17 @@ pub unsafe extern "C-unwind" fn get_homedir () -> *const c_char
   /* C 1980-2007: `#ifdef DOS_NT` (undefined): recorded in `docs/ports/fileio.md`.  */
   if IS_ABSOLUTE_FILE_NAME! (home)
     { return home; }
-  let wd: *const c_char = emacs_wd;
+  let wd: *const c_char = (*emacs_wd.as_mut_ptr ());
   if wd.is_null ()
     { error (c"$HOME is relative to unknown directory".as_ptr ()); }
-  static mut ahome: *mut c_char = std::ptr::null_mut ();
-  static mut ahomesize: ptrdiff_t = 0;
+  static ahome: VmGlobal<*mut c_char> = VmGlobal::<*mut c_char>::new (std::ptr::null_mut ());
+  static ahomesize: VmGlobal<ptrdiff_t> = VmGlobal::<ptrdiff_t>::new (0);
   let mut ahomelenbound: ptrdiff_t = strlen (wd) as ptrdiff_t + 1 + strlen (home) as ptrdiff_t + 1;
-  if ahomesize <= ahomelenbound
-    { ahome = xpalloc (ahome as *mut c_void, &raw mut ahomesize,
-		       ahomelenbound + 1 - ahomesize, -1, 1) as *mut c_char; }
-  splice_dir_file (ahome, wd, home);
-  return ahome;
+  if (*ahomesize.as_mut_ptr ()) <= ahomelenbound
+    { (*ahome.as_mut_ptr ()) = xpalloc ((*ahome.as_mut_ptr ()) as *mut c_void, ahomesize.as_mut_ptr (),
+		       ahomelenbound + 1 - (*ahomesize.as_mut_ptr ()), -1, 1) as *mut c_char; }
+  splice_dir_file ((*ahome.as_mut_ptr ()), wd, home);
+  return (*ahome.as_mut_ptr ());
 
   }
 }
@@ -1787,7 +1787,7 @@ DEFUN! ("copy-file", Fcopy_file, Scopy_file, 2, 6,
      owner and group.  */
   {
     let mut preserved_permissions: mode_t = st.st_mode & 0o7777;
-    let mut default_permissions: mode_t = st.st_mode & 0o777 & !realmask;
+    let mut default_permissions: mode_t = st.st_mode & 0o777 & !(*realmask.as_mut_ptr ());
     if !NILP (preserve_uid_gid)
       {
 	/* Attempt to change owner and group.  If that doesn't work
@@ -1821,7 +1821,7 @@ DEFUN! ("copy-file", Fcopy_file, Scopy_file, 2, 6,
 		     SSDATA (encoded_newname) as *const c_char, ofd,
 		     preserved_permissions) }
       else if already_exists
-	   || (new_mask & !realmask) == default_permissions
+	   || (new_mask & !(*realmask.as_mut_ptr ())) == default_permissions
 	{ 0 }
       else
 	{ fchmod (ofd, default_permissions) };
@@ -1880,7 +1880,7 @@ DEFUN! ("make-directory-internal", Fmake_directory_internal,
 
   dir = SSDATA (encoded_dir);
 
-  if emacs_mkdir (dir, 0o777 & !auto_saving_dir_umask) != 0
+  if emacs_mkdir (dir, 0o777 & !(*auto_saving_dir_umask.as_mut_ptr ())) != 0
     { report_file_error (c"Creating directory".as_ptr (), directory); }
 
   return Qnil ();
@@ -2763,11 +2763,11 @@ DEFUN! ("set-default-file-modes", Fset_default_file_modes, Sset_default_file_mod
   let mut oldumask: mode_t;
   let mut newumask: mode_t;
   CHECK_FIXNUM (mode);
-  oldrealmask = realmask;
+  oldrealmask = (*realmask.as_mut_ptr ());
   newumask = (! XFIXNUM (mode)) as mode_t & 0o777;
 
   block_input ();
-  realmask = newumask;
+  (*realmask.as_mut_ptr ()) = newumask;
   oldumask = umask (newumask);
   unblock_input ();
 
@@ -2780,7 +2780,7 @@ DEFUN! ("default-file-modes", Fdefault_file_modes, Sdefault_file_modes, 0, 0, 0,
        (),
        {
   let mut value: Lisp_Object;
-  XSETINT! (value, ((! realmask) & 0o777) as isize);
+  XSETINT! (value, ((! (*realmask.as_mut_ptr ())) & 0o777) as isize);
   return value;
 });
 
@@ -3217,7 +3217,7 @@ DEFUN! ("insert-file-contents", Finsert_file_contents, Sinsert_file_contents,
   let mut empty_undo_list_p: bool
     = (!NILP (visit) && NILP (BVAR! ((current_buffer! ()), undo_list_))
        && BEG as ptrdiff_t == Z! ());
-  let mut old_Vdeactivate_mark: Lisp_Object = Vdeactivate_mark;
+  let mut old_Vdeactivate_mark: Lisp_Object = (*Vdeactivate_mark.as_mut_ptr ());
   let mut we_locked_file: bool = false;
   let mut window_markers: Lisp_Object = Qnil ();
   /* same_at_start and same_at_end count bytes, because file access counts
@@ -3306,11 +3306,11 @@ DEFUN! ("insert-file-contents", Finsert_file_contents, Sinsert_file_contents,
 	  if NILP (visit)
 	    { report_file_error (c"Opening input file".as_ptr (), orig_filename); }
 	  mtime = time_error_value (save_errno);
-	  if !NILP (Vcoding_system_for_read)
+	  if !NILP ((*Vcoding_system_for_read.as_mut_ptr ()))
 	    {
 	      /* Don't let invalid values into buffer-file-coding-system.  */
-	      CHECK_CODING_SYSTEM (Vcoding_system_for_read);
-	      Fset (Qbuffer_file_coding_system (), Vcoding_system_for_read);
+	      CHECK_CODING_SYSTEM ((*Vcoding_system_for_read.as_mut_ptr ()));
+	      Fset (Qbuffer_file_coding_system (), (*Vcoding_system_for_read.as_mut_ptr ()));
 	    }
 	  eassert! (inserted == 0);
 	  break 'chunk_a;                        /* goto notfound  */
@@ -3409,7 +3409,7 @@ DEFUN! ("insert-file-contents", Finsert_file_contents, Sinsert_file_contents,
       /* The current input position if known, -1 otherwise.  */
       let mut curpos: off_t = -1;
 
-      if EQ (Vcoding_system_for_read, Qauto_save_coding ())
+      if EQ ((*Vcoding_system_for_read.as_mut_ptr ()), Qauto_save_coding ())
 	{
 	  coding_system = coding_inherit_eol_type (Qutf_8_emacs (), Qunix ());
 	  setup_coding_system (coding_system, &raw mut coding);
@@ -3421,13 +3421,13 @@ DEFUN! ("insert-file-contents", Finsert_file_contents, Sinsert_file_contents,
 	  /* Decide the coding system to use for reading the file now
 	     because we can't use an optimized method for handling
 	     `coding:' tag if the current buffer is not empty.  */
-	  if !NILP (Vcoding_system_for_read)
-	    { coding_system = Vcoding_system_for_read; }
+	  if !NILP ((*Vcoding_system_for_read.as_mut_ptr ()))
+	    { coding_system = (*Vcoding_system_for_read.as_mut_ptr ()); }
 	  else
 	    {
 	      /* Don't try looking inside a file for a coding system
 		 specification if it is not a regular file.  */
-	      if regular && !NILP (Vset_auto_coding_function)
+	      if regular && !NILP ((*Vset_auto_coding_function.as_mut_ptr ()))
 		{
 		  if !NILP (beg)
 		    { curpos = xlseek (fd, beg_offset, SEEK_SET, orig_filename); }
@@ -3509,7 +3509,7 @@ DEFUN! ("insert-file-contents", Finsert_file_contents, Sinsert_file_contents,
 
 		      insert_1_both (read_buf.as_mut_ptr (), nread, nread, false, false, false);
 		      TEMP_SET_PT_BOTH (BEG as ptrdiff_t, BEG_BYTE as ptrdiff_t);
-		      coding_system = calln! (Vset_auto_coding_function,
+		      coding_system = calln! ((*Vset_auto_coding_function.as_mut_ptr ()),
 					      filename, make_fixnum (nread));
 		      set_buffer_internal (prev);
 
@@ -3789,8 +3789,8 @@ DEFUN! ("insert-file-contents", Finsert_file_contents, Sinsert_file_contents,
 
 	      /* If display currently starts at beginning of line,
 		 keep it that way.  */
-	      if XBUFFER ((*XWINDOW (selected_window)).contents) == (current_buffer! ())
-		{ (*XWINDOW (selected_window)).bits = if !NILP (Fbolp ()) { (*XWINDOW (selected_window)).bits | (1u32 << WINDOW_START_AT_LINE_BEG_SHIFT) } else { (*XWINDOW (selected_window)).bits & !(1u32 << WINDOW_START_AT_LINE_BEG_SHIFT) }; }   /* C: `->start_at_line_beg = !NILP (Fbolp ())` */
+	      if XBUFFER ((*XWINDOW ((*selected_window.as_mut_ptr ()))).contents) == (current_buffer! ())
+		{ (*XWINDOW ((*selected_window.as_mut_ptr ()))).bits = if !NILP (Fbolp ()) { (*XWINDOW ((*selected_window.as_mut_ptr ()))).bits | (1u32 << WINDOW_START_AT_LINE_BEG_SHIFT) } else { (*XWINDOW ((*selected_window.as_mut_ptr ()))).bits & !(1u32 << WINDOW_START_AT_LINE_BEG_SHIFT) }; }   /* C: `->start_at_line_beg = !NILP (Fbolp ())` */
 
 	      replace_handled = true;
 	    }
@@ -3951,8 +3951,8 @@ DEFUN! ("insert-file-contents", Finsert_file_contents, Sinsert_file_contents,
 
 	  /* If display currently starts at beginning of line,
 	     keep it that way.  */
-	  if XBUFFER ((*XWINDOW (selected_window)).contents) == (current_buffer! ())
-	    { (*XWINDOW (selected_window)).bits = if !NILP (Fbolp ()) { (*XWINDOW (selected_window)).bits | (1u32 << WINDOW_START_AT_LINE_BEG_SHIFT) } else { (*XWINDOW (selected_window)).bits & !(1u32 << WINDOW_START_AT_LINE_BEG_SHIFT) }; }   /* C: `->start_at_line_beg = !NILP (Fbolp ())` */
+	  if XBUFFER ((*XWINDOW ((*selected_window.as_mut_ptr ()))).contents) == (current_buffer! ())
+	    { (*XWINDOW ((*selected_window.as_mut_ptr ()))).bits = if !NILP (Fbolp ()) { (*XWINDOW ((*selected_window.as_mut_ptr ()))).bits | (1u32 << WINDOW_START_AT_LINE_BEG_SHIFT) } else { (*XWINDOW ((*selected_window.as_mut_ptr ()))).bits & !(1u32 << WINDOW_START_AT_LINE_BEG_SHIFT) }; }   /* C: `->start_at_line_beg = !NILP (Fbolp ())` */
 
 	  /* Replace the chars that we need to replace,
 	     and update INSERTED to equal the number of bytes
@@ -4142,7 +4142,7 @@ DEFUN! ("insert-file-contents", Finsert_file_contents, Sinsert_file_contents,
 	{
 	  if we_locked_file
 	    { Funlock_file (BVAR! ((current_buffer! ()), file_truename_)); }
-	  Vdeactivate_mark = old_Vdeactivate_mark;
+	  (*Vdeactivate_mark.as_mut_ptr ()) = old_Vdeactivate_mark;
 	}
       else
 	{ Fset (Qdeactivate_mark (), Qt ()); }
@@ -4164,8 +4164,8 @@ DEFUN! ("insert-file-contents", Finsert_file_contents, Sinsert_file_contents,
 	   before the insertion.  */
 	eassert! (Z! () == BEG as ptrdiff_t);
 
-	if !NILP (Vcoding_system_for_read)
-	  { coding_system = Vcoding_system_for_read; }
+	if !NILP ((*Vcoding_system_for_read.as_mut_ptr ()))
+	  { coding_system = (*Vcoding_system_for_read.as_mut_ptr ()); }
 	else
 	  {
 	    /* Since we are sure that the current buffer was empty
@@ -4188,9 +4188,9 @@ DEFUN! ("insert-file-contents", Finsert_file_contents, Sinsert_file_contents,
 	    /* Make the text read part of the buffer.  */
 	    insert_from_gap_1 (inserted, inserted, false);
 
-	    if inserted > 0 && ! NILP (Vset_auto_coding_function)
+	    if inserted > 0 && ! NILP ((*Vset_auto_coding_function.as_mut_ptr ()))
 	      {
-		coding_system = calln! (Vset_auto_coding_function,
+		coding_system = calln! ((*Vset_auto_coding_function.as_mut_ptr ()),
 					filename, make_fixnum (inserted));
 	      }
 
@@ -4314,7 +4314,7 @@ DEFUN! ("insert-file-contents", Finsert_file_contents, Sinsert_file_contents,
     }
 
   if set_coding_system
-    { Vlast_coding_system_used = coding_system; }
+    { (*Vlast_coding_system_used.as_mut_ptr ()) = coding_system; }
 
   if ! NILP (Ffboundp (Qafter_insert_file_set_coding ()))
     {
@@ -4385,7 +4385,7 @@ DEFUN! ("insert-file-contents", Finsert_file_contents, Sinsert_file_contents,
 
       /* For consistency with format-decode call these now iff inserted > 0
 	 (martin 2007-06-28).  */
-      p = Vafter_insert_file_functions;
+      p = (*Vafter_insert_file_functions.as_mut_ptr ());
       FOR_EACH_TAIL! (p, {
 	  if NILP (replace)
 	    {
@@ -4496,20 +4496,20 @@ unsafe fn choose_write_coding_system (start: Lisp_Object, end: Lisp_Object,
   let mut val: Lisp_Object;
   let mut eol_parent: Lisp_Object = Qnil ();
 
-  if auto_saving
+  if (*auto_saving.as_mut_ptr ())
       && NILP (Fstring_equal (BVAR! ((current_buffer! ()), filename_),
 			      BVAR! ((current_buffer! ()), auto_save_file_name_)))
     {
       val = Qutf_8_emacs ();
       eol_parent = Qunix ();
     }
-  else if !NILP (Vcoding_system_for_write)
+  else if !NILP ((*Vcoding_system_for_write.as_mut_ptr ()))
     {
-      val = Vcoding_system_for_write;
-      if coding_system_require_warning
-	  && !NILP (Ffboundp (Vselect_safe_coding_system_function))
+      val = (*Vcoding_system_for_write.as_mut_ptr ());
+      if (*coding_system_require_warning.as_mut_ptr ())
+	  && !NILP (Ffboundp ((*Vselect_safe_coding_system_function.as_mut_ptr ())))
 	/* Confirm that VAL can surely encode the current region.  */
-	{ val = calln! (Vselect_safe_coding_system_function,
+	{ val = calln! ((*Vselect_safe_coding_system_function.as_mut_ptr ()),
 			start, end, list2 (Qt (), val),
 			Qnil (), filename); }
     }
@@ -4567,10 +4567,10 @@ unsafe fn choose_write_coding_system (start: Lisp_Object, end: Lisp_Object,
 	}
 
       if !force_raw_text
-	  && !NILP (Ffboundp (Vselect_safe_coding_system_function))
+	  && !NILP (Ffboundp ((*Vselect_safe_coding_system_function.as_mut_ptr ())))
 	{
 	  /* Confirm that VAL can surely encode the current region.  */
-	  val = calln! (Vselect_safe_coding_system_function,
+	  val = calln! ((*Vselect_safe_coding_system_function.as_mut_ptr ()),
 			start, end, val, Qnil (), filename);
 	  /* As the function specified by select-safe-coding-system-function
 	     is out of our control, make sure we are not fed by bogus
@@ -4583,7 +4583,7 @@ unsafe fn choose_write_coding_system (start: Lisp_Object, end: Lisp_Object,
 	 format, we use that of `buffer-file-coding-system'.  */
       if ! using_default_coding
 	{
-	  let mut dflt: Lisp_Object = BVAR! (&raw mut buffer_defaults, buffer_file_coding_system_);
+	  let mut dflt: Lisp_Object = BVAR! (buffer_defaults.as_mut_ptr (), buffer_file_coding_system_);
 
 	  if ! NILP (dflt)
 	    { val = coding_inherit_eol_type (val, dflt); }
@@ -4727,8 +4727,8 @@ pub unsafe extern "C-unwind" fn write_region (start: Lisp_Object, end: Lisp_Obje
     }
 
   record_unwind_protect (Some (build_annotations_unwind),
-			 Vwrite_region_annotation_buffers);
-  Vwrite_region_annotation_buffers = list1 (Fcurrent_buffer ());
+			 (*Vwrite_region_annotation_buffers.as_mut_ptr ()));
+  (*Vwrite_region_annotation_buffers.as_mut_ptr ()) = list1 (Fcurrent_buffer ());
 
   given_buffer = (current_buffer! ());
 
@@ -4753,11 +4753,11 @@ pub unsafe extern "C-unwind" fn write_region (start: Lisp_Object, end: Lisp_Obje
      We used to make this choice before calling build_annotations, but that
      leads to problems when a write-annotate-function takes care of
      unsavable chars (as was the case with X-Symbol).  */
-  Vlast_coding_system_used
+  (*Vlast_coding_system_used.as_mut_ptr ())
     = choose_write_coding_system (start, end, filename,
 				  append, visit, lockname, &raw mut coding);
 
-  if open_and_close_file && !auto_saving
+  if open_and_close_file && !(*auto_saving.as_mut_ptr ())
     {
       Flock_file (lockname);
       file_locked = true;
@@ -4774,7 +4774,7 @@ pub unsafe extern "C-unwind" fn write_region (start: Lisp_Object, end: Lisp_Obje
   else if !NILP (append)
     { open_flags |= O_APPEND; }
   /* C 5631-5635: `#ifdef DOS_NT` (undefined) / `#else`: the live arm is below.  */
-  mode = if auto_saving { auto_save_mode_bits as c_int } else { 0o666 };
+  mode = if (*auto_saving.as_mut_ptr ()) { (*auto_save_mode_bits.as_mut_ptr ()) as c_int } else { 0o666 };
 
   if open_and_close_file
     {
@@ -4827,7 +4827,7 @@ pub unsafe extern "C-unwind" fn write_region (start: Lisp_Object, end: Lisp_Obje
 
   /* fsync is not crucial for temporary files.  Nor for auto-save
      files, since they might lose some work anyway.  */
-  if open_and_close_file && !auto_saving && !write_region_inhibit_fsync
+  if open_and_close_file && !(*auto_saving.as_mut_ptr ()) && !(*write_region_inhibit_fsync.as_mut_ptr ())
     {
       /* Transfer data and metadata to disk, retrying if interrupted.
 	 fsync can report a write failure here, e.g., due to disk full
@@ -4880,7 +4880,7 @@ pub unsafe extern "C-unwind" fn write_region (start: Lisp_Object, end: Lisp_Obje
      above cannot possibly be closed anyway.  */
 
   if timespec_valid_p (modtime)
-      && ! (valid_timestamp_file_system && st.st_dev == timestamp_file_system)
+      && ! ((*valid_timestamp_file_system.as_mut_ptr ()) && st.st_dev == (*timestamp_file_system.as_mut_ptr ()))
     {
       let mut st1: stat = std::mem::zeroed ();
 
@@ -4916,8 +4916,8 @@ pub unsafe extern "C-unwind" fn write_region (start: Lisp_Object, end: Lisp_Obje
 	      && timespec_cmp (modtime, modtime1) == 0
 	      && st.st_size == st1.st_size
 	    {
-	      timestamp_file_system = st.st_dev;
-	      valid_timestamp_file_system = true;
+	      (*timestamp_file_system.as_mut_ptr ()) = st.st_dev;
+	      (*valid_timestamp_file_system.as_mut_ptr ()) = true;
 	    }
 	  else
 	    {
@@ -4928,17 +4928,17 @@ pub unsafe extern "C-unwind" fn write_region (start: Lisp_Object, end: Lisp_Obje
     }
 
   /* Call write-region-post-annotation-function. */
-  while CONSP (Vwrite_region_annotation_buffers)
+  while CONSP ((*Vwrite_region_annotation_buffers.as_mut_ptr ()))
     {
-      let mut buf: Lisp_Object = XCAR (Vwrite_region_annotation_buffers);
+      let mut buf: Lisp_Object = XCAR ((*Vwrite_region_annotation_buffers.as_mut_ptr ()));
       if !NILP (Fbuffer_live_p (buf))
 	{
 	  Fset_buffer (buf);
-	  if FUNCTIONP (Vwrite_region_post_annotation_function)
-	    { call0 (Vwrite_region_post_annotation_function); }
+	  if FUNCTIONP ((*Vwrite_region_post_annotation_function.as_mut_ptr ()))
+	    { call0 ((*Vwrite_region_post_annotation_function.as_mut_ptr ())); }
 	}
-      Vwrite_region_annotation_buffers
-	= XCDR (Vwrite_region_annotation_buffers);
+      (*Vwrite_region_annotation_buffers.as_mut_ptr ())
+	= XCDR ((*Vwrite_region_annotation_buffers.as_mut_ptr ()));
     }
 
   unbind_to (count, Qnil ());
@@ -4959,7 +4959,7 @@ pub unsafe extern "C-unwind" fn write_region (start: Lisp_Object, end: Lisp_Obje
     { report_file_errno (c"Write error".as_ptr (), filename, save_errno); }
 
   let mut auto_saving_into_visited_file: bool
-    = auto_saving
+    = (*auto_saving.as_mut_ptr ())
     && ! NILP (Fstring_equal (BVAR! ((current_buffer! ()), filename_),
 			      BVAR! ((current_buffer! ()), auto_save_file_name_)));
   if visiting
@@ -4967,7 +4967,7 @@ pub unsafe extern "C-unwind" fn write_region (start: Lisp_Object, end: Lisp_Obje
       SAVE_MODIFF! () = MODIFF! ();
       XSETFASTINT! (BVAR! ((current_buffer! ()), save_length_), Z! () - BEG as ptrdiff_t);
       bset_filename ((current_buffer! ()), visit_file);
-      update_mode_lines = 14;
+      (*update_mode_lines.as_mut_ptr ()) = 14;
       if auto_saving_into_visited_file
 	{ Funlock_file (lockname); }
     }
@@ -4982,7 +4982,7 @@ pub unsafe extern "C-unwind" fn write_region (start: Lisp_Object, end: Lisp_Obje
       return Qnil ();
     }
 
-  if !auto_saving && !noninteractive
+  if !(*auto_saving.as_mut_ptr ()) && !(*noninteractive.as_mut_ptr ())
     { message_with_string (if NUMBERP (append)
 			   { c"Updated %s".as_ptr () }
 			   else if ! NILP (append)
@@ -5010,7 +5010,7 @@ unsafe extern "C-unwind" fn build_annotations_unwind (arg: Lisp_Object)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  Vwrite_region_annotation_buffers = arg;
+  (*Vwrite_region_annotation_buffers.as_mut_ptr ()) = arg;
 
   }
 }
@@ -5038,7 +5038,7 @@ unsafe fn build_annotations (start: Lisp_Object, end: Lisp_Object) -> Lisp_Objec
   XSETBUFFER! (original_buffer, (current_buffer! ()));
 
   annotations = Qnil ();
-  p = Vwrite_region_annotate_functions;
+  p = (*Vwrite_region_annotate_functions.as_mut_ptr ());
   'loop_over_p: loop
     {
       /* C's `FOR_EACH_TAIL (p)` is written out here, because the `goto loop_over_p` below
@@ -5059,7 +5059,7 @@ unsafe fn build_annotations (start: Lisp_Object, end: Lisp_Object) -> Lisp_Objec
 	      goto_loop_over_p = true;
 	      break;
 	    }
-	  Vwrite_region_annotations_so_far = annotations;
+	  (*Vwrite_region_annotations_so_far.as_mut_ptr ()) = annotations;
 	  res = calln! (XCAR (p), start, end);
 	  /* If the function makes a different buffer current,
 	     assume that means this buffer contains altered text to be output.
@@ -5068,9 +5068,9 @@ unsafe fn build_annotations (start: Lisp_Object, end: Lisp_Object) -> Lisp_Objec
 	     been dealt with by this function.  */
 	  if (current_buffer! ()) != given_buffer
 	    {
-	      Vwrite_region_annotation_buffers
+	      (*Vwrite_region_annotation_buffers.as_mut_ptr ())
 		= Fcons (Fcurrent_buffer (),
-			 Vwrite_region_annotation_buffers);
+			 (*Vwrite_region_annotation_buffers.as_mut_ptr ()));
 	      XSETFASTINT! (start, BEGV! ());
 	      XSETFASTINT! (end, ZV! ());
 	      annotations = Qnil ();
@@ -5094,7 +5094,7 @@ unsafe fn build_annotations (start: Lisp_Object, end: Lisp_Object) -> Lisp_Objec
     }
 
   /* Now do the same for annotation functions implied by the file-format */
-  if auto_saving && (!EQ (BVAR! ((current_buffer! ()), auto_save_file_format_), Qt ()))
+  if (*auto_saving.as_mut_ptr ()) && (!EQ (BVAR! ((current_buffer! ()), auto_save_file_format_), Qt ()))
     { p = BVAR! ((current_buffer! ()), auto_save_file_format_); }
   else
     { p = BVAR! ((current_buffer! ()), file_format_); }
@@ -5102,7 +5102,7 @@ unsafe fn build_annotations (start: Lisp_Object, end: Lisp_Object) -> Lisp_Objec
   FOR_EACH_TAIL! (p, {
       let mut given_buffer: *mut buffer = (current_buffer! ());
 
-      Vwrite_region_annotations_so_far = annotations;
+      (*Vwrite_region_annotations_so_far.as_mut_ptr ()) = annotations;
 
       /* Value is either a list of annotations or nil if the function
          has written annotations to a temporary buffer, which is now
@@ -5420,9 +5420,9 @@ unsafe extern "C-unwind" fn auto_save_error (error_val: Lisp_Object) -> Lisp_Obj
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  auto_save_error_occurred = true;
+  (*auto_save_error_occurred.as_mut_ptr ()) = true;
 
-  ring_bell (XFRAME (selected_frame));
+  ring_bell (XFRAME ((*selected_frame.as_mut_ptr ())));
 
   AUTO_STRING! (format, c"Auto-saving %s: %s".as_ptr ());
   let mut msg: Lisp_Object = CALLN! (Fformat, format, BVAR! ((current_buffer! ()), name_),
@@ -5441,7 +5441,7 @@ unsafe extern "C-unwind" fn auto_save_1 () -> Lisp_Object
   let mut st: stat = std::mem::zeroed ();
   let mut modes: Lisp_Object;
 
-  auto_save_mode_bits = 0o666;
+  (*auto_save_mode_bits.as_mut_ptr ()) = 0o666;
 
   /* Get visited file's mode to become the auto save file's mode.  */
   if ! NILP (BVAR! ((current_buffer! ()), filename_))
@@ -5450,16 +5450,16 @@ unsafe extern "C-unwind" fn auto_save_1 () -> Lisp_Object
 			&raw mut st as *mut c_void, 0)
 	  == 0
 	/* But make sure we can overwrite it later!  */
-	{ auto_save_mode_bits = (st.st_mode | 0o600) & 0o777; }
+	{ (*auto_save_mode_bits.as_mut_ptr ()) = (st.st_mode | 0o600) & 0o777; }
       else if { modes = Ffile_modes (BVAR! ((current_buffer! ()), filename_), Qnil ());
 		FIXNUMP (modes) }
 	/* Remote files don't cooperate with fstatat.  */
-	{ auto_save_mode_bits = (XFIXNUM (modes) as mode_t | 0o600) & 0o777; }
+	{ (*auto_save_mode_bits.as_mut_ptr ()) = (XFIXNUM (modes) as mode_t | 0o600) & 0o777; }
     }
 
   return
     Fwrite_region (Qnil (), Qnil (), BVAR! ((current_buffer! ()), auto_save_file_name_), Qnil (),
-		   if NILP (Vauto_save_visited_file_name) { Qlambda () } else { Qt () },
+		   if NILP ((*Vauto_save_visited_file_name.as_mut_ptr ())) { Qlambda () } else { Qt () },
 		   Qnil (), Qnil ());
 
   }
@@ -5484,8 +5484,8 @@ unsafe extern "C-unwind" fn do_auto_save_unwind (arg: *mut c_void)
   unsafe {
   let mut p: *mut auto_save_unwind = arg as *mut auto_save_unwind;
   let mut stream: *mut FILE = (*p).stream;
-  minibuffer_auto_raise = (*p).auto_raise;
-  auto_saving = false;
+  (*minibuffer_auto_raise.as_mut_ptr ()) = (*p).auto_raise;
+  (*auto_saving.as_mut_ptr ()) = false;
   if !stream.is_null ()
     {
       block_input ();
@@ -5502,9 +5502,9 @@ unsafe extern "C-unwind" fn do_auto_save_make_dir (dir: Lisp_Object) -> Lisp_Obj
   unsafe {
   let mut result: Lisp_Object;
 
-  auto_saving_dir_umask = 0o77;
+  (*auto_saving_dir_umask.as_mut_ptr ()) = 0o77;
   result = calln! (Qmake_directory (), dir, Qt ());
-  auto_saving_dir_umask = 0;
+  (*auto_saving_dir_umask.as_mut_ptr ()) = 0;
   return result;
 
   }
@@ -5514,7 +5514,7 @@ unsafe extern "C-unwind" fn do_auto_save_eh (ignore: Lisp_Object) -> Lisp_Object
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  auto_saving_dir_umask = 0;
+  (*auto_saving_dir_umask.as_mut_ptr ()) = 0;
   return Qnil ();
 
   }
@@ -5534,12 +5534,12 @@ DEFUN! ("do-auto-save", Fdo_auto_save, Sdo_auto_save, 0, 2, "",
   let mut oquit: Lisp_Object;
   let mut stream: *mut FILE = std::ptr::null_mut ();
   let count: specpdl_ref = SPECPDL_INDEX ();
-  let mut orig_minibuffer_auto_raise: bool = minibuffer_auto_raise;
+  let mut orig_minibuffer_auto_raise: bool = (*minibuffer_auto_raise.as_mut_ptr ());
   let mut old_message_p: bool = false;
   let mut auto_save_unwind: auto_save_unwind = std::mem::zeroed ();
   let mut no_message = no_message;            /* C reassigns `no_message` below.  */
 
-  if minibuf_level != 0
+  if (*minibuf_level.as_mut_ptr ()) != 0
     { no_message = Qt (); }
 
   if NILP (no_message)
@@ -5550,22 +5550,22 @@ DEFUN! ("do-auto-save", Fdo_auto_save, Sdo_auto_save, 0, 2, "",
 
   /* Ordinarily don't quit within this function,
      but don't make it impossible to quit (in case we get hung in I/O).  */
-  oquit = Vquit_flag;
-  Vquit_flag = Qnil ();
+  oquit = (*Vquit_flag.as_mut_ptr ());
+  (*Vquit_flag.as_mut_ptr ()) = Qnil ();
 
   hook = Qauto_save_hook ();
   safe_run_hooks (hook);
 
-  if STRINGP (Vauto_save_list_file_name)
+  if STRINGP ((*Vauto_save_list_file_name.as_mut_ptr ()))
     {
       let mut listfile: Lisp_Object;
 
-      listfile = Fexpand_file_name (Vauto_save_list_file_name, Qnil ());
+      listfile = Fexpand_file_name ((*Vauto_save_list_file_name.as_mut_ptr ()), Qnil ());
 
       /* Don't try to create the directory when shutting down the program,
          because creating the directory might signal an error, and
          that would leave the program in a strange state.  */
-      if !NILP (Vrun_hooks)
+      if !NILP ((*Vrun_hooks.as_mut_ptr ()))
 	{
 	  let mut dir: Lisp_Object;
 	  dir = file_name_directory (listfile);
@@ -5579,12 +5579,12 @@ DEFUN! ("do-auto-save", Fdo_auto_save, Sdo_auto_save, 0, 2, "",
     }
 
   auto_save_unwind.stream = stream;
-  auto_save_unwind.auto_raise = minibuffer_auto_raise;
+  auto_save_unwind.auto_raise = (*minibuffer_auto_raise.as_mut_ptr ());
   record_unwind_protect_ptr (Some (do_auto_save_unwind),
 			     &raw mut auto_save_unwind as *mut c_void);
-  minibuffer_auto_raise = false;
-  auto_saving = true;
-  auto_save_error_occurred = false;
+  (*minibuffer_auto_raise.as_mut_ptr ()) = false;
+  (*auto_saving.as_mut_ptr ()) = true;
+  (*auto_save_error_occurred.as_mut_ptr ()) = false;
 
   /* On first pass, save all files that don't have handlers.
      On second pass, save all files that do have handlers.
@@ -5602,7 +5602,7 @@ DEFUN! ("do-auto-save", Fdo_auto_save, Sdo_auto_save, 0, 2, "",
   do_handled_files = 0;
   while do_handled_files < 2
     {
-      tail = Vbuffer_alist;
+      tail = (*Vbuffer_alist.as_mut_ptr ());
       while CONSP (tail) && { buf = XCDR (XCAR (tail)); true }
 	{
 	  b = XBUFFER (buf);
@@ -5655,7 +5655,7 @@ DEFUN! ("do-auto-save", Fdo_auto_save, Sdo_auto_save, 0, 2, "",
 		      static_assert! (BUF_BYTES_MAX <= EMACS_INT_MAX / growth_factor as isize);
 
 		      set_buffer_internal (b);
-		      if NILP (Vauto_save_include_big_deletions)
+		      if NILP ((*Vauto_save_include_big_deletions.as_mut_ptr ()))
 			  || !FIXNUMP (BVAR! (b, save_length_))
 			  /* A short file is likely to change a large fraction;
 			     spare the user annoying messages.  */
@@ -5678,10 +5678,10 @@ DEFUN! ("do-auto-save", Fdo_auto_save, Sdo_auto_save, 0, 2, "",
 		      else
 			{
 			  /* It has shrunk too much; turn off auto-saving here.  */
-			  minibuffer_auto_raise = orig_minibuffer_auto_raise;
+			  (*minibuffer_auto_raise.as_mut_ptr ()) = orig_minibuffer_auto_raise;
 			  message_with_string (c"Buffer %s has shrunk a lot; auto save disabled in that buffer until next real save".as_ptr (),
 					       BVAR! (b, name_), true);
-			  minibuffer_auto_raise = false;
+			  (*minibuffer_auto_raise.as_mut_ptr ()) = false;
 			  /* Turn off auto-saving until there's a real save,
 			     and prevent any more warnings.  */
 			  XSETINT! (BVAR! (b, save_length_), -1);
@@ -5714,14 +5714,14 @@ DEFUN! ("do-auto-save", Fdo_auto_save, Sdo_auto_save, 0, 2, "",
 	  sit_for (make_fixnum (1), false, 0);
 	  restore_message ();
 	}
-      else if !auto_save_error_occurred
+      else if !(*auto_save_error_occurred.as_mut_ptr ())
 	/* Don't overwrite the error message if an error occurred.
 	   If we displayed a message and then restored a state
 	   with no message, leave a "done" message on the screen.  */
 	{ message1 (c"Auto-saving...done".as_ptr ()); }
     }
 
-  Vquit_flag = oquit;
+  (*Vquit_flag.as_mut_ptr ()) = oquit;
 
   /* This restores the message-stack status.  */
   return unbind_to (count, Qnil ());
@@ -5781,11 +5781,11 @@ unsafe fn file_for_stream (stream: Lisp_Object) -> *mut FILE
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
   if EQ (stream, Qstdin ())
-    { return stdin; }
+    { return (*stdin.as_mut_ptr ()); }
   else if EQ (stream, Qstdout ())
-    { return stdout; }
+    { return (*stdout.as_mut_ptr ()); }
   else if EQ (stream, Qstderr ())
-    { return stderr; }
+    { return (*stderr.as_mut_ptr ()); }
   else
     { xsignal2 (Qerror (), build_string (c"unsupported stream".as_ptr ()), stream); }
 
@@ -5801,7 +5801,7 @@ DEFUN! ("set-binary-mode", Fset_binary_mode, Sset_binary_mode, 2, 2, 0,
   let mut binmode: c_int;
 
   binmode = if NILP (mode) { O_TEXT } else { O_BINARY };
-  if fp != stdin
+  if fp != (*stdin.as_mut_ptr ())
     { fflush (fp); }
 
   return if set_binary_mode (fileno (fp), binmode) == O_BINARY { Qt () } else { Qnil () };
@@ -5881,10 +5881,10 @@ pub unsafe extern "C-unwind" fn init_fileio ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  realmask = umask (0);
-  umask (realmask);
+  (*realmask.as_mut_ptr ()) = umask (0);
+  umask ((*realmask.as_mut_ptr ()));
 
-  valid_timestamp_file_system = false;
+  (*valid_timestamp_file_system.as_mut_ptr ()) = false;
 
   }
 }
@@ -5953,14 +5953,14 @@ pub unsafe extern "C-unwind" fn syms_of_fileio ()
   DEFSYM! (Qinserted_chars, c"inserted-chars");
   DEFVAR_LISP! (c"file-name-coding-system", Vfile_name_coding_system,
 	       "Coding system for encoding file names.\nIf it is nil, `default-file-name-coding-system' (which see) is used.\n\nOn MS-Windows, the value of this variable is largely ignored if\n`w32-unicode-filenames' (which see) is non-nil.  Emacs on Windows\nbehaves as if file names were encoded in `utf-8'.");
-  Vfile_name_coding_system = Qnil ();
+  (*Vfile_name_coding_system.as_mut_ptr ()) = Qnil ();
 
-  Vfile_name_coding_system = Qnil ();
+  (*Vfile_name_coding_system.as_mut_ptr ()) = Qnil ();
   DEFVAR_LISP! (c"default-file-name-coding-system", Vdefault_file_name_coding_system,
 	       "Default coding system for encoding file names.\nThis variable is used only when `file-name-coding-system' is nil.\n\nThis variable is set/changed by the command `set-language-environment'.\nUser should not set this variable manually,\ninstead use `file-name-coding-system' to get a constant encoding\nof file names regardless of the current language environment.\n\nOn MS-Windows, the value of this variable is largely ignored if\n`w32-unicode-filenames' (which see) is non-nil.  Emacs on Windows\nbehaves as if file names were encoded in `utf-8'.");
-  Vdefault_file_name_coding_system = Qnil ();
+  (*Vdefault_file_name_coding_system.as_mut_ptr ()) = Qnil ();
 
-  Vdefault_file_name_coding_system = Qnil ();
+  (*Vdefault_file_name_coding_system.as_mut_ptr ()) = Qnil ();
   /* Lisp functions for translating file formats.  */
   DEFSYM! (Qformat_decode, c"format-decode");
   DEFSYM! (Qformat_annotate_function, c"format-annotate-function");
@@ -5998,61 +5998,61 @@ pub unsafe extern "C-unwind" fn syms_of_fileio ()
 	build_string (c"Remote file error".as_ptr ()));
   DEFVAR_LISP! (c"file-name-handler-alist", Vfile_name_handler_alist,
 	       "Alist of elements (REGEXP . HANDLER) for file names handled specially.\nIf a file name matches REGEXP, all I/O on that file is done by calling\nHANDLER.  If a file name matches more than one handler, the handler\nwhose match starts last in the file name gets precedence.  The\nfunction `find-file-name-handler' checks this list for a handler for\nits argument.\n\nHANDLER should be a function.  The first argument given to it is the\nname of the I/O primitive to be handled; the remaining arguments are\nthe arguments that were passed to that primitive.  For example, if you\ndo (file-exists-p FILENAME) and FILENAME is handled by HANDLER, then\nHANDLER is called like this:\n\n  (funcall HANDLER \\='file-exists-p FILENAME)\n\nNote that HANDLER must be able to handle all I/O primitives; if it has\nnothing special to do for a primitive, it should reinvoke the\nprimitive to handle the operation \"the usual way\".\nSee Info node `(elisp)Magic File Names' for more details.");
-  Vfile_name_handler_alist = Qnil ();
+  (*Vfile_name_handler_alist.as_mut_ptr ()) = Qnil ();
 
-  Vfile_name_handler_alist = Qnil ();
+  (*Vfile_name_handler_alist.as_mut_ptr ()) = Qnil ();
   DEFVAR_LISP! (c"set-auto-coding-function", Vset_auto_coding_function,
 	       "If non-nil, a function to call to decide a coding system of file.\nTwo arguments are passed to this function: the file name\nand the length of a file contents following the point.\nThis function should return a coding system to decode the file contents.\nIt should check the file name against `auto-coding-alist'.\nIf no coding system is decided, it should check a coding system\nspecified in the heading lines with the format:\n	-*- ... coding: CODING-SYSTEM; ... -*-\nor local variable spec of the tailing lines with `coding:' tag.");
-  Vset_auto_coding_function = Qnil ();
+  (*Vset_auto_coding_function.as_mut_ptr ()) = Qnil ();
 
-  Vset_auto_coding_function = Qnil ();
+  (*Vset_auto_coding_function.as_mut_ptr ()) = Qnil ();
   DEFVAR_LISP! (c"after-insert-file-functions", Vafter_insert_file_functions,
 	       "A list of functions to be called at the end of `insert-file-contents'.\nEach is passed one argument, the number of characters inserted,\nwith point at the start of the inserted text.  Each function\nshould leave point the same, and return the new character count.\nIf `insert-file-contents' is intercepted by a handler from\n`file-name-handler-alist', that handler is responsible for calling the\nfunctions in `after-insert-file-functions' if appropriate.");
-  Vafter_insert_file_functions = Qnil ();
+  (*Vafter_insert_file_functions.as_mut_ptr ()) = Qnil ();
 
-  Vafter_insert_file_functions = Qnil ();
+  (*Vafter_insert_file_functions.as_mut_ptr ()) = Qnil ();
   DEFVAR_LISP! (c"write-region-annotate-functions", Vwrite_region_annotate_functions,
 	       "A list of functions to be called at the start of `write-region'.\nEach is passed two arguments, START and END as for `write-region'.\nThese are usually two numbers but not always; see the documentation\nfor `write-region'.  The function should return a list of pairs\nof the form (POSITION . STRING), consisting of strings to be effectively\ninserted at the specified positions of the file being written (1 means to\ninsert before the first byte written).  The POSITIONs must be sorted into\nincreasing order.\n\nIf there are several annotation functions, the lists returned by these\nfunctions are merged destructively.  As each annotation function runs,\nthe variable `write-region-annotations-so-far' contains a list of all\nannotations returned by previous annotation functions.\n\nAn annotation function can return with a different buffer current.\nDoing so removes the annotations returned by previous functions, and\nresets START and END to `point-min' and `point-max' of the new buffer.\n\nAfter `write-region' completes, Emacs calls the function stored in\n`write-region-post-annotation-function', once for each buffer that was\ncurrent when building the annotations (i.e., at least once), with that\nbuffer current.");
-  Vwrite_region_annotate_functions = Qnil ();
+  (*Vwrite_region_annotate_functions.as_mut_ptr ()) = Qnil ();
 
-  Vwrite_region_annotate_functions = Qnil ();
+  (*Vwrite_region_annotate_functions.as_mut_ptr ()) = Qnil ();
   DEFSYM! (Qwrite_region_annotate_functions, c"write-region-annotate-functions");
   DEFVAR_LISP! (c"write-region-post-annotation-function", Vwrite_region_post_annotation_function,
 	       "Function to call after `write-region' completes.\nThe function is called with no arguments.  If one or more of the\nannotation functions in `write-region-annotate-functions' changed the\ncurrent buffer, the function stored in this variable is called for\neach of those additional buffers as well, in addition to the original\nbuffer.  The relevant buffer is current during each function call.");
-  Vwrite_region_post_annotation_function = Qnil ();
+  (*Vwrite_region_post_annotation_function.as_mut_ptr ()) = Qnil ();
 
-  Vwrite_region_post_annotation_function = Qnil ();
-  staticpro (&raw const Vwrite_region_annotation_buffers);
+  (*Vwrite_region_post_annotation_function.as_mut_ptr ()) = Qnil ();
+  staticpro (Vwrite_region_annotation_buffers.as_ptr ());
   DEFVAR_LISP! (c"write-region-annotations-so-far", Vwrite_region_annotations_so_far,
 	       "When an annotation function is called, this holds the previous annotations.\nThese are the annotations made by other annotation functions\nthat were already called.  See also `write-region-annotate-functions'.");
-  Vwrite_region_annotations_so_far = Qnil ();
+  (*Vwrite_region_annotations_so_far.as_mut_ptr ()) = Qnil ();
 
-  Vwrite_region_annotations_so_far = Qnil ();
+  (*Vwrite_region_annotations_so_far.as_mut_ptr ()) = Qnil ();
   DEFVAR_LISP! (c"inhibit-file-name-handlers", Vinhibit_file_name_handlers,
 	       "A list of file name handlers that temporarily should not be used.\nThis applies only to the operation `inhibit-file-name-operation'.");
-  Vinhibit_file_name_handlers = Qnil ();
+  (*Vinhibit_file_name_handlers.as_mut_ptr ()) = Qnil ();
 
-  Vinhibit_file_name_handlers = Qnil ();
+  (*Vinhibit_file_name_handlers.as_mut_ptr ()) = Qnil ();
   DEFVAR_LISP! (c"inhibit-file-name-operation", Vinhibit_file_name_operation,
 	       "The operation for which `inhibit-file-name-handlers' is applicable.");
-  Vinhibit_file_name_operation = Qnil ();
+  (*Vinhibit_file_name_operation.as_mut_ptr ()) = Qnil ();
 
-  Vinhibit_file_name_operation = Qnil ();
+  (*Vinhibit_file_name_operation.as_mut_ptr ()) = Qnil ();
   DEFVAR_LISP! (c"auto-save-list-file-name", Vauto_save_list_file_name,
 	       "File name in which to write a list of all auto save file names.\nThis variable is initialized automatically from `auto-save-list-file-prefix'\nshortly after Emacs reads your init file, if you have not yet given it\na non-nil value.");
-  Vauto_save_list_file_name = Qnil ();
+  (*Vauto_save_list_file_name.as_mut_ptr ()) = Qnil ();
 
-  Vauto_save_list_file_name = Qnil ();
+  (*Vauto_save_list_file_name.as_mut_ptr ()) = Qnil ();
   DEFVAR_LISP! (c"auto-save-visited-file-name", Vauto_save_visited_file_name,
 	       "Non-nil says auto-save a buffer in the file it is visiting, when practical.\nNormally auto-save files are written under other names.");
-  Vauto_save_visited_file_name = Qnil ();
+  (*Vauto_save_visited_file_name.as_mut_ptr ()) = Qnil ();
 
-  Vauto_save_visited_file_name = Qnil ();
+  (*Vauto_save_visited_file_name.as_mut_ptr ()) = Qnil ();
   DEFVAR_LISP! (c"auto-save-include-big-deletions", Vauto_save_include_big_deletions,
 	       "If non-nil, auto-save even if a large part of the text is deleted.\nIf nil, deleting a substantial portion of the text disables auto-save\nin the buffer; this is the default behavior, because the auto-save\nfile is usually more useful if it contains the deleted text.");
-  Vauto_save_include_big_deletions = Qnil ();
+  (*Vauto_save_include_big_deletions.as_mut_ptr ()) = Qnil ();
 
-  Vauto_save_include_big_deletions = Qnil ();
+  (*Vauto_save_include_big_deletions.as_mut_ptr ()) = Qnil ();
   DEFVAR_BOOL! (c"write-region-inhibit-fsync", write_region_inhibit_fsync,
 	       "Non-nil means don't call fsync in `write-region'.\nThis variable affects calls to `write-region' as well as save commands.\nBy default, it is non-nil.\n\nAlthough setting this to nil may avoid data loss if the system loses power,\nit can be a significant performance hit in the usual case, and it doesn't\nnecessarily cause file-save operations to actually survive a crash.");
 
@@ -6065,11 +6065,11 @@ pub unsafe extern "C-unwind" fn syms_of_fileio ()
      Roche X. Necessary step(s) to synchronize filename operations on disk.
      Austin Group Defect 672, 2013-03-19
      https://austingroupbugs.net/view.php?id=672  */
-  write_region_inhibit_fsync = true;
+  (*write_region_inhibit_fsync.as_mut_ptr ()) = true;
   DEFVAR_BOOL! (c"delete-by-moving-to-trash", delete_by_moving_to_trash,
 	       "Specifies whether to use the system's trash can.\nWhen non-nil, certain file deletion commands use the function\n`move-file-to-trash' instead of deleting files outright.\nThis includes interactive calls to `delete-file' and\n`delete-directory' and the Dired deletion commands.");
 
-  delete_by_moving_to_trash = false;
+  (*delete_by_moving_to_trash.as_mut_ptr ()) = false;
   DEFSYM! (Qdelete_by_moving_to_trash, c"delete-by-moving-to-trash");
   /* Lisp function for interactive file delete with trashing */
   DEFSYM! (Qdelete_file, c"delete-file");
@@ -6082,63 +6082,63 @@ pub unsafe extern "C-unwind" fn syms_of_fileio ()
   DEFSYM! (Qstdin, c"stdin");
   DEFSYM! (Qstdout, c"stdout");
   DEFSYM! (Qstderr, c"stderr");
-  defsubr (&raw mut Sfind_file_name_handler);
-  defsubr (&raw mut Sfile_name_directory);
-  defsubr (&raw mut Sfile_name_nondirectory);
-  defsubr (&raw mut Sunhandled_file_name_directory);
-  defsubr (&raw mut Sfile_name_as_directory);
-  defsubr (&raw mut Sdirectory_name_p);
-  defsubr (&raw mut Sdirectory_file_name);
-  defsubr (&raw mut Smake_temp_file_internal);
-  defsubr (&raw mut Smake_temp_name);
-  defsubr (&raw mut Sfile_name_concat);
-  defsubr (&raw mut Sexpand_file_name);
-  defsubr (&raw mut Ssubstitute_in_file_name);
-  defsubr (&raw mut Scopy_file);
-  defsubr (&raw mut Smake_directory_internal);
-  defsubr (&raw mut Sdelete_directory_internal);
-  defsubr (&raw mut Sdelete_file_internal);
-  defsubr (&raw mut Sfile_name_case_insensitive_p);
-  defsubr (&raw mut Srename_file);
-  defsubr (&raw mut Sadd_name_to_file);
-  defsubr (&raw mut Smake_symbolic_link);
-  defsubr (&raw mut Sfile_name_absolute_p);
-  defsubr (&raw mut Sfile_exists_p);
-  defsubr (&raw mut Sfile_executable_p);
-  defsubr (&raw mut Sfile_readable_p);
-  defsubr (&raw mut Sfile_writable_p);
-  defsubr (&raw mut Saccess_file);
-  defsubr (&raw mut Sfile_symlink_p);
-  defsubr (&raw mut Sfile_directory_p);
-  defsubr (&raw mut Sfile_accessible_directory_p);
-  defsubr (&raw mut Sfile_regular_p);
-  defsubr (&raw mut Sfile_modes);
-  defsubr (&raw mut Sset_file_modes);
-  defsubr (&raw mut Sset_file_times);
-  defsubr (&raw mut Sfile_selinux_context);
-  defsubr (&raw mut Sfile_acl);
-  defsubr (&raw mut Sset_file_acl);
-  defsubr (&raw mut Sset_file_selinux_context);
-  defsubr (&raw mut Sset_default_file_modes);
-  defsubr (&raw mut Sdefault_file_modes);
-  defsubr (&raw mut Sfile_newer_than_file_p);
-  defsubr (&raw mut Sinsert_file_contents);
-  defsubr (&raw mut Swrite_region);
-  defsubr (&raw mut Scar_less_than_car);
-  defsubr (&raw mut Sverify_visited_file_modtime);
-  defsubr (&raw mut Svisited_file_modtime);
-  defsubr (&raw mut Sset_visited_file_modtime);
-  defsubr (&raw mut Sdo_auto_save);
-  defsubr (&raw mut Sset_buffer_auto_saved);
-  defsubr (&raw mut Sclear_buffer_auto_save_failure);
-  defsubr (&raw mut Srecent_auto_save_p);
-  defsubr (&raw mut Snext_read_file_uses_dialog_p);
-  defsubr (&raw mut Sset_binary_mode);
-  defsubr (&raw mut Sfile__close_stream);
+  defsubr (Sfind_file_name_handler.as_mut_ptr ());
+  defsubr (Sfile_name_directory.as_mut_ptr ());
+  defsubr (Sfile_name_nondirectory.as_mut_ptr ());
+  defsubr (Sunhandled_file_name_directory.as_mut_ptr ());
+  defsubr (Sfile_name_as_directory.as_mut_ptr ());
+  defsubr (Sdirectory_name_p.as_mut_ptr ());
+  defsubr (Sdirectory_file_name.as_mut_ptr ());
+  defsubr (Smake_temp_file_internal.as_mut_ptr ());
+  defsubr (Smake_temp_name.as_mut_ptr ());
+  defsubr (Sfile_name_concat.as_mut_ptr ());
+  defsubr (Sexpand_file_name.as_mut_ptr ());
+  defsubr (Ssubstitute_in_file_name.as_mut_ptr ());
+  defsubr (Scopy_file.as_mut_ptr ());
+  defsubr (Smake_directory_internal.as_mut_ptr ());
+  defsubr (Sdelete_directory_internal.as_mut_ptr ());
+  defsubr (Sdelete_file_internal.as_mut_ptr ());
+  defsubr (Sfile_name_case_insensitive_p.as_mut_ptr ());
+  defsubr (Srename_file.as_mut_ptr ());
+  defsubr (Sadd_name_to_file.as_mut_ptr ());
+  defsubr (Smake_symbolic_link.as_mut_ptr ());
+  defsubr (Sfile_name_absolute_p.as_mut_ptr ());
+  defsubr (Sfile_exists_p.as_mut_ptr ());
+  defsubr (Sfile_executable_p.as_mut_ptr ());
+  defsubr (Sfile_readable_p.as_mut_ptr ());
+  defsubr (Sfile_writable_p.as_mut_ptr ());
+  defsubr (Saccess_file.as_mut_ptr ());
+  defsubr (Sfile_symlink_p.as_mut_ptr ());
+  defsubr (Sfile_directory_p.as_mut_ptr ());
+  defsubr (Sfile_accessible_directory_p.as_mut_ptr ());
+  defsubr (Sfile_regular_p.as_mut_ptr ());
+  defsubr (Sfile_modes.as_mut_ptr ());
+  defsubr (Sset_file_modes.as_mut_ptr ());
+  defsubr (Sset_file_times.as_mut_ptr ());
+  defsubr (Sfile_selinux_context.as_mut_ptr ());
+  defsubr (Sfile_acl.as_mut_ptr ());
+  defsubr (Sset_file_acl.as_mut_ptr ());
+  defsubr (Sset_file_selinux_context.as_mut_ptr ());
+  defsubr (Sset_default_file_modes.as_mut_ptr ());
+  defsubr (Sdefault_file_modes.as_mut_ptr ());
+  defsubr (Sfile_newer_than_file_p.as_mut_ptr ());
+  defsubr (Sinsert_file_contents.as_mut_ptr ());
+  defsubr (Swrite_region.as_mut_ptr ());
+  defsubr (Scar_less_than_car.as_mut_ptr ());
+  defsubr (Sverify_visited_file_modtime.as_mut_ptr ());
+  defsubr (Svisited_file_modtime.as_mut_ptr ());
+  defsubr (Sset_visited_file_modtime.as_mut_ptr ());
+  defsubr (Sdo_auto_save.as_mut_ptr ());
+  defsubr (Sset_buffer_auto_saved.as_mut_ptr ());
+  defsubr (Sclear_buffer_auto_save_failure.as_mut_ptr ());
+  defsubr (Srecent_auto_save_p.as_mut_ptr ());
+  defsubr (Snext_read_file_uses_dialog_p.as_mut_ptr ());
+  defsubr (Sset_binary_mode.as_mut_ptr ());
+  defsubr (Sfile__close_stream.as_mut_ptr ());
   /* C 7043/7048/7052: `#ifndef DOS_NT` - the frozen configuration takes the live arm.  */
-  defsubr (&raw mut Sfile_system_info);
+  defsubr (Sfile_system_info.as_mut_ptr ());
   /* C 7043/7048/7052: `#ifdef HAVE_SYNC` - the frozen configuration takes the live arm.  */
-  defsubr (&raw mut Sunix_sync);
+  defsubr (Sunix_sync.as_mut_ptr ());
   DEFSYM! (Qif_regular, c"if-regular");
   DEFSYM! (Qbuffer_file_name, c"buffer-file-name");
   DEFSYM! (Qauto_save, c"auto-save");

@@ -50,15 +50,15 @@ include!("include/buildobj.rs");
 // port's `include/globals.rs` mirrors the names as declarations, so the unit that owns one
 // defines it here (status §3.29, the casetab.rs shape).
 #[unsafe(no_mangle)]
-pub static mut Vdoc_file_name: Lisp_Object = lisp_h_Qnil ();
+pub static Vdoc_file_name: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vbuild_files: Lisp_Object = lisp_h_Qnil ();
+pub static Vbuild_files: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vtext_quoting_style: Lisp_Object = lisp_h_Qnil ();
+pub static Vtext_quoting_style: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut documentation_dynamic_reload: bool = false;
+pub static documentation_dynamic_reload: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut text_quoting_flag: bool = false;
+pub static text_quoting_flag: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 // C 42-49: `doc_fd`/`doc_fd_p`/`doc_open`/`doc_read_quit`/`doc_lseek` for the arm
 // `!defined HAVE_ANDROID || defined ANDROID_STUBIFY || __ANDROID_API__ < 9`.  The five are
@@ -130,8 +130,8 @@ unsafe extern "C" {
 }
 
 /* Buffer used for reading from documentation file.  */
-static mut get_doc_string_buffer: *mut c_char = std::ptr::null_mut ();
-static mut get_doc_string_buffer_size: ptrdiff_t = 0;
+static get_doc_string_buffer: VmGlobal<*mut c_char> = VmGlobal::<*mut c_char>::new (std::ptr::null_mut ());
+static get_doc_string_buffer_size: VmGlobal<ptrdiff_t> = VmGlobal::<ptrdiff_t>::new (0);
 
 static sibling_etc: [u8; 8] = *b"../etc/\0";
 
@@ -180,8 +180,8 @@ pub unsafe extern "C-unwind" fn get_doc_string (filepos: Lisp_Object, unibyte: b
 
   if FIXNUMP (filepos)
     {
-      file = Vdoc_file_name;
-      dir = Vdoc_directory;
+      file = (*Vdoc_file_name.as_mut_ptr ());
+      dir = (*Vdoc_directory.as_mut_ptr ());
       pos = filepos;
     }
   else if CONSP (filepos)
@@ -210,7 +210,7 @@ pub unsafe extern "C-unwind" fn get_doc_string (filepos: Lisp_Object, unibyte: b
   let tem: Lisp_Object = Ffile_name_absolute_p (file);
   file = ENCODE_FILE (file);
   let docdir: Lisp_Object
-    = if NILP (tem) { ENCODE_FILE (dir) } else { empty_unibyte_string };
+    = if NILP (tem) { ENCODE_FILE (dir) } else { (*empty_unibyte_string.as_mut_ptr ()) };
   let mut docdir_sizemax: ptrdiff_t = SBYTES (docdir) + 1;
   if will_dump_p ()
     { docdir_sizemax = max (docdir_sizemax, std::mem::size_of_val (&sibling_etc) as isize); }
@@ -260,22 +260,22 @@ pub unsafe extern "C-unwind" fn get_doc_string (filepos: Lisp_Object, unibyte: b
   /* Read the doc string into get_doc_string_buffer.
      P points beyond the data just read.  */
 
-  p = get_doc_string_buffer;
+  p = (*get_doc_string_buffer.as_mut_ptr ());
   loop
     {
-      let mut space_left: ptrdiff_t = (get_doc_string_buffer_size - 1
-				       - p.offset_from (get_doc_string_buffer));
+      let mut space_left: ptrdiff_t = ((*get_doc_string_buffer_size.as_mut_ptr ()) - 1
+				       - p.offset_from ((*get_doc_string_buffer.as_mut_ptr ())));
 
       /* Allocate or grow the buffer if we need to.  */
       if space_left <= 0
 	{
-	  let in_buffer: ptrdiff_t = p.offset_from (get_doc_string_buffer);
-	  get_doc_string_buffer
-	    = xpalloc (get_doc_string_buffer as *mut c_void, &raw mut get_doc_string_buffer_size,
+	  let in_buffer: ptrdiff_t = p.offset_from ((*get_doc_string_buffer.as_mut_ptr ()));
+	  (*get_doc_string_buffer.as_mut_ptr ())
+	    = xpalloc ((*get_doc_string_buffer.as_mut_ptr ()) as *mut c_void, get_doc_string_buffer_size.as_mut_ptr (),
 		       16 * 1024, -1, 1) as *mut c_char;
-	  p = get_doc_string_buffer.offset (in_buffer);
-	  space_left = (get_doc_string_buffer_size - 1
-			- p.offset_from (get_doc_string_buffer));
+	  p = (*get_doc_string_buffer.as_mut_ptr ()).offset (in_buffer);
+	  space_left = ((*get_doc_string_buffer_size.as_mut_ptr ()) - 1
+			- p.offset_from ((*get_doc_string_buffer.as_mut_ptr ())));
 	}
 
       /* Read a disk block at a time.
@@ -289,7 +289,7 @@ pub unsafe extern "C-unwind" fn get_doc_string (filepos: Lisp_Object, unibyte: b
       *p.offset (nread as isize) = 0;
       if nread == 0
 	{ break; }
-      if p == get_doc_string_buffer
+      if p == (*get_doc_string_buffer.as_mut_ptr ())
 	{ p1 = strchr (p.offset (offset as isize), 31); }
       else
 	{ p1 = strchr (p, 31); }
@@ -307,20 +307,20 @@ pub unsafe extern "C-unwind" fn get_doc_string (filepos: Lisp_Object, unibyte: b
   if CONSP (filepos)
     {
       let mut test: c_int = 1;
-      if *get_doc_string_buffer.offset (offset as isize - test as isize) != 31
+      if *(*get_doc_string_buffer.as_mut_ptr ()).offset (offset as isize - test as isize) != 31
 	{
 	  // C's `get_doc_string_buffer[offset - test++]`: the index uses TEST's old value.
 	  let idx: isize = offset as isize - test as isize;
 	  test += 1;
-	  if *get_doc_string_buffer.offset (idx) != b' ' as c_char
+	  if *(*get_doc_string_buffer.as_mut_ptr ()).offset (idx) != b' ' as c_char
 	    { return Qnil (); }
-	  while *get_doc_string_buffer.offset (offset as isize - test as isize) >= b'0' as c_char
-		&& *get_doc_string_buffer.offset (offset as isize - test as isize) <= b'9' as c_char
+	  while *(*get_doc_string_buffer.as_mut_ptr ()).offset (offset as isize - test as isize) >= b'0' as c_char
+		&& *(*get_doc_string_buffer.as_mut_ptr ()).offset (offset as isize - test as isize) <= b'9' as c_char
 	    { test += 1; }
 	  let idx: isize = offset as isize - test as isize;
 	  test += 1;
-	  if *get_doc_string_buffer.offset (idx) != b'@' as c_char
-	      || *get_doc_string_buffer.offset (offset as isize - test as isize) != b'#' as c_char
+	  if *(*get_doc_string_buffer.as_mut_ptr ()).offset (idx) != b'@' as c_char
+	      || *(*get_doc_string_buffer.as_mut_ptr ()).offset (offset as isize - test as isize) != b'#' as c_char
 	    { return Qnil (); }
 	}
     }
@@ -329,18 +329,18 @@ pub unsafe extern "C-unwind" fn get_doc_string (filepos: Lisp_Object, unibyte: b
       let mut test: c_int = 1;
       let idx: isize = offset as isize - test as isize;
       test += 1;
-      if *get_doc_string_buffer.offset (idx) != b'\n' as c_char
+      if *(*get_doc_string_buffer.as_mut_ptr ()).offset (idx) != b'\n' as c_char
 	{ return Qnil (); }
-      while *get_doc_string_buffer.offset (offset as isize - test as isize) > b' ' as c_char
+      while *(*get_doc_string_buffer.as_mut_ptr ()).offset (offset as isize - test as isize) > b' ' as c_char
 	{ test += 1; }
-      if *get_doc_string_buffer.offset (offset as isize - test as isize) != 31
+      if *(*get_doc_string_buffer.as_mut_ptr ()).offset (offset as isize - test as isize) != 31
 	{ return Qnil (); }
     }
 
   /* Scan the text and perform quoting with ^A (char code 1).
      ^A^A becomes ^A, ^A0 becomes a null char, and ^A_ becomes a ^_.  */
-  from = get_doc_string_buffer.offset (offset as isize);
-  to = get_doc_string_buffer.offset (offset as isize);
+  from = (*get_doc_string_buffer.as_mut_ptr ()).offset (offset as isize);
+  to = (*get_doc_string_buffer.as_mut_ptr ()).offset (offset as isize);
   while from != p
     {
       if *from == 1
@@ -370,17 +370,17 @@ Invalid data in documentation file -- %c followed by code %03o\0".as_ptr () as *
     }
 
   if unibyte
-    { return make_unibyte_string (get_doc_string_buffer.offset (offset as isize),
-				  to.offset_from (get_doc_string_buffer.offset (offset as isize))); }
+    { return make_unibyte_string ((*get_doc_string_buffer.as_mut_ptr ()).offset (offset as isize),
+				  to.offset_from ((*get_doc_string_buffer.as_mut_ptr ()).offset (offset as isize))); }
   else
     {
       /* The data determines whether the string is multibyte.  */
       let nchars: ptrdiff_t
-	= multibyte_chars_in_text (get_doc_string_buffer.offset (offset as isize) as *const u8,
-				   to.offset_from (get_doc_string_buffer.offset (offset as isize)));
-      return make_string_from_bytes (get_doc_string_buffer.offset (offset as isize),
+	= multibyte_chars_in_text ((*get_doc_string_buffer.as_mut_ptr ()).offset (offset as isize) as *const u8,
+				   to.offset_from ((*get_doc_string_buffer.as_mut_ptr ()).offset (offset as isize)));
+      return make_string_from_bytes ((*get_doc_string_buffer.as_mut_ptr ()).offset (offset as isize),
 				     nchars,
-				     to.offset_from (get_doc_string_buffer.offset (offset as isize)));
+				     to.offset_from ((*get_doc_string_buffer.as_mut_ptr ()).offset (offset as isize)));
     }
 
   }
@@ -391,7 +391,7 @@ unsafe fn reread_doc_file (file: Lisp_Object)
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
   if NILP (file)
-    { Fsnarf_documentation (Vdoc_file_name); }
+    { Fsnarf_documentation ((*Vdoc_file_name.as_mut_ptr ())); }
   else
     { save_match_data_load (file, Qt (), Qt (), Qt (), Qnil ()); }
 
@@ -416,7 +416,7 @@ DEFUN! ("documentation", Fdocumentation, Sdocumentation, 1, 2, 0,
        (function: Lisp_Object, raw: Lisp_Object),
        {
   let mut doc: Lisp_Object;
-  let mut try_reload: bool = documentation_dynamic_reload;
+  let mut try_reload: bool = (*documentation_dynamic_reload.as_mut_ptr ());
 
  'retry: loop {
 
@@ -500,7 +500,7 @@ DEFUN! ("documentation-property", Fdocumentation_property,
        doc: "Return the documentation string that is SYMBOL's PROP property.\nThird argument RAW omitted or nil means pass the result through\n`substitute-command-keys' if it is a string.\n\nThis differs from `get' in that it can refer to strings stored in the\n`etc/DOC' file; and that it evaluates documentation properties that\naren't strings.",
        (symbol: Lisp_Object, prop: Lisp_Object, raw: Lisp_Object),
        {
-  let mut try_reload: bool = documentation_dynamic_reload;
+  let mut try_reload: bool = (*documentation_dynamic_reload.as_mut_ptr ());
   let mut tem: Lisp_Object;
 
  'retry: loop {
@@ -617,9 +617,9 @@ DEFUN! ("Snarf-documentation", Fsnarf_documentation, Ssnarf_documentation,
     }
   else
     {
-      CHECK_STRING (Vdoc_directory);
-      dirname = SSDATA (Vdoc_directory);
-      dirlen = SBYTES (Vdoc_directory);
+      CHECK_STRING ((*Vdoc_directory.as_mut_ptr ()));
+      dirname = SSDATA ((*Vdoc_directory.as_mut_ptr ()));
+      dirlen = SBYTES ((*Vdoc_directory.as_mut_ptr ()));
     }
 
   let count: specpdl_ref = SPECPDL_INDEX ();
@@ -628,13 +628,13 @@ DEFUN! ("Snarf-documentation", Fsnarf_documentation, Ssnarf_documentation,
   lispstpcpy (stpcpy (name, dirname), filename); 	/*** Add this line ***/
 
   /* Vbuild_files is nil when temacs is run, and non-nil after that.  */
-  if NILP (Vbuild_files)
+  if NILP ((*Vbuild_files.as_mut_ptr ()))
     {
       // C's `static char const *const buildobj[] = { #include "buildobj.h" };` - the object
       // list is the generated mirror `buildobj.rs` (PORTING.md 0.1, the config.rs precedent).
       let mut i: c_int = countof! (buildobj) as c_int;
       while 0 <= { i -= 1; i }
-	{ Vbuild_files = Fcons (build_string (buildobj[i as usize].as_ptr ()), Vbuild_files); }
+	{ (*Vbuild_files.as_mut_ptr ()) = Fcons (build_string (buildobj[i as usize].as_ptr ()), (*Vbuild_files.as_mut_ptr ())); }
     }
 
   let mut fd: doc_fd! () = doc_open! (name, O_RDONLY, 0);
@@ -649,7 +649,7 @@ DEFUN! ("Snarf-documentation", Fsnarf_documentation, Ssnarf_documentation,
   record_unwind_protect_int (Some (close_file_unwind), fd);
   #[cfg (feature = "use_android_assets")]
   { record_unwind_protect_ptr (Some (close_file_unwind_android_fd), &raw mut fd as *mut c_void); }
-  Vdoc_file_name = filename;
+  (*Vdoc_file_name.as_mut_ptr ()) = filename;
   let mut filled: c_int = 0;
   let mut pos: EMACS_INT = 0;
   loop
@@ -683,7 +683,7 @@ DEFUN! ("Snarf-documentation", Fsnarf_documentation, Ssnarf_documentation,
 	     docs for eg w32-specific items on X.
 	  */
 
-	  sym = oblookup (Vobarray, p.offset (2),
+	  sym = oblookup ((*Vobarray.as_mut_ptr ()), p.offset (2),
 			  multibyte_chars_in_text (p.offset (2) as *const u8,
 						   end.offset_from (p) - 2),
 			  end.offset_from (p) - 2);
@@ -728,11 +728,11 @@ DEFUN! ("Snarf-documentation", Fsnarf_documentation, Ssnarf_documentation,
 /* Return true if text quoting style should default to quote `like this'.  */
 fn default_to_grave_quoting_style () -> bool
 {
-  if !/* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { text_quoting_flag }
+  if !/* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { (*text_quoting_flag.as_mut_ptr ()) }
     { return true; }
-  if ! DISP_TABLE_P (unsafe { Vstandard_display_table })
+  if ! DISP_TABLE_P (unsafe { (*Vstandard_display_table.as_mut_ptr ()) })
     { return false; }
-  let dv: Lisp_Object = DISP_CHAR_VECTOR (XCHAR_TABLE (unsafe { Vstandard_display_table }),
+  let dv: Lisp_Object = DISP_CHAR_VECTOR (XCHAR_TABLE (unsafe { (*Vstandard_display_table.as_mut_ptr ()) }),
 					  LEFT_SINGLE_QUOTATION_MARK);
   return VECTORP (dv) && ASIZE (dv) == 1
 	  && BASE_EQ (AREF (dv, 0), make_fixnum (b'`' as EMACS_INT));
@@ -744,13 +744,13 @@ DEFUN! ("text-quoting-style", Ftext_quoting_style,
        (),
        {
   /* Use grave accent and apostrophe `like this'.  */
-  if if NILP (Vtext_quoting_style)
+  if if NILP ((*Vtext_quoting_style.as_mut_ptr ()))
        { default_to_grave_quoting_style () }
-     else { EQ (Vtext_quoting_style, Qgrave ()) }
+     else { EQ ((*Vtext_quoting_style.as_mut_ptr ()), Qgrave ()) }
     { return Qgrave (); }
 
   /* Use apostrophes 'like this'.  */
-  else if EQ (Vtext_quoting_style, Qstraight ())
+  else if EQ ((*Vtext_quoting_style.as_mut_ptr ()), Qstraight ())
     { return Qstraight (); }
 
   /* Use curved single quotes ‘like this’.  */
@@ -773,30 +773,30 @@ pub unsafe extern "C-unwind" fn syms_of_doc ()
 
   DEFVAR_LISP! (c"internal-doc-file-name", Vdoc_file_name,
 	       "Name of file containing documentation strings of built-in symbols.  ");
-  Vdoc_file_name = Qnil ();
+  (*Vdoc_file_name.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"build-files", Vbuild_files,
                "A list of files used to build this Emacs binary.  ");
-  Vbuild_files = Qnil ();
+  (*Vbuild_files.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"text-quoting-style", Vtext_quoting_style,
                "Style to use for single quotes in help and messages.\n\nThe value of this variable determines substitution of grave accents\nand apostrophes in help output (but not for display of Info\nmanuals) and in functions like `message' and `format-message', but not\nin `format'.\n\nThe value should be one of these symbols:\n  `curve':    quote with curved single quotes ‘like this’.\n  `straight': quote with straight apostrophes \\='like this\\='.\n  `grave':    quote with grave accent and apostrophe \\=`like this\\=';\n	      i.e., do not alter the original quote marks.\n  nil:        like `curve' if curved single quotes are displayable,\n	      and like `grave' otherwise.  This is the default.\n\nYou should never read the value of this variable directly from a Lisp\nprogram.  Use the function `text-quoting-style' instead, as that will\ncompute the correct value for the current terminal in the nil case.  ");
-  Vtext_quoting_style = Qnil ();
+  (*Vtext_quoting_style.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_BOOL! (c"documentation-dynamic-reload", documentation_dynamic_reload,
 	       "If non-nil, reload changed `DOC' and Lisp files when calling `documentation'.\n\nFor `etc/DOC' and for files byte-compiled with non-nil\n`byte-compile-dynamic-docstring' (the default), documentation strings\nare loaded on-demand only when `documentation' is called for a symbol.\n\nIf these files have changed since they were initially loaded, reading\nthe documentation string for that symbol out of the files may fail.  If\nit fails, and this variable is non-nil, then the files will be loaded\nagain to redefine all its functions and variables.  `documentation' will\nthen retry; if the symbol was redefined by reloading the file, reading\nthe documentation string will then succeed.  ");
-  documentation_dynamic_reload = true;
+  (*documentation_dynamic_reload.as_mut_ptr ()) = true;
 
   DEFVAR_BOOL! (c"internal--text-quoting-flag", text_quoting_flag,
 	       "If nil, a nil `text-quoting-style' is treated as `grave'.  ");
   /* Initialized by ‘main’.  */
 
-  defsubr (&raw mut Sdocumentation_stringp);
-  defsubr (&raw mut Sdocumentation);
-  defsubr (&raw mut Ssubr_documentation);
-  defsubr (&raw mut Sdocumentation_property);
-  defsubr (&raw mut Ssnarf_documentation);
-  defsubr (&raw mut Stext_quoting_style);
+  defsubr (Sdocumentation_stringp.as_mut_ptr ());
+  defsubr (Sdocumentation.as_mut_ptr ());
+  defsubr (Ssubr_documentation.as_mut_ptr ());
+  defsubr (Sdocumentation_property.as_mut_ptr ());
+  defsubr (Ssnarf_documentation.as_mut_ptr ());
+  defsubr (Stext_quoting_style.as_mut_ptr ());
   DEFSYM! (Qcustom_delayed_init_variables, "custom-delayed-init-variables");
 
   }

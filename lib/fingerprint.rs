@@ -19,8 +19,7 @@ use std::ffi::c_uchar;
    `read_volatile` at the access (no object-level qualifier exists).  */
 #[used]
 #[unsafe(no_mangle)]
-pub static mut fingerprint: [c_uchar; 32] =
-  [
+pub static fingerprint: VmGlobal<[c_uchar; 32]> = VmGlobal::<[c_uchar; 32]>::new ([
    0xDE, 0x86, 0xBB, 0x99,
    0xFF, 0xF5, 0x46, 0x9A,
    0x9E, 0x3F, 0x9F, 0x5D,
@@ -29,4 +28,4 @@ pub static mut fingerprint: [c_uchar; 32] =
    0x0C, 0x16, 0x1E, 0xAF,
    0xB8, 0x6C, 0xE2, 0x2B,
    0xB1, 0x24, 0xCE, 0xB0,
-  ];
+  ]);

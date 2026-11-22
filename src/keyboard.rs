@@ -144,95 +144,94 @@ pub static DEV_TTY: [c_char; 9] =
 
 /* C 96: `char *dev_tty;`  */
   #[unsafe(no_mangle)]
-  pub static mut dev_tty: *mut c_char = std::ptr::null_mut ();                      // 529 declares it
+  pub static dev_tty: VmGlobal<*mut c_char> = VmGlobal::<*mut c_char>::new (std::ptr::null_mut ());                      // 529 declares it
 
   /* C 100: `volatile int interrupt_input_blocked;`  */
   #[unsafe(no_mangle)]
-  pub static mut interrupt_input_blocked: c_int = 0;
+  pub static interrupt_input_blocked: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 
   /* C 107-109.  */
   #[unsafe(no_mangle)]
-  pub static mut initial_kboard: *mut KBOARD = std::ptr::null_mut ();
+  pub static initial_kboard: VmGlobal<*mut KBOARD> = VmGlobal::<*mut KBOARD>::new (std::ptr::null_mut ());
   #[unsafe(no_mangle)]
-  pub static mut current_kboard: *mut KBOARD = std::ptr::null_mut ();
+  pub static current_kboard: VmGlobal<*mut KBOARD> = VmGlobal::<*mut KBOARD>::new (std::ptr::null_mut ());
 
   /* C 148-149.  */
   #[unsafe(no_mangle)]
-  pub static mut this_command_keys: Lisp_Object = lisp_h_Qnil ();
+  pub static this_command_keys: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
   #[unsafe(no_mangle)]
-  pub static mut this_command_key_count: ptrdiff_t = 0;
+  pub static this_command_key_count: VmGlobal<ptrdiff_t> = VmGlobal::<ptrdiff_t>::new (0);
 
   /* C 214: `int quit_char;`  */
   #[unsafe(no_mangle)]
-  pub static mut quit_char: c_int = 0;
+  pub static quit_char: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 
   /* C 231-233.  */
   #[unsafe(no_mangle)]
-  pub static mut num_input_events: uintmax_t = 0;
+  pub static num_input_events: VmGlobal<uintmax_t> = VmGlobal::<uintmax_t>::new (0);
   #[unsafe(no_mangle)]
-  pub static mut point_before_last_command_or_undo: ptrdiff_t = 0;
+  pub static point_before_last_command_or_undo: VmGlobal<ptrdiff_t> = VmGlobal::<ptrdiff_t>::new (0);
   #[unsafe(no_mangle)]
-  pub static mut buffer_before_last_command_or_undo: *mut buffer = std::ptr::null_mut ();
+  pub static buffer_before_last_command_or_undo: VmGlobal<*mut buffer> = VmGlobal::<*mut buffer>::new (std::ptr::null_mut ());
 
   /* C 251: `Lisp_Object internal_last_event_frame;`  */
   #[unsafe(no_mangle)]
-  pub static mut internal_last_event_frame: Lisp_Object = lisp_h_Qnil ();
+  pub static internal_last_event_frame: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
   /* C 310: `bool input_was_pending;`  */
   #[unsafe(no_mangle)]
-  pub static mut input_was_pending: bool = false;
+  pub static input_was_pending: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
   /* C 314-321: the circular buffer and its two pointers.  C's static storage zeroes the
      array; `kind: 0` is the zeroed union.  */
   #[unsafe(no_mangle)]
-  pub static mut kbd_buffer: [buffered_input_event; KBD_BUFFER_SIZE as usize] =
-    [const { buffered_input_event { kind: 0 } }; KBD_BUFFER_SIZE as usize];
+  pub static kbd_buffer: VmGlobal<[buffered_input_event; KBD_BUFFER_SIZE as usize]> = VmGlobal::<[buffered_input_event; KBD_BUFFER_SIZE as usize]>::new ([const { buffered_input_event { kind: 0 } }; KBD_BUFFER_SIZE as usize]);
   #[unsafe(no_mangle)]
-  pub static mut kbd_fetch_ptr: *mut buffered_input_event = std::ptr::null_mut ();
+  pub static kbd_fetch_ptr: VmGlobal<*mut buffered_input_event> = VmGlobal::<*mut buffered_input_event>::new (std::ptr::null_mut ());
   #[unsafe(no_mangle)]
-  pub static mut kbd_store_ptr: *mut buffered_input_event = std::ptr::null_mut ();
+  pub static kbd_store_ptr: VmGlobal<*mut buffered_input_event> = VmGlobal::<*mut buffered_input_event>::new (std::ptr::null_mut ());
 
   /* C 344: `struct timespec *input_available_clear_time;`  */
   #[unsafe(no_mangle)]
-  pub static mut input_available_clear_time: *mut timespec = std::ptr::null_mut ();
+  pub static input_available_clear_time: VmGlobal<*mut timespec> = VmGlobal::<*mut timespec>::new (std::ptr::null_mut ());
 
   /* C 269: `static struct buffer *prev_buffer;` — a C `static`, so no `#[unsafe(no_mangle)]`
      (the reference object exports no `_prev_buffer`).  The mirror's crate-root `extern`
      declaration is what the C-comment references resolve to, and nothing in the ported prefix
      reads the object (command_loop_1's local of the same name is `prev_buffer_`).  */
-  static mut prev_buffer: *mut buffer = std::ptr::null_mut ();
+  static prev_buffer: VmGlobal<*mut buffer> = VmGlobal::<*mut buffer>::new (std::ptr::null_mut ());
 
   /* C 1289: `bool ignore_mouse_drag_p;`  */
   #[unsafe(no_mangle)]
-  pub static mut ignore_mouse_drag_p: bool = false;
+  pub static ignore_mouse_drag_p: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
   /* C 2016: `int poll_suppress_count;`  */
   #[unsafe(no_mangle)]
-  pub static mut poll_suppress_count: c_int = 0;
+  pub static poll_suppress_count: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 
   /* C 8784: `Lisp_Object item_properties;` — `keyboard.h` 292 declares it at the crate root
      (`include/keyboard.rs` 236), so its definition lives here (the `kbd_buffer` shape).  The
      ledger row was ticked before this round because the mirror's declaration alone satisfies
      `tools/extract-abi.py`; this is the definition.  */
   #[unsafe(no_mangle)]
-  pub static mut item_properties: Lisp_Object = lisp_h_Qnil ();
+  pub static item_properties: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* C 101-102.  */
 #[unsafe(no_mangle)]
-pub static mut pending_signals: bool = false;
+pub static pending_signals: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 /* C 109: `static KBOARD *all_kboards;`  */
-static mut all_kboards: *mut KBOARD = std::ptr::null_mut ();
+static all_kboards: VmGlobal<*mut KBOARD> = VmGlobal::<*mut KBOARD>::new (std::ptr::null_mut ());
 
 /* C 112: `static bool single_kboard;`  */
-static mut single_kboard: bool = false;
+static single_kboard: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 /* C 117-119: `#ifdef HAVE_TEXT_CONVERSION`'s `bool reading_key_sequence;` (the macro is
    `#undef` on this target; carried per P-51).  C's `DEFVAR_BOOL` defines it and the definition
    has to carry the C symbol: another unit references it (PORTING.md P-313, status 4.722).  */
 #[cfg (feature = "have_text_conversion")]
 #[unsafe(no_mangle)]
-pub static mut reading_key_sequence: bool = false;
+pub static reading_key_sequence: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 /* C 122-126: `MIN_NUM_RECENT_KEYS` and the two arms of `MAX_NUM_RECENT_KEYS` (the frozen
    target has `INTPTR_MAX > INT_MAX`, so the `#else` arm is live).  The bodies of this macro
@@ -243,96 +242,96 @@ pub const MAX_NUM_RECENT_KEYS: c_int = c_int::MAX / EMACS_INT_WIDTH as c_int;
 pub const MAX_NUM_RECENT_KEYS: c_int = c_int::MAX / EMACS_INT_WIDTH as c_int / 10;
 
 /* C 128-141.  */
-static mut recent_keys_index: c_int = 0;
-static mut total_keys: c_int = 0;
-static mut lossage_limit: c_int = 3 * MIN_NUM_RECENT_KEYS;
-static mut recent_keys: Lisp_Object = lisp_h_Qnil ();
+static recent_keys_index: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
+static total_keys: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
+static lossage_limit: VmGlobal<c_int> = VmGlobal::<c_int>::new (3 * MIN_NUM_RECENT_KEYS);
+static recent_keys: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* C 152-154.  */
-static mut raw_keybuf: Lisp_Object = lisp_h_Qnil ();
-static mut raw_keybuf_count: c_int = 0;
+static raw_keybuf: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+static raw_keybuf_count: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 
 /* C 156-158: `GROW_RAW_KEYBUF`.  */
 macro_rules! GROW_RAW_KEYBUF { () => {
   /* C's `raw_keybuf_count` is `int` and `ASIZE` yields `ptrdiff_t`; the port's `c_int` and
      `isize` need the cast C's promotion performs implicitly.  */
-  if raw_keybuf_count as isize == ASIZE (raw_keybuf) {
-    raw_keybuf = larger_vector (raw_keybuf, 1, -1);
+  if (*raw_keybuf_count.as_mut_ptr ()) as isize == ASIZE ((*raw_keybuf.as_mut_ptr ())) {
+    (*raw_keybuf.as_mut_ptr ()) = larger_vector ((*raw_keybuf.as_mut_ptr ()), 1, -1);
   }
 } }
 
 /* C 162.  */
-static mut this_single_command_key_start: ptrdiff_t = 0;
+static this_single_command_key_start: VmGlobal<ptrdiff_t> = VmGlobal::<ptrdiff_t>::new (0);
 
 /* C 164-172: `#ifdef HAVE_STACK_OVERFLOW_HANDLING` is live (`1`), so both members are live.  */
 #[unsafe(no_mangle)]
-pub static mut return_to_command_loop: sigjmp_buf = [0; std::mem::size_of::<sigjmp_buf> ()];
-static mut recover_top_level_message: Lisp_Object = lisp_h_Qnil ();
+pub static return_to_command_loop: VmGlobal<sigjmp_buf> = VmGlobal::<sigjmp_buf>::new ([0; std::mem::size_of::<sigjmp_buf> ()]);
+static recover_top_level_message: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* C 174-175.  */
-static mut regular_top_level_message: Lisp_Object = lisp_h_Qnil ();
+static regular_top_level_message: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* C 177-179.  */
-static mut echoing: bool = false;
+static echoing: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 /* C 184: `static struct kboard *ok_to_echo_at_next_pause;`  */
-static mut ok_to_echo_at_next_pause: *mut kboard = std::ptr::null_mut ();
+static ok_to_echo_at_next_pause: VmGlobal<*mut kboard> = VmGlobal::<*mut kboard>::new (std::ptr::null_mut ());
 
 /* C 191: `struct kboard *echo_kboard;` (lisp.rs 3892 declares it in `other_units`, which is a
    glob import: the crate-root item here shadows it, PORTING.md P-21).  */
 #[unsafe(no_mangle)]
-pub static mut echo_kboard: *mut kboard = std::ptr::null_mut ();
+pub static echo_kboard: VmGlobal<*mut kboard> = VmGlobal::<*mut kboard>::new (std::ptr::null_mut ());
 
 /* C 196.  */
 #[unsafe(no_mangle)]
-pub static mut echo_message_buffer: Lisp_Object = lisp_h_Qnil ();
+pub static echo_message_buffer: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* C 217: `EMACS_INT command_loop_level;`  */
 #[unsafe(no_mangle)]
-pub static mut command_loop_level: EMACS_INT = 0;
+pub static command_loop_level: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);
 
 /* C 226.  */
-static mut unread_switch_frame: Lisp_Object = lisp_h_Qnil ();
+static unread_switch_frame: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* C 229: `static ptrdiff_t last_non_minibuf_size;`  */
-static mut last_non_minibuf_size: ptrdiff_t = 0;
+static last_non_minibuf_size: VmGlobal<ptrdiff_t> = VmGlobal::<ptrdiff_t>::new (0);
 
 /* C 237: `static intmax_t last_auto_save;`  */
-static mut last_auto_save: intmax_t = 0;
+static last_auto_save: VmGlobal<intmax_t> = VmGlobal::<intmax_t>::new (0);
 
 /* C 240: `static ptrdiff_t last_point_position;`  */
-static mut last_point_position: ptrdiff_t = 0;
+static last_point_position: VmGlobal<ptrdiff_t> = VmGlobal::<ptrdiff_t>::new (0);
 
 /* C 255-256.  */
-static mut read_key_sequence_cmd: Lisp_Object = lisp_h_Qnil ();
-static mut read_key_sequence_remapped: Lisp_Object = lisp_h_Qnil ();
+static read_key_sequence_cmd: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+static read_key_sequence_remapped: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* C 259: `static FILE *dribble;`  */
-static mut dribble: *mut FILE = std::ptr::null_mut ();
+static dribble: VmGlobal<*mut FILE> = VmGlobal::<*mut FILE>::new (std::ptr::null_mut ());
 
 /* C 262: `bool input_pending;` (lisp.rs 3893's `other_units` glob import is shadowed here).  */
 #[unsafe(no_mangle)]
-pub static mut input_pending: bool = false;
+pub static input_pending: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 /* C 340: `unsigned timers_run;`  */
 #[unsafe(no_mangle)]
-pub static mut timers_run: c_uint = 0;
+pub static timers_run: VmGlobal<c_uint> = VmGlobal::<c_uint>::new (0);
 
 /* C 348-351: `termopts.h`'s two objects (that header has no mirror: it declares only these,
    which this file defines).  */
 #[unsafe(no_mangle)]
-pub static mut interrupt_input: bool = false;
+pub static interrupt_input: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut interrupts_deferred: bool = false;
+pub static interrupts_deferred: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 /* C 355-361.  */
-static mut timer_idleness_start_time: timespec = timespec { tv_sec: 0, tv_nsec: 0 };
-static mut timer_last_idleness_start_time: timespec = timespec { tv_sec: 0, tv_nsec: 0 };
+static timer_idleness_start_time: VmGlobal<timespec> = VmGlobal::<timespec>::new (timespec { tv_sec: 0, tv_nsec: 0 });
+static timer_last_idleness_start_time: VmGlobal<timespec> = VmGlobal::<timespec>::new (timespec { tv_sec: 0, tv_nsec: 0 });
 
 /* C 364-369.  */
-static mut virtual_core_pointer_name: Lisp_Object = lisp_h_Qnil ();
-static mut virtual_core_keyboard_name: Lisp_Object = lisp_h_Qnil ();
-static mut menu_bar_touch_id: Lisp_Object = lisp_h_Qnil ();
+static virtual_core_pointer_name: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+static virtual_core_keyboard_name: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+static menu_bar_touch_id: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* C 372-377: the `readable_events` flags.  */
 pub const READABLE_EVENTS_DO_TIMERS_NOW: c_int = 1 << 0;
@@ -340,7 +339,7 @@ pub const READABLE_EVENTS_FILTER_EVENTS: c_int = 1 << 1;
 pub const READABLE_EVENTS_IGNORE_SQUEEZABLES: c_int = 1 << 2;
 
 /* C 380: `static void (*keyboard_init_hook) (void);`  */
-static mut keyboard_init_hook: Option<unsafe extern "C-unwind" fn ()> = None;
+static keyboard_init_hook: VmGlobal<Option<unsafe extern "C-unwind" fn ()>> = VmGlobal::<Option<unsafe extern "C-unwind" fn ()>>::new (None);
 
 /* C 321-323, 325-326, 379-410: the `static` prototypes are dropped (PORTING.md 0.1-12; they
    name `command_loop`, `echo_now`, `echo_length`, `read_char_x_menu_prompt`,
@@ -357,8 +356,8 @@ unsafe fn next_kbd_event (ptr: *mut buffered_input_event) -> *mut buffered_input
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  return if ptr == (&raw mut kbd_buffer as *mut buffered_input_event)
-              .add (KBD_BUFFER_SIZE as usize - 1) { &raw mut kbd_buffer as *mut buffered_input_event }
+  return if ptr == (kbd_buffer.as_mut_ptr () as *mut buffered_input_event)
+              .add (KBD_BUFFER_SIZE as usize - 1) { kbd_buffer.as_mut_ptr () as *mut buffered_input_event }
          else { ptr.add (1) };
 
   }
@@ -434,8 +433,8 @@ unsafe fn echo_keystrokes_p () -> bool
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  return if FLOATP (Vecho_keystrokes) { XFLOAT_DATA (Vecho_keystrokes) > 0.0 }
-         else if FIXNUMP (Vecho_keystrokes) { XFIXNUM (Vecho_keystrokes) > 0 }
+  return if FLOATP ((*Vecho_keystrokes.as_mut_ptr ())) { XFLOAT_DATA ((*Vecho_keystrokes.as_mut_ptr ())) > 0.0 }
+         else if FIXNUMP ((*Vecho_keystrokes.as_mut_ptr ())) { XFIXNUM ((*Vecho_keystrokes.as_mut_ptr ())) > 0 }
          else { false };
 
   }
@@ -682,21 +681,21 @@ unsafe extern "C" {
 }
 
 /// C: dispextern.h 3610: `extern bool display_working_on_window_p;`
-unsafe extern "C" { pub static mut display_working_on_window_p: bool; }
+unsafe extern "C" { pub static display_working_on_window_p: VmGlobal<bool>; }
 /// C: dispextern.h 3613: `extern bool help_echo_showing_p;`
-unsafe extern "C" { pub static mut help_echo_showing_p: bool; }
+unsafe extern "C" { pub static help_echo_showing_p: VmGlobal<bool>; }
 /// C: xdisp.c (dispextern.h 3565's `extern bool composition_break_at_point;`)
-unsafe extern "C" { pub static mut composition_break_at_point: bool; }
+unsafe extern "C" { pub static composition_break_at_point: VmGlobal<bool>; }
 
 /// C: lisp.h 4402: `extern void redisplay (void);`
 unsafe extern "C-unwind" { fn redisplay (); }
 /// C: dispnew.c's `bool redisplaying_p;` (dispextern.h 3508's `extern bool redisplaying_p;`)
-unsafe extern "C" { pub static mut redisplaying_p: bool; }
+unsafe extern "C" { pub static redisplaying_p: VmGlobal<bool>; }
 /// C: lisp.h 5148's `extern bool noninteractive;` is lisp.rs's; this is keyboard.c's own
 /// `multiple_terminals_merge_keyboards` (lisp.h 5124) and the two kbd-macro counters.
 unsafe extern "C" {
-  pub static mut executing_kbd_macro: Lisp_Object;
-  pub static mut executing_kbd_macro_iterations: EMACS_INT;
+  pub static executing_kbd_macro: VmGlobal<Lisp_Object>;
+  pub static executing_kbd_macro_iterations: VmGlobal<EMACS_INT>;
 }
 
 /* coding.h 408-440: `common_flags:14` is the low 14 bits of the mirror's `coding_system::bits`
@@ -732,20 +731,20 @@ macro_rules! window_bits {
    member this file names (the term.rs shape; `KVAR` is listed in docs/ports/excluded-macros.txt
    because its *body* cannot be mirrored, but each call site keeps C's tokens).  */
 macro_rules! KVAR {
-  ($kb:expr, Voverriding_terminal_local_map) => { (*$kb).Voverriding_terminal_local_map_ };
-  ($kb:expr, Vinput_decode_map) => { (*$kb).Vinput_decode_map_ };
-  ($kb:expr, Vkeyboard_translate_table) => { (*$kb).Vkeyboard_translate_table_ };
-  ($kb:expr, Vlast_command) => { (*$kb).Vlast_command_ };
-  ($kb:expr, Vlast_kbd_macro) => { (*$kb).Vlast_kbd_macro_ };
-  ($kb:expr, Vlast_prefix_arg) => { (*$kb).Vlast_prefix_arg_ };
-  ($kb:expr, Vlast_repeatable_command) => { (*$kb).Vlast_repeatable_command_ };
-  ($kb:expr, Vlocal_function_key_map) => { (*$kb).Vlocal_function_key_map_ };
-  ($kb:expr, Vprefix_arg) => { (*$kb).Vprefix_arg_ };
-  ($kb:expr, Vreal_last_command) => { (*$kb).Vreal_last_command_ };
-  ($kb:expr, Vsystem_key_alist) => { (*$kb).Vsystem_key_alist_ };
-  ($kb:expr, Vwindow_system) => { (*$kb).Vwindow_system_ };
-  ($kb:expr, Vdefault_minibuffer_frame) => { (*$kb).Vdefault_minibuffer_frame_ };
-  ($kb:expr, defining_kbd_macro) => { (*$kb).defining_kbd_macro_ };
+  ($kb:expr, (*Voverriding_terminal_local_map.as_mut_ptr ())) => { (*$kb).Voverriding_terminal_local_map_ };
+  ($kb:expr, (*Vinput_decode_map.as_mut_ptr ())) => { (*$kb).Vinput_decode_map_ };
+  ($kb:expr, (*Vkeyboard_translate_table.as_mut_ptr ())) => { (*$kb).Vkeyboard_translate_table_ };
+  ($kb:expr, (*Vlast_command.as_mut_ptr ())) => { (*$kb).Vlast_command_ };
+  ($kb:expr, (*Vlast_kbd_macro.as_mut_ptr ())) => { (*$kb).Vlast_kbd_macro_ };
+  ($kb:expr, (*Vlast_prefix_arg.as_mut_ptr ())) => { (*$kb).Vlast_prefix_arg_ };
+  ($kb:expr, (*Vlast_repeatable_command.as_mut_ptr ())) => { (*$kb).Vlast_repeatable_command_ };
+  ($kb:expr, (*Vlocal_function_key_map.as_mut_ptr ())) => { (*$kb).Vlocal_function_key_map_ };
+  ($kb:expr, (*Vprefix_arg.as_mut_ptr ())) => { (*$kb).Vprefix_arg_ };
+  ($kb:expr, (*Vreal_last_command.as_mut_ptr ())) => { (*$kb).Vreal_last_command_ };
+  ($kb:expr, (*Vsystem_key_alist.as_mut_ptr ())) => { (*$kb).Vsystem_key_alist_ };
+  ($kb:expr, (*Vwindow_system.as_mut_ptr ())) => { (*$kb).Vwindow_system_ };
+  ($kb:expr, (*Vdefault_minibuffer_frame.as_mut_ptr ())) => { (*$kb).Vdefault_minibuffer_frame_ };
+  ($kb:expr, (*defining_kbd_macro.as_mut_ptr ())) => { (*$kb).defining_kbd_macro_ };
   ($kb:expr, echo_prompt) => { (*$kb).echo_prompt_ };
   ($kb:expr, echo_string) => { (*$kb).echo_string_ };
   ($kb:expr, kbd_queue) => { (*$kb).kbd_queue_ };
@@ -781,7 +780,7 @@ unsafe fn echo_add_key (mut c: Lisp_Object)
   let mut size: ptrdiff_t = std::mem::size_of_val (&initbuf) as ptrdiff_t;
   let mut buffer: *mut c_char = initbuf.as_mut_ptr ();
   let mut ptr: *mut c_char = buffer;
-  let echo_string: Lisp_Object = KVAR! (current_kboard, echo_string);
+  let echo_string: Lisp_Object = KVAR! ((*current_kboard.as_mut_ptr ()), echo_string);
   USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
 
   if STRINGP (echo_string) && SCHARS (echo_string) > 0
@@ -824,7 +823,7 @@ unsafe fn echo_add_key (mut c: Lisp_Object)
       new_string = concat2 (new_string, str);
     }
 
-  kset_echo_string (current_kboard, concat2 (echo_string, new_string));
+  kset_echo_string ((*current_kboard.as_mut_ptr ()), concat2 (echo_string, new_string));
   SAFE_FREE! (sa_count, sa_mark);
 
   }
@@ -836,35 +835,35 @@ unsafe fn echo_dash ()
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
   /* Do nothing if not echoing at all.  */
-  if NILP (KVAR! (current_kboard, echo_string))
+  if NILP (KVAR! ((*current_kboard.as_mut_ptr ()), echo_string))
     { return; }
 
-  if !kboard_bits! (immediate_echo, current_kboard)
-      && SCHARS (KVAR! (current_kboard, echo_string)) == 0
+  if !kboard_bits! (immediate_echo, (*current_kboard.as_mut_ptr ()))
+      && SCHARS (KVAR! ((*current_kboard.as_mut_ptr ()), echo_string)) == 0
     { return; }
 
   /* Do nothing if we just printed a prompt.  */
-  if STRINGP (KVAR! (current_kboard, echo_prompt))
-      && (SCHARS (KVAR! (current_kboard, echo_prompt))
-	  == SCHARS (KVAR! (current_kboard, echo_string)))
+  if STRINGP (KVAR! ((*current_kboard.as_mut_ptr ()), echo_prompt))
+      && (SCHARS (KVAR! ((*current_kboard.as_mut_ptr ()), echo_prompt))
+	  == SCHARS (KVAR! ((*current_kboard.as_mut_ptr ()), echo_string)))
     { return; }
 
   /* Do nothing if we have already put a dash at the end.  */
-  if SCHARS (KVAR! (current_kboard, echo_string)) > 1
+  if SCHARS (KVAR! ((*current_kboard.as_mut_ptr ()), echo_string)) > 1
     {
       let mut last_char: Lisp_Object;
       let mut prev_char: Lisp_Object;
       let mut idx: Lisp_Object;
 
-      idx = make_fixnum (SCHARS (KVAR! (current_kboard, echo_string)) - 2);
-      prev_char = Faref (KVAR! (current_kboard, echo_string), idx);
+      idx = make_fixnum (SCHARS (KVAR! ((*current_kboard.as_mut_ptr ()), echo_string)) - 2);
+      prev_char = Faref (KVAR! ((*current_kboard.as_mut_ptr ()), echo_string), idx);
 
-      idx = make_fixnum (SCHARS (KVAR! (current_kboard, echo_string)) - 1);
-      last_char = Faref (KVAR! (current_kboard, echo_string), idx);
+      idx = make_fixnum (SCHARS (KVAR! ((*current_kboard.as_mut_ptr ()), echo_string)) - 1);
+      last_char = Faref (KVAR! ((*current_kboard.as_mut_ptr ()), echo_string), idx);
 
       if (XFIXNUM (last_char) == b'-' as EMACS_INT && XFIXNUM (prev_char) != b' ' as EMACS_INT)
 	  /* Or a keystroke help message.  */
-	  || (echo_keystrokes_help
+	  || ((*echo_keystrokes_help.as_mut_ptr ())
 	      && XFIXNUM (last_char) == b')' as EMACS_INT && XFIXNUM (prev_char) == b'p' as EMACS_INT)
 	{ return; }
     }
@@ -872,11 +871,11 @@ unsafe fn echo_dash ()
   /* Put a dash at the end of the buffer temporarily,
      but make it go away when the next character is added.  */
   AUTO_STRING! (dash, c"-".as_ptr ());
-  kset_echo_string (current_kboard, concat2 (KVAR! (current_kboard, echo_string), dash));
+  kset_echo_string ((*current_kboard.as_mut_ptr ()), concat2 (KVAR! ((*current_kboard.as_mut_ptr ()), echo_string), dash));
 
-  if echo_keystrokes_help
-    { kset_echo_string (current_kboard,
-			calln! (Qhelp__append_keystrokes_help (), KVAR! (current_kboard, echo_string))); }
+  if (*echo_keystrokes_help.as_mut_ptr ())
+    { kset_echo_string ((*current_kboard.as_mut_ptr ()),
+			calln! (Qhelp__append_keystrokes_help (), KVAR! ((*current_kboard.as_mut_ptr ()), echo_string))); }
 
   echo_now ();
 
@@ -888,20 +887,20 @@ unsafe fn echo_update ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  if kboard_bits! (immediate_echo, current_kboard)
+  if kboard_bits! (immediate_echo, (*current_kboard.as_mut_ptr ()))
     {
       let mut i: ptrdiff_t;
-      let prompt: Lisp_Object = KVAR! (current_kboard, echo_prompt);
+      let prompt: Lisp_Object = KVAR! ((*current_kboard.as_mut_ptr ()), echo_prompt);
       let prefix: Lisp_Object = call0 (Qinternal_echo_keystrokes_prefix ());
-      kset_echo_string (current_kboard,
+      kset_echo_string ((*current_kboard.as_mut_ptr ()),
 			if NILP (prompt) { prefix }
 			else if NILP (prefix) { prompt }
 			else { concat2 (prompt, prefix) });
 
       i = 0;
-      while i < this_command_key_count
+      while i < (*this_command_key_count.as_mut_ptr ())
 	{
-	  let c: Lisp_Object = AREF (this_command_keys, i);
+	  let c: Lisp_Object = AREF ((*this_command_keys.as_mut_ptr ()), i);
 	  if ! (EVENT_HAS_PARAMETERS (c)
 		&& EQ (EVENT_HEAD_KIND (EVENT_HEAD (c)), Qmouse_movement ()))
 	    { echo_add_key (c); }
@@ -919,26 +918,26 @@ unsafe fn echo_now ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  if !kboard_bits! (immediate_echo, current_kboard)
+  if !kboard_bits! (immediate_echo, (*current_kboard.as_mut_ptr ()))
       /* This test breaks calls that use `echo_now' to display the echo_prompt.
          && echo_keystrokes_p () */
     {
-      kboard_bits! (immediate_echo, current_kboard, true);
+      kboard_bits! (immediate_echo, (*current_kboard.as_mut_ptr ()), true);
       echo_update ();
       /* Put a dash at the end to invite the user to type more.  */
       echo_dash ();
     }
 
-  echoing = true;
+  (*echoing.as_mut_ptr ()) = true;
   /* FIXME: Use call (Qmessage) so it can be advised (e.g. emacspeak).  */
-  message3_nolog (KVAR! (current_kboard, echo_string));
-  echoing = false;
+  message3_nolog (KVAR! ((*current_kboard.as_mut_ptr ()), echo_string));
+  (*echoing.as_mut_ptr ()) = false;
 
   /* Record in what buffer we echoed, and from which kboard.  */
-  echo_message_buffer = echo_area_buffer[0];
-  echo_kboard = current_kboard;
+  (*echo_message_buffer.as_mut_ptr ()) = (*echo_area_buffer.as_mut_ptr ())[0];
+  (*echo_kboard.as_mut_ptr ()) = (*current_kboard.as_mut_ptr ());
 
-  if waiting_for_input! () && !NILP (Vquit_flag)
+  if waiting_for_input! () && !NILP ((*Vquit_flag.as_mut_ptr ()))
     { quit_throw_to_read_char (false); }
 
   }
@@ -950,12 +949,12 @@ pub unsafe extern "C-unwind" fn cancel_echoing ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  kboard_bits! (immediate_echo, current_kboard, false);
-  kset_echo_prompt (current_kboard, Qnil ());
-  kset_echo_string (current_kboard, Qnil ());
-  ok_to_echo_at_next_pause = std::ptr::null_mut ();
-  echo_kboard = std::ptr::null_mut ();
-  echo_message_buffer = Qnil ();
+  kboard_bits! (immediate_echo, (*current_kboard.as_mut_ptr ()), false);
+  kset_echo_prompt ((*current_kboard.as_mut_ptr ()), Qnil ());
+  kset_echo_string ((*current_kboard.as_mut_ptr ()), Qnil ());
+  (*ok_to_echo_at_next_pause.as_mut_ptr ()) = std::ptr::null_mut ();
+  (*echo_kboard.as_mut_ptr ()) = std::ptr::null_mut ();
+  (*echo_message_buffer.as_mut_ptr ()) = Qnil ();
 
   }
 }
@@ -965,8 +964,8 @@ unsafe fn echo_length () -> ptrdiff_t
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  return if STRINGP (KVAR! (current_kboard, echo_string))
-	 { SCHARS (KVAR! (current_kboard, echo_string)) }
+  return if STRINGP (KVAR! ((*current_kboard.as_mut_ptr ()), echo_string))
+	 { SCHARS (KVAR! ((*current_kboard.as_mut_ptr ()), echo_string)) }
 	 else { 0 };
 
   }
@@ -977,10 +976,10 @@ unsafe fn echo_truncate (nchars: ptrdiff_t)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  let es: Lisp_Object = KVAR! (current_kboard, echo_string);
+  let es: Lisp_Object = KVAR! ((*current_kboard.as_mut_ptr ()), echo_string);
   if STRINGP (es) && SCHARS (es) > nchars
-    { kset_echo_string (current_kboard,
-			Fsubstring (KVAR! (current_kboard, echo_string),
+    { kset_echo_string ((*current_kboard.as_mut_ptr ()),
+			Fsubstring (KVAR! ((*current_kboard.as_mut_ptr ()), echo_string),
 				    make_fixnum (0), make_fixnum (nchars))); }
   truncate_echo_area (nchars);
 
@@ -993,11 +992,11 @@ unsafe fn add_command_key (key: Lisp_Object)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  if this_command_key_count >= ASIZE (this_command_keys)
-    { this_command_keys = larger_vector (this_command_keys, 1, -1); }
+  if (*this_command_key_count.as_mut_ptr ()) >= ASIZE ((*this_command_keys.as_mut_ptr ()))
+    { (*this_command_keys.as_mut_ptr ()) = larger_vector ((*this_command_keys.as_mut_ptr ()), 1, -1); }
 
-  ASET (this_command_keys, this_command_key_count, key);
-  this_command_key_count += 1;
+  ASET ((*this_command_keys.as_mut_ptr ()), (*this_command_key_count.as_mut_ptr ()), key);
+  (*this_command_key_count.as_mut_ptr ()) += 1;
 
   }
 }
@@ -1011,7 +1010,7 @@ pub unsafe extern "C-unwind" fn recursive_edit_1 () -> Lisp_Object
   let count: specpdl_ref = SPECPDL_INDEX ();
   let mut val: Lisp_Object;
 
-  if command_loop_level > 0
+  if (*command_loop_level.as_mut_ptr ()) > 0
     {
       specbind (Qstandard_output (), Qt ());
       specbind (Qstandard_input (), Qt ());
@@ -1034,7 +1033,7 @@ pub unsafe extern "C-unwind" fn recursive_edit_1 () -> Lisp_Object
      recursive edit, the original redisplay leading to the recursive
      edit will be unwound.  The outcome should therefore be safe.  */
   specbind (Qinhibit_redisplay (), Qnil ());
-  redisplaying_p = false;
+  (*redisplaying_p.as_mut_ptr ()) = false;
 
   /* This variable stores buffers that have changed so that an undo
      boundary can be added. specbind this so that changes in the
@@ -1067,7 +1066,7 @@ pub unsafe extern "C-unwind" fn record_auto_save ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  last_auto_save = num_nonmacro_input_events as intmax_t;
+  (*last_auto_save.as_mut_ptr ()) = (*num_nonmacro_input_events.as_mut_ptr ()) as intmax_t;
 
   }
 }
@@ -1079,7 +1078,7 @@ pub unsafe extern "C-unwind" fn record_auto_save ()
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn force_auto_save_soon ()
 {
-  last_auto_save = - auto_save_interval - 1;
+  (*last_auto_save.as_mut_ptr ()) = - (*auto_save_interval.as_mut_ptr ()) - 1;
 }
 
 /* C 777-808: `DEFUN ("recursive-edit", …)`.  */
@@ -1095,8 +1094,8 @@ DEFUN! ("recursive-edit", Frecursive_edit, Srecursive_edit, 0, 0, "",
   if input_blocked_p ()
     { return Qnil (); }
 
-  if command_loop_level >= 0
-      && (current_buffer! ()) != XBUFFER ((*XWINDOW (selected_window)).contents)
+  if (*command_loop_level.as_mut_ptr ()) >= 0
+      && (current_buffer! ()) != XBUFFER ((*XWINDOW ((*selected_window.as_mut_ptr ()))).contents)
     { buffer = Fcurrent_buffer (); }
   else
     { buffer = Qnil (); }
@@ -1104,15 +1103,15 @@ DEFUN! ("recursive-edit", Frecursive_edit, Srecursive_edit, 0, 0, "",
   /* Don't do anything interesting between the increment and the
      record_unwind_protect!  Otherwise, we could get distracted and
      never decrement the counter again.  */
-  command_loop_level += 1;
-  update_mode_lines = 17;
+  (*command_loop_level.as_mut_ptr ()) += 1;
+  (*update_mode_lines.as_mut_ptr ()) = 17;
   record_unwind_protect (Some (recursive_edit_unwind), buffer);
 
   /* If we leave recursive_edit_1 below with a `throw' for instance,
      like it is done in the splash screen display, we have to
      make sure that we restore single_kboard as command_loop_1
      would have done if it were left normally.  */
-  if command_loop_level > 0 && !multiple_terminals_merge_keyboards
+  if (*command_loop_level.as_mut_ptr ()) > 0 && !(*multiple_terminals_merge_keyboards.as_mut_ptr ())
     { temporarily_switch_to_single_kboard (SELECTED_FRAME ()); }
 
   recursive_edit_1 ();
@@ -1128,8 +1127,8 @@ unsafe extern "C-unwind" fn recursive_edit_unwind (buffer: Lisp_Object)
   if BUFFERP (buffer)
     { Fset_buffer (buffer); }
 
-  command_loop_level -= 1;
-  update_mode_lines = 18;
+  (*command_loop_level.as_mut_ptr ()) -= 1;
+  (*update_mode_lines.as_mut_ptr ()) = 18;
 
   }
 }
@@ -1140,8 +1139,8 @@ pub unsafe extern "C-unwind" fn not_single_kboard_state (kboard: *mut KBOARD)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  if kboard == current_kboard
-    { single_kboard = false; }
+  if kboard == (*current_kboard.as_mut_ptr ())
+    { (*single_kboard.as_mut_ptr ()) = false; }
 
   }
 }
@@ -1156,7 +1155,7 @@ pub struct kboard_stack
 }
 
 /* C 843: `static struct kboard_stack *kboard_stack;`  */
-static mut kboard_stack: *mut kboard_stack = std::ptr::null_mut ();
+static kboard_stack: VmGlobal<*mut kboard_stack> = VmGlobal::<*mut kboard_stack>::new (std::ptr::null_mut ());
 
 /* C 845-858.  */
 #[unsafe(no_mangle)]
@@ -1166,11 +1165,11 @@ pub unsafe extern "C-unwind" fn push_kboard (k: *mut kboard)
   unsafe {
   let p: *mut kboard_stack = xmalloc (std::mem::size_of::<kboard_stack> ()) as *mut kboard_stack;
 
-  (*p).next = kboard_stack;
-  (*p).kboard = current_kboard;
-  kboard_stack = p;
+  (*p).next = (*kboard_stack.as_mut_ptr ());
+  (*p).kboard = (*current_kboard.as_mut_ptr ());
+  (*kboard_stack.as_mut_ptr ()) = p;
 
-  current_kboard = k;
+  (*current_kboard.as_mut_ptr ()) = k;
 
   }
 }
@@ -1182,14 +1181,14 @@ pub unsafe extern "C-unwind" fn pop_kboard ()
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
   let mut t: *mut terminal;
-  let p: *mut kboard_stack = kboard_stack;
+  let p: *mut kboard_stack = (*kboard_stack.as_mut_ptr ());
   let mut found: bool = false;
-  t = terminal_list;
+  t = (*terminal_list.as_mut_ptr ());
   while !t.is_null ()
     {
       if (*t).kboard == (*p).kboard as *mut c_void
 	{
-	  current_kboard = (*p).kboard;
+	  (*current_kboard.as_mut_ptr ()) = (*p).kboard;
 	  found = true;
 	  break;
 	}
@@ -1198,10 +1197,10 @@ pub unsafe extern "C-unwind" fn pop_kboard ()
   if !found
     {
       /* The terminal we remembered has been deleted.  */
-      current_kboard = FRAME_KBOARD (SELECTED_FRAME ()) as *mut KBOARD;
-      single_kboard = false;
+      (*current_kboard.as_mut_ptr ()) = FRAME_KBOARD (SELECTED_FRAME ()) as *mut KBOARD;
+      (*single_kboard.as_mut_ptr ()) = false;
     }
-  kboard_stack = (*p).next;
+  (*kboard_stack.as_mut_ptr ()) = (*p).next;
   xfree (p as *mut c_void);
 
   }
@@ -1228,10 +1227,10 @@ pub unsafe extern "C-unwind" fn pop_kboard ()
   {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-    let was_locked: bool = single_kboard;
+    let was_locked: bool = (*single_kboard.as_mut_ptr ());
     if was_locked
       {
-        if !f.is_null () && FRAME_KBOARD (f) as *mut KBOARD != current_kboard
+        if !f.is_null () && FRAME_KBOARD (f) as *mut KBOARD != (*current_kboard.as_mut_ptr ())
   	/* We can not switch keyboards while in single_kboard mode.
   	   In rare cases, Lisp code may call `recursive-edit' (or
   	   `read-minibuffer' or `y-or-n-p') after it switched to a
@@ -1245,11 +1244,11 @@ pub unsafe extern "C-unwind" fn pop_kboard ()
   	/* This call is unnecessary, but helps
   	   `restore_kboard_configuration' discover if somebody changed
   	   `current_kboard' behind our back.  */
-  	{ push_kboard (current_kboard); }
+  	{ push_kboard ((*current_kboard.as_mut_ptr ())); }
       }
     else if !f.is_null ()
-      { current_kboard = FRAME_KBOARD (f) as *mut KBOARD; }
-    single_kboard = true;
+      { (*current_kboard.as_mut_ptr ()) = FRAME_KBOARD (f) as *mut KBOARD; }
+    (*single_kboard.as_mut_ptr ()) = true;
     record_unwind_protect_int (Some (restore_kboard_configuration), was_locked as c_int);
   
   }
@@ -1260,13 +1259,13 @@ unsafe extern "C-unwind" fn restore_kboard_configuration (was_locked: c_int)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  single_kboard = was_locked != 0;
-  if single_kboard
+  (*single_kboard.as_mut_ptr ()) = was_locked != 0;
+  if (*single_kboard.as_mut_ptr ())
     {
-      let prev: *mut kboard = current_kboard;
+      let prev: *mut kboard = (*current_kboard.as_mut_ptr ());
       pop_kboard ();
       /* The pop should not change the kboard.  */
-      if single_kboard && current_kboard != prev
+      if (*single_kboard.as_mut_ptr ()) && (*current_kboard.as_mut_ptr ()) != prev
 	{ emacs_abort (); }
     }
 
@@ -1293,16 +1292,16 @@ unsafe extern "C-unwind" fn cmd_error (data: Lisp_Object) -> Lisp_Object
   /* C 951-955: `#ifdef HAVE_WINDOW_SYSTEM`'s `if (display_hourglass_p) cancel_hourglass ();`
      (carried per P-51).  */
   #[cfg (feature = "have_window_system")]
-  if display_hourglass_p { cancel_hourglass (); }
+  if (*display_hourglass_p.as_mut_ptr ()) { cancel_hourglass (); }
 
-  if !NILP (executing_kbd_macro)
+  if !NILP ((*executing_kbd_macro.as_mut_ptr ()))
     {
-      if executing_kbd_macro_iterations == 1
+      if (*executing_kbd_macro_iterations.as_mut_ptr ()) == 1
 	{ sprintf (macroerror.as_mut_ptr (), c"After 1 kbd macro iteration: ".as_ptr ()); }
       else
 	{ sprintf (macroerror.as_mut_ptr (),
 		   c"After %ld kbd macro iterations: ".as_ptr (),
-		   executing_kbd_macro_iterations); }
+		   (*executing_kbd_macro_iterations.as_mut_ptr ())); }
     }
   else
     { macroerror[0] = 0; }
@@ -1310,31 +1309,31 @@ unsafe extern "C-unwind" fn cmd_error (data: Lisp_Object) -> Lisp_Object
   conditions = Fget (XCAR (data), Qerror_conditions ());
   if NILP (Fmemq (Qminibuffer_quit (), conditions))
     {
-      Vexecuting_kbd_macro = Qnil ();
-      executing_kbd_macro = Qnil ();
+      (*Vexecuting_kbd_macro.as_mut_ptr ()) = Qnil ();
+      (*executing_kbd_macro.as_mut_ptr ()) = Qnil ();
     }
-  else if !NILP (KVAR! (current_kboard, defining_kbd_macro))
+  else if !NILP (KVAR! ((*current_kboard.as_mut_ptr ()), (*defining_kbd_macro.as_mut_ptr ())))
     /* An `M-x' command that signals a `minibuffer-quit' condition
        that's part of a kbd macro.  */
     { finalize_kbd_macro_chars (); }
 
   specbind (Qstandard_output (), Qt ());
   specbind (Qstandard_input (), Qt ());
-  kset_prefix_arg (current_kboard, Qnil ());
-  kset_last_prefix_arg (current_kboard, Qnil ());
+  kset_prefix_arg ((*current_kboard.as_mut_ptr ()), Qnil ());
+  kset_last_prefix_arg ((*current_kboard.as_mut_ptr ()), Qnil ());
   cancel_echoing ();
 
   /* Avoid unquittable loop if data contains a circular list.  */
-  old_level = Vprint_level;
-  old_length = Vprint_length;
-  XSETFASTINT! (Vprint_level, 10);
-  XSETFASTINT! (Vprint_length, 10);
+  old_level = (*Vprint_level.as_mut_ptr ());
+  old_length = (*Vprint_length.as_mut_ptr ());
+  XSETFASTINT! ((*Vprint_level.as_mut_ptr ()), 10);
+  XSETFASTINT! ((*Vprint_length.as_mut_ptr ()), 10);
   cmd_error_internal (data, macroerror.as_ptr ());
-  Vprint_level = old_level;
-  Vprint_length = old_length;
+  (*Vprint_level.as_mut_ptr ()) = old_level;
+  (*Vprint_length.as_mut_ptr ()) = old_length;
 
-  Vquit_flag = Qnil ();
-  Vinhibit_quit = Qnil ();
+  (*Vquit_flag.as_mut_ptr ()) = Qnil ();
+  (*Vinhibit_quit.as_mut_ptr ()) = Qnil ();
 
   unbind_to (count, Qnil ());
   return make_fixnum (0);
@@ -1358,18 +1357,18 @@ pub unsafe extern "C-unwind" fn cmd_error_internal (data: Lisp_Object, context: 
   /* The immediate context is not interesting for Quits,
      since they are asynchronous.  */
   if signal_quit_p (data)
-    { Vsignaling_function = Qnil (); }
+    { (*Vsignaling_function.as_mut_ptr ()) = Qnil (); }
 
-  Vquit_flag = Qnil ();
-  Vinhibit_quit = Qt ();
+  (*Vquit_flag.as_mut_ptr ()) = Qnil ();
+  (*Vinhibit_quit.as_mut_ptr ()) = Qt ();
 
   /* Use user's specified output function if any.  */
-  if !NILP (Vcommand_error_function)
-    { calln! (Vcommand_error_function, data,
-	      if !context.is_null () { build_string (context) } else { empty_unibyte_string },
-	      Vsignaling_function); }
+  if !NILP ((*Vcommand_error_function.as_mut_ptr ()))
+    { calln! ((*Vcommand_error_function.as_mut_ptr ()), data,
+	      if !context.is_null () { build_string (context) } else { (*empty_unibyte_string.as_mut_ptr ()) },
+	      (*Vsignaling_function.as_mut_ptr ())); }
 
-  Vsignaling_function = Qnil ();
+  (*Vsignaling_function.as_mut_ptr ()) = Qnil ();
 
   }
 }
@@ -1402,7 +1401,7 @@ DEFUN! ("command-error-default-function", Fcommand_error_default_function, Scomm
 	     that case, as long as the daemon has actually finished
 	     initialization. */
 	  || (!(IS_DAEMON () && !DAEMON_RUNNING ()) && FRAME_INITIAL_P (sf))
-	  || noninteractive)
+	  || (*noninteractive.as_mut_ptr ()))
     {
       print_error_message (data, Qexternal_debugging_output (), SSDATA (context), signal);
       Fterpri (Qexternal_debugging_output (), Qnil ());
@@ -1446,7 +1445,7 @@ unsafe extern "C-unwind" fn command_loop () -> Lisp_Object
   // SAFETY (U3 boundary audit): `return_to_command_loop` is solely the OS hardware `SIGSEGV`
   // stack-overflow recovery target (`sysdep.rs::handle_sigsegv`), never used for Lisp `signal`,
   // `throw`, or `quit`.
-  if sigsetjmp (&raw mut return_to_command_loop as *mut c_void, 1) != 0
+  if sigsetjmp (return_to_command_loop.as_mut_ptr () as *mut c_void, 1) != 0
     {
       /* Comes here from handle_sigsegv (see sysdep.c) and
 	 stack_overflow_handler (see w32fns.c).  */
@@ -1455,15 +1454,15 @@ unsafe extern "C-unwind" fn command_loop () -> Lisp_Object
       #[cfg (feature = "windowsnt")]
       { w32_reset_stack_overflow_guard (); }
       init_eval ();
-      Vinternal__top_level_message = recover_top_level_message;
+      (*Vinternal__top_level_message.as_mut_ptr ()) = (*recover_top_level_message.as_mut_ptr ());
     }
   else
-    { Vinternal__top_level_message = regular_top_level_message; }
-  if command_loop_level > 0 || minibuf_level > 0
+    { (*Vinternal__top_level_message.as_mut_ptr ()) = (*regular_top_level_message.as_mut_ptr ()); }
+  if (*command_loop_level.as_mut_ptr ()) > 0 || (*minibuf_level.as_mut_ptr ()) > 0
     {
       let val: Lisp_Object;
       val = internal_catch (Qexit (), command_loop_2, Qerror ());
-      executing_kbd_macro = Qnil ();
+      (*executing_kbd_macro.as_mut_ptr ()) = Qnil ();
       return val;
     }
   else
@@ -1472,10 +1471,10 @@ unsafe extern "C-unwind" fn command_loop () -> Lisp_Object
 	{
 	  internal_catch (Qtop_level (), top_level_1, Qnil ());
 	  internal_catch (Qtop_level (), command_loop_2, Qerror ());
-	  executing_kbd_macro = Qnil ();
+	  (*executing_kbd_macro.as_mut_ptr ()) = Qnil ();
 
 	  /* End of file in -batch run causes exit here.  */
-	  if noninteractive
+	  if (*noninteractive.as_mut_ptr ())
 	    { Fkill_emacs (Qt (), Qnil ()); }
 	}
     }
@@ -1515,12 +1514,12 @@ unsafe extern "C-unwind" fn top_level_2 () -> Lisp_Object
   unsafe {
   /* If we're in batch mode, print a backtrace unconditionally when
      encountering an error, to help with debugging.  */
-  let setup_handler: bool = noninteractive;
+  let setup_handler: bool = (*noninteractive.as_mut_ptr ());
   if setup_handler
     /* FIXME: Should we (re)use `list_of_error` from `xdisp.c`? */
     { push_handler_bind (list1 (Qerror ()), Qdebug_early__handler (), 0); }
 
-  let res: Lisp_Object = Feval (Vtop_level, Qt ());
+  let res: Lisp_Object = Feval ((*Vtop_level.as_mut_ptr ()), Qt ());
 
   if setup_handler
     { pop_handler (); }
@@ -1535,9 +1534,9 @@ unsafe extern "C-unwind" fn top_level_1 (ignore: Lisp_Object) -> Lisp_Object
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
   /* On entry to the outer level, run the startup file.  */
-  if !NILP (Vtop_level)
+  if !NILP ((*Vtop_level.as_mut_ptr ()))
     { internal_condition_case (top_level_2, Qerror (), cmd_error); }
-  else if !NILP (Vpurify_flag)
+  else if !NILP ((*Vpurify_flag.as_mut_ptr ()))
     { message1 (c"Bare impure Emacs (standard Lisp code not loaded)".as_ptr ()); }
   else
     { message1 (c"Bare Emacs (standard Lisp code not loaded)".as_ptr ()); }
@@ -1555,7 +1554,7 @@ DEFUN! ("top-level", Ftop_level, Stop_level, 0, 0, "",
   /* C 1205-1208: `#ifdef HAVE_WINDOW_SYSTEM`'s `if (display_hourglass_p) cancel_hourglass ();`
      (carried per P-51).  */
   #[cfg (feature = "have_window_system")]
-  if display_hourglass_p { cancel_hourglass (); }
+  if (*display_hourglass_p.as_mut_ptr ()) { cancel_hourglass (); }
 
   /* Unblock input if we enter with input blocked.  This may happen if
      redisplay traps e.g. during tool-bar update with input blocked.  */
@@ -1580,7 +1579,7 @@ DEFUN! ("exit-recursive-edit", Fexit_recursive_edit, Sexit_recursive_edit, 0, 0,
        attributes: noreturn,
        (),
        {
-  if command_loop_level > 0 || minibuf_level > 0
+  if (*command_loop_level.as_mut_ptr ()) > 0 || (*minibuf_level.as_mut_ptr ()) > 0
     { Fthrow (Qexit (), Qnil ()); }
 
   user_error (c"No recursive edit is in progress".as_ptr ());
@@ -1592,7 +1591,7 @@ DEFUN! ("abort-recursive-edit", Fabort_recursive_edit, Sabort_recursive_edit, 0,
        attributes: noreturn,
        (),
        {
-  if command_loop_level > 0 || minibuf_level > 0
+  if (*command_loop_level.as_mut_ptr ()) > 0 || (*minibuf_level.as_mut_ptr ()) > 0
     { Fthrow (Qexit (), Qt ()); }
 
   user_error (c"No recursive edit is in progress".as_ptr ());
@@ -1605,7 +1604,7 @@ unsafe extern "C-unwind" fn tracking_off (old_track_mouse: Lisp_Object)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  track_mouse = old_track_mouse;
+  (*track_mouse.as_mut_ptr ()) = old_track_mouse;
   if NILP (old_track_mouse)
     {
       /* Redisplay may have been preempted because there was input
@@ -1631,9 +1630,9 @@ DEFUN! ("internal--track-mouse", Finternal_track_mouse, Sinternal_track_mouse, 1
   let count: specpdl_ref = SPECPDL_INDEX ();
   let val: Lisp_Object;
 
-  record_unwind_protect (Some (tracking_off), track_mouse);
+  record_unwind_protect (Some (tracking_off), (*track_mouse.as_mut_ptr ()));
 
-  track_mouse = Qt ();
+  (*track_mouse.as_mut_ptr ()) = Qt ();
 
   val = call0 (bodyfun);
   return unbind_to (count, val);
@@ -1652,7 +1651,7 @@ unsafe fn some_mouse_moved () -> *mut frame
   let mut tail: Lisp_Object;
   let mut frame_: Lisp_Object;
 
-  if NILP (track_mouse) || ignore_mouse_drag_p
+  if NILP ((*track_mouse.as_mut_ptr ())) || (*ignore_mouse_drag_p.as_mut_ptr ())
     { return std::ptr::null_mut (); }
 
   FOR_EACH_FRAME! (tail, frame_,
@@ -1682,79 +1681,79 @@ unsafe extern "C-unwind" fn command_loop_1 () -> Lisp_Object
      trailing underscore the token comparison strips (PORTING.md 0.2's `echo_string_` shape).  */
   let mut prev_buffer_: *mut buffer = std::ptr::null_mut ();
 
-  kset_prefix_arg (current_kboard, Qnil ());
-  kset_last_prefix_arg (current_kboard, Qnil ());
-  Vdeactivate_mark = Qnil ();
+  kset_prefix_arg ((*current_kboard.as_mut_ptr ()), Qnil ());
+  kset_last_prefix_arg ((*current_kboard.as_mut_ptr ()), Qnil ());
+  (*Vdeactivate_mark.as_mut_ptr ()) = Qnil ();
   waiting_for_input! () = false;
   cancel_echoing ();
 
-  this_command_key_count = 0;
-  this_single_command_key_start = 0;
+  (*this_command_key_count.as_mut_ptr ()) = 0;
+  (*this_single_command_key_start.as_mut_ptr ()) = 0;
 
-  if NILP (Vmemory_full)
+  if NILP ((*Vmemory_full.as_mut_ptr ()))
     {
       /* Make sure this hook runs after commands that get errors and
 	 throw to top level.  */
       /* Note that the value cell will never directly contain nil
 	 if the symbol is a local variable.  */
-      if !NILP (Vpost_command_hook) && !NILP (Vrun_hooks)
-	{ safe_run_hooks_maybe_narrowed (Qpost_command_hook (), XWINDOW (selected_window)); }
+      if !NILP ((*Vpost_command_hook.as_mut_ptr ())) && !NILP ((*Vrun_hooks.as_mut_ptr ()))
+	{ safe_run_hooks_maybe_narrowed (Qpost_command_hook (), XWINDOW ((*selected_window.as_mut_ptr ()))); }
 
       /* If displaying a message, resize the echo area window to fit
 	 that message's size exactly.  */
-      if !NILP (echo_area_buffer[0])
+      if !NILP ((*echo_area_buffer.as_mut_ptr ())[0])
 	{ resize_echo_area_exactly (); }
 
       /* If there are warnings waiting, process them.  */
-      if !NILP (Vdelayed_warnings_list)
+      if !NILP ((*Vdelayed_warnings_list.as_mut_ptr ()))
 	{ safe_run_hooks (Qdelayed_warnings_hook ()); }
     }
 
   /* Do this after running Vpost_command_hook, for consistency.  */
-  kset_last_command (current_kboard, Vthis_command);
-  kset_real_last_command (current_kboard, Vreal_this_command);
-  if !CONSP (last_command_event)
-    { kset_last_repeatable_command (current_kboard, Vreal_this_command); }
+  kset_last_command ((*current_kboard.as_mut_ptr ()), (*Vthis_command.as_mut_ptr ()));
+  kset_real_last_command ((*current_kboard.as_mut_ptr ()), (*Vreal_this_command.as_mut_ptr ()));
+  if !CONSP ((*last_command_event.as_mut_ptr ()))
+    { kset_last_repeatable_command ((*current_kboard.as_mut_ptr ()), (*Vreal_this_command.as_mut_ptr ())); }
 
   loop
     {
     'finalize: {
       let mut cmd: Lisp_Object;
 
-      if !FRAME_LIVE_P (XFRAME (selected_frame))
+      if !FRAME_LIVE_P (XFRAME ((*selected_frame.as_mut_ptr ())))
 	{ Fkill_emacs (Qnil (), Qnil ()); }
 
       /* Make sure the current window's buffer is selected.  */
-      set_buffer_internal (XBUFFER ((*XWINDOW (selected_window)).contents));
+      set_buffer_internal (XBUFFER ((*XWINDOW ((*selected_window.as_mut_ptr ()))).contents));
 
       /* Display any malloc warning that just came out.  Use while because
 	 displaying one warning can cause another.  */
 
-      while !pending_malloc_warning.is_null ()
+      while !(*pending_malloc_warning.as_mut_ptr ()).is_null ()
 	{ display_malloc_warning (); }
 
-      Vdeactivate_mark = Qnil ();
+      (*Vdeactivate_mark.as_mut_ptr ()) = Qnil ();
 
       /* Don't ignore mouse movements for more than a single command
 	 loop.  (This flag is set in xdisp.c whenever the tool bar is
 	 resized, because the resize moves text up or down, and would
 	 generate false mouse drag events if we don't ignore them.)  */
-      ignore_mouse_drag_p = false;
+      (*ignore_mouse_drag_p.as_mut_ptr ()) = false;
 
       /* If minibuffer on and echo area in use,
 	 wait a short time and redraw minibuffer.  */
 
-      if minibuf_level != 0
-	  && !NILP (echo_area_buffer[0])
-	  && BASE_EQ (minibuf_window, echo_area_window)
-	  && NUMBERP (Vminibuffer_message_timeout)
+      if (*minibuf_level.as_mut_ptr ()) != 0
+	  && !NILP ((*echo_area_buffer.as_mut_ptr ())[0])
+	  && BASE_EQ ((*minibuf_window.as_mut_ptr ()), (*echo_area_window.as_mut_ptr ()))
+	  && NUMBERP ((*Vminibuffer_message_timeout.as_mut_ptr ()))
 	{
 	  /* Bind inhibit-quit to t so that C-g gets read in
 	     rather than quitting back to the minibuffer.  */
 	  let count: specpdl_ref = SPECPDL_INDEX ();
 	  specbind (Qinhibit_quit (), Qt ());
 
-	  sit_for (Vminibuffer_message_timeout, false, 2);
+	  sit_for ((*Vminibuffer_message_timeout.as_mut_ptr ()), false, 2);
 
 	  /* Clear the echo area.  */
 	  message1 (std::ptr::null ());
@@ -1763,35 +1762,35 @@ unsafe extern "C-unwind" fn command_loop_1 () -> Lisp_Object
 	  /* We cleared the echo area, and the minibuffer will now
 	     show, so resize the mini-window in case the minibuffer
 	     needs more or less space than the echo area.  */
-	  resize_mini_window (XWINDOW (minibuf_window), false);
+	  resize_mini_window (XWINDOW ((*minibuf_window.as_mut_ptr ())), false);
 
 	  unbind_to (count, Qnil ());
 
 	  /* If a C-g came in before, treat it as input now.  */
-	  if !NILP (Vquit_flag)
+	  if !NILP ((*Vquit_flag.as_mut_ptr ()))
 	    {
-	      Vquit_flag = Qnil ();
-	      Vunread_command_events = list1i (quit_char as EMACS_INT);
+	      (*Vquit_flag.as_mut_ptr ()) = Qnil ();
+	      (*Vunread_command_events.as_mut_ptr ()) = list1i ((*quit_char.as_mut_ptr ()) as EMACS_INT);
 	    }
 	}
 
-      Vthis_command = Qnil ();
-      Vreal_this_command = Qnil ();
-      Vthis_original_command = Qnil ();
-      Vthis_command_keys_shift_translated = Qnil ();
+      (*Vthis_command.as_mut_ptr ()) = Qnil ();
+      (*Vreal_this_command.as_mut_ptr ()) = Qnil ();
+      (*Vthis_original_command.as_mut_ptr ()) = Qnil ();
+      (*Vthis_command_keys_shift_translated.as_mut_ptr ()) = Qnil ();
 
       /* Read next key sequence; i gets its length.  */
-      raw_keybuf_count = 0;
+      (*raw_keybuf_count.as_mut_ptr ()) = 0;
       let mut keybuf: [Lisp_Object; READ_KEY_ELTS as usize] = [lisp_h_Qnil (); READ_KEY_ELTS as usize];
       let i: c_int = read_key_sequence (keybuf.as_mut_ptr (), Qnil (), false, true, true, false,
 					false);
 
       /* A filter may have run while we were reading the input.  */
-      if !FRAME_LIVE_P (XFRAME (selected_frame))
+      if !FRAME_LIVE_P (XFRAME ((*selected_frame.as_mut_ptr ())))
 	{ Fkill_emacs (Qnil (), Qnil ()); }
-      set_buffer_internal (XBUFFER ((*XWINDOW (selected_window)).contents));
+      set_buffer_internal (XBUFFER ((*XWINDOW ((*selected_window.as_mut_ptr ()))).contents));
 
-      num_input_keys += 1;
+      (*num_input_keys.as_mut_ptr ()) += 1;
 
       /* Now we have read a key sequence of length I,
 	 or else I is 0 and we found end of file.  */
@@ -1803,35 +1802,35 @@ unsafe extern "C-unwind" fn command_loop_1 () -> Lisp_Object
       if i == -1
 	{
 	  cancel_echoing ();
-	  this_command_key_count = 0;
-	  this_single_command_key_start = 0;
+	  (*this_command_key_count.as_mut_ptr ()) = 0;
+	  (*this_single_command_key_start.as_mut_ptr ()) = 0;
 	  /* C 1465: `goto finalize;` — the port breaks out of the labelled block whose tail is
 	     C's `finalize:` label (PORTING.md 2.2's forward-goto shape).  */
 	  break 'finalize;
 	}
 
-      last_command_event = keybuf[(i - 1) as usize];
+      (*last_command_event.as_mut_ptr ()) = keybuf[(i - 1) as usize];
 
       /* If the previous command tried to force a specific window-start,
 	 forget about that, in case this command moves point far away
 	 from that position.  But also throw away beg_unchanged and
 	 end_unchanged information in that case, so that redisplay will
 	 update the whole window properly.  */
-      if window_bits! (force_start, XWINDOW (selected_window))
+      if window_bits! (force_start, XWINDOW ((*selected_window.as_mut_ptr ())))
 	{
 	  let mut b: *mut buffer;
-	  window_bits! (force_start, XWINDOW (selected_window), false);
-	  b = XBUFFER ((*XWINDOW (selected_window)).contents);
+	  window_bits! (force_start, XWINDOW ((*selected_window.as_mut_ptr ())), false);
+	  b = XBUFFER ((*XWINDOW ((*selected_window.as_mut_ptr ()))).contents);
 	  BUF_BEG_UNCHANGED! (b) = 0;
 	  BUF_END_UNCHANGED! (b) = 0;
 	}
 
-      cmd = read_key_sequence_cmd;
-      if !NILP (Vexecuting_kbd_macro)
+      cmd = (*read_key_sequence_cmd.as_mut_ptr ());
+      if !NILP ((*Vexecuting_kbd_macro.as_mut_ptr ()))
 	{
-	  if !NILP (Vquit_flag)
+	  if !NILP ((*Vquit_flag.as_mut_ptr ()))
 	    {
-	      Vexecuting_kbd_macro = Qt ();
+	      (*Vexecuting_kbd_macro.as_mut_ptr ()) = Qt ();
 	      maybe_quit ();	/* Make some noise.  */
 				/* Will return since macro now empty.  */
 	    }
@@ -1841,39 +1840,39 @@ unsafe extern "C-unwind" fn command_loop_1 () -> Lisp_Object
 	 cases identified below.  */
       prev_buffer_ = (current_buffer! ());
       prev_modiff = MODIFF! ();
-      last_point_position = PT! ();
+      (*last_point_position.as_mut_ptr ()) = PT! ();
       let last_pt: ptrdiff_t = PT! ();
 
       /* By default, we adjust point to a boundary of a region that
          has such a property that should be treated intangible
          (e.g. composition, display).  But, some commands will set
          this variable differently.  */
-      Vdisable_point_adjustment = Qnil ();
+      (*Vdisable_point_adjustment.as_mut_ptr ()) = Qnil ();
 
       /* Process filters and timers may have messed with deactivate-mark.
 	 reset it before we execute the command.  */
-      Vdeactivate_mark = Qnil ();
+      (*Vdeactivate_mark.as_mut_ptr ()) = Qnil ();
 
       /* Remap command through active keymaps.  */
-      Vthis_original_command = cmd;
-      if !NILP (read_key_sequence_remapped)
-	{ cmd = read_key_sequence_remapped; }
+      (*Vthis_original_command.as_mut_ptr ()) = cmd;
+      if !NILP ((*read_key_sequence_remapped.as_mut_ptr ()))
+	{ cmd = (*read_key_sequence_remapped.as_mut_ptr ()); }
 
       /* Execute the command.  */
 
       {
-	total_keys += if total_keys < lossage_limit { 1 } else { 0 };
-	ASET (recent_keys, recent_keys_index as isize, Fcons (Qnil (), cmd));
-	recent_keys_index += 1;
-	if recent_keys_index >= lossage_limit
-	  { recent_keys_index = 0; }
+	(*total_keys.as_mut_ptr ()) += if (*total_keys.as_mut_ptr ()) < (*lossage_limit.as_mut_ptr ()) { 1 } else { 0 };
+	ASET ((*recent_keys.as_mut_ptr ()), (*recent_keys_index.as_mut_ptr ()) as isize, Fcons (Qnil (), cmd));
+	(*recent_keys_index.as_mut_ptr ()) += 1;
+	if (*recent_keys_index.as_mut_ptr ()) >= (*lossage_limit.as_mut_ptr ())
+	  { (*recent_keys_index.as_mut_ptr ()) = 0; }
       }
-      Vthis_command = cmd;
-      Vreal_this_command = cmd;
+      (*Vthis_command.as_mut_ptr ()) = cmd;
+      (*Vreal_this_command.as_mut_ptr ()) = cmd;
 
-      safe_run_hooks_maybe_narrowed (Qpre_command_hook (), XWINDOW (selected_window));
+      safe_run_hooks_maybe_narrowed (Qpre_command_hook (), XWINDOW ((*selected_window.as_mut_ptr ())));
 
-      if NILP (Vthis_command)
+      if NILP ((*Vthis_command.as_mut_ptr ()))
 	/* nil means key is undefined.  */
 	{ call0 (Qundefined ()); }
       else
@@ -1884,7 +1883,7 @@ unsafe extern "C-unwind" fn command_loop_1 () -> Lisp_Object
 	  #[cfg (feature = "have_window_system")]
 	  let scount: specpdl_ref = {
 	      let scount = SPECPDL_INDEX ();
-	      if display_hourglass_p && NILP (Vexecuting_kbd_macro)
+	      if (*display_hourglass_p.as_mut_ptr ()) && NILP ((*Vexecuting_kbd_macro.as_mut_ptr ()))
 		{
 		  record_unwind_protect_void (Some (cancel_hourglass));
 		  start_hourglass ();
@@ -1898,55 +1897,55 @@ unsafe extern "C-unwind" fn command_loop_1 () -> Lisp_Object
 
             /* Record point and buffer, so we can put point into the undo
                information if necessary. */
-            point_before_last_command_or_undo = PT! ();
-            buffer_before_last_command_or_undo = (current_buffer! ());
+            (*point_before_last_command_or_undo.as_mut_ptr ()) = PT! ();
+            (*buffer_before_last_command_or_undo.as_mut_ptr ()) = (current_buffer! ());
 
 	    /* Restart our counting of redisplay ticks before
 	       executing the command, so that we don't blame the new
 	       command for the sins of the previous one.  */
 	    update_redisplay_ticks (0, std::ptr::null_mut ());
-	    display_working_on_window_p = false;
+	    (*display_working_on_window_p.as_mut_ptr ()) = false;
 
-            calln! (Qcommand_execute (), Vthis_command);
-	    display_working_on_window_p = false;
+            calln! (Qcommand_execute (), (*Vthis_command.as_mut_ptr ()));
+	    (*display_working_on_window_p.as_mut_ptr ()) = false;
 
 	  /* C 1556-1563: `#ifdef HAVE_WINDOW_SYSTEM` (carried per P-51).  */
 	  #[cfg (feature = "have_window_system")]
-	  if NILP (Vexecuting_kbd_macro)
+	  if NILP ((*Vexecuting_kbd_macro.as_mut_ptr ()))
 	    { unbind_to (scount, Qnil ()); }
           }
       /* Restore last PT position value, possibly clobbered by
          recursive-edit invoked by the command we just executed.  */
-      last_point_position = last_pt;
-      kset_last_prefix_arg (current_kboard, Vcurrent_prefix_arg);
+      (*last_point_position.as_mut_ptr ()) = last_pt;
+      kset_last_prefix_arg ((*current_kboard.as_mut_ptr ()), (*Vcurrent_prefix_arg.as_mut_ptr ()));
 
-      safe_run_hooks_maybe_narrowed (Qpost_command_hook (), XWINDOW (selected_window));
+      safe_run_hooks_maybe_narrowed (Qpost_command_hook (), XWINDOW ((*selected_window.as_mut_ptr ())));
 
       /* If displaying a message, resize the echo area window to fit
 	 that message's size exactly.  Do this only if the echo area
 	 window is the minibuffer window of the selected frame.  See
 	 Bug#34317.  */
-      if !NILP (echo_area_buffer[0])
-	  && (EQ (echo_area_window,
-		  FRAME_MINIBUF_WINDOW (XFRAME (selected_frame))))
+      if !NILP ((*echo_area_buffer.as_mut_ptr ())[0])
+	  && (EQ ((*echo_area_window.as_mut_ptr ()),
+		  FRAME_MINIBUF_WINDOW (XFRAME ((*selected_frame.as_mut_ptr ())))))
 	{ resize_echo_area_exactly (); }
 
       /* If there are warnings waiting, process them.  */
-      if !NILP (Vdelayed_warnings_list)
+      if !NILP ((*Vdelayed_warnings_list.as_mut_ptr ()))
 	{ safe_run_hooks (Qdelayed_warnings_hook ()); }
 
-      kset_last_command (current_kboard, Vthis_command);
-      kset_real_last_command (current_kboard, Vreal_this_command);
-      if !CONSP (last_command_event)
-	{ kset_last_repeatable_command (current_kboard, Vreal_this_command); }
+      kset_last_command ((*current_kboard.as_mut_ptr ()), (*Vthis_command.as_mut_ptr ()));
+      kset_real_last_command ((*current_kboard.as_mut_ptr ()), (*Vreal_this_command.as_mut_ptr ()));
+      if !CONSP ((*last_command_event.as_mut_ptr ()))
+	{ kset_last_repeatable_command ((*current_kboard.as_mut_ptr ()), (*Vreal_this_command.as_mut_ptr ())); }
 
-      this_command_key_count = 0;
-      this_single_command_key_start = 0;
+      (*this_command_key_count.as_mut_ptr ()) = 0;
+      (*this_single_command_key_start.as_mut_ptr ()) = 0;
 
-      if kboard_bits! (immediate_echo, current_kboard)
+      if kboard_bits! (immediate_echo, (*current_kboard.as_mut_ptr ()))
 	  && !NILP (call0 (Qinternal_echo_keystrokes_prefix ()))
 	{
-	  kboard_bits! (immediate_echo, current_kboard, false);
+	  kboard_bits! (immediate_echo, (*current_kboard.as_mut_ptr ()), false);
 	  /* Refresh the echo message.  */
 	  echo_now ();
 	}
@@ -1954,17 +1953,17 @@ unsafe extern "C-unwind" fn command_loop_1 () -> Lisp_Object
 	{ cancel_echoing (); }
 
       if !NILP (BVAR! ((current_buffer! ()), mark_active_))
-	  && !NILP (Vrun_hooks)
+	  && !NILP ((*Vrun_hooks.as_mut_ptr ()))
 	{
 	  /* In Emacs 22, setting transient-mark-mode to `only' was a
 	     way of turning it on for just one command.  This usage is
 	     obsolete, but support it anyway.  */
-	  if EQ (Vtransient_mark_mode, Qidentity ())
-	    { Vtransient_mark_mode = Qnil (); }
-	  else if EQ (Vtransient_mark_mode, Qonly ())
-	    { Vtransient_mark_mode = Qidentity (); }
+	  if EQ ((*Vtransient_mark_mode.as_mut_ptr ()), Qidentity ())
+	    { (*Vtransient_mark_mode.as_mut_ptr ()) = Qnil (); }
+	  else if EQ ((*Vtransient_mark_mode.as_mut_ptr ()), Qonly ())
+	    { (*Vtransient_mark_mode.as_mut_ptr ()) = Qidentity (); }
 
-	  if !NILP (Vdeactivate_mark)
+	  if !NILP ((*Vdeactivate_mark.as_mut_ptr ()))
 	    /* If `select-active-regions' is non-nil, this call to
 	       `deactivate-mark' also sets the PRIMARY selection.  */
 	    { call0 (Qdeactivate_mark ()); }
@@ -1980,13 +1979,13 @@ unsafe extern "C-unwind" fn command_loop_1 () -> Lisp_Object
 		  /* Even if mark_active is non-nil, the actual buffer
 		     marker may not have been set yet (Bug#7044).  */
 		  && !(*XMARKER (BVAR! ((current_buffer! ()), mark_))).buffer.is_null ()
-		  && (if EQ (Vselect_active_regions, Qonly ())
-			{ EQ (CAR_SAFE (Vtransient_mark_mode), Qonly ()) }
+		  && (if EQ ((*Vselect_active_regions.as_mut_ptr ()), Qonly ())
+			{ EQ (CAR_SAFE ((*Vtransient_mark_mode.as_mut_ptr ())), Qonly ()) }
 		      else
-			{ !NILP (Vselect_active_regions) && !NILP (Vtransient_mark_mode) })
-		  && NILP (Fmemq (Vthis_command, Vselection_inhibit_update_commands))
+			{ !NILP ((*Vselect_active_regions.as_mut_ptr ())) && !NILP ((*Vtransient_mark_mode.as_mut_ptr ())) })
+		  && NILP (Fmemq ((*Vthis_command.as_mut_ptr ()), (*Vselection_inhibit_update_commands.as_mut_ptr ())))
 		{
-		  let txt: Lisp_Object = calln! (Vregion_extract_function, Qnil ());
+		  let txt: Lisp_Object = calln! ((*Vregion_extract_function.as_mut_ptr ()), Qnil ());
 
 		  if XFIXNUM (Flength (txt)) > 0
 		    /* Don't set empty selections.  */
@@ -1999,44 +1998,44 @@ unsafe extern "C-unwind" fn command_loop_1 () -> Lisp_Object
 		{ run_hook (Qactivate_mark_hook ()); }
 	    }
 
-	  Vsaved_region_selection = Qnil ();
+	  (*Vsaved_region_selection.as_mut_ptr ()) = Qnil ();
 	}
     } /* 'finalize */
 
       /* finalize: */
       if (current_buffer! ()) == prev_buffer_
-	  && XBUFFER ((*XWINDOW (selected_window)).contents) == (current_buffer! ())
-	  && last_point_position != PT! ()
+	  && XBUFFER ((*XWINDOW ((*selected_window.as_mut_ptr ()))).contents) == (current_buffer! ())
+	  && (*last_point_position.as_mut_ptr ()) != PT! ()
 	{
-	  if NILP (Vdisable_point_adjustment)
-	      && NILP (Vglobal_disable_point_adjustment)
-	      && !composition_break_at_point
+	  if NILP ((*Vdisable_point_adjustment.as_mut_ptr ()))
+	      && NILP ((*Vglobal_disable_point_adjustment.as_mut_ptr ()))
+	      && !(*composition_break_at_point.as_mut_ptr ())
 	    {
-	      if last_point_position > BEGV! ()
-		  && last_point_position < ZV! ()
-		  && (composition_adjust_point (last_point_position, last_point_position)
-		      != last_point_position)
+	      if (*last_point_position.as_mut_ptr ()) > BEGV! ()
+		  && (*last_point_position.as_mut_ptr ()) < ZV! ()
+		  && (composition_adjust_point ((*last_point_position.as_mut_ptr ()), (*last_point_position.as_mut_ptr ()))
+		      != (*last_point_position.as_mut_ptr ()))
 		/* The last point was temporarily set within a grapheme
 		   cluster to prevent automatic composition.  To recover
 		   the automatic composition, we must update the
 		   display.  */
-		{ windows_or_buffers_changed = 21; }
-	      adjust_point_for_property (last_point_position,
+		{ (*windows_or_buffers_changed.as_mut_ptr ()) = 21; }
+	      adjust_point_for_property ((*last_point_position.as_mut_ptr ()),
 					 MODIFF! () != prev_modiff);
 	    }
 	  else if PT! () > BEGV! () && PT! () < ZV! ()
-		   && (composition_adjust_point (last_point_position, PT! ())
+		   && (composition_adjust_point ((*last_point_position.as_mut_ptr ()), PT! ())
 		       != PT! ())
 	    /* Now point is within a grapheme cluster.  We must update
 	       the display so that this cluster is de-composed on the
 	       screen and the cursor is correctly placed at point.  */
-	    { windows_or_buffers_changed = 39; }
+	    { (*windows_or_buffers_changed.as_mut_ptr ()) = 39; }
 	}
 
       /* Install chars successfully executed in kbd macro.  */
 
-      if !NILP (KVAR! (current_kboard, defining_kbd_macro))
-	  && NILP (KVAR! (current_kboard, Vprefix_arg))
+      if !NILP (KVAR! ((*current_kboard.as_mut_ptr ()), (*defining_kbd_macro.as_mut_ptr ())))
+	  && NILP (KVAR! ((*current_kboard.as_mut_ptr ()), (*Vprefix_arg.as_mut_ptr ())))
 	{ finalize_kbd_macro_chars (); }
     }
 
@@ -2061,12 +2060,12 @@ pub unsafe extern "C-unwind" fn read_menu_command () -> Lisp_Object
 
   unbind_to (count, Qnil ());
 
-  if !FRAME_LIVE_P (XFRAME (selected_frame))
+  if !FRAME_LIVE_P (XFRAME ((*selected_frame.as_mut_ptr ())))
     { Fkill_emacs (Qnil (), Qnil ()); }
   if i == 0 || i == -1
     { return Qt (); }
 
-  return read_key_sequence_cmd;
+  return (*read_key_sequence_cmd.as_mut_ptr ());
 
   }
 }
@@ -2097,7 +2096,7 @@ unsafe fn adjust_point_for_property (last_pt: ptrdiff_t, modified: bool)
   let mut orig_pt: ptrdiff_t = PT! ();
   let mut pt_before_invis: ptrdiff_t = PT! ();
 
-  eassert! (XBUFFER ((*XWINDOW (selected_window)).contents) == (current_buffer! ()));
+  eassert! (XBUFFER ((*XWINDOW ((*selected_window.as_mut_ptr ()))).contents) == (current_buffer! ()));
 
   /* FIXME: cycling is probably not necessary because these properties
      can't be usefully combined anyway.  */
@@ -2116,7 +2115,7 @@ unsafe fn adjust_point_for_property (last_pt: ptrdiff_t, modified: bool)
       if check_display
 	  && PT! () > BEGV! () && PT! () < ZV! ()
 	  && { val = get_char_property_and_overlay (make_fixnum (PT! ()), Qdisplay (),
-						    selected_window, &raw mut overlay);
+						    (*selected_window.as_mut_ptr ()), &raw mut overlay);
 	       !NILP (val) }
 	  && display_prop_intangible_p (val, overlay, PT! (), PT_BYTE! ())
 	  && (if !OVERLAYP (overlay)
@@ -2152,7 +2151,7 @@ unsafe fn adjust_point_for_property (last_pt: ptrdiff_t, modified: bool)
 		   `dead_branch_map` already sees as dead; nothing to carry.  */
 		&& !NILP ({ val = get_char_property_and_overlay
 				   (make_fixnum (end), Qinvisible (),
-				    selected_window, &raw mut overlay);
+				    (*selected_window.as_mut_ptr ()), &raw mut overlay);
 			    val })
 		&& { inv = TEXT_PROP_MEANS_INVISIBLE! (val); inv != 0 }
 	    {
@@ -2167,7 +2166,7 @@ unsafe fn adjust_point_for_property (last_pt: ptrdiff_t, modified: bool)
 	  while beg > BEGV! ()
 		&& !NILP ({ val = get_char_property_and_overlay
 				   (make_fixnum (beg - 1), Qinvisible (),
-				    selected_window, &raw mut overlay);
+				    (*selected_window.as_mut_ptr ()), &raw mut overlay);
 			    val })
 		&& { inv = TEXT_PROP_MEANS_INVISIBLE! (val); inv != 0 }
 	    {
@@ -2211,7 +2210,7 @@ unsafe fn adjust_point_for_property (last_pt: ptrdiff_t, modified: bool)
 	     of the invisible text.  */
 	  let shown: bool =
 	    !NILP ({ val = get_char_property_and_overlay
-			   (make_fixnum (beg), Qdisplay (), selected_window,
+			   (make_fixnum (beg), Qdisplay (), (*selected_window.as_mut_ptr ()),
 			    &raw mut overlay);
 		     val })
 	    && display_prop_intangible_p (val, overlay, beg, CHAR_TO_BYTE (beg));
@@ -2234,11 +2233,11 @@ unsafe fn adjust_point_for_property (last_pt: ptrdiff_t, modified: bool)
 		   could lead to an infinite loop.  */
 		{ }
 	      else if { val = Fget_pos_property (make_fixnum (PT! ()),
-						 Qinvisible (), selected_window);
+						 Qinvisible (), (*selected_window.as_mut_ptr ()));
 			TEXT_PROP_MEANS_INVISIBLE! (val) != 0
 			&& { val = Fget_pos_property
 				  (make_fixnum (if PT! () == beg { end } else { beg }),
-				   Qinvisible (), selected_window);
+				   Qinvisible (), (*selected_window.as_mut_ptr ()));
 			     TEXT_PROP_MEANS_INVISIBLE! (val) == 0 } }
 		{ check_composition = true;
 		  check_display = true;
@@ -2368,7 +2367,7 @@ unsafe fn safe_run_hooks_maybe_narrowed (hook: Lisp_Object, w: *mut window)
   specbind (Qinhibit_quit (), Qt ());
 
   if buffer_bits! (long_line_optimizations_p, (current_buffer! ()))
-      && long_line_optimizations_region_size > 0
+      && (*long_line_optimizations_region_size.as_mut_ptr ()) > 0
     {
       let begv: ptrdiff_t = get_large_narrowing_begv (PT! ());
       let zv: ptrdiff_t = get_large_narrowing_zv (PT! ());
@@ -2404,8 +2403,8 @@ pub unsafe extern "C-unwind" fn safe_run_hooks_2 (hook: Lisp_Object, arg1: Lisp_
 /* C 2019-2028: `int poll_suppress_count;` and the `#ifdef POLL_FOR_INPUT` block's
    `static struct atimer *poll_timer;` / `static Lisp_Object poll_timer_time;` (the macro is
    `#undef` on this target; carried per P-51).  */
-static mut poll_timer: *mut atimer = std::ptr::null_mut ();
-static mut poll_timer_time: Lisp_Object = lisp_h_Qnil ();
+static poll_timer: VmGlobal<*mut atimer> = VmGlobal::<*mut atimer>::new (std::ptr::null_mut ());
+static poll_timer_time: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* C 2030-2040: `#if defined CYGWIN || defined DOS_NT`'s `poll_for_input_1` (both macros are
    `#undef`; carried per P-51).  */
@@ -2426,8 +2425,8 @@ unsafe extern "C-unwind" fn poll_for_input (timer: *mut atimer)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  if poll_suppress_count == 0
-    { pending_signals = true; }
+  if (*poll_suppress_count.as_mut_ptr ()) == 0
+    { (*pending_signals.as_mut_ptr ()) = true; }
 
   }
 }
@@ -2446,7 +2445,7 @@ pub unsafe extern "C-unwind" fn start_polling ()
     /* XXX This condition was (read_socket_hook && !interrupt_input),
        but read_socket_hook is not global anymore.  Let's pretend that
        it's always set.  */
-    if !interrupt_input
+    if !(*interrupt_input.as_mut_ptr ())
       {
 	/* Turn alarm handling on unconditionally.  It might have
 	   been turned off in process.c.  */
@@ -2454,23 +2453,23 @@ pub unsafe extern "C-unwind" fn start_polling ()
 
 	/* If poll timer doesn't exist, or we need one with
 	   a different interval, start a new one.  */
-	if NUMBERP (Vpolling_period)
-	    && (poll_timer.is_null ()
-		|| NILP (Fequal (Vpolling_period, poll_timer_time)))
+	if NUMBERP ((*Vpolling_period.as_mut_ptr ()))
+	    && ((*poll_timer.as_mut_ptr ()).is_null ()
+		|| NILP (Fequal ((*Vpolling_period.as_mut_ptr ()), (*poll_timer_time.as_mut_ptr ()))))
 	  {
-	    let interval: timespec = dtotimespec (XFLOATINT (Vpolling_period));
+	    let interval: timespec = dtotimespec (XFLOATINT ((*Vpolling_period.as_mut_ptr ())));
 
-	    if !poll_timer.is_null ()
-	      { cancel_atimer (poll_timer); }
+	    if !(*poll_timer.as_mut_ptr ()).is_null ()
+	      { cancel_atimer ((*poll_timer.as_mut_ptr ())); }
 
-	    poll_timer = start_atimer (ATIMER_CONTINUOUS, interval,
+	    (*poll_timer.as_mut_ptr ()) = start_atimer (ATIMER_CONTINUOUS, interval,
 				       Some (poll_for_input), std::ptr::null_mut ());
-	    poll_timer_time = Vpolling_period;
+	    (*poll_timer_time.as_mut_ptr ()) = (*Vpolling_period.as_mut_ptr ());
 	  }
 
 	/* Let the timer's callback function poll for input
 	   if this becomes zero.  */
-	poll_suppress_count -= 1;
+	(*poll_suppress_count.as_mut_ptr ()) -= 1;
       }
   }
 
@@ -2486,7 +2485,7 @@ pub unsafe extern "C-unwind" fn input_polling_used () -> bool
      but read_socket_hook is not global anymore.  Let's pretend that
      it's always set.  */
   #[cfg (feature = "poll_for_input")]
-  { return !interrupt_input; }
+  { return !(*interrupt_input.as_mut_ptr ()); }
   #[cfg (not (feature = "poll_for_input"))]
   { return false; }
 }
@@ -2503,8 +2502,8 @@ pub unsafe extern "C-unwind" fn stop_polling ()
     /* XXX This condition was (read_socket_hook && !interrupt_input),
        but read_socket_hook is not global anymore.  Let's pretend that
        it's always set.  */
-    if !interrupt_input
-      { poll_suppress_count += 1; }
+    if !(*interrupt_input.as_mut_ptr ())
+      { (*poll_suppress_count.as_mut_ptr ()) += 1; }
   }
 
   }
@@ -2520,16 +2519,16 @@ pub unsafe extern "C-unwind" fn set_poll_suppress_count (count: c_int)
   unsafe {
   #[cfg (feature = "poll_for_input")]
   {
-    if count == 0 && poll_suppress_count != 0
+    if count == 0 && (*poll_suppress_count.as_mut_ptr ()) != 0
       {
-	poll_suppress_count = 1;
+	(*poll_suppress_count.as_mut_ptr ()) = 1;
 	start_polling ();
       }
-    else if count != 0 && poll_suppress_count == 0
+    else if count != 0 && (*poll_suppress_count.as_mut_ptr ()) == 0
       {
 	stop_polling ();
       }
-    poll_suppress_count = count;
+    (*poll_suppress_count.as_mut_ptr ()) = count;
   }
 
   }
@@ -2545,28 +2544,28 @@ pub unsafe extern "C-unwind" fn bind_polling_period (n: c_int)
   unsafe {
   #[cfg (feature = "poll_for_input")]
   {
-    if FIXNUMP (Vpolling_period)
+    if FIXNUMP ((*Vpolling_period.as_mut_ptr ()))
       {
-	let mut new: intmax_t = XFIXNUM (Vpolling_period) as intmax_t;
+	let mut new: intmax_t = XFIXNUM ((*Vpolling_period.as_mut_ptr ())) as intmax_t;
 
 	if n as intmax_t > new
 	  { new = n as intmax_t; }
 
-	stop_other_atimers (poll_timer);
+	stop_other_atimers ((*poll_timer.as_mut_ptr ()));
 	stop_polling ();
 	specbind (Qpolling_period (), make_int (new));
       }
-    else if FLOATP (Vpolling_period)
+    else if FLOATP ((*Vpolling_period.as_mut_ptr ()))
       {
 	/* C 2141's `double new = XFLOAT_DATA (Vpolling_period);` — the port's `f64` is the
 	   same type; the C `double` token is kept in this comment for the body-token gate.  */
-	let new: f64 = XFLOAT_DATA (Vpolling_period);
+	let new: f64 = XFLOAT_DATA ((*Vpolling_period.as_mut_ptr ()));
 
-	stop_other_atimers (poll_timer);
+	stop_other_atimers ((*poll_timer.as_mut_ptr ()));
 	stop_polling ();
 	specbind (Qpolling_period (), if n as f64 > new
 				      { make_int (n as intmax_t) }
-				      else { Vpolling_period });
+				      else { (*Vpolling_period.as_mut_ptr ()) });
       }
 
     /* Start a new alarm with the new period.  */
@@ -2679,7 +2678,7 @@ pub unsafe extern "C-unwind" fn show_help_echo (mut help: Lisp_Object, window: L
 	{ return; }
     }
 
-  if !noninteractive && STRINGP (help)
+  if !(*noninteractive.as_mut_ptr ()) && STRINGP (help)
     {
       /* The mouse-fixup-help-message Lisp function can call
 	 mouse_position_hook, which resets the mouse_moved flags.
@@ -2695,9 +2694,9 @@ pub unsafe extern "C-unwind" fn show_help_echo (mut help: Lisp_Object, window: L
 
   if STRINGP (help) || NILP (help)
     {
-      if !NILP (Vshow_help_function)
-	{ calln! (Vshow_help_function, help_echo_substitute_command_keys (help)); }
-      help_echo_showing_p = STRINGP (help);
+      if !NILP ((*Vshow_help_function.as_mut_ptr ()))
+	{ calln! ((*Vshow_help_function.as_mut_ptr ()), help_echo_substitute_command_keys (help)); }
+      (*help_echo_showing_p.as_mut_ptr ()) = STRINGP (help);
     }
 
   }
@@ -2706,13 +2705,13 @@ pub unsafe extern "C-unwind" fn show_help_echo (mut help: Lisp_Object, window: L
 /* Input of single characters from keyboard.  */
 
 /* C 2290-2303.  */
-static mut help_form_saved_window_configs: Lisp_Object = lisp_h_Qnil ();
+static help_form_saved_window_configs: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 unsafe extern "C-unwind" fn read_char_help_form_unwind ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  let window_config: Lisp_Object = XCAR (help_form_saved_window_configs);
-  help_form_saved_window_configs = XCDR (help_form_saved_window_configs);
+  let window_config: Lisp_Object = XCAR ((*help_form_saved_window_configs.as_mut_ptr ()));
+  (*help_form_saved_window_configs.as_mut_ptr ()) = XCDR ((*help_form_saved_window_configs.as_mut_ptr ()));
   if !NILP (window_config)
     { Fset_window_configuration (window_config, Qnil (), Qnil ()); }
 
@@ -2770,7 +2769,7 @@ unsafe fn read_event_from_main_queue (end_time: *mut timespec,
   c = kbd_buffer_get_event (&raw mut kb, used_mouse_menu, &raw mut frame_, end_time);
   unbind_to (count, Qnil ());
 
-  if ! NILP (c) && (kb != current_kboard)
+  if ! NILP (c) && (kb != (*current_kboard.as_mut_ptr ()))
     {
       let mut last: Lisp_Object = KVAR! (kb, kbd_queue);
       if CONSP (last)
@@ -2785,7 +2784,7 @@ unsafe fn read_event_from_main_queue (end_time: *mut timespec,
       else
         { XSETCDR (last, list1 (c)); }
       (*kb).kbd_queue_has_data = true;
-      if single_kboard
+      if (*single_kboard.as_mut_ptr ())
 	{
 	  /* Typing and clicking in a locked frame is confusing because
 	     it seems like Emacs has completely locked up (bug#79892).
@@ -2808,26 +2807,26 @@ unsafe fn read_event_from_main_queue (end_time: *mut timespec,
 	     enters (PORTING.md 2.2).  */
 	  continue 'start;
 	}
-      current_kboard = kb;
+      (*current_kboard.as_mut_ptr ()) = kb;
       return make_fixnum (-2);
     }
 
   /* Terminate Emacs in batch mode if at eof.  */
-  if noninteractive && FIXNUMP (c) && XFIXNUM (c) < 0
+  if (*noninteractive.as_mut_ptr ()) && FIXNUMP (c) && XFIXNUM (c) < 0
     { Fkill_emacs (make_fixnum (1), Qnil ()); }
 
   if FIXNUMP (c)
     {
       /* Add in any extra modifiers, where appropriate.  */
-      if (extra_keyboard_modifiers & CHAR_CTL as EMACS_INT) != 0
-	  || ((extra_keyboard_modifiers & 0o177) < b' ' as EMACS_INT
-	      && (extra_keyboard_modifiers & 0o177) != 0)
+      if ((*extra_keyboard_modifiers.as_mut_ptr ()) & CHAR_CTL as EMACS_INT) != 0
+	  || (((*extra_keyboard_modifiers.as_mut_ptr ()) & 0o177) < b' ' as EMACS_INT
+	      && ((*extra_keyboard_modifiers.as_mut_ptr ()) & 0o177) != 0)
 	{ XSETINT! (c, make_ctrl_char (XFIXNUM (c) as c_int) as EMACS_INT); }
 
       /* Transfer any other modifier bits directly from
 	 extra_keyboard_modifiers to c.  Ignore the actual character code
 	 in the low 16 bits of extra_keyboard_modifiers.  */
-      XSETINT! (c, XFIXNUM (c) | (extra_keyboard_modifiers & !0xff7f & !(CHAR_CTL as EMACS_INT)));
+      XSETINT! (c, XFIXNUM (c) | ((*extra_keyboard_modifiers.as_mut_ptr ()) & !0xff7f & !(CHAR_CTL as EMACS_INT)));
     }
 
   return c;
@@ -2868,7 +2867,7 @@ unsafe fn read_decoded_event_from_main_queue (end_time: *mut timespec,
 	return nextevt;
       }
       {
-	let frame_: *mut frame = XFRAME (selected_frame);
+	let frame_: *mut frame = XFRAME ((*selected_frame.as_mut_ptr ()));
 	let terminal: *mut terminal = (*frame_).terminal;
 	if !(is_tty_frame (frame_)
 	      /* Don't apply decoding if we're just reading a raw event
@@ -2958,8 +2957,8 @@ unsafe fn read_decoded_event_from_main_queue (end_time: *mut timespec,
 	    while n > 1
 	      {
 		n -= 1;
-		Vunread_command_events
-		  = Fcons (events[n as usize], Vunread_command_events);
+		(*Vunread_command_events.as_mut_ptr ())
+		  = Fcons (events[n as usize], (*Vunread_command_events.as_mut_ptr ()));
 	      }
 	    return events[0];
 	  }
@@ -2992,7 +2991,7 @@ unsafe fn read_char (commandflag: c_int, map: Lisp_Object, prev_event: Lisp_Obje
   let mut reread: bool = false;
   let mut recorded: bool = false;
   let mut polling_stopped_here: bool = false;
-  let orig_kboard: *mut kboard = current_kboard;
+  let orig_kboard: *mut kboard = (*current_kboard.as_mut_ptr ());
   /* C 2793's `c_volatile` is read through C 3438, so its storage stays at the function's
      top even though C declares it mid-body (the assignment stays at C 2793).  */
   let mut c_volatile: Lisp_Object;
@@ -3021,11 +3020,11 @@ unsafe fn read_char (commandflag: c_int, map: Lisp_Object, prev_event: Lisp_Obje
     /* C 2575..2639: the two unread-event lists and the three queue checks.  */
   recorded = false;
 
-  if (CONSP (Vunread_post_input_method_events))
+  if (CONSP ((*Vunread_post_input_method_events.as_mut_ptr ())))
     {
-      c = XCAR (Vunread_post_input_method_events);
-      Vunread_post_input_method_events
-	= XCDR (Vunread_post_input_method_events);
+      c = XCAR ((*Vunread_post_input_method_events.as_mut_ptr ()));
+      (*Vunread_post_input_method_events.as_mut_ptr ())
+	= XCDR ((*Vunread_post_input_method_events.as_mut_ptr ()));
 
       /* Undo what read_char_x_menu_prompt did when it unread
 	 additional keys returned by Fx_popup_menu.  */
@@ -3040,14 +3039,14 @@ unsafe fn read_char (commandflag: c_int, map: Lisp_Object, prev_event: Lisp_Obje
   else
     { reread = false; }
 
-  Vlast_event_device = Qnil ();
+  (*Vlast_event_device.as_mut_ptr ()) = Qnil ();
 
-  if (CONSP (Vunread_command_events))
+  if (CONSP ((*Vunread_command_events.as_mut_ptr ())))
     {
       let mut was_disabled: bool = false;
 
-      c = XCAR (Vunread_command_events);
-      Vunread_command_events = XCDR (Vunread_command_events);
+      c = XCAR ((*Vunread_command_events.as_mut_ptr ()));
+      (*Vunread_command_events.as_mut_ptr ()) = XCDR ((*Vunread_command_events.as_mut_ptr ()));
 
       /* Undo what sit-for did when it unread additional keys
 	 inside universal-argument.  */
@@ -3086,10 +3085,10 @@ unsafe fn read_char (commandflag: c_int, map: Lisp_Object, prev_event: Lisp_Obje
       break 'reread_for_input_method;
     }
 
-  if (CONSP (Vunread_input_method_events))
+  if (CONSP ((*Vunread_input_method_events.as_mut_ptr ())))
     {
-      c = XCAR (Vunread_input_method_events);
-      Vunread_input_method_events = XCDR (Vunread_input_method_events);
+      c = XCAR ((*Vunread_input_method_events.as_mut_ptr ()));
+      (*Vunread_input_method_events.as_mut_ptr ()) = XCDR ((*Vunread_input_method_events.as_mut_ptr ()));
 
       /* Undo what read_char_x_menu_prompt did when it unread
 	 additional keys returned by Fx_popup_menu.  */
@@ -3102,7 +3101,7 @@ unsafe fn read_char (commandflag: c_int, map: Lisp_Object, prev_event: Lisp_Obje
     }
 
   /* If we're executing a macro, process it unless we are at its end. */
-  if !NILP (Vexecuting_kbd_macro) && !at_end_of_macro_p ()
+  if !NILP ((*Vexecuting_kbd_macro.as_mut_ptr ())) && !at_end_of_macro_p ()
     {
       /* We set this to Qmacro; since that's not a frame, nobody will
 	 try to switch frames on us, and the selected window will
@@ -3114,15 +3113,15 @@ unsafe fn read_char (commandflag: c_int, map: Lisp_Object, prev_event: Lisp_Obje
 	 internal_last_event_frame after each command is read, but
 	 events read from a macro should never cause a new frame to be
 	 selected.  */
-      internal_last_event_frame = Qmacro ();
-      Vlast_event_frame = internal_last_event_frame;
+      (*internal_last_event_frame.as_mut_ptr ()) = Qmacro ();
+      (*Vlast_event_frame.as_mut_ptr ()) = (*internal_last_event_frame.as_mut_ptr ());
 
-      c = Faref (Vexecuting_kbd_macro, make_int (executing_kbd_macro_index as intmax_t));
-      if (STRINGP (Vexecuting_kbd_macro)
+      c = Faref ((*Vexecuting_kbd_macro.as_mut_ptr ()), make_int ((*executing_kbd_macro_index.as_mut_ptr ()) as intmax_t));
+      if (STRINGP ((*Vexecuting_kbd_macro.as_mut_ptr ()))
 	  && (XFIXNAT (c) & 0x80) != 0 && (XFIXNAT (c) <= 0xff))
 	{ XSETFASTINT! (c, (CHAR_META as EMACS_INT) | (XFIXNAT (c) & (!0x80) as EMACS_INT)); }
 
-      executing_kbd_macro_index += 1;
+      (*executing_kbd_macro_index.as_mut_ptr ()) += 1;
 
       /* C 2680: `goto from_macro;` — C's `reread_for_input_method:` (C 3259) and
 	 `from_macro:` (C 3260) are adjacent labels with no statement between them, so both
@@ -3131,10 +3130,10 @@ unsafe fn read_char (commandflag: c_int, map: Lisp_Object, prev_event: Lisp_Obje
       break 'reread_for_input_method;
     }
 
-  if !NILP (unread_switch_frame)
+  if !NILP ((*unread_switch_frame.as_mut_ptr ()))
     {
-      c = unread_switch_frame;
-      unread_switch_frame = Qnil ();
+      c = (*unread_switch_frame.as_mut_ptr ());
+      (*unread_switch_frame.as_mut_ptr ()) = Qnil ();
 
       /* This event should make it into this_command_keys, and get echoed
 	 again, so we do not set `reread'.  */
@@ -3144,24 +3143,24 @@ unsafe fn read_char (commandflag: c_int, map: Lisp_Object, prev_event: Lisp_Obje
   /* If redisplay was requested.  */
   if commandflag >= 0
     {
-      let echo_current: bool = EQ (echo_message_buffer, echo_area_buffer[0]);
+      let echo_current: bool = EQ ((*echo_message_buffer.as_mut_ptr ()), (*echo_area_buffer.as_mut_ptr ())[0]);
 
 	/* If there is pending input, process any events which are not
 	   user-visible, such as X selection_request events.  */
-      if input_pending
+      if (*input_pending.as_mut_ptr ())
 	  || detect_input_pending_run_timers (false)
 	{ swallow_events (false); }		/* May clear input_pending.  */
 
       /* Redisplay if no pending input.  */
-      while !(input_pending && input_was_pending)
+      while !((*input_pending.as_mut_ptr ()) && (*input_was_pending.as_mut_ptr ()))
 	{
-	  input_was_pending = input_pending;
-	  if help_echo_showing_p && !BASE_EQ (selected_window, minibuf_window)
+	  (*input_was_pending.as_mut_ptr ()) = (*input_pending.as_mut_ptr ());
+	  if (*help_echo_showing_p.as_mut_ptr ()) && !BASE_EQ ((*selected_window.as_mut_ptr ()), (*minibuf_window.as_mut_ptr ()))
 	    { redisplay_preserve_echo_area (5); }
 	  else
 	    { redisplay (); }
 
-	  if !input_pending
+	  if !(*input_pending.as_mut_ptr ())
 	    /* Normal case: no input arrived during redisplay.  */
 	    { break; }
 
@@ -3174,7 +3173,7 @@ unsafe fn read_char (commandflag: c_int, map: Lisp_Object, prev_event: Lisp_Obje
       /* Prevent the redisplay we just did
 	 from messing up echoing of the input after the prompt.  */
       if commandflag == 0 && echo_current
-	{ echo_message_buffer = echo_area_buffer[0]; }
+	{ (*echo_message_buffer.as_mut_ptr ()) = (*echo_area_buffer.as_mut_ptr ())[0]; }
 
     }
 
@@ -3204,11 +3203,11 @@ unsafe fn read_char (commandflag: c_int, map: Lisp_Object, prev_event: Lisp_Obje
      current one.  */
 
   if (/* There currently is something in the echo area.  */
-      !NILP (echo_area_buffer[0])
+      !NILP ((*echo_area_buffer.as_mut_ptr ())[0])
        && (/* It's an echo from a different kboard.  */
-	   echo_kboard != current_kboard
+	   (*echo_kboard.as_mut_ptr ()) != (*current_kboard.as_mut_ptr ())
 	   /* Or we explicitly allow overwriting whatever there is.  */
-	   || ok_to_echo_at_next_pause.is_null ()))
+	   || (*ok_to_echo_at_next_pause.as_mut_ptr ()).is_null ()))
     { cancel_echoing (); }
   else
     { echo_dash (); }
@@ -3222,7 +3221,7 @@ unsafe fn read_char (commandflag: c_int, map: Lisp_Object, prev_event: Lisp_Obje
   if (KEYMAPP! (map) && INTERACTIVE! ()
       && !NILP (prev_event) && ! EVENT_HAS_PARAMETERS (prev_event)
       /* Don't bring up a menu if we already have another event.  */
-      && !CONSP (Vunread_command_events)
+      && !CONSP ((*Vunread_command_events.as_mut_ptr ()))
       && !detect_input_pending_run_timers (false))
     {
       c = read_char_minibuf_menu_prompt (commandflag, map);
@@ -3252,26 +3251,26 @@ unsafe fn read_char (commandflag: c_int, map: Lisp_Object, prev_event: Lisp_Obje
       /* We must have saved the outer value of getcjmp here,
 	 so restore it now.  */
       restore_getcjmp (std::ptr::addr_of_mut! (save_jump) as *mut c_void);
-      pthread_sigmask (SIG_SETMASK, &raw const empty_mask, std::ptr::null_mut ());
+      pthread_sigmask (SIG_SETMASK, empty_mask.as_ptr (), std::ptr::null_mut ());
       unbind_to (jmpcount, Qnil ());
       /* If we are in while-no-input, don't trigger C-g, as that will
          quit instead of letting while-no-input do its thing.  */
-      if !EQ (Vquit_flag, Vthrow_on_input)
-	{ XSETINT! (c, quit_char as EMACS_INT); }
-      internal_last_event_frame = selected_frame;
-      Vlast_event_frame = internal_last_event_frame;
+      if !EQ ((*Vquit_flag.as_mut_ptr ()), (*Vthrow_on_input.as_mut_ptr ()))
+	{ XSETINT! (c, (*quit_char.as_mut_ptr ()) as EMACS_INT); }
+      (*internal_last_event_frame.as_mut_ptr ()) = (*selected_frame.as_mut_ptr ());
+      (*Vlast_event_frame.as_mut_ptr ()) = (*internal_last_event_frame.as_mut_ptr ());
       /* If we report the quit char as an event,
 	 don't do so more than once.  */
-      if !NILP (Vinhibit_quit)
-	{ Vquit_flag = Qnil (); }
+      if !NILP ((*Vinhibit_quit.as_mut_ptr ()))
+	{ (*Vquit_flag.as_mut_ptr ()) = Qnil (); }
 
       {
-	let kb: *mut KBOARD = FRAME_KBOARD (XFRAME (selected_frame)) as *mut KBOARD;
-	if kb != current_kboard
+	let kb: *mut KBOARD = FRAME_KBOARD (XFRAME ((*selected_frame.as_mut_ptr ()))) as *mut KBOARD;
+	if kb != (*current_kboard.as_mut_ptr ())
 	  {
 	    let mut last: Lisp_Object = KVAR! (kb, kbd_queue);
 	    /* We shouldn't get here if we were in single-kboard mode!  */
-	    if single_kboard
+	    if (*single_kboard.as_mut_ptr ())
 	      { emacs_abort (); }
 	    if CONSP (last)
 	      {
@@ -3285,7 +3284,7 @@ unsafe fn read_char (commandflag: c_int, map: Lisp_Object, prev_event: Lisp_Obje
 	    else
 	      { XSETCDR (last, list1 (c)); }
 	    (*kb).kbd_queue_has_data = true;
-	    current_kboard = kb;
+	    (*current_kboard.as_mut_ptr ()) = kb;
             return make_fixnum (-2); /* wrong_kboard_jmpbuf */
 	  }
       }
@@ -3317,22 +3316,22 @@ unsafe fn read_char (commandflag: c_int, map: Lisp_Object, prev_event: Lisp_Obje
   /* If in middle of key sequence and minibuffer not active,
      start echoing if enough time elapses.  */
 
-  if (minibuf_level == 0
+  if ((*minibuf_level.as_mut_ptr ()) == 0
       && end_time.is_null ()
-      && !kboard_bits! (immediate_echo, current_kboard)
-      && (this_command_key_count > 0
+      && !kboard_bits! (immediate_echo, (*current_kboard.as_mut_ptr ()))
+      && ((*this_command_key_count.as_mut_ptr ()) > 0
 	  || !NILP (call0 (Qinternal_echo_keystrokes_prefix ())))
-      && ! noninteractive
+      && ! (*noninteractive.as_mut_ptr ())
       && echo_keystrokes_p ()
       && (/* No message.  */
-	  NILP (echo_area_buffer[0])
+	  NILP ((*echo_area_buffer.as_mut_ptr ())[0])
 	  /* Or empty message.  */
-	  || (BUF_BEG (XBUFFER (echo_area_buffer[0]))
-	      == BUF_Z! (XBUFFER (echo_area_buffer[0])))
+	  || (BUF_BEG (XBUFFER ((*echo_area_buffer.as_mut_ptr ())[0]))
+	      == BUF_Z! (XBUFFER ((*echo_area_buffer.as_mut_ptr ())[0])))
 	  /* Or already echoing from same kboard.  */
-	  || (!echo_kboard.is_null () && ok_to_echo_at_next_pause == echo_kboard)
+	  || (!(*echo_kboard.as_mut_ptr ()).is_null () && (*ok_to_echo_at_next_pause.as_mut_ptr ()) == (*echo_kboard.as_mut_ptr ()))
 	  /* Or not echoing before and echoing allowed.  */
-	  || (echo_kboard.is_null () && !ok_to_echo_at_next_pause.is_null ())))
+	  || ((*echo_kboard.as_mut_ptr ()).is_null () && !(*ok_to_echo_at_next_pause.as_mut_ptr ()).is_null ())))
     {
       /* After a mouse event, start echoing right away.
 	 This is because we are probably about to display a menu,
@@ -3348,10 +3347,10 @@ unsafe fn read_char (commandflag: c_int, map: Lisp_Object, prev_event: Lisp_Obje
 	  record_unwind_protect_ptr (Some (restore_getcjmp),
 				     std::ptr::addr_of_mut! (save_jump) as *mut c_void);
 	  restore_getcjmp (&raw mut local_getcjmp as *mut c_void);
-	  tem0 = sit_for (Vecho_keystrokes, true, 1);
+	  tem0 = sit_for ((*Vecho_keystrokes.as_mut_ptr ()), true, 1);
 	  unbind_to (count, Qnil ());
 	  if EQ (tem0, Qt ())
-	      && ! CONSP (Vunread_command_events)
+	      && ! CONSP ((*Vunread_command_events.as_mut_ptr ()))
 	    { echo_now (); }
 	}
     }
@@ -3359,11 +3358,11 @@ unsafe fn read_char (commandflag: c_int, map: Lisp_Object, prev_event: Lisp_Obje
   /* Maybe auto save due to number of keystrokes.  */
 
   if commandflag != 0 && commandflag != -2
-      && auto_save_interval > 0
-      && num_nonmacro_input_events - last_auto_save as EMACS_INT > max! (auto_save_interval, 20)
+      && (*auto_save_interval.as_mut_ptr ()) > 0
+      && (*num_nonmacro_input_events.as_mut_ptr ()) - (*last_auto_save.as_mut_ptr ()) as EMACS_INT > max! ((*auto_save_interval.as_mut_ptr ()), 20)
       && !detect_input_pending_run_timers (false)
     {
-      Fdo_auto_save (if auto_save_no_message { Qt () } else { Qnil () }, Qnil ());
+      Fdo_auto_save (if (*auto_save_no_message.as_mut_ptr ()) { Qt () } else { Qnil () }, Qnil ());
       /* Hooks can actually change some buffers in auto save.  */
       redisplay ();
     }
@@ -3384,7 +3383,7 @@ unsafe fn read_char (commandflag: c_int, map: Lisp_Object, prev_event: Lisp_Obje
       && !EQ (XCAR (prev_event), Qtab_bar ())
       && !EQ (XCAR (prev_event), Qtool_bar ())
       /* Don't bring up a menu if we already have another event.  */
-      && !CONSP (Vunread_command_events))
+      && !CONSP ((*Vunread_command_events.as_mut_ptr ())))
     {
       c = read_char_x_menu_prompt (map, prev_event, used_mouse_menu);
       /* FIXME: read_char_x_menu_prompt can sometimes do nothing and just
@@ -3407,9 +3406,9 @@ unsafe fn read_char (commandflag: c_int, map: Lisp_Object, prev_event: Lisp_Obje
 
       /* Slow down auto saves logarithmically in size of current buffer,
 	 and garbage collect while we're at it.  */
-      if ! MINI_WINDOW_P (XWINDOW (selected_window))
-	{ last_non_minibuf_size = Z! () - BEG as ptrdiff_t; }
-      buffer_size = (last_non_minibuf_size >> 8) + 1;
+      if ! MINI_WINDOW_P (XWINDOW ((*selected_window.as_mut_ptr ())))
+	{ (*last_non_minibuf_size.as_mut_ptr ()) = Z! () - BEG as ptrdiff_t; }
+      buffer_size = ((*last_non_minibuf_size.as_mut_ptr ()) >> 8) + 1;
       delay_level = 0;
       while buffer_size > 64
 	{ delay_level += 1; buffer_size -= buffer_size >> 2; }
@@ -3419,12 +3418,12 @@ unsafe fn read_char (commandflag: c_int, map: Lisp_Object, prev_event: Lisp_Obje
 
       /* Auto save if enough time goes by without input.  */
       if (commandflag != 0 && commandflag != -2
-	  && num_nonmacro_input_events > last_auto_save as EMACS_INT
-	  && FIXNUMP (Vauto_save_timeout)
-	  && XFIXNUM (Vauto_save_timeout) > 0)
+	  && (*num_nonmacro_input_events.as_mut_ptr ()) > (*last_auto_save.as_mut_ptr ()) as EMACS_INT
+	  && FIXNUMP ((*Vauto_save_timeout.as_mut_ptr ()))
+	  && XFIXNUM ((*Vauto_save_timeout.as_mut_ptr ())) > 0)
 	{
 	  let mut tem0: Lisp_Object;
-	  let mut timeout: EMACS_INT = XFIXNAT (Vauto_save_timeout);
+	  let mut timeout: EMACS_INT = XFIXNAT ((*Vauto_save_timeout.as_mut_ptr ()));
 
 	  timeout = min! (timeout, MOST_POSITIVE_FIXNUM / delay_level as EMACS_INT * 4);
 	  timeout = delay_level as EMACS_INT * timeout / 4;
@@ -3437,9 +3436,9 @@ unsafe fn read_char (commandflag: c_int, map: Lisp_Object, prev_event: Lisp_Obje
 	  unbind_to (count1, Qnil ());
 
 	  if EQ (tem0, Qt ())
-	      && ! CONSP (Vunread_command_events)
+	      && ! CONSP ((*Vunread_command_events.as_mut_ptr ()))
 	    {
-	      Fdo_auto_save (if auto_save_no_message { Qt () } else { Qnil () },
+	      Fdo_auto_save (if (*auto_save_no_message.as_mut_ptr ()) { Qt () } else { Qnil () },
 			     Qnil ());
 	      redisplay ();
 	    }
@@ -3457,15 +3456,15 @@ unsafe fn read_char (commandflag: c_int, map: Lisp_Object, prev_event: Lisp_Obje
      filter.  If this longjmp wasn't here, read_key_sequence would
      interpret the next key sequence using the wrong translation
      tables and function keymaps.  */
-  if NILP (c) && current_kboard != orig_kboard
+  if NILP (c) && (*current_kboard.as_mut_ptr ()) != orig_kboard
     { return make_fixnum (-2); }  /* wrong_kboard_jmpbuf */
 
   /* If this has become non-nil here, it has been set by a timer
      or sentinel or filter.  */
-  if (CONSP (Vunread_command_events))
+  if (CONSP ((*Vunread_command_events.as_mut_ptr ())))
     {
-      c = XCAR (Vunread_command_events);
-      Vunread_command_events = XCDR (Vunread_command_events);
+      c = XCAR ((*Vunread_command_events.as_mut_ptr ()));
+      (*Vunread_command_events.as_mut_ptr ()) = XCDR ((*Vunread_command_events.as_mut_ptr ()));
 
       if (CONSP (c) && EQ (XCAR (c), Qt ()))
 	{ c = XCDR (c); }
@@ -3486,21 +3485,21 @@ unsafe fn read_char (commandflag: c_int, map: Lisp_Object, prev_event: Lisp_Obje
 
   if NILP (c)
     {
-      if (*current_kboard).kbd_queue_has_data
+      if (*(*current_kboard.as_mut_ptr ())).kbd_queue_has_data
 	{
-	  if !CONSP (KVAR! (current_kboard, kbd_queue))
+	  if !CONSP (KVAR! ((*current_kboard.as_mut_ptr ()), kbd_queue))
 	    { emacs_abort (); }
-	  c = XCAR (KVAR! (current_kboard, kbd_queue));
+	  c = XCAR (KVAR! ((*current_kboard.as_mut_ptr ()), kbd_queue));
 	  c_volatile = c;
-	  kset_kbd_queue (current_kboard,
-			  XCDR (KVAR! (current_kboard, kbd_queue)));
-	  if NILP (KVAR! (current_kboard, kbd_queue))
-	    { (*current_kboard).kbd_queue_has_data = false; }
-	  input_pending = readable_events (0);
+	  kset_kbd_queue ((*current_kboard.as_mut_ptr ()),
+			  XCDR (KVAR! ((*current_kboard.as_mut_ptr ()), kbd_queue)));
+	  if NILP (KVAR! ((*current_kboard.as_mut_ptr ()), kbd_queue))
+	    { (*(*current_kboard.as_mut_ptr ())).kbd_queue_has_data = false; }
+	  (*input_pending.as_mut_ptr ()) = readable_events (0);
 	  if (EVENT_HAS_PARAMETERS (c)
 	      && EQ (EVENT_HEAD_KIND (EVENT_HEAD (c)), Qswitch_frame ()))
-	    { internal_last_event_frame = XCAR (XCDR (c)); }
-	  Vlast_event_frame = internal_last_event_frame;
+	    { (*internal_last_event_frame.as_mut_ptr ()) = XCAR (XCDR (c)); }
+	  (*Vlast_event_frame.as_mut_ptr ()) = (*internal_last_event_frame.as_mut_ptr ());
 	}
     }
 
@@ -3512,15 +3511,15 @@ unsafe fn read_char (commandflag: c_int, map: Lisp_Object, prev_event: Lisp_Obje
      have already been seen here, and therefore are not a complete command,
      the kbd_queue_has_data field is 0, so we skip that kboard here.
      That's to avoid an infinite loop switching between kboards here.  */
-  if NILP (c) && !single_kboard
+  if NILP (c) && !(*single_kboard.as_mut_ptr ())
     {
       let mut kb: *mut KBOARD;
-      kb = all_kboards;
+      kb = (*all_kboards.as_mut_ptr ());
       while !kb.is_null ()
 	{
 	  if (*kb).kbd_queue_has_data
 	    {
-	      current_kboard = kb;
+	      (*current_kboard.as_mut_ptr ()) = kb;
               return make_fixnum (-2); /* wrong_kboard_jmpbuf */
 	    }
 	  kb = (*kb).next_kboard;
@@ -3569,7 +3568,7 @@ unsafe fn read_char (commandflag: c_int, map: Lisp_Object, prev_event: Lisp_Obje
   if NILP (c)
     {
       if commandflag >= 0
-	  && !input_pending && !detect_input_pending_run_timers (false)
+	  && !(*input_pending.as_mut_ptr ()) && !detect_input_pending_run_timers (false)
 	{ redisplay (); }
 
       /* C 3100: `goto wrong_kboard;` — C's backward goto to the loop above.  */
@@ -3584,22 +3583,22 @@ unsafe fn read_char (commandflag: c_int, map: Lisp_Object, prev_event: Lisp_Obje
 
   /* Process special events within read_char
      and loop around to read another event.  */
-  save = Vquit_flag;
-  Vquit_flag = Qnil ();
-  tem = access_keymap (get_keymap (Vspecial_event_map, false, true), c, false, false);
-  Vquit_flag = save;
+  save = (*Vquit_flag.as_mut_ptr ());
+  (*Vquit_flag.as_mut_ptr ()) = Qnil ();
+  tem = access_keymap (get_keymap ((*Vspecial_event_map.as_mut_ptr ()), false, true), c, false, false);
+  (*Vquit_flag.as_mut_ptr ()) = save;
 
   if !NILP (tem)
     {
       /* Rust forbids a local named like a static (E0530), hence the trailing underscore;
 	 the token gate strips it (crate.rs's own precedent).  */
       let prev_buffer_: *mut buffer = (current_buffer! ());
-      last_input_event = c;
+      (*last_input_event.as_mut_ptr ()) = c;
 
       calln! (Qcommand_execute (), tem, Qnil (),
-	      Fvector (1, &raw mut last_input_event), Qt ());
+	      Fvector (1, last_input_event.as_mut_ptr ()), Qt ());
 
-      if (CONSP (c) && !NILP (Fmemq (XCAR (c), Vwhile_no_input_ignore_events))
+      if (CONSP (c) && !NILP (Fmemq (XCAR (c), (*Vwhile_no_input_ignore_events.as_mut_ptr ())))
 	  && end_time.is_null ())
 	/* We stopped being idle for this event; undo that.  This
 	   prevents automatic window selection (under
@@ -3612,7 +3611,7 @@ unsafe fn read_char (commandflag: c_int, map: Lisp_Object, prev_event: Lisp_Obje
       {
       if (CONSP (c)
           && (EQ (XCAR (c), Qns_unput_working_text ())))
-        { input_was_pending = input_pending; }
+        { (*input_was_pending.as_mut_ptr ()) = (*input_pending.as_mut_ptr ()); }
       }
 
       if (current_buffer! ()) != prev_buffer_
@@ -3634,17 +3633,17 @@ unsafe fn read_char (commandflag: c_int, map: Lisp_Object, prev_event: Lisp_Obje
       if XFIXNUM (c) == -1
 	{ break 'exit; }
 
-      if ((STRINGP (KVAR! (current_kboard, Vkeyboard_translate_table))
-	   && XFIXNAT (c) < SCHARS (KVAR! (current_kboard,
-					  Vkeyboard_translate_table)))
-	  || (VECTORP (KVAR! (current_kboard, Vkeyboard_translate_table))
-	      && XFIXNAT (c) < ASIZE (KVAR! (current_kboard,
-					    Vkeyboard_translate_table)))
-	  || (CHAR_TABLE_P (KVAR! (current_kboard, Vkeyboard_translate_table))
+      if ((STRINGP (KVAR! ((*current_kboard.as_mut_ptr ()), (*Vkeyboard_translate_table.as_mut_ptr ())))
+	   && XFIXNAT (c) < SCHARS (KVAR! ((*current_kboard.as_mut_ptr ()),
+					  (*Vkeyboard_translate_table.as_mut_ptr ()))))
+	  || (VECTORP (KVAR! ((*current_kboard.as_mut_ptr ()), (*Vkeyboard_translate_table.as_mut_ptr ())))
+	      && XFIXNAT (c) < ASIZE (KVAR! ((*current_kboard.as_mut_ptr ()),
+					    (*Vkeyboard_translate_table.as_mut_ptr ()))))
+	  || (CHAR_TABLE_P (KVAR! ((*current_kboard.as_mut_ptr ()), (*Vkeyboard_translate_table.as_mut_ptr ())))
 	      && CHARACTERP (c)))
 	{
 	  let mut d: Lisp_Object;
-	  d = Faref (KVAR! (current_kboard, Vkeyboard_translate_table), c);
+	  d = Faref (KVAR! ((*current_kboard.as_mut_ptr ()), (*Vkeyboard_translate_table.as_mut_ptr ())), c);
 	  /* nil in keyboard-translate-table means no translation.  */
 	  if !NILP (d)
 	    { c = d; c_volatile = c; }
@@ -3679,12 +3678,12 @@ unsafe fn read_char (commandflag: c_int, map: Lisp_Object, prev_event: Lisp_Obje
 	     suppressed anyway.  */
 
 	  if !end_time.is_null ()
-	    { Vunread_command_events = Fcons (Fcons (Qt (), c),
-					      Vunread_command_events); }
+	    { (*Vunread_command_events.as_mut_ptr ()) = Fcons (Fcons (Qt (), c),
+					      (*Vunread_command_events.as_mut_ptr ())); }
 	  else
 	    {
 	      also_record = c;
-	      Vunread_command_events = Fcons (c, Vunread_command_events);
+	      (*Vunread_command_events.as_mut_ptr ()) = Fcons (c, (*Vunread_command_events.as_mut_ptr ()));
 	    }
 	  c = posn;
 	  c_volatile = c;
@@ -3702,11 +3701,11 @@ unsafe fn read_char (commandflag: c_int, map: Lisp_Object, prev_event: Lisp_Obje
      But first, if we are about to use an input method,
      save the echo area contents for it to refer to.  */
   if (FIXNUMP (c)
-      && ! NILP (Vinput_method_function)
+      && ! NILP ((*Vinput_method_function.as_mut_ptr ()))
       && b' ' as EMACS_INT <= XFIXNUM (c) && XFIXNUM (c) < 256 && XFIXNUM (c) != 127)
     {
       previous_echo_area_message = Fcurrent_message ();
-      Vinput_method_previous_message = previous_echo_area_message;
+      (*Vinput_method_previous_message.as_mut_ptr ()) = previous_echo_area_message;
     }
 
   /* Now wipe the echo area, except for help events which do their
@@ -3718,7 +3717,7 @@ unsafe fn read_char (commandflag: c_int, map: Lisp_Object, prev_event: Lisp_Obje
 	     get delayed via `mouse-autoselect-window' (Bug#11304).  */
 	  && !(EQ (Qselect_window (), XCAR (c)))))
     {
-      if !NILP (echo_area_buffer[0])
+      if !NILP ((*echo_area_buffer.as_mut_ptr ())[0])
 	{
 	  safe_run_hooks (Qecho_area_clear_hook ());
 	  clear_message (true, false);
@@ -3726,14 +3725,14 @@ unsafe fn read_char (commandflag: c_int, map: Lisp_Object, prev_event: Lisp_Obje
 	     active minibuffer, resize the mini-window, since the
 	     minibuffer may need more or less space than the echo area
 	     we've just wiped.  */
-	  if (minibuf_level != 0
-	      && EQ (minibuf_window, echo_area_window)
+	  if ((*minibuf_level.as_mut_ptr ()) != 0
+	      && EQ ((*minibuf_window.as_mut_ptr ()), (*echo_area_window.as_mut_ptr ()))
 	      /* The case where minibuffer-message-timeout is a number
 		 was already handled near the beginning of command_loop_1.  */
-	      && !NUMBERP (Vminibuffer_message_timeout))
-	    { resize_mini_window (XWINDOW (minibuf_window), false); }
+	      && !NUMBERP ((*Vminibuffer_message_timeout.as_mut_ptr ())))
+	    { resize_mini_window (XWINDOW ((*minibuf_window.as_mut_ptr ())), false); }
 	}
-      else if FUNCTIONP (Vclear_message_function)
+      else if FUNCTIONP ((*Vclear_message_function.as_mut_ptr ()))
         { clear_message (true, false); }
     }
 
@@ -3745,7 +3744,7 @@ unsafe fn read_char (commandflag: c_int, map: Lisp_Object, prev_event: Lisp_Obje
    /* C 3261..3347: the input-method block and the `reread_first` fall-in.  */
   /* Pass this to the input method, if appropriate.  */
   if (FIXNUMP (c)
-      && ! NILP (Vinput_method_function)
+      && ! NILP ((*Vinput_method_function.as_mut_ptr ()))
       /* Don't run the input method within a key sequence,
 	 after the first event of the key sequence.  */
       && NILP (prev_event)
@@ -3757,26 +3756,26 @@ unsafe fn read_char (commandflag: c_int, map: Lisp_Object, prev_event: Lisp_Obje
       let count: specpdl_ref = SPECPDL_INDEX ();
 
       /* Save the echo status.  */
-      let saved_immediate_echo: bool = kboard_bits! (immediate_echo, current_kboard);
-      let saved_ok_to_echo: *mut kboard = ok_to_echo_at_next_pause;
-      let saved_echo_string: Lisp_Object = KVAR! (current_kboard, echo_string);
-      let saved_echo_prompt: Lisp_Object = KVAR! (current_kboard, echo_prompt);
+      let saved_immediate_echo: bool = kboard_bits! (immediate_echo, (*current_kboard.as_mut_ptr ()));
+      let saved_ok_to_echo: *mut kboard = (*ok_to_echo_at_next_pause.as_mut_ptr ());
+      let saved_echo_string: Lisp_Object = KVAR! ((*current_kboard.as_mut_ptr ()), echo_string);
+      let saved_echo_prompt: Lisp_Object = KVAR! ((*current_kboard.as_mut_ptr ()), echo_prompt);
 
       /* Save the this_command_keys status.  */
-      key_count = this_command_key_count;
-      command_key_start = this_single_command_key_start;
+      key_count = (*this_command_key_count.as_mut_ptr ());
+      command_key_start = (*this_single_command_key_start.as_mut_ptr ());
 
       if key_count > 0
-	{ keys = Fcopy_sequence (this_command_keys); }
+	{ keys = Fcopy_sequence ((*this_command_keys.as_mut_ptr ())); }
       else
 	{ keys = Qnil (); }
 
       /* Clear out this_command_keys.  */
-      this_command_key_count = 0;
-      this_single_command_key_start = 0;
+      (*this_command_key_count.as_mut_ptr ()) = 0;
+      (*this_single_command_key_start.as_mut_ptr ()) = 0;
 
       /* Now wipe the echo area.  */
-      if !NILP (echo_area_buffer[0])
+      if !NILP ((*echo_area_buffer.as_mut_ptr ())[0])
 	{ safe_run_hooks (Qecho_area_clear_hook ()); }
       clear_message (true, false);
       echo_truncate (0);
@@ -3789,21 +3788,21 @@ unsafe fn read_char (commandflag: c_int, map: Lisp_Object, prev_event: Lisp_Obje
 	}
 
       /* Call the input method.  */
-      tem = calln! (Vinput_method_function, c);
+      tem = calln! ((*Vinput_method_function.as_mut_ptr ()), c);
 
       tem = unbind_to (count, tem);
 
       /* Restore the saved echoing state
 	 and this_command_keys state.  */
-      this_command_key_count = key_count;
-      this_single_command_key_start = command_key_start;
+      (*this_command_key_count.as_mut_ptr ()) = key_count;
+      (*this_single_command_key_start.as_mut_ptr ()) = command_key_start;
       if key_count > 0
-	{ this_command_keys = keys; }
+	{ (*this_command_keys.as_mut_ptr ()) = keys; }
 
       cancel_echoing ();
-      ok_to_echo_at_next_pause = saved_ok_to_echo;
-      kset_echo_string (current_kboard, saved_echo_string);
-      kset_echo_prompt (current_kboard, saved_echo_prompt);
+      (*ok_to_echo_at_next_pause.as_mut_ptr ()) = saved_ok_to_echo;
+      kset_echo_string ((*current_kboard.as_mut_ptr ()), saved_echo_string);
+      kset_echo_prompt ((*current_kboard.as_mut_ptr ()), saved_echo_prompt);
       if saved_immediate_echo
 	{ echo_now (); }
 
@@ -3819,8 +3818,8 @@ unsafe fn read_char (commandflag: c_int, map: Lisp_Object, prev_event: Lisp_Obje
       /* It returned one event or more.  */
       c = XCAR (tem);
       c_volatile = c;
-      Vunread_post_input_method_events
-	= nconc2 (XCDR (tem), Vunread_post_input_method_events);
+      (*Vunread_post_input_method_events.as_mut_ptr ())
+	= nconc2 (XCDR (tem), (*Vunread_post_input_method_events.as_mut_ptr ()));
     }
   /* When we consume events from the various unread-*-events lists, we
      bypass the code that records input, so record these events now if
@@ -3862,7 +3861,7 @@ unsafe fn read_char (commandflag: c_int, map: Lisp_Object, prev_event: Lisp_Obje
       continue 'retry;
     }
 
-  if ((! reread || this_command_key_count == 0)
+  if ((! reread || (*this_command_key_count.as_mut_ptr ()) == 0)
       && end_time.is_null ())
     {
 
@@ -3871,7 +3870,7 @@ unsafe fn read_char (commandflag: c_int, map: Lisp_Object, prev_event: Lisp_Obje
 	    && EQ (EVENT_HEAD_KIND (EVENT_HEAD (c)), Qmouse_movement ()))
 	/* Once we reread a character, echoing can happen
 	   the next time we pause to read a new one.  */
-	{ ok_to_echo_at_next_pause = current_kboard; }
+	{ (*ok_to_echo_at_next_pause.as_mut_ptr ()) = (*current_kboard.as_mut_ptr ()); }
 
       /* Record this character as part of the current key.  */
       add_command_key (c);
@@ -3881,17 +3880,17 @@ unsafe fn read_char (commandflag: c_int, map: Lisp_Object, prev_event: Lisp_Obje
       echo_update ();
     }
 
-  last_input_event = c;
-  num_input_events += 1;
+  (*last_input_event.as_mut_ptr ()) = c;
+  (*num_input_events.as_mut_ptr ()) += 1;
 
   /* Process the help character specially if enabled.  */
-  if !NILP (Vhelp_form) && help_char_p (c)
+  if !NILP ((*Vhelp_form.as_mut_ptr ())) && help_char_p (c)
     {
       let count: specpdl_ref = SPECPDL_INDEX ();
 
-      help_form_saved_window_configs
+      (*help_form_saved_window_configs.as_mut_ptr ())
 	= Fcons (Fcurrent_window_configuration (Qnil ()),
-		 help_form_saved_window_configs);
+		 (*help_form_saved_window_configs.as_mut_ptr ()));
       record_unwind_protect_void (Some (read_char_help_form_unwind));
       call0 (Qhelp_form_show ());
 
@@ -3903,7 +3902,7 @@ unsafe fn read_char (commandflag: c_int, map: Lisp_Object, prev_event: Lisp_Obje
 	  c_volatile = c;
 	  if (EVENT_HAS_PARAMETERS (c)
 	      && EQ (EVENT_HEAD_KIND (EVENT_HEAD (c)), Qmouse_click ()))
-	    { XSETCAR (help_form_saved_window_configs, Qnil ()); }
+	    { XSETCAR ((*help_form_saved_window_configs.as_mut_ptr ()), Qnil ()); }
 	  if !BUFFERP (c) { break; }
 	}
       /* Remove the help from the frame.  */
@@ -3927,7 +3926,7 @@ unsafe fn read_char (commandflag: c_int, map: Lisp_Object, prev_event: Lisp_Obje
 
   /* C 3429: `exit:`.  */
   RESUME_POLLING! (polling_stopped_here);
-  input_was_pending = input_pending;
+  (*input_was_pending.as_mut_ptr ()) = (*input_pending.as_mut_ptr ());
   return c;
  } /* 'retry (C 2574) */
 
@@ -3946,15 +3945,15 @@ unsafe fn record_menu_key (c: Lisp_Object)
 
   /* Once we reread a character, echoing can happen
      the next time we pause to read a new one.  */
-  ok_to_echo_at_next_pause = std::ptr::null_mut ();
+  (*ok_to_echo_at_next_pause.as_mut_ptr ()) = std::ptr::null_mut ();
 
   /* Record this character as part of the current key.  */
   add_command_key (c);
   echo_update ();
 
   /* Re-reading in the middle of a command.  */
-  last_input_event = c;
-  num_input_events += 1;
+  (*last_input_event.as_mut_ptr ()) = c;
+  (*num_input_events.as_mut_ptr ()) += 1;
 
   }
 }
@@ -3966,9 +3965,9 @@ unsafe fn help_char_p (c: Lisp_Object) -> bool
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  if EQ (c, Vhelp_char)
+  if EQ (c, (*Vhelp_char.as_mut_ptr ()))
     { return true; }
-  let mut tail: Lisp_Object = Vhelp_event_list;
+  let mut tail: Lisp_Object = (*Vhelp_event_list.as_mut_ptr ());
   FOR_EACH_TAIL_SAFE! (tail, {
     if EQ (c, XCAR (tail))
       { return true; }
@@ -3987,7 +3986,7 @@ unsafe fn record_char (c: Lisp_Object)
   unsafe {
   /* subr.el/read-passwd binds inhibit_record_char to avoid recording
      passwords.  */
-  if !record_all_keys && inhibit_record_char
+  if !(*record_all_keys.as_mut_ptr ()) && (*inhibit_record_char.as_mut_ptr ())
     { return; }
 
   let mut recorded: c_int = 0;
@@ -4007,20 +4006,20 @@ unsafe fn record_char (c: Lisp_Object)
       let mut ix2: c_int;
       let mut ix3: c_int;
 
-      ix1 = recent_keys_index - 1;
+      ix1 = (*recent_keys_index.as_mut_ptr ()) - 1;
       if ix1 < 0
-	{ ix1 = lossage_limit - 1; }
-      ev1 = AREF (recent_keys, ix1 as isize);
+	{ ix1 = (*lossage_limit.as_mut_ptr ()) - 1; }
+      ev1 = AREF ((*recent_keys.as_mut_ptr ()), ix1 as isize);
 
       ix2 = ix1 - 1;
       if ix2 < 0
-	{ ix2 = lossage_limit - 1; }
-      ev2 = AREF (recent_keys, ix2 as isize);
+	{ ix2 = (*lossage_limit.as_mut_ptr ()) - 1; }
+      ev2 = AREF ((*recent_keys.as_mut_ptr ()), ix2 as isize);
 
       ix3 = ix2 - 1;
       if ix3 < 0
-	{ ix3 = lossage_limit - 1; }
-      ev3 = AREF (recent_keys, ix3 as isize);
+	{ ix3 = (*lossage_limit.as_mut_ptr ()) - 1; }
+      ev3 = AREF ((*recent_keys.as_mut_ptr ()), ix3 as isize);
 
       if EQ (XCAR (c), Qhelp_echo ())
 	{
@@ -4059,27 +4058,27 @@ unsafe fn record_char (c: Lisp_Object)
 	      && CONSP (ev2) && EQ (XCAR (ev2), Qmouse_movement ())
 	      && { last_window = Fcar_safe (Fcar_safe (XCDR (ev2))); EQ (last_window, window) }
 	    {
-	      ASET (recent_keys, ix1 as isize, c);
+	      ASET ((*recent_keys.as_mut_ptr ()), ix1 as isize, c);
 	      recorded = 1;
 	    }
 	}
     }
-  else if NILP (Vexecuting_kbd_macro)
+  else if NILP ((*Vexecuting_kbd_macro.as_mut_ptr ()))
     { store_kbd_macro_char (c); }
 
   /* recent_keys should not include events from keyboard macros.  */
-  if NILP (Vexecuting_kbd_macro)
+  if NILP ((*Vexecuting_kbd_macro.as_mut_ptr ()))
     {
       if recorded == 0
 	{
-	  total_keys += (total_keys < lossage_limit) as c_int;
-	  ASET (recent_keys, recent_keys_index as isize,
+	  (*total_keys.as_mut_ptr ()) += ((*total_keys.as_mut_ptr ()) < (*lossage_limit.as_mut_ptr ())) as c_int;
+	  ASET ((*recent_keys.as_mut_ptr ()), (*recent_keys_index.as_mut_ptr ()) as isize,
                 /* Copy the event, in case it gets modified by side-effect
                    by some remapping function (bug#30955).  */
                 if CONSP (c) { Fcopy_sequence (c) } else { c });
-	  recent_keys_index += 1;
-	  if recent_keys_index >= lossage_limit
-	    { recent_keys_index = 0; }
+	  (*recent_keys_index.as_mut_ptr ()) += 1;
+	  if (*recent_keys_index.as_mut_ptr ()) >= (*lossage_limit.as_mut_ptr ())
+	    { (*recent_keys_index.as_mut_ptr ()) = 0; }
 	}
       else if recorded < 0
 	{
@@ -4093,32 +4092,32 @@ unsafe fn record_char (c: Lisp_Object)
 	  /* C's `while (recorded++ < 0 && …)`: the post-increment happens on the test that
 	     fails too, so the port keeps the increment inside the condition (the block
 	     expression is evaluated once per test, as C's operand is).  */
-	  while { recorded += 1; recorded - 1 < 0 } && total_keys > 0
+	  while { recorded += 1; recorded - 1 < 0 } && (*total_keys.as_mut_ptr ()) > 0
 	    {
-	      if total_keys < lossage_limit
-		{ total_keys -= 1; }
-	      recent_keys_index -= 1;
-	      if recent_keys_index < 0
-		{ recent_keys_index = lossage_limit - 1; }
-	      ASET (recent_keys, recent_keys_index as isize, Qnil ());
+	      if (*total_keys.as_mut_ptr ()) < (*lossage_limit.as_mut_ptr ())
+		{ (*total_keys.as_mut_ptr ()) -= 1; }
+	      (*recent_keys_index.as_mut_ptr ()) -= 1;
+	      if (*recent_keys_index.as_mut_ptr ()) < 0
+		{ (*recent_keys_index.as_mut_ptr ()) = (*lossage_limit.as_mut_ptr ()) - 1; }
+	      ASET ((*recent_keys.as_mut_ptr ()), (*recent_keys_index.as_mut_ptr ()) as isize, Qnil ());
 	    }
 	}
 
-      num_nonmacro_input_events += 1;
+      (*num_nonmacro_input_events.as_mut_ptr ()) += 1;
     }
 
   /* Write c to the dribble file.  If c is a lispy event, write
      the event's symbol to the dribble file, in <brackets>.  Bleaugh.
      If you, dear reader, have a better idea, you've got the source.  :-) */
-  if !dribble.is_null () && NILP (Vexecuting_kbd_macro)
+  if !(*dribble.as_mut_ptr ()).is_null () && NILP ((*Vexecuting_kbd_macro.as_mut_ptr ()))
     {
       block_input ();
       if FIXNUMP (c)
 	{
 	  if XUFIXNUM (c) < 0x100
-	    { putc (XUFIXNUM (c) as c_int, dribble); }
+	    { putc (XUFIXNUM (c) as c_int, (*dribble.as_mut_ptr ())); }
 	  else
-	    { fprintf (dribble, c" 0x%lx".as_ptr (), XUFIXNUM (c)); }
+	    { fprintf ((*dribble.as_mut_ptr ()), c" 0x%lx".as_ptr (), XUFIXNUM (c)); }
 	}
       else
 	{
@@ -4129,15 +4128,15 @@ unsafe fn record_char (c: Lisp_Object)
 
 	  if SYMBOLP (dribblee)
 	    {
-	      putc (b'<' as c_int, dribble);
+	      putc (b'<' as c_int, (*dribble.as_mut_ptr ()));
 	      fwrite (SDATA (SYMBOL_NAME (dribblee)) as *const c_void,
 		      std::mem::size_of::<c_char> (), SBYTES (SYMBOL_NAME (dribblee)) as usize,
-		      dribble);
-	      putc (b'>' as c_int, dribble);
+		      (*dribble.as_mut_ptr ()));
+	      putc (b'>' as c_int, (*dribble.as_mut_ptr ()));
 	    }
 	}
 
-      fflush (dribble);
+      fflush ((*dribble.as_mut_ptr ()));
       unblock_input ();
     }
 
@@ -4206,7 +4205,7 @@ unsafe fn readable_events (flags: c_int) -> bool
      while-no-input-ignore-events.  If the flag is set and
      input-pending-p-filter-events is nil, ignore only
      FOCUS_IN/OUT_EVENT events.  */
-  if kbd_fetch_ptr != kbd_store_ptr
+  if (*kbd_fetch_ptr.as_mut_ptr ()) != (*kbd_store_ptr.as_mut_ptr ())
     {
       /* See https://lists.gnu.org/r/emacs-devel/2005-05/msg00297.html
 	 for why we treat toolkit scroll-bar events specially here.  */
@@ -4214,16 +4213,16 @@ unsafe fn readable_events (flags: c_int) -> bool
 	 `#undef` on this target, so the port keeps both arms, the live one first).  */
       if (flags & (READABLE_EVENTS_FILTER_EVENTS)) != 0
         {
-          let mut event: *mut buffered_input_event = kbd_fetch_ptr;
+          let mut event: *mut buffered_input_event = (*kbd_fetch_ptr.as_mut_ptr ());
 	  loop
 	    {
 	      #[cfg (feature = "use_toolkit_scroll_bars")]
 	      if !(
 		    (flags & READABLE_EVENTS_FILTER_EVENTS) != 0 &&
-		    ((!input_pending_p_filter_events
+		    ((!(*input_pending_p_filter_events.as_mut_ptr ())
 		      && ((*event).kind == FOCUS_IN_EVENT as u16
 			  || (*event).kind == FOCUS_OUT_EVENT as u16))
-		     || (input_pending_p_filter_events
+		     || ((*input_pending_p_filter_events.as_mut_ptr ())
 			 && is_ignored_event (event)))
 		  && !((flags & READABLE_EVENTS_IGNORE_SQUEEZABLES) != 0
 		       && ((*event).kind == SCROLL_BAR_CLICK_EVENT as u16
@@ -4234,15 +4233,15 @@ unsafe fn readable_events (flags: c_int) -> bool
 		{ return true; }
 	      #[cfg (not (feature = "use_toolkit_scroll_bars"))]
 	      if !(
-		    ((!input_pending_p_filter_events
+		    ((!(*input_pending_p_filter_events.as_mut_ptr ())
 		      && ((*event).kind == FOCUS_IN_EVENT as u16
 			  || (*event).kind == FOCUS_OUT_EVENT as u16))
-		     || (input_pending_p_filter_events
+		     || ((*input_pending_p_filter_events.as_mut_ptr ())
 			 && is_ignored_event (event)))
 		 )
 		{ return true; }
 	      event = next_kbd_event (event);
-	      if !(event != kbd_store_ptr) { break; }
+	      if !(event != (*kbd_store_ptr.as_mut_ptr ())) { break; }
 	    }
         }
       else
@@ -4266,15 +4265,15 @@ unsafe fn readable_events (flags: c_int) -> bool
 
   if (flags & READABLE_EVENTS_IGNORE_SQUEEZABLES) == 0 && !some_mouse_moved ().is_null ()
     { return true; }
-  if single_kboard
+  if (*single_kboard.as_mut_ptr ())
     {
-      if (*current_kboard).kbd_queue_has_data
+      if (*(*current_kboard.as_mut_ptr ())).kbd_queue_has_data
 	{ return true; }
     }
   else
     {
       let mut kb: *mut KBOARD;
-      kb = all_kboards;
+      kb = (*all_kboards.as_mut_ptr ());
       while !kb.is_null ()
 	{
 	  if (*kb).kbd_queue_has_data
@@ -4293,7 +4292,7 @@ unsafe fn readable_events (flags: c_int) -> bool
 /* Set this for debugging, to have a way to get out */
 /* C 3724-3725: `extern int stop_character;` and its `EXTERNALLY_VISIBLE` definition.  */
 #[unsafe(no_mangle)]
-pub static mut stop_character: c_int = 0;
+pub static stop_character: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 
 /* C 3728-3746: `event_to_kboard`.  */
 unsafe fn event_to_kboard (event: *mut input_event) -> *mut KBOARD
@@ -4325,7 +4324,7 @@ unsafe fn kbd_buffer_nr_stored () -> c_int
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  let n: c_int = kbd_store_ptr.offset_from (kbd_fetch_ptr) as c_int;
+  let n: c_int = (*kbd_store_ptr.as_mut_ptr ()).offset_from ((*kbd_fetch_ptr.as_mut_ptr ())) as c_int;
   return n + (if n < 0 { KBD_BUFFER_SIZE } else { 0 });
 
   }
@@ -4378,7 +4377,7 @@ pub unsafe extern "C-unwind" fn kbd_buffer_store_buffered_event (event: *mut buf
 	    & ((meta_modifier | alt_modifier
 		| hyper_modifier | super_modifier) as c_uint)) as c_int;
 
-      if c == quit_char
+      if c == (*quit_char.as_mut_ptr ())
 	{
 	  let kb: *mut KBOARD
 	    = FRAME_KBOARD (XFRAME ((*event).ie.frame_or_window)) as *mut KBOARD;
@@ -4386,15 +4385,15 @@ pub unsafe extern "C-unwind" fn kbd_buffer_store_buffered_event (event: *mut buf
 	  /* If C-g arrives while we're in the run state on behalf of
 	     another display, just clear the queue and deposit the C-g
 	     to be read later.  */
-	  if single_kboard && kb != current_kboard
+	  if (*single_kboard.as_mut_ptr ()) && kb != (*current_kboard.as_mut_ptr ())
 	    {
 	      kset_kbd_queue
 		(kb, list2 (make_lispy_switch_frame ((*event).ie.frame_or_window),
 			    make_fixnum (c as EMACS_INT)));
 	      (*kb).kbd_queue_has_data = true;
 
-	      let mut sp: *mut buffered_input_event = kbd_fetch_ptr;
-	      while sp != kbd_store_ptr
+	      let mut sp: *mut buffered_input_event = (*kbd_fetch_ptr.as_mut_ptr ());
+	      while sp != (*kbd_store_ptr.as_mut_ptr ())
 		{
 		  if event_to_kboard (&raw mut (*sp).ie) == kb
 		    {
@@ -4423,15 +4422,15 @@ pub unsafe extern "C-unwind" fn kbd_buffer_store_buffered_event (event: *mut buf
 	    focus = FRAME_FOCUS_FRAME (XFRAME ((*event).ie.frame_or_window));
 	    if NILP (focus)
 	      { focus = (*event).ie.frame_or_window; }
-	    internal_last_event_frame = focus;
-	    Vlast_event_frame = focus;
+	    (*internal_last_event_frame.as_mut_ptr ()) = focus;
+	    (*Vlast_event_frame.as_mut_ptr ()) = focus;
 	  }
 
 	  handle_interrupt (false);
 	  return;
 	}
 
-      if c != 0 && c == stop_character
+      if c != 0 && c == (*stop_character.as_mut_ptr ())
 	{
 	  sys_suspend ();
 	  return;
@@ -4442,13 +4441,13 @@ pub unsafe extern "C-unwind" fn kbd_buffer_store_buffered_event (event: *mut buf
      since that would make the two pointers equal,
      and that is indistinguishable from an empty buffer.
      Discard the event if it would fill the last slot.  */
-  let next_slot: *mut buffered_input_event = next_kbd_event (kbd_store_ptr);
-  if kbd_fetch_ptr != next_slot
+  let next_slot: *mut buffered_input_event = next_kbd_event ((*kbd_store_ptr.as_mut_ptr ()));
+  if (*kbd_fetch_ptr.as_mut_ptr ()) != next_slot
     {
       /* C's `*kbd_store_ptr = *event;` — the mirror's union is not `Copy`, so the port
 	 copies the one element (the buffer.rs `copy_nonoverlapping` shape).  */
-      std::ptr::copy_nonoverlapping (event, kbd_store_ptr, 1);
-      kbd_store_ptr = next_slot;
+      std::ptr::copy_nonoverlapping (event, (*kbd_store_ptr.as_mut_ptr ()), 1);
+      (*kbd_store_ptr.as_mut_ptr ()) = next_slot;
       /* C 3861-3874: `#ifdef subprocesses` (the macro is 1 on this target, so the text is
 	 live).  */
       if kbd_buffer_nr_stored () > KBD_BUFFER_SIZE / 2
@@ -4464,9 +4463,9 @@ pub unsafe extern "C-unwind" fn kbd_buffer_store_buffered_event (event: *mut buf
 
   /* If we're inside while-no-input, and this event qualifies
      as input, set quit-flag to cause an interrupt.  */
-  if !NILP (Vthrow_on_input)
+  if !NILP ((*Vthrow_on_input.as_mut_ptr ()))
       && !is_ignored_event (event)
-    { Vquit_flag = Vthrow_on_input; }
+    { (*Vquit_flag.as_mut_ptr ()) = (*Vthrow_on_input.as_mut_ptr ()); }
 
   }
 }
@@ -4574,8 +4573,8 @@ pub unsafe extern "C-unwind" fn discard_mouse_events ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  let mut sp: *mut buffered_input_event = kbd_fetch_ptr;
-  while sp != kbd_store_ptr
+  let mut sp: *mut buffered_input_event = (*kbd_fetch_ptr.as_mut_ptr ());
+  while sp != (*kbd_store_ptr.as_mut_ptr ())
     {
       if (*sp).kind == MOUSE_CLICK_EVENT as u16
 	  || (*sp).kind == WHEEL_EVENT as u16
@@ -4604,13 +4603,13 @@ pub unsafe extern "C-unwind" fn kbd_buffer_events_waiting () -> bool
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  let mut sp: *mut buffered_input_event = kbd_fetch_ptr;
+  let mut sp: *mut buffered_input_event = (*kbd_fetch_ptr.as_mut_ptr ());
   loop
     {
-      if sp == kbd_store_ptr || (*sp).kind != NO_EVENT as u16
+      if sp == (*kbd_store_ptr.as_mut_ptr ()) || (*sp).kind != NO_EVENT as u16
 	{
-	  kbd_fetch_ptr = sp;
-	  return sp != kbd_store_ptr && (*sp).kind != NO_EVENT as u16;
+	  (*kbd_fetch_ptr.as_mut_ptr ()) = sp;
+	  return sp != (*kbd_store_ptr.as_mut_ptr ()) && (*sp).kind != NO_EVENT as u16;
 	}
       sp = next_kbd_event (sp);
     }
@@ -4660,7 +4659,7 @@ unsafe extern "C-unwind" fn kbd_buffer_get_event_1 (arg: Lisp_Object) -> Lisp_Ob
 
   return code_convert_string (arg, if !NILP (coding_system)
 				   { coding_system }
-				   else { Vlocale_coding_system },
+				   else { (*Vlocale_coding_system.as_mut_ptr ()) },
 			      Qnil (), false, false, 0);
 
   }
@@ -4714,19 +4713,19 @@ unsafe fn kbd_buffer_get_event (kbp: *mut *mut KBOARD,
   #[cfg (not (any (feature = "have_dbus", feature = "use_file_notify",
                   feature = "threads_enabled")))]
   {
-  if noninteractive
+  if (*noninteractive.as_mut_ptr ())
       /* In case we are running as a daemon, only do this before
 	 detaching from the terminal.  */
       || (IS_DAEMON () && DAEMON_RUNNING ())
     {
       let c: c_int = getchar ();
       XSETINT! (obj, c as EMACS_INT);
-      *kbp = current_kboard;
+      *kbp = (*current_kboard.as_mut_ptr ());
       return obj;
     }
   }
 
-  *kbp = current_kboard;
+  *kbp = (*current_kboard.as_mut_ptr ());
 
   /* Wait until there is input available.  */
   loop
@@ -4734,7 +4733,7 @@ unsafe fn kbd_buffer_get_event (kbp: *mut *mut KBOARD,
       /* Break loop if there's an unread command event.  Needed in
 	 moused window autoselection which uses a timer to insert such
 	 events.  */
-      if CONSP (Vunread_command_events)
+      if CONSP ((*Vunread_command_events.as_mut_ptr ()))
 	{ break; }
 
       /* C 4082-4092: `#ifdef HAVE_TEXT_CONVERSION` (carried per P-51).  */
@@ -4752,14 +4751,14 @@ unsafe fn kbd_buffer_get_event (kbp: *mut *mut KBOARD,
 	}
       }
 
-      if kbd_fetch_ptr != kbd_store_ptr
+      if (*kbd_fetch_ptr.as_mut_ptr ()) != (*kbd_store_ptr.as_mut_ptr ())
 	{ break; }
       if !some_mouse_moved ().is_null ()
 	{ break; }
 
       /* If the quit flag is set, then read_char will return
 	 quit_char, so that counts as "available input."  */
-      if !NILP (Vquit_flag)
+      if !NILP ((*Vquit_flag.as_mut_ptr ()))
 	{ quit_throw_to_read_char (false); }
 
       /* One way or another, wait until input is available; then, if
@@ -4771,7 +4770,7 @@ unsafe fn kbd_buffer_get_event (kbp: *mut *mut KBOARD,
 	 reading).  */
       gobble_input ();
 
-      if kbd_fetch_ptr != kbd_store_ptr
+      if (*kbd_fetch_ptr.as_mut_ptr ()) != (*kbd_store_ptr.as_mut_ptr ())
 	{ break; }
       if !some_mouse_moved ().is_null ()
 	{ break; }
@@ -4816,7 +4815,7 @@ unsafe fn kbd_buffer_get_event (kbp: *mut *mut KBOARD,
 	  wait_reading_process_output (0, 0, -1, do_display, Qnil (), std::ptr::null_mut (), 0);
 	}
 
-      if !interrupt_input && kbd_fetch_ptr == kbd_store_ptr
+      if !(*interrupt_input.as_mut_ptr ()) && (*kbd_fetch_ptr.as_mut_ptr ()) == (*kbd_store_ptr.as_mut_ptr ())
 	{ gobble_input (); }
     }
 
@@ -4833,12 +4832,12 @@ unsafe fn kbd_buffer_get_event (kbp: *mut *mut KBOARD,
     { x_handle_pending_selection_requests (); }
   }
 
-  if CONSP (Vunread_command_events)
+  if CONSP ((*Vunread_command_events.as_mut_ptr ()))
     {
       let mut first: Lisp_Object;
-      first = XCAR (Vunread_command_events);
-      Vunread_command_events = XCDR (Vunread_command_events);
-      *kbp = current_kboard;
+      first = XCAR ((*Vunread_command_events.as_mut_ptr ()));
+      (*Vunread_command_events.as_mut_ptr ()) = XCDR ((*Vunread_command_events.as_mut_ptr ()));
+      *kbp = (*current_kboard.as_mut_ptr ());
       return first;
     }
 
@@ -4860,20 +4859,20 @@ unsafe fn kbd_buffer_get_event (kbp: *mut *mut KBOARD,
          Note that in addition, text conversion events are not
          generated if no edits were actually made.  */
       if conversion_disabled_p ()
-	  || NILP (Vtext_conversion_edits)
+	  || NILP ((*Vtext_conversion_edits.as_mut_ptr ()))
 	{ obj = Qnil (); }
       }
     }
   /* At this point, we know that there is a readable event available
      somewhere.  If the event queue is empty, then there must be a
      mouse movement enabled and available.  */
-  else if kbd_fetch_ptr != kbd_store_ptr
+  else if (*kbd_fetch_ptr.as_mut_ptr ()) != (*kbd_store_ptr.as_mut_ptr ())
     {
-      let mut event: *mut buffered_input_event = kbd_fetch_ptr;
+      let mut event: *mut buffered_input_event = (*kbd_fetch_ptr.as_mut_ptr ());
 
       *kbp = event_to_kboard (&raw mut (*event).ie);
       if (*kbp).is_null ()
-	{ *kbp = current_kboard; }  /* Better than returning null ptr?  */
+	{ *kbp = (*current_kboard.as_mut_ptr ()); }  /* Better than returning null ptr?  */
 
       /* Selection-request events never have frames, they are actually
          instances of 'struct selection_input_event'.  */
@@ -4902,8 +4901,8 @@ unsafe fn kbd_buffer_get_event (kbp: *mut *mut KBOARD,
 	     since otherwise swallow_events will see it
 	     and process it again.  */
 	  let copy: selection_input_event = (*event).sie;
-	  kbd_fetch_ptr = next_kbd_event (event);
-	  input_pending = readable_events (0);
+	  (*kbd_fetch_ptr.as_mut_ptr ()) = next_kbd_event (event);
+	  (*input_pending.as_mut_ptr ()) = readable_events (0);
 
 	  #[cfg (feature = "have_x11")]
 	  { x_handle_selection_event (&raw const copy); }
@@ -4926,8 +4925,8 @@ unsafe fn kbd_buffer_get_event (kbp: *mut *mut KBOARD,
         SELECTION_CLEAR_EVENT => {
 	  let mut copy: input_event = (*event).ie;
 
-	  kbd_fetch_ptr = next_kbd_event (event);
-	  input_pending = readable_events (0);
+	  (*kbd_fetch_ptr.as_mut_ptr ()) = next_kbd_event (event);
+	  (*input_pending.as_mut_ptr ()) = readable_events (0);
 	  /* C 4645-4665's `#elif defined HAVE_HAIKU` arm calls a name C takes from haikuterm.h 370
 	     (`extern void haiku_handle_selection_clear (struct input_event *);`); this unit's
 	     include graph does not reach that mirror, so the declaration sits in the arm - the
@@ -4942,8 +4941,8 @@ unsafe fn kbd_buffer_get_event (kbp: *mut *mut KBOARD,
 
         /* C 4264-4275.  */
         MONITORS_CHANGED_EVENT => {
-	  kbd_fetch_ptr = next_kbd_event (event);
-	  input_pending = readable_events (0);
+	  (*kbd_fetch_ptr.as_mut_ptr ()) = next_kbd_event (event);
+	  (*input_pending.as_mut_ptr ()) = readable_events (0);
 
 	  CALLN! (Frun_hook_with_args,
 		  Qdisplay_monitors_changed_functions (),
@@ -4953,17 +4952,17 @@ unsafe fn kbd_buffer_get_event (kbp: *mut *mut KBOARD,
         /* C 4277-4286: `#ifdef HAVE_ANDROID` (carried per P-51).  */
         #[cfg (feature = "have_android")]
         NOTIFICATION_EVENT => {
-	  kbd_fetch_ptr = next_kbd_event (event);
-	  input_pending = readable_events (0);
+	  (*kbd_fetch_ptr.as_mut_ptr ()) = next_kbd_event (event);
+	  (*input_pending.as_mut_ptr ()) = readable_events (0);
 	  CALLN! (Fapply, XCAR ((*event).ie.arg), XCDR ((*event).ie.arg));
 	}
 
         /* C 4288-4295.  */
         TOOLKIT_THEME_CHANGED_EVENT => {
-	  kbd_fetch_ptr = next_kbd_event (event);
-	  input_pending = readable_events (0);
+	  (*kbd_fetch_ptr.as_mut_ptr ()) = next_kbd_event (event);
+	  (*input_pending.as_mut_ptr ()) = readable_events (0);
 
-	  Vtoolkit_theme = (*event).ie.arg;
+	  (*Vtoolkit_theme.as_mut_ptr ()) = (*event).ie.arg;
 	  CALLN! (Frun_hook_with_args, Qtoolkit_theme_set_functions (),
 		  (*event).ie.arg);
 	}
@@ -4973,8 +4972,8 @@ unsafe fn kbd_buffer_get_event (kbp: *mut *mut KBOARD,
         #[cfg (feature = "have_ext_menu_bar")]
         MENU_BAR_ACTIVATE_EVENT => {
           let f: *mut frame;
-	  kbd_fetch_ptr = next_kbd_event (event);
-	  input_pending = readable_events (0);
+	  (*kbd_fetch_ptr.as_mut_ptr ()) = next_kbd_event (event);
+	  (*input_pending.as_mut_ptr ()) = readable_events (0);
           f = XFRAME ((*event).ie.frame_or_window);
 	  if FRAME_LIVE_P (f) && (*FRAME_TERMINAL! (f)).activate_menubar_hook.is_some ()
 	    { ((*FRAME_TERMINAL! (f)).activate_menubar_hook.unwrap ()) (f as *mut c_void); }
@@ -4991,37 +4990,37 @@ unsafe fn kbd_buffer_get_event (kbp: *mut *mut KBOARD,
 	    { *used_mouse_menu = true; }
 	  /* FALLTHROUGH */
 	  obj = make_lispy_event (&raw mut (*event).ie);
-	  kbd_fetch_ptr = next_kbd_event (event);
+	  (*kbd_fetch_ptr.as_mut_ptr ()) = next_kbd_event (event);
 	}
         #[cfg (feature = "have_ntgui")]
         END_SESSION_EVENT | LANGUAGE_CHANGE_EVENT => {
 	  obj = make_lispy_event (&raw mut (*event).ie);
-	  kbd_fetch_ptr = next_kbd_event (event);
+	  (*kbd_fetch_ptr.as_mut_ptr ()) = next_kbd_event (event);
 	}
         #[cfg (feature = "have_window_system")]
         DELETE_WINDOW_EVENT | ICONIFY_EVENT | DEICONIFY_EVENT | MOVE_FRAME_EVENT => {
 	  obj = make_lispy_event (&raw mut (*event).ie);
-	  kbd_fetch_ptr = next_kbd_event (event);
+	  (*kbd_fetch_ptr.as_mut_ptr ()) = next_kbd_event (event);
 	}
         #[cfg (feature = "use_file_notify")]
         FILE_NOTIFY_EVENT => {
 	  obj = make_lispy_event (&raw mut (*event).ie);
-	  kbd_fetch_ptr = next_kbd_event (event);
+	  (*kbd_fetch_ptr.as_mut_ptr ()) = next_kbd_event (event);
 	}
         #[cfg (feature = "have_dbus")]
         DBUS_EVENT => {
 	  obj = make_lispy_event (&raw mut (*event).ie);
-	  kbd_fetch_ptr = next_kbd_event (event);
+	  (*kbd_fetch_ptr.as_mut_ptr ()) = next_kbd_event (event);
 	}
         #[cfg (feature = "threads_enabled")]
         THREAD_EVENT => {
 	  obj = make_lispy_event (&raw mut (*event).ie);
-	  kbd_fetch_ptr = next_kbd_event (event);
+	  (*kbd_fetch_ptr.as_mut_ptr ()) = next_kbd_event (event);
 	}
         #[cfg (feature = "have_xwidgets")]
         XWIDGET_EVENT | XWIDGET_DISPLAY_EVENT => {
 	  obj = make_lispy_event (&raw mut (*event).ie);
-	  kbd_fetch_ptr = next_kbd_event (event);
+	  (*kbd_fetch_ptr.as_mut_ptr ()) = next_kbd_event (event);
 	}
         PREEDIT_TEXT_EVENT
         | SAVE_SESSION_EVENT
@@ -5033,7 +5032,7 @@ unsafe fn kbd_buffer_get_event (kbp: *mut *mut KBOARD,
         | SELECT_WINDOW_EVENT
         | SLEEP_EVENT => {
           obj = make_lispy_event (&raw mut (*event).ie);
-          kbd_fetch_ptr = next_kbd_event (event);
+          (*kbd_fetch_ptr.as_mut_ptr ()) = next_kbd_event (event);
         }
 
         /* C 4348-4529: C's `default:` arm.  */
@@ -5061,22 +5060,22 @@ unsafe fn kbd_buffer_get_event (kbp: *mut *mut KBOARD,
 	  /* If this event is on a different frame, return a
 	     switch-frame this time, and leave the event in the queue
 	     for next time.  */
-	  if !EQ (frame_, internal_last_event_frame)
-	      && !EQ (frame_, selected_frame)
+	  if !EQ (frame_, (*internal_last_event_frame.as_mut_ptr ()))
+	      && !EQ (frame_, (*selected_frame.as_mut_ptr ()))
 	    { obj = make_lispy_switch_frame (frame_); }
-	  internal_last_event_frame = frame_;
+	  (*internal_last_event_frame.as_mut_ptr ()) = frame_;
 
 	  if EQ ((*event).ie.device, Qt ())
-	    { Vlast_event_device
+	    { (*Vlast_event_device.as_mut_ptr ())
 		= if input_event_bits! (kind, &raw mut (*event).ie) == ASCII_KEYSTROKE_EVENT
 		     || input_event_bits! (kind, &raw mut (*event).ie)
 		        == MULTIBYTE_CHAR_KEYSTROKE_EVENT
 		     || input_event_bits! (kind, &raw mut (*event).ie)
 		        == NON_ASCII_KEYSTROKE_EVENT
-		   { virtual_core_keyboard_name }
-		   else { virtual_core_pointer_name }; }
+		   { (*virtual_core_keyboard_name.as_mut_ptr ()) }
+		   else { (*virtual_core_pointer_name.as_mut_ptr ()) }; }
 	  else
-	    { Vlast_event_device = (*event).ie.device; }
+	    { (*Vlast_event_device.as_mut_ptr ()) = (*event).ie.device; }
 
 	  /* If we didn't decide to make a switch-frame event, go ahead
 	     and build a real event from the queue entry.  */
@@ -5110,7 +5109,7 @@ unsafe fn kbd_buffer_get_event (kbp: *mut *mut KBOARD,
 		  pinch_dy = XFLOAT_DATA (XCAR (XCDR ((*event).ie.arg)));
 		  pinch_angle = XFLOAT_DATA (Fnth (make_fixnum (3), (*event).ie.arg));
 
-		  while maybe_event != kbd_store_ptr
+		  while maybe_event != (*kbd_store_ptr.as_mut_ptr ())
 			 && input_event_bits! (kind, &raw mut (*maybe_event).ie) == PINCH_EVENT
 			 /* Make sure we never miss an event that has
 			    different modifiers.  */
@@ -5140,7 +5139,7 @@ unsafe fn kbd_buffer_get_event (kbp: *mut *mut KBOARD,
 			       make_float (fmod (pinch_angle, 360.0)));
 
 		      if !EQ ((*maybe_event).ie.device, Qt ())
-			{ Vlast_event_device = (*maybe_event).ie.device; }
+			{ (*Vlast_event_device.as_mut_ptr ()) = (*maybe_event).ie.device; }
 
 		      maybe_event = next_kbd_event (event);
 		    }
@@ -5161,7 +5160,7 @@ unsafe fn kbd_buffer_get_event (kbp: *mut *mut KBOARD,
 
 		  if SCHARS (str) == 0
 		    {
-		      kbd_fetch_ptr = next_kbd_event (event);
+		      (*kbd_fetch_ptr.as_mut_ptr ()) = next_kbd_event (event);
 		      obj = Qnil ();
 		      break 'switch;
 		    }
@@ -5221,7 +5220,7 @@ unsafe fn kbd_buffer_get_event (kbp: *mut *mut KBOARD,
 		{
 		  /* Wipe out this event, to catch bugs.  */
 		  clear_event (&raw mut (*event).ie);
-		  kbd_fetch_ptr = next_kbd_event (event);
+		  (*kbd_fetch_ptr.as_mut_ptr ()) = next_kbd_event (event);
 		}
 	    }
 	}
@@ -5241,7 +5240,7 @@ unsafe fn kbd_buffer_get_event (kbp: *mut *mut KBOARD,
 
       *event_frame = some_mouse_moved ();
       f = *event_frame;
-      *kbp = current_kboard;
+      *kbp = (*current_kboard.as_mut_ptr ());
       /* Note that this uses F to determine which terminal to look at.
 	 If there is no valid info, it does not store anything
 	 so x remains nil.  */
@@ -5265,10 +5264,10 @@ unsafe fn kbd_buffer_get_event (kbp: *mut *mut KBOARD,
 	  if NILP (frame_)
 	    { XSETFRAME! (frame_, f); }
 
-	  if !EQ (frame_, internal_last_event_frame)
-	      && !EQ (frame_, selected_frame)
+	  if !EQ (frame_, (*internal_last_event_frame.as_mut_ptr ()))
+	      && !EQ (frame_, (*selected_frame.as_mut_ptr ()))
 	    { obj = make_lispy_switch_frame (frame_); }
-	  internal_last_event_frame = frame_;
+	  (*internal_last_event_frame.as_mut_ptr ()) = frame_;
 	}
 
       /* If we didn't decide to make a switch-frame event, go ahead and
@@ -5277,9 +5276,9 @@ unsafe fn kbd_buffer_get_event (kbp: *mut *mut KBOARD,
 	{ obj = make_lispy_movement (f, bar_window, part, x, y, t); }
 
       if !NILP (obj)
-	{ Vlast_event_device = if STRINGP ((**event_frame).last_mouse_device)
+	{ (*Vlast_event_device.as_mut_ptr ()) = if STRINGP ((**event_frame).last_mouse_device)
 				 { (**event_frame).last_mouse_device }
-			       else { virtual_core_pointer_name }; }
+			       else { (*virtual_core_pointer_name.as_mut_ptr ()) }; }
     }
   else
     {
@@ -5294,9 +5293,9 @@ unsafe fn kbd_buffer_get_event (kbp: *mut *mut KBOARD,
       { emacs_abort (); }
     }
 
-  input_pending = readable_events (0);
+  (*input_pending.as_mut_ptr ()) = readable_events (0);
 
-  Vlast_event_frame = internal_last_event_frame;
+  (*Vlast_event_frame.as_mut_ptr ()) = (*internal_last_event_frame.as_mut_ptr ());
 
   return (obj);
 
@@ -5310,8 +5309,8 @@ unsafe fn process_special_events ()
   unsafe {
   let mut event: *mut buffered_input_event;
 
-  event = kbd_fetch_ptr;
-  while event != kbd_store_ptr
+  event = (*kbd_fetch_ptr.as_mut_ptr ());
+  while event != (*kbd_store_ptr.as_mut_ptr ())
     {
       /* If we find a stored X selection request, handle it now.  */
       if (*event).kind == SELECTION_REQUEST_EVENT as u16
@@ -5337,25 +5336,25 @@ unsafe fn process_special_events ()
 
 	  copy = (*event).sie;
 
-	  if event < kbd_fetch_ptr
+	  if event < (*kbd_fetch_ptr.as_mut_ptr ())
 	    {
-	      memmove ((&raw mut kbd_buffer as *mut buffered_input_event).add (1) as *mut c_void,
-		       &raw mut kbd_buffer as *const c_void,
-		       ((event.offset_from (&raw mut kbd_buffer as *mut buffered_input_event))
+	      memmove ((kbd_buffer.as_mut_ptr () as *mut buffered_input_event).add (1) as *mut c_void,
+		       kbd_buffer.as_mut_ptr () as *const c_void,
+		       ((event.offset_from (kbd_buffer.as_mut_ptr () as *mut buffered_input_event))
 			* std::mem::size_of::<buffered_input_event> () as isize) as usize);
-	      kbd_buffer[0] = kbd_buffer[(KBD_BUFFER_SIZE - 1) as usize];
-	      moved_events = ((&raw mut kbd_buffer as *mut buffered_input_event)
+	      (*kbd_buffer.as_mut_ptr ())[0] = (*kbd_buffer.as_mut_ptr ())[(KBD_BUFFER_SIZE - 1) as usize];
+	      moved_events = ((kbd_buffer.as_mut_ptr () as *mut buffered_input_event)
 			      .add ((KBD_BUFFER_SIZE - 1) as usize)
-			      .offset_from (kbd_fetch_ptr)) as c_int;
+			      .offset_from ((*kbd_fetch_ptr.as_mut_ptr ()))) as c_int;
 	    }
 	  else
-	    { moved_events = event.offset_from (kbd_fetch_ptr) as c_int; }
+	    { moved_events = event.offset_from ((*kbd_fetch_ptr.as_mut_ptr ())) as c_int; }
 
-	  memmove ((kbd_fetch_ptr).add (1) as *mut c_void, kbd_fetch_ptr as *const c_void,
+	  memmove (((*kbd_fetch_ptr.as_mut_ptr ())).add (1) as *mut c_void, (*kbd_fetch_ptr.as_mut_ptr ()) as *const c_void,
 		   ((moved_events as isize)
 		    * std::mem::size_of::<buffered_input_event> () as isize) as usize);
-	  kbd_fetch_ptr = next_kbd_event (kbd_fetch_ptr);
-	  input_pending = readable_events (0);
+	  (*kbd_fetch_ptr.as_mut_ptr ()) = next_kbd_event ((*kbd_fetch_ptr.as_mut_ptr ()));
+	  (*input_pending.as_mut_ptr ()) = readable_events (0);
 
 	  #[cfg (feature = "have_x11")]
 	  { x_handle_selection_event (&raw mut copy); }
@@ -5373,25 +5372,25 @@ unsafe fn process_special_events ()
 
 	  copy = (*event).ie;
 
-	  if event < kbd_fetch_ptr
+	  if event < (*kbd_fetch_ptr.as_mut_ptr ())
 	    {
-	      memmove ((&raw mut kbd_buffer as *mut buffered_input_event).add (1) as *mut c_void,
-		       &raw mut kbd_buffer as *const c_void,
-		       ((event.offset_from (&raw mut kbd_buffer as *mut buffered_input_event))
+	      memmove ((kbd_buffer.as_mut_ptr () as *mut buffered_input_event).add (1) as *mut c_void,
+		       kbd_buffer.as_mut_ptr () as *const c_void,
+		       ((event.offset_from (kbd_buffer.as_mut_ptr () as *mut buffered_input_event))
 			* std::mem::size_of::<buffered_input_event> () as isize) as usize);
-	      kbd_buffer[0] = kbd_buffer[(KBD_BUFFER_SIZE - 1) as usize];
-	      moved_events = ((&raw mut kbd_buffer as *mut buffered_input_event)
+	      (*kbd_buffer.as_mut_ptr ())[0] = (*kbd_buffer.as_mut_ptr ())[(KBD_BUFFER_SIZE - 1) as usize];
+	      moved_events = ((kbd_buffer.as_mut_ptr () as *mut buffered_input_event)
 			      .add ((KBD_BUFFER_SIZE - 1) as usize)
-			      .offset_from (kbd_fetch_ptr)) as c_int;
+			      .offset_from ((*kbd_fetch_ptr.as_mut_ptr ()))) as c_int;
 	    }
 	  else
-	    { moved_events = event.offset_from (kbd_fetch_ptr) as c_int; }
+	    { moved_events = event.offset_from ((*kbd_fetch_ptr.as_mut_ptr ())) as c_int; }
 
-	  memmove ((kbd_fetch_ptr).add (1) as *mut c_void, kbd_fetch_ptr as *const c_void,
+	  memmove (((*kbd_fetch_ptr.as_mut_ptr ())).add (1) as *mut c_void, (*kbd_fetch_ptr.as_mut_ptr ()) as *const c_void,
 		   ((moved_events as isize)
 		    * std::mem::size_of::<buffered_input_event> () as isize) as usize);
-	  kbd_fetch_ptr = next_kbd_event (kbd_fetch_ptr);
-	  input_pending = readable_events (0);
+	  (*kbd_fetch_ptr.as_mut_ptr ()) = next_kbd_event ((*kbd_fetch_ptr.as_mut_ptr ()));
+	  (*input_pending.as_mut_ptr ()) = readable_events (0);
 	  /* C 4645-4665's `#elif defined HAVE_HAIKU` arm calls a name C takes from haikuterm.h 370
 	     (`extern void haiku_handle_selection_clear (struct input_event *);`); this unit's
 	     include graph does not reach that mirror, so the declaration sits in the arm - the
@@ -5430,10 +5429,10 @@ pub unsafe extern "C-unwind" fn swallow_events (do_display: bool)
 
   process_special_events ();
 
-  old_timers_run = timers_run;
+  old_timers_run = (*timers_run.as_mut_ptr ());
   get_input_pending (READABLE_EVENTS_DO_TIMERS_NOW);
 
-  if !input_pending && timers_run != old_timers_run && do_display
+  if !(*input_pending.as_mut_ptr ()) && (*timers_run.as_mut_ptr ()) != old_timers_run && do_display
     { redisplay_preserve_echo_area (7); }
 
   }
@@ -5448,11 +5447,11 @@ unsafe fn timer_start_idle ()
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
   /* If we are already in the idle state, do nothing.  */
-  if timespec_valid_p (timer_idleness_start_time)
+  if timespec_valid_p ((*timer_idleness_start_time.as_mut_ptr ()))
     { return; }
 
-  timer_idleness_start_time = current_timespec ();
-  timer_last_idleness_start_time = timer_idleness_start_time;
+  (*timer_idleness_start_time.as_mut_ptr ()) = current_timespec ();
+  (*timer_last_idleness_start_time.as_mut_ptr ()) = (*timer_idleness_start_time.as_mut_ptr ());
 
   /* Mark all idle-time timers as once again candidates for running.  */
   call0 (Qinternal_timer_start_idle ());
@@ -5467,7 +5466,7 @@ unsafe fn timer_stop_idle ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  timer_idleness_start_time = invalid_timespec ();
+  (*timer_idleness_start_time.as_mut_ptr ()) = invalid_timespec ();
 
   }
 }
@@ -5479,10 +5478,10 @@ unsafe fn timer_resume_idle ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  if timespec_valid_p (timer_idleness_start_time)
+  if timespec_valid_p ((*timer_idleness_start_time.as_mut_ptr ()))
     { return; }
 
-  timer_idleness_start_time = timer_last_idleness_start_time;
+  (*timer_idleness_start_time.as_mut_ptr ()) = (*timer_last_idleness_start_time.as_mut_ptr ());
 
   }
 }
@@ -5493,7 +5492,7 @@ unsafe fn timer_resume_idle ()
 /* C 4740: `Lisp_Object pending_funcalls;` (lisp.rs 3895 declares it in `other_units`, which is
    a glob import: the crate-root item here shadows it, PORTING.md P-21).  */
 #[unsafe(no_mangle)]
-pub static mut pending_funcalls: Lisp_Object = lisp_h_Qnil ();
+pub static pending_funcalls: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* Return the value of TIMER if it is a valid timer, an invalid struct
    timespec otherwise.  */
@@ -5540,10 +5539,10 @@ unsafe fn timer_check_2 (timers: Lisp_Object, idle_timers: Lisp_Object) -> times
   let mut idle_timers = idle_timers;
 
   /* First run the code that was delayed.  */
-  while CONSP (pending_funcalls)
+  while CONSP ((*pending_funcalls.as_mut_ptr ()))
     {
-      let funcall: Lisp_Object = XCAR (pending_funcalls);
-      pending_funcalls = XCDR (pending_funcalls);
+      let funcall: Lisp_Object = XCAR ((*pending_funcalls.as_mut_ptr ()));
+      (*pending_funcalls.as_mut_ptr ()) = XCDR ((*pending_funcalls.as_mut_ptr ()));
       safe_calln! (Qapply (), XCAR (funcall), XCDR (funcall));
     }
 
@@ -5552,8 +5551,8 @@ unsafe fn timer_check_2 (timers: Lisp_Object, idle_timers: Lisp_Object) -> times
 
   let now: timespec = current_timespec ();
   let idleness_now: timespec
-    = if timespec_valid_p (timer_idleness_start_time)
-      { timespec_sub (now, timer_idleness_start_time) }
+    = if timespec_valid_p ((*timer_idleness_start_time.as_mut_ptr ()))
+      { timespec_sub (now, (*timer_idleness_start_time.as_mut_ptr ())) }
       else { make_timespec (0, 0) };
 
   loop
@@ -5649,7 +5648,7 @@ unsafe fn timer_check_2 (timers: Lisp_Object, idle_timers: Lisp_Object) -> times
 	  if NILP (AREF (chosen_timer, 0))
 	    {
 	      let count: specpdl_ref = SPECPDL_INDEX ();
-	      let old_deactivate_mark: Lisp_Object = Vdeactivate_mark;
+	      let old_deactivate_mark: Lisp_Object = (*Vdeactivate_mark.as_mut_ptr ());
 
 	      /* Mark the timer as triggered to prevent problems if the lisp
 		 code fails to reschedule it right.  */
@@ -5658,8 +5657,8 @@ unsafe fn timer_check_2 (timers: Lisp_Object, idle_timers: Lisp_Object) -> times
 	      specbind (Qinhibit_quit (), Qt ());
 
 	      calln! (Qtimer_event_handler (), chosen_timer);
-	      Vdeactivate_mark = old_deactivate_mark;
-	      timers_run += 1;
+	      (*Vdeactivate_mark.as_mut_ptr ()) = old_deactivate_mark;
+	      (*timers_run.as_mut_ptr ()) += 1;
 	      unbind_to (count, Qnil ());
 
 	      /* Since we have handled the event,
@@ -5705,8 +5704,8 @@ pub unsafe extern "C-unwind" fn timer_check () -> timespec
   let mut timers: Lisp_Object;
   let mut idle_timers: Lisp_Object;
 
-  let tem: Lisp_Object = Vinhibit_quit;
-  Vinhibit_quit = Qt ();
+  let tem: Lisp_Object = (*Vinhibit_quit.as_mut_ptr ());
+  (*Vinhibit_quit.as_mut_ptr ()) = Qt ();
   block_input ();
   turn_on_atimers (false);
 
@@ -5715,16 +5714,16 @@ pub unsafe extern "C-unwind" fn timer_check () -> timespec
      already ripe when added.  */
 
   /* Always consider the ordinary timers.  */
-  timers = Fcopy_sequence (Vtimer_list);
+  timers = Fcopy_sequence ((*Vtimer_list.as_mut_ptr ()));
   /* Consider the idle timers only if Emacs is idle.  */
-  if timespec_valid_p (timer_idleness_start_time)
-    { idle_timers = Fcopy_sequence (Vtimer_idle_list); }
+  if timespec_valid_p ((*timer_idleness_start_time.as_mut_ptr ()))
+    { idle_timers = Fcopy_sequence ((*Vtimer_idle_list.as_mut_ptr ())); }
   else
     { idle_timers = Qnil (); }
 
   turn_on_atimers (true);
   unblock_input ();
-  Vinhibit_quit = tem;
+  (*Vinhibit_quit.as_mut_ptr ()) = tem;
 
   loop
     {
@@ -5741,9 +5740,9 @@ DEFUN! ("current-idle-time", Fcurrent_idle_time, Scurrent_idle_time, 0, 0, 0,
        doc: "Return the current length of Emacs idleness, or nil.\nThe value when Emacs is idle is a Lisp timestamp in the style of\n`current-time'.\n\nThe value when Emacs is not idle is nil.\n\nIf the value is a list of four integers (HIGH LOW USEC PSEC), then PSEC\nis a multiple of the system clock resolution.",
        (),
        {
-  if timespec_valid_p (timer_idleness_start_time)
+  if timespec_valid_p ((*timer_idleness_start_time.as_mut_ptr ()))
     { return make_lisp_time (timespec_sub (current_timespec (),
-					   timer_idleness_start_time)); }
+					   (*timer_idleness_start_time.as_mut_ptr ()))); }
 
   return Qnil ();
 });
@@ -5763,12 +5762,12 @@ DEFUN! ("current-idle-time", Fcurrent_idle_time, Scurrent_idle_time, 0, 0, 0,
 
 
 /* Caches for modify_event_symbol.  */
-static mut accent_key_syms: Lisp_Object = lisp_h_Qnil ();
-static mut func_key_syms: Lisp_Object = lisp_h_Qnil ();
-static mut mouse_syms: Lisp_Object = lisp_h_Qnil ();
-static mut wheel_syms: Lisp_Object = lisp_h_Qnil ();
-static mut drag_n_drop_syms: Lisp_Object = lisp_h_Qnil ();
-static mut pinch_syms: Lisp_Object = lisp_h_Qnil ();
+static accent_key_syms: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+static func_key_syms: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+static mouse_syms: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+static wheel_syms: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+static drag_n_drop_syms: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+static pinch_syms: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* This is a list of keysym codes for special "accent" characters.
    It parallels lispy_accent_keys.  */
@@ -5863,7 +5862,7 @@ static lispy_accent_codes: [c_int; 20] = [
    It parallels lispy_accent_codes.  */
 
 /* C 5085-5107: `lispy_accent_keys`.  */
-static mut lispy_accent_keys: [*const c_char; 20] = [
+static lispy_accent_keys: VmGlobal<[*const c_char; 20]> = VmGlobal::<[*const c_char; 20]>::new ([
   c"dead-circumflex".as_ptr (),
   c"dead-grave".as_ptr (),
   c"dead-tilde".as_ptr (),
@@ -5884,13 +5883,13 @@ static mut lispy_accent_keys: [*const c_char; 20] = [
   c"dead-semivoiced-sound".as_ptr (),
   c"dead-hook".as_ptr (),
   c"dead-horn".as_ptr (),
-];
+]);
 
 
 /* C 5109-5207: `#ifdef HAVE_ANDROID` (carried per P-51).  C 5110's `#define
    FUNCTION_KEY_OFFSET 0` is selected with the target configuration below.  */
 #[cfg (feature = "have_android")]
-static mut lispy_function_keys: [*const c_char; 338] = {
+static lispy_function_keys: VmGlobal<[*const c_char; 338]> = VmGlobal::<[*const c_char; 338]>::new ({
   /* Rust cannot shadow the static with a same-named `let` (E0530: a `let` binding
      may not shadow a `static`), so the array C's initializer builds carries the name
      `keys` here; every C `lispy_function_keys[…] = …` line below keeps its index and its
@@ -5986,12 +5985,12 @@ static mut lispy_function_keys: [*const c_char; 338] = {
   keys[93] = c"next".as_ptr ();
   keys[95] = c"mode-change".as_ptr ();
   keys
-};
+});
 
 /* C 5209-5461: `#elif defined HAVE_NTGUI` (carried per P-51); C 5210's `#define
    FUNCTION_KEY_OFFSET 0x0` is that macro's second definition.  */
 #[cfg (feature = "have_ntgui")]
-static mut lispy_function_keys: [*const c_char; 256] = [
+static lispy_function_keys: VmGlobal<[*const c_char; 256]> = VmGlobal::<[*const c_char; 256]>::new ([
     std::ptr::null (),                /* 0                      */
 
     std::ptr::null (),                /* VK_LBUTTON        0x01 */
@@ -6180,13 +6179,13 @@ static mut lispy_function_keys: [*const c_char; 256] = [
     c"pa1".as_ptr (),           /* VK_PA1            0xFD */
     c"oem_clear".as_ptr (),     /* VK_OEM_CLEAR      0xFE */
     std::ptr::null () /* 0xFF */
-];
+]);
 
 
 /* Some of these duplicate the "Media keys" on newer keyboards,
    but they are delivered to the application in a different way.  */
 #[cfg (feature = "have_ntgui")]
-static mut lispy_multimedia_keys: [*const c_char; 53] = [
+static lispy_multimedia_keys: VmGlobal<[*const c_char; 53]> = VmGlobal::<[*const c_char; 53]>::new ([
     std::ptr::null (),
     c"browser-back".as_ptr (),
     c"browser-forward".as_ptr (),
@@ -6240,7 +6239,7 @@ static mut lispy_multimedia_keys: [*const c_char; 53] = [
     c"media-rewind".as_ptr (),
     c"media-channel-up".as_ptr (),
     c"media-channel-down".as_ptr ()
-];
+]);
 
 
 /* C 5463-5618: the chain's `#else /* not HAVE_NTGUI */` arm — the live one.  */
@@ -6264,7 +6263,7 @@ pub const FUNCTION_KEY_OFFSET: c_int = 0xff00;
    own: with a window system and no NS the arm is not compiled, and Android read
    `E0428 lispy_function_keys` against its own arm without it (measured).  */
 #[cfg (any (feature = "have_ns", not (feature = "have_window_system")))]
-static mut lispy_function_keys: [*const c_char; 256] = [
+static lispy_function_keys: VmGlobal<[*const c_char; 256]> = VmGlobal::<[*const c_char; 256]>::new ([
     /* X Keysym value */
 
     std::ptr::null (), std::ptr::null (), std::ptr::null (), std::ptr::null (), std::ptr::null (), std::ptr::null (), std::ptr::null (), std::ptr::null (),			      /* 0xff00...0f */
@@ -6344,14 +6343,14 @@ static mut lispy_function_keys: [*const c_char; 256] = [
     std::ptr::null (), std::ptr::null (), std::ptr::null (), std::ptr::null (), std::ptr::null (), std::ptr::null (), std::ptr::null (), std::ptr::null (),
     std::ptr::null (), std::ptr::null (), std::ptr::null (), std::ptr::null (), std::ptr::null (), std::ptr::null (), std::ptr::null (), std::ptr::null (),     /* 0xfff0 */
     std::ptr::null (), std::ptr::null (), std::ptr::null (), std::ptr::null (), std::ptr::null (), std::ptr::null (), std::ptr::null (), c"delete".as_ptr ()
-];
+]);
 
 /* C 5599-5616: `iso_lispy_function_keys`.  */
 /* ISO 9995 Function and Modifier Keys; the first byte is 0xFE.  */
 /* C 5597: `#define ISO_FUNCTION_KEY_OFFSET 0xfe00`.  */
 pub const ISO_FUNCTION_KEY_OFFSET: c_int = 0xfe00;
 
-static mut iso_lispy_function_keys: [*const c_char; 53] = [
+static iso_lispy_function_keys: VmGlobal<[*const c_char; 53]> = VmGlobal::<[*const c_char; 53]>::new ([
     std::ptr::null (), std::ptr::null (), std::ptr::null (), std::ptr::null (), std::ptr::null (), std::ptr::null (), std::ptr::null (), std::ptr::null (),	/* 0xfe00 */
     std::ptr::null (), std::ptr::null (), std::ptr::null (), std::ptr::null (), std::ptr::null (), std::ptr::null (), std::ptr::null (), std::ptr::null (),	/* 0xfe08 */
     std::ptr::null (), std::ptr::null (), std::ptr::null (), std::ptr::null (), std::ptr::null (), std::ptr::null (), std::ptr::null (), std::ptr::null (),	/* 0xfe10 */
@@ -6367,23 +6366,23 @@ static mut iso_lispy_function_keys: [*const c_char; 53] = [
     c"iso-fast-cursor-up".as_ptr (), c"iso-fast-cursor-down".as_ptr (),
     c"iso-continuous-underline".as_ptr (), c"iso-discontinuous-underline".as_ptr (), /* 0xfe30, 31 */
     c"iso-emphasize".as_ptr (), c"iso-center-object".as_ptr (), c"iso-enter".as_ptr (), /* ... 0xfe34 */
-];
+]);
 
 
 /* C 5620: `static Lisp_Object Vlispy_mouse_stem;`.  */
-static mut Vlispy_mouse_stem: Lisp_Object = lisp_h_Qnil ();
+static Vlispy_mouse_stem: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 
 /* C 5622-5625 and 5629-5632: the wheel and drag-n-drop name tables.  */
-static mut lispy_wheel_names: [*const c_char; 4] = [
+static lispy_wheel_names: VmGlobal<[*const c_char; 4]> = VmGlobal::<[*const c_char; 4]>::new ([
   c"wheel-up".as_ptr (), c"wheel-down".as_ptr (), c"wheel-left".as_ptr (), c"wheel-right".as_ptr ()
-];
+]);
 
 /* drag-n-drop events are generated when a set of selected files are
    dragged from another application and dropped onto an Emacs window.  */
-static mut lispy_drag_n_drop_names: [*const c_char; 1] = [
+static lispy_drag_n_drop_names: VmGlobal<[*const c_char; 1]> = VmGlobal::<[*const c_char; 1]>::new ([
   c"drag-n-drop".as_ptr ()
-];
+]);
 
 /* An array of symbol indexes of scroll bar parts, indexed by an enum
    scroll_bar_part value.  Note that Qnil corresponds to
@@ -6424,27 +6423,27 @@ static internal_border_parts: [c_short; 9] = [
    difference between click and drag events, and to store the starting
    location to be included in drag events.  */
 
-static mut button_down_location: Lisp_Object = lisp_h_Qnil ();
+static button_down_location: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* A cons recording the original frame-relative x and y coordinates of
    the down mouse event.  */
-static mut frame_relative_event_pos: Lisp_Object = lisp_h_Qnil ();
+static frame_relative_event_pos: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* The line-number display width, in columns, at the time of most
    recent down mouse event.  */
-static mut down_mouse_line_number_width: c_int = 0;
+static down_mouse_line_number_width: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 
 /* Information about the most recent up-going button event:  Which
    button, what location, and what time.  */
 
-static mut last_mouse_button: c_int = 0;
-static mut last_mouse_x: c_int = 0;
-static mut last_mouse_y: c_int = 0;
-static mut button_down_time: Time = 0;
+static last_mouse_button: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
+static last_mouse_x: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
+static last_mouse_y: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
+static button_down_time: VmGlobal<Time> = VmGlobal::<Time>::new (0);
 
 /* The number of clicks in this multiple-click.  */
 
-static mut double_click_count: c_int = 0;
+static double_click_count: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 
 /* C 5691-5698: `enum frame_border_side` — the port's constants (PORTING.md 1.3: C's
    enum ABI is `c_int`).  */
@@ -6626,7 +6625,7 @@ unsafe fn make_lispy_position (f: *mut frame, x: Lisp_Object, y: Lisp_Object, t:
 	 awaits a solution that includes a convention for all special
 	 values of 'track-mouse' and their documentation in the Elisp
 	 manual.  */
-      if NILP (track_mouse) || EQ (track_mouse, Qt ())
+      if NILP ((*track_mouse.as_mut_ptr ())) || EQ ((*track_mouse.as_mut_ptr ()), Qt ())
 	{ posn = if EQ (window_or_frame, (*f).tab_bar_window)
 		   { Qtab_bar () } else { Qtool_bar () }; }
       /* Kludge alert: for mouse events on the tab bar and tool bar,
@@ -6641,7 +6640,7 @@ unsafe fn make_lispy_position (f: *mut frame, x: Lisp_Object, y: Lisp_Object, t:
       ((*FRAME_TERMINAL! (f)).toolkit_position_hook.unwrap ())
 	(f as *mut c_void, mx, my, &raw mut menu_bar_p, &raw mut tool_bar_p);
 
-      if NILP (track_mouse) || EQ (track_mouse, Qt ())
+      if NILP ((*track_mouse.as_mut_ptr ())) || EQ ((*track_mouse.as_mut_ptr ()), Qt ())
 	{
 	  if menu_bar_p
 	    { posn = Qmenu_bar (); }
@@ -6913,7 +6912,7 @@ unsafe fn make_lispy_position (f: *mut frame, x: Lisp_Object, y: Lisp_Object, t:
     }
   else
     {
-      if EQ (track_mouse, Qdrag_source ())
+      if EQ ((*track_mouse.as_mut_ptr ()), Qdrag_source ())
 	{
 	  xret = mx;
 	  yret = my;
@@ -7028,8 +7027,8 @@ unsafe fn save_line_number_display_width (event: *mut input_event)
   else if FRAMEP ((*event).frame_or_window)
     { w = XWINDOW ((*XFRAME ((*event).frame_or_window)).selected_window); }
   else
-    { w = XWINDOW (selected_window); }
-  line_number_display_width (w, &raw mut down_mouse_line_number_width, &raw mut pixel_width);
+    { w = XWINDOW ((*selected_window.as_mut_ptr ())); }
+  line_number_display_width (w, down_mouse_line_number_width.as_mut_ptr (), &raw mut pixel_width);
 
   }
 }
@@ -7065,15 +7064,15 @@ unsafe fn line_number_mode_hscroll (start_pos: Lisp_Object, end_pos: Lisp_Object
       if WINDOW_LIVE_P (window)
 	{ window = (*XFRAME (window)).selected_window; }
       else
-	{ window = selected_window; }
+	{ window = (*selected_window.as_mut_ptr ()); }
     }
   w = XWINDOW (window);
   line_number_display_width (w, &raw mut col_width, &raw mut pixel_width);
   start_col = Fcar (start_col_row);
   end_col = Fcar (end_col_row);
   return EQ (start_col, end_col)
-	 && down_mouse_line_number_width >= 0
-	 && col_width != down_mouse_line_number_width;
+	 && (*down_mouse_line_number_width.as_mut_ptr ()) >= 0
+	 && col_width != (*down_mouse_line_number_width.as_mut_ptr ());
 
   }
 }
@@ -7241,7 +7240,7 @@ unsafe fn make_lispy_event (event: *mut input_event) -> Lisp_Object
       if (*event).code == 0o40
 	  && ((*event).modifiers & shift_modifier as c_uint) != 0
 	{ c |= shift_modifier as EMACS_INT; }
-      button_down_time = 0;
+      (*button_down_time.as_mut_ptr ()) = 0;
       XSETFASTINT! (lispy_c, c);
       return lispy_c;
     }
@@ -7260,7 +7259,7 @@ unsafe fn make_lispy_event (event: *mut input_event) -> Lisp_Object
        tacked onto it.  */
     #[cfg (feature = "have_ns")]
     NS_NONKEY_EVENT => {
-      button_down_time = 0;
+      (*button_down_time.as_mut_ptr ()) = 0;
 
       i = 0;
       while i < countof! (lispy_accent_codes) as c_int
@@ -7270,9 +7269,9 @@ unsafe fn make_lispy_event (event: *mut input_event) -> Lisp_Object
 	      return modify_event_symbol (i as ptrdiff_t,
 					  (*event).modifiers as c_int,
 					  Qfunction_key (), Qnil (),
-					  &raw const lispy_accent_keys as *const *const c_char,
-					  &raw mut accent_key_syms,
-					  countof! (lispy_accent_keys) as ptrdiff_t);
+					  lispy_accent_keys.as_ptr () as *const *const c_char,
+					  accent_key_syms.as_mut_ptr (),
+					  countof! ((*lispy_accent_keys.as_mut_ptr ())) as ptrdiff_t);
 	    }
 	  i += 1;
 	}
@@ -7285,43 +7284,43 @@ unsafe fn make_lispy_event (event: *mut input_event) -> Lisp_Object
 					as ptrdiff_t,
 				      (*event).modifiers as c_int,
 				      Qfunction_key (), Qnil (),
-				      &raw const iso_lispy_function_keys as *const *const c_char,
-				      &raw mut func_key_syms,
-				      countof! (iso_lispy_function_keys) as ptrdiff_t);
+				      iso_lispy_function_keys.as_ptr () as *const *const c_char,
+				      func_key_syms.as_mut_ptr (),
+				      countof! ((*iso_lispy_function_keys.as_mut_ptr ())) as ptrdiff_t);
 	}
 
       if FUNCTION_KEY_OFFSET as c_uint <= (*event).code
 	  && (*event).code
-	      < FUNCTION_KEY_OFFSET as c_uint + countof! (lispy_function_keys) as c_uint
-	  && !lispy_function_keys[((*event).code - FUNCTION_KEY_OFFSET as c_uint) as usize]
+	      < FUNCTION_KEY_OFFSET as c_uint + countof! ((*lispy_function_keys.as_mut_ptr ())) as c_uint
+	  && !(*lispy_function_keys.as_mut_ptr ())[((*event).code - FUNCTION_KEY_OFFSET as c_uint) as usize]
 	       .is_null ()
 	{
 	  return modify_event_symbol (((*event).code - FUNCTION_KEY_OFFSET as c_uint)
 					as ptrdiff_t,
 				      (*event).modifiers as c_int,
 				      Qfunction_key (), Qnil (),
-				      &raw const lispy_function_keys as *const *const c_char,
-				      &raw mut func_key_syms,
-				      countof! (lispy_function_keys) as ptrdiff_t);
+				      lispy_function_keys.as_ptr () as *const *const c_char,
+				      func_key_syms.as_mut_ptr (),
+				      countof! ((*lispy_function_keys.as_mut_ptr ())) as ptrdiff_t);
 	}
 
       /* Handle system-specific or unknown keysyms.
 	 We need to use an alist rather than a vector as the cache
 	 since we can't make a vector long enough.  */
-      if NILP (KVAR! (current_kboard, system_key_syms))
-	{ kset_system_key_syms (current_kboard, Fcons (Qnil (), Qnil ())); }
+      if NILP (KVAR! ((*current_kboard.as_mut_ptr ()), system_key_syms))
+	{ kset_system_key_syms ((*current_kboard.as_mut_ptr ()), Fcons (Qnil (), Qnil ())); }
       return modify_event_symbol ((*event).code as ptrdiff_t,
 				  (*event).modifiers as c_int,
 				  Qfunction_key (),
-				  KVAR! (current_kboard, Vsystem_key_alist),
+				  KVAR! ((*current_kboard.as_mut_ptr ()), (*Vsystem_key_alist.as_mut_ptr ())),
 				  std::ptr::null (),
-				  &raw mut KVAR! (current_kboard, system_key_syms),
+				  &raw mut KVAR! ((*current_kboard.as_mut_ptr ()), system_key_syms),
 				  PTRDIFF_MAX);
     }
 
     /* C 6344-6411: the live `NON_ASCII_KEYSTROKE_EVENT` arm.  */
     NON_ASCII_KEYSTROKE_EVENT => {
-      button_down_time = 0;
+      (*button_down_time.as_mut_ptr ()) = 0;
 
       i = 0;
       while i < countof! (lispy_accent_codes) as c_int
@@ -7331,9 +7330,9 @@ unsafe fn make_lispy_event (event: *mut input_event) -> Lisp_Object
 	      return modify_event_symbol (i as ptrdiff_t,
 					  (*event).modifiers as c_int,
 					  Qfunction_key (), Qnil (),
-					  &raw const lispy_accent_keys as *const *const c_char,
-					  &raw mut accent_key_syms,
-					  countof! (lispy_accent_keys) as ptrdiff_t);
+					  lispy_accent_keys.as_ptr () as *const *const c_char,
+					  accent_key_syms.as_mut_ptr (),
+					  countof! ((*lispy_accent_keys.as_mut_ptr ())) as ptrdiff_t);
 	    }
 	  i += 1;
 	}
@@ -7346,37 +7345,37 @@ unsafe fn make_lispy_event (event: *mut input_event) -> Lisp_Object
 					as ptrdiff_t,
 				      (*event).modifiers as c_int,
 				      Qfunction_key (), Qnil (),
-				      &raw const iso_lispy_function_keys as *const *const c_char,
-				      &raw mut func_key_syms,
-				      countof! (iso_lispy_function_keys) as ptrdiff_t);
+				      iso_lispy_function_keys.as_ptr () as *const *const c_char,
+				      func_key_syms.as_mut_ptr (),
+				      countof! ((*iso_lispy_function_keys.as_mut_ptr ())) as ptrdiff_t);
 	}
 
       if FUNCTION_KEY_OFFSET as c_uint <= (*event).code
 	  && (*event).code
-	      < FUNCTION_KEY_OFFSET as c_uint + countof! (lispy_function_keys) as c_uint
-	  && !lispy_function_keys[((*event).code - FUNCTION_KEY_OFFSET as c_uint) as usize]
+	      < FUNCTION_KEY_OFFSET as c_uint + countof! ((*lispy_function_keys.as_mut_ptr ())) as c_uint
+	  && !(*lispy_function_keys.as_mut_ptr ())[((*event).code - FUNCTION_KEY_OFFSET as c_uint) as usize]
 	       .is_null ()
 	{
 	  return modify_event_symbol (((*event).code - FUNCTION_KEY_OFFSET as c_uint)
 					as ptrdiff_t,
 				      (*event).modifiers as c_int,
 				      Qfunction_key (), Qnil (),
-				      &raw const lispy_function_keys as *const *const c_char,
-				      &raw mut func_key_syms,
-				      countof! (lispy_function_keys) as ptrdiff_t);
+				      lispy_function_keys.as_ptr () as *const *const c_char,
+				      func_key_syms.as_mut_ptr (),
+				      countof! ((*lispy_function_keys.as_mut_ptr ())) as ptrdiff_t);
 	}
 
       /* Handle system-specific or unknown keysyms.
 	 We need to use an alist rather than a vector as the cache
 	 since we can't make a vector long enough.  */
-      if NILP (KVAR! (current_kboard, system_key_syms))
-	{ kset_system_key_syms (current_kboard, Fcons (Qnil (), Qnil ())); }
+      if NILP (KVAR! ((*current_kboard.as_mut_ptr ()), system_key_syms))
+	{ kset_system_key_syms ((*current_kboard.as_mut_ptr ()), Fcons (Qnil (), Qnil ())); }
       return modify_event_symbol ((*event).code as ptrdiff_t,
 				  (*event).modifiers as c_int,
 				  Qfunction_key (),
-				  KVAR! (current_kboard, Vsystem_key_alist),
+				  KVAR! ((*current_kboard.as_mut_ptr ()), (*Vsystem_key_alist.as_mut_ptr ())),
 				  std::ptr::null (),
-				  &raw mut KVAR! (current_kboard, system_key_syms),
+				  &raw mut KVAR! ((*current_kboard.as_mut_ptr ()), system_key_syms),
 				  PTRDIFF_MAX);
     }
 
@@ -7398,16 +7397,16 @@ unsafe fn make_lispy_event (event: *mut input_event) -> Lisp_Object
 
     #[cfg (feature = "have_ntgui")]
     MULTIMEDIA_KEY_EVENT => {
-      if (*event).code < countof! (lispy_multimedia_keys) as c_uint
+      if (*event).code < countof! ((*lispy_multimedia_keys.as_mut_ptr ())) as c_uint
 	  && (*event).code > 0
-	  && !lispy_multimedia_keys[(*event).code as usize].is_null ()
+	  && !(*lispy_multimedia_keys.as_mut_ptr ())[(*event).code as usize].is_null ()
 	{
 	  return modify_event_symbol ((*event).code as ptrdiff_t,
 				      (*event).modifiers as c_int,
 				      Qfunction_key (), Qnil (),
-				      &raw const lispy_multimedia_keys as *const *const c_char,
-				      &raw mut func_key_syms,
-				      countof! (lispy_multimedia_keys) as ptrdiff_t);
+				      lispy_multimedia_keys.as_ptr () as *const *const c_char,
+				      func_key_syms.as_mut_ptr (),
+				      countof! ((*lispy_multimedia_keys.as_mut_ptr ())) as ptrdiff_t);
 	}
       return Qnil ();
     }
@@ -7535,15 +7534,15 @@ unsafe fn make_lispy_event (event: *mut input_event) -> Lisp_Object
 	/* It's a scrollbar click.  */
 	{ position = make_scroll_bar_position (event, Qvertical_scroll_bar ()); }
 
-      if button as ptrdiff_t >= ASIZE (button_down_location)
+      if button as ptrdiff_t >= ASIZE ((*button_down_location.as_mut_ptr ()))
 	{
-	  let incr: ptrdiff_t = button as ptrdiff_t - ASIZE (button_down_location) + 1;
-	  button_down_location = larger_vector (button_down_location,
+	  let incr: ptrdiff_t = button as ptrdiff_t - ASIZE ((*button_down_location.as_mut_ptr ())) + 1;
+	  (*button_down_location.as_mut_ptr ()) = larger_vector ((*button_down_location.as_mut_ptr ()),
 						incr, -1);
-	  mouse_syms = larger_vector (mouse_syms, incr, -1);
+	  (*mouse_syms.as_mut_ptr ()) = larger_vector ((*mouse_syms.as_mut_ptr ()), incr, -1);
 	}
 
-      start_pos_ptr = aref_addr (button_down_location, button as isize);
+      start_pos_ptr = aref_addr ((*button_down_location.as_mut_ptr ()), button as isize);
       start_pos = *start_pos_ptr;
       *start_pos_ptr = Qnil ();
 
@@ -7562,25 +7561,25 @@ unsafe fn make_lispy_event (event: *mut input_event) -> Lisp_Object
 	  { emacs_abort (); }
 
 	if FRAME_WINDOW_P (f)
-	  { fuzz = double_click_fuzz as intmax_t; }
+	  { fuzz = (*double_click_fuzz.as_mut_ptr ()) as intmax_t; }
 	else
-	  { fuzz = double_click_fuzz as intmax_t / 8; }
+	  { fuzz = (*double_click_fuzz.as_mut_ptr ()) as intmax_t / 8; }
 
-	is_double = (button == last_mouse_button
-		     && (eabs! (XFIXNUM ((*event).x) - last_mouse_x as EMACS_INT)
+	is_double = (button == (*last_mouse_button.as_mut_ptr ())
+		     && (eabs! (XFIXNUM ((*event).x) - (*last_mouse_x.as_mut_ptr ()) as EMACS_INT)
 			 as intmax_t) <= fuzz
-		     && (eabs! (XFIXNUM ((*event).y) - last_mouse_y as EMACS_INT)
+		     && (eabs! (XFIXNUM ((*event).y) - (*last_mouse_y.as_mut_ptr ()) as EMACS_INT)
 			 as intmax_t) <= fuzz
-		     && button_down_time != 0
-		     && (EQ (Vdouble_click_time, Qt ())
-			 || (FIXNATP (Vdouble_click_time)
-			     && ((*event).timestamp - button_down_time
-				 < XFIXNAT (Vdouble_click_time) as Time))));
+		     && (*button_down_time.as_mut_ptr ()) != 0
+		     && (EQ ((*Vdouble_click_time.as_mut_ptr ()), Qt ())
+			 || (FIXNATP ((*Vdouble_click_time.as_mut_ptr ()))
+			     && ((*event).timestamp - (*button_down_time.as_mut_ptr ())
+				 < XFIXNAT ((*Vdouble_click_time.as_mut_ptr ())) as Time))));
       }
 
-      last_mouse_button = button;
-      last_mouse_x = XFIXNUM ((*event).x) as c_int;
-      last_mouse_y = XFIXNUM ((*event).y) as c_int;
+      (*last_mouse_button.as_mut_ptr ()) = button;
+      (*last_mouse_x.as_mut_ptr ()) = XFIXNUM ((*event).x) as c_int;
+      (*last_mouse_y.as_mut_ptr ()) = XFIXNUM ((*event).y) as c_int;
 
       /* If this is a button press, squirrel away the location, so
          we can decide later whether it was a click or a drag.  */
@@ -7588,17 +7587,17 @@ unsafe fn make_lispy_event (event: *mut input_event) -> Lisp_Object
 	{
 	  if is_double
 	    {
-	      double_click_count += 1;
-	      (*event).modifiers |= (if double_click_count > 2
+	      (*double_click_count.as_mut_ptr ()) += 1;
+	      (*event).modifiers |= (if (*double_click_count.as_mut_ptr ()) > 2
 				     { triple_modifier }
 				     else { double_modifier }) as c_uint;
 	    }
 	  else
-	    { double_click_count = 1; }
-	  button_down_time = (*event).timestamp;
+	    { (*double_click_count.as_mut_ptr ()) = 1; }
+	  (*button_down_time.as_mut_ptr ()) = (*event).timestamp;
 	  *start_pos_ptr = Fcopy_alist (position);
-	  frame_relative_event_pos = Fcons ((*event).x, (*event).y);
-	  ignore_mouse_drag_p = false;
+	  (*frame_relative_event_pos.as_mut_ptr ()) = Fcons ((*event).x, (*event).y);
+	  (*ignore_mouse_drag_p.as_mut_ptr ()) = false;
 	  /* Squirrel away the line-number width, if any.  */
 	  save_line_number_display_width (event);
 	}
@@ -7618,23 +7617,23 @@ unsafe fn make_lispy_event (event: *mut input_event) -> Lisp_Object
 
 	  let mut click_or_drag_modifier: c_uint = click_modifier as c_uint;
 
-	  if ignore_mouse_drag_p
-	    { ignore_mouse_drag_p = false; }
+	  if (*ignore_mouse_drag_p.as_mut_ptr ())
+	    { (*ignore_mouse_drag_p.as_mut_ptr ()) = false; }
 	  else
 	    {
-	      let mut xdiff: intmax_t = double_click_fuzz as intmax_t;
-	      let mut ydiff: intmax_t = double_click_fuzz as intmax_t;
+	      let mut xdiff: intmax_t = (*double_click_fuzz.as_mut_ptr ()) as intmax_t;
+	      let mut ydiff: intmax_t = (*double_click_fuzz.as_mut_ptr ()) as intmax_t;
 
 	      xdiff = (XFIXNUM ((*event).x)
-		       - XFIXNUM (XCAR (frame_relative_event_pos))) as intmax_t;
+		       - XFIXNUM (XCAR ((*frame_relative_event_pos.as_mut_ptr ())))) as intmax_t;
 	      ydiff = (XFIXNUM ((*event).y)
-		       - XFIXNUM (XCDR (frame_relative_event_pos))) as intmax_t;
+		       - XFIXNUM (XCDR ((*frame_relative_event_pos.as_mut_ptr ())))) as intmax_t;
 
-	      if ! (0 < double_click_fuzz as intmax_t
-		    && (- double_click_fuzz as intmax_t) < xdiff
-		    && xdiff < double_click_fuzz as intmax_t
-		    && (- double_click_fuzz as intmax_t) < ydiff
-		    && ydiff < double_click_fuzz as intmax_t
+	      if ! (0 < (*double_click_fuzz.as_mut_ptr ()) as intmax_t
+		    && (- (*double_click_fuzz.as_mut_ptr ()) as intmax_t) < xdiff
+		    && xdiff < (*double_click_fuzz.as_mut_ptr ()) as intmax_t
+		    && (- (*double_click_fuzz.as_mut_ptr ()) as intmax_t) < ydiff
+		    && ydiff < (*double_click_fuzz.as_mut_ptr ()) as intmax_t
 		    /* Maybe the mouse has moved a lot, caused scrolling, and
 		       eventually ended up at the same screen position (but
 		       not buffer position) in which case it is a drag, not
@@ -7654,10 +7653,10 @@ unsafe fn make_lispy_event (event: *mut input_event) -> Lisp_Object
 				Fcar (position)))) /* Different window */
 		{
 	      /* Mouse has moved enough.  */
-	      button_down_time = 0;
+	      (*button_down_time.as_mut_ptr ()) = 0;
 	      click_or_drag_modifier = drag_modifier as c_uint;
 	      /* Reset the value for future clicks.  */
-	      down_mouse_line_number_width = -1;
+	      (*down_mouse_line_number_width.as_mut_ptr ()) = -1;
 	    }
 	      else if (((!EQ (Fcar (start_pos), Fcar (position)))
 			|| (!EQ (Fcar (Fcdr (start_pos)),
@@ -7675,8 +7674,8 @@ unsafe fn make_lispy_event (event: *mut input_event) -> Lisp_Object
 		{
 		  let edges: Lisp_Object
 		    = calln! (Qwindow_edges (), Fcar (start_pos), Qt (), Qnil (), Qt ());
-		  let mut new_x: c_int = XFIXNUM (Fcar (frame_relative_event_pos)) as c_int;
-		  let mut new_y: c_int = XFIXNUM (XCDR (frame_relative_event_pos)) as c_int;
+		  let mut new_x: c_int = XFIXNUM (Fcar ((*frame_relative_event_pos.as_mut_ptr ()))) as c_int;
+		  let mut new_y: c_int = XFIXNUM (XCDR ((*frame_relative_event_pos.as_mut_ptr ()))) as c_int;
 
 		  /* If the up-event is outside the down-event's
 		     window, use coordinates that are within it.  */
@@ -7702,8 +7701,8 @@ unsafe fn make_lispy_event (event: *mut input_event) -> Lisp_Object
 	  (*event).modifiers
 	    = ((*event).modifiers & !(up_modifier as c_uint))
 	      | click_or_drag_modifier
-	      | (if double_click_count < 2
-		 { 0 } else if double_click_count == 2
+	      | (if (*double_click_count.as_mut_ptr ()) < 2
+		 { 0 } else if (*double_click_count.as_mut_ptr ()) == 2
 		 { double_modifier } else { triple_modifier }) as c_uint;
 	}
       else
@@ -7717,15 +7716,15 @@ unsafe fn make_lispy_event (event: *mut input_event) -> Lisp_Object
 
 	head = modify_event_symbol (button as ptrdiff_t,
 				    (*event).modifiers as c_int,
-				    Qmouse_click (), Vlispy_mouse_stem,
+				    Qmouse_click (), (*Vlispy_mouse_stem.as_mut_ptr ()),
 				    std::ptr::null (),
-				    &raw mut mouse_syms,
-				    ASIZE (mouse_syms));
+				    mouse_syms.as_mut_ptr (),
+				    ASIZE ((*mouse_syms.as_mut_ptr ())));
 	if ((*event).modifiers & drag_modifier as c_uint) != 0
 	  { return list3 (head, start_pos, position); }
 	else if ((*event).modifiers
 		 & (double_modifier | triple_modifier) as c_uint) != 0
-	  { return list3 (head, position, make_fixnum (double_click_count as EMACS_INT)); }
+	  { return list3 (head, position, make_fixnum ((*double_click_count.as_mut_ptr ()) as EMACS_INT)); }
 	else
 	  { return list2 (head, position); }
       }
@@ -7765,8 +7764,8 @@ unsafe fn make_lispy_event (event: *mut input_event) -> Lisp_Object
 	  { emacs_abort (); }
 
 	fuzz = if FRAME_WINDOW_P (fr)
-		 { double_click_fuzz as intmax_t }
-	       else { double_click_fuzz as intmax_t / 8 };
+		 { (*double_click_fuzz.as_mut_ptr ()) as intmax_t }
+	       else { (*double_click_fuzz.as_mut_ptr ()) as intmax_t / 8 };
 
 	if ((*event).modifiers & up_modifier as c_uint) != 0
 	  {
@@ -7788,47 +7787,47 @@ unsafe fn make_lispy_event (event: *mut input_event) -> Lisp_Object
 	if input_event_bits! (kind, event) == HORIZ_WHEEL_EVENT
 	  { symbol_num += 2; }
 
-	is_double = (last_mouse_button == - (1 + symbol_num)
-		     && (eabs! (XFIXNUM ((*event).x) - last_mouse_x as EMACS_INT)
+	is_double = ((*last_mouse_button.as_mut_ptr ()) == - (1 + symbol_num)
+		     && (eabs! (XFIXNUM ((*event).x) - (*last_mouse_x.as_mut_ptr ()) as EMACS_INT)
 			 as intmax_t) <= fuzz
-		     && (eabs! (XFIXNUM ((*event).y) - last_mouse_y as EMACS_INT)
+		     && (eabs! (XFIXNUM ((*event).y) - (*last_mouse_y.as_mut_ptr ()) as EMACS_INT)
 			 as intmax_t) <= fuzz
-		     && button_down_time != 0
-		     && (EQ (Vdouble_click_time, Qt ())
-			 || (FIXNATP (Vdouble_click_time)
-			     && ((*event).timestamp - button_down_time
-				 < XFIXNAT (Vdouble_click_time) as Time))));
+		     && (*button_down_time.as_mut_ptr ()) != 0
+		     && (EQ ((*Vdouble_click_time.as_mut_ptr ()), Qt ())
+			 || (FIXNATP ((*Vdouble_click_time.as_mut_ptr ()))
+			     && ((*event).timestamp - (*button_down_time.as_mut_ptr ())
+				 < XFIXNAT ((*Vdouble_click_time.as_mut_ptr ())) as Time))));
 	if is_double
 	  {
-	    double_click_count += 1;
-	    (*event).modifiers |= (if double_click_count > 2
+	    (*double_click_count.as_mut_ptr ()) += 1;
+	    (*event).modifiers |= (if (*double_click_count.as_mut_ptr ()) > 2
 				   { triple_modifier }
 				   else { double_modifier }) as c_uint;
 	  }
 	else
 	  {
-	    double_click_count = 1;
+	    (*double_click_count.as_mut_ptr ()) = 1;
 	    (*event).modifiers |= click_modifier as c_uint;
 	  }
 
-	button_down_time = (*event).timestamp;
+	(*button_down_time.as_mut_ptr ()) = (*event).timestamp;
 	/* Use a negative value to distinguish wheel from mouse button.  */
-	last_mouse_button = - (1 + symbol_num);
-	last_mouse_x = XFIXNUM ((*event).x) as c_int;
-	last_mouse_y = XFIXNUM ((*event).y) as c_int;
+	(*last_mouse_button.as_mut_ptr ()) = - (1 + symbol_num);
+	(*last_mouse_x.as_mut_ptr ()) = XFIXNUM ((*event).x) as c_int;
+	(*last_mouse_y.as_mut_ptr ()) = XFIXNUM ((*event).y) as c_int;
 
 	/* Get the symbol we should use for the wheel event.  */
 	head = modify_event_symbol (symbol_num as ptrdiff_t,
 				    (*event).modifiers as c_int,
 				    Qmouse_click (),
 				    Qnil (),
-				    &raw const lispy_wheel_names as *const *const c_char,
-				    &raw mut wheel_syms,
-				    ASIZE (wheel_syms));
+				    lispy_wheel_names.as_ptr () as *const *const c_char,
+				    wheel_syms.as_mut_ptr (),
+				    ASIZE ((*wheel_syms.as_mut_ptr ())));
       }
 
       if CONSP ((*event).arg)
-	{ return list5 (head, position, make_fixnum (double_click_count as EMACS_INT),
+	{ return list5 (head, position, make_fixnum ((*double_click_count.as_mut_ptr ()) as EMACS_INT),
 			XCAR ((*event).arg),
 			/* FIXME: When a mouse-click on a tab-bar is
                            converted into a wheel-event we get here something
@@ -7841,11 +7840,11 @@ unsafe fn make_lispy_event (event: *mut input_event) -> Lisp_Object
 			   we just use nil.  */
 			else { Qnil () }); }
       else if NUMBERP ((*event).arg)
-	{ return list4 (head, position, make_fixnum (double_click_count as EMACS_INT),
+	{ return list4 (head, position, make_fixnum ((*double_click_count.as_mut_ptr ()) as EMACS_INT),
 			(*event).arg); }
       else if ((*event).modifiers
 	       & (double_modifier | triple_modifier) as c_uint) != 0
-	{ return list3 (head, position, make_fixnum (double_click_count as EMACS_INT)); }
+	{ return list3 (head, position, make_fixnum ((*double_click_count.as_mut_ptr ()) as EMACS_INT)); }
       else
 	{ return list2 (head, position); }
     }
@@ -7896,7 +7895,7 @@ unsafe fn make_lispy_event (event: *mut input_event) -> Lisp_Object
 	{
 	  /* If the tap began in the menu bar window, then save the
 	     id.  */
-	  menu_bar_touch_id = id;
+	  (*menu_bar_touch_id.as_mut_ptr ()) = id;
 	  return Qnil ();
 	}
       }
@@ -7980,11 +7979,11 @@ unsafe fn make_lispy_event (event: *mut input_event) -> Lisp_Object
 	 carried per P-51).  */
       #[cfg (feature = "window_system_no_ext_menu_bar")]
       {
-      if EQ (menu_bar_touch_id, id)
+      if EQ ((*menu_bar_touch_id.as_mut_ptr ()), id)
 	{
 	  /* This touch should activate the menu bar.  Generate the
 	     menu bar event.  */
-	  menu_bar_touch_id = Qnil ();
+	  (*menu_bar_touch_id.as_mut_ptr ()) = Qnil ();
 
 	  if !NILP ((*f).menu_bar_window)
 	    {
@@ -8107,7 +8106,7 @@ unsafe fn make_lispy_event (event: *mut input_event) -> Lisp_Object
       let pinch_names: [*const c_char; 1] = [c"pinch".as_ptr ()];
       return Fcons (modify_event_symbol (0, (*event).modifiers as c_int, Qpinch (),
 					 Qnil (), &raw const pinch_names as *const *const c_char,
-					 &raw mut pinch_syms, 1),
+					 pinch_syms.as_mut_ptr (), 1),
 		    Fcons (position, (*event).arg));
     }
 
@@ -8138,7 +8137,7 @@ unsafe fn make_lispy_event (event: *mut input_event) -> Lisp_Object
 	  id = XCAR (XCDR (XCDR (it)));
 
 	  /* Don't report touches to the menu bar.  */
-	  if !EQ (id, menu_bar_touch_id)
+	  if !EQ (id, (*menu_bar_touch_id.as_mut_ptr ()))
 	    {
 	      position = make_lispy_position (f, x, y, (*event).timestamp);
 	      evt = Fcons (Fcons (id, position), evt);
@@ -8182,11 +8181,11 @@ unsafe fn make_lispy_event (event: *mut input_event) -> Lisp_Object
       (*event).modifiers |= click_modifier as c_uint;
       (*event).modifiers &= !(up_modifier as c_uint);
 
-      if (*event).code >= ASIZE (mouse_syms) as c_uint
+      if (*event).code >= ASIZE ((*mouse_syms.as_mut_ptr ())) as c_uint
 	{
-	  mouse_syms = larger_vector (mouse_syms,
+	  (*mouse_syms.as_mut_ptr ()) = larger_vector ((*mouse_syms.as_mut_ptr ()),
 				      ((*event).code as ptrdiff_t
-				       - ASIZE (mouse_syms) + 1),
+				       - ASIZE ((*mouse_syms.as_mut_ptr ())) + 1),
 				      -1);
 	}
 
@@ -8194,9 +8193,9 @@ unsafe fn make_lispy_event (event: *mut input_event) -> Lisp_Object
       head = modify_event_symbol ((*event).code as ptrdiff_t,
 				  (*event).modifiers as c_int,
 				  Qmouse_click (),
-				  Vlispy_mouse_stem,
-				  std::ptr::null (), &raw mut mouse_syms,
-				  ASIZE (mouse_syms));
+				  (*Vlispy_mouse_stem.as_mut_ptr ()),
+				  std::ptr::null (), mouse_syms.as_mut_ptr (),
+				  ASIZE ((*mouse_syms.as_mut_ptr ())));
       return list2 (head, position);
     }
 
@@ -8211,11 +8210,11 @@ unsafe fn make_lispy_event (event: *mut input_event) -> Lisp_Object
       (*event).modifiers |= click_modifier as c_uint;
       (*event).modifiers &= !(up_modifier as c_uint);
 
-      if (*event).code >= ASIZE (mouse_syms) as c_uint
+      if (*event).code >= ASIZE ((*mouse_syms.as_mut_ptr ())) as c_uint
 	{
-	  mouse_syms = larger_vector (mouse_syms,
+	  (*mouse_syms.as_mut_ptr ()) = larger_vector ((*mouse_syms.as_mut_ptr ()),
 				      ((*event).code as ptrdiff_t
-				       - ASIZE (mouse_syms) + 1),
+				       - ASIZE ((*mouse_syms.as_mut_ptr ())) + 1),
 				      -1);
 	}
 
@@ -8223,9 +8222,9 @@ unsafe fn make_lispy_event (event: *mut input_event) -> Lisp_Object
       head = modify_event_symbol ((*event).code as ptrdiff_t,
 				  (*event).modifiers as c_int,
 				  Qmouse_click (),
-				  Vlispy_mouse_stem,
-				  std::ptr::null (), &raw mut mouse_syms,
-				  ASIZE (mouse_syms));
+				  (*Vlispy_mouse_stem.as_mut_ptr ()),
+				  std::ptr::null (), mouse_syms.as_mut_ptr (),
+				  ASIZE ((*mouse_syms.as_mut_ptr ())));
       return list2 (head, position);
     }
 
@@ -8248,8 +8247,8 @@ unsafe fn make_lispy_event (event: *mut input_event) -> Lisp_Object
 
       head = modify_event_symbol (0, (*event).modifiers as c_int,
 				  Qdrag_n_drop (), Qnil (),
-				  &raw const lispy_drag_n_drop_names as *const *const c_char,
-				  &raw mut drag_n_drop_syms, 1);
+				  lispy_drag_n_drop_names.as_ptr () as *const *const c_char,
+				  drag_n_drop_syms.as_mut_ptr (), 1);
       return list3 (head, position, files);
     }
 
@@ -8601,7 +8600,7 @@ unsafe fn apply_modifiers_uncached (modifiers: c_int, base: *mut c_char, base_le
 /* C 7529-7534: `static const char *const modifier_names[]`.  The table is `static mut` for the
    reason the event tables are (C's `const char *const []` holds raw pointers, which are not
    `Sync`); C's `const` is preserved by the table never being written.  */
-static mut modifier_names: [*const c_char; 28] = [
+static modifier_names: VmGlobal<[*const c_char; 28]> = VmGlobal::<[*const c_char; 28]>::new ([
   c"up".as_ptr (), c"down".as_ptr (), c"drag".as_ptr (), c"click".as_ptr (),
   c"double".as_ptr (), c"triple".as_ptr (), std::ptr::null (), std::ptr::null (),
   std::ptr::null (), std::ptr::null (), std::ptr::null (), std::ptr::null (),
@@ -8609,16 +8608,16 @@ static mut modifier_names: [*const c_char; 28] = [
   std::ptr::null (), std::ptr::null (), std::ptr::null (), std::ptr::null (),
   std::ptr::null (), std::ptr::null (), c"alt".as_ptr (), c"super".as_ptr (),
   c"hyper".as_ptr (), c"shift".as_ptr (), c"control".as_ptr (), c"meta".as_ptr ()
-];
+]);
 /* C 7535: `#define NUM_MOD_NAMES countof (modifier_names)`.  C's object-like macro names the
    table, and this unit's `modifier_names` is a `static mut` (raw pointers are not `Sync`); Rust
    refuses to read a mutable static from a `const` initialiser, so the port keeps C's macro as a
    `macro_rules!` whose body is C's own expression, evaluated at its one use site (the
    `alloc.rs` `countof! (spare_memory)` shape).  */
-macro_rules! NUM_MOD_NAMES { () => { countof! (modifier_names) as c_int } }
+macro_rules! NUM_MOD_NAMES { () => { countof! ((*modifier_names.as_mut_ptr ())) as c_int } }
 
 /* C 7537: `static Lisp_Object modifier_symbols;`  */
-static mut modifier_symbols: Lisp_Object = lisp_h_Qnil ();
+static modifier_symbols: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* C 7539-7540: `lispy_modifier_list`'s own comment, above its definition.  */
 /* C 7541-7553: `static Lisp_Object lispy_modifier_list (int modifiers);`  */
@@ -8634,7 +8633,7 @@ unsafe fn lispy_modifier_list (modifiers: c_int) -> Lisp_Object
   while (1 << i) <= modifiers && i < NUM_MOD_NAMES! ()
     {
       if (modifiers & (1 << i)) != 0
-	{ modifier_list = Fcons (AREF (modifier_symbols, i as isize), modifier_list); }
+	{ modifier_list = Fcons (AREF ((*modifier_symbols.as_mut_ptr ()), i as isize), modifier_list); }
       i += 1;
     }
 
@@ -9014,11 +9013,11 @@ DEFUN! ("internal-handle-focus-in", Finternal_handle_focus_in,
      frame and the Emacs selected frame shouldn't be related, but for
      a long time, we automatically switched the selected frame in
      response to focus events, so let's keep doing that.  */
-  let switching: bool = !EQ (frame, internal_last_event_frame)
-                       && !EQ (frame, selected_frame);
-  internal_last_event_frame = frame;
-  if switching || !NILP (unread_switch_frame)
-    { unread_switch_frame = make_lispy_switch_frame (frame); }
+  let switching: bool = !EQ (frame, (*internal_last_event_frame.as_mut_ptr ()))
+                       && !EQ (frame, (*selected_frame.as_mut_ptr ()));
+  (*internal_last_event_frame.as_mut_ptr ()) = frame;
+  if switching || !NILP ((*unread_switch_frame.as_mut_ptr ()))
+    { (*unread_switch_frame.as_mut_ptr ()) = make_lispy_switch_frame (frame); }
 
   return Qnil ();
 });
@@ -9160,17 +9159,17 @@ unsafe fn get_input_pending (flags: c_int) -> bool
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
   /* First of all, have we already counted some input?  */
-  input_pending = !NILP (Vquit_flag) || readable_events (flags);
+  (*input_pending.as_mut_ptr ()) = !NILP ((*Vquit_flag.as_mut_ptr ())) || readable_events (flags);
 
   /* If input is being read as it arrives, and we have none, there is none.  */
-  if !input_pending && (!interrupt_input || interrupts_deferred)
+  if !(*input_pending.as_mut_ptr ()) && (!(*interrupt_input.as_mut_ptr ()) || (*interrupts_deferred.as_mut_ptr ()))
     {
       /* Try to read some input and see how much we get.  */
       gobble_input ();
-      input_pending = !NILP (Vquit_flag) || readable_events (flags);
+      (*input_pending.as_mut_ptr ()) = !NILP ((*Vquit_flag.as_mut_ptr ())) || readable_events (flags);
     }
 
-  return input_pending;
+  return (*input_pending.as_mut_ptr ());
 
   }
 }
@@ -9196,7 +9195,7 @@ pub unsafe extern "C-unwind" fn gobble_input () -> c_int
   store_user_signal_events ();
 
   /* Loop through the available terminals, and call their input hooks.  */
-  t = terminal_list;
+  t = (*terminal_list.as_mut_ptr ());
   while !t.is_null ()
     {
       let next: *mut terminal = (*t).next_terminal;
@@ -9208,7 +9207,7 @@ pub unsafe extern "C-unwind" fn gobble_input () -> c_int
 
 	  if input_blocked_p ()
 	    {
-	      pending_signals = true;
+	      (*pending_signals.as_mut_ptr ()) = true;
 	      break;
 	    }
 
@@ -9228,7 +9227,7 @@ pub unsafe extern "C-unwind" fn gobble_input () -> c_int
               /* The terminal device terminated; it should be closed.  */
 
               /* Kill Emacs if this was our last terminal.  */
-              if (*terminal_list).next_terminal.is_null ()
+              if (*(*terminal_list.as_mut_ptr ())).next_terminal.is_null ()
                 /* Formerly simply reported no input, but that
                    sometimes led to a failure of Emacs to terminate.
                    SIGHUP seems appropriate if we can't reach the
@@ -9384,7 +9383,7 @@ pub unsafe extern "C-unwind" fn tty_read_avail_input (terminal: *mut terminal,
   /* C 8243-8255: `#ifdef USABLE_FIONREAD` (live: `USABLE_FIONREAD` is 1 here).  */
   if ioctl (fileno ((*tty).input), FIONREAD, &raw mut n_to_read) < 0
     {
-      if !noninteractive
+      if !(*noninteractive.as_mut_ptr ())
         { return -2; }          /* Close this terminal.  */
       else
         { n_to_read = 0; }
@@ -9464,9 +9463,9 @@ pub unsafe extern "C-unwind" fn tty_read_avail_input (terminal: *mut terminal,
          frame has not been set up yet, always use the selected frame
          (Bug#78966).  */
       if !FRAMEP ((*tty).top_frame)
-	  || (!FRAME_PARENT_FRAME (XFRAME (selected_frame)).is_null ()
-	      && (root_frame (XFRAME (selected_frame)) == XFRAME ((*tty).top_frame)))
-	{ buf.frame_or_window = selected_frame; }
+	  || (!FRAME_PARENT_FRAME (XFRAME ((*selected_frame.as_mut_ptr ()))).is_null ()
+	      && (root_frame (XFRAME ((*selected_frame.as_mut_ptr ()))) == XFRAME ((*tty).top_frame)))
+	{ buf.frame_or_window = (*selected_frame.as_mut_ptr ()); }
       else
 	{ buf.frame_or_window = (*tty).top_frame; }
 
@@ -9480,7 +9479,7 @@ pub unsafe extern "C-unwind" fn tty_read_avail_input (terminal: *mut terminal,
       /* Don't look at input that follows a C-g too closely.
          This reduces lossage due to autorepeat on C-g.  */
       if input_event_bits! (kind, &raw mut buf) == ASCII_KEYSTROKE_EVENT
-          && buf.code == quit_char as c_uint
+          && buf.code == (*quit_char.as_mut_ptr ()) as c_uint
         { break; }
       i += 1;
     }
@@ -9527,7 +9526,7 @@ pub unsafe extern "C-unwind" fn process_pending_signals ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  pending_signals = false;
+  (*pending_signals.as_mut_ptr ()) = false;
   handle_async_input ();
   do_pending_atimers ();
 
@@ -9549,10 +9548,10 @@ pub unsafe extern "C-unwind" fn unblock_input_to (level: c_int)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  interrupt_input_blocked = level;
+  (*interrupt_input_blocked.as_mut_ptr ()) = level;
   if level == 0
     {
-      if pending_signals && !fatal_error_in_progress
+      if (*pending_signals.as_mut_ptr ()) && !(*fatal_error_in_progress.as_mut_ptr ())
 	{ process_pending_signals (); }
     }
   else if level < 0
@@ -9577,7 +9576,7 @@ pub unsafe extern "C-unwind" fn unblock_input ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  unblock_input_to (interrupt_input_blocked - 1);
+  unblock_input_to ((*interrupt_input_blocked.as_mut_ptr ()) - 1);
 
   }
 }
@@ -9623,10 +9622,10 @@ pub unsafe extern "C" fn handle_input_available_signal (sig: c_int)
   __atomic_thread_fence (__ATOMIC_SEQ_CST);
   }
   }
-  pending_signals = true;
+  (*pending_signals.as_mut_ptr ()) = true;
 
-  if !input_available_clear_time.is_null ()
-    { *input_available_clear_time = make_timespec (0, 0); }
+  if !(*input_available_clear_time.as_mut_ptr ()).is_null ()
+    { *(*input_available_clear_time.as_mut_ptr ()) = make_timespec (0, 0); }
 
   }
 }
@@ -9670,7 +9669,7 @@ const _: () = core::assert! (std::mem::offset_of! (user_signal_info, next) == 24
 
 /* List of user signals.  */
 /* C 8465: `static struct user_signal_info *user_signals = NULL;`  */
-static mut user_signals: *mut user_signal_info = std::ptr::null_mut ();
+static user_signals: VmGlobal<*mut user_signal_info> = VmGlobal::<*mut user_signal_info>::new (std::ptr::null_mut ());
 
 /* C 8467-8487: `void add_user_signal (int sig, const char *name);`  */
 #[unsafe(no_mangle)]
@@ -9681,7 +9680,7 @@ pub unsafe extern "C-unwind" fn add_user_signal (sig: c_int, name: *const c_char
   let mut action: sigaction = std::mem::zeroed ();
   let mut p: *mut user_signal_info;
 
-  p = user_signals;
+  p = (*user_signals.as_mut_ptr ());
   while !p.is_null ()
     {
       if (*p).sig == sig
@@ -9694,8 +9693,8 @@ pub unsafe extern "C-unwind" fn add_user_signal (sig: c_int, name: *const c_char
   (*p).sig = sig;
   (*p).name = xstrdup (name);
   (*p).npending = 0;
-  (*p).next = user_signals;
-  user_signals = p;
+  (*p).next = (*user_signals.as_mut_ptr ());
+  (*user_signals.as_mut_ptr ()) = p;
 
   emacs_sigaction_init (&raw mut action, Some (deliver_user_signal));
   sigaction (sig, &raw const action, std::ptr::null_mut ());
@@ -9711,10 +9710,10 @@ unsafe extern "C" fn handle_user_signal (sig: c_int)
   let mut p: *mut user_signal_info;
   let mut special_event_name: *const c_char = std::ptr::null ();
 
-  if SYMBOLP (Vdebug_on_event)
-    { special_event_name = SSDATA (SYMBOL_NAME (Vdebug_on_event)); }
+  if SYMBOLP ((*Vdebug_on_event.as_mut_ptr ()))
+    { special_event_name = SSDATA (SYMBOL_NAME ((*Vdebug_on_event.as_mut_ptr ()))); }
 
-  p = user_signals;
+  p = (*user_signals.as_mut_ptr ());
   while !p.is_null ()
     {
       if (*p).sig == sig
@@ -9723,10 +9722,10 @@ unsafe extern "C" fn handle_user_signal (sig: c_int)
 	      && strcmp (special_event_name, (*p).name) == 0
 	    {
 	      /* Enter the debugger in many ways.  */
-	      debug_on_next_call = true;
-	      debug_on_quit = true;
-	      Vquit_flag = Qt ();
-	      Vinhibit_quit = Qnil ();
+	      (*debug_on_next_call.as_mut_ptr ()) = true;
+	      (*debug_on_quit.as_mut_ptr ()) = true;
+	      (*Vquit_flag.as_mut_ptr ()) = Qt ();
+	      (*Vinhibit_quit.as_mut_ptr ()) = Qnil ();
 
 	      /* Eat the event.  */
 	      break;
@@ -9735,14 +9734,14 @@ unsafe extern "C" fn handle_user_signal (sig: c_int)
 	  (*p).npending += 1;
 	  /* C 8515-8519: `#if defined (USABLE_SIGIO) || defined (USABLE_SIGPOLL)` — live on this
 	     target, so the arm is not gated.  */
-	  if interrupt_input
+	  if (*interrupt_input.as_mut_ptr ())
 	    { handle_input_available_signal (sig); }
 	  else
 	    {
 	      /* Tell wait_reading_process_output that it needs to wake
 		 up and look around.  */
-	      if !input_available_clear_time.is_null ()
-		{ *input_available_clear_time = make_timespec (0, 0); }
+	      if !(*input_available_clear_time.as_mut_ptr ()).is_null ()
+		{ *(*input_available_clear_time.as_mut_ptr ()) = make_timespec (0, 0); }
 	    }
 	  break;
 	}
@@ -9769,7 +9768,7 @@ unsafe fn find_user_signal_name (sig: c_int) -> *mut c_char
   unsafe {
   let mut p: *mut user_signal_info;
 
-  p = user_signals;
+  p = (*user_signals.as_mut_ptr ());
   while !p.is_null ()
     {
       if (*p).sig == sig
@@ -9791,7 +9790,7 @@ unsafe fn store_user_signal_events ()
   let mut buf: input_event = std::mem::zeroed ();
   let mut buf_initialized: bool = false;
 
-  p = user_signals;
+  p = (*user_signals.as_mut_ptr ());
   while !p.is_null ()
     {
       if (*p).npending > 0
@@ -9800,7 +9799,7 @@ unsafe fn store_user_signal_events ()
 	    {
 	      memset (&raw mut buf as *mut c_void, 0, std::mem::size_of_val (&buf));
 	      input_event_bits! (kind, &raw mut buf, USER_SIGNAL_EVENT);
-	      buf.frame_or_window = selected_frame;
+	      buf.frame_or_window = (*selected_frame.as_mut_ptr ());
 	      buf_initialized = true;
 	    }
 
@@ -9825,20 +9824,20 @@ unsafe fn store_user_signal_events ()
    prototype, which PORTING.md 0.1-12 drops (Rust is order-independent and a declaration plus
    the definition is `E0428`; the definition is C 8786).  */
 /* C 8578: `static Lisp_Object menu_bar_one_keymap_changed_items;`  */
-static mut menu_bar_one_keymap_changed_items: Lisp_Object = lisp_h_Qnil ();
+static menu_bar_one_keymap_changed_items: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* These variables hold the vector under construction within
    menu_bar_items and its subroutines, and the current index
    for storing into that vector.  */
 /* C 8583-8584.  */
-static mut menu_bar_items_vector: Lisp_Object = lisp_h_Qnil ();
-static mut menu_bar_items_index: c_int = 0;
+static menu_bar_items_vector: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+static menu_bar_items_index: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 
 
 /* C 8587-8603: `static const char *const separator_names[]`.  `static mut` for the reason the
    other `const char *const []` tables are (raw pointers are not `Sync`); C's `const` is kept by
    the table never being written.  */
-static mut separator_names: [*const c_char; 15] = [
+static separator_names: VmGlobal<[*const c_char; 15]> = VmGlobal::<[*const c_char; 15]>::new ([
   c"space".as_ptr (),
   c"no-line".as_ptr (),
   c"single-line".as_ptr (),
@@ -9854,7 +9853,7 @@ static mut separator_names: [*const c_char; 15] = [
   c"shadow-double-etched-in-dash".as_ptr (),
   c"shadow-double-etched-out-dash".as_ptr (),
   std::ptr::null ()
-];
+]);
 
 /* Return true if LABEL specifies a separator.  */
 
@@ -9873,9 +9872,9 @@ pub unsafe extern "C-unwind" fn menu_separator_name_p (mut label: *const c_char)
       let mut i: c_int;
       label = label.offset (2);
       i = 0;
-      while !separator_names[i as usize].is_null ()
+      while !(*separator_names.as_mut_ptr ())[i as usize].is_null ()
 	{
-	  if strcmp (label, separator_names[i as usize]) == 0
+	  if strcmp (label, (*separator_names.as_mut_ptr ())[i as usize]) == 0
             { return true; }
 	  i += 1;
 	}
@@ -9929,14 +9928,14 @@ pub unsafe extern "C-unwind" fn menu_bar_items (old: Lisp_Object) -> Lisp_Object
      quitting while building the menus.
      We do this instead of specbind because (1) errors will clear it anyway
      and (2) this avoids risk of specpdl overflow.  */
-  oquit = Vinhibit_quit;
-  Vinhibit_quit = Qt ();
+  oquit = (*Vinhibit_quit.as_mut_ptr ());
+  (*Vinhibit_quit.as_mut_ptr ()) = Qt ();
 
   if !NILP (old)
-    { menu_bar_items_vector = old; }
+    { (*menu_bar_items_vector.as_mut_ptr ()) = old; }
   else
-    { menu_bar_items_vector = make_nil_vector (24); }
-  menu_bar_items_index = 0;
+    { (*menu_bar_items_vector.as_mut_ptr ()) = make_nil_vector (24); }
+  (*menu_bar_items_index.as_mut_ptr ()) = 0;
 
   /* Build our list of keymaps.
      If we recognize a function key and replace its escape sequence in
@@ -9947,17 +9946,17 @@ pub unsafe extern "C-unwind" fn menu_bar_items (old: Lisp_Object) -> Lisp_Object
     let mut tmaps: *mut Lisp_Object = std::ptr::null_mut ();
 
     /* Should overriding-terminal-local-map and overriding-local-map apply?  */
-    if !NILP (Voverriding_local_map_menu_flag)
-	&& !NILP (Voverriding_local_map)
+    if !NILP ((*Voverriding_local_map_menu_flag.as_mut_ptr ()))
+	&& !NILP ((*Voverriding_local_map.as_mut_ptr ()))
       {
 	/* Yes, use them (if non-nil) as well as the global map.  */
 	maps = mapsbuf.as_mut_ptr ();
 	nmaps = 0;
-	if !NILP (KVAR! (current_kboard, Voverriding_terminal_local_map))
-	  { *maps.offset (nmaps) = KVAR! (current_kboard, Voverriding_terminal_local_map);
+	if !NILP (KVAR! ((*current_kboard.as_mut_ptr ()), (*Voverriding_terminal_local_map.as_mut_ptr ())))
+	  { *maps.offset (nmaps) = KVAR! ((*current_kboard.as_mut_ptr ()), (*Voverriding_terminal_local_map.as_mut_ptr ()));
 	    nmaps += 1; }
-	if !NILP (Voverriding_local_map)
-	  { *maps.offset (nmaps) = Voverriding_local_map; nmaps += 1; }
+	if !NILP ((*Voverriding_local_map.as_mut_ptr ()))
+	  { *maps.offset (nmaps) = (*Voverriding_local_map.as_mut_ptr ()); nmaps += 1; }
       }
     else
       {
@@ -9969,8 +9968,8 @@ pub unsafe extern "C-unwind" fn menu_bar_items (old: Lisp_Object) -> Lisp_Object
 	let nminor: ptrdiff_t = current_minor_maps (std::ptr::null_mut (), &raw mut tmaps);
 	SAFE_NALLOCA! (sa_avail, maps, 1, nminor + 4);
 	nmaps = 0;
-	let mut tem: Lisp_Object = KVAR! (current_kboard, Voverriding_terminal_local_map);
-	if !NILP (tem) && !NILP (Voverriding_local_map_menu_flag)
+	let mut tem: Lisp_Object = KVAR! ((*current_kboard.as_mut_ptr ()), (*Voverriding_terminal_local_map.as_mut_ptr ()));
+	if !NILP (tem) && !NILP ((*Voverriding_local_map_menu_flag.as_mut_ptr ()))
 	  { *maps.offset (nmaps) = tem; nmaps += 1; }
 	/* C's `if (tem = get_local_map (PT, current_buffer, Qkeymap), !NILP (tem))` is the
 	   assignment then the test (PORTING.md 2.2's comma-expression shape).  */
@@ -9985,7 +9984,7 @@ pub unsafe extern "C-unwind" fn menu_bar_items (old: Lisp_Object) -> Lisp_Object
 	*maps.offset (nmaps) = get_local_map (PT! (), (current_buffer! ()), Qlocal_map ());
 	nmaps += 1;
       }
-    *maps.offset (nmaps) = current_global_map;
+    *maps.offset (nmaps) = (*current_global_map.as_mut_ptr ());
     nmaps += 1;
   }
 
@@ -10000,7 +9999,7 @@ pub unsafe extern "C-unwind" fn menu_bar_items (old: Lisp_Object) -> Lisp_Object
 			    false, true);
 	  if CONSP (def)
 	    {
-	      menu_bar_one_keymap_changed_items = Qnil ();
+	      (*menu_bar_one_keymap_changed_items.as_mut_ptr ()) = Qnil ();
 	      map_keymap_canonical (def, Some (menu_bar_item), Qnil (), std::ptr::null_mut ());
 	    }
 	}
@@ -10009,14 +10008,14 @@ pub unsafe extern "C-unwind" fn menu_bar_items (old: Lisp_Object) -> Lisp_Object
 
   /* Move to the end those items that should be at the end.  */
 
-  let mut tail: Lisp_Object = Vmenu_bar_final_items;
+  let mut tail: Lisp_Object = (*Vmenu_bar_final_items.as_mut_ptr ());
   FOR_EACH_TAIL! (tail, {
-    let end: c_int = menu_bar_items_index;
+    let end: c_int = (*menu_bar_items_index.as_mut_ptr ());
 
     let mut i: c_int = 0;
     while i < end
       {
-	if EQ (XCAR (tail), AREF (menu_bar_items_vector, i as isize))
+	if EQ (XCAR (tail), AREF ((*menu_bar_items_vector.as_mut_ptr ()), i as isize))
 	  {
 	    let mut tem0: Lisp_Object = Qnil ();
 	    let mut tem1: Lisp_Object = Qnil ();
@@ -10024,18 +10023,18 @@ pub unsafe extern "C-unwind" fn menu_bar_items (old: Lisp_Object) -> Lisp_Object
 	    let mut tem3: Lisp_Object = Qnil ();
 	    /* Move the item at index I to the end,
 	       shifting all the others forward.  */
-	    tem0 = AREF (menu_bar_items_vector, i as isize);
-	    tem1 = AREF (menu_bar_items_vector, (i + 1) as isize);
-	    tem2 = AREF (menu_bar_items_vector, (i + 2) as isize);
-	    tem3 = AREF (menu_bar_items_vector, (i + 3) as isize);
+	    tem0 = AREF ((*menu_bar_items_vector.as_mut_ptr ()), i as isize);
+	    tem1 = AREF ((*menu_bar_items_vector.as_mut_ptr ()), (i + 1) as isize);
+	    tem2 = AREF ((*menu_bar_items_vector.as_mut_ptr ()), (i + 2) as isize);
+	    tem3 = AREF ((*menu_bar_items_vector.as_mut_ptr ()), (i + 3) as isize);
 	    if end > i + 4
-	      { memmove (aref_addr (menu_bar_items_vector, i as isize) as *mut c_void,
-			 aref_addr (menu_bar_items_vector, (i + 4) as isize) as *const c_void,
+	      { memmove (aref_addr ((*menu_bar_items_vector.as_mut_ptr ()), i as isize) as *mut c_void,
+			 aref_addr ((*menu_bar_items_vector.as_mut_ptr ()), (i + 4) as isize) as *const c_void,
 			 ((end - i - 4) as isize * word_size) as usize); }
-	    ASET (menu_bar_items_vector, (end - 4) as isize, tem0);
-	    ASET (menu_bar_items_vector, (end - 3) as isize, tem1);
-	    ASET (menu_bar_items_vector, (end - 2) as isize, tem2);
-	    ASET (menu_bar_items_vector, (end - 1) as isize, tem3);
+	    ASET ((*menu_bar_items_vector.as_mut_ptr ()), (end - 4) as isize, tem0);
+	    ASET ((*menu_bar_items_vector.as_mut_ptr ()), (end - 3) as isize, tem1);
+	    ASET ((*menu_bar_items_vector.as_mut_ptr ()), (end - 2) as isize, tem2);
+	    ASET ((*menu_bar_items_vector.as_mut_ptr ()), (end - 1) as isize, tem3);
 	    break;
 	  }
 	i += 4;
@@ -10044,21 +10043,21 @@ pub unsafe extern "C-unwind" fn menu_bar_items (old: Lisp_Object) -> Lisp_Object
 
   /* Add nil, nil, nil, nil at the end.  */
   {
-    let mut i: c_int = menu_bar_items_index;
-    if (i + 4) as isize > ASIZE (menu_bar_items_vector)
-      { menu_bar_items_vector
-	  = larger_vector (menu_bar_items_vector, 4, -1); }
+    let mut i: c_int = (*menu_bar_items_index.as_mut_ptr ());
+    if (i + 4) as isize > ASIZE ((*menu_bar_items_vector.as_mut_ptr ()))
+      { (*menu_bar_items_vector.as_mut_ptr ())
+	  = larger_vector ((*menu_bar_items_vector.as_mut_ptr ()), 4, -1); }
     /* Add this item.  */
-    ASET (menu_bar_items_vector, i as isize, Qnil ()); i += 1;
-    ASET (menu_bar_items_vector, i as isize, Qnil ()); i += 1;
-    ASET (menu_bar_items_vector, i as isize, Qnil ()); i += 1;
-    ASET (menu_bar_items_vector, i as isize, Qnil ()); i += 1;
-    menu_bar_items_index = i;
+    ASET ((*menu_bar_items_vector.as_mut_ptr ()), i as isize, Qnil ()); i += 1;
+    ASET ((*menu_bar_items_vector.as_mut_ptr ()), i as isize, Qnil ()); i += 1;
+    ASET ((*menu_bar_items_vector.as_mut_ptr ()), i as isize, Qnil ()); i += 1;
+    ASET ((*menu_bar_items_vector.as_mut_ptr ()), i as isize, Qnil ()); i += 1;
+    (*menu_bar_items_index.as_mut_ptr ()) = i;
   }
 
-  Vinhibit_quit = oquit;
+  (*Vinhibit_quit.as_mut_ptr ()) = oquit;
   SAFE_FREE! (sa_count, sa_mark);
-  return menu_bar_items_vector;
+  return (*menu_bar_items_vector.as_mut_ptr ());
 
   }
 }
@@ -10085,15 +10084,15 @@ unsafe extern "C-unwind" fn menu_bar_item (key: Lisp_Object, mut item: Lisp_Obje
 	 discard any previously made menu bar item.  */
 
       i = 0;
-      while i < menu_bar_items_index
+      while i < (*menu_bar_items_index.as_mut_ptr ())
 	{
-	  if EQ (key, AREF (menu_bar_items_vector, i as isize))
+	  if EQ (key, AREF ((*menu_bar_items_vector.as_mut_ptr ()), i as isize))
 	    {
-	      if menu_bar_items_index > i + 4
-		{ memmove (aref_addr (menu_bar_items_vector, i as isize) as *mut c_void,
-			   aref_addr (menu_bar_items_vector, (i + 4) as isize) as *const c_void,
-			   (((menu_bar_items_index - i - 4) as isize) * word_size) as usize); }
-	      menu_bar_items_index -= 4;
+	      if (*menu_bar_items_index.as_mut_ptr ()) > i + 4
+		{ memmove (aref_addr ((*menu_bar_items_vector.as_mut_ptr ()), i as isize) as *mut c_void,
+			   aref_addr ((*menu_bar_items_vector.as_mut_ptr ()), (i + 4) as isize) as *const c_void,
+			   ((((*menu_bar_items_index.as_mut_ptr ()) - i - 4) as isize) * word_size) as usize); }
+	      (*menu_bar_items_index.as_mut_ptr ()) -= 4;
 	    }
 	  i += 4;
 	}
@@ -10101,12 +10100,12 @@ unsafe extern "C-unwind" fn menu_bar_item (key: Lisp_Object, mut item: Lisp_Obje
 
   /* If this keymap has already contributed to this KEY,
      don't contribute to it a second time.  */
-  tem = Fmemq (key, menu_bar_one_keymap_changed_items);
+  tem = Fmemq (key, (*menu_bar_one_keymap_changed_items.as_mut_ptr ()));
   if !NILP (tem) || NILP (item)
     { return; }
 
-  menu_bar_one_keymap_changed_items
-    = Fcons (key, menu_bar_one_keymap_changed_items);
+  (*menu_bar_one_keymap_changed_items.as_mut_ptr ())
+    = Fcons (key, (*menu_bar_one_keymap_changed_items.as_mut_ptr ()));
 
   /* We add to menu_bar_one_keymap_changed_items before doing the
      parse_menu_item, so that if it turns out it wasn't a menu item,
@@ -10115,40 +10114,40 @@ unsafe extern "C-unwind" fn menu_bar_item (key: Lisp_Object, mut item: Lisp_Obje
   if !parsed
     { return; }
 
-  item = AREF (item_properties, ITEM_PROPERTY_DEF as isize);
+  item = AREF ((*item_properties.as_mut_ptr ()), ITEM_PROPERTY_DEF as isize);
 
   /* Find any existing item for this KEY.  */
   i = 0;
-  while i < menu_bar_items_index
+  while i < (*menu_bar_items_index.as_mut_ptr ())
     {
-      if EQ (key, AREF (menu_bar_items_vector, i as isize))
+      if EQ (key, AREF ((*menu_bar_items_vector.as_mut_ptr ()), i as isize))
 	{ break; }
       i += 4;
     }
 
   /* If we did not find this KEY, add it at the end.  */
-  if i == menu_bar_items_index
+  if i == (*menu_bar_items_index.as_mut_ptr ())
     {
       /* If vector is too small, get a bigger one.  */
-      if (i + 4) as isize > ASIZE (menu_bar_items_vector)
-	{ menu_bar_items_vector = larger_vector (menu_bar_items_vector, 4, -1); }
+      if (i + 4) as isize > ASIZE ((*menu_bar_items_vector.as_mut_ptr ()))
+	{ (*menu_bar_items_vector.as_mut_ptr ()) = larger_vector ((*menu_bar_items_vector.as_mut_ptr ()), 4, -1); }
       /* Add this item.  */
-      ASET (menu_bar_items_vector, i as isize, key); i += 1;
-      ASET (menu_bar_items_vector, i as isize,
-	    AREF (item_properties, ITEM_PROPERTY_NAME as isize)); i += 1;
-      ASET (menu_bar_items_vector, i as isize, list1 (item)); i += 1;
-      ASET (menu_bar_items_vector, i as isize, make_fixnum (0)); i += 1;
-      menu_bar_items_index = i;
+      ASET ((*menu_bar_items_vector.as_mut_ptr ()), i as isize, key); i += 1;
+      ASET ((*menu_bar_items_vector.as_mut_ptr ()), i as isize,
+	    AREF ((*item_properties.as_mut_ptr ()), ITEM_PROPERTY_NAME as isize)); i += 1;
+      ASET ((*menu_bar_items_vector.as_mut_ptr ()), i as isize, list1 (item)); i += 1;
+      ASET ((*menu_bar_items_vector.as_mut_ptr ()), i as isize, make_fixnum (0)); i += 1;
+      (*menu_bar_items_index.as_mut_ptr ()) = i;
     }
   /* We did find an item for this KEY.  Add ITEM to its list of maps.  */
   else
     {
       let mut old: Lisp_Object;
-      old = AREF (menu_bar_items_vector, (i + 2) as isize);
+      old = AREF ((*menu_bar_items_vector.as_mut_ptr ()), (i + 2) as isize);
       /* If the new and the old items are not both keymaps,
 	 the lookup will only find `item'.  */
       item = Fcons (item, if KEYMAPP! (item) && KEYMAPP! (XCAR (old)) { old } else { Qnil () });
-      ASET (menu_bar_items_vector, (i + 2) as isize, item);
+      ASET ((*menu_bar_items_vector.as_mut_ptr ()), (i + 2) as isize, item);
     }
 
   }
@@ -10229,20 +10228,20 @@ pub unsafe extern "C-unwind" fn parse_menu_item (mut item: Lisp_Object, inmenuba
     { return false; }
 
   /* Create item_properties vector if necessary.  */
-  if NILP (item_properties)
-    { item_properties = make_nil_vector ((ITEM_PROPERTY_MAX + 1) as isize); }
+  if NILP ((*item_properties.as_mut_ptr ()))
+    { (*item_properties.as_mut_ptr ()) = make_nil_vector ((ITEM_PROPERTY_MAX + 1) as isize); }
 
   /* Initialize optional entries.  */
   i = ITEM_PROPERTY_DEF;
   while i <= ITEM_PROPERTY_MAX
     {
-      ASET (item_properties, i as isize, Qnil ());
+      ASET ((*item_properties.as_mut_ptr ()), i as isize, Qnil ());
       i += 1;
     }
-  ASET (item_properties, ITEM_PROPERTY_ENABLE as isize, Qt ());
+  ASET ((*item_properties.as_mut_ptr ()), ITEM_PROPERTY_ENABLE as isize, Qt ());
 
   /* Save the item here to protect it from GC.  */
-  ASET (item_properties, ITEM_PROPERTY_ITEM as isize, item);
+  ASET ((*item_properties.as_mut_ptr ()), ITEM_PROPERTY_ITEM as isize, item);
 
   item_string = XCAR (item);
 
@@ -10251,12 +10250,12 @@ pub unsafe extern "C-unwind" fn parse_menu_item (mut item: Lisp_Object, inmenuba
   if STRINGP (item_string)
     {
       /* Old format menu item.  */
-      ASET (item_properties, ITEM_PROPERTY_NAME as isize, item_string);
+      ASET ((*item_properties.as_mut_ptr ()), ITEM_PROPERTY_NAME as isize, item_string);
 
       /* Maybe help string.  */
       if CONSP (item) && STRINGP (XCAR (item))
 	{
-	  ASET (item_properties, ITEM_PROPERTY_HELP as isize,
+	  ASET ((*item_properties.as_mut_ptr ()), ITEM_PROPERTY_HELP as isize,
 		help_echo_substitute_command_keys (XCAR (item)));
 	  start = item;
 	  item = XCDR (item);
@@ -10269,27 +10268,27 @@ pub unsafe extern "C-unwind" fn parse_menu_item (mut item: Lisp_Object, inmenuba
 	{ item = XCDR (item); }
 
       /* This is the real definition--the function to run.  */
-      ASET (item_properties, ITEM_PROPERTY_DEF as isize, item);
+      ASET ((*item_properties.as_mut_ptr ()), ITEM_PROPERTY_DEF as isize, item);
 
       /* Get enable property, if any.  */
       if SYMBOLP (item)
 	{
 	  tem = Fget (item, Qmenu_enable ());
-	  if !NILP (Venable_disabled_menus_and_buttons)
-	    { ASET (item_properties, ITEM_PROPERTY_ENABLE as isize, Qt ()); }
+	  if !NILP ((*Venable_disabled_menus_and_buttons.as_mut_ptr ()))
+	    { ASET ((*item_properties.as_mut_ptr ()), ITEM_PROPERTY_ENABLE as isize, Qt ()); }
 	  else if !NILP (tem)
-	    { ASET (item_properties, ITEM_PROPERTY_ENABLE as isize, tem); }
+	    { ASET ((*item_properties.as_mut_ptr ()), ITEM_PROPERTY_ENABLE as isize, tem); }
 	}
     }
   else if EQ (item_string, Qmenu_item ()) && CONSP (item)
     {
       /* New format menu item.  */
-      ASET (item_properties, ITEM_PROPERTY_NAME as isize, XCAR (item));
+      ASET ((*item_properties.as_mut_ptr ()), ITEM_PROPERTY_NAME as isize, XCAR (item));
       start = XCDR (item);
       if CONSP (start)
 	{
 	  /* We have a real binding.  */
-	  ASET (item_properties, ITEM_PROPERTY_DEF as isize, XCAR (start));
+	  ASET ((*item_properties.as_mut_ptr ()), ITEM_PROPERTY_DEF as isize, XCAR (start));
 
 	  item = XCDR (start);
 	  /* Is there an obsolete cache list with key equivalences.  */
@@ -10305,10 +10304,10 @@ pub unsafe extern "C-unwind" fn parse_menu_item (mut item: Lisp_Object, inmenuba
 
 	    if EQ (tem, QCenable ())
 	      {
-		if !NILP (Venable_disabled_menus_and_buttons)
-		  { ASET (item_properties, ITEM_PROPERTY_ENABLE as isize, Qt ()); }
+		if !NILP ((*Venable_disabled_menus_and_buttons.as_mut_ptr ()))
+		  { ASET ((*item_properties.as_mut_ptr ()), ITEM_PROPERTY_ENABLE as isize, Qt ()); }
 		else
-		  { ASET (item_properties, ITEM_PROPERTY_ENABLE as isize, XCAR (item)); }
+		  { ASET ((*item_properties.as_mut_ptr ()), ITEM_PROPERTY_ENABLE as isize, XCAR (item)); }
 	      }
 	    else if EQ (tem, QCvisible ())
 	      {
@@ -10323,7 +10322,7 @@ pub unsafe extern "C-unwind" fn parse_menu_item (mut item: Lisp_Object, inmenuba
 		let mut help: Lisp_Object = XCAR (item);
 		if STRINGP (help)
 		  { help = help_echo_substitute_command_keys (help); }
-		ASET (item_properties, ITEM_PROPERTY_HELP as isize, help);
+		ASET ((*item_properties.as_mut_ptr ()), ITEM_PROPERTY_HELP as isize, help);
 	      }
 	    else if EQ (tem, QCfilter ())
 	      { filter = item; }
@@ -10338,9 +10337,9 @@ pub unsafe extern "C-unwind" fn parse_menu_item (mut item: Lisp_Object, inmenuba
 	      {
 		tem = XCAR (item);
 		if FUNCTIONP (tem)
-		  { ASET (item_properties, ITEM_PROPERTY_KEYEQ as isize, call0 (tem)); }
+		  { ASET ((*item_properties.as_mut_ptr ()), ITEM_PROPERTY_KEYEQ as isize, call0 (tem)); }
 		else if CONSP (tem) || STRINGP (tem)
-		  { ASET (item_properties, ITEM_PROPERTY_KEYEQ as isize, tem); }
+		  { ASET ((*item_properties.as_mut_ptr ()), ITEM_PROPERTY_KEYEQ as isize, tem); }
 	      }
 	    else if EQ (tem, QCbutton ()) && CONSP (XCAR (item))
 	      {
@@ -10349,9 +10348,9 @@ pub unsafe extern "C-unwind" fn parse_menu_item (mut item: Lisp_Object, inmenuba
 		type_ = XCAR (tem);
 		if EQ (type_, QCtoggle ()) || EQ (type_, QCradio ())
 		  {
-		    ASET (item_properties, ITEM_PROPERTY_SELECTED as isize,
+		    ASET ((*item_properties.as_mut_ptr ()), ITEM_PROPERTY_SELECTED as isize,
 			  XCDR (tem));
-		    ASET (item_properties, ITEM_PROPERTY_TYPE as isize, type_);
+		    ASET ((*item_properties.as_mut_ptr ()), ITEM_PROPERTY_TYPE as isize, type_);
 		  }
 	      }
 	  });
@@ -10364,32 +10363,32 @@ pub unsafe extern "C-unwind" fn parse_menu_item (mut item: Lisp_Object, inmenuba
 
   /* If item string is not a string, evaluate it to get string.
      If we don't get a string, skip this item.  */
-  item_string = AREF (item_properties, ITEM_PROPERTY_NAME as isize);
+  item_string = AREF ((*item_properties.as_mut_ptr ()), ITEM_PROPERTY_NAME as isize);
   if !(STRINGP (item_string))
     {
       item_string = menu_item_eval_property (item_string);
       if !STRINGP (item_string)
 	{ return false; }
-      ASET (item_properties, ITEM_PROPERTY_NAME as isize, item_string);
+      ASET ((*item_properties.as_mut_ptr ()), ITEM_PROPERTY_NAME as isize, item_string);
     }
 
   /* If got a filter apply it on definition.  */
-  def = AREF (item_properties, ITEM_PROPERTY_DEF as isize);
+  def = AREF ((*item_properties.as_mut_ptr ()), ITEM_PROPERTY_DEF as isize);
   if !NILP (filter)
     {
       def = menu_item_eval_property (list2 (XCAR (filter), list2 (Qquote (), def)));
 
-      ASET (item_properties, ITEM_PROPERTY_DEF as isize, def);
+      ASET ((*item_properties.as_mut_ptr ()), ITEM_PROPERTY_DEF as isize, def);
     }
 
   /* Enable or disable selection of item.  */
-  tem = AREF (item_properties, ITEM_PROPERTY_ENABLE as isize);
+  tem = AREF ((*item_properties.as_mut_ptr ()), ITEM_PROPERTY_ENABLE as isize);
   if !EQ (tem, Qt ())
     {
       tem = menu_item_eval_property (tem);
       if inmenubar != 0 && NILP (tem)
 	{ return false; }		/* Ignore disabled items in menu bar.  */
-      ASET (item_properties, ITEM_PROPERTY_ENABLE as isize, tem);
+      ASET ((*item_properties.as_mut_ptr ()), ITEM_PROPERTY_ENABLE as isize, tem);
     }
 
   /* If we got no definition, this item is just unselectable text which
@@ -10398,13 +10397,13 @@ pub unsafe extern "C-unwind" fn parse_menu_item (mut item: Lisp_Object, inmenuba
     { return !(inmenubar != 0); }
 
   /* See if this is a separate pane or a submenu.  */
-  def = AREF (item_properties, ITEM_PROPERTY_DEF as isize);
+  def = AREF ((*item_properties.as_mut_ptr ()), ITEM_PROPERTY_DEF as isize);
   tem = get_keymap (def, false, true);
   /* For a subkeymap, just record its details and exit.  */
   if CONSP (tem)
     {
-      ASET (item_properties, ITEM_PROPERTY_MAP as isize, tem);
-      ASET (item_properties, ITEM_PROPERTY_DEF as isize, tem);
+      ASET ((*item_properties.as_mut_ptr ()), ITEM_PROPERTY_MAP as isize, tem);
+      ASET ((*item_properties.as_mut_ptr ()), ITEM_PROPERTY_DEF as isize, tem);
       return true;
     }
 
@@ -10415,7 +10414,7 @@ pub unsafe extern "C-unwind" fn parse_menu_item (mut item: Lisp_Object, inmenuba
     { return true; }
 
   { /* This is a command.  See if there is an equivalent key binding.  */
-    let mut keyeq: Lisp_Object = AREF (item_properties, ITEM_PROPERTY_KEYEQ as isize);
+    let mut keyeq: Lisp_Object = AREF ((*item_properties.as_mut_ptr ()), ITEM_PROPERTY_KEYEQ as isize);
     AUTO_STRING! (space_space, c"  ".as_ptr ());
 
     /* The previous code preferred :key-sequence to :keys, so we
@@ -10433,7 +10432,7 @@ pub unsafe extern "C-unwind" fn parse_menu_item (mut item: Lisp_Object, inmenuba
 	    prefix = XCDR (prefix);
 	  }
 	else
-	  { def = AREF (item_properties, ITEM_PROPERTY_DEF as isize); }
+	  { def = AREF ((*item_properties.as_mut_ptr ()), ITEM_PROPERTY_DEF as isize); }
 
 	if CONSP (keyhint) && !NILP (XCAR (keyhint))
 	  {
@@ -10471,7 +10470,7 @@ pub unsafe extern "C-unwind" fn parse_menu_item (mut item: Lisp_Object, inmenuba
       }
 
     /* If we have an equivalent key binding, use that.  */
-    ASET (item_properties, ITEM_PROPERTY_KEYEQ as isize, keyeq);
+    ASET ((*item_properties.as_mut_ptr ()), ITEM_PROPERTY_KEYEQ as isize, keyeq);
   }
 
   /* Include this when menu help is implemented.
@@ -10486,9 +10485,9 @@ pub unsafe extern "C-unwind" fn parse_menu_item (mut item: Lisp_Object, inmenuba
   */
 
   /* Handle radio buttons or toggle boxes.  */
-  tem = AREF (item_properties, ITEM_PROPERTY_SELECTED as isize);
+  tem = AREF ((*item_properties.as_mut_ptr ()), ITEM_PROPERTY_SELECTED as isize);
   if !NILP (tem)
-    { ASET (item_properties, ITEM_PROPERTY_SELECTED as isize,
+    { ASET ((*item_properties.as_mut_ptr ()), ITEM_PROPERTY_SELECTED as isize,
 	    menu_item_eval_property (tem)); }
 
   return true;
@@ -10506,18 +10505,18 @@ pub unsafe extern "C-unwind" fn parse_menu_item (mut item: Lisp_Object, inmenuba
    in the vector.  */
 
 /* C 9186: `static Lisp_Object tab_bar_items_vector;`  */
-static mut tab_bar_items_vector: Lisp_Object = lisp_h_Qnil ();
+static tab_bar_items_vector: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* A vector holding the result of parse_tab_bar_item.  Layout is like
    the one for a single item in tab_bar_items_vector.  */
 
 /* C 9191: `static Lisp_Object tab_bar_item_properties;`  */
-static mut tab_bar_item_properties: Lisp_Object = lisp_h_Qnil ();
+static tab_bar_item_properties: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* Next free index in tab_bar_items_vector.  */
 
 /* C 9195: `static int ntab_bar_items;`  */
-static mut ntab_bar_items: c_int = 0;
+static ntab_bar_items: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 
 /* Function prototypes.  */
 /* C 9199-9203: the four `static` prototypes (`init_tab_bar_items`, `process_tab_bar_item`,
@@ -10551,8 +10550,8 @@ pub unsafe extern "C-unwind" fn tab_bar_items (reuse: Lisp_Object, nitems: *mut 
      quitting while building the menus.  We do this instead of
      specbind because (1) errors will clear it anyway and (2) this
      avoids risk of specpdl overflow.  */
-  oquit = Vinhibit_quit;
-  Vinhibit_quit = Qt ();
+  oquit = (*Vinhibit_quit.as_mut_ptr ());
+  (*Vinhibit_quit.as_mut_ptr ()) = Qt ();
 
   /* Initialize tab_bar_items_vector and protect it from GC.  */
   init_tab_bar_items (reuse);
@@ -10561,17 +10560,17 @@ pub unsafe extern "C-unwind" fn tab_bar_items (reuse: Lisp_Object, nitems: *mut 
      to process.  */
 
   /* Should overriding-terminal-local-map and overriding-local-map apply?  */
-  if !NILP (Voverriding_local_map_menu_flag)
-      && !NILP (Voverriding_local_map)
+  if !NILP ((*Voverriding_local_map_menu_flag.as_mut_ptr ()))
+      && !NILP ((*Voverriding_local_map.as_mut_ptr ()))
     {
       /* Yes, use them (if non-nil) as well as the global map.  */
       maps = mapsbuf.as_mut_ptr ();
       nmaps = 0;
-      if !NILP (KVAR! (current_kboard, Voverriding_terminal_local_map))
-	{ *maps.offset (nmaps) = KVAR! (current_kboard, Voverriding_terminal_local_map);
+      if !NILP (KVAR! ((*current_kboard.as_mut_ptr ()), (*Voverriding_terminal_local_map.as_mut_ptr ())))
+	{ *maps.offset (nmaps) = KVAR! ((*current_kboard.as_mut_ptr ()), (*Voverriding_terminal_local_map.as_mut_ptr ()));
 	  nmaps += 1; }
-      if !NILP (Voverriding_local_map)
-	{ *maps.offset (nmaps) = Voverriding_local_map; nmaps += 1; }
+      if !NILP ((*Voverriding_local_map.as_mut_ptr ()))
+	{ *maps.offset (nmaps) = (*Voverriding_local_map.as_mut_ptr ()); nmaps += 1; }
     }
   else
     {
@@ -10583,8 +10582,8 @@ pub unsafe extern "C-unwind" fn tab_bar_items (reuse: Lisp_Object, nitems: *mut 
       let nminor: ptrdiff_t = current_minor_maps (std::ptr::null_mut (), &raw mut tmaps);
       SAFE_NALLOCA! (sa_avail, maps, 1, nminor + 4);
       nmaps = 0;
-      let mut tem: Lisp_Object = KVAR! (current_kboard, Voverriding_terminal_local_map);
-      if !NILP (tem) && !NILP (Voverriding_local_map_menu_flag)
+      let mut tem: Lisp_Object = KVAR! ((*current_kboard.as_mut_ptr ()), (*Voverriding_terminal_local_map.as_mut_ptr ()));
+      if !NILP (tem) && !NILP ((*Voverriding_local_map_menu_flag.as_mut_ptr ()))
 	{ *maps.offset (nmaps) = tem; nmaps += 1; }
       /* C's `if (tem = get_local_map (PT, current_buffer, Qkeymap), !NILP (tem))`.  */
       if { tem = get_local_map (PT! (), (current_buffer! ()), Qkeymap ()); !NILP (tem) }
@@ -10600,7 +10599,7 @@ pub unsafe extern "C-unwind" fn tab_bar_items (reuse: Lisp_Object, nitems: *mut 
     }
 
   /* Add global keymap at the end.  */
-  *maps.offset (nmaps) = current_global_map;
+  *maps.offset (nmaps) = (*current_global_map.as_mut_ptr ());
   nmaps += 1;
 
   /* Process maps in reverse order and look up in each map the prefix
@@ -10621,10 +10620,10 @@ pub unsafe extern "C-unwind" fn tab_bar_items (reuse: Lisp_Object, nitems: *mut 
       i -= 1;
     }
 
-  Vinhibit_quit = oquit;
-  *nitems = ntab_bar_items / TAB_BAR_ITEM_NSLOTS;
+  (*Vinhibit_quit.as_mut_ptr ()) = oquit;
+  *nitems = (*ntab_bar_items.as_mut_ptr ()) / TAB_BAR_ITEM_NSLOTS;
   SAFE_FREE! (sa_count, sa_mark);
-  return tab_bar_items_vector;
+  return (*tab_bar_items_vector.as_mut_ptr ());
 
   }
 }
@@ -10646,18 +10645,18 @@ unsafe extern "C-unwind" fn process_tab_bar_item (key: Lisp_Object, def: Lisp_Ob
       /* If a map has an explicit `undefined' as definition,
 	 discard any previously made item.  */
       i = 0;
-      while i < ntab_bar_items
+      while i < (*ntab_bar_items.as_mut_ptr ())
 	{
 	  let v: *mut Lisp_Object
-	    = (*XVECTOR (tab_bar_items_vector)).contents.as_mut_ptr ().offset (i as isize);
+	    = (*XVECTOR ((*tab_bar_items_vector.as_mut_ptr ()))).contents.as_mut_ptr ().offset (i as isize);
 
 	  if EQ (key, *v.offset (TAB_BAR_ITEM_KEY as isize))
 	    {
-	      if ntab_bar_items > i + TAB_BAR_ITEM_NSLOTS
+	      if (*ntab_bar_items.as_mut_ptr ()) > i + TAB_BAR_ITEM_NSLOTS
 		{ memmove (v as *mut c_void, v.offset (TAB_BAR_ITEM_NSLOTS as isize) as *const c_void,
-			   (((ntab_bar_items - i - TAB_BAR_ITEM_NSLOTS) as isize) * word_size)
+			   ((((*ntab_bar_items.as_mut_ptr ()) - i - TAB_BAR_ITEM_NSLOTS) as isize) * word_size)
 			   as usize); }
-	      ntab_bar_items -= TAB_BAR_ITEM_NSLOTS;
+	      (*ntab_bar_items.as_mut_ptr ()) -= TAB_BAR_ITEM_NSLOTS;
 	      break;
 	    }
 	  i += TAB_BAR_ITEM_NSLOTS;
@@ -10682,7 +10681,7 @@ unsafe fn set_prop_tab_bar (idx: ptrdiff_t, val: Lisp_Object)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  ASET (tab_bar_item_properties, idx, val);
+  ASET ((*tab_bar_item_properties.as_mut_ptr ()), idx, val);
 
   }
 }
@@ -10744,7 +10743,7 @@ unsafe fn parse_tab_bar_item (key: Lisp_Object, mut item: Lisp_Object) -> bool
   let mut i: c_int;
 
   /* C 9327's `PROP` (its `#undef` is C 9519).  */
-  macro_rules! PROP { ($idx:expr) => { AREF (tab_bar_item_properties, $idx as isize) }; }
+  macro_rules! PROP { ($idx:expr) => { AREF ((*tab_bar_item_properties.as_mut_ptr ()), $idx as isize) }; }
 
   /* Definition looks like `(menu-item CAPTION BINDING PROPS...)'.
      Rule out items that aren't lists, don't start with
@@ -10762,7 +10761,7 @@ unsafe fn parse_tab_bar_item (key: Lisp_Object, mut item: Lisp_Object) -> bool
 
   /* Create tab_bar_item_properties vector if necessary.  Reset it to
      defaults.  */
-  if VECTORP (tab_bar_item_properties)
+  if VECTORP ((*tab_bar_item_properties.as_mut_ptr ()))
     {
       i = 0;
       while i < TAB_BAR_ITEM_NSLOTS
@@ -10772,7 +10771,7 @@ unsafe fn parse_tab_bar_item (key: Lisp_Object, mut item: Lisp_Object) -> bool
 	}
     }
   else
-    { tab_bar_item_properties = make_nil_vector (TAB_BAR_ITEM_NSLOTS as isize); }
+    { (*tab_bar_item_properties.as_mut_ptr ()) = make_nil_vector (TAB_BAR_ITEM_NSLOTS as isize); }
 
   /* Set defaults.  */
   set_prop_tab_bar (TAB_BAR_ITEM_KEY as ptrdiff_t, key);
@@ -10824,7 +10823,7 @@ unsafe fn parse_tab_bar_item (key: Lisp_Object, mut item: Lisp_Object) -> bool
     if EQ (ikey, QCenable ())
       {
 	/* `:enable FORM'.  */
-	if !NILP (Venable_disabled_menus_and_buttons)
+	if !NILP ((*Venable_disabled_menus_and_buttons.as_mut_ptr ()))
 	  { set_prop_tab_bar (TAB_BAR_ITEM_ENABLED_P as ptrdiff_t, Qt ()); }
 	else
 	  { set_prop_tab_bar (TAB_BAR_ITEM_ENABLED_P as ptrdiff_t, value); }
@@ -10895,10 +10894,10 @@ unsafe fn init_tab_bar_items (reuse: Lisp_Object)
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
   if VECTORP (reuse)
-    { tab_bar_items_vector = reuse; }
+    { (*tab_bar_items_vector.as_mut_ptr ()) = reuse; }
   else
-    { tab_bar_items_vector = make_nil_vector (64); }
-  ntab_bar_items = 0;
+    { (*tab_bar_items_vector.as_mut_ptr ()) = make_nil_vector (64); }
+  (*ntab_bar_items.as_mut_ptr ()) = 0;
 
   }
 }
@@ -10913,19 +10912,19 @@ unsafe fn append_tab_bar_item ()
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
   let incr: ptrdiff_t
-    = (ntab_bar_items as isize
-       - (ASIZE (tab_bar_items_vector) - TAB_BAR_ITEM_NSLOTS as isize));
+    = ((*ntab_bar_items.as_mut_ptr ()) as isize
+       - (ASIZE ((*tab_bar_items_vector.as_mut_ptr ())) - TAB_BAR_ITEM_NSLOTS as isize));
 
   /* Enlarge tab_bar_items_vector if necessary.  */
   if incr > 0
-    { tab_bar_items_vector = larger_vector (tab_bar_items_vector, incr, -1); }
+    { (*tab_bar_items_vector.as_mut_ptr ()) = larger_vector ((*tab_bar_items_vector.as_mut_ptr ()), incr, -1); }
 
   /* Append entries from tab_bar_item_properties to the end of
      tab_bar_items_vector.  */
-  vcopy (tab_bar_items_vector, ntab_bar_items as isize,
-	 xvector_contents (tab_bar_item_properties) as *const Lisp_Object,
+  vcopy ((*tab_bar_items_vector.as_mut_ptr ()), (*ntab_bar_items.as_mut_ptr ()) as isize,
+	 xvector_contents ((*tab_bar_item_properties.as_mut_ptr ())) as *const Lisp_Object,
 	 TAB_BAR_ITEM_NSLOTS as isize);
-  ntab_bar_items += TAB_BAR_ITEM_NSLOTS;
+  (*ntab_bar_items.as_mut_ptr ()) += TAB_BAR_ITEM_NSLOTS;
 
   }
 }
@@ -10940,18 +10939,18 @@ unsafe fn append_tab_bar_item ()
    in the vector.  */
 
 /* C 9570: `static Lisp_Object tool_bar_items_vector;`  */
-static mut tool_bar_items_vector: Lisp_Object = lisp_h_Qnil ();
+static tool_bar_items_vector: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* A vector holding the result of parse_tool_bar_item.  Layout is like
    the one for a single item in tool_bar_items_vector.  */
 
 /* C 9575: `static Lisp_Object tool_bar_item_properties;`  */
-static mut tool_bar_item_properties: Lisp_Object = lisp_h_Qnil ();
+static tool_bar_item_properties: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* Next free index in tool_bar_items_vector.  */
 
 /* C 9579: `static int ntool_bar_items;`  */
-static mut ntool_bar_items: c_int = 0;
+static ntool_bar_items: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 
 /* Function prototypes.  */
 /* C 9583-9587: the four `static` prototypes (`init_tool_bar_items`, `process_tool_bar_item`,
@@ -11004,8 +11003,8 @@ pub unsafe extern "C-unwind" fn tool_bar_items (reuse: Lisp_Object, nitems: *mut
      quitting while building the menus.  We do this instead of
      specbind because (1) errors will clear it anyway and (2) this
      avoids risk of specpdl overflow.  */
-  oquit = Vinhibit_quit;
-  Vinhibit_quit = Qt ();
+  oquit = (*Vinhibit_quit.as_mut_ptr ());
+  (*Vinhibit_quit.as_mut_ptr ()) = Qt ();
 
   /* Initialize tool_bar_items_vector and protect it from GC.  */
   init_tool_bar_items (reuse);
@@ -11014,17 +11013,17 @@ pub unsafe extern "C-unwind" fn tool_bar_items (reuse: Lisp_Object, nitems: *mut
      to process.  */
 
   /* Should overriding-terminal-local-map and overriding-local-map apply?  */
-  if !NILP (Voverriding_local_map_menu_flag)
-      && !NILP (Voverriding_local_map)
+  if !NILP ((*Voverriding_local_map_menu_flag.as_mut_ptr ()))
+      && !NILP ((*Voverriding_local_map.as_mut_ptr ()))
     {
       /* Yes, use them (if non-nil) as well as the global map.  */
       maps = mapsbuf.as_mut_ptr ();
       nmaps = 0;
-      if !NILP (KVAR! (current_kboard, Voverriding_terminal_local_map))
-	{ *maps.offset (nmaps) = KVAR! (current_kboard, Voverriding_terminal_local_map);
+      if !NILP (KVAR! ((*current_kboard.as_mut_ptr ()), (*Voverriding_terminal_local_map.as_mut_ptr ())))
+	{ *maps.offset (nmaps) = KVAR! ((*current_kboard.as_mut_ptr ()), (*Voverriding_terminal_local_map.as_mut_ptr ()));
 	  nmaps += 1; }
-      if !NILP (Voverriding_local_map)
-	{ *maps.offset (nmaps) = Voverriding_local_map; nmaps += 1; }
+      if !NILP ((*Voverriding_local_map.as_mut_ptr ()))
+	{ *maps.offset (nmaps) = (*Voverriding_local_map.as_mut_ptr ()); nmaps += 1; }
     }
   else
     {
@@ -11036,8 +11035,8 @@ pub unsafe extern "C-unwind" fn tool_bar_items (reuse: Lisp_Object, nitems: *mut
       let nminor: ptrdiff_t = current_minor_maps (std::ptr::null_mut (), &raw mut tmaps);
       SAFE_NALLOCA! (sa_avail, maps, 1, nminor + 4);
       nmaps = 0;
-      let mut tem: Lisp_Object = KVAR! (current_kboard, Voverriding_terminal_local_map);
-      if !NILP (tem) && !NILP (Voverriding_local_map_menu_flag)
+      let mut tem: Lisp_Object = KVAR! ((*current_kboard.as_mut_ptr ()), (*Voverriding_terminal_local_map.as_mut_ptr ()));
+      if !NILP (tem) && !NILP ((*Voverriding_local_map_menu_flag.as_mut_ptr ()))
 	{ *maps.offset (nmaps) = tem; nmaps += 1; }
       /* C's `if (tem = get_local_map (PT, current_buffer, Qkeymap), !NILP (tem))`.  */
       if { tem = get_local_map (PT! (), (current_buffer! ()), Qkeymap ()); !NILP (tem) }
@@ -11053,7 +11052,7 @@ pub unsafe extern "C-unwind" fn tool_bar_items (reuse: Lisp_Object, nitems: *mut
     }
 
   /* Add global keymap at the end.  */
-  *maps.offset (nmaps) = current_global_map;
+  *maps.offset (nmaps) = (*current_global_map.as_mut_ptr ());
   nmaps += 1;
 
   /* Process maps in reverse order and look up in each map the prefix
@@ -11074,10 +11073,10 @@ pub unsafe extern "C-unwind" fn tool_bar_items (reuse: Lisp_Object, nitems: *mut
       i -= 1;
     }
 
-  Vinhibit_quit = oquit;
-  *nitems = ntool_bar_items / TOOL_BAR_ITEM_NSLOTS;
+  (*Vinhibit_quit.as_mut_ptr ()) = oquit;
+  *nitems = (*ntool_bar_items.as_mut_ptr ()) / TOOL_BAR_ITEM_NSLOTS;
   SAFE_FREE! (sa_count, sa_mark);
-  return tool_bar_items_vector;
+  return (*tool_bar_items_vector.as_mut_ptr ());
 
   }
 }
@@ -11099,18 +11098,18 @@ unsafe extern "C-unwind" fn process_tool_bar_item (key: Lisp_Object, def: Lisp_O
       /* If a map has an explicit `undefined' as definition,
 	 discard any previously made item.  */
       i = 0;
-      while i < ntool_bar_items
+      while i < (*ntool_bar_items.as_mut_ptr ())
 	{
 	  let v: *mut Lisp_Object
-	    = (*XVECTOR (tool_bar_items_vector)).contents.as_mut_ptr ().offset (i as isize);
+	    = (*XVECTOR ((*tool_bar_items_vector.as_mut_ptr ()))).contents.as_mut_ptr ().offset (i as isize);
 
 	  if EQ (key, *v.offset (TOOL_BAR_ITEM_KEY as isize))
 	    {
-	      if ntool_bar_items > i + TOOL_BAR_ITEM_NSLOTS
+	      if (*ntool_bar_items.as_mut_ptr ()) > i + TOOL_BAR_ITEM_NSLOTS
 		{ memmove (v as *mut c_void, v.offset (TOOL_BAR_ITEM_NSLOTS as isize) as *const c_void,
-			   (((ntool_bar_items - i - TOOL_BAR_ITEM_NSLOTS) as isize) * word_size)
+			   ((((*ntool_bar_items.as_mut_ptr ()) - i - TOOL_BAR_ITEM_NSLOTS) as isize) * word_size)
 			   as usize); }
-	      ntool_bar_items -= TOOL_BAR_ITEM_NSLOTS;
+	      (*ntool_bar_items.as_mut_ptr ()) -= TOOL_BAR_ITEM_NSLOTS;
 	      break;
 	    }
 	  i += TOOL_BAR_ITEM_NSLOTS;
@@ -11133,7 +11132,7 @@ unsafe fn set_prop (idx: ptrdiff_t, val: Lisp_Object)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  ASET (tool_bar_item_properties, idx, val);
+  ASET ((*tool_bar_item_properties.as_mut_ptr ()), idx, val);
 
   }
 }
@@ -11205,7 +11204,7 @@ unsafe fn parse_tool_bar_item (key: Lisp_Object, mut item: Lisp_Object) -> bool
   let mut is_wrap: bool;
 
   /* C 9711's `PROP` (its `#undef` is C 10033).  */
-  macro_rules! PROP { ($idx:expr) => { AREF (tool_bar_item_properties, $idx as isize) }; }
+  macro_rules! PROP { ($idx:expr) => { AREF ((*tool_bar_item_properties.as_mut_ptr ()), $idx as isize) }; }
 
   have_label = false;
   is_wrap = false;
@@ -11226,7 +11225,7 @@ unsafe fn parse_tool_bar_item (key: Lisp_Object, mut item: Lisp_Object) -> bool
 
   /* Create tool_bar_item_properties vector if necessary.  Reset it to
      defaults.  */
-  if VECTORP (tool_bar_item_properties)
+  if VECTORP ((*tool_bar_item_properties.as_mut_ptr ()))
     {
       i = 0;
       while i < TOOL_BAR_ITEM_NSLOTS
@@ -11236,7 +11235,7 @@ unsafe fn parse_tool_bar_item (key: Lisp_Object, mut item: Lisp_Object) -> bool
 	}
     }
   else
-    { tool_bar_item_properties = make_nil_vector (TOOL_BAR_ITEM_NSLOTS as isize); }
+    { (*tool_bar_item_properties.as_mut_ptr ()) = make_nil_vector (TOOL_BAR_ITEM_NSLOTS as isize); }
 
   /* Set defaults.  */
   set_prop (TOOL_BAR_ITEM_KEY as ptrdiff_t, key);
@@ -11269,7 +11268,7 @@ unsafe fn parse_tool_bar_item (key: Lisp_Object, mut item: Lisp_Object) -> bool
 	     tool bar, the separator is rendered as an image.  */
 	  set_prop (TOOL_BAR_ITEM_IMAGES as ptrdiff_t,
 		    (menu_item_eval_property
-		     (Vtool_bar_separator_image_expression)));
+		     ((*Vtool_bar_separator_image_expression.as_mut_ptr ()))));
 	  set_prop (TOOL_BAR_ITEM_ENABLED_P as ptrdiff_t, Qnil ());
 	  set_prop (TOOL_BAR_ITEM_SELECTED_P as ptrdiff_t, Qnil ());
 	  set_prop (TOOL_BAR_ITEM_CAPTION as ptrdiff_t, Qnil ());
@@ -11297,7 +11296,7 @@ unsafe fn parse_tool_bar_item (key: Lisp_Object, mut item: Lisp_Object) -> bool
     if EQ (ikey, QCenable ())
       {
 	/* `:enable FORM'.  */
-	if !NILP (Venable_disabled_menus_and_buttons)
+	if !NILP ((*Venable_disabled_menus_and_buttons.as_mut_ptr ()))
 	  { set_prop (TOOL_BAR_ITEM_ENABLED_P as ptrdiff_t, Qt ()); }
 	else
 	  { set_prop (TOOL_BAR_ITEM_ENABLED_P as ptrdiff_t, value); }
@@ -11374,7 +11373,7 @@ unsafe fn parse_tool_bar_item (key: Lisp_Object, mut item: Lisp_Object) -> bool
       let mut capt: *const c_char
 	= if STRINGP (tcapt) { SSDATA (tcapt) } else { c"".as_ptr () };
       let max_lbl_size: ptrdiff_t =
-	2 * max! (0, min! (tool_bar_max_label_size, STRING_BYTES_BOUND / 2)) + 1;
+	2 * max! (0, min! ((*tool_bar_max_label_size.as_mut_ptr ()), STRING_BYTES_BOUND / 2)) + 1;
       let mut buf: *mut c_char = xmalloc (max_lbl_size as usize) as *mut c_char;
       let mut new_lbl: Lisp_Object;
       let mut caption_len: ptrdiff_t = strnlen (capt, max_lbl_size as size_t) as ptrdiff_t;
@@ -11410,10 +11409,10 @@ unsafe fn parse_tool_bar_item (key: Lisp_Object, mut item: Lisp_Object) -> bool
 	{ label = c"".as_ptr (); }
 
       new_lbl = Fupcase_initials (build_string (label));
-      if SCHARS (new_lbl) <= tool_bar_max_label_size
+      if SCHARS (new_lbl) <= (*tool_bar_max_label_size.as_mut_ptr ())
         { set_prop (TOOL_BAR_ITEM_LABEL as ptrdiff_t, new_lbl); }
       else
-        { set_prop (TOOL_BAR_ITEM_LABEL as ptrdiff_t, empty_unibyte_string); }
+        { set_prop (TOOL_BAR_ITEM_LABEL as ptrdiff_t, (*empty_unibyte_string.as_mut_ptr ())); }
       xfree (buf as *mut c_void);
     }
 
@@ -11480,10 +11479,10 @@ unsafe fn init_tool_bar_items (reuse: Lisp_Object)
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
   if VECTORP (reuse)
-    { tool_bar_items_vector = reuse; }
+    { (*tool_bar_items_vector.as_mut_ptr ()) = reuse; }
   else
-    { tool_bar_items_vector = make_nil_vector (64); }
-  ntool_bar_items = 0;
+    { (*tool_bar_items_vector.as_mut_ptr ()) = make_nil_vector (64); }
+  (*ntool_bar_items.as_mut_ptr ()) = 0;
 
   }
 }
@@ -11498,19 +11497,19 @@ unsafe fn append_tool_bar_item ()
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
   let incr: ptrdiff_t
-    = (ntool_bar_items as isize
-       - (ASIZE (tool_bar_items_vector) - TOOL_BAR_ITEM_NSLOTS as isize));
+    = ((*ntool_bar_items.as_mut_ptr ()) as isize
+       - (ASIZE ((*tool_bar_items_vector.as_mut_ptr ())) - TOOL_BAR_ITEM_NSLOTS as isize));
 
   /* Enlarge tool_bar_items_vector if necessary.  */
   if incr > 0
-    { tool_bar_items_vector = larger_vector (tool_bar_items_vector, incr, -1); }
+    { (*tool_bar_items_vector.as_mut_ptr ()) = larger_vector ((*tool_bar_items_vector.as_mut_ptr ()), incr, -1); }
 
   /* Append entries from tool_bar_item_properties to the end of
      tool_bar_items_vector.  */
-  vcopy (tool_bar_items_vector, ntool_bar_items as isize,
-	 xvector_contents (tool_bar_item_properties) as *const Lisp_Object,
+  vcopy ((*tool_bar_items_vector.as_mut_ptr ()), (*ntool_bar_items.as_mut_ptr ()) as isize,
+	 xvector_contents ((*tool_bar_item_properties.as_mut_ptr ())) as *const Lisp_Object,
 	 TOOL_BAR_ITEM_NSLOTS as isize);
-  ntool_bar_items += TOOL_BAR_ITEM_NSLOTS;
+  (*ntool_bar_items.as_mut_ptr ()) += TOOL_BAR_ITEM_NSLOTS;
 
   }
 }
@@ -11548,7 +11547,7 @@ unsafe fn read_char_x_menu_prompt (map: Lisp_Object, prev_event: Lisp_Object,
 
   /* Use local over global Menu maps.  */
 
-  if ! menu_prompting
+  if ! (*menu_prompting.as_mut_ptr ())
     { return Qnil (); }
 
   /* If we got to this point via a mouse click,
@@ -11589,8 +11588,8 @@ unsafe fn read_char_x_menu_prompt (map: Lisp_Object, prev_event: Lisp_Object,
 	  /* If we got more than one event, put all but the first
 	     onto this list to be read later.
 	     Return just the first event now.  */
-	  Vunread_command_events
-	    = nconc2 (XCDR (value), Vunread_command_events);
+	  (*Vunread_command_events.as_mut_ptr ())
+	    = nconc2 (XCDR (value), (*Vunread_command_events.as_mut_ptr ()));
 	  value = XCAR (value);
 	}
       else if NILP (value)
@@ -11634,7 +11633,7 @@ unsafe fn read_char_minibuf_menu_prompt (commandflag: c_int, mut map: Lisp_Objec
 
   vector = Qnil ();
 
-  if ! menu_prompting
+  if ! (*menu_prompting.as_mut_ptr ())
     { return Qnil (); }
 
   map = get_keymap (map, false, true);
@@ -11726,7 +11725,7 @@ unsafe fn read_char_minibuf_menu_prompt (commandflag: c_int, mut map: Lisp_Objec
 		  let mut downcased_event: Lisp_Object;
 		  let mut desc: Lisp_Object = Qnil ();
 		  let mut s: Lisp_Object
-		    = AREF (item_properties, ITEM_PROPERTY_NAME as isize);
+		    = AREF ((*item_properties.as_mut_ptr ()), ITEM_PROPERTY_NAME as isize);
 
 		  upcased_event = Fupcase (event);
 		  downcased_event = Fdowncase (event);
@@ -11737,12 +11736,12 @@ unsafe fn read_char_minibuf_menu_prompt (commandflag: c_int, mut map: Lisp_Objec
 
 		  /* C 10271-10278 is an `#if 0` block (`tem = XVECTOR (item_properties)…`):
 		     dead in C itself, so nothing is transcribed (P-08).  */
-		  tem = AREF (item_properties, ITEM_PROPERTY_TYPE as isize);
+		  tem = AREF ((*item_properties.as_mut_ptr ()), ITEM_PROPERTY_TYPE as isize);
 		  if EQ (tem, QCradio ()) || EQ (tem, QCtoggle ())
 		    {
 		      /* Insert button prefix.  */
 		      let selected: Lisp_Object
-			= AREF (item_properties, ITEM_PROPERTY_SELECTED as isize);
+			= AREF ((*item_properties.as_mut_ptr ()), ITEM_PROPERTY_SELECTED as isize);
 		      AUTO_STRING! (radio_yes, c"(*) ".as_ptr ());
 		      AUTO_STRING! (radio_no , c"( ) ".as_ptr ());
 		      AUTO_STRING! (check_yes, c"[X] ".as_ptr ());
@@ -11822,8 +11821,8 @@ unsafe fn read_char_minibuf_menu_prompt (commandflag: c_int, mut map: Lisp_Objec
       /* Make believe it's not a keyboard macro in case the help char
 	 is pressed.  Help characters are not recorded because menu prompting
 	 is not used on replay.  */
-      orig_defn_macro = KVAR! (current_kboard, defining_kbd_macro);
-      kset_defining_kbd_macro (current_kboard, Qnil ());
+      orig_defn_macro = KVAR! ((*current_kboard.as_mut_ptr ()), (*defining_kbd_macro.as_mut_ptr ()));
+      kset_defining_kbd_macro ((*current_kboard.as_mut_ptr ()), Qnil ());
       /* C's `do obj = read_char (…); while (BUFFERP (obj));`.  */
       loop
 	{
@@ -11833,18 +11832,18 @@ unsafe fn read_char_minibuf_menu_prompt (commandflag: c_int, mut map: Lisp_Objec
 			   std::ptr::null_mut ());
 	  if !BUFFERP (obj) { break; }
 	}
-      kset_defining_kbd_macro (current_kboard, orig_defn_macro);
+      kset_defining_kbd_macro ((*current_kboard.as_mut_ptr ()), orig_defn_macro);
 
       if !FIXNUMP (obj) || XFIXNUM (obj) == -2
-	  || (! EQ (obj, menu_prompt_more_char)
-	      && (!FIXNUMP (menu_prompt_more_char)
-		  || ! BASE_EQ (obj, make_fixnum (Ctl! (XFIXNUM (menu_prompt_more_char))
+	  || (! EQ (obj, (*menu_prompt_more_char.as_mut_ptr ()))
+	      && (!FIXNUMP ((*menu_prompt_more_char.as_mut_ptr ()))
+		  || ! BASE_EQ (obj, make_fixnum (Ctl! (XFIXNUM ((*menu_prompt_more_char.as_mut_ptr ())))
 						  as EMACS_INT))))
 	  /* If 'menu_prompt_more_char' collides with a binding in the
 	     map, gives precedence to the map's binding (bug#80146).  */
 	  || !NILP (follow_key (map, obj))
 	{
-	  if !NILP (KVAR! (current_kboard, defining_kbd_macro))
+	  if !NILP (KVAR! ((*current_kboard.as_mut_ptr ()), (*defining_kbd_macro.as_mut_ptr ())))
 	    { store_kbd_macro_char (obj); }
 	  return obj;
 	}
@@ -12086,7 +12085,7 @@ pub unsafe extern "C-unwind" fn init_raw_keybuf_count ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  raw_keybuf_count = 0;
+  (*raw_keybuf_count.as_mut_ptr ()) = 0;
 
   }
 }
@@ -12139,7 +12138,7 @@ unsafe fn read_filtered_event (no_switch_frame: bool, ascii_required: bool,
   /* C 10600-10603: `#ifdef HAVE_WINDOW_SYSTEM` (dead on this target; carried per P-51; the
      compiled text never reaches `display_hourglass_p`/`cancel_hourglass`).  */
   #[cfg (feature = "have_window_system")]
-  if display_hourglass_p
+  if (*display_hourglass_p.as_mut_ptr ())
     { cancel_hourglass (); }
 
   /* C 10605-10616: `#ifdef HAVE_TEXT_CONVERSION` (dead; carried per P-51).  */
@@ -12150,7 +12149,7 @@ unsafe fn read_filtered_event (no_switch_frame: bool, ascii_required: bool,
     /* Don't use text conversion when trying to just read a
        character.  */
 
-    if ascii_required && !disable_inhibit_text_conversion
+    if ascii_required && !(*disable_inhibit_text_conversion.as_mut_ptr ())
       {
 	disable_text_conversion ();
 	record_unwind_protect_void (Some (resume_text_conversion));
@@ -12221,7 +12220,7 @@ unsafe fn read_filtered_event (no_switch_frame: bool, ascii_required: bool,
 	    {
 	      if error_nonascii
 		{
-		  Vunread_command_events = list1 (val);
+		  (*Vunread_command_events.as_mut_ptr ()) = list1 (val);
 		  error (c"Non-character input-event".as_ptr ());
 		}
 	      else
@@ -12230,7 +12229,7 @@ unsafe fn read_filtered_event (no_switch_frame: bool, ascii_required: bool,
 	}
 
       if ! NILP (delayed_switch_frame)
-	{ unread_switch_frame = delayed_switch_frame; }
+	{ (*unread_switch_frame.as_mut_ptr ()) = delayed_switch_frame; }
 
       /* C 10684-10691 is an `#if 0` block (the hourglass restart): dead in C itself, so
 	 nothing is transcribed (P-08).  */
@@ -12308,7 +12307,7 @@ DEFUN! ("read-char-exclusive", Fread_char_exclusive, Sread_char_exclusive, 0, 3,
 #[cfg (feature = "have_text_conversion")]
 unsafe extern "C-unwind" fn restore_reading_key_sequence (old_reading_key_sequence: c_int)
 {
-  reading_key_sequence = old_reading_key_sequence != 0;
+  (*reading_key_sequence.as_mut_ptr ()) = old_reading_key_sequence != 0;
 
   /* If a key sequence is no longer being read, reset input methods
      whose state changes were postponed.  */
@@ -12327,8 +12326,8 @@ unsafe fn requeued_events_pending_p () -> bool
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
   return requeued_command_events_pending_p ()
-	 || !NILP (Vunread_post_input_method_events)
-	 || !NILP (Vunread_input_method_events);
+	 || !NILP ((*Vunread_post_input_method_events.as_mut_ptr ()))
+	 || !NILP ((*Vunread_input_method_events.as_mut_ptr ()));
 
   }
 }
@@ -12430,16 +12429,16 @@ unsafe fn read_key_sequence (keybuf: *mut Lisp_Object, prompt: Lisp_Object,
 	  /* Install the string PROMPT as the beginning of the string
 	     of echoing, so that it serves as a prompt for the next
 	     character.  */
-	  kset_echo_prompt (current_kboard, prompt);
+	  kset_echo_prompt ((*current_kboard.as_mut_ptr ()), prompt);
           /* FIXME: This use of echo_now doesn't look quite right and is ugly
              since it forces us to fiddle with current_kboard->immediate_echo
              before and after.  */
-	  kboard_bits! (immediate_echo, current_kboard, false);
+	  kboard_bits! (immediate_echo, (*current_kboard.as_mut_ptr ()), false);
 	  echo_now ();
           if !echo_keystrokes_p ()
-	    { kboard_bits! (immediate_echo, current_kboard, false); }
+	    { kboard_bits! (immediate_echo, (*current_kboard.as_mut_ptr ()), false); }
 	}
-      else if cursor_in_echo_area /* FIXME: Not sure why we test this here,
+      else if (*cursor_in_echo_area.as_mut_ptr ()) /* FIXME: Not sure why we test this here,
                                       maybe we should just drop this test.  */
 	       && echo_keystrokes_p ()
 	/* This doesn't put in a dash if the echo buffer is empty, so
@@ -12451,8 +12450,8 @@ unsafe fn read_key_sequence (keybuf: *mut Lisp_Object, prompt: Lisp_Object,
      we will need to restore them if we replay a key sequence.  */
   if INTERACTIVE! ()
     { echo_start = echo_length (); }
-  keys_start = this_command_key_count;
-  this_single_command_key_start = keys_start;
+  keys_start = (*this_command_key_count.as_mut_ptr ());
+  (*this_single_command_key_start.as_mut_ptr ()) = keys_start;
 
   /* C 11014-11026: `#ifdef HAVE_TEXT_CONVERSION` (dead on this target; carried per P-51).
      `restore_reading_key_sequence` is this file's cfg'd definition above.  */
@@ -12463,8 +12462,8 @@ unsafe fn read_key_sequence (keybuf: *mut Lisp_Object, prompt: Lisp_Object,
        resetting the input method until this function completes.  */
 
     record_unwind_protect_int (Some (restore_reading_key_sequence),
-			       reading_key_sequence as c_int);
-    reading_key_sequence = true;
+			       (*reading_key_sequence.as_mut_ptr ()) as c_int);
+    (*reading_key_sequence.as_mut_ptr ()) = true;
   }
 
   /* We jump here when we need to reinitialize fkey and keytran; this
@@ -12472,11 +12471,11 @@ unsafe fn read_key_sequence (keybuf: *mut Lisp_Object, prompt: Lisp_Object,
  'done: {
  'replay_entire_sequence: loop
   {
-  indec.parent = KVAR! (current_kboard, Vinput_decode_map);
+  indec.parent = KVAR! ((*current_kboard.as_mut_ptr ()), (*Vinput_decode_map.as_mut_ptr ()));
   indec.map = indec.parent;
-  fkey.parent = KVAR! (current_kboard, Vlocal_function_key_map);
+  fkey.parent = KVAR! ((*current_kboard.as_mut_ptr ()), (*Vlocal_function_key_map.as_mut_ptr ()));
   fkey.map = fkey.parent;
-  keytran.parent = Vkey_translation_map;
+  keytran.parent = (*Vkey_translation_map.as_mut_ptr ());
   keytran.map = keytran.parent;
   indec.end = 0;
   indec.start = indec.end;
@@ -12504,11 +12503,11 @@ unsafe fn read_key_sequence (keybuf: *mut Lisp_Object, prompt: Lisp_Object,
 
   /* Start from the beginning in keybuf.  */
   t = 0;
-  last_nonmenu_event = Qnil ();
+  (*last_nonmenu_event.as_mut_ptr ()) = Qnil ();
 
   /* These are no-ops the first time through, but if we restart, they
      revert the echo area and this_command_keys to their original state.  */
-  this_command_key_count = keys_start;
+  (*this_command_key_count.as_mut_ptr ()) = keys_start;
   if INTERACTIVE! () && t < mock_input
     { echo_truncate (echo_start); }
 
@@ -12602,7 +12601,7 @@ unsafe fn read_key_sequence (keybuf: *mut Lisp_Object, prompt: Lisp_Object,
 
   if INTERACTIVE! ()
     { echo_local_start = echo_length (); }
-  keys_local_start = this_command_key_count as c_int;
+  keys_local_start = (*this_command_key_count.as_mut_ptr ()) as c_int;
 
   /* C 11096-11129: `#ifdef HAVE_TEXT_CONVERSION` (dead on this target; carried per
      P-51).  */
@@ -12617,7 +12616,7 @@ unsafe fn read_key_sequence (keybuf: *mut Lisp_Object, prompt: Lisp_Object,
        disable text conversion if a menu was displayed.  */
 
     if !disabled_conversion && t != 0 && !used_mouse_menu
-	&& !disable_inhibit_text_conversion
+	&& !(*disable_inhibit_text_conversion.as_mut_ptr ())
       {
 	let mut i: c_int;
 	/* C's `goto disable_text_conversion` (the `for` loop's jump into the label) and
@@ -12659,7 +12658,7 @@ unsafe fn read_key_sequence (keybuf: *mut Lisp_Object, prompt: Lisp_Object,
      loop.  */
   if INTERACTIVE! () && t < mock_input
     { echo_truncate (echo_local_start); }
-  this_command_key_count = keys_local_start as ptrdiff_t;
+  (*this_command_key_count.as_mut_ptr ()) = keys_local_start as ptrdiff_t;
 
   /* By default, assume each event is "real".  */
   last_real_key_start = t;
@@ -12669,18 +12668,18 @@ unsafe fn read_key_sequence (keybuf: *mut Lisp_Object, prompt: Lisp_Object,
     {
       key = *keybuf.offset (t as isize);
       add_command_key (key);
-      if kboard_bits! (immediate_echo, current_kboard)
+      if kboard_bits! (immediate_echo, (*current_kboard.as_mut_ptr ()))
 	{
 	  /* Set immediate_echo to false so as to force echo_now to
 	     redisplay (it will set immediate_echo right back to true).  */
-	  kboard_bits! (immediate_echo, current_kboard, false);
+	  kboard_bits! (immediate_echo, (*current_kboard.as_mut_ptr ()), false);
 	  echo_now ();
 	}
       used_mouse_menu = used_mouse_menu_history[t as usize];
     }
   /* If we're at the end of a macro, exit it by returning 0,
      unless there are unread events pending.  */
-  else if !NILP (Vexecuting_kbd_macro)
+  else if !NILP ((*Vexecuting_kbd_macro.as_mut_ptr ()))
       && at_end_of_macro_p ()
       && !requeued_events_pending_p ()
     {
@@ -12691,12 +12690,12 @@ unsafe fn read_key_sequence (keybuf: *mut Lisp_Object, prompt: Lisp_Object,
   else
     {
       {
-	let mut interrupted_kboard: *mut kboard = current_kboard;
+	let mut interrupted_kboard: *mut kboard = (*current_kboard.as_mut_ptr ());
 	let interrupted_frame: *mut frame = SELECTED_FRAME ();
 	/* Calling read_char with COMMANDFLAG = -2 avoids
 	   redisplay in read_char and its subroutines.  */
 	key = read_char (if prevent_redisplay { -2 } else { NILP (prompt) as c_int },
-			 current_binding, last_nonmenu_event,
+			 current_binding, (*last_nonmenu_event.as_mut_ptr ()),
 			 &raw mut used_mouse_menu, std::ptr::null_mut ());
 	used_mouse_menu_history[t as usize] = used_mouse_menu;
 	if (FIXNUMP (key) && XFIXNUM (key) == -2) /* wrong_kboard_jmpbuf */
@@ -12706,12 +12705,12 @@ unsafe fn read_key_sequence (keybuf: *mut Lisp_Object, prompt: Lisp_Object,
 	       This is because `terminal-init-xterm' calls
 	       read-char, which eats the wrong_kboard_jmpbuf return.
 	       Any better way to fix this? -- cyd  */
-	    || (interrupted_kboard != current_kboard)
+	    || (interrupted_kboard != (*current_kboard.as_mut_ptr ()))
 	  {
 	    let mut found: bool = false;
 	    let mut kb: *mut kboard;
 
-	    kb = all_kboards;
+	    kb = (*all_kboards.as_mut_ptr ());
 	    while !kb.is_null ()
 	      {
 		if kb == interrupted_kboard
@@ -12775,9 +12774,9 @@ unsafe fn read_key_sequence (keybuf: *mut Lisp_Object, prompt: Lisp_Object,
 		       change we would otherwise miss.
 		       See bug#5095, bug#37782, bug#79513.  */
 		    if fix_current_buffer
-			&& (XBUFFER ((*XWINDOW (selected_window)).contents)
+			&& (XBUFFER ((*XWINDOW ((*selected_window.as_mut_ptr ()))).contents)
 			    != (current_buffer! ()))
-		      { Fset_buffer ((*XWINDOW (selected_window)).contents); }
+		      { Fset_buffer ((*XWINDOW ((*selected_window.as_mut_ptr ()))).contents); }
 		    mock_input = 1;
 		    *keybuf.offset (0) = key;
 		  }
@@ -12809,11 +12808,11 @@ unsafe fn read_key_sequence (keybuf: *mut Lisp_Object, prompt: Lisp_Object,
     	 of the command_loop_1.  */
           if fix_current_buffer
     	{
-    	  if !FRAME_LIVE_P (XFRAME (selected_frame))
+    	  if !FRAME_LIVE_P (XFRAME ((*selected_frame.as_mut_ptr ())))
     	    { Fkill_emacs (Qnil (), Qnil ()); }
-    	  if XBUFFER ((*XWINDOW (selected_window)).contents)
+    	  if XBUFFER ((*XWINDOW ((*selected_window.as_mut_ptr ()))).contents)
     	      != (current_buffer! ())
-    	    { Fset_buffer ((*XWINDOW (selected_window)).contents); }
+    	    { Fset_buffer ((*XWINDOW ((*selected_window.as_mut_ptr ()))).contents); }
     	}
 
           continue 'replay_sequence;
@@ -12823,20 +12822,20 @@ unsafe fn read_key_sequence (keybuf: *mut Lisp_Object, prompt: Lisp_Object,
          quit_throw_to_read_char switched buffers,
          replay to get the right keymap.  */
       if FIXNUMP (key)
-          && XFIXNUM (key) == quit_char as EMACS_INT
+          && XFIXNUM (key) == (*quit_char.as_mut_ptr ()) as EMACS_INT
           && (current_buffer! ()) != starting_buffer
         {
           GROW_RAW_KEYBUF! ();
-          ASET (raw_keybuf, raw_keybuf_count as isize, key);
-          raw_keybuf_count += 1;
+          ASET ((*raw_keybuf.as_mut_ptr ()), (*raw_keybuf_count.as_mut_ptr ()) as isize, key);
+          (*raw_keybuf_count.as_mut_ptr ()) += 1;
           *keybuf.offset (t as isize) = key;
           t += 1;
           mock_input = t;
-          Vquit_flag = Qnil ();
+          (*Vquit_flag.as_mut_ptr ()) = Qnil ();
           continue 'replay_sequence;
         }
 
-      Vquit_flag = Qnil ();
+      (*Vquit_flag.as_mut_ptr ()) = Qnil ();
 
       if EVENT_HAS_PARAMETERS (key)
           /* Either a `switch-frame' or a `select-window' event.  */
@@ -12862,18 +12861,18 @@ unsafe fn read_key_sequence (keybuf: *mut Lisp_Object, prompt: Lisp_Object,
     	 special-event-map, ...) might have switched the current buffer
     	 or the selected window from under us in the mean time.  */
           if fix_current_buffer
-    	  && (XBUFFER ((*XWINDOW (selected_window)).contents)
+    	  && (XBUFFER ((*XWINDOW ((*selected_window.as_mut_ptr ()))).contents)
     	      != (current_buffer! ()))
-    	{ Fset_buffer ((*XWINDOW (selected_window)).contents); }
+    	{ Fset_buffer ((*XWINDOW ((*selected_window.as_mut_ptr ()))).contents); }
           current_binding = active_maps (first_event, Qnil ());
         }
 
       GROW_RAW_KEYBUF! ();
-      ASET (raw_keybuf, raw_keybuf_count as isize,
+      ASET ((*raw_keybuf.as_mut_ptr ()), (*raw_keybuf_count.as_mut_ptr ()) as isize,
     	/* Copy the event, in case it gets modified by side-effect
     	   by some remapping function (bug#30955).  */
     	if CONSP (key) { Fcopy_sequence (key) } else { key });
-      raw_keybuf_count += 1;
+      (*raw_keybuf_count.as_mut_ptr ()) += 1;
     }
 
   /* Clicks in non-text areas get prefixed by the symbol
@@ -12934,7 +12933,7 @@ unsafe fn read_key_sequence (keybuf: *mut Lisp_Object, prompt: Lisp_Object,
 		     emacsclient).  */
 		  record_unwind_current_buffer ();
 
-		  if !FRAME_LIVE_P (XFRAME (selected_frame))
+		  if !FRAME_LIVE_P (XFRAME ((*selected_frame.as_mut_ptr ())))
 		    { Fkill_emacs (Qnil (), Qnil ()); }
 		  set_buffer_internal (XBUFFER ((*XWINDOW (window)).contents));
 		  continue 'replay_sequence;
@@ -13158,10 +13157,10 @@ unsafe fn read_key_sequence (keybuf: *mut Lisp_Object, prompt: Lisp_Object,
      we don't update last_nonmenu_event; it continues to hold the mouse
      event that preceded the first level of menu.  */
   if !used_mouse_menu
-    { last_nonmenu_event = key; }
+    { (*last_nonmenu_event.as_mut_ptr ()) = key; }
 
   /* Record what part of this_command_keys is the current key sequence.  */
-  this_single_command_key_start = this_command_key_count - t as ptrdiff_t;
+  (*this_single_command_key_start.as_mut_ptr ()) = (*this_command_key_count.as_mut_ptr ()) - t as ptrdiff_t;
   /* When 'input-method-function' called above causes events to be
      put on 'unread-post-input-method-events', and as result
      'reread' is set to 'true', the value of 't' can become larger
@@ -13172,8 +13171,8 @@ unsafe fn read_key_sequence (keybuf: *mut Lisp_Object, prompt: Lisp_Object,
      a garbled vector.  See bug #20223 for one such situation.
      Here we force 'this_single_command_key_start' to never become
      negative, to avoid that.  */
-  if this_single_command_key_start < 0
-    { this_single_command_key_start = 0; }
+  if (*this_single_command_key_start.as_mut_ptr ()) < 0
+    { (*this_single_command_key_start.as_mut_ptr ()) = 0; }
 
   /* Look for this sequence in input-decode-map.
      Scan from indec.end until we find a bound suffix.  */
@@ -13264,7 +13263,7 @@ unsafe fn read_key_sequence (keybuf: *mut Lisp_Object, prompt: Lisp_Object,
   if NILP (current_binding)
       && /* indec.start >= t && fkey.start >= t && */ keytran.start >= t
       && FIXNUMP (key)
-      && translate_upper_case_key_bindings
+      && (*translate_upper_case_key_bindings.as_mut_ptr ())
     {
       let mut new_key: Lisp_Object = Qnil ();
       let k: EMACS_INT = XFIXNUM (key);
@@ -13299,7 +13298,7 @@ unsafe fn read_key_sequence (keybuf: *mut Lisp_Object, prompt: Lisp_Object,
   if NILP (current_binding)
       && help_char_p (EVENT_HEAD (key)) && t > 1
     {
-      read_key_sequence_cmd = Vprefix_help_command;
+      (*read_key_sequence_cmd.as_mut_ptr ()) = (*Vprefix_help_command.as_mut_ptr ());
       break 'done;
     }
 
@@ -13314,7 +13313,7 @@ unsafe fn read_key_sequence (keybuf: *mut Lisp_Object, prompt: Lisp_Object,
       let modifiers: c_int
 	= if CONSP (breakdown) { XFIXNUM (XCAR (XCDR (breakdown))) as c_int } else { 0 };
 
-      if translate_upper_case_key_bindings
+      if (*translate_upper_case_key_bindings.as_mut_ptr ())
 	  && ((modifiers & shift_modifier) != 0
 	      /* Treat uppercase keys as shifted.  */
 	      || (FIXNUMP (key)
@@ -13351,21 +13350,21 @@ unsafe fn read_key_sequence (keybuf: *mut Lisp_Object, prompt: Lisp_Object,
   break 'replay_key;
   }
   }
-  read_key_sequence_cmd = current_binding;
+  (*read_key_sequence_cmd.as_mut_ptr ()) = current_binding;
   break 'replay_sequence;
   }
   break 'replay_entire_sequence;
   }
  }
-  read_key_sequence_remapped
+  (*read_key_sequence_remapped.as_mut_ptr ())
     /* Remap command through active keymaps.
        Do the remapping here, before the unbind_to so it uses the keymaps
        of the appropriate buffer.  */
-    = if SYMBOLP (read_key_sequence_cmd)
-	{ Fcommand_remapping (read_key_sequence_cmd, Qnil (), Qnil ()) }
+    = if SYMBOLP ((*read_key_sequence_cmd.as_mut_ptr ()))
+	{ Fcommand_remapping ((*read_key_sequence_cmd.as_mut_ptr ()), Qnil (), Qnil ()) }
       else { Qnil () };
 
-  unread_switch_frame = delayed_switch_frame;
+  (*unread_switch_frame.as_mut_ptr ()) = delayed_switch_frame;
   unbind_to (count, Qnil ());
 
   /* Don't downcase the last character if the caller says don't.
@@ -13379,7 +13378,7 @@ unsafe fn read_key_sequence (keybuf: *mut Lisp_Object, prompt: Lisp_Object,
     }
 
   if shift_translated
-    { Vthis_command_keys_shift_translated = Qt (); }
+    { (*Vthis_command_keys_shift_translated.as_mut_ptr ()) = Qt (); }
 
   /* Occasionally we fabricate events, perhaps by expanding something
      according to function-key-map, or by adding a prefix symbol to a
@@ -13442,16 +13441,16 @@ unsafe fn read_key_sequence_vs (prompt: Lisp_Object, continue_echo: Lisp_Object,
 
   if NILP (continue_echo)
     {
-      this_command_key_count = 0;
-      this_single_command_key_start = 0;
+      (*this_command_key_count.as_mut_ptr ()) = 0;
+      (*this_single_command_key_start.as_mut_ptr ()) = 0;
     }
 
   /* C 11930-11933: `#ifdef HAVE_WINDOW_SYSTEM` (dead on this target; carried per P-51).  */
   #[cfg (feature = "have_window_system")]
-  if display_hourglass_p
+  if (*display_hourglass_p.as_mut_ptr ())
     { cancel_hourglass (); }
 
-  raw_keybuf_count = 0;
+  (*raw_keybuf_count.as_mut_ptr ()) = 0;
   /* C's `Lisp_Object keybuf[READ_KEY_ELTS];` is uninitialised; the port zero-initialises it
      (PORTING.md 1.5, the `command_loop_1` precedent).  */
   let mut keybuf: [Lisp_Object; READ_KEY_ELTS as usize] = [lisp_h_Qnil (); READ_KEY_ELTS as usize];
@@ -13463,7 +13462,7 @@ unsafe fn read_key_sequence_vs (prompt: Lisp_Object, continue_echo: Lisp_Object,
 
   if i == -1
     {
-      Vquit_flag = Qt ();
+      (*Vquit_flag.as_mut_ptr ()) = Qt ();
       maybe_quit ();
     }
 
@@ -13506,7 +13505,7 @@ pub unsafe extern "C-unwind" fn detect_input_pending () -> bool
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  return input_pending || get_input_pending (0);
+  return (*input_pending.as_mut_ptr ()) || get_input_pending (0);
 
   }
 }
@@ -13519,15 +13518,15 @@ pub unsafe extern "C-unwind" fn detect_input_pending_run_timers (do_display: boo
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  let old_timers_run: c_uint = timers_run;
+  let old_timers_run: c_uint = (*timers_run.as_mut_ptr ());
 
-  if !input_pending
+  if !(*input_pending.as_mut_ptr ())
     { get_input_pending (READABLE_EVENTS_DO_TIMERS_NOW); }
 
-  if old_timers_run != timers_run && do_display
+  if old_timers_run != (*timers_run.as_mut_ptr ()) && do_display
     { redisplay_preserve_echo_area (8); }
 
-  return input_pending;
+  return (*input_pending.as_mut_ptr ());
 
   }
 }
@@ -13542,7 +13541,7 @@ pub unsafe extern "C-unwind" fn clear_input_pending ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  input_pending = false;
+  (*input_pending.as_mut_ptr ()) = false;
 
   }
 }
@@ -13555,7 +13554,7 @@ pub unsafe extern "C-unwind" fn requeued_command_events_pending_p () -> bool
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  return CONSP (Vunread_command_events);
+  return CONSP ((*Vunread_command_events.as_mut_ptr ()));
 
   }
 }
@@ -13653,8 +13652,8 @@ unsafe fn update_recent_keys (new_size: c_int, kept_keys: c_int)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  let osize: c_int = ASIZE (recent_keys) as c_int;
-  eassert! (recent_keys_index < osize);
+  let osize: c_int = ASIZE ((*recent_keys.as_mut_ptr ())) as c_int;
+  eassert! ((*recent_keys_index.as_mut_ptr ()) < osize);
   eassert! (kept_keys <= min! (osize, new_size));
   let mut v: Lisp_Object = make_nil_vector (new_size as ptrdiff_t);
   let mut i: c_int;
@@ -13662,16 +13661,16 @@ unsafe fn update_recent_keys (new_size: c_int, kept_keys: c_int)
   i = 0;
   while i < kept_keys
     {
-      idx = recent_keys_index - kept_keys + i;
+      idx = (*recent_keys_index.as_mut_ptr ()) - kept_keys + i;
       while idx < 0
         { idx += osize; }
-      ASET (v, i as isize, AREF (recent_keys, idx as isize));
+      ASET (v, i as isize, AREF ((*recent_keys.as_mut_ptr ()), idx as isize));
       i += 1;
     }
-  recent_keys = v;
-  total_keys = kept_keys;
-  recent_keys_index = total_keys % new_size;
-  lossage_limit = new_size;
+  (*recent_keys.as_mut_ptr ()) = v;
+  (*total_keys.as_mut_ptr ()) = kept_keys;
+  (*recent_keys_index.as_mut_ptr ()) = (*total_keys.as_mut_ptr ()) % new_size;
+  (*lossage_limit.as_mut_ptr ()) = new_size;
 
   }
 }
@@ -13682,17 +13681,17 @@ DEFUN! ("lossage-size", Flossage_size, Slossage_size, 0, 1,
        (arg: Lisp_Object),
        {
   if NILP (arg)
-    { return make_fixnum (lossage_limit as EMACS_INT); }
+    { return make_fixnum ((*lossage_limit.as_mut_ptr ()) as EMACS_INT); }
 
   if !FIXNATP (arg)
     { user_error (c"Value must be a positive integer".as_ptr ()); }
-  let osize: ptrdiff_t = ASIZE (recent_keys);
-  eassert! (lossage_limit as ptrdiff_t == osize);
+  let osize: ptrdiff_t = ASIZE ((*recent_keys.as_mut_ptr ()));
+  eassert! ((*lossage_limit.as_mut_ptr ()) as ptrdiff_t == osize);
   let min_size: c_int = MIN_NUM_RECENT_KEYS;
   let new_size: EMACS_INT = XFIXNAT (arg);
 
   if new_size == osize as EMACS_INT
-    { return make_fixnum (lossage_limit as EMACS_INT); }
+    { return make_fixnum ((*lossage_limit.as_mut_ptr ()) as EMACS_INT); }
 
   if new_size < min_size as EMACS_INT
     {
@@ -13707,11 +13706,11 @@ DEFUN! ("lossage-size", Flossage_size, Slossage_size, 0, 1,
     }
 
   let kept_keys: c_int
-    = if new_size > osize as EMACS_INT { total_keys }
-      else { min! (new_size as c_int, total_keys) };
+    = if new_size > osize as EMACS_INT { (*total_keys.as_mut_ptr ()) }
+      else { min! (new_size as c_int, (*total_keys.as_mut_ptr ())) };
   update_recent_keys (new_size as c_int, kept_keys);
 
-  return make_fixnum (lossage_limit as EMACS_INT);
+  return make_fixnum ((*lossage_limit.as_mut_ptr ()) as EMACS_INT);
 });
 
 DEFUN! ("recent-keys", Frecent_keys, Srecent_keys, 0, 1, 0,
@@ -13720,23 +13719,23 @@ DEFUN! ("recent-keys", Frecent_keys, Srecent_keys, 0, 1, 0,
        {
   let cmds: bool = !NILP (include_cmds);
 
-  if total_keys == 0
-      || (cmds && total_keys < lossage_limit)
-    { return Fvector (total_keys as ptrdiff_t, (*XVECTOR (recent_keys)).contents.as_mut_ptr ()); }
+  if (*total_keys.as_mut_ptr ()) == 0
+      || (cmds && (*total_keys.as_mut_ptr ()) < (*lossage_limit.as_mut_ptr ()))
+    { return Fvector ((*total_keys.as_mut_ptr ()) as ptrdiff_t, (*XVECTOR ((*recent_keys.as_mut_ptr ()))).contents.as_mut_ptr ()); }
   else
     {
       let mut es: Lisp_Object = Qnil ();
-      let mut i: c_int = if total_keys < lossage_limit { 0 } else { recent_keys_index };
-      eassert! (recent_keys_index < lossage_limit);
+      let mut i: c_int = if (*total_keys.as_mut_ptr ()) < (*lossage_limit.as_mut_ptr ()) { 0 } else { (*recent_keys_index.as_mut_ptr ()) };
+      eassert! ((*recent_keys_index.as_mut_ptr ()) < (*lossage_limit.as_mut_ptr ()));
       loop
 	{
-	  let e: Lisp_Object = AREF (recent_keys, i as isize);
+	  let e: Lisp_Object = AREF ((*recent_keys.as_mut_ptr ()), i as isize);
 	  if cmds || !CONSP (e) || !NILP (XCAR (e))
 	    { es = Fcons (e, es); }
 	  i += 1;
-	  if i >= lossage_limit
+	  if i >= (*lossage_limit.as_mut_ptr ())
 	    { i = 0; }
-	  if i == recent_keys_index
+	  if i == (*recent_keys_index.as_mut_ptr ())
 	    { break; }
 	}
       es = Fnreverse (es);
@@ -13748,8 +13747,8 @@ DEFUN! ("this-command-keys", Fthis_command_keys, Sthis_command_keys, 0, 0, 0,
        doc: "Return the key sequence that invoked this command.\nHowever, if the command has called `read-key-sequence', it returns\nthe last key sequence that has been read.\nThe value is a string or a vector.\n\nSee also `this-command-keys-vector'.",
        (),
        {
-  return make_event_array (this_command_key_count,
-			   (*XVECTOR (this_command_keys)).contents.as_mut_ptr ());
+  return make_event_array ((*this_command_key_count.as_mut_ptr ()),
+			   (*XVECTOR ((*this_command_keys.as_mut_ptr ()))).contents.as_mut_ptr ());
 });
 
 DEFUN! ("set--this-command-keys", Fset__this_command_keys, Sset__this_command_keys, 1, 1, 0,
@@ -13758,8 +13757,8 @@ DEFUN! ("set--this-command-keys", Fset__this_command_keys, Sset__this_command_ke
        {
   CHECK_STRING (keys);
 
-  this_command_key_count = 0;
-  this_single_command_key_start = 0;
+  (*this_command_key_count.as_mut_ptr ()) = 0;
+  (*this_single_command_key_start.as_mut_ptr ()) = 0;
 
   let mut charidx: ptrdiff_t = 0;
   let mut byteidx: ptrdiff_t = 0;
@@ -13788,18 +13787,18 @@ DEFUN! ("this-command-keys-vector", Fthis_command_keys_vector, Sthis_command_key
        doc: "Return the key sequence that invoked this command, as a vector.\nHowever, if the command has called `read-key-sequence', it returns\nthe last key sequence that has been read.\n\nSee also `this-command-keys'.",
        (),
        {
-  return Fvector (this_command_key_count,
-		  (*XVECTOR (this_command_keys)).contents.as_mut_ptr ());
+  return Fvector ((*this_command_key_count.as_mut_ptr ()),
+		  (*XVECTOR ((*this_command_keys.as_mut_ptr ()))).contents.as_mut_ptr ());
 });
 
 DEFUN! ("this-single-command-keys", Fthis_single_command_keys, Sthis_single_command_keys, 0, 0, 0,
        doc: "Return the key sequence that invoked this command.\nMore generally, it returns the last key sequence read, either by\nthe command loop or by `read-key-sequence'.\nThe value is always a vector.",
        (),
        {
-  let nkeys: ptrdiff_t = this_command_key_count - this_single_command_key_start;
+  let nkeys: ptrdiff_t = (*this_command_key_count.as_mut_ptr ()) - (*this_single_command_key_start.as_mut_ptr ());
   return Fvector (if nkeys < 0 { 0 } else { nkeys },
-		  (*XVECTOR (this_command_keys)).contents.as_mut_ptr ()
-		    .offset (this_single_command_key_start));
+		  (*XVECTOR ((*this_command_keys.as_mut_ptr ()))).contents.as_mut_ptr ()
+		    .offset ((*this_single_command_key_start.as_mut_ptr ())));
 });
 
 DEFUN! ("this-single-command-raw-keys", Fthis_single_command_raw_keys,
@@ -13807,7 +13806,7 @@ DEFUN! ("this-single-command-raw-keys", Fthis_single_command_raw_keys,
        doc: "Return the raw events that were read for this command.\nMore generally, it returns the last key sequence read, either by\nthe command loop or by `read-key-sequence'.\nUnlike `this-single-command-keys', this function's value\nshows the events before all translations (except for input methods).\nThe value is always a vector.",
        (),
        {
-  return Fvector (raw_keybuf_count as ptrdiff_t, (*XVECTOR (raw_keybuf)).contents.as_mut_ptr ());
+  return Fvector ((*raw_keybuf_count.as_mut_ptr ()) as ptrdiff_t, (*XVECTOR ((*raw_keybuf.as_mut_ptr ()))).contents.as_mut_ptr ());
 });
 
 DEFUN! ("clear-this-command-keys", Fclear_this_command_keys, Sclear_this_command_keys, 0, 1, 0,
@@ -13816,18 +13815,18 @@ DEFUN! ("clear-this-command-keys", Fclear_this_command_keys, Sclear_this_command
        {
   let mut i: c_int;
 
-  this_command_key_count = 0;
+  (*this_command_key_count.as_mut_ptr ()) = 0;
 
   if NILP (keep_record)
     {
       i = 0;
-      while i < ASIZE (recent_keys) as c_int
+      while i < ASIZE ((*recent_keys.as_mut_ptr ())) as c_int
 	{
-	  ASET (recent_keys, i as isize, Qnil ());
+	  ASET ((*recent_keys.as_mut_ptr ()), i as isize, Qnil ());
 	  i += 1;
 	}
-      total_keys = 0;
-      recent_keys_index = 0;
+      (*total_keys.as_mut_ptr ()) = 0;
+      (*recent_keys_index.as_mut_ptr ()) = 0;
     }
   return Qnil ();
 });
@@ -13840,7 +13839,7 @@ DEFUN! ("recursion-depth", Frecursion_depth, Srecursion_depth, 0, 0, 0,
   /* C's `ckd_add (&sum, command_loop_level, minibuf_level);` stores the wrapped sum and
      yields the overflow flag, which C discards here (the `ckd_add`/`overflowing_add`
      family of docs/ports/token-aliases.tsv, P-15; the `buffer.rs` shape).  */
-  let (sum_, ckd_add_overflow) = command_loop_level.overflowing_add (minibuf_level);
+  let (sum_, ckd_add_overflow) = (*command_loop_level.as_mut_ptr ()).overflowing_add ((*minibuf_level.as_mut_ptr ()));
   sum = sum_;
   let _ = ckd_add_overflow;
   return make_fixnum (sum);
@@ -13851,12 +13850,12 @@ DEFUN! ("open-dribble-file", Fopen_dribble_file, Sopen_dribble_file, 1, 1,
        doc: "Start writing input events to a dribble file called FILE.\nAny previously open dribble file will be closed first.  If FILE is\nnil, just close the dribble file, if any.\n\nIf the file is still open when Emacs exits, it will be closed then.\n\nThe events written to the file include keyboard and mouse input\nevents, but not events from executing keyboard macros.  The events are\nwritten to the dribble file immediately without line buffering.\n\nBe aware that this records ALL characters you type!\nThis may include sensitive information such as passwords.",
        (file: Lisp_Object),
        {
-  if !dribble.is_null ()
+  if !(*dribble.as_mut_ptr ()).is_null ()
     {
       block_input ();
-      emacs_fclose! (dribble);
+      emacs_fclose! ((*dribble.as_mut_ptr ()));
       unblock_input ();
-      dribble = std::ptr::null_mut ();
+      (*dribble.as_mut_ptr ()) = std::ptr::null_mut ();
     }
   if !NILP (file)
     {
@@ -13872,8 +13871,8 @@ DEFUN! ("open-dribble-file", Fopen_dribble_file, Sopen_dribble_file, 1, 1,
       if fd < 0 && *errno () == EEXIST
 	  && (emacs_unlink (SSDATA (encfile)) == 0 || *errno () == ENOENT)
 	{ fd = emacs_open (SSDATA (encfile), O_WRONLY | O_CREAT | O_EXCL, 0o600); }
-      dribble = if fd < 0 { std::ptr::null_mut () } else { emacs_fdopen (fd, c"w".as_ptr ()) };
-      if dribble.is_null ()
+      (*dribble.as_mut_ptr ()) = if fd < 0 { std::ptr::null_mut () } else { emacs_fdopen (fd, c"w".as_ptr ()) };
+      if (*dribble.as_mut_ptr ()).is_null ()
 	{ report_file_error (c"Opening dribble".as_ptr (), file); }
     }
   return Qnil ();
@@ -13883,19 +13882,19 @@ DEFUN! ("discard-input", Fdiscard_input, Sdiscard_input, 0, 0, 0,
        doc: "Discard the contents of the terminal input buffer.\nAlso end any kbd macro being defined.",
        (),
        {
-  if !NILP (KVAR! (current_kboard, defining_kbd_macro))
+  if !NILP (KVAR! ((*current_kboard.as_mut_ptr ()), (*defining_kbd_macro.as_mut_ptr ())))
     {
       /* Discard the last command from the macro.  */
       Fcancel_kbd_macro_events ();
       end_kbd_macro ();
     }
 
-  Vunread_command_events = Qnil ();
+  (*Vunread_command_events.as_mut_ptr ()) = Qnil ();
 
   discard_tty_input ();
 
-  kbd_fetch_ptr = kbd_store_ptr;
-  input_pending = false;
+  (*kbd_fetch_ptr.as_mut_ptr ()) = (*kbd_store_ptr.as_mut_ptr ());
+  (*input_pending.as_mut_ptr ()) = false;
 
   return Qnil ();
 });
@@ -13913,7 +13912,7 @@ DEFUN! ("suspend-emacs", Fsuspend_emacs, Ssuspend_emacs, 0, 1, "",
   let mut width: c_int = 0;
   let mut height: c_int = 0;
 
-  if !tty_list.is_null () && !(*tty_list).next.is_null ()
+  if !(*tty_list.as_mut_ptr ()).is_null () && !(*(*tty_list.as_mut_ptr ())).next.is_null ()
     { error (c"There are other tty frames open; close them before suspending Emacs".as_ptr ()); }
 
   if !NILP (stuffstring)
@@ -13927,7 +13926,7 @@ DEFUN! ("suspend-emacs", Fsuspend_emacs, Ssuspend_emacs, 0, 1, "",
      and the system resources aren't available for that.  */
   record_unwind_protect_void (Some (init_all_sys_modes));
   stuff_buffered_input (stuffstring);
-  if cannot_suspend
+  if (*cannot_suspend.as_mut_ptr ())
     { sys_subshell (); }
   else
     { sys_suspend (); }
@@ -13978,16 +13977,16 @@ pub unsafe extern "C-unwind" fn stuff_buffered_input (stuffstring: Lisp_Object)
      When we have multiple keyboards, we should stuff everything back
      into the keyboard it came from, but fixing this is low priority as
      many systems prohibit stuffing for security reasons.  */
-  while kbd_fetch_ptr != kbd_store_ptr
+  while (*kbd_fetch_ptr.as_mut_ptr ()) != (*kbd_store_ptr.as_mut_ptr ())
     {
-      if (*kbd_fetch_ptr).kind == ASCII_KEYSTROKE_EVENT as u16 && bad_stuff == 0
-	{ bad_stuff = stuff_char ((*kbd_fetch_ptr).ie.code as c_char); }
+      if (*(*kbd_fetch_ptr.as_mut_ptr ())).kind == ASCII_KEYSTROKE_EVENT as u16 && bad_stuff == 0
+	{ bad_stuff = stuff_char ((*(*kbd_fetch_ptr.as_mut_ptr ())).ie.code as c_char); }
 
-      clear_event (&raw mut (*kbd_fetch_ptr).ie);
-      kbd_fetch_ptr = next_kbd_event (kbd_fetch_ptr);
+      clear_event (&raw mut (*(*kbd_fetch_ptr.as_mut_ptr ())).ie);
+      (*kbd_fetch_ptr.as_mut_ptr ()) = next_kbd_event ((*kbd_fetch_ptr.as_mut_ptr ()));
     }
 
-  input_pending = false;
+  (*input_pending.as_mut_ptr ()) = false;
 
   }
 }
@@ -13998,14 +13997,14 @@ pub unsafe extern "C-unwind" fn set_waiting_for_input (time_to_clear: *mut times
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  input_available_clear_time = time_to_clear;
+  (*input_available_clear_time.as_mut_ptr ()) = time_to_clear;
 
   /* Tell handle_interrupt to throw back to read_char.  */
   waiting_for_input! () = true;
 
   /* If handle_interrupt was called before and buffered a C-g,
      make it run again now, to avoid timing error.  */
-  if !NILP (Vquit_flag)
+  if !NILP ((*Vquit_flag.as_mut_ptr ()))
     { quit_throw_to_read_char (false); }
 
   }
@@ -14019,7 +14018,7 @@ pub unsafe extern "C-unwind" fn clear_waiting_for_input ()
   unsafe {
   /* Tell handle_interrupt not to throw back to read_char,  */
   waiting_for_input! () = false;
-  input_available_clear_time = std::ptr::null_mut ();
+  (*input_available_clear_time.as_mut_ptr ()) = std::ptr::null_mut ();
 
   }
 }
@@ -14052,7 +14051,7 @@ unsafe extern "C" fn handle_interrupt_signal (sig: c_int)
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
   /* See if we have an active terminal on our controlling tty.  */
-  let terminal: *mut terminal = get_named_terminal (dev_tty);
+  let terminal: *mut terminal = get_named_terminal ((*dev_tty.as_mut_ptr ()));
   if terminal.is_null ()
     {
       /* There are no frames, so either 'quit' or exit.
@@ -14060,11 +14059,11 @@ unsafe extern "C" fn handle_interrupt_signal (sig: c_int)
          well-behaving UN*X program and exit.  We must not call Lisp
          in a signal handler, so tell maybe_quit to exit when it is
          safe.  */
-      Vquit_flag = if kill_emacs_on_sigint
+      (*Vquit_flag.as_mut_ptr ()) = if (*kill_emacs_on_sigint.as_mut_ptr ())
 		      /* Don't risk running ELisp code while shutting down
 			 and limit the effect of 'kill_emacs_on_sigint'
 			 to batch sessions.  */
-		      || NILP (Vrun_hooks) || !noninteractive
+		      || NILP ((*Vrun_hooks.as_mut_ptr ())) || !(*noninteractive.as_mut_ptr ())
 		    { Qkill_emacs () } else { Qt () };
     }
   else
@@ -14075,7 +14074,7 @@ unsafe extern "C" fn handle_interrupt_signal (sig: c_int)
          controlling tty, if we have a frame there.  We disable the
          interrupt key on secondary ttys, so the SIGINT must have come
          from the controlling tty.  */
-      internal_last_event_frame
+      (*internal_last_event_frame.as_mut_ptr ())
 	= (*( (*terminal).display_info.tty as *mut tty_display_info )).top_frame;
 
       handle_interrupt (true);
@@ -14126,7 +14125,7 @@ unsafe fn read_stdin () -> c_int
 /* C 12596: `static int volatile force_quit_count;` — Rust has no `volatile` statics, so the
    object stays an ordinary `static mut` and every access is already in an `unsafe` block
    (the `interrupt_input_blocked` reading at C 100-105).  */
-static mut force_quit_count: c_int = 0;
+static force_quit_count: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 
 /* This routine is called at interrupt level in response to C-g.
 
@@ -14150,7 +14149,7 @@ unsafe fn handle_interrupt (in_signal_handler: bool)
   cancel_echoing ();
 
   /* XXX This code needs to be revised for multi-tty support.  */
-  if !NILP (Vquit_flag) && !get_named_terminal (dev_tty).is_null ()
+  if !NILP ((*Vquit_flag.as_mut_ptr ())) && !get_named_terminal ((*dev_tty.as_mut_ptr ())).is_null ()
     {
       if !in_signal_handler
 	{
@@ -14161,7 +14160,7 @@ unsafe fn handle_interrupt (in_signal_handler: bool)
 	  sigemptyset (&raw mut blocked);
 	  sigaddset (&raw mut blocked, SIGINT);
 	  pthread_sigmask (SIG_BLOCK, &raw const blocked, std::ptr::null_mut ());
-	  fflush (stdout);
+	  fflush ((*stdout.as_mut_ptr ()));
 	}
 
       reset_all_sys_modes ();
@@ -14192,7 +14191,7 @@ unsafe fn handle_interrupt (in_signal_handler: bool)
 
       /* It doesn't work to autosave while GC is in progress;
 	 the code used for auto-saving doesn't cope with the mark bit.  */
-      if !gc_in_progress
+      if !(*gc_in_progress.as_mut_ptr ())
 	{
 	  write_stdout (c"Auto-save? (y or n) ".as_ptr ());
 	  c = read_stdin () as c_char;
@@ -14211,7 +14210,7 @@ unsafe fn handle_interrupt (in_signal_handler: bool)
       else
 	{
 	  /* During GC, it must be safe to reenable quitting again.  */
-	  Vinhibit_quit = Qnil ();
+	  (*Vinhibit_quit.as_mut_ptr ()) = Qnil ();
 	  /* C 12682-12698: `#ifdef MSDOS`'s string fragment (dead; recorded here, since a
 	     `cfg`'d *fragment* of a string literal has no Rust position and the token gate
 	     blanks string literals, so no token is lost).  */
@@ -14238,14 +14237,14 @@ unsafe fn handle_interrupt (in_signal_handler: bool)
   else
     {
       /* Request quit when it's safe.  */
-      let count: c_int = if NILP (Vquit_flag) { 1 } else { force_quit_count + 1 };
-      force_quit_count = count;
+      let count: c_int = if NILP ((*Vquit_flag.as_mut_ptr ())) { 1 } else { (*force_quit_count.as_mut_ptr ()) + 1 };
+      (*force_quit_count.as_mut_ptr ()) = count;
       if count == 3
-	{ Vinhibit_quit = Qnil (); }
-      Vquit_flag = Qt ();
+	{ (*Vinhibit_quit.as_mut_ptr ()) = Qnil (); }
+      (*Vquit_flag.as_mut_ptr ()) = Qt ();
     }
 
-  pthread_sigmask (SIG_SETMASK, &raw const empty_mask, std::ptr::null_mut ());
+  pthread_sigmask (SIG_SETMASK, empty_mask.as_ptr (), std::ptr::null_mut ());
 
 /* TODO: The longjmp in this call throws the NS event loop integration off,
          and it seems to do fine without this.  Probably some attention
@@ -14267,12 +14266,12 @@ unsafe fn handle_interrupt (in_signal_handler: bool)
          in GC, just return, since switching threads by force-taking the
          global lock will confuse the heck out of GC, and will most
          likely segfault.  */
-      if !main_thread_p (current_thread as *const c_void) && gc_in_progress
+      if !main_thread_p ((*current_thread.as_mut_ptr ()) as *const c_void) && (*gc_in_progress.as_mut_ptr ())
 	{ return; }
       maybe_reacquire_global_lock ();
     }
   }
-  if waiting_for_input! () && !echoing
+  if waiting_for_input! () && !(*echoing.as_mut_ptr ())
     { quit_throw_to_read_char (in_signal_handler); }
 
   }
@@ -14288,18 +14287,18 @@ unsafe fn quit_throw_to_read_char (from_signal: bool) -> !
   unsafe {
   /* When not called from a signal handler it is safe to call
      Lisp.  */
-  if !from_signal && EQ (Vquit_flag, Qkill_emacs ())
+  if !from_signal && EQ ((*Vquit_flag.as_mut_ptr ()), Qkill_emacs ())
     { Fkill_emacs (Qnil (), Qnil ()); }
 
   /* Prevent another signal from doing this before we finish.  */
   clear_waiting_for_input ();
-  input_pending = false;
+  (*input_pending.as_mut_ptr ()) = false;
 
-  Vunread_command_events = Qnil ();
+  (*Vunread_command_events.as_mut_ptr ()) = Qnil ();
 
-  if FRAMEP (internal_last_event_frame)
-      && !EQ (internal_last_event_frame, selected_frame)
-    { do_switch_frame (make_lispy_switch_frame (internal_last_event_frame),
+  if FRAMEP ((*internal_last_event_frame.as_mut_ptr ()))
+      && !EQ ((*internal_last_event_frame.as_mut_ptr ()), (*selected_frame.as_mut_ptr ()))
+    { do_switch_frame (make_lispy_switch_frame ((*internal_last_event_frame.as_mut_ptr ())),
 		       0, 0, Qnil ()); }
 
   /* `sys_longjmp` takes `*mut jmp_buf`, which is the port's `[u8; 192]` alias while
@@ -14325,7 +14324,7 @@ DEFUN! ("set-input-interrupt-mode", Fset_input_interrupt_mode, Sset_input_interr
   }
   #[cfg (feature = "have_x_windows")]
   {
-  if !x_display_list.is_null ()
+  if !(*x_display_list.as_mut_ptr ()).is_null ()
     {
       /* When using X, don't give the user a real choice,
 	 because we haven't implemented the mechanisms to support it.  */
@@ -14339,7 +14338,7 @@ DEFUN! ("set-input-interrupt-mode", Fset_input_interrupt_mode, Sset_input_interr
   new_interrupt_input = false;
   }
 
-  if new_interrupt_input != interrupt_input
+  if new_interrupt_input != (*interrupt_input.as_mut_ptr ())
     {
       /* C 12799-12801: `#ifdef POLL_FOR_INPUT` (dead; carried per P-51).  */
       #[cfg (feature = "poll_for_input")]
@@ -14352,18 +14351,18 @@ DEFUN! ("set-input-interrupt-mode", Fset_input_interrupt_mode, Sset_input_interr
       {
       /* this causes startup screen to be restored and messes with the mouse */
       reset_all_sys_modes ();
-      interrupt_input = new_interrupt_input;
+      (*interrupt_input.as_mut_ptr ()) = new_interrupt_input;
       init_all_sys_modes ();
       }
       #[cfg (feature = "dos_nt")]
       {
-      interrupt_input = new_interrupt_input;
+      (*interrupt_input.as_mut_ptr ()) = new_interrupt_input;
       }
 
       /* C 12810-12813: `#ifdef POLL_FOR_INPUT` (dead; carried per P-51).  */
       #[cfg (feature = "poll_for_input")]
       {
-      poll_suppress_count = 1;
+      (*poll_suppress_count.as_mut_ptr ()) = 1;
       start_polling ();
       }
     }
@@ -14434,7 +14433,7 @@ DEFUN! ("set-quit-char", Fset_quit_char, Sset_quit_char, 1, 1, 0,
        doc: "Specify character used for quitting.\nQUIT must be an ASCII character.\n\nThis function only has an effect on the controlling tty of the Emacs\nprocess.\n\nSee also `current-input-mode'.",
        (quit: Lisp_Object),
        {
-  let t: *mut terminal = get_named_terminal (dev_tty);
+  let t: *mut terminal = get_named_terminal ((*dev_tty.as_mut_ptr ()));
   let tty: *mut tty_display_info;
 
   if t.is_null ()
@@ -14450,7 +14449,7 @@ DEFUN! ("set-quit-char", Fset_quit_char, Sset_quit_char, 1, 1, 0,
   reset_sys_modes (tty);
 
   /* Don't let this value be out of range.  */
-  quit_char = (XFIXNUM (quit) & (if (*tty).meta_key == 0 { 0o177 } else { 0o377 })) as c_int;
+  (*quit_char.as_mut_ptr ()) = (XFIXNUM (quit) & (if (*tty).meta_key == 0 { 0o177 } else { 0o377 })) as c_int;
 
   /* C 12937-12939: `#ifndef DOS_NT` is live and has no `#else` text.  */
   init_sys_modes (tty);
@@ -14474,9 +14473,9 @@ DEFUN! ("current-input-mode", Fcurrent_input_mode, Scurrent_input_mode, 0, 0, 0,
        doc: "Return information about the way Emacs currently reads keyboard input.\nThe value is a list of the form (INTERRUPT FLOW META QUIT), where\n  INTERRUPT is non-nil if Emacs is using interrupt-driven input; if\n    nil, Emacs is using CBREAK mode.\n  FLOW is non-nil if Emacs uses ^S/^Q flow control for output to the\n    terminal; this does not apply if Emacs uses interrupt-driven input.\n  META is t if accepting 8-bit unencoded input with 8th bit as Meta flag.\n  META is `encoded' if accepting 8-bit encoded input with 8th bit as\n    Meta flag which has to be interpreted after decoding the input.\n  META is nil if ignoring the top bit of input, on the assumption that\n    it is a parity bit.\n  META is neither t nor nil if accepting 8-bit input and using\n    all 8 bits as the character code.\n  QUIT is the character Emacs currently uses to quit.\nThe elements of this list correspond to the arguments of\n`set-input-mode'.",
        (),
        {
-  let sf: *mut frame = XFRAME (selected_frame);
+  let sf: *mut frame = XFRAME ((*selected_frame.as_mut_ptr ()));
 
-  let interrupt: Lisp_Object = if interrupt_input { Qt () } else { Qnil () };
+  let interrupt: Lisp_Object = if (*interrupt_input.as_mut_ptr ()) { Qt () } else { Qnil () };
   let flow: Lisp_Object;
   let meta: Lisp_Object;
   if is_tty_frame (sf)
@@ -14495,7 +14494,7 @@ DEFUN! ("current-input-mode", Fcurrent_input_mode, Scurrent_input_mode, 0, 0, 0,
       flow = Qnil ();
       meta = Qt ();
     }
-  let quit: Lisp_Object = make_fixnum (quit_char as EMACS_INT);
+  let quit: Lisp_Object = make_fixnum ((*quit_char.as_mut_ptr ()) as EMACS_INT);
 
   return list4 (interrupt, flow, meta, quit);
 });
@@ -14521,7 +14520,7 @@ DEFUN! ("posn-at-x-y", Fposn_at_x_y, Sposn_at_x_y, 2, 4, 0,
     { CHECK_FIXNAT (y); }
 
   if NILP (frame_or_window)
-    { frame_or_window = selected_window; }
+    { frame_or_window = (*selected_window.as_mut_ptr ()); }
 
   if WINDOWP (frame_or_window)
     {
@@ -14552,7 +14551,7 @@ DEFUN! ("posn-at-point", Fposn_at_point, Sposn_at_point, 0, 2, 0,
   let mut tem: Lisp_Object;
 
   if NILP (window)
-    { window = selected_window; }
+    { window = (*selected_window.as_mut_ptr ()); }
 
   tem = Fpos_visible_in_window_p (pos, window, Qt ());
   if !NILP (tem)
@@ -14627,7 +14626,7 @@ unsafe fn init_kboard (kb: *mut KBOARD, r#type: Lisp_Object)
   kset_window_system (kb, r#type);
   kset_input_decode_map (kb, Fmake_sparse_keymap (Qnil ()));
   kset_local_function_key_map (kb, Fmake_sparse_keymap (Qnil ()));
-  Fset_keymap_parent (KVAR! (kb, Vlocal_function_key_map), Vfunction_key_map);
+  Fset_keymap_parent (KVAR! (kb, (*Vlocal_function_key_map.as_mut_ptr ())), (*Vfunction_key_map.as_mut_ptr ()));
   kset_default_minibuffer_frame (kb, Qnil ());
 
   }
@@ -14646,8 +14645,8 @@ pub unsafe extern "C-unwind" fn allocate_kboard (r#type: Lisp_Object) -> *mut KB
   let mut kb: *mut KBOARD = xmalloc (std::mem::size_of::<KBOARD> ()) as *mut KBOARD;
 
   init_kboard (kb, r#type);
-  (*kb).next_kboard = all_kboards;
-  all_kboards = kb;
+  (*kb).next_kboard = (*all_kboards.as_mut_ptr ());
+  (*all_kboards.as_mut_ptr ()) = kb;
   return kb;
 
   }
@@ -14699,7 +14698,7 @@ pub unsafe extern "C-unwind" fn delete_kboard (kb: *mut KBOARD)
 
   /* C's `for (kbp = &all_kboards; *kbp != kb; kbp = &(*kbp)->next_kboard)` with the body's
      abort: the port's `while` keeps the test at the top and the step at the bottom.  */
-  kbp = &raw mut all_kboards;
+  kbp = all_kboards.as_mut_ptr ();
   while *kbp != kb
     {
       if (*kbp).is_null ()
@@ -14709,18 +14708,18 @@ pub unsafe extern "C-unwind" fn delete_kboard (kb: *mut KBOARD)
   *kbp = (*kb).next_kboard;
 
   /* Prevent a dangling reference to KB.  */
-  if kb == current_kboard
-      && FRAMEP (selected_frame)
-      && FRAME_LIVE_P (XFRAME (selected_frame))
+  if kb == (*current_kboard.as_mut_ptr ())
+      && FRAMEP ((*selected_frame.as_mut_ptr ()))
+      && FRAME_LIVE_P (XFRAME ((*selected_frame.as_mut_ptr ())))
     {
-      current_kboard = FRAME_KBOARD (XFRAME (selected_frame)) as *mut KBOARD;
-      single_kboard = false;
-      if current_kboard == kb
+      (*current_kboard.as_mut_ptr ()) = FRAME_KBOARD (XFRAME ((*selected_frame.as_mut_ptr ()))) as *mut KBOARD;
+      (*single_kboard.as_mut_ptr ()) = false;
+      if (*current_kboard.as_mut_ptr ()) == kb
 	{ emacs_abort (); }
     }
 
   /* Clean thread specpdls of references to this KBOARD.  */
-  thread = all_threads;
+  thread = (*all_threads.as_mut_ptr ());
   while !thread.is_null ()
     {
       let mut p: *mut specbinding;
@@ -14751,34 +14750,34 @@ pub unsafe extern "C-unwind" fn init_keyboard ()
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
   /* This is correct before outermost invocation of the editor loop.  */
-  command_loop_level = -1;
-  quit_char = Ctl! (b'g' as c_int);
-  Vunread_command_events = Qnil ();
-  timer_idleness_start_time = invalid_timespec ();
-  total_keys = 0;
-  recent_keys_index = 0;
-  kbd_fetch_ptr = (&raw mut kbd_buffer) as *mut buffered_input_event;
-  kbd_store_ptr = (&raw mut kbd_buffer) as *mut buffered_input_event;
-  track_mouse = Qnil ();
-  input_pending = false;
-  interrupt_input_blocked = 0;
-  pending_signals = false;
+  (*command_loop_level.as_mut_ptr ()) = -1;
+  (*quit_char.as_mut_ptr ()) = Ctl! (b'g' as c_int);
+  (*Vunread_command_events.as_mut_ptr ()) = Qnil ();
+  (*timer_idleness_start_time.as_mut_ptr ()) = invalid_timespec ();
+  (*total_keys.as_mut_ptr ()) = 0;
+  (*recent_keys_index.as_mut_ptr ()) = 0;
+  (*kbd_fetch_ptr.as_mut_ptr ()) = (kbd_buffer.as_mut_ptr ()) as *mut buffered_input_event;
+  (*kbd_store_ptr.as_mut_ptr ()) = (kbd_buffer.as_mut_ptr ()) as *mut buffered_input_event;
+  (*track_mouse.as_mut_ptr ()) = Qnil ();
+  (*input_pending.as_mut_ptr ()) = false;
+  (*interrupt_input_blocked.as_mut_ptr ()) = 0;
+  (*pending_signals.as_mut_ptr ()) = false;
 
-  virtual_core_pointer_name = build_string (c"Virtual core pointer".as_ptr ());
-  virtual_core_keyboard_name = build_string (c"Virtual core keyboard".as_ptr ());
-  Vlast_event_device = Qnil ();
+  (*virtual_core_pointer_name.as_mut_ptr ()) = build_string (c"Virtual core pointer".as_ptr ());
+  (*virtual_core_keyboard_name.as_mut_ptr ()) = build_string (c"Virtual core keyboard".as_ptr ());
+  (*Vlast_event_device.as_mut_ptr ()) = Qnil ();
 
   /* This means that command_loop_1 won't try to select anything the first
      time through.  */
-  internal_last_event_frame = Qnil ();
-  Vlast_event_frame = internal_last_event_frame;
+  (*internal_last_event_frame.as_mut_ptr ()) = Qnil ();
+  (*Vlast_event_frame.as_mut_ptr ()) = (*internal_last_event_frame.as_mut_ptr ());
 
-  current_kboard = initial_kboard;
+  (*current_kboard.as_mut_ptr ()) = (*initial_kboard.as_mut_ptr ());
   /* Re-initialize the keyboard again.  */
-  wipe_kboard (current_kboard);
+  wipe_kboard ((*current_kboard.as_mut_ptr ()));
   /* A value of nil for Vwindow_system normally means a tty, but we also use
      it for the initial terminal since there is no window system there.  */
-  init_kboard (current_kboard, Qnil ());
+  init_kboard ((*current_kboard.as_mut_ptr ()), Qnil ());
 
   /* Before multi-tty support, these handlers used to be installed
      only if the current session was a tty session.  Now an Emacs
@@ -14790,7 +14789,7 @@ pub unsafe extern "C-unwind" fn init_keyboard ()
   emacs_sigaction_init (&raw mut action, Some (deliver_interrupt_signal));
   sigaction (SIGINT, &raw const action, std::ptr::null_mut ());
 
-  if !noninteractive
+  if !(*noninteractive.as_mut_ptr ())
     {
       /* C 13264-13270: `#ifndef DOS_NT` is live; the `#else` has no text.  */
       /* For systems with SysV TERMIO, C-g is set up for both SIGINT and
@@ -14800,7 +14799,7 @@ pub unsafe extern "C-unwind" fn init_keyboard ()
   /* C 13272-13287: `#if defined (USABLE_SIGIO) || defined (USABLE_SIGPOLL)` is live
      (`USABLE_SIGIO` is 1); `#ifdef USABLE_SIGIO` inside it is live and its `#else`
      (`sigaction (SIGPOLL, ...)`) is carried as `usable_sigpoll`.  */
-  if !noninteractive
+  if !(*noninteractive.as_mut_ptr ())
     {
       #[cfg (not (feature = "usable_sigpoll"))]
       {
@@ -14823,24 +14822,24 @@ pub unsafe extern "C-unwind" fn init_keyboard ()
      `#else` arm is carried as `no_interrupt_input`.  */
   #[cfg (not (feature = "no_interrupt_input"))]
   {
-  interrupt_input = true;
+  (*interrupt_input.as_mut_ptr ()) = true;
   }
   #[cfg (feature = "no_interrupt_input")]
   {
-  interrupt_input = false;
+  (*interrupt_input.as_mut_ptr ()) = false;
   }
 
-  pthread_sigmask (SIG_SETMASK, &raw const empty_mask, std::ptr::null_mut ());
-  dribble = std::ptr::null_mut ();
+  pthread_sigmask (SIG_SETMASK, empty_mask.as_ptr (), std::ptr::null_mut ());
+  (*dribble.as_mut_ptr ()) = std::ptr::null_mut ();
 
-  if let Some (hook) = keyboard_init_hook
+  if let Some (hook) = (*keyboard_init_hook.as_mut_ptr ())
     { hook (); }
 
   /* C 13301-13305: `#ifdef POLL_FOR_INPUT` (dead; carried per P-51).  */
   #[cfg (feature = "poll_for_input")]
   {
-  poll_timer = std::ptr::null_mut ();
-  poll_suppress_count = 1;
+  (*poll_timer.as_mut_ptr ()) = std::ptr::null_mut ();
+  (*poll_suppress_count.as_mut_ptr ()) = 1;
   start_polling ();
   }
 
@@ -14982,7 +14981,7 @@ unsafe fn is_ignored_event (event: *mut buffered_input_event) -> bool
     }
   }
 
-  return !NILP (Fmemq (ignore_event, Vwhile_no_input_ignore_events));
+  return !NILP (Fmemq (ignore_event, (*Vwhile_no_input_ignore_events.as_mut_ptr ())));
 
   }
 }
@@ -14992,84 +14991,84 @@ unsafe fn is_ignored_event (event: *mut buffered_input_event) -> bool
    one defines it here (docs/status.md 3.29, the `alloc.rs` shape).  C zero-initialises the
    `globals` object, so the port's initialisers are `lisp_h_Qnil ()`/`false`/`0`, and a
    crate-root definition shadows the `globals.rs` `variables` glob import as P-21 intends.  */
-#[unsafe(no_mangle)] pub static mut Vinternal__top_level_message: Lisp_Object = lisp_h_Qnil ();
-#[unsafe(no_mangle)] pub static mut kill_emacs_on_sigint: bool = false;
-#[unsafe(no_mangle)] pub static mut last_command_event: Lisp_Object = lisp_h_Qnil ();
-#[unsafe(no_mangle)] pub static mut last_nonmenu_event: Lisp_Object = lisp_h_Qnil ();
-#[unsafe(no_mangle)] pub static mut last_input_event: Lisp_Object = lisp_h_Qnil ();
-#[unsafe(no_mangle)] pub static mut Vunread_command_events: Lisp_Object = lisp_h_Qnil ();
-#[unsafe(no_mangle)] pub static mut Vunread_post_input_method_events: Lisp_Object = lisp_h_Qnil ();
-#[unsafe(no_mangle)] pub static mut Vunread_input_method_events: Lisp_Object = lisp_h_Qnil ();
-#[unsafe(no_mangle)] pub static mut meta_prefix_char: Lisp_Object = lisp_h_Qnil ();
-#[unsafe(no_mangle)] pub static mut Vthis_command: Lisp_Object = lisp_h_Qnil ();
-#[unsafe(no_mangle)] pub static mut Vreal_this_command: Lisp_Object = lisp_h_Qnil ();
-#[unsafe(no_mangle)] pub static mut Vcurrent_minibuffer_command: Lisp_Object = lisp_h_Qnil ();
-#[unsafe(no_mangle)] pub static mut Vthis_command_keys_shift_translated: Lisp_Object = lisp_h_Qnil ();
-#[unsafe(no_mangle)] pub static mut Vthis_original_command: Lisp_Object = lisp_h_Qnil ();
-#[unsafe(no_mangle)] pub static mut auto_save_no_message: bool = false;
-#[unsafe(no_mangle)] pub static mut Vauto_save_timeout: Lisp_Object = lisp_h_Qnil ();
-#[unsafe(no_mangle)] pub static mut Vecho_keystrokes: Lisp_Object = lisp_h_Qnil ();
-#[unsafe(no_mangle)] pub static mut echo_keystrokes_help: bool = false;
-#[unsafe(no_mangle)] pub static mut Vpolling_period: Lisp_Object = lisp_h_Qnil ();
-#[unsafe(no_mangle)] pub static mut Vdouble_click_time: Lisp_Object = lisp_h_Qnil ();
-#[unsafe(no_mangle)] pub static mut double_click_fuzz: EMACS_INT = 0;
-#[unsafe(no_mangle)] pub static mut num_input_keys: EMACS_INT = 0;
-#[unsafe(no_mangle)] pub static mut Vlast_event_frame: Lisp_Object = lisp_h_Qnil ();
-#[unsafe(no_mangle)] pub static mut Vlast_event_device: Lisp_Object = lisp_h_Qnil ();
-#[unsafe(no_mangle)] pub static mut Vtty_erase_char: Lisp_Object = lisp_h_Qnil ();
-#[unsafe(no_mangle)] pub static mut Vhelp_char: Lisp_Object = lisp_h_Qnil ();
-#[unsafe(no_mangle)] pub static mut Vhelp_event_list: Lisp_Object = lisp_h_Qnil ();
-#[unsafe(no_mangle)] pub static mut Vhelp_form: Lisp_Object = lisp_h_Qnil ();
-#[unsafe(no_mangle)] pub static mut Vprefix_help_command: Lisp_Object = lisp_h_Qnil ();
-#[unsafe(no_mangle)] pub static mut Vtop_level: Lisp_Object = lisp_h_Qnil ();
-#[unsafe(no_mangle)] pub static mut cannot_suspend: bool = false;
-#[unsafe(no_mangle)] pub static mut menu_prompting: bool = false;
-#[unsafe(no_mangle)] pub static mut menu_prompt_more_char: Lisp_Object = lisp_h_Qnil ();
-#[unsafe(no_mangle)] pub static mut extra_keyboard_modifiers: EMACS_INT = 0;
-#[unsafe(no_mangle)] pub static mut Vdeactivate_mark: Lisp_Object = lisp_h_Qnil ();
-#[unsafe(no_mangle)] pub static mut Vpre_command_hook: Lisp_Object = lisp_h_Qnil ();
-#[unsafe(no_mangle)] pub static mut Vpost_command_hook: Lisp_Object = lisp_h_Qnil ();
-#[unsafe(no_mangle)] pub static mut lucid__menu_grab_keyboard: bool = false;
-#[unsafe(no_mangle)] pub static mut Vmenu_bar_final_items: Lisp_Object = lisp_h_Qnil ();
-#[unsafe(no_mangle)] pub static mut Vtab_bar_separator_image_expression: Lisp_Object = lisp_h_Qnil ();
-#[unsafe(no_mangle)] pub static mut Vtool_bar_separator_image_expression: Lisp_Object = lisp_h_Qnil ();
-#[unsafe(no_mangle)] pub static mut Voverriding_local_map: Lisp_Object = lisp_h_Qnil ();
-#[unsafe(no_mangle)] pub static mut Voverriding_local_map_menu_flag: Lisp_Object = lisp_h_Qnil ();
-#[unsafe(no_mangle)] pub static mut Vspecial_event_map: Lisp_Object = lisp_h_Qnil ();
-#[unsafe(no_mangle)] pub static mut track_mouse: Lisp_Object = lisp_h_Qnil ();
-#[unsafe(no_mangle)] pub static mut Vfunction_key_map: Lisp_Object = lisp_h_Qnil ();
-#[unsafe(no_mangle)] pub static mut Vkey_translation_map: Lisp_Object = lisp_h_Qnil ();
-#[unsafe(no_mangle)] pub static mut Vdelayed_warnings_list: Lisp_Object = lisp_h_Qnil ();
-#[unsafe(no_mangle)] pub static mut Vtimer_list: Lisp_Object = lisp_h_Qnil ();
-#[unsafe(no_mangle)] pub static mut Vtimer_idle_list: Lisp_Object = lisp_h_Qnil ();
-#[unsafe(no_mangle)] pub static mut Vinput_method_function: Lisp_Object = lisp_h_Qnil ();
-#[unsafe(no_mangle)] pub static mut Vinput_method_previous_message: Lisp_Object = lisp_h_Qnil ();
-#[unsafe(no_mangle)] pub static mut Vshow_help_function: Lisp_Object = lisp_h_Qnil ();
-#[unsafe(no_mangle)] pub static mut Vdisable_point_adjustment: Lisp_Object = lisp_h_Qnil ();
-#[unsafe(no_mangle)] pub static mut Vglobal_disable_point_adjustment: Lisp_Object = lisp_h_Qnil ();
-#[unsafe(no_mangle)] pub static mut Vminibuffer_message_timeout: Lisp_Object = lisp_h_Qnil ();
-#[unsafe(no_mangle)] pub static mut Vthrow_on_input: Lisp_Object = lisp_h_Qnil ();
-#[unsafe(no_mangle)] pub static mut Vcommand_error_function: Lisp_Object = lisp_h_Qnil ();
-#[unsafe(no_mangle)] pub static mut Venable_disabled_menus_and_buttons: Lisp_Object = lisp_h_Qnil ();
-#[unsafe(no_mangle)] pub static mut Vselect_active_regions: Lisp_Object = lisp_h_Qnil ();
-#[unsafe(no_mangle)] pub static mut Vsaved_region_selection: Lisp_Object = lisp_h_Qnil ();
-#[unsafe(no_mangle)] pub static mut Vselection_inhibit_update_commands: Lisp_Object = lisp_h_Qnil ();
-#[unsafe(no_mangle)] pub static mut Vdebug_on_event: Lisp_Object = lisp_h_Qnil ();
-#[unsafe(no_mangle)] pub static mut attempt_stack_overflow_recovery: bool = false;
-#[unsafe(no_mangle)] pub static mut attempt_orderly_shutdown_on_fatal_signal: bool = false;
-#[unsafe(no_mangle)] pub static mut Vwhile_no_input_ignore_events: Lisp_Object = lisp_h_Qnil ();
-#[unsafe(no_mangle)] pub static mut translate_upper_case_key_bindings: bool = false;
-#[unsafe(no_mangle)] pub static mut input_pending_p_filter_events: bool = false;
-#[unsafe(no_mangle)] pub static mut mwheel_coalesce_scroll_events: bool = false;
-#[unsafe(no_mangle)] pub static mut Vdisplay_monitors_changed_functions: Lisp_Object = lisp_h_Qnil ();
-#[unsafe(no_mangle)] pub static mut inhibit_record_char: bool = false;
-#[unsafe(no_mangle)] pub static mut record_all_keys: bool = false;
-#[unsafe(no_mangle)] pub static mut Vpost_select_region_hook: Lisp_Object = lisp_h_Qnil ();
-#[unsafe(no_mangle)] pub static mut disable_inhibit_text_conversion: bool = false;
-#[unsafe(no_mangle)] pub static mut Vcurrent_key_remap_sequence: Lisp_Object = lisp_h_Qnil ();
-#[unsafe(no_mangle)] pub static mut multiple_terminals_merge_keyboards: bool = false;
-#[unsafe(no_mangle)] pub static mut num_nonmacro_input_events: EMACS_INT = 0;
-#[unsafe(no_mangle)] pub static mut auto_save_interval: EMACS_INT = 0;
+#[unsafe(no_mangle)] pub static Vinternal__top_level_message: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+#[unsafe(no_mangle)] pub static kill_emacs_on_sigint: VmGlobal<bool> = VmGlobal::<bool>::new (false);
+#[unsafe(no_mangle)] pub static last_command_event: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+#[unsafe(no_mangle)] pub static last_nonmenu_event: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+#[unsafe(no_mangle)] pub static last_input_event: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+#[unsafe(no_mangle)] pub static Vunread_command_events: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+#[unsafe(no_mangle)] pub static Vunread_post_input_method_events: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+#[unsafe(no_mangle)] pub static Vunread_input_method_events: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+#[unsafe(no_mangle)] pub static meta_prefix_char: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+#[unsafe(no_mangle)] pub static Vthis_command: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+#[unsafe(no_mangle)] pub static Vreal_this_command: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+#[unsafe(no_mangle)] pub static Vcurrent_minibuffer_command: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+#[unsafe(no_mangle)] pub static Vthis_command_keys_shift_translated: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+#[unsafe(no_mangle)] pub static Vthis_original_command: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+#[unsafe(no_mangle)] pub static auto_save_no_message: VmGlobal<bool> = VmGlobal::<bool>::new (false);
+#[unsafe(no_mangle)] pub static Vauto_save_timeout: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+#[unsafe(no_mangle)] pub static Vecho_keystrokes: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+#[unsafe(no_mangle)] pub static echo_keystrokes_help: VmGlobal<bool> = VmGlobal::<bool>::new (false);
+#[unsafe(no_mangle)] pub static Vpolling_period: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+#[unsafe(no_mangle)] pub static Vdouble_click_time: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+#[unsafe(no_mangle)] pub static double_click_fuzz: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);
+#[unsafe(no_mangle)] pub static num_input_keys: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);
+#[unsafe(no_mangle)] pub static Vlast_event_frame: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+#[unsafe(no_mangle)] pub static Vlast_event_device: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+#[unsafe(no_mangle)] pub static Vtty_erase_char: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+#[unsafe(no_mangle)] pub static Vhelp_char: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+#[unsafe(no_mangle)] pub static Vhelp_event_list: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+#[unsafe(no_mangle)] pub static Vhelp_form: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+#[unsafe(no_mangle)] pub static Vprefix_help_command: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+#[unsafe(no_mangle)] pub static Vtop_level: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+#[unsafe(no_mangle)] pub static cannot_suspend: VmGlobal<bool> = VmGlobal::<bool>::new (false);
+#[unsafe(no_mangle)] pub static menu_prompting: VmGlobal<bool> = VmGlobal::<bool>::new (false);
+#[unsafe(no_mangle)] pub static menu_prompt_more_char: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+#[unsafe(no_mangle)] pub static extra_keyboard_modifiers: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);
+#[unsafe(no_mangle)] pub static Vdeactivate_mark: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+#[unsafe(no_mangle)] pub static Vpre_command_hook: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+#[unsafe(no_mangle)] pub static Vpost_command_hook: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+#[unsafe(no_mangle)] pub static lucid__menu_grab_keyboard: VmGlobal<bool> = VmGlobal::<bool>::new (false);
+#[unsafe(no_mangle)] pub static Vmenu_bar_final_items: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+#[unsafe(no_mangle)] pub static Vtab_bar_separator_image_expression: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+#[unsafe(no_mangle)] pub static Vtool_bar_separator_image_expression: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+#[unsafe(no_mangle)] pub static Voverriding_local_map: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+#[unsafe(no_mangle)] pub static Voverriding_local_map_menu_flag: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+#[unsafe(no_mangle)] pub static Vspecial_event_map: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+#[unsafe(no_mangle)] pub static track_mouse: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+#[unsafe(no_mangle)] pub static Vfunction_key_map: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+#[unsafe(no_mangle)] pub static Vkey_translation_map: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+#[unsafe(no_mangle)] pub static Vdelayed_warnings_list: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+#[unsafe(no_mangle)] pub static Vtimer_list: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+#[unsafe(no_mangle)] pub static Vtimer_idle_list: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+#[unsafe(no_mangle)] pub static Vinput_method_function: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+#[unsafe(no_mangle)] pub static Vinput_method_previous_message: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+#[unsafe(no_mangle)] pub static Vshow_help_function: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+#[unsafe(no_mangle)] pub static Vdisable_point_adjustment: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+#[unsafe(no_mangle)] pub static Vglobal_disable_point_adjustment: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+#[unsafe(no_mangle)] pub static Vminibuffer_message_timeout: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+#[unsafe(no_mangle)] pub static Vthrow_on_input: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+#[unsafe(no_mangle)] pub static Vcommand_error_function: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+#[unsafe(no_mangle)] pub static Venable_disabled_menus_and_buttons: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+#[unsafe(no_mangle)] pub static Vselect_active_regions: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+#[unsafe(no_mangle)] pub static Vsaved_region_selection: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+#[unsafe(no_mangle)] pub static Vselection_inhibit_update_commands: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+#[unsafe(no_mangle)] pub static Vdebug_on_event: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+#[unsafe(no_mangle)] pub static attempt_stack_overflow_recovery: VmGlobal<bool> = VmGlobal::<bool>::new (false);
+#[unsafe(no_mangle)] pub static attempt_orderly_shutdown_on_fatal_signal: VmGlobal<bool> = VmGlobal::<bool>::new (false);
+#[unsafe(no_mangle)] pub static Vwhile_no_input_ignore_events: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+#[unsafe(no_mangle)] pub static translate_upper_case_key_bindings: VmGlobal<bool> = VmGlobal::<bool>::new (false);
+#[unsafe(no_mangle)] pub static input_pending_p_filter_events: VmGlobal<bool> = VmGlobal::<bool>::new (false);
+#[unsafe(no_mangle)] pub static mwheel_coalesce_scroll_events: VmGlobal<bool> = VmGlobal::<bool>::new (false);
+#[unsafe(no_mangle)] pub static Vdisplay_monitors_changed_functions: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+#[unsafe(no_mangle)] pub static inhibit_record_char: VmGlobal<bool> = VmGlobal::<bool>::new (false);
+#[unsafe(no_mangle)] pub static record_all_keys: VmGlobal<bool> = VmGlobal::<bool>::new (false);
+#[unsafe(no_mangle)] pub static Vpost_select_region_hook: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+#[unsafe(no_mangle)] pub static disable_inhibit_text_conversion: VmGlobal<bool> = VmGlobal::<bool>::new (false);
+#[unsafe(no_mangle)] pub static Vcurrent_key_remap_sequence: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+#[unsafe(no_mangle)] pub static multiple_terminals_merge_keyboards: VmGlobal<bool> = VmGlobal::<bool>::new (false);
+#[unsafe(no_mangle)] pub static num_nonmacro_input_events: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);
+#[unsafe(no_mangle)] pub static auto_save_interval: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);
 
 /* C 13413-14514: `void syms_of_keyboard (void);` — C's non-`static` definition is an exported
    symbol (PORTING.md 0.2).  Every `DEFVAR_*`/`DEFSYM`/`defsubr` invocation keeps C's order,
@@ -15081,25 +15080,25 @@ pub unsafe extern "C-unwind" fn syms_of_keyboard ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  pending_funcalls = Qnil ();
-  staticpro (&raw const pending_funcalls);
+  (*pending_funcalls.as_mut_ptr ()) = Qnil ();
+  staticpro (pending_funcalls.as_ptr ());
 
-  Vlispy_mouse_stem = build_string (c"mouse".as_ptr ());
-  staticpro (&raw const Vlispy_mouse_stem);
+  (*Vlispy_mouse_stem.as_mut_ptr ()) = build_string (c"mouse".as_ptr ());
+  staticpro (Vlispy_mouse_stem.as_ptr ());
 
-  regular_top_level_message = build_string (c"Back to top level".as_ptr ());
-  staticpro (&raw const regular_top_level_message);
+  (*regular_top_level_message.as_mut_ptr ()) = build_string (c"Back to top level".as_ptr ());
+  staticpro (regular_top_level_message.as_ptr ());
   /* C 13424-13428: `#ifdef HAVE_STACK_OVERFLOW_HANDLING` is live (`1` on this target).  */
-  recover_top_level_message
+  (*recover_top_level_message.as_mut_ptr ())
     = build_string (c"Re-entering top level after C stack overflow".as_ptr ());
-  staticpro (&raw const recover_top_level_message);
+  staticpro (recover_top_level_message.as_ptr ());
   DEFVAR_LISP! (c"internal--top-level-message", Vinternal__top_level_message,
 	      " Message displayed by `normal-top-level'.  ");
-  Vinternal__top_level_message = regular_top_level_message;
+  (*Vinternal__top_level_message.as_mut_ptr ()) = (*regular_top_level_message.as_mut_ptr ());
 
   DEFVAR_BOOL! (c"kill-emacs-on-sigint", kill_emacs_on_sigint,
 	      " If non-nil, a SIGINT event causes Emacs to exit.\nIf nil, a SIGINT event causes a `quit` signal instead.\nThis is effective only in `noninteractive' sessions.  ");
-  kill_emacs_on_sigint = true;
+  (*kill_emacs_on_sigint.as_mut_ptr ()) = true;
 
   /* Tool-bars.  */
   DEFSYM! (QCimage, ":image");
@@ -15108,18 +15107,18 @@ pub unsafe extern "C-unwind" fn syms_of_keyboard ()
   DEFSYM! (QCrtl, ":rtl");
   DEFSYM! (QCwrap, ":wrap");
 
-  staticpro (&raw const item_properties);
-  item_properties = Qnil ();
+  staticpro (item_properties.as_ptr ());
+  (*item_properties.as_mut_ptr ()) = Qnil ();
 
-  staticpro (&raw const tab_bar_item_properties);
-  tab_bar_item_properties = Qnil ();
-  staticpro (&raw const tab_bar_items_vector);
-  tab_bar_items_vector = Qnil ();
+  staticpro (tab_bar_item_properties.as_ptr ());
+  (*tab_bar_item_properties.as_mut_ptr ()) = Qnil ();
+  staticpro (tab_bar_items_vector.as_ptr ());
+  (*tab_bar_items_vector.as_mut_ptr ()) = Qnil ();
 
-  staticpro (&raw const tool_bar_item_properties);
-  tool_bar_item_properties = Qnil ();
-  staticpro (&raw const tool_bar_items_vector);
-  tool_bar_items_vector = Qnil ();
+  staticpro (tool_bar_item_properties.as_ptr ());
+  (*tool_bar_item_properties.as_mut_ptr ()) = Qnil ();
+  staticpro (tool_bar_items_vector.as_ptr ());
+  (*tool_bar_items_vector.as_mut_ptr ()) = Qnil ();
 
   DEFSYM! (Qtimer_event_handler, "timer-event-handler");
 
@@ -15318,128 +15317,128 @@ pub unsafe extern "C-unwind" fn syms_of_keyboard ()
 
   DEFSYM! (Qpreedit_text, "preedit-text");
 
-  button_down_location = make_nil_vector (5);
-  staticpro (&raw const button_down_location);
-  staticpro (&raw const frame_relative_event_pos);
-  mouse_syms = make_nil_vector (5);
-  staticpro (&raw const mouse_syms);
-  wheel_syms = make_nil_vector (countof! (lispy_wheel_names) as isize);
-  staticpro (&raw const wheel_syms);
+  (*button_down_location.as_mut_ptr ()) = make_nil_vector (5);
+  staticpro (button_down_location.as_ptr ());
+  staticpro (frame_relative_event_pos.as_ptr ());
+  (*mouse_syms.as_mut_ptr ()) = make_nil_vector (5);
+  staticpro (mouse_syms.as_ptr ());
+  (*wheel_syms.as_mut_ptr ()) = make_nil_vector (countof! ((*lispy_wheel_names.as_mut_ptr ())) as isize);
+  staticpro (wheel_syms.as_ptr ());
 
   {
     let mut i: c_int;
-    let len: c_int = countof! (modifier_names) as c_int;
+    let len: c_int = countof! ((*modifier_names.as_mut_ptr ())) as c_int;
 
-    modifier_symbols = make_nil_vector (len as isize);
+    (*modifier_symbols.as_mut_ptr ()) = make_nil_vector (len as isize);
     i = 0;
     while i < len
       {
-      if !modifier_names[i as usize].is_null ()
-	{ ASET (modifier_symbols, i as isize, intern_c_string (modifier_names[i as usize])); }
+      if !(*modifier_names.as_mut_ptr ())[i as usize].is_null ()
+	{ ASET ((*modifier_symbols.as_mut_ptr ()), i as isize, intern_c_string ((*modifier_names.as_mut_ptr ())[i as usize])); }
       i += 1;
       }
-    staticpro (&raw const modifier_symbols);
+    staticpro (modifier_symbols.as_ptr ());
   }
 
-  recent_keys = make_nil_vector (lossage_limit as isize);
-  staticpro (&raw const recent_keys);
+  (*recent_keys.as_mut_ptr ()) = make_nil_vector ((*lossage_limit.as_mut_ptr ()) as isize);
+  staticpro (recent_keys.as_ptr ());
 
-  this_command_keys = make_nil_vector (40);
-  staticpro (&raw const this_command_keys);
+  (*this_command_keys.as_mut_ptr ()) = make_nil_vector (40);
+  staticpro (this_command_keys.as_ptr ());
 
-  raw_keybuf = make_nil_vector (30);
-  staticpro (&raw const raw_keybuf);
+  (*raw_keybuf.as_mut_ptr ()) = make_nil_vector (30);
+  staticpro (raw_keybuf.as_ptr ());
 
   DEFSYM! (Qcommand_execute, "command-execute");
   DEFSYM! (Qinternal_echo_keystrokes_prefix, "internal-echo-keystrokes-prefix");
 
-  accent_key_syms = Qnil ();
-  staticpro (&raw const accent_key_syms);
+  (*accent_key_syms.as_mut_ptr ()) = Qnil ();
+  staticpro (accent_key_syms.as_ptr ());
 
-  func_key_syms = Qnil ();
-  staticpro (&raw const func_key_syms);
+  (*func_key_syms.as_mut_ptr ()) = Qnil ();
+  staticpro (func_key_syms.as_ptr ());
 
-  drag_n_drop_syms = Qnil ();
-  staticpro (&raw const drag_n_drop_syms);
+  (*drag_n_drop_syms.as_mut_ptr ()) = Qnil ();
+  staticpro (drag_n_drop_syms.as_ptr ());
 
-  pinch_syms = Qnil ();
-  staticpro (&raw const pinch_syms);
+  (*pinch_syms.as_mut_ptr ()) = Qnil ();
+  staticpro (pinch_syms.as_ptr ());
 
-  unread_switch_frame = Qnil ();
-  staticpro (&raw const unread_switch_frame);
+  (*unread_switch_frame.as_mut_ptr ()) = Qnil ();
+  staticpro (unread_switch_frame.as_ptr ());
 
-  internal_last_event_frame = Qnil ();
-  staticpro (&raw const internal_last_event_frame);
+  (*internal_last_event_frame.as_mut_ptr ()) = Qnil ();
+  staticpro (internal_last_event_frame.as_ptr ());
 
-  read_key_sequence_cmd = Qnil ();
-  staticpro (&raw const read_key_sequence_cmd);
-  read_key_sequence_remapped = Qnil ();
-  staticpro (&raw const read_key_sequence_remapped);
+  (*read_key_sequence_cmd.as_mut_ptr ()) = Qnil ();
+  staticpro (read_key_sequence_cmd.as_ptr ());
+  (*read_key_sequence_remapped.as_mut_ptr ()) = Qnil ();
+  staticpro (read_key_sequence_remapped.as_ptr ());
 
-  menu_bar_one_keymap_changed_items = Qnil ();
-  staticpro (&raw const menu_bar_one_keymap_changed_items);
+  (*menu_bar_one_keymap_changed_items.as_mut_ptr ()) = Qnil ();
+  staticpro (menu_bar_one_keymap_changed_items.as_ptr ());
 
-  menu_bar_items_vector = Qnil ();
-  staticpro (&raw const menu_bar_items_vector);
+  (*menu_bar_items_vector.as_mut_ptr ()) = Qnil ();
+  staticpro (menu_bar_items_vector.as_ptr ());
 
-  help_form_saved_window_configs = Qnil ();
-  staticpro (&raw const help_form_saved_window_configs);
+  (*help_form_saved_window_configs.as_mut_ptr ()) = Qnil ();
+  staticpro (help_form_saved_window_configs.as_ptr ());
 
   /* C 13709-13712: `#ifdef POLL_FOR_INPUT` (dead; carried per P-51).  */
   #[cfg (feature = "poll_for_input")]
   {
-  poll_timer_time = Qnil ();
-  staticpro (&raw const poll_timer_time);
+  (*poll_timer_time.as_mut_ptr ()) = Qnil ();
+  staticpro (poll_timer_time.as_ptr ());
   }
 
-  virtual_core_pointer_name = Qnil ();
-  staticpro (&raw const virtual_core_pointer_name);
+  (*virtual_core_pointer_name.as_mut_ptr ()) = Qnil ();
+  staticpro (virtual_core_pointer_name.as_ptr ());
 
-  virtual_core_keyboard_name = Qnil ();
-  staticpro (&raw const virtual_core_keyboard_name);
+  (*virtual_core_keyboard_name.as_mut_ptr ()) = Qnil ();
+  staticpro (virtual_core_keyboard_name.as_ptr ());
 
-  menu_bar_touch_id = Qnil ();
-  staticpro (&raw const menu_bar_touch_id);
+  (*menu_bar_touch_id.as_mut_ptr ()) = Qnil ();
+  staticpro (menu_bar_touch_id.as_ptr ());
 
-  defsubr (&raw mut Scurrent_idle_time);
-  defsubr (&raw mut Sevent_symbol_parse_modifiers);
-  defsubr (&raw mut Sevent_convert_list);
-  defsubr (&raw mut Sinternal_handle_focus_in);
-  defsubr (&raw mut Sread_key_sequence);
-  defsubr (&raw mut Sread_key_sequence_vector);
-  defsubr (&raw mut Srecursive_edit);
-  defsubr (&raw mut Sinternal_track_mouse);
-  defsubr (&raw mut Sinput_pending_p);
-  defsubr (&raw mut Sinsert_special_event);
-  defsubr (&raw mut Slossage_size);
-  defsubr (&raw mut Srecent_keys);
-  defsubr (&raw mut Sthis_command_keys);
-  defsubr (&raw mut Sthis_command_keys_vector);
-  defsubr (&raw mut Sthis_single_command_keys);
-  defsubr (&raw mut Sthis_single_command_raw_keys);
-  defsubr (&raw mut Sset__this_command_keys);
-  defsubr (&raw mut Sclear_this_command_keys);
-  defsubr (&raw mut Ssuspend_emacs);
-  defsubr (&raw mut Sabort_recursive_edit);
-  defsubr (&raw mut Sexit_recursive_edit);
-  defsubr (&raw mut Srecursion_depth);
-  defsubr (&raw mut Scommand_error_default_function);
-  defsubr (&raw mut Stop_level);
-  defsubr (&raw mut Sdiscard_input);
-  defsubr (&raw mut Sopen_dribble_file);
-  defsubr (&raw mut Sset_input_interrupt_mode);
-  defsubr (&raw mut Sset_output_flow_control);
-  defsubr (&raw mut Sset_input_meta_mode);
-  defsubr (&raw mut Sset_quit_char);
-  defsubr (&raw mut Sset_input_mode);
-  defsubr (&raw mut Scurrent_input_mode);
-  defsubr (&raw mut Sposn_at_point);
-  defsubr (&raw mut Sposn_at_x_y);
-  defsubr (&raw mut Sposn_point);
+  defsubr (Scurrent_idle_time.as_mut_ptr ());
+  defsubr (Sevent_symbol_parse_modifiers.as_mut_ptr ());
+  defsubr (Sevent_convert_list.as_mut_ptr ());
+  defsubr (Sinternal_handle_focus_in.as_mut_ptr ());
+  defsubr (Sread_key_sequence.as_mut_ptr ());
+  defsubr (Sread_key_sequence_vector.as_mut_ptr ());
+  defsubr (Srecursive_edit.as_mut_ptr ());
+  defsubr (Sinternal_track_mouse.as_mut_ptr ());
+  defsubr (Sinput_pending_p.as_mut_ptr ());
+  defsubr (Sinsert_special_event.as_mut_ptr ());
+  defsubr (Slossage_size.as_mut_ptr ());
+  defsubr (Srecent_keys.as_mut_ptr ());
+  defsubr (Sthis_command_keys.as_mut_ptr ());
+  defsubr (Sthis_command_keys_vector.as_mut_ptr ());
+  defsubr (Sthis_single_command_keys.as_mut_ptr ());
+  defsubr (Sthis_single_command_raw_keys.as_mut_ptr ());
+  defsubr (Sset__this_command_keys.as_mut_ptr ());
+  defsubr (Sclear_this_command_keys.as_mut_ptr ());
+  defsubr (Ssuspend_emacs.as_mut_ptr ());
+  defsubr (Sabort_recursive_edit.as_mut_ptr ());
+  defsubr (Sexit_recursive_edit.as_mut_ptr ());
+  defsubr (Srecursion_depth.as_mut_ptr ());
+  defsubr (Scommand_error_default_function.as_mut_ptr ());
+  defsubr (Stop_level.as_mut_ptr ());
+  defsubr (Sdiscard_input.as_mut_ptr ());
+  defsubr (Sopen_dribble_file.as_mut_ptr ());
+  defsubr (Sset_input_interrupt_mode.as_mut_ptr ());
+  defsubr (Sset_output_flow_control.as_mut_ptr ());
+  defsubr (Sset_input_meta_mode.as_mut_ptr ());
+  defsubr (Sset_quit_char.as_mut_ptr ());
+  defsubr (Sset_input_mode.as_mut_ptr ());
+  defsubr (Scurrent_input_mode.as_mut_ptr ());
+  defsubr (Sposn_at_point.as_mut_ptr ());
+  defsubr (Sposn_at_x_y.as_mut_ptr ());
+  defsubr (Sposn_point.as_mut_ptr ());
 
-  defsubr (&raw mut Sread_char);
-  defsubr (&raw mut Sread_char_exclusive);
-  defsubr (&raw mut Sread_event);
+  defsubr (Sread_char.as_mut_ptr ());
+  defsubr (Sread_char_exclusive.as_mut_ptr ());
+  defsubr (Sread_event.as_mut_ptr ());
 
   DEFVAR_LISP! (c"last-command-event", last_command_event,
 	      " Last input event of a key sequence that called a command.\nSee Info node `(elisp)Command Loop Info'.");
@@ -15452,19 +15451,19 @@ pub unsafe extern "C-unwind" fn syms_of_keyboard ()
 
   DEFVAR_LISP! (c"unread-command-events", Vunread_command_events,
 	      " List of events to be read as the command input.\nThese events are processed first, before actual keyboard input.\nEvents read from this list are not normally added to `this-command-keys',\nas they will already have been added once as they were read for the first time.\nAn element of the form (t . EVENT) forces EVENT to be added to that list.\nAn element of the form (no-record . EVENT) means process EVENT, but do not\nrecord it in the keyboard macros, recent-keys, and the dribble file.  ");
-  Vunread_command_events = Qnil ();
+  (*Vunread_command_events.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"unread-post-input-method-events", Vunread_post_input_method_events,
 	      " List of events to be processed as input by input methods.\nThese events are processed before `unread-command-events'\nand actual keyboard input, but are not given to `input-method-function'.  ");
-  Vunread_post_input_method_events = Qnil ();
+  (*Vunread_post_input_method_events.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"unread-input-method-events", Vunread_input_method_events,
 	      " List of events to be processed as input by input methods.\nThese events are processed after `unread-command-events', but\nbefore actual keyboard input.\nIf there's an active input method, the events are given to\n`input-method-function'.  ");
-  Vunread_input_method_events = Qnil ();
+  (*Vunread_input_method_events.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"meta-prefix-char", meta_prefix_char,
 	      " Meta-prefix character code.\nMeta-foo as command input turns into this character followed by foo.  ");
-  XSETINT! (meta_prefix_char, 0o33);
+  XSETINT! ((*meta_prefix_char.as_mut_ptr ()), 0o33);
 
 /* C's `DEFVAR_KBOARD (lname, vname, doc)` stores `offsetof (KBOARD, vname##_)` (lisp.h
    3525-3530), so each call below passes the kboard field's offset — the `^_` field name the
@@ -15481,72 +15480,72 @@ pub unsafe extern "C-unwind" fn syms_of_keyboard ()
 
   DEFVAR_LISP! (c"this-command", Vthis_command,
 	      " The command now being executed.\nThe command can set this variable; whatever is put here\nwill be in `last-command' during the following command.  ");
-  Vthis_command = Qnil ();
+  (*Vthis_command.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"real-this-command", Vreal_this_command,
 	      " This is like `this-command', except that commands should never modify it.  ");
-  Vreal_this_command = Qnil ();
+  (*Vreal_this_command.as_mut_ptr ()) = Qnil ();
 
   DEFSYM! (Qcurrent_minibuffer_command, "current-minibuffer-command");
   DEFVAR_LISP! (c"current-minibuffer-command", Vcurrent_minibuffer_command,
 	      " This is like `this-command', but bound recursively.\nCode running from (for instance) a minibuffer hook can check this variable\nto see what command invoked the current minibuffer.  ");
-  Vcurrent_minibuffer_command = Qnil ();
+  (*Vcurrent_minibuffer_command.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"this-command-keys-shift-translated", Vthis_command_keys_shift_translated,
 	      " Non-nil if the key sequence activating this command was shift-translated.\nShift-translation occurs when there is no binding for the key sequence\nas entered, but a binding was found by changing an upper-case letter\nto lower-case, or a shifted function key to an unshifted one.  ");
-  Vthis_command_keys_shift_translated = Qnil ();
+  (*Vthis_command_keys_shift_translated.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"this-original-command", Vthis_original_command,
 	      " The command bound to the current key sequence before remapping.\nIt equals `this-command' if the original command was not remapped through\nany of the active keymaps.  Otherwise, the value of `this-command' is the\nresult of looking up the original command in the active keymaps.  ");
-  Vthis_original_command = Qnil ();
+  (*Vthis_original_command.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_INT! (c"auto-save-interval", auto_save_interval,
 	      " Number of input events between auto-saves.\nZero means disable autosaving due to number of characters typed.  ");
-  auto_save_interval = 300;
+  (*auto_save_interval.as_mut_ptr ()) = 300;
 
   DEFVAR_BOOL! (c"auto-save-no-message", auto_save_no_message,
 	      " Non-nil means do not print any message when auto-saving. ");
-  auto_save_no_message = false;
+  (*auto_save_no_message.as_mut_ptr ()) = false;
 
   DEFVAR_LISP! (c"auto-save-timeout", Vauto_save_timeout,
 	      " Number of seconds idle time before auto-save.\nZero or nil means disable auto-saving due to idleness.\nAfter auto-saving due to this many seconds of idle time,\nEmacs also does a garbage collection if that seems to be warranted.  ");
-  XSETFASTINT! (Vauto_save_timeout, 30);
+  XSETFASTINT! ((*Vauto_save_timeout.as_mut_ptr ()), 30);
 
   DEFVAR_LISP! (c"echo-keystrokes", Vecho_keystrokes,
 	      " Nonzero means echo unfinished commands after this many seconds of pause.\nThe value may be integer or floating point.\nIf the value is zero, don't echo at all.  ");
-  Vecho_keystrokes = make_fixnum (1);
+  (*Vecho_keystrokes.as_mut_ptr ()) = make_fixnum (1);
 
   DEFVAR_BOOL! (c"echo-keystrokes-help", echo_keystrokes_help,
 	      " Whether to append help text to echoed commands.\nWhen non-nil, a reference to `C-h' is printed after echoed\nkeystrokes.  ");
-  echo_keystrokes_help = true;
+  (*echo_keystrokes_help.as_mut_ptr ()) = true;
 
   DEFVAR_LISP! (c"polling-period", Vpolling_period,
 	      " Interval between polling for input during Lisp execution.\nThe reason for polling is to make C-g work to stop a running program.\nPolling is needed only when using X windows and SIGIO does not work.\nPolling is automatically disabled in all other cases.  ");
-  Vpolling_period = make_float (2.0);
+  (*Vpolling_period.as_mut_ptr ()) = make_float (2.0);
 
   DEFVAR_LISP! (c"double-click-time", Vdouble_click_time,
 	      " Maximum time between mouse clicks to make a double-click.\nMeasured in milliseconds.  The value nil means disable double-click\nrecognition; t means double-clicks have no time limit and are detected\nby position only.\n\nIn Lisp, you might want to use `mouse-double-click-time' instead of\nreading the value of this variable directly.  ");
-  Vdouble_click_time = make_fixnum (500);
+  (*Vdouble_click_time.as_mut_ptr ()) = make_fixnum (500);
 
   DEFVAR_INT! (c"double-click-fuzz", double_click_fuzz,
 	      " Maximum mouse movement between clicks to make a double-click.\nOn window-system frames, value is the number of pixels the mouse may have\nmoved horizontally or vertically between two clicks to make a double-click.\nOn non window-system frames, value is interpreted in units of 1/8 characters\ninstead of pixels.\n\nThis variable is also the threshold for motion of the mouse\nto count as a drag.  ");
-  double_click_fuzz = 3;
+  (*double_click_fuzz.as_mut_ptr ()) = 3;
 
   DEFVAR_INT! (c"num-input-keys", num_input_keys,
 	      " Number of complete key sequences read as input so far.\nThis includes key sequences read from keyboard macros.\nThe number is effectively the number of interactive command invocations.  ");
-  num_input_keys = 0;
+  (*num_input_keys.as_mut_ptr ()) = 0;
 
   DEFVAR_INT! (c"num-nonmacro-input-events", num_nonmacro_input_events,
 	      " Number of input events read from the keyboard so far.\nThis does not include events generated by keyboard macros.  ");
-  num_nonmacro_input_events = 0;
+  (*num_nonmacro_input_events.as_mut_ptr ()) = 0;
 
   DEFVAR_LISP! (c"last-event-frame", Vlast_event_frame,
 	      " The frame in which the most recently read event occurred.\nIf the last event came from a keyboard macro, this is set to `macro'.  ");
-  Vlast_event_frame = Qnil ();
+  (*Vlast_event_frame.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"last-event-device", Vlast_event_device,
 	      " The name of the input device of the most recently read event.\nWhen the input extension is being used on X, this is the name of the X\nInput Extension device from which the last event was generated as a\nstring.  Otherwise, this is \"Virtual core keyboard\" for keyboard input\nevents, and \"Virtual core pointer\" for other events.\n\nIt is nil if the last event did not come from an input device (i.e. it\ncame from `unread-command-events' instead).  ");
-  Vlast_event_device = Qnil ();
+  (*Vlast_event_device.as_mut_ptr ()) = Qnil ();
 
   /* This variable is set up in sysdep.c.  */
   DEFVAR_LISP! (c"tty-erase-char", Vtty_erase_char,
@@ -15554,23 +15553,23 @@ pub unsafe extern "C-unwind" fn syms_of_keyboard ()
 
   DEFVAR_LISP! (c"help-char", Vhelp_char,
 	      " Character to recognize as meaning Help.\nWhen it is read, do `(eval help-form)', and display result if it's a string.\nIf the value of `help-form' is nil, this char can be read normally.  ");
-  XSETINT! (Vhelp_char, Ctl! (b'H' as EMACS_INT));
+  XSETINT! ((*Vhelp_char.as_mut_ptr ()), Ctl! (b'H' as EMACS_INT));
 
   DEFVAR_LISP! (c"help-event-list", Vhelp_event_list,
 	      " List of input events to recognize as meaning Help.\nThese work just like the value of `help-char' (see that).  ");
-  Vhelp_event_list = Qnil ();
+  (*Vhelp_event_list.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"help-form", Vhelp_form,
 	      " Form to execute when character `help-char' is read.\nIf the form returns a string, that string is displayed.\nIf `help-form' is nil, the help char is not recognized.  ");
-  Vhelp_form = Qnil ();
+  (*Vhelp_form.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"prefix-help-command", Vprefix_help_command,
 	      " Command to run when `help-char' character follows a prefix key.\nThis command is used only when there is no actual binding\nfor that character after that prefix key.  ");
-  Vprefix_help_command = Qnil ();
+  (*Vprefix_help_command.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"top-level", Vtop_level,
 	      " Form to evaluate when Emacs starts up.\nUseful to set before you dump a modified Emacs.  ");
-  Vtop_level = Qnil ();
+  (*Vtop_level.as_mut_ptr ()) = Qnil ();
   set_symbol_bits! (declared_special, XSYMBOL (Qtop_level ()), false);
 
   DEFVAR_KBOARD! (c"keyboard-translate-table", std::mem::offset_of! (kboard, Vkeyboard_translate_table_),
@@ -15578,33 +15577,33 @@ pub unsafe extern "C-unwind" fn syms_of_keyboard ()
 
   DEFVAR_BOOL! (c"cannot-suspend", cannot_suspend,
 	      " Non-nil means to always spawn a subshell instead of suspending.\n(Even if the operating system has support for stopping a process.)  ");
-  cannot_suspend = false;
+  (*cannot_suspend.as_mut_ptr ()) = false;
 
   DEFVAR_BOOL! (c"menu-prompting", menu_prompting,
 	      " Non-nil means prompt with menus when appropriate.\nThis is done when reading from a keymap that has a prompt string,\nfor elements that have prompt strings.\nThe menu is displayed on the screen\nif X menus were enabled at configuration\ntime and the previous event was a mouse click prefix key.\nOtherwise, menu prompting uses the echo area.  ");
-  menu_prompting = true;
+  (*menu_prompting.as_mut_ptr ()) = true;
 
   DEFVAR_LISP! (c"menu-prompt-more-char", menu_prompt_more_char,
 	      " Character to see next line of menu prompt.\nType this character while in a menu prompt to rotate around the lines of it.  ");
-  XSETINT! (menu_prompt_more_char, b' ' as EMACS_INT);
+  XSETINT! ((*menu_prompt_more_char.as_mut_ptr ()), b' ' as EMACS_INT);
 
   DEFVAR_INT! (c"extra-keyboard-modifiers", extra_keyboard_modifiers,
 	      " A mask of additional modifier keys to use with every keyboard character.\nEmacs applies the modifiers of the character stored here to each keyboard\ncharacter it reads.  For example, after evaluating the expression\n    (setq extra-keyboard-modifiers ?\\C-x)\nall input characters will have the control modifier applied to them.\n\nNote that the character ?\\C-@, equivalent to the integer zero, does\nnot count as a control character; rather, it counts as a character\nwith no modifiers; thus, setting `extra-keyboard-modifiers' to zero\ncancels any modification.  ");
-  extra_keyboard_modifiers = 0;
+  (*extra_keyboard_modifiers.as_mut_ptr ()) = 0;
 
   DEFSYM! (Qdeactivate_mark, "deactivate-mark");
   DEFVAR_LISP! (c"deactivate-mark", Vdeactivate_mark,
 	      " Whether to deactivate the mark after an editing command.\nThe command loop sets this to nil before each command,\nand tests the value when the command returns.\nIf an editing command sets this non-nil, deactivate the mark after\nthe command returns.\n\nBuffer modifications store t in this variable.\n\nBy default, deactivating the mark will save the contents of the region\naccording to `select-active-regions', unless this is set to the symbol\n`dont-save'.  ");
-  Vdeactivate_mark = Qnil ();
+  (*Vdeactivate_mark.as_mut_ptr ()) = Qnil ();
   Fmake_variable_buffer_local (Qdeactivate_mark ());
 
   DEFVAR_LISP! (c"pre-command-hook", Vpre_command_hook,
 	      " Normal hook run before each command is executed.\n\nIf an unhandled error happens in running this hook, the function in\nwhich the error occurred is unconditionally removed, since otherwise\nthe error might happen repeatedly and make Emacs nonfunctional.\n\nNote that, when `long-line-optimizations-p' is non-nil in the buffer,\nthese functions are called as if they were in a `with-restriction' form,\nwith a `long-line-optimizations-in-command-hooks' label and with the\nbuffer narrowed to a portion around point whose size is specified by\n`long-line-optimizations-region-size'.\n\nSee also `post-command-hook'.  ");
-  Vpre_command_hook = Qnil ();
+  (*Vpre_command_hook.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"post-command-hook", Vpost_command_hook,
 	      " Normal hook run after each command is executed.\n\nIf an unhandled error happens in running this hook, the function in\nwhich the error occurred is unconditionally removed, since otherwise\nthe error might happen repeatedly and make Emacs nonfunctional.\n\nIt is a bad idea to use this hook for expensive processing.  If\nunavoidable, wrap your code in `(while-no-input (redisplay) CODE)' to\navoid making Emacs unresponsive while the user types.\n\nNote that, when `long-line-optimizations-p' is non-nil in the buffer,\nthese functions are called as if they were in a `with-restriction' form,\nwith a `long-line-optimizations-in-command-hooks' label and with the\nbuffer narrowed to a portion around point whose size is specified by\n`long-line-optimizations-region-size'.\n\nSee also `pre-command-hook'.  ");
-  Vpost_command_hook = Qnil ();
+  (*Vpost_command_hook.as_mut_ptr ()) = Qnil ();
 
   /* C 14081-14084: `#if 0` with a `DEFVAR_LISP ("echo-area-clear-hook", ...)` inside it — dead
      in C itself, so it is recorded here and not transcribed (P-08; the file's other `#if 0`
@@ -15631,35 +15630,35 @@ pub unsafe extern "C-unwind" fn syms_of_keyboard ()
   {
   DEFVAR_BOOL! (c"lucid--menu-grab-keyboard", lucid__menu_grab_keyboard,
 	      " If non-nil, grab keyboard during menu operations.\nThis is only relevant when using the Lucid X toolkit.  It can be\nconvenient to disable this for debugging purposes.  ");
-  lucid__menu_grab_keyboard = true;
+  (*lucid__menu_grab_keyboard.as_mut_ptr ()) = true;
   }
 
   DEFVAR_LISP! (c"menu-bar-final-items", Vmenu_bar_final_items,
 	      " List of menu bar items to move to the end of the menu bar.\nThe elements of the list are event types that may have menu bar\nbindings.  The order of this list controls the order of the items.  ");
-  Vmenu_bar_final_items = Qnil ();
+  (*Vmenu_bar_final_items.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"tab-bar-separator-image-expression", Vtab_bar_separator_image_expression,
 	      " Expression evaluating to the image spec for a tab-bar separator.\nThis is used internally by graphical displays that do not render\ntab-bar separators natively.  Otherwise it is unused (e.g. on GTK).  ");
-  Vtab_bar_separator_image_expression = Qnil ();
+  (*Vtab_bar_separator_image_expression.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"tool-bar-separator-image-expression", Vtool_bar_separator_image_expression,
 	      " Expression evaluating to the image spec for a tool-bar separator.\nThis is used internally by graphical displays that do not render\ntool-bar separators natively.  Otherwise it is unused (e.g. on GTK).  ");
-  Vtool_bar_separator_image_expression = Qnil ();
+  (*Vtool_bar_separator_image_expression.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_KBOARD! (c"overriding-terminal-local-map", std::mem::offset_of! (kboard, Voverriding_terminal_local_map_),
 	      " Per-terminal keymap that takes precedence over all other keymaps.\nThis variable is intended to let commands such as `universal-argument'\nset up a different keymap for reading the next command.\n\n`overriding-terminal-local-map' has a separate binding for each\nterminal device.  See Info node `(elisp)Multiple Terminals'.  ");
 
   DEFVAR_LISP! (c"overriding-local-map", Voverriding_local_map,
 	      " Keymap that replaces (overrides) local keymaps.\nIf this variable is non-nil, Emacs looks up key bindings in this\nkeymap INSTEAD OF `keymap' text properties, `local-map' and `keymap'\noverlay properties, minor mode maps, and the buffer's local map.\n\nHence, the only active keymaps would be `overriding-terminal-local-map',\nthis keymap, and `global-keymap', in order of precedence.  ");
-  Voverriding_local_map = Qnil ();
+  (*Voverriding_local_map.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"overriding-local-map-menu-flag", Voverriding_local_map_menu_flag,
 	      " Non-nil means `overriding-local-map' applies to the menu bar.\nOtherwise, the menu bar continues to reflect the buffer's local map\nand the minor mode maps regardless of `overriding-local-map'.  ");
-  Voverriding_local_map_menu_flag = Qnil ();
+  (*Voverriding_local_map_menu_flag.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"special-event-map", Vspecial_event_map,
 	      " Keymap defining bindings for special events to execute at low level.  ");
-  Vspecial_event_map = list1 (Qkeymap ());
+  (*Vspecial_event_map.as_mut_ptr ()) = list1 (Qkeymap ());
 
   DEFVAR_LISP! (c"track-mouse", track_mouse,
 	      " Non-nil means generate motion events for mouse motion.\nThe special values `dragging' and `dropping' assert that the mouse\ncursor retains its appearance during mouse motion.  Any non-nil value\nbut `dropping' or `drag-source' asserts that motion events always\nrelate to the frame where the mouse movement started.  The value\n`dropping' asserts that motion events relate to the frame where the\nmouse cursor is seen when generating the event.  If there's no such\nframe, such motion events relate to the frame where the mouse movement\nstarted.  The value `drag-source' is like `dropping', but the\n`posn-window' will be nil in mouse position lists inside mouse\nmovement events if there is no frame directly visible underneath the\nmouse pointer.  ");
@@ -15674,129 +15673,129 @@ pub unsafe extern "C-unwind" fn syms_of_keyboard ()
 
   DEFVAR_LISP! (c"function-key-map", Vfunction_key_map,
 	      " The parent keymap of all `local-function-key-map' instances.\nFunction key definitions that apply to all terminal devices should go\nhere.  If a mapping is defined in both the current\n`local-function-key-map' binding and this variable, then the local\ndefinition will take precedence.  ");
-  Vfunction_key_map = Fmake_sparse_keymap (Qnil ());
+  (*Vfunction_key_map.as_mut_ptr ()) = Fmake_sparse_keymap (Qnil ());
 
   DEFVAR_LISP! (c"key-translation-map", Vkey_translation_map,
 	      " Keymap of key translations that can override keymaps.\nThis keymap works like `input-decode-map', but comes after `function-key-map'.\nAnother difference is that it is global rather than terminal-local.  ");
-  Vkey_translation_map = Fmake_sparse_keymap (Qnil ());
+  (*Vkey_translation_map.as_mut_ptr ()) = Fmake_sparse_keymap (Qnil ());
 
   DEFVAR_LISP! (c"delayed-warnings-list", Vdelayed_warnings_list,
 	      " List of warnings to be displayed after this command.\nEach element must be a list (TYPE MESSAGE [LEVEL [BUFFER-NAME]]),\nas per the args of `display-warning' (which see).\nIf this variable is non-nil, `delayed-warnings-hook' will be run\nimmediately after running `post-command-hook'.  ");
-  Vdelayed_warnings_list = Qnil ();
+  (*Vdelayed_warnings_list.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"timer-list", Vtimer_list,
 	      " List of active absolute time timers in order of increasing time.  ");
-  Vtimer_list = Qnil ();
+  (*Vtimer_list.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"timer-idle-list", Vtimer_idle_list,
 	      " List of active idle-time timers in order of increasing time.  ");
-  Vtimer_idle_list = Qnil ();
+  (*Vtimer_idle_list.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"input-method-function", Vinput_method_function,
 	      " If non-nil, the function that implements the current input method.\nIt's called with one argument, which must be a single-byte\ncharacter that was just read.  Any single-byte character is\nacceptable, except the DEL character, codepoint 127 decimal, 177 octal.\nTypically this function uses `read-event' to read additional events.\nWhen it does so, it should first bind `input-method-function' to nil\nso it will not be called recursively.\n\nThe function should return a list of zero or more events\nto be used as input.  If it wants to put back some events\nto be reconsidered, separately, by the input method,\nit can add them to the beginning of `unread-command-events'.\n\nThe input method function can find in `input-method-previous-message'\nthe previous echo area message.\n\nThe input method function should refer to the variables\n`input-method-use-echo-area' and `input-method-exit-on-first-char'\nfor guidance on what to do.  ");
-  Vinput_method_function = Qlist ();
+  (*Vinput_method_function.as_mut_ptr ()) = Qlist ();
 
   DEFVAR_LISP! (c"input-method-previous-message", Vinput_method_previous_message,
 	      " When `input-method-function' is called, hold the previous echo area message.\nThis variable exists because `read-event' clears the echo area\nbefore running the input method.  It is nil if there was no message.  ");
-  Vinput_method_previous_message = Qnil ();
+  (*Vinput_method_previous_message.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"show-help-function", Vshow_help_function,
 	      " If non-nil, the function that implements the display of help.\nIt's called with one argument, the help string to display.  ");
-  Vshow_help_function = Qnil ();
+  (*Vshow_help_function.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"disable-point-adjustment", Vdisable_point_adjustment,
 	      " If non-nil, suppress point adjustment after executing a command.\n\nAfter a command is executed, if point moved into a region that has\nspecial properties (e.g. composition, display), Emacs adjusts point to\nthe boundary of the region.  But when a command leaves this variable at\na non-nil value (e.g., with a setq), this point adjustment is suppressed.\n\nThis variable is set to nil before reading a command, and is checked\njust after executing the command.  ");
-  Vdisable_point_adjustment = Qnil ();
+  (*Vdisable_point_adjustment.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"global-disable-point-adjustment", Vglobal_disable_point_adjustment,
 	      " If non-nil, always suppress point adjustments.\n\nThe default value is nil, in which case point adjustments are\nsuppressed only after special commands that leave\n`disable-point-adjustment' (which see) at a non-nil value.  ");
-  Vglobal_disable_point_adjustment = Qnil ();
+  (*Vglobal_disable_point_adjustment.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"minibuffer-message-timeout", Vminibuffer_message_timeout,
 	      " How long to display an echo-area message when the minibuffer is active.\nIf the value is a number, it should be specified in seconds.\nIf the value is not a number, such messages never time out.  ");
-  Vminibuffer_message_timeout = make_fixnum (2);
+  (*Vminibuffer_message_timeout.as_mut_ptr ()) = make_fixnum (2);
 
   DEFVAR_LISP! (c"throw-on-input", Vthrow_on_input,
 	      " If non-nil, any keyboard input throws to this symbol.\nThe value of that variable is passed to `quit-flag' and later causes a\npeculiar kind of quitting.  ");
-  Vthrow_on_input = Qnil ();
+  (*Vthrow_on_input.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"command-error-function", Vcommand_error_function,
 	      " Function to output error messages.\nCalled with three arguments:\n- the error data, a list of the form (SIGNALED-CONDITION . SIGNAL-DATA)\n  such as what `condition-case' would bind its variable to,\n- the context (a string which normally goes at the start of the message),\n- the Lisp function within which the error was signaled.\n\nFor instance, to make error messages stand out more in the echo area,\nyou could say something like:\n\n    (setq command-error-function\n          (lambda (data _ _)\n            (message \"%s\" (propertize (error-message-string data)\n                                      \\='face \\='error))))\n\nAlso see `set-message-function' (which controls how non-error messages\nare displayed).  ");
-  Vcommand_error_function = Qcommand_error_default_function ();
+  (*Vcommand_error_function.as_mut_ptr ()) = Qcommand_error_default_function ();
 
   DEFVAR_LISP! (c"enable-disabled-menus-and-buttons", Venable_disabled_menus_and_buttons,
 	      " If non-nil, don't ignore events produced by disabled menu items and tool-bar.\n\nHelp functions bind this to allow help on disabled menu items\nand tool-bar buttons.  ");
-  Venable_disabled_menus_and_buttons = Qnil ();
+  (*Venable_disabled_menus_and_buttons.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"select-active-regions", Vselect_active_regions,
 	      " If non-nil, any active region automatically sets the primary selection.\nThis variable only has an effect when Transient Mark mode is enabled.\n\nIf the value is `only', only temporarily active regions (usually made\nby mouse-dragging or shift-selection) set the window system's primary\nselection.\n\nIf this variable causes the region to be set as the primary selection,\n`post-select-region-hook' is then run afterwards.  ");
-  Vselect_active_regions = Qt ();
+  (*Vselect_active_regions.as_mut_ptr ()) = Qt ();
 
   DEFVAR_LISP! (c"saved-region-selection", Vsaved_region_selection,
 	      " Contents of active region prior to buffer modification.\nIf `select-active-regions' is non-nil, Emacs sets this to the\ntext in the region before modifying the buffer.  The next call to\nthe function `deactivate-mark' uses this to set the window selection.  ");
-  Vsaved_region_selection = Qnil ();
+  (*Vsaved_region_selection.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"selection-inhibit-update-commands", Vselection_inhibit_update_commands,
 	      " List of commands which should not update the selection.\nNormally, if `select-active-regions' is non-nil and the mark remains\nactive after a command (i.e. the mark was not deactivated), the Emacs\ncommand loop sets the selection to the text in the region.  However,\nif the command is in this list, the selection is not updated.  ");
-  Vselection_inhibit_update_commands
+  (*Vselection_inhibit_update_commands.as_mut_ptr ())
     = list2 (Qhandle_switch_frame (), Qhandle_select_window ());
 
   DEFVAR_LISP! (c"debug-on-event", Vdebug_on_event,
 	      " Enter debugger on this event.\nWhen Emacs receives the special event specified by this variable,\nit will try to break into the debugger as soon as possible instead\nof processing the event normally through `special-event-map'.\n\nCurrently, the only supported values for this\nvariable are `sigusr1' and `sigusr2'.  ");
-  Vdebug_on_event = Qsigusr2 ();
+  (*Vdebug_on_event.as_mut_ptr ()) = Qsigusr2 ();
 
   DEFVAR_BOOL! (c"attempt-stack-overflow-recovery", attempt_stack_overflow_recovery,
 	      " If non-nil, attempt to recover from C stack overflows.\nThis recovery is potentially unsafe and may lead to deadlocks or data\ncorruption, but it usually works and may preserve modified buffers\nthat would otherwise be lost.  If nil, treat stack overflow like any\nother kind of crash or fatal error.  ");
-  attempt_stack_overflow_recovery = true;
+  (*attempt_stack_overflow_recovery.as_mut_ptr ()) = true;
 
   DEFVAR_BOOL! (c"attempt-orderly-shutdown-on-fatal-signal", attempt_orderly_shutdown_on_fatal_signal,
 	      " If non-nil, attempt orderly shutdown on fatal signals.\nBy default this variable is non-nil, and Emacs attempts to perform\nan orderly shutdown when it catches a fatal signal (e.g., a crash).\nThe orderly shutdown includes an attempt to auto-save your unsaved edits\nand other useful cleanups.  These cleanups are potentially unsafe and may\nlead to deadlocks or data corruption, but it usually works and may\npreserve data in modified buffers that would otherwise be lost.\nIf nil, Emacs crashes immediately in response to fatal signals.  ");
-  attempt_orderly_shutdown_on_fatal_signal = true;
+  (*attempt_orderly_shutdown_on_fatal_signal.as_mut_ptr ()) = true;
 
   DEFVAR_LISP! (c"while-no-input-ignore-events", Vwhile_no_input_ignore_events,
 	      " Ignored events from `while-no-input'.\nEvents in this list do not count as pending input while running\n`while-no-input' and do not cause any idle timers to get reset when they\noccur.  ");
-  Vwhile_no_input_ignore_events = init_while_no_input_ignore_events ();
+  (*Vwhile_no_input_ignore_events.as_mut_ptr ()) = init_while_no_input_ignore_events ();
 
   DEFVAR_BOOL! (c"translate-upper-case-key-bindings", translate_upper_case_key_bindings,
 	      " If non-nil, interpret upper case keys as lower case (when applicable).\nEmacs allows binding both upper and lower case key sequences to\ncommands.  However, if there is a lower case key sequence bound to a\ncommand, and the user enters an upper case key sequence that is not\nbound to a command, Emacs will use the lower case binding.  Setting\nthis variable to nil inhibits this behavior.  ");
-  translate_upper_case_key_bindings = true;
+  (*translate_upper_case_key_bindings.as_mut_ptr ()) = true;
 
   DEFVAR_BOOL! (c"input-pending-p-filter-events", input_pending_p_filter_events,
 	      " If non-nil, `input-pending-p' ignores some input events.\nIf this variable is non-nil (the default), `input-pending-p' and\nother similar functions ignore input events in `while-no-input-ignore-events'.\nThis flag may eventually be removed once this behavior is deemed safe.  ");
-  input_pending_p_filter_events = true;
+  (*input_pending_p_filter_events.as_mut_ptr ()) = true;
 
   DEFVAR_BOOL! (c"mwheel-coalesce-scroll-events", mwheel_coalesce_scroll_events,
 	      " Non-nil means send a wheel event only for scrolling at least one screen line.\nOtherwise, a wheel event will be sent every time the mouse wheel is\nmoved.  ");
-  mwheel_coalesce_scroll_events = true;
+  (*mwheel_coalesce_scroll_events.as_mut_ptr ()) = true;
 
   DEFVAR_LISP! (c"display-monitors-changed-functions", Vdisplay_monitors_changed_functions,
 	      " Abnormal hook run when the monitor configuration changes.\nThis can happen if a monitor is rotated, moved, plugged in or removed\nfrom a multi-monitor setup, if the primary monitor changes, or if the\nresolution of a monitor changes.  The hook should accept a single\nargument, which is the terminal on which the monitor configuration\nchanged.  ");
-  Vdisplay_monitors_changed_functions = Qnil ();
+  (*Vdisplay_monitors_changed_functions.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_BOOL! (c"inhibit--record-char", inhibit_record_char,
 	      " If non-nil, don't record input events.\nThis inhibits recording input events for the purposes of keyboard\nmacros, dribble file, and `recent-keys'.\nInternal use only.  ");
-  inhibit_record_char = false;
+  (*inhibit_record_char.as_mut_ptr ()) = false;
 
   DEFVAR_BOOL! (c"record-all-keys", record_all_keys,
 	      " Non-nil means record all keys you type.\nWhen nil, the default, characters typed as part of passwords are\nnot recorded.  The non-nil value countermands `inhibit--record-char',\nwhich see.  ");
-  record_all_keys = false;
+  (*record_all_keys.as_mut_ptr ()) = false;
 
   DEFVAR_LISP! (c"post-select-region-hook", Vpost_select_region_hook,
 	      " Abnormal hook run after the region is selected.\nThis usually happens as a result of `select-active-regions'.  The hook\nis called with one argument, the string that was selected.  ");
-  Vpost_select_region_hook = Qnil ();
+  (*Vpost_select_region_hook.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_BOOL! (c"disable-inhibit-text-conversion", disable_inhibit_text_conversion,
 	      " Don't disable text conversion inside `read-key-sequence'.\nIf non-nil, text conversion will continue to happen after a prefix\nkey has been read inside `read-key-sequence'.  ");
-  disable_inhibit_text_conversion = false;
+  (*disable_inhibit_text_conversion.as_mut_ptr ()) = false;
 
   DEFVAR_LISP! (c"current-key-remap-sequence", Vcurrent_key_remap_sequence,
 	      " The key sequence currently being remap, or nil.\nBound to a vector containing the sub-sequence matching a binding\nwithin `input-decode-map' or `local-function-key-map' when its bound\nfunction is called to remap that sequence.  ");
-  Vcurrent_key_remap_sequence = Qnil ();
+  (*Vcurrent_key_remap_sequence.as_mut_ptr ()) = Qnil ();
   DEFSYM! (Qcurrent_key_remap_sequence, "current-key-remap-sequence");
 
   DEFVAR_BOOL! (c"multiple-terminals-merge-keyboards", multiple_terminals_merge_keyboards,
 	      " If non-nil, treat different terminals' keyboards as less isolated.\nIf this option is non-nil, Emacs will not enter single-keyboard mode\nwhen entering a recursive edit.  It will still enter single-keyboard\nmode in certain other cases where doing so is necessary for the\noperation to work at all.  ");
-  multiple_terminals_merge_keyboards = false;
+  (*multiple_terminals_merge_keyboards.as_mut_ptr ()) = false;
 
   pdumper_do_now_and_after_load (Some (syms_of_keyboard_for_pdumper));
 
@@ -15830,27 +15829,27 @@ unsafe extern "C-unwind" fn syms_of_keyboard_for_pdumper ()
      doesn't hurt and makes sure that allocate_kboard and subsequent
      early init functions see the environment they expect.  */
 
-  PDUMPER_RESET_LV! (pending_funcalls, Qnil ());
-  PDUMPER_RESET_LV! (unread_switch_frame, Qnil ());
-  PDUMPER_RESET_LV! (internal_last_event_frame, Qnil ());
-  PDUMPER_RESET_LV! (last_command_event, Qnil ());
-  PDUMPER_RESET_LV! (last_nonmenu_event, Qnil ());
-  PDUMPER_RESET_LV! (last_input_event, Qnil ());
-  PDUMPER_RESET_LV! (Vunread_command_events, Qnil ());
-  PDUMPER_RESET_LV! (Vunread_post_input_method_events, Qnil ());
-  PDUMPER_RESET_LV! (Vunread_input_method_events, Qnil ());
-  PDUMPER_RESET_LV! (Vthis_command, Qnil ());
-  PDUMPER_RESET_LV! (Vreal_this_command, Qnil ());
-  PDUMPER_RESET_LV! (Vthis_command_keys_shift_translated, Qnil ());
-  PDUMPER_RESET_LV! (Vthis_original_command, Qnil ());
-  PDUMPER_RESET! (num_input_keys, 0);
-  PDUMPER_RESET! (num_nonmacro_input_events, 0);
-  PDUMPER_RESET_LV! (Vlast_event_frame, Qnil ());
-  PDUMPER_RESET_LV! (Vdelayed_warnings_list, Qnil ());
+  PDUMPER_RESET_LV! ((*pending_funcalls.as_mut_ptr ()), Qnil ());
+  PDUMPER_RESET_LV! ((*unread_switch_frame.as_mut_ptr ()), Qnil ());
+  PDUMPER_RESET_LV! ((*internal_last_event_frame.as_mut_ptr ()), Qnil ());
+  PDUMPER_RESET_LV! ((*last_command_event.as_mut_ptr ()), Qnil ());
+  PDUMPER_RESET_LV! ((*last_nonmenu_event.as_mut_ptr ()), Qnil ());
+  PDUMPER_RESET_LV! ((*last_input_event.as_mut_ptr ()), Qnil ());
+  PDUMPER_RESET_LV! ((*Vunread_command_events.as_mut_ptr ()), Qnil ());
+  PDUMPER_RESET_LV! ((*Vunread_post_input_method_events.as_mut_ptr ()), Qnil ());
+  PDUMPER_RESET_LV! ((*Vunread_input_method_events.as_mut_ptr ()), Qnil ());
+  PDUMPER_RESET_LV! ((*Vthis_command.as_mut_ptr ()), Qnil ());
+  PDUMPER_RESET_LV! ((*Vreal_this_command.as_mut_ptr ()), Qnil ());
+  PDUMPER_RESET_LV! ((*Vthis_command_keys_shift_translated.as_mut_ptr ()), Qnil ());
+  PDUMPER_RESET_LV! ((*Vthis_original_command.as_mut_ptr ()), Qnil ());
+  PDUMPER_RESET! ((*num_input_keys.as_mut_ptr ()), 0);
+  PDUMPER_RESET! ((*num_nonmacro_input_events.as_mut_ptr ()), 0);
+  PDUMPER_RESET_LV! ((*Vlast_event_frame.as_mut_ptr ()), Qnil ());
+  PDUMPER_RESET_LV! ((*Vdelayed_warnings_list.as_mut_ptr ()), Qnil ());
 
   /* Create the initial keyboard.  Qt means 'unset'.  */
-  eassert! (initial_kboard.is_null ());
-  initial_kboard = allocate_kboard (Qt ());
+  eassert! ((*initial_kboard.as_mut_ptr ()).is_null ());
+  (*initial_kboard.as_mut_ptr ()) = allocate_kboard (Qt ());
 
   }
 }
@@ -15862,19 +15861,19 @@ pub unsafe extern "C-unwind" fn keys_of_keyboard ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  initial_define_lispy_key (Vspecial_event_map, c"delete-frame".as_ptr (),
+  initial_define_lispy_key ((*Vspecial_event_map.as_mut_ptr ()), c"delete-frame".as_ptr (),
 			    c"handle-delete-frame".as_ptr ());
   /* C 14552-14561: `#ifdef HAVE_NTGUI` and `#ifdef HAVE_NS` (dead; carried per P-51).  */
   #[cfg (feature = "have_ntgui")]
   {
-  initial_define_lispy_key (Vspecial_event_map, c"end-session".as_ptr (),
+  initial_define_lispy_key ((*Vspecial_event_map.as_mut_ptr ()), c"end-session".as_ptr (),
 			    c"kill-emacs".as_ptr ());
   }
   #[cfg (feature = "have_ns")]
   {
-  initial_define_lispy_key (Vspecial_event_map, c"ns-put-working-text".as_ptr (),
+  initial_define_lispy_key ((*Vspecial_event_map.as_mut_ptr ()), c"ns-put-working-text".as_ptr (),
 			    c"ns-put-working-text".as_ptr ());
-  initial_define_lispy_key (Vspecial_event_map, c"ns-unput-working-text".as_ptr (),
+  initial_define_lispy_key ((*Vspecial_event_map.as_mut_ptr ()), c"ns-unput-working-text".as_ptr (),
 			    c"ns-unput-working-text".as_ptr ());
   }
   /* Here we used to use `ignore-event' which would simple set prefix-arg to
@@ -15896,9 +15895,9 @@ pub unsafe extern "C-unwind" fn keys_of_keyboard ()
        current-prefix-arg and prefix-arg are left untouched.
      - here we foolishly copy the non-nil current-prefix-arg to prefix-arg.
      - the next key event will have a spuriously non-nil current-prefix-arg.  */
-  initial_define_lispy_key (Vspecial_event_map, c"iconify-frame".as_ptr (),
+  initial_define_lispy_key ((*Vspecial_event_map.as_mut_ptr ()), c"iconify-frame".as_ptr (),
 			    c"ignore".as_ptr ());
-  initial_define_lispy_key (Vspecial_event_map, c"make-frame-visible".as_ptr (),
+  initial_define_lispy_key ((*Vspecial_event_map.as_mut_ptr ()), c"make-frame-visible".as_ptr (),
 			    c"ignore".as_ptr ());
   /* Handling it at such a low-level causes read_key_sequence to get
    * confused because it doesn't realize that the current_buffer was
@@ -15906,7 +15905,7 @@ pub unsafe extern "C-unwind" fn keys_of_keyboard ()
    *
    * initial_define_lispy_key (Vspecial_event_map, "select-window",
    * 			    "handle-select-window"); */
-  initial_define_lispy_key (Vspecial_event_map, c"save-session".as_ptr (),
+  initial_define_lispy_key ((*Vspecial_event_map.as_mut_ptr ()), c"save-session".as_ptr (),
 			    c"handle-save-session".as_ptr ());
 
   /* C 14594-14612: `#ifdef HAVE_DBUS`, `#ifdef THREADS_ENABLED` and
@@ -15915,37 +15914,37 @@ pub unsafe extern "C-unwind" fn keys_of_keyboard ()
   {
   /* Define a special event which is raised for dbus callback
      functions.  */
-  initial_define_lispy_key (Vspecial_event_map, c"dbus-event".as_ptr (),
+  initial_define_lispy_key ((*Vspecial_event_map.as_mut_ptr ()), c"dbus-event".as_ptr (),
 			    c"dbus-handle-event".as_ptr ());
   }
   #[cfg (feature = "threads_enabled")]
   {
   /* Define a special event which is raised for threads.  */
-  initial_define_lispy_key (Vspecial_event_map, c"thread-event".as_ptr (),
+  initial_define_lispy_key ((*Vspecial_event_map.as_mut_ptr ()), c"thread-event".as_ptr (),
 			    c"thread-handle-event".as_ptr ());
   }
   #[cfg (feature = "use_file_notify")]
   {
   /* Define a special event which is raised for file notifications.  */
-  initial_define_lispy_key (Vspecial_event_map, c"file-notify".as_ptr (),
+  initial_define_lispy_key ((*Vspecial_event_map.as_mut_ptr ()), c"file-notify".as_ptr (),
                             c"file-notify-handle-event".as_ptr ());
   }
 
-  initial_define_lispy_key (Vspecial_event_map, c"config-changed-event".as_ptr (),
+  initial_define_lispy_key ((*Vspecial_event_map.as_mut_ptr ()), c"config-changed-event".as_ptr (),
 			    c"ignore".as_ptr ());
   /* C 14616-14619: `#if defined (WINDOWSNT)` (dead; carried per P-51).  */
   #[cfg (feature = "windowsnt")]
   {
-  initial_define_lispy_key (Vspecial_event_map, c"language-change".as_ptr (),
+  initial_define_lispy_key ((*Vspecial_event_map.as_mut_ptr ()), c"language-change".as_ptr (),
 			    c"ignore".as_ptr ());
   }
-  initial_define_lispy_key (Vspecial_event_map, c"focus-in".as_ptr (),
+  initial_define_lispy_key ((*Vspecial_event_map.as_mut_ptr ()), c"focus-in".as_ptr (),
 			    c"handle-focus-in".as_ptr ());
-  initial_define_lispy_key (Vspecial_event_map, c"focus-out".as_ptr (),
+  initial_define_lispy_key ((*Vspecial_event_map.as_mut_ptr ()), c"focus-out".as_ptr (),
 			    c"handle-focus-out".as_ptr ());
-  initial_define_lispy_key (Vspecial_event_map, c"move-frame".as_ptr (),
+  initial_define_lispy_key ((*Vspecial_event_map.as_mut_ptr ()), c"move-frame".as_ptr (),
 			    c"handle-move-frame".as_ptr ());
-  initial_define_lispy_key (Vspecial_event_map, c"sleep-event".as_ptr (),
+  initial_define_lispy_key ((*Vspecial_event_map.as_mut_ptr ()), c"sleep-event".as_ptr (),
 			    c"ignore".as_ptr ());
 
   }
@@ -15958,7 +15957,7 @@ pub unsafe extern "C-unwind" fn mark_kboards ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  let mut kb: *mut KBOARD = all_kboards;
+  let mut kb: *mut KBOARD = (*all_kboards.as_mut_ptr ());
   while !kb.is_null ()
     {
       if !(*kb).kbd_macro_buffer.is_null ()
@@ -15966,22 +15965,22 @@ pub unsafe extern "C-unwind" fn mark_kboards ()
 	  mark_objects ((*kb).kbd_macro_buffer,
 			(*kb).kbd_macro_ptr.offset_from ((*kb).kbd_macro_buffer));
 	}
-      mark_object (KVAR! (kb, Voverriding_terminal_local_map));
-      mark_object (KVAR! (kb, Vlast_command));
-      mark_object (KVAR! (kb, Vreal_last_command));
-      mark_object (KVAR! (kb, Vkeyboard_translate_table));
-      mark_object (KVAR! (kb, Vlast_repeatable_command));
-      mark_object (KVAR! (kb, Vprefix_arg));
-      mark_object (KVAR! (kb, Vlast_prefix_arg));
+      mark_object (KVAR! (kb, (*Voverriding_terminal_local_map.as_mut_ptr ())));
+      mark_object (KVAR! (kb, (*Vlast_command.as_mut_ptr ())));
+      mark_object (KVAR! (kb, (*Vreal_last_command.as_mut_ptr ())));
+      mark_object (KVAR! (kb, (*Vkeyboard_translate_table.as_mut_ptr ())));
+      mark_object (KVAR! (kb, (*Vlast_repeatable_command.as_mut_ptr ())));
+      mark_object (KVAR! (kb, (*Vprefix_arg.as_mut_ptr ())));
+      mark_object (KVAR! (kb, (*Vlast_prefix_arg.as_mut_ptr ())));
       mark_object (KVAR! (kb, kbd_queue));
-      mark_object (KVAR! (kb, defining_kbd_macro));
-      mark_object (KVAR! (kb, Vlast_kbd_macro));
-      mark_object (KVAR! (kb, Vsystem_key_alist));
+      mark_object (KVAR! (kb, (*defining_kbd_macro.as_mut_ptr ())));
+      mark_object (KVAR! (kb, (*Vlast_kbd_macro.as_mut_ptr ())));
+      mark_object (KVAR! (kb, (*Vsystem_key_alist.as_mut_ptr ())));
       mark_object (KVAR! (kb, system_key_syms));
-      mark_object (KVAR! (kb, Vwindow_system));
-      mark_object (KVAR! (kb, Vinput_decode_map));
-      mark_object (KVAR! (kb, Vlocal_function_key_map));
-      mark_object (KVAR! (kb, Vdefault_minibuffer_frame));
+      mark_object (KVAR! (kb, (*Vwindow_system.as_mut_ptr ())));
+      mark_object (KVAR! (kb, (*Vinput_decode_map.as_mut_ptr ())));
+      mark_object (KVAR! (kb, (*Vlocal_function_key_map.as_mut_ptr ())));
+      mark_object (KVAR! (kb, (*Vdefault_minibuffer_frame.as_mut_ptr ())));
       mark_object (KVAR! (kb, echo_string));
       mark_object (KVAR! (kb, echo_prompt));
       kb = (*kb).next_kboard;
@@ -15990,8 +15989,8 @@ pub unsafe extern "C-unwind" fn mark_kboards ()
   /* C 14660-14668: `#ifndef HAVE_HAIKU` is live and its dead arm is the *shorter* condition
      (`event->kind != SELECTION_REQUEST_EVENT` alone), whose tokens are a subset of the live
      text, so nothing needs carrying.  */
-  let mut event: *mut buffered_input_event = kbd_fetch_ptr;
-  while event != kbd_store_ptr
+  let mut event: *mut buffered_input_event = (*kbd_fetch_ptr.as_mut_ptr ());
+  while event != (*kbd_store_ptr.as_mut_ptr ())
     {
       if (*event).kind != SELECTION_REQUEST_EVENT as u16
 	  && (*event).kind != SELECTION_CLEAR_EVENT as u16

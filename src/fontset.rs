@@ -316,31 +316,31 @@ unsafe extern "C" {
    value is the BSS zero until `syms_of_fontset` assigns `Qnil` (C 2197 onwards), so the
    Lisp_Object ones start null; `use_default_font_for_symbols` is C's tentative `0`.  */
 #[cfg (feature = "have_window_system")]
-pub static mut Vfont_encoding_charset_alist: Lisp_Object = std::ptr::null_mut ();
+pub static Vfont_encoding_charset_alist: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (std::ptr::null_mut ());
 /* C's `DEFVAR_LISP ("use-default-ascent", Vuse_default_ascent, ...)` (fontset.c 2196) defines a
    global symbol, so the port exports it (status 4.777: `xdisp.rs`'s `gui_produce_glyphs` reads it
    and the Android reading called the unexported definition a defect).  */
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub static mut Vuse_default_ascent: Lisp_Object = std::ptr::null_mut ();
+pub static Vuse_default_ascent: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (std::ptr::null_mut ());
 #[cfg (feature = "have_window_system")]
-pub static mut use_default_font_for_symbols: bool = false;                    // C 2209
+pub static use_default_font_for_symbols: VmGlobal<bool> = VmGlobal::<bool>::new (false);                    // C 2209
 /* Same shape as `Vuse_default_ascent` above (C fontset.c 2216).  */
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub static mut Vignore_relative_composition: Lisp_Object = std::ptr::null_mut ();
+pub static Vignore_relative_composition: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (std::ptr::null_mut ());
 #[cfg (feature = "have_window_system")]
-pub static mut Valternate_fontname_alist: Lisp_Object = std::ptr::null_mut ();
+pub static Valternate_fontname_alist: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (std::ptr::null_mut ());
 #[cfg (feature = "have_window_system")]
-pub static mut Vfontset_alias_alist: Lisp_Object = std::ptr::null_mut ();
+pub static Vfontset_alias_alist: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (std::ptr::null_mut ());
 #[cfg (feature = "have_window_system")]
 /* C's `DEFVAR_LISP` in `syms_of_fontset` defines this global; `sfntfont.rs` references it from
    another unit, so the C symbol has to exist (PORTING.md P-313, status 4.722).  */
 #[unsafe(no_mangle)]
-pub static mut Vvertical_centering_font_regexp: Lisp_Object = std::ptr::null_mut ();
+pub static Vvertical_centering_font_regexp: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (std::ptr::null_mut ());
 #[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)]
-pub static mut Votf_script_alist: Lisp_Object = std::ptr::null_mut ();
+pub static Votf_script_alist: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (std::ptr::null_mut ());
 
 /* C 1736's `<intprops.h>` is reached through lisp.h 30 and the mirror is blind to it, so the
    unit declares what it uses (P-88 ①, the `src/android.rs` 110-121 shape).  The C expression
@@ -469,17 +469,17 @@ macro_rules! INT_STRLEN_BOUND {
 
 /* Vector containing all fontsets.  */
 #[cfg (feature = "have_window_system")]
-static mut Vfontset_table: Lisp_Object = std::ptr::null_mut ();            // C 160
+static Vfontset_table: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (std::ptr::null_mut ());            // C 160
 
 /* Next possibly free fontset ID.  Usually this keeps the minimum
    fontset ID not yet used.  */
 #[cfg (feature = "have_window_system")]
-static mut next_fontset_id: c_int = 0;                                     // C 164
+static next_fontset_id: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);                                     // C 164
 
 /* The default fontset.  This gives default FAMILY and REGISTRY of
    font for each character.  */
 #[cfg (feature = "have_window_system")]
-static mut Vdefault_fontset: Lisp_Object = std::ptr::null_mut ();          // C 168
+static Vdefault_fontset: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (std::ptr::null_mut ());          // C 168
 
 /* C 171: `static Lisp_Object make_fontset (Lisp_Object, Lisp_Object, Lisp_Object);` - a
    forward declaration with no Rust item (Rust is order-free; the definition is C 822).  */
@@ -492,7 +492,7 @@ unsafe fn fontset_id_valid_p (id: c_int) -> bool                           // C 
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  return id >= 0 && (id as isize) < ASIZE (Vfontset_table) - 1;
+  return id >= 0 && (id as isize) < ASIZE ((*Vfontset_table.as_mut_ptr ())) - 1;
 
   }
 }
@@ -502,7 +502,7 @@ unsafe fn fontset_id_valid_p (id: c_int) -> bool                           // C 
 
 /* Return the fontset with ID.  No check of ID's validness.  */
 #[cfg (feature = "have_window_system")]
-macro_rules! FONTSET_FROM_ID { ($id:expr) => { AREF (Vfontset_table, $id) }; }   // C 186
+macro_rules! FONTSET_FROM_ID { ($id:expr) => { AREF ((*Vfontset_table.as_mut_ptr ()), $id) }; }   // C 186
 
 /* Access special values of FONTSET.  */
 
@@ -667,7 +667,7 @@ macro_rules! FONTSET_REF {
   ($fontset:expr, $c:expr) => {
     /* C's `c` is an int: `CHAR_TABLE_REF` takes a ptrdiff_t and `fontset_ref` an int, which is
        the one cast the two expansions need.  */
-    if EQ ($fontset, Vdefault_fontset) { CHAR_TABLE_REF ($fontset, $c as isize) }
+    if EQ ($fontset, (*Vdefault_fontset.as_mut_ptr ())) { CHAR_TABLE_REF ($fontset, $c as isize) }
     else { fontset_ref ($fontset, $c) }
   };                                                                      // C 294
 }
@@ -680,10 +680,10 @@ unsafe fn fontset_ref (fontset: Lisp_Object, c: c_int) -> Lisp_Object      // C 
   let mut elt: Lisp_Object;
 
   elt = CHAR_TABLE_REF (fontset, c as isize);
-  if NILP (elt) && ! EQ (fontset, Vdefault_fontset)
+  if NILP (elt) && ! EQ (fontset, (*Vdefault_fontset.as_mut_ptr ()))
       /* Don't check Vdefault_fontset for a realized fontset.  */
       && NILP (FONTSET_BASE! (fontset))
-    { elt = CHAR_TABLE_REF (Vdefault_fontset, c as isize); }
+    { elt = CHAR_TABLE_REF ((*Vdefault_fontset.as_mut_ptr ()), c as isize); }
   return elt;
 
   }
@@ -844,8 +844,8 @@ unsafe fn reorder_font_vector (font_group: Lisp_Object, font: *mut font)   // C 
 		 in the upper bits of SCORE.  */
 	      let mut tail: Lisp_Object;
 
-	      tail = Vcharset_ordered_list;
-	      while ! EQ (tail, Vcharset_non_preferred_head) && CONSP (tail)
+	      tail = (*Vcharset_ordered_list.as_mut_ptr ());
+	      while ! EQ (tail, (*Vcharset_non_preferred_head.as_mut_ptr ())) && CONSP (tail)
 		{
 		  if EQ (encoding, XCAR (tail))
 		    { break; }
@@ -863,9 +863,9 @@ unsafe fn reorder_font_vector (font_group: Lisp_Object, font: *mut font)   // C 
 	      let lang: Lisp_Object = Ffont_get (font_spec, QClang ());
 
 	      if ! NILP (lang)
-		  && ! EQ (lang, Vcurrent_iso639_language)
-		  && (! CONSP (Vcurrent_iso639_language)
-		      || NILP (Fmemq (lang, Vcurrent_iso639_language)))
+		  && ! EQ (lang, (*Vcurrent_iso639_language.as_mut_ptr ()))
+		  && (! CONSP ((*Vcurrent_iso639_language.as_mut_ptr ()))
+		      || NILP (Fmemq (lang, (*Vcurrent_iso639_language.as_mut_ptr ()))))
 		{ score |= 0x100; }
 	    }
 	}
@@ -882,7 +882,7 @@ unsafe fn reorder_font_vector (font_group: Lisp_Object, font: *mut font)   // C 
   /* C's `&` mixes EMACS_UINT with EMACS_INT: the usual arithmetic conversions make both
      EMACS_UINT, and the result converts back to EMACS_INT (the port's two casts).  */
   let low_tick_bits: EMACS_INT
-    = (charset_ordered_list_tick & (MOST_POSITIVE_FIXNUM as EMACS_UINT)) as EMACS_INT;
+    = ((*charset_ordered_list_tick.as_mut_ptr ()) & (MOST_POSITIVE_FIXNUM as EMACS_UINT)) as EMACS_INT;
   XSETCAR (font_group, make_fixnum (low_tick_bits));
 
   }
@@ -999,7 +999,7 @@ unsafe fn fontset_find_font (fontset: Lisp_Object, c: c_int, face: *mut face,   
   let mut found_index: c_int;
   let f: *mut frame = if FRAMEP (FONTSET_FRAME! (fontset))
 		      { XFRAME (FONTSET_FRAME! (fontset)) }
-		      else { XFRAME (selected_frame) };
+		      else { XFRAME ((*selected_frame.as_mut_ptr ())) };
   let mut rfont_def: Lisp_Object;
 
   font_group = fontset_get_font_group (fontset, if fallback { -1 } else { c });
@@ -1011,7 +1011,7 @@ unsafe fn fontset_find_font (fontset: Lisp_Object, c: c_int, face: *mut face,   
 
   if ASIZE (vec) > 1
     {
-      if XFIXNUM (XCAR (font_group)) != charset_ordered_list_tick as EMACS_INT
+      if XFIXNUM (XCAR (font_group)) != (*charset_ordered_list_tick.as_mut_ptr ()) as EMACS_INT
 	/* We have just created the font-group,
 	   or the charset priorities were changed.  */
 	{ reorder_font_vector (font_group, (*(*face).ascii_face).font as *mut font); }
@@ -1238,12 +1238,12 @@ unsafe fn fontset_font (fontset: Lisp_Object, c: c_int, face: *mut face,   // C 
 
   /* Try a font-group of the default fontset. */
   base_fontset = FONTSET_BASE! (fontset);
-  if ! EQ (base_fontset, Vdefault_fontset)
+  if ! EQ (base_fontset, (*Vdefault_fontset.as_mut_ptr ()))
     {
       if NILP (FONTSET_DEFAULT! (fontset))
 	{ set_fontset_default
 	    (fontset,
-	     make_fontset (FONTSET_FRAME! (fontset), Qnil (), Vdefault_fontset)); }
+	     make_fontset (FONTSET_FRAME! (fontset), Qnil (), (*Vdefault_fontset.as_mut_ptr ()))); }
       FONT_DEFERRED_LOG! (c"default fontset: font for".as_ptr (), make_fixnum (c as EMACS_INT),
 			  Qnil ());
       default_rfont_def
@@ -1268,7 +1268,7 @@ unsafe fn fontset_font (fontset: Lisp_Object, c: c_int, face: *mut face,   // C 
     }
 
   /* Try a fallback font-group of the default fontset. */
-  if ! EQ (base_fontset, Vdefault_fontset)
+  if ! EQ (base_fontset, (*Vdefault_fontset.as_mut_ptr ()))
       && ! EQ (default_rfont_def, Qt ())
     {
       FONT_DEFERRED_LOG! (c"default fallback: font for".as_ptr (), make_fixnum (c as EMACS_INT),
@@ -1295,18 +1295,18 @@ unsafe fn make_fontset (frame: Lisp_Object, name: Lisp_Object, base: Lisp_Object
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {                                                                          // C 822
   let mut fontset: Lisp_Object;
-  let size: c_int = ASIZE (Vfontset_table) as c_int;
-  let mut id: c_int = next_fontset_id;
+  let size: c_int = ASIZE ((*Vfontset_table.as_mut_ptr ())) as c_int;
+  let mut id: c_int = (*next_fontset_id.as_mut_ptr ());
 
   /* Find a free slot in Vfontset_table.  Usually, next_fontset_id is
      the next available fontset ID.  So it is expected that this loop
      terminates quickly.  In addition, as the last element of
      Vfontset_table is always nil, we don't have to check the range of
      id.  */
-  while ! NILP (AREF (Vfontset_table, id as isize)) { id += 1; }
+  while ! NILP (AREF ((*Vfontset_table.as_mut_ptr ()), id as isize)) { id += 1; }
 
   if id + 1 == size
-    { Vfontset_table = larger_vector (Vfontset_table, 1, -1); }
+    { (*Vfontset_table.as_mut_ptr ()) = larger_vector ((*Vfontset_table.as_mut_ptr ()), 1, -1); }
 
   fontset = Fmake_char_table (Qfontset (), Qnil ());
 
@@ -1320,8 +1320,8 @@ unsafe fn make_fontset (frame: Lisp_Object, name: Lisp_Object, base: Lisp_Object
       set_fontset_base (fontset, base);
     }
 
-  ASET (Vfontset_table, id as isize, fontset);
-  next_fontset_id = id + 1;
+  ASET ((*Vfontset_table.as_mut_ptr ()), id as isize, fontset);
+  (*next_fontset_id.as_mut_ptr ()) = id + 1;
   return fontset;
 
   }
@@ -1383,19 +1383,19 @@ pub unsafe fn free_face_fontset (f: *mut frame, face: *mut face)               /
     { return; }
   eassert! (! BASE_FONTSET_P! (fontset));
   eassert! (f == XFRAME (FONTSET_FRAME! (fontset)));
-  ASET (Vfontset_table, (*face).fontset as isize, Qnil ());
-  if (*face).fontset < next_fontset_id
-    { next_fontset_id = (*face).fontset; }
+  ASET ((*Vfontset_table.as_mut_ptr ()), (*face).fontset as isize, Qnil ());
+  if (*face).fontset < (*next_fontset_id.as_mut_ptr ())
+    { (*next_fontset_id.as_mut_ptr ()) = (*face).fontset; }
   if ! NILP (FONTSET_DEFAULT! (fontset))
     {
       let id: c_int = XFIXNUM (FONTSET_ID! (FONTSET_DEFAULT! (fontset))) as c_int;
 
-      fontset = AREF (Vfontset_table, id as isize);
+      fontset = AREF ((*Vfontset_table.as_mut_ptr ()), id as isize);
       eassert! (!NILP (fontset) && ! BASE_FONTSET_P! (fontset));
       eassert! (f == XFRAME (FONTSET_FRAME! (fontset)));
-      ASET (Vfontset_table, id as isize, Qnil ());
-      if id < next_fontset_id
-	{ next_fontset_id = (*face).fontset; }
+      ASET ((*Vfontset_table.as_mut_ptr ()), id as isize, Qnil ());
+      if id < (*next_fontset_id.as_mut_ptr ())
+	{ (*next_fontset_id.as_mut_ptr ()) = (*face).fontset; }
     }
   (*face).fontset = -1;
 
@@ -1422,8 +1422,8 @@ pub unsafe fn face_for_char (f: *mut frame, face: *mut face, c: c_int,       // 
   if ASCII_CHAR_P (c as isize) || CHAR_BYTE8_P (c)
     { return (*(*face).ascii_face).id; }
 
-  if use_default_font_for_symbols  /* let the user disable this feature */
-      && c > 0 && EQ (CHAR_TABLE_REF (Vchar_script_table, c as isize), Qsymbol ())
+  if (*use_default_font_for_symbols.as_mut_ptr ())  /* let the user disable this feature */
+      && c > 0 && EQ (CHAR_TABLE_REF ((*Vchar_script_table.as_mut_ptr ()), c as isize), Qsymbol ())
     {
       let mut font_object: Lisp_Object;
 
@@ -1464,7 +1464,7 @@ pub unsafe fn face_for_char (f: *mut frame, face: *mut face, c: c_int,       // 
 	{
 	  let mut val: Lisp_Object;
 
-	  val = assq_no_quit (charset, Vfont_encoding_charset_alist);
+	  val = assq_no_quit (charset, (*Vfont_encoding_charset_alist.as_mut_ptr ()));
 	  if CONSP (val) && CHARSETP! (XCDR (val))
 	    { charset = XCDR (val); }
 	  id = XFIXNUM (CHARSET_SYMBOL_ID! (charset)) as c_int;
@@ -1539,7 +1539,7 @@ pub unsafe fn font_for_char (face: *mut face, c: c_int, pos: ptrdiff_t,   // C 1
 	{
 	  let mut val: Lisp_Object;
 
-	  val = assq_no_quit (charset, Vfont_encoding_charset_alist);
+	  val = assq_no_quit (charset, (*Vfont_encoding_charset_alist.as_mut_ptr ()));
 	  if CONSP (val) && CHARSETP! (XCDR (val))
 	    { charset = XCDR (val); }
 	  id = XFIXNUM (CHARSET_SYMBOL_ID! (charset)) as c_int;
@@ -1582,7 +1582,7 @@ pub unsafe fn make_fontset_for_ascii_face (f: *mut frame, base_fontset_id: c_int
       eassert! (BASE_FONTSET_P! (base_fontset));
     }
   else
-    { base_fontset = Vdefault_fontset; }
+    { base_fontset = (*Vdefault_fontset.as_mut_ptr ()); }
 
   fontset = make_fontset (frame, Qnil (), base_fontset);
   return XFIXNUM (FONTSET_ID! (fontset)) as c_int;
@@ -1595,15 +1595,15 @@ pub unsafe fn make_fontset_for_ascii_face (f: *mut frame, base_fontset_id: c_int
    pattern string containing at least one wild card, the cdr part is
    the corresponding regular expression.  */
 #[cfg (feature = "have_window_system")]
-static mut Vcached_fontset_data: Lisp_Object = std::ptr::null_mut ();         // C 1109
+static Vcached_fontset_data: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (std::ptr::null_mut ());         // C 1109
 
 #[cfg (feature = "have_window_system")]
 macro_rules! CACHED_FONTSET_NAME {
-  () => { SSDATA (XCAR (Vcached_fontset_data)) };                            // C 1111
+  () => { SSDATA (XCAR ((*Vcached_fontset_data.as_mut_ptr ()))) };                            // C 1111
 }
 #[cfg (feature = "have_window_system")]
 macro_rules! CACHED_FONTSET_REGEX {
-  () => { XCDR (Vcached_fontset_data) };                                     // C 1112
+  () => { XCDR ((*Vcached_fontset_data.as_mut_ptr ())) };                                     // C 1112
 }
 
 /* If fontset name PATTERN contains any wild card, return regular
@@ -1619,7 +1619,7 @@ unsafe fn fontset_pattern_regexp (pattern: Lisp_Object) -> Lisp_Object       // 
     /* PATTERN does not contain any wild cards.  */
     { return Qnil (); }
 
-  if !CONSP (Vcached_fontset_data)
+  if !CONSP ((*Vcached_fontset_data.as_mut_ptr ()))
       || strcmp (SSDATA (pattern), CACHED_FONTSET_NAME! ()) != 0
     {
       /* We must at first update the cached data.  */
@@ -1682,7 +1682,7 @@ unsafe fn fontset_pattern_regexp (pattern: Lisp_Object) -> Lisp_Object       // 
       *p1 = b'$'; p1 = p1.add (1);
       *p1 = 0; p1 = p1.add (1);
 
-      Vcached_fontset_data = Fcons (build_string (SSDATA (pattern)),
+      (*Vcached_fontset_data.as_mut_ptr ()) = Fcons (build_string (SSDATA (pattern)),
 				    build_string (regex as *const c_char));
       SAFE_FREE! (sa_count, sa_mark);
     }
@@ -1713,9 +1713,9 @@ pub unsafe fn fs_query_fontset (name: Lisp_Object, name_pattern: c_int) -> c_int
   name = Fdowncase (name);
   if name_pattern != 1
     {
-      tem = Frassoc (name, Vfontset_alias_alist);
+      tem = Frassoc (name, (*Vfontset_alias_alist.as_mut_ptr ()));
       if NILP (tem)
-	{ tem = Fassoc (name, Vfontset_alias_alist, Qnil ()); }
+	{ tem = Fassoc (name, (*Vfontset_alias_alist.as_mut_ptr ()), Qnil ()); }
       if CONSP (tem) && STRINGP (XCAR (tem))
 	{ name = XCAR (tem); }
       else if name_pattern == 0
@@ -1730,7 +1730,7 @@ pub unsafe fn fs_query_fontset (name: Lisp_Object, name_pattern: c_int) -> c_int
     }
 
   i = 0;
-  while i < ASIZE (Vfontset_table) as c_int
+  while i < ASIZE ((*Vfontset_table.as_mut_ptr ())) as c_int
     {
       let mut fontset: Lisp_Object;
       let mut this_name: Lisp_Object;
@@ -1800,7 +1800,7 @@ pub unsafe fn list_fontsets (f: *mut frame, pattern: Lisp_Object,     // C 1266
   val = Qnil ();
 
   id = 0;
-  while id < ASIZE (Vfontset_table) as c_int
+  while id < ASIZE ((*Vfontset_table.as_mut_ptr ())) as c_int
     {
       let mut fontset: Lisp_Object;
       let mut name: Lisp_Object;
@@ -1844,9 +1844,9 @@ unsafe fn free_realized_fontsets (base: Lisp_Object)                          //
   /* But, we don't have to call Fclear_face_cache if no fontset has
      been realized from BASE.  */
   id = 0;
-  while id < ASIZE (Vfontset_table) as c_int
+  while id < ASIZE ((*Vfontset_table.as_mut_ptr ())) as c_int
     {
-      let this: Lisp_Object = AREF (Vfontset_table, id as isize);
+      let this: Lisp_Object = AREF ((*Vfontset_table.as_mut_ptr ()), id as isize);
 
       if CHAR_TABLE_P (this) && EQ (FONTSET_BASE! (this), base)
 	{
@@ -1884,7 +1884,7 @@ unsafe fn check_fontset_name (name: Lisp_Object, frame: *mut Lisp_Object) -> Lis
   XSETFRAME! (*frame, f);
 
   if EQ (name, Qt ())
-    { return Vdefault_fontset; }
+    { return (*Vdefault_fontset.as_mut_ptr ()); }
   if NILP (name)
     {
       if !FRAME_WINDOW_P (f)
@@ -2159,13 +2159,13 @@ to be shown using the fonts from before the call.  ",        // C 1462-1514
       let mut val: Lisp_Object;
 
       range_list = Qnil ();
-      script_list = FAM_ELEM! ((*XCHAR_TABLE (Vchar_script_table)).extras, 0);
+      script_list = FAM_ELEM! ((*XCHAR_TABLE ((*Vchar_script_table.as_mut_ptr ()))).extras, 0);
       if ! NILP (Fmemq (characters, script_list))
 	{
 	  if EQ (characters, Qlatin ())
 	    { ascii_changed = true; }
 	  val = list1 (characters);
-	  map_char_table (Some (accumulate_script_ranges), Qnil (), Vchar_script_table,
+	  map_char_table (Some (accumulate_script_ranges), Qnil (), (*Vchar_script_table.as_mut_ptr ()),
 			  val);
 	  range_list = Fnreverse (XCDR (val));
 	}
@@ -2302,8 +2302,8 @@ FONT-SPEC is a vector, a cons, or a string.  See the documentation of
       if strncmp (SSDATA (SYMBOL_NAME (short_name)), c"fontset-".as_ptr (), 8) != 0
 	  || SBYTES (SYMBOL_NAME (short_name)) < 9
 	{ error (c"Registry field of fontset name must be \"fontset-*\"".as_ptr ()); }
-      Vfontset_alias_alist = Fcons (Fcons (name, SYMBOL_NAME (short_name)),
-				    Vfontset_alias_alist);
+      (*Vfontset_alias_alist.as_mut_ptr ()) = Fcons (Fcons (name, SYMBOL_NAME (short_name)),
+				    (*Vfontset_alias_alist.as_mut_ptr ()));
       ASET (font_spec, FONT_REGISTRY_INDEX as isize, Qiso8859_1 ());
       fontset = make_fontset (Qnil (), name, Qnil ());
       string = font_dynamic_unparse_xlfd (font_spec, 0);
@@ -2348,11 +2348,11 @@ FONT-SPEC is a vector, a cons, or a string.  See the documentation of
 /* Alist of automatically created fontsets.  Each element is a cons
    (FONT-SPEC . FONTSET-ID).  */
 #[cfg (feature = "have_window_system")]
-static mut auto_fontset_alist: Lisp_Object = std::ptr::null_mut ();           // C 1782
+static auto_fontset_alist: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (std::ptr::null_mut ());           // C 1782
 
 /* Number of automatically created fontsets.  */
 #[cfg (feature = "have_window_system")]
-static mut num_auto_fontsets: ptrdiff_t = 0;                                  // C 1785
+static num_auto_fontsets: VmGlobal<ptrdiff_t> = VmGlobal::<ptrdiff_t>::new (0);                                  // C 1785
 
 /* Return a fontset synthesized from FONT-OBJECT.  This is called from
    the terminal hook set_new_font_hook when FONT-OBJECT is used for
@@ -2380,11 +2380,11 @@ pub unsafe fn fontset_from_font (font_object: Lisp_Object) -> c_int          // 
   let mut val: Lisp_Object;
   let mut xlfd: Lisp_Object;
 
-  val = assoc_no_quit (font_spec, auto_fontset_alist);
+  val = assoc_no_quit (font_spec, (*auto_fontset_alist.as_mut_ptr ()));
   if CONSP (val)
     { return XFIXNUM (FONTSET_ID! (XCDR (val))) as c_int; }
-  let previous_count: ptrdiff_t = num_auto_fontsets;
-  num_auto_fontsets += 1;
+  let previous_count: ptrdiff_t = (*num_auto_fontsets.as_mut_ptr ());
+  (*num_auto_fontsets.as_mut_ptr ()) += 1;
   if previous_count == 0
     { alias = Qfontset_startup (); }
   else
@@ -2395,7 +2395,7 @@ pub unsafe fn fontset_from_font (font_object: Lisp_Object) -> c_int          // 
       let mut temp: [c_char; std::mem::size_of::<[c_char; 13]> () + INT_STRLEN_BOUND! (ptrdiff_t)] =
 	[0; std::mem::size_of::<[c_char; 13]> () + INT_STRLEN_BOUND! (ptrdiff_t)];
 
-      sprintf (temp.as_mut_ptr (), c"fontset-auto%td".as_ptr (), num_auto_fontsets - 1);
+      sprintf (temp.as_mut_ptr (), c"fontset-auto%td".as_ptr (), (*num_auto_fontsets.as_mut_ptr ()) - 1);
       alias = intern (temp.as_mut_ptr ());
     }
   fontset_spec = copy_font_spec (font_spec);
@@ -2403,15 +2403,15 @@ pub unsafe fn fontset_from_font (font_object: Lisp_Object) -> c_int          // 
   name = Ffont_xlfd_name (fontset_spec, Qnil (), Qt ());
   eassert! (!NILP (name));
   fontset = make_fontset (Qnil (), name, Qnil ());
-  Vfontset_alias_alist = Fcons (Fcons (name, SYMBOL_NAME (alias)),
-				Vfontset_alias_alist);
+  (*Vfontset_alias_alist.as_mut_ptr ()) = Fcons (Fcons (name, SYMBOL_NAME (alias)),
+				(*Vfontset_alias_alist.as_mut_ptr ()));
 
   xlfd = AREF (font_object, FONT_NAME_INDEX as isize);
   alias = Fdowncase (xlfd);
-  Vfontset_alias_alist
-    = Fcons (Fcons (name, alias), Vfontset_alias_alist);
-  auto_fontset_alist
-    = Fcons (Fcons (font_spec, fontset), auto_fontset_alist);
+  (*Vfontset_alias_alist.as_mut_ptr ())
+    = Fcons (Fcons (name, alias), (*Vfontset_alias_alist.as_mut_ptr ()));
+  (*auto_fontset_alist.as_mut_ptr ())
+    = Fcons (Fcons (font_spec, fontset), (*auto_fontset_alist.as_mut_ptr ()));
 
   font_spec = Ffont_spec (0, std::ptr::null_mut ());
   ASET (font_spec, FONT_REGISTRY_INDEX as isize, registry);
@@ -2447,13 +2447,13 @@ unsafe fn update_auto_fontset_alist (font_object: Lisp_Object, fontset: Lisp_Obj
   let mut prev: Lisp_Object;
   let mut tail: Lisp_Object;
 
-  prev = Qnil (); tail = auto_fontset_alist;
+  prev = Qnil (); tail = (*auto_fontset_alist.as_mut_ptr ());
   while CONSP (tail)
     {
       if EQ (fontset, XCDR (XCAR (tail)))
 	{
 	  if NILP (prev)
-	    { auto_fontset_alist = XCDR (tail); }
+	    { (*auto_fontset_alist.as_mut_ptr ()) = XCDR (tail); }
 	  else
 	    { XSETCDR (prev, XCDR (tail)); }
 	  break;
@@ -2506,11 +2506,11 @@ format is the same as above.  ",                              // C 1876-1892
   /* Recode fontsets realized on FRAME from the base fontset FONTSET
      in the table `realized'.  */
   USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
-  SAFE_ALLOCA_LISP! (sa_avail, realized0, 2 * ASIZE (Vfontset_table));
+  SAFE_ALLOCA_LISP! (sa_avail, realized0, 2 * ASIZE ((*Vfontset_table.as_mut_ptr ())));
   realized[0] = realized0;
-  realized[1] = realized[0].add (ASIZE (Vfontset_table) as usize);
+  realized[1] = realized[0].add (ASIZE ((*Vfontset_table.as_mut_ptr ())) as usize);
   i = 0; j = 0;
-  while i < ASIZE (Vfontset_table) as c_int
+  while i < ASIZE ((*Vfontset_table.as_mut_ptr ())) as c_int
     {
       elt = FONTSET_FROM_ID! (i as isize);
       if !NILP (elt)
@@ -2539,11 +2539,11 @@ format is the same as above.  ",                              // C 1876-1892
 
   tables[0] = Fmake_char_table (Qfontset_info (), Qnil ());
   fontsets[0] = fontset;
-  if !EQ (fontset, Vdefault_fontset)
+  if !EQ (fontset, (*Vdefault_fontset.as_mut_ptr ()))
     {
       tables[1] = Fmake_char_table (Qnil (), Qnil ());
       set_char_table_extras (tables[0], 0, tables[1]);
-      fontsets[1] = Vdefault_fontset;
+      fontsets[1] = (*Vdefault_fontset.as_mut_ptr ());
     }
 
   /* Accumulate information of the fontset in TABLE.  The format of
@@ -2630,7 +2630,7 @@ format is the same as above.  ",                              // C 1876-1892
 	    }
 	  c = to + 1;
 	}
-      if EQ (fontset, Vdefault_fontset)
+      if EQ (fontset, (*Vdefault_fontset.as_mut_ptr ()))
 	{ break; }
       k += 1;
     }
@@ -2718,9 +2718,9 @@ patterns.  ",                                                 // C 2013-2025
 	i += 1;
 	elt = FONTSET_FALLBACK! (fontset);
       }
-    if EQ (fontset, Vdefault_fontset)
+    if EQ (fontset, (*Vdefault_fontset.as_mut_ptr ()))
       { break; }
-    fontset = Vdefault_fontset;
+    fontset = (*Vdefault_fontset.as_mut_ptr ());
   }
   return Fnreverse (list);
 });
@@ -2736,7 +2736,7 @@ DEFUN! ("fontset-list", Ffontset_list, Sfontset_list, 0, 0, 0,
 
   list = Qnil ();
   i = 0;
-  while i < ASIZE (Vfontset_table) as c_int
+  while i < ASIZE ((*Vfontset_table.as_mut_ptr ())) as c_int
     {
       fontset = FONTSET_FROM_ID! (i as isize);
       if !NILP (fontset)
@@ -2796,10 +2796,10 @@ DEFUN! ("fontset-list-all", Ffontset_list_all, Sfontset_list_all, 0, 0, 0,
   let mut i: c_int;
 
   val = Qnil (); i = 0;
-  while i < ASIZE (Vfontset_table) as c_int
+  while i < ASIZE ((*Vfontset_table.as_mut_ptr ())) as c_int
     {
-      if ! NILP (AREF (Vfontset_table, i as isize))
-	{ val = Fcons (dump_fontset (AREF (Vfontset_table, i as isize)), val); }
+      if ! NILP (AREF ((*Vfontset_table.as_mut_ptr ()), i as isize))
+	{ val = Fcons (dump_fontset (AREF ((*Vfontset_table.as_mut_ptr ()), i as isize)), val); }
       i += 1;
     }
   return Fnreverse (val);
@@ -2821,24 +2821,24 @@ pub unsafe fn syms_of_fontset ()                                            // C
   DEFSYM! (Qappend, c"append");
   DEFSYM! (Qlatin, c"latin");
 
-  Vcached_fontset_data = Qnil ();
-  staticpro (&raw const Vcached_fontset_data);
+  (*Vcached_fontset_data.as_mut_ptr ()) = Qnil ();
+  staticpro (Vcached_fontset_data.as_ptr ());
 
-  Vfontset_table = make_nil_vector (32);
-  staticpro (&raw const Vfontset_table);
+  (*Vfontset_table.as_mut_ptr ()) = make_nil_vector (32);
+  staticpro (Vfontset_table.as_ptr ());
 
-  Vdefault_fontset = Fmake_char_table (Qfontset (), Qnil ());
-  staticpro (&raw const Vdefault_fontset);
-  set_fontset_id (Vdefault_fontset, make_fixnum (0));
+  (*Vdefault_fontset.as_mut_ptr ()) = Fmake_char_table (Qfontset (), Qnil ());
+  staticpro (Vdefault_fontset.as_ptr ());
+  set_fontset_id ((*Vdefault_fontset.as_mut_ptr ()), make_fixnum (0));
   set_fontset_name
-    (Vdefault_fontset,
+    ((*Vdefault_fontset.as_mut_ptr ()),
      build_string (c"-*-*-*-*-*-*-*-*-*-*-*-*-fontset-default".as_ptr ()));
-  ASET (Vfontset_table, 0, Vdefault_fontset);
-  next_fontset_id = 1;
-  PDUMPER_REMEMBER_SCALAR! (next_fontset_id);
+  ASET ((*Vfontset_table.as_mut_ptr ()), 0, (*Vdefault_fontset.as_mut_ptr ()));
+  (*next_fontset_id.as_mut_ptr ()) = 1;
+  PDUMPER_REMEMBER_SCALAR! ((*next_fontset_id.as_mut_ptr ()));
 
-  auto_fontset_alist = Qnil ();
-  staticpro (&raw const auto_fontset_alist);
+  (*auto_fontset_alist.as_mut_ptr ()) = Qnil ();
+  staticpro (auto_fontset_alist.as_ptr ());
 
   DEFVAR_LISP! (c"font-encoding-charset-alist", Vfont_encoding_charset_alist,
 	       " Alist of charsets vs the charsets to determine the preferred font encoding.
@@ -2848,7 +2848,7 @@ where ENCODING-CHARSET is a charset registered in the variable
 
 When a text has a property `charset' and the value is CHARSET, a font
 whose encoding corresponds to ENCODING-CHARSET is preferred.  ");
-  Vfont_encoding_charset_alist = Qnil ();
+  (*Vfont_encoding_charset_alist.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"use-default-ascent", Vuse_default_ascent,
 	       " Char table of characters whose ascent values should be ignored.
@@ -2857,7 +2857,7 @@ is assumed to be specified by _MULE_DEFAULT_ASCENT property of a font.
 
 This affects how a composite character which contains
 such a character is displayed on screen.  ");
-  Vuse_default_ascent = Qnil ();
+  (*Vuse_default_ascent.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_BOOL! (c"use-default-font-for-symbols", use_default_font_for_symbols,
 	       " If non-nil, use the default face's font for symbols and punctuation.
@@ -2866,7 +2866,7 @@ By default, Emacs will try to use the default face's font for
 displaying symbol and punctuation characters, disregarding the
 fontsets, if the default font can display the character.
 Set this to nil to make Emacs honor the fontsets instead.  ");
-  use_default_font_for_symbols = true;
+  (*use_default_font_for_symbols.as_mut_ptr ()) = true;
 
   DEFVAR_LISP! (c"ignore-relative-composition", Vignore_relative_composition,
 	       " Char table of characters which are not composed relatively.
@@ -2874,18 +2874,18 @@ If an entry for a character is non-nil, a composition sequence
 which contains that character is displayed so that
 the glyph of that character is put without considering
 an ascent and descent value of a previous character.  ");
-  Vignore_relative_composition = Qnil ();
+  (*Vignore_relative_composition.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"alternate-fontname-alist", Valternate_fontname_alist,
 	       " Alist of fontname vs list of the alternate fontnames.
 When a specified font name is not found, the corresponding
 alternate fontnames (if any) are tried instead.  ");
-  Valternate_fontname_alist = Qnil ();
+  (*Valternate_fontname_alist.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"fontset-alias-alist", Vfontset_alias_alist,
 	       " Alist of fontset names vs the aliases.  ");
-  Vfontset_alias_alist
-    = list1 (Fcons (FONTSET_NAME! (Vdefault_fontset),
+  (*Vfontset_alias_alist.as_mut_ptr ())
+    = list1 (Fcons (FONTSET_NAME! ((*Vdefault_fontset.as_mut_ptr ())),
 		    build_string (c"fontset-default".as_ptr ())));
 
   DEFVAR_LISP! (c"vertical-centering-font-regexp",
@@ -2893,21 +2893,21 @@ alternate fontnames (if any) are tried instead.  ");
 	       " Regexp matching font names that require vertical centering on display.
 When a character is displayed with such fonts, the character is displayed
 at the vertical center of lines.  ");
-  Vvertical_centering_font_regexp = Qnil ();
+  (*Vvertical_centering_font_regexp.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"otf-script-alist", Votf_script_alist,
 	       " Alist of OpenType script tags vs the corresponding script names.  ");
-  Votf_script_alist = Qnil ();
+  (*Votf_script_alist.as_mut_ptr ()) = Qnil ();
 
-  defsubr (&raw mut Squery_fontset);
-  defsubr (&raw mut Snew_fontset);
-  defsubr (&raw mut Sset_fontset_font);
-  defsubr (&raw mut Sfontset_info);
-  defsubr (&raw mut Sfontset_font);
-  defsubr (&raw mut Sfontset_list);
+  defsubr (Squery_fontset.as_mut_ptr ());
+  defsubr (Snew_fontset.as_mut_ptr ());
+  defsubr (Sset_fontset_font.as_mut_ptr ());
+  defsubr (Sfontset_info.as_mut_ptr ());
+  defsubr (Sfontset_font.as_mut_ptr ());
+  defsubr (Sfontset_list.as_mut_ptr ());
   #[cfg (feature = "enable_checking")]
   {
-    defsubr (&raw mut Sfontset_list_all);
+    defsubr (Sfontset_list_all.as_mut_ptr ());
   }
 
   }

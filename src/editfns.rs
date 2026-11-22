@@ -213,14 +213,14 @@ unsafe extern "C" {
 
 /* The cached value of Vsystem_name.  This is used only to compare it
    to Vsystem_name, so it need not be visible to the GC.  */
-static mut cached_system_name: Lisp_Object = lisp_h_Qnil ();
+static cached_system_name: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 unsafe fn init_and_cache_system_name ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
   init_system_name ();
-  cached_system_name = Vsystem_name;
+  (*cached_system_name.as_mut_ptr ()) = (*Vsystem_name.as_mut_ptr ());
 
   }
 }
@@ -240,7 +240,7 @@ pub unsafe extern "C-unwind" fn init_editfns ()
 
   pw = getpwuid (getuid ());
   /* #ifdef MSDOS: dead in the frozen configuration (docs/ports/editfns.md).  */
-  Vuser_real_login_name = build_string (if pw.is_null () { c"unknown".as_ptr () }
+  (*Vuser_real_login_name.as_mut_ptr ()) = build_string (if pw.is_null () { c"unknown".as_ptr () }
                                         else { (*pw).pw_name });
 
   /* Get the effective user name, by consulting environment variables,
@@ -254,30 +254,30 @@ pub unsafe extern "C-unwind" fn init_editfns ()
       pw = getpwuid (geteuid ());
       user_name = if pw.is_null () { c"unknown".as_ptr () } else { (*pw).pw_name };
     }
-  Vuser_login_name = build_string (user_name);
+  (*Vuser_login_name.as_mut_ptr ()) = build_string (user_name);
 
   /* If the user name claimed in the environment vars differs from
      the real uid, use the claimed name to find the full name.  */
-  tem = Fstring_equal (Vuser_login_name, Vuser_real_login_name);
+  tem = Fstring_equal ((*Vuser_login_name.as_mut_ptr ()), (*Vuser_real_login_name.as_mut_ptr ()));
   if !NILP (tem)
-    { tem = Vuser_login_name; }
+    { tem = (*Vuser_login_name.as_mut_ptr ()); }
   else
     {
       let euid: uid_t = geteuid ();
       tem = INT_TO_INTEGER (euid as EMACS_INT);
     }
-  Vuser_full_name = Fuser_full_name (tem);
+  (*Vuser_full_name.as_mut_ptr ()) = Fuser_full_name (tem);
 
   p = getenv (c"NAME".as_ptr ());
   if !p.is_null ()
-    { Vuser_full_name = build_string (p); }
-  else if NILP (Vuser_full_name)
-    { Vuser_full_name = build_string (c"unknown".as_ptr ()); }
+    { (*Vuser_full_name.as_mut_ptr ()) = build_string (p); }
+  else if NILP ((*Vuser_full_name.as_mut_ptr ()))
+    { (*Vuser_full_name.as_mut_ptr ()) = build_string (c"unknown".as_ptr ()); }
 
   {
     let mut uts: utsname = std::mem::zeroed ();
     uname (&mut uts);
-    Voperating_system_release = build_string (uts.release.as_ptr ());
+    (*Voperating_system_release.as_mut_ptr ()) = build_string (uts.release.as_ptr ());
   }
 
   }
@@ -363,8 +363,8 @@ unsafe fn region_limit (beginningp: bool) -> Lisp_Object
   unsafe {
   let mut m: Lisp_Object = Qnil ();
 
-  if !NILP (Vtransient_mark_mode)
-      && NILP (Vmark_even_if_inactive)
+  if !NILP ((*Vtransient_mark_mode.as_mut_ptr ()))
+      && NILP ((*Vmark_even_if_inactive.as_mut_ptr ()))
       && NILP (BVAR! ((current_buffer! ()), mark_active_))
     { xsignal0 (Qmark_inactive ()); }
 
@@ -707,7 +707,7 @@ DEFUN! ("constrain-to-field", Fconstrain_to_field, Sconstrain_to_field, 2, 5, 0,
   prev_old = make_fixnum (XFIXNUM (old_pos) - 1);
   prev_new = make_fixnum (XFIXNUM (new_pos) - 1);
 
-  if NILP (Vinhibit_field_text_motion)
+  if NILP ((*Vinhibit_field_text_motion.as_mut_ptr ()))
       && !BASE_EQ (new_pos, old_pos)
       && (!NILP (Fget_char_property (new_pos, Qfield (), Qnil ()))
           || !NILP (Fget_char_property (old_pos, Qfield (), Qnil ()))
@@ -861,8 +861,8 @@ pub unsafe extern "C-unwind" fn save_excursion_save (pdl: *mut specbinding)
   (*pdl).unwind_excursion.marker = Fpoint_marker ();
   /* Selected window if current buffer is shown in it, nil otherwise.  */
   (*pdl).unwind_excursion.window
-    = if BASE_EQ ((*XWINDOW (selected_window)).contents, Fcurrent_buffer ())
-      { selected_window } else { Qnil () };
+    = if BASE_EQ ((*XWINDOW ((*selected_window.as_mut_ptr ()))).contents, Fcurrent_buffer ())
+      { (*selected_window.as_mut_ptr ()) } else { Qnil () };
 
   }
 }
@@ -889,7 +889,7 @@ pub unsafe extern "C-unwind" fn save_excursion_restore (marker: Lisp_Object, win
   /* If buffer was visible in a window, and a different window was
      selected, and the old selected window is still showing this
      buffer, restore point in that window.  */
-  if WINDOWP (window) && !BASE_EQ (window, selected_window)
+  if WINDOWP (window) && !BASE_EQ (window, (*selected_window.as_mut_ptr ()))
     {
       /* Set window point if WINDOW is live and shows the current buffer.  */
       let contents: Lisp_Object = (*XWINDOW (window)).contents;
@@ -1166,11 +1166,11 @@ DEFUN! ("user-login-name", Fuser_login_name, Suser_login_name, 0, 1, 0,
   /* Set up the user name info if we didn't do it before.
      (That can happen if Emacs is dumpable
      but you decide to run `temacs -l loadup' and not dump.  */
-  if NILP (Vuser_login_name)
+  if NILP ((*Vuser_login_name.as_mut_ptr ()))
     { init_editfns (); }
 
   if NILP (uid)
-    { return Vuser_login_name; }
+    { return (*Vuser_login_name.as_mut_ptr ()); }
 
   let mut id_signed: intmax_t;
   CONS_TO_INTEGER! (uid, id_signed);
@@ -1189,9 +1189,9 @@ DEFUN! ("user-real-login-name", Fuser_real_login_name, Suser_real_login_name,
   /* Set up the user name info if we didn't do it before.
      (That can happen if Emacs is dumpable
      but you decide to run `temacs -l loadup' and not dump.  */
-  if NILP (Vuser_login_name)
+  if NILP ((*Vuser_login_name.as_mut_ptr ()))
     { init_editfns (); }
-  return Vuser_real_login_name;
+  return (*Vuser_real_login_name.as_mut_ptr ());
 });
 
 DEFUN! ("user-uid", Fuser_uid, Suser_uid, 0, 0, 0,
@@ -1254,7 +1254,7 @@ DEFUN! ("user-full-name", Fuser_full_name, Suser_full_name, 0, 1, 0,
   let mut full: Lisp_Object = Qnil ();
 
   if NILP (uid)
-    { return Vuser_full_name; }
+    { return (*Vuser_full_name.as_mut_ptr ()); }
   else if NUMBERP (uid)
     {
       let mut u: uid_t;
@@ -1315,9 +1315,9 @@ DEFUN! ("system-name", Fsystem_name, Ssystem_name, 0, 0, 0,
        doc: "Return the host name of the machine you are running on, as a string.",
        (),
        {
-  if EQ (Vsystem_name, cached_system_name)
+  if EQ ((*Vsystem_name.as_mut_ptr ()), (*cached_system_name.as_mut_ptr ()))
     { init_and_cache_system_name (); }
-  return Vsystem_name;
+  return (*Vsystem_name.as_mut_ptr ());
 });
 
 DEFUN! ("emacs-pid", Femacs_pid, Semacs_pid, 0, 0, 0,
@@ -1607,15 +1607,15 @@ unsafe fn update_buffer_properties (start: ptrdiff_t, end: ptrdiff_t)
   unsafe {
   /* If this buffer has some access functions,
      call them, specifying the range of the buffer being accessed.  */
-  if !NILP (Vbuffer_access_fontify_functions)
+  if !NILP ((*Vbuffer_access_fontify_functions.as_mut_ptr ()))
     {
       /* But don't call them if we can tell that the work
          has already been done.  */
-      if !NILP (Vbuffer_access_fontified_property)
+      if !NILP ((*Vbuffer_access_fontified_property.as_mut_ptr ()))
         {
           let tem: Lisp_Object
             = Ftext_property_any (make_fixnum (start), make_fixnum (end),
-                                  Vbuffer_access_fontified_property,
+                                  (*Vbuffer_access_fontified_property.as_mut_ptr ()),
                                   Qnil (), Qnil ());
           if NILP (tem)
             { return; }
@@ -1718,7 +1718,7 @@ DEFUN! ("compare-buffer-substrings", Fcompare_buffer_substrings, Scompare_buffer
   let mut bp1: *mut buffer;
   let mut bp2: *mut buffer;
   let trt: Lisp_Object
-    = if !NILP (Vcase_fold_search)
+    = if !NILP ((*Vcase_fold_search.as_mut_ptr ()))
       { BVAR! ((current_buffer! ()), case_canon_table_) } else { Qnil () };
   let mut chars: ptrdiff_t = 0;
   let mut i1: ptrdiff_t;
@@ -2518,7 +2518,7 @@ DEFUN! ("replace-region-contents", Freplace_region_contents, Sreplace_region_con
       buffer = malloc (bytes_needed as usize) as *mut ptrdiff_t;
       if !buffer.is_null ()
         {
-          if profiler_memory_running
+          if (*profiler_memory_running.as_mut_ptr ())
             { malloc_probe (bytes_needed as usize); }
           record_unwind_protect_ptr (Some (xfree), buffer as *mut c_void);
         }
@@ -2598,7 +2598,7 @@ DEFUN! ("replace-region-contents", Freplace_region_contents, Sreplace_region_con
      Instead, we announce a single modification for the entire
      modified region.  But don't do that if the caller inhibited
      modification hooks, because then they don't want that.  */
-  if !inhibit_modification_hooks
+  if !(*inhibit_modification_hooks.as_mut_ptr ())
     {
       prepare_to_modify_buffer (min_a, min_a + size_a, std::ptr::null_mut ());
       specbind (Qinhibit_modification_hooks (), Qt ());
@@ -3160,7 +3160,7 @@ DEFUN! ("delete-and-extract-region", Fdelete_and_extract_region,
   let mut end: Lisp_Object = end;
   validate_region (&mut start, &mut end);
   if XFIXNUM (start) == XFIXNUM (end)
-    { return empty_unibyte_string; }
+    { return (*empty_unibyte_string.as_mut_ptr ()); }
   return del_range_1 (XFIXNUM (start), XFIXNUM (end), true, true);
 });
 
@@ -3177,7 +3177,7 @@ DEFUN! ("delete-and-extract-region", Fdelete_and_extract_region,
    variable: otherwise reset_outermost_restrictions, which is called
    during each redisplay cycle, would have to loop through all live
    buffers.  */
-static mut labeled_restrictions: Lisp_Object = lisp_h_Qnil ();
+static labeled_restrictions: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* Add BUF with its list of labeled RESTRICTIONS in the
    labeled_restrictions alist.  */
@@ -3185,8 +3185,8 @@ unsafe fn labeled_restrictions_add (buf: Lisp_Object, restrictions: Lisp_Object)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  labeled_restrictions = nconc2 (list1 (list2 (buf, restrictions)),
-                                 labeled_restrictions);
+  (*labeled_restrictions.as_mut_ptr ()) = nconc2 (list1 (list2 (buf, restrictions)),
+                                 (*labeled_restrictions.as_mut_ptr ()));
 
   }
 }
@@ -3198,8 +3198,8 @@ unsafe fn labeled_restrictions_remove (buf: Lisp_Object)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  labeled_restrictions = Fdelq (Fassoc (buf, labeled_restrictions, Qnil ()),
-                                labeled_restrictions);
+  (*labeled_restrictions.as_mut_ptr ()) = Fdelq (Fassoc (buf, (*labeled_restrictions.as_mut_ptr ()), Qnil ()),
+                                (*labeled_restrictions.as_mut_ptr ()));
 
   }
 }
@@ -3217,7 +3217,7 @@ unsafe fn labeled_restrictions_get_bound (buf: Lisp_Object, begv: bool,
   unsafe {
   if NILP (Fbuffer_live_p (buf))
     { return Qnil (); }
-  let mut restrictions: Lisp_Object = assq_no_quit (buf, labeled_restrictions);
+  let mut restrictions: Lisp_Object = assq_no_quit (buf, (*labeled_restrictions.as_mut_ptr ()));
   if NILP (restrictions)
     { return Qnil (); }
   restrictions = XCAR (XCDR (restrictions));
@@ -3242,7 +3242,7 @@ unsafe fn labeled_restrictions_peek_label (buf: Lisp_Object) -> Lisp_Object
   unsafe {
   if NILP (Fbuffer_live_p (buf))
     { return Qnil (); }
-  let restrictions: Lisp_Object = assq_no_quit (buf, labeled_restrictions);
+  let restrictions: Lisp_Object = assq_no_quit (buf, (*labeled_restrictions.as_mut_ptr ()));
   if NILP (restrictions)
     { return Qnil (); }
   let label: Lisp_Object = XCAR (XCAR (XCAR (XCDR (restrictions))));
@@ -3258,7 +3258,7 @@ unsafe fn labeled_restrictions_push (buf: Lisp_Object, restriction: Lisp_Object)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  let restrictions: Lisp_Object = assq_no_quit (buf, labeled_restrictions);
+  let restrictions: Lisp_Object = assq_no_quit (buf, (*labeled_restrictions.as_mut_ptr ()));
   if NILP (restrictions)
     { labeled_restrictions_add (buf, list1 (restriction)); }
   else
@@ -3275,7 +3275,7 @@ unsafe fn labeled_restrictions_pop (buf: Lisp_Object)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  let restrictions: Lisp_Object = assq_no_quit (buf, labeled_restrictions);
+  let restrictions: Lisp_Object = assq_no_quit (buf, (*labeled_restrictions.as_mut_ptr ()));
   if NILP (restrictions)
     { return; }
   if BASE_EQ (labeled_restrictions_peek_label (buf), Qoutermost_restriction ())
@@ -3328,7 +3328,7 @@ pub unsafe extern "C-unwind" fn reset_outermost_restrictions ()
   unsafe {
   let mut val: Lisp_Object;
   let mut buf: Lisp_Object;
-  val = labeled_restrictions;
+  val = (*labeled_restrictions.as_mut_ptr ());
   while CONSP (val)
     {
       buf = XCAR (XCAR (val));
@@ -3358,7 +3358,7 @@ unsafe fn labeled_restrictions_save () -> Lisp_Object
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
   let buf: Lisp_Object = Fcurrent_buffer ();
-  let mut restrictions: Lisp_Object = assq_no_quit (buf, labeled_restrictions);
+  let mut restrictions: Lisp_Object = assq_no_quit (buf, (*labeled_restrictions.as_mut_ptr ()));
   if !NILP (restrictions)
     { restrictions = XCAR (XCDR (restrictions)); }
   return Fcons (buf, Fcopy_sequence (restrictions));
@@ -3717,8 +3717,8 @@ DEFUN! ("message-or-box", Fmessage_or_box, Smessage_or_box, 1, MANY, 0,
        doc: "Display a message in a dialog box or in the echo area.\nIf this command was invoked with the mouse, use a dialog box if\n`use-dialog-box' is non-nil.\nOtherwise, use the echo area.\nThe first argument is a format control string, and the rest are data\nto be formatted under control of the string.  See `format-message' for\ndetails.\n\nIf the first argument is nil or the empty string, clear any existing\nmessage; let the minibuffer contents show.\n\nusage: (message-or-box FORMAT-STRING &rest ARGS)",
        (nargs: isize, args: *mut Lisp_Object),
        {
-  if (NILP (last_nonmenu_event) || CONSP (last_nonmenu_event))
-      && use_dialog_box
+  if (NILP ((*last_nonmenu_event.as_mut_ptr ())) || CONSP ((*last_nonmenu_event.as_mut_ptr ())))
+      && (*use_dialog_box.as_mut_ptr ())
     { return Fmessage_box (nargs, args); }
   return Fmessage (nargs, args);
 });
@@ -4978,7 +4978,7 @@ DEFUN! ("char-equal", Fchar_equal, Schar_equal, 2, 2, 0,
 
   if XFIXNUM (c1) == XFIXNUM (c2)
     { return Qt (); }
-  if NILP (Vcase_fold_search)
+  if NILP ((*Vcase_fold_search.as_mut_ptr ()))
     { return Qnil (); }
 
   i1 = XFIXNAT (c1) as c_int;
@@ -5310,21 +5310,21 @@ DEFUN! ("transpose-regions", Ftranspose_regions, Stranspose_regions, 4, 5,
 /* C's `DEFVAR_LISP`s `syms_of_editfns` registers define the `V*` objects here (status
    3.29: the unit that owns the C definition owns the port's `static mut`).  */
 #[unsafe(no_mangle)]
-pub static mut Vinhibit_field_text_motion: Lisp_Object = lisp_h_Qnil ();
+pub static Vinhibit_field_text_motion: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vbuffer_access_fontify_functions: Lisp_Object = lisp_h_Qnil ();
+pub static Vbuffer_access_fontify_functions: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vbuffer_access_fontified_property: Lisp_Object = lisp_h_Qnil ();
+pub static Vbuffer_access_fontified_property: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vsystem_name: Lisp_Object = lisp_h_Qnil ();
+pub static Vsystem_name: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vuser_full_name: Lisp_Object = lisp_h_Qnil ();
+pub static Vuser_full_name: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vuser_login_name: Lisp_Object = lisp_h_Qnil ();
+pub static Vuser_login_name: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vuser_real_login_name: Lisp_Object = lisp_h_Qnil ();
+pub static Vuser_real_login_name: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Voperating_system_release: Lisp_Object = lisp_h_Qnil ();
+pub static Voperating_system_release: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_editfns ()
@@ -5335,22 +5335,22 @@ pub unsafe extern "C-unwind" fn syms_of_editfns ()
   DEFSYM! (Qwall, c"wall");
   DEFSYM! (Qpropertize, c"propertize");
 
-  staticpro (&raw const labeled_restrictions);
+  staticpro (labeled_restrictions.as_ptr ());
 
   DEFVAR_LISP! (c"inhibit-field-text-motion", Vinhibit_field_text_motion,
 	       "Non-nil means text motion commands don't notice fields.");
-  Vinhibit_field_text_motion = Qnil ();
+  (*Vinhibit_field_text_motion.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"buffer-access-fontify-functions",
 	       Vbuffer_access_fontify_functions,
 	       "List of functions called by `buffer-substring' to fontify if necessary.\nEach function is called with two arguments which specify the range\nof the buffer being accessed.");
-  Vbuffer_access_fontify_functions = Qnil ();
+  (*Vbuffer_access_fontify_functions.as_mut_ptr ()) = Qnil ();
 
   {
     let mut obuf: Lisp_Object;
     obuf = Fcurrent_buffer ();
     /* Do this here, because init_buffer_once is too early--it won't work.  */
-    Fset_buffer (Vprin1_to_string_buffer);
+    Fset_buffer ((*Vprin1_to_string_buffer.as_mut_ptr ()));
     /* Make sure buffer-access-fontify-functions is nil in this buffer.  */
     Fset (Fmake_local_variable (Qbuffer_access_fontify_functions ()), Qnil ());
     Fset_buffer (obuf);
@@ -5359,19 +5359,19 @@ pub unsafe extern "C-unwind" fn syms_of_editfns ()
   DEFVAR_LISP! (c"buffer-access-fontified-property",
 	       Vbuffer_access_fontified_property,
 	       "Property which (if non-nil) indicates text has been fontified.\n`buffer-substring' need not call the `buffer-access-fontify-functions'\nfunctions if all the text being accessed has this property.");
-  Vbuffer_access_fontified_property = Qnil ();
+  (*Vbuffer_access_fontified_property.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"system-name", Vsystem_name,
 	       "The host name of the machine Emacs is running on.");
-  cached_system_name = Qnil ();
-  Vsystem_name = cached_system_name;
+  (*cached_system_name.as_mut_ptr ()) = Qnil ();
+  (*Vsystem_name.as_mut_ptr ()) = (*cached_system_name.as_mut_ptr ());
 
   DEFVAR_LISP! (c"user-full-name", Vuser_full_name,
 	       "The full name of the user logged in.");
 
   DEFVAR_LISP! (c"user-login-name", Vuser_login_name,
 	       "The user's name, taken from environment variables if possible.");
-  Vuser_login_name = Qnil ();
+  (*Vuser_login_name.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"user-real-login-name", Vuser_real_login_name,
 	       "The user's name, based upon the real uid only.");
@@ -5382,22 +5382,22 @@ pub unsafe extern "C-unwind" fn syms_of_editfns ()
   DEFSYM! (Qoutermost_restriction, c"outermost-restriction");
   Funintern (Qoutermost_restriction (), Qnil ());
 
-  defsubr (&raw mut Spropertize);
-  defsubr (&raw mut Schar_equal);
-  defsubr (&raw mut Sgoto_char);
-  defsubr (&raw mut Sstring_to_char);
-  defsubr (&raw mut Schar_to_string);
-  defsubr (&raw mut Sbyte_to_string);
-  defsubr (&raw mut Sbuffer_substring);
-  defsubr (&raw mut Sbuffer_substring_no_properties);
-  defsubr (&raw mut Sbuffer_string);
-  defsubr (&raw mut Sget_pos_property);
+  defsubr (Spropertize.as_mut_ptr ());
+  defsubr (Schar_equal.as_mut_ptr ());
+  defsubr (Sgoto_char.as_mut_ptr ());
+  defsubr (Sstring_to_char.as_mut_ptr ());
+  defsubr (Schar_to_string.as_mut_ptr ());
+  defsubr (Sbyte_to_string.as_mut_ptr ());
+  defsubr (Sbuffer_substring.as_mut_ptr ());
+  defsubr (Sbuffer_substring_no_properties.as_mut_ptr ());
+  defsubr (Sbuffer_string.as_mut_ptr ());
+  defsubr (Sget_pos_property.as_mut_ptr ());
 
-  defsubr (&raw mut Spoint_marker);
-  defsubr (&raw mut Smark_marker);
-  defsubr (&raw mut Spoint);
-  defsubr (&raw mut Sregion_beginning);
-  defsubr (&raw mut Sregion_end);
+  defsubr (Spoint_marker.as_mut_ptr ());
+  defsubr (Smark_marker.as_mut_ptr ());
+  defsubr (Spoint.as_mut_ptr ());
+  defsubr (Sregion_beginning.as_mut_ptr ());
+  defsubr (Sregion_end.as_mut_ptr ());
 
   /* Symbol for the text property used to mark fields.  */
   DEFSYM! (Qfield, c"field");
@@ -5405,78 +5405,78 @@ pub unsafe extern "C-unwind" fn syms_of_editfns ()
   /* A special value for Qfield properties.  */
   DEFSYM! (Qboundary, c"boundary");
 
-  defsubr (&raw mut Sfield_beginning);
-  defsubr (&raw mut Sfield_end);
-  defsubr (&raw mut Sfield_string);
-  defsubr (&raw mut Sfield_string_no_properties);
-  defsubr (&raw mut Sdelete_field);
-  defsubr (&raw mut Sconstrain_to_field);
+  defsubr (Sfield_beginning.as_mut_ptr ());
+  defsubr (Sfield_end.as_mut_ptr ());
+  defsubr (Sfield_string.as_mut_ptr ());
+  defsubr (Sfield_string_no_properties.as_mut_ptr ());
+  defsubr (Sdelete_field.as_mut_ptr ());
+  defsubr (Sconstrain_to_field.as_mut_ptr ());
 
-  defsubr (&raw mut Sline_beginning_position);
-  defsubr (&raw mut Sline_end_position);
-  defsubr (&raw mut Spos_bol);
-  defsubr (&raw mut Spos_eol);
+  defsubr (Sline_beginning_position.as_mut_ptr ());
+  defsubr (Sline_end_position.as_mut_ptr ());
+  defsubr (Spos_bol.as_mut_ptr ());
+  defsubr (Spos_eol.as_mut_ptr ());
 
-  defsubr (&raw mut Ssave_excursion);
-  defsubr (&raw mut Ssave_current_buffer);
+  defsubr (Ssave_excursion.as_mut_ptr ());
+  defsubr (Ssave_current_buffer.as_mut_ptr ());
 
-  defsubr (&raw mut Sbuffer_size);
-  defsubr (&raw mut Spoint_max);
-  defsubr (&raw mut Spoint_min);
-  defsubr (&raw mut Spoint_min_marker);
-  defsubr (&raw mut Spoint_max_marker);
-  defsubr (&raw mut Sgap_position);
-  defsubr (&raw mut Sgap_size);
-  defsubr (&raw mut Sposition_bytes);
-  defsubr (&raw mut Sbyte_to_position);
+  defsubr (Sbuffer_size.as_mut_ptr ());
+  defsubr (Spoint_max.as_mut_ptr ());
+  defsubr (Spoint_min.as_mut_ptr ());
+  defsubr (Spoint_min_marker.as_mut_ptr ());
+  defsubr (Spoint_max_marker.as_mut_ptr ());
+  defsubr (Sgap_position.as_mut_ptr ());
+  defsubr (Sgap_size.as_mut_ptr ());
+  defsubr (Sposition_bytes.as_mut_ptr ());
+  defsubr (Sbyte_to_position.as_mut_ptr ());
 
-  defsubr (&raw mut Sbobp);
-  defsubr (&raw mut Seobp);
-  defsubr (&raw mut Sbolp);
-  defsubr (&raw mut Seolp);
-  defsubr (&raw mut Sfollowing_char);
-  defsubr (&raw mut Sprevious_char);
-  defsubr (&raw mut Schar_after);
-  defsubr (&raw mut Schar_before);
-  defsubr (&raw mut Sinsert);
-  defsubr (&raw mut Sinsert_before_markers);
-  defsubr (&raw mut Sinsert_and_inherit);
-  defsubr (&raw mut Sinsert_and_inherit_before_markers);
-  defsubr (&raw mut Sinsert_char);
-  defsubr (&raw mut Sinsert_byte);
+  defsubr (Sbobp.as_mut_ptr ());
+  defsubr (Seobp.as_mut_ptr ());
+  defsubr (Sbolp.as_mut_ptr ());
+  defsubr (Seolp.as_mut_ptr ());
+  defsubr (Sfollowing_char.as_mut_ptr ());
+  defsubr (Sprevious_char.as_mut_ptr ());
+  defsubr (Schar_after.as_mut_ptr ());
+  defsubr (Schar_before.as_mut_ptr ());
+  defsubr (Sinsert.as_mut_ptr ());
+  defsubr (Sinsert_before_markers.as_mut_ptr ());
+  defsubr (Sinsert_and_inherit.as_mut_ptr ());
+  defsubr (Sinsert_and_inherit_before_markers.as_mut_ptr ());
+  defsubr (Sinsert_char.as_mut_ptr ());
+  defsubr (Sinsert_byte.as_mut_ptr ());
 
-  defsubr (&raw mut Sngettext);
+  defsubr (Sngettext.as_mut_ptr ());
 
-  defsubr (&raw mut Suser_login_name);
-  defsubr (&raw mut Sgroup_name);
-  defsubr (&raw mut Suser_real_login_name);
-  defsubr (&raw mut Suser_uid);
-  defsubr (&raw mut Suser_real_uid);
-  defsubr (&raw mut Sgroup_gid);
-  defsubr (&raw mut Sgroup_real_gid);
-  defsubr (&raw mut Suser_full_name);
-  defsubr (&raw mut Semacs_pid);
-  defsubr (&raw mut Ssystem_name);
-  defsubr (&raw mut Smessage);
-  defsubr (&raw mut Smessage_box);
-  defsubr (&raw mut Smessage_or_box);
-  defsubr (&raw mut Scurrent_message);
-  defsubr (&raw mut Sformat);
-  defsubr (&raw mut Sformat_message);
+  defsubr (Suser_login_name.as_mut_ptr ());
+  defsubr (Sgroup_name.as_mut_ptr ());
+  defsubr (Suser_real_login_name.as_mut_ptr ());
+  defsubr (Suser_uid.as_mut_ptr ());
+  defsubr (Suser_real_uid.as_mut_ptr ());
+  defsubr (Sgroup_gid.as_mut_ptr ());
+  defsubr (Sgroup_real_gid.as_mut_ptr ());
+  defsubr (Suser_full_name.as_mut_ptr ());
+  defsubr (Semacs_pid.as_mut_ptr ());
+  defsubr (Ssystem_name.as_mut_ptr ());
+  defsubr (Smessage.as_mut_ptr ());
+  defsubr (Smessage_box.as_mut_ptr ());
+  defsubr (Smessage_or_box.as_mut_ptr ());
+  defsubr (Scurrent_message.as_mut_ptr ());
+  defsubr (Sformat.as_mut_ptr ());
+  defsubr (Sformat_message.as_mut_ptr ());
 
-  defsubr (&raw mut Sinsert_buffer_substring);
-  defsubr (&raw mut Scompare_buffer_substrings);
-  defsubr (&raw mut Sreplace_region_contents);
-  defsubr (&raw mut Ssubst_char_in_region);
-  defsubr (&raw mut Stranslate_region_internal);
-  defsubr (&raw mut Sdelete_region);
-  defsubr (&raw mut Sdelete_and_extract_region);
-  defsubr (&raw mut Swiden);
-  defsubr (&raw mut Snarrow_to_region);
-  defsubr (&raw mut Sinternal__labeled_narrow_to_region);
-  defsubr (&raw mut Sinternal__labeled_widen);
-  defsubr (&raw mut Ssave_restriction);
-  defsubr (&raw mut Stranspose_regions);
+  defsubr (Sinsert_buffer_substring.as_mut_ptr ());
+  defsubr (Scompare_buffer_substrings.as_mut_ptr ());
+  defsubr (Sreplace_region_contents.as_mut_ptr ());
+  defsubr (Ssubst_char_in_region.as_mut_ptr ());
+  defsubr (Stranslate_region_internal.as_mut_ptr ());
+  defsubr (Sdelete_region.as_mut_ptr ());
+  defsubr (Sdelete_and_extract_region.as_mut_ptr ());
+  defsubr (Swiden.as_mut_ptr ());
+  defsubr (Snarrow_to_region.as_mut_ptr ());
+  defsubr (Sinternal__labeled_narrow_to_region.as_mut_ptr ());
+  defsubr (Sinternal__labeled_widen.as_mut_ptr ());
+  defsubr (Ssave_restriction.as_mut_ptr ());
+  defsubr (Stranspose_regions.as_mut_ptr ());
 
   }
 }

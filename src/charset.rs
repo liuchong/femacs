@@ -143,81 +143,79 @@ macro_rules! INT_LEFT_SHIFT_OVERFLOW {
 /* Hash table that contains attributes of each charset.  Keys are
    charset symbols, and values are vectors of charset attributes.  */
 #[unsafe(no_mangle)]
-pub static mut Vcharset_hash_table: Lisp_Object = lisp_h_Qnil ();
+pub static Vcharset_hash_table: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* The table of all charsets.  */
 #[unsafe(no_mangle)]
-pub static mut charset_table: charset_table = charset_table {
+pub static charset_table: VmGlobal<charset_table> = VmGlobal::<charset_table>::new (charset_table {
   start: std::ptr::null_mut (), size: 0, used: 0, attributes_table: lisp_h_Qnil (),
-};
+});
 
 /* Special charsets corresponding to symbols.  */
 #[unsafe(no_mangle)]
-pub static mut charset_ascii: c_int = 0;
+pub static charset_ascii: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 #[unsafe(no_mangle)]
-pub static mut charset_eight_bit: c_int = 0;
-static mut charset_iso_8859_1: c_int = 0;
+pub static charset_eight_bit: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
+static charset_iso_8859_1: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 #[unsafe(no_mangle)]
-pub static mut charset_unicode: c_int = 0;
-static mut charset_emacs: c_int = 0;
+pub static charset_unicode: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
+static charset_emacs: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 
 /* The other special charsets.  */
 #[unsafe(no_mangle)]
-pub static mut charset_jisx0201_roman: c_int = 0;
+pub static charset_jisx0201_roman: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 #[unsafe(no_mangle)]
-pub static mut charset_jisx0208_1978: c_int = 0;
+pub static charset_jisx0208_1978: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 #[unsafe(no_mangle)]
-pub static mut charset_jisx0208: c_int = 0;
+pub static charset_jisx0208: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 #[unsafe(no_mangle)]
-pub static mut charset_ksc5601: c_int = 0;
+pub static charset_ksc5601: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 
 /* Charset of unibyte characters.  */
 #[unsafe(no_mangle)]
-pub static mut charset_unibyte: c_int = 0;
+pub static charset_unibyte: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 
 /* List of charsets ordered by the priority.  */
 #[unsafe(no_mangle)]
-pub static mut Vcharset_ordered_list: Lisp_Object = lisp_h_Qnil ();
+pub static Vcharset_ordered_list: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* Sub-list of Vcharset_ordered_list that contains all non-preferred
    charsets.  */
 #[unsafe(no_mangle)]
-pub static mut Vcharset_non_preferred_head: Lisp_Object = lisp_h_Qnil ();
+pub static Vcharset_non_preferred_head: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* Incremented every time we change the priority of charsets.
    Wraps around.  */
 #[unsafe(no_mangle)]
-pub static mut charset_ordered_list_tick: EMACS_UINT = 0;
+pub static charset_ordered_list_tick: VmGlobal<EMACS_UINT> = VmGlobal::<EMACS_UINT>::new (0);
 
 /* List of iso-2022 charsets.  */
 #[unsafe(no_mangle)]
-pub static mut Viso_2022_charset_list: Lisp_Object = lisp_h_Qnil ();
+pub static Viso_2022_charset_list: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* List of emacs-mule charsets.  */
 #[unsafe(no_mangle)]
-pub static mut Vemacs_mule_charset_list: Lisp_Object = lisp_h_Qnil ();
+pub static Vemacs_mule_charset_list: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 #[unsafe(no_mangle)]
-pub static mut emacs_mule_charset: [c_int; 256] = [0; 256];
+pub static emacs_mule_charset: VmGlobal<[c_int; 256]> = VmGlobal::<[c_int; 256]>::new ([0; 256]);
 
 /* Mapping table from ISO2022's charset (specified by DIMENSION,
    CHARS, and FINAL-CHAR) to Emacs's charset.  */
 #[unsafe(no_mangle)]
-pub static mut iso_charset_table:
-  [[[c_int; ISO_MAX_FINAL as usize]; ISO_MAX_CHARS as usize]; ISO_MAX_DIMENSION as usize]
-  = [[[0; ISO_MAX_FINAL as usize]; ISO_MAX_CHARS as usize]; ISO_MAX_DIMENSION as usize];
+pub static iso_charset_table: VmGlobal<[[[c_int; ISO_MAX_FINAL as usize]; ISO_MAX_CHARS as usize]; ISO_MAX_DIMENSION as usize]> = VmGlobal::<[[[c_int; ISO_MAX_FINAL as usize]; ISO_MAX_CHARS as usize]; ISO_MAX_DIMENSION as usize]>::new ([[[0; ISO_MAX_FINAL as usize]; ISO_MAX_CHARS as usize]; ISO_MAX_DIMENSION as usize]);
 
 /* The DEFVAR_* variables this unit owns (status §3.29): C stores them as fields of
    `struct emacs_globals`; here the owner defines them, and the globals.rs declarations are
    shadowed.  */
 #[unsafe(no_mangle)]
-pub static mut Vcharset_map_path: Lisp_Object = lisp_h_Qnil ();
+pub static Vcharset_map_path: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vcharset_list: Lisp_Object = lisp_h_Qnil ();
+pub static Vcharset_list: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vcurrent_iso639_language: Lisp_Object = lisp_h_Qnil ();
+pub static Vcurrent_iso639_language: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut inhibit_load_charset_map: bool = false;
+pub static inhibit_load_charset_map: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 // C 105-124: `CODE_POINT_TO_INDEX (charset, code)`.  C's `code` is `unsigned` at every
 // call site, so the shift/mask arithmetic stays in `unsigned` (c_uint) as C's promotions
@@ -326,31 +324,31 @@ pub union temp_charset_work_table
   pub encoder: [c_ushort; 0x20000],
 }
 
-static mut temp_charset_work: *mut temp_charset_work = std::ptr::null_mut ();
+static temp_charset_work: VmGlobal<*mut temp_charset_work> = VmGlobal::<*mut temp_charset_work>::new (std::ptr::null_mut ());
 
 // C 176-184: `SET_TEMP_CHARSET_WORK_ENCODER (C, CODE)`.
 macro_rules! SET_TEMP_CHARSET_WORK_ENCODER {
   ($c:expr, $code:expr) => { {
     if ($code) == 0
-      { (*temp_charset_work).zero_index_char = ($c); }
+      { (*(*temp_charset_work.as_mut_ptr ())).zero_index_char = ($c); }
     else if ($c) < 0x20000
-      { (*temp_charset_work).table.encoder[($c) as usize] = ($code) as c_ushort; }
+      { (*(*temp_charset_work.as_mut_ptr ())).table.encoder[($c) as usize] = ($code) as c_ushort; }
     else
-      { (*temp_charset_work).table.encoder[($c) as usize - 0x10000] = ($code) as c_ushort; }
+      { (*(*temp_charset_work.as_mut_ptr ())).table.encoder[($c) as usize - 0x10000] = ($code) as c_ushort; }
   } };
 }
 
 // C 186-191: `GET_TEMP_CHARSET_WORK_ENCODER (C)`.
 macro_rules! GET_TEMP_CHARSET_WORK_ENCODER {
   ($c:expr) => {
-    (if ($c) == (*temp_charset_work).zero_index_char
+    (if ($c) == (*(*temp_charset_work.as_mut_ptr ())).zero_index_char
        { 0 }
      else if ($c) < 0x20000
-       { if (*temp_charset_work).table.encoder[($c) as usize] != 0
-	   { (*temp_charset_work).table.encoder[($c) as usize] as c_int }
+       { if (*(*temp_charset_work.as_mut_ptr ())).table.encoder[($c) as usize] != 0
+	   { (*(*temp_charset_work.as_mut_ptr ())).table.encoder[($c) as usize] as c_int }
 	 else { -1 } }
-     else if (*temp_charset_work).table.encoder[($c) as usize - 0x10000] != 0
-       { (*temp_charset_work).table.encoder[($c) as usize - 0x10000] as c_int }
+     else if (*(*temp_charset_work.as_mut_ptr ())).table.encoder[($c) as usize - 0x10000] != 0
+       { (*(*temp_charset_work.as_mut_ptr ())).table.encoder[($c) as usize - 0x10000] as c_int }
      else { -1 })
   };
 }
@@ -358,19 +356,19 @@ macro_rules! GET_TEMP_CHARSET_WORK_ENCODER {
 // C 193-194: `SET_TEMP_CHARSET_WORK_DECODER (C, CODE)`.
 macro_rules! SET_TEMP_CHARSET_WORK_DECODER {
   ($c:expr, $code:expr) => {
-    { (*temp_charset_work).table.decoder[($code) as usize] = ($c) }
+    { (*(*temp_charset_work.as_mut_ptr ())).table.decoder[($code) as usize] = ($c) }
   };
 }
 
 // C 196-197: `GET_TEMP_CHARSET_WORK_DECODER (CODE)`.
 macro_rules! GET_TEMP_CHARSET_WORK_DECODER {
-  ($code:expr) => { (*temp_charset_work).table.decoder[($code) as usize] };
+  ($code:expr) => { (*(*temp_charset_work.as_mut_ptr ())).table.decoder[($code) as usize] };
 }
 
 /* Set to 1 to warn that a charset map is loaded and thus a buffer
    text and a string data may be relocated.  */
 #[unsafe(no_mangle)]
-pub static mut charset_map_loaded: bool = false;
+pub static charset_map_loaded: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 /// C: charset.c 207-215: `struct charset_map_entries`, whose `entry` member is an array
 /// of an anonymous struct.  `charset_map_entry` names that element type; the three
@@ -446,7 +444,7 @@ unsafe fn load_charset_map (charset: *mut charset, mut entries: *mut charset_map
 
   if control_flag != 0
     {
-      if ! inhibit_load_charset_map
+      if ! (*inhibit_load_charset_map.as_mut_ptr ())
 	{
 	  if control_flag == 1
 	    {
@@ -459,7 +457,7 @@ unsafe fn load_charset_map (charset: *mut charset, mut entries: *mut charset_map
 		}
 	      else
 		{
-		  char_table_set_range (Vchar_unify_table,
+		  char_table_set_range ((*Vchar_unify_table.as_mut_ptr ()),
 					(*charset).min_char, (*charset).max_char,
 					Qnil ());
 		}
@@ -475,24 +473,24 @@ unsafe fn load_charset_map (charset: *mut charset, mut entries: *mut charset_map
 	}
       else
 	{
-	  if temp_charset_work.is_null ()
-	    { temp_charset_work = xmalloc (std::mem::size_of::<temp_charset_work> ()) as *mut temp_charset_work; }
+	  if (*temp_charset_work.as_mut_ptr ()).is_null ()
+	    { (*temp_charset_work.as_mut_ptr ()) = xmalloc (std::mem::size_of::<temp_charset_work> ()) as *mut temp_charset_work; }
 	  if control_flag == 1
 	    {
-	      memset ((*temp_charset_work).table.decoder.as_mut_ptr () as *mut c_void, -1,
+	      memset ((*(*temp_charset_work.as_mut_ptr ())).table.decoder.as_mut_ptr () as *mut c_void, -1,
 		      std::mem::size_of::<c_int> () * 0x10000);
 	    }
 	  else
 	    {
-	      memset ((*temp_charset_work).table.encoder.as_mut_ptr () as *mut c_void, 0,
+	      memset ((*(*temp_charset_work.as_mut_ptr ())).table.encoder.as_mut_ptr () as *mut c_void, 0,
 		      std::mem::size_of::<c_ushort> () * 0x20000);
-	      (*temp_charset_work).zero_index_char = -1;
+	      (*(*temp_charset_work.as_mut_ptr ())).zero_index_char = -1;
 	    }
-	  (*temp_charset_work).current = charset;
-	  (*temp_charset_work).for_encoder = (control_flag == 2) as c_short;
+	  (*(*temp_charset_work.as_mut_ptr ())).current = charset;
+	  (*(*temp_charset_work.as_mut_ptr ())).for_encoder = (control_flag == 2) as c_short;
 	  control_flag += 2;
 	}
-      charset_map_loaded = true;
+      (*charset_map_loaded.as_mut_ptr ()) = true;
     }
 
   min_char = (*entries).entry[0].c;
@@ -549,7 +547,7 @@ unsafe fn load_charset_map (charset: *mut charset, mut entries: *mut charset_map
 	    {
 	      while from_index < lim_index
 		{
-		  CHAR_TABLE_SET (Vchar_unify_table,
+		  CHAR_TABLE_SET ((*Vchar_unify_table.as_mut_ptr ()),
 				  (CHARSET_CODE_OFFSET! (charset) + from_index) as isize,
 				  make_fixnum (from_c as EMACS_INT));
 		  from_index += 1;
@@ -632,8 +630,8 @@ unsafe fn load_charset_map (charset: *mut charset, mut entries: *mut charset_map
     }
   else if control_flag == 4
     {
-      (*temp_charset_work).min_char = min_char;
-      (*temp_charset_work).max_char = max_char;
+      (*(*temp_charset_work.as_mut_ptr ())).min_char = min_char;
+      (*(*temp_charset_work.as_mut_ptr ())).max_char = max_char;
     }
 
   }
@@ -732,7 +730,7 @@ unsafe fn load_charset_map_from_file (charset: *mut charset, mapfile: Lisp_Objec
   let count: specpdl_ref = SPECPDL_INDEX ();
   record_unwind_protect_nothing ();
   specbind (Qfile_name_handler_alist (), Qnil ());
-  fd = openp (Vcharset_map_path, mapfile, suffixes, std::ptr::null_mut (), Qnil (),
+  fd = openp ((*Vcharset_map_path.as_mut_ptr ()), mapfile, suffixes, std::ptr::null_mut (), Qnil (),
 	      false, false, std::ptr::null_mut ());
   fp = if fd < 0 { std::ptr::null_mut () } else { emacs_fdopen (fd, c"r".as_ptr ()) };
   if fp.is_null ()
@@ -880,10 +878,10 @@ unsafe fn load_charset (charset: *mut charset, control_flag: c_int)
   unsafe {
   let mut map: Lisp_Object = Qnil ();
 
-  if inhibit_load_charset_map
-      && ! temp_charset_work.is_null ()
-      && charset == (*temp_charset_work).current
-      && ((control_flag == 2) as c_short) == (*temp_charset_work).for_encoder
+  if (*inhibit_load_charset_map.as_mut_ptr ())
+      && ! (*temp_charset_work.as_mut_ptr ()).is_null ()
+      && charset == (*(*temp_charset_work.as_mut_ptr ())).current
+      && ((control_flag == 2) as c_short) == (*(*temp_charset_work.as_mut_ptr ())).for_encoder
     { return; }
 
   if CHARSET_METHOD! (charset) == CHARSET_METHOD_MAP
@@ -915,15 +913,15 @@ unsafe fn map_charset_for_dump (c_function: Option<unsafe extern "C-unwind" fn (
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  let from_idx: c_int = CODE_POINT_TO_INDEX! ((*temp_charset_work).current, from);
-  let to_idx: c_int = CODE_POINT_TO_INDEX! ((*temp_charset_work).current, to);
+  let from_idx: c_int = CODE_POINT_TO_INDEX! ((*(*temp_charset_work.as_mut_ptr ())).current, from);
+  let to_idx: c_int = CODE_POINT_TO_INDEX! ((*(*temp_charset_work.as_mut_ptr ())).current, to);
   let range: Lisp_Object = Fcons (Qnil (), Qnil ());
   let mut c: c_int = 0;
   let mut stop: c_int = 0;
 
-  c = (*temp_charset_work).min_char;
-  stop = if (*temp_charset_work).max_char < 0x20000
-	   { (*temp_charset_work).max_char } else { 0xFFFF };
+  c = (*(*temp_charset_work.as_mut_ptr ())).min_char;
+  stop = if (*(*temp_charset_work.as_mut_ptr ())).max_char < 0x20000
+	   { (*(*temp_charset_work.as_mut_ptr ())).max_char } else { 0xFFFF };
 
   while true
     {
@@ -945,7 +943,7 @@ unsafe fn map_charset_for_dump (c_function: Option<unsafe extern "C-unwind" fn (
 	}
       if c == stop
 	{
-	  if c == (*temp_charset_work).max_char
+	  if c == (*(*temp_charset_work.as_mut_ptr ())).max_char
 	    {
 	      if ! NILP (XCAR (range))
 		{
@@ -958,7 +956,7 @@ unsafe fn map_charset_for_dump (c_function: Option<unsafe extern "C-unwind" fn (
 	      break;
 	    }
 	  c = 0x1FFFF;
-	  stop = (*temp_charset_work).max_char;
+	  stop = (*(*temp_charset_work.as_mut_ptr ())).max_char;
 	}
       c += 1;
     }
@@ -1104,7 +1102,7 @@ DEFUN! ("define-charset-internal", Fdefine_charset_internal,
 	 /* Charset attr vector.  */
 	 let mut attrs: Lisp_Object = Qnil ();
 	 let mut val: Lisp_Object = Qnil ();
-	 let hash_table: *mut Lisp_Hash_Table = XHASH_TABLE (Vcharset_hash_table);
+	 let hash_table: *mut Lisp_Hash_Table = XHASH_TABLE ((*Vcharset_hash_table.as_mut_ptr ()));
 	 let mut i: c_int = 0;
 	 let mut j: c_int = 0;
 	 let mut charset: charset = charset {
@@ -1400,45 +1398,45 @@ DEFUN! ("define-charset-internal", Fdefine_charset_internal,
 	 else
 	   {
 	     hash_put (hash_table, *args.offset (charset_arg_name as isize), attrs, hash_code);
-	     if charset_table.used == charset_table.size
+	     if (*charset_table.as_mut_ptr ()).used == (*charset_table.as_mut_ptr ()).size
 	       {
 		 /* Ensure that charset IDs fit into 'int' as well as into the
 		    restriction imposed by fixnums.  Although the 'int' restriction
 		    could be removed, too much other code would need altering; for
 		    example, the IDs are stuffed into struct
 		    coding_system.charbuf[i] entries, which are 'int'.  */
-		 let old_size: c_int = charset_table.size;
+		 let old_size: c_int = (*charset_table.as_mut_ptr ()).size;
 		 let mut new_size: ptrdiff_t = old_size as ptrdiff_t;
 		 let new_table: *mut charset
 		   = xpalloc (std::ptr::null_mut (), &mut new_size, 1,
 			      min (INT_MAX as isize, MOST_POSITIVE_FIXNUM),
 			      std::mem::size_of::<charset> () as ptrdiff_t) as *mut charset;
-		 memcpy (new_table as *mut c_void, charset_table.start as *const c_void,
+		 memcpy (new_table as *mut c_void, (*charset_table.as_mut_ptr ()).start as *const c_void,
 			 (old_size as usize) * std::mem::size_of::<charset> ());
-		 xfree (charset_table.start as *mut c_void);
-		 charset_table.start = new_table;
-		 charset_table.size = new_size as c_int;
+		 xfree ((*charset_table.as_mut_ptr ()).start as *mut c_void);
+		 (*charset_table.as_mut_ptr ()).start = new_table;
+		 (*charset_table.as_mut_ptr ()).size = new_size as c_int;
 		 let new_attr_table: Lisp_Object = make_vector (new_size, Qnil ());
 		 for i in 0..old_size
 		   { ASET (new_attr_table, i as isize,
-			   AREF (charset_table.attributes_table, i as isize)); }
-		 charset_table.attributes_table = new_attr_table;
+			   AREF ((*charset_table.as_mut_ptr ()).attributes_table, i as isize)); }
+		 (*charset_table.as_mut_ptr ()).attributes_table = new_attr_table;
 	       }
-	     id = charset_table.used;
-	     charset_table.used += 1;
+	     id = (*charset_table.as_mut_ptr ()).used;
+	     (*charset_table.as_mut_ptr ()).used += 1;
 	     new_definition_p = true;
 	   }
 
 	 ASET (attrs, charset_id as isize, make_fixnum (id as EMACS_INT));
 	 charset.id = id;
-	 *charset_table.start.offset (id as isize) = charset;
-	 ASET (charset_table.attributes_table, id as isize, attrs);
-	 eassert! (ASIZE (charset_table.attributes_table) == charset_table.size as isize);
+	 *(*charset_table.as_mut_ptr ()).start.offset (id as isize) = charset;
+	 ASET ((*charset_table.as_mut_ptr ()).attributes_table, id as isize, attrs);
+	 eassert! (ASIZE ((*charset_table.as_mut_ptr ()).attributes_table) == (*charset_table.as_mut_ptr ()).size as isize);
 
 	 if charset.method == CHARSET_METHOD_MAP
 	   {
 	     load_charset (&mut charset, 0);
-	     *charset_table.start.offset (id as isize) = charset;
+	     *(*charset_table.as_mut_ptr ()).start.offset (id as isize) = charset;
 	   }
 
 	 if charset.iso_final >= 0
@@ -1446,39 +1444,39 @@ DEFUN! ("define-charset-internal", Fdefine_charset_internal,
 	     ISO_CHARSET_TABLE! (charset.dimension, charset_bits! (iso_chars_96, &mut charset),
 				 charset.iso_final) = id;
 	     if new_definition_p
-	       { Viso_2022_charset_list = nconc2 (Viso_2022_charset_list, list1i (id as EMACS_INT)); }
+	       { (*Viso_2022_charset_list.as_mut_ptr ()) = nconc2 ((*Viso_2022_charset_list.as_mut_ptr ()), list1i (id as EMACS_INT)); }
 	     if ISO_CHARSET_TABLE! (1, 0, b'J' as c_int) == id
-	       { charset_jisx0201_roman = id; }
+	       { (*charset_jisx0201_roman.as_mut_ptr ()) = id; }
 	     else if ISO_CHARSET_TABLE! (2, 0, b'@' as c_int) == id
-	       { charset_jisx0208_1978 = id; }
+	       { (*charset_jisx0208_1978.as_mut_ptr ()) = id; }
 	     else if ISO_CHARSET_TABLE! (2, 0, b'B' as c_int) == id
-	       { charset_jisx0208 = id; }
+	       { (*charset_jisx0208.as_mut_ptr ()) = id; }
 	     else if ISO_CHARSET_TABLE! (2, 0, b'C' as c_int) == id
-	       { charset_ksc5601 = id; }
+	       { (*charset_ksc5601.as_mut_ptr ()) = id; }
 	   }
 
 	 if charset.emacs_mule_id >= 0
 	   {
-	     emacs_mule_charset[charset.emacs_mule_id as usize] = id;
+	     (*emacs_mule_charset.as_mut_ptr ())[charset.emacs_mule_id as usize] = id;
 	     if charset.emacs_mule_id < 0xA0
-	       { emacs_mule_bytes[charset.emacs_mule_id as usize] = (charset.dimension + 1) as c_char; }
+	       { (*emacs_mule_bytes.as_mut_ptr ())[charset.emacs_mule_id as usize] = (charset.dimension + 1) as c_char; }
 	     else
-	       { emacs_mule_bytes[charset.emacs_mule_id as usize] = (charset.dimension + 2) as c_char; }
+	       { (*emacs_mule_bytes.as_mut_ptr ())[charset.emacs_mule_id as usize] = (charset.dimension + 2) as c_char; }
 	     if new_definition_p
-	       { Vemacs_mule_charset_list = nconc2 (Vemacs_mule_charset_list,
+	       { (*Vemacs_mule_charset_list.as_mut_ptr ()) = nconc2 ((*Vemacs_mule_charset_list.as_mut_ptr ()),
 						    list1i (id as EMACS_INT)); }
 	   }
 
 	 if new_definition_p
 	   {
-	     Vcharset_list = Fcons (*args.offset (charset_arg_name as isize), Vcharset_list);
+	     (*Vcharset_list.as_mut_ptr ()) = Fcons (*args.offset (charset_arg_name as isize), (*Vcharset_list.as_mut_ptr ()));
 	     if charset_bits! (supplementary_p, &mut charset)
-	       { Vcharset_ordered_list = nconc2 (Vcharset_ordered_list, list1i (id as EMACS_INT)); }
+	       { (*Vcharset_ordered_list.as_mut_ptr ()) = nconc2 ((*Vcharset_ordered_list.as_mut_ptr ()), list1i (id as EMACS_INT)); }
 	     else
 	       {
 		 let mut tail: Lisp_Object = Qnil ();
 
-		 tail = Vcharset_ordered_list;
+		 tail = (*Vcharset_ordered_list.as_mut_ptr ());
 		 while CONSP (tail)
 		   {
 		     let cs: *mut charset = CHARSET_FROM_ID! (XFIXNUM (XCAR (tail)));
@@ -1487,11 +1485,11 @@ DEFUN! ("define-charset-internal", Fdefine_charset_internal,
 		       { break; }
 		     tail = XCDR (tail);
 		   }
-		 if EQ (tail, Vcharset_ordered_list)
-		   { Vcharset_ordered_list = Fcons (make_fixnum (id as EMACS_INT),
-						    Vcharset_ordered_list); }
+		 if EQ (tail, (*Vcharset_ordered_list.as_mut_ptr ()))
+		   { (*Vcharset_ordered_list.as_mut_ptr ()) = Fcons (make_fixnum (id as EMACS_INT),
+						    (*Vcharset_ordered_list.as_mut_ptr ())); }
 		 else if NILP (tail)
-		   { Vcharset_ordered_list = nconc2 (Vcharset_ordered_list,
+		   { (*Vcharset_ordered_list.as_mut_ptr ()) = nconc2 ((*Vcharset_ordered_list.as_mut_ptr ()),
 						     list1i (id as EMACS_INT)); }
 		 else
 		   {
@@ -1500,7 +1498,7 @@ DEFUN! ("define-charset-internal", Fdefine_charset_internal,
 		     XSETCAR (tail, make_fixnum (id as EMACS_INT));
 		   }
 	       }
-	     charset_ordered_list_tick += 1;
+	     (*charset_ordered_list_tick.as_mut_ptr ()) += 1;
 	   }
 
 	 return Qnil ();
@@ -1580,8 +1578,8 @@ DEFUN! ("define-charset-alias", Fdefine_charset_alias,
 	 let mut attr: Lisp_Object = Qnil ();
 
 	 CHECK_CHARSET_GET_ATTR! (charset, attr);
-	 Fputhash (alias, attr, Vcharset_hash_table);
-	 Vcharset_list = Fcons (alias, Vcharset_list);
+	 Fputhash (alias, attr, (*Vcharset_hash_table.as_mut_ptr ()));
+	 (*Vcharset_list.as_mut_ptr ()) = Fcons (alias, (*Vcharset_list.as_mut_ptr ()));
 	 return Qnil ();
        });
 
@@ -1636,20 +1634,20 @@ DEFUN! ("unify-charset", Funify_charset, Sunify_charset, 1, 3, 0,
 		   { signal_error (c"Bad unify-map".as_ptr (), unify_map); }
 		 set_charset_attr (cs, charset_unify_map, unify_map);
 	       }
-	     if NILP (Vchar_unify_table)
-	       { Vchar_unify_table = Fmake_char_table (Qnil (), Qnil ()); }
-	     char_table_set_range (Vchar_unify_table,
+	     if NILP ((*Vchar_unify_table.as_mut_ptr ()))
+	       { (*Vchar_unify_table.as_mut_ptr ()) = Fmake_char_table (Qnil (), Qnil ()); }
+	     char_table_set_range ((*Vchar_unify_table.as_mut_ptr ()),
 				   (*cs).min_char, (*cs).max_char, charset);
 	     charset_bits! (unified_p, cs, 1);
 	   }
-	 else if CHAR_TABLE_P (Vchar_unify_table)
+	 else if CHAR_TABLE_P ((*Vchar_unify_table.as_mut_ptr ()))
 	   {
 	     let min_code: c_uint = CHARSET_MIN_CODE! (cs);
 	     let max_code: c_uint = CHARSET_MAX_CODE! (cs);
 	     let min_char: c_int = DECODE_CHAR! (cs, min_code);
 	     let max_char: c_int = DECODE_CHAR! (cs, max_code);
 
-	     char_table_set_range (Vchar_unify_table, min_char, max_char, Qnil ());
+	     char_table_set_range ((*Vchar_unify_table.as_mut_ptr ()), min_char, max_char, Qnil ());
 	   }
 
 	 return Qnil ();
@@ -1770,7 +1768,7 @@ unsafe fn find_charsets_in_text (ptr: *const u8, nchars: ptrdiff_t,
   if nchars == nbytes
     {
       if multibyte
-	{ ASET (charsets, charset_ascii as isize, Qt ()); }
+	{ ASET (charsets, (*charset_ascii.as_mut_ptr ()) as isize, Qt ()); }
       else
 	{
 	  let mut ptr: *const u8 = ptr;
@@ -1782,9 +1780,9 @@ unsafe fn find_charsets_in_text (ptr: *const u8, nchars: ptrdiff_t,
 	      if ! NILP (table)
 		{ c = translate_char (table, c); }
 	      if ASCII_CHAR_P (c as isize)
-		{ ASET (charsets, charset_ascii as isize, Qt ()); }
+		{ ASET (charsets, (*charset_ascii.as_mut_ptr ()) as isize, Qt ()); }
 	      else
-		{ ASET (charsets, charset_eight_bit as isize, Qt ()); }
+		{ ASET (charsets, (*charset_eight_bit.as_mut_ptr ()) as isize, Qt ()); }
 	    }
 	}
     }
@@ -1838,7 +1836,7 @@ DEFUN! ("find-charset-region", Ffind_charset_region, Sfind_charset_region,
 
 	 from_byte = CHAR_TO_BYTE (from);
 
-	 charsets = make_nil_vector (charset_table.used as isize);
+	 charsets = make_nil_vector ((*charset_table.as_mut_ptr ()).used as isize);
 	 loop
 	   {
 	     find_charsets_in_text (BYTE_POS_ADDR (from_byte) as *const u8, stop - from,
@@ -1856,11 +1854,11 @@ DEFUN! ("find-charset-region", Ffind_charset_region, Sfind_charset_region,
 	   }
 
 	 val = Qnil ();
-	 i = charset_table.used - 1;
+	 i = (*charset_table.as_mut_ptr ()).used - 1;
 	 while i >= 0
 	   {
 	     if ! NILP (AREF (charsets, i as isize))
-	       { val = Fcons (CHARSET_NAME! (charset_table.start.offset (i as isize)), val); }
+	       { val = Fcons (CHARSET_NAME! ((*charset_table.as_mut_ptr ()).start.offset (i as isize)), val); }
 	     i -= 1;
 	   }
 	 return val;
@@ -1873,16 +1871,16 @@ DEFUN! ("find-charset-string", Ffind_charset_string, Sfind_charset_string,
        {
 	 CHECK_STRING (str_);
 
-	 let charsets: Lisp_Object = make_nil_vector (charset_table.used as isize);
+	 let charsets: Lisp_Object = make_nil_vector ((*charset_table.as_mut_ptr ()).used as isize);
 	 find_charsets_in_text (SDATA (str_) as *const u8, SCHARS (str_), SBYTES (str_),
 				charsets, table,
 				STRING_MULTIBYTE (str_));
 	 let mut val: Lisp_Object = Qnil ();
-	 let mut i: c_int = charset_table.used - 1;
+	 let mut i: c_int = (*charset_table.as_mut_ptr ()).used - 1;
 	 while i >= 0
 	   {
 	     if ! NILP (AREF (charsets, i as isize))
-	       { val = Fcons (CHARSET_NAME! (charset_table.start.offset (i as isize)), val); }
+	       { val = Fcons (CHARSET_NAME! ((*charset_table.as_mut_ptr ()).start.offset (i as isize)), val); }
 	     i -= 1;
 	   }
 	 return val;
@@ -1906,9 +1904,9 @@ unsafe fn maybe_unify_char (c: c_int, val: Lisp_Object) -> c_int
 
   CHECK_CHARSET_GET_CHARSET! (val, charset);
   load_charset (charset, 1);
-  if ! inhibit_load_charset_map
+  if ! (*inhibit_load_charset_map.as_mut_ptr ())
     {
-      val = CHAR_TABLE_REF (Vchar_unify_table, c as isize);
+      val = CHAR_TABLE_REF ((*Vchar_unify_table.as_mut_ptr ()), c as isize);
       if ! NILP (val)
 	{ c = XFIXNAT (val) as c_int; }
     }
@@ -2001,7 +1999,7 @@ pub unsafe extern "C-unwind" fn decode_char (charset_: *mut charset, code: c_uin
 	      && MAX_UNICODE_CHAR < c && c <= MAX_5_BYTE_CHAR
 	    {
 	      /* Unify C with a Unicode character if possible.  */
-	      let val: Lisp_Object = CHAR_TABLE_REF (Vchar_unify_table, c as isize);
+	      let val: Lisp_Object = CHAR_TABLE_REF ((*Vchar_unify_table.as_mut_ptr ()), c as isize);
 	      c = maybe_unify_char (c, val);
 	    }
 	}
@@ -2014,7 +2012,7 @@ pub unsafe extern "C-unwind" fn decode_char (charset_: *mut charset, code: c_uin
 
 /* Variable used temporarily by the macro ENCODE_CHAR.  */
 #[unsafe(no_mangle)]
-pub static mut charset_work: Lisp_Object = lisp_h_Qnil ();
+pub static charset_work: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* Return a code-point of C in CHARSET.  If C doesn't belong to
    CHARSET, return CHARSET_INVALID_CODE (CHARSET).  If STRICT is true,
@@ -2264,7 +2262,7 @@ pub unsafe extern "C-unwind" fn char_charset (c: c_int, charset_list_: Lisp_Obje
   let mut maybe_null: bool = false;
 
   if NILP (charset_list)
-    { charset_list = Vcharset_ordered_list; }
+    { charset_list = (*Vcharset_ordered_list.as_mut_ptr ()); }
   else
     { maybe_null = true; }
 
@@ -2282,12 +2280,12 @@ pub unsafe extern "C-unwind" fn char_charset (c: c_int, charset_list_: Lisp_Obje
       charset_list = XCDR (charset_list);
       if ! maybe_null
 	  && c <= MAX_UNICODE_CHAR
-	  && EQ (charset_list, Vcharset_non_preferred_head)
-	{ return CHARSET_FROM_ID! (charset_unicode); }
+	  && EQ (charset_list, (*Vcharset_non_preferred_head.as_mut_ptr ()))
+	{ return CHARSET_FROM_ID! ((*charset_unicode.as_mut_ptr ())); }
     }
   return if maybe_null { std::ptr::null_mut () }
-	 else if c <= MAX_5_BYTE_CHAR { CHARSET_FROM_ID! (charset_emacs) }
-	 else { CHARSET_FROM_ID! (charset_eight_bit) };
+	 else if c <= MAX_5_BYTE_CHAR { CHARSET_FROM_ID! ((*charset_emacs.as_mut_ptr ())) }
+	 else { CHARSET_FROM_ID! ((*charset_eight_bit.as_mut_ptr ())) };
 
   }
 }
@@ -2385,25 +2383,25 @@ unsafe fn shrink_charset_table ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  eassert! (charset_table.size >= charset_table.used);
-  eassert! (ASIZE (charset_table.attributes_table) == charset_table.size as isize);
+  eassert! ((*charset_table.as_mut_ptr ()).size >= (*charset_table.as_mut_ptr ()).used);
+  eassert! (ASIZE ((*charset_table.as_mut_ptr ()).attributes_table) == (*charset_table.as_mut_ptr ()).size as isize);
 
-  if charset_table.size > charset_table.used
+  if (*charset_table.as_mut_ptr ()).size > (*charset_table.as_mut_ptr ()).used
     {
-      eassert! (! pdumper_object_p (charset_table.start as *const c_void));
-      charset_table.start
-	= xnrealloc (charset_table.start as *mut c_void,
-		     charset_table.used as ptrdiff_t,
+      eassert! (! pdumper_object_p ((*charset_table.as_mut_ptr ()).start as *const c_void));
+      (*charset_table.as_mut_ptr ()).start
+	= xnrealloc ((*charset_table.as_mut_ptr ()).start as *mut c_void,
+		     (*charset_table.as_mut_ptr ()).used as ptrdiff_t,
 		     std::mem::size_of::<charset> () as ptrdiff_t) as *mut charset;
 
-      charset_table.attributes_table
-	= Fvector (charset_table.used as ptrdiff_t,
-		   xvector_contents (charset_table.attributes_table) as *mut Lisp_Object);
+      (*charset_table.as_mut_ptr ()).attributes_table
+	= Fvector ((*charset_table.as_mut_ptr ()).used as ptrdiff_t,
+		   xvector_contents ((*charset_table.as_mut_ptr ()).attributes_table) as *mut Lisp_Object);
 
-      charset_table.size = charset_table.used;
+      (*charset_table.as_mut_ptr ()).size = (*charset_table.as_mut_ptr ()).used;
     }
-  eassert! (charset_table.size == charset_table.used);
-  eassert! (ASIZE (charset_table.attributes_table) == charset_table.size as isize);
+  eassert! ((*charset_table.as_mut_ptr ()).size == (*charset_table.as_mut_ptr ()).used);
+  eassert! (ASIZE ((*charset_table.as_mut_ptr ()).attributes_table) == (*charset_table.as_mut_ptr ()).size as isize);
 
   }
 }
@@ -2413,14 +2411,14 @@ DEFUN! ("clear-charset-maps", Fclear_charset_maps, Sclear_charset_maps,
        doc: "\nInternal use only.\nClear temporary charset mapping tables.\nIt should be called only from temacs invoked for dumping.  ",
        (),
        {
-	 if ! temp_charset_work.is_null ()
+	 if ! (*temp_charset_work.as_mut_ptr ()).is_null ()
 	   {
-	     xfree (temp_charset_work as *mut c_void);
-	     temp_charset_work = std::ptr::null_mut ();
+	     xfree ((*temp_charset_work.as_mut_ptr ()) as *mut c_void);
+	     (*temp_charset_work.as_mut_ptr ()) = std::ptr::null_mut ();
 	   }
 
-	 if CHAR_TABLE_P (Vchar_unify_table)
-	   { Foptimize_char_table (Vchar_unify_table, Qnil ()); }
+	 if CHAR_TABLE_P ((*Vchar_unify_table.as_mut_ptr ()))
+	   { Foptimize_char_table ((*Vchar_unify_table.as_mut_ptr ()), Qnil ()); }
 
 	 shrink_charset_table ();
 
@@ -2433,7 +2431,7 @@ DEFUN! ("charset-priority-list", Fcharset_priority_list,
        (highestp: Lisp_Object),
        {
 	 let mut val: Lisp_Object = Qnil ();
-	 let mut list: Lisp_Object = Vcharset_ordered_list;
+	 let mut list: Lisp_Object = (*Vcharset_ordered_list.as_mut_ptr ());
 
 	 if ! NILP (highestp)
 	   { return CHARSET_NAME! (CHARSET_FROM_ID! (XFIXNUM (Fcar (list)) as isize)); }
@@ -2458,7 +2456,7 @@ DEFUN! ("set-charset-priority", Fset_charset_priority, Sset_charset_priority,
 	 let mut i: ptrdiff_t = 0;
 	 let mut id: c_int = 0;
 
-	 old_list = Fcopy_sequence (Vcharset_ordered_list);
+	 old_list = Fcopy_sequence ((*Vcharset_ordered_list.as_mut_ptr ()));
 	 new_head = Qnil ();
 	 i = 0;
 	 while i < nargs
@@ -2471,36 +2469,36 @@ DEFUN! ("set-charset-priority", Fset_charset_priority, Sset_charset_priority,
 	       }
 	     i += 1;
 	   }
-	 Vcharset_non_preferred_head = old_list;
-	 Vcharset_ordered_list = nconc2 (Fnreverse (new_head), old_list);
+	 (*Vcharset_non_preferred_head.as_mut_ptr ()) = old_list;
+	 (*Vcharset_ordered_list.as_mut_ptr ()) = nconc2 (Fnreverse (new_head), old_list);
 
-	 charset_ordered_list_tick += 1;
+	 (*charset_ordered_list_tick.as_mut_ptr ()) += 1;
 
-	 charset_unibyte = -1;
-	 old_list = Vcharset_ordered_list;
+	 (*charset_unibyte.as_mut_ptr ()) = -1;
+	 old_list = (*Vcharset_ordered_list.as_mut_ptr ());
 	 list_2022 = Qnil ();
 	 list_emacs_mule = Qnil ();
 	 while CONSP (old_list)
 	   {
-	     if ! NILP (Fmemq (XCAR (old_list), Viso_2022_charset_list))
+	     if ! NILP (Fmemq (XCAR (old_list), (*Viso_2022_charset_list.as_mut_ptr ())))
 	       { list_2022 = Fcons (XCAR (old_list), list_2022); }
-	     if ! NILP (Fmemq (XCAR (old_list), Vemacs_mule_charset_list))
+	     if ! NILP (Fmemq (XCAR (old_list), (*Vemacs_mule_charset_list.as_mut_ptr ())))
 	       { list_emacs_mule = Fcons (XCAR (old_list), list_emacs_mule); }
-	     if charset_unibyte < 0
+	     if (*charset_unibyte.as_mut_ptr ()) < 0
 	       {
 		 let charset: *mut charset = CHARSET_FROM_ID! (XFIXNUM (XCAR (old_list)));
 
 		 if CHARSET_DIMENSION! (charset) == 1
 		     && CHARSET_ASCII_COMPATIBLE_P! (charset)
 		     && CHARSET_MAX_CHAR! (charset) >= 0x80
-		   { charset_unibyte = CHARSET_ID! (charset); }
+		   { (*charset_unibyte.as_mut_ptr ()) = CHARSET_ID! (charset); }
 	       }
 	     old_list = XCDR (old_list);
 	   }
-	 Viso_2022_charset_list = Fnreverse (list_2022);
-	 Vemacs_mule_charset_list = Fnreverse (list_emacs_mule);
-	 if charset_unibyte < 0
-	   { charset_unibyte = charset_iso_8859_1; }
+	 (*Viso_2022_charset_list.as_mut_ptr ()) = Fnreverse (list_2022);
+	 (*Vemacs_mule_charset_list.as_mut_ptr ()) = Fnreverse (list_emacs_mule);
+	 if (*charset_unibyte.as_mut_ptr ()) < 0
+	   { (*charset_unibyte.as_mut_ptr ()) = (*charset_iso_8859_1.as_mut_ptr ()); }
 
 	 return Qnil ();
        });
@@ -2574,7 +2572,7 @@ DEFUN! ("sort-charsets", Fsort_charsets, Ssort_charsets, 1, 1, 0,
 	     i += 1;
 	   }
 	 done = 0;
-	 tail = Vcharset_ordered_list;
+	 tail = (*Vcharset_ordered_list.as_mut_ptr ());
 	 i = 0;
 	 while done < n as c_int && CONSP (tail)
 	   {
@@ -2616,13 +2614,13 @@ pub unsafe extern "C-unwind" fn init_charset ()
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
   let mut tempdir: Lisp_Object = Qnil ();
-  tempdir = Fexpand_file_name (build_string (c"charsets".as_ptr ()), Vdata_directory);
+  tempdir = Fexpand_file_name (build_string (c"charsets".as_ptr ()), (*Vdata_directory.as_mut_ptr ()));
   if ! file_accessible_directory_p (tempdir)
     {
       /* This used to be non-fatal (dir_warning), but it should not
 	 happen, and if it does sooner or later it will cause some
 	 obscure problem (eg bug#6401), so better exit.  */
-      fprintf (stderr,
+      fprintf ((*stderr.as_mut_ptr ()),
 	       c"Error: %s: %s\nEmacs will not function correctly without the character map files.\n%sPlease check your installation!\n".as_ptr (),
 	       SDATA (tempdir), strerror (*errno ()),
 	       if ! egetenv (c"EMACSDATA".as_ptr ()).is_null ()
@@ -2631,7 +2629,7 @@ pub unsafe extern "C-unwind" fn init_charset ()
       exit (1);
     }
 
-  Vcharset_map_path = list1 (tempdir);
+  (*Vcharset_map_path.as_mut_ptr ()) = list1 (tempdir);
 
   }
 }
@@ -2651,29 +2649,29 @@ pub unsafe extern "C-unwind" fn init_charset_once ()
 	{
 	  for k in 0..ISO_MAX_FINAL
 	    {
-	      iso_charset_table[i as usize][j as usize][k as usize] = -1;
+	      (*iso_charset_table.as_mut_ptr ())[i as usize][j as usize][k as usize] = -1;
 	    }
 	}
     }
 
-  PDUMPER_REMEMBER_SCALAR! (iso_charset_table);
+  PDUMPER_REMEMBER_SCALAR! ((*iso_charset_table.as_mut_ptr ()));
 
   for i in 0..256
-    { emacs_mule_charset[i as usize] = -1; }
+    { (*emacs_mule_charset.as_mut_ptr ())[i as usize] = -1; }
 
-  PDUMPER_REMEMBER_SCALAR! (emacs_mule_charset);
+  PDUMPER_REMEMBER_SCALAR! ((*emacs_mule_charset.as_mut_ptr ()));
 
-  charset_jisx0201_roman = -1;
-  PDUMPER_REMEMBER_SCALAR! (charset_jisx0201_roman);
+  (*charset_jisx0201_roman.as_mut_ptr ()) = -1;
+  PDUMPER_REMEMBER_SCALAR! ((*charset_jisx0201_roman.as_mut_ptr ()));
 
-  charset_jisx0208_1978 = -1;
-  PDUMPER_REMEMBER_SCALAR! (charset_jisx0208_1978);
+  (*charset_jisx0208_1978.as_mut_ptr ()) = -1;
+  PDUMPER_REMEMBER_SCALAR! ((*charset_jisx0208_1978.as_mut_ptr ()));
 
-  charset_jisx0208 = -1;
-  PDUMPER_REMEMBER_SCALAR! (charset_jisx0208);
+  (*charset_jisx0208.as_mut_ptr ()) = -1;
+  PDUMPER_REMEMBER_SCALAR! ((*charset_jisx0208.as_mut_ptr ()));
 
-  charset_ksc5601 = -1;
-  PDUMPER_REMEMBER_SCALAR! (charset_ksc5601);
+  (*charset_ksc5601.as_mut_ptr ()) = -1;
+  PDUMPER_REMEMBER_SCALAR! ((*charset_ksc5601.as_mut_ptr ()));
 
   }
 }
@@ -2699,97 +2697,97 @@ pub unsafe extern "C-unwind" fn syms_of_charset ()
   DEFSYM! (Qeight_bit, c"eight-bit");
   DEFSYM! (Qiso_8859_1, c"iso-8859-1");
 
-  staticpro (&raw const Vcharset_ordered_list);
-  Vcharset_ordered_list = Qnil ();
+  staticpro (Vcharset_ordered_list.as_ptr ());
+  (*Vcharset_ordered_list.as_mut_ptr ()) = Qnil ();
 
-  staticpro (&raw const Viso_2022_charset_list);
-  Viso_2022_charset_list = Qnil ();
+  staticpro (Viso_2022_charset_list.as_ptr ());
+  (*Viso_2022_charset_list.as_mut_ptr ()) = Qnil ();
 
-  staticpro (&raw const Vemacs_mule_charset_list);
-  Vemacs_mule_charset_list = Qnil ();
+  staticpro (Vemacs_mule_charset_list.as_ptr ());
+  (*Vemacs_mule_charset_list.as_mut_ptr ()) = Qnil ();
 
-  staticpro (&raw const Vcharset_hash_table);
-  Vcharset_hash_table = CALLN! (Fmake_hash_table, QCtest (), Qeq ());
+  staticpro (Vcharset_hash_table.as_ptr ());
+  (*Vcharset_hash_table.as_mut_ptr ()) = CALLN! (Fmake_hash_table, QCtest (), Qeq ());
 
-  charset_table.size = CHARSET_TABLE_INIT_SIZE;
-  PDUMPER_REMEMBER_SCALAR! (charset_table.size);
-  charset_table.start
-    = xmalloc ((charset_table.size as usize) * std::mem::size_of::<charset> ()) as *mut charset;
-  charset_table.used = 0;
-  PDUMPER_REMEMBER_SCALAR! (charset_table.used);
+  (*charset_table.as_mut_ptr ()).size = CHARSET_TABLE_INIT_SIZE;
+  PDUMPER_REMEMBER_SCALAR! ((*charset_table.as_mut_ptr ()).size);
+  (*charset_table.as_mut_ptr ()).start
+    = xmalloc (((*charset_table.as_mut_ptr ()).size as usize) * std::mem::size_of::<charset> ()) as *mut charset;
+  (*charset_table.as_mut_ptr ()).used = 0;
+  PDUMPER_REMEMBER_SCALAR! ((*charset_table.as_mut_ptr ()).used);
 
-  charset_table.attributes_table
-    = make_vector (charset_table.size as ptrdiff_t, Qnil ());
+  (*charset_table.as_mut_ptr ()).attributes_table
+    = make_vector ((*charset_table.as_mut_ptr ()).size as ptrdiff_t, Qnil ());
 
-  staticpro (&raw const charset_table.attributes_table);
-  defsubr (&raw mut Scharsetp);
-  defsubr (&raw mut Smap_charset_chars);
-  defsubr (&raw mut Sdefine_charset_internal);
-  defsubr (&raw mut Sdefine_charset_alias);
-  defsubr (&raw mut Scharset_plist);
-  defsubr (&raw mut Sset_charset_plist);
-  defsubr (&raw mut Sunify_charset);
-  defsubr (&raw mut Sget_unused_iso_final_char);
-  defsubr (&raw mut Sdeclare_equiv_charset);
-  defsubr (&raw mut Sfind_charset_region);
-  defsubr (&raw mut Sfind_charset_string);
-  defsubr (&raw mut Sdecode_char);
-  defsubr (&raw mut Sencode_char);
-  defsubr (&raw mut Ssplit_char);
-  defsubr (&raw mut Smake_char);
-  defsubr (&raw mut Schar_charset);
-  defsubr (&raw mut Scharset_after);
-  defsubr (&raw mut Siso_charset);
-  defsubr (&raw mut Sclear_charset_maps);
-  defsubr (&raw mut Scharset_priority_list);
-  defsubr (&raw mut Sset_charset_priority);
-  defsubr (&raw mut Scharset_id_internal);
-  defsubr (&raw mut Ssort_charsets);
+  staticpro (&raw const (*charset_table.as_mut_ptr ()).attributes_table);
+  defsubr (Scharsetp.as_mut_ptr ());
+  defsubr (Smap_charset_chars.as_mut_ptr ());
+  defsubr (Sdefine_charset_internal.as_mut_ptr ());
+  defsubr (Sdefine_charset_alias.as_mut_ptr ());
+  defsubr (Scharset_plist.as_mut_ptr ());
+  defsubr (Sset_charset_plist.as_mut_ptr ());
+  defsubr (Sunify_charset.as_mut_ptr ());
+  defsubr (Sget_unused_iso_final_char.as_mut_ptr ());
+  defsubr (Sdeclare_equiv_charset.as_mut_ptr ());
+  defsubr (Sfind_charset_region.as_mut_ptr ());
+  defsubr (Sfind_charset_string.as_mut_ptr ());
+  defsubr (Sdecode_char.as_mut_ptr ());
+  defsubr (Sencode_char.as_mut_ptr ());
+  defsubr (Ssplit_char.as_mut_ptr ());
+  defsubr (Smake_char.as_mut_ptr ());
+  defsubr (Schar_charset.as_mut_ptr ());
+  defsubr (Scharset_after.as_mut_ptr ());
+  defsubr (Siso_charset.as_mut_ptr ());
+  defsubr (Sclear_charset_maps.as_mut_ptr ());
+  defsubr (Scharset_priority_list.as_mut_ptr ());
+  defsubr (Sset_charset_priority.as_mut_ptr ());
+  defsubr (Scharset_id_internal.as_mut_ptr ());
+  defsubr (Ssort_charsets.as_mut_ptr ());
 
   DEFVAR_LISP! (c"charset-map-path", Vcharset_map_path,
 	       "List of directories to search for charset map files.  ");
-  Vcharset_map_path = Qnil ();
+  (*Vcharset_map_path.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_BOOL! (c"inhibit-load-charset-map", inhibit_load_charset_map,
 	       "Inhibit loading of charset maps.  Used when dumping Emacs.  ");
-  inhibit_load_charset_map = false;
+  (*inhibit_load_charset_map.as_mut_ptr ()) = false;
 
   DEFVAR_LISP! (c"charset-list", Vcharset_list,
 	       "List of all charsets ever defined.  ");
-  Vcharset_list = Qnil ();
+  (*Vcharset_list.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"current-iso639-language", Vcurrent_iso639_language,
 	       "ISO639 language mnemonic symbol for the current language environment.\nIf the current language environment is for multiple languages (e.g. \"Latin-1\"),\nthe value may be a list of mnemonics.  ");
-  Vcurrent_iso639_language = Qnil ();
+  (*Vcurrent_iso639_language.as_mut_ptr ()) = Qnil ();
 
-  charset_ascii
+  (*charset_ascii.as_mut_ptr ())
     = define_charset_internal (Qascii (), 1, b"\x00\x7F\0\0\0\0\0\0".as_ptr () as *const c_char,
 			       0, 127, b'B' as c_int, -1, 0, true, false, 0);
-  PDUMPER_REMEMBER_SCALAR! (charset_ascii);
+  PDUMPER_REMEMBER_SCALAR! ((*charset_ascii.as_mut_ptr ()));
 
-  charset_iso_8859_1
+  (*charset_iso_8859_1.as_mut_ptr ())
     = define_charset_internal (Qiso_8859_1 (), 1, b"\x00\xFF\0\0\0\0\0\0".as_ptr () as *const c_char,
 			       0, 255, -1, -1, -1, true, false, 0);
-  PDUMPER_REMEMBER_SCALAR! (charset_iso_8859_1);
+  PDUMPER_REMEMBER_SCALAR! ((*charset_iso_8859_1.as_mut_ptr ()));
 
-  charset_unicode
+  (*charset_unicode.as_mut_ptr ())
     = define_charset_internal (Qunicode (), 3, b"\x00\xFF\x00\xFF\x00\x10\0\0".as_ptr () as *const c_char,
 			       0, MAX_UNICODE_CHAR as c_uint, -1, 0, -1, true, false, 0);
-  PDUMPER_REMEMBER_SCALAR! (charset_unicode);
+  PDUMPER_REMEMBER_SCALAR! ((*charset_unicode.as_mut_ptr ()));
 
-  charset_emacs
+  (*charset_emacs.as_mut_ptr ())
     = define_charset_internal (Qemacs (), 3, b"\x00\xFF\x00\xFF\x00\x3F\0\0".as_ptr () as *const c_char,
 			       0, MAX_5_BYTE_CHAR as c_uint, -1, 0, -1, true, true, 0);
-  PDUMPER_REMEMBER_SCALAR! (charset_emacs);
+  PDUMPER_REMEMBER_SCALAR! ((*charset_emacs.as_mut_ptr ()));
 
-  charset_eight_bit
+  (*charset_eight_bit.as_mut_ptr ())
     = define_charset_internal (Qeight_bit (), 1, b"\x80\xFF\0\0\0\0\0\0".as_ptr () as *const c_char,
 			       128, 255, -1, 0, -1, false, true,
 			       MAX_5_BYTE_CHAR + 1);
-  PDUMPER_REMEMBER_SCALAR! (charset_eight_bit);
+  PDUMPER_REMEMBER_SCALAR! ((*charset_eight_bit.as_mut_ptr ()));
 
-  charset_unibyte = charset_iso_8859_1;
-  PDUMPER_REMEMBER_SCALAR! (charset_unibyte);
+  (*charset_unibyte.as_mut_ptr ()) = (*charset_iso_8859_1.as_mut_ptr ());
+  PDUMPER_REMEMBER_SCALAR! ((*charset_unibyte.as_mut_ptr ()));
 
   }
 }

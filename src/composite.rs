@@ -53,7 +53,7 @@ unsafe extern "C-unwind" {
   /// C: lisp.h 3525: `DEFVAR_BOOL ("inhibit-modification-hooks",
   /// inhibit_modification_hooks, …)`.  The storage lives in `insdel.c`, its definition
   /// unit (`src/insdel.rs`); no mirror declares the name (status §3.29).
-  pub static mut inhibit_modification_hooks: bool;
+  pub static inhibit_modification_hooks: VmGlobal<bool>;
 
 
   /// C: lisp.h 5031-5032: `extern ptrdiff_t fast_looking_at (Lisp_Object, ptrdiff_t,
@@ -156,19 +156,19 @@ pub struct it
    COMPOSITION-ID.  This structure is for storing information about
    each composition except for COMPONENTS-VEC.  */
 #[unsafe(no_mangle)]
-pub static mut composition_table: *mut *mut composition = std::ptr::null_mut ();
+pub static composition_table: VmGlobal<*mut *mut composition> = VmGlobal::<*mut *mut composition>::new (std::ptr::null_mut ());
 
 /* The current size of `composition_table'.  */
-static mut composition_table_size: ptrdiff_t = 0;
+static composition_table_size: VmGlobal<ptrdiff_t> = VmGlobal::<ptrdiff_t>::new (0);
 
 /* Number of compositions currently made. */
 #[unsafe(no_mangle)]
-pub static mut n_compositions: ptrdiff_t = 0;
+pub static n_compositions: VmGlobal<ptrdiff_t> = VmGlobal::<ptrdiff_t>::new (0);
 
 /* Hash table for compositions.  The key is COMPONENTS-VEC of
    `composition' property.  The value is the corresponding
    COMPOSITION-ID.  */
-static mut composition_hash_table: Lisp_Object = lisp_h_Qnil ();
+static composition_hash_table: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* Maximum number of characters to look back for
    auto-compositions.  */
@@ -194,7 +194,7 @@ pub unsafe extern "C-unwind" fn get_composition_id (mut charpos: ptrdiff_t, mut 
   let mut key: Lisp_Object = lisp_h_Qnil ();
   let mut key_contents: *mut Lisp_Object = std::ptr::null_mut ();
   let mut glyph_len: ptrdiff_t = 0;
-  let hash_table: *mut Lisp_Hash_Table = XHASH_TABLE (composition_hash_table);
+  let hash_table: *mut Lisp_Hash_Table = XHASH_TABLE ((*composition_hash_table.as_mut_ptr ()));
   let mut hash_index: ptrdiff_t = 0;
   let mut method: composition_method = COMPOSITION_RELATIVE;
   let mut cmp: *mut composition = std::ptr::null_mut ();
@@ -224,7 +224,7 @@ pub unsafe extern "C-unwind" fn get_composition_id (mut charpos: ptrdiff_t, mut 
     if FIXNUMP (id)
       {
 	/* PROP should be Form-B.  */
-	if XFIXNUM (id) < 0 || XFIXNUM (id) >= n_compositions
+	if XFIXNUM (id) < 0 || XFIXNUM (id) >= (*n_compositions.as_mut_ptr ())
 	  { break 'invalid_composition; }
 	return XFIXNUM (id);
       }
@@ -291,9 +291,9 @@ pub unsafe extern "C-unwind" fn get_composition_id (mut charpos: ptrdiff_t, mut 
     /* This composition is a new one.  We must register it.  */
 
     /* Check if we have sufficient memory to store this information.  */
-    if composition_table_size <= n_compositions
-      { composition_table
-	  = xpalloc (composition_table as *mut c_void, &raw mut composition_table_size,
+    if (*composition_table_size.as_mut_ptr ()) <= (*n_compositions.as_mut_ptr ())
+      { (*composition_table.as_mut_ptr ())
+	  = xpalloc ((*composition_table.as_mut_ptr ()) as *mut c_void, composition_table_size.as_mut_ptr (),
 		     1, -1, std::mem::size_of::<*mut composition> () as ptrdiff_t)
 	    as *mut *mut composition; }
 
@@ -338,7 +338,7 @@ pub unsafe extern "C-unwind" fn get_composition_id (mut charpos: ptrdiff_t, mut 
 
     /* Change PROP from Form-A above to Form-B.  We can directly modify
        the cons cell of PROP because it is not shared.  */
-    XSETFASTINT! (id, n_compositions);
+    XSETFASTINT! (id, (*n_compositions.as_mut_ptr ()));
     XSETCAR (prop, id);
     XSETCDR (prop, Fcons (make_fixnum (nchars), Fcons (key, XCDR (prop))));
 
@@ -439,10 +439,10 @@ pub unsafe extern "C-unwind" fn get_composition_id (mut charpos: ptrdiff_t, mut 
 	  { (*cmp).width += 1; }
       }
 
-    *composition_table.offset (n_compositions as isize) = cmp;
+    *(*composition_table.as_mut_ptr ()).offset ((*n_compositions.as_mut_ptr ()) as isize) = cmp;
 
-    let old_n_compositions: ptrdiff_t = n_compositions;
-    n_compositions += 1;
+    let old_n_compositions: ptrdiff_t = (*n_compositions.as_mut_ptr ());
+    (*n_compositions.as_mut_ptr ()) += 1;
     return old_n_compositions;
   }
 
@@ -565,7 +565,7 @@ pub unsafe extern "C-unwind" fn update_compositions (mut from: ptrdiff_t, mut to
   let mut min_pos: ptrdiff_t = from;
   let mut max_pos: ptrdiff_t = to;
 
-  if inhibit_modification_hooks
+  if (*inhibit_modification_hooks.as_mut_ptr ())
     { return; }
 
   /* If FROM and TO are not in a valid range, do nothing.  */
@@ -720,14 +720,14 @@ pub unsafe extern "C-unwind" fn compose_text (start: ptrdiff_t, end: ptrdiff_t,
    lgstring (Lispy glyph-string), and the value is a body of a
    lgstring.  */
 
-static mut gstring_hash_table: Lisp_Object = lisp_h_Qnil ();
+static gstring_hash_table: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn composition_gstring_lookup_cache (header: Lisp_Object) -> Lisp_Object
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  return Fgethash (header, gstring_hash_table, Qnil ());
+  return Fgethash (header, (*gstring_hash_table.as_mut_ptr ()), Qnil ());
 
   }
 }
@@ -738,7 +738,7 @@ pub unsafe extern "C-unwind" fn composition_gstring_put_cache (gstring: Lisp_Obj
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  let h: *mut Lisp_Hash_Table = XHASH_TABLE (gstring_hash_table);
+  let h: *mut Lisp_Hash_Table = XHASH_TABLE ((*gstring_hash_table.as_mut_ptr ()));
   let header: Lisp_Object = LGSTRING_HEADER (gstring);
   let hash: EMACS_UINT = hash_from_key (h, header) as EMACS_UINT;
   if len < 0
@@ -773,7 +773,7 @@ pub unsafe extern "C-unwind" fn composition_gstring_from_id (id: ptrdiff_t) -> L
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  let h: *mut Lisp_Hash_Table = XHASH_TABLE (gstring_hash_table);
+  let h: *mut Lisp_Hash_Table = XHASH_TABLE ((*gstring_hash_table.as_mut_ptr ()));
   /* FIXME: The stability of this value depends on the hash table internals!  */
   return HASH_VALUE (h, id as hash_idx_t);
 
@@ -787,7 +787,7 @@ pub unsafe extern "C-unwind" fn composition_gstring_cache_clear_font (font_objec
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  let h: *mut Lisp_Hash_Table = XHASH_TABLE (gstring_hash_table);
+  let h: *mut Lisp_Hash_Table = XHASH_TABLE ((*gstring_hash_table.as_mut_ptr ()));
 
   DOHASH! (h, k, gstring, {
     if EQ (LGSTRING_FONT (gstring), font_object)
@@ -802,7 +802,7 @@ DEFUN! ("clear-composition-cache", Fclear_composition_cache,
        doc: "Internal use only.\nClear composition cache.",
        (),
        {
-  gstring_hash_table = CALLN! (Fmake_hash_table, QCtest (), Qequal (),
+  (*gstring_hash_table.as_mut_ptr ()) = CALLN! (Fmake_hash_table, QCtest (), Qequal (),
 			       QCsize (), make_fixnum (311));
   /* Fixme: We call Fclear_face_cache to force complete re-building of
      display glyphs.  But, it may be better to call this function from
@@ -965,8 +965,8 @@ pub unsafe extern "C-unwind" fn composition_gstring_adjust_zero_width (gstring: 
 }
 
 
-static mut gstring_work: Lisp_Object = lisp_h_Qnil ();
-static mut gstring_work_headers: Lisp_Object = lisp_h_Qnil ();
+static gstring_work: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+static gstring_work_headers: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 unsafe fn fill_gstring_header (mut from: ptrdiff_t, mut from_byte: ptrdiff_t,
 			       to: ptrdiff_t, font_object: Lisp_Object,
@@ -979,7 +979,7 @@ unsafe fn fill_gstring_header (mut from: ptrdiff_t, mut from_byte: ptrdiff_t,
     { error (c"Attempt to shape zero-length text".as_ptr ()); }
   eassume! (0 < len);
   let header: Lisp_Object = (if len <= 8
-			     { AREF (gstring_work_headers, len - 1) }
+			     { AREF ((*gstring_work_headers.as_mut_ptr ()), len - 1) }
 			     else { make_uninit_vector (len + 1) });
 
   ASET (header, 0, font_object);
@@ -1035,7 +1035,7 @@ unsafe fn fill_gstring_body (gstring: Lisp_Object)
 	{ font_fill_lglyph_metrics (g, font, code); }
       else
 	{
-	  let width: c_int = XFIXNAT (CHAR_TABLE_REF (Vchar_width_table, c as isize)) as c_int;
+	  let width: c_int = XFIXNAT (CHAR_TABLE_REF ((*Vchar_width_table.as_mut_ptr ()), c as isize)) as c_int;
 
 	  LGLYPH_SET_CODE! (g, c as c_uint);
 	  LGLYPH_SET_LBEARING (g, 0);
@@ -1122,7 +1122,7 @@ unsafe fn autocmp_chars (rule: Lisp_Object, charpos: ptrdiff_t, bytepos: ptrdiff
       if NILP (string)
 	{ record_unwind_protect (Some (restore_point_unwind),
 				 build_marker ((current_buffer! ()) as *mut c_void, pt, pt_byte)); }
-      lgstring = safe_calln! (Vauto_composition_function, AREF (rule, 2),
+      lgstring = safe_calln! ((*Vauto_composition_function.as_mut_ptr ()), AREF (rule, 2),
 			      pos, make_fixnum (to), font_object, string,
 			      direction);
     }
@@ -1147,8 +1147,8 @@ unsafe fn char_composable_p (c: c_int) -> bool
 	      || (TAG_SPACE <= c && c <= CANCEL_TAG)
 	      /* unicode-category-table may not be available during
 		 dumping.  */
-	      || (CHAR_TABLE_P (Vunicode_category_table)
-		  && { val = CHAR_TABLE_REF (Vunicode_category_table, c as isize);
+	      || (CHAR_TABLE_P ((*Vunicode_category_table.as_mut_ptr ()))
+		  && { val = CHAR_TABLE_REF ((*Vunicode_category_table.as_mut_ptr ()), c as isize);
 		       (FIXNUMP (val)
 			&& (XFIXNUM (val) <= unicode_category_t::UNICODE_CATEGORY_Zs as EMACS_INT)) })));
 
@@ -1160,14 +1160,14 @@ unsafe fn inhibit_auto_composition () -> bool
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  if NILP (Vauto_composition_mode)
+  if NILP ((*Vauto_composition_mode.as_mut_ptr ()))
     { return true; }
 
-  if STRINGP (Vauto_composition_mode)
+  if STRINGP ((*Vauto_composition_mode.as_mut_ptr ()))
     {
       let name: *mut c_char = tty_type_name (Qnil ());
 
-      if !name.is_null () && strcmp (SSDATA (Vauto_composition_mode), name) == 0
+      if !name.is_null () && strcmp (SSDATA ((*Vauto_composition_mode.as_mut_ptr ())), name) == 0
 	{ return true; }
     }
 
@@ -1267,8 +1267,8 @@ pub unsafe extern "C-unwind" fn composition_compute_stop_pos (cmp_it: *mut compo
   /* Look for automatic compositions.  */
   start = charpos;
   /* For the case that they set it to something weird, like nil.  */
-  if !CHAR_TABLE_P (Vcomposition_function_table)
-    { Vcomposition_function_table = Fmake_char_table (Qnil (), Qnil ()); }
+  if !CHAR_TABLE_P ((*Vcomposition_function_table.as_mut_ptr ()))
+    { (*Vcomposition_function_table.as_mut_ptr ()) = Fmake_char_table (Qnil (), Qnil ()); }
   if charpos < endpos
     {
       /* Forward search.  */
@@ -1282,7 +1282,7 @@ pub unsafe extern "C-unwind" fn composition_compute_stop_pos (cmp_it: *mut compo
 	      (*cmp_it).ch = -2;
 	      break;
 	    }
-	  val = CHAR_TABLE_REF (Vcomposition_function_table, c as isize);
+	  val = CHAR_TABLE_REF ((*Vcomposition_function_table.as_mut_ptr ()), c as isize);
 	  if ! NILP (val)
 	    {
 	      let mut ridx: EMACS_INT = 0;
@@ -1340,7 +1340,7 @@ pub unsafe extern "C-unwind" fn composition_compute_stop_pos (cmp_it: *mut compo
          and subtle.  ...  */
       while char_composable_p (c)
 	{
-	  val = CHAR_TABLE_REF (Vcomposition_function_table, c as isize);
+	  val = CHAR_TABLE_REF ((*Vcomposition_function_table.as_mut_ptr ()), c as isize);
 	  let mut ridx: EMACS_INT = 0;
 	  while CONSP (val)
 	    {
@@ -1492,7 +1492,7 @@ pub unsafe extern "C-unwind" fn composition_reseat_it (cmp_it: *mut composition_
 	if (*cmp_it).id < 0
 	  { break 'no_composition; }
 	(*cmp_it).nchars = (end - start) as c_int;
-	(*cmp_it).nglyphs = (**composition_table.add ((*cmp_it).id as usize)).glyph_len;
+	(*cmp_it).nglyphs = (**(*composition_table.as_mut_ptr ()).add ((*cmp_it).id as usize)).glyph_len;
       }
     else if !w.is_null ()
       {
@@ -1502,9 +1502,9 @@ pub unsafe extern "C-unwind" fn composition_reseat_it (cmp_it: *mut composition_
 	let mut direction: Lisp_Object = Qnil ();
 
 	/* For the case that they set it to something weird, like nil.  */
-	if !CHAR_TABLE_P (Vcomposition_function_table)
-	  { Vcomposition_function_table = Fmake_char_table (Qnil (), Qnil ()); }
-	val = CHAR_TABLE_REF (Vcomposition_function_table, (*cmp_it).ch as isize);
+	if !CHAR_TABLE_P ((*Vcomposition_function_table.as_mut_ptr ()))
+	  { (*Vcomposition_function_table.as_mut_ptr ()) = Fmake_char_table (Qnil (), Qnil ()); }
+	val = CHAR_TABLE_REF ((*Vcomposition_function_table.as_mut_ptr ()), (*cmp_it).ch as isize);
 	let mut i: EMACS_INT = 0;
 	while i < (*cmp_it).rule_idx
 	  {
@@ -1555,7 +1555,7 @@ pub unsafe extern "C-unwind" fn composition_reseat_it (cmp_it: *mut composition_
 		   inside the composition.  */
 		if cpos < endpos
 		  {
-		    eassert! (composition_break_at_point);
+		    eassert! ((*composition_break_at_point.as_mut_ptr ()));
 		    eassert! (endpos == PT! ());
 		    break 'no_composition;
 		  }
@@ -1648,7 +1648,7 @@ pub unsafe extern "C-unwind" fn composition_update_it (cmp_it: *mut composition_
   if (*cmp_it).ch < 0
     {
       /* static composition */
-      let cmp: *mut composition = *composition_table.add ((*cmp_it).id as usize);
+      let cmp: *mut composition = *(*composition_table.as_mut_ptr ()).add ((*cmp_it).id as usize);
 
       (*cmp_it).charpos = charpos;
       (*cmp_it).to = (*cmp_it).nglyphs;
@@ -1922,7 +1922,7 @@ pub unsafe extern "C-unwind" fn find_automatic_composition (pos: ptrdiff_t, mut 
 	  let mut val: Lisp_Object = lisp_h_Qnil ();
 
 	  c = STRING_CHAR (cur.p);
-	  val = CHAR_TABLE_REF (Vcomposition_function_table, c as isize);
+	  val = CHAR_TABLE_REF ((*Vcomposition_function_table.as_mut_ptr ()), c as isize);
 	  while CONSP (val)
 	    {
 	      let elt: Lisp_Object = XCAR (val);
@@ -2086,7 +2086,7 @@ DEFUN! ("composition-get-gstring", Fcomposition_get_gstring,
 	{ TERMINAL_TERMINAL_CODING (terminal) as *mut coding_system }
 	/* the mirror packs coding_system's `common_flags` into `bits` (coding.rs 218-247);
 	   C 1929 reads the field, the port the same 14-bit window (docs/ports/composite.md) */
-	else { &raw mut safe_terminal_coding };
+	else { safe_terminal_coding.as_mut_ptr () };
       font_object = CODING_ID_NAME ((*coding).id as hash_idx_t);
     }
 
@@ -2131,12 +2131,12 @@ DEFUN! ("composition-get-gstring", Fcomposition_get_gstring,
   if ! NILP (gstring)
     { return gstring; }
 
-  if LGSTRING_GLYPH_LEN (gstring_work) < topos - frompos
-    { gstring_work = make_nil_vector (topos - frompos + 2); }
-  LGSTRING_SET_HEADER (gstring_work, header);
-  LGSTRING_SET_ID (gstring_work, Qnil ());
-  fill_gstring_body (gstring_work);
-  return gstring_work;
+  if LGSTRING_GLYPH_LEN ((*gstring_work.as_mut_ptr ())) < topos - frompos
+    { (*gstring_work.as_mut_ptr ()) = make_nil_vector (topos - frompos + 2); }
+  LGSTRING_SET_HEADER ((*gstring_work.as_mut_ptr ()), header);
+  LGSTRING_SET_ID ((*gstring_work.as_mut_ptr ()), Qnil ());
+  fill_gstring_body ((*gstring_work.as_mut_ptr ()));
+  return (*gstring_work.as_mut_ptr ());
 });
 
 
@@ -2253,7 +2253,7 @@ DEFUN! ("find-composition-internal", Ffind_composition_internal,
       let mut relative_p: Lisp_Object = lisp_h_Qnil ();
       let mut mod_func: Lisp_Object = lisp_h_Qnil ();
       let method: composition_method = composition_method (prop);
-      let width: c_int = (**composition_table.add (id as usize)).width;
+      let width: c_int = (**(*composition_table.as_mut_ptr ()).add (id as usize)).width;
 
       components = Fcopy_sequence (COMPOSITION_COMPONENTS (prop));
       relative_p = (if method == COMPOSITION_WITH_RULE_ALTCHARS
@@ -2325,9 +2325,9 @@ pub unsafe extern "C-unwind" fn mark_composite ()
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
   let mut i: c_int = 0;
-  while (i as ptrdiff_t) < n_compositions
+  while (i as ptrdiff_t) < (*n_compositions.as_mut_ptr ())
     {
-      mark_object ((**composition_table.add (i as usize)).key);
+      mark_object ((**(*composition_table.as_mut_ptr ()).add (i as usize)).key);
       i += 1;
     }
 
@@ -2339,15 +2339,15 @@ pub unsafe extern "C-unwind" fn mark_composite ()
 // port's `include/globals.rs` mirrors the names as declarations, so the unit that owns one
 // defines it here (status §3.29, the casetab.rs shape).
 #[unsafe(no_mangle)]
-pub static mut Vcompose_chars_after_function: Lisp_Object = lisp_h_Qnil ();
+pub static Vcompose_chars_after_function: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vauto_composition_mode: Lisp_Object = lisp_h_Qnil ();
+pub static Vauto_composition_mode: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vauto_composition_function: Lisp_Object = lisp_h_Qnil ();
+pub static Vauto_composition_function: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vcomposition_function_table: Lisp_Object = lisp_h_Qnil ();
+pub static Vcomposition_function_table: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vauto_composition_emoji_eligible_codepoints: Lisp_Object = lisp_h_Qnil ();
+pub static Vauto_composition_emoji_eligible_codepoints: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 
 #[unsafe(no_mangle)]
@@ -2366,57 +2366,57 @@ pub unsafe extern "C-unwind" fn syms_of_composite ()
      and thus it's not worth to save memory in such a way.  So, we
      make the table not weak.  */
   let args: [Lisp_Object; 4] = [QCtest (), Qequal (), QCsize (), make_fixnum (311)];
-  composition_hash_table = CALLMANY! (Fmake_hash_table, args);
-  staticpro (&raw const composition_hash_table);
+  (*composition_hash_table.as_mut_ptr ()) = CALLMANY! (Fmake_hash_table, args);
+  staticpro (composition_hash_table.as_ptr ());
 
   /* Make a hash table for glyph-string.  */
-  gstring_hash_table = CALLMANY! (Fmake_hash_table, args);
-  staticpro (&raw const gstring_hash_table);
+  (*gstring_hash_table.as_mut_ptr ()) = CALLMANY! (Fmake_hash_table, args);
+  staticpro (gstring_hash_table.as_ptr ());
 
-  staticpro (&raw const gstring_work_headers);
-  gstring_work_headers = make_nil_vector (8);
+  staticpro (gstring_work_headers.as_ptr ());
+  (*gstring_work_headers.as_mut_ptr ()) = make_nil_vector (8);
   i = 0;
   while i < 8
     {
-      ASET (gstring_work_headers, i as isize, make_nil_vector (i as isize + 2));
+      ASET ((*gstring_work_headers.as_mut_ptr ()), i as isize, make_nil_vector (i as isize + 2));
       i += 1;
     }
-  staticpro (&raw const gstring_work);
-  gstring_work = make_nil_vector (10);
+  staticpro (gstring_work.as_ptr ());
+  (*gstring_work.as_mut_ptr ()) = make_nil_vector (10);
 
   /* Text property `composition' should be nonsticky by default.  */
-  Vtext_property_default_nonsticky
-    = Fcons (Fcons (Qcomposition (), Qt ()), Vtext_property_default_nonsticky);
+  (*Vtext_property_default_nonsticky.as_mut_ptr ())
+    = Fcons (Fcons (Qcomposition (), Qt ()), (*Vtext_property_default_nonsticky.as_mut_ptr ()));
 
   DEFVAR_LISP! (c"compose-chars-after-function", Vcompose_chars_after_function,
 		"Function to adjust composition of buffer text.\n\nThis function is called with three arguments: FROM, TO, and OBJECT.\nFROM and TO specify the range of text whose composition should be\nadjusted.  OBJECT, if non-nil, is a string that contains the text.\n\nThis function is called after a text with `composition' property is\ninserted or deleted to keep `composition' property of buffer text\nvalid.\n\nThe default value is the function `compose-chars-after'.");
-  Vcompose_chars_after_function = intern_c_string (c"compose-chars-after".as_ptr ());
+  (*Vcompose_chars_after_function.as_mut_ptr ()) = intern_c_string (c"compose-chars-after".as_ptr ());
 
   DEFSYM! (Qauto_composed, c"auto-composed");
 
   DEFVAR_LISP! (c"auto-composition-mode", Vauto_composition_mode,
 		"Non-nil if Auto-Composition mode is enabled.\nUse the command `auto-composition-mode' to change this variable.\n\nIf this variable is a string, `auto-composition-mode' will be disabled in\nbuffers displayed on a terminal whose type, as reported by `tty-type',\ncompares equal to that string.");
-  Vauto_composition_mode = Qt ();
+  (*Vauto_composition_mode.as_mut_ptr ()) = Qt ();
 
   DEFVAR_LISP! (c"auto-composition-function", Vauto_composition_function,
 		"Function to call to compose characters automatically.\nThis function is called from the display engine with 6 arguments:\nFUNC, FROM, TO, FONT-OBJECT, STRING, and DIRECTION.\n\nFUNC is the function to compose characters.  On text-mode display,\nFUNC is ignored and `compose-gstring-for-terminal' is used instead.\n\nIf STRING is nil, the function must compose characters in the region\nbetween FROM and TO in the current buffer.\n\nOtherwise, STRING is a string, and FROM and TO are indices into the\nstring.  In this case, the function must compose characters in the\nstring.\n\nFONT-OBJECT is the font to use, or nil if characters are to be\ncomposed on a text-mode display.\n\nDIRECTION is the bidi directionality of the text to shape.  It could\nbe L2R or R2L, or nil if unknown.");
-  Vauto_composition_function = Qnil ();
+  (*Vauto_composition_function.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"composition-function-table", Vcomposition_function_table,
 		"Char-table of functions for automatic character composition.\nFor each character that has to be composed automatically with\npreceding and/or following characters, this char-table contains\na function to call to compose that character.\n\nThe element at index C in the table, if non-nil, is a list of\ncomposition rules of the form ([PATTERN PREV-CHARS FUNC] ...);\nthe rules must be specified in the descending order of PREV-CHARS\nvalues.\n\nPATTERN is a regular expression which C and the surrounding\ncharacters must match.\n\nPREV-CHARS is a non-negative integer (less than 4) specifying how many\ncharacters before C to check the matching with PATTERN.  If it is 0,\nPATTERN must match C and the following characters.  If it is 1,\nPATTERN must match a character before C and the following characters.\n\nIf PREV-CHARS is 0, PATTERN can be nil, which means that the\nsingle character C should be composed.\n\nFUNC is a function to return a glyph-string representing a\ncomposition of the characters that match PATTERN.  It is\ncalled with one argument GSTRING.\n\nGSTRING is a template of a glyph-string to return.  It is already\nfilled with a proper header for the characters to compose, and\nglyphs corresponding to those characters one by one.  The\nfunction must return a new glyph-string with the same header as\nGSTRING, or modify GSTRING itself and return it.\n\nSee also the documentation of `auto-composition-mode'.");
-  Vcomposition_function_table = Fmake_char_table (Qnil (), Qnil ());
+  (*Vcomposition_function_table.as_mut_ptr ()) = Fmake_char_table (Qnil (), Qnil ());
 
   DEFVAR_LISP! (c"auto-composition-emoji-eligible-codepoints",
 		Vauto_composition_emoji_eligible_codepoints,
 		"List of codepoints for which auto-composition will check for an emoji font.\n\nThese are codepoints which have Emoji_Presentation = No, and thus by\ndefault are not displayed as emoji.  In certain circumstances, such as\nwhen followed by U+FE0F (VS-16) the emoji font should be used for\nthem anyway.\n\nThis list is auto-generated, you should not need to modify it.");
-  Vauto_composition_emoji_eligible_codepoints = Qnil ();
+  (*Vauto_composition_emoji_eligible_codepoints.as_mut_ptr ()) = Qnil ();
 
-  defsubr (&raw mut Scompose_region_internal);
-  defsubr (&raw mut Scompose_string_internal);
-  defsubr (&raw mut Sfind_composition_internal);
-  defsubr (&raw mut Scomposition_get_gstring);
-  defsubr (&raw mut Sclear_composition_cache);
-  defsubr (&raw mut Scomposition_sort_rules);
+  defsubr (Scompose_region_internal.as_mut_ptr ());
+  defsubr (Scompose_string_internal.as_mut_ptr ());
+  defsubr (Sfind_composition_internal.as_mut_ptr ());
+  defsubr (Scomposition_get_gstring.as_mut_ptr ());
+  defsubr (Sclear_composition_cache.as_mut_ptr ());
+  defsubr (Scomposition_sort_rules.as_mut_ptr ());
 
   }
 }

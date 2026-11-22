@@ -34,7 +34,7 @@ MACROS = {
     "DEFVAR_LISP": ("Lisp_Fwd_Obj", {"Lisp_Object"}),
 }
 SITE = re.compile(r"\b(DEFVAR_INT|DEFVAR_BOOL|DEFVAR_LISP)!\s*\(\s*[^,]+,\s*([A-Za-z_][A-Za-z_0-9]*)")
-DECL = re.compile(r"(?:^|\n)\s*(?:pub\s+)?static\s+mut\s+([A-Za-z_][A-Za-z_0-9]*)\s*:\s*([^;=]+)")
+DECL = re.compile(r"(?:^|\n)\s*(?:pub\s+)?static\s+(?:mut\s+)?([A-Za-z_][A-Za-z_0-9]*)\s*:\s*([^;=]+)")
 
 
 def declarations(text: str) -> dict[str, str]:
@@ -45,6 +45,11 @@ def declarations(text: str) -> dict[str, str]:
 
 
 def last_segment(typ: str) -> str:
+    typ = typ.strip()
+    if typ.endswith(">") and "<" in typ:
+        head, inner = typ.split("<", 1)
+        if head.split("::")[-1].strip() == "VmGlobal":
+            typ = inner[:-1].strip()
     typ = typ.split("<")[0]
     return typ.split("::")[-1].strip()
 

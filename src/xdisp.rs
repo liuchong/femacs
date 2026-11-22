@@ -618,7 +618,7 @@ unsafe extern "C-unwind" {
   
   /// C: dispextern.h 2068: `extern bool face_change;` (xfaces.c defines it; the mirror
   /// chain does not carry the declaration).
-  pub static mut face_change: bool;
+  pub static face_change: VmGlobal<bool>;
   /// C: dispextern.h 3703-3704: `void draw_fringe_bitmap (struct window *, struct glyph_row *,
   /// int);` (fringe.c defines it).
   /// C: dispextern.h 3756: `void prepare_image_for_display (struct frame *, struct image *);`
@@ -970,8 +970,8 @@ unsafe extern "C" {
    it yet, so every unit that reads them declares them at its own use site — the
    keyboard.rs/sysdep.rs shape).  */
 unsafe extern "C" {
-  pub static mut interrupt_input: bool;
-  pub static mut interrupts_deferred: bool;
+  pub static interrupt_input: VmGlobal<bool>;
+  pub static interrupts_deferred: VmGlobal<bool>;
 }
 /* `set_buffer_internal_1` is C's prototype at buffer.h 1261, which C's xdisp.c
    reaches through its own `#include "buffer.h"` (C 485); `include/buffer.rs` already
@@ -2204,7 +2204,7 @@ macro_rules! PRODUCE_GLYPHS {
     let rif: *mut redisplay_interface = FRAME_RIF! ((*it).f) as *mut redisplay_interface;
     if !rif.is_null () { ((*rif).produce_glyphs.unwrap ()) (it); }
     else { produce_glyphs (it); }
-    if !(*it).glyph_row.is_null () { inhibit_free_realized_faces = true; }
+    if !(*it).glyph_row.is_null () { (*inhibit_free_realized_faces.as_mut_ptr ()) = true; }
     reset_box_start_end_flags (it);
   } };
 }
@@ -2213,7 +2213,7 @@ macro_rules! PRODUCE_GLYPHS {
 pub const DISP_INFINITY: c_int = 10000000;
 
 /* Holds the list (error).  (C 510-511)  */
-static mut list_of_error: Lisp_Object = lisp_h_Qnil ();
+static list_of_error: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* C 514-515's forward declarations (`restore_selected_window`,
    `restore_frame_selected_window`) are dropped: Rust's items are order-independent and a
@@ -2278,7 +2278,7 @@ unsafe fn char_can_wrap_before (it: *mut it) -> bool
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  if !word_wrap_by_category
+  if !(*word_wrap_by_category.as_mut_ptr ())
     { return ! IT_DISPLAYING_WHITESPACE! (it); }
 
   /* For CJK (LTR) text in RTL paragraph, EOL and BOL are flipped.
@@ -2303,7 +2303,7 @@ unsafe fn char_can_wrap_after (it: *mut it) -> bool
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  if !word_wrap_by_category
+  if !(*word_wrap_by_category.as_mut_ptr ())
     { return IT_DISPLAYING_WHITESPACE! (it); }
 
   /* For CJK (LTR) text in RTL paragraph, EOL and BOL are flipped.
@@ -2335,15 +2335,15 @@ unsafe fn fill_column_indicator_column (it: *mut it, char_width: c_int) -> c_int
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  if display_fill_column_indicator
+  if (*display_fill_column_indicator.as_mut_ptr ())
       && !window_bits! ((*it).w, pseudo_window_p)
       && (*it).continuation_lines_width == 0
-      && CHARACTERP (Vdisplay_fill_column_indicator_character)
+      && CHARACTERP ((*Vdisplay_fill_column_indicator_character.as_mut_ptr ()))
     {
       let col: Lisp_Object
-	= if EQ (Vdisplay_fill_column_indicator_column, Qt ())
+	= if EQ ((*Vdisplay_fill_column_indicator_column.as_mut_ptr ()), Qt ())
 	    { BVAR! (current_buffer! (), fill_column_) }
-	  else { Vdisplay_fill_column_indicator_column };
+	  else { (*Vdisplay_fill_column_indicator_column.as_mut_ptr ()) };
 
       /* The stretch width needs to consider the latter
 	 added glyph in append_space_for_newline.  */
@@ -2373,59 +2373,59 @@ unsafe fn fill_column_indicator_column (it: *mut it, char_width: c_int) -> c_int
 /* True means print newline to stdout before next mini-buffer message.  (C 652-654)  */
 
 #[unsafe(no_mangle)]
-pub static mut noninteractive_need_newline: bool = false;
+pub static noninteractive_need_newline: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 /* True means print newline to message log before next message.  (C 656-658)  */
 
-static mut message_log_need_newline: bool = false;
+static message_log_need_newline: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 /* Three markers that message_dolog uses.
    It could allocate them itself, but that causes trouble
    in handling memory-full errors.  (C 660-665)  */
-static mut message_dolog_marker1: Lisp_Object = lisp_h_Qnil ();
-static mut message_dolog_marker2: Lisp_Object = lisp_h_Qnil ();
-static mut message_dolog_marker3: Lisp_Object = lisp_h_Qnil ();
+static message_dolog_marker1: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+static message_dolog_marker2: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+static message_dolog_marker3: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* The buffer position of the first character appearing entirely or
    partially on the line of the selected window which contains the
    cursor; <= 0 if not known.  Set by set_cursor_from_row, used for
    redisplay optimization in redisplay_internal.  (C 667-672)  */
 
-static mut this_line_start_pos: text_pos = /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { core::mem::zeroed () };
+static this_line_start_pos: VmGlobal<text_pos> = VmGlobal::<text_pos>::new (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { core::mem::zeroed () });
 
 /* Number of characters past the end of the line above, including the
    terminating newline.  (C 674-677)  */
 
-static mut this_line_end_pos: text_pos = /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { core::mem::zeroed () };
+static this_line_end_pos: VmGlobal<text_pos> = VmGlobal::<text_pos>::new (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { core::mem::zeroed () });
 
 /* The vertical positions and the height of this line.  (C 679-683)  */
 
-static mut this_line_vpos: c_int = 0;
-static mut this_line_y: c_int = 0;
-static mut this_line_pixel_height: c_int = 0;
+static this_line_vpos: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
+static this_line_y: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
+static this_line_pixel_height: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 
 /* X position at which this display line starts.  Usually zero;
    negative if first character is partially visible.  (C 685-688)  */
 
-static mut this_line_start_x: c_int = 0;
+static this_line_start_x: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 
 /* The smallest character position seen by move_it_* functions as they
    move across display lines.  Used to set MATRIX_ROW_START_CHARPOS of
    hscrolled lines, see display_line.  (C 690-694)  */
 
-static mut this_line_min_pos: text_pos = /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { core::mem::zeroed () };
+static this_line_min_pos: VmGlobal<text_pos> = VmGlobal::<text_pos>::new (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { core::mem::zeroed () });
 
 /* Buffer that this_line_.* variables are referring to.  (C 696-698)  */
 
-static mut this_line_buffer: *mut buffer = core::ptr::null_mut ();
+static this_line_buffer: VmGlobal<*mut buffer> = VmGlobal::<*mut buffer>::new (core::ptr::null_mut ());
 
 /* True if an overlay arrow has been displayed in this window.  (C 700-702)  */
 
-static mut overlay_arrow_seen: bool = false;
+static overlay_arrow_seen: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 /* Vector containing glyphs for an ellipsis `...'.  (C 704-706)  */
 
-static mut default_invis_vector: [Lisp_Object; 3] = [lisp_h_Qnil (); 3];
+static default_invis_vector: VmGlobal<[Lisp_Object; 3]> = VmGlobal::<[Lisp_Object; 3]>::new ([lisp_h_Qnil (); 3]);
 
 /* `include/window.rs` declares `echo_area_window`, `update_mode_lines` and
    `windows_or_buffers_changed` at the mirror's *own top level* (window.h 1146/1154/1161,
@@ -2440,79 +2440,78 @@ static mut default_invis_vector: [Lisp_Object; 3] = [lisp_h_Qnil (); 3];
    currently active as a mini-buffer.  (C 708-712)  */
 
 #[unsafe(no_mangle)]
-pub static mut echo_area_window: Lisp_Object = lisp_h_Qnil ();
+pub static echo_area_window: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* At each redisplay cycle, we should refresh everything there is to refresh. ... (C 724-754) */
 
 #[unsafe(no_mangle)]
-pub static mut windows_or_buffers_changed: c_int = 0;
+pub static windows_or_buffers_changed: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 
 /* Nonzero if we should redraw the mode lines on the next redisplay. ... (C 756-775) */
 
 #[unsafe(no_mangle)]
-pub static mut update_mode_lines: c_int = 0;
+pub static update_mode_lines: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 
 
 /* Stack of messages, which are pushed by push_message and popped and
    displayed by restore_message.  (C 714-717)  */
 
-static mut Vmessage_stack: Lisp_Object = lisp_h_Qnil ();
+static Vmessage_stack: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* True means multibyte characters were enabled when the echo area
    message was specified.  (C 719-722)  */
 
-static mut message_enable_multibyte: bool = false;
+static message_enable_multibyte: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 /* True after display_mode_line if %l was used and it displayed a
    line number.  (C 777-780)  */
 
-static mut line_number_displayed: bool = false;
+static line_number_displayed: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 /* Current, index 0, and last displayed echo area message.  Either
    buffers from echo_buffers, or nil to indicate no message.  (C 782-785)  */
 
 #[unsafe(no_mangle)]
-pub static mut echo_area_buffer: [Lisp_Object; 2] = [lisp_h_Qnil (); 2];
+pub static echo_area_buffer: VmGlobal<[Lisp_Object; 2]> = VmGlobal::<[Lisp_Object; 2]>::new ([lisp_h_Qnil (); 2]);
 
 /* The buffers referenced from echo_area_buffer.  (C 787-789)  */
 
-static mut echo_buffer: [Lisp_Object; 2] = [lisp_h_Qnil (); 2];
+static echo_buffer: VmGlobal<[Lisp_Object; 2]> = VmGlobal::<[Lisp_Object; 2]>::new ([lisp_h_Qnil (); 2]);
 
 /* A vector saved used in with_area_buffer to reduce consing.  (C 791-793)  */
 
-static mut Vwith_echo_area_save_vector: Lisp_Object = lisp_h_Qnil ();
+static Vwith_echo_area_save_vector: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* True means display_echo_area should display the last echo area
    message again.  Set by redisplay_preserve_echo_area.  (C 795-798)  */
 
-static mut display_last_displayed_message_p: bool = false;
+static display_last_displayed_message_p: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 /* True if echo area is being used by print; false if being used by
    message.  (C 800-803)  */
 
-static mut message_buf_print: bool = false;
+static message_buf_print: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 /* Set to true in clear_message to make redisplay_internal aware
    of an emptied echo area.  (C 805-808)  */
 
-static mut message_cleared_p: bool = false;
+static message_cleared_p: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 /* A scratch glyph row with contents used for generating truncation
    glyphs and overlay-arrow glyphs.  (C 810-815)  */
 
 pub const MAX_SCRATCH_GLYPHS: c_int = 100;
-static mut scratch_glyph_row: glyph_row = /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { core::mem::zeroed () };
-static mut scratch_glyphs: [glyph; MAX_SCRATCH_GLYPHS as usize]
-  = unsafe { core::mem::zeroed () };
+static scratch_glyph_row: VmGlobal<glyph_row> = VmGlobal::<glyph_row>::new (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { core::mem::zeroed () });
+static scratch_glyphs: VmGlobal<[glyph; MAX_SCRATCH_GLYPHS as usize]> = VmGlobal::<[glyph; MAX_SCRATCH_GLYPHS as usize]>::new (unsafe { core::mem::zeroed () });
 
 /* Ascent and height of the last line processed by move_it_to.  (C 817-819)  */
 
-static mut last_height: c_int = 0;
+static last_height: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 
 /* True if there's a help-echo in the echo area.  (C 821-823)  */
 
 #[unsafe(no_mangle)]
-pub static mut help_echo_showing_p: bool = false;
+pub static help_echo_showing_p: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 /* The maximum distance to look ahead for text properties. ... (C 825-831)  */
 
@@ -2595,8 +2594,8 @@ macro_rules! frame_bits {
   (no_special_glyphs, $f:expr) => { (*$f).bits1 >> FRAME_NO_SPECIAL_GLYPHS_SHIFT & 1 != 0 };
   (no_special_glyphs, $f:expr, $v:expr) => {
     set_frame_flag1! ($f, FRAME_NO_SPECIAL_GLYPHS_SHIFT, $v); };
-  (face_change, $f:expr) => { (*$f).bits2 >> FRAME_FACE_CHANGE_SHIFT & 1 != 0 };
-  (face_change, $f:expr, $v:expr) => {
+  ((*face_change.as_mut_ptr ()), $f:expr) => { (*$f).bits2 >> FRAME_FACE_CHANGE_SHIFT & 1 != 0 };
+  ((*face_change.as_mut_ptr ()), $f:expr, $v:expr) => {
     set_frame_flag2! ($f, FRAME_FACE_CHANGE_SHIFT, $v); };
   (inhibit_clear_image_cache, $f:expr) =>
     { (*$f).bits2 >> FRAME_INHIBIT_CLEAR_IMAGE_CACHE_SHIFT & 1 != 0 };
@@ -2669,8 +2668,8 @@ pub unsafe extern "C-unwind" fn redisplay_other_windows ()
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  if windows_or_buffers_changed == 0
-    { windows_or_buffers_changed = REDISPLAY_SOME; }
+  if (*windows_or_buffers_changed.as_mut_ptr ()) == 0
+    { (*windows_or_buffers_changed.as_mut_ptr ()) = REDISPLAY_SOME; }
 
   }
 }
@@ -2681,7 +2680,7 @@ pub unsafe extern "C-unwind" fn wset_redisplay (w: *mut window)
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
   /* Beware: selected_window can be nil during early stages.  */
-  if !BASE_EQ (make_lisp_ptr (w as *mut c_void, Lisp_Type::Lisp_Vectorlike), selected_window)
+  if !BASE_EQ (make_lisp_ptr (w as *mut c_void, Lisp_Type::Lisp_Vectorlike), (*selected_window.as_mut_ptr ()))
     { redisplay_other_windows (); }
   window_bits! (w, redisplay, true);
 
@@ -2708,7 +2707,7 @@ pub unsafe extern "C-unwind" fn bset_redisplay (b: *mut buffer)
   if count > 0
     {
       /* ... it's visible in other window than selected,  */
-      if count > 1 || b != XBUFFER ((*XWINDOW (selected_window)).contents)
+      if count > 1 || b != XBUFFER ((*XWINDOW ((*selected_window.as_mut_ptr ()))).contents)
 	{ redisplay_other_windows (); }
       /* Even if we don't set windows_or_buffers_changed, do set `redisplay'
 	 so that if we later set windows_or_buffers_changed, this buffer will
@@ -2724,8 +2723,8 @@ pub unsafe extern "C-unwind" fn bset_update_mode_line (b: *mut buffer)
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  if update_mode_lines == 0
-    { update_mode_lines = REDISPLAY_SOME; }
+  if (*update_mode_lines.as_mut_ptr ()) == 0
+    { (*update_mode_lines.as_mut_ptr ()) = REDISPLAY_SOME; }
   buffer_text_bits! (text.redisplay, b, true);
 
   }
@@ -2777,7 +2776,7 @@ unsafe extern "C-unwind" fn redisplay_trace (fmt: *const c_char, mut args: ...)
   if trace_redisplay_p
     {
       let va: VaList<'_> = args;
-      vfprintf (stderr, fmt, va);
+      vfprintf ((*stderr.as_mut_ptr ()), fmt, va);
     }
 
   }
@@ -2794,7 +2793,7 @@ unsafe extern "C-unwind" fn move_trace (fmt: *const c_char, mut args: ...)
   if trace_move
     {
       let va: VaList<'_> = args;
-      vfprintf (stderr, fmt, va);
+      vfprintf ((*stderr.as_mut_ptr ()), fmt, va);
     }
 
   }
@@ -2802,7 +2801,7 @@ unsafe extern "C-unwind" fn move_trace (fmt: *const c_char, mut args: ...)
 
 /* Buffer being redisplayed -- for redisplay_window_error.  (C 977-979)  */
 
-static mut displayed_buffer: *mut buffer = core::ptr::null_mut ();
+static displayed_buffer: VmGlobal<*mut buffer> = VmGlobal::<*mut buffer>::new (core::ptr::null_mut ());
 
 /* Value returned from text property handlers (see below).  (C 981-989)  */
 
@@ -2845,8 +2844,7 @@ pub struct props
 
 /* Properties handled by iterators.  (C 1010-1017)  */
 
-static mut it_props: [props; 6] =
-[
+static it_props: VmGlobal<[props; 6]> = VmGlobal::<[props; 6]>::new ([
   props { name: iQfontified as c_short, idx: FONTIFIED_PROP_IDX,
           handler: Some (handle_fontified_prop) },
   /* Handle `face' before `display' because some sub-properties of
@@ -2858,7 +2856,7 @@ static mut it_props: [props; 6] =
   props { name: iQcomposition as c_short, idx: COMPOSITION_PROP_IDX,
           handler: Some (handle_composition_prop) },
   props { name: 0, idx: 0, handler: None }
-];
+]);
 
 /* Enumeration returned by some move_it_.* functions internally.  (C 1019-1058)  */
 
@@ -2884,7 +2882,7 @@ pub const MOVE_NEWLINE_OR_CR: move_it_result = 5;
    cleared.  (C 1060-1062)  */
 
 pub const CLEAR_FACE_CACHE_COUNT: c_int = 500;
-static mut clear_face_cache_count: c_int = 0;
+static clear_face_cache_count: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 
 /* C 1064-1071: `#ifdef HAVE_WINDOW_SYSTEM`'s `CLEAR_IMAGE_CACHE_COUNT` and
    `clear_image_cache_count` are dead on this target (P-08) and are recorded in
@@ -2892,39 +2890,39 @@ static mut clear_face_cache_count: c_int = 0;
    was written, which assigns it (C 32356); the port transcribes it now (status 4.775).  */
 /* C's own linkage: a file-scope `static`, i.e. no exported symbol.  */
 #[cfg (feature = "have_window_system")]
-static mut null_glyph_slice: glyph_slice = glyph_slice { bits: [0, 0] };
+static null_glyph_slice: VmGlobal<glyph_slice> = VmGlobal::<glyph_slice>::new (glyph_slice { bits: [0, 0] });
 
 /* True while redisplay_internal is in progress.  (C 1073-1075)  */
 
 #[unsafe(no_mangle)]
-pub static mut redisplaying_p: bool = false;
+pub static redisplaying_p: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 /* True while some display-engine code is working on layout of some
    window.  (C 1077-1084)  */
 #[unsafe(no_mangle)]
-pub static mut display_working_on_window_p: bool = false;
+pub static display_working_on_window_p: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 /* Non-zero when we do not allow resizing frames. ... (C 1086-1094)  */
 
 #[unsafe(no_mangle)]
-pub static mut dont_resize_frames: c_int = 0;
+pub static dont_resize_frames: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 
 /* If a string, XTread_socket generates an event to display that string.
    (The display is done in read_char.)  (C 1096-1101)  */
 
 #[unsafe(no_mangle)]
-pub static mut help_echo_string: Lisp_Object = lisp_h_Qnil ();
+pub static help_echo_string: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut help_echo_window: Lisp_Object = lisp_h_Qnil ();
+pub static help_echo_window: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut help_echo_object: Lisp_Object = lisp_h_Qnil ();
+pub static help_echo_object: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut help_echo_pos: ptrdiff_t = 0;
+pub static help_echo_pos: VmGlobal<ptrdiff_t> = VmGlobal::<ptrdiff_t>::new (0);
 
 /* Temporary variable for XTread_socket.  (C 1103-1106)  */
 
 #[unsafe(no_mangle)]
-pub static mut previous_help_echo_string: Lisp_Object = lisp_h_Qnil ();
+pub static previous_help_echo_string: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* Platform-independent portion of hourglass implementation.  (C 1108-1122)  */
 /* C 1110-1122's `#ifdef HAVE_WINDOW_SYSTEM` arms (`hourglass_shown_p`, `hourglass_atimer`,
@@ -2933,9 +2931,9 @@ pub static mut previous_help_echo_string: Lisp_Object = lisp_h_Qnil ();
    are defined here; `THIN_SPACE_WIDTH` is a constant and stays with `DEFAULT_HOURGLASS_DELAY`
    below.  */
 #[cfg (feature = "have_window_system")]
-pub static mut hourglass_shown_p: bool = false;            // C 1111
+pub static hourglass_shown_p: VmGlobal<bool> = VmGlobal::<bool>::new (false);            // C 1111
 #[cfg (feature = "have_window_system")]
-pub static mut hourglass_atimer: *mut atimer = std::ptr::null_mut ();   // C 1115
+pub static hourglass_atimer: VmGlobal<*mut atimer> = VmGlobal::<*mut atimer>::new (std::ptr::null_mut ());   // C 1115
 
 /* Default number of seconds to wait before displaying an hourglass
    cursor.  (C 1113-1115)  */
@@ -3251,14 +3249,14 @@ pub unsafe extern "C-unwind" fn line_bottom_y (it: *mut it) -> c_int
 
   if line_height == 0
     {
-      if last_height != 0
-	{ line_height = last_height; }
+      if (*last_height.as_mut_ptr ()) != 0
+	{ line_height = (*last_height.as_mut_ptr ()); }
       else if IT_CHARPOS! (*it) < ZV! ()
 	{
 	  move_it_by_lines (it, 1);
 	  line_height = (if (*it).max_ascent != 0 || (*it).max_descent != 0
 			 { (*it).max_ascent + (*it).max_descent }
-			 else { last_height });
+			 else { (*last_height.as_mut_ptr ()) });
 	}
       else
 	{
@@ -3289,7 +3287,7 @@ DEFUN! ("line-pixel-height", Fline_pixel_height,
      value to take its address (PORTING.md 1.5).  */
   let mut it: it = /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { core::mem::zeroed () };
   let mut pt: text_pos = unsafe { core::mem::zeroed () };
-  let w: *mut window = XWINDOW (selected_window);
+  let w: *mut window = XWINDOW ((*selected_window.as_mut_ptr ()));
   let mut old_buffer: *mut buffer = core::ptr::null_mut ();
   let result: Lisp_Object;
 
@@ -3307,7 +3305,7 @@ DEFUN! ("line-pixel-height", Fline_pixel_height,
   move_it_by_lines (&raw mut it, 0);
   it.current_y = 0;
   it.vpos = 0;
-  last_height = 0;
+  (*last_height.as_mut_ptr ()) = 0;
   result = make_fixnum (line_bottom_y (&raw mut it) as EMACS_INT);
   if !old_buffer.is_null ()
     { set_buffer_internal_1 (old_buffer); }
@@ -3345,7 +3343,7 @@ pub unsafe extern "C-unwind" fn default_line_pixel_height (w: *mut window) -> c_
       let mut val: Lisp_Object = BVAR! (b, extra_line_spacing_);
 
       if NILP (val)
-	{ val = BVAR! (&raw mut buffer_defaults, extra_line_spacing_); }
+	{ val = BVAR! (buffer_defaults.as_mut_ptr (), extra_line_spacing_); }
       if !NILP (val)
 	{
 	  if RANGED_FIXNUMP (0, val, INT_MAX as EMACS_INT)
@@ -3540,7 +3538,7 @@ pub unsafe extern "C-unwind" fn pos_visible_p (w: *mut window, charpos: ptrdiff_
 
   /* Adjust for line numbers, if CHARPOS is at or beyond first_visible_x,
      but we didn't yet produce the line-number glyphs.  */
-  if !NILP (Vdisplay_line_numbers)
+  if !NILP ((*Vdisplay_line_numbers.as_mut_ptr ()))
       && it.current_x >= it.first_visible_x
       && IT_CHARPOS! (it) == charpos
       && !it_bits! (line_number_produced_p, &raw mut it)
@@ -3585,7 +3583,7 @@ pub unsafe extern "C-unwind" fn pos_visible_p (w: *mut window, charpos: ptrdiff_
 
       /* Calling line_bottom_y may change it.method, it.position, etc.  */
       SAVE_IT! (save_it, it, save_it_data);
-      last_height = 0;
+      (*last_height.as_mut_ptr ()) = 0;
       bottom_y = line_bottom_y (&raw mut it);
       if top_y < window_top_y
 	{ visible_p = bottom_y > window_top_y; }
@@ -4349,7 +4347,7 @@ unsafe fn hscrolling_current_line_p (w: *mut window) -> bool
    fact that the counter has changed.  (C 3085-3094)  */
 
 #[unsafe(no_mangle)]
-pub static mut redisplay_counter: c_uint = 0;
+pub static redisplay_counter: VmGlobal<c_uint> = VmGlobal::<c_uint>::new (0);
 
 /* Error handler for dsafe_eval and dsafe_call.  (C 3096-3104)  */
 
@@ -4383,7 +4381,7 @@ unsafe fn dsafe__call (inhibit_quit: bool,
   unsafe {
   let mut val: Lisp_Object;
 
-  if inhibit_eval_during_redisplay
+  if (*inhibit_eval_during_redisplay.as_mut_ptr ())
     { val = Qnil (); }
   else
     {
@@ -4392,12 +4390,12 @@ unsafe fn dsafe__call (inhibit_quit: bool,
       specbind (Qinhibit_redisplay (), Qt ());
       if inhibit_quit
 	{ specbind (Qinhibit_quit (), Qt ()); }
-      let redisplay_counter_before: c_int = redisplay_counter as c_int;
+      let redisplay_counter_before: c_int = (*redisplay_counter.as_mut_ptr ()) as c_int;
       /* Use Qt to ensure debugger does not run,
 	 to reduce the risk of wanting to redisplay.  */
       val = internal_condition_case_n (f, nargs, args, Qt (),
 				       dsafe_eval_handler);
-      if redisplay_counter_before != redisplay_counter as c_int
+      if redisplay_counter_before != (*redisplay_counter.as_mut_ptr ()) as c_int
         /* A nested redisplay happened, abort this one!  */
         /* FIXME: Rather than jump all the way to `top-level`
            we should exit only the current redisplay.  */
@@ -4420,7 +4418,7 @@ unsafe extern "C-unwind" fn funcall_with_backtraces (nargs: ptrdiff_t, args: *mu
   unsafe {
   /* If an error is signaled during a Lisp hook in redisplay, write a
      backtrace into the buffer *Redisplay-trace*.  (C 3147-3148)  */
-  push_handler_bind (list_of_error, Qdebug_early__muted (), 0);
+  push_handler_bind ((*list_of_error.as_mut_ptr ()), Qdebug_early__muted (), 0);
   let res: Lisp_Object = Ffuncall (nargs, args);
   pop_handler ();
   return res;
@@ -4446,7 +4444,7 @@ macro_rules! dsafe_calln {
   ($inhibit_quit:expr, $($args:expr),* $(,)?) => {{
     let arr: [Lisp_Object; 0 $(+ { let _ = stringify!($args); 1 })*] = [$($args),*];
     SAFE_CALLMANY! ($inhibit_quit,
-		    if backtrace_on_redisplay_error
+		    if (*backtrace_on_redisplay_error.as_mut_ptr ())
 		      { funcall_with_backtraces
 			  as unsafe extern "C-unwind" fn (ptrdiff_t, *mut Lisp_Object) -> Lisp_Object }
 		      else
@@ -4546,23 +4544,23 @@ pub unsafe extern "C-unwind" fn init_iterator (it: *mut it, w: *mut window,
      free realized faces now because they depend on face definitions
      that might have changed.  Don't free faces while there might be
      desired matrices pending which reference these faces.  */
-  if !inhibit_free_realized_faces
+  if !(*inhibit_free_realized_faces.as_mut_ptr ())
     {
-      if face_change
+      if (*face_change.as_mut_ptr ())
 	{
-	  face_change = false;
-	  frame_bits! (face_change, XFRAME ((*w).frame), 0);
+	  (*face_change.as_mut_ptr ()) = false;
+	  frame_bits! ((*face_change.as_mut_ptr ()), XFRAME ((*w).frame), 0);
 	  free_all_realized_faces (Qnil ());
 	}
-      else if frame_bits! (face_change, XFRAME ((*w).frame))
+      else if frame_bits! ((*face_change.as_mut_ptr ()), XFRAME ((*w).frame))
 	{
-	  frame_bits! (face_change, XFRAME ((*w).frame), 0);
+	  frame_bits! ((*face_change.as_mut_ptr ()), XFRAME ((*w).frame), 0);
 	  free_all_realized_faces ((*w).frame);
 	}
     }
 
   /* Perhaps remap BASE_FACE_ID to a user-specified alternative.  */
-  if !NILP (Vface_remapping_alist)
+  if !NILP ((*Vface_remapping_alist.as_mut_ptr ()))
     {
       remapped_base_face_id
 	= lookup_basic_face (w, XFRAME ((*w).frame), base_face_id);
@@ -4607,7 +4605,7 @@ pub unsafe extern "C-unwind" fn init_iterator (it: *mut it, w: *mut window,
   (*it).cmp_it.id = -1;
   (*it).cmp_it.parent_it = it;
 
-  if max_redisplay_ticks > 0
+  if (*max_redisplay_ticks.as_mut_ptr ()) > 0
     { update_redisplay_ticks (0, w); }
 
   /* Extra space between lines (on window systems only).  */
@@ -4708,10 +4706,10 @@ pub unsafe extern "C-unwind" fn init_iterator (it: *mut it, w: *mut window,
   if base_face_id == DEFAULT_FACE_ID
     && (*(*it).w).hscroll == 0
     && (WINDOW_FULL_WIDTH_P! ((*it).w)
-	|| NILP (Vtruncate_partial_width_windows)
-	|| (FIXNUMP (Vtruncate_partial_width_windows)
+	|| NILP ((*Vtruncate_partial_width_windows.as_mut_ptr ()))
+	|| (FIXNUMP ((*Vtruncate_partial_width_windows.as_mut_ptr ()))
 	    /* PXW: Shall we do something about this?  */
-	    && (XFIXNUM (Vtruncate_partial_width_windows)
+	    && (XFIXNUM ((*Vtruncate_partial_width_windows.as_mut_ptr ()))
 		<= WINDOW_TOTAL_COLS ((*it).w) as EMACS_INT)))
     && NILP (BVAR! (current_buffer! (), truncate_lines_))
     {
@@ -4884,7 +4882,7 @@ pub unsafe extern "C-unwind" fn init_iterator (it: *mut it, w: *mut window,
 	 character properties needed for reordering are not yet
 	 available.  */
       it_bits! (bidi_p, it,
-		!redisplay__inhibit_bidi
+		!(*redisplay__inhibit_bidi.as_mut_ptr ())
 		&& !NILP (BVAR! (current_buffer! (), bidi_display_reordering_))
 		&& it_bits! (multibyte_p, it));
 
@@ -5135,11 +5133,11 @@ pub unsafe extern "C-unwind" fn get_large_narrowing_begv (pos: ptrdiff_t) -> ptr
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  if long_line_optimizations_region_size <= 0
+  if (*long_line_optimizations_region_size.as_mut_ptr ()) <= 0
     { return BEGV! (); }
-  let len: ptrdiff_t = (long_line_optimizations_region_size / 2) as ptrdiff_t;
+  let len: ptrdiff_t = ((*long_line_optimizations_region_size.as_mut_ptr ()) / 2) as ptrdiff_t;
   let mut begv: ptrdiff_t = max (pos - len, BEGV! ());
-  let mut limit: ptrdiff_t = long_line_optimizations_bol_search_limit as ptrdiff_t;
+  let mut limit: ptrdiff_t = (*long_line_optimizations_bol_search_limit.as_mut_ptr ()) as ptrdiff_t;
   while limit > 0
     {
       if begv == BEGV! () || FETCH_BYTE! (CHAR_TO_BYTE (begv) - 1) == b'\n'
@@ -5157,9 +5155,9 @@ pub unsafe extern "C-unwind" fn get_large_narrowing_zv (pos: ptrdiff_t) -> ptrdi
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  if long_line_optimizations_region_size <= 0
+  if (*long_line_optimizations_region_size.as_mut_ptr ()) <= 0
     { return ZV! (); }
-  let len: ptrdiff_t = (long_line_optimizations_region_size / 2) as ptrdiff_t;
+  let len: ptrdiff_t = ((*long_line_optimizations_region_size.as_mut_ptr ()) / 2) as ptrdiff_t;
   return min (pos + len, ZV! ());
 
   }
@@ -5636,7 +5634,7 @@ unsafe fn handle_stop (it: *mut it)
       handled = HANDLED_NORMALLY;
 
       /* Call text property handlers.  */
-      p = femacs_array_mut_ptr (&raw mut it_props);
+      p = femacs_array_mut_ptr (it_props.as_mut_ptr ());
       while (*p).handler.is_some ()
 	{
 	  handled = ((*p).handler.unwrap ()) (it);
@@ -5763,8 +5761,8 @@ unsafe fn compute_stop_pos (it: *mut it)
 	{ (*it).stop_charpos = pos; }
       /* If we are breaking compositions at point, stop at point.  */
       if !NILP (BVAR! (current_buffer! (), enable_multibyte_characters_))
-	  && !NILP (Vauto_composition_mode)
-	  && composition_break_at_point
+	  && !NILP ((*Vauto_composition_mode.as_mut_ptr ()))
+	  && (*composition_break_at_point.as_mut_ptr ())
 	  && charpos < PT! () && PT! () < (*it).stop_charpos
 	{ (*it).stop_charpos = PT! (); }
 
@@ -5778,9 +5776,9 @@ unsafe fn compute_stop_pos (it: *mut it)
 	 chunks.  We play safe here by assuming that only SPC, TAB,
 	 FF, and NL cannot be in some composition; in particular, most
 	 ASCII punctuation characters could be composed into ligatures.  */
-      if !composition_break_at_point
+      if !(*composition_break_at_point.as_mut_ptr ())
 	  && !NILP (BVAR! (current_buffer! (), enable_multibyte_characters_))
-	  && !NILP (Vauto_composition_mode)
+	  && !NILP ((*Vauto_composition_mode.as_mut_ptr ()))
 	{
 	  let mut endpos: ptrdiff_t
 	    = charpos + 10 * TEXT_PROP_DISTANCE_LIMIT as ptrdiff_t;
@@ -5828,7 +5826,7 @@ unsafe fn compute_stop_pos (it: *mut it)
       let mut p: *mut props;
 
       /* Get properties here.  */
-      p = femacs_array_mut_ptr (&raw mut it_props);
+      p = femacs_array_mut_ptr (it_props.as_mut_ptr ());
       while (*p).handler.is_some ()
 	{
 	  values_here[(*p).idx as usize]
@@ -5844,7 +5842,7 @@ unsafe fn compute_stop_pos (it: *mut it)
 	    && (NILP (limit)
 		|| XFIXNAT (limit) > (*((next_iv) as *mut interval)).position)
 	{
-	  p = femacs_array_mut_ptr (&raw mut it_props);
+	  p = femacs_array_mut_ptr (it_props.as_mut_ptr ());
 	  while (*p).handler.is_some ()
 	    {
 	      let new_value: Lisp_Object
@@ -6121,7 +6119,7 @@ unsafe extern "C-unwind" fn handle_fontified_prop (it: *mut it) -> prop_handled
   let mut pos: Lisp_Object = Qnil ();
   let mut handled: prop_handled = HANDLED_NORMALLY;
 
-  if !NILP (Vmemory_full)
+  if !NILP ((*Vmemory_full.as_mut_ptr ()))
     { return handled; }
 
   /* Get the value of the `fontified' property at IT's current buffer
@@ -6130,9 +6128,9 @@ unsafe extern "C-unwind" fn handle_fontified_prop (it: *mut it) -> prop_handled
      Qfontification_functions.  */
   if !STRINGP ((*it).string)
       && (*it).s.is_null ()
-      && !NILP (Vfontification_functions)
-      && !(input_was_pending && redisplay_skip_fontification_on_input)
-      && !NILP (Vrun_hooks)
+      && !NILP ((*Vfontification_functions.as_mut_ptr ()))
+      && !((*input_was_pending.as_mut_ptr ()) && (*redisplay_skip_fontification_on_input.as_mut_ptr ()))
+      && !NILP ((*Vrun_hooks.as_mut_ptr ()))
       && { pos = make_fixnum (IT_CHARPOS! (*it));
 	   prop = Fget_char_property (pos, Qfontified (), Qnil ());
 	   /* Ignore the special cased nil value always present at EOB since
@@ -6148,13 +6146,13 @@ unsafe extern "C-unwind" fn handle_fontified_prop (it: *mut it) -> prop_handled
       let saved_inhibit_flag: bool
 	= frame_bits! (inhibit_clear_image_cache, (*it).f);
 
-      val = Vfontification_functions;
+      val = (*Vfontification_functions.as_mut_ptr ());
       specbind (Qfontification_functions (), Qnil ());
 
       eassert! ((*it).end_charpos == ZV! ());
 
       if buffer_bits! (long_line_optimizations_p, current_buffer! ())
-	  && long_line_optimizations_region_size > 0
+	  && (*long_line_optimizations_region_size.as_mut_ptr ()) > 0
 	{
 	  let mut begv: ptrdiff_t = (*it).large_narrowing_begv;
 	  let mut zv: ptrdiff_t = (*it).large_narrowing_zv;
@@ -6342,7 +6340,7 @@ unsafe fn face_at_pos (it: *const it, attr_filter: lface_attribute_index) -> c_i
 	     but Emacs always did that since v21.1, so changing that
 	     might be a big deal.  */
 	  base_face_id = if it_bits! (string_from_prefix_prop_p, it)
-	    { if !NILP (Vface_remapping_alist)
+	    { if !NILP ((*Vface_remapping_alist.as_mut_ptr ()))
 		{ lookup_basic_face ((*it).w, (*it).f, DEFAULT_FACE_ID) }
 	      else { DEFAULT_FACE_ID } }
 	    else { underlying_face_id (it) };
@@ -7184,8 +7182,8 @@ unsafe extern "C-unwind" fn setup_for_ellipsis (it: *mut it, len: c_int)
   else
     {
       /* Default `...'.  */
-      (*it).dpvec = femacs_array_mut_ptr (&raw mut default_invis_vector);
-      (*it).dpend = femacs_array_mut_ptr (&raw mut default_invis_vector).offset (3);
+      (*it).dpvec = femacs_array_mut_ptr (default_invis_vector.as_mut_ptr ());
+      (*it).dpend = femacs_array_mut_ptr (default_invis_vector.as_mut_ptr ()).offset (3);
     }
 
   (*it).dpvec_char_len = len;
@@ -8038,7 +8036,7 @@ unsafe fn handle_single_display_spec (it: *mut it, spec: Lisp_Object, mut object
 	    { (*it).area = RIGHT_MARGIN_AREA; }
 	  /* Use the 'margin' face for displaying text and images
 	     in the margins.  */
-	  (*it).face_id = if NILP (Vface_remapping_alist)
+	  (*it).face_id = if NILP ((*Vface_remapping_alist.as_mut_ptr ()))
 			  { MARGIN_FACE_ID }
 			  else { lookup_basic_face ((*it).w, (*it).f, MARGIN_FACE_ID) };
 	}
@@ -8134,7 +8132,7 @@ pub unsafe extern "C-unwind" fn display_prop_intangible_p (prop: Lisp_Object, ov
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  let frame_window_p: bool = FRAME_WINDOW_P (XFRAME (selected_frame));
+  let frame_window_p: bool = FRAME_WINDOW_P (XFRAME ((*selected_frame.as_mut_ptr ())));
   /* C leaves `position` to `SET_TEXT_POS` below; Rust has no partial initialisation, so the
      port zero-initialises it first (PORTING.md 1.5, the `bidi.rs`/`window.rs` shape).  */
   let mut position: text_pos = core::mem::zeroed ();
@@ -9652,7 +9650,7 @@ unsafe fn reseat (it: *mut it, pos: text_pos, force_p: bool)
 	}
       else if ((pos.charpos < (*it).medium_narrowing_begv
 		|| pos.charpos > (*it).medium_narrowing_zv)
-		&& (!redisplaying_p || (*it).line_wrap == TRUNCATE))
+		&& (!(*redisplaying_p.as_mut_ptr ()) || (*it).line_wrap == TRUNCATE))
 	{
 	  (*it).medium_narrowing_begv
 	    = get_medium_narrowing_begv ((*it).w, pos.charpos);
@@ -9808,8 +9806,8 @@ unsafe fn reseat_to_string (it: *mut it, s: *const c_char, string: Lisp_Object,
      loading loadup.el, as the necessary character property tables are
      not yet available.  */
   it_bits! (bidi_p, it,
-	    !redisplay__inhibit_bidi
-	    && !NILP (BVAR! (&raw mut buffer_defaults, bidi_display_reordering_)));
+	    !(*redisplay__inhibit_bidi.as_mut_ptr ())
+	    && !NILP (BVAR! (buffer_defaults.as_mut_ptr (), bidi_display_reordering_)));
 
   if s.is_null ()
     {
@@ -9898,8 +9896,8 @@ unsafe fn reseat_to_string (it: *mut it, s: *const c_char, string: Lisp_Object,
     { (*it).end_charpos = charpos + field_width as ptrdiff_t; }
 
   /* Use the standard display table for displaying strings.  */
-  if DISP_TABLE_P (Vstandard_display_table)
-    { (*it).dp = XCHAR_TABLE (Vstandard_display_table); }
+  if DISP_TABLE_P ((*Vstandard_display_table.as_mut_ptr ()))
+    { (*it).dp = XCHAR_TABLE ((*Vstandard_display_table.as_mut_ptr ())); }
 
   (*it).stop_charpos = charpos;
   (*it).prev_stop = charpos;
@@ -9991,13 +9989,13 @@ pub unsafe extern "C-unwind" fn lookup_glyphless_char_display (c: c_int, it: *mu
   unsafe {
   let mut glyphless_method: Lisp_Object = Qnil ();
 
-  if CHAR_TABLE_P (Vglyphless_char_display)
-      && CHAR_TABLE_EXTRA_SLOTS (XCHAR_TABLE (Vglyphless_char_display)) >= 1
+  if CHAR_TABLE_P ((*Vglyphless_char_display.as_mut_ptr ()))
+      && CHAR_TABLE_EXTRA_SLOTS (XCHAR_TABLE ((*Vglyphless_char_display.as_mut_ptr ()))) >= 1
     {
       if c >= 0
-	{ glyphless_method = CHAR_TABLE_REF (Vglyphless_char_display, c as isize); }
+	{ glyphless_method = CHAR_TABLE_REF ((*Vglyphless_char_display.as_mut_ptr ()), c as isize); }
       else
-	{ glyphless_method = FAM_ELEM! ((*XCHAR_TABLE (Vglyphless_char_display)).extras, 0); }
+	{ glyphless_method = FAM_ELEM! ((*XCHAR_TABLE ((*Vglyphless_char_display.as_mut_ptr ()))).extras, 0); }
 
       if CONSP (glyphless_method)
 	{ glyphless_method = if FRAME_WINDOW_P ((*it).f)
@@ -10048,9 +10046,9 @@ pub unsafe extern "C-unwind" fn lookup_glyphless_char_display (c: c_int, it: *mu
 
 /* Merge escape glyph face and cache the result.  */
 
-static mut last_escape_glyph_frame: *mut frame = core::ptr::null_mut ();
-static mut last_escape_glyph_face_id: c_int = 1 << FACE_ID_BITS;
-static mut last_escape_glyph_merged_face_id: c_int = 0;
+static last_escape_glyph_frame: VmGlobal<*mut frame> = VmGlobal::<*mut frame>::new (core::ptr::null_mut ());
+static last_escape_glyph_face_id: VmGlobal<c_int> = VmGlobal::<c_int>::new (1 << FACE_ID_BITS);
+static last_escape_glyph_merged_face_id: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 
 unsafe fn merge_escape_glyph_face (it: *mut it) -> c_int
 {
@@ -10058,16 +10056,16 @@ unsafe fn merge_escape_glyph_face (it: *mut it) -> c_int
   unsafe {
   let mut face_id: c_int;
 
-  if (*it).f == last_escape_glyph_frame
-      && (*it).face_id == last_escape_glyph_face_id
-    { face_id = last_escape_glyph_merged_face_id; }
+  if (*it).f == (*last_escape_glyph_frame.as_mut_ptr ())
+      && (*it).face_id == (*last_escape_glyph_face_id.as_mut_ptr ())
+    { face_id = (*last_escape_glyph_merged_face_id.as_mut_ptr ()); }
   else
     {
       /* Merge the `escape-glyph' face into the current face.  */
       face_id = merge_faces ((*it).w, Qescape_glyph (), 0, (*it).face_id);
-      last_escape_glyph_frame = (*it).f;
-      last_escape_glyph_face_id = (*it).face_id;
-      last_escape_glyph_merged_face_id = face_id;
+      (*last_escape_glyph_frame.as_mut_ptr ()) = (*it).f;
+      (*last_escape_glyph_face_id.as_mut_ptr ()) = (*it).face_id;
+      (*last_escape_glyph_merged_face_id.as_mut_ptr ()) = face_id;
     }
   return face_id;
 
@@ -10076,9 +10074,9 @@ unsafe fn merge_escape_glyph_face (it: *mut it) -> c_int
 
 /* Likewise for glyphless glyph face.  */
 
-static mut last_glyphless_glyph_frame: *mut frame = core::ptr::null_mut ();
-static mut last_glyphless_glyph_face_id: c_int = 1 << FACE_ID_BITS;
-static mut last_glyphless_glyph_merged_face_id: c_int = 0;
+static last_glyphless_glyph_frame: VmGlobal<*mut frame> = VmGlobal::<*mut frame>::new (core::ptr::null_mut ());
+static last_glyphless_glyph_face_id: VmGlobal<c_int> = VmGlobal::<c_int>::new (1 << FACE_ID_BITS);
+static last_glyphless_glyph_merged_face_id: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn merge_glyphless_glyph_face (it: *mut it) -> c_int
@@ -10087,16 +10085,16 @@ pub unsafe extern "C-unwind" fn merge_glyphless_glyph_face (it: *mut it) -> c_in
   unsafe {
   let mut face_id: c_int;
 
-  if (*it).f == last_glyphless_glyph_frame
-      && (*it).face_id == last_glyphless_glyph_face_id
-    { face_id = last_glyphless_glyph_merged_face_id; }
+  if (*it).f == (*last_glyphless_glyph_frame.as_mut_ptr ())
+      && (*it).face_id == (*last_glyphless_glyph_face_id.as_mut_ptr ())
+    { face_id = (*last_glyphless_glyph_merged_face_id.as_mut_ptr ()); }
   else
     {
       /* Merge the `glyphless-char' face into the current face.  */
       face_id = merge_faces ((*it).w, Qglyphless_char (), 0, (*it).face_id);
-      last_glyphless_glyph_frame = (*it).f;
-      last_glyphless_glyph_face_id = (*it).face_id;
-      last_glyphless_glyph_merged_face_id = face_id;
+      (*last_glyphless_glyph_frame.as_mut_ptr ()) = (*it).f;
+      (*last_glyphless_glyph_face_id.as_mut_ptr ()) = (*it).face_id;
+      (*last_glyphless_glyph_merged_face_id.as_mut_ptr ()) = face_id;
     }
   return face_id;
 
@@ -10111,10 +10109,10 @@ pub unsafe extern "C-unwind" fn forget_escape_and_glyphless_faces ()
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  last_escape_glyph_frame = core::ptr::null_mut ();
-  last_escape_glyph_face_id = 1 << FACE_ID_BITS;
-  last_glyphless_glyph_frame = core::ptr::null_mut ();
-  last_glyphless_glyph_face_id = 1 << FACE_ID_BITS;
+  (*last_escape_glyph_frame.as_mut_ptr ()) = core::ptr::null_mut ();
+  (*last_escape_glyph_face_id.as_mut_ptr ()) = 1 << FACE_ID_BITS;
+  (*last_glyphless_glyph_frame.as_mut_ptr ()) = core::ptr::null_mut ();
+  (*last_glyphless_glyph_face_id.as_mut_ptr ()) = 1 << FACE_ID_BITS;
 
   }
 }
@@ -10148,7 +10146,7 @@ unsafe fn get_next_display_element (it: *mut it) -> bool
 	  /* FIXME: Do we need an exception for characters from display
 	     tables?  */
 	  if it_bits! (bidi_p, it) && (*it).bidi_it.r#type == STRONG_R
-	      && !inhibit_bidi_mirroring
+	      && !(*inhibit_bidi_mirroring.as_mut_ptr ())
 	    { (*it).c = bidi_mirror_char ((*it).c); }
 	  /* Map via display table or translate control characters.
 	     IT->c, IT->len etc. have been set to the next character by
@@ -10162,7 +10160,7 @@ unsafe fn get_next_display_element (it: *mut it) -> bool
 	  if success_p && (*it).dpvec.is_null ()
 	    {
 	      let mut dv: Lisp_Object;
-	      let unibyte: *mut charset = CHARSET_FROM_ID! (charset_unibyte);
+	      let unibyte: *mut charset = CHARSET_FROM_ID! ((*charset_unibyte.as_mut_ptr ()));
 	      let mut nonascii_space_p: bool = false;
 	      let mut nonascii_hyphen_p: bool = false;
 	      let mut c: c_int = (*it).c;	/* This is the character to display.  */
@@ -10170,7 +10168,7 @@ unsafe fn get_next_display_element (it: *mut it) -> bool
 	      if !it_bits! (multibyte_p, it) && !ASCII_CHAR_P (c as isize)
 		{
 		  eassert! (SINGLE_BYTE_CHAR_P (c as intmax_t));
-		  if unibyte_display_via_language_environment
+		  if (*unibyte_display_via_language_environment.as_mut_ptr ())
 		    {
 		      c = DECODE_CHAR! (unibyte, c as c_uint);
 		      if c < 0
@@ -10217,7 +10215,7 @@ unsafe fn get_next_display_element (it: *mut it) -> bool
 
 	      /* If `nobreak-char-display' is non-nil, we display
 		 non-ASCII spaces and hyphens specially.  */
-	      if !ASCII_CHAR_P (c as isize) && !NILP (Vnobreak_char_display)
+	      if !ASCII_CHAR_P (c as isize) && !NILP ((*Vnobreak_char_display.as_mut_ptr ()))
 		{
 		  if blankp (c as c_int)
 		    { nonascii_space_p = true; }
@@ -10295,13 +10293,13 @@ unsafe fn get_next_display_element (it: *mut it) -> bool
 		    /* Handle non-ascii space in the mode where it only gets
 		       highlighting.  */
 
-		    if nonascii_space_p && EQ (Vnobreak_char_display, Qt ())
+		    if nonascii_space_p && EQ ((*Vnobreak_char_display.as_mut_ptr ()), Qt ())
 		      {
 			/* Merge `nobreak-space' into the current face.  */
 			face_id = merge_faces ((*it).w, Qnobreak_space (), 0,
 					       (*it).face_id);
 			XSETINT! ((*it).ctl_chars[0],
-				  (if nobreak_char_ascii_display { ' ' as c_int }
+				  (if (*nobreak_char_ascii_display.as_mut_ptr ()) { ' ' as c_int }
 				   else { (*it).c }) as EMACS_INT);
 			ctl_len = 1;
 			break 'display_control;
@@ -10310,13 +10308,13 @@ unsafe fn get_next_display_element (it: *mut it) -> bool
 		    /* Handle non-ascii hyphens in the mode where it only
 		       gets highlighting.  */
 
-		    if nonascii_hyphen_p && EQ (Vnobreak_char_display, Qt ())
+		    if nonascii_hyphen_p && EQ ((*Vnobreak_char_display.as_mut_ptr ()), Qt ())
 		      {
 			/* Merge `nobreak-space' into the current face.  */
 			face_id = merge_faces ((*it).w, Qnobreak_hyphen (), 0,
 					       (*it).face_id);
 			XSETINT! ((*it).ctl_chars[0],
-				  (if nobreak_char_ascii_display { '-' as c_int }
+				  (if (*nobreak_char_ascii_display.as_mut_ptr ()) { '-' as c_int }
 				   else { (*it).c }) as EMACS_INT);
 			ctl_len = 1;
 			break 'display_control;
@@ -10358,7 +10356,7 @@ unsafe fn get_next_display_element (it: *mut it) -> bool
 		      if CHAR_BYTE8_P (c)
 			/* Display \200 or \x80 instead of \17777600.  */
 			{ c = CHAR_TO_BYTE8 (c); }
-		      let format_string: *const c_char = if display_raw_bytes_as_hex
+		      let format_string: *const c_char = if (*display_raw_bytes_as_hex.as_mut_ptr ())
 							 { c"x%02x".as_ptr () }
 							 else { c"%03o".as_ptr () };
 		      len = sprintf (str.as_mut_ptr (), format_string, c as c_uint);
@@ -10413,7 +10411,7 @@ unsafe fn get_next_display_element (it: *mut it) -> bool
                     else { IT_CHARPOS!(*it) };
           let mut c = (*it).char_to_display;
           if (*it).what != IT_CHARACTER {
-            let cmp = *composition_table.offset((*it).cmp_it.id as isize);
+            let cmp = *(*composition_table.as_mut_ptr ()).offset((*it).cmp_it.id as isize);
             c = ' ' as c_int;
             let mut i = 0;
             while i < (*cmp).glyph_len {
@@ -10595,7 +10593,7 @@ unsafe fn set_iterator_to_next (it: *mut it, reseat_p: bool)
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
 
-  if max_redisplay_ticks > 0
+  if (*max_redisplay_ticks.as_mut_ptr ()) > 0
     { update_redisplay_ticks (1, (*it).w); }
 
   /* C's `switch` becomes a `match` whose `break`s leave this block, and the two arms that
@@ -11741,9 +11739,9 @@ unsafe extern "C-unwind" fn next_element_from_buffer (it: *mut it) -> bool
 	 previously seen overlays is no longer valid.  */
       it_bits! (ignore_overlay_strings_at_pos_p, it, false);
 
-      if composition_break_at_point
+      if (*composition_break_at_point.as_mut_ptr ())
 	  && !NILP (BVAR! (current_buffer! (), enable_multibyte_characters_))
-	  && !NILP (Vauto_composition_mode)
+	  && !NILP ((*Vauto_composition_mode.as_mut_ptr ()))
 	{
 	  /* Limit search for composable characters to point's position.  */
 	  if (*it).bidi_it.scan_dir < 0
@@ -12032,8 +12030,8 @@ unsafe fn move_it_in_display_line_to (it: *mut it,
       this_line_subject_to_line_prefix = it_bits! (string_from_prefix_prop_p, it) as c_int;
     }
 
-  if IT_CHARPOS! (*it) < CHARPOS! (this_line_min_pos)
-    { SET_TEXT_POS! (this_line_min_pos, IT_CHARPOS! (*it), IT_BYTEPOS! (*it)); }
+  if IT_CHARPOS! (*it) < CHARPOS! ((*this_line_min_pos.as_mut_ptr ()))
+    { SET_TEXT_POS! ((*this_line_min_pos.as_mut_ptr ()), IT_CHARPOS! (*it), IT_BYTEPOS! (*it)); }
 
   saved_start_of_box_run = it_bits! (start_of_box_run_p, it);
 
@@ -12190,8 +12188,8 @@ unsafe fn move_it_in_display_line_to (it: *mut it,
 	    { prev_pos = IT_CHARPOS! (*it); }
 	  set_iterator_to_next (it, true);
 	  moved_to_next = true;
-	  if IT_CHARPOS! (*it) < CHARPOS! (this_line_min_pos)
-	    { SET_TEXT_POS! (this_line_min_pos,
+	  if IT_CHARPOS! (*it) < CHARPOS! ((*this_line_min_pos.as_mut_ptr ()))
+	    { SET_TEXT_POS! ((*this_line_min_pos.as_mut_ptr ()),
 			     IT_CHARPOS! (*it), IT_BYTEPOS! (*it)); }
 	  if it_bits! (bidi_p, it)
 	      && (op & MOVE_TO_POS) != 0
@@ -12369,8 +12367,8 @@ unsafe fn move_it_in_display_line_to (it: *mut it,
 			    { prev_pos = IT_CHARPOS! (*it); }
 			  set_iterator_to_next (it, true);
 			  moved_to_next = true;
-			  if IT_CHARPOS! (*it) < CHARPOS! (this_line_min_pos)
-			    { SET_TEXT_POS! (this_line_min_pos,
+			  if IT_CHARPOS! (*it) < CHARPOS! ((*this_line_min_pos.as_mut_ptr ()))
+			    { SET_TEXT_POS! ((*this_line_min_pos.as_mut_ptr ()),
 					     IT_CHARPOS! (*it), IT_BYTEPOS! (*it)); }
 			  /* On graphical terminals, newlines may
 			     "overflow" into the fringe if
@@ -12593,8 +12591,8 @@ unsafe fn move_it_in_display_line_to (it: *mut it,
 	       && !it_bits! (string_from_prefix_prop_p, it)
 	{ this_line_subject_to_line_prefix = 0; }
 
-      if IT_CHARPOS! (*it) < CHARPOS! (this_line_min_pos)
-	{ SET_TEXT_POS! (this_line_min_pos, IT_CHARPOS! (*it), IT_BYTEPOS! (*it)); }
+      if IT_CHARPOS! (*it) < CHARPOS! ((*this_line_min_pos.as_mut_ptr ()))
+	{ SET_TEXT_POS! ((*this_line_min_pos.as_mut_ptr ()), IT_CHARPOS! (*it), IT_BYTEPOS! (*it)); }
       if IT_CHARPOS! (*it) < to_charpos
 	{ saw_smaller_pos = true; }
       if it_bits! (bidi_p, it)
@@ -13087,7 +13085,7 @@ pub unsafe extern "C-unwind" fn move_it_to (it: *mut it, to_charpos: ptrdiff_t, 
       it_bits! (line_number_produced_p, it, false);
       (*it).current_y += (*it).max_ascent + (*it).max_descent;
       (*it).vpos += 1;
-      last_height = (*it).max_ascent + (*it).max_descent;
+      (*last_height.as_mut_ptr ()) = (*it).max_ascent + (*it).max_descent;
       (*it).max_ascent = 0; (*it).max_descent = 0;
     }
 
@@ -13113,7 +13111,7 @@ pub unsafe extern "C-unwind" fn move_it_to (it: *mut it, to_charpos: ptrdiff_t, 
       (*it).wrap_prefix_width = 0;
       (*it).current_y += (*it).max_ascent + (*it).max_descent;
       (*it).vpos += 1;
-      last_height = (*it).max_ascent + (*it).max_descent;
+      (*last_height.as_mut_ptr ()) = (*it).max_ascent + (*it).max_descent;
     }
 
   if !backup_data.is_null ()
@@ -13288,7 +13286,7 @@ pub unsafe extern "C-unwind" fn move_it_vertically_backward (it: *mut it, mut dy
 	  let mut line_height: c_int;
 
 	  RESTORE_IT! (&raw mut it3, &raw mut it3, it3data);
-	  last_height = 0;
+	  (*last_height.as_mut_ptr ()) = 0;
 	  y1 = line_bottom_y (&raw mut it3);
 	  line_height = y1 - y0;
 	  RESTORE_IT! (it, it, it2data);
@@ -13432,7 +13430,7 @@ pub unsafe extern "C-unwind" fn move_it_by_lines (it: *mut it, mut dvpos: ptrdif
       /* DVPOS == 0 means move to the start of the screen line.  */
       move_it_vertically_backward (it, 0);
       /* Let next call to line_bottom_y calculate real line height.  */
-      last_height = 0;
+      (*last_height.as_mut_ptr ()) = 0;
     }
   else if dvpos > 0
     {
@@ -14106,7 +14104,7 @@ DEFUN! ("display--line-is-continued-p", Fdisplay__line_is_continued_p,
        (),
        {
   let oldb: *mut buffer = current_buffer! ();
-  let w: *mut window = XWINDOW (selected_window);
+  let w: *mut window = XWINDOW ((*selected_window.as_mut_ptr ()));
   let mut rc: move_it_result = MOVE_POS_MATCH_OR_ZV;
 
   set_buffer_internal_1 (XBUFFER ((*w).contents));
@@ -14122,7 +14120,7 @@ DEFUN! ("display--line-is-continued-p", Fdisplay__line_is_continued_p,
 
       /* Make sure to start from the beginning of the current screen
 	 line, so that move_it_in_display_line_to counts pixels correctly.  */
-      Fvertical_motion (make_fixnum (0), selected_window, Qnil ());
+      Fvertical_motion (make_fixnum (0), (*selected_window.as_mut_ptr ()), Qnil ());
       SET_TEXT_POS! (startpos, PT! (), PT_BYTE! ());
       itdata = bidi_shelve_cache ();
       start_display (&raw mut it, w, startpos);
@@ -14219,7 +14217,7 @@ pub unsafe extern "C-unwind" fn message_log_maybe_newline ()
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  if message_log_need_newline
+  if (*message_log_need_newline.as_mut_ptr ())
     { message_dolog (c"".as_ptr (), 0, true, false); }
 
   }
@@ -14234,7 +14232,7 @@ pub unsafe extern "C-unwind" fn reset_message_log_need_newline ()
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  message_log_need_newline = false;
+  (*message_log_need_newline.as_mut_ptr ()) = false;
 
   }
 }
@@ -14256,31 +14254,31 @@ pub unsafe extern "C-unwind" fn message_dolog (m: *const c_char, nbytes: ptrdiff
   unsafe {
   let msg: *const u8 = m as *const u8;
 
-  if !NILP (Vmemory_full)
+  if !NILP ((*Vmemory_full.as_mut_ptr ()))
     { return; }
 
-  if !NILP (Vmessage_log_max)
+  if !NILP ((*Vmessage_log_max.as_mut_ptr ()))
     {
       let mut oldbuf: *mut buffer;
       let mut oldpoint: Lisp_Object;
       let mut oldbegv: Lisp_Object;
       let mut oldzv: Lisp_Object;
-      let old_windows_or_buffers_changed: c_int = windows_or_buffers_changed;
+      let old_windows_or_buffers_changed: c_int = (*windows_or_buffers_changed.as_mut_ptr ());
       let mut point_at_end: ptrdiff_t = 0;
       let mut zv_at_end: ptrdiff_t = 0;
       let mut old_deactivate_mark: Lisp_Object;
 
-      old_deactivate_mark = Vdeactivate_mark;
+      old_deactivate_mark = (*Vdeactivate_mark.as_mut_ptr ());
       oldbuf = current_buffer! ();
 
       /* Sanity check, in case the variable has been set to something
 	 invalid.  */
-      if ! STRINGP (Vmessages_buffer_name)
-	{ Vmessages_buffer_name = build_string (c"*Messages*".as_ptr ()); }
+      if ! STRINGP ((*Vmessages_buffer_name.as_mut_ptr ()))
+	{ (*Vmessages_buffer_name.as_mut_ptr ()) = build_string (c"*Messages*".as_ptr ()); }
       /* Ensure the Messages buffer exists, and switch to it.
 	 If we created it, set the major-mode.  */
-      let newbuffer: bool = NILP (Fget_buffer (Vmessages_buffer_name));
-      Fset_buffer (Fget_buffer_create (Vmessages_buffer_name, Qnil ()));
+      let newbuffer: bool = NILP (Fget_buffer ((*Vmessages_buffer_name.as_mut_ptr ())));
+      Fset_buffer (Fget_buffer_create ((*Vmessages_buffer_name.as_mut_ptr ()), Qnil ()));
       if newbuffer
 	  && !NILP (Ffboundp (Qmessages_buffer_mode ()))
 	{ call0 (Qmessages_buffer_mode ()); }
@@ -14288,11 +14286,11 @@ pub unsafe extern "C-unwind" fn message_dolog (m: *const c_char, nbytes: ptrdiff
       bset_undo_list (current_buffer! (), Qt ());
       bset_cache_long_scans (current_buffer! (), Qnil ());
 
-      oldpoint = message_dolog_marker1;
+      oldpoint = (*message_dolog_marker1.as_mut_ptr ());
       set_marker_restricted_both (oldpoint, Qnil (), PT! (), PT_BYTE! ());
-      oldbegv = message_dolog_marker2;
+      oldbegv = (*message_dolog_marker2.as_mut_ptr ());
       set_marker_restricted_both (oldbegv, Qnil (), BEGV! (), BEGV_BYTE! ());
-      oldzv = message_dolog_marker3;
+      oldzv = (*message_dolog_marker3.as_mut_ptr ());
       set_marker_restricted_both (oldzv, Qnil (), ZV! (), ZV_BYTE! ());
 
       if PT! () == Z! ()
@@ -14404,10 +14402,10 @@ pub unsafe extern "C-unwind" fn message_dolog (m: *const c_char, nbytes: ptrdiff
 	     in the *Messages* buffer now, delete the oldest ones.
 	     This is safe because we don't have undo in this buffer.  */
 
-	  if FIXNATP (Vmessage_log_max)
+	  if FIXNATP ((*Vmessage_log_max.as_mut_ptr ()))
 	    {
 	      scan_newline (Z! (), Z_BYTE! (), BEG as ptrdiff_t, BEG_BYTE as ptrdiff_t,
-			    -XFIXNAT (Vmessage_log_max) - 1, false);
+			    -XFIXNAT ((*Vmessage_log_max.as_mut_ptr ())) - 1, false);
 	      del_range_both (BEG as ptrdiff_t, BEG_BYTE as ptrdiff_t, PT! (), PT_BYTE! (), false);
 	    }
 
@@ -14447,13 +14445,13 @@ pub unsafe extern "C-unwind" fn message_dolog (m: *const c_char, nbytes: ptrdiff
 	 incrementing windows_or_buffers_changed even if *Messages* is
 	 shown in some window.  So we must manually set
 	 windows_or_buffers_changed here to make up for that.  */
-      windows_or_buffers_changed = old_windows_or_buffers_changed;
+      (*windows_or_buffers_changed.as_mut_ptr ()) = old_windows_or_buffers_changed;
       bset_redisplay (current_buffer! ());
 
       set_buffer_internal (oldbuf);
 
-      message_log_need_newline = !nlflag;
-      Vdeactivate_mark = old_deactivate_mark;
+      (*message_log_need_newline.as_mut_ptr ()) = !nlflag;
+      (*Vdeactivate_mark.as_mut_ptr ()) = old_deactivate_mark;
     }
 
   }
@@ -14540,7 +14538,7 @@ pub unsafe extern "C-unwind" fn message3 (m: Lisp_Object)
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
   log_message (m);
-  if !inhibit_message
+  if !(*inhibit_message.as_mut_ptr ())
     { message3_nolog (m); }
 
   }
@@ -14555,7 +14553,7 @@ pub unsafe extern "C-unwind" fn message3_frame (m: Lisp_Object, f: *mut frame)
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
   log_message (m);
-  if !inhibit_message
+  if !(*inhibit_message.as_mut_ptr ())
     { message3_frame_nolog (m, f); }
 
   }
@@ -14567,18 +14565,18 @@ unsafe fn message_to_stderr (m: Lisp_Object)
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  if noninteractive_need_newline
+  if (*noninteractive_need_newline.as_mut_ptr ())
     {
-      noninteractive_need_newline = false;
+      (*noninteractive_need_newline.as_mut_ptr ()) = false;
       errputc ('\n' as c_int);
     }
   if STRINGP (m)
     {
-      let mut coding_system: Lisp_Object = Vlocale_coding_system;
+      let mut coding_system: Lisp_Object = (*Vlocale_coding_system.as_mut_ptr ());
       let mut s: Lisp_Object;
 
-      if !NILP (Vcoding_system_for_write)
-	{ coding_system = Vcoding_system_for_write; }
+      if !NILP ((*Vcoding_system_for_write.as_mut_ptr ()))
+	{ coding_system = (*Vcoding_system_for_write.as_mut_ptr ()); }
       if !NILP (coding_system)
 	{ s = code_convert_string_norecord (m, coding_system, true); }
       else
@@ -14586,7 +14584,7 @@ unsafe fn message_to_stderr (m: Lisp_Object)
 
       errwrite (SDATA (s) as *const c_void, SBYTES (s));
     }
-  if STRINGP (m) || !cursor_in_echo_area
+  if STRINGP (m) || !(*cursor_in_echo_area.as_mut_ptr ())
     { errputc ('\n' as c_int); }
 
   }
@@ -14644,22 +14642,22 @@ pub unsafe extern "C-unwind" fn message3_frame_nolog (m: Lisp_Object, f: *mut fr
 	     when we unwind the message will normally still be visible
 	     in the other frame, at least for a few seconds.  */
 	  record_unwind_protect
-	    (Some (restore_selected_window), selected_window);
+	    (Some (restore_selected_window), (*selected_window.as_mut_ptr ()));
 	  record_unwind_protect
 	    (Some (restore_frame_selected_window), (*f).selected_window);
 	  XSETFRAME! (frame, f);
-	  selected_frame = frame;
-	  selected_window = FRAME_SELECTED_WINDOW (f);
+	  (*selected_frame.as_mut_ptr ()) = frame;
+	  (*selected_window.as_mut_ptr ()) = FRAME_SELECTED_WINDOW (f);
 	}
 
       if STRINGP (m) && SCHARS (m) > 0
 	{
 	  set_message (m);
-	  if minibuffer_auto_raise && !NILP (frame)
+	  if (*minibuffer_auto_raise.as_mut_ptr ()) && !NILP (frame)
 	    { Fraise_frame (frame); }
 	  /* Assume we are not echoing.
 	     (If we are, echo_now will override this.)  */
-	  echo_message_buffer = Qnil ();
+	  (*echo_message_buffer.as_mut_ptr ()) = Qnil ();
 	}
       else
 	{ clear_message (true, true); }
@@ -14721,7 +14719,7 @@ pub unsafe extern "C-unwind" fn message_with_string (m: *const c_char, string: L
   CHECK_STRING (string);
 
   let need_message: bool;
-  if noninteractive
+  if (*noninteractive.as_mut_ptr ())
     { need_message = !m.is_null (); }
   else if !INTERACTIVE! ()
     { need_message = false; }
@@ -14750,7 +14748,7 @@ pub unsafe extern "C-unwind" fn message_with_string (m: *const c_char, string: L
       AUTO_STRING! (fmt, m);
       let msg: Lisp_Object = CALLN! (Fformat_message, fmt, string);
 
-      if noninteractive
+      if (*noninteractive.as_mut_ptr ())
 	{ message_to_stderr (msg); }
       else
 	{
@@ -14761,7 +14759,7 @@ pub unsafe extern "C-unwind" fn message_with_string (m: *const c_char, string: L
 
 	  /* Print should start at the beginning of the message
 	     buffer next time.  */
-	  message_buf_print = false;
+	  (*message_buf_print.as_mut_ptr ()) = false;
 	}
     }
 
@@ -14785,18 +14783,18 @@ unsafe fn vmessage (m: *const c_char, mut ap: VaList<'_>)
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  if noninteractive
+  if (*noninteractive.as_mut_ptr ())
     {
       if !m.is_null ()
 	{
-	  if noninteractive_need_newline
-	    { putc ('\n' as c_int, stderr); }
-	  noninteractive_need_newline = false;
+	  if (*noninteractive_need_newline.as_mut_ptr ())
+	    { putc ('\n' as c_int, (*stderr.as_mut_ptr ())); }
+	  (*noninteractive_need_newline.as_mut_ptr ()) = false;
 	  let va: VaList<'_> = ap;
-	  vfprintf (stderr, m, va);
-	  if !cursor_in_echo_area
-	    { putc ('\n' as c_int, stderr); }
-	  fflush (stderr);
+	  vfprintf ((*stderr.as_mut_ptr ()), m, va);
+	  if !(*cursor_in_echo_area.as_mut_ptr ())
+	    { putc ('\n' as c_int, (*stderr.as_mut_ptr ())); }
+	  fflush ((*stderr.as_mut_ptr ()));
 	}
     }
   else if INTERACTIVE! ()
@@ -14845,7 +14843,7 @@ unsafe fn vmessage (m: *const c_char, mut ap: VaList<'_>)
 
 	  /* Print should start at the beginning of the message
 	     buffer next time.  */
-	  message_buf_print = false;
+	  (*message_buf_print.as_mut_ptr ()) = false;
 	}
     }
 
@@ -14873,7 +14871,7 @@ pub unsafe extern "C-unwind" fn update_echo_area ()
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  if !NILP (echo_area_buffer[0])
+  if !NILP ((*echo_area_buffer.as_mut_ptr ())[0])
     {
       let string: Lisp_Object;
       string = Fcurrent_message ();
@@ -14893,10 +14891,10 @@ unsafe fn ensure_echo_area_buffers ()
   let mut i: c_int = 0;
   while i < 2
     {
-      if !BUFFERP (echo_buffer[i as usize])
-	  || !BUFFER_LIVE_P (XBUFFER (echo_buffer[i as usize]))
+      if !BUFFERP ((*echo_buffer.as_mut_ptr ())[i as usize])
+	  || !BUFFER_LIVE_P (XBUFFER ((*echo_buffer.as_mut_ptr ())[i as usize]))
 	{
-	  let old_buffer: Lisp_Object = echo_buffer[i as usize];
+	  let old_buffer: Lisp_Object = (*echo_buffer.as_mut_ptr ())[i as usize];
 	  /* C: `static char const name_fmt[] = " *Echo Area %d*"; char name[sizeof name_fmt
 	     + INT_STRLEN_BOUND (int)];` -- clang on the frozen target measures 16 + 11 = 27
 	     (deviation 105).  */
@@ -14904,8 +14902,8 @@ unsafe fn ensure_echo_area_buffers ()
 	  let mut name: [c_char; 27] = [0; 27];
 	  AUTO_STRING_WITH_LEN! (lname, name.as_ptr (),
 				 sprintf (name.as_mut_ptr (), name_fmt, i) as isize);
-	  echo_buffer[i as usize] = Fget_buffer_create (lname, Qnil ());
-	  bset_truncate_lines (XBUFFER (echo_buffer[i as usize]), Qnil ());
+	  (*echo_buffer.as_mut_ptr ())[i as usize] = Fget_buffer_create (lname, Qnil ());
+	  bset_truncate_lines (XBUFFER ((*echo_buffer.as_mut_ptr ())[i as usize]), Qnil ());
 	  /* to force word wrap in echo area -
 	     it was decided to postpone this*/
 	  /* XBUFFER (echo_buffer[i])->word_wrap = Qt; */
@@ -14913,8 +14911,8 @@ unsafe fn ensure_echo_area_buffers ()
 	  let mut j: c_int = 0;
 	  while j < 2
 	    {
-	      if EQ (old_buffer, echo_area_buffer[j as usize])
-		{ echo_area_buffer[j as usize] = echo_buffer[i as usize]; }
+	      if EQ (old_buffer, (*echo_area_buffer.as_mut_ptr ())[j as usize])
+		{ (*echo_area_buffer.as_mut_ptr ())[j as usize] = (*echo_buffer.as_mut_ptr ())[i as usize]; }
 	      j += 1;
 	    }
 	}
@@ -14971,27 +14969,27 @@ unsafe fn with_echo_area_buffer (w: *mut window, which: c_int,
 
       /* We need a fresh one in case the current echo buffer equals
 	 the one containing the last displayed echo area message.  */
-      if !NILP (echo_area_buffer[this_one as usize])
-	  && EQ (echo_area_buffer[this_one as usize], echo_area_buffer[the_other as usize])
-	{ echo_area_buffer[this_one as usize] = Qnil (); }
+      if !NILP ((*echo_area_buffer.as_mut_ptr ())[this_one as usize])
+	  && EQ ((*echo_area_buffer.as_mut_ptr ())[this_one as usize], (*echo_area_buffer.as_mut_ptr ())[the_other as usize])
+	{ (*echo_area_buffer.as_mut_ptr ())[this_one as usize] = Qnil (); }
     }
 
   /* Choose a suitable buffer from echo_buffer[] if we don't
      have one.  */
-  if NILP (echo_area_buffer[this_one as usize])
+  if NILP ((*echo_area_buffer.as_mut_ptr ())[this_one as usize])
     {
-      echo_area_buffer[this_one as usize]
-	= if EQ (echo_area_buffer[the_other as usize], echo_buffer[this_one as usize])
-	  { echo_buffer[the_other as usize] }
-	  else { echo_buffer[this_one as usize] };
+      (*echo_area_buffer.as_mut_ptr ())[this_one as usize]
+	= if EQ ((*echo_area_buffer.as_mut_ptr ())[the_other as usize], (*echo_buffer.as_mut_ptr ())[this_one as usize])
+	  { (*echo_buffer.as_mut_ptr ())[the_other as usize] }
+	  else { (*echo_buffer.as_mut_ptr ())[this_one as usize] };
       clear_buffer_p = true;
     }
 
-  buffer = echo_area_buffer[this_one as usize];
+  buffer = (*echo_area_buffer.as_mut_ptr ())[this_one as usize];
 
   /* Don't get confused by reusing the buffer used for echoing
      for a different purpose.  */
-  if echo_kboard.is_null () && EQ (buffer, echo_message_buffer)
+  if (*echo_kboard.as_mut_ptr ()).is_null () && EQ (buffer, (*echo_message_buffer.as_mut_ptr ()))
     { cancel_echoing (); }
 
   record_unwind_protect (Some (unwind_with_echo_area_buffer),
@@ -15047,15 +15045,15 @@ unsafe fn with_echo_area_buffer_unwind_data (w: *mut window) -> Lisp_Object
 
   /* Reduce consing by keeping one vector in
      Vwith_echo_area_save_vector.  */
-  vector = Vwith_echo_area_save_vector;
-  Vwith_echo_area_save_vector = Qnil ();
+  vector = (*Vwith_echo_area_save_vector.as_mut_ptr ());
+  (*Vwith_echo_area_save_vector.as_mut_ptr ()) = Qnil ();
 
   if NILP (vector)
     { vector = make_nil_vector (11); }
 
   XSETBUFFER! (tmp, current_buffer! ()); ASET (vector, i as isize, tmp); i += 1;
-  ASET (vector, i as isize, Vdeactivate_mark); i += 1;
-  ASET (vector, i as isize, make_fixnum (windows_or_buffers_changed as EMACS_INT)); i += 1;
+  ASET (vector, i as isize, (*Vdeactivate_mark.as_mut_ptr ())); i += 1;
+  ASET (vector, i as isize, make_fixnum ((*windows_or_buffers_changed.as_mut_ptr ()) as EMACS_INT)); i += 1;
 
   if !w.is_null ()
     {
@@ -15094,8 +15092,8 @@ unsafe extern "C-unwind" fn unwind_with_echo_area_buffer (vector: Lisp_Object)
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
   set_buffer_internal_1 (XBUFFER (AREF (vector, 0)));
-  Vdeactivate_mark = AREF (vector, 1);
-  windows_or_buffers_changed = XFIXNAT (AREF (vector, 2)) as c_int;
+  (*Vdeactivate_mark.as_mut_ptr ()) = AREF (vector, 1);
+  (*windows_or_buffers_changed.as_mut_ptr ()) = XFIXNAT (AREF (vector, 2)) as c_int;
 
   if WINDOWP (AREF (vector, 3))
     {
@@ -15117,7 +15115,7 @@ unsafe extern "C-unwind" fn unwind_with_echo_area_buffer (vector: Lisp_Object)
 				  XFIXNAT (AREF (vector, 10)));
     }
 
-  Vwith_echo_area_save_vector = vector;
+  (*Vwith_echo_area_save_vector.as_mut_ptr ()) = vector;
 
   }
 }
@@ -15131,22 +15129,22 @@ pub unsafe extern "C-unwind" fn setup_echo_area_for_printing (multibyte_p: bool)
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
   /* If we can't find an echo area any more, exit.  */
-  if ! FRAME_LIVE_P (XFRAME (selected_frame))
+  if ! FRAME_LIVE_P (XFRAME ((*selected_frame.as_mut_ptr ())))
     { Fkill_emacs (Qnil (), Qnil ()); }
 
   ensure_echo_area_buffers ();
 
-  if !message_buf_print
+  if !(*message_buf_print.as_mut_ptr ())
     {
       /* A message has been output since the last time we printed.
 	 Choose a fresh echo area buffer.  */
-      if EQ (echo_area_buffer[1], echo_buffer[0])
-	{ echo_area_buffer[0] = echo_buffer[1]; }
+      if EQ ((*echo_area_buffer.as_mut_ptr ())[1], (*echo_buffer.as_mut_ptr ())[0])
+	{ (*echo_area_buffer.as_mut_ptr ())[0] = (*echo_buffer.as_mut_ptr ())[1]; }
       else
-	{ echo_area_buffer[0] = echo_buffer[0]; }
+	{ (*echo_area_buffer.as_mut_ptr ())[0] = (*echo_buffer.as_mut_ptr ())[0]; }
 
       /* Switch to that buffer and clear it.  */
-      set_buffer_internal (XBUFFER (echo_area_buffer[0]));
+      set_buffer_internal (XBUFFER ((*echo_area_buffer.as_mut_ptr ())[0]));
       bset_truncate_lines (current_buffer! (), Qnil ());
 
       if Z! () > BEG as ptrdiff_t
@@ -15165,7 +15163,7 @@ pub unsafe extern "C-unwind" fn setup_echo_area_for_printing (multibyte_p: bool)
 	 buffer from which we are called is unibyte, because in that
 	 case unibyte characters should not be displayed as octal
 	 escapes.  */
-      if unibyte_display_via_language_environment
+      if (*unibyte_display_via_language_environment.as_mut_ptr ())
 	  && !multibyte_p
 	  && !NILP (BVAR! (current_buffer! (), enable_multibyte_characters_))
 	{ Fset_buffer_multibyte (Qnil ()); }
@@ -15173,7 +15171,7 @@ pub unsafe extern "C-unwind" fn setup_echo_area_for_printing (multibyte_p: bool)
 	{ Fset_buffer_multibyte (Qt ()); }
 
       /* Raise the frame containing the echo area.  */
-      if minibuffer_auto_raise
+      if (*minibuffer_auto_raise.as_mut_ptr ())
 	{
 	  let sf: *mut frame = SELECTED_FRAME ();
 	  let mini_window: Lisp_Object;
@@ -15182,22 +15180,22 @@ pub unsafe extern "C-unwind" fn setup_echo_area_for_printing (multibyte_p: bool)
 	}
 
       message_log_maybe_newline ();
-      message_buf_print = true;
+      (*message_buf_print.as_mut_ptr ()) = true;
     }
   else
     {
-      if NILP (echo_area_buffer[0])
+      if NILP ((*echo_area_buffer.as_mut_ptr ())[0])
 	{
-	  if EQ (echo_area_buffer[1], echo_buffer[0])
-	    { echo_area_buffer[0] = echo_buffer[1]; }
+	  if EQ ((*echo_area_buffer.as_mut_ptr ())[1], (*echo_buffer.as_mut_ptr ())[0])
+	    { (*echo_area_buffer.as_mut_ptr ())[0] = (*echo_buffer.as_mut_ptr ())[1]; }
 	  else
-	    { echo_area_buffer[0] = echo_buffer[0]; }
+	    { (*echo_area_buffer.as_mut_ptr ())[0] = (*echo_buffer.as_mut_ptr ())[0]; }
 	}
 
-      if current_buffer! () != XBUFFER (echo_area_buffer[0])
+      if current_buffer! () != XBUFFER ((*echo_area_buffer.as_mut_ptr ())[0])
 	{
 	  /* Someone switched buffers between print requests.  */
-	  set_buffer_internal (XBUFFER (echo_area_buffer[0]));
+	  set_buffer_internal (XBUFFER ((*echo_area_buffer.as_mut_ptr ())[0]));
 	  bset_truncate_lines (current_buffer! (), Qnil ());
 	}
     }
@@ -15228,18 +15226,18 @@ unsafe fn display_echo_area (w: *mut window) -> bool
      nevertheless because it resizes the window.  But we will have to
      reset the echo_area_buffer in question to nil at the end because
      with_echo_area_buffer will set it to an empty buffer.  */
-  let i: bool = display_last_displayed_message_p;
+  let i: bool = (*display_last_displayed_message_p.as_mut_ptr ());
   /* According to the C standard, the integral value
      of a "bool" is always 0 or 1, so this array access is safe here,
      if oddly typed. */
-  no_message_p = NILP (echo_area_buffer[i as usize]);
+  no_message_p = NILP ((*echo_area_buffer.as_mut_ptr ())[i as usize]);
 
   window_height_changed_p
-    = with_echo_area_buffer (w, if display_last_displayed_message_p { 1 } else { 0 },
+    = with_echo_area_buffer (w, if (*display_last_displayed_message_p.as_mut_ptr ()) { 1 } else { 0 },
 			     Some (display_echo_area_1), w as *mut c_void, Qnil ());
 
   if no_message_p
-    { echo_area_buffer[i as usize] = Qnil (); }
+    { (*echo_area_buffer.as_mut_ptr ())[i as usize] = Qnil (); }
 
   unbind_to (count, Qnil ());
   return window_height_changed_p;
@@ -15297,17 +15295,17 @@ pub unsafe extern "C-unwind" fn resize_echo_area_exactly ()
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  if BUFFERP (echo_area_buffer[0])
-      && WINDOWP (echo_area_window)
+  if BUFFERP ((*echo_area_buffer.as_mut_ptr ())[0])
+      && WINDOWP ((*echo_area_window.as_mut_ptr ()))
     {
-      let w: *mut window = XWINDOW (echo_area_window);
-      let resize_exactly: Lisp_Object = if minibuf_level == 0 { Qt () } else { Qnil () };
+      let w: *mut window = XWINDOW ((*echo_area_window.as_mut_ptr ()));
+      let resize_exactly: Lisp_Object = if (*minibuf_level.as_mut_ptr ()) == 0 { Qt () } else { Qnil () };
       let resized_p: bool = with_echo_area_buffer (w, 0, Some (resize_mini_window_1),
 						   w as *mut c_void, resize_exactly);
       if resized_p
 	{
-	  windows_or_buffers_changed = 42;
-	  update_mode_lines = 30;
+	  (*windows_or_buffers_changed.as_mut_ptr ()) = 42;
+	  (*update_mode_lines.as_mut_ptr ()) = 30;
 	  redisplay_internal ();
 	}
     }
@@ -15357,11 +15355,11 @@ pub unsafe extern "C-unwind" fn resize_mini_window (w: *mut window, exact_p: boo
      for instance, when which-func prints a long message while
      we are running fontification-functions.  We're running these
      functions with dsafe_call which binds inhibit-redisplay to t.  */
-  if !NILP (Vinhibit_redisplay)
+  if !NILP ((*Vinhibit_redisplay.as_mut_ptr ()))
     { return false; }
 
   /* By default, start display at the beginning.  */
-  if redisplay_adhoc_scroll_in_resize_mini_windows
+  if (*redisplay_adhoc_scroll_in_resize_mini_windows.as_mut_ptr ())
     {
       set_marker_both ((*w).start, (*w).contents,
 		       BUF_BEGV (XBUFFER ((*w).contents)),
@@ -15369,14 +15367,14 @@ pub unsafe extern "C-unwind" fn resize_mini_window (w: *mut window, exact_p: boo
     }
 
   /* Nil means don't try to resize.  */
-  if (NILP (Vresize_mini_windows)
-       && (NILP (resize_mini_frames) || !FRAME_MINIBUF_ONLY_P (f)))
+  if (NILP ((*Vresize_mini_windows.as_mut_ptr ()))
+       && (NILP ((*resize_mini_frames.as_mut_ptr ())) || !FRAME_MINIBUF_ONLY_P (f)))
       || (FRAME_X_P (f) && (FRAME_OUTPUT_DATA! (f) as *mut c_void).is_null ())
     { return false; }
 
   if FRAME_MINIBUF_ONLY_P (f)
     {
-      if !NILP (resize_mini_frames)
+      if !NILP ((*resize_mini_frames.as_mut_ptr ()))
 	{ dsafe_call1 (Qwindow__resize_mini_frame (), WINDOW_FRAME! (w)); }
     }
   else
@@ -15403,10 +15401,10 @@ pub unsafe extern "C-unwind" fn resize_mini_window (w: *mut window, exact_p: boo
 	  (if it.extra_line_spacing_above != 0 { it.extra_line_spacing } else { 0 });
 
       /* Compute the max. number of lines specified by the user.  */
-      if FLOATP (Vmax_mini_window_height)
-	{ max_height = (XFLOAT_DATA (Vmax_mini_window_height) * windows_height as f64) as c_int; }
-      else if FIXNUMP (Vmax_mini_window_height)
-	{ max_height = XFIXNUM (Vmax_mini_window_height) as c_int * unit; }
+      if FLOATP ((*Vmax_mini_window_height.as_mut_ptr ()))
+	{ max_height = (XFLOAT_DATA ((*Vmax_mini_window_height.as_mut_ptr ())) * windows_height as f64) as c_int; }
+      else if FIXNUMP ((*Vmax_mini_window_height.as_mut_ptr ()))
+	{ max_height = XFIXNUM ((*Vmax_mini_window_height.as_mut_ptr ())) as c_int * unit; }
       else
 	{ max_height = windows_height / 4; }
 
@@ -15415,7 +15413,7 @@ pub unsafe extern "C-unwind" fn resize_mini_window (w: *mut window, exact_p: boo
 				   windows_height as isize) as c_int;
 
       /* Find out the height of the text in the window.  */
-      last_height = 0;
+      (*last_height.as_mut_ptr ()) = 0;
       move_it_to (&raw mut it, ZV! (), -1, -1, -1, MOVE_TO_POS);
       /* If move_it_to moved to the next visible line after EOB,
 	 account for the height of the last full line.  */
@@ -15431,7 +15429,7 @@ pub unsafe extern "C-unwind" fn resize_mini_window (w: *mut window, exact_p: boo
 	       && it.current_x <= it.first_visible_x
 	       && ZV_BYTE! () > 1
 	       && FETCH_BYTE! (ZV_BYTE! () - 1) != b'\n')
-	    { height += last_height; }
+	    { height += (*last_height.as_mut_ptr ()); }
 	}
       else
 	{ height = it.current_y + it.max_ascent + it.max_descent; }
@@ -15445,7 +15443,7 @@ pub unsafe extern "C-unwind" fn resize_mini_window (w: *mut window, exact_p: boo
       if height > max_height
 	{
 	  height = (max_height / unit) * unit;
-	  if redisplay_adhoc_scroll_in_resize_mini_windows
+	  if (*redisplay_adhoc_scroll_in_resize_mini_windows.as_mut_ptr ())
 	    {
 	      init_iterator (&raw mut it, w, ZV! (), ZV_BYTE! (), core::ptr::null_mut (),
 			     DEFAULT_FACE_ID);
@@ -15473,7 +15471,7 @@ pub unsafe extern "C-unwind" fn resize_mini_window (w: *mut window, exact_p: boo
 	  SET_MARKER_FROM_TEXT_POS! ((*w).start, start);
 	}
 
-      if EQ (Vresize_mini_windows, Qgrow_only ())
+      if EQ ((*Vresize_mini_windows.as_mut_ptr ()), Qgrow_only ())
 	{
 	  /* Let it grow only, until we display an empty message, in which
 	     case the window shrinks again.  */
@@ -15508,14 +15506,14 @@ pub unsafe extern "C-unwind" fn current_message () -> Lisp_Object
      no equivalent for (PORTING.md 1.5).  */
   let mut msg: Lisp_Object = Qnil ();
 
-  if !BUFFERP (echo_area_buffer[0])
+  if !BUFFERP ((*echo_area_buffer.as_mut_ptr ())[0])
     { msg = Qnil (); }
   else
     {
       with_echo_area_buffer (core::ptr::null_mut (), 0, Some (current_message_1),
 			     &raw mut msg as *mut c_void, Qnil ());
       if NILP (msg)
-	{ echo_area_buffer[0] = Qnil (); }
+	{ (*echo_area_buffer.as_mut_ptr ())[0] = Qnil (); }
     }
 
   return msg;
@@ -15550,7 +15548,7 @@ pub unsafe extern "C-unwind" fn push_message () -> bool
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
   let msg: Lisp_Object = current_message ();
-  Vmessage_stack = Fcons (msg, Vmessage_stack);
+  (*Vmessage_stack.as_mut_ptr ()) = Fcons (msg, (*Vmessage_stack.as_mut_ptr ()));
   return STRINGP (msg);
 
   }
@@ -15563,8 +15561,8 @@ pub unsafe extern "C-unwind" fn restore_message ()
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  eassert! (CONSP (Vmessage_stack));
-  message3_nolog (XCAR (Vmessage_stack));
+  eassert! (CONSP ((*Vmessage_stack.as_mut_ptr ())));
+  message3_nolog (XCAR ((*Vmessage_stack.as_mut_ptr ())));
 
   }
 }
@@ -15577,8 +15575,8 @@ pub unsafe extern "C-unwind" fn pop_message_unwind ()
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
   /* Pop the top-most entry off Vmessage_stack.  */
-  eassert! (CONSP (Vmessage_stack));
-  Vmessage_stack = XCDR (Vmessage_stack);
+  eassert! (CONSP ((*Vmessage_stack.as_mut_ptr ())));
+  (*Vmessage_stack.as_mut_ptr ()) = XCDR ((*Vmessage_stack.as_mut_ptr ()));
 
   }
 }
@@ -15592,7 +15590,7 @@ pub unsafe extern "C-unwind" fn check_message_stack ()
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  if !NILP (Vmessage_stack)
+  if !NILP ((*Vmessage_stack.as_mut_ptr ()))
     { emacs_abort (); }
 
   }
@@ -15603,7 +15601,7 @@ pub unsafe extern "C-unwind" fn clear_message_stack ()
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  Vmessage_stack = Qnil ();
+  (*Vmessage_stack.as_mut_ptr ()) = Qnil ();
 
   }
 }
@@ -15617,10 +15615,10 @@ pub unsafe extern "C-unwind" fn truncate_echo_area (nchars: ptrdiff_t)
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
   if nchars == 0
-    { echo_area_buffer[0] = Qnil (); }
-  else if !noninteractive
+    { (*echo_area_buffer.as_mut_ptr ())[0] = Qnil (); }
+  else if !(*noninteractive.as_mut_ptr ())
 	   && INTERACTIVE! ()
-	   && !NILP (echo_area_buffer[0])
+	   && !NILP ((*echo_area_buffer.as_mut_ptr ())[0])
     {
       let sf: *mut frame = SELECTED_FRAME ();
       /* Error messages get reported properly by cmd_error, so this must be
@@ -15648,7 +15646,7 @@ unsafe extern "C-unwind" fn truncate_message_1 (a1: *mut c_void, a2: Lisp_Object
   if (BEG as ptrdiff_t + nchars as ptrdiff_t) < Z! ()
     { del_range (BEG as ptrdiff_t + nchars as ptrdiff_t, Z! ()); }
   if Z! () == BEG as ptrdiff_t
-    { echo_area_buffer[0] = Qnil (); }
+    { (*echo_area_buffer.as_mut_ptr ())[0] = Qnil (); }
   return false;
 
   }
@@ -15665,15 +15663,15 @@ unsafe fn set_message (string: Lisp_Object)
 
   eassert! (STRINGP (string));
 
-  if FUNCTIONP (Vset_message_function)
+  if FUNCTIONP ((*Vset_message_function.as_mut_ptr ()))
       /* FIXME: (bug#63253) We should really make the regexp engine re-entrant,
 	 but in the mean time, let's ignore `set-message-function` when
 	 called from `probably_quit`.  */
-      && garbage_collection_inhibited == 0
+      && (*garbage_collection_inhibited.as_mut_ptr ()) == 0
     {
       let count: specpdl_ref = SPECPDL_INDEX ();
       specbind (Qinhibit_quit (), Qt ());
-      message = dsafe_call1 (Vset_message_function, string);
+      message = dsafe_call1 ((*Vset_message_function.as_mut_ptr ()), string);
       unbind_to (count, Qnil ());
 
       if STRINGP (message)
@@ -15685,17 +15683,17 @@ unsafe fn set_message (string: Lisp_Object)
 
   if NILP (message)
     {
-      message_enable_multibyte = STRING_MULTIBYTE (string);
+      (*message_enable_multibyte.as_mut_ptr ()) = STRING_MULTIBYTE (string);
 
       with_echo_area_buffer (core::ptr::null_mut (), -1, Some (set_message_1),
 			     core::ptr::null_mut (), string);
-      message_buf_print = false;
-      help_echo_showing_p = false;
+      (*message_buf_print.as_mut_ptr ()) = false;
+      (*help_echo_showing_p.as_mut_ptr ()) = false;
     }
 
-  if STRINGP (Vdebug_on_message)
+  if STRINGP ((*Vdebug_on_message.as_mut_ptr ()))
       && STRINGP (string)
-      && fast_string_match (Vdebug_on_message, string) >= 0
+      && fast_string_match ((*Vdebug_on_message.as_mut_ptr ()), string) >= 0
     { call_debugger (list2 (Qerror (), string)); }
 
   }
@@ -15717,15 +15715,15 @@ unsafe extern "C-unwind" fn set_message_1 (a1: *mut c_void, string: Lisp_Object)
      unibyte-display-via-language-environment is non-nil and the
      string to display is unibyte, because in that case unibyte
      characters should not be displayed as octal escapes.  */
-  if !message_enable_multibyte
-      && unibyte_display_via_language_environment
+  if !(*message_enable_multibyte.as_mut_ptr ())
+      && (*unibyte_display_via_language_environment.as_mut_ptr ())
       && !NILP (BVAR! (current_buffer! (), enable_multibyte_characters_))
     { Fset_buffer_multibyte (Qnil ()); }
   else if NILP (BVAR! (current_buffer! (), enable_multibyte_characters_))
     { Fset_buffer_multibyte (Qt ()); }
 
   bset_truncate_lines (current_buffer! (),
-		       if message_truncate_lines { Qt () } else { Qnil () });
+		       if (*message_truncate_lines.as_mut_ptr ()) { Qt () } else { Qnil () });
   if !NILP (BVAR! (current_buffer! (), bidi_display_reordering_))
     { bset_bidi_paragraph_direction (current_buffer! (), Qleft_to_right ()); }
 
@@ -15752,29 +15750,29 @@ pub unsafe extern "C-unwind" fn clear_message (current_p: bool, last_displayed_p
   unsafe {
   let mut preserve: Lisp_Object = Qnil ();
 
-  if current_p && !inhibit_message
+  if current_p && !(*inhibit_message.as_mut_ptr ())
     {
-      if FUNCTIONP (Vclear_message_function)
+      if FUNCTIONP ((*Vclear_message_function.as_mut_ptr ()))
 	  /* FIXME: (bug#63253) Same as for `set-message-function` above.  */
-	  && garbage_collection_inhibited == 0
+	  && (*garbage_collection_inhibited.as_mut_ptr ()) == 0
 	{
 	  let count: specpdl_ref = SPECPDL_INDEX ();
 	  specbind (Qinhibit_quit (), Qt ());
-	  preserve = dsafe_calln! (false, Vclear_message_function);
+	  preserve = dsafe_calln! (false, (*Vclear_message_function.as_mut_ptr ()));
 	  unbind_to (count, Qnil ());
 	}
 
       if !EQ (preserve, Qdont_clear_message ())
 	{
-	  echo_area_buffer[0] = Qnil ();
-	  message_cleared_p = true;
+	  (*echo_area_buffer.as_mut_ptr ())[0] = Qnil ();
+	  (*message_cleared_p.as_mut_ptr ()) = true;
 	}
     }
 
   if last_displayed_p
-    { echo_area_buffer[1] = Qnil (); }
+    { (*echo_area_buffer.as_mut_ptr ())[1] = Qnil (); }
 
-  message_buf_print = false;
+  (*message_buf_print.as_mut_ptr ()) = false;
 
   }
 }
@@ -15797,7 +15795,7 @@ unsafe fn clear_garbaged_frames () -> bool
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
   let mut current_matrices_cleared: bool = false;
-  if frame_garbaged
+  if (*frame_garbaged.as_mut_ptr ())
     {
       let mut tail: Lisp_Object = Qnil ();
       let mut frame: Lisp_Object = Qnil ();
@@ -15830,7 +15828,7 @@ unsafe fn clear_garbaged_frames () -> bool
 	    }
 	});
 
-      frame_garbaged = false;
+      (*frame_garbaged.as_mut_ptr ()) = false;
     }
 
   return current_matrices_cleared;
@@ -15861,7 +15859,7 @@ unsafe fn echo_area_display (update_frame_p: bool)
   /* Don't display if frame is invisible or not yet initialized or
      if redisplay is inhibited.  */
   if !frame_redisplay_p (f) || !frame_bits! (glyphs_initialized_p, f)
-      || !NILP (Vinhibit_redisplay)
+      || !NILP ((*Vinhibit_redisplay.as_mut_ptr ()))
     { return; }
 
   /* C 13769-13775's `#ifdef HAVE_WINDOW_SYSTEM` block (the
@@ -15870,9 +15868,9 @@ unsafe fn echo_area_display (update_frame_p: bool)
   /* Redraw garbaged frames.  */
   clear_garbaged_frames ();
 
-  if !NILP (echo_area_buffer[0]) || minibuf_level == 0
+  if !NILP ((*echo_area_buffer.as_mut_ptr ())[0]) || (*minibuf_level.as_mut_ptr ()) == 0
     {
-      echo_area_window = mini_window;
+      (*echo_area_window.as_mut_ptr ()) = mini_window;
       window_height_changed_p = display_echo_area (w);
       window_bits! (w, must_be_updated_p, true);
 
@@ -15880,12 +15878,12 @@ unsafe fn echo_area_display (update_frame_p: bool)
 	 Also don't update the screen during redisplay itself.  The
 	 update will happen at the end of redisplay, and an update
 	 here could cause confusion.  */
-      if update_frame_p && !redisplaying_p
+      if update_frame_p && !(*redisplaying_p.as_mut_ptr ())
 	{
 	  if window_height_changed_p
 	      /* Don't do this if Emacs is shutting down.  Redisplay
 		 needs to run hooks.  */
-	      && !NILP (Vrun_hooks)
+	      && !NILP ((*Vrun_hooks.as_mut_ptr ()))
 	    {
 	      /* Must update other windows.  Likewise as in other
 		 cases, don't let this update be interrupted by
@@ -15911,23 +15909,23 @@ unsafe fn echo_area_display (update_frame_p: bool)
 	  /* If cursor is in the echo area, make sure that the next
 	     redisplay displays the minibuffer, so that the cursor will
 	     be replaced with what the minibuffer wants.  */
-	  if cursor_in_echo_area
+	  if (*cursor_in_echo_area.as_mut_ptr ())
 	    { wset_redisplay (XWINDOW (mini_window)); }
 	}
     }
-  else if !EQ (mini_window, selected_window)
+  else if !EQ (mini_window, (*selected_window.as_mut_ptr ()))
     { wset_redisplay (XWINDOW (mini_window)); }
 
   /* Last displayed message is now the current message.  */
-  echo_area_buffer[1] = echo_area_buffer[0];
+  (*echo_area_buffer.as_mut_ptr ())[1] = (*echo_area_buffer.as_mut_ptr ())[0];
   /* Inform read_char that we're not echoing.  */
-  echo_message_buffer = Qnil ();
+  (*echo_message_buffer.as_mut_ptr ()) = Qnil ();
 
   /* Prevent redisplay optimization in redisplay_internal by resetting
      this_line_start_pos.  This is done because the mini-buffer now
      displays the message instead of its buffer text.  */
-  if EQ (mini_window, selected_window)
-    { CHARPOS! (this_line_start_pos) = 0; }
+  if EQ (mini_window, (*selected_window.as_mut_ptr ()))
+    { CHARPOS! ((*this_line_start_pos.as_mut_ptr ())) = 0; }
 
   if window_height_changed_p
     {
@@ -15985,10 +15983,10 @@ unsafe fn window_frozen_p (w: *mut window) -> bool
       XSETWINDOW! (window, w);
       if MINI_WINDOW_P (w)
 	{ return false; }
-      else if EQ (window, selected_window)
+      else if EQ (window, (*selected_window.as_mut_ptr ()))
 	{ return false; }
-      else if MINI_WINDOW_P (XWINDOW (selected_window))
-	       && EQ (window, Vminibuf_scroll_window)
+      else if MINI_WINDOW_P (XWINDOW ((*selected_window.as_mut_ptr ())))
+	       && EQ (window, (*Vminibuf_scroll_window.as_mut_ptr ()))
 	/* This special window can't be frozen too.  */
 	{ return false; }
       else
@@ -16007,17 +16005,17 @@ unsafe fn window_frozen_p (w: *mut window) -> bool
    frame titles in it; allocated from the heap in init_xdisp and
    resized as needed in store_mode_line_noprop_char.  */
 
-static mut mode_line_noprop_buf: *mut c_char = core::ptr::null_mut ();
+static mode_line_noprop_buf: VmGlobal<*mut c_char> = VmGlobal::<*mut c_char>::new (core::ptr::null_mut ());
 
 /* The buffer's end, and a current output position in it.  */
 
-static mut mode_line_noprop_buf_end: *mut c_char = core::ptr::null_mut ();
-static mut mode_line_noprop_ptr: *mut c_char = core::ptr::null_mut ();
+static mode_line_noprop_buf_end: VmGlobal<*mut c_char> = VmGlobal::<*mut c_char>::new (core::ptr::null_mut ());
+static mode_line_noprop_ptr: VmGlobal<*mut c_char> = VmGlobal::<*mut c_char>::new (core::ptr::null_mut ());
 
 /* C 13913-13914: `#define MODE_LINE_NOPROP_LEN(start) ((mode_line_noprop_ptr -
    mode_line_noprop_buf) - start)`.  */
 macro_rules! MODE_LINE_NOPROP_LEN {
-  ($start:expr) => { (mode_line_noprop_ptr.offset_from (mode_line_noprop_buf)
+  ($start:expr) => { ((*mode_line_noprop_ptr.as_mut_ptr ()).offset_from ((*mode_line_noprop_buf.as_mut_ptr ()))
 		     - ($start) as isize) };
 }
 
@@ -16055,26 +16053,26 @@ pub const MODE_LINE_DISPLAY: c_int = 0;
 pub const MODE_LINE_TITLE: c_int = 1;
 pub const MODE_LINE_NOPROP: c_int = 2;
 pub const MODE_LINE_STRING: c_int = 3;
-static mut mode_line_target: c_int = 0;
+static mode_line_target: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 
 /* Alist that caches the results of :propertize.
    Each element is (PROPERTIZED-STRING . PROPERTY-LIST).  */
-static mut mode_line_proptrans_alist: Lisp_Object = lisp_h_Qnil ();
+static mode_line_proptrans_alist: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* List of strings making up the mode-line.  */
-static mut mode_line_string_list: Lisp_Object = lisp_h_Qnil ();
+static mode_line_string_list: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* Element number for the stored mode line string. */
-static mut mode_line_elt_no: ptrdiff_t = 0;
+static mode_line_elt_no: VmGlobal<ptrdiff_t> = VmGlobal::<ptrdiff_t>::new (0);
 
 /* Base face property when building propertized mode line string.  */
-static mut mode_line_string_face: Lisp_Object = lisp_h_Qnil ();
-static mut mode_line_string_face_prop: Lisp_Object = lisp_h_Qnil ();
+static mode_line_string_face: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
+static mode_line_string_face_prop: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 
 /* Unwind data for mode line strings */
 
-static mut Vmode_line_unwind_vector: Lisp_Object = lisp_h_Qnil ();
+static Vmode_line_unwind_vector: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 unsafe fn format_mode_line_unwind_data (target_frame: *mut frame,
 					obuf: *mut buffer,
@@ -16088,18 +16086,18 @@ unsafe fn format_mode_line_unwind_data (target_frame: *mut frame,
 
   /* Reduce consing by keeping one vector in
      Vwith_echo_area_save_vector.  */
-  vector = Vmode_line_unwind_vector;
-  Vmode_line_unwind_vector = Qnil ();
+  vector = (*Vmode_line_unwind_vector.as_mut_ptr ());
+  (*Vmode_line_unwind_vector.as_mut_ptr ()) = Qnil ();
 
   if NILP (vector)
     { vector = make_nil_vector (12); }
 
-  ASET (vector, 0, make_fixnum (mode_line_target as EMACS_INT));
+  ASET (vector, 0, make_fixnum ((*mode_line_target.as_mut_ptr ()) as EMACS_INT));
   ASET (vector, 1, make_fixnum (MODE_LINE_NOPROP_LEN! (0) as EMACS_INT));
-  ASET (vector, 2, mode_line_string_list);
-  ASET (vector, 3, if save_proptrans { mode_line_proptrans_alist } else { Qt () });
-  ASET (vector, 4, mode_line_string_face);
-  ASET (vector, 5, mode_line_string_face_prop);
+  ASET (vector, 2, (*mode_line_string_list.as_mut_ptr ()));
+  ASET (vector, 3, if save_proptrans { (*mode_line_proptrans_alist.as_mut_ptr ()) } else { Qt () });
+  ASET (vector, 4, (*mode_line_string_face.as_mut_ptr ()));
+  ASET (vector, 5, (*mode_line_string_face_prop.as_mut_ptr ()));
 
   if !obuf.is_null ()
     { XSETBUFFER! (tmp, obuf); }
@@ -16141,13 +16139,13 @@ unsafe extern "C-unwind" fn unwind_format_mode_line (vector: Lisp_Object)
   let target_frame_window: Lisp_Object = AREF (vector, 8);
   let old_top_frame: Lisp_Object = AREF (vector, 9);
 
-  mode_line_target = XFIXNUM (AREF (vector, 0)) as c_int;
-  mode_line_noprop_ptr = mode_line_noprop_buf.offset (XFIXNUM (AREF (vector, 1)) as isize);
-  mode_line_string_list = AREF (vector, 2);
+  (*mode_line_target.as_mut_ptr ()) = XFIXNUM (AREF (vector, 0)) as c_int;
+  (*mode_line_noprop_ptr.as_mut_ptr ()) = (*mode_line_noprop_buf.as_mut_ptr ()).offset (XFIXNUM (AREF (vector, 1)) as isize);
+  (*mode_line_string_list.as_mut_ptr ()) = AREF (vector, 2);
   if ! EQ (AREF (vector, 3), Qt ())
-    { mode_line_proptrans_alist = AREF (vector, 3); }
-  mode_line_string_face = AREF (vector, 4);
-  mode_line_string_face_prop = AREF (vector, 5);
+    { (*mode_line_proptrans_alist.as_mut_ptr ()) = AREF (vector, 3); }
+  (*mode_line_string_face.as_mut_ptr ()) = AREF (vector, 4);
+  (*mode_line_string_face_prop.as_mut_ptr ()) = AREF (vector, 5);
 
   /* Select window before buffer, since it may change the buffer.  */
   if WINDOW_LIVE_P (old_window)
@@ -16197,10 +16195,10 @@ unsafe extern "C-unwind" fn unwind_format_mode_line (vector: Lisp_Object)
       ASET (vector, 6, Qnil ());
     }
 
-  Vmode_line_unwind_vector = vector;
+  (*Vmode_line_unwind_vector.as_mut_ptr ()) = vector;
 
-  if dont_resize_frames > 0
-    { dont_resize_frames -= 1; }
+  if (*dont_resize_frames.as_mut_ptr ()) > 0
+    { (*dont_resize_frames.as_mut_ptr ()) -= 1; }
 
   }
 }
@@ -16214,19 +16212,19 @@ unsafe fn store_mode_line_noprop_char (c: c_char)
   unsafe {
   /* If output position has reached the end of the allocated buffer,
      increase the buffer's size.  */
-  if mode_line_noprop_ptr == mode_line_noprop_buf_end
+  if (*mode_line_noprop_ptr.as_mut_ptr ()) == (*mode_line_noprop_buf_end.as_mut_ptr ())
     {
       let len: ptrdiff_t = MODE_LINE_NOPROP_LEN! (0);
       let mut size: ptrdiff_t = len;
-      mode_line_noprop_buf =
-	xpalloc (mode_line_noprop_buf as *mut c_void, &raw mut size, 1,
+      (*mode_line_noprop_buf.as_mut_ptr ()) =
+	xpalloc ((*mode_line_noprop_buf.as_mut_ptr ()) as *mut c_void, &raw mut size, 1,
 		 STRING_BYTES_BOUND, 1) as *mut c_char;
-      mode_line_noprop_buf_end = mode_line_noprop_buf.offset (size as isize);
-      mode_line_noprop_ptr = mode_line_noprop_buf.offset (len as isize);
+      (*mode_line_noprop_buf_end.as_mut_ptr ()) = (*mode_line_noprop_buf.as_mut_ptr ()).offset (size as isize);
+      (*mode_line_noprop_ptr.as_mut_ptr ()) = (*mode_line_noprop_buf.as_mut_ptr ()).offset (len as isize);
     }
 
-  *mode_line_noprop_ptr = c;
-  mode_line_noprop_ptr = mode_line_noprop_ptr.offset (1);
+  *(*mode_line_noprop_ptr.as_mut_ptr ()) = c;
+  (*mode_line_noprop_ptr.as_mut_ptr ()) = (*mode_line_noprop_ptr.as_mut_ptr ()).offset (1);
 
   }
 }
@@ -16281,10 +16279,10 @@ unsafe fn store_mode_line_noprop (string: *const c_char, field_width: c_int,
    update_mode_lines == REDISPLAY_SOME))`.  */
 macro_rules! REDISPLAY_SOME_P {
   () => {
-    ((windows_or_buffers_changed == 0
-      || windows_or_buffers_changed == REDISPLAY_SOME)
-     && (update_mode_lines == 0
-	 || update_mode_lines == REDISPLAY_SOME))
+    (((*windows_or_buffers_changed.as_mut_ptr ()) == 0
+      || (*windows_or_buffers_changed.as_mut_ptr ()) == REDISPLAY_SOME)
+     && ((*update_mode_lines.as_mut_ptr ()) == 0
+	 || (*update_mode_lines.as_mut_ptr ()) == REDISPLAY_SOME))
   };
 }
 
@@ -16297,7 +16295,7 @@ unsafe fn needs_no_redisplay (w: *mut window) -> bool
   return (REDISPLAY_SOME_P! ()
 	  && !window_bits! (w, redisplay)
 	  && !window_bits! (w, update_mode_line)
-	  && !frame_bits! (face_change, f)
+	  && !frame_bits! ((*face_change.as_mut_ptr ()), f)
 	  && !frame_bits! (redisplay, f)
 	  && !buffer_text_bits! (text.redisplay, buffer)
 	  && window_point (w) == (*w).last_point);
@@ -16313,10 +16311,10 @@ unsafe fn prepare_menu_bars ()
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  let all_windows: bool = windows_or_buffers_changed != 0 || update_mode_lines != 0;
+  let all_windows: bool = (*windows_or_buffers_changed.as_mut_ptr ()) != 0 || (*update_mode_lines.as_mut_ptr ()) != 0;
   let some_windows: bool = REDISPLAY_SOME_P! ();
 
-  if FUNCTIONP (Vpre_redisplay_function)
+  if FUNCTIONP ((*Vpre_redisplay_function.as_mut_ptr ()))
     {
       let mut windows: Lisp_Object = if all_windows { Qt () } else { Qnil () };
       if all_windows && some_windows
@@ -16334,7 +16332,7 @@ unsafe fn prepare_menu_bars ()
 	      ws = XCDR (ws);
 	    }
 	}
-      dsafe_calln! (true, Vpre_redisplay_function, windows);
+      dsafe_calln! (true, (*Vpre_redisplay_function.as_mut_ptr ()), windows);
     }
 
   /* Update all frame titles based on their buffer names, etc.  We do
@@ -16355,7 +16353,7 @@ unsafe fn prepare_menu_bars ()
       /* True means that update_menu_bar has run its hooks
 	 so any further calls to update_menu_bar shouldn't do so again.  */
       let mut menu_bar_hooks_run: bool = false;
-      let mut sw: *mut window = XWINDOW (selected_window);
+      let mut sw: *mut window = XWINDOW ((*selected_window.as_mut_ptr ()));
       let mut sf: *mut frame = WINDOW_XFRAME! (sw);
       let mut rf: *mut frame = core::ptr::null_mut ();
 
@@ -16403,7 +16401,7 @@ unsafe fn prepare_menu_bars ()
     }
   else
     {
-      let sw: *mut window = XWINDOW (selected_window);
+      let sw: *mut window = XWINDOW ((*selected_window.as_mut_ptr ()));
       let mut sf: *mut frame = WINDOW_XFRAME! (sw);
       let mut rf: *mut frame = core::ptr::null_mut ();
 
@@ -16452,7 +16450,7 @@ unsafe fn update_menu_bar (f: *mut frame, save_match_data: bool, mut hooks_run: 
   /* If called recursively during a menu update, do nothing.  This can
      happen when, for instance, an activate-menubar-hook causes a
      redisplay.  */
-  if inhibit_menubar_update
+  if (*inhibit_menubar_update.as_mut_ptr ())
     { return hooks_run; }
 
   if if FRAME_WINDOW_P (f)
@@ -16467,10 +16465,10 @@ unsafe fn update_menu_bar (f: *mut frame, save_match_data: bool, mut hooks_run: 
 	 that the menu bar be recomputed.  The adverse effect on
 	 the rest of the redisplay algorithm is about the same as
 	 windows_or_buffers_changed anyway.  */
-      if windows_or_buffers_changed != 0
+      if (*windows_or_buffers_changed.as_mut_ptr ()) != 0
 	  /* This used to test w->update_mode_line, but we believe
 	     there is no need to recompute the menu in that case.  */
-	  || update_mode_lines != 0
+	  || (*update_mode_lines.as_mut_ptr ()) != 0
 	  || window_buffer_changed (w)
 	{
 	  let prev: *mut buffer = current_buffer! ();
@@ -16481,7 +16479,7 @@ unsafe fn update_menu_bar (f: *mut frame, save_match_data: bool, mut hooks_run: 
 	  set_buffer_internal_1 (XBUFFER ((*w).contents));
 	  if save_match_data
 	    { record_unwind_save_match_data (); }
-	  if NILP (Voverriding_local_map_menu_flag)
+	  if NILP ((*Voverriding_local_map_menu_flag.as_mut_ptr ()))
 	    {
 	      specbind (Qoverriding_terminal_local_map (), Qnil ());
 	      specbind (Qoverriding_local_map (), Qnil ());
@@ -16499,7 +16497,7 @@ unsafe fn update_menu_bar (f: *mut frame, save_match_data: bool, mut hooks_run: 
 	      hooks_run = true;
 	    }
 
-	  XSETFRAME! (Vmenu_updating_frame, f);
+	  XSETFRAME! ((*Vmenu_updating_frame.as_mut_ptr ()), f);
 	  fset_menu_bar_items (f, menu_bar_items (FRAME_MENU_BAR_ITEMS (f)));
 
 	  /* Redisplay the menu bar in case we changed it.  */
@@ -16537,16 +16535,16 @@ unsafe extern "C-unwind" fn restore_selected_window (window: Lisp_Object)
     /* If WINDOW is live, make it the selected window and its frame's
        selected window and set the selected frame to its frame.  */
     {
-      selected_window = window;
-      selected_frame = (*XWINDOW (window)).frame;
+      (*selected_window.as_mut_ptr ()) = window;
+      (*selected_frame.as_mut_ptr ()) = (*XWINDOW (window)).frame;
       /* C's `FRAME_SELECTED_WINDOW (f)` is `(f)->selected_window`, an l-value here; the
 	 port spells the store out (the `FRAME_WINDOW_CHANGE` note's shape).  */
-      FRAME_SELECTED_WINDOW! (XFRAME (selected_frame)) = window;
+      FRAME_SELECTED_WINDOW! (XFRAME ((*selected_frame.as_mut_ptr ()))) = window;
     }
-  else if FRAMEP (selected_frame) && FRAME_LIVE_P (XFRAME (selected_frame))
+  else if FRAMEP ((*selected_frame.as_mut_ptr ())) && FRAME_LIVE_P (XFRAME ((*selected_frame.as_mut_ptr ())))
     /* If WINDOW is dead but the selected frame is still live, make the
        latter's selected window the selected one.  */
-    { selected_window = FRAME_SELECTED_WINDOW (XFRAME (selected_frame)); }
+    { (*selected_window.as_mut_ptr ()) = FRAME_SELECTED_WINDOW (XFRAME ((*selected_frame.as_mut_ptr ()))); }
   else
     /* If WINDOW and the selected frame are dead, choose some live,
        non-child and non-tooltip frame as the new selected frame and
@@ -16561,8 +16559,8 @@ unsafe extern "C-unwind" fn restore_selected_window (window: Lisp_Object)
 
 	  if FRAME_PARENT_FRAME (f).is_null () && !FRAME_TOOLTIP_P (f)
 	    {
-	      selected_frame = frame;
-	      selected_window = FRAME_SELECTED_WINDOW (f);
+	      (*selected_frame.as_mut_ptr ()) = frame;
+	      (*selected_window.as_mut_ptr ()) = FRAME_SELECTED_WINDOW (f);
 
 	      return;
 	    }
@@ -16588,8 +16586,8 @@ unsafe extern "C-unwind" fn restore_frame_selected_window (window: Lisp_Object)
       let frame: Lisp_Object = (*XWINDOW (window)).frame;
 
       FRAME_SELECTED_WINDOW! (XFRAME (frame)) = window;
-      if EQ (frame, selected_frame)
-	{ selected_window = window; }
+      if EQ (frame, (*selected_frame.as_mut_ptr ()))
+	{ (*selected_window.as_mut_ptr ()) = window; }
     }
 
   }
@@ -16626,9 +16624,9 @@ unsafe fn update_tab_bar (f: *mut frame, save_match_data: bool)
 	 that the menu bar be recomputed.  The adverse effect on
 	 the rest of the redisplay algorithm is about the same as
 	 windows_or_buffers_changed anyway.  */
-      if windows_or_buffers_changed != 0
+      if (*windows_or_buffers_changed.as_mut_ptr ()) != 0
 	  || window_bits! (w, update_mode_line)
-	  || update_mode_lines != 0
+	  || (*update_mode_lines.as_mut_ptr ()) != 0
 	  || window_buffer_changed (w)
 	{
 	  let prev: *mut buffer = current_buffer! ();
@@ -16646,7 +16644,7 @@ unsafe fn update_tab_bar (f: *mut frame, save_match_data: bool)
 	    { record_unwind_save_match_data (); }
 
 	  /* Make sure that we don't accidentally use bogus keymaps.  */
-	  if NILP (Voverriding_local_map_menu_flag)
+	  if NILP ((*Voverriding_local_map_menu_flag.as_mut_ptr ()))
 	    {
 	      specbind (Qoverriding_terminal_local_map (), Qnil ());
 	      specbind (Qoverriding_local_map (), Qnil ());
@@ -16656,16 +16654,16 @@ unsafe fn update_tab_bar (f: *mut frame, save_match_data: bool)
 	     before calling tab_bar_items, because the calculation of
 	     the tab-bar keymap uses the selected frame (see
 	     `tab-bar-make-keymap' in tab-bar.el).  */
-	  eassert! (EQ (selected_window,
+	  eassert! (EQ ((*selected_window.as_mut_ptr ()),
 			/* Since we only explicitly preserve selected_frame,
 			   check that selected_window would be redundant.  */
-			(*XFRAME (selected_frame)).selected_window));
+			(*XFRAME ((*selected_frame.as_mut_ptr ()))).selected_window));
 
 	  let frame: Lisp_Object;
-	  record_unwind_protect (Some (restore_selected_window), selected_window);
+	  record_unwind_protect (Some (restore_selected_window), (*selected_window.as_mut_ptr ()));
 	  XSETFRAME! (frame, f);
-	  selected_frame = frame;
-	  selected_window = FRAME_SELECTED_WINDOW (f);
+	  (*selected_frame.as_mut_ptr ()) = frame;
+	  (*selected_window.as_mut_ptr ()) = FRAME_SELECTED_WINDOW (f);
 
 	  /* Build desired tab-bar items from keymaps.  */
 	  new_tab_bar
@@ -16901,23 +16899,23 @@ unsafe fn hscroll_window_tree (window: Lisp_Object) -> bool
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
   let mut hscrolled_p: bool = false;
-  let mut hscroll_relative_p: bool = FLOATP (Vhscroll_step);
+  let mut hscroll_relative_p: bool = FLOATP ((*Vhscroll_step.as_mut_ptr ()));
   let mut hscroll_step_abs: c_int = 0;
   let mut hscroll_step_rel: f64 = 0.0;
   let mut window = window;
 
   if hscroll_relative_p
     {
-      hscroll_step_rel = XFLOAT_DATA (Vhscroll_step);
+      hscroll_step_rel = XFLOAT_DATA ((*Vhscroll_step.as_mut_ptr ()));
       if hscroll_step_rel < 0.0
 	{
 	  hscroll_relative_p = false;
 	  hscroll_step_abs = 0;
 	}
     }
-  else if TYPE_RANGED_FIXNUMP (INT_MIN as EMACS_INT, Vhscroll_step, INT_MAX as EMACS_INT)
+  else if TYPE_RANGED_FIXNUMP (INT_MIN as EMACS_INT, (*Vhscroll_step.as_mut_ptr ()), INT_MAX as EMACS_INT)
     {
-      hscroll_step_abs = XFIXNUM (Vhscroll_step) as c_int;
+      hscroll_step_abs = XFIXNUM ((*Vhscroll_step.as_mut_ptr ())) as c_int;
       if hscroll_step_abs < 0
 	{ hscroll_step_abs = 0; }
     }
@@ -16937,8 +16935,8 @@ unsafe fn hscroll_window_tree (window: Lisp_Object) -> bool
 		  switched to an echo-area buffer, which is different
 		  from w->contents, and we simply cannot hscroll such
 		  windows safely.  */
-	       && !(w == XWINDOW (echo_area_window)
-		    && !NILP (echo_area_buffer[0]))
+	       && !(w == XWINDOW ((*echo_area_window.as_mut_ptr ()))
+		    && !NILP ((*echo_area_buffer.as_mut_ptr ())[0]))
 	{
 	  let mut h_margin: c_int;
 	  let text_area_width: c_int;
@@ -16968,7 +16966,7 @@ unsafe fn hscroll_window_tree (window: Lisp_Object) -> bool
 	  let mut x_offset: c_int = 0;
 	  /* When line numbers are displayed, we need to account for
 	     the horizontal space they consume.  */
-	  if !NILP (Vdisplay_line_numbers)
+	  if !NILP ((*Vdisplay_line_numbers.as_mut_ptr ()))
 	    {
 	      let mut g: *mut glyph;
 	      if !row_r2l_p
@@ -17004,7 +17002,7 @@ unsafe fn hscroll_window_tree (window: Lisp_Object) -> bool
 	  text_area_width = window_box_width (w, TEXT_AREA);
 
 	  /* Scroll when cursor is inside this scroll margin.  */
-	  h_margin = (clip_to_bounds (0, hscroll_margin as isize, 1000000) as c_int
+	  h_margin = (clip_to_bounds (0, (*hscroll_margin.as_mut_ptr ()) as isize, 1000000) as c_int
 		      * WINDOW_FRAME_COLUMN_WIDTH! (w));
 
 	  /* If the position of this window's point has explicitly
@@ -17026,7 +17024,7 @@ unsafe fn hscroll_window_tree (window: Lisp_Object) -> bool
 
 	  /* Remember window point.  */
 	  Fset_marker ((*w).old_pointm,
-		       if w == XWINDOW (selected_window)
+		       if w == XWINDOW ((*selected_window.as_mut_ptr ()))
 		       { make_fixnum (BUF_PT (XBUFFER ((*w).contents))) }
 		       else { Fmarker_position ((*w).pointm) },
 		       (*w).contents);
@@ -17085,7 +17083,7 @@ unsafe fn hscroll_window_tree (window: Lisp_Object) -> bool
 	      saved_current_buffer = current_buffer! ();
 	      set_current_buffer! (XBUFFER ((*w).contents));
 
-	      if w == XWINDOW (selected_window)
+	      if w == XWINDOW ((*selected_window.as_mut_ptr ()))
 		{ pt = PT! (); }
 	      else
 		{ pt = clip_to_bounds (BEGV! (), marker_position ((*w).pointm), ZV! ()); }
@@ -17102,7 +17100,7 @@ unsafe fn hscroll_window_tree (window: Lisp_Object) -> bool
 
 	      let nchars: ptrdiff_t = pt - IT_CHARPOS! (it);
 	      if buffer_bits! (long_line_optimizations_p, current_buffer! ())
-		  && nchars > large_hscroll_threshold
+		  && nchars > (*large_hscroll_threshold.as_mut_ptr ())
 		{
 		  /* Special optimization for very long and truncated
 		     lines which need to be hscrolled far to the left:
@@ -17128,7 +17126,7 @@ unsafe fn hscroll_window_tree (window: Lisp_Object) -> bool
 					    * FRAME_COLUMN_WIDTH (it.f));
 		    }
 		  if buffer_bits! (long_line_optimizations_p, current_buffer! ())
-		      && nchars > large_hscroll_threshold
+		      && nchars > (*large_hscroll_threshold.as_mut_ptr ())
 		    {
 		      fast_move_it_horizontally (&raw mut it, nchars - 1);
 		      it.current_x += (nchars - 1) as c_int * FRAME_COLUMN_WIDTH (it.f);
@@ -17322,7 +17320,7 @@ overlay_arrow_string_or_property (var: Lisp_Object) -> Lisp_Object
   if { val = Fget (var, Qoverlay_arrow_string ()); STRINGP (val) }
     { return val; }
 
-  return Voverlay_arrow_string;
+  return (*Voverlay_arrow_string.as_mut_ptr ());
 
   }
 }
@@ -17335,7 +17333,7 @@ overlay_arrow_in_current_buffer_p () -> bool
   unsafe {
   let mut vlist: Lisp_Object;
 
-  vlist = Voverlay_arrow_variable_list;
+  vlist = (*Voverlay_arrow_variable_list.as_mut_ptr ());
   while CONSP (vlist)
     {
       let var: Lisp_Object = XCAR (vlist);
@@ -17371,7 +17369,7 @@ overlay_arrows_changed_p (set_redisplay: bool) -> bool
   let mut vlist: Lisp_Object;
   let mut changed: bool = false;
 
-  vlist = Voverlay_arrow_variable_list;
+  vlist = (*Voverlay_arrow_variable_list.as_mut_ptr ());
   while CONSP (vlist)
     {
       let var: Lisp_Object = XCAR (vlist);
@@ -17420,7 +17418,7 @@ update_overlay_arrows (up_to_date: c_int)
   unsafe {
   let mut vlist: Lisp_Object;
 
-  vlist = Voverlay_arrow_variable_list;
+  vlist = (*Voverlay_arrow_variable_list.as_mut_ptr ());
   while CONSP (vlist)
     {
       let var: Lisp_Object = XCAR (vlist);
@@ -17464,7 +17462,7 @@ overlay_arrow_at_row (it: *mut it, row: *mut glyph_row) -> Lisp_Object
   unsafe {
   let mut vlist: Lisp_Object;
 
-  vlist = Voverlay_arrow_variable_list;
+  vlist = (*Voverlay_arrow_variable_list.as_mut_ptr ());
   while CONSP (vlist)
     {
       let var: Lisp_Object = XCAR (vlist);
@@ -17579,7 +17577,7 @@ reconsider_clip_changes (w: *mut window)
      b->clip_changed has already been set, skip this check.  */
   if !buffer_bits! (clip_changed, b) && window_bits! (w, window_end_valid)
     {
-      let pt: ptrdiff_t = (if w == XWINDOW (selected_window)
+      let pt: ptrdiff_t = (if w == XWINDOW ((*selected_window.as_mut_ptr ()))
 		      { PT! () } else { marker_position ((*w).pointm) });
 
       if (((*((*w).current_matrix as *mut glyph_matrix)).buffer as *mut buffer != b
@@ -17645,7 +17643,7 @@ redisplay_internal ()
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  let mut w: *mut window = XWINDOW (selected_window);
+  let mut w: *mut window = XWINDOW ((*selected_window.as_mut_ptr ()));
   let mut sw: *mut window;
   let mut fr: *mut frame;
   let mut must_finish: bool = false;
@@ -17680,21 +17678,21 @@ redisplay_internal ()
   /* True means redisplay has to redisplay the miniwindow.  */
   let mut update_miniwindow_p: bool = false;
 
-  redisplay_trace (c"redisplay_internal %d\n".as_ptr (), redisplaying_p as c_int);
+  redisplay_trace (c"redisplay_internal %d\n".as_ptr (), (*redisplaying_p.as_mut_ptr ()) as c_int);
 
   /* I don't think this happens but let's be paranoid.  In particular,
      this was observed happening when Emacs shuts down due to losing X
      connection, in which case accessing SELECTED_FRAME and the frame
      structure is likely to barf.  */
-  if redisplaying_p
+  if (*redisplaying_p.as_mut_ptr ())
     { return; }
 
   /* No redisplay if running in batch mode or frame is not yet fully
      initialized, or redisplay is explicitly turned off by setting
      Vinhibit_redisplay.  */
   if ((FRAME_INITIAL_P (SELECTED_FRAME ())
-       && redisplay_skip_initial_frame)
-      || !NILP (Vinhibit_redisplay))
+       && (*redisplay_skip_initial_frame.as_mut_ptr ()))
+      || !NILP ((*Vinhibit_redisplay.as_mut_ptr ())))
     { return; }
 
   /* Don't examine these until after testing Vinhibit_redisplay.
@@ -17711,13 +17709,13 @@ redisplay_internal ()
      `popup_activated ()` and `defined (HAVE_HAIKU)`'s `popup_activated_p` are both
      recorded in docs/ports/xdisp.md, not transcribed.  */
 
-  redisplay_counter += 1;
+  (*redisplay_counter.as_mut_ptr ()) += 1;
 
   /* Record a function that clears redisplaying_p
      when we leave this function.  */
   let count: specpdl_ref = SPECPDL_INDEX ();
   record_unwind_protect_void (Some (unwind_redisplay));
-  redisplaying_p = true;
+  (*redisplaying_p.as_mut_ptr ()) = true;
   block_buffer_flips ();
   specbind (Qinhibit_free_realized_faces (), Qnil ());
 
@@ -17736,13 +17734,13 @@ redisplay_internal ()
 
   forget_escape_and_glyphless_faces ();
 
-  inhibit_free_realized_faces = false;
+  (*inhibit_free_realized_faces.as_mut_ptr ()) = false;
 
   /* If face_change, init_iterator will free all realized faces, which
      includes the faces referenced from current matrices.  So, we
      can't reuse current matrices in this case.  */
-  if face_change
-    { windows_or_buffers_changed = 47; }
+  if (*face_change.as_mut_ptr ())
+    { (*windows_or_buffers_changed.as_mut_ptr ()) = 47; }
 
   /* C 17454-17471 is `#if !defined MSDOS && !defined HAVE_ANDROID`: the previous-frame bookkeeping
      and the `set_tty_color_mode` call belong to the tty arm, which Android does not compile
@@ -17809,14 +17807,14 @@ redisplay_internal ()
   let current_matrices_cleared: bool = clear_garbaged_frames ();
 
   /* Build menubar and tool-bar items.  */
-  if NILP (Vmemory_full)
+  if NILP ((*Vmemory_full.as_mut_ptr ()))
     { prepare_menu_bars (); }
 
   /* do_pending_window_change could change the selected_window due to
      frame resizing which makes the selected window too small.
      prepare_menu_bars may call lisp hooks and hence also change the
      selected_window.  */
-  if WINDOWP (selected_window) && { w = XWINDOW (selected_window); w != sw }
+  if WINDOWP ((*selected_window.as_mut_ptr ())) && { w = XWINDOW ((*selected_window.as_mut_ptr ())); w != sw }
     { sw = w; }
 
   reconsider_clip_changes (w);
@@ -17844,17 +17842,17 @@ redisplay_internal ()
      the update may have been preempted, so display the echo area
      again here.  Checking message_cleared_p captures the case that
      the echo area should be cleared.  */
-  if (!NILP (echo_area_buffer[0]) && !display_last_displayed_message_p)
-      || (!NILP (echo_area_buffer[1]) && display_last_displayed_message_p)
-      || (message_cleared_p
-	  && minibuf_level == 0
+  if (!NILP ((*echo_area_buffer.as_mut_ptr ())[0]) && !(*display_last_displayed_message_p.as_mut_ptr ()))
+      || (!NILP ((*echo_area_buffer.as_mut_ptr ())[1]) && (*display_last_displayed_message_p.as_mut_ptr ()))
+      || ((*message_cleared_p.as_mut_ptr ())
+	  && (*minibuf_level.as_mut_ptr ()) == 0
 	  /* If the mini-window is currently selected, this means the
 	     echo-area doesn't show through.  */
-	  && !MINI_WINDOW_P (XWINDOW (selected_window)))
+	  && !MINI_WINDOW_P (XWINDOW ((*selected_window.as_mut_ptr ()))))
     {
       echo_area_display (false);
 
-      if message_cleared_p
+      if (*message_cleared_p.as_mut_ptr ())
 	{ update_miniwindow_p = true; }
 
       must_finish = true;
@@ -17863,10 +17861,10 @@ redisplay_internal ()
 	 message_cleared_p flag, because, if we did, we wouldn't clear
 	 the echo area in the next redisplay which doesn't preserve
 	 the echo area.  */
-      if !display_last_displayed_message_p
-	{ message_cleared_p = false; }
+      if !(*display_last_displayed_message_p.as_mut_ptr ())
+	{ (*message_cleared_p.as_mut_ptr ()) = false; }
     }
-  else if EQ (selected_window, minibuf_window)
+  else if EQ ((*selected_window.as_mut_ptr ()), (*minibuf_window.as_mut_ptr ()))
 	   && (buffer_bits! (clip_changed, current_buffer! ()) || window_outdated (w))
 	   && resize_mini_window (w, false)
     {
@@ -17880,14 +17878,14 @@ redisplay_internal ()
       clear_garbaged_frames ();
     }
 
-  if !NILP (Vrun_hooks)
+  if !NILP ((*Vrun_hooks.as_mut_ptr ()))
     { run_window_change_functions (); }
 
-  if windows_or_buffers_changed != 0 && update_mode_lines == 0
+  if (*windows_or_buffers_changed.as_mut_ptr ()) != 0 && (*update_mode_lines.as_mut_ptr ()) == 0
     /* Code that sets windows_or_buffers_changed doesn't distinguish whether
        only the windows's contents needs to be refreshed, or whether the
        mode-lines also need a refresh.  */
-    { update_mode_lines = (if windows_or_buffers_changed == REDISPLAY_SOME
+    { (*update_mode_lines.as_mut_ptr ()) = (if (*windows_or_buffers_changed.as_mut_ptr ()) == REDISPLAY_SOME
 			 { REDISPLAY_SOME } else { 32 }); }
 
   /* If specs for an arrow have changed, do thorough redisplay
@@ -17896,8 +17894,8 @@ redisplay_internal ()
      without updating other mode-lines.  */
   overlay_arrows_changed_p (true);
 
-  consider_all_windows_p = (update_mode_lines != 0
-			    || windows_or_buffers_changed != 0
+  consider_all_windows_p = ((*update_mode_lines.as_mut_ptr ()) != 0
+			    || (*windows_or_buffers_changed.as_mut_ptr ()) != 0
 			    || current_matrices_cleared);
 
 /* C 17604-17609: `#define AINC(a,i) { Lisp_Object entry = Fgethash (make_fixnum (i), a,
@@ -17914,15 +17912,15 @@ macro_rules! AINC {
   };
 }
 
-  AINC! (Vredisplay__all_windows_cause, windows_or_buffers_changed as EMACS_INT);
-  AINC! (Vredisplay__mode_lines_cause, update_mode_lines as EMACS_INT);
+  AINC! ((*Vredisplay__all_windows_cause.as_mut_ptr ()), (*windows_or_buffers_changed.as_mut_ptr ()) as EMACS_INT);
+  AINC! ((*Vredisplay__mode_lines_cause.as_mut_ptr ()), (*update_mode_lines.as_mut_ptr ()) as EMACS_INT);
 
   /* Optimize the case that only the line containing the cursor in the
      selected window has changed.  Variables starting with this_ are
      set in display_line and record information about the line
      containing the cursor.  */
-  tlbufpos = this_line_start_pos;
-  tlendpos = this_line_end_pos;
+  tlbufpos = (*this_line_start_pos.as_mut_ptr ());
+  tlendpos = (*this_line_end_pos.as_mut_ptr ());
   'frame_pass: {
     'update: {
   if !consider_all_windows_p
@@ -17932,9 +17930,9 @@ macro_rules! AINC {
       && !buffer_bits! (prevent_redisplay_optimizations_p, current_buffer! ())
       && frame_redisplay_p (XFRAME ((*w).frame))
       && !frame_bits! (cursor_type_changed, XFRAME ((*w).frame))
-      && !frame_bits! (face_change, XFRAME ((*w).frame))
+      && !frame_bits! ((*face_change.as_mut_ptr ()), XFRAME ((*w).frame))
       /* Make sure recorded data applies to current buffer, etc.  */
-      && this_line_buffer == current_buffer! ()
+      && (*this_line_buffer.as_mut_ptr ()) == current_buffer! ()
       && match_p
       && !window_bits! (w, force_start)
       && !window_bits! (w, optional_new_start)
@@ -17947,8 +17945,8 @@ macro_rules! AINC {
 	 detecting that, so we always disable the one-line redisplay
 	 optimizations whenever display-line-numbers-mode is turned on
 	 in the buffer.  */
-      && (NILP (Vdisplay_line_numbers)
-	  || EQ (Vdisplay_line_numbers, Qvisual ()))
+      && (NILP ((*Vdisplay_line_numbers.as_mut_ptr ()))
+	  || EQ ((*Vdisplay_line_numbers.as_mut_ptr ()), Qvisual ()))
       /* All text outside that line, including its final newline,
 	 must be unchanged.  */
       && text_outside_line_unchanged_p (w, CHARPOS! (tlbufpos),
@@ -17983,14 +17981,14 @@ macro_rules! AINC {
 	     optimization.  */
 
 	  let mut it: it = core::mem::zeroed ();
-	  let line_height_before: c_int = this_line_pixel_height;
+	  let line_height_before: c_int = (*this_line_pixel_height.as_mut_ptr ());
 
 	  /* Note that start_display will handle the case that the
 	     line starting at tlbufpos is a continuation line.  */
 	  start_display (&raw mut it, w, tlbufpos);
 
 	  /* Implementation note: It this still necessary?  */
-	  if it.current_x != this_line_start_x
+	  if it.current_x != (*this_line_start_x.as_mut_ptr ())
 	    { break 'cancel; }
 
 	  /* Give up on this optimization if the line starts with a
@@ -18001,10 +17999,10 @@ macro_rules! AINC {
 	    { break 'cancel; }
 	  redisplay_trace (c"trying display optimization 1\n".as_ptr ());
 	  (*w).cursor.vpos = -1;
-	  overlay_arrow_seen = false;
-	  it.vpos = this_line_vpos;
-	  it.current_y = this_line_y;
-	  it.glyph_row = MATRIX_ROW! ((*w).desired_matrix as *mut glyph_matrix, this_line_vpos);
+	  (*overlay_arrow_seen.as_mut_ptr ()) = false;
+	  it.vpos = (*this_line_vpos.as_mut_ptr ());
+	  it.current_y = (*this_line_y.as_mut_ptr ());
+	  it.glyph_row = MATRIX_ROW! ((*w).desired_matrix as *mut glyph_matrix, (*this_line_vpos.as_mut_ptr ()));
 	  display_line (&raw mut it, -1);
 
 	  /* If line contains point, is not continued,
@@ -18012,12 +18010,12 @@ macro_rules! AINC {
 	  if (*w).cursor.vpos >= 0
               /* Line is not continued, otherwise this_line_start_pos
                  would have been set to 0 in display_line.  */
-	      && CHARPOS! (this_line_start_pos) != 0
+	      && CHARPOS! ((*this_line_start_pos.as_mut_ptr ())) != 0
 	      /* Line ends as before.  */
-	      && CHARPOS! (this_line_end_pos) == CHARPOS! (tlendpos)
+	      && CHARPOS! ((*this_line_end_pos.as_mut_ptr ())) == CHARPOS! (tlendpos)
               /* Line has same height as before.  Otherwise other lines
                  would have to be shifted up or down.  */
-	      && this_line_pixel_height == line_height_before
+	      && (*this_line_pixel_height.as_mut_ptr ()) == line_height_before
 	      /* Cannot use this optimization if hscrolling current
 		 line and this line is the current one, because
 		 display_line above is not informed about the
@@ -18029,7 +18027,7 @@ macro_rules! AINC {
  	      if it.current_y < it.last_visible_y
   		{
  		  let row: *mut glyph_row
- 		    = MATRIX_ROW! ((*w).current_matrix as *mut glyph_matrix, this_line_vpos + 1);
+ 		    = MATRIX_ROW! ((*w).current_matrix as *mut glyph_matrix, (*this_line_vpos.as_mut_ptr ()) + 1);
   		  let mut delta: ptrdiff_t; let mut delta_bytes: ptrdiff_t;
 
 		  /* We used to distinguish between two cases here,
@@ -18045,7 +18043,7 @@ macro_rules! AINC {
 				 - MATRIX_ROW_START_BYTEPOS! (row));
 
   		  increment_matrix_positions ((*w).current_matrix as *mut glyph_matrix,
-					      this_line_vpos + 1,
+					      (*this_line_vpos.as_mut_ptr ()) + 1,
 					      (*((*w).current_matrix as *mut glyph_matrix)).nrows,
 					      delta, delta_bytes);
 		}
@@ -18055,12 +18053,12 @@ macro_rules! AINC {
 		 adjusted.  */
 	      if MATRIX_ROW_DISPLAYS_TEXT_P! (it.glyph_row.offset (-1))
 		{
-		  if (*w).window_end_vpos < this_line_vpos
-		    { (*w).window_end_vpos = this_line_vpos; }
+		  if (*w).window_end_vpos < (*this_line_vpos.as_mut_ptr ())
+		    { (*w).window_end_vpos = (*this_line_vpos.as_mut_ptr ()); }
 		}
-	      else if (*w).window_end_vpos == this_line_vpos
-		       && this_line_vpos > 0
-		{ (*w).window_end_vpos = this_line_vpos - 1; }
+	      else if (*w).window_end_vpos == (*this_line_vpos.as_mut_ptr ())
+		       && (*this_line_vpos.as_mut_ptr ()) > 0
+		{ (*w).window_end_vpos = (*this_line_vpos.as_mut_ptr ()) - 1; }
 	      window_bits! (w, window_end_valid, false);
 
 	      /* Update hint: No need to try to scroll in update_window.  */
@@ -18088,8 +18086,8 @@ macro_rules! AINC {
 	    {
 	      do_pending_window_change (true);
 	      /* If selected_window changed, redisplay again.  */
-	      if WINDOWP (selected_window)
-		  && { w = XWINDOW (selected_window); w != sw }
+	      if WINDOWP ((*selected_window.as_mut_ptr ()))
+		  && { w = XWINDOW ((*selected_window.as_mut_ptr ())); w != sw }
 		{ continue 'retry; }
 
 		/* We used to always goto end_of_redisplay here, but this
@@ -18101,9 +18099,9 @@ macro_rules! AINC {
 	}
       /* If highlighting the region, or if the cursor is in the echo area,
 	 then we can't just move the cursor.  */
-      else if NILP (Vshow_trailing_whitespace)
-	       && !cursor_in_echo_area
-	       && !composition_break_at_point
+      else if NILP ((*Vshow_trailing_whitespace.as_mut_ptr ()))
+	       && !(*cursor_in_echo_area.as_mut_ptr ())
+	       && !(*composition_break_at_point.as_mut_ptr ())
 	{
 	  let mut it: it = core::mem::zeroed ();
 	  let mut row: *mut glyph_row;
@@ -18113,21 +18111,21 @@ macro_rules! AINC {
 	     next visible position.  */
 	  init_iterator (&raw mut it, w, CHARPOS! (tlbufpos), BYTEPOS! (tlbufpos),
 			 core::ptr::null_mut (), DEFAULT_FACE_ID);
-	  it.current_x = this_line_start_x;
-	  it.current_y = this_line_y;
+	  it.current_x = (*this_line_start_x.as_mut_ptr ());
+	  it.current_y = (*this_line_y.as_mut_ptr ());
 	  it.wrap_prefix_width = 0;
-	  it.vpos = this_line_vpos;
+	  it.vpos = (*this_line_vpos.as_mut_ptr ());
 
 	  if buffer_bits! (long_line_optimizations_p, current_buffer! ())
 	      && it.line_wrap == TRUNCATE
-	      && PT! () - CHARPOS! (tlbufpos) > large_hscroll_threshold
+	      && PT! () - CHARPOS! (tlbufpos) > (*large_hscroll_threshold.as_mut_ptr ())
 	    {
 	      /* When lines are very long and truncated, jumping to
 		 the next visible line is much faster than slowly
 		 iterating there.  */
 	      reseat_at_next_visible_line_start (&raw mut it, false);
 	      if IT_CHARPOS! (it) <= PT! () /* point moved off this line */
-		{ it.vpos = this_line_vpos + 1; }
+		{ it.vpos = (*this_line_vpos.as_mut_ptr ()) + 1; }
 	    }
 	  else
 	    {
@@ -18136,12 +18134,12 @@ macro_rules! AINC {
 	      move_it_to (&raw mut it, PT! (), -1, -1, -1, MOVE_TO_POS);
 	    }
 
-	  if it.vpos == this_line_vpos
-	      && { row = MATRIX_ROW! ((*w).current_matrix as *mut glyph_matrix, this_line_vpos);
+	  if it.vpos == (*this_line_vpos.as_mut_ptr ())
+	      && { row = MATRIX_ROW! ((*w).current_matrix as *mut glyph_matrix, (*this_line_vpos.as_mut_ptr ()));
 		  glyph_row_bits! (enabled_p, row) }
 	    {
-	      eassert! (this_line_vpos == it.vpos);
-	      eassert! (this_line_y == it.current_y);
+	      eassert! ((*this_line_vpos.as_mut_ptr ()) == it.vpos);
+	      eassert! ((*this_line_y.as_mut_ptr ()) == it.current_y);
 	      set_cursor_from_row (w, row, (*w).current_matrix as *mut glyph_matrix, 0, 0, 0, 0);
 	      if cursor_row_fully_visible_p (w, false, true, false)
 		{
@@ -18160,11 +18158,11 @@ macro_rules! AINC {
     /* cancel:  (C 17855 — the label has no Rust site; every `goto cancel` is the
        `break 'cancel` above.)  */
       /* Text changed drastically or point moved off of line.  */
-      SET_MATRIX_ROW_ENABLED_P! ((*w).desired_matrix as *mut glyph_matrix, this_line_vpos, false);
+      SET_MATRIX_ROW_ENABLED_P! ((*w).desired_matrix as *mut glyph_matrix, (*this_line_vpos.as_mut_ptr ()), false);
     }
 
-  CHARPOS! (this_line_start_pos) = 0;
-  clear_face_cache_count += 1;
+  CHARPOS! ((*this_line_start_pos.as_mut_ptr ())) = 0;
+  (*clear_face_cache_count.as_mut_ptr ()) += 1;
 /* C 17862-17864's `#ifdef HAVE_WINDOW_SYSTEM` block (`++clear_image_cache_count`) is
      dead (C 2716 already records the pair).  */
 
@@ -18307,7 +18305,7 @@ macro_rules! AINC {
 		  /* Prevent various kinds of signals during display
 		     update.  stdio is not robust about handling
 		     signals, which can cause an apparent I/O error.  */
-		  if interrupt_input
+		  if (*interrupt_input.as_mut_ptr ())
 		    { unrequest_sigio (); }
 		  STOP_POLLING! (polling_stopped_here);
 
@@ -18339,7 +18337,7 @@ macro_rules! AINC {
       if CONSP (tty_root_frames)
 	{ combine_updates (tty_root_frames); }
 
-      eassert! (EQ ((*XFRAME (selected_frame)).selected_window, selected_window));
+      eassert! (EQ ((*XFRAME ((*selected_frame.as_mut_ptr ()))).selected_window, (*selected_window.as_mut_ptr ())));
 
       /* Do the mark_window_display_accurate after all windows have
 	 been redisplayed because this call resets flags in buffers
@@ -18362,19 +18360,19 @@ macro_rules! AINC {
   else if frame_redisplay_p (sf)
     {
       frame_bits! (inhibit_clear_image_cache, sf, true);
-      displayed_buffer = XBUFFER ((*XWINDOW (selected_window)).contents);
+      (*displayed_buffer.as_mut_ptr ()) = XBUFFER ((*XWINDOW ((*selected_window.as_mut_ptr ()))).contents);
       /* Use list_of_error, not Qerror, so that
 	 we catch only errors and don't run the debugger.  */
-      internal_condition_case_1 (Some (redisplay_window_1), selected_window,
-				 list_of_error,
+      internal_condition_case_1 (Some (redisplay_window_1), (*selected_window.as_mut_ptr ()),
+				 (*list_of_error.as_mut_ptr ()),
 				 Some (redisplay_window_error));
       if update_miniwindow_p
 	{
 	  let mini_window: Lisp_Object = FRAME_MINIBUF_WINDOW (sf);
 
-	  displayed_buffer = XBUFFER ((*XWINDOW (mini_window)).contents);
+	  (*displayed_buffer.as_mut_ptr ()) = XBUFFER ((*XWINDOW (mini_window)).contents);
 	  internal_condition_case_1 (Some (redisplay_window_1), mini_window,
-				     list_of_error,
+				     (*list_of_error.as_mut_ptr ()),
 				     Some (redisplay_window_error));
 	}
       }
@@ -18401,32 +18399,32 @@ macro_rules! AINC {
 		 led here might still be true), and we will then
 		 infloop, because the selected-frame's redisplay flag
 		 is not (and cannot be) reset.  */
-	      windows_or_buffers_changed = 50;
+	      (*windows_or_buffers_changed.as_mut_ptr ()) = 50;
 	    }
 	  continue 'retry;
 	}
 
       /* Prevent freeing of realized faces, since desired matrices are
 	 pending that reference the faces we computed and cached.  */
-      inhibit_free_realized_faces = true;
+      (*inhibit_free_realized_faces.as_mut_ptr ()) = true;
 
       /* Prevent various kinds of signals during display update.
 	 stdio is not robust about handling signals,
 	 which can cause an apparent I/O error.  */
-      if interrupt_input
+      if (*interrupt_input.as_mut_ptr ())
 	{ unrequest_sigio (); }
       STOP_POLLING! (polling_stopped_here);
 
       if frame_redisplay_p (sf)
 	{
           if hscroll_retries <= MAX_HSCROLL_RETRIES
-              && hscroll_windows (selected_window)
+              && hscroll_windows ((*selected_window.as_mut_ptr ()))
             {
               hscroll_retries += 1;
               continue 'retry;
             }
 
-	  window_bits! (XWINDOW (selected_window), must_be_updated_p, true);
+	  window_bits! (XWINDOW ((*selected_window.as_mut_ptr ())), must_be_updated_p, true);
 	  update_frame (sf, false);
 
 	  if is_tty_frame (sf)
@@ -18478,14 +18476,14 @@ macro_rules! AINC {
 	{ (*FRAME_TERMINAL! (sf)).frame_up_to_date_hook.unwrap () (sf as *mut c_void); }
     }
 
-  update_mode_lines = 0;
-  windows_or_buffers_changed = 0;
+  (*update_mode_lines.as_mut_ptr ()) = 0;
+  (*windows_or_buffers_changed.as_mut_ptr ()) = 0;
 
   /* Start SIGIO interrupts coming again.  Having them off during the
      code above makes it less likely one will discard output, but not
      impossible, since there might be stuff in the system buffer here.
      But it is much hairier to try to do anything about that.  */
-  if interrupt_input
+  if (*interrupt_input.as_mut_ptr ())
     { request_sigio (); }
   RESUME_POLLING! (polling_stopped_here);
 
@@ -18505,16 +18503,16 @@ macro_rules! AINC {
 	});
 
     if new_count != number_of_visible_frames
-      { windows_or_buffers_changed = 52; }
+      { (*windows_or_buffers_changed.as_mut_ptr ()) = 52; }
 
   /* Change frame size now if a change is pending.  */
   do_pending_window_change (true);
 
   /* If we just did a pending size change, or have additional
      visible frames, or selected_window changed, redisplay again.  */
-  if windows_or_buffers_changed != 0
-      || (WINDOWP (selected_window)
-	  && { w = XWINDOW (selected_window); w != sw })
+  if (*windows_or_buffers_changed.as_mut_ptr ()) != 0
+      || (WINDOWP ((*selected_window.as_mut_ptr ()))
+	  && { w = XWINDOW ((*selected_window.as_mut_ptr ())); w != sw })
     { continue 'retry; }
 
   /* Clear the face and image caches.
@@ -18523,10 +18521,10 @@ macro_rules! AINC {
      needs to be cleared if a timer creates images in the current
      buffer (e.g. the test case in Bug#6230).  */
 
-  if clear_face_cache_count > CLEAR_FACE_CACHE_COUNT
+  if (*clear_face_cache_count.as_mut_ptr ()) > CLEAR_FACE_CACHE_COUNT
     {
       clear_face_cache (false);
-      clear_face_cache_count = 0;
+      (*clear_face_cache_count.as_mut_ptr ()) = 0;
     }
 
 /* C 18213-18219's `#ifdef HAVE_WINDOW_SYSTEM` block (`clear_image_cache_count >
@@ -18538,12 +18536,12 @@ macro_rules! AINC {
   /* end_of_redisplay:  (C 18221 — the label has no Rust site; C's fall-through out of
      the loop above and its `goto end_of_redisplay` are both the `break 'retry`.)  */
 /* C 18222-18224's `#ifdef HAVE_NS` block (`ns_set_doc_edited ()`) is dead (P-08).  */
-  if interrupt_input && interrupts_deferred
+  if (*interrupt_input.as_mut_ptr ()) && (*interrupts_deferred.as_mut_ptr ())
     { request_sigio (); }
 
   /* We're done with this redisplay cycle, so reset the tick count in
      preparation for the next redisplay cycle.  */
-  if max_redisplay_ticks > 0
+  if (*max_redisplay_ticks.as_mut_ptr ()) > 0
     { update_redisplay_ticks (0, core::ptr::null_mut ()); }
 
   unbind_to (count, Qnil ());
@@ -18585,13 +18583,13 @@ redisplay_preserve_echo_area (from_where: c_int)
   block_buffer_flips ();
   unblock_input ();
 
-  if !NILP (echo_area_buffer[1])
+  if !NILP ((*echo_area_buffer.as_mut_ptr ())[1])
     {
       /* We have a previously displayed message, but no current
 	 message.  Redisplay the previous message.  */
-      display_last_displayed_message_p = true;
+      (*display_last_displayed_message_p.as_mut_ptr ()) = true;
       redisplay_internal ();
-      display_last_displayed_message_p = false;
+      (*display_last_displayed_message_p.as_mut_ptr ()) = false;
     }
   else
     { redisplay_internal (); }
@@ -18610,7 +18608,7 @@ unwind_redisplay ()
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  redisplaying_p = false;
+  (*redisplaying_p.as_mut_ptr ()) = false;
   unblock_buffer_flips ();
 
   }
@@ -18623,7 +18621,7 @@ unwind_display_working_on_window ()
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  display_working_on_window_p = false;
+  (*display_working_on_window_p.as_mut_ptr ()) = false;
 
   }
 }
@@ -18675,7 +18673,7 @@ mark_window_display_accurate_1 (w: *mut window, accurate_p: bool)
        `report_point_change` call (with its own long comment) are recorded, not
        transcribed.  */
 
-      if w == XWINDOW (selected_window)
+      if w == XWINDOW ((*selected_window.as_mut_ptr ()))
 	{ (*w).last_point = BUF_PT (b); }
       else
 	{ (*w).last_point = marker_position ((*w).pointm); }
@@ -18784,15 +18782,15 @@ mod disp_char_vector_decl {
 }
 use disp_char_vector_decl::*;
 
-static mut buffer_flip_blocked_depth: c_int = 0;
+static buffer_flip_blocked_depth: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 
 unsafe fn
 block_buffer_flips ()
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  eassert! (buffer_flip_blocked_depth >= 0);
-  buffer_flip_blocked_depth += 1;
+  eassert! ((*buffer_flip_blocked_depth.as_mut_ptr ()) >= 0);
+  (*buffer_flip_blocked_depth.as_mut_ptr ()) += 1;
 
   }
 }
@@ -18802,9 +18800,9 @@ unblock_buffer_flips ()
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  eassert! (buffer_flip_blocked_depth > 0);
-  buffer_flip_blocked_depth -= 1;
-  if buffer_flip_blocked_depth == 0
+  eassert! ((*buffer_flip_blocked_depth.as_mut_ptr ()) > 0);
+  (*buffer_flip_blocked_depth.as_mut_ptr ()) -= 1;
+  if (*buffer_flip_blocked_depth.as_mut_ptr ()) == 0
     {
       let mut tail: Lisp_Object;
       let mut frame: Lisp_Object;
@@ -18827,7 +18825,7 @@ buffer_flipping_blocked_p () -> bool
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  return buffer_flip_blocked_depth > 0;
+  return (*buffer_flip_blocked_depth.as_mut_ptr ()) > 0;
 
   }
 }
@@ -18853,11 +18851,11 @@ redisplay_windows (mut window: Lisp_Object)
 	{ redisplay_windows ((*w).contents); }
       else if BUFFERP ((*w).contents)
 	{
-	  displayed_buffer = XBUFFER ((*w).contents);
+	  (*displayed_buffer.as_mut_ptr ()) = XBUFFER ((*w).contents);
 	  /* Use list_of_error, not Qerror, so that
 	     we catch only errors and don't run the debugger.  */
 	  internal_condition_case_1 (Some (redisplay_window_0), window,
-				     list_of_error,
+				     (*list_of_error.as_mut_ptr ()),
 				     Some (redisplay_window_error));
 	}
 
@@ -18872,18 +18870,18 @@ redisplay_window_error (error_data: Lisp_Object) -> Lisp_Object
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  (*displayed_buffer).display_error_modiff = BUF_MODIFF! (displayed_buffer);
+  (*(*displayed_buffer.as_mut_ptr ())).display_error_modiff = BUF_MODIFF! ((*displayed_buffer.as_mut_ptr ()));
 
   /* When in redisplay, the error is captured and not shown.  Arrange
      for it to be shown later.  */
-  if max_redisplay_ticks > 0
+  if (*max_redisplay_ticks.as_mut_ptr ()) > 0
       && CONSP (error_data)
       && EQ (XCAR (error_data), Qerror ())
       && CONSP (XCDR (error_data))
       && STRINGP (XCAR (XCDR (error_data)))
-    { Vdelayed_warnings_list = Fcons (list2 (XCAR (error_data),
+    { (*Vdelayed_warnings_list.as_mut_ptr ()) = Fcons (list2 (XCAR (error_data),
 					   XCAR (XCDR (error_data))),
-				    Vdelayed_warnings_list); }
+				    (*Vdelayed_warnings_list.as_mut_ptr ())); }
   return Qnil ();
 
   }
@@ -18894,7 +18892,7 @@ redisplay_window_0 (window: Lisp_Object) -> Lisp_Object
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  if (*displayed_buffer).display_error_modiff < BUF_MODIFF! (displayed_buffer)
+  if (*(*displayed_buffer.as_mut_ptr ())).display_error_modiff < BUF_MODIFF! ((*displayed_buffer.as_mut_ptr ()))
     { redisplay_window (window, false); }
   return Qnil ();
 
@@ -18906,7 +18904,7 @@ redisplay_window_1 (window: Lisp_Object) -> Lisp_Object
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  if (*displayed_buffer).display_error_modiff < BUF_MODIFF! (displayed_buffer)
+  if (*(*displayed_buffer.as_mut_ptr ())).display_error_modiff < BUF_MODIFF! ((*displayed_buffer.as_mut_ptr ()))
     { redisplay_window (window, true); }
   return Qnil ();
 
@@ -18941,30 +18939,30 @@ update_redisplay_ticks (ticks: c_int, mut w: *mut window)
   mod update_redisplay_ticks_caches {
     use super::*;
 
-    pub static mut cwindow: *mut window = core::ptr::null_mut ();
-    pub static mut window_ticks: EMACS_INT = 0;
+    pub static cwindow: VmGlobal<*mut window> = VmGlobal::<*mut window>::new (core::ptr::null_mut ());
+    pub static window_ticks: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);
   }
   use update_redisplay_ticks_caches::*;
 
   /* We only initialize the count if this is a different window or
      NULL.  Otherwise, this is a call from init_iterator for the same
      window we tracked before, and we should keep the count.  */
-  if ticks == 0 && w != cwindow
+  if ticks == 0 && w != (*cwindow.as_mut_ptr ())
     {
-      cwindow = w;
-      window_ticks = 0;
+      (*cwindow.as_mut_ptr ()) = w;
+      (*window_ticks.as_mut_ptr ()) = 0;
     }
   /* Some callers can be run in contexts unrelated to display code, so
      don't abort them and don't update the tick count in those cases.  */
-  if (w.is_null () && !redisplaying_p && !display_working_on_window_p
+  if (w.is_null () && !(*redisplaying_p.as_mut_ptr ()) && !(*display_working_on_window_p.as_mut_ptr ())
       /* We never disable redisplay of a mini-window, since that is
 	 absolutely essential for communicating with Emacs.  */
       || (!w.is_null () && MINI_WINDOW_P (w)))
     { return; }
 
   if ticks > 0
-    { window_ticks += ticks as EMACS_INT; }
-  if max_redisplay_ticks > 0 && window_ticks > max_redisplay_ticks as EMACS_INT
+    { (*window_ticks.as_mut_ptr ()) += ticks as EMACS_INT; }
+  if (*max_redisplay_ticks.as_mut_ptr ()) > 0 && (*window_ticks.as_mut_ptr ()) > (*max_redisplay_ticks.as_mut_ptr ()) as EMACS_INT
     {
       /* In addition to a buffer, this could be a window (for non-leaf
 	 windows, not expected here) or nil (for pseudo-windows like
@@ -18977,7 +18975,7 @@ update_redisplay_ticks (ticks: c_int, mut w: *mut window)
 	   { SSDATA (BVAR! (XBUFFER (contents), name_)) }
 	   else { c"<unknown>".as_ptr () };
 
-      windows_or_buffers_changed = 177;
+      (*windows_or_buffers_changed.as_mut_ptr ()) = 177;
       /* scrolling_window depends too much on the glyph matrices being
 	 correct, and we cannot guarantee that if we abort the
 	 redisplay of this window.  */
@@ -19606,31 +19604,31 @@ set_cursor_from_row (w: *mut window, row: *mut glyph_row,
   (*w).cursor.vpos = MATRIX_ROW_VPOS! (row, matrix) as c_int + dvpos;
   (*w).cursor.y = (*row).y + dy;
 
-  if w == XWINDOW (selected_window)
+  if w == XWINDOW ((*selected_window.as_mut_ptr ()))
     {
       if !glyph_row_bits! (continued_p, row)
 	  && !MATRIX_ROW_CONTINUATION_LINE_P! (row)
 	  && (*row).x == 0
 	{
-	  this_line_buffer = XBUFFER ((*w).contents);
+	  (*this_line_buffer.as_mut_ptr ()) = XBUFFER ((*w).contents);
 
-	  CHARPOS! (this_line_start_pos)
+	  CHARPOS! ((*this_line_start_pos.as_mut_ptr ()))
 	    = MATRIX_ROW_START_CHARPOS! (row) + delta;
-	  BYTEPOS! (this_line_start_pos)
+	  BYTEPOS! ((*this_line_start_pos.as_mut_ptr ()))
 	    = MATRIX_ROW_START_BYTEPOS! (row) + delta_bytes;
 
-	  CHARPOS! (this_line_end_pos)
+	  CHARPOS! ((*this_line_end_pos.as_mut_ptr ()))
 	    = Z! () - (MATRIX_ROW_END_CHARPOS! (row) + delta);
-	  BYTEPOS! (this_line_end_pos)
+	  BYTEPOS! ((*this_line_end_pos.as_mut_ptr ()))
 	    = Z_BYTE! () - (MATRIX_ROW_END_BYTEPOS! (row) + delta_bytes);
 
-	  this_line_y = (*w).cursor.y;
-	  this_line_pixel_height = (*row).height as c_int;
-	  this_line_vpos = (*w).cursor.vpos;
-	  this_line_start_x = (*row).x;
+	  (*this_line_y.as_mut_ptr ()) = (*w).cursor.y;
+	  (*this_line_pixel_height.as_mut_ptr ()) = (*row).height as c_int;
+	  (*this_line_vpos.as_mut_ptr ()) = (*w).cursor.vpos;
+	  (*this_line_start_x.as_mut_ptr ()) = (*row).x;
 	}
       else
-	{ CHARPOS! (this_line_start_pos) = 0; }
+	{ CHARPOS! ((*this_line_start_pos.as_mut_ptr ())) = 0; }
     }
 
   return true;
@@ -19654,7 +19652,7 @@ run_window_scroll_functions (window: Lisp_Object, mut startp: text_pos) -> text_
 
   eassert! (current_buffer! () == XBUFFER ((*w).contents));
 
-  if !NILP (Vwindow_scroll_functions)
+  if !NILP ((*Vwindow_scroll_functions.as_mut_ptr ()))
     {
       safe_run_hooks_2
 	(Qwindow_scroll_functions (), window, make_fixnum (CHARPOS! (startp)));
@@ -19704,7 +19702,7 @@ cursor_row_fully_visible_p (w: *mut window, force_p: bool,
 
   /* If no local binding, use the global value.  */
   if BASE_EQ (mclfv_p, Qunbound ())
-    { mclfv_p = Vmake_cursor_line_fully_visible; }
+    { mclfv_p = (*Vmake_cursor_line_fully_visible.as_mut_ptr ()); }
   /* Follow mode sets the variable to a Lisp function in buffers that
      are under Follow mode.  */
   if FUNCTIONP (mclfv_p)
@@ -20337,18 +20335,18 @@ try_cursor_movement (window: Lisp_Object, startp: text_pos,
 	 redisplay.  It sets either windows_or_buffers_changed or
 	 update_mode_lines.  So don't take a shortcut here for these
 	 cases.  */
-      && update_mode_lines == 0
-      && windows_or_buffers_changed == 0
+      && (*update_mode_lines.as_mut_ptr ()) == 0
+      && (*windows_or_buffers_changed.as_mut_ptr ()) == 0
       && !frame_bits! (cursor_type_changed, f)
-      && NILP (Vshow_trailing_whitespace)
+      && NILP ((*Vshow_trailing_whitespace.as_mut_ptr ()))
       /* When display-line-numbers is in relative mode, moving point
 	 requires redrawing the entire window.  */
-      && !EQ (Vdisplay_line_numbers, Qrelative ())
-      && !EQ (Vdisplay_line_numbers, Qvisual ())
+      && !EQ ((*Vdisplay_line_numbers.as_mut_ptr ()), Qrelative ())
+      && !EQ ((*Vdisplay_line_numbers.as_mut_ptr ()), Qvisual ())
       /* When the current line number should be displayed in a
 	 distinct face, moving point cannot be handled in optimized
 	 way as below.  */
-      && !(!NILP (Vdisplay_line_numbers)
+      && !(!NILP ((*Vdisplay_line_numbers.as_mut_ptr ()))
 	   && NILP (Finternal_lisp_face_equal_p (Qline_number (),
 						 Qline_number_current_line (),
 						 (*w).frame, Qt ())))
@@ -20358,7 +20356,7 @@ try_cursor_movement (window: Lisp_Object, startp: text_pos,
 	 unchanged.  This code is of no real use in the mini-buffer
 	 since the handling of this_line_start_pos, etc., in redisplay
 	 handles the same cases.  */
-      && !EQ (window, minibuf_window)
+      && !EQ (window, (*minibuf_window.as_mut_ptr ()))
       /* When overlay arrow is shown in current buffer, point movement
 	 is no longer "simple", as it typically causes the overlay
 	 arrow to move as well.  */
@@ -20724,8 +20722,8 @@ set_vertical_scroll_bar (w: *mut window)
 
      Note that mini-buffers sometimes aren't displaying any text.  */
   if !MINI_WINDOW_P (w)
-      || (w == XWINDOW (minibuf_window)
-	  && NILP (echo_area_buffer[0]))
+      || (w == XWINDOW ((*minibuf_window.as_mut_ptr ()))
+	  && NILP ((*echo_area_buffer.as_mut_ptr ())[0]))
     {
       let buf: *mut buffer = XBUFFER ((*w).contents);
 
@@ -20851,7 +20849,7 @@ window_start_acceptable_p (window: Lisp_Object, startp: ptrdiff_t) -> bool
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  if !make_window_start_visible
+  if !(*make_window_start_visible.as_mut_ptr ())
     { return true; }
 
   let w: *mut window = XWINDOW (window);
@@ -20990,7 +20988,7 @@ redisplay_window (window: Lisp_Object, just_this_one_p: bool)
 
   /* Has the mode line to be updated?  */
   update_mode_line = (window_bits! (w, update_mode_line)
-		      || update_mode_lines != 0
+		      || (*update_mode_lines.as_mut_ptr ()) != 0
 		      || buffer_bits! (clip_changed, buffer)
 		      || buffer_bits! (prevent_redisplay_optimizations_p, buffer));
 
@@ -21016,8 +21014,8 @@ redisplay_window (window: Lisp_Object, just_this_one_p: bool)
   'recenter: {
   if MINI_WINDOW_P (w)
     {
-      if w == XWINDOW (echo_area_window)
-	 && !NILP (echo_area_buffer[0])
+      if w == XWINDOW ((*echo_area_window.as_mut_ptr ()))
+	 && !NILP ((*echo_area_buffer.as_mut_ptr ())[0])
 	{
 	  if update_mode_line
 	    /* We may have to update a tty frame's menu bar or a
@@ -21027,13 +21025,13 @@ redisplay_window (window: Lisp_Object, just_this_one_p: bool)
 	    /* We've already displayed the echo area glyphs in this window.  */
 	    { break 'finish_scroll_bars; }
 	}
-      else if (w != XWINDOW (minibuf_window)
-	       || minibuf_level == 0)
+      else if (w != XWINDOW ((*minibuf_window.as_mut_ptr ()))
+	       || (*minibuf_level.as_mut_ptr ()) == 0)
 	      /* When buffer is nonempty, redisplay window normally.  */
 	      && BUF_Z! (XBUFFER ((*w).contents)) == BUF_BEG (XBUFFER ((*w).contents))
 	      /* Quail displays non-mini buffers in minibuffer window.
 		 In that case, redisplay the window normally.  */
-	      && !NILP (Fmemq ((*w).contents, Vminibuffer_list))
+	      && !NILP (Fmemq ((*w).contents, (*Vminibuffer_list.as_mut_ptr ())))
 	{
 	  /* W is a mini-buffer window, but it's not active, so clear
 	     it.  */
@@ -21051,7 +21049,7 @@ redisplay_window (window: Lisp_Object, just_this_one_p: bool)
 	    }
 	  break 'finish_scroll_bars;
 	}
-      else if minibuf_level >= 1 && NILP (resize_mini_frames)
+      else if (*minibuf_level.as_mut_ptr ()) >= 1 && NILP ((*resize_mini_frames.as_mut_ptr ()))
 	{
 	  /* We could have a message produced by set-minibuffer-message
 	     displayed in the mini-window as an overlay, so resize the
@@ -21078,7 +21076,7 @@ redisplay_window (window: Lisp_Object, just_this_one_p: bool)
        && !buffer_bits! (clip_changed, current_buffer! ())
        && !buffer_bits! (prevent_redisplay_optimizations_p, current_buffer! ())
        && !window_outdated (w)
-       && !composition_break_at_point
+       && !(*composition_break_at_point.as_mut_ptr ())
        && !hscrolling_current_line_p (w));
 
   beg_unchanged = BEG_UNCHANGED! ();
@@ -21091,7 +21089,7 @@ redisplay_window (window: Lisp_Object, just_this_one_p: bool)
 
   /* When windows_or_buffers_changed is non-zero, we can't rely
      on the window end being valid, so set it to zero there.  */
-  if windows_or_buffers_changed != 0
+  if (*windows_or_buffers_changed.as_mut_ptr ()) != 0
     {
       /* If window starts on a continuation line, maybe adjust the
 	 window start in case the window's width changed.  */
@@ -21116,7 +21114,7 @@ redisplay_window (window: Lisp_Object, just_this_one_p: bool)
 
   /* Point refers normally to the selected window.  For any other
      window, set up appropriate value.  */
-  if !EQ (window, selected_window)
+  if !EQ (window, (*selected_window.as_mut_ptr ()))
     {
       let mut new_pt: ptrdiff_t = marker_position ((*w).pointm);
       let mut new_pt_byte: ptrdiff_t = marker_byte_position ((*w).pointm);
@@ -21162,7 +21160,7 @@ redisplay_window (window: Lisp_Object, just_this_one_p: bool)
     }
 
   /* Check whether the buffer to be displayed contains long lines.  */
-  if !NILP (Vlong_line_threshold)
+  if !NILP ((*Vlong_line_threshold.as_mut_ptr ()))
       && !buffer_bits! (long_line_optimizations_p, current_buffer! ())
       && (CHARS_MODIFF! () - UNCHANGED_MODIFIED! () > 8
 	  || buffer_bits! (clip_changed, current_buffer! ()))
@@ -21172,7 +21170,7 @@ redisplay_window (window: Lisp_Object, just_this_one_p: bool)
       let mut found: ptrdiff_t = 0;
       let mut max: ptrdiff_t = 0;
       let mut threshold: ptrdiff_t;
-      threshold = XFIXNUM (Vlong_line_threshold) as ptrdiff_t;
+      threshold = XFIXNUM ((*Vlong_line_threshold.as_mut_ptr ())) as ptrdiff_t;
       cur = BEGV! ();
       while cur < ZV! ()
 	{
@@ -21270,7 +21268,7 @@ redisplay_window (window: Lisp_Object, just_this_one_p: bool)
 	 than to get into an infinite loop calling the hook functions
 	 and having them get more errors.  */
       if !update_mode_line
-	  || !NILP (Vwindow_scroll_functions)
+	  || !NILP ((*Vwindow_scroll_functions.as_mut_ptr ()))
 	{
 	  update_mode_line = true;
 	  window_bits! (w, update_mode_line, true);
@@ -21401,7 +21399,7 @@ redisplay_window (window: Lisp_Object, just_this_one_p: bool)
 	  TEMP_SET_PT_BOTH (MATRIX_ROW_START_CHARPOS! (row),
 			    MATRIX_ROW_START_BYTEPOS! (row));
 
-	  if w != XWINDOW (selected_window)
+	  if w != XWINDOW ((*selected_window.as_mut_ptr ()))
 	    { set_marker_both ((*w).pointm, Qnil (), PT! (), PT_BYTE! ()); }
 	  else if current_buffer! () == old
 	    { SET_TEXT_POS! (lpoint, PT! (), PT_BYTE! ()); }
@@ -21416,12 +21414,12 @@ redisplay_window (window: Lisp_Object, just_this_one_p: bool)
 	     propagated its info to `w' anyway.  */
 	  window_bits! (w, redisplay, false);
 	  buffer_text_bits! (text.redisplay, XBUFFER ((*w).contents), false);
-	  dsafe_calln! (true, Vpre_redisplay_function, Fcons (window, Qnil ()));
+	  dsafe_calln! (true, (*Vpre_redisplay_function.as_mut_ptr ()), Fcons (window, Qnil ()));
 
 	  if window_bits! (w, redisplay)
 	      || buffer_text_bits! (text.redisplay, XBUFFER ((*w).contents))
-	      || ((EQ (Vdisplay_line_numbers, Qrelative ())
-		   || EQ (Vdisplay_line_numbers, Qvisual ()))
+	      || ((EQ ((*Vdisplay_line_numbers.as_mut_ptr ()), Qrelative ())
+		   || EQ ((*Vdisplay_line_numbers.as_mut_ptr ()), Qvisual ()))
 		  && row != MATRIX_FIRST_TEXT_ROW! ((*w).desired_matrix as *mut glyph_matrix))
 	    {
 	      /* Either pre-redisplay-function made changes (e.g. move
@@ -21530,7 +21528,7 @@ redisplay_window (window: Lisp_Object, just_this_one_p: bool)
 	 the mouse, resulting in an unwanted mouse-movement rather
 	 than a simple mouse-click.  */
       if !window_bits! (w, start_at_line_beg)
-	  && NILP (track_mouse)
+	  && NILP ((*track_mouse.as_mut_ptr ()))
       	  && CHARPOS! (startp) > BEGV! ()
 	  && CHARPOS! (startp) > BEG as ptrdiff_t + beg_unchanged
 	  && CHARPOS! (startp) <= Z! () - end_unchanged
@@ -21579,7 +21577,7 @@ redisplay_window (window: Lisp_Object, just_this_one_p: bool)
 	  /* Don't use try_window_reusing_current_matrix in this case
 	     because a window scroll function can have changed the
 	     buffer.  */
-	  || !NILP (Vwindow_scroll_functions)
+	  || !NILP ((*Vwindow_scroll_functions.as_mut_ptr ()))
 	  || MINI_WINDOW_P (w)
 	  || !({ used_current_matrix_p = try_window_reusing_current_matrix (w);
 		 used_current_matrix_p })
@@ -21624,13 +21622,13 @@ redisplay_window (window: Lisp_Object, just_this_one_p: bool)
     }
 
   /* Try to scroll by specified few lines.  */
-  if (0 < scroll_conservatively
+  if (0 < (*scroll_conservatively.as_mut_ptr ())
        /* FIXME: the option is supposed to affect minibuffers, but we
 	  test MINI_WINDOW_P, which can also catch uses of
 	  mini-windows for displaying the echo area.  Do we need to
 	  distinguish these two use cases?  */
-       || (scroll_minibuffer_conservatively && MINI_WINDOW_P (w))
-       || 0 < emacs_scroll_step
+       || ((*scroll_minibuffer_conservatively.as_mut_ptr ()) && MINI_WINDOW_P (w))
+       || 0 < (*emacs_scroll_step.as_mut_ptr ())
        || temp_scroll_step
        || NUMBERP (BVAR! (current_buffer! (), scroll_up_aggressively_))
        || NUMBERP (BVAR! (current_buffer! (), scroll_down_aggressively_)))
@@ -21640,11 +21638,11 @@ redisplay_window (window: Lisp_Object, just_this_one_p: bool)
       /* The function returns -1 if new fonts were loaded, 1 if
 	 successful, 0 if not successful.  */
       let mut ss: c_int = try_scrolling (window, just_this_one_p,
-			      if scroll_minibuffer_conservatively
+			      if (*scroll_minibuffer_conservatively.as_mut_ptr ())
 			        && MINI_WINDOW_P (w)
 			       { (SCROLL_LIMIT + 1) as intmax_t }
-			       else { scroll_conservatively as intmax_t },
-			      emacs_scroll_step as intmax_t,
+			       else { (*scroll_conservatively.as_mut_ptr ()) as intmax_t },
+			      (*emacs_scroll_step.as_mut_ptr ()) as intmax_t,
 			      temp_scroll_step, last_line_misfit);
       match ss
 	{
@@ -21721,13 +21719,13 @@ redisplay_window (window: Lisp_Object, just_this_one_p: bool)
 	else { BVAR! (current_buffer! (), scroll_down_aggressively_) };
 
       if !MINI_WINDOW_P (w)
-	  && (scroll_conservatively > SCROLL_LIMIT as ptrdiff_t || NUMBERP (aggressive))
+	  && ((*scroll_conservatively.as_mut_ptr ()) > SCROLL_LIMIT as ptrdiff_t || NUMBERP (aggressive))
 	{
 	  let mut pt_offset: c_int = 0;
 
 	  /* Setting scroll-conservatively overrides
 	     scroll-*-aggressively.  */
-	  if scroll_conservatively == 0 && NUMBERP (aggressive)
+	  if (*scroll_conservatively.as_mut_ptr ()) == 0 && NUMBERP (aggressive)
 	    {
 	      let float_amount: c_double = XFLOATINT (aggressive);
 
@@ -21808,11 +21806,11 @@ redisplay_window (window: Lisp_Object, just_this_one_p: bool)
   /* Redisplay the window.  */
   use_desired_matrix = false;
   if !current_matrix_up_to_date_p
-      || windows_or_buffers_changed != 0
+      || (*windows_or_buffers_changed.as_mut_ptr ()) != 0
       || frame_bits! (cursor_type_changed, f)
       /* Don't use try_window_reusing_current_matrix in this case
 	 because it can have changed the buffer.  */
-      || !NILP (Vwindow_scroll_functions)
+      || !NILP ((*Vwindow_scroll_functions.as_mut_ptr ()))
       || !just_this_one_p
       || MINI_WINDOW_P (w)
       || !({ used_current_matrix_p = try_window_reusing_current_matrix (w);
@@ -21846,7 +21844,7 @@ redisplay_window (window: Lisp_Object, just_this_one_p: bool)
 	  move_it_by_lines (&raw mut it, -1);
 	  try_window (window, it.current.pos, 0);
 	}
-      else if scroll_conservatively > SCROLL_LIMIT as ptrdiff_t
+      else if (*scroll_conservatively.as_mut_ptr ()) > SCROLL_LIMIT as ptrdiff_t
 	       && (it.method == GET_FROM_STRING
 		   || overlay_touches_p (IT_CHARPOS! (it)))
 	       && IT_CHARPOS! (it) < ZV! ()
@@ -21948,7 +21946,7 @@ redisplay_window (window: Lisp_Object, just_this_one_p: bool)
 	 point just above/below the scroll margin.  If we ended up
 	 with point's row partially visible, move the window start to
 	 make that row fully visible and out of the margin.  */
-      if scroll_conservatively > SCROLL_LIMIT as ptrdiff_t
+      if (*scroll_conservatively.as_mut_ptr ()) > SCROLL_LIMIT as ptrdiff_t
 	{
 	  let window_total_lines: c_int
 	    = WINDOW_TOTAL_LINES (w) * FRAME_LINE_HEIGHT (f) / frame_line_height;
@@ -22046,7 +22044,7 @@ redisplay_window (window: Lisp_Object, just_this_one_p: bool)
 	{ break 'need_larger_matrices; }
     }
 
-  if !line_number_displayed && (*w).base_line_pos != -1
+  if !(*line_number_displayed.as_mut_ptr ()) && (*w).base_line_pos != -1
     {
       (*w).base_line_pos = 0;
       (*w).base_line_number = 0;
@@ -22085,9 +22083,9 @@ redisplay_window (window: Lisp_Object, just_this_one_p: bool)
       if FRAME_NS_P (f)
         {
           if WINDOWP ((*f).tab_bar_window)
-              && (FRAME_TAB_BAR_LINES (f) > 0 || !NILP (Vauto_resize_tab_bars))
+              && (FRAME_TAB_BAR_LINES (f) > 0 || !NILP ((*Vauto_resize_tab_bars.as_mut_ptr ())))
               && redisplay_tab_bar (f)
-            { ignore_mouse_drag_p = true; }
+            { (*ignore_mouse_drag_p.as_mut_ptr ()) = true; }
         }
       else if FRAME_TAB_BAR_LINES (f) > 0 { display_tab_bar (w); }
       #[cfg(not(feature = "have_ns"))]
@@ -22194,7 +22192,7 @@ pub unsafe extern "C-unwind" fn try_window (window: Lisp_Object, pos: text_pos, 
 
   /* Mark cursor position as unknown.  No overlay arrow seen.  */
   (*w).cursor.vpos = -1;
-  overlay_arrow_seen = false;
+  (*overlay_arrow_seen.as_mut_ptr ()) = false;
 
   /* Initialize iterator and info to start at POS.  */
   start_display (&raw mut it, w, pos);
@@ -22328,7 +22326,7 @@ try_window_reusing_current_matrix (w: *mut window) -> bool
       !FRAME_WINDOW_P (f)
       /* Don't try to reuse the display if windows have been split
 	 or such.  */
-      || windows_or_buffers_changed != 0
+      || (*windows_or_buffers_changed.as_mut_ptr ()) != 0
       || frame_bits! (cursor_type_changed, f)
       /* This function cannot handle buffers where the overlay arrow
 	 is shown on the fringes, because if the arrow position
@@ -22337,7 +22335,7 @@ try_window_reusing_current_matrix (w: *mut window) -> bool
     { return false; }
 
   /* Can't do this if showing trailing whitespace.  */
-  if !NILP (Vshow_trailing_whitespace)
+  if !NILP ((*Vshow_trailing_whitespace.as_mut_ptr ()))
     { return false; }
 
   /* If top-line visibility has changed, give up.  */
@@ -22363,7 +22361,7 @@ try_window_reusing_current_matrix (w: *mut window) -> bool
   /* Give up if line numbers are being displayed, because reusing the
      current matrix might use the wrong width for line-number
      display.  */
-  if !NILP (Vdisplay_line_numbers)
+  if !NILP ((*Vdisplay_line_numbers.as_mut_ptr ()))
     { return false; }
 
   /* Can't scroll the display of w32 GUI frames when position of point
@@ -23195,7 +23193,7 @@ try_window_id (w: *mut window) -> c_int
     { GIVE_UP! (1); }
 
   /* This flag is used to prevent redisplay optimizations.  */
-  if windows_or_buffers_changed != 0 || frame_bits! (cursor_type_changed, f)
+  if (*windows_or_buffers_changed.as_mut_ptr ()) != 0 || frame_bits! (cursor_type_changed, f)
     { GIVE_UP! (2); }
 
   /* This function's optimizations cannot be used if overlays have
@@ -23236,7 +23234,7 @@ try_window_id (w: *mut window) -> c_int
     { GIVE_UP! (8); }
 
   /* Likewise if highlighting trailing whitespace.  */
-  if !NILP (Vshow_trailing_whitespace)
+  if !NILP ((*Vshow_trailing_whitespace.as_mut_ptr ()))
     { GIVE_UP! (11); }
 
   /* Can't use this if overlay arrow position and/or string have
@@ -23270,9 +23268,9 @@ try_window_id (w: *mut window) -> c_int
 
   /* Give up if display-line-numbers is in relative mode, or when the
      current line's number needs to be displayed in a distinct face.  */
-  if EQ (Vdisplay_line_numbers, Qrelative ())
-      || EQ (Vdisplay_line_numbers, Qvisual ())
-      || (!NILP (Vdisplay_line_numbers)
+  if EQ ((*Vdisplay_line_numbers.as_mut_ptr ()), Qrelative ())
+      || EQ ((*Vdisplay_line_numbers.as_mut_ptr ()), Qvisual ())
+      || (!NILP ((*Vdisplay_line_numbers.as_mut_ptr ()))
 	  && NILP (Finternal_lisp_face_equal_p (Qline_number (),
 						Qline_number_current_line (),
 						(*w).frame, Qt ())))
@@ -23281,7 +23279,7 @@ try_window_id (w: *mut window) -> c_int
   /* composition-break-at-point is incompatible with the optimizations
      in this function, because we need to recompose characters when
      point moves off their positions.  */
-  if composition_break_at_point
+  if (*composition_break_at_point.as_mut_ptr ())
     { GIVE_UP! (27); }
 
   /* Make sure beg_unchanged and end_unchanged are up to date.  Do it
@@ -23566,7 +23564,7 @@ try_window_id (w: *mut window) -> c_int
      line where the window_end_vpos is.  */
   (*w).cursor.vpos = -1;
   last_text_row = core::ptr::null_mut ();
-  overlay_arrow_seen = false;
+  (*overlay_arrow_seen.as_mut_ptr ()) = false;
   if it.current_y < it.last_visible_y
       && !frame_bits! (fonts_changed, f)
       && (first_unchanged_at_end_row.is_null ()
@@ -23992,8 +23990,8 @@ get_overlay_arrow_glyph_row (w: *mut window, overlay_arrow_string: Lisp_Object,
   let mut n_glyphs_before: c_int;
 
   set_buffer_temp (buffer);
-  init_iterator (&raw mut it, w, -1, -1, &raw mut scratch_glyph_row, DEFAULT_FACE_ID);
-  glyph_row_bits! (reversed_p, &raw mut scratch_glyph_row, false);
+  init_iterator (&raw mut it, w, -1, -1, scratch_glyph_row.as_mut_ptr (), DEFAULT_FACE_ID);
+  glyph_row_bits! (reversed_p, scratch_glyph_row.as_mut_ptr (), false);
   (*(it.glyph_row)).used[TEXT_AREA as usize] = 0;
   SET_TEXT_POS! (it.position, 0, 0);
 
@@ -24078,7 +24076,7 @@ insert_left_trunc_glyphs (it: *mut it)
   truncate_it.current_x = 0;
   truncate_it.wrap_prefix_width = 0;
   truncate_it.face_id = DEFAULT_FACE_ID;
-  truncate_it.glyph_row = &raw mut scratch_glyph_row;
+  truncate_it.glyph_row = scratch_glyph_row.as_mut_ptr ();
   truncate_it.area = TEXT_AREA;
   (*(truncate_it.glyph_row)).used[TEXT_AREA as usize] = 0;
   /* C's chain `CHARPOS (truncate_it.position) = BYTEPOS (truncate_it.position) = -1;`.  */
@@ -24462,7 +24460,7 @@ append_space_for_newline (it: *mut it, default_face_p: bool) -> bool
 	  /* C's chain `it->c = it->char_to_display = XFIXNAT
 	     (Vdisplay_fill_column_indicator_character);`.  */
 	  (*it).char_to_display =
-	    XFIXNAT (Vdisplay_fill_column_indicator_character) as c_int;
+	    XFIXNAT ((*Vdisplay_fill_column_indicator_character.as_mut_ptr ())) as c_int;
 	  (*it).c = (*it).char_to_display;
 	  (*it).face_id
 	    = merge_faces ((*it).w, Qfill_column_indicator (), 0, saved_face_id);
@@ -24593,7 +24591,7 @@ extend_face_to_end_of_line (it: *mut it)
       /* C 24449-24451's `HAVE_WINDOW_SYSTEM` disjunct (`&& !face->stipple`) is dead on this
 	 target (P-08); recorded in docs/ports/xdisp.md.  */
       && !glyph_row_bits! (reversed_p, (*it).glyph_row)
-      && !display_fill_column_indicator
+      && !(*display_fill_column_indicator.as_mut_ptr ())
       && !((*FACE_FROM_ID (f, margin_fill_face_id)).background
 	   != FRAME_BACKGROUND_PIXEL (f)
 	   && (WINDOW_LEFT_MARGIN_WIDTH! ((*it).w) > 0
@@ -24703,7 +24701,7 @@ extend_face_to_end_of_line (it: *mut it)
 	      /* C's chain `it->c = it->char_to_display = XFIXNAT
 		 (Vdisplay_fill_column_indicator_character);`.  */
 	      (*it).char_to_display =
-		XFIXNAT (Vdisplay_fill_column_indicator_character) as c_int;
+		XFIXNAT ((*Vdisplay_fill_column_indicator_character.as_mut_ptr ())) as c_int;
 	      (*it).c = (*it).char_to_display;
 
 	      PRODUCE_GLYPHS! (it);
@@ -25164,14 +25162,14 @@ handle_line_prefix (it: *mut it)
     {
       prefix = get_line_prefix_it_property (it, Qwrap_prefix (), &raw mut from_buffer);
       if NILP (prefix)
-	{ prefix = Vwrap_prefix; }
+	{ prefix = (*Vwrap_prefix.as_mut_ptr ()); }
       wrap_prop = true;
     }
   else
     {
       prefix = get_line_prefix_it_property (it, Qline_prefix (), &raw mut from_buffer);
       if NILP (prefix)
-	{ prefix = Vline_prefix; }
+	{ prefix = (*Vline_prefix.as_mut_ptr ()); }
     }
   if !NILP (prefix) && push_prefix_prop (it, prefix, from_buffer)
     {
@@ -25390,7 +25388,7 @@ display_count_lines_logically (start_byte: ptrdiff_t, limit_byte: ptrdiff_t,
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  if !display_line_numbers_widen || (BEGV! () == BEG as ptrdiff_t && ZV! () == Z! ())
+  if !(*display_line_numbers_widen.as_mut_ptr ()) || (BEGV! () == BEG as ptrdiff_t && ZV! () == Z! ())
     { return display_count_lines (start_byte, limit_byte, count, byte_pos_ptr); }
 
   let val: ptrdiff_t;
@@ -25483,18 +25481,18 @@ maybe_produce_line_number (it: *mut it)
   let line_numbers_wide: bool;
   let itdata: *mut c_void = bidi_shelve_cache ();
 
-  if display_line_numbers_offset != 0
-      && !display_line_numbers_widen
-      && !EQ (Vdisplay_line_numbers, Qvisual ())
-      && !EQ (Vdisplay_line_numbers, Qrelative ())
+  if (*display_line_numbers_offset.as_mut_ptr ()) != 0
+      && !(*display_line_numbers_widen.as_mut_ptr ())
+      && !EQ ((*Vdisplay_line_numbers.as_mut_ptr ()), Qvisual ())
+      && !EQ ((*Vdisplay_line_numbers.as_mut_ptr ()), Qrelative ())
     { line_numbers_wide = true; }
   else
-    { line_numbers_wide = display_line_numbers_widen; }
+    { line_numbers_wide = (*display_line_numbers_widen.as_mut_ptr ()); }
 
   beg_byte = if line_numbers_wide { BEG_BYTE as ptrdiff_t } else { BEGV_BYTE! () };
   z_byte = if line_numbers_wide { Z_BYTE! () } else { ZV_BYTE! () };
 
-  if EQ (Vdisplay_line_numbers, Qvisual ())
+  if EQ ((*Vdisplay_line_numbers.as_mut_ptr ()), Qvisual ())
     { this_line = display_count_lines_visually (it); }
   else
     {
@@ -25563,18 +25561,18 @@ maybe_produce_line_number (it: *mut it)
     = merge_faces ((*it).w, Qline_number_current_line (), 0, DEFAULT_FACE_ID);
   /* From here onwards, we must prevent freeing realized faces, because
      we are using the above 2 face IDs for the glyphs we produce.  */
-  let save_free_realized_faces: bool = inhibit_free_realized_faces;
-  inhibit_free_realized_faces = true;
+  let save_free_realized_faces: bool = (*inhibit_free_realized_faces.as_mut_ptr ());
+  (*inhibit_free_realized_faces.as_mut_ptr ()) = true;
   /* Compute point's line number if needed.  */
-  if (EQ (Vdisplay_line_numbers, Qrelative ())
-       || EQ (Vdisplay_line_numbers, Qvisual ())
+  if (EQ ((*Vdisplay_line_numbers.as_mut_ptr ()), Qrelative ())
+       || EQ ((*Vdisplay_line_numbers.as_mut_ptr ()), Qvisual ())
        || lnum_face_id != current_lnum_face_id)
       && (*it).pt_lnum == 0
     {
       /* C leaves `ignored` to `display_count_lines_logically`; Rust cannot prove the call has
 	 written it, so the port zero-initialises it (deviation 1's rule).  */
       let mut ignored: ptrdiff_t = 0;
-      if PT_BYTE! () > (*it).lnum_bytepos && !EQ (Vdisplay_line_numbers, Qvisual ())
+      if PT_BYTE! () > (*it).lnum_bytepos && !EQ ((*Vdisplay_line_numbers.as_mut_ptr ()), Qvisual ())
 	{ (*it).pt_lnum =
 	  this_line + display_count_lines_logically ((*it).lnum_bytepos, PT_BYTE! (),
 						     PT! (), &raw mut ignored); }
@@ -25585,9 +25583,9 @@ maybe_produce_line_number (it: *mut it)
   /* Compute the required width if needed.  */
   if (*it).lnum_width == 0
     {
-      if FIXNATP (Vdisplay_line_numbers_width)
+      if FIXNATP ((*Vdisplay_line_numbers_width.as_mut_ptr ()))
 	{
-	  let lnum_width: EMACS_INT = XFIXNAT (Vdisplay_line_numbers_width);
+	  let lnum_width: EMACS_INT = XFIXNAT ((*Vdisplay_line_numbers_width.as_mut_ptr ()));
 	  /* Limit the width to show at least 1 text character.  */
 	  let lnum_width_limit: c_int
 	    = ((*it).last_visible_x - (*it).first_visible_x)
@@ -25602,13 +25600,13 @@ maybe_produce_line_number (it: *mut it)
 	 corresponding to the last row of the desired matrix.  */
       let mut max_lnum: ptrdiff_t;
 
-      if NILP (Vdisplay_line_numbers_current_absolute)
-	  && (EQ (Vdisplay_line_numbers, Qrelative ())
-	      || EQ (Vdisplay_line_numbers, Qvisual ()))
+      if NILP ((*Vdisplay_line_numbers_current_absolute.as_mut_ptr ()))
+	  && (EQ ((*Vdisplay_line_numbers.as_mut_ptr ()), Qrelative ())
+	      || EQ ((*Vdisplay_line_numbers.as_mut_ptr ()), Qvisual ()))
 	/* We subtract one more because the current line is always
 	   zero in this mode.  */
 	{ max_lnum = (*((*(*it).w).desired_matrix as *mut glyph_matrix)).nrows as ptrdiff_t - 2; }
-      else if EQ (Vdisplay_line_numbers, Qvisual ())
+      else if EQ ((*Vdisplay_line_numbers.as_mut_ptr ()), Qvisual ())
 	{ max_lnum = (*it).pt_lnum
 		     + (*((*(*it).w).desired_matrix as *mut glyph_matrix)).nrows as ptrdiff_t - 1; }
       else
@@ -25631,20 +25629,20 @@ maybe_produce_line_number (it: *mut it)
   USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
   let lnum_buf: *mut c_char =
     SAFE_ALLOCA! (sa_avail, max ((*it).lnum_width as isize, 20) + 2 + 1) as *mut c_char;
-  if EQ (Vdisplay_line_numbers, Qrelative ())
+  if EQ ((*Vdisplay_line_numbers.as_mut_ptr ()), Qrelative ())
     { lnum_offset = (*it).pt_lnum; }
-  else if EQ (Vdisplay_line_numbers, Qvisual ())
+  else if EQ ((*Vdisplay_line_numbers.as_mut_ptr ()), Qvisual ())
     { lnum_offset = 0; }
-  else if display_line_numbers_offset != 0
-    { lnum_offset -= display_line_numbers_offset; }
+  else if (*display_line_numbers_offset.as_mut_ptr ()) != 0
+    { lnum_offset -= (*display_line_numbers_offset.as_mut_ptr ()); }
 
   /* Under 'relative', display the absolute line number for the
      current line, unless the user requests otherwise.  */
   let mut lnum_to_display: ptrdiff_t = eabs! (this_line - lnum_offset);
-  if (EQ (Vdisplay_line_numbers, Qrelative ())
-       || EQ (Vdisplay_line_numbers, Qvisual ()))
+  if (EQ ((*Vdisplay_line_numbers.as_mut_ptr ()), Qrelative ())
+       || EQ ((*Vdisplay_line_numbers.as_mut_ptr ()), Qvisual ()))
       && lnum_to_display == 0
-      && !NILP (Vdisplay_line_numbers_current_absolute)
+      && !NILP ((*Vdisplay_line_numbers_current_absolute.as_mut_ptr ()))
     { lnum_to_display = (*it).pt_lnum + 1; }
   /* In L2R rows we need to append the blank separator, in R2L
      rows we need to prepend it.  But this function is usually
@@ -25655,11 +25653,11 @@ maybe_produce_line_number (it: *mut it)
   strcat (lnum_buf, c" ".as_ptr ());
 
   /* Setup for producing the glyphs.  */
-  init_iterator (&raw mut tem_it, (*it).w, -1, -1, &raw mut scratch_glyph_row,
+  init_iterator (&raw mut tem_it, (*it).w, -1, -1, scratch_glyph_row.as_mut_ptr (),
 		 /* FIXME: Use specialized face.  */
 		 DEFAULT_FACE_ID);
-  glyph_row_bits! (reversed_p, &raw mut scratch_glyph_row, false);
-  scratch_glyph_row.used[TEXT_AREA as usize] = 0;
+  glyph_row_bits! (reversed_p, scratch_glyph_row.as_mut_ptr (), false);
+  (*scratch_glyph_row.as_mut_ptr ()).used[TEXT_AREA as usize] = 0;
   SET_TEXT_POS! (tem_it.position, 0, 0);
   it_bits! (avoid_cursor_p, &raw mut tem_it, true);
   it_bits! (bidi_p, &raw mut tem_it, true);
@@ -25679,7 +25677,7 @@ maybe_produce_line_number (it: *mut it)
   /* Avoid displaying any face other than line-number on
      empty lines beyond EOB.  */
   if lnum_face_id != current_lnum_face_id
-      && (if EQ (Vdisplay_line_numbers, Qvisual ())
+      && (if EQ ((*Vdisplay_line_numbers.as_mut_ptr ()), Qvisual ())
 	  { this_line == 0 }
 	  else
 	  { this_line == (*it).pt_lnum })
@@ -25687,12 +25685,12 @@ maybe_produce_line_number (it: *mut it)
     { tem_it.face_id = current_lnum_face_id; }
   else if !beyond_zv
     {
-      if display_line_numbers_major_tick > 0
-	  && (lnum_to_display % display_line_numbers_major_tick == 0)
+      if (*display_line_numbers_major_tick.as_mut_ptr ()) > 0
+	  && (lnum_to_display % (*display_line_numbers_major_tick.as_mut_ptr ()) == 0)
 	{ tem_it.face_id = merge_faces ((*it).w, Qline_number_major_tick (), 0,
 					DEFAULT_FACE_ID); }
-      else if display_line_numbers_minor_tick > 0
-	       && (lnum_to_display % display_line_numbers_minor_tick == 0)
+      else if (*display_line_numbers_minor_tick.as_mut_ptr ()) > 0
+	       && (lnum_to_display % (*display_line_numbers_minor_tick.as_mut_ptr ()) == 0)
 	{ tem_it.face_id = merge_faces ((*it).w, Qline_number_minor_tick (), 0,
 					DEFAULT_FACE_ID); }
     }
@@ -25705,7 +25703,7 @@ maybe_produce_line_number (it: *mut it)
 	 number, produce a blank prefix of the same width.  */
       if beyond_zv
 	  /* Don't display the same line number more than once.  */
-	  || (!EQ (Vdisplay_line_numbers, Qvisual ())
+	  || (!EQ ((*Vdisplay_line_numbers.as_mut_ptr ()), Qvisual ())
 	      && ((*it).continuation_lines_width > 0
 		  || (this_line == last_line && !first_time)))
 	{ tem_it.char_to_display = ' ' as c_int; tem_it.c = tem_it.char_to_display; }
@@ -25723,7 +25721,7 @@ maybe_produce_line_number (it: *mut it)
 	  (*it).lnum_width = 0;
 	  (*it).lnum_pixel_width = 0;
 	  bidi_unshelve_cache (itdata, false);
-	  inhibit_free_realized_faces = save_free_realized_faces;
+	  (*inhibit_free_realized_faces.as_mut_ptr ()) = save_free_realized_faces;
 	  /* PORTING.md P-05: C's `alloca` bytes go with the frame, so the C early `return`
 	     releases them; the port's pool needs the `SAFE_FREE` that the normal exit runs
 	     below (deviation 229).  */
@@ -25733,13 +25731,13 @@ maybe_produce_line_number (it: *mut it)
       p = p.offset (1);
     }
 
-  inhibit_free_realized_faces = save_free_realized_faces;
+  (*inhibit_free_realized_faces.as_mut_ptr ()) = save_free_realized_faces;
 
   /* Record the width in pixels we need for the line number display.  */
   (*it).lnum_pixel_width = tem_it.current_x;
   /* Copy the produced glyphs into IT's glyph_row.  */
-  let mut g: *mut glyph = scratch_glyph_row.glyphs[TEXT_AREA as usize];
-  let e: *mut glyph = g.offset (scratch_glyph_row.used[TEXT_AREA as usize] as isize);
+  let mut g: *mut glyph = (*scratch_glyph_row.as_mut_ptr ()).glyphs[TEXT_AREA as usize];
+  let e: *mut glyph = g.offset ((*scratch_glyph_row.as_mut_ptr ()).used[TEXT_AREA as usize] as isize);
   let mut p: *mut glyph = if !(*it).glyph_row.is_null ()
     { (*(*it).glyph_row).glyphs[TEXT_AREA as usize] } else { core::ptr::null_mut () };
   let u: *mut c_short = if !(*it).glyph_row.is_null ()
@@ -25812,7 +25810,7 @@ should_produce_line_number (it: *mut it) -> bool
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  if NILP (Vdisplay_line_numbers)
+  if NILP ((*Vdisplay_line_numbers.as_mut_ptr ()))
     { return false; }
 
   /* Don't display line numbers in minibuffer windows.  */
@@ -25978,7 +25976,7 @@ display_line (it: *mut it, cursor_vpos: c_int) -> bool
     {
       let move_result: move_it_result;
 
-      this_line_min_pos = (*row).start.pos;
+      (*this_line_min_pos.as_mut_ptr ()) = (*row).start.pos;
       if hscroll_this_line
 	{
 	  (*it).first_visible_x += x_incr;
@@ -25986,7 +25984,7 @@ display_line (it: *mut it, cursor_vpos: c_int) -> bool
 	}
       if buffer_bits! (long_line_optimizations_p, current_buffer! ())
 	  && (*it).line_wrap == TRUNCATE
-	  && window_hscroll_limited ((*it).w, (*it).f) as ptrdiff_t > large_hscroll_threshold
+	  && window_hscroll_limited ((*it).w, (*it).f) as ptrdiff_t > (*large_hscroll_threshold.as_mut_ptr ())
 	{
 	  /* Special optimization for very long and truncated lines
 	     which are hscrolled far to the left: jump directly to the
@@ -26031,8 +26029,8 @@ display_line (it: *mut it, cursor_vpos: c_int) -> bool
 	 considers positions that are actually displayed, so
 	 RECORD_MAX_MIN_POS will not otherwise record positions that
 	 are hscrolled to the left of the left edge of the window.  */
-      min_pos = CHARPOS! (this_line_min_pos);
-      min_bpos = BYTEPOS! (this_line_min_pos);
+      min_pos = CHARPOS! ((*this_line_min_pos.as_mut_ptr ()));
+      min_bpos = BYTEPOS! ((*this_line_min_pos.as_mut_ptr ()));
 
       /* Produce line number, if needed.  */
       if line_number_needed
@@ -26913,7 +26911,7 @@ display_line (it: *mut it, cursor_vpos: c_int) -> bool
      better to let it be displayed like cursors under X.  */
   /* C's comma expression in the test assigns `overlay_arrow_string` and then tests it;
      the port keeps the assignment inside the condition's own block (PORTING.md 0.3).  */
-  if (MATRIX_ROW_DISPLAYS_TEXT_P! (row) || !overlay_arrow_seen)
+  if (MATRIX_ROW_DISPLAYS_TEXT_P! (row) || !(*overlay_arrow_seen.as_mut_ptr ()))
       && { overlay_arrow_string = overlay_arrow_at_row (it, row);
 	   !NILP (overlay_arrow_string) }
     {
@@ -26991,11 +26989,11 @@ display_line (it: *mut it, cursor_vpos: c_int) -> bool
 	  eassert! (FIXNUMP (overlay_arrow_string));
 	  (*row).overlay_arrow_bitmap = XFIXNUM (overlay_arrow_string) as c_int;
 	}
-      overlay_arrow_seen = true;
+      (*overlay_arrow_seen.as_mut_ptr ()) = true;
     }
 
   /* Highlight trailing whitespace.  */
-  if !NILP (Vshow_trailing_whitespace)
+  if !NILP ((*Vshow_trailing_whitespace.as_mut_ptr ()))
     { highlight_trailing_whitespace (it); }
 
   /* Compute pixel dimensions of this line.  */
@@ -27032,7 +27030,7 @@ display_line (it: *mut it, cursor_vpos: c_int) -> bool
      in that case, to make sure the fringe bitmaps are removed when a
      shorter message is displayed.  */
   if MINI_WINDOW_P ((*it).w) && (*it).line_wrap == TRUNCATE
-      && FRAME_WINDOW_P ((*it).f) && !cursor_in_echo_area
+      && FRAME_WINDOW_P ((*it).f) && !(*cursor_in_echo_area.as_mut_ptr ())
     { glyph_row_bits! (redraw_fringe_bitmaps_p, row, true); }
 
   /* Maybe set the cursor.  */
@@ -27109,7 +27107,7 @@ DEFUN! ("current-bidi-paragraph-direction", Fcurrent_bidi_paragraph_direction,
       || NILP (BVAR! (buf, enable_multibyte_characters_))
       /* When we are loading loadup.el, the character property tables
 	 needed for bidi iteration are not yet available.  */
-      || redisplay__inhibit_bidi
+      || (*redisplay__inhibit_bidi.as_mut_ptr ())
     { return Qleft_to_right (); }
   else if !NILP (BVAR! (buf, bidi_paragraph_direction_))
     { return BVAR! (buf, bidi_paragraph_direction_); }
@@ -27210,7 +27208,7 @@ DEFUN! ("bidi-find-overridden-directionality", Fbidi_find_overridden_directional
 	  /* When we are loading loadup.el, the character property
 	     tables needed for bidi iteration are not yet
 	     available.  */
-	  || redisplay__inhibit_bidi
+	  || (*redisplay__inhibit_bidi.as_mut_ptr ())
 	{ return Qnil (); }
 
       validate_subarray (object, from, to, SCHARS (object), &raw mut from_pos,
@@ -27239,7 +27237,7 @@ DEFUN! ("bidi-find-overridden-directionality", Fbidi_find_overridden_directional
 	  /* When we are loading loadup.el, the character property
 	     tables needed for bidi iteration are not yet
 	     available.  */
-	  || redisplay__inhibit_bidi
+	  || (*redisplay__inhibit_bidi.as_mut_ptr ())
 	{ return Qnil (); }
 
       set_buffer_temp (buf);
@@ -27298,7 +27296,7 @@ DEFUN! ("move-point-visually", Fmove_point_visually,
        doc: "Move point in the visual order in the specified DIRECTION.\nDIRECTION can be 1, meaning move to the right, or -1, which moves to the\nleft.\n\nValue is the new character position of point.",
        (direction: Lisp_Object),
        {
-  let w: *mut window = XWINDOW (selected_window);
+  let w: *mut window = XWINDOW ((*selected_window.as_mut_ptr ()));
   let b: *mut buffer = XBUFFER ((*w).contents);
   let mut row: *mut glyph_row = core::ptr::null_mut ();
   let mut dir: c_int;
@@ -27336,7 +27334,7 @@ DEFUN! ("move-point-visually", Fmove_point_visually,
      (PORTING.md 2.2).  */
   'simulate_display: {
   if window_bits! (w, window_end_valid)
-      && windows_or_buffers_changed == 0
+      && (*windows_or_buffers_changed.as_mut_ptr ()) == 0
       && !b.is_null ()
       && !buffer_bits! (clip_changed, b)
       && !buffer_bits! (prevent_redisplay_optimizations_p, b)
@@ -27800,7 +27798,7 @@ DEFUN! ("bidi-resolved-levels", Fbidi_resolved_levels,
        doc: "Return the resolved bidirectional levels of characters at VPOS.\n\nThe resolved levels are produced by the Emacs bidi reordering engine\nthat implements the UBA, the Unicode Bidirectional Algorithm.  Please\nread the Unicode Standard Annex 9 (UAX#9) for background information\nabout these levels.\n\nVPOS is the zero-based number of the current window's screen line\nfor which to produce the resolved levels.  If VPOS is nil or omitted,\nit defaults to the screen line of point.  If the window displays a\nheader line, VPOS of zero will report on the header line, and first\nline of text in the window will have VPOS of 1.\n\nValue is an array of resolved levels, indexed by glyph number.\nGlyphs are numbered from zero starting from the beginning of the\nscreen line, i.e. the left edge of the window for left-to-right lines\nand from the right edge for right-to-left lines.  The resolved levels\nare produced only for the window's text area; text in display margins\nis not included.\n\nIf the selected window's display is not up-to-date, or if the specified\nscreen line does not display text, this function returns nil.  It is\nhighly recommended to bind this function to some simple key, like F8,\nin order to avoid these problems.\n\nThis function exists mainly for testing the correctness of the\nEmacs UBA implementation, in particular with the test suite.",
        (vpos: Lisp_Object),
        {
-  let w: *mut window = XWINDOW (selected_window);
+  let w: *mut window = XWINDOW ((*selected_window.as_mut_ptr ()));
   let b: *mut buffer = XBUFFER ((*w).contents);
   /* C's `int nrow;`/`struct glyph_row *row;` are written by the branches below and read by
      the guard (PORTING.md 1.5).  */
@@ -27828,7 +27826,7 @@ DEFUN! ("bidi-resolved-levels", Fbidi_resolved_levels,
 
   /* We require up-to-date glyph matrix for this window.  */
   if window_bits! (w, window_end_valid)
-      && windows_or_buffers_changed == 0
+      && (*windows_or_buffers_changed.as_mut_ptr ()) == 0
       && !b.is_null ()
       && !buffer_bits! (clip_changed, b)
       && !buffer_bits! (prevent_redisplay_optimizations_p, b)
@@ -28076,9 +28074,9 @@ display_tty_menu_separator_char (c: c_int, r#box: r#box) -> c_int
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
   let mut c: c_int = c;
-  if DISP_TABLE_P (Vstandard_display_table)
+  if DISP_TABLE_P ((*Vstandard_display_table.as_mut_ptr ()))
     {
-      let dp: *mut Lisp_Char_Table = XCHAR_TABLE (Vstandard_display_table);
+      let dp: *mut Lisp_Char_Table = XCHAR_TABLE ((*Vstandard_display_table.as_mut_ptr ()));
       let gc: Lisp_Object = FAM_ELEM! ((*dp).extras, r#box as isize);
       if GLYPH_CODE_P (gc)
 	{ c = GLYPH_CODE_CHAR (gc); }
@@ -28247,12 +28245,12 @@ display_mode_lines (w: *mut window) -> c_int
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  let old_selected_window: Lisp_Object = selected_window;
+  let old_selected_window: Lisp_Object = (*selected_window.as_mut_ptr ());
   let new_frame: Lisp_Object = (*w).frame;
   let count: specpdl_ref = SPECPDL_INDEX ();
   let mut n: c_int = 0;
 
-  record_unwind_protect (Some (restore_selected_window), selected_window);
+  record_unwind_protect (Some (restore_selected_window), (*selected_window.as_mut_ptr ()));
   record_unwind_protect (Some (restore_frame_selected_window),
 			 (*XFRAME (new_frame)).selected_window);
 
@@ -28273,14 +28271,14 @@ display_mode_lines (w: *mut window) -> c_int
 	{ wset_mode_line_help_echo (w, Qnil ()); }
     }
 
-  selected_frame = new_frame;
+  (*selected_frame.as_mut_ptr ()) = new_frame;
   /* FIXME: If we were to allow the mode-line's computation changing the buffer
      or window's point, then we'd need select_window_1 here as well.  */
-  XSETWINDOW! (selected_window, w);
-  (*XFRAME (new_frame)).selected_window = selected_window;
+  XSETWINDOW! ((*selected_window.as_mut_ptr ()), w);
+  (*XFRAME (new_frame)).selected_window = (*selected_window.as_mut_ptr ());
 
   /* These will be set while the mode line specs are processed.  */
-  line_number_displayed = false;
+  (*line_number_displayed.as_mut_ptr ()) = false;
   (*w).column_number_displayed = -1;
 
   let sel_w: *mut window = XWINDOW (old_selected_window);
@@ -28381,7 +28379,7 @@ display_mode_line (w: *mut window, face_id: face_id, format: Lisp_Object) -> c_i
 
   /* We cannot allow frame-resizing as long as the code below runs,
      because that could invalidate the it.glyph_row->glyphs pointers.  */
-  dont_resize_frames += 1;
+  (*dont_resize_frames.as_mut_ptr ()) += 1;
 
   /* Temporarily make frame's keyboard the current kboard so that
      kboard-local variables in the mode_line_format will get the right
@@ -28389,19 +28387,19 @@ display_mode_line (w: *mut window, face_id: face_id, format: Lisp_Object) -> c_i
   push_kboard (FRAME_KBOARD (it.f) as *mut kboard);
   record_unwind_save_match_data ();
 
-  if NILP (Vmode_line_compact)
+  if NILP ((*Vmode_line_compact.as_mut_ptr ()))
       || face_id == HEADER_LINE_ACTIVE_FACE_ID
       || face_id == HEADER_LINE_INACTIVE_FACE_ID
       || face_id == TAB_LINE_ACTIVE_FACE_ID
       || face_id == TAB_LINE_INACTIVE_FACE_ID
     {
-      mode_line_target = MODE_LINE_DISPLAY;
+      (*mode_line_target.as_mut_ptr ()) = MODE_LINE_DISPLAY;
       display_mode_element (&raw mut it, 0, 0, 0, format, Qnil (), false);
     }
   else
     {
       let mode_string: Lisp_Object = Fformat_mode_line (format, Qnil (), Qnil (), Qnil ());
-      if EQ (Vmode_line_compact, Qlong ())
+      if EQ ((*Vmode_line_compact.as_mut_ptr ()), Qlong ())
 	  && (WINDOW_TOTAL_COLS (w) as isize) >= SCHARS (mode_string)
 	{
 	  /* The window is wide enough; just display the mode line we
@@ -28433,7 +28431,7 @@ display_mode_line (w: *mut window, face_id: face_id, format: Lisp_Object) -> c_i
 	  let mut prev: c_int = 0;
 	  let mut start: Lisp_Object = make_fixnum (0);
 	  let mut end: Lisp_Object;
-	  let mut elt: Lisp_Object = empty_unibyte_string;
+	  let mut elt: Lisp_Object = (*empty_unibyte_string.as_mut_ptr ());
 
 	  /* Display the mode line string one element by one element.
 	     This is to make the ranges of mouse highlighting
@@ -28495,7 +28493,7 @@ display_mode_line (w: *mut window, face_id: face_id, format: Lisp_Object) -> c_i
 
 	      display_string (core::ptr::null (), elt, Qnil (), 0, 0, &raw mut it, 0, 0, 0,
 			      STRING_MULTIBYTE (elt) as c_int);
-	      elt = empty_unibyte_string;
+	      elt = (*empty_unibyte_string.as_mut_ptr ());
 	      start = end;
 	      if !(XFIXNUM (end) < SCHARS (mode_string))
 		{ break; }
@@ -28664,8 +28662,8 @@ display_mode_element (it: *mut it, depth: c_int, field_width: c_int, precision: 
 	 two elements in the 'mode_line_string_list', but they should be
 	 considered as one element, so we cannot increment this number when
 	 "a" is stored.  */
-      if mode_line_target == MODE_LINE_STRING
-	{ mode_line_elt_no += 1; }
+      if (*mode_line_target.as_mut_ptr ()) == MODE_LINE_STRING
+	{ (*mode_line_elt_no.as_mut_ptr ()) += 1; }
 
       depth += 1;
 
@@ -28713,14 +28711,14 @@ display_mode_element (it: *mut it, depth: c_int, field_width: c_int, precision: 
 			    props = oprops;
 			  }
 
-			aelt = Fassoc (elt, mode_line_proptrans_alist, Qnil ());
+			aelt = Fassoc (elt, (*mode_line_proptrans_alist.as_mut_ptr ()), Qnil ());
 			if !NILP (aelt) && !NILP (Fequal (props, XCDR (aelt)))
 			  {
 			    /* AELT is what we want.  Move it to the front
 			       without consing.  */
 			    elt = XCAR (aelt);
-			    mode_line_proptrans_alist
-			      = move_elt_to_front (aelt, mode_line_proptrans_alist);
+			    (*mode_line_proptrans_alist.as_mut_ptr ())
+			      = move_elt_to_front (aelt, (*mode_line_proptrans_alist.as_mut_ptr ()));
 			  }
 			else
 			  {
@@ -28729,8 +28727,8 @@ display_mode_element (it: *mut it, depth: c_int, field_width: c_int, precision: 
 			    /* If AELT has the wrong props, it is useless.
 			       so get rid of it.  */
 			    if !NILP (aelt)
-			      { mode_line_proptrans_alist
-				  = Fdelq (aelt, mode_line_proptrans_alist); }
+			      { (*mode_line_proptrans_alist.as_mut_ptr ())
+				  = Fdelq (aelt, (*mode_line_proptrans_alist.as_mut_ptr ())); }
 
 			    elt = Fcopy_sequence (elt);
 			    /* PROPS might cause set-text-properties to signal
@@ -28747,13 +28745,13 @@ display_mode_element (it: *mut it, depth: c_int, field_width: c_int, precision: 
 						       args.as_mut_ptr (),
 						       Qt (), dsafe_eval_handler);
 			    /* Add this item to mode_line_proptrans_alist.  */
-			    mode_line_proptrans_alist
+			    (*mode_line_proptrans_alist.as_mut_ptr ())
 			      = Fcons (Fcons (elt, props),
-				       mode_line_proptrans_alist);
+				       (*mode_line_proptrans_alist.as_mut_ptr ()));
 			    /* Truncate mode_line_proptrans_alist
 			       to at most 50 elements.  */
 			    tem = Fnthcdr (make_fixnum (50),
-					   mode_line_proptrans_alist);
+					   (*mode_line_proptrans_alist.as_mut_ptr ()));
 			    if !NILP (tem)
 			      { XSETCDR (tem, Qnil ()); }
 			  }
@@ -28765,14 +28763,14 @@ display_mode_element (it: *mut it, depth: c_int, field_width: c_int, precision: 
 		if literal
 		  {
 		    prec = precision - n;
-		    match mode_line_target
+		    match (*mode_line_target.as_mut_ptr ())
 		      {
 			MODE_LINE_NOPROP | MODE_LINE_TITLE =>
 			  { n += store_mode_line_noprop (SSDATA (elt), -1, prec); }
 			MODE_LINE_STRING =>
 			  {
 			    AUTO_LIST2! (src, Qmode_line_elt_no (),
-					 make_fixnum (mode_line_elt_no));
+					 make_fixnum ((*mode_line_elt_no.as_mut_ptr ())));
 			    n += store_mode_line_string (core::ptr::null (), elt, true,
 							 0, prec, src);
 			  }
@@ -28790,7 +28788,7 @@ display_mode_element (it: *mut it, depth: c_int, field_width: c_int, precision: 
 
 		while (precision <= 0 || n < precision)
 		      && SREF (elt, offset as usize) != 0
-		      && (mode_line_target != MODE_LINE_DISPLAY
+		      && ((*mode_line_target.as_mut_ptr ()) != MODE_LINE_DISPLAY
 			  || (*it).current_x < (*it).last_visible_x)
 		  {
 		    let mut last_offset: ptrdiff_t = offset;
@@ -28815,7 +28813,7 @@ display_mode_element (it: *mut it, depth: c_int, field_width: c_int, precision: 
 					       offset - last_offset, precision - n,
 					       &raw mut nchars, &raw mut nbytes) as c_int;
 
-			match mode_line_target
+			match (*mode_line_target.as_mut_ptr ())
 			  {
 			    MODE_LINE_NOPROP | MODE_LINE_TITLE =>
 			      { n += store_mode_line_noprop (SSDATA (elt).offset (last_offset),
@@ -28833,7 +28831,7 @@ display_mode_element (it: *mut it, depth: c_int, field_width: c_int, precision: 
 				  = Fsubstring (elt, make_fixnum (charpos),
 						make_fixnum (endpos));
 				AUTO_LIST2! (src, Qmode_line_elt_no (),
-					     make_fixnum (mode_line_elt_no));
+					     make_fixnum ((*mode_line_elt_no.as_mut_ptr ())));
 				n += store_mode_line_string (core::ptr::null (),
 							     mode_string, false,
 							     0, 0, src);
@@ -28884,7 +28882,7 @@ display_mode_element (it: *mut it, depth: c_int, field_width: c_int, precision: 
 
 			if c == 'M' as c_int
 			  { n += display_mode_element (it, depth, field, prec,
-						       Vglobal_mode_string, props,
+						       (*Vglobal_mode_string.as_mut_ptr ()), props,
 						       risky); }
 			else if c != 0
 			  {
@@ -28912,7 +28910,7 @@ display_mode_element (it: *mut it, depth: c_int, field_width: c_int, precision: 
 			    if !(nbytes == nchars || nbytes != mb_nbytes)
 			      { multibyte = true; }
 
-			    match mode_line_target
+			    match (*mode_line_target.as_mut_ptr ())
 			      {
 				MODE_LINE_NOPROP | MODE_LINE_TITLE =>
 				  { n += store_mode_line_noprop (spec, field, prec); }
@@ -28921,7 +28919,7 @@ display_mode_element (it: *mut it, depth: c_int, field_width: c_int, precision: 
 				    let tem: Lisp_Object = build_string (spec);
 				    props = Ftext_properties_at (make_fixnum (charpos), elt);
 				    props = plist_put (props, Qmode_line_elt_no (),
-						       make_fixnum (mode_line_elt_no));
+						       make_fixnum ((*mode_line_elt_no.as_mut_ptr ())));
 				    /* Should only keep face property in props */
 				    n += store_mode_line_string (core::ptr::null (), tem,
 								 false, field, prec, props);
@@ -29144,7 +29142,7 @@ display_mode_element (it: *mut it, depth: c_int, field_width: c_int, precision: 
       /* Pad to FIELD_WIDTH.  */
       if field_width > 0 && n < field_width
 	{
-	  match mode_line_target
+	  match (*mode_line_target.as_mut_ptr ())
 	    {
 	    MODE_LINE_NOPROP | MODE_LINE_TITLE =>
 	      { n += store_mode_line_noprop (c"".as_ptr (), field_width - n, 0); }
@@ -29209,15 +29207,15 @@ store_mode_line_string (string: *const c_char, lisp_string: Lisp_Object,
 	    as ptrdiff_t;
       lisp_string = make_string (string, len);
       if NILP (props)
-	{ props = mode_line_string_face_prop; }
-      else if !NILP (mode_line_string_face)
+	{ props = (*mode_line_string_face_prop.as_mut_ptr ()); }
+      else if !NILP ((*mode_line_string_face.as_mut_ptr ()))
 	{
 	  let mut face: Lisp_Object = plist_get (props, Qface ());
 	  props = Fcopy_sequence (props);
 	  if NILP (face)
-	    { face = mode_line_string_face; }
+	    { face = (*mode_line_string_face.as_mut_ptr ()); }
 	  else
-	    { face = list2 (face, mode_line_string_face); }
+	    { face = list2 (face, (*mode_line_string_face.as_mut_ptr ())); }
 	  props = plist_put (props, Qface (), face);
 	}
       Fadd_text_properties (make_fixnum (0), make_fixnum (len),
@@ -29232,7 +29230,7 @@ store_mode_line_string (string: *const c_char, lisp_string: Lisp_Object,
 	  lisp_string = Fsubstring (lisp_string, make_fixnum (0), make_fixnum (len));
 	  precision = -1;
 	}
-      if !NILP (mode_line_string_face)
+      if !NILP ((*mode_line_string_face.as_mut_ptr ()))
 	{
 	  let mut face: Lisp_Object;
 	  let string_face: Lisp_Object
@@ -29248,9 +29246,9 @@ store_mode_line_string (string: *const c_char, lisp_string: Lisp_Object,
 		{ face = propface; }
 	    }
 	  if NILP (face)
-	    { face = mode_line_string_face; }
+	    { face = (*mode_line_string_face.as_mut_ptr ()); }
 	  else
-	    { face = list2 (face, mode_line_string_face); }
+	    { face = list2 (face, (*mode_line_string_face.as_mut_ptr ())); }
 	  props = Fcopy_sequence (props);
 	  props = plist_put (props, Qface (), face);
 	  if copy_string
@@ -29263,7 +29261,7 @@ store_mode_line_string (string: *const c_char, lisp_string: Lisp_Object,
 
   if len > 0
     {
-      mode_line_string_list = Fcons (lisp_string, mode_line_string_list);
+      (*mode_line_string_list.as_mut_ptr ()) = Fcons (lisp_string, (*mode_line_string_list.as_mut_ptr ()));
       n += len as c_int;
     }
 
@@ -29275,7 +29273,7 @@ store_mode_line_string (string: *const c_char, lisp_string: Lisp_Object,
       if !NILP (props)
 	{ Fadd_text_properties (make_fixnum (0), make_fixnum (field_width as EMACS_INT),
 				props, lisp_string); }
-      mode_line_string_list = Fcons (lisp_string, mode_line_string_list);
+      (*mode_line_string_list.as_mut_ptr ()) = Fcons (lisp_string, (*mode_line_string_list.as_mut_ptr ()));
       n += field_width;
     }
 
@@ -29315,8 +29313,8 @@ DEFUN! ("format-mode-line", Fformat_mode_line, Sformat_mode_line,
 
   /* Make formatting the modeline a non-op when noninteractive, otherwise
      there will be problems later caused by a partially initialized frame.  */
-  if NILP (format) || noninteractive
-    { return empty_unibyte_string; }
+  if NILP (format) || (*noninteractive.as_mut_ptr ())
+    { return (*empty_unibyte_string.as_mut_ptr ()); }
 
   if no_props
     { face = Qnil (); }
@@ -29326,7 +29324,7 @@ DEFUN! ("format-mode-line", Fformat_mode_line, Sformat_mode_line,
   face_id = if NILP (face) || EQ (face, Qdefault ()) { DEFAULT_FACE_ID }
 	    else if EQ (face, Qt ())
 	      {
-		if EQ (window, selected_window)
+		if EQ (window, (*selected_window.as_mut_ptr ()))
 		  { MODE_LINE_ACTIVE_FACE_ID }
 		else
 		  { MODE_LINE_INACTIVE_FACE_ID }
@@ -29342,7 +29340,7 @@ DEFUN! ("format-mode-line", Fformat_mode_line, Sformat_mode_line,
 	    else { DEFAULT_FACE_ID };
 
   if EQ (face, Qt ())
-    { face = if EQ (window, selected_window) { Qmode_line_active () } else { Qmode_line_inactive () }; }
+    { face = if EQ (window, (*selected_window.as_mut_ptr ())) { Qmode_line_active () } else { Qmode_line_inactive () }; }
   else if EQ (face, Qdefault ())
     { face = Qnil (); }
 
@@ -29352,14 +29350,14 @@ DEFUN! ("format-mode-line", Fformat_mode_line, Sformat_mode_line,
      and set that to nil so that we don't alter the outer value.  */
   record_unwind_protect (Some (unwind_format_mode_line),
 			 format_mode_line_unwind_data (XFRAME (WINDOW_FRAME! (w)),
-						       old_buffer, selected_window, true));
-  mode_line_proptrans_alist = Qnil ();
+						       old_buffer, (*selected_window.as_mut_ptr ()), true));
+  (*mode_line_proptrans_alist.as_mut_ptr ()) = Qnil ();
 
   Fselect_window (window, Qt ());
   set_buffer_internal_1 (XBUFFER (buffer));
 
   init_iterator (&raw mut it, w, -1, -1, core::ptr::null_mut (), face_id);
-  dont_resize_frames += 1;
+  (*dont_resize_frames.as_mut_ptr ()) += 1;
 
   /* Make sure `base_line_number` is fresh in case we encounter a `%l`.  */
   if current_buffer! () == XBUFFER ((*w).contents)
@@ -29368,36 +29366,36 @@ DEFUN! ("format-mode-line", Fformat_mode_line, Sformat_mode_line,
 
   if no_props
     {
-      mode_line_target = MODE_LINE_NOPROP;
-      mode_line_string_face_prop = Qnil ();
-      mode_line_string_list = Qnil ();
+      (*mode_line_target.as_mut_ptr ()) = MODE_LINE_NOPROP;
+      (*mode_line_string_face_prop.as_mut_ptr ()) = Qnil ();
+      (*mode_line_string_list.as_mut_ptr ()) = Qnil ();
       string_start = MODE_LINE_NOPROP_LEN! (0) as c_int;
     }
   else
     {
-      mode_line_target = MODE_LINE_STRING;
-      mode_line_string_list = Qnil ();
-      mode_line_string_face = face;
-      mode_line_string_face_prop
+      (*mode_line_target.as_mut_ptr ()) = MODE_LINE_STRING;
+      (*mode_line_string_list.as_mut_ptr ()) = Qnil ();
+      (*mode_line_string_face.as_mut_ptr ()) = face;
+      (*mode_line_string_face_prop.as_mut_ptr ())
 	= if NILP (face) { Qnil () } else { list2 (Qface (), face) };
     }
 
   push_kboard (FRAME_KBOARD (it.f) as *mut kboard);
-  mode_line_elt_no = 0;
+  (*mode_line_elt_no.as_mut_ptr ()) = 0;
   display_mode_element (&raw mut it, 0, 0, 0, format, Qnil (), false);
   pop_kboard ();
 
   if no_props
     {
       len = MODE_LINE_NOPROP_LEN! (string_start) as c_int;
-      str = make_string (mode_line_noprop_buf.offset (string_start as isize),
+      str = make_string ((*mode_line_noprop_buf.as_mut_ptr ()).offset (string_start as isize),
 			 len as ptrdiff_t);
     }
   else
     {
-      mode_line_string_list = Fnreverse (mode_line_string_list);
-      str = Fmapconcat (Qidentity (), mode_line_string_list,
-			empty_unibyte_string);
+      (*mode_line_string_list.as_mut_ptr ()) = Fnreverse ((*mode_line_string_list.as_mut_ptr ()));
+      str = Fmapconcat (Qidentity (), (*mode_line_string_list.as_mut_ptr ()),
+			(*empty_unibyte_string.as_mut_ptr ()));
     }
 
   return unbind_to (count, str);
@@ -29583,7 +29581,7 @@ pint2hrstr (buf: *mut c_char, width: c_int, d: ptrdiff_t)
 
 /* C 29336's `static unsigned char invalid_eol_type[] = "(*invalid*)";` - the array keeps C's
    `sizeof` (twelve bytes, the NUL included) for `decode_mode_spec_coding`'s length.  */
-static mut invalid_eol_type: [u8; 12] = *b"(*invalid*)\0";
+static invalid_eol_type: VmGlobal<[u8; 12]> = VmGlobal::<[u8; 12]>::new (*b"(*invalid*)\0");
 
 unsafe fn
 decode_mode_spec_coding (coding_system: Lisp_Object, buf: *mut c_char,
@@ -29608,7 +29606,7 @@ decode_mode_spec_coding (coding_system: Lisp_Object, buf: *mut c_char,
       *buf = if multibyte { b'-' as c_char } else { b' ' as c_char };
       buf = buf.offset (1);
       if eol_flag
-	{ eoltype = eol_mnemonic_undecided; }
+	{ eoltype = (*eol_mnemonic_undecided.as_mut_ptr ()); }
       /* Don't mention EOL conversion if it isn't decided.  */
     }
   else
@@ -29630,17 +29628,17 @@ decode_mode_spec_coding (coding_system: Lisp_Object, buf: *mut c_char,
 	  /* The EOL conversion that is normal on this system.  */
 
 	  if NILP (eolvalue)	/* Not yet decided.  */
-	    { eoltype = eol_mnemonic_undecided; }
+	    { eoltype = (*eol_mnemonic_undecided.as_mut_ptr ()); }
 	  else if VECTORP (eolvalue) /* Not yet decided.  */
-	    { eoltype = eol_mnemonic_undecided; }
+	    { eoltype = (*eol_mnemonic_undecided.as_mut_ptr ()); }
 	  else			/* eolvalue is Qunix, Qdos, or Qmac.  */
 	    {
 	      eoltype = if EQ (eolvalue, Qunix ())
-		{ eol_mnemonic_unix }
+		{ (*eol_mnemonic_unix.as_mut_ptr ()) }
 		else if EQ (eolvalue, Qdos ())
-		{ eol_mnemonic_dos }
+		{ (*eol_mnemonic_dos.as_mut_ptr ()) }
 		else
-		{ eol_mnemonic_mac };
+		{ (*eol_mnemonic_mac.as_mut_ptr ()) };
 	    }
 	}
     }
@@ -29660,8 +29658,8 @@ decode_mode_spec_coding (coding_system: Lisp_Object, buf: *mut c_char,
 	}
       else
 	{
-	  eol_str = femacs_array_ptr (&raw const invalid_eol_type);
-	  eol_str_len = femacs_sizeof_ptr (&raw const invalid_eol_type) as c_int - 1;
+	  eol_str = femacs_array_ptr (invalid_eol_type.as_ptr ());
+	  eol_str_len = femacs_sizeof_ptr (invalid_eol_type.as_ptr ()) as c_int - 1;
 	}
       memcpy (buf as *mut c_void, eol_str as *const c_void, eol_str_len as usize);
       buf = buf.offset (eol_str_len as isize);
@@ -29693,7 +29691,7 @@ percent99 (n: ptrdiff_t, d: ptrdiff_t) -> c_int
 /* C 29431's `static char lots_of_dashes[]` - the port keeps the array and C's terminator
    (so `sizeof` below is `size_of_val`); a `b"-…"` byte string cannot initialize a
    `[c_char; 141]`, hence the C element list the `fileio.rs` `appended` row uses.  */
-static mut lots_of_dashes: [c_char; 141] = [
+static lots_of_dashes: VmGlobal<[c_char; 141]> = VmGlobal::<[c_char; 141]>::new ([
   b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char,
   b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char,
   b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char,
@@ -29708,7 +29706,7 @@ static mut lots_of_dashes: [c_char; 141] = [
   b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char,
   b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char,
   b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char,
-  0];
+  0]);
 
 unsafe fn
 decode_mode_spec (w: *mut window, c: c_int, field_width: c_int,
@@ -29771,10 +29769,10 @@ decode_mode_spec (w: *mut window, c: c_int, field_width: c_int,
 	{
 	  let mut i: c_int = 0;
 
-	  if command_loop_level > 5
+	  if (*command_loop_level.as_mut_ptr ()) > 5
 	    { return c"[[[... ".as_ptr (); }
 	  let mut p: *mut c_char = decode_mode_spec_buf;
-	  while i < command_loop_level as c_int
+	  while i < (*command_loop_level.as_mut_ptr ()) as c_int
 	    {
 	      *p = b'[' as c_char;
 	      p = p.offset (1);
@@ -29788,10 +29786,10 @@ decode_mode_spec (w: *mut window, c: c_int, field_width: c_int,
 	{
 	  let mut i: c_int = 0;
 
-	  if command_loop_level > 5
+	  if (*command_loop_level.as_mut_ptr ()) > 5
 	    { return c" ...]]]".as_ptr (); }
 	  let mut p: *mut c_char = decode_mode_spec_buf;
-	  while i < command_loop_level as c_int
+	  while i < (*command_loop_level.as_mut_ptr ()) as c_int
 	    {
 	      *p = b']' as c_char;
 	      p = p.offset (1);
@@ -29806,11 +29804,11 @@ decode_mode_spec (w: *mut window, c: c_int, field_width: c_int,
 	  let mut i: c_int = 0;
 
 	  /* Let lots_of_dashes be a string of infinite length.  */
-	  if mode_line_target == MODE_LINE_NOPROP
-	      || mode_line_target == MODE_LINE_STRING
+	  if (*mode_line_target.as_mut_ptr ()) == MODE_LINE_NOPROP
+	      || (*mode_line_target.as_mut_ptr ()) == MODE_LINE_STRING
 	    { return c"--".as_ptr (); }
 	  if field_width <= 0
-	      || field_width as usize > femacs_sizeof_ptr (&raw const lots_of_dashes)
+	      || field_width as usize > femacs_sizeof_ptr (lots_of_dashes.as_ptr ())
 	    {
 	      while i < FRAME_MESSAGE_BUF_SIZE (f) - 1
 		{
@@ -29821,7 +29819,7 @@ decode_mode_spec (w: *mut window, c: c_int, field_width: c_int,
 	      return decode_mode_spec_buf;
 	    }
 	  else
-	    { return femacs_array_ptr (&raw const lots_of_dashes); }
+	    { return femacs_array_ptr (lots_of_dashes.as_ptr ()); }
 	}
 
       0x62 =>			/* 'b' */
@@ -29835,7 +29833,7 @@ decode_mode_spec (w: *mut window, c: c_int, field_width: c_int,
 	     windows are updated, so the stuff which depends on actual
 	     window contents (such as %l) may fail to render properly, or
 	     even crash emacs.)  */
-	  if mode_line_target == MODE_LINE_TITLE
+	  if (*mode_line_target.as_mut_ptr ()) == MODE_LINE_TITLE
 	    { return c"".as_ptr (); }
 	  else
 	    {
@@ -29903,7 +29901,7 @@ decode_mode_spec (w: *mut window, c: c_int, field_width: c_int,
 	     no_value`s are its two `break 'no_value`s (deviation 284).  */
 	  'no_value: {
 	  /* %c, %C, and %l are ignored in `frame-title-format'.  */
-	  if mode_line_target == MODE_LINE_TITLE
+	  if (*mode_line_target.as_mut_ptr ()) == MODE_LINE_TITLE
 	    { return c"".as_ptr (); }
 
 	  startpos = marker_position ((*w).start);
@@ -29932,8 +29930,8 @@ decode_mode_spec (w: *mut window, c: c_int, field_width: c_int,
 	    { break 'no_value; }
 
 	  /* If the buffer is very big, don't waste time.  */
-	  if FIXNUMP (Vline_number_display_limit)
-	      && BUF_ZV (b) - BUF_BEGV (b) > XFIXNUM (Vline_number_display_limit)
+	  if FIXNUMP ((*Vline_number_display_limit.as_mut_ptr ()))
+	      && BUF_ZV (b) - BUF_BEGV (b) > XFIXNUM ((*Vline_number_display_limit.as_mut_ptr ()))
 	    { break 'no_value; }
 
 	  /* Callers of `display_mode_element` are in charge of flushing
@@ -29984,12 +29982,12 @@ decode_mode_spec (w: *mut window, c: c_int, field_width: c_int,
 		 the overflow test, P-15/the `casefiddle.rs` shape).  */
 	      let mut distance: ptrdiff_t = 0;
 
-	      if line_number_display_limit_width < 0
+	      if (*line_number_display_limit_width.as_mut_ptr ()) < 0
 		{ distance = 0; }
 	      else
 		{
 		  let (mul, mul_overflowed)
-		    = (line_number_display_limit_width as isize)
+		    = ((*line_number_display_limit_width.as_mut_ptr ()) as isize)
 		      .overflowing_mul (height * 2 + 30);
 		  distance = mul;
 		  if mul_overflowed
@@ -30031,7 +30029,7 @@ decode_mode_spec (w: *mut window, c: c_int, field_width: c_int,
 					PT_BYTE! (), PT! (), &raw mut junk);
 
 	  /* Record that we did display the line number.  */
-	  line_number_displayed = true;
+	  (*line_number_displayed.as_mut_ptr ()) = true;
 
 	  /* Make the string to show.  */
 	  pint2str (decode_mode_spec_buf, width, topline + nlines);
@@ -31246,7 +31244,7 @@ pub unsafe extern "C-unwind" fn produce_stretch_glyph (it: *mut it)
 	  + if it_bits! (align_visually_p, it) { 0 } else { (*it).continuation_lines_width };
       let x0: c_int = x;
       /* Adjust for line numbers, if needed.   */
-      if !NILP (Vdisplay_line_numbers) && it_bits! (line_number_produced_p, it)
+      if !NILP ((*Vdisplay_line_numbers.as_mut_ptr ())) && it_bits! (line_number_produced_p, it)
 	{
 	  x -= (*it).lnum_pixel_width;
 	  /* Restore the original width, if required.  */
@@ -31266,7 +31264,7 @@ pub unsafe extern "C-unwind" fn produce_stretch_glyph (it: *mut it)
       width = max (0, (tem as c_int + align_to - x) as isize) as c_int;
 
       let mut next_x: c_int = x + width;
-      if !NILP (Vdisplay_line_numbers) && it_bits! (line_number_produced_p, it)
+      if !NILP ((*Vdisplay_line_numbers.as_mut_ptr ())) && it_bits! (line_number_produced_p, it)
 	{
 	  /* If the line is hscrolled, and the stretch starts before
 	     the first visible pixel, simulate negative row->x.  */
@@ -31395,7 +31393,7 @@ unsafe fn produce_special_glyphs (it: *mut it, what: display_element_type,
 		 special_mirror_table.  */
 	      if c == GLYPH_CODE_CHAR (gc)
 		{
-		  val = CHAR_TABLE_REF (Vspecial_mirror_table,
+		  val = CHAR_TABLE_REF ((*Vspecial_mirror_table.as_mut_ptr ()),
 					GLYPH_CODE_CHAR (gc) as isize);
 		  if FIXNUMP (val)
 		    {
@@ -31453,7 +31451,7 @@ unsafe fn produce_special_glyphs (it: *mut it, what: display_element_type,
 		 special_mirror_table.  */
 	      if c == GLYPH_CODE_CHAR (gc)
 		{
-		  val = CHAR_TABLE_REF (Vspecial_mirror_table,
+		  val = CHAR_TABLE_REF ((*Vspecial_mirror_table.as_mut_ptr ()),
 					GLYPH_CODE_CHAR (gc) as isize);
 		  if FIXNUMP (val)
 		    {
@@ -31647,7 +31645,7 @@ pub unsafe extern "C-unwind" fn set_frame_cursor_types (f: *mut frame, arg: Lisp
 
   /* By default, set up the blink-off state depending on the on-state.  */
 
-  tem = Fassoc (arg, Vblink_cursor_alist, Qnil ());
+  tem = Fassoc (arg, (*Vblink_cursor_alist.as_mut_ptr ()), Qnil ());
   if !NILP (tem)
     {
       FRAME_BLINK_OFF_CURSOR! (f) = get_specified_cursor_type (XCDR (tem), &raw mut width);
@@ -32759,18 +32757,18 @@ unsafe fn note_line_or_margin_highlight (window: Lisp_Object, mut x: c_int, mut 
 
 	  if !NILP (help)
 	    {
-	      help_echo_string = help;
-	      XSETWINDOW! (help_echo_window, w);
-	      help_echo_object = string;
-	      help_echo_pos = charpos;
+	      (*help_echo_string.as_mut_ptr ()) = help;
+	      XSETWINDOW! ((*help_echo_window.as_mut_ptr ()), w);
+	      (*help_echo_object.as_mut_ptr ()) = string;
+	      (*help_echo_pos.as_mut_ptr ()) = charpos;
 	    }
 	  else if area == ON_MODE_LINE
 		   && !NILP ((*w).mode_line_help_echo)
 	    {
-	      help_echo_string = (*w).mode_line_help_echo;
-	      XSETWINDOW! (help_echo_window, w);
-	      help_echo_object = Qnil ();
-	      help_echo_pos = -1;
+	      (*help_echo_string.as_mut_ptr ()) = (*w).mode_line_help_echo;
+	      XSETWINDOW! ((*help_echo_window.as_mut_ptr ()), w);
+	      (*help_echo_object.as_mut_ptr ()) = Qnil ();
+	      (*help_echo_pos.as_mut_ptr ()) = -1;
 	    }
 	}
 
@@ -32785,7 +32783,7 @@ unsafe fn note_line_or_margin_highlight (window: Lisp_Object, mut x: c_int, mut 
   if STRINGP (string)
     {
       mouse_face = Fget_text_property (pos, Qmouse_face (), string);
-      if !NILP (Vmouse_highlight) && !NILP (mouse_face)
+      if !NILP ((*Vmouse_highlight.as_mut_ptr ())) && !NILP (mouse_face)
 	  && (area == ON_MODE_LINE || area == ON_HEADER_LINE
 	      || area == ON_TAB_LINE)
 	  && !glyph.is_null ()
@@ -32998,7 +32996,7 @@ pub unsafe extern "C-unwind" fn note_mouse_highlight (f: *mut frame, mut x: c_in
     { clear_mouse_face (hlinfo); }
 
   /* Reset help_echo_string.  It will get recomputed below.  */
-  help_echo_string = Qnil ();
+  (*help_echo_string.as_mut_ptr ()) = Qnil ();
 
   /* Handle tab-bar highlight on mouse-capable TTY frames.  */
   if !FRAME_WINDOW_P (f)
@@ -33013,14 +33011,14 @@ pub unsafe extern "C-unwind" fn note_mouse_highlight (f: *mut frame, mut x: c_in
 
       if !NILP (caption)
 	{
-	  help_echo_object = Qnil ();
-	  help_echo_window = Qnil ();
-	  help_echo_pos = -1;
-	  help_echo_string = AREF ((*f).tab_bar_items,
+	  (*help_echo_object.as_mut_ptr ()) = Qnil ();
+	  (*help_echo_window.as_mut_ptr ()) = Qnil ();
+	  (*help_echo_pos.as_mut_ptr ()) = -1;
+	  (*help_echo_string.as_mut_ptr ()) = AREF ((*f).tab_bar_items,
 				   (prop_idx * TAB_BAR_ITEM_NSLOTS
 				    + TAB_BAR_ITEM_HELP) as isize);
-	  if NILP (help_echo_string)
-	    { help_echo_string = caption; }
+	  if NILP ((*help_echo_string.as_mut_ptr ()))
+	    { (*help_echo_string.as_mut_ptr ()) = caption; }
 	}
     }
 
@@ -33154,7 +33152,7 @@ pub unsafe extern "C-unwind" fn note_mouse_highlight (f: *mut frame, mut x: c_in
 	  else
 	    { noverlays = 0; }
 
-	  if NILP (Vmouse_highlight)
+	  if NILP ((*Vmouse_highlight.as_mut_ptr ()))
 	    {
 	      clear_mouse_face (hlinfo);
 	      break 'check_help_echo;
@@ -33335,7 +33333,7 @@ pub unsafe extern "C-unwind" fn note_mouse_highlight (f: *mut frame, mut x: c_in
 	  /* check_help_echo: (C 37578)  */
 
 	  /* Look for a `help-echo' property.  */
-	  if NILP (help_echo_string) {
+	  if NILP ((*help_echo_string.as_mut_ptr ())) {
 	    let mut help: Lisp_Object;
 	    let mut overlay: Lisp_Object;
 
@@ -33352,10 +33350,10 @@ pub unsafe extern "C-unwind" fn note_mouse_highlight (f: *mut frame, mut x: c_in
 
 	    if !NILP (help)
 	      {
-		help_echo_string = help;
-		help_echo_window = window;
-		help_echo_object = overlay;
-		help_echo_pos = pos;
+		(*help_echo_string.as_mut_ptr ()) = help;
+		(*help_echo_window.as_mut_ptr ()) = window;
+		(*help_echo_object.as_mut_ptr ()) = overlay;
+		(*help_echo_pos.as_mut_ptr ()) = pos;
 	      }
 	    else
 	      {
@@ -33399,10 +33397,10 @@ pub unsafe extern "C-unwind" fn note_mouse_highlight (f: *mut frame, mut x: c_in
 
 		if !NILP (help)
 		  {
-		    help_echo_string = help;
-		    help_echo_window = window;
-		    help_echo_object = obj;
-		    help_echo_pos = charpos;
+		    (*help_echo_string.as_mut_ptr ()) = help;
+		    (*help_echo_window.as_mut_ptr ()) = window;
+		    (*help_echo_object.as_mut_ptr ()) = obj;
+		    (*help_echo_pos.as_mut_ptr ()) = charpos;
 		  }
 	      }
 	  }
@@ -33479,193 +33477,193 @@ pub unsafe extern "C-unwind" fn cancel_mouse_face (f: *mut frame)
    the port's initialisers are `lisp_h_Qnil ()`/`false`/`0`; the values `syms_of_xdisp` sets
    below are C's own.  */
 #[unsafe(no_mangle)]
-pub static mut scroll_minibuffer_conservatively: bool = false;
+pub static scroll_minibuffer_conservatively: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut inhibit_message: bool = false;
+pub static inhibit_message: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut Vmessages_buffer_name: Lisp_Object = lisp_h_Qnil ();
+pub static Vmessages_buffer_name: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[cfg (feature = "have_window_system")]
-#[unsafe(no_mangle)] pub static mut x_stretch_cursor_p: bool = false;   // x-stretch-cursor
+#[unsafe(no_mangle)] pub static x_stretch_cursor_p: VmGlobal<bool> = VmGlobal::<bool>::new (false);   // x-stretch-cursor
 #[unsafe(no_mangle)]
-pub static mut Vshow_trailing_whitespace: Lisp_Object = lisp_h_Qnil ();
+pub static Vshow_trailing_whitespace: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vmode_line_compact: Lisp_Object = lisp_h_Qnil ();
+pub static Vmode_line_compact: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vnobreak_char_display: Lisp_Object = lisp_h_Qnil ();
+pub static Vnobreak_char_display: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut nobreak_char_ascii_display: bool = false;
+pub static nobreak_char_ascii_display: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut Vvoid_text_area_pointer: Lisp_Object = lisp_h_Qnil ();
+pub static Vvoid_text_area_pointer: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vinhibit_redisplay: Lisp_Object = lisp_h_Qnil ();
+pub static Vinhibit_redisplay: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vglobal_mode_string: Lisp_Object = lisp_h_Qnil ();
+pub static Vglobal_mode_string: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Voverlay_arrow_position: Lisp_Object = lisp_h_Qnil ();
+pub static Voverlay_arrow_position: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Voverlay_arrow_string: Lisp_Object = lisp_h_Qnil ();
+pub static Voverlay_arrow_string: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Voverlay_arrow_variable_list: Lisp_Object = lisp_h_Qnil ();
+pub static Voverlay_arrow_variable_list: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut emacs_scroll_step: EMACS_INT = 0;
+pub static emacs_scroll_step: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);
 #[unsafe(no_mangle)]
-pub static mut scroll_conservatively: EMACS_INT = 0;
+pub static scroll_conservatively: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);
 #[unsafe(no_mangle)]
-pub static mut scroll_margin: EMACS_INT = 0;
+pub static scroll_margin: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);
 #[unsafe(no_mangle)]
-pub static mut Vmaximum_scroll_margin: Lisp_Object = lisp_h_Qnil ();
+pub static Vmaximum_scroll_margin: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vdisplay_pixels_per_inch: Lisp_Object = lisp_h_Qnil ();
+pub static Vdisplay_pixels_per_inch: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vtruncate_partial_width_windows: Lisp_Object = lisp_h_Qnil ();
+pub static Vtruncate_partial_width_windows: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut word_wrap_by_category: bool = false;
+pub static word_wrap_by_category: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut Vline_number_display_limit: Lisp_Object = lisp_h_Qnil ();
+pub static Vline_number_display_limit: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut line_number_display_limit_width: EMACS_INT = 0;
+pub static line_number_display_limit_width: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);
 #[unsafe(no_mangle)]
-pub static mut highlight_nonselected_windows: bool = false;
+pub static highlight_nonselected_windows: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut multiple_frames: bool = false;
+pub static multiple_frames: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut Vframe_title_format: Lisp_Object = lisp_h_Qnil ();
+pub static Vframe_title_format: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vicon_title_format: Lisp_Object = lisp_h_Qnil ();
+pub static Vicon_title_format: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vmessage_log_max: Lisp_Object = lisp_h_Qnil ();
+pub static Vmessage_log_max: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vwindow_scroll_functions: Lisp_Object = lisp_h_Qnil ();
+pub static Vwindow_scroll_functions: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vmouse_autoselect_window: Lisp_Object = lisp_h_Qnil ();
+pub static Vmouse_autoselect_window: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vauto_resize_tab_bars: Lisp_Object = lisp_h_Qnil ();
+pub static Vauto_resize_tab_bars: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut auto_raise_tab_bar_buttons_p: bool = false;
+pub static auto_raise_tab_bar_buttons_p: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut Vauto_resize_tool_bars: Lisp_Object = lisp_h_Qnil ();
+pub static Vauto_resize_tool_bars: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut auto_raise_tool_bar_buttons_p: bool = false;
+pub static auto_raise_tool_bar_buttons_p: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut Vmake_cursor_line_fully_visible: Lisp_Object = lisp_h_Qnil ();
+pub static Vmake_cursor_line_fully_visible: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut make_window_start_visible: bool = false;
+pub static make_window_start_visible: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut tab_bar_truncate: bool = false;
+pub static tab_bar_truncate: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut Vtab_bar_border: Lisp_Object = lisp_h_Qnil ();
+pub static Vtab_bar_border: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vtab_bar_button_margin: Lisp_Object = lisp_h_Qnil ();
+pub static Vtab_bar_button_margin: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut tab_bar_button_relief: EMACS_INT = 0;
+pub static tab_bar_button_relief: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);
 #[unsafe(no_mangle)]
-pub static mut Vtool_bar_border: Lisp_Object = lisp_h_Qnil ();
+pub static Vtool_bar_border: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vtool_bar_button_margin: Lisp_Object = lisp_h_Qnil ();
+pub static Vtool_bar_button_margin: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut tool_bar_button_relief: EMACS_INT = 0;
+pub static tool_bar_button_relief: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);
 #[unsafe(no_mangle)]
-pub static mut Vtool_bar_style: Lisp_Object = lisp_h_Qnil ();
+pub static Vtool_bar_style: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut tool_bar_max_label_size: EMACS_INT = 0;
+pub static tool_bar_max_label_size: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);
 #[unsafe(no_mangle)]
-pub static mut Vfontification_functions: Lisp_Object = lisp_h_Qnil ();
+pub static Vfontification_functions: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut unibyte_display_via_language_environment: bool = false;
+pub static unibyte_display_via_language_environment: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut Vmax_mini_window_height: Lisp_Object = lisp_h_Qnil ();
+pub static Vmax_mini_window_height: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vresize_mini_windows: Lisp_Object = lisp_h_Qnil ();
+pub static Vresize_mini_windows: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vblink_cursor_alist: Lisp_Object = lisp_h_Qnil ();
+pub static Vblink_cursor_alist: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut automatic_hscrolling: Lisp_Object = lisp_h_Qnil ();
+pub static automatic_hscrolling: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut hscroll_margin: EMACS_INT = 0;
+pub static hscroll_margin: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);
 #[unsafe(no_mangle)]
-pub static mut Vhscroll_step: Lisp_Object = lisp_h_Qnil ();
+pub static Vhscroll_step: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut message_truncate_lines: bool = false;
+pub static message_truncate_lines: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut Vmenu_bar_update_hook: Lisp_Object = lisp_h_Qnil ();
+pub static Vmenu_bar_update_hook: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vmenu_updating_frame: Lisp_Object = lisp_h_Qnil ();
+pub static Vmenu_updating_frame: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut inhibit_menubar_update: bool = false;
+pub static inhibit_menubar_update: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut Vwrap_prefix: Lisp_Object = lisp_h_Qnil ();
+pub static Vwrap_prefix: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vline_prefix: Lisp_Object = lisp_h_Qnil ();
+pub static Vline_prefix: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vdisplay_line_numbers: Lisp_Object = lisp_h_Qnil ();
+pub static Vdisplay_line_numbers: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vdisplay_line_numbers_width: Lisp_Object = lisp_h_Qnil ();
+pub static Vdisplay_line_numbers_width: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vdisplay_line_numbers_current_absolute: Lisp_Object = lisp_h_Qnil ();
+pub static Vdisplay_line_numbers_current_absolute: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut display_line_numbers_widen: bool = false;
+pub static display_line_numbers_widen: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut display_line_numbers_offset: EMACS_INT = 0;
+pub static display_line_numbers_offset: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);
 #[unsafe(no_mangle)]
-pub static mut display_fill_column_indicator: bool = false;
+pub static display_fill_column_indicator: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut Vdisplay_fill_column_indicator_column: Lisp_Object = lisp_h_Qnil ();
+pub static Vdisplay_fill_column_indicator_column: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vdisplay_fill_column_indicator_character: Lisp_Object = lisp_h_Qnil ();
+pub static Vdisplay_fill_column_indicator_character: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut display_line_numbers_major_tick: EMACS_INT = 0;
+pub static display_line_numbers_major_tick: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);
 #[unsafe(no_mangle)]
-pub static mut display_line_numbers_minor_tick: EMACS_INT = 0;
+pub static display_line_numbers_minor_tick: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);
 #[unsafe(no_mangle)]
-pub static mut inhibit_eval_during_redisplay: bool = false;
+pub static inhibit_eval_during_redisplay: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut inhibit_free_realized_faces: bool = false;
+pub static inhibit_free_realized_faces: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut inhibit_bidi_mirroring: bool = false;
+pub static inhibit_bidi_mirroring: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut bidi_inhibit_bpa: bool = false;
+pub static bidi_inhibit_bpa: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut overline_margin: EMACS_INT = 0;
+pub static overline_margin: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);
 #[unsafe(no_mangle)]
-pub static mut underline_minimum_offset: EMACS_INT = 0;
+pub static underline_minimum_offset: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);
 #[unsafe(no_mangle)]
-pub static mut display_hourglass_p: bool = false;
+pub static display_hourglass_p: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut Vhourglass_delay: Lisp_Object = lisp_h_Qnil ();
+pub static Vhourglass_delay: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vpre_redisplay_function: Lisp_Object = lisp_h_Qnil ();
+pub static Vpre_redisplay_function: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vglyphless_char_display: Lisp_Object = lisp_h_Qnil ();
+pub static Vglyphless_char_display: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vspecial_mirror_table: Lisp_Object = lisp_h_Qnil ();
+pub static Vspecial_mirror_table: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vdebug_on_message: Lisp_Object = lisp_h_Qnil ();
+pub static Vdebug_on_message: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vset_message_function: Lisp_Object = lisp_h_Qnil ();
+pub static Vset_message_function: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vclear_message_function: Lisp_Object = lisp_h_Qnil ();
+pub static Vclear_message_function: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vredisplay__all_windows_cause: Lisp_Object = lisp_h_Qnil ();
+pub static Vredisplay__all_windows_cause: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vredisplay__mode_lines_cause: Lisp_Object = lisp_h_Qnil ();
+pub static Vredisplay__mode_lines_cause: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut redisplay__inhibit_bidi: bool = false;
+pub static redisplay__inhibit_bidi: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut display_raw_bytes_as_hex: bool = false;
+pub static display_raw_bytes_as_hex: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut mouse_fine_grained_tracking: bool = false;
+pub static mouse_fine_grained_tracking: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut tab_bar__dragging_in_progress: bool = false;
+pub static tab_bar__dragging_in_progress: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut redisplay_skip_initial_frame: bool = false;
+pub static redisplay_skip_initial_frame: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut redisplay_skip_fontification_on_input: bool = false;
+pub static redisplay_skip_fontification_on_input: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut redisplay_adhoc_scroll_in_resize_mini_windows: bool = false;
+pub static redisplay_adhoc_scroll_in_resize_mini_windows: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut composition_break_at_point: bool = false;
+pub static composition_break_at_point: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut max_redisplay_ticks: EMACS_INT = 0;
+pub static max_redisplay_ticks: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);
 
 
 /* C 38295-38348 and 38355-38405: the two rectangle helpers of the window-system region
@@ -33798,13 +33796,13 @@ pub unsafe extern "C-unwind" fn cancel_hourglass ()
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  if !hourglass_atimer.is_null ()
+  if !(*hourglass_atimer.as_mut_ptr ()).is_null ()
     {
-      cancel_atimer (hourglass_atimer);
-      hourglass_atimer = std::ptr::null_mut ();
+      cancel_atimer ((*hourglass_atimer.as_mut_ptr ()));
+      (*hourglass_atimer.as_mut_ptr ()) = std::ptr::null_mut ();
     }
 
-  if hourglass_shown_p
+  if (*hourglass_shown_p.as_mut_ptr ())
     {
       let mut tail: Lisp_Object = Qnil ();      // C 39667: `Lisp_Object tail, frame;`
       let mut frame: Lisp_Object = Qnil ();
@@ -33826,7 +33824,7 @@ pub unsafe extern "C-unwind" fn cancel_hourglass ()
 	    }
       });
 
-      hourglass_shown_p = false;
+      (*hourglass_shown_p.as_mut_ptr ()) = false;
       unblock_input ();
     }
 
@@ -33844,9 +33842,9 @@ unsafe extern "C-unwind" fn show_hourglass (_timer: *mut atimer)
   /* The timer implementation will cancel this timer automatically
      after this function has run.  Set hourglass_atimer to null
      so that we know the timer doesn't have to be canceled.  */
-  hourglass_atimer = std::ptr::null_mut ();
+  (*hourglass_atimer.as_mut_ptr ()) = std::ptr::null_mut ();
 
-  if !hourglass_shown_p
+  if !(*hourglass_shown_p.as_mut_ptr ())
     {
       let mut tail: Lisp_Object = Qnil ();      // C 39610: `Lisp_Object tail, frame;`
       let mut frame: Lisp_Object = Qnil ();
@@ -33866,7 +33864,7 @@ unsafe extern "C-unwind" fn show_hourglass (_timer: *mut atimer)
 	    }
       });
 
-      hourglass_shown_p = true;
+      (*hourglass_shown_p.as_mut_ptr ()) = true;
       unblock_input ();
     }
 
@@ -33886,13 +33884,13 @@ pub unsafe extern "C-unwind" fn start_hourglass ()
 
   /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { /* C's `XFIXNUM`/`XFLOAT_DATA` read the tagged object; the mirror's accessors are the
 	      C macros' own (PORTING.md 0.1).  */
-  if FIXNUMP (Vhourglass_delay)
-    && XFIXNUM (Vhourglass_delay) > 0
+  if FIXNUMP ((*Vhourglass_delay.as_mut_ptr ()))
+    && XFIXNUM ((*Vhourglass_delay.as_mut_ptr ())) > 0
     {
       /* C's `min (XFIXNUM (Vhourglass_delay), TYPE_MAXIMUM (time_t))`; `<intprops.h>`'s
 	 `TYPE_MAXIMUM (t)` is `<t>::MAX`, spelled here because this unit has no mirror of that
 	 header (the `androidmenu.rs` / `androidselect.rs` macro is per-unit, PORTING.md P-72 ③).  */
-      let secs: Lisp_Object = Vhourglass_delay;
+      let secs: Lisp_Object = (*Vhourglass_delay.as_mut_ptr ());
       /* `XFIXNUM` is `EMACS_INT` (isize on this ABI) and `time_t` is 8 bytes on both delivered
 	 targets, so the clamp is one type (status 4.754: `time_t::MAX as i64` mismatched).  */
       let time_t_max: time_t = <time_t>::MAX;
@@ -33900,17 +33898,17 @@ pub unsafe extern "C-unwind" fn start_hourglass ()
 			      { XFIXNUM (secs) as time_t } else { time_t_max };
       delay = make_timespec (bounded, 0);
     }
-  else if FLOATP (Vhourglass_delay)
-    && XFLOAT_DATA (Vhourglass_delay) > 0.0
+  else if FLOATP ((*Vhourglass_delay.as_mut_ptr ()))
+    && XFLOAT_DATA ((*Vhourglass_delay.as_mut_ptr ())) > 0.0
     {
-      delay = dtotimespec (XFLOAT_DATA (Vhourglass_delay));
+      delay = dtotimespec (XFLOAT_DATA ((*Vhourglass_delay.as_mut_ptr ())));
     }
   else
     {
       delay = make_timespec (DEFAULT_HOURGLASS_DELAY as time_t, 0);
     }
 
-  hourglass_atimer = start_atimer (ATIMER_RELATIVE, delay, Some (show_hourglass),
+  (*hourglass_atimer.as_mut_ptr ()) = start_atimer (ATIMER_RELATIVE, delay, Some (show_hourglass),
 				   std::ptr::null_mut ());
   }
 
@@ -34018,7 +34016,7 @@ pub unsafe extern "C-unwind" fn get_phys_cursor_geometry (w: *mut window, row: *
     }
 
   if glyph_bits! (type, *glyph) == STRETCH_GLYPH
-    && !x_stretch_cursor_p
+    && !(*x_stretch_cursor_p.as_mut_ptr ())
     {
       wd = if FRAME_COLUMN_WIDTH (f) < wd { FRAME_COLUMN_WIDTH (f) } else { wd };
     }
@@ -34358,7 +34356,7 @@ pub unsafe extern "C-unwind" fn remember_mouse_glyph (f: *mut frame, gx: c_int, 
   let mut gy = gy;
   let mut image_glyph: bool = false;
 
-  if mouse_fine_grained_tracking
+  if (*mouse_fine_grained_tracking.as_mut_ptr ())
     {
       STORE_NATIVE_RECT! (*rect, gx, gy, 1, 1);
       return;
@@ -34369,7 +34367,7 @@ pub unsafe extern "C-unwind" fn remember_mouse_glyph (f: *mut frame, gx: c_int, 
 
   let original_gx: c_int = gx;
 
-  let mut stage: u8 = if window_resize_pixelwise
+  let mut stage: u8 = if (*window_resize_pixelwise.as_mut_ptr ())
     {
       width = 1;
       height = 1;
@@ -34665,7 +34663,7 @@ pub unsafe extern "C-unwind" fn remember_mouse_glyph (f: *mut frame, gx: c_int, 
 		  STORE_NATIVE_RECT! (*rect, 0, 0, 0, 0);
 		  return;
 		}
-	      if mouse_prefer_closest_glyph
+	      if (*mouse_prefer_closest_glyph.as_mut_ptr ())
 		{
 		  let half_width: c_int = width / 2;
 		  width = half_width;
@@ -34774,7 +34772,7 @@ macro_rules! BUILD_COMPOSITE_GLYPH_STRING {
     let base_face: *mut face = FACE_FROM_ID ($f, face_id);
     let cmp_id: ptrdiff_t = ((*(*$row).glyphs[$area as usize].offset ($start as isize))
 			       .u.cmp.bits >> GLYPH_U_CMP_ID_SHIFT) as ptrdiff_t;
-    let cmp: *mut composition = *composition_table.add (cmp_id as usize);
+    let cmp: *mut composition = *(*composition_table.as_mut_ptr ()).add (cmp_id as usize);
     /* C declares `unsigned *char2b` uninitialised; the port's UNINIT convention is a null
        initialiser (`SAFE_NALLOCA!` reads the pointee's size, PORTING.md 1.5).  */
     let mut char2b: *mut c_uint = std::ptr::null_mut ();
@@ -35171,11 +35169,11 @@ unsafe fn get_window_cursor_type (w: *mut window, glyph: *mut glyph, width: *mut
   *active_cursor = true;
 
   /* Echo area */
-  if cursor_in_echo_area
+  if (*cursor_in_echo_area.as_mut_ptr ())
       && FRAME_HAS_MINIBUF_P (f)
-      && EQ (FRAME_MINIBUF_WINDOW! (f), echo_area_window)
+      && EQ (FRAME_MINIBUF_WINDOW! (f), (*echo_area_window.as_mut_ptr ()))
     {
-      if w == XWINDOW (echo_area_window)
+      if w == XWINDOW ((*echo_area_window.as_mut_ptr ()))
 	{
 	  if !EQ (Qt (), (*w).cursor_type)
 	    { return get_specified_cursor_type ((*w).cursor_type, width); }
@@ -35199,7 +35197,7 @@ unsafe fn get_window_cursor_type (w: *mut window, glyph: *mut glyph, width: *mut
       *active_cursor = false;
 
       if MINI_WINDOW_P (w)
-	  && (minibuf_level == 0
+	  && ((*minibuf_level.as_mut_ptr ()) == 0
 	      || is_minibuffer (0, (*w).contents))
 	{ return NO_CURSOR; }
 
@@ -35285,7 +35283,7 @@ unsafe fn get_window_cursor_type (w: *mut window, glyph: *mut glyph, width: *mut
   /* Cursor is blinked off, so determine how to "toggle" it.  */
 
   /* First look for an entry matching the buffer's cursor-type in blink-cursor-alist.  */
-  alt_cursor = Fassoc (BVAR! (b, cursor_type_), Vblink_cursor_alist, Qnil ());
+  alt_cursor = Fassoc (BVAR! (b, cursor_type_), (*Vblink_cursor_alist.as_mut_ptr ()), Qnil ());
   if !NILP (alt_cursor)
     { return get_specified_cursor_type (XCDR (alt_cursor), width); }
 
@@ -36230,7 +36228,7 @@ pub unsafe extern "C-unwind" fn handle_tab_bar_click (f: *mut frame, mut x: c_in
 	 the click was on the close button.  Clicking elsewhere on
 	 the tab should not change the close button's appearance,
 	 so just keep the ordinary mouse-face highlight.  */
-      if !NILP (Vmouse_highlight)
+      if !NILP ((*Vmouse_highlight.as_mut_ptr ()))
 	{
 	  show_mouse_face (hlinfo, if close_p { DRAW_IMAGE_SUNKEN } else { DRAW_MOUSE_FACE },
 			   true);
@@ -36243,7 +36241,7 @@ pub unsafe extern "C-unwind" fn handle_tab_bar_click (f: *mut frame, mut x: c_in
 	 appearance when the click was on it.  Elsewhere keep the
 	 ordinary mouse-face highlight to avoid the close button
 	 blinking on release.  */
-      if !NILP (Vmouse_highlight)
+      if !NILP ((*Vmouse_highlight.as_mut_ptr ()))
 	{
 	  show_mouse_face (hlinfo, if close_p { DRAW_IMAGE_RAISED } else { DRAW_MOUSE_FACE },
 			   true);
@@ -36371,13 +36369,13 @@ pub unsafe extern "C-unwind" fn handle_tool_bar_click_with_device (f: *mut frame
   ts = get_tool_bar_item (f, x, y, &raw mut glyph, &raw mut hpos, &raw mut vpos,
 			  &raw mut prop_idx);
   if ts == -1
-      || (ts != 0 && !NILP (Vmouse_highlight))
+      || (ts != 0 && !NILP ((*Vmouse_highlight.as_mut_ptr ())))
     { return; }
 
   /* When mouse-highlight is off, generate the click for the item
      where the button was pressed, disregarding where it was
      released.  */
-  if NILP (Vmouse_highlight) && !down_p
+  if NILP ((*Vmouse_highlight.as_mut_ptr ())) && !down_p
     { prop_idx = (*f).last_tool_bar_item; }
 
   /* If item is disabled, do nothing.  */
@@ -36388,7 +36386,7 @@ pub unsafe extern "C-unwind" fn handle_tool_bar_click_with_device (f: *mut frame
   if down_p
     {
       /* Show item in pressed state.  */
-      if !NILP (Vmouse_highlight)
+      if !NILP ((*Vmouse_highlight.as_mut_ptr ()))
 	{ show_mouse_face (hlinfo, DRAW_IMAGE_SUNKEN, true); }
       (*f).last_tool_bar_item = prop_idx;
     }
@@ -36405,7 +36403,7 @@ pub unsafe extern "C-unwind" fn handle_tool_bar_click_with_device (f: *mut frame
       frame = Qnil ();
 
       /* Show item in released state.  */
-      if !NILP (Vmouse_highlight)
+      if !NILP ((*Vmouse_highlight.as_mut_ptr ()))
 	{ show_mouse_face (hlinfo, DRAW_IMAGE_RAISED, true); }
 
       key = AREF ((*f).tool_bar_items, (prop_idx + TOOL_BAR_ITEM_KEY) as isize);
@@ -37156,7 +37154,7 @@ unsafe fn append_stretch_glyph (it: *mut it, object: Lisp_Object,
       glyph_bits! (face_id, *glyph, (*it).face_id);
       (*glyph).u.stretch.ascent = ascent as u16;
       (*glyph).u.stretch.height = height as u16;
-      (*glyph).slice.img = null_glyph_slice;
+      (*glyph).slice.img = (*null_glyph_slice.as_mut_ptr ());
       glyph_bits! (font_type, *glyph, FONT_TYPE_UNKNOWN);
       if it_bits! (bidi_p, it)
 	{
@@ -37564,7 +37562,7 @@ pub unsafe extern "C-unwind" fn gui_produce_glyphs (it: *mut it)
 	  /* If face has an overline, add the height of the overline
 	     (1 pixel) and a 1 pixel margin to the character height.  */
 	  if face_bits! (overline_p, face)
-	    { (*it).ascent += clip_to_bounds (0, overline_margin, 1000000) as c_int; }
+	    { (*it).ascent += clip_to_bounds (0, (*overline_margin.as_mut_ptr ()), 1000000) as c_int; }
 
 	  if it_bits! (constrain_row_ascent_descent_p, it)
 	    {
@@ -37726,7 +37724,7 @@ pub unsafe extern "C-unwind" fn gui_produce_glyphs (it: *mut it)
 						  else { 0 });
 	      let x0: c_int = x;
 	      /* Adjust for line numbers, if needed.   */
-	      if !NILP (Vdisplay_line_numbers) && it_bits! (line_number_produced_p, it)
+	      if !NILP ((*Vdisplay_line_numbers.as_mut_ptr ())) && it_bits! (line_number_produced_p, it)
 		{
 		  x -= (*it).lnum_pixel_width;
 		  /* Restore the original TAB width, if required.  */
@@ -37741,7 +37739,7 @@ pub unsafe extern "C-unwind" fn gui_produce_glyphs (it: *mut it)
 		 tab stop after that.  */
 	      if next_tab_x - x < (*font).space_width
 		{ next_tab_x += tab_width; }
-	      if !NILP (Vdisplay_line_numbers) && it_bits! (line_number_produced_p, it)
+	      if !NILP ((*Vdisplay_line_numbers.as_mut_ptr ())) && it_bits! (line_number_produced_p, it)
 		{
 		  next_tab_x += (*it).lnum_pixel_width;
 		  /* If the line is hscrolled, and the TAB starts before
@@ -37838,7 +37836,7 @@ pub unsafe extern "C-unwind" fn gui_produce_glyphs (it: *mut it)
       let mut face: *mut face = FACE_FROM_ID ((*it).f, (*it).face_id);
       let mut boff: c_int;		/* baseline offset */
       let cmp: *mut composition
-	= *composition_table.add ((*it).cmp_it.id as usize);
+	= *(*composition_table.as_mut_ptr ()).add ((*it).cmp_it.id as usize);
       let mut glyph_len: c_int = (*cmp).glyph_len;
       let mut font: *mut font = (*face).font as *mut font;
 
@@ -37958,8 +37956,8 @@ pub unsafe extern "C-unwind" fn gui_produce_glyphs (it: *mut it)
 
 	  if !font_not_found_p
 	      && (*font).default_ascent != 0
-	      && CHAR_TABLE_P (Vuse_default_ascent)
-	      && !NILP (Faref (Vuse_default_ascent,
+	      && CHAR_TABLE_P ((*Vuse_default_ascent.as_mut_ptr ()))
+	      && !NILP (Faref ((*Vuse_default_ascent.as_mut_ptr ()),
 			       make_fixnum ((*it).char_to_display as EMACS_INT)))
 	    { highest = (*font).default_ascent + boff; }
 
@@ -38023,8 +38021,8 @@ pub unsafe extern "C-unwind" fn gui_produce_glyphs (it: *mut it)
 		      left = (leftmost + rightmost - width) / 2;
 		      btm = -descent + boff;
 		      if (*font).relative_compose != 0
-			  && (!CHAR_TABLE_P (Vignore_relative_composition)
-			      || NILP (Faref (Vignore_relative_composition,
+			  && (!CHAR_TABLE_P ((*Vignore_relative_composition.as_mut_ptr ()))
+			      || NILP (Faref ((*Vignore_relative_composition.as_mut_ptr ()),
 					      make_fixnum (ch as EMACS_INT))))
 			{
 			  if -descent >= (*font).relative_compose
@@ -38162,7 +38160,7 @@ pub unsafe extern "C-unwind" fn gui_produce_glyphs (it: *mut it)
       /* If face has an overline, add the height of the overline
 	 (1 pixel) and a 1 pixel margin to the character height.  */
       if face_bits! (overline_p, face)
-	{ (*it).ascent += clip_to_bounds (0, overline_margin, 1000000) as c_int; }
+	{ (*it).ascent += clip_to_bounds (0, (*overline_margin.as_mut_ptr ()), 1000000) as c_int; }
 
       take_vertical_position_into_account (it);
       if (*it).ascent < 0
@@ -38213,7 +38211,7 @@ pub unsafe extern "C-unwind" fn gui_produce_glyphs (it: *mut it)
       /* If face has an overline, add the height of the overline
 	 (1 pixel) and a 1 pixel margin to the character height.  */
       if face_bits! (overline_p, face)
-	{ (*it).ascent += clip_to_bounds (0, overline_margin, 1000000) as c_int; }
+	{ (*it).ascent += clip_to_bounds (0, (*overline_margin.as_mut_ptr ()), 1000000) as c_int; }
       take_vertical_position_into_account (it);
       if (*it).ascent < 0
 	{ (*it).ascent = 0; }
@@ -38333,7 +38331,7 @@ unsafe fn append_glyph (it: *mut it)
       glyph_bits! (glyph_not_available_p, *glyph, it_bits! (glyph_not_available_p, it));
       glyph_bits! (face_id, *glyph, (*it).face_id);
       (*glyph).u.ch = (*it).char_to_display as c_uint;
-      (*glyph).slice.img = null_glyph_slice;
+      (*glyph).slice.img = (*null_glyph_slice.as_mut_ptr ());
       glyph_bits! (font_type, *glyph, FONT_TYPE_UNKNOWN);
       if it_bits! (bidi_p, it)
 	{
@@ -38636,8 +38634,8 @@ unsafe fn produce_glyphless_glyph (it: *mut it, for_no_font: bool, acronym: Lisp
 
       if (*it).glyphless_method == GLYPHLESS_DISPLAY_ACRONYM
 	{
-	  if !STRINGP (acronym) && CHAR_TABLE_P (Vglyphless_char_display)
-	    { acronym = CHAR_TABLE_REF (Vglyphless_char_display, (*it).c as EMACS_INT); }
+	  if !STRINGP (acronym) && CHAR_TABLE_P ((*Vglyphless_char_display.as_mut_ptr ()))
+	    { acronym = CHAR_TABLE_REF ((*Vglyphless_char_display.as_mut_ptr ()), (*it).c as EMACS_INT); }
 	  if CONSP (acronym)
 	    { acronym = XCAR (acronym); }
 	  str_ = if STRINGP (acronym) { SSDATA (acronym) } else { c"".as_ptr () };
@@ -39276,8 +39274,8 @@ unsafe fn get_char_glyph_code (c: c_int, font: *mut font, char2b: *mut c_uint) -
 /// C 31340-31353: `get_per_char_metric` - the `static struct font_metrics metrics` is the
 /// function's own storage in C, so the port keeps one here (PORTING.md 1.5).
 #[cfg (feature = "have_window_system")]
-static mut per_char_metric: font_metrics = font_metrics { lbearing: 0, rbearing: 0, width: 0,
-                                                          ascent: 0, descent: 0 };
+static per_char_metric: VmGlobal<font_metrics> = VmGlobal::<font_metrics>::new (font_metrics { lbearing: 0, rbearing: 0, width: 0,
+                                                          ascent: 0, descent: 0 });
 
 #[cfg (feature = "have_window_system")]
 unsafe fn get_per_char_metric (font: *mut font, char2b: *const c_uint) -> *mut font_metrics
@@ -39293,8 +39291,8 @@ unsafe fn get_per_char_metric (font: *mut font, char2b: *const c_uint) -> *mut f
   match (*driver).text_extents
     {
       Some (f) => {
-	f (font, char2b, 1, &raw mut per_char_metric);
-	&raw mut per_char_metric
+	f (font, char2b, 1, per_char_metric.as_mut_ptr ());
+	per_char_metric.as_mut_ptr ()
       }
       None => std::ptr::null_mut (),
     }
@@ -39401,7 +39399,7 @@ pub unsafe extern "C-unwind" fn gui_get_glyph_overhangs (glyph: *mut glyph, f: *
 	  /* C: `composition_table[glyph->u.cmp.id]`; the mirror's table is a `*mut *mut
 	     composition`, so the row is `*.add (id)` (status 4.762).  */
 	  let cmp_id: usize = ((*glyph).u.cmp.bits >> GLYPH_U_CMP_ID_SHIFT) as usize;
-	  let cmp: *mut composition = *composition_table.add (cmp_id);
+	  let cmp: *mut composition = *(*composition_table.as_mut_ptr ()).add (cmp_id);
 	  let mut rbearing: c_int = (*cmp).rbearing as c_int;
 
 	  /* Overstruck text is displayed twice, the second time one
@@ -40224,14 +40222,14 @@ pub unsafe extern "C-unwind" fn syms_of_xdisp ()
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  Vwith_echo_area_save_vector = Qnil ();
+  (*Vwith_echo_area_save_vector.as_mut_ptr ()) = Qnil ();
   
-  staticpro (&raw const Vwith_echo_area_save_vector);
+  staticpro (Vwith_echo_area_save_vector.as_ptr ());
 
 
-  Vmessage_stack = Qnil ();
+  (*Vmessage_stack.as_mut_ptr ()) = Qnil ();
   
-  staticpro (&raw const Vmessage_stack);
+  staticpro (Vmessage_stack.as_ptr ());
 
 
   /* Non-nil means don't actually do any redisplay.  */
@@ -40247,29 +40245,29 @@ pub unsafe extern "C-unwind" fn syms_of_xdisp ()
   DEFVAR_BOOL! (c"scroll-minibuffer-conservatively", scroll_minibuffer_conservatively,
 	      "Non-nil means scroll conservatively in minibuffer windows.\nWhen the value is nil, scrolling in minibuffer windows obeys the\nsettings of `scroll-conservatively'.");
 
-  scroll_minibuffer_conservatively = true; /* bug#44070 */
+  (*scroll_minibuffer_conservatively.as_mut_ptr ()) = true; /* bug#44070 */
 
   
   DEFVAR_BOOL! (c"inhibit-message", inhibit_message,
 	      "Non-nil means calls to `message' are not displayed.\nThey are still logged to the *Messages* buffer.\n\nDo NOT set this globally to a non-nil value, as doing that will\ndisable messages everywhere, including in I-search and other\nplaces where they are necessary.  This variable is intended to\nbe let-bound around code that needs to disable messages temporarily.");
 
-  inhibit_message = false;
+  (*inhibit_message.as_mut_ptr ()) = false;
 
-  message_dolog_marker1 = Fmake_marker ();
+  (*message_dolog_marker1.as_mut_ptr ()) = Fmake_marker ();
   
-  staticpro (&raw const message_dolog_marker1);
+  staticpro (message_dolog_marker1.as_ptr ());
 
-  message_dolog_marker2 = Fmake_marker ();
+  (*message_dolog_marker2.as_mut_ptr ()) = Fmake_marker ();
   
-  staticpro (&raw const message_dolog_marker2);
+  staticpro (message_dolog_marker2.as_ptr ());
 
-  message_dolog_marker3 = Fmake_marker ();
+  (*message_dolog_marker3.as_mut_ptr ()) = Fmake_marker ();
   
-  staticpro (&raw const message_dolog_marker3);
+  staticpro (message_dolog_marker3.as_ptr ());
 
 
   
-  defsubr (&raw mut Sset_buffer_redisplay);
+  defsubr (Sset_buffer_redisplay.as_mut_ptr ());
 
 
   /* C 38449-38455: the `GLYPH_DEBUG` arm's seven `defsubr`s (`Sdump_frame_glyph_matrix`,
@@ -40279,44 +40277,44 @@ pub unsafe extern "C-unwind" fn syms_of_xdisp ()
 
   #[cfg(feature = "have_ns")]
   {
-    defsubr (&raw mut Sremember_mouse_glyph);
-    defsubr (&raw mut Stab_bar_height);
-    defsubr (&raw mut Stool_bar_height);
-    defsubr (&raw mut Slookup_image_map);
+    defsubr (Sremember_mouse_glyph.as_mut_ptr ());
+    defsubr (Stab_bar_height.as_mut_ptr ());
+    defsubr (Stool_bar_height.as_mut_ptr ());
+    defsubr (Slookup_image_map.as_mut_ptr ());
   }
 
   
-  defsubr (&raw mut Sline_pixel_height);
+  defsubr (Sline_pixel_height.as_mut_ptr ());
 
   
-  defsubr (&raw mut Sformat_mode_line);
+  defsubr (Sformat_mode_line.as_mut_ptr ());
 
   
-  defsubr (&raw mut Sinvisible_p);
+  defsubr (Sinvisible_p.as_mut_ptr ());
 
   
-  defsubr (&raw mut Scurrent_bidi_paragraph_direction);
+  defsubr (Scurrent_bidi_paragraph_direction.as_mut_ptr ());
 
   
-  defsubr (&raw mut Swindow_text_pixel_size);
+  defsubr (Swindow_text_pixel_size.as_mut_ptr ());
 
   
-  defsubr (&raw mut Sbuffer_text_pixel_size);
+  defsubr (Sbuffer_text_pixel_size.as_mut_ptr ());
 
   
-  defsubr (&raw mut Smove_point_visually);
+  defsubr (Smove_point_visually.as_mut_ptr ());
 
   
-  defsubr (&raw mut Sbidi_find_overridden_directionality);
+  defsubr (Sbidi_find_overridden_directionality.as_mut_ptr ());
 
   
-  defsubr (&raw mut Sdisplay__line_is_continued_p);
+  defsubr (Sdisplay__line_is_continued_p.as_mut_ptr ());
 
   
-  defsubr (&raw mut Sget_display_property);
+  defsubr (Sget_display_property.as_mut_ptr ());
 
   
-  defsubr (&raw mut Slong_line_optimizations_p);
+  defsubr (Slong_line_optimizations_p.as_mut_ptr ());
 
 
   
@@ -40558,9 +40556,9 @@ pub unsafe extern "C-unwind" fn syms_of_xdisp ()
   DEFSYM! (Qinhibit_free_realized_faces, c"inhibit-free-realized-faces");
 
 
-  list_of_error = list1 (Qerror ());
+  (*list_of_error.as_mut_ptr ()) = list1 (Qerror ());
   
-  staticpro (&raw const list_of_error);
+  staticpro (list_of_error.as_ptr ());
 
 
   /* Values of those variables at last redisplay are stored as
@@ -40585,73 +40583,73 @@ pub unsafe extern "C-unwind" fn syms_of_xdisp ()
 
   /* C's chained assignment stores into `echo_buffer[1]` first; the port keeps that
      order as two statements (the `icon_title_format` shape).  */
-  echo_buffer[1] = Qnil ();
-  echo_buffer[0] = Qnil ();
+  (*echo_buffer.as_mut_ptr ())[1] = Qnil ();
+  (*echo_buffer.as_mut_ptr ())[0] = Qnil ();
   
-  staticpro (&raw const echo_buffer[0]);
+  staticpro (&raw const (*echo_buffer.as_mut_ptr ())[0]);
 
   
-  staticpro (&raw const echo_buffer[1]);
+  staticpro (&raw const (*echo_buffer.as_mut_ptr ())[1]);
 
 
   /* C's chained assignment stores into `echo_area_buffer[1]` first.  */
-  echo_area_buffer[1] = Qnil ();
-  echo_area_buffer[0] = Qnil ();
+  (*echo_area_buffer.as_mut_ptr ())[1] = Qnil ();
+  (*echo_area_buffer.as_mut_ptr ())[0] = Qnil ();
   
-  staticpro (&raw const echo_area_buffer[0]);
+  staticpro (&raw const (*echo_area_buffer.as_mut_ptr ())[0]);
 
   
-  staticpro (&raw const echo_area_buffer[1]);
+  staticpro (&raw const (*echo_area_buffer.as_mut_ptr ())[1]);
 
 
   
   DEFVAR_LISP! (c"messages-buffer-name", Vmessages_buffer_name,
 	      "The name of the buffer where messages are logged.\nThis is normally \"*Messages*\", but can be rebound by packages that\nwish to redirect messages to a different buffer.  (If the buffer\ndoesn't exist, it will be created and put into\n`messages-buffer-mode'.)");
 
-  Vmessages_buffer_name = build_string (c"*Messages*".as_ptr ());
+  (*Vmessages_buffer_name.as_mut_ptr ()) = build_string (c"*Messages*".as_ptr ());
 
-  mode_line_proptrans_alist = Qnil ();
+  (*mode_line_proptrans_alist.as_mut_ptr ()) = Qnil ();
   
-  staticpro (&raw const mode_line_proptrans_alist);
+  staticpro (mode_line_proptrans_alist.as_ptr ());
 
-  mode_line_string_list = Qnil ();
+  (*mode_line_string_list.as_mut_ptr ()) = Qnil ();
   
-  staticpro (&raw const mode_line_string_list);
+  staticpro (mode_line_string_list.as_ptr ());
 
-  mode_line_string_face = Qnil ();
+  (*mode_line_string_face.as_mut_ptr ()) = Qnil ();
   
-  staticpro (&raw const mode_line_string_face);
+  staticpro (mode_line_string_face.as_ptr ());
 
-  mode_line_string_face_prop = Qnil ();
+  (*mode_line_string_face_prop.as_mut_ptr ()) = Qnil ();
   
-  staticpro (&raw const mode_line_string_face_prop);
+  staticpro (mode_line_string_face_prop.as_ptr ());
 
-  Vmode_line_unwind_vector = Qnil ();
+  (*Vmode_line_unwind_vector.as_mut_ptr ()) = Qnil ();
   
-  staticpro (&raw const Vmode_line_unwind_vector);
+  staticpro (Vmode_line_unwind_vector.as_ptr ());
 
 
   
   DEFSYM! (Qmode_line_default_help_echo, c"mode-line-default-help-echo");
 
 
-  help_echo_string = Qnil ();
+  (*help_echo_string.as_mut_ptr ()) = Qnil ();
   
-  staticpro (&raw const help_echo_string);
+  staticpro (help_echo_string.as_ptr ());
 
-  help_echo_object = Qnil ();
+  (*help_echo_object.as_mut_ptr ()) = Qnil ();
   
-  staticpro (&raw const help_echo_object);
+  staticpro (help_echo_object.as_ptr ());
 
-  help_echo_window = Qnil ();
+  (*help_echo_window.as_mut_ptr ()) = Qnil ();
   
-  staticpro (&raw const help_echo_window);
+  staticpro (help_echo_window.as_ptr ());
 
-  previous_help_echo_string = Qnil ();
+  (*previous_help_echo_string.as_mut_ptr ()) = Qnil ();
   
-  staticpro (&raw const previous_help_echo_string);
+  staticpro (previous_help_echo_string.as_ptr ());
 
-  help_echo_pos = -1;
+  (*help_echo_pos.as_mut_ptr ()) = -1;
 
   
   DEFSYM! (Qright_to_left, c"right-to-left");
@@ -40660,7 +40658,7 @@ pub unsafe extern "C-unwind" fn syms_of_xdisp ()
   DEFSYM! (Qleft_to_right, c"left-to-right");
 
   
-  defsubr (&raw mut Sbidi_resolved_levels);
+  defsubr (Sbidi_resolved_levels.as_mut_ptr ());
 
 
 
@@ -40673,7 +40671,7 @@ pub unsafe extern "C-unwind" fn syms_of_xdisp ()
   {
     DEFVAR_BOOL! (c"x-stretch-cursor", x_stretch_cursor_p,               // C 38638-38641
       doc: "Non-nil means draw block cursor as wide as the glyph under it.\nFor example, if a block cursor is over a tab, it will be drawn as\nwide as that tab on the display.  ");
-    x_stretch_cursor_p = false;                                          // C 38642
+    (*x_stretch_cursor_p.as_mut_ptr ()) = false;                                          // C 38642
   }
 
 
@@ -40681,13 +40679,13 @@ pub unsafe extern "C-unwind" fn syms_of_xdisp ()
   DEFVAR_LISP! (c"show-trailing-whitespace", Vshow_trailing_whitespace,
 	      "Non-nil means highlight trailing whitespace.\nThe face used for trailing whitespace is `trailing-whitespace'.");
 
-  Vshow_trailing_whitespace = Qnil ();
+  (*Vshow_trailing_whitespace.as_mut_ptr ()) = Qnil ();
 
   
   DEFVAR_LISP! (c"mode-line-compact", Vmode_line_compact,
 	      "Non-nil means that mode lines should be compact.\nThis means that repeating spaces will be replaced with a single space.\nIf this variable is `long', only mode lines that are wider than the\ncurrently selected window are compressed.");
 
-  Vmode_line_compact = Qnil ();
+  (*Vmode_line_compact.as_mut_ptr ()) = Qnil ();
   
   DEFSYM! (Qlong, c"long");
 
@@ -40696,49 +40694,49 @@ pub unsafe extern "C-unwind" fn syms_of_xdisp ()
   DEFVAR_LISP! (c"nobreak-char-display", Vnobreak_char_display,
 	      "Control highlighting of non-ASCII space and hyphen chars.\nIf the value is t, Emacs highlights non-ASCII chars which have the\nsame appearance as an ASCII space or hyphen, using the `nobreak-space'\nor `nobreak-hyphen' face respectively.\n\nAll of the non-ASCII characters in the Unicode horizontal whitespace\ncharacter class, as well as U+00AD (soft hyphen), U+2010 (hyphen), and\nU+2011 (non-breaking hyphen) are affected.\n\nAny other non-nil value means to display these characters as an escape\nglyph followed by an ordinary space or hyphen.\n\nA value of nil means no special handling of these characters.");
 
-  Vnobreak_char_display = Qt ();
+  (*Vnobreak_char_display.as_mut_ptr ()) = Qt ();
 
   
   DEFVAR_BOOL! (c"nobreak-char-ascii-display", nobreak_char_ascii_display,
 	      "Control display of non-ASCII space and hyphen chars.\nIf the value of this variable is nil, the default, Emacs displays\nnon-ASCII chars which have the same appearance as an ASCII space\nor hyphen as themselves, with the `nobreak-space' or `nobreak-hyphen'\nface, respectively.\n\nIf the value is t, these characters are displayed as their ASCII\ncounterparts: whitespace characters as ASCII space, hyphen characters\nas ASCII hyphen (a.k.a. \"dash\"), using the `nobreak-space' or\nthe `nobreak-hyphen' face.\n\nThis variable has effect only if `nobreak-char-display' is t;\notherwise it is ignored.\n\nAll of the non-ASCII characters in the Unicode horizontal whitespace\ncharacter class, as well as U+00AD (soft hyphen), U+2010 (hyphen), and\nU+2011 (non-breaking hyphen) are affected.");
 
-  nobreak_char_ascii_display = false;
+  (*nobreak_char_ascii_display.as_mut_ptr ()) = false;
 
   
   DEFVAR_LISP! (c"void-text-area-pointer", Vvoid_text_area_pointer,
 	      "The pointer shape to show in void text areas.\nA value of nil means to show the text pointer.  Other options are\n`arrow', `text', `hand', `vdrag', `hdrag', `nhdrag', `modeline', and\n`hourglass'.");
 
-  Vvoid_text_area_pointer = Qarrow ();
+  (*Vvoid_text_area_pointer.as_mut_ptr ()) = Qarrow ();
 
   
   DEFVAR_LISP! (c"inhibit-redisplay", Vinhibit_redisplay,
 	      "Non-nil means don't actually do any redisplay.\nThis is used for internal purposes.");
 
-  Vinhibit_redisplay = Qnil ();
+  (*Vinhibit_redisplay.as_mut_ptr ()) = Qnil ();
 
   
   DEFVAR_LISP! (c"global-mode-string", Vglobal_mode_string,
 	      "String (or mode line construct) included (normally) in `mode-line-misc-info'.");
 
-  Vglobal_mode_string = Qnil ();
+  (*Vglobal_mode_string.as_mut_ptr ()) = Qnil ();
 
   
   DEFVAR_LISP! (c"overlay-arrow-position", Voverlay_arrow_position,
 	      "Marker for where to display an arrow on top of the buffer text.\nThis must be the beginning of a line in order to work.\nSee also `overlay-arrow-string'.");
 
-  Voverlay_arrow_position = Qnil ();
+  (*Voverlay_arrow_position.as_mut_ptr ()) = Qnil ();
 
   
   DEFVAR_LISP! (c"overlay-arrow-string", Voverlay_arrow_string,
 	      "String to display as an arrow in text-mode frames.\nSee also `overlay-arrow-position'.");
 
-  Voverlay_arrow_string = build_string (c"=>".as_ptr ());
+  (*Voverlay_arrow_string.as_mut_ptr ()) = build_string (c"=>".as_ptr ());
 
   
   DEFVAR_LISP! (c"overlay-arrow-variable-list", Voverlay_arrow_variable_list,
 	      "List of variables (symbols) which hold markers for overlay arrows.\nThe symbols on this list are examined during redisplay to determine\nwhere to display overlay arrows.\nSee also `overlay-arrow-string'.");
 
-  Voverlay_arrow_variable_list
+  (*Voverlay_arrow_variable_list.as_mut_ptr ())
     = list1 (intern_c_string (c"overlay-arrow-position".as_ptr ()));
 
   
@@ -40750,25 +40748,25 @@ pub unsafe extern "C-unwind" fn syms_of_xdisp ()
   DEFVAR_INT! (c"scroll-conservatively", scroll_conservatively,
 	      "Scroll up to this many lines, to bring point back on screen.\nIf point moves off-screen, redisplay will scroll by up to\n`scroll-conservatively' lines in order to bring point just barely\nonto the screen again.  If that cannot be done, then redisplay\nrecenters point as usual.\n\nIf the value is greater than 100, redisplay will never recenter point,\nbut will always scroll just enough text to bring point into view, even\nif you move far away.\n\nA value of zero means always recenter point if it moves off screen.");
 
-  scroll_conservatively = 0;
+  (*scroll_conservatively.as_mut_ptr ()) = 0;
 
   
   DEFVAR_INT! (c"scroll-margin", scroll_margin,
 	      "Number of lines of margin at the top and bottom of a window.\nTrigger automatic scrolling whenever point gets within this many lines\nof the top or bottom of the window (see info node `Auto Scrolling').");
 
-  scroll_margin = 0;
+  (*scroll_margin.as_mut_ptr ()) = 0;
 
   
   DEFVAR_LISP! (c"maximum-scroll-margin", Vmaximum_scroll_margin,
 	      "Maximum effective value of `scroll-margin'.\nGiven as a fraction of the current window's lines.  The value should\nbe a floating point number between 0.0 and 0.5.  The effective maximum\nis limited to (/ (1- window-lines) 2).  Non-float values for this\nvariable are ignored and the default 0.25 is used instead.");
 
-  Vmaximum_scroll_margin = make_float (0.25);
+  (*Vmaximum_scroll_margin.as_mut_ptr ()) = make_float (0.25);
 
   
   DEFVAR_LISP! (c"display-pixels-per-inch", Vdisplay_pixels_per_inch,
 	      "Pixels per inch value for non-window system displays.\nValue is a number or a cons (WIDTH-DPI . HEIGHT-DPI).");
 
-  Vdisplay_pixels_per_inch = make_float (72.0);
+  (*Vdisplay_pixels_per_inch.as_mut_ptr ()) = make_float (72.0);
 
 
   /* C 38770-38770: the `GLYPH_DEBUG` `DEFVAR_INT ("debug-end-pos", debug_end_pos, doc: /* Don't
@@ -40779,31 +40777,31 @@ pub unsafe extern "C-unwind" fn syms_of_xdisp ()
   DEFVAR_LISP! (c"truncate-partial-width-windows", Vtruncate_partial_width_windows,
 	      "Non-nil means truncate lines in windows narrower than the frame.\nFor an integer value, truncate lines in each window narrower than the\nfull frame width, provided the total window width in column units is less\nthan that integer; otherwise, respect the value of `truncate-lines'.\nThe total width of the window is as returned by `window-total-width', it\nincludes the fringes, the continuation and truncation glyphs, the\ndisplay margins (if any), and the scroll bar\n\nFor any other non-nil value, truncate lines in all windows that do\nnot span the full frame width.\n\nA value of nil means to respect the value of `truncate-lines'.\n\nIf `word-wrap' is enabled, you might want to reduce the value of this.\n\nDon't set this to a non-nil value when `visual-line-mode' is\nturned on, as it could produce confusing results.");
 
-  Vtruncate_partial_width_windows = make_fixnum (50);
+  (*Vtruncate_partial_width_windows.as_mut_ptr ()) = make_fixnum (50);
 
   
   DEFVAR_BOOL! (c"word-wrap-by-category", word_wrap_by_category,
 	      "Non-nil means also wrap after characters of a certain category.\nNormally when `word-wrap' is on, Emacs only breaks lines after\nwhitespace characters.  When this option is turned on, Emacs also\nbreaks lines after characters that have the \"|\" category (defined in\ncharacters.el).  This is useful for allowing breaking after CJK\ncharacters and improves the word-wrapping for CJK text mixed with\nLatin text.\n\nIf this variable is set using Customize, Emacs automatically loads\nkinsoku.el.  When kinsoku.el is loaded, Emacs respects kinsoku rules\nwhen breaking lines.  That means characters with the \">\" category\ndon't appear at the beginning of a line (e.g., FULLWIDTH COMMA), and\ncharacters with the \"<\" category don't appear at the end of a line\n(e.g., LEFT DOUBLE ANGLE BRACKET).");
 
-  word_wrap_by_category = false;
+  (*word_wrap_by_category.as_mut_ptr ()) = false;
 
   
   DEFVAR_LISP! (c"line-number-display-limit", Vline_number_display_limit,
 	      "Maximum buffer size for which line number should be displayed.\nIf the buffer is bigger than this, the line number does not appear\nin the mode line.  A value of nil means no limit.");
 
-  Vline_number_display_limit = Qnil ();
+  (*Vline_number_display_limit.as_mut_ptr ()) = Qnil ();
 
   
   DEFVAR_INT! (c"line-number-display-limit-width", line_number_display_limit_width,
 	      "Maximum line width (in characters) for line number display.\nIf the average length of the lines near point is bigger than this, then the\nline number may be omitted from the mode line.");
 
-  line_number_display_limit_width = 200;
+  (*line_number_display_limit_width.as_mut_ptr ()) = 200;
 
   
   DEFVAR_BOOL! (c"highlight-nonselected-windows", highlight_nonselected_windows,
 	      "Non-nil means highlight active region even in nonselected windows.\nWhen nil (the default), the active region is only highlighted when\nthe window is selected.");
 
-  highlight_nonselected_windows = false;
+  (*highlight_nonselected_windows.as_mut_ptr ()) = false;
 
   
   DEFVAR_BOOL! (c"multiple-frames", multiple_frames,
@@ -40822,7 +40820,7 @@ pub unsafe extern "C-unwind" fn syms_of_xdisp ()
   /* Do not nest calls to list.  This works around a bug in
      Oracle Developer Studio 12.6.  */
   let icon_title_name_format: Lisp_Object
-    = list! (empty_unibyte_string,
+    = list! ((*empty_unibyte_string.as_mut_ptr ()),
 	    /* C 38856's string is an identity string ("what *this* program calls itself"), so
 	       PORTING.md 0.1-19's name half makes it the port's own name, the `androidfns.rs`
 	       1271 precedent (`docs/status.md` 3.490); the C text stays in the ledger.  A
@@ -40831,58 +40829,58 @@ pub unsafe extern "C-unwind" fn syms_of_xdisp ()
 	    intern_c_string (c"system-name".as_ptr ()));
   /* C's chained assignment `Vicon_title_format = Vframe_title_format = list! (…)` stores
      into `Vframe_title_format` first; the port keeps that order as two statements.  */
-  Vframe_title_format = list! (intern_c_string (c"multiple-frames".as_ptr ()),
+  (*Vframe_title_format.as_mut_ptr ()) = list! (intern_c_string (c"multiple-frames".as_ptr ()),
 			      build_string (c"%b".as_ptr ()),
 			      icon_title_name_format);
-  Vicon_title_format = Vframe_title_format;
+  (*Vicon_title_format.as_mut_ptr ()) = (*Vframe_title_format.as_mut_ptr ());
 
   
   DEFVAR_LISP! (c"message-log-max", Vmessage_log_max,
 	      "Maximum number of lines to keep in the message log buffer.\nIf nil, disable message logging.  If t, log messages but don't truncate\nthe buffer when it becomes large.");
 
-  Vmessage_log_max = make_fixnum (1000);
+  (*Vmessage_log_max.as_mut_ptr ()) = make_fixnum (1000);
 
   
   DEFVAR_LISP! (c"window-scroll-functions", Vwindow_scroll_functions,
 	      "List of functions to call before redisplaying a window with scrolling.\nEach function is called with two arguments, the window and its new\ndisplay-start position.\nThese functions are called whenever the `window-start' marker is modified,\neither to point into another buffer (e.g. via `set-window-buffer') or another\nplace in the same buffer.\nWhen each function is called, the `window-start' marker of its window\nargument has been already set to the new value, and the buffer which that\nwindow will display is set to be the current buffer.\nNote that the value of `window-end' is not valid when these functions are\ncalled.\n\nWarning: Do not use this feature to alter the way the window\nis scrolled.  It is not designed for that, and such use probably won't\nwork.");
 
-  Vwindow_scroll_functions = Qnil ();
+  (*Vwindow_scroll_functions.as_mut_ptr ()) = Qnil ();
 
   
   DEFVAR_LISP! (c"mouse-autoselect-window", Vmouse_autoselect_window,
 	      "Non-nil means autoselect window with mouse pointer.\nIf nil, do not autoselect windows.\nA positive number means delay autoselection by that many seconds: a\nwindow is autoselected only after the mouse has remained in that\nwindow for the duration of the delay.\nA negative number has a similar effect, but causes windows to be\nautoselected only after the mouse has stopped moving.  (Because of\nthe way Emacs compares mouse events, you will occasionally wait twice\nthat time before the window gets selected.)\nAny other value means to autoselect window instantaneously when the\nmouse pointer enters it.\n\nAutoselection selects the minibuffer only if it is active, and never\nunselects the minibuffer if it is active.\n\nIf you want to use the mouse to autoselect a window on another frame,\nmake sure that (1) your window manager has focus follow the mouse and\n(2) the value of the option `focus-follows-mouse' matches the policy\nof your window manager.");
 
-  Vmouse_autoselect_window = Qnil ();
+  (*Vmouse_autoselect_window.as_mut_ptr ()) = Qnil ();
 
   
   DEFVAR_LISP! (c"auto-resize-tab-bars", Vauto_resize_tab_bars,
 	      "Non-nil means automatically resize tab-bars.\nThis dynamically changes the tab-bar's height to the minimum height\nthat is needed to make all tab-bar items visible.\nIf value is `grow-only', the tab-bar's height is only increased\nautomatically; to decrease the tab-bar height, use \\[recenter],\nafter setting `recenter-redisplay' to the value of t.");
 
-  Vauto_resize_tab_bars = Qt ();
+  (*Vauto_resize_tab_bars.as_mut_ptr ()) = Qt ();
 
   
   DEFVAR_BOOL! (c"auto-raise-tab-bar-buttons", auto_raise_tab_bar_buttons_p,
 	      "Non-nil means raise tab-bar buttons when the mouse moves over them.");
 
-  auto_raise_tab_bar_buttons_p = true;
+  (*auto_raise_tab_bar_buttons_p.as_mut_ptr ()) = true;
 
   
   DEFVAR_LISP! (c"auto-resize-tool-bars", Vauto_resize_tool_bars,
 	      "Non-nil means automatically resize tool-bars.\nThis dynamically changes the tool-bar's height to the minimum height\nthat is needed to make all tool-bar items visible.\nIf value is `grow-only', the tool-bar's height is only increased\nautomatically; to decrease the tool-bar height, use \\[recenter],\nafter setting `recenter-redisplay' to the value of t.");
 
-  Vauto_resize_tool_bars = Qt ();
+  (*Vauto_resize_tool_bars.as_mut_ptr ()) = Qt ();
 
   
   DEFVAR_BOOL! (c"auto-raise-tool-bar-buttons", auto_raise_tool_bar_buttons_p,
 	      "Non-nil means raise tool-bar buttons when the mouse moves over them.");
 
-  auto_raise_tool_bar_buttons_p = true;
+  (*auto_raise_tool_bar_buttons_p.as_mut_ptr ()) = true;
 
   
   DEFVAR_LISP! (c"make-cursor-line-fully-visible", Vmake_cursor_line_fully_visible,
 	      "Whether to scroll the window if the cursor line is not fully visible.\nIf the value is non-nil, Emacs scrolls or recenters the window to make\nthe cursor line fully visible.  The value could also be a function, which\nis called with a single argument, the window to be scrolled, and should\nreturn non-nil if the partially-visible cursor requires scrolling the\nwindow, nil if it's okay to leave the cursor partially-visible.");
 
-  Vmake_cursor_line_fully_visible = Qt ();
+  (*Vmake_cursor_line_fully_visible.as_mut_ptr ()) = Qt ();
   
   DEFSYM! (Qmake_cursor_line_fully_visible, c"make-cursor-line-fully-visible");
 
@@ -40891,7 +40889,7 @@ pub unsafe extern "C-unwind" fn syms_of_xdisp ()
   DEFVAR_BOOL! (c"make-window-start-visible", make_window_start_visible,
 	      "Whether to ensure `window-start' position is never invisible.");
 
-  make_window_start_visible = false;
+  (*make_window_start_visible.as_mut_ptr ()) = false;
   
   DEFSYM! (Qmake_window_start_visible, c"make-window-start-visible");
 
@@ -40901,7 +40899,7 @@ pub unsafe extern "C-unwind" fn syms_of_xdisp ()
   DEFVAR_BOOL! (c"tab-bar-truncate", tab_bar_truncate,
 	      "Non-nil means truncate tab-bar and show only one line.");
 
-  tab_bar_truncate = false;
+  (*tab_bar_truncate.as_mut_ptr ()) = false;
 
   
   DEFSYM! (Qclose_tab, c"close-tab");
@@ -40910,68 +40908,68 @@ pub unsafe extern "C-unwind" fn syms_of_xdisp ()
   DEFVAR_LISP! (c"tab-bar-border", Vtab_bar_border,
 	      "Border below tab-bar in pixels.\nIf an integer, use it as the height of the border.\nIf it is one of `internal-border-width' or `border-width', use the\nvalue of the corresponding frame parameter.\nOtherwise, no border is added below the tab-bar.");
 
-  Vtab_bar_border = Qinternal_border_width ();
+  (*Vtab_bar_border.as_mut_ptr ()) = Qinternal_border_width ();
 
   
   DEFVAR_LISP! (c"tab-bar-button-margin", Vtab_bar_button_margin,
 	      "Margin around tab-bar buttons in pixels.\nIf an integer, use that for both horizontal and vertical margins.\nOtherwise, value should be a pair of integers `(HORZ . VERT)' with\nHORZ specifying the horizontal margin, and VERT specifying the\nvertical margin.");
 
-  Vtab_bar_button_margin = make_fixnum (DEFAULT_TAB_BAR_BUTTON_MARGIN as isize);
+  (*Vtab_bar_button_margin.as_mut_ptr ()) = make_fixnum (DEFAULT_TAB_BAR_BUTTON_MARGIN as isize);
 
   
   DEFVAR_INT! (c"tab-bar-button-relief", tab_bar_button_relief,
 	      "Relief thickness of tab-bar buttons.");
 
-  tab_bar_button_relief = DEFAULT_TAB_BAR_BUTTON_RELIEF as EMACS_INT;
+  (*tab_bar_button_relief.as_mut_ptr ()) = DEFAULT_TAB_BAR_BUTTON_RELIEF as EMACS_INT;
 
   
   DEFVAR_LISP! (c"tool-bar-border", Vtool_bar_border,
 	      "Border below tool-bar in pixels.\nIf an integer, use it as the height of the border.\nIf it is one of `internal-border-width' or `border-width', use the\nvalue of the corresponding frame parameter.\nOtherwise, no border is added below the tool-bar.");
 
-  Vtool_bar_border = Qinternal_border_width ();
+  (*Vtool_bar_border.as_mut_ptr ()) = Qinternal_border_width ();
 
   
   DEFVAR_LISP! (c"tool-bar-button-margin", Vtool_bar_button_margin,
 	      "Margin around tool-bar buttons in pixels.\nIf an integer, use that for both horizontal and vertical margins.\nOtherwise, value should be a pair of integers `(HORZ . VERT)' with\nHORZ specifying the horizontal margin, and VERT specifying the\nvertical margin.");
 
-  Vtool_bar_button_margin = make_fixnum (DEFAULT_TOOL_BAR_BUTTON_MARGIN as isize);
+  (*Vtool_bar_button_margin.as_mut_ptr ()) = make_fixnum (DEFAULT_TOOL_BAR_BUTTON_MARGIN as isize);
 
   
   DEFVAR_INT! (c"tool-bar-button-relief", tool_bar_button_relief,
 	      "Relief thickness of tool-bar buttons.");
 
-  tool_bar_button_relief = DEFAULT_TOOL_BAR_BUTTON_RELIEF as EMACS_INT;
+  (*tool_bar_button_relief.as_mut_ptr ()) = DEFAULT_TOOL_BAR_BUTTON_RELIEF as EMACS_INT;
 
   
   DEFVAR_LISP! (c"tool-bar-style", Vtool_bar_style,
 	      "Tool bar style to use.\nIt can be one of\n image            - show images only\n text             - show text only\n both             - show both, text below image\n both-horiz       - show text to the right of the image\n text-image-horiz - show text to the left of the image\n any other        - use system default or image if no system default.\n\nThis variable only affects the GTK+ toolkit version of Emacs.");
 
-  Vtool_bar_style = Qnil ();
+  (*Vtool_bar_style.as_mut_ptr ()) = Qnil ();
 
   
   DEFVAR_INT! (c"tool-bar-max-label-size", tool_bar_max_label_size,
 	      "Maximum number of characters a label can have to be shown.\nThe tool bar style must also show labels for this to have any effect, see\n`tool-bar-style'.");
 
-  tool_bar_max_label_size = DEFAULT_TOOL_BAR_LABEL_SIZE as EMACS_INT;
+  (*tool_bar_max_label_size.as_mut_ptr ()) = DEFAULT_TOOL_BAR_LABEL_SIZE as EMACS_INT;
 
   
   DEFVAR_LISP! (c"fontification-functions", Vfontification_functions,
 	      "List of functions to call to fontify regions of text.\nEach function is called with one argument POS.  Functions must\nfontify a region starting at POS in the current buffer, and give\nfontified regions the property `fontified' with a non-nil value.\n\nNote that, when `long-line-optimizations-p' is non-nil in the buffer,\nthese functions are called as if they were in a `with-restriction' form,\nwith a `long-line-optimizations-in-fontification-functions' label and\nwith the buffer narrowed to a portion around POS whose size is\nspecified by `long-line-optimizations-region-size'.");
 
-  Vfontification_functions = Qnil ();
+  (*Vfontification_functions.as_mut_ptr ()) = Qnil ();
   Fmake_variable_buffer_local (Qfontification_functions ());
 
   
   DEFVAR_BOOL! (c"unibyte-display-via-language-environment", unibyte_display_via_language_environment,
 	      "Non-nil means display unibyte text according to language environment.\nSpecifically, this means that raw bytes in the range 160-255 decimal\nare displayed by converting them to the equivalent multibyte characters\naccording to the current language environment.  As a result, they are\ndisplayed according to the current fontset.\n\nNote that this variable affects only how these bytes are displayed,\nbut does not change the fact they are interpreted as raw bytes.");
 
-  unibyte_display_via_language_environment = false;
+  (*unibyte_display_via_language_environment.as_mut_ptr ()) = false;
 
   
   DEFVAR_LISP! (c"max-mini-window-height", Vmax_mini_window_height,
 	      "Maximum height for resizing mini-windows (the minibuffer and the echo area).\nIf a float, it specifies the maximum height in units of the\nmini-window frame's height.\nIf an integer, it specifies the maximum height in units of the\nmini-window frame's default font's height.");
 
-  Vmax_mini_window_height = make_float (0.25);
+  (*Vmax_mini_window_height.as_mut_ptr ()) = make_float (0.25);
 
   
   DEFVAR_LISP! (c"resize-mini-windows", Vresize_mini_windows,
@@ -40982,19 +40980,19 @@ pub unsafe extern "C-unwind" fn syms_of_xdisp ()
      window.el, where some functions we need to call for this live.
      We assign the 'grow-only' value right after loading window.el
      during loadup.  */
-  Vresize_mini_windows = Qnil ();
+  (*Vresize_mini_windows.as_mut_ptr ()) = Qnil ();
 
   
   DEFVAR_LISP! (c"blink-cursor-alist", Vblink_cursor_alist,
 	      "Alist specifying how to blink the cursor off.\nEach element has the form (ON-STATE . OFF-STATE).  Whenever the\n`cursor-type' frame-parameter or variable equals ON-STATE,\ncomparing using `equal', Emacs uses OFF-STATE to specify\nhow to blink it off.  ON-STATE and OFF-STATE are values for\nthe `cursor-type' frame parameter.\n\nIf a frame's ON-STATE has no entry in this list,\nthe frame's other specifications determine how to blink the cursor off.");
 
-  Vblink_cursor_alist = Qnil ();
+  (*Vblink_cursor_alist.as_mut_ptr ()) = Qnil ();
 
   
   DEFVAR_LISP! (c"auto-hscroll-mode", automatic_hscrolling,
 	      "Allow or disallow automatic horizontal scrolling of windows.\nThe value `current-line' means the line displaying point in each window\nis automatically scrolled horizontally to make point visible.\nAny other non-nil value means all the lines in a window are automatically\nscrolled horizontally to make point visible.");
 
-  automatic_hscrolling = Qt ();
+  (*automatic_hscrolling.as_mut_ptr ()) = Qt ();
   
   DEFSYM! (Qauto_hscroll_mode, c"auto-hscroll-mode");
 
@@ -41006,43 +41004,43 @@ pub unsafe extern "C-unwind" fn syms_of_xdisp ()
   DEFVAR_INT! (c"hscroll-margin", hscroll_margin,
 	      "How many columns away from the window edge point is allowed to get\nbefore automatic hscrolling will horizontally scroll the window.");
 
-  hscroll_margin = 5;
+  (*hscroll_margin.as_mut_ptr ()) = 5;
 
   
   DEFVAR_LISP! (c"hscroll-step", Vhscroll_step,
 	      "How many columns to scroll the window when point gets too close to the edge.\nWhen point is less than `hscroll-margin' columns from the window\nedge, automatic hscrolling will scroll the window by the amount of columns\ndetermined by this variable.  If its value is a positive integer, scroll that\nmany columns.  If it's a positive floating-point number, it specifies the\nfraction of the window's width to scroll.  If it's nil or zero, point will be\ncentered horizontally after the scroll.  Any other value, including negative\nnumbers, are treated as if the value were zero.\n\nAutomatic hscrolling always moves point outside the scroll margin, so if\npoint was more than scroll step columns inside the margin, the window will\nscroll more than the value given by the scroll step.\n\nNote that the lower bound for automatic hscrolling specified by `scroll-left'\nand `scroll-right' overrides this variable's effect.");
 
-  Vhscroll_step = make_fixnum (0);
+  (*Vhscroll_step.as_mut_ptr ()) = make_fixnum (0);
 
   
   DEFVAR_BOOL! (c"message-truncate-lines", message_truncate_lines,
 	      "If non-nil, messages are truncated when displaying the echo area.\nBind this around calls to `message' to let it take effect.");
 
-  message_truncate_lines = false;
+  (*message_truncate_lines.as_mut_ptr ()) = false;
 
   
   DEFVAR_LISP! (c"menu-bar-update-hook", Vmenu_bar_update_hook,
 	      "Normal hook run to update the menu bar definitions.\nRedisplay runs this hook before it redisplays the menu bar.\nThis is used to update menus such as Buffers, whose contents depend on\nvarious data.");
 
-  Vmenu_bar_update_hook = Qnil ();
+  (*Vmenu_bar_update_hook.as_mut_ptr ()) = Qnil ();
 
   
   DEFVAR_LISP! (c"menu-updating-frame", Vmenu_updating_frame,
 	      "Frame for which we are updating a menu.\nThe enable predicate for a menu binding should check this variable.");
 
-  Vmenu_updating_frame = Qnil ();
+  (*Vmenu_updating_frame.as_mut_ptr ()) = Qnil ();
 
   
   DEFVAR_BOOL! (c"inhibit-menubar-update", inhibit_menubar_update,
 	      "Non-nil means don't update menu bars.  Internal use only.");
 
-  inhibit_menubar_update = false;
+  (*inhibit_menubar_update.as_mut_ptr ()) = false;
 
   
   DEFVAR_LISP! (c"wrap-prefix", Vwrap_prefix,
 	      "Prefix prepended to all continuation lines at display time.\nThe value may be a string, an image, or a stretch-glyph; it is\ninterpreted in the same way as the value of a `display' text property.\n\nThis variable is overridden by any `wrap-prefix' text or overlay\nproperty.\n\nTo add a prefix to non-continuation lines, use `line-prefix'.");
 
-  Vwrap_prefix = Qnil ();
+  (*Vwrap_prefix.as_mut_ptr ()) = Qnil ();
   
   DEFSYM! (Qwrap_prefix, c"wrap-prefix");
 
@@ -41052,7 +41050,7 @@ pub unsafe extern "C-unwind" fn syms_of_xdisp ()
   DEFVAR_LISP! (c"line-prefix", Vline_prefix,
 	      "Prefix prepended to all non-continuation lines at display time.\nThe value may be a string, an image, or a stretch-glyph; it is\ninterpreted in the same way as the value of a `display' text property.\n\nThis variable is overridden by any `line-prefix' text or overlay\nproperty.\n\nTo add a prefix to continuation lines, use `wrap-prefix'.");
 
-  Vline_prefix = Qnil ();
+  (*Vline_prefix.as_mut_ptr ()) = Qnil ();
   
   DEFSYM! (Qline_prefix, c"line-prefix");
 
@@ -41062,7 +41060,7 @@ pub unsafe extern "C-unwind" fn syms_of_xdisp ()
   DEFVAR_LISP! (c"display-line-numbers", Vdisplay_line_numbers,
 	      "Non-nil means display line numbers.\n\nIf the value is t, display the absolute number of each line of a buffer\nshown in a window.  Absolute line numbers count from the beginning of\nthe current narrowing, or from buffer beginning.  The variable\n`display-line-numbers-offset', if non-zero, is a signed offset added\nto each absolute line number; it also forces line numbers to be counted\nfrom the beginning of the buffer, as if `display-line-numbers-widen'\nwere non-nil.  It has no effect when line numbers are not absolute.\n\nIf the value is `relative', display for each line not containing the\nwindow's point its relative number instead, i.e. the number of the line\nrelative to the line showing the window's point.\n\nIn either case, line numbers are displayed at the beginning of each\nnon-continuation line that displays buffer text, i.e. after each newline\ncharacter that comes from the buffer.  The value `visual' is like\n`relative' but counts screen lines instead of buffer lines.  In practice\nthis means that continuation lines count as well when calculating the\nrelative number of a line.\n\nLisp programs can disable display of a line number of a particular\nbuffer line by putting the `display-line-numbers-disable' text property\nor overlay property on the first visible character of that line.");
 
-  Vdisplay_line_numbers = Qnil ();
+  (*Vdisplay_line_numbers.as_mut_ptr ()) = Qnil ();
   
   DEFSYM! (Qdisplay_line_numbers, c"display-line-numbers");
 
@@ -41078,7 +41076,7 @@ pub unsafe extern "C-unwind" fn syms_of_xdisp ()
   DEFVAR_LISP! (c"display-line-numbers-width", Vdisplay_line_numbers_width,
 	      "Minimum width of space reserved for line number display.\nA positive number means reserve that many columns for line numbers,\neven if the actual number needs less space.\nThe default value of nil means compute the space dynamically.\nAny other value is treated as nil.");
 
-  Vdisplay_line_numbers_width = Qnil ();
+  (*Vdisplay_line_numbers_width.as_mut_ptr ()) = Qnil ();
   
   DEFSYM! (Qdisplay_line_numbers_width, c"display-line-numbers-width");
 
@@ -41088,13 +41086,13 @@ pub unsafe extern "C-unwind" fn syms_of_xdisp ()
   DEFVAR_LISP! (c"display-line-numbers-current-absolute", Vdisplay_line_numbers_current_absolute,
 	      "Non-nil means display absolute number of current line.\nThis variable has effect only when `display-line-numbers' is\neither `relative' or `visual'.");
 
-  Vdisplay_line_numbers_current_absolute = Qt ();
+  (*Vdisplay_line_numbers_current_absolute.as_mut_ptr ()) = Qt ();
 
   
   DEFVAR_BOOL! (c"display-line-numbers-widen", display_line_numbers_widen,
 	      "Non-nil means display line numbers disregarding any narrowing.");
 
-  display_line_numbers_widen = false;
+  (*display_line_numbers_widen.as_mut_ptr ()) = false;
   
   DEFSYM! (Qdisplay_line_numbers_widen, c"display-line-numbers-widen");
 
@@ -41104,7 +41102,7 @@ pub unsafe extern "C-unwind" fn syms_of_xdisp ()
   DEFVAR_INT! (c"display-line-numbers-offset", display_line_numbers_offset,
 	      "A signed integer added to each absolute line number.\nWhen this variable is non-zero, line numbers are always counted from\nthe beginning of the buffer even if `display-line-numbers-widen' is nil.\nIt has no effect when set to 0, or when line numbers are not absolute.");
 
-  display_line_numbers_offset = 0;
+  (*display_line_numbers_offset.as_mut_ptr ()) = 0;
   
   DEFSYM! (Qdisplay_line_numbers_offset, c"display-line-numbers-offset");
 
@@ -41114,7 +41112,7 @@ pub unsafe extern "C-unwind" fn syms_of_xdisp ()
   DEFVAR_BOOL! (c"display-fill-column-indicator", display_fill_column_indicator,
 	      "Non-nil means display the fill column indicator.\nIf you set this non-nil, make sure `display-fill-column-indicator-character'\nis also non-nil.\nSee Info node `Displaying Boundaries' for details.");
 
-  display_fill_column_indicator = false;
+  (*display_fill_column_indicator.as_mut_ptr ()) = false;
   
   DEFSYM! (Qdisplay_fill_column_indicator, c"display-fill-column-indicator");
 
@@ -41124,7 +41122,7 @@ pub unsafe extern "C-unwind" fn syms_of_xdisp ()
   DEFVAR_LISP! (c"display-fill-column-indicator-column", Vdisplay_fill_column_indicator_column,
 	      "Column for indicator when `display-fill-column-indicator' is non-nil.\nThe default value is t which means that the indicator\nwill use the `fill-column' variable.  If it is set to an integer the\nindicator will be drawn in that column.\nSee Info node `Displaying Boundaries' for details.");
 
-  Vdisplay_fill_column_indicator_column = Qt ();
+  (*Vdisplay_fill_column_indicator_column.as_mut_ptr ()) = Qt ();
   
   DEFSYM! (Qdisplay_fill_column_indicator_column, c"display-fill-column-indicator-column");
 
@@ -41134,7 +41132,7 @@ pub unsafe extern "C-unwind" fn syms_of_xdisp ()
   DEFVAR_LISP! (c"display-fill-column-indicator-character", Vdisplay_fill_column_indicator_character,
 	      "Character to draw the indicator when `display-fill-column-indicator' is non-nil.\nA good candidate is U+2502, and an alternative is (ascii 124) if the\nfont of `fill-column-indicator' face does not support Unicode characters.\nSee Info node `Displaying Boundaries' for details.");
 
-  Vdisplay_fill_column_indicator_character = Qnil ();
+  (*Vdisplay_fill_column_indicator_character.as_mut_ptr ()) = Qnil ();
   
   DEFSYM! (Qdisplay_fill_column_indicator_character, c"display-fill-column-indicator-character");
 
@@ -41144,37 +41142,37 @@ pub unsafe extern "C-unwind" fn syms_of_xdisp ()
   DEFVAR_INT! (c"display-line-numbers-major-tick", display_line_numbers_major_tick,
 	      "If an integer N > 0, highlight line number of every Nth line.\nThe line number is shown with the `line-number-major-tick' face.\nOtherwise, no special highlighting is done every Nth line.\nNote that major ticks take precedence over minor ticks.");
 
-  display_line_numbers_major_tick = 0;
+  (*display_line_numbers_major_tick.as_mut_ptr ()) = 0;
 
   
   DEFVAR_INT! (c"display-line-numbers-minor-tick", display_line_numbers_minor_tick,
 	      "If an integer N > 0, highlight line number of every Nth line.\nThe line number is shown with the `line-number-minor-tick' face.\nOtherwise, no special highlighting is done every Nth line.\nNote that major ticks take precedence over minor ticks.");
 
-  display_line_numbers_minor_tick = 0;
+  (*display_line_numbers_minor_tick.as_mut_ptr ()) = 0;
 
   
   DEFVAR_BOOL! (c"inhibit-eval-during-redisplay", inhibit_eval_during_redisplay,
 	      "Non-nil means don't eval Lisp during redisplay.");
 
-  inhibit_eval_during_redisplay = false;
+  (*inhibit_eval_during_redisplay.as_mut_ptr ()) = false;
 
   
   DEFVAR_BOOL! (c"inhibit-free-realized-faces", inhibit_free_realized_faces,
 	      "Non-nil means don't free realized faces.  Internal use only.");
 
-  inhibit_free_realized_faces = false;
+  (*inhibit_free_realized_faces.as_mut_ptr ()) = false;
 
   
   DEFVAR_BOOL! (c"inhibit-bidi-mirroring", inhibit_bidi_mirroring,
 	      "Non-nil means don't mirror characters even when bidi context requires that.\nIntended for use during debugging and for testing bidi display;\nsee biditest.el in the test suite.");
 
-  inhibit_bidi_mirroring = false;
+  (*inhibit_bidi_mirroring.as_mut_ptr ()) = false;
 
   
   DEFVAR_BOOL! (c"bidi-inhibit-bpa", bidi_inhibit_bpa,
 	      "Non-nil means inhibit the Bidirectional Parentheses Algorithm.\nDisabling the BPA makes redisplay faster, but might produce incorrect\ndisplay reordering of bidirectional text with embedded parentheses and\nother bracket characters whose `paired-bracket' Unicode property is\nnon-nil, see `get-char-code-property'.");
 
-  bidi_inhibit_bpa = false;
+  (*bidi_inhibit_bpa.as_mut_ptr ()) = false;
 
 
   /* C 39288-39298: the `GLYPH_DEBUG` `DEFVAR_BOOL`s `inhibit-try-window-id` (`inhibit_try_window_id`),
@@ -41187,13 +41185,13 @@ pub unsafe extern "C-unwind" fn syms_of_xdisp ()
   DEFVAR_INT! (c"overline-margin", overline_margin,
 	      "Space between overline and text, in pixels.\nThe default value is 2: the height of the overline (1 pixel) plus 1 pixel\nmargin to the character height.");
 
-  overline_margin = 2;
+  (*overline_margin.as_mut_ptr ()) = 2;
 
   
   DEFVAR_INT! (c"underline-minimum-offset", underline_minimum_offset,
 	      "Minimum distance between baseline and underline.\nThis can improve legibility of underlined text at small font sizes,\nparticularly when using variable `x-use-underline-position-properties'\nwith fonts that specify an UNDERLINE_POSITION relatively close to the\nbaseline.  The default value is 1.");
 
-  underline_minimum_offset = 1;
+  (*underline_minimum_offset.as_mut_ptr ()) = 1;
   
   DEFSYM! (Qunderline_minimum_offset, c"underline-minimum-offset");
 
@@ -41202,13 +41200,13 @@ pub unsafe extern "C-unwind" fn syms_of_xdisp ()
   DEFVAR_BOOL! (c"display-hourglass", display_hourglass_p,
 	      "Non-nil means show an hourglass pointer, when Emacs is busy.\nThis feature only works when on a window system that can change\ncursor shapes.");
 
-  display_hourglass_p = true;
+  (*display_hourglass_p.as_mut_ptr ()) = true;
 
   
   DEFVAR_LISP! (c"hourglass-delay", Vhourglass_delay,
 	      "Seconds to wait before displaying an hourglass pointer when Emacs is busy.");
 
-  Vhourglass_delay = make_fixnum (DEFAULT_HOURGLASS_DELAY as isize);
+  (*Vhourglass_delay.as_mut_ptr ()) = make_fixnum (DEFAULT_HOURGLASS_DELAY as isize);
 
 
   /* C 39328-39329: the `HAVE_WINDOW_SYSTEM` arm's `hourglass_atimer = NULL;` and
@@ -41242,7 +41240,7 @@ pub unsafe extern "C-unwind" fn syms_of_xdisp ()
   DEFVAR_LISP! (c"pre-redisplay-function", Vpre_redisplay_function,
 	      "Function run just before redisplay.\nIt is called with one argument, which is the set of windows that are to\nbe redisplayed.  This set can be nil (meaning, only the selected window),\nor t (meaning all windows).");
 
-  Vpre_redisplay_function = intern (c"ignore".as_ptr ());
+  (*Vpre_redisplay_function.as_mut_ptr ()) = intern (c"ignore".as_ptr ());
 
   /* Symbol for the purpose of Vglyphless_char_display.  */
   
@@ -41254,27 +41252,27 @@ pub unsafe extern "C-unwind" fn syms_of_xdisp ()
   DEFVAR_LISP! (c"glyphless-char-display", Vglyphless_char_display,
 	      "Char-table defining glyphless characters.\nEach element, if non-nil, should be one of the following:\n  an ASCII acronym string: display this string in a box\n  `hex-code':   display the hexadecimal code of a character in a box\n  `empty-box':  display as an empty box\n  `thin-space': display as 1-pixel width space\n  `zero-width': don't display\nAny other value is interpreted as `empty-box'.\nAn element may also be a cons cell (GRAPHICAL . TEXT), which specifies the\ndisplay method for graphical terminals and text terminals respectively.\nGRAPHICAL and TEXT should each have one of the values listed above.\n\nThe char-table has one extra slot to control the display of characters\nfor which no font is found on graphical terminals, and characters that\ncannot be displayed by text-mode terminals.  Its value should be an\nASCII acronym string, `hex-code', `empty-box', or `thin-space'.  It\ncould also be a cons cell of any two of these, to specify separate\nvalues for graphical and text terminals.  The default is `empty-box'.\n\nWith the obvious exception of `zero-width', all the other representations\nare displayed using the face `glyphless-char'.\n\nIf a character has a non-nil entry in an active display table, the\ndisplay table takes effect; in this case, Emacs does not consult\n`glyphless-char-display' at all.");
 
-  Vglyphless_char_display = Fmake_char_table (Qglyphless_char_display (), Qnil ());
-  Fset_char_table_extra_slot (Vglyphless_char_display, make_fixnum (0),
+  (*Vglyphless_char_display.as_mut_ptr ()) = Fmake_char_table (Qglyphless_char_display (), Qnil ());
+  Fset_char_table_extra_slot ((*Vglyphless_char_display.as_mut_ptr ()), make_fixnum (0),
 			      Qempty_box ());
 
   
   DEFVAR_LISP! (c"special-mirror-table", Vspecial_mirror_table,
 	      "Char-table used to mirror special characters.\n\nThis table is used to mirror special characters (truncation and\ncontinuation) under certain conditions.  For example, if a user modifies\nthe display table to use a different continuation character like this:\n\n(set-display-table-slot standard-display-table 'wrap #x21A9)\n\nthen, using this table, this character is mirrored accordingly when\ndisplaying R2L text.  The same applies to the truncation character which\nis mirrored depending if it appears on the right or on the left hand\nside of a window.\n\nThis table comes pre-populated with some Unicode arrow chars but you can\ncustomize it by adding a character and its mirror both way like in the\nfollowing example with the Pilcrow sign:\n\n(aset special-mirror-table #xB6 #x204B)\n(aset special-mirror-table #x204B #xB6)");
 
-  Vspecial_mirror_table = Fmake_char_table (Qnil (), Qnil ());
+  (*Vspecial_mirror_table.as_mut_ptr ()) = Fmake_char_table (Qnil (), Qnil ());
 
   
   DEFVAR_LISP! (c"debug-on-message", Vdebug_on_message,
 	      "If non-nil, debug if a message matching this regexp is displayed.");
 
-  Vdebug_on_message = Qnil ();
+  (*Vdebug_on_message.as_mut_ptr ()) = Qnil ();
 
   
   DEFVAR_LISP! (c"set-message-function", Vset_message_function,
 	      "If non-nil, function to handle display of echo-area messages.\nThe function is called with one argument that is the text of a message.\nIf this function returns nil, the message is displayed in the echo area\nas usual.  If the function returns a string, the returned string is\ndisplayed in the echo area.  If this function returns any other non-nil\nvalue, this means that the message was already handled, and the original\nmessage text will not be displayed in the echo area.\n\nAlso see `clear-message-function' (which can be used to clear the\nmessage displayed by this function), and `command-error-function'\n(which controls how error messages are displayed).");
 
-  Vset_message_function = Qnil ();
+  (*Vset_message_function.as_mut_ptr ()) = Qnil ();
 
   
   DEFSYM! (Qdont_clear_message, c"dont-clear-message");
@@ -41283,19 +41281,19 @@ pub unsafe extern "C-unwind" fn syms_of_xdisp ()
   DEFVAR_LISP! (c"clear-message-function", Vclear_message_function,
 	      "If non-nil, function to clear echo-area messages.\nUsually this function is called when the next input event arrives.\nIt is expected to clear the message displayed by its counterpart\nfunction specified by `set-message-function'.\n\nThe function is called without arguments.\n\nIf this function returns a value that isn't `dont-clear-message', the\nmessage is cleared from the echo area as usual.  If this function\nreturns `dont-clear-message', this means that the message was already\nhandled, and the original message text will not be cleared from the\necho area.");
 
-  Vclear_message_function = Qnil ();
+  (*Vclear_message_function.as_mut_ptr ()) = Qnil ();
 
   
   DEFVAR_LISP! (c"redisplay--all-windows-cause", Vredisplay__all_windows_cause,
 	      "Code of the cause for redisplaying all windows.\nInternal use only.");
 
-  Vredisplay__all_windows_cause = Fmake_hash_table (0, core::ptr::null_mut ());
+  (*Vredisplay__all_windows_cause.as_mut_ptr ()) = Fmake_hash_table (0, core::ptr::null_mut ());
 
   
   DEFVAR_LISP! (c"redisplay--mode-lines-cause", Vredisplay__mode_lines_cause,
 	      "Code of the cause for redisplaying mode lines.\nInternal use only.");
 
-  Vredisplay__mode_lines_cause = Fmake_hash_table (0, core::ptr::null_mut ());
+  (*Vredisplay__mode_lines_cause.as_mut_ptr ()) = Fmake_hash_table (0, core::ptr::null_mut ());
 
   
   DEFVAR_BOOL! (c"redisplay--inhibit-bidi", redisplay__inhibit_bidi,
@@ -41303,56 +41301,56 @@ pub unsafe extern "C-unwind" fn syms_of_xdisp ()
 
   /* Initialize to t, since we need to disable reordering until
      loadup.el successfully loads charprop.el.  */
-  redisplay__inhibit_bidi = true;
+  (*redisplay__inhibit_bidi.as_mut_ptr ()) = true;
 
   
   DEFVAR_BOOL! (c"display-raw-bytes-as-hex", display_raw_bytes_as_hex,
 	      "Non-nil means display raw bytes in hexadecimal format.\nThe default is to use octal format (\\200) whereas hexadecimal (\\x80)\nmay be more familiar to users.");
 
-  display_raw_bytes_as_hex = false;
+  (*display_raw_bytes_as_hex.as_mut_ptr ()) = false;
 
   
   DEFVAR_BOOL! (c"mouse-fine-grained-tracking", mouse_fine_grained_tracking,
 	      "Non-nil for pixelwise mouse-movement.\nWhen nil, mouse-movement events will not be generated as long as the\nmouse stays within the extent of a single glyph (except for images).\nWhen nil and `mouse-prefer-closest-glyph' is non-nil, mouse-movement\nevents will instead not be generated as long as the mouse stays within\nthe extent of a single left/right half glyph (except for images).");
 
-  mouse_fine_grained_tracking = false;
+  (*mouse_fine_grained_tracking.as_mut_ptr ()) = false;
 
   
   DEFVAR_BOOL! (c"tab-bar--dragging-in-progress", tab_bar__dragging_in_progress,
 	      "Non-nil when maybe dragging tab bar item.");
 
-  tab_bar__dragging_in_progress = false;
+  (*tab_bar__dragging_in_progress.as_mut_ptr ()) = false;
 
   
   DEFVAR_BOOL! (c"redisplay-skip-initial-frame", redisplay_skip_initial_frame,
 	      "Non-nil means skip redisplay of the initial frame.\nThe initial frame is the text-mode frame used by Emacs internally during\nthe early stages of startup.  That frame is not displayed anywhere, so\nskipping it is best except in special circumstances such as running\nredisplay tests in batch mode.");
 
-  redisplay_skip_initial_frame = true;
+  (*redisplay_skip_initial_frame.as_mut_ptr ()) = true;
 
   
   DEFVAR_BOOL! (c"redisplay-skip-fontification-on-input", redisplay_skip_fontification_on_input,
 	      "Skip `fontification_functions` when there is input pending.\nIf non-nil and there was input pending at the beginning of the command,\nthe `fontification_functions` hook is not run.  This usually does not\naffect the display because redisplay is completely skipped anyway if input\nwas pending, but it can make scrolling smoother by avoiding\nunnecessary fontification.\nIt is similar to `fast-but-imprecise-scrolling' with similar tradeoffs,\nbut with the advantage that it should only affect the behavior when Emacs\nhas trouble keeping up with the incoming input rate.");
 
-  redisplay_skip_fontification_on_input = false;
+  (*redisplay_skip_fontification_on_input.as_mut_ptr ()) = false;
 
   
   DEFVAR_BOOL! (c"redisplay-adhoc-scroll-in-resize-mini-windows", redisplay_adhoc_scroll_in_resize_mini_windows,
 	      "If nil always use normal scrolling in minibuffer windows.\nOtherwise, use custom-tailored code after resizing minibuffer windows to try\nand display the most important part of the minibuffer.");
 
   /* See bug#43519 for some discussion around this.  */
-  redisplay_adhoc_scroll_in_resize_mini_windows = true;
+  (*redisplay_adhoc_scroll_in_resize_mini_windows.as_mut_ptr ()) = true;
 
   
   DEFVAR_BOOL! (c"composition-break-at-point", composition_break_at_point,
 	      "If non-nil, prevent auto-composition of characters around point.\nThis makes it easier to edit character sequences that are\ncomposed on display.");
 
-  composition_break_at_point = false;
+  (*composition_break_at_point.as_mut_ptr ()) = false;
 
   
   DEFVAR_INT! (c"max-redisplay-ticks", max_redisplay_ticks,
 	      "Maximum number of redisplay ticks before aborting redisplay of a window.\n\nThis enables aborting the display of a window if the amount of\nlow-level redisplay operations exceeds the value of this variable.\nWhen display of a window is aborted due to this reason, the buffer\nshown in that window will not have its windows redisplayed until the\nbuffer is modified or until you type \\[recenter-top-bottom] with one\nof its windows selected.  You can also decide to kill the buffer and\nvisit it in some other way, like under `so-long-mode' or literally.\n\nThe default value is zero, which disables this feature.\nThe recommended non-zero value is between 100000 and 1000000,\ndepending on your patience and the speed of your system.");
 
-  max_redisplay_ticks = 0;
+  (*max_redisplay_ticks.as_mut_ptr ()) = 0;
 
   /* Called by decode_mode_spec.  */
   
@@ -41394,13 +41392,13 @@ pub unsafe extern "C-unwind" fn init_xdisp ()
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  CHARPOS! (this_line_start_pos) = 0;
+  CHARPOS! ((*this_line_start_pos.as_mut_ptr ())) = 0;
 
-  echo_area_window = minibuf_window;
+  (*echo_area_window.as_mut_ptr ()) = (*minibuf_window.as_mut_ptr ());
 
-  if !noninteractive
+  if !(*noninteractive.as_mut_ptr ())
     {
-      let m: *mut window = XWINDOW (minibuf_window);
+      let m: *mut window = XWINDOW ((*minibuf_window.as_mut_ptr ()));
       let frame_: Lisp_Object = (*m).frame;
       let f: *mut frame = XFRAME (frame_);
       let root: Lisp_Object = FRAME_ROOT_WINDOW (f);
@@ -41421,15 +41419,15 @@ pub unsafe extern "C-unwind" fn init_xdisp ()
       (*m).total_lines = 1;
       (*m).pixel_height = (*m).total_lines * FRAME_LINE_HEIGHT (f);
 
-      scratch_glyph_row.glyphs [TEXT_AREA as usize] = femacs_array_mut_ptr (&raw mut scratch_glyphs);
-      scratch_glyph_row.glyphs [(TEXT_AREA + 1) as usize]
-	= femacs_array_mut_ptr (&raw mut scratch_glyphs).offset (MAX_SCRATCH_GLYPHS as isize);
+      (*scratch_glyph_row.as_mut_ptr ()).glyphs [TEXT_AREA as usize] = femacs_array_mut_ptr (scratch_glyphs.as_mut_ptr ());
+      (*scratch_glyph_row.as_mut_ptr ()).glyphs [(TEXT_AREA + 1) as usize]
+	= femacs_array_mut_ptr (scratch_glyphs.as_mut_ptr ()).offset (MAX_SCRATCH_GLYPHS as isize);
 
       /* The default ellipsis glyphs `...'.  */
       i = 0;
       while i < 3
 	{
-	  default_invis_vector [i as usize] = make_fixnum (b'.' as isize);
+	  (*default_invis_vector.as_mut_ptr ()) [i as usize] = make_fixnum (b'.' as isize);
 	  i += 1;
 	}
     }
@@ -41438,13 +41436,13 @@ pub unsafe extern "C-unwind" fn init_xdisp ()
     /* Allocate the buffer for frame titles.
        Also used for `format-mode-line'.  */
     let size: c_int = 100;
-    mode_line_noprop_buf = xmalloc (size as usize) as *mut c_char;
-    mode_line_noprop_buf_end = mode_line_noprop_buf.offset (size as isize);
-    mode_line_noprop_ptr = mode_line_noprop_buf;
-    mode_line_target = MODE_LINE_DISPLAY;
+    (*mode_line_noprop_buf.as_mut_ptr ()) = xmalloc (size as usize) as *mut c_char;
+    (*mode_line_noprop_buf_end.as_mut_ptr ()) = (*mode_line_noprop_buf.as_mut_ptr ()).offset (size as isize);
+    (*mode_line_noprop_ptr.as_mut_ptr ()) = (*mode_line_noprop_buf.as_mut_ptr ());
+    (*mode_line_target.as_mut_ptr ()) = MODE_LINE_DISPLAY;
   }
 
-  help_echo_showing_p = false;
+  (*help_echo_showing_p.as_mut_ptr ()) = false;
 
   }
 }
@@ -41534,7 +41532,7 @@ unsafe fn display_tab_bar_line(it: *mut it, mut height: c_int) {
      }
    }
    glyph_row_bits!(displays_text_p, row, (*row).used[TEXT_AREA as usize] != 0);
-   if !MATRIX_ROW_DISPLAYS_TEXT_P!(row) && !EQ(Vauto_resize_tab_bars, Qgrow_only()) { (*it).face_id = DEFAULT_FACE_ID; }
+   if !MATRIX_ROW_DISPLAYS_TEXT_P!(row) && !EQ((*Vauto_resize_tab_bars.as_mut_ptr ()), Qgrow_only()) { (*it).face_id = DEFAULT_FACE_ID; }
    extend_face_to_end_of_line(it);
    let last = (*row).glyphs[TEXT_AREA as usize].offset((*row).used[TEXT_AREA as usize] as isize - 1);
    glyph_bits!(right_box_line_p, *last, true);
@@ -41577,7 +41575,7 @@ unsafe fn tab_bar_height(f: *mut frame, n_rows: *mut c_int, pixelwise: bool) -> 
                    0, 0, 0, STRING_MULTIBYTE((*f).desired_tab_bar_string) as c_int);
    it.paragraph_embedding = L2R;
    clear_glyph_row(temp_row);
-   if tab_bar_truncate {
+   if (*tab_bar_truncate.as_mut_ptr ()) {
      it.glyph_row = temp_row; display_tab_bar_line(&raw mut it, -1);
    } else {
      while !ITERATOR_AT_END_P!(&raw mut it) {
@@ -41608,14 +41606,14 @@ unsafe fn redisplay_tab_bar(f: *mut frame) -> bool {
    let new_height = tab_bar_height(f, &raw mut new_nrows, true);
    if (*f).n_tab_bar_rows == 0 {
      (*f).n_tab_bar_rows = new_nrows;
-     if new_height != WINDOW_PIXEL_HEIGHT(w) { frame_default_tab_bar_height = new_height; }
+     if new_height != WINDOW_PIXEL_HEIGHT(w) { (*frame_default_tab_bar_height.as_mut_ptr ()) = new_height; }
    }
    let minimize = frame_flag(f, FRAME_MINIMIZE_TAB_BAR_WINDOW_P_UNIT,
                               FRAME_MINIMIZE_TAB_BAR_WINDOW_P_SHIFT);
    if new_nrows > (*f).n_tab_bar_rows
-       || (EQ(Vauto_resize_tab_bars, Qgrow_only()) && !minimize
+       || (EQ((*Vauto_resize_tab_bars.as_mut_ptr ()), Qgrow_only()) && !minimize
            && new_height > WINDOW_PIXEL_HEIGHT(w))
-       || (!EQ(Vauto_resize_tab_bars, Qgrow_only()) && new_height < WINDOW_PIXEL_HEIGHT(w)) {
+       || (!EQ((*Vauto_resize_tab_bars.as_mut_ptr ()), Qgrow_only()) && new_height < WINDOW_PIXEL_HEIGHT(w)) {
      if let Some(change_height) = (*FRAME_TERMINAL!(f)).change_tab_bar_height_hook {
        change_height(f as *mut c_void, new_height);
      }
@@ -41635,11 +41633,11 @@ unsafe fn redisplay_tab_bar(f: *mut frame) -> bool {
                     0, 0, 0, STRING_MULTIBYTE((*f).desired_tab_bar_string) as c_int);
    it.paragraph_embedding = L2R;
    if (*f).n_tab_bar_rows > 0 {
-     let mut border = if TYPE_RANGED_FIXNUMP(INT_MIN as EMACS_INT, Vtab_bar_border, INT_MAX as EMACS_INT) {
-       XFIXNUM(Vtab_bar_border) as c_int
-     } else if EQ(Vtab_bar_border, Qinternal_border_width()) {
+     let mut border = if TYPE_RANGED_FIXNUMP(INT_MIN as EMACS_INT, (*Vtab_bar_border.as_mut_ptr ()), INT_MAX as EMACS_INT) {
+       XFIXNUM((*Vtab_bar_border.as_mut_ptr ())) as c_int
+     } else if EQ((*Vtab_bar_border.as_mut_ptr ()), Qinternal_border_width()) {
        FRAME_INTERNAL_BORDER_WIDTH(f)
-     } else if EQ(Vtab_bar_border, Qborder_width()) {
+     } else if EQ((*Vtab_bar_border.as_mut_ptr ()), Qborder_width()) {
        (*f).border_width
      } else { 0 };
      if border < 0 { border = 0; }
@@ -41663,7 +41661,7 @@ unsafe fn redisplay_tab_bar(f: *mut frame) -> bool {
    }
    glyph_matrix_bits!(no_scrolling_p, (*w).desired_matrix as *mut glyph_matrix, true);
    window_bits!(w, must_be_updated_p, true);
-   if !NILP(Vauto_resize_tab_bars) {
+   if !NILP((*Vauto_resize_tab_bars.as_mut_ptr ())) {
      let mut change_height_p = IT_STRING_CHARPOS!(it) < it.end_charpos;
      row = it.glyph_row.offset(-1);
      if !MATRIX_ROW_DISPLAYS_TEXT_P!(row) && (*row).height >= FRAME_LINE_HEIGHT(f) {
@@ -41677,7 +41675,7 @@ unsafe fn redisplay_tab_bar(f: *mut frame) -> bool {
        let new_height = tab_bar_height(f, &raw mut nrows, true);
        let minimize = frame_flag(f, FRAME_MINIMIZE_TAB_BAR_WINDOW_P_UNIT,
                                   FRAME_MINIMIZE_TAB_BAR_WINDOW_P_SHIFT);
-       change_height_p = if EQ(Vauto_resize_tab_bars, Qgrow_only()) && !minimize {
+       change_height_p = if EQ((*Vauto_resize_tab_bars.as_mut_ptr ()), Qgrow_only()) && !minimize {
          new_height > WINDOW_PIXEL_HEIGHT(w)
        } else { new_height != WINDOW_PIXEL_HEIGHT(w) };
        frame_set_flag(f, FRAME_MINIMIZE_TAB_BAR_WINDOW_P_UNIT,
@@ -41686,7 +41684,7 @@ unsafe fn redisplay_tab_bar(f: *mut frame) -> bool {
          if let Some(change_height) = (*FRAME_TERMINAL!(f)).change_tab_bar_height_hook {
            change_height(f as *mut c_void, new_height);
          }
-         frame_default_tab_bar_height = new_height;
+         (*frame_default_tab_bar_height.as_mut_ptr ()) = new_height;
          clear_glyph_matrix((*w).desired_matrix as *mut glyph_matrix);
          (*f).n_tab_bar_rows = nrows;
          frame_bits!(fonts_changed, f, true);

@@ -108,12 +108,12 @@ pub use self::disptab_decls::*;
 
 /* Return the current length of the GLYPH table, or 0 if the table isn't currently valid.  */
 macro_rules! GLYPH_TABLE_LENGTH {
-  () => { { if VECTORP (Vglyph_table) { ASIZE (Vglyph_table) } else { 0 } } };
+  () => { { if VECTORP ((*Vglyph_table.as_mut_ptr ())) { ASIZE ((*Vglyph_table.as_mut_ptr ())) } else { 0 } } };
 }
 
 /* Return the current base (for indexing) of the GLYPH table, or 0 if invalid.  */
 macro_rules! GLYPH_TABLE_BASE {
-  () => { { if VECTORP (Vglyph_table) { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*XVECTOR (Vglyph_table)).contents.as_mut_ptr () } }
+  () => { { if VECTORP ((*Vglyph_table.as_mut_ptr ())) { /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { (*XVECTOR ((*Vglyph_table.as_mut_ptr ()))).contents.as_mut_ptr () } }
             else { 0 as *mut Lisp_Object } } };
 }
 

@@ -288,11 +288,11 @@ pub unsafe fn get_bsd_boot_time_final_fallback (p_boot_time: *mut timespec) -> c
 {
   // SAFETY: POSIX/gnulib C-ABI boundary wrapper; caller upholds pointer/descriptor preconditions and checks `errno`/return status on failure.
   unsafe {
-  static mut request: [c_int; 2] = [CTL_KERN, KERN_BOOTTIME];
+  static request: VmGlobal<[c_int; 2]> = VmGlobal::<[c_int; 2]>::new ([CTL_KERN, KERN_BOOTTIME]);
   let mut result: timeval = timeval { tv_sec: 0, tv_usec: 0 };
   let mut result_len: usize = std::mem::size_of_val (&result);
 
-  if sysctl ((*std::ptr::addr_of_mut! (request)).as_mut_ptr (), 2,
+  if sysctl ((*request.as_mut_ptr ()).as_mut_ptr (), 2,
              &mut result as *mut timeval as *mut c_void, &mut result_len,
              std::ptr::null_mut (), 0) >= 0
     {
@@ -427,7 +427,7 @@ pub type GetTickCount64FuncType = unsafe extern "system" fn () -> ULONGLONG;
 #[cfg (feature = "cygwin_win32")]
 #[cfg (not (feature = "no_cygwin"))]
 #[cfg (not (feature = "win32_vista"))]
-pub static mut GetTickCount64Func: Option<GetTickCount64FuncType> = None;
+pub static GetTickCount64Func: VmGlobal<Option<GetTickCount64FuncType>> = VmGlobal::<Option<GetTickCount64FuncType>>::new (None);
 
 /* C 376: `static BOOL initialized = FALSE;` - `FALSE`/`TRUE` are `<windows.h>`'s 0 and 1, and
    the arm that names them is dead in every configuration the port builds (the
@@ -435,7 +435,7 @@ pub static mut GetTickCount64Func: Option<GetTickCount64FuncType> = None;
 #[cfg (feature = "cygwin_win32")]
 #[cfg (not (feature = "no_cygwin"))]
 #[cfg (not (feature = "win32_vista"))]
-pub static mut initialized: BOOL = FALSE;
+pub static initialized: VmGlobal<BOOL> = VmGlobal::<BOOL>::new (FALSE);
 
 /* C 378-387: `static void initialize (void)` - the one-time lookup of the Vista+ entry
    point ("GetTickCount64 is only available on Windows Vista and later", C 372).  */
@@ -447,11 +447,11 @@ pub unsafe fn initialize ()
   let kernel32: HMODULE = LoadLibrary (b"kernel32.dll\0".as_ptr () as *const c_char);
   if !kernel32.is_null ()
     {
-      GetTickCount64Func =
+      (*GetTickCount64Func.as_mut_ptr ()) =
         Some (std::mem::transmute::<*const c_void, GetTickCount64FuncType> (
                 GetProcAddress (kernel32, b"GetTickCount64\0".as_ptr () as *const c_char)));
     }
-  initialized = TRUE;      /* C 386: `initialized = TRUE;` */
+  (*initialized.as_mut_ptr ()) = TRUE;      /* C 386: `initialized = TRUE;` */
 }
 
 /* C 388-426: the GetTickCount64 fallback, "boot time = current time - uptime" (C 388-389:
@@ -464,7 +464,7 @@ pub unsafe fn get_windows_boot_time_fallback (p_boot_time: *mut timespec) -> c_i
   /* C 392-395: `#  if !(_WIN32_WINNT >= _WIN32_WINNT_VISTA) / if (! initialized) /
      initialize (); / #  endif`.  */
   #[cfg (not (feature = "win32_vista"))]
-  if ! initialized
+  if ! (*initialized.as_mut_ptr ())
     { initialize (); }
 
   /* C 396: `if (GetTickCount64Func != NULL)`.  C's two arms reach the same call by name:
@@ -473,7 +473,7 @@ pub unsafe fn get_windows_boot_time_fallback (p_boot_time: *mut timespec) -> c_i
      selected by cfg, and `is_some`/`unwrap` is C's own NULL test and call (rule 5.2's
      documented deviations).  */
   #[cfg (not (feature = "win32_vista"))]
-  let get_tick_count_64: Option<GetTickCount64FuncType> = GetTickCount64Func;
+  let get_tick_count_64: Option<GetTickCount64FuncType> = (*GetTickCount64Func.as_mut_ptr ());
   #[cfg (feature = "win32_vista")]
   let get_tick_count_64: Option<GetTickCount64FuncType> = Some (GetTickCount64);
 

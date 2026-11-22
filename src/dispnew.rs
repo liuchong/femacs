@@ -113,7 +113,7 @@ const _: () = core::assert! (core::mem::offset_of! (dim, height) == 4);
 
 /* True means SIGWINCH happened when not safe.  */
 
-static mut delayed_size_change: bool = false;
+static delayed_size_change: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 /* A glyph for a space.  `include/dispextern.rs` declares it at the crate root
    (dispextern.h 1338), so the definition lives in a glob-imported module: a second
@@ -121,7 +121,7 @@ static mut delayed_size_change: bool = false;
    `docs/ports/frame.md`).  */
 
 
-#[unsafe(no_mangle)] pub static mut space_glyph: glyph = /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { std::mem::zeroed () };
+#[unsafe(no_mangle)] pub static space_glyph: VmGlobal<glyph> = VmGlobal::<glyph>::new (/* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { std::mem::zeroed () });
 
 /* C 129-137: `#if defined GLYPH_DEBUG && defined ENABLE_CHECKING` — the counts of allocated
    structures, used to diagnose memory leaks and double frees.  `GLYPH_DEBUG` and
@@ -129,10 +129,10 @@ static mut delayed_size_change: bool = false;
    under the feature that names its non-frozen side (P-51).  */
 
 #[cfg (all (feature = "glyph_debug", enable_checking))]
-static mut glyph_matrix_count: c_int = 0;
+static glyph_matrix_count: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 
 #[cfg (all (feature = "glyph_debug", enable_checking))]
-static mut glyph_pool_count: c_int = 0;
+static glyph_pool_count: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 
 /* C 139-232: `#ifdef GLYPH_DEBUG` — the redisplay history ring buffer, its two writers and
    `Fdump_redisplay_history`.  Dead on the frozen target; carried as text (P-51).  */
@@ -148,19 +148,18 @@ const REDISPLAY_HISTORY_SIZE: usize = 30;
 /* The redisplay history buffer.  */
 
 #[cfg (feature = "glyph_debug")]
-static mut redisplay_history: [redisplay_history; REDISPLAY_HISTORY_SIZE] =
-    [const { redisplay_history { trace: [0; 512 + 100] } }; REDISPLAY_HISTORY_SIZE];
+static redisplay_history: VmGlobal<[redisplay_history; REDISPLAY_HISTORY_SIZE]> = VmGlobal::<[redisplay_history; REDISPLAY_HISTORY_SIZE]>::new ([const { redisplay_history { trace: [0; 512 + 100] } }; REDISPLAY_HISTORY_SIZE]);
 
 /* Next free entry in redisplay_history.  */
 
 #[cfg (feature = "glyph_debug")]
-static mut history_idx: c_int = 0;
+static history_idx: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 
 /* A tick that's incremented each time something is added to the
    history.  */
 
 #[cfg (feature = "glyph_debug")]
-static mut history_tick: uintmax_t = 0;
+static history_tick: VmGlobal<uintmax_t> = VmGlobal::<uintmax_t>::new (0);
 
 /* Add to the redisplay history how window W has been displayed.
    MSG is a trace containing the information how W's glyph matrix
@@ -172,14 +171,14 @@ unsafe fn add_window_display_history (w: *mut window, msg: *const c_char)
   let mut buf: *mut c_char;
   let ptr: *mut c_void = w as *mut c_void;
 
-  if history_idx >= REDISPLAY_HISTORY_SIZE as c_int
-    { history_idx = 0; }
-  buf = (*core::ptr::addr_of_mut! (redisplay_history))[history_idx as usize].trace.as_mut_ptr ();
-  history_idx += 1;
+  if (*history_idx.as_mut_ptr ()) >= REDISPLAY_HISTORY_SIZE as c_int
+    { (*history_idx.as_mut_ptr ()) = 0; }
+  buf = (*redisplay_history.as_mut_ptr ())[(*history_idx.as_mut_ptr ()) as usize].trace.as_mut_ptr ();
+  (*history_idx.as_mut_ptr ()) += 1;
 
-  let tick: uintmax_t = history_tick;
-  history_tick += 1;
-  snprintf (buf, core::mem::size_of_val (&(*core::ptr::addr_of! (redisplay_history))[0].trace),
+  let tick: uintmax_t = (*history_tick.as_mut_ptr ());
+  (*history_tick.as_mut_ptr ()) += 1;
+  snprintf (buf, core::mem::size_of_val (&(*redisplay_history.as_ptr ())[0].trace),
 	    concat! ("%", PRIuMAX! (), ": window %p %s\n%s", "\0" ).as_ptr () as *const c_char,
 	    tick,
 	    ptr,
@@ -200,13 +199,13 @@ unsafe fn add_frame_display_history (f: *mut frame, paused_p: bool)
   let mut buf: *mut c_char;
   let ptr: *mut c_void = f as *mut c_void;
 
-  if history_idx >= REDISPLAY_HISTORY_SIZE as c_int
-    { history_idx = 0; }
-  buf = (*core::ptr::addr_of_mut! (redisplay_history))[history_idx as usize].trace.as_mut_ptr ();
-  history_idx += 1;
+  if (*history_idx.as_mut_ptr ()) >= REDISPLAY_HISTORY_SIZE as c_int
+    { (*history_idx.as_mut_ptr ()) = 0; }
+  buf = (*redisplay_history.as_mut_ptr ())[(*history_idx.as_mut_ptr ()) as usize].trace.as_mut_ptr ();
+  (*history_idx.as_mut_ptr ()) += 1;
 
-  let tick: uintmax_t = history_tick;
-  history_tick += 1;
+  let tick: uintmax_t = (*history_tick.as_mut_ptr ());
+  (*history_tick.as_mut_ptr ()) += 1;
   sprintf (buf, concat! ("%", PRIuMAX! (), ": update frame %p%s", "\0" ).as_ptr () as *const c_char,
 	   tick,
 	   ptr, if paused_p { c" ***paused***".as_ptr () } else { c"".as_ptr () });
@@ -220,12 +219,12 @@ DEFUN! ("dump-redisplay-history", Fdump_redisplay_history,
         {
   let mut i: c_int;
 
-  i = history_idx - 1;
-  while i != history_idx
+  i = (*history_idx.as_mut_ptr ()) - 1;
+  while i != (*history_idx.as_mut_ptr ())
     {
       if i < 0
 	{ i = REDISPLAY_HISTORY_SIZE as c_int - 1; }
-      fprintf (stderr, c"%s\n".as_ptr (), redisplay_history[i as usize].trace.as_ptr ());
+      fprintf ((*stderr.as_mut_ptr ()), c"%s\n".as_ptr (), (*redisplay_history.as_mut_ptr ())[i as usize].trace.as_ptr ());
       i -= 1;
     }
 
@@ -269,11 +268,11 @@ unsafe extern "C-unwind" {
   /// `extern Lisp_Object help_echo_object, previous_help_echo_string;`
   /// `extern ptrdiff_t help_echo_pos;` (keyboard.c defines all five; the mirror does not
   /// carry them).
-  static mut help_echo_string: Lisp_Object;
-  static mut help_echo_window: Lisp_Object;
-  static mut help_echo_object: Lisp_Object;
-  static mut previous_help_echo_string: Lisp_Object;
-  static mut help_echo_pos: ptrdiff_t;
+  static help_echo_string: VmGlobal<Lisp_Object>;
+  static help_echo_window: VmGlobal<Lisp_Object>;
+  static help_echo_object: VmGlobal<Lisp_Object>;
+  static previous_help_echo_string: VmGlobal<Lisp_Object>;
+  static help_echo_pos: VmGlobal<ptrdiff_t>;
   // `putchar` now comes from the `stdio.rs` mirror (2026-10-04), which is its single
   // declaration point; the use-site copy this block carried is gone.
 
@@ -284,8 +283,8 @@ unsafe extern "C-unwind" {
 
   /// C: keyboard.c/term.c: `extern bool redisplaying_p;` and
   /// `extern bool dont_resize_frames;` (both are plain globals the mirrors do not carry).
-  static mut redisplaying_p: bool;
-  static mut dont_resize_frames: bool;
+  static redisplaying_p: VmGlobal<bool>;
+  static dont_resize_frames: VmGlobal<bool>;
   /// C: dispextern.h 3717: `extern unsigned row_hash (struct glyph_row *);` (term.c defines it)
   fn row_hash (row: *mut glyph_row) -> c_uint;
   /// C: dispextern.h 3582: `int estimate_mode_line_height (struct frame *, enum face_id);`
@@ -519,7 +518,7 @@ unsafe fn new_glyph_matrix (pool: *mut glyph_pool) -> *mut glyph_matrix
   {
     /* Increment number of allocated matrices.  This count is used
        to detect memory leaks.  */
-    glyph_matrix_count += 1;
+    (*glyph_matrix_count.as_mut_ptr ()) += 1;
   }
 
   /* Set pool and return.  */
@@ -553,8 +552,8 @@ unsafe fn free_glyph_matrix (matrix: *mut glyph_matrix)
       {
 	/* Detect the case that more matrices are freed than were
 	   allocated.  */
-	glyph_matrix_count -= 1;
-	eassert! (glyph_matrix_count >= 0);
+	(*glyph_matrix_count.as_mut_ptr ()) -= 1;
+	eassert! ((*glyph_matrix_count.as_mut_ptr ()) >= 0);
       }
 
       /* Free glyph memory if MATRIX owns it.  */
@@ -717,7 +716,7 @@ unsafe fn adjust_glyph_matrix (w: *mut window, matrix: *mut glyph_matrix,
 	 visible in one line.  Off unless the variable is set.  */
       if /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { !getenv (c"FEMACS_XPALLOC_TRACE".as_ptr ()).is_null () }
 	{
-	  fprintf (stderr, c"adjust_glyph_matrix: sizeof(glyph_row)=%d old_alloc=%d rows_allocated=%d dim.height=%d\n".as_ptr (),
+	  fprintf ((*stderr.as_mut_ptr ()), c"adjust_glyph_matrix: sizeof(glyph_row)=%d old_alloc=%d rows_allocated=%d dim.height=%d\n".as_ptr (),
 		   core::mem::size_of::<glyph_row> () as c_int, old_alloc,
 		   (*matrix).rows_allocated as c_int, dim.height);
 	}
@@ -1733,7 +1732,7 @@ unsafe fn new_glyph_pool () -> *mut glyph_pool
   #[cfg (all (feature = "glyph_debug", enable_checking))]
   {
     /* For memory leak and double deletion checking.  */
-    glyph_pool_count += 1;
+    (*glyph_pool_count.as_mut_ptr ()) += 1;
   }
 
   return result;
@@ -1758,8 +1757,8 @@ unsafe fn free_glyph_pool (pool: *mut glyph_pool)
       #[cfg (all (feature = "glyph_debug", enable_checking))]
       {
 	/* More freed than allocated?  */
-	glyph_pool_count -= 1;
-	eassert! (glyph_pool_count >= 0);
+	(*glyph_pool_count.as_mut_ptr ()) -= 1;
+	eassert! ((*glyph_pool_count.as_mut_ptr ()) >= 0);
       }
       xfree ((*pool).glyphs as *mut c_void);
       xfree (pool as *mut c_void);
@@ -1834,7 +1833,7 @@ unsafe fn realloc_glyph_pool (pool: *mut glyph_pool, matrix_dim: dim) -> bool
 
 #[unsafe(no_mangle)] pub unsafe extern "C-unwind" fn flush_stdout ()
 {
-  fflush (stdout);
+  fflush ((*stdout.as_mut_ptr ()));
 }
 
 
@@ -2218,8 +2217,8 @@ unsafe fn allocate_matrices_for_window_redisplay (w: *mut window)
     {
       adjust_frame_glyphs_for_frame_redisplay (f);
       eassert! (FRAME_INITIAL_P (f)
-	       || noninteractive
-	       || !initialized
+	       || (*noninteractive.as_mut_ptr ())
+	       || !(*initialized.as_mut_ptr ())
 	       || (*(*f).terminal).name.is_null () /* frame is being deleted */
 	       || (!(*f).current_matrix.is_null ()
 		   && (*( (*f).current_matrix as *mut glyph_matrix )).nrows > 0
@@ -2561,7 +2560,7 @@ unsafe fn adjust_frame_glyphs_for_frame_redisplay (f: *mut frame)
 	  SET_FRAME_GARBAGED! (f);
 	}
     }
-  else if !FRAME_INITIAL_P (f) && !noninteractive && initialized
+  else if !FRAME_INITIAL_P (f) && !(*noninteractive.as_mut_ptr ()) && (*initialized.as_mut_ptr ())
     {
       if (*( (*f).desired_matrix as *mut glyph_matrix )).nrows == 0
 	  || (*( (*f).desired_matrix as *mut glyph_matrix )).rows.is_null ()
@@ -2654,10 +2653,10 @@ unsafe fn adjust_frame_glyphs_for_window_redisplay (f: *mut frame)
        border, as enforced by WINDOW_TOP_EDGE_Y.  */
 
     (*w).pixel_top = (FRAME_MENU_BAR_HEIGHT (f)
-		      + (if !NILP (Vtab_bar_position)
+		      + (if !NILP ((*Vtab_bar_position.as_mut_ptr ()))
 			   { FRAME_TOOL_BAR_TOP_HEIGHT (f) } else { 0 }));
     (*w).top_line = (FRAME_MENU_BAR_LINES (f)
-		     + (if !NILP (Vtab_bar_position)
+		     + (if !NILP ((*Vtab_bar_position.as_mut_ptr ()))
 			  { FRAME_TOOL_BAR_TOP_LINES (f) } else { 0 }));
     (*w).total_cols = FRAME_TOTAL_COLS (f);
     (*w).pixel_width = (FRAME_PIXEL_WIDTH (f)
@@ -2704,10 +2703,10 @@ unsafe fn adjust_frame_glyphs_for_window_redisplay (f: *mut frame)
 	/* Otherwise, place the window at the top of the frame.  */
 
 	(*w).pixel_top = (FRAME_MENU_BAR_HEIGHT (f)
-			  + (if NILP (Vtab_bar_position)
+			  + (if NILP ((*Vtab_bar_position.as_mut_ptr ()))
 			       { FRAME_TAB_BAR_HEIGHT (f) } else { 0 }));
 	(*w).top_line = (FRAME_MENU_BAR_LINES (f)
-			 + (if NILP (Vtab_bar_position)
+			 + (if NILP ((*Vtab_bar_position.as_mut_ptr ()))
 			      { FRAME_TAB_BAR_LINES (f) } else { 0 }));
       }
 
@@ -2886,8 +2885,8 @@ unsafe fn adjust_decode_mode_spec_buffer (f: *mut frame)
   #[cfg (all (feature = "glyph_debug", enable_checking))]
   {
     /* Check that nothing is left allocated.  */
-    eassert! (glyph_matrix_count == 0);
-    eassert! (glyph_pool_count == 0);
+    eassert! ((*glyph_matrix_count.as_mut_ptr ()) == 0);
+    eassert! ((*glyph_pool_count.as_mut_ptr ()) == 0);
   }
 
   }
@@ -3231,7 +3230,7 @@ unsafe fn fill_up_glyph_row_area_with_spaces (f: *mut frame, row: *mut glyph_row
 
       while text < end
 	{
-	  *text = space_glyph;
+	  *text = (*space_glyph.as_mut_ptr ());
 	  (*text).frame = f as *mut c_void;
 	  text = text.offset (1);
 	}
@@ -3255,7 +3254,7 @@ unsafe fn fill_up_glyph_row_area_with_spaces (f: *mut frame, row: *mut glyph_row
 
   while i < upto
     {
-      *glyph.offset (i as isize) = space_glyph;
+      *glyph.offset (i as isize) = (*space_glyph.as_mut_ptr ());
       (*glyph.offset (i as isize)).frame = f as *mut c_void;
       i += 1;
     }
@@ -4297,9 +4296,9 @@ unsafe fn box_from_display_table (f: *mut frame, r#box: r#box, g: *mut GLYPH) ->
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  if DISP_TABLE_P (Vstandard_display_table)
+  if DISP_TABLE_P ((*Vstandard_display_table.as_mut_ptr ()))
     {
-      let dp: *mut Lisp_Char_Table = XCHAR_TABLE (Vstandard_display_table);
+      let dp: *mut Lisp_Char_Table = XCHAR_TABLE ((*Vstandard_display_table.as_mut_ptr ()));
       let gc: Lisp_Object = FAM_ELEM! ((*dp).extras, r#box);
       if GLYPH_CODE_P (gc)
 	{
@@ -4948,21 +4947,21 @@ unsafe fn terminal_cursor_magic (root: *mut frame, topmost_child: *mut frame)
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  previous_help_echo_string = help_echo_string;
-  help_echo_string = Qnil ();
+  (*previous_help_echo_string.as_mut_ptr ()) = (*help_echo_string.as_mut_ptr ());
+  (*help_echo_string.as_mut_ptr ()) = Qnil ();
 
   note_mouse_highlight (f, x, y);
 
   /* If the contents of the global variable help_echo_string
      has changed, generate a HELP_EVENT.  */
-  if !NILP (help_echo_string)
-      || !NILP (previous_help_echo_string)
+  if !NILP ((*help_echo_string.as_mut_ptr ()))
+      || !NILP ((*previous_help_echo_string.as_mut_ptr ()))
     {
       let mut frame: Lisp_Object;
       XSETFRAME! (frame, f);
 
-      gen_help_event (help_echo_string, frame, help_echo_window,
-                      help_echo_object, help_echo_pos);
+      gen_help_event ((*help_echo_string.as_mut_ptr ()), frame, (*help_echo_window.as_mut_ptr ()),
+                      (*help_echo_object.as_mut_ptr ()), (*help_echo_pos.as_mut_ptr ()));
       return 1;
     }
 
@@ -5982,16 +5981,16 @@ unsafe fn set_window_cursor_after_update (w: *mut window)
   /* Not intended for frame matrix updates.  */
   eassert! (FRAME_WINDOW_P (f));
 
-  if cursor_in_echo_area
-      && !NILP (echo_area_buffer [0])
+  if (*cursor_in_echo_area.as_mut_ptr ())
+      && !NILP ((*echo_area_buffer.as_mut_ptr ()) [0])
       /* If we are showing a message instead of the mini-buffer,
 	 show the cursor for the message instead.  */
-      && XWINDOW (minibuf_window) == w
-      && BASE_EQ (minibuf_window, echo_area_window)
+      && XWINDOW ((*minibuf_window.as_mut_ptr ())) == w
+      && BASE_EQ ((*minibuf_window.as_mut_ptr ()), (*echo_area_window.as_mut_ptr ()))
       /* These cases apply only to the frame that contains
 	 the active mini-buffer window.  */
       && FRAME_HAS_MINIBUF_P (f)
-      && BASE_EQ (FRAME_MINIBUF_WINDOW (f), echo_area_window)
+      && BASE_EQ (FRAME_MINIBUF_WINDOW (f), (*echo_area_window.as_mut_ptr ()))
     {
       cx = 0; cy = 0; vpos = 0; hpos = 0;
 
@@ -6112,36 +6111,36 @@ const _: () = core::assert! (core::mem::offset_of! (row_entry, next) == 32);
    pool.  The pool is reallocated in scrolling_window when we find
    that we need a larger one.  */
 
-static mut row_entry_pool: *mut row_entry = core::ptr::null_mut ();
-static mut row_entry_pool_size: ptrdiff_t = 0;
+static row_entry_pool: VmGlobal<*mut row_entry> = VmGlobal::<*mut row_entry>::new (core::ptr::null_mut ());
+static row_entry_pool_size: VmGlobal<ptrdiff_t> = VmGlobal::<ptrdiff_t>::new (0);
 
 /* Index of next free entry in row_entry_pool.  */
 
-static mut row_entry_idx: ptrdiff_t = 0;
+static row_entry_idx: VmGlobal<ptrdiff_t> = VmGlobal::<ptrdiff_t>::new (0);
 
 /* The hash table used during scrolling, and the table's size.  This
    table is used to quickly identify equal rows in the desired and
    current matrix.  */
 
-static mut row_table: *mut *mut row_entry = core::ptr::null_mut ();
-static mut row_table_size: ptrdiff_t = 0;
+static row_table: VmGlobal<*mut *mut row_entry> = VmGlobal::<*mut *mut row_entry>::new (core::ptr::null_mut ());
+static row_table_size: VmGlobal<ptrdiff_t> = VmGlobal::<ptrdiff_t>::new (0);
 
 /* Vectors of pointers to row_entry structures belonging to the
    current and desired matrix, and the size of the vectors.  */
 
-static mut old_lines: *mut *mut row_entry = core::ptr::null_mut ();
-static mut new_lines: *mut *mut row_entry = core::ptr::null_mut ();
-static mut old_lines_size: ptrdiff_t = 0;
-static mut new_lines_size: ptrdiff_t = 0;
+static old_lines: VmGlobal<*mut *mut row_entry> = VmGlobal::<*mut *mut row_entry>::new (core::ptr::null_mut ());
+static new_lines: VmGlobal<*mut *mut row_entry> = VmGlobal::<*mut *mut row_entry>::new (core::ptr::null_mut ());
+static old_lines_size: VmGlobal<ptrdiff_t> = VmGlobal::<ptrdiff_t>::new (0);
+static new_lines_size: VmGlobal<ptrdiff_t> = VmGlobal::<ptrdiff_t>::new (0);
 
 /* A pool to allocate run structures from, and its size.  */
 
-static mut run_pool: *mut run = core::ptr::null_mut ();
-static mut runs_size: ptrdiff_t = 0;
+static run_pool: VmGlobal<*mut run> = VmGlobal::<*mut run>::new (core::ptr::null_mut ());
+static runs_size: VmGlobal<ptrdiff_t> = VmGlobal::<ptrdiff_t>::new (0);
 
 /* A vector of runs of lines found during scrolling.  */
 
-static mut runs: *mut *mut run = core::ptr::null_mut ();
+static runs: VmGlobal<*mut *mut run> = VmGlobal::<*mut *mut run>::new (core::ptr::null_mut ());
 
 /* Add glyph row ROW to the scrolling hash table.  */
 
@@ -6150,24 +6149,24 @@ unsafe fn add_row_entry (row: *mut glyph_row) -> *mut row_entry
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
   let mut entry: *mut row_entry;
-  let i: ptrdiff_t = (*row).hash as ptrdiff_t % row_table_size;
+  let i: ptrdiff_t = (*row).hash as ptrdiff_t % (*row_table_size.as_mut_ptr ());
 
-  entry = *row_table.offset (i as isize);
+  entry = *(*row_table.as_mut_ptr ()).offset (i as isize);
   eassert! (!entry.is_null () || verify_row_hash (row));
   while !entry.is_null () && !row_equal_p ((*entry).row, row, true)
     { entry = (*entry).next; }
 
   if entry.is_null ()
     {
-      row_entry_idx += 1;
-      entry = row_entry_pool.offset (row_entry_idx as isize - 1);
+      (*row_entry_idx.as_mut_ptr ()) += 1;
+      entry = (*row_entry_pool.as_mut_ptr ()).offset ((*row_entry_idx.as_mut_ptr ()) as isize - 1);
       (*entry).row = row;
       (*entry).new_uses = 0;
       (*entry).old_uses = (*entry).new_uses;
       (*entry).new_line_number = 0;
       (*entry).bucket = i;
-      (*entry).next = *row_table.offset (i as isize);
-      *row_table.offset (i as isize) = entry;
+      (*entry).next = *(*row_table.as_mut_ptr ()).offset (i as isize);
+      *(*row_table.as_mut_ptr ()).offset (i as isize) = entry;
     }
 
   return entry;
@@ -6252,7 +6251,7 @@ unsafe fn scrolling_window (w: *mut window, tab_line_p: c_int) -> c_int
      will then "copy" the pixels used by the caret.  */
   #[cfg (feature = "have_ntgui")]
   {
-  if w32_use_visible_system_caret
+  if (*w32_use_visible_system_caret.as_mut_ptr ())
     { return 0; }
   }
 
@@ -6351,55 +6350,55 @@ unsafe fn scrolling_window (w: *mut window, tab_line_p: c_int) -> c_int
 
   /* Reallocate vectors, tables etc. if necessary.  */
 
-  if (*current_matrix).nrows as ptrdiff_t > old_lines_size
-    { old_lines = xpalloc (old_lines as *mut c_void,
-			   core::ptr::addr_of_mut! (old_lines_size),
-			   (*current_matrix).nrows as ptrdiff_t - old_lines_size,
+  if (*current_matrix).nrows as ptrdiff_t > (*old_lines_size.as_mut_ptr ())
+    { (*old_lines.as_mut_ptr ()) = xpalloc ((*old_lines.as_mut_ptr ()) as *mut c_void,
+			   old_lines_size.as_mut_ptr (),
+			   (*current_matrix).nrows as ptrdiff_t - (*old_lines_size.as_mut_ptr ()),
 			   INT_MAX as ptrdiff_t,
 			   core::mem::size_of::<*mut row_entry> () as ptrdiff_t)
 	as *mut *mut row_entry; }
 
-  if (*desired_matrix).nrows as ptrdiff_t > new_lines_size
-    { new_lines = xpalloc (new_lines as *mut c_void,
-			   core::ptr::addr_of_mut! (new_lines_size),
-			   (*desired_matrix).nrows as ptrdiff_t - new_lines_size,
+  if (*desired_matrix).nrows as ptrdiff_t > (*new_lines_size.as_mut_ptr ())
+    { (*new_lines.as_mut_ptr ()) = xpalloc ((*new_lines.as_mut_ptr ()) as *mut c_void,
+			   new_lines_size.as_mut_ptr (),
+			   (*desired_matrix).nrows as ptrdiff_t - (*new_lines_size.as_mut_ptr ()),
 			   INT_MAX as ptrdiff_t,
 			   core::mem::size_of::<*mut row_entry> () as ptrdiff_t)
 	as *mut *mut row_entry; }
 
   n = (*desired_matrix).nrows as ptrdiff_t;
   n += (*current_matrix).nrows as ptrdiff_t;
-  if row_table_size < 3 * n
+  if (*row_table_size.as_mut_ptr ()) < 3 * n
     {
       let size: ptrdiff_t = next_almost_prime (3 * n);
-      row_table = xnrealloc (row_table as *mut c_void, size,
+      (*row_table.as_mut_ptr ()) = xnrealloc ((*row_table.as_mut_ptr ()) as *mut c_void, size,
 			     core::mem::size_of::<*mut row_entry> () as ptrdiff_t)
 	as *mut *mut row_entry;
-      row_table_size = size;
+      (*row_table_size.as_mut_ptr ()) = size;
       /* C 5436: `memset (row_table, 0, size * sizeof *row_table)` - bytes, through a `u8`
 	 pointer (P-114).  */
-      std::ptr::write_bytes (row_table as *mut u8, 0,
+      std::ptr::write_bytes ((*row_table.as_mut_ptr ()) as *mut u8, 0,
 			     size as usize * core::mem::size_of::<*mut row_entry> ());
     }
 
-  if n > row_entry_pool_size
-    { row_entry_pool = xpalloc (row_entry_pool as *mut c_void,
-				core::ptr::addr_of_mut! (row_entry_pool_size),
-				n - row_entry_pool_size,
+  if n > (*row_entry_pool_size.as_mut_ptr ())
+    { (*row_entry_pool.as_mut_ptr ()) = xpalloc ((*row_entry_pool.as_mut_ptr ()) as *mut c_void,
+				row_entry_pool_size.as_mut_ptr (),
+				n - (*row_entry_pool_size.as_mut_ptr ()),
 				-1, core::mem::size_of::<row_entry> () as ptrdiff_t)
 	as *mut row_entry; }
 
-  if (*desired_matrix).nrows as ptrdiff_t > runs_size
+  if (*desired_matrix).nrows as ptrdiff_t > (*runs_size.as_mut_ptr ())
     {
-      runs = xnrealloc (runs as *mut c_void, (*desired_matrix).nrows as ptrdiff_t,
+      (*runs.as_mut_ptr ()) = xnrealloc ((*runs.as_mut_ptr ()) as *mut c_void, (*desired_matrix).nrows as ptrdiff_t,
 			core::mem::size_of::<*mut run> () as ptrdiff_t) as *mut *mut run;
-      run_pool = xnrealloc (run_pool as *mut c_void, (*desired_matrix).nrows as ptrdiff_t,
+      (*run_pool.as_mut_ptr ()) = xnrealloc ((*run_pool.as_mut_ptr ()) as *mut c_void, (*desired_matrix).nrows as ptrdiff_t,
 			    core::mem::size_of::<run> () as ptrdiff_t) as *mut run;
-      runs_size = (*desired_matrix).nrows as ptrdiff_t;
+      (*runs_size.as_mut_ptr ()) = (*desired_matrix).nrows as ptrdiff_t;
     }
 
   nruns = 0; run_idx = 0;
-  row_entry_idx = 0;
+  (*row_entry_idx.as_mut_ptr ()) = 0;
 
   /* Add rows from the current and desired matrix to the hash table
      row_hash_table to be able to find equal ones quickly.  */
@@ -6410,11 +6409,11 @@ unsafe fn scrolling_window (w: *mut window, tab_line_p: c_int) -> c_int
       if MATRIX_ROW_ENABLED_P! (current_matrix, i as c_int)
 	{
 	  entry = add_row_entry (MATRIX_ROW! (current_matrix, i as c_int));
-	  *old_lines.offset (i as isize) = entry;
+	  *(*old_lines.as_mut_ptr ()).offset (i as isize) = entry;
 	  (*entry).old_uses += 1;
 	}
       else
-	{ *old_lines.offset (i as isize) = core::ptr::null_mut (); }
+	{ *(*old_lines.as_mut_ptr ()).offset (i as isize) = core::ptr::null_mut (); }
       i += 1;
     }
 
@@ -6425,7 +6424,7 @@ unsafe fn scrolling_window (w: *mut window, tab_line_p: c_int) -> c_int
       entry = add_row_entry (MATRIX_ROW! (desired_matrix, i as c_int));
       (*entry).new_uses += 1;
       (*entry).new_line_number = i as c_int;
-      *new_lines.offset (i as isize) = entry;
+      *(*new_lines.as_mut_ptr ()).offset (i as isize) = entry;
       i += 1;
     }
 
@@ -6434,14 +6433,14 @@ unsafe fn scrolling_window (w: *mut window, tab_line_p: c_int) -> c_int
   i = first_old as ptrdiff_t;
   while i < last_old as ptrdiff_t
     {
-    if !(*old_lines.offset (i as isize)).is_null ()
-	&& (*(*old_lines.offset (i as isize))).old_uses == 1
-        && (*(*old_lines.offset (i as isize))).new_uses == 1
+    if !(*(*old_lines.as_mut_ptr ()).offset (i as isize)).is_null ()
+	&& (*(*(*old_lines.as_mut_ptr ()).offset (i as isize))).old_uses == 1
+        && (*(*(*old_lines.as_mut_ptr ()).offset (i as isize))).new_uses == 1
       {
 	let mut p: c_int; let mut q: c_int;
-	let new_line: c_int = (*(*old_lines.offset (i as isize))).new_line_number;
+	let new_line: c_int = (*(*(*old_lines.as_mut_ptr ()).offset (i as isize))).new_line_number;
 	run_idx += 1;
-	let run: *mut run = run_pool.offset (run_idx as isize - 1);
+	let run: *mut run = (*run_pool.as_mut_ptr ()).offset (run_idx as isize - 1);
 
 	/* Record move.  */
 	(*run).current_vpos = i as c_int;
@@ -6456,7 +6455,7 @@ unsafe fn scrolling_window (w: *mut window, tab_line_p: c_int) -> c_int
 	q = new_line - 1;
 	while p > first_old
 	       && q > first_new
-	       && *old_lines.offset (p as isize) == *new_lines.offset (q as isize)
+	       && *(*old_lines.as_mut_ptr ()).offset (p as isize) == *(*new_lines.as_mut_ptr ()).offset (q as isize)
 	  {
 	    let h: c_int = (*MATRIX_ROW! (current_matrix, p)).height;
 	    (*run).current_vpos -= 1;
@@ -6473,7 +6472,7 @@ unsafe fn scrolling_window (w: *mut window, tab_line_p: c_int) -> c_int
 	q = new_line + 1;
 	while p < last_old
 	       && q < last_new
-	       && *old_lines.offset (p as isize) == *new_lines.offset (q as isize)
+	       && *(*old_lines.as_mut_ptr ()).offset (p as isize) == *(*new_lines.as_mut_ptr ()).offset (q as isize)
 	  {
 	    let h: c_int = (*MATRIX_ROW! (current_matrix, p)).height;
 	    (*run).nrows += 1;
@@ -6487,15 +6486,15 @@ unsafe fn scrolling_window (w: *mut window, tab_line_p: c_int) -> c_int
 	   because we can avoid calling update_window_line in this
 	   case.  */
 	p = 0;
-	while p < nruns && (*(*runs.offset (p as isize))).height > (*run).height
+	while p < nruns && (*(*(*runs.as_mut_ptr ()).offset (p as isize))).height > (*run).height
 	  { p += 1; }
 	q = nruns;
 	while q > p
 	  {
-	    *runs.offset (q as isize) = *runs.offset (q as isize - 1);
+	    *(*runs.as_mut_ptr ()).offset (q as isize) = *(*runs.as_mut_ptr ()).offset (q as isize - 1);
 	    q -= 1;
 	  }
-	*runs.offset (p as isize) = run;
+	*(*runs.as_mut_ptr ()).offset (p as isize) = run;
 	nruns += 1;
 
 	i += (*run).nrows as ptrdiff_t;
@@ -6521,9 +6520,9 @@ unsafe fn scrolling_window (w: *mut window, tab_line_p: c_int) -> c_int
   i = 0;
   while i < nruns as ptrdiff_t
     {
-    if (*(*runs.offset (i as isize))).nrows > 0
+    if (*(*(*runs.as_mut_ptr ()).offset (i as isize))).nrows > 0
       {
-	let r: *mut run = *runs.offset (i as isize);
+	let r: *mut run = *(*runs.as_mut_ptr ()).offset (i as isize);
 
 	/* Copy on the display.  */
 	if (*r).current_y != (*r).desired_y
@@ -6537,7 +6536,7 @@ unsafe fn scrolling_window (w: *mut window, tab_line_p: c_int) -> c_int
 	j = nruns - 1;
 	while j as ptrdiff_t > i
 	  {
-	    let p: *mut run = *runs.offset (j as isize);
+	    let p: *mut run = *(*runs.as_mut_ptr ()).offset (j as isize);
 	    let mut truncated_p: bool = false;
 
 	    if (*p).nrows > 0
@@ -6590,13 +6589,13 @@ unsafe fn scrolling_window (w: *mut window, tab_line_p: c_int) -> c_int
 	      {
 		let mut k: c_int = nruns - 1;
 
-		while (*(*runs.offset (k as isize))).nrows == 0
-		      || (*(*runs.offset (k as isize))).height < (*p).height
+		while (*(*(*runs.as_mut_ptr ()).offset (k as isize))).nrows == 0
+		      || (*(*(*runs.as_mut_ptr ()).offset (k as isize))).height < (*p).height
 		  { k -= 1; }
-		memmove (runs.offset (j as isize) as *mut c_void,
-			 runs.offset (j as isize + 1) as *const c_void,
+		memmove ((*runs.as_mut_ptr ()).offset (j as isize) as *mut c_void,
+			 (*runs.as_mut_ptr ()).offset (j as isize + 1) as *const c_void,
 			 (k - j) as usize * core::mem::size_of::<*mut run> ());
-		*runs.offset (k as isize) = p;
+		*(*runs.as_mut_ptr ()).offset (k as isize) = p;
 	      }
 	    j -= 1;
 	  }
@@ -6632,9 +6631,9 @@ unsafe fn scrolling_window (w: *mut window, tab_line_p: c_int) -> c_int
 
   /* Clear the hash table, for the next time.  */
   i = 0;
-  while i < row_entry_idx
+  while i < (*row_entry_idx.as_mut_ptr ())
     {
-      *row_table.offset ((*row_entry_pool.offset (i as isize)).bucket as isize)
+      *(*row_table.as_mut_ptr ()).offset ((*(*row_entry_pool.as_mut_ptr ()).offset (i as isize)).bucket as isize)
 	= core::ptr::null_mut ();
       i += 1;
     }
@@ -6654,17 +6653,17 @@ unsafe fn tty_set_cursor (f: *mut frame)
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  if (cursor_in_echo_area
+  if ((*cursor_in_echo_area.as_mut_ptr ())
        /* If we are showing a message instead of the mini-buffer,
 	  show the cursor for the message instead of for the
 	  (now hidden) mini-buffer contents.  */
-       || (BASE_EQ (minibuf_window, selected_window)
-	   && BASE_EQ (minibuf_window, echo_area_window)
-	   && !NILP (echo_area_buffer [0])))
+       || (BASE_EQ ((*minibuf_window.as_mut_ptr ()), (*selected_window.as_mut_ptr ()))
+	   && BASE_EQ ((*minibuf_window.as_mut_ptr ()), (*echo_area_window.as_mut_ptr ()))
+	   && !NILP ((*echo_area_buffer.as_mut_ptr ()) [0])))
       /* These cases apply only to the frame that contains
 	 the active mini-buffer window.  */
       && FRAME_HAS_MINIBUF_P (f)
-      && BASE_EQ (FRAME_MINIBUF_WINDOW (f), echo_area_window)
+      && BASE_EQ (FRAME_MINIBUF_WINDOW (f), (*echo_area_window.as_mut_ptr ()))
     {
       let top: c_int = WINDOW_TOP_EDGE_LINE (XWINDOW (FRAME_MINIBUF_WINDOW (f)));
       let mut col: c_int;
@@ -6751,7 +6750,7 @@ unsafe fn write_matrix (f: *mut frame, inhibit_id_p: bool, updating_menu_p: bool
   if !FRAME_LINE_INS_DEL_OK! (f)
     { inhibit_id_p = true; }
 
-  if baud_rate != FRAME_COST_BAUD_RATE (f) as isize
+  if (*baud_rate.as_mut_ptr ()) != FRAME_COST_BAUD_RATE (f) as isize
     { calculate_costs (f); }
 
  /* See if any of the desired lines are enabled; don't compute for
@@ -6852,7 +6851,7 @@ unsafe fn scrolling (frame: *mut frame)
 
   /* If changed lines are few, don't allow preemption, don't scroll.  */
   if ((!FRAME_SCROLL_REGION_OK! (frame)
-       && (changed_lines as isize) < baud_rate / 2400)
+       && (changed_lines as isize) < (*baud_rate.as_mut_ptr ()) / 2400)
       || unchanged_at_bottom == height)
     {
       SAFE_FREE! (sa_count, sa_mark);
@@ -6871,7 +6870,7 @@ unsafe fn scrolling (frame: *mut frame)
      in common between current frame and desired frame.  But the
      window size must be at least 2.  */
   if (FRAME_SCROLL_REGION_OK! (frame)
-       || window_size < 18 || baud_rate <= 2400
+       || window_size < 18 || (*baud_rate.as_mut_ptr ()) <= 2400
        || (window_size
 	   < 10 * scrolling_max_lines_saved (unchanged_at_top,
 					     height - unchanged_at_bottom,
@@ -6941,7 +6940,7 @@ unsafe fn count_match (str1: *mut glyph, end1: *mut glyph, str2: *mut glyph,
 
 /* C 5925-5927: `#ifndef HAVE_ANDROID` — live on the frozen target.  */
 macro_rules! char_ins_del_cost {
-  ($f:expr) => { char_ins_del_vector.offset (FRAME_TOTAL_COLS ($f) as isize) };
+  ($f:expr) => { (*char_ins_del_vector.as_mut_ptr ()).offset (FRAME_TOTAL_COLS ($f) as isize) };
 }
 
 
@@ -7431,7 +7430,7 @@ unsafe extern "C-unwind" {
    defined below; `automatic_hscrolling` (window.c) is the other one this unit reads
    (`Qcurrent_line`'s symbol comes from globals.rs).  */
 unsafe extern "C" {
-  static mut automatic_hscrolling: Lisp_Object;
+  static automatic_hscrolling: VmGlobal<Lisp_Object>;
 }
 
 /* Determine what's under window-relative pixel position (*X, *Y).
@@ -7501,7 +7500,7 @@ unsafe extern "C" {
      containing point, augment TO_X with the hscroll amount of the
      current line.  */
   if it.line_wrap == TRUNCATE
-      && EQ (automatic_hscrolling, Qcurrent_line ()) && IT_CHARPOS! (it) < PT! ()
+      && EQ ((*automatic_hscrolling.as_mut_ptr ()), Qcurrent_line ()) && IT_CHARPOS! (it) < PT! ()
     {
       let mut it2: it = it;
       let it2data: *mut c_void = bidi_shelve_cache ();
@@ -7524,7 +7523,7 @@ unsafe extern "C" {
      argument is ZV to prevent move_it_in_display_line from matching
      based on buffer positions.  */
   move_it_in_display_line (&mut it, ZV! (), to_x, MOVE_TO_X);
-  if mouse_prefer_closest_glyph
+  if (*mouse_prefer_closest_glyph.as_mut_ptr ())
     {
       let next_x: c_int = it.current_x + it.pixel_width;
       let before_dx: c_int = to_x - it.current_x;
@@ -7888,7 +7887,7 @@ unsafe extern "C" fn handle_window_change_signal (sig: c_int)
      termcap-controlled terminal, but we can't decide which.
      Therefore, we resize the frames corresponding to each tty.
   */
-  tty = tty_list;
+  tty = (*tty_list.as_mut_ptr ());
   while !tty.is_null ()
     {
       if !term_initted! (tty)
@@ -7941,15 +7940,15 @@ unsafe extern "C" fn deliver_window_change_signal (sig: c_int)
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  if (redisplaying_p || dont_resize_frames) && !safe
+  if ((*redisplaying_p.as_mut_ptr ()) || (*dont_resize_frames.as_mut_ptr ())) && !safe
     { return; }
 
-  while delayed_size_change
+  while (*delayed_size_change.as_mut_ptr ())
     {
       let mut tail: Lisp_Object;
       let mut frame: Lisp_Object;
 
-      delayed_size_change = false;
+      (*delayed_size_change.as_mut_ptr ()) = false;
 
       FOR_EACH_FRAME! (tail, frame, {
 	  let f: *mut frame = XFRAME (frame);
@@ -7974,9 +7973,9 @@ unsafe fn change_frame_size_1 (f: *mut frame, new_width: c_int, new_height: c_in
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  if delay || (redisplaying_p && !safe)
+  if delay || ((*redisplaying_p.as_mut_ptr ()) && !safe)
     {
-      if CONSP (frame_size_history)
+      if CONSP ((*frame_size_history.as_mut_ptr ()))
 	  && (((*f).new_width != new_width
 	       || (*f).new_height != new_height
 	       || new_width != FRAME_PIXEL_WIDTH (f)
@@ -7992,7 +7991,7 @@ unsafe fn change_frame_size_1 (f: *mut frame, new_width: c_int, new_height: c_in
       (*f).new_width = new_width;
       (*f).new_height = new_height;
       new_size_p! (f, true);
-      delayed_size_change = true;
+      (*delayed_size_change.as_mut_ptr ()) = true;
     }
   else
     {
@@ -8057,7 +8056,7 @@ unsafe fn change_frame_size_1 (f: *mut frame, new_width: c_int, new_height: c_in
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  return delayed_size_change || new_size_p! (f);
+  return (*delayed_size_change.as_mut_ptr ()) || new_size_p! (f);
 
   }
 }
@@ -8107,7 +8106,7 @@ DEFUN! ("send-string-to-terminal", Fsend_string_to_terminal,
   block_input ();
 
   if (*t).r#type == output_initial
-    { out = stdout; }
+    { out = (*stdout.as_mut_ptr ()); }
   else if (*t).r#type != output_termcap && (*t).r#type != output_msdos_raw
     { error (c"Device %d is not a termcap terminal device".as_ptr (), (*t).id); }
   else
@@ -8142,10 +8141,10 @@ DEFUN! ("ding", Fding, Sding, 0, 1, 0,
         {
   if !NILP (arg)
     {
-      if noninteractive
+      if (*noninteractive.as_mut_ptr ())
 	{ putchar (7); }
       else
-	{ ring_bell (XFRAME (selected_frame)); }
+	{ ring_bell (XFRAME ((*selected_frame.as_mut_ptr ()))); }
     }
   else
     { bitch_at_user (); }
@@ -8161,7 +8160,7 @@ DEFUN! ("ding", Fding, Sding, 0, 1, 0,
   {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-    if noninteractive
+    if (*noninteractive.as_mut_ptr ())
       { putchar (7); }
     else if !INTERACTIVE! ()   /* Stop executing a keyboard macro.  */
       {
@@ -8170,7 +8169,7 @@ DEFUN! ("ding", Fding, Sding, 0, 1, 0,
 	Fsignal (Quser_error (), list1 (build_string (msg)));
       }
     else
-      { ring_bell (XFRAME (selected_frame)); }
+      { ring_bell (XFRAME ((*selected_frame.as_mut_ptr ()))); }
   
   }
 }
@@ -8235,12 +8234,12 @@ DEFUN! ("sleep-for", Fsleep_for, Ssleep_for, 1, 2, 0,
   let mut nsec: c_int;
   let do_display: bool = display_option > 0;
   let curbuf_eq_winbuf: bool
-    = ((current_buffer! ()) == XBUFFER ((*XWINDOW (selected_window)).contents));
+    = ((current_buffer! ()) == XBUFFER ((*XWINDOW ((*selected_window.as_mut_ptr ()))).contents));
 
   swallow_events (do_display);
 
   if detect_input_pending_run_timers (do_display)
-      || !NILP (Vexecuting_kbd_macro)
+      || !NILP ((*Vexecuting_kbd_macro.as_mut_ptr ()))
     { return Qnil (); }
 
   if display_option > 1
@@ -8296,7 +8295,7 @@ DEFUN! ("sleep-for", Fsleep_for, Ssleep_for, 1, 2, 0,
        window (e.g. in response to a connection from emacsclient), in which
        case we should follow it (unless we weren't in the selected-window's
        buffer to start with).  */
-    { set_buffer_internal (XBUFFER ((*XWINDOW (selected_window)).contents)); }
+    { set_buffer_internal (XBUFFER ((*XWINDOW ((*selected_window.as_mut_ptr ()))).contents)); }
 
   return if nbytes > 0 || detect_input_pending () { Qnil () } else { Qt () };
 
@@ -8309,7 +8308,7 @@ DEFUN! ("redisplay", Fredisplay, Sredisplay, 0, 1, 0,
         (force: Lisp_Object),
         {
   swallow_events (true);
-  if !NILP (Vexecuting_kbd_macro)
+  if !NILP ((*Vexecuting_kbd_macro.as_mut_ptr ()))
     { return Qnil (); }
 
   redisplay_preserve_echo_area (2);
@@ -8325,7 +8324,7 @@ DEFUN! ("redisplay", Fredisplay, Sredisplay, 0, 1, 0,
    session's frames, frame names, buffers, buffer-read-only flags, and
    buffer-modified-flags.  */
 
-static mut frame_and_buffer_state: Lisp_Object = core::ptr::null_mut ();
+static frame_and_buffer_state: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (core::ptr::null_mut ());
 
 
 DEFUN! ("frame-or-buffer-changed-p", Fframe_or_buffer_changed_p,
@@ -8351,10 +8350,10 @@ DEFUN! ("frame-or-buffer-changed-p", Fframe_or_buffer_changed_p,
 	{ break 'changed; }
     }
   else
-    { state = frame_and_buffer_state; }
+    { state = (*frame_and_buffer_state.as_mut_ptr ()); }
 
   idx = 0;
-  tail = Vframe_list;
+  tail = (*Vframe_list.as_mut_ptr ());
   while CONSP (tail) && { frame = XCAR (tail); true }
     {
       if idx == ASIZE (state)
@@ -8370,7 +8369,7 @@ DEFUN! ("frame-or-buffer-changed-p", Fframe_or_buffer_changed_p,
       tail = XCDR (tail);
     }
   /* Check that the buffer info matches.  */
-  tail = Vbuffer_alist;
+  tail = (*Vbuffer_alist.as_mut_ptr ());
   while CONSP (tail) && { buf = XCDR (XCAR (tail)); true }
     {
       /* Ignore buffers that aren't included in buffer lists.  */
@@ -8407,13 +8406,13 @@ DEFUN! ("frame-or-buffer-changed-p", Fframe_or_buffer_changed_p,
   /* Count the size we will need.
      Start with 1 so there is room for at least one lambda at the end.  */
   n = 1;
-  tail = Vframe_list;
+  tail = (*Vframe_list.as_mut_ptr ());
   while CONSP (tail) && { frame = XCAR (tail); true }
     {
     n += 2;
       tail = XCDR (tail);
     }
-  tail = Vbuffer_alist;
+  tail = (*Vbuffer_alist.as_mut_ptr ());
   while CONSP (tail) && { buf = XCDR (XCAR (tail)); true }
     {
     n += 3;
@@ -8430,12 +8429,12 @@ DEFUN! ("frame-or-buffer-changed-p", Fframe_or_buffer_changed_p,
       if !NILP (variable)
 	{ Fset (variable, state); }
       else
-	{ frame_and_buffer_state = state; }
+	{ (*frame_and_buffer_state.as_mut_ptr ()) = state; }
     }
 
   /* Record the new data in the (possibly reallocated) vector.  */
   idx = 0;
-  tail = Vframe_list;
+  tail = (*Vframe_list.as_mut_ptr ());
   while CONSP (tail) && { frame = XCAR (tail); true }
     {
       ASET (state, idx, frame);
@@ -8444,7 +8443,7 @@ DEFUN! ("frame-or-buffer-changed-p", Fframe_or_buffer_changed_p,
       idx += 1;
       tail = XCDR (tail);
     }
-  tail = Vbuffer_alist;
+  tail = (*Vbuffer_alist.as_mut_ptr ());
   while CONSP (tail) && { buf = XCDR (XCAR (tail)); true }
     {
       /* Ignore buffers that aren't included in buffer lists.  */
@@ -8502,17 +8501,17 @@ unsafe fn init_display_interactive ()
   let mut terminal_type: *mut c_char;
 
   /* Construct the space glyph.  */
-  let sg_ptr: *mut glyph = &raw mut space_glyph;
+  let sg_ptr: *mut glyph = space_glyph.as_mut_ptr ();
   glyph_bits! (type, *sg_ptr, CHAR_GLYPH);
   SET_CHAR_GLYPH! (core::ptr::null_mut (), *sg_ptr, ' ' as c_uint, DEFAULT_FACE_ID, false);
   (*sg_ptr).charpos = -1;
 
-  inverse_video = false;
-  cursor_in_echo_area = false;
+  (*inverse_video.as_mut_ptr ()) = false;
+  (*cursor_in_echo_area.as_mut_ptr ()) = false;
 
   /* Now is the time to initialize this; it's used by init_sys_modes
      during startup.  */
-  Vinitial_window_system = Qnil ();
+  (*Vinitial_window_system.as_mut_ptr ()) = Qnil ();
 
   /* SIGWINCH needs to be handled no matter what display we start
      with.  Otherwise newly opened tty frames will not resize
@@ -8553,23 +8552,23 @@ unsafe fn init_display_interactive ()
 
   #[cfg (feature = "have_x_windows")]
   {
-  if !inhibit_window_system && !display_arg
+  if !(*inhibit_window_system.as_mut_ptr ()) && !(*display_arg.as_mut_ptr ())
     {
       let display: *mut c_char;
       display = getenv (c"DISPLAY".as_ptr ());
-      display_arg = !display.is_null () && *display != 0;
+      (*display_arg.as_mut_ptr ()) = !display.is_null () && *display != 0;
 
-      if display_arg && !x_display_ok (display)
+      if (*display_arg.as_mut_ptr ()) && !x_display_ok (display)
 	{
-	  fprintf (stderr, c"Display %s unavailable, simulating -nw\n".as_ptr (),
+	  fprintf ((*stderr.as_mut_ptr ()), c"Display %s unavailable, simulating -nw\n".as_ptr (),
 		   display);
-	  inhibit_window_system = 1;
+	  (*inhibit_window_system.as_mut_ptr ()) = 1;
 	}
     }
 
-  if !inhibit_window_system && display_arg
+  if !(*inhibit_window_system.as_mut_ptr ()) && (*display_arg.as_mut_ptr ())
     {
-      Vinitial_window_system = Qx ();
+      (*Vinitial_window_system.as_mut_ptr ()) = Qx ();
       #[cfg (feature = "use_ncurses")]
       {
       /* In some versions of ncurses,
@@ -8583,9 +8582,9 @@ unsafe fn init_display_interactive ()
 
   #[cfg (feature = "have_android")]
   {
-  if !inhibit_window_system && android_init_gui
+  if !(*inhibit_window_system.as_mut_ptr ()) && android_init_gui
     {
-      Vinitial_window_system = Qandroid ();
+      (*Vinitial_window_system.as_mut_ptr ()) = Qandroid ();
       android_term_init ();
       return;
     }
@@ -8593,36 +8592,36 @@ unsafe fn init_display_interactive ()
 
   #[cfg (feature = "have_ntgui")]
   {
-  if !inhibit_window_system
+  if !(*inhibit_window_system.as_mut_ptr ())
     {
-      Vinitial_window_system = Qw32 ();
+      (*Vinitial_window_system.as_mut_ptr ()) = Qw32 ();
       return;
     }
   }
 
   #[cfg (feature = "have_ns")]
   {
-  if !inhibit_window_system && !will_dump_p ()
+  if !(*inhibit_window_system.as_mut_ptr ()) && !will_dump_p ()
     {
-      Vinitial_window_system = Qns ();
+      (*Vinitial_window_system.as_mut_ptr ()) = Qns ();
       return;
     }
   }
 
   #[cfg (feature = "have_pgtk")]
   {
-  if !inhibit_window_system && !will_dump_p ()
+  if !(*inhibit_window_system.as_mut_ptr ()) && !will_dump_p ()
     {
-      Vinitial_window_system = Qpgtk ();
+      (*Vinitial_window_system.as_mut_ptr ()) = Qpgtk ();
       return;
     }
   }
 
   #[cfg (feature = "have_haiku")]
   {
-  if !inhibit_window_system && !will_dump_p ()
+  if !(*inhibit_window_system.as_mut_ptr ()) && !will_dump_p ()
     {
-      Vinitial_window_system = Qhaiku ();
+      (*Vinitial_window_system.as_mut_ptr ()) = Qhaiku ();
       return;
     }
   }
@@ -8641,17 +8640,17 @@ unsafe fn init_display_interactive ()
 	= c"Please set the environment variable TERM; see 'tset'.\n".as_ptr ();
       #[cfg (feature = "have_window_system")]
       {
-      if !inhibit_window_system
+      if !(*inhibit_window_system.as_mut_ptr ())
 	{ msg = c"Please set the environment variable DISPLAY or TERM; see 'tset'.\n".as_ptr (); }
       }
-      fputs (msg, stderr);
+      fputs (msg, (*stderr.as_mut_ptr ()));
       exit (1);
     }
 
 /* C 7339-7410: `#ifndef HAVE_ANDROID` — live on the frozen target.  */
   {
     let t: *mut terminal;
-    let f: *mut frame = XFRAME (selected_frame);
+    let f: *mut frame = XFRAME ((*selected_frame.as_mut_ptr ()));
 
     init_foreground_group ();
 
@@ -8675,25 +8674,25 @@ unsafe fn init_display_interactive ()
     if FRAME_TERMCAP_P (f)
       { create_tty_output (f); }
     }
-    (*( (*t).display_info.tty as *mut tty_display_info )).top_frame = selected_frame;
-    change_frame_size (XFRAME (selected_frame),
+    (*( (*t).display_info.tty as *mut tty_display_info )).top_frame = (*selected_frame.as_mut_ptr ());
+    change_frame_size (XFRAME ((*selected_frame.as_mut_ptr ())),
                        FrameCols! ((*t).display_info.tty as *mut tty_display_info),
                        FrameRows! ((*t).display_info.tty as *mut tty_display_info),
 		       false, false, true);
 
     /* Delete the initial terminal. */
-    if { (*initial_terminal).reference_count -= 1; (*initial_terminal).reference_count == 0 }
-        && (*initial_terminal).delete_terminal_hook.is_some ()
-      { ((*initial_terminal).delete_terminal_hook.unwrap ()) (initial_terminal); }
+    if { (*(*initial_terminal.as_mut_ptr ())).reference_count -= 1; (*(*initial_terminal.as_mut_ptr ())).reference_count == 0 }
+        && (*(*initial_terminal.as_mut_ptr ())).delete_terminal_hook.is_some ()
+      { ((*(*initial_terminal.as_mut_ptr ())).delete_terminal_hook.unwrap ()) ((*initial_terminal.as_mut_ptr ())); }
 
     /* Update frame parameters to reflect the new type. */
-    AUTO_FRAME_ARG! (tty_type_arg, Qtty_type (), Ftty_type (selected_frame));
-    Fmodify_frame_parameters (selected_frame, tty_type_arg);
+    AUTO_FRAME_ARG! (tty_type_arg, Qtty_type (), Ftty_type ((*selected_frame.as_mut_ptr ())));
+    Fmodify_frame_parameters ((*selected_frame.as_mut_ptr ()), tty_type_arg);
     AUTO_FRAME_ARG! (tty_arg, Qtty (),
 		     if !(*( (*t).display_info.tty as *mut tty_display_info )).name.is_null ()
 		       { build_string ((*( (*t).display_info.tty as *mut tty_display_info )).name) }
 		       else { Qnil () });
-    Fmodify_frame_parameters (selected_frame, tty_arg);
+    Fmodify_frame_parameters ((*selected_frame.as_mut_ptr ()), tty_arg);
   }
 
   {
@@ -8716,10 +8715,10 @@ unsafe fn init_display_interactive ()
       { fatal (c"screen size %dx%d too big".as_ptr (), width, height); }
   }
 
-  calculate_costs (XFRAME (selected_frame));
+  calculate_costs (XFRAME ((*selected_frame.as_mut_ptr ())));
 
   /* Set up faces of the initial terminal frame.  */
-  if initialized && !noninteractive && NILP (Vinitial_window_system)
+  if (*initialized.as_mut_ptr ()) && !(*noninteractive.as_mut_ptr ()) && NILP ((*Vinitial_window_system.as_mut_ptr ()))
     { init_faces_initial (); }
 
   }
@@ -8729,7 +8728,7 @@ unsafe fn init_display_interactive ()
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  if noninteractive
+  if (*noninteractive.as_mut_ptr ())
     {
       if dumped_with_pdumper_p ()
         { init_faces_initial (); }
@@ -8748,7 +8747,7 @@ DEFUN! ("internal-show-cursor", Finternal_show_cursor,
         {
   /* Don't change cursor state while redisplaying.  This could confuse
      output routines.  */
-  if !redisplaying_p
+  if !(*redisplaying_p.as_mut_ptr ())
     { window_bits! (cursor_off_p, decode_any_window (window), NILP (show)); }
   return Qnil ();
 });
@@ -8772,33 +8771,33 @@ DEFUN! ("internal-show-cursor-p", Finternal_show_cursor_p,
    declarations, so the owning unit defines them here (docs/status.md 3.29, the term.rs
    shape).  */
 #[unsafe(no_mangle)]
-pub static mut baud_rate: EMACS_INT = 0;
+pub static baud_rate: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);
 #[unsafe(no_mangle)]
-pub static mut inverse_video: bool = false;
+pub static inverse_video: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut visible_bell: bool = false;
+pub static visible_bell: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut no_redraw_on_reenter: bool = false;
+pub static no_redraw_on_reenter: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut Vinitial_window_system: Lisp_Object = lisp_h_Qnil ();
+pub static Vinitial_window_system: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut cursor_in_echo_area: bool = false;
+pub static cursor_in_echo_area: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut mouse_prefer_closest_glyph: bool = false;
+pub static mouse_prefer_closest_glyph: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut Vglyph_table: Lisp_Object = lisp_h_Qnil ();
+pub static Vglyph_table: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vstandard_display_table: Lisp_Object = lisp_h_Qnil ();
+pub static Vstandard_display_table: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vx_show_tooltip_timeout: Lisp_Object = lisp_h_Qnil ();
+pub static Vx_show_tooltip_timeout: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vtab_bar_position: Lisp_Object = lisp_h_Qnil ();
+pub static Vtab_bar_position: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 unsafe extern "C-unwind" fn syms_of_display_for_pdumper ()
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  Vinitial_window_system = Qnil ();
+  (*Vinitial_window_system.as_mut_ptr ()) = Qnil ();
 
   }
 }
@@ -8807,21 +8806,21 @@ unsafe extern "C-unwind" fn syms_of_display_for_pdumper ()
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  defsubr (&raw mut Sredraw_frame);
-  defsubr (&raw mut Sredraw_display);
-  defsubr (&raw mut Sdisplay__update_for_mouse_movement);
-  defsubr (&raw mut Sframe_or_buffer_changed_p);
-  defsubr (&raw mut Sopen_termscript);
-  defsubr (&raw mut Sding);
-  defsubr (&raw mut Sredisplay);
-  defsubr (&raw mut Ssleep_for);
-  defsubr (&raw mut Ssend_string_to_terminal);
-  defsubr (&raw mut Sinternal_show_cursor);
-  defsubr (&raw mut Sinternal_show_cursor_p);
-  defsubr (&raw mut Sframe__z_order_lessp);
+  defsubr (Sredraw_frame.as_mut_ptr ());
+  defsubr (Sredraw_display.as_mut_ptr ());
+  defsubr (Sdisplay__update_for_mouse_movement.as_mut_ptr ());
+  defsubr (Sframe_or_buffer_changed_p.as_mut_ptr ());
+  defsubr (Sopen_termscript.as_mut_ptr ());
+  defsubr (Sding.as_mut_ptr ());
+  defsubr (Sredisplay.as_mut_ptr ());
+  defsubr (Ssleep_for.as_mut_ptr ());
+  defsubr (Ssend_string_to_terminal.as_mut_ptr ());
+  defsubr (Sinternal_show_cursor.as_mut_ptr ());
+  defsubr (Sinternal_show_cursor_p.as_mut_ptr ());
+  defsubr (Sframe__z_order_lessp.as_mut_ptr ());
 
-  frame_and_buffer_state = make_vector (20, Qlambda ());
-  staticpro (&raw const frame_and_buffer_state);
+  (*frame_and_buffer_state.as_mut_ptr ()) = make_vector (20, Qlambda ());
+  staticpro (frame_and_buffer_state.as_ptr ());
 
   /* This is the "purpose" slot of a display table.  */
   DEFSYM! (Qdisplay_table, c"display-table");
@@ -8851,19 +8850,19 @@ unsafe extern "C-unwind" fn syms_of_display_for_pdumper ()
 
   DEFVAR_BOOL! (c"mouse-prefer-closest-glyph", mouse_prefer_closest_glyph,
 	       "Non-nil means mouse click position is taken from glyph closest to click.\n\nWhen non-nil, mouse position lists will report buffer position set to\nthe position of the glyph that is the closest to the mouse pointer\nat the time of the click, instead of the glyph immediately under it.");
-  mouse_prefer_closest_glyph = false;
+  (*mouse_prefer_closest_glyph.as_mut_ptr ()) = false;
 
   DEFVAR_LISP! (c"glyph-table", Vglyph_table,
 	       "Table defining how to output a glyph code to the frame.\nIf not nil, this is a vector indexed by glyph code to define the glyph.\nEach element can be:\n integer: a glyph code which this glyph is an alias for.\n string: output this glyph using that string (not impl. in X windows).\n nil: this glyph mod 524288 is the code of a character to output,\n    and this glyph / 524288 is the face number (see `face-id') to use\n    while outputting it.");
-  Vglyph_table = Qnil ();
+  (*Vglyph_table.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"standard-display-table", Vstandard_display_table,
 	       "Display table to use for buffers that specify none.\nIt is also used for standard output and error streams.\nSee `buffer-display-table' for more information.");
-  Vstandard_display_table = Qnil ();
+  (*Vstandard_display_table.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"x-show-tooltip-timeout", Vx_show_tooltip_timeout,
 	      "The default timeout (in seconds) for `x-show-tip'.");
-  Vx_show_tooltip_timeout = make_fixnum (5);
+  (*Vx_show_tooltip_timeout.as_mut_ptr ()) = make_fixnum (5);
 
   DEFVAR_LISP! (c"tab-bar-position", Vtab_bar_position,
 	       "Specify on which side from the tool bar the tab bar shall be.\nPossible values are t (below the tool bar), nil (above the tool bar).\nThis option affects only builds where the tool bar is not external.");

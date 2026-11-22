@@ -1023,7 +1023,7 @@ unsafe fn adjust_intervals_for_insertion (mut tree: INTERVAL,
 
 	      /* Is this particular property recorded as sticky or
 		 nonsticky in Vtext_property_default_nonsticky?  */
-	      tmp = Fassq (prop, Vtext_property_default_nonsticky);
+	      tmp = Fassq (prop, (*Vtext_property_default_nonsticky.as_mut_ptr ()));
 	      if CONSP (tmp)
 		{
 		  if NILP (tmp)
@@ -1241,7 +1241,7 @@ unsafe fn merge_properties_sticky (pleft: Lisp_Object, pright: Lisp_Object) -> L
 	/* Even if lrear or rfront say nothing about the stickiness of
 	   SYM, Vtext_property_default_nonsticky may give default
 	   stickiness to SYM.  */
-	tmp = Fassq (sym, Vtext_property_default_nonsticky);
+	tmp = Fassq (sym, (*Vtext_property_default_nonsticky.as_mut_ptr ()));
 	use_left = (lpresent
 		    && ! (TMEM! (sym, lrear)
 			  || (CONSP (tmp) && ! NILP (XCDR (tmp)))));
@@ -1305,7 +1305,7 @@ unsafe fn merge_properties_sticky (pleft: Lisp_Object, pright: Lisp_Object) -> L
 	/* Even if lrear or rfront say nothing about the stickiness of
 	   SYM, Vtext_property_default_nonsticky may give default
 	   stickiness to SYM.  */
-	tmp = Fassq (sym, Vtext_property_default_nonsticky);
+	tmp = Fassq (sym, (*Vtext_property_default_nonsticky.as_mut_ptr ()));
 
 	/* Since rval is known to be nil in this loop, the test simplifies.  */
 	if ! (TMEM! (sym, lrear) || (CONSP (tmp) && ! NILP (XCDR (tmp))))
@@ -1977,7 +1977,7 @@ pub unsafe extern "C-unwind" fn lookup_char_property (plist: Lisp_Object, prop: 
   if ! NILP (fallback)
     { return fallback; }
   /* Check for alternative properties.  */
-  tail = Fassq (prop, Vchar_property_alias_alist);
+  tail = Fassq (prop, (*Vchar_property_alias_alist.as_mut_ptr ()));
   if ! NILP (tail)
     {
       tail = XCDR (tail);
@@ -1988,8 +1988,8 @@ pub unsafe extern "C-unwind" fn lookup_char_property (plist: Lisp_Object, prop: 
 	}
     }
 
-  if textprop && NILP (fallback) && CONSP (Vdefault_text_properties)
-    { fallback = plist_get (Vdefault_text_properties, prop); }
+  if textprop && NILP (fallback) && CONSP ((*Vdefault_text_properties.as_mut_ptr ()))
+    { fallback = plist_get ((*Vdefault_text_properties.as_mut_ptr ()), prop); }
   return fallback;
 
   }
@@ -2197,7 +2197,7 @@ pub unsafe extern "C-unwind" fn set_point_both (mut charpos: ptrdiff_t, mut byte
   /* If the new position is between two intangible characters
      with the same intangible property value,
      move forward or backward until a change in that property.  */
-  if NILP (Vinhibit_point_motion_hooks)
+  if NILP ((*Vinhibit_point_motion_hooks.as_mut_ptr ()))
       && (((! to.is_null () && ! toprev.is_null ()))
 	  || have_overlays)
       /* Intangibility never stops us from positioning at the beginning
@@ -2298,7 +2298,7 @@ pub unsafe extern "C-unwind" fn set_point_both (mut charpos: ptrdiff_t, mut byte
   /* We run point-left and point-entered hooks here, if the
      two intervals are not equivalent.  These hooks take
      (old_point, new_point) as arguments.  */
-  if NILP (Vinhibit_point_motion_hooks)
+  if NILP ((*Vinhibit_point_motion_hooks.as_mut_ptr ()))
       && (! intervals_equal (from, to)
 	  || ! intervals_equal (fromprev, toprev))
     {
@@ -2355,7 +2355,7 @@ pub unsafe extern "C-unwind" fn move_if_not_intangible (mut position: ptrdiff_t)
 
   XSETINT! (pos, position);
 
-  if ! NILP (Vinhibit_point_motion_hooks)
+  if ! NILP ((*Vinhibit_point_motion_hooks.as_mut_ptr ()))
     /* If intangible is inhibited, always move point to POSITION.  */
     { }
   else if PT! () < position && XFIXNUM (pos) < ZV! ()

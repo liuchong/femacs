@@ -259,46 +259,46 @@ unsafe extern "C-unwind" {
 
 /* C 84: `Lisp_Object selected_window;`  */
   #[unsafe(no_mangle)]
-  pub static mut selected_window: Lisp_Object = lisp_h_Qnil ();
+  pub static selected_window: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
   /* C 94: `Lisp_Object Vwindow_list;`  */
   #[unsafe(no_mangle)]
-  pub static mut Vwindow_list: Lisp_Object = lisp_h_Qnil ();
+  pub static Vwindow_list: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
   /* C 103: `Lisp_Object minibuf_window;`  */
   #[unsafe(no_mangle)]
-  pub static mut minibuf_window: Lisp_Object = lisp_h_Qnil ();
+  pub static minibuf_window: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
   /* C 107: `Lisp_Object minibuf_selected_window;`  */
   #[unsafe(no_mangle)]
-  pub static mut minibuf_selected_window: Lisp_Object = lisp_h_Qnil ();
+  pub static minibuf_selected_window: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
   /* C 110: `Lisp_Object last_mouse_window;`  */
   #[unsafe(no_mangle)]
-  pub static mut last_mouse_window: Lisp_Object = lisp_h_Qnil ();
+  pub static last_mouse_window: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
   /* C 506: `EMACS_INT window_select_count;`  */
   #[unsafe(no_mangle)]
-  pub static mut window_select_count: EMACS_INT = 0;
+  pub static window_select_count: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);
 
 /* C 89: `static Lisp_Object old_selected_window;` — the value of selected_window at the last
    time window change functions were run.  */
-static mut old_selected_window: Lisp_Object = lisp_h_Qnil ();
+static old_selected_window: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* C 97: `static bool window_change_record_frames;` — true means `window_change_record` has to
    record all live frames.  */
-static mut window_change_record_frames: bool = false;
+static window_change_record_frames: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 /* C 113: `static EMACS_INT sequence_number;` — incremented for each window created.  */
-static mut sequence_number: EMACS_INT = 0;
+static sequence_number: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);
 
 /* C 116-117: used by `window_scroll_pixel_based`.  */
-static mut window_scroll_pixel_based_preserve_x: c_int = 0;
-static mut window_scroll_pixel_based_preserve_y: c_int = 0;
+static window_scroll_pixel_based_preserve_x: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
+static window_scroll_pixel_based_preserve_y: VmGlobal<c_int> = VmGlobal::<c_int>::new (0);
 
 /* C 120-121: same for `window_scroll_line_based`.  */
-static mut window_scroll_preserve_hpos: EMACS_INT = 0;
-static mut window_scroll_preserve_vpos: EMACS_INT = 0;
+static window_scroll_preserve_hpos: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);
+static window_scroll_preserve_vpos: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);
 
 unsafe fn CHECK_WINDOW_CONFIGURATION (x: Lisp_Object)
 {
@@ -470,7 +470,7 @@ pub unsafe extern "C-unwind" fn decode_live_window (window: Lisp_Object) -> *mut
   unsafe {
   let mut window = window;
   if NILP (window)
-    { return XWINDOW (selected_window); }
+    { return XWINDOW ((*selected_window.as_mut_ptr ())); }
 
   CHECK_LIVE_WINDOW (window);
   return XWINDOW (window);
@@ -487,7 +487,7 @@ pub unsafe extern "C-unwind" fn decode_any_window (window: Lisp_Object) -> *mut 
   let w: *mut window;
 
   if NILP (window)
-    { return XWINDOW (selected_window); }
+    { return XWINDOW ((*selected_window.as_mut_ptr ())); }
 
   CHECK_WINDOW (window);
   w = XWINDOW (window);
@@ -504,7 +504,7 @@ unsafe fn decode_valid_window (window: Lisp_Object) -> *mut window
   let w: *mut window;
 
   if NILP (window)
-    { return XWINDOW (selected_window); }
+    { return XWINDOW ((*selected_window.as_mut_ptr ())); }
 
   CHECK_VALID_WINDOW (window);
   w = XWINDOW (window);
@@ -678,7 +678,7 @@ DEFUN! ("frame-old-selected-window", Fframe_old_selected_window,
        {
   let mut frame = frame;
   if NILP (frame)
-    { frame = selected_frame; }
+    { frame = (*selected_frame.as_mut_ptr ()); }
   CHECK_LIVE_FRAME! (frame);
 
   return (*XFRAME (frame)).old_selected_window;
@@ -691,7 +691,7 @@ DEFUN! ("set-frame-selected-window", Fset_frame_selected_window,
        {
   let mut frame = frame;
   if NILP (frame)
-    { frame = selected_frame; }
+    { frame = (*selected_frame.as_mut_ptr ()); }
 
   CHECK_LIVE_FRAME! (frame);
   CHECK_LIVE_WINDOW (window);
@@ -699,7 +699,7 @@ DEFUN! ("set-frame-selected-window", Fset_frame_selected_window,
   if ! EQ (frame, WINDOW_FRAME! (XWINDOW (window)))
     { error (c"In `set-frame-selected-window', WINDOW is not on FRAME".as_ptr ()); }
 
-  if EQ (frame, selected_frame)
+  if EQ (frame, (*selected_frame.as_mut_ptr ()))
     { return Fselect_window (window, norecord); }
   else
     {
@@ -713,7 +713,7 @@ DEFUN! ("selected-window", Fselected_window, Sselected_window, 0, 0, 0,
        doc: "Return the selected window.\nThe selected window is the window in which the standard cursor for\nselected windows appears and to which many commands apply.\n\nAlso see `old-selected-window' and `minibuffer-selected-window'.  ",
        (),
        {
-  return selected_window;
+  return (*selected_window.as_mut_ptr ());
 });
 
 DEFUN! ("old-selected-window", Fold_selected_window,
@@ -721,7 +721,7 @@ DEFUN! ("old-selected-window", Fold_selected_window,
        doc: "Return the old selected window.\nThe return value is the window selected the last time window change\nfunctions were run.  ",
        (),
        {
-  return old_selected_window;
+  return (*old_selected_window.as_mut_ptr ());
 });
 
 /* If select_window is called with inhibit_point_swap true it will
@@ -756,7 +756,7 @@ unsafe fn select_window (window: Lisp_Object, norecord: Lisp_Object,
   Fset_buffer ((*w).contents);
 
   'record_and_return: {
-  if EQ (window, selected_window) && !inhibit_point_swap
+  if EQ (window, (*selected_window.as_mut_ptr ())) && !inhibit_point_swap
     /* `switch-to-buffer' uses (select-window (selected-window)) as a "clever"
        way to call record_buffer from Elisp, so it's important that we call
        record_buffer before returning here.  */
@@ -765,7 +765,7 @@ unsafe fn select_window (window: Lisp_Object, norecord: Lisp_Object,
   if NILP (norecord) || EQ (norecord, Qmark_for_redisplay ())
     { /* Mark the window for redisplay since the selected-window has
 	 a different mode-line.  */
-      wset_redisplay (XWINDOW (selected_window));
+      wset_redisplay (XWINDOW ((*selected_window.as_mut_ptr ())));
       wset_redisplay (w);
     }
   else
@@ -781,7 +781,7 @@ unsafe fn select_window (window: Lisp_Object, norecord: Lisp_Object,
 	 frame is active.  */
       Fselect_frame (frame, norecord);
       /* Fselect_frame called us back so we've done all the work already.  */
-      eassert! (EQ (window, selected_window)
+      eassert! (EQ (window, (*selected_window.as_mut_ptr ()))
 	       || (EQ (window, (*f).minibuffer_window)
 		   && NILP (Fminibufferp ((*XWINDOW (window)).contents, Qt ()))));
       return window;
@@ -799,7 +799,7 @@ unsafe fn select_window (window: Lisp_Object, norecord: Lisp_Object,
      broken invariant might "escape" (Bug#14161).  */
   if NILP (norecord)
     {
-      (*w).use_time = { window_select_count += 1; window_select_count };
+      (*w).use_time = { (*window_select_count.as_mut_ptr ()) += 1; (*window_select_count.as_mut_ptr ()) };
       record_buffer ((*w).contents);
     }
 
@@ -820,14 +820,14 @@ unsafe fn select_window_1 (window: Lisp_Object, inhibit_point_swap: bool)
      not selected, must be in the window.  */
   if !inhibit_point_swap
     {
-      let ow: *mut window = XWINDOW (selected_window);
+      let ow: *mut window = XWINDOW ((*selected_window.as_mut_ptr ()));
       if BUFFERP ((*ow).contents)
 	{ set_marker_both ((*ow).pointm, (*ow).contents,
 			   BUF_PT (XBUFFER ((*ow).contents)),
 			   BUF_PT_BYTE (XBUFFER ((*ow).contents))); }
     }
 
-  selected_window = window;
+  (*selected_window.as_mut_ptr ()) = window;
 
   /* Go to the point recorded in the window.
      This is important when the buffer is in more
@@ -949,12 +949,12 @@ DEFUN! ("window-bump-use-time", Fwindow_bump_use_time,
        (window: Lisp_Object),
        {
   let w: *mut window = decode_live_window (window);
-  let sw: *mut window = XWINDOW (selected_window);
+  let sw: *mut window = XWINDOW ((*selected_window.as_mut_ptr ()));
 
-  if w != sw && (*sw).use_time == window_select_count
+  if w != sw && (*sw).use_time == (*window_select_count.as_mut_ptr ())
     {
-      (*w).use_time = window_select_count;
-      (*sw).use_time = { window_select_count += 1; window_select_count };
+      (*w).use_time = (*window_select_count.as_mut_ptr ());
+      (*sw).use_time = { (*window_select_count.as_mut_ptr ()) += 1; (*window_select_count.as_mut_ptr ()) };
 
       return make_fixnum ((*w).use_time);
     }
@@ -1224,7 +1224,7 @@ pub unsafe extern "C-unwind" fn window_body_height (w: *mut window,
   let mut denom: c_int = 1;
   if pixelwise == window_body_unit::WINDOW_BODY_IN_REMAPPED_CHARS
     {
-      if !NILP (Vface_remapping_alist)
+      if !NILP ((*Vface_remapping_alist.as_mut_ptr ()))
 	{
 	  let f: *mut frame = XFRAME (WINDOW_FRAME! (w));
 	  let face_id: c_int = lookup_named_face (std::ptr::null_mut (), f, Qdefault (), true);
@@ -1275,7 +1275,7 @@ pub unsafe extern "C-unwind" fn window_body_width (w: *mut window,
   let mut denom: c_int = 1;
   if pixelwise == window_body_unit::WINDOW_BODY_IN_REMAPPED_CHARS
     {
-      if !NILP (Vface_remapping_alist)
+      if !NILP ((*Vface_remapping_alist.as_mut_ptr ()))
 	{
 	  let face_id: c_int = lookup_named_face (std::ptr::null_mut (), f, Qdefault (), true);
 	  let face: *mut face = FACE_FROM_ID_OR_NULL (f, face_id);
@@ -2050,7 +2050,7 @@ pub unsafe extern "C-unwind" fn window_point (w: *mut window) -> ptrdiff_t
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  return if w == XWINDOW (selected_window)
+  return if w == XWINDOW ((*selected_window.as_mut_ptr ()))
           { BUF_PT (XBUFFER ((*w).contents)) }
           else { (*XMARKER ((*w).pointm)).charpos };
 
@@ -2103,7 +2103,7 @@ DEFUN! ("window-end", Fwindow_end, Swindow_end, 0, 2, 0,
   b = XBUFFER (buf);
 
   if !NILP (update)
-      && (windows_or_buffers_changed != 0
+      && ((*windows_or_buffers_changed.as_mut_ptr ()) != 0
 	  || !window_bits! (w, window_end_valid)
 	  || (*b).bits & BUFFER_CLIP_CHANGED != 0
 	  || (*b).bits & BUFFER_PREVENT_REDISPLAY_OPTIMIZATIONS_P != 0
@@ -2112,7 +2112,7 @@ DEFUN! ("window-end", Fwindow_end, Swindow_end, 0, 2, 0,
 	 frames, because the glyph matrices are not yet allocated in
 	 that case.  This could happen in some code that runs in the
 	 daemon during initialization (e.g., see bug#20565).  */
-      && !(noninteractive || FRAME_INITIAL_P (WINDOW_XFRAME! (w)))
+      && !((*noninteractive.as_mut_ptr ()) || FRAME_INITIAL_P (WINDOW_XFRAME! (w)))
     {
       let mut startp: text_pos = std::mem::zeroed ();
       let mut it: it = std::mem::zeroed ();
@@ -2160,7 +2160,7 @@ DEFUN! ("set-window-point", Fset_window_point, Sset_window_point, 2, 2, 0,
 
   /* Type of POS is checked by Fgoto_char or set_marker_restricted ...  */
 
-  if w == XWINDOW (selected_window)
+  if w == XWINDOW ((*selected_window.as_mut_ptr ()))
     {
       if XBUFFER ((*w).contents) == (current_buffer! ())
 	{ Fgoto_char (pos); }
@@ -2231,7 +2231,7 @@ DEFUN! ("pos-visible-in-window-p", Fpos_visible_in_window_p,
     { posint = -1; }
   else if !NILP (pos)
     { posint = fix_position (pos); }
-  else if w == XWINDOW (selected_window)
+  else if w == XWINDOW ((*selected_window.as_mut_ptr ()))
     { posint = PT! (); }
   else
     { posint = marker_position ((*w).pointm); }
@@ -2278,7 +2278,7 @@ DEFUN! ("window-line-height", Fwindow_line_height,
 
   w = decode_live_window (window);
 
-  if noninteractive || window_bits! (w, pseudo_window_p)
+  if (*noninteractive.as_mut_ptr ()) || window_bits! (w, pseudo_window_p)
     { return Qnil (); }
 
   CHECK_BUFFER ((*w).contents);
@@ -2286,7 +2286,7 @@ DEFUN! ("window-line-height", Fwindow_line_height,
 
   /* Fail if current matrix is not up-to-date.  */
   if !window_bits! (w, window_end_valid)
-      || windows_or_buffers_changed != 0
+      || (*windows_or_buffers_changed.as_mut_ptr ()) != 0
       || (*b).bits & BUFFER_CLIP_CHANGED != 0
       || (*b).bits & BUFFER_PREVENT_REDISPLAY_OPTIMIZATIONS_P != 0
       || window_outdated (w)
@@ -2382,7 +2382,7 @@ DEFUN! ("window-lines-pixel-dimensions", Fwindow_lines_pixel_dimensions, Swindow
   let invert: bool = !NILP (inverse);
   let left_flag: bool = !NILP (left);
 
-  if noninteractive || window_bits! (w, pseudo_window_p)
+  if (*noninteractive.as_mut_ptr ()) || window_bits! (w, pseudo_window_p)
     { return Qnil (); }
 
   CHECK_BUFFER ((*w).contents);
@@ -2390,7 +2390,7 @@ DEFUN! ("window-lines-pixel-dimensions", Fwindow_lines_pixel_dimensions, Swindow
 
   /* Fail if current matrix is not up-to-date.  */
   if !window_bits! (w, window_end_valid)
-      || windows_or_buffers_changed != 0
+      || (*windows_or_buffers_changed.as_mut_ptr ()) != 0
       || (*b).bits & BUFFER_CLIP_CHANGED != 0
       || (*b).bits & BUFFER_PREVENT_REDISPLAY_OPTIMIZATIONS_P != 0
       || window_outdated (w)
@@ -2557,7 +2557,7 @@ DEFUN! ("set-window-parameter", Fset_window_parameter,
       && EQ (Fget (parameter, QCfiltered ()), Qt ())
       && FRAME_WINDOW_P ({ f = WINDOW_XFRAME! (w); f })
       && !EQ (CDR_SAFE (old_alist_elt), value)
-      && window_auto_redraw_on_parameter_change
+      && (*window_auto_redraw_on_parameter_change.as_mut_ptr ())
     {
       face_change! (f, 1);
       fset_redisplay (f as *mut c_void);
@@ -2605,8 +2605,8 @@ pub unsafe extern "C-unwind" fn window_display_table (w: *mut window) -> *mut Li
 
       if DISP_TABLE_P (BVAR! (b, display_table_))
 	{ dp = XCHAR_TABLE (BVAR! (b, display_table_)); }
-      else if DISP_TABLE_P (Vstandard_display_table)
-	{ dp = XCHAR_TABLE (Vstandard_display_table); }
+      else if DISP_TABLE_P ((*Vstandard_display_table.as_mut_ptr ()))
+	{ dp = XCHAR_TABLE ((*Vstandard_display_table.as_mut_ptr ())); }
     }
 
   return dp;
@@ -2651,7 +2651,7 @@ unsafe fn unshow_buffer (w: *mut window)
   /* Point in the selected window's buffer
      is actually stored in that buffer, and the window's pointm isn't used.
      So don't clobber point in that buffer.  */
-  if ! EQ (buf, (*XWINDOW (selected_window)).contents)
+  if ! EQ (buf, (*XWINDOW ((*selected_window.as_mut_ptr ()))).contents)
       /* Don't clobber point in current buffer either (this could be
 	 useful in connection with bug#12208).
       && XBUFFER (buf) != current_buffer  */
@@ -2852,13 +2852,13 @@ pub unsafe extern "C-unwind" fn window_list () -> Lisp_Object
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  if !CONSP (Vwindow_list)
+  if !CONSP ((*Vwindow_list.as_mut_ptr ()))
     {
       let mut tail: Lisp_Object;
       let mut frame: Lisp_Object;
       let count: specpdl_ref = SPECPDL_INDEX ();
 
-      Vwindow_list = Qnil ();
+      (*Vwindow_list.as_mut_ptr ()) = Qnil ();
       /*  Don't allow quitting in Fnconc.  Otherwise we might end up
 	  with a too short Vwindow_list and Fkill_buffer not being able
 	  to replace a buffer in all windows showing it (Bug#47244).  */
@@ -2871,13 +2871,13 @@ pub unsafe extern "C-unwind" fn window_list () -> Lisp_Object
 	     have to reverse this list at the end.  */
 	  foreach_window (XFRAME (frame), add_window_to_list, &mut arglist as *mut Lisp_Object as *mut c_void);
 	  arglist = Fnreverse (arglist);
-	  Vwindow_list = nconc2 (Vwindow_list, arglist);
+	  (*Vwindow_list.as_mut_ptr ()) = nconc2 ((*Vwindow_list.as_mut_ptr ()), arglist);
 	});
 
       unbind_to (count, Qnil ());
     }
 
-  return Vwindow_list;
+  return (*Vwindow_list.as_mut_ptr ());
 
   }
 }
@@ -2928,7 +2928,7 @@ unsafe fn candidate_window_p (window: Lisp_Object, owindow: Lisp_Object,
     {
       candidate_p = FRAME_VISIBLE_P (f)
 	&& (FRAME_TERMINAL! (XFRAME ((*w).frame))
-	    == FRAME_TERMINAL! (XFRAME (selected_frame)));
+	    == FRAME_TERMINAL! (XFRAME ((*selected_frame.as_mut_ptr ()))));
 
     }
   else if FIXNUMP (all_frames) && XFIXNUM (all_frames) == 0
@@ -2937,7 +2937,7 @@ unsafe fn candidate_window_p (window: Lisp_Object, owindow: Lisp_Object,
 		     /* C 2792-2801: the `HAVE_X_WINDOWS` arm is dead (P-08).  */
 		     )
 	&& (FRAME_TERMINAL! (XFRAME ((*w).frame))
-	    == FRAME_TERMINAL! (XFRAME (selected_frame)));
+	    == FRAME_TERMINAL! (XFRAME ((*selected_frame.as_mut_ptr ()))));
     }
   else if WINDOWP (all_frames)
     /* 	To qualify as candidate, it's not sufficient for WINDOW's frame
@@ -3044,7 +3044,7 @@ unsafe fn next_window (window: Lisp_Object, minibuf: Lisp_Object, all_frames: Li
 
       /* Scan from the start of the window list up to WINDOW.  */
       if !CONSP (list)
-	{ list = Vwindow_list;
+	{ list = (*Vwindow_list.as_mut_ptr ());
 	  while CONSP (list) && !EQ (XCAR (list), window)
 	    { if candidate_window_p (XCAR (list), window, minibuf, all_frames)
 		{ break; }
@@ -3156,10 +3156,10 @@ DEFUN! ("window-list", Fwindow_list, Swindow_list, 0, 3, 0,
   let mut frame = frame;
   let mut window = window;
   if NILP (window)
-    { window = if FRAMEP (frame) { (*XFRAME (frame)).selected_window } else { selected_window }; }
+    { window = if FRAMEP (frame) { (*XFRAME (frame)).selected_window } else { (*selected_window.as_mut_ptr ()) }; }
   CHECK_WINDOW (window);
   if NILP (frame)
-    { frame = selected_frame; }
+    { frame = (*selected_frame.as_mut_ptr ()); }
 
   if !EQ (frame, (*XWINDOW (window)).frame)
     { error (c"Window is on a different frame".as_ptr ()); }
@@ -3290,19 +3290,19 @@ unsafe fn window_loop (r#type: window_loop, obj: Lisp_Object, mini: bool,
 	  /* For REPLACE_BUFFER_IN_WINDOWS_SAFELY, we must always
 	     consider all windows.  */
 	  || r#type == window_loop::REPLACE_BUFFER_IN_WINDOWS_SAFELY
-	  || (mini && minibuf_level > 0)
+	  || (mini && (*minibuf_level.as_mut_ptr ()) > 0)
 	{ match r#type
 	  {
 	  window_loop::GET_BUFFER_WINDOW =>
 	    { if EQ ((*w).contents, obj)
 		/* Don't find any minibuffer window except the one that
 		   is currently in use.  */
-		&& (!MINI_WINDOW_P (w) || EQ (window, minibuf_window))
+		&& (!MINI_WINDOW_P (w) || EQ (window, (*minibuf_window.as_mut_ptr ())))
 	      {
-		if EQ (window, selected_window)
+		if EQ (window, (*selected_window.as_mut_ptr ()))
 		  /* Preferably return the selected window.  */
 		  { return window; }
-		else if EQ ((*XWINDOW (window)).frame, selected_frame)
+		else if EQ ((*XWINDOW (window)).frame, (*selected_frame.as_mut_ptr ()))
 			 && !frame_best_window_flag
 		  /* Prefer windows on the current frame (but don't
 		     choose another one if we have one already).  */
@@ -3328,7 +3328,7 @@ unsafe fn window_loop (r#type: window_loop, obj: Lisp_Object, mini: bool,
 		/* If WINDOW is the selected window, make its buffer
 		   current.  But do so only if the window shows the
 		   current buffer (Bug#6454).  */
-		if EQ (window, selected_window)
+		if EQ (window, (*selected_window.as_mut_ptr ()))
 		    && XBUFFER ((*w).contents) == (current_buffer! ())
 		  { Fset_buffer ((*w).contents); }
 	      } }
@@ -3339,7 +3339,7 @@ unsafe fn window_loop (r#type: window_loop, obj: Lisp_Object, mini: bool,
 		mark_window_display_accurate (window, false);
 		window_bits! (w, update_mode_line, true);
 		(*XBUFFER (obj)).bits |= BUFFER_PREVENT_REDISPLAY_OPTIMIZATIONS_P;
-		update_mode_lines = 27;
+		(*update_mode_lines.as_mut_ptr ()) = 27;
 		best_window = window;
 	      } }
 
@@ -3511,7 +3511,7 @@ pub unsafe extern "C-unwind" fn window_discard_buffer_from_dead_windows (buffer:
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  let h: *mut Lisp_Hash_Table = XHASH_TABLE (window_dead_windows_table);
+  let h: *mut Lisp_Hash_Table = XHASH_TABLE ((*window_dead_windows_table.as_mut_ptr ()));
 
   DOHASH! (h, k, v, {
     window_discard_buffer_from_window (buffer, v, true);
@@ -3599,7 +3599,7 @@ DEFUN! ("delete-other-windows-internal", Fdelete_other_windows_internal,
       /* Make sure WINDOW is the frame's selected window.  */
       if !EQ (window, FRAME_SELECTED_WINDOW (f))
 	{
-	  if EQ (selected_frame, frame)
+	  if EQ ((*selected_frame.as_mut_ptr ()), frame)
 	    { Fselect_window (window, Qnil ()); }
 	  else
 	    /* Do not clear f->select_mini_window_flag here.  If the
@@ -3632,7 +3632,7 @@ DEFUN! ("delete-other-windows-internal", Fdelete_other_windows_internal,
 
       if !EQ (swindow, FRAME_SELECTED_WINDOW (f))
 	{
-	  if EQ (selected_frame, frame)
+	  if EQ ((*selected_frame.as_mut_ptr ()), frame)
 	    { Fselect_window (swindow, Qnil ()); }
 	  else
 	    { fset_selected_window (f, swindow); }
@@ -3657,7 +3657,7 @@ DEFUN! ("delete-other-windows-internal", Fdelete_other_windows_internal,
   free_window_matrices (r);
 
   fset_redisplay (f as *mut c_void);
-  Vwindow_list = Qnil ();
+  (*Vwindow_list.as_mut_ptr ()) = Qnil ();
 
   if !WINDOW_LEAF_P (w)
     {
@@ -3880,7 +3880,7 @@ unsafe fn run_window_configuration_change_hook (f: *mut frame)
     = Fdefault_value (Qwindow_configuration_change_hook ());
   XSETFRAME! (frame, f);
 
-  if NILP (Vrun_hooks)
+  if NILP ((*Vrun_hooks.as_mut_ptr ()))
       || !can_set_window_size! (f)
       || !after_make_frame! (f)
     { return; }
@@ -3894,7 +3894,7 @@ unsafe fn run_window_configuration_change_hook (f: *mut frame)
 
   if SELECTED_FRAME () != f
     {
-      record_unwind_protect (Some (select_frame_norecord), selected_frame);
+      record_unwind_protect (Some (select_frame_norecord), (*selected_frame.as_mut_ptr ()));
       select_frame_norecord (frame);
     }
 
@@ -3909,7 +3909,7 @@ unsafe fn run_window_configuration_change_hook (f: *mut frame)
 				      buffer))
 	  {
 	    let inner_count: specpdl_ref = SPECPDL_INDEX ();
-	    record_unwind_protect (Some (select_window_norecord), selected_window);
+	    record_unwind_protect (Some (select_window_norecord), (*selected_window.as_mut_ptr ()));
 	    select_window_norecord (window);
 	    run_funs (Fbuffer_local_value (Qwindow_configuration_change_hook (),
 					   buffer));
@@ -3944,7 +3944,7 @@ DEFUN! ("run-window-scroll-functions", Frun_window_scroll_functions,
 
   record_unwind_current_buffer ();
   Fset_buffer ((*w).contents);
-  if !NILP (Vwindow_scroll_functions)
+  if !NILP ((*Vwindow_scroll_functions.as_mut_ptr ()))
     { run_hook_with_args_2 (Qwindow_scroll_functions (), window,
 			  Fmarker_position ((*w).start)); }
   unbind_to (count, Qnil ());
@@ -4047,7 +4047,7 @@ unsafe extern "C-unwind" fn window_change_record ()
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  if window_change_record_frames
+  if (*window_change_record_frames.as_mut_ptr ())
     {
       let mut tail: Lisp_Object = Qnil ();
       let mut frame: Lisp_Object = Qnil ();
@@ -4079,8 +4079,8 @@ unsafe extern "C-unwind" fn window_change_record ()
 
   /* Strictly spoken we don't need old_selected_window at all - its
      value is the old selected window of old_selected_frame.  */
-  old_selected_window = selected_window;
-  old_selected_frame = selected_frame;
+  (*old_selected_window.as_mut_ptr ()) = (*selected_window.as_mut_ptr ());
+  (*old_selected_frame.as_mut_ptr ()) = (*selected_frame.as_mut_ptr ());
 
   }
 }
@@ -4104,7 +4104,7 @@ unsafe fn run_window_change_functions_locally (symbol: Lisp_Object, buffer: Lisp
 	{
 	  if !EQ (XCAR (funs), Qt ())
 	    {
-	      window_change_record_frames = true;
+	      (*window_change_record_frames.as_mut_ptr ()) = true;
 	      safe_calln! (XCAR (funs), window);
 	    }
 
@@ -4128,7 +4128,7 @@ unsafe fn run_window_change_functions_globally (symbol: Lisp_Object, frame: Lisp
 	{
 	  if !EQ (XCAR (funs), Qt ())
 	    {
-	      window_change_record_frames = true;
+	      (*window_change_record_frames.as_mut_ptr ()) = true;
 	      safe_calln! (XCAR (funs), frame);
 	    }
 
@@ -4208,11 +4208,11 @@ pub unsafe extern "C-unwind" fn run_window_change_functions ()
   unsafe {
   let mut tail: Lisp_Object = Qnil ();
   let mut frame: Lisp_Object = Qnil ();
-  let selected_frame_change: bool = !EQ (selected_frame, old_selected_frame);
+  let selected_frame_change: bool = !EQ ((*selected_frame.as_mut_ptr ()), (*old_selected_frame.as_mut_ptr ()));
   let mut run_window_state_change_hook: bool = false;
   let count: specpdl_ref = SPECPDL_INDEX ();
 
-  window_change_record_frames = false;
+  (*window_change_record_frames.as_mut_ptr ()) = false;
   record_unwind_protect_void (Some (window_change_record));
   specbind (Qinhibit_redisplay (), Qt ());
 
@@ -4226,8 +4226,8 @@ pub unsafe extern "C-unwind" fn run_window_change_functions ()
       let mut frame_size_change: bool = false;
       let frame_selected_change: bool
 	= (selected_frame_change
-	   && (EQ (frame, old_selected_frame)
-	       || EQ (frame, selected_frame)));
+	   && (EQ (frame, (*old_selected_frame.as_mut_ptr ()))
+	       || EQ (frame, (*selected_frame.as_mut_ptr ()))));
       let frame_selected_window_change: bool
 	= !EQ (FRAME_OLD_SELECTED_WINDOW (f), FRAME_SELECTED_WINDOW (f));
       let frame_window_state_change: bool = FRAME_WINDOW_STATE_CHANGE (f);
@@ -4321,8 +4321,8 @@ pub unsafe extern "C-unwind" fn run_window_change_functions ()
 	     (de-)selected as its frame's or the globally selected
 	     window.  */
 	  if (((frame_selected_change
-		&& (EQ (window, old_selected_window)
-		    || EQ (window, selected_window)))
+		&& (EQ (window, (*old_selected_window.as_mut_ptr ()))
+		    || EQ (window, (*selected_window.as_mut_ptr ()))))
 	       || (frame_selected_window_change
 		   && (EQ (window, FRAME_OLD_SELECTED_WINDOW (f))
 		       || EQ (window, FRAME_SELECTED_WINDOW (f)))))
@@ -4336,8 +4336,8 @@ pub unsafe extern "C-unwind" fn run_window_change_functions ()
 	  if ((window_buffer_change
 	       || window_size_change
 	       || ((frame_selected_change
-		    && (EQ (window, old_selected_window)
-			|| EQ (window, selected_window)))
+		    && (EQ (window, (*old_selected_window.as_mut_ptr ()))
+			|| EQ (window, (*selected_window.as_mut_ptr ()))))
 		   || (frame_selected_window_change
 		       && (EQ (window, FRAME_OLD_SELECTED_WINDOW (f))
 			   || EQ (window, FRAME_SELECTED_WINDOW (f))))))
@@ -4394,7 +4394,7 @@ pub unsafe extern "C-unwind" fn run_window_change_functions ()
 	  run_window_state_change_hook = true;
 	  /*  Make sure to record changes for each live frame in
 	     window_change_record later.  */
-	  window_change_record_frames = true;
+	  (*window_change_record_frames.as_mut_ptr ()) = true;
 	}
 
       /* A frame's configuration changed when one of its windows has
@@ -4408,7 +4408,7 @@ pub unsafe extern "C-unwind" fn run_window_change_functions ()
 
   /* Run 'window-state-change-hook' if at least one frame has changed
      state.  */
-  if run_window_state_change_hook && !NILP (Vwindow_state_change_hook)
+  if run_window_state_change_hook && !NILP ((*Vwindow_state_change_hook.as_mut_ptr ()))
     { safe_run_hooks (Qwindow_state_change_hook ()); }
 
   /* Record changes for all frames (if asked for), selected window and
@@ -4434,7 +4434,7 @@ pub unsafe extern "C-unwind" fn set_window_buffer (window: Lisp_Object, buffer: 
 
   wset_buffer (w, buffer);
 
-  if EQ (window, selected_window)
+  if EQ (window, (*selected_window.as_mut_ptr ()))
     { bset_last_selected_window (b, window); }
 
   /* Let redisplay errors through.  */
@@ -4481,7 +4481,7 @@ pub unsafe extern "C-unwind" fn set_window_buffer (window: Lisp_Object, buffer: 
 
   /* lisp.h 2830-2833: `insertion_type` is bit 1 of `Lisp_Marker.bits` (the mirror's
      MARKER_INSERTION_TYPE; docs/ports/token-aliases.tsv's family keeps the token).  */
-  let insertion_type: bool = !NILP (Vwindow_point_insertion_type);
+  let insertion_type: bool = !NILP ((*Vwindow_point_insertion_type.as_mut_ptr ()));
   (*XMARKER ((*w).pointm)).bits = ((*XMARKER ((*w).pointm)).bits & ! MARKER_INSERTION_TYPE)
     | (if insertion_type { MARKER_INSERTION_TYPE } else { 0 });
   (*XMARKER ((*w).old_pointm)).bits = ((*XMARKER ((*w).old_pointm)).bits & ! MARKER_INSERTION_TYPE)
@@ -4506,7 +4506,7 @@ pub unsafe extern "C-unwind" fn set_window_buffer (window: Lisp_Object, buffer: 
       apply_window_adjustment (w);
     }
 
-  if run_hooks_p && !NILP (Vwindow_scroll_functions)
+  if run_hooks_p && !NILP ((*Vwindow_scroll_functions.as_mut_ptr ()))
     { run_hook_with_args_2 (Qwindow_scroll_functions (), window,
 			  Fmarker_position ((*w).start)); }
 
@@ -4581,8 +4581,8 @@ DEFUN! ("force-window-update", Fforce_window_update, Sforce_window_update,
   let mut object = object;
   if NILP (object)
     {
-      windows_or_buffers_changed = 29;
-      update_mode_lines = 28;
+      (*windows_or_buffers_changed.as_mut_ptr ()) = 29;
+      (*update_mode_lines.as_mut_ptr ()) = 28;
       return Qt ();
     }
 
@@ -4593,7 +4593,7 @@ DEFUN! ("force-window-update", Fforce_window_update, Sforce_window_update,
       window_bits! (w, update_mode_line, true);
       if BUFFERP ((*w).contents)
 	{ (*XBUFFER ((*w).contents)).bits |= BUFFER_PREVENT_REDISPLAY_OPTIMIZATIONS_P; }
-      update_mode_lines = 29;
+      (*update_mode_lines.as_mut_ptr ()) = 29;
       return Qt ();
     }
 
@@ -4633,13 +4633,13 @@ pub unsafe extern "C-unwind" fn temp_output_buffer_show (buf: Lisp_Object)
   SET_PT (BEG as ptrdiff_t);
   set_buffer_internal (old);
 
-  if !NILP (Vtemp_buffer_show_function)
-    { calln! (Vtemp_buffer_show_function, buf); }
+  if !NILP ((*Vtemp_buffer_show_function.as_mut_ptr ()))
+    { calln! ((*Vtemp_buffer_show_function.as_mut_ptr ()), buf); }
   else if WINDOW_LIVE_P ({ window = display_buffer (buf, Qnil (), Qnil ()); window })
     {
-      if !EQ ((*XWINDOW (window)).frame, selected_frame)
+      if !EQ ((*XWINDOW (window)).frame, (*selected_frame.as_mut_ptr ()))
 	{ Fmake_frame_visible (WINDOW_FRAME! (XWINDOW (window))); }
-      Vminibuf_scroll_window = window;
+      (*Vminibuf_scroll_window.as_mut_ptr ()) = window;
       w = XWINDOW (window);
       (*w).hscroll = 0; (*w).min_hscroll = 0; (*w).hscroll_whole = 0;
       window_bits! (w, suspend_auto_hscroll, false);
@@ -4656,7 +4656,7 @@ pub unsafe extern "C-unwind" fn temp_output_buffer_show (buf: Lisp_Object)
            mirror declares a `prev_buffer` static at the crate root (a local cannot shadow a
            static) — recorded in docs/ports/window.md.  */
         let mut prev_buffer_: Lisp_Object = Qnil ();
-        prev_window = selected_window;
+        prev_window = (*selected_window.as_mut_ptr ());
         XSETBUFFER! (prev_buffer_, old);
 
         /* Select the window that was chosen, for running the hook.
@@ -4712,12 +4712,12 @@ pub unsafe extern "C-unwind" fn make_window () -> Lisp_Object
   (*w).left_fringe_width = -1; (*w).right_fringe_width = -1;
   (*w).mode_line_height = -1; (*w).tab_line_height = -1; (*w).header_line_height = -1;
   /* C 4624-4627: the `HAVE_WINDOW_SYSTEM` arm is dead (P-08).  */
-  (*w).sequence_number = { sequence_number += 1; sequence_number };
+  (*w).sequence_number = { (*sequence_number.as_mut_ptr ()) += 1; (*sequence_number.as_mut_ptr ()) };
   (*w).scroll_bar_width = -1;
   (*w).scroll_bar_height = -1;
   (*w).column_number_displayed = -1;
   /* Reset window_list.  */
-  Vwindow_list = Qnil ();
+  (*Vwindow_list.as_mut_ptr ()) = Qnil ();
   /* Return window.  */
   XSETWINDOW! (window, w);
   return window;
@@ -5195,8 +5195,8 @@ unsafe fn make_parent_window (frame: Lisp_Object) -> Lisp_Object
   let p: *mut window = allocate_window ();
 
   (*p).sequence_number = {
-    sequence_number += 1;
-    sequence_number
+    (*sequence_number.as_mut_ptr ()) += 1;
+    (*sequence_number.as_mut_ptr ())
   };
   wset_frame (p, frame);
   XSETWINDOW! (parent, p);
@@ -5456,7 +5456,7 @@ DEFUN! ("split-window-internal", Fsplit_window_internal, Ssplit_window_internal,
      We do that if either `window-combination-limit' is t, or OLD has no
      parent, or OLD is ortho-combined.  */
   let combination_limit: bool
-    = (EQ (Vwindow_combination_limit, Qt ())
+    = (EQ ((*Vwindow_combination_limit.as_mut_ptr ()), Qt ())
        || NILP ((*o).parent)
        || (if horflag
 	   { WINDOW_VERTICAL_COMBINATION_P (XWINDOW ((*o).parent)) }
@@ -5536,7 +5536,7 @@ DEFUN! ("split-window-internal", Fsplit_window_internal, Ssplit_window_internal,
     { error (c"Attempt to split minibuffer window".as_ptr ()); }
   else if total_size < (if horflag { 2 } else { 1 })
     { error (c"Size of new window too small (after split)".as_ptr ()); }
-  else if !combination_limit && !NILP (Vwindow_combination_resize)
+  else if !combination_limit && !NILP ((*Vwindow_combination_resize.as_mut_ptr ()))
     /* `window-combination-resize' non-nil means try to resize OLD's siblings
        proportionally.  */
     {
@@ -5586,7 +5586,7 @@ DEFUN! ("split-window-internal", Fsplit_window_internal, Ssplit_window_internal,
       wset_parent (o, parent);
       wset_combination (p, horflag, old);
 
-      if EQ (Vwindow_combination_limit, Qt ())
+      if EQ ((*Vwindow_combination_limit.as_mut_ptr ()), Qt ())
 	/* Store t in the new parent's combination_limit slot to avoid
 	   that its children get merged into another window.  */
 	{ wset_combination_limit (p, Qt ()); }
@@ -5695,10 +5695,10 @@ DEFUN! ("split-window-internal", Fsplit_window_internal, Ssplit_window_internal,
 	((*n).old_pointm, make_fixnum ((*XMARKER ((*n).old_pointm)).charpos as EMACS_INT),
 	 (*n).contents);
 
-      Vwindow_list = Qnil ();
+      (*Vwindow_list.as_mut_ptr ()) = Qnil ();
       /* Remove window from the table of dead windows.  */
       Fremhash (make_fixnum ((*n).sequence_number as EMACS_INT),
-		window_dead_windows_table);
+		(*window_dead_windows_table.as_mut_ptr ()));
     }
 
   window_resize_apply (p, horflag);
@@ -5823,7 +5823,7 @@ DEFUN! ("delete-window-internal", Fdelete_window_internal, Sdelete_window_intern
 	}
 
       fset_redisplay (f as *mut c_void);
-      Vwindow_list = Qnil ();
+      (*Vwindow_list.as_mut_ptr ()) = Qnil ();
 
       wset_next (w, Qnil ());  /* Don't delete w->next too.  */
       free_window_matrices (w);
@@ -5846,7 +5846,7 @@ DEFUN! ("delete-window-internal", Fdelete_window_internal, Sdelete_window_intern
 	     WINDOW mentions, all references to that buffer can be removed
 	     and the buffer be collected.  */
 	  Fputhash (make_fixnum ((*w).sequence_number as EMACS_INT),
-		    window, window_dead_windows_table);
+		    window, (*window_dead_windows_table.as_mut_ptr ()));
 	}
 
       if NILP ((*s).prev) && NILP ((*s).next)
@@ -5875,7 +5875,7 @@ DEFUN! ("delete-window-internal", Fdelete_window_internal, Sdelete_window_intern
 	  /* Use the frame's first window as fallback ...  */
 	  let new_selected_window: Lisp_Object = Fframe_first_window (frame);
 
-	  if EQ (FRAME_SELECTED_WINDOW (f), selected_window)
+	  if EQ (FRAME_SELECTED_WINDOW (f), (*selected_window.as_mut_ptr ()))
 	    { Fselect_window (new_selected_window, Qt ()); }
 	  else
 	    /* Do not clear f->select_mini_window_flag here.  If the
@@ -6261,17 +6261,17 @@ unsafe fn window_scroll (window: Lisp_Object, n: EMACS_INT, whole: bool, noerror
   /* Does this window's buffer have very long and truncated lines?  */
   if (*b).bits & BUFFER_LONG_LINE_OPTIMIZATIONS_P != 0
       && !long_lines_truncated
-      && !NILP (Vtruncate_partial_width_windows)
+      && !NILP ((*Vtruncate_partial_width_windows.as_mut_ptr ()))
       && (*w).total_cols < FRAME_COLS (XFRAME (WINDOW_FRAME! (w)))
     {
-      if FIXNUMP (Vtruncate_partial_width_windows)
+      if FIXNUMP ((*Vtruncate_partial_width_windows.as_mut_ptr ()))
 	{ long_lines_truncated =
-	  (*w).total_cols < XFIXNAT (Vtruncate_partial_width_windows) as c_int; }
+	  (*w).total_cols < XFIXNAT ((*Vtruncate_partial_width_windows.as_mut_ptr ())) as c_int; }
       else
 	{ long_lines_truncated = true; }
     }
 
-  if whole && (fast_but_imprecise_scrolling || long_lines_truncated)
+  if whole && ((*fast_but_imprecise_scrolling.as_mut_ptr ()) || long_lines_truncated)
     { specbind (Qfontification_functions (), Qnil ()); }
 
   if whole && long_lines_truncated
@@ -6283,7 +6283,7 @@ unsafe fn window_scroll (window: Lisp_Object, n: EMACS_INT, whole: bool, noerror
 	 slower than the line-based one, but can handle varying
 	 line heights.  */
       record_unwind_protect_void (Some (unwind_display_working_on_window));
-      display_working_on_window_p = true;
+      (*display_working_on_window_p.as_mut_ptr ()) = true;
       window_scroll_pixel_based (window, n as c_int, whole, noerror);
     }
   else
@@ -6306,7 +6306,7 @@ unsafe extern "C-unwind" {
   /// C: dispextern.h 3567: `int default_line_pixel_height (struct window *);` (indent.c).
   pub fn default_line_pixel_height (w: *mut window) -> c_int;
   /// C: dispextern.h 3610: `extern bool display_working_on_window_p;` (xdisp.c).
-  pub static mut display_working_on_window_p: bool;
+  pub static display_working_on_window_p: VmGlobal<bool>;
   
 }
 
@@ -6315,21 +6315,21 @@ pub unsafe extern "C-unwind" fn window_scroll_margin (window: *mut window, unit:
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  if scroll_margin > 0
+  if (*scroll_margin.as_mut_ptr ()) > 0
     {
       let frame_line_height: c_int = default_line_pixel_height (window);
       let window_lines: c_int = window_box_height (window) / frame_line_height;
 
       let mut ratio: f64 = 0.25;
-      if FLOATP (Vmaximum_scroll_margin)
+      if FLOATP ((*Vmaximum_scroll_margin.as_mut_ptr ()))
         {
-          ratio = XFLOAT_DATA (Vmaximum_scroll_margin);
+          ratio = XFLOAT_DATA ((*Vmaximum_scroll_margin.as_mut_ptr ()));
           ratio = f64::max (0.0, ratio);
           ratio = f64::min (ratio, 0.5);
         }
       let max_margin: c_int = min (((window_lines - 1) / 2) as isize,
 				   (window_lines as f64 * ratio) as c_int as isize) as c_int;
-      let margin: c_int = clip_to_bounds (0, scroll_margin as EMACS_INT, max_margin as EMACS_INT)
+      let margin: c_int = clip_to_bounds (0, (*scroll_margin.as_mut_ptr ()) as EMACS_INT, max_margin as EMACS_INT)
 	as c_int;
       return if unit == margin_unit::MARGIN_IN_PIXELS
         { margin * frame_line_height }
@@ -6345,7 +6345,7 @@ unsafe fn sanitize_next_screen_context_lines () -> c_int
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  return clip_to_bounds (0, next_screen_context_lines as EMACS_INT, 1000000) as c_int;
+  return clip_to_bounds (0, (*next_screen_context_lines.as_mut_ptr ()) as EMACS_INT, 1000000) as c_int;
 
   }
 }
@@ -6449,7 +6449,7 @@ macro_rules! SET_TEXT_POS { ($pos:expr, $charpos:expr, $bytepos:expr) => {
    per member this file names (the keyboard.rs/term.rs shape; `KVAR` is listed in
    docs/ports/excluded-macros.txt because its *body* cannot be mirrored).  */
 macro_rules! KVAR {
-  ($kb:expr, Vlast_command) => { (*$kb).Vlast_command_ };
+  ($kb:expr, (*Vlast_command.as_mut_ptr ())) => { (*$kb).Vlast_command_ };
 }
 
 unsafe extern "C-unwind" {
@@ -6536,7 +6536,7 @@ unsafe fn window_scroll_pixel_based (window: Lisp_Object, n: c_int, whole: bool,
       start = it.current.pos;
       bidi_unshelve_cache (itdata, false);
     }
-  else if auto_window_vscroll_p
+  else if (*auto_window_vscroll_p.as_mut_ptr ())
     {
       if rtop != 0 || rbot != 0		/* Partially visible.  */
 	{
@@ -6610,27 +6610,27 @@ unsafe fn window_scroll_pixel_based (window: Lisp_Object, n: c_int, whole: bool,
   itdata = bidi_shelve_cache ();
   /* If scroll_preserve_screen_position is non-nil, we try to set
      point in the same window line as it is now, so get that line.  */
-  if !NILP (Vscroll_preserve_screen_position)
+  if !NILP ((*Vscroll_preserve_screen_position.as_mut_ptr ()))
     {
       /* We preserve the goal pixel coordinate across consecutive
 	 calls to scroll-up, scroll-down and other commands that
 	 have the `scroll-command' property.  This avoids the
 	 possibility of point becoming "stuck" on a tall line when
 	 scrolling by one line.  */
-      if window_scroll_pixel_based_preserve_y < 0
-	  || !SYMBOLP (KVAR! (current_kboard, Vlast_command))
-	  || NILP (Fget (KVAR! (current_kboard, Vlast_command), Qscroll_command ()))
+      if (*window_scroll_pixel_based_preserve_y.as_mut_ptr ()) < 0
+	  || !SYMBOLP (KVAR! ((*current_kboard.as_mut_ptr ()), (*Vlast_command.as_mut_ptr ())))
+	  || NILP (Fget (KVAR! ((*current_kboard.as_mut_ptr ()), (*Vlast_command.as_mut_ptr ())), Qscroll_command ()))
 	{
 	  start_display (&raw mut it, w, start);
 	  move_it_to (&raw mut it, PT! (), -1, -1, -1, MOVE_TO_POS);
-	  window_scroll_pixel_based_preserve_y = it.current_y;
-	  window_scroll_pixel_based_preserve_x = it.current_x;
+	  (*window_scroll_pixel_based_preserve_y.as_mut_ptr ()) = it.current_y;
+	  (*window_scroll_pixel_based_preserve_x.as_mut_ptr ()) = it.current_x;
 	}
     }
   else
-    { window_scroll_pixel_based_preserve_y
-      = { window_scroll_pixel_based_preserve_x = -1;
-	  window_scroll_pixel_based_preserve_y }; }
+    { (*window_scroll_pixel_based_preserve_y.as_mut_ptr ())
+      = { (*window_scroll_pixel_based_preserve_x.as_mut_ptr ()) = -1;
+	  (*window_scroll_pixel_based_preserve_y.as_mut_ptr ()) }; }
 
   /* Move iterator it from start the specified distance forward or
      backward.  The result is the new window start.  */
@@ -6685,7 +6685,7 @@ unsafe fn window_scroll_pixel_based (window: Lisp_Object, n: c_int, whole: bool,
 	     nearest screen line, instead of rounding to zero; the latter
 	     causes point to move by one line after C-v followed by M-v,
 	     if the buffer has lines of different height.  */
-	  if !NILP (Vscroll_preserve_screen_position)
+	  if !NILP ((*Vscroll_preserve_screen_position.as_mut_ptr ()))
 	      && (goal_y - it.current_y) as f64 > 0.5 * flh as f64
 	    {
 	      it_data = bidi_shelve_cache ();
@@ -6810,22 +6810,22 @@ unsafe fn window_scroll_pixel_based (window: Lisp_Object, n: c_int, whole: bool,
 	  && it.current_y >= this_scroll_margin
 	  && it.current_y <= last_y - WINDOW_TAB_LINE_HEIGHT! (w)
 				    - WINDOW_HEADER_LINE_HEIGHT! (w)
-	  && (NILP (Vscroll_preserve_screen_position)
-	      || EQ (Vscroll_preserve_screen_position, Qt ()))
+	  && (NILP ((*Vscroll_preserve_screen_position.as_mut_ptr ()))
+	      || EQ ((*Vscroll_preserve_screen_position.as_mut_ptr ()), Qt ()))
 	/* We found PT at a legitimate height.  Leave it alone.  */
 	{ }
       else
 	{
-	  if window_scroll_pixel_based_preserve_y >= 0
+	  if (*window_scroll_pixel_based_preserve_y.as_mut_ptr ()) >= 0
 	    {
 	      /* Don't enter the scroll margin at the end of the window.  */
 	      let goal_y: c_int = min ((last_y) as isize,
-				       window_scroll_pixel_based_preserve_y as isize) as c_int;
+				       (*window_scroll_pixel_based_preserve_y.as_mut_ptr ()) as isize) as c_int;
 
 	      /* If we have a header line, take account of it.  This
 		 is necessary because we set it.current_y to 0, above.  */
 	      move_it_to (&raw mut it, -1,
-			  window_scroll_pixel_based_preserve_x,
+			  (*window_scroll_pixel_based_preserve_x.as_mut_ptr ()),
 			  goal_y - WINDOW_TAB_LINE_HEIGHT! (w)
 				 - WINDOW_HEADER_LINE_HEIGHT! (w),
 			  -1, MOVE_TO_Y | MOVE_TO_X);
@@ -6842,9 +6842,9 @@ unsafe fn window_scroll_pixel_based (window: Lisp_Object, n: c_int, whole: bool,
 	  SET_PT_BOTH (IT_CHARPOS! (it), IT_BYTEPOS! (it));
 	  /* Fix up the Y position to preserve, if it is inside the
 	     scroll margin at the window top.  */
-	  if window_scroll_pixel_based_preserve_y >= 0
-	      && window_scroll_pixel_based_preserve_y < this_scroll_margin
-	    { window_scroll_pixel_based_preserve_y = this_scroll_margin; }
+	  if (*window_scroll_pixel_based_preserve_y.as_mut_ptr ()) >= 0
+	      && (*window_scroll_pixel_based_preserve_y.as_mut_ptr ()) < this_scroll_margin
+	    { (*window_scroll_pixel_based_preserve_y.as_mut_ptr ()) = this_scroll_margin; }
 	}
     }
   else if n < 0
@@ -6916,14 +6916,14 @@ unsafe fn window_scroll_pixel_based (window: Lisp_Object, n: c_int, whole: bool,
 	}
 
       if charpos == PT! () && !partial_p
-          && (NILP (Vscroll_preserve_screen_position)
-	      || EQ (Vscroll_preserve_screen_position, Qt ()))
+          && (NILP ((*Vscroll_preserve_screen_position.as_mut_ptr ()))
+	      || EQ ((*Vscroll_preserve_screen_position.as_mut_ptr ()), Qt ()))
 	/* We found PT before we found the display margin, so PT is ok.  */
 	{ }
-      else if window_scroll_pixel_based_preserve_y >= 0
+      else if (*window_scroll_pixel_based_preserve_y.as_mut_ptr ()) >= 0
 	{
 	  let mut goal_y: c_int = min ((it.last_visible_y - this_scroll_margin - 1) as isize,
-				       window_scroll_pixel_based_preserve_y as isize) as c_int;
+				       (*window_scroll_pixel_based_preserve_y.as_mut_ptr ()) as isize) as c_int;
 
 	  /* Don't let the preserved screen Y coordinate put us inside
 	     any of the two margins.  */
@@ -6934,7 +6934,7 @@ unsafe fn window_scroll_pixel_based (window: Lisp_Object, n: c_int, whole: bool,
 	  /* It would be wrong to subtract WINDOW_HEADER_LINE_HEIGHT
 	     here because we called start_display again and did not
 	     alter it.current_y this time.  */
-	  move_it_to (&raw mut it, -1, window_scroll_pixel_based_preserve_x,
+	  move_it_to (&raw mut it, -1, (*window_scroll_pixel_based_preserve_x.as_mut_ptr ()),
 		      goal_y, -1, MOVE_TO_Y | MOVE_TO_X);
 	  SET_PT_BOTH (IT_CHARPOS! (it), IT_BYTEPOS! (it));
 	}
@@ -6956,7 +6956,7 @@ unsafe fn window_scroll_pixel_based (window: Lisp_Object, n: c_int, whole: bool,
 
   if adjust_old_pointm
     { Fset_marker ((*w).old_pointm,
-		   (if w == XWINDOW (selected_window)
+		   (if w == XWINDOW ((*selected_window.as_mut_ptr ()))
 		    { make_fixnum (BUF_PT (XBUFFER ((*w).contents)) as EMACS_INT) }
 		    else { Fmarker_position ((*w).pointm) }),
 		   (*w).contents); }
@@ -7008,22 +7008,22 @@ unsafe fn window_scroll_line_based (window: Lisp_Object, n: c_int, whole: bool, 
       n = n * (max (1, (ht - nscls) as isize) as c_int);
     }
 
-  if !NILP (Vscroll_preserve_screen_position)
+  if !NILP ((*Vscroll_preserve_screen_position.as_mut_ptr ()))
     {
-      if window_scroll_preserve_vpos <= 0
-	  || !SYMBOLP (KVAR! (current_kboard, Vlast_command))
-	  || NILP (Fget (KVAR! (current_kboard, Vlast_command), Qscroll_command ()))
+      if (*window_scroll_preserve_vpos.as_mut_ptr ()) <= 0
+	  || !SYMBOLP (KVAR! ((*current_kboard.as_mut_ptr ()), (*Vlast_command.as_mut_ptr ())))
+	  || NILP (Fget (KVAR! ((*current_kboard.as_mut_ptr ()), (*Vlast_command.as_mut_ptr ())), Qscroll_command ()))
 	{
 	  let posit: position
 	    = *compute_motion (startpos, startbyte, 0, 0, false,
 			       PT! (), ht as EMACS_INT, 0, -1, (*w).hscroll as ptrdiff_t, 0, w as *mut c_void);
 
-	  window_scroll_preserve_vpos = posit.vpos;
-	  window_scroll_preserve_hpos = posit.hpos + (*w).hscroll as EMACS_INT;
+	  (*window_scroll_preserve_vpos.as_mut_ptr ()) = posit.vpos;
+	  (*window_scroll_preserve_hpos.as_mut_ptr ()) = posit.hpos + (*w).hscroll as EMACS_INT;
 	}
 
-      original_pos = Fcons (make_fixnum (window_scroll_preserve_hpos),
-			    make_fixnum (window_scroll_preserve_vpos));
+      original_pos = Fcons (make_fixnum ((*window_scroll_preserve_hpos.as_mut_ptr ())),
+			    make_fixnum ((*window_scroll_preserve_vpos.as_mut_ptr ())));
     }
 
   XSETFASTINT! (tem, PT! ());
@@ -7064,9 +7064,9 @@ unsafe fn window_scroll_line_based (window: Lisp_Object, n: c_int, whole: bool, 
 	 the window-scroll-functions.  */
       window_bits! (w, force_start, true);
 
-      if !NILP (Vscroll_preserve_screen_position)
+      if !NILP ((*Vscroll_preserve_screen_position.as_mut_ptr ()))
 	  && this_scroll_margin == 0
-	  && (whole || !EQ (Vscroll_preserve_screen_position, Qt ()))
+	  && (whole || !EQ ((*Vscroll_preserve_screen_position.as_mut_ptr ()), Qt ()))
 	{
 	  SET_PT_BOTH (pos, pos_byte);
 	  Fvertical_motion (original_pos, window, Qnil ());
@@ -7089,17 +7089,17 @@ unsafe fn window_scroll_line_based (window: Lisp_Object, n: c_int, whole: bool, 
 	  if (top_margin as ptrdiff_t) <= marker_position (opoint_marker)
 	    { SET_PT_BOTH (marker_position (opoint_marker),
 			   marker_byte_position (opoint_marker)); }
-	  else if !NILP (Vscroll_preserve_screen_position)
+	  else if !NILP ((*Vscroll_preserve_screen_position.as_mut_ptr ()))
 	    {
-	      let mut nlines: c_int = window_scroll_preserve_vpos as c_int;
+	      let mut nlines: c_int = (*window_scroll_preserve_vpos.as_mut_ptr ()) as c_int;
 
 	      SET_PT_BOTH (pos, pos_byte);
-	      if window_scroll_preserve_vpos < this_scroll_margin as EMACS_INT
+	      if (*window_scroll_preserve_vpos.as_mut_ptr ()) < this_scroll_margin as EMACS_INT
 		{ nlines = this_scroll_margin; }
-	      else if window_scroll_preserve_vpos
+	      else if (*window_scroll_preserve_vpos.as_mut_ptr ())
 		       >= ((*w).total_lines - this_scroll_margin) as EMACS_INT
 		{ nlines = (*w).total_lines - this_scroll_margin - 1; }
-	      Fvertical_motion (Fcons (make_fixnum (window_scroll_preserve_hpos),
+	      Fvertical_motion (Fcons (make_fixnum ((*window_scroll_preserve_hpos.as_mut_ptr ())),
 				       make_fixnum (nlines as EMACS_INT)), window, Qnil ());
 	    }
 	  else
@@ -7124,17 +7124,17 @@ unsafe fn window_scroll_line_based (window: Lisp_Object, n: c_int, whole: bool, 
 			   marker_byte_position (opoint_marker)); }
 	  else
 	    {
-	      if !NILP (Vscroll_preserve_screen_position)
+	      if !NILP ((*Vscroll_preserve_screen_position.as_mut_ptr ()))
 		{
-		  let mut nlines: c_int = window_scroll_preserve_vpos as c_int;
+		  let mut nlines: c_int = (*window_scroll_preserve_vpos.as_mut_ptr ()) as c_int;
 
 		  SET_PT_BOTH (pos, pos_byte);
-		  if window_scroll_preserve_vpos < this_scroll_margin as EMACS_INT
+		  if (*window_scroll_preserve_vpos.as_mut_ptr ()) < this_scroll_margin as EMACS_INT
 		    { nlines = this_scroll_margin; }
-		  else if window_scroll_preserve_vpos
+		  else if (*window_scroll_preserve_vpos.as_mut_ptr ())
 			   >= (ht - this_scroll_margin) as EMACS_INT
 		    { nlines = ht - this_scroll_margin - 1; }
-		  Fvertical_motion (Fcons (make_fixnum (window_scroll_preserve_hpos),
+		  Fvertical_motion (Fcons (make_fixnum ((*window_scroll_preserve_hpos.as_mut_ptr ())),
 					   make_fixnum (nlines as EMACS_INT)), window, Qnil ());
 		}
 	      else
@@ -7152,7 +7152,7 @@ unsafe fn window_scroll_line_based (window: Lisp_Object, n: c_int, whole: bool, 
 
   if adjust_old_pointm
     { Fset_marker ((*w).old_pointm,
-		   (if w == XWINDOW (selected_window)
+		   (if w == XWINDOW ((*selected_window.as_mut_ptr ()))
 		    { make_fixnum (BUF_PT (XBUFFER ((*w).contents)) as EMACS_INT) }
 		    else { Fmarker_position ((*w).pointm) }),
 		   (*w).contents); }
@@ -7179,7 +7179,7 @@ unsafe fn scroll_command (window: Lisp_Object, n: Lisp_Object, direction: c_int)
   eassert! (eabs! (direction) == 1);
 
   w = XWINDOW (window);
-  other_window = !EQ (window, selected_window);
+  other_window = !EQ (window, (*selected_window.as_mut_ptr ()));
 
   /* If given window's buffer isn't current, make it current for the
      moment.  If the window's buffer is the same, but it is not the
@@ -7227,7 +7227,7 @@ DEFUN! ("scroll-up", Fscroll_up, Sscroll_up, 0, 1, "^P",
        doc: "Scroll text of selected window upward ARG lines.\nIf ARG is omitted or nil, scroll upward by a near full screen.\nA near full screen is `next-screen-context-lines' less than a full screen.\nNegative ARG means scroll downward.\nIf ARG is the atom `-', scroll downward by nearly full screen.\nWhen calling from a program, supply as argument a number, nil, or `-'.",
        (arg: Lisp_Object),
        {
-  scroll_command (selected_window, arg, 1);
+  scroll_command ((*selected_window.as_mut_ptr ()), arg, 1);
   return Qnil ();
 });
 
@@ -7235,7 +7235,7 @@ DEFUN! ("scroll-down", Fscroll_down, Sscroll_down, 0, 1, "^P",
        doc: "Scroll text of selected window down ARG lines.\nIf ARG is omitted or nil, scroll down by a near full screen.\nA near full screen is `next-screen-context-lines' less than a full screen.\nNegative ARG means scroll upward.\nIf ARG is the atom `-', scroll upward by nearly full screen.\nWhen calling from a program, supply as argument a number, nil, or `-'.",
        (arg: Lisp_Object),
        {
-  scroll_command (selected_window, arg, -1);
+  scroll_command ((*selected_window.as_mut_ptr ()), arg, -1);
   return Qnil ();
 });
 
@@ -7245,26 +7245,26 @@ DEFUN! ("other-window-for-scrolling", Fother_window_for_scrolling, Sother_window
        {
   let mut window: Lisp_Object;
 
-  if MINI_WINDOW_P (XWINDOW (selected_window))
-      && !NILP (Vminibuf_scroll_window)
-    { window = Vminibuf_scroll_window; }
+  if MINI_WINDOW_P (XWINDOW ((*selected_window.as_mut_ptr ())))
+      && !NILP ((*Vminibuf_scroll_window.as_mut_ptr ()))
+    { window = (*Vminibuf_scroll_window.as_mut_ptr ()); }
   /* If buffer is specified and live, scroll that buffer.  */
-  else if BUFFERP (Vother_window_scroll_buffer)
-	   && BUFFER_LIVE_P (XBUFFER (Vother_window_scroll_buffer))
+  else if BUFFERP ((*Vother_window_scroll_buffer.as_mut_ptr ()))
+	   && BUFFER_LIVE_P (XBUFFER ((*Vother_window_scroll_buffer.as_mut_ptr ())))
     {
-      window = Fget_buffer_window (Vother_window_scroll_buffer, Qnil ());
+      window = Fget_buffer_window ((*Vother_window_scroll_buffer.as_mut_ptr ()), Qnil ());
       if NILP (window)
-	{ window = display_buffer (Vother_window_scroll_buffer, Qt (), Qnil ()); }
+	{ window = display_buffer ((*Vother_window_scroll_buffer.as_mut_ptr ()), Qt (), Qnil ()); }
     }
-  else if FUNCTIONP (Vother_window_scroll_default)
+  else if FUNCTIONP ((*Vother_window_scroll_default.as_mut_ptr ()))
     /* Nothing specified; try to get a window from the function.  */
-    { window = call0 (Vother_window_scroll_default); }
+    { window = call0 ((*Vother_window_scroll_default.as_mut_ptr ())); }
   else
     {
       /* Otherwise, look for a neighboring window on the same frame.  */
-      window = Fnext_window (selected_window, Qlambda (), Qnil ());
+      window = Fnext_window ((*selected_window.as_mut_ptr ()), Qlambda (), Qnil ());
 
-      if EQ (window, selected_window)
+      if EQ (window, (*selected_window.as_mut_ptr ()))
 	/* That didn't get us anywhere; look for a window on another
            visible frame on the current terminal.  */
         { window = Fnext_window (window, Qlambda (), Qvisible ()); }
@@ -7272,7 +7272,7 @@ DEFUN! ("other-window-for-scrolling", Fother_window_for_scrolling, Sother_window
 
   CHECK_LIVE_WINDOW (window);
 
-  if EQ (window, selected_window)
+  if EQ (window, (*selected_window.as_mut_ptr ()))
     { error (c"There is no other window".as_ptr ()); }
 
   return window;
@@ -7283,7 +7283,7 @@ DEFUN! ("scroll-left", Fscroll_left, Sscroll_left, 0, 2, "^P\np",
        doc: "Scroll selected window display ARG columns left.\nDefault for ARG is window width minus 2.\nValue is the total amount of leftward horizontal scrolling in\neffect after the change.\nIf SET-MINIMUM is non-nil, the new scroll amount becomes the\nlower bound for automatic scrolling, i.e. automatic scrolling\nwill not scroll a window to a column less than the value returned\nby this function.  This happens in an interactive call.",
        (arg: Lisp_Object, set_minimum: Lisp_Object),
        {
-  let w: *mut window = XWINDOW (selected_window);
+  let w: *mut window = XWINDOW ((*selected_window.as_mut_ptr ()));
   let requested_arg: EMACS_INT =
     (if NILP (arg)
      { (window_body_width (w, window_body_unit::WINDOW_BODY_IN_CANONICAL_CHARS) - 2) as EMACS_INT }
@@ -7302,7 +7302,7 @@ DEFUN! ("scroll-right", Fscroll_right, Sscroll_right, 0, 2, "^P\np",
        doc: "Scroll selected window display ARG columns right.\nDefault for ARG is window width minus 2.\nValue is the total amount of leftward horizontal scrolling in\neffect after the change.\nIf SET-MINIMUM is non-nil, the new scroll amount becomes the\nlower bound for automatic scrolling, i.e. automatic scrolling\nwill not scroll a window to a column less than the value returned\nby this function.  This happens in an interactive call.",
        (arg: Lisp_Object, set_minimum: Lisp_Object),
        {
-  let w: *mut window = XWINDOW (selected_window);
+  let w: *mut window = XWINDOW ((*selected_window.as_mut_ptr ()));
   let requested_arg: EMACS_INT =
     (if NILP (arg)
      { (window_body_width (w, window_body_unit::WINDOW_BODY_IN_CANONICAL_CHARS) - 2) as EMACS_INT }
@@ -7321,10 +7321,10 @@ DEFUN! ("minibuffer-selected-window", Fminibuffer_selected_window, Sminibuffer_s
        doc: "Return window selected just before minibuffer window was selected.\nReturn nil if the selected window is not a minibuffer window.",
        (),
        {
-  if minibuf_level > 0
-      && MINI_WINDOW_P (XWINDOW (selected_window))
-      && WINDOW_LIVE_P (minibuf_selected_window)
-    { return minibuf_selected_window; }
+  if (*minibuf_level.as_mut_ptr ()) > 0
+      && MINI_WINDOW_P (XWINDOW ((*selected_window.as_mut_ptr ())))
+      && WINDOW_LIVE_P ((*minibuf_selected_window.as_mut_ptr ()))
+    { return (*minibuf_selected_window.as_mut_ptr ()); }
 
   return Qnil ();
 });
@@ -7360,7 +7360,7 @@ unsafe fn displayed_window_lines (w: *mut window) -> c_int
 
   let count: specpdl_ref = SPECPDL_INDEX ();
   record_unwind_protect_void (Some (unwind_display_working_on_window));
-  display_working_on_window_p = true;
+  (*display_working_on_window_p.as_mut_ptr ()) = true;
   start_display (&raw mut it, w, start);
   move_it_vertically (&raw mut it, height);
   bottom_y = line_bottom_y (&raw mut it);
@@ -7389,7 +7389,7 @@ DEFUN! ("recenter", Frecenter, Srecenter, 0, 2, "P\np",
        doc: "Center point in selected window and maybe redisplay frame.\nWith a numeric prefix argument ARG, recenter putting point on screen line ARG\nrelative to the selected window.  If ARG is negative, it counts up from the\nbottom of the window.  (ARG should be less than the height of the window.)\n\nIf ARG is omitted or nil, then recenter with point on the middle line\nof the selected window; if REDISPLAY & `recenter-redisplay' are\nnon-nil, also erase the entire frame and redraw it (when\n`auto-resize-tool-bars' is set to `grow-only', this resets the\ntool-bar's height to the minimum height needed); if\n`recenter-redisplay' has the special value `tty', then only tty frames\nare redrawn.  Interactively, REDISPLAY is always non-nil.\n\nJust C-u as prefix means put point in the center of the window\nand redisplay normally--don't erase and redraw the frame.",
        (arg: Lisp_Object, redisplay: Lisp_Object),
        {
-  let w: *mut window = XWINDOW (selected_window);
+  let w: *mut window = XWINDOW ((*selected_window.as_mut_ptr ()));
   let buf: *mut buffer = XBUFFER ((*w).contents);
   let mut center_p: bool = false;
   let mut charpos: ptrdiff_t;
@@ -7410,17 +7410,17 @@ DEFUN! ("recenter", Frecenter, Srecenter, 0, 2, "P\np",
   if NILP (arg)
     {
       if !NILP (redisplay)
-	  && !NILP (Vrecenter_redisplay)
-	  && (!EQ (Vrecenter_redisplay, Qtty ())
-	      || !NILP (Ftty_type (selected_frame)))
+	  && !NILP ((*Vrecenter_redisplay.as_mut_ptr ()))
+	  && (!EQ ((*Vrecenter_redisplay.as_mut_ptr ()), Qtty ())
+	      || !NILP (Ftty_type ((*selected_frame.as_mut_ptr ()))))
 	{
 	  let mut i: ptrdiff_t;
 
 	  /* Invalidate pixel data calculated for all compositions.  */
 	  i = 0;
-	  while i < n_compositions
+	  while i < (*n_compositions.as_mut_ptr ())
 	    {
-	      (**composition_table.add (i as usize)).font = std::ptr::null_mut ();
+	      (**(*composition_table.as_mut_ptr ()).add (i as usize)).font = std::ptr::null_mut ();
 	      i += 1;
 	    }
 	  Fredraw_frame (WINDOW_FRAME! (w));
@@ -7452,7 +7452,7 @@ DEFUN! ("recenter", Frecenter, Srecenter, 0, 2, "P\np",
       let count: specpdl_ref = SPECPDL_INDEX ();
 
       record_unwind_protect_void (Some (unwind_display_working_on_window));
-      display_working_on_window_p = true;
+      (*display_working_on_window_p.as_mut_ptr ()) = true;
       if center_p
 	{
 	  let mut it: it = std::mem::zeroed ();
@@ -7645,7 +7645,7 @@ DEFUN! ("move-to-window-line", Fmove_to_window_line, Smove_to_window_line,
        doc: "Position point relative to window.\nARG nil means position point at center of window.\nElse, ARG specifies vertical position within the window;\nzero means top of window, negative means relative to bottom\nof window, -1 meaning the last fully visible display line\nof the window.\n\nValue is the screen line of the window point moved to, counting\nfrom the top of the window.",
        (arg: Lisp_Object),
        {
-  let w: *mut window = XWINDOW (selected_window);
+  let w: *mut window = XWINDOW ((*selected_window.as_mut_ptr ()));
   let mut lines: c_int;
   let mut start: c_int;
   let mut window: Lisp_Object;
@@ -7656,7 +7656,7 @@ DEFUN! ("move-to-window-line", Fmove_to_window_line, Smove_to_window_line,
        when passed below to set_marker_both.  */
     { error (c"move-to-window-line called from unrelated buffer".as_ptr ()); }
 
-  window = selected_window;
+  window = (*selected_window.as_mut_ptr ());
   start = marker_position ((*w).start) as c_int;
   if (start as ptrdiff_t) < BEGV! () || (start as ptrdiff_t) > ZV! ()
     {
@@ -7833,7 +7833,7 @@ DEFUN! ("set-window-configuration", Fset_window_configuration,
   let mut new_current_buffer: Lisp_Object;
   let frame: Lisp_Object;
   let mut kept_windows: Lisp_Object = Qnil ();
-  let old_frame: Lisp_Object = selected_frame;
+  let old_frame: Lisp_Object = (*selected_frame.as_mut_ptr ());
   let f: *mut frame;
   let mut old_point: ptrdiff_t = -1;
   USE_SAFE_ALLOCA! (sa_avail, sa_count, sa_mark);
@@ -7861,9 +7861,9 @@ DEFUN! ("set-window-configuration", Fset_window_configuration,
 	   point of the current-buffer we copy into old_point.  */
 	{
 	if EQ ((*XWINDOW ((*data).current_window)).contents, new_current_buffer)
-	    && WINDOWP (selected_window)
-	    && EQ ((*XWINDOW (selected_window)).contents, new_current_buffer)
-	    && !EQ (selected_window, (*data).current_window)
+	    && WINDOWP ((*selected_window.as_mut_ptr ()))
+	    && EQ ((*XWINDOW ((*selected_window.as_mut_ptr ()))).contents, new_current_buffer)
+	    && !EQ ((*selected_window.as_mut_ptr ()), (*data).current_window)
 	  { old_point = marker_position ((*XWINDOW ((*data).current_window)).pointm); }
 	else
 	  { old_point = PT! (); }
@@ -7880,7 +7880,7 @@ DEFUN! ("set-window-configuration", Fset_window_configuration,
 	{
 	if EQ ((*XWINDOW ((*data).current_window)).contents, new_current_buffer)
 	    /* If current_window = selected_window, its point is in BUF_PT.  */
-	    && !EQ (selected_window, (*data).current_window)
+	    && !EQ ((*selected_window.as_mut_ptr ()), (*data).current_window)
 	  { old_point = marker_position ((*XWINDOW ((*data).current_window)).pointm); }
 	else
 	  { old_point = BUF_PT (XBUFFER (new_current_buffer)); }
@@ -7937,9 +7937,9 @@ DEFUN! ("set-window-configuration", Fset_window_configuration,
 	 window holds garbage.)  We do this now, before
 	 restoring the window contents, and prevent it from
 	 being done later on when we select a new window.  */
-      if !NILP ((*XWINDOW (selected_window)).contents)
+      if !NILP ((*XWINDOW ((*selected_window.as_mut_ptr ()))).contents)
 	{
-	  w = XWINDOW (selected_window);
+	  w = XWINDOW ((*selected_window.as_mut_ptr ()));
 	  set_marker_both ((*w).pointm,
 			   (*w).contents,
 			   BUF_PT (XBUFFER ((*w).contents)),
@@ -8073,7 +8073,7 @@ DEFUN! ("set-window-configuration", Fset_window_configuration,
 
 	  /* Remove window from the table of dead windows.  */
 	  Fremhash (make_fixnum ((*w).sequence_number as EMACS_INT),
-		    window_dead_windows_table);
+		    (*window_dead_windows_table.as_mut_ptr ()));
 
 	  if (NILP (dont_set_miniwindow) || !MINI_WINDOW_P (w))
 	      && BUFFERP ((*p).buffer) && BUFFER_LIVE_P (XBUFFER ((*p).buffer))
@@ -8114,7 +8114,7 @@ DEFUN! ("set-window-configuration", Fset_window_configuration,
 		   BUF_PT (XBUFFER ((*w).contents)),
 		   BUF_PT_BYTE (XBUFFER ((*w).contents))); }
 	      window_bits! (w, start_at_line_beg, true);
-	      if FUNCTIONP (window_restore_killed_buffer_windows)
+	      if FUNCTIONP ((*window_restore_killed_buffer_windows.as_mut_ptr ()))
 		  && !MINI_WINDOW_P (w)
 		{ kept_windows = Fcons (list! (window, (*p).buffer,
 					    Fmarker_last_position ((*p).start),
@@ -8139,17 +8139,17 @@ DEFUN! ("set-window-configuration", Fset_window_configuration,
 	      window_bits! (w, start_at_line_beg, true);
 	      if !MINI_WINDOW_P (w)
 		{
-		  if FUNCTIONP (window_restore_killed_buffer_windows)
+		  if FUNCTIONP ((*window_restore_killed_buffer_windows.as_mut_ptr ()))
 		    { kept_windows
 		      = Fcons (list! (window, (*p).buffer,
 				     Fmarker_last_position ((*p).start),
 				     Fmarker_last_position ((*p).pointm),
 				     (*p).dedicated, Qnil ()),
 			       kept_windows); }
-		  else if EQ (window_restore_killed_buffer_windows, Qdelete ())
+		  else if EQ ((*window_restore_killed_buffer_windows.as_mut_ptr ()), Qdelete ())
 			   || (!NILP ((*p).dedicated)
-			       && (NILP (window_restore_killed_buffer_windows)
-				   || EQ (window_restore_killed_buffer_windows,
+			       && (NILP ((*window_restore_killed_buffer_windows.as_mut_ptr ()))
+				   || EQ ((*window_restore_killed_buffer_windows.as_mut_ptr ()),
 					  Qdedicated ())))
 		    /* Try to delete this window later.  */
 		    { dead_windows = Fcons (window, dead_windows); }
@@ -8176,9 +8176,9 @@ DEFUN! ("set-window-configuration", Fset_window_configuration,
 	 Do not record the buffer here.  We do that in a separate call
 	 to select_window below.  See also Bug#16207.  */
       select_window ((*data).current_window, Qt (), true);
-      BVAR! (XBUFFER ((*XWINDOW (selected_window)).contents),
+      BVAR! (XBUFFER ((*XWINDOW ((*selected_window.as_mut_ptr ()))).contents),
 	    last_selected_window_)
-	= selected_window;
+	= (*selected_window.as_mut_ptr ());
 
       /* We may have deleted windows above.  Then again, maybe we
 	 haven't: the functions we call to maybe delete windows can
@@ -8186,7 +8186,7 @@ DEFUN! ("set-window-configuration", Fset_window_configuration,
 	 Vwindow_list next time it is needed, to make sure stale
 	 windows with no buffers don't escape into the wild, which
 	 will cause crashes elsewhere.  */
-      Vwindow_list = Qnil ();
+      (*Vwindow_list.as_mut_ptr ()) = Qnil ();
 
       if NILP ((*data).focus_frame)
 	  || (FRAMEP ((*data).focus_frame)
@@ -8196,9 +8196,9 @@ DEFUN! ("set-window-configuration", Fset_window_configuration,
 
 	  Fredirect_frame_focus (frame, (*data).focus_frame);
 
-	  if EQ (focus_follows_mouse, Qauto_raise ())
+	  if EQ ((*focus_follows_mouse.as_mut_ptr ()), Qauto_raise ())
 	      && NILP ((*data).focus_frame)
-	      && EQ (selected_frame, frame_focus_frame)
+	      && EQ ((*selected_frame.as_mut_ptr ()), frame_focus_frame)
 	    { calln! (Qselect_frame_set_input_focus (), frame, Qnil ()); }
 	}
 
@@ -8266,17 +8266,17 @@ DEFUN! ("set-window-configuration", Fset_window_configuration,
 	 because do_switch_frame has set up selected_window already to
 	 the "normal" frame's selected window and that window *does*
 	 show new_current_buffer.  */
-      if !EQ ((*XWINDOW (selected_window)).contents, new_current_buffer)
+      if !EQ ((*XWINDOW ((*selected_window.as_mut_ptr ()))).contents, new_current_buffer)
 	{ Fgoto_char (make_fixnum (old_point)); }
     }
 
-  Vminibuf_scroll_window = (*data).minibuf_scroll_window;
-  minibuf_selected_window = (*data).minibuf_selected_window;
+  (*Vminibuf_scroll_window.as_mut_ptr ()) = (*data).minibuf_scroll_window;
+  (*minibuf_selected_window.as_mut_ptr ()) = (*data).minibuf_selected_window;
 
   SAFE_FREE! (sa_count, sa_mark);
 
-  if !NILP (Vrun_hooks) && FUNCTIONP (window_restore_killed_buffer_windows)
-    { safe_calln! (window_restore_killed_buffer_windows,
+  if !NILP ((*Vrun_hooks.as_mut_ptr ())) && FUNCTIONP ((*window_restore_killed_buffer_windows.as_mut_ptr ()))
+    { safe_calln! ((*window_restore_killed_buffer_windows.as_mut_ptr ()),
 		  frame, kept_windows, Qconfiguration ()); }
 
   return if FRAME_LIVE_P (f) { Qt () } else { Qnil () };
@@ -8323,9 +8323,9 @@ pub unsafe extern "C-unwind" fn restore_focus_frame (frame_and_focus_frame: Lisp
 
       Fredirect_frame_focus (frame, focus_frame);
 
-      if EQ (focus_follows_mouse, Qauto_raise ())
+      if EQ ((*focus_follows_mouse.as_mut_ptr ()), Qauto_raise ())
 	  && NILP (focus_frame)
-	  && EQ (selected_frame, frame_focus_frame)
+	  && EQ ((*selected_frame.as_mut_ptr ()), frame_focus_frame)
 	{ calln! (Qselect_frame_set_input_focus (), frame, Qnil ()); }
     }
 
@@ -8371,10 +8371,10 @@ pub unsafe extern "C-unwind" fn delete_all_child_windows (window: Lisp_Object)
 	 WINDOW mentions, all references to that buffer can be removed
 	 and the buffer be collected.  */
       Fputhash (make_fixnum ((*w).sequence_number as EMACS_INT),
-		window, window_dead_windows_table);
+		window, (*window_dead_windows_table.as_mut_ptr ()));
     }
 
-  Vwindow_list = Qnil ();
+  (*Vwindow_list.as_mut_ptr ()) = Qnil ();
 
   }
 }
@@ -8522,14 +8522,14 @@ unsafe fn save_window_save (window: Lisp_Object, vector: *mut Lisp_Vector,
       (*p).combination_limit = (*w).combination_limit;
       (*p).window_parameters = Qnil ();
 
-      if !NILP (Vwindow_persistent_parameters)
+      if !NILP ((*Vwindow_persistent_parameters.as_mut_ptr ()))
 	{
 	  /* Run cycle detection on Vwindow_persistent_parameters.  */
 	  let mut tortoise: Lisp_Object;
 	  let mut hare: Lisp_Object;
 
-	  hare = Vwindow_persistent_parameters;
-	  tortoise = Vwindow_persistent_parameters;
+	  hare = (*Vwindow_persistent_parameters.as_mut_ptr ());
+	  tortoise = (*Vwindow_persistent_parameters.as_mut_ptr ());
 	  while CONSP (hare)
 	    {
 	      hare = XCDR (hare);
@@ -8542,12 +8542,12 @@ unsafe fn save_window_save (window: Lisp_Object, vector: *mut Lisp_Vector,
 	      if BASE_EQ (hare, tortoise)
 		/* Reset Vwindow_persistent_parameters to Qnil.  */
 		{
-		  Vwindow_persistent_parameters = Qnil ();
+		  (*Vwindow_persistent_parameters.as_mut_ptr ()) = Qnil ();
 		  break;
 		}
 	    }
 
-	  tem = Vwindow_persistent_parameters;
+	  tem = (*Vwindow_persistent_parameters.as_mut_ptr ());
 	  while CONSP (tem)
 	    {
 	      pers = XCAR (tem);
@@ -8580,7 +8580,7 @@ unsafe fn save_window_save (window: Lisp_Object, vector: *mut Lisp_Vector,
 	  /* Save w's value of point in the window configuration.  If w
 	     is the selected window, then get the value of point from
 	     the buffer; pointm is garbage in the selected window.  */
-	  if EQ (window, selected_window)
+	  if EQ (window, (*selected_window.as_mut_ptr ()))
 	    { (*p).pointm = build_marker (XBUFFER ((*w).contents) as *mut c_void,
 				      BUF_PT (XBUFFER ((*w).contents)),
 				      BUF_PT_BYTE (XBUFFER ((*w).contents))); }
@@ -8642,11 +8642,11 @@ DEFUN! ("current-window-configuration", Fcurrent_window_configuration,
   (*data).frame_menu_bar_height = FRAME_MENU_BAR_HEIGHT (f);
   (*data).frame_tab_bar_height = FRAME_TAB_BAR_HEIGHT (f);
   (*data).frame_tool_bar_height = FRAME_TOOL_BAR_HEIGHT (f);
-  (*data).selected_frame = selected_frame;
+  (*data).selected_frame = (*selected_frame.as_mut_ptr ());
   (*data).current_window = FRAME_SELECTED_WINDOW (f);
   XSETBUFFER! ((*data).f_current_buffer, (current_buffer! ()));
-  (*data).minibuf_scroll_window = if minibuf_level > 0 { Vminibuf_scroll_window } else { Qnil () };
-  (*data).minibuf_selected_window = if minibuf_level > 0 { minibuf_selected_window } else { Qnil () };
+  (*data).minibuf_scroll_window = if (*minibuf_level.as_mut_ptr ()) > 0 { (*Vminibuf_scroll_window.as_mut_ptr ()) } else { Qnil () };
+  (*data).minibuf_selected_window = if (*minibuf_level.as_mut_ptr ()) > 0 { (*minibuf_selected_window.as_mut_ptr ()) } else { Qnil () };
   (*data).root_window = FRAME_ROOT_WINDOW (f);
   (*data).focus_frame = FRAME_FOCUS_FRAME (f);
   (*data).change_stamp = (*f).change_stamp;
@@ -8809,7 +8809,7 @@ unsafe fn set_window_fringes (w: *mut window,
 	 if the window's glyph matrices did not change at all.  */
       if changed
 	{
-	  windows_or_buffers_changed = 35;
+	  (*windows_or_buffers_changed.as_mut_ptr ()) = 35;
 	  return w;
 	}
       else
@@ -8926,7 +8926,7 @@ DEFUN! ("window-cursor-info", Fwindow_cursor_info, Swindow_cursor_info,
       && glyph_bits! (type, /* SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock. */ unsafe { *phys_cursor_glyph }) == STRETCH_GLYPH   // C 8748: `phys_cursor_glyph->type`
       && !((*w).phys_cursor_type == BAR_CURSOR
 	  || (*w).phys_cursor_type == HBAR_CURSOR)
-      && !x_stretch_cursor_p
+      && !(*x_stretch_cursor_p.as_mut_ptr ())
     { phys_cursor_width = min (FRAME_COLUMN_WIDTH (f) as isize, phys_cursor_width as isize) as c_int; }
   }
 
@@ -9261,53 +9261,53 @@ DEFUN! ("window-configuration-equal-p", Fwindow_configuration_equal_p,
    initialisers are `lisp_h_Qnil ()`/`false`/`0`; the values `syms_of_window` sets below are
    C's own.  */
 #[unsafe(no_mangle)]
-pub static mut Vtemp_buffer_show_function: Lisp_Object = lisp_h_Qnil ();
+pub static Vtemp_buffer_show_function: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vminibuf_scroll_window: Lisp_Object = lisp_h_Qnil ();
+pub static Vminibuf_scroll_window: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut mode_line_in_non_selected_windows: bool = false;
+pub static mode_line_in_non_selected_windows: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut Vother_window_scroll_buffer: Lisp_Object = lisp_h_Qnil ();
+pub static Vother_window_scroll_buffer: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vother_window_scroll_default: Lisp_Object = lisp_h_Qnil ();
+pub static Vother_window_scroll_default: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut auto_window_vscroll_p: bool = false;
+pub static auto_window_vscroll_p: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut next_screen_context_lines: EMACS_INT = 0;
+pub static next_screen_context_lines: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);
 #[unsafe(no_mangle)]
-pub static mut Vscroll_preserve_screen_position: Lisp_Object = lisp_h_Qnil ();
+pub static Vscroll_preserve_screen_position: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vwindow_point_insertion_type: Lisp_Object = lisp_h_Qnil ();
+pub static Vwindow_point_insertion_type: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vwindow_buffer_change_functions: Lisp_Object = lisp_h_Qnil ();
+pub static Vwindow_buffer_change_functions: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vwindow_size_change_functions: Lisp_Object = lisp_h_Qnil ();
+pub static Vwindow_size_change_functions: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vwindow_selection_change_functions: Lisp_Object = lisp_h_Qnil ();
+pub static Vwindow_selection_change_functions: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vwindow_state_change_functions: Lisp_Object = lisp_h_Qnil ();
+pub static Vwindow_state_change_functions: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vwindow_state_change_hook: Lisp_Object = lisp_h_Qnil ();
+pub static Vwindow_state_change_hook: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vwindow_configuration_change_hook: Lisp_Object = lisp_h_Qnil ();
+pub static Vwindow_configuration_change_hook: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut window_restore_killed_buffer_windows: Lisp_Object = lisp_h_Qnil ();
+pub static window_restore_killed_buffer_windows: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vrecenter_redisplay: Lisp_Object = lisp_h_Qnil ();
+pub static Vrecenter_redisplay: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vwindow_combination_resize: Lisp_Object = lisp_h_Qnil ();
+pub static Vwindow_combination_resize: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vwindow_combination_limit: Lisp_Object = lisp_h_Qnil ();
+pub static Vwindow_combination_limit: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vwindow_persistent_parameters: Lisp_Object = lisp_h_Qnil ();
+pub static Vwindow_persistent_parameters: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut window_resize_pixelwise: bool = false;
+pub static window_resize_pixelwise: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut fast_but_imprecise_scrolling: bool = false;
+pub static fast_but_imprecise_scrolling: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 #[unsafe(no_mangle)]
-pub static mut window_dead_windows_table: Lisp_Object = lisp_h_Qnil ();
+pub static window_dead_windows_table: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut window_auto_redraw_on_parameter_change: bool = false;
+pub static window_auto_redraw_on_parameter_change: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 unsafe extern "C" {
 
@@ -9318,21 +9318,21 @@ pub unsafe extern "C-unwind" fn init_window_once ()
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  minibuf_window = Qnil ();
-  staticpro (&raw mut minibuf_window);
+  (*minibuf_window.as_mut_ptr ()) = Qnil ();
+  staticpro (minibuf_window.as_mut_ptr ());
 
-  selected_window = Qnil ();
-  staticpro (&raw mut selected_window);
+  (*selected_window.as_mut_ptr ()) = Qnil ();
+  staticpro (selected_window.as_mut_ptr ());
 
-  Vwindow_list = Qnil ();
-  staticpro (&raw mut Vwindow_list);
+  (*Vwindow_list.as_mut_ptr ()) = Qnil ();
+  staticpro (Vwindow_list.as_mut_ptr ());
 
-  minibuf_selected_window = Qnil ();
-  staticpro (&raw mut minibuf_selected_window);
-  last_mouse_window = Qnil ();
-  staticpro (&raw mut last_mouse_window);
-  old_selected_window = Qnil ();
-  staticpro (&raw mut old_selected_window);
+  (*minibuf_selected_window.as_mut_ptr ()) = Qnil ();
+  staticpro (minibuf_selected_window.as_mut_ptr ());
+  (*last_mouse_window.as_mut_ptr ()) = Qnil ();
+  staticpro (last_mouse_window.as_mut_ptr ());
+  (*old_selected_window.as_mut_ptr ()) = Qnil ();
+  staticpro (old_selected_window.as_mut_ptr ());
 
   pdumper_do_now_and_after_late_load (Some (init_window_once_for_pdumper));
 
@@ -9343,17 +9343,17 @@ unsafe extern "C-unwind" fn init_window_once_for_pdumper ()
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  window_scroll_pixel_based_preserve_x = -1;
-  window_scroll_pixel_based_preserve_y = -1;
-  window_scroll_preserve_hpos = -1;
-  window_scroll_preserve_vpos = -1;
+  (*window_scroll_pixel_based_preserve_x.as_mut_ptr ()) = -1;
+  (*window_scroll_pixel_based_preserve_y.as_mut_ptr ()) = -1;
+  (*window_scroll_preserve_hpos.as_mut_ptr ()) = -1;
+  (*window_scroll_preserve_vpos.as_mut_ptr ()) = -1;
   PDUMPER_IGNORE! (sequence_number);
 
-  PDUMPER_RESET_LV! (minibuf_window, Qnil ());
-  PDUMPER_RESET_LV! (selected_window, Qnil ());
-  PDUMPER_RESET_LV! (Vwindow_list, Qnil ());
-  PDUMPER_RESET_LV! (minibuf_selected_window, Qnil ());
-  PDUMPER_RESET_LV! (last_mouse_window, Qnil ());
+  PDUMPER_RESET_LV! ((*minibuf_window.as_mut_ptr ()), Qnil ());
+  PDUMPER_RESET_LV! ((*selected_window.as_mut_ptr ()), Qnil ());
+  PDUMPER_RESET_LV! ((*Vwindow_list.as_mut_ptr ()), Qnil ());
+  PDUMPER_RESET_LV! ((*minibuf_selected_window.as_mut_ptr ()), Qnil ());
+  PDUMPER_RESET_LV! ((*last_mouse_window.as_mut_ptr ()), Qnil ());
 
   /* Hack: if mode_line_in_non_selected_windows is true (which it may
      be, if we're restoring from a dump) the guts of
@@ -9367,17 +9367,17 @@ unsafe extern "C-unwind" fn init_window_once_for_pdumper ()
   if saved_dumped_with_pdumper
     {
       old_mode_line_in_non_selected_windows
-        = mode_line_in_non_selected_windows;
-      mode_line_in_non_selected_windows = false;
+        = (*mode_line_in_non_selected_windows.as_mut_ptr ());
+      (*mode_line_in_non_selected_windows.as_mut_ptr ()) = false;
     }
   let f: *mut frame = make_initial_frame ();
   if saved_dumped_with_pdumper
-    { mode_line_in_non_selected_windows =
+    { (*mode_line_in_non_selected_windows.as_mut_ptr ()) =
       old_mode_line_in_non_selected_windows; }
-  XSETFRAME! (selected_frame, f);
-  old_selected_frame = { Vterminal_frame = selected_frame; Vterminal_frame };
-  minibuf_window = (*f).minibuffer_window;
-  old_selected_window = { selected_window = (*f).selected_window; selected_window };
+  XSETFRAME! ((*selected_frame.as_mut_ptr ()), f);
+  (*old_selected_frame.as_mut_ptr ()) = { (*Vterminal_frame.as_mut_ptr ()) = (*selected_frame.as_mut_ptr ()); (*Vterminal_frame.as_mut_ptr ()) };
+  (*minibuf_window.as_mut_ptr ()) = (*f).minibuffer_window;
+  (*old_selected_window.as_mut_ptr ()) = { (*selected_window.as_mut_ptr ()) = (*f).selected_window; (*selected_window.as_mut_ptr ()) };
 
   }
 }
@@ -9387,7 +9387,7 @@ pub unsafe extern "C-unwind" fn init_window ()
 {
   // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
   unsafe {
-  Vwindow_list = Qnil ();
+  (*Vwindow_list.as_mut_ptr ()) = Qnil ();
 
   }
 }
@@ -9441,198 +9441,198 @@ pub unsafe extern "C-unwind" fn syms_of_window ()
 	DEFSYM! (Qquit_restore_prev, "quit-restore-prev");
 	DEFVAR_LISP! (c"temp-buffer-show-function", Vtemp_buffer_show_function,
 		      "Non-nil means call as function to display a help buffer.\nThe function is called with one argument, the buffer to be displayed.\nUsed by `with-output-to-temp-buffer'.\nIf this function is used, then it must do the entire job of showing\nthe buffer; `temp-buffer-show-hook' is not run unless this function runs it.");
-	Vtemp_buffer_show_function = Qnil ();
+	(*Vtemp_buffer_show_function.as_mut_ptr ()) = Qnil ();
 	DEFVAR_LISP! (c"minibuffer-scroll-window", Vminibuf_scroll_window,
 		      "Non-nil means it is the window that C-M-v in minibuffer should scroll.");
-	Vminibuf_scroll_window = Qnil ();
+	(*Vminibuf_scroll_window.as_mut_ptr ()) = Qnil ();
 	DEFVAR_BOOL! (c"mode-line-in-non-selected-windows", mode_line_in_non_selected_windows,
 		      "Non-nil means to use `mode-line-inactive' face in non-selected windows.\nIf the minibuffer is active, the `minibuffer-scroll-window' mode line\nis displayed in the `mode-line' face.");
-	mode_line_in_non_selected_windows = true;
+	(*mode_line_in_non_selected_windows.as_mut_ptr ()) = true;
 	DEFVAR_LISP! (c"other-window-scroll-buffer", Vother_window_scroll_buffer,
 		      "If this is a live buffer, \\[scroll-other-window] should scroll its window.");
-	Vother_window_scroll_buffer = Qnil ();
+	(*Vother_window_scroll_buffer.as_mut_ptr ()) = Qnil ();
 	DEFVAR_LISP! (c"other-window-scroll-default", Vother_window_scroll_default,
 		      "Function that provides the window to scroll by \\[scroll-other-window].\nThe function `other-window-for-scrolling' first tries to use\n`minibuffer-scroll-window' and `other-window-scroll-buffer'.\nBut when both are nil, then by default it uses a neighboring window.\nThis variable is intended to get another default instead of `next-window'.");
-	Vother_window_scroll_default = Qnil ();
+	(*Vother_window_scroll_default.as_mut_ptr ()) = Qnil ();
 	DEFVAR_BOOL! (c"auto-window-vscroll", auto_window_vscroll_p,
 		      "Non-nil means to automatically adjust `window-vscroll' to view tall lines.");
-	auto_window_vscroll_p = true;
+	(*auto_window_vscroll_p.as_mut_ptr ()) = true;
 	DEFVAR_INT! (c"next-screen-context-lines", next_screen_context_lines,
 		      "Number of lines of continuity when scrolling by screenfuls.");
-	next_screen_context_lines = 2;
+	(*next_screen_context_lines.as_mut_ptr ()) = 2;
 	DEFVAR_LISP! (c"scroll-preserve-screen-position", Vscroll_preserve_screen_position,
 		      "Controls if scroll commands move point to keep its screen position unchanged.\n\nA value of nil means point does not keep its screen position except\nat the scroll margin or window boundary respectively.\n\nA value of t means point keeps its screen position if the scroll\ncommand moved it vertically out of the window, e.g. when scrolling\nby full screens.  If point is within `next-screen-context-lines' lines\nfrom the edges of the window, point will typically not keep its screen\nposition when doing commands like `scroll-up-command'/`scroll-down-command'\nand the like.\n\nAny other value means point always keeps its screen position.\nScroll commands should have the `scroll-command' property\non their symbols to be controlled by this variable.");
-	Vscroll_preserve_screen_position = Qnil ();
+	(*Vscroll_preserve_screen_position.as_mut_ptr ()) = Qnil ();
 	DEFVAR_LISP! (c"window-point-insertion-type", Vwindow_point_insertion_type,
 		      "Insertion type of marker to use for `window-point'.\nSee `marker-insertion-type' for the meaning of the possible values.");
-	Vwindow_point_insertion_type = Qnil ();
+	(*Vwindow_point_insertion_type.as_mut_ptr ()) = Qnil ();
 	DEFSYM! (Qwindow_point_insertion_type, "window-point-insertion-type");
 	DEFVAR_LISP! (c"window-buffer-change-functions", Vwindow_buffer_change_functions,
 		      "Functions called during redisplay when window buffers have changed.\nThe value should be a list of functions that take one argument.\n\nFunctions specified buffer-locally are called for each window showing\nthe corresponding buffer if and only if that window has been added or\nchanged its buffer since the last redisplay.  This means that functions\nmay be run twice for such a window: Once for the buffer shown in the\nwindow at the time of the last redisplay (provided that buffer is still\nlive) and once for the buffer currently shown in the window.  In either\ncase the window is passed as argument and the respective buffer is made\ntemporarily current.\n\nFunctions specified by the default value are called for each frame if\nat least one window on that frame has been added, deleted or changed\nits buffer since the last redisplay.  In this case the frame is passed\nas argument.");
-	Vwindow_buffer_change_functions = Qnil ();
+	(*Vwindow_buffer_change_functions.as_mut_ptr ()) = Qnil ();
 	DEFVAR_LISP! (c"window-size-change-functions", Vwindow_size_change_functions,
 		      "Functions called during redisplay when window sizes have changed.\nThe value should be a list of functions that take one argument.\n\nFunctions specified buffer-locally are called for each window showing\nthe corresponding buffer if and only if that window has been added or\nchanged its buffer or its total or body size since the last redisplay.\nIn this case the window is passed as argument and the respective buffer\nis temporarily made current.\n\nFunctions specified by the default value are called for each frame if\nat least one window on that frame has been added or changed its buffer\nor its total or body size since the last redisplay.  In this case the\nframe is passed as argument.\n\nFor instance, to hide the title bar when the frame is maximized, you\ncan add `frame-hide-title-bar-when-maximized' to this variable.");
-	Vwindow_size_change_functions = Qnil ();
+	(*Vwindow_size_change_functions.as_mut_ptr ()) = Qnil ();
 	DEFVAR_LISP! (c"window-selection-change-functions", Vwindow_selection_change_functions,
 		      "Functions called during redisplay when the selected window has changed.\nThe value should be a list of functions that take one argument.\n\nFunctions specified buffer-locally are called for each window showing\nthe corresponding buffer if and only if that window has been selected or\ndeselected since the last redisplay.  In this case the window is passed\nas argument and the respective buffer is temporarily made current.\n\nFunctions specified by the default value are called for each frame if\nthe frame's selected window has changed since the last redisplay.  In\nthis case the frame is passed as argument.");
-	Vwindow_selection_change_functions = Qnil ();
+	(*Vwindow_selection_change_functions.as_mut_ptr ()) = Qnil ();
 	DEFVAR_LISP! (c"window-state-change-functions", Vwindow_state_change_functions,
 		      "Functions called during redisplay when the window state changed.\nThe value should be a list of functions that take one argument.\n\nFunctions specified buffer-locally are called for each window showing\nthe corresponding buffer if and only if that window has been added,\nresized, changed its buffer or has been (de-)selected since the last\nredisplay.  In this case the window is passed as argument and the\nrespective buffer is temporarily made current.\n\nFunctions specified by the default value are called for each frame if\nat least one window on that frame has been added, deleted, changed its\nbuffer or its total or body size or the frame has been (de-)selected,\nits selected window has changed or the window state change flag has\nbeen set for this frame since the last redisplay.  In this case the\nframe is passed as argument.");
-	Vwindow_state_change_functions = Qnil ();
+	(*Vwindow_state_change_functions.as_mut_ptr ()) = Qnil ();
 	DEFVAR_LISP! (c"window-state-change-hook", Vwindow_state_change_hook,
 		      "Functions called during redisplay when the window state changed.\nThe value should be a list of functions that take no argument.\n\nThis hook is called during redisplay when at least one window has been\nadded, deleted, (de-)selected, changed its buffer or its total or body\nsize or the window state change flag has been set for at least one\nframe.  This hook is called after all other window change functions\nhave been run and should be used only if a function should react to\nchanges that happened on at least two frames since last redisplay or\nthe function intends to change the window configuration.");
-	Vwindow_state_change_hook = Qnil ();
+	(*Vwindow_state_change_hook.as_mut_ptr ()) = Qnil ();
 	DEFVAR_LISP! (c"window-configuration-change-hook", Vwindow_configuration_change_hook,
 		      "Functions called during redisplay when window configuration has changed.\nThe value should be a list of functions that take no argument.\n\nFunctions specified buffer-locally are called for each window showing\nthe corresponding buffer if at least one window on that frame has been\nadded, deleted or changed its buffer or its total or body size since\nthe last redisplay.  Each call is performed with the window showing\nthe buffer temporarily selected.\n\nFunctions specified by the default value are called for each frame if\nat least one window on that frame has been added, deleted or changed\nits buffer or its total or body size since the last redisplay.  Each\ncall is performed with the frame temporarily selected.");
-	Vwindow_configuration_change_hook = Qnil ();
+	(*Vwindow_configuration_change_hook.as_mut_ptr ()) = Qnil ();
 	DEFVAR_LISP! (c"window-restore-killed-buffer-windows", window_restore_killed_buffer_windows,
 		      " Control restoring windows whose buffer was killed.\nThis variable specifies how the functions `set-window-configuration' and\n`window-state-put' shall handle a window whose buffer has been killed\nsince the corresponding configuration or state was recorded.  Any such\nwindow may be live -- in which case it shows some other buffer -- or\ndead at the time one of these functions is called.\n\nBy default, `set-window-configuration' leaves the window alone if it is\nlive, while `window-state-put' deletes it.  The following values can be\nused to override the default behavior for dead windows in the case of\n`set-window-configuration' and for dead and live windows in the case of\n`window-state-put'.\n\n - t means to restore the window and show some other buffer in it.\n\n - `delete' means to try to delete the window.\n\n - `dedicated' means to try to delete the window if and only if it is\n   dedicated to its buffer.\n\n - nil, the default, which means that `set-window-configuration' will\n   try to delete the window if and only if it is dedicated to its\n   buffer while `window-state-put' will unconditionally try to delete\n   it.\n\n - a function means to restore the window and show some other buffer in\n   it, like if the value were t, but also to add an entry for that\n   window to a list that will be later passed as argument to that\n   function.\n\nIf a window cannot be deleted (typically, because it is the last window\non its frame), show another buffer in it.\n\nIf the value is a function, it should take three arguments.  The first\nargument specifies the frame whose windows have been restored.  The\nthird argument is the symbol `configuration' if the windows are\nrestored by `set-window-configuration' and the symbol `state' if the\nwindows are restored by `window-state-put'.\n\nThe second argument specifies a list of entries for all windows whose\nprevious buffers have been found dead at the time\n`set-window-configuration' or `window-state-put' tried to restore them\n(minibuffer windows are excluded).  This means that the function\nspecified by this variable may also delete windows which were found to\nbe alive by `set-window-configuration'.\n\nEach entry is a list of six values: the window whose buffer was found\ndead, the dead buffer or its name, the positions of window-start and\nwindow-point of the buffer in that window, the dedicated state of the\nwindow as reported by `window-dedicated-p', and a boolean -- t if the\nwindow was live when `set-window-configuration' tried to restore it,\nand nil otherwise.  ");
-	window_restore_killed_buffer_windows = Qnil ();
+	(*window_restore_killed_buffer_windows.as_mut_ptr ()) = Qnil ();
 	DEFVAR_LISP! (c"recenter-redisplay", Vrecenter_redisplay,
 		      "Non-nil means `recenter' redraws entire frame.\nIf this option is non-nil, then the `recenter' command with a nil\nargument will redraw the entire frame; the special value `tty' causes\nthe frame to be redrawn only if it is a tty frame.");
-	Vrecenter_redisplay = Qtty ();
+	(*Vrecenter_redisplay.as_mut_ptr ()) = Qtty ();
 	DEFVAR_LISP! (c"window-combination-resize", Vwindow_combination_resize,
 		      "If t, resize window combinations proportionally.\nIf this variable is nil, splitting a window gets the entire screen space\nfor displaying the new window from the window to split.  Deleting and\nresizing a window preferably resizes one adjacent window only.\n\nIf this variable is t, splitting a window tries to get the space\nproportionally from all windows in the same combination.  This means\nthat one can also split a window that is otherwise too small or of fixed\nsize.  Resizing and deleting a window then proportionally resizes all\nwindows in the same combination.\n\nOther values are reserved for future use.\n\nA specific split operation may ignore the value of this variable if it\nis affected by a non-nil value of `window-combination-limit'.  If you\nwant to use a sequence of `split-window' calls to produce a specific,\npredefined layout of windows on a frame, bind this variable temporarily\nto nil.");
-	Vwindow_combination_resize = Qnil ();
+	(*Vwindow_combination_resize.as_mut_ptr ()) = Qnil ();
 	DEFVAR_LISP! (c"window-combination-limit", Vwindow_combination_limit,
 		      " If non-nil, splitting a window makes a new parent window.\nThe following values are recognized:\n\nnil means splitting a window will create a new parent window only if the\n    window has no parent window or the window shall become part of a\n    combination orthogonal to the one it is part of.\n\n`window-size' means that splitting a window for displaying a buffer\n    makes a new parent window provided `display-buffer' is supposed to\n    explicitly set the window's size due to the presence of a\n    `window-height' or `window-width' entry in the alist used by\n    `display-buffer'.  Otherwise, this value is handled like nil.\n\n`temp-buffer-resize' means that splitting a window for displaying a\n    temporary buffer via `with-temp-buffer-window' makes a new parent\n    window only if `temp-buffer-resize-mode' is enabled.  Otherwise,\n    this value is handled like nil.\n\n`temp-buffer' means that splitting a window for displaying a temporary\n    buffer via `with-temp-buffer-window' always makes a new parent\n    window.  Otherwise, this value is handled like nil.\n\n`display-buffer' means that splitting a window for displaying a buffer\n    always makes a new parent window.  Since temporary buffers are\n    displayed by the function `display-buffer', this value is stronger\n    than `temp-buffer'.  Splitting a window for other purpose makes a\n    new parent window only if needed.\n\nt means that splitting a window always creates a new parent window.  If\n    all splits behave this way, each frame's window tree is a binary\n    tree and every window but the frame's root window has exactly one\n    sibling.\n\nThe default value is `window-size'.  Other values are reserved for\nfuture use.  ");
-	Vwindow_combination_limit = Qwindow_size ();
+	(*Vwindow_combination_limit.as_mut_ptr ()) = Qwindow_size ();
 	DEFVAR_LISP! (c"window-persistent-parameters", Vwindow_persistent_parameters,
 		      "Alist of persistent window parameters.\nThis alist specifies which window parameters shall get saved by\n`current-window-configuration' and `window-state-get' and subsequently\nrestored to their previous values by `set-window-configuration' and\n`window-state-put'.\n\nThe car of each entry of this alist is the symbol specifying the\nparameter.  The cdr is one of the following:\n\nnil means the parameter is neither saved by `window-state-get' nor by\n`current-window-configuration'.\n\nt means the parameter is saved by `current-window-configuration' and,\nprovided its WRITABLE argument is nil, by `window-state-get'.\n\nThe symbol `writable' means the parameter is saved unconditionally by\nboth `current-window-configuration' and `window-state-get'.  Do not use\nthis value for parameters without read syntax (like windows or frames).\n\nParameters not saved by `current-window-configuration' or\n`window-state-get' are left alone by `set-window-configuration'\nrespectively are not installed by `window-state-put'.");
-	Vwindow_persistent_parameters = list1 (Fcons (Qclone_of (), Qt ()));
+	(*Vwindow_persistent_parameters.as_mut_ptr ()) = list1 (Fcons (Qclone_of (), Qt ()));
 	DEFVAR_BOOL! (c"window-resize-pixelwise", window_resize_pixelwise,
 		      "Non-nil means resize windows pixelwise.\nThis currently affects the functions: `split-window', `maximize-window',\n`minimize-window', `fit-window-to-buffer' and `fit-frame-to-buffer', and\nall functions that symmetrically resize a parent window.\n\nNote that when a frame's pixel size is not a multiple of the\nframe's character size, at least one window may get resized\npixelwise even if this option is nil.");
-	window_resize_pixelwise = false;
+	(*window_resize_pixelwise.as_mut_ptr ()) = false;
 	DEFVAR_BOOL! (c"fast-but-imprecise-scrolling", fast_but_imprecise_scrolling,
 		      "When non-nil, accelerate scrolling operations.\nThis comes into play when scrolling rapidly over previously\nunfontified buffer regions.  Only those portions of the buffer which\nare actually going to be displayed get fontified.\n\nNote that this optimization can cause the portion of the buffer\ndisplayed after a scrolling operation to be somewhat inaccurate.");
-	fast_but_imprecise_scrolling = false;
+	(*fast_but_imprecise_scrolling.as_mut_ptr ()) = false;
 	DEFVAR_LISP! (c"window-dead-windows-table", window_dead_windows_table,
 		      "Hash table of dead windows.\nEach entry in this table maps a window number to a window object.\nEntries are added by `delete-window-internal' and are removed by the\ngarbage collector.");
-	window_dead_windows_table = CALLN! (Fmake_hash_table, QCweakness (), Qvalue ());
+	(*window_dead_windows_table.as_mut_ptr ()) = CALLN! (Fmake_hash_table, QCweakness (), Qvalue ());
 	DEFVAR_BOOL! (c"window-auto-redraw-on-parameter-change", window_auto_redraw_on_parameter_change,
 		      "When non-nil, redraw based on face filters.\nWhen this variable is non-nil, force a potentially expensive redraw when\na window parameter named in a `:window' expression for ':filtered'\nchanges.  This redraw is necessary for correctness; this variable is an\nescape hatch to recover performance in the case that our assumption that\nthese parameter changes are rare does not hold.\n\nYou can also inhibit the automatic redraw for a specific window\nparameter by setting the `:filtered` symbol property of the parameter\nname to `'ignore'.");
-	window_auto_redraw_on_parameter_change = true;
-	defsubr (&raw mut Sselected_window);
-	defsubr (&raw mut Sold_selected_window);
-	defsubr (&raw mut Sminibuffer_window);
-	defsubr (&raw mut Swindow_minibuffer_p);
-	defsubr (&raw mut Swindowp);
-	defsubr (&raw mut Swindow_valid_p);
-	defsubr (&raw mut Swindow_live_p);
-	defsubr (&raw mut Swindow_frame);
-	defsubr (&raw mut Sframe_root_window);
-	defsubr (&raw mut Sframe_first_window);
-	defsubr (&raw mut Sframe_selected_window);
-	defsubr (&raw mut Sframe_old_selected_window);
-	defsubr (&raw mut Sset_frame_selected_window);
-	defsubr (&raw mut Spos_visible_in_window_p);
-	defsubr (&raw mut Swindow_line_height);
-	defsubr (&raw mut Swindow_buffer);
-	defsubr (&raw mut Swindow_old_buffer);
-	defsubr (&raw mut Swindow_parent);
-	defsubr (&raw mut Swindow_top_child);
-	defsubr (&raw mut Swindow_left_child);
-	defsubr (&raw mut Swindow_next_sibling);
-	defsubr (&raw mut Swindow_prev_sibling);
-	defsubr (&raw mut Swindow_combination_limit);
-	defsubr (&raw mut Sset_window_combination_limit);
-	defsubr (&raw mut Swindow_use_time);
-	defsubr (&raw mut Swindow_pixel_width);
-	defsubr (&raw mut Swindow_pixel_height);
-	defsubr (&raw mut Swindow_old_pixel_width);
-	defsubr (&raw mut Swindow_old_pixel_height);
-	defsubr (&raw mut Swindow_old_body_pixel_width);
-	defsubr (&raw mut Swindow_old_body_pixel_height);
-	defsubr (&raw mut Swindow_total_width);
-	defsubr (&raw mut Swindow_total_height);
-	defsubr (&raw mut Swindow_normal_size);
-	defsubr (&raw mut Swindow_new_pixel);
-	defsubr (&raw mut Swindow_new_total);
-	defsubr (&raw mut Swindow_new_normal);
-	defsubr (&raw mut Swindow_pixel_left);
-	defsubr (&raw mut Swindow_pixel_top);
-	defsubr (&raw mut Swindow_left_column);
-	defsubr (&raw mut Swindow_top_line);
-	defsubr (&raw mut Sset_window_new_pixel);
-	defsubr (&raw mut Sset_window_new_total);
-	defsubr (&raw mut Sset_window_new_normal);
-	defsubr (&raw mut Swindow_resize_apply);
-	defsubr (&raw mut Swindow_resize_apply_total);
-	defsubr (&raw mut Swindow_body_height);
-	defsubr (&raw mut Swindow_body_width);
-	defsubr (&raw mut Swindow_hscroll);
-	defsubr (&raw mut Sset_window_hscroll);
-	defsubr (&raw mut Swindow_mode_line_height);
-	defsubr (&raw mut Swindow_header_line_height);
-	defsubr (&raw mut Swindow_tab_line_height);
-	defsubr (&raw mut Swindow_right_divider_width);
-	defsubr (&raw mut Swindow_bottom_divider_width);
-	defsubr (&raw mut Swindow_scroll_bar_width);
-	defsubr (&raw mut Swindow_scroll_bar_height);
-	defsubr (&raw mut Scoordinates_in_window_p);
-	defsubr (&raw mut Swindow_at);
-	defsubr (&raw mut Swindow_point);
-	defsubr (&raw mut Swindow_old_point);
-	defsubr (&raw mut Swindow_start);
-	defsubr (&raw mut Swindow_end);
-	defsubr (&raw mut Sset_window_point);
-	defsubr (&raw mut Sset_window_start);
-	defsubr (&raw mut Swindow_dedicated_p);
-	defsubr (&raw mut Swindow_lines_pixel_dimensions);
-	defsubr (&raw mut Sset_window_dedicated_p);
-	defsubr (&raw mut Swindow_display_table);
-	defsubr (&raw mut Sset_window_display_table);
-	defsubr (&raw mut Snext_window);
-	defsubr (&raw mut Sprevious_window);
-	defsubr (&raw mut Sget_buffer_window);
-	defsubr (&raw mut Sdelete_other_windows_internal);
-	defsubr (&raw mut Sdelete_window_internal);
-	defsubr (&raw mut Sresize_mini_window_internal);
-	defsubr (&raw mut Sset_window_buffer);
-	defsubr (&raw mut Srun_window_configuration_change_hook);
-	defsubr (&raw mut Srun_window_scroll_functions);
-	defsubr (&raw mut Sselect_window);
-	defsubr (&raw mut Sforce_window_update);
-	defsubr (&raw mut Ssplit_window_internal);
-	defsubr (&raw mut Scombine_windows);
-	defsubr (&raw mut Suncombine_window);
-	defsubr (&raw mut Sscroll_up);
-	defsubr (&raw mut Sscroll_down);
-	defsubr (&raw mut Sscroll_left);
-	defsubr (&raw mut Sscroll_right);
-	defsubr (&raw mut Sother_window_for_scrolling);
-	defsubr (&raw mut Sminibuffer_selected_window);
-	defsubr (&raw mut Srecenter);
-	defsubr (&raw mut Swindow_text_width);
-	defsubr (&raw mut Swindow_text_height);
-	defsubr (&raw mut Smove_to_window_line);
-	defsubr (&raw mut Swindow_configuration_p);
-	defsubr (&raw mut Swindow_configuration_frame);
-	defsubr (&raw mut Sset_window_configuration);
-	defsubr (&raw mut Scurrent_window_configuration);
-	defsubr (&raw mut Sset_window_margins);
-	defsubr (&raw mut Swindow_margins);
-	defsubr (&raw mut Sset_window_fringes);
-	defsubr (&raw mut Swindow_fringes);
-	defsubr (&raw mut Sset_window_scroll_bars);
-	defsubr (&raw mut Swindow_scroll_bars);
-	defsubr (&raw mut Swindow_vscroll);
-	defsubr (&raw mut Sset_window_vscroll);
-	defsubr (&raw mut Swindow_configuration_equal_p);
-	defsubr (&raw mut Swindow_bump_use_time);
-	defsubr (&raw mut Swindow_list);
-	defsubr (&raw mut Swindow_list_1);
-	defsubr (&raw mut Swindow_prev_buffers);
-	defsubr (&raw mut Sset_window_prev_buffers);
-	defsubr (&raw mut Swindow_next_buffers);
-	defsubr (&raw mut Sset_window_next_buffers);
-	defsubr (&raw mut Swindow_parameters);
-	defsubr (&raw mut Swindow_parameter);
-	defsubr (&raw mut Sset_window_parameter);
-	defsubr (&raw mut Swindow_discard_buffer);
-	defsubr (&raw mut Swindow_cursor_type);
-	defsubr (&raw mut Swindow_cursor_info);
-	defsubr (&raw mut Sset_window_cursor_type);
+	(*window_auto_redraw_on_parameter_change.as_mut_ptr ()) = true;
+	defsubr (Sselected_window.as_mut_ptr ());
+	defsubr (Sold_selected_window.as_mut_ptr ());
+	defsubr (Sminibuffer_window.as_mut_ptr ());
+	defsubr (Swindow_minibuffer_p.as_mut_ptr ());
+	defsubr (Swindowp.as_mut_ptr ());
+	defsubr (Swindow_valid_p.as_mut_ptr ());
+	defsubr (Swindow_live_p.as_mut_ptr ());
+	defsubr (Swindow_frame.as_mut_ptr ());
+	defsubr (Sframe_root_window.as_mut_ptr ());
+	defsubr (Sframe_first_window.as_mut_ptr ());
+	defsubr (Sframe_selected_window.as_mut_ptr ());
+	defsubr (Sframe_old_selected_window.as_mut_ptr ());
+	defsubr (Sset_frame_selected_window.as_mut_ptr ());
+	defsubr (Spos_visible_in_window_p.as_mut_ptr ());
+	defsubr (Swindow_line_height.as_mut_ptr ());
+	defsubr (Swindow_buffer.as_mut_ptr ());
+	defsubr (Swindow_old_buffer.as_mut_ptr ());
+	defsubr (Swindow_parent.as_mut_ptr ());
+	defsubr (Swindow_top_child.as_mut_ptr ());
+	defsubr (Swindow_left_child.as_mut_ptr ());
+	defsubr (Swindow_next_sibling.as_mut_ptr ());
+	defsubr (Swindow_prev_sibling.as_mut_ptr ());
+	defsubr (Swindow_combination_limit.as_mut_ptr ());
+	defsubr (Sset_window_combination_limit.as_mut_ptr ());
+	defsubr (Swindow_use_time.as_mut_ptr ());
+	defsubr (Swindow_pixel_width.as_mut_ptr ());
+	defsubr (Swindow_pixel_height.as_mut_ptr ());
+	defsubr (Swindow_old_pixel_width.as_mut_ptr ());
+	defsubr (Swindow_old_pixel_height.as_mut_ptr ());
+	defsubr (Swindow_old_body_pixel_width.as_mut_ptr ());
+	defsubr (Swindow_old_body_pixel_height.as_mut_ptr ());
+	defsubr (Swindow_total_width.as_mut_ptr ());
+	defsubr (Swindow_total_height.as_mut_ptr ());
+	defsubr (Swindow_normal_size.as_mut_ptr ());
+	defsubr (Swindow_new_pixel.as_mut_ptr ());
+	defsubr (Swindow_new_total.as_mut_ptr ());
+	defsubr (Swindow_new_normal.as_mut_ptr ());
+	defsubr (Swindow_pixel_left.as_mut_ptr ());
+	defsubr (Swindow_pixel_top.as_mut_ptr ());
+	defsubr (Swindow_left_column.as_mut_ptr ());
+	defsubr (Swindow_top_line.as_mut_ptr ());
+	defsubr (Sset_window_new_pixel.as_mut_ptr ());
+	defsubr (Sset_window_new_total.as_mut_ptr ());
+	defsubr (Sset_window_new_normal.as_mut_ptr ());
+	defsubr (Swindow_resize_apply.as_mut_ptr ());
+	defsubr (Swindow_resize_apply_total.as_mut_ptr ());
+	defsubr (Swindow_body_height.as_mut_ptr ());
+	defsubr (Swindow_body_width.as_mut_ptr ());
+	defsubr (Swindow_hscroll.as_mut_ptr ());
+	defsubr (Sset_window_hscroll.as_mut_ptr ());
+	defsubr (Swindow_mode_line_height.as_mut_ptr ());
+	defsubr (Swindow_header_line_height.as_mut_ptr ());
+	defsubr (Swindow_tab_line_height.as_mut_ptr ());
+	defsubr (Swindow_right_divider_width.as_mut_ptr ());
+	defsubr (Swindow_bottom_divider_width.as_mut_ptr ());
+	defsubr (Swindow_scroll_bar_width.as_mut_ptr ());
+	defsubr (Swindow_scroll_bar_height.as_mut_ptr ());
+	defsubr (Scoordinates_in_window_p.as_mut_ptr ());
+	defsubr (Swindow_at.as_mut_ptr ());
+	defsubr (Swindow_point.as_mut_ptr ());
+	defsubr (Swindow_old_point.as_mut_ptr ());
+	defsubr (Swindow_start.as_mut_ptr ());
+	defsubr (Swindow_end.as_mut_ptr ());
+	defsubr (Sset_window_point.as_mut_ptr ());
+	defsubr (Sset_window_start.as_mut_ptr ());
+	defsubr (Swindow_dedicated_p.as_mut_ptr ());
+	defsubr (Swindow_lines_pixel_dimensions.as_mut_ptr ());
+	defsubr (Sset_window_dedicated_p.as_mut_ptr ());
+	defsubr (Swindow_display_table.as_mut_ptr ());
+	defsubr (Sset_window_display_table.as_mut_ptr ());
+	defsubr (Snext_window.as_mut_ptr ());
+	defsubr (Sprevious_window.as_mut_ptr ());
+	defsubr (Sget_buffer_window.as_mut_ptr ());
+	defsubr (Sdelete_other_windows_internal.as_mut_ptr ());
+	defsubr (Sdelete_window_internal.as_mut_ptr ());
+	defsubr (Sresize_mini_window_internal.as_mut_ptr ());
+	defsubr (Sset_window_buffer.as_mut_ptr ());
+	defsubr (Srun_window_configuration_change_hook.as_mut_ptr ());
+	defsubr (Srun_window_scroll_functions.as_mut_ptr ());
+	defsubr (Sselect_window.as_mut_ptr ());
+	defsubr (Sforce_window_update.as_mut_ptr ());
+	defsubr (Ssplit_window_internal.as_mut_ptr ());
+	defsubr (Scombine_windows.as_mut_ptr ());
+	defsubr (Suncombine_window.as_mut_ptr ());
+	defsubr (Sscroll_up.as_mut_ptr ());
+	defsubr (Sscroll_down.as_mut_ptr ());
+	defsubr (Sscroll_left.as_mut_ptr ());
+	defsubr (Sscroll_right.as_mut_ptr ());
+	defsubr (Sother_window_for_scrolling.as_mut_ptr ());
+	defsubr (Sminibuffer_selected_window.as_mut_ptr ());
+	defsubr (Srecenter.as_mut_ptr ());
+	defsubr (Swindow_text_width.as_mut_ptr ());
+	defsubr (Swindow_text_height.as_mut_ptr ());
+	defsubr (Smove_to_window_line.as_mut_ptr ());
+	defsubr (Swindow_configuration_p.as_mut_ptr ());
+	defsubr (Swindow_configuration_frame.as_mut_ptr ());
+	defsubr (Sset_window_configuration.as_mut_ptr ());
+	defsubr (Scurrent_window_configuration.as_mut_ptr ());
+	defsubr (Sset_window_margins.as_mut_ptr ());
+	defsubr (Swindow_margins.as_mut_ptr ());
+	defsubr (Sset_window_fringes.as_mut_ptr ());
+	defsubr (Swindow_fringes.as_mut_ptr ());
+	defsubr (Sset_window_scroll_bars.as_mut_ptr ());
+	defsubr (Swindow_scroll_bars.as_mut_ptr ());
+	defsubr (Swindow_vscroll.as_mut_ptr ());
+	defsubr (Sset_window_vscroll.as_mut_ptr ());
+	defsubr (Swindow_configuration_equal_p.as_mut_ptr ());
+	defsubr (Swindow_bump_use_time.as_mut_ptr ());
+	defsubr (Swindow_list.as_mut_ptr ());
+	defsubr (Swindow_list_1.as_mut_ptr ());
+	defsubr (Swindow_prev_buffers.as_mut_ptr ());
+	defsubr (Sset_window_prev_buffers.as_mut_ptr ());
+	defsubr (Swindow_next_buffers.as_mut_ptr ());
+	defsubr (Sset_window_next_buffers.as_mut_ptr ());
+	defsubr (Swindow_parameters.as_mut_ptr ());
+	defsubr (Swindow_parameter.as_mut_ptr ());
+	defsubr (Sset_window_parameter.as_mut_ptr ());
+	defsubr (Swindow_discard_buffer.as_mut_ptr ());
+	defsubr (Swindow_cursor_type.as_mut_ptr ());
+	defsubr (Swindow_cursor_info.as_mut_ptr ());
+	defsubr (Sset_window_cursor_type.as_mut_ptr ());
 
   }
 }

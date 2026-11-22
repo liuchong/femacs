@@ -281,19 +281,18 @@ pub mod lispsym_def
 {
   use super::*;
   #[unsafe(no_mangle)]
-  pub static mut lispsym: [Lisp_Symbol; lispsym_count] =
-    [Lisp_Symbol { u: Lisp_Symbol_u { s: Lisp_Symbol_s {
+  pub static lispsym: VmGlobal<[Lisp_Symbol; lispsym_count]> = VmGlobal::<[Lisp_Symbol; lispsym_count]>::new ([Lisp_Symbol { u: Lisp_Symbol_u { s: Lisp_Symbol_s {
 	bits: 0, _pad: 0, name: std::ptr::null_mut (),
 	val: Lisp_Symbol_val { value: std::ptr::null_mut () },
 	function: std::ptr::null_mut (), plist: std::ptr::null_mut (),
 	next: std::ptr::null_mut () } } };
-     lispsym_count];
+     lispsym_count]);
 }
 use lispsym_def::*;
 
 /* C 170-...: the `#n=`/#n# machinery's two hash tables.  */
-static mut read_objects_map: Lisp_Object = std::ptr::null_mut ();       // C 182
-static mut read_objects_completed: Lisp_Object = std::ptr::null_mut (); // C 199
+static read_objects_map: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (std::ptr::null_mut ());       // C 182
+static read_objects_completed: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (std::ptr::null_mut ()); // C 199
 
 /* C 210-222: `struct infile` and the one `infile` pointer `Fload` drives.  */
 #[repr(C)]
@@ -322,15 +321,15 @@ const _: () = core::assert! (std::mem::offset_of! (infile, buf) == 17);
 const _: () = core::assert! (std::mem::align_of::<infile> () == 8);
 const _: () = core::assert! (std::mem::offset_of! (infile, stream) == 0);
 
-static mut infile: *mut infile = std::ptr::null_mut ();                 // C 215
+static infile: VmGlobal<*mut infile> = VmGlobal::<*mut infile>::new (std::ptr::null_mut ());                 // C 215
 
 /* For use within read-from-string (this reader is non-reentrant!!)  */
-static mut read_from_string_index: ptrdiff_t = 0;                       // C 217
-static mut read_from_string_index_byte: ptrdiff_t = 0;                  // C 218
-static mut read_from_string_limit: ptrdiff_t = 0;                       // C 219
+static read_from_string_index: VmGlobal<ptrdiff_t> = VmGlobal::<ptrdiff_t>::new (0);                       // C 217
+static read_from_string_index_byte: VmGlobal<ptrdiff_t> = VmGlobal::<ptrdiff_t>::new (0);                  // C 218
+static read_from_string_limit: VmGlobal<ptrdiff_t> = VmGlobal::<ptrdiff_t>::new (0);                       // C 219
 
 /* Position in object from which characters are being read by `readchar'.  */
-static mut readchar_offset: EMACS_INT = 0;                              // C 222
+static readchar_offset: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);                              // C 222
 
 /* C 225-230.  `file_offset position` is the file's `off_t`.  */
 #[repr(C)]
@@ -350,13 +349,13 @@ const _: () = core::assert! (std::mem::offset_of! (saved_string, length) == 16);
 const _: () = core::assert! (std::mem::offset_of! (saved_string, position) == 24);
 
 /* The last two strings skipped with #@ (most recent first).  */
-static mut saved_strings: [saved_string; 2] =                            // C 232
+static saved_strings: VmGlobal<[saved_string; 2]> = VmGlobal::<[saved_string; 2]>::new (// C 232
   [saved_string { string: std::ptr::null_mut (), size: 0, length: 0, position: 0 };
-   2];
+   2]);
 
 /* A list of file names for files being loaded in Fload.  Used to
    check for recursive loads.  */
-static mut Vloads_in_progress: Lisp_Object = std::ptr::null_mut ();     // C 237
+static Vloads_in_progress: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (std::ptr::null_mut ());     // C 237
 
 /* C 239-247: the unit's own forward declarations are dropped (PORTING.md 0.1-12):
    `readevalloop`, `build_load_history`, `oblookup_considering_shorthand`.  */
@@ -364,7 +363,7 @@ static mut Vloads_in_progress: Lisp_Object = std::ptr::null_mut ();     // C 237
 /* When READCHARFUN is Qget_file_char or Qget_emacs_mule_file_char, we use this to keep an
    unread character because a file stream can't handle multibyte-char unreading.  The
    value -1 means that there's no unread character.  */
-static mut unread_char: c_int = -1;                                    // C 255
+static unread_char: VmGlobal<c_int> = VmGlobal::<c_int>::new (-1);                                    // C 255
 
 /* C 260-274: the source stream record.  Its two function-pointer fields are C's
    `int (*get) (struct source *)` / `void (*unget) (struct source *, int)`.  */
@@ -424,7 +423,7 @@ unsafe fn init_source (src: *mut source, readcharfun: Lisp_Object)
       (*src).unget = Some (source_file_unget);
       (*src).multibyte = true;
       (*src).emacs_mule_encoding = BASE_EQ (readcharfun, Qget_emacs_mule_file_char ());
-      eassert! (infile != std::ptr::null_mut ());
+      eassert! ((*infile.as_mut_ptr ()) != std::ptr::null_mut ());
     }
   else
     {
@@ -534,22 +533,22 @@ unsafe extern "C-unwind" fn source_string_get (src: *mut source) -> c_int
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  if read_from_string_index >= read_from_string_limit
+  if (*read_from_string_index.as_mut_ptr ()) >= (*read_from_string_limit.as_mut_ptr ())
     { return -1; }
   let s: Lisp_Object = (*src).object;
   let mut c: c_int;
   if (*src).multibyte
     {
       c = fetch_string_char_advance_no_check
-	(s, &raw mut read_from_string_index, &raw mut read_from_string_index_byte);
+	(s, read_from_string_index.as_mut_ptr (), read_from_string_index_byte.as_mut_ptr ());
     }
   else
     {
-      c = SREF (s, read_from_string_index_byte as usize) as c_int;
+      c = SREF (s, (*read_from_string_index_byte.as_mut_ptr ()) as usize) as c_int;
       if !ASCII_CHAR_P (c as EMACS_INT)
 	{ c = BYTE8_TO_CHAR (c); }
-      read_from_string_index += 1;
-      read_from_string_index_byte += 1;
+      (*read_from_string_index.as_mut_ptr ()) += 1;
+      (*read_from_string_index_byte.as_mut_ptr ()) += 1;
     }
   c
 
@@ -561,13 +560,13 @@ unsafe extern "C-unwind" fn source_string_unget (src: *mut source, c: c_int)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  read_from_string_index -= 1;
+  (*read_from_string_index.as_mut_ptr ()) -= 1;
   if ! (*src).multibyte
-    { read_from_string_index_byte = read_from_string_index; }
+    { (*read_from_string_index_byte.as_mut_ptr ()) = (*read_from_string_index.as_mut_ptr ()); }
   else
     {
-      read_from_string_index_byte = string_char_to_byte ((*src).object,
-							 read_from_string_index);
+      (*read_from_string_index_byte.as_mut_ptr ()) = string_char_to_byte ((*src).object,
+							 (*read_from_string_index.as_mut_ptr ()));
     }
 
   }
@@ -605,10 +604,10 @@ unsafe extern "C-unwind" fn source_file_get (src: *mut source) -> c_int
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  if unread_char >= 0
+  if (*unread_char.as_mut_ptr ()) >= 0
     {
-      let c: c_int = unread_char;
-      unread_char = -1;
+      let c: c_int = (*unread_char.as_mut_ptr ());
+      (*unread_char.as_mut_ptr ()) = -1;
       return c;
     }
 
@@ -647,7 +646,7 @@ unsafe extern "C-unwind" fn source_file_unget (src: *mut source, c: c_int)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  unread_char = c;
+  (*unread_char.as_mut_ptr ()) = c;
 
   }
 }
@@ -677,7 +676,7 @@ unsafe fn readchar (src: *mut source) -> c_int
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  readchar_offset += 1;
+  (*readchar_offset.as_mut_ptr ()) += 1;
   let get_fn = (*src).get.unwrap ();
   if get_fn as usize == source_file_get as *const () as usize
     { return source_file_get (src); }
@@ -694,14 +693,14 @@ unsafe fn unreadchar (src: *mut source, c: c_int)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  readchar_offset -= 1;
+  (*readchar_offset.as_mut_ptr ()) -= 1;
   /* Don't back up the pointer if we're unreading the end-of-input mark,
      since readchar didn't advance it when we read it.  */
   if c == -1
     { return; }
   let unget_fn = (*src).unget.unwrap ();
   if unget_fn as usize == source_file_unget as *const () as usize
-    { unread_char = c; return; }
+    { (*unread_char.as_mut_ptr ()) = c; return; }
   if unget_fn as usize == source_string_unget as *const () as usize
     { source_string_unget (src, c); return; }
   unget_fn (src, c);
@@ -734,9 +733,9 @@ unsafe fn skip_dyn_bytes (source: *mut source, n: ptrdiff_t)
   if from_file_p (source)
     {
       block_input ();		/* FIXME: Not sure if it's needed.  */
-      file_seek! ((*infile).stream, (n - (*infile).lookahead as ptrdiff_t) as c_long, SEEK_CUR);
+      file_seek! ((*(*infile.as_mut_ptr ())).stream, (n - (*(*infile.as_mut_ptr ())).lookahead as ptrdiff_t) as c_long, SEEK_CUR);
       unblock_input ();
-      (*infile).lookahead = 0;
+      (*(*infile.as_mut_ptr ())).lookahead = 0;
     }
   else
     { /* We're not reading directly from a file.  In that case, it's difficult
@@ -764,9 +763,9 @@ unsafe fn skip_dyn_eof (source: *mut source)
   if from_file_p (source)
     {
       block_input ();		/* FIXME: Not sure if it's needed.  */
-      file_seek! ((*infile).stream, 0, SEEK_END);
+      file_seek! ((*(*infile.as_mut_ptr ())).stream, 0, SEEK_END);
       unblock_input ();
-      (*infile).lookahead = 0;
+      (*(*infile.as_mut_ptr ())).lookahead = 0;
     }
   else
     { while readchar (source) >= 0 {} }
@@ -782,16 +781,16 @@ unsafe fn readbyte_from_file () -> c_int
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  if (*infile).lookahead != 0
+  if (*(*infile.as_mut_ptr ())).lookahead != 0
     {
       /* C: `return infile->buf[--infile->lookahead];` - the pre-decrement consumes the
 	 byte as well as reading it.  */
-      (*infile).lookahead -= 1;
-      return (*infile).buf[(*infile).lookahead as usize] as c_int;
+      (*(*infile.as_mut_ptr ())).lookahead -= 1;
+      return (*(*infile.as_mut_ptr ())).buf[(*(*infile.as_mut_ptr ())).lookahead as usize] as c_int;
     }
 
   let mut c: c_int;
-  let instream: file_stream = (*infile).stream;
+  let instream: file_stream = (*(*infile.as_mut_ptr ())).stream;
 
   block_input ();
 
@@ -854,9 +853,9 @@ unsafe fn unreadbyte_from_file (c: c_uchar)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  eassert! (((*infile).lookahead as usize) < std::mem::size_of_val (&(*infile).buf));
-  (*infile).buf[(*infile).lookahead as usize] = c;
-  (*infile).lookahead += 1;
+  eassert! (((*(*infile.as_mut_ptr ())).lookahead as usize) < std::mem::size_of_val (&(*(*infile.as_mut_ptr ())).buf));
+  (*(*infile.as_mut_ptr ())).buf[(*(*infile.as_mut_ptr ())).lookahead as usize] = c;
+  (*(*infile.as_mut_ptr ())).lookahead += 1;
 
   }
 }
@@ -905,7 +904,7 @@ unsafe fn read_emacs_mule_char (src: *mut source, c: c_int) -> c_int
   unsafe {
   /* Emacs-mule coding uses at most 4-byte for one character.  */
   let mut buf: [c_uchar; 4] = [0; 4];
-  let len: c_int = emacs_mule_bytes[c as usize] as c_int;
+  let len: c_int = (*emacs_mule_bytes.as_mut_ptr ())[c as usize] as c_int;
   let charset: *mut charset;
   let mut i: usize;
   let mut code: c_uint;
@@ -934,7 +933,7 @@ unsafe fn read_emacs_mule_char (src: *mut source, c: c_int) -> c_int
 
   if len == 2
     {
-      charset = CHARSET_FROM_ID! (emacs_mule_charset[buf[0] as usize] as c_int);
+      charset = CHARSET_FROM_ID! ((*emacs_mule_charset.as_mut_ptr ())[buf[0] as usize] as c_int);
       code = (buf[1] as c_uint) & 0x7F;
     }
   else if len == 3
@@ -942,18 +941,18 @@ unsafe fn read_emacs_mule_char (src: *mut source, c: c_int) -> c_int
       if buf[0] as c_int == EMACS_MULE_LEADING_CODE_PRIVATE_11
 	  || buf[0] as c_int == EMACS_MULE_LEADING_CODE_PRIVATE_12
 	{
-	  charset = CHARSET_FROM_ID! (emacs_mule_charset[buf[1] as usize] as c_int);
+	  charset = CHARSET_FROM_ID! ((*emacs_mule_charset.as_mut_ptr ())[buf[1] as usize] as c_int);
 	  code = (buf[2] as c_uint) & 0x7F;
 	}
       else
 	{
-	  charset = CHARSET_FROM_ID! (emacs_mule_charset[buf[0] as usize] as c_int);
+	  charset = CHARSET_FROM_ID! ((*emacs_mule_charset.as_mut_ptr ())[buf[0] as usize] as c_int);
 	  code = (((buf[1] as c_uint) << 8) | (buf[2] as c_uint)) & 0x7F7F;
 	}
     }
   else
     {
-      charset = CHARSET_FROM_ID! (emacs_mule_charset[buf[1] as usize] as c_int);
+      charset = CHARSET_FROM_ID! ((*emacs_mule_charset.as_mut_ptr ())[buf[1] as usize] as c_int);
       code = (((buf[2] as c_uint) << 8) | (buf[3] as c_uint)) & 0x7F7F;
     }
   c = DECODE_CHAR! (charset, code);
@@ -1189,7 +1188,7 @@ unsafe fn safe_to_load_version (file: Lisp_Object, fd: lread_fd) -> c_int
 	}
 
       if i >= nbytes
-	  || fast_c_string_match_ignore_case (Vbytecomp_version_regexp,
+	  || fast_c_string_match_ignore_case ((*Vbytecomp_version_regexp.as_mut_ptr ()),
 					      buf.as_ptr ().add (i as usize),
 					      (nbytes - i) as usize) < 0
 	{ version = 0; }
@@ -1209,7 +1208,7 @@ unsafe extern "C-unwind" fn record_load_unwind (old: Lisp_Object)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  Vloads_in_progress = old;
+  (*Vloads_in_progress.as_mut_ptr ()) = old;
 
   }
 }
@@ -1245,9 +1244,9 @@ DEFUN! ("get-load-suffixes", Fget_load_suffixes, Sget_load_suffixes, 0, 0, 0,
        (),
        {
 	 let mut lst: Lisp_Object = Qnil ();
-	 let mut suffixes: Lisp_Object = Vload_suffixes;
+	 let mut suffixes: Lisp_Object = (*Vload_suffixes.as_mut_ptr ());
 	 FOR_EACH_TAIL! (suffixes, {
-	   let mut exts: Lisp_Object = Vload_file_rep_suffixes;
+	   let mut exts: Lisp_Object = (*Vload_file_rep_suffixes.as_mut_ptr ());
 	   let suffix: Lisp_Object = XCAR (suffixes);
 	   FOR_EACH_TAIL! (exts, {
 	     let ext: Lisp_Object = XCAR (exts);
@@ -1290,9 +1289,9 @@ unsafe extern "C-unwind" fn close_infile_unwind (arg: *mut c_void)
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
   let prev_infile: *mut infile = arg as *mut infile;
-  eassert! (!infile.is_null () && infile != prev_infile);
-  file_stream_close! ((*infile).stream);
-  infile = prev_infile;
+  eassert! (!(*infile.as_mut_ptr ()).is_null () && (*infile.as_mut_ptr ()) != prev_infile);
+  file_stream_close! ((*(*infile.as_mut_ptr ())).stream);
+  (*infile.as_mut_ptr ()) = prev_infile;
 
   }
 }
@@ -1304,7 +1303,7 @@ unsafe fn compute_found_effective (found: Lisp_Object) -> Lisp_Object
   unsafe {
   /* Reconstruct the .elc filename.  */
   let mut src_name: Lisp_Object
-    = Fgethash (Ffile_name_nondirectory (found), Vcomp_eln_to_el_h, Qnil ());
+    = Fgethash (Ffile_name_nondirectory (found), (*Vcomp_eln_to_el_h.as_mut_ptr ()), Qnil ());
 
   if NILP (src_name)
     /* Manual eln load.  */
@@ -1347,10 +1346,10 @@ unsafe fn get_lexical_binding (stream: Lisp_Object, from: Lisp_Object) -> Lisp_O
   else if lexc == Cookie_Dyn
     { Qnil () }
   else if NILP (from)		/* Loading a byte-compiled file.  */
-	   || NILP (Vinternal__get_default_lexical_binding_function)
+	   || NILP ((*Vinternal__get_default_lexical_binding_function.as_mut_ptr ()))
     { Fdefault_toplevel_value (Qlexical_binding ()) }
   else
-    { calln! (Vinternal__get_default_lexical_binding_function, from) }
+    { calln! ((*Vinternal__get_default_lexical_binding_function.as_mut_ptr ()), from) }
 
   }
 }
@@ -1361,7 +1360,7 @@ unsafe extern "C-unwind" {
 
 
   /// C: fns.c: `extern struct hash_table_test hashtest_eq;` (lisp.rs carries the eql/equal pair).
-  static mut hashtest_eq: hash_table_test;
+  static hashtest_eq: VmGlobal<hash_table_test>;
   /// C: lisp.h 4826: `extern void record_unwind_protect_excursion (void);` (eval.c).
   fn record_unwind_protect_excursion ();
 
@@ -1511,7 +1510,7 @@ DEFUN! ("load", Fload, Sload, 1, 5, 0,
 	    that it seemed risky to remove.  */
 	 if !NILP (noerror)
 	   {
-	     file = internal_condition_case_1 (Some (Fsubstitute_in_file_name),
+	     file = internal_condition_case_1 (Some (Fsubstitute_in_file_name as _),
 					       file, Qt (), Some (load_error_handler));
 	     if NILP (file)
 	       { return Qnil (); }
@@ -1569,24 +1568,24 @@ DEFUN! ("load", Fload, Sload, 1, 5, 0,
 	       {
 		 suffixes = Fget_load_suffixes ();
 		 if NILP (must_suffix)
-		   { suffixes = CALLN! (Fappend, suffixes, Vload_file_rep_suffixes); }
+		   { suffixes = CALLN! (Fappend, suffixes, (*Vload_file_rep_suffixes.as_mut_ptr ())); }
 	       }
 
-	     let mut load_path: Lisp_Object = Vload_path;
-	     if FUNCTIONP (Vload_path_filter_function)
-	       { load_path = calln! (Vload_path_filter_function, load_path, file,
+	     let mut load_path: Lisp_Object = (*Vload_path.as_mut_ptr ());
+	     if FUNCTIONP ((*Vload_path_filter_function.as_mut_ptr ()))
+	       { load_path = calln! ((*Vload_path_filter_function.as_mut_ptr ()), load_path, file,
 				     suffixes); }
 
 	     #[cfg (not (all (feature = "have_android", feature = "not_android_stubify")))]   // C 59-60: `USE_ANDROID_ASSETS` is C 69's source-level define
 	     {
 	       fd = openp (load_path, file, suffixes, &mut found, Qnil (),
-			   load_prefer_newer, no_native, std::ptr::null_mut ());
+			   (*load_prefer_newer.as_mut_ptr ()), no_native, std::ptr::null_mut ());
 	     }
 	     #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]   // C 69: `#define USE_ANDROID_ASSETS`
 	     {
 	       asset = std::ptr::null_mut ();
 	       rc = openp (load_path, file, suffixes, &mut found, Qnil (),
-			   load_prefer_newer, no_native, &mut asset);
+			   (*load_prefer_newer.as_mut_ptr ()), no_native, &mut asset);
 	       fd.fd = rc;
 	       fd.asset = asset;
 	     }
@@ -1600,8 +1599,8 @@ DEFUN! ("load", Fload, Sload, 1, 5, 0,
 	   }
 
 	 /* Tell startup.el whether or not we found the user's init file.  */
-	 if EQ (Qt (), Vuser_init_file)
-	   { Vuser_init_file = found; }
+	 if EQ (Qt (), (*Vuser_init_file.as_mut_ptr ()))
+	   { (*Vuser_init_file.as_mut_ptr ()) = found; }
 
 	 /* If FD is -2, that means openp found a magic file.  */
 	 if lread_fd_cmp! (fd, -2)
@@ -1668,18 +1667,18 @@ DEFUN! ("load", Fload, Sload, 1, 5, 0,
 	    the general case; the second load may do something different.  */
 	 {
 	   let mut load_count: c_int = 0;
-	   let mut tem: Lisp_Object = Vloads_in_progress;
+	   let mut tem: Lisp_Object = (*Vloads_in_progress.as_mut_ptr ());
 	   FOR_EACH_TAIL_SAFE! (tem, {
 	     if !NILP (Fequal (found, XCAR (tem)))
 	       {
 		 load_count += 1;
 		 if load_count > 3
 		   { signal_error (c"Recursive load".as_ptr (),
-				   Fcons (found, Vloads_in_progress)); }
+				   Fcons (found, (*Vloads_in_progress.as_mut_ptr ()))); }
 	       }
 	   });
-	   record_unwind_protect (Some (record_load_unwind), Vloads_in_progress);
-	   Vloads_in_progress = Fcons (found, Vloads_in_progress);
+	   record_unwind_protect (Some (record_load_unwind), (*Vloads_in_progress.as_mut_ptr ()));
+	   (*Vloads_in_progress.as_mut_ptr ()) = Fcons (found, (*Vloads_in_progress.as_mut_ptr ()));
 	 }
 
 	 /* All loads are by default dynamic, unless the file itself specifies
@@ -1691,7 +1690,7 @@ DEFUN! ("load", Fload, Sload, 1, 5, 0,
 	 let found_eff: Lisp_Object
 	   = if is_native_elisp { compute_found_effective (found) } else { found };
 
-	 hist_file_name = if !NILP (Vpurify_flag)
+	 hist_file_name = if !NILP ((*Vpurify_flag.as_mut_ptr ()))
 	   { concat2 (Ffile_name_directory (file),
 		      Ffile_name_nondirectory (found_eff)) }
 	   else
@@ -1732,7 +1731,7 @@ DEFUN! ("load", Fload, Sload, 1, 5, 0,
 		 /* openp already checked for newness, no point doing it again.
 		    FIXME would be nice to get a message when openp
 		    ignores suffix order due to load_prefer_newer.  */
-		 if !load_prefer_newer && is_elc
+		 if !(*load_prefer_newer.as_mut_ptr ()) && is_elc
 		   {
 		     result = emacs_fstatat (AT_FDCWD, SSDATA (efound),
 					     std::ptr::addr_of_mut! (s1) as *mut c_void, 0);
@@ -1751,7 +1750,7 @@ DEFUN! ("load", Fload, Sload, 1, 5, 0,
 			 newer = true;
 
 			 /* If we won't print another message, mention this anyway.  */
-			 if !NILP (nomessage) && !force_load_messages
+			 if !NILP (nomessage) && !(*force_load_messages.as_mut_ptr ())
 			     /* We don't want this message during
 				bootstrapping for the "compile-first" .elc
 				files, which have had their timestamps set to
@@ -1770,7 +1769,7 @@ DEFUN! ("load", Fload, Sload, 1, 5, 0,
 	 else if !is_module && !is_native_elisp
 	   {
 	     /* We are loading a source file (*.el).  */
-	     if !NILP (Vload_source_file_function)
+	     if !NILP ((*Vload_source_file_function.as_mut_ptr ()))
 	       {
 		 let val: Lisp_Object;
 
@@ -1779,9 +1778,9 @@ DEFUN! ("load", Fload, Sload, 1, 5, 0,
 		     lread_close! (fd);
 		     clear_unwind_protect (fd_index);
 		   }
-		 val = calln! (Vload_source_file_function, found, hist_file_name,
+		 val = calln! ((*Vload_source_file_function.as_mut_ptr ()), found, hist_file_name,
 			       if NILP (noerror) { Qnil () } else { Qt () },
-			       if NILP (nomessage) || force_load_messages { Qnil () } else { Qt () });
+			       if NILP (nomessage) || (*force_load_messages.as_mut_ptr ()) { Qnil () } else { Qt () });
 		 return unbind_to (count, val);
 	       }
 	   }
@@ -1842,17 +1841,17 @@ DEFUN! ("load", Fload, Sload, 1, 5, 0,
 		saw EOF - the first nested `(load ...)` of loadup.el therefore ended the outer load,
 		and elisp stopped there (status 3.616).  */
 	     set_unwind_protect_ptr (fd_index, Some (close_infile_unwind),
-				     infile as *mut c_void);
+				     (*infile.as_mut_ptr ()) as *mut c_void);
 	     input.stream = stream;
 	     input.lookahead = 0;
-	     infile = std::ptr::addr_of_mut! (input);
-	     unread_char = -1;
+	     (*infile.as_mut_ptr ()) = std::ptr::addr_of_mut! (input);
+	     (*unread_char.as_mut_ptr ()) = -1;
 	   }
 
-	 if !NILP (Vpurify_flag)
-	   { Vpreloaded_file_list = Fcons (file, Vpreloaded_file_list); }
+	 if !NILP ((*Vpurify_flag.as_mut_ptr ()))
+	   { (*Vpreloaded_file_list.as_mut_ptr ()) = Fcons (file, (*Vpreloaded_file_list.as_mut_ptr ())); }
 
-	 if NILP (nomessage) || force_load_messages
+	 if NILP (nomessage) || (*force_load_messages.as_mut_ptr ())
 	   {
 	     if is_module
 	       { message_with_string (c"Loading %s (module)...".as_ptr (), file, true); }
@@ -1924,17 +1923,17 @@ DEFUN! ("load", Fload, Sload, 1, 5, 0,
 	 if !NILP (Ffboundp (Qdo_after_load_evaluation ()))
 	   { calln! (Qdo_after_load_evaluation (), hist_file_name); }
 
-	 for i in 0..countof! (saved_strings)
+	 for i in 0..countof! ((*saved_strings.as_mut_ptr ()))
 	   {
-	     xfree (saved_strings[i].string as *mut c_void);
-	     saved_strings[i].string = std::ptr::null_mut ();
-	     saved_strings[i].size = 0;
+	     xfree ((*saved_strings.as_mut_ptr ())[i].string as *mut c_void);
+	     (*saved_strings.as_mut_ptr ())[i].string = std::ptr::null_mut ();
+	     (*saved_strings.as_mut_ptr ())[i].size = 0;
 	   }
 
 	 /* The "...done" messages are shown only in interactive mode, because
 	    the echo-area can display only the last message, and we want to
 	    avoid the impression that the load is still in progress.  */
-	 if !noninteractive && (NILP (nomessage) || force_load_messages)
+	 if !(*noninteractive.as_mut_ptr ()) && (NILP (nomessage) || (*force_load_messages.as_mut_ptr ()))
 	   {
 	     if is_module
 	       { message_with_string (c"Loading %s (module)...done".as_ptr (), file, true); }
@@ -2019,7 +2018,7 @@ unsafe fn maybe_swap_for_eln1 (src_name: Lisp_Object, eln_name: Lisp_Object,
 	      *filename = eln_name;
 	      /* Store the eln -> el relation.  */
 	      Fputhash (Ffile_name_nondirectory (eln_name),
-			src_name, Vcomp_eln_to_el_h);
+			src_name, (*Vcomp_eln_to_el_h.as_mut_ptr ()));
 	      return true;
 	    }
 	  else
@@ -2042,18 +2041,18 @@ unsafe fn maybe_swap_for_eln (no_native: bool, filename: *mut Lisp_Object,
   #[cfg (feature = "have_native_comp")]
   {
     if no_native
-	|| load_no_native
-      { Fputhash (*filename, Qt (), V_comp_no_native_file_h); }
+	|| (*load_no_native.as_mut_ptr ())
+      { Fputhash (*filename, Qt (), (*V_comp_no_native_file_h.as_mut_ptr ())); }
     else
-      { Fremhash (*filename, V_comp_no_native_file_h); }
+      { Fremhash (*filename, (*V_comp_no_native_file_h.as_mut_ptr ())); }
 
     if no_native
-	|| load_no_native
+	|| (*load_no_native.as_mut_ptr ())
 	|| !suffix_p (*filename, c".elc".as_ptr ())
       { return; }
 
     /* Search eln in the eln-cache directories.  */
-    let mut eln_path_tail: Lisp_Object = Vnative_comp_eln_load_path;
+    let mut eln_path_tail: Lisp_Object = (*Vnative_comp_eln_load_path.as_mut_ptr ());
     let mut src_name: Lisp_Object
       = Fsubstring (*filename, Qnil (), make_fixnum (-1));
     if NILP (Ffile_exists_p (src_name))
@@ -2070,16 +2069,16 @@ unsafe fn maybe_swap_for_eln (no_native: bool, filename: *mut Lisp_Object,
 		   just do a sanity check and refuse to do anything if we
 		   can't find even central .el files.  */
 		if NILP (Flocate_file_internal (build_string (c"simple.el".as_ptr ()),
-						Vload_path,
+						(*Vload_path.as_mut_ptr ()),
 						Qnil (), Qnil ()))
 		  { return; }
-		Vdelayed_warnings_list
+		(*Vdelayed_warnings_list.as_mut_ptr ())
 		  = Fcons (list2
 			   (Qnative_compiler (),
 			    CALLN! (Fformat,
 				    build_string (c"Cannot look up .eln file for %s because no source file was found for it".as_ptr ()),
 				    *filename)),
-			   Vdelayed_warnings_list);
+			   (*Vdelayed_warnings_list.as_mut_ptr ()));
 		return;
 	      }
 	  }
@@ -2092,7 +2091,7 @@ unsafe fn maybe_swap_for_eln (no_native: bool, filename: *mut Lisp_Object,
       dir = XCAR (eln_path_tail);
       let eln_name: Lisp_Object
 	= Fexpand_file_name (eln_rel_name,
-			     Fexpand_file_name (Vcomp_native_version_dir, dir));
+			     Fexpand_file_name ((*Vcomp_native_version_dir.as_mut_ptr ()), dir));
       if maybe_swap_for_eln1 (src_name, eln_name, filename, fd, mtime)
 	{ return; }
     });
@@ -2100,7 +2099,7 @@ unsafe fn maybe_swap_for_eln (no_native: bool, filename: *mut Lisp_Object,
     /* Look also in preloaded subfolder of the last entry in
        `comp-eln-load-path'.  */
     dir = Fexpand_file_name (build_string (c"preloaded".as_ptr ()),
-			     Fexpand_file_name (Vcomp_native_version_dir,
+			     Fexpand_file_name ((*Vcomp_native_version_dir.as_mut_ptr ()),
 						dir));
     maybe_swap_for_eln1 (src_name, Fexpand_file_name (eln_rel_name, dir),
 			 filename, fd, mtime);
@@ -2206,7 +2205,7 @@ pub unsafe extern "C-unwind" fn openp (path: Lisp_Object, str_: Lisp_Object, suf
 	    baselen as usize);
 
     /* Loop over suffixes.  */
-    AUTO_LIST1! (empty_string_only, empty_unibyte_string);
+    AUTO_LIST1! (empty_string_only, (*empty_unibyte_string.as_mut_ptr ()));
     tail = if NILP (suffixes) { empty_string_only } else { suffixes };
     FOR_EACH_TAIL_SAFE! (tail, {
       let suffix: Lisp_Object = XCAR (tail);
@@ -2430,7 +2429,7 @@ unsafe fn build_load_history (filename: Lisp_Object, entire: bool)
   let mut tem2: Lisp_Object;
   let mut foundit: bool = false;
 
-  tail = Vload_history;
+  tail = (*Vload_history.as_mut_ptr ());
   prev = Qnil ();
 
   FOR_EACH_TAIL! (tail, {
@@ -2445,7 +2444,7 @@ unsafe fn build_load_history (filename: Lisp_Object, entire: bool)
 	if entire
 	  {
 	    if NILP (prev)
-	      { Vload_history = XCDR (tail); }
+	      { (*Vload_history.as_mut_ptr ()) = XCDR (tail); }
 	    else
 	      { Fsetcdr (prev, XCDR (tail)); }
 	  }
@@ -2453,7 +2452,7 @@ unsafe fn build_load_history (filename: Lisp_Object, entire: bool)
 	   members.  */
 	else
 	  {
-	    tem2 = Vcurrent_load_list;
+	    tem2 = (*Vcurrent_load_list.as_mut_ptr ());
 
 	    FOR_EACH_TAIL! (tem2, {
 	      newelt = XCAR (tem2);
@@ -2475,12 +2474,12 @@ unsafe fn build_load_history (filename: Lisp_Object, entire: bool)
      do this if we didn't find an existing member for the file.  */
   if entire || !foundit
     {
-      let tem: Lisp_Object = Fnreverse (Vcurrent_load_list);
+      let tem: Lisp_Object = Fnreverse ((*Vcurrent_load_list.as_mut_ptr ()));
       eassert! (!NILP (Fequal (filename, Fcar (tem))));
-      Vload_history = Fcons (tem, Vload_history);
+      (*Vload_history.as_mut_ptr ()) = Fcons (tem, (*Vload_history.as_mut_ptr ()));
       /* FIXME: There should be an unbind_to right after calling us which
 	 should re-establish the previous value of Vcurrent_load_list.  */
-      Vcurrent_load_list = Qt ();
+      (*Vcurrent_load_list.as_mut_ptr ()) = Qt ();
     }
 
   }
@@ -2494,7 +2493,7 @@ unsafe fn end_of_file_error (source: *mut source) -> !
   if from_file_p (source)
     /* Only Fload calls read on a file, and Fload always binds
        load-true-file-name around the call.  */
-    { xsignal1 (Qend_of_file (), Vload_true_file_name); }
+    { xsignal1 (Qend_of_file (), (*Vload_true_file_name.as_mut_ptr ())); }
   else if from_buffer_p (source)
     { xsignal1 (Qend_of_file (), (*source).object); }
   else
@@ -2597,7 +2596,7 @@ unsafe fn readevalloop (readcharfun: Lisp_Object, infile0: *mut infile,
   specbind (Qinternal_interpreter_environment (),
 	    if NILP (lex_bound) || BASE_EQ (lex_bound, Qunbound ())
 	    { Qnil () } else { list1 (Qt ()) });
-  specbind (Qmacroexp__dynvars (), Vmacroexp__dynvars);
+  specbind (Qmacroexp__dynvars (), (*Vmacroexp__dynvars.as_mut_ptr ()));
 
   /* Ensure sourcename is absolute, except whilst preloading.  */
   if !will_dump_p ()
@@ -2647,7 +2646,7 @@ unsafe fn readevalloop (readcharfun: Lisp_Object, infile0: *mut infile,
       if !b.is_null () && first_sexp
 	{ whole_buffer = BUF_PT (b) == BUF_BEG (b) && BUF_ZV (b) == BUF_Z! (b); }
 
-      eassert! (infile0.is_null () || infile == infile0);
+      eassert! (infile0.is_null () || (*infile.as_mut_ptr ()) == infile0);
      'read_next: loop
       {
       c = readchar (&mut source);
@@ -2670,15 +2669,15 @@ unsafe fn readevalloop (readcharfun: Lisp_Object, infile0: *mut infile,
 	{ continue 'read_next; }
       unreadchar (&mut source, c);
 
-      if !HASH_TABLE_P (read_objects_map)
-	  || (*XHASH_TABLE (read_objects_map)).count != 0
-	{ read_objects_map
-	    = make_hash_table (&raw const hashtest_eq, DEFAULT_HASH_SIZE as EMACS_INT, Weak_None); }
-      if !HASH_TABLE_P (read_objects_completed)
-	  || (*XHASH_TABLE (read_objects_completed)).count != 0
-	{ read_objects_completed
-	    = make_hash_table (&raw const hashtest_eq, DEFAULT_HASH_SIZE as EMACS_INT, Weak_None); }
-      if !NILP (Vpurify_flag) && c == '(' as c_int
+      if !HASH_TABLE_P ((*read_objects_map.as_mut_ptr ()))
+	  || (*XHASH_TABLE ((*read_objects_map.as_mut_ptr ()))).count != 0
+	{ (*read_objects_map.as_mut_ptr ())
+	    = make_hash_table (hashtest_eq.as_ptr (), DEFAULT_HASH_SIZE as EMACS_INT, Weak_None); }
+      if !HASH_TABLE_P ((*read_objects_completed.as_mut_ptr ()))
+	  || (*XHASH_TABLE ((*read_objects_completed.as_mut_ptr ()))).count != 0
+	{ (*read_objects_completed.as_mut_ptr ())
+	    = make_hash_table (hashtest_eq.as_ptr (), DEFAULT_HASH_SIZE as EMACS_INT, Weak_None); }
+      if !NILP ((*Vpurify_flag.as_mut_ptr ())) && c == '(' as c_int
 	{ val = read0 (&mut source, false); }
       else
 	{
@@ -2696,18 +2695,18 @@ unsafe fn readevalloop (readcharfun: Lisp_Object, infile0: *mut infile,
 		    { continue_reading_p = false; }
 		}
 	    }
-	  else if !NILP (Vload_read_function)
-	    { val = calln! (Vload_read_function, readcharfun); }
+	  else if !NILP ((*Vload_read_function.as_mut_ptr ()))
+	    { val = calln! ((*Vload_read_function.as_mut_ptr ()), readcharfun); }
 	  else
 	    { val = read_internal_start (readcharfun, Qnil (), Qnil (), false); }
 	}
       /* Empty hashes can be reused; otherwise, reset on next call.  */
-      if HASH_TABLE_P (read_objects_map)
-	  && (*XHASH_TABLE (read_objects_map)).count > 0
-	{ read_objects_map = Qnil (); }
-      if HASH_TABLE_P (read_objects_completed)
-	  && (*XHASH_TABLE (read_objects_completed)).count > 0
-	{ read_objects_completed = Qnil (); }
+      if HASH_TABLE_P ((*read_objects_map.as_mut_ptr ()))
+	  && (*XHASH_TABLE ((*read_objects_map.as_mut_ptr ()))).count > 0
+	{ (*read_objects_map.as_mut_ptr ()) = Qnil (); }
+      if HASH_TABLE_P ((*read_objects_completed.as_mut_ptr ()))
+	  && (*XHASH_TABLE ((*read_objects_completed.as_mut_ptr ()))).count > 0
+	{ (*read_objects_completed.as_mut_ptr ()) = Qnil (); }
 
       if !NILP (start) && continue_reading_p
 	{ start = Fpoint_marker (); }
@@ -2723,8 +2722,8 @@ unsafe fn readevalloop (readcharfun: Lisp_Object, infile0: *mut infile,
 
       if printflag
 	{
-	  Vvalues = Fcons (val, Vvalues);
-	  if EQ (Vstandard_output, Qt ())
+	  (*Vvalues.as_mut_ptr ()) = Fcons (val, (*Vvalues.as_mut_ptr ()));
+	  if EQ ((*Vstandard_output.as_mut_ptr ()), Qt ())
 	    { Fprin1 (val, Qnil (), Qnil ()); }
 	  else
 	    { Fprint (val, Qnil ()); }
@@ -2768,7 +2767,7 @@ DEFUN! ("eval-buffer", Feval_buffer, Seval_buffer, 0, 5, "",
 	 if NILP (filename)
 	   { filename = BVAR! (XBUFFER (buf), filename_); }
 
-	 specbind (Qeval_buffer_list (), Fcons (buf, Veval_buffer_list));
+	 specbind (Qeval_buffer_list (), Fcons (buf, (*Veval_buffer_list.as_mut_ptr ())));
 	 specbind (Qstandard_output (), tem);
 	 record_unwind_protect_excursion ();
 	 BUF_TEMP_SET_PT (XBUFFER (buf), BUF_BEGV (XBUFFER (buf)));
@@ -2799,7 +2798,7 @@ DEFUN! ("eval-region", Feval_region, Seval_region, 2, 4, "r",
 	 else
 	   { tem = printflag; }
 	 specbind (Qstandard_output (), tem);
-	 specbind (Qeval_buffer_list (), Fcons (cbuf, Veval_buffer_list));
+	 specbind (Qeval_buffer_list (), Fcons (cbuf, (*Veval_buffer_list.as_mut_ptr ())));
 
 	 /* `readevalloop' calls functions which check the type of start and end.  */
 	 readevalloop (cbuf, 0 as *mut infile, BVAR! (XBUFFER (cbuf), filename_),
@@ -2815,7 +2814,7 @@ DEFUN! ("read", Fread, Sread, 0, 1, 0,
        {
 	 let mut stream: Lisp_Object = stream;
 	 if NILP (stream)
-	   { stream = Vstandard_input; }
+	   { stream = (*Vstandard_input.as_mut_ptr ()); }
 	 if EQ (stream, Qt ())
 	   { stream = Qread_char (); }
 	 if EQ (stream, Qread_char ())
@@ -2835,7 +2834,7 @@ DEFUN! ("read-positioning-symbols", Fread_positioning_symbols, Sread_positioning
        {
 	 let mut stream: Lisp_Object = stream;
 	 if NILP (stream)
-	   { stream = Vstandard_input; }
+	   { stream = (*Vstandard_input.as_mut_ptr ()); }
 	 if EQ (stream, Qt ())
 	   { stream = Qread_char (); }
 	 if EQ (stream, Qread_char ())
@@ -2854,7 +2853,7 @@ DEFUN! ("read-from-string", Fread_from_string, Sread_from_string, 1, 3, 0,
 	 CHECK_STRING (string);
 	 /* `read_internal_start' sets `read_from_string_index'.  */
 	 ret = read_internal_start (string, start, end, false);
-	 Fcons (ret, make_fixnum (read_from_string_index))
+	 Fcons (ret, make_fixnum ((*read_from_string_index.as_mut_ptr ())))
        });
 
 /* Function to set up the global context we need in toplevel read
@@ -2868,25 +2867,25 @@ unsafe fn read_internal_start (stream: Lisp_Object, start: Lisp_Object,
   unsafe {
   let retval: Lisp_Object;
 
-  readchar_offset = if BUFFERP (stream) { (*XBUFFER (stream)).pt as EMACS_INT } else { 0 };
+  (*readchar_offset.as_mut_ptr ()) = if BUFFERP (stream) { (*XBUFFER (stream)).pt as EMACS_INT } else { 0 };
   /* We can get called from readevalloop which may have set these
      already.  */
-  if !HASH_TABLE_P (read_objects_map)
-      || (*XHASH_TABLE (read_objects_map)).count != 0
-    { read_objects_map
-	= make_hash_table (&raw const hashtest_eq, DEFAULT_HASH_SIZE as EMACS_INT, Weak_None); }
-  if !HASH_TABLE_P (read_objects_completed)
-      || (*XHASH_TABLE (read_objects_completed)).count != 0
-    { read_objects_completed
-	= make_hash_table (&raw const hashtest_eq, DEFAULT_HASH_SIZE as EMACS_INT, Weak_None); }
+  if !HASH_TABLE_P ((*read_objects_map.as_mut_ptr ()))
+      || (*XHASH_TABLE ((*read_objects_map.as_mut_ptr ()))).count != 0
+    { (*read_objects_map.as_mut_ptr ())
+	= make_hash_table (hashtest_eq.as_ptr (), DEFAULT_HASH_SIZE as EMACS_INT, Weak_None); }
+  if !HASH_TABLE_P ((*read_objects_completed.as_mut_ptr ()))
+      || (*XHASH_TABLE ((*read_objects_completed.as_mut_ptr ()))).count != 0
+    { (*read_objects_completed.as_mut_ptr ())
+	= make_hash_table (hashtest_eq.as_ptr (), DEFAULT_HASH_SIZE as EMACS_INT, Weak_None); }
 
   if STRINGP (stream)
     {
       if NILP (start) && NILP (end)
 	{
-	  read_from_string_index = 0;
-	  read_from_string_index_byte = 0;
-	  read_from_string_limit = SCHARS (stream);
+	  (*read_from_string_index.as_mut_ptr ()) = 0;
+	  (*read_from_string_index_byte.as_mut_ptr ()) = 0;
+	  (*read_from_string_limit.as_mut_ptr ()) = SCHARS (stream);
 	}
       else
 	{
@@ -2895,21 +2894,21 @@ unsafe fn read_internal_start (stream: Lisp_Object, start: Lisp_Object,
 	  validate_subarray (stream, start, end, SCHARS (stream),
 			     &mut startval, &mut endval);
 
-	  read_from_string_index = startval;
-	  read_from_string_index_byte = string_char_to_byte (stream, startval);
-	  read_from_string_limit = endval;
+	  (*read_from_string_index.as_mut_ptr ()) = startval;
+	  (*read_from_string_index_byte.as_mut_ptr ()) = string_char_to_byte (stream, startval);
+	  (*read_from_string_limit.as_mut_ptr ()) = endval;
 	}
     }
 
   let mut source: source_t = std::mem::zeroed ();
   init_source (&mut source, stream);
   retval = read0 (&mut source, locate_syms);
-  if HASH_TABLE_P (read_objects_map)
-      && (*XHASH_TABLE (read_objects_map)).count > 0
-    { read_objects_map = Qnil (); }
-  if HASH_TABLE_P (read_objects_completed)
-      && (*XHASH_TABLE (read_objects_completed)).count > 0
-    { read_objects_completed = Qnil (); }
+  if HASH_TABLE_P ((*read_objects_map.as_mut_ptr ()))
+      && (*XHASH_TABLE ((*read_objects_map.as_mut_ptr ()))).count > 0
+    { (*read_objects_map.as_mut_ptr ()) = Qnil (); }
+  if HASH_TABLE_P ((*read_objects_completed.as_mut_ptr ()))
+      && (*XHASH_TABLE ((*read_objects_completed.as_mut_ptr ()))).count > 0
+    { (*read_objects_completed.as_mut_ptr ()) = Qnil (); }
   retval
 
   }
@@ -3434,11 +3433,11 @@ unsafe fn read_char_literal (source: *mut source) -> Lisp_Object
   if ch == '(' as c_int || ch == ')' as c_int || ch == '[' as c_int || ch == ']' as c_int
       || ch == '"' as c_int || ch == ';' as c_int
     {
-      CHECK_LIST (Vlread_unescaped_character_literals);
+      CHECK_LIST ((*Vlread_unescaped_character_literals.as_mut_ptr ()));
       let char_obj: Lisp_Object = make_fixed_natnum (ch as EMACS_INT);
-      if NILP (Fmemq (char_obj, Vlread_unescaped_character_literals))
-	{ Vlread_unescaped_character_literals
-	    = Fcons (char_obj, Vlread_unescaped_character_literals); }
+      if NILP (Fmemq (char_obj, (*Vlread_unescaped_character_literals.as_mut_ptr ())))
+	{ (*Vlread_unescaped_character_literals.as_mut_ptr ())
+	    = Fcons (char_obj, (*Vlread_unescaped_character_literals.as_mut_ptr ())); }
     }
 
   if ch == '\\' as c_int
@@ -3718,7 +3717,7 @@ unsafe fn bytecode_from_rev_list (elems: Lisp_Object, source: *mut source) -> Li
   let vec: *mut Lisp_Object = (*XVECTOR (obj)).contents.as_mut_ptr ();
   let size: ptrdiff_t = ASIZE (obj);
 
-  if !infile.is_null () && size >= CLOSURE_CONSTANTS as ptrdiff_t
+  if !(*infile.as_mut_ptr ()).is_null () && size >= CLOSURE_CONSTANTS as ptrdiff_t
     {
       /* Always read 'lazily-loaded' bytecode (generated by the
 	 `byte-compile-dynamic' feature prior to Emacs 30) eagerly, to
@@ -3814,7 +3813,7 @@ unsafe fn sub_char_table_from_rev_list (elems: Lisp_Object, source: *mut source)
     { error (c"Invalid depth in sub-char-table".as_ptr ()); }
   let depth: c_int = XFIXNUM (XCAR (elems)) as c_int;
 
-  if chartab_size[depth as usize] as ptrdiff_t != size - 2
+  if (*chartab_size.as_mut_ptr ())[depth as usize] as ptrdiff_t != size - 2
     { error (c"Invalid size in sub-char-table".as_ptr ()); }
   elems = XCDR (elems);
 
@@ -3955,7 +3954,7 @@ unsafe fn skip_lazy_string (source: *mut source) -> bool
 	}
     }
 
-  if load_force_doc_strings && from_file_p (source)
+  if (*load_force_doc_strings.as_mut_ptr ()) && from_file_p (source)
     {
       /* If we are supposed to force doc strings into core right now,
 	 record the last string that we skipped,
@@ -3966,13 +3965,13 @@ unsafe fn skip_lazy_string (source: *mut source) -> bool
 	 type (a `static mut`'s address is not a const expression in Rust).  */
       static_assert! (std::mem::size_of::<[saved_string; 2]> ()
 		      == 2 * std::mem::size_of::<saved_string> ());
-      eassert! (countof! (saved_strings) == 2);
-      let t: saved_string = saved_strings[0];
-      saved_strings[0] = saved_strings[1];
-      saved_strings[1] = t;
+      eassert! (countof! ((*saved_strings.as_mut_ptr ())) == 2);
+      let t: saved_string = (*saved_strings.as_mut_ptr ())[0];
+      (*saved_strings.as_mut_ptr ())[0] = (*saved_strings.as_mut_ptr ())[1];
+      (*saved_strings.as_mut_ptr ())[1] = t;
 
       let extra: c_int = 100;		/* C: `enum { extra = 100 };` */
-      let ss: *mut saved_string = &raw mut saved_strings[0];
+      let ss: *mut saved_string = &raw mut (*saved_strings.as_mut_ptr ())[0];
       if (*ss).size == 0
 	{
 	  (*ss).size = nskip + extra as ptrdiff_t;
@@ -3985,17 +3984,17 @@ unsafe fn skip_lazy_string (source: *mut source) -> bool
 	    as *mut c_char;
 	}
 
-      let instream: file_stream = (*infile).stream;
-      (*ss).position = file_tell! (instream) - (*infile).lookahead as off_t;
+      let instream: file_stream = (*(*infile.as_mut_ptr ())).stream;
+      (*ss).position = file_tell! (instream) - (*(*infile.as_mut_ptr ())).lookahead as off_t;
 
       /* Copy that many bytes into the saved string.  */
       let mut i: ptrdiff_t = 0;
       let mut c: c_int = 0;
-      let mut n: ptrdiff_t = MIN! (nskip, (*infile).lookahead as ptrdiff_t);
+      let mut n: ptrdiff_t = MIN! (nskip, (*(*infile.as_mut_ptr ())).lookahead as ptrdiff_t);
       while n > 0
 	{
-	  (*infile).lookahead -= 1;
-	  c = (*infile).buf[(*infile).lookahead as usize] as c_int;
+	  (*(*infile.as_mut_ptr ())).lookahead -= 1;
+	  c = (*(*infile.as_mut_ptr ())).buf[(*(*infile.as_mut_ptr ())).lookahead as usize] as c_int;
 	  *(*ss).string.offset (i) = c as c_char;
 	  i += 1;
 	  n -= 1;
@@ -4041,8 +4040,8 @@ unsafe fn get_lazy_string (val: Lisp_Object) -> Lisp_Object
      strings started with an asterisk); take the absolute value for
      compatibility.  */
   let pos: EMACS_INT = eabs! (XFIXNUM (XCDR (val)));
-  let mut ss: *mut saved_string = &raw mut saved_strings[0];
-  let ssend: *mut saved_string = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { ss.add (countof! (saved_strings)) };
+  let mut ss: *mut saved_string = &raw mut (*saved_strings.as_mut_ptr ())[0];
+  let ssend: *mut saved_string = /* SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation. */ unsafe { ss.add (countof! ((*saved_strings.as_mut_ptr ()))) };
   while ss < ssend
       && !(pos >= (*ss).position as EMACS_INT
 	   && pos < (*ss).position as EMACS_INT + (*ss).length as EMACS_INT)
@@ -4216,7 +4215,7 @@ const _: () = core::assert! (std::mem::offset_of! (read_stack, stack) == 0);
 const _: () = core::assert! (std::mem::offset_of! (read_stack, size) == 8);
 const _: () = core::assert! (std::mem::offset_of! (read_stack, sp) == 16);
 
-static mut rdstack: read_stack = read_stack { stack: std::ptr::null_mut (), size: 0, sp: 0 };
+static rdstack: VmGlobal<read_stack> = VmGlobal::<read_stack>::new (read_stack { stack: std::ptr::null_mut (), size: 0, sp: 0 });
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn mark_lread ()
@@ -4225,9 +4224,9 @@ pub unsafe extern "C-unwind" fn mark_lread ()
   unsafe {
   /* Mark the read stack, which may contain data not otherwise traced */
   let mut i: ptrdiff_t = 0;
-  while i < rdstack.sp
+  while i < (*rdstack.as_mut_ptr ()).sp
     {
-      let e: *mut read_stack_entry = rdstack.stack.offset (i);
+      let e: *mut read_stack_entry = (*rdstack.as_mut_ptr ()).stack.offset (i);
       match (*e).r#type
 	{
 	  read_entry_type::RE_list_start => {}
@@ -4262,8 +4261,8 @@ unsafe fn read_stack_top () -> *mut read_stack_entry
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  eassume! (rdstack.sp > 0);
-  rdstack.stack.offset (rdstack.sp - 1)
+  eassume! ((*rdstack.as_mut_ptr ()).sp > 0);
+  (*rdstack.as_mut_ptr ()).stack.offset ((*rdstack.as_mut_ptr ()).sp - 1)
 
   }
 }
@@ -4273,9 +4272,9 @@ unsafe fn read_stack_pop () -> *mut read_stack_entry
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  eassume! (rdstack.sp > 0);
-  rdstack.sp -= 1;
-  rdstack.stack.offset (rdstack.sp)
+  eassume! ((*rdstack.as_mut_ptr ()).sp > 0);
+  (*rdstack.as_mut_ptr ()).sp -= 1;
+  (*rdstack.as_mut_ptr ()).stack.offset ((*rdstack.as_mut_ptr ()).sp)
 
   }
 }
@@ -4285,7 +4284,7 @@ unsafe fn read_stack_empty_p (base_sp: ptrdiff_t) -> bool
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  rdstack.sp <= base_sp
+  (*rdstack.as_mut_ptr ()).sp <= base_sp
 
   }
 }
@@ -4295,7 +4294,7 @@ unsafe fn grow_read_stack ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  let rs: *mut read_stack = &raw mut rdstack;
+  let rs: *mut read_stack = rdstack.as_mut_ptr ();
   eassert! ((*rs).sp == (*rs).size);
   (*rs).stack = xpalloc ((*rs).stack as *mut c_void, &mut (*rs).size, 1, -1,
 			 std::mem::size_of::<read_stack_entry> () as ptrdiff_t)
@@ -4310,10 +4309,10 @@ unsafe fn read_stack_push (e: read_stack_entry)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  if rdstack.sp >= rdstack.size
+  if (*rdstack.as_mut_ptr ()).sp >= (*rdstack.as_mut_ptr ()).size
     { grow_read_stack (); }
-  *rdstack.stack.offset (rdstack.sp) = e;
-  rdstack.sp += 1;
+  *(*rdstack.as_mut_ptr ()).stack.offset ((*rdstack.as_mut_ptr ()).sp) = e;
+  (*rdstack.as_mut_ptr ()).sp += 1;
 
   }
 }
@@ -4322,8 +4321,8 @@ unsafe extern "C-unwind" fn read_stack_reset (sp: i64)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  eassert! (sp as ptrdiff_t <= rdstack.sp);
-  rdstack.sp = sp as ptrdiff_t;
+  eassert! (sp as ptrdiff_t <= (*rdstack.as_mut_ptr ()).sp);
+  (*rdstack.as_mut_ptr ()).sp = sp as ptrdiff_t;
 
   }
 }
@@ -4361,7 +4360,7 @@ unsafe fn read0 (source: *mut source, locate_syms: bool) -> Lisp_Object
   let mut stackbuf: [c_char; 64] = [0; 64];
 
   let base_pdl: specpdl_ref = SPECPDL_INDEX ();
-  let base_sp: ptrdiff_t = rdstack.sp;
+  let base_sp: ptrdiff_t = (*rdstack.as_mut_ptr ()).sp;
   record_unwind_protect_intmax (Some (read_stack_reset), base_sp as i64);
 
   let mut rb: readbuf_t = readbuf_t {
@@ -4506,7 +4505,7 @@ unsafe fn read0 (source: *mut source, locate_syms: bool) -> Lisp_Object
 		  b'#' =>
 		    {
 		      /* ## -- the empty symbol */
-		      obj = Fintern (empty_unibyte_string, Qnil ());
+		      obj = Fintern ((*empty_unibyte_string.as_mut_ptr ()), Qnil ());
 		    }
 
 		  b's' =>
@@ -4634,7 +4633,7 @@ unsafe fn read0 (source: *mut source, locate_syms: bool) -> Lisp_Object
 		  b'$' =>
 		    {
 		      /* #$ -- reference to lazy-loaded string */
-		      obj = Vload_file_name;
+		      obj = (*Vload_file_name.as_mut_ptr ());
 		    }
 
 		  b':' =>
@@ -4650,7 +4649,7 @@ unsafe fn read0 (source: *mut source, locate_syms: bool) -> Lisp_Object
 			{
 			  /* No symbol character follows: this is the empty symbol.  */
 			  unreadchar (source, c);
-			  obj = Fmake_symbol (empty_unibyte_string);
+			  obj = Fmake_symbol ((*empty_unibyte_string.as_mut_ptr ()));
 			}
 		      else
 			{
@@ -4673,7 +4672,7 @@ unsafe fn read0 (source: *mut source, locate_syms: bool) -> Lisp_Object
 			{
 			  /* No symbol character follows: this is the empty symbol.  */
 			  unreadchar (source, c);
-			  obj = Fintern (empty_unibyte_string, Qnil ());
+			  obj = Fintern ((*empty_unibyte_string.as_mut_ptr ()), Qnil ());
 			}
 		      else
 			{
@@ -4711,14 +4710,14 @@ unsafe fn read0 (source: *mut source, locate_syms: bool) -> Lisp_Object
 				{ invalid_radix_integer (n, source); }
 			      obj = read_integer (source, n as c_int);
 			    }
-			  else if n <= MOST_POSITIVE_FIXNUM && !NILP (Vread_circle)
+			  else if n <= MOST_POSITIVE_FIXNUM && !NILP ((*Vread_circle.as_mut_ptr ()))
 			    {
 			      if c == b'=' as c_int
 				{
 				  /* #N=OBJ -- assign number N to OBJ */
 				  let placeholder: Lisp_Object = Fcons (Qnil (), Qnil ());
 
-				  let h: *mut Lisp_Hash_Table = XHASH_TABLE (read_objects_map);
+				  let h: *mut Lisp_Hash_Table = XHASH_TABLE ((*read_objects_map.as_mut_ptr ()));
 				  let number: Lisp_Object = make_fixnum (n);
 				  let mut hash: hash_hash_t = 0;
 				  let i: ptrdiff_t = hash_find_get_hash (h, number, &mut hash);
@@ -4737,7 +4736,7 @@ unsafe fn read0 (source: *mut source, locate_syms: bool) -> Lisp_Object
 			      else if c == b'#' as c_int
 				{
 				  /* #N# -- reference to numbered object */
-				  let h: *mut Lisp_Hash_Table = XHASH_TABLE (read_objects_map);
+				  let h: *mut Lisp_Hash_Table = XHASH_TABLE ((*read_objects_map.as_mut_ptr ()));
 				  let i: ptrdiff_t = hash_find (h, make_fixnum (n));
 				  if i < 0
 				    { invalid_syntax_with_buffer (&mut rb, source); }
@@ -4859,7 +4858,7 @@ unsafe fn read0 (source: *mut source, locate_syms: bool) -> Lisp_Object
 	  /* C's `read_symbol:` label.  */
 	  rb.cur = rb.start;
 	  let mut quoted: bool = false;
-	  let start_position: EMACS_INT = readchar_offset - 1;
+	  let start_position: EMACS_INT = (*readchar_offset.as_mut_ptr ()) - 1;
 	  let mut nchars: ptrdiff_t = 0;
 
 	  loop
@@ -4925,7 +4924,7 @@ unsafe fn read0 (source: *mut source, locate_syms: bool) -> Lisp_Object
 		     we're going to retain it in a new symbol.
 
 		     Like intern_1 but supports multibyte names.  */
-		  let obarray: Lisp_Object = check_obarray (Vobarray);
+		  let obarray: Lisp_Object = check_obarray ((*Vobarray.as_mut_ptr ()));
 
 		  let mut longhand: *mut c_char = std::ptr::null_mut ();
 		  let mut longhand_chars: ptrdiff_t = 0;
@@ -4933,7 +4932,7 @@ unsafe fn read0 (source: *mut source, locate_syms: bool) -> Lisp_Object
 
 		  let found: Lisp_Object;
 		  if skip_shorthand
-		      || NILP (Vread_symbol_shorthands)
+		      || NILP ((*Vread_symbol_shorthands.as_mut_ptr ()))
 		      /* We exempt characters used in the "core" Emacs Lisp
 			 symbols that are comprised entirely of characters
 			 that have the 'symbol constituent' syntax from
@@ -4975,7 +4974,7 @@ unsafe fn read0 (source: *mut source, locate_syms: bool) -> Lisp_Object
 
       /* We have read an object in `obj'.  Use the stack to decide what to
 	 do with it.  */
-      while rdstack.sp > base_sp
+      while (*rdstack.as_mut_ptr ()).sp > base_sp
 	{
 	  let e: *mut read_stack_entry = read_stack_top ();
 	  match (*e).r#type
@@ -5009,8 +5008,8 @@ unsafe fn read0 (source: *mut source, locate_syms: bool) -> Lisp_Object
 
 		  /* Hack: immediately convert (#$ . FIXNUM) to the corresponding
 		     string if load-force-doc-strings is set.  */
-		  if load_force_doc_strings
-		      && BASE_EQ (XCAR (obj), Vload_file_name)
+		  if (*load_force_doc_strings.as_mut_ptr ())
+		      && BASE_EQ (XCAR (obj), (*Vload_file_name.as_mut_ptr ()))
 		      && !NILP (XCAR (obj))
 		      && FIXNUMP (XCDR (obj))
 		    { obj = get_lazy_string (obj); }
@@ -5051,7 +5050,7 @@ unsafe fn read0 (source: *mut source, locate_syms: bool) -> Lisp_Object
 		      Fsetcar (placeholder, XCAR (obj));
 		      Fsetcdr (placeholder, XCDR (obj));
 
-		      let h2: *mut Lisp_Hash_Table = XHASH_TABLE (read_objects_completed);
+		      let h2: *mut Lisp_Hash_Table = XHASH_TABLE ((*read_objects_completed.as_mut_ptr ()));
 		      let mut hash: hash_hash_t = 0;
 		      let i: ptrdiff_t = hash_find_get_hash (h2, placeholder, &mut hash);
 		      eassert! (i < 0);
@@ -5065,7 +5064,7 @@ unsafe fn read0 (source: *mut source, locate_syms: bool) -> Lisp_Object
 		      if !SYMBOLP (obj) && !NUMBERP (obj)
 			  && !(STRINGP (obj) && string_intervals (obj).is_null ())
 			{
-			  let h2: *mut Lisp_Hash_Table = XHASH_TABLE (read_objects_completed);
+			  let h2: *mut Lisp_Hash_Table = XHASH_TABLE ((*read_objects_completed.as_mut_ptr ()));
 			  let mut hash: hash_hash_t = 0;
 			  let i: ptrdiff_t = hash_find_get_hash (h2, obj, &mut hash);
 			  eassert! (i < 0);
@@ -5074,10 +5073,10 @@ unsafe fn read0 (source: *mut source, locate_syms: bool) -> Lisp_Object
 
 		      /* Now put it everywhere the placeholder was...  */
 		      Flread__substitute_object_in_subtree (obj, placeholder,
-							    read_objects_completed);
+							    (*read_objects_completed.as_mut_ptr ()));
 
 		      /* ...and #n# will use the real value from now on.  */
-		      let h: *mut Lisp_Hash_Table = XHASH_TABLE (read_objects_map);
+		      let h: *mut Lisp_Hash_Table = XHASH_TABLE ((*read_objects_map.as_mut_ptr ()));
 		      let mut hash: hash_hash_t = 0;
 		      let i: ptrdiff_t = hash_find_get_hash (h, (*e).u.numbered.number,
 							     &mut hash);
@@ -5213,7 +5212,7 @@ unsafe extern "C-unwind" fn substitute_in_interval (interval: INTERVAL, arg: *mu
 /* C 4485-4488: `#if !IEEE_FLOATING_POINT`'s two Lisp objects.  The condition is dead
    (`IEEE_FLOATING_POINT` is 1), carried under `#[cfg (feature = "no_ieee_floating_point")]`.  */
 #[cfg (feature = "no_ieee_floating_point")]
-static mut not_a_number: [Lisp_Object; 2] = [std::ptr::null_mut (); 2];	// C 4487
+static not_a_number: VmGlobal<[Lisp_Object; 2]> = VmGlobal::<[Lisp_Object; 2]>::new ([std::ptr::null_mut (); 2]);	// C 4487
 
 /* C 43-45's `#include <ieee754.h>` (through C 4572's `#if IEEE_FLOATING_POINT` arm) now comes
    from the mirror of the generated template: `lib/include/ieee754.in.rs` owns the union and
@@ -5329,7 +5328,7 @@ pub unsafe extern "C-unwind" fn string_to_number (string: *const c_char, base: c
 	      {
 		if !plen.is_null ()
 		  { *plen = cp.offset_from (string); }
-		return not_a_number[negative as usize];
+		return (*not_a_number.as_mut_ptr ())[negative as usize];
 	      }
 	    }
 	  else
@@ -5392,7 +5391,7 @@ pub unsafe extern "C-unwind" fn string_to_number (string: *const c_char, base: c
   }
 }
 
-static mut initial_obarray: Lisp_Object = std::ptr::null_mut ();	// C 4636
+static initial_obarray: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (std::ptr::null_mut ());	// C 4636
 
 /* C's symbol bitfield *writes* in this unit (`s->u.s.redirect = X`, …): the mirror packs
    the five members into `u.s.bits` (lisp.rs 221-228, PORTING.md 1.3/P-80), so the port
@@ -5461,8 +5460,8 @@ pub unsafe extern "C-unwind" fn check_obarray_slow (obarray: Lisp_Object) -> Lis
 	}
     }
   /* Reset Vobarray to the standard obarray for nicer error handling. */
-  if BASE_EQ (Vobarray, obarray)
-    { Vobarray = initial_obarray; }
+  if BASE_EQ ((*Vobarray.as_mut_ptr ()), obarray)
+    { (*Vobarray.as_mut_ptr ()) = (*initial_obarray.as_mut_ptr ()); }
 
   wrong_type_argument (Qobarrayp (), obarray)
 
@@ -5478,10 +5477,10 @@ unsafe fn intern_sym (sym: Lisp_Object, obarray: Lisp_Object, index: Lisp_Object
   eassert! (BARE_SYMBOL_P (sym) && OBARRAYP (obarray) && FIXNUMP (index));
   let s: *mut Lisp_Symbol = XBARE_SYMBOL (sym);
   set_symbol_bits! (interned, s,
-		    if BASE_EQ (obarray, initial_obarray)
+		    if BASE_EQ (obarray, (*initial_obarray.as_mut_ptr ()))
 		    { SYMBOL_INTERNED_IN_INITIAL_OBARRAY } else { SYMBOL_INTERNED });
 
-  if SREF ((*s).u.s.name, 0) == b':' as u8 && BASE_EQ (obarray, initial_obarray)
+  if SREF ((*s).u.s.name, 0) == b':' as u8 && BASE_EQ (obarray, (*initial_obarray.as_mut_ptr ()))
     {
       set_symbol_bits! (trapped_write, s, SYMBOL_NOWRITE);
       set_symbol_bits! (redirect, s, SYMBOL_PLAINVAL);
@@ -5523,7 +5522,7 @@ pub unsafe extern "C-unwind" fn intern_1 (str_: *const c_char, len: ptrdiff_t) -
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  let obarray: Lisp_Object = check_obarray (Vobarray);
+  let obarray: Lisp_Object = check_obarray ((*Vobarray.as_mut_ptr ()));
   let tem: Lisp_Object = oblookup (obarray, str_, len, len);
 
   if BARE_SYMBOL_P (tem) { tem }
@@ -5539,7 +5538,7 @@ pub unsafe extern "C-unwind" fn intern_c_string_1 (str_: *const c_char, len: ptr
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  let obarray: Lisp_Object = check_obarray (Vobarray);
+  let obarray: Lisp_Object = check_obarray ((*Vobarray.as_mut_ptr ()));
   let mut tem: Lisp_Object = oblookup (obarray, str_, len, len);
 
   if !BARE_SYMBOL_P (tem)
@@ -5562,7 +5561,7 @@ pub unsafe extern "C-unwind" fn intern_c_multibyte (str_: *const c_char, nchars:
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  let obarray: Lisp_Object = check_obarray (Vobarray);
+  let obarray: Lisp_Object = check_obarray ((*Vobarray.as_mut_ptr ()));
   let sym: Lisp_Object = oblookup (obarray, str_, nchars, nbytes);
   if BARE_SYMBOL_P (sym)
     { return sym; }
@@ -5583,9 +5582,9 @@ unsafe fn define_symbol (sym: Lisp_Object, str_: *const c_char)
      'unbound' created by a Lisp program.  */
   if !BASE_EQ (sym, Qunbound ())
     {
-      let bucket: Lisp_Object = oblookup (initial_obarray, str_, len, len);
+      let bucket: Lisp_Object = oblookup ((*initial_obarray.as_mut_ptr ()), str_, len, len);
       eassert! (FIXNUMP (bucket));
-      intern_sym (sym, initial_obarray, bucket);
+      intern_sym (sym, (*initial_obarray.as_mut_ptr ()), bucket);
     }
 
   }
@@ -5597,7 +5596,7 @@ DEFUN! ("intern", Fintern, Sintern, 1, 2, 0,
        {
 	 let mut tem: Lisp_Object;
 
-	 let obarray: Lisp_Object = check_obarray (if NILP (obarray) { Vobarray } else { obarray });
+	 let obarray: Lisp_Object = check_obarray (if NILP (obarray) { (*Vobarray.as_mut_ptr ()) } else { obarray });
 	 CHECK_STRING (string);
 
 	 tem = oblookup (obarray, SSDATA (string), SCHARS (string), SBYTES (string));
@@ -5615,7 +5614,7 @@ DEFUN! ("intern-soft", Fintern_soft, Sintern_soft, 1, 2, 0,
 	 let mut tem: Lisp_Object;
 	 let string: Lisp_Object;
 
-	 if NILP (obarray) { obarray = Vobarray; }
+	 if NILP (obarray) { obarray = (*Vobarray.as_mut_ptr ()); }
 	 obarray = check_obarray (obarray);
 
 	 if !SYMBOLP (name)
@@ -5651,7 +5650,7 @@ DEFUN! ("unintern", Funintern, Sunintern, 2, 2, 0,
        (name: Lisp_Object, obarray: Lisp_Object),
        {
 	 let mut obarray: Lisp_Object = obarray;
-	 if NILP (obarray) { obarray = Vobarray; }
+	 if NILP (obarray) { obarray = (*Vobarray.as_mut_ptr ()); }
 	 obarray = check_obarray (obarray);
 
 	 let sym: Lisp_Object;
@@ -5747,7 +5746,7 @@ unsafe fn oblookup_considering_shorthand (obarray: Lisp_Object, mut in_: *const 
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  let mut tail: Lisp_Object = Vread_symbol_shorthands;
+  let mut tail: Lisp_Object = (*Vread_symbol_shorthands.as_mut_ptr ());
 
   /* First, assume no transformation will take place.  */
   *out = std::ptr::null_mut ();
@@ -5971,7 +5970,7 @@ DEFUN! ("mapatoms", Fmapatoms, Smapatoms, 1, 2, 0,
        (function: Lisp_Object, obarray: Lisp_Object),
        {
 	 let mut obarray: Lisp_Object = obarray;
-	 if NILP (obarray) { obarray = Vobarray; }
+	 if NILP (obarray) { obarray = (*Vobarray.as_mut_ptr ()); }
 	 obarray = check_obarray (obarray);
 
 	 map_obarray (obarray, Some (mapatoms_1), function);
@@ -6017,8 +6016,7 @@ DEFUN! ("internal--obarray-buckets",
    rest in that file's order), because the reference's ordering is an internal detail of its
    build (the baseline's own note); `init_obarray_once` names every builtin symbol with it.  */
 #[cfg(not(feature = "have_ns"))]
-static mut defsym_name: [*const c_char; 2118] =
-[
+static defsym_name: VmGlobal<[*const c_char; 2118]> = VmGlobal::<[*const c_char; 2118]>::new ([
   c"nil".as_ptr (), c"t".as_ptr (), c"AEAD-ciphers".as_ptr (), c"ATOM".as_ptr (),
   c"Automatic GC".as_ptr (), c"CLIPBOARD".as_ptr (), c"CLIPBOARD_MANAGER".as_ptr (), c"COMPOUND_TEXT".as_ptr (),
   c":actions".as_ptr (), c":adstyle".as_ptr (), c":advertised-binding".as_ptr (), c":align-to".as_ptr (),
@@ -6553,9 +6551,9 @@ static mut defsym_name: [*const c_char; 2118] =
   c"xwidget-view-p".as_ptr (), c"xwidgetp".as_ptr (), c"y-or-n-p".as_ptr (), c"yes-or-no-p".as_ptr (),
   c"yes-or-no-p-history".as_ptr (), c"yi".as_ptr (), c"z-group".as_ptr (), c"zero-width".as_ptr (),
   c"zh".as_ptr (), c"zlib".as_ptr (),
-];
+]);
 #[cfg(feature = "have_ns")]
-static mut defsym_name: [*const c_char; lispsym_count] = include!(env!("FEMACS_SYMBOL_NAMES_RS"));
+static defsym_name: VmGlobal<[*const c_char; lispsym_count]> = VmGlobal::<[*const c_char; lispsym_count]>::new (include!(env!("FEMACS_SYMBOL_NAMES_RS")));
 
 
 #[unsafe(no_mangle)]
@@ -6563,9 +6561,9 @@ pub unsafe extern "C-unwind" fn init_obarray_once ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  Vobarray = make_obarray (15);
-  initial_obarray = Vobarray;
-  staticpro (&raw mut initial_obarray);
+  (*Vobarray.as_mut_ptr ()) = make_obarray (15);
+  (*initial_obarray.as_mut_ptr ()) = (*Vobarray.as_mut_ptr ());
+  staticpro (initial_obarray.as_mut_ptr ());
 
   /* C: `for (int i = 0; i < countof (lispsym); i++)` — the port's symbol set is the
      2118-symbol superset (P-29), so the bound is `lispsym_count`.  */
@@ -6589,10 +6587,10 @@ pub unsafe extern "C-unwind" fn init_obarray_once ()
              `assertion failed: STRINGP (a)` (device run, status 4.849).  Give the symbol the
              name string without putting it in the obarray.  */
           let s: *mut Lisp_Symbol = XBARE_SYMBOL (builtin_lisp_symbol (i));
-          (*s).u.s.name = build_string (defsym_name[i]);
+          (*s).u.s.name = build_string ((*defsym_name.as_mut_ptr ())[i]);
           i += 1; continue;
         }
-      define_symbol (builtin_lisp_symbol (i), defsym_name[i]);
+      define_symbol (builtin_lisp_symbol (i), (*defsym_name.as_mut_ptr ())[i]);
       i += 1;
     }
 
@@ -6609,7 +6607,7 @@ pub unsafe extern "C-unwind" fn init_obarray_once ()
   set_symbol_bits! (declared_special, XBARE_SYMBOL (Qt ()), true);
 
   /* Qt is correct even if not dumping.  loadup.el will set to nil at end.  */
-  Vpurify_flag = Qt ();
+  (*Vpurify_flag.as_mut_ptr ()) = Qt ();
 
   DEFSYM! (Qvariable_documentation, "variable-documentation");
 
@@ -6630,8 +6628,8 @@ pub unsafe extern "C-unwind" fn defsubr (aname: *mut Aligned_Lisp_Subr)
   set_symbol_function (sym, tem);
   #[cfg (feature = "have_native_comp")]
   {
-    eassert! (NILP (Vcomp_abi_hash));
-    Vcomp_subr_list = Fcons (tem, Vcomp_subr_list);
+    eassert! (NILP ((*Vcomp_abi_hash.as_mut_ptr ())));
+    (*Vcomp_subr_list.as_mut_ptr ()) = Fcons (tem, (*Vcomp_subr_list.as_mut_ptr ()));
   }
 
   }
@@ -6665,7 +6663,7 @@ pub unsafe extern "C-unwind" fn defvar_bool (b_fwd: *const Lisp_Fwd, namestring:
   set_symbol_bits! (declared_special, XBARE_SYMBOL (sym), true);
   set_symbol_bits! (redirect, XBARE_SYMBOL (sym), SYMBOL_FORWARDED);
   SET_SYMBOL_FWD (XBARE_SYMBOL (sym), b_fwd as *mut c_void);
-  Vbyte_boolean_vars = Fcons (sym, Vbyte_boolean_vars);
+  (*Vbyte_boolean_vars.as_mut_ptr ()) = Fcons (sym, (*Vbyte_boolean_vars.as_mut_ptr ()));
 
   }
 }
@@ -6761,7 +6759,7 @@ unsafe fn load_path_default () -> Lisp_Object
 
   lpath = decode_env_path (0 as *const c_char, PATH_LOADSEARCH (), false);
 
-  if !NILP (Vinstallation_directory)
+  if !NILP ((*Vinstallation_directory.as_mut_ptr ()))
     {
       let mut tem: Lisp_Object;
       let mut tem1: Lisp_Object;
@@ -6770,7 +6768,7 @@ unsafe fn load_path_default () -> Lisp_Object
 	 dir, if it is accessible.  Note: in out-of-tree builds,
 	 this directory is empty save for Makefile.  */
       tem = Fexpand_file_name (build_string (c"lisp".as_ptr ()),
-			       Vinstallation_directory);
+			       (*Vinstallation_directory.as_mut_ptr ()));
       tem1 = Ffile_accessible_directory_p (tem);
       if !NILP (tem1)
 	{
@@ -6793,10 +6791,10 @@ unsafe fn load_path_default () -> Lisp_Object
 	}
 
       /* Add site-lisp under the installation dir, if it exists.  */
-      if !no_site_lisp
+      if !(*no_site_lisp.as_mut_ptr ())
 	{
 	  tem = Fexpand_file_name (build_string (c"site-lisp".as_ptr ()),
-				   Vinstallation_directory);
+				   (*Vinstallation_directory.as_mut_ptr ()));
 	  tem1 = Ffile_accessible_directory_p (tem);
 	  if !NILP (tem1)
 	    {
@@ -6809,12 +6807,12 @@ unsafe fn load_path_default () -> Lisp_Object
 	 and it is run from where it was built, add to load-path
 	 the lisp and site-lisp dirs under that directory.  */
 
-      if NILP (Fequal (Vinstallation_directory, Vsource_directory))
+      if NILP (Fequal ((*Vinstallation_directory.as_mut_ptr ()), (*Vsource_directory.as_mut_ptr ())))
 	{
 	  let mut tem2: Lisp_Object;
 
 	  tem = Fexpand_file_name (build_string (c"src/Makefile".as_ptr ()),
-				   Vinstallation_directory);
+				   (*Vinstallation_directory.as_mut_ptr ()));
 	  tem1 = Ffile_exists_p (tem);
 
 	  /* Don't be fooled if they moved the entire source tree
@@ -6822,20 +6820,20 @@ unsafe fn load_path_default () -> Lisp_Object
 	     different from the source dir, src/Makefile.in and
 	     src/Makefile will not be found together.  */
 	  tem = Fexpand_file_name (build_string (c"src/Makefile.in".as_ptr ()),
-				   Vinstallation_directory);
+				   (*Vinstallation_directory.as_mut_ptr ()));
 	  tem2 = Ffile_exists_p (tem);
 	  if !NILP (tem1) && NILP (tem2)
 	    {
 	      tem = Fexpand_file_name (build_string (c"lisp".as_ptr ()),
-				       Vsource_directory);
+				       (*Vsource_directory.as_mut_ptr ()));
 
 	      if NILP (Fmember (tem, lpath))
 		{ lpath = Fcons (tem, lpath); }
 
-	      if !no_site_lisp
+	      if !(*no_site_lisp.as_mut_ptr ())
 		{
 		  tem = Fexpand_file_name (build_string (c"site-lisp".as_ptr ()),
-					   Vsource_directory);
+					   (*Vsource_directory.as_mut_ptr ()));
 		  tem1 = Ffile_accessible_directory_p (tem);
 		  if !NILP (tem1)
 		    {
@@ -6865,24 +6863,24 @@ pub unsafe extern "C-unwind" fn init_lread ()
 
   if use_loadpath && !egetenv (c"EMACSLOADPATH".as_ptr ()).is_null ()
     {
-      Vload_path = decode_env_path (c"EMACSLOADPATH".as_ptr (), 0 as *const c_char, true);
+      (*Vload_path.as_mut_ptr ()) = decode_env_path (c"EMACSLOADPATH".as_ptr (), 0 as *const c_char, true);
 
       /* Check (non-nil) user-supplied elements.  */
-      load_path_check (Vload_path);
+      load_path_check ((*Vload_path.as_mut_ptr ()));
 
       /* If no nils in the environment variable, use as-is.
 	 Otherwise, replace any nils with the default.  */
-      if !NILP (Fmemq (Qnil (), Vload_path))
+      if !NILP (Fmemq (Qnil (), (*Vload_path.as_mut_ptr ())))
 	{
 	  let mut elem: Lisp_Object;
-	  let mut elpath: Lisp_Object = Vload_path;
+	  let mut elpath: Lisp_Object = (*Vload_path.as_mut_ptr ());
 	  let mut default_lpath: Lisp_Object = load_path_default ();
 
 	  /* Check defaults, before adding site-lisp.  */
 	  load_path_check (default_lpath);
 
 	  /* Add the site-lisp directories to the front of the default.  */
-	  if !no_site_lisp && *PATH_SITELOADSEARCH () != 0
+	  if !(*no_site_lisp.as_mut_ptr ()) && *PATH_SITELOADSEARCH () != 0
 	    {
 	      let sitelisp: Lisp_Object;
 	      sitelisp = decode_env_path (0 as *const c_char, PATH_SITELOADSEARCH (), false);
@@ -6890,44 +6888,44 @@ pub unsafe extern "C-unwind" fn init_lread ()
 		{ default_lpath = nconc2 (sitelisp, default_lpath); }
 	    }
 
-	  Vload_path = Qnil ();
+	  (*Vload_path.as_mut_ptr ()) = Qnil ();
 
 	  /* Replace nils from EMACSLOADPATH by default.  */
 	  while CONSP (elpath)
 	    {
 	      elem = XCAR (elpath);
 	      elpath = XCDR (elpath);
-	      Vload_path = CALLN! (Fappend, Vload_path,
+	      (*Vload_path.as_mut_ptr ()) = CALLN! (Fappend, (*Vload_path.as_mut_ptr ()),
 				   if NILP (elem) { default_lpath } else { list1 (elem) });
 	    }
 	}                       /* Fmemq (Qnil, Vload_path) */
     }
   else
     {
-      Vload_path = load_path_default ();
+      (*Vload_path.as_mut_ptr ()) = load_path_default ();
 
       /* Check before adding site-lisp directories.
 	 The install should have created them, but they are not
 	 required, so no need to warn if they are absent.
 	 Or we might be running before installation.  */
-      load_path_check (Vload_path);
+      load_path_check ((*Vload_path.as_mut_ptr ()));
 
       /* Add the site-lisp directories at the front.  */
-      if !will_dump_p () && !no_site_lisp && *PATH_SITELOADSEARCH () != 0
+      if !will_dump_p () && !(*no_site_lisp.as_mut_ptr ()) && *PATH_SITELOADSEARCH () != 0
 	{
 	  let sitelisp: Lisp_Object;
 	  sitelisp = decode_env_path (0 as *const c_char, PATH_SITELOADSEARCH (), false);
-	  if !NILP (sitelisp) { Vload_path = nconc2 (sitelisp, Vload_path); }
+	  if !NILP (sitelisp) { (*Vload_path.as_mut_ptr ()) = nconc2 (sitelisp, (*Vload_path.as_mut_ptr ())); }
 	}
     }
 
-  Vvalues = Qnil ();
+  (*Vvalues.as_mut_ptr ()) = Qnil ();
 
-  load_in_progress = false;
-  Vload_file_name = Qnil ();
-  Vload_true_file_name = Qnil ();
-  Vstandard_input = Qt ();
-  Vloads_in_progress = Qnil ();
+  (*load_in_progress.as_mut_ptr ()) = false;
+  (*Vload_file_name.as_mut_ptr ()) = Qnil ();
+  (*Vload_true_file_name.as_mut_ptr ()) = Qnil ();
+  (*Vstandard_input.as_mut_ptr ()) = Qt ();
+  (*Vloads_in_progress.as_mut_ptr ()) = Qnil ();
 
   }
 }
@@ -6943,18 +6941,18 @@ pub unsafe extern "C-unwind" fn dir_warning (r#use: *const c_char, dirname: Lisp
   unsafe {
   let format: *const c_char = c"Warning: %s '%s': %s\n".as_ptr ();
   let diagnostic: *const c_char = emacs_strerror (*errno ());
-  fprintf (stderr, format, r#use, SSDATA (ENCODE_SYSTEM (dirname)), diagnostic);
+  fprintf ((*stderr.as_mut_ptr ()), format, r#use, SSDATA (ENCODE_SYSTEM (dirname)), diagnostic);
 
   /* Don't log the warning before we've initialized!!  */
-  if initialized
+  if (*initialized.as_mut_ptr ())
     {
       let mut diaglen: ptrdiff_t = strlen (diagnostic) as ptrdiff_t;
       AUTO_STRING_WITH_LEN! (diag, diagnostic, diaglen);
       let mut diagnostic: *const c_char = diagnostic;
-      if !NILP (Vlocale_coding_system)
+      if !NILP ((*Vlocale_coding_system.as_mut_ptr ()))
 	{
 	  let s: Lisp_Object
-	    = code_convert_string_norecord (diag, Vlocale_coding_system, false);
+	    = code_convert_string_norecord (diag, (*Vlocale_coding_system.as_mut_ptr ()), false);
 	  diagnostic = SSDATA (s);
 	  diaglen = SBYTES (s);
 	}
@@ -6983,106 +6981,106 @@ pub unsafe extern "C-unwind" fn dir_warning (r#use: *const c_char, dirname: Lisp
    same initial values C does.  */
 
 #[unsafe(no_mangle)]
-pub static mut Vobarray: Lisp_Object = lisp_h_Qnil ();
+pub static Vobarray: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 #[unsafe(no_mangle)]
-pub static mut Vvalues: Lisp_Object = lisp_h_Qnil ();
+pub static Vvalues: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 #[unsafe(no_mangle)]
-pub static mut Vstandard_input: Lisp_Object = lisp_h_Qnil ();
+pub static Vstandard_input: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 #[unsafe(no_mangle)]
-pub static mut Vread_circle: Lisp_Object = lisp_h_Qnil ();
+pub static Vread_circle: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 #[unsafe(no_mangle)]
-pub static mut Vload_path: Lisp_Object = lisp_h_Qnil ();
+pub static Vload_path: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 #[unsafe(no_mangle)]
-pub static mut Vload_suffixes: Lisp_Object = lisp_h_Qnil ();
+pub static Vload_suffixes: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 #[unsafe(no_mangle)]
-pub static mut Vmodule_file_suffix: Lisp_Object = lisp_h_Qnil ();
+pub static Vmodule_file_suffix: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 #[unsafe(no_mangle)]
-pub static mut Vdynamic_library_suffixes: Lisp_Object = lisp_h_Qnil ();
+pub static Vdynamic_library_suffixes: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 #[unsafe(no_mangle)]
-pub static mut Vload_file_rep_suffixes: Lisp_Object = lisp_h_Qnil ();
+pub static Vload_file_rep_suffixes: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 #[unsafe(no_mangle)]
-pub static mut Vafter_load_alist: Lisp_Object = lisp_h_Qnil ();
+pub static Vafter_load_alist: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 #[unsafe(no_mangle)]
-pub static mut Vload_history: Lisp_Object = lisp_h_Qnil ();
+pub static Vload_history: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 #[unsafe(no_mangle)]
-pub static mut Vload_file_name: Lisp_Object = lisp_h_Qnil ();
+pub static Vload_file_name: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 #[unsafe(no_mangle)]
-pub static mut Vload_true_file_name: Lisp_Object = lisp_h_Qnil ();
+pub static Vload_true_file_name: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 #[unsafe(no_mangle)]
-pub static mut Vuser_init_file: Lisp_Object = lisp_h_Qnil ();
+pub static Vuser_init_file: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 #[unsafe(no_mangle)]
-pub static mut Vcurrent_load_list: Lisp_Object = lisp_h_Qnil ();
+pub static Vcurrent_load_list: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 #[unsafe(no_mangle)]
-pub static mut Vload_read_function: Lisp_Object = lisp_h_Qnil ();
+pub static Vload_read_function: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 #[unsafe(no_mangle)]
-pub static mut Vload_source_file_function: Lisp_Object = lisp_h_Qnil ();
+pub static Vload_source_file_function: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 #[unsafe(no_mangle)]
-pub static mut Vsource_directory: Lisp_Object = lisp_h_Qnil ();
+pub static Vsource_directory: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 #[unsafe(no_mangle)]
-pub static mut Vpreloaded_file_list: Lisp_Object = lisp_h_Qnil ();
+pub static Vpreloaded_file_list: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 #[unsafe(no_mangle)]
-pub static mut Vbyte_boolean_vars: Lisp_Object = lisp_h_Qnil ();
+pub static Vbyte_boolean_vars: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 #[unsafe(no_mangle)]
-pub static mut Vbytecomp_version_regexp: Lisp_Object = lisp_h_Qnil ();
+pub static Vbytecomp_version_regexp: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 #[unsafe(no_mangle)]
-pub static mut Vlexical_binding: Lisp_Object = lisp_h_Qnil ();
+pub static Vlexical_binding: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 #[unsafe(no_mangle)]
-pub static mut Veval_buffer_list: Lisp_Object = lisp_h_Qnil ();
+pub static Veval_buffer_list: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 #[unsafe(no_mangle)]
-pub static mut Vlread_unescaped_character_literals: Lisp_Object = lisp_h_Qnil ();
+pub static Vlread_unescaped_character_literals: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 #[unsafe(no_mangle)]
-pub static mut Vload_path_filter_function: Lisp_Object = lisp_h_Qnil ();
+pub static Vload_path_filter_function: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 #[unsafe(no_mangle)]
-pub static mut Vinternal__get_default_lexical_binding_function: Lisp_Object = lisp_h_Qnil ();
+pub static Vinternal__get_default_lexical_binding_function: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 #[unsafe(no_mangle)]
-pub static mut Vread_symbol_shorthands: Lisp_Object = lisp_h_Qnil ();
+pub static Vread_symbol_shorthands: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 #[unsafe(no_mangle)]
-pub static mut Vmacroexp__dynvars: Lisp_Object = lisp_h_Qnil ();
+pub static Vmacroexp__dynvars: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 #[unsafe(no_mangle)]
-pub static mut load_in_progress: bool = false;
+pub static load_in_progress: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 #[unsafe(no_mangle)]
-pub static mut load_force_doc_strings: bool = false;
+pub static load_force_doc_strings: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 #[unsafe(no_mangle)]
-pub static mut load_dangerous_libraries: bool = false;
+pub static load_dangerous_libraries: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 #[unsafe(no_mangle)]
-pub static mut force_load_messages: bool = false;
+pub static force_load_messages: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 #[unsafe(no_mangle)]
-pub static mut load_prefer_newer: bool = false;
+pub static load_prefer_newer: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 #[unsafe(no_mangle)]
-pub static mut load_no_native: bool = false;
+pub static load_no_native: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn syms_of_lread ()
@@ -7090,23 +7088,23 @@ pub unsafe extern "C-unwind" fn syms_of_lread ()
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
 
-  defsubr (&raw mut Sread);
-  defsubr (&raw mut Sread_positioning_symbols);
-  defsubr (&raw mut Sread_from_string);
-  defsubr (&raw mut Slread__substitute_object_in_subtree);
-  defsubr (&raw mut Sintern);
-  defsubr (&raw mut Sintern_soft);
-  defsubr (&raw mut Sunintern);
-  defsubr (&raw mut Sget_load_suffixes);
-  defsubr (&raw mut Sload);
-  defsubr (&raw mut Seval_buffer);
-  defsubr (&raw mut Seval_region);
-  defsubr (&raw mut Smapatoms);
-  defsubr (&raw mut Slocate_file_internal);
-  defsubr (&raw mut Sinternal__obarray_buckets);
-  defsubr (&raw mut Sobarray_make);
-  defsubr (&raw mut Sobarrayp);
-  defsubr (&raw mut Sobarray_clear);
+  defsubr (Sread.as_mut_ptr ());
+  defsubr (Sread_positioning_symbols.as_mut_ptr ());
+  defsubr (Sread_from_string.as_mut_ptr ());
+  defsubr (Slread__substitute_object_in_subtree.as_mut_ptr ());
+  defsubr (Sintern.as_mut_ptr ());
+  defsubr (Sintern_soft.as_mut_ptr ());
+  defsubr (Sunintern.as_mut_ptr ());
+  defsubr (Sget_load_suffixes.as_mut_ptr ());
+  defsubr (Sload.as_mut_ptr ());
+  defsubr (Seval_buffer.as_mut_ptr ());
+  defsubr (Seval_region.as_mut_ptr ());
+  defsubr (Smapatoms.as_mut_ptr ());
+  defsubr (Slocate_file_internal.as_mut_ptr ());
+  defsubr (Sinternal__obarray_buckets.as_mut_ptr ());
+  defsubr (Sobarray_make.as_mut_ptr ());
+  defsubr (Sobarrayp.as_mut_ptr ());
+  defsubr (Sobarray_clear.as_mut_ptr ());
   DEFVAR_LISP! (c"obarray", Vobarray,
 	       " Symbol table for use by `intern' and `read'.\nIt is a vector whose length ought to be prime for best results.\nThe vector's contents don't make sense if examined from Lisp programs;\nto find all the symbols in an obarray, use `mapatoms'.  ");
   DEFVAR_LISP! (c"values", Vvalues,
@@ -7114,125 +7112,125 @@ pub unsafe extern "C-unwind" fn syms_of_lread ()
     set_symbol_bits! (declared_special, XBARE_SYMBOL (intern (c"values".as_ptr ())), false);
   DEFVAR_LISP! (c"standard-input", Vstandard_input,
 	       " Stream for read to get input from.\nSee documentation of `read' for possible values.  ");
-    Vstandard_input = Qt ();
+    (*Vstandard_input.as_mut_ptr ()) = Qt ();
   DEFVAR_LISP! (c"read-circle", Vread_circle,
 	       "Non-nil means read recursive structures using #N= and #N# syntax.");
-    Vread_circle = Qt ();
+    (*Vread_circle.as_mut_ptr ()) = Qt ();
   DEFVAR_LISP! (c"load-path", Vload_path,
 	       " List of directories to search for files to load.\nEach element is a string (directory file name) or nil (meaning\n`default-directory').\nThis list is consulted by the `require' function.\nInitialized during startup as described in Info node `(elisp)Library Search'.\nUse `directory-file-name' when adding items to this path.  However, Lisp\nprograms that process this list should tolerate directories both with\nand without trailing slashes.  ");
   DEFVAR_LISP! (c"load-suffixes", Vload_suffixes,
 	       " List of suffixes for Emacs Lisp files and dynamic modules.\nThis list includes suffixes for both compiled and source Emacs Lisp files.\nThis list should not include the empty string.\n`load' and related functions try to append these suffixes, in order,\nto the specified file name if a suffix is allowed or required.  ");
-    Vload_suffixes = list2 (build_string (c".elc".as_ptr ()),
+    (*Vload_suffixes.as_mut_ptr ()) = list2 (build_string (c".elc".as_ptr ()),
 			  build_string (c".el".as_ptr ()));
 // C: `#ifdef HAVE_MODULES`
     #[cfg (feature = "have_modules")]
-  { Vload_suffixes = Fcons (build_string (MODULES_SUFFIX.as_ptr ()), Vload_suffixes); }
+  { (*Vload_suffixes.as_mut_ptr ()) = Fcons (build_string (MODULES_SUFFIX.as_ptr ()), (*Vload_suffixes.as_mut_ptr ())); }
   #[cfg (feature = "modules_secondary_suffix")]
-  { Vload_suffixes = Fcons (build_string (MODULES_SECONDARY_SUFFIX.as_ptr ()), Vload_suffixes); }
+  { (*Vload_suffixes.as_mut_ptr ()) = Fcons (build_string (MODULES_SECONDARY_SUFFIX.as_ptr ()), (*Vload_suffixes.as_mut_ptr ())); }
 // C: `#ifdef MODULES_SECONDARY_SUFFIX`
 // C: `#endif`
   DEFVAR_LISP! (c"module-file-suffix", Vmodule_file_suffix,
 	       "Suffix of loadable module file, or nil if modules are not supported.");
 // C: `#ifdef HAVE_MODULES`
     #[cfg (feature = "have_modules")]
-  { Vmodule_file_suffix = build_string (MODULES_SUFFIX.as_ptr ()); }
+  { (*Vmodule_file_suffix.as_mut_ptr ()) = build_string (MODULES_SUFFIX.as_ptr ()); }
 // C: `#else`
     #[cfg (not (feature = "have_modules"))]
-  { Vmodule_file_suffix = Qnil (); }
+  { (*Vmodule_file_suffix.as_mut_ptr ()) = Qnil (); }
 // C: `#endif`
   DEFVAR_LISP! (c"dynamic-library-suffixes", Vdynamic_library_suffixes,
 	       "A list of suffixes for loadable dynamic libraries.");
 // C: `#ifndef MSDOS`
     #[cfg (not (feature = "msdos"))]
   {
-    Vdynamic_library_suffixes = Qnil ();
+    (*Vdynamic_library_suffixes.as_mut_ptr ()) = Qnil ();
     #[cfg (target_os = "macos")]
-    { Vdynamic_library_suffixes = Fcons (build_string (DYNAMIC_LIB_SECONDARY_SUFFIX),
-                                       Vdynamic_library_suffixes); }
-    Vdynamic_library_suffixes = Fcons (build_string (DYNAMIC_LIB_SUFFIX),
-                                     Vdynamic_library_suffixes);
+    { (*Vdynamic_library_suffixes.as_mut_ptr ()) = Fcons (build_string (DYNAMIC_LIB_SECONDARY_SUFFIX),
+                                       (*Vdynamic_library_suffixes.as_mut_ptr ())); }
+    (*Vdynamic_library_suffixes.as_mut_ptr ()) = Fcons (build_string (DYNAMIC_LIB_SUFFIX),
+                                     (*Vdynamic_library_suffixes.as_mut_ptr ()));
   }
 // C: `#else`
     #[cfg (feature = "msdos")]
-  { Vdynamic_library_suffixes = Qnil (); }
+  { (*Vdynamic_library_suffixes.as_mut_ptr ()) = Qnil (); }
 // C: `#endif`
   DEFVAR_LISP! (c"load-file-rep-suffixes", Vload_file_rep_suffixes,
 	       " List of suffixes that indicate representations of the same file.\nThis list should normally start with the empty string.\n\nEnabling Auto Compression mode appends the suffixes in\n`jka-compr-load-suffixes' to this list and disabling Auto Compression\nmode removes them again.  `load' and related functions use this list to\ndetermine whether they should look for compressed versions of a file\nand, if so, which suffixes they should try to append to the file name\nin order to do so.  However, if you want to customize which suffixes\nthe loading functions recognize as compression suffixes, you should\ncustomize `jka-compr-load-suffixes' rather than the present variable.  ");
-    Vload_file_rep_suffixes = list1 (empty_unibyte_string);
+    (*Vload_file_rep_suffixes.as_mut_ptr ()) = list1 ((*empty_unibyte_string.as_mut_ptr ()));
   DEFSYM! (Qjka_compr_load_suffixes, "jka-compr-load-suffixes");
   DEFVAR_BOOL! (c"load-in-progress", load_in_progress,
 	       "Non-nil if inside of `load'.");
   DEFSYM! (Qload_in_progress, "load-in-progress");
   DEFVAR_LISP! (c"after-load-alist", Vafter_load_alist,
 	       " An alist of functions to be evalled when particular files are loaded.\nEach element looks like (REGEXP-OR-FEATURE FUNCS...).\n\nREGEXP-OR-FEATURE is either a regular expression to match file names, or\na symbol (a feature name).\n\nWhen `load' is run and the file-name argument matches an element's\nREGEXP-OR-FEATURE, or when `provide' is run and provides the symbol\nREGEXP-OR-FEATURE, the FUNCS in the element are called.\n\nAn error in FUNCS does not undo the load, but does prevent calling\nthe rest of the FUNCS.  ");
-  Vafter_load_alist = Qnil ();
+  (*Vafter_load_alist.as_mut_ptr ()) = Qnil ();
   DEFVAR_LISP! (c"load-history", Vload_history,
 	       " Alist mapping loaded file names to symbols and features.\nEach alist element should be a list (FILE-NAME ENTRIES...), where\nFILE-NAME is the name of a file that has been loaded into Emacs.\nThe file name is absolute.\nAs an exception, one of the alist elements may have FILE-NAME nil,\nfor symbols and features not associated with any file.\n\nThe remaining ENTRIES in the alist element describe the functions and\nvariables defined in that file, the features provided, and the\nfeatures required.  Each entry has the form `(provide . FEATURE)',\n`(require . FEATURE)', `(defun . FUNCTION)', `(defface . SYMBOL)',\n `(define-type . SYMBOL)', or `(cl-defmethod METHOD SPECIALIZERS)'.\nIn addition, entries may also be single symbols,\nwhich means that symbol was defined by `defvar' or `defconst'.\n\nDuring preloading, the file name recorded is relative to the main Lisp\ndirectory.  These file names are converted to absolute at startup.  ");
-  Vload_history = Qnil ();
+  (*Vload_history.as_mut_ptr ()) = Qnil ();
   DEFVAR_LISP! (c"load-file-name", Vload_file_name,
 	       " Full name of file being loaded by `load'.\n\nIn case of native code being loaded this is indicating the\ncorresponding bytecode filename.  Use `load-true-file-name' to obtain\nthe .eln filename.  ");
-  Vload_file_name = Qnil ();
+  (*Vload_file_name.as_mut_ptr ()) = Qnil ();
   DEFVAR_LISP! (c"load-true-file-name", Vload_true_file_name,
 	       "Full name of file being loaded by `load'.");
-  Vload_true_file_name = Qnil ();
+  (*Vload_true_file_name.as_mut_ptr ()) = Qnil ();
   DEFVAR_LISP! (c"user-init-file", Vuser_init_file,
 	       " File name, including directory, of user's initialization file.\nIf the file loaded had extension `.elc', and the corresponding source file\nexists, this variable contains the name of source file, suitable for use\nby functions like `custom-save-all' which edit the init file.\nWhile Emacs loads and evaluates any init file, value is the real name\nof the file, regardless of whether or not it has the `.elc' extension.  ");
-  Vuser_init_file = Qnil ();
+  (*Vuser_init_file.as_mut_ptr ()) = Qnil ();
   DEFVAR_LISP! (c"current-load-list", Vcurrent_load_list,
 	       "Used for internal purposes by `load'.");
-  Vcurrent_load_list = Qnil ();
+  (*Vcurrent_load_list.as_mut_ptr ()) = Qnil ();
   DEFVAR_LISP! (c"load-read-function", Vload_read_function,
 	       " Function used for reading expressions.\nIt is used by `load' and `eval-region'.\n\nCalled with a single argument (the stream from which to read).\nThe default is to use the function `read'.  ");
   DEFSYM! (Qread, "read");
-  Vload_read_function = Qread ();
+  (*Vload_read_function.as_mut_ptr ()) = Qread ();
   DEFVAR_LISP! (c"load-source-file-function", Vload_source_file_function,
 	       " Function called in `load' to load an Emacs Lisp source file.\nThe value should be a function for doing code conversion before\nreading a source file.  It can also be nil, in which case loading is\ndone without any code conversion.\n\nIf the value is a function, it is called with four arguments,\nFULLNAME, FILE, NOERROR, NOMESSAGE.  FULLNAME is the absolute name of\nthe file to load, FILE is the non-absolute name (for messages etc.),\nand NOERROR and NOMESSAGE are the corresponding arguments passed to\n`load'.  The function should return t if the file was loaded.  ");
-  Vload_source_file_function = Qnil ();
+  (*Vload_source_file_function.as_mut_ptr ()) = Qnil ();
   DEFVAR_BOOL! (c"load-force-doc-strings", load_force_doc_strings,
 	       " Non-nil means `load' should force-load all dynamic doc strings.\nThis is useful when the file being loaded is a temporary copy.  ");
-  load_force_doc_strings = false;
+  (*load_force_doc_strings.as_mut_ptr ()) = false;
   DEFVAR_LISP! (c"source-directory", Vsource_directory,
 	       " Directory in which Emacs sources were found when Emacs was built.\nYou cannot count on them to still be there!  ");
-  Vsource_directory = Fexpand_file_name (build_string (c"../".as_ptr ()),
+  (*Vsource_directory.as_mut_ptr ()) = Fexpand_file_name (build_string (c"../".as_ptr ()),
 					   Fcar (decode_env_path (std::ptr::null (),
 								  PATH_DUMPLOADSEARCH (), false)));
   DEFVAR_LISP! (c"preloaded-file-list", Vpreloaded_file_list,
 	       "List of files that were preloaded (when dumping Emacs).");
-  Vpreloaded_file_list = Qnil ();
+  (*Vpreloaded_file_list.as_mut_ptr ()) = Qnil ();
   DEFVAR_LISP! (c"byte-boolean-vars", Vbyte_boolean_vars,
 	       "List of all DEFVAR_BOOL variables, used by the byte code optimizer.");
-  Vbyte_boolean_vars = Qnil ();
+  (*Vbyte_boolean_vars.as_mut_ptr ()) = Qnil ();
   DEFVAR_BOOL! (c"load-dangerous-libraries", load_dangerous_libraries,
 	       " Non-nil means load dangerous compiled Lisp files.\nSome versions of XEmacs use different byte codes than Emacs.  These\nincompatible byte codes can make Emacs crash when it tries to execute\nthem.  ");
-  load_dangerous_libraries = false;
+  (*load_dangerous_libraries.as_mut_ptr ()) = false;
   DEFVAR_BOOL! (c"force-load-messages", force_load_messages,
 	       " Non-nil means force printing messages when loading Lisp files.\nThis overrides the value of the NOMESSAGE argument to `load'.  ");
-  force_load_messages = false;
+  (*force_load_messages.as_mut_ptr ()) = false;
   DEFVAR_LISP! (c"bytecomp-version-regexp", Vbytecomp_version_regexp,
 	       " Regular expression matching safe to load compiled Lisp files.\nWhen Emacs loads a compiled Lisp file, it reads the first 512 bytes\nfrom the file, and matches them against this regular expression.\nWhen the regular expression matches, the file is considered to be safe\nto load.  ");
-  Vbytecomp_version_regexp = build_string (c"^;;;.\\(in Emacs version\\|bytecomp version FSF\\)".as_ptr ());
+  (*Vbytecomp_version_regexp.as_mut_ptr ()) = build_string (c"^;;;.\\(in Emacs version\\|bytecomp version FSF\\)".as_ptr ());
   DEFSYM! (Qlexical_binding, "lexical-binding");
   DEFVAR_LISP! (c"lexical-binding", Vlexical_binding,
 	       " Whether to use lexical binding when evaluating code.\nNon-nil means that the code in the current buffer should be evaluated\nwith lexical binding.\nThis variable is automatically set from the file variables of an\ninterpreted Lisp file read using `load'.  Unlike other file local\nvariables, this must be set in the first line of a file.  ");
-  Vlexical_binding = Qnil ();
+  (*Vlexical_binding.as_mut_ptr ()) = Qnil ();
   Fmake_variable_buffer_local (Qlexical_binding ());
   DEFVAR_LISP! (c"eval-buffer-list", Veval_buffer_list,
 	       "List of buffers being read from by calls to `eval-buffer' and `eval-region'.");
-  Veval_buffer_list = Qnil ();
+  (*Veval_buffer_list.as_mut_ptr ()) = Qnil ();
   DEFVAR_LISP! (c"lread--unescaped-character-literals", Vlread_unescaped_character_literals,
 	       " List of deprecated unescaped character literals encountered by `read'.\nFor internal use only.  ");
-  Vlread_unescaped_character_literals = Qnil ();
+  (*Vlread_unescaped_character_literals.as_mut_ptr ()) = Qnil ();
   DEFSYM! (Qlread_unescaped_character_literals, "lread--unescaped-character-literals");
   DEFSYM! (Qbyte_run_unescaped_character_literals_warning, "byte-run--unescaped-character-literals-warning");
   DEFVAR_BOOL! (c"load-prefer-newer", load_prefer_newer,
 	       " Non-nil means `load' prefers the newest version of a file.\nThis applies when a filename suffix is not explicitly specified and\n`load' is trying various possible suffixes (see `load-suffixes' and\n`load-file-rep-suffixes').  Normally, it stops at the first file\nthat exists unless you explicitly specify one or the other.  If this\noption is non-nil, it checks all suffixes and uses whichever file is\nnewest.\nNote that if you customize this, obviously it will not affect files\nthat are loaded before your customizations are read!  ");
-  load_prefer_newer = false;
+  (*load_prefer_newer.as_mut_ptr ()) = false;
   DEFVAR_BOOL! (c"load-no-native", load_no_native,
 	       " Non-nil means not to load native code unless explicitly requested.\n\nTo load a `.eln' file when this variable is non-nil, use `(load FILE)'\nwhere FILE is the filename of the eln file, including the .eln extension.\n`load-no-native' non-nil will also make Emacs not load native code\nthrough `require'.  ");
-  load_no_native = false;
+  (*load_no_native.as_mut_ptr ()) = false;
   DEFVAR_LISP! (c"load-path-filter-function", Vload_path_filter_function,
 	       " If non-nil, a function to filter `load-path' for `load'.\n\nIf this variable is a function, it is called when `load' is about to\nsearch for a file along `load-path'.  This function is called with three\narguments: the current value of `load-path' (a list of directories),\nthe FILE argument to `load', and the current list of load-suffixes.\n\nIt should return a (hopefully shorter) list of directories, which `load'\nwill use instead of `load-path' to look for the file to load.  ");
-  Vload_path_filter_function = Qnil ();
+  (*Vload_path_filter_function.as_mut_ptr ()) = Qnil ();
   DEFSYM! (Qcurrent_load_list, "current-load-list");
   DEFSYM! (Qstandard_input, "standard-input");
   DEFSYM! (Qread_char, "read-char");
@@ -7252,9 +7250,9 @@ pub unsafe extern "C-unwind" fn syms_of_lread ()
     let mut negative: c_int = 0;
     while negative < 2
       {
-	not_a_number[negative as usize]
+	(*not_a_number.as_mut_ptr ())[negative as usize]
 	  = build_string (c"-0.0e+NaN".as_ptr ().offset (if negative == 0 { 1 } else { 0 }));
-	staticpro (&raw mut not_a_number[negative as usize]);
+	staticpro (&raw mut (*not_a_number.as_mut_ptr ())[negative as usize]);
 	negative += 1;
       }
   }
@@ -7268,13 +7266,13 @@ pub unsafe extern "C-unwind" fn syms_of_lread ()
   DEFSYM! (Qdir_ok, "dir-ok");
   DEFSYM! (Qdo_after_load_evaluation, "do-after-load-evaluation");
 
-  staticpro (&raw mut read_objects_map);
-  read_objects_map = Qnil ();
-  staticpro (&raw mut read_objects_completed);
-  read_objects_completed = Qnil ();
+  staticpro (read_objects_map.as_mut_ptr ());
+  (*read_objects_map.as_mut_ptr ()) = Qnil ();
+  staticpro (read_objects_completed.as_mut_ptr ());
+  (*read_objects_completed.as_mut_ptr ()) = Qnil ();
 
-  Vloads_in_progress = Qnil ();
-  staticpro (&raw mut Vloads_in_progress);
+  (*Vloads_in_progress.as_mut_ptr ()) = Qnil ();
+  staticpro (Vloads_in_progress.as_mut_ptr ());
 
   DEFSYM! (Qhash_table, "hash-table");
   DEFSYM! (Qdata, "data");
@@ -7288,19 +7286,19 @@ pub unsafe extern "C-unwind" fn syms_of_lread ()
   DEFVAR_LISP! (c"internal--get-default-lexical-binding-function",
 	       Vinternal__get_default_lexical_binding_function,
 	       "Function to decide default lexical-binding.");
-  Vinternal__get_default_lexical_binding_function = Qnil ();
+  (*Vinternal__get_default_lexical_binding_function.as_mut_ptr ()) = Qnil ();
 
   DEFSYM! (Qread_symbol_shorthands, "read-symbol-shorthands");
   DEFVAR_LISP! (c"read-symbol-shorthands", Vread_symbol_shorthands,
 	       "Alist of known symbol-name shorthands.\nThis variable's value can only be set via file-local variables.\nSee Info node `(elisp)Shorthands' for more details.");
-  Vread_symbol_shorthands = Qnil ();
+  (*Vread_symbol_shorthands.as_mut_ptr ()) = Qnil ();
   DEFSYM! (Qobarray_cache, "obarray-cache");
   DEFSYM! (Qobarrayp, "obarrayp");
 
   DEFSYM! (Qmacroexp__dynvars, "macroexp--dynvars");
   DEFVAR_LISP! (c"macroexp--dynvars", Vmacroexp__dynvars,
 	       "List of variables declared dynamic in the current scope.\nOnly valid during macro-expansion.  Internal use only.");
-  Vmacroexp__dynvars = Qnil ();
+  (*Vmacroexp__dynvars.as_mut_ptr ()) = Qnil ();
 
   DEFSYM! (Qinternal_macroexpand_for_load,
 	  "internal-macroexpand-for-load");

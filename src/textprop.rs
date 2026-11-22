@@ -70,13 +70,13 @@ unsafe extern "C" {
 // port's `include/globals.rs` mirrors the names as declarations, so the unit that owns one
 // defines it here (status 3.29, the casefiddle.rs/casetab.rs shape).
 #[unsafe(no_mangle)]
-pub static mut Vdefault_text_properties: Lisp_Object = lisp_h_Qnil ();
+pub static Vdefault_text_properties: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vchar_property_alias_alist: Lisp_Object = lisp_h_Qnil ();
+pub static Vchar_property_alias_alist: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vinhibit_point_motion_hooks: Lisp_Object = lisp_h_Qnil ();
+pub static Vinhibit_point_motion_hooks: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vtext_property_default_nonsticky: Lisp_Object = lisp_h_Qnil ();
+pub static Vtext_property_default_nonsticky: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* Test for membership, allowing for t (actually any non-cons) to mean the
    universal set.  */
@@ -121,9 +121,9 @@ macro_rules! PLIST_ELT_P {
 /* verify_interval_modification saves insertion hooks here
    to be run later by report_interval_modification.  */
 #[unsafe(no_mangle)]
-pub static mut interval_insert_behind_hooks: Lisp_Object = lisp_h_Qnil ();
+pub static interval_insert_behind_hooks: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut interval_insert_in_front_hooks: Lisp_Object = lisp_h_Qnil ();
+pub static interval_insert_in_front_hooks: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* Signal a `text-read-only' error.  This function makes it easier
    to capture that error in GDB by putting a breakpoint on it.  */
@@ -2010,7 +2010,7 @@ pub unsafe extern "C-unwind" fn text_property_stickiness (prop: Lisp_Object, pos
   let mut front_sticky: Lisp_Object = Qnil ();
   let mut is_rear_sticky: bool = true;
   let mut is_front_sticky: bool = false; /* defaults */
-  let defalt: Lisp_Object = Fassq (prop, Vtext_property_default_nonsticky);
+  let defalt: Lisp_Object = Fassq (prop, (*Vtext_property_default_nonsticky.as_mut_ptr ()));
   let mut buffer = buffer;
 
   if NILP (buffer)
@@ -2356,8 +2356,8 @@ pub unsafe extern "C-unwind" fn verify_interval_modification (buf: *mut buffer, 
   prev_mod_hooks = Qnil ();
   mod_hooks = Qnil ();
 
-  interval_insert_behind_hooks = Qnil ();
-  interval_insert_in_front_hooks = Qnil ();
+  (*interval_insert_behind_hooks.as_mut_ptr ()) = Qnil ();
+  (*interval_insert_in_front_hooks.as_mut_ptr ()) = Qnil ();
 
   if intervals.is_null ()
     { return; }
@@ -2392,7 +2392,7 @@ pub unsafe extern "C-unwind" fn verify_interval_modification (buf: *mut buffer, 
 
       /* If Vinhibit_read_only is set and is not a list, we can
 	 skip the read_only checks.  */
-      if NILP (Vinhibit_read_only) || CONSP (Vinhibit_read_only)
+      if NILP ((*Vinhibit_read_only.as_mut_ptr ())) || CONSP ((*Vinhibit_read_only.as_mut_ptr ()))
 	{
 	  /* If I and PREV differ we need to check for the read-only
 	     property together with its stickiness.  If either I or
@@ -2409,7 +2409,7 @@ pub unsafe extern "C-unwind" fn verify_interval_modification (buf: *mut buffer, 
 		     front-sticky, inhibit insertion.
 		     Check for read-only as well as category.  */
 		  if ! NILP (after)
-		      && NILP (Fmemq (after, Vinhibit_read_only))
+		      && NILP (Fmemq (after, (*Vinhibit_read_only.as_mut_ptr ())))
 		    {
 		      let mut tem: Lisp_Object = Qnil ();
 
@@ -2430,7 +2430,7 @@ pub unsafe extern "C-unwind" fn verify_interval_modification (buf: *mut buffer, 
 		     rear-nonsticky, inhibit insertion.
 		     Check for read-only as well as category.  */
 		  if ! NILP (before)
-		      && NILP (Fmemq (before, Vinhibit_read_only))
+		      && NILP (Fmemq (before, (*Vinhibit_read_only.as_mut_ptr ())))
 		    {
 		      let mut tem: Lisp_Object = Qnil ();
 
@@ -2451,7 +2451,7 @@ pub unsafe extern "C-unwind" fn verify_interval_modification (buf: *mut buffer, 
 	      /* If interval I is read-only and read-only is
 		 front-sticky, inhibit insertion.
 		 Check for read-only as well as category.  */
-	      if ! NILP (after) && NILP (Fmemq (after, Vinhibit_read_only))
+	      if ! NILP (after) && NILP (Fmemq (after, (*Vinhibit_read_only.as_mut_ptr ())))
 		{
 		  let mut tem: Lisp_Object = Qnil ();
 
@@ -2473,10 +2473,10 @@ pub unsafe extern "C-unwind" fn verify_interval_modification (buf: *mut buffer, 
 
       /* Run both insert hooks (just once if they're the same).  */
       if !prev.is_null ()
-	{ interval_insert_behind_hooks
+	{ (*interval_insert_behind_hooks.as_mut_ptr ())
 	    = textget ((*((prev) as *mut interval)).plist, Qinsert_behind_hooks ()); }
       if !i.is_null ()
-	{ interval_insert_in_front_hooks
+	{ (*interval_insert_in_front_hooks.as_mut_ptr ())
 	    = textget ((*((i) as *mut interval)).plist, Qinsert_in_front_hooks ()); }
     }
   else
@@ -2490,7 +2490,7 @@ pub unsafe extern "C-unwind" fn verify_interval_modification (buf: *mut buffer, 
       i = find_interval (intervals, start);
       p = 0;
       buffer_read_only = (!NILP (BVAR! ((current_buffer! ()), read_only_))
-			  && NILP (Vinhibit_read_only));
+			  && NILP ((*Vinhibit_read_only.as_mut_ptr ())));
       loop
 	{
 	  let mut implied: bool;
@@ -2507,7 +2507,7 @@ pub unsafe extern "C-unwind" fn verify_interval_modification (buf: *mut buffer, 
 	  else if !express && buffer_read_only
 	    { xsignal1 (Qbuffer_read_only (), Fcurrent_buffer ()); }
 
-	  if !inhibit_modification_hooks
+	  if !(*inhibit_modification_hooks.as_mut_ptr ())
 	    {
 	      mod_hooks = textget ((*((i) as *mut interval)).plist,
 				   Qmodification_hooks ());
@@ -2531,7 +2531,7 @@ pub unsafe extern "C-unwind" fn verify_interval_modification (buf: *mut buffer, 
       if p < end && buffer_read_only
 	{ xsignal1 (Qbuffer_read_only (), Fcurrent_buffer ()); }
 
-      if !inhibit_modification_hooks
+      if !(*inhibit_modification_hooks.as_mut_ptr ())
 	{
 	  hooks = Fnreverse (hooks);
 	  while ! NILP (hooks)
@@ -2556,12 +2556,12 @@ pub unsafe extern "C-unwind" fn report_interval_modification (start: Lisp_Object
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  if ! NILP (interval_insert_behind_hooks)
-    { call_mod_hooks (interval_insert_behind_hooks, start, end); }
-  if ! NILP (interval_insert_in_front_hooks)
-      && ! EQ (interval_insert_in_front_hooks,
-	       interval_insert_behind_hooks)
-    { call_mod_hooks (interval_insert_in_front_hooks, start, end); }
+  if ! NILP ((*interval_insert_behind_hooks.as_mut_ptr ()))
+    { call_mod_hooks ((*interval_insert_behind_hooks.as_mut_ptr ()), start, end); }
+  if ! NILP ((*interval_insert_in_front_hooks.as_mut_ptr ()))
+      && ! EQ ((*interval_insert_in_front_hooks.as_mut_ptr ()),
+	       (*interval_insert_behind_hooks.as_mut_ptr ()))
+    { call_mod_hooks ((*interval_insert_in_front_hooks.as_mut_ptr ()), start, end); }
 
   }
 }
@@ -2574,29 +2574,29 @@ pub unsafe extern "C-unwind" fn syms_of_textprop ()
   unsafe {
   DEFVAR_LISP! (c"default-text-properties", Vdefault_text_properties,
 		"Property-list used as default values.\nThe value of a property in this list is seen as the value for every\ncharacter that does not have its own value for that property.  ");
-  Vdefault_text_properties = Qnil ();
+  (*Vdefault_text_properties.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"char-property-alias-alist", Vchar_property_alias_alist,
 		"Alist of alternative properties for properties without a value.\nEach element should look like (PROPERTY ALTERNATIVE1 ALTERNATIVE2...).\nIf a piece of text has no direct value for a particular property, then\nthis alist is consulted.  If that property appears in the alist, then\nthe first non-nil value from the associated alternative properties is\nreturned. ");
-  Vchar_property_alias_alist = Qnil ();
+  (*Vchar_property_alias_alist.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"inhibit-point-motion-hooks", Vinhibit_point_motion_hooks,
 		"If non-nil, don't run `point-left' and `point-entered' text properties.\nThis also inhibits the use of the `intangible' text property.  ");
-  Vinhibit_point_motion_hooks = Qt ();
+  (*Vinhibit_point_motion_hooks.as_mut_ptr ()) = Qt ();
 
   DEFVAR_LISP! (c"text-property-default-nonsticky",
 		Vtext_property_default_nonsticky,
 		"Alist of properties vs the corresponding non-stickiness.\nEach element has the form (PROPERTY . NONSTICKINESS).\n\nIf a character in a buffer has PROPERTY, new text inserted adjacent to\nthe character doesn't inherit PROPERTY if NONSTICKINESS is non-nil,\ninherits it if NONSTICKINESS is nil.  The `front-sticky' and\n`rear-nonsticky' properties of the character override NONSTICKINESS.  ");
   /* Text properties `syntax-table'and `display' should be nonsticky
      by default.  */
-  Vtext_property_default_nonsticky
+  (*Vtext_property_default_nonsticky.as_mut_ptr ())
     = list2 (Fcons (Qsyntax_table (), Qt ()), Fcons (Qdisplay (), Qt ()));
   Fmake_variable_buffer_local (Qtext_property_default_nonsticky ());
 
-  interval_insert_behind_hooks = Qnil ();
-  interval_insert_in_front_hooks = Qnil ();
-  staticpro (&raw const interval_insert_behind_hooks);
-  staticpro (&raw const interval_insert_in_front_hooks);
+  (*interval_insert_behind_hooks.as_mut_ptr ()) = Qnil ();
+  (*interval_insert_in_front_hooks.as_mut_ptr ()) = Qnil ();
+  staticpro (interval_insert_behind_hooks.as_ptr ());
+  staticpro (interval_insert_in_front_hooks.as_ptr ());
 
   /* Common attributes one might give text.  */
 
@@ -2618,26 +2618,26 @@ pub unsafe extern "C-unwind" fn syms_of_textprop ()
   DEFSYM! (Qpoint_left, c"point-left");
   DEFSYM! (Qpoint_entered, c"point-entered");
 
-  defsubr (&raw mut Stext_properties_at);
-  defsubr (&raw mut Sget_text_property);
-  defsubr (&raw mut Sget_char_property);
-  defsubr (&raw mut Sget_char_property_and_overlay);
-  defsubr (&raw mut Snext_char_property_change);
-  defsubr (&raw mut Sprevious_char_property_change);
-  defsubr (&raw mut Snext_single_char_property_change);
-  defsubr (&raw mut Sprevious_single_char_property_change);
-  defsubr (&raw mut Snext_property_change);
-  defsubr (&raw mut Snext_single_property_change);
-  defsubr (&raw mut Sprevious_property_change);
-  defsubr (&raw mut Sprevious_single_property_change);
-  defsubr (&raw mut Sadd_text_properties);
-  defsubr (&raw mut Sput_text_property);
-  defsubr (&raw mut Sset_text_properties);
-  defsubr (&raw mut Sadd_face_text_property);
-  defsubr (&raw mut Sremove_text_properties);
-  defsubr (&raw mut Sremove_list_of_text_properties);
-  defsubr (&raw mut Stext_property_any);
-  defsubr (&raw mut Stext_property_not_all);
+  defsubr (Stext_properties_at.as_mut_ptr ());
+  defsubr (Sget_text_property.as_mut_ptr ());
+  defsubr (Sget_char_property.as_mut_ptr ());
+  defsubr (Sget_char_property_and_overlay.as_mut_ptr ());
+  defsubr (Snext_char_property_change.as_mut_ptr ());
+  defsubr (Sprevious_char_property_change.as_mut_ptr ());
+  defsubr (Snext_single_char_property_change.as_mut_ptr ());
+  defsubr (Sprevious_single_char_property_change.as_mut_ptr ());
+  defsubr (Snext_property_change.as_mut_ptr ());
+  defsubr (Snext_single_property_change.as_mut_ptr ());
+  defsubr (Sprevious_property_change.as_mut_ptr ());
+  defsubr (Sprevious_single_property_change.as_mut_ptr ());
+  defsubr (Sadd_text_properties.as_mut_ptr ());
+  defsubr (Sput_text_property.as_mut_ptr ());
+  defsubr (Sset_text_properties.as_mut_ptr ());
+  defsubr (Sadd_face_text_property.as_mut_ptr ());
+  defsubr (Sremove_text_properties.as_mut_ptr ());
+  defsubr (Sremove_list_of_text_properties.as_mut_ptr ());
+  defsubr (Stext_property_any.as_mut_ptr ());
+  defsubr (Stext_property_not_all.as_mut_ptr ());
 
   }
 }

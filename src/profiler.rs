@@ -46,9 +46,9 @@ const _: () = ();
 // here (status 3.29, the callint.rs shape).
 
 #[unsafe(no_mangle)]
-pub static mut profiler_max_stack_depth: EMACS_INT = 0;
+pub static profiler_max_stack_depth: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);
 #[unsafe(no_mangle)]
-pub static mut profiler_log_size: EMACS_INT = 0;
+pub static profiler_log_size: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);
 
 // C 374's `TYPE_MAXIMUM (time_t)` comes from gnulib's <intprops.h>; the lib/ ports write
 // it as a unit-local macro (docs/ports/token-aliases.tsv's TYPE_MAXIMUM row, the
@@ -286,8 +286,8 @@ unsafe fn make_profiler_log () -> profiler_log
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  let size: c_int = clip_to_bounds (0, profiler_log_size, min (MOST_POSITIVE_FIXNUM, INT_MAX as EMACS_INT)) as c_int;
-  let max_stack_depth: c_int = clip_to_bounds (0, profiler_max_stack_depth, INT_MAX as EMACS_INT) as c_int;
+  let size: c_int = clip_to_bounds (0, (*profiler_log_size.as_mut_ptr ()), min (MOST_POSITIVE_FIXNUM, INT_MAX as EMACS_INT)) as c_int;
+  let max_stack_depth: c_int = clip_to_bounds (0, (*profiler_max_stack_depth.as_mut_ptr ()), INT_MAX as EMACS_INT) as c_int;
   return profiler_log { log: make_log (size, max_stack_depth), gc_count: 0, discarded: 0 };
 
   }
@@ -456,7 +456,7 @@ unsafe fn add_sample (plog: *mut profiler_log, count: EMACS_INT)
 }
 
 /* The sampling interval specified.  */
-static mut profiler_cpu_interval: Lisp_Object = lisp_h_Qnil ();
+static profiler_cpu_interval: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* Status of sampling profiler.  */
 // C 358-366 declares `static enum profiler_cpu_running { NOT_RUNNING,
@@ -466,13 +466,13 @@ static mut profiler_cpu_interval: Lisp_Object = lisp_h_Qnil ();
 // TIMER_SETTIME_RUNNING is in docs/ports/profiler.md.
 pub const NOT_RUNNING: c_int = 0;
 pub const SETITIMER_RUNNING: c_int = 1;
-static mut profiler_cpu_running: c_int = NOT_RUNNING;
+static profiler_cpu_running: VmGlobal<c_int> = VmGlobal::<c_int>::new (NOT_RUNNING);
 
 /* Hash-table log of CPU profiler.  */
-static mut cpu: profiler_log = profiler_log { log: std::ptr::null_mut (), gc_count: 0, discarded: 0 };
+static cpu: VmGlobal<profiler_log> = VmGlobal::<profiler_log>::new (profiler_log { log: std::ptr::null_mut (), gc_count: 0, discarded: 0 });
 
 /* The current sampling interval in nanoseconds.  */
-static mut current_sampling_interval: EMACS_INT = 0;
+static current_sampling_interval: VmGlobal<EMACS_INT> = VmGlobal::<EMACS_INT>::new (0);
 
 unsafe extern "C" fn handle_profiler_signal (signal: c_int)
 {
@@ -481,7 +481,7 @@ unsafe extern "C" fn handle_profiler_signal (signal: c_int)
   let mut count: EMACS_INT = 1;
   // C 404-406's `#if defined HAVE_ITIMERSPEC && defined HAVE_TIMER_GETOVERRUN` arm is
   // dead on this target (docs/ports/profiler.md).
-  add_sample (&raw mut cpu, count);
+  add_sample (cpu.as_mut_ptr (), count);
 
   }
 }
@@ -507,10 +507,10 @@ unsafe fn setup_cpu_timer (sampling_interval: Lisp_Object) -> c_int
 		       else { EMACS_INT_MAX }))
     { return -1; }
 
-  current_sampling_interval = XFIXNUM (sampling_interval);
+  (*current_sampling_interval.as_mut_ptr ()) = XFIXNUM (sampling_interval);
   let interval: timespec
-    = make_timespec ((current_sampling_interval / billion) as time_t,
-		     (current_sampling_interval % billion) as c_long);
+    = make_timespec (((*current_sampling_interval.as_mut_ptr ()) / billion) as time_t,
+		     ((*current_sampling_interval.as_mut_ptr ()) % billion) as c_long);
   let mut action: sigaction = std::mem::zeroed ();
   emacs_sigaction_init (&mut action, Some (deliver_profiler_signal));
   sigaction (SIGPROF, &action, 0 as *mut sigaction);
@@ -535,23 +535,23 @@ DEFUN! ("profiler-cpu-start", Fprofiler_cpu_start, Sprofiler_cpu_start,
        doc: "Start or restart the cpu profiler.\nIt takes call-stack samples each SAMPLING-INTERVAL nanoseconds, approximately.\nSee also `profiler-log-size' and `profiler-max-stack-depth'.",
        (sampling_interval: Lisp_Object),
        {
-  if profiler_cpu_running != NOT_RUNNING
+  if (*profiler_cpu_running.as_mut_ptr ()) != NOT_RUNNING
     { error (c"CPU profiler is already running".as_ptr ()); }
 
-  if cpu.log.is_null ()
-    { cpu = make_profiler_log (); }
+  if (*cpu.as_mut_ptr ()).log.is_null ()
+    { (*cpu.as_mut_ptr ()) = make_profiler_log (); }
 
   let status: c_int = setup_cpu_timer (sampling_interval);
   if status < 0
     {
-      profiler_cpu_running = NOT_RUNNING;
+      (*profiler_cpu_running.as_mut_ptr ()) = NOT_RUNNING;
       error (c"Invalid sampling interval".as_ptr ());
     }
   else
     {
-      profiler_cpu_interval = sampling_interval;
-      profiler_cpu_running = status;
-      if profiler_cpu_running == NOT_RUNNING
+      (*profiler_cpu_interval.as_mut_ptr ()) = sampling_interval;
+      (*profiler_cpu_running.as_mut_ptr ()) = status;
+      if (*profiler_cpu_running.as_mut_ptr ()) == NOT_RUNNING
 	{ error (c"Unable to start profiler timer".as_ptr ()); }
     }
 
@@ -565,7 +565,7 @@ DEFUN! ("profiler-cpu-stop", Fprofiler_cpu_stop, Sprofiler_cpu_stop,
        {
   // C 485-508's `switch` with its two live arms (TIMER_SETTIME_RUNNING is dead, see
   // docs/ports/profiler.md).  Rust's `match` needs a `_` arm for the type's other values.
-  match profiler_cpu_running
+  match (*profiler_cpu_running.as_mut_ptr ())
     {
       NOT_RUNNING =>
 	{ return Qnil (); }
@@ -580,7 +580,7 @@ DEFUN! ("profiler-cpu-stop", Fprofiler_cpu_stop, Sprofiler_cpu_stop,
     }
 
   signal (SIGPROF, SIG_IGN);
-  profiler_cpu_running = NOT_RUNNING;
+  (*profiler_cpu_running.as_mut_ptr ()) = NOT_RUNNING;
   return Qt ();
 });
 
@@ -590,7 +590,7 @@ DEFUN! ("profiler-cpu-running-p",
        doc: "Return non-nil if cpu profiler is running.",
        (),
        {
-  return if profiler_cpu_running != NOT_RUNNING { Qt () } else { Qnil () };
+  return if (*profiler_cpu_running.as_mut_ptr ()) != NOT_RUNNING { Qt () } else { Qnil () };
 });
 
 DEFUN! ("profiler-cpu-log", Fprofiler_cpu_log, Sprofiler_cpu_log,
@@ -600,14 +600,14 @@ DEFUN! ("profiler-cpu-log", Fprofiler_cpu_log, Sprofiler_cpu_log,
        {
   /* Temporarily stop profiling to avoid it interfering with our data
      access.  */
-  let prof_cpu: bool = profiler_cpu_running != NOT_RUNNING;
+  let prof_cpu: bool = (*profiler_cpu_running.as_mut_ptr ()) != NOT_RUNNING;
   if prof_cpu
     { Fprofiler_cpu_stop (); }
 
-  let ret: Lisp_Object = export_log (&raw mut cpu);
+  let ret: Lisp_Object = export_log (cpu.as_mut_ptr ());
 
   if prof_cpu
-    { Fprofiler_cpu_start (profiler_cpu_interval); }
+    { Fprofiler_cpu_start ((*profiler_cpu_interval.as_mut_ptr ())); }
 
   return ret;
 });
@@ -625,7 +625,7 @@ unsafe fn export_log (plog: *mut profiler_log) -> Lisp_Object
      which is more discriminating than the `function-equal' used by
      the log but close enough, and will never confuse two distinct
      keys in the log.  */
-  let h: Lisp_Object = make_hash_table (&raw const hashtest_equal, DEFAULT_HASH_SIZE as EMACS_INT,
+  let h: Lisp_Object = make_hash_table (hashtest_equal.as_ptr (), DEFAULT_HASH_SIZE as EMACS_INT,
 					Weak_None);
   let mut i: c_int = 0;
   while i < (*log).size
@@ -653,24 +653,24 @@ unsafe fn export_log (plog: *mut profiler_log) -> Lisp_Object
 /* Memory profiler.  */
 
 /* Hash-table log of Memory profiler.  */
-static mut memory: profiler_log = profiler_log { log: std::ptr::null_mut (), gc_count: 0, discarded: 0 };
+static memory: VmGlobal<profiler_log> = VmGlobal::<profiler_log>::new (profiler_log { log: std::ptr::null_mut (), gc_count: 0, discarded: 0 });
 
 /* True if memory profiler is running.  */
 #[unsafe(no_mangle)]
-pub static mut profiler_memory_running: bool = false;
+pub static profiler_memory_running: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 DEFUN! ("profiler-memory-start", Fprofiler_memory_start, Sprofiler_memory_start,
        0, 0, 0,
        doc: "Start/restart the memory profiler.\nThe memory profiler will take samples of the call-stack whenever a new\nallocation takes place.  Note that most small allocations only trigger\nthe profiler occasionally.\nSee also `profiler-log-size' and `profiler-max-stack-depth'.",
        (),
        {
-  if profiler_memory_running
+  if (*profiler_memory_running.as_mut_ptr ())
     { error (c"Memory profiler is already running".as_ptr ()); }
 
-  if memory.log.is_null ()
-    { memory = make_profiler_log (); }
+  if (*memory.as_mut_ptr ()).log.is_null ()
+    { (*memory.as_mut_ptr ()) = make_profiler_log (); }
 
-  profiler_memory_running = true;
+  (*profiler_memory_running.as_mut_ptr ()) = true;
 
   return Qt ();
 });
@@ -681,9 +681,9 @@ DEFUN! ("profiler-memory-stop",
        doc: "Stop the memory profiler.  The profiler log is not affected.\nReturn non-nil if the profiler was running.",
        (),
        {
-  if !profiler_memory_running
+  if !(*profiler_memory_running.as_mut_ptr ())
     { return Qnil (); }
-  profiler_memory_running = false;
+  (*profiler_memory_running.as_mut_ptr ()) = false;
   return Qt ();
 });
 
@@ -693,7 +693,7 @@ DEFUN! ("profiler-memory-running-p",
        doc: "Return non-nil if memory profiler is running.",
        (),
        {
-  return if profiler_memory_running { Qt () } else { Qnil () };
+  return if (*profiler_memory_running.as_mut_ptr ()) { Qt () } else { Qnil () };
 });
 
 DEFUN! ("profiler-memory-log",
@@ -702,11 +702,11 @@ DEFUN! ("profiler-memory-log",
        doc: "Return the current memory profiler log.\nThe log is a hash-table mapping backtraces to counters which represent\nthe amount of memory allocated at those points.  Every backtrace is a vector\nof functions, where the last few elements may be nil.\n\nIf the profiler has not run since the last invocation of\n`profiler-memory-log' (or was never run at all), return nil.  If the\nprofiler is currently running, allocate a new log for future samples\nbefore returning.",
        (),
        {
-  let prof_mem: bool = profiler_memory_running;
+  let prof_mem: bool = (*profiler_memory_running.as_mut_ptr ());
   if prof_mem
     { Fprofiler_memory_stop (); }
 
-  let ret: Lisp_Object = export_log (&raw mut memory);
+  let ret: Lisp_Object = export_log (memory.as_mut_ptr ());
 
   if prof_mem
     { Fprofiler_memory_start (); }
@@ -723,7 +723,7 @@ pub unsafe extern "C-unwind" fn malloc_probe (size: usize)
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  add_sample (&raw mut memory, min (size as EMACS_INT, MOST_POSITIVE_FIXNUM));
+  add_sample (memory.as_mut_ptr (), min (size as EMACS_INT, MOST_POSITIVE_FIXNUM));
 
   }
 }
@@ -747,8 +747,8 @@ pub unsafe extern "C-unwind" fn mark_profiler ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  mark_log (cpu.log);
-  mark_log (memory.log);
+  mark_log ((*cpu.as_mut_ptr ()).log);
+  mark_log ((*memory.as_mut_ptr ()).log);
 
   }
 }
@@ -760,25 +760,25 @@ pub unsafe extern "C-unwind" fn syms_of_profiler ()
   unsafe {
   DEFVAR_INT! (c"profiler-max-stack-depth", profiler_max_stack_depth,
 	       "Number of elements from the call-stack recorded in the log.");
-  profiler_max_stack_depth = 16;
+  (*profiler_max_stack_depth.as_mut_ptr ()) = 16;
   DEFVAR_INT! (c"profiler-log-size", profiler_log_size,
 	       "Number of distinct call-stacks that can be recorded in a profiler log.\nIf the log gets full, some of the least-seen call-stacks will be evicted\nto make room for new entries.");
-  profiler_log_size = 10000;
+  (*profiler_log_size.as_mut_ptr ()) = 10000;
 
   DEFSYM! (QDiscarded_Samples, "Discarded Samples");
 
-  defsubr (&raw mut Sfunction_equal);
+  defsubr (Sfunction_equal.as_mut_ptr ());
 
-  profiler_cpu_running = NOT_RUNNING;
-  defsubr (&raw mut Sprofiler_cpu_start);
-  defsubr (&raw mut Sprofiler_cpu_stop);
-  defsubr (&raw mut Sprofiler_cpu_running_p);
-  defsubr (&raw mut Sprofiler_cpu_log);
-  profiler_memory_running = false;
-  defsubr (&raw mut Sprofiler_memory_start);
-  defsubr (&raw mut Sprofiler_memory_stop);
-  defsubr (&raw mut Sprofiler_memory_running_p);
-  defsubr (&raw mut Sprofiler_memory_log);
+  (*profiler_cpu_running.as_mut_ptr ()) = NOT_RUNNING;
+  defsubr (Sprofiler_cpu_start.as_mut_ptr ());
+  defsubr (Sprofiler_cpu_stop.as_mut_ptr ());
+  defsubr (Sprofiler_cpu_running_p.as_mut_ptr ());
+  defsubr (Sprofiler_cpu_log.as_mut_ptr ());
+  (*profiler_memory_running.as_mut_ptr ()) = false;
+  defsubr (Sprofiler_memory_start.as_mut_ptr ());
+  defsubr (Sprofiler_memory_stop.as_mut_ptr ());
+  defsubr (Sprofiler_memory_running_p.as_mut_ptr ());
+  defsubr (Sprofiler_memory_log.as_mut_ptr ());
 
   }
 }

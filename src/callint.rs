@@ -38,17 +38,17 @@ const _: () = ();
 // port's `include/globals.rs` mirrors the names as declarations, so the unit that owns one
 // defines it here (status §3.29, the casetab.rs shape).
 #[unsafe(no_mangle)]
-pub static mut Vcurrent_prefix_arg: Lisp_Object = lisp_h_Qnil ();
+pub static Vcurrent_prefix_arg: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vcommand_history: Lisp_Object = lisp_h_Qnil ();
+pub static Vcommand_history: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vcommand_debug_status: Lisp_Object = lisp_h_Qnil ();
+pub static Vcommand_debug_status: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vmark_even_if_inactive: Lisp_Object = lisp_h_Qnil ();
+pub static Vmark_even_if_inactive: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut Vmouse_leave_buffer_hook: Lisp_Object = lisp_h_Qnil ();
+pub static Vmouse_leave_buffer_hook: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 #[unsafe(no_mangle)]
-pub static mut inhibit_mouse_event_check: bool = false;
+pub static inhibit_mouse_event_check: VmGlobal<bool> = VmGlobal::<bool>::new (false);
 
 
 /* C's `switch (*tem)` is a `match` on the character; the arms below name the letters the way
@@ -112,13 +112,13 @@ unsafe fn invalid_control_letter (tem: *const c_char, string: *const c_char,
   }
 }
 
-static mut preserved_fns: Lisp_Object = lisp_h_Qnil ();
+static preserved_fns: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* Marker used within call-interactively to refer to point.  */
-static mut point_marker: Lisp_Object = lisp_h_Qnil ();
+static point_marker: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 /* String for the prompt text used in Fcall_interactively.  */
-static mut callint_message: Lisp_Object = lisp_h_Qnil ();
+static callint_message: VmGlobal<Lisp_Object> = VmGlobal::<Lisp_Object>::new (lisp_h_Qnil ());
 
 DEFUN! ("interactive", Finteractive, Sinteractive, 0, UNEVALLED, 0,
        doc: "Specify a way of parsing arguments for interactive use of a function.\nFor example, write\n (defun foo (arg buf) \"Doc string\" (interactive \"P\\nbbuffer: \") .... )\n to make ARG be the raw prefix argument, and set BUF to an existing buffer,\n when `foo' is called as a command.\n\nThe \"call\" to `interactive' is actually a declaration rather than a\n function; it tells `call-interactively' how to read arguments to pass\n to the function.  When actually called, `interactive' just returns\n nil.\n\nUsually the argument of `interactive' is a string containing a code\n letter followed optionally by a prompt.  (Some code letters do not\n use I/O to get the argument and do not use prompts.)  To pass several\n arguments to the command, concatenate the individual strings,\n separating them by newline characters.\n\nPrompts are passed to `format', and may use %s escapes to print the\n arguments that have already been read.\n\nIf the argument is not a string, it is evaluated to get a list of\n arguments to pass to the command.\n\nJust `(interactive)' means pass no arguments to the command when\n calling interactively.\n\nCode letters available are:\na -- Function name: symbol with a function definition.\nb -- Name of existing buffer.\nB -- Name of buffer, possibly nonexistent.\nc -- Character (no input method is used).\nC -- Command name: symbol with interactive function definition.\nd -- Value of point as number.  Does not do I/O.\nD -- Directory name.\ne -- Parameterized event (i.e., one that's a list) that invoked this command.\n     If used more than once, the Nth `e' returns the Nth parameterized event.\n     This skips events that are integers or symbols.\nf -- Existing file name.\nF -- Possibly nonexistent file name.\nG -- Possibly nonexistent file name, defaulting to just directory name.\ni -- Ignored, i.e. always nil.  Does not do I/O.\nk -- Key sequence (downcase the last event if needed to get a definition).\nK -- Key sequence to be redefined (do not downcase the last event).\nm -- Value of mark as number.  Does not do I/O.\nM -- Any string.  Inherits the current input method.\nn -- Number read using minibuffer.\nN -- Numeric prefix arg, or if none, do like code `n'.\np -- Prefix arg converted to number.  Does not do I/O.\nP -- Prefix arg in raw form.  Does not do I/O.\nr -- Region: point and mark as 2 numeric args, smallest first.  Does no I/O.\nR -- Active region: as `r' but both nil unless `use-region-p'.  Does no I/O.\ns -- Any string.  Does not inherit the current input method.\nS -- Any symbol.\nU -- Mouse up event discarded by a previous k or K argument.\nv -- Variable name: symbol that is `custom-variable-p'.\nx -- Lisp expression read but not evaluated.\nX -- Lisp expression read and evaluated.\nz -- Coding system.\nZ -- Coding system, nil if no prefix arg.\n\nIn addition, if the string begins with `*', an error is signaled if\n  the buffer is read-only.\nIf `@' appears at the beginning of the string, and if the key sequence\n used to invoke the command includes any mouse events, then the window\n associated with the first of those events is selected before the\n command is run.\nIf the string begins with `^' and `shift-select-mode' is non-nil,\n Emacs first calls the function `handle-shift-selection'.\nYou may use `@', `*', and `^' together.  They are processed in the\n order that they appear, before reading any arguments.\n\nIf MODES is present, it should be one or more mode names (symbols)\nfor which this command is applicable.  This is so that `M-x TAB'\nwill be able to exclude this command from the list of completion\ncandidates if the current buffer's mode doesn't match the list.\nWhich commands are excluded from the list of completion\ncandidates based on this information is controlled by the value\nof `read-extended-command-predicate', which see.\n\nusage: (interactive &optional ARG-DESCRIPTOR &rest MODES)  ",
@@ -162,9 +162,8 @@ unsafe fn quotify_args (exp: Lisp_Object) -> Lisp_Object
   }
 }
 
-static mut callint_argfuns: [*const c_char; 7]
-  = [c"".as_ptr (), c"point".as_ptr (), c"mark".as_ptr (), c"region-beginning".as_ptr (),
-     c"region-end".as_ptr (), c"use-region-beginning".as_ptr (), c"use-region-end".as_ptr ()];
+static callint_argfuns: VmGlobal<[*const c_char; 7]> = VmGlobal::<[*const c_char; 7]>::new ([c"".as_ptr (), c"point".as_ptr (), c"mark".as_ptr (), c"region-beginning".as_ptr (),
+     c"region-end".as_ptr (), c"use-region-beginning".as_ptr (), c"use-region-end".as_ptr ()]);
 
 unsafe fn check_mark (for_region: bool)
 {
@@ -175,7 +174,7 @@ unsafe fn check_mark (for_region: bool)
   if NILP (tem) || (XBUFFER (tem) != (current_buffer! ()))
     { error (if for_region { c"The mark is not set now, so there is no region".as_ptr () }
 	     else { c"The mark is not set now".as_ptr () }); }
-  if !NILP (Vtransient_mark_mode) && NILP (Vmark_even_if_inactive)
+  if !NILP ((*Vtransient_mark_mode.as_mut_ptr ())) && NILP ((*Vmark_even_if_inactive.as_mut_ptr ()))
       && NILP (BVAR! ((current_buffer! ()), mark_active_))
     { xsignal0 (Qmark_inactive ()); }
 
@@ -254,7 +253,7 @@ unsafe fn read_file_name (default_filename: Lisp_Object, mustmatch: Lisp_Object,
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
   return calln! (Qread_file_name (),
-		 callint_message, Qnil (), default_filename,
+		 (*callint_message.as_mut_ptr ()), Qnil (), default_filename,
 		 mustmatch, initial, predicate);
 
   }
@@ -266,7 +265,7 @@ DEFUN! ("funcall-interactively", Ffuncall_interactively, Sfuncall_interactively,
        (nargs: isize, args: *mut Lisp_Object),
        {
   let speccount: specpdl_ref = SPECPDL_INDEX ();
-  if !multiple_terminals_merge_keyboards
+  if !(*multiple_terminals_merge_keyboards.as_mut_ptr ())
     { temporarily_switch_to_single_kboard (std::ptr::null_mut ()); }
 
   /* Nothing special to do here, all the work is inside
@@ -285,16 +284,16 @@ DEFUN! ("call-interactively", Fcall_interactively, Scall_interactively, 1, 3, 0,
 
   /* FIXME: We should probably specbind these vars in recursive
      _edit instead so they're automatically saved&restored as needed.  */
-  let save_this_command: Lisp_Object = Vthis_command;
-  let save_this_original_command: Lisp_Object = Vthis_original_command;
-  let save_real_this_command: Lisp_Object = Vreal_this_command;
-  let save_last_command: Lisp_Object = (*current_kboard).Vlast_command_;
+  let save_this_command: Lisp_Object = (*Vthis_command.as_mut_ptr ());
+  let save_this_original_command: Lisp_Object = (*Vthis_original_command.as_mut_ptr ());
+  let save_real_this_command: Lisp_Object = (*Vreal_this_command.as_mut_ptr ());
+  let save_last_command: Lisp_Object = (*(*current_kboard.as_mut_ptr ())).Vlast_command_;
 
   let mut keys: Lisp_Object = keys;
   if NILP (keys)
     {
-      keys = this_command_keys;
-      key_count = this_command_key_count;
+      keys = (*this_command_keys.as_mut_ptr ());
+      key_count = (*this_command_key_count.as_mut_ptr ());
     }
   else
     {
@@ -303,7 +302,7 @@ DEFUN! ("call-interactively", Fcall_interactively, Scall_interactively, 1, 3, 0,
     }
 
   /* Save this now, since use of minibuffer will clobber it.  */
-  let prefix_arg: Lisp_Object = Vcurrent_prefix_arg;
+  let prefix_arg: Lisp_Object = (*Vcurrent_prefix_arg.as_mut_ptr ());
 
   let enable: Lisp_Object = if SYMBOLP (function)
 			      { Fget (function, Qenable_recursive_minibuffers ()) }
@@ -328,12 +327,12 @@ DEFUN! ("call-interactively", Fcall_interactively, Scall_interactively, 1, 3, 0,
   if !STRINGP (specs)
     {
       let funval: Lisp_Object = Findirect_function (function, Qt ());
-      let events: uintmax_t = num_input_events;
+      let events: uintmax_t = (*num_input_events.as_mut_ptr ());
       let env: Lisp_Object = if CLOSUREP (funval) && CONSP (AREF (funval, CLOSURE_CODE as isize))
 			       { AREF (funval, CLOSURE_CONSTANTS as isize) } else { Qnil () };
       /* Compute the arg values using the user's expression.  */
       specs = Feval (specs, env);
-      if events != num_input_events || !NILP (record_flag)
+      if events != (*num_input_events.as_mut_ptr ()) || !NILP (record_flag)
 	{
 	  /* We should record this command on the command history.
 	     Make a copy of the list of values, for the command history,
@@ -344,10 +343,10 @@ DEFUN! ("call-interactively", Fcall_interactively, Scall_interactively, 1, 3, 0,
 		  Fcons (function, values), Qnil (), Qt ());
 	}
 
-      Vthis_command = save_this_command;
-      Vthis_original_command = save_this_original_command;
-      Vreal_this_command = save_real_this_command;
-      kset_last_command (current_kboard, save_last_command);
+      (*Vthis_command.as_mut_ptr ()) = save_this_command;
+      (*Vthis_original_command.as_mut_ptr ()) = save_this_original_command;
+      (*Vreal_this_command.as_mut_ptr ()) = save_real_this_command;
+      kset_last_command ((*current_kboard.as_mut_ptr ()), save_last_command);
 
       return CALLN! (Fapply, Qfuncall_interactively (), function, specs);
     }
@@ -367,7 +366,7 @@ DEFUN! ("call-interactively", Fcall_interactively, Scall_interactively, 1, 3, 0,
      the command can accept an event without parameters,
      so don't search for the event with parameters in this case.  */
   let mut next_event: ptrdiff_t = 0;
-  if !inhibit_mouse_event_check
+  if !(*inhibit_mouse_event_check.as_mut_ptr ())
     {
       while next_event < key_count
 	{
@@ -419,7 +418,7 @@ DEFUN! ("call-interactively", Fcall_interactively, Scall_interactively, 1, 3, 0,
 	      && { w = XCAR (w); WINDOWP (w) }
 	    {
 	      if MINI_WINDOW_P (XWINDOW (w))
-		  && !(minibuf_level > 0 && BASE_EQ (w, minibuf_window))
+		  && !((*minibuf_level.as_mut_ptr ()) > 0 && BASE_EQ (w, (*minibuf_window.as_mut_ptr ())))
 		{ error (c"Attempt to select inactive minibuffer window".as_ptr ()); }
 
 	      /* If the current buffer wants to clean up, let it.  */
@@ -496,7 +495,7 @@ DEFUN! ("call-interactively", Fcall_interactively, Scall_interactively, 1, 3, 0,
 			    { (string_end as ptrdiff_t) - (tem as ptrdiff_t + 1) };
 
       *visargs.offset (1) = make_string (tem.offset (1), sz);
-      callint_message = Fformat_message (i - 1, visargs.offset (1));
+      (*callint_message.as_mut_ptr ()) = Fformat_message (i - 1, visargs.offset (1));
 
       /* C 459-751's `switch (*tem)`.  Two arms share bodies with another arm: `case 'N'`
 	 jumps to `have_prefix_arg:` (inside `case 'p'`) when there is a prefix arg and
@@ -510,8 +509,8 @@ DEFUN! ("call-interactively", Fcall_interactively, Scall_interactively, 1, 3, 0,
 	letter_a =>
 	  {
 	    /* Symbol defined as a function.  */
-	    *visargs.offset (i) = Fcompleting_read (callint_message,
-						    Vobarray, Qfboundp (), Qt (),
+	    *visargs.offset (i) = Fcompleting_read ((*callint_message.as_mut_ptr ()),
+						    (*Vobarray.as_mut_ptr ()), Qfboundp (), Qt (),
 						    Qnil (), Qnil (), Qnil (), Qnil ());
 	    *args.offset (i) = Fintern (*visargs.offset (i), Qnil ());
 	  }
@@ -522,15 +521,15 @@ DEFUN! ("call-interactively", Fcall_interactively, Scall_interactively, 1, 3, 0,
 	      {
 		/* Name of existing buffer.  */
 		*args.offset (i) = Fcurrent_buffer ();
-		if BASE_EQ (selected_window, minibuf_window)
+		if BASE_EQ ((*selected_window.as_mut_ptr ()), (*minibuf_window.as_mut_ptr ()))
 		  { *args.offset (i) = Fother_buffer (*args.offset (i), Qnil (), Qnil ()); }
-		*args.offset (i) = Fread_buffer (callint_message, *args.offset (i),
+		*args.offset (i) = Fread_buffer ((*callint_message.as_mut_ptr ()), *args.offset (i),
 						 Qt (), Qnil ());
 	      }
 	    else
 	      {
 		/* Name of buffer, possibly nonexistent.  */
-		*args.offset (i) = Fread_buffer (callint_message,
+		*args.offset (i) = Fread_buffer ((*callint_message.as_mut_ptr ()),
 						 Fother_buffer (Fcurrent_buffer (),
 								Qnil (), Qnil ()),
 						 Qnil (), Qnil ());
@@ -542,9 +541,9 @@ DEFUN! ("call-interactively", Fcall_interactively, Scall_interactively, 1, 3, 0,
 	    /* Character.  */
 	    /* Prompt in `minibuffer-prompt' face.  */
 	    Fput_text_property (make_fixnum (0),
-				make_fixnum (SCHARS (callint_message) as EMACS_INT),
-				Qface (), Qminibuffer_prompt (), callint_message);
-	    *args.offset (i) = Fread_char (callint_message, Qnil (), Qnil ());
+				make_fixnum (SCHARS ((*callint_message.as_mut_ptr ())) as EMACS_INT),
+				Qface (), Qminibuffer_prompt (), (*callint_message.as_mut_ptr ()));
+	    *args.offset (i) = Fread_char ((*callint_message.as_mut_ptr ()), Qnil (), Qnil ());
 	    message1_nolog (0 as *const c_char);
 	    /* See bug#8479.  */
 	    if !CHARACTERP (*args.offset (i))
@@ -555,8 +554,8 @@ DEFUN! ("call-interactively", Fcall_interactively, Scall_interactively, 1, 3, 0,
 	letter_C =>
 	  {
 	    /* Command: symbol with interactive function.  */
-	    *visargs.offset (i) = Fcompleting_read (callint_message,
-						    Vobarray, Qcommandp (),
+	    *visargs.offset (i) = Fcompleting_read ((*callint_message.as_mut_ptr ()),
+						    (*Vobarray.as_mut_ptr ()), Qcommandp (),
 						    Qt (), Qnil (), Qnil (), Qnil (), Qnil ());
 	    *args.offset (i) = Fintern (*visargs.offset (i), Qnil ());
 	  }
@@ -564,8 +563,8 @@ DEFUN! ("call-interactively", Fcall_interactively, Scall_interactively, 1, 3, 0,
 	letter_d =>
 	  {
 	    /* Value of point.  Does not do I/O.  */
-	    set_marker_both (point_marker, Qnil (), PT! (), PT_BYTE! ());
-	    *args.offset (i) = point_marker;
+	    set_marker_both ((*point_marker.as_mut_ptr ()), Qnil (), PT! (), PT_BYTE! ());
+	    *args.offset (i) = (*point_marker.as_mut_ptr ());
 	    /* visargs[i] = Qnil; */
 	    *varies.offset (i) = 1;
 	  }
@@ -593,7 +592,7 @@ DEFUN! ("call-interactively", Fcall_interactively, Scall_interactively, 1, 3, 0,
 	  {
 	    /* Possibly nonexistent file name,
 	       default to directory alone.  */
-	    *args.offset (i) = read_file_name (Qnil (), Qnil (), empty_unibyte_string, Qnil ());
+	    *args.offset (i) = read_file_name (Qnil (), Qnil (), (*empty_unibyte_string.as_mut_ptr ()), Qnil ());
 	  }
 
 	letter_i =>
@@ -609,11 +608,11 @@ DEFUN! ("call-interactively", Fcall_interactively, Scall_interactively, 1, 3, 0,
 	    specbind (Qcursor_in_echo_area (), Qt ());
 	    /* Prompt in `minibuffer-prompt' face.  */
 	    Fput_text_property (make_fixnum (0),
-				make_fixnum (SCHARS (callint_message) as EMACS_INT),
-				Qface (), Qminibuffer_prompt (), callint_message);
+				make_fixnum (SCHARS ((*callint_message.as_mut_ptr ())) as EMACS_INT),
+				Qface (), Qminibuffer_prompt (), (*callint_message.as_mut_ptr ()));
 	    if *tem as c_int == letter_k
 	      {
-		*args.offset (i) = Fread_key_sequence (callint_message,
+		*args.offset (i) = Fread_key_sequence ((*callint_message.as_mut_ptr ()),
 						       Qnil (), Qnil (), Qnil (), Qnil (),
 						       Qnil ());
 		unbind_to (speccount1, Qnil ());
@@ -637,7 +636,7 @@ DEFUN! ("call-interactively", Fcall_interactively, Scall_interactively, 1, 3, 0,
 	      }
 	    else
 	      {
-		*args.offset (i) = Fread_key_sequence_vector (callint_message,
+		*args.offset (i) = Fread_key_sequence_vector ((*callint_message.as_mut_ptr ()),
 							      Qnil (), Qt (), Qnil (), Qnil (),
 							      Qnil ());
 		*visargs.offset (i) = Fkey_description (*args.offset (i), Qnil ());
@@ -682,7 +681,7 @@ DEFUN! ("call-interactively", Fcall_interactively, Scall_interactively, 1, 3, 0,
 	    *varies.offset (i) = -1;
 
 	    /* `inhibit_mouse_event_check' allows non-parameterized events.  */
-	    if inhibit_mouse_event_check
+	    if (*inhibit_mouse_event_check.as_mut_ptr ())
 	      { next_event += 1; }
 	    else
 	      {
@@ -710,7 +709,7 @@ DEFUN! ("call-interactively", Fcall_interactively, Scall_interactively, 1, 3, 0,
 	  {
 	    /* String read via minibuffer with
 	       inheriting the current input method.  */
-	    *args.offset (i) = Fread_string (callint_message,
+	    *args.offset (i) = Fread_string ((*callint_message.as_mut_ptr ()),
 					     Qnil (), Qnil (), Qnil (), Qt ());
 	  }
 
@@ -732,7 +731,7 @@ DEFUN! ("call-interactively", Fcall_interactively, Scall_interactively, 1, 3, 0,
 	      }
 	    else
 	      {
-		*args.offset (i) = calln! (Qread_number (), callint_message);
+		*args.offset (i) = calln! (Qread_number (), (*callint_message.as_mut_ptr ()));
 		*visargs.offset (i) = Fnumber_to_string (*args.offset (i));
 	      }
 	  }
@@ -765,14 +764,14 @@ DEFUN! ("call-interactively", Fcall_interactively, Scall_interactively, 1, 3, 0,
 	    if do_region
 	      {
 		check_mark (true);
-		set_marker_both (point_marker, Qnil (), PT! (), PT_BYTE! ());
+		set_marker_both ((*point_marker.as_mut_ptr ()), Qnil (), PT! (), PT_BYTE! ());
 		let mark: ptrdiff_t = marker_position (BVAR! ((current_buffer! ()), mark_));
 		/* visargs[i] = visargs[i + 1] = Qnil; */
-		*args.offset (i) = if PT! () < mark { point_marker }
+		*args.offset (i) = if PT! () < mark { (*point_marker.as_mut_ptr ()) }
 				  else { BVAR! ((current_buffer! ()), mark_) };
 		*varies.offset (i) = if *tem as c_int == letter_R { 5 } else { 3 };
 		i += 1;
-		*args.offset (i) = if PT! () > mark { point_marker }
+		*args.offset (i) = if PT! () > mark { (*point_marker.as_mut_ptr ()) }
 				  else { BVAR! ((current_buffer! ()), mark_) };
 		*varies.offset (i) = if *tem as c_int == letter_R { 6 } else { 4 };
 	      }
@@ -782,14 +781,14 @@ DEFUN! ("call-interactively", Fcall_interactively, Scall_interactively, 1, 3, 0,
 	  {
 	    /* String read via minibuffer without
 	       inheriting the current input method.  */
-	    *args.offset (i) = Fread_string (callint_message,
+	    *args.offset (i) = Fread_string ((*callint_message.as_mut_ptr ()),
 					     Qnil (), Qnil (), Qnil (), Qnil ());
 	  }
 
 	letter_S =>
 	  {
 	    /* Any symbol.  */
-	    *visargs.offset (i) = Fread_string (callint_message,
+	    *visargs.offset (i) = Fread_string ((*callint_message.as_mut_ptr ()),
 						Qnil (), Qnil (), Qnil (), Qnil ());
 	    *args.offset (i) = Fintern (*visargs.offset (i), Qnil ());
 	  }
@@ -798,22 +797,22 @@ DEFUN! ("call-interactively", Fcall_interactively, Scall_interactively, 1, 3, 0,
 	  {
 	    /* Variable name: symbol that is
 	       custom-variable-p.  */
-	    *args.offset (i) = Fread_variable (callint_message, Qnil ());
-	    *visargs.offset (i) = last_minibuf_string;
+	    *args.offset (i) = Fread_variable ((*callint_message.as_mut_ptr ()), Qnil ());
+	    *visargs.offset (i) = (*last_minibuf_string.as_mut_ptr ());
 	  }
 
 	letter_x =>
 	  {
 	    /* Lisp expression read but not evaluated.  */
-	    *args.offset (i) = calln! (Qread_minibuffer (), callint_message);
-	    *visargs.offset (i) = last_minibuf_string;
+	    *args.offset (i) = calln! (Qread_minibuffer (), (*callint_message.as_mut_ptr ()));
+	    *visargs.offset (i) = (*last_minibuf_string.as_mut_ptr ());
 	  }
 
 	letter_X =>
 	  {
 	    /* Lisp expression read and evaluated.  */
-	    *args.offset (i) = calln! (Qeval_minibuffer (), callint_message);
-	    *visargs.offset (i) = last_minibuf_string;
+	    *args.offset (i) = calln! (Qeval_minibuffer (), (*callint_message.as_mut_ptr ()));
+	    *visargs.offset (i) = (*last_minibuf_string.as_mut_ptr ());
 	  }
 
 	letter_Z =>	    /* Coding-system symbol, or ignore the
@@ -826,15 +825,15 @@ DEFUN! ("call-interactively", Fcall_interactively, Scall_interactively, 1, 3, 0,
 	      }
 	    else
 	      {
-		*args.offset (i) = Fread_non_nil_coding_system (callint_message);
-		*visargs.offset (i) = last_minibuf_string;
+		*args.offset (i) = Fread_non_nil_coding_system ((*callint_message.as_mut_ptr ()));
+		*visargs.offset (i) = (*last_minibuf_string.as_mut_ptr ());
 	      }
 	  }
 
 	letter_z =>	    /* Coding-system symbol or nil.  */
 	  {
-	    *args.offset (i) = Fread_coding_system (callint_message, Qnil ());
-	    *visargs.offset (i) = last_minibuf_string;
+	    *args.offset (i) = Fread_coding_system ((*callint_message.as_mut_ptr ()), Qnil ());
+	    *visargs.offset (i) = (*last_minibuf_string.as_mut_ptr ());
 	  }
 
 	letter_plus | _ =>
@@ -875,7 +874,7 @@ DEFUN! ("call-interactively", Fcall_interactively, Scall_interactively, 1, 3, 0,
       while i < nargs
 	{
 	  *visargs.offset (i) = if *varies.offset (i) > 0
-				  { list1 (intern (*(femacs_array_ptr (&raw const callint_argfuns)
+				  { list1 (intern (*(femacs_array_ptr (callint_argfuns.as_ptr ())
 						     .offset (*varies.offset (i) as isize)))) }
 				else
 				  { quotify_arg (*args.offset (i)) };
@@ -898,10 +897,10 @@ DEFUN! ("call-interactively", Fcall_interactively, Scall_interactively, 1, 3, 0,
   if record_then_fail
     { Fbarf_if_buffer_read_only (Qnil ()); }
 
-  Vthis_command = save_this_command;
-  Vthis_original_command = save_this_original_command;
-  Vreal_this_command = save_real_this_command;
-  kset_last_command (current_kboard, save_last_command);
+  (*Vthis_command.as_mut_ptr ()) = save_this_command;
+  (*Vthis_original_command.as_mut_ptr ()) = save_this_original_command;
+  (*Vreal_this_command.as_mut_ptr ()) = save_real_this_command;
+  kset_last_command ((*current_kboard.as_mut_ptr ()), save_last_command);
 
   specbind (Qcommand_debug_status (), Qnil ());
 
@@ -937,19 +936,19 @@ pub unsafe extern "C-unwind" fn syms_of_callint ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
-  point_marker = Fmake_marker ();
-  staticpro (&raw const point_marker);
+  (*point_marker.as_mut_ptr ()) = Fmake_marker ();
+  staticpro (point_marker.as_ptr ());
 
-  callint_message = Qnil ();
-  staticpro (&raw const callint_message);
+  (*callint_message.as_mut_ptr ()) = Qnil ();
+  staticpro (callint_message.as_ptr ());
 
-  preserved_fns = list! (intern_c_string (c"use-region-beginning".as_ptr ()),
+  (*preserved_fns.as_mut_ptr ()) = list! (intern_c_string (c"use-region-beginning".as_ptr ()),
 			 intern_c_string (c"use-region-end".as_ptr ()),
 			 intern_c_string (c"region-beginning".as_ptr ()),
 			 intern_c_string (c"region-end".as_ptr ()),
 			 intern_c_string (c"point".as_ptr ()),
 			 intern_c_string (c"mark".as_ptr ()));
-  staticpro (&raw const preserved_fns);
+  staticpro (preserved_fns.as_ptr ());
 
   DEFSYM! (Qlist, "list");
   DEFSYM! (Qlet, "let");
@@ -978,32 +977,32 @@ pub unsafe extern "C-unwind" fn syms_of_callint ()
 
   DEFVAR_LISP! (c"current-prefix-arg", Vcurrent_prefix_arg,
 		"The value of the prefix argument for this editing command.\nIt may be a number, or the symbol `-' for just a minus sign as arg,\nor a list whose car is a number for just one or more C-u's\nor nil if no argument has been specified.\nThis is what `(interactive \"P\")' returns.  ");
-  Vcurrent_prefix_arg = Qnil ();
+  (*Vcurrent_prefix_arg.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"command-history", Vcommand_history,
 		"List of recent commands that read arguments from terminal.\nEach command is represented as a form to evaluate.\n\nMaximum length of the history list is determined by the value\nof `history-length', which see.  ");
-  Vcommand_history = Qnil ();
+  (*Vcommand_history.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"command-debug-status", Vcommand_debug_status,
 		"Debugging status of current interactive command.\nBound each time `call-interactively' is called;\nmay be set by the debugger as a reminder for itself.  ");
-  Vcommand_debug_status = Qnil ();
+  (*Vcommand_debug_status.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_LISP! (c"mark-even-if-inactive", Vmark_even_if_inactive,
 		"Non-nil means you can use the mark even when inactive.\nThis option makes a difference in Transient Mark mode.\nWhen the option is non-nil, deactivation of the mark\nturns off region highlighting, but commands that use the mark\nbehave as if the mark were still active.  ");
-  Vmark_even_if_inactive = Qt ();
+  (*Vmark_even_if_inactive.as_mut_ptr ()) = Qt ();
 
   DEFVAR_LISP! (c"mouse-leave-buffer-hook", Vmouse_leave_buffer_hook,
 		"Hook run when the user mouse-clicks in a window.\nIt can be run both before and after switching windows, or even when\nnot actually switching windows.\n\nIts purpose is to give temporary modes such as Isearch mode\na way to turn themselves off when a mouse command switches windows.  ");
-  Vmouse_leave_buffer_hook = Qnil ();
+  (*Vmouse_leave_buffer_hook.as_mut_ptr ()) = Qnil ();
 
   DEFVAR_BOOL! (c"inhibit-mouse-event-check", inhibit_mouse_event_check,
     "Whether the interactive spec \"e\" requires a mouse gesture event.\nIf non-nil, `(interactive \"e\")' doesn't signal an error when the command\nwas invoked by an input event that is not a mouse gesture: a click, a drag,\netc.  To create the event data when the input was some other event,\nuse `event-start', `event-end', and `event-click-count'.  ");
-  inhibit_mouse_event_check = false;
+  (*inhibit_mouse_event_check.as_mut_ptr ()) = false;
 
-  defsubr (&raw mut Sinteractive);
-  defsubr (&raw mut Scall_interactively);
-  defsubr (&raw mut Sfuncall_interactively);
-  defsubr (&raw mut Sprefix_numeric_value);
+  defsubr (Sinteractive.as_mut_ptr ());
+  defsubr (Scall_interactively.as_mut_ptr ());
+  defsubr (Sfuncall_interactively.as_mut_ptr ());
+  defsubr (Sprefix_numeric_value.as_mut_ptr ());
 
   DEFSYM! (Qinteractive_args, "interactive-args");
   DEFSYM! (Qread_file_name, "read-file-name");

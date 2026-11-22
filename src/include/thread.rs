@@ -209,28 +209,28 @@ const _: () = core::assert! (std::mem::offset_of! (thread_state, bc) == 496);
    0.1-18: a mirror defines its macros before their uses).  */
 
 /* Last thing that wasn't a string or buffer searched.  */
-macro_rules! last_thing_searched { () => { (*current_thread).m_last_thing_searched } }        // 116
-macro_rules! saved_last_thing_searched { () => { (*current_thread).m_saved_last_thing_searched } } // 119
+macro_rules! last_thing_searched { () => { (*(*current_thread.as_mut_ptr ())).m_last_thing_searched } }        // 116
+macro_rules! saved_last_thing_searched { () => { (*(*current_thread.as_mut_ptr ())).m_saved_last_thing_searched } } // 119
 
 /* Chain of condition handlers currently in effect.  */
-macro_rules! catchlist { () => { (*current_thread).m_catchlist } }                            // 124
-macro_rules! handlerlist { () => { (*current_thread).m_handlerlist } }                        // 127
-macro_rules! handlerlist_sentinel { () => { (*current_thread).m_handlerlist_sentinel } }      // 130
+macro_rules! catchlist { () => { (*(*current_thread.as_mut_ptr ())).m_catchlist } }                            // 124
+macro_rules! handlerlist { () => { (*(*current_thread.as_mut_ptr ())).m_handlerlist } }                        // 127
+macro_rules! handlerlist_sentinel { () => { (*(*current_thread.as_mut_ptr ())).m_handlerlist_sentinel } }      // 130
 
 /* Pointer to beginning of specpdl.  */
-macro_rules! specpdl { () => { (*current_thread).m_specpdl } }                                // 131
-macro_rules! specpdl_end { () => { (*current_thread).m_specpdl_end } }                        // 135
-macro_rules! specpdl_ptr { () => { (*current_thread).m_specpdl_ptr } }                        // 139
-macro_rules! lisp_eval_depth { () => { (*current_thread).m_lisp_eval_depth } }                // 143
+macro_rules! specpdl { () => { (*(*current_thread.as_mut_ptr ())).m_specpdl } }                                // 131
+macro_rules! specpdl_end { () => { (*(*current_thread.as_mut_ptr ())).m_specpdl_end } }                        // 135
+macro_rules! specpdl_ptr { () => { (*(*current_thread.as_mut_ptr ())).m_specpdl_ptr } }                        // 139
+macro_rules! lisp_eval_depth { () => { (*(*current_thread.as_mut_ptr ())).m_lisp_eval_depth } }                // 143
 // thread.h 147's `current_buffer` accessor lives in `include/buffer.rs`: the field is typed
 // `*mut c_void` here (the incomplete `struct buffer` has no mirror in thread.h) and only the
 // buffer mirror can name the pointee, so the cast and the accessor belong there.
-macro_rules! search_regs { () => { (*current_thread).m_search_regs } }                        // 167
-macro_rules! saved_search_regs { () => { (*current_thread).m_saved_search_regs } }            // 170
-macro_rules! waiting_for_user_input_p { () => { (*current_thread).m_waiting_for_user_input_p } } // 181
-macro_rules! waiting_for_input { () => { (*current_thread).m_waiting_for_input } }            // 185
-macro_rules! getcjmp { () => { (*current_thread).m_getcjmp } }                                // 192
-macro_rules! stack_bottom { () => { (*current_thread).m_stack_bottom } }                      // 104
+macro_rules! search_regs { () => { (*(*current_thread.as_mut_ptr ())).m_search_regs } }                        // 167
+macro_rules! saved_search_regs { () => { (*(*current_thread.as_mut_ptr ())).m_saved_search_regs } }            // 170
+macro_rules! waiting_for_user_input_p { () => { (*(*current_thread.as_mut_ptr ())).m_waiting_for_user_input_p } } // 181
+macro_rules! waiting_for_input { () => { (*(*current_thread.as_mut_ptr ())).m_waiting_for_input } }            // 185
+macro_rules! getcjmp { () => { (*(*current_thread.as_mut_ptr ())).m_getcjmp } }                                // 192
+macro_rules! stack_bottom { () => { (*(*current_thread.as_mut_ptr ())).m_stack_bottom } }                      // 104
 
 /* thread.h 43-49: `NEAR_STACK_TOP`.  `HAVE___BUILTIN_FRAME_ADDRESS` is 1 (macro table 1693),
    so the live arm is `((void) (addr), __builtin_frame_address (0))`; the port renders the
@@ -374,8 +374,8 @@ pub fn XCONDVAR (a: Lisp_Object) -> *mut Lisp_CondVar
 pub mod thread_objs {
   use super::*;
   unsafe extern "C" {
-    pub static mut current_thread: *mut thread_state;   // thread.h 322
-    pub static mut all_threads: *mut thread_state;      // thread.h 323
+    pub static current_thread: VmGlobal<*mut thread_state>;   // thread.h 322
+    pub static all_threads: VmGlobal<*mut thread_state>;      // thread.h 323
   }
 }
 pub use self::thread_objs::*;

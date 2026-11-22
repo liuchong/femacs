@@ -34,7 +34,7 @@ SKIP = {"DEFVAR_KBOARD", "DEFVAR_PER_BUFFER"}
 
 CALL = re.compile(r'(DEFVAR_[A-Z_]+)\s*!\s*\((.*?)\)\s*;', re.S)
 IDENT = re.compile(r'^[A-Za-z_][A-Za-z0-9_]*$')
-DEFINITION = re.compile(r'static mut ([A-Za-z_][A-Za-z0-9_]*)\s*:[^;=]*=\s*[^;]+;')
+DEFINITION = re.compile(r'static\s+(?:mut\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*:\s*(?:VmGlobal<[^>]+>|[^;=]*)=\s*[^;]+;')
 
 
 def units() -> list[Path]:

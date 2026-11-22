@@ -122,7 +122,7 @@ pub unsafe extern "C" fn main (argc: c_int, argv: *mut *mut c_char) -> c_int
 
   loop
     {
-      let this_option_optind: c_int = if optind != 0 { optind } else { 1 };
+      let this_option_optind: c_int = if (*optind.as_mut_ptr ()) != 0 { (*optind.as_mut_ptr ()) } else { 1 };
       let mut option_index: c_int = 0;
       let long_options: [option; 8] =
 	[
@@ -147,8 +147,8 @@ pub unsafe extern "C" fn main (argc: c_int, argv: *mut *mut c_char) -> c_int
 	    {
 	      printf (c"option %s".as_ptr (),
 		      (*long_options.as_ptr ().offset (option_index as isize)).name);
-	      if !optarg.is_null ()
-		{ printf (c" with arg %s".as_ptr (), optarg); }
+	      if !(*optarg.as_mut_ptr ()).is_null ()
+		{ printf (c" with arg %s".as_ptr (), (*optarg.as_mut_ptr ())); }
 	      printf (c"\n".as_ptr ());
 	    }
 
@@ -170,10 +170,10 @@ pub unsafe extern "C" fn main (argc: c_int, argv: *mut *mut c_char) -> c_int
 	    { printf (c"option b\n".as_ptr ()); }
 
 	  x if x == b'c' as c_int =>
-	    { printf (c"option c with value '%s'\n".as_ptr (), optarg); }
+	    { printf (c"option c with value '%s'\n".as_ptr (), (*optarg.as_mut_ptr ())); }
 
 	  x if x == b'd' as c_int =>
-	    { printf (c"option d with value '%s'\n".as_ptr (), optarg); }
+	    { printf (c"option d with value '%s'\n".as_ptr (), (*optarg.as_mut_ptr ())); }
 
 	  x if x == b'?' as c_int =>
 	    { }
@@ -183,13 +183,13 @@ pub unsafe extern "C" fn main (argc: c_int, argv: *mut *mut c_char) -> c_int
 	}
     }
 
-  if optind < argc
+  if (*optind.as_mut_ptr ()) < argc
     {
       printf (c"non-option ARGV-elements: ".as_ptr ());
-      while optind < argc
+      while (*optind.as_mut_ptr ()) < argc
 	{
-	  printf (c"%s ".as_ptr (), *argv.offset (optind as isize));
-	  optind += 1;
+	  printf (c"%s ".as_ptr (), *argv.offset ((*optind.as_mut_ptr ()) as isize));
+	  (*optind.as_mut_ptr ()) += 1;
 	}
       printf (c"\n".as_ptr ());
     }

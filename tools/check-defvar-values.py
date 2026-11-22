@@ -64,8 +64,8 @@ def candidates() -> list[str]:
             lisp_name, name = m.group(2), m.group(3)
             if not re.search(r"\b" + name + r"\s*=(?!=)", bodies):
                 continue
-            declared = re.search(r"pub static mut " + name + r"\b", rtext) is not None
-            assigned = len(re.findall(r"\b" + name + r"\s*=(?!=)", rtext))
+            declared = re.search(r"pub static (?:mut )?" + name + r"\b", rtext) is not None
+            assigned = len(re.findall(r"\b" + name + r"(?:\s*=(?!=)|\.set\s*\(|\s*\.as_mut_ptr)", rtext))
             if not declared or assigned <= 1:
                 names.add(lisp_name)
     return sorted(names)
