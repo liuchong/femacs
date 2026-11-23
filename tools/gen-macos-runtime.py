@@ -37,7 +37,7 @@ def main():
  for name in sorted(forwards):
   if name not in variables:raise ValueError('forward has no Cocoa DEFVAR metadata: '+name)
   ty,kind,member,_=variables[name];pointer=f'{name}.as_mut_ptr()'+(' as *mut i64' if ty=='EMACS_INT' else '')
-  code += ['#[unsafe(no_mangle)]',f'pub static femacs_fwd_{name}: SyncLispFwd = SyncLispFwd(Lisp_Fwd {{ r#type: {kind}, u: Lisp_Fwd_u {{ {member}: {pointer} }} }});']
+  code += ['#[unsafe(no_mangle)]',f'pub static femacs_fwd_{name}: VmGlobal<Lisp_Fwd> = VmGlobal::new(Lisp_Fwd {{ r#type: {kind}, u: Lisp_Fwd_u {{ {member}: {pointer} }} }});']
  for q in sorted(extra):code += [f'#[unsafe(export_name="{q}")]', f'pub unsafe extern "C-unwind" fn export_{q}() -> Lisp_Object {{ {q}() }}']
  code += ['#[unsafe(no_mangle)]', 'pub static svcsMenu: VmGlobal<*mut c_void> = VmGlobal::new(core::ptr::null_mut());']
  for name in ['ns_app_name','ns_send_types','ns_return_types','x_display_list']:

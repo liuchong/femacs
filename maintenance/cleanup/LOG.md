@@ -1,3 +1,9 @@
+## CLN284 — 2026-11-23: U8 final integration and AU8 verification cache retirement
+
+- Retired `45` owned temporary build, verification, and container scopes (`23,532` files, `2,703` directories, `54` symlinks, `1,486,480,381` logical bytes) across `build/runtime/u8-native`, `build/cargo`, `build/acceptance`, `build/goal-{identity,output-guard}-unit`, `<session-cache>/{u8-run,u1-baseline,tree-sitter-0.27.1}`, and `37` `<noindex>/f*` containers after `AU8` (`4/4` groups) and all `12` Phase 3 protective gates passed.
+- Kept: verified deliverables `build/terminal/port` (`45M`) and `dist/macos/Femacs.app` (`235M`), re-verified post-cleanup via `4/4` SHA-256 match, strict `codesign` (`exit 0`), and `-Q --batch` `(treesit-available-p)` / `(require 'treesit)` smoke (`(3 t t nil t)`, `exit 0`).
+- [Report and recovery recipe](reports/2026-11-23-284-u8-final-integration-and-au8-retirement.md).
+
 ## CLN276 — 2026-11-20: Dock artwork packaging and installation
 
 - Retired the two replaced bundles and the owned icon packaging work tree after verifying the installed and workspace copies (`14,593` files, `616` directories, `3` symlinks, `1,267,675,583` logical bytes).

@@ -46,6 +46,7 @@ Rust 侧生命周期/内存模型、我们的优化路径）时，才新增自�
 | D-08 | 单一所有者 `VmState`/`ThreadState`、`Rooted`/`PersistentRoot` 句柄、高层 `#![forbid(unsafe_code)]` 域与受控底层白名单（P-483） | 去 `unsafe` 先行阶段 U4 | `tools/test-u4-gc-roots.py` + `tools/test-u4-unit.py` + `tools/check-unsafe-boundary.py` |
 | D-09 | 全产品活跃单元 `static mut` 统一替换为 `#[repr(transparent)] VmGlobal<T>`，升级安全 `DEFVAR_*`/`DEFUN!` 与带边界检查的内核原语（P-485） | 去 `unsafe` 先行阶段 U6 | `tools/test-u6-globals-and-primitives.py` + `crates/femacs-sys/src/globals_cell.rs` 单测 + `tools/check-defvar-carriers.py` |
 | D-10 | 编辑器高层与核心原语（`safe_buffer`/`safe_window`/`safe_data`/`safe_search`/`safe_syntax`/`safe_keymap`/`safe_json`/`safe_sort` 等 19 子系统）迁入 `#![forbid(unsafe_code)]`，配合 `RootedVec` 与 `NarrowedStackScanGuard` 收敛栈扫描（P-486） | 去 `unsafe` 先行阶段 U7 | `tools/test-u7-safe-subsystems.py`（含 `roots.rs` 单测与强制 GC 压力） + `tools/check-unsafe-boundary.py` |
+| D-11 | 非固有 `unsafe` 清理终态闭合门（零活跃 `static mut`、`143` 个 `#![forbid(unsafe_code)]` 模块、全量 `SAFETY:` 契约、干净导出/搬移/GUI/555 语料/性能集中终验，P-487） | 去 `unsafe` 先行阶段 U8 | `tools/test-u8-au8-integration.py` + `tools/check-unsafe-boundary.py` |
 
 新增或修改任何 D 项时，必须同批更新本表与对应测试；**禁止**为了让官方测试变绿而回退 D 项。
 

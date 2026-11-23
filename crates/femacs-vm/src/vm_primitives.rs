@@ -259,3 +259,28 @@ pub fn trigger_garbage_collect(ctx: &mut GcContext) -> VmResult<()> {
         crate::alloc::Fgarbage_collect();
     })
 }
+
+/// Safe `#[cfg(enable_checking)]` assertion failure trampoline for `eassert!`/`eassume!`.
+#[cfg(enable_checking)]
+#[inline(never)]
+#[cold]
+pub fn die_checking(msg_nul: &'static str, file_nul: &'static str, line: u32) -> ! {
+    let msg = if msg_nul.as_bytes().last() == Some(&0) {
+        msg_nul
+    } else {
+        "assertion failed\0"
+    };
+    let file = if file_nul.as_bytes().last() == Some(&0) {
+        file_nul
+    } else {
+        "<unknown>\0"
+    };
+    // SAFETY: `msg` and `file` are `'static str` slices verified above to terminate with a NUL byte (`\0`).
+    unsafe {
+        crate::common::die(
+            msg.as_ptr().cast::<crate::common::c_char>(),
+            file.as_ptr().cast::<crate::common::c_char>(),
+            line as crate::common::c_int,
+        )
+    }
+}

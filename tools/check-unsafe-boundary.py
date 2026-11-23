@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """Audit Rust unsafe boundaries, Cargo source scope, and binary VM/ABI invariants.
 
-Implements the static and binary verification gates for U1-U5 / AU1-AU5:
+Implements the static and binary verification gates for U1-U8 / AU1-AU8:
   * Discovers actual Cargo workspace packages and target-compiled source files.
   * Measures `#![forbid(unsafe_code)]`, file-level `#![allow(unsafe_op_in_unsafe_fn)]`
     and `#![allow(static_mut_refs)]`, `unsafe fn` definitions, `unsafe { ... }` blocks,
     `SAFETY:` documentation coverage in explicit low-level boundary modules, `static mut`
-    items, `extern "C"` definitions/declarations, and non-generated `include!` edges.
+    items (`--require-zero-static-mut`), `extern "C"` definitions/declarations, and
+    non-generated `include!` edges.
   * Verifies on linked binaries (`nm`) that VM/pdump singleton state (`lispsym`,
     `globals`, `dump_hooks`, `nr_dump_hooks`, `main_thread`) exists as a single
     instance and that required external ABI entrypoints (`Fmodule_load`, Cocoa
@@ -794,13 +795,49 @@ def run_selftest() -> int:
             assert res["unsafe_blocks"] == 1, res
             assert res["safety_documented_blocks"] == 1, res
 
+    def test_zero_static_mut_and_min_forbid_gates() -> None:
+        sample_active = {
+            "forbid_unsafe_files": 143,
+            "allow_unsafe_op_files": 0,
+            "allow_static_mut_refs_files": 0,
+            "unsafe_blocks": 10,
+            "safety_documented_blocks": 10,
+            "static_mut_items": 0,
+            "stitching_includes": 0,
+        }
+        assert check_active_thresholds(sample_active, True, 143) == []
+        reg_mut = dict(sample_active, static_mut_items=2)
+        errs_mut = check_active_thresholds(reg_mut, True, 143)
+        assert len(errs_mut) == 1 and "static mut" in errs_mut[0], errs_mut
+        reg_forbid = dict(sample_active, forbid_unsafe_files=140)
+        errs_forbid = check_active_thresholds(reg_forbid, True, 143)
+        assert len(errs_forbid) == 1 and "forbid_unsafe_files" in errs_forbid[0], errs_forbid
+
     case("source_metrics_and_foreign_decl_separation", test_source_metrics)
     case("forbid_unsafe_ignores_string_literals", test_forbid_detection)
     case("nm_duplicate_vm_state_and_abi_gate", test_nm_singleton_and_abi)
     case("comment_and_string_includes_ignored", test_comment_and_string_includes_ignored)
     case("manifest_allowlist_and_anchor_gate", test_manifest_allowlist_and_anchors)
     case("line_continuation_and_formfeed_newline_preservation", test_line_continuation_and_formfeed_newline_preservation)
+    case("zero_static_mut_and_min_forbid_gates", test_zero_static_mut_and_min_forbid_gates)
     return 1 if failures else 0
+
+
+def check_active_thresholds(
+    active_product: dict,
+    require_zero_static_mut: bool,
+    min_forbid_files: int | None,
+) -> list[str]:
+    errs: list[str] = []
+    if require_zero_static_mut and active_product.get("static_mut_items", 0) > 0:
+        errs.append(
+            f"found {active_product['static_mut_items']} active `static mut` item(s); expected 0"
+        )
+    if min_forbid_files is not None and active_product.get("forbid_unsafe_files", 0) < min_forbid_files:
+        errs.append(
+            f"active `forbid_unsafe_files` = {active_product.get('forbid_unsafe_files', 0)} < required {min_forbid_files}"
+        )
+    return errs
 
 
 def main() -> int:
@@ -825,6 +862,17 @@ def main() -> int:
         "--require-zero-active-stitching",
         action="store_true",
         help="Fail if any active Cargo product file retains unit/mirror stitching include!(...)",
+    )
+    ap.add_argument(
+        "--require-zero-static-mut",
+        action="store_true",
+        help="Fail if any active Cargo product file contains `static mut`",
+    )
+    ap.add_argument(
+        "--min-forbid-files",
+        type=int,
+        default=None,
+        help="Minimum required count of active `#![forbid(unsafe_code)]` files",
     )
     ap.add_argument(
         "--require-forbid",
@@ -862,6 +910,14 @@ def main() -> int:
             errors.append(
                 f"found {undoc} active `unsafe {{ ... }}` block(s) without `SAFETY:` contract comments"
             )
+
+    errors.extend(
+        check_active_thresholds(
+            active_product,
+            args.require_zero_static_mut,
+            args.min_forbid_files,
+        )
+    )
 
     if args.manifest:
         errors.extend(validate_manifest(args.repo.resolve(), report, args.manifest.resolve()))
@@ -901,6 +957,13 @@ def main() -> int:
         base_sum = base["summary"]
         deltas = {k: summary[k] - base_sum.get(k, 0) for k in summary if isinstance(summary[k], int)}
         report["baseline_deltas"] = deltas
+        if "active_product" in base and isinstance(base["active_product"], dict):
+            base_act = base["active_product"]
+            report["active_baseline_deltas"] = {
+                k: active_product[k] - base_act.get(k, 0)
+                for k in active_product
+                if isinstance(active_product[k], int)
+            }
         if args.ratchet:
             for key in (
                 "allow_unsafe_op_files",

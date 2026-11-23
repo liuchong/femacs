@@ -3877,8 +3877,8 @@
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
       "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "bc9ea6e4e9514bc0770dedc060e649d0a0a487c04f977839a9040de8221bd377",
-      "current_bytes": 5174
+      "current_sha256": "c77b861c3b9f450eaa7b7701f1eac6592b177c3aeffc0c12d02de4e08dcd6f49",
+      "current_bytes": 5183
     },
     {
       "path": "tools/gen-platform-arms.py",
@@ -4733,8 +4733,8 @@
     },
     {
       "path": "tools/check-unsafe-boundary.py",
-      "sha256": "389ec26edfc7e8b482efa6bf7afba6ea844dd330c4687c33f0c6b43acec87c8d",
-      "bytes": 37598,
+      "sha256": "5ab5bfb8b50a32ac61c5f73b4400726b35dd48227a2974186806f4cb4624c8dc",
+      "bytes": 40111,
       "family": "comparison-gate",
       "decision": "retain",
       "replacement": null,
@@ -8333,8 +8333,8 @@
     },
     {
       "path": "tools/test-u4-unit.py",
-      "sha256": "4b8c4e879ec4508bd2e11d09c8f7b69c974b1d98d741f9d03000ee871bdd1fcc",
-      "bytes": 15836,
+      "sha256": "6797cb029d4ecab49bfd7e6f84b82edca5dbcf2e66c30246fe75a8e0469b5b16",
+      "bytes": 15851,
       "family": "test",
       "decision": "retain",
       "replacement": null,
@@ -8343,23 +8343,6 @@
         {
           "path": "docs/testing-strategy.md",
           "anchor": "tools/test-u4-unit.py",
-          "kind": "current explicit dispatch/import/documented invocation"
-        }
-      ],
-      "uncertainty": null
-    },
-    {
-      "path": "tools/test-u5-au5-integration.py",
-      "sha256": "b5fa636478b746e46ff156b1c4c05aba0fbeba65d88395d8f0472415c9799c08",
-      "bytes": 58666,
-      "family": "test",
-      "decision": "retain",
-      "replacement": null,
-      "reason": "owned U1-U5 / Stage I-III verification or safety boundary input; explicit reader retained",
-      "readers": [
-        {
-          "path": "docs/testing-strategy.md",
-          "anchor": "D-07/D-08 U5/AU5 integration driver",
           "kind": "current explicit dispatch/import/documented invocation"
         }
       ],
@@ -8394,6 +8377,23 @@
         {
           "path": "docs/testing-strategy.md",
           "anchor": "D-10",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/test-u8-au8-integration.py",
+      "sha256": "9ed922b43d8ff53eaa1e614086e9916b167d7e32ec4bb8119a6240c457d00ac6",
+      "bytes": 89896,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned U8/AU8 consolidated clean-export, relocation, macOS UI/IME/drag/TTY, 555-entrypoint, and performance driver; explicit reader retained",
+      "readers": [
+        {
+          "path": "docs/testing-strategy.md",
+          "anchor": "D-11",
           "kind": "current explicit dispatch/import/documented invocation"
         }
       ],

@@ -2752,13 +2752,11 @@ pub unsafe extern "C-unwind" fn ns_output_current_pointer(f: *mut c_void) -> *mu
 }
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn femacs_get_ns_antialias_text() -> Lisp_Object {
-  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
-  unsafe { cocoa_runtime_exports::ns_antialias_text }
+  cocoa_runtime_exports::ns_antialias_text.get()
 }
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn femacs_get_ns_use_thin_smoothing() -> Lisp_Object {
-  // SAFETY: display/frame/glyph/window or Cocoa/TTY bridge boundary; caller supplies live frame/window/glyph/image pointers under the owning VM/UI thread lock.
-  unsafe { cocoa_runtime_exports::ns_use_thin_smoothing }
+  cocoa_runtime_exports::ns_use_thin_smoothing.get()
 }
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn __darwin_fd_isset(fd: c_int, set: *const fd_set) -> c_int {
@@ -2815,5 +2813,5 @@ unsafe fn replace_native_object(slot: *mut *mut c_void, value: *mut c_void) {
 #[cfg(feature = "have_ns")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn ns_frame_parm_handlers_address() -> *mut c_void {
-    core::ptr::addr_of_mut!(cocoa_runtime_exports::ns_frame_parm_handlers).cast()
+    cocoa_runtime_exports::ns_frame_parm_handlers.as_mut_ptr().cast()
 }

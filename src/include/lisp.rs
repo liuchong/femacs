@@ -401,12 +401,12 @@ macro_rules! eassert {
     ($cond:expr) => {
         #[cfg(enable_checking)]
         {
-            if !(/* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (*suppress_checking.as_mut_ptr ()) }) && !($cond) {
-                unsafe {
-                    die (concat! (stringify! ($cond), "\0").as_ptr () as *const c_char,
-                         concat! (file! (), "\0").as_ptr () as *const c_char,
-                         line!() as c_int)
-                }
+            if !crate::common::suppress_checking.get () && !($cond) {
+                crate::vm_primitives::die_checking (
+                    concat! (stringify! ($cond), "\0"),
+                    concat! (file! (), "\0"),
+                    line! (),
+                )
             }
         }
     };
@@ -416,14 +416,14 @@ macro_rules! eassume {
     ($cond:expr) => {
         #[cfg(enable_checking)]
         {
-            if /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { (*suppress_checking.as_mut_ptr ()) } {
+            if crate::common::suppress_checking.get () {
                 assume!($cond);
             } else if !($cond) {
-                unsafe {
-                    die (concat! (stringify! ($cond), "\0").as_ptr () as *const c_char,
-                         concat! (file! (), "\0").as_ptr () as *const c_char,
-                         line!() as c_int)
-                }
+                crate::vm_primitives::die_checking (
+                    concat! (stringify! ($cond), "\0"),
+                    concat! (file! (), "\0"),
+                    line! (),
+                )
             }
         }
         #[cfg(not(enable_checking))]
@@ -3195,14 +3195,26 @@ macro_rules! ALLOCATE_PLAIN_PSEUDOVECTOR {
 /// which Rust cannot name, so the *scope* carries the pool's height and `SAFE_FREE!` releases
 /// back to it (PORTING.md P-05, P-117 ⑧).  The declaration order matters at the call site:
 /// the height is read before anything is allocated in the scope.
-pub struct SaStackUnwindGuard(pub usize);
+pub struct SaStackUnwindGuard {
+    pub mark: usize,
+    pub depth: usize,
+}
+
+impl SaStackUnwindGuard {
+    #[inline]
+    pub fn enter(mark: usize) -> Self {
+        // SAFETY: `sa_stack_frame_enter` increments the current thread's lexical frame depth, paired with `Drop::drop`.
+        let depth = unsafe { sa_stack_frame_enter() };
+        Self { mark, depth }
+    }
+}
 
 impl Drop for SaStackUnwindGuard {
     #[inline]
     fn drop(&mut self) {
-        // SAFETY: `sa_stack_frame_exit` releases blocks pushed after `self.0` and scrubs
-        // recycled `sa_stack_free` blocks once the lexical frame has exited (`mark == 0`).
-        unsafe { sa_stack_frame_exit(self.0) };
+        // SAFETY: `sa_stack_frame_exit` releases blocks pushed after `self.mark` and scrubs
+        // recycled `sa_stack_free` blocks owned by frames at depth >= `self.depth`.
+        unsafe { sa_stack_frame_exit(self.mark, self.depth) };
     }
 }
 
@@ -3212,7 +3224,7 @@ macro_rules! USE_SAFE_ALLOCA {
         let mut $sa_avail: isize = MAX_ALLOCA;
         let $sa_count: specpdl_ref = SPECPDL_INDEX ();
         let $sa_mark: usize = /* SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers. */ unsafe { sa_stack_mark () };
-        let _sa_unwind_guard = $crate::common::SaStackUnwindGuard ($sa_mark);
+        let _sa_unwind_guard = $crate::common::SaStackUnwindGuard::enter ($sa_mark);
     };
 }
 
@@ -4475,7 +4487,8 @@ pub mod other_units {
         pub fn sa_stack_alloc (size: usize) -> *mut c_void;
         pub fn sa_stack_mark () -> usize;
         pub fn sa_stack_release_to (mark: usize);
-        pub fn sa_stack_frame_exit (mark: usize);
+        pub fn sa_stack_frame_enter () -> usize;
+        pub fn sa_stack_frame_exit (mark: usize, depth: usize);
         pub fn record_xmalloc (size: usize) -> *mut c_void;
         pub fn xzalloc (size: usize) -> *mut c_void;
         // src/lisp.h 5544: `void *xnmalloc (ptrdiff_t, ptrdiff_t)`, not the

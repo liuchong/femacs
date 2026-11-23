@@ -178,7 +178,7 @@ use core::sync::atomic::{AtomicBool, AtomicU8, Ordering};
         s.cadence_cons_base = 0; s.cadence_bytes_base = 0;
         // Normal process startup follows dump relocation. Cons age bitmaps
         // belong only to current heap blocks; dump objects use no block math.
-        let mut block = cons_block;
+        let mut block = cons_block.get();
         while !block.is_null() {
             (*block).oldbits.fill(0); (*block).dirtybits.fill(0);
             (*block).raw_tainted = 0;
@@ -394,8 +394,8 @@ use core::sync::atomic::{AtomicBool, AtomicU8, Ordering};
         if MODE.load(Ordering::Relaxed) != 2 { return; }
         if kind == GcKind::Full { state().registry.clear(); }
         else { state().registry.freeze(); }
-        let mut block = cons_block;
-        let mut limit = cons_block_index as usize;
+        let mut block = cons_block.get();
+        let mut limit = cons_block_index.get() as usize;
         while !block.is_null() {
             for word in 0..(*block).gcmarkbits.len() {
                 let valid = numeric::valid_word_mask(word * BITS_PER_BITS_WORD, limit);
@@ -453,8 +453,8 @@ use core::sync::atomic::{AtomicBool, AtomicU8, Ordering};
             gc_observation::phase_end(observation_cycle, 23);
             gc_observation::phase_begin(observation_cycle, 24);
         }
-        let mut block = cons_block;
-        let mut limit = cons_block_index as usize;
+        let mut block = cons_block.get();
+        let mut limit = cons_block_index.get() as usize;
         while !block.is_null() {
             let tainted = (*block).raw_tainted != 0;
             for word in 0..(*block).oldbits.len() {
@@ -498,7 +498,7 @@ use core::sync::atomic::{AtomicBool, AtomicU8, Ordering};
         state().totals[2] = u64::from(kind == GcKind::Young);
         if kind == GcKind::Full {
             state().count(3, 1); state().totals[5] = 0;
-            state().totals[6] = gcstat.total_conses as u64;
+            state().totals[6] = (*gcstat.as_mut_ptr()).total_conses as u64;
             (*LAST_MAJOR_BYTES.as_mut_ptr ()) = total_bytes_of_live_objects() as u64;
             state().totals[15] = 0; state().totals[16] = 0;
             state().cadence_cons_base = 0; state().cadence_bytes_base = 0;
@@ -546,7 +546,7 @@ use core::sync::atomic::{AtomicBool, AtomicU8, Ordering};
         if node == MEM_NIL!() || node.is_null() || (*node).r#type != mem_type::MEM_TYPE_CONS { return None; }
         let block = CONS_BLOCK!(cell);
         let index = CONS_INDEX!(cell);
-        let limit = if block == cons_block { cons_block_index as usize } else { CONS_BLOCK_SIZE };
+        let limit = if block == cons_block.get() { cons_block_index.get() as usize } else { CONS_BLOCK_SIZE };
         if index >= limit || (*node).start as usize > block as usize
             || ((*node).end as usize).saturating_sub(block as usize) < core::mem::size_of::<cons_block>()
             || cell as usize % core::mem::size_of::<Lisp_Cons>() != 0 { return None; }
@@ -564,8 +564,8 @@ use core::sync::atomic::{AtomicBool, AtomicU8, Ordering};
             || FOREIGN.load(Ordering::Relaxed) { return heap_cell(cell); }
         if let Some(proof) = state().marked_cons_block {
             if proof.token == token && !cell.is_null() && !pdumper_object_p(cell.cast()) {
-                let limit = if proof.block == cons_block {
-                    proof.limit.min(cons_block_index as usize)
+                let limit = if proof.block == cons_block.get() {
+                    proof.limit.min(cons_block_index.get() as usize)
                 } else { proof.limit };
                 if let Some(offset) = (cell as usize).checked_sub(proof.block as usize) {
                     let size = core::mem::size_of::<Lisp_Cons>();
@@ -577,7 +577,7 @@ use core::sync::atomic::{AtomicBool, AtomicU8, Ordering};
         }
         let location = heap_cell(cell);
         state().marked_cons_block = location.map(|(block, _)| MarkedConsBlockProof {
-            block, limit: if block == cons_block { cons_block_index as usize } else { CONS_BLOCK_SIZE }, token,
+            block, limit: if block == cons_block.get() { cons_block_index.get() as usize } else { CONS_BLOCK_SIZE }, token,
         });
         location
     
@@ -620,7 +620,7 @@ use core::sync::atomic::{AtomicBool, AtomicU8, Ordering};
         if !young_owner() { return; }
         let Some((block, index)) = marked_heap_cell(cell) else { return; };
         let car = (*cell).u.s.car; let cdr = (*cell).u.s.u.cdr;
-        let limit = if block == cons_block { cons_block_index as usize } else { CONS_BLOCK_SIZE };
+        let limit = if block == cons_block.get() { cons_block_index.get() as usize } else { CONS_BLOCK_SIZE };
         let nonheap_child = |object: Lisp_Object| -> bool {
             if !CONSP(object) { return false; }
             let child = lisp_h_XCONS_untracked(object);

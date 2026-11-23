@@ -90,7 +90,14 @@ struct ThreadNonLocalState {
 // `THREAD_STATES` mutex while the VM global lock serializes Lisp execution and GC marking.
 unsafe impl Send for ThreadNonLocalState {}
 
-static THREAD_STATES: Mutex<Option<HashMap<usize, ThreadNonLocalState>>> = Mutex::new(None);
+static THREAD_STATES: Mutex<Option<HashMap<usize, Box<ThreadNonLocalState>>>> = Mutex::new(None);
+static STATE_EPOCH: AtomicUsize = AtomicUsize::new(1);
+
+std::thread_local! {
+    static TLS_STATE_CACHE: core::cell::Cell<(usize, usize, *mut ThreadNonLocalState)> =
+        const { core::cell::Cell::new((0, 0, core::ptr::null_mut())) };
+}
+
 static ACTIVE_COMP_NATIVE_EXITS: AtomicUsize = AtomicUsize::new(0);
 static SCOPED_ROOTS_CREATED: AtomicUsize = AtomicUsize::new(0);
 static SCOPED_ROOTS_DROPPED: AtomicUsize = AtomicUsize::new(0);
@@ -103,17 +110,38 @@ fn current_thread_key() -> usize {
     unsafe { current_thread.get() as usize }
 }
 
+#[inline(always)]
 fn with_thread_state<R>(thread_key: usize, f: impl FnOnce(&mut ThreadNonLocalState) -> R) -> R {
+    let epoch = STATE_EPOCH.load(Ordering::Acquire);
+    let (c_epoch, c_key, c_ptr) = TLS_STATE_CACHE.with(|c| c.get());
+    if c_epoch == epoch && c_key == thread_key && !c_ptr.is_null() {
+        // SAFETY: `c_ptr` points to a heap-pinned `Box<ThreadNonLocalState>` stored in
+        // `THREAD_STATES`; `cleanup_thread_state` increments `STATE_EPOCH` before removing any
+        // entry, and single-VM thread execution serializes mutable access to that thread's state
+        // across non-reentrant leaf closures `f`.
+        return f(unsafe { &mut *c_ptr });
+    }
+    with_thread_state_slow(thread_key, f)
+}
+
+#[cold]
+#[inline(never)]
+fn with_thread_state_slow<R>(thread_key: usize, f: impl FnOnce(&mut ThreadNonLocalState) -> R) -> R {
     let mut guard = THREAD_STATES
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner());
+    let epoch = STATE_EPOCH.load(Ordering::Acquire);
     let map = guard.get_or_insert_with(HashMap::new);
-    let entry = map.entry(thread_key).or_insert_with(|| ThreadNonLocalState {
-        scoped_roots: Vec::with_capacity(16),
-        inflight_value: lisp_h_Qnil(),
-        inflight_active: false,
-        native_pending: NativePendingExit::default(),
+    let entry = map.entry(thread_key).or_insert_with(|| {
+        Box::new(ThreadNonLocalState {
+            scoped_roots: Vec::with_capacity(16),
+            inflight_value: lisp_h_Qnil(),
+            inflight_active: false,
+            native_pending: NativePendingExit::default(),
+        })
     });
+    let ptr: *mut ThreadNonLocalState = &mut **entry;
+    TLS_STATE_CACHE.with(|c| c.set((epoch, thread_key, ptr)));
     f(entry)
 }
 
@@ -261,6 +289,8 @@ pub fn cleanup_thread_state(thread: *mut c_void) {
     let mut guard = THREAD_STATES
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner());
+    STATE_EPOCH.fetch_add(1, Ordering::SeqCst);
+    TLS_STATE_CACHE.with(|c| c.set((0, 0, core::ptr::null_mut())));
     if let Some(map) = guard.as_mut()
         && let Some(removed) = map.remove(&key)
         && removed.native_pending.pending

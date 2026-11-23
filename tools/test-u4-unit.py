@@ -378,7 +378,7 @@ def main() -> int:
         # 2. `SaStackUnwindGuard::drop -> sa_stack_frame_exit` dead-frame scrub (`P-172`-preserving)
         lisp_rs = (REPO / "src/include/lisp.rs").read_text(encoding="utf-8")
         alloc_rs = (REPO / "src/alloc.rs").read_text(encoding="utf-8")
-        assert "sa_stack_frame_exit(self.0)" in lisp_rs
+        assert "sa_stack_frame_exit(self.mark, self.depth)" in lisp_rs
         assert "pub unsafe extern \"C-unwind\" fn sa_stack_frame_exit" in alloc_rs
 
         # 3. `C-unwind` specpdl callbacks in `runtime_gc_observation.rs` and `runtime_gc_collector.rs`

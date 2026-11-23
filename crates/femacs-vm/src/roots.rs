@@ -168,8 +168,14 @@ impl Default for PersistentRootTable {
     }
 }
 
-static THREAD_ROOT_SLABS: Mutex<Option<HashMap<usize, ThreadRootSlab>>> = Mutex::new(None);
+static THREAD_ROOT_SLABS: Mutex<Option<HashMap<usize, Box<ThreadRootSlab>>>> = Mutex::new(None);
 static PERSISTENT_ROOTS: Mutex<Option<PersistentRootTable>> = Mutex::new(None);
+static SLAB_EPOCH: AtomicUsize = AtomicUsize::new(1);
+
+std::thread_local! {
+    static TLS_SLAB_CACHE: core::cell::Cell<(usize, usize, *mut ThreadRootSlab)> =
+        const { core::cell::Cell::new((0, 0, core::ptr::null_mut())) };
+}
 
 static ROOTED_SLOTS_PUSHED: AtomicUsize = AtomicUsize::new(0);
 static ROOTED_SLOTS_POPPED: AtomicUsize = AtomicUsize::new(0);
@@ -186,15 +192,36 @@ pub(crate) fn current_thread_key() -> usize {
     unsafe { current_thread.get() as usize }
 }
 
+#[inline(always)]
 fn with_thread_slab<R>(thread_key: usize, f: impl FnOnce(&mut ThreadRootSlab) -> R) -> R {
+    let epoch = SLAB_EPOCH.load(Ordering::Acquire);
+    let (c_epoch, c_key, c_ptr) = TLS_SLAB_CACHE.with(|c| c.get());
+    if c_epoch == epoch && c_key == thread_key && !c_ptr.is_null() {
+        // SAFETY: `c_ptr` points to a heap-pinned `Box<ThreadRootSlab>` stored in
+        // `THREAD_ROOT_SLABS`; `cleanup_thread_u4_slab` increments `SLAB_EPOCH` before removing any
+        // slab, and single-VM thread execution serializes mutable access to that thread's slab
+        // across non-reentrant leaf closures `f`.
+        return f(unsafe { &mut *c_ptr });
+    }
+    with_thread_slab_slow(thread_key, f)
+}
+
+#[cold]
+#[inline(never)]
+fn with_thread_slab_slow<R>(thread_key: usize, f: impl FnOnce(&mut ThreadRootSlab) -> R) -> R {
     let mut guard = THREAD_ROOT_SLABS
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner());
+    let epoch = SLAB_EPOCH.load(Ordering::Acquire);
     let map = guard.get_or_insert_with(HashMap::new);
-    let slab = map.entry(thread_key).or_insert_with(|| ThreadRootSlab {
-        values: Vec::with_capacity(32),
-        raw_spans: Vec::with_capacity(16),
+    let slab = map.entry(thread_key).or_insert_with(|| {
+        Box::new(ThreadRootSlab {
+            values: Vec::with_capacity(32),
+            raw_spans: Vec::with_capacity(16),
+        })
     });
+    let ptr: *mut ThreadRootSlab = &mut **slab;
+    TLS_SLAB_CACHE.with(|c| c.set((epoch, thread_key, ptr)));
     f(slab)
 }
 
@@ -719,6 +746,8 @@ pub fn cleanup_thread_u4_slab(thread: *mut c_void) {
     let mut guard = THREAD_ROOT_SLABS
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner());
+    SLAB_EPOCH.fetch_add(1, Ordering::SeqCst);
+    TLS_SLAB_CACHE.with(|c| c.set((0, 0, core::ptr::null_mut())));
     if let Some(map) = guard.as_mut() {
         map.remove(&key);
     }

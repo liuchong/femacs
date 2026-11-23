@@ -1132,7 +1132,9 @@ const SA_STACK_ALIGN: usize = 16;
 struct sa_stack_block
 {
   base: *mut u8,
+  capacity: usize,
   used: usize,
+  frame_depth: usize,
   owner: *mut c_void,
   next: *mut sa_stack_block,
   /* The recycle link (P-172): C's `alloca` never returns the bytes, so they stay readable.  */
@@ -1146,6 +1148,21 @@ static sa_stack_free: VmGlobal<*mut sa_stack_block> = VmGlobal::<*mut sa_stack_b
 /* How many blocks the chain holds.  `USE_SAFE_ALLOCA!` reads it into the frame, `SAFE_FREE!`
    hands that reading back - the scope's own height is the release's only input (P-117 ⑧).  */
 static sa_stack_count: VmGlobal<usize> = VmGlobal::<usize>::new (0);
+static sa_stack_dirty_free: VmGlobal<usize> = VmGlobal::<usize>::new (0);
+
+std::thread_local! {
+  static SA_FRAME_DEPTH: core::cell::Cell<usize> = const { core::cell::Cell::new (0) };
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C-unwind" fn sa_stack_frame_enter () -> usize
+{
+  SA_FRAME_DEPTH.with (|c| {
+    let next = c.get () + 1;
+    c.set (next);
+    next
+  })
+}
 
 /// C: `alloca`'s port - the allocator behind `AVAIL_ALLOCA!`, called with the byte count the
 /// macro has already charged to `sa_avail`.
@@ -1155,11 +1172,12 @@ pub unsafe extern "C-unwind" fn sa_stack_alloc (size: usize) -> *mut c_void
   // SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers.
   unsafe {
   let bytes = (size + SA_STACK_ALIGN - 1) & !(SA_STACK_ALIGN - 1);
+  let cur_depth = SA_FRAME_DEPTH.with (|c| c.get ());
   /* Recycle a big-enough block of this thread, as C's stack reuses earlier frames' space.  */
   let mut header: *mut sa_stack_block = (*sa_stack_free.as_mut_ptr ());
   let mut prev: *mut sa_stack_block = std::ptr::null_mut ();
   while ! header.is_null ()
-    && ! ((*header).owner == (*current_thread.as_mut_ptr ()) as *mut c_void && (*header).used >= bytes)
+    && ! ((*header).owner == (*current_thread.as_mut_ptr ()) as *mut c_void && (*header).capacity >= bytes)
     {
       prev = header;
       header = (*header).next_free;
@@ -1171,6 +1189,16 @@ pub unsafe extern "C-unwind" fn sa_stack_alloc (size: usize) -> *mut c_void
       else
 	{ (*prev).next_free = (*header).next_free; }
       (*header).next_free = std::ptr::null_mut ();
+      let prev_used = (*header).used;
+      if prev_used != 0
+	{
+	  let dirty = (*sa_stack_dirty_free.as_mut_ptr ());
+	  (*sa_stack_dirty_free.as_mut_ptr ()) = dirty.saturating_sub (1);
+	  if prev_used > bytes
+	    { core::ptr::write_bytes ((*header).base.add (bytes), 0, prev_used - bytes); }
+	}
+      (*header).used = bytes;
+      (*header).frame_depth = cur_depth;
       (*header).next = (*sa_stack_top.as_mut_ptr ());
       (*sa_stack_top.as_mut_ptr ()) = header;
       (*sa_stack_count.as_mut_ptr ()) += 1;
@@ -1180,7 +1208,8 @@ pub unsafe extern "C-unwind" fn sa_stack_alloc (size: usize) -> *mut c_void
   if base.is_null ()
     { memory_full (bytes); }
   header = xmalloc (std::mem::size_of::<sa_stack_block> ()) as *mut sa_stack_block;
-  (*header) = sa_stack_block { base, used: bytes, owner: (*current_thread.as_mut_ptr ()) as *mut c_void,
+  (*header) = sa_stack_block { base, capacity: bytes, used: bytes, frame_depth: cur_depth,
+			       owner: (*current_thread.as_mut_ptr ()) as *mut c_void,
 			       next: (*sa_stack_top.as_mut_ptr ()), next_free: std::ptr::null_mut () };
   (*sa_stack_top.as_mut_ptr ()) = header;
   (*sa_stack_count.as_mut_ptr ()) += 1;
@@ -1220,31 +1249,56 @@ pub unsafe extern "C-unwind" fn sa_stack_release_to (mark: usize)
         /* P-172: recycle, do not free; C's alloca bytes stay readable within the active frame.  */
         (*header).next_free = (*sa_stack_free.as_mut_ptr ());
         (*sa_stack_free.as_mut_ptr ()) = header;
+        if (*header).used != 0
+          { (*sa_stack_dirty_free.as_mut_ptr ()) += 1; }
       }
   }
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C-unwind" fn sa_stack_frame_exit (mark: usize)
+pub unsafe extern "C-unwind" fn sa_stack_frame_exit (mark: usize, depth: usize)
 {
   // SAFETY: invoked from `SaStackUnwindGuard::drop` when the enclosing Rust lexical scope /
-  // function exits (after any intra-frame post-`SAFE_FREE!` read of `P-172`). Once `sa_stack_top`
-  // drains to empty, no live frame holds pointers into `sa_stack_free`, so scrubbing `used`
-  // retires dead-frame conservative scanning of recycled alloca blocks.
+  // function exits (after any intra-frame post-`SAFE_FREE!` read of `P-172`). Scrubs blocks owned
+  // by this exiting frame depth (or all blocks once `sa_stack_top` drains) so dead frames are
+  // never conservatively scanned, while preserving `capacity` for block recycling.
+  SA_FRAME_DEPTH.with (|c| c.set (depth.saturating_sub (1)));
   unsafe {
-    sa_stack_release_to (mark);
-    if mark == 0 && (*sa_stack_top.as_mut_ptr ()).is_null () {
+    let cur_thread = (*current_thread.as_mut_ptr ()) as *mut c_void;
+    while (*sa_stack_count.as_mut_ptr ()) > mark && !(*sa_stack_top.as_mut_ptr ()).is_null ()
+      && (*(*sa_stack_top.as_mut_ptr ())).owner == cur_thread
+      {
+        let header = (*sa_stack_top.as_mut_ptr ());
+        (*sa_stack_top.as_mut_ptr ()) = (*header).next;
+        (*sa_stack_count.as_mut_ptr ()) -= 1;
+        if (*header).used != 0
+          {
+            core::ptr::write_bytes ((*header).base as *mut u8, 0, (*header).used);
+            (*header).used = 0;
+          }
+        (*header).frame_depth = 0;
+        (*header).next_free = (*sa_stack_free.as_mut_ptr ());
+        (*sa_stack_free.as_mut_ptr ()) = header;
+      }
+    if (*sa_stack_dirty_free.as_mut_ptr ()) != 0 {
+      let top_drained = mark == 0 && (*sa_stack_top.as_mut_ptr ()).is_null ();
       let mut scrubbed = 0usize;
       let mut block = (*sa_stack_free.as_mut_ptr ());
       while !block.is_null () {
-        if (*block).used != 0 {
+        if (*block).used != 0
+          && (*block).owner == cur_thread
+          && ((*block).frame_depth >= depth || top_drained)
+        {
           core::ptr::write_bytes ((*block).base as *mut u8, 0, (*block).used);
           (*block).used = 0;
+          (*block).frame_depth = 0;
           scrubbed += 1;
         }
         block = (*block).next_free;
       }
       if scrubbed != 0 {
+        let dirty = (*sa_stack_dirty_free.as_mut_ptr ());
+        (*sa_stack_dirty_free.as_mut_ptr ()) = dirty.saturating_sub (scrubbed);
         crate::state::note_sa_free_scrubbed (scrubbed);
       }
     }

@@ -1,20 +1,17 @@
-# 当前状态（2026-11-20）
+# 当前状态（2026-11-23）
 
 **本段为当前实际读数，取代下方 2026-11-16 及更早的历史段落。**
 
-`dist/macos/Femacs.app` 已包含 [Cocoa 默认字体修复](../maintenance/cleanup/reports/2026-11-20-274-cocoa-default-font.md)、[GIF 解码修复](../maintenance/cleanup/reports/2026-11-20-275-cocoa-gif.md)和 [浅色／深色 Dock 图标](../maintenance/cleanup/reports/2026-11-20-276-macos-dock-artwork.md)，当前制品身份见图标记录。下方的性能与制品记录绑定到现代化结项时的构建。
-
-- **七项现代化工作与最终验收（`G1–G7`、`GC0–GC9`、`GA1–GA8`）已全部完成并闭合**：
-  - 阶段 I（`GA1–GA3`，`6065cf1b`）：完成干净跟踪树导出重建与搬移（`GA2`）、多窗口输入法/外部 Finder 拖放/异常 TTY（`GA1`）及 555 文件官方尺度兼容有效阻断归零（`GA3`）。详见 [Stage I 收口回执](../maintenance/releases/2026-11-20-stage1-ga1-ga2-ga3-closure.md)。
-  - 阶段 II（`GA4`，`60ce6ecd`）：完成 `407` 项工具/夹具库存与活跃读者复核、薄转发器与支持矩阵对齐，并通过 `CLN269`–`CLN273` 完整清退全部 `47` 份历史本地清单及所有已消费中间/验收/缓存目录（合计释放约 `20.05 GB` 逻辑字节）。
-  - 阶段 III（`GA5–GA8`）：按用户 `2026-11-20` 明确负载放行指令（保持计划文件 `max_load_per_core: 0.10` 及 `quiet: false` 原值不变，如实记录每轮 `load_per_round = 0.2666..0.4288`），完成六候选 `2+7` 轮工作负载与 GC 全维画像（`s3-g5-comparison-formal` `238308bd…`）、标准交付双产品 `2+7` 轮同模式对比（`s3-ga8-delivered-formal` `1f24b37b…`）及 Cocoa/终端各 7 轮 `bench.py`（`fda8ceef…`、`10b40898…`），全部单轮序列、统计与 `GA1–GA8` 反向审计已归档至 [Stage III 收口回执](../maintenance/releases/2026-11-20-stage3-ga5-ga6-ga7-ga8-closure.md)。
-- **最终可试用 macOS 交付制品（经 [CLN273](../maintenance/cleanup/reports/2026-11-20-273-final-acceptance-runtime-and-cache-retirement.md) 清理后复验通过）**：
-  - `build/terminal/port`（`40 MB`）：`src/emacs` `2,798,256 B`（SHA256 `a0dd02e116b9f37e8eb6fc86be630118bb7d0d82af5e9f3c2c8cdaf5d7960241`），`src/emacs.pdmp` `13,101,368 B`（SHA256 `cd076b1dc17a9b2c6cac605347442604214bf18d49ef41cdfaace31d62bfac18`），`pair.sha256` `4/4` 校验通过。
-  - `dist/macos/Femacs.app`（`231 MB`）：主程序 `4,367,952 B`（SHA256 `02f5adafe3c1a5fc86276632e521ed5228ed37d5cfe4443377437d799098104e`），`Femacs.pdmp` `18,600,752 B`（SHA256 `e1515db2344d096fdf23aea1a376ae9628d93993e00fef4b308aea198b639e6b`），`codesign --verify --deep --strict` 通过，`spctl --assess` 返回 `exit 3`（本地试用未公证边界）。
-- **核心性能与研究裁定摘要**：
-  - **`GA6`**：采纳优化后的解释器、字节码 VM、分配器与原语热路径作为标准默认实现；`libgccjit` 原生编译因 `420–441 ms` 编译准备开销、融合字节码循环回退（`0.252 vs 0.017 ms`）、峰值 RSS/最大停顿上升及外部 `gcc`（`emutls_w`）工具链依赖，保留为 `xtask runtime-build --variant native` 可选构建。
-  - **`GA7`**：非搬移分代 `Young` 收集器虽每轮实跑 `53` 次 Automatic minor，但因阶段 `22`（`3.21–3.31 ms`）+ `23`（`1.13–1.18 ms`）+ `24`（`0.17–0.21 ms`）及全块清扫使 `gc-churn`/`gc-retained`/`load` 较 `major` 慢 `1.103x`/`1.198x`/`1.745x`，拒绝作为默认收集器（不宣称默认启用分代 GC），保留为 `xtask runtime-build --variant collector` 可选构建并完整归档证明。
-  - **`GA8`**：标准交付双产品对比已安装 `32.0.50` 官方参照（`23f49087…`），峰值 RSS 降低 `31.2%–50.3%`（`29.28–39.75 MB` vs `57.74–58.88 MB`），启动提速 `5.49–9.12` 倍（`20.34–27.79 ms` vs `148.11–185.48 ms`），中位 GC 停顿缩短 `27.4%–38.3%`（`2.74–3.85 ms` vs `4.43–5.45 ms`），`bench.py` 10 项工作负载中 9 项显著快于参照（`bc-loop` `0.0081–0.0088 vs 1.87–1.88 ms`、`bc-sum` `0.325–0.329 vs 4.25–4.32 ms`、`bc-car` `0.0079 vs 1.77–1.87 ms`、`sort-100k` `0.421–0.423 vs 1.94–1.95 ms`、`edit` `7.55–7.74 vs 9.57 ms`、`regex` `2.10–2.14 vs 2.62–2.67 ms`、`gc` `28.40–28.81 vs 49.74–50.16 ms`），`load`（`1.70–1.74 vs 1.67–1.68 ms`）在 MAD 波动范围内持平，同模式字节码 `load` 快 `1.78–3.28` 倍（`3.51–6.47 vs 11.51 ms`）。
+- **去 `unsafe` 先行阶段（`U1–U8` / `AU1–AU8`）已完成实施与四组全量终验（`P-480`–`P-487`），待独立终审确认后进入 `C1–C6`**：
+  - 活跃产品闭包（`436` 份文件）已收口为 `#![forbid(unsafe_code)]` **`143`** 份、`allow(unsafe_op_in_unsafe_fn)` **`0`** 份、`allow(static_mut_refs)` **`0`** 份、`static mut` **`0`** 项（较 `U1` 基线 `-2,602`）、拼接 `include!` **`0`** 项（较 `U1` `-2,232`）、`unsafe_blocks` **`6,243`**、`SAFETY:` 契约覆盖 **`6,243 / 6,243`（`100.0%`）**、`unsafe_fn_defs` **`4,337`**（较 `U1` `-884`）。
+  - `U8` 在 `src/{alloc,eval}.rs`、`src/include/lisp.rs` 修复 `rtn15`（为 `sa_stack_block` 增加 `frame_depth`/`SA_FRAME_DEPTH`/`sa_stack_frame_enter` 清零嵌套退出帧自由块，并用 `[Qnil (); 8]`、`_cc_sa_guard` 与 `#[inline(never)]` 慢路径消除 `eval.rs` C 栈残留槽位），并经 `AU8` 四组正式验收全部通过：`clean-export`（`834.215s`，`7,719` 项纯跟踪重建与搬移通过）、`macos-ui`（`142.073s`，GUI/IME `456` 回调、多窗、Finder 拖放 `23/28` 与异常 TTY `16` 项全过）、`corpus-555`（555 入口 `8,685` 用例与 72 未完严格复跑 `781` 用例均为 `0` 阻断；`u8-native-normal`/`checking` 各 `11/11` / `603` 用例 `0` 阻断；写屏障 ERT 与 `runtime-execution.py` 负例/`young 120`/`major 44` 全过）、`performance`（`98.264s`，7 轮与四组对比零重要回退）以及全部 `12` 项三期保护门禁。
+- **最终可交付制品（经 [CLN284](../maintenance/cleanup/reports/2026-11-23-284-u8-final-integration-and-au8-retirement.md) 清理 `45` 项临时范围 / `1,486,480,381` 逻辑字节后复验通过）**：
+  - `build/terminal/port`（`45 MB`）：`src/emacs` `4,475,248 B`（SHA-256 `bf497bb5e380caf633325890127a757e3e6037a88d049a02ab19a922160a60cd`），`src/emacs.pdmp` `13,101,352 B`（SHA-256 `3e56fbf0bf454da5d83ebb348d9f2c6435fce62d48d7245a984c23c85985feab`），`lib-src/emacsclient` `564,976 B`（`383644de…`），`lib-src/hexl` `475,072 B`（`d44f1c44…`）。
+  - `dist/macos/Femacs.app`（`235 MB`）：主程序 `5,998,256 B`（SHA-256 `e5e702bf00b3ecd08f0abe46ec2d2b70dde78340b26ca040eda54685d13863c2`），`Femacs.pdmp` `18,601,728 B`（SHA-256 `67a2ebadcc6709e799062833bff5c86be132f60b3fbb3f8394ddf21a2c4008d0`），`codesign --verify --deep --strict` `exit 0`（`spctl` 本地未公证 `exit 3` 边界），双产物 `-Q --batch` `(+ 1 2)`、`(treesit-available-p)` 与 `(require 'treesit)` 冒烟均返回 `(3 t t nil t)`、`exit 0`。
+- **关键实测对比摘要（`AU8` 同机同模式 vs 已安装参照 `32.0.50`）**：
+  - 7 轮基准中位数：冷启动 `23.918 / 24.259 ms` vs `146.635 / 150.667 ms`（提速 `6.13x / 6.21x`），`bc-loop` `0.0091 vs 1.885 ms`，`bc-sum` `0.330 vs 4.274–4.333 ms`，`bc-car` `0.0091 vs 1.776–1.876 ms`，`sort-100k` `0.412–0.413 vs 1.949 ms`，`edit` `7.886–8.075 vs 9.447–9.457 ms`，`regex` `2.188–2.399 vs 2.665–2.683 ms`，`gc` `33.706–35.761 vs 49.157–49.849 ms`，`load` `1.656–1.740 vs 1.700–1.716 ms`。
+  - 已交付对比参照字节码：`delivered-terminal-vs-reference-bytecode` 比值为 `bytecode 0.116`、`edit 1.101`、`gc-churn 0.679`、`gc-retained 0.647`、`load 0.284`、`regex 0.955`；`delivered-cocoa-vs-reference-bytecode` 比值为 `bytecode 0.116`、`edit 1.109`、`gc-churn 0.946`、`gc-retained 0.830`、`load 0.625`、`regex 0.985`。
+  - 既有现代化基线档案保留：`GA1–GA3` [Stage I 收口回执](../maintenance/releases/2026-11-20-stage1-ga1-ga2-ga3-closure.md)、`GA4`、`GA5–GA8` [Stage III 收口回执](../maintenance/releases/2026-11-20-stage3-ga5-ga6-ga7-ga8-closure.md) 与 [CLN273](../maintenance/cleanup/reports/2026-11-20-273-final-acceptance-runtime-and-cache-retirement.md)。
 
 ---
 

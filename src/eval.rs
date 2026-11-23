@@ -1333,9 +1333,8 @@ DEFUN! ("let", Flet, Slet, 1, UNEVALLED, 0,
   let varlist_len: EMACS_INT = fast_list_length (varlist);
   if varlist_len <= 8
     {
-      let mut temps_buf: core::mem::MaybeUninit<[Lisp_Object; 8]> =
-	core::mem::MaybeUninit::uninit ();
-      temps = temps_buf.as_mut_ptr () as *mut Lisp_Object;
+      let mut temps_buf: [Lisp_Object; 8] = [Qnil (); 8];
+      temps = temps_buf.as_mut_ptr ();
       let mut temps_span = crate::roots::ScopedRawSpan::new (temps, 0);
       let mut nvars: ptrdiff_t = varlist_len;
       argnum = 0;
@@ -1887,6 +1886,7 @@ pub extern "C-unwind" fn internal_lisp_condition_case (var: Lisp_Object,
   if MAX_ALLOCA / word_size < clausenb
     { memory_full_up (); }
   /* C's bare `alloca` is the port's stack pool (PORTING.md P-05's decision).  */
+  let _cc_sa_guard = crate::common::SaStackUnwindGuard::enter (sa_stack_mark ());
   let mut clauses: *mut Lisp_Object
     = sa_stack_alloc (clausenb as usize * std::mem::size_of::<Lisp_Object> ())
       as *mut Lisp_Object;
@@ -2817,9 +2817,8 @@ pub extern "C-unwind" fn eval_sub (form: Lisp_Object) -> Lisp_Object
   let mut funcar: Lisp_Object;
   /* Declare here, as this array may be accessed by call_debugger near
      the end of this function.  See Bug#21245.  */
-  let mut argvals_uninit: core::mem::MaybeUninit<[Lisp_Object; 8]> =
-    core::mem::MaybeUninit::uninit ();
-  let argvals_ptr: *mut Lisp_Object = argvals_uninit.as_mut_ptr () as *mut Lisp_Object;
+  let mut argvals: [Lisp_Object; 8] = [Qnil (); 8];
+  let argvals_ptr: *mut Lisp_Object = argvals.as_mut_ptr ();
   /* The stack overflow detection probably isn't worth the effort any more
      but this may be the least bad spot to feed it.  */
   (*(*current_thread.as_mut_ptr ())).stack_top = argvals_ptr as *const c_void;
@@ -3061,34 +3060,15 @@ pub extern "C-unwind" fn eval_sub (form: Lisp_Object) -> Lisp_Object
   }
 }
 
-DEFUN! ("apply", Fapply, Sapply, 1, MANY, 0,
-       doc: "Call FUNCTION with our remaining args, using our last arg as list of args.\nThen return the value FUNCTION returns.\nWith a single argument, call the argument's first element using the\nother elements as args.\nThus, (apply \\='+ 1 2 \\='(3 4)) returns 10.\nusage: (apply FUNCTION &rest ARGUMENTS)",
-       (nargs: isize, args: *mut Lisp_Object),
-       {
+#[inline(never)]
+unsafe fn apply_spread_slow (nargs: isize, args: *mut Lisp_Object, mut fun: Lisp_Object,
+			      mut spread_arg: Lisp_Object, numargs: ptrdiff_t) -> Lisp_Object
+{
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
   let mut i: ptrdiff_t;
   let mut funcall_nargs: ptrdiff_t;
-  let mut funcall_args: *mut Lisp_Object = std::ptr::null_mut ();
-  let mut spread_arg: Lisp_Object = *args.offset (nargs - 1);
-  let mut fun: Lisp_Object = *args.offset (0);
-
-  if NILP (spread_arg)
-    { return Ffuncall (max (1, nargs - 1), args); }
-  else if CONSP (spread_arg) && NILP (XCDR (spread_arg))
-    {
-      *args.offset (nargs - 1) = XCAR (spread_arg);
-      return Ffuncall (nargs, args);
-    }
-
-  let mut numargs: ptrdiff_t = fast_list_length (spread_arg);
-  if numargs == 0
-    { return Ffuncall (max (1, nargs - 1), args); }
-  else if numargs == 1
-    {
-      *args.offset (nargs - 1) = XCAR (spread_arg);
-      return Ffuncall (nargs, args);
-    }
-
-  numargs += nargs - 2;
+  let mut funcall_args: *mut Lisp_Object;
 
   /* Optimize for no indirection.  */
   if SYMBOLP (fun) && !NILP (fun)
@@ -3176,6 +3156,34 @@ DEFUN! ("apply", Fapply, Sapply, 1, MANY, 0,
 
   SAFE_FREE! (sa_count, sa_mark);
   return retval;
+  }
+}
+
+DEFUN! ("apply", Fapply, Sapply, 1, MANY, 0,
+       doc: "Call FUNCTION with our remaining args, using our last arg as list of args.\nThen return the value FUNCTION returns.\nWith a single argument, call the argument's first element using the\nother elements as args.\nThus, (apply \\='+ 1 2 \\='(3 4)) returns 10.\nusage: (apply FUNCTION &rest ARGUMENTS)",
+       (nargs: isize, args: *mut Lisp_Object),
+       {
+  let spread_arg: Lisp_Object = *args.offset (nargs - 1);
+  let fun: Lisp_Object = *args.offset (0);
+
+  if NILP (spread_arg)
+    { return Ffuncall (max (1, nargs - 1), args); }
+  else if CONSP (spread_arg) && NILP (XCDR (spread_arg))
+    {
+      *args.offset (nargs - 1) = XCAR (spread_arg);
+      return Ffuncall (nargs, args);
+    }
+
+  let numargs: ptrdiff_t = fast_list_length (spread_arg);
+  if numargs == 0
+    { return Ffuncall (max (1, nargs - 1), args); }
+  else if numargs == 1
+    {
+      *args.offset (nargs - 1) = XCAR (spread_arg);
+      return Ffuncall (nargs, args);
+    }
+
+  return apply_spread_slow (nargs, args, fun, spread_arg, numargs + nargs - 2);
 });
 
 /* Run hook variables in various ways.  */
@@ -3367,6 +3375,29 @@ pub unsafe extern "C-unwind" fn run_hook_with_args_2 (hook: Lisp_Object, arg1: L
 }
 
 /* Apply fn to arg.  */
+#[inline(never)]
+unsafe fn apply1_spread_slow (fn_: Lisp_Object, arg: Lisp_Object, cdr1: Lisp_Object, cdr2: Lisp_Object) -> Lisp_Object
+{
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
+  let mut buf: [Lisp_Object; 16] = [Qnil (); 16];
+  buf[0] = fn_;
+  buf[1] = XCAR (arg);
+  buf[2] = XCAR (cdr1);
+  let mut n: ptrdiff_t = 3;
+  let mut s: Lisp_Object = cdr2;
+  while CONSP (s) && n < 16
+    {
+      buf[n as usize] = XCAR (s);
+      n += 1;
+      s = XCDR (s);
+    }
+  if NILP (s)
+    { return Ffuncall (n, buf.as_mut_ptr ()); }
+  return CALLN! (Fapply, fn_, arg);
+  }
+}
+
 #[unsafe(no_mangle)]
 pub extern "C-unwind" fn apply1 (fn_: Lisp_Object, arg: Lisp_Object) -> Lisp_Object
 {
@@ -3384,20 +3415,7 @@ pub extern "C-unwind" fn apply1 (fn_: Lisp_Object, arg: Lisp_Object) -> Lisp_Obj
 	  let cdr2: Lisp_Object = XCDR (cdr1);
 	  if NILP (cdr2)
 	    { return calln! (fn_, XCAR (arg), XCAR (cdr1)); }
-	  let mut buf: [Lisp_Object; 16] = [Qnil (); 16];
-	  buf[0] = fn_;
-	  buf[1] = XCAR (arg);
-	  buf[2] = XCAR (cdr1);
-	  let mut n: ptrdiff_t = 3;
-	  let mut s: Lisp_Object = cdr2;
-	  while CONSP (s) && n < 16
-	    {
-	      buf[n as usize] = XCAR (s);
-	      n += 1;
-	      s = XCDR (s);
-	    }
-	  if NILP (s)
-	    { return Ffuncall (n, buf.as_mut_ptr ()); }
+	  return apply1_spread_slow (fn_, arg, cdr1, cdr2);
 	}
     }
   return CALLN! (Fapply, fn_, arg);
@@ -3636,6 +3654,37 @@ pub extern "C-unwind" fn safe_eval (sexp: Lisp_Object) -> Lisp_Object
 /* Apply a C subroutine SUBR to the NUMARGS evaluated arguments in ARG_VECTOR
    and return the result of evaluation.  */
 
+#[inline(never)]
+unsafe fn funcall_subr_4_to_8 (subr: *mut Lisp_Subr, numargs: ptrdiff_t, maxargs: ptrdiff_t,
+			       args: *mut Lisp_Object) -> Lisp_Object
+{
+  // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
+  unsafe {
+  let mut argbuf: [Lisp_Object; 8] = [Qnil (); 8];
+  let a: *mut Lisp_Object = argbuf.as_mut_ptr ();
+  eassume! (maxargs <= 8);
+  let mut i: ptrdiff_t = 0;
+  while i < numargs
+    {
+      *a.offset (i) = *args.offset (i);
+      i += 1;
+    }
+  match maxargs
+    {
+    0 => (((*subr).function.a0).unwrap_unchecked ()) (),
+    1 => (((*subr).function.a1).unwrap_unchecked ()) (*a.offset (0)),
+    2 => (((*subr).function.a2).unwrap_unchecked ()) (*a.offset (0), *a.offset (1)),
+    3 => (((*subr).function.a3).unwrap_unchecked ()) (*a.offset (0), *a.offset (1), *a.offset (2)),
+    4 => (((*subr).function.a4).unwrap_unchecked ()) (*a.offset (0), *a.offset (1), *a.offset (2), *a.offset (3)),
+    5 => (((*subr).function.a5).unwrap_unchecked ()) (*a.offset (0), *a.offset (1), *a.offset (2), *a.offset (3), *a.offset (4)),
+    6 => (((*subr).function.a6).unwrap_unchecked ()) (*a.offset (0), *a.offset (1), *a.offset (2), *a.offset (3), *a.offset (4), *a.offset (5)),
+    7 => (((*subr).function.a7).unwrap_unchecked ()) (*a.offset (0), *a.offset (1), *a.offset (2), *a.offset (3), *a.offset (4), *a.offset (5), *a.offset (6)),
+    8 => (((*subr).function.a8).unwrap_unchecked ()) (*a.offset (0), *a.offset (1), *a.offset (2), *a.offset (3), *a.offset (4), *a.offset (5), *a.offset (6), *a.offset (7)),
+    _ => { eassume! (false); Qnil () }
+    }
+  }
+}
+
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn funcall_subr (subr: *mut Lisp_Subr, numargs: ptrdiff_t,
                                        args: *mut Lisp_Object) -> Lisp_Object
@@ -3677,36 +3726,7 @@ pub unsafe extern "C-unwind" fn funcall_subr (subr: *mut Lisp_Subr, numargs: ptr
 	      (((*subr).function.a3).unwrap_unchecked ()) (a0, a1, Qnil ())
 	    }
 	  else
-	    {
-	      let mut argbuf: core::mem::MaybeUninit<[Lisp_Object; 8]> =
-	        core::mem::MaybeUninit::uninit ();
-	      let a: *mut Lisp_Object = argbuf.as_mut_ptr () as *mut Lisp_Object;
-	      eassume! (maxargs <= 8);
-	      let mut i: ptrdiff_t = 0;
-	      while i < numargs
-	        {
-	          *a.offset (i) = *args.offset (i);
-	          i += 1;
-	        }
-	      while i < maxargs
-	        {
-	          *a.offset (i) = Qnil ();
-	          i += 1;
-	        }
-	      match maxargs
-	        {
-	        0 => (((*subr).function.a0).unwrap_unchecked ()) (),
-	        1 => (((*subr).function.a1).unwrap_unchecked ()) (*a.offset (0)),
-	        2 => (((*subr).function.a2).unwrap_unchecked ()) (*a.offset (0), *a.offset (1)),
-	        3 => (((*subr).function.a3).unwrap_unchecked ()) (*a.offset (0), *a.offset (1), *a.offset (2)),
-	        4 => (((*subr).function.a4).unwrap_unchecked ()) (*a.offset (0), *a.offset (1), *a.offset (2), *a.offset (3)),
-	        5 => (((*subr).function.a5).unwrap_unchecked ()) (*a.offset (0), *a.offset (1), *a.offset (2), *a.offset (3), *a.offset (4)),
-	        6 => (((*subr).function.a6).unwrap_unchecked ()) (*a.offset (0), *a.offset (1), *a.offset (2), *a.offset (3), *a.offset (4), *a.offset (5)),
-	        7 => (((*subr).function.a7).unwrap_unchecked ()) (*a.offset (0), *a.offset (1), *a.offset (2), *a.offset (3), *a.offset (4), *a.offset (5), *a.offset (6)),
-	        8 => (((*subr).function.a8).unwrap_unchecked ()) (*a.offset (0), *a.offset (1), *a.offset (2), *a.offset (3), *a.offset (4), *a.offset (5), *a.offset (6), *a.offset (7)),
-	        _ => { eassume! (false); Qnil () }
-	        }
-	    };
+	    { funcall_subr_4_to_8 (subr, numargs, maxargs, args) };
 	  #[cfg (feature = "have_native_comp")]
 	  crate::nonlocal::check_and_propagate_comp_native_exit ();
 	  return val;
@@ -3743,9 +3763,8 @@ unsafe fn apply_lambda (fun: Lisp_Object, args: Lisp_Object, count: specpdl_ref)
   let numargs: ptrdiff_t = fast_list_length (args);
   if numargs <= 8
     {
-      let mut arg_buf: core::mem::MaybeUninit<[Lisp_Object; 8]> =
-	core::mem::MaybeUninit::uninit ();
-      arg_vector = arg_buf.as_mut_ptr () as *mut Lisp_Object;
+      let mut arg_buf: [Lisp_Object; 8] = [Qnil (); 8];
+      arg_vector = arg_buf.as_mut_ptr ();
       let mut arg_span = crate::roots::ScopedRawSpan::new (arg_vector, 0);
       let mut args_left: Lisp_Object = args;
       let mut i: ptrdiff_t = 0;
