@@ -891,7 +891,7 @@ pub unsafe extern "C" fn femacs_vm_u4_exercise_safe_domains (
     let path_str = String::from_utf8_lossy (slice).into_owned ();
     let mut ctx = crate::roots::GcContext::current ().expect ("active VM thread required");
     match crate::safe_domain::exercise_all_safe_domains (&mut ctx, &path_str) {
-      Ok (val) => lisp_to_value (env, val.into_raw ()),
+      Ok (rooted) => lisp_to_value (env, rooted.get_raw ().into_raw ()),
       Err (exit) => crate::nonlocal::resume_vm_nonlocal (exit),
     }
   })

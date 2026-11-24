@@ -13,5 +13,5 @@ pub unsafe fn run_editor_main(
     argv: *mut *mut core::ffi::c_char,
 ) -> core::ffi::c_int {
     // SAFETY: Caller passes the OS process argument vector directly from `main`.
-    unsafe { femacs_vm::emacs::femacs_editor_main(argc, argv) }
+    unsafe { femacs_vm::editor_main(argc, argv) }
 }

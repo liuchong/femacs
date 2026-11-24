@@ -96,6 +96,20 @@ impl ThreadState {
     }
 }
 
+/// Return whether a Lisp `current_thread` is initialized and non-null.
+#[inline]
+pub fn has_active_thread() -> bool {
+    // SAFETY: `current_thread` is a single-VM `VmGlobal` atomic pointer slot (`Relaxed` load).
+    !unsafe { current_thread.get() }.is_null()
+}
+
+/// Return the raw address of `current_thread` as a read-only `usize` (0 if uninitialized).
+#[inline]
+pub fn current_thread_addr() -> usize {
+    // SAFETY: `current_thread` is a single-VM `VmGlobal` atomic pointer slot; address read only.
+    unsafe { current_thread.get() as usize }
+}
+
 #[inline]
 pub(crate) fn note_pdumper_loaded() {
     PDUMPER_LOADED_FLAG.store(true, Ordering::Relaxed);

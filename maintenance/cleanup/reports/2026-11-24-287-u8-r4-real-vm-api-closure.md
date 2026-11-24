@@ -1,0 +1,66 @@
+# CLN287 — U8-R4 Real `femacs-vm` Public API Closure, Performance Gate & Cache Retirement (2026-11-24)
+
+## Summary
+
+After closing both remaining `AU4/AU6` safe-Rust public API trust-boundary findings from the `3c2abcd9` independent review (`R3`), upgrading `tools/test-u4-unit.py` Group 4 to verify external `#![forbid(unsafe_code)]` compile-fail and compile-pass gates directly against the real `femacs-vm` crate metadata (`libfemacs_vm-*.rmeta`), rebuilding both deliverables (`build/terminal/port`, `dist/macos/Femacs.app`) and `build/runtime/u8-native` (`normal` + `checking`), passing all unit, static-boundary, Mach-O ABI-export, `U3`/`U4`/`U7`, and `AU8 --group performance` (`bench.py --gate`) re-verification suites (with the `555` corpus, Cocoa UI, and clean-export sweeps explicitly reused from `502e87b8` per `R3` guidance), atomically reinstalling `/Applications/Fe.app`, and confirming zero active child processes, this batch retired `15` consumed temporary build, runtime, acceptance, staging, and hardlink-alias scopes.
+
+## Accepted R4 Scope & Re-Verification Receipts
+
+- **Public VM global & internal module encapsulation (`crates/femacs-vm/src/{lib,state,vm_primitives}.rs`, `crates/femacs-host/src/lib.rs`, `src/thread.rs`)**:
+  - Narrowed `#[unsafe(no_mangle)]` `current_thread` and `all_threads` in `src/thread.rs` to `pub(crate) static` (blocking safe external `.set(...)` via `VmGlobal` while preserving external Mach-O `D _current_thread` / `D _all_threads` ABI symbols, verified via `nm -gU` on both deliverables).
+  - Exposed safe read-only thread inspection `state::{has_active_thread, current_thread_addr}` in `crates/femacs-vm/src/state.rs` and added `pub unsafe fn vm_primitives::editor_main` (re-exported as `femacs_vm::editor_main`, updating `crates/femacs-host/src/lib.rs` while keeping `crates/femacs-vm/src/lib.rs` at zero `unsafe` items).
+  - Narrowed `femacs_sys`, `VmGlobal`, `common`, `frame_image_accessors`, `buildobj`, `safe_cmds`..`safe_window`, and all `82` C-port modules (`dispnew`..`abi_shim`, including `thread` and `emacs`) in `crates/femacs-vm/src/lib.rs` to `pub(crate)`, leaving only `femacs_pure`, `nonlocal`, `roots`, `state`, `vm_primitives`, `safe_domain`, and `editor_main` public.
+- **Heap value encapsulation to rooted handles & immediates (`crates/femacs-vm/src/{roots,vm_primitives,safe_domain}.rs`, `src/{eval,emacs-module}.rs`)**:
+  - Added copyable `Send + Sync` immediate value type `pub struct Immediate(Lisp_Object)` (`nil`, `from_fixnum`, `is_nil`, `as_fixnum`), narrowed `LispVal` to `pub(crate) struct LispVal(Lisp_Object)` (`!Send + !Sync`), moved `Send` strictly onto internal `ThreadRootSlab` and `PersistentSlot`, and marked `NoGcToken<'a>` and `UnrootedBorrow<'nogc, T>` `!Send + !Sync`.
+  - Removed public raw-word re-rooting/extraction paths (`Rooted::new`, `Rooted::get`, `PersistentRoot::new`, `PersistentRoot::get`, `Handle::get`, `MutableHandle::set`), replacing them with safe handle/immediate APIs (`GcContext::{root_immediate, root_handle}`, `Rooted::{from_immediate, from_handle, handle, handle_mut, is_nil, as_fixnum, as_immediate, same_object, set_immediate, set_from_handle}`, `PersistentRoot::{from_immediate, from_handle, handle, set_immediate, set_from_handle, release}`, and `pub(crate)` `*_raw` kernel helpers). Marked raw C-ABI probe functions `femacs_vm_persistent_root_get` and `femacs_vm_persistent_root_release` as `pub unsafe extern "C" fn` alongside `femacs_vm_persistent_root_alloc`, preserving exact symbols and C ABI.
+  - Updated all heap-returning primitives in `crates/femacs-vm/src/vm_primitives.rs` to root immediately via `Rooted::new_raw` and accept `Handle<'_>` / return `VmResult<Rooted>` or owned host `Option<String>` / scalar values; updated `safe_domain.rs` (`#![forbid(unsafe_code)]`), `src/eval.rs::Fprog1`, and `src/emacs-module.rs::femacs_vm_u4_exercise_safe_domains`.
+- **Real-crate external `#![forbid(unsafe_code)]` regression gate (`tools/test-u4-unit.py`, `tools/test-u3-unit.py`, `tools/test-u7-safe-subsystems.py`, `maintenance/tooling-inventory.json`)**:
+  - Upgraded `tools/test-u4-unit.py` Group 4 Part 4a to run `cargo check -p femacs-vm --target-dir <tmp>` and compile directly against real `libfemacs_vm-*.rmeta`: verifies `1` `#![forbid(unsafe_code)]` compile-pass safe workflow (`real_pass.rs`) and `38` distinct `#![forbid(unsafe_code)]` compile-fail probes (covering `current_thread.set`/`get`, `all_threads.set`, `femacs_sys`/`VmGlobal`, private C-port/safe modules, `unsafe fn editor_main`, private `LispVal`, removed `Rooted::new`/`get` & `PersistentRoot::new`/`get`, private `Handle::get_raw`, all 5 `unsafe extern "C" fn` probes, `!Send` invariants, `Rooted` move semantics, and `'static`/dropped `Handle` & `UnrootedBorrow` lifetime checks), plus Part 4b runtime `Mutex` multi-thread lock handoff. Updated `tools/test-u3-unit.py` structural visibility assertions and `tools/test-u7-safe-subsystems.py --selftest`, and updated `maintenance/tooling-inventory.json`.
+  - Passed `test-u4-unit.py` `4/4` (`19.7262s`, Group 4 `17.4656s`), `test-u3-unit.py` `3/3` (`8/8` Rust tests), and `test-u7-safe-subsystems.py --selftest` (`5/5`).
+- **Build, active product static & ABI verification (`436` files, both deliverables)**:
+  - Clean rebuild (`assistant run --profile build`, `run_id=7c99d5d8614b4d29b18ff901941aa991`, `2084.927s`, `exit=0`, `cleanup_complete=true`, peak accounted `2,205,141,752` B) produced Terminal (`build/terminal/port`), Cocoa (`dist/macos/Femacs.app`), and `build/runtime/u8-native` (`normal` + `checking`).
+  - `check-unsafe-boundary.py` on both deliverables (`run_id=bcf605078e3944f5afe65913f3ffa973`, `50.725s`, `exit=0`, `cleanup_complete=true`): `error_count=0`, `forbid_unsafe_files=143`, `allow_unsafe_op_files=0`, `allow_static_mut_refs_files=0`, `static_mut_items=0`, `stitching_includes=0`, `generated_includes=3`, `unsafe_blocks=6,278`, `safety_documented_blocks=6,278/6,278 (100.0%)`, `unsafe_fn_defs=4,366`, `extern_c_fn_defs=2,325`, `extern_c_blocks=834`, `unsafe_impl_traits=10`.
+  - `nm -gU` confirmed `_current_thread`, `_all_threads`, `_Vmain_thread`, `_lispsym`, `_Fall_threads`, `_Fcurrent_thread`, and all 6 `_femacs_vm_*` exports on both binaries; `cargo test -p femacs-pure -p femacs-sys -p xtask --lib` (`10/10` + `3/3`), `check-own-voice.py` (`0` failures), `test-repository-bootstrap.py` (`4/4`), `test-tooling-modernization.py` (`33/33`), and `test-u8-au8-integration.py --group selftest` (`12/12`) passed.
+- **Targeted runtime & `bench --gate` verification (`assistant run --profile runtime`)**:
+  - `tools/test-u4-gc-roots.py --native-dir build/runtime/u8-native`: `4/4` groups passed (`26.6718s`, `run_id=f2087eb56ed24d3fa08bd9c17d7f71db`, `exit=0`, `cleanup_complete=true`).
+  - `tools/test-u3-nonlocal-exit.py`: `4/4` cases passed (`passed=4, failed=0`, `19.183s`, `run_id=63149c42fc954953adbf4068dc199038`, `exit=0`, `cleanup_complete=true`).
+  - `tools/test-u7-safe-subsystems.py`: `4/4` cases passed (`ok=true`, `22` modules, `20` ERT suites, `U7_GC_STRESS_OK gcs=72`, `33.166s`, `run_id=ed556d7571d045e3a113aa795ba42df2`, `exit=0`, `cleanup_complete=true`).
+  - `tools/test-u8-au8-integration.py --group performance` (`95.31s` tool / `95.582s` controlled-run, `run_id=4154b0cde7c84ec3b7a34f625a36b394`, `exit=0`, `cleanup_complete=true`): `bench.py --gate` (`docs/baseline/bench-{cocoa,terminal}-ga8.tsv`, `10` baseline items) passed with `regressions=[]` on both Cocoa (`gc 30.5989 vs 49.1281 ms`, `edit 7.6048 vs 9.3179 ms`, `regex 2.3210 vs 2.6100 ms`, `regexp-repl 2.9280 vs 2.6922 ms`, `load 1.5869 vs 1.6670 ms`; standalone `startup 24.6953 vs 150.4351 ms`) and Terminal (`gc 30.4589 vs 49.3710 ms`, `edit 7.5810 vs 9.4881 ms`, `regex 2.2531 vs 2.7440 ms`, `regexp-repl 2.7831 vs 2.8172 ms`, `load 1.5500 vs 1.7309 ms`; standalone `startup 24.3556 vs 149.5969 ms`), `delivered-comparison` (`delivered-terminal-vs-reference-bytecode`: `bytecode 0.1094`, `edit 1.1536`, `gc-churn 0.6484`, `gc-retained 0.6296`, `load 0.2710`, `regex 1.0440`; `delivered-cocoa-vs-reference-bytecode`: `bytecode 0.1094`, `edit 1.1288`, `gc-churn 0.8948`, `gc-retained 0.7436`, `load 0.5332`, `regex 0.9948`), and `runtime-modes-comparison` (`passed=true`). Note: an earlier attempt failed solely during a transient external CPU spike (`load average ~7 -> 28` from unrelated indexing), while this clean rerun still recorded `quiet=False` (`max_load_per_core=0.465` / `0.427` from decaying OS load EWMA) with normal reference timings (`150.4` / `149.6 ms` startup) and `0` gate regressions.
+
+## Retired Temporary & Verification Scopes
+
+Retired `15` owned temporary build, runtime, acceptance, staging, and hardlink-alias scopes totaling `12,218` files, `1,271` directories, `20` symlinks, `2,397,113,488` logical bytes, normalized digest `5a15df0290943209029faeac403d24635787a092b7ad1fa06e644f29ebb726a9` (note: `build/terminal/port/src/emacs-32.0.50.1{,.pdmp}` were hardlinked `P-190` aliases to retained `emacs{,.pdmp}`, contributing `17,816,344` logical bytes in entry totals without consuming extra backing blocks):
+
+| Removed scope | Pre-delete `du` | Files | Dirs | Symlinks | Logical bytes | Replacement / Recovery |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| `build/acceptance` (`u8-r4-performance`) | `14M` | `295` | `245` | `0` | `13,509,828` | Re-run `tools/test-u8-au8-integration.py --group performance` |
+| `build/cargo` | `359M` | `799` | `72` | `0` | `536,258,378` | `CARGO_TARGET_DIR` workspace cache (rebuilt on demand) |
+| `build/cargo-tools` | `214M` | `1,356` | `336` | `0` | `248,466,658` | `xtask` host tool target dir (rebuilt on demand) |
+| `build/macos` | `266M` | `210` | `98` | `6` | `302,436,414` | Recreated by `cargo run -p xtask -- build-macos` |
+| `build/runtime` (`u8-native`) | `1001M` | `9,422` | `448` | `12` | `1,085,267,965` | `cargo run -p xtask -- runtime-build ...` |
+| `build/terminal/cargo` | `174M` | `80` | `44` | `0` | `181,628,126` | Recreated by `cargo run -p xtask -- build-terminal` |
+| `build/terminal/config` | `48K` | `7` | `0` | `0` | `35,082` | Recreated by `xtask build-terminal` |
+| `build/terminal/image` | `1.3M` | `3` | `2` | `0` | `1,270,503` | Recreated by `xtask build-terminal` |
+| `build/terminal/image-staging` | `1.3M` | `2` | `0` | `0` | `1,269,940` | Recreated by `xtask build-terminal` |
+| `build/terminal/lcms` | `364K` | `5` | `3` | `0` | `360,608` | Recreated by `xtask build-terminal` |
+| `build/terminal/port/src/emacs-32.0.50.1` | `4.5M` | `1` | `0` | `0` | `4,714,976` | Hardlink alias to retained `build/terminal/port/src/emacs` |
+| `build/terminal/port/src/emacs-32.0.50.1.pdmp` | `13M` | `1` | `0` | `0` | `13,101,368` | Hardlink alias to retained `build/terminal/port/src/emacs.pdmp` |
+| `build/terminal/tls` | `7.6M` | `26` | `10` | `0` | `7,878,424` | Recreated by `xtask build-terminal` |
+| `build/terminal/treesit` | `316K` | `6` | `6` | `0` | `307,980` | Recreated by `xtask build-terminal` |
+| `build/treesit-0.27.1` | `604K` | `5` | `7` | `2` | `607,238` | Reinstall via `python3 tools/toolchain-pins.py install` |
+
+## Retained Working Set, Post-Cleanup Verification & Application Bundle Parity
+
+- `build/terminal` (`45M`, holding `build/terminal/port/`):
+  - `build/terminal/port/src/emacs`: `4,714,976` B, SHA-256 `1bdc6b3dd72727f52016ae0c03aae4837db856fa6f186985707d86cbf07cf622`
+  - `build/terminal/port/src/emacs.pdmp`: `13,101,368` B, SHA-256 `58068e6bad108bd51ae2775a63f8d2bfa4024254dfd033736fbe9ed524b11461`
+  - `build/terminal/port/lib-src/emacsclient`: `539,328` B, SHA-256 `1baf54e687c5fd61259f6699a2d2953b7e6567e350a304942b2e06f38ba600c7`
+  - `build/terminal/port/lib-src/hexl`: `451,488` B, SHA-256 `15f41ba92128f2549c6e7f8f3e6685f379b9dec79d0f34b4696a4e5dda4878af`
+- `dist/macos/Femacs.app` (`235M`) & atomically reinstalled `/Applications/Fe.app` (`diff -rq` empty, exit `0`):
+  - `Contents/MacOS/Femacs`: `6,264,448` B, SHA-256 `bf922320cfb293252d164f0b355fe371e4097cdee621b4c75011acab34c7586e` (exact match across workspace & `/Applications/Fe.app`)
+  - `Contents/Resources/libexec/Femacs.pdmp`: `18,600,760` B, SHA-256 `dea50536212d2eb37c00fbd4f2307dc2746aa51b8b0add21cfc8dfd34b337491` (exact match across workspace & `/Applications/Fe.app`)
+  - `Contents/MacOS/bin/emacsclient`: `538,784` B, SHA-256 `ca959192dfd327a692c9bdc76b1c12ae7889652a0e65ca11193adc53bfafa755` (exact match across workspace & `/Applications/Fe.app`)
+  - `Contents/MacOS/bin/hexl`: `451,120` B, SHA-256 `2ee11f3c9964f5aaa3465c07006a78f9d98487c56c81808faf42e3fc20ef7014` (exact match across workspace & `/Applications/Fe.app`)
+  - `codesign --verify --deep --strict dist/macos/Femacs.app` -> `exit 0`; `codesign --verify --deep --strict /Applications/Fe.app` -> `exit 0`.
+- Retained `build/generation` (`5.8M`) and `build/manuals` (`740M`).
+- Post-cleanup `-Q --batch` smoke (`run_id=3986919557084c79b338d53f82dc032f`, `exit=0`, `cleanup_complete=true`, `1.333s`): `build/terminal/port/src/emacs`, `dist/macos/Femacs.app/Contents/MacOS/Femacs`, and `/Applications/Fe.app/Contents/MacOS/Femacs` all returned `(3 t nil nil t)` for `(list (+ 1 2) (treesit-available-p) (featurep 'treesit) (null (require 'treesit)) (featurep 'treesit))`, installed CLI wrappers `femacs` and `fe` returned `(3 t)`, and `feclient --version` returned `emacsclient 32.0.50`.

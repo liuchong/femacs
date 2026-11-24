@@ -99,10 +99,11 @@ mod tests {
 
     use crate::common::{Lisp_Object, current_thread, lisp_h_Qnil};
     use crate::roots::{
-        GcContext, LispVal, PersistentRoot, Rooted, RootedVec, ScopedRawSpan, UnrootedBorrow,
-        bind_vm_lock_owner, cleanup_thread_u4_slab, femacs_vm_persistent_root_alloc,
-        femacs_vm_persistent_root_get, femacs_vm_persistent_root_release, mark_persistent_roots,
-        mark_thread_u4_slab_roots, rooting_counters, unbind_vm_lock_owner,
+        GcContext, Immediate, LispVal, PersistentRoot, Rooted, RootedVec, ScopedRawSpan,
+        UnrootedBorrow, bind_vm_lock_owner, cleanup_thread_u4_slab,
+        femacs_vm_persistent_root_alloc, femacs_vm_persistent_root_get,
+        femacs_vm_persistent_root_release, mark_persistent_roots, mark_thread_u4_slab_roots,
+        rooting_counters, unbind_vm_lock_owner,
     };
     use crate::stdcountof::{
         femacs_array_mut_ptr, femacs_array_ptr, femacs_countof_ptr, femacs_sizeof_ptr,
@@ -159,26 +160,26 @@ mod tests {
         assert_eq!(after_sp, 42);
 
         // SAFETY: fake tagged words constructed solely for isolated root-slab tracking tests.
-        let r1 = Rooted::new(unsafe { LispVal::from_raw(fake_obj(11)) });
+        let r1 = unsafe { Rooted::new_raw(LispVal::from_raw(fake_obj(11))) };
         // SAFETY: same as above.
-        let mut r2 = Rooted::new(unsafe { LispVal::from_raw(fake_obj(22)) });
+        let mut r2 = unsafe { Rooted::new_raw(LispVal::from_raw(fake_obj(22))) };
         assert_eq!(marked_slab(th), vec![11 << 3, 22 << 3]);
 
         // SAFETY: same as above.
-        r2.handle_mut().set(unsafe { LispVal::from_raw(fake_obj(33)) });
-        assert_eq!(r2.handle().get(), unsafe { LispVal::from_raw(fake_obj(33)) });
+        unsafe { r2.handle_mut().set_raw(LispVal::from_raw(fake_obj(33))) };
+        assert_eq!(r2.handle().get_raw(), unsafe { LispVal::from_raw(fake_obj(33)) });
         assert_eq!(marked_slab(th), vec![11 << 3, 33 << 3]);
 
         let panicked = catch_unwind(AssertUnwindSafe(|| {
             // SAFETY: fake tagged word for isolated unwind tracking test.
-            let _r3 = Rooted::new(unsafe { LispVal::from_raw(fake_obj(44)) });
+            let _r3 = unsafe { Rooted::new_raw(LispVal::from_raw(fake_obj(44))) };
             assert_eq!(marked_slab(th), vec![11 << 3, 33 << 3, 44 << 3]);
             panic!("unwind inner Rooted");
         }));
         assert!(panicked.is_err());
         // `_r3` must have been released cleanly while `r1` and `r2` survive!
         assert_eq!(marked_slab(th), vec![11 << 3, 33 << 3]);
-        assert_eq!(r1.get(), unsafe { LispVal::from_raw(fake_obj(11)) });
+        assert_eq!(r1.get_raw(), unsafe { LispVal::from_raw(fake_obj(11)) });
 
         drop(r2);
         drop(r1);
@@ -250,17 +251,17 @@ mod tests {
         let before = rooting_counters();
 
         // SAFETY: fake tagged word for isolated persistent root test.
-        let mut p1 = PersistentRoot::new(unsafe { LispVal::from_raw(fake_obj(501)) });
+        let mut p1 = unsafe { PersistentRoot::new_raw(LispVal::from_raw(fake_obj(501))) };
         let (slot_idx_1, gen_1) = p1.raw_token();
-        assert_eq!(p1.handle().get(), unsafe { LispVal::from_raw(fake_obj(501)) });
+        assert_eq!(p1.handle().get_raw(), unsafe { LispVal::from_raw(fake_obj(501)) });
         assert!(marked_persistent().contains(&(501 << 3)));
 
         assert!(p1.release());
         assert!(!p1.release());
-        let stale_get_after_release = catch_unwind(AssertUnwindSafe(|| p1.handle().get()));
+        let stale_get_after_release = catch_unwind(AssertUnwindSafe(|| p1.handle().is_nil()));
         assert!(
             stale_get_after_release.is_err(),
-            "stale Handle::get() after PersistentRoot release must panic"
+            "stale Handle inspection after PersistentRoot release must panic"
         );
         assert!(!marked_persistent().contains(&(501 << 3)));
 
@@ -271,21 +272,28 @@ mod tests {
         unsafe { femacs_vm_persistent_root_alloc(fake_obj(502), &raw mut idx2, &raw mut gen2) };
         assert_eq!(idx2, slot_idx_1);
         assert!(gen2 > gen_1);
-        assert_eq!(femacs_vm_persistent_root_get(idx2, gen2), fake_obj(502));
+        // SAFETY: called under serialized test VM lock on owning thread.
+        assert_eq!(unsafe { femacs_vm_persistent_root_get(idx2, gen2) }, fake_obj(502));
 
         // Stale generation on the SAME slot index MUST still be rejected (ABA safety)!
-        assert_eq!(femacs_vm_persistent_root_get(slot_idx_1, gen_1), lisp_h_Qnil());
-        assert!(!femacs_vm_persistent_root_release(slot_idx_1, gen_1));
-        let stale_get_after_reuse = catch_unwind(AssertUnwindSafe(|| p1.handle().get()));
+        // SAFETY: called under serialized test VM lock on owning thread.
+        unsafe {
+            assert_eq!(femacs_vm_persistent_root_get(slot_idx_1, gen_1), lisp_h_Qnil());
+            assert!(!femacs_vm_persistent_root_release(slot_idx_1, gen_1));
+        }
+        let stale_get_after_reuse = catch_unwind(AssertUnwindSafe(|| p1.handle().is_nil()));
         assert!(
             stale_get_after_reuse.is_err(),
-            "stale Handle::get() after slot reuse must panic on generation mismatch"
+            "stale Handle inspection after slot reuse must panic on generation mismatch"
         );
         assert!(marked_persistent().contains(&(502 << 3)));
 
-        assert!(femacs_vm_persistent_root_release(idx2, gen2));
-        assert!(!femacs_vm_persistent_root_release(idx2, gen2));
-        assert_eq!(femacs_vm_persistent_root_get(idx2, gen2), lisp_h_Qnil());
+        // SAFETY: called under serialized test VM lock on owning thread.
+        unsafe {
+            assert!(femacs_vm_persistent_root_release(idx2, gen2));
+            assert!(!femacs_vm_persistent_root_release(idx2, gen2));
+            assert_eq!(femacs_vm_persistent_root_get(idx2, gen2), lisp_h_Qnil());
+        }
 
         let after = rooting_counters();
         assert_eq!(after.persistent_live, before.persistent_live);
@@ -295,10 +303,15 @@ mod tests {
     }
 
     #[test]
-    fn lisp_val_fixnum_and_nil_tag_roundtrip() {
+    fn immediate_and_lisp_val_fixnum_and_nil_tag_roundtrip() {
+        assert!(Immediate::nil().is_nil());
+        assert_eq!(Immediate::nil().as_fixnum(), None);
         assert!(LispVal::nil().is_nil());
         assert_eq!(LispVal::nil().as_fixnum(), None);
         for n in [-1024isize, -1, 0, 1, 42, 1_000_000] {
+            let imm = Immediate::from_fixnum(n);
+            assert!(!imm.is_nil());
+            assert_eq!(imm.as_fixnum(), Some(n));
             let v = LispVal::from_fixnum(n);
             assert!(!v.is_nil());
             assert_eq!(v.as_fixnum(), Some(n));
@@ -362,22 +375,22 @@ mod tests {
         unsafe { cleanup_thread_u4_slab(th) };
 
         // SAFETY: fake tagged words for isolated root-slab tests.
-        let outer = Rooted::new(unsafe { LispVal::from_raw(fake_obj(71)) });
-        let mut inner = Rooted::new(unsafe { LispVal::from_raw(fake_obj(72)) });
+        let outer = unsafe { Rooted::new_raw(LispVal::from_raw(fake_obj(71))) };
+        let mut inner = unsafe { Rooted::new_raw(LispVal::from_raw(fake_obj(72))) };
         assert_eq!(marked_slab(th), vec![71 << 3, 72 << 3]);
 
         // Drop `outer` BEFORE `inner`! Previously `truncate(self.index)` wiped `inner` in release.
         drop(outer);
-        assert_eq!(inner.get(), unsafe { LispVal::from_raw(fake_obj(72)) });
-        assert_eq!(inner.handle().get(), unsafe { LispVal::from_raw(fake_obj(72)) });
+        assert_eq!(inner.get_raw(), unsafe { LispVal::from_raw(fake_obj(72)) });
+        assert_eq!(inner.handle().get_raw(), unsafe { LispVal::from_raw(fake_obj(72)) });
         assert_eq!(marked_slab(th), vec![72 << 3]);
 
         // SAFETY: fake tagged words for isolated root-slab tests.
-        inner.set(unsafe { LispVal::from_raw(fake_obj(73)) });
+        unsafe { inner.set_raw(LispVal::from_raw(fake_obj(73))) };
         // Free-list slot reuse must not disturb live `inner` at slot 1.
-        let reused = Rooted::new(unsafe { LispVal::from_raw(fake_obj(74)) });
-        assert_eq!(reused.get(), unsafe { LispVal::from_raw(fake_obj(74)) });
-        assert_eq!(inner.handle().get(), unsafe { LispVal::from_raw(fake_obj(73)) });
+        let reused = unsafe { Rooted::new_raw(LispVal::from_raw(fake_obj(74))) };
+        assert_eq!(reused.get_raw(), unsafe { LispVal::from_raw(fake_obj(74)) });
+        assert_eq!(inner.handle().get_raw(), unsafe { LispVal::from_raw(fake_obj(73)) });
         assert_eq!(marked_slab(th), vec![74 << 3, 73 << 3]);
 
         drop(reused);
@@ -422,12 +435,12 @@ mod tests {
         let res = std::thread::spawn(|| {
             catch_unwind(AssertUnwindSafe(|| {
                 // SAFETY: fake tagged word for isolated test.
-                let _bad = Rooted::new(unsafe { LispVal::from_raw(fake_obj(91)) });
+                let _bad = unsafe { Rooted::new_raw(LispVal::from_raw(fake_obj(91))) };
             }))
         })
         .join()
         .expect("join thread");
-        assert!(res.is_err(), "non-owner OS thread Rooted::new must panic");
+        assert!(res.is_err(), "non-owner OS thread Rooted::new_raw must panic");
         assert!(marked_slab(th).is_empty());
         // SAFETY: test cleanup under VM lock.
         unsafe { cleanup_thread_u4_slab(th) };
@@ -440,7 +453,8 @@ mod tests {
         let th = set_thread(0x6100);
         // SAFETY: test owns VM lock.
         unsafe { cleanup_thread_u4_slab(th) };
-        let live_root = Rooted::new(LispVal::from_fixnum(123));
+        // SAFETY: immediate fixnum word.
+        let live_root = unsafe { Rooted::new_raw(LispVal::from_fixnum(123)) };
         let live_word = LispVal::from_fixnum(123).into_raw() as usize;
         assert_eq!(marked_slab(th), vec![live_word]);
 
@@ -464,7 +478,7 @@ mod tests {
         assert!(mark_slab_err, "non-owner mark_thread_u4_slab_roots must panic");
         assert!(mark_pers_err, "non-owner mark_persistent_roots must panic");
         assert!(cnt_err, "non-owner rooting_counters must panic");
-        assert_eq!(live_root.get(), LispVal::from_fixnum(123));
+        assert_eq!(live_root.as_fixnum(), Some(123));
         assert_eq!(marked_slab(th), vec![live_word]);
 
         drop(live_root);
@@ -521,8 +535,8 @@ mod tests {
                 cleanup_thread_u4_slab(main_th);
             }
             let ctx = GcContext::current().expect("main acquires GcContext");
-            let outer = ctx.root(LispVal::from_fixnum(1001));
-            let inner = ctx.root(LispVal::from_fixnum(1002));
+            let outer = ctx.root_immediate(Immediate::from_fixnum(1001));
+            let inner = ctx.root_immediate(Immediate::from_fixnum(1002));
             drop(ctx);
             // SAFETY: ending lock turn while no GcContext/slab borrow is live.
             unsafe { unbind_vm_lock_owner() };
@@ -546,10 +560,10 @@ mod tests {
                 cleanup_thread_u4_slab(worker_th);
             }
             let ctx_w = GcContext::current().expect("worker acquires GcContext after bind");
-            let w_outer = ctx_w.root(LispVal::from_fixnum(2001));
-            let w_inner = ctx_w.root(LispVal::from_fixnum(2002));
+            let w_outer = ctx_w.root_immediate(Immediate::from_fixnum(2001));
+            let w_inner = ctx_w.root_immediate(Immediate::from_fixnum(2002));
             drop(w_outer);
-            assert_eq!(w_inner.get(), LispVal::from_fixnum(2002));
+            assert_eq!(w_inner.as_fixnum(), Some(2002));
             drop(w_inner);
             drop(ctx_w);
             // SAFETY: worker drops all roots before cleanup and unbind.
@@ -571,10 +585,10 @@ mod tests {
             // SAFETY: main re-acquired `VM_HANDOFF_MUTEX`.
             unsafe { bind_vm_lock_owner(main_th as usize) };
             let _ctx2 = GcContext::current().expect("main re-acquires GcContext");
-            assert_eq!(outer_main.get(), LispVal::from_fixnum(1001));
-            assert_eq!(inner_main.get(), LispVal::from_fixnum(1002));
+            assert_eq!(outer_main.as_fixnum(), Some(1001));
+            assert_eq!(inner_main.as_fixnum(), Some(1002));
             drop(outer_main);
-            assert_eq!(inner_main.handle().get(), LispVal::from_fixnum(1002));
+            assert_eq!(inner_main.handle().as_fixnum(), Some(1002));
             drop(inner_main);
             assert!(marked_slab(main_th).is_empty());
             drop(_ctx2);
@@ -649,6 +663,158 @@ def main() -> int:
             assert "12 passed; 0 failed" in proc.stdout, proc.stdout
 
     def group4_external_safe_caller_boundary_gate() -> None:
+        # Part 4a: Real `femacs-vm` crate `#![forbid(unsafe_code)]` compile-fail, lifetime & compile-pass gate.
+        with tempfile.TemporaryDirectory(prefix="femacs-real-vm-gate-") as real_tmp:
+            real_work = Path(real_tmp)
+            target_dir = real_work / "cargo-target"
+            run_checked(
+                [
+                    "cargo",
+                    "check",
+                    "-p",
+                    "femacs-vm",
+                    "--target-dir",
+                    str(target_dir),
+                ],
+                timeout=180,
+            )
+            rmetas = sorted((target_dir / "debug").rglob("libfemacs_vm-*.rmeta"))
+            assert rmetas, f"missing libfemacs_vm-*.rmeta under {target_dir / 'debug'}"
+            real_rmeta = rmetas[-1]
+            dep_dirs = sorted({
+                str(p.parent)
+                for pat in ("*.rmeta", "*.rlib")
+                for p in (target_dir / "debug").rglob(pat)
+            })
+            dep_flags = []
+            for d in dep_dirs:
+                dep_flags.extend(["-L", f"dependency={d}"])
+
+            real_compile_pass_src = """
+#![forbid(unsafe_code)]
+extern crate femacs_vm;
+
+use femacs_vm::nonlocal::VmResult;
+use femacs_vm::roots::{GcContext, Immediate, PersistentRoot, Rooted};
+use femacs_vm::{safe_domain, state, vm_primitives};
+
+pub fn inspect_readonly_vm_state() -> (bool, usize) {
+    (state::has_active_thread(), state::current_thread_addr())
+}
+
+pub fn safe_real_vm_flow(ctx: &mut GcContext, text: &str) -> VmResult<Option<String>> {
+    let mut r = ctx.root_immediate(Immediate::from_fixnum(7));
+    assert_eq!(r.as_fixnum(), Some(7));
+    r.set_immediate(Immediate::nil());
+    assert!(r.is_nil());
+
+    let s: Rooted = vm_primitives::make_utf8_string(ctx, text)?;
+    let clone_r = Rooted::from_handle(ctx, s.handle());
+    assert!(s.same_object(clone_r.handle()));
+    let mut p = PersistentRoot::from_handle(ctx, s.handle());
+    drop(s);
+    drop(clone_r);
+    vm_primitives::trigger_garbage_collect(ctx)?;
+    let _buf = vm_primitives::get_buffer_create(ctx, p.handle())?;
+    let evaled = vm_primitives::eval_lexical(ctx, p.handle())?;
+    let _ = vm_primitives::lisp_string_to_owned(ctx, evaled.handle());
+    let out = vm_primitives::lisp_string_to_owned(ctx, p.handle());
+    p.release();
+    let _dom: Rooted = safe_domain::exercise_all_safe_domains(ctx, "ignored")?;
+    Ok(out)
+}
+"""
+            pass_rs = real_work / "real_pass.rs"
+            pass_out = real_work / "libreal_pass.rmeta"
+            pass_rs.write_text(real_compile_pass_src.lstrip(), encoding="utf-8")
+            run_checked(
+                [
+                    "rustc",
+                    "--edition=2024",
+                    "--crate-type=lib",
+                    "--emit=metadata",
+                    "--extern",
+                    f"femacs_vm={real_rmeta}",
+                    *dep_flags,
+                    str(pass_rs),
+                    "-o",
+                    str(pass_out),
+                ],
+                timeout=60,
+            )
+
+            real_compile_fail_cases = [
+                ("writable_current_thread_set", "pub fn p() { femacs_vm::thread::current_thread.set(core::ptr::null_mut()); }"),
+                ("private_current_thread_get", "pub fn p() { let _ = femacs_vm::thread::current_thread.get(); }"),
+                ("writable_all_threads_set", "pub fn p() { femacs_vm::thread::all_threads.set(core::ptr::null_mut()); }"),
+                ("private_common_current_thread", "pub fn p() { femacs_vm::common::current_thread.set(core::ptr::null_mut()); }"),
+                ("private_femacs_sys_reexport", "pub fn p() { let _ = femacs_vm::femacs_sys::VmGlobal::new(0usize); }"),
+                ("private_vm_global_reexport", "pub fn p() { let _ = femacs_vm::VmGlobal::new(0usize); }"),
+                ("private_emacs_editor_main", "pub fn p() { let _ = femacs_vm::emacs::femacs_editor_main; }"),
+                ("unsafe_editor_main", "pub fn p() { let _ = femacs_vm::editor_main(0, core::ptr::null_mut()); }"),
+                ("private_safe_cmds", "pub fn p() { let _ = femacs_vm::safe_cmds::move_point; }"),
+                ("private_alloc_mod", "pub fn p() { let _ = femacs_vm::alloc::Fgarbage_collect; }"),
+                ("bind_vm_lock_owner", "pub fn p() { femacs_vm::roots::bind_vm_lock_owner(1); }"),
+                ("unbind_vm_lock_owner", "pub fn p() { femacs_vm::roots::unbind_vm_lock_owner(); }"),
+                ("cleanup_thread_u4_slab", "pub fn p() { femacs_vm::roots::cleanup_thread_u4_slab(core::ptr::null_mut()); }"),
+                ("mark_thread_u4_slab_roots", "pub fn p() { femacs_vm::roots::mark_thread_u4_slab_roots(core::ptr::null_mut(), |_| {}); }"),
+                ("mark_persistent_roots", "pub fn p() { femacs_vm::roots::mark_persistent_roots(|_| {}); }"),
+                ("rooting_counters_free", "pub fn p() { let _ = femacs_vm::roots::rooting_counters(); }"),
+                ("cleanup_thread_state", "pub fn p() { femacs_vm::nonlocal::cleanup_thread_state(core::ptr::null_mut()); }"),
+                ("set_comp_native_exit", "pub fn p() { let _ = femacs_vm::nonlocal::set_comp_native_exit; }"),
+                ("private_lisp_val", "pub fn p(_: femacs_vm::roots::LispVal) {}"),
+                ("removed_rooted_new", "pub fn p() { let _ = femacs_vm::roots::Rooted::new; }"),
+                ("removed_persistent_root_new", "pub fn p() { let _ = femacs_vm::roots::PersistentRoot::new; }"),
+                ("private_handle_get_raw", "pub fn p(h: femacs_vm::roots::Handle<'_>) { let _ = h.get_raw(); }"),
+                ("removed_rooted_get", "pub fn p(r: &femacs_vm::roots::Rooted) { let _ = r.get(); }"),
+                ("removed_persistent_get", "pub fn p(p: &femacs_vm::roots::PersistentRoot) { let _ = p.get(); }"),
+                ("unsafe_persistent_alloc_cabi", "pub fn p() { femacs_vm::roots::femacs_vm_persistent_root_alloc(core::ptr::null_mut(), core::ptr::null_mut(), core::ptr::null_mut()); }"),
+                ("unsafe_persistent_get_cabi", "pub fn p() { let _ = femacs_vm::roots::femacs_vm_persistent_root_get(0, 0); }"),
+                ("unsafe_persistent_release_cabi", "pub fn p() { let _ = femacs_vm::roots::femacs_vm_persistent_root_release(0, 0); }"),
+                ("unsafe_host_drop_counts_cabi", "pub fn p() { femacs_vm::nonlocal::femacs_vm_host_drop_counts(core::ptr::null_mut(), core::ptr::null_mut(), core::ptr::null_mut(), core::ptr::null_mut()); }"),
+                ("unsafe_u4_root_stats_cabi", "pub fn p() { let _ = femacs_vm::state::femacs_vm_u4_root_stats(core::ptr::null_mut(), 0); }"),
+                ("gc_context_not_send", "fn assert_send<T: Send>() {} pub fn p() { assert_send::<femacs_vm::roots::GcContext>(); }"),
+                ("rooted_not_send", "fn assert_send<T: Send>() {} pub fn p() { assert_send::<femacs_vm::roots::Rooted>(); }"),
+                ("handle_not_send", "fn assert_send<T: Send>() {} pub fn p() { assert_send::<femacs_vm::roots::Handle<'static>>(); }"),
+                ("vm_state_not_send", "fn assert_send<T: Send>() {} pub fn p() { assert_send::<femacs_vm::state::VmState>(); }"),
+                ("thread_state_not_send", "fn assert_send<T: Send>() {} pub fn p() { assert_send::<femacs_vm::state::ThreadState>(); }"),
+                ("rooted_non_copy_move", "pub fn p(ctx: &mut femacs_vm::roots::GcContext) { if let Ok(r) = femacs_vm::vm_primitives::make_utf8_string(ctx, \"hi\") { let _m = r; let _dup = r; } }"),
+                ("handle_outlives_drop_rooted", "pub fn p(ctx: &mut femacs_vm::roots::GcContext) { if let Ok(r) = femacs_vm::vm_primitives::make_utf8_string(ctx, \"hi\") { let h = r.handle(); drop(r); let _ = h.is_nil(); } }"),
+                ("handle_outlives_persistent_release", "pub fn p() { let mut p = femacs_vm::roots::PersistentRoot::from_immediate(femacs_vm::roots::Immediate::nil()); let h = p.handle(); p.release(); let _ = h.is_nil(); }"),
+                ("unrooted_borrow_crosses_gc", "pub fn p(ctx: &mut femacs_vm::roots::GcContext) { let nogc = ctx.nogc(); let b = femacs_vm::roots::UnrootedBorrow::new(&nogc, 1usize); let _ = femacs_vm::vm_primitives::trigger_garbage_collect(ctx); let _ = b.get(); }"),
+            ]
+            for name, body in real_compile_fail_cases:
+                bad_rs = real_work / f"real_bad_{name}.rs"
+                bad_rmeta = real_work / f"libreal_bad_{name}.rmeta"
+                bad_rs.write_text(
+                    f"#![forbid(unsafe_code)]\nextern crate femacs_vm;\n{body}\n",
+                    encoding="utf-8",
+                )
+                comp = subprocess.run(
+                    [
+                        "rustc",
+                        "--edition=2024",
+                        "--crate-type=lib",
+                        "--emit=metadata",
+                        "--extern",
+                        f"femacs_vm={real_rmeta}",
+                        *dep_flags,
+                        str(bad_rs),
+                        "-o",
+                        str(bad_rmeta),
+                    ],
+                    cwd=REPO,
+                    capture_output=True,
+                    text=True,
+                    timeout=30,
+                    check=False,
+                )
+                assert comp.returncode != 0, f"real femacs-vm external forbid(unsafe_code) caller unexpectedly compiled `{name}`!"
+                assert "error[" in comp.stderr or "error:" in comp.stderr, (
+                    f"expected real compiler diagnostic for `{name}`, got:\n{comp.stderr}"
+                )
+
+        # Part 4b: Runtime multi-thread lock handoff & out-of-order `Rooted` drop check.
         boundary_lib_src = r"""
 #![deny(static_mut_refs, unsafe_op_in_unsafe_fn)]
 #![allow(non_camel_case_types, non_upper_case_globals)]
@@ -766,6 +932,8 @@ pub fn cleanup_thread_after_use(thread: &mut common::thread_state) {
             ("with_narrowed_stack_bottom_free", "femacs_vm_boundary::roots::with_narrowed_stack_bottom(|| {});"),
             ("lispval_from_raw", "let _ = femacs_vm_boundary::roots::LispVal::from_raw(core::ptr::null_mut());"),
             ("persistent_root_alloc_cabi", "femacs_vm_boundary::roots::femacs_vm_persistent_root_alloc(core::ptr::null_mut(), core::ptr::null_mut(), core::ptr::null_mut());"),
+            ("persistent_root_get_cabi", "let _ = femacs_vm_boundary::roots::femacs_vm_persistent_root_get(0, 0);"),
+            ("persistent_root_release_cabi", "let _ = femacs_vm_boundary::roots::femacs_vm_persistent_root_release(0, 0);"),
             ("cleanup_thread_state", "femacs_vm_boundary::nonlocal::cleanup_thread_state(core::ptr::null_mut());"),
             ("set_comp_native_exit", "let _ = femacs_vm_boundary::nonlocal::set_comp_native_exit;"),
             ("host_drop_counts_cabi", "let _ = femacs_vm_boundary::nonlocal::femacs_vm_host_drop_counts(core::ptr::null_mut(), core::ptr::null_mut(), core::ptr::null_mut(), core::ptr::null_mut());"),
@@ -773,10 +941,9 @@ pub fn cleanup_thread_after_use(thread: &mut common::thread_state) {
         external_runtime_src = r"""
 #![forbid(unsafe_code)]
 
-use std::panic::{AssertUnwindSafe, catch_unwind};
 use femacs_vm_boundary::{cleanup_thread_after_use, with_vm_lock};
 use femacs_vm_boundary::common::{current_thread, thread_state};
-use femacs_vm_boundary::roots::{GcContext, LispVal, Rooted};
+use femacs_vm_boundary::roots::{GcContext, Immediate, Rooted};
 
 fn main() {
     assert!(
@@ -793,33 +960,30 @@ fn main() {
         assert!(!current_thread.get().is_null());
 
         // Spawn another OS thread while Main holds physical lock and `current_thread` is non-null:
-        // purely safe external caller MUST fail to get `GcContext` or push `Rooted`.
-        let (other_ctx, other_root_panicked) = std::thread::spawn(|| {
+        // purely safe external caller MUST fail to get `GcContext`.
+        let other_ctx = std::thread::spawn(|| {
             assert!(!current_thread.get().is_null());
-            let got_ctx = GcContext::current().is_some();
-            let root_panicked = catch_unwind(AssertUnwindSafe(|| {
-                let _bad = Rooted::new(LispVal::from_fixnum(7));
-            }))
-            .is_err();
-            (got_ctx, root_panicked)
+            GcContext::current().is_some()
         })
         .join()
         .expect("join external non-owner thread");
         assert!(!other_ctx, "other OS thread cannot acquire GcContext");
-        assert!(other_root_panicked, "other OS thread Rooted::new must panic");
 
         let mut ctx = GcContext::current().expect("lock holder obtains GcContext");
         let _cnt = ctx.rooting_counters();
         ctx.with_narrowed_stack_bottom(|ctx| {
-            let outer = ctx.root(LispVal::from_fixnum(11));
-            let inner = ctx.root(LispVal::from_fixnum(22));
+            let outer = Rooted::from_immediate(ctx, Immediate::from_fixnum(11));
+            let inner = Rooted::from_handle(ctx, outer.handle());
+            assert!(outer.same_object(inner.handle()));
             // Out-of-order drop: dropping outer first leaves inner alive!
             drop(outer);
-            assert_eq!(inner.get(), LispVal::from_fixnum(22));
-            assert_eq!(inner.handle().get(), LispVal::from_fixnum(22));
+            let mut inner = inner;
+            inner.set_immediate(Immediate::from_fixnum(22));
+            assert_eq!(inner.as_fixnum(), Some(22));
+            assert_eq!(inner.handle().as_fixnum(), Some(22));
             drop(inner);
         });
-        ctx.root(LispVal::from_fixnum(33))
+        ctx.root_immediate(Immediate::from_fixnum(33))
     });
 
     assert!(GcContext::current().is_none(), "released lock clears GcContext");
@@ -829,10 +993,10 @@ fn main() {
         let mut worker_ts = thread_state { m_stack_bottom: core::ptr::null() };
         with_vm_lock(&mut worker_ts, || {
             let ctx = GcContext::current().expect("worker lock holder obtains GcContext");
-            let w_outer = ctx.root(LispVal::from_fixnum(44));
-            let w_inner = ctx.root(LispVal::from_fixnum(55));
+            let w_outer = ctx.root_immediate(Immediate::from_fixnum(44));
+            let w_inner = ctx.root_immediate(Immediate::from_fixnum(55));
             drop(w_outer);
-            assert_eq!(w_inner.get(), LispVal::from_fixnum(55));
+            assert_eq!(w_inner.as_fixnum(), Some(55));
             drop(w_inner);
         });
         cleanup_thread_after_use(&mut worker_ts);
@@ -842,7 +1006,7 @@ fn main() {
 
     with_vm_lock(&mut main_ts, || {
         let _ctx = GcContext::current().expect("main reacquires lock");
-        assert_eq!(outer_main.get(), LispVal::from_fixnum(33));
+        assert_eq!(outer_main.as_fixnum(), Some(33));
         drop(outer_main);
     });
     cleanup_thread_after_use(&mut main_ts);

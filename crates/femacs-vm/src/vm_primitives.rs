@@ -14,7 +14,7 @@ use crate::common::{
     record_unwind_current_buffer, unbind_to_safe, wrap_specpdl_ref,
 };
 use crate::nonlocal::{VmResult, catch_vm_nonlocal};
-use crate::roots::{GcContext, Handle, LispVal, UnrootedBorrow};
+use crate::roots::{GcContext, Handle, Immediate, LispVal, Rooted, UnrootedBorrow};
 
 #[inline]
 fn current_specpdl_index() -> isize {
@@ -26,21 +26,24 @@ fn current_specpdl_index() -> isize {
     }
 }
 
-/// Allocate a multibyte Lisp string from a Rust UTF-8 `&str` across a GC safepoint.
-pub fn make_utf8_string(ctx: &mut GcContext, text: &str) -> VmResult<LispVal> {
+/// Allocate a multibyte Lisp string from a Rust UTF-8 `&str` across a GC safepoint, immediately
+/// returning a `Rooted` guard protecting the allocated string.
+pub fn make_utf8_string(ctx: &mut GcContext, text: &str) -> VmResult<Rooted> {
     ctx.with_reentrant_safepoint(|| {
         catch_vm_nonlocal(|| {
-            // SAFETY: `build_utf8_str` returns a freshly allocated valid `Lisp_Object` under VM lock.
-            unsafe { LispVal::from_raw(build_utf8_str(text)) }
+            // SAFETY: `build_utf8_str` returns a freshly allocated valid `Lisp_Object` under VM
+            // lock; immediately rooted in `Rooted` before returning across any caller safepoint.
+            unsafe { Rooted::new_raw(LispVal::from_raw(build_utf8_str(text))) }
         })
     })
 }
 
 /// Copy a Lisp string into an owned Rust `String` using a short `NoGcToken` borrow that ends
-/// before any subsequent Lisp/GC safepoint.
+/// before any subsequent Lisp/GC safepoint. `val: Handle<'_>` proves an active root keeps the
+/// string object alive.
 pub fn lisp_string_to_owned(ctx: &GcContext, val: Handle<'_>) -> Option<String> {
     let nogc = ctx.nogc();
-    let borrowed = UnrootedBorrow::new(&nogc, val.get());
+    let borrowed = UnrootedBorrow::new(&nogc, val.get_raw());
     let raw = borrowed.get().into_raw();
     if !STRINGP(raw) {
         return None;
@@ -53,34 +56,41 @@ pub fn lisp_string_to_owned(ctx: &GcContext, val: Handle<'_>) -> Option<String> 
         return Some(String::new());
     }
     let ptr = SDATA(raw) as *const u8;
-    // SAFETY: `NoGcToken` is live and `STRINGP(raw)` with `len > 0` verified above, so `ptr`
-    // is valid for `len` bytes until copied into an owned Rust `String`.
+    // SAFETY: `NoGcToken` is live, `val: Handle<'_>` proves an active GC root owns `raw`, and
+    // `STRINGP(raw)` with `len > 0` verified above, so `ptr` is valid for `len` bytes.
     let bytes = unsafe { slice::from_raw_parts(ptr, len as usize) };
     Some(String::from_utf8_lossy(bytes).into_owned())
 }
 
-pub fn get_buffer_create(ctx: &mut GcContext, name: Handle<'_>) -> VmResult<LispVal> {
-    let raw_name = name.get().into_raw();
+pub fn get_buffer_create(ctx: &mut GcContext, name: Handle<'_>) -> VmResult<Rooted> {
+    let raw_name = name.get_raw().into_raw();
     ctx.with_reentrant_safepoint(|| {
         catch_vm_nonlocal(|| {
-            // SAFETY: `Fget_buffer_create` returns a valid live buffer `Lisp_Object` under VM lock.
-            unsafe { LispVal::from_raw(crate::buffer::Fget_buffer_create(raw_name, lisp_h_Qnil())) }
+            // SAFETY: `Fget_buffer_create` returns a live buffer `Lisp_Object` under VM lock;
+            // immediately rooted in `Rooted`.
+            unsafe {
+                Rooted::new_raw(LispVal::from_raw(crate::buffer::Fget_buffer_create(
+                    raw_name,
+                    lisp_h_Qnil(),
+                )))
+            }
         })
     })
 }
 
-pub fn buffer_name_val(ctx: &mut GcContext, buffer: Handle<'_>) -> VmResult<LispVal> {
-    let raw_buf = buffer.get().into_raw();
+pub fn buffer_name_val(ctx: &mut GcContext, buffer: Handle<'_>) -> VmResult<Rooted> {
+    let raw_buf = buffer.get_raw().into_raw();
     ctx.with_reentrant_safepoint(|| {
         catch_vm_nonlocal(|| {
-            // SAFETY: `Fbuffer_name` returns a valid string/nil `Lisp_Object` under VM lock.
-            unsafe { LispVal::from_raw(crate::buffer::Fbuffer_name(raw_buf)) }
+            // SAFETY: `Fbuffer_name` returns a valid string/nil `Lisp_Object` under VM lock;
+            // immediately rooted in `Rooted`.
+            unsafe { Rooted::new_raw(LispVal::from_raw(crate::buffer::Fbuffer_name(raw_buf))) }
         })
     })
 }
 
 pub fn kill_buffer_val(ctx: &mut GcContext, buffer: Handle<'_>) -> VmResult<bool> {
-    let raw_buf = buffer.get().into_raw();
+    let raw_buf = buffer.get_raw().into_raw();
     ctx.with_reentrant_safepoint(|| {
         catch_vm_nonlocal(|| crate::buffer::Fkill_buffer(raw_buf) != lisp_h_Qnil())
     })
@@ -94,7 +104,7 @@ pub fn with_current_buffer<R>(
     buffer: Handle<'_>,
     body: impl FnOnce(&mut GcContext) -> VmResult<R>,
 ) -> VmResult<R> {
-    let raw_buf = buffer.get().into_raw();
+    let raw_buf = buffer.get_raw().into_raw();
     if !BUFFERP(raw_buf) {
         return ctx.with_reentrant_safepoint(|| {
             catch_vm_nonlocal(|| {
@@ -135,7 +145,7 @@ pub fn erase_current_buffer(ctx: &mut GcContext) -> VmResult<()> {
 }
 
 pub fn insert_lisp_string(ctx: &mut GcContext, text: Handle<'_>) -> VmResult<()> {
-    let mut arg = text.get().into_raw();
+    let mut arg = text.get_raw().into_raw();
     ctx.with_reentrant_safepoint(|| {
         catch_vm_nonlocal(|| {
             // SAFETY: `Finsert` (`MANY`) reads 1 `Lisp_Object` from `&raw mut arg` on the active Lisp thread.
@@ -146,13 +156,18 @@ pub fn insert_lisp_string(ctx: &mut GcContext, text: Handle<'_>) -> VmResult<()>
     })
 }
 
-pub fn current_buffer_string_no_props(ctx: &mut GcContext) -> VmResult<LispVal> {
+pub fn current_buffer_string_no_props(ctx: &mut GcContext) -> VmResult<Rooted> {
     ctx.with_reentrant_safepoint(|| {
         catch_vm_nonlocal(|| {
             let beg = crate::editfns::Fpoint_min();
             let end = crate::editfns::Fpoint_max();
-            // SAFETY: `Fbuffer_substring_no_properties` returns a valid string `Lisp_Object`.
-            unsafe { LispVal::from_raw(crate::editfns::Fbuffer_substring_no_properties(beg, end)) }
+            // SAFETY: `Fbuffer_substring_no_properties` returns a valid string `Lisp_Object`;
+            // immediately rooted in `Rooted`.
+            unsafe {
+                Rooted::new_raw(LispVal::from_raw(
+                    crate::editfns::Fbuffer_substring_no_properties(beg, end),
+                ))
+            }
         })
     })
 }
@@ -170,22 +185,25 @@ pub fn current_buffer_char_and_byte_len(ctx: &GcContext) -> (usize, usize) {
 }
 
 /// Parse one Lisp form starting at byte/char index `start_char` from `source`, returning
-/// `(parsed_form, next_char_index)`.
+/// `(rooted_parsed_form, next_char_index)`.
 pub fn read_from_lisp_string(
     ctx: &mut GcContext,
     source: Handle<'_>,
     start_char: usize,
-) -> VmResult<(LispVal, usize)> {
-    let raw_src = source.get().into_raw();
-    let start_fix = LispVal::from_fixnum(start_char as isize).into_raw();
+) -> VmResult<(Rooted, usize)> {
+    let raw_src = source.get_raw().into_raw();
+    let start_fix = Immediate::from_fixnum(start_char as isize).into_raw();
     ctx.with_reentrant_safepoint(|| {
         catch_vm_nonlocal(|| {
             let pair = crate::lread::Fread_from_string(raw_src, start_fix, lisp_h_Qnil());
             if !CONSP(pair) {
-                return (LispVal::nil(), start_char);
+                // SAFETY: `Immediate::nil()` is nil (never a GC heap pointer).
+                let nil_root = unsafe { Rooted::new_raw(Immediate::nil().into_lisp_val()) };
+                return (nil_root, start_char);
             }
-            // SAFETY: `pair` is a live cons cell returned by `Fread_from_string` under VM lock.
-            let obj = unsafe { LispVal::from_raw(XCAR(pair)) };
+            // SAFETY: `pair` is a live cons cell returned by `Fread_from_string` under VM lock;
+            // immediately rooted in `Rooted`.
+            let obj = unsafe { Rooted::new_raw(LispVal::from_raw(XCAR(pair))) };
             // SAFETY: `XCDR(pair)` is a valid fixnum/Lisp_Object inside the same cons cell.
             let next_idx = unsafe { LispVal::from_raw(XCDR(pair)) }
                 .as_fixnum()
@@ -195,44 +213,52 @@ pub fn read_from_lisp_string(
     })
 }
 
-pub fn eval_lexical(ctx: &mut GcContext, form: Handle<'_>) -> VmResult<LispVal> {
-    let raw_form = form.get().into_raw();
+pub fn eval_lexical(ctx: &mut GcContext, form: Handle<'_>) -> VmResult<Rooted> {
+    let raw_form = form.get_raw().into_raw();
     ctx.with_reentrant_safepoint(|| {
         catch_vm_nonlocal(|| {
-            // SAFETY: `Feval` returns a valid `Lisp_Object` under the active VM lock.
-            unsafe { LispVal::from_raw(crate::eval::Feval(raw_form, Qt())) }
+            // SAFETY: `Feval` returns a valid `Lisp_Object` under the active VM lock;
+            // immediately rooted in `Rooted`.
+            unsafe { Rooted::new_raw(LispVal::from_raw(crate::eval::Feval(raw_form, Qt()))) }
         })
     })
 }
 
-pub fn prin1_to_lisp_string(ctx: &mut GcContext, value: Handle<'_>) -> VmResult<LispVal> {
-    let raw_val = value.get().into_raw();
+pub fn prin1_to_lisp_string(ctx: &mut GcContext, value: Handle<'_>) -> VmResult<Rooted> {
+    let raw_val = value.get_raw().into_raw();
     ctx.with_reentrant_safepoint(|| {
         catch_vm_nonlocal(|| {
-            // SAFETY: `Fprin1_to_string` returns a valid string `Lisp_Object` under VM lock.
+            // SAFETY: `Fprin1_to_string` returns a valid string `Lisp_Object` under VM lock;
+            // immediately rooted in `Rooted`.
             unsafe {
-                LispVal::from_raw(crate::print::Fprin1_to_string(
+                Rooted::new_raw(LispVal::from_raw(crate::print::Fprin1_to_string(
                     raw_val,
                     lisp_h_Qnil(),
                     lisp_h_Qnil(),
-                ))
+                )))
             }
         })
     })
 }
 
-pub fn expand_file_name_val(ctx: &mut GcContext, path: Handle<'_>) -> VmResult<LispVal> {
-    let raw_path = path.get().into_raw();
+pub fn expand_file_name_val(ctx: &mut GcContext, path: Handle<'_>) -> VmResult<Rooted> {
+    let raw_path = path.get_raw().into_raw();
     ctx.with_reentrant_safepoint(|| {
         catch_vm_nonlocal(|| {
-            // SAFETY: `Fexpand_file_name` returns a valid string `Lisp_Object` under VM lock.
-            unsafe { LispVal::from_raw(crate::fileio::Fexpand_file_name(raw_path, lisp_h_Qnil())) }
+            // SAFETY: `Fexpand_file_name` returns a valid string `Lisp_Object` under VM lock;
+            // immediately rooted in `Rooted`.
+            unsafe {
+                Rooted::new_raw(LispVal::from_raw(crate::fileio::Fexpand_file_name(
+                    raw_path,
+                    lisp_h_Qnil(),
+                )))
+            }
         })
     })
 }
 
 pub fn write_current_buffer_to_file(ctx: &mut GcContext, filename: Handle<'_>) -> VmResult<()> {
-    let raw_file = filename.get().into_raw();
+    let raw_file = filename.get_raw().into_raw();
     ctx.with_reentrant_safepoint(|| {
         catch_vm_nonlocal(|| {
             let beg = crate::editfns::Fpoint_min();
@@ -252,7 +278,7 @@ pub fn write_current_buffer_to_file(ctx: &mut GcContext, filename: Handle<'_>) -
 }
 
 pub fn insert_file_into_current_buffer(ctx: &mut GcContext, filename: Handle<'_>) -> VmResult<usize> {
-    let raw_file = filename.get().into_raw();
+    let raw_file = filename.get_raw().into_raw();
     ctx.with_reentrant_safepoint(|| {
         catch_vm_nonlocal(|| {
             let ret = crate::fileio::Finsert_file_contents(
@@ -275,19 +301,21 @@ pub fn insert_file_into_current_buffer(ctx: &mut GcContext, filename: Handle<'_>
     })
 }
 
-pub fn selected_window_val(ctx: &GcContext) -> LispVal {
+pub fn selected_window_val(ctx: &GcContext) -> Rooted {
     let _nogc = ctx.nogc();
-    // SAFETY: `NoGcToken` is live; `Fselected_window` returns a valid window/nil `Lisp_Object`.
-    unsafe { LispVal::from_raw(crate::window::Fselected_window()) }
+    // SAFETY: `NoGcToken` is live; `Fselected_window` returns a valid window/nil `Lisp_Object`,
+    // immediately rooted in `Rooted` before returning.
+    unsafe { Rooted::new_raw(LispVal::from_raw(crate::window::Fselected_window())) }
 }
 
-pub fn window_buffer_val(ctx: &mut GcContext, window: Handle<'_>) -> VmResult<LispVal> {
-    let raw_win = window.get().into_raw();
+pub fn window_buffer_val(ctx: &mut GcContext, window: Handle<'_>) -> VmResult<Rooted> {
+    let raw_win = window.get_raw().into_raw();
     ctx.with_reentrant_safepoint(|| {
         catch_vm_nonlocal(|| {
             let arg = if WINDOWP(raw_win) { raw_win } else { lisp_h_Qnil() };
-            // SAFETY: `Fwindow_buffer` returns a valid buffer/nil `Lisp_Object` under VM lock.
-            unsafe { LispVal::from_raw(crate::window::Fwindow_buffer(arg)) }
+            // SAFETY: `Fwindow_buffer` returns a valid buffer/nil `Lisp_Object` under VM lock;
+            // immediately rooted in `Rooted`.
+            unsafe { Rooted::new_raw(LispVal::from_raw(crate::window::Fwindow_buffer(arg))) }
         })
     })
 }
@@ -313,6 +341,18 @@ pub fn trigger_garbage_collect(ctx: &mut GcContext) -> VmResult<()> {
             crate::alloc::Fgarbage_collect();
         })
     })
+}
+
+/// Invoke the VM editor entry point with raw OS `argc` and `argv`.
+///
+/// # Safety
+/// `argc` and `argv` must be the valid process argument vector supplied by the OS C runtime.
+pub unsafe fn editor_main(
+    argc: core::ffi::c_int,
+    argv: *mut *mut core::ffi::c_char,
+) -> core::ffi::c_int {
+    // SAFETY: Caller passes the OS startup `argc`/`argv` vector to single-instance VM entry.
+    unsafe { crate::emacs::femacs_editor_main(argc, argv) }
 }
 
 /// Safe `#[cfg(enable_checking)]` assertion failure trampoline for `eassert!`/`eassume!`.

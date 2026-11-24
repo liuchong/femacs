@@ -616,7 +616,7 @@ DEFUN! ("prog1", Fprog1, Sprog1, 1, UNEVALLED, 0,
        (args: Lisp_Object),
        {
   let val: Lisp_Object = eval_sub (XCAR (args));
-  let _val_root = crate::roots::Rooted::new (crate::roots::LispVal::from_raw (val));
+  let _val_root = crate::roots::Rooted::new_raw (crate::roots::LispVal::from_raw (val));
   prog_ignore (XCDR (args));
   return val;
 });

@@ -706,16 +706,22 @@ def main() -> int:
         if re.search(r'extern\s+"C-unwind"\s+fn\s+module_(?!finalize_function\b|function_interactive_form\b|function_command_modes\b|function_arity\b|function_documentation\b|function_address\b|function_data\b|signal_or_throw\b)', mod_rs):
             raise AssertionError("emacs_env vtable `module_*` entrypoints must not be `extern \"C-unwind\"`")
 
-        # 4) Raw-pointer C-ABI probes & lock/raw-value VM-kernel primitives require `unsafe` or `pub(crate)`.
+        # 4) Raw-pointer C-ABI probes, writable VM globals, and lock/raw-value internals require `unsafe` or `pub(crate)`.
         roots_rs = (REPO / "crates/femacs-vm/src/roots.rs").read_text(encoding="utf-8")
         nonlocal_rs = (REPO / "crates/femacs-vm/src/nonlocal.rs").read_text(encoding="utf-8")
         state_rs = (REPO / "crates/femacs-vm/src/state.rs").read_text(encoding="utf-8")
+        lib_rs = (REPO / "crates/femacs-vm/src/lib.rs").read_text(encoding="utf-8")
+        assert 'pub(crate) struct LispVal(' in roots_rs
+        assert 'pub(crate) unsafe fn from_raw(' in roots_rs
         assert 'pub unsafe extern "C" fn femacs_vm_persistent_root_alloc(' in roots_rs
+        assert 'pub unsafe extern "C" fn femacs_vm_persistent_root_get(' in roots_rs
+        assert 'pub unsafe extern "C" fn femacs_vm_persistent_root_release(' in roots_rs
         assert 'pub unsafe extern "C" fn femacs_vm_host_drop_counts(' in nonlocal_rs
         assert 'pub unsafe extern "C" fn femacs_vm_u4_root_stats(' in state_rs
         assert 'pub(crate) unsafe fn bind_vm_lock_owner(' in roots_rs
         assert 'pub(crate) unsafe fn unbind_vm_lock_owner(' in roots_rs
-        assert 'pub unsafe fn from_raw(' in roots_rs
+        assert 'pub(crate) static current_thread:' in thread_rs
+        assert 'pub(crate) mod thread;' in lib_rs
 
         return {
             "abi_version": "14",

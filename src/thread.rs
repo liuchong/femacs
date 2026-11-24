@@ -180,10 +180,10 @@ static main_thread: VmGlobal<aligned_thread_state> = VmGlobal::<aligned_thread_s
 // thread.c 60-62: C writes `&main_thread.s`, the address of the union's first (only) member,
 // which is the union's address; `addr_of_mut!` on the field is the same pointer.
 #[unsafe(no_mangle)]
-pub static current_thread: VmGlobal<*mut thread_state> = VmGlobal::<*mut thread_state>::new (/* SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership. */ unsafe { std::ptr::addr_of_mut! ((*main_thread.as_mut_ptr ()).s) });
+pub(crate) static current_thread: VmGlobal<*mut thread_state> = VmGlobal::<*mut thread_state>::new (/* SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership. */ unsafe { std::ptr::addr_of_mut! ((*main_thread.as_mut_ptr ()).s) });
 
 #[unsafe(no_mangle)]
-pub static all_threads: VmGlobal<*mut thread_state> = VmGlobal::<*mut thread_state>::new (unsafe { std::ptr::addr_of_mut! ((*main_thread.as_mut_ptr ()).s) });
+pub(crate) static all_threads: VmGlobal<*mut thread_state> = VmGlobal::<*mut thread_state>::new (unsafe { std::ptr::addr_of_mut! ((*main_thread.as_mut_ptr ()).s) });
 
 static global_lock: VmGlobal<sys_mutex_t> = VmGlobal::<sys_mutex_t>::new (/* SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership. */ unsafe { core::mem::zeroed () });
 

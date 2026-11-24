@@ -8299,8 +8299,8 @@
     },
     {
       "path": "tools/test-u3-unit.py",
-      "sha256": "79ac2e79892ec9c99a0879624a2c186bee0c47097bcf8b09f9633fbf0367dcc1",
-      "bytes": 30855,
+      "sha256": "43b331ea92becfba196140f52b50133a3f2a44f0ebe021cdfecad87283e4cab6",
+      "bytes": 31303,
       "family": "test",
       "decision": "retain",
       "replacement": null,
@@ -8333,8 +8333,8 @@
     },
     {
       "path": "tools/test-u4-unit.py",
-      "sha256": "d2adbcd9db0e23345035935c1fac7add871b806b1507318101391ce5694e2635",
-      "bytes": 39269,
+      "sha256": "588d2500b1615de1abf62dfac4d45b8dbcaebbc20f3ab24b5e8df3664df5f8f5",
+      "bytes": 49637,
       "family": "test",
       "decision": "retain",
       "replacement": null,
@@ -8367,8 +8367,8 @@
     },
     {
       "path": "tools/test-u7-safe-subsystems.py",
-      "sha256": "e4b663b78c065067e2b65da658a52152784452c6c45682f36592110704aafe72",
-      "bytes": 30693,
+      "sha256": "2daa9aa916152e2c4593681abd282bbc613e86bf6a7c81270f8065b2b5041873",
+      "bytes": 30479,
       "family": "test",
       "decision": "retain",
       "replacement": null,

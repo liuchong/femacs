@@ -489,7 +489,7 @@ mod tests {
 
     use crate::common::{Lisp_Object, current_thread, make_fixnum, thread_state};
     use crate::roots::{
-        GcContext, LispVal, Rooted, RootedVec, bind_vm_lock_owner, cleanup_thread_u4_slab,
+        GcContext, Immediate, Rooted, RootedVec, bind_vm_lock_owner, cleanup_thread_u4_slab,
         mark_thread_u4_slab_roots, narrowed_stack_counts, unbind_vm_lock_owner,
     };
 
@@ -596,18 +596,16 @@ mod tests {
         assert!(GcContext::current().is_none(), "double GcContext must fail");
         assert!(std::thread::spawn(|| GcContext::current().is_some()).join().unwrap() == false);
 
-        // SAFETY: fixnums are valid immediate `Lisp_Object` words.
-        let outer = ctx.root(unsafe { LispVal::from_raw(make_fixnum(10)) });
-        // SAFETY: fixnums are valid immediate `Lisp_Object` words.
-        let inner = ctx.root(unsafe { LispVal::from_raw(make_fixnum(20)) });
+        let outer = ctx.root_immediate(Immediate::from_fixnum(10));
+        let inner = ctx.root_immediate(Immediate::from_fixnum(20));
         let mut v1 = RootedVec::filled(1, make_fixnum(30));
         let v2 = RootedVec::filled(2, make_fixnum(40));
         assert_eq!(marked(th_ptr), vec![10, 20, 30, 40, 40]);
 
         drop(outer);
         drop(v1);
-        assert_eq!(inner.get(), unsafe { LispVal::from_raw(make_fixnum(20)) });
-        assert_eq!(inner.handle().get(), unsafe { LispVal::from_raw(make_fixnum(20)) });
+        assert_eq!(inner.as_fixnum(), Some(20));
+        assert_eq!(inner.handle().as_fixnum(), Some(20));
         assert_eq!(marked(th_ptr), vec![20, 40, 40]);
 
         drop(v2);

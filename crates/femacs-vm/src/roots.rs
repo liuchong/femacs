@@ -18,20 +18,68 @@ use crate::common::{
     EMACS_INT, FIXNUMP, Lisp_Object, XFIXNUM, current_thread, lisp_h_Qnil, make_fixnum,
 };
 
-/// Safe copyable wrapper around a tagged `Lisp_Object` word.
+/// Immediate Lisp value (`nil` or tagged fixnum) carrying zero GC heap reference.
 #[repr(transparent)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct LispVal(Lisp_Object);
+pub struct Immediate(Lisp_Object);
 
-// SAFETY: `LispVal` is a tagged word value; dereferencing heap storage requires a VM lock + root
-// proof inside `vm_primitives`, never raw pointer access from `LispVal` itself.
-unsafe impl Send for LispVal {}
-// SAFETY: `LispVal` carries immutable word identity only.
-unsafe impl Sync for LispVal {}
+// SAFETY: `Immediate` contains strictly `lisp_h_Qnil()` or a `FIXNUMP` integer word and never
+// references GC-managed heap storage.
+unsafe impl Send for Immediate {}
+// SAFETY: `Immediate` is an immutable non-heap tagged immediate value.
+unsafe impl Sync for Immediate {}
+
+impl Immediate {
+    #[inline]
+    pub const fn nil() -> Self {
+        Self(lisp_h_Qnil())
+    }
+
+    #[inline]
+    pub fn from_fixnum(n: isize) -> Self {
+        Self(make_fixnum(n as EMACS_INT))
+    }
+
+    #[inline]
+    pub fn is_nil(self) -> bool {
+        self.0 == lisp_h_Qnil()
+    }
+
+    #[inline]
+    pub fn as_fixnum(self) -> Option<isize> {
+        if FIXNUMP(self.0) {
+            Some(XFIXNUM(self.0) as isize)
+        } else {
+            None
+        }
+    }
+
+    #[inline]
+    pub(crate) const fn into_lisp_val(self) -> LispVal {
+        LispVal(self.0)
+    }
+
+    #[inline]
+    pub(crate) const fn into_raw(self) -> Lisp_Object {
+        self.0
+    }
+}
+
+impl Default for Immediate {
+    #[inline]
+    fn default() -> Self {
+        Self::nil()
+    }
+}
+
+/// Crate-internal copyable wrapper around a tagged `Lisp_Object` word (`!Send + !Sync`).
+#[repr(transparent)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct LispVal(Lisp_Object);
 
 impl LispVal {
     #[inline]
-    pub const fn nil() -> Self {
+    pub(crate) const fn nil() -> Self {
         Self(lisp_h_Qnil())
     }
 
@@ -41,27 +89,27 @@ impl LispVal {
     /// `raw` must be a valid tagged `Lisp_Object` for the live VM heap (or an immediate fixnum /
     /// constant / symbol) under the active VM global lock.
     #[inline]
-    pub unsafe fn from_raw(raw: Lisp_Object) -> Self {
+    pub(crate) unsafe fn from_raw(raw: Lisp_Object) -> Self {
         Self(raw)
     }
 
     #[inline]
-    pub const fn into_raw(self) -> Lisp_Object {
+    pub(crate) const fn into_raw(self) -> Lisp_Object {
         self.0
     }
 
     #[inline]
-    pub fn is_nil(self) -> bool {
+    pub(crate) fn is_nil(self) -> bool {
         self.0 == lisp_h_Qnil()
     }
 
     #[inline]
-    pub fn from_fixnum(n: isize) -> Self {
+    pub(crate) fn from_fixnum(n: isize) -> Self {
         Self(make_fixnum(n as EMACS_INT))
     }
 
     #[inline]
-    pub fn as_fixnum(self) -> Option<isize> {
+    pub(crate) fn as_fixnum(self) -> Option<isize> {
         if FIXNUMP(self.0) {
             Some(XFIXNUM(self.0) as isize)
         } else {
@@ -79,7 +127,7 @@ impl Default for LispVal {
 
 /// Token proving no GC, Lisp evaluation, callback, or thread lock release can occur while held.
 pub struct NoGcToken<'a> {
-    _marker: PhantomData<&'a GcContext>,
+    _marker: PhantomData<(&'a GcContext, *const ())>,
 }
 
 /// Short-lived borrow bound to `&'nogc NoGcToken` so Rust's borrow checker statically ends the
@@ -87,7 +135,7 @@ pub struct NoGcToken<'a> {
 #[derive(Clone, Copy, Debug)]
 pub struct UnrootedBorrow<'nogc, T> {
     value: T,
-    _nogc: PhantomData<&'nogc NoGcToken<'nogc>>,
+    _nogc: PhantomData<(&'nogc NoGcToken<'nogc>, *const ())>,
 }
 
 impl<'nogc, T: Copy> UnrootedBorrow<'nogc, T> {
@@ -140,11 +188,27 @@ impl GcContext {
         })
     }
 
-    /// Push a scoped GC root bound to the current VM-lock-owning thread.
+    /// Push a scoped immediate GC root bound to the current VM-lock-owning thread.
     #[inline]
-    pub fn root(&self, initial: LispVal) -> Rooted {
-        debug_assert!(is_vm_lock_owner(self.thread_key));
-        Rooted::new(initial)
+    pub fn root_immediate(&self, initial: Immediate) -> Rooted {
+        assert!(
+            is_vm_lock_owner(self.thread_key),
+            "GcContext::root_immediate requires active VM lock ownership"
+        );
+        // SAFETY: `Immediate` is restricted to nil or fixnum (never a GC heap pointer).
+        unsafe { Rooted::new_raw(initial.into_lisp_val()) }
+    }
+
+    /// Push a fresh `Rooted` slot initialized from an already-rooted `Handle`.
+    #[inline]
+    pub fn root_handle(&self, handle: Handle<'_>) -> Rooted {
+        assert!(
+            is_vm_lock_owner(self.thread_key),
+            "GcContext::root_handle requires active VM lock ownership"
+        );
+        let raw = handle.get_raw();
+        // SAFETY: `handle` proves `raw` is live in an occupied root slot under the VM lock.
+        unsafe { Rooted::new_raw(raw) }
     }
 
     /// Borrow a `NoGcToken` that statically blocks `&mut self` safepoint calls until dropped.
@@ -269,6 +333,10 @@ struct ThreadRootSlab {
     raw_spans_popped: usize,
 }
 
+// SAFETY: `ThreadRootSlab` is housed inside `THREAD_ROOT_SLABS` (protected by `Mutex`) and
+// accessed otherwise only by the OS thread holding the VM global lock.
+unsafe impl Send for ThreadRootSlab {}
+
 impl Default for ThreadRootSlab {
     fn default() -> Self {
         Self {
@@ -292,6 +360,9 @@ struct PersistentSlot {
     occupied: bool,
     value: LispVal,
 }
+
+// SAFETY: `PersistentSlot` lives solely inside `PERSISTENT_ROOTS` (protected by `Mutex`).
+unsafe impl Send for PersistentSlot {}
 
 struct PersistentRootTable {
     slots: Vec<PersistentSlot>,
@@ -536,12 +607,12 @@ pub struct Handle<'a> {
     slot_or_index: usize,
     is_persistent: bool,
     generation: u64,
-    _lifetime: PhantomData<(*const (), &'a LispVal)>,
+    _lifetime: PhantomData<(*const (), &'a ())>,
 }
 
 impl<'a> Handle<'a> {
     #[inline]
-    pub fn get(self) -> LispVal {
+    pub(crate) fn get_raw(self) -> LispVal {
         if self.is_persistent {
             with_persistent_table(|table| {
                 let slot = table
@@ -572,6 +643,31 @@ impl<'a> Handle<'a> {
             })
         }
     }
+
+    #[inline]
+    pub fn is_nil(self) -> bool {
+        self.get_raw().is_nil()
+    }
+
+    #[inline]
+    pub fn as_fixnum(self) -> Option<isize> {
+        self.get_raw().as_fixnum()
+    }
+
+    #[inline]
+    pub fn as_immediate(self) -> Option<Immediate> {
+        let raw = self.get_raw().into_raw();
+        if raw == lisp_h_Qnil() || FIXNUMP(raw) {
+            Some(Immediate(raw))
+        } else {
+            None
+        }
+    }
+
+    #[inline]
+    pub fn same_object(self, other: Handle<'_>) -> bool {
+        self.get_raw().into_raw() == other.get_raw().into_raw()
+    }
 }
 
 /// Mutable GC-safe handle (`SpiderMonkey JS::MutableHandle<Value>`) referencing a `Rooted` slot.
@@ -581,13 +677,43 @@ pub struct MutableHandle<'a> {
 
 impl<'a> MutableHandle<'a> {
     #[inline]
-    pub fn get(&self) -> LispVal {
-        self.rooted.get()
+    pub(crate) fn get_raw(&self) -> LispVal {
+        self.rooted.get_raw()
+    }
+
+    /// Replace the slot word with a caller-validated raw `LispVal`.
+    ///
+    /// # Safety
+    /// `value` must be a valid tagged `Lisp_Object` for the live VM heap under the active VM lock.
+    #[inline]
+    pub(crate) unsafe fn set_raw(&mut self, value: LispVal) {
+        // SAFETY: caller guarantees `value` is a live tagged `Lisp_Object` under the VM lock.
+        unsafe { self.rooted.set_raw(value) };
     }
 
     #[inline]
-    pub fn set(&mut self, value: LispVal) {
-        self.rooted.set(value);
+    pub fn is_nil(&self) -> bool {
+        self.rooted.is_nil()
+    }
+
+    #[inline]
+    pub fn as_fixnum(&self) -> Option<isize> {
+        self.rooted.as_fixnum()
+    }
+
+    #[inline]
+    pub fn as_immediate(&self) -> Option<Immediate> {
+        self.rooted.as_immediate()
+    }
+
+    #[inline]
+    pub fn set_immediate(&mut self, value: Immediate) {
+        self.rooted.set_immediate(value);
+    }
+
+    #[inline]
+    pub fn set_from_handle(&mut self, handle: Handle<'_>) {
+        self.rooted.set_from_handle(handle);
     }
 
     #[inline]
@@ -606,8 +732,13 @@ pub struct Rooted {
 }
 
 impl Rooted {
+    /// Allocate a `Rooted` slot on the current VM-lock-owning thread from a raw `LispVal`.
+    ///
+    /// # Safety
+    /// `initial` must be a valid tagged `Lisp_Object` for the live VM heap (or immediate) under
+    /// active VM global lock ownership before any intervening safepoint.
     #[inline]
-    pub fn new(initial: LispVal) -> Self {
+    pub(crate) unsafe fn new_raw(initial: LispVal) -> Self {
         let thread_key = current_thread_key();
         let (index, generation) = with_thread_slab(thread_key, |slab| {
             slab.rooted_pushed += 1;
@@ -640,7 +771,17 @@ impl Rooted {
     }
 
     #[inline]
-    pub fn get(&self) -> LispVal {
+    pub fn from_immediate(ctx: &GcContext, initial: Immediate) -> Self {
+        ctx.root_immediate(initial)
+    }
+
+    #[inline]
+    pub fn from_handle(ctx: &GcContext, handle: Handle<'_>) -> Self {
+        ctx.root_handle(handle)
+    }
+
+    #[inline]
+    pub(crate) fn get_raw(&self) -> LispVal {
         let idx = self.index;
         let expected_gen = self.generation;
         with_thread_slab(self.thread_key, |slab| {
@@ -653,8 +794,12 @@ impl Rooted {
         })
     }
 
+    /// Replace the slot word with a caller-validated raw `LispVal`.
+    ///
+    /// # Safety
+    /// `value` must be a valid tagged `Lisp_Object` for the live VM heap under the active VM lock.
     #[inline]
-    pub fn set(&mut self, value: LispVal) {
+    pub(crate) unsafe fn set_raw(&mut self, value: LispVal) {
         let idx = self.index;
         let expected_gen = self.generation;
         with_thread_slab(self.thread_key, |slab| {
@@ -665,6 +810,44 @@ impl Rooted {
             );
             slot.value = value;
         });
+    }
+
+    #[inline]
+    pub fn is_nil(&self) -> bool {
+        self.get_raw().is_nil()
+    }
+
+    #[inline]
+    pub fn as_fixnum(&self) -> Option<isize> {
+        self.get_raw().as_fixnum()
+    }
+
+    #[inline]
+    pub fn as_immediate(&self) -> Option<Immediate> {
+        let raw = self.get_raw().into_raw();
+        if raw == lisp_h_Qnil() || FIXNUMP(raw) {
+            Some(Immediate(raw))
+        } else {
+            None
+        }
+    }
+
+    #[inline]
+    pub fn same_object(&self, other: Handle<'_>) -> bool {
+        self.get_raw().into_raw() == other.get_raw().into_raw()
+    }
+
+    #[inline]
+    pub fn set_immediate(&mut self, value: Immediate) {
+        // SAFETY: `Immediate` contains nil or fixnum only (never a GC heap pointer).
+        unsafe { self.set_raw(value.into_lisp_val()) };
+    }
+
+    #[inline]
+    pub fn set_from_handle(&mut self, handle: Handle<'_>) {
+        let raw = handle.get_raw();
+        // SAFETY: `handle` proves `raw` is live in an occupied root slot under the VM lock.
+        unsafe { self.set_raw(raw) };
     }
 
     #[inline]
@@ -943,7 +1126,12 @@ pub struct PersistentRoot {
 }
 
 impl PersistentRoot {
-    pub fn new(initial: LispVal) -> Self {
+    /// Allocate a persistent root slot holding `initial`.
+    ///
+    /// # Safety
+    /// `initial` must be a valid tagged `Lisp_Object` for the live VM heap (or immediate) before
+    /// any intervening GC safepoint.
+    pub(crate) unsafe fn new_raw(initial: LispVal) -> Self {
         let (index, generation) = with_persistent_table(|table| {
             let r#gen = table.next_generation;
             table.next_generation += 1;
@@ -974,7 +1162,24 @@ impl PersistentRoot {
     }
 
     #[inline]
-    pub fn get(&self) -> LispVal {
+    pub fn from_immediate(initial: Immediate) -> Self {
+        // SAFETY: `Immediate` holds nil or fixnum only (never a GC heap pointer).
+        unsafe { Self::new_raw(initial.into_lisp_val()) }
+    }
+
+    #[inline]
+    pub fn from_handle(ctx: &GcContext, handle: Handle<'_>) -> Self {
+        assert!(
+            is_vm_lock_owner(ctx.thread_key),
+            "PersistentRoot::from_handle requires active VM lock ownership"
+        );
+        let raw = handle.get_raw();
+        // SAFETY: `handle` proves `raw` is live in an occupied root slot under the VM lock.
+        unsafe { Self::new_raw(raw) }
+    }
+
+    #[inline]
+    pub(crate) fn get_raw(&self) -> LispVal {
         if self.released {
             return LispVal::nil();
         }
@@ -990,8 +1195,12 @@ impl PersistentRoot {
         })
     }
 
+    /// Replace the slot word with a caller-validated raw `LispVal`.
+    ///
+    /// # Safety
+    /// `value` must be a valid tagged `Lisp_Object` for the live VM heap under the active VM lock.
     #[inline]
-    pub fn set(&mut self, value: LispVal) {
+    pub(crate) unsafe fn set_raw(&mut self, value: LispVal) {
         if self.released {
             return;
         }
@@ -1005,6 +1214,43 @@ impl PersistentRoot {
                 slot.value = value;
             }
         });
+    }
+
+    #[inline]
+    pub fn is_nil(&self) -> bool {
+        self.get_raw().is_nil()
+    }
+
+    #[inline]
+    pub fn as_fixnum(&self) -> Option<isize> {
+        self.get_raw().as_fixnum()
+    }
+
+    #[inline]
+    pub fn as_immediate(&self) -> Option<Immediate> {
+        let raw = self.get_raw().into_raw();
+        if raw == lisp_h_Qnil() || FIXNUMP(raw) {
+            Some(Immediate(raw))
+        } else {
+            None
+        }
+    }
+
+    #[inline]
+    pub fn set_immediate(&mut self, value: Immediate) {
+        // SAFETY: `Immediate` contains nil or fixnum only (never a GC heap pointer).
+        unsafe { self.set_raw(value.into_lisp_val()) };
+    }
+
+    #[inline]
+    pub fn set_from_handle(&mut self, ctx: &GcContext, handle: Handle<'_>) {
+        assert!(
+            is_vm_lock_owner(ctx.thread_key),
+            "PersistentRoot::set_from_handle requires active VM lock ownership"
+        );
+        let raw = handle.get_raw();
+        // SAFETY: `handle` proves `raw` is live in an occupied root slot under the VM lock.
+        unsafe { self.set_raw(raw) };
     }
 
     #[inline]
@@ -1029,7 +1275,7 @@ impl PersistentRoot {
     }
 
     #[inline]
-    pub fn raw_token(&self) -> (usize, u64) {
+    pub(crate) fn raw_token(&self) -> (usize, u64) {
         (self.index, self.generation)
     }
 }
@@ -1251,9 +1497,11 @@ pub unsafe extern "C" fn femacs_vm_persistent_root_alloc(
     out_index: *mut usize,
     out_gen: *mut u64,
 ) {
-    // SAFETY: caller guarantees `raw_obj` is a valid tagged `Lisp_Object`.
+    // SAFETY: caller guarantees `raw_obj` is a valid tagged `Lisp_Object` and allocates immediately
+    // before any GC safepoint.
     let val = unsafe { LispVal::from_raw(raw_obj) };
-    let mut pr = PersistentRoot::new(val);
+    // SAFETY: `val` was just validated as a live `Lisp_Object` for this C-ABI call.
+    let mut pr = unsafe { PersistentRoot::new_raw(val) };
     let (idx, r#gen) = pr.raw_token();
     // Disarm Drop so ownership transfers to `(index, generation)` until explicit release.
     pr.released = true;
@@ -1267,8 +1515,13 @@ pub unsafe extern "C" fn femacs_vm_persistent_root_alloc(
     }
 }
 
+/// C-ABI probe reading the raw `Lisp_Object` stored in a live persistent root slot.
+///
+/// # Safety
+/// Caller must run under the VM global lock and only consume the returned raw word before any
+/// subsequent GC safepoint or slot release.
 #[unsafe(no_mangle)]
-pub extern "C" fn femacs_vm_persistent_root_get(index: usize, generation: u64) -> Lisp_Object {
+pub unsafe extern "C" fn femacs_vm_persistent_root_get(index: usize, generation: u64) -> Lisp_Object {
     with_persistent_table(|table| {
         if let Some(slot) = table.slots.get(index)
             && slot.occupied
@@ -1281,8 +1534,13 @@ pub extern "C" fn femacs_vm_persistent_root_get(index: usize, generation: u64) -
     })
 }
 
+/// C-ABI probe releasing the persistent root slot identified by `(index, generation)`.
+///
+/// # Safety
+/// Caller must own the `(index, generation)` token returned by `femacs_vm_persistent_root_alloc`
+/// under active VM global lock discipline.
 #[unsafe(no_mangle)]
-pub extern "C" fn femacs_vm_persistent_root_release(index: usize, generation: u64) -> bool {
+pub unsafe extern "C" fn femacs_vm_persistent_root_release(index: usize, generation: u64) -> bool {
     release_persistent_raw(index, generation)
 }
 
