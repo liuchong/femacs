@@ -1,6 +1,7 @@
 //! Independent Apple Silicon macOS bootstrap. No reference source or binary.
 #![forbid(unsafe_code)]
 use super::*;
+use sha2::{Digest, Sha256};
 
 pub(super) fn check_host() -> Result<(), String> {
     if !cfg!(all(target_os = "macos", target_arch = "aarch64")) {
@@ -231,6 +232,21 @@ fn verify_no_symlinks(dir: &Path) -> Result<(), String> {
     Ok(())
 }
 
+fn codesign_verify_strict(path: &Path) -> Result<(), String> {
+    if !cfg!(target_os = "macos") {
+        return Ok(());
+    }
+    let verify = Command::new("codesign")
+        .args(["--verify", "--strict"])
+        .arg(path)
+        .status()
+        .map_err(|e| format!("codesign --verify {}: {e}", path.display()))?;
+    if !verify.success() {
+        return Err(format!("codesign --verify --strict failed for {}", path.display()));
+    }
+    Ok(())
+}
+
 fn codesign_adhoc_and_verify(path: &Path) -> Result<(), String> {
     if !cfg!(target_os = "macos") {
         return Ok(());
@@ -243,15 +259,7 @@ fn codesign_adhoc_and_verify(path: &Path) -> Result<(), String> {
     if !sign.success() {
         return Err(format!("codesign -s - -f failed for {}", path.display()));
     }
-    let verify = Command::new("codesign")
-        .args(["--verify", "--strict"])
-        .arg(path)
-        .status()
-        .map_err(|e| format!("codesign --verify {}: {e}", path.display()))?;
-    if !verify.success() {
-        return Err(format!("codesign --verify --strict failed for {}", path.display()));
-    }
-    Ok(())
+    codesign_verify_strict(path)
 }
 
 fn build_http_host_binary(repo: &Path, root: &Path) -> Result<PathBuf, String> {
@@ -309,7 +317,83 @@ fn run_lisp_self_dump(lisp_bin: &Path, repo: &Path, pdmp_out: &Path) -> Result<(
     Ok(())
 }
 
-pub(super) fn lisp_package_manifest_value(stage: &Path) -> Result<serde_json::Value, String> {
+pub(super) fn resolve_source_commit(repo: &Path) -> String {
+    if let Ok(explicit) = std::env::var("FEMACS_SOURCE_COMMIT") {
+        let trimmed = explicit.trim();
+        if !trimmed.is_empty() {
+            return trimmed.to_string();
+        }
+    }
+    if repo.join(".git").exists()
+        && let Ok(out) = Command::new("git")
+            .args(["-C", &repo.to_string_lossy(), "rev-parse", "HEAD"])
+            .output()
+        && out.status.success()
+    {
+        let head = String::from_utf8_lossy(&out.stdout).trim().to_string();
+        if !head.is_empty() {
+            return head;
+        }
+    }
+    "exported".to_string()
+}
+
+pub(super) fn hash_resource_tree(root: &Path) -> Result<serde_json::Value, String> {
+    let root_meta = fs::symlink_metadata(root).map_err(|e| format!("stat {}: {e}", root.display()))?;
+    if !root_meta.file_type().is_dir() {
+        return Err(format!("resource root is not a directory: {}", root.display()));
+    }
+    let mut pending = vec![root.to_path_buf()];
+    let mut records: Vec<(String, u64, String)> = Vec::new();
+    while let Some(dir) = pending.pop() {
+        for entry in fs::read_dir(&dir).map_err(|e| format!("readdir {}: {e}", dir.display()))? {
+            let entry = entry.map_err(|e| e.to_string())?;
+            let p = entry.path();
+            let meta = fs::symlink_metadata(&p).map_err(|e| format!("stat {}: {e}", p.display()))?;
+            let ft = meta.file_type();
+            if ft.is_dir() {
+                pending.push(p);
+            } else if ft.is_file() {
+                let rel_path = p.strip_prefix(root).map_err(|e| e.to_string())?;
+                let mut parts = Vec::new();
+                for comp in rel_path.components() {
+                    let std::path::Component::Normal(seg) = comp else {
+                        return Err(format!("unexpected path component in {}", p.display()));
+                    };
+                    parts.push(
+                        seg.to_str()
+                            .ok_or_else(|| format!("non-UTF-8 path in {}", p.display()))?,
+                    );
+                }
+                let rel = parts.join("/");
+                let digest = crate::tooling::sha256_file(&p)?;
+                records.push((rel, meta.len(), digest));
+            } else {
+                return Err(format!("symlink or special file in resource tree: {}", p.display()));
+            }
+        }
+    }
+    records.sort_by(|a, b| a.0.cmp(&b.0));
+
+    let mut tree_hash = Sha256::new();
+    let mut total_bytes: u64 = 0;
+    for (rel, bytes, digest) in &records {
+        total_bytes = total_bytes.saturating_add(*bytes);
+        let line = format!("{rel}\0{bytes}\0{digest}\n");
+        tree_hash.update(line.as_bytes());
+    }
+    let tree_sha256 = format!("{:x}", tree_hash.finalize());
+    Ok(serde_json::json!({
+        "file_count": records.len(),
+        "sha256": tree_sha256,
+        "total_bytes": total_bytes,
+    }))
+}
+
+pub(super) fn lisp_package_manifest_value(
+    repo: &Path,
+    stage: &Path,
+) -> Result<serde_json::Value, String> {
     let mut binaries = serde_json::Map::new();
     for name in ["femacs-lisp", "femacs-lisp.pdmp", "http-host"] {
         let p = stage.join("bin").join(name);
@@ -318,16 +402,46 @@ pub(super) fn lisp_package_manifest_value(stage: &Path) -> Result<serde_json::Va
         binaries.insert(
             name.to_string(),
             serde_json::json!({
-                "relative_path": format!("bin/{name}"),
                 "bytes": meta.len(),
+                "relative_path": format!("bin/{name}"),
                 "sha256": digest,
             }),
         );
     }
+    let mut resource_trees = serde_json::Map::new();
+    for dir_name in [
+        "lisp",
+        "etc",
+        "runtime-tls",
+        "runtime-lcms",
+        "runtime-image",
+        "runtime-treesit",
+        "licenses",
+    ] {
+        let tree_path = stage.join(dir_name);
+        if tree_path.is_dir() {
+            resource_trees.insert(dir_name.to_string(), hash_resource_tree(&tree_path)?);
+        }
+    }
+    let target = crate::cargo_build::host_target_triple();
+    let build_config = "macos-terminal/darwin-arm64/release";
+    let source_commit = resolve_source_commit(repo);
+    let canonical = serde_json::json!({
+        "binaries": binaries,
+        "build_config": build_config,
+        "resource_trees": resource_trees,
+        "source_commit": source_commit,
+        "target": target,
+    });
+    let canonical_bytes = serde_json::to_vec(&canonical).map_err(|e| e.to_string())?;
+    let package_sha256 = format!("{:x}", Sha256::digest(&canonical_bytes));
     Ok(serde_json::json!({
         "schema": 1,
         "product": "femacs-lisp",
-        "target": crate::cargo_build::host_target_triple(),
+        "source_commit": source_commit,
+        "target": target,
+        "build_config": build_config,
+        "package_sha256": package_sha256,
         "directories": [
             "bin",
             "lisp",
@@ -339,6 +453,7 @@ pub(super) fn lisp_package_manifest_value(stage: &Path) -> Result<serde_json::Va
             "licenses"
         ],
         "binaries": binaries,
+        "resource_trees": resource_trees,
     }))
 }
 
@@ -453,7 +568,7 @@ pub(super) fn lisp_package_in(repo: &Path, root: &Path, destination: &Path) -> R
                 &stage.join("licenses/treesit"),
             )?;
             make_dir_tree_writable(stage)?;
-            let manifest = lisp_package_manifest_value(stage)?;
+            let manifest = lisp_package_manifest_value(repo, stage)?;
             crate::tooling::write_json(&stage.join("manifest.json"), &manifest)
         },
         |stage| {
@@ -470,8 +585,8 @@ pub(super) fn lisp_package_in(repo: &Path, root: &Path, destination: &Path) -> R
                 }
             }
             verify_no_symlinks(stage)?;
-            codesign_adhoc_and_verify(&stage.join("bin/femacs-lisp"))?;
-            codesign_adhoc_and_verify(&stage.join("bin/http-host"))?;
+            codesign_verify_strict(&stage.join("bin/femacs-lisp"))?;
+            codesign_verify_strict(&stage.join("bin/http-host"))?;
             Ok(())
         },
     )?;
@@ -526,20 +641,47 @@ mod tests {
     fn lisp_package_manifest_records_binary_digests_without_host_paths() {
         let scratch = Scratch::new();
         let bin = scratch.0.join("bin");
+        let lisp = scratch.0.join("lisp");
+        let etc_sub = scratch.0.join("etc/charsets");
         fs::create_dir_all(&bin).unwrap();
+        fs::create_dir_all(&lisp).unwrap();
+        fs::create_dir_all(&etc_sub).unwrap();
         fs::write(bin.join("femacs-lisp"), b"lisp-bin").unwrap();
         fs::write(bin.join("femacs-lisp.pdmp"), b"DUMPdata").unwrap();
         fs::write(bin.join("http-host"), b"http-bin").unwrap();
+        fs::write(lisp.join("loadup.el"), b"(provide 'loadup)\n").unwrap();
+        fs::write(etc_sub.join("ascii.map"), b"0x41 0x41\n").unwrap();
 
-        let manifest = lisp_package_manifest_value(&scratch.0).unwrap();
+        let manifest = lisp_package_manifest_value(&scratch.0, &scratch.0).unwrap();
         assert_eq!(manifest["schema"], 1);
         assert_eq!(manifest["product"], "femacs-lisp");
+        assert_eq!(manifest["build_config"], "macos-terminal/darwin-arm64/release");
+        assert_eq!(manifest["source_commit"], "exported");
+        assert_eq!(manifest["package_sha256"].as_str().unwrap().len(), 64);
         assert_eq!(manifest["binaries"]["femacs-lisp"]["bytes"], 8);
         assert_eq!(
             manifest["binaries"]["femacs-lisp.pdmp"]["relative_path"],
             "bin/femacs-lisp.pdmp"
         );
+        assert_eq!(manifest["resource_trees"]["lisp"]["file_count"], 1);
+        assert_eq!(manifest["resource_trees"]["etc"]["file_count"], 1);
         let text = serde_json::to_string(&manifest).unwrap();
         assert!(!text.contains("/Users/") && !text.contains("/home/"));
+
+        let orig_lisp_sha = manifest["resource_trees"]["lisp"]["sha256"].as_str().unwrap().to_string();
+        let orig_etc_sha = manifest["resource_trees"]["etc"]["sha256"].as_str().unwrap().to_string();
+        let orig_pkg_sha = manifest["package_sha256"].as_str().unwrap().to_string();
+
+        fs::write(lisp.join("loadup.el"), b"(provide 'loadup) ; mutated\n").unwrap();
+        let mutated = lisp_package_manifest_value(&scratch.0, &scratch.0).unwrap();
+        assert_ne!(
+            mutated["resource_trees"]["lisp"]["sha256"].as_str().unwrap(),
+            orig_lisp_sha
+        );
+        assert_ne!(mutated["package_sha256"].as_str().unwrap(), orig_pkg_sha);
+        assert_eq!(
+            mutated["resource_trees"]["etc"]["sha256"].as_str().unwrap(),
+            orig_etc_sha
+        );
     }
 }

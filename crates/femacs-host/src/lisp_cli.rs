@@ -22,6 +22,7 @@ pub enum BatchAction {
     Eval(String),
     Funcall { func: String, args: Vec<OsString> },
     Script { path: PathBuf, args: Vec<OsString> },
+    ExtraArg(OsString),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -119,6 +120,7 @@ pub fn parse_cli_args(args: &[OsString]) -> Result<ParsedCli, CliExit> {
     let mut lisp_dir: Option<PathBuf> = None;
     let mut data_dir: Option<PathBuf> = None;
     let mut actions: Vec<BatchAction> = Vec::new();
+    let mut saw_batch_consumer = false;
     let mut repl = false;
     let mut rpc_kind: Option<String> = None;
     let mut rpc_handler: Option<PathBuf> = None;
@@ -157,10 +159,12 @@ pub fn parse_cli_args(args: &[OsString]) -> Result<ParsedCli, CliExit> {
             "-l" | "--load" => {
                 let flag = cur.into_owned();
                 actions.push(BatchAction::Load(next_arg_str(args, &mut i, &flag)?));
+                saw_batch_consumer = true;
             }
             "-e" | "--eval" => {
                 let flag = cur.into_owned();
                 actions.push(BatchAction::Eval(next_arg_str(args, &mut i, &flag)?));
+                saw_batch_consumer = true;
             }
             "-f" | "--funcall" => {
                 let flag = cur.into_owned();
@@ -213,11 +217,37 @@ pub fn parse_cli_args(args: &[OsString]) -> Result<ParsedCli, CliExit> {
                 }
                 rpc_fd = Some(fd);
             }
-            other => {
+            "--" => {
+                if batch
+                    && saw_batch_consumer
+                    && !repl
+                    && rpc_kind.is_none()
+                    && dump_out.is_none()
+                {
+                    for item in &args[i..] {
+                        actions.push(BatchAction::ExtraArg(item.clone()));
+                    }
+                    break;
+                }
                 return Err(CliExit::Usage(format!(
-                    "unrecognized option or argument: {other}\n{}",
+                    "unrecognized option or argument: --\n{}",
                     usage_text()
                 )));
+            }
+            other => {
+                if batch
+                    && saw_batch_consumer
+                    && !repl
+                    && rpc_kind.is_none()
+                    && dump_out.is_none()
+                {
+                    actions.push(BatchAction::ExtraArg(args[i].clone()));
+                } else {
+                    return Err(CliExit::Usage(format!(
+                        "unrecognized option or argument: {other}\n{}",
+                        usage_text()
+                    )));
+                }
             }
         }
         i += 1;
@@ -238,11 +268,14 @@ pub fn parse_cli_args(args: &[OsString]) -> Result<ParsedCli, CliExit> {
         if actions.iter().any(|a| {
             matches!(
                 a,
-                BatchAction::Script { .. } | BatchAction::Eval(_) | BatchAction::Funcall { .. }
+                BatchAction::Script { .. }
+                    | BatchAction::Eval(_)
+                    | BatchAction::Funcall { .. }
+                    | BatchAction::ExtraArg(_)
             )
         }) {
             return Err(CliExit::Usage(
-                "--dump-out cannot be combined with --script, --eval, or --funcall".to_string(),
+                "--dump-out cannot be combined with --script, --eval, --funcall, or trailing batch arguments".to_string(),
             ));
         }
         RunMode::DumpOut(out)
@@ -260,11 +293,13 @@ pub fn parse_cli_args(args: &[OsString]) -> Result<ParsedCli, CliExit> {
         if actions.iter().any(|a| {
             matches!(
                 a,
-                BatchAction::Script { .. } | BatchAction::Funcall { .. }
+                BatchAction::Script { .. }
+                    | BatchAction::Funcall { .. }
+                    | BatchAction::ExtraArg(_)
             )
         }) {
             return Err(CliExit::Usage(
-                "--rpc http cannot be combined with --script or --funcall".to_string(),
+                "--rpc http cannot be combined with --script, --funcall, or trailing batch arguments".to_string(),
             ));
         }
         let handler = rpc_handler.ok_or_else(|| {
@@ -280,11 +315,14 @@ pub fn parse_cli_args(args: &[OsString]) -> Result<ParsedCli, CliExit> {
         if actions.iter().any(|a| {
             matches!(
                 a,
-                BatchAction::Script { .. } | BatchAction::Eval(_) | BatchAction::Funcall { .. }
+                BatchAction::Script { .. }
+                    | BatchAction::Eval(_)
+                    | BatchAction::Funcall { .. }
+                    | BatchAction::ExtraArg(_)
             )
         }) {
             return Err(CliExit::Usage(
-                "--repl cannot be combined with --script, --eval, or --funcall".to_string(),
+                "--repl cannot be combined with --script, --eval, --funcall, or trailing batch arguments".to_string(),
             ));
         }
         RunMode::Repl
@@ -317,6 +355,119 @@ pub fn parse_cli_args(args: &[OsString]) -> Result<ParsedCli, CliExit> {
         actions,
         mode,
     })
+}
+
+/// Convert a pending suffix of `BatchAction` items back into CLI tokens suitable for binding
+/// `command-line-args-left` while executing a `-l` or `-e` step.
+pub fn actions_to_argv(actions: &[BatchAction]) -> Vec<OsString> {
+    let mut out = Vec::new();
+    for action in actions {
+        match action {
+            BatchAction::AddLoadPath(dir) => {
+                out.push(OsString::from("-L"));
+                out.push(dir.as_os_str().to_os_string());
+            }
+            BatchAction::Load(file) => {
+                out.push(OsString::from("-l"));
+                out.push(OsString::from(file));
+            }
+            BatchAction::Eval(form) => {
+                out.push(OsString::from("-e"));
+                out.push(OsString::from(form));
+            }
+            BatchAction::Funcall { func, args } => {
+                out.push(OsString::from("-f"));
+                out.push(OsString::from(func));
+                out.extend(args.iter().cloned());
+            }
+            BatchAction::Script { path, args } => {
+                out.push(OsString::from("--script"));
+                out.push(path.as_os_str().to_os_string());
+                if !args.is_empty() {
+                    out.push(OsString::from("--"));
+                    out.extend(args.iter().cloned());
+                }
+            }
+            BatchAction::ExtraArg(arg) => {
+                out.push(arg.clone());
+            }
+        }
+    }
+    out
+}
+
+/// Re-parse remaining `command-line-args-left` returned by a `-l` or `-e` step back into
+/// pending `BatchAction` items, failing with exit code 2 if an unconsumed head option remains.
+pub fn parse_remaining_batch_actions(args: &[OsString]) -> Result<Vec<BatchAction>, CliExit> {
+    let mut actions = Vec::new();
+    let mut saw_consumer = false;
+    let mut i = 0usize;
+    while i < args.len() {
+        let cur = args[i].to_string_lossy();
+        match cur.as_ref() {
+            "-batch" | "--batch" | "-Q" | "--quick" | "--no-site-file" | "--no-site-lisp"
+            | "-nsl" => {}
+            "-L" | "--directory" => {
+                let flag = cur.into_owned();
+                actions.push(BatchAction::AddLoadPath(PathBuf::from(next_arg_os(
+                    args, &mut i, &flag,
+                )?)));
+            }
+            "-l" | "--load" => {
+                let flag = cur.into_owned();
+                actions.push(BatchAction::Load(next_arg_str(args, &mut i, &flag)?));
+                saw_consumer = true;
+            }
+            "-e" | "--eval" => {
+                let flag = cur.into_owned();
+                actions.push(BatchAction::Eval(next_arg_str(args, &mut i, &flag)?));
+                saw_consumer = true;
+            }
+            "-f" | "--funcall" => {
+                let flag = cur.into_owned();
+                let func = next_arg_str(args, &mut i, &flag)?;
+                let tail = args.get(i + 1..).unwrap_or(&[]).to_vec();
+                actions.push(BatchAction::Funcall { func, args: tail });
+                break;
+            }
+            "--script" => {
+                let script = PathBuf::from(next_arg_os(args, &mut i, "--script")?);
+                let mut rest = args.get(i + 1..).unwrap_or(&[]);
+                if rest.first().is_some_and(|a| a == "--") {
+                    rest = &rest[1..];
+                }
+                actions.push(BatchAction::Script {
+                    path: script,
+                    args: rest.to_vec(),
+                });
+                break;
+            }
+            "--" => {
+                if saw_consumer {
+                    for item in &args[i..] {
+                        actions.push(BatchAction::ExtraArg(item.clone()));
+                    }
+                    break;
+                }
+                return Err(CliExit::Usage(format!(
+                    "unrecognized option or argument: --\n{}",
+                    usage_text()
+                )));
+            }
+            other => {
+                if saw_consumer {
+                    actions.push(BatchAction::ExtraArg(args[i].clone()));
+                } else {
+                    return Err(CliExit::Usage(format!(
+                        "unrecognized option or argument: {other}\n{}",
+                        usage_text()
+                    )));
+                }
+            }
+        }
+        i += 1;
+    }
+    Ok(actions)
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -881,5 +1032,101 @@ mod tests {
 
         let (sock_a, _sock_b) = UnixStream::pair().unwrap();
         assert!(crate::stream_has_cloexec(&sock_a).unwrap());
+    }
+
+    #[test]
+    fn parses_batch_load_with_trailing_extra_args_and_rejects_unbacked_unknown_flags() {
+        let cli = parse_cli_args(&os_args(&[
+            "--batch",
+            "-Q",
+            "-l",
+            "tools/backends/bootstrap.el",
+            "--stage0",
+            "--output",
+            "dist/bootstrap/stage0",
+        ]))
+        .expect("batch load with trailing args should defer arg consumption");
+        assert!(cli.batch);
+        assert!(cli.quick);
+        assert_eq!(cli.mode, RunMode::Actions);
+        assert_eq!(
+            cli.actions,
+            vec![
+                BatchAction::Load("tools/backends/bootstrap.el".to_string()),
+                BatchAction::ExtraArg(OsString::from("--stage0")),
+                BatchAction::ExtraArg(OsString::from("--output")),
+                BatchAction::ExtraArg(OsString::from("dist/bootstrap/stage0")),
+            ]
+        );
+
+        let dashdash = parse_cli_args(&os_args(&[
+            "--batch", "-Q", "-l", "a.el", "--", "arg1", "-f",
+        ]))
+        .expect("batch -- after consumer passes rest verbatim");
+        assert_eq!(
+            dashdash.actions,
+            vec![
+                BatchAction::Load("a.el".to_string()),
+                BatchAction::ExtraArg(OsString::from("--")),
+                BatchAction::ExtraArg(OsString::from("arg1")),
+                BatchAction::ExtraArg(OsString::from("-f")),
+            ]
+        );
+
+        // Unknown flags before any -l/-e consumer, or with --repl/--dump-out, stay exit 2.
+        assert_eq!(
+            parse_cli_args(&os_args(&["--batch", "--no-such-flag-c3"]))
+                .unwrap_err()
+                .code(),
+            2
+        );
+        assert_eq!(
+            parse_cli_args(&os_args(&["--batch", "--", "--bad"]))
+                .unwrap_err()
+                .code(),
+            2
+        );
+        assert_eq!(
+            parse_cli_args(&os_args(&["--batch", "--repl", "-l", "a.el", "--extra"]))
+                .unwrap_err()
+                .code(),
+            2
+        );
+        assert_eq!(
+            parse_cli_args(&os_args(&["--batch", "--dump-out", "a.pdmp", "-l", "a.el", "--extra"]))
+                .unwrap_err()
+                .code(),
+            2
+        );
+
+        // actions_to_argv and parse_remaining_batch_actions roundtrip and reject unconsumed head flags.
+        let tail_actions = parse_remaining_batch_actions(&os_args(&[
+            "-L", "compiler", "-l", "b.el", "--stage0",
+        ]))
+        .expect("remaining consumer with trailing arg reparses cleanly");
+        assert_eq!(
+            tail_actions,
+            vec![
+                BatchAction::AddLoadPath(PathBuf::from("compiler")),
+                BatchAction::Load("b.el".to_string()),
+                BatchAction::ExtraArg(OsString::from("--stage0")),
+            ]
+        );
+        assert_eq!(
+            actions_to_argv(&tail_actions),
+            os_args(&["-L", "compiler", "-l", "b.el", "--stage0"])
+        );
+        assert_eq!(
+            parse_remaining_batch_actions(&os_args(&["--unconsumed-head"]))
+                .unwrap_err()
+                .code(),
+            2
+        );
+        assert_eq!(
+            parse_remaining_batch_actions(&os_args(&["--"]))
+                .unwrap_err()
+                .code(),
+            2
+        );
     }
 }

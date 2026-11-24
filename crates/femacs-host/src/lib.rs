@@ -41,6 +41,17 @@ impl LispHost {
         self.vm.eval_silent(source)
     }
 
+    /// Evaluate `source` with `command-line-args-left` bound to `args_left`, returning optional
+    /// printed result and the post-evaluation `command-line-args-left` elements.
+    pub fn eval_with_args(
+        &mut self,
+        source: &str,
+        print_result: bool,
+        args_left: &[OsString],
+    ) -> Result<(Option<String>, Vec<OsString>), HostError> {
+        self.vm.eval_with_args(source, print_result, args_left)
+    }
+
     /// Prepend a directory (and its `subdirs.el` if present) to Lisp `load-path`.
     pub fn prepend_load_path(&mut self, dir: &Path) -> Result<(), HostError> {
         self.vm.prepend_load_path(dir)
@@ -51,9 +62,29 @@ impl LispHost {
         self.vm.load_library(file)
     }
 
+    /// Load a Lisp library with `command-line-args-left` bound to `args_left`, returning the
+    /// remaining unconsumed arguments after loading finishes.
+    pub fn load_library_with_args(
+        &mut self,
+        file: &str,
+        args_left: &[OsString],
+    ) -> Result<Vec<OsString>, HostError> {
+        self.vm.load_library_with_args(file, args_left)
+    }
+
     /// Invoke zero-arg Lisp function `func_name` with `command-line-args-left` and `argv` bound.
     pub fn funcall_with_args(&mut self, func_name: &str, argv: &[OsString]) -> Result<(), HostError> {
         self.vm.funcall_with_args(func_name, argv)
+    }
+
+    /// Invoke zero-arg Lisp function `func_name` with `command-line-args-left` bound to `args_left`,
+    /// returning any remaining unconsumed items.
+    pub fn funcall_with_args_left(
+        &mut self,
+        func_name: &str,
+        args_left: &[OsString],
+    ) -> Result<Vec<OsString>, HostError> {
+        self.vm.funcall_with_args_left(func_name, args_left)
     }
 
     /// Invoke `(func_name arg1 arg2)` directly and extract a host-owned string result cleanly.

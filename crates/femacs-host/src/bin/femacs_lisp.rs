@@ -8,9 +8,10 @@ use std::path::Path;
 use std::process;
 
 use femacs_host::lisp_cli::{
-    BatchAction, FrameRead, HttpRequestParams, HttpResponseResult, ParsedCli, RpcMode, RpcRequest,
-    RunMode, build_host_config, has_complete_lisp_form, host_error_to_rpc_data, parse_cli_args,
-    read_bounded_line, resolve_process_paths, write_rpc_error, write_rpc_result,
+    BatchAction, CliExit, FrameRead, HttpRequestParams, HttpResponseResult, ParsedCli, RpcMode,
+    RpcRequest, RunMode, actions_to_argv, build_host_config, has_complete_lisp_form,
+    host_error_to_rpc_data, parse_cli_args, parse_remaining_batch_actions, read_bounded_line,
+    resolve_process_paths, write_rpc_error, write_rpc_result,
 };
 use femacs_host::{HostError, LispHost, adopt_inherited_rpc_socket};
 use serde_json::{Value, json};
@@ -64,25 +65,93 @@ fn exit_for_host_error(err: &HostError) -> i32 {
     1
 }
 
-fn run_actions(host: &mut LispHost, batch: bool, actions: &[BatchAction]) -> Result<i32, HostError> {
-    let last_eval_idx = actions
-        .iter()
-        .rposition(|a| matches!(a, BatchAction::Eval(_)));
+fn run_actions(
+    host: &mut LispHost,
+    batch: bool,
+    initial_actions: &[BatchAction],
+) -> Result<i32, HostError> {
+    let mut queue = initial_actions.to_vec();
+    let mut idx = 0usize;
 
-    for (idx, action) in actions.iter().enumerate() {
+    while idx < queue.len() {
+        let action = queue[idx].clone();
         match action {
-            BatchAction::AddLoadPath(dir) => host.prepend_load_path(dir)?,
-            BatchAction::Load(file) => host.load_library(file)?,
-            BatchAction::Eval(form) => {
-                if !batch && Some(idx) == last_eval_idx {
-                    let result = host.read_eval(form)?;
-                    println!("{result}");
+            BatchAction::AddLoadPath(_) => {
+                let mut run_end = idx + 1;
+                while matches!(queue.get(run_end), Some(BatchAction::AddLoadPath(_))) {
+                    run_end += 1;
+                }
+                for pos in (idx..run_end).rev() {
+                    if let BatchAction::AddLoadPath(dir) = &queue[pos] {
+                        host.prepend_load_path(dir)?;
+                    }
+                }
+                idx = run_end;
+            }
+            BatchAction::Load(file) => {
+                let tail_argv = actions_to_argv(&queue[idx + 1..]);
+                let next_argv = host.load_library_with_args(&file, &tail_argv)?;
+                if next_argv == tail_argv {
+                    idx += 1;
                 } else {
-                    host.eval_silent(form)?;
+                    match parse_remaining_batch_actions(&next_argv) {
+                        Ok(next_actions) => {
+                            queue = next_actions;
+                            idx = 0;
+                        }
+                        Err(exit) => {
+                            match &exit {
+                                CliExit::Info(msg) => println!("{msg}"),
+                                CliExit::Usage(msg) => eprintln!("femacs-lisp: {msg}"),
+                            }
+                            return Ok(exit.code());
+                        }
+                    }
                 }
             }
-            BatchAction::Funcall { func, args } => host.funcall_with_args(func, args)?,
-            BatchAction::Script { path, args } => host.load_script(path, args)?,
+            BatchAction::Eval(form) => {
+                let should_print = !batch
+                    && !queue[idx + 1..]
+                        .iter()
+                        .any(|a| matches!(a, BatchAction::Eval(_)));
+                let tail_argv = actions_to_argv(&queue[idx + 1..]);
+                let (printed, next_argv) = host.eval_with_args(&form, should_print, &tail_argv)?;
+                if let Some(result) = printed {
+                    println!("{result}");
+                }
+                if next_argv == tail_argv {
+                    idx += 1;
+                } else {
+                    match parse_remaining_batch_actions(&next_argv) {
+                        Ok(next_actions) => {
+                            queue = next_actions;
+                            idx = 0;
+                        }
+                        Err(exit) => {
+                            match &exit {
+                                CliExit::Info(msg) => println!("{msg}"),
+                                CliExit::Usage(msg) => eprintln!("femacs-lisp: {msg}"),
+                            }
+                            return Ok(exit.code());
+                        }
+                    }
+                }
+            }
+            BatchAction::Funcall { func, args } => {
+                let _remaining = host.funcall_with_args_left(&func, &args)?;
+                idx += 1;
+            }
+            BatchAction::Script { path, args } => {
+                host.load_script(&path, &args)?;
+                break;
+            }
+            BatchAction::ExtraArg(arg) => {
+                eprintln!(
+                    "femacs-lisp: unrecognized option or argument: {}",
+                    arg.to_string_lossy()
+                );
+                return Ok(2);
+            }
         }
     }
     let _ = io::stdout().flush();
@@ -96,7 +165,8 @@ fn run_repl(host: &mut LispHost, actions: &[BatchAction]) -> Result<i32, HostErr
             BatchAction::Load(file) => host.load_library(file)?,
             BatchAction::Eval(_)
             | BatchAction::Funcall { .. }
-            | BatchAction::Script { .. } => {}
+            | BatchAction::Script { .. }
+            | BatchAction::ExtraArg(_) => {}
         }
     }
 
@@ -174,7 +244,9 @@ fn run_http_rpc(
             BatchAction::Eval(form) => {
                 host.eval_silent(form).map_err(|e| e.to_string())?;
             }
-            BatchAction::Script { .. } | BatchAction::Funcall { .. } => {}
+            BatchAction::Script { .. }
+            | BatchAction::Funcall { .. }
+            | BatchAction::ExtraArg(_) => {}
         }
     }
 

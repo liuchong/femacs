@@ -8332,6 +8332,45 @@
       "uncertainty": null
     },
     {
+      "path": "tools/femacs-lisp-cache.py",
+      "sha256": "a35887d0b6f9969df9e7b7b2b8fe3a3eeacbe99dc24071c538486d91431707ac",
+      "bytes": 25087,
+      "family": "rust-build",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Phase II Stage C3/A3 verifiable femacs-lisp package & host cache manager",
+      "readers": [
+        {
+          "path": "tools/femacs-lisp-cache.py",
+          "anchor": "ensure_cache",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/test-c3-a3-seed-host.py",
+          "anchor": "CACHE_TOOL",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/test-c3-a3-seed-host.py",
+      "sha256": "af464abc8bd0861929860aba0708aa9ccc674d2c76445c6b78d557ffaf8d473a",
+      "bytes": 28869,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Phase II Stage C3/A3 Seed, Stage 0, batch args-left, and host cache acceptance gate",
+      "readers": [
+        {
+          "path": "tools/test-c3-a3-seed-host.py",
+          "anchor": "main",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
       "path": "tools/test-u3-unit.py",
       "sha256": "43b331ea92becfba196140f52b50133a3f2a44f0ebe021cdfecad87283e4cab6",
       "bytes": 31303,

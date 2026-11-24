@@ -19,10 +19,12 @@ use std::sync::atomic::{AtomicBool, AtomicU8, AtomicUsize, Ordering};
 
 use crate::alloc::Fcons;
 use crate::common::{
-    CONDITION_CASE, CONSP, EMACS_INT, EQ, FD_CLOEXEC, F_DUPFD_CLOEXEC, F_GETFD, F_SETFD, O_RDWR,
-    Fdefault_toplevel_value, Ferror_message_string, Fexpand_file_name, Ffboundp,
-    Ffile_name_as_directory, Ffuncall, Fgarbage_collect, Fget, Findirect_variable, Fload, Fmemq,
-    Fprin1_to_string, Fput, Fset, Lisp_Object, NILP, Qcommand_line_processed, Qend_of_file,
+    CONDITION_CASE, CONSP, EMACS_INT, EQ, FD_CLOEXEC, F_DUPFD_CLOEXEC, F_GETFD, F_SETFD, Fboundp,
+    O_RDWR, Fdefault_toplevel_value, Ferror_message_string, Fexpand_file_name, Ffboundp,
+    Ffile_name_as_directory, Ffile_regular_p, Ffuncall, Fgarbage_collect, Fget, Findirect_variable,
+    Fload, Fmemq,
+    Fprin1_to_string, Fput, Fset, Fsymbol_value, Lisp_Object, NILP, Qcommand_line_processed,
+    Qend_of_file,
     Qerror_conditions, Qerror_message, Qfile_error, Qinvalid_read_syntax, Qkill_emacs_hook,
     Qlexical_binding, Qquit, Qt, Qunbound, SBYTES, SDATA, STRINGP, SYMBOLP, Vcharset_map_path,
     Vdata_directory, Vdoc_directory, Vlexical_binding, Vload_path, Vpdumper_fingerprint,
@@ -585,21 +587,32 @@ fn with_host_condition_catch<R>(
 
 fn add_load_path_and_subdirs_raw(path: &Path) {
     let raw_s = path.to_string_lossy();
-    let trimmed = if raw_s.len() > 1 {
-        raw_s.trim_end_matches('/')
-    } else {
-        raw_s.as_ref()
-    };
-    let subdirs_el = path.join("subdirs.el");
-    // SAFETY: Allocates and roots Lisp path strings under VM lock; optionally loads `subdirs.el`
-    // with `default-directory` dynamically bound to `<path>/` via `UnbindGuard`.
+    // SAFETY: Expands `raw_s` against `default-directory` under active VM lock, keeps strings
+    // rooted in `ScopedLispRoot`, prepends to `Vload_path`, and loads `subdirs.el` with
+    // `default-directory` dynamically bound via `UnbindGuard`.
     unsafe {
-        let path_obj = build_utf8_str(trimmed);
-        let mut roots = ScopedLispRoot::new(&[path_obj, lisp_h_Qnil(), lisp_h_Qnil()]);
+        let raw_obj = build_utf8_str(&raw_s);
+        let mut roots = ScopedLispRoot::new(&[raw_obj, lisp_h_Qnil(), lisp_h_Qnil()]);
+        let expanded_obj = Fexpand_file_name(raw_obj, lisp_h_Qnil());
+        roots.set(0, expanded_obj);
+        let expanded_s = raw_string_to_owned(expanded_obj).unwrap_or_else(|| raw_s.into_owned());
+        let trimmed = if expanded_s.len() > 1 {
+            expanded_s.trim_end_matches('/')
+        } else {
+            expanded_s.as_str()
+        };
+        let path_obj = if trimmed.len() == expanded_s.len() {
+            expanded_obj
+        } else {
+            let obj = build_utf8_str(trimmed);
+            roots.set(0, obj);
+            obj
+        };
         let cur = *Vload_path.as_mut_ptr();
         if NILP(Fmemq(path_obj, cur)) {
             *Vload_path.as_mut_ptr() = Fcons(path_obj, cur);
         }
+        let subdirs_el = PathBuf::from(trimmed).join("subdirs.el");
         if subdirs_el.is_file() {
             let add_sym = intern_c_string(c"normal-top-level-add-to-load-path".as_ptr());
             if !NILP(Ffboundp(add_sym)) {
@@ -668,6 +681,38 @@ fn bind_argv_list_raw(argv_strs: &[String]) {
         if !EQ(Findirect_variable(argv_sym), cmd_left_sym) {
             specbind(argv_sym, arg_list);
         }
+    }
+}
+
+/// Read the current Lisp `command-line-args-left` list back as owned host `OsString` entries.
+///
+/// # Safety
+/// Caller holds the active VM lock inside `with_host_condition_catch` while all traversed list
+/// links and string elements are rooted via `ScopedLispRoot`.
+unsafe fn read_command_line_args_left_raw() -> Vec<OsString> {
+    // SAFETY: Guaranteed by caller contract; keeps `cur` and `item` rooted across conversion.
+    unsafe {
+        let cmd_left_sym = intern_c_string(c"command-line-args-left".as_ptr());
+        if NILP(Fboundp(cmd_left_sym)) {
+            return Vec::new();
+        }
+        let mut cur = Fsymbol_value(cmd_left_sym);
+        let mut roots = ScopedLispRoot::new(&[cur, lisp_h_Qnil()]);
+        let mut out = Vec::new();
+        while CONSP(cur) {
+            let item = XCAR(cur);
+            roots.set(1, item);
+            let text = if STRINGP(item) {
+                raw_string_to_owned(item).unwrap_or_default()
+            } else {
+                raw_prin1_to_owned(item)
+            };
+            out.push(OsString::from(text));
+            cur = XCDR(cur);
+            roots.set(0, cur);
+            roots.set(1, lisp_h_Qnil());
+        }
+        out
     }
 }
 
@@ -1042,6 +1087,39 @@ impl HeadlessVm {
         })
     }
 
+    /// Evaluate all top-level Lisp forms in `source` with `command-line-args-left` and `argv`
+    /// dynamically bound to `args_left`, returning optional `prin1` output and remaining args.
+    pub fn eval_with_args(
+        &mut self,
+        source: &str,
+        print_result: bool,
+        args_left: &[OsString],
+    ) -> Result<(Option<String>, Vec<OsString>), VmHostError> {
+        let argv_strs: Vec<String> = args_left
+            .iter()
+            .map(|arg| arg.to_string_lossy().into_owned())
+            .collect();
+        with_host_condition_catch(self.ctx_mut(), || {
+            // SAFETY: Runs inside `with_host_condition_catch`; `UnbindGuard` restores `argv` and
+            // `command-line-args-left` after reading remaining items, and `ScopedLispRoot` roots `val`.
+            unsafe {
+                let count = current_specpdl_index();
+                let unbind = UnbindGuard { target: count };
+                bind_argv_list_raw(&argv_strs);
+                let last_val = eval_forms_raw(source);
+                let _val_root = ScopedLispRoot::new(&[last_val]);
+                let printed = if print_result {
+                    Some(raw_prin1_to_owned(last_val))
+                } else {
+                    None
+                };
+                let remaining = read_command_line_args_left_raw();
+                drop(unbind);
+                (printed, remaining)
+            }
+        })
+    }
+
     /// Prepend a directory (and its `subdirs.el` if present) to Lisp `load-path`.
     pub fn prepend_load_path(&mut self, dir: &Path) -> Result<(), VmHostError> {
         let dir = dir.to_path_buf();
@@ -1050,16 +1128,46 @@ impl HeadlessVm {
         })
     }
 
+    /// Resolve CLI `-l` path relative to `default-directory` when it names a regular file
+    /// (matching reference `command-line-1`), falling back to `file_lisp` for `load-path` lookup.
+    ///
+    /// # Safety
+    /// Caller holds the active VM lock inside `with_host_condition_catch` and roots the returned
+    /// `Lisp_Object` across `Fload`.
+    unsafe fn load_target_raw(file_lisp: Lisp_Object) -> Lisp_Object {
+        // SAFETY: Roots `file_lisp` and `candidate` in `ScopedLispRoot` across expansion,
+        // `file-truename`, and `Ffile_regular_p`.
+        unsafe {
+            let mut roots = ScopedLispRoot::new(&[file_lisp, lisp_h_Qnil()]);
+            let mut candidate = Fexpand_file_name(file_lisp, lisp_h_Qnil());
+            roots.set(1, candidate);
+            let truename_sym = intern_c_string(c"file-truename".as_ptr());
+            if !NILP(Ffboundp(truename_sym)) {
+                let mut call = [truename_sym, candidate];
+                candidate = Ffuncall(2, call.as_mut_ptr());
+                roots.set(1, candidate);
+            }
+            if !NILP(Ffile_regular_p(candidate)) {
+                candidate
+            } else {
+                file_lisp
+            }
+        }
+    }
+
     /// Load a Lisp library or file using standard `-l` lookup semantics (`nosuffix = nil`).
     pub fn load_library(&mut self, file: &str) -> Result<(), VmHostError> {
         let file = file.to_string();
         with_host_condition_catch(self.ctx_mut(), || {
-            // SAFETY: Runs inside `with_host_condition_catch`; roots `file_lisp` across `Fload`.
+            // SAFETY: Runs inside `with_host_condition_catch`; roots `file_lisp` and resolved
+            // `target` across `Fload`.
             unsafe {
                 let file_lisp = build_utf8_str(&file);
-                let _root = ScopedLispRoot::new(&[file_lisp]);
+                let mut roots = ScopedLispRoot::new(&[file_lisp, lisp_h_Qnil()]);
+                let target = Self::load_target_raw(file_lisp);
+                roots.set(1, target);
                 Fload(
-                    file_lisp,
+                    target,
                     lisp_h_Qnil(),
                     Qt(),
                     lisp_h_Qnil(),
@@ -1069,27 +1177,79 @@ impl HeadlessVm {
         })
     }
 
+    /// Load a Lisp library or file with `command-line-args-left` and `argv` bound to `args_left`,
+    /// returning whatever items remain in `command-line-args-left` after loading completes.
+    pub fn load_library_with_args(
+        &mut self,
+        file: &str,
+        args_left: &[OsString],
+    ) -> Result<Vec<OsString>, VmHostError> {
+        let file = file.to_string();
+        let argv_strs: Vec<String> = args_left
+            .iter()
+            .map(|arg| arg.to_string_lossy().into_owned())
+            .collect();
+        with_host_condition_catch(self.ctx_mut(), || {
+            // SAFETY: Runs inside `with_host_condition_catch`; `UnbindGuard` restores bindings after
+            // `read_command_line_args_left_raw` reads remaining items, and `file_lisp`/`target`
+            // remain rooted across `Fload`.
+            unsafe {
+                let count = current_specpdl_index();
+                let unbind = UnbindGuard { target: count };
+                bind_argv_list_raw(&argv_strs);
+                let file_lisp = build_utf8_str(&file);
+                let mut roots = ScopedLispRoot::new(&[file_lisp, lisp_h_Qnil()]);
+                let target = Self::load_target_raw(file_lisp);
+                roots.set(1, target);
+                Fload(
+                    target,
+                    lisp_h_Qnil(),
+                    Qt(),
+                    lisp_h_Qnil(),
+                    lisp_h_Qnil(),
+                );
+                let remaining = read_command_line_args_left_raw();
+                drop(unbind);
+                remaining
+            }
+        })
+    }
+
     /// Call zero-arg batch function `func_name` with `command-line-args-left` and `argv` dynamically
     /// bound to `argv`.
     pub fn funcall_with_args(&mut self, func_name: &str, argv: &[OsString]) -> Result<(), VmHostError> {
+        let _ = self.funcall_with_args_left(func_name, argv)?;
+        Ok(())
+    }
+
+    /// Call zero-arg batch function `func_name` with `command-line-args-left` and `argv` dynamically
+    /// bound to `args_left`, returning any remaining items in `command-line-args-left`.
+    pub fn funcall_with_args_left(
+        &mut self,
+        func_name: &str,
+        args_left: &[OsString],
+    ) -> Result<Vec<OsString>, VmHostError> {
         let func_c = CString::new(func_name).map_err(|_| VmHostError::LispCondition {
             symbol: "invalid-function".to_string(),
             message: format!("function name contains NUL byte: {func_name}"),
             data: "nil".to_string(),
         })?;
-        let argv_strs: Vec<String> = argv
+        let argv_strs: Vec<String> = args_left
             .iter()
             .map(|arg| arg.to_string_lossy().into_owned())
             .collect();
         with_host_condition_catch(self.ctx_mut(), || {
             // SAFETY: Runs inside `with_host_condition_catch`; `UnbindGuard` restores `argv` and
-            // `command-line-args-left` cleanly on normal return, error, or exit request.
+            // `command-line-args-left` after `read_command_line_args_left_raw` reads remaining args.
             unsafe {
                 let count = current_specpdl_index();
-                let _unbind = UnbindGuard { target: count };
+                let unbind = UnbindGuard { target: count };
                 bind_argv_list_raw(&argv_strs);
                 let mut sym = intern_c_string(func_c.as_ptr());
                 Ffuncall(1, &raw mut sym);
+                let remaining = read_command_line_args_left_raw();
+                drop(unbind);
+                remaining
             }
         })
     }
