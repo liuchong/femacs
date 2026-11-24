@@ -154,6 +154,9 @@ def run_host_a1_scenarios(host_bin: Path, term_dump: Path) -> dict[str, float]:
             timings[f"headless_diagnostics_{tag}"] = run_host_scenario(
                 host_bin, "headless-diagnostics", env_extra=env_mode
             )
+            timings[f"host_exit_unwind_{tag}"] = run_host_scenario(
+                host_bin, "host-exit-unwind", env_extra=env_mode
+            )
 
         script_tmp = tmp_path / "script-normal"
         script_tmp.mkdir(parents=True, exist_ok=True)

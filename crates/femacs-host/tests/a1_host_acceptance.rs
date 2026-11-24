@@ -370,6 +370,45 @@ fn scenario_safe_domain_protected() {
     assert_eq!(host.read_eval("(+ 1 2)").unwrap(), "3");
 }
 
+fn scenario_host_exit_unwind() {
+    let mut host = LispHost::init(HostConfig::cold_minimal()).expect("host-exit-unwind init");
+
+    let err1 = host
+        .read_eval("(unwind-protect (kill-emacs 7) (setq bad-cleanup t) (kill-emacs 2))")
+        .expect_err("unwind-protect must not swallow kill-emacs exit code");
+    assert_eq!(err1, HostError::ExitRequest(7));
+    assert_eq!(host.read_eval("(boundp 'bad-cleanup)").unwrap(), "nil");
+
+    let err2 = host
+        .read_eval("(condition-case _ (kill-emacs 9) (t 'caught))")
+        .expect_err("condition-case t must not catch kill-emacs");
+    assert_eq!(err2, HostError::ExitRequest(9));
+
+    host.read_eval("(setq kill-emacs-hook '((lambda () (kill-emacs 11))))")
+        .expect("install kill-emacs-hook");
+    let err3 = host
+        .read_eval("(kill-emacs 3)")
+        .expect_err("reentrant kill-emacs inside hook must propagate ExitRequest(11)");
+    assert_eq!(err3, HostError::ExitRequest(11));
+    host.read_eval("(setq kill-emacs-hook nil)")
+        .expect("clear kill-emacs-hook after unwind");
+
+    let err4 = host
+        .eval_with_args(
+            "(condition-case _ (kill-emacs 12) (t 'caught))",
+            false,
+            &[OsString::from("--with-arg")],
+        )
+        .expect_err("eval_with_args must unwind UnbindGuard safely over nested handler");
+    assert_eq!(err4, HostError::ExitRequest(12));
+
+    assert_eq!(
+        host.read_eval("(let ((x 0)) (unwind-protect (setq x 1) (setq x (+ x 10))) x)")
+            .unwrap(),
+        "11"
+    );
+}
+
 fn main() {
     let scenario = std::env::var("A1_SCENARIO").unwrap_or_else(|_| "cold-minimal-lifecycle".into());
     match scenario.as_str() {
@@ -381,6 +420,7 @@ fn main() {
         "second-init-rejected" => scenario_second_init_rejected(),
         "headless-diagnostics" => scenario_headless_diagnostics(),
         "safe-domain-protected" => scenario_safe_domain_protected(),
+        "host-exit-unwind" => scenario_host_exit_unwind(),
         other => panic!("unknown A1_SCENARIO={other}"),
     }
     println!("A1_SCENARIO_OK={scenario}");

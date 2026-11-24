@@ -58,6 +58,14 @@ unsafe impl Send for NonLocalExit {}
 pub type VmResult<T = Lisp_Object> = Result<T, NonLocalExit>;
 
 struct VmNonLocalUnwind(NonLocalExit);
+struct VmHostExitUnwind(i32);
+
+/// Outcome of executing a top-level host body inside `catch_vm_nonlocal_or_host_exit`.
+pub(crate) enum HostUnwindOutcome<T> {
+    Ok(T),
+    NonLocal(NonLocalExit),
+    HostExit(i32),
+}
 
 #[derive(Clone, Copy)]
 struct NativePendingExit {
@@ -564,7 +572,7 @@ pub(crate) unsafe fn resume_vm_nonlocal(exit: NonLocalExit) -> ! {
 }
 
 /// Run `body` and catch only Lisp `NonLocalExit` unwinds (`VmResult<R>`), re-propagating any
-/// genuine Rust `panic!` untouched via `resume_unwind`.
+/// host-exit unwind (`VmHostExitUnwind`) or genuine Rust `panic!` untouched via `resume_unwind`.
 #[inline]
 pub(crate) fn catch_vm_nonlocal<R, F: FnOnce() -> R>(body: F) -> VmResult<R> {
     match catch_unwind(AssertUnwindSafe(body)) {
@@ -582,6 +590,41 @@ pub(crate) fn catch_vm_nonlocal<R, F: FnOnce() -> R>(body: F) -> VmResult<R> {
                 Err(exit)
             }
             Err(other_panic) => resume_unwind(other_panic),
+        },
+    }
+}
+
+/// Raise a headless `(kill-emacs CODE)` host-exit unwind bypassed by every Lisp handler/catch
+/// frame and caught strictly at the outermost host boundary (`catch_vm_nonlocal_or_host_exit`).
+#[inline(never)]
+pub(crate) fn raise_host_exit(code: i32) -> ! {
+    resume_unwind(Box::new(VmHostExitUnwind(code)))
+}
+
+/// Outermost host catch intercepting both `VmNonLocalUnwind` and `VmHostExitUnwind`, while
+/// re-propagating any genuine Rust `panic!` untouched.
+#[inline]
+pub(crate) fn catch_vm_nonlocal_or_host_exit<R, F: FnOnce() -> R>(
+    body: F,
+) -> HostUnwindOutcome<R> {
+    match catch_unwind(AssertUnwindSafe(body)) {
+        Ok(val) => HostUnwindOutcome::Ok(val),
+        Err(payload) => match payload.downcast::<VmNonLocalUnwind>() {
+            Ok(boxed) => {
+                let exit = boxed.0;
+                let key = current_thread_key();
+                if key != 0 {
+                    with_thread_state(key, |state| {
+                        state.inflight_value = lisp_h_Qnil();
+                        state.inflight_active = false;
+                    });
+                }
+                HostUnwindOutcome::NonLocal(exit)
+            }
+            Err(payload) => match payload.downcast::<VmHostExitUnwind>() {
+                Ok(boxed) => HostUnwindOutcome::HostExit(boxed.0),
+                Err(other_panic) => resume_unwind(other_panic),
+            },
         },
     }
 }

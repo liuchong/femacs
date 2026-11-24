@@ -605,6 +605,8 @@ DEFUN! ("progn", Fprogn, Sprogn, 0, UNEVALLED, 0,
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn prog_ignore (body: Lisp_Object)
 {
+  if crate::host_runtime::is_host_exit_unwinding ()
+    { return; }
   {
   Fprogn (body);
 
@@ -1748,6 +1750,49 @@ unsafe fn unwind_to_catch (catch: *mut handler, r#type: nonlocal_exit,
     value: (*catch).val,
   });
 
+  }
+}
+
+/// Restore `poll_suppress_count`, `interrupt_input_blocked`, `specpdl`, `handlerlist`,
+/// `lisp_eval_depth`, and `act_rec` back to the outermost headless host catch handler after a
+/// `VmHostExitUnwind`, leaving `Vquit_flag` and exit code handling to `host_runtime`.
+///
+/// # Safety
+/// Must be called on the active VM-lock-owning thread with `catch` pointing to the outermost
+/// live `handlerlist!()` entry pushed by `with_host_condition_catch_ctx`.
+pub(crate) unsafe fn restore_vm_state_to_host_handler (catch: *mut handler)
+{
+  // SAFETY: Caller holds the active VM lock and passes the outermost live `catch` handler pushed
+  // by `with_host_condition_catch_ctx`.
+  unsafe {
+  if (*catch).poll_suppress_count != (*poll_suppress_count.as_mut_ptr ())
+    { set_poll_suppress_count ((*catch).poll_suppress_count); }
+  if (*catch).interrupt_input_blocked != (*interrupt_input_blocked.as_mut_ptr ())
+    { unblock_input_to ((*catch).interrupt_input_blocked); }
+
+  loop
+    {
+      let cur_h = handlerlist! ();
+      if cur_h.is_null ()
+        { break; }
+      let target_pdl: specpdl_ref = (*cur_h).pdlcount;
+      if unwrap_specpdl_ref (SPECPDL_INDEX ()) > unwrap_specpdl_ref (target_pdl)
+        { let _ = crate::nonlocal::catch_vm_nonlocal_or_host_exit (|| unbind_to (target_pdl, Qnil ())); }
+      if handlerlist! () != cur_h
+        {
+          if handlerlist! () == catch
+            { break; }
+          continue;
+        }
+      let last_time = cur_h == catch;
+      if !last_time
+        { handlerlist! () = (*cur_h).next; }
+      if last_time
+        { break; }
+    }
+
+  lisp_eval_depth! () = (*catch).f_lisp_eval_depth;
+  set_act_rec ((*current_thread.as_mut_ptr ()), (*catch).act_rec);
   }
 }
 

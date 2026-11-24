@@ -8299,8 +8299,8 @@
     },
     {
       "path": "tools/test-c1-a1-host.py",
-      "sha256": "07e7749da1ba50cc7c7b3136dc7f713ea7d185ae0c708163c6243cb48c650ba1",
-      "bytes": 13872,
+      "sha256": "c1162b2fa0b359802527bd49b488ea012a05b5df4ec79dd06552be8fae9dd718",
+      "bytes": 14019,
       "family": "test",
       "decision": "retain",
       "replacement": null,
@@ -8364,6 +8364,23 @@
       "readers": [
         {
           "path": "tools/test-c3-a3-seed-host.py",
+          "anchor": "main",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
+      "path": "tools/test-c4-a4-modern-local.py",
+      "sha256": "08962a8bafea493cb1e34330442cb7650f677730444154c20c0532889f98696d",
+      "bytes": 31698,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Phase II Stage C4/A4 dual-host modern local .eli interpretation, ERT, and explicit rejection gate",
+      "readers": [
+        {
+          "path": "tools/test-c4-a4-modern-local.py",
           "anchor": "main",
           "kind": "current explicit dispatch/import/documented invocation"
         }

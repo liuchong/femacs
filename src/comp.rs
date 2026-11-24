@@ -3735,6 +3735,8 @@ unsafe fn freloc_check_fill ()
 #[cfg (feature = "have_native_comp")]
 unsafe extern "C-unwind" fn bcall0 (f: Lisp_Object)
 {
+  if crate::host_runtime::is_host_exit_unwinding ()
+    { return; }
   calln! (f);
 }
 

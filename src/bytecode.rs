@@ -354,6 +354,8 @@ DEFUN! ("byte-code", Fbyte_code, Sbyte_code, 3, 3, 0,
    `calln (f)` is the port's `calln!` variadic macro.  */
 unsafe extern "C-unwind" fn bcall0 (f: Lisp_Object)
 {
+  if crate::host_runtime::is_host_exit_unwinding ()
+    { return; }
   // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
   unsafe {
   if CLOSUREP (f) && ! (*debug_on_next_call.as_mut_ptr ()) && ! BYTE_CODE_SAFE! ()

@@ -23,9 +23,9 @@ use crate::common::{
     O_RDWR, Fdefault_toplevel_value, Ferror_message_string, Fexpand_file_name, Ffboundp,
     Ffile_name_as_directory, Ffile_regular_p, Ffuncall, Fgarbage_collect, Fget, Findirect_variable,
     Fload, Fmemq,
-    Fprin1_to_string, Fput, Fset, Fsymbol_value, Lisp_Object, NILP, Qcommand_line_processed,
+    Fprin1_to_string, Fset, Fsymbol_value, Lisp_Object, NILP, Qcommand_line_processed,
     Qend_of_file,
-    Qerror_conditions, Qerror_message, Qfile_error, Qinvalid_read_syntax, Qkill_emacs_hook,
+    Qerror_conditions, Qfile_error, Qinvalid_read_syntax, Qkill_emacs_hook,
     Qlexical_binding, Qquit, Qt, Qunbound, SBYTES, SDATA, STRINGP, SYMBOLP, Vcharset_map_path,
     Vdata_directory, Vdoc_directory, Vlexical_binding, Vload_path, Vpdumper_fingerprint,
     Vpurify_flag, Vquit_flag, Vtop_level, XCAR, XCDR, XFIXNUM, build_utf8_str, close,
@@ -34,10 +34,13 @@ use crate::common::{
     wrap_specpdl_ref,
 };
 use crate::data::{Fsymbol_name, find_symbol_value};
-use crate::eval::{Feval, push_handler_nosignal, xsignal1};
+use crate::eval::{Feval, push_handler_nosignal};
 use crate::frame::{Fframe_list, Fframep};
 use crate::lread::Fread_from_string;
-use crate::nonlocal::{ScopedLispRoot, VmResult, catch_vm_nonlocal};
+use crate::nonlocal::{
+    HostUnwindOutcome, ScopedLispRoot, VmResult, catch_vm_nonlocal,
+    catch_vm_nonlocal_or_host_exit, raise_host_exit,
+};
 use crate::pdumper::Fdump_emacs_portable;
 use crate::roots::{GcContext, RootingCounters, current_thread_key, unbind_vm_lock_owner};
 use crate::terminal::{Fterminal_list, Fterminal_live_p};
@@ -46,6 +49,8 @@ use crate::terminal::{Fterminal_list, Fterminal_live_p};
 static HOST_INIT_STATE: AtomicU8 = AtomicU8::new(0);
 static HOST_ANCHOR_DEPTH: AtomicUsize = AtomicUsize::new(0);
 static HEADLESS_INTERCEPT_KILL_EMACS: AtomicBool = AtomicBool::new(false);
+static HOST_EXIT_UNWINDING: AtomicBool = AtomicBool::new(false);
+static HOST_KILL_HOOK_RUNNING: AtomicBool = AtomicBool::new(false);
 
 #[cfg(target_os = "macos")]
 const SYS_SOL_SOCKET: c_int = 0xffff;
@@ -104,11 +109,35 @@ pub(crate) fn is_headless_host_active() -> bool {
     HEADLESS_INTERCEPT_KILL_EMACS.load(Ordering::Acquire)
 }
 
-/// Intercept `(kill-emacs)` in headless mode, running `kill-emacs-hook` if bound and unwinding
-/// cleanly to `VmHostError::ExitRequest` instead of terminating the embedding process.
+/// Return whether a headless `(kill-emacs)` unwind is currently skipping Lisp cleanup handlers.
+#[inline]
+pub(crate) fn is_host_exit_unwinding() -> bool {
+    HOST_EXIT_UNWINDING.load(Ordering::Acquire)
+}
+
+struct HostExitUnwindResetGuard;
+
+impl Drop for HostExitUnwindResetGuard {
+    #[inline]
+    fn drop(&mut self) {
+        HOST_EXIT_UNWINDING.store(false, Ordering::Release);
+    }
+}
+
+struct HostKillHookGuard;
+
+impl Drop for HostKillHookGuard {
+    #[inline]
+    fn drop(&mut self) {
+        HOST_KILL_HOOK_RUNNING.store(false, Ordering::Release);
+    }
+}
+
+/// Intercept `(kill-emacs)` in headless mode, running `kill-emacs-hook` if bound and raising an
+/// uncatchable host-exit unwind (`VmHostExitUnwind`) caught strictly at `with_host_condition_catch_ctx`.
 ///
 /// # Safety
-/// Must only be called on the active VM-lock-owning thread inside `with_host_condition_catch`
+/// Must only be called on the active VM-lock-owning thread inside `with_host_condition_catch_ctx`
 /// after `Fkill_emacs` confirms non-restart batch termination.
 pub(crate) unsafe fn intercept_headless_kill_emacs(arg: Lisp_Object) -> ! {
     // SAFETY: Caller verified active VM lock ownership and headless host state.
@@ -125,17 +154,17 @@ pub(crate) unsafe fn intercept_headless_kill_emacs(arg: Lisp_Object) -> ! {
         };
         let hook_sym = Qkill_emacs_hook();
         let hook_val = find_symbol_value(hook_sym);
-        if !NILP(hook_val) && !EQ(hook_val, Qunbound()) {
+        if !NILP(hook_val)
+            && !EQ(hook_val, Qunbound())
+            && !is_host_exit_unwinding()
+            && !HOST_KILL_HOOK_RUNNING.swap(true, Ordering::AcqRel)
+        {
+            let _hook_guard = HostKillHookGuard;
             safe_run_hooks(hook_sym);
         }
-        let exit_sym = intern_c_string(c"femacs-host-exit-request".as_ptr());
-        if NILP(Fget(exit_sym, Qerror_conditions())) {
-            Fput(exit_sym, Qerror_conditions(), Fcons(exit_sym, lisp_h_Qnil()));
-            let msg = build_utf8_str("Lisp exit requested");
-            let _root = ScopedLispRoot::new(&[msg]);
-            Fput(exit_sym, Qerror_message(), msg);
-        }
-        xsignal1(exit_sym, make_fixnum(exit_code as EMACS_INT));
+        flush_c_stdio_raw();
+        HOST_EXIT_UNWINDING.store(true, Ordering::Release);
+        raise_host_exit(exit_code);
     }
 }
 
@@ -486,14 +515,6 @@ fn classify_vm_exit(err_val: Lisp_Object) -> VmHostError {
     if EQ(err_sym, Qquit()) {
         return VmHostError::Quit { message };
     }
-    if SYMBOLP(err_sym) && symbol == "femacs-host-exit-request" {
-        let code = if CONSP(err_data) && crate::common::FIXNUMP(XCAR(err_data)) {
-            XFIXNUM(XCAR(err_data)) as i32
-        } else {
-            0
-        };
-        return VmHostError::ExitRequest(code);
-    }
     let conditions = if SYMBOLP(err_sym) {
         Fget(err_sym, Qerror_conditions())
     } else {
@@ -544,9 +565,9 @@ fn with_host_condition_catch_ctx<R>(
 ) -> Result<R, VmHostError> {
     with_host_stack_anchor(ctx, |ctx| {
         // SAFETY: Pushes an outermost `CONDITION_CASE(t)` catch frame on the VM-lock-owning thread,
-        // intercepts both `VmNonLocalUnwind` via `catch_vm_nonlocal` and returned `Err(NonLocalExit)`
-        // values, roots `exit.value`, resets `Vquit_flag`, and pops cleanly in `HandlerPopGuard`.
-        let res = unsafe {
+        // intercepts `VmNonLocalUnwind`, returned `Err(NonLocalExit)`, and `VmHostExitUnwind`
+        // (`kill-emacs`), restoring VM state and clearing `Vquit_flag` cleanly.
+        let exit = unsafe {
             let c = push_handler_nosignal(Qt(), CONDITION_CASE);
             if c.is_null() {
                 return Err(VmHostError::InitFailed(
@@ -557,24 +578,36 @@ fn with_host_condition_catch_ctx<R>(
                 expected_handler: c,
                 active: true,
             };
-            let eval_res = catch_vm_nonlocal(|| body(ctx));
-            pop_guard.pop_now();
-            flush_c_stdio_raw();
-            eval_res
-        };
-        match res {
-            Ok(Ok(val)) => Ok(val),
-            Ok(Err(exit)) | Err(exit) => {
-                // SAFETY: `exit.value` stays reachable until caught here and is immediately
-                // rooted on this thread across error classification and string formatting.
-                let _exit_root = unsafe { ScopedLispRoot::new(&[exit.value]) };
-                // SAFETY: Clears `quit-flag` on the single VM thread so subsequent calls run cleanly.
-                unsafe {
-                    *Vquit_flag.as_mut_ptr() = lisp_h_Qnil();
+            match catch_vm_nonlocal_or_host_exit(|| body(ctx)) {
+                HostUnwindOutcome::Ok(Ok(val)) => {
+                    pop_guard.pop_now();
+                    flush_c_stdio_raw();
+                    return Ok(val);
                 }
-                Err(classify_vm_exit(exit.value))
+                HostUnwindOutcome::Ok(Err(exit)) | HostUnwindOutcome::NonLocal(exit) => {
+                    pop_guard.pop_now();
+                    flush_c_stdio_raw();
+                    exit
+                }
+                HostUnwindOutcome::HostExit(code) => {
+                    let _reset_guard = HostExitUnwindResetGuard;
+                    crate::eval::restore_vm_state_to_host_handler(c);
+                    pop_guard.pop_now();
+                    *Vquit_flag.as_mut_ptr() = lisp_h_Qnil();
+                    flush_c_stdio_raw();
+                    drop(_reset_guard);
+                    return Err(VmHostError::ExitRequest(code));
+                }
             }
+        };
+        // SAFETY: `exit.value` stays reachable until caught here and is immediately
+        // rooted on this thread across error classification and string formatting.
+        let _exit_root = unsafe { ScopedLispRoot::new(&[exit.value]) };
+        // SAFETY: Clears `quit-flag` on the single VM thread so subsequent calls run cleanly.
+        unsafe {
+            *Vquit_flag.as_mut_ptr() = lisp_h_Qnil();
         }
+        Err(classify_vm_exit(exit.value))
     })
 }
 
@@ -931,6 +964,8 @@ fn init_headless_host(config: &HostInitConfig) -> Result<GcContext, VmHostError>
 
 /// Shut down the headless host, flushing output streams and marking the process-wide VM state spent.
 fn shutdown_headless_host(ctx: GcContext) {
+    HOST_KILL_HOOK_RUNNING.store(false, Ordering::Release);
+    HOST_EXIT_UNWINDING.store(false, Ordering::Release);
     HEADLESS_INTERCEPT_KILL_EMACS.store(false, Ordering::Release);
     drop(ctx);
     // SAFETY: Ownership of the sole `GcContext` was released by `drop(ctx)` above, so zero active
@@ -1027,9 +1062,10 @@ impl Drop for UnbindGuard {
     fn drop(&mut self) {
         // SAFETY: `target` was captured from `current_specpdl_index()` on this VM thread; only
         // binds `command-line-args-left`/`argv` list values so `unbind_to_safe` restores bindings
-        // without running Lisp callbacks.
+        // without running Lisp callbacks. During `HOST_EXIT_UNWINDING`, `restore_vm_state_to_host_handler`
+        // unwinds `specpdl` top-to-bottom per handler so nested handler `pdlcount`s stay ordered.
         unsafe {
-            if current_specpdl_index() > self.target {
+            if !is_host_exit_unwinding() && current_specpdl_index() > self.target {
                 unbind_to_safe(wrap_specpdl_ref(self.target), lisp_h_Qnil());
             }
         }
