@@ -613,6 +613,92 @@ if any required capability is absent or fails its live probe."
                 (runner-program . ,(alist-get 'runner-program status)))))))))
     t))
 
+(defun femacs-eliscript-probe-runtime-resolution
+    (session probe-module &optional probe-manifest export-name timeout-ms)
+  "Probe whether SESSION resolves package imports from PROBE-MODULE at runtime.
+
+PROBE-MODULE should be a compiled Eliscript module placed outside
+`node_modules' ancestors when verifying `runtime-resolution'.  Returns an alist
+recording `advertised', `supported', `honest', and any structured `error'
+without terminating SESSION."
+  (unless (and (femacs-eliscript-session-p session)
+               (not (femacs-eliscript-session-closed session)))
+    (femacs-eliscript--signal
+     'femacs-eliscript-error "session-closed" "Eliscript session is closed"))
+  (let* ((status (femacs-eliscript-status session))
+         (worker (femacs-eliscript-session-worker session))
+         (advertised (and (member "runtime-resolution"
+                                  (alist-get 'capabilities status))
+                          t))
+         (exp-mod (expand-file-name probe-module))
+         (exp-manifest (and probe-manifest (expand-file-name probe-manifest)))
+         (exp-digest (if exp-manifest
+                         (eliscript-worker--project-manifest-digest exp-manifest)
+                       (femacs-eliscript--file-sha256 exp-mod)))
+         (done nil)
+         (probe-err nil)
+         (req-id nil))
+    (unwind-protect
+        (progn
+          (setq req-id
+                (eliscript-worker-call
+                 worker
+                 exp-mod
+                 (or export-name "ping_resolution")
+                 nil
+                 (lambda (_val err)
+                   (setq probe-err err done t))
+                 :module-digest exp-digest
+                 :project-manifest exp-manifest
+                 :value-codec t
+                 :value-chunks t
+                 :timeout-ms (or timeout-ms 10000)))
+          (let ((deadline (+ (float-time) (/ (or timeout-ms 10000) 1000.0) 1.0)))
+            (while (and (not done) (< (float-time) deadline))
+              (let ((proc (eliscript-worker-process worker)))
+                (if (and proc (process-live-p proc))
+                    (accept-process-output proc 0.05)
+                  (sleep-for 0.02))))))
+      (when (and req-id (not done))
+        (ignore-errors (eliscript-worker-cancel worker req-id))))
+    (let* ((supported (and done (null probe-err)))
+           (final-err (or probe-err
+                          (unless done
+                            '((code . "probe-timeout")
+                              (message . "Runtime-resolution probe timed out")))))
+           (honest (eq (if advertised t nil) (if supported t nil))))
+      `((capability . "runtime-resolution")
+        (advertised . ,advertised)
+        (supported . ,supported)
+        (honest . ,honest)
+        (runner-program . ,(alist-get 'runner-program status))
+        (runner-version . ,(alist-get 'runner-version status))
+        (module-path . ,exp-mod)
+        (error . ,final-err)))))
+
+(defun femacs-eliscript-runtime-resolution-probe
+    (probe-module &optional probe-manifest export-name)
+  "Return a capability probe verifying `runtime-resolution' on PROBE-MODULE."
+  (lambda (session)
+    (let ((report
+           (femacs-eliscript-probe-runtime-resolution
+            session probe-module probe-manifest export-name)))
+      (unless (alist-get 'supported report)
+        (let ((err-obj (alist-get 'error report))
+              (status (femacs-eliscript-status session)))
+          (femacs-eliscript--signal
+           'femacs-eliscript-capability-error
+           "unsupported-capability"
+           (format "Worker capability runtime-resolution failed live probe: %s"
+                   (or (alist-get 'message err-obj) "resolution failed"))
+           `((capability . "runtime-resolution")
+             (advertised . ,(alist-get 'advertised report))
+             (honest . ,(alist-get 'honest report))
+             (runner-program . ,(alist-get 'runner-program status))
+             (runner-version . ,(alist-get 'runner-version status))
+             (probe-error . ,err-obj)))))
+      t)))
+
 (defun femacs-eliscript--normalize-error (request err-obj)
   "Normalize service ERR-OBJ for REQUEST, enforcing side-effect unknown semantics."
   (when err-obj

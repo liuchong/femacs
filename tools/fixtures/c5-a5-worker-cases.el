@@ -102,6 +102,15 @@
   "Execute all C5/A5 checks and write JSON report before exiting."
   (let* ((worker-el (getenv "FEMACS_A5_WORKER_EL"))
          (pkg-dir (getenv "FEMACS_A5_PKG_DIR"))
+         (module-root
+          (let ((raw (getenv "FEMACS_A5_MODULE_ROOT")))
+            (if (and raw (not (string-empty-p raw))) raw pkg-dir)))
+         (reloc-mod
+          (let ((raw (getenv "FEMACS_A5_RELOCATED_PROBE_MOD")))
+            (and raw (not (string-empty-p raw)) raw)))
+         (reloc-manifest
+          (let ((raw (getenv "FEMACS_A5_RELOCATED_PROBE_MANIFEST")))
+            (and raw (not (string-empty-p raw)) raw)))
          (runner (or (getenv "FEMACS_A5_RUNNER") "bun"))
          (expect-gui (or (getenv "FEMACS_A5_EXPECT_GUI") "tty"))
          (work-dir (getenv "FEMACS_A5_WORK_DIR"))
@@ -175,14 +184,14 @@
                 results)
 
           ;; 3. Analysis session: dual-run verify, buffer edit + single undo, search, stale-buffer
-          (let* ((analysis-mod (expand-file-name "analysis/analysis.mjs" pkg-dir))
+          (let* ((analysis-mod (expand-file-name "analysis/analysis.mjs" module-root))
                  (analysis-manifest
-                  (expand-file-name "analysis/eliscript-project.json" pkg-dir))
+                  (expand-file-name "analysis/eliscript-project.json" module-root))
                  (session
                   (femacs-eliscript-start
                    :package-dir pkg-dir
                    :runner runner
-                   :working-directory pkg-dir
+                   :working-directory module-root
                    :module-path analysis-mod
                    :project-manifest analysis-manifest
                    :verify 'always
@@ -294,9 +303,9 @@
               (femacs-eliscript-stop session t)))
 
           ;; 4. Probe session: chunking, source maps, cancel, stderr, crash/recovery, side effects
-          (let* ((probe-mod (expand-file-name "probes/c5-probes.mjs" pkg-dir))
+          (let* ((probe-mod (expand-file-name "probes/c5-probes.mjs" module-root))
                  (probe-manifest
-                  (expand-file-name "probes/eliscript-project.json" pkg-dir))
+                  (expand-file-name "probes/eliscript-project.json" module-root))
                  (ops
                   (list
                    (eliscript-service-operation
@@ -320,7 +329,7 @@
                   (femacs-eliscript-start
                    :package-dir pkg-dir
                    :runner runner
-                   :working-directory pkg-dir
+                   :working-directory module-root
                    :module-path probe-mod
                    :project-manifest probe-manifest
                    :verify nil
@@ -776,7 +785,76 @@
                                . ,(eliscript-worker-generation worker-a)))
                             results)))
                 (when sess-b (femacs-eliscript-stop sess-b t))
-                (when sess-a (femacs-eliscript-stop sess-a t)))))))
+                (when sess-a (femacs-eliscript-stop sess-a t))))
+
+            ;; 7. Optional C6 relocated ancestor-less runtime-resolution probe
+            (when (and reloc-mod reloc-manifest)
+              (let ((reloc-sess
+                     (femacs-eliscript-start
+                      :package-dir pkg-dir
+                      :runner runner
+                      :working-directory module-root
+                      :module-path probe-mod
+                      :project-manifest probe-manifest
+                      :verify nil
+                      :value-codec t
+                      :value-chunks t
+                      :operations ops)))
+                (unwind-protect
+                    (let* ((probe
+                            (femacs-eliscript-probe-runtime-resolution
+                             reloc-sess reloc-mod reloc-manifest))
+                           (advertised (alist-get 'advertised probe))
+                           (supported (alist-get 'supported probe))
+                           (honest (alist-get 'honest probe))
+                           (err-obj (alist-get 'error probe)))
+                      (if supported
+                          (unless (eq (femacs-eliscript-require-capabilities
+                                       reloc-sess '("runtime-resolution")
+                                       (list (cons "runtime-resolution"
+                                                   (femacs-eliscript-runtime-resolution-probe
+                                                    reloc-mod reloc-manifest))))
+                                      t)
+                            (error "Expected live runtime-resolution gate to pass when supported"))
+                        (unless (and err-obj
+                                     (stringp (alist-get 'code err-obj))
+                                     (not (string-empty-p (alist-get 'code err-obj)))
+                                     (stringp (alist-get 'message err-obj))
+                                     (not (string-empty-p (alist-get 'message err-obj))))
+                          (error "Expected structured error for failed relocated probe, got %S"
+                                 probe))
+                        (let ((gate-err
+                               (condition-case e
+                                   (progn
+                                     (femacs-eliscript-require-capabilities
+                                      reloc-sess '("runtime-resolution")
+                                      (list (cons "runtime-resolution"
+                                                  (femacs-eliscript-runtime-resolution-probe
+                                                   reloc-mod reloc-manifest))))
+                                     nil)
+                                 (femacs-eliscript-capability-error e))))
+                          (unless (and gate-err
+                                       (equal (alist-get 'code (nth 2 gate-err))
+                                              "unsupported-capability"))
+                            (error "Expected unsupported-capability on live gate, got %S"
+                                   gate-err)))
+                        (unless (eliscript-worker-live-p
+                                 (femacs-eliscript-session-worker reloc-sess))
+                          (error "Relocated resolution probe killed worker session"))
+                        (let ((after
+                               (femacs-a5--call-await
+                                reloc-sess 'stderr-log-echo '("after-reloc-probe"))))
+                          (unless (eliscript-value-object-p after)
+                            (error "Follow-up call after failed relocated probe failed"))))
+                      (push `((id . "relocated_runtime_resolution_probe")
+                              (passed . t)
+                              (advertised . ,(if advertised t :false))
+                              (supported . ,(if supported t :false))
+                              (honest . ,(if honest t :false))
+                              (error_code . ,(alist-get 'code err-obj))
+                              (error_message . ,(alist-get 'message err-obj)))
+                            results))
+                  (femacs-eliscript-stop reloc-sess t)))))))
       (error
        (setq overall-ok nil)
        (push `((id . "fatal_error")

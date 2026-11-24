@@ -8422,16 +8422,38 @@
       "uncertainty": null
     },
     {
+      "path": "tools/test-c6-a6-node.py",
+      "sha256": "8f4c30e2e5ddb24d7c367d8eb75959a3cf868cdd57aa3f8a263196a508dc166a",
+      "bytes": 14220,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Phase I Stage C6/A6 Bun-free Node/V8 external ESM consumer and runtime-resolution honesty gate across Cocoa GUI and Terminal PTY",
+      "readers": [
+        {
+          "path": "tools/test-c6-a6-node.py",
+          "anchor": "main",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
       "path": "tools/fixtures/c5-a5-worker-cases.el",
-      "sha256": "e07ae47717ae9b730794f63c0339145753e4c8d673eaed4fc16c7aeb2fc3f4e3",
-      "bytes": 44264,
+      "sha256": "28231f41bb284a122ef4f07f8946e76aa23bfb2d9d6e9e0a4178862dcc2e824a",
+      "bytes": 48964,
       "family": "fixture",
       "decision": "retain",
       "replacement": null,
-      "reason": "owned Phase I Stage C5/A5 detached Cocoa/Terminal editor Eliscript worker acceptance fixture",
+      "reason": "owned Phase I Stage C5/A5 and C6/A6 detached Cocoa/Terminal editor Eliscript worker acceptance fixture",
       "readers": [
         {
           "path": "tools/test-c5-a5-worker.py",
+          "anchor": "DEFAULT_FIXTURE",
+          "kind": "current explicit dispatch/import/documented invocation"
+        },
+        {
+          "path": "tools/test-c6-a6-node.py",
           "anchor": "DEFAULT_FIXTURE",
           "kind": "current explicit dispatch/import/documented invocation"
         }
