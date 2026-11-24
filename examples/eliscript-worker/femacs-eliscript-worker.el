@@ -613,14 +613,26 @@ if any required capability is absent or fails its live probe."
                 (runner-program . ,(alist-get 'runner-program status)))))))))
     t))
 
+(defun femacs-eliscript--module-resolution-missing-p (err-obj)
+  "Return non-nil when ERR-OBJ represents an explicit module-resolution failure."
+  (let ((code (and (listp err-obj) (alist-get 'code err-obj)))
+        (msg (and (listp err-obj) (alist-get 'message err-obj))))
+    (and (stringp code)
+         (or (equal code "ERR_MODULE_NOT_FOUND")
+             (and (member code '("ResolveMessage" "MODULE_NOT_FOUND"))
+                  (stringp msg)
+                  (string-match-p
+                   "Cannot find \\(?:package\\|module\\)" msg))))))
+
 (defun femacs-eliscript-probe-runtime-resolution
-    (session probe-module &optional probe-manifest export-name timeout-ms)
+    (session probe-module &optional probe-manifest export-name timeout-ms validator)
   "Probe whether SESSION resolves package imports from PROBE-MODULE at runtime.
 
 PROBE-MODULE should be a compiled Eliscript module placed outside
-`node_modules' ancestors when verifying `runtime-resolution'.  Returns an alist
-recording `advertised', `supported', `honest', and any structured `error'
-without terminating SESSION."
+`node_modules' ancestors when verifying `runtime-resolution'.  Optional
+VALIDATOR checks the resolved return value.  Returns an alist recording
+`outcome' (`supported', `unsupported', or `error'), `advertised',
+`supported', `honest', `result', and `error' without terminating SESSION."
   (unless (and (femacs-eliscript-session-p session)
                (not (femacs-eliscript-session-closed session)))
     (femacs-eliscript--signal
@@ -636,6 +648,7 @@ without terminating SESSION."
                          (eliscript-worker--project-manifest-digest exp-manifest)
                        (femacs-eliscript--file-sha256 exp-mod)))
          (done nil)
+         (probe-val nil)
          (probe-err nil)
          (req-id nil))
     (unwind-protect
@@ -646,8 +659,8 @@ without terminating SESSION."
                  exp-mod
                  (or export-name "ping_resolution")
                  nil
-                 (lambda (_val err)
-                   (setq probe-err err done t))
+                 (lambda (val err)
+                   (setq probe-val val probe-err err done t))
                  :module-digest exp-digest
                  :project-manifest exp-manifest
                  :value-codec t
@@ -661,29 +674,58 @@ without terminating SESSION."
                   (sleep-for 0.02))))))
       (when (and req-id (not done))
         (ignore-errors (eliscript-worker-cancel worker req-id))))
-    (let* ((supported (and done (null probe-err)))
-           (final-err (or probe-err
-                          (unless done
-                            '((code . "probe-timeout")
-                              (message . "Runtime-resolution probe timed out")))))
-           (honest (eq (if advertised t nil) (if supported t nil))))
-      `((capability . "runtime-resolution")
-        (advertised . ,advertised)
-        (supported . ,supported)
-        (honest . ,honest)
-        (runner-program . ,(alist-get 'runner-program status))
-        (runner-version . ,(alist-get 'runner-version status))
-        (module-path . ,exp-mod)
-        (error . ,final-err)))))
+    (let* ((outcome nil)
+           (final-err nil))
+      (cond
+       ((not done)
+        (setq outcome 'error
+              final-err '((code . "probe-timeout")
+                          (message . "Runtime-resolution probe timed out"))))
+       (probe-err
+        (setq final-err probe-err
+              outcome (if (femacs-eliscript--module-resolution-missing-p probe-err)
+                          'unsupported
+                        'error)))
+       (t
+        (let ((valid t))
+          (when validator
+            (condition-case verr
+                (setq valid (funcall validator probe-val))
+              (error
+               (setq valid nil
+                     final-err `((code . "probe-validator-error")
+                                 (message . ,(error-message-string verr)))))))
+          (if valid
+              (setq outcome 'supported)
+            (setq outcome 'error
+                  final-err (or final-err
+                                '((code . "probe-invalid-result")
+                                  (message . "Runtime-resolution probe returned unexpected value"))))))))
+      (let* ((supported (eq outcome 'supported))
+             (honest
+              (cond
+               ((eq outcome 'supported) (if advertised t nil))
+               ((eq outcome 'unsupported) (if advertised nil t))
+               (t nil))))
+        `((capability . "runtime-resolution")
+          (advertised . ,advertised)
+          (supported . ,supported)
+          (outcome . ,outcome)
+          (honest . ,honest)
+          (runner-program . ,(alist-get 'runner-program status))
+          (runner-version . ,(alist-get 'runner-version status))
+          (module-path . ,exp-mod)
+          (result . ,probe-val)
+          (error . ,final-err))))))
 
 (defun femacs-eliscript-runtime-resolution-probe
-    (probe-module &optional probe-manifest export-name)
+    (probe-module &optional probe-manifest export-name validator)
   "Return a capability probe verifying `runtime-resolution' on PROBE-MODULE."
   (lambda (session)
     (let ((report
            (femacs-eliscript-probe-runtime-resolution
-            session probe-module probe-manifest export-name)))
-      (unless (alist-get 'supported report)
+            session probe-module probe-manifest export-name nil validator)))
+      (unless (eq (alist-get 'outcome report) 'supported)
         (let ((err-obj (alist-get 'error report))
               (status (femacs-eliscript-status session)))
           (femacs-eliscript--signal
@@ -692,6 +734,7 @@ without terminating SESSION."
            (format "Worker capability runtime-resolution failed live probe: %s"
                    (or (alist-get 'message err-obj) "resolution failed"))
            `((capability . "runtime-resolution")
+             (outcome . ,(alist-get 'outcome report))
              (advertised . ,(alist-get 'advertised report))
              (honest . ,(alist-get 'honest report))
              (runner-program . ,(alist-get 'runner-program status))

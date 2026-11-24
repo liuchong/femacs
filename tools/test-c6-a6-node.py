@@ -63,7 +63,15 @@ def resolve_node_binary(node_arg: str | None) -> Path:
     return resolved
 
 
-def build_bun_free_env(node_real: Path, bin_dir: Path) -> tuple[dict[str, str], str]:
+UNSET_NODE_ENV_KEYS = ("NODE_OPTIONS", "NODE_PATH", "FEMACS_ELISCRIPT_JS_RUNNER")
+
+
+def build_bun_free_env(
+    node_real: Path,
+    bin_dir: Path,
+    *,
+    base_env: dict[str, str] | None = None,
+) -> tuple[dict[str, str], str]:
     bin_dir.mkdir(parents=True, exist_ok=True)
     node_link = bin_dir / "node"
     if not node_link.exists():
@@ -75,9 +83,11 @@ def build_bun_free_env(node_real: Path, bin_dir: Path) -> tuple[dict[str, str], 
         raise RuntimeError(f"expected Bun-free PATH, but found bun at {found_bun}")
     if found_node != str(node_link):
         raise RuntimeError(f"expected node at {node_link}, got {found_node!r}")
-    env = os.environ.copy()
+    env = dict(os.environ if base_env is None else base_env)
     env["PATH"] = node_only_path
-    env.pop("FEMACS_ELISCRIPT_JS_RUNNER", None)
+    for key in UNSET_NODE_ENV_KEYS:
+        env.pop(key, None)
+        assert key not in env, f"expected {key} stripped from Node environment"
     return env, node_only_path
 
 
@@ -111,7 +121,11 @@ def check_standard_esm_lisp_import(consumer_dir: Path, node_exec: Path, env: dic
     return data
 
 
-def run_guard_self_tests(valid_pkg: Path, node_real: Path) -> dict[str, object]:
+def run_guard_self_tests(
+    valid_pkg: Path,
+    node_real: Path,
+    terminal_bin: Path,
+) -> dict[str, object]:
     verified = c5.verify_frozen_package(valid_pkg)
     script = str(Path(__file__).resolve())
     checks: list[dict[str, object]] = []
@@ -204,6 +218,54 @@ def run_guard_self_tests(valid_pkg: Path, node_real: Path) -> dict[str, object]:
             }
         )
 
+        # 5. Inherited NODE_OPTIONS / NODE_PATH / FEMACS_ELISCRIPT_JS_RUNNER are stripped.
+        polluted = {
+            "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
+            "NODE_OPTIONS": "--require=/nonexistent-preload.cjs",
+            "NODE_PATH": "/nonexistent-node-path",
+            "FEMACS_ELISCRIPT_JS_RUNNER": "bun",
+        }
+        san_env, san_path = build_bun_free_env(node_real, tmp / "sanitized-bin", base_env=polluted)
+        assert (
+            "NODE_OPTIONS" not in san_env
+            and "NODE_PATH" not in san_env
+            and "FEMACS_ELISCRIPT_JS_RUNNER" not in san_env
+            and san_env["PATH"] == san_path
+        )
+        checks.append({"id": "verify_node_env_sanitized", "passed": True})
+
+        # 6. Only explicit missing-resolution errors classify as missing-resolution (not timeout/protocol/crash).
+        assert terminal_bin.is_file(), f"missing terminal binary for unit check: {terminal_bin}"
+        elisp_unit = """
+(progn
+  (unless (and (femacs-eliscript--module-resolution-missing-p '((code . "ERR_MODULE_NOT_FOUND") (message . "Cannot find package \\x27eliscript\\x27 imported from /x/y.mjs")))
+               (femacs-eliscript--module-resolution-missing-p '((code . "ResolveMessage") (message . "Cannot find module \\x27eliscript/platform/worker.mjs\\x27")))
+               (femacs-eliscript--module-resolution-missing-p '((code . "MODULE_NOT_FOUND") (message . "Cannot find package \\x27eliscript\\x27"))))
+    (error "Positive missing-resolution cases failed"))
+  (dolist (non-res '(((code . "timeout") (message . "worker did not stop"))
+                     ((code . "probe-timeout") (message . "Runtime-resolution probe timed out"))
+                     ((code . "worker-exit") (message . "worker exited: killed"))
+                     ((code . "worker-restart") (message . "worker restarted"))
+                     ((code . "worker-stop") (message . "worker stopped"))
+                     ((code . "client-protocol-error") (message . "bad json"))
+                     ((code . "cancelled") (message . "cancelled"))
+                     ((code . "ResolveMessage") (message . "SyntaxError: unexpected token"))
+                     nil))
+    (when (femacs-eliscript--module-resolution-missing-p non-res)
+      (error "Non-resolution error misclassified as unsupported: %S" non-res)))
+  (princ "PROBE_CLASSIFICATION_OK\\n"))
+"""
+        uproc = subprocess.run(
+            [str(terminal_bin), "-Q", "--batch", "-l", str(DEFAULT_CLIENT), "--eval", elisp_unit],
+            capture_output=True,
+            text=True,
+            timeout=20.0,
+        )
+        assert uproc.returncode == 0 and "PROBE_CLASSIFICATION_OK" in uproc.stdout, (
+            f"probe error classification unit failed: rc={uproc.returncode} out={uproc.stdout!r} err={uproc.stderr!r}"
+        )
+        checks.append({"id": "verify_probe_error_classification_unit", "passed": True})
+
     return {
         "schema": "femacs-c6-guards-v1",
         "passed": True,
@@ -220,15 +282,20 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--app", type=Path, default=Path("/Applications/Fe.app"))
     parser.add_argument("--terminal", type=Path, default=REPO / "build/terminal/port/src/emacs")
     parser.add_argument("--node", default=None)
-    parser.add_argument("--require-capability-honesty", action="store_true")
+    parser.add_argument(
+        "--allow-dishonest-diagnostic",
+        action="store_true",
+        help="Record baseline advertised-true/unsupported false-advertisement as rc=0 diagnostic instead of failing strictly.",
+    )
     parser.add_argument("--self-test-guards", action="store_true")
     args = parser.parse_args(argv)
 
     pkg_dir = args.frozen_package.resolve()
+    terminal_bin = args.terminal.resolve()
     node_real = resolve_node_binary(args.node)
 
     if args.self_test_guards:
-        guard_report = run_guard_self_tests(pkg_dir, node_real)
+        guard_report = run_guard_self_tests(pkg_dir, node_real, terminal_bin)
         print(json.dumps(guard_report, indent=2))
         return 0
 
@@ -245,7 +312,6 @@ def main(argv: list[str] | None = None) -> int:
         raise FileExistsError(f"refusing to overwrite existing output directory: {out_dir}")
 
     app_bundle = args.app.resolve()
-    terminal_bin = args.terminal.resolve()
     node_ver = c5.run_checked([str(node_real), "--version"], timeout=15.0).stdout.strip()
     node_sha = c5.sha256_file(node_real)
 
@@ -292,13 +358,27 @@ def main(argv: list[str] | None = None) -> int:
         cocoa_work = detached / "cocoa-work"
         cocoa_work.mkdir(parents=True, exist_ok=True)
         cocoa_res = c5.run_cocoa_gui_cases(
-            app_bundle, worker_copy, fixture_copy, nm_pkg, "node", cocoa_work, extra_env=extra_env
+            app_bundle,
+            worker_copy,
+            fixture_copy,
+            nm_pkg,
+            "node",
+            cocoa_work,
+            extra_env=extra_env,
+            unset_env=UNSET_NODE_ENV_KEYS,
         )
 
         term_work = detached / "terminal-work"
         term_work.mkdir(parents=True, exist_ok=True)
         term_res = c5.run_terminal_pty_cases(
-            terminal_bin, worker_copy, fixture_copy, nm_pkg, "node", term_work, extra_env=extra_env
+            terminal_bin,
+            worker_copy,
+            fixture_copy,
+            nm_pkg,
+            "node",
+            term_work,
+            extra_env=extra_env,
+            unset_env=UNSET_NODE_ENV_KEYS,
         )
 
     cocoa_reloc = next((c for c in cocoa_res["cases"] if c.get("id") == "relocated_runtime_resolution_probe"), None)
@@ -306,7 +386,21 @@ def main(argv: list[str] | None = None) -> int:
     if cocoa_reloc is None or term_reloc is None:
         raise RuntimeError("missing relocated_runtime_resolution_probe in editor report")
 
-    honesty_passed = bool(cocoa_reloc.get("honest") is True and term_reloc.get("honest") is True)
+    cocoa_outcome = cocoa_reloc.get("outcome")
+    term_outcome = term_reloc.get("outcome")
+    valid_outcomes = cocoa_outcome in ("supported", "unsupported") and term_outcome in ("supported", "unsupported")
+    honesty_passed = bool(
+        valid_outcomes
+        and cocoa_reloc.get("honest") is True
+        and term_reloc.get("honest") is True
+    )
+    known_dishonest_baseline = bool(
+        cocoa_outcome == "unsupported"
+        and term_outcome == "unsupported"
+        and cocoa_reloc.get("advertised") is True
+        and term_reloc.get("advertised") is True
+    )
+
     out_dir.mkdir(parents=True, exist_ok=False)
     report = {
         "schema": "femacs-c6-a6-node-v1",
@@ -314,6 +408,7 @@ def main(argv: list[str] | None = None) -> int:
         "node_version": node_ver,
         "node_sha256": node_sha,
         "bun_in_path": False,
+        "sanitized_node_env": list(UNSET_NODE_ENV_KEYS),
         "frozen_package_eliscript_commit": manifest["eliscript_commit"],
         "frozen_package_closure_sha256": manifest["closure_sha256"],
         "frozen_package_file_count": manifest["file_count"],
@@ -333,21 +428,28 @@ def main(argv: list[str] | None = None) -> int:
                 "runtime/worker.mjs unconditionally advertises runtime-resolution on Node "
                 "even though installPackageResolver only registers Bun.plugin and relocated "
                 "modules outside node_modules fail with ERR_MODULE_NOT_FOUND"
+                if known_dishonest_baseline
+                else f"unexpected relocated probe outcome: cocoa={cocoa_outcome!r} terminal={term_outcome!r}"
             )
         ),
     }
     report_file = out_dir / "c6-a6-node-report.json"
     report_file.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
 
-    if args.require_capability_honesty and not honesty_passed:
+    if not honesty_passed:
+        if args.allow_dishonest_diagnostic and known_dishonest_baseline:
+            print(
+                f"C6/A6 diagnostic baseline recorded (honesty=false, outcomes=unsupported): {report_file}"
+            )
+            return 0
         print(
-            f"C6/A6 Node consumer checks PASSED (honesty_passed=false): {report_file}",
+            f"C6/A6 STRICT GATE FAILED (honesty={honesty_passed}, outcomes=({cocoa_outcome}, {term_outcome})): {report_file}",
             file=sys.stderr,
         )
         return 1
 
     print(
-        f"C6/A6 Node consumer verification PASSED ({node_ver}, honesty={honesty_passed}) -> {report_file}"
+        f"C6/A6 strict Node verification PASSED ({node_ver}, outcomes=({cocoa_outcome}, {term_outcome})) -> {report_file}"
     )
     return 0
 

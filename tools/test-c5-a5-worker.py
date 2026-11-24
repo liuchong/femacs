@@ -377,11 +377,15 @@ def run_cocoa_gui_cases(
     work_dir: Path,
     *,
     extra_env: dict[str, str] | None = None,
+    unset_env: tuple[str, ...] | list[str] | None = None,
 ) -> dict[str, object]:
     app_bin = app_bundle / "Contents/MacOS/Femacs"
     assert app_bin.is_file(), f"missing installed GUI binary: {app_bin}"
     report_path = work_dir / "cocoa-report.json"
     env = os.environ.copy()
+    if unset_env:
+        for key in unset_env:
+            env.pop(key, None)
     env.update(
         {
             "FEMACS_A5_WORKER_EL": str(worker_el),
@@ -432,10 +436,14 @@ def run_terminal_pty_cases(
     work_dir: Path,
     *,
     extra_env: dict[str, str] | None = None,
+    unset_env: tuple[str, ...] | list[str] | None = None,
 ) -> dict[str, object]:
     assert term_bin.is_file(), f"missing terminal binary: {term_bin}"
     report_path = work_dir / "terminal-report.json"
     env = os.environ.copy()
+    if unset_env:
+        for key in unset_env:
+            env.pop(key, None)
     env.update(
         {
             "TERM": "xterm-256color",

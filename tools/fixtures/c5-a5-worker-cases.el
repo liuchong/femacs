@@ -801,27 +801,34 @@
                       :value-chunks t
                       :operations ops)))
                 (unwind-protect
-                    (let* ((probe
+                    (let* ((validator
+                            (lambda (val)
+                              (and (eliscript-value-object-p val)
+                                   (eq (femacs-a5--obj-get val "resolved") t)
+                                   (eq (femacs-a5--obj-get val "progressFn") t))))
+                           (probe
                             (femacs-eliscript-probe-runtime-resolution
-                             reloc-sess reloc-mod reloc-manifest))
+                             reloc-sess reloc-mod reloc-manifest nil nil validator))
+                           (outcome (alist-get 'outcome probe))
                            (advertised (alist-get 'advertised probe))
                            (supported (alist-get 'supported probe))
                            (honest (alist-get 'honest probe))
                            (err-obj (alist-get 'error probe)))
-                      (if supported
-                          (unless (eq (femacs-eliscript-require-capabilities
-                                       reloc-sess '("runtime-resolution")
-                                       (list (cons "runtime-resolution"
-                                                   (femacs-eliscript-runtime-resolution-probe
-                                                    reloc-mod reloc-manifest))))
-                                      t)
-                            (error "Expected live runtime-resolution gate to pass when supported"))
-                        (unless (and err-obj
-                                     (stringp (alist-get 'code err-obj))
-                                     (not (string-empty-p (alist-get 'code err-obj)))
-                                     (stringp (alist-get 'message err-obj))
-                                     (not (string-empty-p (alist-get 'message err-obj))))
-                          (error "Expected structured error for failed relocated probe, got %S"
+                      (cond
+                       ((eq outcome 'error)
+                        (error "Relocated runtime-resolution probe errored unexpectedly: %S"
+                               probe))
+                       ((eq outcome 'supported)
+                        (unless (eq (femacs-eliscript-require-capabilities
+                                     reloc-sess '("runtime-resolution")
+                                     (list (cons "runtime-resolution"
+                                                 (femacs-eliscript-runtime-resolution-probe
+                                                  reloc-mod reloc-manifest nil validator))))
+                                    t)
+                          (error "Expected live runtime-resolution gate to pass when supported")))
+                       ((eq outcome 'unsupported)
+                        (unless (femacs-eliscript--module-resolution-missing-p err-obj)
+                          (error "Expected explicit module-resolution missing error, got %S"
                                  probe))
                         (let ((gate-err
                                (condition-case e
@@ -830,7 +837,7 @@
                                       reloc-sess '("runtime-resolution")
                                       (list (cons "runtime-resolution"
                                                   (femacs-eliscript-runtime-resolution-probe
-                                                   reloc-mod reloc-manifest))))
+                                                   reloc-mod reloc-manifest nil validator))))
                                      nil)
                                  (femacs-eliscript-capability-error e))))
                           (unless (and gate-err
@@ -846,8 +853,11 @@
                                 reloc-sess 'stderr-log-echo '("after-reloc-probe"))))
                           (unless (eliscript-value-object-p after)
                             (error "Follow-up call after failed relocated probe failed"))))
+                       (t
+                        (error "Unexpected probe outcome: %S" outcome)))
                       (push `((id . "relocated_runtime_resolution_probe")
                               (passed . t)
+                              (outcome . ,(symbol-name outcome))
                               (advertised . ,(if advertised t :false))
                               (supported . ,(if supported t :false))
                               (honest . ,(if honest t :false))
