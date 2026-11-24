@@ -8372,8 +8372,8 @@
     },
     {
       "path": "tools/test-c4-a4-modern-local.py",
-      "sha256": "08962a8bafea493cb1e34330442cb7650f677730444154c20c0532889f98696d",
-      "bytes": 31698,
+      "sha256": "6419cd611d3fe2516f2be9130588ff534140d76954187e7ee80f0077704b022d",
+      "bytes": 31963,
       "family": "test",
       "decision": "retain",
       "replacement": null,

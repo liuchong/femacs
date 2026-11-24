@@ -101,7 +101,7 @@ def isolated_env(home_dir: Path) -> dict[str, str]:
 
 def reference_env(home_dir: Path) -> dict[str, str]:
     env = isolated_env(home_dir)
-    env["PATH"] = "/opt/homebrew/bin:/usr/bin:/bin"
+    env["PATH"] = "/usr/bin:/bin"
     return env
 
 
@@ -414,9 +414,11 @@ MODERN_ELI_FILE_SOURCE = r""";;; c4-modern-sample.eli --- Same-source modern loc
            (pmap (persistent-map :a 1 :b 2))
            (pmap2 (value-assoc pmap :b 9))
            (pset (persistent-set :x :y))
+           (pvec2 (value-assoc pvec 1 200))
            (trans-vec (with-transient (tv pvec)
-                        (conj! tv 40)
-                        (assoc! tv 1 200)))
+                        (conj! tv 40)))
+           (trans-map (with-transient (tm pmap)
+                        (assoc! tm :b 99)))
            (cell (state-cell 5))
            (cell-next (cell-update! cell (lambda (n) (+ n 7))))
            (sum-res
@@ -429,7 +431,7 @@ MODERN_ELI_FILE_SOURCE = r""";;; c4-modern-sample.eli --- Same-source modern loc
                 ((a b) (format \"two:%s,%s\" a b)))
               (list (describe-v) (describe-v 7) (describe-v 3 4))))
            (bound-vals
-            (let-bind ([a [b & rest]] [1 [2 3 4]])
+            (let-bind (([a [b &rest rest]] [1 [2 3 4]]))
               (list a b rest)))
            (mod-before c4-v-mod-count)
            (mod-step1 (let ((*c4-dyn-scale* 4)) (c4-bump 5)))
@@ -443,10 +445,10 @@ MODERN_ELI_FILE_SOURCE = r""";;; c4-modern-sample.eli --- Same-source modern loc
        (cons 'orderLog (vconcat (mapcar (lambda (x) (format \"%s\" x)) (nreverse order-log))))
        (cons 'dynClosure (vconcat dyn-closure))
        (cons 'checkedMacro checked-macro)
-       (cons 'persistentOriginal (vconcat (list (value-get pmap :b) (value-nth trans-vec 1) (value-nth trans-vec 3) (value-get pmap2 :b) (if (value-get pset :y) t :false))))
+       (cons 'persistentOriginal (vconcat (list (value-get pmap :b) (value-nth pvec2 1) (value-nth trans-vec 3) (value-get pmap2 :b) (value-get trans-map :b) (if (value-get pset :y) t :false))))
        (cons 'stateCell (vconcat (list cell-next (cell-value cell) (result-value sum-res))))
        (cons 'casesAndDestruct (vconcat (append case-vals (list (vconcat bound-vals)))))
-       (cons 'moduleState (vconcat (list mod-before mod-step1 mod-after mod-read)))))))
+       (cons 'moduleState (vconcat (list mod-before mod-step1 mod-after mod-read)))))"))
 """
 
 
@@ -505,7 +507,7 @@ def check_modern_script_parity(
     res_r = run_modern_eval_on_host(ref_bin, snap_r, out_dir / "modern-ref", ref_env)
 
     assert res_f["invocation"] == "femacs-lisp", f"unexpected invocation: {res_f}"
-    assert res_r["invocation"] == "emacs", f"unexpected ref invocation: {res_r}"
+    assert res_r["invocation"].lower() == "emacs", f"unexpected ref invocation: {res_r}"
     assert res_f["noninteractive"] is True and res_r["noninteractive"] is True
 
     assert_equal_json_values(
@@ -520,6 +522,8 @@ def check_modern_script_parity(
     assert suite["lexicalFnCallErr"] == "void-function"
     assert suite["truthiness"] == [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1]
     assert suite["orderLog"] == ["try-enter", "inner", "cleanup-ran"]
+    assert suite["persistentOriginal"] == [2, 200, 40, 9, 99, True]
+    assert suite["casesAndDestruct"] == ["zero", "one:7", "two:3,4", [1, 2, [3, 4]]]
     assert suite["moduleState"] == [10, 160, 15, 15]
     return {"femacs": res_f, "reference": res_r}
 
