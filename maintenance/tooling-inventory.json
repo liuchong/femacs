@@ -4527,8 +4527,8 @@
       "replacement": null,
       "reason": "retain required or unproved input; no removal inferred from language/name/literal absence",
       "uncertainty": "complete dynamic readers not proved; retained conservatively",
-      "current_sha256": "96f05d6b3d050aa0c9a0f5424489b2be2d88443cad2a9ff622c710e6618399b2",
-      "current_bytes": 4310
+      "current_sha256": "37810ddc29ff6d2ffb471ef60095ff6ff389b41202f4d6345c9ddae5f1ded1c6",
+      "current_bytes": 4384
     },
     {
       "path": "tools/test-stable-compat.py",
@@ -8316,8 +8316,8 @@
     },
     {
       "path": "tools/test-c2-a2-lisp-app.py",
-      "sha256": "b293c1c77df35f32478df1698a91795a95b83dacd3da2d0945134c656f4674f1",
-      "bytes": 22891,
+      "sha256": "22436eb4c95e02fe404cc6f62df4979e7c7c4e8d98aa968e74c14c157a32e1ff",
+      "bytes": 32658,
       "family": "test",
       "decision": "retain",
       "replacement": null,

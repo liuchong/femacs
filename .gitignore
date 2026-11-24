@@ -4,6 +4,7 @@
 # Unchanged version-bound test payloads; identities remain in sources.json.
 /compatibility/stable-31.1/test/
 /dist/macos
+/dist/lisp
 /dist/releases/
 /dist/candidates/
 /info/

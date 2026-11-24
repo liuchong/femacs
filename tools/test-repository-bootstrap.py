@@ -41,7 +41,8 @@ def main():
 
     def ignore_rules():
         for name in ['lisp/loaddefs.el','lisp/theme-loaddefs.el','lisp/sample.elc',
-                     'etc/charsets/8859-2.map','target/temporary-file']:
+                     'etc/charsets/8859-2.map','target/temporary-file',
+                     'dist/lisp/manifest.json','dist/lisp/bin/http-host']:
             result=subprocess.run(['git','check-ignore','--no-index','-q',name],cwd=ROOT)
             assert result.returncode==0, 'generated output exposed: '+name
         for name in ['test/data/bootstrap.xml','etc/images/source.svg','etc/icons/source.svg']:

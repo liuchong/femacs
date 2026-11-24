@@ -16,6 +16,7 @@ import socket
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 
 REPO = Path(__file__).resolve().parent.parent
@@ -183,8 +184,9 @@ def http_request(
     path: str,
     body: bytes | None = None,
     headers: dict[str, str] | None = None,
+    timeout: float = 15.0,
 ) -> tuple[int, dict[str, str], bytes]:
-    conn = http.client.HTTPConnection(host, port, timeout=15)
+    conn = http.client.HTTPConnection(host, port, timeout=timeout)
     try:
         conn.request(method, path, body=body, headers=headers or {})
         resp = conn.getresponse()
@@ -219,6 +221,13 @@ def pid_alive(pid: int) -> bool:
         return False
     except PermissionError:
         return True
+
+
+def assert_port_reusable(host: str, port: int) -> None:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        sock.bind((host, port))
+        sock.listen(1)
 
 
 def exercise_relocated_package(
@@ -443,8 +452,7 @@ def exercise_relocated_package(
                     break
                 time.sleep(0.05)
             assert not pid_alive(backend_pid), f"backend pid {backend_pid} survived http-host shutdown"
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-                sock.bind((host, port))
+            assert_port_reusable(host, port)
         finally:
             if proc.poll() is None:
                 proc.kill()
@@ -453,6 +461,238 @@ def exercise_relocated_package(
                 leftover = proc.stdout.read()
                 if leftover.strip():
                     raise AssertionError(f"http-host emitted unexpected late stdout: {leftover!r}")
+
+    exercise_http_lifecycle_edge_cases(http_bin, app_src.parent, clean_env)
+
+
+def exercise_http_lifecycle_edge_cases(
+    http_bin: Path,
+    work_dir: Path,
+    clean_env: dict[str, str],
+) -> None:
+    lifecycle_el = work_dir / "lifecycle-app.el"
+    lifecycle_el.write_text(
+        """;;; lifecycle-app.el --- HTTP timeout/disconnect/SIGTERM test handler -*- lexical-binding: t; -*-
+(require 'subr-x)
+
+(defun femacs-http-lifecycle-json (status obj)
+  (list (cons 'status status)
+        (cons 'headers '(("content-type" . "application/json; charset=utf-8")))
+        (cons 'body (json-serialize obj))))
+
+(defun femacs-http-handle (req)
+  (let* ((path (or (alist-get 'path req) "/"))
+         (query (or (alist-get 'query req) "")))
+    (cond
+     ((string= path "/api/ping")
+      (femacs-http-lifecycle-json 200 (list (cons 'ok t))))
+     ((string= path "/api/sleep")
+      (let ((ms (if (string-match "ms=\\\\([0-9]+\\\\)" query)
+                    (string-to-number (match-string 1 query))
+                  100)))
+        (sleep-for (/ (float ms) 1000.0))
+        (femacs-http-lifecycle-json 200 (list (cons 'sleptMs ms)))))
+     ((string= path "/api/hang")
+      (while t
+        (sleep-for 1)))
+     ((string= path "/api/side-effect")
+      (let ((tag (if (string-match "tag=\\\\([^&]+\\\\)" query)
+                     (match-string 1 query)
+                   "default"))
+            (marker (getenv "FEMACS_TEST_MARKER_FILE")))
+        (when marker
+          (write-region (concat tag "\\n") nil marker 'append 'silent))
+        (femacs-http-lifecycle-json 200 (list (cons 'tag tag)))))
+     (t
+      (femacs-http-lifecycle-json 404 (list (cons 'path path)))))))
+
+(provide 'femacs-http-lifecycle-test)
+""",
+        encoding="utf-8",
+    )
+
+    def spawn_req_thread(
+        host: str,
+        port: int,
+        path: str,
+        out: dict[str, object],
+        timeout: float = 5.0,
+    ) -> threading.Thread:
+        def _run() -> None:
+            try:
+                status, _, body = http_request(host, port, "GET", path, timeout=timeout)
+                out["status"] = status
+                out["body"] = body
+            except BaseException as exc:
+                out["error"] = repr(exc)
+
+        t = threading.Thread(target=_run, daemon=True)
+        t.start()
+        return t
+
+    def marker_lines(marker_file: Path) -> list[str]:
+        if not marker_file.is_file():
+            return []
+        return [ln for ln in marker_file.read_text(encoding="utf-8").splitlines() if ln]
+
+    # Scenario B: disconnect eviction + hung 504 + queued eviction + child reap.
+    marker_b = work_dir / "lifecycle-b.marker"
+    env_b = dict(clean_env)
+    env_b["FEMACS_TEST_MARKER_FILE"] = str(marker_b)
+    err_b = work_dir / "http-lifecycle-b.stderr.log"
+    with err_b.open("w+", encoding="utf-8") as err_fh:
+        proc = subprocess.Popen(
+            [
+                str(http_bin),
+                "--listen",
+                "127.0.0.1:0",
+                "--handler",
+                str(lifecycle_el),
+                "--max-body-bytes",
+                "256",
+                "--max-queue",
+                "8",
+                "--timeout-ms",
+                "450",
+            ],
+            env=env_b,
+            stdout=subprocess.PIPE,
+            stderr=err_fh,
+            text=True,
+        )
+        try:
+            host, port, backend_pid = wait_for_readiness(proc)
+            assert pid_alive(backend_pid)
+            st_ping, _, _ = http_request(host, port, "GET", "/api/ping", timeout=5.0)
+            assert st_ping == 200, f"Scenario B initial ping failed: {st_ping}"
+            st_base, _, _ = http_request(host, port, "GET", "/api/side-effect?tag=baseline", timeout=5.0)
+            assert st_base == 200
+            assert "baseline" in marker_lines(marker_b)
+
+            # Hold backend busy for ~260ms, enqueue a client that disconnects immediately.
+            sleep_res: dict[str, object] = {}
+            t_sleep = spawn_req_thread(host, port, "/api/sleep?ms=260", sleep_res, timeout=5.0)
+            time.sleep(0.05)
+            with socket.create_connection((host, port), timeout=2.0) as raw_sock:
+                raw_sock.sendall(
+                    b"GET /api/side-effect?tag=disconnected HTTP/1.1\r\n"
+                    b"Host: 127.0.0.1\r\n"
+                    b"Connection: close\r\n\r\n"
+                )
+                time.sleep(0.04)
+                try:
+                    raw_sock.shutdown(socket.SHUT_RDWR)
+                except OSError:
+                    pass
+            t_sleep.join(timeout=5.0)
+            assert not t_sleep.is_alive(), "Scenario B sleep thread hung"
+            assert sleep_res.get("status") == 200, f"Scenario B sleep failed: {sleep_res}"
+
+            st_ping2, _, _ = http_request(host, port, "GET", "/api/ping", timeout=5.0)
+            assert st_ping2 == 200 and pid_alive(backend_pid), "backend died during sleep/disconnect test"
+            assert "disconnected" not in marker_lines(marker_b), (
+                f"disconnected client job was executed: {marker_lines(marker_b)}"
+            )
+
+            # Hung request should get 504, reap wedged child, and evict queued side-effect without execution.
+            hang_res: dict[str, object] = {}
+            queued_res: dict[str, object] = {}
+            t_hang = spawn_req_thread(host, port, "/api/hang", hang_res, timeout=5.0)
+            time.sleep(0.06)
+            t_queued = spawn_req_thread(host, port, "/api/side-effect?tag=queued-behind-hang", queued_res, timeout=5.0)
+            t_hang.join(timeout=4.0)
+            t_queued.join(timeout=4.0)
+            assert not t_hang.is_alive() and not t_queued.is_alive(), (
+                f"Scenario B hung/queued threads did not settle: hang={hang_res}, queued={queued_res}"
+            )
+            assert hang_res.get("status") == 504, f"expected 504 on /api/hang, got {hang_res}"
+            assert queued_res.get("status") in (502, 504), (
+                f"expected 502/504 for queued request behind hang, got {queued_res}"
+            )
+
+            deadline_reap = time.monotonic() + 1.0
+            while pid_alive(backend_pid) and time.monotonic() < deadline_reap:
+                time.sleep(0.02)
+            assert not pid_alive(backend_pid), f"wedged backend pid {backend_pid} survived 504 timeout"
+            time.sleep(0.2)
+            assert "queued-behind-hang" not in marker_lines(marker_b), (
+                f"expired/evicted queued request executed: {marker_lines(marker_b)}"
+            )
+
+            proc.send_signal(signal.SIGTERM)
+            rc = proc.wait(timeout=3.0)
+            assert rc == 0, f"expected clean SIGTERM exit 0 after timeout, got {rc}"
+            assert_port_reusable(host, port)
+        finally:
+            if proc.poll() is None:
+                proc.kill()
+                proc.wait(timeout=5)
+
+    # Scenario C: SIGTERM during busy hang with long --timeout-ms 15000 must exit & reap < 3s.
+    marker_c = work_dir / "lifecycle-c.marker"
+    env_c = dict(clean_env)
+    env_c["FEMACS_TEST_MARKER_FILE"] = str(marker_c)
+    err_c = work_dir / "http-lifecycle-c.stderr.log"
+    with err_c.open("w+", encoding="utf-8") as err_fh:
+        proc = subprocess.Popen(
+            [
+                str(http_bin),
+                "--listen",
+                "127.0.0.1:0",
+                "--handler",
+                str(lifecycle_el),
+                "--max-body-bytes",
+                "256",
+                "--max-queue",
+                "8",
+                "--timeout-ms",
+                "15000",
+            ],
+            env=env_c,
+            stdout=subprocess.PIPE,
+            stderr=err_fh,
+            text=True,
+        )
+        try:
+            host, port, backend_pid = wait_for_readiness(proc)
+            assert pid_alive(backend_pid)
+            st_ping, _, _ = http_request(host, port, "GET", "/api/ping", timeout=5.0)
+            assert st_ping == 200, f"Scenario C initial ping failed: {st_ping}"
+
+            hang_res_c: dict[str, object] = {}
+            queued_res_c: dict[str, object] = {}
+            t_hang_c = spawn_req_thread(host, port, "/api/hang", hang_res_c, timeout=5.0)
+            time.sleep(0.08)
+            t_queued_c = spawn_req_thread(
+                host, port, "/api/side-effect?tag=queued-at-sigterm", queued_res_c, timeout=5.0
+            )
+            time.sleep(0.08)
+
+            t0 = time.monotonic()
+            proc.send_signal(signal.SIGTERM)
+            rc = proc.wait(timeout=3.0)
+            elapsed = time.monotonic() - t0
+            assert rc == 0, f"expected clean busy SIGTERM exit 0, got {rc} in {elapsed:.3f}s"
+            assert elapsed < 3.0, f"busy SIGTERM shutdown exceeded 3s: {elapsed:.3f}s"
+
+            t_hang_c.join(timeout=3.0)
+            t_queued_c.join(timeout=3.0)
+            assert hang_res_c.get("status") != 200
+            assert queued_res_c.get("status") != 200
+
+            deadline_reap = time.monotonic() + 1.0
+            while pid_alive(backend_pid) and time.monotonic() < deadline_reap:
+                time.sleep(0.02)
+            assert not pid_alive(backend_pid), f"wedged backend pid {backend_pid} survived busy SIGTERM"
+            time.sleep(0.15)
+            assert "queued-at-sigterm" not in marker_lines(marker_c), (
+                f"queued request executed during shutdown: {marker_lines(marker_c)}"
+            )
+            assert_port_reusable(host, port)
+        finally:
+            if proc.poll() is None:
+                proc.kill()
+                proc.wait(timeout=5)
 
 
 def prepare_export_treesit(export_dir: Path) -> str:

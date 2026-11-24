@@ -4,13 +4,14 @@
 
 use std::env;
 use std::ffi::OsString;
-use std::io::{self, BufRead, BufReader, BufWriter, Write};
+use std::io::{self, BufRead, BufReader, Write};
 use std::net::Shutdown;
 use std::os::fd::OwnedFd;
 use std::os::unix::net::UnixStream;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
-use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -30,6 +31,7 @@ pub const DEFAULT_MAX_BODY_BYTES: usize = 1024 * 1024;
 pub const DEFAULT_MAX_QUEUE: usize = 64;
 pub const DEFAULT_TIMEOUT_MS: u64 = 15_000;
 pub const MIN_RPC_FRAME_BYTES: usize = 2 * 1024 * 1024;
+pub const RPC_IO_POLL_SLICE: Duration = Duration::from_millis(50);
 pub const HTTP_HOST_VERSION: &str = "http-host 0.1.0 (femacs 32.0.50)";
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -355,17 +357,47 @@ pub enum BoundedLineRead {
     Eof,
     Line(String),
     TooLarge,
+    TimedOut,
+    Shutdown,
 }
 
-pub fn read_bounded_rpc_line<R: BufRead>(
+fn read_bounded_rpc_line_with<R: BufRead>(
     reader: &mut R,
     max_bytes: usize,
+    retry_timeouts: bool,
+    mut before_fill: impl FnMut(&mut R) -> io::Result<Option<BoundedLineRead>>,
+    is_shutdown: impl Fn() -> bool,
 ) -> io::Result<BoundedLineRead> {
     let mut line = Vec::new();
     let mut too_large = false;
     loop {
-        let buf = reader.fill_buf()?;
+        if let Some(early) = before_fill(reader)? {
+            return Ok(early);
+        }
+        let buf = match reader.fill_buf() {
+            Ok(b) => b,
+            Err(e)
+                if retry_timeouts
+                    && matches!(
+                        e.kind(),
+                        io::ErrorKind::WouldBlock
+                            | io::ErrorKind::TimedOut
+                            | io::ErrorKind::Interrupted
+                    ) =>
+            {
+                continue;
+            }
+            Err(e) => {
+                if is_shutdown() {
+                    return Ok(BoundedLineRead::Shutdown);
+                }
+                return Err(e);
+            }
+        };
         if buf.is_empty() {
+            if is_shutdown() {
+                return Ok(BoundedLineRead::Shutdown);
+            }
             if too_large {
                 return Ok(BoundedLineRead::TooLarge);
             }
@@ -407,16 +439,116 @@ pub fn read_bounded_rpc_line<R: BufRead>(
     }
 }
 
+pub fn read_bounded_rpc_line<R: BufRead>(
+    reader: &mut R,
+    max_bytes: usize,
+) -> io::Result<BoundedLineRead> {
+    read_bounded_rpc_line_with(reader, max_bytes, false, |_| Ok(None), || false)
+}
+
+fn read_bounded_rpc_line_with_deadline(
+    reader: &mut BufReader<UnixStream>,
+    max_bytes: usize,
+    deadline: Instant,
+    shutdown_flag: &AtomicBool,
+) -> io::Result<BoundedLineRead> {
+    read_bounded_rpc_line_with(
+        reader,
+        max_bytes,
+        true,
+        |r| {
+            if shutdown_flag.load(Ordering::Acquire) {
+                return Ok(Some(BoundedLineRead::Shutdown));
+            }
+            let now = Instant::now();
+            if now >= deadline {
+                return Ok(Some(BoundedLineRead::TimedOut));
+            }
+            if r.buffer().is_empty() {
+                let slice = deadline
+                    .saturating_duration_since(now)
+                    .min(RPC_IO_POLL_SLICE)
+                    .max(Duration::from_millis(1));
+                r.get_ref().set_read_timeout(Some(slice))?;
+            }
+            Ok(None)
+        },
+        || shutdown_flag.load(Ordering::Acquire),
+    )
+}
+
+#[derive(Debug, PartialEq, Eq)]
+enum WriteOutcome {
+    Complete,
+    TimedOut,
+    Shutdown,
+}
+
+fn write_all_with_deadline(
+    stream: &mut UnixStream,
+    mut data: &[u8],
+    deadline: Instant,
+    shutdown_flag: &AtomicBool,
+) -> io::Result<WriteOutcome> {
+    while !data.is_empty() {
+        if shutdown_flag.load(Ordering::Acquire) {
+            return Ok(WriteOutcome::Shutdown);
+        }
+        let now = Instant::now();
+        if now >= deadline {
+            return Ok(WriteOutcome::TimedOut);
+        }
+        let slice = deadline
+            .saturating_duration_since(now)
+            .min(RPC_IO_POLL_SLICE)
+            .max(Duration::from_millis(1));
+        stream.set_write_timeout(Some(slice))?;
+        match stream.write(data) {
+            Ok(0) => {
+                if shutdown_flag.load(Ordering::Acquire) {
+                    return Ok(WriteOutcome::Shutdown);
+                }
+                return Err(io::Error::new(
+                    io::ErrorKind::WriteZero,
+                    "failed to write RPC request bytes",
+                ));
+            }
+            Ok(n) => {
+                data = &data[n..];
+            }
+            Err(e)
+                if matches!(
+                    e.kind(),
+                    io::ErrorKind::WouldBlock
+                        | io::ErrorKind::TimedOut
+                        | io::ErrorKind::Interrupted
+                ) =>
+            {
+                continue;
+            }
+            Err(e) => {
+                if shutdown_flag.load(Ordering::Acquire) {
+                    return Ok(WriteOutcome::Shutdown);
+                }
+                return Err(e);
+            }
+        }
+    }
+    Ok(WriteOutcome::Complete)
+}
+
 #[derive(Debug)]
 enum WorkerReply {
     Http(RpcHttpResponse),
     HandlerError(String),
     BackendDown(String),
+    Timeout(String),
 }
 
 struct WorkerJob {
     id: u64,
     request: RpcHttpRequest,
+    deadline: Instant,
     respond: oneshot::Sender<WorkerReply>,
 }
 
@@ -425,7 +557,43 @@ struct AppState {
     tx: mpsc::Sender<WorkerJob>,
     max_body_bytes: usize,
     timeout: Duration,
-    next_id: Arc<std::sync::atomic::AtomicU64>,
+    next_id: Arc<AtomicU64>,
+    shutdown_flag: Arc<AtomicBool>,
+}
+
+fn kill_child_slot_now(child_slot: &Arc<Mutex<Option<Child>>>) {
+    let taken = {
+        let mut guard = child_slot.lock().unwrap_or_else(|e| e.into_inner());
+        guard.take()
+    };
+    if let Some(mut child) = taken {
+        let _ = child.kill();
+        let _ = child.wait();
+    }
+}
+
+fn reap_child_slot(child_slot: &Arc<Mutex<Option<Child>>>, grace: Duration) {
+    let taken = {
+        let mut guard = child_slot.lock().unwrap_or_else(|e| e.into_inner());
+        guard.take()
+    };
+    if let Some(mut child) = taken {
+        wait_child_clean(&mut child, grace);
+    }
+}
+
+fn drain_queued_jobs(rx: &mut mpsc::Receiver<WorkerJob>, reason: &str) {
+    while let Ok(job) = rx.try_recv() {
+        if job.respond.is_closed() {
+            continue;
+        }
+        let reply = if Instant::now() >= job.deadline {
+            WorkerReply::Timeout("request timed out before dispatch".to_string())
+        } else {
+            WorkerReply::BackendDown(reason.to_string())
+        };
+        let _ = job.respond.send(reply);
+    }
 }
 
 fn spawn_stderr_forwarder<R: io::Read + Send + 'static>(
@@ -462,25 +630,44 @@ fn spawn_stderr_forwarder<R: io::Read + Send + 'static>(
 
 fn run_rpc_worker(
     mut rx: mpsc::Receiver<WorkerJob>,
-    stream: UnixStream,
+    mut stream: UnixStream,
     max_frame_bytes: usize,
+    shutdown_flag: Arc<AtomicBool>,
+    child_slot: Arc<Mutex<Option<Child>>>,
 ) {
     let read_sock = match stream.try_clone() {
         Ok(s) => s,
         Err(e) => {
             while let Some(job) = rx.blocking_recv() {
-                let _ = job
-                    .respond
-                    .send(WorkerReply::BackendDown(format!("clone rpc socket: {e}")));
+                if !job.respond.is_closed() {
+                    let _ = job
+                        .respond
+                        .send(WorkerReply::BackendDown(format!("clone rpc socket: {e}")));
+                }
             }
             return;
         }
     };
     let mut reader = BufReader::new(read_sock);
-    let mut writer = BufWriter::new(&stream);
     let mut dead_reason: Option<String> = None;
 
     while let Some(job) = rx.blocking_recv() {
+        if job.respond.is_closed() {
+            continue;
+        }
+        if Instant::now() >= job.deadline {
+            let _ = job.respond.send(WorkerReply::Timeout(
+                "request timed out in queue before dispatch".to_string(),
+            ));
+            continue;
+        }
+        if shutdown_flag.load(Ordering::Acquire) {
+            let _ = job
+                .respond
+                .send(WorkerReply::BackendDown("http-host shutting down".to_string()));
+            drain_queued_jobs(&mut rx, "http-host shutting down");
+            break;
+        }
         if let Some(reason) = &dead_reason {
             let _ = job.respond.send(WorkerReply::BackendDown(reason.clone()));
             continue;
@@ -500,23 +687,66 @@ fn run_rpc_worker(
             continue;
         }
 
-        if let Err(e) = writer
-            .write_all(frame_line.as_bytes())
-            .and_then(|()| writer.flush())
-        {
-            let msg = format!("backend RPC write failed: {e}");
-            dead_reason = Some(msg.clone());
-            let _ = job.respond.send(WorkerReply::BackendDown(msg));
-            continue;
+        match write_all_with_deadline(&mut stream, frame_line.as_bytes(), job.deadline, &shutdown_flag) {
+            Ok(WriteOutcome::Complete) => {}
+            Ok(WriteOutcome::TimedOut) => {
+                let _ = job
+                    .respond
+                    .send(WorkerReply::Timeout("Lisp handler timed out".to_string()));
+                let reason = "backend terminated after request timeout".to_string();
+                dead_reason = Some(reason.clone());
+                let _ = stream.shutdown(Shutdown::Both);
+                kill_child_slot_now(&child_slot);
+                drain_queued_jobs(&mut rx, &reason);
+                continue;
+            }
+            Ok(WriteOutcome::Shutdown) => {
+                let _ = job
+                    .respond
+                    .send(WorkerReply::BackendDown("http-host shutting down".to_string()));
+                let _ = stream.shutdown(Shutdown::Both);
+                drain_queued_jobs(&mut rx, "http-host shutting down");
+                return;
+            }
+            Err(e) => {
+                let msg = format!("backend RPC write failed: {e}");
+                dead_reason = Some(msg.clone());
+                let _ = job.respond.send(WorkerReply::BackendDown(msg));
+                continue;
+            }
         }
 
         loop {
-            match read_bounded_rpc_line(&mut reader, max_frame_bytes) {
+            match read_bounded_rpc_line_with_deadline(
+                &mut reader,
+                max_frame_bytes,
+                job.deadline,
+                &shutdown_flag,
+            ) {
                 Ok(BoundedLineRead::Eof) => {
                     let msg = "backend process closed RPC socket".to_string();
                     dead_reason = Some(msg.clone());
                     let _ = job.respond.send(WorkerReply::BackendDown(msg));
                     break;
+                }
+                Ok(BoundedLineRead::TimedOut) => {
+                    let _ = job
+                        .respond
+                        .send(WorkerReply::Timeout("Lisp handler timed out".to_string()));
+                    let reason = "backend terminated after request timeout".to_string();
+                    dead_reason = Some(reason.clone());
+                    let _ = stream.shutdown(Shutdown::Both);
+                    kill_child_slot_now(&child_slot);
+                    drain_queued_jobs(&mut rx, &reason);
+                    break;
+                }
+                Ok(BoundedLineRead::Shutdown) => {
+                    let _ = job
+                        .respond
+                        .send(WorkerReply::BackendDown("http-host shutting down".to_string()));
+                    let _ = stream.shutdown(Shutdown::Both);
+                    drain_queued_jobs(&mut rx, "http-host shutting down");
+                    return;
                 }
                 Ok(BoundedLineRead::TooLarge) => {
                     let _ = job.respond.send(WorkerReply::HandlerError(format!(
@@ -566,6 +796,14 @@ fn run_rpc_worker(
                     }
                 }
                 Err(e) => {
+                    if shutdown_flag.load(Ordering::Acquire) {
+                        let _ = job
+                            .respond
+                            .send(WorkerReply::BackendDown("http-host shutting down".to_string()));
+                        let _ = stream.shutdown(Shutdown::Both);
+                        drain_queued_jobs(&mut rx, "http-host shutting down");
+                        return;
+                    }
                     let msg = format!("backend RPC read failed: {e}");
                     dead_reason = Some(msg.clone());
                     let _ = job.respond.send(WorkerReply::BackendDown(msg));
@@ -575,7 +813,6 @@ fn run_rpc_worker(
         }
     }
 
-    let _ = writer.flush();
     let _ = stream.shutdown(Shutdown::Both);
 }
 
@@ -615,6 +852,9 @@ fn build_http_response(rpc_resp: RpcHttpResponse) -> Response {
 }
 
 async fn handle_http(State(state): State<AppState>, req: Request) -> Response {
+    if state.shutdown_flag.load(Ordering::Acquire) {
+        return (StatusCode::BAD_GATEWAY, "http-host shutting down").into_response();
+    }
     if let Err(resp) = check_content_length(req.headers(), state.max_body_bytes) {
         return resp;
     }
@@ -661,13 +901,13 @@ async fn handle_http(State(state): State<AppState>, req: Request) -> Response {
         body: body_text,
     };
 
-    let req_id = state
-        .next_id
-        .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let req_id = state.next_id.fetch_add(1, Ordering::Relaxed);
+    let deadline = Instant::now() + state.timeout;
     let (resp_tx, resp_rx) = oneshot::channel();
     let job = WorkerJob {
         id: req_id,
         request: rpc_req,
+        deadline,
         respond: resp_tx,
     };
 
@@ -682,12 +922,13 @@ async fn handle_http(State(state): State<AppState>, req: Request) -> Response {
         };
     }
 
-    match tokio::time::timeout(state.timeout, resp_rx).await {
+    match tokio::time::timeout_at(tokio::time::Instant::from_std(deadline), resp_rx).await {
         Ok(Ok(WorkerReply::Http(resp))) => build_http_response(resp),
         Ok(Ok(WorkerReply::HandlerError(msg))) => {
             (StatusCode::INTERNAL_SERVER_ERROR, msg).into_response()
         }
         Ok(Ok(WorkerReply::BackendDown(msg))) => (StatusCode::BAD_GATEWAY, msg).into_response(),
+        Ok(Ok(WorkerReply::Timeout(msg))) => (StatusCode::GATEWAY_TIMEOUT, msg).into_response(),
         Ok(Err(_)) => (StatusCode::BAD_GATEWAY, "backend closed reply channel").into_response(),
         Err(_) => (StatusCode::GATEWAY_TIMEOUT, "Lisp handler timed out").into_response(),
     }
@@ -739,10 +980,16 @@ pub async fn serve(cfg: HttpHostConfig) -> Result<i32, String> {
 
     let (parent_sock, child_sock) =
         UnixStream::pair().map_err(|e| format!("create RPC Unix socketpair: {e}"))?;
+    let control_sock = parent_sock
+        .try_clone()
+        .map_err(|e| format!("clone control RPC socket: {e}"))?;
+    let control_sock_sig = parent_sock
+        .try_clone()
+        .map_err(|e| format!("clone shutdown RPC socket: {e}"))?;
     let child_fd = OwnedFd::from(child_sock);
     let backend_args = build_backend_args(&cfg);
 
-    let mut child = Command::new(&lisp_bin)
+    let child = Command::new(&lisp_bin)
         .args(&backend_args)
         .stdin(Stdio::from(child_fd))
         .stdout(Stdio::piped())
@@ -751,6 +998,7 @@ pub async fn serve(cfg: HttpHostConfig) -> Result<i32, String> {
         .map_err(|e| format!("spawn {}: {e}", lisp_bin.display()))?;
 
     let backend_pid = child.id();
+    let mut child = child;
     let out_pipe = child
         .stdout
         .take()
@@ -764,12 +1012,23 @@ pub async fn serve(cfg: HttpHostConfig) -> Result<i32, String> {
 
     let (tx, rx) = mpsc::channel(cfg.max_queue);
     let max_frame = cfg.effective_rpc_max_frame_bytes();
+    let shutdown_flag = Arc::new(AtomicBool::new(false));
+    let child_slot = Arc::new(Mutex::new(Some(child)));
+    let worker_shutdown = Arc::clone(&shutdown_flag);
+    let worker_child = Arc::clone(&child_slot);
     let worker_handle = thread::spawn(move || {
-        run_rpc_worker(rx, parent_sock, max_frame);
+        run_rpc_worker(rx, parent_sock, max_frame, worker_shutdown, worker_child);
     });
 
-    if let Ok(Some(status)) = child.try_wait() {
+    let immediate_exit = {
+        let mut guard = child_slot.lock().unwrap_or_else(|e| e.into_inner());
+        guard.as_mut().and_then(|c| c.try_wait().ok().flatten())
+    };
+    if let Some(status) = immediate_exit {
+        shutdown_flag.store(true, Ordering::Release);
+        let _ = control_sock.shutdown(Shutdown::Both);
         drop(tx);
+        reap_child_slot(&child_slot, Duration::from_millis(200));
         let _ = worker_handle.join();
         let _ = out_fwd.join();
         let _ = err_fwd.join();
@@ -784,7 +1043,8 @@ pub async fn serve(cfg: HttpHostConfig) -> Result<i32, String> {
         tx: tx.clone(),
         max_body_bytes: cfg.max_body_bytes,
         timeout: Duration::from_millis(cfg.timeout_ms),
-        next_id: Arc::new(std::sync::atomic::AtomicU64::new(1)),
+        next_id: Arc::new(AtomicU64::new(1)),
+        shutdown_flag: Arc::clone(&shutdown_flag),
     };
     drop(tx);
 
@@ -793,12 +1053,21 @@ pub async fn serve(cfg: HttpHostConfig) -> Result<i32, String> {
         .with_state(state)
         .layer(DefaultBodyLimit::disable());
 
+    let shutdown_flag_sig = Arc::clone(&shutdown_flag);
+    let shutdown = async move {
+        shutdown_signal().await;
+        shutdown_flag_sig.store(true, Ordering::Release);
+        let _ = control_sock_sig.shutdown(Shutdown::Both);
+    };
+
     let serve_res = axum::serve(listener, app)
-        .with_graceful_shutdown(shutdown_signal())
+        .with_graceful_shutdown(shutdown)
         .await;
 
+    shutdown_flag.store(true, Ordering::Release);
+    let _ = control_sock.shutdown(Shutdown::Both);
+    reap_child_slot(&child_slot, Duration::from_millis(500));
     let _ = worker_handle.join();
-    wait_child_clean(&mut child, Duration::from_secs(2));
     let _ = out_fwd.join();
     let _ = err_fwd.join();
 
@@ -955,5 +1224,129 @@ mod tests {
             body: "bad".to_string(),
         });
         assert_eq!(fallback_status.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    }
+
+    fn make_test_worker_job(
+        id: u64,
+        path: &str,
+        deadline: Instant,
+    ) -> (WorkerJob, oneshot::Receiver<WorkerReply>) {
+        let (tx, rx) = oneshot::channel();
+        let job = WorkerJob {
+            id,
+            request: RpcHttpRequest {
+                method: "GET".to_string(),
+                path: path.to_string(),
+                query: String::new(),
+                headers: Vec::new(),
+                body: String::new(),
+            },
+            deadline,
+            respond: tx,
+        };
+        (job, rx)
+    }
+
+    #[test]
+    fn rpc_worker_evicts_expired_and_disconnected_jobs_without_writing_to_socket() {
+        use std::io::Read;
+
+        let (worker_sock, mut peer) = UnixStream::pair().unwrap();
+        peer.set_nonblocking(true).unwrap();
+        let (tx, rx) = mpsc::channel(8);
+
+        let (expired_job, exp_rx) =
+            make_test_worker_job(1, "/expired", Instant::now() - Duration::from_secs(1));
+        let (disc_job, disc_rx) =
+            make_test_worker_job(2, "/disconnected", Instant::now() + Duration::from_secs(10));
+        drop(disc_rx);
+
+        tx.blocking_send(expired_job).unwrap();
+        tx.blocking_send(disc_job).unwrap();
+        drop(tx);
+
+        run_rpc_worker(
+            rx,
+            worker_sock,
+            MIN_RPC_FRAME_BYTES,
+            Arc::new(AtomicBool::new(false)),
+            Arc::new(Mutex::new(None)),
+        );
+
+        assert!(matches!(exp_rx.blocking_recv(), Ok(WorkerReply::Timeout(_))));
+        let mut buf = [0u8; 256];
+        match peer.read(&mut buf) {
+            Ok(0) => {}
+            Err(e) if e.kind() == io::ErrorKind::WouldBlock => {}
+            other => panic!("expected zero bytes written to RPC peer, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn rpc_worker_enforces_absolute_deadline_on_hung_peer() {
+        let (worker_sock, _peer) = UnixStream::pair().unwrap();
+        let (tx, rx) = mpsc::channel(8);
+        let shutdown_flag = Arc::new(AtomicBool::new(false));
+        let child_slot = Arc::new(Mutex::new(None));
+
+        let handle = thread::spawn(move || {
+            run_rpc_worker(rx, worker_sock, MIN_RPC_FRAME_BYTES, shutdown_flag, child_slot);
+        });
+
+        let start = Instant::now();
+        let (hung_job, hung_rx) =
+            make_test_worker_job(1, "/hang", Instant::now() + Duration::from_millis(120));
+        let (next_job, next_rx) =
+            make_test_worker_job(2, "/after-hang", Instant::now() + Duration::from_secs(10));
+        tx.blocking_send(hung_job).unwrap();
+        tx.blocking_send(next_job).unwrap();
+
+        assert!(matches!(hung_rx.blocking_recv(), Ok(WorkerReply::Timeout(_))));
+        assert!(matches!(next_rx.blocking_recv(), Ok(WorkerReply::BackendDown(_))));
+        assert!(start.elapsed() < Duration::from_secs(1));
+
+        drop(tx);
+        handle.join().unwrap();
+    }
+
+    #[test]
+    fn rpc_worker_wakes_promptly_on_shutdown_flag_and_drains_queue() {
+        use std::io::Read;
+
+        let (worker_sock, mut peer) = UnixStream::pair().unwrap();
+        let control_sock = worker_sock.try_clone().unwrap();
+        let (tx, rx) = mpsc::channel(8);
+        let shutdown_flag = Arc::new(AtomicBool::new(false));
+        let worker_shutdown = Arc::clone(&shutdown_flag);
+        let child_slot = Arc::new(Mutex::new(None));
+
+        let handle = thread::spawn(move || {
+            run_rpc_worker(rx, worker_sock, MIN_RPC_FRAME_BYTES, worker_shutdown, child_slot);
+        });
+
+        let (job1, rx1) =
+            make_test_worker_job(1, "/job1", Instant::now() + Duration::from_secs(10));
+        let (job2, rx2) =
+            make_test_worker_job(2, "/job2", Instant::now() + Duration::from_secs(10));
+        tx.blocking_send(job1).unwrap();
+        tx.blocking_send(job2).unwrap();
+
+        thread::sleep(Duration::from_millis(80));
+        let t0 = Instant::now();
+        shutdown_flag.store(true, Ordering::Release);
+        let _ = control_sock.shutdown(Shutdown::Both);
+
+        drop(tx);
+        handle.join().unwrap();
+        assert!(t0.elapsed() < Duration::from_secs(1));
+
+        assert!(matches!(rx1.blocking_recv(), Ok(WorkerReply::BackendDown(_))));
+        assert!(matches!(rx2.blocking_recv(), Ok(WorkerReply::BackendDown(_))));
+
+        drop(control_sock);
+        let mut written = String::new();
+        peer.read_to_string(&mut written).unwrap();
+        assert!(written.contains("/job1"), "expected job1 sent to peer: {written:?}");
+        assert!(!written.contains("/job2"), "job2 must not be dispatched after shutdown: {written:?}");
     }
 }
