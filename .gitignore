@@ -5,6 +5,10 @@
 /compatibility/stable-31.1/test/
 /dist/macos
 /dist/lisp
+/dist/.macos.stage-*
+/dist/.macos.previous-*
+/dist/.lisp.stage-*
+/dist/.lisp.previous-*
 /dist/releases/
 /dist/candidates/
 /info/
