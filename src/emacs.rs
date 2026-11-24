@@ -1702,67 +1702,7 @@ unsafe fn emacs_init_body (mut argc: c_int, argv: *mut *mut c_char,
       (*emacs_wd.as_mut_ptr ()) = emacs_get_current_dir_name ();
     }
 
-  /* Extend the stack space available.  Don't do that if dumping,
-     since some systems (e.g. DJGPP) might define a smaller stack
-     limit at that time.  And it's not needed on Cygwin, since emacs
-     is built with an 8MB stack.  Moreover, the setrlimit call can
-     cause problems on Cygwin
-     (https://www.cygwin.com/ml/cygwin/2015-07/msg00096.html).  */
-  let mut rlim: rlimit = std::mem::zeroed ();
-  if getrlimit (RLIMIT_STACK, &raw mut rlim) == 0
-      && 0 <= rlim.rlim_cur as i64 && (rlim.rlim_cur as i64) <= LONG_MAX as i64
-    {
-      let mut lim: rlim_t = rlim.rlim_cur;
-
-      /* Approximate the amount regex-emacs.c needs per unit of
-	 emacs_re_max_failures, then add 33% to cover the size of the
-	 smaller stacks that regex-emacs.c successively allocates and
-	 discards on its way to the maximum.  */
-      let min_ratio: c_int = 20 * std::mem::size_of::<*mut c_char> () as c_int;
-      let ratio: c_int = min_ratio + min_ratio / 3;
-
-      /* Extra space to cover what we're likely to use for other
-         reasons.  For example, a typical GC might take 30K stack
-         frames.  */
-      let extra: c_int = (30 * 1000) * 50;
-
-      let try_to_grow_stack: bool = !(*noninteractive.as_mut_ptr ()) || (*initialized.as_mut_ptr ());
-
-      if try_to_grow_stack
-	{
-	  let mut newlim: rlim_t = (*emacs_re_max_failures.as_mut_ptr ()) as rlim_t * ratio as rlim_t
-				   + extra as rlim_t;
-
-	  /* Round the new limit to a page boundary; this is needed
-	     for Darwin kernel 15.4.0 (see Bug#23622) and perhaps
-	     other systems.  Do not shrink the stack and do not exceed
-	     rlim_max.  Don't worry about exact values of
-	     RLIM_INFINITY etc. since in practice when they are
-	     nonnegative they are so large that the code does the
-	     right thing anyway.  */
-	  let pagesize: c_long = getpagesize () as c_long;
-	  newlim += pagesize as rlim_t - 1;
-	  if 0 <= rlim.rlim_max as i64 && (rlim.rlim_max as i64) < newlim as i64
-	    { newlim = rlim.rlim_max; }
-	  newlim -= newlim % pagesize as rlim_t;
-
-	  if newlim > lim	/* in case rlim_t is an unsigned type */
-	      && pagesize as rlim_t <= newlim - lim
-	    {
-	      rlim.rlim_cur = newlim;
-	      if setrlimit (RLIMIT_STACK, &raw const rlim) == 0
-		{ lim = newlim; }
-	    }
-	}
-      /* If the stack is big enough, let regex-emacs.c use more of it
-	 before falling back to heap allocation.  */
-      if (lim as i64) < extra as i64
-        { lim = extra as rlim_t; }    /* avoid wrap-around in unsigned subtraction */
-      let max_failures: ptrdiff_t
-	= min ((lim - extra as rlim_t) as isize,
-	       min (PTRDIFF_MAX as usize, SIZE_MAX) as isize) / ratio as ptrdiff_t;  /* P-127 */
-      (*emacs_re_safe_alloca.as_mut_ptr ()) = max (max_failures * min_ratio as ptrdiff_t, MAX_ALLOCA);
-    }
+  grow_regex_stack_limit (!(*noninteractive.as_mut_ptr ()) || (*initialized.as_mut_ptr ()));
 
   clearerr ((*stdin.as_mut_ptr ()));
 
@@ -1964,72 +1904,9 @@ unsafe fn emacs_init_body (mut argc: c_int, argv: *mut *mut c_char,
   /* Perform basic initializations (not merely interning symbols).  */
 
   if !(*initialized.as_mut_ptr ())
-    {
-      init_alloc_once ();
-      init_pdumper_once ();
-      init_obarray_once ();
-      init_eval_once ();
-      init_charset_once ();
-      init_coding_once ();
-      init_syntax_once ();	/* Create standard syntax table.  */
-      init_category_once ();	/* Create standard category table.  */
-      init_casetab_once ();	/* Must be done before init_buffer_once.  */
-      init_buffer_once ();	/* Create buffer table and some buffers.  */
-      init_minibuf_once ();	/* Create list of minibuffers.  */
-				/* Must precede init_window_once.  */
+    { init_vm_once_tables (); }
 
-      /* Call syms_of_xfaces before init_window_once because that
-	 function creates Vterminal_frame.  Termcap frames now use
-	 faces, and the face implementation uses some symbols as
-	 face names.  */
-      syms_of_xfaces ();
-      /* XXX syms_of_keyboard uses some symbols in keymap.c.  It would
-         be better to arrange things not to have this dependency.  */
-      syms_of_keymap ();
-      /* Call syms_of_keyboard before init_window_once because
-	 keyboard sets up symbols that include some face names that
-	 the X support will want to use.  This can happen when
-	 Emacs starts up from scratch (e.g., temacs).  */
-      syms_of_keyboard ();
-
-      /* Called before syms_of_fileio, because it sets up Qerror_condition.  */
-      syms_of_data ();
-      syms_of_fns ();  /* Before syms_of_charset which uses hash tables.  */
-      syms_of_fileio ();
-      /* Before syms_of_coding to initialize Vgc_cons_threshold.  */
-      syms_of_alloc ();
-      /* May call Ffuncall and so GC, thus the latter should be initialized.  */
-      init_print_once ();
-      /* Before syms_of_coding because it initializes Qcharsetp.  */
-      syms_of_charset ();
-      /* Before init_window_once, because it sets up the
-         Vcoding_system_hash_table.  */
-      syms_of_coding ();	/* This should be after syms_of_fileio.  */
-      init_frame_once ();       /* Before init_window_once.  */
-      /* init_window_once calls make_initial_frame, which calls
-         Fcurrent_time and bset_display_time, both of which allocate
-         bignums.  Without the following call to init_bignums, crashes
-         happen on Windows 9X after dumping when GC tries to free a
-         pointer allocated on the system heap.  */
-      init_bignum ();
-      init_window_once ();	/* Init the window system.  */
-    }
-
-  init_alloc ();
-  init_bignum ();
-  init_threads ();
-  #[cfg(any(feature = "femacs_gc_observer", feature = "femacs_gc_generational"))]
-  {
-    unsafe extern "C-unwind" { fn femacs_gc_runtime_ready(); }
-    femacs_gc_runtime_ready();
-  }
-  init_eval ();
-  (*running_asynch_code.as_mut_ptr ()) = false;
-  init_random ();
-  init_xfaces ();
-
-  if !(*initialized.as_mut_ptr ())
-    { syms_of_comp (); }
+  init_vm_core_subsystems ();
 
   /* Do less garbage collection in batch mode (since these tend to be
      more short-lived, and the memory is returned to the OS on exit
@@ -2225,237 +2102,14 @@ unsafe fn emacs_init_body (mut argc: c_int, argv: *mut *mut c_char,
      define standard keys.  */
 
   if !(*initialized.as_mut_ptr ())
-    {
-      /* The basic levels of Lisp must come first.  Note that
-	 syms_of_data and some others have already been called.  */
-      syms_of_chartab ();
-      syms_of_lread ();
-      syms_of_print ();
-      syms_of_eval ();
-      syms_of_floatfns ();
-
-      syms_of_buffer ();
-      syms_of_bytecode ();
-      syms_of_callint ();
-      syms_of_casefiddle ();
-      syms_of_casetab ();
-      syms_of_category ();
-      syms_of_ccl ();
-      syms_of_character ();
-      syms_of_cmds ();
-      syms_of_dired ();
-      syms_of_display ();
-      syms_of_doc ();
-      syms_of_editfns ();
-      syms_of_emacs ();
-      syms_of_filelock ();
-      syms_of_indent ();
-      syms_of_insdel ();
-      /* syms_of_keymap (); */
-      syms_of_macros ();
-      syms_of_marker ();
-      syms_of_minibuf ();
-      syms_of_process ();
-      syms_of_search ();
-      syms_of_sysdep ();
-      syms_of_timefns ();
-      syms_of_frame ();
-      syms_of_syntax ();
-      syms_of_terminal ();
-      syms_of_term ();
-/* C 2349-2497: the `syms_of_*` sequence of `emacs.c`'s `main`, with C's own guards (the port's
-   first draft carried only the unconditional names, so the Android window-system units never
-   registered their Lisp and `loadup.el` skipped `term/android-win`, which surfaced as
-   "Unsupported window system `android'" at startup - status 4.790).  */
-      syms_of_undo ();
-      #[cfg (feature = "have_modules")] {
-      syms_of_module ();
-      }
-      syms_of_treesit ();
-      #[cfg (feature = "have_sound")] {
-      syms_of_sound ();
-      }
-      syms_of_textprop ();
-      syms_of_composite ();
-      #[cfg (feature = "windowsnt")] {
-      syms_of_ntproc ();
-      }
-      #[cfg (any (feature = "cygwin"))] {
-      syms_of_cygw32 ();
-      }
-      syms_of_window ();
-      syms_of_xdisp ();
-      syms_of_sqlite ();
-      syms_of_font ();
-      #[cfg (feature = "have_window_system")] {
-      syms_of_fringe ();
-      syms_of_image ();
-      #[cfg (feature = "have_ntgui")] {
-      syms_of_w32image ();
-      }
-      }
-      #[cfg (feature = "have_x_windows")] {
-      syms_of_xterm ();
-      syms_of_xfns ();
-      syms_of_xmenu ();
-      syms_of_fontset ();
-      syms_of_xsettings ();
-      #[cfg (feature = "have_x_sm")] {
-      syms_of_xsmfns ();
-      }
-      #[cfg (feature = "have_x11")] {
-      syms_of_xselect ();
-      }
-      }
-      syms_of_xml ();
-      #[cfg (feature = "have_lcms2")] {
-      syms_of_lcms2 ();
-      }
-      #[cfg (feature = "have_zlib")] {
-      syms_of_decompress ();
-      }
-      syms_of_menu ();
-      #[cfg (feature = "have_ntgui")] {
-      syms_of_w32term ();
-      syms_of_w32fns ();
-      syms_of_w32menu ();
-      syms_of_fontset ();
-      }
-      #[cfg (any (feature = "have_ntgui", feature = "cygwin"))] {
-      syms_of_w32cygwinx ();
-      }
-      #[cfg (any (feature = "windowsnt", feature = "have_ntgui"))] {
-      syms_of_w32select ();
-      }
-      #[cfg (feature = "msdos")] {
-      syms_of_xmenu ();
-      syms_of_dosfns ();
-      syms_of_msdos ();
-      syms_of_win16select ();
-      }
-      #[cfg (feature = "have_ns")] {
-      syms_of_nsterm ();
-      syms_of_nsfns ();
-      syms_of_nsmenu ();
-      syms_of_nsselect ();
-      syms_of_fontset ();
-      }
-      #[cfg (feature = "have_pgtk")] {
-      syms_of_pgtkterm ();
-      syms_of_pgtkfns ();
-      syms_of_pgtkselect ();
-      syms_of_pgtkmenu ();
-      syms_of_pgtkim ();
-      syms_of_fontset ();
-      syms_of_xsettings ();
-      }
-      #[cfg (feature = "have_haiku")] {
-      syms_of_haikuterm ();
-      syms_of_haikufns ();
-      syms_of_haikumenu ();
-      syms_of_haikufont ();
-      syms_of_haikuselect ();
-      #[cfg (feature = "have_native_image_api")] {
-      syms_of_haikuimage ();
-      }
-      syms_of_fontset ();
-      }
-      #[cfg (feature = "have_android")] {
-      syms_of_androidterm ();
-      syms_of_androidfns ();
-      syms_of_androidmenu ();
-      syms_of_fontset ();
-      #[cfg (not (feature = "android_stubify"))] {
-      syms_of_androidfont ();
-      syms_of_androidselect ();
-      syms_of_androidvfs ();
-      syms_of_sfntfont ();
-      syms_of_sfntfont_android ();
-      }
-      }
-      syms_of_gnutls ();
-      #[cfg (feature = "have_inotify")] {
-      syms_of_inotify ();
-      }
-      #[cfg (feature = "have_kqueue")] {
-      syms_of_kqueue ();
-      }
-      #[cfg (feature = "have_gfilenotify")] {
-      syms_of_gfilenotify ();
-      }
-      #[cfg (feature = "have_dbus")] {
-      syms_of_dbusbind ();
-      }
-      #[cfg (feature = "windowsnt")] {
-      syms_of_ntterm ();
-      #[cfg (feature = "have_w32notify")] {
-      syms_of_w32notify ();
-      }
-      syms_of_w32dwrite ();
-      }
-      syms_of_xwidget ();
-      syms_of_threads ();
-      syms_of_profiler ();
-      syms_of_pdumper ();
-      syms_of_json ();
-
-
-      keys_of_keyboard ();
-      // Original native initialization runs after the last defsubr, once.
-      #[cfg (feature = "have_native_comp")]
-      { hash_native_abi (); }
-    }
+    { syms_of_vm_all (); }
   else
     {
       /* Initialization that must be done even if the global variable
 	 initialized is non zero.  */
     }
 
-  /* C 2513-2515: `#ifdef HAVE_HAIKU init_haiku_select (); #endif`.  */
-  #[cfg (feature = "have_haiku")]
-  { init_haiku_select (); }
-
-  init_charset ();
-
-  /* This calls putenv and so must precede init_process_emacs.  */
-  init_timefns ();
-
-  init_editfns ();
-
-  /* C 2525-2531: `#ifdef HAVE_DBUS` / `#ifdef HAVE_X_WINDOWS`.  */
-  #[cfg (feature = "have_dbus")]
-  { init_dbusbind (); }
-  #[cfg (feature = "have_x_windows")]
-  { init_xterm (); }
-
-  /* This can create a thread that may call getenv, so it must follow
-     all calls to putenv and setenv.  Also, this sets up
-     add_keyboard_wait_descriptor, which init_display uses.  */
-  init_process_emacs (sockfd);
-
-  init_keyboard ();	/* This too must precede init_sys_modes.  */
-  init_display ();	/* Determine terminal type.  Calls init_sys_modes.  */
-  /* C 2540-2543: `#if HAVE_W32NOTIFY if (noninteractive) init_crit (); #endif`.  */
-  #[cfg (feature = "have_w32notify")]
-  { if (*noninteractive.as_mut_ptr ()) { init_crit (); } }
-  init_xdisp ();
-  /* C 2545-2547: `#ifdef HAVE_WINDOW_SYSTEM init_fringe (); #endif`.  */
-  #[cfg (feature = "have_window_system")]
-  { init_fringe (); }
-  init_macros ();
-  init_window ();
-  init_font ();
-  /* C 2556-2558: `#ifdef HAVE_ANDROID init_androidmenu (); #endif`.  */
-  #[cfg (feature = "have_android")]
-  { init_androidmenu (); }
-
-  #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
-  {
-    init_androidfont ();
-    init_androidselect ();
-    init_sfntfont ();
-    init_sfntfont_android ();
-  }
+  init_vm_display_subsystems (sockfd);
 
   if !(*initialized.as_mut_ptr ())
     {
@@ -2509,6 +2163,455 @@ fn enter_top_level_recursive_edit () -> !
     core::hint::black_box (top_level_stack_anchor);
     eassume! (false);
     std::hint::unreachable_unchecked ()
+  }
+}
+
+unsafe fn grow_regex_stack_limit (try_to_grow_stack: bool)
+{
+  // SAFETY: low-level VM/OS subsystem boundary; caller upholds single-threaded VM startup state
+  // before Lisp threads run and updates POSIX `RLIMIT_STACK` / `emacs_re_safe_alloca`.
+  unsafe {
+  let mut rlim: rlimit = std::mem::zeroed ();
+  if getrlimit (RLIMIT_STACK, &raw mut rlim) == 0
+      && 0 <= rlim.rlim_cur as i64 && (rlim.rlim_cur as i64) <= LONG_MAX as i64
+    {
+      let mut lim: rlim_t = rlim.rlim_cur;
+      let min_ratio: c_int = 20 * std::mem::size_of::<*mut c_char> () as c_int;
+      let ratio: c_int = min_ratio + min_ratio / 3;
+      let extra: c_int = (30 * 1000) * 50;
+
+      if try_to_grow_stack
+	{
+	  let mut newlim: rlim_t = (*emacs_re_max_failures.as_mut_ptr ()) as rlim_t * ratio as rlim_t
+				   + extra as rlim_t;
+	  let pagesize: c_long = getpagesize () as c_long;
+	  newlim += pagesize as rlim_t - 1;
+	  if 0 <= rlim.rlim_max as i64 && (rlim.rlim_max as i64) < newlim as i64
+	    { newlim = rlim.rlim_max; }
+	  newlim -= newlim % pagesize as rlim_t;
+
+	  if newlim > lim
+	      && pagesize as rlim_t <= newlim - lim
+	    {
+	      rlim.rlim_cur = newlim;
+	      if setrlimit (RLIMIT_STACK, &raw const rlim) == 0
+		{ lim = newlim; }
+	    }
+	}
+      if (lim as i64) < extra as i64
+        { lim = extra as rlim_t; }
+      let max_failures: ptrdiff_t
+	= min ((lim - extra as rlim_t) as isize,
+	       min (PTRDIFF_MAX as usize, SIZE_MAX) as isize) / ratio as ptrdiff_t;
+      (*emacs_re_safe_alloca.as_mut_ptr ()) = max (max_failures * min_ratio as ptrdiff_t, MAX_ALLOCA);
+    }
+  }
+}
+
+unsafe fn init_vm_once_tables ()
+{
+  // SAFETY: single-process VM cold-boot boundary (`!initialized`); initializes static Lisp obarray,
+  // coding tables, syntax/category/case tables, initial buffers, faces, keymaps, and terminal frame.
+  unsafe {
+  init_alloc_once ();
+  init_pdumper_once ();
+  init_obarray_once ();
+  init_eval_once ();
+  init_charset_once ();
+  init_coding_once ();
+  init_syntax_once ();
+  init_category_once ();
+  init_casetab_once ();
+  init_buffer_once ();
+  init_minibuf_once ();
+
+  syms_of_xfaces ();
+  syms_of_keymap ();
+  syms_of_keyboard ();
+
+  syms_of_data ();
+  syms_of_fns ();
+  syms_of_fileio ();
+  syms_of_alloc ();
+  init_print_once ();
+  syms_of_charset ();
+  syms_of_coding ();
+  init_frame_once ();
+  init_bignum ();
+  init_window_once ();
+  }
+}
+
+unsafe fn init_vm_core_subsystems ()
+{
+  // SAFETY: single-process VM startup under active OS-thread lock ownership; initializes
+  // allocator, bignum, thread table, evaluator, PRNG, faces, and optional native-comp symbols.
+  unsafe {
+  init_alloc ();
+  init_bignum ();
+  init_threads ();
+  #[cfg(any(feature = "femacs_gc_observer", feature = "femacs_gc_generational"))]
+  {
+    unsafe extern "C-unwind" { fn femacs_gc_runtime_ready(); }
+    femacs_gc_runtime_ready();
+  }
+  init_eval ();
+  (*running_asynch_code.as_mut_ptr ()) = false;
+  init_random ();
+  init_xfaces ();
+
+  if !(*initialized.as_mut_ptr ())
+    { syms_of_comp (); }
+  }
+}
+
+unsafe fn syms_of_vm_all ()
+{
+  // SAFETY: single-process VM cold-boot boundary (`!initialized`); interns built-in subrs/vars
+  // in exact C order before `init_vm_display_subsystems`.
+  unsafe {
+  syms_of_chartab ();
+  syms_of_lread ();
+  syms_of_print ();
+  syms_of_eval ();
+  syms_of_floatfns ();
+
+  syms_of_buffer ();
+  syms_of_bytecode ();
+  syms_of_callint ();
+  syms_of_casefiddle ();
+  syms_of_casetab ();
+  syms_of_category ();
+  syms_of_ccl ();
+  syms_of_character ();
+  syms_of_cmds ();
+  syms_of_dired ();
+  syms_of_display ();
+  syms_of_doc ();
+  syms_of_editfns ();
+  syms_of_emacs ();
+  syms_of_filelock ();
+  syms_of_indent ();
+  syms_of_insdel ();
+  syms_of_macros ();
+  syms_of_marker ();
+  syms_of_minibuf ();
+  syms_of_process ();
+  syms_of_search ();
+  syms_of_sysdep ();
+  syms_of_timefns ();
+  syms_of_frame ();
+  syms_of_syntax ();
+  syms_of_terminal ();
+  syms_of_term ();
+  syms_of_undo ();
+  #[cfg (feature = "have_modules")] {
+  syms_of_module ();
+  }
+  syms_of_treesit ();
+  #[cfg (feature = "have_sound")] {
+  syms_of_sound ();
+  }
+  syms_of_textprop ();
+  syms_of_composite ();
+  #[cfg (feature = "windowsnt")] {
+  syms_of_ntproc ();
+  }
+  #[cfg (any (feature = "cygwin"))] {
+  syms_of_cygw32 ();
+  }
+  syms_of_window ();
+  syms_of_xdisp ();
+  syms_of_sqlite ();
+  syms_of_font ();
+  #[cfg (feature = "have_window_system")] {
+  syms_of_fringe ();
+  syms_of_image ();
+  #[cfg (feature = "have_ntgui")] {
+  syms_of_w32image ();
+  }
+  }
+  #[cfg (feature = "have_x_windows")] {
+  syms_of_xterm ();
+  syms_of_xfns ();
+  syms_of_xmenu ();
+  syms_of_fontset ();
+  syms_of_xsettings ();
+  #[cfg (feature = "have_x_sm")] {
+  syms_of_xsmfns ();
+  }
+  #[cfg (feature = "have_x11")] {
+  syms_of_xselect ();
+  }
+  }
+  syms_of_xml ();
+  #[cfg (feature = "have_lcms2")] {
+  syms_of_lcms2 ();
+  }
+  #[cfg (feature = "have_zlib")] {
+  syms_of_decompress ();
+  }
+  syms_of_menu ();
+  #[cfg (feature = "have_ntgui")] {
+  syms_of_w32term ();
+  syms_of_w32fns ();
+  syms_of_w32menu ();
+  syms_of_fontset ();
+  }
+  #[cfg (any (feature = "have_ntgui", feature = "cygwin"))] {
+  syms_of_w32cygwinx ();
+  }
+  #[cfg (any (feature = "windowsnt", feature = "have_ntgui"))] {
+  syms_of_w32select ();
+  }
+  #[cfg (feature = "msdos")] {
+  syms_of_xmenu ();
+  syms_of_dosfns ();
+  syms_of_msdos ();
+  syms_of_win16select ();
+  }
+  #[cfg (feature = "have_ns")] {
+  syms_of_nsterm ();
+  syms_of_nsfns ();
+  syms_of_nsmenu ();
+  syms_of_nsselect ();
+  syms_of_fontset ();
+  }
+  #[cfg (feature = "have_pgtk")] {
+  syms_of_pgtkterm ();
+  syms_of_pgtkfns ();
+  syms_of_pgtkselect ();
+  syms_of_pgtkmenu ();
+  syms_of_pgtkim ();
+  syms_of_fontset ();
+  syms_of_xsettings ();
+  }
+  #[cfg (feature = "have_haiku")] {
+  syms_of_haikuterm ();
+  syms_of_haikufns ();
+  syms_of_haikumenu ();
+  syms_of_haikufont ();
+  syms_of_haikuselect ();
+  #[cfg (feature = "have_native_image_api")] {
+  syms_of_haikuimage ();
+  }
+  syms_of_fontset ();
+  }
+  #[cfg (feature = "have_android")] {
+  syms_of_androidterm ();
+  syms_of_androidfns ();
+  syms_of_androidmenu ();
+  syms_of_fontset ();
+  #[cfg (not (feature = "android_stubify"))] {
+  syms_of_androidfont ();
+  syms_of_androidselect ();
+  syms_of_androidvfs ();
+  syms_of_sfntfont ();
+  syms_of_sfntfont_android ();
+  }
+  }
+  syms_of_gnutls ();
+  #[cfg (feature = "have_inotify")] {
+  syms_of_inotify ();
+  }
+  #[cfg (feature = "have_kqueue")] {
+  syms_of_kqueue ();
+  }
+  #[cfg (feature = "have_gfilenotify")] {
+  syms_of_gfilenotify ();
+  }
+  #[cfg (feature = "have_dbus")] {
+  syms_of_dbusbind ();
+  }
+  #[cfg (feature = "windowsnt")] {
+  syms_of_ntterm ();
+  #[cfg (feature = "have_w32notify")] {
+  syms_of_w32notify ();
+  }
+  syms_of_w32dwrite ();
+  }
+  syms_of_xwidget ();
+  syms_of_threads ();
+  syms_of_profiler ();
+  syms_of_pdumper ();
+  syms_of_json ();
+
+  keys_of_keyboard ();
+  #[cfg (feature = "have_native_comp")]
+  { hash_native_abi (); }
+  }
+}
+
+unsafe fn init_vm_display_subsystems (sockfd: c_int)
+{
+  // SAFETY: single-process VM startup under active OS-thread lock ownership; initializes
+  // charset, timers, processes, keyboard, non-GUI/batch or interactive display, window, and font.
+  unsafe {
+  #[cfg (feature = "have_haiku")]
+  { init_haiku_select (); }
+
+  init_charset ();
+  init_timefns ();
+  init_editfns ();
+
+  #[cfg (feature = "have_dbus")]
+  { init_dbusbind (); }
+  #[cfg (feature = "have_x_windows")]
+  { init_xterm (); }
+
+  init_process_emacs (sockfd);
+  init_keyboard ();
+  init_display ();
+  #[cfg (feature = "have_w32notify")]
+  { if (*noninteractive.as_mut_ptr ()) { init_crit (); } }
+  init_xdisp ();
+  #[cfg (feature = "have_window_system")]
+  { init_fringe (); }
+  init_macros ();
+  init_window ();
+  init_font ();
+  #[cfg (feature = "have_android")]
+  if !(*noninteractive.as_mut_ptr ()) {
+    init_androidmenu ();
+    #[cfg (feature = "not_android_stubify")]
+    {
+      init_androidfont ();
+      init_androidselect ();
+      init_sfntfont ();
+      init_sfntfont_android ();
+    }
+  }
+  }
+}
+
+/// Initialize the single-process headless Lisp VM without starting a GUI toolkit,
+/// opening a controlling TTY, or entering the interactive command loop (`C1`).
+///
+/// # Safety
+/// Must be called at most once per OS process on the thread that will hold the VM
+/// lock; `argv0` must be a valid NUL-terminated static or process-lifetime C string
+/// pointer, and `dump_file` must be either null or a valid NUL-terminated path.
+pub(crate) unsafe fn init_headless_vm_body (
+  argv0: *const c_char,
+  dump_file: *const c_char,
+) -> Result<(), String>
+{
+  // SAFETY: single-process headless VM initialization under VM lock ownership (`C1`).
+  unsafe {
+  let mut stack_bottom_variable: *mut c_void = std::ptr::null_mut ();
+  stack_bottom! () = (&raw mut stack_bottom_variable) as *const c_char;
+  crate::roots::bind_vm_lock_owner ((*current_thread.as_mut_ptr ()) as usize);
+
+  let mut exec_bufsize: ptrdiff_t = 0;
+  let mut executable: *mut c_char = find_emacs_executable (argv0, &raw mut exec_bufsize);
+  if executable.is_null () || *executable == 0
+    {
+      xfree (executable as *mut c_void);
+      executable = xstrdup (argv0);
+    }
+
+  if !dump_file.is_null ()
+    {
+      let result: c_int = pdumper_load (dump_file, executable);
+      if result != PDUMPER_LOAD_SUCCESS as c_int
+        {
+          let reason = std::ffi::CStr::from_ptr (dump_error_to_string (result))
+            .to_string_lossy ()
+            .into_owned ();
+          let dump_label = std::ffi::CStr::from_ptr (dump_file).to_string_lossy ().into_owned ();
+          xfree (executable as *mut c_void);
+          stack_bottom! () = std::ptr::null ();
+          crate::roots::unbind_vm_lock_owner ();
+          return Err (format! ("could not load dump file \"{dump_label}\": {reason}"));
+        }
+    }
+  (*initial_emacs_executable.as_mut_ptr ()) = executable;
+
+  init_standard_fds ();
+
+  let mut argv_buf: [*mut c_char; 2] = [argv0 as *mut c_char, std::ptr::null_mut ()];
+  copy_args (1, argv_buf.as_mut_ptr ());
+  (*initial_argv0.as_mut_ptr ()) = argv0 as *mut c_char;
+
+  (*emacs_wd.as_mut_ptr ()) = emacs_get_current_dir_name ();
+  if dumped_with_pdumper_p ()
+    { pdumper_record_wd ((*emacs_wd.as_mut_ptr ())); }
+
+  grow_regex_stack_limit (true);
+  clearerr ((*stdin.as_mut_ptr ()));
+  emacs_backtrace (-1);
+
+  let lc_all: *mut c_char = getenv (c"LC_ALL".as_ptr ());
+  if !(!lc_all.is_null () && strcmp (lc_all, c"C".as_ptr ()) == 0)
+    {
+      setlocale (LC_ALL, c"".as_ptr ());
+      fixup_locale ();
+    }
+  (*text_quoting_flag.as_mut_ptr ()) = using_utf8 ();
+
+  (*inhibit_window_system.as_mut_ptr ()) = true;
+  (*dev_tty.as_mut_ptr ()) = xstrdup (std::ptr::addr_of! (DEV_TTY) as *const c_char);
+  (*noninteractive.as_mut_ptr ()) = true;
+  (*Vundo_outer_limit.as_mut_ptr ()) = Qnil ();
+  (*daemon_type.as_mut_ptr ()) = 0;
+  (*daemon_pipe.as_mut_ptr ())[1] = 0;
+
+  init_signals ();
+  (*noninteractive1.as_mut_ptr ()) = true;
+
+  if !(*initialized.as_mut_ptr ())
+    { init_vm_once_tables (); }
+
+  init_vm_core_subsystems ();
+
+  (*Vgc_cons_percentage.as_mut_ptr ()) =
+    make_float (if (*initialized.as_mut_ptr ()) { 1.0 } else { 0.1 });
+  (*no_site_lisp.as_mut_ptr ()) = true;
+  (*build_details.as_mut_ptr ()) = true;
+  #[cfg (feature = "have_modules")]
+  { init_module_assertions (false); }
+
+  #[cfg (feature = "have_kqueue")]
+  { globals_of_kqueue (); }
+
+  if !(*initialized.as_mut_ptr ())
+    { syms_of_callproc (); }
+  set_initial_environment ();
+
+  init_atimer ();
+  init_buffer ();
+  init_callproc_1 ();
+  init_cmdargs (1, argv_buf.as_mut_ptr (), 0, std::ptr::null ());
+
+  if (*initialized.as_mut_ptr ())
+    {
+      let old_log_max: Lisp_Object = (*Vmessage_log_max.as_mut_ptr ());
+      XSETFASTINT! ((*Vmessage_log_max.as_mut_ptr ()), 0);
+      message_dolog (c"".as_ptr (), 0, true, false);
+      (*Vmessage_log_max.as_mut_ptr ()) = old_log_max;
+    }
+
+  init_callproc ();
+  init_fileio ();
+  init_lread ();
+
+  if !(*initialized.as_mut_ptr ())
+    { syms_of_vm_all (); }
+
+  init_vm_display_subsystems (-1);
+
+  #[cfg (feature = "have_native_comp")]
+  if !(*initialized.as_mut_ptr ())
+    {
+      (*Vnative_comp_eln_load_path.as_mut_ptr ()) =
+        Fcons (Fexpand_file_name (XCAR ((*Vnative_comp_eln_load_path.as_mut_ptr ())),
+                                 (*Vinvocation_directory.as_mut_ptr ())), Qnil ());
+    }
+
+  (*initialized.as_mut_ptr ()) = true;
+  safe_run_hooks (Qafter_pdump_load_hook ());
+  set_initial_minibuffer_mode ();
+  Ok (())
   }
 }
 

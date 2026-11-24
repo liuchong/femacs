@@ -114,7 +114,12 @@ pub(crate) fn build_encoded_rustflags(
     flags.join("\x1f")
 }
 
-fn walk_rlibs(dir: &Path, depth: usize, prefix: &str, out: &mut Vec<(std::time::SystemTime, PathBuf)>) -> Result<(), String> {
+fn walk_matching_files(
+    dir: &Path,
+    depth: usize,
+    predicate: &impl Fn(&str, &fs::Metadata) -> bool,
+    out: &mut Vec<(std::time::SystemTime, PathBuf)>,
+) -> Result<(), String> {
     if depth == 0 || !dir.is_dir() {
         return Ok(());
     }
@@ -123,31 +128,44 @@ fn walk_rlibs(dir: &Path, depth: usize, prefix: &str, out: &mut Vec<(std::time::
         let path = entry.path();
         let ft = entry.file_type().map_err(|e| e.to_string())?;
         if ft.is_dir() {
-            walk_rlibs(&path, depth - 1, prefix, out)?;
+            walk_matching_files(&path, depth - 1, predicate, out)?;
+            continue;
+        }
+        if !ft.is_file() {
             continue;
         }
         let Some(name) = path.file_name().and_then(|s| s.to_str()) else {
             continue;
         };
-        if name.starts_with(prefix) && name.ends_with(".rlib") {
-            let mtime = entry
-                .metadata()
-                .and_then(|m| m.modified())
-                .unwrap_or(std::time::UNIX_EPOCH);
+        let meta = entry.metadata().map_err(|e| e.to_string())?;
+        if predicate(name, &meta) {
+            let mtime = meta.modified().unwrap_or(std::time::UNIX_EPOCH);
             out.push((mtime, path));
         }
     }
     Ok(())
 }
 
-fn find_newest_rlib(release_dir: &Path, prefix: &str) -> Result<PathBuf, String> {
+fn pick_newest_matching(
+    dir: &Path,
+    predicate: impl Fn(&str, &fs::Metadata) -> bool,
+    missing_desc: &str,
+) -> Result<PathBuf, String> {
     let mut matches: Vec<(std::time::SystemTime, PathBuf)> = Vec::new();
-    walk_rlibs(release_dir, 5, prefix, &mut matches)?;
+    walk_matching_files(dir, 5, &predicate, &mut matches)?;
     matches.sort_by(|a, b| a.0.cmp(&b.0).then_with(|| a.1.cmp(&b.1)));
     matches
         .pop()
         .map(|(_, p)| p)
-        .ok_or_else(|| format!("missing built {prefix}*.rlib under {}", release_dir.display()))
+        .ok_or_else(|| format!("missing built {missing_desc} under {}", dir.display()))
+}
+
+fn find_newest_rlib(release_dir: &Path, prefix: &str) -> Result<PathBuf, String> {
+    pick_newest_matching(
+        release_dir,
+        |name, _| name.starts_with(prefix) && name.ends_with(".rlib"),
+        &format!("{prefix}*.rlib"),
+    )
 }
 
 /// Build one tool binary from `femacs-tools` (`make-fingerprint`, `hexl`,
@@ -237,26 +255,37 @@ pub(crate) fn build_tool_program(rel: Option<&String>) -> i32 {
     0
 }
 
-/// Build and link `temacs` through Cargo (`femacs-host --bin temacs`), record runtime
-/// link receipts when bound, rewrite the binary fingerprint, and run optional differential gates.
-pub(crate) fn link_temacs(arg: Option<&str>) -> i32 {
-    let checking = std::env::var("FEMACS_LINK_CHECKING").is_ok_and(|value| value == "1");
-    let cocoa = std::env::var_os("FEMACS_MACOS_GUI").is_some();
-    let repo = Path::new(crate::REPO);
+fn find_newest_test_executable(release_dir: &Path, test_name: &str) -> Result<PathBuf, String> {
+    let prefix = format!("{test_name}-");
+    pick_newest_matching(
+        release_dir,
+        |name, meta| {
+            let is_exec = {
+                #[cfg(unix)]
+                {
+                    use std::os::unix::fs::PermissionsExt;
+                    (meta.permissions().mode() & 0o111) != 0
+                }
+                #[cfg(not(unix))]
+                {
+                    let _ = meta;
+                    true
+                }
+            };
+            is_exec && name.starts_with(&prefix) && !name.contains('.')
+        },
+        &format!("Cargo-built test {test_name}"),
+    )
+}
 
-    let cfgs = match crate::config_features() {
-        Ok(v) => v,
-        Err(e) => return crate::fail(e),
-    };
-    let cargo_features = extract_cargo_features(&cfgs);
-
+pub(crate) fn collect_host_link_tokens(
+    repo: &Path,
+    cocoa: bool,
+) -> Result<(Vec<String>, Vec<String>), String> {
     let mut link_tokens: Vec<String> = Vec::new();
     let mut swift_objs: Vec<String> = Vec::new();
     if cocoa {
-        let objects_manifest = match crate::target_manifest("objects.txt") {
-            Ok(v) => v,
-            Err(e) => return crate::fail(e),
-        };
+        let objects_manifest = crate::target_manifest("objects.txt")?;
         for tok in &objects_manifest {
             let Some(stem) = tok.strip_suffix(".o") else {
                 continue;
@@ -264,7 +293,7 @@ pub(crate) fn link_temacs(arg: Option<&str>) -> i32 {
             if ["macfont", "nsfns", "nsimage", "nsmenu", "nsselect", "nsterm"].contains(&stem) {
                 let p = crate::units_dir().join(format!("{stem}.o"));
                 if !p.is_file() {
-                    return crate::fail(format!(
+                    return Err(format!(
                         "missing compiled Swift object {}; run Swift step first",
                         p.display()
                     ));
@@ -277,46 +306,55 @@ pub(crate) fn link_temacs(arg: Option<&str>) -> i32 {
         link_tokens.extend(crate::macos::link_flags());
     }
 
-    match crate::target_manifest("libraries.txt") {
-        Ok(libs) => link_tokens.extend(libs),
-        Err(e) => return crate::fail(e),
-    }
+    link_tokens.extend(crate::target_manifest("libraries.txt")?);
     for extra in [
-        crate::tls::link_flags(repo),
-        crate::lcms::link_flags(repo),
-        crate::treesit::link_flags(repo),
-        crate::image::link_flags(repo),
-        crate::runtime::link_flags(repo),
+        crate::tls::link_flags(repo)?,
+        crate::lcms::link_flags(repo)?,
+        crate::treesit::link_flags(repo)?,
+        crate::image::link_flags(repo)?,
+        crate::runtime::link_flags(repo)?,
     ] {
-        match extra {
-            Ok(flags) => link_tokens.extend(flags),
-            Err(e) => return crate::fail(e),
-        }
+        link_tokens.extend(extra);
     }
     link_tokens.push("-lSystem".into());
+    Ok((link_tokens, swift_objs))
+}
 
-    let _ = fs::create_dir_all(crate::port_dir());
-    let port_root = fs::canonicalize(crate::port_dir()).unwrap_or_else(|_| crate::port_dir());
-    if let Err(e) = crate::port_tree(&port_root) {
-        return crate::fail(format!("building the port's tree layout: {e}"));
+fn host_cargo_encoded_rustflags(
+    cfgs: &[String],
+    checking: bool,
+    include_pgo: bool,
+    link_tokens: &[String],
+) -> String {
+    let mut encoded = build_encoded_rustflags(cfgs, checking, include_pgo);
+    for tok in link_tokens {
+        encoded.push('\x1f');
+        encoded.push_str("-C\x1flink-arg=");
+        encoded.push_str(tok);
     }
+    encoded
+}
 
+fn run_host_cargo(
+    subcmd: &[&str],
+    target_flags: &[&str],
+    kind_label: &str,
+    checking: bool,
+    include_pgo: bool,
+    link_tokens: &[String],
+) -> Result<(), String> {
+    let repo = Path::new(crate::REPO);
+    let cfgs = crate::config_features()?;
+    let cargo_features = extract_cargo_features(&cfgs);
     let target = host_target_triple();
     let target_dir = cargo_target_dir();
-    let encoded = build_encoded_rustflags(&cfgs, checking, true);
+    let encoded = host_cargo_encoded_rustflags(&cfgs, checking, include_pgo, link_tokens);
 
     let mut cmd = Command::new("cargo");
     cmd.current_dir(repo)
-        .args([
-            "rustc",
-            "--release",
-            "--target",
-            target,
-            "-p",
-            "femacs-host",
-            "--bin",
-            "temacs",
-        ])
+        .args(subcmd)
+        .args(["--release", "--target", target, "-p", "femacs-host"])
+        .args(target_flags)
         .arg("--target-dir")
         .arg(&target_dir)
         .env("CARGO_ENCODED_RUSTFLAGS", encoded);
@@ -326,21 +364,60 @@ pub(crate) fn link_temacs(arg: Option<&str>) -> i32 {
     if !crate::sanitizer_flags().is_empty() {
         cmd.env("RUSTC_BOOTSTRAP", "1");
     }
-    cmd.arg("--");
-    for tok in &link_tokens {
-        cmd.arg("-C").arg(format!("link-arg={tok}"));
-    }
 
+    let op = subcmd.join(" ");
     println!(
-        "== cargo rustc (femacs-host --bin temacs): features=[{}], checking={checking} ==",
+        "== cargo {op} (femacs-host {kind_label}): features=[{}], checking={checking} ==",
         cargo_features.join(",")
     );
     match cmd.status() {
-        Ok(s) if s.success() => {}
-        Ok(s) => return crate::fail(format!("cargo rustc for temacs failed ({s})")),
-        Err(e) => return crate::fail(format!("cargo rustc for temacs: {e}")),
+        Ok(s) if s.success() => Ok(()),
+        Ok(s) => Err(format!("cargo {op} for {kind_label} failed ({s})")),
+        Err(e) => Err(format!("cargo {op} for {kind_label}: {e}")),
+    }
+}
+
+pub(crate) fn build_host_cargo_target(
+    kind_flag: &str,
+    name: &str,
+    checking: bool,
+    include_pgo: bool,
+    link_tokens: &[String],
+) -> Result<(), String> {
+    run_host_cargo(
+        &["rustc"],
+        &[kind_flag, name],
+        &format!("{kind_flag} {name}"),
+        checking,
+        include_pgo,
+        link_tokens,
+    )
+}
+
+/// Build and link `temacs` through Cargo (`femacs-host --bin temacs`), record runtime
+/// link receipts when bound, rewrite the binary fingerprint, and run optional differential gates.
+pub(crate) fn link_temacs(arg: Option<&str>) -> i32 {
+    let checking = std::env::var("FEMACS_LINK_CHECKING").is_ok_and(|value| value == "1");
+    let cocoa = std::env::var_os("FEMACS_MACOS_GUI").is_some();
+    let repo = Path::new(crate::REPO);
+
+    let (link_tokens, swift_objs) = match collect_host_link_tokens(repo, cocoa) {
+        Ok(v) => v,
+        Err(e) => return crate::fail(e),
+    };
+
+    let _ = fs::create_dir_all(crate::port_dir());
+    let port_root = fs::canonicalize(crate::port_dir()).unwrap_or_else(|_| crate::port_dir());
+    if let Err(e) = crate::port_tree(&port_root) {
+        return crate::fail(format!("building the port's tree layout: {e}"));
     }
 
+    if let Err(e) = build_host_cargo_target("--bin", "temacs", checking, true, &link_tokens) {
+        return crate::fail(e);
+    }
+
+    let target = host_target_triple();
+    let target_dir = cargo_target_dir();
     let built_temacs = target_dir.join(target).join("release").join("temacs");
     if !built_temacs.is_file() {
         return crate::fail(format!(
@@ -422,6 +499,114 @@ pub(crate) fn link_temacs(arg: Option<&str>) -> i32 {
         Ok(_) => crate::fail("a decoded text differs from the reference's for the same bytes"),
         Err(e) => crate::fail(e),
     }
+}
+
+/// Build, link, and finalize an integration test target in `femacs-host` using the
+/// active terminal configuration and bundled runtime library closure.
+pub(crate) fn link_host_test(name: Option<&str>) -> i32 {
+    let Some(test_name) = name else {
+        return crate::fail("link-host-test requires <test-name>");
+    };
+    let repo = crate::canonical(Path::new(crate::REPO));
+    let root = repo.join("build/terminal");
+    let config_file = repo.join("build-support/macos/terminal/config.json");
+    let config_dir = root.join("config");
+    let prepared_config = config_dir.join("darwin-terminal.json");
+    let config_rs = config_dir.join("config.rs");
+    let epaths_rs = config_dir.join("epaths.rs");
+    let objects_dir = root.join("objects");
+    let need_prepare = !(prepared_config.is_file()
+        && config_rs.is_file()
+        && epaths_rs.is_file()
+        && root.join("tls/build-receipt.json").is_file());
+    if need_prepare {
+        if let Err(e) = crate::standalone::prepare_terminal_env(&repo, &root, &config_file) {
+            return crate::fail(e);
+        }
+    }
+    let executable = match std::env::current_exe() {
+        Ok(p) => p,
+        Err(e) => return crate::fail(e),
+    };
+    let run_xtask = |args: &[&str]| -> Result<(), String> {
+        let mut command = Command::new(&executable);
+        command
+            .current_dir(&repo)
+            .args(args)
+            .env_remove("FEMACS_MACOS_GUI")
+            .env_remove("FEMACS_TARGET")
+            .env_remove("FEMACS_LINK_CHECKING")
+            .env("FEMACS_BUILD_TARGET", "macos-terminal")
+            .env("FEMACS_CONFIG", "darwin-arm64")
+            .env("FEMACS_CONFIG_FILE", &prepared_config)
+            .env("FEMACS_CONFIG_RS", &config_rs)
+            .env("FEMACS_EPATHS_RS", &epaths_rs)
+            .env("FEMACS_UNITS_DIR", &objects_dir)
+            .env("FEMACS_TOOL_UNITS", &objects_dir)
+            .env("FEMACS_BUILD_ROOT", &root)
+            .env("FEMACS_PGO", "off")
+            .env("FEMACS_RELEASE_BUILD", "1");
+        let status = command.status().map_err(|e| e.to_string())?;
+        if status.success() {
+            Ok(())
+        } else {
+            Err(format!("{}: {status}", args.join(" ")))
+        }
+    };
+    if need_prepare {
+        if let Err(e) = run_xtask(&["gen-config"]) {
+            return crate::fail(e);
+        }
+    }
+    if let Err(e) = run_xtask(&["link-host-test-inner", test_name]) {
+        return crate::fail(e);
+    }
+    0
+}
+
+/// Inner step executed with `FEMACS_CONFIG_RS`/`FEMACS_EPATHS_RS` populated to link `--test <name>`.
+pub(crate) fn link_host_test_inner(name: Option<&str>) -> i32 {
+    let Some(test_name) = name else {
+        return crate::fail("link-host-test-inner requires <test-name>");
+    };
+    let checking = std::env::var("FEMACS_LINK_CHECKING").is_ok_and(|value| value == "1");
+    let repo = Path::new(crate::REPO);
+    let (link_tokens, _) = match collect_host_link_tokens(repo, false) {
+        Ok(v) => v,
+        Err(e) => return crate::fail(e),
+    };
+    let _ = fs::create_dir_all(crate::port_dir());
+    let port_root = fs::canonicalize(crate::port_dir()).unwrap_or_else(|_| crate::port_dir());
+    if let Err(e) = crate::port_tree(&port_root) {
+        return crate::fail(format!("building the port's tree layout: {e}"));
+    }
+    let (exe_prefix, out_name) = if test_name == "lib" {
+        if let Err(e) = run_host_cargo(&["test", "--no-run"], &["--lib"], "--lib", checking, false, &link_tokens) {
+            return crate::fail(e);
+        }
+        ("femacs_host", "femacs_host_unit_tests")
+    } else {
+        if let Err(e) = build_host_cargo_target("--test", test_name, checking, false, &link_tokens) {
+            return crate::fail(e);
+        }
+        (test_name, test_name)
+    };
+    let release_dir = cargo_target_dir()
+        .join(host_target_triple())
+        .join("release");
+    let built = match find_newest_test_executable(&release_dir, exe_prefix) {
+        Ok(p) => p,
+        Err(e) => return crate::fail(e),
+    };
+    let out_path = port_root.join("src").join(out_name);
+    if let Err(e) = crate::owned_copy::copy_file(&built, &out_path) {
+        return crate::fail(e);
+    }
+    if let Err(e) = crate::finalize_binary(&out_path) {
+        return crate::fail(e);
+    }
+    println!("linked host test {}", out_path.display());
+    0
 }
 
 /// Check the Cargo workspace crates in both normal and `--cfg enable_checking` modes.
@@ -522,14 +707,25 @@ mod tests {
         let deps = dir.join("deps");
         fs::create_dir_all(&nested).unwrap();
         fs::create_dir_all(&deps).unwrap();
+        let host_out = dir.join("build/femacs-host/90a26b70/out");
+        fs::create_dir_all(&host_out).unwrap();
         let nested_rlib = nested.join("libfemacs_vm-abc123.rlib");
         let deps_rlib = deps.join("libfemacs_sys-def456.rlib");
+        let test_bin = host_out.join("a1_host_acceptance-90a26b70");
         fs::write(&nested_rlib, b"vm").unwrap();
         fs::write(&deps_rlib, b"sys").unwrap();
+        fs::write(&test_bin, b"bin").unwrap();
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            fs::set_permissions(&test_bin, fs::Permissions::from_mode(0o755)).unwrap();
+        }
 
         assert_eq!(find_newest_rlib(&dir, "libfemacs_vm-").unwrap(), nested_rlib);
         assert_eq!(find_newest_rlib(&dir, "libfemacs_sys-").unwrap(), deps_rlib);
         assert!(find_newest_rlib(&dir, "libfemacs_missing-").is_err());
+        assert_eq!(find_newest_test_executable(&dir, "a1_host_acceptance").unwrap(), test_bin);
+        assert!(find_newest_test_executable(&dir, "missing_test").is_err());
         let _ = fs::remove_dir_all(&dir);
     }
 }

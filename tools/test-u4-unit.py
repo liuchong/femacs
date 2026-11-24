@@ -1070,7 +1070,7 @@ fn main() {
         for rel in (
             "crates/femacs-sys/src/lib.rs",
             "crates/femacs-vm/src/lib.rs",
-            "crates/femacs-host/src/lib.rs",
+            "crates/femacs-vm/src/host_runtime.rs",
             "crates/femacs-host/src/bin/temacs.rs",
             "xtask/src/main.rs",
         ):
@@ -1080,6 +1080,7 @@ fn main() {
         for rel in (
             "crates/femacs-pure/src/lib.rs",
             "crates/femacs-vm/src/safe_domain.rs",
+            "crates/femacs-host/src/lib.rs",
             "cli/src/lib.rs",
             "cli/src/bin/fe.rs",
             "cli/src/bin/femacs.rs",

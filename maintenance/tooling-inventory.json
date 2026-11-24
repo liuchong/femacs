@@ -8298,6 +8298,23 @@
       "uncertainty": null
     },
     {
+      "path": "tools/test-c1-a1-host.py",
+      "sha256": "d260a3452d3c8c6aad663d7b3708ca547bd3a6e6be82beafac2e244432937721",
+      "bytes": 13151,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Phase II Stage C1/A1 host boundary and editor-fidelity acceptance gate",
+      "readers": [
+        {
+          "path": "tools/test-c1-a1-host.py",
+          "anchor": "C1_A1_host_acceptance",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
       "path": "tools/test-u3-unit.py",
       "sha256": "43b331ea92becfba196140f52b50133a3f2a44f0ebe021cdfecad87283e4cab6",
       "bytes": 31303,
@@ -8333,8 +8350,8 @@
     },
     {
       "path": "tools/test-u4-unit.py",
-      "sha256": "588d2500b1615de1abf62dfac4d45b8dbcaebbc20f3ab24b5e8df3664df5f8f5",
-      "bytes": 49637,
+      "sha256": "31887814bb9bf77a1bb5863b8cc22c3cd47baf3934314e1daf196e244123a1f3",
+      "bytes": 49689,
       "family": "test",
       "decision": "retain",
       "replacement": null,
@@ -8479,8 +8496,8 @@
     },
     {
       "path": "tools/unsafe-boundary-manifest.json",
-      "sha256": "abf8f40fa80faa7428712550db35cb4f2fb3d96b0e38e6abcb76c25304c63021",
-      "bytes": 145134,
+      "sha256": "b116c5bb929b0b3d392fd8f81715a7a795aeb37a2605026ff161363d922b890a",
+      "bytes": 145562,
       "family": "fixture",
       "decision": "retain",
       "replacement": null,

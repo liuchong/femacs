@@ -63,7 +63,17 @@ pub(super) fn terminal_in(repo: &Path, root: &Path, publish_info: bool) -> Resul
     terminal_configured(repo, root, publish_info, &repo.join("build-support/macos/terminal/config.json"))
 }
 
-pub(super) fn terminal_configured(repo: &Path, root: &Path, publish_info: bool, config_file: &Path) -> Result<(), String> {
+pub(super) struct PreparedTerminalEnv {
+    pub(super) prepared_config: PathBuf,
+    pub(super) config_dir: PathBuf,
+    pub(super) objects_dir: PathBuf,
+}
+
+pub(super) fn prepare_terminal_env(
+    repo: &Path,
+    root: &Path,
+    config_file: &Path,
+) -> Result<PreparedTerminalEnv, String> {
     check_host()?;
     let root = crate::tooling::guard_scratch(repo, root)?;
     let config = root.join("config");
@@ -77,7 +87,7 @@ pub(super) fn terminal_configured(repo: &Path, root: &Path, publish_info: bool, 
     let image_config = config.join("darwin-terminal-image.json");
     crate::image::prepare(repo, &root, &lcms_config, &image_config)?;
     crate::treesit::prepare(repo, &root, &image_config, &prepared_config)?;
-    resources(&repo, "base", None)?;
+    resources(repo, "base", None)?;
     stage_module_api(repo, &root.join("port/include"))?;
     // Generate checkout-local paths for the terminal configuration.
     let mut paths = String::new();
@@ -107,24 +117,31 @@ pub(super) fn terminal_configured(repo: &Path, root: &Path, publish_info: bool, 
         paths = crate::runtime::terminal_paths_source(repo, &root);
     }
     fs::write(config.join("epaths.rs"), paths).map_err(|e| e.to_string())?;
+    Ok(PreparedTerminalEnv {
+        prepared_config,
+        config_dir: config,
+        objects_dir: objects,
+    })
+}
+
+pub(super) fn terminal_configured(repo: &Path, root: &Path, publish_info: bool, config_file: &Path) -> Result<(), String> {
+    let prep = prepare_terminal_env(repo, root, config_file)?;
+    let root = crate::tooling::guard_scratch(repo, root)?;
     let executable = std::env::current_exe().map_err(|e| e.to_string())?;
     let invoke = |args: &[&str]| -> Result<(), String> {
         let mut command = Command::new(&executable);
-        command.current_dir(&repo)
+        command.current_dir(repo)
             .args(args)
             .env_remove("FEMACS_MACOS_GUI")
             .env_remove("FEMACS_TARGET")
             .env_remove("FEMACS_LINK_CHECKING")
             .env("FEMACS_BUILD_TARGET", "macos-terminal")
             .env("FEMACS_CONFIG", "darwin-arm64")
-            .env(
-                "FEMACS_CONFIG_FILE",
-                &prepared_config,
-            )
-            .env("FEMACS_CONFIG_RS", config.join("config.rs"))
-            .env("FEMACS_EPATHS_RS", config.join("epaths.rs"))
-            .env("FEMACS_UNITS_DIR", &objects)
-            .env("FEMACS_TOOL_UNITS", &objects)
+            .env("FEMACS_CONFIG_FILE", &prep.prepared_config)
+            .env("FEMACS_CONFIG_RS", prep.config_dir.join("config.rs"))
+            .env("FEMACS_EPATHS_RS", prep.config_dir.join("epaths.rs"))
+            .env("FEMACS_UNITS_DIR", &prep.objects_dir)
+            .env("FEMACS_TOOL_UNITS", &prep.objects_dir)
             .env("FEMACS_BUILD_ROOT", &root)
             .env("FEMACS_PGO", "off")
             .env("FEMACS_RELEASE_BUILD", "1");

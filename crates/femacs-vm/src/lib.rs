@@ -9,6 +9,7 @@ pub mod roots;
 pub mod state;
 pub mod vm_primitives;
 pub mod safe_domain;
+pub mod host_runtime;
 pub use vm_primitives::editor_main;
 pub(crate) mod safe_cmds;
 pub(crate) mod safe_buffer;

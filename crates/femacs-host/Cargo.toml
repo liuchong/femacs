@@ -12,6 +12,10 @@ path = "src/lib.rs"
 name = "temacs"
 path = "src/bin/temacs.rs"
 
+[[test]]
+name = "a1_host_acceptance"
+harness = false
+
 [features]
 default = []
 have_ns = ["femacs-vm/have_ns"]

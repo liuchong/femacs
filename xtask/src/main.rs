@@ -148,6 +148,8 @@ fn main() {
             else{link_shared(args.get(1).map(String::as_str),manifest.map(Path::new))}
         },
         "link-program" => cargo_build::build_tool_program(args.get(1)),
+        "link-host-test" => cargo_build::link_host_test(args.get(1).map(String::as_str)),
+        "link-host-test-inner" => cargo_build::link_host_test_inner(args.get(1).map(String::as_str)),
         "dump" => dump_emacs(),
         "dump-bootstrap" => dump_emacs_mode(true),
         "gate-android" => run_python(&["tools/check-android-apk.py"]),
