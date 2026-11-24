@@ -516,6 +516,7 @@ def check_cache_lifecycle(
     assert cold_res["status"] == "rebuilt", f"expected rebuilt, got {cold_res}"
     cached_bin = Path(cold_res["lisp_bin"])
     cached_entry = Path(cold_res["cache_entry"])
+    assert cached_entry.name == pkg_sha, f"expected full 64-hex cache entry name, got {cached_entry.name}"
     mtime_before = cached_bin.stat().st_mtime_ns
 
     # Run Seed from cached host and prove parity against reference seed output
@@ -607,6 +608,8 @@ def check_cache_lifecycle(
             "x86_64-unknown-linux-gnu",
             "--expect-build-config",
             cfg,
+            "--expect-package-sha256",
+            pkg_sha,
         ],
         timeout=30,
     )
@@ -625,10 +628,32 @@ def check_cache_lifecycle(
             target,
             "--expect-build-config",
             cfg,
+            "--expect-package-sha256",
+            pkg_sha,
         ],
         timeout=30,
     )
     assert bad_commit.returncode != 0, "expected wrong commit rejection"
+
+    bad_pkg_sha = run_cmd(
+        [
+            sys.executable,
+            str(CACHE_TOOL),
+            "resolve",
+            "--cache-dir",
+            str(cache_dir),
+            "--expect-commit",
+            commit,
+            "--expect-target",
+            target,
+            "--expect-build-config",
+            cfg,
+            "--expect-package-sha256",
+            "0" * 64,
+        ],
+        timeout=30,
+    )
+    assert bad_pkg_sha.returncode != 0, "expected wrong package_sha256 rejection"
 
     tamper_cache = out_dir / "tamper-cache"
     shutil.copytree(cache_dir, tamper_cache, symlinks=False)
@@ -650,11 +675,60 @@ def check_cache_lifecycle(
             target,
             "--expect-build-config",
             cfg,
+            "--expect-package-sha256",
+            pkg_sha,
         ],
         timeout=30,
     )
     assert tamper_lisp.returncode != 0, "expected tampered lisp/ rejection"
     loadup.write_bytes(orig_loadup)
+
+    extra_rt = tampered_entry / "runtime-extra"
+    extra_rt.mkdir()
+    (extra_rt / "evil.dylib").write_bytes(b"evil")
+    tamper_extra_rt = run_cmd(
+        [
+            sys.executable,
+            str(CACHE_TOOL),
+            "resolve",
+            "--cache-dir",
+            str(tamper_cache),
+            "--expect-commit",
+            commit,
+            "--expect-target",
+            target,
+            "--expect-build-config",
+            cfg,
+            "--expect-package-sha256",
+            pkg_sha,
+        ],
+        timeout=30,
+    )
+    assert tamper_extra_rt.returncode != 0, "expected unverified runtime-extra/ rejection"
+    shutil.rmtree(extra_rt)
+
+    spoof_pkg = out_dir / "tamper-spoof-pkg"
+    shutil.copytree(tampered_entry, spoof_pkg, symlinks=False)
+    spoof_manifest = json.loads((spoof_pkg / "manifest.json").read_text(encoding="utf-8"))
+    target_loadup = spoof_pkg / "lisp" / "loadup.el"
+    spoof_manifest["binaries"]["femacs-lisp"] = {
+        "bytes": target_loadup.stat().st_size,
+        "relative_path": "lisp/loadup.el",
+        "sha256": sha256_file(target_loadup),
+    }
+    canonical = {
+        "binaries": spoof_manifest["binaries"],
+        "build_config": spoof_manifest["build_config"],
+        "resource_trees": spoof_manifest["resource_trees"],
+        "source_commit": spoof_manifest["source_commit"],
+        "target": spoof_manifest["target"],
+    }
+    spoof_manifest["package_sha256"] = hashlib.sha256(
+        json.dumps(canonical, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+    ).hexdigest()
+    (spoof_pkg / "manifest.json").write_text(json.dumps(spoof_manifest, indent=2) + "\n", encoding="utf-8")
+    tamper_spoof = run_cmd([sys.executable, str(CACHE_TOOL), "verify", "--package", str(spoof_pkg)], timeout=30)
+    assert tamper_spoof.returncode != 0, "expected spoofed binary relative_path rejection"
 
     pdmp = tampered_entry / "bin" / "femacs-lisp.pdmp"
     orig_pdmp = bytearray(pdmp.read_bytes())
@@ -673,6 +747,17 @@ def check_cache_lifecycle(
         "target": target,
         "build_config": cfg,
     }
+
+
+def claim_fresh_output_dir(out_arg: Path) -> Path:
+    if out_arg.is_symlink() or out_arg.exists():
+        raise AssertionError(f"--out destination already exists or is a symlink; pass a new directory: {out_arg}")
+    out_dir = out_arg.resolve()
+    if out_dir.is_symlink() or out_dir.exists():
+        raise AssertionError(f"--out destination already exists; pass a new directory: {out_dir}")
+    out_dir.parent.mkdir(parents=True, exist_ok=True)
+    out_dir.mkdir(exist_ok=False)
+    return out_dir
 
 
 def run_selftest() -> int:
@@ -694,6 +779,36 @@ def run_selftest() -> int:
             raise AssertionError("expected byte diff rejection")
         except AssertionError:
             pass
+
+        existing = root / "existing-out"
+        existing.mkdir()
+        sentinel = existing / "keep.txt"
+        sentinel.write_text("keep\n", encoding="utf-8")
+        try:
+            claim_fresh_output_dir(existing)
+            raise AssertionError("expected claim_fresh_output_dir to reject existing dir")
+        except AssertionError:
+            pass
+        assert sentinel.read_text(encoding="utf-8") == "keep\n"
+
+        try:
+            main([
+                "--package",
+                str(root / "missing-pkg"),
+                "--eliscript-repo",
+                str(existing),
+                "--reference-host",
+                str(sentinel),
+                "--out",
+                str(existing),
+            ])
+            raise AssertionError("expected main to reject invalid package without touching existing --out")
+        except AssertionError:
+            pass
+        assert sentinel.read_text(encoding="utf-8") == "keep\n"
+
+        fresh_out = claim_fresh_output_dir(root / "nested" / "fresh-out")
+        assert fresh_out.is_dir()
 
     print("test-c3-a3-seed-host selftest PASS")
     return 0
@@ -717,13 +832,10 @@ def main(argv: list[str] | None = None) -> int:
     ref_bin = args.reference_host
     if not ref_bin.is_file():
         raise AssertionError(f"reference host not found: {ref_bin}")
+    if not args.eliscript_repo.is_dir():
+        raise AssertionError(f"eliscript repository directory not found: {args.eliscript_repo}")
 
-    out_dir = args.out.resolve()
-    if out_dir.exists():
-        shutil.rmtree(out_dir)
-    out_dir.mkdir(parents=True, exist_ok=True)
-
-    # 1. Verify standalone package and strict codesign
+    # 1. Verify standalone package and strict codesign BEFORE creating output directory
     ver = run_cmd([sys.executable, str(CACHE_TOOL), "verify", "--package", str(pkg_dir), "--json"], timeout=60)
     if ver.returncode != 0:
         raise AssertionError(f"package verify failed: {ver.stdout} {ver.stderr}")
@@ -732,6 +844,8 @@ def main(argv: list[str] | None = None) -> int:
     http_bin = pkg_dir / "bin" / "http-host"
     verify_codesign_if_darwin(lisp_bin)
     verify_codesign_if_darwin(http_bin)
+
+    out_dir = claim_fresh_output_dir(args.out)
 
     clean_env = isolated_env(out_dir / "home-femacs")
     ref_env = reference_env(out_dir / "home-ref")

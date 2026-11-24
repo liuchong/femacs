@@ -22,8 +22,15 @@ import uuid
 from pathlib import Path
 
 REQUIRED_BINARIES = ("femacs-lisp", "femacs-lisp.pdmp", "http-host")
+CANONICAL_BINARIES = {
+    "femacs-lisp": "bin/femacs-lisp",
+    "femacs-lisp.pdmp": "bin/femacs-lisp.pdmp",
+    "http-host": "bin/http-host",
+}
 REQUIRED_RESOURCE_TREES = ("lisp", "etc")
 SAFE_SEGMENT_RE = re.compile(r"^[A-Za-z0-9._-]+$")
+CLEAN_COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
+SHA256_HEX_RE = re.compile(r"^[0-9a-f]{64}$")
 
 
 class CacheError(RuntimeError):
@@ -100,6 +107,31 @@ def slugify_build_config(build_config: str) -> str:
     return sanitize_segment("build_config", slug)
 
 
+def validate_clean_commit(label: str, raw: str) -> str:
+    if not CLEAN_COMMIT_RE.match(raw):
+        raise CacheError(
+            "unverified-source-commit",
+            f"{label} must be a 40-hex verified clean commit, got {raw!r}",
+        )
+    return raw
+
+
+def validate_sha256_hex(label: str, raw: str) -> str:
+    if not SHA256_HEX_RE.match(raw):
+        raise CacheError(
+            "invalid-package-sha256",
+            f"{label} must be a 64-hex SHA-256 digest, got {raw!r}",
+        )
+    return raw
+
+
+def _package_binary_paths(pkg_dir: Path) -> tuple[str, str]:
+    resolved_pkg = pkg_dir.resolve()
+    lisp_bin = (resolved_pkg / CANONICAL_BINARIES["femacs-lisp"]).resolve()
+    http_bin = (resolved_pkg / CANONICAL_BINARIES["http-host"]).resolve()
+    return str(lisp_bin), str(http_bin)
+
+
 def compute_package_sha256(manifest: dict[str, object]) -> str:
     canonical = {
         "binaries": manifest["binaries"],
@@ -150,11 +182,16 @@ def verify_package(
         if not isinstance(val, str) or not val:
             raise CacheError("missing-identity", f"manifest missing required non-empty `{field}`")
 
-    if expect_commit is not None and manifest["source_commit"] != expect_commit:
-        raise CacheError(
-            "commit-mismatch",
-            f"source_commit mismatch: expected {expect_commit!r}, got {manifest['source_commit']!r}",
-        )
+    validate_clean_commit("manifest source_commit", manifest["source_commit"])
+    validate_sha256_hex("manifest package_sha256", manifest["package_sha256"])
+
+    if expect_commit is not None:
+        validate_clean_commit("expect_commit", expect_commit)
+        if manifest["source_commit"] != expect_commit:
+            raise CacheError(
+                "commit-mismatch",
+                f"source_commit mismatch: expected {expect_commit!r}, got {manifest['source_commit']!r}",
+            )
     if expect_target is not None and manifest["target"] != expect_target:
         raise CacheError(
             "target-mismatch",
@@ -165,34 +202,41 @@ def verify_package(
             "build-config-mismatch",
             f"build_config mismatch: expected {expect_build_config!r}, got {manifest['build_config']!r}",
         )
-    if expect_package_sha256 is not None and manifest["package_sha256"] != expect_package_sha256:
-        raise CacheError(
-            "package-sha256-mismatch",
-            f"package_sha256 mismatch: expected {expect_package_sha256!r}, got {manifest['package_sha256']!r}",
-        )
+    if expect_package_sha256 is not None:
+        validate_sha256_hex("expect_package_sha256", expect_package_sha256)
+        if manifest["package_sha256"] != expect_package_sha256:
+            raise CacheError(
+                "package-sha256-mismatch",
+                f"package_sha256 mismatch: expected {expect_package_sha256!r}, got {manifest['package_sha256']!r}",
+            )
 
-    binaries = manifest.get("binaries")
-    if not isinstance(binaries, dict):
-        raise CacheError("invalid-binaries", "manifest missing `binaries` object")
     resolved_pkg = pkg_dir.resolve()
-    for name in REQUIRED_BINARIES:
+    binaries = manifest.get("binaries")
+    if not isinstance(binaries, dict) or set(binaries.keys()) != set(CANONICAL_BINARIES.keys()):
+        raise CacheError("invalid-binaries", "manifest `binaries` must contain exact canonical entries")
+    for name, expected_rel in CANONICAL_BINARIES.items():
         entry = binaries.get(name)
         if not isinstance(entry, dict):
             raise CacheError("missing-binary-entry", f"manifest missing binary entry `{name}`")
         rel_path = entry.get("relative_path")
         expected_bytes = entry.get("bytes")
         expected_sha = entry.get("sha256")
+        if rel_path != expected_rel:
+            raise CacheError(
+                "invalid-binary-path",
+                f"binary `{name}` must use canonical relative_path {expected_rel!r}, got {rel_path!r}",
+            )
         if (
-            not isinstance(rel_path, str)
-            or not rel_path
-            or Path(rel_path).is_absolute()
-            or not isinstance(expected_bytes, int)
+            not isinstance(expected_bytes, int)
+            or isinstance(expected_bytes, bool)
+            or expected_bytes < 0
             or not isinstance(expected_sha, str)
+            or not SHA256_HEX_RE.match(expected_sha)
         ):
             raise CacheError("invalid-binary-entry", f"malformed binary metadata for `{name}`")
-        candidate = (resolved_pkg / rel_path).resolve()
-        if resolved_pkg not in candidate.parents or not candidate.is_file():
-            raise CacheError("missing-binary-file", f"packaged binary missing or escapes root: {rel_path}")
+        candidate = (resolved_pkg / expected_rel).resolve()
+        if resolved_pkg not in candidate.parents or candidate.is_symlink() or not candidate.is_file():
+            raise CacheError("missing-binary-file", f"packaged binary missing or invalid: {expected_rel}")
         actual_bytes = candidate.stat().st_size
         if actual_bytes != expected_bytes:
             raise CacheError(
@@ -206,6 +250,34 @@ def verify_package(
                 f"binary `{name}` sha256 mismatch: manifest={expected_sha}, actual={actual_sha}",
             )
 
+    bin_dir = resolved_pkg / "bin"
+    if bin_dir.is_symlink() or not bin_dir.is_dir():
+        raise CacheError("missing-binary-file", f"package bin directory missing or invalid: {bin_dir}")
+    actual_bin_entries = {p.name for p in bin_dir.iterdir()}
+    if actual_bin_entries != set(CANONICAL_BINARIES.keys()):
+        raise CacheError(
+            "unexpected-bin-entry",
+            f"package bin/ entries {sorted(actual_bin_entries)} do not match canonical layout {sorted(CANONICAL_BINARIES)}",
+        )
+
+    actual_top_dirs: set[str] = set()
+    for entry in resolved_pkg.iterdir():
+        if entry.is_symlink():
+            raise CacheError("symlink", f"package contains forbidden symlink: {entry}")
+        if entry.name == "manifest.json":
+            if not entry.is_file():
+                raise CacheError("invalid-manifest", f"manifest.json is not a regular file: {entry}")
+        elif entry.name == "bin":
+            continue
+        elif entry.is_dir():
+            sanitize_segment("resource_tree", entry.name)
+            actual_top_dirs.add(entry.name)
+        else:
+            raise CacheError(
+                "unexpected-package-entry",
+                f"unexpected top-level file in package root: {entry.name}",
+            )
+
     resource_trees = manifest.get("resource_trees")
     if not isinstance(resource_trees, dict):
         raise CacheError("missing-resource-trees", "manifest missing `resource_trees` object")
@@ -213,11 +285,24 @@ def verify_package(
         if req_tree not in resource_trees:
             raise CacheError("missing-resource-tree", f"manifest missing required resource tree `{req_tree}`")
 
-    for dir_name, recorded in resource_trees.items():
+    unverified_dirs = sorted(actual_top_dirs - set(resource_trees.keys()))
+    if unverified_dirs:
+        raise CacheError(
+            "unverified-resource-tree",
+            f"package contains runtime resource directories omitted from manifest: {unverified_dirs}",
+        )
+    missing_dirs = sorted(set(resource_trees.keys()) - actual_top_dirs)
+    if missing_dirs:
+        raise CacheError(
+            "missing-resource-tree",
+            f"manifest declares resource directories missing from package: {missing_dirs}",
+        )
+
+    for dir_name, recorded in sorted(resource_trees.items()):
         if not isinstance(dir_name, str) or not isinstance(recorded, dict):
             raise CacheError("invalid-resource-tree", f"malformed resource tree entry `{dir_name}`")
         sanitize_segment("resource_tree", dir_name)
-        actual = hash_resource_tree(pkg_dir / dir_name)
+        actual = hash_resource_tree(resolved_pkg / dir_name)
         if actual != recorded:
             raise CacheError(
                 "resource-tree-mismatch",
@@ -235,11 +320,11 @@ def verify_package(
 
 
 def cache_entry_path(cache_dir: Path, manifest: dict[str, object]) -> Path:
-    commit = sanitize_segment("source_commit", str(manifest["source_commit"]))
+    commit = validate_clean_commit("source_commit", str(manifest["source_commit"]))
     target = sanitize_segment("target", str(manifest["target"]))
     cfg_slug = slugify_build_config(str(manifest["build_config"]))
-    short_sha = sanitize_segment("package_sha256", str(manifest["package_sha256"])[:16])
-    return cache_dir / commit / target / cfg_slug / short_sha
+    full_sha = validate_sha256_hex("package_sha256", str(manifest["package_sha256"]))
+    return cache_dir / commit / target / cfg_slug / full_sha
 
 
 def ensure_cache(
@@ -268,12 +353,13 @@ def ensure_cache(
             expect_build_config=str(src_manifest["build_config"]),
             expect_package_sha256=str(src_manifest["package_sha256"]),
         )
+        lisp_bin, http_bin = _package_binary_paths(target_dir)
         return {
             "ok": True,
             "status": "hit",
             "cache_entry": str(target_dir.resolve()),
-            "lisp_bin": str((target_dir / "bin" / "femacs-lisp").resolve()),
-            "http_bin": str((target_dir / "bin" / "http-host").resolve()),
+            "lisp_bin": lisp_bin,
+            "http_bin": http_bin,
             "source_commit": cached_manifest["source_commit"],
             "target": cached_manifest["target"],
             "build_config": cached_manifest["build_config"],
@@ -297,12 +383,13 @@ def ensure_cache(
             shutil.rmtree(staging_dir, ignore_errors=True)
         raise
 
+    lisp_bin, http_bin = _package_binary_paths(target_dir)
     return {
         "ok": True,
         "status": "rebuilt",
         "cache_entry": str(target_dir.resolve()),
-        "lisp_bin": str((target_dir / "bin" / "femacs-lisp").resolve()),
-        "http_bin": str((target_dir / "bin" / "http-host").resolve()),
+        "lisp_bin": lisp_bin,
+        "http_bin": http_bin,
         "source_commit": src_manifest["source_commit"],
         "target": src_manifest["target"],
         "build_config": src_manifest["build_config"],
@@ -316,61 +403,33 @@ def resolve_cache(
     expect_commit: str,
     expect_target: str,
     expect_build_config: str,
-    expect_package_sha256: str | None = None,
+    expect_package_sha256: str,
 ) -> dict[str, object]:
-    commit = sanitize_segment("source_commit", expect_commit)
+    commit = validate_clean_commit("expect_commit", expect_commit)
     target = sanitize_segment("target", expect_target)
     cfg_slug = slugify_build_config(expect_build_config)
+    full_sha = validate_sha256_hex("expect_package_sha256", expect_package_sha256)
     bucket = cache_dir / commit / target / cfg_slug
     if not bucket.is_dir():
         raise CacheError("cache-miss", f"no cached host bucket for {(commit, target, expect_build_config)} under {cache_dir}")
 
-    if expect_package_sha256 is not None:
-        short_sha = sanitize_segment("package_sha256", expect_package_sha256[:16])
-        entry = bucket / short_sha
-        manifest = verify_package(
-            entry,
-            expect_commit=expect_commit,
-            expect_target=expect_target,
-            expect_build_config=expect_build_config,
-            expect_package_sha256=expect_package_sha256,
-        )
-        return {
-            "ok": True,
-            "status": "verified",
-            "cache_entry": str(entry.resolve()),
-            "lisp_bin": str((entry / "bin" / "femacs-lisp").resolve()),
-            "http_bin": str((entry / "bin" / "http-host").resolve()),
-            "source_commit": manifest["source_commit"],
-            "target": manifest["target"],
-            "build_config": manifest["build_config"],
-            "package_sha256": manifest["package_sha256"],
-        }
-
-    candidates = [
-        p for p in sorted(bucket.iterdir())
-        if not p.name.startswith(".staging-") and not p.name.startswith(".")
-    ]
-    if not candidates:
-        raise CacheError("cache-miss", f"cache bucket {bucket} is empty")
-    if len(candidates) > 1:
-        raise CacheError(
-            "ambiguous-cache",
-            f"multiple cache entries found in {bucket}; specify --expect-package-sha256",
-        )
-    entry = candidates[0]
+    entry = bucket / full_sha
+    if not entry.exists() and not entry.is_symlink():
+        raise CacheError("cache-miss", f"no cached host entry matching package_sha256={full_sha} under {bucket}")
     manifest = verify_package(
         entry,
-        expect_commit=expect_commit,
-        expect_target=expect_target,
+        expect_commit=commit,
+        expect_target=target,
         expect_build_config=expect_build_config,
+        expect_package_sha256=full_sha,
     )
+    lisp_bin, http_bin = _package_binary_paths(entry)
     return {
         "ok": True,
         "status": "verified",
         "cache_entry": str(entry.resolve()),
-        "lisp_bin": str((entry / "bin" / "femacs-lisp").resolve()),
-        "http_bin": str((entry / "bin" / "http-host").resolve()),
+        "lisp_bin": lisp_bin,
+        "http_bin": http_bin,
         "source_commit": manifest["source_commit"],
         "target": manifest["target"],
         "build_config": manifest["build_config"],
@@ -471,6 +530,9 @@ def run_selftest() -> int:
         assert resolved["status"] == "verified"
 
         cached_entry = Path(str(resolved["cache_entry"]))
+        assert cached_entry.name == pkg_sha, f"expected full 64-hex cache dir, got {cached_entry.name}"
+        assert resolved["lisp_bin"] == str((cached_entry / CANONICAL_BINARIES["femacs-lisp"]).resolve())
+        assert resolved["http_bin"] == str((cached_entry / CANONICAL_BINARIES["http-host"]).resolve())
 
         _assert_cache_fails(
             "target-mismatch",
@@ -484,6 +546,35 @@ def run_selftest() -> int:
             "build-config-mismatch",
             lambda: verify_package(cached_entry, expect_build_config="linux/release"),
         )
+        _assert_cache_fails(
+            "invalid-package-sha256",
+            lambda: resolve_cache(
+                cache_dir,
+                expect_commit=commit,
+                expect_target=target,
+                expect_build_config=cfg,
+                expect_package_sha256=pkg_sha[:16],
+            ),
+        )
+
+        # Require --expect-package-sha256 on resolve CLI
+        try:
+            build_parser().parse_args(
+                [
+                    "resolve",
+                    "--cache-dir",
+                    str(cache_dir),
+                    "--expect-commit",
+                    commit,
+                    "--expect-target",
+                    target,
+                    "--expect-build-config",
+                    cfg,
+                ]
+            )
+            raise AssertionError("expected resolve CLI parser to require --expect-package-sha256")
+        except SystemExit:
+            pass
 
         # Tamper resource file inside lisp/
         lisp_file = cached_entry / "lisp" / "loadup.el"
@@ -499,6 +590,52 @@ def run_selftest() -> int:
         _assert_cache_fails("resource-tree-mismatch", lambda: verify_package(cached_entry))
         extra_file.unlink()
         verify_package(cached_entry)
+
+        # Inject unverified runtime-* directory omitted from manifest
+        extra_rt = cached_entry / "runtime-extra"
+        extra_rt.mkdir()
+        (extra_rt / "evil.dylib").write_bytes(b"evil")
+        _assert_cache_fails("unverified-resource-tree", lambda: verify_package(cached_entry))
+        shutil.rmtree(extra_rt)
+        verify_package(cached_entry)
+
+        # Inject unexpected top-level file
+        stray_file = cached_entry / "stray.txt"
+        stray_file.write_text("stray\n", encoding="utf-8")
+        _assert_cache_fails("unexpected-package-entry", lambda: verify_package(cached_entry))
+        stray_file.unlink()
+        verify_package(cached_entry)
+
+        # Inject unexpected file inside bin/
+        extra_bin = cached_entry / "bin" / "extra"
+        extra_bin.write_bytes(b"extra")
+        _assert_cache_fails("unexpected-bin-entry", lambda: verify_package(cached_entry))
+        extra_bin.unlink()
+        verify_package(cached_entry)
+
+        # Spoof binary relative_path with matching bytes/sha256 and recomputed package_sha256
+        spoof_pkg = tmp_path / "spoof-pkg"
+        shutil.copytree(pkg_src, spoof_pkg, symlinks=False)
+        spoof_manifest = json.loads((spoof_pkg / "manifest.json").read_text(encoding="utf-8"))
+        target_loadup = spoof_pkg / "lisp" / "loadup.el"
+        spoof_manifest["binaries"]["femacs-lisp"] = {
+            "bytes": target_loadup.stat().st_size,
+            "relative_path": "lisp/loadup.el",
+            "sha256": sha256_file(target_loadup),
+        }
+        spoof_manifest["package_sha256"] = compute_package_sha256(spoof_manifest)
+        (spoof_pkg / "manifest.json").write_text(json.dumps(spoof_manifest, indent=2) + "\n", encoding="utf-8")
+        _assert_cache_fails("invalid-binary-path", lambda: verify_package(spoof_pkg))
+
+        # Reject dirty and unverified source commits
+        for bad_commit in ("dirty-" + "a" * 40, "unverified-export"):
+            bad_pkg = tmp_path / f"bad-{bad_commit[:10]}"
+            shutil.copytree(pkg_src, bad_pkg, symlinks=False)
+            bad_manifest = json.loads((bad_pkg / "manifest.json").read_text(encoding="utf-8"))
+            bad_manifest["source_commit"] = bad_commit
+            bad_manifest["package_sha256"] = compute_package_sha256(bad_manifest)
+            (bad_pkg / "manifest.json").write_text(json.dumps(bad_manifest, indent=2) + "\n", encoding="utf-8")
+            _assert_cache_fails("unverified-source-commit", lambda: verify_package(bad_pkg))
 
         # Tamper .pdmp (same byte length to check sha256 verification)
         pdmp_file = cached_entry / "bin" / "femacs-lisp.pdmp"
@@ -526,7 +663,7 @@ def run_selftest() -> int:
         pdmp_file.write_bytes(bytes(tampered_pdmp))
         _assert_cache_fails("binary-sha256-mismatch", lambda: ensure_cache(cache_dir, pkg_src))
 
-    print("femacs-lisp-cache selftest PASS (11 checks)")
+    print("femacs-lisp-cache selftest PASS (18 checks)")
     return 0
 
 
@@ -535,11 +672,16 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--selftest", action="store_true", help="Run built-in integrity self-tests")
     sub = parser.add_subparsers(dest="cmd")
 
-    def add_expect_flags(p: argparse.ArgumentParser, *, required_identity: bool = False) -> None:
+    def add_expect_flags(
+        p: argparse.ArgumentParser,
+        *,
+        required_identity: bool = False,
+        require_package_sha256: bool = False,
+    ) -> None:
         p.add_argument("--expect-commit", required=required_identity, default=None)
         p.add_argument("--expect-target", required=required_identity, default=None)
         p.add_argument("--expect-build-config", required=required_identity, default=None)
-        p.add_argument("--expect-package-sha256", default=None)
+        p.add_argument("--expect-package-sha256", required=require_package_sha256, default=None)
         p.add_argument("--json", action="store_true")
 
     p_verify = sub.add_parser("verify", help="Verify an unpacked femacs-lisp package")
@@ -553,7 +695,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_resolve = sub.add_parser("resolve", help="Verify and resolve an existing cached femacs-lisp package")
     p_resolve.add_argument("--cache-dir", required=True, type=Path)
-    add_expect_flags(p_resolve, required_identity=True)
+    add_expect_flags(p_resolve, required_identity=True, require_package_sha256=True)
 
     return parser
 
@@ -577,11 +719,13 @@ def main(argv: list[str] | None = None) -> int:
                 expect_build_config=args.expect_build_config,
                 expect_package_sha256=args.expect_package_sha256,
             )
+            lisp_bin, http_bin = _package_binary_paths(args.package)
             payload: dict[str, object] = {
                 "ok": True,
                 "status": "verified",
                 "package": str(args.package.resolve()),
-                "lisp_bin": str((args.package / "bin" / "femacs-lisp").resolve()),
+                "lisp_bin": lisp_bin,
+                "http_bin": http_bin,
                 "source_commit": manifest["source_commit"],
                 "target": manifest["target"],
                 "build_config": manifest["build_config"],

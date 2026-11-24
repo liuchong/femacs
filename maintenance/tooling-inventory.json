@@ -8333,8 +8333,8 @@
     },
     {
       "path": "tools/femacs-lisp-cache.py",
-      "sha256": "a35887d0b6f9969df9e7b7b2b8fe3a3eeacbe99dc24071c538486d91431707ac",
-      "bytes": 25087,
+      "sha256": "31bc91c36eeeca151d2c7c03adc1b1187a7a48a8ba9903a36e03a56f73d9267d",
+      "bytes": 31464,
       "family": "rust-build",
       "decision": "retain",
       "replacement": null,
@@ -8355,8 +8355,8 @@
     },
     {
       "path": "tools/test-c3-a3-seed-host.py",
-      "sha256": "af464abc8bd0861929860aba0708aa9ccc674d2c76445c6b78d557ffaf8d473a",
-      "bytes": 28869,
+      "sha256": "9a2936f41ad111f64f47b65115e2115c65c54b8c5a26694b1869134369d0ef8f",
+      "bytes": 33212,
       "family": "test",
       "decision": "retain",
       "replacement": null,

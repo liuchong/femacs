@@ -317,42 +317,46 @@ fn run_lisp_self_dump(lisp_bin: &Path, repo: &Path, pdmp_out: &Path) -> Result<(
     Ok(())
 }
 
-pub(super) fn resolve_source_commit(repo: &Path) -> String {
-    if let Ok(explicit) = std::env::var("FEMACS_SOURCE_COMMIT") {
-        let trimmed = explicit.trim();
-        if !trimmed.is_empty() {
-            return trimmed.to_string();
-        }
-    }
-    if repo.join(".git").exists()
-        && let Ok(out) = Command::new("git")
-            .args(["-C", &repo.to_string_lossy(), "rev-parse", "HEAD"])
-            .output()
-        && out.status.success()
-    {
-        let head = String::from_utf8_lossy(&out.stdout).trim().to_string();
-        if !head.is_empty() {
-            return head;
-        }
-    }
-    "exported".to_string()
+const ARCHIVE_PROVENANCE_FILE: &str = ".femacs-source-provenance.json";
+const ARCHIVE_EXCLUDED_TOP_ENTRIES: &[&str] = &[
+    ARCHIVE_PROVENANCE_FILE,
+    "build",
+    "dist",
+    "target",
+    ".femacs-cache",
+    ".git",
+];
+
+fn is_clean_commit_hex(s: &str) -> bool {
+    s.len() == 40 && s.bytes().all(|b| matches!(b, b'0'..=b'9' | b'a'..=b'f'))
 }
 
-pub(super) fn hash_resource_tree(root: &Path) -> Result<serde_json::Value, String> {
+fn hash_tree_with_excluded_top(
+    root: &Path,
+    excluded_top: &[&str],
+) -> Result<(usize, u64, String), String> {
     let root_meta = fs::symlink_metadata(root).map_err(|e| format!("stat {}: {e}", root.display()))?;
     if !root_meta.file_type().is_dir() {
-        return Err(format!("resource root is not a directory: {}", root.display()));
+        return Err(format!("tree root is not a regular directory: {}", root.display()));
     }
-    let mut pending = vec![root.to_path_buf()];
+    let mut pending = vec![(root.to_path_buf(), true)];
     let mut records: Vec<(String, u64, String)> = Vec::new();
-    while let Some(dir) = pending.pop() {
+    while let Some((dir, is_top)) = pending.pop() {
         for entry in fs::read_dir(&dir).map_err(|e| format!("readdir {}: {e}", dir.display()))? {
             let entry = entry.map_err(|e| e.to_string())?;
+            if is_top
+                && entry
+                    .file_name()
+                    .to_str()
+                    .is_some_and(|name| excluded_top.contains(&name))
+            {
+                continue;
+            }
             let p = entry.path();
             let meta = fs::symlink_metadata(&p).map_err(|e| format!("stat {}: {e}", p.display()))?;
             let ft = meta.file_type();
             if ft.is_dir() {
-                pending.push(p);
+                pending.push((p, false));
             } else if ft.is_file() {
                 let rel_path = p.strip_prefix(root).map_err(|e| e.to_string())?;
                 let mut parts = Vec::new();
@@ -369,7 +373,7 @@ pub(super) fn hash_resource_tree(root: &Path) -> Result<serde_json::Value, Strin
                 let digest = crate::tooling::sha256_file(&p)?;
                 records.push((rel, meta.len(), digest));
             } else {
-                return Err(format!("symlink or special file in resource tree: {}", p.display()));
+                return Err(format!("symlink or special file in tree: {}", p.display()));
             }
         }
     }
@@ -382,22 +386,116 @@ pub(super) fn hash_resource_tree(root: &Path) -> Result<serde_json::Value, Strin
         let line = format!("{rel}\0{bytes}\0{digest}\n");
         tree_hash.update(line.as_bytes());
     }
-    let tree_sha256 = format!("{:x}", tree_hash.finalize());
+    Ok((records.len(), total_bytes, format!("{:x}", tree_hash.finalize())))
+}
+
+pub(super) fn hash_archive_source_tree(root: &Path) -> Result<String, String> {
+    let (_, _, tree_sha256) = hash_tree_with_excluded_top(root, ARCHIVE_EXCLUDED_TOP_ENTRIES)?;
+    Ok(tree_sha256)
+}
+
+fn verify_archive_provenance(repo: &Path) -> Option<String> {
+    let prov_path = repo.join(ARCHIVE_PROVENANCE_FILE);
+    let meta = fs::symlink_metadata(&prov_path).ok()?;
+    if !meta.file_type().is_file() {
+        return None;
+    }
+    let raw = fs::read_to_string(&prov_path).ok()?;
+    let prov: serde_json::Value = serde_json::from_str(&raw).ok()?;
+    if prov.get("schema").and_then(|v| v.as_u64()) != Some(1) {
+        return None;
+    }
+    let commit = prov.get("source_commit").and_then(|v| v.as_str())?;
+    if !is_clean_commit_hex(commit) {
+        return None;
+    }
+    let expected_tree_sha = prov.get("tree_sha256").and_then(|v| v.as_str())?;
+    let actual_tree_sha = hash_archive_source_tree(repo).ok()?;
+    if actual_tree_sha == expected_tree_sha {
+        Some(commit.to_string())
+    } else {
+        None
+    }
+}
+
+pub(super) fn resolve_source_commit(repo: &Path) -> String {
+    if repo.join(".git").exists() {
+        let repo_str = repo.to_string_lossy();
+        let Ok(head_out) = Command::new("git")
+            .args(["-C", &repo_str, "rev-parse", "--verify", "HEAD"])
+            .output()
+        else {
+            return "dirty-unknown".to_string();
+        };
+        if !head_out.status.success() {
+            return "dirty-unknown".to_string();
+        }
+        let head = String::from_utf8_lossy(&head_out.stdout).trim().to_string();
+        if !is_clean_commit_hex(&head) {
+            return "dirty-unknown".to_string();
+        }
+        let Ok(status_out) = Command::new("git")
+            .args(["-C", &repo_str, "status", "--porcelain", "--untracked-files=normal"])
+            .output()
+        else {
+            return format!("dirty-{head}");
+        };
+        if status_out.status.success() && status_out.stdout.is_empty() {
+            return head;
+        }
+        return format!("dirty-{head}");
+    }
+    verify_archive_provenance(repo).unwrap_or_else(|| "unverified-export".to_string())
+}
+
+pub(super) fn hash_resource_tree(root: &Path) -> Result<serde_json::Value, String> {
+    let (file_count, total_bytes, tree_sha256) = hash_tree_with_excluded_top(root, &[])?;
     Ok(serde_json::json!({
-        "file_count": records.len(),
+        "file_count": file_count,
         "sha256": tree_sha256,
         "total_bytes": total_bytes,
     }))
 }
 
-pub(super) fn lisp_package_manifest_value(
-    repo: &Path,
+pub(super) fn lisp_package_manifest_value_with_commit(
     stage: &Path,
+    source_commit: &str,
 ) -> Result<serde_json::Value, String> {
+    const CANONICAL_BINS: [&str; 3] = ["femacs-lisp", "femacs-lisp.pdmp", "http-host"];
+
+    let bin_dir = stage.join("bin");
+    let bin_meta = fs::symlink_metadata(&bin_dir).map_err(|e| format!("stat {}: {e}", bin_dir.display()))?;
+    if !bin_meta.file_type().is_dir() {
+        return Err(format!("package bin directory missing or invalid: {}", bin_dir.display()));
+    }
+    let mut actual_bins = Vec::new();
+    for entry in fs::read_dir(&bin_dir).map_err(|e| format!("readdir {}: {e}", bin_dir.display()))? {
+        let entry = entry.map_err(|e| e.to_string())?;
+        let p = entry.path();
+        let meta = fs::symlink_metadata(&p).map_err(|e| format!("stat {}: {e}", p.display()))?;
+        if !meta.file_type().is_file() {
+            return Err(format!("non-regular entry in package bin/: {}", p.display()));
+        }
+        let name = entry
+            .file_name()
+            .into_string()
+            .map_err(|_| format!("non-UTF-8 binary entry in {}", bin_dir.display()))?;
+        actual_bins.push(name);
+    }
+    actual_bins.sort();
+    let mut expected_bins = CANONICAL_BINS.to_vec();
+    expected_bins.sort();
+    if actual_bins != expected_bins {
+        return Err(format!(
+            "package bin/ entries {:?} do not match canonical layout {:?}",
+            actual_bins, expected_bins
+        ));
+    }
+
     let mut binaries = serde_json::Map::new();
-    for name in ["femacs-lisp", "femacs-lisp.pdmp", "http-host"] {
-        let p = stage.join("bin").join(name);
-        let meta = fs::metadata(&p).map_err(|e| format!("stat {}: {e}", p.display()))?;
+    for name in CANONICAL_BINS {
+        let p = bin_dir.join(name);
+        let meta = fs::symlink_metadata(&p).map_err(|e| format!("stat {}: {e}", p.display()))?;
         let digest = crate::tooling::sha256_file(&p)?;
         binaries.insert(
             name.to_string(),
@@ -408,24 +506,53 @@ pub(super) fn lisp_package_manifest_value(
             }),
         );
     }
-    let mut resource_trees = serde_json::Map::new();
-    for dir_name in [
-        "lisp",
-        "etc",
-        "runtime-tls",
-        "runtime-lcms",
-        "runtime-image",
-        "runtime-treesit",
-        "licenses",
-    ] {
-        let tree_path = stage.join(dir_name);
-        if tree_path.is_dir() {
-            resource_trees.insert(dir_name.to_string(), hash_resource_tree(&tree_path)?);
+
+    let mut top_dirs = Vec::new();
+    for entry in fs::read_dir(stage).map_err(|e| format!("readdir {}: {e}", stage.display()))? {
+        let entry = entry.map_err(|e| e.to_string())?;
+        let p = entry.path();
+        let meta = fs::symlink_metadata(&p).map_err(|e| format!("stat {}: {e}", p.display()))?;
+        let name = entry
+            .file_name()
+            .into_string()
+            .map_err(|_| format!("non-UTF-8 top-level entry in {}", stage.display()))?;
+        let ft = meta.file_type();
+        if ft.is_symlink() {
+            return Err(format!("staged package contains symlink: {}", p.display()));
         }
+        if name == "bin" {
+            continue;
+        }
+        if name == "manifest.json" {
+            if !ft.is_file() {
+                return Err(format!("manifest.json is not a regular file: {}", p.display()));
+            }
+            continue;
+        }
+        if !ft.is_dir() {
+            return Err(format!("unexpected top-level file in staged package: {name}"));
+        }
+        top_dirs.push(name);
     }
+    top_dirs.sort();
+    if !top_dirs.iter().any(|d| d == "lisp") || !top_dirs.iter().any(|d| d == "etc") {
+        return Err(format!(
+            "staged package missing required resource directories `lisp`/`etc`: {:?}",
+            top_dirs
+        ));
+    }
+
+    let mut resource_trees = serde_json::Map::new();
+    let mut directories = Vec::with_capacity(1 + top_dirs.len());
+    directories.push("bin".to_string());
+    for dir_name in &top_dirs {
+        let tree_path = stage.join(dir_name);
+        resource_trees.insert(dir_name.clone(), hash_resource_tree(&tree_path)?);
+        directories.push(dir_name.clone());
+    }
+
     let target = crate::cargo_build::host_target_triple();
     let build_config = "macos-terminal/darwin-arm64/release";
-    let source_commit = resolve_source_commit(repo);
     let canonical = serde_json::json!({
         "binaries": binaries,
         "build_config": build_config,
@@ -442,19 +569,18 @@ pub(super) fn lisp_package_manifest_value(
         "target": target,
         "build_config": build_config,
         "package_sha256": package_sha256,
-        "directories": [
-            "bin",
-            "lisp",
-            "etc",
-            "runtime-tls",
-            "runtime-lcms",
-            "runtime-image",
-            "runtime-treesit",
-            "licenses"
-        ],
+        "directories": directories,
         "binaries": binaries,
         "resource_trees": resource_trees,
     }))
+}
+
+pub(super) fn lisp_package_manifest_value(
+    repo: &Path,
+    stage: &Path,
+) -> Result<serde_json::Value, String> {
+    let source_commit = resolve_source_commit(repo);
+    lisp_package_manifest_value_with_commit(stage, &source_commit)
 }
 
 pub(super) fn make_dir_tree_writable(path: &Path) -> Result<(), String> {
@@ -485,6 +611,7 @@ pub(super) fn make_dir_tree_writable(path: &Path) -> Result<(), String> {
 }
 
 pub(super) fn lisp_package_in(repo: &Path, root: &Path, destination: &Path) -> Result<(), String> {
+    let initial_source_commit = resolve_source_commit(repo);
     let config_file = repo.join("build-support/macos/terminal/config.json");
     let prep = prepare_terminal_env_with_paths(repo, root, &config_file, Some("../bin"))?;
     let root = crate::tooling::guard_scratch(repo, root)?;
@@ -568,7 +695,12 @@ pub(super) fn lisp_package_in(repo: &Path, root: &Path, destination: &Path) -> R
                 &stage.join("licenses/treesit"),
             )?;
             make_dir_tree_writable(stage)?;
-            let manifest = lisp_package_manifest_value(repo, stage)?;
+            let source_commit = if repo.join(".git").exists() && is_clean_commit_hex(&initial_source_commit) {
+                resolve_source_commit(repo)
+            } else {
+                initial_source_commit.clone()
+            };
+            let manifest = lisp_package_manifest_value_with_commit(stage, &source_commit)?;
             crate::tooling::write_json(&stage.join("manifest.json"), &manifest)
         },
         |stage| {
@@ -656,7 +788,7 @@ mod tests {
         assert_eq!(manifest["schema"], 1);
         assert_eq!(manifest["product"], "femacs-lisp");
         assert_eq!(manifest["build_config"], "macos-terminal/darwin-arm64/release");
-        assert_eq!(manifest["source_commit"], "exported");
+        assert_eq!(manifest["source_commit"], "unverified-export");
         assert_eq!(manifest["package_sha256"].as_str().unwrap().len(), 64);
         assert_eq!(manifest["binaries"]["femacs-lisp"]["bytes"], 8);
         assert_eq!(
@@ -683,5 +815,84 @@ mod tests {
             mutated["resource_trees"]["etc"]["sha256"].as_str().unwrap(),
             orig_etc_sha
         );
+
+        let extra_rt = scratch.0.join("runtime-extra");
+        fs::create_dir_all(&extra_rt).unwrap();
+        fs::write(extra_rt.join("helper.dylib"), b"helper").unwrap();
+        let with_extra = lisp_package_manifest_value(&scratch.0, &scratch.0).unwrap();
+        assert_eq!(with_extra["resource_trees"]["runtime-extra"]["file_count"], 1);
+        assert_ne!(with_extra["package_sha256"], mutated["package_sha256"]);
+
+        fs::write(bin.join("stray"), b"bad").unwrap();
+        assert!(lisp_package_manifest_value(&scratch.0, &scratch.0).is_err());
+    }
+
+    #[test]
+    fn resolve_source_commit_requires_clean_git_tree_or_verified_archive() {
+        let scratch = Scratch::new();
+        let git_repo = scratch.0.join("git-repo");
+        fs::create_dir_all(&git_repo).unwrap();
+        fs::write(git_repo.join("README.txt"), b"clean\n").unwrap();
+
+        let git_run = |args: &[&str]| {
+            let out = Command::new("git")
+                .args(["-C", &git_repo.to_string_lossy()])
+                .args(args)
+                .output()
+                .unwrap();
+            assert!(
+                out.status.success(),
+                "git {:?} failed: {}",
+                args,
+                String::from_utf8_lossy(&out.stderr)
+            );
+            String::from_utf8_lossy(&out.stdout).trim().to_string()
+        };
+
+        git_run(&["init"]);
+        git_run(&["add", "README.txt"]);
+        git_run(&[
+            "-c",
+            "user.name=Test",
+            "-c",
+            "user.email=test@example.invalid",
+            "-c",
+            "commit.gpgsign=false",
+            "commit",
+            "-m",
+            "init",
+        ]);
+        let head = git_run(&["rev-parse", "HEAD"]);
+        assert!(is_clean_commit_hex(&head));
+        assert_eq!(resolve_source_commit(&git_repo), head);
+
+        fs::write(git_repo.join("README.txt"), b"modified\n").unwrap();
+        assert_eq!(resolve_source_commit(&git_repo), format!("dirty-{head}"));
+        fs::write(git_repo.join("README.txt"), b"clean\n").unwrap();
+        assert_eq!(resolve_source_commit(&git_repo), head);
+
+        fs::write(git_repo.join("untracked.txt"), b"extra\n").unwrap();
+        assert_eq!(resolve_source_commit(&git_repo), format!("dirty-{head}"));
+
+        let archive = scratch.0.join("archive-export");
+        fs::create_dir_all(archive.join("src")).unwrap();
+        fs::write(archive.join("src/lib.rs"), b"pub fn ok() -> u8 { 1 }\n").unwrap();
+        assert_eq!(resolve_source_commit(&archive), "unverified-export");
+
+        let tree_sha = hash_archive_source_tree(&archive).unwrap();
+        let prov = serde_json::json!({
+            "schema": 1,
+            "source_commit": head,
+            "tree_sha256": tree_sha,
+        });
+        fs::write(
+            archive.join(ARCHIVE_PROVENANCE_FILE),
+            serde_json::to_vec_pretty(&prov).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(resolve_source_commit(&archive), head);
+
+        fs::write(archive.join("src/lib.rs"), b"pub fn ok() -> u8 { 2 }\n").unwrap();
+        assert_eq!(resolve_source_commit(&archive), "unverified-export");
     }
 }
