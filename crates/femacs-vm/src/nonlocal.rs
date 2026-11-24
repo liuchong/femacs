@@ -68,20 +68,28 @@ pub(crate) enum HostUnwindOutcome<T> {
 }
 
 #[derive(Clone, Copy)]
+enum NativePendingKind {
+    None,
+    NonLocal(NonLocalExit),
+    HostExit(i32),
+}
+
+#[derive(Clone, Copy)]
 struct NativePendingExit {
-    pending: bool,
-    exit: NonLocalExit,
+    kind: NativePendingKind,
+}
+
+impl NativePendingExit {
+    #[inline]
+    fn is_pending(self) -> bool {
+        !matches!(self.kind, NativePendingKind::None)
+    }
 }
 
 impl Default for NativePendingExit {
     fn default() -> Self {
         Self {
-            pending: false,
-            exit: NonLocalExit {
-                kind: NonLocalExitKind::Signal,
-                target: core::ptr::null_mut(),
-                value: lisp_h_Qnil(),
-            },
+            kind: NativePendingKind::None,
         }
     }
 }
@@ -493,8 +501,8 @@ pub(crate) unsafe fn mark_thread_explicit_roots(
         if state.inflight_active {
             objs.push(state.inflight_value);
         }
-        if state.native_pending.pending {
-            objs.push(state.native_pending.exit.value);
+        if let NativePendingKind::NonLocal(exit) = state.native_pending.kind {
+            objs.push(exit.value);
         }
         objs
     };
@@ -537,7 +545,7 @@ pub(crate) unsafe fn cleanup_thread_state(thread: *mut c_void) {
     {
         RETIRED_SCOPED_ROOTS_CREATED.fetch_add(removed.scoped_roots_created, Ordering::Relaxed);
         RETIRED_SCOPED_ROOTS_DROPPED.fetch_add(removed.scoped_roots_dropped, Ordering::Relaxed);
-        if removed.native_pending.pending {
+        if removed.native_pending.is_pending() {
             ACTIVE_COMP_NATIVE_EXITS.fetch_sub(1, Ordering::Relaxed);
         }
     }
@@ -640,12 +648,37 @@ pub(crate) unsafe fn set_comp_native_exit(exit: NonLocalExit) {
         return;
     }
     with_thread_state(key, |state| {
-        if !state.native_pending.pending {
+        if matches!(state.native_pending.kind, NativePendingKind::HostExit(_)) {
+            return;
+        }
+        if !state.native_pending.is_pending() {
             ACTIVE_COMP_NATIVE_EXITS.fetch_add(1, Ordering::Relaxed);
         }
         state.native_pending = NativePendingExit {
-            pending: true,
-            exit,
+            kind: NativePendingKind::NonLocal(exit),
+        };
+    });
+}
+
+/// Record a pending host-exit code at a C-ABI `.eln` helper boundary so no `VmHostExitUnwind`
+/// unwinds across `.eln` C frames.
+///
+/// # Safety
+/// Must be called on the active VM-lock-owning thread at an `.eln` helper boundary.
+pub(crate) unsafe fn set_comp_native_host_exit(code: i32) {
+    let key = current_thread_key();
+    if key == 0 {
+        return;
+    }
+    with_thread_state(key, |state| {
+        if matches!(state.native_pending.kind, NativePendingKind::HostExit(_)) {
+            return;
+        }
+        if !state.native_pending.is_pending() {
+            ACTIVE_COMP_NATIVE_EXITS.fetch_add(1, Ordering::Relaxed);
+        }
+        state.native_pending = NativePendingExit {
+            kind: NativePendingKind::HostExit(code),
         };
     });
 }
@@ -663,7 +696,9 @@ pub(crate) fn comp_native_exit_pending_for_current_thread() -> c_int {
     if key == 0 {
         return 0;
     }
-    with_thread_state(key, |state| c_int::from(state.native_pending.pending))
+    with_thread_state(key, |state| {
+        c_int::from(state.native_pending.is_pending())
+    })
 }
 
 /// If the current thread has a pending `.eln` exit targeting `candidate`, clear the pending
@@ -680,12 +715,13 @@ pub(crate) unsafe fn consume_comp_native_exit_for_handler(candidate: *mut handle
     if key == 0 {
         return 0;
     }
-    with_thread_state(key, |state| {
-        if state.native_pending.pending && state.native_pending.exit.target == candidate {
+    with_thread_state(key, |state| match state.native_pending.kind {
+        NativePendingKind::NonLocal(exit) if exit.target == candidate => {
             state.native_pending = NativePendingExit::default();
             ACTIVE_COMP_NATIVE_EXITS.fetch_sub(1, Ordering::Relaxed);
             1
-        } else {
+        }
+        NativePendingKind::None | NativePendingKind::NonLocal(_) | NativePendingKind::HostExit(_) => {
             0
         }
     })
@@ -697,19 +733,23 @@ unsafe fn propagate_comp_native_exit_slow() {
     if key == 0 {
         return;
     }
-    let maybe_exit = with_thread_state(key, |state| {
-        if state.native_pending.pending {
-            let exit = state.native_pending.exit;
+    let kind = with_thread_state(key, |state| {
+        let taken = state.native_pending.kind;
+        if state.native_pending.is_pending() {
             state.native_pending = NativePendingExit::default();
             ACTIVE_COMP_NATIVE_EXITS.fetch_sub(1, Ordering::Relaxed);
-            Some(exit)
-        } else {
-            None
         }
+        taken
     });
-    if let Some(exit) = maybe_exit {
-        // SAFETY: converts pending `.eln` exit back into a `NonLocalExit` on the active VM thread.
-        unsafe { raise_vm_nonlocal(exit) };
+    match kind {
+        NativePendingKind::None => {}
+        NativePendingKind::NonLocal(exit) => {
+            // SAFETY: converts pending `.eln` exit back into a `NonLocalExit` on the active VM thread.
+            unsafe { raise_vm_nonlocal(exit) };
+        }
+        NativePendingKind::HostExit(code) => {
+            crate::host_runtime::resume_host_exit_unwind(code);
+        }
     }
 }
 

@@ -1937,11 +1937,17 @@ unsafe extern "C" {
 #[cfg (feature = "have_native_comp")]
 #[inline]
 unsafe fn comp_run_void_helper (body: impl FnOnce ()) -> c_int {
-  match crate::nonlocal::catch_vm_nonlocal (body) {
-    Ok (()) => crate::nonlocal::comp_native_exit_pending_for_current_thread (),
-    Err (exit) => {
+  match crate::nonlocal::catch_vm_nonlocal_or_host_exit (body) {
+    crate::nonlocal::HostUnwindOutcome::Ok (()) =>
+      crate::nonlocal::comp_native_exit_pending_for_current_thread (),
+    crate::nonlocal::HostUnwindOutcome::NonLocal (exit) => {
       // SAFETY: called under the active VM global lock at `.eln` helper boundary.
       unsafe { crate::nonlocal::set_comp_native_exit (exit); }
+      1
+    }
+    crate::nonlocal::HostUnwindOutcome::HostExit (code) => {
+      // SAFETY: called under the active VM global lock at `.eln` helper boundary.
+      unsafe { crate::nonlocal::set_comp_native_host_exit (code); }
       1
     }
   }
@@ -1952,8 +1958,8 @@ unsafe fn comp_run_void_helper (body: impl FnOnce ()) -> c_int {
 unsafe fn comp_run_lisp_helper (out: *mut Lisp_Object, body: impl FnOnce () -> Lisp_Object) -> c_int {
   // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
   unsafe {
-  match crate::nonlocal::catch_vm_nonlocal (body) {
-    Ok (val) => {
+  match crate::nonlocal::catch_vm_nonlocal_or_host_exit (body) {
+    crate::nonlocal::HostUnwindOutcome::Ok (val) => {
       if crate::nonlocal::comp_native_exit_pending_for_current_thread () != 0 {
         *out = Qnil ();
         1
@@ -1962,8 +1968,13 @@ unsafe fn comp_run_lisp_helper (out: *mut Lisp_Object, body: impl FnOnce () -> L
         0
       }
     }
-    Err (exit) => {
+    crate::nonlocal::HostUnwindOutcome::NonLocal (exit) => {
       crate::nonlocal::set_comp_native_exit (exit);
+      *out = Qnil ();
+      1
+    }
+    crate::nonlocal::HostUnwindOutcome::HostExit (code) => {
+      crate::nonlocal::set_comp_native_host_exit (code);
       *out = Qnil ();
       1
     }
@@ -1989,13 +2000,18 @@ unsafe extern "C" fn comp_push_handler (
 ) -> c_int {
   // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
   unsafe {
-  match crate::nonlocal::catch_vm_nonlocal (|| unsafe { push_handler (tag_ch_val, htype) }) {
-    Ok (h) => {
+  match crate::nonlocal::catch_vm_nonlocal_or_host_exit (|| unsafe { push_handler (tag_ch_val, htype) }) {
+    crate::nonlocal::HostUnwindOutcome::Ok (h) => {
       *out = h;
       0
     }
-    Err (exit) => {
+    crate::nonlocal::HostUnwindOutcome::NonLocal (exit) => {
       crate::nonlocal::set_comp_native_exit (exit);
+      *out = std::ptr::null_mut ();
+      1
+    }
+    crate::nonlocal::HostUnwindOutcome::HostExit (code) => {
+      crate::nonlocal::set_comp_native_host_exit (code);
       *out = std::ptr::null_mut ();
       1
     }
@@ -2106,13 +2122,18 @@ unsafe extern "C" fn comp_helper_GET_SYMBOL_WITH_POSITION (
 ) -> c_int {
   // SAFETY: native `.eln` JIT/`libgccjit`/dynamic-linker boundary; upholds ABI_VERSION "14" status-helper and relocation table invariants without unwinding across C JIT frames.
   unsafe {
-  match crate::nonlocal::catch_vm_nonlocal (|| unsafe { helper_GET_SYMBOL_WITH_POSITION (a) }) {
-    Ok (p) => {
+  match crate::nonlocal::catch_vm_nonlocal_or_host_exit (|| unsafe { helper_GET_SYMBOL_WITH_POSITION (a) }) {
+    crate::nonlocal::HostUnwindOutcome::Ok (p) => {
       *out = p;
       0
     }
-    Err (exit) => {
+    crate::nonlocal::HostUnwindOutcome::NonLocal (exit) => {
       crate::nonlocal::set_comp_native_exit (exit);
+      *out = std::ptr::null_mut ();
+      1
+    }
+    crate::nonlocal::HostUnwindOutcome::HostExit (code) => {
+      crate::nonlocal::set_comp_native_host_exit (code);
       *out = std::ptr::null_mut ();
       1
     }

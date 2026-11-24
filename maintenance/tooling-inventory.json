@@ -8388,6 +8388,23 @@
       "uncertainty": null
     },
     {
+      "path": "tools/test-c4-r1-abi-exit.py",
+      "sha256": "5fb87caedd2533616d248925f6ebb738e385d5a685dbfdb9d859ccc73f162b76",
+      "bytes": 16174,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Phase II Stage C4-R1 real C dynamic module, subthread, and nested ABI-safe host-exit verification gate",
+      "readers": [
+        {
+          "path": "tools/test-c4-r1-abi-exit.py",
+          "anchor": "main",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
       "path": "tools/test-u3-unit.py",
       "sha256": "43b331ea92becfba196140f52b50133a3f2a44f0ebe021cdfecad87283e4cab6",
       "bytes": 31303,

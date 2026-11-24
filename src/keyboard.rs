@@ -9516,9 +9516,13 @@ pub extern "C-unwind" fn process_pending_signals ()
 {
   // SAFETY: low-level VM/OS subsystem boundary; caller upholds active Lisp thread ownership, tagged `Lisp_Object` / buffer pointer validity, and `NonLocalExit` error propagation.
   unsafe {
+  if crate::host_runtime::has_pending_host_exit ()
+    { crate::host_runtime::propagate_pending_host_exit_if_main (); }
   (*pending_signals.as_mut_ptr ()) = false;
   handle_async_input ();
   do_pending_atimers ();
+  if crate::host_runtime::has_pending_host_exit ()
+    { (*pending_signals.as_mut_ptr ()) = true; }
 
   }
 }

@@ -15,7 +15,7 @@ use std::io;
 use std::os::fd::{AsRawFd, FromRawFd, OwnedFd};
 use std::os::unix::net::UnixStream;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicBool, AtomicU8, AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, AtomicU8, AtomicUsize, Ordering};
 
 use crate::alloc::Fcons;
 use crate::common::{
@@ -51,6 +51,7 @@ static HOST_ANCHOR_DEPTH: AtomicUsize = AtomicUsize::new(0);
 static HEADLESS_INTERCEPT_KILL_EMACS: AtomicBool = AtomicBool::new(false);
 static HOST_EXIT_UNWINDING: AtomicBool = AtomicBool::new(false);
 static HOST_KILL_HOOK_RUNNING: AtomicBool = AtomicBool::new(false);
+static PENDING_HOST_EXIT: AtomicU64 = AtomicU64::new(0);
 
 #[cfg(target_os = "macos")]
 const SYS_SOL_SOCKET: c_int = 0xffff;
@@ -115,6 +116,73 @@ pub(crate) fn is_host_exit_unwinding() -> bool {
     HOST_EXIT_UNWINDING.load(Ordering::Acquire)
 }
 
+/// Clear the headless host-exit unwind flag after an ABI/thread boundary intercepts `HostExit`
+/// for clean local teardown before resuming propagation on the VM unwind stack.
+#[inline]
+pub(crate) fn clear_host_exit_unwinding() {
+    HOST_EXIT_UNWINDING.store(false, Ordering::Release);
+}
+
+/// Resume or initiate a headless host-exit unwind (`VmHostExitUnwind(code)`) with
+/// `HOST_EXIT_UNWINDING` armed so enclosing Lisp cleanup handlers cannot swallow or alter `code`.
+#[inline(never)]
+pub(crate) fn resume_host_exit_unwind(code: i32) -> ! {
+    HOST_EXIT_UNWINDING.store(true, Ordering::Release);
+    raise_host_exit(code)
+}
+
+/// Record a process-wide pending host exit from a subthread or deferred boundary without unwinding
+/// across `extern "C"` frames. Preserves the first recorded exit code until consumed by main thread.
+pub(crate) fn record_pending_host_exit(code: i32) {
+    let encoded = (1u64 << 32) | u64::from(code as u32);
+    let _ = PENDING_HOST_EXIT.compare_exchange(0, encoded, Ordering::AcqRel, Ordering::Acquire);
+    // SAFETY: Caller holds the active VM global lock or is tearing down a Lisp thread; setting
+    // `pending_signals` ensures any active main-thread Lisp loop enters `probably_quit()` promptly.
+    unsafe {
+        if current_thread_key() != 0 {
+            *crate::common::pending_signals.as_mut_ptr() = true;
+        }
+    }
+}
+
+/// Return whether a deferred subthread/host exit request is waiting for main-thread propagation.
+#[inline]
+pub(crate) fn has_pending_host_exit() -> bool {
+    PENDING_HOST_EXIT.load(Ordering::Acquire) != 0
+}
+
+/// Atomically consume any pending deferred host-exit request, returning its exit code.
+#[inline]
+pub(crate) fn take_pending_host_exit() -> Option<i32> {
+    let raw = PENDING_HOST_EXIT.swap(0, Ordering::AcqRel);
+    if raw == 0 {
+        None
+    } else {
+        Some((raw & 0xffff_ffff) as u32 as i32)
+    }
+}
+
+/// If running on the VM main thread while headless mode is active and a deferred host exit is
+/// pending, consume it and initiate `VmHostExitUnwind(code)`.
+///
+/// # Safety
+/// Must be called on the active VM-lock-owning thread inside an active `with_host_condition_catch_ctx`
+/// unwind scope.
+pub(crate) unsafe fn propagate_pending_host_exit_if_main() {
+    if !has_pending_host_exit() || !is_headless_host_active() {
+        return;
+    }
+    // SAFETY: Caller holds VM global lock on active Lisp thread.
+    unsafe {
+        let ct = *current_thread.as_mut_ptr();
+        if !ct.is_null() && crate::thread::main_thread_p(ct.cast()) {
+            if let Some(code) = take_pending_host_exit() {
+                resume_host_exit_unwind(code);
+            }
+        }
+    }
+}
+
 struct HostExitUnwindResetGuard;
 
 impl Drop for HostExitUnwindResetGuard {
@@ -163,8 +231,11 @@ pub(crate) unsafe fn intercept_headless_kill_emacs(arg: Lisp_Object) -> ! {
             safe_run_hooks(hook_sym);
         }
         flush_c_stdio_raw();
-        HOST_EXIT_UNWINDING.store(true, Ordering::Release);
-        raise_host_exit(exit_code);
+        let ct = *current_thread.as_mut_ptr();
+        if !ct.is_null() && !crate::thread::main_thread_p(ct.cast()) {
+            record_pending_host_exit(exit_code);
+        }
+        resume_host_exit_unwind(exit_code);
     }
 }
 
@@ -468,24 +539,32 @@ impl Drop for HandlerPopGuard {
 
 fn format_error_payload_message(err_val: Lisp_Object) -> String {
     // SAFETY: `err_val` is already rooted by the enclosing `ScopedLispRoot`; catches any secondary
-    // error while formatting `error-message-string` so host error conversion never unwinds.
+    // error or host-exit unwind while formatting `error-message-string` so host error conversion
+    // never unwinds.
     let inner_res = unsafe {
         let sym = intern_c_string(c"error-message-string".as_ptr());
         if NILP(Ffboundp(sym)) {
-            Ok(Fprin1_to_string(err_val, lisp_h_Qnil(), lisp_h_Qnil()))
+            HostUnwindOutcome::Ok(Fprin1_to_string(err_val, lisp_h_Qnil(), lisp_h_Qnil()))
         } else {
             let h = push_handler_nosignal(Qt(), CONDITION_CASE);
             let mut pop_guard = HandlerPopGuard {
                 expected_handler: h,
                 active: !h.is_null(),
             };
-            let res = catch_vm_nonlocal(|| Ferror_message_string(err_val));
+            let res = catch_vm_nonlocal_or_host_exit(|| Ferror_message_string(err_val));
+            if let HostUnwindOutcome::HostExit(code) = res {
+                record_pending_host_exit(code);
+                if !h.is_null() {
+                    crate::eval::restore_vm_state_to_host_handler(h);
+                }
+                clear_host_exit_unwinding();
+            }
             pop_guard.pop_now();
             res
         }
     };
     match inner_res {
-        Ok(rendered) if STRINGP(rendered) => {
+        HostUnwindOutcome::Ok(rendered) if STRINGP(rendered) => {
             // SAFETY: Roots `rendered` across string extraction under active VM lock.
             unsafe {
                 let _r = ScopedLispRoot::new(&[rendered]);
@@ -582,11 +661,19 @@ fn with_host_condition_catch_ctx<R>(
                 HostUnwindOutcome::Ok(Ok(val)) => {
                     pop_guard.pop_now();
                     flush_c_stdio_raw();
+                    if let Some(code) = take_pending_host_exit() {
+                        *Vquit_flag.as_mut_ptr() = lisp_h_Qnil();
+                        return Err(VmHostError::ExitRequest(code));
+                    }
                     return Ok(val);
                 }
                 HostUnwindOutcome::Ok(Err(exit)) | HostUnwindOutcome::NonLocal(exit) => {
                     pop_guard.pop_now();
                     flush_c_stdio_raw();
+                    if let Some(code) = take_pending_host_exit() {
+                        *Vquit_flag.as_mut_ptr() = lisp_h_Qnil();
+                        return Err(VmHostError::ExitRequest(code));
+                    }
                     exit
                 }
                 HostUnwindOutcome::HostExit(code) => {
@@ -594,6 +681,7 @@ fn with_host_condition_catch_ctx<R>(
                     crate::eval::restore_vm_state_to_host_handler(c);
                     pop_guard.pop_now();
                     *Vquit_flag.as_mut_ptr() = lisp_h_Qnil();
+                    let _ = take_pending_host_exit();
                     flush_c_stdio_raw();
                     drop(_reset_guard);
                     return Err(VmHostError::ExitRequest(code));
@@ -607,7 +695,11 @@ fn with_host_condition_catch_ctx<R>(
         unsafe {
             *Vquit_flag.as_mut_ptr() = lisp_h_Qnil();
         }
-        Err(classify_vm_exit(exit.value))
+        let classified = classify_vm_exit(exit.value);
+        if let Some(code) = take_pending_host_exit() {
+            return Err(VmHostError::ExitRequest(code));
+        }
+        Err(classified)
     })
 }
 
@@ -966,6 +1058,7 @@ fn init_headless_host(config: &HostInitConfig) -> Result<GcContext, VmHostError>
 fn shutdown_headless_host(ctx: GcContext) {
     HOST_KILL_HOOK_RUNNING.store(false, Ordering::Release);
     HOST_EXIT_UNWINDING.store(false, Ordering::Release);
+    PENDING_HOST_EXIT.store(0, Ordering::Release);
     HEADLESS_INTERCEPT_KILL_EMACS.store(false, Ordering::Release);
     drop(ctx);
     // SAFETY: Ownership of the sole `GcContext` was released by `drop(ctx)` above, so zero active
@@ -1384,6 +1477,45 @@ impl HeadlessVm {
         with_host_condition_catch(self.ctx_mut(), || {
             Fgarbage_collect();
         })
+    }
+
+    /// Exercise the `.eln` C-ABI helper pending-host-exit boundary: verifies pending host exit
+    /// cannot be consumed by an `.eln` handler and unwinds through `with_host_condition_catch` as
+    /// `Err(VmHostError::ExitRequest(code))` with thread pending state cleared afterward.
+    #[doc(hidden)]
+    pub fn verify_comp_native_host_exit_state(&mut self, code: i32) -> Result<(), VmHostError> {
+        let res = with_host_condition_catch(self.ctx_mut(), || {
+            // SAFETY: Runs inside `with_host_condition_catch` on the active VM-lock-owning thread.
+            unsafe {
+                let h = push_handler_nosignal(Qt(), CONDITION_CASE);
+                let mut pop_guard = HandlerPopGuard {
+                    expected_handler: h,
+                    active: !h.is_null(),
+                };
+                crate::nonlocal::set_comp_native_host_exit(code);
+                assert_eq!(
+                    crate::nonlocal::comp_native_exit_pending_for_current_thread(),
+                    1
+                );
+                assert_eq!(
+                    crate::nonlocal::consume_comp_native_exit_for_handler(core::ptr::null_mut()),
+                    0
+                );
+                assert_eq!(crate::nonlocal::consume_comp_native_exit_for_handler(h), 0);
+                assert_eq!(
+                    crate::nonlocal::comp_native_exit_pending_for_current_thread(),
+                    1
+                );
+                pop_guard.pop_now();
+                crate::nonlocal::check_and_propagate_comp_native_exit();
+                unreachable!("comp native host exit must unwind cleanly");
+            }
+        });
+        assert_eq!(
+            crate::nonlocal::comp_native_exit_pending_for_current_thread(),
+            0
+        );
+        res
     }
 
     /// Inspect observable headless frame/terminal/GC/pdumper invariants inside the active VM.

@@ -2278,11 +2278,17 @@ pub extern "C-unwind" fn probably_quit ()
 {
   // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
   unsafe {
+  if crate::host_runtime::has_pending_host_exit ()
+    { crate::host_runtime::propagate_pending_host_exit_if_main (); }
   let gc_count: specpdl_ref = inhibit_garbage_collection ();
   if !NILP ((*Vquit_flag.as_mut_ptr ())) && NILP ((*Vinhibit_quit.as_mut_ptr ()))
     { process_quit_flag (); }
   else if (*pending_signals.as_mut_ptr ())
-    { process_pending_signals (); }
+    {
+      process_pending_signals ();
+      if crate::host_runtime::has_pending_host_exit ()
+        { (*pending_signals.as_mut_ptr ()) = true; }
+    }
   unbind_to (gc_count, Qnil ());
 
   }

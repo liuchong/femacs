@@ -357,9 +357,12 @@ unsafe fn lisp_mutex_lock_for_thread (mutex: *mut lisp_mutex_t, locker: *mut thr
   (*self_).wait_condvar = &raw mut (*mutex).condition;
   while !(*mutex).owner.is_null ()
 	&& (new_count != 0 || NILP ((*self_).error_symbol))
+	&& !(main_thread_p (self_ as *const c_void) && crate::host_runtime::has_pending_host_exit ())
     { cond_wait_releasing_vm_lock (&raw mut (*mutex).condition, self_); }
   (*self_).wait_condvar = std::ptr::null_mut ();
 
+  if main_thread_p (self_ as *const c_void) && crate::host_runtime::has_pending_host_exit ()
+    { return 1; }
   if new_count == 0 && !NILP ((*self_).error_symbol)
     { return 1; }
 
@@ -503,7 +506,9 @@ DEFUN! ("mutex-lock", Fmutex_lock, Smutex_lock, 1, 1, 0,
   (*(*current_thread.as_mut_ptr ())).event_object = mutex;
   record_unwind_protect_void (Some (do_unwind_mutex_lock));
   flush_stack_call_func (Some (mutex_lock_callback), lmutex as *mut c_void);
-  return unbind_to (count, Qnil ());
+  let _ = unbind_to (count, Qnil ());
+  crate::host_runtime::propagate_pending_host_exit_if_main ();
+  return Qnil ();
 });
 
 // thread.c 372-379.
@@ -596,6 +601,7 @@ unsafe extern "C-unwind" fn condition_wait_callback (arg: *mut c_void)
   saved_count = lisp_mutex_unlock_for_wait (&raw mut (*mutex).mutex);
   /* If signaled while unlocking, skip the wait but reacquire the lock.  */
   if NILP ((*self_).error_symbol)
+     && !(main_thread_p (self_ as *const c_void) && crate::host_runtime::has_pending_host_exit ())
     {
       (*self_).wait_condvar = &raw mut (*cvar).cond;
       /* This call could switch to another thread.  */
@@ -605,7 +611,8 @@ unsafe extern "C-unwind" fn condition_wait_callback (arg: *mut c_void)
   (*self_).event_object = Qnil ();
   /* Since sys_cond_wait could switch threads, we need to lock the
      mutex for the thread which was the current when we were called.  */
-  lisp_mutex_lock_for_thread (&raw mut (*mutex).mutex, self_, saved_count as c_int);
+  if !(main_thread_p (self_ as *const c_void) && crate::host_runtime::has_pending_host_exit ())
+    { lisp_mutex_lock_for_thread (&raw mut (*mutex).mutex, self_, saved_count as c_int); }
   /* Calling lisp_mutex_lock_for_thread might yield to other threads.  */
   post_acquire_global_lock (self_);
 
@@ -628,6 +635,7 @@ DEFUN! ("condition-wait", Fcondition_wait, Scondition_wait, 1, 1, 0,
     { error (c"Condition variable's mutex is not held by current thread".as_ptr ()); }
 
   flush_stack_call_func (Some (condition_wait_callback), cvar as *mut c_void);
+  crate::host_runtime::propagate_pending_host_exit_if_main ();
 
   return Qnil ();
 });
@@ -794,6 +802,7 @@ pub unsafe extern "C-unwind" fn thread_select (func: Option<select_func>, max_fd
   #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
   { thread_android_api::android_before_select (); }
   flush_stack_call_func (Some (really_call_select), &raw mut sa as *mut c_void);
+  crate::host_runtime::propagate_pending_host_exit_if_main ();
   return sa.result;
 
   }
@@ -900,6 +909,7 @@ DEFUN! ("thread-yield", Fthread_yield, Sthread_yield, 0, 0, 0,
        (),
        {
   flush_stack_call_func (Some (yield_callback), std::ptr::null_mut ());
+  crate::host_runtime::propagate_pending_host_exit_if_main ();
   return Qnil ();
 });
 
@@ -977,10 +987,24 @@ unsafe extern "C" fn run_thread (state: *mut c_void) -> *mut c_void
   (*handlerlist_sentinel! ()).next = std::ptr::null_mut ();
 
   /* It might be nice to do something with errors here.  */
-  let _ = crate::nonlocal::catch_vm_nonlocal (|| {
+  match crate::nonlocal::catch_vm_nonlocal_or_host_exit (|| {
     internal_condition_case (Some (invoke_thread_function), Qt (), Some (record_thread_error));
-    update_processes_for_thread_death (Fcurrent_thread ());
-  });
+  }) {
+    crate::nonlocal::HostUnwindOutcome::Ok (())
+    | crate::nonlocal::HostUnwindOutcome::NonLocal (_) => {
+      let _ = crate::nonlocal::catch_vm_nonlocal_or_host_exit (|| {
+	update_processes_for_thread_death (Fcurrent_thread ());
+      });
+    }
+    crate::nonlocal::HostUnwindOutcome::HostExit (code) => {
+      crate::host_runtime::record_pending_host_exit (code);
+      crate::eval::restore_vm_state_to_host_handler (handlerlist_sentinel! ());
+      crate::host_runtime::clear_host_exit_unwinding ();
+      let _ = crate::nonlocal::catch_vm_nonlocal_or_host_exit (|| {
+	update_processes_for_thread_death (Fcurrent_thread ());
+      });
+    }
+  }
 
   xfree ((*self_).m_specpdl.offset (-1) as *mut c_void);
   (*self_).m_specpdl = std::ptr::null_mut ();
@@ -1003,6 +1027,13 @@ unsafe extern "C" fn run_thread (state: *mut c_void) -> *mut c_void
 
   (*current_thread.as_mut_ptr ()) = std::ptr::null_mut ();
   sys_cond_broadcast (&raw mut (*self_).thread_condvar);
+  if crate::host_runtime::has_pending_host_exit ()
+    {
+      let main_t = &raw mut (*main_thread.as_mut_ptr ()).s;
+      let main_wait = (*main_t).wait_condvar;
+      if !main_wait.is_null () && main_wait != &raw mut (*self_).thread_condvar
+	{ sys_cond_broadcast (main_wait); }
+    }
 
   #[cfg (feature = "have_ns")]
   { thread_ns_api::ns_release_autorelease_pool (pool); }
@@ -1274,6 +1305,7 @@ unsafe extern "C-unwind" fn thread_join_callback (arg: *mut c_void)
   (*self_).event_object = thread;
   (*self_).wait_condvar = &raw mut (*tstate).thread_condvar;
   while thread_live_p! (tstate) && NILP ((*self_).error_symbol)
+	&& !(main_thread_p (self_ as *const c_void) && crate::host_runtime::has_pending_host_exit ())
     { cond_wait_releasing_vm_lock ((*self_).wait_condvar, self_); }
 
   (*self_).wait_condvar = std::ptr::null_mut ();
@@ -1303,6 +1335,8 @@ DEFUN! ("thread-join", Fthread_join, Sthread_join, 1, 1, 0,
 
   if thread_live_p! (tstate)
     { flush_stack_call_func (Some (thread_join_callback), tstate as *mut c_void); }
+
+  crate::host_runtime::propagate_pending_host_exit_if_main ();
 
   if !NILP (error_symbol)
     { Fsignal (error_symbol, error_data); }

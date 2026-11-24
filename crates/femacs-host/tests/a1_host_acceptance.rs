@@ -402,6 +402,31 @@ fn scenario_host_exit_unwind() {
         .expect_err("eval_with_args must unwind UnbindGuard safely over nested handler");
     assert_eq!(err4, HostError::ExitRequest(12));
 
+    let err_sub = host
+        .read_eval(
+            "(let ((th (make-thread (function (lambda () (unwind-protect (kill-emacs 17) (setq sub-bad-cleanup t) (kill-emacs 2))))))) (condition-case _ (thread-join th) (t 'swallowed)))",
+        )
+        .expect_err("subthread kill-emacs must hand off safely to main host unwind");
+    assert_eq!(err_sub, HostError::ExitRequest(17));
+    assert_eq!(host.read_eval("(+ 40 2)").unwrap(), "42");
+    assert_eq!(host.read_eval("(length (all-threads))").unwrap(), "1");
+    assert_eq!(host.read_eval("(boundp 'sub-bad-cleanup)").unwrap(), "nil");
+
+    let err_mtx = host
+        .read_eval(
+            "(let* ((m (make-mutex \"c4r1\")) (cv (make-condition-variable m))) (mutex-lock m) (let ((th (make-thread (function (lambda () (mutex-lock m) (condition-notify cv) (kill-emacs 29)))))) (condition-wait cv) (thread-join th)))",
+        )
+        .expect_err("mutex-holding subthread kill-emacs must wake main wait without deadlock");
+    assert_eq!(err_mtx, HostError::ExitRequest(29));
+    assert_eq!(host.read_eval("(+ 10 19)").unwrap(), "29");
+    assert_eq!(host.read_eval("(length (all-threads))").unwrap(), "1");
+
+    let err_comp = host
+        .verify_comp_native_host_exit_state(41)
+        .expect_err("comp native helper pending host exit must not be swallowed");
+    assert_eq!(err_comp, HostError::ExitRequest(41));
+    assert_eq!(host.read_eval("(+ 20 21)").unwrap(), "41");
+
     assert_eq!(
         host.read_eval("(let ((x 0)) (unwind-protect (setq x 1) (setq x (+ x 10))) x)")
             .unwrap(),

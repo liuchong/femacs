@@ -128,6 +128,12 @@ impl LispHost {
     pub fn read_eval_safe_domain(&mut self, source: &str) -> Result<String, HostError> {
         self.vm.safe_domain_read_eval(source)
     }
+
+    /// Exercise `.eln` C-ABI pending-host-exit state-return and propagation on the VM host.
+    #[doc(hidden)]
+    pub fn verify_comp_native_host_exit_state(&mut self, code: i32) -> Result<(), HostError> {
+        self.vm.verify_comp_native_host_exit_state(code)
+    }
 }
 
 #[cfg(test)]

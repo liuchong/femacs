@@ -223,6 +223,12 @@ pub struct emacs_env_private
   pub non_local_exit_data: Lisp_Object,
 
   pub storage: emacs_value_storage,
+
+  /* C4-R1: Non-ABI host-exit propagation flag recorded when a VM `HostExit(code)`
+     hits an `extern "C"` module vtable boundary; prevents `non_local_exit_clear` from
+     swallowing headless termination and resumes unwind cleanly after C returns.  */
+  pub host_exit_pending: bool,
+  pub host_exit_code: i32,
 }
 
 #[cfg (feature = "have_modules")]
@@ -306,19 +312,32 @@ unsafe fn module_with_nonlocal_catch<R> (
       module_out_of_memory (env);
       return error_retval;
     }
-  match crate::nonlocal::catch_vm_nonlocal (body)
+  match crate::nonlocal::catch_vm_nonlocal_or_host_exit (body)
     {
-      Ok (val) =>
+      crate::nonlocal::HostUnwindOutcome::Ok (val) =>
         {
           module_reset_handlerlist (internal_handler);
           val
         }
-      Err (exit) =>
+      crate::nonlocal::HostUnwindOutcome::NonLocal (exit) =>
         {
           eassert! (exit.target == internal_handler);
           let _root = crate::nonlocal::ScopedLispRoot::new (&[exit.value]);
           module_handle_nonlocal_exit (env, exit.kind.to_raw (), exit.value);
           module_reset_handlerlist (internal_handler);
+          error_retval
+        }
+      crate::nonlocal::HostUnwindOutcome::HostExit (code) =>
+        {
+          crate::eval::restore_vm_state_to_host_handler (internal_handler);
+          module_reset_handlerlist (internal_handler);
+          crate::host_runtime::clear_host_exit_unwinding ();
+          let p: *mut emacs_env_private = (*env).private_members.cast::<emacs_env_private> ();
+          (*p).host_exit_pending = true;
+          (*p).host_exit_code = code;
+          (*p).pending_non_local_exit = emacs_funcall_exit_signal;
+          (*p).non_local_exit_symbol = Qerror ();
+          (*p).non_local_exit_data = Qnil ();
           error_retval
         }
     }
@@ -540,8 +559,9 @@ unsafe extern "C" fn module_non_local_exit_clear (env: *mut emacs_env)
   unsafe {
   module_assert_thread ();
   module_assert_env (env);
-  (*(*env).private_members.cast::<emacs_env_private> ()).pending_non_local_exit
-    = emacs_funcall_exit_return;
+  let p: *mut emacs_env_private = (*env).private_members.cast::<emacs_env_private> ();
+  if !(*p).host_exit_pending
+    { (*p).pending_non_local_exit = emacs_funcall_exit_return; }
 
   }
 }
@@ -1266,8 +1286,14 @@ unsafe extern "C" fn module_should_quit (env: *mut emacs_env) -> bool
 {
   // SAFETY: external C dynamic-module ABI boundary; validates `emacs_env` ownership and intercepts all `NonLocalExit`s into pending environment state before returning to C.
   unsafe {
-  MODULE_FUNCTION_BEGIN_NO_CATCH! (env, false);
-  return QUITP ();
+  module_assert_thread ();
+  module_assert_env (env);
+  let p: *mut emacs_env_private = (*env).private_members.cast::<emacs_env_private> ();
+  if (*p).host_exit_pending
+    { return true; }
+  if module_non_local_exit_check (env) != emacs_funcall_exit_return
+    { return false; }
+  return QUITP () || crate::host_runtime::has_pending_host_exit ();
 
   }
 }
@@ -1630,6 +1656,13 @@ DEFUN! ("module-load", Fmodule_load, Smodule_load, 1, 1, 0,
 
   let r: c_int = module_init.unwrap () (rt);
 
+  if env_priv.host_exit_pending
+    {
+      let code: i32 = env_priv.host_exit_code;
+      unbind_to (count, Qnil ());
+      crate::host_runtime::resume_host_exit_unwind (code);
+    }
+
   /* Process the quit flag first, so that quitting doesn't get
      overridden by other non-local exits.  */
   maybe_quit ();
@@ -1690,6 +1723,13 @@ pub unsafe extern "C-unwind" fn funcall_module (function: Lisp_Object, nargs: pt
   let ret: emacs_value = ((*func).subr.unwrap ()) (env, nargs, args, (*func).data);
 
   eassert! (&raw mut priv_ as *mut c_void == (*env).private_members);
+
+  if priv_.host_exit_pending
+    {
+      let code: i32 = priv_.host_exit_code;
+      let _ = SAFE_FREE_UNBIND_TO! (sa_count, count, Qnil (), sa_mark);
+      crate::host_runtime::resume_host_exit_unwind (code);
+    }
 
   /* Process the quit flag first, so that quitting doesn't get
      overridden by other non-local exits.  */
@@ -2053,6 +2093,8 @@ unsafe fn initialize_environment (mut env: *mut emacs_env,
   (*r#priv).pending_non_local_exit = emacs_funcall_exit_return;
   (*r#priv).non_local_exit_symbol = Qnil ();
   (*r#priv).non_local_exit_data = Qnil ();
+  (*r#priv).host_exit_pending = false;
+  (*r#priv).host_exit_code = 0;
   initialize_storage (&raw mut (*r#priv).storage);
   (*env).size = std::mem::size_of::<emacs_env> () as ptrdiff_t;
   (*env).private_members = r#priv as *mut c_void;
