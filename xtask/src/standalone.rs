@@ -317,46 +317,68 @@ fn run_lisp_self_dump(lisp_bin: &Path, repo: &Path, pdmp_out: &Path) -> Result<(
     Ok(())
 }
 
-const ARCHIVE_PROVENANCE_FILE: &str = ".femacs-source-provenance.json";
-const ARCHIVE_EXCLUDED_TOP_ENTRIES: &[&str] = &[
-    ARCHIVE_PROVENANCE_FILE,
-    "build",
-    "dist",
-    "target",
-    ".femacs-cache",
-    ".git",
-];
-
 fn is_clean_commit_hex(s: &str) -> bool {
     s.len() == 40 && s.bytes().all(|b| matches!(b, b'0'..=b'9' | b'a'..=b'f'))
 }
 
-fn hash_tree_with_excluded_top(
-    root: &Path,
-    excluded_top: &[&str],
-) -> Result<(usize, u64, String), String> {
+pub(super) fn resolve_source_commit(repo: &Path) -> String {
+    if !repo.join(".git").exists() {
+        return "unverified-export".to_string();
+    }
+    let repo_str = repo.to_string_lossy();
+    let Ok(head_out) = Command::new("git")
+        .args(["-C", &repo_str, "rev-parse", "--verify", "HEAD"])
+        .output()
+    else {
+        return "dirty-unknown".to_string();
+    };
+    if !head_out.status.success() {
+        return "dirty-unknown".to_string();
+    }
+    let head = String::from_utf8_lossy(&head_out.stdout).trim().to_string();
+    if !is_clean_commit_hex(&head) {
+        return "dirty-unknown".to_string();
+    }
+    let Ok(status_out) = Command::new("git")
+        .args(["-C", &repo_str, "status", "--porcelain", "--untracked-files=normal"])
+        .output()
+    else {
+        return format!("dirty-{head}");
+    };
+    if status_out.status.success() && status_out.stdout.is_empty() {
+        return head;
+    }
+    format!("dirty-{head}")
+}
+
+pub(super) fn finalize_source_commit(initial: &str, final_resolved: &str) -> String {
+    if !is_clean_commit_hex(initial) {
+        return initial.to_string();
+    }
+    if initial == final_resolved {
+        return initial.to_string();
+    }
+    if is_clean_commit_hex(final_resolved) {
+        return format!("drifted-{initial}-{final_resolved}");
+    }
+    final_resolved.to_string()
+}
+
+pub(super) fn hash_resource_tree(root: &Path) -> Result<serde_json::Value, String> {
     let root_meta = fs::symlink_metadata(root).map_err(|e| format!("stat {}: {e}", root.display()))?;
     if !root_meta.file_type().is_dir() {
         return Err(format!("tree root is not a regular directory: {}", root.display()));
     }
-    let mut pending = vec![(root.to_path_buf(), true)];
+    let mut pending = vec![root.to_path_buf()];
     let mut records: Vec<(String, u64, String)> = Vec::new();
-    while let Some((dir, is_top)) = pending.pop() {
+    while let Some(dir) = pending.pop() {
         for entry in fs::read_dir(&dir).map_err(|e| format!("readdir {}: {e}", dir.display()))? {
             let entry = entry.map_err(|e| e.to_string())?;
-            if is_top
-                && entry
-                    .file_name()
-                    .to_str()
-                    .is_some_and(|name| excluded_top.contains(&name))
-            {
-                continue;
-            }
             let p = entry.path();
             let meta = fs::symlink_metadata(&p).map_err(|e| format!("stat {}: {e}", p.display()))?;
             let ft = meta.file_type();
             if ft.is_dir() {
-                pending.push((p, false));
+                pending.push(p);
             } else if ft.is_file() {
                 let rel_path = p.strip_prefix(root).map_err(|e| e.to_string())?;
                 let mut parts = Vec::new();
@@ -386,72 +408,9 @@ fn hash_tree_with_excluded_top(
         let line = format!("{rel}\0{bytes}\0{digest}\n");
         tree_hash.update(line.as_bytes());
     }
-    Ok((records.len(), total_bytes, format!("{:x}", tree_hash.finalize())))
-}
-
-pub(super) fn hash_archive_source_tree(root: &Path) -> Result<String, String> {
-    let (_, _, tree_sha256) = hash_tree_with_excluded_top(root, ARCHIVE_EXCLUDED_TOP_ENTRIES)?;
-    Ok(tree_sha256)
-}
-
-fn verify_archive_provenance(repo: &Path) -> Option<String> {
-    let prov_path = repo.join(ARCHIVE_PROVENANCE_FILE);
-    let meta = fs::symlink_metadata(&prov_path).ok()?;
-    if !meta.file_type().is_file() {
-        return None;
-    }
-    let raw = fs::read_to_string(&prov_path).ok()?;
-    let prov: serde_json::Value = serde_json::from_str(&raw).ok()?;
-    if prov.get("schema").and_then(|v| v.as_u64()) != Some(1) {
-        return None;
-    }
-    let commit = prov.get("source_commit").and_then(|v| v.as_str())?;
-    if !is_clean_commit_hex(commit) {
-        return None;
-    }
-    let expected_tree_sha = prov.get("tree_sha256").and_then(|v| v.as_str())?;
-    let actual_tree_sha = hash_archive_source_tree(repo).ok()?;
-    if actual_tree_sha == expected_tree_sha {
-        Some(commit.to_string())
-    } else {
-        None
-    }
-}
-
-pub(super) fn resolve_source_commit(repo: &Path) -> String {
-    if repo.join(".git").exists() {
-        let repo_str = repo.to_string_lossy();
-        let Ok(head_out) = Command::new("git")
-            .args(["-C", &repo_str, "rev-parse", "--verify", "HEAD"])
-            .output()
-        else {
-            return "dirty-unknown".to_string();
-        };
-        if !head_out.status.success() {
-            return "dirty-unknown".to_string();
-        }
-        let head = String::from_utf8_lossy(&head_out.stdout).trim().to_string();
-        if !is_clean_commit_hex(&head) {
-            return "dirty-unknown".to_string();
-        }
-        let Ok(status_out) = Command::new("git")
-            .args(["-C", &repo_str, "status", "--porcelain", "--untracked-files=normal"])
-            .output()
-        else {
-            return format!("dirty-{head}");
-        };
-        if status_out.status.success() && status_out.stdout.is_empty() {
-            return head;
-        }
-        return format!("dirty-{head}");
-    }
-    verify_archive_provenance(repo).unwrap_or_else(|| "unverified-export".to_string())
-}
-
-pub(super) fn hash_resource_tree(root: &Path) -> Result<serde_json::Value, String> {
-    let (file_count, total_bytes, tree_sha256) = hash_tree_with_excluded_top(root, &[])?;
+    let tree_sha256 = format!("{:x}", tree_hash.finalize());
     Ok(serde_json::json!({
-        "file_count": file_count,
+        "file_count": records.len(),
         "sha256": tree_sha256,
         "total_bytes": total_bytes,
     }))
@@ -695,11 +654,8 @@ pub(super) fn lisp_package_in(repo: &Path, root: &Path, destination: &Path) -> R
                 &stage.join("licenses/treesit"),
             )?;
             make_dir_tree_writable(stage)?;
-            let source_commit = if repo.join(".git").exists() && is_clean_commit_hex(&initial_source_commit) {
-                resolve_source_commit(repo)
-            } else {
-                initial_source_commit.clone()
-            };
+            let source_commit =
+                finalize_source_commit(&initial_source_commit, &resolve_source_commit(repo));
             let manifest = lisp_package_manifest_value_with_commit(stage, &source_commit)?;
             crate::tooling::write_json(&stage.join("manifest.json"), &manifest)
         },
@@ -828,7 +784,7 @@ mod tests {
     }
 
     #[test]
-    fn resolve_source_commit_requires_clean_git_tree_or_verified_archive() {
+    fn resolve_source_commit_requires_clean_git_tree_and_rejects_head_drift() {
         let scratch = Scratch::new();
         let git_repo = scratch.0.join("git-repo");
         fs::create_dir_all(&git_repo).unwrap();
@@ -865,34 +821,61 @@ mod tests {
         let head = git_run(&["rev-parse", "HEAD"]);
         assert!(is_clean_commit_hex(&head));
         assert_eq!(resolve_source_commit(&git_repo), head);
+        assert_eq!(finalize_source_commit(&head, &head), head);
 
         fs::write(git_repo.join("README.txt"), b"modified\n").unwrap();
-        assert_eq!(resolve_source_commit(&git_repo), format!("dirty-{head}"));
+        let dirty_val = resolve_source_commit(&git_repo);
+        assert_eq!(dirty_val, format!("dirty-{head}"));
+        assert_eq!(finalize_source_commit(&head, &dirty_val), dirty_val);
+        assert_eq!(finalize_source_commit(&dirty_val, &head), dirty_val);
         fs::write(git_repo.join("README.txt"), b"clean\n").unwrap();
         assert_eq!(resolve_source_commit(&git_repo), head);
 
         fs::write(git_repo.join("untracked.txt"), b"extra\n").unwrap();
         assert_eq!(resolve_source_commit(&git_repo), format!("dirty-{head}"));
+        fs::remove_file(git_repo.join("untracked.txt")).unwrap();
 
+        // Mid-build drift to a second clean HEAD must never be accepted as either verified commit
+        fs::write(git_repo.join("README.txt"), b"v2\n").unwrap();
+        git_run(&["add", "README.txt"]);
+        git_run(&[
+            "-c",
+            "user.name=Test",
+            "-c",
+            "user.email=test@example.invalid",
+            "-c",
+            "commit.gpgsign=false",
+            "commit",
+            "-m",
+            "second",
+        ]);
+        let head2 = git_run(&["rev-parse", "HEAD"]);
+        assert_ne!(head, head2);
+        assert!(is_clean_commit_hex(&head2));
+        assert_eq!(resolve_source_commit(&git_repo), head2);
+        let drifted = finalize_source_commit(&head, &head2);
+        assert_eq!(drifted, format!("drifted-{head}-{head2}"));
+        assert!(!is_clean_commit_hex(&drifted));
+
+        // Non-git archives always resolve to unverified-export even with a sidecar present
         let archive = scratch.0.join("archive-export");
         fs::create_dir_all(archive.join("src")).unwrap();
         fs::write(archive.join("src/lib.rs"), b"pub fn ok() -> u8 { 1 }\n").unwrap();
         assert_eq!(resolve_source_commit(&archive), "unverified-export");
-
-        let tree_sha = hash_archive_source_tree(&archive).unwrap();
-        let prov = serde_json::json!({
-            "schema": 1,
-            "source_commit": head,
-            "tree_sha256": tree_sha,
-        });
         fs::write(
-            archive.join(ARCHIVE_PROVENANCE_FILE),
-            serde_json::to_vec_pretty(&prov).unwrap(),
+            archive.join(".femacs-source-provenance.json"),
+            serde_json::json!({
+                "schema": 1,
+                "source_commit": head,
+                "tree_sha256": "0".repeat(64),
+            })
+            .to_string(),
         )
         .unwrap();
-        assert_eq!(resolve_source_commit(&archive), head);
-
-        fs::write(archive.join("src/lib.rs"), b"pub fn ok() -> u8 { 2 }\n").unwrap();
         assert_eq!(resolve_source_commit(&archive), "unverified-export");
+        assert_eq!(
+            finalize_source_commit("unverified-export", &head),
+            "unverified-export"
+        );
     }
 }

@@ -1,3 +1,13 @@
+## 2026-11-24: Stage C3/A3-R2 source provenance & HEAD-drift closure (CLN296)
+
+Following `[FEMACS-C3-A3-R1-REVIEW]` on `92be979c`, closed the remaining source provenance blocker in `xtask/src/standalone.rs` while keeping the verified `df887492`-bound `dist/lisp` (`210M`, `package_sha256=6b4d8393e9f487982f4028d518d9a94d95e9dc4e382303ba693575edc54dd82e`) and Seed `25` / Stage 0 `131` zero-diff receipts intact:
+- **Removed unsigned sidecar trust & blocked mid-build HEAD drift (`xtask/src/standalone.rs`)**:
+  - Removed `.femacs-source-provenance.json` / `verify_archive_provenance`; all non-Git archives now build with `source_commit="unverified-export"`, limiting official cache entries strictly to clean single-revision Git builds (`git status --porcelain --untracked-files=normal` empty).
+  - Added `finalize_source_commit(initial, final_resolved)` in `lisp_package_in` so initial non-clean identities stay non-clean and mid-build `HEAD` switches resolve to `drifted-<initial>-<final>`, blocked from official cache.
+  - Updated unit coverage to `resolve_source_commit_requires_clean_git_tree_and_rejects_head_drift` (`119/119` `cargo test -p xtask` passing with `FEMACS_SOURCE_COMMIT` ignored).
+- **Controlled verification, `CLN296` & post-cleanup smoke (`assistant run`)**:
+  - Narrow verification (`run_id=ce60b2b9263146e4a78c80c1a96d6e42`, `15.698s`, `exit=0`, `cleanup_complete=true`), `CLN296` retirement of `8` scopes (`1,332` files, `383` dirs, `2` symlinks, `212,949,468` B, digest `ec8e5d176aae88bab39709e1b8cf42897d934f46df16001788dfba144892931f`), and post-cleanup smoke (`run_id=d2001783013744bea29fa1847d5a61da`, `8.211s`, `exit=0`, `cleanup_complete=true`). Next: submit `[FEMACS-C3-A3-R2-SUBMIT]` to FEmacs Codex (`01a144ea`). [CLN296](../maintenance/cleanup/reports/2026-11-24-296-c3-a3-r2-source-provenance.md).
+
 ## 2026-11-24: Stage C3/A3-R1 cache, source provenance & acceptance safety fixes (CLN295)
 
 Following `[FEMACS-C3-A3-REVIEW]` on `df887492` / `b1d50708`, closed all four review findings without disturbing the verified `df887492`-bound `dist/lisp` (`210M`, `package_sha256=6b4d8393e9f487982f4028d518d9a94d95e9dc4e382303ba693575edc54dd82e`), completed targeted controlled verification, retired temporary caches (`CLN295`), and verified post-cleanup smoke:
