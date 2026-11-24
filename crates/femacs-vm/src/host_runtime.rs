@@ -137,10 +137,12 @@ pub(crate) fn record_pending_host_exit(code: i32) {
     let encoded = (1u64 << 32) | u64::from(code as u32);
     let _ = PENDING_HOST_EXIT.compare_exchange(0, encoded, Ordering::AcqRel, Ordering::Acquire);
     // SAFETY: Caller holds the active VM global lock or is tearing down a Lisp thread; setting
-    // `pending_signals` ensures any active main-thread Lisp loop enters `probably_quit()` promptly.
+    // `pending_signals` wakes any active Lisp loop via `probably_quit()`, and the non-blocking
+    // self-pipe write wakes any blocking main-thread `pselect` via `thread_select`.
     unsafe {
         if current_thread_key() != 0 {
             *crate::common::pending_signals.as_mut_ptr() = true;
+            crate::process::notify_host_exit_io_wakeup();
         }
     }
 }
@@ -158,6 +160,12 @@ pub(crate) fn take_pending_host_exit() -> Option<i32> {
     if raw == 0 {
         None
     } else {
+        // SAFETY: Only drains the non-blocking self-pipe when an active VM thread is bound.
+        unsafe {
+            if current_thread_key() != 0 {
+                crate::process::drain_host_exit_io_wakeup();
+            }
+        }
         Some((raw & 0xffff_ffff) as u32 as i32)
     }
 }
@@ -1062,10 +1070,11 @@ fn shutdown_headless_host(ctx: GcContext) {
     HEADLESS_INTERCEPT_KILL_EMACS.store(false, Ordering::Release);
     drop(ctx);
     // SAFETY: Ownership of the sole `GcContext` was released by `drop(ctx)` above, so zero active
-    // VM/root borrows remain on this OS thread; clears `Vquit_flag`, flushes stdio, and unbinds
-    // VM lock ownership before marking `HOST_INIT_STATE` spent.
+    // VM/root borrows remain on this OS thread; drains the self-pipe, clears `Vquit_flag`, flushes
+    // stdio, and unbinds VM lock ownership before marking `HOST_INIT_STATE` spent.
     unsafe {
         if current_thread_key() != 0 {
+            crate::process::drain_host_exit_io_wakeup();
             *Vquit_flag.as_mut_ptr() = lisp_h_Qnil();
         }
         flush_c_stdio_raw();

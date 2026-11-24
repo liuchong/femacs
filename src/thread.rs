@@ -790,7 +790,10 @@ pub unsafe extern "C-unwind" fn thread_select (func: Option<select_func>, max_fd
 {
   // SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership.
   unsafe {
+  crate::host_runtime::propagate_pending_host_exit_if_main ();
   let mut sa: select_args = std::mem::zeroed ();
+  let mut local_rfds: fd_set = std::mem::zeroed ();
+  let mut injected_wake_fd: c_int = -1;
 
   sa.func = func;
   sa.max_fds = max_fds;
@@ -799,9 +802,47 @@ pub unsafe extern "C-unwind" fn thread_select (func: Option<select_func>, max_fd
   sa.efds = efds;
   sa.timeout = timeout;
   sa.sigmask = sigmask;
+
+  let may_block = timeout.is_null ()
+    || (*timeout).tv_sec > 0
+    || ((*timeout).tv_sec == 0 && (*timeout).tv_nsec > 0);
+  if may_block
+    && crate::host_runtime::is_headless_host_active ()
+    && main_thread_p ((*current_thread.as_mut_ptr ()) as *const c_void)
+  {
+    let wake_fd = crate::process::ensure_host_exit_io_wakeup_pipe ();
+    if 0 <= wake_fd && wake_fd < FD_SETSIZE
+      && (rfds.is_null () || !fd_ISSET (wake_fd, rfds as *const fd_set))
+    {
+      if !rfds.is_null ()
+        { local_rfds = *rfds; }
+      fd_SET (wake_fd, &raw mut local_rfds);
+      sa.rfds = &raw mut local_rfds;
+      if sa.max_fds <= wake_fd
+        { sa.max_fds = wake_fd + 1; }
+      injected_wake_fd = wake_fd;
+    }
+    else if 0 <= wake_fd && wake_fd < FD_SETSIZE && sa.max_fds <= wake_fd
+    {
+      sa.max_fds = wake_fd + 1;
+    }
+  }
+
   #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
   { thread_android_api::android_before_select (); }
   flush_stack_call_func (Some (really_call_select), &raw mut sa as *mut c_void);
+
+  if injected_wake_fd >= 0
+  {
+    if sa.result > 0 && fd_ISSET (injected_wake_fd, &raw const local_rfds)
+    {
+      fd_CLR (injected_wake_fd, &raw mut local_rfds);
+      sa.result -= 1;
+    }
+    if !rfds.is_null () && sa.result >= 0
+      { *rfds = local_rfds; }
+  }
+
   crate::host_runtime::propagate_pending_host_exit_if_main ();
   return sa.result;
 

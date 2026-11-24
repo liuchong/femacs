@@ -432,6 +432,25 @@ fn scenario_host_exit_unwind() {
             .unwrap(),
         "11"
     );
+
+    let started = std::time::Instant::now();
+    let err_io_wait = host
+        .read_eval(
+            "(progn (make-thread (function (lambda () (sleep-for 0.15) (kill-emacs 47)))) (sleep-for 2.5))",
+        )
+        .expect_err("subthread kill-emacs must wake main thread from system I/O wait");
+    assert_eq!(err_io_wait, HostError::ExitRequest(47));
+    assert!(
+        started.elapsed() < std::time::Duration::from_millis(1200),
+        "main thread slept past subthread host-exit wakeup: {:?}",
+        started.elapsed()
+    );
+    assert_eq!(host.read_eval("(+ 20 27)").unwrap(), "47");
+    assert_eq!(host.read_eval("(length (all-threads))").unwrap(), "1");
+    assert_eq!(
+        host.read_eval("(progn (sleep-for 0.05) 'awake)").unwrap(),
+        "awake"
+    );
 }
 
 fn main() {

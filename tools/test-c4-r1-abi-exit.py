@@ -412,6 +412,28 @@ def main(argv: list[str] | None = None) -> int:
             "modjoin31 before=1 clear=1 after=1 post_intern_null=1"
         ], m9.read_text(encoding="utf-8")
 
+        # 10. Subthread calling (kill-emacs 47) after 0.15s wakes main thread blocked in (sleep-for 2.5)
+        cases["lisp_subthread_wakes_main_sleep_for"] = run_batch(
+            femacs_lisp,
+            "(progn (make-thread (lambda () (sleep-for 0.15) (kill-emacs 47))) (sleep-for 2.5))",
+            expected_code=47,
+        )
+        assert cases["lisp_subthread_wakes_main_sleep_for"]["elapsed_s"] < 1.2, cases[
+            "lisp_subthread_wakes_main_sleep_for"
+        ]
+
+        # 11. Subthread calling (kill-emacs 53) after 0.15s wakes main thread in indefinite I/O wait
+        cases["lisp_subthread_wakes_main_indefinite_io_wait"] = run_batch(
+            femacs_lisp,
+            "(let ((p (make-pipe-process :name \"c4-r2-idle-wait\" :buffer nil :noquery t))) "
+            "(make-thread (lambda () (sleep-for 0.15) (kill-emacs 53))) "
+            "(unwind-protect (accept-process-output p) (delete-process p)))",
+            expected_code=53,
+        )
+        assert cases["lisp_subthread_wakes_main_indefinite_io_wait"]["elapsed_s"] < 1.2, cases[
+            "lisp_subthread_wakes_main_indefinite_io_wait"
+        ]
+
     summary = {
         "schema": "femacs-c4-r1-abi-exit-v1",
         "package": str(package_dir),

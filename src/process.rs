@@ -6386,6 +6386,8 @@ pub unsafe fn wait_reading_process_output (time_limit: i64, nsecs: c_int, read_k
       /* We have to be informed when we receive a SIGCHLD signal for an asynchronous
 	 process.  Otherwise this might deadlock if we receive a SIGCHLD during
 	 `pselect'.  */
+      if (crate::host_runtime::is_headless_host_active () && (*child_signal_read_fd.as_mut_ptr ()) < 0)
+	{ child_signal_init (); }
       let child_fd: c_int = (*child_signal_read_fd.as_mut_ptr ());
       eassert! (child_fd < FD_SETSIZE);
       if (0 <= child_fd)
@@ -8468,6 +8470,8 @@ unsafe extern "C-unwind" fn child_signal_read (fd: c_int, data: *mut c_void)
   let _ = data;
   eassert! (0 <= fd);
   eassert! (fd == (*child_signal_read_fd.as_mut_ptr ()));
+  if (crate::host_runtime::has_pending_host_exit ())
+    { return; }
   let mut dummy: c_char = 0;
   if (emacs_read (fd, &raw mut dummy as *mut c_void, 1) < 0 && *errno () != EAGAIN)
     { emacs_perror (c"reading from child signal FD".as_ptr ()); }
@@ -8494,6 +8498,53 @@ unsafe fn child_signal_notify ()
      signal handler.  So we no longer check errors of emacs_write here.  */
   emacs_write (fd, &raw const dummy as *const c_void, 1);
 
+  }
+}
+
+/// Ensure the child-signal/wakeup self-pipe is initialized and return its read fd.
+pub(crate) unsafe fn ensure_host_exit_io_wakeup_pipe () -> c_int
+{
+  // SAFETY: Caller holds the VM global lock on an active Lisp thread; `child_signal_init` creates the non-blocking pipe idempotently below `FD_SETSIZE`.
+  unsafe {
+  if ((*child_signal_read_fd.as_mut_ptr ()) < 0)
+    { child_signal_init (); }
+  (*child_signal_read_fd.as_mut_ptr ())
+  }
+}
+
+/// Wake any blocking main-thread `pselect` after recording a pending host exit.
+pub(crate) unsafe fn notify_host_exit_io_wakeup ()
+{
+  // SAFETY: `child_signal_write_fd` is initialized under the VM global lock before `really_call_select` releases it, or stays `< 0`; writing 1 byte to a non-blocking pipe fd is safe and ignores closed/full/uninitialized state.
+  unsafe {
+  let fd: c_int = (*child_signal_write_fd.as_mut_ptr ());
+  if (0 <= fd)
+    {
+      let dummy: c_char = 1;
+      let _ = emacs_write (fd, &raw const dummy as *const c_void, 1);
+    }
+  }
+}
+
+/// Drain any queued self-pipe wakeup bytes after consuming a pending host exit or at host teardown.
+pub(crate) unsafe fn drain_host_exit_io_wakeup ()
+{
+  // SAFETY: Caller holds active VM thread state and drains only the non-blocking `child_signal_read_fd` owned by this process.
+  unsafe {
+  let fd: c_int = (*child_signal_read_fd.as_mut_ptr ());
+  if (fd < 0)
+    { return; }
+  let mut buf: [u8; 64] = [0; 64];
+  loop
+    {
+      let n = emacs_read (fd, buf.as_mut_ptr () as *mut c_void, buf.len () as ptrdiff_t);
+      if (n <= 0)
+        {
+          if (n < 0 && *errno () == EINTR)
+            { continue; }
+          break;
+        }
+    }
   }
 }
 

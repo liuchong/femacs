@@ -8389,8 +8389,8 @@
     },
     {
       "path": "tools/test-c4-r1-abi-exit.py",
-      "sha256": "5fb87caedd2533616d248925f6ebb738e385d5a685dbfdb9d859ccc73f162b76",
-      "bytes": 16174,
+      "sha256": "24057a0477878e7191b76e4dd3107146d7c394f29aa1f9666d8914e04c8b2dcb",
+      "bytes": 17310,
       "family": "test",
       "decision": "retain",
       "replacement": null,
