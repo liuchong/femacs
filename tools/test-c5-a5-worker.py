@@ -375,6 +375,8 @@ def run_cocoa_gui_cases(
     pkg_dir: Path,
     runner: str,
     work_dir: Path,
+    *,
+    extra_env: dict[str, str] | None = None,
 ) -> dict[str, object]:
     app_bin = app_bundle / "Contents/MacOS/Femacs"
     assert app_bin.is_file(), f"missing installed GUI binary: {app_bin}"
@@ -390,6 +392,8 @@ def run_cocoa_gui_cases(
             "FEMACS_A5_REPORT": str(report_path),
         }
     )
+    if extra_env:
+        env.update(extra_env)
     started = time.monotonic()
     log_path = work_dir / "cocoa-stdio.log"
     with log_path.open("wb") as logf:
@@ -426,6 +430,8 @@ def run_terminal_pty_cases(
     pkg_dir: Path,
     runner: str,
     work_dir: Path,
+    *,
+    extra_env: dict[str, str] | None = None,
 ) -> dict[str, object]:
     assert term_bin.is_file(), f"missing terminal binary: {term_bin}"
     report_path = work_dir / "terminal-report.json"
@@ -442,6 +448,8 @@ def run_terminal_pty_cases(
             "FEMACS_A5_REPORT": str(report_path),
         }
     )
+    if extra_env:
+        env.update(extra_env)
     started = time.monotonic()
     pid, master = pty.fork()
     if pid == 0:
@@ -659,6 +667,39 @@ def run_guard_self_tests(valid_pkg: Path) -> dict[str, object]:
         assert p7.returncode != 0 and not (tmp / "out-7").exists()
         checks.append({"id": "reject_tampered_closure_digest", "passed": True, "rc": p7.returncode})
 
+        # 8. Placing --out inside read-only --frozen-package is refused without mutating closure.
+        nested_pkg = tmp / "nested-out-pkg"
+        shutil.copytree(valid_pkg, nested_pkg, symlinks=False)
+        before_closure = verify_frozen_package(nested_pkg)["closure_sha256"]
+        nested_out = nested_pkg / "nested-report"
+        p8 = subprocess.run(
+            [
+                "python3",
+                script,
+                "--frozen-package",
+                str(nested_pkg),
+                "--out",
+                str(nested_out),
+            ],
+            capture_output=True,
+            text=True,
+            timeout=15.0,
+        )
+        after_closure = verify_frozen_package(nested_pkg)["closure_sha256"]
+        assert (
+            p8.returncode != 0
+            and not nested_out.exists()
+            and after_closure == before_closure
+        )
+        checks.append(
+            {
+                "id": "refuse_out_inside_frozen_package",
+                "passed": True,
+                "rc": p8.returncode,
+                "closure_sha256": after_closure,
+            }
+        )
+
     checks.append(
         {
             "id": "verify_valid_frozen_package",
@@ -708,6 +749,12 @@ def main(argv: list[str] | None = None) -> int:
             parser.error("--frozen-package is a read-only input and cannot be combined with --prepare-only or --package-out")
         pkg_dir = args.frozen_package.resolve()
         manifest = verify_frozen_package(pkg_dir)
+        if out_dir == pkg_dir or out_dir.is_relative_to(pkg_dir):
+            raise ValueError(
+                f"refusing to place --out inside read-only --frozen-package: out={out_dir} pkg={pkg_dir}"
+            )
+        if out_dir.exists():
+            raise FileExistsError(f"refusing to overwrite existing output directory: {out_dir}")
     else:
         pkg_target = (args.package_out or (out_dir / "frozen-eliscript")).resolve()
         if pkg_target.exists() or pkg_target.is_symlink():
