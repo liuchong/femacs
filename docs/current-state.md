@@ -1,6 +1,24 @@
 # 当前状态（2026-11-24）
 
-**本段为当前实际读数（Phase II Stage C1 & A1，继 `[FEMACS-AU8-FINAL-REVIEW-R4]` `c187c486` 核收 `AU8` 后），取代下方 `U8-R4` 及更早历史段落。**
+**本段为当前实际读数（Phase II Stage C1-R1 公开宿主边界收口，关闭 Codex `[FEMACS-C1-A1-REVIEW]` 阻断项），取代下方初版 `C1/A1`、`U8-R4` 及更早历史段落。**
+
+- **Phase II Stage `C1-R1`（`[FEMACS-C1-A1-REVIEW]` 两项公开边界闭环）已完成、全套集成/单元验收复过，并完成 `CLN289` 与 `/Applications/Fe.app` 原子重装，待 Codex App 确认后进入 Stage `C2`**：
+  - **公开宿主边界收口（`crates/femacs-vm/src/host_runtime.rs`、`crates/femacs-host/src/{lib,bin/temacs}.rs`）**：
+    - 移除 `host_runtime::with_anchored_context`、公开 `init_headless_host`/`shutdown_headless_host`、`femacs_host::LispHost::with_context` 及 `pub use femacs_vm;`，将原始 `GcContext` 租约收敛至不透明、非 `Copy`、!Send + !Sync 的 `pub struct HeadlessVm`（`Drop` 负责释放并调用 `unbind_vm_lock_owner`），外部安全代码无法绕过 condition 保护或越过宿主生命周期持有 `Rooted`。
+    - 新增 `with_host_condition_catch_ctx` 统一为原生主机调用与 `safe_domain`（`HeadlessVm::{exercise_safe_domains, safe_domain_read_eval}`、`LispHost::{exercise_safe_domains, read_eval_safe_domain}`）安装栈锚与外层 `CONDITION_CASE(t)`，确保 `(signal 'error ...)` / `(signal 'quit nil)` / `quit-flag` 可按 `HostError` 恢复续用且仅返回宿主自有值；更新 `temacs.rs` 直接引用 `femacs_vm::editor_main`，并在 `femacs-host` 单测增加 `HeadlessVm` `!Send + !Sync` 编译与运行校验。
+  - **真实子进程与外部安全边界复验脚手架（`crates/femacs-host/tests/a1_host_acceptance.rs`、`tools/test-c1-a1-host.py`、`tools/test-u4-unit.py`、`tools/unsafe-boundary-manifest.json`、`maintenance/tooling-inventory.json`）**：
+    - `a1_host_acceptance` 将 `safe-domain-with-context` 更新为 `safe-domain-protected`，在真实子进程验证 `exercise_safe_domains` 与 `read_eval_safe_domain` 遇 `error`/`quit`/`quit-flag` 后的完整恢复与 GC 平衡；`test-c1-a1-host.py --selftest`（`4/4`）明文拒绝 `with_anchored_context`、`with_context` 与 `pub use femacs_vm;`。
+    - `tools/test-u4-unit.py` Group 4 Part 4a 改为编译 `cargo check -p femacs-host`，实测 `43` 项 `femacs-vm` + `4` 项 `femacs-host` `#![forbid(unsafe_code)]` 外部 `compile-fail` 探针与 `real_pass`/`host_pass` `compile-pass` 检查。
+  - **清洁重建与定向复验读数（`assistant run`）**：
+    - 清洁重建（`run_id=df83870b1c774796b3992045510f8105`，`792.441s`，`exit=0`，`cleanup_complete=true`）：`xtask` 单测 `116/116`、Terminal、`a1_host_acceptance`、`femacs_host_unit_tests` 与 Cocoa `dist/macos/Femacs.app` 基于最新源码重新产出。
+    - 定向复验（`run_id=862bac45632a442ea15f874b5ae65b50`，`91.604s`，`exit=0`，`cleanup_complete=true`）：`femacs_host_unit_tests` `3/3`、`test-c1-a1-host.py --selftest` `4/4`、`test-c1-a1-host.py` `ok=true`（`24.9797s`：Terminal 与 Cocoa `438` 活跃文件 / `145` `forbid` / `6,308/6,308` `100.0%` `SAFETY:` / `0` `static mut` / `nm -gU` 与 `check-libshadows.py` 全过；`13` 组 A1 子进程场景含常态与 `FEMACS_GC_SKIP_STACK_SCAN=1` 下 `safe-domain-protected` 错误/`quit` 恢复；双制品 `(t 42 "alpha gamma\n")`）、`test-u4-unit.py` `4/4`（`21.5199s`）、`test-u3-unit.py` `3/3`（`8/8` 单测）、`test-u7-safe-subsystems.py` `4/4`（`22` 模块、`20` 套核心 ERT、`U7_GC_STRESS_OK gcs=72`）、`check-own-voice.py`（`0` 失败）、`test-repository-bootstrap.py`（`4/4`）、`test-tooling-modernization.py`（`33/33`，`1.233s`）。
+- **最新可交付制品（经 [CLN289](../maintenance/cleanup/reports/2026-11-24-289-c1-a1-r1-boundary.md) 清理 `23` 项临时范围 / `2,709` 文件 / `901,433,547` 逻辑字节并原子重装 `/Applications/Fe.app` 后复验通过）**：
+  - `build/terminal`（`45M`，`build/terminal/port`）：`src/emacs` `4,714,176 B`（SHA-256 `7ed29ec69c0d766a96be0a8a1e9e1ab9088677834b35b1537ae0c8e16c190156`），`src/emacs.pdmp` `13,099,280 B`（SHA-256 `520ae43db3133cce75491147eab293cb07d1dd67321ec7457acf47e316f1acc4`），`lib-src/emacsclient` `539,328 B`（`e004d4be…`），`lib-src/hexl` `451,488 B`（`570f90f2…`）。
+  - `dist/macos/Femacs.app`（`235M`）及原子重装的 `/Applications/Fe.app`（`235M`，`diff -rq` 空，严格一致）：`Contents/MacOS/Femacs` `6,247,232 B`（SHA-256 `15814a9bf21d80be7ca8c67b99b205144ac290e82fedbdebd34966094e492823`），`Contents/Resources/libexec/Femacs.pdmp` `18,598,664 B`（SHA-256 `7ad5ff14f03f53075cce2363c7a5d7b1576016e61b73b02a4cd9c57088893c4e`），`emacsclient` `538,784 B`（`6a4d0208…`），`hexl` `451,120 B`（`8758c7f5…`）；双 `.app` `codesign --verify --deep --strict` `exit 0`，直接产物与已安装 app `-Q --batch` 冒烟返回 `(3 t nil nil t t)` / `(3 t nil t t t)`，`femacs`/`fe` 返回 `(3 t t)`，`feclient --version` 返回 `emacsclient 32.0.50`（`run_id=86fbda6fe94343be8826de83c583ad5a`，`1.125s`）。保留 `build/generation`（`8.3M`）与 `build/manuals`（`1.1G`）。
+
+## 历史记录（2026-11-24 Stage C1 & A1 初版，已被上方 Stage C1-R1 取代）
+
+**本段为历史初版读数（Phase II Stage C1 & A1，继 `[FEMACS-AU8-FINAL-REVIEW-R4]` `c187c486` 核收 `AU8` 后）。**
 
 - **Phase II Stage `C1`（宿主边界）与 `A1`（VM 同源且编辑器保真）已完整实现、全套集成/单元验收通过，并完成 `CLN288` 与 `/Applications/Fe.app` 原子重装，可进入 Stage `C2`**：
   - **无头 VM 与 `#![forbid(unsafe_code)]` 宿主边界（`src/emacs.rs`、`crates/femacs-vm/src/{lib,host_runtime}.rs`、`crates/femacs-host/src/{lib,bin/temacs}.rs`、`crates/femacs-host/Cargo.toml`）**：

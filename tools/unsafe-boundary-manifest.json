@@ -168,10 +168,10 @@
     },
     "crates/femacs-vm/src/host_runtime.rs": {
       "boundary_class": "process_bootstrap_abi",
-      "caller": "crates/femacs-host::LispHost safe API (init_headless_host, read_eval_to_string, load_script_file, garbage_collect, inspect_headless_environment, shutdown_headless_host)",
-      "failure_path": "Returns structured VmHostError::AlreadyInitialized, InitFailed, Read, LispCondition, Quit, or Io without unwind or fatal abort across the host boundary",
-      "invariant": "Single-process initialization via HOST_INIT_STATE CAS, live stack_bottom anchoring via with_host_stack_anchor, active CONDITION_CASE(t) catch frame, ScopedLispRoot across all error/value inspections, and UnbindGuard restoration of command-line-args-left",
-      "ownership": "Exclusive process-wide headless VM GcContext lease and process-lifetime argv[0] CString"
+      "caller": "crates/femacs-host::LispHost safe API via opaque HeadlessVm (init, read_eval_to_string, load_script_file, garbage_collect, inspect_environment, exercise_safe_domains, safe_domain_read_eval, Drop shutdown)",
+      "failure_path": "Returns structured VmHostError::AlreadyInitialized, InitFailed, Read, LispCondition, Quit, or Io without unwind or fatal abort across the host boundary; safe_domain operations run inside with_host_condition_catch_ctx and return only host-owned values",
+      "invariant": "Single-process initialization via HOST_INIT_STATE CAS, live stack_bottom anchoring via with_host_stack_anchor, active CONDITION_CASE(t) catch frame, opaque !Send + !Sync HeadlessVm confining GcContext/Rooted inside the VM boundary, ScopedLispRoot across all error/value inspections, and UnbindGuard restoration of command-line-args-left",
+      "ownership": "Exclusive process-wide headless VM HeadlessVm/GcContext lease and process-lifetime argv[0] CString"
     },
     "crates/femacs-sys/src/client_os.rs": {
       "boundary_class": "posix_socket_process_ffi",

@@ -5,75 +5,67 @@ use core::marker::PhantomData;
 use std::ffi::OsString;
 use std::path::Path;
 
-pub use femacs_vm;
 pub use femacs_vm::host_runtime::{
-    HeadlessDiagnostics, HostBootstrap, HostInitConfig as HostConfig, VmHostError as HostError,
+    HeadlessDiagnostics, HeadlessVm, HostBootstrap, HostInitConfig as HostConfig,
+    VmHostError as HostError,
 };
-use femacs_vm::roots::GcContext;
 
 /// Owning safe handle to a single headless `femacs-vm` instance (`C1`).
 ///
-/// Enforces single-process initialization, `!Send + !Sync` thread affinity matching `GcContext`,
+/// Enforces single-process initialization, `!Send + !Sync` thread affinity matching `HeadlessVm`,
 /// explicit GC root and condition-case boundaries across calls, and deterministic shutdown on drop.
 pub struct LispHost {
-    ctx: Option<GcContext>,
+    vm: HeadlessVm,
     _not_send_sync: PhantomData<*mut ()>,
 }
 
 impl LispHost {
     /// Initialize the process-wide headless `femacs-vm` instance once using `config`.
     pub fn init(config: HostConfig) -> Result<Self, HostError> {
-        let ctx = femacs_vm::host_runtime::init_headless_host(&config)?;
+        let vm = HeadlessVm::init(&config)?;
         Ok(Self {
-            ctx: Some(ctx),
+            vm,
             _not_send_sync: PhantomData,
         })
     }
 
-    #[inline]
-    fn ctx_mut(&mut self) -> &mut GcContext {
-        self.ctx
-            .as_mut()
-            .expect("LispHost context present until Drop")
-    }
-
     /// Parse and sequentially evaluate all forms in `source`, returning the final `prin1` result.
     pub fn read_eval(&mut self, source: &str) -> Result<String, HostError> {
-        femacs_vm::host_runtime::read_eval_to_string(self.ctx_mut(), source)
+        self.vm.read_eval_to_string(source)
     }
 
     /// Execute a Lisp script file with `command-line-args-left` (`argv`) dynamically bound.
     pub fn load_script(&mut self, path: &Path, argv: &[OsString]) -> Result<(), HostError> {
-        femacs_vm::host_runtime::load_script_file(self.ctx_mut(), path, argv)
+        self.vm.load_script_file(path, argv)
     }
 
     /// Run a VM garbage collection cycle inside anchored stack bounds.
     pub fn garbage_collect(&mut self) -> Result<(), HostError> {
-        femacs_vm::host_runtime::garbage_collect(self.ctx_mut())
+        self.vm.garbage_collect()
     }
 
     /// Return headless frame/terminal/pdumper/rooting diagnostics for the active VM.
     pub fn inspect_environment(&mut self) -> Result<HeadlessDiagnostics, HostError> {
-        femacs_vm::host_runtime::inspect_headless_environment(self.ctx_mut())
+        self.vm.inspect_environment()
     }
 
-    /// Compose `femacs_vm::safe_domain` or `vm_primitives` directly with anchored stack bounds.
-    pub fn with_context<R>(&mut self, f: impl FnOnce(&mut GcContext) -> R) -> R {
-        femacs_vm::host_runtime::with_anchored_context(self.ctx_mut(), f)
+    /// Run all `safe_domain` checks under anchored stack bounds and condition-case protection,
+    /// returning a host-owned summary string without leaking VM root handles.
+    pub fn exercise_safe_domains(&mut self, temp_file_path: &Path) -> Result<String, HostError> {
+        self.vm.exercise_safe_domains(temp_file_path)
     }
-}
 
-impl Drop for LispHost {
-    fn drop(&mut self) {
-        if let Some(ctx) = self.ctx.take() {
-            femacs_vm::host_runtime::shutdown_headless_host(ctx);
-        }
+    /// Evaluate `source` via `safe_domain::read_eval_and_format_utf8` under stack-anchor and
+    /// condition-case protection, returning host-owned output or recoverable `HostError`.
+    pub fn read_eval_safe_domain(&mut self, source: &str) -> Result<String, HostError> {
+        self.vm.safe_domain_read_eval(source)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use femacs_vm::roots::GcContext;
     use std::path::PathBuf;
 
     trait NotSendOrSyncFallback {
@@ -96,6 +88,8 @@ mod tests {
     const _: () = assert!(SyncProbe::<String>::VALUE);
     const _: () = assert!(!SendProbe::<LispHost>::VALUE);
     const _: () = assert!(!SyncProbe::<LispHost>::VALUE);
+    const _: () = assert!(!SendProbe::<HeadlessVm>::VALUE);
+    const _: () = assert!(!SyncProbe::<HeadlessVm>::VALUE);
     const _: () = assert!(!SendProbe::<GcContext>::VALUE);
     const _: () = assert!(!SyncProbe::<GcContext>::VALUE);
 
@@ -172,6 +166,8 @@ mod tests {
     fn lisp_host_and_gc_context_remain_not_send_not_sync() {
         assert!(!SendProbe::<LispHost>::VALUE);
         assert!(!SyncProbe::<LispHost>::VALUE);
+        assert!(!SendProbe::<HeadlessVm>::VALUE);
+        assert!(!SyncProbe::<HeadlessVm>::VALUE);
         assert!(!SendProbe::<GcContext>::VALUE);
         assert!(!SyncProbe::<GcContext>::VALUE);
     }

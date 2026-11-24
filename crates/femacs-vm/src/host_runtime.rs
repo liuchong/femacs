@@ -9,6 +9,7 @@
 use core::ffi::c_char;
 use core::fmt;
 use core::hint::black_box;
+use core::marker::PhantomData;
 use std::ffi::{CString, OsString};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU8, AtomicUsize, Ordering};
@@ -27,7 +28,7 @@ use crate::data::Fsymbol_name;
 use crate::eval::{Feval, push_handler_nosignal};
 use crate::frame::{Fframe_list, Fframep};
 use crate::lread::Fread_from_string;
-use crate::nonlocal::{ScopedLispRoot, catch_vm_nonlocal};
+use crate::nonlocal::{ScopedLispRoot, VmResult, catch_vm_nonlocal};
 use crate::roots::{GcContext, RootingCounters, current_thread_key, unbind_vm_lock_owner};
 use crate::terminal::{Fterminal_list, Fterminal_live_p};
 
@@ -217,11 +218,6 @@ fn with_host_stack_anchor<R>(ctx: &mut GcContext, body: impl FnOnce(&mut GcConte
     result
 }
 
-/// Execute `f` with the live host stack frame anchored and exclusive `&mut GcContext` access.
-pub fn with_anchored_context<R>(ctx: &mut GcContext, f: impl FnOnce(&mut GcContext) -> R) -> R {
-    with_host_stack_anchor(ctx, f)
-}
-
 /// Extract an owned UTF-8 `String` from an already-rooted Lisp string under active VM lock.
 ///
 /// # Safety
@@ -380,14 +376,14 @@ fn classify_vm_exit(err_val: Lisp_Object) -> VmHostError {
     }
 }
 
-fn with_host_condition_catch<R>(
+fn with_host_condition_catch_ctx<R>(
     ctx: &mut GcContext,
-    body: impl FnOnce() -> R,
+    body: impl FnOnce(&mut GcContext) -> VmResult<R>,
 ) -> Result<R, VmHostError> {
     with_host_stack_anchor(ctx, |ctx| {
         // SAFETY: Pushes an outermost `CONDITION_CASE(t)` catch frame on the VM-lock-owning thread,
-        // intercepts `VmNonLocalUnwind` via `catch_vm_nonlocal`, roots `exit.value`, and pops the
-        // handler cleanly in `HandlerPopGuard`.
+        // intercepts both `VmNonLocalUnwind` via `catch_vm_nonlocal` and returned `Err(NonLocalExit)`
+        // values, roots `exit.value`, resets `Vquit_flag`, and pops cleanly in `HandlerPopGuard`.
         let res = unsafe {
             let c = push_handler_nosignal(Qt(), CONDITION_CASE);
             if c.is_null() {
@@ -399,15 +395,15 @@ fn with_host_condition_catch<R>(
                 expected_handler: c,
                 active: true,
             };
-            let eval_res = ctx.with_reentrant_safepoint(|| catch_vm_nonlocal(body));
+            let eval_res = catch_vm_nonlocal(|| body(ctx));
             pop_guard.pop_now();
             eval_res
         };
         match res {
-            Ok(val) => Ok(val),
-            Err(exit) => {
-                // SAFETY: `exit.value` was held live in `inflight_value` until caught and is
-                // immediately rooted on this thread across error classification and string formatting.
+            Ok(Ok(val)) => Ok(val),
+            Ok(Err(exit)) | Err(exit) => {
+                // SAFETY: `exit.value` stays reachable until caught here and is immediately
+                // rooted on this thread across error classification and string formatting.
                 let _exit_root = unsafe { ScopedLispRoot::new(&[exit.value]) };
                 // SAFETY: Clears `quit-flag` on the single VM thread so subsequent calls run cleanly.
                 unsafe {
@@ -417,6 +413,13 @@ fn with_host_condition_catch<R>(
             }
         }
     })
+}
+
+fn with_host_condition_catch<R>(
+    ctx: &mut GcContext,
+    body: impl FnOnce() -> R,
+) -> Result<R, VmHostError> {
+    with_host_condition_catch_ctx(ctx, |ctx| Ok(ctx.with_reentrant_safepoint(body)))
 }
 
 fn prepend_load_paths_raw(paths: &[PathBuf]) {
@@ -435,7 +438,7 @@ fn prepend_load_paths_raw(paths: &[PathBuf]) {
 }
 
 /// Initialize the single-process headless Lisp VM cleanly and return its exclusive `GcContext`.
-pub fn init_headless_host(config: &HostInitConfig) -> Result<GcContext, VmHostError> {
+fn init_headless_host(config: &HostInitConfig) -> Result<GcContext, VmHostError> {
     if HOST_INIT_STATE
         .compare_exchange(0, 1, Ordering::AcqRel, Ordering::Acquire)
         .is_err()
@@ -545,7 +548,7 @@ pub fn init_headless_host(config: &HostInitConfig) -> Result<GcContext, VmHostEr
 }
 
 /// Shut down the headless host, flushing output streams and marking the process-wide VM state spent.
-pub fn shutdown_headless_host(ctx: GcContext) {
+fn shutdown_headless_host(ctx: GcContext) {
     drop(ctx);
     // SAFETY: Ownership of the sole `GcContext` was released by `drop(ctx)` above, so zero active
     // VM/root borrows remain on this OS thread; clears `Vquit_flag`, flushes stdio, and unbinds
@@ -589,58 +592,6 @@ fn next_non_ws_char_index(source: &str, start_char: usize) -> Option<usize> {
     None
 }
 
-/// Read and sequentially evaluate every top-level Lisp form in `source`, returning the last
-/// result printed with `prin1-to-string`.
-pub fn read_eval_to_string(ctx: &mut GcContext, source: &str) -> Result<String, VmHostError> {
-    with_host_condition_catch(ctx, || {
-        // SAFETY: Runs inside `with_host_condition_catch` on the VM-locked active thread;
-        // `ScopedLispRoot` keeps `src_lisp`, `last_val`, and current `form` rooted across every
-        // `Fread_from_string`, `Feval`, and `Fprin1_to_string` safepoint.
-        unsafe {
-            let src_lisp = build_utf8_str(source);
-            let mut roots = ScopedLispRoot::new(&[src_lisp, lisp_h_Qnil(), lisp_h_Qnil()]);
-            let mut pos_char = 0usize;
-            let mut evaluated_any = false;
-            let mut last_val = lisp_h_Qnil();
-
-            loop {
-                let Some(next_start) = next_non_ws_char_index(source, pos_char) else {
-                    if !evaluated_any {
-                        Fread_from_string(src_lisp, make_fixnum(0), lisp_h_Qnil());
-                    }
-                    break;
-                };
-                let pair = Fread_from_string(
-                    src_lisp,
-                    make_fixnum(next_start as EMACS_INT),
-                    lisp_h_Qnil(),
-                );
-                if !CONSP(pair) {
-                    break;
-                }
-                let form = XCAR(pair);
-                let next_idx = if crate::common::FIXNUMP(XCDR(pair)) {
-                    XFIXNUM(XCDR(pair)).max(0) as usize
-                } else {
-                    next_start.saturating_add(1)
-                };
-                roots.set(1, form);
-                last_val = Feval(form, Qt());
-                roots.set(2, last_val);
-                roots.set(1, lisp_h_Qnil());
-                evaluated_any = true;
-                pos_char = if next_idx > next_start {
-                    next_idx
-                } else {
-                    next_start.saturating_add(1)
-                };
-            }
-
-            raw_prin1_to_owned(last_val)
-        }
-    })
-}
-
 struct UnbindGuard {
     target: isize,
 }
@@ -648,9 +599,9 @@ struct UnbindGuard {
 impl Drop for UnbindGuard {
     #[inline]
     fn drop(&mut self) {
-        // SAFETY: `target` was captured from `current_specpdl_index()` on this VM thread; catches
-        // and discards any unwind inside custom cleanup? Only binds `command-line-args-left` list
-        // values so `unbind_to_safe` restores bindings without running Lisp callbacks.
+        // SAFETY: `target` was captured from `current_specpdl_index()` on this VM thread; only
+        // binds `command-line-args-left`/`argv` list values so `unbind_to_safe` restores bindings
+        // without running Lisp callbacks.
         unsafe {
             if current_specpdl_index() > self.target {
                 unbind_to_safe(wrap_specpdl_ref(self.target), lisp_h_Qnil());
@@ -659,138 +610,241 @@ impl Drop for UnbindGuard {
     }
 }
 
-/// Load a Lisp script file with `command-line-args-left` (`argv`) dynamically bound to `argv`.
-pub fn load_script_file(
-    ctx: &mut GcContext,
-    path: &Path,
-    argv: &[OsString],
-) -> Result<(), VmHostError> {
-    let abs_path = if path.is_absolute() {
-        path.to_path_buf()
-    } else {
-        std::env::current_dir()
-            .map_err(|e| VmHostError::Io {
-                symbol: "file-error".to_string(),
-                message: e.to_string(),
-                data: path.display().to_string(),
-            })?
-            .join(path)
-    };
-    if abs_path.is_dir() {
-        return Err(VmHostError::Io {
-            symbol: "file-error".to_string(),
-            message: format!("Opening script path: Is a directory, {}", abs_path.display()),
-            data: format!("(\"{}\")", abs_path.display()),
-        });
+/// Opaque, non-`Copy`, `!Send + !Sync` owner of the single headless `femacs-vm` instance (`C1`).
+///
+/// Confines the raw `GcContext` lease inside the VM runtime boundary so external crates cannot
+/// bypass condition protection or leak unowned `Rooted` handles past VM shutdown. Every entry
+/// runs under stack anchoring + `CONDITION_CASE(t)` protection and returns host-owned values.
+pub struct HeadlessVm {
+    ctx: Option<GcContext>,
+    _not_send_sync: PhantomData<*mut ()>,
+}
+
+impl HeadlessVm {
+    /// Initialize the process-wide headless VM once and return an owning `HeadlessVm` handle.
+    pub fn init(config: &HostInitConfig) -> Result<Self, VmHostError> {
+        let ctx = init_headless_host(config)?;
+        Ok(Self {
+            ctx: Some(ctx),
+            _not_send_sync: PhantomData,
+        })
     }
-    let abs_s = abs_path.to_string_lossy().into_owned();
-    let argv_strs: Vec<String> = argv
-        .iter()
-        .map(|arg| arg.to_string_lossy().into_owned())
-        .collect();
 
-    with_host_condition_catch(ctx, || {
-        // SAFETY: Runs inside `with_host_condition_catch`; roots `file_lisp` and `arg_list` across
-        // script loading and restores `command-line-args-left` via `UnbindGuard` on every exit.
-        unsafe {
-            let count = current_specpdl_index();
-            let _unbind = UnbindGuard { target: count };
+    #[inline]
+    fn ctx_mut(&mut self) -> &mut GcContext {
+        self.ctx
+            .as_mut()
+            .expect("HeadlessVm context present until Drop")
+    }
 
-            let mut arg_list = lisp_h_Qnil();
-            let mut list_root = ScopedLispRoot::new(&[arg_list, lisp_h_Qnil()]);
-            for item in argv_strs.iter().rev() {
-                let s = build_utf8_str(item);
-                list_root.set(1, s);
-                arg_list = Fcons(s, arg_list);
-                list_root.set(0, arg_list);
-                list_root.set(1, lisp_h_Qnil());
+    /// Read and sequentially evaluate every top-level Lisp form in `source`, returning the last
+    /// result printed with `prin1-to-string`.
+    pub fn read_eval_to_string(&mut self, source: &str) -> Result<String, VmHostError> {
+        with_host_condition_catch(self.ctx_mut(), || {
+            // SAFETY: Runs inside `with_host_condition_catch` on the VM-locked active thread;
+            // `ScopedLispRoot` keeps `src_lisp`, `last_val`, and current `form` rooted across every
+            // `Fread_from_string`, `Feval`, and `Fprin1_to_string` safepoint.
+            unsafe {
+                let src_lisp = build_utf8_str(source);
+                let mut roots = ScopedLispRoot::new(&[src_lisp, lisp_h_Qnil(), lisp_h_Qnil()]);
+                let mut pos_char = 0usize;
+                let mut evaluated_any = false;
+                let mut last_val = lisp_h_Qnil();
+
+                loop {
+                    let Some(next_start) = next_non_ws_char_index(source, pos_char) else {
+                        if !evaluated_any {
+                            Fread_from_string(src_lisp, make_fixnum(0), lisp_h_Qnil());
+                        }
+                        break;
+                    };
+                    let pair = Fread_from_string(
+                        src_lisp,
+                        make_fixnum(next_start as EMACS_INT),
+                        lisp_h_Qnil(),
+                    );
+                    if !CONSP(pair) {
+                        break;
+                    }
+                    let form = XCAR(pair);
+                    let next_idx = if crate::common::FIXNUMP(XCDR(pair)) {
+                        XFIXNUM(XCDR(pair)).max(0) as usize
+                    } else {
+                        next_start.saturating_add(1)
+                    };
+                    roots.set(1, form);
+                    last_val = Feval(form, Qt());
+                    roots.set(2, last_val);
+                    roots.set(1, lisp_h_Qnil());
+                    evaluated_any = true;
+                    pos_char = if next_idx > next_start {
+                        next_idx
+                    } else {
+                        next_start.saturating_add(1)
+                    };
+                }
+
+                raw_prin1_to_owned(last_val)
             }
+        })
+    }
 
-            let cmd_left_sym = intern_c_string(c"command-line-args-left".as_ptr());
-            let argv_sym = intern_c_string(c"argv".as_ptr());
-            specbind(cmd_left_sym, arg_list);
-            if !EQ(Findirect_variable(argv_sym), cmd_left_sym) {
-                specbind(argv_sym, arg_list);
-            }
-
-            let file_lisp = build_utf8_str(&abs_s);
-            list_root.set(1, file_lisp);
-            let script_loader = intern_c_string(c"command-line--load-script".as_ptr());
-            if !NILP(Ffboundp(script_loader)) {
-                let form = Fcons(script_loader, Fcons(file_lisp, lisp_h_Qnil()));
-                list_root.set(0, form);
-                Feval(form, Qt());
-            } else {
-                Fload(file_lisp, lisp_h_Qnil(), Qt(), Qt(), lisp_h_Qnil());
-            }
-        }
-    })
-}
-
-/// Trigger VM garbage collection under host stack anchoring and condition protection.
-pub fn garbage_collect(ctx: &mut GcContext) -> Result<(), VmHostError> {
-    with_host_condition_catch(ctx, || {
-        Fgarbage_collect();
-    })
-}
-
-/// Inspect observable headless frame/terminal/GC/pdumper invariants inside the active VM.
-pub fn inspect_headless_environment(ctx: &mut GcContext) -> Result<HeadlessDiagnostics, VmHostError> {
-    let rooting_counters = ctx.rooting_counters();
-    with_host_condition_catch(ctx, || {
-        // SAFETY: Reads active VM flags (`noninteractive`, `inhibit_window_system`), frame list,
-        // terminal list, and pdumper state while all temporary Lisp lists stay rooted.
-        unsafe {
-            let noninteractive = *crate::common::noninteractive.as_ptr();
-            let inhibit_ws = *crate::common::inhibit_window_system.as_ptr();
-
-            let frames = Fframe_list();
-            let mut roots = ScopedLispRoot::new(&[frames, lisp_h_Qnil(), lisp_h_Qnil()]);
-            let mut frame_types = Vec::new();
-            let mut tail = frames;
-            while CONSP(tail) {
-                let frame = XCAR(tail);
-                let ftype = Fframep(frame);
-                roots.set(1, ftype);
-                frame_types.push(raw_prin1_to_owned(ftype));
-                tail = XCDR(tail);
-            }
-            let display_graphic_p = frame_types.iter().any(|t| {
-                matches!(
-                    t.as_str(),
-                    "x" | "w32" | "ns" | "pgtk" | "haiku" | "android"
-                )
+    /// Load a Lisp script file with `command-line-args-left` (`argv`) dynamically bound to `argv`.
+    pub fn load_script_file(&mut self, path: &Path, argv: &[OsString]) -> Result<(), VmHostError> {
+        let abs_path = if path.is_absolute() {
+            path.to_path_buf()
+        } else {
+            std::env::current_dir()
+                .map_err(|e| VmHostError::Io {
+                    symbol: "file-error".to_string(),
+                    message: e.to_string(),
+                    data: path.display().to_string(),
+                })?
+                .join(path)
+        };
+        if abs_path.is_dir() {
+            return Err(VmHostError::Io {
+                symbol: "file-error".to_string(),
+                message: format!("Opening script path: Is a directory, {}", abs_path.display()),
+                data: format!("(\"{}\")", abs_path.display()),
             });
-
-            let terms = Fterminal_list();
-            roots.set(0, terms);
-            let mut terminal_types = Vec::new();
-            let mut ttail = terms;
-            while CONSP(ttail) {
-                let term = XCAR(ttail);
-                let ttype = Fterminal_live_p(term);
-                roots.set(1, ttype);
-                terminal_types.push(raw_prin1_to_owned(ttype));
-                ttail = XCDR(ttail);
-            }
-
-            let fp_obj = *Vpdumper_fingerprint.as_ptr();
-            roots.set(2, fp_obj);
-            let pdumper_fingerprint = raw_string_to_owned(fp_obj).unwrap_or_default();
-
-            HeadlessDiagnostics {
-                noninteractive,
-                inhibit_window_system: inhibit_ws,
-                display_graphic_p,
-                frame_count: frame_types.len(),
-                frame_types,
-                terminal_count: terminal_types.len(),
-                terminal_types,
-                dumped_with_pdumper: dumped_with_pdumper_p(),
-                pdumper_fingerprint,
-                specpdl_depth: current_specpdl_index(),
-                rooting_counters,
-            }
         }
-    })
+        let abs_s = abs_path.to_string_lossy().into_owned();
+        let argv_strs: Vec<String> = argv
+            .iter()
+            .map(|arg| arg.to_string_lossy().into_owned())
+            .collect();
+
+        with_host_condition_catch(self.ctx_mut(), || {
+            // SAFETY: Runs inside `with_host_condition_catch`; roots `file_lisp` and `arg_list` across
+            // script loading and restores `command-line-args-left` via `UnbindGuard` on every exit.
+            unsafe {
+                let count = current_specpdl_index();
+                let _unbind = UnbindGuard { target: count };
+
+                let mut arg_list = lisp_h_Qnil();
+                let mut list_root = ScopedLispRoot::new(&[arg_list, lisp_h_Qnil()]);
+                for item in argv_strs.iter().rev() {
+                    let s = build_utf8_str(item);
+                    list_root.set(1, s);
+                    arg_list = Fcons(s, arg_list);
+                    list_root.set(0, arg_list);
+                    list_root.set(1, lisp_h_Qnil());
+                }
+
+                let cmd_left_sym = intern_c_string(c"command-line-args-left".as_ptr());
+                let argv_sym = intern_c_string(c"argv".as_ptr());
+                specbind(cmd_left_sym, arg_list);
+                if !EQ(Findirect_variable(argv_sym), cmd_left_sym) {
+                    specbind(argv_sym, arg_list);
+                }
+
+                let file_lisp = build_utf8_str(&abs_s);
+                list_root.set(1, file_lisp);
+                let script_loader = intern_c_string(c"command-line--load-script".as_ptr());
+                if !NILP(Ffboundp(script_loader)) {
+                    let form = Fcons(script_loader, Fcons(file_lisp, lisp_h_Qnil()));
+                    list_root.set(0, form);
+                    Feval(form, Qt());
+                } else {
+                    Fload(file_lisp, lisp_h_Qnil(), Qt(), Qt(), lisp_h_Qnil());
+                }
+            }
+        })
+    }
+
+    /// Trigger VM garbage collection under host stack anchoring and condition protection.
+    pub fn garbage_collect(&mut self) -> Result<(), VmHostError> {
+        with_host_condition_catch(self.ctx_mut(), || {
+            Fgarbage_collect();
+        })
+    }
+
+    /// Inspect observable headless frame/terminal/GC/pdumper invariants inside the active VM.
+    pub fn inspect_environment(&mut self) -> Result<HeadlessDiagnostics, VmHostError> {
+        let ctx = self.ctx_mut();
+        let rooting_counters = ctx.rooting_counters();
+        with_host_condition_catch(ctx, || {
+            // SAFETY: Reads active VM flags (`noninteractive`, `inhibit_window_system`), frame list,
+            // terminal list, and pdumper state while all temporary Lisp lists stay rooted.
+            unsafe {
+                let noninteractive = *crate::common::noninteractive.as_ptr();
+                let inhibit_ws = *crate::common::inhibit_window_system.as_ptr();
+
+                let frames = Fframe_list();
+                let mut roots = ScopedLispRoot::new(&[frames, lisp_h_Qnil(), lisp_h_Qnil()]);
+                let mut frame_types = Vec::new();
+                let mut tail = frames;
+                while CONSP(tail) {
+                    let frame = XCAR(tail);
+                    let ftype = Fframep(frame);
+                    roots.set(1, ftype);
+                    frame_types.push(raw_prin1_to_owned(ftype));
+                    tail = XCDR(tail);
+                }
+                let display_graphic_p = frame_types.iter().any(|t| {
+                    matches!(
+                        t.as_str(),
+                        "x" | "w32" | "ns" | "pgtk" | "haiku" | "android"
+                    )
+                });
+
+                let terms = Fterminal_list();
+                roots.set(0, terms);
+                let mut terminal_types = Vec::new();
+                let mut ttail = terms;
+                while CONSP(ttail) {
+                    let term = XCAR(ttail);
+                    let ttype = Fterminal_live_p(term);
+                    roots.set(1, ttype);
+                    terminal_types.push(raw_prin1_to_owned(ttype));
+                    ttail = XCDR(ttail);
+                }
+
+                let fp_obj = *Vpdumper_fingerprint.as_ptr();
+                roots.set(2, fp_obj);
+                let pdumper_fingerprint = raw_string_to_owned(fp_obj).unwrap_or_default();
+
+                HeadlessDiagnostics {
+                    noninteractive,
+                    inhibit_window_system: inhibit_ws,
+                    display_graphic_p,
+                    frame_count: frame_types.len(),
+                    frame_types,
+                    terminal_count: terminal_types.len(),
+                    terminal_types,
+                    dumped_with_pdumper: dumped_with_pdumper_p(),
+                    pdumper_fingerprint,
+                    specpdl_depth: current_specpdl_index(),
+                    rooting_counters,
+                }
+            }
+        })
+    }
+
+    /// Run all `crate::safe_domain` checks under anchored stack bounds and condition protection,
+    /// extracting an owned summary string before the `Rooted` result leaves scope.
+    pub fn exercise_safe_domains(&mut self, temp_file_path: &Path) -> Result<String, VmHostError> {
+        let path_s = temp_file_path.to_string_lossy().into_owned();
+        with_host_condition_catch_ctx(self.ctx_mut(), |ctx| {
+            let res = crate::safe_domain::exercise_all_safe_domains(ctx, &path_s)?;
+            Ok(crate::vm_primitives::lisp_string_to_owned(ctx, res.handle()).unwrap_or_default())
+        })
+    }
+
+    /// Evaluate `source` through `crate::safe_domain::read_eval_and_format_utf8` under anchored
+    /// stack bounds and condition protection, returning only host-owned output or `VmHostError`.
+    pub fn safe_domain_read_eval(&mut self, source: &str) -> Result<String, VmHostError> {
+        with_host_condition_catch_ctx(self.ctx_mut(), |ctx| {
+            crate::safe_domain::read_eval_and_format_utf8(ctx, source)
+        })
+    }
+}
+
+impl Drop for HeadlessVm {
+    fn drop(&mut self) {
+        if let Some(ctx) = self.ctx.take() {
+            shutdown_headless_host(ctx);
+        }
+    }
 }

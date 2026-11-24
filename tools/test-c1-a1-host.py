@@ -15,7 +15,8 @@ Verifies per C1/A1 in the joint evolution plan:
        - `bad-dump-rejected` (mismatched-fingerprint `.pdmp` + corrupt file rejected without crash)
        - `second-init-rejected` (single-process single-init `AlreadyInitialized`)
        - `headless-diagnostics` (`noninteractive=t`, `inhibit-window-system=t`, no GUI, 1 `t` frame/term)
-       - `safe-domain-with-context` (`LispHost::with_context` + `safe_domain` in forbid crate)
+       - `safe-domain-protected` (`LispHost::exercise_safe_domains` + `read_eval_safe_domain`
+         error/quit recovery inside condition-case protection without raw context escape)
   3. Same-source editor fidelity: verifies both `build/terminal/port/src/emacs` and
      `dist/macos/Femacs.app/Contents/MacOS/Femacs` on `-Q --batch` Lisp evaluation,
      `byte-compile`, and a minimal real editing cycle (insert/search/replace/undo/save file).
@@ -164,9 +165,9 @@ def run_host_a1_scenarios(host_bin: Path, term_dump: Path) -> dict[str, float]:
                 "A1_TMP_DIR": str(script_tmp),
             },
         )
-        timings["safe_domain_with_context_normal"] = run_host_scenario(
+        timings["safe_domain_protected_normal"] = run_host_scenario(
             host_bin,
-            "safe-domain-with-context",
+            "safe-domain-protected",
             env_extra={
                 "A1_LISP_DIR": str(lisp_dir),
                 "A1_TMP_DIR": str(script_tmp),
@@ -195,9 +196,9 @@ def run_host_a1_scenarios(host_bin: Path, term_dump: Path) -> dict[str, float]:
         )
         safe_dump_tmp = tmp_path / "safe-skip-scan"
         safe_dump_tmp.mkdir(parents=True, exist_ok=True)
-        timings["safe_domain_with_context_skip_scan"] = run_host_scenario(
+        timings["safe_domain_protected_skip_scan"] = run_host_scenario(
             host_bin,
-            "safe-domain-with-context",
+            "safe-domain-protected",
             env_extra={
                 "FEMACS_GC_SKIP_STACK_SCAN": "1",
                 "A1_LISP_DIR": str(lisp_dir),
@@ -271,11 +272,26 @@ def run_selftest() -> int:
         "AlreadyInitialized",
         "with_host_stack_anchor",
         "with_host_condition_catch",
+        "with_host_condition_catch_ctx",
         "load_script_file",
         "read_eval_to_string",
-        "inspect_headless_environment",
+        "inspect_environment",
+        "HeadlessVm",
+        "exercise_safe_domains",
+        "safe_domain_read_eval",
     ):
         assert needle in host_rs, f"missing {needle} in host_runtime.rs"
+    assert "with_anchored_context" not in host_rs, (
+        "removed unsafe-bypass helper with_anchored_context still present in host_runtime.rs"
+    )
+
+    host_lib_rs = (REPO / "crates/femacs-host/src/lib.rs").read_text(encoding="utf-8")
+    assert "with_context" not in host_lib_rs, (
+        "removed unguarded LispHost::with_context still present in femacs-host/src/lib.rs"
+    )
+    assert "pub use femacs_vm;" not in host_lib_rs, (
+        "crates/femacs-host/src/lib.rs must not publicly re-export femacs_vm"
+    )
 
     cargo_toml = (REPO / "crates/femacs-host/Cargo.toml").read_text(encoding="utf-8")
     assert 'name = "a1_host_acceptance"' in cargo_toml

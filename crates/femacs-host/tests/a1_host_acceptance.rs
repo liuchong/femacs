@@ -277,7 +277,7 @@ fn scenario_second_init_rejected() {
     }
     drop(host);
     assert!(
-        femacs_host::femacs_vm::roots::GcContext::current().is_none(),
+        femacs_vm::roots::GcContext::current().is_none(),
         "GcContext must remain unacquirable after LispHost shutdown"
     );
     match LispHost::init(HostConfig::cold_minimal()) {
@@ -309,7 +309,7 @@ fn scenario_headless_diagnostics() {
     );
 }
 
-fn scenario_safe_domain_with_context() {
+fn scenario_safe_domain_protected() {
     let lisp_dir = env_path("A1_LISP_DIR");
     let tmp_dir = env_path("A1_TMP_DIR");
     let tmp_file = tmp_dir.join("a1_safe_domain.txt");
@@ -319,16 +319,49 @@ fn scenario_safe_domain_with_context() {
     };
     let mut host = LispHost::init(config).expect("safe-domain host init");
 
-    host.with_context(|ctx| {
-        let res = femacs_host::femacs_vm::safe_domain::exercise_all_safe_domains(
-            ctx,
-            tmp_file.to_string_lossy().as_ref(),
-        )
-        .expect("safe_domain exercise inside LispHost::with_context");
-        assert!(!res.is_nil(), "expected non-nil summary handle");
-    });
+    let summary = host
+        .exercise_safe_domains(&tmp_file)
+        .expect("safe_domain exercise inside protected host boundary");
+    assert!(summary.contains("buf="), "unexpected summary: {summary}");
+    assert!(
+        summary.contains("eval=(4 9 25 49)"),
+        "unexpected summary: {summary}"
+    );
+    assert!(summary.contains("io_ok=true"), "unexpected summary: {summary}");
+    assert!(summary.contains("win=true:"), "unexpected summary: {summary}");
+
+    // Error & quit inside `safe_domain::read_eval_and_format_utf8` must unwind as recoverable
+    // `HostError`s without fatal aborts, leaving the host healthy for subsequent calls.
+    let err_cond = host
+        .read_eval_safe_domain("(signal 'error (list \"safe-domain-boom\"))")
+        .expect_err("safe_domain error signal must return LispCondition");
+    assert!(
+        matches!(
+            err_cond,
+            HostError::LispCondition {
+                ref symbol,
+                ref message,
+                ..
+            } if symbol == "error" && message.contains("safe-domain-boom")
+        ),
+        "got {err_cond:?}"
+    );
+
+    let err_quit1 = host
+        .read_eval_safe_domain("(signal 'quit nil)")
+        .expect_err("safe_domain quit signal must return Quit");
+    assert!(matches!(err_quit1, HostError::Quit { .. }), "got {err_quit1:?}");
+
+    let err_quit2 = host
+        .read_eval_safe_domain("(progn (setq quit-flag t) (while t nil))")
+        .expect_err("safe_domain quit-flag loop must return Quit");
+    assert!(matches!(err_quit2, HostError::Quit { .. }), "got {err_quit2:?}");
+
+    assert_eq!(host.read_eval_safe_domain("(+ 19 23)").unwrap(), "42");
+
     host.garbage_collect().expect("post safe_domain GC");
     let diag = host.inspect_environment().expect("inspect after safe_domain");
+    assert_eq!(diag.specpdl_depth, 0);
     assert_eq!(diag.rooting_counters.persistent_live, 0);
     assert_eq!(
         diag.rooting_counters.rooted_pushed,
@@ -347,7 +380,7 @@ fn main() {
         "bad-dump-rejected" => scenario_bad_dump_rejected(),
         "second-init-rejected" => scenario_second_init_rejected(),
         "headless-diagnostics" => scenario_headless_diagnostics(),
-        "safe-domain-with-context" => scenario_safe_domain_with_context(),
+        "safe-domain-protected" => scenario_safe_domain_protected(),
         other => panic!("unknown A1_SCENARIO={other}"),
     }
     println!("A1_SCENARIO_OK={scenario}");

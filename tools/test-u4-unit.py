@@ -672,7 +672,7 @@ def main() -> int:
                     "cargo",
                     "check",
                     "-p",
-                    "femacs-vm",
+                    "femacs-host",
                     "--target-dir",
                     str(target_dir),
                 ],
@@ -681,6 +681,9 @@ def main() -> int:
             rmetas = sorted((target_dir / "debug").rglob("libfemacs_vm-*.rmeta"))
             assert rmetas, f"missing libfemacs_vm-*.rmeta under {target_dir / 'debug'}"
             real_rmeta = rmetas[-1]
+            host_rmetas = sorted((target_dir / "debug").rglob("libfemacs_host-*.rmeta"))
+            assert host_rmetas, f"missing libfemacs_host-*.rmeta under {target_dir / 'debug'}"
+            host_rmeta = host_rmetas[-1]
             dep_dirs = sorted({
                 str(p.parent)
                 for pat in ("*.rmeta", "*.rlib")
@@ -782,6 +785,11 @@ pub fn safe_real_vm_flow(ctx: &mut GcContext, text: &str) -> VmResult<Option<Str
                 ("handle_outlives_drop_rooted", "pub fn p(ctx: &mut femacs_vm::roots::GcContext) { if let Ok(r) = femacs_vm::vm_primitives::make_utf8_string(ctx, \"hi\") { let h = r.handle(); drop(r); let _ = h.is_nil(); } }"),
                 ("handle_outlives_persistent_release", "pub fn p() { let mut p = femacs_vm::roots::PersistentRoot::from_immediate(femacs_vm::roots::Immediate::nil()); let h = p.handle(); p.release(); let _ = h.is_nil(); }"),
                 ("unrooted_borrow_crosses_gc", "pub fn p(ctx: &mut femacs_vm::roots::GcContext) { let nogc = ctx.nogc(); let b = femacs_vm::roots::UnrootedBorrow::new(&nogc, 1usize); let _ = femacs_vm::vm_primitives::trigger_garbage_collect(ctx); let _ = b.get(); }"),
+                ("removed_host_with_anchored_context", "pub fn p(ctx: &mut femacs_vm::roots::GcContext) { femacs_vm::host_runtime::with_anchored_context(ctx, |_| {}); }"),
+                ("private_host_init_headless", "pub fn p(cfg: &femacs_vm::host_runtime::HostInitConfig) { let _ = femacs_vm::host_runtime::init_headless_host(cfg); }"),
+                ("private_host_shutdown_headless", "pub fn p(ctx: femacs_vm::roots::GcContext) { femacs_vm::host_runtime::shutdown_headless_host(ctx); }"),
+                ("headless_vm_not_send", "fn assert_send<T: Send>() {} pub fn p() { assert_send::<femacs_vm::host_runtime::HeadlessVm>(); }"),
+                ("headless_vm_not_sync", "fn assert_sync<T: Sync>() {} pub fn p() { assert_sync::<femacs_vm::host_runtime::HeadlessVm>(); }"),
             ]
             for name, body in real_compile_fail_cases:
                 bad_rs = real_work / f"real_bad_{name}.rs"
@@ -810,6 +818,72 @@ pub fn safe_real_vm_flow(ctx: &mut GcContext, text: &str) -> VmResult<Option<Str
                     check=False,
                 )
                 assert comp.returncode != 0, f"real femacs-vm external forbid(unsafe_code) caller unexpectedly compiled `{name}`!"
+                assert "error[" in comp.stderr or "error:" in comp.stderr, (
+                    f"expected real compiler diagnostic for `{name}`, got:\n{comp.stderr}"
+                )
+
+            host_pass_rs = real_work / "host_pass.rs"
+            host_pass_rmeta = real_work / "libhost_pass.rmeta"
+            host_pass_rs.write_text(
+                "#![forbid(unsafe_code)]\nextern crate femacs_host;\n"
+                "use std::path::Path;\n"
+                "pub fn safe_host_call(p: &Path) -> Result<String, femacs_host::HostError> {\n"
+                "    let mut host = femacs_host::LispHost::init(femacs_host::HostConfig::cold_minimal())?;\n"
+                "    let _ = host.inspect_environment()?;\n"
+                "    let _ = host.exercise_safe_domains(p)?;\n"
+                "    host.read_eval_safe_domain(\"(+ 1 2)\")\n"
+                "}\n",
+                encoding="utf-8",
+            )
+            run_checked(
+                [
+                    "rustc",
+                    "--edition=2024",
+                    "--crate-type=lib",
+                    "--emit=metadata",
+                    "--extern",
+                    f"femacs_host={host_rmeta}",
+                    *dep_flags,
+                    str(host_pass_rs),
+                    "-o",
+                    str(host_pass_rmeta),
+                ],
+                timeout=60,
+            )
+
+            host_compile_fail_cases = [
+                ("removed_lisp_host_with_context", "pub fn p() { let _ = femacs_host::LispHost::with_context; }"),
+                ("private_host_femacs_vm_reexport", "pub fn p() { let _ = femacs_host::femacs_vm::roots::GcContext::current; }"),
+                ("lisp_host_not_send", "fn assert_send<T: Send>() {} pub fn p() { assert_send::<femacs_host::LispHost>(); }"),
+                ("lisp_host_not_sync", "fn assert_sync<T: Sync>() {} pub fn p() { assert_sync::<femacs_host::LispHost>(); }"),
+            ]
+            for name, body in host_compile_fail_cases:
+                bad_rs = real_work / f"host_bad_{name}.rs"
+                bad_rmeta = real_work / f"libhost_bad_{name}.rmeta"
+                bad_rs.write_text(
+                    f"#![forbid(unsafe_code)]\nextern crate femacs_host;\n{body}\n",
+                    encoding="utf-8",
+                )
+                comp = subprocess.run(
+                    [
+                        "rustc",
+                        "--edition=2024",
+                        "--crate-type=lib",
+                        "--emit=metadata",
+                        "--extern",
+                        f"femacs_host={host_rmeta}",
+                        *dep_flags,
+                        str(bad_rs),
+                        "-o",
+                        str(bad_rmeta),
+                    ],
+                    cwd=REPO,
+                    capture_output=True,
+                    text=True,
+                    timeout=30,
+                    check=False,
+                )
+                assert comp.returncode != 0, f"real femacs-host external forbid(unsafe_code) caller unexpectedly compiled `{name}`!"
                 assert "error[" in comp.stderr or "error:" in comp.stderr, (
                     f"expected real compiler diagnostic for `{name}`, got:\n{comp.stderr}"
                 )
