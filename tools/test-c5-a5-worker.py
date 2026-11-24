@@ -16,6 +16,7 @@ import hashlib
 import json
 import os
 import pty
+import re
 import select
 import shutil
 import signal
@@ -27,6 +28,26 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 DEFAULT_CLIENT = REPO / "examples/eliscript-worker/femacs-eliscript-worker.el"
 DEFAULT_FIXTURE = REPO / "tools/fixtures/c5-a5-worker-cases.el"
+
+REQUIRED_CLOSURE_FILES = (
+    "package.json",
+    "runtime/worker.mjs",
+    "runtime/worker.mjs.map",
+    "platform/worker.mjs",
+    "stdlib/bit.mjs",
+    "dist/runtime/lisp.mjs",
+    "tools/worker/eliscript-worker.el",
+    "tools/worker/eliscript-service.el",
+    "tools/worker/eliscript-value-codec.el",
+    "tools/worker/eliscript-value-stream.el",
+    "analysis/analysis.mjs",
+    "analysis/eliscript-project.json",
+    "probes/c5-probes.mjs",
+    "probes/c5-probes.mjs.map",
+    "probes/eliscript-project.json",
+)
+HEX40_RE = re.compile(r"^[0-9a-f]{40}$")
+HEX64_RE = re.compile(r"^[0-9a-f]{64}$")
 
 C5_PROBES_ELI = r"""(module c5.probes
   (import "node:fs/promises" appendFile)
@@ -79,8 +100,11 @@ C5_PROBES_ELI = r"""(module c5.probes
     (js-object :resolved t
                :progressFn (= (value-type workerProgress) "function")))
 
+  (defun report-cwd (_context)
+    (js-object :cwd (js-call globalThis.process :cwd)))
+
   (export chunked-echo slow-cancellable trigger-mapped-error hang-forever
-          stderr-log-echo side-effect-append ping-resolution))
+          stderr-log-echo side-effect-append ping-resolution report-cwd))
 """
 
 
@@ -116,14 +140,96 @@ def run_checked(
 
 
 def copy_runtime_tree(src: Path, dst: Path) -> None:
-    if dst.exists():
-        shutil.rmtree(dst)
+    if dst.exists() or dst.is_symlink():
+        raise FileExistsError(f"refusing to overwrite existing runtime tree: {dst}")
     shutil.copytree(
         src,
         dst,
         symlinks=False,
-        ignore=shutil.ignore_patterns(".DS_Store", "*.eli"),
+        ignore=shutil.ignore_patterns(".DS_Store", "*.eli", "node_modules"),
     )
+
+
+def compute_closure_inventory(pkg_dir: Path) -> tuple[dict[str, dict[str, object]], str]:
+    """Walk every entry under PKG_DIR (excluding frozen-manifest.json) and digest the closure."""
+    if not pkg_dir.is_dir():
+        raise FileNotFoundError(f"frozen package directory does not exist: {pkg_dir}")
+    files: dict[str, dict[str, object]] = {}
+    for entry in sorted(pkg_dir.rglob("*")):
+        rel_path = entry.relative_to(pkg_dir)
+        rel = rel_path.as_posix()
+        if entry.is_symlink():
+            raise ValueError(f"unexpected symlink in frozen package: {rel}")
+        if "compiler" in rel_path.parts or "node_modules" in rel_path.parts:
+            raise ValueError(f"forbidden directory leaked into frozen package: {rel}")
+        if entry.is_dir():
+            continue
+        if not entry.is_file():
+            raise ValueError(f"unsupported non-regular entry in frozen package: {rel}")
+        if rel == "frozen-manifest.json":
+            continue
+        if rel_path.suffix == ".eli" or rel == "tools/bootstrap-runtime.el":
+            raise ValueError(f"forbidden source/bootstrap file in frozen package: {rel}")
+        files[rel] = {
+            "bytes": entry.stat().st_size,
+            "sha256": sha256_file(entry),
+        }
+    lines = [
+        f"{rel}\0{files[rel]['bytes']}\0{files[rel]['sha256']}"
+        for rel in sorted(files)
+    ]
+    closure_sha256 = hashlib.sha256(("\n".join(lines) + "\n").encode("utf-8")).hexdigest()
+    return files, closure_sha256
+
+
+def verify_frozen_package(pkg_dir: Path) -> dict[str, object]:
+    """Validate frozen-manifest.json and verify full runtime-closure integrity on disk."""
+    if not pkg_dir.is_dir():
+        raise FileNotFoundError(f"frozen package directory does not exist: {pkg_dir}")
+    manifest_path = pkg_dir / "frozen-manifest.json"
+    if not manifest_path.is_file():
+        raise FileNotFoundError(f"missing frozen-manifest.json in {pkg_dir}")
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if manifest.get("schema") != "femacs-c5-frozen-eliscript-v1":
+        raise ValueError(f"unexpected frozen manifest schema: {manifest.get('schema')!r}")
+    commit_sha = manifest.get("eliscript_commit")
+    if not isinstance(commit_sha, str) or not HEX40_RE.match(commit_sha):
+        raise ValueError(f"invalid eliscript_commit in frozen manifest: {commit_sha!r}")
+    expected_closure = manifest.get("closure_sha256")
+    if not isinstance(expected_closure, str) or not HEX64_RE.match(expected_closure):
+        raise ValueError(f"invalid closure_sha256 in frozen manifest: {expected_closure!r}")
+    builder_sha = manifest.get("builder_femacs_lisp_sha256")
+    if not isinstance(builder_sha, str) or not HEX64_RE.match(builder_sha):
+        raise ValueError(f"invalid builder_femacs_lisp_sha256 in frozen manifest: {builder_sha!r}")
+    manifest_files = manifest.get("files")
+    if not isinstance(manifest_files, dict):
+        raise ValueError("frozen manifest files must be a JSON object")
+    if manifest.get("file_count") != len(manifest_files):
+        raise ValueError(
+            f"frozen manifest file_count={manifest.get('file_count')!r} != {len(manifest_files)}"
+        )
+    for req in REQUIRED_CLOSURE_FILES:
+        if req not in manifest_files:
+            raise ValueError(f"frozen manifest missing required closure file: {req}")
+
+    actual_files, actual_closure = compute_closure_inventory(pkg_dir)
+    missing = sorted(set(manifest_files) - set(actual_files))
+    extra = sorted(set(actual_files) - set(manifest_files))
+    if missing or extra:
+        raise ValueError(
+            f"frozen package file set mismatch in {pkg_dir}: missing={missing[:5]} extra={extra[:5]}"
+        )
+    for rel, expected in sorted(manifest_files.items()):
+        if not isinstance(expected, dict) or actual_files[rel] != expected:
+            raise ValueError(
+                f"frozen package file integrity mismatch for {rel}: "
+                f"expected={expected!r} actual={actual_files[rel]!r}"
+            )
+    if actual_closure != expected_closure:
+        raise ValueError(
+            f"frozen package closure_sha256 mismatch: expected={expected_closure} actual={actual_closure}"
+        )
+    return manifest
 
 
 def prepare_frozen_package(
@@ -132,18 +238,20 @@ def prepare_frozen_package(
     femacs_lisp: Path,
     package_out: Path,
 ) -> dict[str, object]:
+    if package_out.exists() or package_out.is_symlink():
+        raise FileExistsError(f"refusing to overwrite existing package output: {package_out}")
     commit_sha = run_checked(
         ["git", "-C", str(eliscript_repo), "rev-parse", eliscript_ref],
         timeout=15.0,
     ).stdout.strip()
-    if package_out.exists():
-        shutil.rmtree(package_out)
-    package_out.mkdir(parents=True, exist_ok=True)
+    package_out.parent.mkdir(parents=True, exist_ok=True)
 
     with tempfile.TemporaryDirectory(prefix="c5-eliscript-build-") as build_tmp:
         build_root = Path(build_tmp)
         archive_src = build_root / "src"
         archive_src.mkdir(parents=True, exist_ok=True)
+        stage_pkg = build_root / "package_stage"
+        stage_pkg.mkdir(parents=True, exist_ok=True)
         tar_proc = subprocess.run(
             ["git", "-C", str(eliscript_repo), "archive", "--format=tar", commit_sha],
             capture_output=True,
@@ -166,55 +274,54 @@ def prepare_frozen_package(
         run_checked(["make", "bootstrap-release"], cwd=archive_src, env=env, timeout=600.0)
         run_checked(["make", "prepare-release-package"], cwd=archive_src, env=env, timeout=600.0)
 
-        # Stage compiled analysis and C5 probe modules while the temporary build tree exists.
-        analysis_out = package_out / "analysis"
+        # Stage compiled analysis and C5 probe modules inside build_root, strip
+        # per-module node_modules there, and copy only the runtime closure.
         build_env = env.copy()
         build_env["ELISCRIPT_JS_RUNTIME"] = shutil.which("bun") or "bun"
+        analysis_stage = build_root / "analysis_stage"
         run_checked(
             [
                 str(archive_src / "bin/eliscript-build"),
                 "--root",
                 str(archive_src / "examples/emacs-analysis"),
                 "--out-dir",
-                str(analysis_out),
+                str(analysis_stage),
                 str(archive_src / "examples/emacs-analysis/analysis.eli"),
             ],
             cwd=archive_src,
             env=build_env,
             timeout=120.0,
         )
-        if (analysis_out / "node_modules").exists():
-            shutil.rmtree(analysis_out / "node_modules")
+        copy_runtime_tree(analysis_stage, stage_pkg / "analysis")
 
         probe_src_dir = build_root / "probes_src"
         probe_src_dir.mkdir(parents=True, exist_ok=True)
         probe_entry = probe_src_dir / "c5-probes.eli"
         probe_entry.write_text(C5_PROBES_ELI, encoding="utf-8")
-        probes_out = package_out / "probes"
+        probes_stage = build_root / "probes_stage"
         run_checked(
             [
                 str(archive_src / "bin/eliscript-build"),
                 "--root",
                 str(probe_src_dir),
                 "--out-dir",
-                str(probes_out),
+                str(probes_stage),
                 str(probe_entry),
             ],
             cwd=archive_src,
             env=build_env,
             timeout=120.0,
         )
-        if (probes_out / "node_modules").exists():
-            shutil.rmtree(probes_out / "node_modules")
+        copy_runtime_tree(probes_stage, stage_pkg / "probes")
 
         # Copy frozen runtime, platform, stdlib, dist/runtime, package.json, and worker Lisp closure.
-        shutil.copy2(archive_src / "package.json", package_out / "package.json")
-        copy_runtime_tree(archive_src / "runtime", package_out / "runtime")
-        copy_runtime_tree(archive_src / "platform", package_out / "platform")
-        copy_runtime_tree(archive_src / "stdlib", package_out / "stdlib")
-        copy_runtime_tree(archive_src / "dist/runtime", package_out / "dist/runtime")
+        shutil.copy2(archive_src / "package.json", stage_pkg / "package.json")
+        copy_runtime_tree(archive_src / "runtime", stage_pkg / "runtime")
+        copy_runtime_tree(archive_src / "platform", stage_pkg / "platform")
+        copy_runtime_tree(archive_src / "stdlib", stage_pkg / "stdlib")
+        copy_runtime_tree(archive_src / "dist/runtime", stage_pkg / "dist/runtime")
 
-        client_dst = package_out / "tools/worker"
+        client_dst = stage_pkg / "tools/worker"
         client_dst.mkdir(parents=True, exist_ok=True)
         for name in (
             "eliscript-value-codec.el",
@@ -224,49 +331,23 @@ def prepare_frozen_package(
         ):
             shutil.copy2(archive_src / "tools/worker" / name, client_dst / name)
 
-    # Confirm compiler/bootstrap files are absent from the frozen runtime package.
-    assert not (package_out / "compiler").exists(), "compiler tree leaked into frozen package"
-    assert not (
-        package_out / "tools/bootstrap-runtime.el"
-    ).exists(), "bootstrap-runtime.el leaked into frozen package"
-    assert (package_out / "runtime/worker.mjs").is_file(), "missing frozen runtime/worker.mjs"
-    assert (package_out / "stdlib/bit.mjs").is_file(), "missing frozen stdlib/bit.mjs"
-    assert (package_out / "dist/runtime/lisp.mjs").is_file(), "missing frozen dist/runtime/lisp.mjs"
-
-    key_files = [
-        "package.json",
-        "runtime/worker.mjs",
-        "runtime/worker.mjs.map",
-        "platform/worker.mjs",
-        "stdlib/bit.mjs",
-        "dist/runtime/lisp.mjs",
-        "tools/worker/eliscript-worker.el",
-        "tools/worker/eliscript-service.el",
-        "tools/worker/eliscript-value-codec.el",
-        "tools/worker/eliscript-value-stream.el",
-        "analysis/analysis.mjs",
-        "analysis/eliscript-project.json",
-        "probes/c5-probes.mjs",
-        "probes/c5-probes.mjs.map",
-        "probes/eliscript-project.json",
-    ]
-    manifest = {
-        "schema": "femacs-c5-frozen-eliscript-v1",
-        "eliscript_commit": commit_sha,
-        "builder_femacs_lisp": str(femacs_lisp),
-        "builder_femacs_lisp_sha256": sha256_file(femacs_lisp),
-        "files": {
-            rel: {
-                "bytes": (package_out / rel).stat().st_size,
-                "sha256": sha256_file(package_out / rel),
-            }
-            for rel in key_files
-        },
-    }
-    (package_out / "frozen-manifest.json").write_text(
-        json.dumps(manifest, indent=2) + "\n", encoding="utf-8"
-    )
-    return manifest
+        closure_files, closure_sha256 = compute_closure_inventory(stage_pkg)
+        for req in REQUIRED_CLOSURE_FILES:
+            assert req in closure_files, f"missing required closure file: {req}"
+        manifest = {
+            "schema": "femacs-c5-frozen-eliscript-v1",
+            "eliscript_commit": commit_sha,
+            "builder_femacs_lisp_sha256": sha256_file(femacs_lisp),
+            "file_count": len(closure_files),
+            "closure_sha256": closure_sha256,
+            "files": closure_files,
+        }
+        (stage_pkg / "frozen-manifest.json").write_text(
+            json.dumps(manifest, indent=2) + "\n", encoding="utf-8"
+        )
+        verify_frozen_package(stage_pkg)
+        shutil.move(str(stage_pkg), str(package_out))
+    return verify_frozen_package(package_out)
 
 
 def check_opt_in_clean_batch(binary: Path, label: str) -> dict[str, object]:
@@ -412,6 +493,189 @@ def run_terminal_pty_cases(
     return data
 
 
+def run_guard_self_tests(valid_pkg: Path) -> dict[str, object]:
+    """Verify read-only input guards, non-overwrite output guards, and closure integrity rejection."""
+    verified = verify_frozen_package(valid_pkg)
+    script = str(Path(__file__).resolve())
+    checks: list[dict[str, object]] = []
+
+    with tempfile.TemporaryDirectory(prefix="femacs-c5-guards-") as tmp_dir:
+        tmp = Path(tmp_dir)
+
+        # 1. Existing --package-out is refused and preserved untouched.
+        existing_pkg_out = tmp / "existing-pkg-out"
+        existing_pkg_out.mkdir()
+        marker1 = existing_pkg_out / "keep.txt"
+        marker1.write_text("preserve-me", encoding="utf-8")
+        p1 = subprocess.run(
+            ["python3", script, "--prepare-only", "--package-out", str(existing_pkg_out)],
+            capture_output=True,
+            text=True,
+            timeout=15.0,
+        )
+        assert p1.returncode != 0 and marker1.read_text(encoding="utf-8") == "preserve-me"
+        checks.append({"id": "refuse_existing_package_out", "passed": True, "rc": p1.returncode})
+
+        # 2. Existing --out is refused and preserved untouched.
+        existing_out = tmp / "existing-out"
+        existing_out.mkdir()
+        marker2 = existing_out / "keep.txt"
+        marker2.write_text("preserve-out", encoding="utf-8")
+        p2 = subprocess.run(
+            [
+                "python3",
+                script,
+                "--frozen-package",
+                str(valid_pkg),
+                "--out",
+                str(existing_out),
+            ],
+            capture_output=True,
+            text=True,
+            timeout=15.0,
+        )
+        assert p2.returncode != 0 and marker2.read_text(encoding="utf-8") == "preserve-out"
+        checks.append({"id": "refuse_existing_out_dir", "passed": True, "rc": p2.returncode})
+
+        # 3. --frozen-package missing frozen-manifest.json is refused with no rebuild fallback.
+        no_manifest_pkg = tmp / "no-manifest-pkg"
+        shutil.copytree(valid_pkg, no_manifest_pkg, symlinks=False)
+        (no_manifest_pkg / "frozen-manifest.json").unlink()
+        marker3 = no_manifest_pkg / "sentinel.txt"
+        marker3.write_text("intact", encoding="utf-8")
+        p3 = subprocess.run(
+            [
+                "python3",
+                script,
+                "--frozen-package",
+                str(no_manifest_pkg),
+                "--out",
+                str(tmp / "out-3"),
+            ],
+            capture_output=True,
+            text=True,
+            timeout=15.0,
+        )
+        assert (
+            p3.returncode != 0
+            and marker3.read_text(encoding="utf-8") == "intact"
+            and not (no_manifest_pkg / "frozen-manifest.json").exists()
+            and not (tmp / "out-3").exists()
+        )
+        checks.append({"id": "refuse_missing_manifest_no_rebuild", "passed": True, "rc": p3.returncode})
+
+        # 4. --frozen-package combined with --prepare-only or --package-out is refused.
+        p4a = subprocess.run(
+            ["python3", script, "--frozen-package", str(valid_pkg), "--prepare-only"],
+            capture_output=True,
+            text=True,
+            timeout=15.0,
+        )
+        p4b = subprocess.run(
+            [
+                "python3",
+                script,
+                "--frozen-package",
+                str(valid_pkg),
+                "--package-out",
+                str(tmp / "out-4b"),
+            ],
+            capture_output=True,
+            text=True,
+            timeout=15.0,
+        )
+        assert p4a.returncode != 0 and p4b.returncode != 0
+        checks.append(
+            {
+                "id": "refuse_conflicting_frozen_input_and_prepare",
+                "passed": True,
+                "rc_prepare": p4a.returncode,
+                "rc_package_out": p4b.returncode,
+            }
+        )
+
+        # 5. Tampered runtime closure file is rejected before running acceptance.
+        tampered_file_pkg = tmp / "tampered-file-pkg"
+        shutil.copytree(valid_pkg, tampered_file_pkg, symlinks=False)
+        with (tampered_file_pkg / "stdlib/bit.mjs").open("a", encoding="utf-8") as f:
+            f.write("\n// tampered\n")
+        p5 = subprocess.run(
+            [
+                "python3",
+                script,
+                "--frozen-package",
+                str(tampered_file_pkg),
+                "--out",
+                str(tmp / "out-5"),
+            ],
+            capture_output=True,
+            text=True,
+            timeout=15.0,
+        )
+        assert p5.returncode != 0 and not (tmp / "out-5").exists()
+        checks.append({"id": "reject_tampered_closure_file", "passed": True, "rc": p5.returncode})
+
+        # 6. Extra injected file in frozen package is rejected.
+        extra_file_pkg = tmp / "extra-file-pkg"
+        shutil.copytree(valid_pkg, extra_file_pkg, symlinks=False)
+        (extra_file_pkg / "rogue.mjs").write_text("export const rogue = 1;\n", encoding="utf-8")
+        p6 = subprocess.run(
+            [
+                "python3",
+                script,
+                "--frozen-package",
+                str(extra_file_pkg),
+                "--out",
+                str(tmp / "out-6"),
+            ],
+            capture_output=True,
+            text=True,
+            timeout=15.0,
+        )
+        assert p6.returncode != 0 and not (tmp / "out-6").exists()
+        checks.append({"id": "reject_extra_injected_file", "passed": True, "rc": p6.returncode})
+
+        # 7. Tampered closure_sha256 in frozen-manifest.json is rejected.
+        tampered_digest_pkg = tmp / "tampered-digest-pkg"
+        shutil.copytree(valid_pkg, tampered_digest_pkg, symlinks=False)
+        bad_manifest = json.loads((tampered_digest_pkg / "frozen-manifest.json").read_text(encoding="utf-8"))
+        bad_manifest["closure_sha256"] = "0" * 64
+        (tampered_digest_pkg / "frozen-manifest.json").write_text(
+            json.dumps(bad_manifest, indent=2) + "\n", encoding="utf-8"
+        )
+        p7 = subprocess.run(
+            [
+                "python3",
+                script,
+                "--frozen-package",
+                str(tampered_digest_pkg),
+                "--out",
+                str(tmp / "out-7"),
+            ],
+            capture_output=True,
+            text=True,
+            timeout=15.0,
+        )
+        assert p7.returncode != 0 and not (tmp / "out-7").exists()
+        checks.append({"id": "reject_tampered_closure_digest", "passed": True, "rc": p7.returncode})
+
+    checks.append(
+        {
+            "id": "verify_valid_frozen_package",
+            "passed": True,
+            "closure_sha256": verified["closure_sha256"],
+            "file_count": verified["file_count"],
+        }
+    )
+    return {
+        "schema": "femacs-c5-guards-v1",
+        "passed": True,
+        "closure_sha256": verified["closure_sha256"],
+        "file_count": verified["file_count"],
+        "checks": checks,
+    }
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--app", type=Path, default=Path("/Applications/Fe.app"))
@@ -421,28 +685,53 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--femacs-lisp", type=Path, default=REPO / "dist/lisp/bin/femacs-lisp")
     parser.add_argument("--runner", default="bun")
     parser.add_argument("--frozen-package", type=Path, default=None)
+    parser.add_argument("--package-out", type=Path, default=None)
     parser.add_argument("--prepare-only", action="store_true")
+    parser.add_argument("--self-test-guards", action="store_true")
     parser.add_argument("--out", type=Path, default=REPO / "build/acceptance/c5-a5-worker")
     args = parser.parse_args(argv)
 
-    out_dir = args.out.resolve()
-    out_dir.mkdir(parents=True, exist_ok=True)
+    if args.self_test_guards:
+        if args.frozen_package is None or args.prepare_only or args.package_out is not None:
+            parser.error("--self-test-guards requires --frozen-package without --prepare-only/--package-out")
+        guard_report = run_guard_self_tests(args.frozen_package.resolve())
+        print(json.dumps(guard_report, indent=2))
+        return 0
+
     app_bundle = args.app.resolve()
     terminal_bin = args.terminal.resolve()
     femacs_lisp = args.femacs_lisp.resolve()
+    out_dir = args.out.resolve()
 
-    if args.frozen_package is not None and (args.frozen_package / "frozen-manifest.json").is_file() and not args.prepare_only:
+    if args.frozen_package is not None:
+        if args.prepare_only or args.package_out is not None:
+            parser.error("--frozen-package is a read-only input and cannot be combined with --prepare-only or --package-out")
         pkg_dir = args.frozen_package.resolve()
-        manifest = json.loads((pkg_dir / "frozen-manifest.json").read_text(encoding="utf-8"))
+        manifest = verify_frozen_package(pkg_dir)
     else:
-        pkg_dir = (args.frozen_package or (out_dir / "frozen-eliscript")).resolve()
+        pkg_target = (args.package_out or (out_dir / "frozen-eliscript")).resolve()
+        if pkg_target.exists() or pkg_target.is_symlink():
+            raise FileExistsError(f"refusing to overwrite existing package output: {pkg_target}")
+        if not args.prepare_only and out_dir.exists():
+            raise FileExistsError(f"refusing to overwrite existing output directory: {out_dir}")
         manifest = prepare_frozen_package(
-            args.eliscript_repo.resolve(), args.eliscript_ref, femacs_lisp, pkg_dir
+            args.eliscript_repo.resolve(), args.eliscript_ref, femacs_lisp, pkg_target
         )
+        pkg_dir = pkg_target
+        if args.prepare_only:
+            print(
+                f"Prepared frozen Eliscript package at {pkg_dir} "
+                f"(commit={manifest['eliscript_commit']} closure_sha256={manifest['closure_sha256']} files={manifest['file_count']})"
+            )
+            return 0
 
-    if args.prepare_only:
-        print(f"Prepared frozen Eliscript package at {pkg_dir} (commit={manifest['eliscript_commit']})")
-        return 0
+    if out_dir.exists():
+        if args.frozen_package is not None:
+            raise FileExistsError(f"refusing to overwrite existing output directory: {out_dir}")
+        # Check for existing report/artifacts if out_dir was created only as parent of pkg_dir.
+        if (out_dir / "c5-a5-worker-report.json").exists():
+            raise FileExistsError(f"refusing to overwrite existing report in {out_dir}")
+    out_dir.mkdir(parents=True, exist_ok=True)
 
     with tempfile.TemporaryDirectory(prefix="femacs-a5-detached-") as detached_tmp:
         detached = Path(detached_tmp)
@@ -470,6 +759,8 @@ def main(argv: list[str] | None = None) -> int:
         "schema": "femacs-c5-a5-worker-v1",
         "runner": args.runner,
         "frozen_package": manifest,
+        "frozen_package_closure_sha256": manifest["closure_sha256"],
+        "frozen_package_file_count": manifest["file_count"],
         "opt_in_clean": [opt_in_app, opt_in_tty],
         "cocoa": cocoa_res,
         "terminal": term_res,

@@ -34,6 +34,70 @@
   (when (and proc (process-live-p proc))
     (accept-process-output proc 0.03)))
 
+(defun femacs-a5--obj-get (obj key)
+  "Extract string KEY from persistent object OBJ or alist."
+  (cond
+   ((eliscript-value-object-p obj)
+    (cdr (seq-find (lambda (e) (equal (car e) key))
+                   (eliscript-value-object-entries obj))))
+   ((listp obj)
+    (alist-get (intern key) obj nil nil #'eq))
+   (t nil)))
+
+(defun femacs-a5--canonical-dir (path)
+  "Return canonical directory string without trailing slash for PATH."
+  (directory-file-name (file-truename (expand-file-name path))))
+
+(defun femacs-a5--manifest-digest (manifest-path)
+  "Read digest hex string from project MANIFEST-PATH."
+  (with-temp-buffer
+    (insert-file-contents manifest-path)
+    (alist-get 'digest
+               (json-parse-buffer
+                :object-type 'alist
+                :array-type 'array
+                :null-object nil
+                :false-object :false))))
+
+(cl-defun femacs-a5--call-await
+    (session operation-name arguments
+             &key path buffer apply progress metrics timeout-ms side-effect
+             await-seconds)
+  "Invoke OPERATION-NAME asynchronously, await it, and cancel on non-local exit."
+  (let ((req nil))
+    (unwind-protect
+        (progn
+          (setq req
+                (if side-effect
+                    (femacs-eliscript-call-side-effect
+                     session operation-name arguments nil
+                     :progress progress :metrics metrics :timeout-ms timeout-ms)
+                  (femacs-eliscript-call
+                   session operation-name arguments nil
+                   :path path :buffer buffer :apply apply
+                   :progress progress :metrics metrics :timeout-ms timeout-ms)))
+          (femacs-eliscript-await req (or await-seconds 30.0))
+          (unless (femacs-eliscript-request-done req)
+            (femacs-eliscript-cancel req)
+            (femacs-eliscript--signal
+             (if side-effect
+                 'femacs-eliscript-side-effect-unknown-error
+               'femacs-eliscript-error)
+             (if side-effect "side-effect-completion-unknown" "await-timeout")
+             "Timed out waiting for Eliscript request completion"
+             `((request-id . ,(femacs-eliscript-request-request-id req)))))
+          (when-let* ((err-obj (femacs-eliscript-request-error req)))
+            (let* ((code (alist-get 'code err-obj))
+                   (msg (or (alist-get 'message err-obj)
+                            "Eliscript request failed"))
+                   (sym (if (equal code "side-effect-completion-unknown")
+                            'femacs-eliscript-side-effect-unknown-error
+                          'femacs-eliscript-error)))
+              (signal sym (list msg err-obj))))
+          (femacs-eliscript-request-result req))
+      (when (and req (not (femacs-eliscript-request-done req)))
+        (femacs-eliscript-cancel req)))))
+
 (defun femacs-a5--run-cases ()
   "Execute all C5/A5 checks and write JSON report before exiting."
   (let* ((worker-el (getenv "FEMACS_A5_WORKER_EL"))
@@ -73,6 +137,10 @@
 
           (load worker-el nil t t)
           (require 'femacs-eliscript-worker)
+
+          (when (or (fboundp 'femacs-eliscript-call-sync)
+                    (fboundp 'femacs-eliscript-call-side-effect-sync))
+            (error "Removed synchronous wrappers are unexpectedly bound"))
 
           ;; 2. Negative failure cases before starting live worker
           (let ((err-missing-rt
@@ -245,7 +313,9 @@
                     'stderr-log-echo (lambda (m) m) :export-name "stderr_log_echo")
                    (eliscript-service-operation
                     'side-effect-append (lambda (_p _tok _ms) nil)
-                    :export-name "side_effect_append")))
+                    :export-name "side_effect_append")
+                   (eliscript-service-operation
+                    'report-cwd (lambda () nil) :export-name "report_cwd")))
                  (session
                   (femacs-eliscript-start
                    :package-dir pkg-dir
@@ -260,11 +330,9 @@
             (unwind-protect
                 (progn
                   ;; 4a. Runtime module resolution probe
-                  (let ((ping (femacs-eliscript-call-sync session 'ping-resolution nil)))
+                  (let ((ping (femacs-a5--call-await session 'ping-resolution nil)))
                     (unless (and (eliscript-value-object-p ping)
-                                 (eq (cdr (seq-find (lambda (e) (equal (car e) "resolved"))
-                                                    (eliscript-value-object-entries ping)))
-                                     t))
+                                 (eq (femacs-a5--obj-get ping "resolved") t))
                       (error "Runtime resolution probe unexpected: %S" ping)))
 
                   ;; 4b. Persistent value codec + chunked streaming (> max-text-part-units)
@@ -275,7 +343,7 @@
                                  (cons (eliscript-value-keyword "count" "c5") 42))))
                          (progress-seen nil)
                          (echoed
-                          (femacs-eliscript-call-sync
+                          (femacs-a5--call-await
                            session 'chunked-echo (list payload)
                            :progress (lambda (p) (push p progress-seen)))))
                     (unless (and (eliscript-value-map-p echoed)
@@ -297,7 +365,7 @@
                            (limit-err
                             (condition-case e
                                 (progn
-                                  (femacs-eliscript-call-sync
+                                  (femacs-a5--call-await
                                    session 'chunked-echo (list (make-string 2048 ?y)))
                                   nil)
                               (error e))))
@@ -342,7 +410,7 @@
                   (let ((mapped-err
                          (condition-case e
                              (progn
-                               (femacs-eliscript-call-sync
+                               (femacs-a5--call-await
                                 session 'trigger-mapped-error '("boom"))
                                nil)
                            (femacs-eliscript-error e))))
@@ -367,7 +435,7 @@
 
                   ;; 4e. Stderr log capture
                   (let* ((echo-obj
-                          (femacs-eliscript-call-sync
+                          (femacs-a5--call-await
                            session 'stderr-log-echo '("c5-log-marker")))
                          (worker (femacs-eliscript-session-worker session)))
                     (accept-process-output (eliscript-worker-process worker) 0.05)
@@ -397,7 +465,7 @@
                       (error "Crash fail unexpected: %S"
                              (femacs-eliscript-request-error hang-req)))
                     (let ((recovered
-                           (femacs-eliscript-call-sync
+                           (femacs-a5--call-await
                             session 'stderr-log-echo '("post-crash"))))
                       (unless (and (eliscript-value-object-p recovered)
                                    (= (eliscript-worker-generation worker)
@@ -410,11 +478,12 @@
                               (gen_after . ,(eliscript-worker-generation worker)))
                             results)))
 
-                  ;; 4g. Side-effectful request: verify disallowed, timeout unknown, kill unknown, zero replay
+                  ;; 4g. Side-effectful request: verify disallowed, timeout unknown, kill unknown, user-cancel unknown, zero replay
                   (let* ((se-timeout-file (expand-file-name "se-timeout.txt" work-dir))
-                         (se-kill-file (expand-file-name "se-kill.txt" work-dir)))
-                    (when (file-exists-p se-timeout-file) (delete-file se-timeout-file))
-                    (when (file-exists-p se-kill-file) (delete-file se-kill-file))
+                         (se-kill-file (expand-file-name "se-kill.txt" work-dir))
+                         (se-cancel-file (expand-file-name "se-cancel.txt" work-dir)))
+                    (dolist (f (list se-timeout-file se-kill-file se-cancel-file))
+                      (when (file-exists-p f) (delete-file f)))
 
                     ;; Reject verify=always for side-effect session
                     (let* ((se-verify-sess
@@ -448,10 +517,10 @@
                     (let ((t-err
                            (condition-case e
                                (progn
-                                 (femacs-eliscript-call-side-effect-sync
+                                 (femacs-a5--call-await
                                   session 'side-effect-append
                                   (list se-timeout-file "timeout-token" 2500)
-                                  :timeout-ms 250 :await-seconds 10.0)
+                                  :side-effect t :timeout-ms 250 :await-seconds 10.0)
                                  nil)
                              (femacs-eliscript-side-effect-unknown-error e))))
                       (unless (and t-err
@@ -461,7 +530,7 @@
                                    (null (alist-get 'replay-permitted (nth 2 t-err))))
                         (error "Expected side-effect timeout unknown, got %S" t-err))
                       ;; Subsequent call triggers new generation and succeeds without replaying
-                      (femacs-eliscript-call-sync session 'stderr-log-echo '("after-se-timeout"))
+                      (femacs-a5--call-await session 'stderr-log-echo '("after-se-timeout"))
                       (sleep-for 0.15)
                       (let ((lines
                              (with-temp-buffer
@@ -498,7 +567,7 @@
                                           "worker-exit"))
                         (error "Expected unknown on side-effect SIGKILL, got %S"
                                (femacs-eliscript-request-error se-req)))
-                      (femacs-eliscript-call-sync session 'stderr-log-echo '("after-se-kill"))
+                      (femacs-a5--call-await session 'stderr-log-echo '("after-se-kill"))
                       (let ((lines
                              (with-temp-buffer
                                (insert-file-contents se-kill-file)
@@ -506,10 +575,208 @@
                         (unless (equal lines '("kill-token"))
                           (error "Expected strictly 1 side-effect line after kill, got %S"
                                  lines))))
+
+                    ;; Side effect user cancel after dispatch -> unknown status, single callback, zero replay
+                    (let* ((cancel-cb-count 0)
+                           (se-cancel-req
+                            (femacs-eliscript-call-side-effect
+                             session 'side-effect-append
+                             (list se-cancel-file "cancel-token" 1500)
+                             (lambda (_val _err _r)
+                               (setq cancel-cb-count (1+ cancel-cb-count)))))
+                           (proc (eliscript-worker-process
+                                  (femacs-eliscript-session-worker session))))
+                      (unless (femacs-a5--wait-until
+                               (lambda ()
+                                 (and (file-exists-p se-cancel-file)
+                                      (> (nth 7 (file-attributes se-cancel-file)) 0)))
+                               5.0 proc)
+                        (error "Side-effect cancel file never written before cancel"))
+                      (let ((cancel-ret (femacs-eliscript-cancel se-cancel-req))
+                            (err-obj (femacs-eliscript-request-error se-cancel-req)))
+                        (unless (and (eq cancel-ret 'unknown)
+                                     (eq (femacs-eliscript-request-completion-status se-cancel-req)
+                                         'unknown)
+                                     (= cancel-cb-count 1)
+                                     (equal (alist-get 'code err-obj)
+                                            "side-effect-completion-unknown")
+                                     (equal (alist-get 'cause-code err-obj)
+                                            "cancelled")
+                                     (null (alist-get 'replay-permitted err-obj)))
+                          (error "Expected side-effect user-cancel unknown, got ret=%S cb=%S err=%S"
+                                 cancel-ret cancel-cb-count err-obj)))
+                      (femacs-a5--call-await session 'stderr-log-echo '("after-se-cancel"))
+                      (sleep-for 0.2)
+                      (let ((lines
+                             (with-temp-buffer
+                               (insert-file-contents se-cancel-file)
+                               (split-string (buffer-string) "\n" t))))
+                        (unless (and (= cancel-cb-count 1)
+                                     (equal lines '("cancel-token")))
+                          (error "Expected strictly 1 callback and 1 line after side-effect cancel, cb=%S lines=%S"
+                                 cancel-cb-count lines))))
+
                     (push `((id . "side_effect_single_run_and_unknown_completion")
                             (passed . t))
                           results)))
-              (femacs-eliscript-stop session t)))))
+              (femacs-eliscript-stop session t))
+
+            ;; 5. Project-manifest and explicit module-digest consistency
+            (let* ((expected-digest (femacs-a5--manifest-digest probe-manifest))
+                   (conflict-err
+                    (condition-case e
+                        (progn
+                          (femacs-eliscript-start
+                           :package-dir pkg-dir
+                           :runner runner
+                           :working-directory pkg-dir
+                           :module-path probe-mod
+                           :project-manifest probe-manifest
+                           :module-digest (make-string 64 ?0)
+                           :verify nil
+                           :value-codec t
+                           :value-chunks t
+                           :operations ops)
+                          nil)
+                      (femacs-eliscript-error e))))
+              (unless (and conflict-err
+                           (equal (alist-get 'code (nth 2 conflict-err))
+                                  "module-digest-conflict"))
+                (error "Expected module-digest-conflict error, got %S" conflict-err))
+              (let ((digest-sess
+                     (femacs-eliscript-start
+                      :package-dir pkg-dir
+                      :runner runner
+                      :working-directory pkg-dir
+                      :module-path probe-mod
+                      :project-manifest probe-manifest
+                      :module-digest expected-digest
+                      :verify nil
+                      :value-codec t
+                      :value-chunks t
+                      :operations ops)))
+                (unwind-protect
+                    (let* ((status (femacs-eliscript-status digest-sess))
+                           (svc-digest
+                            (eliscript-service-module-digest
+                             (eliscript-service-module
+                              (femacs-eliscript-session-service digest-sess))))
+                           (cwd-res (femacs-a5--call-await digest-sess 'report-cwd nil)))
+                      (unless (and (equal expected-digest svc-digest)
+                                   (equal expected-digest (alist-get 'module-digest status))
+                                   (equal expected-digest
+                                          (femacs-eliscript-session-module-digest digest-sess))
+                                   (stringp (femacs-a5--obj-get cwd-res "cwd")))
+                        (error "Consistent digest session mismatch: expected=%s svc=%s status=%s"
+                               expected-digest svc-digest (alist-get 'module-digest status)))
+                      (push `((id . "module_digest_consistency")
+                              (passed . t)
+                              (digest . ,expected-digest))
+                            results))
+                  (femacs-eliscript-stop digest-sess t))))
+
+            ;; 6. Per-session working directory isolation across concurrent sessions and restarts
+            (let ((dir-a (expand-file-name "cwd-a" work-dir))
+                  (dir-b (expand-file-name "cwd-b" work-dir))
+                  (sess-a nil)
+                  (sess-b nil))
+              (make-directory dir-a t)
+              (make-directory dir-b t)
+              (unwind-protect
+                  (let ((canon-a (femacs-a5--canonical-dir dir-a))
+                        (canon-b (femacs-a5--canonical-dir dir-b)))
+                    (setq sess-a
+                          (femacs-eliscript-start
+                           :package-dir pkg-dir
+                           :runner runner
+                           :working-directory dir-a
+                           :module-path probe-mod
+                           :project-manifest probe-manifest
+                           :verify nil
+                           :value-codec t
+                           :value-chunks t
+                           :operations ops))
+                    (let ((cwd-a1
+                           (femacs-a5--canonical-dir
+                            (femacs-a5--obj-get
+                             (femacs-a5--call-await sess-a 'report-cwd nil) "cwd")))
+                          (status-a1 (femacs-eliscript-status sess-a)))
+                      (unless (and (equal cwd-a1 canon-a)
+                                   (equal (femacs-a5--canonical-dir
+                                           (alist-get 'working-directory status-a1))
+                                          canon-a))
+                        (error "Session A initial cwd mismatch: %s vs %s" cwd-a1 canon-a)))
+
+                    (setq sess-b
+                          (femacs-eliscript-start
+                           :package-dir pkg-dir
+                           :runner runner
+                           :working-directory dir-b
+                           :module-path probe-mod
+                           :project-manifest probe-manifest
+                           :verify nil
+                           :value-codec t
+                           :value-chunks t
+                           :operations ops))
+                    (let ((cwd-b1
+                           (femacs-a5--canonical-dir
+                            (femacs-a5--obj-get
+                             (femacs-a5--call-await sess-b 'report-cwd nil) "cwd")))
+                          (status-b1 (femacs-eliscript-status sess-b)))
+                      (unless (and (equal cwd-b1 canon-b)
+                                   (equal (femacs-a5--canonical-dir
+                                           (alist-get 'working-directory status-b1))
+                                          canon-b))
+                        (error "Session B initial cwd mismatch: %s vs %s" cwd-b1 canon-b)))
+
+                    ;; Explicit restart of Session A must remain in dir-a (not B's dir)
+                    (femacs-eliscript-restart sess-a)
+                    (let ((cwd-a2
+                           (femacs-a5--canonical-dir
+                            (femacs-a5--obj-get
+                             (femacs-a5--call-await sess-a 'report-cwd nil) "cwd")))
+                          (status-a2 (femacs-eliscript-status sess-a)))
+                      (unless (and (equal cwd-a2 canon-a)
+                                   (equal (femacs-a5--canonical-dir
+                                           (alist-get 'working-directory status-a2))
+                                          canon-a))
+                        (error "Session A explicit restart cwd mismatch: %s vs %s"
+                               cwd-a2 canon-a)))
+
+                    ;; SIGKILL + automatic relaunch of Session A must still stay in dir-a
+                    (let* ((worker-a (femacs-eliscript-session-worker sess-a))
+                           (gen-before (eliscript-worker-generation worker-a))
+                           (proc-a (eliscript-worker-process worker-a)))
+                      (signal-process proc-a 'SIGKILL)
+                      (femacs-a5--wait-until
+                       (lambda () (not (eliscript-worker-live-p worker-a)))
+                       5.0 nil)
+                      (let ((cwd-a3
+                             (femacs-a5--canonical-dir
+                              (femacs-a5--obj-get
+                               (femacs-a5--call-await sess-a 'report-cwd nil) "cwd")))
+                            (status-a3 (femacs-eliscript-status sess-a))
+                            (cwd-b2
+                             (femacs-a5--canonical-dir
+                              (femacs-a5--obj-get
+                               (femacs-a5--call-await sess-b 'report-cwd nil) "cwd"))))
+                        (unless (and (equal cwd-a3 canon-a)
+                                     (equal (femacs-a5--canonical-dir
+                                             (alist-get 'working-directory status-a3))
+                                            canon-a)
+                                     (= (alist-get 'generation status-a3) (1+ gen-before))
+                                     (equal cwd-b2 canon-b))
+                          (error "Auto-relaunch cwd isolation failed: a=%s status=%s b=%s"
+                                 cwd-a3 (alist-get 'working-directory status-a3) cwd-b2)))
+                      (push `((id . "session_cwd_isolation")
+                              (passed . t)
+                              (dir_a_suffix . "cwd-a")
+                              (dir_b_suffix . "cwd-b")
+                              (gen_after_auto_relaunch
+                               . ,(eliscript-worker-generation worker-a)))
+                            results)))
+                (when sess-b (femacs-eliscript-stop sess-b t))
+                (when sess-a (femacs-eliscript-stop sess-a t)))))))
       (error
        (setq overall-ok nil)
        (push `((id . "fatal_error")

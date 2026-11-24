@@ -51,6 +51,9 @@
   "Side-effectful Eliscript request completion is unknown"
   'femacs-eliscript-error)
 
+(defvar eliscript-worker--project-directory)
+(defvar eliscript-worker-startup-timeout)
+
 (defconst femacs-eliscript--client-libraries
   '("eliscript-value-codec"
     "eliscript-value-stream"
@@ -62,6 +65,16 @@
   '("timeout" "worker-exit" "worker-restart" "worker-stop"
     "client-protocol-error" "cancelled")
   "Error codes indicating unknown external effect state for side-effect calls.")
+
+(defvar femacs-eliscript--loaded-client-dir nil
+  "Directory from which the frozen Eliscript client closure was loaded.")
+
+(defvar femacs-eliscript--worker-launch-config
+  (make-hash-table :test #'eq :weakness 'key)
+  "Per-worker launch configuration plist keyed by worker struct.")
+
+(defvar femacs-eliscript--pending-launch-config nil
+  "Dynamic launch configuration bound during `femacs-eliscript-start'.")
 
 (cl-defstruct (femacs-eliscript-install
                (:constructor femacs-eliscript-install--create))
@@ -245,7 +258,8 @@ bootstrap."
          `((package-dir . ,pkg-dir))))
       (let* ((worker-script (femacs-eliscript--find-worker-script pkg-dir))
              (client-dir (femacs-eliscript--find-client-dir pkg-dir))
-             (workdir (expand-file-name (or working-directory pkg-dir)))
+             (workdir (file-name-as-directory
+                       (expand-file-name (or working-directory pkg-dir))))
              (resolved-module
               (if module-path
                   (let ((expanded (expand-file-name module-path)))
@@ -288,18 +302,33 @@ bootstrap."
          :module-path resolved-module
          :project-manifest resolved-manifest)))))
 
+(defun femacs-eliscript--launch-with-session-config (orig-fn worker)
+  "Bind per-session working directory and startup timeout around WORKER launch."
+  (let ((cfg (or (gethash worker femacs-eliscript--worker-launch-config)
+                 femacs-eliscript--pending-launch-config)))
+    (if (not cfg)
+        (funcall orig-fn worker)
+      (puthash worker cfg femacs-eliscript--worker-launch-config)
+      (let ((eliscript-worker--project-directory
+             (plist-get cfg :working-directory))
+            (eliscript-worker-startup-timeout
+             (or (plist-get cfg :startup-timeout)
+                 eliscript-worker-startup-timeout)))
+        (funcall orig-fn worker)))))
+
 (defun femacs-eliscript--load-client (install)
-  "Load the frozen Eliscript client closure named by INSTALL."
+  "Load the frozen Eliscript client closure named by INSTALL without mutating globals."
   (let ((client-dir (femacs-eliscript-install-client-dir install)))
-    (add-to-list 'load-path client-dir)
-    (dolist (lib femacs-eliscript--client-libraries)
-      (load (expand-file-name (concat lib ".el") client-dir) nil t t))
-    (setf (symbol-value 'eliscript-worker--project-directory)
-          (femacs-eliscript-install-working-directory install)
-          (symbol-value 'eliscript-worker-program)
-          (femacs-eliscript-install-runner-executable install)
-          (symbol-value 'eliscript-worker-startup-timeout)
-          femacs-eliscript-startup-timeout)))
+    (unless (and (equal femacs-eliscript--loaded-client-dir client-dir)
+                 (featurep 'eliscript-service))
+      (add-to-list 'load-path client-dir)
+      (dolist (lib femacs-eliscript--client-libraries)
+        (load (expand-file-name (concat lib ".el") client-dir) nil t t))
+      (setq femacs-eliscript--loaded-client-dir client-dir))
+    (unless (advice-member-p #'femacs-eliscript--launch-with-session-config
+                             'eliscript-worker--launch)
+      (advice-add 'eliscript-worker--launch :around
+                  #'femacs-eliscript--launch-with-session-config))))
 
 (defun femacs-eliscript--file-sha256 (path)
   "Return hex SHA-256 digest of file PATH."
@@ -437,15 +466,37 @@ bootstrap."
        "No Eliscript module path provided or discovered in package directory"
        `((package-dir . ,(femacs-eliscript-install-package-dir install)))))
     (femacs-eliscript--load-client install)
-    (let* ((ops (or operations (femacs-eliscript-analysis-operations 0)))
+    (let* ((manifest-digest
+            (and manifest (eliscript-worker--project-manifest-digest manifest)))
+           (_ (when (and manifest-digest module-digest
+                         (not (equal manifest-digest module-digest)))
+                (femacs-eliscript--signal
+                 'femacs-eliscript-error
+                 "module-digest-conflict"
+                 "Explicit module-digest conflicts with project-manifest digest"
+                 `((module-digest . ,module-digest)
+                   (manifest-digest . ,manifest-digest)
+                   (project-manifest . ,manifest)
+                   (module-path . ,mod)))))
+           (resolved-digest
+            (or manifest-digest
+                module-digest
+                (femacs-eliscript--file-sha256 mod)))
+           (ops (or operations (femacs-eliscript-analysis-operations 0)))
            (declared
             (if manifest
-                (eliscript-service-module-declare mod :project-manifest manifest)
+                (eliscript-service-module-declare
+                 mod
+                 :project-manifest manifest
+                 :module-digest resolved-digest)
               (eliscript-service-module-declare
-               mod :module-digest (or module-digest
-                                      (femacs-eliscript--file-sha256 mod)))))
+               mod :module-digest resolved-digest)))
            (cmd (list (femacs-eliscript-install-runner-executable install)
                       (femacs-eliscript-install-worker-script install)))
+           (femacs-eliscript--pending-launch-config
+            (list :working-directory
+                  (femacs-eliscript-install-working-directory install)
+                  :startup-timeout femacs-eliscript-startup-timeout))
            (service
             (eliscript-service-start
              declared ops
@@ -453,11 +504,7 @@ bootstrap."
              :verify verify
              :value-codec value-codec
              :value-chunks value-chunks))
-           (worker (eliscript-service-worker service))
-           (resolved-digest
-            (or module-digest
-                (and manifest (eliscript-worker--project-manifest-digest manifest))
-                (femacs-eliscript--file-sha256 mod))))
+           (worker (eliscript-service-worker service)))
       (femacs-eliscript-session--create
        :install install
        :service service
@@ -476,7 +523,10 @@ bootstrap."
   (when (and (femacs-eliscript-session-p session)
              (not (femacs-eliscript-session-closed session)))
     (setf (femacs-eliscript-session-closed session) t)
-    (eliscript-service-stop (femacs-eliscript-session-service session) force)))
+    (unwind-protect
+        (eliscript-service-stop (femacs-eliscript-session-service session) force)
+      (remhash (femacs-eliscript-session-worker session)
+               femacs-eliscript--worker-launch-config))))
 
 (defun femacs-eliscript-restart (session)
   "Restart SESSION's underlying worker generation."
@@ -489,15 +539,22 @@ bootstrap."
 (defun femacs-eliscript-status (session)
   "Return diagnostic alist for SESSION."
   (let* ((install (femacs-eliscript-session-install session))
+         (service (femacs-eliscript-session-service session))
          (worker (femacs-eliscript-session-worker session))
-         (proc (eliscript-worker-process worker)))
+         (cfg (gethash worker femacs-eliscript--worker-launch-config))
+         (proc (eliscript-worker-process worker))
+         (declared-digest
+          (or (eliscript-service-module-digest
+               (eliscript-service-module service))
+              (femacs-eliscript-session-module-digest session))))
     `((runner-program . ,(femacs-eliscript-install-runner-program install))
       (runner-executable . ,(femacs-eliscript-install-runner-executable install))
       (runner-version . ,(femacs-eliscript-install-runner-version install))
       (package-dir . ,(femacs-eliscript-install-package-dir install))
       (client-dir . ,(femacs-eliscript-install-client-dir install))
       (worker-script . ,(femacs-eliscript-install-worker-script install))
-      (working-directory . ,(femacs-eliscript-install-working-directory install))
+      (working-directory . ,(or (plist-get cfg :working-directory)
+                                (femacs-eliscript-install-working-directory install)))
       (pid . ,(and proc (process-id proc)))
       (live . ,(if (eliscript-worker-live-p worker) t nil))
       (state . ,(eliscript-worker-state worker))
@@ -506,7 +563,7 @@ bootstrap."
       (capabilities . ,(copy-sequence (eliscript-worker-capabilities worker)))
       (module-path . ,(femacs-eliscript-session-module-path session))
       (project-manifest . ,(femacs-eliscript-session-project-manifest session))
-      (module-digest . ,(femacs-eliscript-session-module-digest session))
+      (module-digest . ,declared-digest)
       (last-exit . ,(eliscript-worker-last-exit worker))
       (stderr . ,(eliscript-worker-stderr worker)))))
 
@@ -640,56 +697,29 @@ if any required capability is absent or fails its live probe."
       req)))
 
 (defun femacs-eliscript-cancel (request)
-  "Cancel pending REQUEST.
+  "Cancel pending REQUEST and return resulting completion status.
 
 For side-effectful requests already dispatched to the worker, completion
 remains marked unknown because cancellation cannot roll back external effects."
   (when (and (femacs-eliscript-request-p request)
              (not (femacs-eliscript-request-done request)))
     (let ((svc-req (femacs-eliscript-request-service-request request)))
-      (eliscript-service-cancel svc-req))))
+      (eliscript-service-cancel svc-req)))
+  (and (femacs-eliscript-request-p request)
+       (femacs-eliscript-request-completion-status request)))
 
 (defun femacs-eliscript-await (request &optional timeout-seconds)
   "Pump worker output until REQUEST finishes or TIMEOUT-SECONDS expires."
   (let* ((session (femacs-eliscript-request-session request))
          (worker (femacs-eliscript-session-worker session))
-         (proc (eliscript-worker-process worker))
          (deadline (and timeout-seconds (+ (float-time) timeout-seconds))))
     (while (and (not (femacs-eliscript-request-done request))
                 (or (null deadline) (< (float-time) deadline)))
-      (if (and proc (process-live-p proc))
-          (accept-process-output proc 0.05)
-        (sleep-for 0.02)))
+      (let ((proc (eliscript-worker-process worker)))
+        (if (and proc (process-live-p proc))
+            (accept-process-output proc 0.05)
+          (sleep-for 0.02))))
     request))
-
-(cl-defun femacs-eliscript-call-sync
-    (session operation-name arguments
-             &key path buffer apply progress metrics timeout-ms side-effect
-             await-seconds)
-  "Synchronously execute OPERATION-NAME on SESSION and return result or signal."
-  (let ((req
-         (femacs-eliscript-call
-          session operation-name arguments nil
-          :path path :buffer buffer :apply apply
-          :progress progress :metrics metrics
-          :timeout-ms timeout-ms :side-effect side-effect)))
-    (femacs-eliscript-await req (or await-seconds 30.0))
-    (unless (femacs-eliscript-request-done req)
-      (femacs-eliscript--signal
-       (if side-effect
-           'femacs-eliscript-side-effect-unknown-error
-         'femacs-eliscript-error)
-       (if side-effect "side-effect-completion-unknown" "await-timeout")
-       "Timed out waiting for Eliscript request completion"
-       `((request-id . ,(femacs-eliscript-request-request-id req)))))
-    (when-let* ((err-obj (femacs-eliscript-request-error req)))
-      (let* ((code (alist-get 'code err-obj))
-             (msg (or (alist-get 'message err-obj) "Eliscript request failed"))
-             (sym (if (equal code "side-effect-completion-unknown")
-                      'femacs-eliscript-side-effect-unknown-error
-                    'femacs-eliscript-error)))
-        (signal sym (list msg err-obj))))
-    (femacs-eliscript-request-result req)))
 
 (cl-defun femacs-eliscript-call-side-effect
     (session operation-name arguments callback &key progress metrics timeout-ms)
@@ -701,18 +731,6 @@ remains marked unknown because cancellation cannot roll back external effects."
    :metrics metrics
    :timeout-ms timeout-ms
    :side-effect t))
-
-(cl-defun femacs-eliscript-call-side-effect-sync
-    (session operation-name arguments &key progress metrics timeout-ms await-seconds)
-  "Synchronously invoke side-effectful OPERATION-NAME without automatic replay."
-  (femacs-eliscript-call-sync
-   session operation-name arguments
-   :path 'accelerated
-   :progress progress
-   :metrics metrics
-   :timeout-ms timeout-ms
-   :side-effect t
-   :await-seconds await-seconds))
 
 (defun femacs-eliscript--render-analysis-buffer
     (session req target-buffer stats &optional query search-hits)
