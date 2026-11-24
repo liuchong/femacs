@@ -7,8 +7,10 @@ use std::path::Path;
 
 pub use femacs_vm::host_runtime::{
     HeadlessDiagnostics, HeadlessVm, HostBootstrap, HostInitConfig as HostConfig,
-    VmHostError as HostError,
+    VmHostError as HostError, adopt_inherited_rpc_socket, stream_has_cloexec,
 };
+
+pub mod lisp_cli;
 
 /// Owning safe handle to a single headless `femacs-vm` instance (`C1`).
 ///
@@ -34,9 +36,44 @@ impl LispHost {
         self.vm.read_eval_to_string(source)
     }
 
+    /// Parse and sequentially evaluate all forms in `source` without formatting a return value.
+    pub fn eval_silent(&mut self, source: &str) -> Result<(), HostError> {
+        self.vm.eval_silent(source)
+    }
+
+    /// Prepend a directory (and its `subdirs.el` if present) to Lisp `load-path`.
+    pub fn prepend_load_path(&mut self, dir: &Path) -> Result<(), HostError> {
+        self.vm.prepend_load_path(dir)
+    }
+
+    /// Load a Lisp library or source file using standard `-l` lookup semantics.
+    pub fn load_library(&mut self, file: &str) -> Result<(), HostError> {
+        self.vm.load_library(file)
+    }
+
+    /// Invoke zero-arg Lisp function `func_name` with `command-line-args-left` and `argv` bound.
+    pub fn funcall_with_args(&mut self, func_name: &str, argv: &[OsString]) -> Result<(), HostError> {
+        self.vm.funcall_with_args(func_name, argv)
+    }
+
+    /// Invoke `(func_name arg1 arg2)` directly and extract a host-owned string result cleanly.
+    pub fn funcall_two_strings_to_string(
+        &mut self,
+        func_name: &str,
+        arg1: &str,
+        arg2: &str,
+    ) -> Result<String, HostError> {
+        self.vm.funcall_two_strings_to_string(func_name, arg1, arg2)
+    }
+
     /// Execute a Lisp script file with `command-line-args-left` (`argv`) dynamically bound.
     pub fn load_script(&mut self, path: &Path, argv: &[OsString]) -> Result<(), HostError> {
         self.vm.load_script_file(path, argv)
+    }
+
+    /// Dump a portable `.pdmp` image bound to this executable's fingerprint.
+    pub fn dump_portable(&mut self, out_path: &Path) -> Result<(), HostError> {
+        self.vm.dump_portable(out_path)
     }
 
     /// Run a VM garbage collection cycle inside anchored stack bounds.
@@ -125,6 +162,10 @@ mod tests {
         assert_eq!(
             HostError::InitFailed("bad pdmp".to_string()).to_string(),
             "femacs VM init failed: bad pdmp"
+        );
+        assert_eq!(
+            HostError::ExitRequest(7).to_string(),
+            "Lisp exit requested with code 7"
         );
         assert_eq!(
             HostError::Read {

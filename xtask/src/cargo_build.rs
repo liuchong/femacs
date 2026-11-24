@@ -609,6 +609,41 @@ pub(crate) fn link_host_test_inner(name: Option<&str>) -> i32 {
     0
 }
 
+/// Inner step executed with `FEMACS_CONFIG_RS`/`FEMACS_EPATHS_RS` populated to link `femacs-lisp`.
+pub(crate) fn link_lisp_bin_inner() -> i32 {
+    let checking = std::env::var("FEMACS_LINK_CHECKING").is_ok_and(|value| value == "1");
+    let repo = Path::new(crate::REPO);
+    let (link_tokens, _) = match collect_host_link_tokens(repo, false) {
+        Ok(v) => v,
+        Err(e) => return crate::fail(e),
+    };
+    let _ = fs::create_dir_all(crate::port_dir());
+    let port_root = fs::canonicalize(crate::port_dir()).unwrap_or_else(|_| crate::port_dir());
+    if let Err(e) = crate::port_tree(&port_root) {
+        return crate::fail(format!("building the port's tree layout: {e}"));
+    }
+    let bin_dir = port_root.join("bin");
+    if let Err(e) = fs::create_dir_all(&bin_dir) {
+        return crate::fail(format!("create {}: {e}", bin_dir.display()));
+    }
+    if let Err(e) = build_host_cargo_target("--bin", "femacs-lisp", checking, false, &link_tokens) {
+        return crate::fail(e);
+    }
+    let built = cargo_target_dir()
+        .join(host_target_triple())
+        .join("release")
+        .join("femacs-lisp");
+    let out_path = bin_dir.join("femacs-lisp");
+    if let Err(e) = crate::owned_copy::copy_file(&built, &out_path) {
+        return crate::fail(e);
+    }
+    if let Err(e) = crate::finalize_binary(&out_path) {
+        return crate::fail(e);
+    }
+    println!("linked standalone Lisp host {}", out_path.display());
+    0
+}
+
 /// Check the Cargo workspace crates in both normal and `--cfg enable_checking` modes.
 pub(crate) fn check_workspace_crates() -> Result<(), String> {
     let cfgs = crate::config_features()?;

@@ -2494,6 +2494,7 @@ unsafe fn init_vm_display_subsystems (sockfd: c_int)
 pub(crate) unsafe fn init_headless_vm_body (
   argv0: *const c_char,
   dump_file: *const c_char,
+  data_dir: *const c_char,
 ) -> Result<(), String>
 {
   // SAFETY: single-process headless VM initialization under VM lock ownership (`C1`).
@@ -2592,6 +2593,12 @@ pub(crate) unsafe fn init_headless_vm_body (
     }
 
   init_callproc ();
+  if !data_dir.is_null ()
+    {
+      let dir = Ffile_name_as_directory (build_string (data_dir));
+      (*Vdata_directory.as_mut_ptr ()) = dir;
+      (*Vdoc_directory.as_mut_ptr ()) = dir;
+    }
   init_fileio ();
   init_lread ();
 
@@ -2972,6 +2979,10 @@ DEFUN! ("kill-emacs", Fkill_emacs, Skill_emacs, 0, 2, "P",
 
       if !file_access_p ((*initial_emacs_executable.as_mut_ptr ()), F_OK)
 	{ error (c"Emacs executable \"%s\" can't be found".as_ptr (), (*initial_argv0.as_mut_ptr ())); }
+    }
+  else if crate::host_runtime::is_headless_host_active ()
+    {
+      crate::host_runtime::intercept_headless_kill_emacs (arg);
     }
 
   /* Fsignal calls emacs_abort () if it sees that waiting_for_input is

@@ -9,6 +9,7 @@ members = [
     "crates/femacs-vm",
     "crates/femacs-host",
     "crates/femacs-tools",
+    "crates/http-host",
 ]
 
 [workspace.package]
@@ -36,5 +37,9 @@ opt-level = 2
 overflow-checks = true
 
 [profile.release.package.femacs-tools]
+opt-level = 2
+overflow-checks = true
+
+[profile.release.package.http-host]
 opt-level = 2
 overflow-checks = true

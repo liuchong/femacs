@@ -12,6 +12,10 @@ path = "src/lib.rs"
 name = "temacs"
 path = "src/bin/temacs.rs"
 
+[[bin]]
+name = "femacs-lisp"
+path = "src/bin/femacs_lisp.rs"
+
 [[test]]
 name = "a1_host_acceptance"
 harness = false
@@ -30,3 +34,5 @@ femacs_gc_observer_test_hooks = ["femacs-vm/femacs_gc_observer_test_hooks"]
 
 [dependencies]
 femacs-vm = { path = "../femacs-vm" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"

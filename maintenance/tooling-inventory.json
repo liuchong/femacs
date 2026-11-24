@@ -8315,6 +8315,23 @@
       "uncertainty": null
     },
     {
+      "path": "tools/test-c2-a2-lisp-app.py",
+      "sha256": "b293c1c77df35f32478df1698a91795a95b83dacd3da2d0945134c656f4674f1",
+      "bytes": 22891,
+      "family": "test",
+      "decision": "retain",
+      "replacement": null,
+      "reason": "owned Phase II Stage C2/A2 standalone femacs-lisp, http-host, build-lisp, and relocated app acceptance gate",
+      "readers": [
+        {
+          "path": "tools/test-c2-a2-lisp-app.py",
+          "anchor": "run_acceptance",
+          "kind": "current explicit dispatch/import/documented invocation"
+        }
+      ],
+      "uncertainty": null
+    },
+    {
       "path": "tools/test-u3-unit.py",
       "sha256": "43b331ea92becfba196140f52b50133a3f2a44f0ebe021cdfecad87283e4cab6",
       "bytes": 31303,
@@ -8350,8 +8367,8 @@
     },
     {
       "path": "tools/test-u4-unit.py",
-      "sha256": "04419e13639d469bfe421fec25008c43fb4ef4a2bb88c9d3f178772b53a70e89",
-      "bytes": 53796,
+      "sha256": "e88e8c2e01d8bb3808e5973ec1ad60baf2568bac53136631c94129e1cd09dc5a",
+      "bytes": 53815,
       "family": "test",
       "decision": "retain",
       "replacement": null,
@@ -8496,8 +8513,8 @@
     },
     {
       "path": "tools/unsafe-boundary-manifest.json",
-      "sha256": "1fe32532291cf5068887c2a0380c279336f619ca7550929099248218899afb57",
-      "bytes": 145791,
+      "sha256": "f8533982e93b503b7320b64214ee73f4ca1d754b2cba1a562b949588e1453eec",
+      "bytes": 145953,
       "family": "fixture",
       "decision": "retain",
       "replacement": null,

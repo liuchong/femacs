@@ -31,7 +31,9 @@
   ],
   "forbid_unsafe_modules": [
     "cli",
+    "crates/femacs-host/src/bin/femacs_lisp.rs",
     "crates/femacs-host/src/lib.rs",
+    "crates/femacs-host/src/lisp_cli.rs",
     "crates/femacs-pure",
     "crates/femacs-sys/build.rs",
     "crates/femacs-vm/build.rs",
@@ -56,6 +58,8 @@
     "crates/femacs-vm/src/safe_textprop.rs",
     "crates/femacs-vm/src/safe_undo.rs",
     "crates/femacs-vm/src/safe_window.rs",
+    "crates/http-host/src/lib.rs",
+    "crates/http-host/src/main.rs",
     "lib-src/asset-directory-tool.rs",
     "lib-src/emacsclient.rs",
     "lib-src/hexl.rs",

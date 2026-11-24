@@ -686,7 +686,7 @@ def main() -> int:
             host_rmeta = host_rmetas[-1]
             dep_dirs = sorted({
                 str(p.parent)
-                for pat in ("*.rmeta", "*.rlib")
+                for pat in ("*.rmeta", "*.rlib", "*.dylib", "*.so")
                 for p in (target_dir / "debug").rglob(pat)
             })
             dep_flags = []

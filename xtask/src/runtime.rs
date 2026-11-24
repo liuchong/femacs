@@ -559,6 +559,11 @@ fn write_new(path: &Path, bytes: &[u8]) -> Result<(), String> {
 }
 
 pub(crate) fn terminal_paths_source(repo: &Path, root: &Path) -> String {
+    terminal_paths_with_exec(repo, root, "../lib-src")
+}
+
+pub(crate) fn terminal_paths_with_exec(repo: &Path, root: &Path, exec_rel: &str) -> String {
+    let exec_rel_trimmed = exec_rel.trim_start_matches("../");
     let mut code = String::from(r#"// Generated candidate-only terminal resource paths.
 mod runtime_terminal_paths {
 use super::*;
@@ -604,7 +609,7 @@ unsafe fn live_path(slot: usize, suffix: &[u8]) -> *const c_char {
         (0, "PATH_LOADSEARCH", "../lisp", repo.join("lisp")),
         (1, "PATH_DUMPLOADSEARCH", "../lisp", repo.join("lisp")),
         (2, "PATH_DUMPLOADSEARCH_SLASH", "../lisp/", repo.join("lisp")),
-        (3, "PATH_EXEC", "../lib-src", root.join("port/lib-src")),
+        (3, "PATH_EXEC", exec_rel, root.join("port").join(exec_rel_trimmed)),
         (4, "PATH_DATA", "../etc", repo.join("etc")),
         (5, "PATH_DOC", "../etc", repo.join("etc")),
         (6, "PATH_INFO", "../info", root.join("runtime-info")),

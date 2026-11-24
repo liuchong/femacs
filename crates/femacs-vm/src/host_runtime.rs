@@ -6,35 +6,136 @@
 //! `unsafe` is confined strictly to VM initialization, stack-bottom anchoring, `handlerlist`
 //! condition-case guards, `specpdl` unwinding, and short `NoGcToken` raw-byte reads.
 
-use core::ffi::c_char;
+use core::ffi::{c_char, c_int, c_void};
 use core::fmt;
 use core::hint::black_box;
 use core::marker::PhantomData;
 use std::ffi::{CString, OsString};
+use std::io;
+use std::os::fd::{AsRawFd, FromRawFd, OwnedFd};
+use std::os::unix::net::UnixStream;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicU8, AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU8, AtomicUsize, Ordering};
 
 use crate::alloc::Fcons;
 use crate::common::{
-    CONDITION_CASE, CONSP, EMACS_INT, EQ, Ferror_message_string, Ffboundp, Fgarbage_collect, Fget,
-    Findirect_variable, Fload, Fmemq, Fprin1_to_string, Fset, Lisp_Object, NILP,
-    Qcommand_line_processed, Qend_of_file, Qerror_conditions, Qfile_error, Qinvalid_read_syntax,
-    Qquit, Qt, SBYTES, SDATA, STRINGP, SYMBOLP, Vload_path, Vpdumper_fingerprint, Vquit_flag,
-    Vtop_level, XCAR, XCDR, XFIXNUM, build_utf8_str, current_thread, dumped_with_pdumper_p,
-    fflush, handler, intern_c_string, lisp_h_Qnil, make_fixnum, specbind, stderr, stdout,
-    unbind_to_safe, wrap_specpdl_ref,
+    CONDITION_CASE, CONSP, EMACS_INT, EQ, FD_CLOEXEC, F_DUPFD_CLOEXEC, F_GETFD, F_SETFD, O_RDWR,
+    Fdefault_toplevel_value, Ferror_message_string, Fexpand_file_name, Ffboundp,
+    Ffile_name_as_directory, Ffuncall, Fgarbage_collect, Fget, Findirect_variable, Fload, Fmemq,
+    Fprin1_to_string, Fput, Fset, Lisp_Object, NILP, Qcommand_line_processed, Qend_of_file,
+    Qerror_conditions, Qerror_message, Qfile_error, Qinvalid_read_syntax, Qkill_emacs_hook,
+    Qlexical_binding, Qquit, Qt, Qunbound, SBYTES, SDATA, STRINGP, SYMBOLP, Vcharset_map_path,
+    Vdata_directory, Vdoc_directory, Vlexical_binding, Vload_path, Vpdumper_fingerprint,
+    Vpurify_flag, Vquit_flag, Vtop_level, XCAR, XCDR, XFIXNUM, build_utf8_str, close,
+    current_thread, dumped_with_pdumper_p, dup2, fcntl, fflush, handler, intern_c_string,
+    lisp_h_Qnil, make_fixnum, open, safe_run_hooks, specbind, stderr, stdout, unbind_to_safe,
+    wrap_specpdl_ref,
 };
-use crate::data::Fsymbol_name;
-use crate::eval::{Feval, push_handler_nosignal};
+use crate::data::{Fsymbol_name, find_symbol_value};
+use crate::eval::{Feval, push_handler_nosignal, xsignal1};
 use crate::frame::{Fframe_list, Fframep};
 use crate::lread::Fread_from_string;
 use crate::nonlocal::{ScopedLispRoot, VmResult, catch_vm_nonlocal};
+use crate::pdumper::Fdump_emacs_portable;
 use crate::roots::{GcContext, RootingCounters, current_thread_key, unbind_vm_lock_owner};
 use crate::terminal::{Fterminal_list, Fterminal_live_p};
 
 /// Host VM lifecycle state: `0` = uninitialized, `1` = active, `2` = shut down / failed.
 static HOST_INIT_STATE: AtomicU8 = AtomicU8::new(0);
 static HOST_ANCHOR_DEPTH: AtomicUsize = AtomicUsize::new(0);
+static HEADLESS_INTERCEPT_KILL_EMACS: AtomicBool = AtomicBool::new(false);
+
+#[cfg(target_os = "macos")]
+const SYS_SOL_SOCKET: c_int = 0xffff;
+#[cfg(target_os = "macos")]
+const SYS_SO_TYPE: c_int = 0x1008;
+#[cfg(not(target_os = "macos"))]
+const SYS_SOL_SOCKET: c_int = 1;
+#[cfg(not(target_os = "macos"))]
+const SYS_SO_TYPE: c_int = 3;
+const SYS_SOCK_STREAM: c_int = 1;
+const SYS_AF_UNIX: u16 = 1;
+
+#[repr(C)]
+struct RawSockaddrStorageHeader {
+    first: u8,
+    second: u8,
+    _rest: [u8; 126],
+}
+
+impl RawSockaddrStorageHeader {
+    fn zeroed() -> Self {
+        Self {
+            first: 0,
+            second: 0,
+            _rest: [0u8; 126],
+        }
+    }
+
+    #[inline]
+    fn family(&self) -> u16 {
+        #[cfg(target_os = "macos")]
+        {
+            u16::from(self.second)
+        }
+        #[cfg(not(target_os = "macos"))]
+        {
+            u16::from_ne_bytes([self.first, self.second])
+        }
+    }
+}
+
+unsafe extern "C" {
+    fn getsockopt(
+        socket: c_int,
+        level: c_int,
+        option_name: c_int,
+        option_value: *mut c_void,
+        option_len: *mut u32,
+    ) -> c_int;
+    fn getsockname(socket: c_int, address: *mut c_void, address_len: *mut u32) -> c_int;
+}
+
+/// Return whether the single-process headless host currently intercepts `(kill-emacs)`.
+#[inline]
+pub(crate) fn is_headless_host_active() -> bool {
+    HEADLESS_INTERCEPT_KILL_EMACS.load(Ordering::Acquire)
+}
+
+/// Intercept `(kill-emacs)` in headless mode, running `kill-emacs-hook` if bound and unwinding
+/// cleanly to `VmHostError::ExitRequest` instead of terminating the embedding process.
+///
+/// # Safety
+/// Must only be called on the active VM-lock-owning thread inside `with_host_condition_catch`
+/// after `Fkill_emacs` confirms non-restart batch termination.
+pub(crate) unsafe fn intercept_headless_kill_emacs(arg: Lisp_Object) -> ! {
+    // SAFETY: Caller verified active VM lock ownership and headless host state.
+    unsafe {
+        let exit_code: i32 = if crate::common::FIXNUMP(arg) {
+            let n = XFIXNUM(arg);
+            if n < 0 {
+                (n | i32::MIN as EMACS_INT) as i32
+            } else {
+                (n & i32::MAX as EMACS_INT) as i32
+            }
+        } else {
+            0
+        };
+        let hook_sym = Qkill_emacs_hook();
+        let hook_val = find_symbol_value(hook_sym);
+        if !NILP(hook_val) && !EQ(hook_val, Qunbound()) {
+            safe_run_hooks(hook_sym);
+        }
+        let exit_sym = intern_c_string(c"femacs-host-exit-request".as_ptr());
+        if NILP(Fget(exit_sym, Qerror_conditions())) {
+            Fput(exit_sym, Qerror_conditions(), Fcons(exit_sym, lisp_h_Qnil()));
+            let msg = build_utf8_str("Lisp exit requested");
+            let _root = ScopedLispRoot::new(&[msg]);
+            Fput(exit_sym, Qerror_message(), msg);
+        }
+        xsignal1(exit_sym, make_fixnum(exit_code as EMACS_INT));
+    }
+}
 
 /// Bootstrap source selected when initializing a single-process headless `femacs-vm` instance.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -47,13 +148,16 @@ pub enum HostBootstrap {
     DumpFile(PathBuf),
 }
 
-/// Configuration for `init_headless_host`.
+/// Configuration for headless `HeadlessVm::init`.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct HostInitConfig {
     pub program_name: String,
     pub bootstrap: HostBootstrap,
     pub load_paths: Vec<PathBuf>,
+    pub data_dir: Option<PathBuf>,
+    pub replace_load_path: bool,
     pub quiet_bootstrap: bool,
+    pub defer_delayed_custom_init: bool,
 }
 
 impl HostInitConfig {
@@ -63,7 +167,10 @@ impl HostInitConfig {
             program_name: "femacs-host".to_string(),
             bootstrap: HostBootstrap::ColdMinimal,
             load_paths: Vec::new(),
+            data_dir: None,
+            replace_load_path: false,
             quiet_bootstrap: true,
+            defer_delayed_custom_init: false,
         }
     }
 
@@ -73,7 +180,10 @@ impl HostInitConfig {
             program_name: "femacs-host".to_string(),
             bootstrap: HostBootstrap::ColdLoadup,
             load_paths: vec![lisp_dir.into()],
+            data_dir: None,
+            replace_load_path: false,
             quiet_bootstrap: true,
+            defer_delayed_custom_init: false,
         }
     }
 
@@ -83,8 +193,17 @@ impl HostInitConfig {
             program_name: "femacs-host".to_string(),
             bootstrap: HostBootstrap::DumpFile(dump_path.into()),
             load_paths: Vec::new(),
+            data_dir: None,
+            replace_load_path: false,
             quiet_bootstrap: true,
+            defer_delayed_custom_init: false,
         }
+    }
+
+    /// Set the program identity string reported if `current_exe()` is unavailable.
+    pub fn with_program_name(mut self, program_name: impl Into<String>) -> Self {
+        self.program_name = program_name.into();
+        self
     }
 
     /// Append an extra directory to prepend to Lisp `load-path` after VM bootstrap.
@@ -92,13 +211,32 @@ impl HostInitConfig {
         self.load_paths.push(dir.into());
         self
     }
+
+    /// Override `data-directory`, `doc-directory`, and `charset-map-path` for relocatable startup.
+    pub fn with_data_dir(mut self, dir: impl Into<PathBuf>) -> Self {
+        self.data_dir = Some(dir.into());
+        self
+    }
+
+    /// Replace any `.pdmp`-recorded `load-path` entries with `load_paths` (and their `subdirs.el`).
+    pub fn with_replace_load_path(mut self, replace: bool) -> Self {
+        self.replace_load_path = replace;
+        self
+    }
+
+    /// Keep `custom-delayed-init-variables` unevaluated (used before writing a portable dump).
+    pub fn with_defer_delayed_custom_init(mut self, defer: bool) -> Self {
+        self.defer_delayed_custom_init = defer;
+        self
+    }
 }
 
-/// Recoverable host errors returned by `init_headless_host` and host Lisp operations.
+/// Recoverable host errors returned by `HeadlessVm::init` and host Lisp operations.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum VmHostError {
     AlreadyInitialized,
     InitFailed(String),
+    ExitRequest(i32),
     Read {
         symbol: String,
         message: String,
@@ -124,6 +262,7 @@ impl fmt::Display for VmHostError {
         match self {
             Self::AlreadyInitialized => f.write_str("femacs VM host already initialized"),
             Self::InitFailed(msg) => write!(f, "femacs VM init failed: {msg}"),
+            Self::ExitRequest(code) => write!(f, "Lisp exit requested with code {code}"),
             Self::Read {
                 symbol,
                 message,
@@ -345,6 +484,14 @@ fn classify_vm_exit(err_val: Lisp_Object) -> VmHostError {
     if EQ(err_sym, Qquit()) {
         return VmHostError::Quit { message };
     }
+    if SYMBOLP(err_sym) && symbol == "femacs-host-exit-request" {
+        let code = if CONSP(err_data) && crate::common::FIXNUMP(XCAR(err_data)) {
+            XFIXNUM(XCAR(err_data)) as i32
+        } else {
+            0
+        };
+        return VmHostError::ExitRequest(code);
+    }
     let conditions = if SYMBOLP(err_sym) {
         Fget(err_sym, Qerror_conditions())
     } else {
@@ -376,6 +523,19 @@ fn classify_vm_exit(err_val: Lisp_Object) -> VmHostError {
     }
 }
 
+unsafe fn flush_c_stdio_raw() {
+    // SAFETY: Caller holds VM lock or is shutting down the sole headless host; flushes C stdio streams
+    // when initialized so piped RPC/REPL/batch output becomes visible immediately.
+    unsafe {
+        if !(*stdout.as_mut_ptr()).is_null() {
+            fflush(*stdout.as_mut_ptr());
+        }
+        if !(*stderr.as_mut_ptr()).is_null() {
+            fflush(*stderr.as_mut_ptr());
+        }
+    }
+}
+
 fn with_host_condition_catch_ctx<R>(
     ctx: &mut GcContext,
     body: impl FnOnce(&mut GcContext) -> VmResult<R>,
@@ -397,6 +557,7 @@ fn with_host_condition_catch_ctx<R>(
             };
             let eval_res = catch_vm_nonlocal(|| body(ctx));
             pop_guard.pop_now();
+            flush_c_stdio_raw();
             eval_res
         };
         match res {
@@ -422,18 +583,105 @@ fn with_host_condition_catch<R>(
     with_host_condition_catch_ctx(ctx, |ctx| Ok(ctx.with_reentrant_safepoint(body)))
 }
 
-fn prepend_load_paths_raw(paths: &[PathBuf]) {
-    for path in paths.iter().rev() {
-        let s = path.to_string_lossy();
-        // SAFETY: Allocates Lisp string and cons cell under VM lock before any external exposure.
-        unsafe {
-            let path_obj = build_utf8_str(&s);
-            let _root = ScopedLispRoot::new(&[path_obj]);
-            let cur = *Vload_path.as_mut_ptr();
-            if NILP(Fmemq(path_obj, cur)) {
-                *Vload_path.as_mut_ptr() = Fcons(path_obj, cur);
+fn add_load_path_and_subdirs_raw(path: &Path) {
+    let raw_s = path.to_string_lossy();
+    let trimmed = if raw_s.len() > 1 {
+        raw_s.trim_end_matches('/')
+    } else {
+        raw_s.as_ref()
+    };
+    let subdirs_el = path.join("subdirs.el");
+    // SAFETY: Allocates and roots Lisp path strings under VM lock; optionally loads `subdirs.el`
+    // with `default-directory` dynamically bound to `<path>/` via `UnbindGuard`.
+    unsafe {
+        let path_obj = build_utf8_str(trimmed);
+        let mut roots = ScopedLispRoot::new(&[path_obj, lisp_h_Qnil(), lisp_h_Qnil()]);
+        let cur = *Vload_path.as_mut_ptr();
+        if NILP(Fmemq(path_obj, cur)) {
+            *Vload_path.as_mut_ptr() = Fcons(path_obj, cur);
+        }
+        if subdirs_el.is_file() {
+            let add_sym = intern_c_string(c"normal-top-level-add-to-load-path".as_ptr());
+            if !NILP(Ffboundp(add_sym)) {
+                let count = current_specpdl_index();
+                let _unbind = UnbindGuard { target: count };
+                let dir_slash = Ffile_name_as_directory(path_obj);
+                roots.set(1, dir_slash);
+                let dd_sym = intern_c_string(c"default-directory".as_ptr());
+                specbind(dd_sym, dir_slash);
+                let sub_s = subdirs_el.to_string_lossy();
+                let sub_obj = build_utf8_str(&sub_s);
+                roots.set(2, sub_obj);
+                Fload(sub_obj, Qt(), Qt(), Qt(), lisp_h_Qnil());
             }
         }
+    }
+}
+
+fn apply_configured_paths_raw(config: &HostInitConfig) {
+    if let Some(data_dir) = &config.data_dir {
+        let s = data_dir.to_string_lossy();
+        // SAFETY: Updates `Vdata_directory`, `Vdoc_directory`, and `Vcharset_map_path` under active
+        // VM lock while keeping allocated strings rooted across expansion.
+        unsafe {
+            let raw_obj = build_utf8_str(&s);
+            let mut roots = ScopedLispRoot::new(&[raw_obj, lisp_h_Qnil()]);
+            let dir_obj = Ffile_name_as_directory(raw_obj);
+            roots.set(0, dir_obj);
+            *Vdata_directory.as_mut_ptr() = dir_obj;
+            *Vdoc_directory.as_mut_ptr() = dir_obj;
+            let charsets_rel = build_utf8_str("charsets");
+            roots.set(1, charsets_rel);
+            let charsets_dir = Fexpand_file_name(charsets_rel, dir_obj);
+            roots.set(1, charsets_dir);
+            *Vcharset_map_path.as_mut_ptr() = Fcons(charsets_dir, lisp_h_Qnil());
+        }
+    }
+    if config.replace_load_path && !config.load_paths.is_empty() {
+        // SAFETY: Replaces stale dumped `Vload_path` entries under active VM lock.
+        unsafe {
+            *Vload_path.as_mut_ptr() = lisp_h_Qnil();
+        }
+    }
+    for path in config.load_paths.iter().rev() {
+        add_load_path_and_subdirs_raw(path);
+    }
+}
+
+fn bind_argv_list_raw(argv_strs: &[String]) {
+    // SAFETY: Caller holds VM lock inside an `UnbindGuard` scope and has already captured `specpdl`
+    // depth; dynamically binds `command-line-args-left` and `argv` cleanly.
+    unsafe {
+        let mut arg_list = lisp_h_Qnil();
+        let mut list_root = ScopedLispRoot::new(&[arg_list, lisp_h_Qnil()]);
+        for item in argv_strs.iter().rev() {
+            let s = build_utf8_str(item);
+            list_root.set(1, s);
+            arg_list = Fcons(s, arg_list);
+            list_root.set(0, arg_list);
+            list_root.set(1, lisp_h_Qnil());
+        }
+
+        let cmd_left_sym = intern_c_string(c"command-line-args-left".as_ptr());
+        let argv_sym = intern_c_string(c"argv".as_ptr());
+        specbind(cmd_left_sym, arg_list);
+        if !EQ(Findirect_variable(argv_sym), cmd_left_sym) {
+            specbind(argv_sym, arg_list);
+        }
+    }
+}
+
+fn resolve_abs_path(path: &Path) -> Result<PathBuf, VmHostError> {
+    if path.is_absolute() {
+        Ok(path.to_path_buf())
+    } else {
+        std::env::current_dir()
+            .map_err(|e| VmHostError::Io {
+                symbol: "file-error".to_string(),
+                message: e.to_string(),
+                data: path.display().to_string(),
+            })
+            .map(|cwd| cwd.join(path))
     }
 }
 
@@ -477,10 +725,31 @@ fn init_headless_host(config: &HostInitConfig) -> Result<GcContext, VmHostError>
     };
     let dump_ptr = dump_c.as_ref().map_or(core::ptr::null(), |c| c.as_ptr());
 
+    let data_c = match &config.data_dir {
+        Some(dir) => {
+            let dir_s = dir.to_string_lossy();
+            match CString::new(dir_s.as_ref()) {
+                Ok(c) => Some(c),
+                Err(_) => {
+                    // SAFETY: Reclaims leaked `argv0_raw` allocated above before returning early.
+                    unsafe { drop(CString::from_raw(argv0_raw)) };
+                    HOST_INIT_STATE.store(2, Ordering::Release);
+                    return Err(VmHostError::InitFailed(format!(
+                        "data_dir contains interior NUL byte: {}",
+                        dir.display()
+                    )));
+                }
+            }
+        }
+        None => None,
+    };
+    let data_ptr = data_c.as_ref().map_or(core::ptr::null(), |c| c.as_ptr());
+
     // SAFETY: Single-init enforced by `HOST_INIT_STATE` CAS (`0 -> 1`); `argv0_raw` intentionally
     // stays live for process lifetime because `copy_args` stores `argv[0]` in `initial_argv0`.
-    let init_res = unsafe { crate::emacs::init_headless_vm_body(argv0_raw, dump_ptr) };
+    let init_res = unsafe { crate::emacs::init_headless_vm_body(argv0_raw, dump_ptr, data_ptr) };
     if let Err(msg) = init_res {
+        HEADLESS_INTERCEPT_KILL_EMACS.store(false, Ordering::Release);
         if current_thread_key() != 0 {
             // SAFETY: Best-effort lock unbind on early bootstrap error while on owner thread.
             unsafe { unbind_vm_lock_owner() };
@@ -490,15 +759,18 @@ fn init_headless_host(config: &HostInitConfig) -> Result<GcContext, VmHostError>
     }
 
     let Some(mut ctx) = GcContext::current() else {
+        HEADLESS_INTERCEPT_KILL_EMACS.store(false, Ordering::Release);
         HOST_INIT_STATE.store(2, Ordering::Release);
         return Err(VmHostError::InitFailed(
             "VM initialized without active GcContext lease".to_string(),
         ));
     };
 
-    if !config.load_paths.is_empty() {
+    HEADLESS_INTERCEPT_KILL_EMACS.store(true, Ordering::Release);
+
+    if config.data_dir.is_some() || !config.load_paths.is_empty() {
         let lp_res = with_host_condition_catch(&mut ctx, || {
-            prepend_load_paths_raw(&config.load_paths);
+            apply_configured_paths_raw(config);
         });
         if let Err(err) = lp_res {
             shutdown_headless_host(ctx);
@@ -536,9 +808,74 @@ fn init_headless_host(config: &HostInitConfig) -> Result<GcContext, VmHostError>
                 *Vtop_level.as_mut_ptr() = lisp_h_Qnil();
                 unbind_to_safe(wrap_specpdl_ref(count), lisp_h_Qnil());
             }
-            prepend_load_paths_raw(&config.load_paths);
+            apply_configured_paths_raw(config);
         });
         if let Err(err) = loadup_res {
+            shutdown_headless_host(ctx);
+            return Err(err);
+        }
+    }
+
+    if !matches!(config.bootstrap, HostBootstrap::ColdMinimal) && !config.defer_delayed_custom_init {
+        let init_res = with_host_condition_catch(&mut ctx, || {
+            // SAFETY: Runs standard runtime locale, coding-system path decoding, `lisp-directory`,
+            // and delayed-custom setup on the VM-lock-owning thread matching command-line startup.
+            unsafe {
+                eval_forms_raw(
+                    r#"(progn
+  (when (fboundp 'set-locale-environment)
+    (set-locale-environment nil))
+  (when (and (boundp 'locale-coding-system)
+             locale-coding-system
+             (fboundp 'decode-coding-string))
+    (let ((coding locale-coding-system))
+      (dolist (pathsym '(load-path exec-path charset-map-path))
+        (when (boundp pathsym)
+          (let ((path (symbol-value pathsym)))
+            (when (listp path)
+              (set pathsym
+                   (mapcar (lambda (dir)
+                             (if (stringp dir) (decode-coding-string dir coding t) dir))
+                           path))))))
+      (dolist (filesym '(data-directory doc-directory exec-directory
+                         installation-directory invocation-directory
+                         invocation-name source-directory))
+        (when (boundp filesym)
+          (let ((file (symbol-value filesym)))
+            (when (stringp file)
+              (set filesym (decode-coding-string file coding t))))))))
+  (when (and (boundp 'lisp-directory)
+             (fboundp 'locate-file)
+             (fboundp 'get-load-suffixes))
+    (let ((simple-file (locate-file "simple" load-path (get-load-suffixes))))
+      (when simple-file
+        (setq lisp-directory (file-name-directory simple-file))
+        (when (boundp 'load-history)
+          (setq load-history
+                (mapcar (lambda (elt)
+                          (if (and (consp elt)
+                                   (stringp (car elt))
+                                   (not (file-name-absolute-p (car elt))))
+                              (cons (concat lisp-directory (car elt)) (cdr elt))
+                            elt))
+                        load-history))))))
+  (when (and (fboundp 'custom-reevaluate-setting)
+             (boundp 'custom-delayed-init-variables)
+             (listp custom-delayed-init-variables))
+    (let ((user-emacs-directory-warning nil))
+      (mapc #'custom-reevaluate-setting
+            (reverse custom-delayed-init-variables)))
+    (setq custom-delayed-init-variables t))
+  (when (and (boundp 'temporary-file-directory)
+             (not (and (stringp temporary-file-directory)
+                       (> (length temporary-file-directory) 0))))
+    (setq temporary-file-directory
+          (file-name-as-directory
+           (or (getenv "TMPDIR") (getenv "TMP") (getenv "TEMP") "/tmp")))))"#,
+                );
+            }
+        });
+        if let Err(err) = init_res {
             shutdown_headless_host(ctx);
             return Err(err);
         }
@@ -549,6 +886,7 @@ fn init_headless_host(config: &HostInitConfig) -> Result<GcContext, VmHostError>
 
 /// Shut down the headless host, flushing output streams and marking the process-wide VM state spent.
 fn shutdown_headless_host(ctx: GcContext) {
+    HEADLESS_INTERCEPT_KILL_EMACS.store(false, Ordering::Release);
     drop(ctx);
     // SAFETY: Ownership of the sole `GcContext` was released by `drop(ctx)` above, so zero active
     // VM/root borrows remain on this OS thread; clears `Vquit_flag`, flushes stdio, and unbinds
@@ -557,12 +895,7 @@ fn shutdown_headless_host(ctx: GcContext) {
         if current_thread_key() != 0 {
             *Vquit_flag.as_mut_ptr() = lisp_h_Qnil();
         }
-        if !(*stdout.as_mut_ptr()).is_null() {
-            fflush(*stdout.as_mut_ptr());
-        }
-        if !(*stderr.as_mut_ptr()).is_null() {
-            fflush(*stderr.as_mut_ptr());
-        }
+        flush_c_stdio_raw();
         if current_thread_key() != 0 {
             unbind_vm_lock_owner();
         }
@@ -590,6 +923,54 @@ fn next_non_ws_char_index(source: &str, start_char: usize) -> Option<usize> {
         return Some(idx);
     }
     None
+}
+
+unsafe fn eval_forms_raw(source: &str) -> Lisp_Object {
+    // SAFETY: Caller runs inside `with_host_condition_catch` under active VM lock ownership;
+    // `ScopedLispRoot` keeps `src_lisp`, current `form`, and `last_val` rooted across every read
+    // and evaluation safepoint.
+    unsafe {
+        let src_lisp = build_utf8_str(source);
+        let mut roots = ScopedLispRoot::new(&[src_lisp, lisp_h_Qnil(), lisp_h_Qnil()]);
+        let mut pos_char = 0usize;
+        let mut evaluated_any = false;
+        let mut last_val = lisp_h_Qnil();
+
+        loop {
+            let Some(next_start) = next_non_ws_char_index(source, pos_char) else {
+                if !evaluated_any {
+                    Fread_from_string(src_lisp, make_fixnum(0), lisp_h_Qnil());
+                }
+                break;
+            };
+            let pair = Fread_from_string(
+                src_lisp,
+                make_fixnum(next_start as EMACS_INT),
+                lisp_h_Qnil(),
+            );
+            if !CONSP(pair) {
+                break;
+            }
+            let form = XCAR(pair);
+            let next_idx = if crate::common::FIXNUMP(XCDR(pair)) {
+                XFIXNUM(XCDR(pair)).max(0) as usize
+            } else {
+                next_start.saturating_add(1)
+            };
+            roots.set(1, form);
+            last_val = Feval(form, Qt());
+            roots.set(2, last_val);
+            roots.set(1, lisp_h_Qnil());
+            evaluated_any = true;
+            pos_char = if next_idx > next_start {
+                next_idx
+            } else {
+                next_start.saturating_add(1)
+            };
+        }
+
+        last_val
+    }
 }
 
 struct UnbindGuard {
@@ -642,66 +1023,114 @@ impl HeadlessVm {
     pub fn read_eval_to_string(&mut self, source: &str) -> Result<String, VmHostError> {
         with_host_condition_catch(self.ctx_mut(), || {
             // SAFETY: Runs inside `with_host_condition_catch` on the VM-locked active thread;
-            // `ScopedLispRoot` keeps `src_lisp`, `last_val`, and current `form` rooted across every
-            // `Fread_from_string`, `Feval`, and `Fprin1_to_string` safepoint.
+            // `eval_forms_raw` keeps source and intermediate forms rooted, and `raw_prin1_to_owned`
+            // roots `last_val` across printing.
             unsafe {
-                let src_lisp = build_utf8_str(source);
-                let mut roots = ScopedLispRoot::new(&[src_lisp, lisp_h_Qnil(), lisp_h_Qnil()]);
-                let mut pos_char = 0usize;
-                let mut evaluated_any = false;
-                let mut last_val = lisp_h_Qnil();
-
-                loop {
-                    let Some(next_start) = next_non_ws_char_index(source, pos_char) else {
-                        if !evaluated_any {
-                            Fread_from_string(src_lisp, make_fixnum(0), lisp_h_Qnil());
-                        }
-                        break;
-                    };
-                    let pair = Fread_from_string(
-                        src_lisp,
-                        make_fixnum(next_start as EMACS_INT),
-                        lisp_h_Qnil(),
-                    );
-                    if !CONSP(pair) {
-                        break;
-                    }
-                    let form = XCAR(pair);
-                    let next_idx = if crate::common::FIXNUMP(XCDR(pair)) {
-                        XFIXNUM(XCDR(pair)).max(0) as usize
-                    } else {
-                        next_start.saturating_add(1)
-                    };
-                    roots.set(1, form);
-                    last_val = Feval(form, Qt());
-                    roots.set(2, last_val);
-                    roots.set(1, lisp_h_Qnil());
-                    evaluated_any = true;
-                    pos_char = if next_idx > next_start {
-                        next_idx
-                    } else {
-                        next_start.saturating_add(1)
-                    };
-                }
-
+                let last_val = eval_forms_raw(source);
                 raw_prin1_to_owned(last_val)
+            }
+        })
+    }
+
+    /// Read and sequentially evaluate all top-level Lisp forms in `source` without printing the value.
+    pub fn eval_silent(&mut self, source: &str) -> Result<(), VmHostError> {
+        with_host_condition_catch(self.ctx_mut(), || {
+            // SAFETY: Runs inside `with_host_condition_catch` with all forms rooted in `eval_forms_raw`.
+            unsafe {
+                let _ = eval_forms_raw(source);
+            }
+        })
+    }
+
+    /// Prepend a directory (and its `subdirs.el` if present) to Lisp `load-path`.
+    pub fn prepend_load_path(&mut self, dir: &Path) -> Result<(), VmHostError> {
+        let dir = dir.to_path_buf();
+        with_host_condition_catch(self.ctx_mut(), || {
+            add_load_path_and_subdirs_raw(&dir);
+        })
+    }
+
+    /// Load a Lisp library or file using standard `-l` lookup semantics (`nosuffix = nil`).
+    pub fn load_library(&mut self, file: &str) -> Result<(), VmHostError> {
+        let file = file.to_string();
+        with_host_condition_catch(self.ctx_mut(), || {
+            // SAFETY: Runs inside `with_host_condition_catch`; roots `file_lisp` across `Fload`.
+            unsafe {
+                let file_lisp = build_utf8_str(&file);
+                let _root = ScopedLispRoot::new(&[file_lisp]);
+                Fload(
+                    file_lisp,
+                    lisp_h_Qnil(),
+                    Qt(),
+                    lisp_h_Qnil(),
+                    lisp_h_Qnil(),
+                );
+            }
+        })
+    }
+
+    /// Call zero-arg batch function `func_name` with `command-line-args-left` and `argv` dynamically
+    /// bound to `argv`.
+    pub fn funcall_with_args(&mut self, func_name: &str, argv: &[OsString]) -> Result<(), VmHostError> {
+        let func_c = CString::new(func_name).map_err(|_| VmHostError::LispCondition {
+            symbol: "invalid-function".to_string(),
+            message: format!("function name contains NUL byte: {func_name}"),
+            data: "nil".to_string(),
+        })?;
+        let argv_strs: Vec<String> = argv
+            .iter()
+            .map(|arg| arg.to_string_lossy().into_owned())
+            .collect();
+        with_host_condition_catch(self.ctx_mut(), || {
+            // SAFETY: Runs inside `with_host_condition_catch`; `UnbindGuard` restores `argv` and
+            // `command-line-args-left` cleanly on normal return, error, or exit request.
+            unsafe {
+                let count = current_specpdl_index();
+                let _unbind = UnbindGuard { target: count };
+                bind_argv_list_raw(&argv_strs);
+                let mut sym = intern_c_string(func_c.as_ptr());
+                Ffuncall(1, &raw mut sym);
+            }
+        })
+    }
+
+    /// Invoke two-argument Lisp function `(fn_name arg1 arg2)` directly without reader quoting
+    /// and return a host-owned UTF-8 `String` from its Lisp string result (or `prin1` fallback).
+    pub fn funcall_two_strings_to_string(
+        &mut self,
+        fn_name: &str,
+        arg1: &str,
+        arg2: &str,
+    ) -> Result<String, VmHostError> {
+        let func_c = CString::new(fn_name).map_err(|_| VmHostError::LispCondition {
+            symbol: "invalid-function".to_string(),
+            message: format!("function name contains NUL byte: {fn_name}"),
+            data: "nil".to_string(),
+        })?;
+        with_host_condition_catch(self.ctx_mut(), || {
+            // SAFETY: Runs inside `with_host_condition_catch`; roots `s1`, `s2`, and `res` across
+            // `Ffuncall` and string conversion on the VM-lock-owning thread.
+            unsafe {
+                let s1 = build_utf8_str(arg1);
+                let mut roots = ScopedLispRoot::new(&[s1, lisp_h_Qnil(), lisp_h_Qnil()]);
+                let s2 = build_utf8_str(arg2);
+                roots.set(1, s2);
+                let sym = intern_c_string(func_c.as_ptr());
+                let mut args = [sym, s1, s2];
+                let res = Ffuncall(3, args.as_mut_ptr());
+                roots.set(2, res);
+                if STRINGP(res) {
+                    raw_string_to_owned(res).unwrap_or_default()
+                } else {
+                    raw_prin1_to_owned(res)
+                }
             }
         })
     }
 
     /// Load a Lisp script file with `command-line-args-left` (`argv`) dynamically bound to `argv`.
     pub fn load_script_file(&mut self, path: &Path, argv: &[OsString]) -> Result<(), VmHostError> {
-        let abs_path = if path.is_absolute() {
-            path.to_path_buf()
-        } else {
-            std::env::current_dir()
-                .map_err(|e| VmHostError::Io {
-                    symbol: "file-error".to_string(),
-                    message: e.to_string(),
-                    data: path.display().to_string(),
-                })?
-                .join(path)
-        };
+        let abs_path = resolve_abs_path(path)?;
         if abs_path.is_dir() {
             return Err(VmHostError::Io {
                 symbol: "file-error".to_string(),
@@ -721,34 +1150,35 @@ impl HeadlessVm {
             unsafe {
                 let count = current_specpdl_index();
                 let _unbind = UnbindGuard { target: count };
-
-                let mut arg_list = lisp_h_Qnil();
-                let mut list_root = ScopedLispRoot::new(&[arg_list, lisp_h_Qnil()]);
-                for item in argv_strs.iter().rev() {
-                    let s = build_utf8_str(item);
-                    list_root.set(1, s);
-                    arg_list = Fcons(s, arg_list);
-                    list_root.set(0, arg_list);
-                    list_root.set(1, lisp_h_Qnil());
-                }
-
-                let cmd_left_sym = intern_c_string(c"command-line-args-left".as_ptr());
-                let argv_sym = intern_c_string(c"argv".as_ptr());
-                specbind(cmd_left_sym, arg_list);
-                if !EQ(Findirect_variable(argv_sym), cmd_left_sym) {
-                    specbind(argv_sym, arg_list);
-                }
+                bind_argv_list_raw(&argv_strs);
 
                 let file_lisp = build_utf8_str(&abs_s);
-                list_root.set(1, file_lisp);
+                let mut root = ScopedLispRoot::new(&[file_lisp, lisp_h_Qnil()]);
                 let script_loader = intern_c_string(c"command-line--load-script".as_ptr());
                 if !NILP(Ffboundp(script_loader)) {
                     let form = Fcons(script_loader, Fcons(file_lisp, lisp_h_Qnil()));
-                    list_root.set(0, form);
+                    root.set(1, form);
                     Feval(form, Qt());
                 } else {
                     Fload(file_lisp, lisp_h_Qnil(), Qt(), Qt(), lisp_h_Qnil());
                 }
+            }
+        })
+    }
+
+    /// Write a relocatable portable dump bound to the current executable's fingerprint at `out_path`.
+    pub fn dump_portable(&mut self, out_path: &Path) -> Result<(), VmHostError> {
+        let abs_path = resolve_abs_path(out_path)?;
+        let abs_s = abs_path.to_string_lossy().into_owned();
+        with_host_condition_catch(self.ctx_mut(), || {
+            // SAFETY: Clears `Vpurify_flag`, restores `Vlexical_binding` to its default top-level
+            // value (matching `loadup.el`), and invokes `Fdump_emacs_portable` with rooted path.
+            unsafe {
+                *Vpurify_flag.as_mut_ptr() = lisp_h_Qnil();
+                *Vlexical_binding.as_mut_ptr() = Fdefault_toplevel_value(Qlexical_binding());
+                let file_lisp = build_utf8_str(&abs_s);
+                let _root = ScopedLispRoot::new(&[file_lisp]);
+                Fdump_emacs_portable(file_lisp, lisp_h_Qnil());
             }
         })
     }
@@ -846,5 +1276,109 @@ impl Drop for HeadlessVm {
         if let Some(ctx) = self.ctx.take() {
             shutdown_headless_host(ctx);
         }
+    }
+}
+
+/// Validate and adopt an inherited `AF_UNIX` `SOCK_STREAM` socket descriptor for internal RPC,
+/// moving stdio descriptors (`<= 2`) onto a dedicated `FD_CLOEXEC` descriptor `>= 3` and
+/// replacing the stdio slot with `/dev/null` so Lisp code or child processes never see the pipe.
+pub fn adopt_inherited_rpc_socket(explicit_fd: Option<i32>) -> io::Result<UnixStream> {
+    let raw_fd: c_int = explicit_fd.unwrap_or(0);
+    if raw_fd < 0 {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            format!("invalid RPC socket descriptor {raw_fd}"),
+        ));
+    }
+
+    let mut sock_type: c_int = 0;
+    let mut sock_type_len = core::mem::size_of::<c_int>() as u32;
+    // SAFETY: `getsockopt` queries `SO_TYPE` into initialized `sock_type` for `raw_fd` before
+    // constructing an owning descriptor; non-sockets return `ENOTSOCK` (`rc != 0`).
+    let rc_type = unsafe {
+        getsockopt(
+            raw_fd,
+            SYS_SOL_SOCKET,
+            SYS_SO_TYPE,
+            (&raw mut sock_type).cast::<c_void>(),
+            &raw mut sock_type_len,
+        )
+    };
+    if rc_type != 0 {
+        return Err(io::Error::last_os_error());
+    }
+    if sock_type != SYS_SOCK_STREAM {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            format!("RPC descriptor {raw_fd} is not a SOCK_STREAM socket (type={sock_type})"),
+        ));
+    }
+
+    let mut addr = RawSockaddrStorageHeader::zeroed();
+    let mut addr_len = core::mem::size_of::<RawSockaddrStorageHeader>() as u32;
+    // SAFETY: `getsockname` inspects the socket family into an initialized stack buffer.
+    let rc_name = unsafe {
+        getsockname(
+            raw_fd,
+            (&raw mut addr).cast::<c_void>(),
+            &raw mut addr_len,
+        )
+    };
+    if rc_name != 0 {
+        return Err(io::Error::last_os_error());
+    }
+    if addr_len < 2 || addr.family() != SYS_AF_UNIX {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            format!("RPC descriptor {raw_fd} is not an AF_UNIX socket"),
+        ));
+    }
+
+    let adopted_fd: c_int = if raw_fd <= 2 {
+        // SAFETY: Duplicates the validated inherited stdio socket to a dedicated `>= 3` descriptor
+        // with `FD_CLOEXEC`, then redirects `raw_fd` cleanly onto `/dev/null` (`O_RDWR`).
+        unsafe {
+            let duped = fcntl(raw_fd, F_DUPFD_CLOEXEC, 3 as c_int);
+            if duped < 0 {
+                return Err(io::Error::last_os_error());
+            }
+            let devnull = open(c"/dev/null".as_ptr(), O_RDWR, 0 as c_int);
+            if devnull >= 0 {
+                let _ = dup2(devnull, raw_fd);
+                if devnull != raw_fd {
+                    let _ = close(devnull);
+                }
+            }
+            duped
+        }
+    } else {
+        // SAFETY: Ensures `FD_CLOEXEC` is set on validated inherited descriptor `raw_fd >= 3`.
+        unsafe {
+            let cur_flags = fcntl(raw_fd, F_GETFD, 0 as c_int);
+            if cur_flags < 0 {
+                return Err(io::Error::last_os_error());
+            }
+            if (cur_flags & FD_CLOEXEC) == 0 && fcntl(raw_fd, F_SETFD, cur_flags | FD_CLOEXEC) < 0 {
+                return Err(io::Error::last_os_error());
+            }
+        }
+        raw_fd
+    };
+
+    // SAFETY: `adopted_fd` is a validated open `AF_UNIX` `SOCK_STREAM` descriptor with `FD_CLOEXEC`
+    // and unique ownership inside this process after stdio isolation above.
+    let owned = unsafe { OwnedFd::from_raw_fd(adopted_fd) };
+    Ok(UnixStream::from(owned))
+}
+
+/// Inspect whether `stream`'s underlying descriptor has `FD_CLOEXEC` enabled.
+pub fn stream_has_cloexec(stream: &UnixStream) -> io::Result<bool> {
+    let fd = stream.as_raw_fd();
+    // SAFETY: `stream` owns an active open file descriptor; `F_GETFD` is read-only.
+    let flags = unsafe { fcntl(fd, F_GETFD, 0 as c_int) };
+    if flags < 0 {
+        Err(io::Error::last_os_error())
+    } else {
+        Ok((flags & FD_CLOEXEC) != 0)
     }
 }
