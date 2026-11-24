@@ -503,6 +503,8 @@ def exercise_http_lifecycle_edge_cases(
         (when marker
           (write-region (concat tag "\\n") nil marker 'append 'silent))
         (femacs-http-lifecycle-json 200 (list (cons 'tag tag)))))
+     ((string= path "/api/boom-quiet")
+      (error "quiet-boom-under-blocked-stderr"))
      (t
       (femacs-http-lifecycle-json 404 (list (cons 'path path)))))))
 
@@ -762,7 +764,19 @@ def exercise_http_lifecycle_edge_cases(
                 proc.kill()
                 proc.wait(timeout=5)
 
-    # Scenario D2: SIGTERM during stalled request body + blocked full stderr sink + open inherited stderr pipe exits < 3s.
+    def fill_pipe_and_restore_blocking(fd: int) -> None:
+        os.set_blocking(fd, False)
+        try:
+            for chunk in (b"Z" * 4096, b"Z"):
+                while True:
+                    try:
+                        os.write(fd, chunk)
+                    except BlockingIOError:
+                        break
+        finally:
+            os.set_blocking(fd, True)
+
+    # Scenario D2: SIGTERM during stalled request body + full blocking stderr sink + open inherited stderr pipe exits < 3s.
     marker_d2 = work_dir / "lifecycle-d2.marker"
     env_d2 = dict(clean_env)
     env_d2["FEMACS_TEST_MARKER_FILE"] = str(marker_d2)
@@ -813,15 +827,9 @@ def exercise_http_lifecycle_edge_cases(
             )
             time.sleep(0.05)
 
-            # Fill the shared stderr pipe completely with no reader so any blocking stderr write stalls,
-            # while `holder` keeps the pipe open and `err_w` in parent is closed.
-            os.set_blocking(err_w, False)
-            chunk = b"Z" * 4096
-            while True:
-                try:
-                    os.write(err_w, chunk)
-                except BlockingIOError:
-                    break
+            # Fill the shared stderr pipe completely and restore genuine blocking mode on the open
+            # file description while `holder` keeps the pipe open and parent closes `err_w`.
+            fill_pipe_and_restore_blocking(err_w)
             os.close(err_w)
             err_w = -1
 
@@ -857,6 +865,88 @@ def exercise_http_lifecycle_edge_cases(
                 proc.wait(timeout=5)
             if proc.stdout:
                 proc.stdout.close()
+
+    # Scenario D3: Full blocking stderr pipe must not stall HTTP 500 RPC Error, subsequent 200 on same PID, or SIGTERM.
+    err_r3, err_w3 = os.pipe()
+    holder3: subprocess.Popen[bytes] | None = None
+    proc3: subprocess.Popen[str] | None = None
+    try:
+        holder3 = subprocess.Popen(
+            ["/bin/sleep", "5"],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=err_w3,
+            close_fds=True,
+        )
+        proc3 = subprocess.Popen(
+            [
+                str(http_bin),
+                "--listen",
+                "127.0.0.1:0",
+                "--handler",
+                str(lifecycle_el),
+                "--max-body-bytes",
+                "1024",
+                "--max-queue",
+                "8",
+                "--timeout-ms",
+                "5000",
+            ],
+            env=clean_env,
+            stdout=subprocess.PIPE,
+            stderr=err_w3,
+            text=True,
+            close_fds=True,
+        )
+
+        host3, port3, backend_pid3 = wait_for_readiness(proc3)
+        assert pid_alive(backend_pid3)
+        st_ping3, _, _ = http_request(host3, port3, "GET", "/api/ping", timeout=3.0)
+        assert st_ping3 == 200, f"Scenario D3 initial ping failed: {st_ping3}"
+
+        fill_pipe_and_restore_blocking(err_w3)
+        os.close(err_w3)
+        err_w3 = -1
+
+        st_500, _, body_500 = http_request(host3, port3, "GET", "/api/boom-quiet", timeout=3.0)
+        assert st_500 == 500, f"expected HTTP 500 under full blocking stderr, got {st_500}: {body_500!r}"
+        assert b"quiet-boom-under-blocked-stderr" in body_500, (
+            f"missing expected error message in HTTP 500 body: {body_500!r}"
+        )
+
+        st_after3, _, _ = http_request(host3, port3, "GET", "/api/ping", timeout=3.0)
+        assert st_after3 == 200 and pid_alive(backend_pid3), (
+            f"same backend PID did not recover after 500 under blocked stderr: status={st_after3}"
+        )
+
+        t0_3 = time.monotonic()
+        proc3.send_signal(signal.SIGTERM)
+        rc3 = proc3.wait(timeout=3.0)
+        elapsed_d3 = time.monotonic() - t0_3
+        assert rc3 == 0 and elapsed_d3 < 3.0, f"Scenario D3 SIGTERM failed/stalled: rc={rc3}, elapsed={elapsed_d3:.3f}s"
+
+        deadline_reap3 = time.monotonic() + 1.0
+        while pid_alive(backend_pid3) and time.monotonic() < deadline_reap3:
+            time.sleep(0.02)
+        assert not pid_alive(backend_pid3), f"backend pid {backend_pid3} survived Scenario D3 shutdown"
+        assert holder3.poll() is None and pid_alive(holder3.pid), (
+            "expected sibling holder process keeping stderr pipe open to outlive Scenario D3 shutdown"
+        )
+        assert_port_reusable(host3, port3)
+    finally:
+        if holder3 is not None:
+            if holder3.poll() is None:
+                holder3.kill()
+            holder3.wait(timeout=5)
+        if err_w3 >= 0:
+            os.close(err_w3)
+        os.close(err_r3)
+        if proc3 is not None:
+            if proc3.poll() is None:
+                proc3.kill()
+                proc3.wait(timeout=5)
+            if proc3.stdout:
+                proc3.stdout.close()
 
 
 def prepare_export_treesit(export_dir: Path) -> str:

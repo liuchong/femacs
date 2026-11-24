@@ -1,8 +1,21 @@
 # 当前状态（2026-11-24）
 
-**本段为当前实际读数（Phase II Stage `C2/A2-R2` HTTP 请求体有界读取与无阻塞关停收口，响应 `8bbe713e` `[FEMACS-C2-A2-R1-REVIEW]`），取代下方 `C2/A2-R1`、`C2 & A2`、`C1-R1` 及更早历史段落。**
+**本段为当前实际读数（Phase II Stage `C2/A2-R3` RPC Error 非阻塞回传与真实阻塞 pipe 验收收口，响应 `651f05b5` `[FEMACS-C2-A2-R2-REVIEW]`），取代下方 `C2/A2-R2`、`C2/A2-R1`、`C2 & A2` 及更早历史段落。**
 
-- **Phase II Stage `C2/A2-R2`（`[FEMACS-C2-A2-R1-REVIEW]` 请求体截止/关停取消、HTTP drain 与后端回收解耦、及消除无期限日志转发线程 join）已闭合、`dist/lisp` 重建及集成/单测全过、并完成 `CLN292` 清理，待 Codex App `[FEMACS-C2-A2-R2-REVIEW]` 最终核收**：
+- **Phase II Stage `C2/A2-R3`（`[FEMACS-C2-A2-R2-REVIEW]` RPC Error 同步 `stderr` 阻塞去除、阻塞写端恢复与 Scenario D3 实测）已闭合、`dist/lisp` 重建及集成/单测全过、并完成 `CLN293` 清理，待 Codex App `[FEMACS-C2-A2-R3-REVIEW]` 最终核收**：
+  - **非阻塞 RPC Error 分支（`crates/http-host/src/lib.rs`）**：
+    - 删除 `run_rpc_worker` 中 `RpcResponseFrame::Error` 分支在派发 HTTP 回复前对 `io::stderr().lock()` 的同步写与 flush，避免阻塞的日志接收端卡住 `500` 响应或关停 `worker_handle.join()`；Lisp 侧诊断仍经克隆/继承 stderr 直接输出。
+  - **阻塞态恢复、Scenario D3 与保护性单测（`tools/test-c2-a2-lisp-app.py`、`crates/http-host/src/lib.rs`、`maintenance/tooling-inventory.json`）**：
+    - 抽提 `fill_pipe_and_restore_blocking(fd)` 在写满共享 stderr pipe 后恢复真实阻塞态（`os.set_blocking(fd, True)`），并新增 `Scenario D3`：满阻塞 stderr pipe + 兄弟 `/bin/sleep 5` 持写端进程下 `/api/boom-quiet` 返回 HTTP `500`、后续 `/api/ping` 保持同 PID 返回 `200`、`SIGTERM` 在 `< 3s` 内退出 0 并回收后端及释放端口；新增单测 `rpc_worker_returns_handler_error_and_continues_on_nonfatal_rpc_error`（`http-host` `9/9`）。
+  - **受控构建、集成验收、保护单测与 `CLN293` 读数（`assistant run`）**：
+    - `dist/lisp` 重建（`run_id=032f31e33c684afda24a1372698f91c0`，`184.37s`，`exit=0`，`cleanup_complete=true`）。
+    - Phase 2 验收（`run_id=02d73762546a4692a7b3184227a54991`，`30.067s`，`exit=0`，`cleanup_complete=true`）：`test-c2-a2-lisp-app.py --selftest`（`PASS`）、`test-c2-a2-lisp-app.py --package dist/lisp`（`PASS`，含 Scenarios A/B/C/D1/D2/D3）、`test-repository-bootstrap.py`（`4/4`）、`check-unsafe-boundary.py`（`442` 活跃文件、`149` `forbid`、`6,327/6,327` `SAFETY:`、`0` 错误）、`check-own-voice.py`（`0` 失败）、`test-tooling-modernization.py`（`33/33`，`1.148s`）。
+    - Phase 3 保护性单测（`run_id=1bf23cb6c89640e085d976b8de59103e`，`24.352s`，`exit=0`，`cleanup_complete=true`）：`cargo test -p http-host`（`9/9`）、安全边界与合规扫描 `0` 错误/失败。
+    - [CLN293](../maintenance/cleanup/reports/2026-11-24-293-c2-a2-r3-nonblocking-rpc-error.md) 清理 `4` 项临时目录（`3,761` 文件、`1,020` 目录、`8` 符号链接、`822,615,794` 逻辑字节、摘要 `f5d8ee2b6c170143d50e359d3d308b35b487f760b6dbb06af781d6a72d7b313e`）；当前 `dist/lisp`（`210M`）：`bin/femacs-lisp` `5,053,696 B`（`c7038804618fdb5a37a9448091488ef2fb8a1f1452fccc7921a899dd45eb87b6`）、`bin/femacs-lisp.pdmp` `18,325,840 B`（`8b7033d0f887714299cc7a9ed134cff88e62bbf348e26c864be2936e1bdee14f`）、`bin/http-host` `2,145,728 B`（`31f438b7ca7b102dff78545a03a128d6305f13732f7714b2e1ad3035013a5c00`），strict `codesign` 与 `manifest.json` 核验一致；清理后冒烟 `run_id=33e9fc2ff1b14fa0baca25df1aa72661`（`13.07s`，`exit=0`）：`LISP=42`、`HTTP=http-host 0.1.0 (femacs 32.0.50)`、`--package dist/lisp PASS`。保留 `build/terminal`（`45M`）、`dist/macos`（`235M` 与 `/Applications/Fe.app` 同源一致）、`build/generation`（`13M`）与 `build/manuals`（`1.4G`）。
+
+## 历史记录（2026-11-24 Stage C2/A2-R2，已被上方 Stage C2/A2-R3 取代）
+
+- **Phase II Stage `C2/A2-R2`（`651f05b5`）**：
   - **请求体截止与无阻塞关停（`crates/http-host/src/lib.rs`）**：
     - `handle_http` 在读体前即建立 `deadline = Instant::now() + state.timeout`，经 `read_body_bounded`（`tokio::select!` 联立 `watch::Receiver<bool>` 与 `tokio::time::timeout_at(deadline, to_bytes(...))`）有界读取请求体；超限返回 `413`，读体超时返回 `408`（`Connection: close`）且不伤及后端 PID，关停时立即以 `503`/`502`（`Connection: close`）中止等待中的连接。
     - 取消 `spawn_stderr_forwarder` 管道与无期限 `out_fwd`/`err_fwd` `join()`，改为通过 `io::stderr().as_fd().try_clone_to_owned()` 直连子进程 stdout 至 stderr 并沿用 `Stdio::inherit()` stderr；在 `with_graceful_shutdown` 中异步触发 `reap_child_slot`，并对 `axum::serve` drain 施以 `SHUTDOWN_HTTP_DRAIN_GRACE`（`750ms`）硬上限。

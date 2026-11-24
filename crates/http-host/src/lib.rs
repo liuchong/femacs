@@ -737,16 +737,11 @@ fn run_rpc_worker(
                         }
                         Ok(RpcResponseFrame::Error {
                             id,
-                            code,
+                            code: _,
                             message,
                             data,
                         }) => {
                             let fatal = is_fatal_rpc_error(&data);
-                            {
-                                let mut err = io::stderr().lock();
-                                let _ = writeln!(err, "femacs-lisp rpc error ({code}): {message}");
-                                let _ = err.flush();
-                            }
                             if fatal {
                                 let msg = format!("backend exited via Lisp exit-request: {message}");
                                 dead_reason = Some(msg.clone());
@@ -1536,5 +1531,67 @@ mod tests {
             assert!(rx.try_recv().is_err(), "no job may reach RPC worker");
             handle.join().unwrap();
         }
+    }
+
+    #[test]
+    fn rpc_worker_returns_handler_error_and_continues_on_nonfatal_rpc_error() {
+        use std::io::Write;
+
+        let (worker_sock, peer) = UnixStream::pair().unwrap();
+        let peer_write = peer.try_clone().unwrap();
+        let (tx, rx) = mpsc::channel(8);
+        let shutdown_flag = Arc::new(AtomicBool::new(false));
+        let child_slot = Arc::new(Mutex::new(None));
+
+        let handle = thread::spawn(move || {
+            run_rpc_worker(rx, worker_sock, MIN_RPC_FRAME_BYTES, shutdown_flag, child_slot);
+        });
+
+        let peer_handle = thread::spawn(move || {
+            let mut reader = BufReader::new(peer);
+            let mut writer = peer_write;
+            let mut line1 = String::new();
+            reader.read_line(&mut line1).unwrap();
+            assert!(line1.contains("\"/boom\""));
+            writeln!(
+                writer,
+                r#"{{"jsonrpc":"2.0","id":1,"error":{{"code":-32000,"message":"boom-cond","data":{{"kind":"lisp-condition"}}}}}}"#
+            )
+            .unwrap();
+            writer.flush().unwrap();
+
+            let mut line2 = String::new();
+            reader.read_line(&mut line2).unwrap();
+            assert!(line2.contains("\"/ok\""));
+            writeln!(
+                writer,
+                r#"{{"jsonrpc":"2.0","id":2,"result":{{"status":200,"headers":[],"body":"still-alive"}}}}"#
+            )
+            .unwrap();
+            writer.flush().unwrap();
+        });
+
+        let (job1, rx1) =
+            make_test_worker_job(1, "/boom", Instant::now() + Duration::from_secs(5));
+        let (job2, rx2) =
+            make_test_worker_job(2, "/ok", Instant::now() + Duration::from_secs(5));
+        tx.blocking_send(job1).unwrap();
+        tx.blocking_send(job2).unwrap();
+
+        match rx1.blocking_recv() {
+            Ok(WorkerReply::HandlerError(msg)) => assert_eq!(msg, "boom-cond"),
+            other => panic!("expected HandlerError, got {other:?}"),
+        }
+        match rx2.blocking_recv() {
+            Ok(WorkerReply::Http(resp)) => {
+                assert_eq!(resp.status, 200);
+                assert_eq!(resp.body, "still-alive");
+            }
+            other => panic!("expected Http 200 follow-up, got {other:?}"),
+        }
+
+        drop(tx);
+        handle.join().unwrap();
+        peer_handle.join().unwrap();
     }
 }
