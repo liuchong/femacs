@@ -6,7 +6,7 @@ use std::env;
 use std::ffi::OsString;
 use std::io::{self, BufRead, BufReader, Write};
 use std::net::Shutdown;
-use std::os::fd::OwnedFd;
+use std::os::fd::{AsFd, OwnedFd};
 use std::os::unix::net::UnixStream;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
@@ -16,14 +16,14 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 use axum::Router;
-use axum::body::{Body, to_bytes};
+use axum::body::{Body, Bytes, to_bytes};
 use axum::extract::{DefaultBodyLimit, Request, State};
 use axum::http::{HeaderMap, HeaderName, HeaderValue, StatusCode};
 use axum::response::{IntoResponse, Response};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use tokio::net::TcpListener;
-use tokio::sync::{mpsc, oneshot};
+use tokio::sync::{mpsc, oneshot, watch};
 
 pub const DEFAULT_LISTEN_ADDR: &str = "127.0.0.1:0";
 pub const DEFAULT_HANDLER_ENTRY: &str = "femacs-http-handle";
@@ -32,6 +32,7 @@ pub const DEFAULT_MAX_QUEUE: usize = 64;
 pub const DEFAULT_TIMEOUT_MS: u64 = 15_000;
 pub const MIN_RPC_FRAME_BYTES: usize = 2 * 1024 * 1024;
 pub const RPC_IO_POLL_SLICE: Duration = Duration::from_millis(50);
+pub const SHUTDOWN_HTTP_DRAIN_GRACE: Duration = Duration::from_millis(750);
 pub const HTTP_HOST_VERSION: &str = "http-host 0.1.0 (femacs 32.0.50)";
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -559,6 +560,7 @@ struct AppState {
     timeout: Duration,
     next_id: Arc<AtomicU64>,
     shutdown_flag: Arc<AtomicBool>,
+    shutdown_rx: watch::Receiver<bool>,
 }
 
 fn kill_child_slot_now(child_slot: &Arc<Mutex<Option<Child>>>) {
@@ -594,38 +596,6 @@ fn drain_queued_jobs(rx: &mut mpsc::Receiver<WorkerJob>, reason: &str) {
         };
         let _ = job.respond.send(reply);
     }
-}
-
-fn spawn_stderr_forwarder<R: io::Read + Send + 'static>(
-    stream: R,
-    prefix: &'static str,
-) -> thread::JoinHandle<()> {
-    thread::spawn(move || {
-        let mut reader = BufReader::new(stream);
-        let mut buf = Vec::new();
-        loop {
-            buf.clear();
-            match reader.read_until(b'\n', &mut buf) {
-                Ok(0) => break,
-                Ok(_) => {
-                    let text = String::from_utf8_lossy(&buf);
-                    let mut err = io::stderr().lock();
-                    if text.ends_with('\n') {
-                        let _ = err.write_all(text.as_bytes());
-                    } else {
-                        let _ = writeln!(err, "{text}");
-                    }
-                    let _ = err.flush();
-                }
-                Err(e) => {
-                    let mut err = io::stderr().lock();
-                    let _ = writeln!(err, "http-host {prefix} pipe read error: {e}");
-                    let _ = err.flush();
-                    break;
-                }
-            }
-        }
-    })
 }
 
 fn run_rpc_worker(
@@ -851,17 +821,67 @@ fn build_http_response(rpc_resp: RpcHttpResponse) -> Response {
         .unwrap_or_else(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response())
 }
 
+#[derive(Debug, PartialEq, Eq)]
+enum BodyReadError {
+    TooLarge,
+    ReadFailed(String),
+    Timeout,
+    Shutdown,
+}
+
+fn close_response(status: StatusCode, body: impl Into<String>) -> Response {
+    (
+        status,
+        [(axum::http::header::CONNECTION, "close")],
+        body.into(),
+    )
+        .into_response()
+}
+
+async fn read_body_bounded(
+    body: Body,
+    max_bytes: usize,
+    deadline: Instant,
+    shutdown_rx: &mut watch::Receiver<bool>,
+) -> Result<Bytes, BodyReadError> {
+    if *shutdown_rx.borrow() {
+        return Err(BodyReadError::Shutdown);
+    }
+    if Instant::now() >= deadline {
+        return Err(BodyReadError::Timeout);
+    }
+    let tokio_deadline = tokio::time::Instant::from_std(deadline);
+    tokio::select! {
+        biased;
+        _ = shutdown_rx.wait_for(|&v| v) => Err(BodyReadError::Shutdown),
+        res = tokio::time::timeout_at(tokio_deadline, to_bytes(body, max_bytes)) => match res {
+            Ok(Ok(b)) => Ok(b),
+            Ok(Err(e)) => {
+                if e.to_string().to_ascii_lowercase().contains("length limit") {
+                    Err(BodyReadError::TooLarge)
+                } else {
+                    Err(BodyReadError::ReadFailed(e.to_string()))
+                }
+            }
+            Err(_) => Err(BodyReadError::Timeout),
+        },
+    }
+}
+
 async fn handle_http(State(state): State<AppState>, req: Request) -> Response {
     if state.shutdown_flag.load(Ordering::Acquire) {
-        return (StatusCode::BAD_GATEWAY, "http-host shutting down").into_response();
+        return close_response(StatusCode::SERVICE_UNAVAILABLE, "http-host shutting down");
     }
+    let deadline = Instant::now() + state.timeout;
     if let Err(resp) = check_content_length(req.headers(), state.max_body_bytes) {
         return resp;
     }
     let (parts, body) = req.into_parts();
-    let bytes = match to_bytes(body, state.max_body_bytes).await {
+    let mut shutdown_rx = state.shutdown_rx.clone();
+    let bytes = match read_body_bounded(body, state.max_body_bytes, deadline, &mut shutdown_rx).await
+    {
         Ok(b) => b,
-        Err(_) => {
+        Err(BodyReadError::TooLarge) => {
             return (
                 StatusCode::PAYLOAD_TOO_LARGE,
                 format!(
@@ -870,6 +890,18 @@ async fn handle_http(State(state): State<AppState>, req: Request) -> Response {
                 ),
             )
                 .into_response();
+        }
+        Err(BodyReadError::ReadFailed(msg)) => {
+            return close_response(
+                StatusCode::BAD_REQUEST,
+                format!("request body read error: {msg}"),
+            );
+        }
+        Err(BodyReadError::Timeout) => {
+            return close_response(StatusCode::REQUEST_TIMEOUT, "request body read timed out");
+        }
+        Err(BodyReadError::Shutdown) => {
+            return close_response(StatusCode::SERVICE_UNAVAILABLE, "http-host shutting down");
         }
     };
     let body_text = match String::from_utf8(bytes.to_vec()) {
@@ -902,7 +934,6 @@ async fn handle_http(State(state): State<AppState>, req: Request) -> Response {
     };
 
     let req_id = state.next_id.fetch_add(1, Ordering::Relaxed);
-    let deadline = Instant::now() + state.timeout;
     let (resp_tx, resp_rx) = oneshot::channel();
     let job = WorkerJob {
         id: req_id,
@@ -917,20 +948,26 @@ async fn handle_http(State(state): State<AppState>, req: Request) -> Response {
                 (StatusCode::SERVICE_UNAVAILABLE, "backend request queue full").into_response()
             }
             mpsc::error::TrySendError::Closed(_) => {
-                (StatusCode::BAD_GATEWAY, "backend worker shut down").into_response()
+                close_response(StatusCode::BAD_GATEWAY, "backend worker shut down")
             }
         };
     }
 
-    match tokio::time::timeout_at(tokio::time::Instant::from_std(deadline), resp_rx).await {
-        Ok(Ok(WorkerReply::Http(resp))) => build_http_response(resp),
-        Ok(Ok(WorkerReply::HandlerError(msg))) => {
-            (StatusCode::INTERNAL_SERVER_ERROR, msg).into_response()
+    tokio::select! {
+        biased;
+        _ = shutdown_rx.wait_for(|&v| v) => {
+            close_response(StatusCode::BAD_GATEWAY, "http-host shutting down")
         }
-        Ok(Ok(WorkerReply::BackendDown(msg))) => (StatusCode::BAD_GATEWAY, msg).into_response(),
-        Ok(Ok(WorkerReply::Timeout(msg))) => (StatusCode::GATEWAY_TIMEOUT, msg).into_response(),
-        Ok(Err(_)) => (StatusCode::BAD_GATEWAY, "backend closed reply channel").into_response(),
-        Err(_) => (StatusCode::GATEWAY_TIMEOUT, "Lisp handler timed out").into_response(),
+        res = tokio::time::timeout_at(tokio::time::Instant::from_std(deadline), resp_rx) => match res {
+            Ok(Ok(WorkerReply::Http(resp))) => build_http_response(resp),
+            Ok(Ok(WorkerReply::HandlerError(msg))) => {
+                (StatusCode::INTERNAL_SERVER_ERROR, msg).into_response()
+            }
+            Ok(Ok(WorkerReply::BackendDown(msg))) => close_response(StatusCode::BAD_GATEWAY, msg),
+            Ok(Ok(WorkerReply::Timeout(msg))) => close_response(StatusCode::GATEWAY_TIMEOUT, msg),
+            Ok(Err(_)) => close_response(StatusCode::BAD_GATEWAY, "backend closed reply channel"),
+            Err(_) => close_response(StatusCode::GATEWAY_TIMEOUT, "Lisp handler timed out"),
+        },
     }
 }
 
@@ -987,32 +1024,26 @@ pub async fn serve(cfg: HttpHostConfig) -> Result<i32, String> {
         .try_clone()
         .map_err(|e| format!("clone shutdown RPC socket: {e}"))?;
     let child_fd = OwnedFd::from(child_sock);
+    let child_stdout_fd = io::stderr()
+        .as_fd()
+        .try_clone_to_owned()
+        .map_err(|e| format!("clone stderr fd for backend stdout: {e}"))?;
     let backend_args = build_backend_args(&cfg);
 
     let child = Command::new(&lisp_bin)
         .args(&backend_args)
         .stdin(Stdio::from(child_fd))
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
+        .stdout(Stdio::from(child_stdout_fd))
+        .stderr(Stdio::inherit())
         .spawn()
         .map_err(|e| format!("spawn {}: {e}", lisp_bin.display()))?;
 
     let backend_pid = child.id();
-    let mut child = child;
-    let out_pipe = child
-        .stdout
-        .take()
-        .ok_or_else(|| "missing backend stdout pipe".to_string())?;
-    let err_pipe = child
-        .stderr
-        .take()
-        .ok_or_else(|| "missing backend stderr pipe".to_string())?;
-    let out_fwd = spawn_stderr_forwarder(out_pipe, "stdout");
-    let err_fwd = spawn_stderr_forwarder(err_pipe, "stderr");
 
     let (tx, rx) = mpsc::channel(cfg.max_queue);
     let max_frame = cfg.effective_rpc_max_frame_bytes();
     let shutdown_flag = Arc::new(AtomicBool::new(false));
+    let (shutdown_tx, shutdown_rx) = watch::channel(false);
     let child_slot = Arc::new(Mutex::new(Some(child)));
     let worker_shutdown = Arc::clone(&shutdown_flag);
     let worker_child = Arc::clone(&child_slot);
@@ -1026,12 +1057,11 @@ pub async fn serve(cfg: HttpHostConfig) -> Result<i32, String> {
     };
     if let Some(status) = immediate_exit {
         shutdown_flag.store(true, Ordering::Release);
+        let _ = shutdown_tx.send(true);
         let _ = control_sock.shutdown(Shutdown::Both);
         drop(tx);
         reap_child_slot(&child_slot, Duration::from_millis(200));
         let _ = worker_handle.join();
-        let _ = out_fwd.join();
-        let _ = err_fwd.join();
         return Err(format!("backend {} exited immediately with {status}", lisp_bin.display()));
     }
 
@@ -1045,6 +1075,7 @@ pub async fn serve(cfg: HttpHostConfig) -> Result<i32, String> {
         timeout: Duration::from_millis(cfg.timeout_ms),
         next_id: Arc::new(AtomicU64::new(1)),
         shutdown_flag: Arc::clone(&shutdown_flag),
+        shutdown_rx: shutdown_rx.clone(),
     };
     drop(tx);
 
@@ -1053,23 +1084,48 @@ pub async fn serve(cfg: HttpHostConfig) -> Result<i32, String> {
         .with_state(state)
         .layer(DefaultBodyLimit::disable());
 
+    let reap_handle: Arc<Mutex<Option<tokio::task::JoinHandle<()>>>> = Arc::new(Mutex::new(None));
     let shutdown_flag_sig = Arc::clone(&shutdown_flag);
+    let shutdown_tx_sig = shutdown_tx.clone();
+    let child_slot_sig = Arc::clone(&child_slot);
+    let reap_handle_sig = Arc::clone(&reap_handle);
     let shutdown = async move {
         shutdown_signal().await;
         shutdown_flag_sig.store(true, Ordering::Release);
+        let _ = shutdown_tx_sig.send(true);
         let _ = control_sock_sig.shutdown(Shutdown::Both);
+        let handle = tokio::task::spawn_blocking(move || {
+            reap_child_slot(&child_slot_sig, Duration::from_millis(500));
+        });
+        *reap_handle_sig.lock().unwrap_or_else(|e| e.into_inner()) = Some(handle);
     };
 
-    let serve_res = axum::serve(listener, app)
-        .with_graceful_shutdown(shutdown)
-        .await;
+    let mut server_fut = std::pin::pin!(async {
+        axum::serve(listener, app)
+            .with_graceful_shutdown(shutdown)
+            .await
+    });
+    let mut drain_rx = shutdown_rx.clone();
+    let serve_res = tokio::select! {
+        res = &mut server_fut => res,
+        _ = async {
+            let _ = drain_rx.wait_for(|&v| v).await;
+            tokio::time::sleep(SHUTDOWN_HTTP_DRAIN_GRACE).await;
+        } => {
+            Ok(())
+        }
+    };
+    drop(server_fut);
 
     shutdown_flag.store(true, Ordering::Release);
+    let _ = shutdown_tx.send(true);
     let _ = control_sock.shutdown(Shutdown::Both);
+    let maybe_reap = reap_handle.lock().unwrap_or_else(|e| e.into_inner()).take();
+    if let Some(handle) = maybe_reap {
+        let _ = handle.await;
+    }
     reap_child_slot(&child_slot, Duration::from_millis(500));
     let _ = worker_handle.join();
-    let _ = out_fwd.join();
-    let _ = err_fwd.join();
 
     serve_res.map_err(|e| format!("http server error: {e}"))?;
     Ok(0)
@@ -1348,5 +1404,137 @@ mod tests {
         peer.read_to_string(&mut written).unwrap();
         assert!(written.contains("/job1"), "expected job1 sent to peer: {written:?}");
         assert!(!written.contains("/job2"), "job2 must not be dispatched after shutdown: {written:?}");
+    }
+
+    #[test]
+    fn read_body_bounded_enforces_limit_deadline_and_shutdown() {
+        use std::io::{Read, Write};
+        use std::net::{SocketAddr, TcpStream};
+
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap();
+        let (_stx, mut srx) = watch::channel(false);
+        let err = rt
+            .block_on(read_body_bounded(
+                Body::from(vec![b'x'; 32]),
+                8,
+                Instant::now() + Duration::from_secs(5),
+                &mut srx,
+            ))
+            .unwrap_err();
+        assert_eq!(err, BodyReadError::TooLarge);
+
+        fn spawn_test_http_server(
+            timeout: Duration,
+            max_body_bytes: usize,
+        ) -> (
+            SocketAddr,
+            mpsc::Receiver<WorkerJob>,
+            Arc<AtomicBool>,
+            watch::Sender<bool>,
+            thread::JoinHandle<()>,
+        ) {
+            let (tx, rx) = mpsc::channel(8);
+            let shutdown_flag = Arc::new(AtomicBool::new(false));
+            let (shutdown_tx, shutdown_rx) = watch::channel(false);
+            let (addr_tx, addr_rx) = std::sync::mpsc::channel();
+
+            let state = AppState {
+                tx,
+                max_body_bytes,
+                timeout,
+                next_id: Arc::new(AtomicU64::new(1)),
+                shutdown_flag: Arc::clone(&shutdown_flag),
+                shutdown_rx: shutdown_rx.clone(),
+            };
+            let thread_shutdown_rx = shutdown_rx;
+            let handle = thread::spawn(move || {
+                let server_rt = tokio::runtime::Builder::new_current_thread()
+                    .enable_all()
+                    .build()
+                    .unwrap();
+                server_rt.block_on(async move {
+                    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+                    let local_addr = listener.local_addr().unwrap();
+                    addr_tx.send(local_addr).unwrap();
+                    let app = Router::new()
+                        .fallback(handle_http)
+                        .with_state(state)
+                        .layer(DefaultBodyLimit::disable());
+                    let mut stop_rx = thread_shutdown_rx;
+                    let mut server_fut = std::pin::pin!(async {
+                        let _ = axum::serve(listener, app).await;
+                    });
+                    tokio::select! {
+                        _ = &mut server_fut => {}
+                        _ = async {
+                            let _ = stop_rx.wait_for(|&v| v).await;
+                            tokio::time::sleep(Duration::from_millis(120)).await;
+                        } => {}
+                    }
+                });
+            });
+            let addr = addr_rx.recv().unwrap();
+            (addr, rx, shutdown_flag, shutdown_tx, handle)
+        }
+
+        // Case 1 & 2: oversized 413 + stalled body 408 timeout without queueing to RPC worker.
+        {
+            let (addr, mut rx, shutdown_flag, shutdown_tx, handle) =
+                spawn_test_http_server(Duration::from_millis(120), 32);
+
+            let mut s1 = TcpStream::connect(addr).unwrap();
+            s1.set_read_timeout(Some(Duration::from_secs(2))).unwrap();
+            s1.write_all(
+                b"POST /oversized HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\nContent-Length: 64\r\n\r\n",
+            )
+            .unwrap();
+            let mut r1 = String::new();
+            let _ = s1.read_to_string(&mut r1);
+            assert!(r1.starts_with("HTTP/1.1 413"), "expected 413, got {r1:?}");
+
+            let mut s2 = TcpStream::connect(addr).unwrap();
+            s2.set_read_timeout(Some(Duration::from_secs(2))).unwrap();
+            let t0 = Instant::now();
+            s2.write_all(
+                b"POST /stalled HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Length: 16\r\n\r\npartial",
+            )
+            .unwrap();
+            let mut r2 = String::new();
+            let _ = s2.read_to_string(&mut r2);
+            assert!(r2.starts_with("HTTP/1.1 408"), "expected 408, got {r2:?}");
+            assert!(t0.elapsed() < Duration::from_secs(1));
+            assert!(rx.try_recv().is_err(), "no job may reach RPC worker");
+
+            shutdown_flag.store(true, Ordering::Release);
+            let _ = shutdown_tx.send(true);
+            handle.join().unwrap();
+        }
+
+        // Case 3: stalled body with 10s timeout wakes promptly with 503 on shutdown_tx.
+        {
+            let (addr, mut rx, shutdown_flag, shutdown_tx, handle) =
+                spawn_test_http_server(Duration::from_secs(10), 1024);
+
+            let mut s3 = TcpStream::connect(addr).unwrap();
+            s3.set_read_timeout(Some(Duration::from_secs(2))).unwrap();
+            s3.write_all(
+                b"POST /stalled-shutdown HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Length: 64\r\n\r\npartial",
+            )
+            .unwrap();
+            thread::sleep(Duration::from_millis(50));
+            let t0 = Instant::now();
+            shutdown_flag.store(true, Ordering::Release);
+            let _ = shutdown_tx.send(true);
+
+            let mut r3 = String::new();
+            let _ = s3.read_to_string(&mut r3);
+            assert!(r3.starts_with("HTTP/1.1 503"), "expected 503 on shutdown, got {r3:?}");
+            assert!(t0.elapsed() < Duration::from_secs(1));
+            assert!(rx.try_recv().is_err(), "no job may reach RPC worker");
+            handle.join().unwrap();
+        }
     }
 }

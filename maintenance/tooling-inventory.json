@@ -8316,8 +8316,8 @@
     },
     {
       "path": "tools/test-c2-a2-lisp-app.py",
-      "sha256": "22436eb4c95e02fe404cc6f62df4979e7c7c4e8d98aa968e74c14c157a32e1ff",
-      "bytes": 32658,
+      "sha256": "cde5a1090f33895cf5b7acd33b59fe660b0052ed3fe7e9ff4de84be692dcf1f3",
+      "bytes": 39141,
       "family": "test",
       "decision": "retain",
       "replacement": null,

@@ -694,6 +694,170 @@ def exercise_http_lifecycle_edge_cases(
                 proc.kill()
                 proc.wait(timeout=5)
 
+    # Scenario D1: Incomplete request body hits 408 within --timeout-ms, preserves backend PID, never triggers handler.
+    marker_d1 = work_dir / "lifecycle-d1.marker"
+    env_d1 = dict(clean_env)
+    env_d1["FEMACS_TEST_MARKER_FILE"] = str(marker_d1)
+    err_d1 = work_dir / "http-lifecycle-d1.stderr.log"
+    with err_d1.open("w+", encoding="utf-8") as err_fh:
+        proc = subprocess.Popen(
+            [
+                str(http_bin),
+                "--listen",
+                "127.0.0.1:0",
+                "--handler",
+                str(lifecycle_el),
+                "--max-body-bytes",
+                "1024",
+                "--max-queue",
+                "8",
+                "--timeout-ms",
+                "450",
+            ],
+            env=env_d1,
+            stdout=subprocess.PIPE,
+            stderr=err_fh,
+            text=True,
+        )
+        try:
+            host, port, backend_pid = wait_for_readiness(proc)
+            assert pid_alive(backend_pid)
+            st_ping, _, _ = http_request(host, port, "GET", "/api/ping", timeout=5.0)
+            assert st_ping == 200, f"Scenario D1 initial ping failed: {st_ping}"
+
+            t0 = time.monotonic()
+            with socket.create_connection((host, port), timeout=3.0) as raw_sock:
+                raw_sock.settimeout(3.0)
+                raw_sock.sendall(
+                    b"POST /api/side-effect?tag=slow-body-timeout HTTP/1.1\r\n"
+                    b"Host: 127.0.0.1\r\n"
+                    b"Content-Length: 64\r\n\r\n"
+                    b"partial"
+                )
+                chunks: list[bytes] = []
+                while True:
+                    chunk = raw_sock.recv(4096)
+                    if not chunk:
+                        break
+                    chunks.append(chunk)
+                raw_resp = b"".join(chunks)
+            elapsed_d1 = time.monotonic() - t0
+            assert elapsed_d1 < 2.5, f"incomplete body timeout took too long: {elapsed_d1:.3f}s"
+            assert raw_resp.startswith(b"HTTP/1.1 408"), (
+                f"expected 408 Request Timeout for stalled body, got {raw_resp[:160]!r}"
+            )
+            assert "slow-body-timeout" not in marker_lines(marker_d1), (
+                f"timed-out incomplete body reached handler: {marker_lines(marker_d1)}"
+            )
+
+            st_after, _, _ = http_request(host, port, "GET", "/api/ping", timeout=5.0)
+            assert st_after == 200 and pid_alive(backend_pid), "backend died on 408 body timeout"
+
+            proc.send_signal(signal.SIGTERM)
+            rc = proc.wait(timeout=3.0)
+            assert rc == 0, f"Scenario D1 SIGTERM failed: {rc}"
+            assert_port_reusable(host, port)
+        finally:
+            if proc.poll() is None:
+                proc.kill()
+                proc.wait(timeout=5)
+
+    # Scenario D2: SIGTERM during stalled request body + blocked full stderr sink + open inherited stderr pipe exits < 3s.
+    marker_d2 = work_dir / "lifecycle-d2.marker"
+    env_d2 = dict(clean_env)
+    env_d2["FEMACS_TEST_MARKER_FILE"] = str(marker_d2)
+    err_r, err_w = os.pipe()
+    holder: subprocess.Popen[bytes] | None = None
+    proc: subprocess.Popen[str] | None = None
+    try:
+        holder = subprocess.Popen(
+            ["/bin/sleep", "5"],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=err_w,
+            close_fds=True,
+        )
+        proc = subprocess.Popen(
+            [
+                str(http_bin),
+                "--listen",
+                "127.0.0.1:0",
+                "--handler",
+                str(lifecycle_el),
+                "--max-body-bytes",
+                "1024",
+                "--max-queue",
+                "8",
+                "--timeout-ms",
+                "15000",
+            ],
+            env=env_d2,
+            stdout=subprocess.PIPE,
+            stderr=err_w,
+            text=True,
+            close_fds=True,
+        )
+
+        host, port, backend_pid = wait_for_readiness(proc)
+        assert pid_alive(backend_pid)
+        st_ping, _, _ = http_request(host, port, "GET", "/api/ping", timeout=5.0)
+        assert st_ping == 200, f"Scenario D2 initial ping failed: {st_ping}"
+
+        with socket.create_connection((host, port), timeout=3.0) as raw_sock:
+            raw_sock.settimeout(3.0)
+            raw_sock.sendall(
+                b"POST /api/side-effect?tag=slow-body-sigterm HTTP/1.1\r\n"
+                b"Host: 127.0.0.1\r\n"
+                b"Content-Length: 64\r\n\r\n"
+                b"partial"
+            )
+            time.sleep(0.05)
+
+            # Fill the shared stderr pipe completely with no reader so any blocking stderr write stalls,
+            # while `holder` keeps the pipe open and `err_w` in parent is closed.
+            os.set_blocking(err_w, False)
+            chunk = b"Z" * 4096
+            while True:
+                try:
+                    os.write(err_w, chunk)
+                except BlockingIOError:
+                    break
+            os.close(err_w)
+            err_w = -1
+
+            t0 = time.monotonic()
+            proc.send_signal(signal.SIGTERM)
+            rc = proc.wait(timeout=3.0)
+            elapsed_d2 = time.monotonic() - t0
+            assert rc == 0, f"expected clean SIGTERM exit 0 during stalled body + blocked stderr, got {rc} in {elapsed_d2:.3f}s"
+            assert elapsed_d2 < 3.0, f"Scenario D2 shutdown exceeded 3s: {elapsed_d2:.3f}s"
+
+        deadline_reap = time.monotonic() + 1.0
+        while pid_alive(backend_pid) and time.monotonic() < deadline_reap:
+            time.sleep(0.02)
+        assert not pid_alive(backend_pid), f"backend pid {backend_pid} survived Scenario D2 shutdown"
+        assert holder.poll() is None and pid_alive(holder.pid), (
+            "expected sibling holder process keeping stderr pipe open to outlive http-host shutdown"
+        )
+        assert "slow-body-sigterm" not in marker_lines(marker_d2), (
+            f"aborted incomplete body reached handler: {marker_lines(marker_d2)}"
+        )
+        assert_port_reusable(host, port)
+    finally:
+        if holder is not None:
+            if holder.poll() is None:
+                holder.kill()
+            holder.wait(timeout=5)
+        if err_w >= 0:
+            os.close(err_w)
+        os.close(err_r)
+        if proc is not None:
+            if proc.poll() is None:
+                proc.kill()
+                proc.wait(timeout=5)
+            if proc.stdout:
+                proc.stdout.close()
+
 
 def prepare_export_treesit(export_dir: Path) -> str:
     candidate = os.environ.get("FEMACS_TREE_SITTER_PREFIX")

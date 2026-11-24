@@ -1,8 +1,22 @@
 # 当前状态（2026-11-24）
 
-**本段为当前实际读数（Phase II Stage `C2/A2-R1` HTTP 生命周期闭合与忽略规则收口，响应 `17ef5430` `[FEMACS-C2-A2-REVIEW]`），取代下方 `C2 & A2`、`C1-R1` 及更早历史段落。**
+**本段为当前实际读数（Phase II Stage `C2/A2-R2` HTTP 请求体有界读取与无阻塞关停收口，响应 `8bbe713e` `[FEMACS-C2-A2-R1-REVIEW]`），取代下方 `C2/A2-R1`、`C2 & A2`、`C1-R1` 及更早历史段落。**
 
-- **Phase II Stage `C2/A2-R1`（`[FEMACS-C2-A2-REVIEW]` HTTP 生命周期阻断、`.gitignore` `/dist/lisp` 及 `dcdd6dc3` 记账口径校正）已闭合、`dist/lisp` 重建及集成/单测验收全过、并完成 `CLN291` 清理，待 Codex App `[FEMACS-C2-A2-R1-REVIEW]` 确认后进入 `C3/A3`**：
+- **Phase II Stage `C2/A2-R2`（`[FEMACS-C2-A2-R1-REVIEW]` 请求体截止/关停取消、HTTP drain 与后端回收解耦、及消除无期限日志转发线程 join）已闭合、`dist/lisp` 重建及集成/单测全过、并完成 `CLN292` 清理，待 Codex App `[FEMACS-C2-A2-R2-REVIEW]` 最终核收**：
+  - **请求体截止与无阻塞关停（`crates/http-host/src/lib.rs`）**：
+    - `handle_http` 在读体前即建立 `deadline = Instant::now() + state.timeout`，经 `read_body_bounded`（`tokio::select!` 联立 `watch::Receiver<bool>` 与 `tokio::time::timeout_at(deadline, to_bytes(...))`）有界读取请求体；超限返回 `413`，读体超时返回 `408`（`Connection: close`）且不伤及后端 PID，关停时立即以 `503`/`502`（`Connection: close`）中止等待中的连接。
+    - 取消 `spawn_stderr_forwarder` 管道与无期限 `out_fwd`/`err_fwd` `join()`，改为通过 `io::stderr().as_fd().try_clone_to_owned()` 直连子进程 stdout 至 stderr 并沿用 `Stdio::inherit()` stderr；在 `with_graceful_shutdown` 中异步触发 `reap_child_slot`，并对 `axum::serve` drain 施以 `SHUTDOWN_HTTP_DRAIN_GRACE`（`750ms`）硬上限。
+  - **集成与单测覆验证（`tools/test-c2-a2-lisp-app.py`、`crates/http-host/src/lib.rs`、`maintenance/tooling-inventory.json`）**：
+    - 新增 `Scenario D1`（未读完 `POST` 请求体在 `--timeout-ms 450` 下得 `408`、零副作用且保持同 PID）与 `Scenario D2`（`--timeout-ms 15000` 未读完请求体 + 写满阻塞 stderr 管道 + 外部 `/bin/sleep 5` 持写端条件下 `SIGTERM` `< 3s` 退出并回收后端），以及异步/TCP 保护性单测 `read_body_bounded_enforces_limit_deadline_and_shutdown`（`http-host` `8/8`）。
+  - **受控构建、集成验收、保护单测与 `CLN292` 读数（`assistant run`）**：
+    - `dist/lisp` 重建（`run_id=6303e1942d5a4ccf9c9e6910451fd829`，`174.563s`，`exit=0`，`cleanup_complete=true`）。
+    - Phase 2 验收（`run_id=19a7d42286c04c2f9809d858358cfd5f`，`29.874s`，`exit=0`，`cleanup_complete=true`）：`test-c2-a2-lisp-app.py --selftest`（`PASS`）、`test-c2-a2-lisp-app.py --package dist/lisp`（`PASS`，含 Scenarios A/B/C/D1/D2）、`test-repository-bootstrap.py`（`4/4`）、`check-unsafe-boundary.py`（`442` 活跃文件、`149` `forbid`、`6,327/6,327` `SAFETY:`、`0` 错误）、`check-own-voice.py`（`0` 失败）、`test-tooling-modernization.py`（`33/33`，`1.487s`）。
+    - Phase 3 保护性单测（`run_id=dfed7739aeaf4e0685e8a573c98db8d4`，`19.925s`，`exit=0`，`cleanup_complete=true`）：`cargo test -p http-host`（`8/8`）、安全边界与合规扫描 `0` 错误/失败。
+    - [CLN292](../maintenance/cleanup/reports/2026-11-24-292-c2-a2-r2-http-body-shutdown.md) 清理 `4` 项临时目录（`4,611` 文件、`1,162` 目录、`8` 符号链接、`895,652,948` 逻辑字节、摘要 `6f5c8f167882402a8cd9f2169bdec6a67321f7fdbb5ed2325db53846e618ffe1`）；当前 `dist/lisp`（`210M`）：`bin/femacs-lisp` `5,053,696 B`（`c7038804618fdb5a37a9448091488ef2fb8a1f1452fccc7921a899dd45eb87b6`）、`bin/femacs-lisp.pdmp` `18,325,840 B`（`39b97e3ee8f7808719db8e846d1a45f4c45f14003e080171b486687d57054071`）、`bin/http-host` `2,147,280 B`（`fb6199f2d01b5b0fa203ec2b84ef48aef535d08c5971970b90767a0a75bacc6f`），strict `codesign` 与 `manifest.json` 核验一致；清理后冒烟 `run_id=89826609e43f4604ab4befba4479c3ed`（`11.059s`，`exit=0`）：`LISP=42`、`HTTP=http-host 0.1.0 (femacs 32.0.50)`、`--package dist/lisp PASS`。保留 `build/terminal`（`45M`）、`dist/macos`（`235M` 与 `/Applications/Fe.app` 同源一致）、`build/generation`（`13M`）与 `build/manuals`（`1.4G`）。
+
+## 历史记录（2026-11-24 Stage C2/A2-R1，已被上方 Stage C2/A2-R2 取代）
+
+- **Phase II Stage `C2/A2-R1`（`8bbe713e`）**：
   - **有界截止与关闭生命周期（`crates/http-host/src/lib.rs`）**：
     - `#![forbid(unsafe_code)]` `run_rpc_worker` 以 `RPC_IO_POLL_SLICE`（`50ms`）切片的 `write_all_with_deadline` 与 `read_bounded_rpc_line_with_deadline` 替代无截止阻塞 I/O，`WorkerJob` 携带绝对 `deadline: Instant`。
     - 出队前淘汰已断连请求（`job.respond.is_closed()`）与已过期排队请求（`Instant::now() >= job.deadline`）；请求超时时立即关闭 socketpair、`kill_child_slot_now` 终止并回收卡死后端进程且 `drain_queued_jobs`，绝不重放；`serve()` 在 `SIGTERM`/`SIGINT` 时置 `shutdown_flag` 并 `Shutdown::Both` 唤醒 worker，随后按先 `reap_child_slot(&child_slot, 500ms)` 再 `worker_handle.join()` 的顺序有界退出，同时保留常规 Lisp `500` 错误后同 PID 续服行为。
