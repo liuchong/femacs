@@ -7,11 +7,12 @@
 
 #![deny(unsafe_op_in_unsafe_fn, static_mut_refs)]
 
+use std::marker::PhantomData;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
 use crate::common::{CONSP, Lisp_Object, XCDR, all_threads, current_buffer_alist, current_thread};
 use crate::nonlocal::{host_drop_counts, scoped_root_counts};
-use crate::roots::{RootingCounters, rooting_counters};
+use crate::roots::{RootingCounters, is_current_os_thread_vm_lock_owner, rooting_counters};
 
 static GC_CYCLES_COMPLETED: AtomicUsize = AtomicUsize::new(0);
 static LAST_GC_PERSISTENT_MARKED: AtomicUsize = AtomicUsize::new(0);
@@ -56,28 +57,32 @@ pub struct VmRootInventory {
 
 /// Zero-sized handle representing single-VM ownership on the active Lisp thread.
 pub struct VmState {
-    _private: (),
+    _not_send_sync: PhantomData<*mut ()>,
 }
 
 /// Per-thread view over the owning Lisp `thread_state`.
 pub struct ThreadState {
-    _private: (),
+    _not_send_sync: PhantomData<*mut ()>,
 }
 
 impl VmState {
     #[inline]
     pub fn current() -> Option<Self> {
         // SAFETY: `current_thread` is the single-VM active thread pointer `VmGlobal` extern slot.
-        if unsafe { current_thread.get() }.is_null() {
-            None
+        if is_current_os_thread_vm_lock_owner() && !unsafe { current_thread.get() }.is_null() {
+            Some(Self {
+                _not_send_sync: PhantomData,
+            })
         } else {
-            Some(Self { _private: () })
+            None
         }
     }
 
     #[inline]
     pub fn current_thread_state(&self) -> ThreadState {
-        ThreadState { _private: () }
+        ThreadState {
+            _not_send_sync: PhantomData,
+        }
     }
 
     pub fn snapshot(&self) -> VmRootInventory {
@@ -92,17 +97,17 @@ impl ThreadState {
 }
 
 #[inline]
-pub fn note_pdumper_loaded() {
+pub(crate) fn note_pdumper_loaded() {
     PDUMPER_LOADED_FLAG.store(true, Ordering::Relaxed);
 }
 
 #[inline]
-pub fn note_pdumper_hook_run() {
+pub(crate) fn note_pdumper_hook_run() {
     PDUMPER_HOOK_INVOCATIONS.fetch_add(1, Ordering::Relaxed);
 }
 
 #[inline]
-pub fn begin_gc_root_cycle() {
+pub(crate) fn begin_gc_root_cycle() {
     LAST_GC_PERSISTENT_MARKED.store(0, Ordering::Relaxed);
     LAST_GC_THREAD_SLAB_MARKED.store(0, Ordering::Relaxed);
     LAST_GC_CONSERVATIVE_STACK_BYTES.store(0, Ordering::Relaxed);
@@ -110,36 +115,40 @@ pub fn begin_gc_root_cycle() {
 }
 
 #[inline]
-pub fn note_gc_persistent_marked(count: usize) {
+pub(crate) fn note_gc_persistent_marked(count: usize) {
     LAST_GC_PERSISTENT_MARKED.fetch_add(count, Ordering::Relaxed);
 }
 
 #[inline]
-pub fn note_gc_thread_slab_marked(count: usize) {
+pub(crate) fn note_gc_thread_slab_marked(count: usize) {
     LAST_GC_THREAD_SLAB_MARKED.fetch_add(count, Ordering::Relaxed);
 }
 
 #[inline]
-pub fn note_gc_conservative_stack_span(bytes: usize) {
+pub(crate) fn note_gc_conservative_stack_span(bytes: usize) {
     LAST_GC_CONSERVATIVE_STACK_BYTES.fetch_add(bytes, Ordering::Relaxed);
 }
 
 #[inline]
-pub fn note_gc_sa_active_blocks(blocks: usize) {
+pub(crate) fn note_gc_sa_active_blocks(blocks: usize) {
     LAST_GC_SA_ACTIVE_BLOCKS.store(blocks, Ordering::Relaxed);
 }
 
 #[inline]
-pub fn note_sa_free_scrubbed(blocks: usize) {
+pub(crate) fn note_sa_free_scrubbed(blocks: usize) {
     LAST_GC_SA_FREE_SCRUBBED_BLOCKS.fetch_add(blocks, Ordering::Relaxed);
 }
 
 #[inline]
-pub fn finish_gc_root_cycle() {
+pub(crate) fn finish_gc_root_cycle() {
     GC_CYCLES_COMPLETED.fetch_add(1, Ordering::Relaxed);
 }
 
 fn snapshot_current_thread() -> ThreadStateSnapshot {
+    assert!(
+        is_current_os_thread_vm_lock_owner(),
+        "snapshot_current_thread requires active VM lock ownership on current OS thread"
+    );
     // SAFETY: reads active `all_threads` list and `current_thread` fields while holding the VM
     // global lock on the Lisp thread.
     unsafe {
@@ -185,7 +194,11 @@ fn snapshot_current_thread() -> ThreadStateSnapshot {
     }
 }
 
-pub fn snapshot_vm_root_inventory() -> VmRootInventory {
+pub(crate) fn snapshot_vm_root_inventory() -> VmRootInventory {
+    assert!(
+        is_current_os_thread_vm_lock_owner(),
+        "snapshot_vm_root_inventory requires active VM lock ownership on current OS thread"
+    );
     let rooting = rooting_counters();
     let (nl_c, nl_d) = scoped_root_counts();
     let (hd_c, hd_d) = host_drop_counts();
@@ -233,8 +246,12 @@ pub fn snapshot_vm_root_inventory() -> VmRootInventory {
 
 /// Exported C-ABI telemetry probe for `AU4` dynamic-module & integration verification.
 /// Writes 12 `usize` metrics into `out_buf` (`len >= 12`).
+///
+/// # Safety
+/// Must be called under the VM global lock; if `out_buf` is non-null and `len >= 12`, `out_buf`
+/// must point to valid, aligned, writable storage for at least 12 `usize` slots.
 #[unsafe(no_mangle)]
-pub extern "C" fn femacs_vm_u4_root_stats(out_buf: *mut usize, len: usize) -> usize {
+pub unsafe extern "C" fn femacs_vm_u4_root_stats(out_buf: *mut usize, len: usize) -> usize {
     let snap = snapshot_vm_root_inventory();
     let fields: [usize; 12] = [
         snap.gc_cycles_completed,

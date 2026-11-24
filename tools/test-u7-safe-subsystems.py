@@ -478,6 +478,7 @@ pub mod roots;
 pub mod nonlocal {
     pub(crate) fn clear_tls_state_cache() {}
     pub(crate) fn set_tls_vm_lock_key(_: usize) {}
+    pub(crate) fn tls_state_borrowed() -> bool { false }
 }
 
 #[cfg(test)]
@@ -490,14 +491,14 @@ mod tests {
     use crate::roots::{
         GcContext, LispVal, Rooted, RootedVec, bind_vm_lock_owner, cleanup_thread_u4_slab,
         mark_thread_u4_slab_roots, narrowed_stack_counts, unbind_vm_lock_owner,
-        with_narrowed_stack_bottom,
     };
 
     static SERIAL: Mutex<()> = Mutex::new(());
 
     fn marked(th: *mut thread_state) -> Vec<isize> {
         let mut out = Vec::new();
-        mark_thread_u4_slab_roots(th as *mut c_void, |o| out.push(((o as isize) >> 2)));
+        // SAFETY: isolated unit test holds `SERIAL`.
+        unsafe { mark_thread_u4_slab_roots(th as *mut c_void, |o| out.push(((o as isize) >> 2))) };
         out
     }
 
@@ -507,8 +508,11 @@ mod tests {
         let mut ts = thread_state { m_stack_bottom: core::ptr::null() };
         let th_ptr = &raw mut ts;
         current_thread.set(th_ptr);
-        bind_vm_lock_owner(th_ptr as usize);
-        cleanup_thread_u4_slab(th_ptr as *mut c_void);
+        // SAFETY: isolated unit test holds `SERIAL`.
+        unsafe {
+            bind_vm_lock_owner(th_ptr as usize);
+            cleanup_thread_u4_slab(th_ptr as *mut c_void);
+        }
 
         {
             let mut rv = RootedVec::with_capacity(1);
@@ -531,8 +535,11 @@ mod tests {
         }));
         assert!(res.is_err());
         assert!(marked(th_ptr).is_empty(), "unwind must truncate RootedVec span");
-        cleanup_thread_u4_slab(th_ptr as *mut c_void);
-        unbind_vm_lock_owner();
+        // SAFETY: isolated unit test cleanup.
+        unsafe {
+            cleanup_thread_u4_slab(th_ptr as *mut c_void);
+            unbind_vm_lock_owner();
+        }
         current_thread.set(core::ptr::null_mut());
     }
 
@@ -544,10 +551,12 @@ mod tests {
         let mut ts = thread_state { m_stack_bottom: outer_bottom };
         let th_ptr = &raw mut ts;
         current_thread.set(th_ptr);
-        bind_vm_lock_owner(th_ptr as usize);
+        // SAFETY: isolated unit test holds `SERIAL`.
+        unsafe { bind_vm_lock_owner(th_ptr as usize) };
 
+        let mut ctx = GcContext::current().expect("active GcContext");
         let (e0, r0) = narrowed_stack_counts();
-        let inner_seen = with_narrowed_stack_bottom(|| {
+        let inner_seen = ctx.with_narrowed_stack_bottom(|_| {
             // SAFETY: reads active test `ts.m_stack_bottom`.
             unsafe { (*th_ptr).m_stack_bottom as usize }
         });
@@ -557,7 +566,7 @@ mod tests {
         assert_eq!((e1 - e0, r1 - r0), (1, 1));
 
         let unwind_res = catch_unwind(AssertUnwindSafe(|| {
-            with_narrowed_stack_bottom(|| -> () {
+            ctx.with_narrowed_stack_bottom(|_| -> () {
                 panic!("unwind through NarrowedStackScanGuard");
             });
         }));
@@ -565,7 +574,9 @@ mod tests {
         assert_eq!(ts.m_stack_bottom, outer_bottom, "unwind must restore m_stack_bottom");
         let (e2, r2) = narrowed_stack_counts();
         assert_eq!((e2 - e0, r2 - r0), (2, 2));
-        unbind_vm_lock_owner();
+        drop(ctx);
+        // SAFETY: `ctx` is dropped before unbinding lock ownership.
+        unsafe { unbind_vm_lock_owner() };
         current_thread.set(core::ptr::null_mut());
     }
 
@@ -575,31 +586,39 @@ mod tests {
         let mut ts = thread_state { m_stack_bottom: core::ptr::null() };
         let th_ptr = &raw mut ts;
         current_thread.set(th_ptr);
-        bind_vm_lock_owner(th_ptr as usize);
-        cleanup_thread_u4_slab(th_ptr as *mut c_void);
+        // SAFETY: isolated unit test holds `SERIAL`.
+        unsafe {
+            bind_vm_lock_owner(th_ptr as usize);
+            cleanup_thread_u4_slab(th_ptr as *mut c_void);
+        }
 
         let ctx = GcContext::current().expect("first GcContext");
         assert!(GcContext::current().is_none(), "double GcContext must fail");
         assert!(std::thread::spawn(|| GcContext::current().is_some()).join().unwrap() == false);
 
-        let outer = ctx.root(LispVal::from_raw(make_fixnum(10)));
-        let inner = ctx.root(LispVal::from_raw(make_fixnum(20)));
+        // SAFETY: fixnums are valid immediate `Lisp_Object` words.
+        let outer = ctx.root(unsafe { LispVal::from_raw(make_fixnum(10)) });
+        // SAFETY: fixnums are valid immediate `Lisp_Object` words.
+        let inner = ctx.root(unsafe { LispVal::from_raw(make_fixnum(20)) });
         let mut v1 = RootedVec::filled(1, make_fixnum(30));
         let v2 = RootedVec::filled(2, make_fixnum(40));
         assert_eq!(marked(th_ptr), vec![10, 20, 30, 40, 40]);
 
         drop(outer);
         drop(v1);
-        assert_eq!(inner.get(), LispVal::from_raw(make_fixnum(20)));
-        assert_eq!(inner.handle().get(), LispVal::from_raw(make_fixnum(20)));
+        assert_eq!(inner.get(), unsafe { LispVal::from_raw(make_fixnum(20)) });
+        assert_eq!(inner.handle().get(), unsafe { LispVal::from_raw(make_fixnum(20)) });
         assert_eq!(marked(th_ptr), vec![20, 40, 40]);
 
         drop(v2);
         drop(inner);
         drop(ctx);
         assert!(marked(th_ptr).is_empty());
-        cleanup_thread_u4_slab(th_ptr as *mut c_void);
-        unbind_vm_lock_owner();
+        // SAFETY: isolated unit test cleanup.
+        unsafe {
+            cleanup_thread_u4_slab(th_ptr as *mut c_void);
+            unbind_vm_lock_owner();
+        }
         current_thread.set(core::ptr::null_mut());
     }
 }

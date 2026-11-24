@@ -3,7 +3,7 @@
     {
       "anchor_pattern": "pub unsafe extern \"C-unwind\" fn mark_c_stack",
       "file": "src/alloc.rs",
-      "justification": "Conservatively scans active native machine stack words [m_stack_top, current_stack_bottom) for libgccjit .eln native frames (gcc_jit_function_new_local) and unmigrated C-ported src/*.rs frames holding local Lisp_Object values across Feval/Ffuncall; narrowed dynamically via roots::with_narrowed_stack_bottom / NarrowedStackScanGuard at top-level safe_domain command-loop entry and bypassed under FEMACS_GC_SKIP_STACK_SCAN=1 to verify explicit-root closure across Interpreter, Bytecode, PersistentRoot, module global_ref, and safe_* subsystems.",
+      "justification": "Conservatively scans active native machine stack words [m_stack_top, current_stack_bottom) for libgccjit .eln native frames (gcc_jit_function_new_local) and unmigrated C-ported src/*.rs frames holding local Lisp_Object values across Feval/Ffuncall; narrowed dynamically via GcContext::with_narrowed_stack_bottom / NarrowedStackScanGuard at top-level safe_domain command-loop entry and bypassed under FEMACS_GC_SKIP_STACK_SCAN=1 to verify explicit-root closure across Interpreter, Bytecode, PersistentRoot, module global_ref, and safe_* subsystems.",
       "status": "retained_hybrid",
       "symbol": "mark_c_stack"
     },
@@ -2194,7 +2194,7 @@
     },
     {
       "anchor_file": "crates/femacs-vm/src/roots.rs",
-      "anchor_pattern": "pub struct ScopedRawSpan",
+      "anchor_pattern": "pub(crate) struct ScopedRawSpan",
       "id": "eval_scoped_spans",
       "liveness": "Enclosing Rust call frame across nested Lisp evaluations and GC safepoints",
       "origin": "Progressive raw Lisp_Object arrays in Flet, eval_sub, and apply_lambda",
@@ -2224,7 +2224,7 @@
     },
     {
       "anchor_file": "crates/femacs-vm/src/nonlocal.rs",
-      "anchor_pattern": "pub fn mark_thread_explicit_roots(",
+      "anchor_pattern": "pub(crate) unsafe fn mark_thread_explicit_roots(",
       "id": "nonlocal_exit_payloads",
       "liveness": "Throughout stack unwinding and Lisp unwind-protect cleanup execution",
       "origin": "In-flight signal/throw/quit payloads and ScopedLispRoot unwind temporaries",

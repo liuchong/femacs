@@ -1940,7 +1940,8 @@ unsafe fn comp_run_void_helper (body: impl FnOnce ()) -> c_int {
   match crate::nonlocal::catch_vm_nonlocal (body) {
     Ok (()) => crate::nonlocal::comp_native_exit_pending_for_current_thread (),
     Err (exit) => {
-      crate::nonlocal::set_comp_native_exit (exit);
+      // SAFETY: called under the active VM global lock at `.eln` helper boundary.
+      unsafe { crate::nonlocal::set_comp_native_exit (exit); }
       1
     }
   }
@@ -2425,8 +2426,9 @@ extern "C" fn comp_exit_pending () -> c_int {
 }
 
 #[cfg (feature = "have_native_comp")]
-extern "C" fn comp_consume_exit_for_handler (cand: *mut handler) -> c_int {
-  crate::nonlocal::consume_comp_native_exit_for_handler (cand)
+unsafe extern "C" fn comp_consume_exit_for_handler (cand: *mut handler) -> c_int {
+  // SAFETY: `.eln` landing pad queries pending `NonLocalExit` ownership under active VM lock.
+  unsafe { crate::nonlocal::consume_comp_native_exit_for_handler (cand) }
 }
 
 /* `native-comp-eln-load-path' clean-up support code.  */

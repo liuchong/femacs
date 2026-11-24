@@ -84,6 +84,7 @@ pub mod roots;
 pub mod nonlocal {
     pub(crate) fn clear_tls_state_cache() {}
     pub(crate) fn set_tls_vm_lock_key(_: usize) {}
+    pub(crate) fn tls_state_borrowed() -> bool { false }
 }
 
 #[macro_use]
@@ -117,22 +118,26 @@ mod tests {
         let ptr = id as *mut c_void;
         current_thread.set(ptr as *mut crate::common::thread_state);
         if id != 0 {
-            bind_vm_lock_owner(id);
+            // SAFETY: serialized test acquires `SERIAL` lock simulating VM global lock ownership.
+            unsafe { bind_vm_lock_owner(id) };
         } else {
-            unbind_vm_lock_owner();
+            // SAFETY: clears test lock ownership immediately before releasing `SERIAL`.
+            unsafe { unbind_vm_lock_owner() };
         }
         ptr
     }
 
     fn marked_slab(th: *mut c_void) -> Vec<usize> {
         let mut out = Vec::new();
-        mark_thread_u4_slab_roots(th, |o| out.push(o as usize));
+        // SAFETY: called under serialized test VM lock on owning thread.
+        unsafe { mark_thread_u4_slab_roots(th, |o| out.push(o as usize)) };
         out
     }
 
     fn marked_persistent() -> Vec<usize> {
         let mut out = Vec::new();
-        mark_persistent_roots(|o| out.push(o as usize));
+        // SAFETY: called under serialized test VM lock.
+        unsafe { mark_persistent_roots(|o| out.push(o as usize)) };
         out
     }
 
@@ -140,7 +145,8 @@ mod tests {
     fn rooted_handles_nogc_borrow_lifo_and_unwind_truncation() {
         let _lk = SERIAL.lock().unwrap();
         let th = set_thread(0x1000);
-        cleanup_thread_u4_slab(th);
+        // SAFETY: test owns VM lock and resets slab for `th`.
+        unsafe { cleanup_thread_u4_slab(th) };
 
         let mut ctx = GcContext::current().expect("active thread context");
         let borrowed_sum = {
@@ -152,28 +158,34 @@ mod tests {
         let after_sp = ctx.safepoint(|_| borrowed_sum);
         assert_eq!(after_sp, 42);
 
-        let r1 = Rooted::new(LispVal::from_raw(fake_obj(11)));
-        let mut r2 = Rooted::new(LispVal::from_raw(fake_obj(22)));
+        // SAFETY: fake tagged words constructed solely for isolated root-slab tracking tests.
+        let r1 = Rooted::new(unsafe { LispVal::from_raw(fake_obj(11)) });
+        // SAFETY: same as above.
+        let mut r2 = Rooted::new(unsafe { LispVal::from_raw(fake_obj(22)) });
         assert_eq!(marked_slab(th), vec![11 << 3, 22 << 3]);
 
-        r2.handle_mut().set(LispVal::from_raw(fake_obj(33)));
-        assert_eq!(r2.handle().get(), LispVal::from_raw(fake_obj(33)));
+        // SAFETY: same as above.
+        r2.handle_mut().set(unsafe { LispVal::from_raw(fake_obj(33)) });
+        assert_eq!(r2.handle().get(), unsafe { LispVal::from_raw(fake_obj(33)) });
         assert_eq!(marked_slab(th), vec![11 << 3, 33 << 3]);
 
         let panicked = catch_unwind(AssertUnwindSafe(|| {
-            let _r3 = Rooted::new(LispVal::from_raw(fake_obj(44)));
+            // SAFETY: fake tagged word for isolated unwind tracking test.
+            let _r3 = Rooted::new(unsafe { LispVal::from_raw(fake_obj(44)) });
             assert_eq!(marked_slab(th), vec![11 << 3, 33 << 3, 44 << 3]);
             panic!("unwind inner Rooted");
         }));
         assert!(panicked.is_err());
-        // `_r3` must have been truncated cleanly while `r1` and `r2` survive!
+        // `_r3` must have been released cleanly while `r1` and `r2` survive!
         assert_eq!(marked_slab(th), vec![11 << 3, 33 << 3]);
-        assert_eq!(r1.get(), LispVal::from_raw(fake_obj(11)));
+        assert_eq!(r1.get(), unsafe { LispVal::from_raw(fake_obj(11)) });
 
         drop(r2);
         drop(r1);
+        drop(ctx);
         assert!(marked_slab(th).is_empty());
-        cleanup_thread_u4_slab(th);
+        // SAFETY: all `Rooted` handles on `th` are dropped.
+        unsafe { cleanup_thread_u4_slab(th) };
         set_thread(0);
     }
 
@@ -181,7 +193,8 @@ mod tests {
     fn scoped_raw_span_progressive_set_len_and_unwind() {
         let _lk = SERIAL.lock().unwrap();
         let th = set_thread(0x2000);
-        cleanup_thread_u4_slab(th);
+        // SAFETY: test owns VM lock and resets slab for `th`.
+        unsafe { cleanup_thread_u4_slab(th) };
 
         let mut slots: [Lisp_Object; 6] = [
             fake_obj(101),
@@ -223,18 +236,23 @@ mod tests {
 
         drop(span);
         assert!(marked_slab(th).is_empty());
-        cleanup_thread_u4_slab(th);
+        // SAFETY: all spans on `th` are dropped.
+        unsafe { cleanup_thread_u4_slab(th) };
         set_thread(0);
     }
 
     #[test]
     fn persistent_root_slot_reuse_and_aba_generation_rejection() {
         let _lk = SERIAL.lock().unwrap();
+        let th = set_thread(0x7000);
+        // SAFETY: test owns VM lock.
+        unsafe { cleanup_thread_u4_slab(th) };
         let before = rooting_counters();
 
-        let mut p1 = PersistentRoot::new(LispVal::from_raw(fake_obj(501)));
+        // SAFETY: fake tagged word for isolated persistent root test.
+        let mut p1 = PersistentRoot::new(unsafe { LispVal::from_raw(fake_obj(501)) });
         let (slot_idx_1, gen_1) = p1.raw_token();
-        assert_eq!(p1.handle().get(), LispVal::from_raw(fake_obj(501)));
+        assert_eq!(p1.handle().get(), unsafe { LispVal::from_raw(fake_obj(501)) });
         assert!(marked_persistent().contains(&(501 << 3)));
 
         assert!(p1.release());
@@ -249,7 +267,8 @@ mod tests {
         // Reallocate via C-ABI entrypoint: free-list reuses `slot_idx_1` with bumped generation!
         let mut idx2: usize = usize::MAX;
         let mut gen2: u64 = 0;
-        femacs_vm_persistent_root_alloc(fake_obj(502), &raw mut idx2, &raw mut gen2);
+        // SAFETY: `idx2` and `gen2` are valid aligned writable locals.
+        unsafe { femacs_vm_persistent_root_alloc(fake_obj(502), &raw mut idx2, &raw mut gen2) };
         assert_eq!(idx2, slot_idx_1);
         assert!(gen2 > gen_1);
         assert_eq!(femacs_vm_persistent_root_get(idx2, gen2), fake_obj(502));
@@ -270,6 +289,9 @@ mod tests {
 
         let after = rooting_counters();
         assert_eq!(after.persistent_live, before.persistent_live);
+        // SAFETY: test cleanup under VM lock.
+        unsafe { cleanup_thread_u4_slab(th) };
+        set_thread(0);
     }
 
     #[test]
@@ -302,7 +324,8 @@ mod tests {
     fn gc_context_is_single_lease_and_rejects_other_os_thread() {
         let _lk = SERIAL.lock().unwrap();
         let th = set_thread(0x3000);
-        cleanup_thread_u4_slab(th);
+        // SAFETY: test owns VM lock.
+        unsafe { cleanup_thread_u4_slab(th) };
 
         let mut ctx1 = GcContext::current().expect("lock owner obtains first GcContext");
         assert!(
@@ -326,7 +349,8 @@ mod tests {
 
         let ctx2 = GcContext::current().expect("re-acquire GcContext after drop");
         drop(ctx2);
-        cleanup_thread_u4_slab(th);
+        // SAFETY: test cleanup under VM lock.
+        unsafe { cleanup_thread_u4_slab(th) };
         set_thread(0);
     }
 
@@ -334,29 +358,33 @@ mod tests {
     fn rooted_out_of_order_drop_preserves_inner_live_root_and_handle() {
         let _lk = SERIAL.lock().unwrap();
         let th = set_thread(0x4000);
-        cleanup_thread_u4_slab(th);
+        // SAFETY: test owns VM lock.
+        unsafe { cleanup_thread_u4_slab(th) };
 
-        let outer = Rooted::new(LispVal::from_raw(fake_obj(71)));
-        let mut inner = Rooted::new(LispVal::from_raw(fake_obj(72)));
+        // SAFETY: fake tagged words for isolated root-slab tests.
+        let outer = Rooted::new(unsafe { LispVal::from_raw(fake_obj(71)) });
+        let mut inner = Rooted::new(unsafe { LispVal::from_raw(fake_obj(72)) });
         assert_eq!(marked_slab(th), vec![71 << 3, 72 << 3]);
 
         // Drop `outer` BEFORE `inner`! Previously `truncate(self.index)` wiped `inner` in release.
         drop(outer);
-        assert_eq!(inner.get(), LispVal::from_raw(fake_obj(72)));
-        assert_eq!(inner.handle().get(), LispVal::from_raw(fake_obj(72)));
+        assert_eq!(inner.get(), unsafe { LispVal::from_raw(fake_obj(72)) });
+        assert_eq!(inner.handle().get(), unsafe { LispVal::from_raw(fake_obj(72)) });
         assert_eq!(marked_slab(th), vec![72 << 3]);
 
-        inner.set(LispVal::from_raw(fake_obj(73)));
+        // SAFETY: fake tagged words for isolated root-slab tests.
+        inner.set(unsafe { LispVal::from_raw(fake_obj(73)) });
         // Free-list slot reuse must not disturb live `inner` at slot 1.
-        let reused = Rooted::new(LispVal::from_raw(fake_obj(74)));
-        assert_eq!(reused.get(), LispVal::from_raw(fake_obj(74)));
-        assert_eq!(inner.handle().get(), LispVal::from_raw(fake_obj(73)));
+        let reused = Rooted::new(unsafe { LispVal::from_raw(fake_obj(74)) });
+        assert_eq!(reused.get(), unsafe { LispVal::from_raw(fake_obj(74)) });
+        assert_eq!(inner.handle().get(), unsafe { LispVal::from_raw(fake_obj(73)) });
         assert_eq!(marked_slab(th), vec![74 << 3, 73 << 3]);
 
         drop(reused);
         drop(inner);
         assert!(marked_slab(th).is_empty());
-        cleanup_thread_u4_slab(th);
+        // SAFETY: test cleanup under VM lock.
+        unsafe { cleanup_thread_u4_slab(th) };
         set_thread(0);
     }
 
@@ -364,7 +392,8 @@ mod tests {
     fn rooted_vec_out_of_order_drop_preserves_other_live_spans() {
         let _lk = SERIAL.lock().unwrap();
         let th = set_thread(0x5000);
-        cleanup_thread_u4_slab(th);
+        // SAFETY: test owns VM lock.
+        unsafe { cleanup_thread_u4_slab(th) };
 
         let mut v1 = RootedVec::new();
         v1.push(fake_obj(81));
@@ -378,7 +407,8 @@ mod tests {
 
         drop(v2);
         assert!(marked_slab(th).is_empty());
-        cleanup_thread_u4_slab(th);
+        // SAFETY: test cleanup under VM lock.
+        unsafe { cleanup_thread_u4_slab(th) };
         set_thread(0);
     }
 
@@ -386,19 +416,175 @@ mod tests {
     fn rooted_new_panics_on_non_owner_os_thread() {
         let _lk = SERIAL.lock().unwrap();
         let th = set_thread(0x6000);
-        cleanup_thread_u4_slab(th);
+        // SAFETY: test owns VM lock.
+        unsafe { cleanup_thread_u4_slab(th) };
 
         let res = std::thread::spawn(|| {
             catch_unwind(AssertUnwindSafe(|| {
-                let _bad = Rooted::new(LispVal::from_raw(fake_obj(91)));
+                // SAFETY: fake tagged word for isolated test.
+                let _bad = Rooted::new(unsafe { LispVal::from_raw(fake_obj(91)) });
             }))
         })
         .join()
         .expect("join thread");
         assert!(res.is_err(), "non-owner OS thread Rooted::new must panic");
         assert!(marked_slab(th).is_empty());
-        cleanup_thread_u4_slab(th);
+        // SAFETY: test cleanup under VM lock.
+        unsafe { cleanup_thread_u4_slab(th) };
         set_thread(0);
+    }
+
+    #[test]
+    fn cleanup_and_mark_reject_non_owner_os_thread() {
+        let _lk = SERIAL.lock().unwrap();
+        let th = set_thread(0x6100);
+        // SAFETY: test owns VM lock.
+        unsafe { cleanup_thread_u4_slab(th) };
+        let live_root = Rooted::new(LispVal::from_fixnum(123));
+        let live_word = LispVal::from_fixnum(123).into_raw() as usize;
+        assert_eq!(marked_slab(th), vec![live_word]);
+
+        let th_addr = th as usize;
+        let (clean_err, mark_slab_err, mark_pers_err, cnt_err) = std::thread::spawn(move || {
+            let foreign = th_addr as *mut c_void;
+            let c1 = catch_unwind(AssertUnwindSafe(|| unsafe { cleanup_thread_u4_slab(foreign) }));
+            let c2 = catch_unwind(AssertUnwindSafe(|| unsafe {
+                mark_thread_u4_slab_roots(foreign, |_| {})
+            }));
+            let c3 = catch_unwind(AssertUnwindSafe(|| unsafe { mark_persistent_roots(|_| {}) }));
+            let c4 = catch_unwind(AssertUnwindSafe(|| {
+                let _ = rooting_counters();
+            }));
+            (c1.is_err(), c2.is_err(), c3.is_err(), c4.is_err())
+        })
+        .join()
+        .expect("join thread");
+
+        assert!(clean_err, "non-owner cleanup_thread_u4_slab must panic");
+        assert!(mark_slab_err, "non-owner mark_thread_u4_slab_roots must panic");
+        assert!(mark_pers_err, "non-owner mark_persistent_roots must panic");
+        assert!(cnt_err, "non-owner rooting_counters must panic");
+        assert_eq!(live_root.get(), LispVal::from_fixnum(123));
+        assert_eq!(marked_slab(th), vec![live_word]);
+
+        drop(live_root);
+        // SAFETY: test cleanup under VM lock.
+        unsafe { cleanup_thread_u4_slab(th) };
+        set_thread(0);
+    }
+
+    #[test]
+    fn bind_rejects_second_os_thread_while_locked_and_unbind_rejects_active_context() {
+        let _lk = SERIAL.lock().unwrap();
+        let th = set_thread(0x6200);
+        // SAFETY: test owns VM lock.
+        unsafe { cleanup_thread_u4_slab(th) };
+
+        let th_addr = th as usize;
+        let (bind_err, unbind_err) = std::thread::spawn(move || {
+            let b = catch_unwind(AssertUnwindSafe(|| unsafe { bind_vm_lock_owner(th_addr) }));
+            let u = catch_unwind(AssertUnwindSafe(|| unsafe { unbind_vm_lock_owner() }));
+            (b.is_err(), u.is_err())
+        })
+        .join()
+        .expect("join thread");
+        assert!(bind_err, "non-owner bind_vm_lock_owner must panic while locked");
+        assert!(unbind_err, "non-owner unbind_vm_lock_owner must panic while locked");
+
+        let ctx = GcContext::current().expect("owner holds lock and gets GcContext");
+        let unbind_while_ctx = catch_unwind(AssertUnwindSafe(|| unsafe { unbind_vm_lock_owner() }));
+        assert!(
+            unbind_while_ctx.is_err(),
+            "unbind_vm_lock_owner must panic while GcContext lease is still active"
+        );
+        drop(ctx);
+
+        // SAFETY: test cleanup under VM lock.
+        unsafe { cleanup_thread_u4_slab(th) };
+        set_thread(0);
+    }
+
+    #[test]
+    fn main_and_worker_lock_handoff_preserves_out_of_order_roots() {
+        let _lk = SERIAL.lock().unwrap();
+        static VM_HANDOFF_MUTEX: Mutex<()> = Mutex::new(());
+        let main_th = 0x6301usize as *mut c_void;
+        let worker_th_addr = 0x6302usize;
+
+        // 1. Main thread acquires lock, creates two Rooted slots, and hands off lock.
+        let (outer_main, inner_main) = {
+            let _g = VM_HANDOFF_MUTEX.lock().unwrap();
+            current_thread.set(main_th as *mut crate::common::thread_state);
+            // SAFETY: owns `VM_HANDOFF_MUTEX`.
+            unsafe {
+                bind_vm_lock_owner(main_th as usize);
+                cleanup_thread_u4_slab(main_th);
+            }
+            let ctx = GcContext::current().expect("main acquires GcContext");
+            let outer = ctx.root(LispVal::from_fixnum(1001));
+            let inner = ctx.root(LispVal::from_fixnum(1002));
+            drop(ctx);
+            // SAFETY: ending lock turn while no GcContext/slab borrow is live.
+            unsafe { unbind_vm_lock_owner() };
+            current_thread.set(core::ptr::null_mut());
+            (outer, inner)
+        };
+
+        // 2. Worker OS thread acquires physical lock, proves no GcContext before binding, runs
+        //    out-of-order Rooted drops, cleans up worker slab, and hands lock back.
+        std::thread::spawn(move || {
+            let worker_th = worker_th_addr as *mut c_void;
+            let _g = VM_HANDOFF_MUTEX.lock().unwrap();
+            assert!(
+                GcContext::current().is_none(),
+                "worker cannot acquire GcContext before bind_vm_lock_owner"
+            );
+            current_thread.set(worker_th as *mut crate::common::thread_state);
+            // SAFETY: worker holds `VM_HANDOFF_MUTEX`.
+            unsafe {
+                bind_vm_lock_owner(worker_th_addr);
+                cleanup_thread_u4_slab(worker_th);
+            }
+            let ctx_w = GcContext::current().expect("worker acquires GcContext after bind");
+            let w_outer = ctx_w.root(LispVal::from_fixnum(2001));
+            let w_inner = ctx_w.root(LispVal::from_fixnum(2002));
+            drop(w_outer);
+            assert_eq!(w_inner.get(), LispVal::from_fixnum(2002));
+            drop(w_inner);
+            drop(ctx_w);
+            // SAFETY: worker drops all roots before cleanup and unbind.
+            unsafe {
+                cleanup_thread_u4_slab(worker_th);
+                unbind_vm_lock_owner();
+            }
+            current_thread.set(core::ptr::null_mut());
+        })
+        .join()
+        .expect("worker handoff join");
+
+        // 3. Main thread re-acquires physical lock, confirms Main's live roots survived untouched,
+        //    and performs out-of-order drop on Main!
+        {
+            let _g = VM_HANDOFF_MUTEX.lock().unwrap();
+            assert!(GcContext::current().is_none());
+            current_thread.set(main_th as *mut crate::common::thread_state);
+            // SAFETY: main re-acquired `VM_HANDOFF_MUTEX`.
+            unsafe { bind_vm_lock_owner(main_th as usize) };
+            let _ctx2 = GcContext::current().expect("main re-acquires GcContext");
+            assert_eq!(outer_main.get(), LispVal::from_fixnum(1001));
+            assert_eq!(inner_main.get(), LispVal::from_fixnum(1002));
+            drop(outer_main);
+            assert_eq!(inner_main.handle().get(), LispVal::from_fixnum(1002));
+            drop(inner_main);
+            assert!(marked_slab(main_th).is_empty());
+            drop(_ctx2);
+            // SAFETY: test cleanup under `VM_HANDOFF_MUTEX`.
+            unsafe {
+                cleanup_thread_u4_slab(main_th);
+                unbind_vm_lock_owner();
+            }
+            current_thread.set(core::ptr::null_mut());
+        }
     }
 }
 """
@@ -460,7 +646,252 @@ def main() -> int:
                 timeout=60,
             )
             proc = run_checked([str(bin_out), "--test-threads=1"], timeout=30)
-            assert "9 passed; 0 failed" in proc.stdout, proc.stdout
+            assert "12 passed; 0 failed" in proc.stdout, proc.stdout
+
+    def group4_external_safe_caller_boundary_gate() -> None:
+        boundary_lib_src = r"""
+#![deny(static_mut_refs, unsafe_op_in_unsafe_fn)]
+#![allow(non_camel_case_types, non_upper_case_globals)]
+
+pub mod common {
+    use core::ffi::{c_char, c_int, c_void};
+    use std::sync::atomic::{AtomicUsize, Ordering};
+
+    pub type Lisp_Object = *mut c_void;
+    pub type EMACS_INT = isize;
+    pub type nonlocal_exit = c_int;
+    pub const NONLOCAL_EXIT_SIGNAL: nonlocal_exit = 0;
+    pub const NONLOCAL_EXIT_THROW: nonlocal_exit = 1;
+
+    #[repr(C)]
+    pub struct handler {
+        pub dummy: usize,
+    }
+
+    #[repr(C)]
+    pub struct thread_state {
+        pub m_stack_bottom: *const c_char,
+    }
+
+    pub struct ThreadGlobal;
+    static THREAD_PTR: AtomicUsize = AtomicUsize::new(0);
+
+    impl ThreadGlobal {
+        pub fn get(&self) -> *mut thread_state {
+            THREAD_PTR.load(Ordering::Acquire) as *mut thread_state
+        }
+        pub(crate) fn set(&self, v: *mut thread_state) {
+            THREAD_PTR.store(v as usize, Ordering::Release);
+        }
+    }
+
+    // Intentionally safe-readable across crates just like `src/thread.rs:183`!
+    pub static current_thread: ThreadGlobal = ThreadGlobal;
+
+    #[inline]
+    pub const fn lisp_h_Qnil() -> Lisp_Object {
+        core::ptr::null_mut()
+    }
+
+    #[inline]
+    pub fn make_fixnum(n: EMACS_INT) -> Lisp_Object {
+        (((n as usize) << 2) | 2) as Lisp_Object
+    }
+
+    #[inline]
+    pub fn FIXNUMP(x: Lisp_Object) -> bool {
+        ((x as usize) & 3) == 2
+    }
+
+    #[inline]
+    pub fn XFIXNUM(x: Lisp_Object) -> EMACS_INT {
+        ((x as isize) >> 2) as EMACS_INT
+    }
+}
+
+pub mod eval {
+    use crate::common::Lisp_Object;
+    pub unsafe extern "C-unwind" fn Ffuncall(_nargs: isize, args: *mut Lisp_Object) -> Lisp_Object {
+        unsafe { *args }
+    }
+}
+
+#[path = "__ROOTS_RS_PATH__"]
+pub mod roots;
+
+#[path = "__NONLOCAL_RS_PATH__"]
+pub mod nonlocal;
+
+static VM_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+/// Physical-lock-backed VM kernel entry: the ONLY way external code can enter a VM lock epoch.
+pub fn with_vm_lock<R>(thread: &mut common::thread_state, f: impl FnOnce() -> R) -> R {
+    struct UnbindOnExit;
+    impl Drop for UnbindOnExit {
+        fn drop(&mut self) {
+            // SAFETY: holds `VM_LOCK` mutex on this OS thread while unbinding lock ownership.
+            unsafe { roots::unbind_vm_lock_owner() };
+            common::current_thread.set(core::ptr::null_mut());
+        }
+    }
+
+    let _guard = VM_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+    let key = (&raw mut *thread) as usize;
+    common::current_thread.set(&raw mut *thread);
+    // SAFETY: holds `VM_LOCK` mutex on this OS thread with live `thread_state`.
+    unsafe { roots::bind_vm_lock_owner(key) };
+    let _unbind = UnbindOnExit;
+    f()
+}
+
+pub fn cleanup_thread_after_use(thread: &mut common::thread_state) {
+    let key = (&raw mut *thread) as usize;
+    with_vm_lock(thread, || {
+        let raw = key as *mut core::ffi::c_void;
+        // SAFETY: `VM_LOCK` is held and caller ensures all thread roots were dropped.
+        unsafe {
+            nonlocal::cleanup_thread_state(raw);
+            roots::cleanup_thread_u4_slab(raw);
+        }
+    });
+}
+"""
+        compile_fail_cases = [
+            ("bind_vm_lock_owner", "femacs_vm_boundary::roots::bind_vm_lock_owner(1);"),
+            ("unbind_vm_lock_owner", "femacs_vm_boundary::roots::unbind_vm_lock_owner();"),
+            ("cleanup_thread_u4_slab", "femacs_vm_boundary::roots::cleanup_thread_u4_slab(core::ptr::null_mut());"),
+            ("mark_thread_u4_slab_roots", "femacs_vm_boundary::roots::mark_thread_u4_slab_roots(core::ptr::null_mut(), |_| {});"),
+            ("mark_persistent_roots", "femacs_vm_boundary::roots::mark_persistent_roots(|_| {});"),
+            ("rooting_counters_free", "let _ = femacs_vm_boundary::roots::rooting_counters();"),
+            ("with_narrowed_stack_bottom_free", "femacs_vm_boundary::roots::with_narrowed_stack_bottom(|| {});"),
+            ("lispval_from_raw", "let _ = femacs_vm_boundary::roots::LispVal::from_raw(core::ptr::null_mut());"),
+            ("persistent_root_alloc_cabi", "femacs_vm_boundary::roots::femacs_vm_persistent_root_alloc(core::ptr::null_mut(), core::ptr::null_mut(), core::ptr::null_mut());"),
+            ("cleanup_thread_state", "femacs_vm_boundary::nonlocal::cleanup_thread_state(core::ptr::null_mut());"),
+            ("set_comp_native_exit", "let _ = femacs_vm_boundary::nonlocal::set_comp_native_exit;"),
+            ("host_drop_counts_cabi", "let _ = femacs_vm_boundary::nonlocal::femacs_vm_host_drop_counts(core::ptr::null_mut(), core::ptr::null_mut(), core::ptr::null_mut(), core::ptr::null_mut());"),
+        ]
+        external_runtime_src = r"""
+#![forbid(unsafe_code)]
+
+use std::panic::{AssertUnwindSafe, catch_unwind};
+use femacs_vm_boundary::{cleanup_thread_after_use, with_vm_lock};
+use femacs_vm_boundary::common::{current_thread, thread_state};
+use femacs_vm_boundary::roots::{GcContext, LispVal, Rooted};
+
+fn main() {
+    assert!(
+        GcContext::current().is_none(),
+        "external safe caller outside VM lock cannot obtain GcContext"
+    );
+
+    let stack_anchor: usize = 0;
+    let fake_bottom = (&raw const stack_anchor) as usize + 4096;
+    let mut main_ts = thread_state { m_stack_bottom: fake_bottom as *const _ };
+
+    let outer_main = with_vm_lock(&mut main_ts, || {
+        // Safe code CAN read global `current_thread`, just like `src/thread.rs:183`.
+        assert!(!current_thread.get().is_null());
+
+        // Spawn another OS thread while Main holds physical lock and `current_thread` is non-null:
+        // purely safe external caller MUST fail to get `GcContext` or push `Rooted`.
+        let (other_ctx, other_root_panicked) = std::thread::spawn(|| {
+            assert!(!current_thread.get().is_null());
+            let got_ctx = GcContext::current().is_some();
+            let root_panicked = catch_unwind(AssertUnwindSafe(|| {
+                let _bad = Rooted::new(LispVal::from_fixnum(7));
+            }))
+            .is_err();
+            (got_ctx, root_panicked)
+        })
+        .join()
+        .expect("join external non-owner thread");
+        assert!(!other_ctx, "other OS thread cannot acquire GcContext");
+        assert!(other_root_panicked, "other OS thread Rooted::new must panic");
+
+        let mut ctx = GcContext::current().expect("lock holder obtains GcContext");
+        let _cnt = ctx.rooting_counters();
+        ctx.with_narrowed_stack_bottom(|ctx| {
+            let outer = ctx.root(LispVal::from_fixnum(11));
+            let inner = ctx.root(LispVal::from_fixnum(22));
+            // Out-of-order drop: dropping outer first leaves inner alive!
+            drop(outer);
+            assert_eq!(inner.get(), LispVal::from_fixnum(22));
+            assert_eq!(inner.handle().get(), LispVal::from_fixnum(22));
+            drop(inner);
+        });
+        ctx.root(LispVal::from_fixnum(33))
+    });
+
+    assert!(GcContext::current().is_none(), "released lock clears GcContext");
+
+    // Lock handoff to worker thread and back to main thread.
+    std::thread::spawn(|| {
+        let mut worker_ts = thread_state { m_stack_bottom: core::ptr::null() };
+        with_vm_lock(&mut worker_ts, || {
+            let ctx = GcContext::current().expect("worker lock holder obtains GcContext");
+            let w_outer = ctx.root(LispVal::from_fixnum(44));
+            let w_inner = ctx.root(LispVal::from_fixnum(55));
+            drop(w_outer);
+            assert_eq!(w_inner.get(), LispVal::from_fixnum(55));
+            drop(w_inner);
+        });
+        cleanup_thread_after_use(&mut worker_ts);
+    })
+    .join()
+    .expect("join worker handoff");
+
+    with_vm_lock(&mut main_ts, || {
+        let _ctx = GcContext::current().expect("main reacquires lock");
+        assert_eq!(outer_main.get(), LispVal::from_fixnum(33));
+        drop(outer_main);
+    });
+    cleanup_thread_after_use(&mut main_ts);
+}
+"""
+        with tempfile.TemporaryDirectory(prefix="femacs-u4-ext-boundary-") as tmp:
+            work = Path(tmp)
+            lib_rs = work / "femacs_vm_boundary.rs"
+            rlib = work / "libfemacs_vm_boundary.rlib"
+            lib_rs.write_text(
+                boundary_lib_src.replace(
+                    "__ROOTS_RS_PATH__", str((REPO / "crates/femacs-vm/src/roots.rs").resolve())
+                )
+                .replace(
+                    "__NONLOCAL_RS_PATH__", str((REPO / "crates/femacs-vm/src/nonlocal.rs").resolve())
+                )
+                .lstrip(),
+                encoding="utf-8",
+            )
+            run_checked(
+                ["rustc", "--edition=2024", "--crate-type=lib", "--crate-name=femacs_vm_boundary", "-O", str(lib_rs), "-o", str(rlib)],
+                timeout=60,
+            )
+
+            for name, stmt in compile_fail_cases:
+                bad_rs = work / f"bad_{name}.rs"
+                bad_bin = work / f"bad_{name}"
+                bad_rs.write_text(
+                    f"#![forbid(unsafe_code)]\nextern crate femacs_vm_boundary;\nfn main() {{\n    {stmt}\n}}\n",
+                    encoding="utf-8",
+                )
+                comp = subprocess.run(
+                    ["rustc", "--edition=2024", "--extern", f"femacs_vm_boundary={rlib}", str(bad_rs), "-o", str(bad_bin)],
+                    cwd=REPO,
+                    capture_output=True,
+                    text=True,
+                    timeout=30,
+                    check=False,
+                )
+                assert comp.returncode != 0, f"external forbid(unsafe_code) caller unexpectedly compiled `{name}`!"
+
+            ext_rs = work / "ext_runtime_ok.rs"
+            ext_bin = work / "ext_runtime_ok"
+            ext_rs.write_text(external_runtime_src.lstrip(), encoding="utf-8")
+            run_checked(
+                ["rustc", "--edition=2024", "--extern", f"femacs_vm_boundary={rlib}", "-O", str(ext_rs), "-o", str(ext_bin)],
+                timeout=60,
+            )
+            run_checked([str(ext_bin)], timeout=30)
 
     def group2_forbid_crates_and_boundary_tool_selftests() -> None:
         run_checked([sys.executable, str(REPO / "tools/check-unsafe-boundary.py"), "--selftest"], timeout=30)
@@ -519,6 +950,7 @@ def main() -> int:
     run_group("1_isolated_roots_and_stdcountof_rust_tests", group1_isolated_roots_and_stdcountof_rust_tests)
     run_group("2_forbid_crates_and_boundary_tool_selftests", group2_forbid_crates_and_boundary_tool_selftests)
     run_group("3_u4_structural_defect_regressions", group3_u4_structural_defect_regressions)
+    run_group("4_external_safe_caller_boundary_gate", group4_external_safe_caller_boundary_gate)
 
     print(
         json.dumps(

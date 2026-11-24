@@ -84,14 +84,14 @@ pub mod roots {
         static TLS_KEY: Cell<usize> = const { Cell::new(0) };
     }
 
-    pub fn bind_vm_lock_owner(thread_key: usize) {
+    pub(crate) unsafe fn bind_vm_lock_owner(thread_key: usize) {
         let tid = TID.with(|t| *t);
         TLS_KEY.with(|k| k.set(thread_key));
         OWNER_TID.store(tid, Ordering::Release);
         OWNER_KEY.store(thread_key, Ordering::Release);
     }
 
-    pub fn unbind_vm_lock_owner() {
+    pub(crate) unsafe fn unbind_vm_lock_owner() {
         TLS_KEY.with(|k| k.set(0));
         OWNER_KEY.store(0, Ordering::Release);
         OWNER_TID.store(0, Ordering::Release);
@@ -101,12 +101,21 @@ pub mod roots {
         thread_key != 0 && TLS_KEY.with(|k| k.get()) == thread_key
     }
 
+    pub(crate) fn is_current_os_thread_vm_lock_owner() -> bool {
+        let tid = TID.with(|t| *t);
+        let owner_key = OWNER_KEY.load(Ordering::Acquire);
+        owner_key != 0
+            && OWNER_TID.load(Ordering::Acquire) == tid
+            && TLS_KEY.with(|k| k.get()) == owner_key
+    }
+
     pub(crate) fn is_vm_lock_owner(thread_key: usize) -> bool {
         let tid = TID.with(|t| *t);
         thread_key != 0
             && crate::common::current_thread.get() as usize == thread_key
             && OWNER_KEY.load(Ordering::Acquire) == thread_key
             && OWNER_TID.load(Ordering::Acquire) == tid
+            && TLS_KEY.with(|k| k.get()) == thread_key
     }
 }
 
@@ -142,16 +151,19 @@ mod tests {
         let ptr = id as *mut c_void;
         current_thread.set(ptr);
         if id != 0 {
-            bind_vm_lock_owner(id);
+            // SAFETY: serialized test owns simulated VM lock.
+            unsafe { bind_vm_lock_owner(id) };
         } else {
-            unbind_vm_lock_owner();
+            // SAFETY: releasing simulated VM lock.
+            unsafe { unbind_vm_lock_owner() };
         }
         ptr
     }
 
     fn collect_marked(thread: *mut c_void) -> Vec<usize> {
         let mut out = Vec::new();
-        mark_thread_explicit_roots(thread, |obj| out.push(obj as usize));
+        // SAFETY: called under serialized test VM lock.
+        unsafe { mark_thread_explicit_roots(thread, |obj| out.push(obj as usize)) };
         out
     }
 
@@ -169,11 +181,14 @@ mod tests {
         assert_eq!(NonLocalExitKind::Throw.to_raw(), NONLOCAL_EXIT_THROW);
 
         let res_sig: Result<usize, NonLocalExit> = catch_vm_nonlocal(|| {
-            raise_vm_nonlocal(NonLocalExit {
-                kind: NonLocalExitKind::Signal,
-                target: &raw mut h1,
-                value: fake_obj(0xAA01),
-            })
+            // SAFETY: isolated unit test inside `catch_vm_nonlocal`.
+            unsafe {
+                raise_vm_nonlocal(NonLocalExit {
+                    kind: NonLocalExitKind::Signal,
+                    target: &raw mut h1,
+                    value: fake_obj(0xAA01),
+                })
+            }
         });
         let err_sig = res_sig.expect_err("expected Signal NonLocalExit");
         assert_eq!(err_sig.kind, NonLocalExitKind::Signal);
@@ -182,11 +197,14 @@ mod tests {
         assert!(collect_marked(thread).is_empty(), "inflight root must clear once caught");
 
         let res_thr: Result<usize, NonLocalExit> = catch_vm_nonlocal(|| {
-            raise_vm_nonlocal(NonLocalExit {
-                kind: NonLocalExitKind::Throw,
-                target: &raw mut h2,
-                value: fake_obj(0xBB02),
-            })
+            // SAFETY: isolated unit test inside `catch_vm_nonlocal`.
+            unsafe {
+                raise_vm_nonlocal(NonLocalExit {
+                    kind: NonLocalExitKind::Throw,
+                    target: &raw mut h2,
+                    value: fake_obj(0xBB02),
+                })
+            }
         });
         let err_thr = res_thr.expect_err("expected Throw NonLocalExit");
         assert_eq!(err_thr.kind, NonLocalExitKind::Throw);
@@ -194,7 +212,8 @@ mod tests {
         assert_eq!(err_thr.value as usize, 0xBB02);
         assert!(collect_marked(thread).is_empty());
 
-        cleanup_thread_state(thread);
+        // SAFETY: test cleanup under VM lock.
+        unsafe { cleanup_thread_state(thread) };
         set_thread(0);
     }
 
@@ -215,7 +234,8 @@ mod tests {
             .unwrap_or("");
         assert_eq!(msg, "genuine-rust-bug-not-lisp-signal");
 
-        cleanup_thread_state(thread);
+        // SAFETY: test cleanup under VM lock.
+        unsafe { cleanup_thread_state(thread) };
         set_thread(0);
     }
 
@@ -227,19 +247,25 @@ mod tests {
         let (rc0, rd0) = scoped_root_counts();
 
         {
-            let mut outer = ScopedLispRoot::new(&[fake_obj(11), fake_obj(22)]);
+            // SAFETY: fake tagged words for isolated unit test.
+            let mut outer = unsafe { ScopedLispRoot::new(&[fake_obj(11), fake_obj(22)]) };
             assert_eq!(collect_marked(thread), vec![11, 22]);
-            outer.set(1, fake_obj(220));
+            // SAFETY: fake tagged word.
+            unsafe { outer.set(1, fake_obj(220)) };
             assert_eq!(collect_marked(thread), vec![11, 220]);
 
             let unwound = catch_vm_nonlocal(|| {
-                let _inner = ScopedLispRoot::new(&[fake_obj(33), fake_obj(44)]);
+                // SAFETY: fake tagged words.
+                let _inner = unsafe { ScopedLispRoot::new(&[fake_obj(33), fake_obj(44)]) };
                 assert_eq!(collect_marked(thread), vec![11, 220, 33, 44]);
-                raise_vm_nonlocal(NonLocalExit {
-                    kind: NonLocalExitKind::Throw,
-                    target: &raw mut h,
-                    value: fake_obj(999),
-                });
+                // SAFETY: inside `catch_vm_nonlocal`.
+                unsafe {
+                    raise_vm_nonlocal(NonLocalExit {
+                        kind: NonLocalExitKind::Throw,
+                        target: &raw mut h,
+                        value: fake_obj(999),
+                    });
+                }
             });
             assert!(unwound.is_err());
             // Inner root must have released cleanly during unwind while outer remains intact!
@@ -250,7 +276,8 @@ mod tests {
         assert_eq!(rc1 - rc0, 2);
         assert_eq!(rd1 - rd0, 2);
 
-        cleanup_thread_state(thread);
+        // SAFETY: test cleanup under VM lock.
+        unsafe { cleanup_thread_state(thread) };
         set_thread(0);
     }
 
@@ -266,18 +293,24 @@ mod tests {
             let _g_outer = HostDropGuard::new();
             let inner = catch_vm_nonlocal(|| {
                 let _g_inner = HostDropGuard::new();
-                raise_vm_nonlocal(NonLocalExit {
-                    kind: NonLocalExitKind::Signal,
-                    target: &raw mut h_inner,
-                    value: fake_obj(1),
-                });
+                // SAFETY: inside `catch_vm_nonlocal`.
+                unsafe {
+                    raise_vm_nonlocal(NonLocalExit {
+                        kind: NonLocalExitKind::Signal,
+                        target: &raw mut h_inner,
+                        value: fake_obj(1),
+                    });
+                }
             });
             assert!(inner.is_err());
-            resume_vm_nonlocal(NonLocalExit {
-                kind: NonLocalExitKind::Throw,
-                target: &raw mut h_outer,
-                value: fake_obj(2),
-            });
+            // SAFETY: inside `catch_vm_nonlocal`.
+            unsafe {
+                resume_vm_nonlocal(NonLocalExit {
+                    kind: NonLocalExitKind::Throw,
+                    target: &raw mut h_outer,
+                    value: fake_obj(2),
+                });
+            }
         });
         assert_eq!(outer.unwrap_err().value as usize, 2);
 
@@ -285,13 +318,17 @@ mod tests {
         assert_eq!(ret as usize, 77);
 
         let (mut hc1, mut hd1, mut rc1, mut rd1) = (0, 0, 0, 0);
-        femacs_vm_host_drop_counts(&raw mut hc1, &raw mut hd1, &raw mut rc1, &raw mut rd1);
+        // SAFETY: out pointers are valid writable locals under active lock.
+        unsafe {
+            femacs_vm_host_drop_counts(&raw mut hc1, &raw mut hd1, &raw mut rc1, &raw mut rd1);
+        }
         assert_eq!(hc1 - hc0, 3);
         assert_eq!(hd1 - hd0, 3);
         assert_eq!(hc1, hd1);
         assert_eq!(rc1, rd1);
 
-        cleanup_thread_state(thread);
+        // SAFETY: test cleanup under VM lock.
+        unsafe { cleanup_thread_state(thread) };
         set_thread(0);
     }
 
@@ -303,31 +340,38 @@ mod tests {
         let mut h_other = handler { dummy: 20 };
 
         assert_eq!(comp_native_exit_pending_for_current_thread(), 0);
-        set_comp_native_exit(NonLocalExit {
-            kind: NonLocalExitKind::Throw,
-            target: &raw mut h_target,
-            value: fake_obj(0xCAFE),
-        });
+        // SAFETY: isolated unit test on active owner thread.
+        unsafe {
+            set_comp_native_exit(NonLocalExit {
+                kind: NonLocalExitKind::Throw,
+                target: &raw mut h_target,
+                value: fake_obj(0xCAFE),
+            });
+        }
         assert_eq!(comp_native_exit_pending_for_current_thread(), 1);
         assert_eq!(collect_marked(thread), vec![0xCAFE]);
 
         // Non-matching handler must NOT consume the pending exit.
-        assert_eq!(consume_comp_native_exit_for_handler(&raw mut h_other), 0);
+        assert_eq!(unsafe { consume_comp_native_exit_for_handler(&raw mut h_other) }, 0);
         assert_eq!(comp_native_exit_pending_for_current_thread(), 1);
 
         // Matching handler consumes and clears the pending exit.
-        assert_eq!(consume_comp_native_exit_for_handler(&raw mut h_target), 1);
+        assert_eq!(unsafe { consume_comp_native_exit_for_handler(&raw mut h_target) }, 1);
         assert_eq!(comp_native_exit_pending_for_current_thread(), 0);
         assert!(collect_marked(thread).is_empty());
 
         // Unconsumed pending exit converts back to a VM NonLocalExit unwind on boundary check.
-        set_comp_native_exit(NonLocalExit {
-            kind: NonLocalExitKind::Signal,
-            target: &raw mut h_target,
-            value: fake_obj(0xBEEF),
-        });
+        // SAFETY: isolated unit test on active owner thread.
+        unsafe {
+            set_comp_native_exit(NonLocalExit {
+                kind: NonLocalExitKind::Signal,
+                target: &raw mut h_target,
+                value: fake_obj(0xBEEF),
+            });
+        }
         let propagated = catch_vm_nonlocal(|| {
-            check_and_propagate_comp_native_exit();
+            // SAFETY: inside `catch_vm_nonlocal`.
+            unsafe { check_and_propagate_comp_native_exit() };
         });
         let exit = propagated.expect_err("expected pending .eln exit to propagate");
         assert_eq!(exit.kind, NonLocalExitKind::Signal);
@@ -336,16 +380,20 @@ mod tests {
 
         // Finalizing a thread with an active pending exit decrements global counter cleanly.
         let dying_thread = set_thread(0x6000);
-        set_comp_native_exit(NonLocalExit {
-            kind: NonLocalExitKind::Signal,
-            target: &raw mut h_target,
-            value: fake_obj(0xDEAD),
-        });
-        cleanup_thread_state(dying_thread);
+        // SAFETY: active thread `0x6000`.
+        unsafe {
+            set_comp_native_exit(NonLocalExit {
+                kind: NonLocalExitKind::Signal,
+                target: &raw mut h_target,
+                value: fake_obj(0xDEAD),
+            });
+            cleanup_thread_state(dying_thread);
+        }
         set_thread(0x5000);
         assert_eq!(comp_native_exit_pending_for_current_thread(), 0);
 
-        cleanup_thread_state(thread);
+        // SAFETY: test cleanup under VM lock.
+        unsafe { cleanup_thread_state(thread) };
         set_thread(0);
     }
 
@@ -353,32 +401,39 @@ mod tests {
     fn scoped_lisp_root_out_of_order_drop_preserves_inner_and_overflow_roots() {
         let _lock = SERIAL.lock().unwrap();
         let thread = set_thread(0x7000);
-        cleanup_thread_state(thread);
+        // SAFETY: test owns VM lock.
+        unsafe { cleanup_thread_state(thread) };
 
-        let outer = ScopedLispRoot::new(&[fake_obj(1), fake_obj(2)]);
-        let mut inner_big = ScopedLispRoot::new(&[
-            fake_obj(10),
-            fake_obj(11),
-            fake_obj(12),
-            fake_obj(13),
-            fake_obj(14),
-            fake_obj(15),
-        ]);
+        // SAFETY: fake tagged words for isolated unit test.
+        let outer = unsafe { ScopedLispRoot::new(&[fake_obj(1), fake_obj(2)]) };
+        let mut inner_big = unsafe {
+            ScopedLispRoot::new(&[
+                fake_obj(10),
+                fake_obj(11),
+                fake_obj(12),
+                fake_obj(13),
+                fake_obj(14),
+                fake_obj(15),
+            ])
+        };
         assert_eq!(collect_marked(thread), vec![1, 2, 10, 11, 12, 13, 14, 15]);
 
         // Drop `outer` BEFORE `inner_big`! Must keep all 6 `inner_big` elements rooted.
         drop(outer);
         assert_eq!(collect_marked(thread), vec![10, 11, 12, 13, 14, 15]);
 
-        inner_big.set(4, fake_obj(140));
-        let reused = ScopedLispRoot::new(&[fake_obj(20)]);
+        // SAFETY: fake tagged word.
+        unsafe { inner_big.set(4, fake_obj(140)) };
+        // SAFETY: fake tagged word.
+        let reused = unsafe { ScopedLispRoot::new(&[fake_obj(20)]) };
         assert_eq!(collect_marked(thread), vec![20, 10, 11, 12, 13, 140, 15]);
 
         drop(reused);
         drop(inner_big);
         assert!(collect_marked(thread).is_empty());
 
-        cleanup_thread_state(thread);
+        // SAFETY: test cleanup under VM lock.
+        unsafe { cleanup_thread_state(thread) };
         set_thread(0);
     }
 
@@ -386,11 +441,13 @@ mod tests {
     fn scoped_lisp_root_rejects_non_owner_os_thread() {
         let _lock = SERIAL.lock().unwrap();
         let thread = set_thread(0x8000);
-        cleanup_thread_state(thread);
+        // SAFETY: test owns VM lock.
+        unsafe { cleanup_thread_state(thread) };
 
         let res = std::thread::spawn(|| {
             catch_unwind(AssertUnwindSafe(|| {
-                let _bad = ScopedLispRoot::new(&[fake_obj(99)]);
+                // SAFETY: testing rejection of non-owner thread.
+                let _bad = unsafe { ScopedLispRoot::new(&[fake_obj(99)]) };
             }))
         })
         .join()
@@ -398,7 +455,44 @@ mod tests {
         assert!(res.is_err(), "non-owner OS thread ScopedLispRoot::new must panic");
         assert!(collect_marked(thread).is_empty());
 
-        cleanup_thread_state(thread);
+        // SAFETY: test cleanup under VM lock.
+        unsafe { cleanup_thread_state(thread) };
+        set_thread(0);
+    }
+
+    #[test]
+    fn cleanup_mark_and_counters_reject_non_owner_os_thread() {
+        let _lock = SERIAL.lock().unwrap();
+        let thread = set_thread(0x9000);
+        // SAFETY: test owns VM lock.
+        unsafe { cleanup_thread_state(thread) };
+        // SAFETY: fake tagged word.
+        let live_root = unsafe { ScopedLispRoot::new(&[fake_obj(303)]) };
+        assert_eq!(collect_marked(thread), vec![303]);
+
+        let th_addr = thread as usize;
+        let (clean_err, mark_err, cnt_err) = std::thread::spawn(move || {
+            let foreign = th_addr as *mut c_void;
+            let c1 = catch_unwind(AssertUnwindSafe(|| unsafe { cleanup_thread_state(foreign) }));
+            let c2 = catch_unwind(AssertUnwindSafe(|| unsafe {
+                mark_thread_explicit_roots(foreign, |_| {})
+            }));
+            let c3 = catch_unwind(AssertUnwindSafe(|| {
+                let _ = scoped_root_counts();
+            }));
+            (c1.is_err(), c2.is_err(), c3.is_err())
+        })
+        .join()
+        .expect("join thread");
+
+        assert!(clean_err, "non-owner cleanup_thread_state must panic");
+        assert!(mark_err, "non-owner mark_thread_explicit_roots must panic");
+        assert!(cnt_err, "non-owner scoped_root_counts must panic");
+        assert_eq!(collect_marked(thread), vec![303]);
+
+        drop(live_root);
+        // SAFETY: test cleanup under VM lock.
+        unsafe { cleanup_thread_state(thread) };
         set_thread(0);
     }
 }
@@ -611,6 +705,17 @@ def main() -> int:
         # 3) All `emacs_env` vtable entrypoints in `src/emacs-module.rs` remain `extern "C"`.
         if re.search(r'extern\s+"C-unwind"\s+fn\s+module_(?!finalize_function\b|function_interactive_form\b|function_command_modes\b|function_arity\b|function_documentation\b|function_address\b|function_data\b|signal_or_throw\b)', mod_rs):
             raise AssertionError("emacs_env vtable `module_*` entrypoints must not be `extern \"C-unwind\"`")
+
+        # 4) Raw-pointer C-ABI probes & lock/raw-value VM-kernel primitives require `unsafe` or `pub(crate)`.
+        roots_rs = (REPO / "crates/femacs-vm/src/roots.rs").read_text(encoding="utf-8")
+        nonlocal_rs = (REPO / "crates/femacs-vm/src/nonlocal.rs").read_text(encoding="utf-8")
+        state_rs = (REPO / "crates/femacs-vm/src/state.rs").read_text(encoding="utf-8")
+        assert 'pub unsafe extern "C" fn femacs_vm_persistent_root_alloc(' in roots_rs
+        assert 'pub unsafe extern "C" fn femacs_vm_host_drop_counts(' in nonlocal_rs
+        assert 'pub unsafe extern "C" fn femacs_vm_u4_root_stats(' in state_rs
+        assert 'pub(crate) unsafe fn bind_vm_lock_owner(' in roots_rs
+        assert 'pub(crate) unsafe fn unbind_vm_lock_owner(' in roots_rs
+        assert 'pub unsafe fn from_raw(' in roots_rs
 
         return {
             "abi_version": "14",

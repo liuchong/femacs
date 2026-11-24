@@ -2515,6 +2515,7 @@ unsafe fn readevalloop_eager_expand_eval (val: Lisp_Object, macroexpand: Lisp_Ob
   if EQ (CAR_SAFE (val), Qprogn ())
     {
       let mut subforms: Lisp_Object = XCDR (val);
+      let _subforms_span = crate::roots::ScopedRawSpan::new (&raw mut subforms, 1);
       val = Qnil ();
       FOR_EACH_TAIL! (subforms, {
 	val = readevalloop_eager_expand_eval (XCAR (subforms), macroexpand);
@@ -2710,7 +2711,7 @@ unsafe fn readevalloop (readcharfun: Lisp_Object, infile0: *mut infile,
 	{ start = Fpoint_marker (); }
 
       /* Restore saved point and BEGV.  */
-      unbind_to (count1, Qnil ());
+      val = unbind_to (count1, val);
 
       /* Now eval what we just read.  */
       if !NILP (macroexpand)

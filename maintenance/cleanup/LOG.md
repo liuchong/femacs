@@ -1,3 +1,9 @@
+## CLN286 — 2026-11-24: U8-R3 VM boundary tightening and verification cache retirement
+
+- Retired `15` owned temporary build, runtime, acceptance, staging, and hardlink-alias scopes (`12,122` files, `1,253` directories, `20` symlinks, `1,923,285,065` logical bytes across `build/runtime`, `build/cargo`, `build/cargo-tools`, `build/acceptance`, `build/macos`, `build/treesit-0.27.1`, `build/terminal/{cargo,config,image,image-staging,lcms,tls,treesit}`, and `P-190` hardlinked `build/terminal/port/src/emacs-32.0.50.1{,.pdmp}`) after closing the `502e87b8` R2 AU4/AU6 VM-kernel safe/unsafe boundary finding, fixing `eval_sub` / `readevalloop` skip-stack-scan GC rooting, and passing targeted `U3`/`U4`/`U7` and `AU8 --group performance` (`bench.py --gate` `0` regressions) re-verification (with 555 corpus / UI sweeps reused from `502e87b8`).
+- Kept: verified deliverables `build/terminal` (`45M`, `build/terminal/port`) and `dist/macos/Femacs.app` (`235M`, atomically reinstalled to `/Applications/Fe.app` with empty `diff -rq`), plus `build/generation` (`4.4M`) and `build/manuals` (`557M`), all re-verified post-cleanup via strict `codesign` (`exit 0`), 4-deliverable SHA-256 records, and `-Q --batch` / CLI smoke (`(3 t nil nil t)`, `(3 t)`, `emacsclient 32.0.50`, `exit 0`).
+- [Report and recovery recipe](reports/2026-11-24-286-u8-r3-vm-boundary-tightening.md).
+
 ## CLN285 — 2026-11-24: U8-R2 review closure and AU8 verification cache retirement
 
 - Retired `14` owned temporary build, verification, session-cache, and container scopes (`48,469` files, `5,718` directories, `140` symlinks, `2,741,223,009` logical bytes) across `build/runtime` (`u8-native`, `u8-baseline`), `build/cargo`, `build/acceptance`, `build/goal-{identity,output-guard}-unit`, `<session-cache>/{au8-r2,treesit-0.27.1}`, and `7` `<noindex>/f*` containers after closing `P-488` review findings and passing `AU8` (`4/4` groups including Cocoa/terminal `bench.py --gate` and strict `corpus-555`).

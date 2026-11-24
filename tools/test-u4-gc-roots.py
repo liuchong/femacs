@@ -306,6 +306,17 @@ LISP_ROOT_SUITE = r""";;; u4_root_suite.el --- AU4 root lifecycle & GC stress su
                  (equal (nth 0 lam-res) "l1-1")
                  (equal (nth 10 lam-res) "l11-11"))
       (error "12-arg evaluation ScopedRawSpan corrupted")))
+
+  ;; 4. Direct readevalloop -> eval_sub (.elc path, macroexpand=nil) with GC triggered on entry.
+  (with-temp-buffer
+    (dotimes (r 6)
+      (insert "(list")
+      (dotimes (i 400)
+        (insert (format " \"s%d-%d\"" r i)))
+      (insert ")\n"))
+    (let ((gc-cons-threshold 10000)
+          (gc-cons-percentage 0.0))
+      (eval-buffer nil nil "u4-direct-eval.elc")))
   'core-ok)
 
 (defun u4-alloc-only-persistent (weak-tbl)

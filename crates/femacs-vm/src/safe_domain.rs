@@ -7,7 +7,7 @@
 #![forbid(unsafe_code)]
 
 use crate::nonlocal::VmResult;
-use crate::roots::{GcContext, LispVal, PersistentRoot, Rooted, with_narrowed_stack_bottom};
+use crate::roots::{GcContext, LispVal, PersistentRoot, Rooted};
 use crate::vm_primitives;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -131,7 +131,7 @@ pub fn inspect_selected_window(ctx: &mut GcContext) -> VmResult<WindowSummary> {
 /// Run an end-to-end self-check across all four migrated high-level safe domains (Buffer, Reader,
 /// File I/O, and Window) on a live VM thread, returning a Lisp result string for `AU4`/`AU7`.
 pub fn exercise_all_safe_domains(ctx: &mut GcContext, temp_file_path: &str) -> VmResult<LispVal> {
-    with_narrowed_stack_bottom(|| {
+    ctx.with_narrowed_stack_bottom(|ctx| {
         let buf_summary = write_and_read_named_buffer(
             ctx,
             " *u4-safe-buffer*",

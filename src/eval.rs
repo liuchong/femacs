@@ -2776,8 +2776,6 @@ pub extern "C-unwind" fn eval_sub (form: Lisp_Object) -> Lisp_Object
 
   maybe_quit ();
 
-  maybe_gc ();
-
   lisp_eval_depth! () += 1;
   if lisp_eval_depth! () as EMACS_INT > (*max_lisp_eval_depth.as_mut_ptr ())
     {
@@ -2807,6 +2805,8 @@ pub extern "C-unwind" fn eval_sub (form: Lisp_Object) -> Lisp_Object
       { grow_specpdl_allocation (); }
     c
   };
+
+  maybe_gc ();
 
   if (*debug_on_next_call.as_mut_ptr ())
     { do_debug_on_call (Qt (), count); }

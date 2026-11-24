@@ -35,8 +35,13 @@ impl LispVal {
         Self(lisp_h_Qnil())
     }
 
+    /// Construct a `LispVal` from a raw `Lisp_Object` word.
+    ///
+    /// # Safety
+    /// `raw` must be a valid tagged `Lisp_Object` for the live VM heap (or an immediate fixnum /
+    /// constant / symbol) under the active VM global lock.
     #[inline]
-    pub fn from_raw(raw: Lisp_Object) -> Self {
+    pub unsafe fn from_raw(raw: Lisp_Object) -> Self {
         Self(raw)
     }
 
@@ -154,6 +159,54 @@ impl GcContext {
     #[inline]
     pub fn safepoint<R>(&mut self, f: impl FnOnce(&mut Self) -> R) -> R {
         f(self)
+    }
+
+    /// Snapshot active and retired GC rooting counters while proving exclusive VM lock ownership.
+    #[inline]
+    pub fn rooting_counters(&self) -> RootingCounters {
+        debug_assert!(is_vm_lock_owner(self.thread_key));
+        rooting_counters()
+    }
+
+    /// Execute `body` with `(*current_thread).m_stack_bottom` narrowed to this entry boundary
+    /// (`U7` / `P-486`), excluding outer host/Rust frames that hold only explicit
+    /// `Rooted`/`PersistentRoot`/`RootedVec` handles from conservative `mark_c_stack` scanning.
+    #[inline(never)]
+    pub fn with_narrowed_stack_bottom<R>(&mut self, body: impl FnOnce(&mut Self) -> R) -> R {
+        assert!(
+            is_vm_lock_owner(self.thread_key),
+            "GcContext::with_narrowed_stack_bottom requires active VM lock ownership on current OS thread"
+        );
+        let anchor: usize = 0;
+        let anchor_ptr = (&raw const anchor) as *const core::ffi::c_char;
+        // SAFETY: `self.thread_key` is verified as the active VM lock owner; reads/updates
+        // `m_stack_bottom` on the owning Lisp thread and restores it cleanly via `Drop`.
+        let guard = unsafe {
+            let ct = current_thread.get();
+            if ct.is_null() || (*ct).m_stack_bottom.is_null() {
+                NarrowedStackScanGuard {
+                    thread_ptr: core::ptr::null_mut(),
+                    saved_bottom: core::ptr::null(),
+                    active: false,
+                }
+            } else {
+                let saved = (*ct).m_stack_bottom;
+                let should_narrow = (anchor_ptr as usize) < (saved as usize);
+                if should_narrow {
+                    (*ct).m_stack_bottom = anchor_ptr;
+                    NARROWED_STACK_ENTRIES.fetch_add(1, Ordering::Relaxed);
+                }
+                NarrowedStackScanGuard {
+                    thread_ptr: ct,
+                    saved_bottom: saved,
+                    active: should_narrow,
+                }
+            }
+        };
+        let result = body(self);
+        drop(guard);
+        core::hint::black_box(anchor);
+        result
     }
 
     /// Temporarily release `GC_CONTEXT_ACTIVE` while `&mut self` is exclusively borrowed across a
@@ -319,17 +372,24 @@ pub(crate) fn current_thread_key() -> usize {
 }
 
 /// Bind VM global lock ownership to `(current_os_tid(), thread_key)`.
+///
+/// # Safety
+/// Caller must physically hold the VM's `global_lock` on the current OS thread (or run
+/// single-threaded during early initialization before secondary threads exist), and `thread_key`
+/// must be a valid `thread_state` pointer.
 #[inline]
-pub fn bind_vm_lock_owner(thread_key: usize) {
+pub(crate) unsafe fn bind_vm_lock_owner(thread_key: usize) {
     assert_ne!(thread_key, 0, "bind_vm_lock_owner requires non-null thread");
-    let tid = TLS_SLAB.with(|cell| {
+    let tid = current_os_tid();
+    let prev_tid = VM_LOCK_OWNER_OS_TID.load(Ordering::Acquire);
+    assert!(
+        prev_tid == 0 || prev_tid == tid,
+        "bind_vm_lock_owner called by OS thread {tid} while OS thread {prev_tid} still owns VM lock"
+    );
+    TLS_SLAB.with(|cell| {
         let mut s = cell.get();
-        if s.os_tid == 0 {
-            s.os_tid = NEXT_OS_TID.fetch_add(1, Ordering::Relaxed);
-        }
         s.vm_lock_key = thread_key;
         cell.set(s);
-        s.os_tid
     });
     crate::nonlocal::set_tls_vm_lock_key(thread_key);
     VM_LOCK_OWNER_OS_TID.store(tid, Ordering::Release);
@@ -337,8 +397,30 @@ pub fn bind_vm_lock_owner(thread_key: usize) {
 }
 
 /// Clear VM global lock ownership immediately before releasing `global_lock`.
+///
+/// # Safety
+/// Caller must currently own the VM's physical `global_lock` on this OS thread and have ended all
+/// active `GcContext`, `ThreadRootSlab`, and `ThreadNonLocalState` borrows on this thread.
 #[inline]
-pub fn unbind_vm_lock_owner() {
+pub(crate) unsafe fn unbind_vm_lock_owner() {
+    let tid = current_os_tid();
+    let prev_tid = VM_LOCK_OWNER_OS_TID.load(Ordering::Acquire);
+    assert!(
+        prev_tid == 0 || prev_tid == tid,
+        "unbind_vm_lock_owner called by OS thread {tid} while OS thread {prev_tid} owns VM lock"
+    );
+    assert!(
+        !GC_CONTEXT_ACTIVE.load(Ordering::Acquire),
+        "cannot release VM lock while an active GcContext lease exists"
+    );
+    assert!(
+        !TLS_SLAB.with(|cell| cell.get().borrowed),
+        "cannot release VM lock while ThreadRootSlab is borrowed"
+    );
+    assert!(
+        !crate::nonlocal::tls_state_borrowed(),
+        "cannot release VM lock while ThreadNonLocalState is borrowed"
+    );
     TLS_SLAB.with(|cell| {
         let mut s = cell.get();
         s.vm_lock_key = 0;
@@ -358,11 +440,20 @@ pub(crate) fn tls_vm_lock_matches(thread_key: usize) -> bool {
 }
 
 #[inline]
+pub(crate) fn is_current_os_thread_vm_lock_owner() -> bool {
+    let owner_key = VM_LOCK_OWNER_THREAD_KEY.load(Ordering::Acquire);
+    owner_key != 0
+        && VM_LOCK_OWNER_OS_TID.load(Ordering::Acquire) == current_os_tid()
+        && TLS_SLAB.with(|cell| cell.get().vm_lock_key) == owner_key
+}
+
+#[inline]
 pub(crate) fn is_vm_lock_owner(thread_key: usize) -> bool {
     thread_key != 0
         && current_thread_key() == thread_key
         && VM_LOCK_OWNER_THREAD_KEY.load(Ordering::Acquire) == thread_key
         && VM_LOCK_OWNER_OS_TID.load(Ordering::Acquire) == current_os_tid()
+        && TLS_SLAB.with(|cell| cell.get().vm_lock_key) == thread_key
 }
 
 struct SlabBorrowGuard {
@@ -392,12 +483,12 @@ fn with_thread_slab<R>(thread_key: usize, f: impl FnOnce(&mut ThreadRootSlab) ->
     });
     let _borrow_guard = SlabBorrowGuard { prev: state.borrowed };
     if thread_key != 0 && state.vm_lock_key == thread_key {
-        let epoch = SLAB_EPOCH.load(Ordering::Relaxed);
+        let epoch = SLAB_EPOCH.load(Ordering::Acquire);
         if state.cache_epoch == epoch && state.cache_key == thread_key && !state.cache_ptr.is_null() {
-            // SAFETY: `state.cache_ptr` points to a heap-pinned `Box<ThreadRootSlab>` stored in
-            // `THREAD_ROOT_SLABS`; `state.vm_lock_key == thread_key` proves this OS thread holds the VM
-            // global lock for `thread_key`, `SlabBorrowGuard` guarantees unique non-reentrant `&mut`,
-            // and `cleanup_thread_u4_slab` increments `SLAB_EPOCH` before removing any slab.
+            // SAFETY: `state.cache_ptr` points to a heap-pinned `Box<ThreadRootSlab>` in
+            // `THREAD_ROOT_SLABS`; `pub(crate) unsafe fn bind_vm_lock_owner` restricts `vm_lock_key`
+            // to the sole VM lock holder, `SlabBorrowGuard` guarantees unique `&mut`, and
+            // `cleanup_thread_u4_slab` bumps `SLAB_EPOCH` (`SeqCst`) under VM lock before removal.
             return f(unsafe { &mut *state.cache_ptr });
         }
     }
@@ -615,7 +706,7 @@ impl Drop for Rooted {
 /// Slot-based registration for an active stack/alloca/Vec array of `Lisp_Object` slots during
 /// evaluation (`eval_sub`, `apply_lambda`, `Fprog1`, `Flet`, `RootedVec`), supporting independent
 /// release under arbitrary drop order.
-pub struct ScopedRawSpan {
+pub(crate) struct ScopedRawSpan {
     thread_key: usize,
     span_index: usize,
     generation: u64,
@@ -629,7 +720,7 @@ impl ScopedRawSpan {
     /// `ptr` must remain valid for reading at least `active_len` initialized `Lisp_Object` words
     /// on the owning Lisp thread until this `ScopedRawSpan` is dropped.
     #[inline(always)]
-    pub unsafe fn new(ptr: *const Lisp_Object, initial_len: usize) -> Self {
+    pub(crate) unsafe fn new(ptr: *const Lisp_Object, initial_len: usize) -> Self {
         let thread_key = current_thread_key();
         let (span_index, generation) = with_thread_slab(thread_key, |slab| {
             slab.raw_spans_pushed += 1;
@@ -669,7 +760,7 @@ impl ScopedRawSpan {
     /// # Safety
     /// At least `new_len` elements starting at the registered `ptr` must be initialized.
     #[inline]
-    pub unsafe fn set_len(&mut self, new_len: usize) {
+    pub(crate) unsafe fn set_len(&mut self, new_len: usize) {
         let idx = self.span_index;
         let expected_gen = self.generation;
         with_thread_slab(self.thread_key, |slab| {
@@ -706,7 +797,7 @@ impl ScopedRawSpan {
 /// Safe heap-backed `Vec<Lisp_Object>` whose active slice is registered as a LIFO GC root span on
 /// the owning Lisp thread (`U7` / `P-486`), replacing `SAFE_NALLOCA!` + manual `mark_objects` in
 /// `#![forbid(unsafe_code)]` subsystems (`safe_callint`, `safe_sort`, `safe_json`).
-pub struct RootedVec {
+pub(crate) struct RootedVec {
     items: Vec<Lisp_Object>,
     span: ScopedRawSpan,
 }
@@ -971,7 +1062,18 @@ pub(crate) fn release_persistent_raw(index: usize, generation: u64) -> bool {
 }
 
 /// Mark all U4 thread-scoped `Rooted` values and `ScopedRawSpan` arrays on `thread`.
-pub fn mark_thread_u4_slab_roots(thread: *mut c_void, mut mark_fn: impl FnMut(Lisp_Object)) {
+///
+/// # Safety
+/// Must be called only while the current OS thread holds the VM global lock and all registered
+/// `ScopedRawSpan` backing ranges for `thread` remain valid for reading.
+pub(crate) unsafe fn mark_thread_u4_slab_roots(
+    thread: *mut c_void,
+    mut mark_fn: impl FnMut(Lisp_Object),
+) {
+    assert!(
+        is_current_os_thread_vm_lock_owner(),
+        "mark_thread_u4_slab_roots requires active VM lock ownership on current OS thread"
+    );
     let key = thread as usize;
     if key == 0 {
         return;
@@ -1020,7 +1122,15 @@ pub fn mark_thread_u4_slab_roots(thread: *mut c_void, mut mark_fn: impl FnMut(Li
 }
 
 /// Remove per-thread U4 root slab when a Lisp thread is finalized.
-pub fn cleanup_thread_u4_slab(thread: *mut c_void) {
+///
+/// # Safety
+/// Must be called only while the current OS thread holds the VM global lock and no `Rooted` or
+/// `ScopedRawSpan` handles referencing `thread` remain active.
+pub(crate) unsafe fn cleanup_thread_u4_slab(thread: *mut c_void) {
+    assert!(
+        is_current_os_thread_vm_lock_owner(),
+        "cleanup_thread_u4_slab requires active VM lock ownership on current OS thread"
+    );
     let key = thread as usize;
     if key == 0 {
         return;
@@ -1051,7 +1161,14 @@ pub fn cleanup_thread_u4_slab(thread: *mut c_void) {
 }
 
 /// Mark all occupied `PersistentRoot` slots during GC (`garbage_collect_impl`).
-pub fn mark_persistent_roots(mut mark_fn: impl FnMut(Lisp_Object)) {
+///
+/// # Safety
+/// Must be called only while the current OS thread holds the VM global lock during GC marking.
+pub(crate) unsafe fn mark_persistent_roots(mut mark_fn: impl FnMut(Lisp_Object)) {
+    assert!(
+        is_current_os_thread_vm_lock_owner(),
+        "mark_persistent_roots requires active VM lock ownership on current OS thread"
+    );
     let snapshot: Vec<Lisp_Object> = {
         let guard = PERSISTENT_ROOTS
             .lock()
@@ -1083,7 +1200,15 @@ pub struct RootingCounters {
     pub persistent_live: usize,
 }
 
-pub fn rooting_counters() -> RootingCounters {
+pub(crate) fn rooting_counters() -> RootingCounters {
+    assert!(
+        is_current_os_thread_vm_lock_owner(),
+        "rooting_counters requires active VM lock ownership on current OS thread"
+    );
+    assert!(
+        !TLS_SLAB.with(|cell| cell.get().borrowed),
+        "cannot read rooting_counters while ThreadRootSlab is borrowed"
+    );
     let mut rooted_pushed = RETIRED_ROOTED_PUSHED.load(Ordering::Relaxed);
     let mut rooted_popped = RETIRED_ROOTED_POPPED.load(Ordering::Relaxed);
     let mut raw_spans_pushed = RETIRED_RAW_SPANS_PUSHED.load(Ordering::Relaxed);
@@ -1116,13 +1241,19 @@ pub fn rooting_counters() -> RootingCounters {
 /// C-ABI entrypoints used by `AU4` dynamic-module tests to verify cross-FFI `PersistentRoot`
 /// registration, GC survival under `FEMACS_GC_SKIP_STACK_SCAN`, and deterministic reclamation
 /// upon explicit release without polluting `obarray`.
+///
+/// # Safety
+/// `raw_obj` must be a valid tagged `Lisp_Object`, and any non-null `out_index` / `out_gen` must
+/// be valid, aligned, writable storage for `usize` / `u64` respectively.
 #[unsafe(no_mangle)]
-pub extern "C" fn femacs_vm_persistent_root_alloc(
+pub unsafe extern "C" fn femacs_vm_persistent_root_alloc(
     raw_obj: Lisp_Object,
     out_index: *mut usize,
     out_gen: *mut u64,
 ) {
-    let mut pr = PersistentRoot::new(LispVal::from_raw(raw_obj));
+    // SAFETY: caller guarantees `raw_obj` is a valid tagged `Lisp_Object`.
+    let val = unsafe { LispVal::from_raw(raw_obj) };
+    let mut pr = PersistentRoot::new(val);
     let (idx, r#gen) = pr.raw_token();
     // Disarm Drop so ownership transfers to `(index, generation)` until explicit release.
     pr.released = true;
@@ -1173,42 +1304,6 @@ impl Drop for NarrowedStackScanGuard {
             NARROWED_STACK_RESTORES.fetch_add(1, Ordering::Relaxed);
         }
     }
-}
-
-/// Execute `body` with `(*current_thread).m_stack_bottom` narrowed to this `#![forbid(unsafe_code)]`
-/// entry boundary (`U7` / `P-486`), excluding outer host/Rust frames that hold only explicit
-/// `Rooted`/`PersistentRoot`/`RootedVec` handles from conservative `mark_c_stack` scanning.
-#[inline(never)]
-pub fn with_narrowed_stack_bottom<R>(body: impl FnOnce() -> R) -> R {
-    let anchor: usize = 0;
-    let anchor_ptr = (&raw const anchor) as *const core::ffi::c_char;
-    // SAFETY: reads/updates `m_stack_bottom` on the active Lisp thread when initialized.
-    let guard = unsafe {
-        let ct = current_thread.get();
-        if ct.is_null() || (*ct).m_stack_bottom.is_null() {
-            NarrowedStackScanGuard {
-                thread_ptr: core::ptr::null_mut(),
-                saved_bottom: core::ptr::null(),
-                active: false,
-            }
-        } else {
-            let saved = (*ct).m_stack_bottom;
-            let should_narrow = (anchor_ptr as usize) < (saved as usize);
-            if should_narrow {
-                (*ct).m_stack_bottom = anchor_ptr;
-                NARROWED_STACK_ENTRIES.fetch_add(1, Ordering::Relaxed);
-            }
-            NarrowedStackScanGuard {
-                thread_ptr: ct,
-                saved_bottom: saved,
-                active: should_narrow,
-            }
-        }
-    };
-    let result = body();
-    drop(guard);
-    core::hint::black_box(anchor);
-    result
 }
 
 pub fn narrowed_stack_counts() -> (usize, usize) {

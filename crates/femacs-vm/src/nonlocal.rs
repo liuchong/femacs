@@ -47,8 +47,8 @@ impl NonLocalExitKind {
 #[derive(Clone, Copy, Debug)]
 pub struct NonLocalExit {
     pub kind: NonLocalExitKind,
-    pub target: *mut handler,
-    pub value: Lisp_Object,
+    pub(crate) target: *mut handler,
+    pub(crate) value: Lisp_Object,
 }
 
 // SAFETY: `NonLocalExit` payloads are created, unwound, and caught strictly on the owning Lisp
@@ -155,6 +155,12 @@ fn current_thread_key() -> usize {
     unsafe { current_thread.get() as usize }
 }
 
+/// Return whether the current OS thread currently holds a `ThreadNonLocalState` borrow.
+#[inline]
+pub(crate) fn tls_state_borrowed() -> bool {
+    TLS_STATE.with(|cell| cell.get().borrowed)
+}
+
 /// Record the calling OS thread's active VM lock key for fast `TLS_STATE` lookup.
 #[inline]
 pub(crate) fn set_tls_vm_lock_key(thread_key: usize) {
@@ -205,12 +211,13 @@ fn with_thread_state<R>(thread_key: usize, f: impl FnOnce(&mut ThreadNonLocalSta
     });
     let _borrow_guard = StateBorrowGuard { prev: state.borrowed };
     if thread_key != 0 && state.vm_lock_key == thread_key {
-        let epoch = STATE_EPOCH.load(Ordering::Relaxed);
+        let epoch = STATE_EPOCH.load(Ordering::Acquire);
         if state.cache_epoch == epoch && state.cache_key == thread_key && !state.cache_ptr.is_null() {
             // SAFETY: `state.cache_ptr` points to a heap-pinned `Box<ThreadNonLocalState>` stored in
-            // `THREAD_STATES`; `state.vm_lock_key == thread_key` proves this OS thread holds the VM
-            // global lock for `thread_key`, `StateBorrowGuard` prevents re-entrant `&mut`, and
-            // `cleanup_thread_state` increments `STATE_EPOCH` before removing any entry.
+            // `THREAD_STATES`; `set_tls_vm_lock_key` is only invoked from `pub(crate) unsafe fn
+            // bind_vm_lock_owner`, proving single-OS-thread VM lock ownership, `StateBorrowGuard`
+            // prevents re-entrant `&mut`, and `cleanup_thread_state` increments `STATE_EPOCH` with
+            // `SeqCst` while holding the VM lock before removing any entry.
             return f(unsafe { &mut *state.cache_ptr });
         }
     }
@@ -246,7 +253,7 @@ fn with_thread_state_slow<R>(thread_key: usize, f: impl FnOnce(&mut ThreadNonLoc
 /// Slot-based scoped GC root guard for `Lisp_Object` values held across Lisp hooks, `unbind_to`
 /// cleanups, or unwinding frames. Releases its slot deterministically on `Drop`, preserving other
 /// live roots even under out-of-order drops.
-pub struct ScopedLispRoot {
+pub(crate) struct ScopedLispRoot {
     thread_key: usize,
     slot_index: usize,
     generation: u64,
@@ -255,8 +262,13 @@ pub struct ScopedLispRoot {
 }
 
 impl ScopedLispRoot {
+    /// Register a slice of initialized `Lisp_Object` values as a scoped root.
+    ///
+    /// # Safety
+    /// Every element in `values` must be a valid tagged `Lisp_Object` for the live VM heap under
+    /// the active VM global lock.
     #[inline(always)]
-    pub fn new(values: &[Lisp_Object]) -> Self {
+    pub(crate) unsafe fn new(values: &[Lisp_Object]) -> Self {
         let len = values.len();
         if len == 0 {
             RETIRED_SCOPED_ROOTS_CREATED.fetch_add(1, Ordering::Relaxed);
@@ -315,8 +327,12 @@ impl ScopedLispRoot {
         }
     }
 
+    /// Replace the `Lisp_Object` at slot `index`.
+    ///
+    /// # Safety
+    /// `value` must be a valid tagged `Lisp_Object` under the active VM global lock.
     #[inline(always)]
-    pub fn set(&mut self, index: usize, value: Lisp_Object) {
+    pub(crate) unsafe fn set(&mut self, index: usize, value: Lisp_Object) {
         assert!(index < self.len);
         let slot_index = self.slot_index;
         let expected_gen = self.generation;
@@ -365,13 +381,13 @@ impl Drop for ScopedLispRoot {
 
 /// Deterministic Rust host resource guard used to verify exact-once `Drop` execution across
 /// multi-frame VM unwinds without leaking or double-dropping.
-pub struct HostDropGuard {
+pub(crate) struct HostDropGuard {
     dropped: AtomicBool,
 }
 
 impl HostDropGuard {
     #[inline]
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         HOST_PROBES_CREATED.fetch_add(1, Ordering::Relaxed);
         Self {
             dropped: AtomicBool::new(false),
@@ -394,7 +410,7 @@ impl Drop for HostDropGuard {
 }
 
 #[inline]
-pub fn host_drop_counts() -> (usize, usize) {
+pub(crate) fn host_drop_counts() -> (usize, usize) {
     (
         HOST_PROBES_CREATED.load(Ordering::Relaxed),
         HOST_PROBES_DROPPED.load(Ordering::Relaxed),
@@ -402,7 +418,15 @@ pub fn host_drop_counts() -> (usize, usize) {
 }
 
 #[inline]
-pub fn scoped_root_counts() -> (usize, usize) {
+pub(crate) fn scoped_root_counts() -> (usize, usize) {
+    assert!(
+        crate::roots::is_current_os_thread_vm_lock_owner(),
+        "scoped_root_counts requires active VM lock ownership on current OS thread"
+    );
+    assert!(
+        !TLS_STATE.with(|cell| cell.get().borrowed),
+        "cannot read scoped_root_counts while ThreadNonLocalState is borrowed"
+    );
     let mut created = RETIRED_SCOPED_ROOTS_CREATED.load(Ordering::Relaxed);
     let mut dropped = RETIRED_SCOPED_ROOTS_DROPPED.load(Ordering::Relaxed);
     let guard = THREAD_STATES
@@ -419,10 +443,17 @@ pub fn scoped_root_counts() -> (usize, usize) {
 
 /// Mark all explicit `ScopedLispRoot`, in-flight `NonLocalExit`, and pending `.eln` exit roots
 /// belonging to `thread` during GC (`mark_one_thread`).
-pub fn mark_thread_explicit_roots(
+///
+/// # Safety
+/// Must be called only while the current OS thread holds the VM global lock during GC marking.
+pub(crate) unsafe fn mark_thread_explicit_roots(
     thread: *mut c_void,
     mut mark_fn: impl FnMut(Lisp_Object),
 ) {
+    assert!(
+        crate::roots::is_current_os_thread_vm_lock_owner(),
+        "mark_thread_explicit_roots requires active VM lock ownership on current OS thread"
+    );
     let key = thread as usize;
     if key == 0 {
         return;
@@ -465,7 +496,15 @@ pub fn mark_thread_explicit_roots(
 }
 
 /// Remove per-thread explicit root tracking when a Lisp thread is finalized.
-pub fn cleanup_thread_state(thread: *mut c_void) {
+///
+/// # Safety
+/// Must be called only while the current OS thread holds the VM global lock and no `ScopedLispRoot`
+/// handles or non-local exit frames referencing `thread` remain live.
+pub(crate) unsafe fn cleanup_thread_state(thread: *mut c_void) {
+    assert!(
+        crate::roots::is_current_os_thread_vm_lock_owner(),
+        "cleanup_thread_state requires active VM lock ownership on current OS thread"
+    );
     let key = thread as usize;
     if key == 0 {
         return;
@@ -498,8 +537,12 @@ pub fn cleanup_thread_state(thread: *mut c_void) {
 
 /// Raise a new Lisp `NonLocalExit`, rooting its payload on the current thread and unwinding
 /// Rust frames until a matching VM catcher or FFI boundary guard intercepts it.
+///
+/// # Safety
+/// Must be called on the active VM-lock-owning thread with a valid `exit.target` handler and
+/// tagged `exit.value` inside a VM unwind scope (`catch_vm_nonlocal`).
 #[inline(never)]
-pub fn raise_vm_nonlocal(exit: NonLocalExit) -> ! {
+pub(crate) unsafe fn raise_vm_nonlocal(exit: NonLocalExit) -> ! {
     let key = current_thread_key();
     if key != 0 {
         with_thread_state(key, |state| {
@@ -511,15 +554,19 @@ pub fn raise_vm_nonlocal(exit: NonLocalExit) -> ! {
 }
 
 /// Continue propagating an already-raised `NonLocalExit` to an enclosing handler.
+///
+/// # Safety
+/// `exit` must originate from an active enclosing `catch_vm_nonlocal` boundary on this thread.
 #[inline(never)]
-pub fn resume_vm_nonlocal(exit: NonLocalExit) -> ! {
-    raise_vm_nonlocal(exit)
+pub(crate) unsafe fn resume_vm_nonlocal(exit: NonLocalExit) -> ! {
+    // SAFETY: caller forwards a live `NonLocalExit` from `catch_vm_nonlocal`.
+    unsafe { raise_vm_nonlocal(exit) }
 }
 
 /// Run `body` and catch only Lisp `NonLocalExit` unwinds (`VmResult<R>`), re-propagating any
 /// genuine Rust `panic!` untouched via `resume_unwind`.
 #[inline]
-pub fn catch_vm_nonlocal<R, F: FnOnce() -> R>(body: F) -> VmResult<R> {
+pub(crate) fn catch_vm_nonlocal<R, F: FnOnce() -> R>(body: F) -> VmResult<R> {
     match catch_unwind(AssertUnwindSafe(body)) {
         Ok(val) => Ok(val),
         Err(payload) => match payload.downcast::<VmNonLocalUnwind>() {
@@ -541,7 +588,10 @@ pub fn catch_vm_nonlocal<R, F: FnOnce() -> R>(body: F) -> VmResult<R> {
 
 /// Record a pending `NonLocalExit` at a C-ABI `.eln` helper boundary so no unwind crosses `.eln`
 /// C frames.
-pub fn set_comp_native_exit(exit: NonLocalExit) {
+///
+/// # Safety
+/// Must be called on the active VM-lock-owning thread with a valid `.eln` exit payload.
+pub(crate) unsafe fn set_comp_native_exit(exit: NonLocalExit) {
     let key = current_thread_key();
     if key == 0 {
         return;
@@ -558,11 +608,11 @@ pub fn set_comp_native_exit(exit: NonLocalExit) {
 }
 
 #[inline(always)]
-pub fn comp_native_exit_pending_fast() -> bool {
+pub(crate) fn comp_native_exit_pending_fast() -> bool {
     ACTIVE_COMP_NATIVE_EXITS.load(Ordering::Relaxed) != 0
 }
 
-pub fn comp_native_exit_pending_for_current_thread() -> c_int {
+pub(crate) fn comp_native_exit_pending_for_current_thread() -> c_int {
     if !comp_native_exit_pending_fast() {
         return 0;
     }
@@ -575,7 +625,11 @@ pub fn comp_native_exit_pending_for_current_thread() -> c_int {
 
 /// If the current thread has a pending `.eln` exit targeting `candidate`, clear the pending
 /// state and return `1`; otherwise leave it pending and return `0`.
-pub fn consume_comp_native_exit_for_handler(candidate: *mut handler) -> c_int {
+///
+/// # Safety
+/// Must be called on the active VM-lock-owning thread with `candidate` pointing to an active or
+/// null handler slot only compared for identity.
+pub(crate) unsafe fn consume_comp_native_exit_for_handler(candidate: *mut handler) -> c_int {
     if !comp_native_exit_pending_fast() {
         return 0;
     }
@@ -595,7 +649,7 @@ pub fn consume_comp_native_exit_for_handler(candidate: *mut handler) -> c_int {
 }
 
 #[inline(never)]
-fn propagate_comp_native_exit_slow() {
+unsafe fn propagate_comp_native_exit_slow() {
     let key = current_thread_key();
     if key == 0 {
         return;
@@ -611,24 +665,34 @@ fn propagate_comp_native_exit_slow() {
         }
     });
     if let Some(exit) = maybe_exit {
-        raise_vm_nonlocal(exit);
+        // SAFETY: converts pending `.eln` exit back into a `NonLocalExit` on the active VM thread.
+        unsafe { raise_vm_nonlocal(exit) };
     }
 }
 
 /// Fast inline check executed after invoking a potentially native-compiled `Lisp_Subr` or
 /// `top_level_run`: if the `.eln` frame returned an unhandled pending exit, convert it back into
 /// a VM `NonLocalExit` unwind.
+///
+/// # Safety
+/// Must be called immediately after a native-compiled return inside an active VM unwind scope on
+/// the lock-owning thread.
 #[inline(always)]
-pub fn check_and_propagate_comp_native_exit() {
+pub(crate) unsafe fn check_and_propagate_comp_native_exit() {
     if comp_native_exit_pending_fast() {
-        propagate_comp_native_exit_slow();
+        // SAFETY: pending exit belongs to the active VM thread's native frame.
+        unsafe { propagate_comp_native_exit_slow() };
     }
 }
 
 /// Host C-ABI probe entry points used by `AU3` dynamic-module and integration tests to verify
 /// exact-once Rust `Drop` execution across multi-frame Lisp unwinds without polluting `obarray`.
+///
+/// # Safety
+/// Must be called under the VM global lock; every non-null out pointer must be valid, aligned,
+/// writable `usize` storage.
 #[unsafe(no_mangle)]
-pub extern "C" fn femacs_vm_host_drop_counts(
+pub unsafe extern "C" fn femacs_vm_host_drop_counts(
     out_host_created: *mut usize,
     out_host_dropped: *mut usize,
     out_root_created: *mut usize,
@@ -659,7 +723,9 @@ pub unsafe extern "C-unwind" fn femacs_vm_call0_with_host_drop_guard(
     fun: Lisp_Object,
 ) -> Lisp_Object {
     let _host_guard = HostDropGuard::new();
-    let _root_guard = ScopedLispRoot::new(&[fun]);
+    // SAFETY: `fun` is a valid `Lisp_Object` passed on the active VM thread and `Ffuncall` reads
+    // `nargs == 1` argument on that thread.
+    let _root_guard = unsafe { ScopedLispRoot::new(&[fun]) };
     // SAFETY: `Ffuncall` expects `(nargs, args)` with `nargs >= 1` on the active Lisp thread.
     unsafe {
         let mut args = [fun];
