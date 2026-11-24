@@ -509,7 +509,7 @@
                     (push `((id . "side_effect_single_run_and_unknown_completion")
                             (passed . t))
                           results)))
-              (femacs-eliscript-stop session t))))
+              (femacs-eliscript-stop session t)))))
       (error
        (setq overall-ok nil)
        (push `((id . "fatal_error")

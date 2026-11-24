@@ -174,7 +174,7 @@ def prepare_frozen_package(
             [
                 str(archive_src / "bin/eliscript-build"),
                 "--root",
-                str(archive_src),
+                str(archive_src / "examples/emacs-analysis"),
                 "--out-dir",
                 str(analysis_out),
                 str(archive_src / "examples/emacs-analysis/analysis.eli"),
@@ -183,6 +183,8 @@ def prepare_frozen_package(
             env=build_env,
             timeout=120.0,
         )
+        if (analysis_out / "node_modules").exists():
+            shutil.rmtree(analysis_out / "node_modules")
 
         probe_src_dir = build_root / "probes_src"
         probe_src_dir.mkdir(parents=True, exist_ok=True)
@@ -202,11 +204,14 @@ def prepare_frozen_package(
             env=build_env,
             timeout=120.0,
         )
+        if (probes_out / "node_modules").exists():
+            shutil.rmtree(probes_out / "node_modules")
 
-        # Copy frozen runtime, platform, dist/runtime, package.json, and worker Lisp closure.
+        # Copy frozen runtime, platform, stdlib, dist/runtime, package.json, and worker Lisp closure.
         shutil.copy2(archive_src / "package.json", package_out / "package.json")
         copy_runtime_tree(archive_src / "runtime", package_out / "runtime")
         copy_runtime_tree(archive_src / "platform", package_out / "platform")
+        copy_runtime_tree(archive_src / "stdlib", package_out / "stdlib")
         copy_runtime_tree(archive_src / "dist/runtime", package_out / "dist/runtime")
 
         client_dst = package_out / "tools/worker"
@@ -225,6 +230,7 @@ def prepare_frozen_package(
         package_out / "tools/bootstrap-runtime.el"
     ).exists(), "bootstrap-runtime.el leaked into frozen package"
     assert (package_out / "runtime/worker.mjs").is_file(), "missing frozen runtime/worker.mjs"
+    assert (package_out / "stdlib/bit.mjs").is_file(), "missing frozen stdlib/bit.mjs"
     assert (package_out / "dist/runtime/lisp.mjs").is_file(), "missing frozen dist/runtime/lisp.mjs"
 
     key_files = [
@@ -232,6 +238,7 @@ def prepare_frozen_package(
         "runtime/worker.mjs",
         "runtime/worker.mjs.map",
         "platform/worker.mjs",
+        "stdlib/bit.mjs",
         "dist/runtime/lisp.mjs",
         "tools/worker/eliscript-worker.el",
         "tools/worker/eliscript-service.el",
@@ -321,7 +328,8 @@ def run_cocoa_gui_cases(
     elapsed = round(time.monotonic() - started, 4)
     if rc != 0 or not report_path.is_file():
         log_text = log_path.read_text(encoding="utf-8", errors="replace")
-        raise RuntimeError(f"Cocoa A5 failed (rc={rc}):\n{log_text}")
+        rep_text = report_path.read_text(encoding="utf-8", errors="replace") if report_path.is_file() else ""
+        raise RuntimeError(f"Cocoa A5 failed (rc={rc}):\nREPORT:\n{rep_text}\nLOG:\n{log_text}")
     data = json.loads(report_path.read_text(encoding="utf-8"))
     if not data.get("passed") or data.get("frame_type") != "ns" or data.get("window_system") != "ns":
         raise RuntimeError(f"Cocoa A5 report indicated failure: {data}")
@@ -394,7 +402,8 @@ def run_terminal_pty_cases(
     (work_dir / "terminal-pty.ansi").write_bytes(screen)
     elapsed = round(time.monotonic() - started, 4)
     if exit_code != 0 or not report_path.is_file():
-        raise RuntimeError(f"Terminal A5 failed (rc={exit_code}), screen tail: {screen[-800:]!r}")
+        rep_text = report_path.read_text(encoding="utf-8", errors="replace") if report_path.is_file() else ""
+        raise RuntimeError(f"Terminal A5 failed (rc={exit_code}):\nREPORT:\n{rep_text}\nSCREEN:\n{screen[-800:]!r}")
     data = json.loads(report_path.read_text(encoding="utf-8"))
     if not data.get("passed") or data.get("frame_type") != "t":
         raise RuntimeError(f"Terminal A5 report indicated failure: {data}")

@@ -8406,8 +8406,8 @@
     },
     {
       "path": "tools/test-c5-a5-worker.py",
-      "sha256": "7319ebbafe7d1ba88dd67db54700c739b701edd2966994fd622c066eaf224e73",
-      "bytes": 17510,
+      "sha256": "8b4ea7f8ab3be3ddf184c3fad2cc85faddca12844347f93ec93a8c9245a5d390",
+      "bytes": 18214,
       "family": "test",
       "decision": "retain",
       "replacement": null,
@@ -8423,8 +8423,8 @@
     },
     {
       "path": "tools/fixtures/c5-a5-worker-cases.el",
-      "sha256": "f74e2bdc9638458364c4b9d95fb702e37618d81a5a9b8853ffcf90efabdd3515",
-      "bytes": 29753,
+      "sha256": "baf71dcff2e7b5cc8b75ddca976802f64b22df2e688c25d4fb51c8a5947144de",
+      "bytes": 29754,
       "family": "fixture",
       "decision": "retain",
       "replacement": null,
