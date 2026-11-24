@@ -17,6 +17,7 @@ license = "GPL-3.0-or-later"
 
 [profile.release]
 panic = "unwind"
+lto = "thin"
 
 [profile.release.package.femacs-vm]
 opt-level = 2

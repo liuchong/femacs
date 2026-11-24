@@ -1601,6 +1601,7 @@ unsafe fn emacs_init_body (mut argc: c_int, argv: *mut *mut c_char,
 
   /* Record (approximately) where the stack begins.  */
   stack_bottom! () = (&raw mut stack_bottom_variable) as *const c_char;
+  crate::roots::bind_vm_lock_owner ((*current_thread.as_mut_ptr ()) as usize);
 
   let mut dump_mode: *const c_char = std::ptr::null ();
   let mut skip_args: c_int = 0;

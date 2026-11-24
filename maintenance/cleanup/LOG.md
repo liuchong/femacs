@@ -1,3 +1,9 @@
+## CLN285 — 2026-11-24: U8-R2 review closure and AU8 verification cache retirement
+
+- Retired `14` owned temporary build, verification, session-cache, and container scopes (`48,469` files, `5,718` directories, `140` symlinks, `2,741,223,009` logical bytes) across `build/runtime` (`u8-native`, `u8-baseline`), `build/cargo`, `build/acceptance`, `build/goal-{identity,output-guard}-unit`, `<session-cache>/{au8-r2,treesit-0.27.1}`, and `7` `<noindex>/f*` containers after closing `P-488` review findings and passing `AU8` (`4/4` groups including Cocoa/terminal `bench.py --gate` and strict `corpus-555`).
+- Kept: verified deliverables `build/terminal/port` (`45M`) and `dist/macos/Femacs.app` (`235M`, atomically reinstalled to `/Applications/Fe.app`), re-verified post-cleanup via `4/4` SHA-256 match, workspace & installed strict `codesign` (`exit 0`), `/Applications/Fe.app` SHA-256 parity, and batch smoke (`(3 t t nil t)` / CLI wrappers `(3 t)` / `emacsclient 32.0.50`, `exit 0`).
+- [Report and recovery recipe](reports/2026-11-24-285-u8-r2-review-closure-and-au8-retirement.md).
+
 ## CLN284 — 2026-11-23: U8 final integration and AU8 verification cache retirement
 
 - Retired `45` owned temporary build, verification, and container scopes (`23,532` files, `2,703` directories, `54` symlinks, `1,486,480,381` logical bytes) across `build/runtime/u8-native`, `build/cargo`, `build/acceptance`, `build/goal-{identity,output-guard}-unit`, `<session-cache>/{u8-run,u1-baseline,tree-sitter-0.27.1}`, and `37` `<noindex>/f*` containers after `AU8` (`4/4` groups) and all `12` Phase 3 protective gates passed.

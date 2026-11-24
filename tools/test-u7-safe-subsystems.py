@@ -475,6 +475,11 @@ pub mod common {
 #[path = "__ROOTS_RS_PATH__"]
 pub mod roots;
 
+pub mod nonlocal {
+    pub(crate) fn clear_tls_state_cache() {}
+    pub(crate) fn set_tls_vm_lock_key(_: usize) {}
+}
+
 #[cfg(test)]
 mod tests {
     use core::ffi::{c_char, c_void};
@@ -483,7 +488,8 @@ mod tests {
 
     use crate::common::{Lisp_Object, current_thread, make_fixnum, thread_state};
     use crate::roots::{
-        RootedVec, cleanup_thread_u4_slab, mark_thread_u4_slab_roots, narrowed_stack_counts,
+        GcContext, LispVal, Rooted, RootedVec, bind_vm_lock_owner, cleanup_thread_u4_slab,
+        mark_thread_u4_slab_roots, narrowed_stack_counts, unbind_vm_lock_owner,
         with_narrowed_stack_bottom,
     };
 
@@ -501,6 +507,7 @@ mod tests {
         let mut ts = thread_state { m_stack_bottom: core::ptr::null() };
         let th_ptr = &raw mut ts;
         current_thread.set(th_ptr);
+        bind_vm_lock_owner(th_ptr as usize);
         cleanup_thread_u4_slab(th_ptr as *mut c_void);
 
         {
@@ -525,6 +532,7 @@ mod tests {
         assert!(res.is_err());
         assert!(marked(th_ptr).is_empty(), "unwind must truncate RootedVec span");
         cleanup_thread_u4_slab(th_ptr as *mut c_void);
+        unbind_vm_lock_owner();
         current_thread.set(core::ptr::null_mut());
     }
 
@@ -536,6 +544,7 @@ mod tests {
         let mut ts = thread_state { m_stack_bottom: outer_bottom };
         let th_ptr = &raw mut ts;
         current_thread.set(th_ptr);
+        bind_vm_lock_owner(th_ptr as usize);
 
         let (e0, r0) = narrowed_stack_counts();
         let inner_seen = with_narrowed_stack_bottom(|| {
@@ -556,6 +565,41 @@ mod tests {
         assert_eq!(ts.m_stack_bottom, outer_bottom, "unwind must restore m_stack_bottom");
         let (e2, r2) = narrowed_stack_counts();
         assert_eq!((e2 - e0, r2 - r0), (2, 2));
+        unbind_vm_lock_owner();
+        current_thread.set(core::ptr::null_mut());
+    }
+
+    #[test]
+    fn out_of_order_rooted_and_vec_and_gc_context_exclusivity() {
+        let _lk = SERIAL.lock().unwrap();
+        let mut ts = thread_state { m_stack_bottom: core::ptr::null() };
+        let th_ptr = &raw mut ts;
+        current_thread.set(th_ptr);
+        bind_vm_lock_owner(th_ptr as usize);
+        cleanup_thread_u4_slab(th_ptr as *mut c_void);
+
+        let ctx = GcContext::current().expect("first GcContext");
+        assert!(GcContext::current().is_none(), "double GcContext must fail");
+        assert!(std::thread::spawn(|| GcContext::current().is_some()).join().unwrap() == false);
+
+        let outer = ctx.root(LispVal::from_raw(make_fixnum(10)));
+        let inner = ctx.root(LispVal::from_raw(make_fixnum(20)));
+        let mut v1 = RootedVec::filled(1, make_fixnum(30));
+        let v2 = RootedVec::filled(2, make_fixnum(40));
+        assert_eq!(marked(th_ptr), vec![10, 20, 30, 40, 40]);
+
+        drop(outer);
+        drop(v1);
+        assert_eq!(inner.get(), LispVal::from_raw(make_fixnum(20)));
+        assert_eq!(inner.handle().get(), LispVal::from_raw(make_fixnum(20)));
+        assert_eq!(marked(th_ptr), vec![20, 40, 40]);
+
+        drop(v2);
+        drop(inner);
+        drop(ctx);
+        assert!(marked(th_ptr).is_empty());
+        cleanup_thread_u4_slab(th_ptr as *mut c_void);
+        unbind_vm_lock_owner();
         current_thread.set(core::ptr::null_mut());
     }
 }
@@ -624,10 +668,11 @@ def run_selftest() -> int:
         assert cproc.returncode == 0, f"rustc --test roots.rs failed:\n{cproc.stdout}\n{cproc.stderr}"
         tproc = run_cmd([str(bin_out), "--test-threads=1"], timeout=30)
         assert tproc.returncode == 0, f"roots.rs unit tests failed:\n{tproc.stdout}\n{tproc.stderr}"
+        assert "3 passed; 0 failed" in tproc.stdout, tproc.stdout
 
     print(
         f"u7 selftest: 5/5 protective checks passed ({len(U7_FORBID_MODULES)} forbid modules + "
-        f"extract-abi + gen-globals + zero wrapper cycles + 2/2 roots.rs Rust unit tests)"
+        f"extract-abi + gen-globals + zero wrapper cycles + 3/3 roots.rs Rust unit tests)"
     )
     return 0
 

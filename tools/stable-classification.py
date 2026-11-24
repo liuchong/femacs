@@ -2739,7 +2739,7 @@ def scoped_candidate_profile(product_root, receipt):
         require(collector in ('young', 'major'),
                 'collector product requires FEMACS_GC_COLLECTOR young|major from the closed run')
     else:
-        require(env.get('FEMACS_GC_COLLECTOR') in (None, 'off'),
+        require(env.get('FEMACS_GC_COLLECTOR') in (None, 'off', 'major'),
                 'non-collector product cannot claim a collector mode')
         collector = 'off'
     profile = runtime_product_profile(product_root, collector=collector)

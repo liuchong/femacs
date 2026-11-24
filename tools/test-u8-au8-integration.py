@@ -78,6 +78,60 @@ def _rmtree_unlocked(path: Path) -> None:
     shutil.rmtree(p, ignore_errors=True)
 
 
+def _cleanup_strict_containers(s_dir: Path) -> None:
+    """Remove owned `.noindex` containers referenced under one closed subset dir."""
+    if not s_dir.is_dir():
+        return
+    noindex_root = (Path.home() / "AI/caches/.noindex").resolve()
+    for env_json in s_dir.rglob("*.environment.json"):
+        try:
+            c = json.loads(env_json.read_text(encoding="utf-8")).get("container")
+            if isinstance(c, str) and c:
+                cp = Path(c).resolve()
+                if cp != noindex_root and cp.is_relative_to(noindex_root) and cp.exists():
+                    _rmtree_unlocked(cp)
+        except (OSError, ValueError):
+            pass
+
+
+def _is_reference_filenotify_monitor_flake(dest_fn: Path, asm_res: dict) -> bool:
+    """Return True iff scoped-assembly failed solely from a reference filenotify monitor skip."""
+    if asm_res.get("structural_failure_count") != 0:
+        return False
+    if (asm_res.get("blocking_case_failure_count") or 0) <= 0:
+        return False
+    blocking = asm_res.get("blocking_cases") or []
+    if not blocking or not all(
+        isinstance(entry, dict)
+        and entry.get("file") == "test/lisp/filenotify-tests.el"
+        and entry.get("candidate_status") in ("passed", "skipped")
+        for entry in blocking
+    ):
+        return False
+    run_json = dest_fn / "stable-suite-run.json"
+    if not run_json.is_file():
+        return False
+    try:
+        run_doc = json.loads(run_json.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return False
+    for row in run_doc.get("files") or []:
+        if row.get("file") == "test/lisp/filenotify-tests.el":
+            prog_rel = ((row.get("reference") or {}).get("progress") or {}).get("path")
+            if not isinstance(prog_rel, str) or not prog_rel:
+                return False
+            prog_path = dest_fn / prog_rel
+            if not prog_path.is_file():
+                return False
+            try:
+                return "Cannot determine test monitor" in prog_path.read_text(
+                    encoding="utf-8", errors="replace"
+                )
+            except OSError:
+                return False
+    return False
+
+
 def artifact_meta(path: Path) -> dict:
     p = Path(path)
     return {
@@ -233,14 +287,18 @@ def normalize_diag(text: str) -> str:
     return out
 
 
+STRICT_PARITY_VERDICTS = frozenset({"same-pass", "same-skip", "both-fail-same-condition"})
+
+
 def classify_case_pair(
     file_logical: str,
     case_id: str,
     ref_case: dict,
     cand_case: dict,
-    rule_index: dict[tuple[str, str], dict],
+    rule_index: dict[tuple[str, str], dict] | None = None,
 ) -> tuple[str, str | None]:
-    """Compare one case across reference and candidate under docs/testing-strategy.md §2."""
+    """Compare one case across reference and candidate strictly without permissive waivers."""
+    del file_logical, case_id, rule_index
     r_status = ref_case.get("status")
     c_status = cand_case.get("status")
     r_diag = ref_case.get("diagnostic", "")
@@ -254,35 +312,20 @@ def classify_case_pair(
         if c_status == "failed":
             if normalize_diag(r_diag) == normalize_diag(c_diag):
                 return "both-fail-same-condition", None
-            rule = rule_index.get((file_logical, case_id))
-            if rule is not None:
-                return "classified-rule", rule["category"]
-            if "Femacs" in c_diag:
-                return "classified-d01-name-only", "D-01-product-name"
             return "both-fail-condition-diff", None
+        return "port-worse", None
 
     if r_status in ("failed", "skipped") and c_status == "passed":
         return "port-resolved", None
 
-    rule = rule_index.get((file_logical, case_id))
-    if rule is not None:
-        return "classified-rule", rule["category"]
-
     if r_status == "passed" and c_status == "skipped":
-        if "(skip-unless (featurep 'native-compile))" in c_diag:
-            return "classified-rule", "explicit-optional-capability"
         return "unclassified-skip-diff", None
-
-    if r_status == "passed" and c_status == "failed":
-        if "Femacs" in c_diag:
-            return "classified-d01-name-only", "D-01-product-name"
-        return "port-worse", None
 
     return "port-worse", None
 
 
-def adjudicate_555_runs(ref_dir: Path, cand_dir: Path, rules_json: Path) -> dict:
-    rule_index = load_source_rule_index(rules_json)
+def adjudicate_555_runs(ref_dir: Path, cand_dir: Path, rules_json: Path | None = None) -> dict:
+    del rules_json
     ref_summaries = {
         json.loads(p.read_text(encoding="utf-8"))["file"]: json.loads(p.read_text(encoding="utf-8"))
         for p in sorted((ref_dir / "results").glob("*.summary.json"))
@@ -296,6 +339,7 @@ def adjudicate_555_runs(ref_dir: Path, cand_dir: Path, rules_json: Path) -> dict
     rule_category_totals: dict[str, int] = {}
     incomplete_files: list[dict] = []
     registration_mismatches: list[dict] = []
+    non_parity_files_set: set[str] = set()
     blocking_cases: list[dict] = []
     total_cases = 0
 
@@ -323,22 +367,20 @@ def adjudicate_555_runs(ref_dir: Path, cand_dir: Path, rules_json: Path) -> dict
         if set(r_cases) != set(c_cases):
             only_ref = sorted(set(r_cases) - set(c_cases))
             only_cand = sorted(set(c_cases) - set(r_cases))
-            unclassified = [
-                cid for cid in (only_ref + only_cand)
-                if (logical, cid) not in rule_index
-            ]
-            if unclassified:
-                registration_mismatches.append({
-                    "file": logical,
-                    "only_ref": only_ref[:10],
-                    "only_cand": only_cand[:10],
-                })
+            non_parity_files_set.add(logical)
+            registration_mismatches.append({
+                "file": logical,
+                "only_ref": only_ref[:10],
+                "only_cand": only_cand[:10],
+            })
             for cid in sorted(set(r_cases) & set(c_cases)):
                 total_cases += 1
-                verdict, cat = classify_case_pair(logical, cid, r_cases[cid], c_cases[cid], rule_index)
+                verdict, cat = classify_case_pair(logical, cid, r_cases[cid], c_cases[cid])
                 case_totals[verdict] = case_totals.get(verdict, 0) + 1
                 if cat:
-                    rule_category_totals[cat] = rule_category_totals.get(verdict if not cat else cat, 0) + 1
+                    rule_category_totals[cat] = rule_category_totals.get(cat, 0) + 1
+                if verdict not in STRICT_PARITY_VERDICTS:
+                    non_parity_files_set.add(logical)
                 if verdict in ("port-worse", "unclassified-skip-diff", "both-fail-condition-diff"):
                     blocking_cases.append({
                         "file": logical,
@@ -351,10 +393,12 @@ def adjudicate_555_runs(ref_dir: Path, cand_dir: Path, rules_json: Path) -> dict
 
         for cid in sorted(c_cases):
             total_cases += 1
-            verdict, cat = classify_case_pair(logical, cid, r_cases[cid], c_cases[cid], rule_index)
+            verdict, cat = classify_case_pair(logical, cid, r_cases[cid], c_cases[cid])
             case_totals[verdict] = case_totals.get(verdict, 0) + 1
             if cat:
                 rule_category_totals[cat] = rule_category_totals.get(cat, 0) + 1
+            if verdict not in STRICT_PARITY_VERDICTS:
+                non_parity_files_set.add(logical)
             if verdict in ("port-worse", "unclassified-skip-diff", "both-fail-condition-diff"):
                 blocking_cases.append({
                     "file": logical,
@@ -364,6 +408,11 @@ def adjudicate_555_runs(ref_dir: Path, cand_dir: Path, rules_json: Path) -> dict
                     "cand": c_cases[cid],
                 })
 
+    followup_files = sorted(
+        {row["file"] for row in incomplete_files}
+        | {row["file"] for row in registration_mismatches}
+        | non_parity_files_set
+    )
     return {
         "file_count": len(all_files),
         "total_compared_cases": total_cases,
@@ -371,6 +420,8 @@ def adjudicate_555_runs(ref_dir: Path, cand_dir: Path, rules_json: Path) -> dict
         "rule_category_totals": rule_category_totals,
         "incomplete_files": incomplete_files,
         "registration_mismatches": registration_mismatches,
+        "non_parity_files": sorted(non_parity_files_set),
+        "followup_files": followup_files,
         "blocking_case_count": len(blocking_cases),
         "blocking_cases": blocking_cases,
     }
@@ -1053,12 +1104,313 @@ def _run_ert_fixture(
             _rmtree_unlocked(Path(env[dkey]))
 
 
+def _load_module(name: str, path: Path):
+    spec = importlib.util.spec_from_file_location(name, path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"unable to load module: {path}")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def _verified_case_ids_in_scoped_assembly(
+    suite_run_dir: Path,
+    assembly_accounting: dict,
+) -> set[tuple[str, str]]:
+    """Return all (file, id) cases cleanly passed or classified in a 0-blocking scoped assembly."""
+    if (
+        assembly_accounting.get("structural_failure_count") != 0
+        or assembly_accounting.get("blocking_case_failure_count") != 0
+        or not assembly_accounting.get("classified_corpus_accepted")
+    ):
+        return set()
+    accounting = _load_module("u8_acct_check", REPO / "tools/stable-classification.py")
+    verified: set[tuple[str, str]] = {
+        (row["file"], row["id"]) for row in assembly_accounting.get("classified_cases", [])
+    }
+    for kind, item in accounting.detailed_rows(suite_run_dir / "stable-suite-run.json"):
+        if kind == "cases" and item.get("passed") is True:
+            verified.add((item["file"], item["id"]))
+    return verified
+
+
+def adjudicate_cocoa_strict_receipt(
+    run_dir: Path,
+    cocoa_bin: Path,
+    cocoa_dump: Path,
+    cocoa_lisp: Path,
+    ref_selection_path: Path,
+    adjudication_out: Path,
+    *,
+    subset_11_files: set[str],
+    u8_native_verified_cases: dict[str, set[tuple[str, str]]],
+    baseline_runtime_root: Path | None = None,
+    control_runs: list[tuple[Path, Path]] | None = None,
+    remote_contract_runs: list[tuple[Path, Path]] | None = None,
+    library_contract_runs: list[Path] | None = None,
+    eglot_insert_replace_probe: Path | None = None,
+    eglot_text_edit_probe: Path | None = None,
+) -> dict:
+    """Adjudicate a closed Cocoa stable-suite receipt via stable-classification contracts."""
+    accounting = _load_module("u8_cocoa_classification", REPO / "tools/stable-classification.py")
+    suite, api = accounting._load_suite_api()
+
+    receipt_path = run_dir / "stable-suite-completion.json"
+    detailed_path = run_dir / "stable-suite-run.json"
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"), object_pairs_hook=accounting._pairs)
+    cand_before = receipt["products_before"]["candidate"]
+    expected_cocoa_env = {
+        "FEMACS_GC_OBSERVATION": "off",
+        "FEMACS_GC_COLLECTOR": "major",
+        "FEMACS_STABLE_PRODUCT_LISP": str(cocoa_lisp),
+    }
+    if (
+        cand_before["program"]["sha256"] != sha256_file(cocoa_bin)
+        or cand_before["dump"]["sha256"] != sha256_file(cocoa_dump)
+        or receipt["runtime_environment"]["candidate"] != expected_cocoa_env
+    ):
+        raise RuntimeError("cocoa strict receipt product or runtime_environment mismatch")
+
+    if baseline_runtime_root is not None:
+        cocoa_profile = accounting.scoped_candidate_profile(baseline_runtime_root, receipt)
+    else:
+        cocoa_profile = {
+            "id": "cocoa-baseline-normal",
+            "kind": "cocoa",
+            "compiler_leg": "normal",
+            "native": False,
+            "observer": False,
+            "test_hooks": False,
+            "collector": "off",
+            "program": str(cocoa_bin),
+            "dump": str(cocoa_dump),
+            "resource_roots": {"lisp": str(cocoa_lisp)},
+        }
+    selection = json.loads(ref_selection_path.read_text(encoding="utf-8"), object_pairs_hook=accounting._pairs)
+    rules_path = REPO / "tools/fixtures/stable-classification-source-rules.json"
+    definition = json.loads(rules_path.read_text(encoding="utf-8"), object_pairs_hook=accounting._pairs)
+    accounting.require(
+        definition.get("schema") == "femacs-stable-source-rule-specs-v1"
+        and cocoa_profile["id"] in definition.get("profiles", []),
+        "reviewed source rule specification missing cocoa-baseline-normal",
+    )
+
+    manifest_path = REPO / "compatibility/stable-31.1/sources.json"
+    accounting.require(
+        receipt["manifest_sha256"] == api._sha256_path(manifest_path),
+        "cocoa strict receipt manifest identity differs from repository corpus",
+    )
+    manifest = suite.load_manifest(manifest_path, REPO)
+
+    source_rules: dict[tuple[str, str], dict] = {}
+    for rule in definition["rules"]:
+        expanded = []
+        for anchor in rule["source_evidence"]:
+            relative = Path(anchor["path"])
+            accounting.require(
+                not relative.is_absolute() and ".." not in relative.parts and relative.as_posix() == anchor["path"],
+                "source definitions must use canonical repository-relative anchors",
+            )
+            expanded.append(dict(anchor, path=str(REPO / relative)))
+        source_rules[(rule["file"], rule["id"])] = dict(
+            rule,
+            profile=cocoa_profile["id"],
+            source_evidence=expanded,
+        )
+
+    controls, _ = accounting._closed_controls(control_runs or [])
+    remote_controls, _ = accounting._remote_collections(remote_contract_runs or [])
+    library_contracts = [
+        dict(path=str(p.resolve()), identity=accounting.bound_file(p.resolve(), limit=accounting.MAX_ITEM))
+        for p in (library_contract_runs or [])
+    ]
+    eglot_probes = accounting._load_eglot_probes(
+        argparse.Namespace(
+            eglot_insert_replace_probe=eglot_insert_replace_probe,
+            eglot_text_edit_probe=eglot_text_edit_probe,
+        )
+    )
+    control_cache: dict = {}
+
+    catalog = {
+        "schema": accounting.SCHEMA,
+        "manifest_sha256": receipt["manifest_sha256"],
+        "reference_selection_sha256": selection["sha256"],
+        "contexts": {
+            cocoa_profile["id"]: {
+                "context_sha256": accounting.context_identity(receipt, cocoa_profile, selection),
+                "run_sha256": receipt["detailed"]["sha256"],
+                "completion_sha256": api._sha256_path(receipt_path),
+            }
+        },
+        "rules": [],
+    }
+
+    subset = receipt.get("subset")
+    entry_rows = (
+        api._load_batch().select_entrypoints(manifest, subset)
+        if subset is not None
+        else api._load_batch().select_entrypoints(manifest)
+    )
+    by_path = {entry["path"]: entry for entry in entry_rows}
+    file_rows = {item["file"]: item for kind, item in accounting.detailed_rows(detailed_path) if kind == "files"}
+
+    capture_failures: list[dict] = []
+    skipped_passing: int = 0
+    for kind, case in accounting.detailed_rows(detailed_path):
+        if kind != "cases":
+            continue
+        key = (case.get("file"), case.get("id"))
+        if key not in source_rules:
+            continue
+        if case.get("passed"):
+            skipped_passing += 1
+            continue
+        rule = source_rules[key]
+        try:
+            correct_control = None
+            if rule["category"] == "known-reference-library-defect":
+                state = accounting.reference_defect_state(
+                    rule,
+                    case,
+                    file_rows[case["file"]],
+                    receipt,
+                    {label: accounting._original_case_event(run_dir, suite, case, label) for label in ("reference", "candidate")},
+                    run_dir,
+                    suite,
+                )
+                labels = accounting.reference_contract_labels(state["state"])
+                correct_controls = {}
+                for label in labels:
+                    target = cocoa_profile["id"] if label == "candidate" else "installed-reference"
+                    matches = [
+                        pin
+                        for pin in library_contracts
+                        if any(row.get("profile") == target for row in accounting._control_json(pin, control_cache).get("cases", []))
+                    ]
+                    if len(matches) != 1:
+                        raise ValueError("reference-defect control unavailable for cocoa-baseline-normal")
+                    correct_controls[label] = matches[0]
+                if state["state"] != "active-reference-only-defect":
+                    raise ValueError(f"reference-defect-not-active:{state['state']}")
+                catalog["contexts"][cocoa_profile["id"]].setdefault("reference_defects", []).append(
+                    {"definition": rule, "controls": correct_controls}
+                )
+                correct_control = correct_controls.get("candidate")
+            captured = accounting._capture_failing_rule(
+                rule,
+                case,
+                root=run_dir,
+                api=suite,
+                profile_id=cocoa_profile["id"],
+                candidate_kind=cocoa_profile["kind"],
+                controls=controls,
+                remote_controls=remote_controls,
+                control_cache=control_cache,
+                correct_behavior_control=correct_control,
+                eglot_probes=eglot_probes,
+            )
+            accounting._accept_rule(
+                captured,
+                case,
+                file_rows[case["file"]],
+                by_path[case["file"]],
+                run_dir,
+                suite,
+                selection,
+                cocoa_profile,
+                receipt,
+                control_cache,
+                manifest=manifest,
+            )
+            catalog["rules"].append(captured)
+        except ValueError as exc:
+            capture_failures.append({"file": key[0], "id": key[1], "reason": str(exc)})
+            if rule["category"] == "known-reference-library-defect":
+                defs = catalog["contexts"][cocoa_profile["id"]].get("reference_defects")
+                if isinstance(defs, list) and defs and defs[-1].get("definition") is rule:
+                    defs.pop()
+
+    _rmtree_unlocked(adjudication_out)
+    adjudication_out.mkdir(parents=True, exist_ok=True)
+    catalog_path = adjudication_out / "classification.json"
+    accounting._write_catalog(catalog_path, catalog)
+    accounting_res = accounting.assess(
+        api,
+        run_dir,
+        receipt,
+        manifest,
+        catalog_path,
+        cocoa_profile,
+        selection,
+    )
+    (adjudication_out / "accounting.json").write_text(
+        json.dumps(accounting_res, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+    if accounting_res.get("structural_failure_count") != 0:
+        raise RuntimeError(
+            f"strict cocoa adjudication structural failure: {accounting_res.get('structural_failures')}"
+        )
+
+    deferred_to_native: list[dict] = []
+    unexplained_blocking: list[dict] = []
+    norm_verified = u8_native_verified_cases.get("u8-native-normal", set())
+    chk_verified = u8_native_verified_cases.get("u8-native-checking", set())
+    for blk in accounting_res.get("blocking_cases", []):
+        bkey = (blk["file"], blk["id"])
+        if blk["file"] in subset_11_files and bkey in norm_verified and bkey in chk_verified:
+            deferred_to_native.append(blk)
+        else:
+            unexplained_blocking.append(blk)
+
+    if unexplained_blocking:
+        raise RuntimeError(
+            f"strict cocoa adjudication blocking cases outside verified u8-native subset-11 deferral: "
+            f"{unexplained_blocking[:10]}"
+        )
+    deferred_keys = {(blk["file"], blk["id"]) for blk in deferred_to_native}
+    unexplained_capture = [cf for cf in capture_failures if (cf["file"], cf["id"]) not in deferred_keys]
+    if unexplained_capture:
+        raise RuntimeError(
+            f"strict cocoa capture failures without verified u8-native subset-11 clearance: {unexplained_capture[:10]}"
+        )
+
+    summary = {
+        "schema": "femacs-u8-cocoa-strict-adjudication-v1",
+        "passed": True,
+        "profile": cocoa_profile["id"],
+        "entrypoint_count": accounting_res.get("original_file_count"),
+        "raw_case_count": accounting_res.get("raw_case_count"),
+        "raw_passed_count": accounting_res.get("raw_passed_count"),
+        "classified_case_count": accounting_res.get("classified_case_count"),
+        "raw_blocking_case_failure_count": accounting_res.get("blocking_case_failure_count"),
+        "structural_failure_count": accounting_res.get("structural_failure_count"),
+        "deferred_to_u8_native_count": len(deferred_to_native),
+        "deferred_to_u8_native": deferred_to_native,
+        "skipped_ordinarily_passing": skipped_passing,
+        "accounting_path": str(adjudication_out / "accounting.json"),
+    }
+    (adjudication_out / "results.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+    return summary
+
+
 def group_corpus_555(
     out: Path,
     ref_bin: Path,
     ref_dump: Path,
     ref_lisp: Path,
     native_root: Path,
+    *,
+    ref_data: Path | None = None,
+    baseline_runtime_root: Path | None = None,
+    reference_selection: Path | None = None,
+    control_runs: list[tuple[Path, Path]] | None = None,
+    remote_contract_runs: list[tuple[Path, Path]] | None = None,
+    library_contract_runs: list[Path] | None = None,
+    eglot_insert_replace_probe: Path | None = None,
+    eglot_text_edit_probe: Path | None = None,
 ) -> dict:
     started = time.monotonic()
     out.mkdir(parents=True, exist_ok=True)
@@ -1069,24 +1421,63 @@ def group_corpus_555(
 
     cocoa_bin = REPO / "dist/macos/Femacs.app/Contents/MacOS/Femacs"
     cocoa_dump = REPO / "dist/macos/Femacs.app/Contents/Resources/libexec/Femacs.pdmp"
+    cocoa_lisp = (REPO / "dist/macos/Femacs.app/Contents/Resources/lisp").resolve()
+    if baseline_runtime_root is not None:
+        base_app = baseline_runtime_root / "dist/Femacs.app"
+        strict_cocoa_bin = base_app / "Contents/MacOS/Femacs"
+        strict_cocoa_dump = base_app / "Contents/Resources/libexec/Femacs.pdmp"
+        strict_cocoa_lisp = (base_app / "Contents/Resources/lisp").resolve()
+        for req_meta in (
+            baseline_runtime_root / "runtime-binding.json",
+            baseline_runtime_root / "runtime-product.json",
+            baseline_runtime_root / "runtime-inputs.json",
+        ):
+            if not req_meta.is_file():
+                raise FileNotFoundError(f"missing required baseline runtime metadata: {req_meta}")
+    else:
+        strict_cocoa_bin = cocoa_bin
+        strict_cocoa_dump = cocoa_dump
+        strict_cocoa_lisp = cocoa_lisp
     term_bin = REPO / "build/terminal/port/src/emacs"
     term_dump = REPO / "build/terminal/port/src/emacs.pdmp"
-    u8_norm_bin = native_root / "port/src/emacs"
-    u8_norm_dump = native_root / "port/src/emacs.pdmp"
-    u8_chk_bin = native_root / "checking/port/src/emacs"
-    u8_chk_dump = native_root / "checking/port/src/emacs.pdmp"
-    repo_lisp = (REPO / "lisp").resolve()
+    u8_norm_root = native_root
+    u8_chk_root = native_root / "checking"
+    u8_norm_bin = u8_norm_root / "dist/Femacs.app/Contents/MacOS/Femacs"
+    u8_norm_dump = u8_norm_root / "dist/Femacs.app/Contents/Resources/libexec/Femacs.pdmp"
+    u8_norm_lisp = (u8_norm_root / "dist/Femacs.app/Contents/Resources/lisp").resolve()
+    u8_chk_bin = u8_chk_root / "dist/Femacs.app/Contents/MacOS/Femacs"
+    u8_chk_dump = u8_chk_root / "dist/Femacs.app/Contents/Resources/libexec/Femacs.pdmp"
+    u8_chk_lisp = (u8_chk_root / "dist/Femacs.app/Contents/Resources/lisp").resolve()
+    resolved_ref_data = ref_data.resolve() if ref_data is not None else (ref_lisp.resolve().parent / "etc")
 
-    for req_bin in (cocoa_bin, cocoa_dump, term_bin, term_dump, u8_norm_bin, u8_norm_dump, u8_chk_bin, u8_chk_dump):
+    for req_bin in (
+        cocoa_bin,
+        cocoa_dump,
+        strict_cocoa_bin,
+        strict_cocoa_dump,
+        term_bin,
+        term_dump,
+        u8_norm_bin,
+        u8_norm_dump,
+        u8_chk_bin,
+        u8_chk_dump,
+    ):
         if not req_bin.is_file():
             raise FileNotFoundError(f"missing required candidate artifact for corpus-555: {req_bin}")
+    for req_dir in (cocoa_lisp, strict_cocoa_lisp, u8_norm_lisp, u8_chk_lisp, ref_lisp, resolved_ref_data):
+        if not req_dir.is_dir():
+            raise FileNotFoundError(f"missing required directory for corpus-555: {req_dir}")
 
     # Put /usr/bin:/bin ahead of /opt/homebrew/bin so BSD /bin/stty precedes GNU coreutils stty
-    # (preventing the Darwin PTY echo buffer overflow documented in docs/modernization.md:774).
+    # (preventing the Darwin PTY echo buffer overflow documented in docs/modernization.md:774),
+    # while retaining trailing user PATH entries (e.g. ~/.cargo/bin for rust-analyzer).
+    preferred_path = ["/usr/bin", "/bin", "/usr/sbin", "/sbin", "/opt/homebrew/bin", "/opt/homebrew/opt/llvm/bin"]
+    trailing_path = [p for p in os.environ.get("PATH", "").split(os.pathsep) if p and p not in preferred_path]
     corpus_env = dict(os.environ)
-    corpus_env["PATH"] = "/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin:/opt/homebrew/opt/llvm/bin"
+    corpus_env["PATH"] = os.pathsep.join([*preferred_path, *trailing_path])
     corpus_env["LC_ALL"] = "C"
     corpus_env["TMPDIR"] = str(corpus_tmp)
+    strict_cleanup_dirs: list[Path] = []
 
     ref_corpus_out = out / "corpus-555-ref"
     cand_corpus_out = out / "corpus-555-cand"
@@ -1099,16 +1490,26 @@ def group_corpus_555(
         log_file: Path,
         lisp_root: Path | None = None,
     ) -> dict:
-        if (dest / "summary.json").is_file():
-            existing = json.loads((dest / "summary.json").read_text(encoding="utf-8"))
-            if len(existing.get("files", [])) == 555:
-                return {
-                    "name": f"reuse-completed-{label}",
-                    "passed": True,
-                    "exit_code": 0,
-                    "seconds": 0.0,
-                    "reused_files": 555,
-                }
+        meta_path = dest / ".side-artifact-meta.json"
+        expected_meta = {
+            "program_sha256": sha256_file(prog),
+            "dump_sha256": sha256_file(dmp),
+            "lisp_root": str(lisp_root) if lisp_root is not None else None,
+        }
+        if (dest / "summary.json").is_file() and meta_path.is_file():
+            try:
+                existing = json.loads((dest / "summary.json").read_text(encoding="utf-8"))
+                saved_meta = json.loads(meta_path.read_text(encoding="utf-8"))
+                if len(existing.get("files", [])) == 555 and saved_meta == expected_meta:
+                    return {
+                        "name": f"reuse-completed-{label}",
+                        "passed": True,
+                        "exit_code": 0,
+                        "seconds": 0.0,
+                        "reused_files": 555,
+                    }
+            except (OSError, ValueError):
+                pass
         if dest.exists():
             shutil.rmtree(dest)
         cmd = [
@@ -1130,7 +1531,7 @@ def group_corpus_555(
         ]
         if lisp_root is not None:
             cmd.extend(["--lisp-root", str(lisp_root)])
-        return run_step(
+        step_rec = run_step(
             f"functional-corpus-555-{label}",
             cmd,
             cwd=REPO,
@@ -1139,6 +1540,14 @@ def group_corpus_555(
             allow_codes=(0, 1),
             log_path=log_file,
         )
+        if (dest / "summary.json").is_file():
+            meta_path.write_text(json.dumps(expected_meta, indent=2) + "\n", encoding="utf-8")
+        return step_rec
+
+    ref_env_dict = {
+        "FEMACS_GC_OBSERVATION": "off",
+        "FEMACS_STABLE_PRODUCT_LISP": str(ref_lisp),
+    }
 
     def run_strict_subset(
         step_name: str,
@@ -1152,18 +1561,27 @@ def group_corpus_555(
         case_timeout: int = 360,
     ) -> dict:
         run_json = dest / "stable-suite-run.json"
-        if run_json.is_file():
+        comp_json = dest / "stable-suite-completion.json"
+        if run_json.is_file() and comp_json.is_file():
             try:
                 existing = json.loads(run_json.read_text(encoding="utf-8"))
-                if strict_subset_run_reusable(
-                    existing,
-                    subset_files,
-                    sha256_file(cand_prog),
-                    sha256_file(cand_dmp),
-                    sha256_file(ref_bin),
-                    sha256_file(ref_dump),
-                    allow_tramp_only_incomplete=allow_tramp_only_incomplete,
+                comp_existing = json.loads(comp_json.read_text(encoding="utf-8"))
+                if (
+                    comp_existing.get("execution_complete") is True
+                    and strict_subset_run_reusable(
+                        existing,
+                        subset_files,
+                        sha256_file(cand_prog),
+                        sha256_file(cand_dmp),
+                        sha256_file(ref_bin),
+                        sha256_file(ref_dump),
+                        allow_tramp_only_incomplete=allow_tramp_only_incomplete,
+                        expected_runtime_env={"reference": ref_env_dict, "candidate": cand_env_dict},
+                    )
+                    and strict_subset_containers_present(dest, subset_files)
                 ):
+                    if dest not in strict_cleanup_dirs:
+                        strict_cleanup_dirs.append(dest)
                     return {
                         "name": f"reuse-completed-{step_name}",
                         "passed": True,
@@ -1174,176 +1592,98 @@ def group_corpus_555(
             except (OSError, ValueError, KeyError, TypeError):
                 pass
         if dest.exists():
+            _cleanup_strict_containers(dest)
             _rmtree_unlocked(dest)
         subset_spec = out / f"{step_name}-subset.json"
         subset_spec.write_text(json.dumps(subset_files, indent=2) + "\n", encoding="utf-8")
-        try:
-            return run_step(
-                step_name,
-                [
-                    sys.executable,
-                    "tools/stable-suite.py",
-                    "--repo",
-                    str(REPO),
-                    "--manifest",
-                    str(REPO / "compatibility/stable-31.1/sources.json"),
-                    "--reference",
-                    str(ref_bin),
-                    "--reference-dump-args",
-                    json.dumps([f"--dump-file={ref_dump}"]),
-                    "--reference-env",
-                    json.dumps({"FEMACS_STABLE_PRODUCT_LISP": str(ref_lisp)}),
-                    "--candidate",
-                    str(cand_prog),
-                    "--candidate-dump-args",
-                    json.dumps([f"--dump-file={cand_dmp}"]),
-                    "--candidate-env",
-                    json.dumps(cand_env_dict),
-                    "--subset-file",
-                    str(subset_spec),
-                    "--timeout",
-                    str(case_timeout),
-                    "--out",
-                    str(dest),
-                ],
-                cwd=REPO,
-                env=corpus_env,
-                timeout=3600,
-                allow_codes=(0, 1),
-                log_path=log_file,
-            )
-        finally:
-            noindex_root = (Path.home() / "AI/caches/.noindex").resolve()
-            if dest.is_dir():
-                for env_json in dest.rglob("*.environment.json"):
-                    try:
-                        c = json.loads(env_json.read_text(encoding="utf-8")).get("container")
-                        if isinstance(c, str) and c:
-                            cp = Path(c).resolve()
-                            if cp != noindex_root and cp.is_relative_to(noindex_root) and cp.exists():
-                                _rmtree_unlocked(cp)
-                    except (OSError, ValueError):
-                        pass
-
-    cand_pre_incomplete: list[str] = []
-    ref_already_done = (ref_corpus_out / "summary.json").is_file() and len(
-        json.loads((ref_corpus_out / "summary.json").read_text(encoding="utf-8")).get("files", [])
-    ) == 555
-    if (cand_corpus_out / "summary.json").is_file() and not ref_already_done:
-        cand_pre = json.loads((cand_corpus_out / "summary.json").read_text(encoding="utf-8"))
-        if len(cand_pre.get("files", [])) == 555:
-            cand_pre_incomplete = [
-                f["file"]
-                for f in cand_pre["files"]
-                if not (f.get("registered") and f.get("input_matches"))
-            ]
-
-    strict_out = out / "strict-incomplete-followup"
-    if cand_pre_incomplete:
-        steps.append(
-            run_side("cand-cocoa", cocoa_bin, cocoa_dump, cand_corpus_out, logs_dir / "01-corpus-cand.log")
+        # Defer .noindex/<container> removal until group_corpus_555 finishes classification
+        # so native-bootstrap-identity.py can verify retained comp-tests.el closure state.
+        if dest not in strict_cleanup_dirs:
+            strict_cleanup_dirs.append(dest)
+        return run_step(
+            step_name,
+            [
+                sys.executable,
+                "tools/stable-suite.py",
+                "--repo",
+                str(REPO),
+                "--manifest",
+                str(REPO / "compatibility/stable-31.1/sources.json"),
+                "--reference",
+                str(ref_bin),
+                "--reference-dump-args",
+                json.dumps([f"--dump-file={ref_dump}"]),
+                "--reference-env",
+                json.dumps(ref_env_dict),
+                "--candidate",
+                str(cand_prog),
+                "--candidate-dump-args",
+                json.dumps([f"--dump-file={cand_dmp}"]),
+                "--candidate-env",
+                json.dumps(cand_env_dict),
+                "--subset-file",
+                str(subset_spec),
+                "--timeout",
+                str(case_timeout),
+                "--out",
+                str(dest),
+            ],
+            cwd=REPO,
+            env=corpus_env,
+            timeout=3600,
+            allow_codes=(0, 1),
+            log_path=log_file,
         )
-        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
-            fut_ref = pool.submit(
-                run_side,
-                "ref-32.0.50",
-                ref_bin,
-                ref_dump,
-                ref_corpus_out,
-                logs_dir / "01-corpus-ref.log",
-                ref_lisp,
-            )
-            fut_strict = pool.submit(
-                run_strict_subset,
-                "strict-incomplete-followup",
-                cand_pre_incomplete,
-                cocoa_bin,
-                cocoa_dump,
-                {},
-                strict_out,
-                logs_dir / "02-strict-incomplete-followup.log",
-            )
-            steps.append(fut_ref.result())
-            steps.append(fut_strict.result())
-    else:
-        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
-            fut_ref = pool.submit(
-                run_side,
-                "ref-32.0.50",
-                ref_bin,
-                ref_dump,
-                ref_corpus_out,
-                logs_dir / "01-corpus-ref.log",
-                ref_lisp,
-            )
-            fut_cand = pool.submit(
-                run_side,
-                "cand-cocoa",
-                cocoa_bin,
-                cocoa_dump,
-                cand_corpus_out,
-                logs_dir / "01-corpus-cand.log",
-            )
-            steps.append(fut_ref.result())
-            steps.append(fut_cand.result())
 
-    adjudication = adjudicate_555_runs(
-        ref_corpus_out,
-        cand_corpus_out,
-        REPO / "tools/fixtures/stable-classification-source-rules.json",
-    )
+    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
+        fut_ref = pool.submit(
+            run_side,
+            "ref-32.0.50",
+            ref_bin,
+            ref_dump,
+            ref_corpus_out,
+            logs_dir / "01-corpus-ref.log",
+            ref_lisp,
+        )
+        fut_cand = pool.submit(
+            run_side,
+            "cand-cocoa",
+            cocoa_bin,
+            cocoa_dump,
+            cand_corpus_out,
+            logs_dir / "01-corpus-cand.log",
+            cocoa_lisp,
+        )
+        steps.append(fut_ref.result())
+        steps.append(fut_cand.result())
+
+    adjudication = adjudicate_555_runs(ref_corpus_out, cand_corpus_out)
     (out / "adjudication-555.json").write_text(
         json.dumps(adjudication, indent=2) + "\n", encoding="utf-8"
     )
 
-    all_incomplete = sorted({row["file"] for row in adjudication["incomplete_files"]})
-    remaining_delta = sorted(set(all_incomplete) - set(cand_pre_incomplete))
-    if all_incomplete and not cand_pre_incomplete:
+    followup_files: list[str] = adjudication["followup_files"]
+    strict_out = out / "strict-incomplete-followup"
+    if followup_files:
         steps.append(
             run_strict_subset(
                 "strict-incomplete-followup",
-                all_incomplete,
-                cocoa_bin,
-                cocoa_dump,
-                {},
+                followup_files,
+                strict_cocoa_bin,
+                strict_cocoa_dump,
+                {
+                    "FEMACS_GC_OBSERVATION": "off",
+                    "FEMACS_GC_COLLECTOR": "major",
+                    "FEMACS_STABLE_PRODUCT_LISP": str(strict_cocoa_lisp),
+                },
                 strict_out,
                 logs_dir / "02-strict-incomplete-followup.log",
+                case_timeout=600,
             )
         )
-    elif remaining_delta:
-        steps.append(
-            run_strict_subset(
-                "strict-incomplete-delta",
-                remaining_delta,
-                cocoa_bin,
-                cocoa_dump,
-                {},
-                out / "strict-incomplete-delta",
-                logs_dir / "02b-strict-incomplete-delta.log",
-            )
-        )
-
-    def evaluate_strict_run(run_dir: Path) -> dict:
-        strict_run = json.loads((run_dir / "stable-suite-run.json").read_text(encoding="utf-8"))
-        rule_index = load_source_rule_index(REPO / "tools/fixtures/stable-classification-source-rules.json")
-        return evaluate_strict_run_data(strict_run, rule_index)
-
-    strict_followup: dict = {}
-    if strict_out.is_dir():
-        strict_followup["primary"] = evaluate_strict_run(strict_out)
-    if (out / "strict-incomplete-delta").is_dir():
-        strict_followup["delta"] = evaluate_strict_run(out / "strict-incomplete-delta")
-    for part_name, part in strict_followup.items():
-        if part["blocking_count"] != 0 or not part["execution_complete"]:
-            raise RuntimeError(f"strict followup ({part_name}) failed: {part}")
-
-    if adjudication["blocking_case_count"] != 0 or adjudication["registration_mismatches"]:
-        raise RuntimeError(
-            f"555-entrypoint adjudication found blocking cases: "
-            f"blocking={adjudication['blocking_case_count']}, "
-            f"reg_mismatch={adjudication['registration_mismatches']}, "
-            f"samples={adjudication['blocking_cases'][:5]}"
-        )
+    elif strict_out.exists():
+        _cleanup_strict_containers(strict_out)
+        _rmtree_unlocked(strict_out)
 
     # Targeted Affected-Matrix Audit across standard deliverables and u8-native (normal & checking):
     for compat_dir in (out / "stable-compat-standard", out / "stable-compat-u8-native"):
@@ -1394,64 +1734,336 @@ def group_corpus_555(
     )
 
     subset_11 = json.loads((REPO / "tools/fixtures/stable-subset-native-affected.json").read_text(encoding="utf-8"))
-    tramp_relpath = "test/lisp/net/tramp-tests.el"
-    u8_subset_verdicts = {}
-    for variant_label, v_bin, v_dump in (
-        ("u8-native-normal", u8_norm_bin, u8_norm_dump),
-        ("u8-native-checking", u8_chk_bin, u8_chk_dump),
-    ):
-        dest = out / f"subset-11-{variant_label}"
+    subset_11_set = set(subset_11)
+    subset_10 = [f for f in subset_11 if f != "test/lisp/filenotify-tests.el"]
+    subset_fn = ["test/lisp/filenotify-tests.el"]
+    receipt_paths: list[Path] = []
+    if strict_out.is_dir() and (strict_out / "stable-suite-run.json").is_file():
+        receipt_paths.append(strict_out / "stable-suite-run.json")
+
+    def _slice_reusable(
+        dest: Path, files: list[str], v_bin: Path, v_dump: Path, v_env: dict[str, str]
+    ) -> bool:
+        run_json = dest / "stable-suite-run.json"
+        comp_json = dest / "stable-suite-completion.json"
+        if not (run_json.is_file() and comp_json.is_file()):
+            return False
+        try:
+            existing = json.loads(run_json.read_text(encoding="utf-8"))
+            comp_existing = json.loads(comp_json.read_text(encoding="utf-8"))
+            return bool(
+                comp_existing.get("execution_complete") is True
+                and strict_subset_run_reusable(
+                    existing,
+                    files,
+                    sha256_file(v_bin),
+                    sha256_file(v_dump),
+                    sha256_file(ref_bin),
+                    sha256_file(ref_dump),
+                    allow_tramp_only_incomplete=False,
+                    expected_runtime_env={"reference": ref_env_dict, "candidate": v_env},
+                )
+                and strict_subset_containers_present(dest, files)
+            )
+        except (OSError, ValueError, KeyError, TypeError):
+            return False
+
+    def _execute_slice_with_incomplete_retry(
+        step_prefix: str,
+        files: list[str],
+        v_bin: Path,
+        v_dump: Path,
+        v_env: dict[str, str],
+        dest: Path,
+    ) -> None:
         steps.append(
             run_strict_subset(
-                f"subset-11-{variant_label}",
-                subset_11,
+                step_prefix,
+                files,
                 v_bin,
                 v_dump,
-                {"FEMACS_STABLE_PRODUCT_LISP": str(repo_lisp)},
+                v_env,
                 dest,
-                logs_dir / f"05-subset-11-{variant_label}.log",
-                allow_tramp_only_incomplete=True,
+                logs_dir / f"05-{step_prefix}.log",
+                case_timeout=600,
             )
         )
-        eval_11 = evaluate_strict_run(dest)
-        u8_subset_verdicts[variant_label] = eval_11
-        if is_tramp_timeout_only(eval_11):
-            retry_dest = out / f"subset-11-{variant_label}-tramp-retry"
-            retry_attempts: list[dict] = []
-            retry_eval: dict = {}
-            for attempt in range(1, 5):
-                steps.append(
-                    run_strict_subset(
-                        f"subset-11-{variant_label}-tramp-retry",
-                        [tramp_relpath],
-                        v_bin,
-                        v_dump,
-                        {"FEMACS_STABLE_PRODUCT_LISP": str(repo_lisp)},
-                        retry_dest,
-                        logs_dir / f"05-subset-11-{variant_label}-tramp-retry-attempt-{attempt}.log",
-                        case_timeout=60,
+        comp = json.loads((dest / "stable-suite-completion.json").read_text(encoding="utf-8"))
+        if not comp.get("execution_complete"):
+            _cleanup_strict_containers(dest)
+            _rmtree_unlocked(dest)
+            steps.append(
+                run_strict_subset(
+                    f"{step_prefix}-retry",
+                    files,
+                    v_bin,
+                    v_dump,
+                    v_env,
+                    dest,
+                    logs_dir / f"05-{step_prefix}-retry.log",
+                    case_timeout=900,
+                )
+            )
+
+    subset_variant_slices: dict[str, tuple[Path, Path, Path, dict[str, str], list[tuple[str, list[str], Path]]]] = {}
+    for variant_label, v_root, v_bin, v_dump, v_lisp in (
+        ("u8-native-normal", u8_norm_root, u8_norm_bin, u8_norm_dump, u8_norm_lisp),
+        ("u8-native-checking", u8_chk_root, u8_chk_bin, u8_chk_dump, u8_chk_lisp),
+    ):
+        binding_cfg = json.loads((v_root / "runtime-binding.json").read_text(encoding="utf-8"))
+        v_env: dict[str, str] = {
+            "FEMACS_GC_OBSERVATION": "off",
+            "FEMACS_GC_COLLECTOR": "young" if "collector" in str(binding_cfg.get("variant", "")) else "major",
+            "FEMACS_STABLE_PRODUCT_LISP": str(v_lisp),
+        }
+        dest_11 = out / f"subset-11-{variant_label}"
+        if _slice_reusable(dest_11, subset_11, v_bin, v_dump, v_env):
+            steps.append(
+                run_strict_subset(
+                    f"subset-11-{variant_label}",
+                    subset_11,
+                    v_bin,
+                    v_dump,
+                    v_env,
+                    dest_11,
+                    logs_dir / f"05-subset-11-{variant_label}.log",
+                    case_timeout=600,
+                )
+            )
+            slices = [("subset-11", subset_11, dest_11)]
+            receipt_paths.append(dest_11 / "stable-suite-run.json")
+        else:
+            if dest_11.exists():
+                _cleanup_strict_containers(dest_11)
+                _rmtree_unlocked(dest_11)
+            slices = []
+            for slice_tag, slice_files in (("subset-10", subset_10), ("subset-filenotify", subset_fn)):
+                s_dest = out / f"{slice_tag}-{variant_label}"
+                _execute_slice_with_incomplete_retry(
+                    f"{slice_tag}-{variant_label}", slice_files, v_bin, v_dump, v_env, s_dest
+                )
+                slices.append((slice_tag, slice_files, s_dest))
+                receipt_paths.append(s_dest / "stable-suite-run.json")
+        subset_variant_slices[variant_label] = (v_root, v_bin, v_dump, v_env, slices)
+
+    ref_selection_path = (
+        reference_selection.resolve()
+        if reference_selection is not None
+        else (out / "reference-selection.json")
+    )
+    reuse_ref_selection = False
+    if ref_selection_path.is_file():
+        try:
+            sel_doc = json.loads(ref_selection_path.read_text(encoding="utf-8"))
+            sel_prod = sel_doc.get("product") or {}
+            sel_id = sel_doc.get("identity") or {}
+            expected_ref_prog = sha256_file(ref_bin)
+            expected_ref_dmp = sha256_file(ref_dump)
+            if (
+                sel_doc.get("schema") == "femacs-reference-selection-v1"
+                and sel_prod.get("program") == str(ref_bin)
+                and sel_prod.get("dump") == str(ref_dump)
+                and (sel_id.get("program") or {}).get("sha256") == expected_ref_prog
+                and (sel_id.get("dump") or {}).get("sha256") == expected_ref_dmp
+                and (sel_prod.get("resource_roots") or {}).get("lisp") == str(ref_lisp)
+                and (sel_prod.get("resource_roots") or {}).get("data") == str(resolved_ref_data)
+                and all(
+                    (json.loads(rp.read_text(encoding="utf-8")).get("products_before", {}).get("reference", {}).get("program", {}).get("sha256") == expected_ref_prog)
+                    and (json.loads(rp.read_text(encoding="utf-8")).get("products_before", {}).get("reference", {}).get("dump", {}).get("sha256") == expected_ref_dmp)
+                    for rp in receipt_paths
+                )
+            ):
+                reuse_ref_selection = True
+        except (OSError, ValueError, TypeError, KeyError):
+            reuse_ref_selection = False
+    if reuse_ref_selection:
+        steps.append({
+            "name": "reuse-reference-selection",
+            "passed": True,
+            "exit_code": 0,
+            "seconds": 0.0,
+        })
+    else:
+        if reference_selection is not None:
+            raise RuntimeError(f"provided reference-selection missing or mismatched: {ref_selection_path}")
+        bind_cmd = [
+            sys.executable,
+            "tools/g3-reference-binding.py",
+            "--program",
+            str(ref_bin),
+            "--dump",
+            str(ref_dump),
+            "--lisp-root",
+            str(ref_lisp),
+            "--data-root",
+            str(resolved_ref_data),
+            "--epoch",
+            "installed-32.0.50-fd7afced403",
+            "--out",
+            str(ref_selection_path),
+        ]
+        for rp in receipt_paths:
+            bind_cmd.extend(["--receipt", str(rp)])
+        steps.append(
+            run_step(
+                "bind-reference-selection",
+                bind_cmd,
+                cwd=REPO,
+                timeout=120,
+                log_path=logs_dir / "05a-bind-reference-selection.log",
+            )
+        )
+
+    extra_classification_args: list[str] = []
+    for res_p, ctrl_p in (control_runs or []):
+        extra_classification_args.extend(["--control-run", str(res_p), str(ctrl_p)])
+    for res_p, ctrl_p in (remote_contract_runs or []):
+        extra_classification_args.extend(["--remote-contract-run", str(res_p), str(ctrl_p)])
+    for lib_p in (library_contract_runs or []):
+        extra_classification_args.extend(["--library-contract-run", str(lib_p)])
+    if eglot_insert_replace_probe is not None:
+        extra_classification_args.extend(["--eglot-insert-replace-probe", str(eglot_insert_replace_probe)])
+    if eglot_text_edit_probe is not None:
+        extra_classification_args.extend(["--eglot-text-edit-probe", str(eglot_text_edit_probe)])
+
+    def _run_scoped_assembly(
+        step_name: str,
+        dest: Path,
+        v_root: Path,
+        asm_out: Path,
+        log_path: Path,
+    ) -> tuple[dict, dict]:
+        _rmtree_unlocked(asm_out)
+        steps.append(
+            run_step(
+                step_name,
+                [
+                    sys.executable,
+                    "tools/stable-classification.py",
+                    "--scoped-assembly",
+                    "--receipt",
+                    str(dest),
+                    "--approved-rules",
+                    str(REPO / "tools/fixtures/stable-classification-source-rules.json"),
+                    "--reference-selection",
+                    str(ref_selection_path),
+                    "--product",
+                    str(v_root),
+                    "--out",
+                    str(asm_out),
+                    *extra_classification_args,
+                ],
+                cwd=REPO,
+                timeout=300,
+                allow_codes=(0, 1),
+                log_path=log_path,
+            )
+        )
+        asm_res = json.loads((asm_out / "results.json").read_text(encoding="utf-8"))
+        acct_path = asm_out / "accounting.json"
+        acct_res = json.loads(acct_path.read_text(encoding="utf-8")) if acct_path.is_file() else {}
+        return asm_res, acct_res
+
+    def _assembly_accepted(res: dict) -> bool:
+        return (
+            res.get("passed") is True
+            and res.get("structural_failure_count") == 0
+            and res.get("blocking_case_failure_count") == 0
+            and res.get("classified_corpus_accepted") is True
+        )
+
+    u8_subset_verdicts: dict[str, dict] = {}
+    u8_native_verified_cases: dict[str, set[tuple[str, str]]] = {}
+    for variant_label, (v_root, v_bin, v_dump, v_env, slices) in subset_variant_slices.items():
+        parts: list[dict] = []
+        verified_cases: set[tuple[str, str]] = set()
+        for slice_tag, slice_files, slice_dest in slices:
+            asm_out = out / f"{slice_tag}-{variant_label}-classification"
+            asm_step_name = (
+                f"scoped-assembly-{variant_label}"
+                if slice_tag == "subset-11"
+                else f"scoped-assembly-{slice_tag}-{variant_label}"
+            )
+            asm_log_name = (
+                f"05b-scoped-assembly-{variant_label}.log"
+                if slice_tag == "subset-11"
+                else f"05b-scoped-assembly-{slice_tag}-{variant_label}.log"
+            )
+            asm_res, acct_res = _run_scoped_assembly(
+                asm_step_name, slice_dest, v_root, asm_out, logs_dir / asm_log_name
+            )
+            if not _assembly_accepted(asm_res) and slice_tag == "subset-filenotify":
+                for attempt in range(1, 5):
+                    if not _is_reference_filenotify_monitor_flake(slice_dest, asm_res):
+                        break
+                    _cleanup_strict_containers(slice_dest)
+                    _rmtree_unlocked(slice_dest)
+                    steps.append(
+                        run_strict_subset(
+                            f"subset-filenotify-{variant_label}-flake-retry-{attempt}",
+                            slice_files,
+                            v_bin,
+                            v_dump,
+                            v_env,
+                            slice_dest,
+                            logs_dir / f"05-subset-filenotify-{variant_label}-flake-retry-{attempt}.log",
+                            case_timeout=600,
+                        )
                     )
-                )
-                retry_eval = evaluate_strict_run(retry_dest)
-                retry_attempts.append(
-                    {
-                        "attempt": attempt,
-                        "execution_complete": retry_eval["execution_complete"],
-                        "blocking_count": retry_eval["blocking_count"],
-                        "incomplete_strict_files": retry_eval["incomplete_strict_files"],
-                        "case_totals": retry_eval["case_totals"],
-                    }
-                )
-                if (retry_eval["execution_complete"] and retry_eval["blocking_count"] == 0) or not is_tramp_timeout_only(
-                    retry_eval
-                ):
-                    break
-            u8_subset_verdicts[variant_label]["tramp_retry"] = retry_eval
-            u8_subset_verdicts[variant_label]["tramp_retry_attempts"] = retry_attempts
-            if retry_eval["blocking_count"] != 0 or not retry_eval["execution_complete"]:
-                raise RuntimeError(f"{variant_label} 11-file tramp retry blocking: {retry_eval}")
-        elif eval_11["blocking_count"] != 0 or not eval_11["execution_complete"]:
-            raise RuntimeError(f"{variant_label} 11-file subset blocking: {eval_11}")
+                    comp_retry = json.loads((slice_dest / "stable-suite-completion.json").read_text(encoding="utf-8"))
+                    if not comp_retry.get("execution_complete"):
+                        break
+                    asm_res, acct_res = _run_scoped_assembly(
+                        f"scoped-assembly-{slice_tag}-{variant_label}-flake-retry-{attempt}",
+                        slice_dest,
+                        v_root,
+                        asm_out,
+                        logs_dir / f"05b-scoped-assembly-{slice_tag}-{variant_label}-flake-retry-{attempt}.log",
+                    )
+                    if _assembly_accepted(asm_res):
+                        break
+            if not _assembly_accepted(asm_res):
+                raise RuntimeError(f"{variant_label} ({slice_tag}) scoped-assembly failed: {asm_res}")
+            parts.append(asm_res)
+            verified_cases.update(_verified_case_ids_in_scoped_assembly(slice_dest, acct_res))
+
+        u8_native_verified_cases[variant_label] = verified_cases
+        if len(parts) == 1:
+            u8_subset_verdicts[variant_label] = parts[0]
+        else:
+            u8_subset_verdicts[variant_label] = {
+                "passed": True,
+                "profile": parts[0]["profile"],
+                "entrypoints": sum((p.get("scope") or {}).get("entrypoints", 0) for p in parts),
+                "cases": sum((p.get("scope") or {}).get("cases", 0) for p in parts),
+                "bound_rule_count": sum(p.get("bound_rule_count", 0) for p in parts),
+                "classified_case_count": sum(p.get("classified_case_count", 0) for p in parts),
+                "blocking_case_failure_count": 0,
+                "structural_failure_count": 0,
+                "classified_corpus_accepted": True,
+                "parts": parts,
+            }
+
+    strict_followup: dict = {}
+    if strict_out.is_dir():
+        strict_followup["primary"] = adjudicate_cocoa_strict_receipt(
+            strict_out,
+            strict_cocoa_bin,
+            strict_cocoa_dump,
+            strict_cocoa_lisp,
+            ref_selection_path,
+            out / "strict-incomplete-followup-classification",
+            subset_11_files=subset_11_set,
+            u8_native_verified_cases=u8_native_verified_cases,
+            baseline_runtime_root=baseline_runtime_root,
+            control_runs=control_runs,
+            remote_contract_runs=remote_contract_runs,
+            library_contract_runs=library_contract_runs,
+            eglot_insert_replace_probe=eglot_insert_replace_probe,
+            eglot_text_edit_probe=eglot_text_edit_probe,
+        )
+    for s_dir in strict_cleanup_dirs:
+        _cleanup_strict_containers(s_dir)
 
     for prod_name, b_path, d_path in (
         ("terminal", term_bin, term_dump),
@@ -1593,12 +2205,15 @@ def group_corpus_555(
         "group": "corpus-555",
         "passed": True,
         "seconds": round(time.monotonic() - started, 3),
+        "reference_selection": str(ref_selection_path),
         "adjudication_555": {
             "file_count": adjudication["file_count"],
             "total_compared_cases": adjudication["total_compared_cases"],
             "case_totals": adjudication["case_totals"],
             "rule_category_totals": adjudication["rule_category_totals"],
             "incomplete_file_count": len(adjudication["incomplete_files"]),
+            "non_parity_file_count": len(adjudication["non_parity_files"]),
+            "followup_file_count": len(followup_files),
             "blocking_case_count": adjudication["blocking_case_count"],
         },
         "strict_incomplete_followup": strict_followup,
@@ -1672,6 +2287,11 @@ def group_performance(out: Path, ref_bin: Path, native_root: Path) -> dict:
 
     bench_cocoa_out = out / "bench-cocoa"
     bench_term_out = out / "bench-terminal"
+    cocoa_gate = REPO / "docs/baseline/bench-cocoa-ga8.tsv"
+    term_gate = REPO / "docs/baseline/bench-terminal-ga8.tsv"
+    for gate_file in (cocoa_gate, term_gate):
+        if not gate_file.is_file():
+            raise FileNotFoundError(f"missing bench --gate baseline: {gate_file}")
     steps.append(
         run_step(
             "bench-cocoa-7rounds",
@@ -1684,6 +2304,8 @@ def group_performance(out: Path, ref_bin: Path, native_root: Path) -> dict:
                 str(ref_bin),
                 "--rounds",
                 "7",
+                "--gate",
+                str(cocoa_gate),
                 "--out",
                 str(bench_cocoa_out),
             ],
@@ -1704,6 +2326,8 @@ def group_performance(out: Path, ref_bin: Path, native_root: Path) -> dict:
                 str(ref_bin),
                 "--rounds",
                 "7",
+                "--gate",
+                str(term_gate),
                 "--out",
                 str(bench_term_out),
             ],
@@ -1718,22 +2342,50 @@ def group_performance(out: Path, ref_bin: Path, native_root: Path) -> dict:
     bench_cocoa_json = json.loads((bench_cocoa_out / "results.json").read_text(encoding="utf-8"))
     bench_term_json = json.loads((bench_term_out / "results.json").read_text(encoding="utf-8"))
 
+    cocoa_regs = bench_cocoa_json.get("regressions") or []
+    term_regs = bench_term_json.get("regressions") or []
     summary = {
         "group": "performance",
-        "passed": bool(bench_cocoa_json.get("passed") and bench_term_json.get("passed")),
+        "passed": bool(
+            bench_cocoa_json.get("passed")
+            and bench_term_json.get("passed")
+            and not cocoa_regs
+            and not term_regs
+        ),
         "seconds": round(time.monotonic() - started, 3),
         "delivered_comparisons": delivered_json.get("comparisons", []),
         "modes_comparisons": modes_json.get("comparisons", []),
+        "bench_cocoa_baseline": str(cocoa_gate.relative_to(REPO)),
+        "bench_cocoa_baseline_sha256": sha256_file(cocoa_gate),
+        "bench_cocoa_regressions": cocoa_regs,
         "bench_cocoa_stats": bench_cocoa_json.get("stats", []),
         "bench_cocoa_load_per_round": bench_cocoa_json.get("load_per_round", []),
+        "bench_terminal_baseline": str(term_gate.relative_to(REPO)),
+        "bench_terminal_baseline_sha256": sha256_file(term_gate),
+        "bench_terminal_regressions": term_regs,
         "bench_terminal_stats": bench_term_json.get("stats", []),
         "bench_terminal_load_per_round": bench_term_json.get("load_per_round", []),
         "steps": steps,
     }
     if not summary["passed"]:
-        raise RuntimeError("bench.py reported failure")
+        raise RuntimeError(
+            f"bench.py --gate failed: cocoa_regs={cocoa_regs}, term_regs={term_regs}"
+        )
     (out / "summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     return summary
+
+
+def strict_subset_containers_present(dest: Path, subset_files: list[str]) -> bool:
+    if "test/src/comp-tests.el" not in subset_files:
+        return True
+    envs = list((dest / "results").rglob("*src-comp-tests*.environment.json"))
+    if len(envs) < 2:
+        return False
+    for env_json in envs:
+        c = json.loads(env_json.read_text(encoding="utf-8")).get("container")
+        if not isinstance(c, str) or not c or not Path(c).is_dir():
+            return False
+    return True
 
 
 def strict_subset_run_reusable(
@@ -1744,6 +2396,7 @@ def strict_subset_run_reusable(
     ref_prog_sha: str,
     ref_dmp_sha: str,
     allow_tramp_only_incomplete: bool = False,
+    expected_runtime_env: dict | None = None,
 ) -> bool:
     ex_files = existing.get("files", [])
     ex_before = existing.get("products_before", {})
@@ -1761,10 +2414,12 @@ def strict_subset_run_reusable(
             and incomplete_files == ["test/lisp/net/tramp-tests.el"]
         )
     )
+    env_ok = expected_runtime_env is None or existing.get("runtime_environment") == expected_runtime_env
     return (
         sorted(existing.get("subset") or []) == sorted(subset_files)
         and len(ex_files) == len(subset_files)
         and completion_ok
+        and env_ok
         and bool((existing.get("registration") or {}).get("passed"))
         and bool(existing.get("corpus_inputs_unchanged"))
         and bool(existing.get("identities_unchanged"))
@@ -1895,7 +2550,8 @@ class U8UnitTests(unittest.TestCase):
         )
 
     def test_case_pair_adjudication_distinguishes_worse_from_d01_and_rules(self):
-        rules = {("test/lisp/foo-tests.el", "opt-case"): {"category": "explicit-optional-capability", "reason": "rsvg"}}
+        rules = load_source_rule_index(REPO / "tools/fixtures/stable-classification-source-rules.json")
+        known_key = next(iter(rules))
         self.assertEqual(
             classify_case_pair(
                 "test/lisp/foo-tests.el",
@@ -1906,25 +2562,26 @@ class U8UnitTests(unittest.TestCase):
             ),
             ("same-pass", None),
         )
+        # Blind (file, id) presence + "Femacs" diagnostic must NOT bypass port-worse in pre-screen.
         self.assertEqual(
             classify_case_pair(
-                "test/lisp/foo-tests.el",
-                "opt-case",
-                {"status": "passed", "diagnostic": ""},
-                {"status": "skipped", "diagnostic": ""},
-                rules,
-            ),
-            ("classified-rule", "explicit-optional-capability"),
-        )
-        self.assertEqual(
-            classify_case_pair(
-                "test/lisp/foo-tests.el",
-                "name-case",
+                known_key[0],
+                known_key[1],
                 {"status": "passed", "diagnostic": ""},
                 {"status": "failed", "diagnostic": '(ert-test-failed ("Femacs" "32.0.50"))'},
                 rules,
             ),
-            ("classified-d01-name-only", "D-01-product-name"),
+            ("port-worse", None),
+        )
+        self.assertEqual(
+            classify_case_pair(
+                known_key[0],
+                known_key[1],
+                {"status": "passed", "diagnostic": ""},
+                {"status": "skipped", "diagnostic": "(ert-test-skipped ((skip-unless nil)))"},
+                rules,
+            ),
+            ("unclassified-skip-diff", None),
         )
         self.assertEqual(
             classify_case_pair(
@@ -1995,6 +2652,7 @@ class U8UnitTests(unittest.TestCase):
             ),
             ("both-fail-condition-diff", None),
         )
+        # Ad-hoc native-compile skips must route to strict stable-classification, never self-waive.
         self.assertEqual(
             classify_case_pair(
                 "test/lisp/emacs-lisp/comp-tests.el",
@@ -2003,7 +2661,7 @@ class U8UnitTests(unittest.TestCase):
                 {"status": "skipped", "diagnostic": "(ert-test-skipped ((skip-unless (featurep 'native-compile))))"},
                 rules,
             ),
-            ("classified-rule", "explicit-optional-capability"),
+            ("unclassified-skip-diff", None),
         )
         self.assertEqual(
             classify_case_pair(
@@ -2015,6 +2673,34 @@ class U8UnitTests(unittest.TestCase):
             ),
             ("unclassified-skip-diff", None),
         )
+
+    def test_adjudicate_555_runs_routes_non_parity_and_rejects_femacs_name_waiver(self):
+        import tempfile
+
+        rules = load_source_rule_index(REPO / "tools/fixtures/stable-classification-source-rules.json")
+        known_file, known_id = next(iter(rules))
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            ref_res = root / "ref/results"
+            cand_res = root / "cand/results"
+            ref_res.mkdir(parents=True)
+            cand_res.mkdir(parents=True)
+            (ref_res / "a.summary.json").write_text(json.dumps({
+                "file": known_file,
+                "input_matches": True,
+                "registered": True,
+                "cases": {known_id: {"status": "passed", "diagnostic": ""}},
+            }), encoding="utf-8")
+            (cand_res / "a.summary.json").write_text(json.dumps({
+                "file": known_file,
+                "input_matches": True,
+                "registered": True,
+                "cases": {known_id: {"status": "failed", "diagnostic": '(ert-test-failed ("Femacs" "32.0.50"))'}},
+            }), encoding="utf-8")
+            adj = adjudicate_555_runs(root / "ref", root / "cand")
+            self.assertEqual(adj["blocking_case_count"], 1)
+            self.assertEqual(adj["followup_files"], [known_file])
+            self.assertEqual(adj["non_parity_files"], [known_file])
 
     def test_sa_stack_block_preserves_recycle_capacity(self):
         alloc_src = (REPO / "src/alloc.rs").read_text(encoding="utf-8")
@@ -2195,6 +2881,98 @@ class U8UnitTests(unittest.TestCase):
             self.assertEqual(prod["program"], str(root / "dist/Femacs.app/Contents/MacOS/Femacs"))
             self.assertEqual(prod["dump"], str(root / "dist/Femacs.app/Contents/Resources/libexec/Femacs.pdmp"))
 
+    def test_bench_gate_rejects_regression_above_tolerance(self):
+        spec = importlib.util.spec_from_file_location("femacs_bench_gate", REPO / "tools/bench.py")
+        bench_mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(bench_mod)
+        for tsv_name in ("bench-terminal-ga8.tsv", "bench-cocoa-ga8.tsv"):
+            baseline = bench_mod.load_baseline(REPO / "docs/baseline" / tsv_name)
+            summary = [
+                {"side": "candidate", "case": case, "median": val}
+                for case, val in baseline.items()
+            ]
+            self.assertEqual(bench_mod.gate_rows(summary, baseline, 0.15), [])
+            regressed = [
+                {"side": "candidate", "case": case, "median": val * 1.187 if case == "gc" else val}
+                for case, val in baseline.items()
+            ]
+            self.assertEqual(bench_mod.gate_rows(regressed, baseline, 0.15), ["gc"])
+
+    def test_is_reference_filenotify_monitor_flake_contract(self):
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as td:
+            dest = Path(td)
+            prog_dir = dest / "results/reference"
+            prog_dir.mkdir(parents=True)
+            prog_path = prog_dir / "fn.progress.jsonl"
+            (dest / "stable-suite-run.json").write_text(
+                json.dumps({
+                    "files": [
+                        {
+                            "file": "test/lisp/filenotify-tests.el",
+                            "reference": {"progress": {"path": "results/reference/fn.progress.jsonl"}},
+                        }
+                    ]
+                }),
+                encoding="utf-8",
+            )
+            prog_path.write_text(
+                '{"event":"test-ended","status":"skipped","condition":"(ert-test-skipped \\"Cannot determine test monitor\\")"}\n',
+                encoding="utf-8",
+            )
+            good_flake = {
+                "structural_failure_count": 0,
+                "blocking_case_failure_count": 1,
+                "blocking_cases": [
+                    {
+                        "file": "test/lisp/filenotify-tests.el",
+                        "id": "file-notify-test03-events-remote",
+                        "candidate_status": "passed",
+                    }
+                ],
+            }
+            self.assertTrue(_is_reference_filenotify_monitor_flake(dest, good_flake))
+            self.assertFalse(
+                _is_reference_filenotify_monitor_flake(
+                    dest,
+                    {
+                        "structural_failure_count": 0,
+                        "blocking_case_failure_count": 1,
+                        "blocking_cases": [
+                            {
+                                "file": "test/lisp/filenotify-tests.el",
+                                "id": "file-notify-test03-events-remote",
+                                "candidate_status": "failed",
+                            }
+                        ],
+                    },
+                )
+            )
+            self.assertFalse(
+                _is_reference_filenotify_monitor_flake(
+                    dest, dict(good_flake, structural_failure_count=1)
+                )
+            )
+            self.assertFalse(
+                _is_reference_filenotify_monitor_flake(
+                    dest,
+                    {
+                        "structural_failure_count": 0,
+                        "blocking_case_failure_count": 1,
+                        "blocking_cases": [
+                            {
+                                "file": "test/lisp/net/tramp-tests.el",
+                                "id": "tramp-test30-make-process",
+                                "candidate_status": "passed",
+                            }
+                        ],
+                    },
+                )
+            )
+            prog_path.write_text('{"event":"test-ended","status":"failed"}\n', encoding="utf-8")
+            self.assertFalse(_is_reference_filenotify_monitor_flake(dest, good_flake))
+
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
@@ -2212,6 +2990,33 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--reference", type=Path)
     parser.add_argument("--reference-dump", type=Path)
     parser.add_argument("--reference-lisp", type=Path)
+    parser.add_argument("--reference-data", type=Path)
+    parser.add_argument(
+        "--control-run",
+        type=Path,
+        nargs=2,
+        action="append",
+        default=[],
+        metavar=("RESULTS", "CONTROLLER"),
+    )
+    parser.add_argument(
+        "--remote-contract-run",
+        type=Path,
+        nargs=2,
+        action="append",
+        default=[],
+        metavar=("RESULTS", "CONTROLLER"),
+    )
+    parser.add_argument(
+        "--library-contract-run",
+        type=Path,
+        action="append",
+        default=[],
+    )
+    parser.add_argument("--eglot-insert-replace-probe", type=Path)
+    parser.add_argument("--eglot-text-edit-probe", type=Path)
+    parser.add_argument("--baseline-runtime-root", type=Path)
+    parser.add_argument("--reference-selection", type=Path)
     parser.add_argument(
         "--native-runtime-root",
         type=Path,
@@ -2249,6 +3054,20 @@ def main(argv: list[str] | None = None) -> int:
             args.reference_dump.resolve(),
             args.reference_lisp.resolve(),
             args.native_runtime_root.resolve(),
+            ref_data=args.reference_data.resolve() if args.reference_data else None,
+            baseline_runtime_root=(
+                args.baseline_runtime_root.resolve() if args.baseline_runtime_root else None
+            ),
+            reference_selection=(
+                args.reference_selection.resolve() if args.reference_selection else None
+            ),
+            control_runs=[(a.resolve(), b.resolve()) for a, b in args.control_run],
+            remote_contract_runs=[(a.resolve(), b.resolve()) for a, b in args.remote_contract_run],
+            library_contract_runs=[p.resolve() for p in args.library_contract_run],
+            eglot_insert_replace_probe=(
+                args.eglot_insert_replace_probe.resolve() if args.eglot_insert_replace_probe else None
+            ),
+            eglot_text_edit_probe=args.eglot_text_edit_probe.resolve() if args.eglot_text_edit_probe else None,
         )
     elif args.group == "performance":
         if args.reference is None:

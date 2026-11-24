@@ -81,6 +81,11 @@ pub mod common {
 #[path = "__ROOTS_RS_PATH__"]
 pub mod roots;
 
+pub mod nonlocal {
+    pub(crate) fn clear_tls_state_cache() {}
+    pub(crate) fn set_tls_vm_lock_key(_: usize) {}
+}
+
 #[macro_use]
 #[path = "__STDCOUNTOF_RS_PATH__"]
 pub mod stdcountof;
@@ -93,10 +98,10 @@ mod tests {
 
     use crate::common::{Lisp_Object, current_thread, lisp_h_Qnil};
     use crate::roots::{
-        GcContext, LispVal, PersistentRoot, Rooted, ScopedRawSpan, UnrootedBorrow,
-        cleanup_thread_u4_slab, femacs_vm_persistent_root_alloc, femacs_vm_persistent_root_get,
-        femacs_vm_persistent_root_release, mark_persistent_roots, mark_thread_u4_slab_roots,
-        rooting_counters,
+        GcContext, LispVal, PersistentRoot, Rooted, RootedVec, ScopedRawSpan, UnrootedBorrow,
+        bind_vm_lock_owner, cleanup_thread_u4_slab, femacs_vm_persistent_root_alloc,
+        femacs_vm_persistent_root_get, femacs_vm_persistent_root_release, mark_persistent_roots,
+        mark_thread_u4_slab_roots, rooting_counters, unbind_vm_lock_owner,
     };
     use crate::stdcountof::{
         femacs_array_mut_ptr, femacs_array_ptr, femacs_countof_ptr, femacs_sizeof_ptr,
@@ -111,6 +116,11 @@ mod tests {
     fn set_thread(id: usize) -> *mut c_void {
         let ptr = id as *mut c_void;
         current_thread.set(ptr as *mut crate::common::thread_state);
+        if id != 0 {
+            bind_vm_lock_owner(id);
+        } else {
+            unbind_vm_lock_owner();
+        }
         ptr
     }
 
@@ -229,7 +239,11 @@ mod tests {
 
         assert!(p1.release());
         assert!(!p1.release());
-        assert_eq!(p1.handle().get(), LispVal::nil());
+        let stale_get_after_release = catch_unwind(AssertUnwindSafe(|| p1.handle().get()));
+        assert!(
+            stale_get_after_release.is_err(),
+            "stale Handle::get() after PersistentRoot release must panic"
+        );
         assert!(!marked_persistent().contains(&(501 << 3)));
 
         // Reallocate via C-ABI entrypoint: free-list reuses `slot_idx_1` with bumped generation!
@@ -243,7 +257,11 @@ mod tests {
         // Stale generation on the SAME slot index MUST still be rejected (ABA safety)!
         assert_eq!(femacs_vm_persistent_root_get(slot_idx_1, gen_1), lisp_h_Qnil());
         assert!(!femacs_vm_persistent_root_release(slot_idx_1, gen_1));
-        assert_eq!(p1.handle().get(), LispVal::nil());
+        let stale_get_after_reuse = catch_unwind(AssertUnwindSafe(|| p1.handle().get()));
+        assert!(
+            stale_get_after_reuse.is_err(),
+            "stale Handle::get() after slot reuse must panic on generation mismatch"
+        );
         assert!(marked_persistent().contains(&(502 << 3)));
 
         assert!(femacs_vm_persistent_root_release(idx2, gen2));
@@ -278,6 +296,109 @@ mod tests {
             *mp.add(3) = 99;
             assert_eq!(*rp.add(3), 99);
         }
+    }
+
+    #[test]
+    fn gc_context_is_single_lease_and_rejects_other_os_thread() {
+        let _lk = SERIAL.lock().unwrap();
+        let th = set_thread(0x3000);
+        cleanup_thread_u4_slab(th);
+
+        let mut ctx1 = GcContext::current().expect("lock owner obtains first GcContext");
+        assert!(
+            GcContext::current().is_none(),
+            "second simultaneous GcContext::current() must return None"
+        );
+        ctx1.safepoint(|_| {
+            assert!(
+                GcContext::current().is_none(),
+                "safepoint closure still holds GcContext lease"
+            );
+        });
+        let spawned = std::thread::spawn(|| GcContext::current().is_some())
+            .join()
+            .expect("join thread");
+        assert!(
+            !spawned,
+            "another OS thread must NEVER obtain GcContext even when current_thread != null"
+        );
+        drop(ctx1);
+
+        let ctx2 = GcContext::current().expect("re-acquire GcContext after drop");
+        drop(ctx2);
+        cleanup_thread_u4_slab(th);
+        set_thread(0);
+    }
+
+    #[test]
+    fn rooted_out_of_order_drop_preserves_inner_live_root_and_handle() {
+        let _lk = SERIAL.lock().unwrap();
+        let th = set_thread(0x4000);
+        cleanup_thread_u4_slab(th);
+
+        let outer = Rooted::new(LispVal::from_raw(fake_obj(71)));
+        let mut inner = Rooted::new(LispVal::from_raw(fake_obj(72)));
+        assert_eq!(marked_slab(th), vec![71 << 3, 72 << 3]);
+
+        // Drop `outer` BEFORE `inner`! Previously `truncate(self.index)` wiped `inner` in release.
+        drop(outer);
+        assert_eq!(inner.get(), LispVal::from_raw(fake_obj(72)));
+        assert_eq!(inner.handle().get(), LispVal::from_raw(fake_obj(72)));
+        assert_eq!(marked_slab(th), vec![72 << 3]);
+
+        inner.set(LispVal::from_raw(fake_obj(73)));
+        // Free-list slot reuse must not disturb live `inner` at slot 1.
+        let reused = Rooted::new(LispVal::from_raw(fake_obj(74)));
+        assert_eq!(reused.get(), LispVal::from_raw(fake_obj(74)));
+        assert_eq!(inner.handle().get(), LispVal::from_raw(fake_obj(73)));
+        assert_eq!(marked_slab(th), vec![74 << 3, 73 << 3]);
+
+        drop(reused);
+        drop(inner);
+        assert!(marked_slab(th).is_empty());
+        cleanup_thread_u4_slab(th);
+        set_thread(0);
+    }
+
+    #[test]
+    fn rooted_vec_out_of_order_drop_preserves_other_live_spans() {
+        let _lk = SERIAL.lock().unwrap();
+        let th = set_thread(0x5000);
+        cleanup_thread_u4_slab(th);
+
+        let mut v1 = RootedVec::new();
+        v1.push(fake_obj(81));
+        let mut v2 = RootedVec::new();
+        v2.push(fake_obj(82));
+        v2.push(fake_obj(83));
+        assert_eq!(marked_slab(th), vec![81 << 3, 82 << 3, 83 << 3]);
+
+        drop(v1);
+        assert_eq!(marked_slab(th), vec![82 << 3, 83 << 3]);
+
+        drop(v2);
+        assert!(marked_slab(th).is_empty());
+        cleanup_thread_u4_slab(th);
+        set_thread(0);
+    }
+
+    #[test]
+    fn rooted_new_panics_on_non_owner_os_thread() {
+        let _lk = SERIAL.lock().unwrap();
+        let th = set_thread(0x6000);
+        cleanup_thread_u4_slab(th);
+
+        let res = std::thread::spawn(|| {
+            catch_unwind(AssertUnwindSafe(|| {
+                let _bad = Rooted::new(LispVal::from_raw(fake_obj(91)));
+            }))
+        })
+        .join()
+        .expect("join thread");
+        assert!(res.is_err(), "non-owner OS thread Rooted::new must panic");
+        assert!(marked_slab(th).is_empty());
+        cleanup_thread_u4_slab(th);
+        set_thread(0);
     }
 }
 """
@@ -339,7 +460,7 @@ def main() -> int:
                 timeout=60,
             )
             proc = run_checked([str(bin_out), "--test-threads=1"], timeout=30)
-            assert "5 passed; 0 failed" in proc.stdout, proc.stdout
+            assert "9 passed; 0 failed" in proc.stdout, proc.stdout
 
     def group2_forbid_crates_and_boundary_tool_selftests() -> None:
         run_checked([sys.executable, str(REPO / "tools/check-unsafe-boundary.py"), "--selftest"], timeout=30)

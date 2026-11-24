@@ -12,7 +12,7 @@ use core::ffi::c_void;
 use core::marker::PhantomData;
 use std::collections::HashMap;
 use std::sync::Mutex;
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
 
 use crate::common::{
     EMACS_INT, FIXNUMP, Lisp_Object, XFIXNUM, current_thread, lisp_h_Qnil, make_fixnum,
@@ -74,7 +74,7 @@ impl Default for LispVal {
 
 /// Token proving no GC, Lisp evaluation, callback, or thread lock release can occur while held.
 pub struct NoGcToken<'a> {
-    _marker: PhantomData<&'a ()>,
+    _marker: PhantomData<&'a GcContext>,
 }
 
 /// Short-lived borrow bound to `&'nogc NoGcToken` so Rust's borrow checker statically ends the
@@ -100,20 +100,46 @@ impl<'nogc, T: Copy> UnrootedBorrow<'nogc, T> {
     }
 }
 
-/// Mutable execution context representing ownership of the active Lisp thread across GC safepoints.
+/// Exclusive single-lease execution context representing ownership of the VM lock on the current
+/// OS thread and Lisp `thread_state` across GC safepoints.
 pub struct GcContext {
-    _private: (),
+    thread_key: usize,
+    _not_send_sync: PhantomData<*mut ()>,
+}
+
+impl Drop for GcContext {
+    #[inline]
+    fn drop(&mut self) {
+        GC_CONTEXT_ACTIVE.store(false, Ordering::Release);
+    }
 }
 
 impl GcContext {
-    /// Obtain the active thread's `GcContext` when `current_thread` is initialized.
+    /// Obtain the sole active `GcContext` iff the current OS thread holds the VM global lock for
+    /// `current_thread` and no outer `GcContext` lease is currently active.
     #[inline]
     pub fn current() -> Option<Self> {
-        if current_thread_key() == 0 {
-            None
-        } else {
-            Some(Self { _private: () })
+        let key = current_thread_key();
+        if !is_vm_lock_owner(key) {
+            return None;
         }
+        if GC_CONTEXT_ACTIVE
+            .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+            .is_err()
+        {
+            return None;
+        }
+        Some(Self {
+            thread_key: key,
+            _not_send_sync: PhantomData,
+        })
+    }
+
+    /// Push a scoped GC root bound to the current VM-lock-owning thread.
+    #[inline]
+    pub fn root(&self, initial: LispVal) -> Rooted {
+        debug_assert!(is_vm_lock_owner(self.thread_key));
+        Rooted::new(initial)
     }
 
     /// Borrow a `NoGcToken` that statically blocks `&mut self` safepoint calls until dropped.
@@ -129,18 +155,82 @@ impl GcContext {
     pub fn safepoint<R>(&mut self, f: impl FnOnce(&mut Self) -> R) -> R {
         f(self)
     }
+
+    /// Temporarily release `GC_CONTEXT_ACTIVE` while `&mut self` is exclusively borrowed across a
+    /// VM callback/evaluation safepoint (preventing any overlapping `NoGcToken`), allowing
+    /// re-entrant dynamic-module `GcContext::current()` on the same lock-owning OS thread.
+    #[inline]
+    pub(crate) fn with_reentrant_safepoint<R>(&mut self, f: impl FnOnce() -> R) -> R {
+        assert!(
+            is_vm_lock_owner(self.thread_key),
+            "GcContext safepoint requires active VM lock ownership on current OS thread"
+        );
+        struct RestoreContextActive(bool);
+        impl Drop for RestoreContextActive {
+            #[inline]
+            fn drop(&mut self) {
+                if self.0 {
+                    let was_clear = GC_CONTEXT_ACTIVE
+                        .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+                        .is_ok();
+                    assert!(
+                        was_clear,
+                        "re-entrant GcContext handle escaped inner safepoint"
+                    );
+                }
+            }
+        }
+        let suspended = GC_CONTEXT_ACTIVE
+            .compare_exchange(true, false, Ordering::AcqRel, Ordering::Acquire)
+            .is_ok();
+        let _restore = RestoreContextActive(suspended);
+        f()
+    }
 }
 
 #[derive(Clone, Copy)]
-struct RawRootSpan {
+struct ThreadRootSlot {
+    generation: u64,
+    occupied: bool,
+    value: LispVal,
+}
+
+#[derive(Clone, Copy)]
+struct RawSpanSlot {
+    generation: u64,
+    occupied: bool,
     ptr: usize,
     len: usize,
 }
 
-#[derive(Default)]
 struct ThreadRootSlab {
-    values: Vec<LispVal>,
-    raw_spans: Vec<RawRootSpan>,
+    slots: Vec<ThreadRootSlot>,
+    free_slot_indices: Vec<usize>,
+    next_slot_generation: u64,
+    raw_spans: Vec<RawSpanSlot>,
+    free_span_indices: Vec<usize>,
+    next_span_generation: u64,
+    rooted_pushed: usize,
+    rooted_popped: usize,
+    raw_spans_pushed: usize,
+    raw_spans_popped: usize,
+}
+
+impl Default for ThreadRootSlab {
+    fn default() -> Self {
+        Self {
+            slots: Vec::with_capacity(32),
+            free_slot_indices: Vec::with_capacity(16),
+            next_slot_generation: 1,
+            raw_spans: Vec::with_capacity(16),
+            free_span_indices: Vec::with_capacity(8),
+            next_span_generation: 1,
+            rooted_pushed: 0,
+            rooted_popped: 0,
+            raw_spans_pushed: 0,
+            raw_spans_popped: 0,
+        }
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -171,20 +261,56 @@ impl Default for PersistentRootTable {
 static THREAD_ROOT_SLABS: Mutex<Option<HashMap<usize, Box<ThreadRootSlab>>>> = Mutex::new(None);
 static PERSISTENT_ROOTS: Mutex<Option<PersistentRootTable>> = Mutex::new(None);
 static SLAB_EPOCH: AtomicUsize = AtomicUsize::new(1);
+static NEXT_OS_TID: AtomicU64 = AtomicU64::new(1);
+static VM_LOCK_OWNER_THREAD_KEY: AtomicUsize = AtomicUsize::new(0);
+static VM_LOCK_OWNER_OS_TID: AtomicU64 = AtomicU64::new(0);
+static GC_CONTEXT_ACTIVE: AtomicBool = AtomicBool::new(false);
 
-std::thread_local! {
-    static TLS_SLAB_CACHE: core::cell::Cell<(usize, usize, *mut ThreadRootSlab)> =
-        const { core::cell::Cell::new((0, 0, core::ptr::null_mut())) };
+#[derive(Clone, Copy)]
+struct TlsSlabState {
+    os_tid: u64,
+    vm_lock_key: usize,
+    borrowed: bool,
+    cache_epoch: usize,
+    cache_key: usize,
+    cache_ptr: *mut ThreadRootSlab,
 }
 
-static ROOTED_SLOTS_PUSHED: AtomicUsize = AtomicUsize::new(0);
-static ROOTED_SLOTS_POPPED: AtomicUsize = AtomicUsize::new(0);
-static RAW_SPANS_PUSHED: AtomicUsize = AtomicUsize::new(0);
-static RAW_SPANS_POPPED: AtomicUsize = AtomicUsize::new(0);
+impl TlsSlabState {
+    const EMPTY: Self = Self {
+        os_tid: 0,
+        vm_lock_key: 0,
+        borrowed: false,
+        cache_epoch: 0,
+        cache_key: 0,
+        cache_ptr: core::ptr::null_mut(),
+    };
+}
+
+std::thread_local! {
+    static TLS_SLAB: core::cell::Cell<TlsSlabState> = const { core::cell::Cell::new(TlsSlabState::EMPTY) };
+}
+
+static RETIRED_ROOTED_PUSHED: AtomicUsize = AtomicUsize::new(0);
+static RETIRED_ROOTED_POPPED: AtomicUsize = AtomicUsize::new(0);
+static RETIRED_RAW_SPANS_PUSHED: AtomicUsize = AtomicUsize::new(0);
+static RETIRED_RAW_SPANS_POPPED: AtomicUsize = AtomicUsize::new(0);
 static PERSISTENT_CREATED: AtomicUsize = AtomicUsize::new(0);
 static PERSISTENT_RELEASED: AtomicUsize = AtomicUsize::new(0);
 static NARROWED_STACK_ENTRIES: AtomicUsize = AtomicUsize::new(0);
 static NARROWED_STACK_RESTORES: AtomicUsize = AtomicUsize::new(0);
+
+#[inline]
+fn current_os_tid() -> u64 {
+    TLS_SLAB.with(|cell| {
+        let mut s = cell.get();
+        if s.os_tid == 0 {
+            s.os_tid = NEXT_OS_TID.fetch_add(1, Ordering::Relaxed);
+            cell.set(s);
+        }
+        s.os_tid
+    })
+}
 
 #[inline]
 pub(crate) fn current_thread_key() -> usize {
@@ -192,16 +318,88 @@ pub(crate) fn current_thread_key() -> usize {
     unsafe { current_thread.get() as usize }
 }
 
+/// Bind VM global lock ownership to `(current_os_tid(), thread_key)`.
+#[inline]
+pub fn bind_vm_lock_owner(thread_key: usize) {
+    assert_ne!(thread_key, 0, "bind_vm_lock_owner requires non-null thread");
+    let tid = TLS_SLAB.with(|cell| {
+        let mut s = cell.get();
+        if s.os_tid == 0 {
+            s.os_tid = NEXT_OS_TID.fetch_add(1, Ordering::Relaxed);
+        }
+        s.vm_lock_key = thread_key;
+        cell.set(s);
+        s.os_tid
+    });
+    crate::nonlocal::set_tls_vm_lock_key(thread_key);
+    VM_LOCK_OWNER_OS_TID.store(tid, Ordering::Release);
+    VM_LOCK_OWNER_THREAD_KEY.store(thread_key, Ordering::Release);
+}
+
+/// Clear VM global lock ownership immediately before releasing `global_lock`.
+#[inline]
+pub fn unbind_vm_lock_owner() {
+    TLS_SLAB.with(|cell| {
+        let mut s = cell.get();
+        s.vm_lock_key = 0;
+        s.cache_epoch = 0;
+        s.cache_key = 0;
+        s.cache_ptr = core::ptr::null_mut();
+        cell.set(s);
+    });
+    crate::nonlocal::clear_tls_state_cache();
+    VM_LOCK_OWNER_THREAD_KEY.store(0, Ordering::Release);
+    VM_LOCK_OWNER_OS_TID.store(0, Ordering::Release);
+}
+
+#[inline]
+pub(crate) fn tls_vm_lock_matches(thread_key: usize) -> bool {
+    thread_key != 0 && TLS_SLAB.with(|cell| cell.get().vm_lock_key) == thread_key
+}
+
+#[inline]
+pub(crate) fn is_vm_lock_owner(thread_key: usize) -> bool {
+    thread_key != 0
+        && current_thread_key() == thread_key
+        && VM_LOCK_OWNER_THREAD_KEY.load(Ordering::Acquire) == thread_key
+        && VM_LOCK_OWNER_OS_TID.load(Ordering::Acquire) == current_os_tid()
+}
+
+struct SlabBorrowGuard {
+    prev: bool,
+}
+
+impl Drop for SlabBorrowGuard {
+    #[inline(always)]
+    fn drop(&mut self) {
+        TLS_SLAB.with(|cell| {
+            let mut s = cell.get();
+            s.borrowed = self.prev;
+            cell.set(s);
+        });
+    }
+}
+
 #[inline(always)]
 fn with_thread_slab<R>(thread_key: usize, f: impl FnOnce(&mut ThreadRootSlab) -> R) -> R {
-    let epoch = SLAB_EPOCH.load(Ordering::Acquire);
-    let (c_epoch, c_key, c_ptr) = TLS_SLAB_CACHE.with(|c| c.get());
-    if c_epoch == epoch && c_key == thread_key && !c_ptr.is_null() {
-        // SAFETY: `c_ptr` points to a heap-pinned `Box<ThreadRootSlab>` stored in
-        // `THREAD_ROOT_SLABS`; `cleanup_thread_u4_slab` increments `SLAB_EPOCH` before removing any
-        // slab, and single-VM thread execution serializes mutable access to that thread's slab
-        // across non-reentrant leaf closures `f`.
-        return f(unsafe { &mut *c_ptr });
+    let state = TLS_SLAB.with(|cell| {
+        let s = cell.get();
+        assert!(!s.borrowed, "re-entrant ThreadRootSlab borrow forbidden");
+        let mut next = s;
+        next.borrowed = true;
+        cell.set(next);
+        s
+    });
+    let _borrow_guard = SlabBorrowGuard { prev: state.borrowed };
+    if thread_key != 0 && state.vm_lock_key == thread_key {
+        let epoch = SLAB_EPOCH.load(Ordering::Relaxed);
+        if state.cache_epoch == epoch && state.cache_key == thread_key && !state.cache_ptr.is_null() {
+            // SAFETY: `state.cache_ptr` points to a heap-pinned `Box<ThreadRootSlab>` stored in
+            // `THREAD_ROOT_SLABS`; `state.vm_lock_key == thread_key` proves this OS thread holds the VM
+            // global lock for `thread_key`, `SlabBorrowGuard` guarantees unique non-reentrant `&mut`,
+            // and `cleanup_thread_u4_slab` increments `SLAB_EPOCH` before removing any slab.
+            return f(unsafe { &mut *state.cache_ptr });
+        }
     }
     with_thread_slab_slow(thread_key, f)
 }
@@ -209,19 +407,26 @@ fn with_thread_slab<R>(thread_key: usize, f: impl FnOnce(&mut ThreadRootSlab) ->
 #[cold]
 #[inline(never)]
 fn with_thread_slab_slow<R>(thread_key: usize, f: impl FnOnce(&mut ThreadRootSlab) -> R) -> R {
+    assert!(
+        is_vm_lock_owner(thread_key),
+        "ThreadRootSlab access requires active VM lock ownership on current OS thread"
+    );
     let mut guard = THREAD_ROOT_SLABS
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner());
     let epoch = SLAB_EPOCH.load(Ordering::Acquire);
     let map = guard.get_or_insert_with(HashMap::new);
-    let slab = map.entry(thread_key).or_insert_with(|| {
-        Box::new(ThreadRootSlab {
-            values: Vec::with_capacity(32),
-            raw_spans: Vec::with_capacity(16),
-        })
-    });
+    let slab = map
+        .entry(thread_key)
+        .or_insert_with(|| Box::new(ThreadRootSlab::default()));
     let ptr: *mut ThreadRootSlab = &mut **slab;
-    TLS_SLAB_CACHE.with(|c| c.set((epoch, thread_key, ptr)));
+    TLS_SLAB.with(|cell| {
+        let mut s = cell.get();
+        s.cache_epoch = epoch;
+        s.cache_key = thread_key;
+        s.cache_ptr = ptr;
+        cell.set(s);
+    });
     f(slab)
 }
 
@@ -240,8 +445,7 @@ pub struct Handle<'a> {
     slot_or_index: usize,
     is_persistent: bool,
     generation: u64,
-    fallback: LispVal,
-    _lifetime: PhantomData<&'a LispVal>,
+    _lifetime: PhantomData<(*const (), &'a LispVal)>,
 }
 
 impl<'a> Handle<'a> {
@@ -249,23 +453,31 @@ impl<'a> Handle<'a> {
     pub fn get(self) -> LispVal {
         if self.is_persistent {
             with_persistent_table(|table| {
-                if let Some(slot) = table.slots.get(self.slot_or_index)
-                    && slot.occupied
-                    && slot.generation == self.generation
-                {
-                    slot.value
-                } else {
-                    LispVal::nil()
-                }
-            })
-        } else if self.thread_key == 0 {
-            self.fallback
-        } else {
-            with_thread_slab(self.thread_key, |slab| {
-                slab.values
+                let slot = table
+                    .slots
                     .get(self.slot_or_index)
                     .copied()
-                    .unwrap_or(self.fallback)
+                    .expect("PersistentRoot Handle slot index out of bounds");
+                assert!(
+                    slot.occupied && slot.generation == self.generation,
+                    "stale or released persistent root handle"
+                );
+                slot.value
+            })
+        } else {
+            let idx = self.slot_or_index;
+            let expected_gen = self.generation;
+            with_thread_slab(self.thread_key, |slab| {
+                let slot = slab
+                    .slots
+                    .get(idx)
+                    .copied()
+                    .expect("Handle slot index out of bounds");
+                assert!(
+                    slot.occupied && slot.generation == expected_gen,
+                    "stale or released thread root handle"
+                );
+                slot.value
             })
         }
     }
@@ -293,52 +505,75 @@ impl<'a> MutableHandle<'a> {
     }
 }
 
-/// Call-scope LIFO GC root (`SpiderMonkey JS::Rooted<Value>`).
+/// Scoped thread-local GC root (`SpiderMonkey JS::Rooted<Value>`) with generation-checked
+/// independent slot release (sound even under out-of-order drops).
 pub struct Rooted {
     thread_key: usize,
     index: usize,
-    local_shadow: LispVal,
+    generation: u64,
+    _not_send_sync: PhantomData<*mut ()>,
 }
 
 impl Rooted {
     #[inline]
     pub fn new(initial: LispVal) -> Self {
         let thread_key = current_thread_key();
-        let index = if thread_key == 0 {
-            0
-        } else {
-            with_thread_slab(thread_key, |slab| {
-                let idx = slab.values.len();
-                slab.values.push(initial);
+        let (index, generation) = with_thread_slab(thread_key, |slab| {
+            slab.rooted_pushed += 1;
+            let r#gen = slab.next_slot_generation;
+            slab.next_slot_generation += 1;
+            let idx = if let Some(free_idx) = slab.free_slot_indices.pop() {
+                slab.slots[free_idx] = ThreadRootSlot {
+                    generation: r#gen,
+                    occupied: true,
+                    value: initial,
+                };
+                free_idx
+            } else {
+                let idx = slab.slots.len();
+                slab.slots.push(ThreadRootSlot {
+                    generation: r#gen,
+                    occupied: true,
+                    value: initial,
+                });
                 idx
-            })
-        };
-        ROOTED_SLOTS_PUSHED.fetch_add(1, Ordering::Relaxed);
+            };
+            (idx, r#gen)
+        });
         Self {
             thread_key,
             index,
-            local_shadow: initial,
+            generation,
+            _not_send_sync: PhantomData,
         }
     }
 
     #[inline]
     pub fn get(&self) -> LispVal {
-        if self.thread_key == 0 {
-            self.local_shadow
-        } else {
-            with_thread_slab(self.thread_key, |slab| slab.values[self.index])
-        }
+        let idx = self.index;
+        let expected_gen = self.generation;
+        with_thread_slab(self.thread_key, |slab| {
+            let slot = slab.slots[idx];
+            assert!(
+                slot.occupied && slot.generation == expected_gen,
+                "stale Rooted slot"
+            );
+            slot.value
+        })
     }
 
     #[inline]
     pub fn set(&mut self, value: LispVal) {
-        self.local_shadow = value;
-        if self.thread_key != 0 {
-            let idx = self.index;
-            with_thread_slab(self.thread_key, |slab| {
-                slab.values[idx] = value;
-            });
-        }
+        let idx = self.index;
+        let expected_gen = self.generation;
+        with_thread_slab(self.thread_key, |slab| {
+            let slot = &mut slab.slots[idx];
+            assert!(
+                slot.occupied && slot.generation == expected_gen,
+                "stale Rooted slot"
+            );
+            slot.value = value;
+        });
     }
 
     #[inline]
@@ -347,8 +582,7 @@ impl Rooted {
             thread_key: self.thread_key,
             slot_or_index: self.index,
             is_persistent: false,
-            generation: 0,
-            fallback: self.local_shadow,
+            generation: self.generation,
             _lifetime: PhantomData,
         }
     }
@@ -362,22 +596,30 @@ impl Rooted {
 impl Drop for Rooted {
     #[inline]
     fn drop(&mut self) {
-        if self.thread_key != 0 {
-            with_thread_slab(self.thread_key, |slab| {
-                debug_assert_eq!(slab.values.len(), self.index + 1);
-                slab.values.truncate(self.index);
-            });
-        }
-        ROOTED_SLOTS_POPPED.fetch_add(1, Ordering::Relaxed);
+        let idx = self.index;
+        let expected_gen = self.generation;
+        with_thread_slab(self.thread_key, |slab| {
+            slab.rooted_popped += 1;
+            let slot = &mut slab.slots[idx];
+            assert!(
+                slot.occupied && slot.generation == expected_gen,
+                "Rooted double-release or slot corruption"
+            );
+            slot.occupied = false;
+            slot.value = LispVal::nil();
+            slab.free_slot_indices.push(idx);
+        });
     }
 }
 
-/// LIFO registration for an active stack/alloca array of `Lisp_Object` slots during evaluation
-/// (`eval_sub`, `apply_lambda`, `Fprog1`, `Flet`), allowing progressive updates of active length
-/// as arguments are evaluated left-to-right.
+/// Slot-based registration for an active stack/alloca/Vec array of `Lisp_Object` slots during
+/// evaluation (`eval_sub`, `apply_lambda`, `Fprog1`, `Flet`, `RootedVec`), supporting independent
+/// release under arbitrary drop order.
 pub struct ScopedRawSpan {
     thread_key: usize,
     span_index: usize,
+    generation: u64,
+    _not_send_sync: PhantomData<*mut ()>,
 }
 
 impl ScopedRawSpan {
@@ -386,25 +628,39 @@ impl ScopedRawSpan {
     /// # Safety
     /// `ptr` must remain valid for reading at least `active_len` initialized `Lisp_Object` words
     /// on the owning Lisp thread until this `ScopedRawSpan` is dropped.
-    #[inline]
+    #[inline(always)]
     pub unsafe fn new(ptr: *const Lisp_Object, initial_len: usize) -> Self {
         let thread_key = current_thread_key();
-        let span_index = if thread_key == 0 || ptr.is_null() {
-            usize::MAX
-        } else {
-            with_thread_slab(thread_key, |slab| {
+        let (span_index, generation) = with_thread_slab(thread_key, |slab| {
+            slab.raw_spans_pushed += 1;
+            let r#gen = slab.next_span_generation;
+            slab.next_span_generation += 1;
+            let raw_ptr = if ptr.is_null() { 0 } else { ptr as usize };
+            let idx = if let Some(free_idx) = slab.free_span_indices.pop() {
+                slab.raw_spans[free_idx] = RawSpanSlot {
+                    generation: r#gen,
+                    occupied: true,
+                    ptr: raw_ptr,
+                    len: initial_len,
+                };
+                free_idx
+            } else {
                 let idx = slab.raw_spans.len();
-                slab.raw_spans.push(RawRootSpan {
-                    ptr: ptr as usize,
+                slab.raw_spans.push(RawSpanSlot {
+                    generation: r#gen,
+                    occupied: true,
+                    ptr: raw_ptr,
                     len: initial_len,
                 });
                 idx
-            })
-        };
-        RAW_SPANS_PUSHED.fetch_add(1, Ordering::Relaxed);
+            };
+            (idx, r#gen)
+        });
         Self {
             thread_key,
             span_index,
+            generation,
+            _not_send_sync: PhantomData,
         }
     }
 
@@ -414,27 +670,36 @@ impl ScopedRawSpan {
     /// At least `new_len` elements starting at the registered `ptr` must be initialized.
     #[inline]
     pub unsafe fn set_len(&mut self, new_len: usize) {
-        if self.span_index != usize::MAX && self.thread_key != 0 {
-            let idx = self.span_index;
-            with_thread_slab(self.thread_key, |slab| {
-                if let Some(span) = slab.raw_spans.get_mut(idx) {
-                    span.len = new_len;
-                }
-            });
-        }
+        let idx = self.span_index;
+        let expected_gen = self.generation;
+        with_thread_slab(self.thread_key, |slab| {
+            let span = &mut slab.raw_spans[idx];
+            assert!(
+                span.occupied && span.generation == expected_gen,
+                "stale ScopedRawSpan slot"
+            );
+            span.len = new_len;
+        });
     }
 
     #[inline]
     fn update_ptr_and_len(&mut self, new_ptr: *const Lisp_Object, new_len: usize) {
-        if self.span_index != usize::MAX && self.thread_key != 0 {
-            let idx = self.span_index;
-            with_thread_slab(self.thread_key, |slab| {
-                if let Some(span) = slab.raw_spans.get_mut(idx) {
-                    span.ptr = new_ptr as usize;
-                    span.len = new_len;
-                }
-            });
-        }
+        let idx = self.span_index;
+        let expected_gen = self.generation;
+        let raw_ptr = if new_ptr.is_null() {
+            0
+        } else {
+            new_ptr as usize
+        };
+        with_thread_slab(self.thread_key, |slab| {
+            let span = &mut slab.raw_spans[idx];
+            assert!(
+                span.occupied && span.generation == expected_gen,
+                "stale ScopedRawSpan slot"
+            );
+            span.ptr = raw_ptr;
+            span.len = new_len;
+        });
     }
 }
 
@@ -560,15 +825,22 @@ impl Drop for RootedVec {
 }
 
 impl Drop for ScopedRawSpan {
-    #[inline]
+    #[inline(always)]
     fn drop(&mut self) {
-        if self.span_index != usize::MAX && self.thread_key != 0 {
-            with_thread_slab(self.thread_key, |slab| {
-                debug_assert_eq!(slab.raw_spans.len(), self.span_index + 1);
-                slab.raw_spans.truncate(self.span_index);
-            });
-        }
-        RAW_SPANS_POPPED.fetch_add(1, Ordering::Relaxed);
+        let idx = self.span_index;
+        let expected_gen = self.generation;
+        with_thread_slab(self.thread_key, |slab| {
+            slab.raw_spans_popped += 1;
+            let span = &mut slab.raw_spans[idx];
+            assert!(
+                span.occupied && span.generation == expected_gen,
+                "ScopedRawSpan double-release or slot corruption"
+            );
+            span.occupied = false;
+            span.ptr = 0;
+            span.len = 0;
+            slab.free_span_indices.push(idx);
+        });
     }
 }
 
@@ -651,7 +923,6 @@ impl PersistentRoot {
             slot_or_index: self.index,
             is_persistent: true,
             generation: self.generation,
-            fallback: LispVal::nil(),
             _lifetime: PhantomData,
         }
     }
@@ -705,6 +976,10 @@ pub fn mark_thread_u4_slab_roots(thread: *mut c_void, mut mark_fn: impl FnMut(Li
     if key == 0 {
         return;
     }
+    assert!(
+        !TLS_SLAB.with(|cell| cell.get().borrowed),
+        "cannot mark ThreadRootSlab while slab is borrowed"
+    );
     let snapshot: Vec<Lisp_Object> = {
         let guard = THREAD_ROOT_SLABS
             .lock()
@@ -715,13 +990,20 @@ pub fn mark_thread_u4_slab_roots(thread: *mut c_void, mut mark_fn: impl FnMut(Li
         let Some(slab) = map.get(&key) else {
             return;
         };
-        let extra: usize = slab.raw_spans.iter().map(|s| s.len).sum();
-        let mut objs = Vec::with_capacity(slab.values.len() + extra);
-        for v in &slab.values {
-            objs.push(v.into_raw());
+        let extra: usize = slab
+            .raw_spans
+            .iter()
+            .filter(|s| s.occupied)
+            .map(|s| s.len)
+            .sum();
+        let mut objs = Vec::with_capacity(slab.slots.len() + extra);
+        for slot in &slab.slots {
+            if slot.occupied {
+                objs.push(slot.value.into_raw());
+            }
         }
         for span in &slab.raw_spans {
-            if span.ptr != 0 && span.len != 0 {
+            if span.occupied && span.ptr != 0 && span.len != 0 {
                 let base = span.ptr as *const Lisp_Object;
                 for i in 0..span.len {
                     // SAFETY: `ScopedRawSpan::new` / `set_len` guarantees `[base .. base + len)`
@@ -743,13 +1025,28 @@ pub fn cleanup_thread_u4_slab(thread: *mut c_void) {
     if key == 0 {
         return;
     }
+    assert!(
+        !TLS_SLAB.with(|cell| cell.get().borrowed),
+        "cannot cleanup ThreadRootSlab while slab is borrowed"
+    );
     let mut guard = THREAD_ROOT_SLABS
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner());
     SLAB_EPOCH.fetch_add(1, Ordering::SeqCst);
-    TLS_SLAB_CACHE.with(|c| c.set((0, 0, core::ptr::null_mut())));
-    if let Some(map) = guard.as_mut() {
-        map.remove(&key);
+    TLS_SLAB.with(|cell| {
+        let mut s = cell.get();
+        s.cache_epoch = 0;
+        s.cache_key = 0;
+        s.cache_ptr = core::ptr::null_mut();
+        cell.set(s);
+    });
+    if let Some(map) = guard.as_mut()
+        && let Some(removed) = map.remove(&key)
+    {
+        RETIRED_ROOTED_PUSHED.fetch_add(removed.rooted_pushed, Ordering::Relaxed);
+        RETIRED_ROOTED_POPPED.fetch_add(removed.rooted_popped, Ordering::Relaxed);
+        RETIRED_RAW_SPANS_PUSHED.fetch_add(removed.raw_spans_pushed, Ordering::Relaxed);
+        RETIRED_RAW_SPANS_POPPED.fetch_add(removed.raw_spans_popped, Ordering::Relaxed);
     }
 }
 
@@ -787,12 +1084,29 @@ pub struct RootingCounters {
 }
 
 pub fn rooting_counters() -> RootingCounters {
+    let mut rooted_pushed = RETIRED_ROOTED_PUSHED.load(Ordering::Relaxed);
+    let mut rooted_popped = RETIRED_ROOTED_POPPED.load(Ordering::Relaxed);
+    let mut raw_spans_pushed = RETIRED_RAW_SPANS_PUSHED.load(Ordering::Relaxed);
+    let mut raw_spans_popped = RETIRED_RAW_SPANS_POPPED.load(Ordering::Relaxed);
+    {
+        let guard = THREAD_ROOT_SLABS
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        if let Some(map) = guard.as_ref() {
+            for slab in map.values() {
+                rooted_pushed += slab.rooted_pushed;
+                rooted_popped += slab.rooted_popped;
+                raw_spans_pushed += slab.raw_spans_pushed;
+                raw_spans_popped += slab.raw_spans_popped;
+            }
+        }
+    }
     let persistent_live = with_persistent_table(|t| t.live_count);
     RootingCounters {
-        rooted_pushed: ROOTED_SLOTS_PUSHED.load(Ordering::Relaxed),
-        rooted_popped: ROOTED_SLOTS_POPPED.load(Ordering::Relaxed),
-        raw_spans_pushed: RAW_SPANS_PUSHED.load(Ordering::Relaxed),
-        raw_spans_popped: RAW_SPANS_POPPED.load(Ordering::Relaxed),
+        rooted_pushed,
+        rooted_popped,
+        raw_spans_pushed,
+        raw_spans_popped,
         persistent_created: PERSISTENT_CREATED.load(Ordering::Relaxed),
         persistent_released: PERSISTENT_RELEASED.load(Ordering::Relaxed),
         persistent_live,

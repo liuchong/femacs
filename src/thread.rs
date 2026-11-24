@@ -198,8 +198,21 @@ unsafe fn release_global_lock ()
 {
   // SAFETY: VM thread/mutex/condvar synchronization boundary; maintains global-lock handoff, register-spill stack bounds, and per-thread root/specpdl ownership.
   unsafe {
+  crate::roots::unbind_vm_lock_owner ();
   sys_mutex_unlock (global_lock.as_mut_ptr ());
 
+  }
+}
+
+#[inline]
+unsafe fn cond_wait_releasing_vm_lock (cond: *mut sys_cond_t, self_: *mut thread_state)
+{
+  // SAFETY: `global_lock` is currently held by `self_`; atomically releases and reacquires
+  // `global_lock` inside `sys_cond_wait`, updating `roots::VM_LOCK_OWNER` across the wait.
+  unsafe {
+    crate::roots::unbind_vm_lock_owner ();
+    sys_cond_wait (cond, global_lock.as_mut_ptr ());
+    crate::roots::bind_vm_lock_owner (self_ as usize);
   }
 }
 
@@ -241,6 +254,7 @@ unsafe fn post_acquire_global_lock (self_: *mut thread_state)
   { thread_android_api::android_java_env = (*self_).java_env; }
 
   (*current_thread.as_mut_ptr ()) = self_;
+  crate::roots::bind_vm_lock_owner (self_ as usize);
 
   if prev_thread != (*current_thread.as_mut_ptr ())
     {
@@ -343,7 +357,7 @@ unsafe fn lisp_mutex_lock_for_thread (mutex: *mut lisp_mutex_t, locker: *mut thr
   (*self_).wait_condvar = &raw mut (*mutex).condition;
   while !(*mutex).owner.is_null ()
 	&& (new_count != 0 || NILP ((*self_).error_symbol))
-    { sys_cond_wait (&raw mut (*mutex).condition, global_lock.as_mut_ptr ()); }
+    { cond_wait_releasing_vm_lock (&raw mut (*mutex).condition, self_); }
   (*self_).wait_condvar = std::ptr::null_mut ();
 
   if new_count == 0 && !NILP ((*self_).error_symbol)
@@ -585,7 +599,7 @@ unsafe extern "C-unwind" fn condition_wait_callback (arg: *mut c_void)
     {
       (*self_).wait_condvar = &raw mut (*cvar).cond;
       /* This call could switch to another thread.  */
-      sys_cond_wait (&raw mut (*cvar).cond, global_lock.as_mut_ptr ());
+      cond_wait_releasing_vm_lock (&raw mut (*cvar).cond, self_);
       (*self_).wait_condvar = std::ptr::null_mut ();
     }
   (*self_).event_object = Qnil ();
@@ -1260,7 +1274,7 @@ unsafe extern "C-unwind" fn thread_join_callback (arg: *mut c_void)
   (*self_).event_object = thread;
   (*self_).wait_condvar = &raw mut (*tstate).thread_condvar;
   while thread_live_p! (tstate) && NILP ((*self_).error_symbol)
-    { sys_cond_wait ((*self_).wait_condvar, global_lock.as_mut_ptr ()); }
+    { cond_wait_releasing_vm_lock ((*self_).wait_condvar, self_); }
 
   (*self_).wait_condvar = std::ptr::null_mut ();
   (*self_).event_object = Qnil ();
@@ -1431,6 +1445,7 @@ pub unsafe extern "C-unwind" fn init_threads ()
   sys_mutex_init (global_lock.as_mut_ptr ());
   sys_mutex_lock (global_lock.as_mut_ptr ());
   (*current_thread.as_mut_ptr ()) = std::ptr::addr_of_mut! ((*main_thread.as_mut_ptr ()).s);
+  crate::roots::bind_vm_lock_owner ((*current_thread.as_mut_ptr ()) as usize);
   #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
   { (*(*current_thread.as_mut_ptr ())).java_env = thread_android_api::android_java_env; }
 

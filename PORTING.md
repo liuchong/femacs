@@ -18,6 +18,20 @@
 
 ## 0. 总则
 
+### P-488：AU8 终审四项问题闭环裁定（2026-11-23）
+
+针对独立终审对 `8b459250` 指出的三项阻断及一项性能门禁缺口，按用户授权的最佳实践、最佳安全与最佳性能原则作出以下最终裁定与实施闭合：
+
+1. **阻塞 #1（`AU4`/`AU6` 线程锁与根生命周期安全边界，`crates/femacs-vm/src/{roots,nonlocal,vm_primitives}.rs`、`src/{thread,emacs}.rs`）**：
+   - 将 VM 全局锁所有权绑定至 `(OS 线程唯一 ID, current_thread)`（`VM_LOCK_OWNER_THREAD_KEY` / `VM_LOCK_OWNER_OS_TID` / `TLS_VM_LOCK_KEY`），在 `src/emacs.rs` 初始化、`src/thread.rs` 的 `init_threads` / `post_acquire_global_lock` / `release_global_lock` 及全部 3 处 `sys_cond_wait` 包装 `cond_wait_releasing_vm_lock` 同步维护；`GcContext::current()` 改用 `GC_CONTEXT_ACTIVE` CAS 实现每时刻全进程唯一单租约并在 `Drop` 释放，`GcContext` / `Rooted` / `ScopedRawSpan` / `NoGcToken` / `Handle` 均标记为 `!Send + !Sync`；`vm_primitives.rs` 全部 `&mut GcContext` 越界进入 VM 前均经 `ctx.with_reentrant_safepoint` 暂让租约并保留外部借用排他性，支持同锁持有 OS 线程内的动态模块重入且阻断重复/跨 OS 线程获取。
+   - `ThreadRootSlab`、`ThreadNonLocalState` 与 `with_thread_slab` / `with_thread_state` 增加 `SlabBorrowGuard` / `StateBorrowGuard` 重入断言并在 GC 标记及清理阶段断言未处于借用中；将 `Rooted::drop`、`ScopedRawSpan::drop` 与 `ScopedLispRoot::drop` 的 LIFO `truncate` 全部替换为带 64 位代际号与空闲链表复用的独立槽位释放（乱序释放绝不破坏内层活根），并移除 `Handle::get()` 对已释放槽位的未受根保护旧值/空值回退（对持久根与线程根统一触发越界/代际失效 panic）；同时将高频根计数器迁出全局原子读改写改为每线程平面计数、仅于线程清理时汇总，并去除 `src/eval.rs`（`Flet`/`eval_sub`/`apply_lambda`）单参及每参数渐进 `set_len` 冗余跨步。
+2. **阻塞 #2（`U3` 非局部退出与协同计划 `§0.1` 口径定案 — 方案 A，`crates/femacs-vm/src/nonlocal.rs`、`tools/test-u3-unit.py`）**：
+   - 依用户"按最佳实践、最佳安全、最佳性能决策"授权正式采纳**方案 A**：全面废除 Lisp 级 `setjmp`/`longjmp` 后，仅在 `femacs-vm` 内部 C 直译 `src/*.rs` 模块间以私有载荷 `VmNonLocalUnwind(NonLocalExit)` 配合 `extern "C-unwind"` 与 `[profile.release] panic = "unwind"` 实施零热路径分支开销的受控栈展开（相比在约万余处直译函数中强插每层 40 字节 `Result` 传播，方案 A 避免热路径分支膨胀与性能回退并保持精确一次 Rust `Drop` 与 Lisp `unwind-protect` 清理顺序）；同时在**全部外部与安全边界**强制转为显式 `Result`/`VmResult<T>` 或 C 状态码返回——(a) `crates/femacs-vm/src/vm_primitives.rs` 全部 `&mut GcContext` 公开原语强制通过 `with_reentrant_safepoint` + `catch_vm_nonlocal` 返回 `VmResult<T>`；(b) `src/comp.rs` 28 项 `.eln` 运行时辅助函数全部维持 `extern "C"` 与显式状态码分支；(c) `src/emacs-module.rs` 全部 `emacs_env` vtable 入口保持 `extern "C"` 并经 `module_with_nonlocal_catch` 写入环境挂起状态（仅 `module_signal_or_throw` 使用 `extern "C-unwind"` 向 VM 回吐）；(d) `src/thread.rs` `run_thread`（`extern "C"`）以 `catch_vm_nonlocal` 封闭顶层 Lisp 入口；(e) `catch_vm_nonlocal` 严格 downcast `VmNonLocalUnwind`，真实 Rust `panic!` 原样继续传播不予吞没。协同计划 `§0.1` 与 `tools/test-u3-unit.py` 静态/单测守门已同步对齐本裁定（修订 `P-482`）。
+3. **阻塞 #3（`AU8` 语料差异判定收严，`tools/test-u8-au8-integration.py`）**：
+   - 删除 `load_source_rule_index` / `classify_case_pair` 中按 `(file, id)` 盲目豁免、按诊断含 `"Femacs"` 放行（`classified-d01-name-only`）以及临时 `native-compile` 字符串放行逻辑；`adjudicate_555_runs` 仅直接放行等价（`same-pass`/`same-skip`/`both-fail-same-condition`）与单边转优（`port-resolved`），将全部剩余差异文件与未完成文件统一路由至 `tools/stable-suite.py` 生成原始事件、完成回执与进度流，并严格经 `tools/stable-classification.py`（`_accept_rule` / `assess` + 真实 `reference-selection.json` + 产物与 profile 绑定）逐项核对 `input_sha256`、`observations`、`source_evidence` 及分类门禁/受控证据。
+4. **性能门禁缺口（`tools/bench.py --gate`，`docs/baseline/bench-{terminal,cocoa}-ga8.tsv`、`tools/test-u8-au8-integration.py`）**：
+   - 将 `2026-11-20` `GA8` 闭环实测的 7 轮中位数以标准 5 列格式落盘为终端与图形两份正式 `--gate` 基线文件；`group_performance` 强制向两路 `tools/bench.py` 传入 `--gate` 并断言 `regressions == []`，消除此前 `regressions=[]` 空过缺口。
+
 ### P-487：U8 集中整合、rtn15 栈卫生修复与 AU8 终验闭合（2026-11-23）
 
 按去 `unsafe` 先行计划 `U8`/`AU8` 完成全期整合重构、遗留接线退役、`rtn15` 弱缓存 GC 误保活根因修复及全部四组 `AU8` 正式验收与 `CLN284` 清理：

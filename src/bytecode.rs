@@ -804,17 +804,72 @@ pub unsafe extern "C-unwind" fn exec_byte_code (mut fun: Lisp_Object, mut args_t
 {
   // SAFETY: VM evaluator/bytecode/primitive boundary; called on the active Lisp thread with rooted `specpdl`/`bc` state, propagating failures via `NonLocalExit`.
   unsafe {
-  let mut quitcounter: c_uchar = 1;
-  let mut bc: *mut bc_thread_state = &raw mut (*(*current_thread.as_mut_ptr ())).bc;
+  #[derive(Clone, Copy)]
+  struct BcLoopEntry
+  {
+    fun: Lisp_Object,
+    args_template: ptrdiff_t,
+    nargs: ptrdiff_t,
+    args: *mut Lisp_Object,
+    top: *mut Lisp_Object,
+    pc: *const c_uchar,
+    bc: *mut bc_thread_state,
+    bytestr: Lisp_Object,
+    vector: Lisp_Object,
+    const_length: ptrdiff_t,
+    bytestr_length: ptrdiff_t,
+    vectorp: *mut Lisp_Object,
+    bytestr_data: *const c_uchar,
+    quitcounter: c_uchar,
+    resume_from_catch: bool,
+  }
 
-  /* Values used for the first stack record when called from C.  */
-  let mut top: *mut Lisp_Object = std::ptr::null_mut ();
-  let mut pc: *const c_uchar = std::ptr::null ();
+  let bc_init: *mut bc_thread_state = &raw mut (*(*current_thread.as_mut_ptr ())).bc;
+  let bytestr_init: Lisp_Object = AREF (fun, CLOSURE_CODE as isize);
+  let vector_init: Lisp_Object = AREF (fun, CLOSURE_CONSTANTS as isize);
+  let bytestr_data_init: *const c_uchar = SDATA (bytestr_init);
+  let mut entry = BcLoopEntry {
+      fun,
+      args_template,
+      nargs,
+      args,
+      top: std::ptr::null_mut (),
+      pc: std::ptr::null (),
+      bc: bc_init,
+      bytestr: bytestr_init,
+      vector: vector_init,
+      const_length: if BYTE_CODE_SAFE! () { ASIZE (vector_init) } else { 0 },
+      bytestr_length: if BYTE_CODE_SAFE! () { SCHARS (bytestr_init) } else { 0 },
+      vectorp: fam_base (core::ptr::addr_of_mut! ((*XVECTOR (vector_init)).contents)),
+      bytestr_data: bytestr_data_init,
+      quitcounter: 1,
+      resume_from_catch: false,
+  };
 
-  let mut bytestr: Lisp_Object = AREF (fun, CLOSURE_CODE as isize);
+  let mut bc_handlers: Vec<*mut handler> = Vec::new ();
 
-  /* C declares these three inside the `while (true)` body (C 549-551); the port hoists
-     them because a tail runs at the head of the *next* iteration and reads them.  */
+  'vm_run: loop
+    {
+      let cur = entry;
+      let vm_outcome = crate::nonlocal::catch_vm_nonlocal (|| {
+  let mut fun: Lisp_Object = cur.fun;
+  let mut args_template: ptrdiff_t = cur.args_template;
+  let mut nargs: ptrdiff_t = cur.nargs;
+  let mut args: *mut Lisp_Object = cur.args;
+  let mut top: *mut Lisp_Object = cur.top;
+  let mut pc: *const c_uchar = cur.pc;
+  let mut bc: *mut bc_thread_state = cur.bc;
+  let mut bytestr: Lisp_Object = cur.bytestr;
+  let mut vector: Lisp_Object = cur.vector;
+  let mut const_length: ptrdiff_t = cur.const_length;
+  let mut bytestr_length: ptrdiff_t = cur.bytestr_length;
+  let mut vectorp: *mut Lisp_Object = cur.vectorp;
+  let mut bytestr_data: *const c_uchar = cur.bytestr_data;
+  let mut quitcounter: c_uchar = cur.quitcounter;
+  let mut resume_from_catch: bool = cur.resume_from_catch;
+
+  /* C declares these four inside the `while (true)` body (C 549-551); the port keeps them inside
+     the `catch_vm_nonlocal` closure so hot interpreter locals never spill across a capture boundary.  */
   let mut op: ptrdiff_t = 0;
   let mut arg: ptrdiff_t = 0;
   let mut type_: handlertype = CATCHER;
@@ -855,19 +910,6 @@ pub unsafe extern "C-unwind" fn exec_byte_code (mut fun: Lisp_Object, mut args_t
 
   macro_rules! TOP { () => { *top } }
 
-  let mut vector: Lisp_Object = AREF (fun, CLOSURE_CONSTANTS as isize);
-  let mut const_length: ptrdiff_t = if BYTE_CODE_SAFE! () { ASIZE (vector) } else { 0 };
-  let mut bytestr_length: ptrdiff_t = if BYTE_CODE_SAFE! () { SCHARS (bytestr) } else { 0 };
-  let mut vectorp: *mut Lisp_Object =
-    fam_base (core::ptr::addr_of_mut! ((*XVECTOR (vector)).contents));
-  let mut bytestr_data: *const c_uchar = SDATA (bytestr);
-
-  let mut bc_handlers: Vec<*mut handler> = Vec::new ();
-  let mut resume_from_catch: bool = false;
-
-  'vm_run: loop
-    {
-      let vm_outcome = crate::nonlocal::catch_vm_nonlocal (|| {
   'setup_frame: loop
     {
   if ! resume_from_catch
@@ -1373,17 +1415,24 @@ pub unsafe extern "C-unwind" fn exec_byte_code (mut fun: Lisp_Object, mut args_t
 					  + ((*pc.add (3) as ptrdiff_t) << 8);
 					if bytestr_data.offset (back) == pc.offset (-6)
 					  {
-					    let rem: EMACS_INT = XFIXNUM (v2) - XFIXNUM (v1);
-					    let qc_rem: EMACS_INT = (256 - (quitcounter as EMACS_INT)).max (1);
-					    let step: EMACS_INT = if rem < qc_rem { rem } else { qc_rem };
-					    *top = make_fixnum (XFIXNUM (v1) + step);
-					    quitcounter = quitcounter.wrapping_add (step as c_uchar);
-					    if quitcounter == 0
-					      {
-						quitcounter = 1;
-						bc_periodic_gc_and_quit ();
-					      }
 					    pc = pc.offset (-6);
+					    let mut cur: EMACS_INT = XFIXNUM (v1);
+					    let lim: EMACS_INT = XFIXNUM (v2);
+					    while cur < lim
+					      {
+						let rem: EMACS_INT = lim - cur;
+						let qc_rem: EMACS_INT = (256 - (quitcounter as EMACS_INT)).max (1);
+						let step: EMACS_INT = if rem < qc_rem { rem } else { qc_rem };
+						cur += step;
+						*top = make_fixnum (cur);
+						quitcounter = quitcounter.wrapping_add (step as c_uchar);
+						if quitcounter == 0
+						  {
+						    quitcounter = 1;
+						    maybe_gc ();
+						    maybe_quit ();
+						  }
+					      }
 					    NEXT! ();
 					  }
 				      }
@@ -1399,17 +1448,24 @@ pub unsafe extern "C-unwind" fn exec_byte_code (mut fun: Lisp_Object, mut args_t
 					if bytestr_data.offset (back) == pc.offset (-6)
 					   && (CONSP (lst) || NILP (lst))
 					  {
-					    let rem: EMACS_INT = XFIXNUM (v2) - XFIXNUM (v1);
-					    let qc_rem: EMACS_INT = (256 - (quitcounter as EMACS_INT)).max (1);
-					    let step: EMACS_INT = if rem < qc_rem { rem } else { qc_rem };
-					    *top = make_fixnum (XFIXNUM (v1) + step);
-					    quitcounter = quitcounter.wrapping_add (step as c_uchar);
-					    if quitcounter == 0
-					      {
-						quitcounter = 1;
-						bc_periodic_gc_and_quit ();
-					      }
 					    pc = pc.offset (-6);
+					    let mut cur: EMACS_INT = XFIXNUM (v1);
+					    let lim: EMACS_INT = XFIXNUM (v2);
+					    while cur < lim
+					      {
+						let rem: EMACS_INT = lim - cur;
+						let qc_rem: EMACS_INT = (256 - (quitcounter as EMACS_INT)).max (1);
+						let step: EMACS_INT = if rem < qc_rem { rem } else { qc_rem };
+						cur += step;
+						*top = make_fixnum (cur);
+						quitcounter = quitcounter.wrapping_add (step as c_uchar);
+						if quitcounter == 0
+						  {
+						    quitcounter = 1;
+						    maybe_gc ();
+						    maybe_quit ();
+						  }
+					      }
 					    NEXT! ();
 					  }
 				      }
@@ -3205,30 +3261,35 @@ pub unsafe extern "C-unwind" fn exec_byte_code (mut fun: Lisp_Object, mut args_t
 	      bc_handlers.truncate (pos);
 	      /* No need to restore old quitcounter; just check at the next
 		 backward branch.  */
-	      quitcounter = (-1 as c_int) as c_uchar;
 	      let c: *mut handler = exit.target;
 	      eassert! (handlerlist! () == c);
 	      handlerlist! () = (*c).next;
-	      top = (*c).bytecode_top;
-	      arg = (*c).bytecode_dest as ptrdiff_t;
-	      bc = &raw mut (*(*current_thread.as_mut_ptr ())).bc;
+	      let top = (*c).bytecode_top.offset (1);
+	      *top = exit.value;
+	      let arg = (*c).bytecode_dest as ptrdiff_t;
+	      let bc = &raw mut (*(*current_thread.as_mut_ptr ())).bc;
 	      let fp: *mut bc_frame = (*bc).fp as *mut bc_frame;
-	      fun = (*fp).fun;
-	      bytestr = AREF (fun, CLOSURE_CODE as isize);
-	      vector = AREF (fun, CLOSURE_CONSTANTS as isize);
-	      bytestr_data = SDATA (bytestr);
-	      vectorp = fam_base (core::ptr::addr_of_mut! ((*XVECTOR (vector)).contents));
-	      if BYTE_CODE_SAFE! ()
-		{
-		  const_length = ASIZE (vector);
-		  bytestr_length = SCHARS (bytestr);
-		}
-	      pc = bytestr_data;
-	      PUSH! (exit.value);
+	      let fun = (*fp).fun;
+	      let bytestr = AREF (fun, CLOSURE_CODE as isize);
+	      let vector = AREF (fun, CLOSURE_CONSTANTS as isize);
+	      let bytestr_data = SDATA (bytestr);
+	      let vectorp = fam_base (core::ptr::addr_of_mut! ((*XVECTOR (vector)).contents));
+	      let const_length = if BYTE_CODE_SAFE! () { ASIZE (vector) } else { 0 };
+	      let bytestr_length = if BYTE_CODE_SAFE! () { SCHARS (bytestr) } else { 0 };
 	      if BYTE_CODE_SAFE! () && ! (arg >= 0 && arg < bytestr_length)
 		{ emacs_abort (); }
-	      pc = bytestr_data.offset (arg);
-	      resume_from_catch = true;
+	      entry.top = top;
+	      entry.quitcounter = (-1 as c_int) as c_uchar;
+	      entry.bc = bc;
+	      entry.fun = fun;
+	      entry.bytestr = bytestr;
+	      entry.vector = vector;
+	      entry.const_length = const_length;
+	      entry.bytestr_length = bytestr_length;
+	      entry.vectorp = vectorp;
+	      entry.bytestr_data = bytestr_data;
+	      entry.pc = bytestr_data.offset (arg);
+	      entry.resume_from_catch = true;
 	      continue 'vm_run;
 	    }
 	}

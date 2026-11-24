@@ -1149,19 +1149,17 @@ static sa_stack_free: VmGlobal<*mut sa_stack_block> = VmGlobal::<*mut sa_stack_b
    hands that reading back - the scope's own height is the release's only input (P-117 ⑧).  */
 static sa_stack_count: VmGlobal<usize> = VmGlobal::<usize>::new (0);
 static sa_stack_dirty_free: VmGlobal<usize> = VmGlobal::<usize>::new (0);
-
-std::thread_local! {
-  static SA_FRAME_DEPTH: core::cell::Cell<usize> = const { core::cell::Cell::new (0) };
-}
+static sa_frame_depth: VmGlobal<usize> = VmGlobal::<usize>::new (0);
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C-unwind" fn sa_stack_frame_enter () -> usize
 {
-  SA_FRAME_DEPTH.with (|c| {
-    let next = c.get () + 1;
-    c.set (next);
+  // SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock.
+  unsafe {
+    let next = (*sa_frame_depth.as_mut_ptr ()) + 1;
+    (*sa_frame_depth.as_mut_ptr ()) = next;
     next
-  })
+  }
 }
 
 /// C: `alloca`'s port - the allocator behind `AVAIL_ALLOCA!`, called with the byte count the
@@ -1172,7 +1170,7 @@ pub unsafe extern "C-unwind" fn sa_stack_alloc (size: usize) -> *mut c_void
   // SAFETY: VM GC heap, tagged `Lisp_Object` layout, or conservative stack/alloca boundary; executed on the owning Lisp thread under the VM global lock with valid object/block pointers.
   unsafe {
   let bytes = (size + SA_STACK_ALIGN - 1) & !(SA_STACK_ALIGN - 1);
-  let cur_depth = SA_FRAME_DEPTH.with (|c| c.get ());
+  let cur_depth = (*sa_frame_depth.as_mut_ptr ());
   /* Recycle a big-enough block of this thread, as C's stack reuses earlier frames' space.  */
   let mut header: *mut sa_stack_block = (*sa_stack_free.as_mut_ptr ());
   let mut prev: *mut sa_stack_block = std::ptr::null_mut ();
@@ -1262,8 +1260,8 @@ pub unsafe extern "C-unwind" fn sa_stack_frame_exit (mark: usize, depth: usize)
   // function exits (after any intra-frame post-`SAFE_FREE!` read of `P-172`). Scrubs blocks owned
   // by this exiting frame depth (or all blocks once `sa_stack_top` drains) so dead frames are
   // never conservatively scanned, while preserving `capacity` for block recycling.
-  SA_FRAME_DEPTH.with (|c| c.set (depth.saturating_sub (1)));
   unsafe {
+    (*sa_frame_depth.as_mut_ptr ()) = depth.saturating_sub (1);
     let cur_thread = (*current_thread.as_mut_ptr ()) as *mut c_void;
     while (*sa_stack_count.as_mut_ptr ()) > mark && !(*sa_stack_top.as_mut_ptr ()).is_null ()
       && (*(*sa_stack_top.as_mut_ptr ())).owner == cur_thread

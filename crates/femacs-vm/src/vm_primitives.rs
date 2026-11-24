@@ -28,8 +28,7 @@ fn current_specpdl_index() -> isize {
 
 /// Allocate a multibyte Lisp string from a Rust UTF-8 `&str` across a GC safepoint.
 pub fn make_utf8_string(ctx: &mut GcContext, text: &str) -> VmResult<LispVal> {
-    let _ = ctx;
-    catch_vm_nonlocal(|| LispVal::from_raw(build_utf8_str(text)))
+    ctx.with_reentrant_safepoint(|| catch_vm_nonlocal(|| LispVal::from_raw(build_utf8_str(text))))
 }
 
 /// Copy a Lisp string into an owned Rust `String` using a short `NoGcToken` borrow that ends
@@ -56,21 +55,22 @@ pub fn lisp_string_to_owned(ctx: &GcContext, val: Handle<'_>) -> Option<String> 
 }
 
 pub fn get_buffer_create(ctx: &mut GcContext, name: Handle<'_>) -> VmResult<LispVal> {
-    let _ = ctx;
     let raw_name = name.get().into_raw();
-    catch_vm_nonlocal(|| LispVal::from_raw(crate::buffer::Fget_buffer_create(raw_name, lisp_h_Qnil())))
+    ctx.with_reentrant_safepoint(|| {
+        catch_vm_nonlocal(|| LispVal::from_raw(crate::buffer::Fget_buffer_create(raw_name, lisp_h_Qnil())))
+    })
 }
 
 pub fn buffer_name_val(ctx: &mut GcContext, buffer: Handle<'_>) -> VmResult<LispVal> {
-    let _ = ctx;
     let raw_buf = buffer.get().into_raw();
-    catch_vm_nonlocal(|| LispVal::from_raw(crate::buffer::Fbuffer_name(raw_buf)))
+    ctx.with_reentrant_safepoint(|| catch_vm_nonlocal(|| LispVal::from_raw(crate::buffer::Fbuffer_name(raw_buf))))
 }
 
 pub fn kill_buffer_val(ctx: &mut GcContext, buffer: Handle<'_>) -> VmResult<bool> {
-    let _ = ctx;
     let raw_buf = buffer.get().into_raw();
-    catch_vm_nonlocal(|| crate::buffer::Fkill_buffer(raw_buf) != lisp_h_Qnil())
+    ctx.with_reentrant_safepoint(|| {
+        catch_vm_nonlocal(|| crate::buffer::Fkill_buffer(raw_buf) != lisp_h_Qnil())
+    })
 }
 
 /// Run `body` with `buffer` temporarily selected as `current_buffer`, guaranteed to restore the
@@ -83,22 +83,28 @@ pub fn with_current_buffer<R>(
 ) -> VmResult<R> {
     let raw_buf = buffer.get().into_raw();
     if !BUFFERP(raw_buf) {
-        return catch_vm_nonlocal(|| {
-            crate::buffer::Fset_buffer(raw_buf);
-            unreachable!()
+        return ctx.with_reentrant_safepoint(|| {
+            catch_vm_nonlocal(|| {
+                crate::buffer::Fset_buffer(raw_buf);
+                unreachable!()
+            })
         });
     }
     let count_raw = current_specpdl_index();
-    catch_vm_nonlocal(|| {
-        {
-            record_unwind_current_buffer();
-        }
-        crate::buffer::Fset_buffer(raw_buf);
+    ctx.with_reentrant_safepoint(|| {
+        catch_vm_nonlocal(|| {
+            {
+                record_unwind_current_buffer();
+            }
+            crate::buffer::Fset_buffer(raw_buf);
+        })
     })?;
 
     let result = body(ctx);
-    let unbind_res = catch_vm_nonlocal(|| {
-        unbind_to_safe(wrap_specpdl_ref(count_raw), lisp_h_Qnil());
+    let unbind_res = ctx.with_reentrant_safepoint(|| {
+        catch_vm_nonlocal(|| {
+            unbind_to_safe(wrap_specpdl_ref(count_raw), lisp_h_Qnil());
+        })
     });
     match (result, unbind_res) {
         (_, Err(cleanup_exit)) => Err(cleanup_exit),
@@ -108,29 +114,32 @@ pub fn with_current_buffer<R>(
 }
 
 pub fn erase_current_buffer(ctx: &mut GcContext) -> VmResult<()> {
-    let _ = ctx;
-    catch_vm_nonlocal(|| {
-        crate::buffer::Ferase_buffer();
+    ctx.with_reentrant_safepoint(|| {
+        catch_vm_nonlocal(|| {
+            crate::buffer::Ferase_buffer();
+        })
     })
 }
 
 pub fn insert_lisp_string(ctx: &mut GcContext, text: Handle<'_>) -> VmResult<()> {
-    let _ = ctx;
     let mut arg = text.get().into_raw();
-    catch_vm_nonlocal(|| {
-        // SAFETY: `Finsert` (`MANY`) reads 1 `Lisp_Object` from `&raw mut arg` on the active Lisp thread.
-        unsafe {
-            crate::editfns::Finsert(1, &raw mut arg);
-        }
+    ctx.with_reentrant_safepoint(|| {
+        catch_vm_nonlocal(|| {
+            // SAFETY: `Finsert` (`MANY`) reads 1 `Lisp_Object` from `&raw mut arg` on the active Lisp thread.
+            unsafe {
+                crate::editfns::Finsert(1, &raw mut arg);
+            }
+        })
     })
 }
 
 pub fn current_buffer_string_no_props(ctx: &mut GcContext) -> VmResult<LispVal> {
-    let _ = ctx;
-    catch_vm_nonlocal(|| {
-        let beg = crate::editfns::Fpoint_min();
-        let end = crate::editfns::Fpoint_max();
-        LispVal::from_raw(crate::editfns::Fbuffer_substring_no_properties(beg, end))
+    ctx.with_reentrant_safepoint(|| {
+        catch_vm_nonlocal(|| {
+            let beg = crate::editfns::Fpoint_min();
+            let end = crate::editfns::Fpoint_max();
+            LispVal::from_raw(crate::editfns::Fbuffer_substring_no_properties(beg, end))
+        })
     })
 }
 
@@ -153,75 +162,81 @@ pub fn read_from_lisp_string(
     source: Handle<'_>,
     start_char: usize,
 ) -> VmResult<(LispVal, usize)> {
-    let _ = ctx;
     let raw_src = source.get().into_raw();
     let start_fix = LispVal::from_fixnum(start_char as isize).into_raw();
-    catch_vm_nonlocal(|| {
-        let pair = crate::lread::Fread_from_string(raw_src, start_fix, lisp_h_Qnil());
-        if !CONSP(pair) {
-            return (LispVal::nil(), start_char);
-        }
-        let obj = LispVal::from_raw(XCAR(pair));
-        let next_idx = LispVal::from_raw(XCDR(pair)).as_fixnum().unwrap_or(start_char as isize);
-        (obj, next_idx.max(0) as usize)
+    ctx.with_reentrant_safepoint(|| {
+        catch_vm_nonlocal(|| {
+            let pair = crate::lread::Fread_from_string(raw_src, start_fix, lisp_h_Qnil());
+            if !CONSP(pair) {
+                return (LispVal::nil(), start_char);
+            }
+            let obj = LispVal::from_raw(XCAR(pair));
+            let next_idx = LispVal::from_raw(XCDR(pair)).as_fixnum().unwrap_or(start_char as isize);
+            (obj, next_idx.max(0) as usize)
+        })
     })
 }
 
 pub fn eval_lexical(ctx: &mut GcContext, form: Handle<'_>) -> VmResult<LispVal> {
-    let _ = ctx;
     let raw_form = form.get().into_raw();
-    catch_vm_nonlocal(|| LispVal::from_raw(crate::eval::Feval(raw_form, Qt())))
+    ctx.with_reentrant_safepoint(|| {
+        catch_vm_nonlocal(|| LispVal::from_raw(crate::eval::Feval(raw_form, Qt())))
+    })
 }
 
 pub fn prin1_to_lisp_string(ctx: &mut GcContext, value: Handle<'_>) -> VmResult<LispVal> {
-    let _ = ctx;
     let raw_val = value.get().into_raw();
-    catch_vm_nonlocal(|| {
-        LispVal::from_raw(crate::print::Fprin1_to_string(raw_val, lisp_h_Qnil(), lisp_h_Qnil()))
+    ctx.with_reentrant_safepoint(|| {
+        catch_vm_nonlocal(|| {
+            LispVal::from_raw(crate::print::Fprin1_to_string(raw_val, lisp_h_Qnil(), lisp_h_Qnil()))
+        })
     })
 }
 
 pub fn expand_file_name_val(ctx: &mut GcContext, path: Handle<'_>) -> VmResult<LispVal> {
-    let _ = ctx;
     let raw_path = path.get().into_raw();
-    catch_vm_nonlocal(|| LispVal::from_raw(crate::fileio::Fexpand_file_name(raw_path, lisp_h_Qnil())))
+    ctx.with_reentrant_safepoint(|| {
+        catch_vm_nonlocal(|| LispVal::from_raw(crate::fileio::Fexpand_file_name(raw_path, lisp_h_Qnil())))
+    })
 }
 
 pub fn write_current_buffer_to_file(ctx: &mut GcContext, filename: Handle<'_>) -> VmResult<()> {
-    let _ = ctx;
     let raw_file = filename.get().into_raw();
-    catch_vm_nonlocal(|| {
-        let beg = crate::editfns::Fpoint_min();
-        let end = crate::editfns::Fpoint_max();
-        let quiet = make_fixnum(0 as EMACS_INT);
-        crate::fileio::Fwrite_region(
-            beg,
-            end,
-            raw_file,
-            lisp_h_Qnil(),
-            quiet,
-            lisp_h_Qnil(),
-            lisp_h_Qnil(),
-        );
+    ctx.with_reentrant_safepoint(|| {
+        catch_vm_nonlocal(|| {
+            let beg = crate::editfns::Fpoint_min();
+            let end = crate::editfns::Fpoint_max();
+            let quiet = make_fixnum(0 as EMACS_INT);
+            crate::fileio::Fwrite_region(
+                beg,
+                end,
+                raw_file,
+                lisp_h_Qnil(),
+                quiet,
+                lisp_h_Qnil(),
+                lisp_h_Qnil(),
+            );
+        })
     })
 }
 
 pub fn insert_file_into_current_buffer(ctx: &mut GcContext, filename: Handle<'_>) -> VmResult<usize> {
-    let _ = ctx;
     let raw_file = filename.get().into_raw();
-    catch_vm_nonlocal(|| {
-        let ret = crate::fileio::Finsert_file_contents(
-            raw_file,
-            lisp_h_Qnil(),
-            lisp_h_Qnil(),
-            lisp_h_Qnil(),
-            lisp_h_Qnil(),
-        );
-        if CONSP(ret) && CONSP(XCDR(ret)) {
-            LispVal::from_raw(XCAR(XCDR(ret))).as_fixnum().unwrap_or(0).max(0) as usize
-        } else {
-            0
-        }
+    ctx.with_reentrant_safepoint(|| {
+        catch_vm_nonlocal(|| {
+            let ret = crate::fileio::Finsert_file_contents(
+                raw_file,
+                lisp_h_Qnil(),
+                lisp_h_Qnil(),
+                lisp_h_Qnil(),
+                lisp_h_Qnil(),
+            );
+            if CONSP(ret) && CONSP(XCDR(ret)) {
+                LispVal::from_raw(XCAR(XCDR(ret))).as_fixnum().unwrap_or(0).max(0) as usize
+            } else {
+                0
+            }
+        })
     })
 }
 
@@ -231,32 +246,35 @@ pub fn selected_window_val(ctx: &GcContext) -> LispVal {
 }
 
 pub fn window_buffer_val(ctx: &mut GcContext, window: Handle<'_>) -> VmResult<LispVal> {
-    let _ = ctx;
     let raw_win = window.get().into_raw();
-    catch_vm_nonlocal(|| {
-        let arg = if WINDOWP(raw_win) { raw_win } else { lisp_h_Qnil() };
-        LispVal::from_raw(crate::window::Fwindow_buffer(arg))
+    ctx.with_reentrant_safepoint(|| {
+        catch_vm_nonlocal(|| {
+            let arg = if WINDOWP(raw_win) { raw_win } else { lisp_h_Qnil() };
+            LispVal::from_raw(crate::window::Fwindow_buffer(arg))
+        })
     })
 }
 
 pub fn selected_frame_live_window_count(ctx: &mut GcContext) -> VmResult<usize> {
-    let _ = ctx;
-    catch_vm_nonlocal(|| {
-        let mut list: Lisp_Object =
-            crate::window::Fwindow_list(lisp_h_Qnil(), make_fixnum(0), lisp_h_Qnil());
-        let mut n = 0usize;
-        while CONSP(list) {
-            n += 1;
-            list = XCDR(list);
-        }
-        n
+    ctx.with_reentrant_safepoint(|| {
+        catch_vm_nonlocal(|| {
+            let mut list: Lisp_Object =
+                crate::window::Fwindow_list(lisp_h_Qnil(), make_fixnum(0), lisp_h_Qnil());
+            let mut n = 0usize;
+            while CONSP(list) {
+                n += 1;
+                list = XCDR(list);
+            }
+            n
+        })
     })
 }
 
 pub fn trigger_garbage_collect(ctx: &mut GcContext) -> VmResult<()> {
-    let _ = ctx;
-    catch_vm_nonlocal(|| {
-        crate::alloc::Fgarbage_collect();
+    ctx.with_reentrant_safepoint(|| {
+        catch_vm_nonlocal(|| {
+            crate::alloc::Fgarbage_collect();
+        })
     })
 }
 

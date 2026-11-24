@@ -78,12 +78,38 @@ impl Default for NativePendingExit {
     }
 }
 
-#[derive(Default)]
+struct ScopedRootSlot {
+    generation: u64,
+    occupied: bool,
+    len: usize,
+    inline: [Lisp_Object; 4],
+    overflow: Vec<Lisp_Object>,
+}
+
 struct ThreadNonLocalState {
-    scoped_roots: Vec<Lisp_Object>,
+    scoped_slots: Vec<ScopedRootSlot>,
+    free_slot_indices: Vec<usize>,
+    next_slot_generation: u64,
+    scoped_roots_created: usize,
+    scoped_roots_dropped: usize,
     inflight_value: Lisp_Object,
     inflight_active: bool,
     native_pending: NativePendingExit,
+}
+
+impl Default for ThreadNonLocalState {
+    fn default() -> Self {
+        Self {
+            scoped_slots: Vec::with_capacity(16),
+            free_slot_indices: Vec::with_capacity(8),
+            next_slot_generation: 1,
+            scoped_roots_created: 0,
+            scoped_roots_dropped: 0,
+            inflight_value: lisp_h_Qnil(),
+            inflight_active: false,
+            native_pending: NativePendingExit::default(),
+        }
+    }
 }
 
 // SAFETY: `Lisp_Object` and `*mut handler` inside `ThreadNonLocalState` are accessed only under
@@ -93,14 +119,33 @@ unsafe impl Send for ThreadNonLocalState {}
 static THREAD_STATES: Mutex<Option<HashMap<usize, Box<ThreadNonLocalState>>>> = Mutex::new(None);
 static STATE_EPOCH: AtomicUsize = AtomicUsize::new(1);
 
+#[derive(Clone, Copy)]
+struct TlsNonLocalState {
+    vm_lock_key: usize,
+    borrowed: bool,
+    cache_epoch: usize,
+    cache_key: usize,
+    cache_ptr: *mut ThreadNonLocalState,
+}
+
+impl TlsNonLocalState {
+    const EMPTY: Self = Self {
+        vm_lock_key: 0,
+        borrowed: false,
+        cache_epoch: 0,
+        cache_key: 0,
+        cache_ptr: core::ptr::null_mut(),
+    };
+}
+
 std::thread_local! {
-    static TLS_STATE_CACHE: core::cell::Cell<(usize, usize, *mut ThreadNonLocalState)> =
-        const { core::cell::Cell::new((0, 0, core::ptr::null_mut())) };
+    static TLS_STATE: core::cell::Cell<TlsNonLocalState> =
+        const { core::cell::Cell::new(TlsNonLocalState::EMPTY) };
 }
 
 static ACTIVE_COMP_NATIVE_EXITS: AtomicUsize = AtomicUsize::new(0);
-static SCOPED_ROOTS_CREATED: AtomicUsize = AtomicUsize::new(0);
-static SCOPED_ROOTS_DROPPED: AtomicUsize = AtomicUsize::new(0);
+static RETIRED_SCOPED_ROOTS_CREATED: AtomicUsize = AtomicUsize::new(0);
+static RETIRED_SCOPED_ROOTS_DROPPED: AtomicUsize = AtomicUsize::new(0);
 static HOST_PROBES_CREATED: AtomicUsize = AtomicUsize::new(0);
 static HOST_PROBES_DROPPED: AtomicUsize = AtomicUsize::new(0);
 
@@ -110,16 +155,64 @@ fn current_thread_key() -> usize {
     unsafe { current_thread.get() as usize }
 }
 
+/// Record the calling OS thread's active VM lock key for fast `TLS_STATE` lookup.
+#[inline]
+pub(crate) fn set_tls_vm_lock_key(thread_key: usize) {
+    TLS_STATE.with(|cell| {
+        let mut s = cell.get();
+        s.vm_lock_key = thread_key;
+        cell.set(s);
+    });
+}
+
+/// Clear the calling OS thread's cached `ThreadNonLocalState` pointer across lock handoffs.
+#[inline]
+pub(crate) fn clear_tls_state_cache() {
+    TLS_STATE.with(|cell| {
+        let mut s = cell.get();
+        s.vm_lock_key = 0;
+        s.cache_epoch = 0;
+        s.cache_key = 0;
+        s.cache_ptr = core::ptr::null_mut();
+        cell.set(s);
+    });
+}
+
+struct StateBorrowGuard {
+    prev: bool,
+}
+
+impl Drop for StateBorrowGuard {
+    #[inline(always)]
+    fn drop(&mut self) {
+        TLS_STATE.with(|cell| {
+            let mut s = cell.get();
+            s.borrowed = self.prev;
+            cell.set(s);
+        });
+    }
+}
+
 #[inline(always)]
 fn with_thread_state<R>(thread_key: usize, f: impl FnOnce(&mut ThreadNonLocalState) -> R) -> R {
-    let epoch = STATE_EPOCH.load(Ordering::Acquire);
-    let (c_epoch, c_key, c_ptr) = TLS_STATE_CACHE.with(|c| c.get());
-    if c_epoch == epoch && c_key == thread_key && !c_ptr.is_null() {
-        // SAFETY: `c_ptr` points to a heap-pinned `Box<ThreadNonLocalState>` stored in
-        // `THREAD_STATES`; `cleanup_thread_state` increments `STATE_EPOCH` before removing any
-        // entry, and single-VM thread execution serializes mutable access to that thread's state
-        // across non-reentrant leaf closures `f`.
-        return f(unsafe { &mut *c_ptr });
+    let state = TLS_STATE.with(|cell| {
+        let s = cell.get();
+        assert!(!s.borrowed, "re-entrant ThreadNonLocalState borrow forbidden");
+        let mut next = s;
+        next.borrowed = true;
+        cell.set(next);
+        s
+    });
+    let _borrow_guard = StateBorrowGuard { prev: state.borrowed };
+    if thread_key != 0 && state.vm_lock_key == thread_key {
+        let epoch = STATE_EPOCH.load(Ordering::Relaxed);
+        if state.cache_epoch == epoch && state.cache_key == thread_key && !state.cache_ptr.is_null() {
+            // SAFETY: `state.cache_ptr` points to a heap-pinned `Box<ThreadNonLocalState>` stored in
+            // `THREAD_STATES`; `state.vm_lock_key == thread_key` proves this OS thread holds the VM
+            // global lock for `thread_key`, `StateBorrowGuard` prevents re-entrant `&mut`, and
+            // `cleanup_thread_state` increments `STATE_EPOCH` before removing any entry.
+            return f(unsafe { &mut *state.cache_ptr });
+        }
     }
     with_thread_state_slow(thread_key, f)
 }
@@ -127,75 +220,146 @@ fn with_thread_state<R>(thread_key: usize, f: impl FnOnce(&mut ThreadNonLocalSta
 #[cold]
 #[inline(never)]
 fn with_thread_state_slow<R>(thread_key: usize, f: impl FnOnce(&mut ThreadNonLocalState) -> R) -> R {
+    assert!(
+        crate::roots::is_vm_lock_owner(thread_key),
+        "ThreadNonLocalState access requires active VM lock ownership on current OS thread"
+    );
     let mut guard = THREAD_STATES
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner());
     let epoch = STATE_EPOCH.load(Ordering::Acquire);
     let map = guard.get_or_insert_with(HashMap::new);
-    let entry = map.entry(thread_key).or_insert_with(|| {
-        Box::new(ThreadNonLocalState {
-            scoped_roots: Vec::with_capacity(16),
-            inflight_value: lisp_h_Qnil(),
-            inflight_active: false,
-            native_pending: NativePendingExit::default(),
-        })
-    });
+    let entry = map
+        .entry(thread_key)
+        .or_insert_with(|| Box::new(ThreadNonLocalState::default()));
     let ptr: *mut ThreadNonLocalState = &mut **entry;
-    TLS_STATE_CACHE.with(|c| c.set((epoch, thread_key, ptr)));
+    TLS_STATE.with(|cell| {
+        let mut s = cell.get();
+        s.cache_epoch = epoch;
+        s.cache_key = thread_key;
+        s.cache_ptr = ptr;
+        cell.set(s);
+    });
     f(entry)
 }
 
-/// LIFO scoped GC root guard for `Lisp_Object` values held across Lisp hooks, `unbind_to`
-/// cleanups, or unwinding frames. Deterministically pops its root slots on `Drop`.
+/// Slot-based scoped GC root guard for `Lisp_Object` values held across Lisp hooks, `unbind_to`
+/// cleanups, or unwinding frames. Releases its slot deterministically on `Drop`, preserving other
+/// live roots even under out-of-order drops.
 pub struct ScopedLispRoot {
     thread_key: usize,
-    base: usize,
+    slot_index: usize,
+    generation: u64,
     len: usize,
+    _not_send_sync: core::marker::PhantomData<*mut ()>,
 }
 
 impl ScopedLispRoot {
-    #[inline]
+    #[inline(always)]
     pub fn new(values: &[Lisp_Object]) -> Self {
-        let thread_key = current_thread_key();
         let len = values.len();
-        let base = if thread_key == 0 || len == 0 {
-            0
-        } else {
-            with_thread_state(thread_key, |state| {
-                let base = state.scoped_roots.len();
-                state.scoped_roots.extend_from_slice(values);
-                base
-            })
-        };
-        SCOPED_ROOTS_CREATED.fetch_add(1, Ordering::Relaxed);
+        if len == 0 {
+            RETIRED_SCOPED_ROOTS_CREATED.fetch_add(1, Ordering::Relaxed);
+            return Self {
+                thread_key: 0,
+                slot_index: usize::MAX,
+                generation: 0,
+                len: 0,
+                _not_send_sync: core::marker::PhantomData,
+            };
+        }
+        let thread_key = current_thread_key();
+        let (slot_index, generation) = with_thread_state(thread_key, |state| {
+            state.scoped_roots_created += 1;
+            let r#gen = state.next_slot_generation;
+            state.next_slot_generation += 1;
+            let idx = if let Some(free_idx) = state.free_slot_indices.pop() {
+                let slot = &mut state.scoped_slots[free_idx];
+                slot.generation = r#gen;
+                slot.occupied = true;
+                slot.len = len;
+                slot.overflow.clear();
+                if len <= 4 {
+                    slot.inline[..len].copy_from_slice(values);
+                } else {
+                    slot.inline = [lisp_h_Qnil(); 4];
+                    slot.overflow.extend_from_slice(values);
+                }
+                free_idx
+            } else {
+                let mut inline = [lisp_h_Qnil(); 4];
+                let overflow = if len <= 4 {
+                    inline[..len].copy_from_slice(values);
+                    Vec::new()
+                } else {
+                    values.to_vec()
+                };
+                let idx = state.scoped_slots.len();
+                state.scoped_slots.push(ScopedRootSlot {
+                    generation: r#gen,
+                    occupied: true,
+                    len,
+                    inline,
+                    overflow,
+                });
+                idx
+            };
+            (idx, r#gen)
+        });
         Self {
             thread_key,
-            base,
+            slot_index,
+            generation,
             len,
+            _not_send_sync: core::marker::PhantomData,
         }
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn set(&mut self, index: usize, value: Lisp_Object) {
         assert!(index < self.len);
-        if self.thread_key != 0 {
-            let slot = self.base + index;
-            with_thread_state(self.thread_key, |state| {
-                state.scoped_roots[slot] = value;
-            });
-        }
+        let slot_index = self.slot_index;
+        let expected_gen = self.generation;
+        with_thread_state(self.thread_key, |state| {
+            let slot = &mut state.scoped_slots[slot_index];
+            assert!(
+                slot.occupied && slot.generation == expected_gen,
+                "stale ScopedLispRoot slot"
+            );
+            if slot.len <= 4 {
+                slot.inline[index] = value;
+            } else {
+                slot.overflow[index] = value;
+            }
+        });
     }
 }
 
 impl Drop for ScopedLispRoot {
+    #[inline(always)]
     fn drop(&mut self) {
-        if self.thread_key != 0 && self.len != 0 {
-            with_thread_state(self.thread_key, |state| {
-                debug_assert_eq!(state.scoped_roots.len(), self.base + self.len);
-                state.scoped_roots.truncate(self.base);
-            });
+        if self.len == 0 {
+            RETIRED_SCOPED_ROOTS_DROPPED.fetch_add(1, Ordering::Relaxed);
+            return;
         }
-        SCOPED_ROOTS_DROPPED.fetch_add(1, Ordering::Relaxed);
+        let slot_index = self.slot_index;
+        let expected_gen = self.generation;
+        with_thread_state(self.thread_key, |state| {
+            state.scoped_roots_dropped += 1;
+            let slot = &mut state.scoped_slots[slot_index];
+            assert!(
+                slot.occupied && slot.generation == expected_gen,
+                "ScopedLispRoot double-release or slot corruption"
+            );
+            slot.occupied = false;
+            if slot.len <= 4 {
+                slot.inline = [lisp_h_Qnil(); 4];
+            } else {
+                slot.overflow.clear();
+            }
+            slot.len = 0;
+            state.free_slot_indices.push(slot_index);
+        });
     }
 }
 
@@ -239,10 +403,18 @@ pub fn host_drop_counts() -> (usize, usize) {
 
 #[inline]
 pub fn scoped_root_counts() -> (usize, usize) {
-    (
-        SCOPED_ROOTS_CREATED.load(Ordering::Relaxed),
-        SCOPED_ROOTS_DROPPED.load(Ordering::Relaxed),
-    )
+    let mut created = RETIRED_SCOPED_ROOTS_CREATED.load(Ordering::Relaxed);
+    let mut dropped = RETIRED_SCOPED_ROOTS_DROPPED.load(Ordering::Relaxed);
+    let guard = THREAD_STATES
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    if let Some(map) = guard.as_ref() {
+        for state in map.values() {
+            created += state.scoped_roots_created;
+            dropped += state.scoped_roots_dropped;
+        }
+    }
+    (created, dropped)
 }
 
 /// Mark all explicit `ScopedLispRoot`, in-flight `NonLocalExit`, and pending `.eln` exit roots
@@ -255,6 +427,10 @@ pub fn mark_thread_explicit_roots(
     if key == 0 {
         return;
     }
+    assert!(
+        !TLS_STATE.with(|cell| cell.get().borrowed),
+        "cannot mark ThreadNonLocalState while state is borrowed"
+    );
     let snapshot: Vec<Lisp_Object> = {
         let guard = THREAD_STATES
             .lock()
@@ -265,8 +441,16 @@ pub fn mark_thread_explicit_roots(
         let Some(state) = map.get(&key) else {
             return;
         };
-        let mut objs = Vec::with_capacity(state.scoped_roots.len() + 2);
-        objs.extend_from_slice(&state.scoped_roots);
+        let mut objs = Vec::with_capacity(state.scoped_slots.len() * 4 + 2);
+        for slot in &state.scoped_slots {
+            if slot.occupied {
+                if slot.len <= 4 {
+                    objs.extend_from_slice(&slot.inline[..slot.len]);
+                } else {
+                    objs.extend_from_slice(&slot.overflow);
+                }
+            }
+        }
         if state.inflight_active {
             objs.push(state.inflight_value);
         }
@@ -286,16 +470,29 @@ pub fn cleanup_thread_state(thread: *mut c_void) {
     if key == 0 {
         return;
     }
+    assert!(
+        !TLS_STATE.with(|cell| cell.get().borrowed),
+        "cannot cleanup ThreadNonLocalState while state is borrowed"
+    );
     let mut guard = THREAD_STATES
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner());
     STATE_EPOCH.fetch_add(1, Ordering::SeqCst);
-    TLS_STATE_CACHE.with(|c| c.set((0, 0, core::ptr::null_mut())));
+    TLS_STATE.with(|cell| {
+        let mut s = cell.get();
+        s.cache_epoch = 0;
+        s.cache_key = 0;
+        s.cache_ptr = core::ptr::null_mut();
+        cell.set(s);
+    });
     if let Some(map) = guard.as_mut()
         && let Some(removed) = map.remove(&key)
-        && removed.native_pending.pending
     {
-        ACTIVE_COMP_NATIVE_EXITS.fetch_sub(1, Ordering::Relaxed);
+        RETIRED_SCOPED_ROOTS_CREATED.fetch_add(removed.scoped_roots_created, Ordering::Relaxed);
+        RETIRED_SCOPED_ROOTS_DROPPED.fetch_add(removed.scoped_roots_dropped, Ordering::Relaxed);
+        if removed.native_pending.pending {
+            ACTIVE_COMP_NATIVE_EXITS.fetch_sub(1, Ordering::Relaxed);
+        }
     }
 }
 

@@ -1,0 +1,11 @@
+case	port_ms	ref_ms	date	metric
+bc-loop	0.0081	1.8699	2026-11-20	process-median-of-min5-v1
+bc-sum	0.3290	4.2460	2026-11-20	process-median-of-min5-v1
+bc-car	0.0079	1.7650	2026-11-20	process-median-of-min5-v1
+regexp-repl	2.6240	2.7359	2026-11-20	process-median-of-min5-v1
+buffer-scan	0.9809	1.1649	2026-11-20	process-median-of-min5-v1
+sort-100k	0.4230	1.9512	2026-11-20	process-median-of-min5-v1
+load	1.7011	1.6670	2026-11-20	process-median-of-min5-v1
+edit	7.5541	9.5749	2026-11-20	process-median-of-min5-v1
+regex	2.1000	2.6212	2026-11-20	process-median-of-min5-v1
+gc	28.3959	49.7420	2026-11-20	process-median-of-min5-v1

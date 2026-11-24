@@ -1335,7 +1335,7 @@ DEFUN! ("let", Flet, Slet, 1, UNEVALLED, 0,
     {
       let mut temps_buf: [Lisp_Object; 8] = [Qnil (); 8];
       temps = temps_buf.as_mut_ptr ();
-      let mut temps_span = crate::roots::ScopedRawSpan::new (temps, 0);
+      let _temps_span = crate::roots::ScopedRawSpan::new (temps, varlist_len as usize);
       let mut nvars: ptrdiff_t = varlist_len;
       argnum = 0;
       while argnum < nvars && CONSP (varlist)
@@ -1350,7 +1350,6 @@ DEFUN! ("let", Flet, Slet, 1, UNEVALLED, 0,
 	  else
 	    { *temps.offset (argnum) = eval_sub (Fcar (Fcdr (elt))); }
 	  argnum += 1;
-	  temps_span.set_len (argnum as usize);
 	}
       nvars = argnum;
       lexenv = (*Vinternal_interpreter_environment.as_mut_ptr ());
@@ -2854,20 +2853,41 @@ pub extern "C-unwind" fn eval_sub (form: Lisp_Object) -> Lisp_Object
 
 	    {
 	      /* Pass a vector of evaluated arguments.  */
-	      if numargs <= 8
+	      if numargs == 0
 		{
-		  let mut argvals_span = crate::roots::ScopedRawSpan::new (argvals_ptr, 0);
-		  let mut argnum: ptrdiff_t = 0;
-		  while CONSP (args_left) && argnum < numargs
-		    {
-		      let arg: Lisp_Object = XCAR (args_left);
-		      args_left = XCDR (args_left);
-		      *argvals_ptr.offset (argnum) = eval_sub (arg);
-		      argnum += 1;
-		      argvals_span.set_len (argnum as usize);
-		    }
-		  set_backtrace_args (specpdl_ref_to_ptr (count), argvals_ptr, argnum);
-		  val = (((*XSUBR (fun)).function.aMANY).unwrap ()) (argnum, argvals_ptr);
+		  set_backtrace_args (specpdl_ref_to_ptr (count), argvals_ptr, 0);
+		  val = (((*XSUBR (fun)).function.aMANY).unwrap ()) (0, argvals_ptr);
+		}
+	      else if numargs == 1
+		{
+		  let a0: Lisp_Object = eval_sub (XCAR (args_left));
+		  *argvals_ptr.offset (0) = a0;
+		  set_backtrace_args (specpdl_ref_to_ptr (count), argvals_ptr, 1);
+		  val = (((*XSUBR (fun)).function.aMANY).unwrap ()) (1, argvals_ptr);
+		}
+	      else if numargs <= 8
+		{
+		  {
+		    let mut argvals_span: Option<crate::roots::ScopedRawSpan> = None;
+		    let mut has_heap_arg: bool = false;
+		    let mut argnum: ptrdiff_t = 0;
+		    while CONSP (args_left) && argnum < numargs
+		      {
+			let arg: Lisp_Object = XCAR (args_left);
+			args_left = XCDR (args_left);
+			if CONSP (arg) && has_heap_arg && argvals_span.is_none ()
+			  { argvals_span = Some (crate::roots::ScopedRawSpan::new (argvals_ptr, argnum as usize)); }
+			let val_arg: Lisp_Object = eval_sub (arg);
+			*argvals_ptr.offset (argnum) = val_arg;
+			argnum += 1;
+			if let Some (span) = argvals_span.as_mut ()
+			  { span.set_len (argnum as usize); }
+			else if !FIXNUMP (val_arg) && !NILP (val_arg)
+			  { has_heap_arg = true; }
+		      }
+		    set_backtrace_args (specpdl_ref_to_ptr (count), argvals_ptr, argnum);
+		  }
+		  val = (((*XSUBR (fun)).function.aMANY).unwrap ()) (numargs, argvals_ptr);
 		}
 	      else
 		{
@@ -2905,27 +2925,40 @@ pub extern "C-unwind" fn eval_sub (form: Lisp_Object) -> Lisp_Object
 	    }
 	  else
 	    {
-	      let mut i: c_int;
 	      let maxargs: c_int = (*XSUBR (fun)).max_args as c_int;
-	      let mut argvals_span = crate::roots::ScopedRawSpan::new (argvals_ptr, 0);
-
-	      i = 0;
-	      while i < maxargs
+	      if numargs == 0
 		{
-		  if CONSP (args_left)
+		  set_backtrace_args (specpdl_ref_to_ptr (count), argvals_ptr, 0);
+		}
+	      else if numargs == 1
+		{
+		  let a0: Lisp_Object = eval_sub (XCAR (args_left));
+		  *argvals_ptr.offset (0) = a0;
+		  set_backtrace_args (specpdl_ref_to_ptr (count), argvals_ptr, 1);
+		}
+	      else
+		{
+		  let mut argvals_span: Option<crate::roots::ScopedRawSpan> = None;
+		  let mut has_heap_arg: bool = false;
+		  let mut i: c_int = 0;
+		  while CONSP (args_left) && (i as ptrdiff_t) < numargs
 		    {
-		      *argvals_ptr.offset (i as isize) = eval_sub (XCAR (args_left));
+		      let arg: Lisp_Object = XCAR (args_left);
 		      args_left = XCDR (args_left);
+		      if CONSP (arg) && has_heap_arg && argvals_span.is_none ()
+			{ argvals_span = Some (crate::roots::ScopedRawSpan::new (argvals_ptr, i as usize)); }
+		      let val_arg: Lisp_Object = eval_sub (arg);
+		      *argvals_ptr.offset (i as isize) = val_arg;
+		      i += 1;
+		      if let Some (span) = argvals_span.as_mut ()
+			{ span.set_len (i as usize); }
+		      else if !FIXNUMP (val_arg) && !NILP (val_arg)
+			{ has_heap_arg = true; }
 		    }
-		  else
-		    { *argvals_ptr.offset (i as isize) = Qnil (); }
-		  i += 1;
-		  argvals_span.set_len (i as usize);
+		  set_backtrace_args (specpdl_ref_to_ptr (count), argvals_ptr, numargs);
 		}
 
-	      set_backtrace_args (specpdl_ref_to_ptr (count), argvals_ptr, numargs);
-
-	      match i
+	      match maxargs
 		{
 		0 =>
 		  {
@@ -3765,19 +3798,38 @@ unsafe fn apply_lambda (fun: Lisp_Object, args: Lisp_Object, count: specpdl_ref)
     {
       let mut arg_buf: [Lisp_Object; 8] = [Qnil (); 8];
       arg_vector = arg_buf.as_mut_ptr ();
-      let mut arg_span = crate::roots::ScopedRawSpan::new (arg_vector, 0);
-      let mut args_left: Lisp_Object = args;
-      let mut i: ptrdiff_t = 0;
-      while i < numargs
+      if numargs == 0
 	{
-	  tem = XCAR (args_left);
-	  args_left = XCDR (args_left);
-	  tem = eval_sub (tem);
-	  *arg_vector.offset (i) = tem;
-	  i += 1;
-	  arg_span.set_len (i as usize);
+	  set_backtrace_args (specpdl_ref_to_ptr (count), arg_vector, 0);
 	}
-      set_backtrace_args (specpdl_ref_to_ptr (count), arg_vector, numargs);
+      else if numargs == 1
+	{
+	  let a0: Lisp_Object = eval_sub (XCAR (args));
+	  *arg_vector.offset (0) = a0;
+	  set_backtrace_args (specpdl_ref_to_ptr (count), arg_vector, 1);
+	}
+      else
+	{
+	  let mut arg_span: Option<crate::roots::ScopedRawSpan> = None;
+	  let mut has_heap_arg: bool = false;
+	  let mut args_left: Lisp_Object = args;
+	  let mut i: ptrdiff_t = 0;
+	  while i < numargs
+	    {
+	      let arg: Lisp_Object = XCAR (args_left);
+	      args_left = XCDR (args_left);
+	      if CONSP (arg) && has_heap_arg && arg_span.is_none ()
+		{ arg_span = Some (crate::roots::ScopedRawSpan::new (arg_vector, i as usize)); }
+	      tem = eval_sub (arg);
+	      *arg_vector.offset (i) = tem;
+	      i += 1;
+	      if let Some (span) = arg_span.as_mut ()
+		{ span.set_len (i as usize); }
+	      else if !FIXNUMP (tem) && !NILP (tem)
+		{ has_heap_arg = true; }
+	    }
+	  set_backtrace_args (specpdl_ref_to_ptr (count), arg_vector, numargs);
+	}
       tem = funcall_lambda (fun, numargs, arg_vector);
       lisp_eval_depth! () -= 1;
       /* Do the debug-on-exit now, while arg_vector still exists.  */
@@ -4622,7 +4674,7 @@ pub extern "C-unwind" fn unbind_to (count: specpdl_ref, value: Lisp_Object) -> L
     { return value; }
 
   let quitf: Lisp_Object = (*Vquit_flag.as_mut_ptr ());
-  let mut unbind_roots = crate::nonlocal::ScopedLispRoot::new (&[value, quitf, Qnil ()]);
+  let mut unbind_roots: Option<crate::nonlocal::ScopedLispRoot> = None;
 
   (*Vquit_flag.as_mut_ptr ()) = Qnil ();
 
@@ -4657,16 +4709,22 @@ pub extern "C-unwind" fn unbind_to (count: specpdl_ref, value: Lisp_Object) -> L
 	  let depth = (*p).unwind.eval_depth as intmax_t;
 	  let func = (*p).unwind.func.unwrap_unchecked ();
 	  let arg = (*p).unwind.arg;
-	  unbind_roots.set (2, arg);
+	  let roots = unbind_roots.get_or_insert_with (|| {
+	    crate::nonlocal::ScopedLispRoot::new (&[value, quitf, Qnil ()])
+	  });
+	  roots.set (2, arg);
 	  (*ct).m_lisp_eval_depth = depth;
 	  func (arg);
-	  unbind_roots.set (2, Qnil ());
+	  roots.set (2, Qnil ());
 	  ct = (*current_thread.as_mut_ptr ());
 	  target_ptr = ((*ct).m_specpdl as *mut u8)
 	    .offset (unwrap_specpdl_ref (count)) as *mut specbinding;
 	  continue;
 	}
 
+      unbind_roots.get_or_insert_with (|| {
+	crate::nonlocal::ScopedLispRoot::new (&[value, quitf, Qnil ()])
+      });
       let mut this_binding: specbinding = *p;
 
       do_one_unbind (&mut this_binding, true, SET_INTERNAL_UNBIND);

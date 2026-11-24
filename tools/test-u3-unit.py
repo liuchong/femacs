@@ -71,6 +71,45 @@ pub mod eval {
     }
 }
 
+pub mod roots {
+    use core::cell::Cell;
+    use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
+
+    static NEXT_TID: AtomicU64 = AtomicU64::new(1);
+    static OWNER_KEY: AtomicUsize = AtomicUsize::new(0);
+    static OWNER_TID: AtomicU64 = AtomicU64::new(0);
+
+    std::thread_local! {
+        static TID: u64 = NEXT_TID.fetch_add(1, Ordering::Relaxed);
+        static TLS_KEY: Cell<usize> = const { Cell::new(0) };
+    }
+
+    pub fn bind_vm_lock_owner(thread_key: usize) {
+        let tid = TID.with(|t| *t);
+        TLS_KEY.with(|k| k.set(thread_key));
+        OWNER_TID.store(tid, Ordering::Release);
+        OWNER_KEY.store(thread_key, Ordering::Release);
+    }
+
+    pub fn unbind_vm_lock_owner() {
+        TLS_KEY.with(|k| k.set(0));
+        OWNER_KEY.store(0, Ordering::Release);
+        OWNER_TID.store(0, Ordering::Release);
+    }
+
+    pub(crate) fn tls_vm_lock_matches(thread_key: usize) -> bool {
+        thread_key != 0 && TLS_KEY.with(|k| k.get()) == thread_key
+    }
+
+    pub(crate) fn is_vm_lock_owner(thread_key: usize) -> bool {
+        let tid = TID.with(|t| *t);
+        thread_key != 0
+            && crate::common::current_thread.get() as usize == thread_key
+            && OWNER_KEY.load(Ordering::Acquire) == thread_key
+            && OWNER_TID.load(Ordering::Acquire) == tid
+    }
+}
+
 #[path = "__NONLOCAL_RS_PATH__"]
 pub mod nonlocal;
 
@@ -91,11 +130,23 @@ mod tests {
         mark_thread_explicit_roots, raise_vm_nonlocal, resume_vm_nonlocal, scoped_root_counts,
         set_comp_native_exit,
     };
+    use crate::roots::{bind_vm_lock_owner, unbind_vm_lock_owner};
 
     static SERIAL: Mutex<()> = Mutex::new(());
 
     fn fake_obj(tag: usize) -> Lisp_Object {
         tag as Lisp_Object
+    }
+
+    fn set_thread(id: usize) -> *mut c_void {
+        let ptr = id as *mut c_void;
+        current_thread.set(ptr);
+        if id != 0 {
+            bind_vm_lock_owner(id);
+        } else {
+            unbind_vm_lock_owner();
+        }
+        ptr
     }
 
     fn collect_marked(thread: *mut c_void) -> Vec<usize> {
@@ -107,8 +158,7 @@ mod tests {
     #[test]
     fn catch_vm_nonlocal_catches_signal_and_throw_and_clears_inflight() {
         let _lock = SERIAL.lock().unwrap();
-        let thread = 0x1000usize as *mut c_void;
-        current_thread.set(thread);
+        let thread = set_thread(0x1000);
 
         let mut h1 = handler { dummy: 1 };
         let mut h2 = handler { dummy: 2 };
@@ -145,14 +195,13 @@ mod tests {
         assert!(collect_marked(thread).is_empty());
 
         cleanup_thread_state(thread);
-        current_thread.set(core::ptr::null_mut());
+        set_thread(0);
     }
 
     #[test]
     fn catch_vm_nonlocal_repropagates_genuine_rust_panic() {
         let _lock = SERIAL.lock().unwrap();
-        let thread = 0x2000usize as *mut c_void;
-        current_thread.set(thread);
+        let thread = set_thread(0x2000);
 
         let outer = catch_unwind(AssertUnwindSafe(|| {
             let _ = catch_vm_nonlocal(|| -> usize {
@@ -167,14 +216,13 @@ mod tests {
         assert_eq!(msg, "genuine-rust-bug-not-lisp-signal");
 
         cleanup_thread_state(thread);
-        current_thread.set(core::ptr::null_mut());
+        set_thread(0);
     }
 
     #[test]
     fn scoped_lisp_root_lifo_and_unwind_truncation() {
         let _lock = SERIAL.lock().unwrap();
-        let thread = 0x3000usize as *mut c_void;
-        current_thread.set(thread);
+        let thread = set_thread(0x3000);
         let mut h = handler { dummy: 3 };
         let (rc0, rd0) = scoped_root_counts();
 
@@ -194,7 +242,7 @@ mod tests {
                 });
             });
             assert!(unwound.is_err());
-            // Inner root must have truncated cleanly during unwind while outer remains intact!
+            // Inner root must have released cleanly during unwind while outer remains intact!
             assert_eq!(collect_marked(thread), vec![11, 220]);
         }
         assert!(collect_marked(thread).is_empty());
@@ -203,14 +251,13 @@ mod tests {
         assert_eq!(rd1 - rd0, 2);
 
         cleanup_thread_state(thread);
-        current_thread.set(core::ptr::null_mut());
+        set_thread(0);
     }
 
     #[test]
     fn host_drop_guard_exact_once_across_reexit_and_c_probe() {
         let _lock = SERIAL.lock().unwrap();
-        let thread = 0x4000usize as *mut c_void;
-        current_thread.set(thread);
+        let thread = set_thread(0x4000);
         let mut h_inner = handler { dummy: 4 };
         let mut h_outer = handler { dummy: 5 };
         let (hc0, hd0) = host_drop_counts();
@@ -245,14 +292,13 @@ mod tests {
         assert_eq!(rc1, rd1);
 
         cleanup_thread_state(thread);
-        current_thread.set(core::ptr::null_mut());
+        set_thread(0);
     }
 
     #[test]
     fn comp_native_pending_exit_matching_propagation_and_thread_cleanup() {
         let _lock = SERIAL.lock().unwrap();
-        let thread = 0x5000usize as *mut c_void;
-        current_thread.set(thread);
+        let thread = set_thread(0x5000);
         let mut h_target = handler { dummy: 10 };
         let mut h_other = handler { dummy: 20 };
 
@@ -289,19 +335,71 @@ mod tests {
         assert_eq!(comp_native_exit_pending_for_current_thread(), 0);
 
         // Finalizing a thread with an active pending exit decrements global counter cleanly.
-        let dying_thread = 0x6000usize as *mut c_void;
-        current_thread.set(dying_thread);
+        let dying_thread = set_thread(0x6000);
         set_comp_native_exit(NonLocalExit {
             kind: NonLocalExitKind::Signal,
             target: &raw mut h_target,
             value: fake_obj(0xDEAD),
         });
         cleanup_thread_state(dying_thread);
-        current_thread.set(thread);
+        set_thread(0x5000);
         assert_eq!(comp_native_exit_pending_for_current_thread(), 0);
 
         cleanup_thread_state(thread);
-        current_thread.set(core::ptr::null_mut());
+        set_thread(0);
+    }
+
+    #[test]
+    fn scoped_lisp_root_out_of_order_drop_preserves_inner_and_overflow_roots() {
+        let _lock = SERIAL.lock().unwrap();
+        let thread = set_thread(0x7000);
+        cleanup_thread_state(thread);
+
+        let outer = ScopedLispRoot::new(&[fake_obj(1), fake_obj(2)]);
+        let mut inner_big = ScopedLispRoot::new(&[
+            fake_obj(10),
+            fake_obj(11),
+            fake_obj(12),
+            fake_obj(13),
+            fake_obj(14),
+            fake_obj(15),
+        ]);
+        assert_eq!(collect_marked(thread), vec![1, 2, 10, 11, 12, 13, 14, 15]);
+
+        // Drop `outer` BEFORE `inner_big`! Must keep all 6 `inner_big` elements rooted.
+        drop(outer);
+        assert_eq!(collect_marked(thread), vec![10, 11, 12, 13, 14, 15]);
+
+        inner_big.set(4, fake_obj(140));
+        let reused = ScopedLispRoot::new(&[fake_obj(20)]);
+        assert_eq!(collect_marked(thread), vec![20, 10, 11, 12, 13, 140, 15]);
+
+        drop(reused);
+        drop(inner_big);
+        assert!(collect_marked(thread).is_empty());
+
+        cleanup_thread_state(thread);
+        set_thread(0);
+    }
+
+    #[test]
+    fn scoped_lisp_root_rejects_non_owner_os_thread() {
+        let _lock = SERIAL.lock().unwrap();
+        let thread = set_thread(0x8000);
+        cleanup_thread_state(thread);
+
+        let res = std::thread::spawn(|| {
+            catch_unwind(AssertUnwindSafe(|| {
+                let _bad = ScopedLispRoot::new(&[fake_obj(99)]);
+            }))
+        })
+        .join()
+        .expect("join thread");
+        assert!(res.is_err(), "non-owner OS thread ScopedLispRoot::new must panic");
+        assert!(collect_marked(thread).is_empty());
+
+        cleanup_thread_state(thread);
+        set_thread(0);
     }
 }
 """
@@ -453,7 +551,73 @@ def main() -> int:
             raise AssertionError(
                 f"helper_link_table length ({actual_base}) != declare_runtime_imported_funcs count ({expected_base})"
             )
-        return {"abi_version": "14", "helper_link_table_entries": actual_base}
+
+        # P-488 Option A boundary invariants:
+        # 1) All `&mut GcContext` public primitives return `VmResult<...>` via `with_reentrant_safepoint` + `catch_vm_nonlocal`.
+        vp_rs = (REPO / "crates/femacs-vm/src/vm_primitives.rs").read_text(encoding="utf-8")
+        mut_prim_fns = list(
+            re.finditer(
+                r"pub\s+fn\s+(\w+)\s*(?:<[^>]+>)?\s*\(([^)]*)\)(?:\s*->\s*([^{]+))?\s*\{",
+                vp_rs,
+                re.S,
+            )
+        )
+        checked_mut_prims = 0
+        for idx, m in enumerate(mut_prim_fns):
+            name, params, ret = m.group(1), m.group(2), (m.group(3) or "").strip()
+            if "&mut GcContext" not in params:
+                continue
+            checked_mut_prims += 1
+            if not ret.startswith("VmResult<"):
+                raise AssertionError(
+                    f"vm_primitives::{name} takes `&mut GcContext` and must return `VmResult<...>`, got `{ret}`"
+                )
+            next_start = mut_prim_fns[idx + 1].start() if idx + 1 < len(mut_prim_fns) else len(vp_rs)
+            fn_body = vp_rs[m.end() : next_start]
+            if "with_reentrant_safepoint" not in fn_body:
+                raise AssertionError(f"vm_primitives::{name} must wrap VM calls in `with_reentrant_safepoint`")
+            if "catch_vm_nonlocal" not in fn_body:
+                raise AssertionError(f"vm_primitives::{name} must convert unwinds via `catch_vm_nonlocal`")
+        if checked_mut_prims < 15:
+            raise AssertionError(f"expected >= 15 `&mut GcContext` vm_primitives, checked {checked_mut_prims}")
+
+        # 2) All `.eln` C-ABI helper functions in `src/comp.rs` remain `extern "C"` (zero unwind across `.eln`).
+        expected_comp_c_helpers = [
+            "comp_wrong_type_argument",
+            "comp_push_handler",
+            "comp_record_unwind_protect_excursion",
+            "comp_helper_unwind_protect",
+            "comp_helper_unbind_n",
+            "comp_helper_save_restriction",
+            "comp_helper_GET_SYMBOL_WITH_POSITION",
+            "comp_helper_sanitizer_assert",
+            "comp_record_unwind_current_buffer",
+            "comp_set_internal",
+            "comp_specbind",
+            "comp_maybe_gc",
+            "comp_maybe_quit",
+            *[f"comp_invoke_subr{i}" for i in range(9)],
+            "comp_invoke_subr_many",
+            "comp_invoke_subr_unevalled",
+            "comp_exit_pending",
+            "comp_consume_exit_for_handler",
+        ]
+        for hname in expected_comp_c_helpers:
+            if not re.search(rf'(?:unsafe\s+)?extern\s+"C"\s+fn\s+{re.escape(hname)}\b', comp_rs):
+                raise AssertionError(f"src/comp.rs `.eln` helper `{hname}` must be `extern \"C\"`")
+            if re.search(rf'extern\s+"C-unwind"\s+fn\s+{re.escape(hname)}\b', comp_rs):
+                raise AssertionError(f"src/comp.rs `.eln` helper `{hname}` must NOT be `extern \"C-unwind\"`")
+
+        # 3) All `emacs_env` vtable entrypoints in `src/emacs-module.rs` remain `extern "C"`.
+        if re.search(r'extern\s+"C-unwind"\s+fn\s+module_(?!finalize_function\b|function_interactive_form\b|function_command_modes\b|function_arity\b|function_documentation\b|function_address\b|function_data\b|signal_or_throw\b)', mod_rs):
+            raise AssertionError("emacs_env vtable `module_*` entrypoints must not be `extern \"C-unwind\"`")
+
+        return {
+            "abi_version": "14",
+            "helper_link_table_entries": actual_base,
+            "vm_primitives_checked": checked_mut_prims,
+            "comp_c_helpers_checked": len(expected_comp_c_helpers),
+        }
 
     record_case("nonlocal_rs_isolated_component_tests", test_nonlocal_rs_component)
     record_case("gc_register_spill_and_print_guards", test_gc_register_spill_and_print_guards)

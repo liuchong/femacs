@@ -1,6 +1,21 @@
-# 当前状态（2026-11-23）
+# 当前状态（2026-11-24）
 
-**本段为当前实际读数，取代下方 2026-11-16 及更早的历史段落。**
+**本段为当前实际读数，取代下方 2026-11-23 及更早的历史段落。**
+
+- **去 `unsafe` 先行阶段 `U8-R2` 复核阻断已全闭环（`P-488`），`AU8` 四组严格重验通过、`CLN285` 与 `/Applications/Fe.app` 原子重装已完成，待独立复核确认后进入 `C1–C6`**：
+  - 修复三项阻断与性能 `--gate` 缺口：`GcContext::current()` VM 锁单租约与线程绑定及 `Rooted` 代际空闲链表独立槽位释放（阻塞 #1）；依授权按方案 A 对齐协同计划 `§0.1`、边界 `VmResult<T>` / `.eln` / 动态模块 / `run_thread` 契约与 `test-u3-unit.py`（阻塞 #2）；取消按名盲豁免、`adjudicate_555_runs` 全部 76 个差异/未完成入口接入 12 份外部对照包并经 `stable-classification` `_accept_rule`/`assess` 零未解释阻断/零结构失败闭合（阻塞 #3）；落地 `docs/baseline/bench-{cocoa,terminal}-ga8.tsv` 并强制 `--gate` `regressions == []`。
+  - **活跃产品闭包（`436` 份文件）**：`#![forbid(unsafe_code)]` **`143`** 份、`allow_*` **`0`** 份、`static mut` **`0`** 项、拼接 `include!` **`0`** 项、`unsafe_blocks` **`6,245`**、`SAFETY:` 契约 **`6,245 / 6,245`（`100.0%`）**、`unsafe_fn_defs` **`4,338`**。
+  - **`AU8-R2` 四组全过**：`clean-export`（`930.176s`，`7,722` 项跟踪导出，搬移 GUI/batch 全过）、`macos-ui`（`137.027s`，14 项 GUI/IME、`447` 多窗回调、`26/31` Finder 拖放、`16` 项异常 TTY）、`corpus-555`（`5625.912s`，555 入口 `8,685` 用例与 76 严格入口 `1,031` 用例 `0` 未解释阻断、`u8-native-normal`/`checking` 各 `11/11` / `603` 用例 `0` 阻断、`10` 项 ERT 与 `runtime-execution.py` `prepare_negative=1`/`young=120`/`major=44` 全过）、`performance`（`103.607s`，Cocoa 与终端 `bench.py --gate` 零回退）。
+- **最终可交付制品（经 [CLN285](../maintenance/cleanup/reports/2026-11-24-285-u8-r2-review-closure-and-au8-retirement.md) 清理 `14` 项临时范围 / `48,469` 文件 / `2,741,223,009` 逻辑字节并原子重装 `/Applications/Fe.app` 后复验通过）**：
+  - `build/terminal/port`（`45M`）：`src/emacs` `4,733,952 B`（SHA-256 `f1450fadfce4674d17bde284c51b1f0bcd313f48eb93dbd6067d973a67ec40c6`），`src/emacs.pdmp` `13,101,368 B`（SHA-256 `087e5609b9e8559321b6df296135a63c5866b57a720113fd957aa95831b5eac2`），`lib-src/emacsclient` `539,328 B`（`1baf54e6…`），`lib-src/hexl` `451,488 B`（`15f41ba9…`）。
+  - `dist/macos/Femacs.app`（`235M`）及已安装 `/Applications/Fe.app`：主程序 `6,267,632 B`（SHA-256 `c1481fe564794624663c17b8cc9b9ff5dfbbd2e3509af8feb08d8fedcc89992a`），`Femacs.pdmp` `18,601,672 B`（SHA-256 `65d5e30c9b991dc98f128846da3c5ee2d4a848bf0d08e63264e8f6458557e3ac`）；工作区与已安装 bundle 均通过 `codesign --verify --deep --strict` `exit 0`、双产物 `-Q --batch` `(+ 1 2)` + `treesit` 冒烟 `(3 t t nil t)` 及 `femacs`/`fe`/`feclient` 验证。
+- **关键实测对比摘要（`AU8-R2` 同机 vs 已安装参照 `32.0.50`）**：
+  - 7 轮基准中位数（`--gate` 0 回退）：冷启动 `20.852 / 19.276 ms` vs `181.294 / 184.283 ms`（提速 `8.69x / 9.56x`），`bc-loop` `0.0041 vs 1.896–1.907 ms`，`bc-sum` `0.342–0.344 vs 4.274–4.344 ms`，`bc-car` `0.0041 vs 1.776–1.868 ms`，`sort-100k` `0.354–0.355 vs 1.985–1.995 ms`，`edit` `7.616–7.826 vs 9.543–9.634 ms`，`regex` `2.227–2.297 vs 2.746–2.762 ms`，`gc` `31.021–32.708 vs 50.465–51.851 ms`，`load` `1.603–1.750 vs 1.698–1.846 ms`。
+  - 已交付对比参照字节码：`delivered-terminal-vs-reference-bytecode` 比值 `bytecode 0.1086`、`edit 1.1607`、`gc-churn 0.7059`、`gc-retained 0.6816`、`load 0.2796`、`regex 1.0460`；`delivered-cocoa-vs-reference-bytecode` 比值 `bytecode 0.1086`、`edit 1.1511`、`gc-churn 0.9130`、`gc-retained 0.8258`、`load 0.5885`、`regex 1.0819`。
+
+## 历史记录（2026-11-23，已被上方 2026-11-24 R2 复验取代）
+
+**本段保留为前一轮记录。**
 
 - **去 `unsafe` 先行阶段（`U1–U8` / `AU1–AU8`）已完成实施与四组全量终验（`P-480`–`P-487`），待独立终审确认后进入 `C1–C6`**：
   - 活跃产品闭包（`436` 份文件）已收口为 `#![forbid(unsafe_code)]` **`143`** 份、`allow(unsafe_op_in_unsafe_fn)` **`0`** 份、`allow(static_mut_refs)` **`0`** 份、`static mut` **`0`** 项（较 `U1` 基线 `-2,602`）、拼接 `include!` **`0`** 项（较 `U1` `-2,232`）、`unsafe_blocks` **`6,243`**、`SAFETY:` 契约覆盖 **`6,243 / 6,243`（`100.0%`）**、`unsafe_fn_defs` **`4,337`**（较 `U1` `-884`）。

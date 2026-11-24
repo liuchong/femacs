@@ -1452,6 +1452,21 @@ def integration(out):
             identity_version=1,files={},file_identities={},link_inputs={},resources={}))
         native=accounting.scoped_candidate_profile(product, receipt)
         assert native['id']=='cocoa-native-collector-observer-normal-young' and native['native'] is True
+        baseline_binding=dict(binding, variant='baseline', observer=False)
+        e.write_json(product/'runtime-binding.json',baseline_binding)
+        e.write_json(product/'runtime-product.json',dict(schema=1,build_complete=True,binding=baseline_binding,
+            compatibility_accepted=False,performance_accepted=False,semantic_tests_executed=False,
+            identity_version=1,files={},file_identities={},link_inputs={},resources={}))
+        baseline_receipt=dict(receipt, runtime_environment=dict(candidate=dict(
+            FEMACS_GC_OBSERVATION='off',FEMACS_GC_COLLECTOR='major',FEMACS_STABLE_PRODUCT_LISP=str(lisp))))
+        baseline_derived=accounting.scoped_candidate_profile(product, baseline_receipt)
+        assert baseline_derived['id']=='cocoa-baseline-normal' and baseline_derived['collector']=='off'
+        try:
+            accounting.scoped_candidate_profile(product, dict(receipt, runtime_environment=dict(candidate=dict(
+                FEMACS_GC_OBSERVATION='off',FEMACS_GC_COLLECTOR='young',FEMACS_STABLE_PRODUCT_LISP=str(lisp)))))
+            raise AssertionError('non-collector baseline must reject FEMACS_GC_COLLECTOR=young')
+        except ValueError:
+            pass
         matrix_checks={k:True for k in accounting.MATRIX_CONTROL_CHECKS}
         selected_checks={k:True for k in accounting.SELECTED_CONTROL_CHECKS}
         assert accounting.control_postflight_kind(dict(checks=matrix_checks))=='matrix'
