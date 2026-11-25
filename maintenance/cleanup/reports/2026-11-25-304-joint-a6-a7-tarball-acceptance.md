@@ -1,0 +1,40 @@
+# CLN304 — Joint Eliscript + FEmacs C3–C6 / A3–A6 Verification on Formal Tarball `4eec4e07` (2026-11-25)
+
+## Summary
+
+Completed joint downstream C3–C6 fixes in an isolated downstream worktree (`origin/femacs-phase1` at GPG-signed commit `4eec4e079432f7f57a54eb89166a1f208b23e2c7`, leaving the active main downstream working tree completely untouched), produced and verified the formal `eliscript-0.1.3.tgz` npm tarball (`5,196,179` B, `5ef7383a29ccc2c159d6ec94b25d4fe70632abc7f1e4e0a53745daf313296816`) bootstrapped with cached `dist/lisp/bin/femacs-lisp` (`9ef6e40f`), added direct tarball consumption to `tools/test-c5-a5-worker.py` (`8775491e`), verified same-artifact Bun `1.4.0` A5 (`11/11`) and strict default Node `v26.13.1` A6 (`12/12`, `honest=true`, `exit=0`) across Cocoa `Fe.app` and Terminal PTY plus joint `C3/A3` and `C4/A4` regressions, retired `6` temporary scopes (`CLN304`), and passed post-cleanup checks.
+
+## Changes & Controlled Verification Receipts
+
+- **Downstream `femacs-phase1` delivery (`4eec4e079432f7f57a54eb89166a1f208b23e2c7`) & formal Stage 0–3 / tarball receipt (`run_id=4f14102408d743359dad4dfab9e2c96e`, `193.595s`, `exit=0`, `cleanup_complete=true`)**:
+  - `runtime/worker.eli` & `specs/0088-emacs-worker-value-codec.md`: advertise `runtime-resolution` only when `installPackageResolver` succeeds; verified in `tests/worker-runtime.test.eli` (`4/4` PASS, checking Bun present and Node omitted).
+  - `package.json`, `docs/releasing.md`, `tests/eliscript/{package-surface,release-package-install}.eli`: include `tools/worker/{README.md,eliscript-service.el,eliscript-value-codec.el,eliscript-value-stream.el,eliscript-worker.el}` in the npm `"files"` list, document the `RELEASE-02` `5,196,179`-byte (`+4.60%`) audit with `MAX_PACKED_BYTES=5,500,000`, and pass `make check-release-package` `9/9` (including `< 5.5 MB` and Node worker handshake check without `runtime-resolution`), `tools/surface/check.mjs`, `tools/documentation/check.mjs`, and `tools/integrity/check.mjs --dependencies` (`0` JS / `866` Eli).
+  - `tools/femacs-host-cache.el` + `tests/eliscript-femacs-host-cache-tests.el` (`2/2` PASS on both cached `femacs-lisp` `9ef6e40f` and GNU `emacs` `/opt/homebrew/bin/emacs`, plus `strict-byte-compile.sh` `0` warnings), and `editor/README.md` + `tests/eliscript-local-scope-tests.el` (`2/2` PASS on both hosts without JS).
+  - Full `make bootstrap-release && make verify-bootstrap && make prepare-release-package` via cached `femacs-lisp` (`9ef6e40f`, `package_sha256=490340fd8efa6de351c8097fb8ee7afd2a30ad74e0e7f3c0dd90e474b26159af`): `352`-file `stage2 == stage3` fixed point `a5fc90590dc79c2affc1aa74f4273f99be1a9004a9b0fa97c17418c6e63b3a5a`, `formalSourceIdentity=e20e1f37768098e99b64496b90646b918679c71fc899ecf2ba6f515993a86a1c`, `packagedProductIdentity=ffcbea4bde31e36482a6069533cfeee150253b7c7e5d4e41f6c47219b810711c`.
+  - Official tarball `eliscript-0.1.3.tgz`: `5,196,179` B (`33,809,839` B unpacked, `739` entries), `tarball_sha256=5ef7383a29ccc2c159d6ec94b25d4fe70632abc7f1e4e0a53745daf313296816`, integrity `sha512-7mOUa4WsS8YUhC7eAR2QyrM6CvzHoMfreEX9iExVWAmf3A15xm5qpZj1zwuDpnTPwXPk9crAfAN8hhUSfTOp+w==`.
+- **FEmacs formal tarball harness & joint acceptance (`8775491e`)**:
+  - Updated `tools/test-c5-a5-worker.py` (`39,981` B, `df4705ef4eaab5a9bd9eb6001e1a2cca203cdf58797a0c5bfae30339f614a6b0`) and `maintenance/tooling-inventory.json`: added `--eliscript-tarball` / `--eliscript-tarball-commit` building frozen closure `build/acceptance/frozen-eliscript-4eec4e07` (`206` files, `closure_sha256=339aa139d19cf443cd3f41d8212e4a233306509b84e01ed0c6b4f4a9b187fde3`) directly from `package/` inside `eliscript-0.1.3.tgz`, plus `reject_invalid_tarball_manifest_metadata`.
+  - Same-tarball joint Bun A5 + strict default Node A6 (`run_id=a3182393bb304b8aa4833d11b53087d4`, `17.415s`, `exit=0`, `cleanup_complete=true`):
+    - `test-c5-a5-worker.py --self-test-guards` (`10/10` PASS) and `test-c6-a6-node.py --self-test-guards` (`6/6` PASS).
+    - Bun `1.4.0` A5: `(nil nil 0)` opt-in clean, Cocoa `Fe.app` (`ns`, `1.6917s`) `11/11` PASS, Terminal PTY (`t`, `3.6753s`) `11/11` PASS.
+    - Strict default Node `v26.13.1` (`08bfa72a…`, Bun-free `PATH`, inherited `NODE_OPTIONS`/`NODE_PATH` stripped) A6: `eliscript/runtime/lisp` -> `42` / `"42"`, Cocoa `Fe.app` (`ns`, `3.1031s`) `12/12` PASS, Terminal PTY (`t`, `5.4s`) `12/12` PASS, both relocated probes `outcome="unsupported"`, `advertised=false`, `supported=false`, `honest=true`, `ERR_MODULE_NOT_FOUND`, **`exit=0`** (`upstream_capability_honesty_passed=true`, `upstream_gap=null`).
+  - Joint `C3/A3` & `C4/A4` regression against `4eec4e07` (`run_id=36aabba61537489e8af9edc93af81e91`, `175.714s`, `exit=0`, `cleanup_complete=true`): `test-c3-a3-seed-host.py` PASS (`seed=25files/1431679B(0diffs)`, `stage0=131files/15118877B(0diffs)`, `cache=490340fd8efa6de3`); `test-c4-a4-modern-local.py` PASS (`ert=84passed/10files`, `rejections=14`, `pkg_sha=490340fd8efa6de3`).
+  - Post-cleanup smoke (`run_id=6a6fb35af82949799c376545d9230d60`, `12.982s`, `exit=0`, `cleanup_complete=true`): `10/10` + `6/6` guards, empty `diff -rq dist/macos/Femacs.app /Applications/Fe.app`, strict `codesign` on `Fe.app` / `dist/lisp/bin/femacs-lisp` / `build/terminal/port/src/emacs`, `femacs-lisp-cache.py verify --expect-commit 9ef6e40f…`, `(42 t t nil nil 0)` on both editors, `emacsclient 32.0.50`, `femacs-lisp (+ 40 2) -> 42`, `check-own-voice.py` (`0` failures), `test-repository-bootstrap.py` (`4/4`), `test-tooling-modernization.py` (`33/33`), and zero `tools/__pycache__`.
+
+## Retired Temporary Scopes
+
+Retired `6` owned temporary acceptance, host-cache, and superseded `db9fd8ae` closure scopes totaling `26,000` files, `970` dirs, `10` symlinks, `1,070,774,725` logical bytes (`tools/__pycache__` absent):
+
+| Removed scope | Pre-delete `du` | Files | Dirs | Symlinks | Logical bytes | Normalized digest | Replacement / Recovery |
+| --- | ---: | ---: | ---: | ---: | ---: | --- | --- |
+| `build/acceptance/frozen-eliscript-db9fd8ae` | `6.5M` | `210` | `18` | `0` | `6,276,977` | `30c51f37499a04c422cf8e1cfb17387a87146736f5a2208c499f012e3c889669` | Superseded by tarball-built `build/acceptance/frozen-eliscript-4eec4e07` |
+| `build/acceptance/eliscript-host-cache` | `210M` | `4,416` | `113` | `0` | `209,701,391` | `d3932e41ae6294d8ad64ce277c034cb804fd9266d34c0e24ff726e0e6dad1006` | Rebuilt from `dist/lisp` via `femacs-host-cache.el --ensure` |
+| `build/acceptance/a3-joint-4eec4e07` | `764M` | `17,503` | `603` | `6` | `760,920,542` | `1fe5858620e0cd8fda650b329e4869ad3afd65e0f7a2159b565832cef88a5051` | Regenerated by `tools/test-c3-a3-seed-host.py` against `4eec4e07` |
+| `build/acceptance/a4-joint-4eec4e07` | `98M` | `3,869` | `236` | `4` | `93,828,662` | `99fb83297692b669fa35ee79e62cf392340b5432da7947333bb587ac8702232d` | Regenerated by `tools/test-c4-a4-modern-local.py` against `4eec4e07` |
+| `build/acceptance/a5-joint-4eec4e07` | `40K` | `1` | `0` | `0` | `39,022` | `a820a2cfd752a1d3ffeb53bf7f68bf5b1412de9e9b280475e6213ba9f561b7fb` | Regenerated by `tools/test-c5-a5-worker.py --frozen-package build/acceptance/frozen-eliscript-4eec4e07 --runner bun` |
+| `build/acceptance/a6-joint-4eec4e07` | `8.0K` | `1` | `0` | `0` | `8,131` | `47779872d4bd28d2fa06f4212b6bc137f021096b95b2f80d7109c459a2eb6926` | Regenerated by `tools/test-c6-a6-node.py --frozen-package build/acceptance/frozen-eliscript-4eec4e07` |
+
+## Retained Working Set
+
+- `build/acceptance/eliscript-formal-tarball` (`5.2M`: `eliscript-0.1.3.tgz`, `stage3-release.json`, `pack-receipt.json`, `tarball.sha256`) and `build/acceptance/frozen-eliscript-4eec4e07` (`6.5M`, `206` files, `closure_sha256=339aa139d19cf443cd3f41d8212e4a233306509b84e01ed0c6b4f4a9b187fde3`): explicitly retained for independent SHA-256 recomputation during dual `[FEMACS-JOINT-A6-A7-REVIEW]` and `[ELISCRIPT-PHASE1-REVIEW]`; retire upon A7 closure.
+- `build/terminal` (`45M`), `dist/macos/Femacs.app` (`235M`), `/Applications/Fe.app` (`235M`), `dist/lisp` (`210M`), `build/generation` (`17M`), and `build/manuals` (`1.4G`).
