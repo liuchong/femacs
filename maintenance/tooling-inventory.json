@@ -8406,8 +8406,8 @@
     },
     {
       "path": "tools/test-c5-a5-worker.py",
-      "sha256": "f60f595b264218a7f6bd903742ec28e79d8efd4a5f8f412aee3932a17ac28dcb",
-      "bytes": 32933,
+      "sha256": "8b4c19c248c8a64b869944a0952a3de2ff7c6bcdf0f282404cf36610aff5384d",
+      "bytes": 39979,
       "family": "test",
       "decision": "retain",
       "replacement": null,

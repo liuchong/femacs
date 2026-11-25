@@ -201,6 +201,15 @@ def verify_frozen_package(pkg_dir: Path) -> dict[str, object]:
     builder_sha = manifest.get("builder_femacs_lisp_sha256")
     if not isinstance(builder_sha, str) or not HEX64_RE.match(builder_sha):
         raise ValueError(f"invalid builder_femacs_lisp_sha256 in frozen manifest: {builder_sha!r}")
+    for field in ("tarball_sha256", "stage3_product_identity"):
+        if field in manifest:
+            val = manifest.get(field)
+            if not isinstance(val, str) or not HEX64_RE.match(val):
+                raise ValueError(f"invalid {field} in frozen manifest: {val!r}")
+    if "tarball_bytes" in manifest:
+        tbytes = manifest.get("tarball_bytes")
+        if not isinstance(tbytes, int) or isinstance(tbytes, bool) or tbytes <= 0:
+            raise ValueError(f"invalid tarball_bytes in frozen manifest: {tbytes!r}")
     manifest_files = manifest.get("files")
     if not isinstance(manifest_files, dict):
         raise ValueError("frozen manifest files must be a JSON object")
@@ -232,6 +241,210 @@ def verify_frozen_package(pkg_dir: Path) -> dict[str, object]:
     return manifest
 
 
+def _finalize_frozen_stage(
+    build_root: Path,
+    analysis_stage: Path,
+    probes_stage: Path,
+    runtime_root: Path,
+    commit_sha: str,
+    femacs_lisp: Path,
+    package_out: Path,
+    *,
+    extra_manifest: dict[str, object] | None = None,
+) -> dict[str, object]:
+    """Assemble, verify, and atomically publish a read-only runtime closure."""
+    stage_pkg = build_root / "package_stage"
+    stage_pkg.mkdir(parents=True, exist_ok=True)
+    copy_runtime_tree(analysis_stage, stage_pkg / "analysis")
+    copy_runtime_tree(probes_stage, stage_pkg / "probes")
+
+    shutil.copy2(runtime_root / "package.json", stage_pkg / "package.json")
+    copy_runtime_tree(runtime_root / "runtime", stage_pkg / "runtime")
+    copy_runtime_tree(runtime_root / "platform", stage_pkg / "platform")
+    copy_runtime_tree(runtime_root / "stdlib", stage_pkg / "stdlib")
+    copy_runtime_tree(runtime_root / "dist/runtime", stage_pkg / "dist/runtime")
+
+    client_dst = stage_pkg / "tools/worker"
+    client_dst.mkdir(parents=True, exist_ok=True)
+    for name in (
+        "eliscript-value-codec.el",
+        "eliscript-value-stream.el",
+        "eliscript-worker.el",
+        "eliscript-service.el",
+    ):
+        shutil.copy2(runtime_root / "tools/worker" / name, client_dst / name)
+
+    closure_files, closure_sha256 = compute_closure_inventory(stage_pkg)
+    for req in REQUIRED_CLOSURE_FILES:
+        assert req in closure_files, f"missing required closure file: {req}"
+    manifest: dict[str, object] = {
+        "schema": "femacs-c5-frozen-eliscript-v1",
+        "eliscript_commit": commit_sha,
+        "builder_femacs_lisp_sha256": sha256_file(femacs_lisp),
+        "file_count": len(closure_files),
+        "closure_sha256": closure_sha256,
+        "files": closure_files,
+    }
+    if extra_manifest:
+        manifest.update(extra_manifest)
+    (stage_pkg / "frozen-manifest.json").write_text(
+        json.dumps(manifest, indent=2) + "\n", encoding="utf-8"
+    )
+    verify_frozen_package(stage_pkg)
+    shutil.move(str(stage_pkg), str(package_out))
+    return verify_frozen_package(package_out)
+
+
+def _compile_analysis_and_probes(
+    build_root: Path,
+    builder_bin: Path,
+    builder_cwd: Path,
+    analysis_root: Path,
+    build_env: dict[str, str],
+) -> tuple[Path, Path]:
+    """Compile analysis fixture and C5 probe module via the selected build CLI."""
+    analysis_stage = build_root / "analysis_stage"
+    run_checked(
+        [
+            str(builder_bin),
+            "--root",
+            str(analysis_root),
+            "--out-dir",
+            str(analysis_stage),
+            str(analysis_root / "analysis.eli"),
+        ],
+        cwd=builder_cwd,
+        env=build_env,
+        timeout=120.0,
+    )
+    probe_src_dir = build_root / "probes_src"
+    probe_src_dir.mkdir(parents=True, exist_ok=True)
+    probe_entry = probe_src_dir / "c5-probes.eli"
+    probe_entry.write_text(C5_PROBES_ELI, encoding="utf-8")
+    probes_stage = build_root / "probes_stage"
+    run_checked(
+        [
+            str(builder_bin),
+            "--root",
+            str(probe_src_dir),
+            "--out-dir",
+            str(probes_stage),
+            str(probe_entry),
+        ],
+        cwd=builder_cwd,
+        env=build_env,
+        timeout=120.0,
+    )
+    return analysis_stage, probes_stage
+
+
+def prepare_frozen_package_from_tarball(
+    tarball_path: Path,
+    eliscript_repo: Path,
+    eliscript_ref: str,
+    tarball_commit: str | None,
+    femacs_lisp: Path,
+    package_out: Path,
+) -> dict[str, object]:
+    """Build a verified frozen runtime closure from an official Eliscript npm tarball."""
+    if not tarball_path.is_file():
+        raise FileNotFoundError(f"formal tarball does not exist: {tarball_path}")
+    if package_out.exists() or package_out.is_symlink():
+        raise FileExistsError(f"refusing to overwrite existing package output: {package_out}")
+    commit_sha = run_checked(
+        ["git", "-C", str(eliscript_repo), "rev-parse", eliscript_ref],
+        timeout=15.0,
+    ).stdout.strip()
+    if tarball_commit is not None:
+        if not HEX40_RE.match(tarball_commit) or tarball_commit != commit_sha:
+            raise ValueError(
+                f"--eliscript-tarball-commit {tarball_commit!r} mismatches git rev {commit_sha!r}"
+            )
+    tarball_sha256 = sha256_file(tarball_path)
+    tarball_bytes = tarball_path.stat().st_size
+    package_out.parent.mkdir(parents=True, exist_ok=True)
+
+    with tempfile.TemporaryDirectory(prefix="c5-tarball-build-") as build_tmp:
+        build_root = Path(build_tmp)
+        unpacked = build_root / "unpacked"
+        unpacked.mkdir(parents=True, exist_ok=True)
+        run_checked(["tar", "-xzf", str(tarball_path), "-C", str(unpacked)], timeout=60.0)
+        pkg_src = unpacked / "package"
+        required_tar_entries = (
+            "package.json",
+            "bin/eliscript-build",
+            "dist/stage3-release.json",
+            "dist/compiler-artifact.json",
+            "dist/runtime/lisp.mjs",
+            "runtime/worker.mjs",
+            "platform/worker.mjs",
+            "tools/worker/eliscript-worker.el",
+            "tools/worker/eliscript-service.el",
+            "tools/worker/eliscript-value-codec.el",
+            "tools/worker/eliscript-value-stream.el",
+        )
+        for req in required_tar_entries:
+            if not (pkg_src / req).is_file():
+                raise ValueError(f"formal tarball missing required packaged file: {req}")
+
+        release_doc = json.loads((pkg_src / "dist/stage3-release.json").read_text(encoding="utf-8"))
+        if release_doc.get("status") != "accepted":
+            raise ValueError(f"unaccepted stage3-release.json status: {release_doc.get('status')!r}")
+        pkg_identity = (release_doc.get("packagedProductIdentity") or {}).get("sha256")
+        if not isinstance(pkg_identity, str) or not HEX64_RE.match(pkg_identity):
+            raise ValueError(f"invalid packagedProductIdentity sha256 in tarball: {pkg_identity!r}")
+
+        examples_src = build_root / "examples_src"
+        examples_src.mkdir(parents=True, exist_ok=True)
+        tar_proc = subprocess.run(
+            [
+                "git",
+                "-C",
+                str(eliscript_repo),
+                "archive",
+                "--format=tar",
+                commit_sha,
+                "examples/emacs-analysis",
+            ],
+            capture_output=True,
+            check=True,
+            timeout=30.0,
+        )
+        subprocess.run(
+            ["tar", "-xf", "-", "-C", str(examples_src)],
+            input=tar_proc.stdout,
+            check=True,
+            timeout=30.0,
+        )
+
+        build_env = os.environ.copy()
+        for k in ("NODE_OPTIONS", "NODE_PATH"):
+            build_env.pop(k, None)
+        build_env["ELISCRIPT_JS_RUNTIME"] = shutil.which("bun") or "bun"
+        analysis_stage, probes_stage = _compile_analysis_and_probes(
+            build_root,
+            pkg_src / "bin/eliscript-build",
+            pkg_src,
+            examples_src / "examples/emacs-analysis",
+            build_env,
+        )
+        return _finalize_frozen_stage(
+            build_root,
+            analysis_stage,
+            probes_stage,
+            pkg_src,
+            commit_sha,
+            femacs_lisp,
+            package_out,
+            extra_manifest={
+                "source_kind": "official-npm-tarball",
+                "tarball_sha256": tarball_sha256,
+                "tarball_bytes": tarball_bytes,
+                "stage3_product_identity": pkg_identity,
+            },
+        )
+
+
 def prepare_frozen_package(
     eliscript_repo: Path,
     eliscript_ref: str,
@@ -250,8 +463,6 @@ def prepare_frozen_package(
         build_root = Path(build_tmp)
         archive_src = build_root / "src"
         archive_src.mkdir(parents=True, exist_ok=True)
-        stage_pkg = build_root / "package_stage"
-        stage_pkg.mkdir(parents=True, exist_ok=True)
         tar_proc = subprocess.run(
             ["git", "-C", str(eliscript_repo), "archive", "--format=tar", commit_sha],
             capture_output=True,
@@ -274,80 +485,24 @@ def prepare_frozen_package(
         run_checked(["make", "bootstrap-release"], cwd=archive_src, env=env, timeout=600.0)
         run_checked(["make", "prepare-release-package"], cwd=archive_src, env=env, timeout=600.0)
 
-        # Stage compiled analysis and C5 probe modules inside build_root, strip
-        # per-module node_modules there, and copy only the runtime closure.
         build_env = env.copy()
         build_env["ELISCRIPT_JS_RUNTIME"] = shutil.which("bun") or "bun"
-        analysis_stage = build_root / "analysis_stage"
-        run_checked(
-            [
-                str(archive_src / "bin/eliscript-build"),
-                "--root",
-                str(archive_src / "examples/emacs-analysis"),
-                "--out-dir",
-                str(analysis_stage),
-                str(archive_src / "examples/emacs-analysis/analysis.eli"),
-            ],
-            cwd=archive_src,
-            env=build_env,
-            timeout=120.0,
+        analysis_stage, probes_stage = _compile_analysis_and_probes(
+            build_root,
+            archive_src / "bin/eliscript-build",
+            archive_src,
+            archive_src / "examples/emacs-analysis",
+            build_env,
         )
-        copy_runtime_tree(analysis_stage, stage_pkg / "analysis")
-
-        probe_src_dir = build_root / "probes_src"
-        probe_src_dir.mkdir(parents=True, exist_ok=True)
-        probe_entry = probe_src_dir / "c5-probes.eli"
-        probe_entry.write_text(C5_PROBES_ELI, encoding="utf-8")
-        probes_stage = build_root / "probes_stage"
-        run_checked(
-            [
-                str(archive_src / "bin/eliscript-build"),
-                "--root",
-                str(probe_src_dir),
-                "--out-dir",
-                str(probes_stage),
-                str(probe_entry),
-            ],
-            cwd=archive_src,
-            env=build_env,
-            timeout=120.0,
+        return _finalize_frozen_stage(
+            build_root,
+            analysis_stage,
+            probes_stage,
+            archive_src,
+            commit_sha,
+            femacs_lisp,
+            package_out,
         )
-        copy_runtime_tree(probes_stage, stage_pkg / "probes")
-
-        # Copy frozen runtime, platform, stdlib, dist/runtime, package.json, and worker Lisp closure.
-        shutil.copy2(archive_src / "package.json", stage_pkg / "package.json")
-        copy_runtime_tree(archive_src / "runtime", stage_pkg / "runtime")
-        copy_runtime_tree(archive_src / "platform", stage_pkg / "platform")
-        copy_runtime_tree(archive_src / "stdlib", stage_pkg / "stdlib")
-        copy_runtime_tree(archive_src / "dist/runtime", stage_pkg / "dist/runtime")
-
-        client_dst = stage_pkg / "tools/worker"
-        client_dst.mkdir(parents=True, exist_ok=True)
-        for name in (
-            "eliscript-value-codec.el",
-            "eliscript-value-stream.el",
-            "eliscript-worker.el",
-            "eliscript-service.el",
-        ):
-            shutil.copy2(archive_src / "tools/worker" / name, client_dst / name)
-
-        closure_files, closure_sha256 = compute_closure_inventory(stage_pkg)
-        for req in REQUIRED_CLOSURE_FILES:
-            assert req in closure_files, f"missing required closure file: {req}"
-        manifest = {
-            "schema": "femacs-c5-frozen-eliscript-v1",
-            "eliscript_commit": commit_sha,
-            "builder_femacs_lisp_sha256": sha256_file(femacs_lisp),
-            "file_count": len(closure_files),
-            "closure_sha256": closure_sha256,
-            "files": closure_files,
-        }
-        (stage_pkg / "frozen-manifest.json").write_text(
-            json.dumps(manifest, indent=2) + "\n", encoding="utf-8"
-        )
-        verify_frozen_package(stage_pkg)
-        shutil.move(str(stage_pkg), str(package_out))
-    return verify_frozen_package(package_out)
 
 
 def check_opt_in_clean_batch(binary: Path, label: str) -> dict[str, object]:
@@ -708,6 +863,36 @@ def run_guard_self_tests(valid_pkg: Path) -> dict[str, object]:
             }
         )
 
+        # 9. Malformed tarball metadata in frozen-manifest.json is rejected.
+        bad_tar_pkg = tmp / "bad-tar-pkg"
+        shutil.copytree(valid_pkg, bad_tar_pkg, symlinks=False)
+        bad_tar_manifest = json.loads((bad_tar_pkg / "frozen-manifest.json").read_text(encoding="utf-8"))
+        bad_tar_manifest["tarball_sha256"] = "not-hex"
+        (bad_tar_pkg / "frozen-manifest.json").write_text(
+            json.dumps(bad_tar_manifest, indent=2) + "\n", encoding="utf-8"
+        )
+        p9 = subprocess.run(
+            [
+                "python3",
+                script,
+                "--frozen-package",
+                str(bad_tar_pkg),
+                "--out",
+                str(tmp / "out-9"),
+            ],
+            capture_output=True,
+            text=True,
+            timeout=15.0,
+        )
+        assert p9.returncode != 0 and not (tmp / "out-9").exists()
+        checks.append(
+            {
+                "id": "reject_invalid_tarball_manifest_metadata",
+                "passed": True,
+                "rc": p9.returncode,
+            }
+        )
+
     checks.append(
         {
             "id": "verify_valid_frozen_package",
@@ -731,6 +916,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--terminal", type=Path, default=REPO / "build/terminal/port/src/emacs")
     parser.add_argument("--eliscript-repo", type=Path, default=REPO.parent / "eliscript")
     parser.add_argument("--eliscript-ref", default="HEAD")
+    parser.add_argument("--eliscript-tarball", type=Path, default=None)
+    parser.add_argument("--eliscript-tarball-commit", default=None)
     parser.add_argument("--femacs-lisp", type=Path, default=REPO / "dist/lisp/bin/femacs-lisp")
     parser.add_argument("--runner", default="bun")
     parser.add_argument("--frozen-package", type=Path, default=None)
@@ -741,8 +928,8 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     if args.self_test_guards:
-        if args.frozen_package is None or args.prepare_only or args.package_out is not None:
-            parser.error("--self-test-guards requires --frozen-package without --prepare-only/--package-out")
+        if args.frozen_package is None or args.prepare_only or args.package_out is not None or args.eliscript_tarball is not None:
+            parser.error("--self-test-guards requires --frozen-package without prepare flags")
         guard_report = run_guard_self_tests(args.frozen_package.resolve())
         print(json.dumps(guard_report, indent=2))
         return 0
@@ -753,8 +940,8 @@ def main(argv: list[str] | None = None) -> int:
     out_dir = args.out.resolve()
 
     if args.frozen_package is not None:
-        if args.prepare_only or args.package_out is not None:
-            parser.error("--frozen-package is a read-only input and cannot be combined with --prepare-only or --package-out")
+        if args.prepare_only or args.package_out is not None or args.eliscript_tarball is not None:
+            parser.error("--frozen-package is a read-only input and cannot be combined with prepare flags")
         pkg_dir = args.frozen_package.resolve()
         manifest = verify_frozen_package(pkg_dir)
         if out_dir == pkg_dir or out_dir.is_relative_to(pkg_dir):
@@ -769,9 +956,19 @@ def main(argv: list[str] | None = None) -> int:
             raise FileExistsError(f"refusing to overwrite existing package output: {pkg_target}")
         if not args.prepare_only and out_dir.exists():
             raise FileExistsError(f"refusing to overwrite existing output directory: {out_dir}")
-        manifest = prepare_frozen_package(
-            args.eliscript_repo.resolve(), args.eliscript_ref, femacs_lisp, pkg_target
-        )
+        if args.eliscript_tarball is not None:
+            manifest = prepare_frozen_package_from_tarball(
+                args.eliscript_tarball.resolve(),
+                args.eliscript_repo.resolve(),
+                args.eliscript_ref,
+                args.eliscript_tarball_commit,
+                femacs_lisp,
+                pkg_target,
+            )
+        else:
+            manifest = prepare_frozen_package(
+                args.eliscript_repo.resolve(), args.eliscript_ref, femacs_lisp, pkg_target
+            )
         pkg_dir = pkg_target
         if args.prepare_only:
             print(
